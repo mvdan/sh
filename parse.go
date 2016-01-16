@@ -43,22 +43,31 @@ var reserved = map[rune]bool{
 	'}':  true,
 }
 
+var space = map[rune]bool{
+	' ':  true,
+	'\t': true,
+}
+
 func (p *parser) next() {
-	r, _, err := p.r.ReadRune()
-	if err == io.EOF {
-		p.tok = EOF
-		return
-	}
-	if err != nil {
-		p.errPass(err)
-		return
+	r := ' '
+	var err error
+	for space[r] {
+		r, _, err = p.r.ReadRune()
+		if err == io.EOF {
+			p.tok = EOF
+			return
+		}
+		if err != nil {
+			p.errPass(err)
+			return
+		}
 	}
 	if reserved[r] {
 		p.tok = r
 		return
 	}
 	read := false
-	for !reserved[r] && r != '\n' && r != ' ' {
+	for !reserved[r] && !space[r] {
 		r, _, err = p.r.ReadRune()
 		if err == io.EOF {
 			break

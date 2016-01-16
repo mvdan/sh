@@ -1,1 +1,2 @@
-foo && bar || bar2
+foo && bar
+foo || bar
