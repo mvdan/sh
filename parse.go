@@ -29,8 +29,8 @@ type parser struct {
 	err error
 }
 
-func isIdentChar(r rune) bool {
-	return r == '_' || (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z')
+func isToken(r rune) bool {
+	return r == '#' || r == '='
 }
 
 func (p *parser) next() {
@@ -48,22 +48,22 @@ func (p *parser) next() {
 		p.next()
 		return
 	}
-	if isIdentChar(r) {
-		for isIdentChar(r) {
-			r, _, err = p.r.ReadRune()
-			if err == io.EOF {
-				break
-			}
-			if err != nil {
-				p.err = err
-				p.tok = EOF
-				return
-			}
-		}
-		p.tok = IDENT
+	if isToken(r) {
+		p.tok = r
 		return
 	}
-	p.tok = r
+	for !isToken(r) {
+		r, _, err = p.r.ReadRune()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			p.err = err
+			p.tok = EOF
+			return
+		}
+	}
+	p.tok = IDENT
 	return
 }
 
