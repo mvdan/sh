@@ -145,24 +145,34 @@ func (p *parser) errWanted(tok int32) {
 func (p *parser) program() {
 	p.next()
 	for p.tok != EOF {
+		p.command()
+	}
+}
+
+func (p *parser) command() {
+	switch {
+	case p.got('#'):
+		p.discardLine()
+	case p.got(WORD):
 		switch {
-		case p.got('#'):
-			p.discardLine()
-		case p.got(WORD):
-			switch {
-			case p.got('='):
-			case p.got('&'):
-				if p.got('&') {
-					p.want(WORD)
-				}
-			case p.got('|'):
-				p.got('|')
-				p.want(WORD)
+		case p.got('='):
+		case p.got('&'):
+			if p.got('&') {
+				p.command()
 			}
-			p.got(';')
-			p.got('\n')
-		default:
-			p.errUnexpected()
+		case p.got('|'):
+			p.got('|')
+			p.command()
 		}
+		p.got(';')
+		p.got('\n')
+	case p.got('{'):
+		for !p.got('}') {
+			p.command()
+		}
+		p.got(';')
+		p.got('\n')
+	default:
+		p.errUnexpected()
 	}
 }
