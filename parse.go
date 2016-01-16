@@ -92,6 +92,15 @@ func (p *parser) got(tok int32) bool {
 	return false
 }
 
+func (p *parser) want(tok int32) {
+	if p.tok != tok {
+		p.err = fmt.Errorf("Want %d, got %d", tok, p.tok)
+		p.tok = EOF
+		return
+	}
+	p.next()
+}
+
 func (p *parser) program() {
 	p.next()
 	for p.tok != EOF {
@@ -102,7 +111,12 @@ func (p *parser) program() {
 			switch {
 			case p.got('='):
 			case p.got('&'):
+				if p.got('&') {
+					p.want(IDENT)
+				}
 			case p.got('|'):
+				p.got('|')
+				p.want(IDENT)
 			}
 		default:
 			p.err = fmt.Errorf("unexpected token %d", p.tok)
