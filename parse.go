@@ -13,7 +13,7 @@ import (
 const (
 	_ = -iota
 	EOF
-	IDENT
+	WORD
 )
 
 func parse(r io.Reader) error {
@@ -49,6 +49,9 @@ var space = map[rune]bool{
 }
 
 func (p *parser) next() {
+	if p.err != nil {
+		return
+	}
 	r := ' '
 	var err error
 	for space[r] {
@@ -84,7 +87,7 @@ func (p *parser) next() {
 			return
 		}
 	}
-	p.tok = IDENT
+	p.tok = WORD
 	return
 }
 
@@ -119,8 +122,8 @@ func tokStr(tok int32) string {
 	switch tok {
 	case EOF:
 		return "EOF"
-	case IDENT:
-		return "ident"
+	case WORD:
+		return "word"
 	default:
 		return strconv.QuoteRune(tok)
 	}
@@ -142,22 +145,19 @@ func (p *parser) errWanted(tok int32) {
 func (p *parser) program() {
 	p.next()
 	for p.tok != EOF {
-		if p.err != nil {
-			return
-		}
 		switch {
 		case p.got('#'):
 			p.discardLine()
-		case p.got(IDENT):
+		case p.got(WORD):
 			switch {
 			case p.got('='):
 			case p.got('&'):
 				if p.got('&') {
-					p.want(IDENT)
+					p.want(WORD)
 				}
 			case p.got('|'):
 				p.got('|')
-				p.want(IDENT)
+				p.want(WORD)
 			}
 			p.got(';')
 			p.got('\n')
