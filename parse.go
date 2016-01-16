@@ -164,6 +164,12 @@ func (p *parser) command() {
 		case p.got('|'):
 			p.got('|')
 			p.command()
+		case p.got('('):
+			p.want(')')
+			p.want('{')
+			for !p.got('}') {
+				p.command()
+			}
 		}
 		p.got(';')
 		p.got('\n')
