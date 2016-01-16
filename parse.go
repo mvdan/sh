@@ -151,6 +151,7 @@ func (p *parser) program() {
 
 func (p *parser) command() {
 	switch {
+	case p.got('\n'):
 	case p.got('#'):
 		p.discardLine()
 	case p.got(WORD):
