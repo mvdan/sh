@@ -29,8 +29,16 @@ type parser struct {
 	err error
 }
 
-func isToken(r rune) bool {
-	return r == '#' || r == '=' || r == '&' || r == '|' || r == ';'
+var reserved = map[rune]bool{
+	'#': true,
+	'=': true,
+	'&': true,
+	'|': true,
+	';': true,
+	'(': true,
+	')': true,
+	'{': true,
+	'}': true,
 }
 
 func (p *parser) next() {
@@ -44,12 +52,12 @@ func (p *parser) next() {
 		p.tok = EOF
 		return
 	}
-	if isToken(r) {
+	if reserved[r] {
 		p.tok = r
 		return
 	}
 	read := false
-	for !isToken(r) && r != '\n' && r != ' ' {
+	for !reserved[r] && r != '\n' && r != ' ' {
 		r, _, err = p.r.ReadRune()
 		if err == io.EOF {
 			break
@@ -104,6 +112,9 @@ func (p *parser) want(tok int32) {
 func (p *parser) program() {
 	p.next()
 	for p.tok != EOF {
+		if p.err != nil {
+			return
+		}
 		switch {
 		case p.got('#'):
 			p.discardLine()
