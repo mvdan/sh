@@ -44,20 +44,25 @@ func (p *parser) next() {
 		p.err = err
 		return
 	}
-	if r == ' ' {
-		p.next()
-		return
-	}
 	if isToken(r) {
 		p.tok = r
 		return
 	}
-	for !isToken(r) {
+	read := false
+	for !isToken(r) && r != '\n' && r != ' ' {
 		r, _, err = p.r.ReadRune()
 		if err == io.EOF {
 			break
 		}
 		if err != nil {
+			p.err = err
+			p.tok = EOF
+			return
+		}
+		read = true
+	}
+	if read {
+		if err := p.r.UnreadRune(); err != nil {
 			p.err = err
 			p.tok = EOF
 			return
@@ -94,8 +99,11 @@ func (p *parser) program() {
 		case p.got('#'):
 			p.discardLine()
 		case p.got(IDENT):
+			switch {
+			case p.got('='):
+			}
 		default:
-			p.err = fmt.Errorf("unexpected token")
+			p.err = fmt.Errorf("unexpected token %d", p.tok)
 		}
 	}
 }

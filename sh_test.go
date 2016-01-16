@@ -20,6 +20,7 @@ func TestParse(t *testing.T) {
 }
 
 func testParse(t *testing.T, path string) {
+	println(path)
 	f, err := os.Open(path)
 	if err != nil {
 		t.Fatal(err)
