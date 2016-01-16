@@ -40,8 +40,8 @@ func (p *parser) next() {
 		return
 	}
 	if err != nil {
-		p.tok = EOF
 		p.err = err
+		p.tok = EOF
 		return
 	}
 	if isToken(r) {
@@ -77,8 +77,8 @@ func (p *parser) discardLine() {
 	if err == io.EOF {
 		p.tok = EOF
 	} else if err != nil {
-		p.tok = EOF
 		p.err = err
+		p.tok = EOF
 	} else {
 		p.next()
 	}
@@ -120,6 +120,7 @@ func (p *parser) program() {
 			}
 		default:
 			p.err = fmt.Errorf("unexpected token %d", p.tok)
+			p.tok = EOF
 		}
 	}
 }
