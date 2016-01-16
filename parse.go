@@ -48,8 +48,7 @@ func (p *parser) next() {
 		return
 	}
 	if err != nil {
-		p.err = err
-		p.tok = EOF
+		p.errPass(err)
 		return
 	}
 	if reserved[r] {
@@ -63,16 +62,14 @@ func (p *parser) next() {
 			break
 		}
 		if err != nil {
-			p.err = err
-			p.tok = EOF
+			p.errPass(err)
 			return
 		}
 		read = true
 	}
 	if read {
 		if err := p.r.UnreadRune(); err != nil {
-			p.err = err
-			p.tok = EOF
+			p.errPass(err)
 			return
 		}
 	}
@@ -85,8 +82,7 @@ func (p *parser) discardLine() {
 	if err == io.EOF {
 		p.tok = EOF
 	} else if err != nil {
-		p.err = err
-		p.tok = EOF
+		p.errPass(err)
 	} else {
 		p.next()
 	}
@@ -102,11 +98,36 @@ func (p *parser) got(tok int32) bool {
 
 func (p *parser) want(tok int32) {
 	if p.tok != tok {
-		p.err = fmt.Errorf("Want %d, got %d", tok, p.tok)
-		p.tok = EOF
+		p.errWanted(tok)
 		return
 	}
 	p.next()
+}
+
+func tokStr(tok int32) string {
+	switch tok {
+	case EOF:
+		return "EOF"
+	case IDENT:
+		return "ident"
+	default:
+		return fmt.Sprintf("%c", tok)
+	}
+}
+
+func (p *parser) errPass(err error) {
+	p.err = err
+	p.tok = EOF
+}
+
+func (p *parser) errUnexpected() {
+	p.err = fmt.Errorf("unexpected token %s", tokStr(p.tok))
+	p.tok = EOF
+}
+
+func (p *parser) errWanted(tok int32) {
+	p.err = fmt.Errorf("unexpected token %s, wanted %s", tokStr(p.tok), tokStr(tok))
+	p.tok = EOF
 }
 
 func (p *parser) program() {
@@ -131,8 +152,7 @@ func (p *parser) program() {
 			}
 			p.got(';')
 		default:
-			p.err = fmt.Errorf("unexpected token %d", p.tok)
-			p.tok = EOF
+			p.errUnexpected()
 		}
 	}
 }
