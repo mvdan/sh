@@ -46,6 +46,9 @@ func (p *parser) next() error {
 	if isIdentChar(r) {
 		for isIdentChar(r) {
 			r, _, err = p.r.ReadRune()
+			if err == io.EOF {
+				break
+			}
 			if err != nil {
 				return err
 			}
@@ -58,8 +61,10 @@ func (p *parser) next() error {
 }
 
 func (p *parser) discardLine() error {
-	if _, err := p.r.ReadBytes('\n'); err != nil {
-		return err
+	for p.tok != '\n' && p.tok != EOF {
+		if err := p.next(); err != nil {
+			return err
+		}
 	}
 	return p.next()
 }
