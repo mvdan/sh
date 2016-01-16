@@ -7,6 +7,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"strconv"
 )
 
 const (
@@ -30,15 +31,16 @@ type parser struct {
 }
 
 var reserved = map[rune]bool{
-	'#': true,
-	'=': true,
-	'&': true,
-	'|': true,
-	';': true,
-	'(': true,
-	')': true,
-	'{': true,
-	'}': true,
+	'\n': true,
+	'#':  true,
+	'=':  true,
+	'&':  true,
+	'|':  true,
+	';':  true,
+	'(':  true,
+	')':  true,
+	'{':  true,
+	'}':  true,
 }
 
 func (p *parser) next() {
@@ -84,7 +86,7 @@ func (p *parser) discardLine() {
 	} else if err != nil {
 		p.errPass(err)
 	} else {
-		p.next()
+		p.got('\n')
 	}
 }
 
@@ -111,7 +113,7 @@ func tokStr(tok int32) string {
 	case IDENT:
 		return "ident"
 	default:
-		return fmt.Sprintf("%c", tok)
+		return strconv.QuoteRune(tok)
 	}
 }
 
@@ -121,13 +123,11 @@ func (p *parser) errPass(err error) {
 }
 
 func (p *parser) errUnexpected() {
-	p.err = fmt.Errorf("unexpected token %s", tokStr(p.tok))
-	p.tok = EOF
+	p.errPass(fmt.Errorf("unexpected token %s", tokStr(p.tok)))
 }
 
 func (p *parser) errWanted(tok int32) {
-	p.err = fmt.Errorf("unexpected token %s, wanted %s", tokStr(p.tok), tokStr(tok))
-	p.tok = EOF
+	p.errPass(fmt.Errorf("unexpected token %s, wanted %s", tokStr(p.tok), tokStr(tok)))
 }
 
 func (p *parser) program() {
@@ -151,6 +151,7 @@ func (p *parser) program() {
 				p.want(IDENT)
 			}
 			p.got(';')
+			p.got('\n')
 		default:
 			p.errUnexpected()
 		}
