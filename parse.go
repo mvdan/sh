@@ -30,7 +30,7 @@ type parser struct {
 }
 
 func isToken(r rune) bool {
-	return r == '#' || r == '='
+	return r == '#' || r == '=' || r == '&' || r == '|'
 }
 
 func (p *parser) next() {
@@ -101,6 +101,8 @@ func (p *parser) program() {
 		case p.got(IDENT):
 			switch {
 			case p.got('='):
+			case p.got('&'):
+			case p.got('|'):
 			}
 		default:
 			p.err = fmt.Errorf("unexpected token %d", p.tok)
