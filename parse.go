@@ -19,29 +19,34 @@ func parse(r io.Reader) error {
 	p := &parser{
 		r: bufio.NewReader(r),
 	}
-	return p.program()
+	p.program()
+	return p.err
 }
 
 type parser struct {
 	r   *bufio.Reader
 	tok int32
+	err error
 }
 
 func isIdentChar(r rune) bool {
 	return r == '_' || (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z')
 }
 
-func (p *parser) next() error {
+func (p *parser) next() {
 	r, _, err := p.r.ReadRune()
 	if err == io.EOF {
 		p.tok = EOF
-		return nil
+		return
 	}
 	if err != nil {
-		return err
+		p.tok = EOF
+		p.err = err
+		return
 	}
 	if r == ' ' {
-		return p.next()
+		p.next()
+		return
 	}
 	if isIdentChar(r) {
 		for isIdentChar(r) {
@@ -50,23 +55,28 @@ func (p *parser) next() error {
 				break
 			}
 			if err != nil {
-				return err
+				p.err = err
+				p.tok = EOF
+				return
 			}
 		}
 		p.tok = IDENT
-		return nil
+		return
 	}
 	p.tok = r
-	return nil
+	return
 }
 
-func (p *parser) discardLine() error {
-	for p.tok != '\n' && p.tok != EOF {
-		if err := p.next(); err != nil {
-			return err
-		}
+func (p *parser) discardLine() {
+	_, err := p.r.ReadBytes('\n')
+	if err == io.EOF {
+		p.tok = EOF
+	} else if err != nil {
+		p.tok = EOF
+		p.err = err
+	} else {
+		p.next()
 	}
-	return p.next()
 }
 
 func (p *parser) got(tok int32) bool {
@@ -77,20 +87,15 @@ func (p *parser) got(tok int32) bool {
 	return false
 }
 
-func (p *parser) program() error {
-	if err := p.next(); err != nil {
-		return err
-	}
+func (p *parser) program() {
+	p.next()
 	for p.tok != EOF {
 		switch {
 		case p.got('#'):
-			if err := p.discardLine(); err != nil {
-				return err
-			}
+			p.discardLine()
 		case p.got(IDENT):
 		default:
-			return fmt.Errorf("unexpected token")
+			p.err = fmt.Errorf("unexpected token")
 		}
 	}
-	return nil
 }
