@@ -42,7 +42,7 @@ var reserved = map[rune]bool{
 	'{':  true,
 	'}':  true,
 	'"':  true,
-	'\'':  true,
+	'\'': true,
 }
 
 var space = map[rune]bool{
@@ -93,14 +93,12 @@ func (p *parser) next() {
 	return
 }
 
-func (p *parser) discardLine() {
-	_, err := p.r.ReadBytes('\n')
+func (p *parser) discardUpTo(delim byte) {
+	_, err := p.r.ReadBytes(delim)
 	if err == io.EOF {
 		p.tok = EOF
 	} else if err != nil {
 		p.errPass(err)
-	} else {
-		p.got('\n')
 	}
 }
 
@@ -155,7 +153,7 @@ func (p *parser) command() {
 	switch {
 	case p.got('\n'):
 	case p.got('#'):
-		p.discardLine()
+		p.discardUpTo('\n')
 	case p.got('"'):
 		p.strContent('"')
 	case p.got('\''):
