@@ -205,6 +205,10 @@ func (p *parser) command() {
 		for p.tok != EOF {
 			switch {
 			case p.got('>'):
+				switch {
+				case p.got('>'):
+				case p.got('&'):
+				}
 				p.want(WORD)
 			case p.got('<'):
 				p.want(WORD)
