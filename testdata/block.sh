@@ -4,5 +4,5 @@
 { foo; bar; }
 {
 	foo
-	bar
+	{ bar ; }
 }

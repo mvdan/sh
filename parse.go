@@ -21,7 +21,7 @@ func parse(r io.Reader, name string) error {
 		r:    bufio.NewReader(r),
 		name: name,
 		line: 1,
-		col:  1,
+		col:  0,
 	}
 	p.program()
 	return p.err
@@ -79,7 +79,7 @@ func (p *parser) next() {
 	if reserved[r] {
 		if r == '\n' {
 			p.line++
-			p.col = 1
+			p.col = 0
 		}
 		p.tok = r
 		return
@@ -165,13 +165,15 @@ func (p *parser) errWanted(tok int32) {
 func (p *parser) program() {
 	p.next()
 	for p.tok != EOF {
+		if p.got('\n') {
+			continue
+		}
 		p.command()
 	}
 }
 
 func (p *parser) command() {
 	switch {
-	case p.got('\n'):
 	case p.got('#'):
 		p.discardUpTo('\n')
 		p.next()
@@ -180,30 +182,30 @@ func (p *parser) command() {
 	case p.got('\''):
 		p.strContent('\'')
 	case p.got(WORD):
-		switch {
-		case p.got('='):
-			p.got(WORD)
-		case p.got('&'):
-			if p.got('&') {
-				p.command()
-				return
-			}
-		case p.got('|'):
-			p.got('|')
-			p.command()
-			return
-		case p.got('('):
-			p.want(')')
-			p.want('{')
-			for p.tok != EOF && !p.got('}') {
-				p.command()
-			}
-		default:
-			for p.got(WORD) {
-			}
-		}
 		for p.tok != EOF {
 			switch {
+			case p.got(WORD):
+			case p.got('='):
+				p.got(WORD)
+			case p.got('&'):
+				if p.got('&') {
+					p.command()
+				}
+				return
+			case p.got('|'):
+				p.got('|')
+				p.command()
+				return
+			case p.got('('):
+				p.want(')')
+				p.want('{')
+				for p.tok != EOF && !p.got('}') {
+					if p.got('\n') {
+						continue
+					}
+					p.command()
+				}
+				return
 			case p.got('>'):
 				switch {
 				case p.got('>'):
@@ -221,11 +223,16 @@ func (p *parser) command() {
 			}
 		}
 	case p.got('{'):
-		for !p.got('}') {
+		for p.tok != EOF && !p.got('}') {
+			if p.got('\n') {
+				continue
+			}
 			p.command()
 		}
-		p.got(';')
-		p.got('\n')
+		switch {
+		case p.got(';'):
+		case p.got('\n'):
+		}
 	default:
 		p.errUnexpected()
 	}
