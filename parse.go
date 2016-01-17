@@ -16,18 +16,24 @@ const (
 	WORD
 )
 
-func parse(r io.Reader) error {
+func parse(r io.Reader, name string) error {
 	p := &parser{
-		r: bufio.NewReader(r),
+		r:    bufio.NewReader(r),
+		name: name,
+		line: 1,
+		col:  1,
 	}
 	p.program()
 	return p.err
 }
 
 type parser struct {
-	r   *bufio.Reader
-	tok int32
-	err error
+	r    *bufio.Reader
+	tok  int32
+	err  error
+	name string
+	line int
+	col  int
 }
 
 var reserved = map[rune]bool{
@@ -68,8 +74,13 @@ func (p *parser) next() {
 			p.errPass(err)
 			return
 		}
+		p.col++
 	}
 	if reserved[r] {
+		if r == '\n' {
+			p.line++
+			p.col = 1
+		}
 		p.tok = r
 		return
 	}
@@ -83,6 +94,7 @@ func (p *parser) next() {
 			p.errPass(err)
 			return
 		}
+		p.col++
 		read = true
 	}
 	if read {
@@ -90,6 +102,7 @@ func (p *parser) next() {
 			p.errPass(err)
 			return
 		}
+		p.col--
 	}
 	p.tok = WORD
 	return
@@ -136,12 +149,17 @@ func (p *parser) errPass(err error) {
 	p.tok = EOF
 }
 
+func (p *parser) lineErr(format string, v ...interface{}) {
+	pos := fmt.Sprintf("%s:%d:%d: ", p.name, p.line, p.col)
+	p.errPass(fmt.Errorf(pos + format, v...))
+}
+
 func (p *parser) errUnexpected() {
-	p.errPass(fmt.Errorf("unexpected token %s", tokStr(p.tok)))
+	p.lineErr("unexpected token %s", tokStr(p.tok))
 }
 
 func (p *parser) errWanted(tok int32) {
-	p.errPass(fmt.Errorf("unexpected token %s, wanted %s", tokStr(p.tok), tokStr(tok)))
+	p.lineErr("unexpected token %s, wanted %s", tokStr(p.tok), tokStr(tok))
 }
 
 func (p *parser) program() {

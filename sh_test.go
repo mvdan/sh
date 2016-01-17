@@ -26,7 +26,7 @@ func testParse(t *testing.T, path string) {
 		t.Fatal(err)
 	}
 	defer f.Close()
-	if err := parse(f); err != nil {
-		t.Fatalf("Error in %s: %v", path, err)
+	if err := parse(f, path); err != nil {
+		t.Fatalf("Parse error: %v", err)
 	}
 }
