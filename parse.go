@@ -151,7 +151,7 @@ func (p *parser) errPass(err error) {
 
 func (p *parser) lineErr(format string, v ...interface{}) {
 	pos := fmt.Sprintf("%s:%d:%d: ", p.name, p.line, p.col)
-	p.errPass(fmt.Errorf(pos + format, v...))
+	p.errPass(fmt.Errorf(pos+format, v...))
 }
 
 func (p *parser) errUnexpected() {
@@ -195,7 +195,7 @@ func (p *parser) command() {
 		case p.got('('):
 			p.want(')')
 			p.want('{')
-			for !p.got('}') {
+			for p.tok != EOF && !p.got('}') {
 				p.command()
 			}
 		default:
