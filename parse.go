@@ -35,6 +35,8 @@ var reserved = map[rune]bool{
 	'#':  true,
 	'=':  true,
 	'&':  true,
+	'>':  true,
+	'<':  true,
 	'|':  true,
 	';':  true,
 	'(':  true,
@@ -154,6 +156,7 @@ func (p *parser) command() {
 	case p.got('\n'):
 	case p.got('#'):
 		p.discardUpTo('\n')
+		p.next()
 	case p.got('"'):
 		p.strContent('"')
 	case p.got('\''):
@@ -161,22 +164,40 @@ func (p *parser) command() {
 	case p.got(WORD):
 		switch {
 		case p.got('='):
+			p.got(WORD)
 		case p.got('&'):
 			if p.got('&') {
 				p.command()
+				return
 			}
 		case p.got('|'):
 			p.got('|')
 			p.command()
+			return
 		case p.got('('):
 			p.want(')')
 			p.want('{')
 			for !p.got('}') {
 				p.command()
 			}
+		default:
+			for p.got(WORD) {
+			}
 		}
-		p.got(';')
-		p.got('\n')
+		for {
+			switch {
+			case p.got('>'):
+				p.want(WORD)
+			case p.got('<'):
+				p.want(WORD)
+			case p.got(';'):
+				return
+			case p.got('\n'):
+				return
+			default:
+				p.errUnexpected()
+			}
+		}
 	case p.got('{'):
 		for !p.got('}') {
 			p.command()
