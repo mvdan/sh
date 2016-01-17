@@ -199,7 +199,11 @@ func (p *parser) command() {
 			case p.got('('):
 				p.want(')')
 				p.want('{')
-				for p.tok != EOF && !p.got('}') {
+				for !p.got('}') {
+					if p.tok == EOF {
+						p.errWanted('}')
+						break
+					}
 					if p.got('\n') {
 						continue
 					}
@@ -223,7 +227,11 @@ func (p *parser) command() {
 			}
 		}
 	case p.got('{'):
-		for p.tok != EOF && !p.got('}') {
+		for !p.got('}') {
+			if p.tok == EOF {
+				p.errWanted('}')
+				break
+			}
 			if p.got('\n') {
 				continue
 			}

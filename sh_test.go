@@ -35,10 +35,11 @@ func TestParseErr(t *testing.T) {
 	errs := []string{
 		"'",
 		";",
-		//"{",
+		"{",
 		"=",
 		"foo(",
 		"foo()",
+		"foo() {",
 		"foo &&",
 		"foo |",
 		"foo ||",
