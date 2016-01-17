@@ -184,7 +184,7 @@ func (p *parser) command() {
 			for p.got(WORD) {
 			}
 		}
-		for {
+		for p.tok != EOF {
 			switch {
 			case p.got('>'):
 				p.want(WORD)
