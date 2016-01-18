@@ -240,6 +240,10 @@ func (p *parser) errWanted(tok int32) {
 	p.errWantedStr(tokStr(tok))
 }
 
+func (p *parser) errAfterStr(s string) {
+	p.lineErr("unexpected token %s after %s", tokStr(p.tok), s)
+}
+
 func (p *parser) program() {
 	for p.tok != EOF {
 		if p.got('\n') {
@@ -296,7 +300,7 @@ func (p *parser) command() {
 			case p.got('\n'):
 				return
 			default:
-				p.errUnexpected()
+				p.errAfterStr("command")
 			}
 		}
 	case p.got('{'):
@@ -330,7 +334,7 @@ func (p *parser) command() {
 		case p.got('\n'):
 			return
 		default:
-			p.errUnexpected()
+			p.errAfterStr("block")
 		}
 	default:
 		p.errWantedStr("command")
