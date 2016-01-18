@@ -211,7 +211,9 @@ func tokStr(tok int32) string {
 }
 
 func (p *parser) errPass(err error) {
-	p.err = err
+	if p.err == nil {
+		p.err = err
+	}
 	p.tok = EOF
 }
 
