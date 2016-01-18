@@ -80,6 +80,18 @@ func (p *parser) next() {
 		}
 		p.col++
 	}
+	if r == '\\' {
+		p.next()
+		if p.tok == '\n' {
+			p.next()
+			return
+		}
+		if err := p.r.UnreadRune(); err != nil {
+			p.errPass(err)
+			return
+		}
+		p.col--
+	}
 	if reserved[r] {
 		if r == '#' {
 			p.discardUpTo('\n')
