@@ -291,13 +291,24 @@ func (p *parser) command() {
 		p.command()
 		p.wantStr("then")
 		for p.tok != EOF {
-			if p.tok == STRING && p.val == "fi" {
+			if p.tok == STRING && (p.val == "fi" || p.val == "else") {
 				break
 			}
 			if p.got('\n') {
 				continue
 			}
 			p.command()
+		}
+		if p.gotStr("else") {
+			for p.tok != EOF {
+				if p.tok == STRING && p.val == "fi" {
+					break
+				}
+				if p.got('\n') {
+					continue
+				}
+				p.command()
+			}
 		}
 		p.wantStr("fi")
 	case p.got(STRING):
