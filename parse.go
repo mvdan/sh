@@ -272,19 +272,56 @@ func (p *parser) command() {
 			}
 		}
 	case p.got('{'):
-		for !p.got('}') {
-			if p.tok == EOF {
-				p.errWanted('}')
-				break
-			}
+		for p.tok != EOF && p.tok != '}' {
 			if p.got('\n') {
 				continue
 			}
 			p.command()
 		}
+		p.want('}')
 		switch {
+		case p.got('='):
+			switch {
+			case p.got(IDENT):
+			case p.got(STRING):
+			}
+		case p.got('&'):
+			if p.got('&') {
+				p.command()
+			}
+			return
+		case p.got('|'):
+			p.got('|')
+			p.command()
+			return
+		case p.got('('):
+			p.want(')')
+			p.want('{')
+			for !p.got('}') {
+				if p.tok == EOF {
+					p.errWanted('}')
+					break
+				}
+				if p.got('\n') {
+					continue
+				}
+				p.command()
+			}
+			return
+		case p.got('>'):
+			switch {
+			case p.got('>'):
+			case p.got('&'):
+			}
+			p.value()
+		case p.got('<'):
+			p.value()
 		case p.got(';'):
+			return
 		case p.got('\n'):
+			return
+		default:
+			p.errUnexpected()
 		}
 	default:
 		p.errUnexpected()
