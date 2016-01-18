@@ -9,6 +9,7 @@ import (
 	"io"
 	"regexp"
 	"strconv"
+	"strings"
 )
 
 const (
@@ -32,6 +33,7 @@ func parse(r io.Reader, name string) error {
 type parser struct {
 	r    *bufio.Reader
 	tok  int32
+	val  string
 	err  error
 	name string
 	line int
@@ -123,7 +125,7 @@ func (p *parser) next() {
 		p.tok = STRING
 		return
 	}
-	runes := []rune{r}
+	rs := []rune{r}
 	for !reserved[r] && !quote[r] && !space[r] {
 		r, _, err = p.r.ReadRune()
 		if err == io.EOF {
@@ -134,25 +136,26 @@ func (p *parser) next() {
 			return
 		}
 		p.col++
-		runes = append(runes, r)
+		rs = append(rs, r)
 	}
-	if len(runes) > 1 {
+	if len(rs) > 1 {
 		if err := p.r.UnreadRune(); err != nil {
 			p.errPass(err)
 			return
 		}
 		p.col--
-		runes = runes[:len(runes)-1]
+		rs = rs[:len(rs)-1]
 	}
 	p.tok = STRING
-	s := string(runes)
-	if ident.MatchString(s) {
+	p.val = string(rs)
+	if ident.MatchString(p.val) {
 		p.tok = IDENT
 	}
 	return
 }
 
 func (p *parser) strContent(delim byte) {
+	v := []string{string(delim)}
 	for {
 		b, err := p.r.ReadBytes(delim)
 		if err == io.EOF {
@@ -160,6 +163,7 @@ func (p *parser) strContent(delim byte) {
 		} else if err != nil {
 			p.errPass(err)
 		}
+		v = append(v, string(b))
 		if delim == '\'' {
 			break
 		}
@@ -168,6 +172,7 @@ func (p *parser) strContent(delim byte) {
 		}
 		break
 	}
+	p.val = strings.Join(v, "")
 }
 
 func (p *parser) discardUpTo(delim byte) {
