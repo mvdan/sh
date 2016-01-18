@@ -25,6 +25,7 @@ func parse(r io.Reader, name string) error {
 		line: 1,
 		col:  0,
 	}
+	p.next()
 	p.program()
 	return p.err
 }
@@ -200,9 +201,7 @@ func (p *parser) want(tok int32) {
 
 func tokStr(tok int32) string {
 	switch tok {
-	case 0:
-		fallthrough
-	case EOF:
+	case 0, EOF:
 		return "EOF"
 	case STRING:
 		return "string"
@@ -235,7 +234,6 @@ func (p *parser) errWanted(tok int32) {
 }
 
 func (p *parser) program() {
-	p.next()
 	for p.tok != EOF {
 		if p.got('\n') {
 			continue
