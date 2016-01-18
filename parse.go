@@ -7,13 +7,15 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"regexp"
 	"strconv"
 )
 
 const (
 	_ = -iota
 	EOF
-	WORD
+	IDENT
+	STRING
 )
 
 func parse(r io.Reader, name string) error {
@@ -58,6 +60,8 @@ var space = map[rune]bool{
 	'\t': true,
 }
 
+var ident = regexp.MustCompile(`^[a-zA-Z_]+[a-zA-Z0-9_]*$`)
+
 func (p *parser) next() {
 	if p.err != nil {
 		return
@@ -84,7 +88,7 @@ func (p *parser) next() {
 		p.tok = r
 		return
 	}
-	read := false
+	runes := []rune{r}
 	for !reserved[r] && !space[r] {
 		r, _, err = p.r.ReadRune()
 		if err == io.EOF {
@@ -95,16 +99,20 @@ func (p *parser) next() {
 			return
 		}
 		p.col++
-		read = true
+		runes = append(runes, r)
 	}
-	if read {
+	if len(runes) > 1 {
 		if err := p.r.UnreadRune(); err != nil {
 			p.errPass(err)
 			return
 		}
 		p.col--
 	}
-	p.tok = WORD
+	p.tok = STRING
+	s := string(runes)
+	if ident.MatchString(s) {
+		p.tok = IDENT
+	}
 	return
 }
 
@@ -137,8 +145,10 @@ func tokStr(tok int32) string {
 	switch tok {
 	case EOF:
 		return "EOF"
-	case WORD:
-		return "word"
+	case STRING:
+		return "string"
+	case IDENT:
+		return "ident"
 	default:
 		return strconv.QuoteRune(tok)
 	}
@@ -181,12 +191,18 @@ func (p *parser) command() {
 		p.strContent('"')
 	case p.got('\''):
 		p.strContent('\'')
-	case p.got(WORD):
+	case p.got(STRING):
+		fallthrough
+	case p.got(IDENT):
 		for p.tok != EOF {
 			switch {
-			case p.got(WORD):
+			case p.got(IDENT):
+			case p.got(STRING):
 			case p.got('='):
-				p.got(WORD)
+				switch {
+				case p.got(IDENT):
+				case p.got(STRING):
+				}
 			case p.got('&'):
 				if p.got('&') {
 					p.command()
@@ -215,9 +231,9 @@ func (p *parser) command() {
 				case p.got('>'):
 				case p.got('&'):
 				}
-				p.want(WORD)
+				p.value()
 			case p.got('<'):
-				p.want(WORD)
+				p.value()
 			case p.got(';'):
 				return
 			case p.got('\n'):
@@ -241,6 +257,15 @@ func (p *parser) command() {
 		case p.got(';'):
 		case p.got('\n'):
 		}
+	default:
+		p.errUnexpected()
+	}
+}
+
+func (p *parser) value() {
+	switch {
+	case p.got(IDENT):
+	case p.got(STRING):
 	default:
 		p.errUnexpected()
 	}
