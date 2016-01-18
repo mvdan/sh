@@ -118,7 +118,7 @@ func (p *parser) next() {
 }
 
 func (p *parser) discardUpTo(delim byte) {
-	_, err := p.r.ReadBytes(delim)
+	_, err := p.r.ReadBytes('\n')
 	if err == io.EOF {
 		p.tok = EOF
 	} else if err != nil {
@@ -188,6 +188,7 @@ func (p *parser) command() {
 	case p.got('#'):
 		p.discardUpTo('\n')
 		p.next()
+		return
 	case p.got('"'):
 		p.strContent('"')
 	case p.got('\''):
@@ -195,6 +196,10 @@ func (p *parser) command() {
 	case p.got(IDENT):
 		for p.tok != EOF {
 			switch {
+			case p.got('#'):
+				p.discardUpTo('\n')
+				p.next()
+				return
 			case p.got(IDENT):
 			case p.got(STRING):
 			case p.got('='):
@@ -244,6 +249,10 @@ func (p *parser) command() {
 	case p.got(STRING):
 		for p.tok != EOF {
 			switch {
+			case p.got('#'):
+				p.discardUpTo('\n')
+				p.next()
+				return
 			case p.got(IDENT):
 			case p.got(STRING):
 			case p.got('&'):
