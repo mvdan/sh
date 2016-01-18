@@ -51,6 +51,9 @@ var reserved = map[rune]bool{
 	')':  true,
 	'{':  true,
 	'}':  true,
+}
+
+var quote = map[rune]bool{
 	'"':  true,
 	'\'': true,
 }
@@ -88,6 +91,14 @@ func (p *parser) next() {
 		p.tok = r
 		return
 	}
+	if quote[r] {
+		p.strContent(byte(r))
+		if p.tok == EOF {
+			return
+		}
+		p.tok = STRING
+		return
+	}
 	runes := []rune{r}
 	for !reserved[r] && !space[r] {
 		r, _, err = p.r.ReadRune()
@@ -115,6 +126,15 @@ func (p *parser) next() {
 		p.tok = IDENT
 	}
 	return
+}
+
+func (p *parser) strContent(delim byte) {
+	_, err := p.r.ReadBytes(delim)
+	if err == io.EOF {
+		p.errWanted(rune(delim))
+	} else if err != nil {
+		p.errPass(err)
+	}
 }
 
 func (p *parser) discardUpTo(delim byte) {
@@ -189,10 +209,6 @@ func (p *parser) command() {
 		p.discardUpTo('\n')
 		p.next()
 		return
-	case p.got('"'):
-		p.strContent('"')
-	case p.got('\''):
-		p.strContent('\'')
 	case p.got(IDENT):
 		for p.tok != EOF {
 			switch {
@@ -324,12 +340,5 @@ func (p *parser) value() {
 	case p.got(STRING):
 	default:
 		p.errUnexpected()
-	}
-}
-
-func (p *parser) strContent(delim byte) {
-	_, err := p.r.ReadBytes(delim)
-	if err != nil {
-		p.errPass(err)
 	}
 }
