@@ -101,7 +101,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			in:   "foo(",
-			want: "1:4: unexpected token EOF, wanted '}'",
+			want: "1:4: unexpected token EOF",
 		},
 		{
 			in:   "foo'",
@@ -113,11 +113,11 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			in:   "foo()",
-			want: "1:5: unexpected token EOF, wanted '}'",
+			want: "1:5: unexpected token EOF",
 		},
 		{
 			in:   "foo() {",
-			want: "1:7: unexpected token EOF, wanted '}'",
+			want: "1:7: unexpected token EOF",
 		},
 		{
 			in:   "foo &&",
