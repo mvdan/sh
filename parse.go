@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 )
 
 const (
@@ -257,6 +258,8 @@ func (p *parser) command() {
 			case p.got(STRING):
 			case p.got('='):
 				if !ident.MatchString(lval) {
+					p.col -= utf8.RuneCountInString(lval)
+					p.col--
 					p.lineErr("invalid var name %q", lval)
 					return
 				}
@@ -272,6 +275,8 @@ func (p *parser) command() {
 				return
 			case p.got('('):
 				if !ident.MatchString(lval) {
+					p.col -= utf8.RuneCountInString(lval)
+					p.col--
 					p.lineErr("invalid func name %q", lval)
 					return
 				}
