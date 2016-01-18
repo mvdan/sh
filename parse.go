@@ -66,9 +66,6 @@ var space = map[rune]bool{
 var ident = regexp.MustCompile(`^[a-zA-Z_]+[a-zA-Z0-9_]*$`)
 
 func (p *parser) next() {
-	if p.err != nil {
-		return
-	}
 	r := ' '
 	var err error
 	for space[r] {
