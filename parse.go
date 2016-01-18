@@ -231,8 +231,12 @@ func (p *parser) errUnexpected() {
 	p.lineErr("unexpected token %s", tokStr(p.tok))
 }
 
+func (p *parser) errWantedStr(s string) {
+	p.lineErr("unexpected token %s, wanted %s", tokStr(p.tok), s)
+}
+
 func (p *parser) errWanted(tok int32) {
-	p.lineErr("unexpected token %s, wanted %s", tokStr(p.tok), tokStr(tok))
+	p.errWantedStr(tokStr(tok))
 }
 
 func (p *parser) program() {
@@ -324,6 +328,6 @@ func (p *parser) command() {
 			p.errUnexpected()
 		}
 	default:
-		p.errUnexpected()
+		p.errWantedStr("command")
 	}
 }

@@ -49,7 +49,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			in:   ";",
-			want: "1:1: unexpected token ';'",
+			want: "1:1: unexpected token ';', wanted command",
 		},
 		{
 			in:   "à=3",
@@ -69,7 +69,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			in:   "}",
-			want: "1:1: unexpected token '}'",
+			want: "1:1: unexpected token '}', wanted command",
 		},
 		{
 			in:   "{}}",
@@ -85,19 +85,19 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			in:   "=",
-			want: "1:1: unexpected token '='",
+			want: "1:1: unexpected token '=', wanted command",
 		},
 		{
 			in:   "&",
-			want: "1:1: unexpected token '&'",
+			want: "1:1: unexpected token '&', wanted command",
 		},
 		{
 			in:   "|",
-			want: "1:1: unexpected token '|'",
+			want: "1:1: unexpected token '|', wanted command",
 		},
 		{
 			in:   "foo;;",
-			want: "1:5: unexpected token ';'",
+			want: "1:5: unexpected token ';', wanted command",
 		},
 		{
 			in:   "foo(",
@@ -113,7 +113,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			in:   "foo()",
-			want: "1:5: unexpected token EOF",
+			want: "1:5: unexpected token EOF, wanted command",
 		},
 		{
 			in:   "foo() {",
@@ -121,15 +121,15 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			in:   "foo &&",
-			want: "1:6: unexpected token EOF",
+			want: "1:6: unexpected token EOF, wanted command",
 		},
 		{
 			in:   "foo |",
-			want: "1:5: unexpected token EOF",
+			want: "1:5: unexpected token EOF, wanted command",
 		},
 		{
 			in:   "foo ||",
-			want: "1:6: unexpected token EOF",
+			want: "1:6: unexpected token EOF, wanted command",
 		},
 		{
 			in:   "foo >",
