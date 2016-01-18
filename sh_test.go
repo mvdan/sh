@@ -34,9 +34,16 @@ func testParse(t *testing.T, path string) {
 func TestParseErr(t *testing.T) {
 	errs := []string{
 		"'",
+		"\"",
 		";",
 		"{",
+		"{{}",
+		"}",
+		"{}}",
 		"=",
+		"&",
+		"|",
+		"foo;;",
 		"foo(",
 		"foo()",
 		"foo() {",
