@@ -298,20 +298,6 @@ func (p *parser) command() {
 			p.got('|')
 			p.command()
 			return
-		case p.got('('):
-			p.want(')')
-			p.want('{')
-			for !p.got('}') {
-				if p.tok == EOF {
-					p.errWanted('}')
-					break
-				}
-				if p.got('\n') {
-					continue
-				}
-				p.command()
-			}
-			return
 		case p.got('>'):
 			switch {
 			case p.got('>'):
