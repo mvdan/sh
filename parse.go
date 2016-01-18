@@ -30,10 +30,12 @@ func parse(r io.Reader, name string) error {
 }
 
 type parser struct {
-	r    *bufio.Reader
-	tok  int32
-	val  string
-	err  error
+	r   *bufio.Reader
+	err error
+
+	tok int32
+	val string
+
 	name string
 	line int
 	col  int
@@ -198,6 +200,8 @@ func (p *parser) want(tok int32) {
 
 func tokStr(tok int32) string {
 	switch tok {
+	case 0:
+		fallthrough
 	case EOF:
 		return "EOF"
 	case STRING:
@@ -213,7 +217,12 @@ func (p *parser) errPass(err error) {
 }
 
 func (p *parser) lineErr(format string, v ...interface{}) {
-	pos := fmt.Sprintf("%s:%d:%d: ", p.name, p.line, p.col)
+	var pos string
+	if p.name != "" {
+		pos = fmt.Sprintf("%s:%d:%d: ", p.name, p.line, p.col)
+	} else {
+		pos = fmt.Sprintf("%d:%d: ", p.line, p.col)
+	}
 	p.errPass(fmt.Errorf(pos+format, v...))
 }
 

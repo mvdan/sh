@@ -32,40 +32,131 @@ func testParse(t *testing.T, path string) {
 }
 
 func TestParseErr(t *testing.T) {
-	errs := []string{
-		"'",
-		"\"",
-		"'\\''",
-		";",
-		"à=3",
-		"à(){}",
-		"{",
-		"{{}",
-		"}",
-		"{}}",
-		"{#}",
-		"{}(){}",
-		"=",
-		"&",
-		"|",
-		"foo;;",
-		"foo(",
-		"foo'",
-		"foo\"",
-		"foo()",
-		"foo() {",
-		"foo &&",
-		"foo |",
-		"foo ||",
-		"foo >",
-		"foo >>",
-		"foo >&",
-		"foo <",
+	errs := []struct {
+		in, want string
+	}{
+		{
+			in:   "'",
+			want: "1:1: unexpected token EOF, wanted '\\''",
+		},
+		{
+			in:   "\"",
+			want: "1:1: unexpected token EOF, wanted '\"'",
+		},
+		{
+			in:   "'\\''",
+			want: "1:2: unexpected token string, wanted '\\''",
+		},
+		{
+			in:   ";",
+			want: "1:1: unexpected token ';'",
+		},
+		{
+			in:   "à=3",
+			want: "1:3: unexpected token string",
+		},
+		{
+			in:   "à(){}",
+			want: "1:3: unexpected token ')'",
+		},
+		{
+			in:   "{",
+			want: "1:1: unexpected token EOF",
+		},
+		{
+			in:   "{{}",
+			want: "1:3: unexpected token EOF",
+		},
+		{
+			in:   "}",
+			want: "1:1: unexpected token '}'",
+		},
+		{
+			in:   "{}}",
+			want: "1:3: unexpected token '}'",
+		},
+		{
+			in:   "{#}",
+			want: "1:2: unexpected token EOF",
+		},
+		{
+			in:   "{}(){}",
+			want: "1:3: unexpected token '('",
+		},
+		{
+			in:   "=",
+			want: "1:1: unexpected token '='",
+		},
+		{
+			in:   "&",
+			want: "1:1: unexpected token '&'",
+		},
+		{
+			in:   "|",
+			want: "1:1: unexpected token '|'",
+		},
+		{
+			in:   "foo;;",
+			want: "1:5: unexpected token ';'",
+		},
+		{
+			in:   "foo(",
+			want: "1:4: unexpected token EOF, wanted '}'",
+		},
+		{
+			in:   "foo'",
+			want: "1:4: unexpected token string, wanted '\\''",
+		},
+		{
+			in:   "foo\"",
+			want: "1:4: unexpected token string, wanted '\"'",
+		},
+		{
+			in:   "foo()",
+			want: "1:5: unexpected token EOF, wanted '}'",
+		},
+		{
+			in:   "foo() {",
+			want: "1:7: unexpected token EOF, wanted '}'",
+		},
+		{
+			in:   "foo &&",
+			want: "1:6: unexpected token EOF",
+		},
+		{
+			in:   "foo |",
+			want: "1:5: unexpected token EOF",
+		},
+		{
+			in:   "foo ||",
+			want: "1:6: unexpected token EOF",
+		},
+		{
+			in:   "foo >",
+			want: "1:5: unexpected token EOF, wanted string",
+		},
+		{
+			in:   "foo >>",
+			want: "1:6: unexpected token EOF, wanted string",
+		},
+		{
+			in:   "foo >&",
+			want: "1:6: unexpected token EOF, wanted string",
+		},
+		{
+			in:   "foo <",
+			want: "1:5: unexpected token EOF, wanted string",
+		},
 	}
-	for _, s := range errs {
-		r := strings.NewReader(s)
-		if err := parse(r, "stdin.go"); err == nil {
-			t.Fatalf("Expected error in: %s", s)
+	for _, c := range errs {
+		r := strings.NewReader(c.in)
+		err := parse(r, "")
+		if err == nil {
+			t.Fatalf("Expected error in: %q", c.in)
+		}
+		got := err.Error()
+		if got != c.want {
+			t.Fatalf("Error mismatch in %q\nwant: %q\ngot:  %q", c.in, c.want, got)
 		}
 	}
 }
