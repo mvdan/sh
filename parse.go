@@ -107,6 +107,7 @@ func (p *parser) next() {
 			return
 		}
 		p.col--
+		runes = runes[:len(runes)-1]
 	}
 	p.tok = STRING
 	s := string(runes)
@@ -191,8 +192,6 @@ func (p *parser) command() {
 		p.strContent('"')
 	case p.got('\''):
 		p.strContent('\'')
-	case p.got(STRING):
-		fallthrough
 	case p.got(IDENT):
 		for p.tok != EOF {
 			switch {
@@ -225,6 +224,36 @@ func (p *parser) command() {
 					}
 					p.command()
 				}
+				return
+			case p.got('>'):
+				switch {
+				case p.got('>'):
+				case p.got('&'):
+				}
+				p.value()
+			case p.got('<'):
+				p.value()
+			case p.got(';'):
+				return
+			case p.got('\n'):
+				return
+			default:
+				p.errUnexpected()
+			}
+		}
+	case p.got(STRING):
+		for p.tok != EOF {
+			switch {
+			case p.got(IDENT):
+			case p.got(STRING):
+			case p.got('&'):
+				if p.got('&') {
+					p.command()
+				}
+				return
+			case p.got('|'):
+				p.got('|')
+				p.command()
 				return
 			case p.got('>'):
 				switch {
