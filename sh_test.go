@@ -53,11 +53,11 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			in:   "à=3",
-			want: "1:3: invalid var name: à",
+			want: "1:3: invalid var name \"à\"",
 		},
 		{
 			in:   "à(){}",
-			want: "1:3: invalid func name: à",
+			want: "1:3: invalid func name \"à\"",
 		},
 		{
 			in:   "{",
