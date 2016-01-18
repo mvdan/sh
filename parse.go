@@ -69,7 +69,10 @@ var space = map[rune]bool{
 	'\t': true,
 }
 
-var ident = regexp.MustCompile(`^[a-zA-Z_]+[a-zA-Z0-9_]*$`)
+var (
+	ident = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
+	num   = regexp.MustCompile(`^[1-9][0-9]*$`)
+)
 
 func (p *parser) next() {
 	r := ' '
@@ -141,7 +144,7 @@ func (p *parser) next() {
 		p.col++
 		rs = append(rs, r)
 	}
-	if len(rs) > 1 {
+	if err != io.EOF && len(rs) > 1 {
 		if err := p.r.UnreadRune(); err != nil {
 			p.errPass(err)
 			return
@@ -301,11 +304,7 @@ func (p *parser) command() {
 				p.command()
 				return
 			case p.got('>'):
-				switch {
-				case p.got('>'):
-				case p.got('&'):
-				}
-				p.want(STRING)
+				p.redirectDest()
 			case p.got('<'):
 				p.want(STRING)
 			case p.got(';'):
@@ -335,11 +334,7 @@ func (p *parser) command() {
 			p.command()
 			return
 		case p.got('>'):
-			switch {
-			case p.got('>'):
-			case p.got('&'):
-			}
-			p.want(STRING)
+			p.redirectDest()
 		case p.got('<'):
 			p.want(STRING)
 		case p.got(';'):
@@ -352,4 +347,17 @@ func (p *parser) command() {
 	default:
 		p.errWantedStr("command")
 	}
+}
+
+func (p *parser) redirectDest() {
+	switch {
+	case p.got('&'):
+		p.want(STRING)
+		if !num.MatchString(p.val) {
+			p.errWantedStr("number")
+		}
+		return
+	case p.got('>'):
+	}
+	p.want(STRING)
 }
