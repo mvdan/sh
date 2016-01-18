@@ -1,5 +1,6 @@
 foo && bar
 foo || bar
+{ foo; } && bar
 { foo; } || bar
 foo || { bar; }
 foo && extra1 && extra2
