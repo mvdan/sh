@@ -45,6 +45,7 @@ func TestParseErr(t *testing.T) {
 		"|",
 		"foo;;",
 		"foo(",
+		"foo'",
 		"foo()",
 		"foo() {",
 		"foo &&",
