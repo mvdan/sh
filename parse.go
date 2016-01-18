@@ -15,7 +15,6 @@ import (
 const (
 	_ = -iota
 	EOF
-	IDENT
 	STRING
 )
 
@@ -148,9 +147,6 @@ func (p *parser) next() {
 	}
 	p.tok = STRING
 	p.val = string(rs)
-	if ident.MatchString(p.val) {
-		p.tok = IDENT
-	}
 	return
 }
 
@@ -206,8 +202,6 @@ func tokStr(tok int32) string {
 		return "EOF"
 	case STRING:
 		return "string"
-	case IDENT:
-		return "ident"
 	default:
 		return strconv.QuoteRune(tok)
 	}
@@ -243,16 +237,17 @@ func (p *parser) program() {
 
 func (p *parser) command() {
 	switch {
-	case p.got(IDENT):
+	case p.got(STRING):
 		for p.tok != EOF {
+			lval := p.val
 			switch {
-			case p.got(IDENT):
 			case p.got(STRING):
 			case p.got('='):
-				switch {
-				case p.got(IDENT):
-				case p.got(STRING):
+				if !ident.MatchString(lval) {
+					p.errUnexpected()
+					return
 				}
+				p.got(STRING)
 			case p.got('&'):
 				if p.got('&') {
 					p.command()
@@ -263,6 +258,10 @@ func (p *parser) command() {
 				p.command()
 				return
 			case p.got('('):
+				if !ident.MatchString(lval) {
+					p.errUnexpected()
+					return
+				}
 				p.want(')')
 				p.want('{')
 				for !p.got('}') {
@@ -281,39 +280,9 @@ func (p *parser) command() {
 				case p.got('>'):
 				case p.got('&'):
 				}
-				p.value()
+				p.want(STRING)
 			case p.got('<'):
-				p.value()
-			case p.got(';'):
-				return
-			case p.got('\n'):
-				return
-			default:
-				p.errUnexpected()
-			}
-		}
-	case p.got(STRING):
-		for p.tok != EOF {
-			switch {
-			case p.got(IDENT):
-			case p.got(STRING):
-			case p.got('&'):
-				if p.got('&') {
-					p.command()
-				}
-				return
-			case p.got('|'):
-				p.got('|')
-				p.command()
-				return
-			case p.got('>'):
-				switch {
-				case p.got('>'):
-				case p.got('&'):
-				}
-				p.value()
-			case p.got('<'):
-				p.value()
+				p.want(STRING)
 			case p.got(';'):
 				return
 			case p.got('\n'):
@@ -345,9 +314,9 @@ func (p *parser) command() {
 			case p.got('>'):
 			case p.got('&'):
 			}
-			p.value()
+			p.want(STRING)
 		case p.got('<'):
-			p.value()
+			p.want(STRING)
 		case p.got(';'):
 			return
 		case p.got('\n'):
@@ -355,15 +324,6 @@ func (p *parser) command() {
 		default:
 			p.errUnexpected()
 		}
-	default:
-		p.errUnexpected()
-	}
-}
-
-func (p *parser) value() {
-	switch {
-	case p.got(IDENT):
-	case p.got(STRING):
 	default:
 		p.errUnexpected()
 	}
