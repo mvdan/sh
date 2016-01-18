@@ -251,7 +251,7 @@ func (p *parser) command() {
 			case p.got(STRING):
 			case p.got('='):
 				if !ident.MatchString(lval) {
-					p.errUnexpected()
+					p.lineErr("invalid var name: %s", lval)
 					return
 				}
 				p.got(STRING)
@@ -266,7 +266,7 @@ func (p *parser) command() {
 				return
 			case p.got('('):
 				if !ident.MatchString(lval) {
-					p.errUnexpected()
+					p.lineErr("invalid func name: %s", lval)
 					return
 				}
 				p.want(')')
