@@ -195,9 +195,25 @@ func (p *parser) got(tok int32) bool {
 	return false
 }
 
+func (p *parser) gotStr(s string) bool {
+	if p.tok == STRING && p.val == s {
+		p.next()
+		return true
+	}
+	return false
+}
+
 func (p *parser) want(tok int32) {
 	if p.tok != tok {
 		p.errWanted(tok)
+		return
+	}
+	p.next()
+}
+
+func (p *parser) wantStr(s string) {
+	if p.tok != STRING || p.val != s {
+		p.errWantedStr(s)
 		return
 	}
 	p.next()
@@ -271,6 +287,19 @@ func (p *parser) command() {
 			p.errWantedStr("command")
 		}
 		p.want(')')
+	case p.gotStr("if"):
+		p.command()
+		p.wantStr("then")
+		for p.tok != EOF {
+			if p.tok == STRING && p.val == "fi" {
+				break
+			}
+			if p.got('\n') {
+				continue
+			}
+			p.command()
+		}
+		p.wantStr("fi")
 	case p.got(STRING):
 		for p.tok != EOF {
 			lval := p.val
