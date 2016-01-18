@@ -37,115 +37,115 @@ func TestParseErr(t *testing.T) {
 	}{
 		{
 			in:   "'",
-			want: "1:1: unexpected token EOF, wanted '\\''",
+			want: `1:1: unexpected token EOF, wanted '\''`,
 		},
 		{
 			in:   "\"",
-			want: "1:1: unexpected token EOF, wanted '\"'",
+			want: `1:1: unexpected token EOF, wanted '"'`,
 		},
 		{
 			in:   "'\\''",
-			want: "1:2: unexpected token string, wanted '\\''",
+			want: `1:2: unexpected token string, wanted '\''`,
 		},
 		{
 			in:   ";",
-			want: "1:1: unexpected token ';', wanted command",
+			want: `1:1: unexpected token ';', wanted command`,
 		},
 		{
 			in:   "à=3",
-			want: "1:3: invalid var name \"à\"",
+			want: `1:3: invalid var name "à"`,
 		},
 		{
 			in:   "à(){}",
-			want: "1:3: invalid func name \"à\"",
+			want: `1:3: invalid func name "à"`,
 		},
 		{
 			in:   "{",
-			want: "1:1: unexpected token EOF, wanted '}'",
+			want: `1:1: unexpected token EOF, wanted '}'`,
 		},
 		{
 			in:   "{{}",
-			want: "1:3: unexpected token EOF",
+			want: `1:3: unexpected token EOF`,
 		},
 		{
 			in:   "}",
-			want: "1:1: unexpected token '}', wanted command",
+			want: `1:1: unexpected token '}', wanted command`,
 		},
 		{
 			in:   "{}}",
-			want: "1:3: unexpected token '}'",
+			want: `1:3: unexpected token '}'`,
 		},
 		{
 			in:   "{#}",
-			want: "1:2: unexpected token EOF, wanted '}'",
+			want: `1:2: unexpected token EOF, wanted '}'`,
 		},
 		{
 			in:   "{}(){}",
-			want: "1:3: unexpected token '('",
+			want: `1:3: unexpected token '('`,
 		},
 		{
 			in:   "=",
-			want: "1:1: unexpected token '=', wanted command",
+			want: `1:1: unexpected token '=', wanted command`,
 		},
 		{
 			in:   "&",
-			want: "1:1: unexpected token '&', wanted command",
+			want: `1:1: unexpected token '&', wanted command`,
 		},
 		{
 			in:   "|",
-			want: "1:1: unexpected token '|', wanted command",
+			want: `1:1: unexpected token '|', wanted command`,
 		},
 		{
 			in:   "foo;;",
-			want: "1:5: unexpected token ';', wanted command",
+			want: `1:5: unexpected token ';', wanted command`,
 		},
 		{
 			in:   "foo(",
-			want: "1:4: unexpected token EOF, wanted ')'",
+			want: `1:4: unexpected token EOF, wanted ')'`,
 		},
 		{
 			in:   "foo'",
-			want: "1:4: unexpected token string, wanted '\\''",
+			want: `1:4: unexpected token string, wanted '\''`,
 		},
 		{
 			in:   "foo\"",
-			want: "1:4: unexpected token string, wanted '\"'",
+			want: `1:4: unexpected token string, wanted '"'`,
 		},
 		{
 			in:   "foo()",
-			want: "1:5: unexpected token EOF, wanted command",
+			want: `1:5: unexpected token EOF, wanted command`,
 		},
 		{
 			in:   "foo() {",
-			want: "1:7: unexpected token EOF, wanted '}'",
+			want: `1:7: unexpected token EOF, wanted '}'`,
 		},
 		{
 			in:   "foo &&",
-			want: "1:6: unexpected token EOF, wanted command",
+			want: `1:6: unexpected token EOF, wanted command`,
 		},
 		{
 			in:   "foo |",
-			want: "1:5: unexpected token EOF, wanted command",
+			want: `1:5: unexpected token EOF, wanted command`,
 		},
 		{
 			in:   "foo ||",
-			want: "1:6: unexpected token EOF, wanted command",
+			want: `1:6: unexpected token EOF, wanted command`,
 		},
 		{
 			in:   "foo >",
-			want: "1:5: unexpected token EOF, wanted string",
+			want: `1:5: unexpected token EOF, wanted string`,
 		},
 		{
 			in:   "foo >>",
-			want: "1:6: unexpected token EOF, wanted string",
+			want: `1:6: unexpected token EOF, wanted string`,
 		},
 		{
 			in:   "foo >&",
-			want: "1:6: unexpected token EOF, wanted string",
+			want: `1:6: unexpected token EOF, wanted string`,
 		},
 		{
 			in:   "foo <",
-			want: "1:5: unexpected token EOF, wanted string",
+			want: `1:5: unexpected token EOF, wanted string`,
 		},
 	}
 	for _, c := range errs {
