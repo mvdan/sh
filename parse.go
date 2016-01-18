@@ -280,11 +280,6 @@ func (p *parser) command() {
 		}
 		p.want('}')
 		switch {
-		case p.got('='):
-			switch {
-			case p.got(IDENT):
-			case p.got(STRING):
-			}
 		case p.got('&'):
 			if p.got('&') {
 				p.command()
