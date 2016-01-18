@@ -84,6 +84,22 @@ func TestParseErr(t *testing.T) {
 			want: `1:3: unexpected token '(' after block`,
 		},
 		{
+			in:   "(",
+			want: `1:1: unexpected token EOF, wanted command`,
+		},
+		{
+			in:   ")",
+			want: `1:1: unexpected token ')', wanted command`,
+		},
+		{
+			in:   "()",
+			want: `1:2: unexpected token ')', wanted command`,
+		},
+		{
+			in:   "( foo;",
+			want: `1:6: unexpected token EOF, wanted ')'`,
+		},
+		{
 			in:   "=",
 			want: `1:1: unexpected token '=', wanted command`,
 		},

@@ -255,6 +255,19 @@ func (p *parser) program() {
 
 func (p *parser) command() {
 	switch {
+	case p.got('('):
+		count := 0
+		for p.tok != EOF && p.tok != ')' {
+			if p.got('\n') {
+				continue
+			}
+			p.command()
+			count++
+		}
+		if count == 0 {
+			p.errWantedStr("command")
+		}
+		p.want(')')
 	case p.got(STRING):
 		for p.tok != EOF {
 			lval := p.val
