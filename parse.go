@@ -102,7 +102,7 @@ func (p *parser) next() {
 		return
 	}
 	runes := []rune{r}
-	for !reserved[r] && !space[r] {
+	for !reserved[r] && !quote[r] && !space[r] {
 		r, _, err = p.r.ReadRune()
 		if err == io.EOF {
 			break
@@ -131,11 +131,20 @@ func (p *parser) next() {
 }
 
 func (p *parser) strContent(delim byte) {
-	_, err := p.r.ReadBytes(delim)
-	if err == io.EOF {
-		p.errWanted(rune(delim))
-	} else if err != nil {
-		p.errPass(err)
+	for {
+		b, err := p.r.ReadBytes(delim)
+		if err == io.EOF {
+			p.errWanted(rune(delim))
+		} else if err != nil {
+			p.errPass(err)
+		}
+		if delim == '\'' {
+			break
+		}
+		if len(b) > 1 && b[len(b)-2] == '\\' && b[len(b)-1] == delim {
+			continue
+		}
+		break
 	}
 }
 
