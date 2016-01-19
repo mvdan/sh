@@ -229,15 +229,17 @@ func (p *parser) wantStr(s string) {
 	p.next()
 }
 
+var tokStrs = map[int32]string{
+	0:      "EOF",
+	EOF:    "EOF",
+	STRING: "string",
+}
+
 func tokStr(tok int32) string {
-	switch tok {
-	case 0, EOF:
-		return "EOF"
-	case STRING:
-		return "string"
-	default:
-		return strconv.QuoteRune(tok)
+	if s, e := tokStrs[tok]; e {
+		return s
 	}
+	return strconv.QuoteRune(tok)
 }
 
 func (p *parser) errPass(err error) {
