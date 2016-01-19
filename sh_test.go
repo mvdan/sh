@@ -64,6 +64,10 @@ func TestParseErr(t *testing.T) {
 			want: `1:1: unexpected token EOF, wanted '}'`,
 		},
 		{
+			in:   "{\n",
+			want: `2:0: unexpected token EOF, wanted '}'`,
+		},
+		{
 			in:   "{{}",
 			want: `1:3: unexpected token EOF after block`,
 		},
@@ -186,6 +190,10 @@ func TestParseErr(t *testing.T) {
 		{
 			in:   "'foo' '",
 			want: `1:8: unexpected token EOF, wanted '\''`,
+		},
+		{
+			in:   "'foo\n' '",
+			want: `2:3: unexpected token EOF, wanted '\''`,
 		},
 	}
 	for _, c := range errs {

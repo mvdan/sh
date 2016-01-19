@@ -160,24 +160,31 @@ func (p *parser) next() {
 func (p *parser) strContent(delim byte) {
 	v := []string{string(delim)}
 	for {
-		b, err := p.r.ReadBytes(delim)
+		s, err := p.r.ReadString(delim)
 		if err == io.EOF {
 			p.tok = EOF
 			p.errWanted(rune(delim))
 		} else if err != nil {
 			p.errPass(err)
 		}
-		v = append(v, string(b))
+		v = append(v, s)
 		if delim == '\'' {
 			break
 		}
-		if len(b) > 1 && b[len(b)-2] == '\\' && b[len(b)-1] == delim {
+		if len(s) > 1 && s[len(s)-2] == '\\' && s[len(s)-1] == delim {
 			continue
 		}
 		break
 	}
 	p.val = strings.Join(v, "")
-	p.col += len(p.val)
+	for _, r := range p.val {
+		if r == '\n' {
+			p.line++
+			p.col = 0
+		} else {
+			p.col++
+		}
+	}
 }
 
 func (p *parser) discardUpTo(delim byte) {
