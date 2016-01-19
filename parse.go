@@ -230,7 +230,6 @@ func (p *parser) wantStr(s string) {
 }
 
 var tokStrs = map[int32]string{
-	0:      "EOF",
 	EOF:    "EOF",
 	STRING: "string",
 }
