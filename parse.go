@@ -252,17 +252,8 @@ func (p *parser) errPass(err error) {
 }
 
 func (p *parser) lineErr(format string, v ...interface{}) {
-	var pos string
-	if p.name != "" {
-		pos = fmt.Sprintf("%s:%d:%d: ", p.name, p.line, p.col)
-	} else {
-		pos = fmt.Sprintf("%d:%d: ", p.line, p.col)
-	}
+	pos := fmt.Sprintf("%s:%d:%d: ", p.name, p.line, p.col)
 	p.errPass(fmt.Errorf(pos+format, v...))
-}
-
-func (p *parser) errUnexpected() {
-	p.lineErr("unexpected token %s", tokStr(p.tok))
 }
 
 func (p *parser) errWantedStr(s string) {
