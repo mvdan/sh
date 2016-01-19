@@ -16,7 +16,7 @@ import (
 const (
 	_ = -iota
 	EOF
-	STRING
+	WORD
 	IF
 	THEN
 	ELSE
@@ -117,7 +117,7 @@ func (p *parser) next() {
 			p.next()
 			if p.got('{') {
 				p.discardUpTo('}')
-				p.tok = STRING
+				p.tok = WORD
 				return
 			}
 		case '\n':
@@ -135,7 +135,7 @@ func (p *parser) next() {
 		if p.tok == EOF {
 			return
 		}
-		p.tok = STRING
+		p.tok = WORD
 		return
 	}
 	rs := []rune{r}
@@ -159,7 +159,7 @@ func (p *parser) next() {
 		p.col--
 		rs = rs[:len(rs)-1]
 	}
-	p.tok = STRING
+	p.tok = WORD
 	p.val = string(rs)
 	return
 }
@@ -205,7 +205,7 @@ func (p *parser) discardUpTo(delim byte) {
 }
 
 func (p *parser) peek(tok int32) bool {
-	return p.tok == tok || (p.tok == STRING && p.val == tokStr(tok))
+	return p.tok == tok || (p.tok == WORD && p.val == tokStr(tok))
 }
 
 func (p *parser) got(tok int32) bool {
@@ -225,8 +225,8 @@ func (p *parser) want(tok int32) {
 }
 
 var tokStrs = map[int32]string{
-	EOF:    "EOF",
-	STRING: "string",
+	EOF:  "EOF",
+	WORD: "word",
 
 	IF:    "if",
 	THEN:  "then",
@@ -329,11 +329,11 @@ func (p *parser) command() {
 			p.command()
 		}
 		p.want(DONE)
-	case p.got(STRING):
+	case p.got(WORD):
 		for p.tok != EOF {
 			lval := p.val
 			switch {
-			case p.got(STRING):
+			case p.got(WORD):
 			case p.got('='):
 				if !ident.MatchString(lval) {
 					p.col -= utf8.RuneCountInString(lval)
@@ -341,7 +341,7 @@ func (p *parser) command() {
 					p.lineErr("invalid var name %q", lval)
 					return
 				}
-				p.got(STRING)
+				p.got(WORD)
 			case p.got('&'):
 				if p.got('&') {
 					p.command()
@@ -364,7 +364,7 @@ func (p *parser) command() {
 			case p.got('>'):
 				p.redirectDest()
 			case p.got('<'):
-				p.want(STRING)
+				p.want(WORD)
 			case p.got(';'):
 				return
 			case p.got('\n'):
@@ -394,7 +394,7 @@ func (p *parser) command() {
 		case p.got('>'):
 			p.redirectDest()
 		case p.got('<'):
-			p.want(STRING)
+			p.want(WORD)
 		case p.got(';'):
 			return
 		case p.got('\n'):
@@ -410,12 +410,12 @@ func (p *parser) command() {
 func (p *parser) redirectDest() {
 	switch {
 	case p.got('&'):
-		p.want(STRING)
+		p.want(WORD)
 		if !num.MatchString(p.val) {
 			p.errWantedStr("number")
 		}
 		return
 	case p.got('>'):
 	}
-	p.want(STRING)
+	p.want(WORD)
 }
