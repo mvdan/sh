@@ -321,6 +321,19 @@ func (p *parser) command() {
 			}
 		}
 		p.wantStr("fi")
+	case p.gotStr("while"):
+		p.command()
+		p.wantStr("do")
+		for p.tok != EOF {
+			if p.tok == STRING && p.val == "done" {
+				break
+			}
+			if p.got('\n') {
+				continue
+			}
+			p.command()
+		}
+		p.wantStr("done")
 	case p.got(STRING):
 		for p.tok != EOF {
 			lval := p.val
