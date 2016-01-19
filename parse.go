@@ -177,15 +177,17 @@ func (p *parser) strContent(delim byte) {
 		break
 	}
 	p.val = strings.Join(v, "")
+	p.col += len(p.val)
 }
 
 func (p *parser) discardUpTo(delim byte) {
-	_, err := p.r.ReadBytes(delim)
+	b, err := p.r.ReadBytes(delim)
 	if err == io.EOF {
 		p.tok = EOF
 	} else if err != nil {
 		p.errPass(err)
 	}
+	p.col += utf8.RuneCount(b)
 }
 
 func (p *parser) got(tok int32) bool {
