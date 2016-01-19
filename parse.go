@@ -17,6 +17,13 @@ const (
 	_ = -iota
 	EOF
 	STRING
+	IF
+	THEN
+	ELSE
+	FI
+	WHILE
+	DO
+	DONE
 )
 
 func parse(r io.Reader, name string) error {
@@ -198,15 +205,7 @@ func (p *parser) discardUpTo(delim byte) {
 }
 
 func (p *parser) got(tok int32) bool {
-	if p.tok == tok {
-		p.next()
-		return true
-	}
-	return false
-}
-
-func (p *parser) gotStr(s string) bool {
-	if p.tok == STRING && p.val == s {
+	if p.tok == tok || (p.tok == STRING && p.val == tokStr(tok)) {
 		p.next()
 		return true
 	}
@@ -214,16 +213,8 @@ func (p *parser) gotStr(s string) bool {
 }
 
 func (p *parser) want(tok int32) {
-	if p.tok != tok {
+	if p.tok != tok && !(p.tok == STRING && p.val == tokStr(tok)) {
 		p.errWanted(tok)
-		return
-	}
-	p.next()
-}
-
-func (p *parser) wantStr(s string) {
-	if p.tok != STRING || p.val != s {
-		p.errWantedStr(s)
 		return
 	}
 	p.next()
@@ -232,6 +223,14 @@ func (p *parser) wantStr(s string) {
 var tokStrs = map[int32]string{
 	EOF:    "EOF",
 	STRING: "string",
+
+	IF:    "if",
+	THEN:  "then",
+	ELSE:  "else",
+	FI:    "fi",
+	WHILE: "while",
+	DO:    "do",
+	DONE:  "done",
 }
 
 func tokStr(tok int32) string {
@@ -298,9 +297,9 @@ func (p *parser) command() {
 			p.errWantedStr("command")
 		}
 		p.want(')')
-	case p.gotStr("if"):
+	case p.got(IF):
 		p.command()
-		p.wantStr("then")
+		p.want(THEN)
 		for p.tok != EOF {
 			if p.tok == STRING && (p.val == "fi" || p.val == "else") {
 				break
@@ -310,7 +309,7 @@ func (p *parser) command() {
 			}
 			p.command()
 		}
-		if p.gotStr("else") {
+		if p.got(ELSE) {
 			for p.tok != EOF {
 				if p.tok == STRING && p.val == "fi" {
 					break
@@ -321,10 +320,10 @@ func (p *parser) command() {
 				p.command()
 			}
 		}
-		p.wantStr("fi")
-	case p.gotStr("while"):
+		p.want(FI)
+	case p.got(WHILE):
 		p.command()
-		p.wantStr("do")
+		p.want(DO)
 		for p.tok != EOF {
 			if p.tok == STRING && p.val == "done" {
 				break
@@ -334,7 +333,7 @@ func (p *parser) command() {
 			}
 			p.command()
 		}
-		p.wantStr("done")
+		p.want(DONE)
 	case p.got(STRING):
 		for p.tok != EOF {
 			lval := p.val
