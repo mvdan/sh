@@ -204,8 +204,12 @@ func (p *parser) discardUpTo(delim byte) {
 	p.col += utf8.RuneCount(b)
 }
 
+func (p *parser) peek(tok int32) bool {
+	return p.tok == tok || (p.tok == STRING && p.val == tokStr(tok))
+}
+
 func (p *parser) got(tok int32) bool {
-	if p.tok == tok || (p.tok == STRING && p.val == tokStr(tok)) {
+	if p.peek(tok) {
 		p.next()
 		return true
 	}
@@ -213,7 +217,7 @@ func (p *parser) got(tok int32) bool {
 }
 
 func (p *parser) want(tok int32) {
-	if p.tok != tok && !(p.tok == STRING && p.val == tokStr(tok)) {
+	if !p.peek(tok) {
 		p.errWanted(tok)
 		return
 	}
@@ -286,7 +290,7 @@ func (p *parser) command() {
 	switch {
 	case p.got('('):
 		count := 0
-		for p.tok != EOF && p.tok != ')' {
+		for p.tok != EOF && !p.peek(')') {
 			if p.got('\n') {
 				continue
 			}
@@ -300,20 +304,14 @@ func (p *parser) command() {
 	case p.got(IF):
 		p.command()
 		p.want(THEN)
-		for p.tok != EOF {
-			if p.tok == STRING && (p.val == "fi" || p.val == "else") {
-				break
-			}
+		for p.tok != EOF && !p.peek(FI) && !p.peek(ELSE) {
 			if p.got('\n') {
 				continue
 			}
 			p.command()
 		}
 		if p.got(ELSE) {
-			for p.tok != EOF {
-				if p.tok == STRING && p.val == "fi" {
-					break
-				}
+			for p.tok != EOF && !p.peek(FI) {
 				if p.got('\n') {
 					continue
 				}
@@ -324,10 +322,7 @@ func (p *parser) command() {
 	case p.got(WHILE):
 		p.command()
 		p.want(DO)
-		for p.tok != EOF {
-			if p.tok == STRING && p.val == "done" {
-				break
-			}
+		for p.tok != EOF && !p.peek(DONE) {
 			if p.got('\n') {
 				continue
 			}
@@ -379,7 +374,7 @@ func (p *parser) command() {
 			}
 		}
 	case p.got('{'):
-		for p.tok != EOF && p.tok != '}' {
+		for p.tok != EOF && !p.peek('}') {
 			if p.got('\n') {
 				continue
 			}
