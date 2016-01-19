@@ -162,6 +162,7 @@ func (p *parser) strContent(delim byte) {
 	for {
 		b, err := p.r.ReadBytes(delim)
 		if err == io.EOF {
+			p.tok = EOF
 			p.errWanted(rune(delim))
 		} else if err != nil {
 			p.errPass(err)
