@@ -176,8 +176,8 @@ func TestParseErr(t *testing.T) {
 			want: `1:2: unexpected token EOF, wanted command`,
 		},
 		{
-			in:   "if foo",
-			want: `1:6: unexpected token EOF, wanted then`,
+			in:   "if foo;",
+			want: `1:7: unexpected token EOF, wanted then`,
 		},
 		{
 			in:   "if foo; bar",
@@ -200,8 +200,8 @@ func TestParseErr(t *testing.T) {
 			want: `1:5: unexpected token EOF, wanted command`,
 		},
 		{
-			in:   "while foo",
-			want: `1:9: unexpected token EOF, wanted do`,
+			in:   "while foo;",
+			want: `1:10: unexpected token EOF, wanted do`,
 		},
 		{
 			in:   "while foo; bar",
