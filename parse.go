@@ -205,7 +205,7 @@ func (p *parser) discardUpTo(delim byte) {
 }
 
 func (p *parser) peek(tok int32) bool {
-	return p.tok == tok || (p.tok == WORD && p.val == tokStr(tok))
+	return p.tok == tok || (p.tok == WORD && p.val == tokStrs[tok])
 }
 
 func (p *parser) got(tok int32) bool {
@@ -225,9 +225,6 @@ func (p *parser) want(tok int32) {
 }
 
 var tokStrs = map[int32]string{
-	EOF:  "EOF",
-	WORD: "word",
-
 	IF:    "if",
 	THEN:  "then",
 	ELSE:  "else",
@@ -237,8 +234,21 @@ var tokStrs = map[int32]string{
 	DONE:  "done",
 }
 
-func tokStr(tok int32) string {
-	if s, e := tokStrs[tok]; e {
+var tokNames = map[int32]string{
+	EOF:  `EOF`,
+	WORD: `word`,
+
+	IF:    `"if"`,
+	THEN:  `"then"`,
+	ELSE:  `"else"`,
+	FI:    `"fi"`,
+	WHILE: `"while"`,
+	DO:    `"do"`,
+	DONE:  `"done"`,
+}
+
+func tokName(tok int32) string {
+	if s, e := tokNames[tok]; e {
 		return s
 	}
 	return strconv.QuoteRune(tok)
@@ -257,15 +267,15 @@ func (p *parser) lineErr(format string, v ...interface{}) {
 }
 
 func (p *parser) errWantedStr(s string) {
-	p.lineErr("unexpected token %s, wanted %s", tokStr(p.tok), s)
+	p.lineErr("unexpected token %s, wanted %s", tokName(p.tok), s)
 }
 
 func (p *parser) errWanted(tok int32) {
-	p.errWantedStr(tokStr(tok))
+	p.errWantedStr(tokName(tok))
 }
 
 func (p *parser) errAfterStr(s string) {
-	p.lineErr("unexpected token %s after %s", tokStr(p.tok), s)
+	p.lineErr("unexpected token %s after %s", tokName(p.tok), s)
 }
 
 func (p *parser) program() {

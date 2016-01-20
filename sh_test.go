@@ -177,15 +177,15 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			in:   "if foo;",
-			want: `1:7: unexpected token EOF, wanted then`,
+			want: `1:7: unexpected token EOF, wanted "then"`,
 		},
 		{
 			in:   "if foo; bar",
-			want: `1:11: unexpected token word, wanted then`,
+			want: `1:11: unexpected token word, wanted "then"`,
 		},
 		{
 			in:   "if foo; then bar",
-			want: `1:16: unexpected token EOF, wanted fi`,
+			want: `1:16: unexpected token EOF, wanted "fi"`,
 		},
 		{
 			in:   "'foo' '",
@@ -201,15 +201,15 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			in:   "while foo;",
-			want: `1:10: unexpected token EOF, wanted do`,
+			want: `1:10: unexpected token EOF, wanted "do"`,
 		},
 		{
 			in:   "while foo; bar",
-			want: `1:14: unexpected token word, wanted do`,
+			want: `1:14: unexpected token word, wanted "do"`,
 		},
 		{
 			in:   "while foo; do bar",
-			want: `1:17: unexpected token EOF, wanted done`,
+			want: `1:17: unexpected token EOF, wanted "done"`,
 		},
 	}
 	for _, c := range errs {
@@ -220,7 +220,7 @@ func TestParseErr(t *testing.T) {
 		}
 		got := err.Error()[1:]
 		if got != c.want {
-			t.Fatalf("Error mismatch in %q\nwant: %q\ngot:  %q", c.in, c.want, got)
+			t.Fatalf("Error mismatch in %q\nwant: %s\ngot:  %s", c.in, c.want, got)
 		}
 	}
 }
