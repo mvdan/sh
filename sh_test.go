@@ -165,7 +165,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			in:   "foo >&bar",
-			want: `1:9: unexpected token EOF, wanted number`,
+			want: `1:7: invalid fd "bar"`,
 		},
 		{
 			in:   "foo <",

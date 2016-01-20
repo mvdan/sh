@@ -403,7 +403,9 @@ func (p *parser) redirectDest() {
 	case p.got('&'):
 		p.want(WORD)
 		if !num.MatchString(p.val) {
-			p.errWantedStr("number")
+			p.col -= utf8.RuneCountInString(p.val)
+			p.col++
+			p.lineErr("invalid fd %q", p.val)
 		}
 		return
 	case p.got('>'):
