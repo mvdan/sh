@@ -52,8 +52,8 @@ func TestParseErr(t *testing.T) {
 			want: `1:1: unexpected token ';', wanted command`,
 		},
 		{
-			in:   "à=3",
-			want: `1:1: invalid var name "à"`,
+			in:   "foà=3bar",
+			want: `1:1: invalid var name "foà"`,
 		},
 		{
 			in:   "à(){}",
@@ -61,15 +61,15 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			in:   "{",
-			want: `1:1: unexpected token EOF, wanted '}'`,
+			want: `1:2: unexpected token EOF, wanted '}'`,
 		},
 		{
 			in:   "{\n",
-			want: `2:0: unexpected token EOF, wanted '}'`,
+			want: `2:1: unexpected token EOF, wanted '}'`,
 		},
 		{
 			in:   "{{}",
-			want: `1:3: unexpected token EOF after block`,
+			want: `1:4: unexpected token EOF after block`,
 		},
 		{
 			in:   "}",
@@ -81,7 +81,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			in:   "{#}",
-			want: `1:3: unexpected token EOF, wanted '}'`,
+			want: `1:4: unexpected token EOF, wanted '}'`,
 		},
 		{
 			in:   "{}(){}",
@@ -89,7 +89,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			in:   "(",
-			want: `1:1: unexpected token EOF, wanted command`,
+			want: `1:2: unexpected token EOF, wanted command`,
 		},
 		{
 			in:   ")",
@@ -101,7 +101,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			in:   "( foo;",
-			want: `1:6: unexpected token EOF, wanted ')'`,
+			want: `1:7: unexpected token EOF, wanted ')'`,
 		},
 		{
 			in:   "=",
@@ -121,7 +121,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			in:   "foo(",
-			want: `1:4: unexpected token EOF, wanted ')'`,
+			want: `1:5: unexpected token EOF, wanted ')'`,
 		},
 		{
 			in:   "foo'",
@@ -133,59 +133,59 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			in:   "foo()",
-			want: `1:5: unexpected token EOF, wanted command`,
+			want: `1:6: unexpected token EOF, wanted command`,
 		},
 		{
 			in:   "foo() {",
-			want: `1:7: unexpected token EOF, wanted '}'`,
+			want: `1:8: unexpected token EOF, wanted '}'`,
 		},
 		{
 			in:   "foo &&",
-			want: `1:6: unexpected token EOF, wanted command`,
+			want: `1:7: unexpected token EOF, wanted command`,
 		},
 		{
 			in:   "foo |",
-			want: `1:5: unexpected token EOF, wanted command`,
-		},
-		{
-			in:   "foo ||",
 			want: `1:6: unexpected token EOF, wanted command`,
 		},
 		{
+			in:   "foo ||",
+			want: `1:7: unexpected token EOF, wanted command`,
+		},
+		{
 			in:   "foo >",
-			want: `1:5: unexpected token EOF, wanted word`,
+			want: `1:6: unexpected token EOF, wanted word`,
 		},
 		{
 			in:   "foo >>",
-			want: `1:6: unexpected token EOF, wanted word`,
+			want: `1:7: unexpected token EOF, wanted word`,
 		},
 		{
 			in:   "foo >&",
-			want: `1:6: unexpected token EOF, wanted word`,
+			want: `1:7: unexpected token EOF, wanted word`,
 		},
 		{
 			in:   "foo >&bar",
-			want: `1:7: invalid fd "bar"`,
+			want: `1:8: invalid fd "bar"`,
 		},
 		{
 			in:   "foo <",
-			want: `1:5: unexpected token EOF, wanted word`,
+			want: `1:6: unexpected token EOF, wanted word`,
 		},
 		{
 			in:   "if",
-			want: `1:2: unexpected token EOF, wanted command`,
+			want: `1:3: unexpected token EOF, wanted command`,
 		},
 		{
 			in:   "if foo;",
-			want: `1:7: unexpected token EOF, wanted "then"`,
+			want: `1:8: unexpected token EOF, wanted "then"`,
 		},
 		{
 			in:   "if foo; bar",
 			want: `1:11: unexpected token word, wanted "then"`,
 		},
 		{
-			in:   "if foo; then bar",
-			want: `1:16: unexpected token EOF, wanted "fi"`,
+			in:   "if foo; then bar;",
+			want: `1:18: unexpected token EOF, wanted "fi"`,
 		},
 		{
 			in:   "'foo' '",
@@ -197,19 +197,19 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			in:   "while",
-			want: `1:5: unexpected token EOF, wanted command`,
+			want: `1:6: unexpected token EOF, wanted command`,
 		},
 		{
 			in:   "while foo;",
-			want: `1:10: unexpected token EOF, wanted "do"`,
+			want: `1:11: unexpected token EOF, wanted "do"`,
 		},
 		{
 			in:   "while foo; bar",
 			want: `1:14: unexpected token word, wanted "do"`,
 		},
 		{
-			in:   "while foo; do bar",
-			want: `1:17: unexpected token EOF, wanted "done"`,
+			in:   "while foo; do bar;",
+			want: `1:19: unexpected token EOF, wanted "done"`,
 		},
 	}
 	for _, c := range errs {

@@ -82,12 +82,16 @@ var (
 )
 
 func (p *parser) next() {
+	if p.tok == EOF {
+		return
+	}
 	r := ' '
 	var err error
 	for space[r] {
 		r, _, err = p.r.ReadRune()
 		if err == io.EOF {
 			p.tok = EOF
+			p.col++
 			return
 		}
 		if err != nil {
@@ -142,6 +146,7 @@ func (p *parser) next() {
 	for !reserved[r] && !quote[r] && !space[r] {
 		r, _, err = p.r.ReadRune()
 		if err == io.EOF {
+			p.col++
 			break
 		}
 		if err != nil {
@@ -156,9 +161,9 @@ func (p *parser) next() {
 			p.errPass(err)
 			return
 		}
-		p.col--
 		rs = rs[:len(rs)-1]
 	}
+	p.col--
 	p.tok = WORD
 	p.val = string(rs)
 	return
@@ -198,6 +203,7 @@ func (p *parser) discardUpTo(delim byte) {
 	b, err := p.r.ReadBytes(delim)
 	if err == io.EOF {
 		p.tok = EOF
+		p.col++
 	} else if err != nil {
 		p.errPass(err)
 	}
@@ -338,7 +344,7 @@ func (p *parser) command() {
 			case p.got('='):
 				if !ident.MatchString(lval) {
 					p.col -= utf8.RuneCountInString(lval)
-					p.col--
+					p.col -= utf8.RuneCountInString(p.val)
 					p.lineErr("invalid var name %q", lval)
 					return
 				}
