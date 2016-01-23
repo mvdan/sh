@@ -339,6 +339,7 @@ func (p *parser) command() {
 		}
 		p.want(DONE)
 	case p.got(WORD):
+	args:
 		for p.tok != EOF {
 			lval := p.val
 			switch {
@@ -355,29 +356,29 @@ func (p *parser) command() {
 				if p.got('&') {
 					p.command()
 				}
-				return
+				break args
 			case p.got('|'):
 				p.got('|')
 				p.command()
-				return
+				break args
 			case p.got('('):
 				if !ident.MatchString(lval) {
 					p.col -= utf8.RuneCountInString(lval)
 					p.col--
 					p.lineErr("invalid func name %q", lval)
-					return
+					break args
 				}
 				p.want(')')
 				p.command()
-				return
+				break args
 			case p.got('>'):
 				p.redirectDest()
 			case p.got('<'):
 				p.want(WORD)
 			case p.got(';'):
-				return
+				break args
 			case p.got('\n'):
-				return
+				break args
 			default:
 				p.errAfterStr("command")
 			}
@@ -395,19 +396,15 @@ func (p *parser) command() {
 			if p.got('&') {
 				p.command()
 			}
-			return
 		case p.got('|'):
 			p.got('|')
 			p.command()
-			return
 		case p.got('>'):
 			p.redirectDest()
 		case p.got('<'):
 			p.want(WORD)
 		case p.got(';'):
-			return
 		case p.got('\n'):
-			return
 		default:
 			p.errAfterStr("block")
 		}
