@@ -139,6 +139,7 @@ func (p *parser) next() {
 		if p.tok == EOF {
 			return
 		}
+		p.col--
 		p.tok = WORD
 		return
 	}
@@ -171,8 +172,17 @@ func (p *parser) next() {
 
 func (p *parser) strContent(delim byte) {
 	v := []string{string(delim)}
+	p.col++
 	for {
 		s, err := p.r.ReadString(delim)
+		for _, r := range s {
+			if r == '\n' {
+				p.line++
+				p.col = 0
+			} else {
+				p.col++
+			}
+		}
 		if err == io.EOF {
 			p.tok = EOF
 			p.errWanted(rune(delim))
@@ -189,14 +199,6 @@ func (p *parser) strContent(delim byte) {
 		break
 	}
 	p.val = strings.Join(v, "")
-	for _, r := range p.val {
-		if r == '\n' {
-			p.line++
-			p.col = 0
-		} else {
-			p.col++
-		}
-	}
 }
 
 func (p *parser) discardUpTo(delim byte) {
