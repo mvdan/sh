@@ -319,6 +319,11 @@ func (p *parser) add(n node) {
 	*cur = append(*cur, n)
 }
 
+func (p *parser) pop(n node) {
+	p.stack = p.stack[:len(p.stack)-1]
+	p.add(n)
+}
+
 func (p *parser) program() {
 	p.stack = append(p.stack, &p.prog.stmts)
 	for p.tok != EOF {
@@ -346,7 +351,7 @@ func (p *parser) command() {
 			p.errWantedStr("command")
 		}
 		p.want(')')
-		p.add(sub)
+		p.pop(sub)
 	case p.got(IF):
 		p.command()
 		p.want(THEN)

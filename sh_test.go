@@ -248,12 +248,20 @@ func TestParseAST(t *testing.T) {
 				command{args: []string{"foo", "arg1", "arg2"}},
 			}},
 		},
+		{
+			in: "( foo; )",
+			want: prog{stmts: []node{
+				subshell{stmts: []node{
+					command{args: []string{"foo"}},
+				}},
+			}},
+		},
 	}
 	for _, c := range tests {
 		r := strings.NewReader(c.in)
 		got, err := parse(r, "")
 		if err != nil {
-			t.Fatalf("Unexpected error in %q", c.in)
+			t.Fatalf("Unexpected error in %q: %v", c.in, err)
 		}
 		if !reflect.DeepEqual(got, c.want) {
 			t.Fatalf("AST mismatch in %q\nwant: %#v\ngot:  %#v",
