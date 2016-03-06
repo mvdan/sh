@@ -42,8 +42,9 @@ type parser struct {
 	r   *bufio.Reader
 	err error
 
-	tok int32
-	val string
+	tok  int32
+	lval string
+	val  string
 
 	name string
 	line int
@@ -103,6 +104,7 @@ var (
 )
 
 func (p *parser) next() {
+	p.lval = p.val
 	if p.tok == EOF {
 		return
 	}
@@ -111,7 +113,7 @@ func (p *parser) next() {
 	for space[r] {
 		r, _, err = p.r.ReadRune()
 		if err == io.EOF {
-			p.tok = EOF
+			p.eof()
 			p.col++
 			return
 		}
@@ -191,6 +193,11 @@ func (p *parser) next() {
 	return
 }
 
+func (p *parser) eof() {
+	p.tok = EOF
+	p.val = "EOF"
+}
+
 func (p *parser) strContent(delim byte) {
 	v := []string{string(delim)}
 	p.col++
@@ -205,7 +212,7 @@ func (p *parser) strContent(delim byte) {
 			}
 		}
 		if err == io.EOF {
-			p.tok = EOF
+			p.eof()
 			p.errWanted(rune(delim))
 		} else if err != nil {
 			p.errPass(err)
@@ -225,7 +232,7 @@ func (p *parser) strContent(delim byte) {
 func (p *parser) discardUpTo(delim byte) {
 	b, err := p.r.ReadBytes(delim)
 	if err == io.EOF {
-		p.tok = EOF
+		p.eof()
 		p.col++
 	} else if err != nil {
 		p.errPass(err)
@@ -287,7 +294,7 @@ func (p *parser) errPass(err error) {
 	if p.err == nil {
 		p.err = err
 	}
-	p.tok = EOF
+	p.eof()
 }
 
 func (p *parser) lineErr(format string, v ...interface{}) {
@@ -370,18 +377,17 @@ func (p *parser) command() {
 		p.want(DONE)
 	case p.got(WORD):
 		var cmd command
-		cmd.args = append(cmd.args, p.val)
+		cmd.args = append(cmd.args, p.lval)
 	args:
 		for p.tok != EOF {
-			lval := p.val
 			switch {
 			case p.got(WORD):
-				cmd.args = append(cmd.args, p.val)
+				cmd.args = append(cmd.args, p.lval)
 			case p.got('='):
-				if !ident.MatchString(lval) {
-					p.col -= utf8.RuneCountInString(lval)
+				if !ident.MatchString(p.lval) {
+					p.col -= utf8.RuneCountInString(p.lval)
 					p.col -= utf8.RuneCountInString(p.val)
-					p.lineErr("invalid var name %q", lval)
+					p.lineErr("invalid var name %q", p.lval)
 					return
 				}
 				p.got(WORD)
@@ -395,10 +401,10 @@ func (p *parser) command() {
 				p.command()
 				break args
 			case p.got('('):
-				if !ident.MatchString(lval) {
-					p.col -= utf8.RuneCountInString(lval)
+				if !ident.MatchString(p.lval) {
+					p.col -= utf8.RuneCountInString(p.lval)
 					p.col--
-					p.lineErr("invalid func name %q", lval)
+					p.lineErr("invalid func name %q", p.lval)
 					break args
 				}
 				p.want(')')
@@ -451,10 +457,10 @@ func (p *parser) redirectDest() {
 	switch {
 	case p.got('&'):
 		p.want(WORD)
-		if !num.MatchString(p.val) {
-			p.col -= utf8.RuneCountInString(p.val)
+		if !num.MatchString(p.lval) {
+			p.col -= utf8.RuneCountInString(p.lval)
 			p.col++
-			p.lineErr("invalid fd %q", p.val)
+			p.lineErr("invalid fd %q", p.lval)
 		}
 		return
 	case p.got('>'):
