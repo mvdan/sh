@@ -59,6 +59,10 @@ type prog struct {
 	stmts []node
 }
 
+type command struct {
+	args []string
+}
+
 type subshell struct {
 	stmts []node
 }
@@ -322,7 +326,6 @@ func (p *parser) command() {
 	switch {
 	case p.got('('):
 		var sub subshell
-		p.add(sub)
 		p.stack = append(p.stack, &sub.stmts)
 		count := 0
 		for p.tok != EOF && !p.peek(')') {
@@ -336,6 +339,7 @@ func (p *parser) command() {
 			p.errWantedStr("command")
 		}
 		p.want(')')
+		p.add(sub)
 	case p.got(IF):
 		p.command()
 		p.want(THEN)
@@ -365,11 +369,14 @@ func (p *parser) command() {
 		}
 		p.want(DONE)
 	case p.got(WORD):
+		var cmd command
+		cmd.args = append(cmd.args, p.val)
 	args:
 		for p.tok != EOF {
 			lval := p.val
 			switch {
 			case p.got(WORD):
+				cmd.args = append(cmd.args, p.val)
 			case p.got('='):
 				if !ident.MatchString(lval) {
 					p.col -= utf8.RuneCountInString(lval)
@@ -409,6 +416,7 @@ func (p *parser) command() {
 				p.errAfterStr("command")
 			}
 		}
+		p.add(cmd)
 	case p.got('{'):
 		for p.tok != EOF && !p.peek('}') {
 			if p.got('\n') {
