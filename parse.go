@@ -429,6 +429,8 @@ func (p *parser) command() {
 		}
 		p.add(cmd)
 	case p.got('{'):
+		var bl block
+		p.stack = append(p.stack, &bl.stmts)
 		for p.tok != EOF && !p.peek('}') {
 			if p.got('\n') {
 				continue
@@ -436,6 +438,7 @@ func (p *parser) command() {
 			p.command()
 		}
 		p.want('}')
+		p.pop(bl)
 		if p.tok != EOF {
 			switch {
 			case p.got('&'):
