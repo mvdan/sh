@@ -26,7 +26,7 @@ const (
 	DONE
 )
 
-func parse(r io.Reader, name string) error {
+func parse(r io.Reader, name string) (prog, error) {
 	p := &parser{
 		r:    bufio.NewReader(r),
 		name: name,
@@ -35,7 +35,7 @@ func parse(r io.Reader, name string) error {
 	}
 	p.next()
 	p.program()
-	return p.err
+	return p.prog, p.err
 }
 
 type parser struct {
@@ -48,6 +48,23 @@ type parser struct {
 	name string
 	line int
 	col  int
+
+	prog  prog
+	stack []*[]node
+}
+
+type node interface{}
+
+type prog struct {
+	stmts []node
+}
+
+type subshell struct {
+	stmts []node
+}
+
+type block struct {
+	stmts []node
 }
 
 var reserved = map[rune]bool{
@@ -286,7 +303,13 @@ func (p *parser) errAfterStr(s string) {
 	p.lineErr("unexpected token %s after %s", tokName(p.tok), s)
 }
 
+func (p *parser) add(n node) {
+	cur := p.stack[len(p.stack)-1]
+	*cur = append(*cur, n)
+}
+
 func (p *parser) program() {
+	p.stack = append(p.stack, &p.prog.stmts)
 	for p.tok != EOF {
 		if p.got('\n') {
 			continue
@@ -298,6 +321,9 @@ func (p *parser) program() {
 func (p *parser) command() {
 	switch {
 	case p.got('('):
+		var sub subshell
+		p.add(sub)
+		p.stack = append(p.stack, &sub.stmts)
 		count := 0
 		for p.tok != EOF && !p.peek(')') {
 			if p.got('\n') {
