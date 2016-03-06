@@ -70,7 +70,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			in:   "{{}",
-			want: `1:4: unexpected token EOF after block`,
+			want: `1:4: unexpected token EOF, wanted '}'`,
 		},
 		{
 			in:   "}",

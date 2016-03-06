@@ -436,22 +436,24 @@ func (p *parser) command() {
 			p.command()
 		}
 		p.want('}')
-		switch {
-		case p.got('&'):
-			if p.got('&') {
+		if p.tok != EOF {
+			switch {
+			case p.got('&'):
+				if p.got('&') {
+					p.command()
+				}
+			case p.got('|'):
+				p.got('|')
 				p.command()
+			case p.got('>'):
+				p.redirectDest()
+			case p.got('<'):
+				p.want(WORD)
+			case p.got(';'):
+			case p.got('\n'):
+			default:
+				p.errAfterStr("block")
 			}
-		case p.got('|'):
-			p.got('|')
-			p.command()
-		case p.got('>'):
-			p.redirectDest()
-		case p.got('<'):
-			p.want(WORD)
-		case p.got(';'):
-		case p.got('\n'):
-		default:
-			p.errAfterStr("block")
 		}
 	default:
 		p.errWantedStr("command")
