@@ -58,62 +58,54 @@ func TestParseAST(t *testing.T) {
 		},
 		{
 			in: "if foo; then bar; fi",
-			want: prog{stmts: []node{
-				ifStmt{
-					cond: command{args: []lit{"foo"}},
-					thenStmts: []node{
-						command{args: []lit{"bar"}},
-					},
-				},
+			want: prog{stmts: []node{ ifStmt{
+				cond: command{args: []lit{"foo"}},
+				thenStmts: []node{
+					command{args: []lit{"bar"}},
+				}},
 			}},
 		},
 		{
 			in: "if foo; then bar; else pass; fi",
-			want: prog{stmts: []node{
-				ifStmt{
-					cond: command{args: []lit{"foo"}},
-					thenStmts: []node{
-						command{args: []lit{"bar"}},
-					},
-					elseStmts: []node{
-						command{args: []lit{"pass"}},
-					},
+			want: prog{stmts: []node{ifStmt{
+				cond: command{args: []lit{"foo"}},
+				thenStmts: []node{
+					command{args: []lit{"bar"}},
 				},
+				elseStmts: []node{
+					command{args: []lit{"pass"}},
+				}},
 			}},
 		},
 		{
 			in: "if a; then a; elif b; then b; elif c; then c; else d; fi",
-			want: prog{stmts: []node{
-				ifStmt{
-					cond: command{args: []lit{"a"}},
-					thenStmts: []node{
-						command{args: []lit{"a"}},
-					},
-					elifs: []node{
-						elif{cond: command{args: []lit{"b"}},
+			want: prog{stmts: []node{ifStmt{
+				cond: command{args: []lit{"a"}},
+				thenStmts: []node{
+					command{args: []lit{"a"}},
+				},
+				elifs: []node{
+					elif{cond: command{args: []lit{"b"}},
 						thenStmts: []node{
 							command{args: []lit{"b"}},
 						}},
-						elif{cond: command{args: []lit{"c"}},
+					elif{cond: command{args: []lit{"c"}},
 						thenStmts: []node{
 							command{args: []lit{"c"}},
 						}},
-					},
-					elseStmts: []node{
-						command{args: []lit{"d"}},
-					},
 				},
+				elseStmts: []node{
+					command{args: []lit{"d"}},
+				}},
 			}},
 		},
 		{
 			in: "while foo; do bar; done",
-			want: prog{stmts: []node{
-				whileStmt{
-					cond: command{args: []lit{"foo"}},
-					doStmts: []node{
-						command{args: []lit{"bar"}},
-					},
-				},
+			want: prog{stmts: []node{ whileStmt{
+				cond: command{args: []lit{"foo"}},
+				doStmts: []node{
+					command{args: []lit{"bar"}},
+				}},
 			}},
 		},
 		{
