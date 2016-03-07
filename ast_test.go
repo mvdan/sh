@@ -28,6 +28,13 @@ var tests = []struct {
 		},
 	},
 	{
+		in: "foo; bar;",
+		want: []node{
+			command{args: []lit{"foo"}},
+			command{args: []lit{"bar"}},
+		},
+	},
+	{
 		in: "# comment\nfoo",
 		want: []node{
 			command{args: []lit{"foo"}},
