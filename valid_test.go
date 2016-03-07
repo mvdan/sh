@@ -6,7 +6,6 @@ package sh
 import (
 	"os"
 	"path/filepath"
-	"reflect"
 	"strings"
 	"testing"
 )
@@ -222,57 +221,6 @@ func TestParseErr(t *testing.T) {
 		got := err.Error()[1:]
 		if got != c.want {
 			t.Fatalf("Error mismatch in %q\nwant: %s\ngot:  %s",
-				c.in, c.want, got)
-		}
-	}
-}
-
-func TestParseAST(t *testing.T) {
-	tests := []struct {
-		in   string
-		want prog
-	}{
-		{
-			in:   "",
-			want: prog{},
-		},
-		{
-			in: "foo",
-			want: prog{stmts: []node{
-				command{args: []string{"foo"}},
-			}},
-		},
-		{
-			in: "foo arg1 arg2",
-			want: prog{stmts: []node{
-				command{args: []string{"foo", "arg1", "arg2"}},
-			}},
-		},
-		{
-			in: "( foo; )",
-			want: prog{stmts: []node{
-				subshell{stmts: []node{
-					command{args: []string{"foo"}},
-				}},
-			}},
-		},
-		{
-			in: "{ foo; }",
-			want: prog{stmts: []node{
-				block{stmts: []node{
-					command{args: []string{"foo"}},
-				}},
-			}},
-		},
-	}
-	for _, c := range tests {
-		r := strings.NewReader(c.in)
-		got, err := parse(r, "")
-		if err != nil {
-			t.Fatalf("Unexpected error in %q: %v", c.in, err)
-		}
-		if !reflect.DeepEqual(got, c.want) {
-			t.Fatalf("AST mismatch in %q\nwant: %#v\ngot:  %#v",
 				c.in, c.want, got)
 		}
 	}
