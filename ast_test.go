@@ -46,6 +46,31 @@ func TestParseAST(t *testing.T) {
 				}},
 			}},
 		},
+		{
+			in: "if foo; then bar; fi",
+			want: prog{stmts: []node{
+				ifStmt{
+					cond: command{args: []string{"foo"}},
+					thenStmts: []node{
+						command{args: []string{"bar"}},
+					},
+				},
+			}},
+		},
+		{
+			in: "if foo; then bar; else pass; fi",
+			want: prog{stmts: []node{
+				ifStmt{
+					cond: command{args: []string{"foo"}},
+					thenStmts: []node{
+						command{args: []string{"bar"}},
+					},
+					elseStmts: []node{
+						command{args: []string{"pass"}},
+					},
+				},
+			}},
+		},
 	}
 	for _, c := range tests {
 		r := strings.NewReader(c.in)

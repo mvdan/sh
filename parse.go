@@ -51,7 +51,7 @@ type parser struct {
 	col  int
 
 	prog  prog
-	stack []*[]node
+	stack []interface{}
 }
 
 type node interface{}
@@ -70,6 +70,12 @@ type subshell struct {
 
 type block struct {
 	stmts []node
+}
+
+type ifStmt struct {
+	cond      node
+	thenStmts []node
+	elseStmts []node
 }
 
 var reserved = map[rune]bool{
@@ -316,16 +322,34 @@ func (p *parser) errAfterStr(s string) {
 
 func (p *parser) add(n node) {
 	cur := p.stack[len(p.stack)-1]
-	*cur = append(*cur, n)
+	switch x := cur.(type) {
+	case *[]node:
+		*x = append(*x, n)
+	case *node:
+		if *x != nil {
+			panic("single node set twice")
+		}
+		*x = n
+	default:
+		panic("unknown type in the stack")
+	}
 }
 
-func (p *parser) pop(n node) {
+func (p *parser) pop() {
 	p.stack = p.stack[:len(p.stack)-1]
+}
+
+func (p *parser) push(v interface{}) {
+	p.stack = append(p.stack, v)
+}
+
+func (p *parser) popAdd(n node) {
+	p.pop()
 	p.add(n)
 }
 
 func (p *parser) program() {
-	p.stack = append(p.stack, &p.prog.stmts)
+	p.push(&p.prog.stmts)
 	for p.tok != EOF {
 		if p.got('\n') {
 			continue
@@ -338,7 +362,7 @@ func (p *parser) command() {
 	switch {
 	case p.got('('):
 		var sub subshell
-		p.stack = append(p.stack, &sub.stmts)
+		p.push(&sub.stmts)
 		count := 0
 		for p.tok != EOF && !p.peek(')') {
 			if p.got('\n') {
@@ -351,10 +375,14 @@ func (p *parser) command() {
 			p.errWantedStr("command")
 		}
 		p.want(')')
-		p.pop(sub)
+		p.popAdd(sub)
 	case p.got(IF):
+		var ifs ifStmt
+		p.push(&ifs.cond)
 		p.command()
+		p.pop()
 		p.want(THEN)
+		p.push(&ifs.thenStmts)
 		for p.tok != EOF && !p.peek(FI) && !p.peek(ELSE) {
 			if p.got('\n') {
 				continue
@@ -362,6 +390,8 @@ func (p *parser) command() {
 			p.command()
 		}
 		if p.got(ELSE) {
+			p.pop()
+			p.push(&ifs.elseStmts)
 			for p.tok != EOF && !p.peek(FI) {
 				if p.got('\n') {
 					continue
@@ -370,6 +400,7 @@ func (p *parser) command() {
 			}
 		}
 		p.want(FI)
+		p.popAdd(ifs)
 	case p.got(WHILE):
 		p.command()
 		p.want(DO)
@@ -430,7 +461,7 @@ func (p *parser) command() {
 		p.add(cmd)
 	case p.got('{'):
 		var bl block
-		p.stack = append(p.stack, &bl.stmts)
+		p.push(&bl.stmts)
 		for p.tok != EOF && !p.peek('}') {
 			if p.got('\n') {
 				continue
@@ -438,7 +469,7 @@ func (p *parser) command() {
 			p.command()
 		}
 		p.want('}')
-		p.pop(bl)
+		p.popAdd(bl)
 		if p.tok != EOF {
 			switch {
 			case p.got('&'):
