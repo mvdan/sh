@@ -94,9 +94,12 @@ var reserved = map[rune]bool{
 	';':  true,
 	'(':  true,
 	')':  true,
-	'{':  true,
-	'}':  true,
-	'$':  true,
+}
+
+// like reserved, but these can appear in the middle of a word
+var starters = map[rune]bool{
+	'{': true,
+	'}': true,
 }
 
 var quote = map[rune]bool{
@@ -145,19 +148,12 @@ func (p *parser) next() {
 		}
 		p.col--
 	}
-	if reserved[r] {
+	if reserved[r] || starters[r] {
 		switch r {
 		case '#':
 			p.discardUpTo('\n')
 			p.next()
 			return
-		case '$':
-			p.next()
-			if p.got('{') {
-				p.discardUpTo('}')
-				p.tok = WORD
-				return
-			}
 		case '\n':
 			p.line++
 			p.col = 0

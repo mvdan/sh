@@ -98,6 +98,12 @@ func TestParseAST(t *testing.T) {
 				command{args: []string{"echo", "' '", "\"foo bar\""}},
 			}},
 		},
+		{
+			in: "echo $foo ${bar} str{ing",
+			want: prog{stmts: []node{
+				command{args: []string{"echo", "$foo", "${bar}", "str{ing"}},
+			}},
+		},
 	}
 	for _, c := range tests {
 		r := strings.NewReader(c.in)
