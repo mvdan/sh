@@ -19,7 +19,17 @@ func TestParseAST(t *testing.T) {
 			want: prog{},
 		},
 		{
+			in:   "# comment",
+			want: prog{},
+		},
+		{
 			in: "foo",
+			want: prog{stmts: []node{
+				command{args: []string{"foo"}},
+			}},
+		},
+		{
+			in:   "# comment\nfoo",
 			want: prog{stmts: []node{
 				command{args: []string{"foo"}},
 			}},
