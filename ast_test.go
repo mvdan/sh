@@ -123,9 +123,9 @@ func TestParseAST(t *testing.T) {
 			}},
 		},
 		{
-			in: "echo $foo ${bar} str{ing",
+			in: "$a ${b} s{s s=s",
 			want: prog{stmts: []node{
-				command{args: []lit{"echo", "$foo", "${bar}", "str{ing"}},
+				command{args: []lit{"$a", "${b}", "s{s", "s=s"}},
 			}},
 		},
 	}

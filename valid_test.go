@@ -52,10 +52,6 @@ func TestParseErr(t *testing.T) {
 			want: `1:1: unexpected token ';', wanted command`,
 		},
 		{
-			in:   "foà=3bar",
-			want: `1:1: invalid var name "foà"`,
-		},
-		{
 			in:   "à(){}",
 			want: `1:1: invalid func name "à"`,
 		},
@@ -102,10 +98,6 @@ func TestParseErr(t *testing.T) {
 		{
 			in:   "( foo;",
 			want: `1:7: unexpected token EOF, wanted ')'`,
-		},
-		{
-			in:   "=",
-			want: `1:1: unexpected token '=', wanted command`,
 		},
 		{
 			in:   "&",

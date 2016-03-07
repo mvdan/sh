@@ -173,7 +173,6 @@ func (w whileStmt) String() string {
 var reserved = map[rune]bool{
 	'\n': true,
 	'#':  true,
-	'=':  true,
 	'&':  true,
 	'>':  true,
 	'<':  true,
@@ -531,14 +530,6 @@ func (p *parser) command() {
 			switch {
 			case p.got(WORD):
 				cmd.args = append(cmd.args, lit(p.lval))
-			case p.got('='):
-				if !ident.MatchString(p.lval) {
-					p.col -= utf8.RuneCountInString(p.lval)
-					p.col -= utf8.RuneCountInString(p.val)
-					p.lineErr("invalid var name %q", p.lval)
-					return
-				}
-				p.got(WORD)
 			case p.got('&'):
 				if p.got('&') {
 					p.command()
