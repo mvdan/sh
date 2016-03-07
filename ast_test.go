@@ -29,7 +29,7 @@ func TestParseAST(t *testing.T) {
 			}},
 		},
 		{
-			in:   "# comment\nfoo",
+			in: "# comment\nfoo",
 			want: prog{stmts: []node{
 				command{args: []string{"foo"}},
 			}},
@@ -90,6 +90,12 @@ func TestParseAST(t *testing.T) {
 						command{args: []string{"bar"}},
 					},
 				},
+			}},
+		},
+		{
+			in: "echo ' ' \"foo bar\"",
+			want: prog{stmts: []node{
+				command{args: []string{"echo", "' '", "\"foo bar\""}},
 			}},
 		},
 	}
