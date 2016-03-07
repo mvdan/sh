@@ -25,26 +25,26 @@ func TestParseAST(t *testing.T) {
 		{
 			in: "foo",
 			want: prog{stmts: []node{
-				command{args: []string{"foo"}},
+				command{args: []lit{"foo"}},
 			}},
 		},
 		{
 			in: "# comment\nfoo",
 			want: prog{stmts: []node{
-				command{args: []string{"foo"}},
+				command{args: []lit{"foo"}},
 			}},
 		},
 		{
 			in: "foo arg1 arg2",
 			want: prog{stmts: []node{
-				command{args: []string{"foo", "arg1", "arg2"}},
+				command{args: []lit{"foo", "arg1", "arg2"}},
 			}},
 		},
 		{
 			in: "( foo; )",
 			want: prog{stmts: []node{
 				subshell{stmts: []node{
-					command{args: []string{"foo"}},
+					command{args: []lit{"foo"}},
 				}},
 			}},
 		},
@@ -52,7 +52,7 @@ func TestParseAST(t *testing.T) {
 			in: "{ foo; }",
 			want: prog{stmts: []node{
 				block{stmts: []node{
-					command{args: []string{"foo"}},
+					command{args: []lit{"foo"}},
 				}},
 			}},
 		},
@@ -60,9 +60,9 @@ func TestParseAST(t *testing.T) {
 			in: "if foo; then bar; fi",
 			want: prog{stmts: []node{
 				ifStmt{
-					cond: command{args: []string{"foo"}},
+					cond: command{args: []lit{"foo"}},
 					thenStmts: []node{
-						command{args: []string{"bar"}},
+						command{args: []lit{"bar"}},
 					},
 				},
 			}},
@@ -71,12 +71,36 @@ func TestParseAST(t *testing.T) {
 			in: "if foo; then bar; else pass; fi",
 			want: prog{stmts: []node{
 				ifStmt{
-					cond: command{args: []string{"foo"}},
+					cond: command{args: []lit{"foo"}},
 					thenStmts: []node{
-						command{args: []string{"bar"}},
+						command{args: []lit{"bar"}},
 					},
 					elseStmts: []node{
-						command{args: []string{"pass"}},
+						command{args: []lit{"pass"}},
+					},
+				},
+			}},
+		},
+		{
+			in: "if a; then a; elif b; then b; elif c; then c; else d; fi",
+			want: prog{stmts: []node{
+				ifStmt{
+					cond: command{args: []lit{"a"}},
+					thenStmts: []node{
+						command{args: []lit{"a"}},
+					},
+					elifs: []node{
+						elif{cond: command{args: []lit{"b"}},
+						thenStmts: []node{
+							command{args: []lit{"b"}},
+						}},
+						elif{cond: command{args: []lit{"c"}},
+						thenStmts: []node{
+							command{args: []lit{"c"}},
+						}},
+					},
+					elseStmts: []node{
+						command{args: []lit{"d"}},
 					},
 				},
 			}},
@@ -85,9 +109,9 @@ func TestParseAST(t *testing.T) {
 			in: "while foo; do bar; done",
 			want: prog{stmts: []node{
 				whileStmt{
-					cond: command{args: []string{"foo"}},
+					cond: command{args: []lit{"foo"}},
 					doStmts: []node{
-						command{args: []string{"bar"}},
+						command{args: []lit{"bar"}},
 					},
 				},
 			}},
@@ -95,13 +119,13 @@ func TestParseAST(t *testing.T) {
 		{
 			in: "echo ' ' \"foo bar\"",
 			want: prog{stmts: []node{
-				command{args: []string{"echo", "' '", "\"foo bar\""}},
+				command{args: []lit{"echo", "' '", "\"foo bar\""}},
 			}},
 		},
 		{
 			in: "echo $foo ${bar} str{ing",
 			want: prog{stmts: []node{
-				command{args: []string{"echo", "$foo", "${bar}", "str{ing"}},
+				command{args: []lit{"echo", "$foo", "${bar}", "str{ing"}},
 			}},
 		},
 	}
@@ -112,8 +136,8 @@ func TestParseAST(t *testing.T) {
 			t.Fatalf("Unexpected error in %q: %v", c.in, err)
 		}
 		if !reflect.DeepEqual(got, c.want) {
-			t.Fatalf("AST mismatch in %q\nwant: %#v\ngot:  %#v",
-				c.in, c.want, got)
+			t.Fatalf("AST mismatch in %q\nwant: %s\ngot:  %s\ndumps:\n%#v\n%#v",
+				c.in, c.want.String(), got.String(), c.want, got)
 		}
 	}
 }

@@ -19,3 +19,10 @@ else
 	extra
 fi
 if foo; then good; else bad; fi
+if foo; then
+	bar
+elif foo2; then
+	bar2
+else
+	bar3
+fi

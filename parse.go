@@ -5,6 +5,7 @@ package sh
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"regexp"
@@ -19,6 +20,7 @@ const (
 	WORD
 	IF
 	THEN
+	ELIF
 	ELSE
 	FI
 	WHILE
@@ -54,33 +56,118 @@ type parser struct {
 	stack []interface{}
 }
 
-type node interface{}
+type node interface {
+	fmt.Stringer
+}
+
+type lit string
+
+func (l lit) String() string {
+	return string(l)
+}
+
+func nodeJoin(ns []node, sep string) string {
+	var b bytes.Buffer
+	for i, n := range ns {
+		if i > 0 {
+			io.WriteString(&b, sep)
+		}
+		io.WriteString(&b, n.String())
+	}
+	return b.String()
+}
 
 type prog struct {
 	stmts []node
 }
 
+func (p prog) String() string {
+	return nodeJoin(p.stmts, "; ")
+}
+
 type command struct {
-	args []string
+	args []lit
+}
+
+func (c command) String() string {
+	nodes := make([]node, 0, len(c.args))
+	for _, l := range c.args {
+		nodes = append(nodes, l)
+	}
+	return nodeJoin(nodes, " ")
 }
 
 type subshell struct {
 	stmts []node
 }
 
+func (s subshell) String() string {
+	return "( " + nodeJoin(s.stmts, "; ") + "; )"
+}
+
 type block struct {
 	stmts []node
+}
+
+func (b block) String() string {
+	return "{ " + nodeJoin(b.stmts, "; ") + "; }"
 }
 
 type ifStmt struct {
 	cond      node
 	thenStmts []node
+	elifs     []node
 	elseStmts []node
+}
+
+func (s ifStmt) String() string {
+	var b bytes.Buffer
+	io.WriteString(&b, "if ")
+	io.WriteString(&b, s.cond.String())
+	io.WriteString(&b, "; then ")
+	io.WriteString(&b, nodeJoin(s.thenStmts, "; "))
+	for _, n := range s.elifs {
+		e := n.(elif)
+		io.WriteString(&b, "; elif ")
+		io.WriteString(&b, e.cond.String())
+		io.WriteString(&b, "; then ")
+		io.WriteString(&b, nodeJoin(e.thenStmts, "; "))
+	}
+	if len(s.elseStmts) > 0 {
+		io.WriteString(&b, "; else ")
+		io.WriteString(&b, nodeJoin(s.elseStmts, "; "))
+	}
+	io.WriteString(&b, "; done")
+	return b.String()
+}
+
+type elif struct {
+	cond      node
+	thenStmts []node
+}
+
+func (e elif) String() string {
+	var b bytes.Buffer
+	io.WriteString(&b, "elif ")
+	io.WriteString(&b, e.cond.String())
+	io.WriteString(&b, "; then ")
+	io.WriteString(&b, nodeJoin(e.thenStmts, "; "))
+	return b.String()
 }
 
 type whileStmt struct {
 	cond    node
 	doStmts []node
+}
+
+func (w whileStmt) String() string {
+	var b bytes.Buffer
+	io.WriteString(&b, "while ")
+	io.WriteString(&b, w.cond.String())
+	io.WriteString(&b, "; do ")
+	io.WriteString(&b, nodeJoin(w.doStmts, "; "))
+	io.WriteString(&b, "; done")
+	return b.String()
 }
 
 var reserved = map[rune]bool{
@@ -270,6 +357,7 @@ func (p *parser) want(tok int32) {
 var tokStrs = map[int32]string{
 	IF:    "if",
 	THEN:  "then",
+	ELIF:  "elif",
 	ELSE:  "else",
 	FI:    "fi",
 	WHILE: "while",
@@ -283,6 +371,7 @@ var tokNames = map[int32]string{
 
 	IF:    `"if"`,
 	THEN:  `"then"`,
+	ELIF:  `"elif"`,
 	ELSE:  `"else"`,
 	FI:    `"fi"`,
 	WHILE: `"while"`,
@@ -384,11 +473,28 @@ func (p *parser) command() {
 		p.pop()
 		p.want(THEN)
 		p.push(&ifs.thenStmts)
-		for p.tok != EOF && !p.peek(FI) && !p.peek(ELSE) {
+		for p.tok != EOF && !p.peek(FI) && !p.peek(ELIF) && !p.peek(ELSE) {
 			if p.got('\n') {
 				continue
 			}
 			p.command()
+		}
+		p.pop()
+		p.push(&ifs.elifs)
+		for p.got(ELIF) {
+			var elf elif
+			p.push(&elf.cond)
+			p.command()
+			p.pop()
+			p.want(THEN)
+			p.push(&elf.thenStmts)
+			for p.tok != EOF && !p.peek(FI) && !p.peek(ELIF) && !p.peek(ELSE) {
+				if p.got('\n') {
+					continue
+				}
+				p.command()
+			}
+			p.popAdd(elf)
 		}
 		if p.got(ELSE) {
 			p.pop()
@@ -419,12 +525,12 @@ func (p *parser) command() {
 		p.popAdd(whl)
 	case p.got(WORD):
 		var cmd command
-		cmd.args = append(cmd.args, p.lval)
+		cmd.args = append(cmd.args, lit(p.lval))
 	args:
 		for p.tok != EOF {
 			switch {
 			case p.got(WORD):
-				cmd.args = append(cmd.args, p.lval)
+				cmd.args = append(cmd.args, lit(p.lval))
 			case p.got('='):
 				if !ident.MatchString(p.lval) {
 					p.col -= utf8.RuneCountInString(p.lval)
