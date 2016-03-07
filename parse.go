@@ -78,6 +78,11 @@ type ifStmt struct {
 	elseStmts []node
 }
 
+type whileStmt struct {
+	cond    node
+	doStmts []node
+}
+
 var reserved = map[rune]bool{
 	'\n': true,
 	'#':  true,
@@ -402,8 +407,12 @@ func (p *parser) command() {
 		p.want(FI)
 		p.popAdd(ifs)
 	case p.got(WHILE):
+		var whl whileStmt
+		p.push(&whl.cond)
 		p.command()
+		p.pop()
 		p.want(DO)
+		p.push(&whl.doStmts)
 		for p.tok != EOF && !p.peek(DONE) {
 			if p.got('\n') {
 				continue
@@ -411,6 +420,7 @@ func (p *parser) command() {
 			p.command()
 		}
 		p.want(DONE)
+		p.popAdd(whl)
 	case p.got(WORD):
 		var cmd command
 		cmd.args = append(cmd.args, p.lval)

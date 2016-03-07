@@ -71,6 +71,17 @@ func TestParseAST(t *testing.T) {
 				},
 			}},
 		},
+		{
+			in: "while foo; do bar; done",
+			want: prog{stmts: []node{
+				whileStmt{
+					cond: command{args: []string{"foo"}},
+					doStmts: []node{
+						command{args: []string{"bar"}},
+					},
+				},
+			}},
+		},
 	}
 	for _, c := range tests {
 		r := strings.NewReader(c.in)
