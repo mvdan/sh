@@ -10,44 +10,44 @@ import (
 )
 
 var tests = []struct {
-	in   string
+	ins  []string
 	want []node
 }{
 	{
-		in:   "",
+		ins:  []string{"", " ", "\n"},
 		want: nil,
 	},
 	{
-		in:   "# comment",
+		ins:  []string{"#a", "# a b", "#a\n#b"},
 		want: nil,
 	},
 	{
-		in: "foo",
+		ins: []string{"foo", "foo ", " foo"},
 		want: []node{
 			command{args: []lit{"foo"}},
 		},
 	},
 	{
-		in: "foo; bar;",
+		ins: []string{"foo; bar", "foo; bar;", "\nfoo\nbar\n"},
 		want: []node{
 			command{args: []lit{"foo"}},
 			command{args: []lit{"bar"}},
 		},
 	},
 	{
-		in: "# comment\nfoo",
+		ins: []string{"# comment\nfoo"},
 		want: []node{
 			command{args: []lit{"foo"}},
 		},
 	},
 	{
-		in: "foo arg1 arg2",
+		ins: []string{"foo arg1 arg2"},
 		want: []node{
 			command{args: []lit{"foo", "arg1", "arg2"}},
 		},
 	},
 	{
-		in: "( foo; )",
+		ins: []string{"( foo; )"},
 		want: []node{
 			subshell{stmts: []node{
 				command{args: []lit{"foo"}},
@@ -55,7 +55,7 @@ var tests = []struct {
 		},
 	},
 	{
-		in: "{ foo; }",
+		ins: []string{"{ foo; }"},
 		want: []node{
 			block{stmts: []node{
 				command{args: []lit{"foo"}},
@@ -63,7 +63,7 @@ var tests = []struct {
 		},
 	},
 	{
-		in: "if foo; then bar; fi",
+		ins: []string{"if foo; then bar; fi"},
 		want: []node{ifStmt{
 			cond: command{args: []lit{"foo"}},
 			thenStmts: []node{
@@ -72,7 +72,7 @@ var tests = []struct {
 		},
 	},
 	{
-		in: "if foo; then bar; else pass; fi",
+		ins: []string{"if foo; then bar; else pass; fi"},
 		want: []node{ifStmt{
 			cond: command{args: []lit{"foo"}},
 			thenStmts: []node{
@@ -84,7 +84,7 @@ var tests = []struct {
 		},
 	},
 	{
-		in: "if a; then a; elif b; then b; elif c; then c; else d; fi",
+		ins: []string{"if a; then a; elif b; then b; elif c; then c; else d; fi"},
 		want: []node{ifStmt{
 			cond: command{args: []lit{"a"}},
 			thenStmts: []node{
@@ -106,7 +106,7 @@ var tests = []struct {
 		},
 	},
 	{
-		in: "while foo; do bar; done",
+		ins: []string{"while foo; do bar; done"},
 		want: []node{whileStmt{
 			cond: command{args: []lit{"foo"}},
 			doStmts: []node{
@@ -115,19 +115,19 @@ var tests = []struct {
 		},
 	},
 	{
-		in: "echo ' ' \"foo bar\"",
+		ins: []string{"echo ' ' \"foo bar\""},
 		want: []node{
 			command{args: []lit{"echo", "' '", "\"foo bar\""}},
 		},
 	},
 	{
-		in: "$a ${b} s{s s=s",
+		ins: []string{"$a ${b} s{s s=s"},
 		want: []node{
 			command{args: []lit{"$a", "${b}", "s{s", "s=s"}},
 		},
 	},
 	{
-		in: "foo && bar",
+		ins: []string{"foo && bar"},
 		want: []node{binaryExpr{
 			op: "&&",
 			X:  command{args: []lit{"foo"}},
@@ -135,7 +135,7 @@ var tests = []struct {
 		}},
 	},
 	{
-		in: "foo && bar || else",
+		ins: []string{"foo && bar || else"},
 		want: []node{binaryExpr{
 			op: "&&",
 			X:  command{args: []lit{"foo"}},
@@ -150,17 +150,19 @@ var tests = []struct {
 
 func TestParseAST(t *testing.T) {
 	for _, c := range tests {
-		r := strings.NewReader(c.in)
-		got, err := parse(r, "")
-		if err != nil {
-			t.Fatalf("Unexpected error in %q: %v", c.in, err)
-		}
 		want := prog{
 			stmts: c.want,
 		}
-		if !reflect.DeepEqual(got, want) {
-			t.Fatalf("AST mismatch in %q\nwant: %s\ngot:  %s\ndumps:\n%#v\n%#v",
-				c.in, want.String(), got.String(), want, got)
+		for _, in := range c.ins {
+			r := strings.NewReader(in)
+			got, err := parse(r, "")
+			if err != nil {
+				t.Fatalf("Unexpected error in %q: %v", in, err)
+			}
+			if !reflect.DeepEqual(got, want) {
+				t.Fatalf("AST mismatch in %q\nwant: %s\ngot:  %s\ndumps:\n%#v\n%#v",
+					in, want.String(), got.String(), want, got)
+			}
 		}
 	}
 }
