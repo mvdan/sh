@@ -18,7 +18,7 @@ var tests = []struct {
 		want: nil,
 	},
 	{
-		ins:  []string{"# foo", "# foo\n"},
+		ins: []string{"# foo", "# foo\n"},
 		want: []node{
 			comment{text: " foo"},
 		},
@@ -176,6 +176,20 @@ func TestParseAST(t *testing.T) {
 				t.Fatalf("AST mismatch in %q\nwant: %s\ngot:  %s\ndumps:\n%#v\n%#v",
 					in, want.String(), got.String(), want, got)
 			}
+		}
+	}
+}
+
+func TestPrintAST(t *testing.T) {
+	for _, c := range tests {
+		in := prog{
+			stmts: c.want,
+		}
+		want := c.ins[0]
+		got := in.String()
+		if got != want {
+			t.Fatalf("AST print mismatch\nwant: %s\ngot:  %s",
+				want, got)
 		}
 	}
 }
