@@ -18,11 +18,13 @@ var tests = []struct {
 		want: nil,
 	},
 	{
-		ins:  []string{"#a", "# a b", "#a\n#b"},
-		want: nil,
+		ins:  []string{"# foo", "# foo\n"},
+		want: []node{
+			comment{text: " foo"},
+		},
 	},
 	{
-		ins: []string{"foo", "foo ", " foo", "#a\nfoo"},
+		ins: []string{"foo", "foo ", " foo"},
 		want: []node{
 			command{args: []lit{"foo"}},
 		},
