@@ -159,6 +159,20 @@ var tests = []struct {
 			},
 		}},
 	},
+	{
+		ins: []string{
+			"foo() { a; b; }",
+			"foo() {\na\nb\n}",
+			"foo ( ) {\na\nb\n}",
+		},
+		want: []node{funcDecl{
+			name: lit("foo"),
+			body: block{stmts: []node{
+				command{args: []lit{"a"}},
+				command{args: []lit{"b"}},
+			}},
+		}},
+	},
 }
 
 func TestParseAST(t *testing.T) {

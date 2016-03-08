@@ -186,6 +186,15 @@ func (c comment) String() string {
 	return "#" + c.text
 }
 
+type funcDecl struct {
+	name lit
+	body node
+}
+
+func (f funcDecl) String() string {
+	return fmt.Sprintf("%s() %s", f.name, f.body)
+}
+
 var reserved = map[rune]bool{
 	'\n': true,
 	'#':  true,
@@ -572,9 +581,14 @@ func (p *parser) command() {
 					p.lineErr("invalid func name %q", p.lval)
 					break args
 				}
+				fun := funcDecl{
+					name: lit(p.lval),
+				}
 				p.want(')')
+				p.push(&fun.body)
 				p.command()
-				break args
+				p.popAdd(fun)
+				return
 			case p.got('>'):
 				p.redirectDest()
 			case p.got('<'):
