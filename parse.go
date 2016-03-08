@@ -478,9 +478,6 @@ func (p *parser) command() {
 		p.push(&sub.stmts)
 		count := 0
 		for p.tok != EOF && !p.peek(')') {
-			if p.got('\n') {
-				continue
-			}
 			p.command()
 			count++
 		}
@@ -497,9 +494,6 @@ func (p *parser) command() {
 		p.want(THEN)
 		p.push(&ifs.thenStmts)
 		for p.tok != EOF && !p.peek(FI) && !p.peek(ELIF) && !p.peek(ELSE) {
-			if p.got('\n') {
-				continue
-			}
 			p.command()
 		}
 		p.pop()
@@ -512,9 +506,6 @@ func (p *parser) command() {
 			p.want(THEN)
 			p.push(&elf.thenStmts)
 			for p.tok != EOF && !p.peek(FI) && !p.peek(ELIF) && !p.peek(ELSE) {
-				if p.got('\n') {
-					continue
-				}
 				p.command()
 			}
 			p.popAdd(elf)
@@ -523,9 +514,6 @@ func (p *parser) command() {
 			p.pop()
 			p.push(&ifs.elseStmts)
 			for p.tok != EOF && !p.peek(FI) {
-				if p.got('\n') {
-					continue
-				}
 				p.command()
 			}
 		}
@@ -539,9 +527,6 @@ func (p *parser) command() {
 		p.want(DO)
 		p.push(&whl.doStmts)
 		for p.tok != EOF && !p.peek(DONE) {
-			if p.got('\n') {
-				continue
-			}
 			p.command()
 		}
 		p.want(DONE)
@@ -607,6 +592,7 @@ func (p *parser) command() {
 		var bl block
 		p.push(&bl.stmts)
 		for p.tok != EOF && !p.peek('}') {
+			// TODO: remove? breaks "{\n}"
 			if p.got('\n') {
 				continue
 			}
