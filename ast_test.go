@@ -126,6 +126,26 @@ var tests = []struct {
 			command{args: []lit{"$a", "${b}", "s{s", "s=s"}},
 		},
 	},
+	{
+		in: "foo && bar",
+		want: []node{binaryExpr{
+			op: "&&",
+			X:  command{args: []lit{"foo"}},
+			Y:  command{args: []lit{"bar"}},
+		}},
+	},
+	{
+		in: "foo && bar || else",
+		want: []node{binaryExpr{
+			op: "&&",
+			X:  command{args: []lit{"foo"}},
+			Y: binaryExpr{
+				op: "||",
+				X:  command{args: []lit{"bar"}},
+				Y:  command{args: []lit{"else"}},
+			},
+		}},
+	},
 }
 
 func TestParseAST(t *testing.T) {

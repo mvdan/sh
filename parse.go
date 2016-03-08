@@ -170,6 +170,15 @@ func (w whileStmt) String() string {
 	return b.String()
 }
 
+type binaryExpr struct {
+	X, Y node
+	op   string
+}
+
+func (b binaryExpr) String() string {
+	return fmt.Sprintf("%s %s %s", b.X, b.op, b.Y)
+}
+
 var reserved = map[rune]bool{
 	'\n': true,
 	'#':  true,
@@ -532,13 +541,30 @@ func (p *parser) command() {
 				cmd.args = append(cmd.args, lit(p.lval))
 			case p.got('&'):
 				if p.got('&') {
+					b := binaryExpr{op: "&&"}
+					p.push(&b.Y)
 					p.command()
+					p.pop()
+					p.push(&b.X)
+					p.add(cmd)
+					p.pop()
+					p.add(b)
+					return
 				}
 				break args
 			case p.got('|'):
-				p.got('|')
+				b := binaryExpr{op: "|"}
+				if p.got('|') {
+					b.op = "||"
+				}
+				p.push(&b.Y)
 				p.command()
-				break args
+				p.pop()
+				p.push(&b.X)
+				p.add(cmd)
+				p.pop()
+				p.add(b)
+				return
 			case p.got('('):
 				if !ident.MatchString(p.lval) {
 					p.col -= utf8.RuneCountInString(p.lval)
