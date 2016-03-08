@@ -132,7 +132,7 @@ var tests = []struct {
 		},
 	},
 	{
-		ins: []string{"foo && bar", "foo&&bar"},
+		ins: []string{"foo && bar", "foo&&bar", "foo &&\nbar"},
 		want: []node{binaryExpr{
 			op: "&&",
 			X:  command{args: []lit{"foo"}},
@@ -140,7 +140,7 @@ var tests = []struct {
 		}},
 	},
 	{
-		ins: []string{"foo || bar", "foo||bar"},
+		ins: []string{"foo || bar", "foo||bar", "foo ||\nbar"},
 		want: []node{binaryExpr{
 			op: "||",
 			X:  command{args: []lit{"foo"}},

@@ -463,15 +463,16 @@ func (p *parser) popAdd(n node) {
 
 func (p *parser) program() {
 	for p.tok != EOF {
-		if p.got('\n') {
-			continue
-		}
 		p.command()
 	}
 }
 
 func (p *parser) command() {
 	switch {
+	case p.got('\n'):
+		if !p.peek(EOF) {
+			p.command()
+		}
 	case p.got('('):
 		var sub subshell
 		p.push(&sub.stmts)
