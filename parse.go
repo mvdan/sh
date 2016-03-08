@@ -129,10 +129,8 @@ func (s ifStmt) String() string {
 	io.WriteString(&b, nodeJoin(s.thenStmts, "; "))
 	for _, n := range s.elifs {
 		e := n.(elif)
-		io.WriteString(&b, "; elif ")
-		io.WriteString(&b, e.cond.String())
-		io.WriteString(&b, "; then ")
-		io.WriteString(&b, nodeJoin(e.thenStmts, "; "))
+		io.WriteString(&b, "; ")
+		io.WriteString(&b, e.String())
 	}
 	if len(s.elseStmts) > 0 {
 		io.WriteString(&b, "; else ")
