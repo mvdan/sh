@@ -137,7 +137,7 @@ func (s ifStmt) String() string {
 		io.WriteString(&b, "; else ")
 		io.WriteString(&b, nodeJoin(s.elseStmts, "; "))
 	}
-	io.WriteString(&b, "; done")
+	io.WriteString(&b, "; fi")
 	return b.String()
 }
 
