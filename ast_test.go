@@ -9,6 +9,14 @@ import (
 	"testing"
 )
 
+func lits(strs ...string) []node {
+	l := make([]node, 0, len(strs))
+	for _, s := range strs {
+		l = append(l, lit(s))
+	}
+	return l
+}
+
 var tests = []struct {
 	ins  []string
 	want []node
@@ -26,27 +34,27 @@ var tests = []struct {
 	{
 		ins: []string{"foo", "foo ", " foo"},
 		want: []node{
-			command{args: []lit{"foo"}},
+			command{args: lits("foo")},
 		},
 	},
 	{
 		ins: []string{"foo; bar", "foo; bar;", "\nfoo\nbar\n"},
 		want: []node{
-			command{args: []lit{"foo"}},
-			command{args: []lit{"bar"}},
+			command{args: lits("foo")},
+			command{args: lits("bar")},
 		},
 	},
 	{
 		ins: []string{"foo a b", " foo  a  b ", "foo \\\n a b"},
 		want: []node{
-			command{args: []lit{"foo", "a", "b"}},
+			command{args: lits("foo", "a", "b")},
 		},
 	},
 	{
 		ins: []string{"( foo; )", "(foo;)", "(\nfoo\n)"},
 		want: []node{
 			subshell{stmts: []node{
-				command{args: []lit{"foo"}},
+				command{args: lits("foo")},
 			}},
 		},
 	},
@@ -54,7 +62,7 @@ var tests = []struct {
 		ins: []string{"{ foo; }", "{foo;}", "{\nfoo\n}"},
 		want: []node{
 			block{stmts: []node{
-				command{args: []lit{"foo"}},
+				command{args: lits("foo")},
 			}},
 		},
 	},
@@ -64,9 +72,9 @@ var tests = []struct {
 			"if a\nthen\nb\nfi",
 		},
 		want: []node{ifStmt{
-			cond: command{args: []lit{"a"}},
+			cond: command{args: lits("a")},
 			thenStmts: []node{
-				command{args: []lit{"b"}},
+				command{args: lits("b")},
 			}},
 		},
 	},
@@ -76,12 +84,12 @@ var tests = []struct {
 			"if a\nthen b\nelse\nc\nfi",
 		},
 		want: []node{ifStmt{
-			cond: command{args: []lit{"a"}},
+			cond: command{args: lits("a")},
 			thenStmts: []node{
-				command{args: []lit{"b"}},
+				command{args: lits("b")},
 			},
 			elseStmts: []node{
-				command{args: []lit{"c"}},
+				command{args: lits("c")},
 			}},
 		},
 	},
@@ -91,71 +99,71 @@ var tests = []struct {
 			"if a\nthen a\nelif b\nthen b\nelif c\nthen c\nelse\nd\nfi",
 		},
 		want: []node{ifStmt{
-			cond: command{args: []lit{"a"}},
+			cond: command{args: lits("a")},
 			thenStmts: []node{
-				command{args: []lit{"a"}},
+				command{args: lits("a")},
 			},
 			elifs: []node{
-				elif{cond: command{args: []lit{"b"}},
+				elif{cond: command{args: lits("b")},
 					thenStmts: []node{
-						command{args: []lit{"b"}},
+						command{args: lits("b")},
 					}},
-				elif{cond: command{args: []lit{"c"}},
+				elif{cond: command{args: lits("c")},
 					thenStmts: []node{
-						command{args: []lit{"c"}},
+						command{args: lits("c")},
 					}},
 			},
 			elseStmts: []node{
-				command{args: []lit{"d"}},
+				command{args: lits("d")},
 			}},
 		},
 	},
 	{
 		ins: []string{"while a; do b; done", "while a\ndo\nb\ndone"},
 		want: []node{whileStmt{
-			cond: command{args: []lit{"a"}},
+			cond: command{args: lits("a")},
 			doStmts: []node{
-				command{args: []lit{"b"}},
+				command{args: lits("b")},
 			}},
 		},
 	},
 	{
 		ins: []string{"echo ' ' \"foo bar\""},
 		want: []node{
-			command{args: []lit{"echo", "' '", "\"foo bar\""}},
+			command{args: lits("echo", "' '", "\"foo bar\"")},
 		},
 	},
 	{
 		ins: []string{"$a ${b} s{s s=s"},
 		want: []node{
-			command{args: []lit{"$a", "${b}", "s{s", "s=s"}},
+			command{args: lits("$a", "${b}", "s{s", "s=s")},
 		},
 	},
 	{
 		ins: []string{"foo && bar", "foo&&bar", "foo &&\nbar"},
 		want: []node{binaryExpr{
 			op: "&&",
-			X:  command{args: []lit{"foo"}},
-			Y:  command{args: []lit{"bar"}},
+			X:  command{args: lits("foo")},
+			Y:  command{args: lits("bar")},
 		}},
 	},
 	{
 		ins: []string{"foo || bar", "foo||bar", "foo ||\nbar"},
 		want: []node{binaryExpr{
 			op: "||",
-			X:  command{args: []lit{"foo"}},
-			Y:  command{args: []lit{"bar"}},
+			X:  command{args: lits("foo")},
+			Y:  command{args: lits("bar")},
 		}},
 	},
 	{
 		ins: []string{"foo && bar || else"},
 		want: []node{binaryExpr{
 			op: "&&",
-			X:  command{args: []lit{"foo"}},
+			X:  command{args: lits("foo")},
 			Y: binaryExpr{
 				op: "||",
-				X:  command{args: []lit{"bar"}},
-				Y:  command{args: []lit{"else"}},
+				X:  command{args: lits("bar")},
+				Y:  command{args: lits("else")},
 			},
 		}},
 	},
@@ -168,9 +176,23 @@ var tests = []struct {
 		want: []node{funcDecl{
 			name: lit("foo"),
 			body: block{stmts: []node{
-				command{args: []lit{"a"}},
-				command{args: []lit{"b"}},
+				command{args: lits("a")},
+				command{args: lits("b")},
 			}},
+		}},
+	},
+	{
+		ins: []string{
+			"foo >a >>b <c",
+			"foo > a >> b < c",
+		},
+		want: []node{command{
+			args: []node{
+				lit("foo"),
+				redirect{op: ">", obj: lit("a")},
+				redirect{op: ">>", obj: lit("b")},
+				redirect{op: "<", obj: lit("c")},
+			},
 		}},
 	},
 }

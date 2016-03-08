@@ -87,7 +87,7 @@ func (p prog) String() string {
 }
 
 type command struct {
-	args []lit
+	args []node
 }
 
 func (c command) String() string {
@@ -96,6 +96,15 @@ func (c command) String() string {
 		nodes = append(nodes, l)
 	}
 	return nodeJoin(nodes, " ")
+}
+
+type redirect struct {
+	op  string
+	obj node
+}
+
+func (r redirect) String() string {
+	return r.op + r.obj.String()
 }
 
 type subshell struct {
@@ -542,12 +551,13 @@ func (p *parser) command() {
 		p.popAdd(whl)
 	case p.got(WORD):
 		var cmd command
-		cmd.args = append(cmd.args, lit(p.lval))
+		p.push(&cmd.args)
+		p.add(lit(p.lval))
 	args:
 		for p.tok != EOF {
 			switch {
 			case p.got(WORD):
-				cmd.args = append(cmd.args, lit(p.lval))
+				p.add(lit(p.lval))
 			case p.got('&'):
 				if p.got('&') {
 					b := binaryExpr{op: "&&"}
@@ -557,7 +567,7 @@ func (p *parser) command() {
 					p.push(&b.X)
 					p.add(cmd)
 					p.pop()
-					p.add(b)
+					p.popAdd(b)
 					return
 				}
 				break args
@@ -572,7 +582,7 @@ func (p *parser) command() {
 				p.push(&b.X)
 				p.add(cmd)
 				p.pop()
-				p.add(b)
+				p.popAdd(b)
 				return
 			case p.got('('):
 				if !ident.MatchString(p.lval) {
@@ -587,12 +597,11 @@ func (p *parser) command() {
 				p.want(')')
 				p.push(&fun.body)
 				p.command()
+				p.pop()
 				p.popAdd(fun)
 				return
-			case p.got('>'):
-				p.redirectDest()
-			case p.got('<'):
-				p.want(WORD)
+			case p.peek('>'), p.peek('<'):
+				p.redirect()
 			case p.got(';'):
 				break args
 			case p.got('\n'):
@@ -601,7 +610,7 @@ func (p *parser) command() {
 				p.errAfterStr("command")
 			}
 		}
-		p.add(cmd)
+		p.popAdd(cmd)
 	case p.got('{'):
 		var bl block
 		p.push(&bl.stmts)
@@ -623,10 +632,8 @@ func (p *parser) command() {
 			case p.got('|'):
 				p.got('|')
 				p.command()
-			case p.got('>'):
-				p.redirectDest()
-			case p.got('<'):
-				p.want(WORD)
+			case p.peek('>'), p.peek('<'):
+				p.redirect()
 			case p.got(';'):
 			case p.got('\n'):
 			default:
@@ -638,17 +645,31 @@ func (p *parser) command() {
 	}
 }
 
-func (p *parser) redirectDest() {
+func (p *parser) redirect() {
+	var r redirect
 	switch {
-	case p.got('&'):
-		p.want(WORD)
-		if !num.MatchString(p.lval) {
-			p.col -= utf8.RuneCountInString(p.lval)
-			p.col++
-			p.lineErr("invalid fd %q", p.lval)
-		}
-		return
 	case p.got('>'):
+		r.op = ">"
+		switch {
+		case p.got('&'):
+			p.want(WORD)
+			if !num.MatchString(p.lval) {
+				p.col -= utf8.RuneCountInString(p.lval)
+				p.col++
+				p.lineErr("invalid fd %q", p.lval)
+			}
+			r.obj = lit("&" + p.lval)
+		case p.got('>'):
+			r.op = ">>"
+			fallthrough
+		default:
+			p.want(WORD)
+			r.obj = lit(p.lval)
+		}
+	case p.got('<'):
+		r.op = "<"
+		p.want(WORD)
+		r.obj = lit(p.lval)
 	}
-	p.want(WORD)
+	p.add(r)
 }
