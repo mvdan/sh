@@ -180,6 +180,14 @@ func (b binaryExpr) String() string {
 	return fmt.Sprintf("%s %s %s", b.X, b.op, b.Y)
 }
 
+type comment struct {
+	text string
+}
+
+func (c comment) String() string {
+	return "#" + c.text
+}
+
 var reserved = map[rune]bool{
 	'\n': true,
 	'#':  true,
@@ -248,6 +256,10 @@ func (p *parser) next() {
 		switch r {
 		case '#':
 			p.discardUpTo('\n')
+			com := comment{
+				text: p.val,
+			}
+			p.add(com)
 			p.next()
 			return
 		case '\n':
@@ -334,12 +346,16 @@ func (p *parser) strContent(delim byte) {
 
 func (p *parser) discardUpTo(delim byte) {
 	b, err := p.r.ReadBytes(delim)
+	cont := b
 	if err == io.EOF {
 		p.eof()
 		p.col++
 	} else if err != nil {
 		p.errPass(err)
+	} else {
+		cont = cont[:len(b)-1]
 	}
+	p.val = string(cont)
 	p.col += utf8.RuneCount(b)
 }
 
