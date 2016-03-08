@@ -168,6 +168,26 @@ var tests = []struct {
 		}},
 	},
 	{
+		ins: []string{"foo | bar"},
+		want: []node{binaryExpr{
+			op: "|",
+			X:  command{args: lits("foo")},
+			Y:  command{args: lits("bar")},
+		}},
+	},
+	{
+		ins: []string{"foo | bar | extra"},
+		want: []node{binaryExpr{
+			op: "|",
+			X:  command{args: lits("foo")},
+			Y: binaryExpr{
+				op: "|",
+				X:  command{args: lits("bar")},
+				Y:  command{args: lits("extra")},
+			},
+		}},
+	},
+	{
 		ins: []string{
 			"foo() { a; b; }",
 			"foo() {\na\nb\n}",
