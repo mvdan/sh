@@ -61,10 +61,12 @@ type node interface {
 	fmt.Stringer
 }
 
-type lit string
+type lit struct {
+	val string
+}
 
 func (l lit) String() string {
-	return string(l)
+	return l.val
 }
 
 func nodeJoin(ns []node, sep string) string {
@@ -552,12 +554,12 @@ func (p *parser) command() {
 	case p.got(WORD):
 		var cmd command
 		p.push(&cmd.args)
-		p.add(lit(p.lval))
+		p.add(lit{val: p.lval})
 	args:
 		for p.tok != EOF {
 			switch {
 			case p.got(WORD):
-				p.add(lit(p.lval))
+				p.add(lit{val: p.lval})
 			case p.got('&'):
 				if p.got('&') {
 					b := binaryExpr{op: "&&"}
@@ -592,7 +594,7 @@ func (p *parser) command() {
 					break args
 				}
 				fun := funcDecl{
-					name: lit(p.lval),
+					name: lit{val: p.lval},
 				}
 				p.want(')')
 				p.push(&fun.body)
@@ -658,18 +660,18 @@ func (p *parser) redirect() {
 				p.col++
 				p.lineErr("invalid fd %q", p.lval)
 			}
-			r.obj = lit("&" + p.lval)
+			r.obj = lit{val: "&" + p.lval}
 		case p.got('>'):
 			r.op = ">>"
 			fallthrough
 		default:
 			p.want(WORD)
-			r.obj = lit(p.lval)
+			r.obj = lit{val: p.lval}
 		}
 	case p.got('<'):
 		r.op = "<"
 		p.want(WORD)
-		r.obj = lit(p.lval)
+		r.obj = lit{val: p.lval}
 	}
 	p.add(r)
 }

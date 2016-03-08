@@ -12,7 +12,7 @@ import (
 func lits(strs ...string) []node {
 	l := make([]node, 0, len(strs))
 	for _, s := range strs {
-		l = append(l, lit(s))
+		l = append(l, lit{val: s})
 	}
 	return l
 }
@@ -174,7 +174,7 @@ var tests = []struct {
 			"foo ( ) {\na\nb\n}",
 		},
 		want: []node{funcDecl{
-			name: lit("foo"),
+			name: lit{val: "foo"},
 			body: block{stmts: []node{
 				command{args: lits("a")},
 				command{args: lits("b")},
@@ -188,10 +188,10 @@ var tests = []struct {
 		},
 		want: []node{command{
 			args: []node{
-				lit("foo"),
-				redirect{op: ">", obj: lit("a")},
-				redirect{op: ">>", obj: lit("b")},
-				redirect{op: "<", obj: lit("c")},
+				lit{val: "foo"},
+				redirect{op: ">", obj: lit{val: "a"}},
+				redirect{op: ">>", obj: lit{val: "b"}},
+				redirect{op: "<", obj: lit{val: "c"}},
 			},
 		}},
 	},
