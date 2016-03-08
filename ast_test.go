@@ -22,7 +22,7 @@ var tests = []struct {
 		want: nil,
 	},
 	{
-		ins: []string{"foo", "foo ", " foo"},
+		ins: []string{"foo", "foo ", " foo", "#a\nfoo"},
 		want: []node{
 			command{args: []lit{"foo"}},
 		},
@@ -35,19 +35,13 @@ var tests = []struct {
 		},
 	},
 	{
-		ins: []string{"# comment\nfoo"},
+		ins: []string{"foo a b", " foo  a  b ", "foo \\\n a b"},
 		want: []node{
-			command{args: []lit{"foo"}},
+			command{args: []lit{"foo", "a", "b"}},
 		},
 	},
 	{
-		ins: []string{"foo arg1 arg2"},
-		want: []node{
-			command{args: []lit{"foo", "arg1", "arg2"}},
-		},
-	},
-	{
-		ins: []string{"( foo; )"},
+		ins: []string{"( foo; )", "(foo;)", "(\nfoo\n)"},
 		want: []node{
 			subshell{stmts: []node{
 				command{args: []lit{"foo"}},
@@ -55,7 +49,7 @@ var tests = []struct {
 		},
 	},
 	{
-		ins: []string{"{ foo; }"},
+		ins: []string{"{ foo; }", "{foo;}", "{\nfoo\n}"},
 		want: []node{
 			block{stmts: []node{
 				command{args: []lit{"foo"}},
@@ -63,28 +57,37 @@ var tests = []struct {
 		},
 	},
 	{
-		ins: []string{"if foo; then bar; fi"},
+		ins: []string{
+			"if a; then b; fi",
+			"if a\nthen\nb\nfi",
+		},
 		want: []node{ifStmt{
-			cond: command{args: []lit{"foo"}},
+			cond: command{args: []lit{"a"}},
 			thenStmts: []node{
-				command{args: []lit{"bar"}},
+				command{args: []lit{"b"}},
 			}},
 		},
 	},
 	{
-		ins: []string{"if foo; then bar; else pass; fi"},
+		ins: []string{
+			"if a; then b; else c; fi",
+			"if a\nthen b\nelse\nc\nfi",
+		},
 		want: []node{ifStmt{
-			cond: command{args: []lit{"foo"}},
+			cond: command{args: []lit{"a"}},
 			thenStmts: []node{
-				command{args: []lit{"bar"}},
+				command{args: []lit{"b"}},
 			},
 			elseStmts: []node{
-				command{args: []lit{"pass"}},
+				command{args: []lit{"c"}},
 			}},
 		},
 	},
 	{
-		ins: []string{"if a; then a; elif b; then b; elif c; then c; else d; fi"},
+		ins: []string{
+			"if a; then a; elif b; then b; elif c; then c; else d; fi",
+			"if a\nthen a\nelif b\nthen b\nelif c\nthen c\nelse\nd\nfi",
+		},
 		want: []node{ifStmt{
 			cond: command{args: []lit{"a"}},
 			thenStmts: []node{
@@ -106,11 +109,11 @@ var tests = []struct {
 		},
 	},
 	{
-		ins: []string{"while foo; do bar; done"},
+		ins: []string{"while a; do b; done", "while a\ndo\nb\ndone"},
 		want: []node{whileStmt{
-			cond: command{args: []lit{"foo"}},
+			cond: command{args: []lit{"a"}},
 			doStmts: []node{
-				command{args: []lit{"bar"}},
+				command{args: []lit{"b"}},
 			}},
 		},
 	},
@@ -127,9 +130,17 @@ var tests = []struct {
 		},
 	},
 	{
-		ins: []string{"foo && bar"},
+		ins: []string{"foo && bar", "foo&&bar"},
 		want: []node{binaryExpr{
 			op: "&&",
+			X:  command{args: []lit{"foo"}},
+			Y:  command{args: []lit{"bar"}},
+		}},
+	},
+	{
+		ins: []string{"foo || bar", "foo||bar"},
+		want: []node{binaryExpr{
+			op: "||",
 			X:  command{args: []lit{"foo"}},
 			Y:  command{args: []lit{"bar"}},
 		}},
