@@ -35,6 +35,7 @@ func parse(r io.Reader, name string) (prog, error) {
 		line: 1,
 		col:  0,
 	}
+	p.push(&p.prog.stmts)
 	p.next()
 	p.program()
 	return p.prog, p.err
@@ -447,7 +448,6 @@ func (p *parser) popAdd(n node) {
 }
 
 func (p *parser) program() {
-	p.push(&p.prog.stmts)
 	for p.tok != EOF {
 		if p.got('\n') {
 			continue
