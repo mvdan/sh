@@ -19,23 +19,19 @@ func lits(strs ...string) []node {
 
 var tests = []struct {
 	ins  []string
-	want []node
+	want interface{}
 }{
 	{
 		ins:  []string{"", " ", "\n"},
 		want: nil,
 	},
 	{
-		ins: []string{"# foo", "# foo\n"},
-		want: []node{
-			comment{text: " foo"},
-		},
+		ins:  []string{"# foo", "# foo\n"},
+		want: comment{text: " foo"},
 	},
 	{
-		ins: []string{"foo", "foo ", " foo"},
-		want: []node{
-			command{args: lits("foo")},
-		},
+		ins:  []string{"foo", "foo ", " foo"},
+		want: command{args: lits("foo")},
 	},
 	{
 		ins: []string{"foo; bar", "foo; bar;", "\nfoo\nbar\n"},
@@ -45,37 +41,31 @@ var tests = []struct {
 		},
 	},
 	{
-		ins: []string{"foo a b", " foo  a  b ", "foo \\\n a b"},
-		want: []node{
-			command{args: lits("foo", "a", "b")},
-		},
+		ins:  []string{"foo a b", " foo  a  b ", "foo \\\n a b"},
+		want: command{args: lits("foo", "a", "b")},
 	},
 	{
 		ins: []string{"( foo; )", "(foo;)", "(\nfoo\n)"},
-		want: []node{
-			subshell{stmts: []node{
-				command{args: lits("foo")},
-			}},
-		},
+		want: subshell{stmts: []node{
+			command{args: lits("foo")},
+		}},
 	},
 	{
 		ins: []string{"{ foo; }", "{foo;}", "{\nfoo\n}"},
-		want: []node{
-			block{stmts: []node{
-				command{args: lits("foo")},
-			}},
-		},
+		want: block{stmts: []node{
+			command{args: lits("foo")},
+		}},
 	},
 	{
 		ins: []string{
 			"if a; then b; fi",
 			"if a\nthen\nb\nfi",
 		},
-		want: []node{ifStmt{
+		want: ifStmt{
 			cond: command{args: lits("a")},
 			thenStmts: []node{
 				command{args: lits("b")},
-			}},
+			},
 		},
 	},
 	{
@@ -83,14 +73,14 @@ var tests = []struct {
 			"if a; then b; else c; fi",
 			"if a\nthen b\nelse\nc\nfi",
 		},
-		want: []node{ifStmt{
+		want: ifStmt{
 			cond: command{args: lits("a")},
 			thenStmts: []node{
 				command{args: lits("b")},
 			},
 			elseStmts: []node{
 				command{args: lits("c")},
-			}},
+			},
 		},
 	},
 	{
@@ -98,7 +88,7 @@ var tests = []struct {
 			"if a; then a; elif b; then b; elif c; then c; else d; fi",
 			"if a\nthen a\nelif b\nthen b\nelif c\nthen c\nelse\nd\nfi",
 		},
-		want: []node{ifStmt{
+		want: ifStmt{
 			cond: command{args: lits("a")},
 			thenStmts: []node{
 				command{args: lits("a")},
@@ -115,49 +105,45 @@ var tests = []struct {
 			},
 			elseStmts: []node{
 				command{args: lits("d")},
-			}},
+			},
 		},
 	},
 	{
 		ins: []string{"while a; do b; done", "while a\ndo\nb\ndone"},
-		want: []node{whileStmt{
+		want: whileStmt{
 			cond: command{args: lits("a")},
 			doStmts: []node{
 				command{args: lits("b")},
-			}},
+			},
 		},
 	},
 	{
-		ins: []string{"echo ' ' \"foo bar\""},
-		want: []node{
-			command{args: lits("echo", "' '", "\"foo bar\"")},
-		},
+		ins:  []string{"echo ' ' \"foo bar\""},
+		want: command{args: lits("echo", "' '", "\"foo bar\"")},
 	},
 	{
-		ins: []string{"$a ${b} s{s s=s"},
-		want: []node{
-			command{args: lits("$a", "${b}", "s{s", "s=s")},
-		},
+		ins:  []string{"$a ${b} s{s s=s"},
+		want: command{args: lits("$a", "${b}", "s{s", "s=s")},
 	},
 	{
 		ins: []string{"foo && bar", "foo&&bar", "foo &&\nbar"},
-		want: []node{binaryExpr{
+		want: binaryExpr{
 			op: "&&",
 			X:  command{args: lits("foo")},
 			Y:  command{args: lits("bar")},
-		}},
+		},
 	},
 	{
 		ins: []string{"foo || bar", "foo||bar", "foo ||\nbar"},
-		want: []node{binaryExpr{
+		want: binaryExpr{
 			op: "||",
 			X:  command{args: lits("foo")},
 			Y:  command{args: lits("bar")},
-		}},
+		},
 	},
 	{
 		ins: []string{"foo && bar || else"},
-		want: []node{binaryExpr{
+		want: binaryExpr{
 			op: "&&",
 			X:  command{args: lits("foo")},
 			Y: binaryExpr{
@@ -165,19 +151,19 @@ var tests = []struct {
 				X:  command{args: lits("bar")},
 				Y:  command{args: lits("else")},
 			},
-		}},
+		},
 	},
 	{
 		ins: []string{"foo | bar"},
-		want: []node{binaryExpr{
+		want: binaryExpr{
 			op: "|",
 			X:  command{args: lits("foo")},
 			Y:  command{args: lits("bar")},
-		}},
+		},
 	},
 	{
 		ins: []string{"foo | bar | extra"},
-		want: []node{binaryExpr{
+		want: binaryExpr{
 			op: "|",
 			X:  command{args: lits("foo")},
 			Y: binaryExpr{
@@ -185,7 +171,7 @@ var tests = []struct {
 				X:  command{args: lits("bar")},
 				Y:  command{args: lits("extra")},
 			},
-		}},
+		},
 	},
 	{
 		ins: []string{
@@ -193,35 +179,43 @@ var tests = []struct {
 			"foo() {\na\nb\n}",
 			"foo ( ) {\na\nb\n}",
 		},
-		want: []node{funcDecl{
+		want: funcDecl{
 			name: lit{val: "foo"},
 			body: block{stmts: []node{
 				command{args: lits("a")},
 				command{args: lits("b")},
 			}},
-		}},
+		},
 	},
 	{
 		ins: []string{
 			"foo >a >>b <c",
 			"foo > a >> b < c",
 		},
-		want: []node{command{
+		want: command{
 			args: []node{
 				lit{val: "foo"},
 				redirect{op: ">", obj: lit{val: "a"}},
 				redirect{op: ">>", obj: lit{val: "b"}},
 				redirect{op: "<", obj: lit{val: "c"}},
 			},
-		}},
+		},
 	},
+}
+
+func wantedProg(v interface{}) (p prog) {
+	switch x := v.(type) {
+	case []node:
+		p.stmts = x
+	case node:
+		p.stmts = append(p.stmts, x)
+	}
+	return
 }
 
 func TestParseAST(t *testing.T) {
 	for _, c := range tests {
-		want := prog{
-			stmts: c.want,
-		}
+		want := wantedProg(c.want)
 		for _, in := range c.ins {
 			r := strings.NewReader(in)
 			got, err := parse(r, "")
@@ -238,9 +232,7 @@ func TestParseAST(t *testing.T) {
 
 func TestPrintAST(t *testing.T) {
 	for _, c := range tests {
-		in := prog{
-			stmts: c.want,
-		}
+		in := wantedProg(c.want)
 		want := c.ins[0]
 		got := in.String()
 		if got != want {
