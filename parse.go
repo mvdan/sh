@@ -519,6 +519,9 @@ func (p *parser) errPass(err error) {
 }
 
 func (p *parser) lineErr(format string, v ...interface{}) {
+	if p.err != nil {
+		return
+	}
 	pos := fmt.Sprintf("%s:%d:%d: ", p.name, p.line, p.col)
 	p.errPass(fmt.Errorf(pos+format, v...))
 }
