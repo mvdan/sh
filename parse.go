@@ -265,8 +265,8 @@ var space = map[rune]bool{
 }
 
 var (
-	ident = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
-	num   = regexp.MustCompile(`^[1-9][0-9]*$`)
+	identRe  = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
+	numberRe = regexp.MustCompile(`^[1-9][0-9]*$`)
 )
 
 func (p *parser) readRune() (rune, error) {
@@ -681,7 +681,7 @@ func (p *parser) command() {
 				p.binaryExpr("||", cmd)
 				return
 			case p.got(LPAREN):
-				if !ident.MatchString(p.lval) {
+				if !identRe.MatchString(p.lval) {
 					p.posErr(first, "invalid func name %q", p.lval)
 					break args
 				}
@@ -759,7 +759,7 @@ func (p *parser) redirect() {
 		switch {
 		case p.got(AND):
 			p.want(WORD)
-			if !num.MatchString(p.lval) {
+			if !numberRe.MatchString(p.lval) {
 				p.lastErr("invalid fd %q", p.lval)
 			}
 			r.obj = lit{val: "&" + p.lval}
