@@ -157,7 +157,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			in:   "foo >&bar",
-			want: `1:8: invalid fd "bar"`,
+			want: `1:7: invalid fd "bar"`,
 		},
 		{
 			in:   "foo <",

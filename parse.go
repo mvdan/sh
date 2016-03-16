@@ -30,6 +30,7 @@ const (
 	DONE
 
 	AND
+	LAND
 	OR
 
 	LPAREN
@@ -255,6 +256,9 @@ var (
 )
 
 func (p *parser) readRune() (rune, error) {
+	if p.tok == EOF {
+		return 0, io.EOF
+	}
 	r, _, err := p.r.ReadRune()
 	if err != nil {
 		if err == io.EOF {
@@ -270,6 +274,10 @@ func (p *parser) readRune() (rune, error) {
 }
 
 func (p *parser) unreadRune() {
+	if p.tok == EOF {
+		p.col--
+		return
+	}
 	if err := p.r.UnreadRune(); err != nil {
 		panic(err)
 	}
@@ -346,8 +354,16 @@ func (p *parser) next() {
 }
 
 func (p *parser) doToken(r rune) int32 {
+	var err error
 	switch r {
 	case '&':
+		r, err = p.readRune()
+		if err == nil {
+			if r == '&' {
+				return LAND
+			}
+		}
+		p.unreadRune()
 		return AND
 	case '|':
 		return OR
@@ -467,8 +483,9 @@ var tokNames = map[int32]string{
 	DO:    `"do"`,
 	DONE:  `"done"`,
 
-	AND: `'&'`,
-	OR:  `'|'`,
+	AND:  `'&'`,
+	LAND: `'&&'`,
+	OR:   `'|'`,
 
 	LPAREN: `'('`,
 	LBRACE: `'{'`,
@@ -620,18 +637,17 @@ func (p *parser) command() {
 			case p.got(WORD):
 				p.add(lit{val: p.lval})
 			case p.got(AND):
-				if p.got(AND) {
-					b := binaryExpr{op: "&&"}
-					p.push(&b.Y)
-					p.command()
-					p.pop()
-					p.push(&b.X)
-					p.add(cmd)
-					p.pop()
-					p.popAdd(b)
-					return
-				}
 				break args
+			case p.got(LAND):
+				b := binaryExpr{op: "&&"}
+				p.push(&b.Y)
+				p.command()
+				p.pop()
+				p.push(&b.X)
+				p.add(cmd)
+				p.pop()
+				p.popAdd(b)
+				return
 			case p.got(OR):
 				b := binaryExpr{op: "|"}
 				if p.got(OR) {
@@ -688,9 +704,8 @@ func (p *parser) command() {
 		if p.tok != EOF {
 			switch {
 			case p.got(AND):
-				if p.got(AND) {
-					p.command()
-				}
+			case p.got(LAND):
+				p.command()
 			case p.got(OR):
 				p.got(OR)
 				p.command()
@@ -717,7 +732,7 @@ func (p *parser) redirect() {
 			p.want(WORD)
 			if !num.MatchString(p.lval) {
 				p.col -= utf8.RuneCountInString(p.lval)
-				p.col++
+				p.col--
 				p.lineErr("invalid fd %q", p.lval)
 			}
 			r.obj = lit{val: "&" + p.lval}
