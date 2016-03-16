@@ -14,8 +14,10 @@ import (
 	"unicode/utf8"
 )
 
+type token int
+
 const (
-	ILLEGAL = -iota
+	ILLEGAL token = -iota
 	EOF
 	COMMENT
 	WORD
@@ -62,7 +64,7 @@ type parser struct {
 	r   *bufio.Reader
 	err error
 
-	tok  int32
+	tok  token
 	lval string
 	val  string
 
@@ -354,7 +356,7 @@ func (p *parser) next() {
 	return
 }
 
-func (p *parser) doToken(r rune) int32 {
+func (p *parser) doToken(r rune) token {
 	switch r {
 	case '&':
 		r, _ = p.readRune()
@@ -385,7 +387,7 @@ func (p *parser) doToken(r rune) int32 {
 	case '>':
 		return GTR
 	default:
-		return r
+		return token(r)
 	}
 }
 
@@ -409,7 +411,7 @@ func (p *parser) strContent(delim byte) {
 		}
 		if err == io.EOF {
 			p.eof()
-			p.errWanted(rune(delim))
+			p.errWanted(token(delim))
 		} else if err != nil {
 			p.errPass(err)
 		}
@@ -441,7 +443,7 @@ func (p *parser) discardUpTo(delim byte) {
 
 // We can't simply have these as tokens as they can sometimes be valid
 // words, e.g. `echo if`.
-var reservedWords = map[int32]string{
+var reservedWords = map[token]string{
 	IF:    "if",
 	THEN:  "then",
 	ELIF:  "elif",
@@ -452,11 +454,11 @@ var reservedWords = map[int32]string{
 	DONE:  "done",
 }
 
-func (p *parser) peek(tok int32) bool {
+func (p *parser) peek(tok token) bool {
 	return p.tok == tok || (p.tok == WORD && p.val == reservedWords[tok])
 }
 
-func (p *parser) got(tok int32) bool {
+func (p *parser) got(tok token) bool {
 	if p.peek(tok) {
 		p.next()
 		return true
@@ -464,7 +466,7 @@ func (p *parser) got(tok int32) bool {
 	return false
 }
 
-func (p *parser) want(tok int32) {
+func (p *parser) want(tok token) {
 	if !p.peek(tok) {
 		p.errWanted(tok)
 		return
@@ -472,7 +474,7 @@ func (p *parser) want(tok int32) {
 	p.next()
 }
 
-var tokNames = map[int32]string{
+var tokNames = map[token]string{
 	EOF:     `EOF`,
 	COMMENT: `comment`,
 	WORD:    `word`,
@@ -502,11 +504,11 @@ var tokNames = map[int32]string{
 	GTR: `'>'`,
 }
 
-func tokName(tok int32) string {
+func tokName(tok token) string {
 	if s, e := tokNames[tok]; e {
 		return s
 	}
-	return strconv.QuoteRune(tok)
+	return strconv.QuoteRune(rune(tok))
 }
 
 func (p *parser) errPass(err error) {
@@ -525,7 +527,7 @@ func (p *parser) errWantedStr(s string) {
 	p.lineErr("unexpected token %s, wanted %s", tokName(p.tok), s)
 }
 
-func (p *parser) errWanted(tok int32) {
+func (p *parser) errWanted(tok token) {
 	p.errWantedStr(tokName(tok))
 }
 
