@@ -269,12 +269,10 @@ func (p *parser) readRune() (rune, error) {
 	return r, nil
 }
 
-func (p *parser) unreadRune() error {
+func (p *parser) unreadRune() {
 	if err := p.r.UnreadRune(); err != nil {
-		p.errPass(err)
-		return err
+		panic(err)
 	}
-	return nil
 }
 
 func (p *parser) next() {
@@ -295,9 +293,7 @@ func (p *parser) next() {
 		if p.got('\n') {
 			return
 		}
-		if err := p.unreadRune(); err != nil {
-			return
-		}
+		p.unreadRune()
 		p.col--
 	}
 	if reserved[r] || starters[r] {
@@ -340,9 +336,7 @@ func (p *parser) next() {
 		rs = append(rs, r)
 	}
 	if err != io.EOF && len(rs) > 1 {
-		if err := p.unreadRune(); err != nil {
-			return
-		}
+		p.unreadRune()
 		rs = rs[:len(rs)-1]
 	}
 	p.col--
