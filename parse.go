@@ -535,10 +535,6 @@ func (p *parser) curErr(format string, v ...interface{}) {
 	p.posErr(p.pos, format, v...)
 }
 
-func (p *parser) lastErr(format string, v ...interface{}) {
-	p.posErr(p.lpos, format, v...)
-}
-
 func (p *parser) errWantedStr(s string) {
 	if p.tok == EOF {
 		p.pos = p.npos
@@ -760,7 +756,7 @@ func (p *parser) redirect() {
 		case p.got(AND):
 			p.want(WORD)
 			if !numberRe.MatchString(p.lval) {
-				p.lastErr("invalid fd %q", p.lval)
+				p.curErr("invalid fd %q", p.lval)
 			}
 			r.obj = lit{val: "&" + p.lval}
 		case p.got(GTR):
