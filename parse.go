@@ -665,9 +665,7 @@ func (p *parser) command() {
 				p.push(&b.Y)
 				p.command()
 				p.pop()
-				p.push(&b.X)
-				p.add(cmd)
-				p.pop()
+				b.X = cmd
 				p.popAdd(b)
 				return
 			case p.got(OR):
@@ -741,9 +739,7 @@ func (p *parser) binaryExpr(op string, left node) {
 	p.push(&b.Y)
 	p.command()
 	p.pop()
-	p.push(&b.X)
-	p.add(left)
-	p.pop()
+	b.X = left
 	p.popAdd(b)
 }
 
