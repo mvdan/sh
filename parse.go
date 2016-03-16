@@ -15,9 +15,11 @@ import (
 )
 
 const (
-	_ = -iota
+	ILLEGAL = -iota
 	EOF
+	COMMENT
 	WORD
+
 	IF
 	THEN
 	ELIF
@@ -296,7 +298,7 @@ func (p *parser) next() {
 				text: p.val,
 			}
 			p.add(com)
-			p.next()
+			p.tok = COMMENT
 			return
 		case '\n':
 			p.line++
@@ -391,7 +393,6 @@ func (p *parser) discardUpTo(delim byte) {
 	cont := b
 	if err == io.EOF {
 		p.eof()
-		p.col++
 	} else if err != nil {
 		p.errPass(err)
 	} else {
@@ -435,8 +436,9 @@ func (p *parser) want(tok int32) {
 }
 
 var tokNames = map[int32]string{
-	EOF:  `EOF`,
-	WORD: `word`,
+	EOF:     `EOF`,
+	COMMENT: `comment`,
+	WORD:    `word`,
 
 	IF:    `"if"`,
 	THEN:  `"then"`,
@@ -518,7 +520,7 @@ func (p *parser) program() {
 
 func (p *parser) command() {
 	switch {
-	case p.got('\n'):
+	case p.got('\n'), p.got(COMMENT):
 		if !p.peek(EOF) {
 			p.command()
 		}
@@ -637,6 +639,7 @@ func (p *parser) command() {
 				break args
 			case p.got('\n'):
 				break args
+			case p.got(COMMENT):
 			default:
 				p.errAfterStr("command")
 			}
