@@ -307,13 +307,9 @@ func (p *parser) next() {
 			return
 		}
 	}
-	if r == '\\' {
+	if r == '\\' && p.readOnly('\n') {
 		p.next()
-		if p.got('\n') {
-			return
-		}
-		p.unreadRune()
-		p.col--
+		return
 	}
 	if reserved[r] || starters[r] {
 		switch r {
