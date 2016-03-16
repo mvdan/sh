@@ -689,8 +689,7 @@ func (p *parser) command() {
 				p.pop()
 				p.popAdd(fun)
 				return
-			case p.peek(LSS), p.peek(GTR), p.peek(SHR):
-				p.redirect()
+			case p.gotRedirect():
 			case p.got(SEMICOLON):
 				break args
 			case p.got('\n'):
@@ -722,8 +721,7 @@ func (p *parser) command() {
 				p.command()
 			case p.got(LOR):
 				p.command()
-			case p.peek(LSS), p.peek(GTR), p.peek(SHR):
-				p.redirect()
+			case p.gotRedirect():
 			case p.got(SEMICOLON):
 			case p.got('\n'):
 			default:
@@ -744,7 +742,7 @@ func (p *parser) binaryExpr(op string, left node) {
 	p.popAdd(b)
 }
 
-func (p *parser) redirect() {
+func (p *parser) gotRedirect() bool {
 	var r redirect
 	switch {
 	case p.got(GTR):
@@ -767,6 +765,9 @@ func (p *parser) redirect() {
 		r.op = "<"
 		p.want(WORD)
 		r.obj = lit{val: p.lval}
+	default:
+		return false
 	}
 	p.add(r)
+	return true
 }
