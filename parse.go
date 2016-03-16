@@ -254,6 +254,14 @@ func (p *parser) readRune() (rune, error) {
 	return r, nil
 }
 
+func (p *parser) unreadRune() error {
+	if err := p.r.UnreadRune(); err != nil {
+		p.errPass(err)
+		return err
+	}
+	return nil
+}
+
 func (p *parser) next() {
 	p.lval = p.val
 	if p.tok == EOF {
@@ -272,8 +280,7 @@ func (p *parser) next() {
 		if p.got('\n') {
 			return
 		}
-		if err := p.r.UnreadRune(); err != nil {
-			p.errPass(err)
+		if err := p.unreadRune(); err != nil {
 			return
 		}
 		p.col--
@@ -319,8 +326,7 @@ func (p *parser) next() {
 		rs = append(rs, r)
 	}
 	if err != io.EOF && len(rs) > 1 {
-		if err := p.r.UnreadRune(); err != nil {
-			p.errPass(err)
+		if err := p.unreadRune(); err != nil {
 			return
 		}
 		rs = rs[:len(rs)-1]
