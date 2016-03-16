@@ -37,19 +37,19 @@ func TestParseErr(t *testing.T) {
 	}{
 		{
 			in:   "'",
-			want: `1:2: unexpected token EOF, wanted '\''`,
+			want: `1:2: unexpected token EOF - wanted '`,
 		},
 		{
 			in:   "\"",
-			want: `1:2: unexpected token EOF, wanted '"'`,
+			want: `1:2: unexpected token EOF - wanted "`,
 		},
 		{
 			in:   "'\\''",
-			want: `1:5: unexpected token EOF, wanted '\''`,
+			want: `1:5: unexpected token EOF - wanted '`,
 		},
 		{
 			in:   ";",
-			want: `1:1: unexpected token ';', wanted command`,
+			want: `1:1: unexpected token ; - wanted command`,
 		},
 		{
 			in:   "à(){}",
@@ -57,103 +57,103 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			in:   "{",
-			want: `1:2: unexpected token EOF, wanted '}'`,
+			want: `1:2: unexpected token EOF - wanted }`,
 		},
 		{
 			in:   "{\n",
-			want: `2:1: unexpected token EOF, wanted '}'`,
+			want: `2:1: unexpected token EOF - wanted }`,
 		},
 		{
 			in:   "{{}",
-			want: `1:4: unexpected token EOF, wanted '}'`,
+			want: `1:4: unexpected token EOF - wanted }`,
 		},
 		{
 			in:   "}",
-			want: `1:1: unexpected token '}', wanted command`,
+			want: `1:1: unexpected token } - wanted command`,
 		},
 		{
 			in:   "{}}",
-			want: `1:3: unexpected token '}' after block`,
+			want: `1:3: unexpected token } after block`,
 		},
 		{
 			in:   "{#}",
-			want: `1:4: unexpected token EOF, wanted '}'`,
+			want: `1:4: unexpected token EOF - wanted }`,
 		},
 		{
 			in:   "{}(){}",
-			want: `1:3: unexpected token '(' after block`,
+			want: `1:3: unexpected token ( after block`,
 		},
 		{
 			in:   "(",
-			want: `1:2: unexpected token EOF, wanted command`,
+			want: `1:2: unexpected token EOF - wanted command`,
 		},
 		{
 			in:   ")",
-			want: `1:1: unexpected token ')', wanted command`,
+			want: `1:1: unexpected token ) - wanted command`,
 		},
 		{
 			in:   "()",
-			want: `1:2: unexpected token ')', wanted command`,
+			want: `1:2: unexpected token ) - wanted command`,
 		},
 		{
 			in:   "( foo;",
-			want: `1:7: unexpected token EOF, wanted ')'`,
+			want: `1:7: unexpected token EOF - wanted )`,
 		},
 		{
 			in:   "&",
-			want: `1:1: unexpected token '&', wanted command`,
+			want: `1:1: unexpected token & - wanted command`,
 		},
 		{
 			in:   "|",
-			want: `1:1: unexpected token '|', wanted command`,
+			want: `1:1: unexpected token | - wanted command`,
 		},
 		{
 			in:   "foo;;",
-			want: `1:5: unexpected token ';', wanted command`,
+			want: `1:5: unexpected token ; - wanted command`,
 		},
 		{
 			in:   "foo(",
-			want: `1:5: unexpected token EOF, wanted ')'`,
+			want: `1:5: unexpected token EOF - wanted )`,
 		},
 		{
 			in:   "foo'",
-			want: `1:5: unexpected token EOF, wanted '\''`,
+			want: `1:5: unexpected token EOF - wanted '`,
 		},
 		{
 			in:   "foo\"",
-			want: `1:5: unexpected token EOF, wanted '"'`,
+			want: `1:5: unexpected token EOF - wanted "`,
 		},
 		{
 			in:   "foo()",
-			want: `1:6: unexpected token EOF, wanted command`,
+			want: `1:6: unexpected token EOF - wanted command`,
 		},
 		{
 			in:   "foo() {",
-			want: `1:8: unexpected token EOF, wanted '}'`,
+			want: `1:8: unexpected token EOF - wanted }`,
 		},
 		{
 			in:   "foo &&",
-			want: `1:7: unexpected token EOF, wanted command`,
+			want: `1:7: unexpected token EOF - wanted command`,
 		},
 		{
 			in:   "foo |",
-			want: `1:6: unexpected token EOF, wanted command`,
+			want: `1:6: unexpected token EOF - wanted command`,
 		},
 		{
 			in:   "foo ||",
-			want: `1:7: unexpected token EOF, wanted command`,
+			want: `1:7: unexpected token EOF - wanted command`,
 		},
 		{
 			in:   "foo >",
-			want: `1:6: unexpected token EOF, wanted word`,
+			want: `1:6: unexpected token EOF - wanted word`,
 		},
 		{
 			in:   "foo >>",
-			want: `1:7: unexpected token EOF, wanted word`,
+			want: `1:7: unexpected token EOF - wanted word`,
 		},
 		{
 			in:   "foo >&",
-			want: `1:7: unexpected token EOF, wanted word`,
+			want: `1:7: unexpected token EOF - wanted word`,
 		},
 		{
 			in:   "foo >&bar",
@@ -161,47 +161,47 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			in:   "foo <",
-			want: `1:6: unexpected token EOF, wanted word`,
+			want: `1:6: unexpected token EOF - wanted word`,
 		},
 		{
 			in:   "if",
-			want: `1:3: unexpected token EOF, wanted command`,
+			want: `1:3: unexpected token EOF - wanted command`,
 		},
 		{
 			in:   "if foo;",
-			want: `1:8: unexpected token EOF, wanted "then"`,
+			want: `1:8: unexpected token EOF - wanted then`,
 		},
 		{
 			in:   "if foo; bar",
-			want: `1:11: unexpected token word, wanted "then"`,
+			want: `1:11: unexpected token word - wanted then`,
 		},
 		{
 			in:   "if foo; then bar;",
-			want: `1:18: unexpected token EOF, wanted "fi"`,
+			want: `1:18: unexpected token EOF - wanted fi`,
 		},
 		{
 			in:   "'foo' '",
-			want: `1:8: unexpected token EOF, wanted '\''`,
+			want: `1:8: unexpected token EOF - wanted '`,
 		},
 		{
 			in:   "'foo\n' '",
-			want: `2:3: unexpected token EOF, wanted '\''`,
+			want: `2:3: unexpected token EOF - wanted '`,
 		},
 		{
 			in:   "while",
-			want: `1:6: unexpected token EOF, wanted command`,
+			want: `1:6: unexpected token EOF - wanted command`,
 		},
 		{
 			in:   "while foo;",
-			want: `1:11: unexpected token EOF, wanted "do"`,
+			want: `1:11: unexpected token EOF - wanted do`,
 		},
 		{
 			in:   "while foo; bar",
-			want: `1:14: unexpected token word, wanted "do"`,
+			want: `1:14: unexpected token word - wanted do`,
 		},
 		{
 			in:   "while foo; do bar;",
-			want: `1:19: unexpected token EOF, wanted "done"`,
+			want: `1:19: unexpected token EOF - wanted done`,
 		},
 	}
 	for _, c := range errs {

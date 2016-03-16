@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io"
 	"regexp"
-	"strconv"
 	"strings"
 	"unicode/utf8"
 )
@@ -475,40 +474,41 @@ func (p *parser) want(tok token) {
 }
 
 var tokNames = map[token]string{
+	ILLEGAL: `ILLEGAL`,
 	EOF:     `EOF`,
 	COMMENT: `comment`,
 	WORD:    `word`,
 
-	IF:    `"if"`,
-	THEN:  `"then"`,
-	ELIF:  `"elif"`,
-	ELSE:  `"else"`,
-	FI:    `"fi"`,
-	WHILE: `"while"`,
-	DO:    `"do"`,
-	DONE:  `"done"`,
+	IF:    "if",
+	THEN:  "then",
+	ELIF:  "elif",
+	ELSE:  "else",
+	FI:    "fi",
+	WHILE: "while",
+	DO:    "do",
+	DONE:  "done",
 
-	AND:  `'&'`,
-	LAND: `'&&'`,
-	OR:   `'|'`,
-	LOR:  `'||'`,
+	AND:  "&",
+	LAND: "&&",
+	OR:   "|",
+	LOR:  "||",
 
-	LPAREN: `'('`,
-	LBRACE: `'{'`,
+	LPAREN: "(",
+	LBRACE: "{",
 
-	RPAREN:    `')'`,
-	RBRACE:    `'}'`,
-	SEMICOLON: `';'`,
+	RPAREN:    ")",
+	RBRACE:    "}",
+	SEMICOLON: ";",
 
-	LSS: `'<'`,
-	GTR: `'>'`,
+	LSS: "<",
+	GTR: ">",
 }
 
-func tokName(tok token) string {
-	if s, e := tokNames[tok]; e {
+func (t token) String() string {
+	if s, e := tokNames[t]; e {
 		return s
 	}
-	return strconv.QuoteRune(rune(tok))
+	return string(t)
 }
 
 func (p *parser) errPass(err error) {
@@ -524,15 +524,15 @@ func (p *parser) lineErr(format string, v ...interface{}) {
 }
 
 func (p *parser) errWantedStr(s string) {
-	p.lineErr("unexpected token %s, wanted %s", tokName(p.tok), s)
+	p.lineErr("unexpected token %s - wanted %s", p.tok, s)
 }
 
 func (p *parser) errWanted(tok token) {
-	p.errWantedStr(tokName(tok))
+	p.errWantedStr(tok.String())
 }
 
 func (p *parser) errAfterStr(s string) {
-	p.lineErr("unexpected token %s after %s", tokName(p.tok), s)
+	p.lineErr("unexpected token %s after %s", p.tok, s)
 }
 
 func (p *parser) add(n node) {
