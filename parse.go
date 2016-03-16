@@ -30,20 +30,20 @@ const (
 	DO
 	DONE
 
-	AND
-	LAND
-	OR
-	LOR
+	AND  // &
+	LAND // &&
+	OR   // |
+	LOR  // ||
 
-	LPAREN
-	LBRACE
+	LPAREN // (
+	LBRACE // {
 
-	RPAREN
-	RBRACE
-	SEMICOLON
+	RPAREN    // )
+	RBRACE    // }
+	SEMICOLON // ;
 
-	LSS
-	GTR
+	LSS // <
+	GTR // >
 )
 
 func parse(r io.Reader, name string) (prog, error) {
