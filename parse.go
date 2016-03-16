@@ -276,8 +276,8 @@ func (p *parser) readRune() (rune, error) {
 }
 
 func (p *parser) unreadRune() {
+	p.col--
 	if p.tok == EOF {
-		p.col--
 		return
 	}
 	if err := p.r.UnreadRune(); err != nil {
@@ -343,6 +343,7 @@ func (p *parser) next() {
 	for {
 		r, err = p.readRune()
 		if err == io.EOF {
+			p.col--
 			break
 		}
 		if err != nil {
@@ -354,7 +355,6 @@ func (p *parser) next() {
 		}
 		rs = append(rs, r)
 	}
-	p.col--
 	p.tok = WORD
 	p.val = string(rs)
 	return
@@ -747,7 +747,6 @@ func (p *parser) redirect() {
 			p.want(WORD)
 			if !num.MatchString(p.lval) {
 				p.col -= utf8.RuneCountInString(p.lval)
-				p.col--
 				p.lineErr("invalid fd %q", p.lval)
 			}
 			r.obj = lit{val: "&" + p.lval}
