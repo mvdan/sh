@@ -173,7 +173,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			in:   "if foo; bar",
-			want: `1:11: unexpected token word - wanted then`,
+			want: `1:8: unexpected token word - wanted then`,
 		},
 		{
 			in:   "if foo; then bar;",
@@ -197,7 +197,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			in:   "while foo; bar",
-			want: `1:14: unexpected token word - wanted do`,
+			want: `1:11: unexpected token word - wanted do`,
 		},
 		{
 			in:   "while foo; do bar;",

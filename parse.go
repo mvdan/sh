@@ -54,6 +54,10 @@ func parse(r io.Reader, name string) (prog, error) {
 			line: 1,
 			col:  0,
 		},
+		npos: position{
+			line: 1,
+			col:  1,
+		},
 	}
 	p.push(&p.prog.stmts)
 	p.next()
@@ -70,7 +74,9 @@ type parser struct {
 	val  string
 
 	name string
+	lpos position
 	pos  position
+	npos position
 
 	prog  prog
 	stack []interface{}
@@ -270,19 +276,18 @@ func (p *parser) readRune() (rune, error) {
 	r, _, err := p.r.ReadRune()
 	if err != nil {
 		if err == io.EOF {
-			p.pos.col++
 			p.eof()
 		} else {
 			p.errPass(err)
 		}
 		return 0, err
 	}
-	p.pos.col++
+	p.npos.col++
 	return r, nil
 }
 
 func (p *parser) unreadRune() {
-	p.pos.col--
+	p.npos.col--
 	if p.tok == EOF {
 		return
 	}
@@ -296,11 +301,15 @@ func (p *parser) readOnly(wanted rune) bool {
 	if r == wanted {
 		return true
 	}
-	p.unreadRune()
+	if p.tok != EOF {
+		p.unreadRune()
+	}
 	return false
 }
 
 func (p *parser) next() {
+	p.lpos = p.pos
+	p.pos = p.npos
 	p.lval = p.val
 	if p.tok == EOF {
 		return
@@ -328,8 +337,8 @@ func (p *parser) next() {
 			p.tok = COMMENT
 			return
 		case '\n':
-			p.pos.line++
-			p.pos.col = 0
+			p.npos.line++
+			p.npos.col = 1
 			p.tok = '\n'
 			return
 		}
@@ -341,7 +350,6 @@ func (p *parser) next() {
 		if p.tok == EOF {
 			return
 		}
-		p.pos.col--
 		p.tok = WORD
 		return
 	}
@@ -349,7 +357,6 @@ func (p *parser) next() {
 	for {
 		r, err = p.readRune()
 		if err == io.EOF {
-			p.pos.col--
 			break
 		}
 		if err != nil {
@@ -404,15 +411,14 @@ func (p *parser) eof() {
 
 func (p *parser) strContent(delim byte) {
 	v := []string{string(delim)}
-	p.pos.col++
 	for {
 		s, err := p.r.ReadString(delim)
 		for _, r := range s {
 			if r == '\n' {
-				p.pos.line++
-				p.pos.col = 0
+				p.npos.line++
+				p.npos.col = 0
 			} else {
-				p.pos.col++
+				p.npos.col++
 			}
 		}
 		if err == io.EOF {
@@ -444,7 +450,7 @@ func (p *parser) discardUpTo(delim byte) {
 		cont = cont[:len(b)-1]
 	}
 	p.val = string(cont)
-	p.pos.col += utf8.RuneCount(b)
+	p.npos.col += utf8.RuneCount(b)
 }
 
 // We can't simply have these as tokens as they can sometimes be valid
@@ -525,16 +531,27 @@ func (p *parser) errPass(err error) {
 	p.eof()
 }
 
-func (p *parser) lineErr(format string, v ...interface{}) {
+func (p *parser) posErr(pos position, format string, v ...interface{}) {
 	if p.err != nil {
 		return
 	}
-	pos := fmt.Sprintf("%s:%d:%d: ", p.name, p.pos.line, p.pos.col)
-	p.errPass(fmt.Errorf(pos+format, v...))
+	prefix := fmt.Sprintf("%s:%d:%d: ", p.name, pos.line, pos.col)
+	p.errPass(fmt.Errorf(prefix+format, v...))
+}
+
+func (p *parser) curErr(format string, v ...interface{}) {
+	p.posErr(p.pos, format, v...)
+}
+
+func (p *parser) lastErr(format string, v ...interface{}) {
+	p.posErr(p.lpos, format, v...)
 }
 
 func (p *parser) errWantedStr(s string) {
-	p.lineErr("unexpected token %s - wanted %s", p.tok, s)
+	if p.tok == EOF {
+		p.pos = p.npos
+	}
+	p.curErr("unexpected token %s - wanted %s", p.tok, s)
 }
 
 func (p *parser) errWanted(tok token) {
@@ -542,7 +559,10 @@ func (p *parser) errWanted(tok token) {
 }
 
 func (p *parser) errAfterStr(s string) {
-	p.lineErr("unexpected token %s after %s", p.tok, s)
+	if p.tok == EOF {
+		p.pos = p.npos
+	}
+	p.curErr("unexpected token %s after %s", p.tok, s)
 }
 
 func (p *parser) add(n node) {
@@ -647,6 +667,7 @@ func (p *parser) command() {
 		var cmd command
 		p.push(&cmd.args)
 		p.add(lit{val: p.lval})
+		first := p.lpos
 	args:
 		for p.tok != EOF {
 			switch {
@@ -672,9 +693,7 @@ func (p *parser) command() {
 				return
 			case p.got(LPAREN):
 				if !ident.MatchString(p.lval) {
-					p.pos.col -= utf8.RuneCountInString(p.lval)
-					p.pos.col--
-					p.lineErr("invalid func name %q", p.lval)
+					p.posErr(first, "invalid func name %q", p.lval)
 					break args
 				}
 				fun := funcDecl{
@@ -752,8 +771,7 @@ func (p *parser) redirect() {
 		case p.got(AND):
 			p.want(WORD)
 			if !num.MatchString(p.lval) {
-				p.pos.col -= utf8.RuneCountInString(p.lval)
-				p.lineErr("invalid fd %q", p.lval)
+				p.lastErr("invalid fd %q", p.lval)
 			}
 			r.obj = lit{val: "&" + p.lval}
 		case p.got(GTR):
