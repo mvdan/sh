@@ -50,8 +50,10 @@ func parse(r io.Reader, name string) (prog, error) {
 	p := &parser{
 		r:    bufio.NewReader(r),
 		name: name,
-		line: 1,
-		col:  0,
+		pos: position{
+			line: 1,
+			col:  0,
+		},
 	}
 	p.push(&p.prog.stmts)
 	p.next()
@@ -68,11 +70,15 @@ type parser struct {
 	val  string
 
 	name string
-	line int
-	col  int
+	pos  position
 
 	prog  prog
 	stack []interface{}
+}
+
+type position struct {
+	line int
+	col  int
 }
 
 type node interface {
@@ -264,19 +270,19 @@ func (p *parser) readRune() (rune, error) {
 	r, _, err := p.r.ReadRune()
 	if err != nil {
 		if err == io.EOF {
-			p.col++
+			p.pos.col++
 			p.eof()
 		} else {
 			p.errPass(err)
 		}
 		return 0, err
 	}
-	p.col++
+	p.pos.col++
 	return r, nil
 }
 
 func (p *parser) unreadRune() {
-	p.col--
+	p.pos.col--
 	if p.tok == EOF {
 		return
 	}
@@ -322,8 +328,8 @@ func (p *parser) next() {
 			p.tok = COMMENT
 			return
 		case '\n':
-			p.line++
-			p.col = 0
+			p.pos.line++
+			p.pos.col = 0
 			p.tok = '\n'
 			return
 		}
@@ -335,7 +341,7 @@ func (p *parser) next() {
 		if p.tok == EOF {
 			return
 		}
-		p.col--
+		p.pos.col--
 		p.tok = WORD
 		return
 	}
@@ -343,7 +349,7 @@ func (p *parser) next() {
 	for {
 		r, err = p.readRune()
 		if err == io.EOF {
-			p.col--
+			p.pos.col--
 			break
 		}
 		if err != nil {
@@ -398,15 +404,15 @@ func (p *parser) eof() {
 
 func (p *parser) strContent(delim byte) {
 	v := []string{string(delim)}
-	p.col++
+	p.pos.col++
 	for {
 		s, err := p.r.ReadString(delim)
 		for _, r := range s {
 			if r == '\n' {
-				p.line++
-				p.col = 0
+				p.pos.line++
+				p.pos.col = 0
 			} else {
-				p.col++
+				p.pos.col++
 			}
 		}
 		if err == io.EOF {
@@ -438,7 +444,7 @@ func (p *parser) discardUpTo(delim byte) {
 		cont = cont[:len(b)-1]
 	}
 	p.val = string(cont)
-	p.col += utf8.RuneCount(b)
+	p.pos.col += utf8.RuneCount(b)
 }
 
 // We can't simply have these as tokens as they can sometimes be valid
@@ -523,7 +529,7 @@ func (p *parser) lineErr(format string, v ...interface{}) {
 	if p.err != nil {
 		return
 	}
-	pos := fmt.Sprintf("%s:%d:%d: ", p.name, p.line, p.col)
+	pos := fmt.Sprintf("%s:%d:%d: ", p.name, p.pos.line, p.pos.col)
 	p.errPass(fmt.Errorf(pos+format, v...))
 }
 
@@ -666,8 +672,8 @@ func (p *parser) command() {
 				return
 			case p.got(LPAREN):
 				if !ident.MatchString(p.lval) {
-					p.col -= utf8.RuneCountInString(p.lval)
-					p.col--
+					p.pos.col -= utf8.RuneCountInString(p.lval)
+					p.pos.col--
 					p.lineErr("invalid func name %q", p.lval)
 					break args
 				}
@@ -746,7 +752,7 @@ func (p *parser) redirect() {
 		case p.got(AND):
 			p.want(WORD)
 			if !num.MatchString(p.lval) {
-				p.col -= utf8.RuneCountInString(p.lval)
+				p.pos.col -= utf8.RuneCountInString(p.lval)
 				p.lineErr("invalid fd %q", p.lval)
 			}
 			r.obj = lit{val: "&" + p.lval}
