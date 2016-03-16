@@ -340,7 +340,7 @@ func (p *parser) next() {
 		return
 	}
 	rs := []rune{r}
-	for !reserved[r] && !quote[r] && !space[r] {
+	for {
 		r, err = p.readRune()
 		if err == io.EOF {
 			break
@@ -348,11 +348,11 @@ func (p *parser) next() {
 		if err != nil {
 			return
 		}
+		if reserved[r] || quote[r] || space[r] {
+			p.unreadRune()
+			break
+		}
 		rs = append(rs, r)
-	}
-	if err != io.EOF && len(rs) > 1 {
-		p.unreadRune()
-		rs = rs[:len(rs)-1]
 	}
 	p.col--
 	p.tok = WORD
