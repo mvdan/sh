@@ -26,6 +26,9 @@ const (
 	WHILE
 	DO
 	DONE
+
+	AND
+	OR
 )
 
 func parse(r io.Reader, name string) (prog, error) {
@@ -300,10 +303,9 @@ func (p *parser) next() {
 			p.col = 0
 			p.tok = '\n'
 			return
-		default:
-			p.tok = r
-			return
 		}
+		p.tok = p.doToken(r)
+		return
 	}
 	if quote[r] {
 		p.strContent(byte(r))
@@ -335,6 +337,17 @@ func (p *parser) next() {
 	p.tok = WORD
 	p.val = string(rs)
 	return
+}
+
+func (p *parser) doToken(r rune) int32 {
+	switch r {
+	case '&':
+		return AND
+	case '|':
+		return OR
+	default:
+		return r
+	}
 }
 
 func (p *parser) eof() {
@@ -388,8 +401,21 @@ func (p *parser) discardUpTo(delim byte) {
 	p.col += utf8.RuneCount(b)
 }
 
+// We can't simply have these as tokens as they can sometimes be valid
+// words, e.g. `echo if`.
+var reservedWords = map[int32]string{
+	IF:    "if",
+	THEN:  "then",
+	ELIF:  "elif",
+	ELSE:  "else",
+	FI:    "fi",
+	WHILE: "while",
+	DO:    "do",
+	DONE:  "done",
+}
+
 func (p *parser) peek(tok int32) bool {
-	return p.tok == tok || (p.tok == WORD && p.val == tokStrs[tok])
+	return p.tok == tok || (p.tok == WORD && p.val == reservedWords[tok])
 }
 
 func (p *parser) got(tok int32) bool {
@@ -408,17 +434,6 @@ func (p *parser) want(tok int32) {
 	p.next()
 }
 
-var tokStrs = map[int32]string{
-	IF:    "if",
-	THEN:  "then",
-	ELIF:  "elif",
-	ELSE:  "else",
-	FI:    "fi",
-	WHILE: "while",
-	DO:    "do",
-	DONE:  "done",
-}
-
 var tokNames = map[int32]string{
 	EOF:  `EOF`,
 	WORD: `word`,
@@ -431,6 +446,9 @@ var tokNames = map[int32]string{
 	WHILE: `"while"`,
 	DO:    `"do"`,
 	DONE:  `"done"`,
+
+	AND: `'&'`,
+	OR:  `'|'`,
 }
 
 func tokName(tok int32) string {
@@ -571,8 +589,8 @@ func (p *parser) command() {
 			switch {
 			case p.got(WORD):
 				p.add(lit{val: p.lval})
-			case p.got('&'):
-				if p.got('&') {
+			case p.got(AND):
+				if p.got(AND) {
 					b := binaryExpr{op: "&&"}
 					p.push(&b.Y)
 					p.command()
@@ -584,9 +602,9 @@ func (p *parser) command() {
 					return
 				}
 				break args
-			case p.got('|'):
+			case p.got(OR):
 				b := binaryExpr{op: "|"}
-				if p.got('|') {
+				if p.got(OR) {
 					b.op = "||"
 				}
 				p.push(&b.Y)
@@ -638,12 +656,12 @@ func (p *parser) command() {
 		p.popAdd(bl)
 		if p.tok != EOF {
 			switch {
-			case p.got('&'):
-				if p.got('&') {
+			case p.got(AND):
+				if p.got(AND) {
 					p.command()
 				}
-			case p.got('|'):
-				p.got('|')
+			case p.got(OR):
+				p.got(OR)
 				p.command()
 			case p.peek('>'), p.peek('<'):
 				p.redirect()
@@ -664,7 +682,7 @@ func (p *parser) redirect() {
 	case p.got('>'):
 		r.op = ">"
 		switch {
-		case p.got('&'):
+		case p.got(AND):
 			p.want(WORD)
 			if !num.MatchString(p.lval) {
 				p.col -= utf8.RuneCountInString(p.lval)
