@@ -31,6 +31,12 @@ const (
 
 	AND
 	OR
+
+	LPAREN
+	LBRACE
+
+	RPAREN
+	RBRACE
 )
 
 func parse(r io.Reader, name string) (prog, error) {
@@ -347,6 +353,14 @@ func (p *parser) doToken(r rune) int32 {
 		return AND
 	case '|':
 		return OR
+	case '(':
+		return LPAREN
+	case '{':
+		return LBRACE
+	case ')':
+		return RPAREN
+	case '}':
+		return RBRACE
 	default:
 		return r
 	}
@@ -451,6 +465,12 @@ var tokNames = map[int32]string{
 
 	AND: `'&'`,
 	OR:  `'|'`,
+
+	LPAREN: `'('`,
+	LBRACE: `'{'`,
+
+	RPAREN: `')'`,
+	RBRACE: `'}'`,
 }
 
 func tokName(tok int32) string {
@@ -524,18 +544,18 @@ func (p *parser) command() {
 		if !p.peek(EOF) {
 			p.command()
 		}
-	case p.got('('):
+	case p.got(LPAREN):
 		var sub subshell
 		p.push(&sub.stmts)
 		count := 0
-		for p.tok != EOF && !p.peek(')') {
+		for p.tok != EOF && !p.peek(RPAREN) {
 			p.command()
 			count++
 		}
 		if count == 0 {
 			p.errWantedStr("command")
 		}
-		p.want(')')
+		p.want(RPAREN)
 		p.popAdd(sub)
 	case p.got(IF):
 		var ifs ifStmt
@@ -617,7 +637,7 @@ func (p *parser) command() {
 				p.pop()
 				p.popAdd(b)
 				return
-			case p.got('('):
+			case p.got(LPAREN):
 				if !ident.MatchString(p.lval) {
 					p.col -= utf8.RuneCountInString(p.lval)
 					p.col--
@@ -627,7 +647,7 @@ func (p *parser) command() {
 				fun := funcDecl{
 					name: lit{val: p.lval},
 				}
-				p.want(')')
+				p.want(RPAREN)
 				p.push(&fun.body)
 				p.command()
 				p.pop()
@@ -645,17 +665,17 @@ func (p *parser) command() {
 			}
 		}
 		p.popAdd(cmd)
-	case p.got('{'):
+	case p.got(LBRACE):
 		var bl block
 		p.push(&bl.stmts)
-		for p.tok != EOF && !p.peek('}') {
+		for p.tok != EOF && !p.peek(RBRACE) {
 			// TODO: remove? breaks "{\n}"
 			if p.got('\n') {
 				continue
 			}
 			p.command()
 		}
-		p.want('}')
+		p.want(RBRACE)
 		p.popAdd(bl)
 		if p.tok != EOF {
 			switch {
