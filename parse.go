@@ -270,9 +270,6 @@ var (
 )
 
 func (p *parser) readRune() (rune, error) {
-	if p.tok == EOF {
-		return 0, io.EOF
-	}
 	r, _, err := p.r.ReadRune()
 	if err != nil {
 		if err == io.EOF {
@@ -288,9 +285,6 @@ func (p *parser) readRune() (rune, error) {
 
 func (p *parser) unreadRune() {
 	p.npos.col--
-	if p.tok == EOF {
-		return
-	}
 	if err := p.r.UnreadRune(); err != nil {
 		panic(err)
 	}
@@ -309,21 +303,17 @@ func (p *parser) readOnly(wanted rune) bool {
 
 func (p *parser) next() {
 	p.lpos = p.pos
-	p.pos = p.npos
 	p.lval = p.val
-	if p.tok == EOF {
-		return
-	}
 	r := ' '
 	var err error
-	p.pos.col--
 	for space[r] {
-		p.pos.col++
 		r, err = p.readRune()
 		if err != nil {
 			return
 		}
 	}
+	p.pos = p.npos
+	p.pos.col--
 	if r == '\\' && p.readOnly('\n') {
 		p.next()
 		return
@@ -561,9 +551,6 @@ func (p *parser) errWanted(tok token) {
 }
 
 func (p *parser) errAfterStr(s string) {
-	if p.tok == EOF {
-		p.pos = p.npos
-	}
 	p.curErr("unexpected token %s after %s", p.tok, s)
 }
 
