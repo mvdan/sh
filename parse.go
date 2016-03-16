@@ -44,6 +44,7 @@ const (
 
 	LSS // <
 	GTR // >
+	SHR // >>
 )
 
 func parse(r io.Reader, name string) (prog, error) {
@@ -386,6 +387,9 @@ func (p *parser) doToken(r rune) token {
 	case '<':
 		return LSS
 	case '>':
+		if p.readOnly('>') {
+			return SHR
+		}
 		return GTR
 	default:
 		return token(r)
@@ -503,6 +507,7 @@ var tokNames = map[token]string{
 
 	LSS: "<",
 	GTR: ">",
+	SHR: ">>",
 }
 
 func (t token) String() string {
@@ -684,7 +689,7 @@ func (p *parser) command() {
 				p.pop()
 				p.popAdd(fun)
 				return
-			case p.peek(LSS), p.peek(GTR):
+			case p.peek(LSS), p.peek(GTR), p.peek(SHR):
 				p.redirect()
 			case p.got(SEMICOLON):
 				break args
@@ -717,7 +722,7 @@ func (p *parser) command() {
 				p.command()
 			case p.got(LOR):
 				p.command()
-			case p.peek(LSS), p.peek(GTR):
+			case p.peek(LSS), p.peek(GTR), p.peek(SHR):
 				p.redirect()
 			case p.got(SEMICOLON):
 			case p.got('\n'):
@@ -744,20 +749,20 @@ func (p *parser) redirect() {
 	switch {
 	case p.got(GTR):
 		r.op = ">"
-		switch {
-		case p.got(AND):
+		if p.got(AND) {
 			p.want(WORD)
 			if !numberRe.MatchString(p.lval) {
 				p.curErr("invalid fd %q", p.lval)
 			}
 			r.obj = lit{val: "&" + p.lval}
-		case p.got(GTR):
-			r.op = ">>"
-			fallthrough
-		default:
+		} else {
 			p.want(WORD)
 			r.obj = lit{val: p.lval}
 		}
+	case p.got(SHR):
+		r.op = ">>"
+		p.want(WORD)
+		r.obj = lit{val: p.lval}
 	case p.got(LSS):
 		r.op = "<"
 		p.want(WORD)
