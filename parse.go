@@ -50,10 +50,6 @@ func parse(r io.Reader, name string) (prog, error) {
 	p := &parser{
 		r:    bufio.NewReader(r),
 		name: name,
-		pos: position{
-			line: 1,
-			col:  0,
-		},
 		npos: position{
 			line: 1,
 			col:  1,
