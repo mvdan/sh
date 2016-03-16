@@ -354,14 +354,11 @@ func (p *parser) next() {
 }
 
 func (p *parser) doToken(r rune) int32 {
-	var err error
 	switch r {
 	case '&':
-		r, err = p.readRune()
-		if err == nil {
-			if r == '&' {
-				return LAND
-			}
+		r, _ = p.readRune()
+		if r == '&' {
+			return LAND
 		}
 		p.unreadRune()
 		return AND
