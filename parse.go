@@ -239,6 +239,21 @@ var (
 	num   = regexp.MustCompile(`^[1-9][0-9]*$`)
 )
 
+func (p *parser) readRune() (rune, error) {
+	r, _, err := p.r.ReadRune()
+	if err != nil {
+		if err == io.EOF {
+			p.col++
+			p.eof()
+		} else {
+			p.errPass(err)
+		}
+		return 0, err
+	}
+	p.col++
+	return r, nil
+}
+
 func (p *parser) next() {
 	p.lval = p.val
 	if p.tok == EOF {
@@ -247,17 +262,10 @@ func (p *parser) next() {
 	r := ' '
 	var err error
 	for space[r] {
-		r, _, err = p.r.ReadRune()
-		if err == io.EOF {
-			p.eof()
-			p.col++
-			return
-		}
+		r, err = p.readRune()
 		if err != nil {
-			p.errPass(err)
 			return
 		}
-		p.col++
 	}
 	if r == '\\' {
 		p.next()
@@ -301,16 +309,13 @@ func (p *parser) next() {
 	}
 	rs := []rune{r}
 	for !reserved[r] && !quote[r] && !space[r] {
-		r, _, err = p.r.ReadRune()
+		r, err = p.readRune()
 		if err == io.EOF {
-			p.col++
 			break
 		}
 		if err != nil {
-			p.errPass(err)
 			return
 		}
-		p.col++
 		rs = append(rs, r)
 	}
 	if err != io.EOF && len(rs) > 1 {
