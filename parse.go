@@ -32,6 +32,7 @@ const (
 	AND
 	LAND
 	OR
+	LOR
 
 	LPAREN
 	LBRACE
@@ -363,6 +364,11 @@ func (p *parser) doToken(r rune) int32 {
 		p.unreadRune()
 		return AND
 	case '|':
+		r, _ = p.readRune()
+		if r == '|' {
+			return LOR
+		}
+		p.unreadRune()
 		return OR
 	case '(':
 		return LPAREN
@@ -483,6 +489,7 @@ var tokNames = map[int32]string{
 	AND:  `'&'`,
 	LAND: `'&&'`,
 	OR:   `'|'`,
+	LOR:  `'||'`,
 
 	LPAREN: `'('`,
 	LBRACE: `'{'`,
@@ -646,17 +653,10 @@ func (p *parser) command() {
 				p.popAdd(b)
 				return
 			case p.got(OR):
-				b := binaryExpr{op: "|"}
-				if p.got(OR) {
-					b.op = "||"
-				}
-				p.push(&b.Y)
-				p.command()
-				p.pop()
-				p.push(&b.X)
-				p.add(cmd)
-				p.pop()
-				p.popAdd(b)
+				p.binaryExpr("|", cmd)
+				return
+			case p.got(LOR):
+				p.binaryExpr("||", cmd)
 				return
 			case p.got(LPAREN):
 				if !ident.MatchString(p.lval) {
@@ -704,7 +704,8 @@ func (p *parser) command() {
 			case p.got(LAND):
 				p.command()
 			case p.got(OR):
-				p.got(OR)
+				p.command()
+			case p.got(LOR):
 				p.command()
 			case p.peek(LSS), p.peek(GTR):
 				p.redirect()
@@ -717,6 +718,17 @@ func (p *parser) command() {
 	default:
 		p.errWantedStr("command")
 	}
+}
+
+func (p *parser) binaryExpr(op string, left node) {
+	b := binaryExpr{op: op}
+	p.push(&b.Y)
+	p.command()
+	p.pop()
+	p.push(&b.X)
+	p.add(left)
+	p.pop()
+	p.popAdd(b)
 }
 
 func (p *parser) redirect() {
