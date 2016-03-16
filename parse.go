@@ -285,6 +285,15 @@ func (p *parser) unreadRune() {
 	}
 }
 
+func (p *parser) readOnly(wanted rune) bool {
+	r, _ := p.readRune()
+	if r == wanted {
+		return true
+	}
+	p.unreadRune()
+	return false
+}
+
 func (p *parser) next() {
 	p.lval = p.val
 	if p.tok == EOF {
@@ -358,18 +367,14 @@ func (p *parser) next() {
 func (p *parser) doToken(r rune) token {
 	switch r {
 	case '&':
-		r, _ = p.readRune()
-		if r == '&' {
+		if p.readOnly('&') {
 			return LAND
 		}
-		p.unreadRune()
 		return AND
 	case '|':
-		r, _ = p.readRune()
-		if r == '|' {
+		if p.readOnly('|') {
 			return LOR
 		}
-		p.unreadRune()
 		return OR
 	case '(':
 		return LPAREN
