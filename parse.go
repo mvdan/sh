@@ -37,6 +37,10 @@ const (
 
 	RPAREN
 	RBRACE
+	SEMICOLON
+
+	LSS
+	GTR
 )
 
 func parse(r io.Reader, name string) (prog, error) {
@@ -361,6 +365,12 @@ func (p *parser) doToken(r rune) int32 {
 		return RPAREN
 	case '}':
 		return RBRACE
+	case ';':
+		return SEMICOLON
+	case '<':
+		return LSS
+	case '>':
+		return GTR
 	default:
 		return r
 	}
@@ -469,8 +479,12 @@ var tokNames = map[int32]string{
 	LPAREN: `'('`,
 	LBRACE: `'{'`,
 
-	RPAREN: `')'`,
-	RBRACE: `'}'`,
+	RPAREN:    `')'`,
+	RBRACE:    `'}'`,
+	SEMICOLON: `';'`,
+
+	LSS: `'<'`,
+	GTR: `'>'`,
 }
 
 func tokName(tok int32) string {
@@ -653,9 +667,9 @@ func (p *parser) command() {
 				p.pop()
 				p.popAdd(fun)
 				return
-			case p.peek('>'), p.peek('<'):
+			case p.peek(LSS), p.peek(GTR):
 				p.redirect()
-			case p.got(';'):
+			case p.got(SEMICOLON):
 				break args
 			case p.got('\n'):
 				break args
@@ -686,9 +700,9 @@ func (p *parser) command() {
 			case p.got(OR):
 				p.got(OR)
 				p.command()
-			case p.peek('>'), p.peek('<'):
+			case p.peek(LSS), p.peek(GTR):
 				p.redirect()
-			case p.got(';'):
+			case p.got(SEMICOLON):
 			case p.got('\n'):
 			default:
 				p.errAfterStr("block")
@@ -702,7 +716,7 @@ func (p *parser) command() {
 func (p *parser) redirect() {
 	var r redirect
 	switch {
-	case p.got('>'):
+	case p.got(GTR):
 		r.op = ">"
 		switch {
 		case p.got(AND):
@@ -713,14 +727,14 @@ func (p *parser) redirect() {
 				p.lineErr("invalid fd %q", p.lval)
 			}
 			r.obj = lit{val: "&" + p.lval}
-		case p.got('>'):
+		case p.got(GTR):
 			r.op = ">>"
 			fallthrough
 		default:
 			p.want(WORD)
 			r.obj = lit{val: p.lval}
 		}
-	case p.got('<'):
+	case p.got(LSS):
 		r.op = "<"
 		p.want(WORD)
 		r.obj = lit{val: p.lval}
