@@ -316,7 +316,9 @@ func (p *parser) next() {
 	}
 	r := ' '
 	var err error
+	p.pos.col--
 	for space[r] {
+		p.pos.col++
 		r, err = p.readRune()
 		if err != nil {
 			return
