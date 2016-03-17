@@ -86,7 +86,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			in:   "foo;;",
-			want: `1:5: unexpected token ; - wanted command`,
+			want: `1:4: unexpected token ;; after command`,
 		},
 		{
 			in:   "foo(",

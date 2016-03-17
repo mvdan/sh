@@ -38,9 +38,10 @@ const (
 	LPAREN // (
 	LBRACE // {
 
-	RPAREN    // )
-	RBRACE    // }
-	SEMICOLON // ;
+	RPAREN     // )
+	RBRACE     // }
+	SEMICOLON  // ;
+	DSEMICOLON // ;;
 
 	LSS // <
 	GTR // >
@@ -389,6 +390,9 @@ func (p *parser) doToken(r rune) token {
 	case '}':
 		return RBRACE
 	case ';':
+		if p.readOnly(';') {
+			return DSEMICOLON
+		}
 		return SEMICOLON
 	case '<':
 		return LSS
@@ -507,9 +511,10 @@ var tokNames = map[token]string{
 	LPAREN: "(",
 	LBRACE: "{",
 
-	RPAREN:    ")",
-	RBRACE:    "}",
-	SEMICOLON: ";",
+	RPAREN:     ")",
+	RBRACE:     "}",
+	SEMICOLON:  ";",
+	DSEMICOLON: ";;",
 
 	LSS: "<",
 	GTR: ">",
