@@ -135,12 +135,12 @@ func (c command) String() string {
 }
 
 type redirect struct {
-	op  string
+	op  token
 	obj node
 }
 
 func (r redirect) String() string {
-	return r.op + r.obj.String()
+	return r.op.String() + r.obj.String()
 }
 
 type subshell struct {
@@ -216,7 +216,7 @@ func (w whileStmt) String() string {
 
 type binaryExpr struct {
 	X, Y node
-	op   string
+	op   token
 }
 
 func (b binaryExpr) String() string {
@@ -687,18 +687,13 @@ func (p *parser) command() {
 				cmd.background = true
 				break args
 			case p.got(LAND):
-				b := binaryExpr{op: "&&"}
-				p.push(&b.Y)
-				p.command()
-				p.pop()
-				b.X = cmd
-				p.popAdd(b)
+				p.binaryExpr(LAND, cmd)
 				return
 			case p.got(OR):
-				p.binaryExpr("|", cmd)
+				p.binaryExpr(OR, cmd)
 				return
 			case p.got(LOR):
-				p.binaryExpr("||", cmd)
+				p.binaryExpr(LOR, cmd)
 				return
 			case p.got(LPAREN):
 				if !identRe.MatchString(p.lval) {
@@ -730,7 +725,7 @@ func (p *parser) command() {
 	}
 }
 
-func (p *parser) binaryExpr(op string, left node) {
+func (p *parser) binaryExpr(op token, left node) {
 	b := binaryExpr{op: op}
 	p.push(&b.Y)
 	p.command()
@@ -743,7 +738,7 @@ func (p *parser) gotRedirect() bool {
 	var r redirect
 	switch {
 	case p.got(GTR):
-		r.op = ">"
+		r.op = GTR
 		if p.got(AND) {
 			p.want(WORD)
 			if !numberRe.MatchString(p.lval) {
@@ -755,11 +750,11 @@ func (p *parser) gotRedirect() bool {
 			r.obj = lit{val: p.lval}
 		}
 	case p.got(SHR):
-		r.op = ">>"
+		r.op = SHR
 		p.want(WORD)
 		r.obj = lit{val: p.lval}
 	case p.got(LSS):
-		r.op = "<"
+		r.op = LSS
 		p.want(WORD)
 		r.obj = lit{val: p.lval}
 	default:

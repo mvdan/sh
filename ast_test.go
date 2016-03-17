@@ -132,7 +132,7 @@ var tests = []struct {
 	{
 		ins: []string{"foo && bar", "foo&&bar", "foo &&\nbar"},
 		want: binaryExpr{
-			op: "&&",
+			op: LAND,
 			X:  command{args: lits("foo")},
 			Y:  command{args: lits("bar")},
 		},
@@ -140,7 +140,7 @@ var tests = []struct {
 	{
 		ins: []string{"foo || bar", "foo||bar", "foo ||\nbar"},
 		want: binaryExpr{
-			op: "||",
+			op: LOR,
 			X:  command{args: lits("foo")},
 			Y:  command{args: lits("bar")},
 		},
@@ -148,10 +148,10 @@ var tests = []struct {
 	{
 		ins: []string{"foo && bar || else"},
 		want: binaryExpr{
-			op: "&&",
+			op: LAND,
 			X:  command{args: lits("foo")},
 			Y: binaryExpr{
-				op: "||",
+				op: LOR,
 				X:  command{args: lits("bar")},
 				Y:  command{args: lits("else")},
 			},
@@ -160,7 +160,7 @@ var tests = []struct {
 	{
 		ins: []string{"foo | bar", "foo|bar"},
 		want: binaryExpr{
-			op: "|",
+			op: OR,
 			X:  command{args: lits("foo")},
 			Y:  command{args: lits("bar")},
 		},
@@ -168,10 +168,10 @@ var tests = []struct {
 	{
 		ins: []string{"foo | bar | extra"},
 		want: binaryExpr{
-			op: "|",
+			op: OR,
 			X:  command{args: lits("foo")},
 			Y: binaryExpr{
-				op: "|",
+				op: OR,
 				X:  command{args: lits("bar")},
 				Y:  command{args: lits("extra")},
 			},
@@ -199,9 +199,9 @@ var tests = []struct {
 		want: command{
 			args: []node{
 				lit{val: "foo"},
-				redirect{op: ">", obj: lit{val: "a"}},
-				redirect{op: ">>", obj: lit{val: "b"}},
-				redirect{op: "<", obj: lit{val: "c"}},
+				redirect{op: GTR, obj: lit{val: "a"}},
+				redirect{op: SHR, obj: lit{val: "b"}},
+				redirect{op: LSS, obj: lit{val: "c"}},
 			},
 		},
 	},
