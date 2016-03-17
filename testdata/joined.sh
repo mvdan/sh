@@ -1,5 +1,0 @@
-FOO \
-	ARG
-
-FOO && \
-	BAR
