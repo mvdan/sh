@@ -323,21 +323,7 @@ func (p *parser) next() {
 		return
 	}
 	if reserved[r] || starters[r] {
-		switch r {
-		case '#':
-			p.discardUpTo('\n')
-			com := comment{
-				text: p.val,
-			}
-			p.add(com)
-			p.tok = COMMENT
-		case '\n':
-			p.npos.line++
-			p.npos.col = 1
-			p.tok = '\n'
-		default:
-			p.tok = p.doToken(r)
-		}
+		p.tok = p.doToken(r)
 		return
 	}
 	if quote[r] {
@@ -369,6 +355,13 @@ func (p *parser) next() {
 
 func (p *parser) doToken(r rune) token {
 	switch r {
+	case '#':
+		p.readUpTo('\n')
+		return COMMENT
+	case '\n':
+		p.npos.line++
+		p.npos.col = 1
+		return '\n'
 	case '&':
 		if p.readOnly('&') {
 			return LAND
@@ -439,7 +432,7 @@ func (p *parser) strContent(delim byte) {
 	p.val = strings.Join(v, "")
 }
 
-func (p *parser) discardUpTo(delim byte) {
+func (p *parser) readUpTo(delim byte) {
 	b, err := p.r.ReadBytes(delim)
 	cont := b
 	if err == io.EOF {
@@ -609,6 +602,11 @@ func (p *parser) commands(stop ...token) (count int) {
 
 func (p *parser) command() {
 	switch {
+	case p.got(COMMENT):
+		com := comment{
+			text: p.lval,
+		}
+		p.add(com)
 	case p.got('\n'), p.got(COMMENT):
 		if !p.peek(EOF) {
 			p.command()
