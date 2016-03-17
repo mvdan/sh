@@ -714,14 +714,6 @@ func (p *parser) command() {
 		p.popAdd(bl)
 		if p.tok != EOF {
 			switch {
-			case p.got(AND):
-			case p.got(LAND):
-				p.command()
-			case p.got(OR):
-				p.command()
-			case p.got(LOR):
-				p.command()
-			case p.gotRedirect():
 			case p.got(SEMICOLON):
 			case p.got('\n'):
 			default:
