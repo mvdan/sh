@@ -354,7 +354,7 @@ func (p *parser) next() {
 func (p *parser) doToken(r rune) token {
 	switch r {
 	case '#':
-		p.readUpTo('\n')
+		p.val = p.readUpTo('\n')
 		return COMMENT
 	case '\n':
 		p.npos.line++
@@ -436,18 +436,17 @@ func (p *parser) strContent(delim byte) {
 	p.val = strings.Join(v, "")
 }
 
-func (p *parser) readUpTo(delim byte) {
+func (p *parser) readUpTo(delim byte) string {
 	b, err := p.r.ReadBytes(delim)
 	cont := b
 	if err == io.EOF {
-		p.eof()
 	} else if err != nil {
 		p.errPass(err)
 	} else {
 		cont = cont[:len(b)-1]
 	}
-	p.val = string(cont)
 	p.npos.col += utf8.RuneCount(b)
+	return string(cont)
 }
 
 // We can't simply have these as tokens as they can sometimes be valid
