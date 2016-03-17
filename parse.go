@@ -596,6 +596,19 @@ func (p *parser) program() {
 	}
 }
 
+func (p *parser) commands(stop ...token) (count int) {
+	for p.tok != EOF {
+		for _, tok := range stop {
+			if p.peek(tok) {
+				return
+			}
+		}
+		p.command()
+		count++
+	}
+	return
+}
+
 func (p *parser) command() {
 	switch {
 	case p.got('\n'), p.got(COMMENT):
@@ -605,12 +618,7 @@ func (p *parser) command() {
 	case p.got(LPAREN):
 		var sub subshell
 		p.push(&sub.stmts)
-		count := 0
-		for p.tok != EOF && !p.peek(RPAREN) {
-			p.command()
-			count++
-		}
-		if count == 0 {
+		if p.commands(RPAREN) == 0 {
 			p.errWantedStr("command")
 		}
 		p.want(RPAREN)
@@ -618,12 +626,7 @@ func (p *parser) command() {
 	case p.got(LBRACE):
 		var bl block
 		p.push(&bl.stmts)
-		count := 0
-		for p.tok != EOF && !p.peek(RBRACE) {
-			p.command()
-			count++
-		}
-		if count == 0 {
+		if p.commands(RBRACE) == 0 {
 			p.errWantedStr("command")
 		}
 		p.want(RBRACE)
@@ -635,9 +638,7 @@ func (p *parser) command() {
 		p.pop()
 		p.want(THEN)
 		p.push(&ifs.thenStmts)
-		for p.tok != EOF && !p.peek(FI) && !p.peek(ELIF) && !p.peek(ELSE) {
-			p.command()
-		}
+		p.commands(FI, ELIF, ELSE)
 		p.pop()
 		p.push(&ifs.elifs)
 		for p.got(ELIF) {
@@ -647,17 +648,13 @@ func (p *parser) command() {
 			p.pop()
 			p.want(THEN)
 			p.push(&elf.thenStmts)
-			for p.tok != EOF && !p.peek(FI) && !p.peek(ELIF) && !p.peek(ELSE) {
-				p.command()
-			}
+			p.commands(FI, ELIF, ELSE)
 			p.popAdd(elf)
 		}
 		if p.got(ELSE) {
 			p.pop()
 			p.push(&ifs.elseStmts)
-			for p.tok != EOF && !p.peek(FI) {
-				p.command()
-			}
+			p.commands(FI)
 		}
 		p.want(FI)
 		p.popAdd(ifs)
@@ -668,9 +665,7 @@ func (p *parser) command() {
 		p.pop()
 		p.want(DO)
 		p.push(&whl.doStmts)
-		for p.tok != EOF && !p.peek(DONE) {
-			p.command()
-		}
+		p.commands(DONE)
 		p.want(DONE)
 		p.popAdd(whl)
 	case p.got(WORD):
