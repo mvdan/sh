@@ -117,6 +117,8 @@ func (p prog) String() string {
 
 type command struct {
 	args []node
+
+	background bool
 }
 
 func (c command) String() string {
@@ -124,7 +126,11 @@ func (c command) String() string {
 	for _, l := range c.args {
 		nodes = append(nodes, l)
 	}
-	return nodeJoin(nodes, " ")
+	suffix := ""
+	if c.background {
+		suffix += " &"
+	}
+	return nodeJoin(nodes, " ") + suffix
 }
 
 type redirect struct {
@@ -660,6 +666,7 @@ func (p *parser) command() {
 			case p.got(WORD):
 				p.add(lit{val: p.lval})
 			case p.got(AND):
+				cmd.background = true
 				break args
 			case p.got(LAND):
 				b := binaryExpr{op: "&&"}
