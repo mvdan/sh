@@ -309,7 +309,6 @@ func (p *parser) readOnly(wanted rune) bool {
 
 func (p *parser) next() {
 	p.lpos = p.pos
-	p.lval = p.val
 	r := ' '
 	var err error
 	for space[r] {
@@ -325,13 +324,24 @@ func (p *parser) next() {
 		return
 	}
 	if reserved[r] || starters[r] {
-		p.set(p.doToken(r))
+		p.lval = p.val
+		switch r {
+		case '#':
+			p.advance(COMMENT, p.readUpTo('\n'))
+		case '\n':
+			p.npos.line++
+			p.npos.col = 1
+			p.advance('\n', "")
+		default:
+			p.setTok(p.doToken(r))
+		}
 		return
 	}
 	if quote[r] {
 		p.strContent(byte(r))
 		return
 	}
+	p.lval = p.val
 	rs := []rune{r}
 	for {
 		r, err = p.readRune()
@@ -347,19 +357,12 @@ func (p *parser) next() {
 		}
 		rs = append(rs, r)
 	}
-	p.set(WORD)
+	p.setTok(WORD)
 	p.val = string(rs)
 }
 
 func (p *parser) doToken(r rune) token {
 	switch r {
-	case '#':
-		p.val = p.readUpTo('\n')
-		return COMMENT
-	case '\n':
-		p.npos.line++
-		p.npos.col = 1
-		return '\n'
 	case '&':
 		if p.readOnly('&') {
 			return LAND
@@ -395,14 +398,23 @@ func (p *parser) doToken(r rune) token {
 	}
 }
 
-func (p *parser) set(t token) {
+func (p *parser) advance(tok token, val string) {
+	p.setTok(tok)
+	p.setVal(val)
+}
+
+func (p *parser) setTok(tok token) {
 	p.ltok = p.tok
-	p.tok = t
+	p.tok = tok
+}
+
+func (p *parser) setVal(val string) {
+	p.lval = p.val
+	p.val = val
 }
 
 func (p *parser) eof() {
-	p.set(EOF)
-	p.val = "EOF"
+	p.advance(EOF, "EOF")
 }
 
 func (p *parser) strContent(delim byte) {
@@ -432,8 +444,7 @@ func (p *parser) strContent(delim byte) {
 		}
 		break
 	}
-	p.set(WORD)
-	p.val = strings.Join(v, "")
+	p.advance(WORD, strings.Join(v, ""))
 }
 
 func (p *parser) readUpTo(delim byte) string {
