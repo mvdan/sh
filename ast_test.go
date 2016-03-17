@@ -154,7 +154,7 @@ var tests = []struct {
 		},
 	},
 	{
-		ins: []string{"foo | bar"},
+		ins: []string{"foo | bar", "foo|bar"},
 		want: binaryExpr{
 			op: "|",
 			X:  command{args: lits("foo")},
