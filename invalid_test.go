@@ -4,32 +4,9 @@
 package sh
 
 import (
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 )
-
-func TestParse(t *testing.T) {
-	paths, err := filepath.Glob("testdata/*.sh")
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, path := range paths {
-		testParse(t, path)
-	}
-}
-
-func testParse(t *testing.T, path string) {
-	f, err := os.Open(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer f.Close()
-	if _, err := parse(f, path); err != nil {
-		t.Fatalf("Parse error: %v", err)
-	}
-}
 
 func TestParseErr(t *testing.T) {
 	errs := []struct {

@@ -118,8 +118,12 @@ var tests = []struct {
 		},
 	},
 	{
-		ins:  []string{"echo ' ' \"foo bar\""},
-		want: command{args: lits("echo", "' '", "\"foo bar\"")},
+		ins:  []string{`echo ' ' "foo bar"`},
+		want: command{args: lits("echo", "' '", `"foo bar"`)},
+	},
+	{
+		ins:  []string{`"foo \" bar"`},
+		want: command{args: lits(`"foo \" bar"`)},
 	},
 	{
 		ins:  []string{"$a ${b} s{s s=s"},
