@@ -64,14 +64,16 @@ func parse(r io.Reader, name string) (prog, error) {
 }
 
 type parser struct {
-	r   *bufio.Reader
+	r    *bufio.Reader
+	name string
+
 	err error
 
+	ltok token
 	tok  token
 	lval string
 	val  string
 
-	name string
 	lpos position
 	pos  position
 	npos position
@@ -323,15 +325,11 @@ func (p *parser) next() {
 		return
 	}
 	if reserved[r] || starters[r] {
-		p.tok = p.doToken(r)
+		p.set(p.doToken(r))
 		return
 	}
 	if quote[r] {
 		p.strContent(byte(r))
-		if p.tok == EOF {
-			return
-		}
-		p.tok = WORD
 		return
 	}
 	rs := []rune{r}
@@ -349,7 +347,7 @@ func (p *parser) next() {
 		}
 		rs = append(rs, r)
 	}
-	p.tok = WORD
+	p.set(WORD)
 	p.val = string(rs)
 }
 
@@ -397,8 +395,13 @@ func (p *parser) doToken(r rune) token {
 	}
 }
 
+func (p *parser) set(t token) {
+	p.ltok = p.tok
+	p.tok = t
+}
+
 func (p *parser) eof() {
-	p.tok = EOF
+	p.set(EOF)
 	p.val = "EOF"
 }
 
@@ -429,6 +432,7 @@ func (p *parser) strContent(delim byte) {
 		}
 		break
 	}
+	p.set(WORD)
 	p.val = strings.Join(v, "")
 }
 
@@ -705,7 +709,6 @@ func (p *parser) command() {
 				break args
 			case p.got('\n'):
 				break args
-			case p.got(COMMENT):
 			default:
 				p.errAfterStr("command")
 			}
