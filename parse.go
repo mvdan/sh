@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io"
 	"regexp"
-	"strings"
 	"unicode/utf8"
 )
 
@@ -285,7 +284,12 @@ func (p *parser) readRune() (rune, error) {
 		}
 		return 0, err
 	}
-	p.npos.col++
+	if r == '\n' {
+		p.npos.line++
+		p.npos.col = 1
+	} else {
+		p.npos.col++
+	}
 	return r, nil
 }
 
@@ -329,29 +333,39 @@ func (p *parser) next() {
 		case '#':
 			p.advance(COMMENT, p.readUpTo('\n'))
 		case '\n':
-			p.npos.line++
-			p.npos.col = 1
 			p.advance('\n', "")
 		default:
 			p.setTok(p.doToken(r))
 		}
 		return
 	}
-	if quote[r] {
-		p.strContent(byte(r))
-		return
-	}
 	p.lval = p.val
 	rs := []rune{r}
+	q := rune(0)
+	if quote[r] {
+		q = r
+	}
 	for {
 		r, err = p.readRune()
 		if err == io.EOF {
+			if q != 0 {
+				p.errWanted(token(q))
+			}
 			break
 		}
 		if err != nil {
 			return
 		}
-		if reserved[r] || quote[r] || space[r] {
+		if q != 0 {
+			if q == '"' && r == '\\' {
+				rs = append(rs, r)
+				r, _ = p.readRune()
+			} else if r == q {
+				q = 0
+			}
+		} else if quote[r] {
+			q = r
+		} else if reserved[r] || space[r] {
 			p.unreadRune()
 			break
 		}
@@ -415,36 +429,6 @@ func (p *parser) setVal(val string) {
 
 func (p *parser) eof() {
 	p.advance(EOF, "EOF")
-}
-
-func (p *parser) strContent(delim byte) {
-	v := []string{string(delim)}
-	for {
-		s, err := p.r.ReadString(delim)
-		for _, r := range s {
-			if r == '\n' {
-				p.npos.line++
-				p.npos.col = 0
-			} else {
-				p.npos.col++
-			}
-		}
-		if err == io.EOF {
-			p.eof()
-			p.errWanted(token(delim))
-		} else if err != nil {
-			p.errPass(err)
-		}
-		v = append(v, s)
-		if delim == '\'' {
-			break
-		}
-		if len(s) > 1 && s[len(s)-2] == '\\' && s[len(s)-1] == delim {
-			continue
-		}
-		break
-	}
-	p.advance(WORD, strings.Join(v, ""))
 }
 
 func (p *parser) readUpTo(delim byte) string {

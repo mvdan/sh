@@ -45,6 +45,10 @@ var tests = []struct {
 		want: command{args: lits("foo", "a", "b")},
 	},
 	{
+		ins:  []string{"foo'bar'"},
+		want: command{args: lits("foo'bar'")},
+	},
+	{
 		ins: []string{"( foo; )", "(foo;)", "(\nfoo\n)"},
 		want: subshell{stmts: []node{
 			command{args: lits("foo")},
