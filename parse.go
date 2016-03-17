@@ -264,10 +264,7 @@ var space = map[rune]bool{
 	'\t': true,
 }
 
-var (
-	identRe  = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
-	numberRe = regexp.MustCompile(`^[1-9][0-9]*$`)
-)
+var identRe = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
 
 func (p *parser) readRune() (rune, error) {
 	r, _, err := p.r.ReadRune()
@@ -724,9 +721,6 @@ func (p *parser) gotRedirect() bool {
 		r.op = GTR
 		if p.got(AND) {
 			p.want(WORD)
-			if !numberRe.MatchString(p.lval) {
-				p.curErr("invalid fd %q", p.lval)
-			}
 			r.obj = lit{val: "&" + p.lval}
 		} else {
 			p.want(WORD)
