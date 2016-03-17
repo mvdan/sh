@@ -331,14 +331,13 @@ func (p *parser) next() {
 			}
 			p.add(com)
 			p.tok = COMMENT
-			return
 		case '\n':
 			p.npos.line++
 			p.npos.col = 1
 			p.tok = '\n'
-			return
+		default:
+			p.tok = p.doToken(r)
 		}
-		p.tok = p.doToken(r)
 		return
 	}
 	if quote[r] {
@@ -366,7 +365,6 @@ func (p *parser) next() {
 	}
 	p.tok = WORD
 	p.val = string(rs)
-	return
 }
 
 func (p *parser) doToken(r rune) token {
