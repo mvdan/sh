@@ -259,11 +259,6 @@ var starters = map[rune]bool{
 	'}': true,
 }
 
-var quote = map[rune]bool{
-	'"':  true,
-	'\'': true,
-}
-
 var space = map[rune]bool{
 	' ':  true,
 	'\t': true,
@@ -342,7 +337,7 @@ func (p *parser) next() {
 	p.lval = p.val
 	rs := []rune{r}
 	q := rune(0)
-	if quote[r] {
+	if r == '"' || r == '\'' {
 		q = r
 	}
 	for {
@@ -363,7 +358,7 @@ func (p *parser) next() {
 			} else if r == q {
 				q = 0
 			}
-		} else if quote[r] {
+		} else if r == '"' || r == '\'' {
 			q = r
 		} else if reserved[r] || space[r] {
 			p.unreadRune()
