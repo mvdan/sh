@@ -34,31 +34,19 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			in:   "{",
-			want: `1:2: unexpected token EOF - wanted }`,
+			want: `1:2: unexpected token EOF - wanted command`,
 		},
 		{
-			in:   "{\n",
-			want: `2:1: unexpected token EOF - wanted }`,
-		},
-		{
-			in:   "{{}",
-			want: `1:4: unexpected token EOF - wanted }`,
+			in:   "{}",
+			want: `1:2: unexpected token } - wanted command`,
 		},
 		{
 			in:   "}",
 			want: `1:1: unexpected token } - wanted command`,
 		},
 		{
-			in:   "{}}",
-			want: `1:3: unexpected token } after block`,
-		},
-		{
 			in:   "{#}",
 			want: `1:4: unexpected token EOF - wanted }`,
-		},
-		{
-			in:   "{}(){}",
-			want: `1:3: unexpected token ( after block`,
 		},
 		{
 			in:   "(",
@@ -106,7 +94,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			in:   "foo() {",
-			want: `1:8: unexpected token EOF - wanted }`,
+			want: `1:8: unexpected token EOF - wanted command`,
 		},
 		{
 			in:   "foo &&",

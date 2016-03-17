@@ -615,6 +615,19 @@ func (p *parser) command() {
 		}
 		p.want(RPAREN)
 		p.popAdd(sub)
+	case p.got(LBRACE):
+		var bl block
+		p.push(&bl.stmts)
+		count := 0
+		for p.tok != EOF && !p.peek(RBRACE) {
+			p.command()
+			count++
+		}
+		if count == 0 {
+			p.errWantedStr("command")
+		}
+		p.want(RBRACE)
+		p.popAdd(bl)
 	case p.got(IF):
 		var ifs ifStmt
 		p.push(&ifs.cond)
@@ -712,26 +725,6 @@ func (p *parser) command() {
 			}
 		}
 		p.popAdd(cmd)
-	case p.got(LBRACE):
-		var bl block
-		p.push(&bl.stmts)
-		for p.tok != EOF && !p.peek(RBRACE) {
-			// TODO: remove? breaks "{\n}"
-			if p.got('\n') {
-				continue
-			}
-			p.command()
-		}
-		p.want(RBRACE)
-		p.popAdd(bl)
-		if p.tok != EOF {
-			switch {
-			case p.got(SEMICOLON):
-			case p.got('\n'):
-			default:
-				p.errAfterStr("block")
-			}
-		}
 	default:
 		p.errWantedStr("command")
 	}
