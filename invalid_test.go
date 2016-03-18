@@ -167,7 +167,7 @@ func TestParseErr(t *testing.T) {
 	}
 	for _, c := range errs {
 		r := strings.NewReader(c.in)
-		_, err := parse(r, "")
+		_, err := Parse(r, "")
 		if err == nil {
 			t.Fatalf("Expected error in %q", c.in)
 		}

@@ -3,10 +3,10 @@
 
 package sh
 
-type token int
+type Token int
 
 const (
-	ILLEGAL token = -iota
+	ILLEGAL Token = -iota
 	EOF
 	COMMENT
 	WORD
@@ -38,7 +38,7 @@ const (
 	SHR // >>
 )
 
-var tokNames = map[token]string{
+var tokNames = map[Token]string{
 	ILLEGAL: `ILLEGAL`,
 	EOF:     `EOF`,
 	COMMENT: `comment`,
@@ -71,7 +71,7 @@ var tokNames = map[token]string{
 	SHR: ">>",
 }
 
-func (t token) String() string {
+func (t Token) String() string {
 	if s, e := tokNames[t]; e {
 		return s
 	}

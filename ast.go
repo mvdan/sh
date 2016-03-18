@@ -9,19 +9,19 @@ import (
 	"io"
 )
 
-type prog struct {
-	stmts []node
+type Prog struct {
+	Stmts []Node
 }
 
-func (p prog) String() string {
-	return nodeJoin(p.stmts, "; ")
+func (p Prog) String() string {
+	return nodeJoin(p.Stmts, "; ")
 }
 
-type node interface {
+type Node interface {
 	fmt.Stringer
 }
 
-func nodeJoin(ns []node, sep string) string {
+func nodeJoin(ns []Node, sep string) string {
 	var b bytes.Buffer
 	for i, n := range ns {
 		if i > 0 {
@@ -32,134 +32,134 @@ func nodeJoin(ns []node, sep string) string {
 	return b.String()
 }
 
-type command struct {
-	args []node
+type Command struct {
+	Args []Node
 
-	background bool
+	Background bool
 }
 
-func (c command) String() string {
-	nodes := make([]node, 0, len(c.args))
-	for _, l := range c.args {
+func (c Command) String() string {
+	nodes := make([]Node, 0, len(c.Args))
+	for _, l := range c.Args {
 		nodes = append(nodes, l)
 	}
 	suffix := ""
-	if c.background {
+	if c.Background {
 		suffix += " &"
 	}
 	return nodeJoin(nodes, " ") + suffix
 }
 
-type redirect struct {
-	op  token
-	obj node
+type Redirect struct {
+	Op  Token
+	Obj Node
 }
 
-func (r redirect) String() string {
-	return r.op.String() + r.obj.String()
+func (r Redirect) String() string {
+	return r.Op.String() + r.Obj.String()
 }
 
-type subshell struct {
-	stmts []node
+type Subshell struct {
+	Stmts []Node
 }
 
-func (s subshell) String() string {
-	return "( " + nodeJoin(s.stmts, "; ") + "; )"
+func (s Subshell) String() string {
+	return "( " + nodeJoin(s.Stmts, "; ") + "; )"
 }
 
-type block struct {
-	stmts []node
+type Block struct {
+	Stmts []Node
 }
 
-func (b block) String() string {
-	return "{ " + nodeJoin(b.stmts, "; ") + "; }"
+func (b Block) String() string {
+	return "{ " + nodeJoin(b.Stmts, "; ") + "; }"
 }
 
-type ifStmt struct {
-	cond      node
-	thenStmts []node
-	elifs     []node
-	elseStmts []node
+type IfStmt struct {
+	Cond      Node
+	ThenStmts []Node
+	Elifs     []Node
+	ElseStmts []Node
 }
 
-func (s ifStmt) String() string {
+func (s IfStmt) String() string {
 	var b bytes.Buffer
 	io.WriteString(&b, "if ")
-	io.WriteString(&b, s.cond.String())
+	io.WriteString(&b, s.Cond.String())
 	io.WriteString(&b, "; then ")
-	io.WriteString(&b, nodeJoin(s.thenStmts, "; "))
-	for _, n := range s.elifs {
-		e := n.(elif)
+	io.WriteString(&b, nodeJoin(s.ThenStmts, "; "))
+	for _, n := range s.Elifs {
+		e := n.(Elif)
 		io.WriteString(&b, "; ")
 		io.WriteString(&b, e.String())
 	}
-	if len(s.elseStmts) > 0 {
+	if len(s.ElseStmts) > 0 {
 		io.WriteString(&b, "; else ")
-		io.WriteString(&b, nodeJoin(s.elseStmts, "; "))
+		io.WriteString(&b, nodeJoin(s.ElseStmts, "; "))
 	}
 	io.WriteString(&b, "; fi")
 	return b.String()
 }
 
-type elif struct {
-	cond      node
-	thenStmts []node
+type Elif struct {
+	Cond      Node
+	ThenStmts []Node
 }
 
-func (e elif) String() string {
+func (e Elif) String() string {
 	var b bytes.Buffer
 	io.WriteString(&b, "elif ")
-	io.WriteString(&b, e.cond.String())
+	io.WriteString(&b, e.Cond.String())
 	io.WriteString(&b, "; then ")
-	io.WriteString(&b, nodeJoin(e.thenStmts, "; "))
+	io.WriteString(&b, nodeJoin(e.ThenStmts, "; "))
 	return b.String()
 }
 
-type whileStmt struct {
-	cond    node
-	doStmts []node
+type WhileStmt struct {
+	Cond    Node
+	DoStmts []Node
 }
 
-func (w whileStmt) String() string {
+func (w WhileStmt) String() string {
 	var b bytes.Buffer
 	io.WriteString(&b, "while ")
-	io.WriteString(&b, w.cond.String())
+	io.WriteString(&b, w.Cond.String())
 	io.WriteString(&b, "; do ")
-	io.WriteString(&b, nodeJoin(w.doStmts, "; "))
+	io.WriteString(&b, nodeJoin(w.DoStmts, "; "))
 	io.WriteString(&b, "; done")
 	return b.String()
 }
 
-type binaryExpr struct {
-	X, Y node
-	op   token
+type BinaryExpr struct {
+	X, Y Node
+	Op   Token
 }
 
-func (b binaryExpr) String() string {
-	return fmt.Sprintf("%s %s %s", b.X, b.op, b.Y)
+func (b BinaryExpr) String() string {
+	return fmt.Sprintf("%s %s %s", b.X, b.Op, b.Y)
 }
 
-type comment struct {
-	text string
+type Comment struct {
+	Text string
 }
 
-func (c comment) String() string {
-	return "#" + c.text
+func (c Comment) String() string {
+	return "#" + c.Text
 }
 
-type funcDecl struct {
-	name lit
-	body node
+type FuncDecl struct {
+	Name Lit
+	Body Node
 }
 
-func (f funcDecl) String() string {
-	return fmt.Sprintf("%s() %s", f.name, f.body)
+func (f FuncDecl) String() string {
+	return fmt.Sprintf("%s() %s", f.Name, f.Body)
 }
 
-type lit struct {
-	val string
+type Lit struct {
+	Val string
 }
 
-func (l lit) String() string {
-	return l.val
+func (l Lit) String() string {
+	return l.Val
 }

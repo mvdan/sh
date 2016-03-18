@@ -11,7 +11,7 @@ import (
 	"unicode/utf8"
 )
 
-func parse(r io.Reader, name string) (prog, error) {
+func Parse(r io.Reader, name string) (Prog, error) {
 	p := &parser{
 		r:    bufio.NewReader(r),
 		name: name,
@@ -20,7 +20,7 @@ func parse(r io.Reader, name string) (prog, error) {
 			col:  1,
 		},
 	}
-	p.push(&p.prog.stmts)
+	p.push(&p.prog.Stmts)
 	p.next()
 	p.program()
 	return p.prog, p.err
@@ -32,8 +32,8 @@ type parser struct {
 
 	err error
 
-	ltok token
-	tok  token
+	ltok Token
+	tok  Token
 	lval string
 	val  string
 
@@ -41,7 +41,7 @@ type parser struct {
 	pos  position
 	npos position
 
-	prog  prog
+	prog  Prog
 	stack []interface{}
 }
 
@@ -149,7 +149,7 @@ func (p *parser) next() {
 		r, err = p.readRune()
 		if err != nil {
 			if q != 0 {
-				p.errWanted(token(q))
+				p.errWanted(Token(q))
 			}
 			break
 		}
@@ -172,7 +172,7 @@ func (p *parser) next() {
 	p.val = string(rs)
 }
 
-func (p *parser) doToken(r rune) token {
+func (p *parser) doToken(r rune) Token {
 	switch r {
 	case '&':
 		if p.readOnly('&') {
@@ -205,17 +205,17 @@ func (p *parser) doToken(r rune) token {
 		}
 		return GTR
 	default:
-		return token(r)
+		return Token(r)
 	}
 }
 
-func (p *parser) advance(tok token, val string) {
+func (p *parser) advance(tok Token, val string) {
 	p.setTok(tok)
 	p.lval = p.val
 	p.val = val
 }
 
-func (p *parser) setTok(tok token) {
+func (p *parser) setTok(tok Token) {
 	p.ltok = p.tok
 	p.tok = tok
 }
@@ -239,7 +239,7 @@ func (p *parser) readUpTo(delim byte) string {
 
 // We can't simply have these as tokens as they can sometimes be valid
 // words, e.g. `echo if`.
-var reservedWords = map[token]string{
+var reservedWords = map[Token]string{
 	IF:    "if",
 	THEN:  "then",
 	ELIF:  "elif",
@@ -250,11 +250,11 @@ var reservedWords = map[token]string{
 	DONE:  "done",
 }
 
-func (p *parser) peek(tok token) bool {
+func (p *parser) peek(tok Token) bool {
 	return p.tok == tok || (p.tok == WORD && p.val == reservedWords[tok])
 }
 
-func (p *parser) got(tok token) bool {
+func (p *parser) got(tok Token) bool {
 	if p.peek(tok) {
 		p.next()
 		return true
@@ -262,7 +262,7 @@ func (p *parser) got(tok token) bool {
 	return false
 }
 
-func (p *parser) want(tok token) {
+func (p *parser) want(tok Token) {
 	if !p.peek(tok) {
 		p.errWanted(tok)
 		return
@@ -296,7 +296,7 @@ func (p *parser) errWantedStr(s string) {
 	p.curErr("unexpected token %s - wanted %s", p.tok, s)
 }
 
-func (p *parser) errWanted(tok token) {
+func (p *parser) errWanted(tok Token) {
 	p.errWantedStr(tok.String())
 }
 
@@ -304,12 +304,12 @@ func (p *parser) errAfterStr(s string) {
 	p.curErr("unexpected token %s after %s", p.tok, s)
 }
 
-func (p *parser) add(n node) {
+func (p *parser) add(n Node) {
 	cur := p.stack[len(p.stack)-1]
 	switch x := cur.(type) {
-	case *[]node:
+	case *[]Node:
 		*x = append(*x, n)
-	case *node:
+	case *Node:
 		if *x != nil {
 			panic("single node set twice")
 		}
@@ -327,7 +327,7 @@ func (p *parser) push(v interface{}) {
 	p.stack = append(p.stack, v)
 }
 
-func (p *parser) popAdd(n node) {
+func (p *parser) popAdd(n Node) {
 	p.pop()
 	p.add(n)
 }
@@ -338,7 +338,7 @@ func (p *parser) program() {
 	}
 }
 
-func (p *parser) commands(stop ...token) (count int) {
+func (p *parser) commands(stop ...Token) (count int) {
 	for p.tok != EOF {
 		for _, tok := range stop {
 			if p.peek(tok) {
@@ -354,8 +354,8 @@ func (p *parser) commands(stop ...token) (count int) {
 func (p *parser) command() {
 	switch {
 	case p.got(COMMENT):
-		com := comment{
-			text: p.lval,
+		com := Comment{
+			Text: p.lval,
 		}
 		p.add(com)
 	case p.got('\n'), p.got(COMMENT):
@@ -363,70 +363,70 @@ func (p *parser) command() {
 			p.command()
 		}
 	case p.got(LPAREN):
-		var sub subshell
-		p.push(&sub.stmts)
+		var sub Subshell
+		p.push(&sub.Stmts)
 		if p.commands(RPAREN) == 0 {
 			p.errWantedStr("command")
 		}
 		p.want(RPAREN)
 		p.popAdd(sub)
 	case p.got(LBRACE):
-		var bl block
-		p.push(&bl.stmts)
+		var bl Block
+		p.push(&bl.Stmts)
 		if p.commands(RBRACE) == 0 {
 			p.errWantedStr("command")
 		}
 		p.want(RBRACE)
 		p.popAdd(bl)
 	case p.got(IF):
-		var ifs ifStmt
-		p.push(&ifs.cond)
+		var ifs IfStmt
+		p.push(&ifs.Cond)
 		p.command()
 		p.pop()
 		p.want(THEN)
-		p.push(&ifs.thenStmts)
+		p.push(&ifs.ThenStmts)
 		p.commands(FI, ELIF, ELSE)
 		p.pop()
-		p.push(&ifs.elifs)
+		p.push(&ifs.Elifs)
 		for p.got(ELIF) {
-			var elf elif
-			p.push(&elf.cond)
+			var elf Elif
+			p.push(&elf.Cond)
 			p.command()
 			p.pop()
 			p.want(THEN)
-			p.push(&elf.thenStmts)
+			p.push(&elf.ThenStmts)
 			p.commands(FI, ELIF, ELSE)
 			p.popAdd(elf)
 		}
 		if p.got(ELSE) {
 			p.pop()
-			p.push(&ifs.elseStmts)
+			p.push(&ifs.ElseStmts)
 			p.commands(FI)
 		}
 		p.want(FI)
 		p.popAdd(ifs)
 	case p.got(WHILE):
-		var whl whileStmt
-		p.push(&whl.cond)
+		var whl WhileStmt
+		p.push(&whl.Cond)
 		p.command()
 		p.pop()
 		p.want(DO)
-		p.push(&whl.doStmts)
+		p.push(&whl.DoStmts)
 		p.commands(DONE)
 		p.want(DONE)
 		p.popAdd(whl)
 	case p.got(WORD):
-		var cmd command
-		p.push(&cmd.args)
-		p.add(lit{val: p.lval})
+		var cmd Command
+		p.push(&cmd.Args)
+		p.add(Lit{Val: p.lval})
 		first := p.lpos
 	args:
 		for p.tok != EOF {
 			switch {
 			case p.got(WORD):
-				p.add(lit{val: p.lval})
+				p.add(Lit{Val: p.lval})
 			case p.got(AND):
-				cmd.background = true
+				cmd.Background = true
 				break args
 			case p.got(LAND):
 				p.binaryExpr(LAND, cmd)
@@ -442,11 +442,11 @@ func (p *parser) command() {
 					p.posErr(first, "invalid func name %q", p.lval)
 					break args
 				}
-				fun := funcDecl{
-					name: lit{val: p.lval},
+				fun := FuncDecl{
+					Name: Lit{Val: p.lval},
 				}
 				p.want(RPAREN)
-				p.push(&fun.body)
+				p.push(&fun.Body)
 				p.command()
 				p.pop()
 				p.popAdd(fun)
@@ -466,8 +466,8 @@ func (p *parser) command() {
 	}
 }
 
-func (p *parser) binaryExpr(op token, left node) {
-	b := binaryExpr{op: op}
+func (p *parser) binaryExpr(op Token, left Node) {
+	b := BinaryExpr{Op: op}
 	p.push(&b.Y)
 	p.command()
 	p.pop()
@@ -476,25 +476,25 @@ func (p *parser) binaryExpr(op token, left node) {
 }
 
 func (p *parser) gotRedirect() bool {
-	var r redirect
+	var r Redirect
 	switch {
 	case p.got(GTR):
-		r.op = GTR
+		r.Op = GTR
 		if p.got(AND) {
 			p.want(WORD)
-			r.obj = lit{val: "&" + p.lval}
+			r.Obj = Lit{Val: "&" + p.lval}
 		} else {
 			p.want(WORD)
-			r.obj = lit{val: p.lval}
+			r.Obj = Lit{Val: p.lval}
 		}
 	case p.got(SHR):
-		r.op = SHR
+		r.Op = SHR
 		p.want(WORD)
-		r.obj = lit{val: p.lval}
+		r.Obj = Lit{Val: p.lval}
 	case p.got(LSS):
-		r.op = LSS
+		r.Op = LSS
 		p.want(WORD)
-		r.obj = lit{val: p.lval}
+		r.Obj = Lit{Val: p.lval}
 	default:
 		return false
 	}
