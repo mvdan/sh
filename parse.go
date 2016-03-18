@@ -278,9 +278,22 @@ func (p *parser) errPass(err error) {
 	p.setEOF()
 }
 
+type lineErr struct {
+	fname string
+	pos   position
+	text  string
+}
+
+func (e lineErr) Error() string {
+	return fmt.Sprintf("%s:%d:%d: %s", e.fname, e.pos.line, e.pos.col, e.text)
+}
+
 func (p *parser) posErr(pos position, format string, v ...interface{}) {
-	prefix := fmt.Sprintf("%s:%d:%d: ", p.name, pos.line, pos.col)
-	p.errPass(fmt.Errorf(prefix+format, v...))
+	p.errPass(lineErr{
+		fname: p.name,
+		pos:   pos,
+		text:  fmt.Sprintf(format, v...),
+	})
 }
 
 func (p *parser) curErr(format string, v ...interface{}) {
