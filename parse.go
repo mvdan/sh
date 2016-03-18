@@ -102,11 +102,11 @@ func (p *parser) unreadRune() {
 }
 
 func (p *parser) readOnly(wanted rune) bool {
-	r, _ := p.readRune()
+	r, err := p.readRune()
 	if r == wanted {
 		return true
 	}
-	if p.tok != EOF {
+	if err == nil {
 		p.unreadRune()
 	}
 	return false
@@ -148,7 +148,7 @@ func (p *parser) next() {
 	}
 	for {
 		r, err = p.readRune()
-		if err == io.EOF {
+		if err != nil {
 			if q != 0 {
 				p.errWanted(token(q))
 			}
@@ -367,7 +367,7 @@ func (p *parser) command() {
 		}
 		p.add(com)
 	case p.got('\n'), p.got(COMMENT):
-		if !p.peek(EOF) {
+		if p.tok != EOF {
 			p.command()
 		}
 	case p.got(LPAREN):
