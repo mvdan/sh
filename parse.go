@@ -363,10 +363,9 @@ func (p *parser) commands(stop ...Token) (count int) {
 func (p *parser) command() {
 	switch {
 	case p.got(COMMENT):
-		com := Comment{
+		p.add(Comment{
 			Text: p.lval,
-		}
-		p.add(com)
+		})
 	case p.got('\n'), p.got(COMMENT):
 		if p.tok != EOF {
 			p.command()
@@ -435,9 +434,6 @@ func (p *parser) command() {
 			switch {
 			case p.got(WORD):
 				p.add(Lit{Val: p.lval})
-			case p.got(AND):
-				cmd.Background = true
-				break args
 			case p.got(LAND):
 				p.binaryExpr(LAND, cmd)
 				return
@@ -462,9 +458,10 @@ func (p *parser) command() {
 				p.popAdd(fun)
 				return
 			case p.gotRedirect():
-			case p.got(SEMICOLON):
-				break args
-			case p.got('\n'):
+			case p.got(AND):
+				cmd.Background = true
+				fallthrough
+			case p.got(SEMICOLON), p.got('\n'):
 				break args
 			default:
 				p.errAfterStr("command")
