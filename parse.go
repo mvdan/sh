@@ -283,9 +283,6 @@ func (p *parser) errPass(err error) {
 }
 
 func (p *parser) posErr(pos position, format string, v ...interface{}) {
-	if p.err != nil {
-		return
-	}
 	prefix := fmt.Sprintf("%s:%d:%d: ", p.name, pos.line, pos.col)
 	p.errPass(fmt.Errorf(prefix+format, v...))
 }
