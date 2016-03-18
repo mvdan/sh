@@ -132,7 +132,6 @@ func (p *parser) next() {
 		p.next()
 		return
 	}
-	p.lval = p.val
 	if reserved[r] || starters[r] {
 		switch r {
 		case '#':
@@ -173,8 +172,7 @@ func (p *parser) next() {
 		}
 		rs = append(rs, r)
 	}
-	p.setTok(WORD)
-	p.val = string(rs)
+	p.advance(WORD, string(rs))
 }
 
 func (p *parser) doToken(r rune) Token {
@@ -215,14 +213,12 @@ func (p *parser) doToken(r rune) Token {
 }
 
 func (p *parser) advance(tok Token, val string) {
-	p.setTok(tok)
-	p.lval = p.val
-	p.val = val
-}
-
-func (p *parser) setTok(tok Token) {
-	p.ltok = p.tok
+	if p.tok != EOF {
+		p.ltok = p.tok
+		p.lval = p.val
+	}
 	p.tok = tok
+	p.val = val
 }
 
 func (p *parser) setEOF() {
