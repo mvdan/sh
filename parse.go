@@ -338,9 +338,7 @@ func (p *parser) popAdd(n Node) {
 }
 
 func (p *parser) program() {
-	for p.tok != EOF {
-		p.command()
-	}
+	p.commands()
 }
 
 func (p *parser) commands(stop ...Token) (count int) {
