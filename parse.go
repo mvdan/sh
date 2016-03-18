@@ -52,7 +52,6 @@ type position struct {
 
 var reserved = map[rune]bool{
 	'\n': true,
-	'#':  true,
 	'&':  true,
 	'>':  true,
 	'<':  true,
@@ -62,10 +61,11 @@ var reserved = map[rune]bool{
 	')':  true,
 }
 
-// like reserved, but these can appear in the middle of a word
+// like reserved, but these are only reserved if at the start of a word
 var starters = map[rune]bool{
 	'{': true,
 	'}': true,
+	'#': true,
 }
 
 var space = map[rune]bool{

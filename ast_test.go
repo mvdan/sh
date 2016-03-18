@@ -216,6 +216,10 @@ var tests = []struct {
 			Background: true,
 		},
 	},
+	{
+		ins: []string{"echo foo#bar"},
+		want: Command{Args: lits("echo", "foo#bar")},
+	},
 }
 
 func wantedProg(v interface{}) (p Prog) {
