@@ -85,25 +85,29 @@ func (p *parser) readRune() (rune, error) {
 		}
 		return 0, err
 	}
+	p.moveWith(r)
+	return r, nil
+}
+
+func (p *parser) moveWith(r rune) {
 	if r == '\n' {
 		p.npos.line++
 		p.npos.col = 1
 	} else {
 		p.npos.col++
 	}
-	return r, nil
 }
 
 func (p *parser) unreadRune() {
-	p.npos.col--
 	if err := p.r.UnreadRune(); err != nil {
 		panic(err)
 	}
 }
 
 func (p *parser) readOnly(wanted rune) bool {
-	r, err := p.readRune()
+	r, _, err := p.r.ReadRune()
 	if r == wanted {
+		p.moveWith(r)
 		return true
 	}
 	if err == nil {
@@ -163,6 +167,7 @@ func (p *parser) next() {
 		} else if r == '"' || r == '\'' {
 			q = r
 		} else if reserved[r] || space[r] {
+			p.npos.col--
 			p.unreadRune()
 			break
 		}
