@@ -140,7 +140,7 @@ func (p *parser) next() {
 		case '\n':
 			p.advance('\n', "")
 		default:
-			p.setTok(p.doToken(r))
+			p.advance(p.doToken(r), "")
 		}
 		return
 	}
@@ -419,7 +419,8 @@ func (p *parser) command() {
 		var cmd Command
 		p.push(&cmd.Args)
 		p.add(Lit{Val: p.lval})
-		first := p.lpos
+		fpos := p.lpos
+		fval := p.lval
 	args:
 		for p.tok != EOF {
 			switch {
@@ -438,14 +439,13 @@ func (p *parser) command() {
 				p.binaryExpr(LOR, cmd)
 				return
 			case p.got(LPAREN):
-				name := p.lval
 				p.want(RPAREN)
-				if !identRe.MatchString(name) {
-					p.posErr(first, "invalid func name %q", name)
+				if !identRe.MatchString(fval) {
+					p.posErr(fpos, "invalid func name %q", fval)
 					break args
 				}
 				fun := FuncDecl{
-					Name: Lit{Val: name},
+					Name: Lit{Val: fval},
 				}
 				p.push(&fun.Body)
 				p.command()
