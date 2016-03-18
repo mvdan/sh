@@ -79,7 +79,7 @@ func (p *parser) readRune() (rune, error) {
 	r, _, err := p.r.ReadRune()
 	if err != nil {
 		if err == io.EOF {
-			p.eof()
+			p.setEOF()
 		} else {
 			p.errPass(err)
 		}
@@ -225,7 +225,7 @@ func (p *parser) setTok(tok Token) {
 	p.tok = tok
 }
 
-func (p *parser) eof() {
+func (p *parser) setEOF() {
 	p.advance(EOF, "EOF")
 }
 
@@ -279,7 +279,7 @@ func (p *parser) errPass(err error) {
 	if p.err == nil {
 		p.err = err
 	}
-	p.eof()
+	p.setEOF()
 }
 
 func (p *parser) posErr(pos position, format string, v ...interface{}) {
