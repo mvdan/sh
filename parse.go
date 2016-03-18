@@ -154,9 +154,6 @@ func (p *parser) next() {
 			}
 			break
 		}
-		if err != nil {
-			return
-		}
 		if q != 0 {
 			if q == '"' && r == '\\' {
 				rs = append(rs, r)
