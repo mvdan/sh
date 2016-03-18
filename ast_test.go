@@ -26,12 +26,12 @@ var tests = []struct {
 		want: nil,
 	},
 	{
-		ins:  []string{"# foo", "# foo\n"},
-		want: comment{text: " foo"},
-	},
-	{
 		ins:  []string{"foo", "foo ", " foo"},
 		want: command{args: lits("foo")},
+	},
+	{
+		ins:  []string{"# foo", "# foo\n"},
+		want: comment{text: " foo"},
 	},
 	{
 		ins: []string{"foo; bar", "foo; bar;", "\nfoo\nbar\n"},
