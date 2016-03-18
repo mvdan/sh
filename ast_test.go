@@ -34,7 +34,7 @@ var tests = []struct {
 		want: Comment{Text: " foo"},
 	},
 	{
-		ins: []string{"foo; bar", "foo; bar;", "\nfoo\nbar\n"},
+		ins: []string{"foo; bar", "foo; bar;", "foo;bar;", "\nfoo\nbar\n"},
 		want: []Node{
 			Command{Args: lits("foo")},
 			Command{Args: lits("bar")},
@@ -199,6 +199,7 @@ var tests = []struct {
 		ins: []string{
 			"foo >a >>b <c",
 			"foo > a >> b < c",
+			"foo>a >>b<c",
 		},
 		want: Command{
 			Args: []Node{
@@ -217,7 +218,7 @@ var tests = []struct {
 		},
 	},
 	{
-		ins: []string{"echo foo#bar"},
+		ins:  []string{"echo foo#bar"},
 		want: Command{Args: lits("echo", "foo#bar")},
 	},
 }
