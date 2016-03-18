@@ -1,3 +1,4 @@
 # sh
 
-A shell parser. Not yet usable.
+A shell parser. Still in active development, so the API will probably
+change considerably.
