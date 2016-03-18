@@ -447,7 +447,6 @@ func (p *parser) command() {
 				p.want(RPAREN)
 				if !identRe.MatchString(fval) {
 					p.posErr(fpos, "invalid func name %q", fval)
-					break args
 				}
 				fun := FuncDecl{
 					Name: Lit{Val: fval},
