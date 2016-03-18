@@ -438,14 +438,15 @@ func (p *parser) command() {
 				p.binaryExpr(LOR, cmd)
 				return
 			case p.got(LPAREN):
-				if !identRe.MatchString(p.lval) {
-					p.posErr(first, "invalid func name %q", p.lval)
+				name := p.lval
+				p.want(RPAREN)
+				if !identRe.MatchString(name) {
+					p.posErr(first, "invalid func name %q", name)
 					break args
 				}
 				fun := FuncDecl{
-					Name: Lit{Val: p.lval},
+					Name: Lit{Val: name},
 				}
-				p.want(RPAREN)
 				p.push(&fun.Body)
 				p.command()
 				p.pop()
