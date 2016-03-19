@@ -105,6 +105,10 @@ func TestParseErr(t *testing.T) {
 			want: `1:8: unexpected token EOF - wanted command`,
 		},
 		{
+			in:   "echo foo(",
+			want: `1:9: unexpected token ( after command`,
+		},
+		{
 			in:   "foo &&",
 			want: `1:7: unexpected token EOF - wanted command`,
 		},

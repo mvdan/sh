@@ -460,6 +460,20 @@ func (p *parser) command() {
 		p.add(Lit{Val: p.lval})
 		fpos := p.lpos
 		fval := p.lval
+		if p.got(LPAREN) {
+			p.want(RPAREN)
+			if !identRe.MatchString(fval) {
+				p.posErr(fpos, "invalid func name %q", fval)
+			}
+			fun := FuncDecl{
+				Name: Lit{Val: fval},
+			}
+			p.push(&fun.Body)
+			p.command()
+			p.pop()
+			p.popAdd(fun)
+			return
+		}
 	args:
 		for p.tok != EOF {
 			switch {
@@ -473,19 +487,6 @@ func (p *parser) command() {
 				return
 			case p.got(LOR):
 				p.binaryExpr(LOR, cmd)
-				return
-			case p.got(LPAREN):
-				p.want(RPAREN)
-				if !identRe.MatchString(fval) {
-					p.posErr(fpos, "invalid func name %q", fval)
-				}
-				fun := FuncDecl{
-					Name: Lit{Val: fval},
-				}
-				p.push(&fun.Body)
-				p.command()
-				p.pop()
-				p.popAdd(fun)
 				return
 			case p.gotRedirect():
 			case p.got(AND):
