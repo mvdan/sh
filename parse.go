@@ -124,8 +124,8 @@ func (p *parser) readOnly(wanted rune) bool {
 func (p *parser) next() {
 	p.lpos = p.pos
 	r := ' '
-	var err error
 	for space[r] {
+		var err error
 		r, err = p.readRune()
 		if err != nil {
 			return
@@ -148,6 +148,10 @@ func (p *parser) next() {
 		}
 		return
 	}
+	p.advance(WORD, p.readWord(r))
+}
+
+func (p *parser) readWord(r rune) string {
 	var rs []rune
 	var q rune
 runeLoop:
@@ -179,6 +183,7 @@ runeLoop:
 			break runeLoop
 		}
 		rs = append(rs, r)
+		var err error
 		r, err = p.readRune()
 		if err != nil {
 			if q != 0 {
@@ -187,7 +192,7 @@ runeLoop:
 			break
 		}
 	}
-	p.advance(WORD, string(rs))
+	return string(rs)
 }
 
 func (p *parser) doToken(r rune) Token {
