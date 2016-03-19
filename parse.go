@@ -58,7 +58,6 @@ var reserved = map[rune]bool{
 	';':  true,
 	'(':  true,
 	')':  true,
-	'$':  true,
 }
 
 // like reserved, but these are only reserved if at the start of a word
@@ -140,15 +139,6 @@ func (p *parser) next() {
 	}
 	if reserved[r] || starters[r] {
 		switch r {
-		case '$':
-			switch {
-			case p.readOnly('{'):
-				p.advance(WORD, "${"+p.readIncluding('}'))
-			case p.readOnly('('):
-				p.advance(WORD, "$("+p.readIncluding(')'))
-			default:
-				goto word
-			}
 		case '#':
 			p.advance(COMMENT, p.readLine())
 		case '\n':
@@ -158,11 +148,21 @@ func (p *parser) next() {
 		}
 		return
 	}
-word:
 	var rs []rune
 	var q rune
 	for {
-		if q != 0 {
+		if q != '\'' && r == '$' {
+			switch {
+			case p.readOnly('{'):
+				rs = append(rs, '$', '{')
+				rs = append(rs, p.readIncluding('}')...)
+				r = '}'
+			case p.readOnly('('):
+				rs = append(rs, '$', '(')
+				rs = append(rs, p.readIncluding(')')...)
+				r = ')'
+			}
+		} else if q != 0 {
 			if q == '"' && r == '\\' {
 				rs = append(rs, r)
 				r, _ = p.readRune()
@@ -171,7 +171,6 @@ word:
 			}
 		} else if quote[r] {
 			q = r
-		} else if r == '$' {
 		} else if reserved[r] || space[r] {
 			p.npos.col--
 			p.unreadRune()
@@ -239,34 +238,31 @@ func (p *parser) setEOF() {
 	p.advance(EOF, "EOF")
 }
 
-func (p *parser) readUntil(delim rune) (string, bool) {
+func (p *parser) readUntil(delim rune) ([]rune, bool) {
 	var rs []rune
 	for {
 		r, err := p.readRune()
 		if err != nil {
-			return string(rs), false
+			return rs, false
+		}
+		if r == delim {
+			return rs, true
 		}
 		rs = append(rs, r)
-		if r == delim {
-			return string(rs), true
-		}
 	}
 }
 
-func (p *parser) readIncluding(delim rune) string {
-	s, incl := p.readUntil(delim)
-	if !incl {
+func (p *parser) readIncluding(delim rune) []rune {
+	rs, found := p.readUntil(delim)
+	if !found {
 		p.errWanted(Token(delim))
 	}
-	return s
+	return rs
 }
 
 func (p *parser) readLine() string {
-	s, incl := p.readUntil('\n')
-	if incl {
-		s = s[:len(s)-1]
-	}
-	return s
+	rs, _ := p.readUntil('\n')
+	return string(rs)
 }
 
 // We can't simply have these as tokens as they can sometimes be valid
