@@ -21,6 +21,10 @@ func TestParseErr(t *testing.T) {
 			want: `1:2: unexpected token EOF - wanted "`,
 		},
 		{
+			in:   "`",
+			want: "1:2: unexpected token EOF - wanted `",
+		},
+		{
 			in:   `'\''`,
 			want: `1:5: unexpected token EOF - wanted '`,
 		},

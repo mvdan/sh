@@ -73,6 +73,12 @@ var space = map[rune]bool{
 	'\t': true,
 }
 
+var quote = map[rune]bool{
+	'"':  true,
+	'\'': true,
+	'`':  true,
+}
+
 var identRe = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
 
 func (p *parser) readRune() (rune, error) {
@@ -145,7 +151,7 @@ func (p *parser) next() {
 	}
 	rs := []rune{r}
 	q := rune(0)
-	if r == '"' || r == '\'' {
+	if quote[r] {
 		q = r
 	}
 	for {
@@ -163,7 +169,7 @@ func (p *parser) next() {
 			} else if r == q {
 				q = 0
 			}
-		} else if r == '"' || r == '\'' {
+		} else if quote[r] {
 			q = r
 		} else if reserved[r] || space[r] {
 			p.npos.col--
