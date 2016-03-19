@@ -36,6 +36,9 @@ type parser struct {
 	lval string
 	val  string
 
+	// backup position to unread a rune
+	bpos position
+
 	lpos position
 	pos  position
 	npos position
@@ -95,6 +98,7 @@ func (p *parser) readRune() (rune, error) {
 }
 
 func (p *parser) moveWith(r rune) {
+	p.bpos = p.npos
 	if r == '\n' {
 		p.npos.line++
 		p.npos.col = 1
@@ -107,16 +111,19 @@ func (p *parser) unreadRune() {
 	if err := p.r.UnreadRune(); err != nil {
 		panic(err)
 	}
+	p.npos = p.bpos
 }
 
 func (p *parser) readOnly(wanted rune) bool {
+	// Don't use our read/unread wrappers to avoid unnecessary
+	// position movement and unwanted calls to p.eof()
 	r, _, err := p.r.ReadRune()
 	if r == wanted {
 		p.moveWith(r)
 		return true
 	}
 	if err == nil {
-		p.unreadRune()
+		p.r.UnreadRune()
 	}
 	return false
 }
@@ -180,7 +187,6 @@ runeLoop:
 		case quote[r]: // start of a quoted string
 			q = r
 		case reserved[r] || space[r]: // end of word
-			p.npos.col--
 			p.unreadRune()
 			break runeLoop
 		}
