@@ -156,7 +156,7 @@ func (p *parser) readWord(r rune) string {
 runeLoop:
 	for {
 		switch {
-		case q != '\'' && r == '\\': // quoted rune
+		case q != '\'' && r == '\\': // escaped rune
 			rs = append(rs, r)
 			r, _ = p.readRune()
 		case q != '\'' && r == '$': // $ continuation
