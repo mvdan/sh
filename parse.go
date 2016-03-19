@@ -150,11 +150,13 @@ func (p *parser) next() {
 	}
 	var rs []rune
 	var q rune
+runeLoop:
 	for {
-		if q != '\'' && r == '\\' {
+		switch {
+		case q != '\'' && r == '\\': // quoted rune
 			rs = append(rs, r)
 			r, _ = p.readRune()
-		} else if q != '\'' && r == '$' {
+		case q != '\'' && r == '$': // $ continuation
 			switch {
 			case p.readOnly('{'):
 				rs = append(rs, '$', '{')
@@ -165,16 +167,16 @@ func (p *parser) next() {
 				rs = append(rs, p.readIncluding(')')...)
 				r = ')'
 			}
-		} else if q != 0 {
+		case q != 0: // rest of quoted cases
 			if r == q {
 				q = 0
 			}
-		} else if quote[r] {
+		case quote[r]: // start of a quoted string
 			q = r
-		} else if reserved[r] || space[r] {
+		case reserved[r] || space[r]: // end of word
 			p.npos.col--
 			p.unreadRune()
-			break
+			break runeLoop
 		}
 		rs = append(rs, r)
 		r, err = p.readRune()
