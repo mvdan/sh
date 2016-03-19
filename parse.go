@@ -155,21 +155,25 @@ func (p *parser) readWord(r rune) string {
 	var q rune
 runeLoop:
 	for {
+		appendRune := true
 		switch {
 		case q != '\'' && r == '\\': // escaped rune
-			rs = append(rs, r)
 			r, _ = p.readRune()
+			if r != '\n' {
+				rs = append(rs, '\\', r)
+			}
+			appendRune = false
 		case q != '\'' && r == '$': // $ continuation
+			rs = append(rs, '$')
 			switch {
 			case p.readOnly('{'):
-				rs = append(rs, '$', '{')
+				rs = append(rs, '{')
 				rs = append(rs, p.readIncluding('}')...)
-				r = '}'
 			case p.readOnly('('):
-				rs = append(rs, '$', '(')
+				rs = append(rs, '(')
 				rs = append(rs, p.readIncluding(')')...)
-				r = ')'
 			}
+			appendRune = false
 		case q != 0: // rest of quoted cases
 			if r == q {
 				q = 0
@@ -181,7 +185,9 @@ runeLoop:
 			p.unreadRune()
 			break runeLoop
 		}
-		rs = append(rs, r)
+		if appendRune {
+			rs = append(rs, r)
+		}
 		var err error
 		r, err = p.readRune()
 		if err != nil {
@@ -263,7 +269,7 @@ func (p *parser) readIncluding(delim rune) []rune {
 	if !found {
 		p.errWanted(Token(delim))
 	}
-	return rs
+	return append(rs, delim)
 }
 
 func (p *parser) readLine() string {

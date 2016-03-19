@@ -45,6 +45,10 @@ var tests = []struct {
 		want: Command{Args: lits("foo", "a", "b")},
 	},
 	{
+		ins:  []string{"foobar", "foo\\\nbar"},
+		want: Command{Args: lits("foobar")},
+	},
+	{
 		ins:  []string{"foo'bar'"},
 		want: Command{Args: lits("foo'bar'")},
 	},
