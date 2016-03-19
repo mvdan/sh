@@ -184,6 +184,10 @@ func TestParseErr(t *testing.T) {
 			in:   "echo ${foo",
 			want: `1:11: unexpected token EOF - wanted }`,
 		},
+		{
+			in:   "#foo\n{",
+			want: `2:2: unexpected token EOF - wanted command`,
+		},
 	}
 	for _, c := range errs {
 		r := strings.NewReader(c.in)

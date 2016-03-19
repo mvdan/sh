@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"regexp"
-	"unicode/utf8"
 )
 
 func Parse(r io.Reader, name string) (Prog, error) {
@@ -242,20 +241,21 @@ func (p *parser) setEOF() {
 	p.advance(EOF, "EOF")
 }
 
-func (p *parser) readUntil(delim byte) (string, bool) {
-	b, err := p.r.ReadBytes(delim)
-	including := true
-	if err == io.EOF {
-		p.setEOF()
-		including = false
-	} else if err != nil {
-		p.errPass(err)
+func (p *parser) readUntil(delim rune) (string, bool) {
+	var rs []rune
+	for {
+		r, err := p.readRune()
+		if err != nil {
+			return string(rs), false
+		}
+		rs = append(rs, r)
+		if r == delim {
+			return string(rs), true
+		}
 	}
-	p.npos.col += utf8.RuneCount(b)
-	return string(b), including
 }
 
-func (p *parser) readIncluding(delim byte) string {
+func (p *parser) readIncluding(delim rune) string {
 	s, incl := p.readUntil(delim)
 	if !incl {
 		p.errWanted(Token(delim))
