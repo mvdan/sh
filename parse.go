@@ -59,6 +59,7 @@ var reserved = map[rune]bool{
 	';':  true,
 	'(':  true,
 	')':  true,
+	'$':  true,
 }
 
 // like reserved, but these are only reserved if at the start of a word
@@ -140,8 +141,17 @@ func (p *parser) next() {
 	}
 	if reserved[r] || starters[r] {
 		switch r {
+		case '$':
+			switch {
+			case p.readOnly('{'):
+				p.advance(WORD, "${"+p.readIncluding('}'))
+			case p.readOnly('('):
+				p.advance(WORD, "$("+p.readIncluding(')'))
+			default:
+				goto word
+			}
 		case '#':
-			p.advance(COMMENT, p.readUpTo('\n'))
+			p.advance(COMMENT, p.readLine())
 		case '\n':
 			p.advance('\n', "")
 		default:
@@ -149,6 +159,7 @@ func (p *parser) next() {
 		}
 		return
 	}
+word:
 	rs := []rune{r}
 	q := rune(0)
 	if quote[r] {
@@ -231,17 +242,33 @@ func (p *parser) setEOF() {
 	p.advance(EOF, "EOF")
 }
 
-func (p *parser) readUpTo(delim byte) string {
+func (p *parser) readUntil(delim byte) (string, bool) {
 	b, err := p.r.ReadBytes(delim)
-	cont := b
+	including := true
 	if err == io.EOF {
+		p.setEOF()
+		including = false
 	} else if err != nil {
 		p.errPass(err)
-	} else {
-		cont = cont[:len(b)-1]
 	}
 	p.npos.col += utf8.RuneCount(b)
-	return string(cont)
+	return string(b), including
+}
+
+func (p *parser) readIncluding(delim byte) string {
+	s, incl := p.readUntil(delim)
+	if !incl {
+		p.errWanted(Token(delim))
+	}
+	return s
+}
+
+func (p *parser) readLine() string {
+	s, incl := p.readUntil('\n')
+	if incl {
+		s = s[:len(s)-1]
+	}
+	return s
 }
 
 // We can't simply have these as tokens as they can sometimes be valid
