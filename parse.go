@@ -151,7 +151,10 @@ func (p *parser) next() {
 	var rs []rune
 	var q rune
 	for {
-		if q != '\'' && r == '$' {
+		if q != '\'' && r == '\\' {
+			rs = append(rs, r)
+			r, _ = p.readRune()
+		} else if q != '\'' && r == '$' {
 			switch {
 			case p.readOnly('{'):
 				rs = append(rs, '$', '{')
@@ -163,10 +166,7 @@ func (p *parser) next() {
 				r = ')'
 			}
 		} else if q != 0 {
-			if q == '"' && r == '\\' {
-				rs = append(rs, r)
-				r, _ = p.readRune()
-			} else if r == q {
+			if r == q {
 				q = 0
 			}
 		} else if quote[r] {

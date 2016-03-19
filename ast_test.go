@@ -130,6 +130,10 @@ var tests = []struct {
 		want: Command{Args: lits(`"foo \" bar"`)},
 	},
 	{
+		ins:  []string{`foo \" bar`},
+		want: Command{Args: lits(`foo`, `\"`, `bar`)},
+	},
+	{
 		ins:  []string{"$a ${b} s{s s=s"},
 		want: Command{Args: lits("$a", "${b}", "s{s", "s=s")},
 	},
