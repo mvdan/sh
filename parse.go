@@ -126,8 +126,7 @@ func (p *parser) next() {
 	r := ' '
 	for space[r] {
 		var err error
-		r, err = p.readRune()
-		if err != nil {
+		if r, err = p.readRune(); err != nil {
 			return
 		}
 	}
@@ -189,8 +188,7 @@ runeLoop:
 			rs = append(rs, r)
 		}
 		var err error
-		r, err = p.readRune()
-		if err != nil {
+		if r, err = p.readRune(); err != nil {
 			if q != 0 {
 				p.errWanted(Token(q))
 			}
