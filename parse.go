@@ -133,11 +133,10 @@ func (p *parser) next() {
 	}
 	p.pos = p.npos
 	p.pos.col--
-	if r == '\\' && p.readOnly('\n') {
+	switch {
+	case r == '\\' && p.readOnly('\n'):
 		p.next()
-		return
-	}
-	if reserved[r] || starters[r] {
+	case reserved[r] || starters[r]:
 		switch r {
 		case '#':
 			p.advance(COMMENT, p.readLine())
@@ -146,9 +145,9 @@ func (p *parser) next() {
 		default:
 			p.advance(p.doToken(r), "")
 		}
-		return
+	default:
+		p.advance(WORD, p.readWord(r))
 	}
-	p.advance(WORD, p.readWord(r))
 }
 
 func (p *parser) readWord(r rune) string {
