@@ -159,19 +159,9 @@ func (p *parser) next() {
 		return
 	}
 word:
-	rs := []rune{r}
-	q := rune(0)
-	if quote[r] {
-		q = r
-	}
+	var rs []rune
+	var q rune
 	for {
-		r, err = p.readRune()
-		if err != nil {
-			if q != 0 {
-				p.errWanted(Token(q))
-			}
-			break
-		}
 		if q != 0 {
 			if q == '"' && r == '\\' {
 				rs = append(rs, r)
@@ -181,12 +171,20 @@ word:
 			}
 		} else if quote[r] {
 			q = r
+		} else if r == '$' {
 		} else if reserved[r] || space[r] {
 			p.npos.col--
 			p.unreadRune()
 			break
 		}
 		rs = append(rs, r)
+		r, err = p.readRune()
+		if err != nil {
+			if q != 0 {
+				p.errWanted(Token(q))
+			}
+			break
+		}
 	}
 	p.advance(WORD, string(rs))
 }
