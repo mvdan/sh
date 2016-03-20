@@ -405,7 +405,8 @@ func (p *parser) commands(stop ...Token) (count int) {
 	return
 }
 
-func (p *parser) wordsIncluding(stop ...Token) (count int) {
+func (p *parser) wordList() (count int) {
+	var stop = [...]Token{SEMICOLON, '\n'}
 	for p.tok != EOF {
 		for _, tok := range stop {
 			if p.got(tok) {
@@ -488,7 +489,7 @@ func (p *parser) command() {
 		fr.Name = Lit{Val: p.lval}
 		p.want(IN)
 		p.push(&fr.WordList)
-		p.wordsIncluding(SEMICOLON, '\n')
+		p.wordList()
 		p.pop()
 		p.want(DO)
 		p.push(&fr.DoStmts)
