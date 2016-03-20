@@ -405,6 +405,20 @@ func (p *parser) commands(stop ...Token) (count int) {
 	return
 }
 
+func (p *parser) wordsIncluding(stop ...Token) (count int) {
+	for p.tok != EOF {
+		for _, tok := range stop {
+			if p.got(tok) {
+				return
+			}
+		}
+		p.want(WORD)
+		p.add(Lit{Val: p.lval})
+		count++
+	}
+	return
+}
+
 func (p *parser) command() {
 	switch {
 	case p.got(COMMENT):
@@ -474,14 +488,7 @@ func (p *parser) command() {
 		fr.Name = Lit{Val: p.lval}
 		p.want(IN)
 		p.push(&fr.WordList)
-	words:
-		for p.tok != EOF {
-			if p.got(SEMICOLON) || p.got('\n') {
-				break words
-			}
-			p.want(WORD)
-			p.add(Lit{Val: p.lval})
-		}
+		p.wordsIncluding(SEMICOLON, '\n')
 		p.pop()
 		p.want(DO)
 		p.push(&fr.DoStmts)
