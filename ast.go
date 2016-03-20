@@ -130,6 +130,24 @@ func (w WhileStmt) String() string {
 	return b.String()
 }
 
+type ForStmt struct {
+	Name     Node
+	WordList []Node
+	DoStmts  []Node
+}
+
+func (w ForStmt) String() string {
+	var b bytes.Buffer
+	io.WriteString(&b, "for ")
+	io.WriteString(&b, w.Name.String())
+	io.WriteString(&b, " in ")
+	io.WriteString(&b, nodeJoin(w.WordList, " "))
+	io.WriteString(&b, "; do ")
+	io.WriteString(&b, nodeJoin(w.DoStmts, "; "))
+	io.WriteString(&b, "; done")
+	return b.String()
+}
+
 type BinaryExpr struct {
 	X, Y Node
 	Op   Token

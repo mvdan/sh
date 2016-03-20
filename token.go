@@ -17,6 +17,8 @@ const (
 	ELSE
 	FI
 	WHILE
+	FOR
+	IN
 	DO
 	DONE
 
@@ -50,6 +52,8 @@ var tokNames = map[Token]string{
 	ELSE:  "else",
 	FI:    "fi",
 	WHILE: "while",
+	FOR:   "for",
+	IN:    "in",
 	DO:    "do",
 	DONE:  "done",
 

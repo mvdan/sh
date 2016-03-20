@@ -177,6 +177,30 @@ func TestParseErr(t *testing.T) {
 			want: `1:19: unexpected token EOF - wanted done`,
 		},
 		{
+			in:   "for",
+			want: `1:4: unexpected token EOF - wanted word`,
+		},
+		{
+			in:   "for i",
+			want: `1:6: unexpected token EOF - wanted in`,
+		},
+		{
+			in:   "for i in",
+			want: `1:9: unexpected token EOF - wanted do`,
+		},
+		{
+			in:   "for i in 1 2 3; do echo $i;",
+			want: `1:28: unexpected token EOF - wanted done`,
+		},
+		{
+			in:   "for i in 1 2 3; echo $i;",
+			want: `1:17: unexpected token word - wanted do`,
+		},
+		{
+			in:   "for in 1 2 3; do echo $i; done",
+			want: `1:8: unexpected token word - wanted in`,
+		},
+		{
 			in:   "foo &\n;",
 			want: `2:1: unexpected token ; - wanted command`,
 		},

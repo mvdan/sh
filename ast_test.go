@@ -126,6 +126,19 @@ var tests = []struct {
 		},
 	},
 	{
+		ins: []string{
+			"for i in 1 2 3; do echo $i; done",
+			"for i in 1 2 3\ndo echo $i\ndone",
+		},
+		want: ForStmt{
+			Name:     Lit{Val: "i"},
+			WordList: lits("1", "2", "3"),
+			DoStmts: []Node{
+				Command{Args: lits("echo", "$i")},
+			},
+		},
+	},
+	{
 		ins:  []string{`echo ' ' "foo bar"`},
 		want: Command{Args: lits("echo", "' '", `"foo bar"`)},
 	},

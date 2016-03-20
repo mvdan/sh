@@ -290,6 +290,8 @@ var reservedWords = map[Token]string{
 	ELSE:  "else",
 	FI:    "fi",
 	WHILE: "while",
+	FOR:   "for",
+	IN:    "in",
 	DO:    "do",
 	DONE:  "done",
 }
@@ -466,6 +468,26 @@ func (p *parser) command() {
 		p.commands(DONE)
 		p.want(DONE)
 		p.popAdd(whl)
+	case p.got(FOR):
+		var fr ForStmt
+		p.want(WORD)
+		fr.Name = Lit{Val: p.lval}
+		p.want(IN)
+		p.push(&fr.WordList)
+	words:
+		for p.tok != EOF {
+			if p.got(SEMICOLON) || p.got('\n') {
+				break words
+			}
+			p.want(WORD)
+			p.add(Lit{Val: p.lval})
+		}
+		p.pop()
+		p.want(DO)
+		p.push(&fr.DoStmts)
+		p.commands(DONE)
+		p.want(DONE)
+		p.popAdd(fr)
 	case p.got(WORD):
 		var cmd Command
 		p.push(&cmd.Args)
