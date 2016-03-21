@@ -32,6 +32,10 @@ func nodeJoin(ns []Node, sep string) string {
 	return b.String()
 }
 
+func stmtJoin(ns []Node) string {
+	return nodeJoin(ns, "; ")
+}
+
 type Command struct {
 	Args []Node
 
@@ -64,7 +68,7 @@ type Subshell struct {
 }
 
 func (s Subshell) String() string {
-	return "( " + nodeJoin(s.Stmts, "; ") + "; )"
+	return "( " + stmtJoin(s.Stmts) + "; )"
 }
 
 type Block struct {
@@ -72,7 +76,7 @@ type Block struct {
 }
 
 func (b Block) String() string {
-	return "{ " + nodeJoin(b.Stmts, "; ") + "; }"
+	return "{ " + stmtJoin(b.Stmts) + "; }"
 }
 
 type IfStmt struct {
@@ -87,7 +91,7 @@ func (s IfStmt) String() string {
 	io.WriteString(&b, "if ")
 	io.WriteString(&b, s.Cond.String())
 	io.WriteString(&b, "; then ")
-	io.WriteString(&b, nodeJoin(s.ThenStmts, "; "))
+	io.WriteString(&b, stmtJoin(s.ThenStmts))
 	for _, n := range s.Elifs {
 		e := n.(Elif)
 		io.WriteString(&b, "; ")
@@ -95,7 +99,7 @@ func (s IfStmt) String() string {
 	}
 	if len(s.ElseStmts) > 0 {
 		io.WriteString(&b, "; else ")
-		io.WriteString(&b, nodeJoin(s.ElseStmts, "; "))
+		io.WriteString(&b, stmtJoin(s.ElseStmts))
 	}
 	io.WriteString(&b, "; fi")
 	return b.String()
@@ -111,7 +115,7 @@ func (e Elif) String() string {
 	io.WriteString(&b, "elif ")
 	io.WriteString(&b, e.Cond.String())
 	io.WriteString(&b, "; then ")
-	io.WriteString(&b, nodeJoin(e.ThenStmts, "; "))
+	io.WriteString(&b, stmtJoin(e.ThenStmts))
 	return b.String()
 }
 
@@ -125,7 +129,7 @@ func (w WhileStmt) String() string {
 	io.WriteString(&b, "while ")
 	io.WriteString(&b, w.Cond.String())
 	io.WriteString(&b, "; do ")
-	io.WriteString(&b, nodeJoin(w.DoStmts, "; "))
+	io.WriteString(&b, stmtJoin(w.DoStmts))
 	io.WriteString(&b, "; done")
 	return b.String()
 }
@@ -143,7 +147,7 @@ func (w ForStmt) String() string {
 	io.WriteString(&b, " in ")
 	io.WriteString(&b, nodeJoin(w.WordList, " "))
 	io.WriteString(&b, "; do ")
-	io.WriteString(&b, nodeJoin(w.DoStmts, "; "))
+	io.WriteString(&b, stmtJoin(w.DoStmts))
 	io.WriteString(&b, "; done")
 	return b.String()
 }
