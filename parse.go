@@ -409,6 +409,11 @@ func litWord(val string) Word {
 	return Word{Parts: []Node{Lit{Val: val}}}
 }
 
+func (p *parser) word() {
+	p.want(WORD)
+	p.add(litWord(p.lval))
+}
+
 func (p *parser) wordList() (count int) {
 	var stop = [...]Token{SEMICOLON, '\n'}
 	for p.tok != EOF {
@@ -417,8 +422,7 @@ func (p *parser) wordList() (count int) {
 				return
 			}
 		}
-		p.want(WORD)
-		p.add(litWord(p.lval))
+		p.word()
 		count++
 	}
 	return
@@ -561,27 +565,22 @@ func (p *parser) binaryExpr(op Token, left Node) {
 
 func (p *parser) gotRedirect() bool {
 	var r Redirect
+	p.push(&r.Obj)
 	switch {
 	case p.got(GTR):
 		r.Op = GTR
-		if p.got(AND) {
-			p.want(WORD)
-			r.Obj = litWord("&" + p.lval)
-		} else {
-			p.want(WORD)
-			r.Obj = litWord(p.lval)
-		}
+		p.got(AND) // TODO: don't ignore the &
+		p.word()
 	case p.got(SHR):
 		r.Op = SHR
-		p.want(WORD)
-		r.Obj = litWord(p.lval)
+		p.word()
 	case p.got(LSS):
 		r.Op = LSS
-		p.want(WORD)
-		r.Obj = litWord(p.lval)
+		p.word()
 	default:
+		p.pop()
 		return false
 	}
-	p.add(r)
+	p.popAdd(r)
 	return true
 }
