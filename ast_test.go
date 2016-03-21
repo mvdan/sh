@@ -12,7 +12,7 @@ import (
 func lits(strs ...string) []Node {
 	l := make([]Node, 0, len(strs))
 	for _, s := range strs {
-		l = append(l, Lit{Val: s})
+		l = append(l, litWord(s))
 	}
 	return l
 }
@@ -224,10 +224,10 @@ var tests = []struct {
 		},
 		Command{
 			Args: []Node{
-				Lit{Val: "foo"},
-				Redirect{Op: GTR, Obj: Lit{Val: "a"}},
-				Redirect{Op: SHR, Obj: Lit{Val: "b"}},
-				Redirect{Op: LSS, Obj: Lit{Val: "c"}},
+				litWord("foo"),
+				Redirect{Op: GTR, Obj: litWord("a")},
+				Redirect{Op: SHR, Obj: litWord("b")},
+				Redirect{Op: LSS, Obj: litWord("c")},
 			},
 		},
 	},

@@ -178,6 +178,14 @@ func (f FuncDecl) String() string {
 	return fmt.Sprintf("%s() %s", f.Name, f.Body)
 }
 
+type Word struct {
+	Parts []Node
+}
+
+func (w Word) String() string {
+	return nodeJoin(w.Parts, "")
+}
+
 type Lit struct {
 	Val string
 }

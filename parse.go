@@ -405,6 +405,10 @@ func (p *parser) commands(stop ...Token) (count int) {
 	return
 }
 
+func litWord(val string) Word {
+	return Word{Parts: []Node{Lit{Val: val}}}
+}
+
 func (p *parser) wordList() (count int) {
 	var stop = [...]Token{SEMICOLON, '\n'}
 	for p.tok != EOF {
@@ -414,7 +418,7 @@ func (p *parser) wordList() (count int) {
 			}
 		}
 		p.want(WORD)
-		p.add(Lit{Val: p.lval})
+		p.add(litWord(p.lval))
 		count++
 	}
 	return
@@ -499,7 +503,7 @@ func (p *parser) command() {
 	case p.got(WORD):
 		var cmd Command
 		p.push(&cmd.Args)
-		p.add(Lit{Val: p.lval})
+		p.add(litWord(p.lval))
 		fpos := p.lpos
 		fval := p.lval
 		if p.got(LPAREN) {
@@ -520,7 +524,7 @@ func (p *parser) command() {
 		for p.tok != EOF {
 			switch {
 			case p.got(WORD):
-				p.add(Lit{Val: p.lval})
+				p.add(litWord(p.lval))
 			case p.got(LAND):
 				p.binaryExpr(LAND, cmd)
 				return
@@ -562,19 +566,19 @@ func (p *parser) gotRedirect() bool {
 		r.Op = GTR
 		if p.got(AND) {
 			p.want(WORD)
-			r.Obj = Lit{Val: "&" + p.lval}
+			r.Obj = litWord("&" + p.lval)
 		} else {
 			p.want(WORD)
-			r.Obj = Lit{Val: p.lval}
+			r.Obj = litWord(p.lval)
 		}
 	case p.got(SHR):
 		r.Op = SHR
 		p.want(WORD)
-		r.Obj = Lit{Val: p.lval}
+		r.Obj = litWord(p.lval)
 	case p.got(LSS):
 		r.Op = LSS
 		p.want(WORD)
-		r.Obj = Lit{Val: p.lval}
+		r.Obj = litWord(p.lval)
 	default:
 		return false
 	}
