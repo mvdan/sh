@@ -22,54 +22,54 @@ var tests = []struct {
 	want interface{}
 }{
 	{
-		ins:  []string{"", " ", "\n"},
-		want: nil,
+		[]string{"", " ", "\n"},
+		nil,
 	},
 	{
-		ins:  []string{"foo", "foo ", " foo"},
-		want: Command{Args: lits("foo")},
+		[]string{"foo", "foo ", " foo"},
+		Command{Args: lits("foo")},
 	},
 	{
-		ins:  []string{"# foo", "# foo\n"},
-		want: Comment{Text: " foo"},
+		[]string{"# foo", "# foo\n"},
+		Comment{Text: " foo"},
 	},
 	{
-		ins: []string{"foo; bar", "foo; bar;", "foo;bar;", "\nfoo\nbar\n"},
-		want: []Node{
+		[]string{"foo; bar", "foo; bar;", "foo;bar;", "\nfoo\nbar\n"},
+		[]Node{
 			Command{Args: lits("foo")},
 			Command{Args: lits("bar")},
 		},
 	},
 	{
-		ins:  []string{"foo a b", " foo  a  b ", "foo \\\n a b"},
-		want: Command{Args: lits("foo", "a", "b")},
+		[]string{"foo a b", " foo  a  b ", "foo \\\n a b"},
+		Command{Args: lits("foo", "a", "b")},
 	},
 	{
-		ins:  []string{"foobar", "foo\\\nbar"},
-		want: Command{Args: lits("foobar")},
+		[]string{"foobar", "foo\\\nbar"},
+		Command{Args: lits("foobar")},
 	},
 	{
-		ins:  []string{"foo'bar'"},
-		want: Command{Args: lits("foo'bar'")},
+		[]string{"foo'bar'"},
+		Command{Args: lits("foo'bar'")},
 	},
 	{
-		ins: []string{"( foo; )", "(foo;)", "(\nfoo\n)"},
-		want: Subshell{Stmts: []Node{
+		[]string{"( foo; )", "(foo;)", "(\nfoo\n)"},
+		Subshell{Stmts: []Node{
 			Command{Args: lits("foo")},
 		}},
 	},
 	{
-		ins: []string{"{ foo; }", "{foo;}", "{\nfoo\n}"},
-		want: Block{Stmts: []Node{
+		[]string{"{ foo; }", "{foo;}", "{\nfoo\n}"},
+		Block{Stmts: []Node{
 			Command{Args: lits("foo")},
 		}},
 	},
 	{
-		ins: []string{
+		[]string{
 			"if a; then b; fi",
 			"if a\nthen\nb\nfi",
 		},
-		want: IfStmt{
+		IfStmt{
 			Cond: Command{Args: lits("a")},
 			ThenStmts: []Node{
 				Command{Args: lits("b")},
@@ -77,11 +77,11 @@ var tests = []struct {
 		},
 	},
 	{
-		ins: []string{
+		[]string{
 			"if a; then b; else c; fi",
 			"if a\nthen b\nelse\nc\nfi",
 		},
-		want: IfStmt{
+		IfStmt{
 			Cond: Command{Args: lits("a")},
 			ThenStmts: []Node{
 				Command{Args: lits("b")},
@@ -92,11 +92,11 @@ var tests = []struct {
 		},
 	},
 	{
-		ins: []string{
+		[]string{
 			"if a; then a; elif b; then b; elif c; then c; else d; fi",
 			"if a\nthen a\nelif b\nthen b\nelif c\nthen c\nelse\nd\nfi",
 		},
-		want: IfStmt{
+		IfStmt{
 			Cond: Command{Args: lits("a")},
 			ThenStmts: []Node{
 				Command{Args: lits("a")},
@@ -117,8 +117,8 @@ var tests = []struct {
 		},
 	},
 	{
-		ins: []string{"while a; do b; done", "while a\ndo\nb\ndone"},
-		want: WhileStmt{
+		[]string{"while a; do b; done", "while a\ndo\nb\ndone"},
+		WhileStmt{
 			Cond: Command{Args: lits("a")},
 			DoStmts: []Node{
 				Command{Args: lits("b")},
@@ -126,11 +126,11 @@ var tests = []struct {
 		},
 	},
 	{
-		ins: []string{
+		[]string{
 			"for i in 1 2 3; do echo $i; done",
 			"for i in 1 2 3\ndo echo $i\ndone",
 		},
-		want: ForStmt{
+		ForStmt{
 			Name:     Lit{Val: "i"},
 			WordList: lits("1", "2", "3"),
 			DoStmts: []Node{
@@ -139,40 +139,40 @@ var tests = []struct {
 		},
 	},
 	{
-		ins:  []string{`echo ' ' "foo bar"`},
-		want: Command{Args: lits("echo", "' '", `"foo bar"`)},
+		[]string{`echo ' ' "foo bar"`},
+		Command{Args: lits("echo", "' '", `"foo bar"`)},
 	},
 	{
-		ins:  []string{`"foo \" bar"`},
-		want: Command{Args: lits(`"foo \" bar"`)},
+		[]string{`"foo \" bar"`},
+		Command{Args: lits(`"foo \" bar"`)},
 	},
 	{
-		ins:  []string{`foo \" bar`},
-		want: Command{Args: lits(`foo`, `\"`, `bar`)},
+		[]string{`foo \" bar`},
+		Command{Args: lits(`foo`, `\"`, `bar`)},
 	},
 	{
-		ins:  []string{"$a ${b} s{s s=s"},
-		want: Command{Args: lits("$a", "${b}", "s{s", "s=s")},
+		[]string{"$a ${b} s{s s=s"},
+		Command{Args: lits("$a", "${b}", "s{s", "s=s")},
 	},
 	{
-		ins: []string{"foo && bar", "foo&&bar", "foo &&\nbar"},
-		want: BinaryExpr{
+		[]string{"foo && bar", "foo&&bar", "foo &&\nbar"},
+		BinaryExpr{
 			Op: LAND,
 			X:  Command{Args: lits("foo")},
 			Y:  Command{Args: lits("bar")},
 		},
 	},
 	{
-		ins: []string{"foo || bar", "foo||bar", "foo ||\nbar"},
-		want: BinaryExpr{
+		[]string{"foo || bar", "foo||bar", "foo ||\nbar"},
+		BinaryExpr{
 			Op: LOR,
 			X:  Command{Args: lits("foo")},
 			Y:  Command{Args: lits("bar")},
 		},
 	},
 	{
-		ins: []string{"foo && bar || else"},
-		want: BinaryExpr{
+		[]string{"foo && bar || else"},
+		BinaryExpr{
 			Op: LAND,
 			X:  Command{Args: lits("foo")},
 			Y: BinaryExpr{
@@ -183,16 +183,16 @@ var tests = []struct {
 		},
 	},
 	{
-		ins: []string{"foo | bar", "foo|bar"},
-		want: BinaryExpr{
+		[]string{"foo | bar", "foo|bar"},
+		BinaryExpr{
 			Op: OR,
 			X:  Command{Args: lits("foo")},
 			Y:  Command{Args: lits("bar")},
 		},
 	},
 	{
-		ins: []string{"foo | bar | extra"},
-		want: BinaryExpr{
+		[]string{"foo | bar | extra"},
+		BinaryExpr{
 			Op: OR,
 			X:  Command{Args: lits("foo")},
 			Y: BinaryExpr{
@@ -203,12 +203,12 @@ var tests = []struct {
 		},
 	},
 	{
-		ins: []string{
+		[]string{
 			"foo() { a; b; }",
 			"foo() {\na\nb\n}",
 			"foo ( ) {\na\nb\n}",
 		},
-		want: FuncDecl{
+		FuncDecl{
 			Name: Lit{Val: "foo"},
 			Body: Block{Stmts: []Node{
 				Command{Args: lits("a")},
@@ -217,12 +217,12 @@ var tests = []struct {
 		},
 	},
 	{
-		ins: []string{
+		[]string{
 			"foo >a >>b <c",
 			"foo > a >> b < c",
 			"foo>a >>b<c",
 		},
-		want: Command{
+		Command{
 			Args: []Node{
 				Lit{Val: "foo"},
 				Redirect{Op: GTR, Obj: Lit{Val: "a"}},
@@ -232,43 +232,43 @@ var tests = []struct {
 		},
 	},
 	{
-		ins: []string{"foo &", "foo&"},
-		want: Command{
+		[]string{"foo &", "foo&"},
+		Command{
 			Args:       lits("foo"),
 			Background: true,
 		},
 	},
 	{
-		ins:  []string{"echo foo#bar"},
-		want: Command{Args: lits("echo", "foo#bar")},
+		[]string{"echo foo#bar"},
+		Command{Args: lits("echo", "foo#bar")},
 	},
 	{
-		ins:  []string{"echo `foo bar`"},
-		want: Command{Args: lits("echo", "`foo bar`")},
+		[]string{"echo `foo bar`"},
+		Command{Args: lits("echo", "`foo bar`")},
 	},
 	{
-		ins:  []string{"echo $(foo bar)"},
-		want: Command{Args: lits("echo", "$(foo bar)")},
+		[]string{"echo $(foo bar)"},
+		Command{Args: lits("echo", "$(foo bar)")},
 	},
 	{
-		ins:  []string{"echo ${foo bar}"},
-		want: Command{Args: lits("echo", "${foo bar}")},
+		[]string{"echo ${foo bar}"},
+		Command{Args: lits("echo", "${foo bar}")},
 	},
 	{
-		ins:  []string{"echo foo$bar"},
-		want: Command{Args: lits("echo", "foo$bar")},
+		[]string{"echo foo$bar"},
+		Command{Args: lits("echo", "foo$bar")},
 	},
 	{
-		ins:  []string{"echo foo$(bar bar)"},
-		want: Command{Args: lits("echo", "foo$(bar bar)")},
+		[]string{"echo foo$(bar bar)"},
+		Command{Args: lits("echo", "foo$(bar bar)")},
 	},
 	{
-		ins:  []string{"echo foo${bar bar}"},
-		want: Command{Args: lits("echo", "foo${bar bar}")},
+		[]string{"echo foo${bar bar}"},
+		Command{Args: lits("echo", "foo${bar bar}")},
 	},
 	{
-		ins:  []string{"echo 'foo${bar'"},
-		want: Command{Args: lits("echo", "'foo${bar'")},
+		[]string{"echo 'foo${bar'"},
+		Command{Args: lits("echo", "'foo${bar'")},
 	},
 }
 
