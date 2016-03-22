@@ -31,6 +31,8 @@ type parser struct {
 
 	err error
 
+	spaced bool
+
 	ltok Token
 	tok  Token
 	lval string
@@ -61,6 +63,7 @@ var reserved = map[rune]bool{
 	';':  true,
 	'(':  true,
 	')':  true,
+	'$':  true,
 }
 
 // like reserved, but these are only reserved if at the start of a word
@@ -130,12 +133,17 @@ func (p *parser) readOnly(wanted rune) bool {
 
 func (p *parser) next() {
 	p.lpos = p.pos
-	r := ' '
-	for space[r] {
+	var r rune
+	p.spaced = false
+	for {
 		var err error
 		if r, err = p.readRune(); err != nil {
 			return
 		}
+		if !space[r] {
+			break
+		}
+		p.spaced = true
 	}
 	p.pos = p.npos
 	p.pos.col--
@@ -169,17 +177,9 @@ runeLoop:
 				rs = append(rs, '\\', r)
 			}
 			appendRune = false
-		case q != '\'' && r == '$': // $ continuation
-			rs = append(rs, '$')
-			switch {
-			case p.readOnly('{'):
-				rs = append(rs, '{')
-				rs = append(rs, p.readIncluding('}')...)
-			case p.readOnly('('):
-				rs = append(rs, '(')
-				rs = append(rs, p.readIncluding(')')...)
-			}
-			appendRune = false
+		case q != '\'' && r == '$': // end of lit
+			p.unreadRune()
+			break runeLoop
 		case q != 0: // rest of quoted cases
 			if r == q {
 				q = 0
@@ -224,6 +224,8 @@ func (p *parser) doToken(r rune) Token {
 		return RPAREN
 	case '}':
 		return RBRACE
+	case '$':
+		return EXP
 	case ';':
 		if p.readOnly(';') {
 			return DSEMICOLON
@@ -254,31 +256,31 @@ func (p *parser) setEOF() {
 	p.advance(EOF, "EOF")
 }
 
-func (p *parser) readUntil(delim rune) ([]rune, bool) {
+func (p *parser) readUntil(delim rune) (string, bool) {
 	var rs []rune
 	for {
 		r, err := p.readRune()
 		if err != nil {
-			return rs, false
+			return string(rs), false
 		}
 		if r == delim {
-			return rs, true
+			return string(rs), true
 		}
 		rs = append(rs, r)
 	}
 }
 
-func (p *parser) readIncluding(delim rune) []rune {
-	rs, found := p.readUntil(delim)
+func (p *parser) readIncluding(delim rune) string {
+	s, found := p.readUntil(delim)
 	if !found {
 		p.errWanted(Token(delim))
 	}
-	return append(rs, delim)
+	return s + string(delim)
 }
 
 func (p *parser) readLine() string {
-	rs, _ := p.readUntil('\n')
-	return string(rs)
+	s, _ := p.readUntil('\n')
+	return s
 }
 
 // We can't simply have these as tokens as they can sometimes be valid
@@ -389,17 +391,21 @@ func (p *parser) popAdd(n Node) {
 }
 
 func (p *parser) program() {
-	p.commands()
+	p.commands(false)
 }
 
-func (p *parser) commands(stop ...Token) (count int) {
+func (p *parser) commands(propagate bool, stop ...Token) (count int) {
+	var cmdStop []Token
+	if propagate {
+		cmdStop = stop
+	}
 	for p.tok != EOF {
 		for _, tok := range stop {
 			if p.peek(tok) {
 				return
 			}
 		}
-		p.command()
+		p.command(cmdStop...)
 		count++
 	}
 	return
@@ -410,12 +416,39 @@ func litWord(val string) Word {
 }
 
 func (p *parser) word() {
-	switch {
-	case p.got(LIT):
-		p.add(litWord(p.lval))
-	default:
+	var w Word
+	p.push(&w.Parts)
+parts:
+	for p.tok != EOF {
+		if len(w.Parts) > 0 && p.spaced {
+			break parts
+		}
+		switch {
+		case p.got(LIT):
+			p.add(Lit{Val: p.lval})
+		case p.got(EXP):
+			switch {
+			case p.peek(LBRACE):
+				p.add(Lit{Val: "${" + p.readIncluding('}')})
+				p.next()
+			case p.got(LPAREN):
+				var cs CmdSubst
+				p.push(&cs.Stmts)
+				p.commands(true, RPAREN)
+				p.popAdd(cs)
+				p.want(RPAREN)
+			default:
+				p.want(LIT)
+				p.add(Lit{Val: "$" + p.lval})
+			}
+		default:
+			break parts
+		}
+	}
+	if len(w.Parts) == 0 {
 		p.errWantedStr("word")
 	}
+	p.popAdd(w)
 }
 
 func (p *parser) wordList() (count int) {
@@ -432,7 +465,7 @@ func (p *parser) wordList() (count int) {
 	return
 }
 
-func (p *parser) command() {
+func (p *parser) command(stop ...Token) {
 	switch {
 	case p.got(COMMENT):
 		p.add(Comment{
@@ -445,7 +478,7 @@ func (p *parser) command() {
 	case p.got(LPAREN):
 		var sub Subshell
 		p.push(&sub.Stmts)
-		if p.commands(RPAREN) == 0 {
+		if p.commands(true, RPAREN) == 0 {
 			p.errWantedStr("command")
 		}
 		p.want(RPAREN)
@@ -453,7 +486,7 @@ func (p *parser) command() {
 	case p.got(LBRACE):
 		var bl Block
 		p.push(&bl.Stmts)
-		if p.commands(RBRACE) == 0 {
+		if p.commands(false, RBRACE) == 0 {
 			p.errWantedStr("command")
 		}
 		p.want(RBRACE)
@@ -465,7 +498,7 @@ func (p *parser) command() {
 		p.pop()
 		p.want(THEN)
 		p.push(&ifs.ThenStmts)
-		p.commands(FI, ELIF, ELSE)
+		p.commands(false, FI, ELIF, ELSE)
 		p.pop()
 		p.push(&ifs.Elifs)
 		for p.got(ELIF) {
@@ -475,13 +508,13 @@ func (p *parser) command() {
 			p.pop()
 			p.want(THEN)
 			p.push(&elf.ThenStmts)
-			p.commands(FI, ELIF, ELSE)
+			p.commands(false, FI, ELIF, ELSE)
 			p.popAdd(elf)
 		}
 		if p.got(ELSE) {
 			p.pop()
 			p.push(&ifs.ElseStmts)
-			p.commands(FI)
+			p.commands(false, FI)
 		}
 		p.want(FI)
 		p.popAdd(ifs)
@@ -492,7 +525,7 @@ func (p *parser) command() {
 		p.pop()
 		p.want(DO)
 		p.push(&whl.DoStmts)
-		p.commands(DONE)
+		p.commands(false, DONE)
 		p.want(DONE)
 		p.popAdd(whl)
 	case p.got(FOR):
@@ -505,13 +538,13 @@ func (p *parser) command() {
 		p.pop()
 		p.want(DO)
 		p.push(&fr.DoStmts)
-		p.commands(DONE)
+		p.commands(false, DONE)
 		p.want(DONE)
 		p.popAdd(fr)
-	case p.got(LIT):
+	case p.peek(LIT), p.peek(EXP):
 		var cmd Command
 		p.push(&cmd.Args)
-		p.add(litWord(p.lval))
+		p.word()
 		fpos := p.lpos
 		fval := p.lval
 		if p.got(LPAREN) {
@@ -530,9 +563,14 @@ func (p *parser) command() {
 		}
 	args:
 		for p.tok != EOF {
+			for _, tok := range stop {
+				if p.peek(tok) {
+					break args
+				}
+			}
 			switch {
-			case p.got(LIT):
-				p.add(litWord(p.lval))
+			case p.peek(LIT), p.peek(EXP):
+				p.word()
 			case p.got(LAND):
 				p.binaryExpr(LAND, cmd)
 				return

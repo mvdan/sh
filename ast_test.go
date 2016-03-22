@@ -248,7 +248,14 @@ var tests = []struct {
 	},
 	{
 		[]string{"echo $(foo bar)"},
-		Command{Args: lits("echo", "$(foo bar)")},
+		Command{Args: []Node{
+			litWord("echo"),
+			Word{Parts: []Node{
+				CmdSubst{Stmts: []Node{
+					Command{Args: lits("foo", "bar")},
+				}},
+			}},
+		}},
 	},
 	{
 		[]string{"echo ${foo bar}"},
@@ -256,15 +263,35 @@ var tests = []struct {
 	},
 	{
 		[]string{"echo foo$bar"},
-		Command{Args: lits("echo", "foo$bar")},
+		Command{Args: []Node{
+			litWord("echo"),
+			Word{Parts: []Node{
+				Lit{Val: "foo"},
+				Lit{Val: "$bar"},
+			}},
+		}},
 	},
 	{
 		[]string{"echo foo$(bar bar)"},
-		Command{Args: lits("echo", "foo$(bar bar)")},
+		Command{Args: []Node{
+			litWord("echo"),
+			Word{Parts: []Node{
+				Lit{Val: "foo"},
+				CmdSubst{Stmts: []Node{
+					Command{Args: lits("bar", "bar")},
+				}},
+			}},
+		}},
 	},
 	{
 		[]string{"echo foo${bar bar}"},
-		Command{Args: lits("echo", "foo${bar bar}")},
+		Command{Args: []Node{
+			litWord("echo"),
+			Word{Parts: []Node{
+				Lit{Val: "foo"},
+				Lit{Val: "${bar bar}"},
+			}},
+		}},
 	},
 	{
 		[]string{"echo 'foo${bar'"},

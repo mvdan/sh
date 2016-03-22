@@ -182,3 +182,11 @@ type Lit struct {
 func (l Lit) String() string {
 	return l.Val
 }
+
+type CmdSubst struct {
+	Stmts []Node
+}
+
+func (c CmdSubst) String() string {
+	return "$(" + stmtJoin(c.Stmts) + ")"
+}

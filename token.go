@@ -27,6 +27,7 @@ const (
 	OR   // |
 	LOR  // ||
 
+	EXP    // $
 	LPAREN // (
 	LBRACE // {
 
@@ -62,6 +63,7 @@ var tokNames = map[Token]string{
 	OR:   "|",
 	LOR:  "||",
 
+	EXP:    ")",
 	LPAREN: "(",
 	LBRACE: "{",
 
