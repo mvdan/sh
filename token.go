@@ -9,7 +9,7 @@ const (
 	ILLEGAL Token = -iota
 	EOF
 	COMMENT
-	WORD
+	LIT
 
 	IF
 	THEN
@@ -44,7 +44,7 @@ var tokNames = map[Token]string{
 	ILLEGAL: `ILLEGAL`,
 	EOF:     `EOF`,
 	COMMENT: `comment`,
-	WORD:    `word`,
+	LIT:     `word`, // TODO: fix inconsistency
 
 	IF:    "if",
 	THEN:  "then",

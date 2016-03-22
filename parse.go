@@ -152,11 +152,11 @@ func (p *parser) next() {
 			p.advance(p.doToken(r), "")
 		}
 	default:
-		p.advance(WORD, p.readWord(r))
+		p.advance(LIT, p.readLit(r))
 	}
 }
 
-func (p *parser) readWord(r rune) string {
+func (p *parser) readLit(r rune) string {
 	var rs []rune
 	var q rune
 runeLoop:
@@ -297,7 +297,7 @@ var reservedWords = map[Token]string{
 }
 
 func (p *parser) peek(tok Token) bool {
-	return p.tok == tok || (p.tok == WORD && p.val == reservedWords[tok])
+	return p.tok == tok || (p.tok == LIT && p.val == reservedWords[tok])
 }
 
 func (p *parser) got(tok Token) bool {
@@ -410,8 +410,12 @@ func litWord(val string) Word {
 }
 
 func (p *parser) word() {
-	p.want(WORD)
-	p.add(litWord(p.lval))
+	switch {
+	case p.got(LIT):
+		p.add(litWord(p.lval))
+	default:
+		p.errWantedStr("word")
+	}
 }
 
 func (p *parser) wordList() (count int) {
@@ -493,7 +497,7 @@ func (p *parser) command() {
 		p.popAdd(whl)
 	case p.got(FOR):
 		var fr ForStmt
-		p.want(WORD)
+		p.want(LIT)
 		fr.Name = Lit{Val: p.lval}
 		p.want(IN)
 		p.push(&fr.WordList)
@@ -504,7 +508,7 @@ func (p *parser) command() {
 		p.commands(DONE)
 		p.want(DONE)
 		p.popAdd(fr)
-	case p.got(WORD):
+	case p.got(LIT):
 		var cmd Command
 		p.push(&cmd.Args)
 		p.add(litWord(p.lval))
@@ -527,7 +531,7 @@ func (p *parser) command() {
 	args:
 		for p.tok != EOF {
 			switch {
-			case p.got(WORD):
+			case p.got(LIT):
 				p.add(litWord(p.lval))
 			case p.got(LAND):
 				p.binaryExpr(LAND, cmd)
