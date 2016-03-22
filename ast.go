@@ -47,15 +47,11 @@ type Command struct {
 }
 
 func (c Command) String() string {
-	nodes := make([]Node, 0, len(c.Args))
-	for _, l := range c.Args {
-		nodes = append(nodes, l)
-	}
 	suffix := ""
 	if c.Background {
 		suffix += " &"
 	}
-	return wordJoin(nodes) + suffix
+	return wordJoin(c.Args) + suffix
 }
 
 type Redirect struct {
