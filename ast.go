@@ -36,6 +36,10 @@ func stmtJoin(ns []Node) string {
 	return nodeJoin(ns, "; ")
 }
 
+func wordJoin(ns []Node) string {
+	return nodeJoin(ns, " ")
+}
+
 type Command struct {
 	Args []Node
 
@@ -51,7 +55,7 @@ func (c Command) String() string {
 	if c.Background {
 		suffix += " &"
 	}
-	return nodeJoin(nodes, " ") + suffix
+	return wordJoin(nodes) + suffix
 }
 
 type Redirect struct {
@@ -145,7 +149,7 @@ func (w ForStmt) String() string {
 	io.WriteString(&b, "for ")
 	io.WriteString(&b, w.Name.String())
 	io.WriteString(&b, " in ")
-	io.WriteString(&b, nodeJoin(w.WordList, " "))
+	io.WriteString(&b, wordJoin(w.WordList))
 	io.WriteString(&b, "; do ")
 	io.WriteString(&b, stmtJoin(w.DoStmts))
 	io.WriteString(&b, "; done")
