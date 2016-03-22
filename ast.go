@@ -111,12 +111,7 @@ type Elif struct {
 }
 
 func (e Elif) String() string {
-	var b bytes.Buffer
-	io.WriteString(&b, "elif ")
-	io.WriteString(&b, e.Cond.String())
-	io.WriteString(&b, "; then ")
-	io.WriteString(&b, stmtJoin(e.ThenStmts))
-	return b.String()
+	return "elif " + e.Cond.String() + "; then " + stmtJoin(e.ThenStmts)
 }
 
 type WhileStmt struct {
@@ -125,13 +120,7 @@ type WhileStmt struct {
 }
 
 func (w WhileStmt) String() string {
-	var b bytes.Buffer
-	io.WriteString(&b, "while ")
-	io.WriteString(&b, w.Cond.String())
-	io.WriteString(&b, "; do ")
-	io.WriteString(&b, stmtJoin(w.DoStmts))
-	io.WriteString(&b, "; done")
-	return b.String()
+	return "while " + w.Cond.String() + "; do " + stmtJoin(w.DoStmts) + "; done"
 }
 
 type ForStmt struct {
