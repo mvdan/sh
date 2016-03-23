@@ -157,7 +157,7 @@ func (p *parser) next() {
 		case '\n':
 			p.advance('\n', "")
 		default:
-			p.advance(p.doToken(r), "")
+			p.advance(doToken(r, p.readOnly), "")
 		}
 	default:
 		p.advance(LIT, p.readLit(r))
@@ -202,45 +202,6 @@ runeLoop:
 		}
 	}
 	return string(rs)
-}
-
-func (p *parser) doToken(r rune) Token {
-	switch r {
-	case '&':
-		if p.readOnly('&') {
-			return LAND
-		}
-		return AND
-	case '|':
-		if p.readOnly('|') {
-			return LOR
-		}
-		return OR
-	case '(':
-		return LPAREN
-	case '{':
-		return LBRACE
-	case ')':
-		return RPAREN
-	case '}':
-		return RBRACE
-	case '$':
-		return EXP
-	case ';':
-		if p.readOnly(';') {
-			return DSEMICOLON
-		}
-		return SEMICOLON
-	case '<':
-		return LSS
-	case '>':
-		if p.readOnly('>') {
-			return SHR
-		}
-		return GTR
-	default:
-		return Token(r)
-	}
 }
 
 func (p *parser) advance(tok Token, val string) {

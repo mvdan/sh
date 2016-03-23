@@ -83,3 +83,42 @@ func (t Token) String() string {
 	}
 	return string(t)
 }
+
+func doToken(r rune, readOnly func(rune) bool) Token {
+	switch r {
+	case '&':
+		if readOnly('&') {
+			return LAND
+		}
+		return AND
+	case '|':
+		if readOnly('|') {
+			return LOR
+		}
+		return OR
+	case '(':
+		return LPAREN
+	case '{':
+		return LBRACE
+	case ')':
+		return RPAREN
+	case '}':
+		return RBRACE
+	case '$':
+		return EXP
+	case ';':
+		if readOnly(';') {
+			return DSEMICOLON
+		}
+		return SEMICOLON
+	case '<':
+		return LSS
+	case '>':
+		if readOnly('>') {
+			return SHR
+		}
+		return GTR
+	default:
+		return Token(r)
+	}
+}
