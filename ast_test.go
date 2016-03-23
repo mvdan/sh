@@ -273,6 +273,27 @@ var tests = []struct {
 		}},
 	},
 	{
+		[]string{`echo "$foo"`},
+		Command{Args: []Node{
+			litWord("echo"),
+			Word{Parts: []Node{
+				Lit{Val: `"`},
+				Lit{Val: `$foo"`},
+			}},
+		}},
+	},
+	{
+		[]string{`echo "${foo}"`},
+		Command{Args: []Node{
+			litWord("echo"),
+			Word{Parts: []Node{
+				Lit{Val: `"`},
+				ParamExp{Text: "foo"},
+				Lit{Val: `"`},
+			}},
+		}},
+	},
+	{
 		[]string{"echo ${foo bar}"},
 		Command{Args: []Node{
 			litWord("echo"),

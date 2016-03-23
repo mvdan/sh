@@ -32,6 +32,7 @@ type parser struct {
 	err error
 
 	spaced bool
+	quote  rune
 
 	ltok Token
 	tok  Token
@@ -166,26 +167,25 @@ func (p *parser) next() {
 
 func (p *parser) readLit(r rune) string {
 	var rs []rune
-	var q rune
 runeLoop:
 	for {
 		appendRune := true
 		switch {
-		case q != '\'' && r == '\\': // escaped rune
+		case p.quote != '\'' && r == '\\': // escaped rune
 			r, _ = p.readRune()
 			if r != '\n' {
 				rs = append(rs, '\\', r)
 			}
 			appendRune = false
-		case q != '\'' && r == '$': // end of lit
+		case p.quote != '\'' && r == '$': // end of lit
 			p.unreadRune()
 			break runeLoop
-		case q != 0: // rest of quoted cases
-			if r == q {
-				q = 0
+		case p.quote != 0: // rest of quoted cases
+			if r == p.quote {
+				p.quote = 0
 			}
 		case quote[r]: // start of a quoted string
-			q = r
+			p.quote = r
 		case reserved[r] || space[r]: // end of word
 			p.unreadRune()
 			break runeLoop
@@ -195,8 +195,8 @@ runeLoop:
 		}
 		var err error
 		if r, err = p.readRune(); err != nil {
-			if q != 0 {
-				p.errWanted(Token(q))
+			if p.quote != 0 {
+				p.errWanted(Token(p.quote))
 			}
 			break
 		}
