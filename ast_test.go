@@ -267,6 +267,15 @@ var tests = []struct {
 		}},
 	},
 	{
+		[]string{"echo $(($x-1))"},
+		Command{Args: []Node{
+			litWord("echo"),
+			Word{Parts: []Node{
+				ArithmExp{Text: "$x-1"},
+			}},
+		}},
+	},
+	{
 		[]string{"echo foo$bar"},
 		Command{Args: []Node{
 			litWord("echo"),

@@ -400,6 +400,9 @@ parts:
 			case p.peek(LBRACE):
 				p.add(ParamExp{Text: p.readUntilWant(RBRACE)})
 				p.next()
+			case p.peek(DLPAREN):
+				p.add(ArithmExp{Text: p.readUntilWant(DRPAREN)})
+				p.next()
 			case p.got(LPAREN):
 				var cs CmdSubst
 				p.push(&cs.Stmts)

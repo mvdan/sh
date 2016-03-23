@@ -27,12 +27,14 @@ const (
 	OR   // |
 	LOR  // ||
 
-	EXP    // $
-	LPAREN // (
-	LBRACE // {
+	EXP     // $
+	LPAREN  // (
+	LBRACE  // {
+	DLPAREN // ((
 
 	RPAREN     // )
 	RBRACE     // }
+	DRPAREN    // ))
 	SEMICOLON  // ;
 	DSEMICOLON // ;;
 
@@ -63,12 +65,14 @@ var tokNames = map[Token]string{
 	OR:   "|",
 	LOR:  "||",
 
-	EXP:    ")",
-	LPAREN: "(",
-	LBRACE: "{",
+	EXP:     ")",
+	LPAREN:  "(",
+	LBRACE:  "{",
+	DLPAREN: "((",
 
 	RPAREN:     ")",
 	RBRACE:     "}",
+	DRPAREN:    "))",
 	SEMICOLON:  ";",
 	DSEMICOLON: ";;",
 
@@ -97,10 +101,16 @@ func doToken(r rune, readOnly func(rune) bool) Token {
 		}
 		return OR
 	case '(':
+		if readOnly('(') {
+			return DLPAREN
+		}
 		return LPAREN
 	case '{':
 		return LBRACE
 	case ')':
+		if readOnly(')') {
+			return DRPAREN
+		}
 		return RPAREN
 	case '}':
 		return RBRACE

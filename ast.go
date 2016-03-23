@@ -198,3 +198,11 @@ type ParamExp struct {
 func (p ParamExp) String() string {
 	return "${" + p.Text + "}"
 }
+
+type ArithmExp struct {
+	Text string
+}
+
+func (a ArithmExp) String() string {
+	return "$((" + a.Text + "))"
+}

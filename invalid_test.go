@@ -213,6 +213,10 @@ func TestParseErr(t *testing.T) {
 			`1:11: unexpected token EOF - wanted )`,
 		},
 		{
+			"echo $((foo",
+			`1:12: unexpected token EOF - wanted ))`,
+		},
+		{
 			"echo ${foo",
 			`1:11: unexpected token EOF - wanted }`,
 		},
