@@ -258,6 +258,21 @@ var tests = []struct {
 		}},
 	},
 	{
+		[]string{"echo $(foo | bar)"},
+		Command{Args: []Node{
+			litWord("echo"),
+			Word{Parts: []Node{
+				CmdSubst{Stmts: []Node{
+					BinaryExpr{
+						Op: OR,
+						X:  Command{Args: lits("foo")},
+						Y:  Command{Args: lits("bar")},
+					},
+				}},
+			}},
+		}},
+	},
+	{
 		[]string{"echo ${foo bar}"},
 		Command{Args: []Node{
 			litWord("echo"),

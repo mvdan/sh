@@ -445,7 +445,7 @@ func (p *parser) command(stop ...Token) {
 		})
 	case p.got('\n'), p.got(COMMENT):
 		if p.tok != EOF {
-			p.command()
+			p.command(stop...)
 		}
 	case p.got(LPAREN):
 		var sub Subshell
@@ -466,7 +466,7 @@ func (p *parser) command(stop ...Token) {
 	case p.got(IF):
 		var ifs IfStmt
 		p.push(&ifs.Cond)
-		p.command()
+		p.command(stop...)
 		p.pop()
 		p.want(THEN)
 		p.push(&ifs.ThenStmts)
@@ -476,7 +476,7 @@ func (p *parser) command(stop ...Token) {
 		for p.got(ELIF) {
 			var elf Elif
 			p.push(&elf.Cond)
-			p.command()
+			p.command(stop...)
 			p.pop()
 			p.want(THEN)
 			p.push(&elf.ThenStmts)
@@ -493,7 +493,7 @@ func (p *parser) command(stop ...Token) {
 	case p.got(WHILE):
 		var whl WhileStmt
 		p.push(&whl.Cond)
-		p.command()
+		p.command(stop...)
 		p.pop()
 		p.want(DO)
 		p.push(&whl.DoStmts)
@@ -528,7 +528,7 @@ func (p *parser) command(stop ...Token) {
 				Name: Lit{Val: fval},
 			}
 			p.push(&fun.Body)
-			p.command()
+			p.command(stop...)
 			p.pop()
 			p.popAdd(fun)
 			return
@@ -544,13 +544,13 @@ func (p *parser) command(stop ...Token) {
 			case p.peek(LIT), p.peek(EXP):
 				p.word()
 			case p.got(LAND):
-				p.binaryExpr(LAND, cmd)
+				p.binaryExpr(LAND, cmd, stop...)
 				return
 			case p.got(OR):
-				p.binaryExpr(OR, cmd)
+				p.binaryExpr(OR, cmd, stop...)
 				return
 			case p.got(LOR):
-				p.binaryExpr(LOR, cmd)
+				p.binaryExpr(LOR, cmd, stop...)
 				return
 			case p.gotRedirect():
 			case p.got(AND):
@@ -568,10 +568,10 @@ func (p *parser) command(stop ...Token) {
 	}
 }
 
-func (p *parser) binaryExpr(op Token, left Node) {
+func (p *parser) binaryExpr(op Token, left Node, stop ...Token) {
 	b := BinaryExpr{Op: op}
 	p.push(&b.Y)
-	p.command()
+	p.command(stop...)
 	p.pop()
 	b.X = left
 	p.popAdd(b)
