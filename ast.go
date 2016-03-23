@@ -190,3 +190,11 @@ type CmdSubst struct {
 func (c CmdSubst) String() string {
 	return "$(" + stmtJoin(c.Stmts) + ")"
 }
+
+type ParamExp struct {
+	Text string
+}
+
+func (p ParamExp) String() string {
+	return "${" + p.Text + "}"
+}

@@ -231,14 +231,6 @@ func (p *parser) readUntil(delim rune) (string, bool) {
 	}
 }
 
-func (p *parser) readIncluding(delim rune) string {
-	s, found := p.readUntil(delim)
-	if !found {
-		p.errWanted(Token(delim))
-	}
-	return s + string(delim)
-}
-
 func (p *parser) readLine() string {
 	s, _ := p.readUntil('\n')
 	return s
@@ -398,7 +390,11 @@ parts:
 		case p.got(EXP):
 			switch {
 			case p.peek(LBRACE):
-				p.add(Lit{Val: "${" + p.readIncluding('}')})
+				s, found := p.readUntil('}')
+				if !found {
+					p.errWanted(RBRACE)
+				}
+				p.add(ParamExp{Text: s})
 				p.next()
 			case p.got(LPAREN):
 				var cs CmdSubst

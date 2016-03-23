@@ -151,8 +151,8 @@ var tests = []struct {
 		Command{Args: lits(`foo`, `\"`, `bar`)},
 	},
 	{
-		[]string{"$a ${b} s{s s=s"},
-		Command{Args: lits("$a", "${b}", "s{s", "s=s")},
+		[]string{"$a s{s s=s"},
+		Command{Args: lits("$a", "s{s", "s=s")},
 	},
 	{
 		[]string{"foo && bar", "foo&&bar", "foo &&\nbar"},
@@ -259,7 +259,12 @@ var tests = []struct {
 	},
 	{
 		[]string{"echo ${foo bar}"},
-		Command{Args: lits("echo", "${foo bar}")},
+		Command{Args: []Node{
+			litWord("echo"),
+			Word{Parts: []Node{
+				ParamExp{Text: "foo bar"},
+			}},
+		}},
 	},
 	{
 		[]string{"echo foo$bar"},
@@ -289,7 +294,7 @@ var tests = []struct {
 			litWord("echo"),
 			Word{Parts: []Node{
 				Lit{Val: "foo"},
-				Lit{Val: "${bar bar}"},
+				ParamExp{Text: "bar bar"},
 			}},
 		}},
 	},
