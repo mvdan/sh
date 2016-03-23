@@ -225,9 +225,9 @@ var tests = []struct {
 		Command{
 			Args: []Node{
 				litWord("foo"),
-				Redirect{Op: GTR, Obj: litWord("a")},
-				Redirect{Op: SHR, Obj: litWord("b")},
-				Redirect{Op: LSS, Obj: litWord("c")},
+				Redirect{Op: RDROUT, Obj: litWord("a")},
+				Redirect{Op: APPEND, Obj: litWord("b")},
+				Redirect{Op: RDRIN, Obj: litWord("c")},
 			},
 		},
 	},

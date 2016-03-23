@@ -36,9 +36,9 @@ const (
 	SEMICOLON  // ;
 	DSEMICOLON // ;;
 
-	LSS // <
-	GTR // >
-	SHR // >>
+	RDRIN  // <
+	RDROUT // >
+	APPEND // >>
 )
 
 var tokNames = map[Token]string{
@@ -72,9 +72,9 @@ var tokNames = map[Token]string{
 	SEMICOLON:  ";",
 	DSEMICOLON: ";;",
 
-	LSS: "<",
-	GTR: ">",
-	SHR: ">>",
+	RDRIN:  "<",
+	RDROUT: ">",
+	APPEND: ">>",
 }
 
 func (t Token) String() string {
@@ -112,12 +112,12 @@ func doToken(r rune, readOnly func(rune) bool) Token {
 		}
 		return SEMICOLON
 	case '<':
-		return LSS
+		return RDRIN
 	case '>':
 		if readOnly('>') {
-			return SHR
+			return APPEND
 		}
-		return GTR
+		return RDROUT
 	default:
 		return Token(r)
 	}

@@ -578,15 +578,14 @@ func (p *parser) gotRedirect() bool {
 	var r Redirect
 	p.push(&r.Obj)
 	switch {
-	case p.got(GTR):
-		r.Op = GTR
-		p.got(AND) // TODO: don't ignore the &
+	case p.got(RDROUT):
+		r.Op = RDROUT
 		p.word()
-	case p.got(SHR):
-		r.Op = SHR
+	case p.got(APPEND):
+		r.Op = APPEND
 		p.word()
-	case p.got(LSS):
-		r.Op = LSS
+	case p.got(RDRIN):
+		r.Op = RDRIN
 		p.word()
 	default:
 		p.pop()
