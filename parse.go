@@ -217,18 +217,26 @@ func (p *parser) setEOF() {
 	p.advance(EOF, "EOF")
 }
 
-func (p *parser) readUntil(delim rune) (string, bool) {
+func (p *parser) readUntil(tok Token) (string, bool) {
 	var rs []rune
 	for {
 		r, err := p.readRune()
 		if err != nil {
 			return string(rs), false
 		}
-		if r == delim {
+		if tok == doToken(r, p.readOnly) {
 			return string(rs), true
 		}
 		rs = append(rs, r)
 	}
+}
+
+func (p *parser) readUntilWant(tok Token) string {
+	s, found := p.readUntil(tok)
+	if !found {
+		p.errWanted(tok)
+	}
+	return s
 }
 
 func (p *parser) readLine() string {
@@ -390,11 +398,7 @@ parts:
 		case p.got(EXP):
 			switch {
 			case p.peek(LBRACE):
-				s, found := p.readUntil('}')
-				if !found {
-					p.errWanted(RBRACE)
-				}
-				p.add(ParamExp{Text: s})
+				p.add(ParamExp{Text: p.readUntilWant(RBRACE)})
 				p.next()
 			case p.got(LPAREN):
 				var cs CmdSubst
