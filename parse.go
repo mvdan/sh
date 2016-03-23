@@ -246,7 +246,7 @@ func (p *parser) readLine() string {
 
 // We can't simply have these as tokens as they can sometimes be valid
 // words, e.g. `echo if`.
-var reservedWords = map[Token]string{
+var reservedLits = map[Token]string{
 	IF:    "if",
 	THEN:  "then",
 	ELIF:  "elif",
@@ -260,7 +260,7 @@ var reservedWords = map[Token]string{
 }
 
 func (p *parser) peek(tok Token) bool {
-	return p.tok == tok || (p.tok == LIT && p.val == reservedWords[tok])
+	return p.tok == tok || (p.tok == LIT && p.val == reservedLits[tok])
 }
 
 func (p *parser) got(tok Token) bool {
