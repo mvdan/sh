@@ -352,10 +352,18 @@ func (p *parser) popAdd(n Node) {
 }
 
 func (p *parser) program() {
-	p.commands(false)
+	p.commands()
 }
 
-func (p *parser) commands(propagate bool, stop ...Token) (count int) {
+func (p *parser) commands(stop ...Token) int {
+	return p.commandsPropagating(false, stop...)
+}
+
+func (p *parser) commandsLimited(stop ...Token) int {
+	return p.commandsPropagating(true, stop...)
+}
+
+func (p *parser) commandsPropagating(propagate bool, stop ...Token) (count int) {
 	var cmdStop []Token
 	if propagate {
 		cmdStop = stop
@@ -395,7 +403,7 @@ parts:
 			case p.got(LPAREN):
 				var cs CmdSubst
 				p.push(&cs.Stmts)
-				p.commands(true, RPAREN)
+				p.commandsLimited(RPAREN)
 				p.popAdd(cs)
 				p.want(RPAREN)
 			default:
@@ -439,7 +447,7 @@ func (p *parser) command(stop ...Token) {
 	case p.got(LPAREN):
 		var sub Subshell
 		p.push(&sub.Stmts)
-		if p.commands(true, RPAREN) == 0 {
+		if p.commandsLimited(RPAREN) == 0 {
 			p.errWantedStr("command")
 		}
 		p.want(RPAREN)
@@ -447,7 +455,7 @@ func (p *parser) command(stop ...Token) {
 	case p.got(LBRACE):
 		var bl Block
 		p.push(&bl.Stmts)
-		if p.commands(false, RBRACE) == 0 {
+		if p.commands(RBRACE) == 0 {
 			p.errWantedStr("command")
 		}
 		p.want(RBRACE)
@@ -459,7 +467,7 @@ func (p *parser) command(stop ...Token) {
 		p.pop()
 		p.want(THEN)
 		p.push(&ifs.ThenStmts)
-		p.commands(false, FI, ELIF, ELSE)
+		p.commands(FI, ELIF, ELSE)
 		p.pop()
 		p.push(&ifs.Elifs)
 		for p.got(ELIF) {
@@ -469,13 +477,13 @@ func (p *parser) command(stop ...Token) {
 			p.pop()
 			p.want(THEN)
 			p.push(&elf.ThenStmts)
-			p.commands(false, FI, ELIF, ELSE)
+			p.commands(FI, ELIF, ELSE)
 			p.popAdd(elf)
 		}
 		if p.got(ELSE) {
 			p.pop()
 			p.push(&ifs.ElseStmts)
-			p.commands(false, FI)
+			p.commands(FI)
 		}
 		p.want(FI)
 		p.popAdd(ifs)
@@ -486,7 +494,7 @@ func (p *parser) command(stop ...Token) {
 		p.pop()
 		p.want(DO)
 		p.push(&whl.DoStmts)
-		p.commands(false, DONE)
+		p.commands(DONE)
 		p.want(DONE)
 		p.popAdd(whl)
 	case p.got(FOR):
@@ -499,7 +507,7 @@ func (p *parser) command(stop ...Token) {
 		p.pop()
 		p.want(DO)
 		p.push(&fr.DoStmts)
-		p.commands(false, DONE)
+		p.commands(DONE)
 		p.want(DONE)
 		p.popAdd(fr)
 	case p.peek(LIT), p.peek(EXP):
