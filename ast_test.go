@@ -57,7 +57,7 @@ var tests = []struct {
 		Command{Args: litWords("foo'bar'")},
 	},
 	{
-		[]string{"( foo; )", "(foo;)", "(\nfoo\n)"},
+		[]string{"(foo)", "(foo;)", "(\nfoo\n)"},
 		Subshell{Stmts: []Node{
 			Command{Args: litWords("foo")},
 		}},

@@ -68,7 +68,7 @@ type Subshell struct {
 }
 
 func (s Subshell) String() string {
-	return "( " + stmtJoin(s.Stmts) + "; )"
+	return "(" + stmtJoin(s.Stmts) + ")"
 }
 
 type Block struct {
