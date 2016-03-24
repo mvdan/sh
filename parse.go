@@ -579,10 +579,8 @@ func (p *parser) command(stop ...Token) {
 			case p.got(AND):
 				cmd.Background = true
 				fallthrough
-			case p.peek(SEMICOLON), p.peek('\n'):
-				break args
 			default:
-				p.errAfterStr("command")
+				break args
 			}
 		}
 		if simple {
