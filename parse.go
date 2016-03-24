@@ -411,6 +411,8 @@ func (p *parser) readParts() (count int) {
 			case p.peek(LBRACE):
 				p.add(ParamExp{Text: p.readUntilWant(RBRACE)})
 				p.next()
+			case p.got(LIT):
+				p.add(ParamExp{Short: true, Text: p.lval})
 			case p.peek(DLPAREN):
 				p.add(ArithmExp{Text: p.readUntilWant(DRPAREN)})
 				p.next()
@@ -420,9 +422,6 @@ func (p *parser) readParts() (count int) {
 				p.commandsLimited(RPAREN)
 				p.popAdd(cs)
 				p.want(RPAREN)
-			default:
-				p.want(LIT)
-				p.add(Lit{Val: "$" + p.lval})
 			}
 		default:
 			return

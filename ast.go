@@ -200,10 +200,14 @@ func (c CmdSubst) String() string {
 }
 
 type ParamExp struct {
-	Text string
+	Short bool
+	Text  string
 }
 
 func (p ParamExp) String() string {
+	if p.Short {
+		return "$" + p.Text
+	}
 	return "${" + p.Text + "}"
 }
 

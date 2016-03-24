@@ -138,7 +138,12 @@ var tests = []struct {
 			Name:     Lit{Val: "i"},
 			WordList: litWords("1", "2", "3"),
 			DoStmts: []Node{
-				Command{Args: litWords("echo", "$i")},
+				Command{Args: []Node{
+					litWord("echo"),
+					Word{Parts: []Node{
+						ParamExp{Short: true, Text: "i"},
+					}},
+				}},
 			},
 		},
 	},
@@ -165,8 +170,8 @@ var tests = []struct {
 		Command{Args: litWords(`foo`, `\"`, `bar`)},
 	},
 	{
-		[]string{"$a s{s s=s"},
-		Command{Args: litWords("$a", "s{s", "s=s")},
+		[]string{"s{s s=s"},
+		Command{Args: litWords("s{s", "s=s")},
 	},
 	{
 		[]string{"foo && bar", "foo&&bar", "foo &&\nbar"},
@@ -287,7 +292,9 @@ var tests = []struct {
 		Command{Args: []Node{
 			litWord("echo"),
 			Word{Parts: []Node{
-				DblQuoted{Parts: []Node{Lit{Val: "$foo"}}},
+				DblQuoted{Parts: []Node{
+					ParamExp{Short: true, Text: "foo"},
+				}},
 			}},
 		}},
 	},
@@ -330,7 +337,7 @@ var tests = []struct {
 			litWord("echo"),
 			Word{Parts: []Node{
 				Lit{Val: "foo"},
-				Lit{Val: "$bar"},
+				ParamExp{Short: true, Text: "bar"},
 			}},
 		}},
 	},
