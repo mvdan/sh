@@ -230,15 +230,15 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"(foo) bar",
-			`1:7: unexpected token word after command`,
+			`1:7: unexpected token word after statement`,
 		},
 		{
 			"{foo;} bar",
-			`1:8: unexpected token word after command`,
+			`1:8: unexpected token word after statement`,
 		},
 		{
 			"if foo; then bar; fi bar",
-			`1:22: unexpected token word after command`,
+			`1:22: unexpected token word after statement`,
 		},
 	}
 	for _, c := range errs {

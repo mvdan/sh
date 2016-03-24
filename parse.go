@@ -557,12 +557,7 @@ func (p *parser) command(stop ...Token) {
 		}
 		simple := true
 	args:
-		for p.tok != EOF {
-			for _, tok := range stop {
-				if p.peek(tok) {
-					break args
-				}
-			}
+		for !gotEnd() {
 			switch {
 			case p.peek(LIT), p.peek(EXP), p.peek('\''), p.peek('"'):
 				p.word()
@@ -572,19 +567,20 @@ func (p *parser) command(stop ...Token) {
 			case p.gotRedirect():
 			case p.got(AND):
 				cmd.Background = true
-				fallthrough
-			default:
 				break args
+			default:
+				p.errAfterStr("command")
 			}
 		}
 		if simple {
 			p.popAdd(cmd)
 		}
+		return
 	default:
 		p.errWantedStr("command")
 	}
 	if !gotEnd() {
-		p.errAfterStr("command")
+		p.errAfterStr("statement")
 	}
 }
 
