@@ -9,6 +9,10 @@ import (
 	"testing"
 )
 
+func litWord(val string) Word {
+	return Word{Parts: []Node{Lit{Val: val}}}
+}
+
 func litWords(strs ...string) []Node {
 	l := make([]Node, 0, len(strs))
 	for _, s := range strs {

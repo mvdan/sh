@@ -379,10 +379,6 @@ func (p *parser) commandsPropagating(propagate bool, stop ...Token) (count int) 
 	return
 }
 
-func litWord(val string) Word {
-	return Word{Parts: []Node{Lit{Val: val}}}
-}
-
 func (p *parser) word() {
 	var w Word
 	p.push(&w.Parts)
