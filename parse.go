@@ -566,14 +566,8 @@ func (p *parser) command(stop ...Token) {
 			switch {
 			case p.peek(LIT), p.peek(EXP), p.peek('\''), p.peek('"'):
 				p.word()
-			case p.got(LAND):
-				p.binaryExpr(LAND, cmd, stop...)
-				simple = false
-			case p.got(OR):
-				p.binaryExpr(OR, cmd, stop...)
-				simple = false
-			case p.got(LOR):
-				p.binaryExpr(LOR, cmd, stop...)
+			case p.got(LAND), p.got(OR), p.got(LOR):
+				p.binaryExpr(p.ltok, cmd, stop...)
 				simple = false
 			case p.gotRedirect():
 			case p.got(AND):
