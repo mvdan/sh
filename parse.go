@@ -65,6 +65,7 @@ var reserved = map[rune]bool{
 	'(':  true,
 	')':  true,
 	'$':  true,
+	'"':  true,
 }
 
 // like reserved, but these are only reserved if at the start of a word
@@ -77,11 +78,6 @@ var starters = map[rune]bool{
 var space = map[rune]bool{
 	' ':  true,
 	'\t': true,
-}
-
-var quote = map[rune]bool{
-	'"':  true,
-	'\'': true,
 }
 
 var identRe = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
@@ -140,7 +136,7 @@ func (p *parser) next() {
 		if r, err = p.readRune(); err != nil {
 			return
 		}
-		if !space[r] {
+		if p.quote != 0 || !space[r] {
 			break
 		}
 		p.spaced = true
@@ -179,13 +175,18 @@ runeLoop:
 		case p.quote != '\'' && r == '$': // end of lit
 			p.unreadRune()
 			break runeLoop
-		case p.quote != 0: // rest of quoted cases
+		case p.quote == '"':
+			if r == p.quote {
+				p.unreadRune()
+				break runeLoop
+			}
+		case p.quote == '\'':
 			if r == p.quote {
 				p.quote = 0
 			}
-		case quote[r]: // start of a quoted string
-			p.quote = r
-		case reserved[r] || space[r]: // end of word
+		case r == '\'':
+			p.quote = '\''
+		case reserved[r], space[r]: // end of lit
 			p.unreadRune()
 			break runeLoop
 		}
@@ -382,14 +383,29 @@ func (p *parser) commandsPropagating(propagate bool, stop ...Token) (count int) 
 func (p *parser) word() {
 	var w Word
 	p.push(&w.Parts)
-parts:
+	if p.readParts() == 0 {
+		p.errWantedStr("word")
+	}
+	p.popAdd(w)
+}
+
+func (p *parser) readParts() (count int) {
 	for p.tok != EOF {
-		if len(w.Parts) > 0 && p.spaced {
-			break parts
-		}
 		switch {
+		case p.quote == 0 && count > 0 && p.spaced:
+			return
 		case p.got(LIT):
 			p.add(Lit{Val: p.lval})
+		case p.quote == 0 && p.peek('"'):
+			var dq DblQuoted
+			p.quote = '"'
+			p.next()
+			p.push(&dq.Parts)
+			p.readParts()
+			p.pop()
+			p.quote = 0
+			p.want('"')
+			p.add(dq)
 		case p.got(EXP):
 			switch {
 			case p.peek(LBRACE):
@@ -409,13 +425,11 @@ parts:
 				p.add(Lit{Val: "$" + p.lval})
 			}
 		default:
-			break parts
+			return
 		}
+		count++
 	}
-	if len(w.Parts) == 0 {
-		p.errWantedStr("word")
-	}
-	p.popAdd(w)
+	return
 }
 
 func (p *parser) wordList() (count int) {
@@ -508,7 +522,7 @@ func (p *parser) command(stop ...Token) {
 		p.commands(DONE)
 		p.want(DONE)
 		p.popAdd(fr)
-	case p.peek(LIT), p.peek(EXP):
+	case p.peek(LIT), p.peek(EXP), p.peek('\''), p.peek('"'):
 		var cmd Command
 		p.push(&cmd.Args)
 		p.word()
@@ -536,7 +550,7 @@ func (p *parser) command(stop ...Token) {
 				}
 			}
 			switch {
-			case p.peek(LIT), p.peek(EXP):
+			case p.peek(LIT), p.peek(EXP), p.peek('\''), p.peek('"'):
 				p.word()
 			case p.got(LAND):
 				p.binaryExpr(LAND, cmd, stop...)

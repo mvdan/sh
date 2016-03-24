@@ -183,6 +183,14 @@ func (l Lit) String() string {
 	return l.Val
 }
 
+type DblQuoted struct {
+	Parts []Node
+}
+
+func (q DblQuoted) String() string {
+	return `"` + nodeJoin(q.Parts, "") + `"`
+}
+
 type CmdSubst struct {
 	Stmts []Node
 }

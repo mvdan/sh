@@ -144,11 +144,21 @@ var tests = []struct {
 	},
 	{
 		[]string{`echo ' ' "foo bar"`},
-		Command{Args: litWords("echo", "' '", `"foo bar"`)},
+		Command{Args: []Node{
+			litWord("echo"),
+			litWord("' '"),
+			Word{Parts: []Node{
+				DblQuoted{Parts: []Node{Lit{Val: "foo bar"}}},
+			}},
+		}},
 	},
 	{
 		[]string{`"foo \" bar"`},
-		Command{Args: litWords(`"foo \" bar"`)},
+		Command{Args: []Node{
+			Word{Parts: []Node{
+				DblQuoted{Parts: []Node{Lit{Val: `foo \" bar`}}},
+			}},
+		}},
 	},
 	{
 		[]string{`foo \" bar`},
@@ -277,8 +287,7 @@ var tests = []struct {
 		Command{Args: []Node{
 			litWord("echo"),
 			Word{Parts: []Node{
-				Lit{Val: `"`},
-				Lit{Val: `$foo"`},
+				DblQuoted{Parts: []Node{Lit{Val: "$foo"}}},
 			}},
 		}},
 	},
@@ -287,11 +296,15 @@ var tests = []struct {
 		Command{Args: []Node{
 			litWord("echo"),
 			Word{Parts: []Node{
-				Lit{Val: `"`},
-				ParamExp{Text: "foo"},
-				Lit{Val: `"`},
+				DblQuoted{Parts: []Node{
+					ParamExp{Text: "foo"}},
+				},
 			}},
 		}},
+	},
+	{
+		[]string{`echo '${foo}'`},
+		Command{Args: litWords("echo", "'${foo}'")},
 	},
 	{
 		[]string{"echo ${foo bar}"},
