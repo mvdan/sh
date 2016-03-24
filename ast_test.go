@@ -243,10 +243,6 @@ var tests = []struct {
 		Command{Args: litWords("echo", "foo#bar")},
 	},
 	{
-		[]string{"echo `foo bar`"},
-		Command{Args: litWords("echo", "`foo bar`")},
-	},
-	{
 		[]string{"echo $(foo bar)"},
 		Command{Args: []Node{
 			litWord("echo"),

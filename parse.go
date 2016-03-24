@@ -82,7 +82,6 @@ var space = map[rune]bool{
 var quote = map[rune]bool{
 	'"':  true,
 	'\'': true,
-	'`':  true,
 }
 
 var identRe = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)

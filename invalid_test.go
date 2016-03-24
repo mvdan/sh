@@ -21,10 +21,6 @@ func TestParseErr(t *testing.T) {
 			`1:2: unexpected token EOF - wanted "`,
 		},
 		{
-			"`",
-			"1:2: unexpected token EOF - wanted `",
-		},
-		{
 			`'\''`,
 			`1:5: unexpected token EOF - wanted '`,
 		},
@@ -226,10 +222,6 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			`echo "foo${bar"`,
-			`1:16: unexpected token EOF - wanted }`,
-		},
-		{
-			"echo `foo${bar`",
 			`1:16: unexpected token EOF - wanted }`,
 		},
 		{
