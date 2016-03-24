@@ -360,6 +360,15 @@ var tests = []struct {
 		[]string{"echo 'foo${bar'"},
 		Command{Args: litWords("echo", "'foo${bar'")},
 	},
+	{
+		[]string{"(foo); bar"},
+		[]Node{
+			Subshell{Stmts: []Node{
+				Command{Args: litWords("foo")},
+			}},
+			Command{Args: litWords("bar")},
+		},
+	},
 }
 
 func wantedProg(v interface{}) (p Prog) {

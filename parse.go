@@ -447,15 +447,28 @@ func (p *parser) wordList() (count int) {
 }
 
 func (p *parser) command(stop ...Token) {
+	gotEnd := func() bool {
+		if p.tok == EOF || p.got(SEMICOLON) || p.got('\n') {
+			return true
+		}
+		for _, tok := range stop {
+			if p.peek(tok) {
+				return true
+			}
+		}
+		return false
+	}
 	switch {
 	case p.got(COMMENT):
 		p.add(Comment{
 			Text: p.lval,
 		})
+		return
 	case p.got('\n'):
 		if p.tok != EOF {
 			p.command(stop...)
 		}
+		return
 	case p.got(LPAREN):
 		var sub Subshell
 		p.push(&sub.Stmts)
@@ -542,6 +555,7 @@ func (p *parser) command(stop ...Token) {
 			p.popAdd(fun)
 			return
 		}
+		simple := true
 	args:
 		for p.tok != EOF {
 			for _, tok := range stop {
@@ -554,26 +568,31 @@ func (p *parser) command(stop ...Token) {
 				p.word()
 			case p.got(LAND):
 				p.binaryExpr(LAND, cmd, stop...)
-				return
+				simple = false
 			case p.got(OR):
 				p.binaryExpr(OR, cmd, stop...)
-				return
+				simple = false
 			case p.got(LOR):
 				p.binaryExpr(LOR, cmd, stop...)
-				return
+				simple = false
 			case p.gotRedirect():
 			case p.got(AND):
 				cmd.Background = true
 				fallthrough
-			case p.got(SEMICOLON), p.got('\n'):
+			case p.peek(SEMICOLON), p.peek('\n'):
 				break args
 			default:
 				p.errAfterStr("command")
 			}
 		}
-		p.popAdd(cmd)
+		if simple {
+			p.popAdd(cmd)
+		}
 	default:
 		p.errWantedStr("command")
+	}
+	if !gotEnd() {
+		p.errAfterStr("command")
 	}
 }
 
