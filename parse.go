@@ -462,7 +462,7 @@ func (p *parser) command(stop ...Token) {
 		p.add(Comment{
 			Text: p.lval,
 		})
-		return
+		fallthrough
 	case p.got('\n'):
 		if p.tok != EOF {
 			p.command(stop...)

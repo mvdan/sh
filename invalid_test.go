@@ -69,6 +69,10 @@ func TestParseErr(t *testing.T) {
 			`1:7: unexpected token EOF - wanted )`,
 		},
 		{
+			"( #foo\n)",
+			`2:1: unexpected token ) - wanted command`,
+		},
+		{
 			"&",
 			`1:1: unexpected token & - wanted command`,
 		},
