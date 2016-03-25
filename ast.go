@@ -150,14 +150,6 @@ func (b BinaryExpr) String() string {
 	return fmt.Sprintf("%s %s %s", b.X, b.Op, b.Y)
 }
 
-type Comment struct {
-	Text string
-}
-
-func (c Comment) String() string {
-	return "#" + c.Text
-}
-
 type FuncDecl struct {
 	Name Lit
 	Body Node

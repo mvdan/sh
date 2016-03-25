@@ -26,16 +26,12 @@ var tests = []struct {
 	want interface{}
 }{
 	{
-		[]string{"", " ", "\n"},
+		[]string{"", " ", "\n", "# foo"},
 		nil,
 	},
 	{
-		[]string{"foo", "foo ", " foo"},
+		[]string{"foo", "foo ", " foo", "foo # bar"},
 		Command{Args: litWords("foo")},
-	},
-	{
-		[]string{"# foo", "# foo\n"},
-		Comment{Text: " foo"},
 	},
 	{
 		[]string{"foo; bar", "foo; bar;", "foo;bar;", "\nfoo\nbar\n"},

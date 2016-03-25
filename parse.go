@@ -450,6 +450,9 @@ func (p *parser) command(stop ...Token) {
 		if p.tok == EOF || p.got(SEMICOLON) || p.got('\n') {
 			return true
 		}
+		if p.peek(COMMENT) {
+			return true
+		}
 		for _, tok := range stop {
 			if p.peek(tok) {
 				return true
@@ -458,12 +461,7 @@ func (p *parser) command(stop ...Token) {
 		return false
 	}
 	switch {
-	case p.got(COMMENT):
-		p.add(Comment{
-			Text: p.lval,
-		})
-		fallthrough
-	case p.got('\n'):
+	case p.got(COMMENT), p.got('\n'):
 		if p.tok != EOF {
 			p.command(stop...)
 		}
