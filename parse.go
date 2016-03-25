@@ -596,14 +596,8 @@ func (p *parser) gotRedirect() bool {
 	var r Redirect
 	p.push(&r.Obj)
 	switch {
-	case p.got(RDROUT):
-		r.Op = RDROUT
-		p.word()
-	case p.got(APPEND):
-		r.Op = APPEND
-		p.word()
-	case p.got(RDRIN):
-		r.Op = RDRIN
+	case p.got(RDROUT), p.got(APPEND), p.got(RDRIN):
+		r.Op = p.ltok
 		p.word()
 	default:
 		p.pop()
