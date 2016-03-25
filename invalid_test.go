@@ -30,7 +30,11 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"à(){}",
-			`1:1: invalid func name "à"`,
+			`1:1: invalid func name: à`,
+		},
+		{
+			`"foo"(){}`,
+			`1:1: invalid func name: "foo"`,
 		},
 		{
 			"{",

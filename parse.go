@@ -537,16 +537,16 @@ func (p *parser) command(stop ...Token) {
 	case p.peek(LIT), p.peek(EXP), p.peek('\''), p.peek('"'):
 		var cmd Command
 		p.push(&cmd.Args)
+		fpos := p.pos
 		p.word()
-		fpos := p.lpos
-		fval := p.lval
 		if p.got(LPAREN) {
 			p.want(RPAREN)
-			if !identRe.MatchString(fval) {
-				p.posErr(fpos, "invalid func name %q", fval)
+			fname := cmd.Args[0].String()
+			if !identRe.MatchString(fname) {
+				p.posErr(fpos, "invalid func name: %s", fname)
 			}
 			fun := FuncDecl{
-				Name: Lit{Val: fval},
+				Name: Lit{Val: fname},
 			}
 			p.push(&fun.Body)
 			p.command(stop...)
