@@ -150,6 +150,18 @@ func (p *parser) next() {
 	case r == '\\' && p.readOnly('\n'):
 		p.next()
 	case reserved[r] || starters[r]:
+		// Between double quotes, only under certain
+		// circumstnaces do we tokenize
+		if p.quote == '"' {
+			switch {
+			case r == '"', r == '$':
+			case p.tok == EXP:
+			case r == ')' && p.quotedCmdSubst:
+			default:
+				p.advance(LIT, p.readLit(r))
+				return
+			}
+		}
 		switch r {
 		case '#':
 			p.advance(COMMENT, p.readLine())

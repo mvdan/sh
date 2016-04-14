@@ -162,6 +162,17 @@ var tests = []struct {
 		}},
 	},
 	{
+		[]string{"\">foo\" \"\nbar\""},
+		Command{Args: []Node{
+			Word{Parts: []Node{
+				DblQuoted{Parts: []Node{Lit{Val: ">foo"}}},
+			}},
+			Word{Parts: []Node{
+				DblQuoted{Parts: []Node{Lit{Val: "\nbar"}}},
+			}},
+		}},
+	},
+	{
 		[]string{`foo \" bar`},
 		Command{Args: litWords(`foo`, `\"`, `bar`)},
 	},
@@ -384,6 +395,15 @@ var tests = []struct {
 			}},
 			Command{Args: litWords("bar")},
 		},
+	},
+	{
+		[]string{"a=\"\nbar\""},
+		Command{Args: []Node{
+			Word{Parts: []Node{
+				Lit{Val: "a="},
+				DblQuoted{Parts: []Node{Lit{Val: "\nbar"}}},
+			}},
+		}},
 	},
 }
 
