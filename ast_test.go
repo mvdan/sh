@@ -306,6 +306,19 @@ var tests = []struct {
 		}},
 	},
 	{
+		[]string{`echo "$(foo)"`},
+		Command{Args: []Node{
+			litWord("echo"),
+			Word{Parts: []Node{
+				DblQuoted{Parts: []Node{
+					CmdSubst{Stmts: []Node{
+						Command{Args: litWords("foo")},
+					}},
+				}},
+			}},
+		}},
+	},
+	{
 		[]string{`echo '${foo}'`},
 		Command{Args: litWords("echo", "'${foo}'")},
 	},

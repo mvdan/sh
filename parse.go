@@ -48,6 +48,9 @@ type parser struct {
 
 	prog  Prog
 	stack []interface{}
+
+	// to not include ')' in a literal
+	quotedCmdSubst bool
 }
 
 type position struct {
@@ -176,7 +179,7 @@ runeLoop:
 			p.unreadRune()
 			break runeLoop
 		case p.quote == '"':
-			if r == p.quote {
+			if r == p.quote || (p.quotedCmdSubst && r == ')') {
 				p.unreadRune()
 				break runeLoop
 			}
@@ -416,10 +419,13 @@ func (p *parser) readParts() (count int) {
 			case p.peek(DLPAREN):
 				p.add(ArithmExp{Text: p.readUntilWant(DRPAREN)})
 				p.next()
-			case p.got(LPAREN):
+			case p.peek(LPAREN):
 				var cs CmdSubst
 				p.push(&cs.Stmts)
+				p.quotedCmdSubst = p.quote == '"'
+				p.next()
 				p.commandsLimited(RPAREN)
+				p.quotedCmdSubst = false
 				p.popAdd(cs)
 				p.want(RPAREN)
 			}
