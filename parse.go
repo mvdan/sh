@@ -467,10 +467,7 @@ func (p *parser) wordList() (count int) {
 
 func (p *parser) command(stop ...Token) {
 	gotEnd := func() bool {
-		if p.tok == EOF || p.got(SEMICOLON) || p.got('\n') {
-			return true
-		}
-		if p.peek(COMMENT) {
+		if p.tok == EOF || p.got(SEMICOLON) || p.got('\n') || p.peek(COMMENT) {
 			return true
 		}
 		for _, tok := range stop {
