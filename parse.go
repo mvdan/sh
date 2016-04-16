@@ -149,7 +149,7 @@ func (p *parser) next() {
 	switch {
 	case r == '\\' && p.readOnly('\n'):
 		p.next()
-	case reserved[r] || starters[r]:
+	case reserved[r], starters[r]:
 		// Between double quotes, only under certain
 		// circumstnaces do we tokenize
 		if p.quote == '"' {
