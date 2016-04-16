@@ -176,8 +176,10 @@ func (p *parser) next() {
 }
 
 func (p *parser) readLit(r rune) string {
-	var rs []rune
-runeLoop:
+	return string(p.readLitRunes(r))
+}
+
+func (p *parser) readLitRunes(r rune) (rs []rune) {
 	for {
 		appendRune := true
 		switch {
@@ -189,11 +191,11 @@ runeLoop:
 			appendRune = false
 		case p.quote != '\'' && r == '$': // end of lit
 			p.unreadRune()
-			break runeLoop
+			return
 		case p.quote == '"':
 			if r == p.quote || (p.quotedCmdSubst && r == ')') {
 				p.unreadRune()
-				break runeLoop
+				return
 			}
 		case p.quote == '\'':
 			if r == p.quote {
@@ -203,7 +205,7 @@ runeLoop:
 			p.quote = '\''
 		case reserved[r], space[r]: // end of lit
 			p.unreadRune()
-			break runeLoop
+			return
 		}
 		if appendRune {
 			rs = append(rs, r)
@@ -216,7 +218,7 @@ runeLoop:
 			break
 		}
 	}
-	return string(rs)
+	return
 }
 
 func (p *parser) advance(tok Token, val string) {
