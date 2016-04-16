@@ -129,14 +129,14 @@ type ForStmt struct {
 	DoStmts  []Node
 }
 
-func (w ForStmt) String() string {
+func (f ForStmt) String() string {
 	var b bytes.Buffer
 	io.WriteString(&b, "for ")
-	io.WriteString(&b, w.Name.String())
+	io.WriteString(&b, f.Name.String())
 	io.WriteString(&b, " in ")
-	io.WriteString(&b, wordJoin(w.WordList))
+	io.WriteString(&b, wordJoin(f.WordList))
 	io.WriteString(&b, "; do ")
-	io.WriteString(&b, stmtJoin(w.DoStmts))
+	io.WriteString(&b, stmtJoin(f.DoStmts))
 	io.WriteString(&b, "; done")
 	return b.String()
 }
