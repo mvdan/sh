@@ -206,7 +206,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"for in 1 2 3; do echo $i; done",
-			`1:8: unexpected token word - wanted in`,
+			`1:5: unexpected token in - wanted word`,
 		},
 		{
 			"foo &\n;",
@@ -262,7 +262,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"case i in esac",
-			`1:11: unexpected token word - wanted pattern`,
+			`1:11: unexpected token esac - wanted pattern`,
 		},
 		{
 			"case i in 3) foo;",

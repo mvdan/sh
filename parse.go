@@ -31,8 +31,9 @@ type parser struct {
 
 	err error
 
-	spaced bool
-	quote  rune
+	allLits bool
+	spaced  bool
+	quote   rune
 
 	ltok Token
 	tok  Token
@@ -171,8 +172,32 @@ func (p *parser) next() {
 			p.advance(doToken(r, p.readOnly), "")
 		}
 	default:
-		p.advance(LIT, p.readLit(r))
+		s := p.readLit(r)
+		if !p.allLits {
+			if t, e := reservedLits[s]; e {
+				p.advance(t, "")
+				return
+			}
+		}
+		p.advance(LIT, s)
 	}
+}
+
+// These literals are reserved and can have their own tokens, but they
+// can also act as regular words, e.g. `echo if`.
+var reservedLits = map[string]Token{
+	"if":    IF,
+	"then":  THEN,
+	"elif":  ELIF,
+	"else":  ELSE,
+	"fi":    FI,
+	"while": WHILE,
+	"for":   FOR,
+	"in":    IN,
+	"do":    DO,
+	"done":  DONE,
+	"case":  CASE,
+	"esac":  ESAC,
 }
 
 func (p *parser) readLit(r rune) string {
@@ -261,25 +286,8 @@ func (p *parser) readLine() string {
 	return s
 }
 
-// We can't simply have these as tokens as they can sometimes be valid
-// words, e.g. `echo if`.
-var reservedLits = map[Token]string{
-	IF:    "if",
-	THEN:  "then",
-	ELIF:  "elif",
-	ELSE:  "else",
-	FI:    "fi",
-	WHILE: "while",
-	FOR:   "for",
-	IN:    "in",
-	DO:    "do",
-	DONE:  "done",
-	CASE:  "case",
-	ESAC:  "esac",
-}
-
 func (p *parser) peek(tok Token) bool {
-	return p.tok == tok || (p.tok == LIT && p.val == reservedLits[tok])
+	return p.tok == tok
 }
 
 func (p *parser) got(tok Token) bool {
@@ -469,6 +477,7 @@ func (p *parser) wordList() (count int) {
 
 func (p *parser) command(stop ...Token) {
 	gotEnd := func() bool {
+		p.allLits = false
 		if p.tok == EOF || p.got(SEMICOLON) || p.got('\n') || p.peek(COMMENT) {
 			return true
 		}
@@ -477,6 +486,7 @@ func (p *parser) command(stop ...Token) {
 				return true
 			}
 		}
+		p.allLits = true
 		return false
 	}
 	switch {
@@ -564,6 +574,7 @@ func (p *parser) command(stop ...Token) {
 		var cmd Command
 		p.push(&cmd.Args)
 		fpos := p.pos
+		p.allLits = true
 		p.word()
 		if p.got(LPAREN) {
 			p.want(RPAREN)
@@ -597,6 +608,7 @@ func (p *parser) command(stop ...Token) {
 				p.errAfterStr("command")
 			}
 		}
+		p.allLits = false
 		if simple {
 			p.popAdd(cmd)
 		}
