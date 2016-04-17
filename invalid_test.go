@@ -258,7 +258,11 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"case i in",
-			`1:10: unexpected token EOF - wanted esac`,
+			`1:10: unexpected token EOF - wanted pattern`,
+		},
+		{
+			"case i in esac",
+			`1:11: unexpected token word - wanted pattern`,
 		},
 		{
 			"case i in 3) foo;",

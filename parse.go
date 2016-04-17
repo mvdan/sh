@@ -634,6 +634,7 @@ func (p *parser) gotRedirect() bool {
 }
 
 func (p *parser) patterns() {
+	count := 0
 	for p.tok != EOF && !p.peek(ESAC) {
 		for p.got('\n') {
 		}
@@ -650,10 +651,14 @@ func (p *parser) patterns() {
 		p.push(&cp.Stmts)
 		p.commandsLimited(DSEMICOLON, ESAC)
 		p.popAdd(cp)
+		count++
 		if !p.got(DSEMICOLON) {
 			break
 		}
 		for p.got('\n') {
 		}
+	}
+	if count == 0 {
+		p.errWantedStr("pattern")
 	}
 }
