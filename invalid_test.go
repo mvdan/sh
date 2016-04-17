@@ -250,7 +250,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"case",
-			`1:5: unexpected token EOF - wanted literal`,
+			`1:5: unexpected token EOF - wanted word`,
 		},
 		{
 			"case i",

@@ -407,12 +407,14 @@ var tests = []struct {
 	},
 	{
 		[]string{
-			"case i in 1) foo;; 2 | 3*) bar; esac",
-			"case i in 1) foo;; 2 | 3*) bar;; esac",
-			"case i in\n1)\nfoo\n;;\n2 | 3*)\nbar\n;;\nesac",
+			"case $i in 1) foo;; 2 | 3*) bar; esac",
+			"case $i in 1) foo;; 2 | 3*) bar;; esac",
+			"case $i in\n1)\nfoo\n;;\n2 | 3*)\nbar\n;;\nesac",
 		},
 		CaseStmt{
-			Name: Lit{Val: "i"},
+			Word: Word{Parts: []Node{
+				ParamExp{Short: true, Text: "i"},
+			}},
 			Patterns: []Node{
 				CasePattern{
 					Parts: litWords("1"),

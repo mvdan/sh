@@ -563,8 +563,9 @@ func (p *parser) command(stop ...Token) {
 		p.popAdd(fr)
 	case p.got(CASE):
 		var cs CaseStmt
-		p.want(LIT)
-		cs.Name = Lit{Val: p.lval}
+		p.push(&cs.Word)
+		p.word()
+		p.pop()
 		p.want(IN)
 		p.push(&cs.Patterns)
 		p.patterns()

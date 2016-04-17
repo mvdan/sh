@@ -212,12 +212,12 @@ func (a ArithmExp) String() string {
 }
 
 type CaseStmt struct {
-	Name     Node
+	Word     Node
 	Patterns []Node
 }
 
 func (c CaseStmt) String() string {
-	return "case " + c.Name.String() + " in " + nodeJoin(c.Patterns, ";; ") + "; esac"
+	return "case " + c.Word.String() + " in " + nodeJoin(c.Patterns, ";; ") + "; esac"
 }
 
 type CasePattern struct {
