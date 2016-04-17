@@ -405,6 +405,26 @@ var tests = []struct {
 			}},
 		}},
 	},
+	{
+		[]string{"case i in 1) foo;; 2 | 3*) bar; esac"},
+		CaseStmt{
+			Name: Lit{Val: "i"},
+			Patterns: []Node{
+				CasePattern{
+					Parts: litWords("1"),
+					Stmts: []Node{
+						Command{Args: litWords("foo")},
+					},
+				},
+				CasePattern{
+					Parts: litWords("2", "3*"),
+					Stmts: []Node{
+						Command{Args: litWords("bar")},
+					},
+				},
+			},
+		},
+	},
 }
 
 func wantedProg(v interface{}) (p Prog) {

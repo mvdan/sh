@@ -274,6 +274,8 @@ var reservedLits = map[Token]string{
 	IN:    "in",
 	DO:    "do",
 	DONE:  "done",
+	CASE:  "case",
+	ESAC:  "esac",
 }
 
 func (p *parser) peek(tok Token) bool {
@@ -549,6 +551,15 @@ func (p *parser) command(stop ...Token) {
 		p.commands(DONE)
 		p.want(DONE)
 		p.popAdd(fr)
+	case p.got(CASE):
+		var cs CaseStmt
+		p.want(LIT)
+		cs.Name = Lit{Val: p.lval}
+		p.want(IN)
+		p.push(&cs.Patterns)
+		p.patterns()
+		p.want(ESAC)
+		p.popAdd(cs)
 	case p.peek(LIT), p.peek(EXP), p.peek('\''), p.peek('"'):
 		var cmd Command
 		p.push(&cmd.Args)
@@ -620,4 +631,25 @@ func (p *parser) gotRedirect() bool {
 	}
 	p.popAdd(r)
 	return true
+}
+
+func (p *parser) patterns() {
+	for p.tok != EOF && !p.peek(ESAC) {
+		var cp CasePattern
+		p.push(&cp.Parts)
+		for p.tok != EOF {
+			p.word()
+			if p.got(RPAREN) {
+				break
+			}
+			p.want(OR)
+		}
+		p.pop()
+		p.push(&cp.Stmts)
+		p.commandsLimited(DSEMICOLON, ESAC)
+		p.popAdd(cp)
+		if !p.got(DSEMICOLON) {
+			break
+		}
+	}
 }

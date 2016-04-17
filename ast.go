@@ -210,3 +210,21 @@ type ArithmExp struct {
 func (a ArithmExp) String() string {
 	return "$((" + a.Text + "))"
 }
+
+type CaseStmt struct {
+	Name     Node
+	Patterns []Node
+}
+
+func (c CaseStmt) String() string {
+	return "case " + c.Name.String() + " in " + nodeJoin(c.Patterns, ";; ") + "; esac"
+}
+
+type CasePattern struct {
+	Parts []Node
+	Stmts []Node
+}
+
+func (c CasePattern) String() string {
+	return nodeJoin(c.Parts, " | ") + ") " + stmtJoin(c.Stmts)
+}

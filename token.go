@@ -26,6 +26,8 @@ const (
 	IN
 	DO
 	DONE
+	CASE
+	ESAC
 
 	AND  // &
 	LAND // &&
@@ -64,6 +66,8 @@ var tokNames = map[Token]string{
 	IN:    "in",
 	DO:    "do",
 	DONE:  "done",
+	CASE:  "case",
+	ESAC:  "esac",
 
 	AND:  "&",
 	LAND: "&&",
