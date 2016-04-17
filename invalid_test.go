@@ -248,6 +248,26 @@ func TestParseErr(t *testing.T) {
 			"if foo; then bar; fi bar",
 			`1:22: unexpected token word after statement`,
 		},
+		{
+			"case",
+			`1:5: unexpected token EOF - wanted word`,
+		},
+		{
+			"case i",
+			`1:7: unexpected token EOF - wanted in`,
+		},
+		{
+			"case i in",
+			`1:10: unexpected token EOF - wanted esac`,
+		},
+		{
+			"case i in 3) foo;",
+			`1:18: unexpected token EOF - wanted esac`,
+		},
+		{
+			"case i in 3) foo; 4) bar; esac",
+			`1:20: unexpected token ) after command`,
+		},
 	}
 	for _, c := range errs {
 		r := strings.NewReader(c.in)
