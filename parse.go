@@ -635,6 +635,8 @@ func (p *parser) gotRedirect() bool {
 
 func (p *parser) patterns() {
 	for p.tok != EOF && !p.peek(ESAC) {
+		for p.got('\n') {
+		}
 		var cp CasePattern
 		p.push(&cp.Parts)
 		for p.tok != EOF {
@@ -650,6 +652,8 @@ func (p *parser) patterns() {
 		p.popAdd(cp)
 		if !p.got(DSEMICOLON) {
 			break
+		}
+		for p.got('\n') {
 		}
 	}
 }

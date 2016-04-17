@@ -406,7 +406,11 @@ var tests = []struct {
 		}},
 	},
 	{
-		[]string{"case i in 1) foo;; 2 | 3*) bar; esac"},
+		[]string{
+			"case i in 1) foo;; 2 | 3*) bar; esac",
+			"case i in 1) foo;; 2 | 3*) bar;; esac",
+			"case i in\n1)\nfoo\n;;\n2 | 3*)\nbar\n;;\nesac",
+		},
 		CaseStmt{
 			Name: Lit{Val: "i"},
 			Patterns: []Node{
