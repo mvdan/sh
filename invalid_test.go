@@ -146,7 +146,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"if foo; bar",
-			`1:9: unexpected token word - wanted then`,
+			`1:9: unexpected token literal - wanted then`,
 		},
 		{
 			"if foo; then bar;",
@@ -170,7 +170,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"while foo; bar",
-			`1:12: unexpected token word - wanted do`,
+			`1:12: unexpected token literal - wanted do`,
 		},
 		{
 			"while foo; do bar",
@@ -182,7 +182,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"for",
-			`1:4: unexpected token EOF - wanted word`,
+			`1:4: unexpected token EOF - wanted literal`,
 		},
 		{
 			"for i",
@@ -202,11 +202,11 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"for i in 1 2 3; echo $i;",
-			`1:17: unexpected token word - wanted do`,
+			`1:17: unexpected token literal - wanted do`,
 		},
 		{
 			"for in 1 2 3; do echo $i; done",
-			`1:5: unexpected token in - wanted word`,
+			`1:5: unexpected token in - wanted literal`,
 		},
 		{
 			"foo &\n;",
@@ -238,19 +238,19 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"(foo) bar",
-			`1:7: unexpected token word after statement`,
+			`1:7: unexpected token literal after statement`,
 		},
 		{
 			"{foo;} bar",
-			`1:8: unexpected token word after statement`,
+			`1:8: unexpected token literal after statement`,
 		},
 		{
 			"if foo; then bar; fi bar",
-			`1:22: unexpected token word after statement`,
+			`1:22: unexpected token literal after statement`,
 		},
 		{
 			"case",
-			`1:5: unexpected token EOF - wanted word`,
+			`1:5: unexpected token EOF - wanted literal`,
 		},
 		{
 			"case i",

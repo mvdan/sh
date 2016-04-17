@@ -54,7 +54,7 @@ var tokNames = map[Token]string{
 	ILLEGAL: `ILLEGAL`,
 	EOF:     `EOF`,
 	COMMENT: `comment`,
-	LIT:     `word`, // TODO: fix inconsistency
+	LIT:     `literal`,
 
 	IF:    "if",
 	THEN:  "then",
