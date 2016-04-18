@@ -142,15 +142,15 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"if foo;",
-			`1:8: unexpected token EOF - wanted then`,
+			`1:8: if statement must be followed by "then"`,
 		},
 		{
 			"if foo; bar",
-			`1:9: unexpected token literal - wanted then`,
+			`1:9: if statement must be followed by "then"`,
 		},
 		{
 			"if foo; then bar;",
-			`1:18: unexpected token EOF - wanted fi`,
+			`1:18: if statement must end with a "fi"`,
 		},
 		{
 			"'foo' '",

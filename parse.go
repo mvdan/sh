@@ -506,7 +506,9 @@ func (p *parser) command(stop ...Token) {
 		p.push(&ifs.Cond)
 		p.command(stop...)
 		p.pop()
-		p.want(THEN)
+		if !p.got(THEN) {
+			p.curErr(`if statement must be followed by "then"`)
+		}
 		p.push(&ifs.ThenStmts)
 		p.commands(FI, ELIF, ELSE)
 		p.pop()
@@ -526,7 +528,9 @@ func (p *parser) command(stop ...Token) {
 			p.push(&ifs.ElseStmts)
 			p.commands(FI)
 		}
-		p.want(FI)
+		if !p.got(FI) {
+			p.curErr(`if statement must end with a "fi"`)
+		}
 		p.popAdd(ifs)
 	case p.got(WHILE):
 		var whl WhileStmt
