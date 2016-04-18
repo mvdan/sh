@@ -258,6 +258,16 @@ var tests = []struct {
 		},
 	},
 	{
+		[]string{"foo >a bar"},
+		Command{
+			Args: []Node{
+				litWord("foo"),
+				Redirect{Op: RDROUT, Obj: litWord("a")},
+				litWord("bar"),
+			},
+		},
+	},
+	{
 		[]string{"foo &", "foo&"},
 		Command{
 			Args:       litWords("foo"),
