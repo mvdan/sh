@@ -197,14 +197,14 @@ var tests = []struct {
 		},
 	},
 	{
-		[]string{"foo && bar || else"},
+		[]string{"foo && bar1 || bar2"},
 		BinaryExpr{
 			Op: LAND,
 			X:  Command{Args: litWords("foo")},
 			Y: BinaryExpr{
 				Op: LOR,
-				X:  Command{Args: litWords("bar")},
-				Y:  Command{Args: litWords("else")},
+				X:  Command{Args: litWords("bar1")},
+				Y:  Command{Args: litWords("bar2")},
 			},
 		},
 	},
@@ -430,6 +430,42 @@ var tests = []struct {
 				},
 			},
 		},
+	},
+	{
+		[]string{"foo | while read a; do b; done"},
+		BinaryExpr{
+			Op: OR,
+			X:  Command{Args: litWords("foo")},
+			Y: WhileStmt{
+				Cond: Command{Args: litWords("read", "a")},
+				DoStmts: []Node{
+					Command{Args: litWords("b")},
+				},
+			},
+		},
+	},
+	{
+		[]string{"echo if while"},
+		Command{Args: litWords("echo", "if", "while")},
+	},
+	{
+		[]string{"echo ${foo}if"},
+		Command{Args: []Node{
+			litWord("echo"),
+			Word{Parts: []Node{
+				ParamExp{Text: "foo"},
+				Lit{Val: "if"},
+			}},
+		}},
+	},
+	{
+		[]string{"echo $if"},
+		Command{Args: []Node{
+			litWord("echo"),
+			Word{Parts: []Node{
+				ParamExp{Short: true, Text: "if"},
+			}},
+		}},
 	},
 }
 
