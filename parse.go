@@ -393,7 +393,7 @@ func (p *parser) commandsPropagating(propagate bool, stop ...Token) (count int) 
 				return
 			}
 		}
-		if !p.gotCommand(cmdStop...) && p.tok != EOF {
+		if !p.gotCommand(cmdStop) && p.tok != EOF {
 			p.errWantedStr("command")
 			break
 		}
@@ -470,7 +470,7 @@ func (p *parser) wordList() (count int) {
 	return
 }
 
-func (p *parser) gotEnd(stop ...Token) bool {
+func (p *parser) gotEnd(stop []Token) bool {
 	if p.tok == EOF || p.got(SEMICOLON) || p.got('\n') || p.peek(COMMENT) {
 		return true
 	}
@@ -482,44 +482,44 @@ func (p *parser) gotEnd(stop ...Token) bool {
 	return false
 }
 
-func (p *parser) gotCommand(stop ...Token) bool {
+func (p *parser) gotCommand(stop []Token) bool {
 	for p.got(COMMENT) || p.got('\n') {
 	}
 	switch {
 	case p.peek(LPAREN):
-		p.subshell(stop...)
+		p.subshell(stop)
 	case p.peek(LBRACE):
-		p.block(stop...)
+		p.block(stop)
 	case p.peek(IF):
-		p.ifStmt(stop...)
+		p.ifStmt(stop)
 	case p.peek(WHILE):
-		p.whileStmt(stop...)
+		p.whileStmt(stop)
 	case p.peek(FOR):
-		p.forStmt(stop...)
+		p.forStmt(stop)
 	case p.peek(CASE):
-		p.caseStmt(stop...)
+		p.caseStmt(stop)
 	case p.peek(LIT), p.peek(EXP), p.peek('\''), p.peek('"'):
-		p.baseCmd(stop...)
+		p.baseCmd(stop)
 		return true
 	default:
 		return false
 	}
-	if !p.gotEnd(stop...) {
+	if !p.gotEnd(stop) {
 		p.errAfterStr("statement")
 	}
 	return true
 }
 
-func (p *parser) command(stop ...Token) {
-	if !p.gotCommand(stop...) {
+func (p *parser) command(stop []Token) {
+	if !p.gotCommand(stop) {
 		p.errWantedStr("command")
 	}
 }
 
-func (p *parser) binaryExpr(op Token, left Node, stop ...Token) {
+func (p *parser) binaryExpr(op Token, left Node, stop []Token) {
 	b := BinaryExpr{Op: op}
 	p.push(&b.Y)
-	p.command(stop...)
+	p.command(stop)
 	p.pop()
 	b.X = left
 	p.popAdd(b)
@@ -540,7 +540,7 @@ func (p *parser) gotRedirect() bool {
 	return true
 }
 
-func (p *parser) subshell(stop ...Token) {
+func (p *parser) subshell(stop []Token) {
 	p.want(LPAREN)
 	var sub Subshell
 	p.push(&sub.Stmts)
@@ -551,7 +551,7 @@ func (p *parser) subshell(stop ...Token) {
 	p.popAdd(sub)
 }
 
-func (p *parser) block(stop ...Token) {
+func (p *parser) block(stop []Token) {
 	p.want(LBRACE)
 	var bl Block
 	p.push(&bl.Stmts)
@@ -562,11 +562,11 @@ func (p *parser) block(stop ...Token) {
 	p.popAdd(bl)
 }
 
-func (p *parser) ifStmt(stop ...Token) {
+func (p *parser) ifStmt(stop []Token) {
 	p.want(IF)
 	var ifs IfStmt
 	p.push(&ifs.Cond)
-	if !p.gotCommand(stop...) {
+	if !p.gotCommand(stop) {
 		p.curErr(`"if" must be followed by a command`)
 	}
 	p.pop()
@@ -580,7 +580,7 @@ func (p *parser) ifStmt(stop ...Token) {
 	for p.got(ELIF) {
 		var elf Elif
 		p.push(&elf.Cond)
-		if !p.gotCommand(stop...) {
+		if !p.gotCommand(stop) {
 			p.curErr(`"elif" must be followed by a command`)
 		}
 		p.pop()
@@ -602,11 +602,11 @@ func (p *parser) ifStmt(stop ...Token) {
 	p.popAdd(ifs)
 }
 
-func (p *parser) whileStmt(stop ...Token) {
+func (p *parser) whileStmt(stop []Token) {
 	p.want(WHILE)
 	var whl WhileStmt
 	p.push(&whl.Cond)
-	p.command(stop...)
+	p.command(stop)
 	p.pop()
 	p.want(DO)
 	p.push(&whl.DoStmts)
@@ -615,7 +615,7 @@ func (p *parser) whileStmt(stop ...Token) {
 	p.popAdd(whl)
 }
 
-func (p *parser) forStmt(stop ...Token) {
+func (p *parser) forStmt(stop []Token) {
 	p.want(FOR)
 	var fr ForStmt
 	p.want(LIT)
@@ -631,7 +631,7 @@ func (p *parser) forStmt(stop ...Token) {
 	p.popAdd(fr)
 }
 
-func (p *parser) caseStmt(stop ...Token) {
+func (p *parser) caseStmt(stop []Token) {
 	p.want(CASE)
 	var cs CaseStmt
 	p.push(&cs.Word)
@@ -639,12 +639,12 @@ func (p *parser) caseStmt(stop ...Token) {
 	p.pop()
 	p.want(IN)
 	p.push(&cs.Patterns)
-	p.patterns(stop...)
+	p.patterns(stop)
 	p.want(ESAC)
 	p.popAdd(cs)
 }
 
-func (p *parser) patterns(stop ...Token) {
+func (p *parser) patterns(stop []Token) {
 	count := 0
 	for p.tok != EOF && !p.peek(ESAC) {
 		for p.got('\n') {
@@ -674,7 +674,7 @@ func (p *parser) patterns(stop ...Token) {
 	}
 }
 
-func (p *parser) baseCmd(stop ...Token) {
+func (p *parser) baseCmd(stop []Token) {
 	var cmd Command
 	p.push(&cmd.Args)
 	fpos := p.pos
@@ -689,18 +689,18 @@ func (p *parser) baseCmd(stop ...Token) {
 			Name: Lit{Val: fname},
 		}
 		p.push(&fun.Body)
-		p.command(stop...)
+		p.command(stop)
 		p.pop()
 		p.popAdd(fun)
 		return
 	}
 args:
-	for !p.gotEnd(stop...) {
+	for !p.gotEnd(stop) {
 		switch {
 		case p.peek(LIT), p.peek(EXP), p.peek('\''), p.peek('"'):
 			p.word()
 		case p.got(LAND), p.got(OR), p.got(LOR):
-			p.binaryExpr(p.ltok, cmd, stop...)
+			p.binaryExpr(p.ltok, cmd, stop)
 			return
 		case p.gotRedirect():
 		case p.got(AND):
