@@ -470,18 +470,19 @@ func (p *parser) wordList() (count int) {
 	return
 }
 
-func (p *parser) gotCommand(stop ...Token) bool {
-	gotEnd := func() bool {
-		if p.tok == EOF || p.got(SEMICOLON) || p.got('\n') || p.peek(COMMENT) {
+func (p *parser) gotEnd(stop ...Token) bool {
+	if p.tok == EOF || p.got(SEMICOLON) || p.got('\n') || p.peek(COMMENT) {
+		return true
+	}
+	for _, tok := range stop {
+		if p.peek(tok) {
 			return true
 		}
-		for _, tok := range stop {
-			if p.peek(tok) {
-				return true
-			}
-		}
-		return false
 	}
+	return false
+}
+
+func (p *parser) gotCommand(stop ...Token) bool {
 	switch {
 	case p.got(COMMENT), p.got('\n'):
 		if p.tok == EOF {
@@ -501,47 +502,12 @@ func (p *parser) gotCommand(stop ...Token) bool {
 	case p.peek(CASE):
 		p.caseStmt(stop...)
 	case p.peek(LIT), p.peek(EXP), p.peek('\''), p.peek('"'):
-		var cmd Command
-		p.push(&cmd.Args)
-		fpos := p.pos
-		p.word()
-		if p.got(LPAREN) {
-			p.want(RPAREN)
-			fname := cmd.Args[0].String()
-			if !identRe.MatchString(fname) {
-				p.posErr(fpos, "invalid func name: %s", fname)
-			}
-			fun := FuncDecl{
-				Name: Lit{Val: fname},
-			}
-			p.push(&fun.Body)
-			p.command(stop...)
-			p.pop()
-			p.popAdd(fun)
-			return true
-		}
-	args:
-		for !gotEnd() {
-			switch {
-			case p.peek(LIT), p.peek(EXP), p.peek('\''), p.peek('"'):
-				p.word()
-			case p.got(LAND), p.got(OR), p.got(LOR):
-				p.binaryExpr(p.ltok, cmd, stop...)
-				return true
-			case p.gotRedirect():
-			case p.got(AND):
-				cmd.Background = true
-				break args
-			default:
-				p.errAfterStr("command")
-			}
-		}
-		p.popAdd(cmd)
+		p.baseCmd(stop...)
 		return true
 	default:
 		return false
 	}
-	if !gotEnd() {
+	if !p.gotEnd(stop...) {
 		p.errAfterStr("statement")
 	}
 	return true
@@ -709,4 +675,43 @@ func (p *parser) patterns(stop ...Token) {
 	if count == 0 {
 		p.errWantedStr("pattern")
 	}
+}
+
+func (p *parser) baseCmd(stop ...Token) {
+	var cmd Command
+	p.push(&cmd.Args)
+	fpos := p.pos
+	p.word()
+	if p.got(LPAREN) {
+		p.want(RPAREN)
+		fname := cmd.Args[0].String()
+		if !identRe.MatchString(fname) {
+			p.posErr(fpos, "invalid func name: %s", fname)
+		}
+		fun := FuncDecl{
+			Name: Lit{Val: fname},
+		}
+		p.push(&fun.Body)
+		p.command(stop...)
+		p.pop()
+		p.popAdd(fun)
+		return
+	}
+args:
+	for !p.gotEnd(stop...) {
+		switch {
+		case p.peek(LIT), p.peek(EXP), p.peek('\''), p.peek('"'):
+			p.word()
+		case p.got(LAND), p.got(OR), p.got(LOR):
+			p.binaryExpr(p.ltok, cmd, stop...)
+			return
+		case p.gotRedirect():
+		case p.got(AND):
+			cmd.Background = true
+			break args
+		default:
+			p.errAfterStr("command")
+		}
+	}
+	p.popAdd(cmd)
 }
