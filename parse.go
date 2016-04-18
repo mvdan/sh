@@ -581,7 +581,6 @@ func (p *parser) command(stop ...Token) {
 			p.popAdd(fun)
 			return
 		}
-		simple := true
 	args:
 		for !gotEnd() {
 			switch {
@@ -589,8 +588,7 @@ func (p *parser) command(stop ...Token) {
 				p.word()
 			case p.got(LAND), p.got(OR), p.got(LOR):
 				p.binaryExpr(p.ltok, cmd, stop...)
-				simple = false
-				break args
+				return
 			case p.gotRedirect():
 			case p.got(AND):
 				cmd.Background = true
@@ -599,9 +597,7 @@ func (p *parser) command(stop ...Token) {
 				p.errAfterStr("command")
 			}
 		}
-		if simple {
-			p.popAdd(cmd)
-		}
+		p.popAdd(cmd)
 		return
 	default:
 		p.errWantedStr("command")
