@@ -488,18 +488,18 @@ func (p *parser) gotCommand(stop ...Token) bool {
 			return false
 		}
 		return p.gotCommand(stop...)
-	case p.got(LPAREN):
-		p.subshellCont(stop...)
-	case p.got(LBRACE):
-		p.blockCont(stop...)
-	case p.got(IF):
-		p.ifCont(stop...)
-	case p.got(WHILE):
-		p.whileCont(stop...)
-	case p.got(FOR):
-		p.forCont(stop...)
-	case p.got(CASE):
-		p.caseCont(stop...)
+	case p.peek(LPAREN):
+		p.subshell(stop...)
+	case p.peek(LBRACE):
+		p.block(stop...)
+	case p.peek(IF):
+		p.ifStmt(stop...)
+	case p.peek(WHILE):
+		p.whileStmt(stop...)
+	case p.peek(FOR):
+		p.forStmt(stop...)
+	case p.peek(CASE):
+		p.caseStmt(stop...)
 	case p.peek(LIT), p.peek(EXP), p.peek('\''), p.peek('"'):
 		var cmd Command
 		p.push(&cmd.Args)
@@ -577,7 +577,8 @@ func (p *parser) gotRedirect() bool {
 	return true
 }
 
-func (p *parser) subshellCont(stop ...Token) {
+func (p *parser) subshell(stop ...Token) {
+	p.want(LPAREN)
 	var sub Subshell
 	p.push(&sub.Stmts)
 	if p.commandsLimited(append(stop, RPAREN)...) == 0 {
@@ -587,7 +588,8 @@ func (p *parser) subshellCont(stop ...Token) {
 	p.popAdd(sub)
 }
 
-func (p *parser) blockCont(stop ...Token) {
+func (p *parser) block(stop ...Token) {
+	p.want(LBRACE)
 	var bl Block
 	p.push(&bl.Stmts)
 	if p.commands(append(stop, RBRACE)...) == 0 {
@@ -597,7 +599,8 @@ func (p *parser) blockCont(stop ...Token) {
 	p.popAdd(bl)
 }
 
-func (p *parser) ifCont(stop ...Token) {
+func (p *parser) ifStmt(stop ...Token) {
+	p.want(IF)
 	var ifs IfStmt
 	p.push(&ifs.Cond)
 	if !p.gotCommand(stop...) {
@@ -636,7 +639,8 @@ func (p *parser) ifCont(stop ...Token) {
 	p.popAdd(ifs)
 }
 
-func (p *parser) whileCont(stop ...Token) {
+func (p *parser) whileStmt(stop ...Token) {
+	p.want(WHILE)
 	var whl WhileStmt
 	p.push(&whl.Cond)
 	p.command(stop...)
@@ -648,7 +652,8 @@ func (p *parser) whileCont(stop ...Token) {
 	p.popAdd(whl)
 }
 
-func (p *parser) forCont(stop ...Token) {
+func (p *parser) forStmt(stop ...Token) {
+	p.want(FOR)
 	var fr ForStmt
 	p.want(LIT)
 	fr.Name = Lit{Val: p.lval}
@@ -663,7 +668,8 @@ func (p *parser) forCont(stop ...Token) {
 	p.popAdd(fr)
 }
 
-func (p *parser) caseCont(stop ...Token) {
+func (p *parser) caseStmt(stop ...Token) {
+	p.want(CASE)
 	var cs CaseStmt
 	p.push(&cs.Word)
 	p.word()
