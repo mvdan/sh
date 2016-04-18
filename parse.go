@@ -489,81 +489,15 @@ func (p *parser) gotCommand(stop ...Token) bool {
 		}
 		return p.gotCommand(stop...)
 	case p.got(LPAREN):
-		var sub Subshell
-		p.push(&sub.Stmts)
-		if p.commandsLimited(RPAREN) == 0 {
-			p.errWantedStr("command")
-		}
-		p.want(RPAREN)
-		p.popAdd(sub)
+		p.subshell()
 	case p.got(LBRACE):
-		var bl Block
-		p.push(&bl.Stmts)
-		if p.commands(RBRACE) == 0 {
-			p.errWantedStr("command")
-		}
-		p.want(RBRACE)
-		p.popAdd(bl)
+		p.block()
 	case p.got(IF):
-		var ifs IfStmt
-		p.push(&ifs.Cond)
-		if !p.gotCommand(stop...) {
-			p.curErr(`"if" must be followed by a command`)
-		}
-		p.pop()
-		if !p.got(THEN) {
-			p.curErr(`"if x" must be followed by "then"`)
-		}
-		p.push(&ifs.ThenStmts)
-		p.commands(FI, ELIF, ELSE)
-		p.pop()
-		p.push(&ifs.Elifs)
-		for p.got(ELIF) {
-			var elf Elif
-			p.push(&elf.Cond)
-			if !p.gotCommand(stop...) {
-				p.curErr(`"elif" must be followed by a command`)
-			}
-			p.pop()
-			if !p.got(THEN) {
-				p.curErr(`"elif x" must be followed by "then"`)
-			}
-			p.push(&elf.ThenStmts)
-			p.commands(FI, ELIF, ELSE)
-			p.popAdd(elf)
-		}
-		if p.got(ELSE) {
-			p.pop()
-			p.push(&ifs.ElseStmts)
-			p.commands(FI)
-		}
-		if !p.got(FI) {
-			p.curErr(`if statement must end with a "fi"`)
-		}
-		p.popAdd(ifs)
+		p.ifStmt(stop...)
 	case p.got(WHILE):
-		var whl WhileStmt
-		p.push(&whl.Cond)
-		p.command(stop...)
-		p.pop()
-		p.want(DO)
-		p.push(&whl.DoStmts)
-		p.commands(DONE)
-		p.want(DONE)
-		p.popAdd(whl)
+		p.whileStmt(stop...)
 	case p.got(FOR):
-		var fr ForStmt
-		p.want(LIT)
-		fr.Name = Lit{Val: p.lval}
-		p.want(IN)
-		p.push(&fr.WordList)
-		p.wordList()
-		p.pop()
-		p.want(DO)
-		p.push(&fr.DoStmts)
-		p.commands(DONE)
-		p.want(DONE)
-		p.popAdd(fr)
+		p.forStmt()
 	case p.got(CASE):
 		var cs CaseStmt
 		p.push(&cs.Word)
@@ -679,4 +613,90 @@ func (p *parser) patterns() {
 	if count == 0 {
 		p.errWantedStr("pattern")
 	}
+}
+
+func (p *parser) subshell() {
+	var sub Subshell
+	p.push(&sub.Stmts)
+	if p.commandsLimited(RPAREN) == 0 {
+		p.errWantedStr("command")
+	}
+	p.want(RPAREN)
+	p.popAdd(sub)
+}
+
+func (p *parser) block() {
+	var bl Block
+	p.push(&bl.Stmts)
+	if p.commands(RBRACE) == 0 {
+		p.errWantedStr("command")
+	}
+	p.want(RBRACE)
+	p.popAdd(bl)
+}
+
+func (p *parser) ifStmt(stop ...Token) {
+	var ifs IfStmt
+	p.push(&ifs.Cond)
+	if !p.gotCommand(stop...) {
+		p.curErr(`"if" must be followed by a command`)
+	}
+	p.pop()
+	if !p.got(THEN) {
+		p.curErr(`"if x" must be followed by "then"`)
+	}
+	p.push(&ifs.ThenStmts)
+	p.commands(FI, ELIF, ELSE)
+	p.pop()
+	p.push(&ifs.Elifs)
+	for p.got(ELIF) {
+		var elf Elif
+		p.push(&elf.Cond)
+		if !p.gotCommand(stop...) {
+			p.curErr(`"elif" must be followed by a command`)
+		}
+		p.pop()
+		if !p.got(THEN) {
+			p.curErr(`"elif x" must be followed by "then"`)
+		}
+		p.push(&elf.ThenStmts)
+		p.commands(FI, ELIF, ELSE)
+		p.popAdd(elf)
+	}
+	if p.got(ELSE) {
+		p.pop()
+		p.push(&ifs.ElseStmts)
+		p.commands(FI)
+	}
+	if !p.got(FI) {
+		p.curErr(`if statement must end with a "fi"`)
+	}
+	p.popAdd(ifs)
+}
+
+func (p *parser) whileStmt(stop ...Token) {
+	var whl WhileStmt
+	p.push(&whl.Cond)
+	p.command(stop...)
+	p.pop()
+	p.want(DO)
+	p.push(&whl.DoStmts)
+	p.commands(DONE)
+	p.want(DONE)
+	p.popAdd(whl)
+}
+
+func (p *parser) forStmt() {
+	var fr ForStmt
+	p.want(LIT)
+	fr.Name = Lit{Val: p.lval}
+	p.want(IN)
+	p.push(&fr.WordList)
+	p.wordList()
+	p.pop()
+	p.want(DO)
+	p.push(&fr.DoStmts)
+	p.commands(DONE)
+	p.want(DONE)
+	p.popAdd(fr)
 }
