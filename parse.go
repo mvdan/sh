@@ -507,10 +507,12 @@ func (p *parser) gotCommand(stop ...Token) bool {
 	case p.got(IF):
 		var ifs IfStmt
 		p.push(&ifs.Cond)
-		p.command(stop...)
+		if !p.gotCommand(stop...) {
+			p.curErr(`"if" must be followed by a command`)
+		}
 		p.pop()
 		if !p.got(THEN) {
-			p.curErr(`if statement must be followed by "then"`)
+			p.curErr(`"if x" must be followed by "then"`)
 		}
 		p.push(&ifs.ThenStmts)
 		p.commands(FI, ELIF, ELSE)
@@ -519,9 +521,13 @@ func (p *parser) gotCommand(stop ...Token) bool {
 		for p.got(ELIF) {
 			var elf Elif
 			p.push(&elf.Cond)
-			p.command(stop...)
+			if !p.gotCommand(stop...) {
+				p.curErr(`"elif" must be followed by a command`)
+			}
 			p.pop()
-			p.want(THEN)
+			if !p.got(THEN) {
+				p.curErr(`"elif x" must be followed by "then"`)
+			}
 			p.push(&elf.ThenStmts)
 			p.commands(FI, ELIF, ELSE)
 			p.popAdd(elf)

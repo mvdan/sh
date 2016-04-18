@@ -138,19 +138,27 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"if",
-			`1:3: unexpected token EOF - wanted command`,
+			`1:3: "if" must be followed by a command`,
 		},
 		{
 			"if foo;",
-			`1:8: if statement must be followed by "then"`,
+			`1:8: "if x" must be followed by "then"`,
 		},
 		{
 			"if foo; bar",
-			`1:9: if statement must be followed by "then"`,
+			`1:9: "if x" must be followed by "then"`,
 		},
 		{
 			"if foo; then bar;",
 			`1:18: if statement must end with a "fi"`,
+		},
+		{
+			"if a; then b; elif; then c; fi",
+			`1:19: "elif" must be followed by a command`,
+		},
+		{
+			"if a; then b; elif c;",
+			`1:22: "elif x" must be followed by "then"`,
 		},
 		{
 			"'foo' '",
