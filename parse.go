@@ -324,13 +324,13 @@ func (p *parser) posErr(pos position, format string, v ...interface{}) {
 }
 
 func (p *parser) curErr(format string, v ...interface{}) {
+	if p.tok == EOF {
+		p.pos = p.npos
+	}
 	p.posErr(p.pos, format, v...)
 }
 
 func (p *parser) errWantedStr(s string) {
-	if p.tok == EOF {
-		p.pos = p.npos
-	}
 	p.curErr("unexpected token %s - wanted %s", p.tok, s)
 }
 
