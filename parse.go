@@ -483,12 +483,9 @@ func (p *parser) gotEnd(stop ...Token) bool {
 }
 
 func (p *parser) gotCommand(stop ...Token) bool {
+	for p.got(COMMENT) || p.got('\n') {
+	}
 	switch {
-	case p.got(COMMENT), p.got('\n'):
-		if p.tok == EOF {
-			return false
-		}
-		return p.gotCommand(stop...)
 	case p.peek(LPAREN):
 		p.subshell(stop...)
 	case p.peek(LBRACE):
