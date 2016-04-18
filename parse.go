@@ -489,17 +489,17 @@ func (p *parser) gotCommand(stop ...Token) bool {
 		}
 		return p.gotCommand(stop...)
 	case p.got(LPAREN):
-		p.subshell(stop...)
+		p.subshellCont(stop...)
 	case p.got(LBRACE):
-		p.block(stop...)
+		p.blockCont(stop...)
 	case p.got(IF):
-		p.ifStmt(stop...)
+		p.ifCont(stop...)
 	case p.got(WHILE):
-		p.whileStmt(stop...)
+		p.whileCont(stop...)
 	case p.got(FOR):
-		p.forStmt(stop...)
+		p.forCont(stop...)
 	case p.got(CASE):
-		p.caseStmt(stop...)
+		p.caseCont(stop...)
 	case p.peek(LIT), p.peek(EXP), p.peek('\''), p.peek('"'):
 		var cmd Command
 		p.push(&cmd.Args)
@@ -577,7 +577,7 @@ func (p *parser) gotRedirect() bool {
 	return true
 }
 
-func (p *parser) subshell(stop ...Token) {
+func (p *parser) subshellCont(stop ...Token) {
 	var sub Subshell
 	p.push(&sub.Stmts)
 	if p.commandsLimited(append(stop, RPAREN)...) == 0 {
@@ -587,7 +587,7 @@ func (p *parser) subshell(stop ...Token) {
 	p.popAdd(sub)
 }
 
-func (p *parser) block(stop ...Token) {
+func (p *parser) blockCont(stop ...Token) {
 	var bl Block
 	p.push(&bl.Stmts)
 	if p.commands(append(stop, RBRACE)...) == 0 {
@@ -597,7 +597,7 @@ func (p *parser) block(stop ...Token) {
 	p.popAdd(bl)
 }
 
-func (p *parser) ifStmt(stop ...Token) {
+func (p *parser) ifCont(stop ...Token) {
 	var ifs IfStmt
 	p.push(&ifs.Cond)
 	if !p.gotCommand(stop...) {
@@ -636,7 +636,7 @@ func (p *parser) ifStmt(stop ...Token) {
 	p.popAdd(ifs)
 }
 
-func (p *parser) whileStmt(stop ...Token) {
+func (p *parser) whileCont(stop ...Token) {
 	var whl WhileStmt
 	p.push(&whl.Cond)
 	p.command(stop...)
@@ -648,7 +648,7 @@ func (p *parser) whileStmt(stop ...Token) {
 	p.popAdd(whl)
 }
 
-func (p *parser) forStmt(stop ...Token) {
+func (p *parser) forCont(stop ...Token) {
 	var fr ForStmt
 	p.want(LIT)
 	fr.Name = Lit{Val: p.lval}
@@ -663,7 +663,7 @@ func (p *parser) forStmt(stop ...Token) {
 	p.popAdd(fr)
 }
 
-func (p *parser) caseStmt(stop ...Token) {
+func (p *parser) caseCont(stop ...Token) {
 	var cs CaseStmt
 	p.push(&cs.Word)
 	p.word()
