@@ -455,6 +455,19 @@ var tests = []struct {
 		},
 	},
 	{
+		[]string{"while read l; do foo || bar; done"},
+		WhileStmt{
+			Cond: Command{Args: litWords("read", "l")},
+			DoStmts: []Node{
+				BinaryExpr{
+					Op: LOR,
+					X:  Command{Args: litWords("foo")},
+					Y:  Command{Args: litWords("bar")},
+				},
+			},
+		},
+	},
+	{
 		[]string{"echo if while"},
 		Command{Args: litWords("echo", "if", "while")},
 	},

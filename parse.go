@@ -590,6 +590,7 @@ func (p *parser) command(stop ...Token) {
 			case p.got(LAND), p.got(OR), p.got(LOR):
 				p.binaryExpr(p.ltok, cmd, stop...)
 				simple = false
+				break args
 			case p.gotRedirect():
 			case p.got(AND):
 				cmd.Background = true
