@@ -489,9 +489,9 @@ func (p *parser) gotCommand(stop ...Token) bool {
 		}
 		return p.gotCommand(stop...)
 	case p.got(LPAREN):
-		p.subshell()
+		p.subshell(stop...)
 	case p.got(LBRACE):
-		p.block()
+		p.block(stop...)
 	case p.got(IF):
 		p.ifStmt(stop...)
 	case p.got(WHILE):
@@ -499,15 +499,7 @@ func (p *parser) gotCommand(stop ...Token) bool {
 	case p.got(FOR):
 		p.forStmt(stop...)
 	case p.got(CASE):
-		var cs CaseStmt
-		p.push(&cs.Word)
-		p.word()
-		p.pop()
-		p.want(IN)
-		p.push(&cs.Patterns)
-		p.patterns()
-		p.want(ESAC)
-		p.popAdd(cs)
+		p.caseStmt(stop...)
 	case p.peek(LIT), p.peek(EXP), p.peek('\''), p.peek('"'):
 		var cmd Command
 		p.push(&cmd.Args)
@@ -583,36 +575,6 @@ func (p *parser) gotRedirect() bool {
 	}
 	p.popAdd(r)
 	return true
-}
-
-func (p *parser) patterns() {
-	count := 0
-	for p.tok != EOF && !p.peek(ESAC) {
-		for p.got('\n') {
-		}
-		var cp CasePattern
-		p.push(&cp.Parts)
-		for p.tok != EOF {
-			p.word()
-			if p.got(RPAREN) {
-				break
-			}
-			p.want(OR)
-		}
-		p.pop()
-		p.push(&cp.Stmts)
-		p.commandsLimited(DSEMICOLON, ESAC)
-		p.popAdd(cp)
-		count++
-		if !p.got(DSEMICOLON) {
-			break
-		}
-		for p.got('\n') {
-		}
-	}
-	if count == 0 {
-		p.errWantedStr("pattern")
-	}
 }
 
 func (p *parser) subshell(stop ...Token) {
@@ -699,4 +661,46 @@ func (p *parser) forStmt(stop ...Token) {
 	p.commands(append(stop, DONE)...)
 	p.want(DONE)
 	p.popAdd(fr)
+}
+
+func (p *parser) caseStmt(stop ...Token) {
+	var cs CaseStmt
+	p.push(&cs.Word)
+	p.word()
+	p.pop()
+	p.want(IN)
+	p.push(&cs.Patterns)
+	p.patterns(stop...)
+	p.want(ESAC)
+	p.popAdd(cs)
+}
+
+func (p *parser) patterns(stop ...Token) {
+	count := 0
+	for p.tok != EOF && !p.peek(ESAC) {
+		for p.got('\n') {
+		}
+		var cp CasePattern
+		p.push(&cp.Parts)
+		for p.tok != EOF {
+			p.word()
+			if p.got(RPAREN) {
+				break
+			}
+			p.want(OR)
+		}
+		p.pop()
+		p.push(&cp.Stmts)
+		p.commandsLimited(append(stop, DSEMICOLON, ESAC)...)
+		p.popAdd(cp)
+		count++
+		if !p.got(DSEMICOLON) {
+			break
+		}
+		for p.got('\n') {
+		}
+	}
+	if count == 0 {
+		p.errWantedStr("pattern")
+	}
 }
