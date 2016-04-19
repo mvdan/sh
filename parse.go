@@ -415,13 +415,22 @@ func (p *parser) word() {
 	p.add(p.getWord())
 }
 
+func (p *parser) getLit() Lit {
+	p.want(LIT)
+	return Lit{Val: p.lval}
+}
+
+func (p *parser) lit() {
+	p.add(p.getLit())
+}
+
 func (p *parser) readParts() (count int) {
 	for p.tok != EOF {
 		switch {
 		case p.quote == 0 && count > 0 && p.spaced:
 			return
-		case p.got(LIT):
-			p.add(Lit{Val: p.lval})
+		case p.peek(LIT):
+			p.lit()
 		case p.quote == 0 && p.peek('"'):
 			var dq DblQuoted
 			p.quote = '"'
@@ -628,8 +637,7 @@ func (p *parser) whileStmt(stop []Token) {
 func (p *parser) forStmt(stop []Token) {
 	p.want(FOR)
 	var fr ForStmt
-	p.want(LIT)
-	fr.Name = Lit{Val: p.lval}
+	fr.Name = p.getLit()
 	p.want(IN)
 	p.push(&fr.WordList)
 	p.wordList()
