@@ -523,7 +523,9 @@ func (p *parser) command(stop []Token) {
 func (p *parser) binaryExpr(op Token, left Node, stop []Token) {
 	b := BinaryExpr{Op: op}
 	p.push(&b.Y)
-	p.command(stop)
+	if !p.gotCommand(stop) {
+		p.curErr("%s must be followed by a command", op)
+	}
 	p.pop()
 	b.X = left
 	p.popAdd(b)

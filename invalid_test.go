@@ -114,15 +114,15 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"foo &&",
-			`1:7: unexpected token EOF - wanted command`,
+			`1:7: && must be followed by a command`,
 		},
 		{
 			"foo |",
-			`1:6: unexpected token EOF - wanted command`,
+			`1:6: | must be followed by a command`,
 		},
 		{
 			"foo ||",
-			`1:7: unexpected token EOF - wanted command`,
+			`1:7: || must be followed by a command`,
 		},
 		{
 			"foo >",
