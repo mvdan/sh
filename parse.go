@@ -523,12 +523,6 @@ func (p *parser) gotCommand(stop []Token) bool {
 	return true
 }
 
-func (p *parser) command(stop []Token) {
-	if !p.gotCommand(stop) {
-		p.errWantedStr("command")
-	}
-}
-
 func (p *parser) binaryExpr(op Token, left Node, stop []Token) {
 	b := BinaryExpr{Op: op}
 	p.push(&b.Y)
@@ -728,6 +722,8 @@ func (p *parser) funcDecl(stop []Token, name string, pos position) {
 		Name: Lit{Val: name},
 	}
 	p.push(&fun.Body)
-	p.command(stop)
+	if !p.gotCommand(stop) {
+		p.curErr(`"foo()" must be followed by a statement`)
+	}
 	p.popAdd(fun)
 }

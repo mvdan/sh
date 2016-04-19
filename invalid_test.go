@@ -102,7 +102,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"foo()",
-			`1:6: unexpected token EOF - wanted command`,
+			`1:6: "foo()" must be followed by a statement`,
 		},
 		{
 			"foo() {",
