@@ -679,19 +679,8 @@ func (p *parser) baseCmd(stop []Token) {
 	p.push(&cmd.Args)
 	fpos := p.pos
 	p.word()
-	if p.got(LPAREN) {
-		p.want(RPAREN)
-		fname := cmd.Args[0].String()
-		if !identRe.MatchString(fname) {
-			p.posErr(fpos, "invalid func name: %s", fname)
-		}
-		fun := FuncDecl{
-			Name: Lit{Val: fname},
-		}
-		p.push(&fun.Body)
-		p.command(stop)
-		p.pop()
-		p.popAdd(fun)
+	if p.peek(LPAREN) {
+		p.funcDecl(stop, cmd.Args[0].String(), fpos)
 		return
 	}
 args:
@@ -711,4 +700,19 @@ args:
 		}
 	}
 	p.popAdd(cmd)
+}
+
+func (p *parser) funcDecl(stop []Token, name string, pos position) {
+	p.want(LPAREN)
+	p.want(RPAREN)
+	if !identRe.MatchString(name) {
+		p.posErr(pos, "invalid func name: %s", name)
+	}
+	fun := FuncDecl{
+		Name: Lit{Val: name},
+	}
+	p.push(&fun.Body)
+	p.command(stop)
+	p.pop()
+	p.popAdd(fun)
 }
