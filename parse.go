@@ -402,13 +402,17 @@ func (p *parser) commandsPropagating(propagate bool, stop ...Token) (count int) 
 	return
 }
 
-func (p *parser) word() {
-	var w Word
+func (p *parser) getWord() (w Word) {
 	p.push(&w.Parts)
 	if p.readParts() == 0 {
 		p.errWantedStr("word")
 	}
-	p.popAdd(w)
+	p.pop()
+	return
+}
+
+func (p *parser) word() {
+	p.add(p.getWord())
 }
 
 func (p *parser) readParts() (count int) {
@@ -527,16 +531,14 @@ func (p *parser) binaryExpr(op Token, left Node, stop []Token) {
 
 func (p *parser) gotRedirect() bool {
 	var r Redirect
-	p.push(&r.Obj)
 	switch {
 	case p.got(RDROUT), p.got(APPEND), p.got(RDRIN):
 		r.Op = p.ltok
-		p.word()
+		r.Obj = p.getWord()
 	default:
-		p.pop()
 		return false
 	}
-	p.popAdd(r)
+	p.add(r)
 	return true
 }
 
@@ -634,9 +636,7 @@ func (p *parser) forStmt(stop []Token) {
 func (p *parser) caseStmt(stop []Token) {
 	p.want(CASE)
 	var cs CaseStmt
-	p.push(&cs.Word)
-	p.word()
-	p.pop()
+	cs.Word = p.getWord()
 	p.want(IN)
 	p.push(&cs.Patterns)
 	p.patterns(stop)
@@ -675,14 +675,14 @@ func (p *parser) patterns(stop []Token) {
 }
 
 func (p *parser) baseCmd(stop []Token) {
-	var cmd Command
-	p.push(&cmd.Args)
 	fpos := p.pos
-	p.word()
+	w := p.getWord()
 	if p.peek(LPAREN) {
-		p.funcDecl(stop, cmd.Args[0].String(), fpos)
+		p.funcDecl(stop, w.String(), fpos)
 		return
 	}
+	cmd := Command{Args: []Node{w}}
+	p.push(&cmd.Args)
 args:
 	for !p.gotEnd(stop) {
 		switch {
@@ -713,6 +713,5 @@ func (p *parser) funcDecl(stop []Token, name string, pos position) {
 	}
 	p.push(&fun.Body)
 	p.command(stop)
-	p.pop()
 	p.popAdd(fun)
 }
