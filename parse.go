@@ -601,7 +601,7 @@ func (p *parser) ifStmt(stop []Token) {
 		p.commands(append(stop, FI)...)
 	}
 	if !p.got(FI) {
-		p.curErr(`if statement must end with a "fi"`)
+		p.curErr(`if statement must end with "fi"`)
 	}
 	p.popAdd(ifs)
 }
@@ -610,12 +610,18 @@ func (p *parser) whileStmt(stop []Token) {
 	p.want(WHILE)
 	var whl WhileStmt
 	p.push(&whl.Cond)
-	p.command(stop)
+	if !p.gotCommand(stop) {
+		p.curErr(`"while" must be followed by a command`)
+	}
 	p.pop()
-	p.want(DO)
+	if !p.got(DO) {
+		p.curErr(`"while x" must be followed by "do"`)
+	}
 	p.push(&whl.DoStmts)
 	p.commands(append(stop, DONE)...)
-	p.want(DONE)
+	if !p.got(DONE) {
+		p.curErr(`while statement must end with "done"`)
+	}
 	p.popAdd(whl)
 }
 

@@ -150,7 +150,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"if foo; then bar;",
-			`1:18: if statement must end with a "fi"`,
+			`1:18: if statement must end with "fi"`,
 		},
 		{
 			"if a; then b; elif; then c; fi",
@@ -170,23 +170,23 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"while",
-			`1:6: unexpected token EOF - wanted command`,
+			`1:6: "while" must be followed by a command`,
 		},
 		{
 			"while foo;",
-			`1:11: unexpected token EOF - wanted do`,
+			`1:11: "while x" must be followed by "do"`,
 		},
 		{
 			"while foo; bar",
-			`1:12: unexpected token literal - wanted do`,
+			`1:12: "while x" must be followed by "do"`,
 		},
 		{
 			"while foo; do bar",
-			`1:18: unexpected token EOF - wanted done`,
+			`1:18: while statement must end with "done"`,
 		},
 		{
 			"while foo; do bar;",
-			`1:19: unexpected token EOF - wanted done`,
+			`1:19: while statement must end with "done"`,
 		},
 		{
 			"for",
