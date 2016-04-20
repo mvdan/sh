@@ -368,7 +368,7 @@ func (p *parser) commandsPropagating(propagate bool, stmts *[]Stmt, stop ...Toke
 				return
 			}
 		}
-		if !p.gotCommand(&s) && p.tok != EOF {
+		if !p.gotStmt(&s) && p.tok != EOF {
 			p.errWantedStr("command")
 			break
 		}
@@ -467,7 +467,7 @@ func (p *parser) gotEnd() bool {
 	return false
 }
 
-func (p *parser) gotCommand(s *Stmt) bool {
+func (p *parser) gotStmt(s *Stmt) bool {
 	for p.got(COMMENT) || p.got('\n') {
 	}
 	end := false
@@ -485,7 +485,7 @@ func (p *parser) gotCommand(s *Stmt) bool {
 	case p.peek(CASE):
 		s.Node = p.caseStmt()
 	case p.peek(LIT), p.peek(EXP), p.peek('\''), p.peek('"'):
-		s.Node = p.baseCmd()
+		s.Node = p.cmdOrFunc()
 		end = true
 	default:
 		return false
@@ -505,7 +505,7 @@ func (p *parser) gotCommand(s *Stmt) bool {
 
 func (p *parser) binaryExpr(op Token, left Stmt) (b BinaryExpr) {
 	b.Op = op
-	if !p.gotCommand(&b.Y) {
+	if !p.gotStmt(&b.Y) {
 		p.curErr("%s must be followed by a command", op)
 	}
 	b.X = left
@@ -545,7 +545,7 @@ func (p *parser) block() (b Block) {
 
 func (p *parser) ifStmt() (ifs IfStmt) {
 	p.want(IF)
-	if !p.gotCommand(&ifs.Cond) {
+	if !p.gotStmt(&ifs.Cond) {
 		p.curErr(`"if" must be followed by a command`)
 	}
 	if !p.got(THEN) {
@@ -554,7 +554,7 @@ func (p *parser) ifStmt() (ifs IfStmt) {
 	p.commands(&ifs.ThenStmts, FI, ELIF, ELSE)
 	for p.got(ELIF) {
 		var elf Elif
-		if !p.gotCommand(&elf.Cond) {
+		if !p.gotStmt(&elf.Cond) {
 			p.curErr(`"elif" must be followed by a command`)
 		}
 		if !p.got(THEN) {
@@ -574,7 +574,7 @@ func (p *parser) ifStmt() (ifs IfStmt) {
 
 func (p *parser) whileStmt() (ws WhileStmt) {
 	p.want(WHILE)
-	if !p.gotCommand(&ws.Cond) {
+	if !p.gotStmt(&ws.Cond) {
 		p.curErr(`"while" must be followed by a command`)
 	}
 	if !p.got(DO) {
@@ -634,7 +634,7 @@ func (p *parser) patterns(ns *[]Node) {
 	}
 }
 
-func (p *parser) baseCmd() Node {
+func (p *parser) cmdOrFunc() Node {
 	fpos := p.pos
 	w := p.getWord()
 	if p.peek(LPAREN) {
@@ -660,7 +660,7 @@ func (p *parser) funcDecl(name string, pos position) (fd FuncDecl) {
 		p.posErr(pos, "invalid func name: %s", name)
 	}
 	fd.Name.Val = name
-	if !p.gotCommand(&fd.Body) {
+	if !p.gotStmt(&fd.Body) {
 		p.curErr(`"foo()" must be followed by a statement`)
 	}
 	return
