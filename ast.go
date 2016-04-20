@@ -216,12 +216,21 @@ func (a ArithmExp) String() string {
 }
 
 type CaseStmt struct {
-	Word     Word
-	PatLists []Node
+	Word Word
+	List []PatternList
 }
 
 func (c CaseStmt) String() string {
-	return fmt.Sprintf("case %s in %s; esac", c.Word, nodeJoin(c.PatLists, ";; "))
+	var b bytes.Buffer
+	fmt.Fprintf(&b, "case %s in ", c.Word)
+	for i, plist := range c.List {
+		if i > 0 {
+			fmt.Fprintf(&b, ";; ")
+		}
+		fmt.Fprintf(&b, "%s", plist)
+	}
+	fmt.Fprintf(&b, "; esac")
+	return b.String()
 }
 
 type PatternList struct {

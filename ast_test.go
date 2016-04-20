@@ -463,14 +463,14 @@ var tests = []struct {
 			Word: Word{Parts: []Node{
 				ParamExp{Short: true, Text: "i"},
 			}},
-			PatLists: []Node{
-				PatternList{
+			List: []PatternList{
+				{
 					Patterns: litWords("1"),
 					Stmts: []Stmt{
 						{Node: Command{Args: litNodes("foo")}},
 					},
 				},
-				PatternList{
+				{
 					Patterns: litWords("2", "3*"),
 					Stmts: []Stmt{
 						{Node: Command{Args: litNodes("bar")}},
