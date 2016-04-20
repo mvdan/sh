@@ -50,7 +50,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"{#}",
-			`1:4: reached EOF without matching }`,
+			`1:4: reached EOF without matching token }`,
 		},
 		{
 			"(",
@@ -66,7 +66,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"( foo;",
-			`1:7: reached EOF without matching )`,
+			`1:7: reached EOF without matching token )`,
 		},
 		// TODO: "requires at least one statement"
 		{
@@ -87,7 +87,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"foo(",
-			`1:5: reached EOF without matching )`,
+			`1:5: reached EOF without matching token )`,
 		},
 		{
 			"foo(bar",
@@ -95,7 +95,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"à(",
-			`1:3: reached EOF without matching )`,
+			`1:3: reached EOF without matching token )`,
 		},
 		{
 			"foo'",
@@ -227,7 +227,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"echo $(foo",
-			`1:11: reached EOF without matching )`,
+			`1:11: reached EOF without matching token )`,
 		},
 		{
 			"echo $((foo",
@@ -280,6 +280,10 @@ func TestParseErr(t *testing.T) {
 		{
 			"case i in 3) foo; 4) bar; esac",
 			`1:20: a command can only contain words and redirects`,
+		},
+		{
+			"case i in 3&) foo;",
+			`1:12: case patterns must be separated with |`,
 		},
 	}
 	for _, c := range errs {

@@ -212,7 +212,7 @@ func (p *parser) readLitRunes(r rune) (rs []rune) {
 		var err error
 		if r, err = p.readRune(); err != nil {
 			if p.quote != 0 {
-				p.curErr("reached EOF without closing quote %s", Token(p.quote))
+				p.wantQuote(Token(p.quote))
 			}
 			break
 		}
@@ -289,17 +289,15 @@ func (p *parser) got(tok Token) bool {
 	return false
 }
 
-func (p *parser) want(tok Token) {
-	if !p.peek(tok) {
-		p.errWanted(tok)
-		return
+func (p *parser) wantQuote(tok Token) {
+	if !p.got(tok) {
+		p.curErr(`reached EOF without closing quote %s`, tok)
 	}
-	p.next()
 }
 
 func (p *parser) wantMatching(tok Token) {
 	if !p.got(tok) {
-		p.curErr(`reached EOF without matching %s`, tok)
+		p.curErr(`reached EOF without matching token %s`, tok)
 	}
 }
 
@@ -394,9 +392,7 @@ func (p *parser) readParts(ns *[]Node) (count int) {
 			p.next()
 			p.readParts(&dq.Parts)
 			p.quote = 0
-			if !p.got('"') {
-				p.curErr(`reached EOF without closing quote "`)
-			}
+			p.wantQuote('"')
 			n = dq
 		case p.got(EXP):
 			switch {
@@ -524,7 +520,7 @@ func (p *parser) gotRedirect(ns *[]Node) bool {
 }
 
 func (p *parser) subshell() (s Subshell) {
-	p.want(LPAREN)
+	p.got(LPAREN)
 	if p.stmtsLimited(&s.Stmts, RPAREN) < 1 {
 		p.curErr("a subshell must contain one or more statements")
 	}
@@ -533,7 +529,7 @@ func (p *parser) subshell() (s Subshell) {
 }
 
 func (p *parser) block() (b Block) {
-	p.want(LBRACE)
+	p.got(LBRACE)
 	if p.stmts(&b.Stmts, RBRACE) < 1 {
 		p.curErr("a block must contain one or more statements")
 	}
@@ -542,7 +538,7 @@ func (p *parser) block() (b Block) {
 }
 
 func (p *parser) ifStmt() (ifs IfStmt) {
-	p.want(IF)
+	p.got(IF)
 	if !p.gotStmt(&ifs.Cond) {
 		p.curErr(`"if" must be followed by a statement`)
 	}
@@ -571,7 +567,7 @@ func (p *parser) ifStmt() (ifs IfStmt) {
 }
 
 func (p *parser) whileStmt() (ws WhileStmt) {
-	p.want(WHILE)
+	p.got(WHILE)
 	if !p.gotStmt(&ws.Cond) {
 		p.curErr(`"while" must be followed by a statement`)
 	}
@@ -586,7 +582,7 @@ func (p *parser) whileStmt() (ws WhileStmt) {
 }
 
 func (p *parser) forStmt() (fs ForStmt) {
-	p.want(FOR)
+	p.got(FOR)
 	if !p.gotLit(&fs.Name) {
 		p.curErr(`"for" must be followed by a literal`)
 	}
@@ -605,7 +601,7 @@ func (p *parser) forStmt() (fs ForStmt) {
 }
 
 func (p *parser) caseStmt() (cs CaseStmt) {
-	p.want(CASE)
+	p.got(CASE)
 	if !p.gotWord(&cs.Word) {
 		p.curErr(`"case" must be followed by a word`)
 	}
@@ -635,7 +631,9 @@ func (p *parser) patLists(plists *[]PatternList) (count int) {
 			if p.got(RPAREN) {
 				break
 			}
-			p.want(OR)
+			if !p.got(OR) {
+				p.curErr("case patterns must be separated with |")
+			}
 		}
 		p.stmtsLimited(&pl.Stmts, DSEMICOLON, ESAC)
 		*plists = append(*plists, pl)
@@ -672,7 +670,7 @@ func (p *parser) cmdOrFunc() Node {
 }
 
 func (p *parser) funcDecl(name string, pos position) (fd FuncDecl) {
-	p.want(LPAREN)
+	p.got(LPAREN)
 	if !p.got(RPAREN) {
 		if p.tok == EOF {
 			p.wantMatching(RPAREN)
