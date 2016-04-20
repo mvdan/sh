@@ -40,8 +40,12 @@ func stmtJoin(stmts []Stmt) string {
 	return nodeJoin(ns, "; ")
 }
 
-func wordJoin(ns []Node) string {
-	return nodeJoin(ns, " ")
+func wordJoin(words []Word, sep string) string {
+	ns := make([]Node, len(words))
+	for i, w := range words {
+		ns[i] = w
+	}
+	return nodeJoin(ns, sep)
 }
 
 type Stmt struct {
@@ -64,7 +68,7 @@ type Command struct {
 }
 
 func (c Command) String() string {
-	return wordJoin(c.Args)
+	return nodeJoin(c.Args, " ")
 }
 
 type Redirect struct {
@@ -138,7 +142,7 @@ type ForStmt struct {
 
 func (f ForStmt) String() string {
 	return fmt.Sprintf("for %s in %s; do %s; done", f.Name,
-		wordJoin(f.WordList), stmtJoin(f.DoStmts))
+		nodeJoin(f.WordList, " "), stmtJoin(f.DoStmts))
 }
 
 type BinaryExpr struct {
@@ -213,18 +217,18 @@ func (a ArithmExp) String() string {
 
 type CaseStmt struct {
 	Word     Word
-	Patterns []Node
+	PatLists []Node
 }
 
 func (c CaseStmt) String() string {
-	return fmt.Sprintf("case %s in %s; esac", c.Word, nodeJoin(c.Patterns, ";; "))
+	return fmt.Sprintf("case %s in %s; esac", c.Word, nodeJoin(c.PatLists, ";; "))
 }
 
-type CasePattern struct {
-	Parts []Node
-	Stmts []Stmt
+type PatternList struct {
+	Patterns []Word
+	Stmts    []Stmt
 }
 
-func (c CasePattern) String() string {
-	return fmt.Sprintf("%s) %s", nodeJoin(c.Parts, " | "), stmtJoin(c.Stmts))
+func (p PatternList) String() string {
+	return fmt.Sprintf("%s) %s", wordJoin(p.Patterns, " | "), stmtJoin(p.Stmts))
 }

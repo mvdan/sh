@@ -610,31 +610,31 @@ func (p *parser) caseStmt() (cs CaseStmt) {
 		p.curErr(`"case" must be followed by a word`)
 	}
 	p.want(IN)
-	if p.patterns(&cs.Patterns) < 1 {
+	if p.patLists(&cs.PatLists) < 1 {
 		p.curErr(`"case x in" must be followed by one or more patterns`)
 	}
 	p.want(ESAC)
 	return
 }
 
-func (p *parser) patterns(ns *[]Node) (count int) {
+func (p *parser) patLists(ns *[]Node) (count int) {
 	for p.tok != EOF && !p.peek(ESAC) {
 		for p.got('\n') {
 		}
-		var cp CasePattern
+		var pl PatternList
 		for p.tok != EOF {
 			var w Word
 			if !p.gotWord(&w) {
 				p.curErr("patterns must consist of words")
 			}
-			cp.Parts = append(cp.Parts, w)
+			pl.Patterns = append(pl.Patterns, w)
 			if p.got(RPAREN) {
 				break
 			}
 			p.want(OR)
 		}
-		p.stmtsLimited(&cp.Stmts, DSEMICOLON, ESAC)
-		*ns = append(*ns, cp)
+		p.stmtsLimited(&pl.Stmts, DSEMICOLON, ESAC)
+		*ns = append(*ns, pl)
 		count++
 		if !p.got(DSEMICOLON) {
 			break
