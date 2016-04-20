@@ -274,22 +274,25 @@ var tests = []struct {
 			"foo > a >> b < c",
 			"foo>a >>b<c",
 		},
-		Command{
-			Args: []Node{
-				litWord("foo"),
-				Redirect{Op: RDROUT, Obj: litWord("a")},
-				Redirect{Op: APPEND, Obj: litWord("b")},
-				Redirect{Op: RDRIN, Obj: litWord("c")},
+		Stmt{
+			Node: Command{
+				Args: []Node{litWord("foo")},
+			},
+			Redirs: []Redirect{
+				{Op: RDROUT, Obj: litWord("a")},
+				{Op: APPEND, Obj: litWord("b")},
+				{Op: RDRIN, Obj: litWord("c")},
 			},
 		},
 	},
 	{
-		[]string{"foo >a bar"},
-		Command{
-			Args: []Node{
-				litWord("foo"),
-				Redirect{Op: RDROUT, Obj: litWord("a")},
-				litWord("bar"),
+		[]string{"foo bar >a"},
+		Stmt{
+			Node: Command{
+				Args: litNodes("foo", "bar"),
+			},
+			Redirs: []Redirect{
+				{Op: RDROUT, Obj: litWord("a")},
 			},
 		},
 	},

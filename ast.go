@@ -50,24 +50,20 @@ func wordJoin(words []Word, sep string) string {
 type Stmt struct {
 	Node
 
+	Redirs     []Redirect
 	Background bool
 }
 
 func (s Stmt) String() string {
 	var b bytes.Buffer
 	fmt.Fprintf(&b, "%s", s.Node)
+	for _, redir := range s.Redirs {
+		fmt.Fprintf(&b, " %s", redir)
+	}
 	if s.Background {
 		fmt.Fprintf(&b, " &")
 	}
 	return b.String()
-}
-
-type Command struct {
-	Args []Node
-}
-
-func (c Command) String() string {
-	return nodeJoin(c.Args, " ")
 }
 
 type Redirect struct {
@@ -77,6 +73,14 @@ type Redirect struct {
 
 func (r Redirect) String() string {
 	return r.Op.String() + r.Obj.String()
+}
+
+type Command struct {
+	Args []Node
+}
+
+func (c Command) String() string {
+	return nodeJoin(c.Args, " ")
 }
 
 type Subshell struct {

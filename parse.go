@@ -461,6 +461,9 @@ func (p *parser) gotStmt(s *Stmt) bool {
 	default:
 		return false
 	}
+	for p.peekAny(RDROUT, APPEND, RDRIN) {
+		s.Redirs = append(s.Redirs, p.redirect())
+	}
 	if p.got(AND) {
 		s.Background = true
 	}
@@ -631,6 +634,7 @@ func (p *parser) cmdOrFunc() Node {
 		return p.funcDecl(w.String(), fpos)
 	}
 	cmd := Command{Args: []Node{w}}
+args:
 	for !p.peekStop() {
 		switch {
 		case p.peekAny(LIT, EXP, '\'', '"'):
@@ -638,7 +642,7 @@ func (p *parser) cmdOrFunc() Node {
 			p.gotWord(&w)
 			cmd.Args = append(cmd.Args, w)
 		case p.peekAny(RDROUT, APPEND, RDRIN):
-			cmd.Args = append(cmd.Args, p.redirect())
+			break args
 		default:
 			p.curErr("a command can only contain words and redirects")
 		}
