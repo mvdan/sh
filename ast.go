@@ -88,20 +88,14 @@ type IfStmt struct {
 
 func (s IfStmt) String() string {
 	var b bytes.Buffer
-	io.WriteString(&b, "if ")
-	io.WriteString(&b, s.Cond.String())
-	io.WriteString(&b, "; then ")
-	io.WriteString(&b, stmtJoin(s.ThenStmts))
+	fmt.Fprintf(&b, "if %s; then %s", s.Cond, stmtJoin(s.ThenStmts))
 	for _, n := range s.Elifs {
-		e := n.(Elif)
-		io.WriteString(&b, "; ")
-		io.WriteString(&b, e.String())
+		fmt.Fprintf(&b, "; %s", n.(Elif))
 	}
 	if len(s.ElseStmts) > 0 {
-		io.WriteString(&b, "; else ")
-		io.WriteString(&b, stmtJoin(s.ElseStmts))
+		fmt.Fprintf(&b, "; else %s", stmtJoin(s.ElseStmts))
 	}
-	io.WriteString(&b, "; fi")
+	fmt.Fprintf(&b, "; fi")
 	return b.String()
 }
 
@@ -111,7 +105,7 @@ type Elif struct {
 }
 
 func (e Elif) String() string {
-	return "elif " + e.Cond.String() + "; then " + stmtJoin(e.ThenStmts)
+	return fmt.Sprintf("elif %s; then %s", e.Cond, stmtJoin(e.ThenStmts))
 }
 
 type WhileStmt struct {
@@ -120,7 +114,7 @@ type WhileStmt struct {
 }
 
 func (w WhileStmt) String() string {
-	return "while " + w.Cond.String() + "; do " + stmtJoin(w.DoStmts) + "; done"
+	return fmt.Sprintf("while %s; do %s; done", w.Cond, stmtJoin(w.DoStmts))
 }
 
 type ForStmt struct {
@@ -217,7 +211,7 @@ type CaseStmt struct {
 }
 
 func (c CaseStmt) String() string {
-	return "case " + c.Word.String() + " in " + nodeJoin(c.Patterns, ";; ") + "; esac"
+	return fmt.Sprintf("case %s in %s; esac", c.Word, nodeJoin(c.Patterns, ";; "))
 }
 
 type CasePattern struct {
