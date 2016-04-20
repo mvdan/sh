@@ -194,27 +194,27 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"for i",
-			`1:6: unexpected token EOF - wanted in`,
+			`1:6: "for foo" must be followed by "in"`,
 		},
 		{
 			"for i in;",
-			`1:10: unexpected token EOF - wanted do`,
+			`1:10: "for foo in list" must be followed by "do"`,
 		},
 		{
 			"for i in 1 2 3;",
-			`1:16: unexpected token EOF - wanted do`,
+			`1:16: "for foo in list" must be followed by "do"`,
 		},
 		{
 			"for i in 1 2 3; do echo $i;",
-			`1:28: unexpected token EOF - wanted done`,
+			`1:28: for statement must end with "done"`,
 		},
 		{
 			"for i in 1 2 3; echo $i;",
-			`1:17: unexpected token literal - wanted do`,
+			`1:17: "for foo in list" must be followed by "do"`,
 		},
 		{
 			"for in 1 2 3; do echo $i; done",
-			`1:8: unexpected token literal - wanted in`,
+			`1:8: "for foo" must be followed by "in"`,
 		},
 		{
 			"foo &\n;",
@@ -266,7 +266,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"case i in",
-			`1:10: unexpected token EOF - wanted pattern`,
+			`1:10: "case x in" must be followed by one or more patterns`,
 		},
 		{
 			"case i in 3) foo;",

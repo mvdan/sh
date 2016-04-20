@@ -595,11 +595,17 @@ func (p *parser) whileStmt() (ws WhileStmt) {
 func (p *parser) forStmt() (fs ForStmt) {
 	p.want(FOR)
 	fs.Name = p.getLit()
-	p.want(IN)
+	if !p.got(IN) {
+		p.curErr(`"for foo" must be followed by "in"`)
+	}
 	p.wordList(&fs.WordList)
-	p.want(DO)
+	if !p.got(DO) {
+		p.curErr(`"for foo in list" must be followed by "do"`)
+	}
 	p.commands(&fs.DoStmts, DONE)
-	p.want(DONE)
+	if !p.got(DONE) {
+		p.curErr(`for statement must end with "done"`)
+	}
 	return
 }
 
@@ -607,13 +613,14 @@ func (p *parser) caseStmt() (cs CaseStmt) {
 	p.want(CASE)
 	cs.Word = p.getWord()
 	p.want(IN)
-	p.patterns(&cs.Patterns)
+	if p.patterns(&cs.Patterns) < 1 {
+		p.curErr(`"case x in" must be followed by one or more patterns`)
+	}
 	p.want(ESAC)
 	return
 }
 
-func (p *parser) patterns(ns *[]Node) {
-	count := 0
+func (p *parser) patterns(ns *[]Node) (count int) {
 	for p.tok != EOF && !p.peek(ESAC) {
 		for p.got('\n') {
 		}
@@ -634,9 +641,7 @@ func (p *parser) patterns(ns *[]Node) {
 		for p.got('\n') {
 		}
 	}
-	if count == 0 {
-		p.errWantedStr("pattern")
-	}
+	return
 }
 
 func (p *parser) cmdOrFunc() Node {
