@@ -101,12 +101,12 @@ var tests = []struct {
 			ThenStmts: []Node{
 				Command{Args: litWords("a")},
 			},
-			Elifs: []Node{
-				Elif{Cond: Command{Args: litWords("b")},
+			Elifs: []Elif{
+				{Cond: Command{Args: litWords("b")},
 					ThenStmts: []Node{
 						Command{Args: litWords("b")},
 					}},
-				Elif{Cond: Command{Args: litWords("c")},
+				{Cond: Command{Args: litWords("c")},
 					ThenStmts: []Node{
 						Command{Args: litWords("c")},
 					}},

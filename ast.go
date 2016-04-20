@@ -56,7 +56,7 @@ func (c Command) String() string {
 
 type Redirect struct {
 	Op  Token
-	Obj Node
+	Obj Word
 }
 
 func (r Redirect) String() string {
@@ -82,15 +82,15 @@ func (b Block) String() string {
 type IfStmt struct {
 	Cond      Node
 	ThenStmts []Node
-	Elifs     []Node
+	Elifs     []Elif
 	ElseStmts []Node
 }
 
 func (s IfStmt) String() string {
 	var b bytes.Buffer
 	fmt.Fprintf(&b, "if %s; then %s", s.Cond, stmtJoin(s.ThenStmts))
-	for _, n := range s.Elifs {
-		fmt.Fprintf(&b, "; %s", n.(Elif))
+	for _, elif := range s.Elifs {
+		fmt.Fprintf(&b, "; %s", elif)
 	}
 	if len(s.ElseStmts) > 0 {
 		fmt.Fprintf(&b, "; else %s", stmtJoin(s.ElseStmts))
@@ -118,7 +118,7 @@ func (w WhileStmt) String() string {
 }
 
 type ForStmt struct {
-	Name     Node
+	Name     Lit
 	WordList []Node
 	DoStmts  []Node
 }
@@ -199,7 +199,7 @@ func (a ArithmExp) String() string {
 }
 
 type CaseStmt struct {
-	Word     Node
+	Word     Word
 	Patterns []Node
 }
 
