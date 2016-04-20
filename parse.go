@@ -388,7 +388,7 @@ func (p *parser) readParts(ns *[]Node) (count int) {
 			p.quote = 0
 			p.wantQuote('"')
 			n = dq
-		case p.peek(EXP):
+		case p.got(EXP):
 			n = p.exp()
 		default:
 			return
@@ -400,7 +400,6 @@ func (p *parser) readParts(ns *[]Node) (count int) {
 }
 
 func (p *parser) exp() Node {
-	p.got(EXP)
 	switch {
 	case p.peek(LBRACE):
 		n := ParamExp{Text: p.readUntilMatch(RBRACE)}
@@ -470,17 +469,17 @@ func (p *parser) gotStmt(s *Stmt) bool {
 		addRedir()
 	}
 	switch {
-	case p.peek(LPAREN):
+	case p.got(LPAREN):
 		s.Node = p.subshell()
-	case p.peek(LBRACE):
+	case p.got(LBRACE):
 		s.Node = p.block()
-	case p.peek(IF):
+	case p.got(IF):
 		s.Node = p.ifStmt()
-	case p.peek(WHILE):
+	case p.got(WHILE):
 		s.Node = p.whileStmt()
-	case p.peek(FOR):
+	case p.got(FOR):
 		s.Node = p.forStmt()
-	case p.peek(CASE):
+	case p.got(CASE):
 		s.Node = p.caseStmt()
 	case p.peekAny(LIT, EXP, '\'', '"'):
 		s.Node = p.cmdOrFunc(addRedir)
@@ -528,7 +527,6 @@ func (p *parser) redirect() (r Redirect) {
 }
 
 func (p *parser) subshell() (s Subshell) {
-	p.got(LPAREN)
 	if p.stmtsLimited(&s.Stmts, RPAREN) < 1 {
 		p.curErr("a subshell must contain one or more statements")
 	}
@@ -537,7 +535,6 @@ func (p *parser) subshell() (s Subshell) {
 }
 
 func (p *parser) block() (b Block) {
-	p.got(LBRACE)
 	if p.stmts(&b.Stmts, RBRACE) < 1 {
 		p.curErr("a block must contain one or more statements")
 	}
@@ -546,7 +543,6 @@ func (p *parser) block() (b Block) {
 }
 
 func (p *parser) ifStmt() (ifs IfStmt) {
-	p.got(IF)
 	if !p.gotStmt(&ifs.Cond) {
 		p.curErr(`"if" must be followed by a statement`)
 	}
@@ -575,7 +571,6 @@ func (p *parser) ifStmt() (ifs IfStmt) {
 }
 
 func (p *parser) whileStmt() (ws WhileStmt) {
-	p.got(WHILE)
 	if !p.gotStmt(&ws.Cond) {
 		p.curErr(`"while" must be followed by a statement`)
 	}
@@ -590,7 +585,6 @@ func (p *parser) whileStmt() (ws WhileStmt) {
 }
 
 func (p *parser) forStmt() (fs ForStmt) {
-	p.got(FOR)
 	if !p.gotLit(&fs.Name) {
 		p.curErr(`"for" must be followed by a literal`)
 	}
@@ -609,7 +603,6 @@ func (p *parser) forStmt() (fs ForStmt) {
 }
 
 func (p *parser) caseStmt() (cs CaseStmt) {
-	p.got(CASE)
 	if !p.gotWord(&cs.Word) {
 		p.curErr(`"case" must be followed by a word`)
 	}
@@ -659,7 +652,7 @@ func (p *parser) cmdOrFunc(addRedir func()) Node {
 	fpos := p.pos
 	var w Word
 	p.gotWord(&w)
-	if p.peek(LPAREN) {
+	if p.got(LPAREN) {
 		return p.funcDecl(w.String(), fpos)
 	}
 	cmd := Command{Args: []Word{w}}
@@ -679,7 +672,6 @@ func (p *parser) cmdOrFunc(addRedir func()) Node {
 }
 
 func (p *parser) funcDecl(name string, pos position) (fd FuncDecl) {
-	p.got(LPAREN)
 	if !p.got(RPAREN) {
 		if p.tok == EOF {
 			p.wantMatching(RPAREN)
