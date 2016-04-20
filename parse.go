@@ -472,7 +472,6 @@ func (p *parser) peekEnd() bool {
 func (p *parser) gotStmt(s *Stmt) bool {
 	for p.got(COMMENT) || p.got('\n') {
 	}
-	end := false
 	switch {
 	case p.peek(LPAREN):
 		s.Node = p.subshell()
@@ -488,14 +487,13 @@ func (p *parser) gotStmt(s *Stmt) bool {
 		s.Node = p.caseStmt()
 	case p.peek(LIT), p.peek(EXP), p.peek('\''), p.peek('"'):
 		s.Node = p.cmdOrFunc()
-		end = true
 	default:
 		return false
 	}
 	if p.got(AND) {
 		s.Background = true
 	}
-	if !end && !p.peekEnd() {
+	if !p.peekEnd() {
 		p.curErr("statements must be separated by ; or a newline")
 	}
 	if p.got(OR) || p.got(LAND) || p.got(LOR) {
@@ -506,10 +504,6 @@ func (p *parser) gotStmt(s *Stmt) bool {
 	case p.got(SEMICOLON):
 	case p.got(COMMENT):
 	case p.got('\n'):
-	case p.tok == EOF:
-	case end:
-	default:
-		p.curErr("statements must be separated by ; or a newline")
 	}
 	return true
 }
