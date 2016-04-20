@@ -285,6 +285,10 @@ func TestParseErr(t *testing.T) {
 			"case i in 3&) foo;",
 			`1:12: case patterns must be separated with |`,
 		},
+		{
+			"case i in &) foo;",
+			`1:11: case patterns must consist of words`,
+		},
 	}
 	for _, c := range errs {
 		r := strings.NewReader(c.in)

@@ -625,7 +625,7 @@ func (p *parser) patLists(plists *[]PatternList) (count int) {
 		for p.tok != EOF {
 			var w Word
 			if !p.gotWord(&w) {
-				p.curErr("patterns must consist of words")
+				p.curErr("case patterns must consist of words")
 			}
 			pl.Patterns = append(pl.Patterns, w)
 			if p.got(RPAREN) {

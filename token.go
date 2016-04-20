@@ -3,11 +3,6 @@
 
 package sh
 
-import (
-	"strconv"
-	"unicode"
-)
-
 type Token int
 
 const (
@@ -94,11 +89,7 @@ func (t Token) String() string {
 	if s, e := tokNames[t]; e {
 		return s
 	}
-	r := rune(t)
-	if !unicode.IsPrint(r) {
-		return strconv.QuoteRune(r)
-	}
-	return string(r)
+	return string(rune(t))
 }
 
 func doToken(r rune, readOnly func(rune) bool) Token {
