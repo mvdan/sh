@@ -70,7 +70,7 @@ var tests = []struct {
 			"if a\nthen\nb\nfi",
 		},
 		IfStmt{
-			Cond: Command{Args: litWords("a")},
+			Cond: Stmt{Node: Command{Args: litWords("a")}},
 			ThenStmts: []Stmt{
 				{Node: Command{Args: litWords("b")}},
 			},
@@ -82,7 +82,7 @@ var tests = []struct {
 			"if a\nthen b\nelse\nc\nfi",
 		},
 		IfStmt{
-			Cond: Command{Args: litWords("a")},
+			Cond: Stmt{Node: Command{Args: litWords("a")}},
 			ThenStmts: []Stmt{
 				{Node: Command{Args: litWords("b")}},
 			},
@@ -97,16 +97,16 @@ var tests = []struct {
 			"if a\nthen a\nelif b\nthen b\nelif c\nthen c\nelse\nd\nfi",
 		},
 		IfStmt{
-			Cond: Command{Args: litWords("a")},
+			Cond: Stmt{Node: Command{Args: litWords("a")}},
 			ThenStmts: []Stmt{
 				{Node: Command{Args: litWords("a")}},
 			},
 			Elifs: []Elif{
-				{Cond: Command{Args: litWords("b")},
+				{Cond: Stmt{Node: Command{Args: litWords("b")}},
 					ThenStmts: []Stmt{
 						{Node: Command{Args: litWords("b")}},
 					}},
-				{Cond: Command{Args: litWords("c")},
+				{Cond: Stmt{Node: Command{Args: litWords("c")}},
 					ThenStmts: []Stmt{
 						{Node: Command{Args: litWords("c")}},
 					}},
@@ -119,7 +119,7 @@ var tests = []struct {
 	{
 		[]string{"while a; do b; done", "while a\ndo\nb\ndone"},
 		WhileStmt{
-			Cond: Command{Args: litWords("a")},
+			Cond: Stmt{Node: Command{Args: litWords("a")}},
 			DoStmts: []Stmt{
 				{Node: Command{Args: litWords("b")}},
 			},
@@ -184,48 +184,48 @@ var tests = []struct {
 		[]string{"foo && bar", "foo&&bar", "foo &&\nbar"},
 		BinaryExpr{
 			Op: LAND,
-			X:  Command{Args: litWords("foo")},
-			Y:  Command{Args: litWords("bar")},
+			X:  Stmt{Node: Command{Args: litWords("foo")}},
+			Y:  Stmt{Node: Command{Args: litWords("bar")}},
 		},
 	},
 	{
 		[]string{"foo || bar", "foo||bar", "foo ||\nbar"},
 		BinaryExpr{
 			Op: LOR,
-			X:  Command{Args: litWords("foo")},
-			Y:  Command{Args: litWords("bar")},
+			X:  Stmt{Node: Command{Args: litWords("foo")}},
+			Y:  Stmt{Node: Command{Args: litWords("bar")}},
 		},
 	},
 	{
 		[]string{"foo && bar1 || bar2"},
 		BinaryExpr{
 			Op: LAND,
-			X:  Command{Args: litWords("foo")},
-			Y: BinaryExpr{
+			X:  Stmt{Node: Command{Args: litWords("foo")}},
+			Y: Stmt{Node: BinaryExpr{
 				Op: LOR,
-				X:  Command{Args: litWords("bar1")},
-				Y:  Command{Args: litWords("bar2")},
-			},
+				X:  Stmt{Node: Command{Args: litWords("bar1")}},
+				Y:  Stmt{Node: Command{Args: litWords("bar2")}},
+			}},
 		},
 	},
 	{
 		[]string{"foo | bar", "foo|bar"},
 		BinaryExpr{
 			Op: OR,
-			X:  Command{Args: litWords("foo")},
-			Y:  Command{Args: litWords("bar")},
+			X:  Stmt{Node: Command{Args: litWords("foo")}},
+			Y:  Stmt{Node: Command{Args: litWords("bar")}},
 		},
 	},
 	{
 		[]string{"foo | bar | extra"},
 		BinaryExpr{
 			Op: OR,
-			X:  Command{Args: litWords("foo")},
-			Y: BinaryExpr{
+			X:  Stmt{Node: Command{Args: litWords("foo")}},
+			Y: Stmt{Node: BinaryExpr{
 				Op: OR,
-				X:  Command{Args: litWords("bar")},
-				Y:  Command{Args: litWords("extra")},
-			},
+				X:  Stmt{Node: Command{Args: litWords("bar")}},
+				Y:  Stmt{Node: Command{Args: litWords("extra")}},
+			}},
 		},
 	},
 	{
@@ -236,10 +236,10 @@ var tests = []struct {
 		},
 		FuncDecl{
 			Name: Lit{Val: "foo"},
-			Body: Block{Stmts: []Stmt{
+			Body: Stmt{Node: Block{Stmts: []Stmt{
 				{Node: Command{Args: litWords("a")}},
 				{Node: Command{Args: litWords("b")}},
-			}},
+			}}},
 		},
 	},
 	{
@@ -269,8 +269,8 @@ var tests = []struct {
 	},
 	{
 		[]string{"foo &", "foo&"},
-		Command{
-			Args:       litWords("foo"),
+		Stmt{
+			Node:       Command{Args: litWords("foo")},
 			Background: true,
 		},
 	},
@@ -295,10 +295,10 @@ var tests = []struct {
 			litWord("echo"),
 			Word{Parts: []Node{
 				CmdSubst{Stmts: []Stmt{
-					{BinaryExpr{
+					{Node: BinaryExpr{
 						Op: OR,
-						X:  Command{Args: litWords("foo")},
-						Y:  Command{Args: litWords("bar")},
+						X:  Stmt{Node: Command{Args: litWords("foo")}},
+						Y:  Stmt{Node: Command{Args: litWords("bar")}},
 					}},
 				}},
 			}},
@@ -445,24 +445,24 @@ var tests = []struct {
 		[]string{"foo | while read a; do b; done"},
 		BinaryExpr{
 			Op: OR,
-			X:  Command{Args: litWords("foo")},
-			Y: WhileStmt{
-				Cond: Command{Args: litWords("read", "a")},
+			X:  Stmt{Node: Command{Args: litWords("foo")}},
+			Y: Stmt{Node: WhileStmt{
+				Cond: Stmt{Node: Command{Args: litWords("read", "a")}},
 				DoStmts: []Stmt{
 					Stmt{Node: Command{Args: litWords("b")}},
 				},
-			},
+			}},
 		},
 	},
 	{
 		[]string{"while read l; do foo || bar; done"},
 		WhileStmt{
-			Cond: Command{Args: litWords("read", "l")},
+			Cond: Stmt{Node: Command{Args: litWords("read", "l")}},
 			DoStmts: []Stmt{
-				{BinaryExpr{
+				{Node: BinaryExpr{
 					Op: LOR,
-					X:  Command{Args: litWords("foo")},
-					Y:  Command{Args: litWords("bar")},
+					X:  Stmt{Node: Command{Args: litWords("foo")}},
+					Y:  Stmt{Node: Command{Args: litWords("bar")}},
 				}},
 			},
 		},

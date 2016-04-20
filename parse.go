@@ -361,19 +361,19 @@ func (p *parser) commandsPropagating(propagate bool, stmts *[]Stmt, stop ...Toke
 			p.stops = p.stops[:len(p.stops)-1]
 		}()
 	}
-	var n Node
+	var s Stmt
 	for p.tok != EOF {
 		for _, tok := range stop {
 			if p.peek(tok) {
 				return
 			}
 		}
-		if !p.gotCommand(&n) && p.tok != EOF {
+		if !p.gotCommand(&s) && p.tok != EOF {
 			p.errWantedStr("command")
 			break
 		}
-		if n != nil {
-			*stmts = append(*stmts, Stmt{Node: n})
+		if s.Node != nil {
+			*stmts = append(*stmts, s)
 		}
 		count++
 	}
@@ -455,6 +455,9 @@ func (p *parser) gotEnd() bool {
 	if p.tok == EOF || p.got(SEMICOLON) || p.got('\n') || p.got(COMMENT) {
 		return true
 	}
+	if p.peek(AND) || p.peek(OR) || p.peek(LAND) || p.peek(LOR) {
+		return true
+	}
 	stop := p.stops[len(p.stops)-1]
 	for _, tok := range stop {
 		if p.peek(tok) {
@@ -464,35 +467,43 @@ func (p *parser) gotEnd() bool {
 	return false
 }
 
-func (p *parser) gotCommand(n *Node) bool {
+func (p *parser) gotCommand(s *Stmt) bool {
 	for p.got(COMMENT) || p.got('\n') {
 	}
+	end := false
 	switch {
 	case p.peek(LPAREN):
-		*n = p.subshell()
+		s.Node = p.subshell()
 	case p.peek(LBRACE):
-		*n = p.block()
+		s.Node = p.block()
 	case p.peek(IF):
-		*n = p.ifStmt()
+		s.Node = p.ifStmt()
 	case p.peek(WHILE):
-		*n = p.whileStmt()
+		s.Node = p.whileStmt()
 	case p.peek(FOR):
-		*n = p.forStmt()
+		s.Node = p.forStmt()
 	case p.peek(CASE):
-		*n = p.caseStmt()
+		s.Node = p.caseStmt()
 	case p.peek(LIT), p.peek(EXP), p.peek('\''), p.peek('"'):
-		*n = p.baseCmd()
-		return true
+		s.Node = p.baseCmd()
+		end = true
 	default:
 		return false
 	}
-	if !p.gotEnd() {
+	if p.got(AND) {
+		s.Background = true
+	}
+	if !end && !p.gotEnd() {
 		p.errAfterStr("statement")
+	}
+	if p.got(OR) || p.got(LAND) || p.got(LOR) {
+		left := *s
+		*s = Stmt{Node: p.binaryExpr(p.ltok, left)}
 	}
 	return true
 }
 
-func (p *parser) binaryExpr(op Token, left Node) (b BinaryExpr) {
+func (p *parser) binaryExpr(op Token, left Stmt) (b BinaryExpr) {
 	b.Op = op
 	if !p.gotCommand(&b.Y) {
 		p.curErr("%s must be followed by a command", op)
@@ -630,17 +641,11 @@ func (p *parser) baseCmd() Node {
 		return p.funcDecl(w.String(), fpos)
 	}
 	cmd := Command{Args: []Node{w}}
-args:
 	for !p.gotEnd() {
 		switch {
 		case p.peek(LIT), p.peek(EXP), p.peek('\''), p.peek('"'):
 			cmd.Args = append(cmd.Args, p.getWord())
-		case p.got(LAND), p.got(OR), p.got(LOR):
-			return p.binaryExpr(p.ltok, cmd)
 		case p.gotRedirect(&cmd.Args):
-		case p.got(AND):
-			cmd.Background = true
-			break args
 		default:
 			p.errAfterStr("command")
 		}

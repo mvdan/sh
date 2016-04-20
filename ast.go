@@ -46,21 +46,25 @@ func wordJoin(ns []Node) string {
 
 type Stmt struct {
 	Node
-}
-
-type Command struct {
-	Args []Node
 
 	Background bool
 }
 
-func (c Command) String() string {
+func (s Stmt) String() string {
 	var b bytes.Buffer
-	io.WriteString(&b, wordJoin(c.Args))
-	if c.Background {
+	io.WriteString(&b, s.Node.String())
+	if s.Background {
 		fmt.Fprintf(&b, " &")
 	}
 	return b.String()
+}
+
+type Command struct {
+	Args []Node
+}
+
+func (c Command) String() string {
+	return wordJoin(c.Args)
 }
 
 type Redirect struct {
@@ -89,7 +93,7 @@ func (b Block) String() string {
 }
 
 type IfStmt struct {
-	Cond      Node
+	Cond      Stmt
 	ThenStmts []Stmt
 	Elifs     []Elif
 	ElseStmts []Stmt
@@ -109,7 +113,7 @@ func (s IfStmt) String() string {
 }
 
 type Elif struct {
-	Cond      Node
+	Cond      Stmt
 	ThenStmts []Stmt
 }
 
@@ -118,7 +122,7 @@ func (e Elif) String() string {
 }
 
 type WhileStmt struct {
-	Cond    Node
+	Cond    Stmt
 	DoStmts []Stmt
 }
 
@@ -138,7 +142,7 @@ func (f ForStmt) String() string {
 }
 
 type BinaryExpr struct {
-	X, Y Node
+	X, Y Stmt
 	Op   Token
 }
 
@@ -148,7 +152,7 @@ func (b BinaryExpr) String() string {
 
 type FuncDecl struct {
 	Name Lit
-	Body Node
+	Body Stmt
 }
 
 func (f FuncDecl) String() string {
