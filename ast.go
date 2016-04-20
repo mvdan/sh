@@ -10,11 +10,11 @@ import (
 )
 
 type Prog struct {
-	Stmts []Node
+	Stmts []Stmt
 }
 
 func (p Prog) String() string {
-	return nodeJoin(p.Stmts, "; ")
+	return stmtJoin(p.Stmts)
 }
 
 type Node interface {
@@ -32,12 +32,20 @@ func nodeJoin(ns []Node, sep string) string {
 	return b.String()
 }
 
-func stmtJoin(ns []Node) string {
+func stmtJoin(stmts []Stmt) string {
+	ns := make([]Node, len(stmts))
+	for i, stmt := range stmts {
+		ns[i] = stmt
+	}
 	return nodeJoin(ns, "; ")
 }
 
 func wordJoin(ns []Node) string {
 	return nodeJoin(ns, " ")
+}
+
+type Stmt struct {
+	Node
 }
 
 type Command struct {
@@ -47,11 +55,12 @@ type Command struct {
 }
 
 func (c Command) String() string {
-	suffix := ""
+	var b bytes.Buffer
+	io.WriteString(&b, wordJoin(c.Args))
 	if c.Background {
-		suffix += " &"
+		fmt.Fprintf(&b, " &")
 	}
-	return wordJoin(c.Args) + suffix
+	return b.String()
 }
 
 type Redirect struct {
@@ -64,7 +73,7 @@ func (r Redirect) String() string {
 }
 
 type Subshell struct {
-	Stmts []Node
+	Stmts []Stmt
 }
 
 func (s Subshell) String() string {
@@ -72,7 +81,7 @@ func (s Subshell) String() string {
 }
 
 type Block struct {
-	Stmts []Node
+	Stmts []Stmt
 }
 
 func (b Block) String() string {
@@ -81,9 +90,9 @@ func (b Block) String() string {
 
 type IfStmt struct {
 	Cond      Node
-	ThenStmts []Node
+	ThenStmts []Stmt
 	Elifs     []Elif
-	ElseStmts []Node
+	ElseStmts []Stmt
 }
 
 func (s IfStmt) String() string {
@@ -101,7 +110,7 @@ func (s IfStmt) String() string {
 
 type Elif struct {
 	Cond      Node
-	ThenStmts []Node
+	ThenStmts []Stmt
 }
 
 func (e Elif) String() string {
@@ -110,7 +119,7 @@ func (e Elif) String() string {
 
 type WhileStmt struct {
 	Cond    Node
-	DoStmts []Node
+	DoStmts []Stmt
 }
 
 func (w WhileStmt) String() string {
@@ -120,7 +129,7 @@ func (w WhileStmt) String() string {
 type ForStmt struct {
 	Name     Lit
 	WordList []Node
-	DoStmts  []Node
+	DoStmts  []Stmt
 }
 
 func (f ForStmt) String() string {
@@ -171,7 +180,7 @@ func (q DblQuoted) String() string {
 }
 
 type CmdSubst struct {
-	Stmts []Node
+	Stmts []Stmt
 }
 
 func (c CmdSubst) String() string {
@@ -209,7 +218,7 @@ func (c CaseStmt) String() string {
 
 type CasePattern struct {
 	Parts []Node
-	Stmts []Node
+	Stmts []Stmt
 }
 
 func (c CasePattern) String() string {

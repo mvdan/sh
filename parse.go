@@ -346,15 +346,15 @@ func (p *parser) program() (pr Prog) {
 	return
 }
 
-func (p *parser) commands(stmts *[]Node, stop ...Token) int {
+func (p *parser) commands(stmts *[]Stmt, stop ...Token) int {
 	return p.commandsPropagating(false, stmts, stop...)
 }
 
-func (p *parser) commandsLimited(stmts *[]Node, stop ...Token) int {
+func (p *parser) commandsLimited(stmts *[]Stmt, stop ...Token) int {
 	return p.commandsPropagating(true, stmts, stop...)
 }
 
-func (p *parser) commandsPropagating(propagate bool, stmts *[]Node, stop ...Token) (count int) {
+func (p *parser) commandsPropagating(propagate bool, stmts *[]Stmt, stop ...Token) (count int) {
 	if propagate {
 		p.stops = append(p.stops, stop)
 		defer func() {
@@ -373,7 +373,7 @@ func (p *parser) commandsPropagating(propagate bool, stmts *[]Node, stop ...Toke
 			break
 		}
 		if n != nil {
-			*stmts = append(*stmts, n)
+			*stmts = append(*stmts, Stmt{Node: n})
 		}
 		count++
 	}

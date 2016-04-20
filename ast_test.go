@@ -54,14 +54,14 @@ var tests = []struct {
 	},
 	{
 		[]string{"(foo)", "(foo;)", "(\nfoo\n)"},
-		Subshell{Stmts: []Node{
-			Command{Args: litWords("foo")},
+		Subshell{Stmts: []Stmt{
+			{Node: Command{Args: litWords("foo")}},
 		}},
 	},
 	{
 		[]string{"{ foo; }", "{foo;}", "{\nfoo\n}"},
-		Block{Stmts: []Node{
-			Command{Args: litWords("foo")},
+		Block{Stmts: []Stmt{
+			{Node: Command{Args: litWords("foo")}},
 		}},
 	},
 	{
@@ -71,8 +71,8 @@ var tests = []struct {
 		},
 		IfStmt{
 			Cond: Command{Args: litWords("a")},
-			ThenStmts: []Node{
-				Command{Args: litWords("b")},
+			ThenStmts: []Stmt{
+				{Node: Command{Args: litWords("b")}},
 			},
 		},
 	},
@@ -83,11 +83,11 @@ var tests = []struct {
 		},
 		IfStmt{
 			Cond: Command{Args: litWords("a")},
-			ThenStmts: []Node{
-				Command{Args: litWords("b")},
+			ThenStmts: []Stmt{
+				{Node: Command{Args: litWords("b")}},
 			},
-			ElseStmts: []Node{
-				Command{Args: litWords("c")},
+			ElseStmts: []Stmt{
+				{Node: Command{Args: litWords("c")}},
 			},
 		},
 	},
@@ -98,21 +98,21 @@ var tests = []struct {
 		},
 		IfStmt{
 			Cond: Command{Args: litWords("a")},
-			ThenStmts: []Node{
-				Command{Args: litWords("a")},
+			ThenStmts: []Stmt{
+				{Node: Command{Args: litWords("a")}},
 			},
 			Elifs: []Elif{
 				{Cond: Command{Args: litWords("b")},
-					ThenStmts: []Node{
-						Command{Args: litWords("b")},
+					ThenStmts: []Stmt{
+						{Node: Command{Args: litWords("b")}},
 					}},
 				{Cond: Command{Args: litWords("c")},
-					ThenStmts: []Node{
-						Command{Args: litWords("c")},
+					ThenStmts: []Stmt{
+						{Node: Command{Args: litWords("c")}},
 					}},
 			},
-			ElseStmts: []Node{
-				Command{Args: litWords("d")},
+			ElseStmts: []Stmt{
+				{Node: Command{Args: litWords("d")}},
 			},
 		},
 	},
@@ -120,8 +120,8 @@ var tests = []struct {
 		[]string{"while a; do b; done", "while a\ndo\nb\ndone"},
 		WhileStmt{
 			Cond: Command{Args: litWords("a")},
-			DoStmts: []Node{
-				Command{Args: litWords("b")},
+			DoStmts: []Stmt{
+				{Node: Command{Args: litWords("b")}},
 			},
 		},
 	},
@@ -133,13 +133,13 @@ var tests = []struct {
 		ForStmt{
 			Name:     Lit{Val: "i"},
 			WordList: litWords("1", "2", "3"),
-			DoStmts: []Node{
-				Command{Args: []Node{
+			DoStmts: []Stmt{
+				{Node: Command{Args: []Node{
 					litWord("echo"),
 					Word{Parts: []Node{
 						ParamExp{Short: true, Text: "i"},
 					}},
-				}},
+				}}},
 			},
 		},
 	},
@@ -236,9 +236,9 @@ var tests = []struct {
 		},
 		FuncDecl{
 			Name: Lit{Val: "foo"},
-			Body: Block{Stmts: []Node{
-				Command{Args: litWords("a")},
-				Command{Args: litWords("b")},
+			Body: Block{Stmts: []Stmt{
+				{Node: Command{Args: litWords("a")}},
+				{Node: Command{Args: litWords("b")}},
 			}},
 		},
 	},
@@ -283,8 +283,8 @@ var tests = []struct {
 		Command{Args: []Node{
 			litWord("echo"),
 			Word{Parts: []Node{
-				CmdSubst{Stmts: []Node{
-					Command{Args: litWords("foo", "bar")},
+				CmdSubst{Stmts: []Stmt{
+					{Node: Command{Args: litWords("foo", "bar")}},
 				}},
 			}},
 		}},
@@ -294,12 +294,12 @@ var tests = []struct {
 		Command{Args: []Node{
 			litWord("echo"),
 			Word{Parts: []Node{
-				CmdSubst{Stmts: []Node{
-					BinaryExpr{
+				CmdSubst{Stmts: []Stmt{
+					{BinaryExpr{
 						Op: OR,
 						X:  Command{Args: litWords("foo")},
 						Y:  Command{Args: litWords("bar")},
-					},
+					}},
 				}},
 			}},
 		}},
@@ -332,8 +332,8 @@ var tests = []struct {
 			litWord("echo"),
 			Word{Parts: []Node{
 				DblQuoted{Parts: []Node{
-					CmdSubst{Stmts: []Node{
-						Command{Args: litWords("foo")},
+					CmdSubst{Stmts: []Stmt{
+						{Node: Command{Args: litWords("foo")}},
 					}},
 				}},
 			}},
@@ -377,8 +377,8 @@ var tests = []struct {
 			litWord("echo"),
 			Word{Parts: []Node{
 				Lit{Val: "foo"},
-				CmdSubst{Stmts: []Node{
-					Command{Args: litWords("bar", "bar")},
+				CmdSubst{Stmts: []Stmt{
+					{Node: Command{Args: litWords("bar", "bar")}},
 				}},
 			}},
 		}},
@@ -400,8 +400,8 @@ var tests = []struct {
 	{
 		[]string{"(foo); bar"},
 		[]Node{
-			Subshell{Stmts: []Node{
-				Command{Args: litWords("foo")},
+			Subshell{Stmts: []Stmt{
+				{Node: Command{Args: litWords("foo")}},
 			}},
 			Command{Args: litWords("bar")},
 		},
@@ -428,14 +428,14 @@ var tests = []struct {
 			Patterns: []Node{
 				CasePattern{
 					Parts: litWords("1"),
-					Stmts: []Node{
-						Command{Args: litWords("foo")},
+					Stmts: []Stmt{
+						{Node: Command{Args: litWords("foo")}},
 					},
 				},
 				CasePattern{
 					Parts: litWords("2", "3*"),
-					Stmts: []Node{
-						Command{Args: litWords("bar")},
+					Stmts: []Stmt{
+						{Node: Command{Args: litWords("bar")}},
 					},
 				},
 			},
@@ -448,8 +448,8 @@ var tests = []struct {
 			X:  Command{Args: litWords("foo")},
 			Y: WhileStmt{
 				Cond: Command{Args: litWords("read", "a")},
-				DoStmts: []Node{
-					Command{Args: litWords("b")},
+				DoStmts: []Stmt{
+					Stmt{Node: Command{Args: litWords("b")}},
 				},
 			},
 		},
@@ -458,12 +458,12 @@ var tests = []struct {
 		[]string{"while read l; do foo || bar; done"},
 		WhileStmt{
 			Cond: Command{Args: litWords("read", "l")},
-			DoStmts: []Node{
-				BinaryExpr{
+			DoStmts: []Stmt{
+				{BinaryExpr{
 					Op: LOR,
 					X:  Command{Args: litWords("foo")},
 					Y:  Command{Args: litWords("bar")},
-				},
+				}},
 			},
 		},
 	},
@@ -494,10 +494,16 @@ var tests = []struct {
 
 func wantedProg(v interface{}) (p Prog) {
 	switch x := v.(type) {
-	case []Node:
+	case []Stmt:
 		p.Stmts = x
-	case Node:
+	case Stmt:
 		p.Stmts = append(p.Stmts, x)
+	case []Node:
+		for _, n := range x {
+			p.Stmts = append(p.Stmts, Stmt{Node: n})
+		}
+	case Node:
+		p.Stmts = append(p.Stmts, Stmt{Node: x})
 	}
 	return
 }
