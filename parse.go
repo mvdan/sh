@@ -383,17 +383,13 @@ func (p *parser) gotLit(l *Lit) bool {
 }
 
 func (p *parser) readParts(ns *[]Node) (count int) {
-	add := func(n Node) {
-		*ns = append(*ns, n)
-	}
 	for p.tok != EOF {
+		var n Node
 		switch {
 		case p.quote == 0 && count > 0 && p.spaced:
 			return
-		case p.peek(LIT):
-			var l Lit
-			p.gotLit(&l)
-			add(l)
+		case p.got(LIT):
+			n = Lit{Val: p.lval}
 		case p.quote == 0 && p.peek('"'):
 			var dq DblQuoted
 			p.quote = '"'
@@ -401,16 +397,16 @@ func (p *parser) readParts(ns *[]Node) (count int) {
 			p.readParts(&dq.Parts)
 			p.quote = 0
 			p.want('"')
-			add(dq)
+			n = dq
 		case p.got(EXP):
 			switch {
 			case p.peek(LBRACE):
-				add(ParamExp{Text: p.readUntilWant(RBRACE)})
+				n = ParamExp{Text: p.readUntilWant(RBRACE)}
 				p.next()
 			case p.got(LIT):
-				add(ParamExp{Short: true, Text: p.lval})
+				n = ParamExp{Short: true, Text: p.lval}
 			case p.peek(DLPAREN):
-				add(ArithmExp{Text: p.readUntilWant(DRPAREN)})
+				n = ArithmExp{Text: p.readUntilWant(DRPAREN)}
 				p.next()
 			case p.peek(LPAREN):
 				var cs CmdSubst
@@ -418,12 +414,13 @@ func (p *parser) readParts(ns *[]Node) (count int) {
 				p.next()
 				p.stmtsLimited(&cs.Stmts, RPAREN)
 				p.quotedCmdSubst = false
-				add(cs)
 				p.want(RPAREN)
+				n = cs
 			}
 		default:
 			return
 		}
+		*ns = append(*ns, n)
 		count++
 	}
 	return
