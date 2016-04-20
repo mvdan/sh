@@ -333,10 +333,6 @@ func (p *parser) errWanted(tok Token) {
 	p.curErr("unexpected token %s - wanted %s", p.tok, tok)
 }
 
-func (p *parser) errAfterStr(s string) {
-	p.curErr("unexpected token %s after %s", p.tok, s)
-}
-
 func (p *parser) program() (pr Prog) {
 	p.stmts(&pr.Stmts)
 	return
@@ -657,7 +653,7 @@ func (p *parser) cmdOrFunc() Node {
 			cmd.Args = append(cmd.Args, w)
 		case p.gotRedirect(&cmd.Args):
 		default:
-			p.errAfterStr("command")
+			p.curErr("a command can only contain words and redirects")
 		}
 	}
 	return cmd

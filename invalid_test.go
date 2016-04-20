@@ -83,7 +83,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"foo;;",
-			`1:4: unexpected token ;; after command`,
+			`1:4: a command can only contain words and redirects`,
 		},
 		{
 			"foo(",
@@ -111,7 +111,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"echo foo(",
-			`1:9: unexpected token ( after command`,
+			`1:9: a command can only contain words and redirects`,
 		},
 		{
 			"foo &&",
@@ -275,7 +275,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"case i in 3) foo; 4) bar; esac",
-			`1:20: unexpected token ) after command`,
+			`1:20: a command can only contain words and redirects`,
 		},
 	}
 	for _, c := range errs {
