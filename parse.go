@@ -426,7 +426,7 @@ func (p *parser) readParts(ns *[]Node) (count int) {
 	return
 }
 
-func (p *parser) wordList(ns *[]Node) (count int) {
+func (p *parser) wordList(ws *[]Word) (count int) {
 	var stop = [...]Token{SEMICOLON, '\n'}
 	for p.tok != EOF {
 		for _, tok := range stop {
@@ -436,7 +436,7 @@ func (p *parser) wordList(ns *[]Node) (count int) {
 		}
 		var w Word
 		p.gotWord(&w)
-		*ns = append(*ns, w)
+		*ws = append(*ws, w)
 		count++
 	}
 	return

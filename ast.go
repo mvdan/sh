@@ -135,13 +135,13 @@ func (w WhileStmt) String() string {
 
 type ForStmt struct {
 	Name     Lit
-	WordList []Node
+	WordList []Word
 	DoStmts  []Stmt
 }
 
 func (f ForStmt) String() string {
 	return fmt.Sprintf("for %s in %s; do %s; done", f.Name,
-		nodeJoin(f.WordList, " "), stmtJoin(f.DoStmts))
+		wordJoin(f.WordList, " "), stmtJoin(f.DoStmts))
 }
 
 type BinaryExpr struct {

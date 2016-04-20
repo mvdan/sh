@@ -140,7 +140,7 @@ var tests = []struct {
 		},
 		ForStmt{
 			Name:     Lit{Val: "i"},
-			WordList: litNodes("1", "2", "3"),
+			WordList: litWords("1", "2", "3"),
 			DoStmts: []Stmt{
 				{Node: Command{Args: []Node{
 					litWord("echo"),
