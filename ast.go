@@ -76,11 +76,11 @@ func (r Redirect) String() string {
 }
 
 type Command struct {
-	Args []Node
+	Args []Word
 }
 
 func (c Command) String() string {
-	return nodeJoin(c.Args, " ")
+	return wordJoin(c.Args, " ")
 }
 
 type Subshell struct {

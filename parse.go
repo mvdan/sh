@@ -639,7 +639,7 @@ func (p *parser) cmdOrFunc(addRedir func()) Node {
 	if p.peek(LPAREN) {
 		return p.funcDecl(w.String(), fpos)
 	}
-	cmd := Command{Args: []Node{w}}
+	cmd := Command{Args: []Word{w}}
 	for !p.peekStop() {
 		switch {
 		case p.peekAny(LIT, EXP, '\'', '"'):
