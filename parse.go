@@ -167,7 +167,8 @@ func (p *parser) next() {
 		case '\n':
 			p.advance('\n', "")
 		default:
-			p.advance(doToken(r, p.readOnly), "")
+			tok := doToken(r, p.readOnly)
+			p.advance(tok, tok.String())
 		}
 	default:
 		p.advance(LIT, p.readLit(r))
