@@ -50,7 +50,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"{#}",
-			`1:4: unexpected token EOF - wanted }`,
+			`1:4: reached EOF without matching }`,
 		},
 		{
 			"(",
@@ -66,7 +66,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"( foo;",
-			`1:7: unexpected token EOF - wanted )`,
+			`1:7: reached EOF without matching )`,
 		},
 		// TODO: "requires at least one statement"
 		{
@@ -87,11 +87,11 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"foo(",
-			`1:5: unexpected token EOF - wanted )`,
+			`1:5: reached EOF without matching )`,
 		},
 		{
 			"à(",
-			`1:3: unexpected token EOF - wanted )`,
+			`1:3: reached EOF without matching )`,
 		},
 		{
 			"foo'",
@@ -223,7 +223,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"echo $(foo",
-			`1:11: unexpected token EOF - wanted )`,
+			`1:11: reached EOF without matching )`,
 		},
 		{
 			"echo $((foo",

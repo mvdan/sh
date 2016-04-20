@@ -297,6 +297,12 @@ func (p *parser) want(tok Token) {
 	p.next()
 }
 
+func (p *parser) wantMatching(tok Token) {
+	if !p.got(tok) {
+		p.curErr(`reached EOF without matching %s`, tok)
+	}
+}
+
 func (p *parser) errPass(err error) {
 	if p.err == nil {
 		p.err = err
@@ -408,7 +414,7 @@ func (p *parser) readParts(ns *[]Node) (count int) {
 				p.next()
 				p.stmtsLimited(&cs.Stmts, RPAREN)
 				p.quotedCmdSubst = false
-				p.want(RPAREN)
+				p.wantMatching(RPAREN)
 				n = cs
 			}
 		default:
@@ -522,7 +528,7 @@ func (p *parser) subshell() (s Subshell) {
 	if p.stmtsLimited(&s.Stmts, RPAREN) < 1 {
 		p.curErr("a subshell must contain one or more statements")
 	}
-	p.want(RPAREN)
+	p.wantMatching(RPAREN)
 	return
 }
 
@@ -531,7 +537,7 @@ func (p *parser) block() (b Block) {
 	if p.stmts(&b.Stmts, RBRACE) < 1 {
 		p.curErr("a block must contain one or more statements")
 	}
-	p.want(RBRACE)
+	p.wantMatching(RBRACE)
 	return
 }
 
@@ -667,7 +673,7 @@ func (p *parser) cmdOrFunc() Node {
 
 func (p *parser) funcDecl(name string, pos position) (fd FuncDecl) {
 	p.want(LPAREN)
-	p.want(RPAREN)
+	p.wantMatching(RPAREN)
 	if !identRe.MatchString(name) {
 		p.posErr(pos, "invalid func name: %s", name)
 	}
