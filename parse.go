@@ -451,11 +451,13 @@ func (p *parser) wordList(ns *[]Node) (count int) {
 	return
 }
 
-func (p *parser) gotEnd() bool {
-	if p.tok == EOF || p.got(SEMICOLON) || p.got('\n') || p.got(COMMENT) {
+func (p *parser) peekEnd() bool {
+	if p.tok == EOF || p.peek(SEMICOLON) || p.peek('\n') || p.peek(COMMENT) {
+		// end of statement
 		return true
 	}
 	if p.peek(AND) || p.peek(OR) || p.peek(LAND) || p.peek(LOR) {
+		// binary expression
 		return true
 	}
 	stop := p.stops[len(p.stops)-1]
@@ -493,12 +495,21 @@ func (p *parser) gotStmt(s *Stmt) bool {
 	if p.got(AND) {
 		s.Background = true
 	}
-	if !end && !p.gotEnd() {
-		p.errAfterStr("statement")
+	if !end && !p.peekEnd() {
+		p.curErr("statements must be separated by ; or a newline")
 	}
 	if p.got(OR) || p.got(LAND) || p.got(LOR) {
 		left := *s
 		*s = Stmt{Node: p.binaryExpr(p.ltok, left)}
+	}
+	switch {
+	case p.got(SEMICOLON):
+	case p.got(COMMENT):
+	case p.got('\n'):
+	case p.tok == EOF:
+	case end:
+	default:
+		p.curErr("statements must be separated by ; or a newline")
 	}
 	return true
 }
@@ -641,7 +652,7 @@ func (p *parser) cmdOrFunc() Node {
 		return p.funcDecl(w.String(), fpos)
 	}
 	cmd := Command{Args: []Node{w}}
-	for !p.gotEnd() {
+	for !p.peekEnd() {
 		switch {
 		case p.peek(LIT), p.peek(EXP), p.peek('\''), p.peek('"'):
 			cmd.Args = append(cmd.Args, p.getWord())

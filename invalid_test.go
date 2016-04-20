@@ -246,15 +246,15 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"(foo) bar",
-			`1:7: unexpected token literal after statement`,
+			`1:7: statements must be separated by ; or a newline`,
 		},
 		{
 			"{foo;} bar",
-			`1:8: unexpected token literal after statement`,
+			`1:8: statements must be separated by ; or a newline`,
 		},
 		{
 			"if foo; then bar; fi bar",
-			`1:22: unexpected token literal after statement`,
+			`1:22: statements must be separated by ; or a newline`,
 		},
 		{
 			"case",
