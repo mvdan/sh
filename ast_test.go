@@ -353,9 +353,10 @@ var tests = []struct {
 		}},
 	},
 	{
-		[]string{`$@ $$`},
+		[]string{`$@ $# $$`},
 		Command{Args: []Word{
 			{Parts: []Node{ParamExp{Short: true, Text: "@"}}},
+			{Parts: []Node{ParamExp{Short: true, Text: "#"}}},
 			{Parts: []Node{ParamExp{Short: true, Text: "$"}}},
 		}},
 	},

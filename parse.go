@@ -162,8 +162,6 @@ func (p *parser) next() {
 			}
 		}
 		switch r {
-		case '#':
-			p.advance(COMMENT, p.readLine())
 		case '\n':
 			p.advance('\n', "")
 		default:
@@ -434,7 +432,7 @@ func (p *parser) wordList(ws *[]Word) (count int) {
 }
 
 func (p *parser) peekEnd() bool {
-	return p.tok == EOF || p.peekAny(SEMICOLON, '\n', COMMENT)
+	return p.tok == EOF || p.peekAny(SEMICOLON, '\n', '#')
 }
 
 func (p *parser) peekStop() bool {
@@ -450,7 +448,11 @@ func (p *parser) peekStop() bool {
 }
 
 func (p *parser) gotStmt(s *Stmt) bool {
-	for p.got(COMMENT) || p.got('\n') {
+	for p.got('#') || p.got('\n') {
+		if p.ltok == '#' {
+			p.readLine()
+			p.next()
+		}
 	}
 	addRedir := func() {
 		s.Redirs = append(s.Redirs, p.redirect())
@@ -490,6 +492,9 @@ func (p *parser) gotStmt(s *Stmt) bool {
 		*s = Stmt{Node: p.binaryExpr(p.ltok, left)}
 	}
 	if p.peekEnd() {
+		if p.tok == '#' {
+			p.readLine()
+		}
 		p.next()
 	}
 	return true

@@ -8,7 +8,6 @@ type Token int
 const (
 	ILLEGAL Token = -iota
 	EOF
-	COMMENT
 	LIT
 
 	IF
@@ -48,7 +47,6 @@ const (
 var tokNames = map[Token]string{
 	ILLEGAL: `ILLEGAL`,
 	EOF:     `EOF`,
-	COMMENT: `comment`,
 	LIT:     `literal`,
 
 	IF:    "if",
