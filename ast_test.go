@@ -273,6 +273,7 @@ var tests = []struct {
 			"foo >a >>b <c",
 			"foo > a >> b < c",
 			"foo>a >>b<c",
+			">a >>b foo <c",
 		},
 		Stmt{
 			Node: Command{

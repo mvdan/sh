@@ -443,6 +443,9 @@ func (p *parser) peekStop() bool {
 func (p *parser) gotStmt(s *Stmt) bool {
 	for p.got(COMMENT) || p.got('\n') {
 	}
+	for p.peekAny(RDROUT, APPEND, RDRIN) {
+		s.Redirs = append(s.Redirs, p.redirect())
+	}
 	switch {
 	case p.peek(LPAREN):
 		s.Node = p.subshell()
