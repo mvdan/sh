@@ -353,6 +353,13 @@ var tests = []struct {
 		}},
 	},
 	{
+		[]string{`$@ $$`},
+		Command{Args: []Word{
+			{Parts: []Node{ParamExp{Short: true, Text: "@"}}},
+			{Parts: []Node{ParamExp{Short: true, Text: "$"}}},
+		}},
+	},
+	{
 		[]string{`echo "${foo}"`},
 		Command{Args: []Word{
 			litWord("echo"),

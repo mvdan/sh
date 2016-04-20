@@ -399,8 +399,6 @@ func (p *parser) exp() Node {
 		n := ParamExp{Text: p.readUntilMatch(RBRACE)}
 		p.next()
 		return n
-	case p.got(LIT):
-		return ParamExp{Short: true, Text: p.lval}
 	case p.peek(DLPAREN):
 		n := ArithmExp{Text: p.readUntilMatch(DRPAREN)}
 		p.next()
@@ -414,7 +412,8 @@ func (p *parser) exp() Node {
 		p.wantMatching(RPAREN)
 		return cs
 	default:
-		return nil
+		p.next()
+		return ParamExp{Short: true, Text: p.lval}
 	}
 }
 
