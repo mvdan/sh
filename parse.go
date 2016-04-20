@@ -443,8 +443,11 @@ func (p *parser) peekStop() bool {
 func (p *parser) gotStmt(s *Stmt) bool {
 	for p.got(COMMENT) || p.got('\n') {
 	}
-	for p.peekAny(RDROUT, APPEND, RDRIN) {
+	addRedir := func() {
 		s.Redirs = append(s.Redirs, p.redirect())
+	}
+	for p.peekAny(RDROUT, APPEND, RDRIN) {
+		addRedir()
 	}
 	switch {
 	case p.peek(LPAREN):
@@ -460,12 +463,12 @@ func (p *parser) gotStmt(s *Stmt) bool {
 	case p.peek(CASE):
 		s.Node = p.caseStmt()
 	case p.peekAny(LIT, EXP, '\'', '"'):
-		s.Node = p.cmdOrFunc()
+		s.Node = p.cmdOrFunc(addRedir)
 	default:
 		return false
 	}
 	for p.peekAny(RDROUT, APPEND, RDRIN) {
-		s.Redirs = append(s.Redirs, p.redirect())
+		addRedir()
 	}
 	if p.got(AND) {
 		s.Background = true
@@ -629,7 +632,7 @@ func (p *parser) patLists(plists *[]PatternList) (count int) {
 	return
 }
 
-func (p *parser) cmdOrFunc() Node {
+func (p *parser) cmdOrFunc(addRedir func()) Node {
 	fpos := p.pos
 	var w Word
 	p.gotWord(&w)
@@ -637,7 +640,6 @@ func (p *parser) cmdOrFunc() Node {
 		return p.funcDecl(w.String(), fpos)
 	}
 	cmd := Command{Args: []Node{w}}
-args:
 	for !p.peekStop() {
 		switch {
 		case p.peekAny(LIT, EXP, '\'', '"'):
@@ -645,7 +647,7 @@ args:
 			p.gotWord(&w)
 			cmd.Args = append(cmd.Args, w)
 		case p.peekAny(RDROUT, APPEND, RDRIN):
-			break args
+			addRedir()
 		default:
 			p.curErr("a command can only contain words and redirects")
 		}

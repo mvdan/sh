@@ -287,7 +287,10 @@ var tests = []struct {
 		},
 	},
 	{
-		[]string{"foo bar >a"},
+		[]string{
+			"foo bar >a",
+			"foo >a bar",
+		},
 		Stmt{
 			Node: Command{
 				Args: litNodes("foo", "bar"),
