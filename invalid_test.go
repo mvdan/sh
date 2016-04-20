@@ -231,11 +231,11 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"echo $((foo",
-			`1:12: unexpected token EOF - wanted ))`,
+			`1:12: reached EOF without matching token ))`,
 		},
 		{
 			"echo ${foo",
-			`1:11: unexpected token EOF - wanted }`,
+			`1:11: reached EOF without matching token }`,
 		},
 		{
 			"#foo\n{",
@@ -243,7 +243,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			`echo "foo${bar"`,
-			`1:16: unexpected token EOF - wanted }`,
+			`1:16: reached EOF without matching token }`,
 		},
 		{
 			"foo\n;",

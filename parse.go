@@ -247,10 +247,10 @@ func (p *parser) readUntil(tok Token) (string, bool) {
 	}
 }
 
-func (p *parser) readUntilWant(tok Token) string {
+func (p *parser) readUntilMatch(tok Token) string {
 	s, found := p.readUntil(tok)
 	if !found {
-		p.errWanted(tok)
+		p.wantMatching(tok)
 	}
 	return s
 }
@@ -333,10 +333,6 @@ func (p *parser) curErr(format string, v ...interface{}) {
 	p.posErr(p.pos, format, v...)
 }
 
-func (p *parser) errWanted(tok Token) {
-	p.curErr("unexpected token %s - wanted %s", p.tok, tok)
-}
-
 func (p *parser) program() (pr Prog) {
 	p.stmts(&pr.Stmts)
 	return
@@ -397,12 +393,12 @@ func (p *parser) readParts(ns *[]Node) (count int) {
 		case p.got(EXP):
 			switch {
 			case p.peek(LBRACE):
-				n = ParamExp{Text: p.readUntilWant(RBRACE)}
+				n = ParamExp{Text: p.readUntilMatch(RBRACE)}
 				p.next()
 			case p.got(LIT):
 				n = ParamExp{Short: true, Text: p.lval}
 			case p.peek(DLPAREN):
-				n = ArithmExp{Text: p.readUntilWant(DRPAREN)}
+				n = ArithmExp{Text: p.readUntilMatch(DRPAREN)}
 				p.next()
 			case p.peek(LPAREN):
 				var cs CmdSubst
