@@ -377,9 +377,9 @@ func (p *parser) gotWord(w *Word) bool {
 	return p.readParts(&w.Parts) > 0
 }
 
-func (p *parser) getLit() Lit {
-	p.want(LIT)
-	return Lit{Val: p.lval}
+func (p *parser) gotLit(l *Lit) bool {
+	l.Val = p.val
+	return p.got(LIT)
 }
 
 func (p *parser) readParts(ns *[]Node) (count int) {
@@ -391,7 +391,9 @@ func (p *parser) readParts(ns *[]Node) (count int) {
 		case p.quote == 0 && count > 0 && p.spaced:
 			return
 		case p.peek(LIT):
-			add(p.getLit())
+			var l Lit
+			p.gotLit(&l)
+			add(l)
 		case p.quote == 0 && p.peek('"'):
 			var dq DblQuoted
 			p.quote = '"'
@@ -588,7 +590,9 @@ func (p *parser) whileStmt() (ws WhileStmt) {
 
 func (p *parser) forStmt() (fs ForStmt) {
 	p.want(FOR)
-	fs.Name = p.getLit()
+	if !p.gotLit(&fs.Name) {
+		p.curErr(`"for" must be followed by a literal`)
+	}
 	if !p.got(IN) {
 		p.curErr(`"for foo" must be followed by "in"`)
 	}

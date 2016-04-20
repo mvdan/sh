@@ -190,7 +190,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"for",
-			`1:4: unexpected token EOF - wanted literal`,
+			`1:4: "for" must be followed by a literal`,
 		},
 		{
 			"for i",
