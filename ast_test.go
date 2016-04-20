@@ -300,13 +300,16 @@ var tests = []struct {
 		},
 	},
 	{
-		[]string{"if foo; then bar; fi &"},
+		[]string{"if foo; then bar; fi >/dev/null &"},
 		Stmt{
 			Node: IfStmt{
 				Cond: Stmt{Node: Command{Args: litWords("foo")}},
 				ThenStmts: []Stmt{
 					{Node: Command{Args: litWords("bar")}},
 				},
+			},
+			Redirs: []Redirect{
+				{Op: RDROUT, Obj: litWord("/dev/null")},
 			},
 			Background: true,
 		},
