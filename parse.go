@@ -46,7 +46,6 @@ type parser struct {
 	pos  position
 	npos position
 
-	stack []*[]Node
 	stops [][]Token
 
 	// to not include ')' in a literal
@@ -342,19 +341,6 @@ func (p *parser) errAfterStr(s string) {
 	p.curErr("unexpected token %s after %s", p.tok, s)
 }
 
-func (p *parser) add(n Node) {
-	ns := p.stack[len(p.stack)-1]
-	*ns = append(*ns, n)
-}
-
-func (p *parser) pop() {
-	p.stack = p.stack[:len(p.stack)-1]
-}
-
-func (p *parser) push(ns *[]Node) {
-	p.stack = append(p.stack, ns)
-}
-
 func (p *parser) program() (pr Prog) {
 	p.commands(&pr.Stmts)
 	return
@@ -395,16 +381,10 @@ func (p *parser) commandsPropagating(propagate bool, stmts *[]Node, stop ...Toke
 }
 
 func (p *parser) getWord() (w Word) {
-	p.push(&w.Parts)
-	if p.readParts() == 0 {
+	if p.readParts(&w.Parts) == 0 {
 		p.errWantedStr("word")
 	}
-	p.pop()
 	return
-}
-
-func (p *parser) word() {
-	p.add(p.getWord())
 }
 
 func (p *parser) getLit() Lit {
@@ -412,36 +392,33 @@ func (p *parser) getLit() Lit {
 	return Lit{Val: p.lval}
 }
 
-func (p *parser) lit() {
-	p.add(p.getLit())
-}
-
-func (p *parser) readParts() (count int) {
+func (p *parser) readParts(ns *[]Node) (count int) {
+	add := func(n Node) {
+		*ns = append(*ns, n)
+	}
 	for p.tok != EOF {
 		switch {
 		case p.quote == 0 && count > 0 && p.spaced:
 			return
 		case p.peek(LIT):
-			p.lit()
+			add(p.getLit())
 		case p.quote == 0 && p.peek('"'):
 			var dq DblQuoted
 			p.quote = '"'
 			p.next()
-			p.push(&dq.Parts)
-			p.readParts()
-			p.pop()
+			p.readParts(&dq.Parts)
 			p.quote = 0
 			p.want('"')
-			p.add(dq)
+			add(dq)
 		case p.got(EXP):
 			switch {
 			case p.peek(LBRACE):
-				p.add(ParamExp{Text: p.readUntilWant(RBRACE)})
+				add(ParamExp{Text: p.readUntilWant(RBRACE)})
 				p.next()
 			case p.got(LIT):
-				p.add(ParamExp{Short: true, Text: p.lval})
+				add(ParamExp{Short: true, Text: p.lval})
 			case p.peek(DLPAREN):
-				p.add(ArithmExp{Text: p.readUntilWant(DRPAREN)})
+				add(ArithmExp{Text: p.readUntilWant(DRPAREN)})
 				p.next()
 			case p.peek(LPAREN):
 				var cs CmdSubst
@@ -449,7 +426,7 @@ func (p *parser) readParts() (count int) {
 				p.next()
 				p.commandsLimited(&cs.Stmts, RPAREN)
 				p.quotedCmdSubst = false
-				p.add(cs)
+				add(cs)
 				p.want(RPAREN)
 			}
 		default:
@@ -460,7 +437,7 @@ func (p *parser) readParts() (count int) {
 	return
 }
 
-func (p *parser) wordList() (count int) {
+func (p *parser) wordList(ns *[]Node) (count int) {
 	var stop = [...]Token{SEMICOLON, '\n'}
 	for p.tok != EOF {
 		for _, tok := range stop {
@@ -468,7 +445,7 @@ func (p *parser) wordList() (count int) {
 				return
 			}
 		}
-		p.word()
+		*ns = append(*ns, p.getWord())
 		count++
 	}
 	return
@@ -521,11 +498,10 @@ func (p *parser) binaryExpr(op Token, left Node) (b BinaryExpr) {
 		p.curErr("%s must be followed by a command", op)
 	}
 	b.X = left
-	p.pop()
 	return
 }
 
-func (p *parser) gotRedirect() bool {
+func (p *parser) gotRedirect(ns *[]Node) bool {
 	var r Redirect
 	switch {
 	case p.got(RDROUT), p.got(APPEND), p.got(RDRIN):
@@ -534,7 +510,7 @@ func (p *parser) gotRedirect() bool {
 	default:
 		return false
 	}
-	p.add(r)
+	*ns = append(*ns, r)
 	return true
 }
 
@@ -565,7 +541,6 @@ func (p *parser) ifStmt() (ifs IfStmt) {
 		p.curErr(`"if x" must be followed by "then"`)
 	}
 	p.commands(&ifs.ThenStmts, FI, ELIF, ELSE)
-	p.push(&ifs.Elifs)
 	for p.got(ELIF) {
 		var elf Elif
 		if !p.gotCommand(&elf.Cond) {
@@ -575,9 +550,8 @@ func (p *parser) ifStmt() (ifs IfStmt) {
 			p.curErr(`"elif x" must be followed by "then"`)
 		}
 		p.commands(&elf.ThenStmts, FI, ELIF, ELSE)
-		p.add(elf)
+		ifs.Elifs = append(ifs.Elifs, elf)
 	}
-	p.pop()
 	if p.got(ELSE) {
 		p.commands(&ifs.ElseStmts, FI)
 	}
@@ -606,9 +580,7 @@ func (p *parser) forStmt() (fs ForStmt) {
 	p.want(FOR)
 	fs.Name = p.getLit()
 	p.want(IN)
-	p.push(&fs.WordList)
-	p.wordList()
-	p.pop()
+	p.wordList(&fs.WordList)
 	p.want(DO)
 	p.commands(&fs.DoStmts, DONE)
 	p.want(DONE)
@@ -619,30 +591,26 @@ func (p *parser) caseStmt() (cs CaseStmt) {
 	p.want(CASE)
 	cs.Word = p.getWord()
 	p.want(IN)
-	p.push(&cs.Patterns)
-	p.patterns()
-	p.pop()
+	p.patterns(&cs.Patterns)
 	p.want(ESAC)
 	return
 }
 
-func (p *parser) patterns() {
+func (p *parser) patterns(ns *[]Node) {
 	count := 0
 	for p.tok != EOF && !p.peek(ESAC) {
 		for p.got('\n') {
 		}
 		var cp CasePattern
-		p.push(&cp.Parts)
 		for p.tok != EOF {
-			p.word()
+			cp.Parts = append(cp.Parts, p.getWord())
 			if p.got(RPAREN) {
 				break
 			}
 			p.want(OR)
 		}
-		p.pop()
 		p.commandsLimited(&cp.Stmts, DSEMICOLON, ESAC)
-		p.add(cp)
+		*ns = append(*ns, cp)
 		count++
 		if !p.got(DSEMICOLON) {
 			break
@@ -662,15 +630,14 @@ func (p *parser) baseCmd() Node {
 		return p.funcDecl(w.String(), fpos)
 	}
 	cmd := Command{Args: []Node{w}}
-	p.push(&cmd.Args)
 args:
 	for !p.gotEnd() {
 		switch {
 		case p.peek(LIT), p.peek(EXP), p.peek('\''), p.peek('"'):
-			p.word()
+			cmd.Args = append(cmd.Args, p.getWord())
 		case p.got(LAND), p.got(OR), p.got(LOR):
 			return p.binaryExpr(p.ltok, cmd)
-		case p.gotRedirect():
+		case p.gotRedirect(&cmd.Args):
 		case p.got(AND):
 			cmd.Background = true
 			break args
@@ -678,7 +645,6 @@ args:
 			p.errAfterStr("command")
 		}
 	}
-	p.pop()
 	return cmd
 }
 
