@@ -374,7 +374,7 @@ func (p *parser) stmtsLimited(stmts *[]Stmt, stop ...Token) int {
 }
 
 func (p *parser) getWord() (w Word) {
-	if p.readParts(&w.Parts) == 0 {
+	if p.readParts(&w.Parts) < 1 {
 		p.errWantedStr("word")
 	}
 	return
@@ -525,8 +525,8 @@ func (p *parser) gotRedirect(ns *[]Node) bool {
 
 func (p *parser) subshell() (s Subshell) {
 	p.want(LPAREN)
-	if p.stmtsLimited(&s.Stmts, RPAREN) == 0 {
-		p.errWantedStr("command")
+	if p.stmtsLimited(&s.Stmts, RPAREN) < 1 {
+		p.curErr("a subshell must contain one or more statements")
 	}
 	p.want(RPAREN)
 	return
@@ -534,8 +534,8 @@ func (p *parser) subshell() (s Subshell) {
 
 func (p *parser) block() (b Block) {
 	p.want(LBRACE)
-	if p.stmts(&b.Stmts, RBRACE) == 0 {
-		p.errWantedStr("command")
+	if p.stmts(&b.Stmts, RBRACE) < 1 {
+		p.curErr("a block must contain one or more statements")
 	}
 	p.want(RBRACE)
 	return

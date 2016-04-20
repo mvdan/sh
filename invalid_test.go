@@ -38,11 +38,11 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"{",
-			`1:2: unexpected token EOF - wanted command`,
+			`1:2: a block must contain one or more statements`,
 		},
 		{
 			"{}",
-			`1:2: unexpected token } - wanted command`,
+			`1:2: a block must contain one or more statements`,
 		},
 		{
 			"}",
@@ -54,7 +54,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"(",
-			`1:2: unexpected token EOF - wanted command`,
+			`1:2: a subshell must contain one or more statements`,
 		},
 		{
 			")",
@@ -62,7 +62,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"()",
-			`1:2: unexpected token ) - wanted command`,
+			`1:2: a subshell must contain one or more statements`,
 		},
 		{
 			"( foo;",
@@ -106,7 +106,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"foo() {",
-			`1:8: unexpected token EOF - wanted command`,
+			`1:8: a block must contain one or more statements`,
 		},
 		{
 			"echo foo(",
@@ -234,7 +234,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"#foo\n{",
-			`2:2: unexpected token EOF - wanted command`,
+			`2:2: a block must contain one or more statements`,
 		},
 		{
 			`echo "foo${bar"`,
