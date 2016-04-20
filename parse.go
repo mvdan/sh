@@ -264,6 +264,15 @@ func (p *parser) peek(tok Token) bool {
 	return p.tok == tok || (p.tok == LIT && p.val == tokNames[tok])
 }
 
+func (p *parser) peekAny(toks ...Token) bool {
+	for _, tok := range toks {
+		if p.peek(tok) {
+			return true
+		}
+	}
+	return false
+}
+
 func (p *parser) got(tok Token) bool {
 	if p.peek(tok) {
 		p.next()
@@ -324,10 +333,8 @@ func (p *parser) program() (pr Prog) {
 func (p *parser) stmts(stmts *[]Stmt, stop ...Token) (count int) {
 	var s Stmt
 	for p.tok != EOF {
-		for _, tok := range stop {
-			if p.peek(tok) {
-				return
-			}
+		if p.peekAny(stop...) {
+			return
 		}
 		if !p.gotStmt(&s) && p.tok != EOF {
 			p.curErr("%s is not a valid start for a statement", p.tok)
@@ -418,24 +425,19 @@ func (p *parser) wordList(ws *[]Word) (count int) {
 }
 
 func (p *parser) peekEnd() bool {
-	return p.tok == EOF || p.peek(SEMICOLON) || p.peek('\n') || p.peek(COMMENT)
+	return p.tok == EOF || p.peekAny(SEMICOLON, '\n', COMMENT)
 }
 
 func (p *parser) peekStop() bool {
 	if p.peekEnd() {
 		return true
 	}
-	if p.peek(AND) || p.peek(OR) || p.peek(LAND) || p.peek(LOR) {
+	if p.peekAny(AND, OR, LAND, LOR) {
 		// binary expression
 		return true
 	}
 	stop := p.stops[len(p.stops)-1]
-	for _, tok := range stop {
-		if p.peek(tok) {
-			return true
-		}
-	}
-	return false
+	return p.peekAny(stop...)
 }
 
 func (p *parser) gotStmt(s *Stmt) bool {
@@ -454,7 +456,7 @@ func (p *parser) gotStmt(s *Stmt) bool {
 		s.Node = p.forStmt()
 	case p.peek(CASE):
 		s.Node = p.caseStmt()
-	case p.peek(LIT), p.peek(EXP), p.peek('\''), p.peek('"'):
+	case p.peekAny(LIT, EXP, '\'', '"'):
 		s.Node = p.cmdOrFunc()
 	default:
 		return false
@@ -631,11 +633,11 @@ func (p *parser) cmdOrFunc() Node {
 	cmd := Command{Args: []Node{w}}
 	for !p.peekStop() {
 		switch {
-		case p.peek(LIT), p.peek(EXP), p.peek('\''), p.peek('"'):
+		case p.peekAny(LIT, EXP, '\'', '"'):
 			var w Word
 			p.gotWord(&w)
 			cmd.Args = append(cmd.Args, w)
-		case p.peek(RDROUT), p.peek(APPEND), p.peek(RDRIN):
+		case p.peekAny(RDROUT, APPEND, RDRIN):
 			cmd.Args = append(cmd.Args, p.redirect())
 		default:
 			p.curErr("a command can only contain words and redirects")
