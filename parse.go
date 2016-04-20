@@ -601,11 +601,15 @@ func (p *parser) caseStmt() (cs CaseStmt) {
 	if !p.gotWord(&cs.Word) {
 		p.curErr(`"case" must be followed by a word`)
 	}
-	p.want(IN)
+	if !p.got(IN) {
+		p.curErr(`"case x" must be followed by "in"`)
+	}
 	if p.patLists(&cs.List) < 1 {
 		p.curErr(`"case x in" must be followed by one or more patterns`)
 	}
-	p.want(ESAC)
+	if !p.got(ESAC) {
+		p.curErr(`case statement must end with "esac"`)
+	}
 	return
 }
 

@@ -263,7 +263,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"case i",
-			`1:7: unexpected token EOF - wanted in`,
+			`1:7: "case x" must be followed by "in"`,
 		},
 		{
 			"case i in",
@@ -271,7 +271,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"case i in 3) foo;",
-			`1:18: unexpected token EOF - wanted esac`,
+			`1:18: case statement must end with "esac"`,
 		},
 		{
 			"case i in 3) foo; 4) bar; esac",
