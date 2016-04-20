@@ -20,10 +20,9 @@ func Parse(r io.Reader, name string) (Prog, error) {
 		},
 		stops: [][]Token{nil},
 	}
-	p.push(&p.prog.Stmts)
 	p.next()
-	p.program()
-	return p.prog, p.err
+	prog := p.program()
+	return prog, p.err
 }
 
 type parser struct {
@@ -47,7 +46,6 @@ type parser struct {
 	pos  position
 	npos position
 
-	prog  Prog
 	stack []interface{}
 	stops [][]Token
 
@@ -372,19 +370,20 @@ func (p *parser) popAdd(n Node) {
 	p.add(n)
 }
 
-func (p *parser) program() {
-	p.commands()
+func (p *parser) program() (pr Prog) {
+	p.commands(&pr.Stmts)
+	return
 }
 
-func (p *parser) commands(stop ...Token) int {
-	return p.commandsPropagating(false, stop...)
+func (p *parser) commands(stmts *[]Node, stop ...Token) int {
+	return p.commandsPropagating(false, stmts, stop...)
 }
 
-func (p *parser) commandsLimited(stop ...Token) int {
-	return p.commandsPropagating(true, stop...)
+func (p *parser) commandsLimited(stmts *[]Node, stop ...Token) int {
+	return p.commandsPropagating(true, stmts, stop...)
 }
 
-func (p *parser) commandsPropagating(propagate bool, stop ...Token) (count int) {
+func (p *parser) commandsPropagating(propagate bool, stmts *[]Node, stop ...Token) (count int) {
 	if propagate {
 		p.stops = append(p.stops, stop)
 		defer func() {
@@ -403,7 +402,7 @@ func (p *parser) commandsPropagating(propagate bool, stop ...Token) (count int) 
 			break
 		}
 		if n != nil {
-			p.add(n)
+			*stmts = append(*stmts, n)
 		}
 		count++
 	}
@@ -461,12 +460,11 @@ func (p *parser) readParts() (count int) {
 				p.next()
 			case p.peek(LPAREN):
 				var cs CmdSubst
-				p.push(&cs.Stmts)
 				p.quotedCmdSubst = p.quote == '"'
 				p.next()
-				p.commandsLimited(RPAREN)
+				p.commandsLimited(&cs.Stmts, RPAREN)
 				p.quotedCmdSubst = false
-				p.popAdd(cs)
+				p.add(cs)
 				p.want(RPAREN)
 			}
 		default:
@@ -557,22 +555,18 @@ func (p *parser) gotRedirect() bool {
 
 func (p *parser) subshell() (s Subshell) {
 	p.want(LPAREN)
-	p.push(&s.Stmts)
-	if p.commandsLimited(RPAREN) == 0 {
+	if p.commandsLimited(&s.Stmts, RPAREN) == 0 {
 		p.errWantedStr("command")
 	}
 	p.want(RPAREN)
-	p.pop()
 	return
 }
 
 func (p *parser) block() (b Block) {
 	p.want(LBRACE)
-	p.push(&b.Stmts)
-	if p.commands(RBRACE) == 0 {
+	if p.commands(&b.Stmts, RBRACE) == 0 {
 		p.errWantedStr("command")
 	}
-	p.pop()
 	p.want(RBRACE)
 	return
 }
@@ -585,9 +579,7 @@ func (p *parser) ifStmt() (ifs IfStmt) {
 	if !p.got(THEN) {
 		p.curErr(`"if x" must be followed by "then"`)
 	}
-	p.push(&ifs.ThenStmts)
-	p.commands(FI, ELIF, ELSE)
-	p.pop()
+	p.commands(&ifs.ThenStmts, FI, ELIF, ELSE)
 	p.push(&ifs.Elifs)
 	for p.got(ELIF) {
 		var elf Elif
@@ -597,15 +589,12 @@ func (p *parser) ifStmt() (ifs IfStmt) {
 		if !p.got(THEN) {
 			p.curErr(`"elif x" must be followed by "then"`)
 		}
-		p.push(&elf.ThenStmts)
-		p.commands(FI, ELIF, ELSE)
-		p.popAdd(elf)
+		p.commands(&elf.ThenStmts, FI, ELIF, ELSE)
+		p.add(elf)
 	}
 	p.pop()
 	if p.got(ELSE) {
-		p.push(&ifs.ElseStmts)
-		p.commands(FI)
-		p.pop()
+		p.commands(&ifs.ElseStmts, FI)
 	}
 	if !p.got(FI) {
 		p.curErr(`if statement must end with "fi"`)
@@ -621,9 +610,7 @@ func (p *parser) whileStmt() (ws WhileStmt) {
 	if !p.got(DO) {
 		p.curErr(`"while x" must be followed by "do"`)
 	}
-	p.push(&ws.DoStmts)
-	p.commands(DONE)
-	p.pop()
+	p.commands(&ws.DoStmts, DONE)
 	if !p.got(DONE) {
 		p.curErr(`while statement must end with "done"`)
 	}
@@ -638,9 +625,7 @@ func (p *parser) forStmt() (fs ForStmt) {
 	p.wordList()
 	p.pop()
 	p.want(DO)
-	p.push(&fs.DoStmts)
-	p.commands(DONE)
-	p.pop()
+	p.commands(&fs.DoStmts, DONE)
 	p.want(DONE)
 	return
 }
@@ -671,9 +656,8 @@ func (p *parser) patterns() {
 			p.want(OR)
 		}
 		p.pop()
-		p.push(&cp.Stmts)
-		p.commandsLimited(DSEMICOLON, ESAC)
-		p.popAdd(cp)
+		p.commandsLimited(&cp.Stmts, DSEMICOLON, ESAC)
+		p.add(cp)
 		count++
 		if !p.got(DSEMICOLON) {
 			break
