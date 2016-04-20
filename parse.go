@@ -373,11 +373,8 @@ func (p *parser) stmtsLimited(stmts *[]Stmt, stop ...Token) int {
 	return count
 }
 
-func (p *parser) getWord() (w Word) {
-	if p.readParts(&w.Parts) < 1 {
-		p.errWantedStr("word")
-	}
-	return
+func (p *parser) gotWord(w *Word) bool {
+	return p.readParts(&w.Parts) > 0
 }
 
 func (p *parser) getLit() Lit {
@@ -438,7 +435,9 @@ func (p *parser) wordList(ns *[]Node) (count int) {
 				return
 			}
 		}
-		*ns = append(*ns, p.getWord())
+		var w Word
+		p.gotWord(&w)
+		*ns = append(*ns, w)
 		count++
 	}
 	return
@@ -515,7 +514,9 @@ func (p *parser) gotRedirect(ns *[]Node) bool {
 	switch {
 	case p.got(RDROUT), p.got(APPEND), p.got(RDRIN):
 		r.Op = p.ltok
-		r.Obj = p.getWord()
+		if !p.gotWord(&r.Obj) {
+			p.curErr("%s must be followed by a word", r.Op)
+		}
 	default:
 		return false
 	}
@@ -604,7 +605,9 @@ func (p *parser) forStmt() (fs ForStmt) {
 
 func (p *parser) caseStmt() (cs CaseStmt) {
 	p.want(CASE)
-	cs.Word = p.getWord()
+	if !p.gotWord(&cs.Word) {
+		p.curErr(`"case" must be followed by a word`)
+	}
 	p.want(IN)
 	if p.patterns(&cs.Patterns) < 1 {
 		p.curErr(`"case x in" must be followed by one or more patterns`)
@@ -619,7 +622,11 @@ func (p *parser) patterns(ns *[]Node) (count int) {
 		}
 		var cp CasePattern
 		for p.tok != EOF {
-			cp.Parts = append(cp.Parts, p.getWord())
+			var w Word
+			if !p.gotWord(&w) {
+				p.curErr("patterns must consist of words")
+			}
+			cp.Parts = append(cp.Parts, w)
 			if p.got(RPAREN) {
 				break
 			}
@@ -639,7 +646,8 @@ func (p *parser) patterns(ns *[]Node) (count int) {
 
 func (p *parser) cmdOrFunc() Node {
 	fpos := p.pos
-	w := p.getWord()
+	var w Word
+	p.gotWord(&w)
 	if p.peek(LPAREN) {
 		return p.funcDecl(w.String(), fpos)
 	}
@@ -647,7 +655,9 @@ func (p *parser) cmdOrFunc() Node {
 	for !p.peekEnd() {
 		switch {
 		case p.peek(LIT), p.peek(EXP), p.peek('\''), p.peek('"'):
-			cmd.Args = append(cmd.Args, p.getWord())
+			var w Word
+			p.gotWord(&w)
+			cmd.Args = append(cmd.Args, w)
 		case p.gotRedirect(&cmd.Args):
 		default:
 			p.errAfterStr("command")

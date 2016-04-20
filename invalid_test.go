@@ -126,15 +126,15 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"foo >",
-			`1:6: unexpected token EOF - wanted word`,
+			`1:6: > must be followed by a word`,
 		},
 		{
 			"foo >>",
-			`1:7: unexpected token EOF - wanted word`,
+			`1:7: >> must be followed by a word`,
 		},
 		{
 			"foo <",
-			`1:6: unexpected token EOF - wanted word`,
+			`1:6: < must be followed by a word`,
 		},
 		{
 			"if",
@@ -258,7 +258,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"case",
-			`1:5: unexpected token EOF - wanted word`,
+			`1:5: "case" must be followed by a word`,
 		},
 		{
 			"case i",
