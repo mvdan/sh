@@ -346,21 +346,7 @@ func (p *parser) program() (pr Prog) {
 	return
 }
 
-func (p *parser) stmts(stmts *[]Stmt, stop ...Token) int {
-	return p.stmtsPropagate(false, stmts, stop...)
-}
-
-func (p *parser) stmtsLimited(stmts *[]Stmt, stop ...Token) int {
-	return p.stmtsPropagate(true, stmts, stop...)
-}
-
-func (p *parser) stmtsPropagate(propagate bool, stmts *[]Stmt, stop ...Token) (count int) {
-	if propagate {
-		p.stops = append(p.stops, stop)
-		defer func() {
-			p.stops = p.stops[:len(p.stops)-1]
-		}()
-	}
+func (p *parser) stmts(stmts *[]Stmt, stop ...Token) (count int) {
 	var s Stmt
 	for p.tok != EOF {
 		for _, tok := range stop {
@@ -378,6 +364,13 @@ func (p *parser) stmtsPropagate(propagate bool, stmts *[]Stmt, stop ...Token) (c
 		count++
 	}
 	return
+}
+
+func (p *parser) stmtsLimited(stmts *[]Stmt, stop ...Token) int {
+	p.stops = append(p.stops, stop)
+	count := p.stmts(stmts, stop...)
+	p.stops = p.stops[:len(p.stops)-1]
+	return count
 }
 
 func (p *parser) getWord() (w Word) {
