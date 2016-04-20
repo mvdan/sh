@@ -280,6 +280,15 @@ func (p *parser) got(tok Token) bool {
 	return false
 }
 
+func (p *parser) gotAny(toks ...Token) bool {
+	for _, tok := range toks {
+		if p.got(tok) {
+			return true
+		}
+	}
+	return false
+}
+
 func (p *parser) wantQuote(tok Token) {
 	if !p.got(tok) {
 		p.curErr(`reached EOF without closing quote %s`, tok)
@@ -448,7 +457,7 @@ func (p *parser) peekStop() bool {
 }
 
 func (p *parser) gotStmt(s *Stmt) bool {
-	for p.got('#') || p.got('\n') {
+	for p.gotAny('#', '\n') {
 		if p.ltok == '#' {
 			p.readLine()
 			p.next()
@@ -487,7 +496,7 @@ func (p *parser) gotStmt(s *Stmt) bool {
 	if !p.peekStop() {
 		p.curErr("statements must be separated by ; or a newline")
 	}
-	if p.got(OR) || p.got(LAND) || p.got(LOR) {
+	if p.gotAny(OR, LAND, LOR) {
 		left := *s
 		*s = Stmt{Node: p.binaryExpr(p.ltok, left)}
 	}
