@@ -212,7 +212,7 @@ func (p *parser) readLitRunes(r rune) (rs []rune) {
 		var err error
 		if r, err = p.readRune(); err != nil {
 			if p.quote != 0 {
-				p.errWanted(Token(p.quote))
+				p.curErr("reached EOF without closing quote %s", Token(p.quote))
 			}
 			break
 		}
@@ -388,7 +388,9 @@ func (p *parser) readParts(ns *[]Node) (count int) {
 			p.next()
 			p.readParts(&dq.Parts)
 			p.quote = 0
-			p.want('"')
+			if !p.got('"') {
+				p.curErr(`reached EOF without closing quote "`)
+			}
 			n = dq
 		case p.got(EXP):
 			switch {

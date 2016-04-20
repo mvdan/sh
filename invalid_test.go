@@ -14,15 +14,15 @@ func TestParseErr(t *testing.T) {
 	}{
 		{
 			"'",
-			`1:2: unexpected token EOF - wanted '`,
+			`1:2: reached EOF without closing quote '`,
 		},
 		{
 			`"`,
-			`1:2: unexpected token EOF - wanted "`,
+			`1:2: reached EOF without closing quote "`,
 		},
 		{
 			`'\''`,
-			`1:5: unexpected token EOF - wanted '`,
+			`1:5: reached EOF without closing quote '`,
 		},
 		{
 			";",
@@ -95,11 +95,11 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"foo'",
-			`1:5: unexpected token EOF - wanted '`,
+			`1:5: reached EOF without closing quote '`,
 		},
 		{
 			`foo"`,
-			`1:5: unexpected token EOF - wanted "`,
+			`1:5: reached EOF without closing quote "`,
 		},
 		{
 			"foo()",
@@ -163,11 +163,11 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"'foo' '",
-			`1:8: unexpected token EOF - wanted '`,
+			`1:8: reached EOF without closing quote '`,
 		},
 		{
 			"'foo\n' '",
-			`2:4: unexpected token EOF - wanted '`,
+			`2:4: reached EOF without closing quote '`,
 		},
 		{
 			"while",
