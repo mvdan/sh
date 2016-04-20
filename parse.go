@@ -46,7 +46,7 @@ type parser struct {
 	pos  position
 	npos position
 
-	stack []interface{}
+	stack []*[]Node
 	stops [][]Token
 
 	// to not include ')' in a literal
@@ -343,31 +343,16 @@ func (p *parser) errAfterStr(s string) {
 }
 
 func (p *parser) add(n Node) {
-	cur := p.stack[len(p.stack)-1]
-	switch x := cur.(type) {
-	case *[]Node:
-		*x = append(*x, n)
-	case *Node:
-		if *x != nil {
-			panic("single node set twice")
-		}
-		*x = n
-	default:
-		panic("unknown type in the stack")
-	}
+	ns := p.stack[len(p.stack)-1]
+	*ns = append(*ns, n)
 }
 
 func (p *parser) pop() {
 	p.stack = p.stack[:len(p.stack)-1]
 }
 
-func (p *parser) push(v interface{}) {
-	p.stack = append(p.stack, v)
-}
-
-func (p *parser) popAdd(n Node) {
-	p.pop()
-	p.add(n)
+func (p *parser) push(ns *[]Node) {
+	p.stack = append(p.stack, ns)
 }
 
 func (p *parser) program() (pr Prog) {
