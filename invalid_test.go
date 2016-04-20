@@ -26,7 +26,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			";",
-			`1:1: unexpected token ; - wanted command`,
+			`1:1: ; is not a valid start for a statement`,
 		},
 		{
 			"à(){}",
@@ -46,7 +46,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"}",
-			`1:1: unexpected token } - wanted command`,
+			`1:1: } is not a valid start for a statement`,
 		},
 		{
 			"{#}",
@@ -58,7 +58,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			")",
-			`1:1: unexpected token ) - wanted command`,
+			`1:1: ) is not a valid start for a statement`,
 		},
 		{
 			"()",
@@ -68,17 +68,18 @@ func TestParseErr(t *testing.T) {
 			"( foo;",
 			`1:7: unexpected token EOF - wanted )`,
 		},
+		// TODO: "requires at least one statement"
 		{
 			"( #foo\n)",
-			`2:1: unexpected token ) - wanted command`,
+			`2:1: ) is not a valid start for a statement`,
 		},
 		{
 			"&",
-			`1:1: unexpected token & - wanted command`,
+			`1:1: & is not a valid start for a statement`,
 		},
 		{
 			"|",
-			`1:1: unexpected token | - wanted command`,
+			`1:1: | is not a valid start for a statement`,
 		},
 		{
 			"foo;;",
@@ -218,7 +219,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"foo &\n;",
-			`2:1: unexpected token ; - wanted command`,
+			`2:1: ; is not a valid start for a statement`,
 		},
 		{
 			"echo $(foo",
@@ -242,7 +243,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"foo\n;",
-			`2:1: unexpected token ; - wanted command`,
+			`2:1: ; is not a valid start for a statement`,
 		},
 		{
 			"(foo) bar",

@@ -329,12 +329,8 @@ func (p *parser) curErr(format string, v ...interface{}) {
 	p.posErr(p.pos, format, v...)
 }
 
-func (p *parser) errWantedStr(s string) {
-	p.curErr("unexpected token %s - wanted %s", p.tok, s)
-}
-
 func (p *parser) errWanted(tok Token) {
-	p.errWantedStr(tok.String())
+	p.curErr("unexpected token %s - wanted %s", p.tok, tok)
 }
 
 func (p *parser) errAfterStr(s string) {
@@ -355,7 +351,7 @@ func (p *parser) stmts(stmts *[]Stmt, stop ...Token) (count int) {
 			}
 		}
 		if !p.gotStmt(&s) && p.tok != EOF {
-			p.errWantedStr("command")
+			p.curErr("%s is not a valid start for a statement", p.tok)
 			break
 		}
 		if s.Node != nil {
