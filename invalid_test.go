@@ -114,15 +114,15 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"foo &&",
-			`1:7: && must be followed by a command`,
+			`1:7: && must be followed by a statement`,
 		},
 		{
 			"foo |",
-			`1:6: | must be followed by a command`,
+			`1:6: | must be followed by a statement`,
 		},
 		{
 			"foo ||",
-			`1:7: || must be followed by a command`,
+			`1:7: || must be followed by a statement`,
 		},
 		{
 			"foo >",
@@ -138,7 +138,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"if",
-			`1:3: "if" must be followed by a command`,
+			`1:3: "if" must be followed by a statement`,
 		},
 		{
 			"if foo;",
@@ -154,7 +154,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"if a; then b; elif; then c; fi",
-			`1:19: "elif" must be followed by a command`,
+			`1:19: "elif" must be followed by a statement`,
 		},
 		{
 			"if a; then b; elif c;",
@@ -170,7 +170,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"while",
-			`1:6: "while" must be followed by a command`,
+			`1:6: "while" must be followed by a statement`,
 		},
 		{
 			"while foo;",

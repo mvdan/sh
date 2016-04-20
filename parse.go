@@ -342,19 +342,19 @@ func (p *parser) errAfterStr(s string) {
 }
 
 func (p *parser) program() (pr Prog) {
-	p.commands(&pr.Stmts)
+	p.stmts(&pr.Stmts)
 	return
 }
 
-func (p *parser) commands(stmts *[]Stmt, stop ...Token) int {
-	return p.commandsPropagating(false, stmts, stop...)
+func (p *parser) stmts(stmts *[]Stmt, stop ...Token) int {
+	return p.stmtsPropagate(false, stmts, stop...)
 }
 
-func (p *parser) commandsLimited(stmts *[]Stmt, stop ...Token) int {
-	return p.commandsPropagating(true, stmts, stop...)
+func (p *parser) stmtsLimited(stmts *[]Stmt, stop ...Token) int {
+	return p.stmtsPropagate(true, stmts, stop...)
 }
 
-func (p *parser) commandsPropagating(propagate bool, stmts *[]Stmt, stop ...Token) (count int) {
+func (p *parser) stmtsPropagate(propagate bool, stmts *[]Stmt, stop ...Token) (count int) {
 	if propagate {
 		p.stops = append(p.stops, stop)
 		defer func() {
@@ -424,7 +424,7 @@ func (p *parser) readParts(ns *[]Node) (count int) {
 				var cs CmdSubst
 				p.quotedCmdSubst = p.quote == '"'
 				p.next()
-				p.commandsLimited(&cs.Stmts, RPAREN)
+				p.stmtsLimited(&cs.Stmts, RPAREN)
 				p.quotedCmdSubst = false
 				add(cs)
 				p.want(RPAREN)
@@ -511,7 +511,7 @@ func (p *parser) gotStmt(s *Stmt) bool {
 func (p *parser) binaryExpr(op Token, left Stmt) (b BinaryExpr) {
 	b.Op = op
 	if !p.gotStmt(&b.Y) {
-		p.curErr("%s must be followed by a command", op)
+		p.curErr("%s must be followed by a statement", op)
 	}
 	b.X = left
 	return
@@ -532,7 +532,7 @@ func (p *parser) gotRedirect(ns *[]Node) bool {
 
 func (p *parser) subshell() (s Subshell) {
 	p.want(LPAREN)
-	if p.commandsLimited(&s.Stmts, RPAREN) == 0 {
+	if p.stmtsLimited(&s.Stmts, RPAREN) == 0 {
 		p.errWantedStr("command")
 	}
 	p.want(RPAREN)
@@ -541,7 +541,7 @@ func (p *parser) subshell() (s Subshell) {
 
 func (p *parser) block() (b Block) {
 	p.want(LBRACE)
-	if p.commands(&b.Stmts, RBRACE) == 0 {
+	if p.stmts(&b.Stmts, RBRACE) == 0 {
 		p.errWantedStr("command")
 	}
 	p.want(RBRACE)
@@ -551,25 +551,25 @@ func (p *parser) block() (b Block) {
 func (p *parser) ifStmt() (ifs IfStmt) {
 	p.want(IF)
 	if !p.gotStmt(&ifs.Cond) {
-		p.curErr(`"if" must be followed by a command`)
+		p.curErr(`"if" must be followed by a statement`)
 	}
 	if !p.got(THEN) {
 		p.curErr(`"if x" must be followed by "then"`)
 	}
-	p.commands(&ifs.ThenStmts, FI, ELIF, ELSE)
+	p.stmts(&ifs.ThenStmts, FI, ELIF, ELSE)
 	for p.got(ELIF) {
 		var elf Elif
 		if !p.gotStmt(&elf.Cond) {
-			p.curErr(`"elif" must be followed by a command`)
+			p.curErr(`"elif" must be followed by a statement`)
 		}
 		if !p.got(THEN) {
 			p.curErr(`"elif x" must be followed by "then"`)
 		}
-		p.commands(&elf.ThenStmts, FI, ELIF, ELSE)
+		p.stmts(&elf.ThenStmts, FI, ELIF, ELSE)
 		ifs.Elifs = append(ifs.Elifs, elf)
 	}
 	if p.got(ELSE) {
-		p.commands(&ifs.ElseStmts, FI)
+		p.stmts(&ifs.ElseStmts, FI)
 	}
 	if !p.got(FI) {
 		p.curErr(`if statement must end with "fi"`)
@@ -580,12 +580,12 @@ func (p *parser) ifStmt() (ifs IfStmt) {
 func (p *parser) whileStmt() (ws WhileStmt) {
 	p.want(WHILE)
 	if !p.gotStmt(&ws.Cond) {
-		p.curErr(`"while" must be followed by a command`)
+		p.curErr(`"while" must be followed by a statement`)
 	}
 	if !p.got(DO) {
 		p.curErr(`"while x" must be followed by "do"`)
 	}
-	p.commands(&ws.DoStmts, DONE)
+	p.stmts(&ws.DoStmts, DONE)
 	if !p.got(DONE) {
 		p.curErr(`while statement must end with "done"`)
 	}
@@ -602,7 +602,7 @@ func (p *parser) forStmt() (fs ForStmt) {
 	if !p.got(DO) {
 		p.curErr(`"for foo in list" must be followed by "do"`)
 	}
-	p.commands(&fs.DoStmts, DONE)
+	p.stmts(&fs.DoStmts, DONE)
 	if !p.got(DONE) {
 		p.curErr(`for statement must end with "done"`)
 	}
@@ -632,7 +632,7 @@ func (p *parser) patterns(ns *[]Node) (count int) {
 			}
 			p.want(OR)
 		}
-		p.commandsLimited(&cp.Stmts, DSEMICOLON, ESAC)
+		p.stmtsLimited(&cp.Stmts, DSEMICOLON, ESAC)
 		*ns = append(*ns, cp)
 		count++
 		if !p.got(DSEMICOLON) {
