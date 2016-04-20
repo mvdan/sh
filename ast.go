@@ -6,7 +6,6 @@ package sh
 import (
 	"bytes"
 	"fmt"
-	"io"
 )
 
 type Prog struct {
@@ -25,9 +24,9 @@ func nodeJoin(ns []Node, sep string) string {
 	var b bytes.Buffer
 	for i, n := range ns {
 		if i > 0 {
-			io.WriteString(&b, sep)
+			fmt.Fprintf(&b, "%s", sep)
 		}
-		io.WriteString(&b, n.String())
+		fmt.Fprintf(&b, "%s", n)
 	}
 	return b.String()
 }
@@ -56,7 +55,7 @@ type Stmt struct {
 
 func (s Stmt) String() string {
 	var b bytes.Buffer
-	io.WriteString(&b, s.Node.String())
+	fmt.Fprintf(&b, "%s", s.Node)
 	if s.Background {
 		fmt.Fprintf(&b, " &")
 	}
