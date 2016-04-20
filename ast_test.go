@@ -197,6 +197,24 @@ var tests = []struct {
 		},
 	},
 	{
+		[]string{"if a; then b; fi || while a; do b; done"},
+		BinaryExpr{
+			Op: LOR,
+			X: Stmt{Node: IfStmt{
+				Cond: Stmt{Node: Command{Args: litWords("a")}},
+				ThenStmts: []Stmt{
+					{Node: Command{Args: litWords("b")}},
+				},
+			}},
+			Y: Stmt{Node: WhileStmt{
+				Cond: Stmt{Node: Command{Args: litWords("a")}},
+				DoStmts: []Stmt{
+					Stmt{Node: Command{Args: litWords("b")}},
+				},
+			}},
+		},
+	},
+	{
 		[]string{"foo && bar1 || bar2"},
 		BinaryExpr{
 			Op: LAND,
@@ -271,6 +289,18 @@ var tests = []struct {
 		[]string{"foo &", "foo&"},
 		Stmt{
 			Node:       Command{Args: litWords("foo")},
+			Background: true,
+		},
+	},
+	{
+		[]string{"if foo; then bar; fi &"},
+		Stmt{
+			Node: IfStmt{
+				Cond: Stmt{Node: Command{Args: litWords("foo")}},
+				ThenStmts: []Stmt{
+					{Node: Command{Args: litWords("bar")}},
+				},
+			},
 			Background: true,
 		},
 	},
