@@ -435,8 +435,11 @@ func (p *parser) wordList(ws *[]Word) (count int) {
 }
 
 func (p *parser) peekEnd() bool {
-	if p.tok == EOF || p.peek(SEMICOLON) || p.peek('\n') || p.peek(COMMENT) {
-		// end of statement
+	return p.tok == EOF || p.peek(SEMICOLON) || p.peek('\n') || p.peek(COMMENT)
+}
+
+func (p *parser) peekStop() bool {
+	if p.peekEnd() {
 		return true
 	}
 	if p.peek(AND) || p.peek(OR) || p.peek(LAND) || p.peek(LOR) {
@@ -476,17 +479,15 @@ func (p *parser) gotStmt(s *Stmt) bool {
 	if p.got(AND) {
 		s.Background = true
 	}
-	if !p.peekEnd() {
+	if !p.peekStop() {
 		p.curErr("statements must be separated by ; or a newline")
 	}
 	if p.got(OR) || p.got(LAND) || p.got(LOR) {
 		left := *s
 		*s = Stmt{Node: p.binaryExpr(p.ltok, left)}
 	}
-	switch {
-	case p.got(SEMICOLON):
-	case p.got(COMMENT):
-	case p.got('\n'):
+	if p.peekEnd() {
+		p.next()
 	}
 	return true
 }
@@ -651,7 +652,7 @@ func (p *parser) cmdOrFunc() Node {
 		return p.funcDecl(w.String(), fpos)
 	}
 	cmd := Command{Args: []Node{w}}
-	for !p.peekEnd() {
+	for !p.peekStop() {
 		switch {
 		case p.peek(LIT), p.peek(EXP), p.peek('\''), p.peek('"'):
 			var w Word
