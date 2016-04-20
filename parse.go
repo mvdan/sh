@@ -501,19 +501,13 @@ func (p *parser) binaryExpr(op Token, left Stmt) (b BinaryExpr) {
 	return
 }
 
-func (p *parser) gotRedirect(ns *[]Node) bool {
-	var r Redirect
-	switch {
-	case p.got(RDROUT), p.got(APPEND), p.got(RDRIN):
-		r.Op = p.ltok
-		if !p.gotWord(&r.Obj) {
-			p.curErr("%s must be followed by a word", r.Op)
-		}
-	default:
-		return false
+func (p *parser) redirect() (r Redirect) {
+	p.next()
+	r.Op = p.ltok
+	if !p.gotWord(&r.Obj) {
+		p.curErr("%s must be followed by a word", r.Op)
 	}
-	*ns = append(*ns, r)
-	return true
+	return
 }
 
 func (p *parser) subshell() (s Subshell) {
@@ -658,7 +652,8 @@ func (p *parser) cmdOrFunc() Node {
 			var w Word
 			p.gotWord(&w)
 			cmd.Args = append(cmd.Args, w)
-		case p.gotRedirect(&cmd.Args):
+		case p.peek(RDROUT), p.peek(APPEND), p.peek(RDRIN):
+			cmd.Args = append(cmd.Args, p.redirect())
 		default:
 			p.curErr("a command can only contain words and redirects")
 		}
