@@ -380,25 +380,8 @@ func (p *parser) readParts(ns *[]Node) (count int) {
 			p.quote = 0
 			p.wantQuote('"')
 			n = dq
-		case p.got(EXP):
-			switch {
-			case p.peek(LBRACE):
-				n = ParamExp{Text: p.readUntilMatch(RBRACE)}
-				p.next()
-			case p.got(LIT):
-				n = ParamExp{Short: true, Text: p.lval}
-			case p.peek(DLPAREN):
-				n = ArithmExp{Text: p.readUntilMatch(DRPAREN)}
-				p.next()
-			case p.peek(LPAREN):
-				var cs CmdSubst
-				p.quotedCmdSubst = p.quote == '"'
-				p.next()
-				p.stmtsLimited(&cs.Stmts, RPAREN)
-				p.quotedCmdSubst = false
-				p.wantMatching(RPAREN)
-				n = cs
-			}
+		case p.peek(EXP):
+			n = p.exp()
 		default:
 			return
 		}
@@ -406,6 +389,32 @@ func (p *parser) readParts(ns *[]Node) (count int) {
 		count++
 	}
 	return
+}
+
+func (p *parser) exp() Node {
+	p.got(EXP)
+	switch {
+	case p.peek(LBRACE):
+		n := ParamExp{Text: p.readUntilMatch(RBRACE)}
+		p.next()
+		return n
+	case p.got(LIT):
+		return ParamExp{Short: true, Text: p.lval}
+	case p.peek(DLPAREN):
+		n := ArithmExp{Text: p.readUntilMatch(DRPAREN)}
+		p.next()
+		return n
+	case p.peek(LPAREN):
+		var cs CmdSubst
+		p.quotedCmdSubst = p.quote == '"'
+		p.next()
+		p.stmtsLimited(&cs.Stmts, RPAREN)
+		p.quotedCmdSubst = false
+		p.wantMatching(RPAREN)
+		return cs
+	default:
+		return nil
+	}
 }
 
 func (p *parser) wordList(ws *[]Word) (count int) {
