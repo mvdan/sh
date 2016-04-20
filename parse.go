@@ -673,7 +673,13 @@ func (p *parser) cmdOrFunc() Node {
 
 func (p *parser) funcDecl(name string, pos position) (fd FuncDecl) {
 	p.want(LPAREN)
-	p.wantMatching(RPAREN)
+	if !p.got(RPAREN) {
+		if p.tok == EOF {
+			p.wantMatching(RPAREN)
+		} else {
+			p.curErr(`functions must start like "foo()"`)
+		}
+	}
 	if !identRe.MatchString(name) {
 		p.posErr(pos, "invalid func name: %s", name)
 	}
