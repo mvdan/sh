@@ -124,15 +124,8 @@ type ForStmt struct {
 }
 
 func (f ForStmt) String() string {
-	var b bytes.Buffer
-	io.WriteString(&b, "for ")
-	io.WriteString(&b, f.Name.String())
-	io.WriteString(&b, " in ")
-	io.WriteString(&b, wordJoin(f.WordList))
-	io.WriteString(&b, "; do ")
-	io.WriteString(&b, stmtJoin(f.DoStmts))
-	io.WriteString(&b, "; done")
-	return b.String()
+	return fmt.Sprintf("for %s in %s; do %s; done", f.Name,
+		wordJoin(f.WordList), stmtJoin(f.DoStmts))
 }
 
 type BinaryExpr struct {
@@ -220,5 +213,5 @@ type CasePattern struct {
 }
 
 func (c CasePattern) String() string {
-	return nodeJoin(c.Parts, " | ") + ") " + stmtJoin(c.Stmts)
+	return fmt.Sprintf("%s) %s", nodeJoin(c.Parts, " | "), stmtJoin(c.Stmts))
 }
