@@ -69,7 +69,7 @@ var tokNames = map[Token]string{
 	OR:   "|",
 	LOR:  "||",
 
-	EXP:     ")",
+	EXP:     "$",
 	LPAREN:  "(",
 	LBRACE:  "{",
 	DLPAREN: "((",
