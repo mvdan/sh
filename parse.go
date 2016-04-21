@@ -294,6 +294,12 @@ func (p *parser) wantFollow(following string, tok Token) {
 	}
 }
 
+func (p *parser) wantStmtEnd(name string, tok Token) {
+	if !p.got(tok) {
+		p.curErr(`%s statement must end with "%s"`, name, tok)
+	}
+}
+
 func (p *parser) wantQuote(lpos position, tok Token) {
 	if !p.got(tok) {
 		p.posErr(lpos, `reached %s without closing quote %s`, p.tok, tok)
@@ -575,9 +581,7 @@ func (p *parser) ifStmt() (ifs IfStmt) {
 	if p.got(ELSE) {
 		p.stmts(&ifs.ElseStmts, FI)
 	}
-	if !p.got(FI) {
-		p.curErr(`if statement must end with "fi"`)
-	}
+	p.wantStmtEnd("if", FI)
 	return
 }
 
@@ -587,9 +591,7 @@ func (p *parser) whileStmt() (ws WhileStmt) {
 	}
 	p.wantFollow("while x", DO)
 	p.stmts(&ws.DoStmts, DONE)
-	if !p.got(DONE) {
-		p.curErr(`while statement must end with "done"`)
-	}
+	p.wantStmtEnd("while", DONE)
 	return
 }
 
@@ -601,9 +603,7 @@ func (p *parser) forStmt() (fs ForStmt) {
 	p.wordList(&fs.WordList)
 	p.wantFollow("for foo in list", DO)
 	p.stmts(&fs.DoStmts, DONE)
-	if !p.got(DONE) {
-		p.curErr(`for statement must end with "done"`)
-	}
+	p.wantStmtEnd("for", DONE)
 	return
 }
 
@@ -615,9 +615,7 @@ func (p *parser) caseStmt() (cs CaseStmt) {
 	if p.patLists(&cs.List) < 1 {
 		p.curErr(`"case x in" must be followed by one or more patterns`)
 	}
-	if !p.got(ESAC) {
-		p.curErr(`case statement must end with "esac"`)
-	}
+	p.wantStmtEnd("case", ESAC)
 	return
 }
 
