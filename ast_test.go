@@ -272,9 +272,9 @@ var tests = []struct {
 				Args: []Word{litWord("foo")},
 			},
 			Redirs: []Redirect{
-				{Op: RDROUT, Obj: litWord("a")},
-				{Op: APPEND, Obj: litWord("b")},
-				{Op: RDRIN, Obj: litWord("c")},
+				{Op: RDROUT, Y: litWord("a")},
+				{Op: APPEND, Y: litWord("b")},
+				{Op: RDRIN, Y: litWord("c")},
 			},
 		},
 	},
@@ -288,7 +288,7 @@ var tests = []struct {
 				Args: litWords("foo", "bar"),
 			},
 			Redirs: []Redirect{
-				{Op: RDROUT, Obj: litWord("a")},
+				{Op: RDROUT, Y: litWord("a")},
 			},
 		},
 	},
@@ -299,7 +299,7 @@ var tests = []struct {
 				Args: []Word{litWord("foo")},
 			},
 			Redirs: []Redirect{
-				{Op: HEREDOC, Obj: litWord("EOF\nbar\nEOF")},
+				{Op: HEREDOC, Y: Lit{Val: "EOF\nbar\nEOF"}},
 			},
 		},
 	},
@@ -320,7 +320,7 @@ var tests = []struct {
 				},
 			},
 			Redirs: []Redirect{
-				{Op: RDROUT, Obj: litWord("/dev/null")},
+				{Op: RDROUT, Y: litWord("/dev/null")},
 			},
 			Background: true,
 		},

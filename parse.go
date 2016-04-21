@@ -580,9 +580,11 @@ func (p *parser) redirect() (r Redirect) {
 				break
 			}
 		}
-		r.Obj.Parts = append(r.Obj.Parts, Lit{Val: b.String()})
+		r.Y = Lit{Val: b.String()}
 	default:
-		p.wantFollowWord(r.Op.String(), &r.Obj)
+		var w Word
+		p.wantFollowWord(r.Op.String(), &w)
+		r.Y = w
 	}
 	return
 }

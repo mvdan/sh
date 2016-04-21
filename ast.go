@@ -67,12 +67,18 @@ func (s Stmt) String() string {
 }
 
 type Redirect struct {
-	Op  Token
-	Obj Word
+	Op   Token
+	X, Y Node
 }
 
 func (r Redirect) String() string {
-	return r.Op.String() + r.Obj.String()
+	var b bytes.Buffer
+	if r.X != nil {
+		fmt.Fprint(&b, r.X)
+	}
+	fmt.Fprint(&b, r.Op)
+	fmt.Fprint(&b, r.Y)
+	return b.String()
 }
 
 type Command struct {
