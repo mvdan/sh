@@ -300,6 +300,18 @@ func (p *parser) wantFollowStmt(following string, s *Stmt) {
 	}
 }
 
+func (p *parser) wantFollowWord(following string, w *Word) {
+	if !p.gotWord(w) {
+		p.curErr(`%s must be followed by a word`, following)
+	}
+}
+
+func (p *parser) wantFollowLit(following string, l *Lit) {
+	if !p.gotLit(l) {
+		p.curErr(`%s must be followed by a literal`, following)
+	}
+}
+
 func (p *parser) wantStmtEnd(name string, tok Token) {
 	if !p.got(tok) {
 		p.curErr(`%s statement must end with "%s"`, name, tok)
@@ -543,9 +555,7 @@ func (p *parser) binaryExpr(op Token, left Stmt) (b BinaryExpr) {
 func (p *parser) redirect() (r Redirect) {
 	p.next()
 	r.Op = p.ltok
-	if !p.gotWord(&r.Obj) {
-		p.curErr("%s must be followed by a word", r.Op)
-	}
+	p.wantFollowWord(r.Op.String(), &r.Obj)
 	return
 }
 
@@ -594,9 +604,7 @@ func (p *parser) whileStmt() (ws WhileStmt) {
 }
 
 func (p *parser) forStmt() (fs ForStmt) {
-	if !p.gotLit(&fs.Name) {
-		p.curErr(`"for" must be followed by a literal`)
-	}
+	p.wantFollowLit(`"for"`, &fs.Name)
 	p.wantFollow("for foo", IN)
 	p.wordList(&fs.WordList)
 	p.wantFollow("for foo in list", DO)
@@ -606,9 +614,7 @@ func (p *parser) forStmt() (fs ForStmt) {
 }
 
 func (p *parser) caseStmt() (cs CaseStmt) {
-	if !p.gotWord(&cs.Word) {
-		p.curErr(`"case" must be followed by a word`)
-	}
+	p.wantFollowWord(`"case"`, &cs.Word)
 	p.wantFollow("case x", IN)
 	if p.patLists(&cs.List) < 1 {
 		p.curErr(`"case x in" must be followed by one or more patterns`)
