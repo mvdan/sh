@@ -437,12 +437,10 @@ func (p *parser) exp() Node {
 }
 
 func (p *parser) wordList(ws *[]Word) (count int) {
-	var stop = [...]Token{SEMICOLON, '\n'}
 	for p.tok != EOF {
-		for _, tok := range stop {
-			if p.got(tok) {
-				return
-			}
+		if p.peekStop() {
+			p.gotAny(SEMICOLON, '\n')
+			break
 		}
 		var w Word
 		p.gotWord(&w)
