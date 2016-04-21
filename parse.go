@@ -248,7 +248,9 @@ func (p *parser) readUntil(tok Token) (string, bool) {
 
 func (p *parser) readUntilMatch(tok Token) string {
 	s, found := p.readUntil(tok)
-	if !found {
+	if found {
+		p.next()
+	} else {
 		p.wantMatching(tok)
 	}
 	return s
@@ -404,13 +406,9 @@ func (p *parser) readParts(ns *[]Node) (count int) {
 func (p *parser) exp() Node {
 	switch {
 	case p.peek(LBRACE):
-		n := ParamExp{Text: p.readUntilMatch(RBRACE)}
-		p.next()
-		return n
+		return ParamExp{Text: p.readUntilMatch(RBRACE)}
 	case p.peek(DLPAREN):
-		n := ArithmExp{Text: p.readUntilMatch(DRPAREN)}
-		p.next()
-		return n
+		return ArithmExp{Text: p.readUntilMatch(DRPAREN)}
 	case p.peek(LPAREN):
 		var cs CmdSubst
 		p.quotedCmdSubst = p.quote == '"'
@@ -446,11 +444,7 @@ func (p *parser) peekEnd() bool {
 }
 
 func (p *parser) peekStop() bool {
-	if p.peekEnd() {
-		return true
-	}
-	if p.peekAny(AND, OR, LAND, LOR) {
-		// binary expression
+	if p.peekEnd() || p.peekAny(AND, OR, LAND, LOR) {
 		return true
 	}
 	stop := p.stops[len(p.stops)-1]
