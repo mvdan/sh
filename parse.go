@@ -345,7 +345,9 @@ func (p *parser) stmts(stmts *[]Stmt, stop ...Token) (count int) {
 			return
 		}
 		if !p.gotStmt(&s) && p.tok != EOF {
-			p.curErr("%s is not a valid start for a statement", p.tok)
+			if !p.peekAny(stop...) {
+				p.curErr("%s is not a valid start for a statement", p.tok)
+			}
 			break
 		}
 		if s.Node != nil {

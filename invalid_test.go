@@ -65,13 +65,12 @@ func TestParseErr(t *testing.T) {
 			`1:2: a subshell must contain one or more statements`,
 		},
 		{
+			"( #foo\n)",
+			`2:1: a subshell must contain one or more statements`,
+		},
+		{
 			"( foo;",
 			`1:7: reached EOF without matching token )`,
-		},
-		// TODO: "requires at least one statement"
-		{
-			"( #foo\n)",
-			`2:1: ) is not a valid start for a statement`,
 		},
 		{
 			"&",
