@@ -26,7 +26,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			";",
-			`1:1: ; is not a valid start for a statement`,
+			`1:1: ; can only immediately follow a statement`,
 		},
 		{
 			"à(){}",
@@ -78,11 +78,11 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"&",
-			`1:1: & is not a valid start for a statement`,
+			`1:1: & can only immediately follow a statement`,
 		},
 		{
 			"|",
-			`1:1: | is not a valid start for a statement`,
+			`1:1: | can only immediately follow a statement`,
 		},
 		{
 			"foo;;",
@@ -226,7 +226,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"foo &\n;",
-			`2:1: ; is not a valid start for a statement`,
+			`2:1: ; can only immediately follow a statement`,
 		},
 		{
 			"echo $(foo",
@@ -250,7 +250,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"foo\n;",
-			`2:1: ; is not a valid start for a statement`,
+			`2:1: ; can only immediately follow a statement`,
 		},
 		{
 			"(foo) bar",

@@ -346,7 +346,7 @@ func (p *parser) stmts(stmts *[]Stmt, stop ...Token) (count int) {
 		}
 		if !p.gotStmt(&s) && p.tok != EOF {
 			if !p.peekAny(stop...) {
-				p.curErr("%s is not a valid start for a statement", p.tok)
+				p.invalidStmtStart()
 			}
 			break
 		}
@@ -356,6 +356,15 @@ func (p *parser) stmts(stmts *[]Stmt, stop ...Token) (count int) {
 		count++
 	}
 	return
+}
+
+func (p *parser) invalidStmtStart() {
+	switch p.tok {
+	case SEMICOLON, AND, OR:
+		p.curErr("%s can only immediately follow a statement", p.tok)
+	default:
+		p.curErr("%s is not a valid start for a statement", p.tok)
+	}
 }
 
 func (p *parser) stmtsLimited(stmts *[]Stmt, stop ...Token) int {
