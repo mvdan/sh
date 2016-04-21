@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"regexp"
+	"strconv"
 )
 
 func Parse(r io.Reader, name string) (Prog, error) {
@@ -581,6 +582,21 @@ func (p *parser) redirect() (r Redirect) {
 			}
 		}
 		r.Y = Lit{Val: b.String()}
+	case RDROUT:
+		if p.got(AND) {
+			var w Word
+			wpos := p.pos
+			if !p.gotWord(&w) {
+				p.followErr(">&", "a file descriptor")
+			}
+			n, err := strconv.Atoi(w.String())
+			if err != nil {
+				p.posErr(wpos, "invalid file descriptor: %s", w)
+			}
+			r.Y = FileDesc{Num: n}
+			return
+		}
+		fallthrough
 	default:
 		var w Word
 		p.wantFollowWord(r.Op.String(), &w)

@@ -77,8 +77,19 @@ func (r Redirect) String() string {
 		fmt.Fprint(&b, r.X)
 	}
 	fmt.Fprint(&b, r.Op)
+	if _, ok := r.Y.(FileDesc); ok {
+		fmt.Fprint(&b, "&")
+	}
 	fmt.Fprint(&b, r.Y)
 	return b.String()
+}
+
+type FileDesc struct {
+	Num int
+}
+
+func (f FileDesc) String() string {
+	return fmt.Sprintf("%d", f.Num)
 }
 
 type Command struct {

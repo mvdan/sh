@@ -304,6 +304,17 @@ var tests = []struct {
 		},
 	},
 	{
+		[]string{"foo >&2"},
+		Stmt{
+			Node: Command{
+				Args: []Word{litWord("foo")},
+			},
+			Redirs: []Redirect{
+				{Op: RDROUT, Y: FileDesc{Num: 2}},
+			},
+		},
+	},
+	{
 		[]string{"foo &", "foo&"},
 		Stmt{
 			Node:       Command{Args: litWords("foo")},
