@@ -88,7 +88,7 @@ func (p *parser) readRune() (rune, error) {
 	r, _, err := p.r.ReadRune()
 	if err != nil {
 		if err == io.EOF {
-			p.setEOF()
+			p.advanceTok(EOF)
 		} else {
 			p.errPass(err)
 		}
@@ -157,26 +157,22 @@ func (p *parser) next() {
 			case p.tok == EXP:
 			case r == ')' && p.quotedCmdSubst:
 			default:
-				p.advance(LIT, p.readLit(r))
+				p.advanceLit(p.readLit(r))
 				return
 			}
 		}
 		switch r {
 		case '\n':
-			p.advance('\n', "")
+			p.advanceTok('\n')
 		default:
-			tok := doToken(r, p.readOnly)
-			p.advance(tok, tok.String())
+			p.advanceTok(doToken(r, p.readOnly))
 		}
 	default:
-		p.advance(LIT, p.readLit(r))
+		p.advanceLit(p.readLit(r))
 	}
 }
 
-func (p *parser) readLit(r rune) string {
-	return string(p.readLitRunes(r))
-}
-
+func (p *parser) readLit(r rune) string { return string(p.readLitRunes(r)) }
 func (p *parser) readLitRunes(r rune) (rs []rune) {
 	for {
 		appendRune := true
@@ -219,7 +215,7 @@ func (p *parser) readLitRunes(r rune) (rs []rune) {
 	return
 }
 
-func (p *parser) advance(tok Token, val string) {
+func (p *parser) advanceBoth(tok Token, val string) {
 	if p.tok != EOF {
 		p.ltok = p.tok
 		p.lval = p.val
@@ -227,10 +223,8 @@ func (p *parser) advance(tok Token, val string) {
 	p.tok = tok
 	p.val = val
 }
-
-func (p *parser) setEOF() {
-	p.advance(EOF, "EOF")
-}
+func (p *parser) advanceTok(tok Token)  { p.advanceBoth(tok, tok.String()) }
+func (p *parser) advanceLit(val string) { p.advanceBoth(LIT, val) }
 
 func (p *parser) readUntil(tok Token) (string, bool) {
 	var rs []rune
@@ -307,7 +301,7 @@ func (p *parser) errPass(err error) {
 	if p.err == nil {
 		p.err = err
 	}
-	p.setEOF()
+	p.advanceTok(EOF)
 }
 
 type lineErr struct {
