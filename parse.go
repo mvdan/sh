@@ -360,8 +360,12 @@ func (p *parser) stmts(stmts *[]Stmt, stop ...Token) (count int) {
 
 func (p *parser) invalidStmtStart() {
 	switch p.tok {
-	case SEMICOLON, AND, OR:
+	case SEMICOLON, AND, OR, LAND, LOR:
 		p.curErr("%s can only immediately follow a statement", p.tok)
+	case RBRACE:
+		p.curErr("%s can only be used to close a block", p.tok)
+	case RPAREN:
+		p.curErr("%s can only be used to close a subshell", p.tok)
 	default:
 		p.curErr("%s is not a valid start for a statement", p.tok)
 	}

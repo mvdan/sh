@@ -50,7 +50,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"}",
-			`1:1: } is not a valid start for a statement`,
+			`1:1: } can only be used to close a block`,
 		},
 		{
 			"{#}",
@@ -62,7 +62,11 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			")",
-			`1:1: ) is not a valid start for a statement`,
+			`1:1: ) can only be used to close a subshell`,
+		},
+		{
+			";;",
+			`1:1: ;; is not a valid start for a statement`,
 		},
 		{
 			"()",
@@ -83,6 +87,14 @@ func TestParseErr(t *testing.T) {
 		{
 			"|",
 			`1:1: | can only immediately follow a statement`,
+		},
+		{
+			"&&",
+			`1:1: && can only immediately follow a statement`,
+		},
+		{
+			"||",
+			`1:1: || can only immediately follow a statement`,
 		},
 		{
 			"foo;;",
