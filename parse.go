@@ -290,14 +290,14 @@ func (p *parser) gotAny(toks ...Token) bool {
 
 func (p *parser) wantQuote(lpos position, tok Token) {
 	if !p.got(tok) {
-		p.posErr(lpos, `reached EOF without closing quote %s`, tok)
+		p.posErr(lpos, `reached %s without closing quote %s`, p.tok, tok)
 	}
 }
 
 func (p *parser) wantMatched(lpos position, left Token) {
 	right := matching[left]
 	if !p.got(right) {
-		p.posErr(lpos, `reached EOF without matching token %s with %s`, left, right)
+		p.posErr(lpos, `reached %s without matching token %s with %s`, p.tok, left, right)
 	}
 }
 
