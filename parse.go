@@ -657,11 +657,7 @@ func (p *parser) cmdOrFunc(addRedir func()) Node {
 
 func (p *parser) funcDecl(name string, pos position) (fd FuncDecl) {
 	if !p.got(RPAREN) {
-		if p.tok == EOF {
-			p.wantMatching(RPAREN)
-		} else {
-			p.curErr(`functions must start like "foo()"`)
-		}
+		p.curErr(`functions must start like "foo()"`)
 	}
 	if !identRe.MatchString(name) {
 		p.posErr(pos, "invalid func name: %s", name)

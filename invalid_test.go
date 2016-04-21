@@ -90,7 +90,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"foo(",
-			`1:5: reached EOF without matching token )`,
+			`1:5: functions must start like "foo()"`,
 		},
 		{
 			"foo(bar",
@@ -98,7 +98,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"à(",
-			`1:3: reached EOF without matching token )`,
+			`1:3: functions must start like "foo()"`,
 		},
 		{
 			"foo'",
