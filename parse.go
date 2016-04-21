@@ -288,6 +288,12 @@ func (p *parser) gotAny(toks ...Token) bool {
 	return false
 }
 
+func (p *parser) wantFollow(following string, tok Token) {
+	if !p.got(tok) {
+		p.curErr(`"%s" must be followed by "%s"`, following, tok)
+	}
+}
+
 func (p *parser) wantQuote(lpos position, tok Token) {
 	if !p.got(tok) {
 		p.posErr(lpos, `reached %s without closing quote %s`, p.tok, tok)
@@ -555,18 +561,14 @@ func (p *parser) ifStmt() (ifs IfStmt) {
 	if !p.gotStmt(&ifs.Cond) {
 		p.curErr(`"if" must be followed by a statement`)
 	}
-	if !p.got(THEN) {
-		p.curErr(`"if x" must be followed by "then"`)
-	}
+	p.wantFollow("if x", THEN)
 	p.stmts(&ifs.ThenStmts, FI, ELIF, ELSE)
 	for p.got(ELIF) {
 		var elf Elif
 		if !p.gotStmt(&elf.Cond) {
 			p.curErr(`"elif" must be followed by a statement`)
 		}
-		if !p.got(THEN) {
-			p.curErr(`"elif x" must be followed by "then"`)
-		}
+		p.wantFollow("elif x", THEN)
 		p.stmts(&elf.ThenStmts, FI, ELIF, ELSE)
 		ifs.Elifs = append(ifs.Elifs, elf)
 	}
@@ -583,9 +585,7 @@ func (p *parser) whileStmt() (ws WhileStmt) {
 	if !p.gotStmt(&ws.Cond) {
 		p.curErr(`"while" must be followed by a statement`)
 	}
-	if !p.got(DO) {
-		p.curErr(`"while x" must be followed by "do"`)
-	}
+	p.wantFollow("while x", DO)
 	p.stmts(&ws.DoStmts, DONE)
 	if !p.got(DONE) {
 		p.curErr(`while statement must end with "done"`)
@@ -597,13 +597,9 @@ func (p *parser) forStmt() (fs ForStmt) {
 	if !p.gotLit(&fs.Name) {
 		p.curErr(`"for" must be followed by a literal`)
 	}
-	if !p.got(IN) {
-		p.curErr(`"for foo" must be followed by "in"`)
-	}
+	p.wantFollow("for foo", IN)
 	p.wordList(&fs.WordList)
-	if !p.got(DO) {
-		p.curErr(`"for foo in list" must be followed by "do"`)
-	}
+	p.wantFollow("for foo in list", DO)
 	p.stmts(&fs.DoStmts, DONE)
 	if !p.got(DONE) {
 		p.curErr(`for statement must end with "done"`)
@@ -615,9 +611,7 @@ func (p *parser) caseStmt() (cs CaseStmt) {
 	if !p.gotWord(&cs.Word) {
 		p.curErr(`"case" must be followed by a word`)
 	}
-	if !p.got(IN) {
-		p.curErr(`"case x" must be followed by "in"`)
-	}
+	p.wantFollow("case x", IN)
 	if p.patLists(&cs.List) < 1 {
 		p.curErr(`"case x in" must be followed by one or more patterns`)
 	}
