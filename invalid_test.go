@@ -54,7 +54,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"{#}",
-			`1:4: reached EOF without matching token }`,
+			`1:4: reached EOF without matching token { with }`,
 		},
 		{
 			"(",
@@ -74,7 +74,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"( foo;",
-			`1:7: reached EOF without matching token )`,
+			`1:7: reached EOF without matching token ( with )`,
 		},
 		{
 			"&",
@@ -230,15 +230,15 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"echo $(foo",
-			`1:11: reached EOF without matching token )`,
+			`1:11: reached EOF without matching token ( with )`,
 		},
 		{
 			"echo $((foo",
-			`1:12: reached EOF without matching token ))`,
+			`1:12: reached EOF without matching token (( with ))`,
 		},
 		{
 			"echo ${foo",
-			`1:11: reached EOF without matching token }`,
+			`1:11: reached EOF without matching token { with }`,
 		},
 		{
 			"#foo\n{",
@@ -246,7 +246,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			`echo "foo${bar"`,
-			`1:16: reached EOF without matching token }`,
+			`1:16: reached EOF without matching token { with }`,
 		},
 		{
 			"foo\n;",

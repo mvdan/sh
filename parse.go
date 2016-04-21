@@ -125,6 +125,11 @@ var (
 		' ':  true,
 		'\t': true,
 	}
+	matching = map[Token]Token{
+		LPAREN:  RPAREN,
+		LBRACE:  RBRACE,
+		DLPAREN: DRPAREN,
+	}
 )
 
 func (p *parser) next() {
@@ -233,12 +238,13 @@ func (p *parser) readUntil(tok Token) (string, bool) {
 	}
 }
 
-func (p *parser) readUntilMatch(tok Token) string {
-	s, found := p.readUntil(tok)
+func (p *parser) readUntilMatched(left Token) string {
+	right := matching[left]
+	s, found := p.readUntil(right)
 	if found {
 		p.next()
 	} else {
-		p.wantMatching(tok)
+		p.wantMatched(left)
 	}
 	return s
 }
@@ -284,9 +290,10 @@ func (p *parser) wantQuote(tok Token) {
 	}
 }
 
-func (p *parser) wantMatching(tok Token) {
-	if !p.got(tok) {
-		p.curErr(`reached EOF without matching token %s`, tok)
+func (p *parser) wantMatched(left Token) {
+	right := matching[left]
+	if !p.got(right) {
+		p.curErr(`reached EOF without matching token %s with %s`, left, right)
 	}
 }
 
@@ -393,16 +400,16 @@ func (p *parser) readParts(ns *[]Node) (count int) {
 func (p *parser) exp() Node {
 	switch {
 	case p.peek(LBRACE):
-		return ParamExp{Text: p.readUntilMatch(RBRACE)}
+		return ParamExp{Text: p.readUntilMatched(LBRACE)}
 	case p.peek(DLPAREN):
-		return ArithmExp{Text: p.readUntilMatch(DRPAREN)}
+		return ArithmExp{Text: p.readUntilMatched(DLPAREN)}
 	case p.peek(LPAREN):
 		var cs CmdSubst
 		p.quotedCmdSubst = p.quote == '"'
 		p.next()
 		p.stmtsLimited(&cs.Stmts, RPAREN)
 		p.quotedCmdSubst = false
-		p.wantMatching(RPAREN)
+		p.wantMatched(LPAREN)
 		return cs
 	default:
 		p.next()
@@ -513,7 +520,7 @@ func (p *parser) subshell() (s Subshell) {
 	if p.stmtsLimited(&s.Stmts, RPAREN) < 1 {
 		p.curErr("a subshell must contain one or more statements")
 	}
-	p.wantMatching(RPAREN)
+	p.wantMatched(LPAREN)
 	return
 }
 
@@ -521,7 +528,7 @@ func (p *parser) block() (b Block) {
 	if p.stmts(&b.Stmts, RBRACE) < 1 {
 		p.curErr("a block must contain one or more statements")
 	}
-	p.wantMatching(RBRACE)
+	p.wantMatched(LBRACE)
 	return
 }
 
