@@ -14,7 +14,7 @@ func Parse(r io.Reader, name string) (Prog, error) {
 	p := &parser{
 		r:    bufio.NewReader(r),
 		name: name,
-		npos: position{
+		npos: Position{
 			line: 1,
 			col:  1,
 		},
@@ -40,11 +40,11 @@ type parser struct {
 	val  string
 
 	// backup position to unread a rune
-	bpos position
+	bpos Position
 
-	lpos position
-	pos  position
-	npos position
+	lpos Position
+	pos  Position
+	npos Position
 
 	stops [][]Token
 
@@ -52,7 +52,7 @@ type parser struct {
 	quotedCmdSubst bool
 }
 
-type position struct {
+type Position struct {
 	line int
 	col  int
 }
@@ -172,7 +172,7 @@ func (p *parser) next() {
 
 func (p *parser) readLit(r rune) string { return string(p.readLitRunes(r)) }
 func (p *parser) readLitRunes(r rune) (rs []rune) {
-	var lpos position
+	var lpos Position
 	for {
 		appendRune := true
 		switch {
@@ -322,13 +322,13 @@ func (p *parser) wantStmtEnd(name string, tok Token) {
 	}
 }
 
-func (p *parser) wantQuote(lpos position, tok Token) {
+func (p *parser) wantQuote(lpos Position, tok Token) {
 	if !p.got(tok) {
 		p.posErr(lpos, `reached %s without closing quote %s`, p.tok, tok)
 	}
 }
 
-func (p *parser) wantMatched(lpos position, left Token) {
+func (p *parser) wantMatched(lpos Position, left Token) {
 	right := matching[left]
 	if !p.got(right) {
 		p.posErr(lpos, `reached %s without matching token %s with %s`, p.tok, left, right)
@@ -344,7 +344,7 @@ func (p *parser) errPass(err error) {
 
 type lineErr struct {
 	fname string
-	pos   position
+	pos   Position
 	text  string
 }
 
@@ -352,7 +352,7 @@ func (e lineErr) Error() string {
 	return fmt.Sprintf("%s:%d:%d: %s", e.fname, e.pos.line, e.pos.col, e.text)
 }
 
-func (p *parser) posErr(pos position, format string, v ...interface{}) {
+func (p *parser) posErr(pos Position, format string, v ...interface{}) {
 	p.errPass(lineErr{
 		fname: p.name,
 		pos:   pos,
@@ -681,7 +681,7 @@ func (p *parser) cmdOrFunc(addRedir func()) Node {
 
 var identRe = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
 
-func (p *parser) funcDecl(name string, pos position) (fd FuncDecl) {
+func (p *parser) funcDecl(name string, pos Position) (fd FuncDecl) {
 	if !p.got(RPAREN) {
 		p.curErr(`functions must start like "foo()"`)
 	}
