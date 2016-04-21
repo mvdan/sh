@@ -496,6 +496,10 @@ func (p *parser) peekStop() bool {
 	return p.peekAny(stop...)
 }
 
+func (p *parser) gotRedir() bool {
+	return p.gotAny(RDROUT, APPEND, RDRIN)
+}
+
 func (p *parser) gotStmt(s *Stmt) bool {
 	for p.gotAny('#', '\n') {
 		if p.ltok == '#' {
@@ -506,7 +510,7 @@ func (p *parser) gotStmt(s *Stmt) bool {
 	addRedir := func() {
 		s.Redirs = append(s.Redirs, p.redirect())
 	}
-	for p.peekAny(RDROUT, APPEND, RDRIN) {
+	for p.gotRedir() {
 		addRedir()
 	}
 	switch {
@@ -527,7 +531,7 @@ func (p *parser) gotStmt(s *Stmt) bool {
 	default:
 		return false
 	}
-	for p.peekAny(RDROUT, APPEND, RDRIN) {
+	for p.gotRedir() {
 		addRedir()
 	}
 	if p.got(AND) {
@@ -557,7 +561,6 @@ func (p *parser) binaryExpr(op Token, left Stmt) (b BinaryExpr) {
 }
 
 func (p *parser) redirect() (r Redirect) {
-	p.next()
 	r.Op = p.ltok
 	p.wantFollowWord(r.Op.String(), &r.Obj)
 	return
@@ -670,7 +673,7 @@ func (p *parser) cmdOrFunc(addRedir func()) Node {
 		switch {
 		case p.gotWord(&w):
 			cmd.Args = append(cmd.Args, w)
-		case p.peekAny(RDROUT, APPEND, RDRIN):
+		case p.gotRedir():
 			addRedir()
 		default:
 			p.curErr("a command can only contain words and redirects")
