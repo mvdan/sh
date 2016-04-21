@@ -161,12 +161,7 @@ func (p *parser) next() {
 				return
 			}
 		}
-		switch r {
-		case '\n':
-			p.advanceTok('\n')
-		default:
-			p.advanceTok(doToken(r, p.readOnly))
-		}
+		p.advanceTok(doToken(r, p.readOnly))
 	default:
 		p.advanceLit(p.readLit(r))
 	}
