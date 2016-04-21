@@ -240,11 +240,12 @@ func (p *parser) readUntil(tok Token) (string, bool) {
 
 func (p *parser) readUntilMatched(left Token) string {
 	right := matching[left]
+	lpos := p.pos
 	s, found := p.readUntil(right)
 	if found {
 		p.next()
 	} else {
-		p.wantMatched(left)
+		p.wantMatched(lpos, left)
 	}
 	return s
 }
@@ -290,10 +291,10 @@ func (p *parser) wantQuote(tok Token) {
 	}
 }
 
-func (p *parser) wantMatched(left Token) {
+func (p *parser) wantMatched(lpos position, left Token) {
 	right := matching[left]
 	if !p.got(right) {
-		p.curErr(`reached EOF without matching token %s with %s`, left, right)
+		p.posErr(lpos, `reached EOF without matching token %s with %s`, left, right)
 	}
 }
 
@@ -407,9 +408,10 @@ func (p *parser) exp() Node {
 		var cs CmdSubst
 		p.quotedCmdSubst = p.quote == '"'
 		p.next()
+		lpos := p.lpos
 		p.stmtsLimited(&cs.Stmts, RPAREN)
 		p.quotedCmdSubst = false
-		p.wantMatched(LPAREN)
+		p.wantMatched(lpos, LPAREN)
 		return cs
 	default:
 		p.next()
@@ -517,18 +519,20 @@ func (p *parser) redirect() (r Redirect) {
 }
 
 func (p *parser) subshell() (s Subshell) {
+	lpos := p.lpos
 	if p.stmtsLimited(&s.Stmts, RPAREN) < 1 {
 		p.curErr("a subshell must contain one or more statements")
 	}
-	p.wantMatched(LPAREN)
+	p.wantMatched(lpos, LPAREN)
 	return
 }
 
 func (p *parser) block() (b Block) {
+	lpos := p.lpos
 	if p.stmts(&b.Stmts, RBRACE) < 1 {
 		p.curErr("a block must contain one or more statements")
 	}
-	p.wantMatched(LBRACE)
+	p.wantMatched(lpos, LBRACE)
 	return
 }
 
