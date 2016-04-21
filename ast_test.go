@@ -310,7 +310,7 @@ var tests = []struct {
 				Args: []Word{litWord("foo")},
 			},
 			Redirs: []Redirect{
-				{Op: RDROUT, Y: FileDesc{Num: 2}},
+				{Op: DPLOUT, Y: FileDesc{Num: 2}},
 			},
 		},
 	},

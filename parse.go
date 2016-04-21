@@ -499,7 +499,7 @@ func (p *parser) peekStop() bool {
 }
 
 func (p *parser) gotRedir() bool {
-	return p.gotAny(RDROUT, APPEND, RDRIN, HEREDOC)
+	return p.gotAny(RDROUT, APPEND, RDRIN, HEREDOC, DPLIN, DPLOUT)
 }
 
 func (p *parser) gotStmt(s *Stmt) bool {
@@ -582,21 +582,17 @@ func (p *parser) redirect() (r Redirect) {
 			}
 		}
 		r.Y = Lit{Val: b.String()}
-	case RDROUT:
-		if p.got(AND) {
-			var w Word
-			wpos := p.pos
-			if !p.gotWord(&w) {
-				p.followErr(">&", "a file descriptor")
-			}
-			n, err := strconv.Atoi(w.String())
-			if err != nil {
-				p.posErr(wpos, "invalid file descriptor: %s", w)
-			}
-			r.Y = FileDesc{Num: n}
-			return
+	case DPLIN, DPLOUT:
+		var w Word
+		wpos := p.pos
+		if !p.gotWord(&w) {
+			p.followErr(">&", "a file descriptor")
 		}
-		fallthrough
+		n, err := strconv.Atoi(w.String())
+		if err != nil {
+			p.posErr(wpos, "invalid file descriptor: %s", w)
+		}
+		r.Y = FileDesc{Num: n}
 	default:
 		var w Word
 		p.wantFollowWord(r.Op.String(), &w)

@@ -41,6 +41,8 @@ const (
 
 	RDRIN   // <
 	RDROUT  // >
+	DPLIN   // <&
+	DPLOUT  // >&
 	APPEND  // >>
 	HEREDOC // <<
 )
@@ -81,6 +83,8 @@ var tokNames = map[Token]string{
 
 	RDRIN:   "<",
 	RDROUT:  ">",
+	DPLIN:   "<&",
+	DPLOUT:  ">&",
 	APPEND:  ">>",
 	HEREDOC: "<<",
 }
@@ -129,10 +133,16 @@ func doToken(r rune, readOnly func(rune) bool) Token {
 		if readOnly('<') {
 			return HEREDOC
 		}
+		if readOnly('&') {
+			return DPLIN
+		}
 		return RDRIN
 	case '>':
 		if readOnly('>') {
 			return APPEND
+		}
+		if readOnly('&') {
+			return DPLOUT
 		}
 		return RDROUT
 	default:
