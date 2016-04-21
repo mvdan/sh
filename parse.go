@@ -57,33 +57,6 @@ type position struct {
 	col  int
 }
 
-var reserved = map[rune]bool{
-	'\n': true,
-	'&':  true,
-	'>':  true,
-	'<':  true,
-	'|':  true,
-	';':  true,
-	'(':  true,
-	')':  true,
-	'$':  true,
-	'"':  true,
-}
-
-// like reserved, but these are only reserved if at the start of a word
-var starters = map[rune]bool{
-	'{': true,
-	'}': true,
-	'#': true,
-}
-
-var space = map[rune]bool{
-	' ':  true,
-	'\t': true,
-}
-
-var identRe = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
-
 func (p *parser) readRune() (rune, error) {
 	r, _, err := p.r.ReadRune()
 	if err != nil {
@@ -128,6 +101,31 @@ func (p *parser) readOnly(wanted rune) bool {
 	}
 	return false
 }
+
+var (
+	reserved = map[rune]bool{
+		'\n': true,
+		'&':  true,
+		'>':  true,
+		'<':  true,
+		'|':  true,
+		';':  true,
+		'(':  true,
+		')':  true,
+		'$':  true,
+		'"':  true,
+	}
+	// like reserved, but these are only reserved if at the start of a word
+	starters = map[rune]bool{
+		'{': true,
+		'}': true,
+		'#': true,
+	}
+	space = map[rune]bool{
+		' ':  true,
+		'\t': true,
+	}
+)
 
 func (p *parser) next() {
 	p.lpos = p.pos
@@ -210,6 +208,8 @@ func (p *parser) readLitRunes(r rune) (rs []rune) {
 	return
 }
 
+func (p *parser) advanceTok(tok Token)  { p.advanceBoth(tok, tok.String()) }
+func (p *parser) advanceLit(val string) { p.advanceBoth(LIT, val) }
 func (p *parser) advanceBoth(tok Token, val string) {
 	if p.tok != EOF {
 		p.ltok = p.tok
@@ -218,8 +218,6 @@ func (p *parser) advanceBoth(tok Token, val string) {
 	p.tok = tok
 	p.val = val
 }
-func (p *parser) advanceTok(tok Token)  { p.advanceBoth(tok, tok.String()) }
-func (p *parser) advanceLit(val string) { p.advanceBoth(LIT, val) }
 
 func (p *parser) readUntil(tok Token) (string, bool) {
 	var rs []rune
@@ -654,6 +652,8 @@ func (p *parser) cmdOrFunc(addRedir func()) Node {
 	}
 	return cmd
 }
+
+var identRe = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
 
 func (p *parser) funcDecl(name string, pos position) (fd FuncDecl) {
 	if !p.got(RPAREN) {
