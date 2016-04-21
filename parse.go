@@ -172,6 +172,7 @@ func (p *parser) next() {
 
 func (p *parser) readLit(r rune) string { return string(p.readLitRunes(r)) }
 func (p *parser) readLitRunes(r rune) (rs []rune) {
+	var lpos position
 	for {
 		appendRune := true
 		switch {
@@ -195,6 +196,8 @@ func (p *parser) readLitRunes(r rune) (rs []rune) {
 			}
 		case r == '\'':
 			p.quote = '\''
+			lpos = p.npos
+			lpos.col--
 		case reserved[r], space[r]: // end of lit
 			p.unreadRune()
 			return
@@ -205,7 +208,7 @@ func (p *parser) readLitRunes(r rune) (rs []rune) {
 		var err error
 		if r, err = p.readRune(); err != nil {
 			if p.quote != 0 {
-				p.wantQuote(Token(p.quote))
+				p.wantQuote(lpos, Token(p.quote))
 			}
 			break
 		}
@@ -285,9 +288,9 @@ func (p *parser) gotAny(toks ...Token) bool {
 	return false
 }
 
-func (p *parser) wantQuote(tok Token) {
+func (p *parser) wantQuote(lpos position, tok Token) {
 	if !p.got(tok) {
-		p.curErr(`reached EOF without closing quote %s`, tok)
+		p.posErr(lpos, `reached EOF without closing quote %s`, tok)
 	}
 }
 
@@ -383,9 +386,10 @@ func (p *parser) readParts(ns *[]Node) (count int) {
 			var dq DblQuoted
 			p.quote = '"'
 			p.next()
+			lpos := p.lpos
 			p.readParts(&dq.Parts)
 			p.quote = 0
-			p.wantQuote('"')
+			p.wantQuote(lpos, '"')
 			n = dq
 		case p.got(EXP):
 			n = p.exp()
