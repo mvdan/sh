@@ -288,27 +288,31 @@ func (p *parser) gotAny(toks ...Token) bool {
 	return false
 }
 
-func (p *parser) wantFollow(following string, tok Token) {
+func (p *parser) followErr(left, right string) {
+	p.curErr("%s must be followed by %s", left, right)
+}
+
+func (p *parser) wantFollow(left string, tok Token) {
 	if !p.got(tok) {
-		p.curErr(`"%s" must be followed by "%s"`, following, tok)
+		p.followErr(left, fmt.Sprintf(`"%s"`, tok))
 	}
 }
 
-func (p *parser) wantFollowStmt(following string, s *Stmt) {
+func (p *parser) wantFollowStmt(left string, s *Stmt) {
 	if !p.gotStmt(s) {
-		p.curErr(`%s must be followed by a statement`, following)
+		p.followErr(left, "a statement")
 	}
 }
 
-func (p *parser) wantFollowWord(following string, w *Word) {
+func (p *parser) wantFollowWord(left string, w *Word) {
 	if !p.gotWord(w) {
-		p.curErr(`%s must be followed by a word`, following)
+		p.followErr(left, "a word")
 	}
 }
 
-func (p *parser) wantFollowLit(following string, l *Lit) {
+func (p *parser) wantFollowLit(left string, l *Lit) {
 	if !p.gotLit(l) {
-		p.curErr(`%s must be followed by a literal`, following)
+		p.followErr(left, "a literal")
 	}
 }
 
@@ -579,12 +583,12 @@ func (p *parser) block() (b Block) {
 
 func (p *parser) ifStmt() (ifs IfStmt) {
 	p.wantFollowStmt(`"if"`, &ifs.Cond)
-	p.wantFollow("if x", THEN)
+	p.wantFollow(`"if x"`, THEN)
 	p.stmts(&ifs.ThenStmts, FI, ELIF, ELSE)
 	for p.got(ELIF) {
 		var elf Elif
 		p.wantFollowStmt(`"elif"`, &elf.Cond)
-		p.wantFollow("elif x", THEN)
+		p.wantFollow(`"elif x"`, THEN)
 		p.stmts(&elf.ThenStmts, FI, ELIF, ELSE)
 		ifs.Elifs = append(ifs.Elifs, elf)
 	}
@@ -597,7 +601,7 @@ func (p *parser) ifStmt() (ifs IfStmt) {
 
 func (p *parser) whileStmt() (ws WhileStmt) {
 	p.wantFollowStmt(`"while"`, &ws.Cond)
-	p.wantFollow("while x", DO)
+	p.wantFollow(`"while x"`, DO)
 	p.stmts(&ws.DoStmts, DONE)
 	p.wantStmtEnd("while", DONE)
 	return
@@ -605,9 +609,9 @@ func (p *parser) whileStmt() (ws WhileStmt) {
 
 func (p *parser) forStmt() (fs ForStmt) {
 	p.wantFollowLit(`"for"`, &fs.Name)
-	p.wantFollow("for foo", IN)
+	p.wantFollow(`"for foo"`, IN)
 	p.wordList(&fs.WordList)
-	p.wantFollow("for foo in list", DO)
+	p.wantFollow(`"for foo in list"`, DO)
 	p.stmts(&fs.DoStmts, DONE)
 	p.wantStmtEnd("for", DONE)
 	return
@@ -615,9 +619,9 @@ func (p *parser) forStmt() (fs ForStmt) {
 
 func (p *parser) caseStmt() (cs CaseStmt) {
 	p.wantFollowWord(`"case"`, &cs.Word)
-	p.wantFollow("case x", IN)
+	p.wantFollow(`"case x"`, IN)
 	if p.patLists(&cs.List) < 1 {
-		p.curErr(`"case x in" must be followed by one or more patterns`)
+		p.followErr(`"case x in"`, "one or more patterns")
 	}
 	p.wantStmtEnd("case", ESAC)
 	return
