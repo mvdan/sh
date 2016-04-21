@@ -68,16 +68,17 @@ func (s Stmt) String() string {
 
 type Redirect struct {
 	Op   Token
-	X, Y Node
+	N    *FileDesc
+	Word Word
 }
 
 func (r Redirect) String() string {
 	var b bytes.Buffer
-	if r.X != nil {
-		fmt.Fprint(&b, r.X)
+	if r.N != nil {
+		fmt.Fprint(&b, r.N)
 	}
 	fmt.Fprint(&b, r.Op)
-	fmt.Fprint(&b, r.Y)
+	fmt.Fprint(&b, r.Word)
 	return b.String()
 }
 
