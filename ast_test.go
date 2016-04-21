@@ -293,6 +293,17 @@ var tests = []struct {
 		},
 	},
 	{
+		[]string{"foo <<EOF\nbar\nEOF"},
+		Stmt{
+			Node: Command{
+				Args: []Word{litWord("foo")},
+			},
+			Redirs: []Redirect{
+				{Op: HEREDOC, Obj: litWord("EOF\nbar\nEOF")},
+			},
+		},
+	},
+	{
 		[]string{"foo &", "foo&"},
 		Stmt{
 			Node:       Command{Args: litWords("foo")},

@@ -5,6 +5,7 @@ package sh
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"regexp"
@@ -497,7 +498,7 @@ func (p *parser) peekStop() bool {
 }
 
 func (p *parser) gotRedir() bool {
-	return p.gotAny(RDROUT, APPEND, RDRIN)
+	return p.gotAny(RDROUT, APPEND, RDRIN, HEREDOC)
 }
 
 func (p *parser) gotStmt(s *Stmt) bool {
@@ -562,7 +563,27 @@ func (p *parser) binaryExpr(op Token, left Stmt) (b BinaryExpr) {
 
 func (p *parser) redirect() (r Redirect) {
 	r.Op = p.ltok
-	p.wantFollowWord(r.Op.String(), &r.Obj)
+	switch r.Op {
+	case HEREDOC:
+		var l Lit
+		lpos := p.pos
+		p.wantFollowLit(r.Op.String(), &l)
+		b := bytes.NewBufferString(l.Val)
+		for {
+			s := p.readLine()
+			fmt.Fprintf(b, "\n%s", s)
+			if s == l.Val {
+				break
+			}
+			if p.tok == EOF {
+				p.posErr(lpos, `reached %s without closing heredoc "%s"`, p.tok, l.Val)
+				break
+			}
+		}
+		r.Obj.Parts = append(r.Obj.Parts, Lit{Val: b.String()})
+	default:
+		p.wantFollowWord(r.Op.String(), &r.Obj)
+	}
 	return
 }
 
