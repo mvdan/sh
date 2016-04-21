@@ -294,6 +294,12 @@ func (p *parser) wantFollow(following string, tok Token) {
 	}
 }
 
+func (p *parser) wantFollowStmt(following string, s *Stmt) {
+	if !p.gotStmt(s) {
+		p.curErr(`%s must be followed by a statement`, following)
+	}
+}
+
 func (p *parser) wantStmtEnd(name string, tok Token) {
 	if !p.got(tok) {
 		p.curErr(`%s statement must end with "%s"`, name, tok)
@@ -529,9 +535,7 @@ func (p *parser) gotStmt(s *Stmt) bool {
 
 func (p *parser) binaryExpr(op Token, left Stmt) (b BinaryExpr) {
 	b.Op = op
-	if !p.gotStmt(&b.Y) {
-		p.curErr("%s must be followed by a statement", op)
-	}
+	p.wantFollowStmt(op.String(), &b.Y)
 	b.X = left
 	return
 }
@@ -564,16 +568,12 @@ func (p *parser) block() (b Block) {
 }
 
 func (p *parser) ifStmt() (ifs IfStmt) {
-	if !p.gotStmt(&ifs.Cond) {
-		p.curErr(`"if" must be followed by a statement`)
-	}
+	p.wantFollowStmt(`"if"`, &ifs.Cond)
 	p.wantFollow("if x", THEN)
 	p.stmts(&ifs.ThenStmts, FI, ELIF, ELSE)
 	for p.got(ELIF) {
 		var elf Elif
-		if !p.gotStmt(&elf.Cond) {
-			p.curErr(`"elif" must be followed by a statement`)
-		}
+		p.wantFollowStmt(`"elif"`, &elf.Cond)
 		p.wantFollow("elif x", THEN)
 		p.stmts(&elf.ThenStmts, FI, ELIF, ELSE)
 		ifs.Elifs = append(ifs.Elifs, elf)
@@ -586,9 +586,7 @@ func (p *parser) ifStmt() (ifs IfStmt) {
 }
 
 func (p *parser) whileStmt() (ws WhileStmt) {
-	if !p.gotStmt(&ws.Cond) {
-		p.curErr(`"while" must be followed by a statement`)
-	}
+	p.wantFollowStmt(`"while"`, &ws.Cond)
 	p.wantFollow("while x", DO)
 	p.stmts(&ws.DoStmts, DONE)
 	p.wantStmtEnd("while", DONE)
@@ -681,8 +679,6 @@ func (p *parser) funcDecl(name string, pos position) (fd FuncDecl) {
 		p.posErr(pos, "invalid func name: %s", name)
 	}
 	fd.Name.Val = name
-	if !p.gotStmt(&fd.Body) {
-		p.curErr(`"foo()" must be followed by a statement`)
-	}
+	p.wantFollowStmt(`"foo()"`, &fd.Body)
 	return
 }
