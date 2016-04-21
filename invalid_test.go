@@ -37,6 +37,10 @@ func TestParseErr(t *testing.T) {
 			`1:1: invalid func name: "foo"`,
 		},
 		{
+			`'foo'(){}`,
+			`1:1: invalid func name: 'foo'`,
+		},
+		{
 			"{",
 			`1:2: a block must contain one or more statements`,
 		},

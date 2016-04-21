@@ -466,7 +466,7 @@ func (p *parser) gotStmt(s *Stmt) bool {
 		s.Node = p.forStmt()
 	case p.got(CASE):
 		s.Node = p.caseStmt()
-	case p.peekAny(LIT, EXP, '\'', '"'):
+	case p.peekAny(LIT, EXP, '"'):
 		s.Node = p.cmdOrFunc(addRedir)
 	default:
 		return false
@@ -642,10 +642,9 @@ func (p *parser) cmdOrFunc(addRedir func()) Node {
 	}
 	cmd := Command{Args: []Word{w}}
 	for !p.peekStop() {
+		var w Word
 		switch {
-		case p.peekAny(LIT, EXP, '\'', '"'):
-			var w Word
-			p.gotWord(&w)
+		case p.gotWord(&w):
 			cmd.Args = append(cmd.Args, w)
 		case p.peekAny(RDROUT, APPEND, RDRIN):
 			addRedir()
