@@ -68,7 +68,7 @@ func (s Stmt) String() string {
 
 type Redirect struct {
 	Op   Token
-	N    *FileDesc
+	N    *Lit
 	Word Word
 }
 
@@ -80,14 +80,6 @@ func (r Redirect) String() string {
 	fmt.Fprint(&b, r.Op)
 	fmt.Fprint(&b, r.Word)
 	return b.String()
-}
-
-type FileDesc struct {
-	Num int
-}
-
-func (f FileDesc) String() string {
-	return fmt.Sprintf("%d", f.Num)
 }
 
 type Command struct {
