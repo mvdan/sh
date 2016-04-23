@@ -157,6 +157,10 @@ func TestParseErr(t *testing.T) {
 			`1:6: < must be followed by a word`,
 		},
 		{
+			"foo <<EOF\nbar",
+			`1:7: reached EOF without closing heredoc "EOF"`,
+		},
+		{
 			"if",
 			`1:3: "if" must be followed by a statement`,
 		},

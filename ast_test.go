@@ -303,6 +303,17 @@ var tests = []struct {
 		},
 	},
 	{
+		[]string{"foo <<FOOBAR\nbar\nFOOBAR"},
+		Stmt{
+			Node: Command{
+				Args: []Word{litWord("foo")},
+			},
+			Redirs: []Redirect{
+				{Op: HEREDOC, Word: litWord("FOOBAR\nbar\nFOOBAR")},
+			},
+		},
+	},
+	{
 		[]string{"foo >&2 <&0 2>file"},
 		Stmt{
 			Node: Command{
