@@ -264,7 +264,6 @@ var tests = []struct {
 		[]string{
 			"foo >a >>b <c",
 			"foo > a >> b < c",
-			"foo>a >>b<c",
 			">a >>b foo <c",
 		},
 		Stmt{
@@ -304,13 +303,15 @@ var tests = []struct {
 		},
 	},
 	{
-		[]string{"foo >&2"},
+		[]string{"foo >&2 <&0 2>file"},
 		Stmt{
 			Node: Command{
 				Args: []Word{litWord("foo")},
 			},
 			Redirs: []Redirect{
 				{Op: DPLOUT, Word: litWord("2")},
+				{Op: DPLIN, Word: litWord("0")},
+				{Op: RDROUT, N: Lit{Val: "2"}, Word: litWord("file")},
 			},
 		},
 	},

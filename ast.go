@@ -24,9 +24,9 @@ func nodeJoin(ns []Node, sep string) string {
 	var b bytes.Buffer
 	for i, n := range ns {
 		if i > 0 {
-			fmt.Fprintf(&b, "%s", sep)
+			fmt.Fprint(&b, sep)
 		}
-		fmt.Fprintf(&b, "%s", n)
+		fmt.Fprint(&b, n)
 	}
 	return b.String()
 }
@@ -56,7 +56,7 @@ type Stmt struct {
 
 func (s Stmt) String() string {
 	var b bytes.Buffer
-	fmt.Fprintf(&b, "%s", s.Node)
+	fmt.Fprint(&b, s.Node)
 	for _, redir := range s.Redirs {
 		fmt.Fprintf(&b, " %s", redir)
 	}
@@ -68,15 +68,13 @@ func (s Stmt) String() string {
 
 type Redirect struct {
 	Op   Token
-	N    *Lit
+	N    Lit
 	Word Word
 }
 
 func (r Redirect) String() string {
 	var b bytes.Buffer
-	if r.N != nil {
-		fmt.Fprint(&b, r.N)
-	}
+	fmt.Fprint(&b, r.N)
 	fmt.Fprint(&b, r.Op)
 	fmt.Fprint(&b, r.Word)
 	return b.String()
@@ -237,7 +235,7 @@ func (c CaseStmt) String() string {
 		if i > 0 {
 			fmt.Fprintf(&b, ";; ")
 		}
-		fmt.Fprintf(&b, "%s", plist)
+		fmt.Fprint(&b, plist)
 	}
 	fmt.Fprintf(&b, "; esac")
 	return b.String()
