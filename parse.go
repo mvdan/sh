@@ -89,16 +89,18 @@ func (p *parser) unreadRune() {
 	p.npos = p.bpos
 }
 
-func (p *parser) readOnly(wanted rune) bool {
-	// Don't use our read/unread wrappers to avoid unnecessary
-	// position movement and unwanted calls to p.eof()
-	r, _, err := p.r.ReadRune()
-	if r == wanted {
-		p.moveWith(r)
-		return true
+func (p *parser) peekByte(b byte) bool {
+	bs, err := p.r.Peek(1)
+	if err != nil {
+		return false
 	}
-	if err == nil {
-		p.r.UnreadRune()
+	return b == bs[0]
+}
+
+func (p *parser) readOnly(b byte) bool {
+	if p.peekByte(b) {
+		p.readRune()
+		return true
 	}
 	return false
 }
@@ -503,8 +505,7 @@ func (p *parser) peekStop() bool {
 func (p *parser) peekRedir() bool {
 	// Can this be done in a way that doesn't involve reading past
 	// the current token?
-	if p.peek(LIT) && (p.readOnly('>') || p.readOnly('<')) {
-		p.unreadRune()
+	if p.peek(LIT) && (p.peekByte('>') || p.peekByte('<')) {
 		return true
 	}
 	return p.peekAny(RDROUT, APPEND, RDRIN, HEREDOC, DPLIN, DPLOUT)

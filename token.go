@@ -96,7 +96,7 @@ func (t Token) String() string {
 	return string(rune(t))
 }
 
-func doToken(r rune, readOnly func(rune) bool) Token {
+func doToken(r rune, readOnly func(byte) bool) Token {
 	switch r {
 	case '&':
 		if readOnly('&') {
