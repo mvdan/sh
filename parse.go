@@ -388,10 +388,7 @@ func (p *parser) program() (pr Prog) {
 }
 
 func (p *parser) stmts(stmts *[]Stmt, stop ...Token) (count int) {
-	for p.tok != EOF {
-		if p.peekAny(stop...) {
-			return
-		}
+	for p.tok != EOF && !p.peekAny(stop...) {
 		var s Stmt
 		if !p.gotStmt(&s) && p.tok != EOF {
 			if !p.peekAny(stop...) {
