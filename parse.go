@@ -756,11 +756,10 @@ func (p *parser) funcDecl(w Word) (fd FuncDecl) {
 	if !p.got(RPAREN) {
 		p.curErr(`functions must start like "foo()"`)
 	}
-	name := w.String()
-	if !identRe.MatchString(name) {
-		p.posErr(w.Pos(), "invalid func name: %s", name)
+	fd.Name.Value = w.String()
+	if !identRe.MatchString(fd.Name.Value) {
+		p.posErr(w.Pos(), "invalid func name: %s", fd.Name.Value)
 	}
-	fd.Name.Value = name
 	fd.Name.ValuePos = w.Pos()
 	p.wantFollowStmt(`"foo()"`, &fd.Body)
 	return
