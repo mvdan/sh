@@ -159,28 +159,38 @@ func (p *parser) next() {
 			case p.tok == EXP:
 			case r == ')' && p.quotedCmdSubst:
 			default:
-				p.advanceLit(p.readLit(r))
+				p.advanceReadLit()
 				return
 			}
 		}
 		p.advanceTok(doToken(r, p.readOnly))
 	default:
-		p.advanceLit(p.readLit(r))
+		p.advanceReadLit()
 	}
 }
 
-func (p *parser) readLit(r rune) string { return string(p.readLitRunes(r)) }
-func (p *parser) readLitRunes(r rune) (rs []rune) {
+func (p *parser) advanceReadLit() {
+	p.unreadRune()
+	p.advanceBoth(LIT, string(p.readLitRunes()))
+}
+
+func (p *parser) readLitRunes() (rs []rune) {
 	var lpos Position
 	for {
-		appendRune := true
+		r, err := p.readRune()
+		if err != nil {
+			if p.quote != 0 {
+				p.wantQuote(lpos, Token(p.quote))
+			}
+			break
+		}
 		switch {
 		case p.quote != '\'' && r == '\\': // escaped rune
 			r, _ = p.readRune()
 			if r != '\n' {
 				rs = append(rs, '\\', r)
 			}
-			appendRune = false
+			continue
 		case p.quote != '\'' && r == '$': // end of lit
 			p.unreadRune()
 			return
@@ -201,22 +211,12 @@ func (p *parser) readLitRunes(r rune) (rs []rune) {
 			p.unreadRune()
 			return
 		}
-		if appendRune {
-			rs = append(rs, r)
-		}
-		var err error
-		if r, err = p.readRune(); err != nil {
-			if p.quote != 0 {
-				p.wantQuote(lpos, Token(p.quote))
-			}
-			break
-		}
+		rs = append(rs, r)
 	}
 	return
 }
 
-func (p *parser) advanceTok(tok Token)  { p.advanceBoth(tok, tok.String()) }
-func (p *parser) advanceLit(val string) { p.advanceBoth(LIT, val) }
+func (p *parser) advanceTok(tok Token) { p.advanceBoth(tok, tok.String()) }
 func (p *parser) advanceBoth(tok Token, val string) {
 	if p.tok != EOF {
 		p.ltok = p.tok
