@@ -437,6 +437,7 @@ func (p *parser) gotWord(w *Word) bool {
 }
 
 func (p *parser) gotLit(l *Lit) bool {
+	l.ValuePos = p.pos
 	if p.got(LIT) {
 		l.Value = p.lval
 		return true
@@ -769,6 +770,7 @@ func (p *parser) funcDecl(w Word) (fd FuncDecl) {
 		p.posErr(w.Pos(), "invalid func name: %s", name)
 	}
 	fd.Name.Value = name
+	fd.Name.ValuePos = w.Pos()
 	p.wantFollowStmt(`"foo()"`, &fd.Body)
 	return
 }

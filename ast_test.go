@@ -527,103 +527,109 @@ func wantedProg(v interface{}) (p Prog) {
 	return
 }
 
-func setPos(v interface{}, p Position) Node {
+func setPos(t *testing.T, v interface{}, to Position, diff bool) Node {
+	set := func(p *Position) {
+		if diff && *p == to {
+			t.Fatalf("Position in %v (%T) is already %v", v, v, to)
+		}
+		*p = to
+	}
 	switch x := v.(type) {
 	case []Stmt:
 		for i := range x {
-			setPos(&x[i], p)
+			setPos(t, &x[i], to, diff)
 		}
 	case *Stmt:
-		x.Position = p
-		x.Node = setPos(x.Node, p)
+		set(&x.Position)
+		x.Node = setPos(t, x.Node, to, diff)
 		for i := range x.Redirs {
-			x.Redirs[i].OpPos = p
-			setPos(&x.Redirs[i].N, p)
-			setPos(&x.Redirs[i].Word, p)
+			set(&x.Redirs[i].OpPos)
+			setPos(t, &x.Redirs[i].N, to, diff)
+			setPos(t, &x.Redirs[i].Word, to, diff)
 		}
 	case Command:
-		setPos(x.Args, p)
+		setPos(t, x.Args, to, diff)
 		return x
 	case []Word:
 		for i := range x {
-			setPos(&x[i], p)
+			setPos(t, &x[i], to, diff)
 		}
 	case *Word:
-		setPos(x.Parts, p)
+		setPos(t, x.Parts, to, diff)
 	case []Node:
 		for i := range x {
-			x[i] = setPos(x[i], p)
+			x[i] = setPos(t, x[i], to, diff)
 		}
 	case *Lit:
-		x.ValuePos = p
+		set(&x.ValuePos)
 	case Lit:
-		x.ValuePos = p
+		set(&x.ValuePos)
 		return x
 	case Subshell:
-		x.Lparen = p
-		x.Rparen = p
-		setPos(x.Stmts, p)
+		set(&x.Lparen)
+		set(&x.Rparen)
+		setPos(t, x.Stmts, to, diff)
 		return x
 	case Block:
-		x.Lbrace = p
-		x.Rbrace = p
-		setPos(x.Stmts, p)
+		set(&x.Lbrace)
+		set(&x.Rbrace)
+		setPos(t, x.Stmts, to, diff)
 		return x
 	case IfStmt:
-		x.If = p
-		x.Fi = p
-		setPos(&x.Cond, p)
-		setPos(x.ThenStmts, p)
+		set(&x.If)
+		set(&x.Fi)
+		setPos(t, &x.Cond, to, diff)
+		setPos(t, x.ThenStmts, to, diff)
 		for i := range x.Elifs {
-			x.Elifs[i].Elif = p
-			setPos(&x.Elifs[i].Cond, p)
-			setPos(x.Elifs[i].ThenStmts, p)
+			set(&x.Elifs[i].Elif)
+			setPos(t, &x.Elifs[i].Cond, to, diff)
+			setPos(t, x.Elifs[i].ThenStmts, to, diff)
 		}
-		setPos(x.ElseStmts, p)
+		setPos(t, x.ElseStmts, to, diff)
 		return x
 	case WhileStmt:
-		x.While = p
-		x.Done = p
-		setPos(&x.Cond, p)
-		setPos(x.DoStmts, p)
+		set(&x.While)
+		set(&x.Done)
+		setPos(t, &x.Cond, to, diff)
+		setPos(t, x.DoStmts, to, diff)
 		return x
 	case ForStmt:
-		x.For = p
-		x.Done = p
-		setPos(&x.Name, p)
-		setPos(x.WordList, p)
-		setPos(x.DoStmts, p)
+		set(&x.For)
+		set(&x.Done)
+		setPos(t, &x.Name, to, diff)
+		setPos(t, x.WordList, to, diff)
+		setPos(t, x.DoStmts, to, diff)
 		return x
 	case DblQuoted:
-		x.Quote = p
-		setPos(x.Parts, p)
+		set(&x.Quote)
+		setPos(t, x.Parts, to, diff)
 		return x
 	case BinaryExpr:
-		x.OpPos = p
-		setPos(&x.X, p)
-		setPos(&x.Y, p)
+		set(&x.OpPos)
+		setPos(t, &x.X, to, diff)
+		setPos(t, &x.Y, to, diff)
 		return x
 	case FuncDecl:
-		setPos(&x.Name, p)
-		setPos(&x.Body, p)
+		setPos(t, &x.Name, to, diff)
+		setPos(t, &x.Body, to, diff)
 		return x
 	case ParamExp:
-		x.Exp = p
+		set(&x.Exp)
 		return x
 	case ArithmExp:
-		x.Exp = p
+		set(&x.Exp)
 		return x
 	case CmdSubst:
-		x.Exp = p
-		setPos(x.Stmts, p)
+		set(&x.Exp)
+		setPos(t, x.Stmts, to, diff)
 		return x
 	case CaseStmt:
-		x.Case = p
-		x.Esac = p
-		setPos(&x.Word, p)
+		set(&x.Case)
+		set(&x.Esac)
+		setPos(t, &x.Word, to, diff)
 		for _, pl := range x.List {
-			setPos(pl.Patterns, p)
-			setPos(pl.Stmts, p)
+			setPos(t, pl.Patterns, to, diff)
+			setPos(t, pl.Stmts, to, diff)
 		}
 		return x
 	default:
@@ -639,7 +645,7 @@ func TestNodePos(t *testing.T) {
 	}
 	for _, c := range tests {
 		want := wantedProg(c.want)
-		setPos(want.Stmts, p)
+		setPos(t, want.Stmts, p, true)
 		for _, s := range want.Stmts {
 			if s.Pos() != p {
 				t.Fatalf("Found unexpected position in %v", s)
@@ -655,14 +661,14 @@ func TestNodePos(t *testing.T) {
 func TestParseAST(t *testing.T) {
 	for _, c := range tests {
 		want := wantedProg(c.want)
-		setPos(want.Stmts, Position{})
+		setPos(t, want.Stmts, Position{}, false)
 		for _, in := range c.ins {
 			r := strings.NewReader(in)
 			got, err := Parse(r, "")
 			if err != nil {
 				t.Fatalf("Unexpected error in %q: %v", in, err)
 			}
-			setPos(got.Stmts, Position{})
+			setPos(t, got.Stmts, Position{}, true)
 			if !reflect.DeepEqual(got, want) {
 				t.Fatalf("AST mismatch in %q\nwant: %s\ngot:  %s\ndumps:\n%#v\n%#v",
 					in, want.String(), got.String(), want, got)
