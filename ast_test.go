@@ -50,7 +50,9 @@ func litStmts(strs ...string) []Stmt {
 	return l
 }
 
-func dblQuoted(ns ...Node) DblQuoted { return DblQuoted{Parts: ns} }
+func dblQuoted(ns ...Node) DblQuoted  { return DblQuoted{Parts: ns} }
+func block(stmts ...Stmt) Block       { return Block{Stmts: stmts} }
+func cmdSubst(stmts ...Stmt) CmdSubst { return CmdSubst{Stmts: stmts} }
 
 var tests = []struct {
 	ins  []string
@@ -89,7 +91,7 @@ var tests = []struct {
 	},
 	{
 		[]string{"{ foo; }", "{foo;}", "{\nfoo\n}"},
-		Block{Stmts: litStmts("foo")},
+		block(litStmt("foo")),
 	},
 	{
 		[]string{
@@ -253,7 +255,7 @@ var tests = []struct {
 		},
 		FuncDecl{
 			Name: lit("foo"),
-			Body: stmt(Block{Stmts: litStmts("a", "b")}),
+			Body: stmt(block(litStmts("a", "b")...)),
 		},
 	},
 	{
@@ -353,22 +355,18 @@ var tests = []struct {
 		[]string{"echo $(foo bar)"},
 		Command{Args: []Word{
 			litWord("echo"),
-			word(CmdSubst{
-				Stmts: []Stmt{litStmt("foo", "bar")},
-			}),
+			word(cmdSubst(litStmt("foo", "bar"))),
 		}},
 	},
 	{
 		[]string{"echo $(foo | bar)"},
 		Command{Args: []Word{
 			litWord("echo"),
-			word(CmdSubst{
-				Stmts: stmts(BinaryExpr{
-					Op: OR,
-					X:  litStmt("foo"),
-					Y:  litStmt("bar"),
-				}),
-			}),
+			word(cmdSubst(stmt(BinaryExpr{
+				Op: OR,
+				X:  litStmt("foo"),
+				Y:  litStmt("bar"),
+			}))),
 		}},
 	},
 	{
@@ -397,9 +395,7 @@ var tests = []struct {
 		[]string{`echo "$(foo)"`},
 		Command{Args: []Word{
 			litWord("echo"),
-			word(dblQuoted(CmdSubst{
-				Stmts: litStmts("foo"),
-			})),
+			word(dblQuoted(cmdSubst(litStmt("foo")))),
 		}},
 	},
 	{
@@ -431,7 +427,7 @@ var tests = []struct {
 		[]string{"echo foo$(bar)"},
 		Command{Args: []Word{
 			litWord("echo"),
-			word(lit("foo"), CmdSubst{Stmts: litStmts("bar")}),
+			word(lit("foo"), cmdSubst(litStmt("bar"))),
 		}},
 	},
 	{
