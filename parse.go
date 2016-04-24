@@ -309,8 +309,8 @@ func (p *parser) wantFollow(left string, tok Token) {
 	}
 }
 
-func (p *parser) wantFollowStmt(left string, s *Stmt) {
-	if !p.gotStmt(s) {
+func (p *parser) wantFollowStmt(left string, s *Stmt, wantStop bool) {
+	if !p.gotStmt(s, wantStop) {
 		p.followErr(left, "a statement")
 	}
 }
@@ -400,7 +400,7 @@ func (p *parser) program() (pr Prog) {
 func (p *parser) stmts(sts *[]Stmt, stop ...Token) (count int) {
 	for p.tok != EOF && !p.peekAny(stop...) {
 		var s Stmt
-		if !p.gotStmt(&s) {
+		if !p.gotStmt(&s, true) {
 			if p.tok != EOF && !p.peekAny(stop...) {
 				p.invalidStmtStart()
 			}
@@ -542,7 +542,7 @@ func (p *parser) peekRedir() bool {
 	return p.peekAny(RDROUT, APPEND, RDRIN, HEREDOC, DPLIN, DPLOUT)
 }
 
-func (p *parser) gotStmt(s *Stmt) bool {
+func (p *parser) gotStmt(s *Stmt, wantStop bool) bool {
 	for p.gotAny('#', '\n') {
 		if p.ltok == '#' {
 			p.readLine()
@@ -581,6 +581,9 @@ func (p *parser) gotStmt(s *Stmt) bool {
 	if p.got(AND) {
 		s.Background = true
 	}
+	if !wantStop {
+		return true
+	}
 	if !p.peekStop() {
 		p.curErr("statements must be separated by ; or a newline")
 	}
@@ -603,7 +606,7 @@ func (p *parser) gotStmt(s *Stmt) bool {
 func (p *parser) binaryExpr(op Token, left Stmt) (b BinaryExpr) {
 	b.OpPos = p.lpos
 	b.Op = op
-	p.wantFollowStmt(op.String(), &b.Y)
+	p.wantFollowStmt(op.String(), &b.Y, true)
 	b.X = left
 	return
 }
@@ -780,6 +783,6 @@ func (p *parser) funcDecl(w Word) (fd FuncDecl) {
 		p.posErr(w.Pos(), "invalid func name: %s", fd.Name.Value)
 	}
 	fd.Name.ValuePos = w.Pos()
-	p.wantFollowStmt(`"foo()"`, &fd.Body)
+	p.wantFollowStmt(`"foo()"`, &fd.Body, false)
 	return
 }

@@ -282,6 +282,16 @@ var tests = []testCase{
 		},
 	},
 	{
+		[]string{"foo() { a; }; bar", "foo() {\na\n}\nbar"},
+		[]Node{
+			FuncDecl{
+				Name: lit("foo"),
+				Body: stmt(block(litStmts("a")...)),
+			},
+			litCmd("bar"),
+		},
+	},
+	{
 		[]string{
 			"foo >a >>b <c",
 			"foo > a >> b < c",
