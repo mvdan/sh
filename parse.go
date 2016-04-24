@@ -595,6 +595,7 @@ func (p *parser) gotStmt(s *Stmt) bool {
 }
 
 func (p *parser) binaryExpr(op Token, left Stmt) (b BinaryExpr) {
+	b.OpPos = p.lpos
 	b.Op = op
 	p.wantFollowStmt(op.String(), &b.Y)
 	b.X = left
@@ -665,30 +666,36 @@ func (p *parser) ifStmt() (ifs IfStmt) {
 }
 
 func (p *parser) whileStmt() (ws WhileStmt) {
+	ws.While = p.lpos
 	p.wantFollowStmt(`"while"`, &ws.Cond)
 	p.wantFollow(`"while x"`, DO)
 	p.stmts(&ws.DoStmts, DONE)
 	p.wantStmtEnd("while", DONE)
+	ws.Done = p.lpos
 	return
 }
 
 func (p *parser) forStmt() (fs ForStmt) {
+	fs.For = p.lpos
 	p.wantFollowLit(`"for"`, &fs.Name)
 	p.wantFollow(`"for foo"`, IN)
 	p.wordList(&fs.WordList)
 	p.wantFollow(`"for foo in list"`, DO)
 	p.stmts(&fs.DoStmts, DONE)
 	p.wantStmtEnd("for", DONE)
+	fs.Done = p.lpos
 	return
 }
 
 func (p *parser) caseStmt() (cs CaseStmt) {
+	cs.Case = p.lpos
 	p.wantFollowWord(`"case"`, &cs.Word)
 	p.wantFollow(`"case x"`, IN)
 	if p.patLists(&cs.List) < 1 {
 		p.followErr(`"case x in"`, "one or more patterns")
 	}
 	p.wantStmtEnd("case", ESAC)
+	cs.Esac = p.lpos
 	return
 }
 

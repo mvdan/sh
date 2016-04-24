@@ -167,7 +167,7 @@ func (e Elif) String() string {
 func (e Elif) Pos() Position { return e.Else }
 
 type WhileStmt struct {
-	While Position
+	While, Done Position
 
 	Cond    Stmt
 	DoStmts []Stmt
@@ -179,7 +179,7 @@ func (w WhileStmt) String() string {
 func (w WhileStmt) Pos() Position { return w.While }
 
 type ForStmt struct {
-	For Position
+	For, Done Position
 
 	Name     Lit
 	WordList []Word

@@ -585,10 +585,14 @@ func removePos(v interface{}) Node {
 			removePos(x[i].ThenStmts)
 		}
 	case WhileStmt:
+		x.While = Position{}
+		x.Done = Position{}
 		removePos(&x.Cond)
 		removePos(x.DoStmts)
 		return x
 	case ForStmt:
+		x.For = Position{}
+		x.Done = Position{}
 		removePos(&x.Name)
 		removePos(x.WordList)
 		removePos(x.DoStmts)
@@ -598,6 +602,7 @@ func removePos(v interface{}) Node {
 		removePos(x.Parts)
 		return x
 	case BinaryExpr:
+		x.OpPos = Position{}
 		removePos(&x.X)
 		removePos(&x.Y)
 		return x
@@ -616,6 +621,8 @@ func removePos(v interface{}) Node {
 		removePos(x.Stmts)
 		return x
 	case CaseStmt:
+		x.Case = Position{}
+		x.Esac = Position{}
 		removePos(&x.Word)
 		for _, pl := range x.List {
 			removePos(pl.Patterns)
