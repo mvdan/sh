@@ -132,7 +132,7 @@ func (b Block) Pos() Position  { return b.Rbrace }
 type IfStmt struct {
 	If, Fi Position
 
-	Cond      Stmt
+	Conds     []Stmt
 	ThenStmts []Stmt
 	Elifs     []Elif
 	ElseStmts []Stmt
@@ -140,7 +140,8 @@ type IfStmt struct {
 
 func (s IfStmt) String() string {
 	var b bytes.Buffer
-	fmt.Fprintf(&b, "if %s; then %s", s.Cond, stmtJoin(s.ThenStmts))
+	fmt.Fprintf(&b, "if %s; ", stmtJoin(s.Conds))
+	fmt.Fprintf(&b, "then %s", stmtJoin(s.ThenStmts))
 	for _, elif := range s.Elifs {
 		fmt.Fprintf(&b, "; %s", elif)
 	}
@@ -155,23 +156,25 @@ func (s IfStmt) Pos() Position { return s.If }
 type Elif struct {
 	Elif Position
 
-	Cond      Stmt
+	Conds     []Stmt
 	ThenStmts []Stmt
 }
 
 func (e Elif) String() string {
-	return fmt.Sprintf("elif %s; then %s", e.Cond, stmtJoin(e.ThenStmts))
+	return fmt.Sprintf("elif %s; then %s", stmtJoin(e.Conds),
+		stmtJoin(e.ThenStmts))
 }
 
 type WhileStmt struct {
 	While, Done Position
 
-	Cond    Stmt
+	Conds   []Stmt
 	DoStmts []Stmt
 }
 
 func (w WhileStmt) String() string {
-	return fmt.Sprintf("while %s; do %s; done", w.Cond, stmtJoin(w.DoStmts))
+	return fmt.Sprintf("while %s; do %s; done", stmtJoin(w.Conds),
+		stmtJoin(w.DoStmts))
 }
 func (w WhileStmt) Pos() Position { return w.While }
 

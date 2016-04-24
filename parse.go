@@ -315,6 +315,12 @@ func (p *parser) wantFollowStmt(left string, s *Stmt) {
 	}
 }
 
+func (p *parser) wantFollowStmts(left string, sts *[]Stmt, stop ...Token) {
+	if p.stmts(sts, stop...) < 1 {
+		p.followErr(left, "one or more statements")
+	}
+}
+
 func (p *parser) wantFollowWord(left string, w *Word) {
 	if !p.gotWord(w) {
 		p.followErr(left, "a word")
@@ -391,7 +397,7 @@ func (p *parser) program() (pr Prog) {
 	return
 }
 
-func (p *parser) stmts(stmts *[]Stmt, stop ...Token) (count int) {
+func (p *parser) stmts(sts *[]Stmt, stop ...Token) (count int) {
 	for p.tok != EOF && !p.peekAny(stop...) {
 		var s Stmt
 		got := p.gotStmt(&s)
@@ -402,7 +408,7 @@ func (p *parser) stmts(stmts *[]Stmt, stop ...Token) (count int) {
 			break
 		}
 		if got {
-			*stmts = append(*stmts, s)
+			*sts = append(*sts, s)
 		}
 		count++
 	}
@@ -422,9 +428,9 @@ func (p *parser) invalidStmtStart() {
 	}
 }
 
-func (p *parser) stmtsLimited(stmts *[]Stmt, stop ...Token) int {
+func (p *parser) stmtsLimited(sts *[]Stmt, stop ...Token) int {
 	p.stops = append(p.stops, stop)
-	count := p.stmts(stmts, stop...)
+	count := p.stmts(sts, stop...)
 	p.stops = p.stops[:len(p.stops)-1]
 	return count
 }
@@ -653,12 +659,12 @@ func (p *parser) block() (b Block) {
 
 func (p *parser) ifStmt() (fs IfStmt) {
 	fs.If = p.lpos
-	p.wantFollowStmt(`"if"`, &fs.Cond)
+	p.wantFollowStmts(`"if"`, &fs.Conds, THEN)
 	p.wantFollow(`"if x"`, THEN)
 	p.stmts(&fs.ThenStmts, FI, ELIF, ELSE)
 	for p.got(ELIF) {
 		var elf Elif
-		p.wantFollowStmt(`"elif"`, &elf.Cond)
+		p.wantFollowStmts(`"elif"`, &elf.Conds, THEN)
 		elf.Elif = p.lpos
 		p.wantFollow(`"elif x"`, THEN)
 		p.stmts(&elf.ThenStmts, FI, ELIF, ELSE)
@@ -674,7 +680,7 @@ func (p *parser) ifStmt() (fs IfStmt) {
 
 func (p *parser) whileStmt() (ws WhileStmt) {
 	ws.While = p.lpos
-	p.wantFollowStmt(`"while"`, &ws.Cond)
+	p.wantFollowStmts(`"while"`, &ws.Conds, DO)
 	p.wantFollow(`"while x"`, DO)
 	p.stmts(&ws.DoStmts, DONE)
 	p.wantStmtEnd("while", DONE)

@@ -101,7 +101,7 @@ var tests = []testCase{
 			"if a\nthen\nb\nfi",
 		},
 		IfStmt{
-			Cond:      litStmt("a"),
+			Conds:     litStmts("a"),
 			ThenStmts: litStmts("b"),
 		},
 	},
@@ -111,7 +111,7 @@ var tests = []testCase{
 			"if a\nthen b\nelse\nc\nfi",
 		},
 		IfStmt{
-			Cond:      litStmt("a"),
+			Conds:     litStmts("a"),
 			ThenStmts: litStmts("b"),
 			ElseStmts: litStmts("c"),
 		},
@@ -122,15 +122,15 @@ var tests = []testCase{
 			"if a\nthen a\nelif b\nthen b\nelif c\nthen c\nelse\nd\nfi",
 		},
 		IfStmt{
-			Cond:      litStmt("a"),
+			Conds:     litStmts("a"),
 			ThenStmts: litStmts("a"),
 			Elifs: []Elif{
 				{
-					Cond:      litStmt("b"),
+					Conds:     litStmts("b"),
 					ThenStmts: litStmts("b"),
 				},
 				{
-					Cond:      litStmt("c"),
+					Conds:     litStmts("c"),
 					ThenStmts: litStmts("c"),
 				},
 			},
@@ -138,9 +138,20 @@ var tests = []testCase{
 		},
 	},
 	{
+		[]string{"if a1; a2 foo; a3 bar; then b; fi"},
+		IfStmt{
+			Conds: []Stmt{
+				litStmt("a1"),
+				litStmt("a2", "foo"),
+				litStmt("a3", "bar"),
+			},
+			ThenStmts: litStmts("b"),
+		},
+	},
+	{
 		[]string{"while a; do b; done", "while a\ndo\nb\ndone"},
 		WhileStmt{
-			Cond:    litStmt("a"),
+			Conds:   litStmts("a"),
 			DoStmts: litStmts("b"),
 		},
 	},
@@ -208,11 +219,11 @@ var tests = []testCase{
 		BinaryExpr{
 			Op: LOR,
 			X: stmt(IfStmt{
-				Cond:      litStmt("a"),
+				Conds:     litStmts("a"),
 				ThenStmts: litStmts("b"),
 			}),
 			Y: stmt(WhileStmt{
-				Cond:    litStmt("a"),
+				Conds:   litStmts("a"),
 				DoStmts: litStmts("b"),
 			}),
 		},
@@ -349,7 +360,7 @@ var tests = []testCase{
 		[]string{"if foo; then bar; fi >/dev/null &"},
 		Stmt{
 			Node: IfStmt{
-				Cond:      litStmt("foo"),
+				Conds:     litStmts("foo"),
 				ThenStmts: litStmts("bar"),
 			},
 			Redirs: []Redirect{
@@ -493,7 +504,7 @@ var tests = []testCase{
 			Op: OR,
 			X:  litStmt("foo"),
 			Y: stmt(WhileStmt{
-				Cond:    litStmt("read", "a"),
+				Conds:   []Stmt{litStmt("read", "a")},
 				DoStmts: litStmts("b"),
 			}),
 		},
@@ -501,7 +512,7 @@ var tests = []testCase{
 	{
 		[]string{"while read l; do foo || bar; done"},
 		WhileStmt{
-			Cond: litStmt("read", "l"),
+			Conds: []Stmt{litStmt("read", "l")},
 			DoStmts: stmts(BinaryExpr{
 				Op: LOR,
 				X:  litStmt("foo"),
@@ -596,11 +607,11 @@ func setPos(t *testing.T, v interface{}, to Position, diff bool) Node {
 	case IfStmt:
 		set(&x.If)
 		set(&x.Fi)
-		setPos(t, &x.Cond, to, diff)
+		setPos(t, x.Conds, to, diff)
 		setPos(t, x.ThenStmts, to, diff)
 		for i := range x.Elifs {
 			set(&x.Elifs[i].Elif)
-			setPos(t, &x.Elifs[i].Cond, to, diff)
+			setPos(t, x.Elifs[i].Conds, to, diff)
 			setPos(t, x.Elifs[i].ThenStmts, to, diff)
 		}
 		setPos(t, x.ElseStmts, to, diff)
@@ -608,7 +619,7 @@ func setPos(t *testing.T, v interface{}, to Position, diff bool) Node {
 	case WhileStmt:
 		set(&x.While)
 		set(&x.Done)
-		setPos(t, &x.Cond, to, diff)
+		setPos(t, x.Conds, to, diff)
 		setPos(t, x.DoStmts, to, diff)
 		return x
 	case ForStmt:

@@ -183,7 +183,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"if",
-			`1:3: "if" must be followed by a statement`,
+			`1:3: "if" must be followed by one or more statements`,
 		},
 		{
 			"if foo;",
@@ -191,7 +191,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"if foo; bar",
-			`1:9: "if x" must be followed by "then"`,
+			`1:12: "if x" must be followed by "then"`,
 		},
 		{
 			"if foo; then bar;",
@@ -199,7 +199,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"if a; then b; elif; then c; fi",
-			`1:19: "elif" must be followed by a statement`,
+			`1:19: ; can only immediately follow a statement`,
 		},
 		{
 			"if a; then b; elif c;",
@@ -215,7 +215,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"while",
-			`1:6: "while" must be followed by a statement`,
+			`1:6: "while" must be followed by one or more statements`,
 		},
 		{
 			"while foo;",
@@ -223,7 +223,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"while foo; bar",
-			`1:12: "while x" must be followed by "do"`,
+			`1:15: "while x" must be followed by "do"`,
 		},
 		{
 			"while foo; do bar",
