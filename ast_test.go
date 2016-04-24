@@ -576,14 +576,12 @@ func removePos(v interface{}) Node {
 	case IfStmt:
 		removePos(&x.Cond)
 		removePos(x.ThenStmts)
-		removePos(x.Elifs)
+		for i := range x.Elifs {
+			removePos(&x.Elifs[i].Cond)
+			removePos(x.Elifs[i].ThenStmts)
+		}
 		removePos(x.ElseStmts)
 		return x
-	case []Elif:
-		for i := range x {
-			removePos(&x[i].Cond)
-			removePos(x[i].ThenStmts)
-		}
 	case WhileStmt:
 		x.While = Position{}
 		x.Done = Position{}
