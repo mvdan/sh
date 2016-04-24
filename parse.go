@@ -252,6 +252,7 @@ func (p *parser) readUntilMatched(left Token) string {
 	if found {
 		p.next()
 	} else {
+		// we're at EOF, this will just report the error
 		p.wantMatched(lpos, left)
 	}
 	return s
@@ -310,7 +311,7 @@ func (p *parser) followErr(left, right string) {
 
 func (p *parser) wantFollow(left string, tok Token) {
 	if !p.got(tok) {
-		p.followErr(left, fmt.Sprintf(`"%s"`, tok))
+		p.followErr(left, fmt.Sprintf(`%q`, tok))
 	}
 }
 
@@ -334,13 +335,17 @@ func (p *parser) wantFollowLit(left string, l *Lit) {
 
 func (p *parser) wantStmtEnd(name string, tok Token) {
 	if !p.got(tok) {
-		p.curErr(`%s statement must end with "%s"`, name, tok)
+		p.curErr(`%s statement must end with %q`, name, tok)
 	}
+}
+
+func (p *parser) closingErr(lpos Position, s string) {
+	p.posErr(lpos, `reached %s without closing %s`, p.tok, s)
 }
 
 func (p *parser) wantQuote(lpos Position, tok Token) {
 	if !p.got(tok) {
-		p.posErr(lpos, `reached %s without closing quote %s`, p.tok, tok)
+		p.closingErr(lpos, fmt.Sprintf("quote %s", tok))
 	}
 }
 
@@ -593,8 +598,7 @@ func (p *parser) redirect() (r Redirect) {
 		del := l.Val
 		s, found := p.readUntilLine(del)
 		if !found {
-			p.posErr(lpos, `reached %s without closing heredoc "%s"`,
-				p.tok, del)
+			p.closingErr(lpos, fmt.Sprintf(`heredoc %q`, del))
 		}
 		body := del + "\n" + s + del
 		r.Word = Word{Parts: []Node{Lit{Val: body}}}
