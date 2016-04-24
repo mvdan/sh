@@ -542,6 +542,7 @@ func setPos(v interface{}, p Position) Node {
 		x.Position = p
 		x.Node = setPos(x.Node, p)
 		for i := range x.Redirs {
+			x.Redirs[i].OpPos = p
 			setPos(&x.Redirs[i].N, p)
 			setPos(&x.Redirs[i].Word, p)
 		}
@@ -579,6 +580,7 @@ func setPos(v interface{}, p Position) Node {
 		setPos(&x.Cond, p)
 		setPos(x.ThenStmts, p)
 		for i := range x.Elifs {
+			x.Elifs[i].Elif = p
 			setPos(&x.Elifs[i].Cond, p)
 			setPos(x.Elifs[i].ThenStmts, p)
 		}

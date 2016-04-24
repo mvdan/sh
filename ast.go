@@ -146,7 +146,7 @@ func (s IfStmt) String() string {
 func (s IfStmt) Pos() Position { return s.If }
 
 type Elif struct {
-	Else Position
+	Elif Position
 
 	Cond      Stmt
 	ThenStmts []Stmt

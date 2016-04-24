@@ -609,6 +609,7 @@ func (p *parser) binaryExpr(op Token, left Stmt) (b BinaryExpr) {
 func (p *parser) redirect() (r Redirect) {
 	p.gotLit(&r.N)
 	r.Op = p.tok
+	r.OpPos = p.pos
 	p.next()
 	switch r.Op {
 	case HEREDOC:
@@ -659,6 +660,7 @@ func (p *parser) ifStmt() (fs IfStmt) {
 	for p.got(ELIF) {
 		var elf Elif
 		p.wantFollowStmt(`"elif"`, &elf.Cond)
+		elf.Elif = p.lpos
 		p.wantFollow(`"elif x"`, THEN)
 		p.stmts(&elf.ThenStmts, FI, ELIF, ELSE)
 		fs.Elifs = append(fs.Elifs, elf)
