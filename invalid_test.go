@@ -75,7 +75,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"{#}",
-			`1:1: reached EOF without matching token { with }`,
+			`1:4: a block must contain one or more statements`,
 		},
 		{
 			"(",

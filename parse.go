@@ -400,16 +400,13 @@ func (p *parser) program() (pr Prog) {
 func (p *parser) stmts(sts *[]Stmt, stop ...Token) (count int) {
 	for p.tok != EOF && !p.peekAny(stop...) {
 		var s Stmt
-		got := p.gotStmt(&s)
-		if !got && p.tok != EOF {
-			if !p.peekAny(stop...) {
+		if !p.gotStmt(&s) {
+			if p.tok != EOF && !p.peekAny(stop...) {
 				p.invalidStmtStart()
 			}
 			break
 		}
-		if got {
-			*sts = append(*sts, s)
-		}
+		*sts = append(*sts, s)
 		count++
 	}
 	return
