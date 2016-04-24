@@ -327,6 +327,19 @@ var tests = []struct {
 		},
 	},
 	{
+		[]string{"a >f1; b >f2"},
+		[]Stmt{
+			{
+				Node: Command{Args: []Word{litWord("a")}},
+				Redirs: []Redirect{{Op: RDROUT, Word: litWord("f1")}},
+			},
+			{
+				Node: Command{Args: []Word{litWord("b")}},
+				Redirs: []Redirect{{Op: RDROUT, Word: litWord("f2")}},
+			},
+		},
+	},
+	{
 		[]string{"foo &", "foo&"},
 		Stmt{
 			Node:       Command{Args: litWords("foo")},

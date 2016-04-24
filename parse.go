@@ -376,11 +376,11 @@ func (p *parser) program() (pr Prog) {
 }
 
 func (p *parser) stmts(stmts *[]Stmt, stop ...Token) (count int) {
-	var s Stmt
 	for p.tok != EOF {
 		if p.peekAny(stop...) {
 			return
 		}
+		var s Stmt
 		if !p.gotStmt(&s) && p.tok != EOF {
 			if !p.peekAny(stop...) {
 				p.invalidStmtStart()
