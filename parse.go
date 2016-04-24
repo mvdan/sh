@@ -651,21 +651,23 @@ func (p *parser) block() (b Block) {
 	return
 }
 
-func (p *parser) ifStmt() (ifs IfStmt) {
-	p.wantFollowStmt(`"if"`, &ifs.Cond)
+func (p *parser) ifStmt() (fs IfStmt) {
+	fs.If = p.lpos
+	p.wantFollowStmt(`"if"`, &fs.Cond)
 	p.wantFollow(`"if x"`, THEN)
-	p.stmts(&ifs.ThenStmts, FI, ELIF, ELSE)
+	p.stmts(&fs.ThenStmts, FI, ELIF, ELSE)
 	for p.got(ELIF) {
 		var elf Elif
 		p.wantFollowStmt(`"elif"`, &elf.Cond)
 		p.wantFollow(`"elif x"`, THEN)
 		p.stmts(&elf.ThenStmts, FI, ELIF, ELSE)
-		ifs.Elifs = append(ifs.Elifs, elf)
+		fs.Elifs = append(fs.Elifs, elf)
 	}
 	if p.got(ELSE) {
-		p.stmts(&ifs.ElseStmts, FI)
+		p.stmts(&fs.ElseStmts, FI)
 	}
 	p.wantStmtEnd("if", FI)
+	fs.Fi = p.lpos
 	return
 }
 
