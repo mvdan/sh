@@ -21,8 +21,12 @@ func lits(strs ...string) []Node {
 	return l
 }
 
+func word(ns ...Node) Word {
+	return Word{Parts: ns}
+}
+
 func litWord(s string) Word {
-	return Word{Parts: lits(s)}
+	return word(lits(s)...)
 }
 
 func litWords(strs ...string) []Word {
@@ -148,9 +152,7 @@ var tests = []struct {
 			DoStmts: []Stmt{
 				{Node: Command{Args: []Word{
 					litWord("echo"),
-					{Parts: []Node{
-						ParamExp{Short: true, Text: "i"},
-					}},
+					word(ParamExp{Short: true, Text: "i"}),
 				}}},
 			},
 		},
@@ -160,28 +162,20 @@ var tests = []struct {
 		Command{Args: []Word{
 			litWord("echo"),
 			litWord("' '"),
-			{Parts: []Node{
-				DblQuoted{Parts: lits("foo bar")},
-			}},
+			word(DblQuoted{Parts: lits("foo bar")}),
 		}},
 	},
 	{
 		[]string{`"foo \" bar"`},
 		Command{Args: []Word{
-			{Parts: []Node{
-				DblQuoted{Parts: lits(`foo \" bar`)},
-			}},
+			word(DblQuoted{Parts: lits(`foo \" bar`)}),
 		}},
 	},
 	{
 		[]string{"\">foo\" \"\nbar\""},
 		Command{Args: []Word{
-			{Parts: []Node{
-				DblQuoted{Parts: lits(">foo")},
-			}},
-			{Parts: []Node{
-				DblQuoted{Parts: lits("\nbar")},
-			}},
+			word(DblQuoted{Parts: lits(">foo")}),
+			word(DblQuoted{Parts: lits("\nbar")}),
 		}},
 	},
 	{
@@ -362,67 +356,53 @@ var tests = []struct {
 		[]string{"echo $(foo bar)"},
 		Command{Args: []Word{
 			litWord("echo"),
-			{Parts: []Node{
-				CmdSubst{Stmts: []Stmt{
-					litStmt("foo", "bar"),
-				}},
-			}},
+			word(CmdSubst{Stmts: []Stmt{litStmt("foo", "bar")}}),
 		}},
 	},
 	{
 		[]string{"echo $(foo | bar)"},
 		Command{Args: []Word{
 			litWord("echo"),
-			{Parts: []Node{
-				CmdSubst{Stmts: []Stmt{
-					{Node: BinaryExpr{
-						Op: OR,
-						X:  litStmt("foo"),
-						Y:  litStmt("bar"),
-					}},
+			word(CmdSubst{Stmts: []Stmt{
+				{Node: BinaryExpr{
+					Op: OR,
+					X:  litStmt("foo"),
+					Y:  litStmt("bar"),
 				}},
-			}},
+			}}),
 		}},
 	},
 	{
 		[]string{`echo "$foo"`},
 		Command{Args: []Word{
 			litWord("echo"),
-			{Parts: []Node{
-				DblQuoted{Parts: []Node{
-					ParamExp{Short: true, Text: "foo"},
-				}},
-			}},
+			word(DblQuoted{Parts: []Node{
+				ParamExp{Short: true, Text: "foo"},
+			}}),
 		}},
 	},
 	{
 		[]string{`$@ $# $$`},
 		Command{Args: []Word{
-			{Parts: []Node{ParamExp{Short: true, Text: "@"}}},
-			{Parts: []Node{ParamExp{Short: true, Text: "#"}}},
-			{Parts: []Node{ParamExp{Short: true, Text: "$"}}},
+			word(ParamExp{Short: true, Text: "@"}),
+			word(ParamExp{Short: true, Text: "#"}),
+			word(ParamExp{Short: true, Text: "$"}),
 		}},
 	},
 	{
 		[]string{`echo "${foo}"`},
 		Command{Args: []Word{
 			litWord("echo"),
-			{Parts: []Node{
-				DblQuoted{Parts: []Node{
-					ParamExp{Text: "foo"}},
-				},
-			}},
+			word(DblQuoted{Parts: []Node{ParamExp{Text: "foo"}}}),
 		}},
 	},
 	{
 		[]string{`echo "$(foo)"`},
 		Command{Args: []Word{
 			litWord("echo"),
-			{Parts: []Node{
-				DblQuoted{Parts: []Node{
-					CmdSubst{Stmts: litStmts("foo")},
-				}},
-			}},
+			word(DblQuoted{Parts: []Node{
+				CmdSubst{Stmts: litStmts("foo")},
+			}}),
 		}},
 	},
 	{
@@ -433,48 +413,35 @@ var tests = []struct {
 		[]string{"echo ${foo bar}"},
 		Command{Args: []Word{
 			litWord("echo"),
-			{Parts: []Node{
-				ParamExp{Text: "foo bar"},
-			}},
+			word(ParamExp{Text: "foo bar"}),
 		}},
 	},
 	{
 		[]string{"echo $(($x-1))"},
 		Command{Args: []Word{
 			litWord("echo"),
-			{Parts: []Node{
-				ArithmExp{Text: "$x-1"},
-			}},
+			word(ArithmExp{Text: "$x-1"}),
 		}},
 	},
 	{
 		[]string{"echo foo$bar"},
 		Command{Args: []Word{
 			litWord("echo"),
-			{Parts: []Node{
-				lit("foo"),
-				ParamExp{Short: true, Text: "bar"},
-			}},
+			word(lit("foo"), ParamExp{Short: true, Text: "bar"}),
 		}},
 	},
 	{
 		[]string{"echo foo$(bar)"},
 		Command{Args: []Word{
 			litWord("echo"),
-			{Parts: []Node{
-				lit("foo"),
-				CmdSubst{Stmts: litStmts("bar")},
-			}},
+			word(lit("foo"), CmdSubst{Stmts: litStmts("bar")}),
 		}},
 	},
 	{
 		[]string{"echo foo${bar bar}"},
 		Command{Args: []Word{
 			litWord("echo"),
-			{Parts: []Node{
-				lit("foo"),
-				ParamExp{Text: "bar bar"},
-			}},
+			word(lit("foo"), ParamExp{Text: "bar bar"}),
 		}},
 	},
 	{
@@ -491,10 +458,7 @@ var tests = []struct {
 	{
 		[]string{"a=\"\nbar\""},
 		Command{Args: []Word{
-			{Parts: []Node{
-				lit("a="),
-				DblQuoted{Parts: lits("\nbar")},
-			}},
+			word(lit("a="), DblQuoted{Parts: lits("\nbar")}),
 		}},
 	},
 	{
@@ -504,9 +468,7 @@ var tests = []struct {
 			"case $i in\n1)\nfoo\n;;\n2 | 3*)\nbar\n;;\nesac",
 		},
 		CaseStmt{
-			Word: Word{Parts: []Node{
-				ParamExp{Short: true, Text: "i"},
-			}},
+			Word: word(ParamExp{Short: true, Text: "i"}),
 			List: []PatternList{
 				{
 					Patterns: litWords("1"),
@@ -551,19 +513,14 @@ var tests = []struct {
 		[]string{"echo ${foo}if"},
 		Command{Args: []Word{
 			litWord("echo"),
-			{Parts: []Node{
-				ParamExp{Text: "foo"},
-				lit("if"),
-			}},
+			word(ParamExp{Text: "foo"}, lit("if")),
 		}},
 	},
 	{
 		[]string{"echo $if"},
 		Command{Args: []Word{
 			litWord("echo"),
-			{Parts: []Node{
-				ParamExp{Short: true, Text: "if"},
-			}},
+			word(ParamExp{Short: true, Text: "if"}),
 		}},
 	},
 }
