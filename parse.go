@@ -246,14 +246,12 @@ func (p *parser) readUntil(closing Token) (string, bool) {
 }
 
 func (p *parser) readUntilMatched(left Token) string {
-	right := matching[left]
 	lpos := p.pos
-	s, found := p.readUntil(right)
+	s, found := p.readUntil(matching[left])
 	if found {
 		p.next()
 	} else {
-		// we're at EOF, this will just report the error
-		p.wantMatched(lpos, left)
+		p.matchingErr(lpos, left)
 	}
 	return s
 }
@@ -349,10 +347,14 @@ func (p *parser) wantQuote(lpos Position, tok Token) {
 	}
 }
 
+func (p *parser) matchingErr(lpos Position, left Token) {
+	p.posErr(lpos, `reached %s without matching token %s with %s`,
+		p.tok, left, matching[left])
+}
+
 func (p *parser) wantMatched(lpos Position, left Token) {
-	right := matching[left]
-	if !p.got(right) {
-		p.posErr(lpos, `reached %s without matching token %s with %s`, p.tok, left, right)
+	if !p.got(matching[left]) {
+		p.matchingErr(lpos, left)
 	}
 }
 
