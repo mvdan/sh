@@ -15,13 +15,6 @@ func nodeFirstPos(ns []Node) Position {
 	return ns[0].Pos()
 }
 
-func stmtFirstPos(stmts []Stmt) Position {
-	if len(stmts) == 0 {
-		return Position{}
-	}
-	return stmts[0].Pos()
-}
-
 func wordFirstPos(ws []Word) Position {
 	if len(ws) == 0 {
 		return Position{}
@@ -34,7 +27,6 @@ type Prog struct {
 }
 
 func (p Prog) String() string { return stmtJoin(p.Stmts) }
-func (p Prog) Pos() Position  { return stmtFirstPos(p.Stmts) }
 
 type Node interface {
 	fmt.Stringer
