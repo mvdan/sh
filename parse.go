@@ -391,13 +391,14 @@ func (p *parser) program() (pr Prog) {
 func (p *parser) stmts(stmts *[]Stmt, stop ...Token) (count int) {
 	for p.tok != EOF && !p.peekAny(stop...) {
 		var s Stmt
-		if !p.gotStmt(&s) && p.tok != EOF {
+		got := p.gotStmt(&s)
+		if !got && p.tok != EOF {
 			if !p.peekAny(stop...) {
 				p.invalidStmtStart()
 			}
 			break
 		}
-		if s.Node != nil {
+		if got {
 			*stmts = append(*stmts, s)
 		}
 		count++
@@ -562,11 +563,12 @@ func (p *parser) gotStmt(s *Stmt) bool {
 		s.Node = p.caseStmt()
 	case p.peekAny(LIT, EXP, '"'):
 		s.Node = p.cmdOrFunc(addRedir)
-	default:
-		return false
 	}
 	for p.peekRedir() {
 		addRedir()
+	}
+	if s.Node == nil && len(s.Redirs) == 0 {
+		return false
 	}
 	if p.got(AND) {
 		s.Background = true

@@ -72,9 +72,14 @@ type Stmt struct {
 
 func (s Stmt) String() string {
 	var b bytes.Buffer
-	fmt.Fprint(&b, s.Node)
-	for _, redir := range s.Redirs {
-		fmt.Fprintf(&b, " %s", redir)
+	if s.Node != nil {
+		fmt.Fprint(&b, s.Node)
+	}
+	for i, redir := range s.Redirs {
+		if i > 0 || s.Node != nil {
+			fmt.Fprint(&b, " ")
+		}
+		fmt.Fprint(&b, redir)
 	}
 	if s.Background {
 		fmt.Fprintf(&b, " &")

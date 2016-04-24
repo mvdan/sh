@@ -288,6 +288,15 @@ var tests = []testCase{
 		},
 	},
 	{
+		[]string{`>a >\b`},
+		Stmt{
+			Redirs: []Redirect{
+				{Op: RDROUT, Word: litWord("a")},
+				{Op: RDROUT, Word: litWord(`\b`)},
+			},
+		},
+	},
+	{
 		[]string{"foo <<EOF\nbar\nEOF"},
 		Stmt{
 			Node: litCmd("foo"),
@@ -634,6 +643,7 @@ func setPos(t *testing.T, v interface{}, to Position, diff bool) Node {
 			setPos(t, pl.Stmts, to, diff)
 		}
 		return x
+	case nil:
 	default:
 		panic(v)
 	}
@@ -663,7 +673,7 @@ func TestNodePos(t *testing.T) {
 				t.Fatalf("Found unexpected position in %v", s)
 			}
 			n := s.Node
-			if n.Pos() != p {
+			if n != nil && n.Pos() != p {
 				t.Fatalf("Found unexpected position in %v", n)
 			}
 		}
