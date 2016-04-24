@@ -532,101 +532,101 @@ func wantedProg(v interface{}) (p Prog) {
 	return
 }
 
-func removePos(v interface{}) Node {
+func setPos(v interface{}, p Position) Node {
 	switch x := v.(type) {
 	case []Stmt:
 		for i := range x {
-			removePos(&x[i])
+			setPos(&x[i], p)
 		}
 	case *Stmt:
-		x.Position = Position{}
-		x.Node = removePos(x.Node)
+		x.Position = p
+		x.Node = setPos(x.Node, p)
 		for i := range x.Redirs {
-			removePos(&x.Redirs[i].N)
-			removePos(&x.Redirs[i].Word)
+			setPos(&x.Redirs[i].N, p)
+			setPos(&x.Redirs[i].Word, p)
 		}
 	case Command:
-		removePos(x.Args)
+		setPos(x.Args, p)
 		return x
 	case []Word:
 		for i := range x {
-			removePos(&x[i])
+			setPos(&x[i], p)
 		}
 	case *Word:
-		removePos(x.Parts)
+		setPos(x.Parts, p)
 	case []Node:
 		for i := range x {
-			x[i] = removePos(x[i])
+			x[i] = setPos(x[i], p)
 		}
 	case *Lit:
-		x.ValuePos = Position{}
+		x.ValuePos = p
 	case Lit:
-		x.ValuePos = Position{}
+		x.ValuePos = p
 		return x
 	case Subshell:
-		x.Lparen = Position{}
-		x.Rparen = Position{}
-		removePos(x.Stmts)
+		x.Lparen = p
+		x.Rparen = p
+		setPos(x.Stmts, p)
 		return x
 	case Block:
-		x.Lbrace = Position{}
-		x.Rbrace = Position{}
-		removePos(x.Stmts)
+		x.Lbrace = p
+		x.Rbrace = p
+		setPos(x.Stmts, p)
 		return x
 	case IfStmt:
-		x.If = Position{}
-		x.Fi = Position{}
-		removePos(&x.Cond)
-		removePos(x.ThenStmts)
+		x.If = p
+		x.Fi = p
+		setPos(&x.Cond, p)
+		setPos(x.ThenStmts, p)
 		for i := range x.Elifs {
-			removePos(&x.Elifs[i].Cond)
-			removePos(x.Elifs[i].ThenStmts)
+			setPos(&x.Elifs[i].Cond, p)
+			setPos(x.Elifs[i].ThenStmts, p)
 		}
-		removePos(x.ElseStmts)
+		setPos(x.ElseStmts, p)
 		return x
 	case WhileStmt:
-		x.While = Position{}
-		x.Done = Position{}
-		removePos(&x.Cond)
-		removePos(x.DoStmts)
+		x.While = p
+		x.Done = p
+		setPos(&x.Cond, p)
+		setPos(x.DoStmts, p)
 		return x
 	case ForStmt:
-		x.For = Position{}
-		x.Done = Position{}
-		removePos(&x.Name)
-		removePos(x.WordList)
-		removePos(x.DoStmts)
+		x.For = p
+		x.Done = p
+		setPos(&x.Name, p)
+		setPos(x.WordList, p)
+		setPos(x.DoStmts, p)
 		return x
 	case DblQuoted:
-		x.Quote = Position{}
-		removePos(x.Parts)
+		x.Quote = p
+		setPos(x.Parts, p)
 		return x
 	case BinaryExpr:
-		x.OpPos = Position{}
-		removePos(&x.X)
-		removePos(&x.Y)
+		x.OpPos = p
+		setPos(&x.X, p)
+		setPos(&x.Y, p)
 		return x
 	case FuncDecl:
-		removePos(&x.Name)
-		removePos(&x.Body)
+		setPos(&x.Name, p)
+		setPos(&x.Body, p)
 		return x
 	case ParamExp:
-		x.Exp = Position{}
+		x.Exp = p
 		return x
 	case ArithmExp:
-		x.Exp = Position{}
+		x.Exp = p
 		return x
 	case CmdSubst:
-		x.Exp = Position{}
-		removePos(x.Stmts)
+		x.Exp = p
+		setPos(x.Stmts, p)
 		return x
 	case CaseStmt:
-		x.Case = Position{}
-		x.Esac = Position{}
-		removePos(&x.Word)
+		x.Case = p
+		x.Esac = p
+		setPos(&x.Word, p)
 		for _, pl := range x.List {
-			removePos(pl.Patterns)
-			removePos(pl.Stmts)
+			setPos(pl.Patterns, p)
+			setPos(pl.Stmts, p)
 		}
 		return x
 	default:
@@ -638,13 +638,14 @@ func removePos(v interface{}) Node {
 func TestParseAST(t *testing.T) {
 	for _, c := range tests {
 		want := wantedProg(c.want)
+		setPos(want.Stmts, Position{})
 		for _, in := range c.ins {
 			r := strings.NewReader(in)
 			got, err := Parse(r, "")
 			if err != nil {
 				t.Fatalf("Unexpected error in %q: %v", in, err)
 			}
-			removePos(got.Stmts)
+			setPos(got.Stmts, Position{})
 			if !reflect.DeepEqual(got, want) {
 				t.Fatalf("AST mismatch in %q\nwant: %s\ngot:  %s\ndumps:\n%#v\n%#v",
 					in, want.String(), got.String(), want, got)
