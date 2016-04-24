@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-func lit(s string) Lit { return Lit{Val: s} }
+func lit(s string) Lit { return Lit{Value: s} }
 func lits(strs ...string) []Node {
 	l := make([]Node, len(strs))
 	for i, s := range strs {

@@ -223,11 +223,10 @@ func (w Word) Pos() Position  { return nodeFirstPos(w.Parts) }
 
 type Lit struct {
 	ValuePos Position
-
-	Val string
+	Value    string
 }
 
-func (l Lit) String() string { return l.Val }
+func (l Lit) String() string { return l.Value }
 func (l Lit) Pos() Position  { return l.ValuePos }
 
 type DblQuoted struct {

@@ -438,7 +438,7 @@ func (p *parser) gotWord(w *Word) bool {
 
 func (p *parser) gotLit(l *Lit) bool {
 	if p.got(LIT) {
-		l.Val = p.lval
+		l.Value = p.lval
 		return true
 	}
 	return false
@@ -451,7 +451,7 @@ func (p *parser) readParts(ns *[]Node) (count int) {
 		case p.quote == 0 && count > 0 && p.spaced:
 			return
 		case p.got(LIT):
-			n = Lit{Val: p.lval}
+			n = Lit{Value: p.lval}
 		case p.quote == 0 && p.peek('"'):
 			var dq DblQuoted
 			p.quote = '"'
@@ -597,13 +597,13 @@ func (p *parser) redirect() (r Redirect) {
 		var l Lit
 		lpos := p.pos
 		p.wantFollowLit(r.Op.String(), &l)
-		del := l.Val
+		del := l.Value
 		s, found := p.readUntilLine(del)
 		if !found {
 			p.closingErr(lpos, fmt.Sprintf(`heredoc %q`, del))
 		}
 		body := del + "\n" + s + del
-		r.Word = Word{Parts: []Node{Lit{Val: body}}}
+		r.Word = Word{Parts: []Node{Lit{Value: body}}}
 	default:
 		p.wantFollowWord(r.Op.String(), &r.Word)
 	}
@@ -735,7 +735,7 @@ func (p *parser) funcDecl(name string, pos Position) (fd FuncDecl) {
 	if !identRe.MatchString(name) {
 		p.posErr(pos, "invalid func name: %s", name)
 	}
-	fd.Name.Val = name
+	fd.Name.Value = name
 	p.wantFollowStmt(`"foo()"`, &fd.Body)
 	return
 }
