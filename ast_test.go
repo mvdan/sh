@@ -41,8 +41,12 @@ func litCmd(strs ...string) Command {
 	return Command{Args: litWords(strs...)}
 }
 
+func stmt(n Node) Stmt {
+	return Stmt{Node: n}
+}
+
 func litStmt(strs ...string) Stmt {
-	return Stmt{Node: litCmd(strs...)}
+	return stmt(litCmd(strs...))
 }
 
 func litStmts(strs ...string) []Stmt {
@@ -210,14 +214,14 @@ var tests = []struct {
 		[]string{"if a; then b; fi || while a; do b; done"},
 		BinaryExpr{
 			Op: LOR,
-			X: Stmt{Node: IfStmt{
+			X: stmt(IfStmt{
 				Cond:      litStmt("a"),
 				ThenStmts: litStmts("b"),
-			}},
-			Y: Stmt{Node: WhileStmt{
+			}),
+			Y: stmt(WhileStmt{
 				Cond:    litStmt("a"),
 				DoStmts: litStmts("b"),
-			}},
+			}),
 		},
 	},
 	{
@@ -225,11 +229,11 @@ var tests = []struct {
 		BinaryExpr{
 			Op: LAND,
 			X:  litStmt("foo"),
-			Y: Stmt{Node: BinaryExpr{
+			Y: stmt(BinaryExpr{
 				Op: LOR,
 				X:  litStmt("bar1"),
 				Y:  litStmt("bar2"),
-			}},
+			}),
 		},
 	},
 	{
@@ -245,11 +249,11 @@ var tests = []struct {
 		BinaryExpr{
 			Op: OR,
 			X:  litStmt("foo"),
-			Y: Stmt{Node: BinaryExpr{
+			Y: stmt(BinaryExpr{
 				Op: OR,
 				X:  litStmt("bar"),
 				Y:  litStmt("extra"),
-			}},
+			}),
 		},
 	},
 	{
@@ -260,7 +264,7 @@ var tests = []struct {
 		},
 		FuncDecl{
 			Name: lit("foo"),
-			Body: Stmt{Node: Block{Stmts: litStmts("a", "b")}},
+			Body: stmt(Block{Stmts: litStmts("a", "b")}),
 		},
 	},
 	{
@@ -486,10 +490,10 @@ var tests = []struct {
 		BinaryExpr{
 			Op: OR,
 			X:  litStmt("foo"),
-			Y: Stmt{Node: WhileStmt{
+			Y: stmt(WhileStmt{
 				Cond:    litStmt("read", "a"),
 				DoStmts: litStmts("b"),
-			}},
+			}),
 		},
 	},
 	{
@@ -533,10 +537,10 @@ func wantedProg(v interface{}) (p Prog) {
 		p.Stmts = append(p.Stmts, x)
 	case []Node:
 		for _, n := range x {
-			p.Stmts = append(p.Stmts, Stmt{Node: n})
+			p.Stmts = append(p.Stmts, stmt(n))
 		}
 	case Node:
-		p.Stmts = append(p.Stmts, Stmt{Node: x})
+		p.Stmts = append(p.Stmts, stmt(x))
 	}
 	return
 }
