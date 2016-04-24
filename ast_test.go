@@ -635,6 +635,26 @@ func setPos(v interface{}, p Position) Node {
 	return nil
 }
 
+func TestNodePos(t *testing.T) {
+	p := Position{
+		Line: 12,
+		Col:  34,
+	}
+	for _, c := range tests {
+		want := wantedProg(c.want)
+		setPos(want.Stmts, p)
+		for _, s := range want.Stmts {
+			if s.Pos() != p {
+				t.Fatalf("Found unexpected position in %v", s)
+			}
+			n := s.Node
+			if n.Pos() != p {
+				t.Fatalf("Found unexpected position in %v", n)
+			}
+		}
+	}
+}
+
 func TestParseAST(t *testing.T) {
 	for _, c := range tests {
 		want := wantedProg(c.want)
