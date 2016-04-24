@@ -8,11 +8,33 @@ import (
 	"fmt"
 )
 
+func nodeFirstPos(ns []Node) Position {
+	if len(ns) == 0 {
+		return Position{}
+	}
+	return ns[0].Pos()
+}
+
+func stmtFirstPos(stmts []Stmt) Position {
+	if len(stmts) == 0 {
+		return Position{}
+	}
+	return stmts[0].Pos()
+}
+
+func wordFirstPos(ws []Word) Position {
+	if len(ws) == 0 {
+		return Position{}
+	}
+	return ws[0].Pos()
+}
+
 type Prog struct {
 	Stmts []Stmt
 }
 
 func (p Prog) String() string { return stmtJoin(p.Stmts) }
+func (p Prog) Pos() Position  { return stmtFirstPos(p.Stmts) }
 
 type Node interface {
 	fmt.Stringer
@@ -88,10 +110,8 @@ type Command struct {
 	Args []Word
 }
 
-func (c Command) String() string {
-	return wordJoin(c.Args, " ")
-}
-func (c Command) Pos() Position { return c.Args[0].Pos() }
+func (c Command) String() string { return wordJoin(c.Args, " ") }
+func (c Command) Pos() Position  { return wordFirstPos(c.Args) }
 
 type Subshell struct {
 	Lparen, Rparen Position
@@ -99,10 +119,8 @@ type Subshell struct {
 	Stmts []Stmt
 }
 
-func (s Subshell) String() string {
-	return "(" + stmtJoin(s.Stmts) + ")"
-}
-func (s Subshell) Pos() Position { return s.Lparen }
+func (s Subshell) String() string { return "(" + stmtJoin(s.Stmts) + ")" }
+func (s Subshell) Pos() Position  { return s.Lparen }
 
 type Block struct {
 	Lbrace, Rbrace Position
@@ -110,10 +128,8 @@ type Block struct {
 	Stmts []Stmt
 }
 
-func (b Block) String() string {
-	return "{ " + stmtJoin(b.Stmts) + "; }"
-}
-func (b Block) Pos() Position { return b.Rbrace }
+func (b Block) String() string { return "{ " + stmtJoin(b.Stmts) + "; }" }
+func (b Block) Pos() Position  { return b.Rbrace }
 
 type IfStmt struct {
 	If, Fi Position
@@ -203,7 +219,7 @@ type Word struct {
 }
 
 func (w Word) String() string { return nodeJoin(w.Parts, "") }
-func (w Word) Pos() Position  { return w.Parts[0].Pos() }
+func (w Word) Pos() Position  { return nodeFirstPos(w.Parts) }
 
 type Lit struct {
 	ValuePos Position
@@ -220,10 +236,8 @@ type DblQuoted struct {
 	Parts []Node
 }
 
-func (q DblQuoted) String() string {
-	return `"` + nodeJoin(q.Parts, "") + `"`
-}
-func (q DblQuoted) Pos() Position { return q.Quote }
+func (q DblQuoted) String() string { return `"` + nodeJoin(q.Parts, "") + `"` }
+func (q DblQuoted) Pos() Position  { return q.Quote }
 
 type CmdSubst struct {
 	Exp Position
@@ -231,10 +245,8 @@ type CmdSubst struct {
 	Stmts []Stmt
 }
 
-func (c CmdSubst) String() string {
-	return "$(" + stmtJoin(c.Stmts) + ")"
-}
-func (c CmdSubst) Pos() Position { return c.Exp }
+func (c CmdSubst) String() string { return "$(" + stmtJoin(c.Stmts) + ")" }
+func (c CmdSubst) Pos() Position  { return c.Exp }
 
 type ParamExp struct {
 	Exp Position
@@ -257,10 +269,8 @@ type ArithmExp struct {
 	Text string
 }
 
-func (a ArithmExp) String() string {
-	return "$((" + a.Text + "))"
-}
-func (a ArithmExp) Pos() Position { return a.Exp }
+func (a ArithmExp) String() string { return "$((" + a.Text + "))" }
+func (a ArithmExp) Pos() Position  { return a.Exp }
 
 type CaseStmt struct {
 	Case, Esac Position
@@ -291,4 +301,4 @@ type PatternList struct {
 func (p PatternList) String() string {
 	return fmt.Sprintf("%s) %s", wordJoin(p.Patterns, " | "), stmtJoin(p.Stmts))
 }
-func (p PatternList) Pos() Position { return p.Patterns[0].Pos() }
+func (p PatternList) Pos() Position { return wordFirstPos(p.Patterns) }
