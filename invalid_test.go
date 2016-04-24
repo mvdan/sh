@@ -4,9 +4,30 @@
 package sh
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 )
+
+const badInputErr = "read: bad input"
+
+type badInput struct{}
+
+func (b badInput) Read(p []byte) (n int, err error) {
+	return 0, fmt.Errorf(badInputErr)
+}
+
+func TestReadErr(t *testing.T) {
+	var in badInput
+	_, err := Parse(in, "")
+	if err == nil {
+		t.Fatalf("Expected error with bad reader")
+	}
+	if err.Error() != badInputErr {
+		t.Fatalf("Error mismatch with bad reader:\nwant: %s\ngot:  %s",
+			badInputErr, err.Error())
+	}
+}
 
 func TestParseErr(t *testing.T) {
 	errs := []struct {
