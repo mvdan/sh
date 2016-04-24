@@ -37,6 +37,10 @@ func litCmd(strs ...string) Command {
 	return Command{Args: litWords(strs...)}
 }
 
+func litStmt(strs ...string) Stmt {
+	return Stmt{Node: litCmd(strs...)}
+}
+
 var tests = []struct {
 	ins  []string
 	want interface{}
@@ -70,15 +74,11 @@ var tests = []struct {
 	},
 	{
 		[]string{"(foo)", "(foo;)", "(\nfoo\n)"},
-		Subshell{Stmts: []Stmt{
-			{Node: litCmd("foo")},
-		}},
+		Subshell{Stmts: []Stmt{litStmt("foo")}},
 	},
 	{
 		[]string{"{ foo; }", "{foo;}", "{\nfoo\n}"},
-		Block{Stmts: []Stmt{
-			{Node: litCmd("foo")},
-		}},
+		Block{Stmts: []Stmt{litStmt("foo")}},
 	},
 	{
 		[]string{
@@ -86,10 +86,8 @@ var tests = []struct {
 			"if a\nthen\nb\nfi",
 		},
 		IfStmt{
-			Cond: Stmt{Node: litCmd("a")},
-			ThenStmts: []Stmt{
-				{Node: litCmd("b")},
-			},
+			Cond:      litStmt("a"),
+			ThenStmts: []Stmt{litStmt("b")},
 		},
 	},
 	{
@@ -98,13 +96,9 @@ var tests = []struct {
 			"if a\nthen b\nelse\nc\nfi",
 		},
 		IfStmt{
-			Cond: Stmt{Node: litCmd("a")},
-			ThenStmts: []Stmt{
-				{Node: litCmd("b")},
-			},
-			ElseStmts: []Stmt{
-				{Node: litCmd("c")},
-			},
+			Cond:      litStmt("a"),
+			ThenStmts: []Stmt{litStmt("b")},
+			ElseStmts: []Stmt{litStmt("c")},
 		},
 	},
 	{
@@ -113,32 +107,26 @@ var tests = []struct {
 			"if a\nthen a\nelif b\nthen b\nelif c\nthen c\nelse\nd\nfi",
 		},
 		IfStmt{
-			Cond: Stmt{Node: litCmd("a")},
-			ThenStmts: []Stmt{
-				{Node: litCmd("a")},
-			},
+			Cond:      litStmt("a"),
+			ThenStmts: []Stmt{litStmt("a")},
 			Elifs: []Elif{
-				{Cond: Stmt{Node: litCmd("b")},
-					ThenStmts: []Stmt{
-						{Node: litCmd("b")},
-					}},
-				{Cond: Stmt{Node: litCmd("c")},
-					ThenStmts: []Stmt{
-						{Node: litCmd("c")},
-					}},
+				{
+					Cond:      litStmt("b"),
+					ThenStmts: []Stmt{litStmt("b")},
+				},
+				{
+					Cond:      litStmt("c"),
+					ThenStmts: []Stmt{litStmt("c")},
+				},
 			},
-			ElseStmts: []Stmt{
-				{Node: litCmd("d")},
-			},
+			ElseStmts: []Stmt{litStmt("d")},
 		},
 	},
 	{
 		[]string{"while a; do b; done", "while a\ndo\nb\ndone"},
 		WhileStmt{
-			Cond: Stmt{Node: litCmd("a")},
-			DoStmts: []Stmt{
-				{Node: litCmd("b")},
-			},
+			Cond:    litStmt("a"),
+			DoStmts: []Stmt{litStmt("b")},
 		},
 	},
 	{
@@ -200,16 +188,16 @@ var tests = []struct {
 		[]string{"foo && bar", "foo&&bar", "foo &&\nbar"},
 		BinaryExpr{
 			Op: LAND,
-			X:  Stmt{Node: litCmd("foo")},
-			Y:  Stmt{Node: litCmd("bar")},
+			X:  litStmt("foo"),
+			Y:  litStmt("bar"),
 		},
 	},
 	{
 		[]string{"foo || bar", "foo||bar", "foo ||\nbar"},
 		BinaryExpr{
 			Op: LOR,
-			X:  Stmt{Node: litCmd("foo")},
-			Y:  Stmt{Node: litCmd("bar")},
+			X:  litStmt("foo"),
+			Y:  litStmt("bar"),
 		},
 	},
 	{
@@ -217,16 +205,12 @@ var tests = []struct {
 		BinaryExpr{
 			Op: LOR,
 			X: Stmt{Node: IfStmt{
-				Cond: Stmt{Node: litCmd("a")},
-				ThenStmts: []Stmt{
-					{Node: litCmd("b")},
-				},
+				Cond:      litStmt("a"),
+				ThenStmts: []Stmt{litStmt("b")},
 			}},
 			Y: Stmt{Node: WhileStmt{
-				Cond: Stmt{Node: litCmd("a")},
-				DoStmts: []Stmt{
-					{Node: litCmd("b")},
-				},
+				Cond:    litStmt("a"),
+				DoStmts: []Stmt{litStmt("b")},
 			}},
 		},
 	},
@@ -234,11 +218,11 @@ var tests = []struct {
 		[]string{"foo && bar1 || bar2"},
 		BinaryExpr{
 			Op: LAND,
-			X:  Stmt{Node: litCmd("foo")},
+			X:  litStmt("foo"),
 			Y: Stmt{Node: BinaryExpr{
 				Op: LOR,
-				X:  Stmt{Node: litCmd("bar1")},
-				Y:  Stmt{Node: litCmd("bar2")},
+				X:  litStmt("bar1"),
+				Y:  litStmt("bar2"),
 			}},
 		},
 	},
@@ -246,19 +230,19 @@ var tests = []struct {
 		[]string{"foo | bar", "foo|bar"},
 		BinaryExpr{
 			Op: OR,
-			X:  Stmt{Node: litCmd("foo")},
-			Y:  Stmt{Node: litCmd("bar")},
+			X:  litStmt("foo"),
+			Y:  litStmt("bar"),
 		},
 	},
 	{
 		[]string{"foo | bar | extra"},
 		BinaryExpr{
 			Op: OR,
-			X:  Stmt{Node: litCmd("foo")},
+			X:  litStmt("foo"),
 			Y: Stmt{Node: BinaryExpr{
 				Op: OR,
-				X:  Stmt{Node: litCmd("bar")},
-				Y:  Stmt{Node: litCmd("extra")},
+				X:  litStmt("bar"),
+				Y:  litStmt("extra"),
 			}},
 		},
 	},
@@ -271,8 +255,8 @@ var tests = []struct {
 		FuncDecl{
 			Name: lit("foo"),
 			Body: Stmt{Node: Block{Stmts: []Stmt{
-				{Node: litCmd("a")},
-				{Node: litCmd("b")},
+				litStmt("a"),
+				litStmt("b"),
 			}}},
 		},
 	},
@@ -336,11 +320,11 @@ var tests = []struct {
 		[]string{"a >f1; b >f2"},
 		[]Stmt{
 			{
-				Node: litCmd("a"),
+				Node:   litCmd("a"),
 				Redirs: []Redirect{{Op: RDROUT, Word: litWord("f1")}},
 			},
 			{
-				Node: litCmd("b"),
+				Node:   litCmd("b"),
 				Redirs: []Redirect{{Op: RDROUT, Word: litWord("f2")}},
 			},
 		},
@@ -356,9 +340,9 @@ var tests = []struct {
 		[]string{"if foo; then bar; fi >/dev/null &"},
 		Stmt{
 			Node: IfStmt{
-				Cond: Stmt{Node: litCmd("foo")},
+				Cond: litStmt("foo"),
 				ThenStmts: []Stmt{
-					{Node: litCmd("bar")},
+					litStmt("bar"),
 				},
 			},
 			Redirs: []Redirect{
@@ -377,7 +361,7 @@ var tests = []struct {
 			litWord("echo"),
 			{Parts: []Node{
 				CmdSubst{Stmts: []Stmt{
-					{Node: litCmd("foo", "bar")},
+					litStmt("foo", "bar"),
 				}},
 			}},
 		}},
@@ -390,8 +374,8 @@ var tests = []struct {
 				CmdSubst{Stmts: []Stmt{
 					{Node: BinaryExpr{
 						Op: OR,
-						X:  Stmt{Node: litCmd("foo")},
-						Y:  Stmt{Node: litCmd("bar")},
+						X:  litStmt("foo"),
+						Y:  litStmt("bar"),
 					}},
 				}},
 			}},
@@ -434,7 +418,7 @@ var tests = []struct {
 			{Parts: []Node{
 				DblQuoted{Parts: []Node{
 					CmdSubst{Stmts: []Stmt{
-						{Node: litCmd("foo")},
+						litStmt("foo"),
 					}},
 				}},
 			}},
@@ -479,7 +463,7 @@ var tests = []struct {
 			{Parts: []Node{
 				lit("foo"),
 				CmdSubst{Stmts: []Stmt{
-					{Node: litCmd("bar", "bar")},
+					litStmt("bar", "bar"),
 				}},
 			}},
 		}},
@@ -502,7 +486,7 @@ var tests = []struct {
 		[]string{"(foo); bar"},
 		[]Node{
 			Subshell{Stmts: []Stmt{
-				{Node: litCmd("foo")},
+				litStmt("foo"),
 			}},
 			litCmd("bar"),
 		},
@@ -530,13 +514,13 @@ var tests = []struct {
 				{
 					Patterns: litWords("1"),
 					Stmts: []Stmt{
-						{Node: litCmd("foo")},
+						litStmt("foo"),
 					},
 				},
 				{
 					Patterns: litWords("2", "3*"),
 					Stmts: []Stmt{
-						{Node: litCmd("bar")},
+						litStmt("bar"),
 					},
 				},
 			},
@@ -546,11 +530,11 @@ var tests = []struct {
 		[]string{"foo | while read a; do b; done"},
 		BinaryExpr{
 			Op: OR,
-			X:  Stmt{Node: litCmd("foo")},
+			X:  litStmt("foo"),
 			Y: Stmt{Node: WhileStmt{
-				Cond: Stmt{Node: litCmd("read", "a")},
+				Cond: litStmt("read", "a"),
 				DoStmts: []Stmt{
-					{Node: litCmd("b")},
+					litStmt("b"),
 				},
 			}},
 		},
@@ -558,12 +542,12 @@ var tests = []struct {
 	{
 		[]string{"while read l; do foo || bar; done"},
 		WhileStmt{
-			Cond: Stmt{Node: litCmd("read", "l")},
+			Cond: litStmt("read", "l"),
 			DoStmts: []Stmt{
 				{Node: BinaryExpr{
 					Op: LOR,
-					X:  Stmt{Node: litCmd("foo")},
-					Y:  Stmt{Node: litCmd("bar")},
+					X:  litStmt("foo"),
+					Y:  litStmt("bar"),
 				}},
 			},
 		},
