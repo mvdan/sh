@@ -8,16 +8,18 @@ import (
 	"fmt"
 )
 
+var defaultPos = Position{}
+
 func nodeFirstPos(ns []Node) Position {
 	if len(ns) == 0 {
-		return Position{}
+		return defaultPos
 	}
 	return ns[0].Pos()
 }
 
 func wordFirstPos(ws []Word) Position {
 	if len(ws) == 0 {
-		return Position{}
+		return defaultPos
 	}
 	return ws[0].Pos()
 }

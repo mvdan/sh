@@ -645,7 +645,14 @@ func TestNodePos(t *testing.T) {
 		Line: 12,
 		Col:  34,
 	}
-	for _, c := range tests {
+	defaultPos = p
+	extra := []testCase{
+		{nil, Command{Args: nil}},
+		{nil, Command{Args: []Word{
+			{Parts: nil},
+		}}},
+	}
+	for _, c := range append(tests, extra...) {
 		want := fullProg(c.ast)
 		setPos(t, want.Stmts, p, true)
 		for _, s := range want.Stmts {
