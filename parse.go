@@ -132,6 +132,7 @@ func (p *parser) next() {
 	p.lpos = p.pos
 	var r rune
 	p.spaced = false
+	p.pos = p.npos
 	for {
 		var err error
 		if r, err = p.readRune(); err != nil {
@@ -140,10 +141,9 @@ func (p *parser) next() {
 		if p.quote != 0 || !space[r] {
 			break
 		}
+		p.pos = p.npos
 		p.spaced = true
 	}
-	p.pos = p.npos
-	p.pos.Col--
 	switch {
 	case r == '\\' && p.readOnly('\n'):
 		p.next()
