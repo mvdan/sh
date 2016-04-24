@@ -401,6 +401,13 @@ var tests = []testCase{
 		}},
 	},
 	{
+		[]string{`echo "(foo)"`},
+		Command{Args: []Word{
+			litWord("echo"),
+			word(dblQuoted(lit("(foo)"))),
+		}},
+	},
+	{
 		[]string{`echo "$(foo)"`},
 		Command{Args: []Word{
 			litWord("echo"),

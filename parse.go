@@ -44,6 +44,9 @@ type parser struct {
 	lpos, pos, npos Position
 
 	stops [][]Token
+
+	// to not include ')' in a literal
+	quotedCmdSubst bool
 }
 
 type Position struct {
@@ -154,7 +157,7 @@ func (p *parser) next() {
 			switch {
 			case r == '"', r == '$':
 			case p.tok == EXP:
-			case r == ')' && p.quote == '"':
+			case r == ')' && p.quotedCmdSubst:
 			default:
 				p.advanceLit(p.readLit(r))
 				return
@@ -182,7 +185,7 @@ func (p *parser) readLitRunes(r rune) (rs []rune) {
 			p.unreadRune()
 			return
 		case p.quote == '"':
-			if r == p.quote || (p.quote == '"' && r == ')') {
+			if r == p.quote || (p.quotedCmdSubst && r == ')') {
 				p.unreadRune()
 				return
 			}
@@ -484,9 +487,11 @@ func (p *parser) exp() Node {
 		}
 	case p.peek(LPAREN):
 		var cs CmdSubst
+		p.quotedCmdSubst = p.quote == '"'
 		p.next()
 		cs.Exp = p.lpos
 		p.stmtsLimited(&cs.Stmts, RPAREN)
+		p.quotedCmdSubst = false
 		p.wantMatched(cs.Exp, LPAREN)
 		return cs
 	default:
