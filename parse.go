@@ -261,6 +261,18 @@ func (p *parser) readLine() string {
 	return s
 }
 
+func (p *parser) readUntilLine(s string) (string, bool) {
+	var b bytes.Buffer
+	for p.tok != EOF {
+		l := p.readLine()
+		if l == s {
+			return b.String(), true
+		}
+		fmt.Fprintln(&b, l)
+	}
+	return b.String(), false
+}
+
 func (p *parser) peek(tok Token) bool {
 	return p.tok == tok || (p.tok == LIT && p.val == tokNames[tok])
 }
@@ -580,19 +592,14 @@ func (p *parser) redirect() (r Redirect) {
 		var l Lit
 		lpos := p.pos
 		p.wantFollowLit(r.Op.String(), &l)
-		b := bytes.NewBufferString(l.Val)
-		for {
-			s := p.readLine()
-			fmt.Fprintf(b, "\n%s", s)
-			if s == l.Val {
-				break
-			}
-			if p.tok == EOF {
-				p.posErr(lpos, `reached %s without closing heredoc "%s"`, p.tok, l.Val)
-				break
-			}
+		del := l.Val
+		s, found := p.readUntilLine(del)
+		if !found {
+			p.posErr(lpos, `reached %s without closing heredoc "%s"`,
+				p.tok, del)
 		}
-		r.Word = Word{Parts: []Node{Lit{Val: b.String()}}}
+		body := del + "\n" + s + del
+		r.Word = Word{Parts: []Node{Lit{Val: body}}}
 	default:
 		p.wantFollowWord(r.Op.String(), &r.Word)
 	}
