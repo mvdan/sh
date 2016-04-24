@@ -520,7 +520,7 @@ func (p *parser) peekStop() bool {
 }
 
 func (p *parser) peekRedir() bool {
-	// Can this be done in a way that doesn't involve reading past
+	// Can this be done in a way that doesn't involve peeking past
 	// the current token?
 	if p.peek(LIT) && (p.peekByte('>') || p.peekByte('<')) {
 		return true
