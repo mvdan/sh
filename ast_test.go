@@ -9,8 +9,20 @@ import (
 	"testing"
 )
 
-func litWord(val string) Word {
-	return Word{Parts: []Node{Lit{Val: val}}}
+func lit(s string) Lit {
+	return Lit{Val: s}
+}
+
+func lits(strs ...string) []Node {
+	lits := make([]Node, len(strs))
+	for i, s := range strs {
+		lits[i] = lit(s)
+	}
+	return lits
+}
+
+func litWord(s string) Word {
+	return Word{Parts: lits(s)}
 }
 
 func litWords(strs ...string) []Word {
@@ -135,7 +147,7 @@ var tests = []struct {
 			"for i in 1 2 3\ndo echo $i\ndone",
 		},
 		ForStmt{
-			Name:     Lit{Val: "i"},
+			Name:     lit("i"),
 			WordList: litWords("1", "2", "3"),
 			DoStmts: []Stmt{
 				{Node: Command{Args: []Word{
@@ -153,7 +165,7 @@ var tests = []struct {
 			litWord("echo"),
 			litWord("' '"),
 			{Parts: []Node{
-				DblQuoted{Parts: []Node{Lit{Val: "foo bar"}}},
+				DblQuoted{Parts: lits("foo bar")},
 			}},
 		}},
 	},
@@ -161,7 +173,7 @@ var tests = []struct {
 		[]string{`"foo \" bar"`},
 		Command{Args: []Word{
 			{Parts: []Node{
-				DblQuoted{Parts: []Node{Lit{Val: `foo \" bar`}}},
+				DblQuoted{Parts: lits(`foo \" bar`)},
 			}},
 		}},
 	},
@@ -169,10 +181,10 @@ var tests = []struct {
 		[]string{"\">foo\" \"\nbar\""},
 		Command{Args: []Word{
 			{Parts: []Node{
-				DblQuoted{Parts: []Node{Lit{Val: ">foo"}}},
+				DblQuoted{Parts: lits(">foo")},
 			}},
 			{Parts: []Node{
-				DblQuoted{Parts: []Node{Lit{Val: "\nbar"}}},
+				DblQuoted{Parts: lits("\nbar")},
 			}},
 		}},
 	},
@@ -257,7 +269,7 @@ var tests = []struct {
 			"foo ( ) {\na\nb\n}",
 		},
 		FuncDecl{
-			Name: Lit{Val: "foo"},
+			Name: lit("foo"),
 			Body: Stmt{Node: Block{Stmts: []Stmt{
 				{Node: litCmd("a")},
 				{Node: litCmd("b")},
@@ -326,7 +338,7 @@ var tests = []struct {
 			Redirs: []Redirect{
 				{Op: DPLOUT, Word: litWord("2")},
 				{Op: DPLIN, Word: litWord("0")},
-				{Op: RDROUT, N: Lit{Val: "2"}, Word: litWord("file")},
+				{Op: RDROUT, N: lit("2"), Word: litWord("file")},
 			},
 		},
 	},
@@ -465,7 +477,7 @@ var tests = []struct {
 		Command{Args: []Word{
 			litWord("echo"),
 			{Parts: []Node{
-				Lit{Val: "foo"},
+				lit("foo"),
 				ParamExp{Short: true, Text: "bar"},
 			}},
 		}},
@@ -475,7 +487,7 @@ var tests = []struct {
 		Command{Args: []Word{
 			litWord("echo"),
 			{Parts: []Node{
-				Lit{Val: "foo"},
+				lit("foo"),
 				CmdSubst{Stmts: []Stmt{
 					{Node: litCmd("bar", "bar")},
 				}},
@@ -487,7 +499,7 @@ var tests = []struct {
 		Command{Args: []Word{
 			litWord("echo"),
 			{Parts: []Node{
-				Lit{Val: "foo"},
+				lit("foo"),
 				ParamExp{Text: "bar bar"},
 			}},
 		}},
@@ -509,8 +521,8 @@ var tests = []struct {
 		[]string{"a=\"\nbar\""},
 		Command{Args: []Word{
 			{Parts: []Node{
-				Lit{Val: "a="},
-				DblQuoted{Parts: []Node{Lit{Val: "\nbar"}}},
+				lit("a="),
+				DblQuoted{Parts: lits("\nbar")},
 			}},
 		}},
 	},
@@ -576,7 +588,7 @@ var tests = []struct {
 			litWord("echo"),
 			{Parts: []Node{
 				ParamExp{Text: "foo"},
-				Lit{Val: "if"},
+				lit("if"),
 			}},
 		}},
 	},
