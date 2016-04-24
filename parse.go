@@ -230,17 +230,18 @@ func (p *parser) advanceBoth(tok Token, val string) {
 	p.val = val
 }
 
-func (p *parser) readUntil(tok Token) (string, bool) {
-	var rs []rune
+func (p *parser) readUntil(closing Token) (string, bool) {
+	var b bytes.Buffer
 	for {
 		r, err := p.readRune()
 		if err != nil {
-			return string(rs), false
+			return b.String(), false
 		}
-		if tok == doToken(r, p.readOnly) {
-			return string(rs), true
+		tok := doToken(r, p.readOnly)
+		if tok == closing {
+			return b.String(), true
 		}
-		rs = append(rs, r)
+		fmt.Fprint(&b, tok)
 	}
 }
 
