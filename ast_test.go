@@ -32,7 +32,15 @@ func litCmd(strs ...string) Command {
 	return Command{Args: litWords(strs...)}
 }
 
-func stmt(n Node) Stmt            { return Stmt{Node: n} }
+func stmt(n Node) Stmt { return Stmt{Node: n} }
+func stmts(ns ...Node) []Stmt {
+	l := make([]Stmt, len(ns))
+	for i, n := range ns {
+		l[i] = stmt(n)
+	}
+	return l
+}
+
 func litStmt(strs ...string) Stmt { return stmt(litCmd(strs...)) }
 func litStmts(strs ...string) []Stmt {
 	l := make([]Stmt, len(strs))
@@ -140,12 +148,10 @@ var tests = []struct {
 		ForStmt{
 			Name:     lit("i"),
 			WordList: litWords("1", "2", "3"),
-			DoStmts: []Stmt{
-				{Node: Command{Args: []Word{
-					litWord("echo"),
-					word(ParamExp{Short: true, Text: "i"}),
-				}}},
-			},
+			DoStmts: stmts(Command{Args: []Word{
+				litWord("echo"),
+				word(ParamExp{Short: true, Text: "i"}),
+			}}),
 		},
 	},
 	{
@@ -347,20 +353,22 @@ var tests = []struct {
 		[]string{"echo $(foo bar)"},
 		Command{Args: []Word{
 			litWord("echo"),
-			word(CmdSubst{Stmts: []Stmt{litStmt("foo", "bar")}}),
+			word(CmdSubst{
+				Stmts: []Stmt{litStmt("foo", "bar")},
+			}),
 		}},
 	},
 	{
 		[]string{"echo $(foo | bar)"},
 		Command{Args: []Word{
 			litWord("echo"),
-			word(CmdSubst{Stmts: []Stmt{
-				{Node: BinaryExpr{
+			word(CmdSubst{
+				Stmts: stmts(BinaryExpr{
 					Op: OR,
 					X:  litStmt("foo"),
 					Y:  litStmt("bar"),
-				}},
-			}}),
+				}),
+			}),
 		}},
 	},
 	{
@@ -389,7 +397,9 @@ var tests = []struct {
 		[]string{`echo "$(foo)"`},
 		Command{Args: []Word{
 			litWord("echo"),
-			word(dblQuoted(CmdSubst{Stmts: litStmts("foo")})),
+			word(dblQuoted(CmdSubst{
+				Stmts: litStmts("foo"),
+			})),
 		}},
 	},
 	{
@@ -483,13 +493,11 @@ var tests = []struct {
 		[]string{"while read l; do foo || bar; done"},
 		WhileStmt{
 			Cond: litStmt("read", "l"),
-			DoStmts: []Stmt{
-				{Node: BinaryExpr{
-					Op: LOR,
-					X:  litStmt("foo"),
-					Y:  litStmt("bar"),
-				}},
-			},
+			DoStmts: stmts(BinaryExpr{
+				Op: LOR,
+				X:  litStmt("foo"),
+				Y:  litStmt("bar"),
+			}),
 		},
 	},
 	{
