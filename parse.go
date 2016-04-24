@@ -451,7 +451,10 @@ func (p *parser) readParts(ns *[]Node) (count int) {
 		case p.quote == 0 && count > 0 && p.spaced:
 			return
 		case p.got(LIT):
-			n = Lit{Value: p.lval}
+			n = Lit{
+				ValuePos: p.lpos,
+				Value:    p.lval,
+			}
 		case p.quote == 0 && p.peek('"'):
 			var dq DblQuoted
 			p.quote = '"'
@@ -475,21 +478,31 @@ func (p *parser) readParts(ns *[]Node) (count int) {
 func (p *parser) exp() Node {
 	switch {
 	case p.peek(LBRACE):
-		return ParamExp{Text: p.readUntilMatched(LBRACE)}
+		return ParamExp{
+			Exp:  p.pos,
+			Text: p.readUntilMatched(LBRACE),
+		}
 	case p.peek(DLPAREN):
-		return ArithmExp{Text: p.readUntilMatched(DLPAREN)}
+		return ArithmExp{
+			Exp:  p.pos,
+			Text: p.readUntilMatched(DLPAREN),
+		}
 	case p.peek(LPAREN):
 		var cs CmdSubst
 		p.quotedCmdSubst = p.quote == '"'
 		p.next()
-		lpos := p.lpos
+		cs.Exp = p.lpos
 		p.stmtsLimited(&cs.Stmts, RPAREN)
 		p.quotedCmdSubst = false
-		p.wantMatched(lpos, LPAREN)
+		p.wantMatched(cs.Exp, LPAREN)
 		return cs
 	default:
 		p.next()
-		return ParamExp{Short: true, Text: p.lval}
+		return ParamExp{
+			Exp:   p.lpos,
+			Short: true,
+			Text:  p.lval,
+		}
 	}
 }
 
@@ -603,7 +616,10 @@ func (p *parser) redirect() (r Redirect) {
 			p.closingErr(lpos, fmt.Sprintf(`heredoc %q`, del))
 		}
 		body := del + "\n" + s + del
-		r.Word = Word{Parts: []Node{Lit{Value: body}}}
+		r.Word = Word{Parts: []Node{Lit{
+			ValuePos: lpos,
+			Value:    body,
+		}}}
 	default:
 		p.wantFollowWord(r.Op.String(), &r.Word)
 	}

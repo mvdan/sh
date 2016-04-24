@@ -532,6 +532,93 @@ func wantedProg(v interface{}) (p Prog) {
 	return
 }
 
+func removePos(v interface{}) Node {
+	switch x := v.(type) {
+	case []Stmt:
+		for i := range x {
+			removePos(&x[i])
+		}
+	case *Stmt:
+		x.Position = Position{}
+		removePos(x.Node)
+		for i := range x.Redirs {
+			removePos(&x.Redirs[i])
+		}
+	case Command:
+		removePos(x.Args)
+	case []Word:
+		for i := range x {
+			removePos(&x[i])
+		}
+	case *Word:
+		removePos(x.Parts)
+	case []Node:
+		for i := range x {
+			if n := removePos(x[i]); n != nil {
+				x[i] = n
+			}
+		}
+	case *Lit:
+		x.ValuePos = Position{}
+	case Lit:
+		x.ValuePos = Position{}
+		return x
+	case Subshell:
+		removePos(x.Stmts)
+	case Block:
+		removePos(x.Stmts)
+	case IfStmt:
+		removePos(&x.Cond)
+		removePos(x.ThenStmts)
+		removePos(x.Elifs)
+		removePos(x.ElseStmts)
+	case []Elif:
+		for i := range x {
+			removePos(&x[i])
+		}
+	case *Elif:
+		removePos(&x.Cond)
+		removePos(x.ThenStmts)
+	case WhileStmt:
+		removePos(&x.Cond)
+		removePos(x.DoStmts)
+	case ForStmt:
+		removePos(&x.Name)
+		removePos(x.WordList)
+		removePos(x.DoStmts)
+	case DblQuoted:
+		removePos(x.Parts)
+	case BinaryExpr:
+		removePos(&x.X)
+		removePos(&x.Y)
+	case FuncDecl:
+		removePos(&x.Name)
+		removePos(&x.Body)
+	case *Redirect:
+		removePos(&x.N)
+		removePos(&x.Word)
+	case ParamExp:
+		x.Exp = Position{}
+		return x
+	case ArithmExp:
+		x.Exp = Position{}
+		return x
+	case CmdSubst:
+		x.Exp = Position{}
+		removePos(x.Stmts)
+		return x
+	case CaseStmt:
+		removePos(&x.Word)
+		for i := range x.List {
+			removePos(&x.List[i])
+		}
+	case *PatternList:
+		removePos(x.Patterns)
+		removePos(x.Stmts)
+	}
+	return nil
+}
+
 func TestParseAST(t *testing.T) {
 	for _, c := range tests {
 		want := wantedProg(c.want)
@@ -541,6 +628,7 @@ func TestParseAST(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Unexpected error in %q: %v", in, err)
 			}
+			removePos(got.Stmts)
 			if !reflect.DeepEqual(got, want) {
 				t.Fatalf("AST mismatch in %q\nwant: %s\ngot:  %s\ndumps:\n%#v\n%#v",
 					in, want.String(), got.String(), want, got)
