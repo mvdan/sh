@@ -554,9 +554,7 @@ func removePos(v interface{}) Node {
 		removePos(x.Parts)
 	case []Node:
 		for i := range x {
-			if n := removePos(x[i]); n != nil {
-				x[i] = n
-			}
+			x[i] = removePos(x[i])
 		}
 	case *Lit:
 		x.ValuePos = Position{}
@@ -588,6 +586,7 @@ func removePos(v interface{}) Node {
 		removePos(x.DoStmts)
 	case DblQuoted:
 		removePos(x.Parts)
+		return x
 	case BinaryExpr:
 		removePos(&x.X)
 		removePos(&x.Y)
