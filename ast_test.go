@@ -283,9 +283,7 @@ var tests = []struct {
 			">a >>b foo <c",
 		},
 		Stmt{
-			Node: Command{
-				Args: []Word{litWord("foo")},
-			},
+			Node: litCmd("foo"),
 			Redirs: []Redirect{
 				{Op: RDROUT, Word: litWord("a")},
 				{Op: APPEND, Word: litWord("b")},
@@ -299,9 +297,7 @@ var tests = []struct {
 			"foo >a bar",
 		},
 		Stmt{
-			Node: Command{
-				Args: litWords("foo", "bar"),
-			},
+			Node: litCmd("foo", "bar"),
 			Redirs: []Redirect{
 				{Op: RDROUT, Word: litWord("a")},
 			},
@@ -310,9 +306,7 @@ var tests = []struct {
 	{
 		[]string{"foo <<EOF\nbar\nEOF"},
 		Stmt{
-			Node: Command{
-				Args: []Word{litWord("foo")},
-			},
+			Node: litCmd("foo"),
 			Redirs: []Redirect{
 				{Op: HEREDOC, Word: litWord("EOF\nbar\nEOF")},
 			},
@@ -321,9 +315,7 @@ var tests = []struct {
 	{
 		[]string{"foo <<FOOBAR\nbar\nFOOBAR"},
 		Stmt{
-			Node: Command{
-				Args: []Word{litWord("foo")},
-			},
+			Node: litCmd("foo"),
 			Redirs: []Redirect{
 				{Op: HEREDOC, Word: litWord("FOOBAR\nbar\nFOOBAR")},
 			},
@@ -332,9 +324,7 @@ var tests = []struct {
 	{
 		[]string{"foo >&2 <&0 2>file"},
 		Stmt{
-			Node: Command{
-				Args: []Word{litWord("foo")},
-			},
+			Node: litCmd("foo"),
 			Redirs: []Redirect{
 				{Op: DPLOUT, Word: litWord("2")},
 				{Op: DPLIN, Word: litWord("0")},
@@ -346,11 +336,11 @@ var tests = []struct {
 		[]string{"a >f1; b >f2"},
 		[]Stmt{
 			{
-				Node: Command{Args: []Word{litWord("a")}},
+				Node: litCmd("a"),
 				Redirs: []Redirect{{Op: RDROUT, Word: litWord("f1")}},
 			},
 			{
-				Node: Command{Args: []Word{litWord("b")}},
+				Node: litCmd("b"),
 				Redirs: []Redirect{{Op: RDROUT, Word: litWord("f2")}},
 			},
 		},
