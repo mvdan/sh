@@ -540,12 +540,13 @@ func removePos(v interface{}) Node {
 		}
 	case *Stmt:
 		x.Position = Position{}
-		removePos(x.Node)
+		x.Node = removePos(x.Node)
 		for i := range x.Redirs {
 			removePos(&x.Redirs[i])
 		}
 	case Command:
 		removePos(x.Args)
+		return x
 	case []Word:
 		for i := range x {
 			removePos(&x[i])
@@ -562,14 +563,21 @@ func removePos(v interface{}) Node {
 		x.ValuePos = Position{}
 		return x
 	case Subshell:
+		x.Lparen = Position{}
+		x.Rparen = Position{}
 		removePos(x.Stmts)
+		return x
 	case Block:
+		x.Lbrace = Position{}
+		x.Rbrace = Position{}
 		removePos(x.Stmts)
+		return x
 	case IfStmt:
 		removePos(&x.Cond)
 		removePos(x.ThenStmts)
 		removePos(x.Elifs)
 		removePos(x.ElseStmts)
+		return x
 	case []Elif:
 		for i := range x {
 			removePos(&x[i])
@@ -580,19 +588,23 @@ func removePos(v interface{}) Node {
 	case WhileStmt:
 		removePos(&x.Cond)
 		removePos(x.DoStmts)
+		return x
 	case ForStmt:
 		removePos(&x.Name)
 		removePos(x.WordList)
 		removePos(x.DoStmts)
+		return x
 	case DblQuoted:
 		removePos(x.Parts)
 		return x
 	case BinaryExpr:
 		removePos(&x.X)
 		removePos(&x.Y)
+		return x
 	case FuncDecl:
 		removePos(&x.Name)
 		removePos(&x.Body)
+		return x
 	case *Redirect:
 		removePos(&x.N)
 		removePos(&x.Word)
@@ -611,6 +623,7 @@ func removePos(v interface{}) Node {
 		for i := range x.List {
 			removePos(&x.List[i])
 		}
+		return x
 	case *PatternList:
 		removePos(x.Patterns)
 		removePos(x.Stmts)
