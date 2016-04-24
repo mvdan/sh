@@ -16,8 +16,8 @@ func Parse(r io.Reader, name string) (Prog, error) {
 		r:    bufio.NewReader(r),
 		name: name,
 		npos: Position{
-			line: 1,
-			col:  1,
+			Line: 1,
+			Col:  1,
 		},
 		stops: [][]Token{nil},
 	}
@@ -54,8 +54,8 @@ type parser struct {
 }
 
 type Position struct {
-	line int
-	col  int
+	Line int
+	Col  int
 }
 
 func (p *parser) readRune() (rune, error) {
@@ -75,10 +75,10 @@ func (p *parser) readRune() (rune, error) {
 func (p *parser) moveWith(r rune) {
 	p.bpos = p.npos
 	if r == '\n' {
-		p.npos.line++
-		p.npos.col = 1
+		p.npos.Line++
+		p.npos.Col = 1
 	} else {
-		p.npos.col++
+		p.npos.Col++
 	}
 }
 
@@ -150,7 +150,7 @@ func (p *parser) next() {
 		p.spaced = true
 	}
 	p.pos = p.npos
-	p.pos.col--
+	p.pos.Col--
 	switch {
 	case r == '\\' && p.readOnly('\n'):
 		p.next()
@@ -200,7 +200,7 @@ func (p *parser) readLitRunes(r rune) (rs []rune) {
 		case r == '\'':
 			p.quote = '\''
 			lpos = p.npos
-			lpos.col--
+			lpos.Col--
 		case reserved[r], space[r]: // end of lit
 			p.unreadRune()
 			return
@@ -372,7 +372,7 @@ type lineErr struct {
 }
 
 func (e lineErr) Error() string {
-	return fmt.Sprintf("%s:%d:%d: %s", e.fname, e.pos.line, e.pos.col, e.text)
+	return fmt.Sprintf("%s:%d:%d: %s", e.fname, e.pos.Line, e.pos.Col, e.text)
 }
 
 func (p *parser) posErr(pos Position, format string, v ...interface{}) {
