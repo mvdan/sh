@@ -14,11 +14,11 @@ func lit(s string) Lit {
 }
 
 func lits(strs ...string) []Node {
-	lits := make([]Node, len(strs))
+	l := make([]Node, len(strs))
 	for i, s := range strs {
-		lits[i] = lit(s)
+		l[i] = lit(s)
 	}
-	return lits
+	return l
 }
 
 func litWord(s string) Word {
@@ -39,6 +39,14 @@ func litCmd(strs ...string) Command {
 
 func litStmt(strs ...string) Stmt {
 	return Stmt{Node: litCmd(strs...)}
+}
+
+func litStmts(strs ...string) []Stmt {
+	l := make([]Stmt, len(strs))
+	for i, s := range strs {
+		l[i] = litStmt(s)
+	}
+	return l
 }
 
 var tests = []struct {
@@ -74,11 +82,11 @@ var tests = []struct {
 	},
 	{
 		[]string{"(foo)", "(foo;)", "(\nfoo\n)"},
-		Subshell{Stmts: []Stmt{litStmt("foo")}},
+		Subshell{Stmts: litStmts("foo")},
 	},
 	{
 		[]string{"{ foo; }", "{foo;}", "{\nfoo\n}"},
-		Block{Stmts: []Stmt{litStmt("foo")}},
+		Block{Stmts: litStmts("foo")},
 	},
 	{
 		[]string{
@@ -87,7 +95,7 @@ var tests = []struct {
 		},
 		IfStmt{
 			Cond:      litStmt("a"),
-			ThenStmts: []Stmt{litStmt("b")},
+			ThenStmts: litStmts("b"),
 		},
 	},
 	{
@@ -97,8 +105,8 @@ var tests = []struct {
 		},
 		IfStmt{
 			Cond:      litStmt("a"),
-			ThenStmts: []Stmt{litStmt("b")},
-			ElseStmts: []Stmt{litStmt("c")},
+			ThenStmts: litStmts("b"),
+			ElseStmts: litStmts("c"),
 		},
 	},
 	{
@@ -108,25 +116,25 @@ var tests = []struct {
 		},
 		IfStmt{
 			Cond:      litStmt("a"),
-			ThenStmts: []Stmt{litStmt("a")},
+			ThenStmts: litStmts("a"),
 			Elifs: []Elif{
 				{
 					Cond:      litStmt("b"),
-					ThenStmts: []Stmt{litStmt("b")},
+					ThenStmts: litStmts("b"),
 				},
 				{
 					Cond:      litStmt("c"),
-					ThenStmts: []Stmt{litStmt("c")},
+					ThenStmts: litStmts("c"),
 				},
 			},
-			ElseStmts: []Stmt{litStmt("d")},
+			ElseStmts: litStmts("d"),
 		},
 	},
 	{
 		[]string{"while a; do b; done", "while a\ndo\nb\ndone"},
 		WhileStmt{
 			Cond:    litStmt("a"),
-			DoStmts: []Stmt{litStmt("b")},
+			DoStmts: litStmts("b"),
 		},
 	},
 	{
@@ -206,11 +214,11 @@ var tests = []struct {
 			Op: LOR,
 			X: Stmt{Node: IfStmt{
 				Cond:      litStmt("a"),
-				ThenStmts: []Stmt{litStmt("b")},
+				ThenStmts: litStmts("b"),
 			}},
 			Y: Stmt{Node: WhileStmt{
 				Cond:    litStmt("a"),
-				DoStmts: []Stmt{litStmt("b")},
+				DoStmts: litStmts("b"),
 			}},
 		},
 	},
@@ -254,10 +262,7 @@ var tests = []struct {
 		},
 		FuncDecl{
 			Name: lit("foo"),
-			Body: Stmt{Node: Block{Stmts: []Stmt{
-				litStmt("a"),
-				litStmt("b"),
-			}}},
+			Body: Stmt{Node: Block{Stmts: litStmts("a", "b")}},
 		},
 	},
 	{
@@ -340,10 +345,8 @@ var tests = []struct {
 		[]string{"if foo; then bar; fi >/dev/null &"},
 		Stmt{
 			Node: IfStmt{
-				Cond: litStmt("foo"),
-				ThenStmts: []Stmt{
-					litStmt("bar"),
-				},
+				Cond:      litStmt("foo"),
+				ThenStmts: litStmts("bar"),
 			},
 			Redirs: []Redirect{
 				{Op: RDROUT, Word: litWord("/dev/null")},
@@ -417,9 +420,7 @@ var tests = []struct {
 			litWord("echo"),
 			{Parts: []Node{
 				DblQuoted{Parts: []Node{
-					CmdSubst{Stmts: []Stmt{
-						litStmt("foo"),
-					}},
+					CmdSubst{Stmts: litStmts("foo")},
 				}},
 			}},
 		}},
@@ -457,14 +458,12 @@ var tests = []struct {
 		}},
 	},
 	{
-		[]string{"echo foo$(bar bar)"},
+		[]string{"echo foo$(bar)"},
 		Command{Args: []Word{
 			litWord("echo"),
 			{Parts: []Node{
 				lit("foo"),
-				CmdSubst{Stmts: []Stmt{
-					litStmt("bar", "bar"),
-				}},
+				CmdSubst{Stmts: litStmts("bar")},
 			}},
 		}},
 	},
@@ -485,9 +484,7 @@ var tests = []struct {
 	{
 		[]string{"(foo); bar"},
 		[]Node{
-			Subshell{Stmts: []Stmt{
-				litStmt("foo"),
-			}},
+			Subshell{Stmts: litStmts("foo")},
 			litCmd("bar"),
 		},
 	},
@@ -513,15 +510,11 @@ var tests = []struct {
 			List: []PatternList{
 				{
 					Patterns: litWords("1"),
-					Stmts: []Stmt{
-						litStmt("foo"),
-					},
+					Stmts:    litStmts("foo"),
 				},
 				{
 					Patterns: litWords("2", "3*"),
-					Stmts: []Stmt{
-						litStmt("bar"),
-					},
+					Stmts:    litStmts("bar"),
 				},
 			},
 		},
@@ -532,10 +525,8 @@ var tests = []struct {
 			Op: OR,
 			X:  litStmt("foo"),
 			Y: Stmt{Node: WhileStmt{
-				Cond: litStmt("read", "a"),
-				DoStmts: []Stmt{
-					litStmt("b"),
-				},
+				Cond:    litStmt("read", "a"),
+				DoStmts: litStmts("b"),
 			}},
 		},
 	},
