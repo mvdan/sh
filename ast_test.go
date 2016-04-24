@@ -54,10 +54,12 @@ func dblQuoted(ns ...Node) DblQuoted  { return DblQuoted{Parts: ns} }
 func block(stmts ...Stmt) Block       { return Block{Stmts: stmts} }
 func cmdSubst(stmts ...Stmt) CmdSubst { return CmdSubst{Stmts: stmts} }
 
-var tests = []struct {
-	ins  []string
-	want interface{}
-}{
+type testCase struct {
+	strs []string
+	ast  interface{}
+}
+
+var tests = []testCase{
 	{
 		[]string{"", " ", "\n", "# foo"},
 		nil,
@@ -511,7 +513,7 @@ var tests = []struct {
 	},
 }
 
-func wantedProg(v interface{}) (p Prog) {
+func fullProg(v interface{}) (p Prog) {
 	switch x := v.(type) {
 	case []Stmt:
 		p.Stmts = x
@@ -644,7 +646,7 @@ func TestNodePos(t *testing.T) {
 		Col:  34,
 	}
 	for _, c := range tests {
-		want := wantedProg(c.want)
+		want := fullProg(c.ast)
 		setPos(t, want.Stmts, p, true)
 		for _, s := range want.Stmts {
 			if s.Pos() != p {
@@ -660,9 +662,9 @@ func TestNodePos(t *testing.T) {
 
 func TestParseAST(t *testing.T) {
 	for _, c := range tests {
-		want := wantedProg(c.want)
+		want := fullProg(c.ast)
 		setPos(t, want.Stmts, Position{}, false)
-		for _, in := range c.ins {
+		for _, in := range c.strs {
 			r := strings.NewReader(in)
 			got, err := Parse(r, "")
 			if err != nil {
@@ -679,8 +681,8 @@ func TestParseAST(t *testing.T) {
 
 func TestPrintAST(t *testing.T) {
 	for _, c := range tests {
-		in := wantedProg(c.want)
-		want := c.ins[0]
+		in := fullProg(c.ast)
+		want := c.strs[0]
 		got := in.String()
 		if got != want {
 			t.Fatalf("AST print mismatch\nwant: %s\ngot:  %s",
