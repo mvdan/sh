@@ -551,6 +551,7 @@ func (p *parser) gotStmt(s *Stmt) bool {
 	addRedir := func() {
 		s.Redirs = append(s.Redirs, p.redirect())
 	}
+	s.Position = p.pos
 	for p.peekRedir() {
 		addRedir()
 	}
@@ -583,7 +584,10 @@ func (p *parser) gotStmt(s *Stmt) bool {
 	}
 	if p.gotAny(OR, LAND, LOR) {
 		left := *s
-		*s = Stmt{Node: p.binaryExpr(p.ltok, left)}
+		*s = Stmt{
+			Position: left.Position,
+			Node:     p.binaryExpr(p.ltok, left),
+		}
 	}
 	if p.peekEnd() {
 		if p.tok == '#' {
