@@ -187,8 +187,13 @@ type ForStmt struct {
 }
 
 func (f ForStmt) String() string {
-	return fmt.Sprintf("for %s in %s; do %s; done", f.Name,
-		wordJoin(f.WordList, " "), stmtJoin(f.DoStmts))
+	var b bytes.Buffer
+	fmt.Fprintf(&b, "for %s", f.Name)
+	if len(f.WordList) > 0 {
+		fmt.Fprintf(&b, " in %s", wordJoin(f.WordList, " "))
+	}
+	fmt.Fprintf(&b, "; do %s; done", stmtJoin(f.DoStmts))
+	return b.String()
 }
 func (f ForStmt) Pos() Position { return f.For }
 

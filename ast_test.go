@@ -157,8 +157,18 @@ var tests = []testCase{
 	},
 	{
 		[]string{
+			"for i; do foo; done",
+			"for i in; do foo; done",
+		},
+		ForStmt{
+			Name:    lit("i"),
+			DoStmts: litStmts("foo"),
+		},
+	},
+	{
+		[]string{
 			"for i in 1 2 3; do echo $i; done",
-			"for i in 1 2 3\ndo echo $i\ndone",
+			"for i\nin 1 2 3\ndo echo $i\ndone",
 		},
 		ForStmt{
 			Name:     lit("i"),
@@ -482,7 +492,7 @@ var tests = []testCase{
 		[]string{
 			"case $i in 1) foo;; 2 | 3*) bar; esac",
 			"case $i in 1) foo;; 2 | 3*) bar;; esac",
-			"case $i in\n1)\nfoo\n;;\n2 | 3*)\nbar\n;;\nesac",
+			"case $i\nin\n1)\nfoo\n;;\n2 | 3*)\nbar\n;;\nesac",
 		},
 		CaseStmt{
 			Word: word(ParamExp{Short: true, Text: "i"}),

@@ -691,9 +691,16 @@ func (p *parser) whileStmt() (ws WhileStmt) {
 func (p *parser) forStmt() (fs ForStmt) {
 	fs.For = p.lpos
 	p.wantFollowLit(`"for"`, &fs.Name)
-	p.wantFollow(`"for foo"`, IN)
-	p.wordList(&fs.WordList)
-	p.wantFollow(`"for foo in list"`, DO)
+	for p.got('\n') {
+	}
+	desc := `"for foo"`
+	if p.got(IN) {
+		p.wordList(&fs.WordList)
+		desc = `"for foo in list"`
+	} else {
+		p.gotAny(SEMICOLON, '\n')
+	}
+	p.wantFollow(desc, DO)
 	p.stmts(&fs.DoStmts, DONE)
 	p.wantStmtEnd("for", DONE)
 	fs.Done = p.lpos
@@ -703,6 +710,8 @@ func (p *parser) forStmt() (fs ForStmt) {
 func (p *parser) caseStmt() (cs CaseStmt) {
 	cs.Case = p.lpos
 	p.wantFollowWord(`"case"`, &cs.Word)
+	for p.got('\n') {
+	}
 	p.wantFollow(`"case x"`, IN)
 	if p.patLists(&cs.List) < 1 {
 		p.followErr(`"case x in"`, "one or more patterns")
