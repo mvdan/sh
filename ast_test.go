@@ -9,10 +9,7 @@ import (
 	"testing"
 )
 
-func lit(s string) Lit {
-	return Lit{Val: s}
-}
-
+func lit(s string) Lit { return Lit{Val: s} }
 func lits(strs ...string) []Node {
 	l := make([]Node, len(strs))
 	for i, s := range strs {
@@ -21,14 +18,8 @@ func lits(strs ...string) []Node {
 	return l
 }
 
-func word(ns ...Node) Word {
-	return Word{Parts: ns}
-}
-
-func litWord(s string) Word {
-	return word(lits(s)...)
-}
-
+func word(ns ...Node) Word  { return Word{Parts: ns} }
+func litWord(s string) Word { return word(lits(s)...) }
 func litWords(strs ...string) []Word {
 	l := make([]Word, 0, len(strs))
 	for _, s := range strs {
@@ -41,14 +32,8 @@ func litCmd(strs ...string) Command {
 	return Command{Args: litWords(strs...)}
 }
 
-func stmt(n Node) Stmt {
-	return Stmt{Node: n}
-}
-
-func litStmt(strs ...string) Stmt {
-	return stmt(litCmd(strs...))
-}
-
+func stmt(n Node) Stmt            { return Stmt{Node: n} }
+func litStmt(strs ...string) Stmt { return stmt(litCmd(strs...)) }
 func litStmts(strs ...string) []Stmt {
 	l := make([]Stmt, len(strs))
 	for i, s := range strs {
@@ -57,9 +42,7 @@ func litStmts(strs ...string) []Stmt {
 	return l
 }
 
-func dblQuoted(ns ...Node) DblQuoted {
-	return DblQuoted{Parts: ns}
-}
+func dblQuoted(ns ...Node) DblQuoted { return DblQuoted{Parts: ns} }
 
 var tests = []struct {
 	ins  []string
