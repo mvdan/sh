@@ -96,7 +96,6 @@ func (r Redirect) String() string {
 	fmt.Fprint(&b, r.Word)
 	return b.String()
 }
-func (r Redirect) Pos() Position { return r.OpPos }
 
 type Command struct {
 	Args []Word
@@ -156,7 +155,6 @@ type Elif struct {
 func (e Elif) String() string {
 	return fmt.Sprintf("elif %s; then %s", e.Cond, stmtJoin(e.ThenStmts))
 }
-func (e Elif) Pos() Position { return e.Else }
 
 type WhileStmt struct {
 	While, Done Position
@@ -292,4 +290,3 @@ type PatternList struct {
 func (p PatternList) String() string {
 	return fmt.Sprintf("%s) %s", wordJoin(p.Patterns, " | "), stmtJoin(p.Stmts))
 }
-func (p PatternList) Pos() Position { return wordFirstPos(p.Patterns) }
