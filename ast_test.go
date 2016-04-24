@@ -683,7 +683,7 @@ func TestParseAST(t *testing.T) {
 			setPos(t, got.Stmts, Position{}, true)
 			if !reflect.DeepEqual(got, want) {
 				t.Fatalf("AST mismatch in %q\nwant: %s\ngot:  %s\ndumps:\n%#v\n%#v",
-					in, want.String(), got.String(), want, got)
+					in, want, got, want, got)
 			}
 		}
 	}
