@@ -13,8 +13,8 @@ import (
 
 func Parse(r io.Reader, name string) (Prog, error) {
 	p := &parser{
-		r:    bufio.NewReader(r),
-		name: name,
+		r:     bufio.NewReader(r),
+		fname: name,
 		npos: Position{
 			Line: 1,
 			Col:  1,
@@ -27,25 +27,21 @@ func Parse(r io.Reader, name string) (Prog, error) {
 }
 
 type parser struct {
-	r    *bufio.Reader
-	name string
+	r     *bufio.Reader
+	fname string
 
 	err error
 
 	spaced bool
 	quote  rune
 
-	ltok Token
-	tok  Token
-	lval string
-	val  string
+	ltok, tok Token
+	lval, val string
 
 	// backup position to unread a rune
 	bpos Position
 
-	lpos Position
-	pos  Position
-	npos Position
+	lpos, pos, npos Position
 
 	stops [][]Token
 
@@ -377,7 +373,7 @@ func (e lineErr) Error() string {
 
 func (p *parser) posErr(pos Position, format string, v ...interface{}) {
 	p.errPass(lineErr{
-		fname: p.name,
+		fname: p.fname,
 		pos:   pos,
 		text:  fmt.Sprintf(format, v...),
 	})
