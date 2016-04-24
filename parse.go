@@ -141,22 +141,21 @@ func (p *parser) next() {
 		if r, err = p.readRune(); err != nil {
 			return
 		}
+		if r == '\\' && p.readOnly('\n') {
+			continue
+		}
 		if p.quote != 0 || !space[r] {
 			break
 		}
 		p.pos = p.npos
 		p.spaced = true
 	}
-	switch {
-	case r == '\\' && p.readOnly('\n'):
-		p.next()
-	case reserved[r], starters[r]:
+	if reserved[r] || starters[r] {
 		// Between double quotes, only under certain
 		// circumstnaces do we tokenize
 		if p.quote == '"' {
 			switch {
-			case r == '"', r == '$':
-			case p.tok == EXP:
+			case r == '"', r == '$', p.tok == EXP:
 			case r == ')' && p.quotedCmdSubst:
 			default:
 				p.advanceReadLit()
@@ -164,7 +163,7 @@ func (p *parser) next() {
 			}
 		}
 		p.advanceTok(doToken(r, p.readOnly))
-	default:
+	} else {
 		p.advanceReadLit()
 	}
 }
