@@ -53,6 +53,10 @@ func litStmts(strs ...string) []Stmt {
 	return l
 }
 
+func dblQuoted(ns ...Node) DblQuoted {
+	return DblQuoted{Parts: ns}
+}
+
 var tests = []struct {
 	ins  []string
 	want interface{}
@@ -162,20 +166,20 @@ var tests = []struct {
 		Command{Args: []Word{
 			litWord("echo"),
 			litWord("' '"),
-			word(DblQuoted{Parts: lits("foo bar")}),
+			word(dblQuoted(lits("foo bar")...)),
 		}},
 	},
 	{
 		[]string{`"foo \" bar"`},
 		Command{Args: []Word{
-			word(DblQuoted{Parts: lits(`foo \" bar`)}),
+			word(dblQuoted(lits(`foo \" bar`)...)),
 		}},
 	},
 	{
 		[]string{"\">foo\" \"\nbar\""},
 		Command{Args: []Word{
-			word(DblQuoted{Parts: lits(">foo")}),
-			word(DblQuoted{Parts: lits("\nbar")}),
+			word(dblQuoted(lits(">foo")...)),
+			word(dblQuoted(lits("\nbar")...)),
 		}},
 	},
 	{
@@ -376,9 +380,7 @@ var tests = []struct {
 		[]string{`echo "$foo"`},
 		Command{Args: []Word{
 			litWord("echo"),
-			word(DblQuoted{Parts: []Node{
-				ParamExp{Short: true, Text: "foo"},
-			}}),
+			word(dblQuoted(ParamExp{Short: true, Text: "foo"})),
 		}},
 	},
 	{
@@ -393,16 +395,14 @@ var tests = []struct {
 		[]string{`echo "${foo}"`},
 		Command{Args: []Word{
 			litWord("echo"),
-			word(DblQuoted{Parts: []Node{ParamExp{Text: "foo"}}}),
+			word(dblQuoted(ParamExp{Text: "foo"})),
 		}},
 	},
 	{
 		[]string{`echo "$(foo)"`},
 		Command{Args: []Word{
 			litWord("echo"),
-			word(DblQuoted{Parts: []Node{
-				CmdSubst{Stmts: litStmts("foo")},
-			}}),
+			word(dblQuoted(CmdSubst{Stmts: litStmts("foo")})),
 		}},
 	},
 	{
@@ -458,7 +458,7 @@ var tests = []struct {
 	{
 		[]string{"a=\"\nbar\""},
 		Command{Args: []Word{
-			word(lit("a="), DblQuoted{Parts: lits("\nbar")}),
+			word(lit("a="), dblQuoted(lits("\nbar")...)),
 		}},
 	},
 	{
