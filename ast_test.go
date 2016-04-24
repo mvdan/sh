@@ -542,7 +542,8 @@ func removePos(v interface{}) Node {
 		x.Position = Position{}
 		x.Node = removePos(x.Node)
 		for i := range x.Redirs {
-			removePos(&x.Redirs[i])
+			removePos(&x.Redirs[i].N)
+			removePos(&x.Redirs[i].Word)
 		}
 	case Command:
 		removePos(x.Args)
@@ -580,11 +581,9 @@ func removePos(v interface{}) Node {
 		return x
 	case []Elif:
 		for i := range x {
-			removePos(&x[i])
+			removePos(&x[i].Cond)
+			removePos(x[i].ThenStmts)
 		}
-	case *Elif:
-		removePos(&x.Cond)
-		removePos(x.ThenStmts)
 	case WhileStmt:
 		removePos(&x.Cond)
 		removePos(x.DoStmts)
@@ -605,9 +604,6 @@ func removePos(v interface{}) Node {
 		removePos(&x.Name)
 		removePos(&x.Body)
 		return x
-	case *Redirect:
-		removePos(&x.N)
-		removePos(&x.Word)
 	case ParamExp:
 		x.Exp = Position{}
 		return x
@@ -620,13 +616,13 @@ func removePos(v interface{}) Node {
 		return x
 	case CaseStmt:
 		removePos(&x.Word)
-		for i := range x.List {
-			removePos(&x.List[i])
+		for _, pl := range x.List {
+			removePos(pl.Patterns)
+			removePos(pl.Stmts)
 		}
 		return x
-	case *PatternList:
-		removePos(x.Patterns)
-		removePos(x.Stmts)
+	default:
+		panic(v)
 	}
 	return nil
 }
