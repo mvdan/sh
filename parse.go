@@ -458,11 +458,11 @@ func (p *parser) readParts(ns *[]Node) (count int) {
 		case p.quote == 0 && p.peek('"'):
 			var dq DblQuoted
 			p.quote = '"'
+			dq.Quote = p.pos
 			p.next()
-			lpos := p.lpos
 			p.readParts(&dq.Parts)
 			p.quote = 0
-			p.wantQuote(lpos, '"')
+			p.wantQuote(dq.Quote, '"')
 			n = dq
 		case p.got(EXP):
 			n = p.exp()

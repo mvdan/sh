@@ -594,6 +594,7 @@ func removePos(v interface{}) Node {
 		removePos(x.DoStmts)
 		return x
 	case DblQuoted:
+		x.Quote = Position{}
 		removePos(x.Parts)
 		return x
 	case BinaryExpr:
