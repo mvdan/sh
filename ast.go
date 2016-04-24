@@ -47,11 +47,14 @@ func nodeJoin(ns []Node, sep string) string {
 }
 
 func stmtJoin(stmts []Stmt) string {
-	ns := make([]Node, len(stmts))
-	for i, stmt := range stmts {
-		ns[i] = stmt
+	var b bytes.Buffer
+	for i, s := range stmts {
+		if i > 0 {
+			fmt.Fprint(&b, "; ")
+		}
+		fmt.Fprint(&b, s)
 	}
-	return nodeJoin(ns, "; ")
+	return b.String()
 }
 
 func wordJoin(words []Word, sep string) string {
