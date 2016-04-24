@@ -352,16 +352,14 @@ var tests = []struct {
 		litCmd("echo", "foo#bar"),
 	},
 	{
-		[]string{"echo $(foo bar)"},
+		[]string{"$(foo bar)"},
 		Command{Args: []Word{
-			litWord("echo"),
 			word(cmdSubst(litStmt("foo", "bar"))),
 		}},
 	},
 	{
-		[]string{"echo $(foo | bar)"},
+		[]string{"$(foo | bar)"},
 		Command{Args: []Word{
-			litWord("echo"),
 			word(cmdSubst(stmt(BinaryExpr{
 				Op: OR,
 				X:  litStmt("foo"),
@@ -410,11 +408,8 @@ var tests = []struct {
 		}},
 	},
 	{
-		[]string{"echo $(($x-1))"},
-		Command{Args: []Word{
-			litWord("echo"),
-			word(ArithmExp{Text: "$x-1"}),
-		}},
+		[]string{"$(($x-1))"},
+		Command{Args: []Word{word(ArithmExp{Text: "$x-1"})}},
 	},
 	{
 		[]string{"echo foo$bar"},
