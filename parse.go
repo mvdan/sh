@@ -80,6 +80,12 @@ func (p *parser) readByte() (byte, error) {
 	return b, nil
 }
 
+func (p *parser) moveBytes(n int) {
+	for i := 0; i < n; i++ {
+		p.readByte()
+	}
+}
+
 func (p *parser) moveWith(b byte) {
 	p.bpos = p.npos
 	if b == '\n' {
@@ -107,10 +113,7 @@ func (p *parser) peekBytes(s string) bool {
 
 func (p *parser) readOnly(s string) bool {
 	if p.peekBytes(s) {
-		// Don't range to count bytes and not runes
-		for i := 0; i < len(s); i++ {
-			p.readByte()
-		}
+		p.moveBytes(len(s))
 		return true
 	}
 	return false
@@ -239,33 +242,35 @@ func (p *parser) advanceBoth(tok Token, val string) {
 	p.val = val
 }
 
-func (p *parser) readUntil(closing Token) (string, bool) {
-	var buf bytes.Buffer
+func (p *parser) readUntil(s string) (string, bool) {
+	var bs []byte
 	for {
-		tok, err := doToken(p.readOnly, p.readByte)
+		if p.peekBytes(s) {
+			p.moveBytes(len(s))
+			return string(bs), true
+		}
+		b, err := p.readByte()
 		if err != nil {
-			return buf.String(), false
+			return string(bs), false
 		}
-		if tok == closing {
-			return buf.String(), true
-		}
-		fmt.Fprint(&buf, tok)
+		bs = append(bs, b)
 	}
 }
 
 func (p *parser) readUntilMatched(left Token) string {
 	lpos := p.pos
-	s, found := p.readUntil(matching[left])
+	right := matching[left]
+	s, found := p.readUntil(tokNames[right])
 	if found {
 		p.next()
 	} else {
-		p.matchingErr(lpos, left)
+		p.matchingErr(lpos, left, right)
 	}
 	return s
 }
 
 func (p *parser) readLine() string {
-	s, _ := p.readUntil('\n')
+	s, _ := p.readUntil("\n")
 	return s
 }
 
@@ -361,14 +366,15 @@ func (p *parser) wantQuote(lpos Pos, tok Token) {
 	}
 }
 
-func (p *parser) matchingErr(lpos Pos, left Token) {
+func (p *parser) matchingErr(lpos Pos, left, right Token) {
 	p.posErr(lpos, `reached %s without matching token %s with %s`,
-		p.tok, left, matching[left])
+		p.tok, left, right)
 }
 
 func (p *parser) wantMatched(lpos Pos, left Token) {
-	if !p.got(matching[left]) {
-		p.matchingErr(lpos, left)
+	right := matching[left]
+	if !p.got(right) {
+		p.matchingErr(lpos, left, right)
 	}
 }
 

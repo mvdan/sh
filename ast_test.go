@@ -66,7 +66,7 @@ var tests = []testCase{
 		nil,
 	},
 	{
-		[]string{"", "# foo"},
+		[]string{"", "# foo", "# foo ( bar"},
 		nil,
 	},
 	{
