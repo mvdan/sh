@@ -329,7 +329,10 @@ var tests = []testCase{
 		},
 	},
 	{
-		[]string{"foo <<EOF\nbar\nEOF"},
+		[]string{
+			"foo <<EOF\nbar\nEOF",
+			"foo <<EOF\nbar",
+		},
 		Stmt{
 			Node: litCmd("foo"),
 			Redirs: []Redirect{

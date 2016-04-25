@@ -616,10 +616,7 @@ func (p *parser) redirect() (r Redirect) {
 		lpos := p.pos
 		p.wantFollowLit(r.Op.String(), &l)
 		del := l.Value
-		s, found := p.readUntilLine(del)
-		if !found {
-			p.closingErr(lpos, fmt.Sprintf(`heredoc %q`, del))
-		}
+		s, _ := p.readUntilLine(del)
 		body := del + "\n" + s + del
 		r.Word = Word{Parts: []Node{Lit{
 			ValuePos: lpos,
