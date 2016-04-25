@@ -198,8 +198,8 @@ var tests = []testCase{
 	{
 		[]string{"\">foo\" \"\nbar\""},
 		Command{Args: []Word{
-			word(dblQuoted(lits(">foo")...)),
-			word(dblQuoted(lits("\nbar")...)),
+			word(dblQuoted(lit(">foo"))),
+			word(dblQuoted(lit("\nbar"))),
 		}},
 	},
 	{
@@ -544,7 +544,7 @@ var tests = []testCase{
 	{
 		[]string{"a=\"\nbar\""},
 		Command{Args: []Word{
-			word(lit("a="), dblQuoted(lits("\nbar")...)),
+			word(lit("a="), dblQuoted(lit("\nbar"))),
 		}},
 	},
 	{
