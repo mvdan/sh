@@ -344,7 +344,7 @@ func TestParseErr(t *testing.T) {
 		if err == nil {
 			t.Fatalf("Expected error in %q", c.in)
 		}
-		got := err.Error()[1:]
+		got := err.Error()
 		if got != c.want {
 			t.Fatalf("Error mismatch in %q\nwant: %s\ngot:  %s",
 				c.in, c.want, got)
