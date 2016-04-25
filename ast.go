@@ -248,6 +248,15 @@ type DblQuoted struct {
 func (q DblQuoted) String() string { return `"` + nodeJoin(q.Parts, "") + `"` }
 func (q DblQuoted) Pos() Pos       { return q.Quote }
 
+type BckQuoted struct {
+	Quote Pos
+
+	Stmts []Stmt
+}
+
+func (q BckQuoted) String() string { return "`" + stmtJoin(q.Stmts) + "`" }
+func (q BckQuoted) Pos() Pos       { return q.Quote }
+
 type CmdSubst struct {
 	Exp Pos
 

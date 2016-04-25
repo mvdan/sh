@@ -110,6 +110,7 @@ var (
 		')':  true,
 		'$':  true,
 		'"':  true,
+		'`':  true,
 	}
 	// like reserved, but these are only reserved if at the start of a word
 	starters = map[byte]bool{
@@ -150,9 +151,9 @@ func (p *parser) next() {
 	if reserved[b] || starters[b] {
 		// Between double quotes, only under certain
 		// circumstnaces do we tokenize
-		if p.quote == '"' {
+		if p.quote == '"' || p.quote == '`' {
 			switch {
-			case b == '"', b == '$', p.tok == EXP:
+			case b == '`', b == '"', b == '$', p.tok == EXP:
 			case b == ')' && p.quotedCmdSubst:
 			default:
 				p.advanceReadLit()
@@ -190,7 +191,7 @@ func (p *parser) readLitBytes() (bs []byte) {
 		case p.quote != '\'' && b == '$': // end of lit
 			p.unreadByte()
 			return
-		case p.quote == '"':
+		case p.quote == '"' || p.quote == '`':
 			if b == p.quote || (p.quotedCmdSubst && b == ')') {
 				p.unreadByte()
 				return
@@ -449,7 +450,7 @@ func (p *parser) readParts(ns *[]Node) (count int) {
 				ValuePos: p.lpos,
 				Value:    p.lval,
 			}
-		case p.quote == 0 && p.peek('"'):
+		case p.quote != '"' && p.peek('"'):
 			var dq DblQuoted
 			p.quote = '"'
 			dq.Quote = p.pos
@@ -458,6 +459,15 @@ func (p *parser) readParts(ns *[]Node) (count int) {
 			p.quote = 0
 			p.wantQuote(dq.Quote, '"')
 			n = dq
+		case p.quote != '`' && p.peek('`'):
+			var bq BckQuoted
+			p.quote = '`'
+			bq.Quote = p.pos
+			p.next()
+			p.stmtsLimited(&bq.Stmts, '`')
+			p.quote = 0
+			p.wantQuote(bq.Quote, '`')
+			n = bq
 		case p.got(EXP):
 			n = p.exp()
 		default:
@@ -563,7 +573,7 @@ func (p *parser) gotStmt(s *Stmt, wantStop bool) bool {
 		s.Node = p.forStmt()
 	case p.got(CASE):
 		s.Node = p.caseStmt()
-	case p.peekAny(LIT, EXP, '"'):
+	case p.peekAny(LIT, EXP, '"', '`'):
 		s.Node = p.cmdOrFunc(addRedir)
 	}
 	for p.peekRedir() {

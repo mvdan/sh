@@ -51,8 +51,9 @@ func litStmts(strs ...string) []Stmt {
 }
 
 func dblQuoted(ns ...Node) DblQuoted  { return DblQuoted{Parts: ns} }
-func block(stmts ...Stmt) Block       { return Block{Stmts: stmts} }
-func cmdSubst(stmts ...Stmt) CmdSubst { return CmdSubst{Stmts: stmts} }
+func bckQuoted(sts ...Stmt) BckQuoted { return BckQuoted{Stmts: sts} }
+func block(sts ...Stmt) Block         { return Block{Stmts: sts} }
+func cmdSubst(sts ...Stmt) CmdSubst   { return CmdSubst{Stmts: sts} }
 
 type testCase struct {
 	strs []string
@@ -427,6 +428,12 @@ var tests = []testCase{
 		}},
 	},
 	{
+		[]string{"`foo`"},
+		Command{Args: []Word{
+			word(bckQuoted(litStmt("foo"))),
+		}},
+	},
+	{
 		[]string{`echo "$foo"`},
 		Command{Args: []Word{
 			litWord("echo"),
@@ -669,6 +676,10 @@ func setPos(t *testing.T, v interface{}, to Pos, diff bool) Node {
 	case DblQuoted:
 		set(&x.Quote)
 		setPos(t, x.Parts, to, diff)
+		return x
+	case BckQuoted:
+		set(&x.Quote)
+		setPos(t, x.Stmts, to, diff)
 		return x
 	case BinaryExpr:
 		set(&x.OpPos)
