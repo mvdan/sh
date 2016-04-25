@@ -600,14 +600,16 @@ func (p *parser) gotStmt(s *Stmt, wantStop bool) bool {
 	if !wantStop {
 		return true
 	}
-	if !s.Background && !p.peekStop() {
-		p.curErr("statements must be separated by &, ; or a newline")
-	}
-	if p.gotAny(OR, LAND, LOR) {
-		left := *s
-		*s = Stmt{
-			Position: left.Position,
-			Node:     p.binaryExpr(p.ltok, left),
+	if !s.Background {
+		if !p.peekStop() {
+			p.curErr("statements must be separated by &, ; or a newline")
+		}
+		if p.gotAny(OR, LAND, LOR) {
+			left := *s
+			*s = Stmt{
+				Position: left.Position,
+				Node:     p.binaryExpr(p.ltok, left),
+			}
 		}
 	}
 	if p.peekEnd() {

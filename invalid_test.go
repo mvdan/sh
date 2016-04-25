@@ -118,6 +118,14 @@ func TestParseErr(t *testing.T) {
 			`1:1: || can only immediately follow a statement`,
 		},
 		{
+			"foo; || bar",
+			`1:6: || can only immediately follow a statement`,
+		},
+		{
+			"foo & || bar",
+			`1:7: || can only immediately follow a statement`,
+		},
+		{
 			"foo;;",
 			`1:4: a command can only contain words and redirects`,
 		},
