@@ -142,7 +142,7 @@ func (p *parser) next() {
 		if b == '\\' && p.readOnly('\n') {
 			continue
 		}
-		if p.quote != 0 || !space[b] {
+		if p.quote == '\'' || p.quote == '"' || !space[b] {
 			break
 		}
 		p.pos = p.npos
@@ -151,7 +151,7 @@ func (p *parser) next() {
 	if reserved[b] || starters[b] {
 		// Between double quotes, only under certain
 		// circumstnaces do we tokenize
-		if p.quote == '"' || p.quote == '`' {
+		if p.quote == '"' {
 			switch {
 			case b == '`', b == '"', b == '$', p.tok == EXP:
 			case b == ')' && p.quotedCmdSubst:
@@ -191,7 +191,7 @@ func (p *parser) readLitBytes() (bs []byte) {
 		case p.quote != '\'' && b == '$': // end of lit
 			p.unreadByte()
 			return
-		case p.quote == '"' || p.quote == '`':
+		case p.quote == '"':
 			if b == p.quote || (p.quotedCmdSubst && b == ')') {
 				p.unreadByte()
 				return
@@ -443,7 +443,7 @@ func (p *parser) readParts(ns *[]Node) (count int) {
 	for p.tok != EOF {
 		var n Node
 		switch {
-		case p.quote == 0 && count > 0 && p.spaced:
+		case p.quote != '"' && count > 0 && p.spaced:
 			return
 		case p.got(LIT):
 			n = Lit{

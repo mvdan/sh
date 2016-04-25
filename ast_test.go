@@ -434,6 +434,16 @@ var tests = []testCase{
 		}},
 	},
 	{
+		[]string{"`foo | bar`"},
+		Command{Args: []Word{
+			word(bckQuoted(stmt(BinaryExpr{
+				Op: OR,
+				X:  litStmt("foo"),
+				Y:  litStmt("bar"),
+			}))),
+		}},
+	},
+	{
 		[]string{`echo "$foo"`},
 		Command{Args: []Word{
 			litWord("echo"),
