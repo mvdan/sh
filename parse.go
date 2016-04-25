@@ -186,10 +186,7 @@ func (p *parser) next() {
 	}
 }
 
-func (p *parser) advanceReadLit() {
-	p.advanceBoth(LIT, string(p.readLitBytes()))
-}
-
+func (p *parser) advanceReadLit() { p.advanceBoth(LIT, string(p.readLitBytes())) }
 func (p *parser) readLitBytes() (bs []byte) {
 	var lpos Pos
 	for {
@@ -444,10 +441,7 @@ func (p *parser) stmtsLimited(sts *[]Stmt, stop ...Token) int {
 	return count
 }
 
-func (p *parser) gotWord(w *Word) bool {
-	return p.readParts(&w.Parts) > 0
-}
-
+func (p *parser) gotWord(w *Word) bool { return p.readParts(&w.Parts) > 0 }
 func (p *parser) gotLit(l *Lit) bool {
 	l.ValuePos = p.pos
 	if p.got(LIT) {
