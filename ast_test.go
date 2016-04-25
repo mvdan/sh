@@ -61,7 +61,11 @@ type testCase struct {
 
 var tests = []testCase{
 	{
-		[]string{"", " ", "\n", "# foo"},
+		[]string{"", " ", "\t", "\n \n"},
+		nil,
+	},
+	{
+		[]string{"", "# foo"},
 		nil,
 	},
 	{
@@ -70,10 +74,7 @@ var tests = []testCase{
 	},
 	{
 		[]string{"foo; bar", "foo; bar;", "foo;bar;", "\nfoo\nbar\n"},
-		[]Node{
-			litCmd("foo"),
-			litCmd("bar"),
-		},
+		litStmts("foo", "bar"),
 	},
 	{
 		[]string{"foo a b", " foo  a  b ", "foo \\\n a b"},
