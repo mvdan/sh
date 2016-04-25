@@ -35,7 +35,6 @@ type parser struct {
 	err  error
 
 	spaced bool
-	quote  byte
 
 	ltok, tok Token
 	lval, val string
@@ -45,10 +44,26 @@ type parser struct {
 
 	lpos, pos, npos Pos
 
-	stops [][]Token
+	// stacks of quotes, stop tokens, etc
+	quotes []byte
+	stops  [][]Token
 
 	// to not include ')' in a literal
 	quotedCmdSubst bool
+}
+
+func (p *parser) pushQuote(b byte) { p.quotes = append(p.quotes, b) }
+func (p *parser) topQuote() byte   { return p.quotes[len(p.quotes)-1] }
+func (p *parser) popQuote()        { p.quotes = p.quotes[:len(p.quotes)-1] }
+func (p *parser) quotedAny(bs ...byte) bool {
+	for _, b := range bs {
+		for _, q := range p.quotes {
+			if b == q {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func (p *parser) readByte() (byte, error) {
@@ -142,7 +157,7 @@ func (p *parser) next() {
 		if b == '\\' && p.readOnly('\n') {
 			continue
 		}
-		if p.quote == '\'' || p.quote == '"' || !space[b] {
+		if p.quotedAny('\'', '"') || !space[b] {
 			break
 		}
 		p.pos = p.npos
@@ -151,7 +166,7 @@ func (p *parser) next() {
 	if reserved[b] || starters[b] {
 		// Between double quotes, only under certain
 		// circumstnaces do we tokenize
-		if p.quote == '"' {
+		if p.quotedAny('"') {
 			switch {
 			case b == '`', b == '"', b == '$', p.tok == EXP:
 			case b == ')' && p.quotedCmdSubst:
@@ -176,32 +191,32 @@ func (p *parser) readLitBytes() (bs []byte) {
 	for {
 		b, err := p.readByte()
 		if err != nil {
-			if p.quote != 0 {
-				p.wantQuote(lpos, Token(p.quote))
+			if len(p.quotes) > 0 {
+				p.wantQuote(lpos, Token(p.topQuote()))
 			}
 			break
 		}
 		switch {
-		case p.quote != '\'' && b == '\\': // escaped byte
+		case !p.quotedAny('\'') && b == '\\': // escaped byte
 			b, _ = p.readByte()
 			if b != '\n' {
 				bs = append(bs, '\\', b)
 			}
 			continue
-		case p.quote != '\'' && b == '$': // end of lit
+		case !p.quotedAny('\'') && b == '$': // end of lit
 			p.unreadByte()
 			return
-		case p.quote == '"':
-			if b == p.quote || (p.quotedCmdSubst && b == ')') {
+		case p.quotedAny('"'):
+			if b == '"' || (p.quotedCmdSubst && b == ')') {
 				p.unreadByte()
 				return
 			}
-		case p.quote == '\'':
-			if b == p.quote {
-				p.quote = 0
+		case p.quotedAny('\''):
+			if b == '\'' {
+				p.popQuote()
 			}
 		case b == '\'':
-			p.quote = '\''
+			p.pushQuote('\'')
 			lpos = p.npos
 			lpos.Column--
 		case reserved[b], space[b]: // end of lit
@@ -443,29 +458,29 @@ func (p *parser) readParts(ns *[]Node) (count int) {
 	for p.tok != EOF {
 		var n Node
 		switch {
-		case p.quote != '"' && count > 0 && p.spaced:
+		case !p.quotedAny('"') && count > 0 && p.spaced:
 			return
 		case p.got(LIT):
 			n = Lit{
 				ValuePos: p.lpos,
 				Value:    p.lval,
 			}
-		case p.quote != '"' && p.peek('"'):
+		case !p.quotedAny('"') && p.peek('"'):
 			var dq DblQuoted
-			p.quote = '"'
+			p.pushQuote('"')
 			dq.Quote = p.pos
 			p.next()
 			p.readParts(&dq.Parts)
-			p.quote = 0
+			p.popQuote()
 			p.wantQuote(dq.Quote, '"')
 			n = dq
-		case p.quote != '`' && p.peek('`'):
+		case !p.quotedAny('`') && p.peek('`'):
 			var bq BckQuoted
-			p.quote = '`'
+			p.pushQuote('`')
 			bq.Quote = p.pos
 			p.next()
 			p.stmtsLimited(&bq.Stmts, '`')
-			p.quote = 0
+			p.popQuote()
 			p.wantQuote(bq.Quote, '`')
 			n = bq
 		case p.got(EXP):
@@ -493,7 +508,7 @@ func (p *parser) exp() Node {
 		}
 	case p.peek(LPAREN):
 		var cs CmdSubst
-		p.quotedCmdSubst = p.quote == '"'
+		p.quotedCmdSubst = p.quotedAny('"')
 		p.next()
 		cs.Exp = p.lpos
 		p.stmtsLimited(&cs.Stmts, RPAREN)

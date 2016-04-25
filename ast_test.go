@@ -444,6 +444,21 @@ var tests = []testCase{
 		}},
 	},
 	{
+		[]string{"`foo 'bar'`"},
+		Command{Args: []Word{
+			word(bckQuoted(litStmt("foo", "'bar'"))),
+		}},
+	},
+	{
+		[]string{"`foo \"bar\"`"},
+		Command{Args: []Word{
+			word(bckQuoted(stmt(Command{Args: []Word{
+				litWord("foo"),
+				word(dblQuoted(lit("bar"))),
+			}}))),
+		}},
+	},
+	{
 		[]string{`echo "$foo"`},
 		Command{Args: []Word{
 			litWord("echo"),
