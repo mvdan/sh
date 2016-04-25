@@ -574,18 +574,18 @@ var tests = []testCase{
 	},
 }
 
-func fullProg(v interface{}) (p Prog) {
+func fullProg(v interface{}) (f File) {
 	switch x := v.(type) {
 	case []Stmt:
-		p.Stmts = x
+		f.Stmts = x
 	case Stmt:
-		p.Stmts = append(p.Stmts, x)
+		f.Stmts = append(f.Stmts, x)
 	case []Node:
 		for _, n := range x {
-			p.Stmts = append(p.Stmts, stmt(n))
+			f.Stmts = append(f.Stmts, stmt(n))
 		}
 	case Node:
-		p.Stmts = append(p.Stmts, stmt(x))
+		f.Stmts = append(f.Stmts, stmt(x))
 	}
 	return
 }
@@ -704,8 +704,8 @@ func setPos(t *testing.T, v interface{}, to Position, diff bool) Node {
 
 func TestNodePos(t *testing.T) {
 	p := Position{
-		Line: 12,
-		Col:  34,
+		Line:   12,
+		Column: 34,
 	}
 	defaultPos = p
 	allTests := tests

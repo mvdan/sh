@@ -11,19 +11,20 @@ import (
 	"regexp"
 )
 
-func Parse(r io.Reader, name string) (Prog, error) {
+func Parse(r io.Reader, name string) (File, error) {
 	p := &parser{
 		r:     bufio.NewReader(r),
 		fname: name,
 		npos: Position{
-			Line: 1,
-			Col:  1,
+			Line:   1,
+			Column: 1,
 		},
 		stops: [][]Token{nil},
 	}
 	p.next()
-	prog := p.program()
-	return prog, p.err
+	var file File
+	p.stmts(&file.Stmts)
+	return file, p.err
 }
 
 type parser struct {
@@ -52,8 +53,8 @@ type parser struct {
 // Position describes an arbitrary position in a source file. Offsets,
 // including column numbers, are in bytes.
 type Position struct {
-	Line int // line number, starting at 1
-	Col  int // Column number, starting at 1
+	Line   int // line number, starting at 1
+	Column int // column number, starting at 1
 }
 
 func (p *parser) readByte() (byte, error) {
@@ -74,9 +75,9 @@ func (p *parser) moveWith(b byte) {
 	p.bpos = p.npos
 	if b == '\n' {
 		p.npos.Line++
-		p.npos.Col = 1
+		p.npos.Column = 1
 	} else {
-		p.npos.Col++
+		p.npos.Column++
 	}
 }
 
@@ -207,7 +208,7 @@ func (p *parser) readLitBytes() (bs []byte) {
 		case b == '\'':
 			p.quote = '\''
 			lpos = p.npos
-			lpos.Col--
+			lpos.Column--
 		case reserved[b], space[b]: // end of lit
 			p.unreadByte()
 			return
@@ -375,7 +376,7 @@ type lineErr struct {
 }
 
 func (e lineErr) Error() string {
-	return fmt.Sprintf("%s:%d:%d: %s", e.fname, e.pos.Line, e.pos.Col, e.text)
+	return fmt.Sprintf("%s:%d:%d: %s", e.fname, e.pos.Line, e.pos.Column, e.text)
 }
 
 func (p *parser) posErr(pos Position, format string, v ...interface{}) {
@@ -391,11 +392,6 @@ func (p *parser) curErr(format string, v ...interface{}) {
 		p.pos = p.npos
 	}
 	p.posErr(p.pos, format, v...)
-}
-
-func (p *parser) program() (pr Prog) {
-	p.stmts(&pr.Stmts)
-	return
 }
 
 func (p *parser) stmts(sts *[]Stmt, stop ...Token) (count int) {

@@ -24,11 +24,11 @@ func wordFirstPos(ws []Word) Position {
 	return ws[0].Pos()
 }
 
-type Prog struct {
+type File struct {
 	Stmts []Stmt
 }
 
-func (p Prog) String() string { return stmtJoin(p.Stmts) }
+func (f File) String() string { return stmtJoin(f.Stmts) }
 
 type Node interface {
 	fmt.Stringer
