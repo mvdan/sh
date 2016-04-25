@@ -600,8 +600,8 @@ func (p *parser) gotStmt(s *Stmt, wantStop bool) bool {
 	if !wantStop {
 		return true
 	}
-	if !p.peekStop() {
-		p.curErr("statements must be separated by ; or a newline")
+	if !s.Background && !p.peekStop() {
+		p.curErr("statements must be separated by &, ; or a newline")
 	}
 	if p.gotAny(OR, LAND, LOR) {
 		left := *s

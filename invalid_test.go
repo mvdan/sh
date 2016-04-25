@@ -291,15 +291,15 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"(foo) bar",
-			`1:7: statements must be separated by ; or a newline`,
+			`1:7: statements must be separated by &, ; or a newline`,
 		},
 		{
 			"{foo;} bar",
-			`1:8: statements must be separated by ; or a newline`,
+			`1:8: statements must be separated by &, ; or a newline`,
 		},
 		{
 			"if foo; then bar; fi bar",
-			`1:22: statements must be separated by ; or a newline`,
+			`1:22: statements must be separated by &, ; or a newline`,
 		},
 		{
 			"case",

@@ -395,6 +395,16 @@ var tests = []testCase{
 		},
 	},
 	{
+		[]string{"foo &; bar", "foo & bar", "foo&bar"},
+		[]Stmt{
+			{
+				Node:       litCmd("foo"),
+				Background: true,
+			},
+			litStmt("bar"),
+		},
+	},
+	{
 		[]string{"if foo; then bar; fi >/dev/null &"},
 		Stmt{
 			Node: IfStmt{
