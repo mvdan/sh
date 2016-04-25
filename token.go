@@ -3,6 +3,8 @@
 
 package sh
 
+import "fmt"
+
 type Token int
 
 const (
@@ -48,6 +50,26 @@ const (
 	HEREDOC  // <<
 	DHEREDOC // <<-
 )
+
+// Pos is the internal representation of a position within a source
+// file.
+// TODO: replace struct with a byte offset
+type Pos struct {
+	Line   int // line number, starting at 1
+	Column int // column number, starting at 1
+}
+
+// Position describes an arbitrary position in a source file. Offsets,
+// including column numbers, are in bytes.
+type Position struct {
+	Filename string
+	Line     int // line number, starting at 1
+	Column   int // column number, starting at 1
+}
+
+func (p Position) String() string {
+	return fmt.Sprintf("%s:%d:%d", p.Filename, p.Line, p.Column)
+}
 
 var tokNames = map[Token]string{
 	ILLEGAL: `ILLEGAL`,

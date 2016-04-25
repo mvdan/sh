@@ -51,22 +51,6 @@ type parser struct {
 	quotedCmdSubst bool
 }
 
-// Pos is the internal representation of a position within a source
-// file.
-// TODO: replace struct with a byte offset
-type Pos struct {
-	Line   int // line number, starting at 1
-	Column int // column number, starting at 1
-}
-
-// Position describes an arbitrary position in a source file. Offsets,
-// including column numbers, are in bytes.
-type Position struct {
-	Filename string
-	Line     int // line number, starting at 1
-	Column   int // column number, starting at 1
-}
-
 func (p *parser) readByte() (byte, error) {
 	b, err := p.br.ReadByte()
 	if err != nil {
@@ -385,8 +369,7 @@ type lineErr struct {
 }
 
 func (e lineErr) Error() string {
-	return fmt.Sprintf("%s:%d:%d: %s",
-		e.pos.Filename, e.pos.Line, e.pos.Column, e.text)
+	return fmt.Sprintf("%s: %s", e.pos, e.text)
 }
 
 func (p *parser) posErr(pos Pos, format string, v ...interface{}) {
