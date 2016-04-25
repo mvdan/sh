@@ -538,7 +538,8 @@ func (p *parser) peekRedir() bool {
 	if p.peek(LIT) && (p.peekByte('>') || p.peekByte('<')) {
 		return true
 	}
-	return p.peekAny(RDROUT, APPEND, RDRIN, HEREDOC, DPLIN, DPLOUT)
+	return p.peekAny(RDROUT, APPEND, RDRIN, DPLIN, DPLOUT, OPRDWR,
+		HEREDOC, DHEREDOC)
 }
 
 func (p *parser) gotStmt(s *Stmt, wantStop bool) bool {
@@ -616,7 +617,7 @@ func (p *parser) redirect() (r Redirect) {
 	r.OpPos = p.pos
 	p.next()
 	switch r.Op {
-	case HEREDOC:
+	case HEREDOC, DHEREDOC:
 		var l Lit
 		lpos := p.pos
 		p.wantFollowLit(r.Op.String(), &l)

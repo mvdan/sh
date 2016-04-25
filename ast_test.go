@@ -346,13 +346,26 @@ var tests = []testCase{
 		},
 	},
 	{
-		[]string{"foo >&2 <&0 2>file"},
+		[]string{
+			"foo <<-EOF\nbar\nEOF",
+			"foo <<- EOF\nbar\nEOF",
+		},
+		Stmt{
+			Node: litCmd("foo"),
+			Redirs: []Redirect{
+				{Op: DHEREDOC, Word: litWord("EOF\nbar\nEOF")},
+			},
+		},
+	},
+	{
+		[]string{"foo >&2 <&0 2>file <>f2"},
 		Stmt{
 			Node: litCmd("foo"),
 			Redirs: []Redirect{
 				{Op: DPLOUT, Word: litWord("2")},
 				{Op: DPLIN, Word: litWord("0")},
 				{Op: RDROUT, N: lit("2"), Word: litWord("file")},
+				{Op: OPRDWR, Word: litWord("f2")},
 			},
 		},
 	},
