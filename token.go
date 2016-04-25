@@ -74,49 +74,62 @@ func (p Position) String() string {
 	return fmt.Sprintf("%s:%d:%d", p.Filename, p.Line, p.Column)
 }
 
-var tokNames = map[Token]string{
-	ILLEGAL: `ILLEGAL`,
-	EOF:     `EOF`,
-	LIT:     `literal`,
-
-	IF:    "if",
-	THEN:  "then",
-	ELIF:  "elif",
-	ELSE:  "else",
-	FI:    "fi",
-	WHILE: "while",
-	FOR:   "for",
-	IN:    "in",
-	DO:    "do",
-	DONE:  "done",
-	CASE:  "case",
-	ESAC:  "esac",
-
-	AND:  "&",
-	LAND: "&&",
-	OR:   "|",
-	LOR:  "||",
-
-	EXP:     "$",
-	LPAREN:  "(",
-	LBRACE:  "{",
-	DLPAREN: "((",
-
-	RPAREN:     ")",
-	RBRACE:     "}",
-	DRPAREN:    "))",
-	SEMICOLON:  ";",
-	DSEMICOLON: ";;",
-
-	RDRIN:    "<",
-	RDROUT:   ">",
-	OPRDWR:   "<>",
-	DPLIN:    "<&",
-	DPLOUT:   ">&",
-	APPEND:   ">>",
-	HEREDOC:  "<<",
-	DHEREDOC: "<<-",
+func init() {
+	for _, t := range tokList {
+		tokNames[t.tok] = t.str
+	}
 }
+
+var (
+	tokNames = map[Token]string{
+		ILLEGAL: `ILLEGAL`,
+		EOF:     `EOF`,
+		LIT:     `literal`,
+
+		IF:    "if",
+		THEN:  "then",
+		ELIF:  "elif",
+		ELSE:  "else",
+		FI:    "fi",
+		WHILE: "while",
+		FOR:   "for",
+		IN:    "in",
+		DO:    "do",
+		DONE:  "done",
+		CASE:  "case",
+		ESAC:  "esac",
+	}
+
+	tokList = [...]struct {
+		str string
+		tok Token
+	}{
+		{"&", AND},
+		{"&&", LAND},
+		{"|", OR},
+		{"||", LOR},
+
+		{"$", EXP},
+		{"(", LPAREN},
+		{"{", LBRACE},
+		{"((", DLPAREN},
+
+		{")", RPAREN},
+		{"}", RBRACE},
+		{"))", DRPAREN},
+		{";", SEMICOLON},
+		{";;", DSEMICOLON},
+
+		{"<", RDRIN},
+		{">", RDROUT},
+		{"<>", OPRDWR},
+		{"<&", DPLIN},
+		{">&", DPLOUT},
+		{">>", APPEND},
+		{"<<", HEREDOC},
+		{"<<-", DHEREDOC},
+	}
+)
 
 func (t Token) String() string {
 	if s, e := tokNames[t]; e {
@@ -125,62 +138,14 @@ func (t Token) String() string {
 	return string(t)
 }
 
-func doToken(b byte, readOnly func(byte) bool) Token {
-	switch b {
-	case '&':
-		if readOnly('&') {
-			return LAND
+func doToken(readOnly func(string) bool, readByte func() (byte, error)) (Token, error) {
+	// In reverse, to not treat e.g. && as & two times
+	for i := len(tokList) - 1; i >= 0; i-- {
+		t := tokList[i]
+		if readOnly(t.str) {
+			return t.tok, nil
 		}
-		return AND
-	case '|':
-		if readOnly('|') {
-			return LOR
-		}
-		return OR
-	case '(':
-		if readOnly('(') {
-			return DLPAREN
-		}
-		return LPAREN
-	case '{':
-		return LBRACE
-	case ')':
-		if readOnly(')') {
-			return DRPAREN
-		}
-		return RPAREN
-	case '}':
-		return RBRACE
-	case '$':
-		return EXP
-	case ';':
-		if readOnly(';') {
-			return DSEMICOLON
-		}
-		return SEMICOLON
-	case '<':
-		if readOnly('<') {
-			if readOnly('-') {
-				return DHEREDOC
-			}
-			return HEREDOC
-		}
-		if readOnly('&') {
-			return DPLIN
-		}
-		if readOnly('>') {
-			return OPRDWR
-		}
-		return RDRIN
-	case '>':
-		if readOnly('>') {
-			return APPEND
-		}
-		if readOnly('&') {
-			return DPLOUT
-		}
-		return RDROUT
-	default:
-		return Token(b)
 	}
+	b, err := readByte()
+	return Token(b), err
 }

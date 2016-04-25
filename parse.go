@@ -97,17 +97,20 @@ func (p *parser) unreadByte() {
 	p.npos = p.bpos
 }
 
-func (p *parser) peekByte(b byte) bool {
-	bs, err := p.br.Peek(1)
+func (p *parser) peekBytes(s string) bool {
+	bs, err := p.br.Peek(len(s))
 	if err != nil {
 		return false
 	}
-	return b == bs[0]
+	return string(bs) == s
 }
 
-func (p *parser) readOnly(b byte) bool {
-	if p.peekByte(b) {
-		p.readByte()
+func (p *parser) readOnly(s string) bool {
+	if p.peekBytes(s) {
+		// Don't range to count bytes and not runes
+		for i := 0; i < len(s); i++ {
+			p.readByte()
+		}
 		return true
 	}
 	return false
@@ -154,7 +157,7 @@ func (p *parser) next() {
 		if b, err = p.readByte(); err != nil {
 			return
 		}
-		if b == '\\' && p.readOnly('\n') {
+		if b == '\\' && p.readOnly("\n") {
 			continue
 		}
 		if p.quotedAny('\'', '"') || !space[b] {
@@ -163,6 +166,7 @@ func (p *parser) next() {
 		p.pos = p.npos
 		p.spaced = true
 	}
+	p.unreadByte()
 	if reserved[b] || starters[b] {
 		// Between double quotes, only under certain
 		// circumstnaces do we tokenize
@@ -175,14 +179,14 @@ func (p *parser) next() {
 				return
 			}
 		}
-		p.advanceTok(doToken(b, p.readOnly))
+		tok, _ := doToken(p.readOnly, p.readByte)
+		p.advanceTok(tok)
 	} else {
 		p.advanceReadLit()
 	}
 }
 
 func (p *parser) advanceReadLit() {
-	p.unreadByte()
 	p.advanceBoth(LIT, string(p.readLitBytes()))
 }
 
@@ -241,11 +245,10 @@ func (p *parser) advanceBoth(tok Token, val string) {
 func (p *parser) readUntil(closing Token) (string, bool) {
 	var buf bytes.Buffer
 	for {
-		b, err := p.readByte()
+		tok, err := doToken(p.readOnly, p.readByte)
 		if err != nil {
 			return buf.String(), false
 		}
-		tok := doToken(b, p.readOnly)
 		if tok == closing {
 			return buf.String(), true
 		}
@@ -554,7 +557,7 @@ func (p *parser) peekStop() bool {
 func (p *parser) peekRedir() bool {
 	// Can this be done in a way that doesn't involve peeking past
 	// the current token?
-	if p.peek(LIT) && (p.peekByte('>') || p.peekByte('<')) {
+	if p.peek(LIT) && (p.peekBytes(">") || p.peekBytes("<")) {
 		return true
 	}
 	return p.peekAny(RDROUT, APPEND, RDRIN, DPLIN, DPLOUT, OPRDWR,
