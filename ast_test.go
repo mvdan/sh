@@ -590,10 +590,10 @@ func fullProg(v interface{}) (f File) {
 	return
 }
 
-func setPos(t *testing.T, v interface{}, to Position, diff bool) Node {
-	set := func(p *Position) {
+func setPos(t *testing.T, v interface{}, to Pos, diff bool) Node {
+	set := func(p *Pos) {
 		if diff && *p == to {
-			t.Fatalf("Position in %v (%T) is already %v", v, v, to)
+			t.Fatalf("Pos in %v (%T) is already %v", v, v, to)
 		}
 		*p = to
 	}
@@ -703,7 +703,7 @@ func setPos(t *testing.T, v interface{}, to Position, diff bool) Node {
 }
 
 func TestNodePos(t *testing.T) {
-	p := Position{
+	p := Pos{
 		Line:   12,
 		Column: 34,
 	}
@@ -722,11 +722,11 @@ func TestNodePos(t *testing.T) {
 		setPos(t, want.Stmts, p, true)
 		for _, s := range want.Stmts {
 			if s.Pos() != p {
-				t.Fatalf("Found unexpected position in %v", s)
+				t.Fatalf("Found unexpected Pos in %v", s)
 			}
 			n := s.Node
 			if n != nil && n.Pos() != p {
-				t.Fatalf("Found unexpected position in %v", n)
+				t.Fatalf("Found unexpected Pos in %v", n)
 			}
 		}
 	}
@@ -735,14 +735,14 @@ func TestNodePos(t *testing.T) {
 func TestParseAST(t *testing.T) {
 	for _, c := range tests {
 		want := fullProg(c.ast)
-		setPos(t, want.Stmts, Position{}, false)
+		setPos(t, want.Stmts, Pos{}, false)
 		for _, in := range c.strs {
 			r := strings.NewReader(in)
 			got, err := Parse(r, "")
 			if err != nil {
 				t.Fatalf("Unexpected error in %q: %v", in, err)
 			}
-			setPos(t, got.Stmts, Position{}, true)
+			setPos(t, got.Stmts, Pos{}, true)
 			if !reflect.DeepEqual(got, want) {
 				t.Fatalf("AST mismatch in %q\nwant: %s\ngot:  %s\ndumps:\n%#v\n%#v",
 					in, want, got, want, got)

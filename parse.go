@@ -13,25 +13,26 @@ import (
 
 func Parse(r io.Reader, name string) (File, error) {
 	p := &parser{
-		r:     bufio.NewReader(r),
-		fname: name,
-		npos: Position{
+		br: bufio.NewReader(r),
+		file: File{
+			Name: name,
+		},
+		npos: Pos{
 			Line:   1,
 			Column: 1,
 		},
 		stops: [][]Token{nil},
 	}
 	p.next()
-	var file File
-	p.stmts(&file.Stmts)
-	return file, p.err
+	p.stmts(&p.file.Stmts)
+	return p.file, p.err
 }
 
 type parser struct {
-	r     *bufio.Reader
-	fname string
+	br *bufio.Reader
 
-	err error
+	file File
+	err  error
 
 	spaced bool
 	quote  byte
@@ -40,9 +41,9 @@ type parser struct {
 	lval, val string
 
 	// backup position to unread a byte
-	bpos Position
+	bpos Pos
 
-	lpos, pos, npos Position
+	lpos, pos, npos Pos
 
 	stops [][]Token
 
@@ -50,15 +51,24 @@ type parser struct {
 	quotedCmdSubst bool
 }
 
-// Position describes an arbitrary position in a source file. Offsets,
-// including column numbers, are in bytes.
-type Position struct {
+// Pos is the internal representation of a position within a source
+// file.
+// TODO: replace struct with a byte offset
+type Pos struct {
 	Line   int // line number, starting at 1
 	Column int // column number, starting at 1
 }
 
+// Position describes an arbitrary position in a source file. Offsets,
+// including column numbers, are in bytes.
+type Position struct {
+	Filename string
+	Line     int // line number, starting at 1
+	Column   int // column number, starting at 1
+}
+
 func (p *parser) readByte() (byte, error) {
-	b, err := p.r.ReadByte()
+	b, err := p.br.ReadByte()
 	if err != nil {
 		if err == io.EOF {
 			p.advanceTok(EOF)
@@ -82,14 +92,14 @@ func (p *parser) moveWith(b byte) {
 }
 
 func (p *parser) unreadByte() {
-	if err := p.r.UnreadByte(); err != nil {
+	if err := p.br.UnreadByte(); err != nil {
 		panic(err)
 	}
 	p.npos = p.bpos
 }
 
 func (p *parser) peekByte(b byte) bool {
-	bs, err := p.r.Peek(1)
+	bs, err := p.br.Peek(1)
 	if err != nil {
 		return false
 	}
@@ -177,7 +187,7 @@ func (p *parser) advanceReadLit() {
 }
 
 func (p *parser) readLitBytes() (bs []byte) {
-	var lpos Position
+	var lpos Pos
 	for {
 		b, err := p.readByte()
 		if err != nil {
@@ -341,22 +351,22 @@ func (p *parser) wantStmtEnd(name string, tok Token) {
 	}
 }
 
-func (p *parser) closingErr(lpos Position, s string) {
+func (p *parser) closingErr(lpos Pos, s string) {
 	p.posErr(lpos, `reached %s without closing %s`, p.tok, s)
 }
 
-func (p *parser) wantQuote(lpos Position, tok Token) {
+func (p *parser) wantQuote(lpos Pos, tok Token) {
 	if !p.got(tok) {
 		p.closingErr(lpos, fmt.Sprintf("quote %s", tok))
 	}
 }
 
-func (p *parser) matchingErr(lpos Position, left Token) {
+func (p *parser) matchingErr(lpos Pos, left Token) {
 	p.posErr(lpos, `reached %s without matching token %s with %s`,
 		p.tok, left, matching[left])
 }
 
-func (p *parser) wantMatched(lpos Position, left Token) {
+func (p *parser) wantMatched(lpos Pos, left Token) {
 	if !p.got(matching[left]) {
 		p.matchingErr(lpos, left)
 	}
@@ -370,20 +380,23 @@ func (p *parser) errPass(err error) {
 }
 
 type lineErr struct {
-	fname string
-	pos   Position
-	text  string
+	pos  Position
+	text string
 }
 
 func (e lineErr) Error() string {
-	return fmt.Sprintf("%s:%d:%d: %s", e.fname, e.pos.Line, e.pos.Column, e.text)
+	return fmt.Sprintf("%s:%d:%d: %s",
+		e.pos.Filename, e.pos.Line, e.pos.Column, e.text)
 }
 
-func (p *parser) posErr(pos Position, format string, v ...interface{}) {
+func (p *parser) posErr(pos Pos, format string, v ...interface{}) {
 	p.errPass(lineErr{
-		fname: p.fname,
-		pos:   pos,
-		text:  fmt.Sprintf(format, v...),
+		pos: Position{
+			Filename: p.file.Name,
+			Line:     pos.Line,
+			Column:   pos.Column,
+		},
+		text: fmt.Sprintf(format, v...),
 	})
 }
 

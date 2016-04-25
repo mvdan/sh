@@ -8,16 +8,16 @@ import (
 	"fmt"
 )
 
-var defaultPos = Position{}
+var defaultPos = Pos{}
 
-func nodeFirstPos(ns []Node) Position {
+func nodeFirstPos(ns []Node) Pos {
 	if len(ns) == 0 {
 		return defaultPos
 	}
 	return ns[0].Pos()
 }
 
-func wordFirstPos(ws []Word) Position {
+func wordFirstPos(ws []Word) Pos {
 	if len(ws) == 0 {
 		return defaultPos
 	}
@@ -25,6 +25,8 @@ func wordFirstPos(ws []Word) Position {
 }
 
 type File struct {
+	Name string
+
 	Stmts []Stmt
 }
 
@@ -32,7 +34,7 @@ func (f File) String() string { return stmtJoin(f.Stmts) }
 
 type Node interface {
 	fmt.Stringer
-	Pos() Position
+	Pos() Pos
 }
 
 func nodeJoin(ns []Node, sep string) string {
@@ -67,7 +69,7 @@ func wordJoin(words []Word, sep string) string {
 
 type Stmt struct {
 	Node
-	Position
+	Position Pos
 
 	Redirs     []Redirect
 	Background bool
@@ -89,10 +91,10 @@ func (s Stmt) String() string {
 	}
 	return b.String()
 }
-func (s Stmt) Pos() Position { return s.Position }
+func (s Stmt) Pos() Pos { return s.Position }
 
 type Redirect struct {
-	OpPos Position
+	OpPos Pos
 
 	Op   Token
 	N    Lit
@@ -112,28 +114,28 @@ type Command struct {
 }
 
 func (c Command) String() string { return wordJoin(c.Args, " ") }
-func (c Command) Pos() Position  { return wordFirstPos(c.Args) }
+func (c Command) Pos() Pos       { return wordFirstPos(c.Args) }
 
 type Subshell struct {
-	Lparen, Rparen Position
+	Lparen, Rparen Pos
 
 	Stmts []Stmt
 }
 
 func (s Subshell) String() string { return "(" + stmtJoin(s.Stmts) + ")" }
-func (s Subshell) Pos() Position  { return s.Lparen }
+func (s Subshell) Pos() Pos       { return s.Lparen }
 
 type Block struct {
-	Lbrace, Rbrace Position
+	Lbrace, Rbrace Pos
 
 	Stmts []Stmt
 }
 
 func (b Block) String() string { return "{ " + stmtJoin(b.Stmts) + "; }" }
-func (b Block) Pos() Position  { return b.Rbrace }
+func (b Block) Pos() Pos       { return b.Rbrace }
 
 type IfStmt struct {
-	If, Fi Position
+	If, Fi Pos
 
 	Conds     []Stmt
 	ThenStmts []Stmt
@@ -154,10 +156,10 @@ func (s IfStmt) String() string {
 	fmt.Fprintf(&b, "; fi")
 	return b.String()
 }
-func (s IfStmt) Pos() Position { return s.If }
+func (s IfStmt) Pos() Pos { return s.If }
 
 type Elif struct {
-	Elif Position
+	Elif Pos
 
 	Conds     []Stmt
 	ThenStmts []Stmt
@@ -169,7 +171,7 @@ func (e Elif) String() string {
 }
 
 type WhileStmt struct {
-	While, Done Position
+	While, Done Pos
 
 	Conds   []Stmt
 	DoStmts []Stmt
@@ -179,10 +181,10 @@ func (w WhileStmt) String() string {
 	return fmt.Sprintf("while %s; do %s; done", stmtJoin(w.Conds),
 		stmtJoin(w.DoStmts))
 }
-func (w WhileStmt) Pos() Position { return w.While }
+func (w WhileStmt) Pos() Pos { return w.While }
 
 type ForStmt struct {
-	For, Done Position
+	For, Done Pos
 
 	Name     Lit
 	WordList []Word
@@ -198,10 +200,10 @@ func (f ForStmt) String() string {
 	fmt.Fprintf(&b, "; do %s; done", stmtJoin(f.DoStmts))
 	return b.String()
 }
-func (f ForStmt) Pos() Position { return f.For }
+func (f ForStmt) Pos() Pos { return f.For }
 
 type BinaryExpr struct {
-	OpPos Position
+	OpPos Pos
 
 	X, Y Stmt
 	Op   Token
@@ -210,7 +212,7 @@ type BinaryExpr struct {
 func (b BinaryExpr) String() string {
 	return fmt.Sprintf("%s %s %s", b.X, b.Op, b.Y)
 }
-func (b BinaryExpr) Pos() Position { return b.X.Pos() }
+func (b BinaryExpr) Pos() Pos { return b.X.Pos() }
 
 type FuncDecl struct {
 	Name Lit
@@ -220,43 +222,43 @@ type FuncDecl struct {
 func (f FuncDecl) String() string {
 	return fmt.Sprintf("%s() %s", f.Name, f.Body)
 }
-func (f FuncDecl) Pos() Position { return f.Name.Pos() }
+func (f FuncDecl) Pos() Pos { return f.Name.Pos() }
 
 type Word struct {
 	Parts []Node
 }
 
 func (w Word) String() string { return nodeJoin(w.Parts, "") }
-func (w Word) Pos() Position  { return nodeFirstPos(w.Parts) }
+func (w Word) Pos() Pos       { return nodeFirstPos(w.Parts) }
 
 type Lit struct {
-	ValuePos Position
+	ValuePos Pos
 	Value    string
 }
 
 func (l Lit) String() string { return l.Value }
-func (l Lit) Pos() Position  { return l.ValuePos }
+func (l Lit) Pos() Pos       { return l.ValuePos }
 
 type DblQuoted struct {
-	Quote Position
+	Quote Pos
 
 	Parts []Node
 }
 
 func (q DblQuoted) String() string { return `"` + nodeJoin(q.Parts, "") + `"` }
-func (q DblQuoted) Pos() Position  { return q.Quote }
+func (q DblQuoted) Pos() Pos       { return q.Quote }
 
 type CmdSubst struct {
-	Exp Position
+	Exp Pos
 
 	Stmts []Stmt
 }
 
 func (c CmdSubst) String() string { return "$(" + stmtJoin(c.Stmts) + ")" }
-func (c CmdSubst) Pos() Position  { return c.Exp }
+func (c CmdSubst) Pos() Pos       { return c.Exp }
 
 type ParamExp struct {
-	Exp Position
+	Exp Pos
 
 	Short bool
 	Text  string
@@ -268,19 +270,19 @@ func (p ParamExp) String() string {
 	}
 	return "${" + p.Text + "}"
 }
-func (p ParamExp) Pos() Position { return p.Exp }
+func (p ParamExp) Pos() Pos { return p.Exp }
 
 type ArithmExp struct {
-	Exp Position
+	Exp Pos
 
 	Text string
 }
 
 func (a ArithmExp) String() string { return "$((" + a.Text + "))" }
-func (a ArithmExp) Pos() Position  { return a.Exp }
+func (a ArithmExp) Pos() Pos       { return a.Exp }
 
 type CaseStmt struct {
-	Case, Esac Position
+	Case, Esac Pos
 
 	Word Word
 	List []PatternList
@@ -298,7 +300,7 @@ func (c CaseStmt) String() string {
 	fmt.Fprintf(&b, "; esac")
 	return b.String()
 }
-func (c CaseStmt) Pos() Position { return c.Case }
+func (c CaseStmt) Pos() Pos { return c.Case }
 
 type PatternList struct {
 	Patterns []Word
