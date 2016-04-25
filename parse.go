@@ -33,12 +33,12 @@ type parser struct {
 	err error
 
 	spaced bool
-	quote  rune
+	quote  byte
 
 	ltok, tok Token
 	lval, val string
 
-	// backup position to unread a rune
+	// backup position to unread a byte
 	bpos Position
 
 	lpos, pos, npos Position
@@ -49,13 +49,15 @@ type parser struct {
 	quotedCmdSubst bool
 }
 
+// Position describes an arbitrary position in a source file. Offsets,
+// including column numbers, are in bytes.
 type Position struct {
-	Line int
-	Col  int
+	Line int // line number, starting at 1
+	Col  int // Column number, starting at 1
 }
 
-func (p *parser) readRune() (rune, error) {
-	r, _, err := p.r.ReadRune()
+func (p *parser) readByte() (byte, error) {
+	b, err := p.r.ReadByte()
 	if err != nil {
 		if err == io.EOF {
 			p.advanceTok(EOF)
@@ -64,13 +66,13 @@ func (p *parser) readRune() (rune, error) {
 		}
 		return 0, err
 	}
-	p.moveWith(r)
-	return r, nil
+	p.moveWith(b)
+	return b, nil
 }
 
-func (p *parser) moveWith(r rune) {
+func (p *parser) moveWith(b byte) {
 	p.bpos = p.npos
-	if r == '\n' {
+	if b == '\n' {
 		p.npos.Line++
 		p.npos.Col = 1
 	} else {
@@ -78,8 +80,8 @@ func (p *parser) moveWith(r rune) {
 	}
 }
 
-func (p *parser) unreadRune() {
-	if err := p.r.UnreadRune(); err != nil {
+func (p *parser) unreadByte() {
+	if err := p.r.UnreadByte(); err != nil {
 		panic(err)
 	}
 	p.npos = p.bpos
@@ -95,14 +97,14 @@ func (p *parser) peekByte(b byte) bool {
 
 func (p *parser) readOnly(b byte) bool {
 	if p.peekByte(b) {
-		p.readRune()
+		p.readByte()
 		return true
 	}
 	return false
 }
 
 var (
-	reserved = map[rune]bool{
+	reserved = map[byte]bool{
 		'\n': true,
 		'&':  true,
 		'>':  true,
@@ -115,12 +117,12 @@ var (
 		'"':  true,
 	}
 	// like reserved, but these are only reserved if at the start of a word
-	starters = map[rune]bool{
+	starters = map[byte]bool{
 		'{': true,
 		'}': true,
 		'#': true,
 	}
-	space = map[rune]bool{
+	space = map[byte]bool{
 		' ':  true,
 		'\t': true,
 	}
@@ -133,50 +135,50 @@ var (
 
 func (p *parser) next() {
 	p.lpos = p.pos
-	var r rune
+	var b byte
 	p.spaced = false
 	p.pos = p.npos
 	for {
 		var err error
-		if r, err = p.readRune(); err != nil {
+		if b, err = p.readByte(); err != nil {
 			return
 		}
-		if r == '\\' && p.readOnly('\n') {
+		if b == '\\' && p.readOnly('\n') {
 			continue
 		}
-		if p.quote != 0 || !space[r] {
+		if p.quote != 0 || !space[b] {
 			break
 		}
 		p.pos = p.npos
 		p.spaced = true
 	}
-	if reserved[r] || starters[r] {
+	if reserved[b] || starters[b] {
 		// Between double quotes, only under certain
 		// circumstnaces do we tokenize
 		if p.quote == '"' {
 			switch {
-			case r == '"', r == '$', p.tok == EXP:
-			case r == ')' && p.quotedCmdSubst:
+			case b == '"', b == '$', p.tok == EXP:
+			case b == ')' && p.quotedCmdSubst:
 			default:
 				p.advanceReadLit()
 				return
 			}
 		}
-		p.advanceTok(doToken(r, p.readOnly))
+		p.advanceTok(doToken(b, p.readOnly))
 	} else {
 		p.advanceReadLit()
 	}
 }
 
 func (p *parser) advanceReadLit() {
-	p.unreadRune()
-	p.advanceBoth(LIT, string(p.readLitRunes()))
+	p.unreadByte()
+	p.advanceBoth(LIT, string(p.readLitBytes()))
 }
 
-func (p *parser) readLitRunes() (rs []rune) {
+func (p *parser) readLitBytes() (bs []byte) {
 	var lpos Position
 	for {
-		r, err := p.readRune()
+		b, err := p.readByte()
 		if err != nil {
 			if p.quote != 0 {
 				p.wantQuote(lpos, Token(p.quote))
@@ -184,33 +186,33 @@ func (p *parser) readLitRunes() (rs []rune) {
 			break
 		}
 		switch {
-		case p.quote != '\'' && r == '\\': // escaped rune
-			r, _ = p.readRune()
-			if r != '\n' {
-				rs = append(rs, '\\', r)
+		case p.quote != '\'' && b == '\\': // escaped byte
+			b, _ = p.readByte()
+			if b != '\n' {
+				bs = append(bs, '\\', b)
 			}
 			continue
-		case p.quote != '\'' && r == '$': // end of lit
-			p.unreadRune()
+		case p.quote != '\'' && b == '$': // end of lit
+			p.unreadByte()
 			return
 		case p.quote == '"':
-			if r == p.quote || (p.quotedCmdSubst && r == ')') {
-				p.unreadRune()
+			if b == p.quote || (p.quotedCmdSubst && b == ')') {
+				p.unreadByte()
 				return
 			}
 		case p.quote == '\'':
-			if r == p.quote {
+			if b == p.quote {
 				p.quote = 0
 			}
-		case r == '\'':
+		case b == '\'':
 			p.quote = '\''
 			lpos = p.npos
 			lpos.Col--
-		case reserved[r], space[r]: // end of lit
-			p.unreadRune()
+		case reserved[b], space[b]: // end of lit
+			p.unreadByte()
 			return
 		}
-		rs = append(rs, r)
+		bs = append(bs, b)
 	}
 	return
 }
@@ -226,17 +228,17 @@ func (p *parser) advanceBoth(tok Token, val string) {
 }
 
 func (p *parser) readUntil(closing Token) (string, bool) {
-	var b bytes.Buffer
+	var buf bytes.Buffer
 	for {
-		r, err := p.readRune()
+		b, err := p.readByte()
 		if err != nil {
-			return b.String(), false
+			return buf.String(), false
 		}
-		tok := doToken(r, p.readOnly)
+		tok := doToken(b, p.readOnly)
 		if tok == closing {
-			return b.String(), true
+			return buf.String(), true
 		}
-		fmt.Fprint(&b, tok)
+		fmt.Fprint(&buf, tok)
 	}
 }
 
@@ -257,15 +259,15 @@ func (p *parser) readLine() string {
 }
 
 func (p *parser) readUntilLine(s string) (string, bool) {
-	var b bytes.Buffer
+	var buf bytes.Buffer
 	for p.tok != EOF {
 		l := p.readLine()
 		if l == s {
-			return b.String(), true
+			return buf.String(), true
 		}
-		fmt.Fprintln(&b, l)
+		fmt.Fprintln(&buf, l)
 	}
-	return b.String(), false
+	return buf.String(), false
 }
 
 func (p *parser) peek(tok Token) bool {

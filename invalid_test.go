@@ -131,7 +131,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"à(",
-			`1:3: functions must start like "foo()"`,
+			`1:4: functions must start like "foo()"`,
 		},
 		{
 			"foo'",

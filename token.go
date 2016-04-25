@@ -97,11 +97,11 @@ func (t Token) String() string {
 	if s, e := tokNames[t]; e {
 		return s
 	}
-	return string(rune(t))
+	return string(t)
 }
 
-func doToken(r rune, readOnly func(byte) bool) Token {
-	switch r {
+func doToken(b byte, readOnly func(byte) bool) Token {
+	switch b {
 	case '&':
 		if readOnly('&') {
 			return LAND
@@ -156,6 +156,6 @@ func doToken(r rune, readOnly func(byte) bool) Token {
 		}
 		return RDROUT
 	default:
-		return Token(r)
+		return Token(b)
 	}
 }
