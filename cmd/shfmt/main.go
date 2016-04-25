@@ -13,10 +13,15 @@ import (
 
 func main() {
 	flag.Parse()
+	anyErr := false
 	for _, path := range flag.Args() {
 		if err := format(path); err != nil {
-			errExit(err)
+			anyErr = true
+			fmt.Fprintln(os.Stderr, err)
 		}
+	}
+	if anyErr {
+		os.Exit(1)
 	}
 }
 
@@ -31,11 +36,5 @@ func format(path string) error {
 		return err
 	}
 	_ = prog
-	fmt.Printf("Parsed.\nTODO: fmt\n")
 	return nil
-}
-
-func errExit(err error) {
-	fmt.Fprintf(os.Stderr, "%v\n", err)
-	os.Exit(1)
 }
