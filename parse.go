@@ -565,11 +565,11 @@ func (p *parser) peekRedir() bool {
 }
 
 func (p *parser) gotStmt(s *Stmt, wantStop bool) bool {
-	for p.gotAny('#', '\n') {
-		if p.ltok == '#' {
+	for p.peekAny('#', '\n') {
+		if p.tok == '#' {
 			p.readLine()
-			p.next()
 		}
+		p.next()
 	}
 	addRedir := func() {
 		s.Redirs = append(s.Redirs, p.redirect())
