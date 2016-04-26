@@ -37,7 +37,7 @@ type parser struct {
 	file File
 	err  error
 
-	spaced bool
+	spaced, newLine bool
 
 	ltok, tok Token
 	lval, val string
@@ -157,6 +157,7 @@ func (p *parser) next() {
 	p.lpos = p.pos
 	var b byte
 	p.spaced = false
+	p.newLine = false
 	p.pos = p.npos
 	for {
 		var err error
@@ -166,11 +167,15 @@ func (p *parser) next() {
 		if b == '\\' && p.readOnly("\n") {
 			continue
 		}
-		if p.quotedAny('\'', '"') || !space[b] {
+		if p.quotedAny('\'', '"') || (!space[b] && b != '\n') {
 			break
 		}
 		p.pos = p.npos
-		p.spaced = true
+		if b == '\n' {
+			p.newLine = true
+		} else {
+			p.spaced = true
+		}
 	}
 	p.unreadByte()
 	if reserved[b] || starters[b] {
@@ -284,7 +289,6 @@ func (p *parser) readUntilLine(s string) (string, bool) {
 		if l == s {
 			return buf.String(), true
 		}
-		fmt.Fprintln(&buf, l)
 	}
 	return buf.String(), false
 }
@@ -324,6 +328,8 @@ func (p *parser) followErr(left, right string) {
 }
 
 func (p *parser) wantFollow(left string, tok Token) {
+	for p.got('\n') {
+	}
 	if !p.got(tok) {
 		p.followErr(left, fmt.Sprintf(`%q`, tok))
 	}
@@ -337,10 +343,8 @@ func (p *parser) wantFollowStmt(left string, s *Stmt, wantStop bool) {
 
 func (p *parser) wantFollowStmts(left string, sts *[]Stmt, stop ...Token) {
 	if p.stmts(sts, stop...) < 1 {
-		if !p.gotAny(SEMICOLON, '\n') {
+		if !p.newLine && !p.gotAny(SEMICOLON, '\n') {
 			p.followErr(left, "a statement list")
-		}
-		for p.got('\n') {
 		}
 	}
 }
@@ -471,7 +475,7 @@ func (p *parser) readParts(ns *[]Node) (count int) {
 	for p.tok != EOF {
 		var n Node
 		switch {
-		case !p.quotedAny('"') && count > 0 && p.spaced:
+		case !p.quotedAny('"') && count > 0 && (p.spaced || p.newLine):
 			return
 		case p.got(LIT):
 			n = Lit{
@@ -553,11 +557,11 @@ func (p *parser) wordList(ws *[]Word) (count int) {
 }
 
 func (p *parser) peekEnd() bool {
-	return p.tok == EOF || p.peekAny(SEMICOLON, '\n', '#')
+	return p.tok == EOF || p.peekAny(SEMICOLON, '#')
 }
 
 func (p *parser) peekStop() bool {
-	if p.peekEnd() || p.peekAny(AND, OR, LAND, LOR) {
+	if p.newLine || p.peekEnd() || p.peekAny(AND, OR, LAND, LOR) {
 		return true
 	}
 	stop := p.stops[len(p.stops)-1]
@@ -575,10 +579,8 @@ func (p *parser) peekRedir() bool {
 }
 
 func (p *parser) gotStmt(s *Stmt, wantStop bool) bool {
-	for p.peekAny('#', '\n') {
-		if p.tok == '#' {
-			p.readLine()
-		}
+	for p.peekAny('#') {
+		p.readLine()
 		p.next()
 	}
 	addRedir := func() {
@@ -628,7 +630,7 @@ func (p *parser) gotStmt(s *Stmt, wantStop bool) bool {
 			}
 		}
 	}
-	if p.peekEnd() {
+	if p.peekEnd() && !p.newLine {
 		if p.tok == '#' {
 			p.readLine()
 		}
@@ -657,6 +659,7 @@ func (p *parser) redirect() (r Redirect) {
 		p.wantFollowLit(r.Op.String(), &l)
 		del := l.Value
 		s, _ := p.readUntilLine(del)
+		s = p.lval + "\n" + s // TODO: dirty hack, don't tokenize heredoc
 		body := del + "\n" + s + del
 		r.Word = Word{Parts: []Node{Lit{
 			ValuePos: lpos,
@@ -724,8 +727,9 @@ func (p *parser) forStmt() (fs ForStmt) {
 	p.wantFollowLit(`"for"`, &fs.Name)
 	if p.got(IN) {
 		p.wordList(&fs.WordList)
+	} else {
+		p.got(SEMICOLON)
 	}
-	p.gotAny(SEMICOLON, '\n')
 	p.wantFollow(`"for foo [in words]"`, DO)
 	p.wantFollowStmts(`"do"`, &fs.DoStmts, DONE)
 	p.wantStmtEnd("for", DONE)
@@ -736,8 +740,6 @@ func (p *parser) forStmt() (fs ForStmt) {
 func (p *parser) caseStmt() (cs CaseStmt) {
 	cs.Case = p.lpos
 	p.wantFollowWord(`"case"`, &cs.Word)
-	for p.got('\n') {
-	}
 	p.wantFollow(`"case x"`, IN)
 	if p.patLists(&cs.List) < 1 {
 		p.followErr(`"case x in"`, "one or more patterns")
