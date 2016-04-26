@@ -235,7 +235,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"for i",
-			`1:6: "for foo [in words]" must be followed by "do"`,
+			`1:6: "for foo" must be followed by "in", ; or a newline`,
 		},
 		{
 			"for i in;",
@@ -255,7 +255,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"for in 1 2 3; do echo $i; done",
-			`1:8: "for foo [in words]" must be followed by "do"`,
+			`1:8: "for foo" must be followed by "in", ; or a newline`,
 		},
 		{
 			"foo &\n;",

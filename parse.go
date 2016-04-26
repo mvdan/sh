@@ -543,8 +543,13 @@ func (p *parser) exp() Node {
 
 func (p *parser) wordList(ws *[]Word) {
 	for p.tok != EOF {
-		if p.peekStop() {
-			p.got(SEMICOLON)
+		if p.peekEnd() {
+			if !p.newLine {
+				if p.tok == '#' {
+					p.readLine()
+				}
+				p.next()
+			}
 			break
 		}
 		var w Word
@@ -555,11 +560,11 @@ func (p *parser) wordList(ws *[]Word) {
 }
 
 func (p *parser) peekEnd() bool {
-	return p.tok == EOF || p.peekAny(SEMICOLON, '#')
+	return p.tok == EOF || p.newLine || p.peekAny(SEMICOLON, '#')
 }
 
 func (p *parser) peekStop() bool {
-	if p.newLine || p.peekEnd() || p.peekAny(AND, OR, LAND, LOR) {
+	if p.peekEnd() || p.peekAny(AND, OR, LAND, LOR) {
 		return true
 	}
 	stop := p.stops[len(p.stops)-1]
@@ -736,8 +741,8 @@ func (p *parser) forStmt() (fs ForStmt) {
 	p.wantFollowLit(`"for"`, &fs.Name)
 	if p.got(IN) {
 		p.wordList(&fs.WordList)
-	} else {
-		p.got(SEMICOLON)
+	} else if !p.got(SEMICOLON) && !p.newLine {
+		p.followErr(`"for foo"`, `"in", ; or a newline`)
 	}
 	p.wantFollow(`"for foo [in words]"`, DO)
 	p.wantFollowStmts(`"do"`, &fs.DoStmts, DONE)

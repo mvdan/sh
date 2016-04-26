@@ -179,6 +179,7 @@ var tests = []testCase{
 		[]string{
 			"for i in 1 2 3; do echo $i; done",
 			"for i in 1 2 3\ndo echo $i\ndone",
+			"for i in 1 2 3 #foo\ndo echo $i\ndone",
 		},
 		ForStmt{
 			Name:     lit("i"),
