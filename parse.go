@@ -792,7 +792,7 @@ func (p *parser) patLists(plists *[]PatternList) {
 func (p *parser) cmdOrFunc(addRedir func()) Node {
 	var w Word
 	p.gotWord(&w)
-	if p.got(LPAREN) {
+	if !p.newLine && p.got(LPAREN) {
 		return p.funcDecl(w)
 	}
 	cmd := Command{Args: []Word{w}}

@@ -561,6 +561,20 @@ var tests = []testCase{
 		},
 	},
 	{
+		[]string{"foo; (bar)", "foo\n(bar)"},
+		[]Node{
+			litCmd("foo"),
+			Subshell{Stmts: litStmts("bar")},
+		},
+	},
+	{
+		[]string{"foo; (bar)", "foo\n(bar)"},
+		[]Node{
+			litCmd("foo"),
+			Subshell{Stmts: litStmts("bar")},
+		},
+	},
+	{
 		[]string{"a=\"\nbar\""},
 		Command{Args: []Word{
 			word(lit("a="), dblQuoted(lit("\nbar"))),
