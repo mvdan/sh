@@ -121,31 +121,25 @@ func (p *parser) readOnly(s string) bool {
 
 var (
 	reserved = map[byte]bool{
-		'\n': true,
-		'&':  true,
-		'>':  true,
-		'<':  true,
-		'|':  true,
-		';':  true,
-		'(':  true,
-		')':  true,
-		'$':  true,
-		'"':  true,
-		'`':  true,
+		'&': true,
+		'>': true,
+		'<': true,
+		'|': true,
+		';': true,
+		'(': true,
+		')': true,
+		'$': true,
+		'"': true,
+		'`': true,
 	}
 	// these are only reserved if at the start of a word
 	starters = map[byte]bool{
 		'#': true,
 	}
-	// these are only reserved if at the start of a word and are
-	// followed by space/newline
-	alone = map[byte]bool{
-		'{': true,
-		'}': true,
-	}
 	space = map[byte]bool{
 		' ':  true,
 		'\t': true,
+		'\n': true,
 	}
 	matching = map[Token]Token{
 		LPAREN:  RPAREN,
@@ -170,7 +164,7 @@ func (p *parser) next() {
 			p.readByte()
 			return
 		}
-		if p.quotedAny('\'', '"') || (!space[b] && b != '\n') {
+		if p.quotedAny('\'', '"') || !space[b] {
 			break
 		}
 		p.readByte()
