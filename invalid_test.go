@@ -207,7 +207,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"if a; then b; elif; then c; fi",
-			`1:19: ; can only immediately follow a statement`,
+			`1:19: "elif" must be followed by one or more statements`,
 		},
 		{
 			"if a; then b; elif c;",

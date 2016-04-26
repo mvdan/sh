@@ -25,6 +25,9 @@ func Parse(r io.Reader, name string) (File, error) {
 	}
 	p.next()
 	p.stmts(&p.file.Stmts)
+	if p.tok != EOF {
+		p.invalidStmtStart()
+	}
 	return p.file, p.err
 }
 
@@ -413,6 +416,9 @@ func (p *parser) curErr(format string, v ...interface{}) {
 }
 
 func (p *parser) stmts(sts *[]Stmt, stop ...Token) (count int) {
+	if p.peek(SEMICOLON) {
+		return
+	}
 	for p.tok != EOF && !p.peekAny(stop...) {
 		var s Stmt
 		if !p.gotStmt(&s, true) {
