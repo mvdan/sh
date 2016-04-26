@@ -350,12 +350,6 @@ func (p *parser) wantFollowWord(left string, w *Word) {
 	}
 }
 
-func (p *parser) wantFollowLit(left string, l *Lit) {
-	if !p.gotLit(l) {
-		p.followErr(left, "a literal")
-	}
-}
-
 func (p *parser) wantStmtEnd(name string, tok Token) {
 	if !p.got(tok) {
 		p.curErr(`%s statement must end with %q`, name, tok)
@@ -665,6 +659,19 @@ func (p *parser) binaryExpr(op Token, left Stmt) (b BinaryExpr) {
 	return
 }
 
+func unquote(w Word) Word {
+	w2 := w
+	w2.Parts = nil
+	for _, n := range w.Parts {
+		if dq, ok := n.(DblQuoted); ok {
+			w2.Parts = append(w2.Parts, dq.Parts...)
+		} else {
+			w2.Parts = append(w2.Parts, n)
+		}
+	}
+	return w2
+}
+
 func (p *parser) redirect() (r Redirect) {
 	p.gotLit(&r.N)
 	r.Op = p.tok
@@ -672,13 +679,13 @@ func (p *parser) redirect() (r Redirect) {
 	p.next()
 	switch r.Op {
 	case HEREDOC, DHEREDOC:
-		var l Lit
+		var w Word
 		lpos := p.pos
-		p.wantFollowLit(r.Op.String(), &l)
-		del := l.Value
+		p.wantFollowWord(r.Op.String(), &w)
+		del := unquote(w).String()
 		s, _ := p.readUntilLine(del)
 		s = p.lval + "\n" + s // TODO: dirty hack, don't tokenize heredoc
-		body := del + "\n" + s + del
+		body := w.String() + "\n" + s + del
 		r.Word = Word{Parts: []Node{Lit{
 			ValuePos: lpos,
 			Value:    body,
@@ -738,7 +745,9 @@ func (p *parser) whileStmt() (ws WhileStmt) {
 
 func (p *parser) forStmt() (fs ForStmt) {
 	fs.For = p.lpos
-	p.wantFollowLit(`"for"`, &fs.Name)
+	if !p.gotLit(&fs.Name) {
+		p.followErr(`"for"`, "a literal")
+	}
 	if p.got(IN) {
 		p.wordList(&fs.WordList)
 	} else if !p.got(SEMICOLON) && !p.newLine {
