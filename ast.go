@@ -138,7 +138,7 @@ type Block struct {
 	Stmts []Stmt
 }
 
-func (b Block) String() string { return "{ " + stmtJoin(b.Stmts) + "; }" }
+func (b Block) String() string { return "{" + stmtList(b.Stmts) + " }" }
 func (b Block) Pos() Pos       { return b.Rbrace }
 
 type IfStmt struct {
@@ -210,8 +210,8 @@ func (f ForStmt) Pos() Pos { return f.For }
 type BinaryExpr struct {
 	OpPos Pos
 
-	X, Y Stmt
 	Op   Token
+	X, Y Stmt
 }
 
 func (b BinaryExpr) String() string {
