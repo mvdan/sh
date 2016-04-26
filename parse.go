@@ -328,8 +328,6 @@ func (p *parser) followErr(left, right string) {
 }
 
 func (p *parser) wantFollow(left string, tok Token) {
-	for p.got('\n') {
-	}
 	if !p.got(tok) {
 		p.followErr(left, fmt.Sprintf(`%q`, tok))
 	}
@@ -343,7 +341,7 @@ func (p *parser) wantFollowStmt(left string, s *Stmt, wantStop bool) {
 
 func (p *parser) wantFollowStmts(left string, sts *[]Stmt, stop ...Token) {
 	if p.stmts(sts, stop...) < 1 {
-		if !p.newLine && !p.gotAny(SEMICOLON, '\n') {
+		if !p.newLine && !p.gotAny(SEMICOLON) {
 			p.followErr(left, "a statement list")
 		}
 	}
@@ -767,8 +765,6 @@ func (p *parser) patLists(plists *[]PatternList) {
 		return
 	}
 	for p.tok != EOF && !p.peek(ESAC) {
-		for p.got('\n') {
-		}
 		var pl PatternList
 		for p.tok != EOF {
 			var w Word
@@ -787,8 +783,6 @@ func (p *parser) patLists(plists *[]PatternList) {
 		*plists = append(*plists, pl)
 		if !p.got(DSEMICOLON) {
 			break
-		}
-		for p.got('\n') {
 		}
 	}
 	return
