@@ -342,7 +342,7 @@ func TestParseErr(t *testing.T) {
 		r := strings.NewReader(c.in)
 		_, err := Parse(r, "")
 		if err == nil {
-			t.Fatalf("Expected error in %q", c.in)
+			t.Fatalf("Expected error in %q: %v", c.in, c.want)
 		}
 		got := err.Error()
 		if got != c.want {

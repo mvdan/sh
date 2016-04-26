@@ -63,11 +63,7 @@ func stmtList(stmts []Stmt) string {
 	if len(stmts) == 0 {
 		return ";"
 	}
-	var b bytes.Buffer
-	for _, s := range stmts {
-		fmt.Fprintf(&b, " %s;", s)
-	}
-	return b.String()
+	return " " + stmtJoin(stmts) + ";"
 }
 
 func wordJoin(words []Word, sep string) string {

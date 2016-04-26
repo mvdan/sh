@@ -37,7 +37,7 @@ type parser struct {
 	file File
 	err  error
 
-	spaced, newLine bool
+	spaced, newLine, gotEnd bool
 
 	ltok, tok Token
 	lval, val string
@@ -437,6 +437,10 @@ func (p *parser) stmts(sts *[]Stmt, stop ...Token) (count int) {
 		}
 		*sts = append(*sts, s)
 		count++
+		if !p.peekAny(stop...) && !p.gotEnd {
+			p.curErr("statements must be separated by &, ; or a newline")
+			break
+		}
 	}
 	return
 }
@@ -579,6 +583,7 @@ func (p *parser) peekRedir() bool {
 }
 
 func (p *parser) gotStmt(s *Stmt, wantStop bool) bool {
+	p.gotEnd = false
 	for p.peekAny('#') {
 		p.readLine()
 		p.next()
@@ -593,34 +598,44 @@ func (p *parser) gotStmt(s *Stmt, wantStop bool) bool {
 	switch {
 	case p.got(LPAREN):
 		s.Node = p.subshell()
+		p.gotEnd = true
 	case p.got(LBRACE):
 		s.Node = p.block()
+		p.gotEnd = true
 	case p.got(IF):
 		s.Node = p.ifStmt()
+		p.gotEnd = true
 	case p.got(WHILE):
 		s.Node = p.whileStmt()
+		p.gotEnd = true
 	case p.got(FOR):
 		s.Node = p.forStmt()
+		p.gotEnd = true
 	case p.got(CASE):
 		s.Node = p.caseStmt()
+		p.gotEnd = true
 	case p.peekAny(LIT, EXP, '"', '`'):
 		s.Node = p.cmdOrFunc(addRedir)
+		p.gotEnd = false
 	}
 	for p.peekRedir() {
 		addRedir()
+		p.gotEnd = false
 	}
 	if s.Node == nil && len(s.Redirs) == 0 {
 		return false
 	}
 	if p.got(AND) {
 		s.Background = true
+		p.gotEnd = true
 	}
 	if !wantStop {
 		return true
 	}
 	if !s.Background {
 		if !p.peekStop() {
-			p.curErr("statements must be separated by &, ; or a newline")
+			p.gotEnd = false
+			return true
 		}
 		if p.gotAny(OR, LAND, LOR) {
 			left := *s
@@ -635,6 +650,10 @@ func (p *parser) gotStmt(s *Stmt, wantStop bool) bool {
 			p.readLine()
 		}
 		p.next()
+		p.gotEnd = true
+	}
+	if p.newLine {
+		p.gotEnd = true
 	}
 	return true
 }

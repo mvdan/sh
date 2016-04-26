@@ -629,6 +629,12 @@ var tests = []testCase{
 		[]string{"for i; do; done", "for i\ndo\ndone"},
 		ForStmt{Name: lit("i")},
 	},
+	{
+		[]string{"if { foo; }; then; fi", "if { foo; } then; fi"},
+		IfStmt{Conds: []Stmt{
+			stmt(block(litStmt("foo"))),
+		}},
+	},
 }
 
 func fullProg(v interface{}) (f File) {
