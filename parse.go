@@ -544,16 +544,15 @@ func (p *parser) exp() Node {
 	}
 }
 
-func (p *parser) wordList(ws *[]Word) (count int) {
+func (p *parser) wordList(ws *[]Word) {
 	for p.tok != EOF {
 		if p.peekStop() {
-			p.gotAny(SEMICOLON, '\n')
+			p.got(SEMICOLON)
 			break
 		}
 		var w Word
 		p.gotWord(&w)
 		*ws = append(*ws, w)
-		count++
 	}
 	return
 }

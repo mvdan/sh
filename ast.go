@@ -137,7 +137,7 @@ func (s Subshell) String() string {
 	}
 	return "(" + stmtJoin(s.Stmts) + ")"
 }
-func (s Subshell) Pos() Pos       { return s.Lparen }
+func (s Subshell) Pos() Pos { return s.Lparen }
 
 type Block struct {
 	Lbrace, Rbrace Pos
