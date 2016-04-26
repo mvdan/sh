@@ -106,6 +106,14 @@ func (p *parser) unreadByte() {
 	p.npos = p.bpos
 }
 
+func (p *parser) peekByte() (byte, error) {
+	bs, err := p.br.Peek(1)
+	if err != nil {
+		return 0, err
+	}
+	return bs[0], nil
+}
+
 func (p *parser) peekBytes(s string) bool {
 	bs, err := p.br.Peek(len(s))
 	if err != nil {
@@ -201,26 +209,26 @@ func (p *parser) advanceReadLit() { p.advanceBoth(LIT, string(p.readLitBytes()))
 func (p *parser) readLitBytes() (bs []byte) {
 	var lpos Pos
 	for {
-		b, err := p.readByte()
+		b, err := p.peekByte()
 		if err != nil {
 			if len(p.quotes) > 0 {
+				p.readByte()
 				p.wantQuote(lpos, Token(p.topQuote()))
 			}
-			break
+			return
 		}
 		switch {
 		case !p.quotedAny('\'') && b == '\\': // escaped byte
+			p.readByte()
 			b, _ = p.readByte()
 			if b != '\n' {
 				bs = append(bs, '\\', b)
 			}
 			continue
 		case !p.quotedAny('\'') && b == '$': // end of lit
-			p.unreadByte()
 			return
 		case p.quotedAny('"'):
 			if b == '"' || (p.quotedCmdSubst && b == ')') {
-				p.unreadByte()
 				return
 			}
 		case p.quotedAny('\''):
@@ -230,14 +238,12 @@ func (p *parser) readLitBytes() (bs []byte) {
 		case b == '\'':
 			p.pushQuote('\'')
 			lpos = p.npos
-			lpos.Column--
 		case reserved[b], space[b]: // end of lit
-			p.unreadByte()
 			return
 		}
+		p.readByte()
 		bs = append(bs, b)
 	}
-	return
 }
 
 func (p *parser) advanceTok(tok Token) { p.advanceBoth(tok, tok.String()) }
