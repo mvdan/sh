@@ -618,15 +618,15 @@ var tests = []testCase{
 		}},
 	},
 	{
-		[]string{"if ; then ; fi", "if\nthen\nfi"},
+		[]string{"if; then; fi", "if\nthen\nfi"},
 		IfStmt{},
 	},
 	{
-		[]string{"while ; do ; done", "while\ndo\ndone"},
+		[]string{"while; do; done", "while\ndo\ndone"},
 		WhileStmt{},
 	},
 	{
-		[]string{"for i; do ; done", "for i\ndo\ndone"},
+		[]string{"for i; do; done", "for i\ndo\ndone"},
 		ForStmt{Name: lit("i")},
 	},
 }

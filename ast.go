@@ -59,6 +59,17 @@ func stmtJoin(stmts []Stmt) string {
 	return b.String()
 }
 
+func stmtList(stmts []Stmt) string {
+	if len(stmts) == 0 {
+		return ";"
+	}
+	var b bytes.Buffer
+	for _, s := range stmts {
+		fmt.Fprintf(&b, " %s;", s)
+	}
+	return b.String()
+}
+
 func wordJoin(words []Word, sep string) string {
 	ns := make([]Node, len(words))
 	for i, w := range words {
@@ -145,15 +156,15 @@ type IfStmt struct {
 
 func (s IfStmt) String() string {
 	var b bytes.Buffer
-	fmt.Fprintf(&b, "if %s; ", stmtJoin(s.Conds))
-	fmt.Fprintf(&b, "then %s", stmtJoin(s.ThenStmts))
+	fmt.Fprintf(&b, "if%s", stmtList(s.Conds))
+	fmt.Fprintf(&b, " then%s", stmtList(s.ThenStmts))
 	for _, elif := range s.Elifs {
-		fmt.Fprintf(&b, "; %s", elif)
+		fmt.Fprintf(&b, " %s", elif)
 	}
 	if len(s.ElseStmts) > 0 {
-		fmt.Fprintf(&b, "; else %s", stmtJoin(s.ElseStmts))
+		fmt.Fprintf(&b, " else%s", stmtList(s.ElseStmts))
 	}
-	fmt.Fprintf(&b, "; fi")
+	fmt.Fprintf(&b, " fi")
 	return b.String()
 }
 func (s IfStmt) Pos() Pos { return s.If }
@@ -166,8 +177,7 @@ type Elif struct {
 }
 
 func (e Elif) String() string {
-	return fmt.Sprintf("elif %s; then %s", stmtJoin(e.Conds),
-		stmtJoin(e.ThenStmts))
+	return fmt.Sprintf("elif%s then%s", stmtList(e.Conds), stmtList(e.ThenStmts))
 }
 
 type WhileStmt struct {
@@ -178,8 +188,7 @@ type WhileStmt struct {
 }
 
 func (w WhileStmt) String() string {
-	return fmt.Sprintf("while %s; do %s; done", stmtJoin(w.Conds),
-		stmtJoin(w.DoStmts))
+	return fmt.Sprintf("while%s do%s done", stmtList(w.Conds), stmtList(w.DoStmts))
 }
 func (w WhileStmt) Pos() Pos { return w.While }
 
@@ -197,7 +206,7 @@ func (f ForStmt) String() string {
 	if len(f.WordList) > 0 {
 		fmt.Fprintf(&b, " in %s", wordJoin(f.WordList, " "))
 	}
-	fmt.Fprintf(&b, "; do %s; done", stmtJoin(f.DoStmts))
+	fmt.Fprintf(&b, "; do%s done", stmtList(f.DoStmts))
 	return b.String()
 }
 func (f ForStmt) Pos() Pos { return f.For }
