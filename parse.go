@@ -42,9 +42,6 @@ type parser struct {
 	ltok, tok Token
 	lval, val string
 
-	// backup position to unread a byte
-	bpos Pos
-
 	lpos, pos, npos Pos
 
 	// stacks of quotes, stop tokens, etc
@@ -90,20 +87,12 @@ func (p *parser) moveBytes(n int) {
 }
 
 func (p *parser) moveWith(b byte) {
-	p.bpos = p.npos
 	if b == '\n' {
 		p.npos.Line++
 		p.npos.Column = 1
 	} else {
 		p.npos.Column++
 	}
-}
-
-func (p *parser) unreadByte() {
-	if err := p.br.UnreadByte(); err != nil {
-		panic(err)
-	}
-	p.npos = p.bpos
 }
 
 func (p *parser) peekByte() (byte, error) {
@@ -168,16 +157,19 @@ func (p *parser) next() {
 	p.newLine = false
 	p.pos = p.npos
 	for {
-		var err error
-		if b, err = p.readByte(); err != nil {
-			return
-		}
-		if b == '\\' && p.readOnly("\n") {
+		if p.peekBytes("\\\n") {
+			p.moveBytes(2)
 			continue
+		}
+		var err error
+		if b, err = p.peekByte(); err != nil {
+			p.readByte()
+			return
 		}
 		if p.quotedAny('\'', '"') || (!space[b] && b != '\n') {
 			break
 		}
+		p.readByte()
 		p.pos = p.npos
 		if b == '\n' {
 			p.newLine = true
@@ -185,7 +177,6 @@ func (p *parser) next() {
 			p.spaced = true
 		}
 	}
-	p.unreadByte()
 	if reserved[b] || starters[b] {
 		// Between double quotes, only under certain
 		// circumstnaces do we tokenize
