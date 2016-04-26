@@ -756,15 +756,16 @@ func (p *parser) caseStmt() (cs CaseStmt) {
 	cs.Case = p.lpos
 	p.wantFollowWord(`"case"`, &cs.Word)
 	p.wantFollow(`"case x"`, IN)
-	if p.patLists(&cs.List) < 1 {
-		p.followErr(`"case x in"`, "one or more patterns")
-	}
+	p.patLists(&cs.List)
 	p.wantStmtEnd("case", ESAC)
 	cs.Esac = p.lpos
 	return
 }
 
-func (p *parser) patLists(plists *[]PatternList) (count int) {
+func (p *parser) patLists(plists *[]PatternList) {
+	if p.got(SEMICOLON) {
+		return
+	}
 	for p.tok != EOF && !p.peek(ESAC) {
 		for p.got('\n') {
 		}
@@ -784,7 +785,6 @@ func (p *parser) patLists(plists *[]PatternList) (count int) {
 		}
 		p.stmtsLimited(&pl.Stmts, DSEMICOLON, ESAC)
 		*plists = append(*plists, pl)
-		count++
 		if !p.got(DSEMICOLON) {
 			break
 		}

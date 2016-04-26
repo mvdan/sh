@@ -306,10 +306,6 @@ func TestParseErr(t *testing.T) {
 			`1:7: "case x" must be followed by "in"`,
 		},
 		{
-			"case i in",
-			`1:10: "case x in" must be followed by one or more patterns`,
-		},
-		{
 			"case i in 3) foo;",
 			`1:18: case statement must end with "esac"`,
 		},

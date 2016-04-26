@@ -638,10 +638,8 @@ var tests = []testCase{
 		ForStmt{Name: lit("i")},
 	},
 	{
-		[]string{"if { foo; }; then; fi", "if { foo; } then; fi"},
-		IfStmt{Conds: []Stmt{
-			stmt(block(litStmt("foo"))),
-		}},
+		[]string{"case i in; esac"},
+		CaseStmt{Word: litWord("i")},
 	},
 }
 

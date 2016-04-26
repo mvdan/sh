@@ -311,14 +311,16 @@ type CaseStmt struct {
 
 func (c CaseStmt) String() string {
 	var b bytes.Buffer
-	fmt.Fprintf(&b, "case %s in ", c.Word)
+	fmt.Fprintf(&b, "case %s in", c.Word)
 	for i, plist := range c.List {
-		if i > 0 {
-			fmt.Fprintf(&b, ";; ")
+		if i == 0 {
+			fmt.Fprint(&b, " ")
+		} else {
+			fmt.Fprint(&b, ";; ")
 		}
 		fmt.Fprint(&b, plist)
 	}
-	fmt.Fprintf(&b, "; esac")
+	fmt.Fprint(&b, "; esac")
 	return b.String()
 }
 func (c CaseStmt) Pos() Pos { return c.Case }
