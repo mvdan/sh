@@ -191,27 +191,27 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"if",
-			`1:3: "if" must be followed by one or more statements`,
+			`1:3: "if" must be followed by a statement list`,
 		},
 		{
 			"if foo;",
-			`1:8: "if x" must be followed by "then"`,
+			`1:8: "if [stmts]" must be followed by "then"`,
 		},
 		{
 			"if foo; bar",
-			`1:12: "if x" must be followed by "then"`,
+			`1:12: "if [stmts]" must be followed by "then"`,
+		},
+		{
+			"if foo then",
+			`1:12: "if [stmts]" must be followed by "then"`,
 		},
 		{
 			"if foo; then bar;",
 			`1:18: if statement must end with "fi"`,
 		},
 		{
-			"if a; then b; elif; then c; fi",
-			`1:19: "elif" must be followed by one or more statements`,
-		},
-		{
 			"if a; then b; elif c;",
-			`1:22: "elif x" must be followed by "then"`,
+			`1:22: "elif [stmts]" must be followed by "then"`,
 		},
 		{
 			"'foo' '",
@@ -223,15 +223,15 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"while",
-			`1:6: "while" must be followed by one or more statements`,
+			`1:6: "while" must be followed by a statement list`,
 		},
 		{
 			"while foo;",
-			`1:11: "while x" must be followed by "do"`,
+			`1:11: "while [stmts]" must be followed by "do"`,
 		},
 		{
 			"while foo; bar",
-			`1:15: "while x" must be followed by "do"`,
+			`1:15: "while [stmts]" must be followed by "do"`,
 		},
 		{
 			"while foo; do bar",
@@ -247,15 +247,15 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"for i",
-			`1:6: "for foo" must be followed by "do"`,
+			`1:6: "for foo [in words]" must be followed by "do"`,
 		},
 		{
 			"for i in;",
-			`1:10: "for foo in list" must be followed by "do"`,
+			`1:10: "for foo [in words]" must be followed by "do"`,
 		},
 		{
 			"for i in 1 2 3;",
-			`1:16: "for foo in list" must be followed by "do"`,
+			`1:16: "for foo [in words]" must be followed by "do"`,
 		},
 		{
 			"for i in 1 2 3; do echo $i;",
@@ -263,11 +263,11 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"for i in 1 2 3; echo $i;",
-			`1:17: "for foo in list" must be followed by "do"`,
+			`1:17: "for foo [in words]" must be followed by "do"`,
 		},
 		{
 			"for in 1 2 3; do echo $i; done",
-			`1:8: "for foo" must be followed by "do"`,
+			`1:8: "for foo [in words]" must be followed by "do"`,
 		},
 		{
 			"foo &\n;",

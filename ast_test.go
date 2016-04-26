@@ -170,7 +170,7 @@ var tests = []testCase{
 	{
 		[]string{
 			"for i in 1 2 3; do echo $i; done",
-			"for i\nin 1 2 3\ndo echo $i\ndone",
+			"for i in 1 2 3\ndo echo $i\ndone",
 		},
 		ForStmt{
 			Name:     lit("i"),
@@ -616,6 +616,18 @@ var tests = []testCase{
 			litWord("echo"),
 			word(ParamExp{Short: true, Text: "if"}),
 		}},
+	},
+	{
+		[]string{"if ; then ; fi"},
+		IfStmt{},
+	},
+	{
+		[]string{"while ; do ; done"},
+		WhileStmt{},
+	},
+	{
+		[]string{"for i; do ; done"},
+		ForStmt{Name: lit("i")},
 	},
 }
 

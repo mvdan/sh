@@ -337,7 +337,11 @@ func (p *parser) wantFollowStmt(left string, s *Stmt, wantStop bool) {
 
 func (p *parser) wantFollowStmts(left string, sts *[]Stmt, stop ...Token) {
 	if p.stmts(sts, stop...) < 1 {
-		p.followErr(left, "one or more statements")
+		if !p.gotAny(SEMICOLON, '\n') {
+			p.followErr(left, "a statement list")
+		}
+		for p.got('\n') {
+		}
 	}
 }
 
@@ -687,18 +691,18 @@ func (p *parser) block() (b Block) {
 func (p *parser) ifStmt() (fs IfStmt) {
 	fs.If = p.lpos
 	p.wantFollowStmts(`"if"`, &fs.Conds, THEN)
-	p.wantFollow(`"if x"`, THEN)
-	p.stmts(&fs.ThenStmts, FI, ELIF, ELSE)
+	p.wantFollow(`"if [stmts]"`, THEN)
+	p.wantFollowStmts(`"then"`, &fs.ThenStmts, FI, ELIF, ELSE)
 	for p.got(ELIF) {
 		var elf Elif
 		p.wantFollowStmts(`"elif"`, &elf.Conds, THEN)
 		elf.Elif = p.lpos
-		p.wantFollow(`"elif x"`, THEN)
-		p.stmts(&elf.ThenStmts, FI, ELIF, ELSE)
+		p.wantFollow(`"elif [stmts]"`, THEN)
+		p.wantFollowStmts(`"then"`, &elf.ThenStmts, FI, ELIF, ELSE)
 		fs.Elifs = append(fs.Elifs, elf)
 	}
 	if p.got(ELSE) {
-		p.stmts(&fs.ElseStmts, FI)
+		p.wantFollowStmts(`"else"`, &fs.ElseStmts, FI)
 	}
 	p.wantStmtEnd("if", FI)
 	fs.Fi = p.lpos
@@ -708,8 +712,8 @@ func (p *parser) ifStmt() (fs IfStmt) {
 func (p *parser) whileStmt() (ws WhileStmt) {
 	ws.While = p.lpos
 	p.wantFollowStmts(`"while"`, &ws.Conds, DO)
-	p.wantFollow(`"while x"`, DO)
-	p.stmts(&ws.DoStmts, DONE)
+	p.wantFollow(`"while [stmts]"`, DO)
+	p.wantFollowStmts(`"do"`, &ws.DoStmts, DONE)
 	p.wantStmtEnd("while", DONE)
 	ws.Done = p.lpos
 	return
@@ -718,17 +722,12 @@ func (p *parser) whileStmt() (ws WhileStmt) {
 func (p *parser) forStmt() (fs ForStmt) {
 	fs.For = p.lpos
 	p.wantFollowLit(`"for"`, &fs.Name)
-	for p.got('\n') {
-	}
-	desc := `"for foo"`
 	if p.got(IN) {
 		p.wordList(&fs.WordList)
-		desc = `"for foo in list"`
-	} else {
-		p.gotAny(SEMICOLON, '\n')
 	}
-	p.wantFollow(desc, DO)
-	p.stmts(&fs.DoStmts, DONE)
+	p.gotAny(SEMICOLON, '\n')
+	p.wantFollow(`"for foo [in words]"`, DO)
+	p.wantFollowStmts(`"do"`, &fs.DoStmts, DONE)
 	p.wantStmtEnd("for", DONE)
 	fs.Done = p.lpos
 	return
