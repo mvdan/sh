@@ -102,7 +102,7 @@ var tests = []testCase{
 		Subshell{},
 	},
 	{
-		[]string{"{ foo; }", "{foo;}", "{\nfoo\n}"},
+		[]string{"{ foo; }", "{\nfoo\n}"},
 		block(litStmt("foo")),
 	},
 	{
@@ -438,6 +438,10 @@ var tests = []testCase{
 	{
 		[]string{"echo foo#bar"},
 		litCmd("echo", "foo#bar"),
+	},
+	{
+		[]string{"echo {foo}"},
+		litCmd("echo", "{foo}"),
 	},
 	{
 		[]string{"$(foo bar)"},

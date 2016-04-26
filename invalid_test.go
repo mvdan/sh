@@ -70,7 +70,7 @@ func TestParseErr(t *testing.T) {
 			`1:1: } can only be used to close a block`,
 		},
 		{
-			"{#}",
+			"{ #}",
 			`1:1: reached EOF without matching token { with }`,
 		},
 		{
@@ -290,8 +290,8 @@ func TestParseErr(t *testing.T) {
 			`1:7: statements must be separated by &, ; or a newline`,
 		},
 		{
-			"{foo;} bar",
-			`1:8: statements must be separated by &, ; or a newline`,
+			"{ foo; } bar",
+			`1:10: statements must be separated by &, ; or a newline`,
 		},
 		{
 			"if foo; then bar; fi bar",

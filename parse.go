@@ -133,11 +133,15 @@ var (
 		'"':  true,
 		'`':  true,
 	}
-	// like reserved, but these are only reserved if at the start of a word
+	// these are only reserved if at the start of a word
 	starters = map[byte]bool{
+		'#': true,
+	}
+	// these are only reserved if at the start of a word and are
+	// followed by space/newline
+	alone = map[byte]bool{
 		'{': true,
 		'}': true,
-		'#': true,
 	}
 	space = map[byte]bool{
 		' ':  true,
@@ -262,8 +266,7 @@ func (p *parser) readUntil(s string) (string, bool) {
 	}
 }
 
-func (p *parser) readUntilMatched(left Token) string {
-	lpos := p.pos
+func (p *parser) readUntilMatched(left Token, lpos Pos) string {
 	right := matching[left]
 	s, found := p.readUntil(tokNames[right])
 	if found {
@@ -435,12 +438,12 @@ func (p *parser) stmts(sts *[]Stmt, stop ...Token) (count int) {
 }
 
 func (p *parser) invalidStmtStart() {
-	switch p.tok {
-	case SEMICOLON, AND, OR, LAND, LOR:
+	switch {
+	case p.peekAny(SEMICOLON, AND, OR, LAND, LOR):
 		p.curErr("%s can only immediately follow a statement", p.tok)
-	case RBRACE:
-		p.curErr("%s can only be used to close a block", p.tok)
-	case RPAREN:
+	case p.peekAny(RBRACE):
+		p.curErr("%s can only be used to close a block", p.val)
+	case p.peekAny(RPAREN):
 		p.curErr("%s can only be used to close a subshell", p.tok)
 	default:
 		p.curErr("%s is not a valid start for a statement", p.tok)
@@ -493,7 +496,7 @@ func (p *parser) readParts(ns *[]Node) (count int) {
 			p.popQuote()
 			p.wantQuote(bq.Quote, '`')
 			n = bq
-		case p.got(EXP):
+		case p.peek(EXP):
 			n = p.exp()
 		default:
 			return
@@ -506,17 +509,21 @@ func (p *parser) readParts(ns *[]Node) (count int) {
 
 func (p *parser) exp() Node {
 	switch {
-	case p.peek(LBRACE):
+	case p.peekBytes("{"):
+		lpos := p.npos
+		p.readByte()
 		return ParamExp{
-			Exp:  p.pos,
-			Text: p.readUntilMatched(LBRACE),
+			Exp:  lpos,
+			Text: p.readUntilMatched(LBRACE, lpos),
 		}
-	case p.peek(DLPAREN):
+	case p.peekBytes("(("):
+		p.next()
 		return ArithmExp{
 			Exp:  p.pos,
-			Text: p.readUntilMatched(DLPAREN),
+			Text: p.readUntilMatched(DLPAREN, p.pos),
 		}
-	case p.peek(LPAREN):
+	case p.peekBytes("("):
+		p.next()
 		var cs CmdSubst
 		p.quotedCmdSubst = p.quotedAny('"')
 		p.next()
@@ -526,6 +533,7 @@ func (p *parser) exp() Node {
 		p.wantMatched(cs.Exp, LPAREN)
 		return cs
 	default:
+		p.next()
 		p.next()
 		return ParamExp{
 			Exp:   p.lpos,
@@ -595,6 +603,8 @@ func (p *parser) gotStmt(s *Stmt, wantStop bool) bool {
 	case p.got(LBRACE):
 		s.Node = p.block()
 		p.gotEnd = true
+	case p.peek(RBRACE):
+		return false
 	case p.got(IF):
 		s.Node = p.ifStmt()
 		p.gotEnd = true
