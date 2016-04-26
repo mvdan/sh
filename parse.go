@@ -52,9 +52,21 @@ type parser struct {
 	quotedCmdSubst bool
 }
 
-func (p *parser) pushQuote(b byte) { p.quotes = append(p.quotes, b) }
-func (p *parser) topQuote() byte   { return p.quotes[len(p.quotes)-1] }
-func (p *parser) popQuote()        { p.quotes = p.quotes[:len(p.quotes)-1] }
+func (p *parser) curStops() []Token { return p.stops[len(p.stops)-1] }
+func (p *parser) pushStops(stop ...Token) {
+	p.stops = append(p.stops, append(p.curStops(), stop...))
+}
+func (p *parser) popStops() { p.stops = p.stops[:len(p.stops)-1] }
+
+func (p *parser) curQuote() byte { return p.quotes[len(p.quotes)-1] }
+func (p *parser) pushQuote(b byte) {
+	p.quotes = append(p.quotes, b)
+	p.pushStops(Token(b))
+}
+func (p *parser) popQuote() {
+	p.quotes = p.quotes[:len(p.quotes)-1]
+	p.popStops()
+}
 func (p *parser) quotedAny(bs ...byte) bool {
 	for _, b := range bs {
 		for _, q := range p.quotes {
@@ -202,7 +214,7 @@ func (p *parser) readLitBytes() (bs []byte) {
 		if err != nil {
 			if len(p.quotes) > 0 {
 				p.readByte()
-				p.wantQuote(lpos, Token(p.topQuote()))
+				p.wantQuote(lpos, Token(p.curQuote()))
 			}
 			return
 		}
@@ -445,9 +457,9 @@ func (p *parser) invalidStmtStart() {
 }
 
 func (p *parser) stmtsLimited(sts *[]Stmt, stop ...Token) int {
-	p.stops = append(p.stops, stop)
-	count := p.stmts(sts, stop...)
-	p.stops = p.stops[:len(p.stops)-1]
+	p.pushStops(stop...)
+	count := p.stmts(sts, p.curStops()...)
+	p.popStops()
 	return count
 }
 
@@ -563,8 +575,7 @@ func (p *parser) peekStop() bool {
 	if p.peekEnd() || p.peekAny(AND, OR, LAND, LOR) {
 		return true
 	}
-	stop := p.stops[len(p.stops)-1]
-	return p.peekAny(stop...)
+	return p.peekAny(p.curStops()...)
 }
 
 func (p *parser) peekRedir() bool {

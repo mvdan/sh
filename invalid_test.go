@@ -321,6 +321,14 @@ func TestParseErr(t *testing.T) {
 			"case i in &) foo;",
 			`1:11: case patterns must consist of words`,
 		},
+		{
+			"\"`\"",
+			"1:2: reached \" without closing quote `",
+		},
+		{
+			"`\"`",
+			"1:2: reached ` without closing quote \"",
+		},
 	}
 	for _, c := range errs {
 		r := strings.NewReader(c.in)
