@@ -129,7 +129,14 @@ type Subshell struct {
 	Stmts []Stmt
 }
 
-func (s Subshell) String() string { return "(" + stmtJoin(s.Stmts) + ")" }
+func (s Subshell) String() string {
+	if len(s.Stmts) == 0 {
+		// To avoid clashing with () which is used to declare
+		// funcs
+		return "( )"
+	}
+	return "(" + stmtJoin(s.Stmts) + ")"
+}
 func (s Subshell) Pos() Pos       { return s.Lparen }
 
 type Block struct {

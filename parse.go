@@ -692,9 +692,7 @@ func (p *parser) redirect() (r Redirect) {
 
 func (p *parser) subshell() (s Subshell) {
 	s.Lparen = p.lpos
-	if p.stmtsLimited(&s.Stmts, RPAREN) < 1 {
-		p.curErr("a subshell must contain one or more statements")
-	}
+	p.stmtsLimited(&s.Stmts, RPAREN)
 	p.wantMatched(s.Lparen, LPAREN)
 	s.Rparen = p.lpos
 	return
@@ -702,9 +700,7 @@ func (p *parser) subshell() (s Subshell) {
 
 func (p *parser) block() (b Block) {
 	b.Lbrace = p.lpos
-	if p.stmts(&b.Stmts, RBRACE) < 1 {
-		p.curErr("a block must contain one or more statements")
-	}
+	p.stmts(&b.Stmts, RBRACE)
 	p.wantMatched(b.Lbrace, LBRACE)
 	b.Rbrace = p.lpos
 	return

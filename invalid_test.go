@@ -63,11 +63,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"{",
-			`1:2: a block must contain one or more statements`,
-		},
-		{
-			"{}",
-			`1:2: a block must contain one or more statements`,
+			`1:1: reached EOF without matching token { with }`,
 		},
 		{
 			"}",
@@ -75,11 +71,11 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"{#}",
-			`1:4: a block must contain one or more statements`,
+			`1:1: reached EOF without matching token { with }`,
 		},
 		{
 			"(",
-			`1:2: a subshell must contain one or more statements`,
+			`1:1: reached EOF without matching token ( with )`,
 		},
 		{
 			")",
@@ -88,14 +84,6 @@ func TestParseErr(t *testing.T) {
 		{
 			";;",
 			`1:1: ;; is not a valid start for a statement`,
-		},
-		{
-			"()",
-			`1:2: a subshell must contain one or more statements`,
-		},
-		{
-			"( #foo\n)",
-			`2:1: a subshell must contain one or more statements`,
 		},
 		{
 			"( foo;",
@@ -155,7 +143,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"foo() {",
-			`1:8: a block must contain one or more statements`,
+			`1:7: reached EOF without matching token { with }`,
 		},
 		{
 			"echo foo(",
@@ -287,7 +275,7 @@ func TestParseErr(t *testing.T) {
 		},
 		{
 			"#foo\n{",
-			`2:2: a block must contain one or more statements`,
+			`2:1: reached EOF without matching token { with }`,
 		},
 		{
 			`echo "foo${bar"`,

@@ -94,6 +94,14 @@ var tests = []testCase{
 		Subshell{Stmts: litStmts("foo")},
 	},
 	{
+		[]string{"(foo; bar)"},
+		Subshell{Stmts: litStmts("foo", "bar")},
+	},
+	{
+		[]string{"( )"},
+		Subshell{},
+	},
+	{
 		[]string{"{ foo; }", "{foo;}", "{\nfoo\n}"},
 		block(litStmt("foo")),
 	},
