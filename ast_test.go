@@ -60,7 +60,7 @@ type testCase struct {
 	ast  interface{}
 }
 
-var tests = []testCase{
+var astTests = []testCase{
 	{
 		[]string{"", " ", "\t", "\n \n"},
 		nil,
@@ -809,7 +809,7 @@ func TestNodePos(t *testing.T) {
 		Column: 34,
 	}
 	defaultPos = p
-	allTests := tests
+	allTests := astTests
 	for _, v := range []interface{}{
 		Command{},
 		Command{Args: []Word{
@@ -834,7 +834,7 @@ func TestNodePos(t *testing.T) {
 }
 
 func TestParseAST(t *testing.T) {
-	for _, c := range tests {
+	for _, c := range astTests {
 		want := fullProg(c.ast)
 		setPos(t, want.Stmts, Pos{}, false)
 		for _, in := range c.strs {
@@ -853,7 +853,7 @@ func TestParseAST(t *testing.T) {
 }
 
 func TestPrintAST(t *testing.T) {
-	for _, c := range tests {
+	for _, c := range astTests {
 		in := fullProg(c.ast)
 		want := c.strs[0]
 		got := in.String()
