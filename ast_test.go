@@ -452,11 +452,13 @@ var astTests = []testCase{
 	{
 		[]string{"$(foo | bar)"},
 		Command{Args: []Word{
-			word(cmdSubst(stmt(BinaryExpr{
-				Op: OR,
-				X:  litStmt("foo"),
-				Y:  litStmt("bar"),
-			}))),
+			word(cmdSubst(
+				stmt(BinaryExpr{
+					Op: OR,
+					X:  litStmt("foo"),
+					Y:  litStmt("bar"),
+				}),
+			)),
 		}},
 	},
 	{
@@ -468,11 +470,13 @@ var astTests = []testCase{
 	{
 		[]string{"`foo | bar`"},
 		Command{Args: []Word{
-			word(bckQuoted(stmt(BinaryExpr{
-				Op: OR,
-				X:  litStmt("foo"),
-				Y:  litStmt("bar"),
-			}))),
+			word(bckQuoted(
+				stmt(BinaryExpr{
+					Op: OR,
+					X:  litStmt("foo"),
+					Y:  litStmt("bar"),
+				}),
+			)),
 		}},
 	},
 	{
@@ -484,10 +488,12 @@ var astTests = []testCase{
 	{
 		[]string{"`foo \"bar\"`"},
 		Command{Args: []Word{
-			word(bckQuoted(stmt(Command{Args: []Word{
-				litWord("foo"),
-				word(dblQuoted(lit("bar"))),
-			}}))),
+			word(bckQuoted(
+				stmt(Command{Args: []Word{
+					litWord("foo"),
+					word(dblQuoted(lit("bar"))),
+				}}),
+			)),
 		}},
 	},
 	{
