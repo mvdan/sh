@@ -344,3 +344,18 @@ func TestParseErr(t *testing.T) {
 		}
 	}
 }
+
+func TestInputName(t *testing.T) {
+	in := errTests[0].in
+	want := "some-file.sh:" + errTests[0].want
+	r := strings.NewReader(in)
+	_, err := Parse(r, "some-file.sh")
+	if err == nil {
+		t.Fatalf("Expected error in %q: %v", in, want)
+	}
+	got := err.Error()
+	if got != want {
+		t.Fatalf("Error mismatch in %q\nwant: %s\ngot:  %s",
+			in, want, got)
+	}
+}
