@@ -226,7 +226,7 @@ func (p *parser) readLitBytes() (bs []byte) {
 				bs = append(bs, '\\', b)
 			}
 			continue
-		case !p.quotedAny('\'') && b == '$': // end of lit
+		case !p.quotedAny('\'') && (b == '$' || b == '`'): // end of lit
 			return
 		case p.quotedAny('"'):
 			if b == '"' || (p.quotedCmdSubst && b == ')') {
