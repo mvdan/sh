@@ -601,32 +601,28 @@ func (p *parser) gotStmt(s *Stmt, wantStop bool) bool {
 	for p.peekRedir() {
 		addRedir()
 	}
+	end := true
 	switch {
 	case p.got(LPAREN):
 		s.Node = p.subshell()
-		p.gotEnd = true
 	case p.got(LBRACE):
 		s.Node = p.block()
-		p.gotEnd = true
 	case p.got(IF):
 		s.Node = p.ifStmt()
-		p.gotEnd = true
 	case p.got(WHILE):
 		s.Node = p.whileStmt()
-		p.gotEnd = true
 	case p.got(FOR):
 		s.Node = p.forStmt()
-		p.gotEnd = true
 	case p.got(CASE):
 		s.Node = p.caseStmt()
-		p.gotEnd = true
 	case p.peek(RBRACE):
 		// don't let it be a LIT
 		return false
 	case p.peekAny(LIT, EXP, '"', '`'):
 		s.Node = p.cmdOrFunc(addRedir)
-		p.gotEnd = false
+		end = false
 	}
+	p.gotEnd = end
 	for p.peekRedir() {
 		addRedir()
 		p.gotEnd = false
