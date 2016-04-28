@@ -216,6 +216,20 @@ var astTests = []testCase{
 		litCmd(`foo`, `\"`, `bar`),
 	},
 	{
+		[]string{`'"'`},
+		Command{Args: litWords(`'"'`)},
+	},
+	{
+		[]string{"'`'"},
+		Command{Args: litWords("'`'")},
+	},
+	{
+		[]string{`"'"`},
+		Command{Args: []Word{
+			word(dblQuoted(lit("'"))),
+		}},
+	},
+	{
 		[]string{"s{s s=s"},
 		litCmd("s{s", "s=s"),
 	},
