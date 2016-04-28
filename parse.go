@@ -608,8 +608,6 @@ func (p *parser) gotStmt(s *Stmt, wantStop bool) bool {
 	case p.got(LBRACE):
 		s.Node = p.block()
 		p.gotEnd = true
-	case p.peek(RBRACE):
-		return false
 	case p.got(IF):
 		s.Node = p.ifStmt()
 		p.gotEnd = true
@@ -622,6 +620,9 @@ func (p *parser) gotStmt(s *Stmt, wantStop bool) bool {
 	case p.got(CASE):
 		s.Node = p.caseStmt()
 		p.gotEnd = true
+	case p.peek(RBRACE):
+		// don't let it be a LIT
+		return false
 	case p.peekAny(LIT, EXP, '"', '`'):
 		s.Node = p.cmdOrFunc(addRedir)
 		p.gotEnd = false
