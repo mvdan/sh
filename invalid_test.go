@@ -328,6 +328,10 @@ var errTests = []struct {
 		"`\"`",
 		"1:2: reached ` without closing quote \"",
 	},
+	{
+		"echo \"`)`\"",
+		`1:8: ) can only be used to close a subshell`,
+	},
 }
 
 func TestParseErr(t *testing.T) {
