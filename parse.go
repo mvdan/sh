@@ -633,14 +633,13 @@ func (p *parser) gotStmt(s *Stmt, wantStop bool) bool {
 	if s.Node == nil && len(s.Redirs) == 0 {
 		return false
 	}
-	if p.got(AND) {
-		s.Background = true
-		p.gotEnd = true
-	}
 	if !wantStop {
 		return true
 	}
-	if !s.Background {
+	if p.got(AND) {
+		s.Background = true
+		p.gotEnd = true
+	} else {
 		if !p.peekStop() {
 			p.gotEnd = false
 			return true
