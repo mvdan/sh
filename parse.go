@@ -146,10 +146,6 @@ var (
 		'"': true,
 		'`': true,
 	}
-	// these are only reserved if at the start of a word
-	starters = map[byte]bool{
-		'#': true,
-	}
 	space = map[byte]bool{
 		' ':  true,
 		'\t': true,
@@ -188,7 +184,10 @@ func (p *parser) next() {
 			p.newLine = true
 		}
 	}
-	if reserved[b] || starters[b] {
+	switch {
+	case b == '#':
+		p.advanceBoth('#', p.readLine())
+	case reserved[b]:
 		// Between double quotes, only under certain
 		// circumstnaces do we tokenize
 		if p.doubleQuoted() {
@@ -201,7 +200,7 @@ func (p *parser) next() {
 		}
 		tok, _ := doToken(p.readOnly, p.readByte)
 		p.advanceTok(tok)
-	} else {
+	default:
 		p.advanceReadLit()
 	}
 }
@@ -519,7 +518,11 @@ func (p *parser) exp() Node {
 			Text: p.readUntilMatched(LBRACE, lpos),
 		}
 	}
-	p.next()
+	if p.readOnly("#") {
+		p.advanceBoth(Token('#'), "#")
+	} else {
+		p.next()
+	}
 	switch {
 	case p.peek(DLPAREN):
 		return ArithmExp{
@@ -552,9 +555,6 @@ func (p *parser) wordList(ws *[]Word) {
 		*ws = append(*ws, w)
 	}
 	if !p.newLine {
-		if p.tok == '#' {
-			p.readLine()
-		}
 		p.next()
 	}
 }
@@ -582,9 +582,7 @@ func (p *parser) peekRedir() bool {
 
 func (p *parser) gotStmt(s *Stmt, wantStop bool) bool {
 	p.gotEnd = false
-	for p.peekAny('#') {
-		p.readLine()
-		p.next()
+	for p.got('#') {
 	}
 	addRedir := func() {
 		s.Redirs = append(s.Redirs, p.redirect())
@@ -642,9 +640,6 @@ func (p *parser) gotStmt(s *Stmt, wantStop bool) bool {
 		}
 	}
 	if p.peekEnd() && !p.newLine {
-		if p.tok == '#' {
-			p.readLine()
-		}
 		p.next()
 		p.gotEnd = true
 	}
