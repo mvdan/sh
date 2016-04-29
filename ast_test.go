@@ -547,7 +547,7 @@ var astTests = []testCase{
 		}},
 	},
 	{
-		[]string{`echo "$(foo bar)"`},
+		[]string{`echo "$(foo bar)"`, `echo "$(foo  bar)"`},
 		Command{Args: []Word{
 			litWord("echo"),
 			word(dblQuoted(cmdSubst(litStmt("foo", "bar")))),
@@ -561,7 +561,7 @@ var astTests = []testCase{
 		}},
 	},
 	{
-		[]string{"echo \"`foo bar`\""},
+		[]string{"echo \"`foo bar`\"", "echo \"`foo  bar`\""},
 		Command{Args: []Word{
 			litWord("echo"),
 			word(dblQuoted(bckQuoted(litStmt("foo", "bar")))),

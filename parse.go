@@ -50,8 +50,11 @@ type parser struct {
 }
 
 func (p *parser) curStops() []Token { return p.stops[len(p.stops)-1] }
-func (p *parser) pushStops(stop ...Token) {
-	p.stops = append(p.stops, append(p.curStops(), stop...))
+func (p *parser) newStops(stop ...Token) {
+	p.stops = append(p.stops, stop)
+}
+func (p *parser) addStops(stop ...Token) {
+	p.newStops(append(p.curStops(), stop...)...)
 }
 func (p *parser) popStops() { p.stops = p.stops[:len(p.stops)-1] }
 
@@ -64,7 +67,7 @@ func (p *parser) curQuote() byte {
 
 func (p *parser) pushQuote(b byte) {
 	p.quotes = append(p.quotes, b)
-	p.pushStops(Token(b))
+	p.addStops(Token(b))
 }
 
 func (p *parser) popQuote() {
@@ -457,7 +460,14 @@ func (p *parser) invalidStmtStart() {
 }
 
 func (p *parser) stmtsLimited(sts *[]Stmt, stop ...Token) int {
-	p.pushStops(stop...)
+	p.addStops(stop...)
+	count := p.stmts(sts, p.curStops()...)
+	p.popStops()
+	return count
+}
+
+func (p *parser) stmtsNested(sts *[]Stmt, stop Token) int {
+	p.newStops(stop)
 	count := p.stmts(sts, p.curStops()...)
 	p.popStops()
 	return count
@@ -498,7 +508,7 @@ func (p *parser) readParts(ns *[]Node) (count int) {
 			p.pushQuote('`')
 			bq.Quote = p.pos
 			p.next()
-			p.stmtsLimited(&bq.Stmts, '`')
+			p.stmtsNested(&bq.Stmts, '`')
 			p.popQuote()
 			p.wantQuote(bq.Quote, '`')
 			n = bq
@@ -534,7 +544,7 @@ func (p *parser) exp() Node {
 		p.pushQuote('`')
 		p.next()
 		cs.Exp = p.lpos
-		p.stmtsLimited(&cs.Stmts, RPAREN)
+		p.stmtsNested(&cs.Stmts, RPAREN)
 		p.popQuote()
 		p.wantMatched(cs.Exp, LPAREN)
 		return cs

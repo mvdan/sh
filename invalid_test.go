@@ -322,7 +322,7 @@ var errTests = []struct {
 	},
 	{
 		"\"`\"",
-		"1:2: reached \" without closing quote `",
+		`1:3: reached EOF without closing quote "`,
 	},
 	{
 		"`\"`",
