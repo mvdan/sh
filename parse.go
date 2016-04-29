@@ -47,9 +47,6 @@ type parser struct {
 	// stacks of quotes, stop tokens, etc
 	quotes []byte
 	stops  [][]Token
-
-	// to not include ')' in a literal, etc
-	nestedCmd bool
 }
 
 func (p *parser) curStops() []Token { return p.stops[len(p.stops)-1] }
@@ -206,7 +203,7 @@ func (p *parser) next() {
 		if p.quotedAny('"') {
 			switch {
 			case b == '`', b == '"', b == '$', p.tok == EXP:
-			case b == ')' && p.nestedCmd:
+			case b == ')' && !p.keepSpaces():
 			default:
 				p.advanceReadLit()
 				return
@@ -242,7 +239,7 @@ func (p *parser) readLitBytes() (bs []byte) {
 		case !p.quotedAny('\'') && (b == '$' || b == '`'): // end of lit
 			return
 		case p.quotedAny('"'):
-			if b == '"' || (p.nestedCmd && b == ')') {
+			if b == '"' || (!p.keepSpaces() && b == ')') {
 				return
 			}
 			if space[b] && !p.keepSpaces() {
@@ -513,10 +510,8 @@ func (p *parser) readParts(ns *[]Node) (count int) {
 			var bq BckQuoted
 			p.pushQuote('`')
 			bq.Quote = p.pos
-			p.nestedCmd = true
 			p.next()
 			p.stmtsLimited(&bq.Stmts, '`')
-			p.nestedCmd = false
 			p.popQuote()
 			p.wantQuote(bq.Quote, '`')
 			n = bq
@@ -549,13 +544,11 @@ func (p *parser) exp() Node {
 	case p.peekBytes("("):
 		p.next()
 		var cs CmdSubst
-		p.nestedCmd = true
 		p.pushQuote('`')
 		p.next()
 		cs.Exp = p.lpos
 		p.stmtsLimited(&cs.Stmts, RPAREN)
 		p.popQuote()
-		p.nestedCmd = false
 		p.wantMatched(cs.Exp, LPAREN)
 		return cs
 	default:
