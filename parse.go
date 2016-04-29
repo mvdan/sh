@@ -114,10 +114,7 @@ func (p *parser) peekByte() (byte, error) {
 
 func (p *parser) peekBytes(s string) bool {
 	bs, err := p.br.Peek(len(s))
-	if err != nil {
-		return false
-	}
-	return string(bs) == s
+	return err == nil && string(bs) == s
 }
 
 func (p *parser) readOnly(s string) bool {
@@ -218,8 +215,7 @@ func (p *parser) readLitBytes() (bs []byte) {
 		switch {
 		case !singleQuoted && b == '\\': // escaped byte
 			p.readByte()
-			b, _ = p.readByte()
-			if b != '\n' {
+			if b, _ = p.readByte(); b != '\n' {
 				bs = append(bs, '\\', b)
 			}
 			continue
@@ -286,8 +282,7 @@ func (p *parser) readLine() string {
 func (p *parser) readUntilLine(s string) (string, bool) {
 	var buf bytes.Buffer
 	for p.tok != EOF {
-		l := p.readLine()
-		if l == s {
+		if s == p.readLine() {
 			return buf.String(), true
 		}
 	}
@@ -517,22 +512,22 @@ func (p *parser) readParts(ns *[]Node) (count int) {
 }
 
 func (p *parser) exp() Node {
-	switch {
-	case p.peekBytes("{"):
+	if p.peekBytes("{") {
 		lpos := p.npos
 		p.readByte()
 		return ParamExp{
 			Exp:  lpos,
 			Text: p.readUntilMatched(LBRACE, lpos),
 		}
-	case p.peekBytes("(("):
-		p.next()
+	}
+	p.next()
+	switch {
+	case p.peek(DLPAREN):
 		return ArithmExp{
 			Exp:  p.pos,
 			Text: p.readUntilMatched(DLPAREN, p.pos),
 		}
-	case p.peekBytes("("):
-		p.next()
+	case p.peek(LPAREN):
 		var cs CmdSubst
 		p.pushQuote('`')
 		p.next()
@@ -542,7 +537,6 @@ func (p *parser) exp() Node {
 		p.wantMatched(cs.Exp, LPAREN)
 		return cs
 	default:
-		p.next()
 		p.next()
 		return ParamExp{
 			Exp:   p.lpos,
