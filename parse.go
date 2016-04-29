@@ -67,15 +67,20 @@ func (p *parser) popQuote() {
 	p.quotes = p.quotes[:len(p.quotes)-1]
 	p.popStops()
 }
+func (p *parser) quoted(b byte) int { return bytes.IndexByte(p.quotes, b) }
 func (p *parser) quotedAny(bs ...byte) bool {
 	for _, b := range bs {
-		for _, q := range p.quotes {
-			if b == q {
-				return true
-			}
+		if p.quoted(b) >= 0 {
+			return true
 		}
 	}
 	return false
+}
+
+// Subshells inside double quotes do not keep spaces, e.g. "$(foo  bar)"
+// equals "$(foo bar)"
+func (p *parser) keepSpaces() bool {
+	return p.quoted('"') > p.quoted('`')
 }
 
 func (p *parser) readByte() (byte, error) {
@@ -176,7 +181,7 @@ func (p *parser) next() {
 			p.readByte()
 			return
 		}
-		if p.quotedAny('\'', '"') || !space[b] {
+		if p.quotedAny('\'') || p.keepSpaces() || !space[b] {
 			break
 		}
 		p.readByte()
@@ -230,6 +235,9 @@ func (p *parser) readLitBytes() (bs []byte) {
 			return
 		case p.quotedAny('"'):
 			if b == '"' || (p.nestedCmd && b == ')') {
+				return
+			}
+			if space[b] && !p.keepSpaces() {
 				return
 			}
 		case p.quotedAny('\''):
@@ -477,7 +485,7 @@ func (p *parser) readParts(ns *[]Node) (count int) {
 	for p.tok != EOF {
 		var n Node
 		switch {
-		case !p.quotedAny('"') && count > 0 && (p.spaced || p.newLine):
+		case !p.keepSpaces() && count > 0 && (p.spaced || p.newLine):
 			return
 		case p.got(LIT):
 			n = Lit{
