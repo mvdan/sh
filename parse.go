@@ -44,6 +44,8 @@ type parser struct {
 
 	lpos, pos, npos Pos
 
+	singleQuoted bool
+
 	// stacks of quotes, stop tokens, etc
 	quotes []byte
 	stops  [][]Token
@@ -58,13 +60,6 @@ func (p *parser) addStops(stop ...Token) {
 }
 func (p *parser) popStops() { p.stops = p.stops[:len(p.stops)-1] }
 
-func (p *parser) curQuote() byte {
-	if len(p.quotes) == 0 {
-		return 0
-	}
-	return p.quotes[len(p.quotes)-1]
-}
-
 func (p *parser) pushQuote(b byte) {
 	p.quotes = append(p.quotes, b)
 	p.addStops(Token(b))
@@ -76,7 +71,7 @@ func (p *parser) popQuote() {
 }
 
 func (p *parser) quoteIndex(b byte) int { return bytes.IndexByte(p.quotes, b) }
-func (p *parser) quoted(b byte) bool { return p.quoteIndex(b) >= 0 }
+func (p *parser) quoted(b byte) bool    { return p.quoteIndex(b) >= 0 }
 
 // Subshells inside double quotes do not keep spaces, e.g. "$(foo  bar)"
 // equals "$(foo bar)"
@@ -180,7 +175,7 @@ func (p *parser) next() {
 			p.readByte()
 			return
 		}
-		if p.quoted('\'') || p.doubleQuoted() || !space[b] {
+		if p.singleQuoted || p.doubleQuoted() || !space[b] {
 			break
 		}
 		p.readByte()
@@ -215,32 +210,30 @@ func (p *parser) readLitBytes() (bs []byte) {
 	for {
 		b, err := p.peekByte()
 		if err != nil {
-			if p.curQuote() == '\'' {
+			if p.singleQuoted {
 				p.readByte()
-				p.wantQuote(lpos, Token('\''))
+				p.wantQuote(lpos, '\'')
 			}
 			return
 		}
 		switch {
-		case !p.quoted('\'') && b == '\\': // escaped byte
+		case !p.singleQuoted && b == '\\': // escaped byte
 			p.readByte()
 			b, _ = p.readByte()
 			if b != '\n' {
 				bs = append(bs, '\\', b)
 			}
 			continue
-		case !p.quoted('\'') && (b == '$' || b == '`'): // end of lit
+		case !p.singleQuoted && (b == '$' || b == '`'): // end of lit
 			return
 		case p.doubleQuoted():
 			if b == '"' {
 				return
 			}
-		case p.quoted('\''):
-			if b == '\'' {
-				p.popQuote()
-			}
+		case p.singleQuoted:
+			p.singleQuoted = b != '\''
 		case b == '\'':
-			p.pushQuote('\'')
+			p.singleQuoted = true
 			lpos = p.npos
 		case reserved[b], space[b]: // end of lit
 			return
@@ -372,7 +365,8 @@ func (p *parser) closingErr(lpos Pos, s string) {
 	p.posErr(lpos, `reached %s without closing %s`, p.tok, s)
 }
 
-func (p *parser) wantQuote(lpos Pos, tok Token) {
+func (p *parser) wantQuote(lpos Pos, b byte) {
+	tok := Token(b)
 	if !p.got(tok) {
 		p.closingErr(lpos, fmt.Sprintf("quote %s", tok))
 	}
