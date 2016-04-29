@@ -208,21 +208,20 @@ func (p *parser) next() {
 
 func (p *parser) advanceReadLit() { p.advanceBoth(LIT, string(p.readLitBytes())) }
 func (p *parser) readLitBytes() (bs []byte) {
-	singleQuoted := false
-	var lpos Pos
+	var qpos Pos
 	for {
 		b, err := p.peekByte()
 		if err != nil {
-			if singleQuoted {
+			if qpos.IsValid() {
 				p.readByte()
-				p.wantQuote(lpos, '\'')
+				p.wantQuote(qpos, '\'')
 			}
 			return
 		}
 		switch {
-		case singleQuoted:
+		case qpos.IsValid():
 			if b == '\'' {
-				singleQuoted = false
+				qpos = Pos{}
 			}
 		case b == '\\': // escaped byte
 			p.readByte()
@@ -237,8 +236,7 @@ func (p *parser) readLitBytes() (bs []byte) {
 				return
 			}
 		case b == '\'':
-			singleQuoted = true
-			lpos = p.npos
+			qpos = p.npos
 		case reserved[b], space[b]: // end of lit
 			return
 		}

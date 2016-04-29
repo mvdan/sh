@@ -58,6 +58,7 @@ type Pos struct {
 	Line   int // line number, starting at 1
 	Column int // column number, starting at 1
 }
+func (p Pos) IsValid() bool { return p.Line > 0 && p.Column > 0 }
 
 // Position describes an arbitrary position in a source file. Offsets,
 // including column numbers, are in bytes.
