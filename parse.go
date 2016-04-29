@@ -406,9 +406,6 @@ func (p *parser) posErr(pos Pos, format string, v ...interface{}) {
 }
 
 func (p *parser) curErr(format string, v ...interface{}) {
-	if p.tok == EOF {
-		p.pos = p.npos
-	}
 	p.posErr(p.pos, format, v...)
 }
 
