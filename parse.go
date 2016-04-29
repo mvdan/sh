@@ -343,10 +343,9 @@ func (p *parser) wantFollowStmt(left string, s *Stmt, wantStop bool) {
 }
 
 func (p *parser) wantFollowStmts(left string, sts *[]Stmt, stop ...Token) {
-	if p.stmts(sts, stop...) < 1 {
-		if !p.newLine && !p.gotAny(SEMICOLON) {
-			p.followErr(left, "a statement list")
-		}
+	p.stmts(sts, stop...)
+	if len(*sts) < 1 && !p.newLine && !p.gotAny(SEMICOLON) {
+		p.followErr(left, "a statement list")
 	}
 }
 
@@ -416,7 +415,7 @@ func (p *parser) curErr(format string, v ...interface{}) {
 	p.posErr(p.pos, format, v...)
 }
 
-func (p *parser) stmts(sts *[]Stmt, stop ...Token) (count int) {
+func (p *parser) stmts(sts *[]Stmt, stop ...Token) {
 	if p.peek(SEMICOLON) {
 		return
 	}
@@ -429,13 +428,11 @@ func (p *parser) stmts(sts *[]Stmt, stop ...Token) (count int) {
 			break
 		}
 		*sts = append(*sts, s)
-		count++
 		if !p.peekAny(stop...) && !p.gotEnd {
 			p.curErr("statements must be separated by &, ; or a newline")
 			break
 		}
 	}
-	return
 }
 
 func (p *parser) invalidStmtStart() {
@@ -451,18 +448,16 @@ func (p *parser) invalidStmtStart() {
 	}
 }
 
-func (p *parser) stmtsLimited(sts *[]Stmt, stop ...Token) int {
+func (p *parser) stmtsLimited(sts *[]Stmt, stop ...Token) {
 	p.addStops(stop...)
-	count := p.stmts(sts, p.curStops()...)
+	p.stmts(sts, p.curStops()...)
 	p.popStops()
-	return count
 }
 
-func (p *parser) stmtsNested(sts *[]Stmt, stop Token) int {
+func (p *parser) stmtsNested(sts *[]Stmt, stop Token) {
 	p.newStops(stop)
-	count := p.stmts(sts, p.curStops()...)
+	p.stmts(sts, p.curStops()...)
 	p.popStops()
-	return count
 }
 
 func (p *parser) gotWord(w *Word) bool { return p.readParts(&w.Parts) > 0 }
