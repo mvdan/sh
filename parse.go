@@ -44,8 +44,6 @@ type parser struct {
 
 	lpos, pos, npos Pos
 
-	singleQuoted bool
-
 	// stacks of quotes, stop tokens, etc
 	quotes []byte
 	stops  [][]Token
@@ -175,7 +173,7 @@ func (p *parser) next() {
 			p.readByte()
 			return
 		}
-		if p.singleQuoted || p.doubleQuoted() || !space[b] {
+		if p.doubleQuoted() || !space[b] {
 			break
 		}
 		p.readByte()
@@ -206,34 +204,35 @@ func (p *parser) next() {
 
 func (p *parser) advanceReadLit() { p.advanceBoth(LIT, string(p.readLitBytes())) }
 func (p *parser) readLitBytes() (bs []byte) {
+	singleQuoted := false
 	var lpos Pos
 	for {
 		b, err := p.peekByte()
 		if err != nil {
-			if p.singleQuoted {
+			if singleQuoted {
 				p.readByte()
 				p.wantQuote(lpos, '\'')
 			}
 			return
 		}
 		switch {
-		case !p.singleQuoted && b == '\\': // escaped byte
+		case !singleQuoted && b == '\\': // escaped byte
 			p.readByte()
 			b, _ = p.readByte()
 			if b != '\n' {
 				bs = append(bs, '\\', b)
 			}
 			continue
-		case !p.singleQuoted && (b == '$' || b == '`'): // end of lit
+		case !singleQuoted && (b == '$' || b == '`'): // end of lit
 			return
 		case p.doubleQuoted():
 			if b == '"' {
 				return
 			}
-		case p.singleQuoted:
-			p.singleQuoted = b != '\''
+		case singleQuoted:
+			singleQuoted = b != '\''
 		case b == '\'':
-			p.singleQuoted = true
+			singleQuoted = true
 			lpos = p.npos
 		case reserved[b], space[b]: // end of lit
 			return
