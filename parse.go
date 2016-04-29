@@ -551,21 +551,17 @@ func (p *parser) exp() Node {
 }
 
 func (p *parser) wordList(ws *[]Word) {
-	for p.tok != EOF {
-		if p.peekEnd() {
-			if !p.newLine {
-				if p.tok == '#' {
-					p.readLine()
-				}
-				p.next()
-			}
-			break
-		}
+	for !p.peekEnd() {
 		var w Word
 		p.gotWord(&w)
 		*ws = append(*ws, w)
 	}
-	return
+	if !p.newLine {
+		if p.tok == '#' {
+			p.readLine()
+		}
+		p.next()
+	}
 }
 
 func (p *parser) peekEnd() bool {
@@ -807,7 +803,6 @@ func (p *parser) patLists(plists *[]PatternList) {
 			break
 		}
 	}
-	return
 }
 
 func (p *parser) cmdOrFunc(addRedir func()) Node {
