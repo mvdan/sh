@@ -58,15 +58,23 @@ func (p *parser) pushStops(stop ...Token) {
 }
 func (p *parser) popStops() { p.stops = p.stops[:len(p.stops)-1] }
 
-func (p *parser) curQuote() byte { return p.quotes[len(p.quotes)-1] }
+func (p *parser) curQuote() byte {
+	if len(p.quotes) == 0 {
+		return 0
+	}
+	return p.quotes[len(p.quotes)-1]
+}
+
 func (p *parser) pushQuote(b byte) {
 	p.quotes = append(p.quotes, b)
 	p.pushStops(Token(b))
 }
+
 func (p *parser) popQuote() {
 	p.quotes = p.quotes[:len(p.quotes)-1]
 	p.popStops()
 }
+
 func (p *parser) quoted(b byte) int { return bytes.IndexByte(p.quotes, b) }
 func (p *parser) quotedAny(bs ...byte) bool {
 	for _, b := range bs {
@@ -217,9 +225,9 @@ func (p *parser) readLitBytes() (bs []byte) {
 	for {
 		b, err := p.peekByte()
 		if err != nil {
-			if len(p.quotes) > 0 {
+			if p.curQuote() == '\'' {
 				p.readByte()
-				p.wantQuote(lpos, Token(p.curQuote()))
+				p.wantQuote(lpos, Token('\''))
 			}
 			return
 		}
@@ -542,9 +550,11 @@ func (p *parser) exp() Node {
 		p.next()
 		var cs CmdSubst
 		p.nestedCmd = true
+		p.pushQuote('`')
 		p.next()
 		cs.Exp = p.lpos
 		p.stmtsLimited(&cs.Stmts, RPAREN)
+		p.popQuote()
 		p.nestedCmd = false
 		p.wantMatched(cs.Exp, LPAREN)
 		return cs
