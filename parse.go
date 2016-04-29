@@ -481,7 +481,7 @@ func (p *parser) readParts(ns *[]Node) (count int) {
 	for p.tok != EOF {
 		var n Node
 		switch {
-		case !p.doubleQuoted() && count > 0 && (p.spaced || p.newLine):
+		case !p.doubleQuoted() && count > 0 && p.spaced:
 			return
 		case p.got(LIT):
 			n = Lit{
