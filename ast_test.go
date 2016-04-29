@@ -454,8 +454,8 @@ var astTests = []testCase{
 		litCmd("echo", "foo#bar"),
 	},
 	{
-		[]string{"echo {foo}"},
-		litCmd("echo", "{foo}"),
+		[]string{`{foo}`},
+		litCmd(`{foo}`),
 	},
 	{
 		[]string{"$(foo bar)"},

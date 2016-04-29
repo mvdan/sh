@@ -112,13 +112,21 @@ func (p *parser) peekByte() (byte, error) {
 	return bs[0], nil
 }
 
-func (p *parser) peekBytes(s string) bool {
+func (p *parser) peekString(s string) bool {
 	bs, err := p.br.Peek(len(s))
 	return err == nil && string(bs) == s
 }
 
+func (p *parser) peekAnyByte(bs ...byte) bool {
+	peek, err := p.br.Peek(1)
+	if err != nil {
+		return false
+	}
+	return bytes.IndexByte(bs, peek[0]) >= 0
+}
+
 func (p *parser) readOnly(s string) bool {
-	if p.peekBytes(s) {
+	if p.peekString(s) {
 		p.moveBytes(len(s))
 		return true
 	}
@@ -161,7 +169,7 @@ func (p *parser) next() {
 	p.newLine = false
 	p.pos = p.npos
 	for {
-		if p.peekBytes("\\\n") {
+		if p.peekString("\\\n") {
 			p.moveBytes(2)
 			continue
 		}
@@ -175,10 +183,9 @@ func (p *parser) next() {
 		}
 		p.readByte()
 		p.pos = p.npos
+		p.spaced = true
 		if b == '\n' {
 			p.newLine = true
-		} else {
-			p.spaced = true
 		}
 	}
 	if reserved[b] || starters[b] {
@@ -251,7 +258,7 @@ func (p *parser) advanceBoth(tok Token, val string) {
 func (p *parser) readUntil(s string) (string, bool) {
 	var bs []byte
 	for {
-		if p.peekBytes(s) {
+		if p.peekString(s) {
 			p.moveBytes(len(s))
 			return string(bs), true
 		}
@@ -509,7 +516,7 @@ func (p *parser) readParts(ns *[]Node) (count int) {
 }
 
 func (p *parser) exp() Node {
-	if p.peekBytes("{") {
+	if p.peekAnyByte('{') {
 		lpos := p.npos
 		p.readByte()
 		return ParamExp{
@@ -575,7 +582,7 @@ func (p *parser) peekStop() bool {
 func (p *parser) peekRedir() bool {
 	// Can this be done in a way that doesn't involve peeking past
 	// the current token?
-	if p.peek(LIT) && (p.peekBytes(">") || p.peekBytes("<")) {
+	if p.peek(LIT) && p.peekAnyByte('>', '<') {
 		return true
 	}
 	return p.peekAny(RDROUT, APPEND, RDRIN, DPLIN, DPLOUT, OPRDWR,
