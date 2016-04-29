@@ -72,21 +72,12 @@ func (p *parser) popQuote() {
 	p.popStops()
 }
 
-func (p *parser) quoted(b byte) int { return bytes.IndexByte(p.quotes, b) }
-func (p *parser) quotedAny(bs ...byte) bool {
-	for _, b := range bs {
-		if p.quoted(b) >= 0 {
-			return true
-		}
-	}
-	return false
-}
+func (p *parser) quoteIndex(b byte) int { return bytes.IndexByte(p.quotes, b) }
+func (p *parser) quoted(b byte) bool { return p.quoteIndex(b) >= 0 }
 
 // Subshells inside double quotes do not keep spaces, e.g. "$(foo  bar)"
 // equals "$(foo bar)"
-func (p *parser) keepSpaces() bool {
-	return p.quoted('"') > p.quoted('`')
-}
+func (p *parser) doubleQuoted() bool { return p.quoteIndex('"') > p.quoteIndex('`') }
 
 func (p *parser) readByte() (byte, error) {
 	b, err := p.br.ReadByte()
@@ -186,7 +177,7 @@ func (p *parser) next() {
 			p.readByte()
 			return
 		}
-		if p.quotedAny('\'') || p.keepSpaces() || !space[b] {
+		if p.quoted('\'') || p.doubleQuoted() || !space[b] {
 			break
 		}
 		p.readByte()
@@ -200,10 +191,9 @@ func (p *parser) next() {
 	if reserved[b] || starters[b] {
 		// Between double quotes, only under certain
 		// circumstnaces do we tokenize
-		if p.quotedAny('"') {
+		if p.doubleQuoted() {
 			switch {
 			case b == '`', b == '"', b == '$', p.tok == EXP:
-			case b == ')' && !p.keepSpaces():
 			default:
 				p.advanceReadLit()
 				return
@@ -229,23 +219,20 @@ func (p *parser) readLitBytes() (bs []byte) {
 			return
 		}
 		switch {
-		case !p.quotedAny('\'') && b == '\\': // escaped byte
+		case !p.quoted('\'') && b == '\\': // escaped byte
 			p.readByte()
 			b, _ = p.readByte()
 			if b != '\n' {
 				bs = append(bs, '\\', b)
 			}
 			continue
-		case !p.quotedAny('\'') && (b == '$' || b == '`'): // end of lit
+		case !p.quoted('\'') && (b == '$' || b == '`'): // end of lit
 			return
-		case p.quotedAny('"'):
-			if b == '"' || (!p.keepSpaces() && b == ')') {
+		case p.doubleQuoted():
+			if b == '"' {
 				return
 			}
-			if space[b] && !p.keepSpaces() {
-				return
-			}
-		case p.quotedAny('\''):
+		case p.quoted('\''):
 			if b == '\'' {
 				p.popQuote()
 			}
@@ -490,14 +477,14 @@ func (p *parser) readParts(ns *[]Node) (count int) {
 	for p.tok != EOF {
 		var n Node
 		switch {
-		case !p.keepSpaces() && count > 0 && (p.spaced || p.newLine):
+		case !p.doubleQuoted() && count > 0 && (p.spaced || p.newLine):
 			return
 		case p.got(LIT):
 			n = Lit{
 				ValuePos: p.lpos,
 				Value:    p.lval,
 			}
-		case !p.quotedAny('"') && p.peek('"'):
+		case !p.doubleQuoted() && p.peek('"'):
 			var dq DblQuoted
 			p.pushQuote('"')
 			dq.Quote = p.pos
@@ -506,7 +493,7 @@ func (p *parser) readParts(ns *[]Node) (count int) {
 			p.popQuote()
 			p.wantQuote(dq.Quote, '"')
 			n = dq
-		case !p.quotedAny('`') && p.peek('`'):
+		case !p.quoted('`') && p.peek('`'):
 			var bq BckQuoted
 			p.pushQuote('`')
 			bq.Quote = p.pos
