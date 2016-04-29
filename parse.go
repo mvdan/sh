@@ -220,20 +220,22 @@ func (p *parser) readLitBytes() (bs []byte) {
 			return
 		}
 		switch {
-		case !singleQuoted && b == '\\': // escaped byte
+		case singleQuoted:
+			if b == '\'' {
+				singleQuoted = false
+			}
+		case b == '\\': // escaped byte
 			p.readByte()
 			if b, _ = p.readByte(); b != '\n' {
 				bs = append(bs, '\\', b)
 			}
 			continue
-		case !singleQuoted && (b == '$' || b == '`'): // end of lit
+		case b == '$' || b == '`': // end of lit
 			return
 		case p.doubleQuoted():
 			if b == '"' {
 				return
 			}
-		case singleQuoted:
-			singleQuoted = b != '\''
 		case b == '\'':
 			singleQuoted = true
 			lpos = p.npos
