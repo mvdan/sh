@@ -44,9 +44,8 @@ type parser struct {
 
 	lpos, pos, npos Pos
 
-	// stacks of quotes, stop tokens, etc
-	quotes []byte
-	stops  [][]Token
+	// stack of stop tokens
+	stops [][]Token
 }
 
 func (p *parser) curStops() []Token { return p.stops[len(p.stops)-1] }
@@ -58,18 +57,16 @@ func (p *parser) addStops(stop ...Token) {
 }
 func (p *parser) popStops() { p.stops = p.stops[:len(p.stops)-1] }
 
-func (p *parser) pushQuote(b byte) {
-	p.quotes = append(p.quotes, b)
-	p.addStops(Token(b))
+func (p *parser) quoteIndex(b byte) int {
+	tok := Token(b)
+	for i, stop := range p.curStops() {
+		if tok == stop {
+			return i
+		}
+	}
+	return -1
 }
-
-func (p *parser) popQuote() {
-	p.quotes = p.quotes[:len(p.quotes)-1]
-	p.popStops()
-}
-
-func (p *parser) quoteIndex(b byte) int { return bytes.IndexByte(p.quotes, b) }
-func (p *parser) quoted(b byte) bool    { return p.quoteIndex(b) >= 0 }
+func (p *parser) quoted(b byte) bool { return p.quoteIndex(b) >= 0 }
 
 // Subshells inside double quotes do not keep spaces, e.g. "$(foo  bar)"
 // equals "$(foo bar)"
@@ -482,20 +479,20 @@ func (p *parser) readParts(ns *[]Node) (count int) {
 			}
 		case !p.doubleQuoted() && p.peek('"'):
 			var dq DblQuoted
-			p.pushQuote('"')
+			p.addStops('"')
 			dq.Quote = p.pos
 			p.next()
 			p.readParts(&dq.Parts)
-			p.popQuote()
+			p.popStops()
 			p.wantQuote(dq.Quote, '"')
 			n = dq
 		case !p.quoted('`') && p.peek('`'):
 			var bq BckQuoted
-			p.pushQuote('`')
+			p.addStops('`')
 			bq.Quote = p.pos
 			p.next()
 			p.stmtsNested(&bq.Stmts, '`')
-			p.popQuote()
+			p.popStops()
 			p.wantQuote(bq.Quote, '`')
 			n = bq
 		case p.peek(EXP):
@@ -531,11 +528,11 @@ func (p *parser) exp() Node {
 		}
 	case p.peek(LPAREN):
 		var cs CmdSubst
-		p.pushQuote('`')
+		p.addStops('`')
 		p.next()
 		cs.Exp = p.lpos
 		p.stmtsNested(&cs.Stmts, RPAREN)
-		p.popQuote()
+		p.popStops()
 		p.wantMatched(cs.Exp, LPAREN)
 		return cs
 	default:
