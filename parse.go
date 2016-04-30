@@ -568,8 +568,6 @@ func (p *parser) peekStop() bool {
 }
 
 func (p *parser) peekRedir() bool {
-	// Can this be done in a way that doesn't involve peeking past
-	// the current token?
 	if p.peek(LIT) && p.peekAnyByte('>', '<') {
 		return true
 	}
@@ -675,14 +673,13 @@ func (p *parser) redirect() (r Redirect) {
 	switch r.Op {
 	case HEREDOC, DHEREDOC:
 		var w Word
-		lpos := p.pos
 		p.wantFollowWord(r.Op.String(), &w)
 		del := unquote(w).String()
 		s, _ := p.readUntilLine(del)
 		s = p.lval + "\n" + s // TODO: dirty hack, don't tokenize heredoc
 		body := w.String() + "\n" + s + del
 		r.Word = Word{Parts: []Node{Lit{
-			ValuePos: lpos,
+			ValuePos: w.Pos(),
 			Value:    body,
 		}}}
 	default:
