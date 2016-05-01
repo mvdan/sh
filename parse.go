@@ -590,6 +590,8 @@ func (p *parser) gotStmt(s *Stmt, wantStop bool) bool {
 		s.Node = p.ifStmt()
 	case p.got(WHILE):
 		s.Node = p.whileStmt()
+	case p.got(UNTIL):
+		s.Node = p.untilStmt()
 	case p.got(FOR):
 		s.Node = p.forStmt()
 	case p.got(CASE):
@@ -726,6 +728,16 @@ func (p *parser) whileStmt() (ws WhileStmt) {
 	p.wantFollowStmts(`"do"`, &ws.DoStmts, DONE)
 	p.wantStmtEnd("while", DONE)
 	ws.Done = p.lpos
+	return
+}
+
+func (p *parser) untilStmt() (us UntilStmt) {
+	us.Until = p.lpos
+	p.wantFollowStmts(`"until"`, &us.Conds, DO)
+	p.wantFollow(`"until [stmts]"`, DO)
+	p.wantFollowStmts(`"do"`, &us.DoStmts, DONE)
+	p.wantStmtEnd("until", DONE)
+	us.Done = p.lpos
 	return
 }
 

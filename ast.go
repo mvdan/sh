@@ -195,6 +195,18 @@ func (w WhileStmt) String() string {
 }
 func (w WhileStmt) Pos() Pos { return w.While }
 
+type UntilStmt struct {
+	Until, Done Pos
+
+	Conds   []Stmt
+	DoStmts []Stmt
+}
+
+func (u UntilStmt) String() string {
+	return fmt.Sprintf("until%s do%s done", stmtList(u.Conds), stmtList(u.DoStmts))
+}
+func (u UntilStmt) Pos() Pos { return u.Until }
+
 type ForStmt struct {
 	For, Done Pos
 

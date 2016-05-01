@@ -166,6 +166,13 @@ var astTests = []testCase{
 		},
 	},
 	{
+		[]string{"until a; do b; done", "until a\ndo\nb\ndone"},
+		UntilStmt{
+			Conds:   litStmts("a"),
+			DoStmts: litStmts("b"),
+		},
+	},
+	{
 		[]string{
 			"for i; do foo; done",
 			"for i in; do foo; done",
@@ -704,6 +711,10 @@ var astTests = []testCase{
 		WhileStmt{},
 	},
 	{
+		[]string{"until; do; done", "until\ndo\ndone"},
+		UntilStmt{},
+	},
+	{
 		[]string{"for i; do; done", "for i\ndo\ndone"},
 		ForStmt{Name: lit("i")},
 	},
@@ -791,6 +802,12 @@ func setPos(t *testing.T, v interface{}, to Pos, diff bool) Node {
 		return x
 	case WhileStmt:
 		set(&x.While)
+		set(&x.Done)
+		setPos(t, x.Conds, to, diff)
+		setPos(t, x.DoStmts, to, diff)
+		return x
+	case UntilStmt:
+		set(&x.Until)
 		set(&x.Done)
 		setPos(t, x.Conds, to, diff)
 		setPos(t, x.DoStmts, to, diff)

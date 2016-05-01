@@ -20,6 +20,7 @@ const (
 	WHILE
 	FOR
 	IN
+	UNTIL
 	DO
 	DONE
 	CASE
@@ -96,6 +97,7 @@ var (
 		WHILE: "while",
 		FOR:   "for",
 		IN:    "in",
+		UNTIL: "until",
 		DO:    "do",
 		DONE:  "done",
 		CASE:  "case",

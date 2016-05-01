@@ -229,6 +229,26 @@ var errTests = []struct {
 		`1:19: while statement must end with "done"`,
 	},
 	{
+		"until",
+		`1:6: "until" must be followed by a statement list`,
+	},
+	{
+		"until foo;",
+		`1:11: "until [stmts]" must be followed by "do"`,
+	},
+	{
+		"until foo; bar",
+		`1:15: "until [stmts]" must be followed by "do"`,
+	},
+	{
+		"until foo; do bar",
+		`1:18: until statement must end with "done"`,
+	},
+	{
+		"until foo; do bar;",
+		`1:19: until statement must end with "done"`,
+	},
+	{
 		"for",
 		`1:4: "for" must be followed by a literal`,
 	},
