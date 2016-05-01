@@ -217,7 +217,7 @@ var errTests = []struct {
 		`1:11: "while [stmts]" must be followed by "do"`,
 	},
 	{
-		"while foo; bar",
+		"while foo; bar", // TODO: should be pointing at "bar" (1:12)
 		`1:15: "while [stmts]" must be followed by "do"`,
 	},
 	{

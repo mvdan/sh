@@ -292,6 +292,7 @@ func (p *parser) readUntilLine(s string) (string, bool) {
 	return buf.String(), false
 }
 
+// TODO: it's reserved words, not literals
 func (p *parser) peek(tok Token) bool {
 	return p.tok == tok || (p.tok == LIT && p.val == tokNames[tok])
 }
