@@ -427,7 +427,7 @@ var astTests = []testCase{
 		},
 	},
 	{
-		[]string{"! "},
+		[]string{"!"},
 		Stmt{Negated: true},
 	},
 	{

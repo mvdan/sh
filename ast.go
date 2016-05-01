@@ -37,6 +37,17 @@ type Node interface {
 	Pos() Pos
 }
 
+func stringerJoin(strs []fmt.Stringer, sep string) string {
+	var b bytes.Buffer
+	for i, s := range strs {
+		if i > 0 {
+			fmt.Fprint(&b, sep)
+		}
+		fmt.Fprint(&b, s)
+	}
+	return b.String()
+}
+
 func nodeJoin(ns []Node, sep string) string {
 	var b bytes.Buffer
 	for i, n := range ns {
@@ -84,23 +95,20 @@ type Stmt struct {
 }
 
 func (s Stmt) String() string {
-	var b bytes.Buffer
+	var strs []fmt.Stringer
 	if s.Negated {
-		fmt.Fprint(&b, "! ")
+		strs = append(strs, BANG)
 	}
 	if s.Node != nil {
-		fmt.Fprint(&b, s.Node)
+		strs = append(strs, s.Node)
 	}
-	for i, redir := range s.Redirs {
-		if i > 0 || s.Node != nil {
-			fmt.Fprint(&b, " ")
-		}
-		fmt.Fprint(&b, redir)
+	for _, r := range s.Redirs {
+		strs = append(strs, r)
 	}
 	if s.Background {
-		fmt.Fprint(&b, " &")
+		strs = append(strs, AND)
 	}
-	return b.String()
+	return stringerJoin(strs, " ")
 }
 func (s Stmt) Pos() Pos { return s.Position }
 
