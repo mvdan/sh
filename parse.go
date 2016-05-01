@@ -409,7 +409,14 @@ func (p *parser) stmts(sts *[]Stmt, stop ...Token) {
 	if p.peek(SEMICOLON) {
 		return
 	}
-	for p.tok != EOF && !p.peekAny(stop...) {
+	anyComment := false
+	for p.tok != EOF {
+		for p.got('#') {
+			anyComment = true
+		}
+		if p.peekAny(stop...) {
+			break
+		}
 		var s Stmt
 		if !p.gotStmt(&s, true) {
 			if p.tok != EOF && !p.peekAny(stop...) {
@@ -422,6 +429,9 @@ func (p *parser) stmts(sts *[]Stmt, stop ...Token) {
 			p.curErr("statements must be separated by &, ; or a newline")
 			break
 		}
+	}
+	if len(*sts) == 0 && anyComment {
+		p.newLine = true // TODO: hacky
 	}
 }
 
@@ -571,8 +581,6 @@ func (p *parser) peekRedir() bool {
 
 func (p *parser) gotStmt(s *Stmt, wantStop bool) bool {
 	p.gotEnd = false
-	for p.got('#') {
-	}
 	addRedir := func() {
 		s.Redirs = append(s.Redirs, p.redirect())
 	}

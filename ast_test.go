@@ -720,6 +720,10 @@ var astTests = []testCase{
 		WhileStmt{},
 	},
 	{
+		[]string{"while; do; done", "while\ndo\n#foo\ndone"},
+		WhileStmt{},
+	},
+	{
 		[]string{"until; do; done", "until\ndo\ndone"},
 		UntilStmt{},
 	},
