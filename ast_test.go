@@ -542,6 +542,13 @@ var astTests = []testCase{
 		}},
 	},
 	{
+		[]string{`echo $'foo'`},
+		Command{Args: []Word{
+			litWord("echo"),
+			word(ParamExp{Short: true, Text: "'foo'"}),
+		}},
+	},
+	{
 		[]string{`echo "${foo}"`},
 		Command{Args: []Word{
 			litWord("echo"),
