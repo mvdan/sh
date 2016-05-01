@@ -768,6 +768,7 @@ func (p *parser) patLists(plists *[]PatternList) {
 	}
 	for p.tok != EOF && !p.peek(ESAC) {
 		var pl PatternList
+		p.got(LPAREN)
 		for p.tok != EOF {
 			var w Word
 			if !p.gotWord(&w) {
