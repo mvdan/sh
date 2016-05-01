@@ -654,6 +654,8 @@ func (p *parser) gotStmt(s *Stmt, wantStop bool) bool {
 func (p *parser) binaryExpr(op Token, left Stmt) (b BinaryExpr) {
 	b.OpPos = p.lpos
 	b.Op = op
+	for p.got('#') {
+	}
 	p.wantFollowStmt(op.String(), &b.Y, true)
 	b.X = left
 	return

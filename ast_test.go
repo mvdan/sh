@@ -283,7 +283,7 @@ var astTests = []testCase{
 		},
 	},
 	{
-		[]string{"foo | bar", "foo|bar"},
+		[]string{"foo | bar", "foo|bar", "foo |\n#etc\nbar"},
 		BinaryExpr{
 			Op: OR,
 			X:  litStmt("foo"),
