@@ -148,11 +148,6 @@ var (
 		'\t': true,
 		'\n': true,
 	}
-	matching = map[Token]Token{
-		LPAREN:  RPAREN,
-		LBRACE:  RBRACE,
-		DLPAREN: DRPAREN,
-	}
 )
 
 func (p *parser) next() {
@@ -266,8 +261,7 @@ func (p *parser) readUntil(s string) (string, bool) {
 	}
 }
 
-func (p *parser) readUntilMatched(left Token, lpos Pos) string {
-	right := matching[left]
+func (p *parser) readUntilMatched(lpos Pos, left, right Token) string {
 	s, found := p.readUntil(tokNames[right])
 	if found {
 		p.next()
@@ -374,8 +368,7 @@ func (p *parser) matchingErr(lpos Pos, left, right Token) {
 		p.tok, left, right)
 }
 
-func (p *parser) wantMatched(lpos Pos, left Token) {
-	right := matching[left]
+func (p *parser) wantMatched(lpos Pos, left, right Token) {
 	if !p.got(right) {
 		p.matchingErr(lpos, left, right)
 	}
@@ -513,7 +506,7 @@ func (p *parser) exp() Node {
 		p.readByte()
 		return ParamExp{
 			Exp:  lpos,
-			Text: p.readUntilMatched(LBRACE, lpos),
+			Text: p.readUntilMatched(lpos, LBRACE, RBRACE),
 		}
 	}
 	if p.readOnly("#") {
@@ -525,7 +518,7 @@ func (p *parser) exp() Node {
 	case p.peek(DLPAREN):
 		return ArithmExp{
 			Exp:  p.pos,
-			Text: p.readUntilMatched(DLPAREN, p.pos),
+			Text: p.readUntilMatched(p.pos, DLPAREN, DRPAREN),
 		}
 	case p.peek(LPAREN):
 		var cs CmdSubst
@@ -534,7 +527,7 @@ func (p *parser) exp() Node {
 		cs.Exp = p.lpos
 		p.stmtsNested(&cs.Stmts, RPAREN)
 		p.popStops()
-		p.wantMatched(cs.Exp, LPAREN)
+		p.wantMatched(cs.Exp, LPAREN, RPAREN)
 		return cs
 	default:
 		p.next()
@@ -692,7 +685,7 @@ func (p *parser) redirect() (r Redirect) {
 func (p *parser) subshell() (s Subshell) {
 	s.Lparen = p.lpos
 	p.stmtsLimited(&s.Stmts, RPAREN)
-	p.wantMatched(s.Lparen, LPAREN)
+	p.wantMatched(s.Lparen, LPAREN, RPAREN)
 	s.Rparen = p.lpos
 	return
 }
@@ -700,7 +693,7 @@ func (p *parser) subshell() (s Subshell) {
 func (p *parser) block() (b Block) {
 	b.Lbrace = p.lpos
 	p.stmts(&b.Stmts, RBRACE)
-	p.wantMatched(b.Lbrace, LBRACE)
+	p.wantMatched(b.Lbrace, LBRACE, RBRACE)
 	b.Rbrace = p.lpos
 	return
 }
