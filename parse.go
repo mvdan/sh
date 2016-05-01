@@ -577,6 +577,9 @@ func (p *parser) gotStmt(s *Stmt, wantStop bool) bool {
 		s.Redirs = append(s.Redirs, p.redirect())
 	}
 	s.Position = p.pos
+	if p.got(BANG) {
+		s.Negated = true
+	}
 	for p.peekRedir() {
 		addRedir()
 	}
@@ -608,7 +611,7 @@ func (p *parser) gotStmt(s *Stmt, wantStop bool) bool {
 		addRedir()
 		p.gotEnd = false
 	}
-	if s.Node == nil && len(s.Redirs) == 0 {
+	if !s.Negated && s.Node == nil && len(s.Redirs) == 0 {
 		return false
 	}
 	if !wantStop {

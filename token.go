@@ -31,6 +31,7 @@ const (
 	OR   // |
 	LOR  // ||
 
+	BANG    // !
 	EXP     // $
 	LPAREN  // (
 	LBRACE  // {
@@ -113,6 +114,7 @@ var (
 		{"|", OR},
 		{"||", LOR},
 
+		{"!", BANG},
 		{"$", EXP},
 		{"(", LPAREN},
 		{"{", LBRACE},

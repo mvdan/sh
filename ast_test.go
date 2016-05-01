@@ -427,10 +427,14 @@ var astTests = []testCase{
 		},
 	},
 	{
-		[]string{"foo &", "foo&"},
+		[]string{"! "},
+		Stmt{Negated: true},
+	},
+	{
+		[]string{"! foo"},
 		Stmt{
-			Node:       litCmd("foo"),
-			Background: true,
+			Negated: true,
+			Node:    litCmd("foo"),
 		},
 	},
 	{
@@ -444,8 +448,9 @@ var astTests = []testCase{
 		},
 	},
 	{
-		[]string{"if foo; then bar; fi >/dev/null &"},
+		[]string{"! if foo; then bar; fi >/dev/null &"},
 		Stmt{
+			Negated: true,
 			Node: IfStmt{
 				Conds:     litStmts("foo"),
 				ThenStmts: litStmts("bar"),
@@ -463,6 +468,10 @@ var astTests = []testCase{
 	{
 		[]string{`{foo}`},
 		litCmd(`{foo}`),
+	},
+	{
+		[]string{`!foo`},
+		litCmd(`!foo`),
 	},
 	{
 		[]string{"$(foo bar)"},

@@ -78,12 +78,16 @@ type Stmt struct {
 	Node
 	Position Pos
 
+	Negated    bool
 	Redirs     []Redirect
 	Background bool
 }
 
 func (s Stmt) String() string {
 	var b bytes.Buffer
+	if s.Negated {
+		fmt.Fprint(&b, "! ")
+	}
 	if s.Node != nil {
 		fmt.Fprint(&b, s.Node)
 	}
@@ -94,7 +98,7 @@ func (s Stmt) String() string {
 		fmt.Fprint(&b, redir)
 	}
 	if s.Background {
-		fmt.Fprintf(&b, " &")
+		fmt.Fprint(&b, " &")
 	}
 	return b.String()
 }
@@ -167,7 +171,7 @@ func (s IfStmt) String() string {
 	if len(s.ElseStmts) > 0 {
 		fmt.Fprintf(&b, " else%s", stmtList(s.ElseStmts))
 	}
-	fmt.Fprintf(&b, " fi")
+	fmt.Fprint(&b, " fi")
 	return b.String()
 }
 func (s IfStmt) Pos() Pos { return s.If }
