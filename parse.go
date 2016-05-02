@@ -143,6 +143,16 @@ var (
 		'"': true,
 		'`': true,
 	}
+	// like above, but excluding those that don't break a word
+	wordBreak = map[byte]bool{
+		'&': true,
+		'>': true,
+		'<': true,
+		'|': true,
+		';': true,
+		'(': true,
+		')': true,
+	}
 	space = map[byte]bool{
 		' ':  true,
 		'\t': true,
@@ -286,9 +296,17 @@ func (p *parser) readUntilLine(s string) (string, bool) {
 	return buf.String(), false
 }
 
-// TODO: it's reserved words, not literals
 func (p *parser) peek(tok Token) bool {
-	return p.tok == tok || (p.tok == LIT && p.val == tokNames[tok])
+	return p.tok == tok || p.peekReservedWord(tok)
+}
+
+func (p *parser) peekReservedWord(tok Token) bool {
+	return p.tok == LIT && p.val == tokNames[tok] && p.peekSpaced()
+}
+
+func (p *parser) peekSpaced() bool {
+	b, err := p.peekByte()
+	return err != nil || space[b] || wordBreak[b]
 }
 
 func (p *parser) peekAny(toks ...Token) bool {

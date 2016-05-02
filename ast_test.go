@@ -470,6 +470,15 @@ var astTests = []testCase{
 		litCmd(`{foo}`),
 	},
 	{
+		[]string{`{"foo"`},
+		Command{Args: []Word{
+			word(
+				lit("{"),
+				dblQuoted(lit("foo")),
+			),
+		}},
+	},
+	{
 		[]string{`!foo`},
 		litCmd(`!foo`),
 	},
