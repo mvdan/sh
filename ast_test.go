@@ -466,6 +466,10 @@ var astTests = []testCase{
 		litCmd("echo", "foo#bar"),
 	},
 	{
+		[]string{"{ echo } }; }"},
+		block(litStmt("echo", "}", "}")),
+	},
+	{
 		[]string{`{foo}`},
 		litCmd(`{foo}`),
 	},
