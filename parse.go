@@ -602,6 +602,10 @@ func (p *parser) peekRedir() bool {
 }
 
 func (p *parser) gotStmt(s *Stmt, wantStop bool) bool {
+	if p.peek(RBRACE) {
+		// don't let it be a LIT
+		return false
+	}
 	p.gotEnd = false
 	addRedir := func() {
 		s.Redirs = append(s.Redirs, p.redirect())
@@ -629,9 +633,6 @@ func (p *parser) gotStmt(s *Stmt, wantStop bool) bool {
 		s.Node = p.forStmt()
 	case p.got(CASE):
 		s.Node = p.caseStmt()
-	case p.peek(RBRACE):
-		// don't let it be a LIT
-		return false
 	case p.peekAny(LIT, EXP, '"', '`'):
 		s.Node = p.cmdOrFunc(addRedir)
 		end = false
