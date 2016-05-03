@@ -391,10 +391,11 @@ func (p *parser) matchingErr(lpos Pos, left, right Token) {
 		p.tok, left, right)
 }
 
-func (p *parser) wantMatched(lpos Pos, left, right Token) {
+func (p *parser) wantMatched(lpos Pos, left, right Token, rpos *Pos) {
 	if !p.got(right) {
 		p.matchingErr(lpos, left, right)
 	}
+	*rpos = p.lpos
 }
 
 func (p *parser) errPass(err error) {
@@ -557,7 +558,7 @@ func (p *parser) exp() Node {
 		p.next()
 		p.stmtsNested(&cs.Stmts, RPAREN)
 		p.popStops()
-		p.wantMatched(cs.Exp, LPAREN, RPAREN)
+		p.wantMatched(cs.Exp, LPAREN, RPAREN, &cs.Rparen)
 		return cs
 	default:
 		p.next()
@@ -721,16 +722,14 @@ func (p *parser) redirect() (r Redirect) {
 func (p *parser) subshell() (s Subshell) {
 	s.Lparen = p.lpos
 	p.stmtsLimited(&s.Stmts, RPAREN)
-	p.wantMatched(s.Lparen, LPAREN, RPAREN)
-	s.Rparen = p.lpos
+	p.wantMatched(s.Lparen, LPAREN, RPAREN, &s.Rparen)
 	return
 }
 
 func (p *parser) block() (b Block) {
 	b.Lbrace = p.lpos
 	p.stmts(&b.Stmts, RBRACE)
-	p.wantMatched(b.Lbrace, LBRACE, RBRACE)
-	b.Rbrace = p.lpos
+	p.wantMatched(b.Lbrace, LBRACE, RBRACE, &b.Rbrace)
 	return
 }
 

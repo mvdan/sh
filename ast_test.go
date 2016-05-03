@@ -887,6 +887,7 @@ func setPos(t *testing.T, v interface{}, to Pos, diff bool) Node {
 		return x
 	case CmdSubst:
 		set(&x.Exp)
+		set(&x.Rparen)
 		setPos(t, x.Stmts, to, diff)
 		return x
 	case CaseStmt:

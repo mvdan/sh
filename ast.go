@@ -296,7 +296,7 @@ func (q BckQuoted) String() string { return "`" + stmtJoin(q.Stmts) + "`" }
 func (q BckQuoted) Pos() Pos       { return q.Quote }
 
 type CmdSubst struct {
-	Exp Pos
+	Exp, Rparen Pos
 
 	Stmts []Stmt
 }
