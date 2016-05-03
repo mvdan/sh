@@ -11,6 +11,9 @@ import (
 	"regexp"
 )
 
+// Parse reads and parses a shell program with an optional name. It
+// returns the parsed program if no issues were encountered. Otherwise,
+// an error is returned.
 func Parse(r io.Reader, name string) (File, error) {
 	p := &parser{
 		br: bufio.NewReader(r),

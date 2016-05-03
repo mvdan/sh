@@ -24,6 +24,7 @@ func wordFirstPos(ws []Word) Pos {
 	return ws[0].Pos()
 }
 
+// File is a shell program.
 type File struct {
 	Name string
 
@@ -32,6 +33,7 @@ type File struct {
 
 func (f File) String() string { return stmtJoin(f.Stmts) }
 
+// Node represents an AST node.
 type Node interface {
 	fmt.Stringer
 	Pos() Pos

@@ -5,8 +5,10 @@ package sh
 
 import "fmt"
 
+// Token is the set of lexical tokens.
 type Token int
 
+// The list of all possible tokens.
 const (
 	ILLEGAL Token = -iota
 	EOF
