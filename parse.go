@@ -367,10 +367,11 @@ func (p *parser) wantFollowWord(left string, w *Word) {
 	}
 }
 
-func (p *parser) wantStmtEnd(name string, tok Token) {
+func (p *parser) wantStmtEnd(name string, tok Token, pos *Pos) {
 	if !p.got(tok) {
 		p.curErr(`%s statement must end with %q`, name, tok)
 	}
+	*pos = p.lpos
 }
 
 func (p *parser) closingErr(lpos Pos, s string) {
@@ -750,8 +751,7 @@ func (p *parser) ifStmt() (fs IfStmt) {
 	if p.got(ELSE) {
 		p.wantFollowStmts(`"else"`, &fs.ElseStmts, FI)
 	}
-	p.wantStmtEnd("if", FI)
-	fs.Fi = p.lpos
+	p.wantStmtEnd("if", FI, &fs.Fi)
 	return
 }
 
@@ -760,8 +760,7 @@ func (p *parser) whileStmt() (ws WhileStmt) {
 	p.wantFollowStmts(`"while"`, &ws.Conds, DO)
 	p.wantFollow(`"while [stmts]"`, DO)
 	p.wantFollowStmts(`"do"`, &ws.DoStmts, DONE)
-	p.wantStmtEnd("while", DONE)
-	ws.Done = p.lpos
+	p.wantStmtEnd("while", DONE, &ws.Done)
 	return
 }
 
@@ -770,8 +769,7 @@ func (p *parser) untilStmt() (us UntilStmt) {
 	p.wantFollowStmts(`"until"`, &us.Conds, DO)
 	p.wantFollow(`"until [stmts]"`, DO)
 	p.wantFollowStmts(`"do"`, &us.DoStmts, DONE)
-	p.wantStmtEnd("until", DONE)
-	us.Done = p.lpos
+	p.wantStmtEnd("until", DONE, &us.Done)
 	return
 }
 
@@ -787,8 +785,7 @@ func (p *parser) forStmt() (fs ForStmt) {
 	}
 	p.wantFollow(`"for foo [in words]"`, DO)
 	p.wantFollowStmts(`"do"`, &fs.DoStmts, DONE)
-	p.wantStmtEnd("for", DONE)
-	fs.Done = p.lpos
+	p.wantStmtEnd("for", DONE, &fs.Done)
 	return
 }
 
@@ -797,8 +794,7 @@ func (p *parser) caseStmt() (cs CaseStmt) {
 	p.wantFollowWord(`"case"`, &cs.Word)
 	p.wantFollow(`"case x"`, IN)
 	p.patLists(&cs.List)
-	p.wantStmtEnd("case", ESAC)
-	cs.Esac = p.lpos
+	p.wantStmtEnd("case", ESAC, &cs.Esac)
 	return
 }
 
