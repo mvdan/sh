@@ -659,7 +659,7 @@ func (p *parser) gotStmt(s *Stmt, wantStop bool) bool {
 			left := *s
 			*s = Stmt{
 				Position: left.Position,
-				Node:     p.binaryExpr(p.ltok, left),
+				Node:     p.binaryExpr(left),
 			}
 		}
 	}
@@ -673,14 +673,16 @@ func (p *parser) gotStmt(s *Stmt, wantStop bool) bool {
 	return true
 }
 
-func (p *parser) binaryExpr(op Token, left Stmt) (b BinaryExpr) {
-	b.OpPos = p.lpos
-	b.Op = op
+func (p *parser) binaryExpr(left Stmt) BinaryExpr {
+	b := BinaryExpr{
+		OpPos: p.lpos,
+		Op:    p.ltok,
+		X:     left,
+	}
 	for p.got('#') {
 	}
-	p.wantFollowStmt(op.String(), &b.Y, true)
-	b.X = left
-	return
+	p.wantFollowStmt(b.Op.String(), &b.Y, true)
+	return b
 }
 
 func unquote(w Word) Word {
