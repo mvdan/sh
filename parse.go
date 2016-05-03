@@ -505,18 +505,16 @@ func (p *parser) readParts(ns *[]Node) (count int) {
 				Value:    p.lval,
 			}
 		case !p.doubleQuoted() && p.peek('"'):
-			var dq DblQuoted
+			dq := DblQuoted{Quote: p.pos}
 			p.addStops('"')
-			dq.Quote = p.pos
 			p.next()
 			p.readParts(&dq.Parts)
 			p.popStops()
 			p.wantQuote(dq.Quote, '"')
 			n = dq
 		case !p.quoted('`') && p.peek('`'):
-			var bq BckQuoted
+			bq := BckQuoted{Quote: p.pos}
 			p.addStops('`')
-			bq.Quote = p.pos
 			p.next()
 			p.stmtsNested(&bq.Stmts, '`')
 			p.popStops()
@@ -554,10 +552,9 @@ func (p *parser) exp() Node {
 			Text: p.readUntilMatched(p.pos, DLPAREN, DRPAREN),
 		}
 	case p.peek(LPAREN):
-		var cs CmdSubst
+		cs := CmdSubst{Exp: p.pos}
 		p.addStops('`')
 		p.next()
-		cs.Exp = p.lpos
 		p.stmtsNested(&cs.Stmts, RPAREN)
 		p.popStops()
 		p.wantMatched(cs.Exp, LPAREN, RPAREN)
@@ -743,9 +740,8 @@ func (p *parser) ifStmt() (fs IfStmt) {
 	p.wantFollow(`"if [stmts]"`, THEN)
 	p.wantFollowStmts(`"then"`, &fs.ThenStmts, FI, ELIF, ELSE)
 	for p.got(ELIF) {
-		var elf Elif
+		elf := Elif{Elif: p.lpos}
 		p.wantFollowStmts(`"elif"`, &elf.Conds, THEN)
-		elf.Elif = p.lpos
 		p.wantFollow(`"elif [stmts]"`, THEN)
 		p.wantFollowStmts(`"then"`, &elf.ThenStmts, FI, ELIF, ELSE)
 		fs.Elifs = append(fs.Elifs, elf)
