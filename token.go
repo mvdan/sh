@@ -57,7 +57,6 @@ const (
 
 // Pos is the internal representation of a position within a source
 // file.
-// TODO: replace struct with a byte offset
 type Pos struct {
 	Line   int // line number, starting at 1
 	Column int // column number, starting at 1
