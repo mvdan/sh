@@ -197,7 +197,7 @@ func (p *parser) next() {
 		// circumstnaces do we tokenize
 		if p.doubleQuoted() {
 			switch {
-			case b == '`', b == '"', b == '$', p.tok == EXP:
+			case b == '`', b == '"', b == '$', p.peek(EXP):
 			default:
 				p.advanceReadLit()
 				return
