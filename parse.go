@@ -277,6 +277,7 @@ func (p *parser) readUntil(s string) (string, bool) {
 func (p *parser) readUntilMatched(lpos Pos, left, right Token) string {
 	s, found := p.readUntil(tokNames[right])
 	if found {
+		p.advanceTok(right)
 		p.next()
 	} else {
 		p.matchingErr(lpos, left, right)

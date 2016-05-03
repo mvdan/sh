@@ -572,6 +572,16 @@ var astTests = []testCase{
 		}},
 	},
 	{
+		[]string{`echo "${foo}>"`},
+		Command{Args: []Word{
+			litWord("echo"),
+			word(dblQuoted(
+				ParamExp{Text: "foo"},
+				lit(">"),
+			)),
+		}},
+	},
+	{
 		[]string{`echo "$(foo)"`},
 		Command{Args: []Word{
 			litWord("echo"),
