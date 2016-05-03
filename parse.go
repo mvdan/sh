@@ -52,11 +52,11 @@ type parser struct {
 }
 
 func (p *parser) curStops() []Token { return p.stops[len(p.stops)-1] }
-func (p *parser) newStops(stop ...Token) {
-	p.stops = append(p.stops, stop)
+func (p *parser) newStops(stops ...Token) {
+	p.stops = append(p.stops, stops)
 }
-func (p *parser) addStops(stop ...Token) {
-	p.newStops(append(p.curStops(), stop...)...)
+func (p *parser) addStops(stops ...Token) {
+	p.newStops(append(p.curStops(), stops...)...)
 }
 func (p *parser) popStops() { p.stops = p.stops[:len(p.stops)-1] }
 
@@ -355,8 +355,8 @@ func (p *parser) wantFollowStmt(left string, s *Stmt, wantStop bool) {
 	}
 }
 
-func (p *parser) wantFollowStmts(left string, sts *[]Stmt, stop ...Token) {
-	p.stmts(sts, stop...)
+func (p *parser) wantFollowStmts(left string, sts *[]Stmt, stops ...Token) {
+	p.stmts(sts, stops...)
 	if len(*sts) < 1 && !p.newLine && !p.gotAny(SEMICOLON) {
 		p.followErr(left, "a statement list")
 	}
@@ -428,7 +428,7 @@ func (p *parser) curErr(format string, v ...interface{}) {
 	p.posErr(p.pos, format, v...)
 }
 
-func (p *parser) stmts(sts *[]Stmt, stop ...Token) {
+func (p *parser) stmts(sts *[]Stmt, stops ...Token) {
 	if p.peek(SEMICOLON) {
 		return
 	}
@@ -437,18 +437,18 @@ func (p *parser) stmts(sts *[]Stmt, stop ...Token) {
 		for p.got('#') {
 			anyComment = true
 		}
-		if p.peekAny(stop...) {
+		if p.peekAny(stops...) {
 			break
 		}
 		var s Stmt
 		if !p.gotStmt(&s, true) {
-			if p.tok != EOF && !p.peekAny(stop...) {
+			if p.tok != EOF && !p.peekAny(stops...) {
 				p.invalidStmtStart()
 			}
 			break
 		}
 		*sts = append(*sts, s)
-		if !p.peekAny(stop...) && !p.gotEnd {
+		if !p.peekAny(stops...) && !p.gotEnd {
 			p.curErr("statements must be separated by &, ; or a newline")
 			break
 		}
@@ -471,8 +471,8 @@ func (p *parser) invalidStmtStart() {
 	}
 }
 
-func (p *parser) stmtsLimited(sts *[]Stmt, stop ...Token) {
-	p.addStops(stop...)
+func (p *parser) stmtsLimited(sts *[]Stmt, stops ...Token) {
+	p.addStops(stops...)
 	p.stmts(sts, p.curStops()...)
 	p.popStops()
 }
