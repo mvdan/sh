@@ -294,9 +294,11 @@ func (p *parser) readLine() string {
 func (p *parser) readUntilLine(s string) (string, bool) {
 	var buf bytes.Buffer
 	for p.tok != EOF {
-		if s == p.readLine() {
+		line := p.readLine()
+		if line == s {
 			return buf.String(), true
 		}
+		fmt.Fprintln(&buf, line)
 		p.readByte() // consume newline
 	}
 	return buf.String(), false
@@ -706,7 +708,7 @@ func (p *parser) redirect() (r Redirect) {
 		p.wantFollowWord(r.Op.String(), &w)
 		del := unquote(w).String()
 		s, _ := p.readUntilLine(del)
-		s = p.lval + "\n" + s // TODO: dirty hack, don't tokenize heredoc
+		s = p.lval + s // TODO: dirty hack, don't tokenize heredoc
 		body := w.String() + "\n" + s + del
 		r.Word = Word{Parts: []Node{Lit{
 			ValuePos: w.Pos(),
