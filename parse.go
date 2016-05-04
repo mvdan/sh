@@ -41,6 +41,7 @@ type parser struct {
 	err  error
 
 	spaced, newLine, gotEnd bool
+	stopOnNewline bool
 
 	ltok, tok Token
 	lval, val string
@@ -183,9 +184,14 @@ func (p *parser) next() {
 		p.spaced = true
 		if b == '\n' {
 			p.newLine = true
+			if p.stopOnNewline {
+				break
+			}
 		}
 	}
 	switch {
+	case p.newLine && p.stopOnNewline:
+		p.advanceTok(STOPPED)
 	case b == '#':
 		p.advanceBoth('#', p.readLine())
 	case reserved[b]:
@@ -701,10 +707,11 @@ func (p *parser) redirect() (r Redirect) {
 	switch r.Op {
 	case HEREDOC, DHEREDOC:
 		var w Word
+		p.stopOnNewline = true
 		p.wantFollowWord(r.Op.String(), &w)
+		p.stopOnNewline = false
 		del := unquote(w).String()
 		s, _ := p.readUntilLine(del)
-		s = p.lval + s // TODO: dirty hack, don't tokenize heredoc
 		body := w.String() + "\n" + s + del
 		r.Word = Word{Parts: []Node{Lit{
 			ValuePos: w.Pos(),

@@ -11,6 +11,7 @@ type Token int
 // The list of all possible tokens.
 const (
 	ILLEGAL Token = -iota
+	STOPPED
 	EOF
 	LIT
 
@@ -88,6 +89,7 @@ func init() {
 var (
 	tokNames = map[Token]string{
 		ILLEGAL: `ILLEGAL`,
+		STOPPED: `STOPPED`,
 		EOF:     `EOF`,
 		LIT:     `literal`,
 
