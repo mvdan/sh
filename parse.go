@@ -84,10 +84,10 @@ func (p *parser) readByte() (byte, error) {
 	p.moveWith(b)
 	return b, nil
 }
-
-func (p *parser) moveBytes(n int) {
+func (p *parser) consumeByte() { p.readByte() }
+func (p *parser) consumeBytes(n int) {
 	for i := 0; i < n; i++ {
-		p.readByte()
+		p.consumeByte()
 	}
 }
 
@@ -123,7 +123,7 @@ func (p *parser) peekAnyByte(bs ...byte) bool {
 
 func (p *parser) readOnly(s string) bool {
 	if p.peekString(s) {
-		p.moveBytes(len(s))
+		p.consumeBytes(len(s))
 		return true
 	}
 	return false
@@ -167,18 +167,18 @@ func (p *parser) next() {
 	p.pos = p.npos
 	for {
 		if p.peekString("\\\n") {
-			p.moveBytes(2)
+			p.consumeBytes(2)
 			continue
 		}
 		var err error
 		if b, err = p.peekByte(); err != nil {
-			p.readByte()
+			p.errPass(err)
 			return
 		}
 		if p.doubleQuoted() || !space[b] {
 			break
 		}
-		p.readByte()
+		p.consumeByte()
 		p.pos = p.npos
 		p.spaced = true
 		if b == '\n' {
@@ -213,7 +213,7 @@ func (p *parser) readLitBytes() (bs []byte) {
 		b, err := p.peekByte()
 		if err != nil {
 			if qpos.IsValid() {
-				p.readByte()
+				p.consumeByte()
 				p.wantQuote(qpos, '\'')
 			}
 			return
@@ -224,7 +224,7 @@ func (p *parser) readLitBytes() (bs []byte) {
 				qpos = Pos{}
 			}
 		case b == '\\': // escaped byte
-			p.readByte()
+			p.consumeByte()
 			if b, _ = p.readByte(); b != '\n' {
 				bs = append(bs, '\\', b)
 			}
@@ -240,7 +240,7 @@ func (p *parser) readLitBytes() (bs []byte) {
 		case reserved[b], space[b]: // end of lit
 			return
 		}
-		p.readByte()
+		p.consumeByte()
 		bs = append(bs, b)
 	}
 }
@@ -273,7 +273,7 @@ func (p *parser) readUntilMatched(lpos Pos, left, right Token) string {
 	tokStr := tokNames[right]
 	s, found := p.readUntil(tokStr)
 	if found {
-		p.moveBytes(len(tokStr))
+		p.consumeBytes(len(tokStr))
 		p.advanceTok(right)
 		p.next()
 	} else {
@@ -295,7 +295,7 @@ func (p *parser) readUntilLine(s string) (string, bool) {
 			return buf.String(), true
 		}
 		fmt.Fprintln(&buf, line)
-		p.readByte() // consume newline
+		p.consumeByte() // newline
 	}
 	return buf.String(), false
 }
@@ -530,7 +530,7 @@ func (p *parser) readParts(ns *[]Node) (count int) {
 func (p *parser) exp() Node {
 	if p.peekAnyByte('{') {
 		lpos := p.npos
-		p.readByte()
+		p.consumeByte()
 		return ParamExp{
 			Exp:  lpos,
 			Text: p.readUntilMatched(lpos, LBRACE, RBRACE),
