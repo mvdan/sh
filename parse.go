@@ -41,7 +41,7 @@ type parser struct {
 	err  error
 
 	spaced, newLine, gotEnd bool
-	stopOnNewline bool
+	stopOnNewline           bool
 
 	ltok, tok Token
 	lval, val string
@@ -293,16 +293,18 @@ func (p *parser) readLine() string {
 	return s
 }
 
-func (p *parser) readUntilLine(s string) (string, bool) {
+func (p *parser) readHeredocContent(endLine string) (string, bool) {
 	var buf bytes.Buffer
 	for p.tok != EOF {
 		line := p.readLine()
-		if line == s {
+		if line == endLine {
+			fmt.Fprint(&buf, endLine)
 			return buf.String(), true
 		}
 		fmt.Fprintln(&buf, line)
 		p.consumeByte() // newline
 	}
+	fmt.Fprint(&buf, endLine)
 	return buf.String(), false
 }
 
@@ -706,16 +708,15 @@ func (p *parser) redirect() (r Redirect) {
 	p.next()
 	switch r.Op {
 	case HEREDOC, DHEREDOC:
-		var w Word
 		p.stopOnNewline = true
+		var w Word
 		p.wantFollowWord(r.Op.String(), &w)
 		p.stopOnNewline = false
-		del := unquote(w).String()
-		s, _ := p.readUntilLine(del)
-		body := w.String() + "\n" + s + del
+		endLine := unquote(w).String()
+		s, _ := p.readHeredocContent(endLine)
 		r.Word = Word{Parts: []Node{Lit{
 			ValuePos: w.Pos(),
-			Value:    body,
+			Value:    fmt.Sprintf("%s\n%s", w, s),
 		}}}
 	default:
 		p.wantFollowWord(r.Op.String(), &r.Word)
