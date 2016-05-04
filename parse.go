@@ -263,7 +263,6 @@ func (p *parser) readUntil(s string) (string, bool) {
 	var bs []byte
 	for {
 		if p.peekString(s) {
-			p.moveBytes(len(s))
 			return string(bs), true
 		}
 		b, err := p.readByte()
@@ -275,8 +274,10 @@ func (p *parser) readUntil(s string) (string, bool) {
 }
 
 func (p *parser) readUntilMatched(lpos Pos, left, right Token) string {
-	s, found := p.readUntil(tokNames[right])
+	tokStr := tokNames[right]
+	s, found := p.readUntil(tokStr)
 	if found {
+		p.moveBytes(len(tokStr))
 		p.advanceTok(right)
 		p.next()
 	} else {
@@ -296,6 +297,7 @@ func (p *parser) readUntilLine(s string) (string, bool) {
 		if s == p.readLine() {
 			return buf.String(), true
 		}
+		p.readByte() // consume newline
 	}
 	return buf.String(), false
 }
@@ -433,10 +435,8 @@ func (p *parser) stmts(sts *[]Stmt, stops ...Token) {
 	if p.peek(SEMICOLON) {
 		return
 	}
-	anyComment := false
 	for p.tok != EOF {
 		for p.got('#') {
-			anyComment = true
 		}
 		if p.peekAny(stops...) {
 			break
@@ -453,9 +453,6 @@ func (p *parser) stmts(sts *[]Stmt, stops ...Token) {
 			p.curErr("statements must be separated by &, ; or a newline")
 			break
 		}
-	}
-	if len(*sts) == 0 && anyComment {
-		p.newLine = true // TODO: hacky
 	}
 }
 
