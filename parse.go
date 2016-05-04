@@ -78,11 +78,7 @@ func (p *parser) doubleQuoted() bool { return p.quoteIndex('"') > p.quoteIndex('
 func (p *parser) readByte() (byte, error) {
 	b, err := p.br.ReadByte()
 	if err != nil {
-		if err == io.EOF {
-			p.advanceTok(EOF)
-		} else {
-			p.errPass(err)
-		}
+		p.errPass(err)
 		return 0, err
 	}
 	p.moveWith(b)
@@ -403,7 +399,7 @@ func (p *parser) wantMatched(lpos Pos, left, right Token, rpos *Pos) {
 }
 
 func (p *parser) errPass(err error) {
-	if p.err == nil {
+	if p.err == nil && err != io.EOF {
 		p.err = err
 	}
 	p.advanceTok(EOF)
