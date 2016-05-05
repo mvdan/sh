@@ -148,11 +148,7 @@ type Redirect struct {
 }
 
 func (r Redirect) String() string {
-	var b bytes.Buffer
-	fmt.Fprint(&b, r.N)
-	fmt.Fprint(&b, r.Op)
-	fmt.Fprint(&b, r.Word)
-	return b.String()
+	return fmt.Sprintf("%s%s%s", r.N, r.Op, r.Word)
 }
 
 type Command struct {
@@ -182,6 +178,7 @@ type Block struct {
 
 	Stmts []Stmt
 }
+
 func (b Block) String() string { return "{" + stmtList(b.Stmts) + "}" }
 func (b Block) Pos() Pos       { return b.Rbrace }
 
@@ -196,15 +193,14 @@ type IfStmt struct {
 
 func (s IfStmt) String() string {
 	var b bytes.Buffer
-	fmt.Fprintf(&b, "if%s", stmtList(s.Conds))
-	fmt.Fprintf(&b, "then%s", stmtList(s.ThenStmts))
+	fmt.Fprint(&b, IF, stmtList(s.Conds), THEN, stmtList(s.ThenStmts))
 	for _, elif := range s.Elifs {
-		fmt.Fprintf(&b, "%s", elif)
+		fmt.Fprint(&b, elif)
 	}
 	if len(s.ElseStmts) > 0 {
-		fmt.Fprintf(&b, "else%s", stmtList(s.ElseStmts))
+		fmt.Fprint(&b, ELSE, stmtList(s.ElseStmts))
 	}
-	fmt.Fprint(&b, "fi")
+	fmt.Fprint(&b, FI)
 	return b.String()
 }
 func (s IfStmt) Pos() Pos { return s.If }
@@ -217,7 +213,7 @@ type Elif struct {
 }
 
 func (e Elif) String() string {
-	return fmt.Sprintf("elif%sthen%s", stmtList(e.Conds), stmtList(e.ThenStmts))
+	return fmt.Sprint(ELIF, stmtList(e.Conds), THEN, stmtList(e.ThenStmts))
 }
 
 type WhileStmt struct {
@@ -228,7 +224,7 @@ type WhileStmt struct {
 }
 
 func (w WhileStmt) String() string {
-	return fmt.Sprintf("while%sdo%sdone", stmtList(w.Conds), stmtList(w.DoStmts))
+	return fmt.Sprint(WHILE, stmtList(w.Conds), DO, stmtList(w.DoStmts), DONE)
 }
 func (w WhileStmt) Pos() Pos { return w.While }
 
@@ -240,7 +236,7 @@ type UntilStmt struct {
 }
 
 func (u UntilStmt) String() string {
-	return fmt.Sprintf("until%sdo%sdone", stmtList(u.Conds), stmtList(u.DoStmts))
+	return fmt.Sprint(UNTIL, stmtList(u.Conds), DO, stmtList(u.DoStmts), DONE)
 }
 func (u UntilStmt) Pos() Pos { return u.Until }
 
@@ -254,11 +250,11 @@ type ForStmt struct {
 
 func (f ForStmt) String() string {
 	var b bytes.Buffer
-	fmt.Fprintf(&b, "for %s", f.Name)
+	fmt.Fprint(&b, FOR, " ", f.Name)
 	if len(f.WordList) > 0 {
-		fmt.Fprintf(&b, " in %s", wordJoin(f.WordList, " "))
+		fmt.Fprintf(&b, " %s %s", IN, wordJoin(f.WordList, " "))
 	}
-	fmt.Fprintf(&b, "; do%sdone", stmtList(f.DoStmts))
+	fmt.Fprint(&b, "; ", DO, stmtList(f.DoStmts), DONE)
 	return b.String()
 }
 func (f ForStmt) Pos() Pos { return f.For }
@@ -360,7 +356,7 @@ type CaseStmt struct {
 
 func (c CaseStmt) String() string {
 	var b bytes.Buffer
-	fmt.Fprintf(&b, "case %s in", c.Word)
+	fmt.Fprintf(&b, "%s %s %s", CASE, c.Word, IN)
 	for i, plist := range c.List {
 		if i == 0 {
 			fmt.Fprint(&b, " ")
@@ -369,7 +365,7 @@ func (c CaseStmt) String() string {
 		}
 		fmt.Fprint(&b, plist)
 	}
-	fmt.Fprint(&b, "; esac")
+	fmt.Fprint(&b, "; ", ESAC)
 	return b.String()
 }
 func (c CaseStmt) Pos() Pos { return c.Case }
