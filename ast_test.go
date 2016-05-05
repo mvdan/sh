@@ -381,6 +381,27 @@ var astTests = []testCase{
 		},
 	},
 	{
+		[]string{"{ foo <<EOF\nbar\nEOF\n}"},
+		block(Stmt{
+			Node: litCmd("foo"),
+			Redirs: []Redirect{
+				{Op: HEREDOC, Word: litWord("EOF\nbar\nEOF")},
+			},
+		}),
+	},
+	{
+		[]string{"foo <<EOF\nbar\nEOF\nfoo2"},
+		[]Stmt{
+			Stmt{
+				Node: litCmd("foo"),
+				Redirs: []Redirect{
+					{Op: HEREDOC, Word: litWord("EOF\nbar\nEOF")},
+				},
+			},
+			litStmt("foo2"),
+		},
+	},
+	{
 		[]string{"foo <<FOOBAR\nbar\nFOOBAR"},
 		Stmt{
 			Node: litCmd("foo"),

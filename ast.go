@@ -31,7 +31,7 @@ type File struct {
 	Stmts []Stmt
 }
 
-func (f File) String() string { return stmtJoin(f.Stmts) }
+func (f File) String() string { return stmtJoinWithEnd(f.Stmts, false) }
 
 // Node represents an AST node.
 type Node interface {
@@ -61,22 +61,38 @@ func nodeJoin(ns []Node, sep string) string {
 	return b.String()
 }
 
-func stmtJoin(stmts []Stmt) string {
+func stmtJoinWithEnd(stmts []Stmt, end bool) string {
 	var b bytes.Buffer
+	newline := false
 	for i, s := range stmts {
-		if i > 0 {
+		if newline {
+			newline = false
+			fmt.Fprintln(&b)
+		} else if i > 0 {
 			fmt.Fprint(&b, "; ")
 		}
 		fmt.Fprint(&b, s)
+		newline = s.newlineAfter()
+	}
+	if newline && end {
+		fmt.Fprintln(&b)
 	}
 	return b.String()
 }
 
+func stmtJoin(stmts []Stmt) string {
+	return stmtJoinWithEnd(stmts, true)
+}
+
 func stmtList(stmts []Stmt) string {
 	if len(stmts) == 0 {
-		return ";"
+		return "; "
 	}
-	return " " + stmtJoin(stmts) + ";"
+	s := stmtJoin(stmts)
+	if len(s) > 0 && s[len(s)-1] == '\n' {
+		return " " + s
+	}
+	return " " + s + "; "
 }
 
 func wordJoin(words []Word, sep string) string {
@@ -114,6 +130,15 @@ func (s Stmt) String() string {
 }
 func (s Stmt) Pos() Pos { return s.Position }
 
+func (s Stmt) newlineAfter() bool {
+	for _, r := range s.Redirs {
+		if r.Op == HEREDOC || r.Op == DHEREDOC {
+			return true
+		}
+	}
+	return false
+}
+
 type Redirect struct {
 	OpPos Pos
 
@@ -145,8 +170,7 @@ type Subshell struct {
 
 func (s Subshell) String() string {
 	if len(s.Stmts) == 0 {
-		// To avoid clashing with () which is used to declare
-		// funcs
+		// To avoid confusion with ()
 		return "( )"
 	}
 	return "(" + stmtJoin(s.Stmts) + ")"
@@ -158,8 +182,7 @@ type Block struct {
 
 	Stmts []Stmt
 }
-
-func (b Block) String() string { return "{" + stmtList(b.Stmts) + " }" }
+func (b Block) String() string { return "{" + stmtList(b.Stmts) + "}" }
 func (b Block) Pos() Pos       { return b.Rbrace }
 
 type IfStmt struct {
@@ -174,14 +197,14 @@ type IfStmt struct {
 func (s IfStmt) String() string {
 	var b bytes.Buffer
 	fmt.Fprintf(&b, "if%s", stmtList(s.Conds))
-	fmt.Fprintf(&b, " then%s", stmtList(s.ThenStmts))
+	fmt.Fprintf(&b, "then%s", stmtList(s.ThenStmts))
 	for _, elif := range s.Elifs {
-		fmt.Fprintf(&b, " %s", elif)
+		fmt.Fprintf(&b, "%s", elif)
 	}
 	if len(s.ElseStmts) > 0 {
-		fmt.Fprintf(&b, " else%s", stmtList(s.ElseStmts))
+		fmt.Fprintf(&b, "else%s", stmtList(s.ElseStmts))
 	}
-	fmt.Fprint(&b, " fi")
+	fmt.Fprint(&b, "fi")
 	return b.String()
 }
 func (s IfStmt) Pos() Pos { return s.If }
@@ -194,7 +217,7 @@ type Elif struct {
 }
 
 func (e Elif) String() string {
-	return fmt.Sprintf("elif%s then%s", stmtList(e.Conds), stmtList(e.ThenStmts))
+	return fmt.Sprintf("elif%sthen%s", stmtList(e.Conds), stmtList(e.ThenStmts))
 }
 
 type WhileStmt struct {
@@ -205,7 +228,7 @@ type WhileStmt struct {
 }
 
 func (w WhileStmt) String() string {
-	return fmt.Sprintf("while%s do%s done", stmtList(w.Conds), stmtList(w.DoStmts))
+	return fmt.Sprintf("while%sdo%sdone", stmtList(w.Conds), stmtList(w.DoStmts))
 }
 func (w WhileStmt) Pos() Pos { return w.While }
 
@@ -217,7 +240,7 @@ type UntilStmt struct {
 }
 
 func (u UntilStmt) String() string {
-	return fmt.Sprintf("until%s do%s done", stmtList(u.Conds), stmtList(u.DoStmts))
+	return fmt.Sprintf("until%sdo%sdone", stmtList(u.Conds), stmtList(u.DoStmts))
 }
 func (u UntilStmt) Pos() Pos { return u.Until }
 
@@ -235,7 +258,7 @@ func (f ForStmt) String() string {
 	if len(f.WordList) > 0 {
 		fmt.Fprintf(&b, " in %s", wordJoin(f.WordList, " "))
 	}
-	fmt.Fprintf(&b, "; do%s done", stmtList(f.DoStmts))
+	fmt.Fprintf(&b, "; do%sdone", stmtList(f.DoStmts))
 	return b.String()
 }
 func (f ForStmt) Pos() Pos { return f.For }

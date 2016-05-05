@@ -718,6 +718,7 @@ func (p *parser) redirect() (r Redirect) {
 			ValuePos: w.Pos(),
 			Value:    fmt.Sprintf("%s\n%s", w, s),
 		}}}
+		p.next()
 	default:
 		p.wantFollowWord(r.Op.String(), &r.Word)
 	}
