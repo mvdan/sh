@@ -28,9 +28,8 @@ func litWords(strs ...string) []Word {
 	return l
 }
 
-func litCmd(strs ...string) Command {
-	return Command{Args: litWords(strs...)}
-}
+func cmd(words ...Word) Command { return Command{Args: words} }
+func litCmd(strs ...string) Command { return cmd(litWords(strs...)...) }
 
 func stmt(n Node) Stmt { return Stmt{Node: n} }
 func stmts(ns ...Node) []Stmt {
@@ -191,32 +190,32 @@ var astTests = []testCase{
 		ForStmt{
 			Name:     lit("i"),
 			WordList: litWords("1", "2", "3"),
-			DoStmts: stmts(Command{Args: []Word{
+			DoStmts: stmts(cmd(
 				litWord("echo"),
 				word(ParamExp{Short: true, Text: "i"}),
-			}}),
+			)),
 		},
 	},
 	{
 		[]string{`echo ' ' "foo bar"`},
-		Command{Args: []Word{
+		cmd(
 			litWord("echo"),
 			litWord("' '"),
 			word(dblQuoted(lits("foo bar")...)),
-		}},
+		),
 	},
 	{
 		[]string{`"foo \" bar"`},
-		Command{Args: []Word{
+		cmd(
 			word(dblQuoted(lits(`foo \" bar`)...)),
-		}},
+		),
 	},
 	{
 		[]string{"\">foo\" \"\nbar\""},
-		Command{Args: []Word{
+		cmd(
 			word(dblQuoted(lit(">foo"))),
 			word(dblQuoted(lit("\nbar"))),
-		}},
+		),
 	},
 	{
 		[]string{`foo \" bar`},
@@ -224,17 +223,17 @@ var astTests = []testCase{
 	},
 	{
 		[]string{`'"'`},
-		Command{Args: litWords(`'"'`)},
+		litCmd(`'"'`),
 	},
 	{
 		[]string{"'`'"},
-		Command{Args: litWords("'`'")},
+		litCmd("'`'"),
 	},
 	{
 		[]string{`"'"`},
-		Command{Args: []Word{
+		cmd(
 			word(dblQuoted(lit("'"))),
-		}},
+		),
 	},
 	{
 		[]string{"s{s s=s"},
@@ -505,12 +504,12 @@ var astTests = []testCase{
 	},
 	{
 		[]string{`{"foo"`},
-		Command{Args: []Word{
+		cmd(
 			word(
 				lit("{"),
 				dblQuoted(lit("foo")),
 			),
-		}},
+		),
 	},
 	{
 		[]string{`!foo`},
@@ -518,13 +517,13 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"$(foo bar)"},
-		Command{Args: []Word{
+		cmd(
 			word(cmdSubst(litStmt("foo", "bar"))),
-		}},
+		),
 	},
 	{
 		[]string{"$(foo | bar)"},
-		Command{Args: []Word{
+		cmd(
 			word(cmdSubst(
 				stmt(BinaryExpr{
 					Op: OR,
@@ -532,17 +531,17 @@ var astTests = []testCase{
 					Y:  litStmt("bar"),
 				}),
 			)),
-		}},
+		),
 	},
 	{
 		[]string{"`foo`"},
-		Command{Args: []Word{
+		cmd(
 			word(bckQuoted(litStmt("foo"))),
-		}},
+		),
 	},
 	{
 		[]string{"`foo | bar`"},
-		Command{Args: []Word{
+		cmd(
 			word(bckQuoted(
 				stmt(BinaryExpr{
 					Op: OR,
@@ -550,98 +549,98 @@ var astTests = []testCase{
 					Y:  litStmt("bar"),
 				}),
 			)),
-		}},
+		),
 	},
 	{
 		[]string{"`foo 'bar'`"},
-		Command{Args: []Word{
+		cmd(
 			word(bckQuoted(litStmt("foo", "'bar'"))),
-		}},
+		),
 	},
 	{
 		[]string{"`foo \"bar\"`"},
-		Command{Args: []Word{
+		cmd(
 			word(bckQuoted(
 				stmt(Command{Args: []Word{
 					litWord("foo"),
 					word(dblQuoted(lit("bar"))),
 				}}),
 			)),
-		}},
+		),
 	},
 	{
 		[]string{`echo "$foo"`},
-		Command{Args: []Word{
+		cmd(
 			litWord("echo"),
 			word(dblQuoted(ParamExp{Short: true, Text: "foo"})),
-		}},
+		),
 	},
 	{
 		[]string{`$@ $# $$`},
-		Command{Args: []Word{
+		cmd(
 			word(ParamExp{Short: true, Text: "@"}),
 			word(ParamExp{Short: true, Text: "#"}),
 			word(ParamExp{Short: true, Text: "$"}),
-		}},
+		),
 	},
 	{
 		[]string{`echo $'foo'`},
-		Command{Args: []Word{
+		cmd(
 			litWord("echo"),
 			word(ParamExp{Short: true, Text: "'foo'"}),
-		}},
+		),
 	},
 	{
 		[]string{`echo "${foo}"`},
-		Command{Args: []Word{
+		cmd(
 			litWord("echo"),
 			word(dblQuoted(ParamExp{Text: "foo"})),
-		}},
+		),
 	},
 	{
 		[]string{`echo "(foo)"`},
-		Command{Args: []Word{
+		cmd(
 			litWord("echo"),
 			word(dblQuoted(lit("(foo)"))),
-		}},
+		),
 	},
 	{
 		[]string{`echo "${foo}>"`},
-		Command{Args: []Word{
+		cmd(
 			litWord("echo"),
 			word(dblQuoted(
 				ParamExp{Text: "foo"},
 				lit(">"),
 			)),
-		}},
+		),
 	},
 	{
 		[]string{`echo "$(foo)"`},
-		Command{Args: []Word{
+		cmd(
 			litWord("echo"),
 			word(dblQuoted(cmdSubst(litStmt("foo")))),
-		}},
+		),
 	},
 	{
 		[]string{`echo "$(foo bar)"`, `echo "$(foo  bar)"`},
-		Command{Args: []Word{
+		cmd(
 			litWord("echo"),
 			word(dblQuoted(cmdSubst(litStmt("foo", "bar")))),
-		}},
+		),
 	},
 	{
 		[]string{"echo \"`foo`\""},
-		Command{Args: []Word{
+		cmd(
 			litWord("echo"),
 			word(dblQuoted(bckQuoted(litStmt("foo")))),
-		}},
+		),
 	},
 	{
 		[]string{"echo \"`foo bar`\"", "echo \"`foo  bar`\""},
-		Command{Args: []Word{
+		cmd(
 			litWord("echo"),
 			word(dblQuoted(bckQuoted(litStmt("foo", "bar")))),
-		}},
+		),
 	},
 	{
 		[]string{`echo '${foo}'`},
@@ -649,35 +648,35 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"echo ${foo bar}"},
-		Command{Args: []Word{
+		cmd(
 			litWord("echo"),
 			word(ParamExp{Text: "foo bar"}),
-		}},
+		),
 	},
 	{
 		[]string{"$(($x-1))"},
-		Command{Args: []Word{word(ArithmExp{Text: "$x-1"})}},
+		cmd(word(ArithmExp{Text: "$x-1"})),
 	},
 	{
 		[]string{"echo foo$bar"},
-		Command{Args: []Word{
+		cmd(
 			litWord("echo"),
 			word(lit("foo"), ParamExp{Short: true, Text: "bar"}),
-		}},
+		),
 	},
 	{
 		[]string{"echo foo$(bar)"},
-		Command{Args: []Word{
+		cmd(
 			litWord("echo"),
 			word(lit("foo"), cmdSubst(litStmt("bar"))),
-		}},
+		),
 	},
 	{
 		[]string{"echo foo${bar bar}"},
-		Command{Args: []Word{
+		cmd(
 			litWord("echo"),
 			word(lit("foo"), ParamExp{Text: "bar bar"}),
-		}},
+		),
 	},
 	{
 		[]string{"echo 'foo${bar'"},
@@ -706,9 +705,9 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"a=\"\nbar\""},
-		Command{Args: []Word{
+		cmd(
 			word(lit("a="), dblQuoted(lit("\nbar"))),
-		}},
+		),
 	},
 	{
 		[]string{
@@ -759,17 +758,17 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"echo ${foo}if"},
-		Command{Args: []Word{
+		cmd(
 			litWord("echo"),
 			word(ParamExp{Text: "foo"}, lit("if")),
-		}},
+		),
 	},
 	{
 		[]string{"echo $if"},
-		Command{Args: []Word{
+		cmd(
 			litWord("echo"),
 			word(ParamExp{Short: true, Text: "if"}),
-		}},
+		),
 	},
 	{
 		[]string{"if; then; fi", "if\nthen\nfi"},
