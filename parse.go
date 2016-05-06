@@ -365,7 +365,7 @@ func (p *parser) wantFollowStmt(left string, s *Stmt, wantStop bool) {
 
 func (p *parser) wantFollowStmts(left string, sts *[]Stmt, stops ...Token) {
 	p.stmts(sts, stops...)
-	if len(*sts) < 1 && !p.newLine && !p.gotAny(SEMICOLON) {
+	if len(*sts) < 1 && !p.newLine && !p.got(SEMICOLON) {
 		p.followErr(left, "a statement list")
 	}
 }
@@ -701,10 +701,8 @@ func (p *parser) binaryExpr(left Stmt, addRedir func()) BinaryExpr {
 	}
 	if b.Op == OR {
 		p.wantFollowStmt(b.Op.String(), &b.Y, true)
-	} else {
-		if !p.gotStmtAndOr(&b.Y, addRedir) {
-			p.followErr(b.Op.String(), "a statement")
-		}
+	} else if !p.gotStmtAndOr(&b.Y, addRedir) {
+		p.followErr(b.Op.String(), "a statement")
 	}
 	return b
 }
