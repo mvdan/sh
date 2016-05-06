@@ -265,6 +265,10 @@ var errTests = []struct {
 		`1:16: "for foo [in words]" must be followed by "do"`,
 	},
 	{
+		"for i in 1 2 &",
+		`1:14: word list can only contain words`,
+	},
+	{
 		"for i in 1 2 3; do echo $i;",
 		`1:28: for statement must end with "done"`,
 	},

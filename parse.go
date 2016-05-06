@@ -584,7 +584,10 @@ func (p *parser) words(ws *[]Word, stops ...Token) {
 func (p *parser) wordList(ws *[]Word) {
 	for !p.peekEnd() {
 		var w Word
-		p.gotWord(&w)
+		if !p.gotWord(&w) {
+			p.curErr("word list can only contain words")
+			break
+		}
 		*ws = append(*ws, w)
 	}
 	if !p.newLine {
