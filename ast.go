@@ -339,12 +339,12 @@ func (p ParamExp) String() string {
 func (p ParamExp) Pos() Pos { return p.Exp }
 
 type ArithmExp struct {
-	Exp Pos
+	Exp, Rparen Pos
 
-	Text string
+	Words []Word
 }
 
-func (a ArithmExp) String() string { return "$((" + a.Text + "))" }
+func (a ArithmExp) String() string { return "$((" + wordJoin(a.Words, " ") + "))" }
 func (a ArithmExp) Pos() Pos       { return a.Exp }
 
 type CaseStmt struct {

@@ -550,11 +550,11 @@ func (p *parser) exp() Node {
 		p.next()
 	}
 	switch {
-	case p.peek(DLPAREN):
-		return ArithmExp{
-			Exp:  p.pos,
-			Text: p.readUntilMatched(p.pos, DLPAREN, DRPAREN),
-		}
+	case p.got(DLPAREN):
+		ar := ArithmExp{Exp: p.lpos}
+		p.words(&ar.Words, DRPAREN)
+		p.wantMatched(ar.Exp, DLPAREN, DRPAREN, &ar.Rparen)
+		return ar
 	case p.peek(LPAREN):
 		cs := CmdSubst{Exp: p.pos}
 		p.addStops('`')
@@ -570,6 +570,14 @@ func (p *parser) exp() Node {
 			Short: true,
 			Text:  p.lval,
 		}
+	}
+}
+
+func (p *parser) words(ws *[]Word, stops ...Token) {
+	for p.tok != EOF && !p.peekAny(stops...) {
+		var w Word
+		p.gotWord(&w)
+		*ws = append(*ws, w)
 	}
 }
 

@@ -51,10 +51,11 @@ func litStmts(strs ...string) []Stmt {
 	return l
 }
 
-func dblQuoted(ns ...Node) DblQuoted  { return DblQuoted{Parts: ns} }
-func bckQuoted(sts ...Stmt) BckQuoted { return BckQuoted{Stmts: sts} }
-func block(sts ...Stmt) Block         { return Block{Stmts: sts} }
-func cmdSubst(sts ...Stmt) CmdSubst   { return CmdSubst{Stmts: sts} }
+func dblQuoted(ns ...Node) DblQuoted    { return DblQuoted{Parts: ns} }
+func bckQuoted(sts ...Stmt) BckQuoted   { return BckQuoted{Stmts: sts} }
+func block(sts ...Stmt) Block           { return Block{Stmts: sts} }
+func cmdSubst(sts ...Stmt) CmdSubst     { return CmdSubst{Stmts: sts} }
+func arithmExp(words ...Word) ArithmExp { return ArithmExp{Words: words} }
 
 type testCase struct {
 	strs []string
@@ -656,8 +657,22 @@ var astTests = []testCase{
 		),
 	},
 	{
-		[]string{"$(($x-1))"},
-		cmd(word(ArithmExp{Text: "$x-1"})),
+		[]string{"$((2-1))"},
+		cmd(word(arithmExp(litWord("2-1")))),
+	},
+	{
+		[]string{"$(($i + 3))"},
+		cmd(word(arithmExp(
+			word(ParamExp{Short: true, Text: "i"}),
+			litWord("+"), litWord("3"),
+		))),
+	},
+	{
+		[]string{"$((3 + $((4))))"},
+		cmd(word(arithmExp(
+			litWord("3"), litWord("+"),
+			word(arithmExp(litWord("4"))),
+		))),
 	},
 	{
 		[]string{"echo foo$bar"},
@@ -965,6 +980,8 @@ func setPosRecurse(t *testing.T, v interface{}, to Pos, diff bool) Node {
 		return x
 	case ArithmExp:
 		setPos(&x.Exp)
+		setPos(&x.Rparen)
+		setPosRecurse(t, x.Words, to, diff)
 		return x
 	case CmdSubst:
 		setPos(&x.Exp)
