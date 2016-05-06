@@ -499,15 +499,15 @@ func (p *parser) gotLit(l *Lit) bool {
 
 func (p *parser) readParts(ns *[]Node) (count int) {
 	for p.tok != EOF {
-		if !p.doubleQuoted() && count > 0 && p.spaced {
-			return
-		}
 		var n Node
 		if !p.gotWordPart(&n) {
 			return
 		}
 		*ns = append(*ns, n)
 		count++
+		if !p.doubleQuoted() && p.spaced {
+			return
+		}
 	}
 	return
 }
@@ -581,11 +581,8 @@ func (p *parser) exp() Node {
 	}
 }
 
-func (p *parser) readPartsArithm(ns *[]Node) (count int) {
+func (p *parser) readPartsArithm(ns *[]Node) {
 	for p.tok != EOF {
-		if !p.doubleQuoted() && count > 0 && p.spaced {
-			return
-		}
 		var n Node
 		if !p.gotWordPart(&n) {
 			if p.peek(DRPAREN) {
@@ -598,9 +595,10 @@ func (p *parser) readPartsArithm(ns *[]Node) (count int) {
 			p.next()
 		}
 		*ns = append(*ns, n)
-		count++
+		if !p.doubleQuoted() && p.spaced {
+			return
+		}
 	}
-	return
 }
 
 func (p *parser) arithmWords(ws *[]Word) {
