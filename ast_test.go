@@ -7,6 +7,8 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/kr/pretty"
 )
 
 func lit(s string) Lit { return Lit{Value: s} }
@@ -977,8 +979,10 @@ func TestParseAST(t *testing.T) {
 			}
 			setPos(t, got.Stmts, Pos{}, true)
 			if !reflect.DeepEqual(got, want) {
-				t.Fatalf("AST mismatch in %q\nwant: %s\ngot:  %s\ndumps:\n%#v\n%#v",
-					in, want, got, want, got)
+				t.Fatalf("AST mismatch in %q\nwant: %s\ngot:  %s\ndiff:\n%s",
+					in, want, got,
+					strings.Join(pretty.Diff(want, got), "\n"),
+				)
 			}
 		}
 	}
