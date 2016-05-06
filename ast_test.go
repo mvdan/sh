@@ -864,8 +864,8 @@ func fullProg(v interface{}) (f File) {
 	return
 }
 
-func setPos(t *testing.T, v interface{}, to Pos, diff bool) Node {
-	set := func(p *Pos) {
+func setPosRecurse(t *testing.T, v interface{}, to Pos, diff bool) Node {
+	setPos := func(p *Pos) {
 		if diff && *p == to {
 			t.Fatalf("Pos in %v (%T) is already %v", v, v, to)
 		}
@@ -874,110 +874,110 @@ func setPos(t *testing.T, v interface{}, to Pos, diff bool) Node {
 	switch x := v.(type) {
 	case []Stmt:
 		for i := range x {
-			setPos(t, &x[i], to, diff)
+			setPosRecurse(t, &x[i], to, diff)
 		}
 	case *Stmt:
-		set(&x.Position)
-		x.Node = setPos(t, x.Node, to, diff)
+		setPos(&x.Position)
+		x.Node = setPosRecurse(t, x.Node, to, diff)
 		for i := range x.Redirs {
-			set(&x.Redirs[i].OpPos)
-			setPos(t, &x.Redirs[i].N, to, diff)
-			setPos(t, &x.Redirs[i].Word, to, diff)
+			setPos(&x.Redirs[i].OpPos)
+			setPosRecurse(t, &x.Redirs[i].N, to, diff)
+			setPosRecurse(t, &x.Redirs[i].Word, to, diff)
 		}
 	case Command:
-		setPos(t, x.Args, to, diff)
+		setPosRecurse(t, x.Args, to, diff)
 		return x
 	case []Word:
 		for i := range x {
-			setPos(t, &x[i], to, diff)
+			setPosRecurse(t, &x[i], to, diff)
 		}
 	case *Word:
-		setPos(t, x.Parts, to, diff)
+		setPosRecurse(t, x.Parts, to, diff)
 	case []Node:
 		for i := range x {
-			x[i] = setPos(t, x[i], to, diff)
+			x[i] = setPosRecurse(t, x[i], to, diff)
 		}
 	case *Lit:
-		set(&x.ValuePos)
+		setPos(&x.ValuePos)
 	case Lit:
-		set(&x.ValuePos)
+		setPos(&x.ValuePos)
 		return x
 	case Subshell:
-		set(&x.Lparen)
-		set(&x.Rparen)
-		setPos(t, x.Stmts, to, diff)
+		setPos(&x.Lparen)
+		setPos(&x.Rparen)
+		setPosRecurse(t, x.Stmts, to, diff)
 		return x
 	case Block:
-		set(&x.Lbrace)
-		set(&x.Rbrace)
-		setPos(t, x.Stmts, to, diff)
+		setPos(&x.Lbrace)
+		setPos(&x.Rbrace)
+		setPosRecurse(t, x.Stmts, to, diff)
 		return x
 	case IfStmt:
-		set(&x.If)
-		set(&x.Fi)
-		setPos(t, x.Conds, to, diff)
-		setPos(t, x.ThenStmts, to, diff)
+		setPos(&x.If)
+		setPos(&x.Fi)
+		setPosRecurse(t, x.Conds, to, diff)
+		setPosRecurse(t, x.ThenStmts, to, diff)
 		for i := range x.Elifs {
-			set(&x.Elifs[i].Elif)
-			setPos(t, x.Elifs[i].Conds, to, diff)
-			setPos(t, x.Elifs[i].ThenStmts, to, diff)
+			setPos(&x.Elifs[i].Elif)
+			setPosRecurse(t, x.Elifs[i].Conds, to, diff)
+			setPosRecurse(t, x.Elifs[i].ThenStmts, to, diff)
 		}
-		setPos(t, x.ElseStmts, to, diff)
+		setPosRecurse(t, x.ElseStmts, to, diff)
 		return x
 	case WhileStmt:
-		set(&x.While)
-		set(&x.Done)
-		setPos(t, x.Conds, to, diff)
-		setPos(t, x.DoStmts, to, diff)
+		setPos(&x.While)
+		setPos(&x.Done)
+		setPosRecurse(t, x.Conds, to, diff)
+		setPosRecurse(t, x.DoStmts, to, diff)
 		return x
 	case UntilStmt:
-		set(&x.Until)
-		set(&x.Done)
-		setPos(t, x.Conds, to, diff)
-		setPos(t, x.DoStmts, to, diff)
+		setPos(&x.Until)
+		setPos(&x.Done)
+		setPosRecurse(t, x.Conds, to, diff)
+		setPosRecurse(t, x.DoStmts, to, diff)
 		return x
 	case ForStmt:
-		set(&x.For)
-		set(&x.Done)
-		setPos(t, &x.Name, to, diff)
-		setPos(t, x.WordList, to, diff)
-		setPos(t, x.DoStmts, to, diff)
+		setPos(&x.For)
+		setPos(&x.Done)
+		setPosRecurse(t, &x.Name, to, diff)
+		setPosRecurse(t, x.WordList, to, diff)
+		setPosRecurse(t, x.DoStmts, to, diff)
 		return x
 	case DblQuoted:
-		set(&x.Quote)
-		setPos(t, x.Parts, to, diff)
+		setPos(&x.Quote)
+		setPosRecurse(t, x.Parts, to, diff)
 		return x
 	case BckQuoted:
-		set(&x.Quote)
-		setPos(t, x.Stmts, to, diff)
+		setPos(&x.Quote)
+		setPosRecurse(t, x.Stmts, to, diff)
 		return x
 	case BinaryExpr:
-		set(&x.OpPos)
-		setPos(t, &x.X, to, diff)
-		setPos(t, &x.Y, to, diff)
+		setPos(&x.OpPos)
+		setPosRecurse(t, &x.X, to, diff)
+		setPosRecurse(t, &x.Y, to, diff)
 		return x
 	case FuncDecl:
-		setPos(t, &x.Name, to, diff)
-		setPos(t, &x.Body, to, diff)
+		setPosRecurse(t, &x.Name, to, diff)
+		setPosRecurse(t, &x.Body, to, diff)
 		return x
 	case ParamExp:
-		set(&x.Exp)
+		setPos(&x.Exp)
 		return x
 	case ArithmExp:
-		set(&x.Exp)
+		setPos(&x.Exp)
 		return x
 	case CmdSubst:
-		set(&x.Exp)
-		set(&x.Rparen)
-		setPos(t, x.Stmts, to, diff)
+		setPos(&x.Exp)
+		setPos(&x.Rparen)
+		setPosRecurse(t, x.Stmts, to, diff)
 		return x
 	case CaseStmt:
-		set(&x.Case)
-		set(&x.Esac)
-		setPos(t, &x.Word, to, diff)
+		setPos(&x.Case)
+		setPos(&x.Esac)
+		setPosRecurse(t, &x.Word, to, diff)
 		for _, pl := range x.List {
-			setPos(t, pl.Patterns, to, diff)
-			setPos(t, pl.Stmts, to, diff)
+			setPosRecurse(t, pl.Patterns, to, diff)
+			setPosRecurse(t, pl.Stmts, to, diff)
 		}
 		return x
 	case nil:
@@ -1004,7 +1004,7 @@ func TestNodePos(t *testing.T) {
 	}
 	for _, c := range allTests {
 		want := fullProg(c.ast)
-		setPos(t, want.Stmts, p, true)
+		setPosRecurse(t, want.Stmts, p, true)
 		for _, s := range want.Stmts {
 			if s.Pos() != p {
 				t.Fatalf("Found unexpected Pos in %v", s)
@@ -1020,14 +1020,14 @@ func TestNodePos(t *testing.T) {
 func TestParseAST(t *testing.T) {
 	for _, c := range astTests {
 		want := fullProg(c.ast)
-		setPos(t, want.Stmts, Pos{}, false)
+		setPosRecurse(t, want.Stmts, Pos{}, false)
 		for _, in := range c.strs {
 			r := strings.NewReader(in)
 			got, err := Parse(r, "")
 			if err != nil {
 				t.Fatalf("Unexpected error in %q: %v", in, err)
 			}
-			setPos(t, got.Stmts, Pos{}, true)
+			setPosRecurse(t, got.Stmts, Pos{}, true)
 			if !reflect.DeepEqual(got, want) {
 				t.Fatalf("AST mismatch in %q\nwant: %s\ngot:  %s\ndiff:\n%s",
 					in, want, got,
