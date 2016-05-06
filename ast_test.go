@@ -675,6 +675,12 @@ var astTests = []testCase{
 		))),
 	},
 	{
+		[]string{"$((3 & 7))"},
+		cmd(word(arithmExp(
+			litWord("3"), litWord("&"), litWord("7"),
+		))),
+	},
+	{
 		[]string{"echo foo$bar"},
 		cmd(
 			litWord("echo"),

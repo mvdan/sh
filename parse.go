@@ -499,40 +499,48 @@ func (p *parser) gotLit(l *Lit) bool {
 
 func (p *parser) readParts(ns *[]Node) (count int) {
 	for p.tok != EOF {
-		var n Node
-		switch {
-		case !p.doubleQuoted() && count > 0 && p.spaced:
+		if !p.doubleQuoted() && count > 0 && p.spaced {
 			return
-		case p.got(LIT):
-			n = Lit{
-				ValuePos: p.lpos,
-				Value:    p.lval,
-			}
-		case !p.doubleQuoted() && p.peek('"'):
-			dq := DblQuoted{Quote: p.pos}
-			p.addStops('"')
-			p.next()
-			p.readParts(&dq.Parts)
-			p.popStops()
-			p.wantQuote(dq.Quote, '"')
-			n = dq
-		case !p.quoted('`') && p.peek('`'):
-			bq := BckQuoted{Quote: p.pos}
-			p.addStops('`')
-			p.next()
-			p.stmtsNested(&bq.Stmts, '`')
-			p.popStops()
-			p.wantQuote(bq.Quote, '`')
-			n = bq
-		case p.peek(EXP):
-			n = p.exp()
-		default:
+		}
+		var n Node
+		if !p.gotWordPart(&n) {
 			return
 		}
 		*ns = append(*ns, n)
 		count++
 	}
 	return
+}
+
+func (p *parser) gotWordPart(n *Node) bool {
+	switch {
+	case p.got(LIT):
+		*n = Lit{
+			ValuePos: p.lpos,
+			Value:    p.lval,
+		}
+	case !p.doubleQuoted() && p.peek('"'):
+		dq := DblQuoted{Quote: p.pos}
+		p.addStops('"')
+		p.next()
+		p.readParts(&dq.Parts)
+		p.popStops()
+		p.wantQuote(dq.Quote, '"')
+		*n = dq
+	case !p.quoted('`') && p.peek('`'):
+		bq := BckQuoted{Quote: p.pos}
+		p.addStops('`')
+		p.next()
+		p.stmtsNested(&bq.Stmts, '`')
+		p.popStops()
+		p.wantQuote(bq.Quote, '`')
+		*n = bq
+	case p.peek(EXP):
+		*n = p.exp()
+	default:
+		return false
+	}
+	return true
 }
 
 func (p *parser) exp() Node {
@@ -552,7 +560,7 @@ func (p *parser) exp() Node {
 	switch {
 	case p.got(DLPAREN):
 		ar := ArithmExp{Exp: p.lpos}
-		p.words(&ar.Words, DRPAREN)
+		p.arithmWords(&ar.Words)
 		p.wantMatched(ar.Exp, DLPAREN, DRPAREN, &ar.Rparen)
 		return ar
 	case p.peek(LPAREN):
@@ -573,10 +581,32 @@ func (p *parser) exp() Node {
 	}
 }
 
-func (p *parser) words(ws *[]Word, stops ...Token) {
-	for p.tok != EOF && !p.peekAny(stops...) {
+func (p *parser) readPartsArithm(ns *[]Node) (count int) {
+	for p.tok != EOF {
+		if !p.doubleQuoted() && count > 0 && p.spaced {
+			return
+		}
+		var n Node
+		if !p.gotWordPart(&n) {
+			if p.peek(DRPAREN) {
+				return
+			}
+			n = Lit{
+				Value:    p.val,
+				ValuePos: p.pos,
+			}
+			p.next()
+		}
+		*ns = append(*ns, n)
+		count++
+	}
+	return
+}
+
+func (p *parser) arithmWords(ws *[]Word) {
+	for p.tok != EOF && !p.peek(DRPAREN) {
 		var w Word
-		p.gotWord(&w)
+		p.readPartsArithm(&w.Parts)
 		*ws = append(*ws, w)
 	}
 }
