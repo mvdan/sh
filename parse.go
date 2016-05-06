@@ -609,16 +609,55 @@ func (p *parser) gotStmt(s *Stmt, wantStop bool) bool {
 		return false
 	}
 	p.gotEnd = false
-	addRedir := func() {
-		s.Redirs = append(s.Redirs, p.redirect())
-	}
 	s.Position = p.pos
 	if p.got(BANG) {
 		s.Negated = true
 	}
+	addRedir := func() {
+		s.Redirs = append(s.Redirs, p.redirect())
+	}
 	for p.peekRedir() {
 		addRedir()
 	}
+	p.gotStmtAndOr(s, addRedir)
+	for p.peekRedir() {
+		addRedir()
+		p.gotEnd = false
+	}
+	if !s.Negated && s.Node == nil && len(s.Redirs) == 0 {
+		return false
+	}
+	if !wantStop {
+		return true
+	}
+	if p.got(AND) {
+		s.Background = true
+		p.gotEnd = true
+	} else {
+		if !p.peekStop() {
+			p.gotEnd = false
+			return true
+		}
+		if p.got(OR) {
+			left := *s
+			*s = Stmt{
+				Position: left.Position,
+				Node:     p.binaryExpr(left, addRedir),
+			}
+		}
+	}
+	if p.peekEnd() && !p.newLine {
+		p.next()
+		p.gotEnd = true
+	}
+	if p.newLine {
+		p.gotEnd = true
+	}
+	return true
+}
+
+func (p *parser) gotStmtAndOr(s *Stmt, addRedir func()) bool {
+	s.Position = p.pos
 	end := true
 	switch {
 	case p.got(LPAREN):
@@ -638,45 +677,21 @@ func (p *parser) gotStmt(s *Stmt, wantStop bool) bool {
 	case p.peekAny(LIT, EXP, '"', '`'):
 		s.Node = p.cmdOrFunc(addRedir)
 		end = false
-	}
-	p.gotEnd = end
-	for p.peekRedir() {
-		addRedir()
-		p.gotEnd = false
-	}
-	if !s.Negated && s.Node == nil && len(s.Redirs) == 0 {
+	default:
 		return false
 	}
-	if !wantStop {
-		return true
-	}
-	if p.got(AND) {
-		s.Background = true
-		p.gotEnd = true
-	} else {
-		if !p.peekStop() {
-			p.gotEnd = false
-			return true
+	p.gotEnd = end
+	if p.gotAny(LAND, LOR) {
+		left := *s
+		*s = Stmt{
+			Position: left.Position,
+			Node:     p.binaryExpr(left, addRedir),
 		}
-		if p.gotAny(OR, LAND, LOR) {
-			left := *s
-			*s = Stmt{
-				Position: left.Position,
-				Node:     p.binaryExpr(left),
-			}
-		}
-	}
-	if p.peekEnd() && !p.newLine {
-		p.next()
-		p.gotEnd = true
-	}
-	if p.newLine {
-		p.gotEnd = true
 	}
 	return true
 }
 
-func (p *parser) binaryExpr(left Stmt) BinaryExpr {
+func (p *parser) binaryExpr(left Stmt, addRedir func()) BinaryExpr {
 	b := BinaryExpr{
 		OpPos: p.lpos,
 		Op:    p.ltok,
@@ -684,7 +699,13 @@ func (p *parser) binaryExpr(left Stmt) BinaryExpr {
 	}
 	for p.got('#') {
 	}
-	p.wantFollowStmt(b.Op.String(), &b.Y, true)
+	if b.Op == OR {
+		p.wantFollowStmt(b.Op.String(), &b.Y, true)
+	} else {
+		if !p.gotStmtAndOr(&b.Y, addRedir) {
+			p.followErr(b.Op.String(), "a statement")
+		}
+	}
 	return b
 }
 

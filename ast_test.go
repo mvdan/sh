@@ -30,7 +30,7 @@ func litWords(strs ...string) []Word {
 	return l
 }
 
-func cmd(words ...Word) Command { return Command{Args: words} }
+func cmd(words ...Word) Command     { return Command{Args: words} }
 func litCmd(strs ...string) Command { return cmd(litWords(strs...)...) }
 
 func stmt(n Node) Stmt { return Stmt{Node: n} }
@@ -795,6 +795,30 @@ var astTests = []testCase{
 	{
 		[]string{"case i in; esac"},
 		CaseStmt{Word: litWord("i")},
+	},
+	{
+		[]string{"f1 && f2 | bar"},
+		BinaryExpr{
+			Op: OR,
+			X: stmt(BinaryExpr{
+				Op: LAND,
+				X:  litStmt("f1"),
+				Y:  litStmt("f2"),
+			}),
+			Y: litStmt("bar"),
+		},
+	},
+	{
+		[]string{"foo | b1 && b2"},
+		BinaryExpr{
+			Op: OR,
+			X:  litStmt("foo"),
+			Y: stmt(BinaryExpr{
+				Op: LAND,
+				X:  litStmt("b1"),
+				Y:  litStmt("b2"),
+			}),
+		},
 	},
 }
 
