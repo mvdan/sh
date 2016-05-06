@@ -820,6 +820,32 @@ var astTests = []testCase{
 			}),
 		},
 	},
+	{
+		[]string{"foo >f | bar"},
+		BinaryExpr{
+			Op: OR,
+			X: Stmt{
+				Node: litCmd("foo"),
+				Redirs: []Redirect{
+					{Op: RDROUT, Word: litWord("f")},
+				},
+			},
+			Y: litStmt("bar"),
+		},
+	},
+	{
+		[]string{"foo >f || bar"},
+		BinaryExpr{
+			Op: LOR,
+			X: Stmt{
+				Node: litCmd("foo"),
+				Redirs: []Redirect{
+					{Op: RDROUT, Word: litWord("f")},
+				},
+			},
+			Y: litStmt("bar"),
+		},
+	},
 }
 
 func fullProg(v interface{}) (f File) {
