@@ -657,8 +657,16 @@ var astTests = []testCase{
 		),
 	},
 	{
-		[]string{"$((2-1))"},
-		cmd(word(arithmExp(litWord("2-1")))),
+		[]string{"$((1 + 3))"},
+		cmd(word(arithmExp(
+			litWord("1"), litWord("+"), litWord("3"),
+		))),
+	},
+	{
+		[]string{"$((5 * 2 - 1))", "$((5*2-1))"},
+		cmd(word(arithmExp(
+			litWords("5", "*", "2", "-", "1")...
+		))),
 	},
 	{
 		[]string{"$(($i + 3))"},

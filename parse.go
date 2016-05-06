@@ -40,8 +40,8 @@ type parser struct {
 	file File
 	err  error
 
-	spaced, newLine, gotEnd bool
-	stopOnNewline           bool
+	spaced, newLine, gotEnd  bool
+	stopOnNewline, arithmExp bool
 
 	ltok, tok Token
 	lval, val string
@@ -153,6 +153,14 @@ var (
 		'(': true,
 		')': true,
 	}
+	arithmOps = map[byte]bool{
+		'+': true,
+		'-': true,
+		'!': true,
+		'*': true,
+		'/': true,
+		'%': true,
+	}
 	space = map[byte]bool{
 		' ':  true,
 		'\t': true,
@@ -214,6 +222,9 @@ func (p *parser) next() {
 
 func (p *parser) advanceReadLit() { p.advanceBoth(LIT, string(p.readLitBytes())) }
 func (p *parser) readLitBytes() (bs []byte) {
+	if p.arithmExp {
+		p.spaced = true
+	}
 	var qpos Pos
 	for {
 		b, err := p.peekByte()
@@ -243,6 +254,12 @@ func (p *parser) readLitBytes() (bs []byte) {
 			}
 		case b == '\'':
 			qpos = p.npos
+		case p.arithmExp && arithmOps[b]:
+			if len(bs) > 0 {
+				return
+			}
+			p.consumeByte()
+			return []byte{b}
 		case reserved[b], space[b]: // end of lit
 			return
 		}
@@ -558,9 +575,12 @@ func (p *parser) exp() Node {
 		p.next()
 	}
 	switch {
-	case p.got(DLPAREN):
-		ar := ArithmExp{Exp: p.lpos}
+	case p.peek(DLPAREN):
+		ar := ArithmExp{Exp: p.pos}
+		p.arithmExp = true
+		p.next()
 		p.arithmWords(&ar.Words)
+		p.arithmExp = false
 		p.wantMatched(ar.Exp, DLPAREN, DRPAREN, &ar.Rparen)
 		return ar
 	case p.peek(LPAREN):
