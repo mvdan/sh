@@ -679,9 +679,11 @@ func (p *parser) gotStmt(s *Stmt, wantStop bool) bool {
 		addRedir()
 	}
 	p.gotStmtAndOr(s, addRedir)
-	for p.peekRedir() {
-		addRedir()
-		p.gotEnd = false
+	if !p.peekEnd() {
+		for p.peekRedir() {
+			addRedir()
+			p.gotEnd = false
+		}
 	}
 	if !s.Negated && s.Node == nil && len(s.Redirs) == 0 {
 		return false

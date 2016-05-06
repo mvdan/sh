@@ -362,6 +362,18 @@ var astTests = []testCase{
 		},
 	},
 	{
+		[]string{"foo1; foo2 >r2", "foo1\n>r2 foo2"},
+		[]Stmt{
+			litStmt("foo1"),
+			{
+				Node: litCmd("foo2"),
+				Redirs: []Redirect{
+					{Op: RDROUT, Word: litWord("r2")},
+				},
+			},
+		},
+	},
+	{
 		[]string{
 			"foo <<EOF\nbar\nEOF",
 			"foo <<EOF\nbar",
