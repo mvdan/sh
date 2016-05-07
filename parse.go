@@ -699,7 +699,7 @@ func (p *parser) gotStmt(s *Stmt, wantStop bool) bool {
 			p.gotEnd = false
 			return true
 		}
-		if p.got(OR) {
+		if p.gotAny(LAND, LOR) {
 			left := *s
 			*s = Stmt{
 				Position: left.Position,
@@ -742,7 +742,7 @@ func (p *parser) gotStmtAndOr(s *Stmt, addRedir func()) bool {
 		return false
 	}
 	p.gotEnd = end
-	if p.gotAny(LAND, LOR) {
+	if p.gotAny(OR) {
 		left := *s
 		*s = Stmt{
 			Position: left.Position,
@@ -760,7 +760,7 @@ func (p *parser) binaryExpr(left Stmt, addRedir func()) BinaryExpr {
 	}
 	for p.got('#') {
 	}
-	if b.Op == OR {
+	if b.Op == LAND || b.Op == LOR {
 		p.wantFollowStmt(b.Op.String(), &b.Y, true)
 	} else if !p.gotStmtAndOr(&b.Y, addRedir) {
 		p.followErr(b.Op.String(), "a statement")

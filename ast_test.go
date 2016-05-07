@@ -677,7 +677,7 @@ var astTests = []testCase{
 	{
 		[]string{"$((5 * 2 - 1))", "$((5*2-1))"},
 		cmd(word(arithmExp(
-			litWords("5", "*", "2", "-", "1")...
+			litWords("5", "*", "2", "-", "1")...,
 		))),
 	},
 	{
@@ -838,27 +838,27 @@ var astTests = []testCase{
 		CaseStmt{Word: litWord("i")},
 	},
 	{
-		[]string{"f1 && f2 | bar"},
+		[]string{"foo && write | read"},
 		BinaryExpr{
-			Op: OR,
-			X: stmt(BinaryExpr{
-				Op: LAND,
-				X:  litStmt("f1"),
-				Y:  litStmt("f2"),
+			Op: LAND,
+			X:  litStmt("foo"),
+			Y: stmt(BinaryExpr{
+				Op: OR,
+				X:  litStmt("write"),
+				Y:  litStmt("read"),
 			}),
-			Y: litStmt("bar"),
 		},
 	},
 	{
-		[]string{"foo | b1 && b2"},
+		[]string{"write | read && bar"},
 		BinaryExpr{
-			Op: OR,
-			X:  litStmt("foo"),
-			Y: stmt(BinaryExpr{
-				Op: LAND,
-				X:  litStmt("b1"),
-				Y:  litStmt("b2"),
+			Op: LAND,
+			X: stmt(BinaryExpr{
+				Op: OR,
+				X:  litStmt("write"),
+				Y:  litStmt("read"),
 			}),
+			Y: litStmt("bar"),
 		},
 	},
 	{
