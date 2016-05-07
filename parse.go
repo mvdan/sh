@@ -483,9 +483,9 @@ func (p *parser) invalidStmtStart() {
 	switch {
 	case p.peekAny(SEMICOLON, AND, OR, LAND, LOR):
 		p.curErr("%s can only immediately follow a statement", p.tok)
-	case p.peekAny(RBRACE):
+	case p.peek(RBRACE):
 		p.curErr("%s can only be used to close a block", p.val)
-	case p.peekAny(RPAREN):
+	case p.peek(RPAREN):
 		p.curErr("%s can only be used to close a subshell", p.tok)
 	default:
 		p.curErr("%s is not a valid start for a statement", p.tok)
@@ -742,7 +742,7 @@ func (p *parser) gotStmtAndOr(s *Stmt, addRedir func()) bool {
 		return false
 	}
 	p.gotEnd = end
-	if p.gotAny(OR) {
+	if p.got(OR) {
 		left := *s
 		*s = Stmt{
 			Position: left.Position,
