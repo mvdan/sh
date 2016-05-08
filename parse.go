@@ -201,7 +201,7 @@ func (p *parser) next() {
 	case p.newLine && p.stopOnNewline:
 		p.advanceTok(STOPPED)
 	case b == '#':
-		p.advanceBoth('#', p.readLine())
+		p.advanceBoth(COMMENT, p.readLine())
 	case reserved[b]:
 		// Between double quotes, only under certain
 		// circumstnaces do we tokenize
@@ -459,7 +459,7 @@ func (p *parser) stmts(sts *[]Stmt, stops ...Token) {
 		return
 	}
 	for p.tok != EOF {
-		for p.got('#') {
+		for p.got(COMMENT) {
 		}
 		if p.peekAny(stops...) {
 			break
@@ -644,7 +644,7 @@ func (p *parser) wordList(ws *[]Word) {
 }
 
 func (p *parser) peekEnd() bool {
-	return p.tok == EOF || p.newLine || p.peekAny(SEMICOLON, '#')
+	return p.tok == EOF || p.newLine || p.peekAny(SEMICOLON, COMMENT)
 }
 
 func (p *parser) peekStop() bool {
@@ -758,7 +758,7 @@ func (p *parser) binaryExpr(left Stmt, addRedir func()) BinaryExpr {
 		Op:    p.ltok,
 		X:     left,
 	}
-	for p.got('#') {
+	for p.got(COMMENT) {
 	}
 	if b.Op == LAND || b.Op == LOR {
 		p.wantFollowStmt(b.Op.String(), &b.Y, true)

@@ -14,6 +14,7 @@ const (
 	STOPPED
 	EOF
 	LIT
+	COMMENT
 
 	IF
 	THEN
@@ -92,6 +93,7 @@ var (
 		STOPPED: `STOPPED`,
 		EOF:     `EOF`,
 		LIT:     `literal`,
+		COMMENT: `comment`,
 
 		IF:    "if",
 		THEN:  "then",
