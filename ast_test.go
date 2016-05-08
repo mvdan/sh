@@ -92,7 +92,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"foo'bar'"},
-		cmd(word(lit("foo"), sglQuoted("bar"))),
+		word(lit("foo"), sglQuoted("bar")),
 	},
 	{
 		[]string{"(foo)", "(foo;)", "(\nfoo\n)"},
@@ -203,18 +203,15 @@ var astTests = []testCase{
 		},
 	},
 	{
-		[]string{`echo ' ' "foo bar"`},
+		[]string{`' ' "foo bar"`},
 		cmd(
-			litWord("echo"),
 			word(sglQuoted(" ")),
 			word(dblQuoted(lits("foo bar")...)),
 		),
 	},
 	{
 		[]string{`"foo \" bar"`},
-		cmd(
-			word(dblQuoted(lits(`foo \" bar`)...)),
-		),
+		word(dblQuoted(lits(`foo \" bar`)...)),
 	},
 	{
 		[]string{"\">foo\" \"\nbar\""},
@@ -229,17 +226,15 @@ var astTests = []testCase{
 	},
 	{
 		[]string{`'"'`},
-		cmd(word(sglQuoted(`"`))),
+		word(sglQuoted(`"`)),
 	},
 	{
 		[]string{"'`'"},
-		cmd(word(sglQuoted("`"))),
+		word(sglQuoted("`")),
 	},
 	{
 		[]string{`"'"`},
-		cmd(
-			word(dblQuoted(lit("'"))),
-		),
+		word(dblQuoted(lit("'"))),
 	},
 	{
 		[]string{"s{s s=s"},
@@ -518,8 +513,8 @@ var astTests = []testCase{
 		},
 	},
 	{
-		[]string{"echo foo#bar"},
-		litCmd("echo", "foo#bar"),
+		[]string{"foo#bar"},
+		litCmd("foo#bar"),
 	},
 	{
 		[]string{"{ echo } }; }"},
@@ -531,12 +526,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{`{"foo"`},
-		cmd(
-			word(
-				lit("{"),
-				dblQuoted(lit("foo")),
-			),
-		),
+		word(lit("{"), dblQuoted(lit("foo"))),
 	},
 	{
 		[]string{`!foo`},
@@ -544,73 +534,55 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"$(foo bar)"},
-		cmd(
-			word(cmdSubst(false, litStmt("foo", "bar"))),
-		),
+		word(cmdSubst(false, litStmt("foo", "bar"))),
 	},
 	{
 		[]string{"$(foo | bar)"},
-		cmd(
-			word(cmdSubst(false,
-				stmt(BinaryExpr{
-					Op: OR,
-					X:  litStmt("foo"),
-					Y:  litStmt("bar"),
-				}),
-			)),
-		),
+		word(cmdSubst(false,
+			stmt(BinaryExpr{
+				Op: OR,
+				X:  litStmt("foo"),
+				Y:  litStmt("bar"),
+			}),
+		)),
 	},
 	{
 		[]string{"`foo`"},
-		cmd(
-			word(cmdSubst(true, litStmt("foo"))),
-		),
+		word(cmdSubst(true, litStmt("foo"))),
 	},
 	{
 		[]string{"`foo | bar`"},
-		cmd(
-			word(cmdSubst(true,
-				stmt(BinaryExpr{
-					Op: OR,
-					X:  litStmt("foo"),
-					Y:  litStmt("bar"),
-				}),
-			)),
-		),
+		word(cmdSubst(true,
+			stmt(BinaryExpr{
+				Op: OR,
+				X:  litStmt("foo"),
+				Y:  litStmt("bar"),
+			}),
+		)),
 	},
 	{
 		[]string{"`foo 'bar'`"},
-		cmd(
-			word(cmdSubst(true, stmt(cmd(
-				litWord("foo"),
-				word(sglQuoted("bar")),
-			)))),
-		),
+		word(cmdSubst(true, stmt(cmd(
+			litWord("foo"),
+			word(sglQuoted("bar")),
+		)))),
 	},
 	{
 		[]string{"`foo \"bar\"`"},
-		cmd(
-			word(cmdSubst(true,
-				stmt(Command{Args: []Word{
-					litWord("foo"),
-					word(dblQuoted(lit("bar"))),
-				}}),
-			)),
-		),
+		word(cmdSubst(true,
+			stmt(Command{Args: []Word{
+				litWord("foo"),
+				word(dblQuoted(lit("bar"))),
+			}}),
+		)),
 	},
 	{
-		[]string{`echo "$foo"`},
-		cmd(
-			litWord("echo"),
-			word(dblQuoted(ParamExp{Short: true, Text: "foo"})),
-		),
+		[]string{`"$foo"`},
+		word(dblQuoted(ParamExp{Short: true, Text: "foo"})),
 	},
 	{
-		[]string{`echo "#foo"`},
-		cmd(
-			litWord("echo"),
-			word(dblQuoted(lit("#foo"))),
-		),
+		[]string{`"#foo"`},
+		word(dblQuoted(lit("#foo"))),
 	},
 	{
 		[]string{`$@ $# $$`},
@@ -621,124 +593,91 @@ var astTests = []testCase{
 		),
 	},
 	{
-		[]string{`echo "${foo}"`},
-		cmd(
-			litWord("echo"),
-			word(dblQuoted(ParamExp{Text: "foo"})),
-		),
+		[]string{`"${foo}"`},
+		word(dblQuoted(ParamExp{Text: "foo"})),
 	},
 	{
-		[]string{`echo "(foo)"`},
-		cmd(
-			litWord("echo"),
-			word(dblQuoted(lit("(foo)"))),
-		),
+		[]string{`"(foo)"`},
+		word(dblQuoted(lit("(foo)"))),
 	},
 	{
-		[]string{`echo "${foo}>"`},
-		cmd(
-			litWord("echo"),
-			word(dblQuoted(
-				ParamExp{Text: "foo"},
-				lit(">"),
-			)),
-		),
+		[]string{`"${foo}>"`},
+		word(dblQuoted(
+			ParamExp{Text: "foo"},
+			lit(">"),
+		)),
 	},
 	{
-		[]string{`echo "$(foo)"`},
-		cmd(
-			litWord("echo"),
-			word(dblQuoted(cmdSubst(false, litStmt("foo")))),
-		),
+		[]string{`"$(foo)"`},
+		word(dblQuoted(cmdSubst(false, litStmt("foo")))),
 	},
 	{
-		[]string{`echo "$(foo bar)"`, `echo "$(foo  bar)"`},
-		cmd(
-			litWord("echo"),
-			word(dblQuoted(cmdSubst(false, litStmt("foo", "bar")))),
-		),
+		[]string{`"$(foo bar)"`, `"$(foo  bar)"`},
+		word(dblQuoted(cmdSubst(false, litStmt("foo", "bar")))),
 	},
 	{
-		[]string{"echo \"`foo`\""},
-		cmd(
-			litWord("echo"),
-			word(dblQuoted(cmdSubst(true, litStmt("foo")))),
-		),
+		[]string{"\"`foo`\""},
+		word(dblQuoted(cmdSubst(true, litStmt("foo")))),
 	},
 	{
-		[]string{"echo \"`foo bar`\"", "echo \"`foo  bar`\""},
-		cmd(
-			litWord("echo"),
-			word(dblQuoted(cmdSubst(true, litStmt("foo", "bar")))),
-		),
+		[]string{"\"`foo bar`\"", "\"`foo  bar`\""},
+		word(dblQuoted(cmdSubst(true, litStmt("foo", "bar")))),
 	},
 	{
-		[]string{`echo '${foo}'`},
-		cmd(litWord("echo"), word(sglQuoted("${foo}"))),
+		[]string{`'${foo}'`},
+		word(sglQuoted("${foo}")),
 	},
 	{
-		[]string{"echo ${foo bar}"},
-		cmd(
-			litWord("echo"),
-			word(ParamExp{Text: "foo bar"}),
-		),
+		[]string{"${foo bar}"},
+		word(ParamExp{Text: "foo bar"}),
 	},
 	{
 		[]string{"$((1 + 3))"},
-		cmd(word(arithmExp(
+		word(arithmExp(
 			litWord("1"), litWord("+"), litWord("3"),
-		))),
+		)),
 	},
 	{
 		[]string{"$((5 * 2 - 1))", "$((5*2-1))"},
-		cmd(word(arithmExp(
+		word(arithmExp(
 			litWords("5", "*", "2", "-", "1")...,
-		))),
+		)),
 	},
 	{
 		[]string{"$(($i + 3))"},
-		cmd(word(arithmExp(
+		word(arithmExp(
 			word(ParamExp{Short: true, Text: "i"}),
 			litWord("+"), litWord("3"),
-		))),
+		)),
 	},
 	{
 		[]string{"$((3 + $((4))))"},
-		cmd(word(arithmExp(
+		word(arithmExp(
 			litWord("3"), litWord("+"),
 			word(arithmExp(litWord("4"))),
-		))),
+		)),
 	},
 	{
 		[]string{"$((3 & 7))"},
-		cmd(word(arithmExp(
+		word(arithmExp(
 			litWord("3"), litWord("&"), litWord("7"),
-		))),
+		)),
 	},
 	{
-		[]string{"echo foo$bar"},
-		cmd(
-			litWord("echo"),
-			word(lit("foo"), ParamExp{Short: true, Text: "bar"}),
-		),
+		[]string{"foo$bar"},
+		word(lit("foo"), ParamExp{Short: true, Text: "bar"}),
 	},
 	{
-		[]string{"echo foo$(bar)"},
-		cmd(
-			litWord("echo"),
-			word(lit("foo"), cmdSubst(false, litStmt("bar"))),
-		),
+		[]string{"foo$(bar)"},
+		word(lit("foo"), cmdSubst(false, litStmt("bar"))),
 	},
 	{
-		[]string{"echo foo${bar bar}"},
-		cmd(
-			litWord("echo"),
-			word(lit("foo"), ParamExp{Text: "bar bar"}),
-		),
+		[]string{"foo${bar bar}"},
+		word(lit("foo"), ParamExp{Text: "bar bar"}),
 	},
 	{
-		[]string{"echo 'foo${bar'"},
-		cmd(litWord("echo"), word(sglQuoted("foo${bar"))),
+		[]string{"'foo${bar'"},
+		word(sglQuoted("foo${bar")),
 	},
 	{
 		[]string{"(foo); bar"},
@@ -763,9 +702,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"a=\"\nbar\""},
-		cmd(
-			word(lit("a="), dblQuoted(lit("\nbar"))),
-		),
+		word(lit("a="), dblQuoted(lit("\nbar"))),
 	},
 	{
 		[]string{
@@ -815,18 +752,12 @@ var astTests = []testCase{
 		litCmd("echo", "if", "while"),
 	},
 	{
-		[]string{"echo ${foo}if"},
-		cmd(
-			litWord("echo"),
-			word(ParamExp{Text: "foo"}, lit("if")),
-		),
+		[]string{"${foo}if"},
+		word(ParamExp{Text: "foo"}, lit("if")),
 	},
 	{
-		[]string{"echo $if"},
-		cmd(
-			litWord("echo"),
-			word(ParamExp{Short: true, Text: "if"}),
-		),
+		[]string{"$if"},
+		word(ParamExp{Short: true, Text: "if"}),
 	},
 	{
 		[]string{"if; then; fi", "if\nthen\nfi"},
@@ -914,8 +845,10 @@ func fullProg(v interface{}) (f File) {
 		for _, n := range x {
 			f.Stmts = append(f.Stmts, stmt(n))
 		}
+	case Word:
+		return fullProg(cmd(x))
 	case Node:
-		f.Stmts = append(f.Stmts, stmt(x))
+		return fullProg(stmt(x))
 	}
 	return
 }
@@ -938,16 +871,16 @@ func setPosRecurse(t *testing.T, v interface{}, to Pos, diff bool) Node {
 		for i := range x.Redirs {
 			setPos(&x.Redirs[i].OpPos)
 			setPosRecurse(t, &x.Redirs[i].N, to, diff)
-			setPosRecurse(t, &x.Redirs[i].Word, to, diff)
+			setPosRecurse(t, x.Redirs[i].Word, to, diff)
 		}
 	case Command:
 		setPosRecurse(t, x.Args, to, diff)
 		return x
 	case []Word:
-		for i := range x {
-			setPosRecurse(t, &x[i], to, diff)
+		for _, w := range x {
+			setPosRecurse(t, w, to, diff)
 		}
-	case *Word:
+	case Word:
 		setPosRecurse(t, x.Parts, to, diff)
 	case []Node:
 		for i := range x {
@@ -1031,7 +964,7 @@ func setPosRecurse(t *testing.T, v interface{}, to Pos, diff bool) Node {
 	case CaseStmt:
 		setPos(&x.Case)
 		setPos(&x.Esac)
-		setPosRecurse(t, &x.Word, to, diff)
+		setPosRecurse(t, x.Word, to, diff)
 		for _, pl := range x.List {
 			setPosRecurse(t, pl.Patterns, to, diff)
 			setPosRecurse(t, pl.Stmts, to, diff)
