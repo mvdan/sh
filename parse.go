@@ -326,6 +326,9 @@ func (p *parser) readHeredocContent(endLine string) (string, bool) {
 }
 
 func (p *parser) peek(tok Token) bool {
+	for p.tok == COMMENT {
+		p.next()
+	}
 	return p.tok == tok || p.peekReservedWord(tok)
 }
 
@@ -450,8 +453,6 @@ func (p *parser) stmts(sts *[]Stmt, stops ...Token) {
 		return
 	}
 	for p.tok != EOF {
-		for p.got(COMMENT) {
-		}
 		if p.peekAny(stops...) {
 			break
 		}
@@ -635,7 +636,9 @@ func (p *parser) wordList(ws *[]Word) {
 }
 
 func (p *parser) peekEnd() bool {
-	return p.tok == EOF || p.newLine || p.peekAny(SEMICOLON, COMMENT)
+	// peek for SEMICOLON before checking newLine to consume any
+	// comments and set newLine accordingly
+	return p.tok == EOF || p.peek(SEMICOLON) || p.newLine
 }
 
 func (p *parser) peekStop() bool {
@@ -748,8 +751,6 @@ func (p *parser) binaryExpr(left Stmt, addRedir func()) BinaryExpr {
 		OpPos: p.lpos,
 		Op:    p.ltok,
 		X:     left,
-	}
-	for p.got(COMMENT) {
 	}
 	if b.Op == LAND || b.Op == LOR {
 		p.wantFollowStmt(b.Op.String(), &b.Y, true)

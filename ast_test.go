@@ -757,7 +757,7 @@ var astTests = []testCase{
 			"case $i in 1) foo;; 2 | 3*) bar; esac",
 			"case $i in 1) foo;; 2 | 3*) bar;; esac",
 			"case $i in (1) foo;; 2 | 3*) bar;; esac",
-			"case $i\nin\n1)\nfoo\n;;\n2 | 3*)\nbar\n;;\nesac",
+			"case $i\nin\n#etc\n1)\nfoo\n;;\n2 | 3*)\nbar\n;;\nesac",
 		},
 		CaseStmt{
 			Word: word(ParamExp{Short: true, Text: "i"}),
