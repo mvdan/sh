@@ -649,10 +649,10 @@ var astTests = []testCase{
 		)),
 	},
 	{
-		[]string{"$(($i + 3))"},
+		[]string{"$(($i + 13))"},
 		word(arithmExp(
 			word(litParamExp("i")),
-			litWord("+"), litWord("3"),
+			litWord("+"), litWord("13"),
 		)),
 	},
 	{

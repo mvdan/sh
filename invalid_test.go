@@ -185,10 +185,6 @@ var errTests = []struct {
 		`1:8: "if [stmts]" must be followed by "then"`,
 	},
 	{
-		"if foo; bar",
-		`1:12: "if [stmts]" must be followed by "then"`,
-	},
-	{
 		"if foo then",
 		`1:12: "if [stmts]" must be followed by "then"`,
 	},
@@ -217,10 +213,6 @@ var errTests = []struct {
 		`1:11: "while [stmts]" must be followed by "do"`,
 	},
 	{
-		"while foo; bar", // TODO: should be pointing at "bar" (1:12)
-		`1:15: "while [stmts]" must be followed by "do"`,
-	},
-	{
 		"while foo; do bar",
 		`1:18: while statement must end with "done"`,
 	},
@@ -235,10 +227,6 @@ var errTests = []struct {
 	{
 		"until foo;",
 		`1:11: "until [stmts]" must be followed by "do"`,
-	},
-	{
-		"until foo; bar",
-		`1:15: "until [stmts]" must be followed by "do"`,
 	},
 	{
 		"until foo; do bar",
