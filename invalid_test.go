@@ -136,7 +136,7 @@ var errTests = []struct {
 	},
 	{
 		"foo()",
-		`1:6: "foo()" must be followed by a statement`,
+		`1:1: "foo()" must be followed by a statement`,
 	},
 	{
 		"foo() {",
@@ -148,51 +148,51 @@ var errTests = []struct {
 	},
 	{
 		"foo &&",
-		`1:7: && must be followed by a statement`,
+		`1:5: && must be followed by a statement`,
 	},
 	{
 		"foo |",
-		`1:6: | must be followed by a statement`,
+		`1:5: | must be followed by a statement`,
 	},
 	{
 		"foo ||",
-		`1:7: || must be followed by a statement`,
+		`1:5: || must be followed by a statement`,
 	},
 	{
 		"foo >",
-		`1:6: > must be followed by a word`,
+		`1:5: > must be followed by a word`,
 	},
 	{
 		"foo >>",
-		`1:7: >> must be followed by a word`,
+		`1:5: >> must be followed by a word`,
 	},
 	{
 		"foo <",
-		`1:6: < must be followed by a word`,
+		`1:5: < must be followed by a word`,
 	},
 	{
 		"foo <>",
-		`1:7: <> must be followed by a word`,
+		`1:5: <> must be followed by a word`,
 	},
 	{
 		"if",
-		`1:3: "if" must be followed by a statement list`,
+		`1:1: "if" must be followed by a statement list`,
 	},
 	{
 		"if foo;",
-		`1:8: "if [stmts]" must be followed by "then"`,
+		`1:1: "if [stmts]" must be followed by "then"`,
 	},
 	{
 		"if foo then",
-		`1:12: "if [stmts]" must be followed by "then"`,
+		`1:1: "if [stmts]" must be followed by "then"`,
 	},
 	{
 		"if foo; then bar;",
-		`1:18: if statement must end with "fi"`,
+		`1:1: if statement must end with "fi"`,
 	},
 	{
 		"if a; then b; elif c;",
-		`1:22: "elif [stmts]" must be followed by "then"`,
+		`1:15: "elif [stmts]" must be followed by "then"`,
 	},
 	{
 		"'foo' '",
@@ -204,51 +204,51 @@ var errTests = []struct {
 	},
 	{
 		"while",
-		`1:6: "while" must be followed by a statement list`,
+		`1:1: "while" must be followed by a statement list`,
 	},
 	{
 		"while foo;",
-		`1:11: "while [stmts]" must be followed by "do"`,
+		`1:1: "while [stmts]" must be followed by "do"`,
 	},
 	{
 		"while foo; do bar",
-		`1:18: while statement must end with "done"`,
+		`1:1: while statement must end with "done"`,
 	},
 	{
 		"while foo; do bar;",
-		`1:19: while statement must end with "done"`,
+		`1:1: while statement must end with "done"`,
 	},
 	{
 		"until",
-		`1:6: "until" must be followed by a statement list`,
+		`1:1: "until" must be followed by a statement list`,
 	},
 	{
 		"until foo;",
-		`1:11: "until [stmts]" must be followed by "do"`,
+		`1:1: "until [stmts]" must be followed by "do"`,
 	},
 	{
 		"until foo; do bar",
-		`1:18: until statement must end with "done"`,
+		`1:1: until statement must end with "done"`,
 	},
 	{
 		"until foo; do bar;",
-		`1:19: until statement must end with "done"`,
+		`1:1: until statement must end with "done"`,
 	},
 	{
 		"for",
-		`1:4: "for" must be followed by a literal`,
+		`1:1: "for" must be followed by a literal`,
 	},
 	{
 		"for i",
-		`1:6: "for foo" must be followed by "in", ; or a newline`,
+		`1:1: "for foo" must be followed by "in", ; or a newline`,
 	},
 	{
 		"for i in;",
-		`1:10: "for foo [in words]" must be followed by "do"`,
+		`1:1: "for foo [in words]" must be followed by "do"`,
 	},
 	{
 		"for i in 1 2 3;",
-		`1:16: "for foo [in words]" must be followed by "do"`,
+		`1:1: "for foo [in words]" must be followed by "do"`,
 	},
 	{
 		"for i in 1 2 &",
@@ -256,19 +256,19 @@ var errTests = []struct {
 	},
 	{
 		"for i in 1 2 3; do echo $i;",
-		`1:28: for statement must end with "done"`,
+		`1:1: for statement must end with "done"`,
 	},
 	{
 		"for i in 1 2 3; echo $i;",
-		`1:17: "for foo [in words]" must be followed by "do"`,
+		`1:1: "for foo [in words]" must be followed by "do"`,
 	},
 	{
 		"for 'i' in 1 2 3; do echo $i; done",
-		`1:5: "for" must be followed by a literal`,
+		`1:1: "for" must be followed by a literal`,
 	},
 	{
 		"for in 1 2 3; do echo $i; done",
-		`1:8: "for foo" must be followed by "in", ; or a newline`,
+		`1:1: "for foo" must be followed by "in", ; or a newline`,
 	},
 	{
 		"foo &\n;",
@@ -316,15 +316,15 @@ var errTests = []struct {
 	},
 	{
 		"case",
-		`1:5: "case" must be followed by a word`,
+		`1:1: "case" must be followed by a word`,
 	},
 	{
 		"case i",
-		`1:7: "case x" must be followed by "in"`,
+		`1:1: "case x" must be followed by "in"`,
 	},
 	{
 		"case i in 3) foo;",
-		`1:18: case statement must end with "esac"`,
+		`1:1: case statement must end with "esac"`,
 	},
 	{
 		"case i in 3) foo; 4) bar; esac",
