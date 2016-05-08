@@ -606,6 +606,13 @@ var astTests = []testCase{
 		),
 	},
 	{
+		[]string{`echo "#foo"`},
+		cmd(
+			litWord("echo"),
+			word(dblQuoted(lit("#foo"))),
+		),
+	},
+	{
 		[]string{`$@ $# $$`},
 		cmd(
 			word(ParamExp{Short: true, Text: "@"}),

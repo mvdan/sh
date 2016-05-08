@@ -201,7 +201,7 @@ func (p *parser) next() {
 	switch {
 	case p.newLine && p.stopOnNewline:
 		p.advanceTok(STOPPED)
-	case b == '#':
+	case b == '#' && !p.doubleQuoted():
 		p.advanceBoth(COMMENT, p.readLine())
 	case reserved[b]:
 		// Between double quotes, only under certain
