@@ -583,6 +583,9 @@ func (p *parser) exp() Node {
 		p.popStops()
 		p.wantMatched(cs.Exp, LPAREN, RPAREN, &cs.Rparen)
 		return cs
+	case p.peekAny('\'', '`', '"'):
+		p.curErr("quotes cannot follow a dollar sign")
+		return nil
 	default:
 		p.next()
 		return ParamExp{

@@ -301,6 +301,10 @@ var errTests = []struct {
 		`1:7: reached EOF without matching token { with }`,
 	},
 	{
+		"echo $'",
+		`1:7: quotes cannot follow a dollar sign`,
+	},
+	{
 		"#foo\n{",
 		`2:1: reached EOF without matching token { with }`,
 	},
