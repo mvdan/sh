@@ -767,9 +767,12 @@ func unquote(w Word) Word {
 	w2 := w
 	w2.Parts = nil
 	for _, n := range w.Parts {
-		if dq, ok := n.(DblQuoted); ok {
-			w2.Parts = append(w2.Parts, dq.Parts...)
-		} else {
+		switch x := n.(type) {
+		case SglQuoted:
+			w2.Parts = append(w2.Parts, Lit{Value: x.Value})
+		case DblQuoted:
+			w2.Parts = append(w2.Parts, x.Parts...)
+		default:
 			w2.Parts = append(w2.Parts, n)
 		}
 	}
