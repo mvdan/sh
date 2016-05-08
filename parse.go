@@ -537,13 +537,13 @@ func (p *parser) gotWordPart(n *Node) bool {
 		p.wantQuote(dq.Quote, '"')
 		*n = dq
 	case !p.quoted('`') && p.peek('`'):
-		bq := BckQuoted{Quote: p.pos}
+		cs := CmdSubst{Backquotes: true, Exp: p.pos}
 		p.addStops('`')
 		p.next()
-		p.stmtsNested(&bq.Stmts, '`')
+		p.stmtsNested(&cs.Stmts, '`')
 		p.popStops()
-		p.wantQuote(bq.Quote, '`')
-		*n = bq
+		p.wantMatched(cs.Exp, '`', '`', &cs.Rparen)
+		*n = cs
 	case p.peek(EXP):
 		*n = p.exp()
 	default:

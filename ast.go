@@ -305,23 +305,21 @@ type DblQuoted struct {
 func (q DblQuoted) String() string { return `"` + nodeJoin(q.Parts, "") + `"` }
 func (q DblQuoted) Pos() Pos       { return q.Quote }
 
-type BckQuoted struct {
-	Quote Pos
-
-	Stmts []Stmt
-}
-
-func (q BckQuoted) String() string { return "`" + stmtJoin(q.Stmts) + "`" }
-func (q BckQuoted) Pos() Pos       { return q.Quote }
-
 type CmdSubst struct {
 	Exp, Rparen Pos
 
+	Backquotes bool
+
 	Stmts []Stmt
 }
 
-func (c CmdSubst) String() string { return "$(" + stmtJoin(c.Stmts) + ")" }
-func (c CmdSubst) Pos() Pos       { return c.Exp }
+func (c CmdSubst) String() string {
+	if c.Backquotes {
+		return "`" + stmtJoin(c.Stmts) + "`"
+	}
+	return "$(" + stmtJoin(c.Stmts) + ")"
+}
+func (c CmdSubst) Pos() Pos { return c.Exp }
 
 type ParamExp struct {
 	Exp Pos

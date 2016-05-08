@@ -52,10 +52,12 @@ func litStmts(strs ...string) []Stmt {
 }
 
 func dblQuoted(ns ...Node) DblQuoted    { return DblQuoted{Parts: ns} }
-func bckQuoted(sts ...Stmt) BckQuoted   { return BckQuoted{Stmts: sts} }
 func block(sts ...Stmt) Block           { return Block{Stmts: sts} }
-func cmdSubst(sts ...Stmt) CmdSubst     { return CmdSubst{Stmts: sts} }
 func arithmExp(words ...Word) ArithmExp { return ArithmExp{Words: words} }
+
+func cmdSubst(bck bool, sts ...Stmt) CmdSubst {
+	return CmdSubst{Backquotes: bck, Stmts: sts}
+}
 
 type testCase struct {
 	strs []string
@@ -533,13 +535,13 @@ var astTests = []testCase{
 	{
 		[]string{"$(foo bar)"},
 		cmd(
-			word(cmdSubst(litStmt("foo", "bar"))),
+			word(cmdSubst(false, litStmt("foo", "bar"))),
 		),
 	},
 	{
 		[]string{"$(foo | bar)"},
 		cmd(
-			word(cmdSubst(
+			word(cmdSubst(false,
 				stmt(BinaryExpr{
 					Op: OR,
 					X:  litStmt("foo"),
@@ -551,13 +553,13 @@ var astTests = []testCase{
 	{
 		[]string{"`foo`"},
 		cmd(
-			word(bckQuoted(litStmt("foo"))),
+			word(cmdSubst(true, litStmt("foo"))),
 		),
 	},
 	{
 		[]string{"`foo | bar`"},
 		cmd(
-			word(bckQuoted(
+			word(cmdSubst(true,
 				stmt(BinaryExpr{
 					Op: OR,
 					X:  litStmt("foo"),
@@ -569,13 +571,13 @@ var astTests = []testCase{
 	{
 		[]string{"`foo 'bar'`"},
 		cmd(
-			word(bckQuoted(litStmt("foo", "'bar'"))),
+			word(cmdSubst(true, litStmt("foo", "'bar'"))),
 		),
 	},
 	{
 		[]string{"`foo \"bar\"`"},
 		cmd(
-			word(bckQuoted(
+			word(cmdSubst(true,
 				stmt(Command{Args: []Word{
 					litWord("foo"),
 					word(dblQuoted(lit("bar"))),
@@ -633,28 +635,28 @@ var astTests = []testCase{
 		[]string{`echo "$(foo)"`},
 		cmd(
 			litWord("echo"),
-			word(dblQuoted(cmdSubst(litStmt("foo")))),
+			word(dblQuoted(cmdSubst(false, litStmt("foo")))),
 		),
 	},
 	{
 		[]string{`echo "$(foo bar)"`, `echo "$(foo  bar)"`},
 		cmd(
 			litWord("echo"),
-			word(dblQuoted(cmdSubst(litStmt("foo", "bar")))),
+			word(dblQuoted(cmdSubst(false, litStmt("foo", "bar")))),
 		),
 	},
 	{
 		[]string{"echo \"`foo`\""},
 		cmd(
 			litWord("echo"),
-			word(dblQuoted(bckQuoted(litStmt("foo")))),
+			word(dblQuoted(cmdSubst(true, litStmt("foo")))),
 		),
 	},
 	{
 		[]string{"echo \"`foo bar`\"", "echo \"`foo  bar`\""},
 		cmd(
 			litWord("echo"),
-			word(dblQuoted(bckQuoted(litStmt("foo", "bar")))),
+			word(dblQuoted(cmdSubst(true, litStmt("foo", "bar")))),
 		),
 	},
 	{
@@ -711,7 +713,7 @@ var astTests = []testCase{
 		[]string{"echo foo$(bar)"},
 		cmd(
 			litWord("echo"),
-			word(lit("foo"), cmdSubst(litStmt("bar"))),
+			word(lit("foo"), cmdSubst(false, litStmt("bar"))),
 		),
 	},
 	{
@@ -987,10 +989,6 @@ func setPosRecurse(t *testing.T, v interface{}, to Pos, diff bool) Node {
 	case DblQuoted:
 		setPos(&x.Quote)
 		setPosRecurse(t, x.Parts, to, diff)
-		return x
-	case BckQuoted:
-		setPos(&x.Quote)
-		setPosRecurse(t, x.Stmts, to, diff)
 		return x
 	case BinaryExpr:
 		setPos(&x.OpPos)
