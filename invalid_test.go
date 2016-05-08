@@ -277,6 +277,10 @@ var errTests = []struct {
 		`1:17: "for foo [in words]" must be followed by "do"`,
 	},
 	{
+		"for 'i' in 1 2 3; do echo $i; done",
+		`1:5: "for" must be followed by a literal`,
+	},
+	{
 		"for in 1 2 3; do echo $i; done",
 		`1:8: "for foo" must be followed by "in", ; or a newline`,
 	},

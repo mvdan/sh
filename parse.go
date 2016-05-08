@@ -132,16 +132,17 @@ func (p *parser) readOnly(s string) bool {
 
 var (
 	reserved = map[byte]bool{
-		'&': true,
-		'>': true,
-		'<': true,
-		'|': true,
-		';': true,
-		'(': true,
-		')': true,
-		'$': true,
-		'"': true,
-		'`': true,
+		'&':  true,
+		'>':  true,
+		'<':  true,
+		'|':  true,
+		';':  true,
+		'(':  true,
+		')':  true,
+		'$':  true,
+		'"':  true,
+		'\'': true,
+		'`':  true,
 	}
 	// like above, but excluding those that don't break a word
 	wordBreak = map[byte]bool{
@@ -225,21 +226,12 @@ func (p *parser) readLitBytes() (bs []byte) {
 	if p.arithmExp {
 		p.spaced = true
 	}
-	var qpos Pos
 	for {
 		b, err := p.peekByte()
 		if err != nil {
-			if qpos.IsValid() {
-				p.consumeByte()
-				p.wantQuote(qpos, '\'')
-			}
 			return
 		}
 		switch {
-		case qpos.IsValid():
-			if b == '\'' {
-				qpos = Pos{}
-			}
 		case b == '\\': // escaped byte
 			p.consumeByte()
 			if b, _ = p.readByte(); b != '\n' {
@@ -252,8 +244,6 @@ func (p *parser) readLitBytes() (bs []byte) {
 			if b == '"' {
 				return
 			}
-		case b == '\'':
-			qpos = p.npos
 		case p.arithmExp && arithmOps[b]:
 			if len(bs) > 0 {
 				return
@@ -528,6 +518,16 @@ func (p *parser) gotWordPart(n *Node) bool {
 			ValuePos: p.lpos,
 			Value:    p.lval,
 		}
+	case p.peek('\''):
+		sq := SglQuoted{Quote: p.pos}
+		s, found := p.readUntil("'")
+		if !found {
+			p.wantQuote(sq.Quote, '\'')
+		}
+		sq.Value = s
+		p.consumeByte()
+		p.next()
+		*n = sq
 	case !p.doubleQuoted() && p.peek('"'):
 		dq := DblQuoted{Quote: p.pos}
 		p.addStops('"')
@@ -729,7 +729,7 @@ func (p *parser) gotStmtAndOr(s *Stmt, addRedir func()) bool {
 		s.Node = p.forStmt()
 	case p.got(CASE):
 		s.Node = p.caseStmt()
-	case p.peekAny(LIT, EXP, '"', '`'):
+	case p.peekAny(LIT, EXP, '"', '\'', '`'):
 		s.Node = p.cmdOrFunc(addRedir)
 		end = false
 	default:

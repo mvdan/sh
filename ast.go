@@ -296,9 +296,16 @@ type Lit struct {
 func (l Lit) String() string { return l.Value }
 func (l Lit) Pos() Pos       { return l.ValuePos }
 
+type SglQuoted struct {
+	Quote Pos
+	Value string
+}
+
+func (q SglQuoted) String() string { return `'` + q.Value + `'` }
+func (q SglQuoted) Pos() Pos       { return q.Quote }
+
 type DblQuoted struct {
 	Quote Pos
-
 	Parts []Node
 }
 
@@ -307,8 +314,7 @@ func (q DblQuoted) Pos() Pos       { return q.Quote }
 
 type CmdSubst struct {
 	Exp, Rparen Pos
-
-	Backquotes bool
+	Backquotes  bool
 
 	Stmts []Stmt
 }

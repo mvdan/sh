@@ -51,6 +51,7 @@ func litStmts(strs ...string) []Stmt {
 	return l
 }
 
+func sglQuoted(s string) SglQuoted      { return SglQuoted{Value: s} }
 func dblQuoted(ns ...Node) DblQuoted    { return DblQuoted{Parts: ns} }
 func block(sts ...Stmt) Block           { return Block{Stmts: sts} }
 func arithmExp(words ...Word) ArithmExp { return ArithmExp{Words: words} }
@@ -91,7 +92,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"foo'bar'"},
-		litCmd("foo'bar'"),
+		cmd(word(lit("foo"), sglQuoted("bar"))),
 	},
 	{
 		[]string{"(foo)", "(foo;)", "(\nfoo\n)"},
@@ -205,7 +206,7 @@ var astTests = []testCase{
 		[]string{`echo ' ' "foo bar"`},
 		cmd(
 			litWord("echo"),
-			litWord("' '"),
+			word(sglQuoted(" ")),
 			word(dblQuoted(lits("foo bar")...)),
 		),
 	},
@@ -228,11 +229,11 @@ var astTests = []testCase{
 	},
 	{
 		[]string{`'"'`},
-		litCmd(`'"'`),
+		cmd(word(sglQuoted(`"`))),
 	},
 	{
 		[]string{"'`'"},
-		litCmd("'`'"),
+		cmd(word(sglQuoted("`"))),
 	},
 	{
 		[]string{`"'"`},
@@ -571,7 +572,10 @@ var astTests = []testCase{
 	{
 		[]string{"`foo 'bar'`"},
 		cmd(
-			word(cmdSubst(true, litStmt("foo", "'bar'"))),
+			word(cmdSubst(true, stmt(cmd(
+				litWord("foo"),
+				word(sglQuoted("bar")),
+			)))),
 		),
 	},
 	{
@@ -598,13 +602,6 @@ var astTests = []testCase{
 			word(ParamExp{Short: true, Text: "@"}),
 			word(ParamExp{Short: true, Text: "#"}),
 			word(ParamExp{Short: true, Text: "$"}),
-		),
-	},
-	{
-		[]string{`echo $'foo'`},
-		cmd(
-			litWord("echo"),
-			word(ParamExp{Short: true, Text: "'foo'"}),
 		),
 	},
 	{
@@ -661,7 +658,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{`echo '${foo}'`},
-		litCmd("echo", "'${foo}'"),
+		cmd(litWord("echo"), word(sglQuoted("${foo}"))),
 	},
 	{
 		[]string{"echo ${foo bar}"},
@@ -725,7 +722,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"echo 'foo${bar'"},
-		litCmd("echo", "'foo${bar'"),
+		cmd(litWord("echo"), word(sglQuoted("foo${bar"))),
 	},
 	{
 		[]string{"(foo); bar"},
@@ -985,6 +982,9 @@ func setPosRecurse(t *testing.T, v interface{}, to Pos, diff bool) Node {
 		setPosRecurse(t, &x.Name, to, diff)
 		setPosRecurse(t, x.WordList, to, diff)
 		setPosRecurse(t, x.DoStmts, to, diff)
+		return x
+	case SglQuoted:
+		setPos(&x.Quote)
 		return x
 	case DblQuoted:
 		setPos(&x.Quote)
