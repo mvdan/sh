@@ -56,8 +56,13 @@ func dblQuoted(ns ...Node) DblQuoted    { return DblQuoted{Parts: ns} }
 func block(sts ...Stmt) Block           { return Block{Stmts: sts} }
 func arithmExp(words ...Word) ArithmExp { return ArithmExp{Words: words} }
 
-func cmdSubst(bck bool, sts ...Stmt) CmdSubst {
-	return CmdSubst{Backquotes: bck, Stmts: sts}
+func cmdSubst(sts ...Stmt) CmdSubst { return CmdSubst{Stmts: sts} }
+func bckQuoted(sts ...Stmt) CmdSubst {
+	return CmdSubst{Backquotes: true, Stmts: sts}
+}
+
+func litParamExp(s string) ParamExp {
+	return ParamExp{Short: true, Text: s}
 }
 
 type testCase struct {
@@ -198,7 +203,7 @@ var astTests = []testCase{
 			WordList: litWords("1", "2", "3"),
 			DoStmts: stmts(cmd(
 				litWord("echo"),
-				word(ParamExp{Short: true, Text: "i"}),
+				word(litParamExp("i")),
 			)),
 		},
 	},
@@ -534,11 +539,11 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"$(foo bar)"},
-		word(cmdSubst(false, litStmt("foo", "bar"))),
+		word(cmdSubst(litStmt("foo", "bar"))),
 	},
 	{
 		[]string{"$(foo | bar)"},
-		word(cmdSubst(false,
+		word(cmdSubst(
 			stmt(BinaryExpr{
 				Op: OR,
 				X:  litStmt("foo"),
@@ -548,11 +553,11 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"`foo`"},
-		word(cmdSubst(true, litStmt("foo"))),
+		word(bckQuoted(litStmt("foo"))),
 	},
 	{
 		[]string{"`foo | bar`"},
-		word(cmdSubst(true,
+		word(bckQuoted(
 			stmt(BinaryExpr{
 				Op: OR,
 				X:  litStmt("foo"),
@@ -562,14 +567,14 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"`foo 'bar'`"},
-		word(cmdSubst(true, stmt(cmd(
+		word(bckQuoted(stmt(cmd(
 			litWord("foo"),
 			word(sglQuoted("bar")),
 		)))),
 	},
 	{
 		[]string{"`foo \"bar\"`"},
-		word(cmdSubst(true,
+		word(bckQuoted(
 			stmt(Command{Args: []Word{
 				litWord("foo"),
 				word(dblQuoted(lit("bar"))),
@@ -578,7 +583,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{`"$foo"`},
-		word(dblQuoted(ParamExp{Short: true, Text: "foo"})),
+		word(dblQuoted(litParamExp("foo"))),
 	},
 	{
 		[]string{`"#foo"`},
@@ -587,9 +592,9 @@ var astTests = []testCase{
 	{
 		[]string{`$@ $# $$`},
 		cmd(
-			word(ParamExp{Short: true, Text: "@"}),
-			word(ParamExp{Short: true, Text: "#"}),
-			word(ParamExp{Short: true, Text: "$"}),
+			word(litParamExp("@")),
+			word(litParamExp("#")),
+			word(litParamExp("$")),
 		),
 	},
 	{
@@ -609,19 +614,19 @@ var astTests = []testCase{
 	},
 	{
 		[]string{`"$(foo)"`},
-		word(dblQuoted(cmdSubst(false, litStmt("foo")))),
+		word(dblQuoted(cmdSubst(litStmt("foo")))),
 	},
 	{
 		[]string{`"$(foo bar)"`, `"$(foo  bar)"`},
-		word(dblQuoted(cmdSubst(false, litStmt("foo", "bar")))),
+		word(dblQuoted(cmdSubst(litStmt("foo", "bar")))),
 	},
 	{
 		[]string{"\"`foo`\""},
-		word(dblQuoted(cmdSubst(true, litStmt("foo")))),
+		word(dblQuoted(bckQuoted(litStmt("foo")))),
 	},
 	{
 		[]string{"\"`foo bar`\"", "\"`foo  bar`\""},
-		word(dblQuoted(cmdSubst(true, litStmt("foo", "bar")))),
+		word(dblQuoted(bckQuoted(litStmt("foo", "bar")))),
 	},
 	{
 		[]string{`'${foo}'`},
@@ -646,7 +651,7 @@ var astTests = []testCase{
 	{
 		[]string{"$(($i + 3))"},
 		word(arithmExp(
-			word(ParamExp{Short: true, Text: "i"}),
+			word(litParamExp("i")),
 			litWord("+"), litWord("3"),
 		)),
 	},
@@ -665,11 +670,11 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"foo$bar"},
-		word(lit("foo"), ParamExp{Short: true, Text: "bar"}),
+		word(lit("foo"), litParamExp("bar")),
 	},
 	{
 		[]string{"foo$(bar)"},
-		word(lit("foo"), cmdSubst(false, litStmt("bar"))),
+		word(lit("foo"), cmdSubst(litStmt("bar"))),
 	},
 	{
 		[]string{"foo${bar bar}"},
@@ -757,7 +762,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"$if"},
-		word(ParamExp{Short: true, Text: "if"}),
+		word(litParamExp("if")),
 	},
 	{
 		[]string{"if; then; fi", "if\nthen\nfi"},
