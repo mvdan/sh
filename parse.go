@@ -355,15 +355,6 @@ func (p *parser) got(tok Token) bool {
 	return false
 }
 
-func (p *parser) gotAny(toks ...Token) bool {
-	for _, tok := range toks {
-		if p.got(tok) {
-			return true
-		}
-	}
-	return false
-}
-
 func (p *parser) followErr(left, right string) {
 	p.curErr("%s must be followed by %s", left, right)
 }
@@ -699,7 +690,7 @@ func (p *parser) gotStmt(s *Stmt, wantStop bool) bool {
 			p.gotEnd = false
 			return true
 		}
-		if p.gotAny(LAND, LOR) {
+		if p.got(LAND) || p.got(LOR) {
 			left := *s
 			*s = Stmt{
 				Position: left.Position,
