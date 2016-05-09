@@ -962,8 +962,8 @@ func setPosRecurse(t *testing.T, v interface{}, to Pos, diff bool) Node {
 		setPosRecurse(t, x.Words, to, diff)
 		return x
 	case CmdSubst:
-		setPos(&x.Exp)
-		setPos(&x.Rparen)
+		setPos(&x.Left)
+		setPos(&x.Right)
 		setPosRecurse(t, x.Stmts, to, diff)
 		return x
 	case CaseStmt:

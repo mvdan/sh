@@ -313,7 +313,7 @@ func (q DblQuoted) String() string { return `"` + nodeJoin(q.Parts, "") + `"` }
 func (q DblQuoted) Pos() Pos       { return q.Quote }
 
 type CmdSubst struct {
-	Exp, Rparen Pos
+	Left, Right Pos
 	Backquotes  bool
 
 	Stmts []Stmt
@@ -325,7 +325,7 @@ func (c CmdSubst) String() string {
 	}
 	return "$(" + stmtJoin(c.Stmts) + ")"
 }
-func (c CmdSubst) Pos() Pos { return c.Exp }
+func (c CmdSubst) Pos() Pos { return c.Left }
 
 type ParamExp struct {
 	Exp Pos

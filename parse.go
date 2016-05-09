@@ -537,12 +537,12 @@ func (p *parser) gotWordPart(n *Node) bool {
 		p.wantQuote(dq.Quote, '"')
 		*n = dq
 	case !p.quoted('`') && p.peek('`'):
-		cs := CmdSubst{Backquotes: true, Exp: p.pos}
+		cs := CmdSubst{Backquotes: true, Left: p.pos}
 		p.addStops('`')
 		p.next()
 		p.stmtsNested(&cs.Stmts, '`')
 		p.popStops()
-		p.wantMatched(cs.Exp, '`', '`', &cs.Rparen)
+		p.wantMatched(cs.Left, '`', '`', &cs.Right)
 		*n = cs
 	case p.peek(EXP):
 		*n = p.exp()
@@ -576,12 +576,12 @@ func (p *parser) exp() Node {
 		p.wantMatched(ar.Exp, DLPAREN, DRPAREN, &ar.Rparen)
 		return ar
 	case p.peek(LPAREN):
-		cs := CmdSubst{Exp: p.pos}
+		cs := CmdSubst{Left: p.pos}
 		p.addStops('`')
 		p.next()
 		p.stmtsNested(&cs.Stmts, RPAREN)
 		p.popStops()
-		p.wantMatched(cs.Exp, LPAREN, RPAREN, &cs.Rparen)
+		p.wantMatched(cs.Left, LPAREN, RPAREN, &cs.Right)
 		return cs
 	case p.peekAny('\'', '`', '"'):
 		p.curErr("quotes cannot follow a dollar sign")
