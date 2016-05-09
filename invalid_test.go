@@ -9,11 +9,11 @@ import (
 	"testing"
 )
 
-var badInputErr = fmt.Errorf("read: bad input")
+var errBadInput = fmt.Errorf("read: bad input")
 
 type badInput struct{}
 
-func (b badInput) Read(p []byte) (int, error) { return 0, badInputErr }
+func (b badInput) Read(p []byte) (int, error) { return 0, errBadInput }
 
 func TestReadErr(t *testing.T) {
 	var in badInput
@@ -21,9 +21,9 @@ func TestReadErr(t *testing.T) {
 	if err == nil {
 		t.Fatalf("Expected error with bad reader")
 	}
-	if err != badInputErr {
+	if err != errBadInput {
 		t.Fatalf("Error mismatch with bad reader:\nwant: %v\ngot:  %v",
-			badInputErr, err)
+			errBadInput, err)
 	}
 }
 
