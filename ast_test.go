@@ -465,7 +465,7 @@ var astTests = []testCase{
 				{Op: DPLOUT, Word: litWord("2")},
 				{Op: DPLIN, Word: litWord("0")},
 				{Op: RDROUT, N: lit("2"), Word: litWord("file")},
-				{Op: OPRDWR, Word: litWord("f2")},
+				{Op: RDRINOUT, Word: litWord("f2")},
 			},
 		},
 	},

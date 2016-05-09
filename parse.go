@@ -655,7 +655,7 @@ func (p *parser) peekRedir() bool {
 	if p.peek(LIT) && p.peekAnyByte('>', '<') {
 		return true
 	}
-	return p.peekAny(RDROUT, APPEND, RDRIN, DPLIN, DPLOUT, OPRDWR,
+	return p.peekAny(RDROUT, APPEND, RDRIN, DPLIN, DPLOUT, RDRINOUT,
 		HEREDOC, DHEREDOC)
 }
 

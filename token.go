@@ -49,7 +49,7 @@ const (
 
 	RDRIN    // <
 	RDROUT   // >
-	OPRDWR   // <>
+	RDRINOUT // <>
 	DPLIN    // <&
 	DPLOUT   // >&
 	APPEND   // >>
@@ -131,7 +131,7 @@ var (
 
 		{"<", RDRIN},
 		{">", RDROUT},
-		{"<>", OPRDWR},
+		{"<>", RDRINOUT},
 		{"<&", DPLIN},
 		{">&", DPLOUT},
 		{">>", APPEND},
