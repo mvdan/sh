@@ -40,8 +40,8 @@ type parser struct {
 	file File
 	err  error
 
-	spaced, newLine, gotEnd  bool
-	stopOnNewline, arithmExp bool
+	spaced, newLine, gotEnd bool
+	arithmExp               bool
 
 	ltok, tok Token
 	lval, val string
@@ -50,6 +50,9 @@ type parser struct {
 
 	// stack of stop tokens
 	stops [][]Token
+
+	stopNewline bool
+	heredocs    []Word
 }
 
 func (p *parser) curStops() []Token { return p.stops[len(p.stops)-1] }
@@ -185,6 +188,10 @@ func (p *parser) next() {
 			p.errPass(err)
 			return
 		}
+		if p.stopNewline && b == '\n' {
+			p.advanceTok(STOPPED)
+			return
+		}
 		if p.doubleQuoted() || !space[b] {
 			break
 		}
@@ -193,14 +200,26 @@ func (p *parser) next() {
 		p.spaced = true
 		if b == '\n' {
 			p.newLine = true
-			if p.stopOnNewline {
+			if len(p.heredocs) > 0 {
 				break
 			}
 		}
 	}
 	switch {
-	case p.newLine && p.stopOnNewline:
-		p.advanceTok(STOPPED)
+	case p.newLine && len(p.heredocs) > 0:
+		for i, w := range p.heredocs {
+			endLine := unquote(w).String()
+			if i > 0 {
+				p.consumeByte()
+			}
+			s, _ := p.readHeredocContent(endLine)
+			w.Parts[0] = Lit{
+				ValuePos: w.Pos(),
+				Value:    fmt.Sprintf("%s\n%s", w, s),
+			}
+		}
+		p.heredocs = nil
+		p.next()
 	case b == '#' && !p.doubleQuoted():
 		p.advanceBoth(COMMENT, p.readLine())
 	case reserved[b]:
@@ -786,17 +805,13 @@ func (p *parser) redirect() (r Redirect) {
 	p.next()
 	switch r.Op {
 	case HEREDOC, DHEREDOC:
-		p.stopOnNewline = true
-		var w Word
-		p.wantFollowWord(r.Op.String(), &w)
-		p.stopOnNewline = false
-		endLine := unquote(w).String()
-		s, _ := p.readHeredocContent(endLine)
-		r.Word = Word{Parts: []Node{Lit{
-			ValuePos: w.Pos(),
-			Value:    fmt.Sprintf("%s\n%s", w, s),
-		}}}
-		p.next()
+		p.stopNewline = true
+		p.wantFollowWord(r.Op.String(), &r.Word)
+		p.stopNewline = false
+		p.heredocs = append(p.heredocs, r.Word)
+		if p.tok == STOPPED {
+			p.next()
+		}
 	default:
 		p.wantFollowWord(r.Op.String(), &r.Word)
 	}

@@ -458,6 +458,32 @@ var astTests = []testCase{
 		},
 	},
 	{
+		[]string{
+			"f1 <<EOF1\nh1\nEOF1\nf2 <<EOF2\nh2\nEOF2",
+			"f1 <<EOF1; f2 <<EOF2\nh1\nEOF1\nh2\nEOF2",
+		},
+		[]Stmt{
+			{
+				Node: litCmd("f1"),
+				Redirs: []Redirect{
+					{
+						Op:   HEREDOC,
+						Word: litWord("EOF1\nh1\nEOF1"),
+					},
+				},
+			},
+			{
+				Node: litCmd("f2"),
+				Redirs: []Redirect{
+					{
+						Op:   HEREDOC,
+						Word: litWord("EOF2\nh2\nEOF2"),
+					},
+				},
+			},
+		},
+	},
+	{
 		[]string{"foo >&2 <&0 2>file <>f2"},
 		Stmt{
 			Node: litCmd("foo"),
