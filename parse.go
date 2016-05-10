@@ -456,9 +456,10 @@ func (p *parser) curErr(format string, v ...interface{}) {
 }
 
 func (p *parser) stmts(sts *[]Stmt, stops ...Token) {
-	// TODO: redundant peek() to ignore comment tokens and possibly
-	// reach EOF
-	for !p.peek(EOF) && p.tok != EOF && !p.peekAny(stops...) {
+	// TODO: remove peek(), now needed to ignore any comment tokens
+	// and possibly reach EOF
+	p.peek(EOF)
+	for p.tok != EOF && !p.peekAny(stops...) {
 		var s Stmt
 		if !p.gotStmt(&s, true) {
 			p.invalidStmtStart()
