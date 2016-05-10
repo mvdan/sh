@@ -323,7 +323,7 @@ func (p *parser) readHeredocContent(endLine string) (string, bool) {
 	for p.tok != EOF {
 		line := p.readLine()
 		if line == endLine {
-			fmt.Fprint(&buf, endLine)
+			fmt.Fprint(&buf, line)
 			return buf.String(), true
 		}
 		fmt.Fprintln(&buf, line)
@@ -456,21 +456,14 @@ func (p *parser) stmts(sts *[]Stmt, stops ...Token) {
 	if p.peek(SEMICOLON) {
 		return
 	}
-	for p.tok != EOF {
-		if p.peekAny(stops...) {
-			break
-		}
+	for p.tok != EOF && !p.peekAny(stops...) {
 		var s Stmt
 		if !p.gotStmt(&s, true) {
-			if p.tok != EOF && !p.peekAny(stops...) {
-				p.invalidStmtStart()
-			}
-			break
+			p.invalidStmtStart()
 		}
 		*sts = append(*sts, s)
 		if !p.peekAny(stops...) && !p.gotEnd {
 			p.curErr("statements must be separated by &, ; or a newline")
-			break
 		}
 	}
 }
@@ -638,7 +631,6 @@ func (p *parser) wordList(ws *[]Word) {
 		var w Word
 		if !p.gotWord(&w) {
 			p.curErr("word list can only contain words")
-			break
 		}
 		*ws = append(*ws, w)
 	}
