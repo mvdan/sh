@@ -693,27 +693,26 @@ func (p *parser) gotStmt(s *Stmt) bool {
 		p.gotEnd = true
 		return true
 	}
-	if p.got(AND) {
+	switch {
+	case p.got(LAND), p.got(LOR):
+		left := *s
+		*s = Stmt{
+			Position: left.Position,
+			Node:     p.binaryExpr(left, addRedir),
+		}
+		return true
+	case p.got(AND):
 		s.Background = true
 		p.gotEnd = true
-	} else {
-		if !p.peekStop() {
-			p.gotEnd = false
-			return true
-		}
-		if p.got(LAND) || p.got(LOR) {
-			left := *s
-			*s = Stmt{
-				Position: left.Position,
-				Node:     p.binaryExpr(left, addRedir),
-			}
-		}
-	}
-	if p.peekEnd() && !p.newLine {
-		p.next()
+	case p.peekStop():
 		p.gotEnd = true
+	default:
+		p.gotEnd = false
 	}
 	if p.newLine {
+		p.gotEnd = true
+	} else if p.peekEnd() {
+		p.next()
 		p.gotEnd = true
 	}
 	return true
