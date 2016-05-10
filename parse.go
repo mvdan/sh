@@ -179,8 +179,7 @@ func (p *parser) next() {
 	p.newLine = false
 	p.pos = p.npos
 	for {
-		if p.peekString("\\\n") {
-			p.consumeBytes(2)
+		if p.readOnly("\\\n") {
 			continue
 		}
 		var err error
