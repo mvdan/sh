@@ -376,8 +376,8 @@ func (p *parser) wantFollow(lpos Pos, left string, tok Token) {
 	}
 }
 
-func (p *parser) wantFollowStmt(lpos Pos, left string, s *Stmt, wantStop bool) {
-	if !p.gotStmt(s, wantStop) {
+func (p *parser) wantFollowStmt(lpos Pos, left string, s *Stmt) {
+	if !p.gotStmt(s) {
 		p.followErr(lpos, left, "a statement")
 	}
 }
@@ -461,7 +461,7 @@ func (p *parser) stmts(sts *[]Stmt, stops ...Token) {
 	p.peek(EOF)
 	for p.tok != EOF && !p.peekAny(stops...) {
 		var s Stmt
-		if !p.gotStmt(&s, true) {
+		if !p.gotStmt(&s) {
 			p.invalidStmtStart()
 		}
 		*sts = append(*sts, s)
@@ -663,7 +663,7 @@ func (p *parser) peekRedir() bool {
 		HEREDOC, DHEREDOC)
 }
 
-func (p *parser) gotStmt(s *Stmt, wantStop bool) bool {
+func (p *parser) gotStmt(s *Stmt) bool {
 	if p.peek(RBRACE) {
 		// don't let it be a LIT
 		return false
@@ -689,7 +689,8 @@ func (p *parser) gotStmt(s *Stmt, wantStop bool) bool {
 	if !s.Negated && s.Node == nil && len(s.Redirs) == 0 {
 		return false
 	}
-	if !wantStop {
+	if _, ok := s.Node.(FuncDecl); ok {
+		p.gotEnd = true
 		return true
 	}
 	if p.got(AND) {
@@ -760,7 +761,7 @@ func (p *parser) binaryExpr(left Stmt, addRedir func()) BinaryExpr {
 		X:     left,
 	}
 	if b.Op == LAND || b.Op == LOR {
-		p.wantFollowStmt(b.OpPos, b.Op.String(), &b.Y, true)
+		p.wantFollowStmt(b.OpPos, b.Op.String(), &b.Y)
 	} else if !p.gotStmtAndOr(&b.Y, addRedir) {
 		p.followErr(b.OpPos, b.Op.String(), "a statement")
 	}
@@ -939,6 +940,6 @@ func (p *parser) funcDecl(w Word) (fd FuncDecl) {
 		p.posErr(w.Pos(), "invalid func name: %s", fd.Name.Value)
 	}
 	fd.Name.ValuePos = w.Pos()
-	p.wantFollowStmt(w.Pos(), `"foo()"`, &fd.Body, false)
+	p.wantFollowStmt(w.Pos(), `"foo()"`, &fd.Body)
 	return
 }
