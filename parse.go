@@ -928,14 +928,16 @@ func (p *parser) cmdOrFunc(addRedir func()) Node {
 var identRe = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
 
 func (p *parser) funcDecl(w Word) (fd FuncDecl) {
+	fd.Name = Lit{
+		Value:    w.String(),
+		ValuePos: w.Pos(),
+	}
 	if !p.got(RPAREN) {
-		p.curErr(`functions must start like "foo()"`)
+		p.posErr(fd.Pos(), `functions must start like "foo()"`)
 	}
-	fd.Name.Value = w.String()
 	if !identRe.MatchString(fd.Name.Value) {
-		p.posErr(w.Pos(), "invalid func name: %s", fd.Name.Value)
+		p.posErr(fd.Pos(), "invalid func name: %s", fd.Name.Value)
 	}
-	fd.Name.ValuePos = w.Pos()
-	p.wantFollowStmt(w.Pos(), `"foo()"`, &fd.Body)
+	p.wantFollowStmt(fd.Pos(), `"foo()"`, &fd.Body)
 	return
 }

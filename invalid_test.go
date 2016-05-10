@@ -120,15 +120,15 @@ var errTests = []struct {
 	},
 	{
 		"foo(",
-		`1:5: functions must start like "foo()"`,
+		`1:1: functions must start like "foo()"`,
 	},
 	{
 		"foo(bar",
-		`1:5: functions must start like "foo()"`,
+		`1:1: functions must start like "foo()"`,
 	},
 	{
 		"à(",
-		`1:4: functions must start like "foo()"`,
+		`1:1: functions must start like "foo()"`,
 	},
 	{
 		"foo'",
