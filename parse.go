@@ -683,14 +683,12 @@ func (p *parser) gotStmt(s *Stmt) bool {
 	if !p.peekEnd() {
 		for p.peekRedir() {
 			addRedir()
-			p.gotEnd = false
 		}
 	}
 	if !s.Negated && s.Node == nil && len(s.Redirs) == 0 {
 		return false
 	}
 	if _, ok := s.Node.(FuncDecl); ok {
-		p.gotEnd = true
 		return true
 	}
 	switch {
@@ -720,7 +718,6 @@ func (p *parser) gotStmt(s *Stmt) bool {
 
 func (p *parser) gotStmtAndOr(s *Stmt, addRedir func()) bool {
 	s.Position = p.pos
-	end := true
 	switch {
 	case p.got(LPAREN):
 		s.Node = p.subshell()
@@ -738,11 +735,9 @@ func (p *parser) gotStmtAndOr(s *Stmt, addRedir func()) bool {
 		s.Node = p.caseStmt()
 	case p.peekAny(LIT, EXP, '"', '\'', '`'):
 		s.Node = p.cmdOrFunc(addRedir)
-		end = false
 	default:
 		return false
 	}
-	p.gotEnd = end
 	if p.got(OR) {
 		left := *s
 		*s = Stmt{
