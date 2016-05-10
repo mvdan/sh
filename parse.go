@@ -173,6 +173,9 @@ var (
 )
 
 func (p *parser) next() {
+	if p.tok == EOF {
+		return
+	}
 	p.lpos = p.pos
 	var b byte
 	p.spaced = false
