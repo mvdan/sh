@@ -131,6 +131,7 @@ func (p *parser) readOnly(s string) bool {
 }
 
 var (
+	// bytes that form or start a token
 	reserved = map[byte]bool{
 		'&':  true,
 		'>':  true,
@@ -144,7 +145,7 @@ var (
 		'\'': true,
 		'`':  true,
 	}
-	// like above, but excluding those that don't break a word
+	// subset of the above that mark the end of a word
 	wordBreak = map[byte]bool{
 		'&': true,
 		'>': true,
@@ -154,6 +155,7 @@ var (
 		'(': true,
 		')': true,
 	}
+	// tokenize these inside arithmetic expansions
 	arithmOps = map[byte]bool{
 		'+': true,
 		'-': true,
@@ -162,6 +164,7 @@ var (
 		'/': true,
 		'%': true,
 	}
+	// bytes that will be treated as space
 	space = map[byte]bool{
 		' ':  true,
 		'\t': true,
