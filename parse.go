@@ -517,8 +517,8 @@ func (p *parser) gotLit(l *Lit) bool {
 
 func (p *parser) readParts(ns *[]Node) (count int) {
 	for p.tok != EOF {
-		var n Node
-		if !p.gotWordPart(&n) {
+		n := p.wordPart()
+		if n == nil {
 			return
 		}
 		*ns = append(*ns, n)
@@ -530,13 +530,15 @@ func (p *parser) readParts(ns *[]Node) (count int) {
 	return
 }
 
-func (p *parser) gotWordPart(n *Node) bool {
+func (p *parser) wordPart() Node {
 	switch {
 	case p.got(LIT):
-		*n = Lit{
+		return Lit{
 			ValuePos: p.lpos,
 			Value:    p.lval,
 		}
+	case p.peek(EXP):
+		return p.exp()
 	case p.peek('\''):
 		sq := SglQuoted{Quote: p.pos}
 		s, found := p.readUntil("'")
@@ -546,7 +548,7 @@ func (p *parser) gotWordPart(n *Node) bool {
 		sq.Value = s
 		p.consumeByte()
 		p.next()
-		*n = sq
+		return sq
 	case !p.doubleQuoted() && p.peek('"'):
 		dq := DblQuoted{Quote: p.pos}
 		p.addStops('"')
@@ -554,7 +556,7 @@ func (p *parser) gotWordPart(n *Node) bool {
 		p.readParts(&dq.Parts)
 		p.popStops()
 		p.wantQuote(dq.Quote, '"')
-		*n = dq
+		return dq
 	case !p.quoted('`') && p.peek('`'):
 		cs := CmdSubst{Backquotes: true, Left: p.pos}
 		p.addStops('`')
@@ -562,13 +564,9 @@ func (p *parser) gotWordPart(n *Node) bool {
 		p.stmtsNested(&cs.Stmts, '`')
 		p.popStops()
 		p.wantMatched(cs.Left, '`', '`', &cs.Right)
-		*n = cs
-	case p.peek(EXP):
-		*n = p.exp()
-	default:
-		return false
+		return cs
 	}
-	return true
+	return nil
 }
 
 func (p *parser) exp() Node {
@@ -616,12 +614,9 @@ func (p *parser) exp() Node {
 }
 
 func (p *parser) readPartsArithm(ns *[]Node) {
-	for p.tok != EOF {
-		var n Node
-		if !p.gotWordPart(&n) {
-			if p.peek(DRPAREN) {
-				return
-			}
+	for p.tok != EOF && !p.peek(DRPAREN) {
+		n := p.wordPart()
+		if n == nil {
 			n = Lit{
 				Value:    p.val,
 				ValuePos: p.pos,
