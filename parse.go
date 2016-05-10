@@ -496,7 +496,11 @@ func (p *parser) stmtsNested(sts *[]Stmt, stop Token) {
 	p.popStops()
 }
 
-func (p *parser) gotWord(w *Word) bool { return p.readParts(&w.Parts) > 0 }
+func (p *parser) gotWord(w *Word) bool {
+	p.readParts(&w.Parts)
+	return len(w.Parts) > 0
+}
+
 func (p *parser) gotLit(l *Lit) bool {
 	l.ValuePos = p.pos
 	if p.got(LIT) {
@@ -506,19 +510,17 @@ func (p *parser) gotLit(l *Lit) bool {
 	return false
 }
 
-func (p *parser) readParts(ns *[]Node) (count int) {
+func (p *parser) readParts(ns *[]Node) {
 	for p.tok != EOF {
 		n := p.wordPart()
 		if n == nil {
-			return
+			break
 		}
 		*ns = append(*ns, n)
-		count++
 		if !p.doubleQuoted() && p.spaced {
-			return
+			break
 		}
 	}
-	return
 }
 
 func (p *parser) wordPart() Node {
