@@ -47,6 +47,10 @@ var errTests = []struct {
 		`1:1: ; can only immediately follow a statement`,
 	},
 	{
+		"{ ; }",
+		`1:3: ; can only immediately follow a statement`,
+	},
+	{
 		"à(){}",
 		`1:1: invalid func name: à`,
 	},

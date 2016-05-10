@@ -28,9 +28,6 @@ func Parse(r io.Reader, name string) (File, error) {
 	}
 	p.next()
 	p.stmts(&p.file.Stmts)
-	if p.tok != EOF {
-		p.invalidStmtStart()
-	}
 	return p.file, p.err
 }
 
@@ -383,6 +380,9 @@ func (p *parser) wantFollowStmt(lpos Pos, left string, s *Stmt, wantStop bool) {
 }
 
 func (p *parser) wantFollowStmts(left string, sts *[]Stmt, stops ...Token) {
+	if p.got(SEMICOLON) {
+		return
+	}
 	p.stmts(sts, stops...)
 	if len(*sts) < 1 && !p.newLine && !p.got(SEMICOLON) {
 		p.followErr(p.lpos, left, "a statement list")
@@ -453,10 +453,9 @@ func (p *parser) curErr(format string, v ...interface{}) {
 }
 
 func (p *parser) stmts(sts *[]Stmt, stops ...Token) {
-	if p.peek(SEMICOLON) {
-		return
-	}
-	for p.tok != EOF && !p.peekAny(stops...) {
+	// TODO: redundant peek() to ignore comment tokens and possibly
+	// reach EOF
+	for !p.peek(EOF) && p.tok != EOF && !p.peekAny(stops...) {
 		var s Stmt
 		if !p.gotStmt(&s, true) {
 			p.invalidStmtStart()
