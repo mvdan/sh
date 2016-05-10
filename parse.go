@@ -402,14 +402,10 @@ func (p *parser) wantStmtEnd(start Pos, name string, tok Token, pos *Pos) {
 	*pos = p.lpos
 }
 
-func (p *parser) closingErr(lpos Pos, s string) {
-	p.posErr(lpos, `reached %s without closing %s`, p.tok, s)
-}
-
 func (p *parser) wantQuote(lpos Pos, b byte) {
 	tok := Token(b)
 	if !p.got(tok) {
-		p.closingErr(lpos, fmt.Sprintf("quote %s", tok))
+		p.posErr(lpos, `reached %s without closing quote %s`, p.tok, tok)
 	}
 }
 
