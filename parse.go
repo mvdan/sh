@@ -323,7 +323,7 @@ func (p *parser) readLine() string {
 
 func (p *parser) readHeredocContent(endLine string) (string, bool) {
 	var buf bytes.Buffer
-	for p.tok != EOF {
+	for !p.eof() {
 		line := p.readLine()
 		if line == endLine {
 			fmt.Fprint(&buf, line)
@@ -334,6 +334,13 @@ func (p *parser) readHeredocContent(endLine string) (string, bool) {
 	}
 	fmt.Fprint(&buf, endLine)
 	return buf.String(), false
+}
+
+func (p *parser) eof() bool {
+	for p.tok == COMMENT {
+		p.next()
+	}
+	return p.tok == EOF
 }
 
 func (p *parser) peek(tok Token) bool {
@@ -459,10 +466,7 @@ func (p *parser) curErr(format string, v ...interface{}) {
 }
 
 func (p *parser) stmts(sts *[]Stmt, stops ...Token) {
-	// TODO: remove peek(), now needed to ignore any comment tokens
-	// and possibly reach EOF
-	p.peek(EOF)
-	for p.tok != EOF && !p.peekAny(stops...) {
+	for !p.eof() && !p.peekAny(stops...) {
 		var s Stmt
 		if !p.gotStmt(&s) {
 			p.invalidStmtStart()
@@ -514,7 +518,7 @@ func (p *parser) gotLit(l *Lit) bool {
 }
 
 func (p *parser) readParts(ns *[]Node) {
-	for p.tok != EOF {
+	for !p.eof() {
 		n := p.wordPart()
 		if n == nil {
 			break
@@ -610,7 +614,7 @@ func (p *parser) exp() Node {
 }
 
 func (p *parser) readPartsArithm(ns *[]Node) {
-	for p.tok != EOF && !p.peek(DRPAREN) {
+	for !p.eof() && !p.peek(DRPAREN) {
 		n := p.wordPart()
 		if n == nil {
 			n = Lit{
@@ -627,7 +631,7 @@ func (p *parser) readPartsArithm(ns *[]Node) {
 }
 
 func (p *parser) arithmWords(ws *[]Word) {
-	for p.tok != EOF && !p.peek(DRPAREN) {
+	for !p.eof() && !p.peek(DRPAREN) {
 		var w Word
 		p.readPartsArithm(&w.Parts)
 		*ws = append(*ws, w)
@@ -648,9 +652,7 @@ func (p *parser) wordList(ws *[]Word) {
 }
 
 func (p *parser) peekEnd() bool {
-	// peek for SEMICOLON before checking newLine to consume any
-	// comments and set newLine accordingly
-	return p.tok == EOF || p.peek(SEMICOLON) || p.newLine
+	return p.eof() || p.peek(SEMICOLON) || p.newLine
 }
 
 func (p *parser) peekStop() bool {
@@ -883,10 +885,10 @@ func (p *parser) patLists(plists *[]PatternList) {
 	if p.got(SEMICOLON) {
 		return
 	}
-	for p.tok != EOF && !p.peek(ESAC) {
+	for !p.eof() && !p.peek(ESAC) {
 		var pl PatternList
 		p.got(LPAREN)
-		for p.tok != EOF {
+		for !p.eof() {
 			var w Word
 			if !p.gotWord(&w) {
 				p.curErr("case patterns must consist of words")
