@@ -203,25 +203,13 @@ func (p *parser) next() {
 		if b == '\n' {
 			p.newLine = true
 			if len(p.heredocs) > 0 {
-				break
+				p.consumeHeredocs()
+				p.next()
+				return
 			}
 		}
 	}
 	switch {
-	case p.newLine && len(p.heredocs) > 0:
-		for i, w := range p.heredocs {
-			endLine := unquote(w).String()
-			if i > 0 {
-				p.consumeByte()
-			}
-			s, _ := p.readHeredocContent(endLine)
-			w.Parts[0] = Lit{
-				ValuePos: w.Pos(),
-				Value:    fmt.Sprintf("%s\n%s", w, s),
-			}
-		}
-		p.heredocs = nil
-		p.next()
 	case b == '#' && !p.doubleQuoted():
 		p.advanceBoth(COMMENT, p.readLine())
 	case reserved[b]:
@@ -319,6 +307,21 @@ func (p *parser) readUntilMatched(lpos Pos, left, right Token) string {
 func (p *parser) readLine() string {
 	s, _ := p.readUntil("\n")
 	return s
+}
+
+func (p *parser) consumeHeredocs() {
+	for i, w := range p.heredocs {
+		endLine := unquote(w).String()
+		if i > 0 {
+			p.consumeByte()
+		}
+		s, _ := p.readHeredocContent(endLine)
+		w.Parts[0] = Lit{
+			ValuePos: w.Pos(),
+			Value:    fmt.Sprintf("%s\n%s", w, s),
+		}
+	}
+	p.heredocs = nil
 }
 
 func (p *parser) readHeredocContent(endLine string) (string, bool) {
