@@ -341,6 +341,26 @@ var astTests = []testCase{
 		},
 	},
 	{
+		[]string{"a=b foo=$bar"},
+		Stmt{
+			Assigns: []Assign{
+				{Name: lit("a"), Value: litWord("b")},
+				{Name: lit("foo"), Value: word(litParamExp("bar"))},
+			},
+		},
+	},
+	{
+		[]string{"a=\"\nbar\""},
+		Stmt{
+			Assigns: []Assign{
+				{
+					Name:  lit("a"),
+					Value: word(dblQuoted(lit("\nbar"))),
+				},
+			},
+		},
+	},
+	{
 		[]string{
 			"foo >a >>b <c",
 			"foo > a >> b < c",
@@ -771,10 +791,6 @@ var astTests = []testCase{
 		},
 	},
 	{
-		[]string{"a=\"\nbar\""},
-		word(lit("a="), dblQuoted(lit("\nbar"))),
-	},
-	{
 		[]string{
 			"case $i in 1) foo;; 2 | 3*) bar; esac",
 			"case $i in 1) foo;; 2 | 3*) bar;; esac",
@@ -782,7 +798,7 @@ var astTests = []testCase{
 			"case $i\nin\n#etc\n1)\nfoo\n;;\n2 | 3*)\nbar\n;;\nesac",
 		},
 		CaseStmt{
-			Word: word(ParamExp{Short: true, Text: "i"}),
+			Word: word(litParamExp("i")),
 			List: []PatternList{
 				{
 					Patterns: litWords("1"),
@@ -938,6 +954,10 @@ func setPosRecurse(t *testing.T, v interface{}, to Pos, diff bool) Node {
 	case *Stmt:
 		setPos(&x.Position)
 		x.Node = setPosRecurse(t, x.Node, to, diff)
+		for i := range x.Assigns {
+			setPosRecurse(t, &x.Assigns[i].Name, to, diff)
+			setPosRecurse(t, x.Assigns[i].Value, to, diff)
+		}
 		for i := range x.Redirs {
 			setPos(&x.Redirs[i].OpPos)
 			setPosRecurse(t, &x.Redirs[i].N, to, diff)

@@ -39,7 +39,9 @@ const (
 	OR   // |
 	LOR  // ||
 
-	BANG    // !
+	BANG   // !
+	ASSIGN // =
+
 	EXP     // $
 	LPAREN  // (
 	LBRACE  // {
@@ -125,6 +127,8 @@ var (
 		{"||", LOR},
 
 		{"!", BANG},
+		{"=", ASSIGN},
+
 		{"$", EXP},
 		{"(", LPAREN},
 		{"{", LBRACE},

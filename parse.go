@@ -10,6 +10,7 @@ import (
 	"io"
 	"regexp"
 	"strconv"
+	"strings"
 )
 
 // Parse reads and parses a shell program with an optional name. It
@@ -688,6 +689,19 @@ func (p *parser) peekRedir() bool {
 		HEREDOC, DHEREDOC, WHEREDOC)
 }
 
+var identRe = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
+
+func (p *parser) assignSplit() int {
+	if !p.peek(LIT) {
+		return -1
+	}
+	i := strings.IndexByte(p.val, '=')
+	if i == -1 || !identRe.MatchString(p.val[:i]) {
+		return -1
+	}
+	return i
+}
+
 func (p *parser) gotStmt(s *Stmt) bool {
 	if p.peek(RBRACE) {
 		// don't let it be a LIT
@@ -701,8 +715,31 @@ func (p *parser) gotStmt(s *Stmt) bool {
 	addRedir := func() {
 		s.Redirs = append(s.Redirs, p.redirect())
 	}
-	for p.peekRedir() {
-		addRedir()
+	for {
+		if p.peekRedir() {
+			addRedir()
+		} else if i := p.assignSplit(); i >= 0 {
+			name := Lit{ValuePos: p.pos, Value: p.val[:i]}
+			start := Lit{
+				ValuePos: p.pos,
+				Value:    p.val[i+1:],
+			}
+			var w Word
+			if start.Value != "" {
+				start.ValuePos.Column += len(name.Value)
+				w.Parts = append(w.Parts, start)
+			}
+			p.next()
+			if !p.spaced {
+				p.gotWord(&w)
+			}
+			s.Assigns = append(s.Assigns, Assign{
+				Name:  name,
+				Value: w,
+			})
+		} else {
+			break
+		}
 	}
 	p.gotStmtAndOr(s, addRedir)
 	if !p.peekEnd() {
@@ -710,7 +747,7 @@ func (p *parser) gotStmt(s *Stmt) bool {
 			addRedir()
 		}
 	}
-	if !s.Negated && s.Node == nil && len(s.Redirs) == 0 {
+	if !s.Negated && s.Node == nil && len(s.Assigns) == 0 && len(s.Redirs) == 0 {
 		return false
 	}
 	if _, ok := s.Node.(FuncDecl); ok {
@@ -941,8 +978,6 @@ func (p *parser) cmdOrFunc(addRedir func()) Node {
 	}
 	return cmd
 }
-
-var identRe = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
 
 func (p *parser) funcDecl(w Word, pos Pos) FuncDecl {
 	fd := FuncDecl{

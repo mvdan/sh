@@ -108,6 +108,7 @@ type Stmt struct {
 	Position Pos
 
 	Negated    bool
+	Assigns    []Assign
 	Redirs     []Redirect
 	Background bool
 }
@@ -119,6 +120,9 @@ func (s Stmt) String() string {
 	}
 	if s.Node != nil {
 		strs = append(strs, s.Node)
+	}
+	for _, a := range s.Assigns {
+		strs = append(strs, a)
 	}
 	for _, r := range s.Redirs {
 		strs = append(strs, r)
@@ -138,6 +142,14 @@ func (s Stmt) newlineAfter() bool {
 	}
 	return false
 }
+
+type Assign struct {
+	Name  Lit
+	Value Word
+}
+
+func (a Assign) String() string { return fmt.Sprint(a.Name, "=", a.Value) }
+func (a Assign) Pos() Pos       { return a.Name.Pos() }
 
 type Redirect struct {
 	OpPos Pos
