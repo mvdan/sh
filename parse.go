@@ -340,8 +340,7 @@ func (p *parser) readHeredocContent(endLine string) (string, bool) {
 }
 
 func (p *parser) eof() bool {
-	for p.tok == COMMENT {
-		p.next()
+	for p.got(COMMENT) {
 	}
 	return p.tok == EOF
 }
@@ -650,7 +649,7 @@ func (p *parser) wordList(ws *[]Word) {
 		*ws = append(*ws, w)
 	}
 	if !p.newLine {
-		p.next()
+		p.got(SEMICOLON)
 	}
 }
 
@@ -709,8 +708,8 @@ func (p *parser) gotStmt(s *Stmt) bool {
 	case p.got(AND):
 		s.Background = true
 	}
-	if p.peekEnd() && !p.newLine {
-		p.next()
+	if !p.newLine {
+		p.got(SEMICOLON)
 	}
 	return true
 }
@@ -787,9 +786,7 @@ func (p *parser) redirect() (r Redirect) {
 		p.wantFollowWord(r.Op.String(), &r.Word)
 		p.stopNewline = false
 		p.heredocs = append(p.heredocs, r.Word)
-		if p.tok == STOPPED {
-			p.next()
-		}
+		p.got(STOPPED)
 	default:
 		p.wantFollowWord(r.Op.String(), &r.Word)
 	}
