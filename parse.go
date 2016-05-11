@@ -709,7 +709,7 @@ func (p *parser) gotStmt(s *Stmt) bool {
 	}
 	p.gotEnd = false
 	s.Position = p.pos
-	if p.got(BANG) {
+	if p.got(NOT) {
 		s.Negated = true
 	}
 	addRedir := func() {

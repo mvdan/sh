@@ -116,7 +116,7 @@ type Stmt struct {
 func (s Stmt) String() string {
 	var strs []fmt.Stringer
 	if s.Negated {
-		strs = append(strs, BANG)
+		strs = append(strs, NOT)
 	}
 	if s.Node != nil {
 		strs = append(strs, s.Node)

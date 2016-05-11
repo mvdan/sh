@@ -39,7 +39,7 @@ const (
 	OR   // |
 	LOR  // ||
 
-	BANG   // !
+	NOT    // !
 	ASSIGN // =
 
 	EXP     // $
@@ -126,7 +126,7 @@ var (
 		{"|", OR},
 		{"||", LOR},
 
-		{"!", BANG},
+		{"!", NOT},
 		{"=", ASSIGN},
 
 		{"$", EXP},
