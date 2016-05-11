@@ -242,8 +242,8 @@ var astTests = []testCase{
 		word(dblQuoted(lit("'"))),
 	},
 	{
-		[]string{"s{s s=s"},
-		litCmd("s{s", "s=s"),
+		[]string{"=a s{s s=s"},
+		litCmd("=a", "s{s", "s=s"),
 	},
 	{
 		[]string{"foo && bar", "foo&&bar", "foo &&\nbar"},
@@ -357,6 +357,15 @@ var astTests = []testCase{
 					Name:  lit("a"),
 					Value: word(dblQuoted(lit("\nbar"))),
 				},
+			},
+		},
+	},
+	{
+		[]string{"a= foo"},
+		Stmt{
+			Node: litCmd("foo"),
+			Assigns: []Assign{
+				{Name: lit("a")},
 			},
 		},
 	},

@@ -118,11 +118,11 @@ func (s Stmt) String() string {
 	if s.Negated {
 		strs = append(strs, NOT)
 	}
-	if s.Node != nil {
-		strs = append(strs, s.Node)
-	}
 	for _, a := range s.Assigns {
 		strs = append(strs, a)
+	}
+	if s.Node != nil {
+		strs = append(strs, s.Node)
 	}
 	for _, r := range s.Redirs {
 		strs = append(strs, r)
