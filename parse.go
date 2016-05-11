@@ -701,23 +701,16 @@ func (p *parser) gotStmt(s *Stmt) bool {
 	if _, ok := s.Node.(FuncDecl); ok {
 		return true
 	}
+	p.gotEnd = p.peekStop()
 	switch {
 	case p.got(LAND), p.got(LOR):
 		*s = p.binaryStmt(*s, addRedir)
 		return true
 	case p.got(AND):
 		s.Background = true
-		p.gotEnd = true
-	case p.peekStop():
-		p.gotEnd = true
-	default:
-		p.gotEnd = false
 	}
-	if p.newLine {
-		p.gotEnd = true
-	} else if p.peekEnd() {
+	if p.peekEnd() && !p.newLine {
 		p.next()
-		p.gotEnd = true
 	}
 	return true
 }
