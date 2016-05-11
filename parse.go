@@ -700,11 +700,7 @@ func (p *parser) gotStmt(s *Stmt) bool {
 	}
 	switch {
 	case p.got(LAND), p.got(LOR):
-		left := *s
-		*s = Stmt{
-			Position: left.Position,
-			Node:     p.binaryExpr(left, addRedir),
-		}
+		*s = p.binaryStmt(*s, addRedir)
 		return true
 	case p.got(AND):
 		s.Background = true
@@ -746,16 +742,12 @@ func (p *parser) gotStmtAndOr(s *Stmt, addRedir func()) bool {
 		return false
 	}
 	if p.got(OR) {
-		left := *s
-		*s = Stmt{
-			Position: left.Position,
-			Node:     p.binaryExpr(left, addRedir),
-		}
+		*s = p.binaryStmt(*s, addRedir)
 	}
 	return true
 }
 
-func (p *parser) binaryExpr(left Stmt, addRedir func()) BinaryExpr {
+func (p *parser) binaryStmt(left Stmt, addRedir func()) Stmt {
 	b := BinaryExpr{
 		OpPos: p.lpos,
 		Op:    p.ltok,
@@ -766,7 +758,10 @@ func (p *parser) binaryExpr(left Stmt, addRedir func()) BinaryExpr {
 	} else if !p.gotStmtAndOr(&b.Y, addRedir) {
 		p.followErr(b.OpPos, b.Op.String(), "a statement")
 	}
-	return b
+	return Stmt{
+		Position: left.Position,
+		Node:     b,
+	}
 }
 
 func unquote(w Word) Word {
