@@ -16,6 +16,7 @@ const (
 	LIT
 	COMMENT
 
+	// POSIX Shell reserved words
 	IF
 	THEN
 	ELIF
@@ -29,6 +30,9 @@ const (
 	DONE
 	CASE
 	ESAC
+
+	// Bash reserved words
+	FUNCTION
 
 	AND  // &
 	LAND // &&
@@ -106,6 +110,8 @@ var (
 		DONE:  "done",
 		CASE:  "case",
 		ESAC:  "esac",
+
+		FUNCTION: "function",
 	}
 
 	tokList = [...]struct {

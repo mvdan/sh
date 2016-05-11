@@ -120,15 +120,23 @@ var errTests = []struct {
 	},
 	{
 		"foo(",
-		`1:1: functions must start like "foo()"`,
+		`1:1: "foo(" must be followed by ")"`,
 	},
 	{
 		"foo(bar",
-		`1:1: functions must start like "foo()"`,
+		`1:1: "foo(" must be followed by ")"`,
 	},
 	{
 		"à(",
-		`1:1: functions must start like "foo()"`,
+		`1:1: "foo(" must be followed by ")"`,
+	},
+	{
+		"function",
+		`1:1: "function" must be followed by a word`,
+	},
+	{
+		"function foo(",
+		`1:10: "foo(" must be followed by ")"`,
 	},
 	{
 		"foo'",
@@ -140,6 +148,10 @@ var errTests = []struct {
 	},
 	{
 		"foo()",
+		`1:1: "foo()" must be followed by a statement`,
+	},
+	{
+		"function foo()",
 		`1:1: "foo()" must be followed by a statement`,
 	},
 	{

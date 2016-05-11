@@ -330,6 +330,18 @@ var astTests = []testCase{
 	},
 	{
 		[]string{
+			"function foo() { a; b; }",
+			"function foo() {\na\nb\n}",
+			"function foo ( ) {\na\nb\n}",
+		},
+		FuncDecl{
+			BashStyle: true,
+			Name:      lit("foo"),
+			Body:      stmt(block(litStmts("a", "b")...)),
+		},
+	},
+	{
+		[]string{
 			"foo >a >>b <c",
 			"foo > a >> b < c",
 			">a >>b foo <c",
@@ -976,6 +988,7 @@ func setPosRecurse(t *testing.T, v interface{}, to Pos, diff bool) Node {
 		setPosRecurse(t, &x.Y, to, diff)
 		return x
 	case FuncDecl:
+		setPos(&x.Position)
 		setPosRecurse(t, &x.Name, to, diff)
 		setPosRecurse(t, &x.Body, to, diff)
 		return x

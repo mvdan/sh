@@ -272,14 +272,20 @@ func (b BinaryExpr) String() string {
 func (b BinaryExpr) Pos() Pos { return b.X.Pos() }
 
 type FuncDecl struct {
+	Position  Pos
+	BashStyle bool
+
 	Name Lit
 	Body Stmt
 }
 
 func (f FuncDecl) String() string {
+	if f.BashStyle {
+		return fmt.Sprintf("%s %s() %s", FUNCTION, f.Name, f.Body)
+	}
 	return fmt.Sprintf("%s() %s", f.Name, f.Body)
 }
-func (f FuncDecl) Pos() Pos { return f.Name.Pos() }
+func (f FuncDecl) Pos() Pos { return f.Position }
 
 type Word struct {
 	Parts []Node

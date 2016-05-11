@@ -895,10 +895,20 @@ func (p *parser) patLists(plists *[]PatternList) {
 }
 
 func (p *parser) cmdOrFunc(addRedir func()) Node {
+	if p.got(FUNCTION) {
+		fpos := p.lpos
+		var w Word
+		p.wantFollowWord(`"function"`, &w)
+		if p.gotNoNewline(LPAREN) {
+			p.wantFollow(w.Pos(), `"foo("`, RPAREN)
+		}
+		return p.funcDecl(w, fpos)
+	}
 	var w Word
 	p.gotWord(&w)
 	if p.gotNoNewline(LPAREN) {
-		return p.funcDecl(w)
+		p.wantFollow(w.Pos(), `"foo("`, RPAREN)
+		return p.funcDecl(w, w.Pos())
 	}
 	cmd := Command{Args: []Word{w}}
 	for !p.peekStop() {
@@ -917,17 +927,18 @@ func (p *parser) cmdOrFunc(addRedir func()) Node {
 
 var identRe = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
 
-func (p *parser) funcDecl(w Word) (fd FuncDecl) {
-	fd.Name = Lit{
-		Value:    w.String(),
-		ValuePos: w.Pos(),
-	}
-	if !p.got(RPAREN) {
-		p.posErr(fd.Pos(), `functions must start like "foo()"`)
+func (p *parser) funcDecl(w Word, pos Pos) FuncDecl {
+	fd := FuncDecl{
+		Position:  pos,
+		BashStyle: pos != w.Pos(),
+		Name: Lit{
+			Value:    w.String(),
+			ValuePos: w.Pos(),
+		},
 	}
 	if !identRe.MatchString(fd.Name.Value) {
 		p.posErr(fd.Pos(), "invalid func name: %s", fd.Name.Value)
 	}
 	p.wantFollowStmt(fd.Pos(), `"foo()"`, &fd.Body)
-	return
+	return fd
 }
