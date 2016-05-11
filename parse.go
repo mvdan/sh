@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"regexp"
+	"strconv"
 )
 
 // Parse reads and parses a shell program with an optional name. It
@@ -379,8 +380,24 @@ func (p *parser) got(tok Token) bool {
 }
 func (p *parser) gotNoNewline(tok Token) bool { return !p.newLine && p.got(tok) }
 
-func (p *parser) followErr(lpos Pos, left, right string) {
-	p.posErr(lpos, "%s must be followed by %s", left, right)
+func readableStr(v interface{}) string {
+	var s string
+	switch x := v.(type) {
+	case string:
+		s = x
+	case Token:
+		s = x.String()
+	}
+	// don't quote tokens like & or }
+	if s[0] >= 'a' && s[0] <= 'z' {
+		return strconv.Quote(s)
+	}
+	return s
+}
+
+func (p *parser) followErr(lpos Pos, left interface{}, right string) {
+	leftStr := readableStr(left)
+	p.posErr(lpos, "%s must be followed by %s", leftStr, right)
 }
 
 func (p *parser) wantFollow(lpos Pos, left string, tok Token) {
@@ -395,7 +412,7 @@ func (p *parser) wantFollowStmt(lpos Pos, left string, s *Stmt) {
 	}
 }
 
-func (p *parser) wantFollowStmts(left string, sts *[]Stmt, stops ...Token) {
+func (p *parser) wantFollowStmts(left Token, sts *[]Stmt, stops ...Token) {
 	if p.gotNoNewline(SEMICOLON) {
 		return
 	}
@@ -405,15 +422,15 @@ func (p *parser) wantFollowStmts(left string, sts *[]Stmt, stops ...Token) {
 	}
 }
 
-func (p *parser) wantFollowWord(left string, w *Word) {
+func (p *parser) wantFollowWord(left Token, w *Word) {
 	if !p.gotWord(w) {
 		p.followErr(p.lpos, left, "a word")
 	}
 }
 
-func (p *parser) wantStmtEnd(start Pos, name string, tok Token, pos *Pos) {
+func (p *parser) wantStmtEnd(startPos Pos, startTok, tok Token, pos *Pos) {
 	if !p.got(tok) {
-		p.posErr(start, `%s statement must end with %q`, name, tok)
+		p.posErr(startPos, `%s statement must end with %q`, startTok, tok)
 	}
 	*pos = p.lpos
 }
@@ -748,7 +765,7 @@ func (p *parser) binaryStmt(left Stmt, addRedir func()) Stmt {
 	if b.Op == LAND || b.Op == LOR {
 		p.wantFollowStmt(b.OpPos, b.Op.String(), &b.Y)
 	} else if !p.gotStmtAndOr(&b.Y, addRedir) {
-		p.followErr(b.OpPos, b.Op.String(), "a statement")
+		p.followErr(b.OpPos, b.Op, "a statement")
 	}
 	return Stmt{
 		Position: left.Position,
@@ -780,12 +797,12 @@ func (p *parser) redirect() (r Redirect) {
 	switch r.Op {
 	case HEREDOC, DHEREDOC:
 		p.stopNewline = true
-		p.wantFollowWord(r.Op.String(), &r.Word)
+		p.wantFollowWord(r.Op, &r.Word)
 		p.stopNewline = false
 		p.heredocs = append(p.heredocs, r.Word)
 		p.got(STOPPED)
 	default:
-		p.wantFollowWord(r.Op.String(), &r.Word)
+		p.wantFollowWord(r.Op, &r.Word)
 	}
 	return
 }
@@ -806,63 +823,63 @@ func (p *parser) block() (b Block) {
 
 func (p *parser) ifStmt() (fs IfStmt) {
 	fs.If = p.lpos
-	p.wantFollowStmts(`"if"`, &fs.Conds, THEN)
-	p.wantFollow(fs.If, `"if [stmts]"`, THEN)
-	p.wantFollowStmts(`"then"`, &fs.ThenStmts, FI, ELIF, ELSE)
+	p.wantFollowStmts(IF, &fs.Conds, THEN)
+	p.wantFollow(fs.If, "if [stmts]", THEN)
+	p.wantFollowStmts(THEN, &fs.ThenStmts, FI, ELIF, ELSE)
 	for p.got(ELIF) {
 		elf := Elif{Elif: p.lpos}
-		p.wantFollowStmts(`"elif"`, &elf.Conds, THEN)
-		p.wantFollow(elf.Elif, `"elif [stmts]"`, THEN)
-		p.wantFollowStmts(`"then"`, &elf.ThenStmts, FI, ELIF, ELSE)
+		p.wantFollowStmts(ELIF, &elf.Conds, THEN)
+		p.wantFollow(elf.Elif, "elif [stmts]", THEN)
+		p.wantFollowStmts(THEN, &elf.ThenStmts, FI, ELIF, ELSE)
 		fs.Elifs = append(fs.Elifs, elf)
 	}
 	if p.got(ELSE) {
-		p.wantFollowStmts(`"else"`, &fs.ElseStmts, FI)
+		p.wantFollowStmts(ELSE, &fs.ElseStmts, FI)
 	}
-	p.wantStmtEnd(fs.If, "if", FI, &fs.Fi)
+	p.wantStmtEnd(fs.If, IF, FI, &fs.Fi)
 	return
 }
 
 func (p *parser) whileStmt() (ws WhileStmt) {
 	ws.While = p.lpos
-	p.wantFollowStmts(`"while"`, &ws.Conds, DO)
-	p.wantFollow(ws.While, `"while [stmts]"`, DO)
-	p.wantFollowStmts(`"do"`, &ws.DoStmts, DONE)
-	p.wantStmtEnd(ws.While, "while", DONE, &ws.Done)
+	p.wantFollowStmts(WHILE, &ws.Conds, DO)
+	p.wantFollow(ws.While, "while [stmts]", DO)
+	p.wantFollowStmts(DO, &ws.DoStmts, DONE)
+	p.wantStmtEnd(ws.While, WHILE, DONE, &ws.Done)
 	return
 }
 
 func (p *parser) untilStmt() (us UntilStmt) {
 	us.Until = p.lpos
-	p.wantFollowStmts(`"until"`, &us.Conds, DO)
-	p.wantFollow(us.Until, `"until [stmts]"`, DO)
-	p.wantFollowStmts(`"do"`, &us.DoStmts, DONE)
-	p.wantStmtEnd(us.Until, "until", DONE, &us.Done)
+	p.wantFollowStmts(UNTIL, &us.Conds, DO)
+	p.wantFollow(us.Until, "until [stmts]", DO)
+	p.wantFollowStmts(DO, &us.DoStmts, DONE)
+	p.wantStmtEnd(us.Until, UNTIL, DONE, &us.Done)
 	return
 }
 
 func (p *parser) forStmt() (fs ForStmt) {
 	fs.For = p.lpos
 	if !p.gotLit(&fs.Name) {
-		p.followErr(fs.For, `"for"`, "a literal")
+		p.followErr(fs.For, FOR, "a literal")
 	}
 	if p.got(IN) {
 		p.wordList(&fs.WordList)
 	} else if !p.gotNoNewline(SEMICOLON) && !p.newLine {
-		p.followErr(fs.For, `"for foo"`, `"in", ; or a newline`)
+		p.followErr(fs.For, "for foo", `"in", ; or a newline`)
 	}
-	p.wantFollow(fs.For, `"for foo [in words]"`, DO)
-	p.wantFollowStmts(`"do"`, &fs.DoStmts, DONE)
-	p.wantStmtEnd(fs.For, "for", DONE, &fs.Done)
+	p.wantFollow(fs.For, "for foo [in words]", DO)
+	p.wantFollowStmts(DO, &fs.DoStmts, DONE)
+	p.wantStmtEnd(fs.For, FOR, DONE, &fs.Done)
 	return
 }
 
 func (p *parser) caseStmt() (cs CaseStmt) {
 	cs.Case = p.lpos
-	p.wantFollowWord(`"case"`, &cs.Word)
-	p.wantFollow(cs.Case, `"case x"`, IN)
+	p.wantFollowWord(CASE, &cs.Word)
+	p.wantFollow(cs.Case, "case x", IN)
 	p.patLists(&cs.List)
-	p.wantStmtEnd(cs.Case, "case", ESAC, &cs.Esac)
+	p.wantStmtEnd(cs.Case, CASE, ESAC, &cs.Esac)
 	return
 }
 
@@ -898,16 +915,16 @@ func (p *parser) cmdOrFunc(addRedir func()) Node {
 	if p.got(FUNCTION) {
 		fpos := p.lpos
 		var w Word
-		p.wantFollowWord(`"function"`, &w)
+		p.wantFollowWord(FUNCTION, &w)
 		if p.gotNoNewline(LPAREN) {
-			p.wantFollow(w.Pos(), `"foo("`, RPAREN)
+			p.wantFollow(w.Pos(), "foo(", RPAREN)
 		}
 		return p.funcDecl(w, fpos)
 	}
 	var w Word
 	p.gotWord(&w)
 	if p.gotNoNewline(LPAREN) {
-		p.wantFollow(w.Pos(), `"foo("`, RPAREN)
+		p.wantFollow(w.Pos(), "foo(", RPAREN)
 		return p.funcDecl(w, w.Pos())
 	}
 	cmd := Command{Args: []Word{w}}
@@ -939,6 +956,6 @@ func (p *parser) funcDecl(w Word, pos Pos) FuncDecl {
 	if !identRe.MatchString(fd.Name.Value) {
 		p.posErr(fd.Pos(), "invalid func name: %s", fd.Name.Value)
 	}
-	p.wantFollowStmt(fd.Pos(), `"foo()"`, &fd.Body)
+	p.wantFollowStmt(fd.Pos(), "foo()", &fd.Body)
 	return fd
 }
