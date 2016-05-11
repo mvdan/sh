@@ -740,6 +740,10 @@ func (p *parser) gotStmt(s *Stmt) bool {
 		} else {
 			break
 		}
+		if p.newLine {
+			p.gotEnd = true
+			return true
+		}
 	}
 	p.gotStmtAndOr(s, addRedir)
 	if !p.peekEnd() {

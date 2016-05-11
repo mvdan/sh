@@ -859,6 +859,37 @@ var astTests = []testCase{
 		IfStmt{},
 	},
 	{
+		[]string{"if; then a=; fi", "if; then a=\nfi"},
+		IfStmt{
+			ThenStmts: []Stmt{
+				{Assigns: []Assign{
+					{Name: lit("a")},
+				}},
+			},
+		},
+	},
+	{
+		[]string{"if; then >f; fi", "if; then >f\nfi"},
+		IfStmt{
+			ThenStmts: []Stmt{
+				{Redirs: []Redirect{
+					{Op: RDROUT, Word: litWord("f")},
+				}},
+			},
+		},
+	},
+	{
+		[]string{"a=b; c=d", "a=b\nc=d"},
+		[]Stmt{
+			{Assigns: []Assign{
+				{Name: lit("a"), Value: litWord("b")},
+			}},
+			{Assigns: []Assign{
+				{Name: lit("c"), Value: litWord("d")},
+			}},
+		},
+	},
+	{
 		[]string{"while; do; done", "while\ndo\ndone"},
 		WhileStmt{},
 	},
