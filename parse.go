@@ -377,6 +377,7 @@ func (p *parser) got(tok Token) bool {
 	}
 	return false
 }
+func (p *parser) gotNoNewline(tok Token) bool { return !p.newLine && p.got(tok) }
 
 func (p *parser) followErr(lpos Pos, left, right string) {
 	p.posErr(lpos, "%s must be followed by %s", left, right)
@@ -395,11 +396,11 @@ func (p *parser) wantFollowStmt(lpos Pos, left string, s *Stmt) {
 }
 
 func (p *parser) wantFollowStmts(left string, sts *[]Stmt, stops ...Token) {
-	if p.got(SEMICOLON) {
+	if p.gotNoNewline(SEMICOLON) {
 		return
 	}
 	p.stmts(sts, stops...)
-	if len(*sts) < 1 && !p.newLine && !p.got(SEMICOLON) {
+	if len(*sts) < 1 && !p.newLine {
 		p.followErr(p.lpos, left, "a statement list")
 	}
 }
@@ -648,13 +649,11 @@ func (p *parser) wordList(ws *[]Word) {
 		}
 		*ws = append(*ws, w)
 	}
-	if !p.newLine {
-		p.got(SEMICOLON)
-	}
+	p.gotNoNewline(SEMICOLON)
 }
 
 func (p *parser) peekEnd() bool {
-	return p.eof() || p.peek(SEMICOLON) || p.newLine
+	return p.eof() || p.newLine || p.peek(SEMICOLON)
 }
 
 func (p *parser) peekStop() bool {
@@ -708,9 +707,7 @@ func (p *parser) gotStmt(s *Stmt) bool {
 	case p.got(AND):
 		s.Background = true
 	}
-	if !p.newLine {
-		p.got(SEMICOLON)
-	}
+	p.gotNoNewline(SEMICOLON)
 	return true
 }
 
@@ -851,7 +848,7 @@ func (p *parser) forStmt() (fs ForStmt) {
 	}
 	if p.got(IN) {
 		p.wordList(&fs.WordList)
-	} else if !p.got(SEMICOLON) && !p.newLine {
+	} else if !p.gotNoNewline(SEMICOLON) && !p.newLine {
 		p.followErr(fs.For, `"for foo"`, `"in", ; or a newline`)
 	}
 	p.wantFollow(fs.For, `"for foo [in words]"`, DO)
@@ -870,7 +867,7 @@ func (p *parser) caseStmt() (cs CaseStmt) {
 }
 
 func (p *parser) patLists(plists *[]PatternList) {
-	if p.got(SEMICOLON) {
+	if p.gotNoNewline(SEMICOLON) {
 		return
 	}
 	for !p.eof() && !p.peek(ESAC) {
