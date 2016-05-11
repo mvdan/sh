@@ -521,6 +521,33 @@ var astTests = []testCase{
 		},
 	},
 	{
+		[]string{
+			"foo <<<input",
+			"foo <<< input",
+		},
+		Stmt{
+			Node: litCmd("foo"),
+			Redirs: []Redirect{
+				{Op: WHEREDOC, Word: litWord("input")},
+			},
+		},
+	},
+	{
+		[]string{
+			`foo <<<"spaced input"`,
+			`foo <<< "spaced input"`,
+		},
+		Stmt{
+			Node: litCmd("foo"),
+			Redirs: []Redirect{
+				{
+					Op:   WHEREDOC,
+					Word: word(dblQuoted(lit("spaced input"))),
+				},
+			},
+		},
+	},
+	{
 		[]string{"!"},
 		Stmt{Negated: true},
 	},

@@ -191,6 +191,10 @@ var errTests = []struct {
 		`1:5: <> must be followed by a word`,
 	},
 	{
+		"foo <<<",
+		`1:5: <<< must be followed by a word`,
+	},
+	{
 		"if",
 		`1:1: "if" must be followed by a statement list`,
 	},

@@ -59,6 +59,7 @@ const (
 	APPEND   // >>
 	HEREDOC  // <<
 	DHEREDOC // <<-
+	WHEREDOC // <<<
 )
 
 // Pos is the internal representation of a position within a source
@@ -143,6 +144,7 @@ var (
 		{">>", APPEND},
 		{"<<", HEREDOC},
 		{"<<-", DHEREDOC},
+		{"<<<", WHEREDOC},
 	}
 )
 

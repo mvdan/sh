@@ -685,7 +685,7 @@ func (p *parser) peekRedir() bool {
 		return true
 	}
 	return p.peekAny(RDROUT, APPEND, RDRIN, DPLIN, DPLOUT, RDRINOUT,
-		HEREDOC, DHEREDOC)
+		HEREDOC, DHEREDOC, WHEREDOC)
 }
 
 func (p *parser) gotStmt(s *Stmt) bool {
