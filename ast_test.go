@@ -62,7 +62,7 @@ func bckQuoted(sts ...Stmt) CmdSubst {
 }
 
 func litParamExp(s string) ParamExp {
-	return ParamExp{Short: true, Text: s}
+	return ParamExp{Short: true, Param: lit(s)}
 }
 
 type testCase struct {
@@ -693,7 +693,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{`"${foo}"`},
-		word(dblQuoted(ParamExp{Text: "foo"})),
+		word(dblQuoted(ParamExp{Param: lit("foo")})),
 	},
 	{
 		[]string{`"(foo)"`},
@@ -702,7 +702,7 @@ var astTests = []testCase{
 	{
 		[]string{`"${foo}>"`},
 		word(dblQuoted(
-			ParamExp{Text: "foo"},
+			ParamExp{Param: lit("foo")},
 			lit(">"),
 		)),
 	},
@@ -728,7 +728,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"${foo bar}"},
-		word(ParamExp{Text: "foo bar"}),
+		word(ParamExp{Param: lit("foo bar")}),
 	},
 	{
 		[]string{"$((1 + 3))"},
@@ -772,7 +772,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"foo${bar bar}"},
-		word(lit("foo"), ParamExp{Text: "bar bar"}),
+		word(lit("foo"), ParamExp{Param: lit("bar bar")}),
 	},
 	{
 		[]string{"'foo${bar'"},
@@ -848,7 +848,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"${foo}if"},
-		word(ParamExp{Text: "foo"}, lit("if")),
+		word(ParamExp{Param: lit("foo")}, lit("if")),
 	},
 	{
 		[]string{"$if"},
@@ -1081,6 +1081,7 @@ func setPosRecurse(t *testing.T, v interface{}, to Pos, diff bool) Node {
 		return x
 	case ParamExp:
 		setPos(&x.Exp)
+		setPosRecurse(t, &x.Param, to, diff)
 		return x
 	case ArithmExp:
 		setPos(&x.Exp)

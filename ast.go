@@ -349,14 +349,15 @@ type ParamExp struct {
 	Exp Pos
 
 	Short bool
-	Text  string
+
+	Param Lit
 }
 
 func (p ParamExp) String() string {
 	if p.Short {
-		return "$" + p.Text
+		return fmt.Sprintf("$%s", p.Param)
 	}
-	return "${" + p.Text + "}"
+	return fmt.Sprintf("${%s}", p.Param)
 }
 func (p ParamExp) Pos() Pos { return p.Exp }
 

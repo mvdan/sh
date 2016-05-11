@@ -595,8 +595,11 @@ func (p *parser) exp() Node {
 		lpos := p.npos
 		p.consumeByte()
 		return ParamExp{
-			Exp:  lpos,
-			Text: p.readUntilMatched(lpos, LBRACE, RBRACE),
+			Exp: lpos,
+			Param: Lit{
+				ValuePos: p.pos,
+				Value:    p.readUntilMatched(lpos, LBRACE, RBRACE),
+			},
 		}
 	}
 	if p.readOnly("#") {
@@ -629,7 +632,10 @@ func (p *parser) exp() Node {
 		return ParamExp{
 			Exp:   p.lpos,
 			Short: true,
-			Text:  p.lval,
+			Param: Lit{
+				ValuePos: p.lpos,
+				Value:    p.lval,
+			},
 		}
 	}
 }
