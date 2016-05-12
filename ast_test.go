@@ -736,6 +736,16 @@ var astTests = []testCase{
 		}),
 	},
 	{
+		[]string{`${foo%?}`},
+		word(ParamExp{
+			Param: lit("foo"),
+			Exp: &Expansion{
+				Op:   REM,
+				Word: litWord("?"),
+			},
+		}),
+	},
+	{
 		[]string{`${#foo}`},
 		word(ParamExp{
 			Length: true,

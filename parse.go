@@ -41,8 +41,9 @@ type parser struct {
 
 	spaced, newLine, gotEnd bool
 
-	inParamExp  bool
-	inArithmExp bool
+	inParamExp    bool
+	inParamExpEnd bool
+	inArithmExp   bool
 
 	ltok, tok Token
 	lval, val string
@@ -222,7 +223,7 @@ func (p *parser) next() {
 		}
 	}
 	switch {
-	case p.inParamExp && paramOps[b]:
+	case p.inParamExpEnd && b == '}', p.inParamExp && paramOps[b]:
 		tok, _ := doToken(p.readOnly, p.readByte)
 		p.advanceTok(tok)
 	case b == '#' && !p.doubleQuoted():
@@ -264,7 +265,7 @@ func (p *parser) readLitBytes() (bs []byte) {
 			continue
 		case b == '$' || b == '`': // end of lit
 			return
-		case p.inParamExp && paramOps[b]:
+		case p.inParamExpEnd && b == '}', p.inParamExp && paramOps[b]:
 			return
 		case p.doubleQuoted():
 			if b == '"' {
@@ -659,9 +660,11 @@ func (p *parser) paramExp(dpos Pos) (pe ParamExp) {
 		p.posErr(pe.Dollar, `string lengths must be like "${#foo}"`)
 	}
 	pe.Exp = &Expansion{Op: p.tok}
+	p.inParamExpEnd = true
+	p.inParamExp = false
 	p.next()
 	p.gotWord(&pe.Exp.Word)
-	p.inParamExp = false
+	p.inParamExpEnd = false
 	if !p.got(RBRACE) {
 		p.matchingErr(lpos, LBRACE, RBRACE)
 	}
