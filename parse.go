@@ -361,6 +361,9 @@ func (p *parser) peekReservedWord(tok Token) bool {
 }
 
 func (p *parser) peekSpaced() bool {
+	if p.inParamExp {
+		return true
+	}
 	b, err := p.peekByte()
 	return err != nil || space[b] || wordBreak[b]
 }
@@ -646,16 +649,14 @@ func (p *parser) paramExp(dpos Pos) (pe ParamExp) {
 	if p.got(HASH) {
 		pe.Length = true
 		p.gotLit(&pe.Param)
-		if p.val != "}" {
+		p.inParamExp = false
+		if !p.got(RBRACE) {
 			p.matchingErr(lpos, LBRACE, RBRACE)
 		}
-		p.next()
 		return
 	}
 	p.gotLit(&pe.Param)
-	// can't use peek() as we don't care if an end-of-word
-	// follows
-	if p.val == "}" {
+	if p.peek(RBRACE) {
 		p.inParamExp = false
 		p.next()
 		return
@@ -664,10 +665,9 @@ func (p *parser) paramExp(dpos Pos) (pe ParamExp) {
 	p.next()
 	p.gotWord(&pe.Exp.Word)
 	p.inParamExp = false
-	if p.val != "}" {
+	if !p.got(RBRACE) {
 		p.matchingErr(lpos, LBRACE, RBRACE)
 	}
-	p.next()
 	return
 }
 
