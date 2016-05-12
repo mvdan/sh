@@ -362,9 +362,6 @@ func (p *parser) peekReservedWord(tok Token) bool {
 }
 
 func (p *parser) peekSpaced() bool {
-	if p.inParamExp {
-		return true
-	}
 	b, err := p.peekByte()
 	return err != nil || space[b] || wordBreak[b]
 }
@@ -559,7 +556,6 @@ func (p *parser) readParts(ns *[]Node) {
 
 func (p *parser) wordPart() Node {
 	switch {
-	case p.inParamExp && p.peek(RBRACE):
 	case p.got(LIT):
 		return Lit{
 			ValuePos: p.lpos,

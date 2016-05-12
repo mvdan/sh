@@ -696,6 +696,13 @@ var astTests = []testCase{
 		word(ParamExp{Param: lit("foo")}),
 	},
 	{
+		[]string{`${foo}"bar"`},
+		word(
+			ParamExp{Param: lit("foo")},
+			dblQuoted(lit("bar")),
+		),
+	},
+	{
 		[]string{`${foo-bar}`},
 		word(ParamExp{
 			Param: lit("foo"),
@@ -704,6 +711,19 @@ var astTests = []testCase{
 				Word: litWord("bar"),
 			},
 		}),
+	},
+	{
+		[]string{`${foo-bar}"bar"`},
+		word(
+			ParamExp{
+				Param: lit("foo"),
+				Exp: &Expansion{
+					Op:   SUB,
+					Word: litWord("bar"),
+				},
+			},
+			dblQuoted(lit("bar")),
+		),
 	},
 	{
 		[]string{`${foo:="bar"}`},
