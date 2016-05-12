@@ -311,6 +311,14 @@ var errTests = []struct {
 		`1:7: quotes cannot follow a dollar sign`,
 	},
 	{
+		"echo ${}",
+		`1:8: parameter expansion requires a literal`,
+	},
+	{
+		"echo ${foo-bar",
+		`1:7: reached EOF without matching token { with }`,
+	},
+	{
 		"#foo\n{",
 		`2:1: reached EOF without matching token { with }`,
 	},
