@@ -254,10 +254,6 @@ func (p *parser) readLitBytes() (bs []byte) {
 		case b == '$' || b == '`': // end of lit
 			return
 		case p.inParamExp && b == '}':
-			if len(bs) == 0 {
-				p.consumeByte()
-				bs = append(bs, b)
-			}
 			return
 		case p.doubleQuoted():
 			if b == '"' {
@@ -598,10 +594,10 @@ func (p *parser) wordPart() Node {
 }
 
 func (p *parser) dollar() Node {
-	if p.peekAnyByte('{') {
-		return p.paramExp()
-	}
 	dpos := p.pos
+	if p.peekAnyByte('{') {
+		return p.paramExp(dpos)
+	}
 	if p.readOnly("#") {
 		p.advanceBoth(Token('#'), "#")
 	} else {
@@ -641,8 +637,7 @@ func (p *parser) dollar() Node {
 	}
 }
 
-func (p *parser) paramExp() ParamExp {
-	dpos := p.pos
+func (p *parser) paramExp(dpos Pos) ParamExp {
 	lpos := p.npos
 	p.consumeByte()
 	p.inParamExp = true
@@ -652,7 +647,7 @@ func (p *parser) paramExp() ParamExp {
 	p.inParamExp = false
 	// can't use peek() as we don't care if an end-of-word
 	// follows
-	if p.val != "}" {
+	if !p.readOnly("}") {
 		p.matchingErr(lpos, LBRACE, RBRACE)
 	}
 	p.next()
