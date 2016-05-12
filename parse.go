@@ -591,11 +591,12 @@ func (p *parser) wordPart() Node {
 }
 
 func (p *parser) dollar() Node {
+	dpos := p.pos
 	if p.peekAnyByte('{') {
 		lpos := p.npos
 		p.consumeByte()
 		return ParamExp{
-			Dollar: lpos,
+			Dollar: dpos,
 			Param: Lit{
 				ValuePos: p.pos,
 				Value:    p.readUntilMatched(lpos, LBRACE, RBRACE),
@@ -607,22 +608,23 @@ func (p *parser) dollar() Node {
 	} else {
 		p.next()
 	}
+	lpos := p.pos
 	switch {
 	case p.peek(DLPAREN):
-		ar := ArithmExp{Dollar: p.pos}
+		ar := ArithmExp{Dollar: dpos}
 		p.arithmExp = true
 		p.next()
 		p.arithmWords(&ar.Words)
 		p.arithmExp = false
-		p.wantMatched(ar.Dollar, DLPAREN, DRPAREN, &ar.Rparen)
+		p.wantMatched(lpos, DLPAREN, DRPAREN, &ar.Rparen)
 		return ar
 	case p.peek(LPAREN):
-		cs := CmdSubst{Left: p.pos}
+		cs := CmdSubst{Left: dpos}
 		p.addStops('`')
 		p.next()
 		p.stmtsNested(&cs.Stmts, RPAREN)
 		p.popStops()
-		p.wantMatched(cs.Left, LPAREN, RPAREN, &cs.Right)
+		p.wantMatched(lpos, LPAREN, RPAREN, &cs.Right)
 		return cs
 	case p.peekAny('\'', '`', '"'):
 		p.curErr("quotes cannot follow a dollar sign")
@@ -630,7 +632,7 @@ func (p *parser) dollar() Node {
 	default:
 		p.next()
 		return ParamExp{
-			Dollar: p.lpos,
+			Dollar: dpos,
 			Short:  true,
 			Param: Lit{
 				ValuePos: p.lpos,
