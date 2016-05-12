@@ -63,13 +63,18 @@ const (
 	DHEREDOC // <<-
 	WHEREDOC // <<<
 
-	ADD     // +
+	ADD // +
+	SUB // -
+	REM // %
+
 	CADD    // :+
-	SUB     // -
 	CSUB    // :-
 	QUEST   // ?
 	CQUEST  // :?
 	CASSIGN // :=
+	DREM    // %%
+	HASH    // #
+	DHASH   // ##
 
 )
 
@@ -160,12 +165,17 @@ var (
 		{"<<<", WHEREDOC},
 
 		{"+", ADD},
-		{":+", CADD},
 		{"-", SUB},
+		{"%", REM},
+
+		{":+", CADD},
 		{":-", CSUB},
 		{"?", QUEST},
 		{":?", CQUEST},
 		{":=", CASSIGN},
+		{"%%", DREM},
+		{"#", HASH},
+		{"##", DHASH},
 	}
 )
 

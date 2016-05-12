@@ -716,6 +716,26 @@ var astTests = []testCase{
 		}),
 	},
 	{
+		[]string{`${foo%bar}`},
+		word(ParamExp{
+			Param: lit("foo"),
+			Exp: &Expansion{
+				Op:   REM,
+				Word: litWord("bar"),
+			},
+		}),
+	},
+	{
+		[]string{`${foo##f*}`},
+		word(ParamExp{
+			Param: lit("foo"),
+			Exp: &Expansion{
+				Op:   DHASH,
+				Word: litWord("f*"),
+			},
+		}),
+	},
+	{
 		[]string{`"${foo}"`},
 		word(dblQuoted(ParamExp{Param: lit("foo")})),
 	},

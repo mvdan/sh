@@ -165,6 +165,7 @@ var (
 		'+': true,
 		'=': true,
 		'?': true,
+		'%': true,
 	}
 	// tokenize these inside arithmetic expansions
 	arithmOps = map[byte]bool{
@@ -221,11 +222,11 @@ func (p *parser) next() {
 		}
 	}
 	switch {
-	case b == '#' && !p.doubleQuoted():
-		p.advanceBoth(COMMENT, p.readLine())
 	case p.inParamExp && paramOps[b]:
 		tok, _ := doToken(p.readOnly, p.readByte)
 		p.advanceTok(tok)
+	case b == '#' && !p.doubleQuoted():
+		p.advanceBoth(COMMENT, p.readLine())
 	case reserved[b]:
 		// Between double quotes, only under certain
 		// circumstnaces do we tokenize
