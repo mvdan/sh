@@ -41,8 +41,8 @@ type parser struct {
 
 	spaced, newLine, gotEnd bool
 
-	paramExp  bool
-	arithmExp bool
+	inParamExp  bool
+	inArithmExp bool
 
 	ltok, tok Token
 	lval, val string
@@ -236,7 +236,7 @@ func (p *parser) next() {
 
 func (p *parser) advanceReadLit() { p.advanceBoth(LIT, string(p.readLitBytes())) }
 func (p *parser) readLitBytes() (bs []byte) {
-	if p.arithmExp {
+	if p.inArithmExp {
 		p.spaced = true
 	}
 	for {
@@ -253,7 +253,7 @@ func (p *parser) readLitBytes() (bs []byte) {
 			continue
 		case b == '$' || b == '`': // end of lit
 			return
-		case p.paramExp && b == '}':
+		case p.inParamExp && b == '}':
 			if len(bs) == 0 {
 				p.consumeByte()
 				bs = append(bs, b)
@@ -263,7 +263,7 @@ func (p *parser) readLitBytes() (bs []byte) {
 			if b == '"' {
 				return
 			}
-		case p.arithmExp && arithmOps[b]:
+		case p.inArithmExp && arithmOps[b]:
 			if len(bs) > 0 {
 				return
 			}
@@ -598,26 +598,10 @@ func (p *parser) wordPart() Node {
 }
 
 func (p *parser) dollar() Node {
-	dpos := p.pos
 	if p.peekAnyByte('{') {
-		lpos := p.npos
-		p.consumeByte()
-		p.paramExp = true
-		p.next()
-		var l Lit
-		p.gotLit(&l)
-		p.paramExp = false
-		// can't use peek() as we don't care if an end-of-word
-		// follows
-		if p.val != "}" {
-			p.matchingErr(lpos, LBRACE, RBRACE)
-		}
-		p.next()
-		return ParamExp{
-			Dollar: dpos,
-			Param:  l,
-		}
+		return p.paramExp()
 	}
+	dpos := p.pos
 	if p.readOnly("#") {
 		p.advanceBoth(Token('#'), "#")
 	} else {
@@ -627,10 +611,10 @@ func (p *parser) dollar() Node {
 	switch {
 	case p.peek(DLPAREN):
 		ar := ArithmExp{Dollar: dpos}
-		p.arithmExp = true
+		p.inArithmExp = true
 		p.next()
 		p.arithmWords(&ar.Words)
-		p.arithmExp = false
+		p.inArithmExp = false
 		p.wantMatched(lpos, DLPAREN, DRPAREN, &ar.Rparen)
 		return ar
 	case p.peek(LPAREN):
@@ -654,6 +638,27 @@ func (p *parser) dollar() Node {
 				Value:    p.lval,
 			},
 		}
+	}
+}
+
+func (p *parser) paramExp() ParamExp {
+	dpos := p.pos
+	lpos := p.npos
+	p.consumeByte()
+	p.inParamExp = true
+	p.next()
+	var l Lit
+	p.gotLit(&l)
+	p.inParamExp = false
+	// can't use peek() as we don't care if an end-of-word
+	// follows
+	if p.val != "}" {
+		p.matchingErr(lpos, LBRACE, RBRACE)
+	}
+	p.next()
+	return ParamExp{
+		Dollar: dpos,
+		Param:  l,
 	}
 }
 
