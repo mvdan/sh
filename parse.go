@@ -299,7 +299,6 @@ func (p *parser) readUntilMatched(lpos Pos, left, right Token) string {
 	if found {
 		p.consumeBytes(len(tokStr))
 		p.advanceTok(right)
-		p.next()
 	} else {
 		p.matchingErr(lpos, left, right)
 	}
@@ -595,11 +594,13 @@ func (p *parser) dollar() Node {
 	if p.peekAnyByte('{') {
 		lpos := p.npos
 		p.consumeByte()
+		s := p.readUntilMatched(lpos, LBRACE, RBRACE)
+		p.next()
 		return ParamExp{
 			Dollar: dpos,
 			Param: Lit{
-				ValuePos: p.pos,
-				Value:    p.readUntilMatched(lpos, LBRACE, RBRACE),
+				ValuePos: p.lpos,
+				Value:    s,
 			},
 		}
 	}
