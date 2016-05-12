@@ -346,7 +346,7 @@ func (c CmdSubst) String() string {
 func (c CmdSubst) Pos() Pos { return c.Left }
 
 type ParamExp struct {
-	Exp Pos
+	Dollar Pos
 
 	Short bool
 
@@ -359,16 +359,16 @@ func (p ParamExp) String() string {
 	}
 	return fmt.Sprintf("${%s}", p.Param)
 }
-func (p ParamExp) Pos() Pos { return p.Exp }
+func (p ParamExp) Pos() Pos { return p.Dollar }
 
 type ArithmExp struct {
-	Exp, Rparen Pos
+	Dollar, Rparen Pos
 
 	Words []Word
 }
 
 func (a ArithmExp) String() string { return "$((" + wordJoin(a.Words, " ") + "))" }
-func (a ArithmExp) Pos() Pos       { return a.Exp }
+func (a ArithmExp) Pos() Pos       { return a.Dollar }
 
 type CaseStmt struct {
 	Case, Esac Pos

@@ -219,7 +219,7 @@ func (p *parser) next() {
 		// circumstnaces do we tokenize
 		if p.doubleQuoted() {
 			switch {
-			case b == '`', b == '"', b == '$', p.peek(EXP):
+			case b == '`', b == '"', b == '$', p.peek(DOLLAR):
 			default:
 				p.advanceReadLit()
 				return
@@ -558,8 +558,8 @@ func (p *parser) wordPart() Node {
 			ValuePos: p.lpos,
 			Value:    p.lval,
 		}
-	case p.peek(EXP):
-		return p.exp()
+	case p.peek(DOLLAR):
+		return p.dollar()
 	case p.peek('\''):
 		sq := SglQuoted{Quote: p.pos}
 		s, found := p.readUntil("'")
@@ -590,12 +590,12 @@ func (p *parser) wordPart() Node {
 	return nil
 }
 
-func (p *parser) exp() Node {
+func (p *parser) dollar() Node {
 	if p.peekAnyByte('{') {
 		lpos := p.npos
 		p.consumeByte()
 		return ParamExp{
-			Exp: lpos,
+			Dollar: lpos,
 			Param: Lit{
 				ValuePos: p.pos,
 				Value:    p.readUntilMatched(lpos, LBRACE, RBRACE),
@@ -609,12 +609,12 @@ func (p *parser) exp() Node {
 	}
 	switch {
 	case p.peek(DLPAREN):
-		ar := ArithmExp{Exp: p.pos}
+		ar := ArithmExp{Dollar: p.pos}
 		p.arithmExp = true
 		p.next()
 		p.arithmWords(&ar.Words)
 		p.arithmExp = false
-		p.wantMatched(ar.Exp, DLPAREN, DRPAREN, &ar.Rparen)
+		p.wantMatched(ar.Dollar, DLPAREN, DRPAREN, &ar.Rparen)
 		return ar
 	case p.peek(LPAREN):
 		cs := CmdSubst{Left: p.pos}
@@ -630,8 +630,8 @@ func (p *parser) exp() Node {
 	default:
 		p.next()
 		return ParamExp{
-			Exp:   p.lpos,
-			Short: true,
+			Dollar: p.lpos,
+			Short:  true,
 			Param: Lit{
 				ValuePos: p.lpos,
 				Value:    p.lval,
@@ -792,7 +792,7 @@ func (p *parser) gotStmtAndOr(s *Stmt, addRedir func()) bool {
 		s.Node = p.forStmt()
 	case p.got(CASE):
 		s.Node = p.caseStmt()
-	case p.peekAny(LIT, EXP, '"', '\'', '`'):
+	case p.peekAny(LIT, DOLLAR, '"', '\'', '`'):
 		s.Node = p.cmdOrFunc(addRedir)
 	default:
 		return false

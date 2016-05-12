@@ -1080,11 +1080,11 @@ func setPosRecurse(t *testing.T, v interface{}, to Pos, diff bool) Node {
 		setPosRecurse(t, &x.Body, to, diff)
 		return x
 	case ParamExp:
-		setPos(&x.Exp)
+		setPos(&x.Dollar)
 		setPosRecurse(t, &x.Param, to, diff)
 		return x
 	case ArithmExp:
-		setPos(&x.Exp)
+		setPos(&x.Dollar)
 		setPos(&x.Rparen)
 		setPosRecurse(t, x.Words, to, diff)
 		return x

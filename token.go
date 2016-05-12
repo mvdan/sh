@@ -42,7 +42,7 @@ const (
 	NOT    // !
 	ASSIGN // =
 
-	EXP     // $
+	DOLLAR  // $
 	LPAREN  // (
 	LBRACE  // {
 	DLPAREN // ((
@@ -129,7 +129,7 @@ var (
 		{"!", NOT},
 		{"=", ASSIGN},
 
-		{"$", EXP},
+		{"$", DOLLAR},
 		{"(", LPAREN},
 		{"{", LBRACE},
 		{"((", DLPAREN},
