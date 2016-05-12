@@ -347,7 +347,7 @@ func (c CmdSubst) Pos() Pos { return c.Left }
 type ParamExp struct {
 	Dollar Pos
 
-	Short bool
+	Short, Length bool
 
 	Param Lit
 	Exp   *Expansion
@@ -356,6 +356,9 @@ type ParamExp struct {
 func (p ParamExp) String() string {
 	if p.Short {
 		return fmt.Sprintf("$%s", p.Param)
+	}
+	if p.Length {
+		return fmt.Sprintf("${#%s}", p.Param)
 	}
 	if p.Exp == nil {
 		return fmt.Sprintf("${%s}", p.Param)

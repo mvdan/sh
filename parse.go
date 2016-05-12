@@ -643,6 +643,15 @@ func (p *parser) paramExp(dpos Pos) (pe ParamExp) {
 	p.consumeByte()
 	p.inParamExp = true
 	p.next()
+	if p.got(HASH) {
+		pe.Length = true
+		p.gotLit(&pe.Param)
+		if p.val != "}" {
+			p.matchingErr(lpos, LBRACE, RBRACE)
+		}
+		p.next()
+		return
+	}
 	p.gotLit(&pe.Param)
 	// can't use peek() as we don't care if an end-of-word
 	// follows
