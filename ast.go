@@ -149,7 +149,6 @@ type Assign struct {
 }
 
 func (a Assign) String() string { return fmt.Sprint(a.Name, "=", a.Value) }
-func (a Assign) Pos() Pos       { return a.Name.Pos() }
 
 type Redirect struct {
 	OpPos Pos
@@ -351,15 +350,26 @@ type ParamExp struct {
 	Short bool
 
 	Param Lit
+	Exp   *Expansion
 }
 
 func (p ParamExp) String() string {
 	if p.Short {
 		return fmt.Sprintf("$%s", p.Param)
 	}
-	return fmt.Sprintf("${%s}", p.Param)
+	if p.Exp == nil {
+		return fmt.Sprintf("${%s}", p.Param)
+	}
+	return fmt.Sprintf("${%s%s}", p.Param, p.Exp)
 }
 func (p ParamExp) Pos() Pos { return p.Dollar }
+
+type Expansion struct {
+	Op   Token
+	Word Word
+}
+
+func (e Expansion) String() string { return fmt.Sprintf("%s%s", e.Op, e.Word) }
 
 type ArithmExp struct {
 	Dollar, Rparen Pos

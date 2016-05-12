@@ -90,11 +90,6 @@ func (p *parser) readByte() (byte, error) {
 	return b, nil
 }
 func (p *parser) consumeByte() { p.readByte() }
-func (p *parser) consumeBytes(n int) {
-	for i := 0; i < n; i++ {
-		p.consumeByte()
-	}
-}
 
 func (p *parser) moveWith(b byte) {
 	if b == '\n' {
@@ -128,7 +123,9 @@ func (p *parser) peekAnyByte(bs ...byte) bool {
 
 func (p *parser) readOnly(s string) bool {
 	if p.peekString(s) {
-		p.consumeBytes(len(s))
+		for i := 0; i < len(s); i++ {
+			p.consumeByte()
+		}
 		return true
 	}
 	return false
@@ -158,6 +155,16 @@ var (
 		';': true,
 		'(': true,
 		')': true,
+	}
+	// tokenize these inside parameter expansions
+	paramOps = map[byte]bool{
+		'}': true,
+		'#': true,
+		':': true,
+		'-': true,
+		'+': true,
+		'=': true,
+		'?': true,
 	}
 	// tokenize these inside arithmetic expansions
 	arithmOps = map[byte]bool{
@@ -216,6 +223,9 @@ func (p *parser) next() {
 	switch {
 	case b == '#' && !p.doubleQuoted():
 		p.advanceBoth(COMMENT, p.readLine())
+	case p.inParamExp && paramOps[b]:
+		tok, _ := doToken(p.readOnly, p.readByte)
+		p.advanceTok(tok)
 	case reserved[b]:
 		// Between double quotes, only under certain
 		// circumstnaces do we tokenize
@@ -253,7 +263,7 @@ func (p *parser) readLitBytes() (bs []byte) {
 			continue
 		case b == '$' || b == '`': // end of lit
 			return
-		case p.inParamExp && b == '}':
+		case p.inParamExp && paramOps[b]:
 			return
 		case p.doubleQuoted():
 			if b == '"' {
@@ -295,18 +305,6 @@ func (p *parser) readUntil(s string) (string, bool) {
 		}
 		bs = append(bs, b)
 	}
-}
-
-func (p *parser) readUntilMatched(lpos Pos, left, right Token) string {
-	tokStr := tokNames[right]
-	s, found := p.readUntil(tokStr)
-	if found {
-		p.consumeBytes(len(tokStr))
-		p.advanceTok(right)
-	} else {
-		p.matchingErr(lpos, left, right)
-	}
-	return s
 }
 
 func (p *parser) readLine() string {
@@ -556,6 +554,7 @@ func (p *parser) readParts(ns *[]Node) {
 
 func (p *parser) wordPart() Node {
 	switch {
+	case p.inParamExp && p.peek(RBRACE):
 	case p.got(LIT):
 		return Lit{
 			ValuePos: p.lpos,
@@ -637,24 +636,29 @@ func (p *parser) dollar() Node {
 	}
 }
 
-func (p *parser) paramExp(dpos Pos) ParamExp {
+func (p *parser) paramExp(dpos Pos) (pe ParamExp) {
+	pe.Dollar = dpos
 	lpos := p.npos
 	p.consumeByte()
 	p.inParamExp = true
 	p.next()
-	var l Lit
-	p.gotLit(&l)
-	p.inParamExp = false
+	p.gotLit(&pe.Param)
 	// can't use peek() as we don't care if an end-of-word
 	// follows
-	if !p.readOnly("}") {
+	if p.val == "}" {
+		p.inParamExp = false
+		p.next()
+		return
+	}
+	pe.Exp = &Expansion{Op: p.tok}
+	p.next()
+	p.gotWord(&pe.Exp.Word)
+	p.inParamExp = false
+	if p.val != "}" {
 		p.matchingErr(lpos, LBRACE, RBRACE)
 	}
 	p.next()
-	return ParamExp{
-		Dollar: dpos,
-		Param:  l,
-	}
+	return
 }
 
 func (p *parser) readPartsArithm(ns *[]Node) {

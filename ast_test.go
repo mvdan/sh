@@ -692,6 +692,20 @@ var astTests = []testCase{
 		),
 	},
 	{
+		[]string{`${foo}`},
+		word(ParamExp{Param: lit("foo")}),
+	},
+	{
+		[]string{`${foo-bar}`},
+		word(ParamExp{
+			Param: lit("foo"),
+			Exp: &Expansion{
+				Op:   SUB,
+				Word: litWord("bar"),
+			},
+		}),
+	},
+	{
 		[]string{`"${foo}"`},
 		word(dblQuoted(ParamExp{Param: lit("foo")})),
 	},
@@ -1078,6 +1092,9 @@ func setPosRecurse(t *testing.T, v interface{}, to Pos, diff bool) Node {
 	case ParamExp:
 		setPos(&x.Dollar)
 		setPosRecurse(t, &x.Param, to, diff)
+		if x.Exp != nil {
+			setPosRecurse(t, x.Exp.Word, to, diff)
+		}
 		return x
 	case ArithmExp:
 		setPos(&x.Dollar)

@@ -316,7 +316,7 @@ var errTests = []struct {
 	},
 	{
 		`echo "foo${bar"`,
-		`1:11: reached " without matching token { with }`,
+		`1:11: reached EOF without matching token { with }`,
 	},
 	{
 		"foo\n;",
