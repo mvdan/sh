@@ -40,7 +40,9 @@ type parser struct {
 	err  error
 
 	spaced, newLine, gotEnd bool
-	arithmExp               bool
+
+	paramExp  bool
+	arithmExp bool
 
 	ltok, tok Token
 	lval, val string
@@ -250,6 +252,12 @@ func (p *parser) readLitBytes() (bs []byte) {
 			}
 			continue
 		case b == '$' || b == '`': // end of lit
+			return
+		case p.paramExp && b == '}':
+			if len(bs) == 0 {
+				p.consumeByte()
+				bs = append(bs, b)
+			}
 			return
 		case p.doubleQuoted():
 			if b == '"' {
@@ -594,14 +602,20 @@ func (p *parser) dollar() Node {
 	if p.peekAnyByte('{') {
 		lpos := p.npos
 		p.consumeByte()
-		s := p.readUntilMatched(lpos, LBRACE, RBRACE)
+		p.paramExp = true
+		p.next()
+		var l Lit
+		p.gotLit(&l)
+		p.paramExp = false
+		// can't use peek() as we don't care if an end-of-word
+		// follows
+		if p.val != "}" {
+			p.matchingErr(lpos, LBRACE, RBRACE)
+		}
 		p.next()
 		return ParamExp{
 			Dollar: dpos,
-			Param: Lit{
-				ValuePos: p.lpos,
-				Value:    s,
-			},
+			Param:  l,
 		}
 	}
 	if p.readOnly("#") {

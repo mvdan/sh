@@ -727,10 +727,6 @@ var astTests = []testCase{
 		word(sglQuoted("${foo}")),
 	},
 	{
-		[]string{"${foo bar}"},
-		word(ParamExp{Param: lit("foo bar")}),
-	},
-	{
 		[]string{"$((1 + 3))"},
 		word(arithmExp(
 			litWord("1"), litWord("+"), litWord("3"),
@@ -771,8 +767,8 @@ var astTests = []testCase{
 		word(lit("foo"), cmdSubst(litStmt("bar"))),
 	},
 	{
-		[]string{"foo${bar bar}"},
-		word(lit("foo"), ParamExp{Param: lit("bar bar")}),
+		[]string{"foo${bar}"},
+		word(lit("foo"), ParamExp{Param: lit("bar")}),
 	},
 	{
 		[]string{"'foo${bar'"},
