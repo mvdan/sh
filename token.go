@@ -63,9 +63,13 @@ const (
 	DHEREDOC // <<-
 	WHEREDOC // <<<
 
-	ADD   // +
-	SUB   // -
-	QUEST // ?
+	ADD     // +
+	CADD    // :+
+	SUB     // -
+	CSUB    // :-
+	QUEST   // ?
+	CQUEST  // :?
+	CASSIGN // :=
 
 )
 
@@ -156,8 +160,12 @@ var (
 		{"<<<", WHEREDOC},
 
 		{"+", ADD},
+		{":+", CADD},
 		{"-", SUB},
+		{":-", CSUB},
 		{"?", QUEST},
+		{":?", CQUEST},
+		{":=", CASSIGN},
 	}
 )
 
