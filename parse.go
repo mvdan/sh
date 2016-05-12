@@ -344,12 +344,6 @@ func (p *parser) readHeredocContent(endLine string) (string, bool) {
 	return buf.String(), false
 }
 
-func (p *parser) eof() bool {
-	for p.got(COMMENT) {
-	}
-	return p.tok == EOF
-}
-
 func (p *parser) peek(tok Token) bool {
 	for p.tok == COMMENT {
 		p.next()
@@ -364,6 +358,11 @@ func (p *parser) peekReservedWord(tok Token) bool {
 func (p *parser) peekSpaced() bool {
 	b, err := p.peekByte()
 	return err != nil || space[b] || wordBreak[b]
+}
+
+func (p *parser) eof() bool {
+	p.peek(COMMENT)
+	return p.tok == EOF
 }
 
 func (p *parser) peekAny(toks ...Token) bool {
