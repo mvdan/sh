@@ -648,12 +648,15 @@ func (p *parser) paramExp(dpos Pos) (pe ParamExp) {
 	p.next()
 	pe.Length = p.got(HASH)
 	if !p.gotLit(&pe.Param) {
-		p.curErr("parameter expansion requires a literal")
+		p.posErr(pe.Dollar, "parameter expansion requires a literal")
 	}
 	if p.peek(RBRACE) {
 		p.inParamExp = false
 		p.next()
 		return
+	}
+	if pe.Length {
+		p.posErr(pe.Dollar, `string lengths must be like "${#foo}"`)
 	}
 	pe.Exp = &Expansion{Op: p.tok}
 	p.next()

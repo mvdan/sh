@@ -312,11 +312,19 @@ var errTests = []struct {
 	},
 	{
 		"echo ${}",
-		`1:8: parameter expansion requires a literal`,
+		`1:6: parameter expansion requires a literal`,
+	},
+	{
+		"echo ${#}",
+		`1:6: parameter expansion requires a literal`,
 	},
 	{
 		"echo ${foo-bar",
 		`1:7: reached EOF without matching token { with }`,
+	},
+	{
+		"echo ${#foo-bar}",
+		`1:6: string lengths must be like "${#foo}"`,
 	},
 	{
 		"#foo\n{",
