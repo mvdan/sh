@@ -66,7 +66,7 @@ func (p *parser) addStops(stops ...Token) {
 }
 func (p *parser) popStops() { p.stops = p.stops[:len(p.stops)-1] }
 
-func (p *parser) quoteIndex(b byte) int {
+func (p *parser) stopIndex(b byte) int {
 	tok := Token(b)
 	for i, stop := range p.curStops() {
 		if tok == stop {
@@ -75,11 +75,11 @@ func (p *parser) quoteIndex(b byte) int {
 	}
 	return -1
 }
-func (p *parser) quoted(b byte) bool { return p.quoteIndex(b) >= 0 }
+func (p *parser) quoted(b byte) bool { return p.stopIndex(b) >= 0 }
 
 // Subshells inside double quotes do not keep spaces, e.g. "$(foo  bar)"
 // equals "$(foo bar)"
-func (p *parser) doubleQuoted() bool { return p.quoteIndex('"') > p.quoteIndex('`') }
+func (p *parser) doubleQuoted() bool { return p.stopIndex('"') > p.stopIndex('`') }
 
 func (p *parser) readByte() (byte, error) {
 	b, err := p.br.ReadByte()
