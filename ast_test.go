@@ -855,6 +855,10 @@ var astTests = []testCase{
 		))),
 	},
 	{
+		[]string{"foo$"},
+		word(lit("foo"), lit("$")),
+	},
+	{
 		[]string{"foo$bar"},
 		word(lit("foo"), litParamExp("bar")),
 	},

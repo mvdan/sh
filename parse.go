@@ -531,13 +531,20 @@ func (p *parser) readParts(ns *[]Node) {
 
 func (p *parser) wordPart() Node {
 	switch {
+	case p.peek(DOLLAR):
+		if p.peekSpaced() && !p.peekString("(") {
+			p.next()
+			return Lit{
+				ValuePos: p.lpos,
+				Value:    p.lval,
+			}
+		}
+		return p.dollar()
 	case p.got(LIT):
 		return Lit{
 			ValuePos: p.lpos,
 			Value:    p.lval,
 		}
-	case p.peek(DOLLAR):
-		return p.dollar()
 	case p.peek('\''):
 		sq := SglQuoted{Quote: p.pos}
 		s, found := p.readUntil("'")
