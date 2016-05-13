@@ -40,9 +40,6 @@ type parser struct {
 
 	spaced, newLine, gotEnd bool
 
-	inParamExp    bool
-	inParamExpEnd bool
-
 	ltok, tok Token
 	lval, val string
 
@@ -206,7 +203,7 @@ func (p *parser) next() {
 		}
 	}
 	switch {
-	case p.inParamExpEnd && b == '}', p.inParamExp && paramOps[b]:
+	case p.quoted('}') && b == '}', p.quoted('{') && paramOps[b]:
 		p.advanceTok(p.doToken(b))
 	case b == '#' && !p.quoted('"'):
 		p.advanceBoth(COMMENT, p.readLine())
@@ -246,7 +243,7 @@ func (p *parser) readLitBytes() (bs []byte) {
 			continue
 		case b == '$' || b == '`': // end of lit
 			return
-		case p.inParamExpEnd && b == '}', p.inParamExp && paramOps[b]:
+		case p.quoted('}') && b == '}', p.quoted('{') && paramOps[b]:
 			return
 		case p.quoted('"'):
 			if b == '"' {
@@ -613,14 +610,13 @@ func (p *parser) paramExp(dpos Pos) (pe ParamExp) {
 	pe.Dollar = dpos
 	lpos := p.npos
 	p.consumeByte()
-	p.inParamExp = true
-	p.next()
+	p.enterStops('{')
 	pe.Length = p.got(HASH)
 	if !p.gotLit(&pe.Param) {
 		p.posErr(pe.Dollar, "parameter expansion requires a literal")
 	}
 	if p.peek(RBRACE) {
-		p.inParamExp = false
+		p.popStops(1)
 		p.next()
 		return
 	}
@@ -628,11 +624,10 @@ func (p *parser) paramExp(dpos Pos) (pe ParamExp) {
 		p.posErr(pe.Dollar, `string lengths must be like "${#foo}"`)
 	}
 	pe.Exp = &Expansion{Op: p.tok}
-	p.inParamExpEnd = true
-	p.inParamExp = false
-	p.next()
+	p.popStops(1)
+	p.enterStops('}')
 	p.gotWord(&pe.Exp.Word)
-	p.inParamExpEnd = false
+	p.popStops(1)
 	if !p.got(RBRACE) {
 		p.matchingErr(lpos, LBRACE, RBRACE)
 	}
