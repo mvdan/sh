@@ -561,7 +561,7 @@ func (p *parser) wordPart() Node {
 		cs := CmdSubst{Backquotes: true, Left: p.pos}
 		p.addStops('`')
 		p.next()
-		p.stmtsNested(&cs.Stmts, '`')
+		p.stmts(&cs.Stmts, '`')
 		p.popStops(1)
 		p.wantMatched(cs.Left, '`', '`', &cs.Right)
 		return cs
@@ -598,7 +598,7 @@ func (p *parser) dollar() Node {
 		cs := CmdSubst{Left: dpos}
 		p.addStops(RPAREN)
 		p.next()
-		p.stmtsNested(&cs.Stmts, RPAREN)
+		p.stmts(&cs.Stmts, RPAREN)
 		p.popStops(1)
 		p.wantMatched(lpos, LPAREN, RPAREN, &cs.Right)
 		return cs
