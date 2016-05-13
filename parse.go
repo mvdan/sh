@@ -55,13 +55,8 @@ type parser struct {
 	heredocs    []Word
 }
 
-func (p *parser) addStops(stops ...Token) {
-	p.stops = append(p.stops, stops...)
-}
-func (p *parser) popStops(n int) {
-	p.stops = p.stops[:len(p.stops)-n]
-}
-
+func (p *parser) addStops(stops ...Token) { p.stops = append(p.stops, stops...) }
+func (p *parser) popStops(n int)          { p.stops = p.stops[:len(p.stops)-n] }
 func (p *parser) quoted(tok Token) bool {
 	return len(p.stops) > 0 && p.stops[len(p.stops)-1] == tok
 }
@@ -499,6 +494,7 @@ func (p *parser) invalidStmtStart() {
 
 func (p *parser) stmtsNested(sts *[]Stmt, stops ...Token) {
 	p.addStops(stops...)
+	p.next()
 	p.stmts(sts, stops...)
 	p.popStops(len(stops))
 }
@@ -559,10 +555,7 @@ func (p *parser) wordPart() Node {
 		return dq
 	case !p.quoted('`') && p.peek('`'):
 		cs := CmdSubst{Backquotes: true, Left: p.pos}
-		p.addStops('`')
-		p.next()
-		p.stmts(&cs.Stmts, '`')
-		p.popStops(1)
+		p.stmtsNested(&cs.Stmts, '`')
 		p.wantMatched(cs.Left, '`', '`', &cs.Right)
 		return cs
 	}
@@ -596,10 +589,7 @@ func (p *parser) dollar() Node {
 		return ar
 	case p.peek(LPAREN):
 		cs := CmdSubst{Left: dpos}
-		p.addStops(RPAREN)
-		p.next()
-		p.stmts(&cs.Stmts, RPAREN)
-		p.popStops(1)
+		p.stmtsNested(&cs.Stmts, RPAREN)
 		p.wantMatched(lpos, LPAREN, RPAREN, &cs.Right)
 		return cs
 	case p.peekAny('\'', '`', '"'):
@@ -799,7 +789,7 @@ func (p *parser) gotStmt(s *Stmt) bool {
 func (p *parser) gotStmtAndOr(s *Stmt, addRedir func()) bool {
 	s.Position = p.pos
 	switch {
-	case p.got(LPAREN):
+	case p.peek(LPAREN):
 		s.Node = p.subshell()
 	case p.got(LBRACE):
 		s.Node = p.block()
@@ -876,7 +866,7 @@ func (p *parser) redirect() (r Redirect) {
 }
 
 func (p *parser) subshell() (s Subshell) {
-	s.Lparen = p.lpos
+	s.Lparen = p.pos
 	p.stmtsNested(&s.Stmts, RPAREN)
 	p.wantMatched(s.Lparen, LPAREN, RPAREN, &s.Rparen)
 	return
@@ -964,7 +954,7 @@ func (p *parser) patLists(plists *[]PatternList) {
 				p.curErr("case patterns must consist of words")
 			}
 			pl.Patterns = append(pl.Patterns, w)
-			if p.got(RPAREN) {
+			if p.peek(RPAREN) {
 				break
 			}
 			if !p.got(OR) {
