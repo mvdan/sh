@@ -602,13 +602,18 @@ func (p *parser) dollar() Node {
 	}
 	lpos := p.pos
 	switch {
-	case p.peek(DLPAREN):
+	case p.peek(LPAREN) && p.readOnly("("):
 		ar := ArithmExp{Dollar: dpos}
 		p.inArithmExp = true
 		p.next()
 		p.arithmWords(&ar.Words)
 		p.inArithmExp = false
-		p.wantMatched(lpos, DLPAREN, DRPAREN, &ar.Rparen)
+		if !p.peekArithmEnd() {
+			p.matchingErr(lpos, DLPAREN, DRPAREN)
+		}
+		ar.Rparen = p.pos
+		p.consumeByte()
+		p.next()
 		return ar
 	case p.peek(LPAREN):
 		cs := CmdSubst{Left: dpos}
@@ -664,8 +669,12 @@ func (p *parser) paramExp(dpos Pos) (pe ParamExp) {
 	return
 }
 
+func (p *parser) peekArithmEnd() bool {
+	return p.peek(RPAREN) && p.peekString(")")
+}
+
 func (p *parser) readPartsArithm(ns *[]Node) {
-	for !p.eof() && !p.peek(DRPAREN) {
+	for !p.eof() && !p.peekArithmEnd() {
 		n := p.wordPart()
 		if n == nil {
 			n = Lit{
@@ -682,7 +691,7 @@ func (p *parser) readPartsArithm(ns *[]Node) {
 }
 
 func (p *parser) arithmWords(ws *[]Word) {
-	for !p.eof() && !p.peek(DRPAREN) {
+	for !p.eof() && !p.peekArithmEnd() {
 		var w Word
 		p.readPartsArithm(&w.Parts)
 		*ws = append(*ws, w)

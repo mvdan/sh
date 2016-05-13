@@ -646,6 +646,15 @@ var astTests = []testCase{
 		)),
 	},
 	{
+		[]string{"$(foo $(b1 b2))"},
+		word(cmdSubst(
+			stmt(cmd(
+				litWord("foo"),
+				word(cmdSubst(litStmt("b1", "b2"))),
+			)),
+		)),
+	},
+	{
 		[]string{"`foo`"},
 		word(bckQuoted(litStmt("foo"))),
 	},

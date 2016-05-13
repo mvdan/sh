@@ -42,14 +42,12 @@ const (
 	NOT    // !
 	ASSIGN // =
 
-	DOLLAR  // $
-	LPAREN  // (
-	LBRACE  // {
-	DLPAREN // ((
+	DOLLAR // $
+	LPAREN // (
+	LBRACE // {
 
 	RPAREN     // )
 	RBRACE     // }
-	DRPAREN    // ))
 	SEMICOLON  // ;
 	DSEMICOLON // ;;
 
@@ -76,6 +74,8 @@ const (
 	HASH    // #
 	DHASH   // ##
 
+	DLPAREN // ((
+	DRPAREN // ))
 )
 
 // Pos is the internal representation of a position within a source
@@ -129,6 +129,9 @@ var (
 		ESAC:  "esac",
 
 		FUNCTION: "function",
+
+		DLPAREN: "((",
+		DRPAREN: "))",
 	}
 
 	tokList = [...]struct {
@@ -146,11 +149,9 @@ var (
 		{"$", DOLLAR},
 		{"(", LPAREN},
 		{"{", LBRACE},
-		{"((", DLPAREN},
 
 		{")", RPAREN},
 		{"}", RBRACE},
-		{"))", DRPAREN},
 		{";", SEMICOLON},
 		{";;", DSEMICOLON},
 
