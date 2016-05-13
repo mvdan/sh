@@ -73,20 +73,9 @@ func (p *parser) stopIndex(tok Token) int {
 	}
 	return -1
 }
-func (p *parser) quoted(tok Token) bool { return p.stopIndex(tok) >= 0 }
-
-func (p *parser) doubleQuoted() bool {
-	return p.stopIndex('"') != -1 &&
-		p.stopIndex('"') > p.stopIndex('`') &&
-		p.stopIndex('"') > p.stopIndex(DRPAREN) &&
-		p.stopIndex('"') > p.stopIndex(RPAREN)
-}
-
-func (p *parser) inArithmExp() bool {
-	return p.stopIndex(DRPAREN) != -1 &&
-		p.stopIndex(DRPAREN) > p.stopIndex('"') &&
-		p.stopIndex(DRPAREN) > p.stopIndex('`') &&
-		p.stopIndex(DRPAREN) > p.stopIndex(RPAREN)
+func (p *parser) quoted(tok Token) bool {
+	stops := p.curStops()
+	return len(stops) > 0 && stops[len(stops)-1] == tok
 }
 
 func (p *parser) readByte() (byte, error) {
@@ -215,7 +204,7 @@ func (p *parser) next() {
 			p.advanceTok(STOPPED)
 			return
 		}
-		if p.doubleQuoted() || !space[b] {
+		if p.quoted('"') || !space[b] {
 			break
 		}
 		p.consumeByte()
@@ -233,12 +222,12 @@ func (p *parser) next() {
 	switch {
 	case p.inParamExpEnd && b == '}', p.inParamExp && paramOps[b]:
 		p.advanceTok(p.doToken(b))
-	case b == '#' && !p.doubleQuoted():
+	case b == '#' && !p.quoted('"'):
 		p.advanceBoth(COMMENT, p.readLine())
 	case reserved[b]:
 		// Between double quotes, only under certain
 		// circumstnaces do we tokenize
-		if p.doubleQuoted() {
+		if p.quoted('"') {
 			switch {
 			case b == '`', b == '"', b == '$', p.peek(DOLLAR):
 			default:
@@ -254,7 +243,7 @@ func (p *parser) next() {
 
 func (p *parser) advanceReadLit() { p.advanceBoth(LIT, string(p.readLitBytes())) }
 func (p *parser) readLitBytes() (bs []byte) {
-	if p.inArithmExp() {
+	if p.quoted(DRPAREN) {
 		p.spaced = true
 	}
 	for {
@@ -273,11 +262,11 @@ func (p *parser) readLitBytes() (bs []byte) {
 			return
 		case p.inParamExpEnd && b == '}', p.inParamExp && paramOps[b]:
 			return
-		case p.doubleQuoted():
+		case p.quoted('"'):
 			if b == '"' {
 				return
 			}
-		case p.inArithmExp() && arithmOps[b]:
+		case p.quoted(DRPAREN) && arithmOps[b]:
 			if len(bs) > 0 {
 				return
 			}
@@ -553,7 +542,7 @@ func (p *parser) readParts(ns *[]Node) {
 			break
 		}
 		*ns = append(*ns, n)
-		if !p.doubleQuoted() && p.spaced {
+		if !p.quoted('"') && p.spaced {
 			break
 		}
 	}
@@ -578,7 +567,7 @@ func (p *parser) wordPart() Node {
 		p.consumeByte()
 		p.next()
 		return sq
-	case !p.doubleQuoted() && p.peek('"'):
+	case !p.quoted('"') && p.peek('"'):
 		dq := DblQuoted{Quote: p.pos}
 		p.addStops('"')
 		p.next()
@@ -692,7 +681,7 @@ func (p *parser) readPartsArithm(ns *[]Node) {
 			p.next()
 		}
 		*ns = append(*ns, n)
-		if !p.doubleQuoted() && p.spaced {
+		if !p.quoted('"') && p.spaced {
 			return
 		}
 	}
