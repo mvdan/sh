@@ -26,7 +26,6 @@ func Parse(r io.Reader, name string) (File, error) {
 			Line:   1,
 			Column: 1,
 		},
-		stops: [][]Token{nil},
 	}
 	p.next()
 	p.stmts(&p.file.Stmts)
@@ -50,32 +49,21 @@ type parser struct {
 	lpos, pos, npos Pos
 
 	// stack of stop tokens
-	stops [][]Token
+	stops []Token
 
 	stopNewline bool
 	heredocs    []Word
 }
 
-func (p *parser) curStops() []Token { return p.stops[len(p.stops)-1] }
-func (p *parser) newStops(stops ...Token) {
-	p.stops = append(p.stops, stops)
-}
 func (p *parser) addStops(stops ...Token) {
-	p.newStops(append(p.curStops(), stops...)...)
+	p.stops = append(p.stops, stops...)
 }
-func (p *parser) popStops() { p.stops = p.stops[:len(p.stops)-1] }
+func (p *parser) popStops(n int) {
+	p.stops = p.stops[:len(p.stops)-n]
+}
 
-func (p *parser) stopIndex(tok Token) int {
-	for i, stop := range p.curStops() {
-		if tok == stop {
-			return i
-		}
-	}
-	return -1
-}
 func (p *parser) quoted(tok Token) bool {
-	stops := p.curStops()
-	return len(stops) > 0 && stops[len(stops)-1] == tok
+	return len(p.stops) > 0 && p.stops[len(p.stops)-1] == tok
 }
 
 func (p *parser) readByte() (byte, error) {
@@ -509,16 +497,10 @@ func (p *parser) invalidStmtStart() {
 	}
 }
 
-func (p *parser) stmtsLimited(sts *[]Stmt, stops ...Token) {
+func (p *parser) stmtsNested(sts *[]Stmt, stops ...Token) {
 	p.addStops(stops...)
-	p.stmts(sts, p.curStops()...)
-	p.popStops()
-}
-
-func (p *parser) stmtsNested(sts *[]Stmt, stop Token) {
-	p.newStops(stop)
-	p.stmts(sts, p.curStops()...)
-	p.popStops()
+	p.stmts(sts, stops...)
+	p.popStops(len(stops))
 }
 
 func (p *parser) gotWord(w *Word) bool {
@@ -572,7 +554,7 @@ func (p *parser) wordPart() Node {
 		p.addStops('"')
 		p.next()
 		p.readParts(&dq.Parts)
-		p.popStops()
+		p.popStops(1)
 		p.wantQuote(dq.Quote, '"')
 		return dq
 	case !p.quoted('`') && p.peek('`'):
@@ -580,7 +562,7 @@ func (p *parser) wordPart() Node {
 		p.addStops('`')
 		p.next()
 		p.stmtsNested(&cs.Stmts, '`')
-		p.popStops()
+		p.popStops(1)
 		p.wantMatched(cs.Left, '`', '`', &cs.Right)
 		return cs
 	}
@@ -609,7 +591,7 @@ func (p *parser) dollar() Node {
 		}
 		ar.Rparen = p.pos
 		p.consumeByte()
-		p.popStops()
+		p.popStops(1)
 		p.next()
 		return ar
 	case p.peek(LPAREN):
@@ -617,7 +599,7 @@ func (p *parser) dollar() Node {
 		p.addStops(RPAREN)
 		p.next()
 		p.stmtsNested(&cs.Stmts, RPAREN)
-		p.popStops()
+		p.popStops(1)
 		p.wantMatched(lpos, LPAREN, RPAREN, &cs.Right)
 		return cs
 	case p.peekAny('\'', '`', '"'):
@@ -714,7 +696,16 @@ func (p *parser) peekStop() bool {
 	if p.peekEnd() || p.peekAny(AND, OR, LAND, LOR) {
 		return true
 	}
-	return p.peekAny(p.curStops()...)
+	for i := len(p.stops) - 1; i >= 0; i-- {
+		stop := p.stops[i]
+		if p.peek(stop) {
+			return true
+		}
+		if stop == '`' || stop == RBRACE {
+			break
+		}
+	}
+	return false
 }
 
 func (p *parser) peekRedir() bool {
@@ -886,7 +877,7 @@ func (p *parser) redirect() (r Redirect) {
 
 func (p *parser) subshell() (s Subshell) {
 	s.Lparen = p.lpos
-	p.stmtsLimited(&s.Stmts, RPAREN)
+	p.stmtsNested(&s.Stmts, RPAREN)
 	p.wantMatched(s.Lparen, LPAREN, RPAREN, &s.Rparen)
 	return
 }
@@ -980,7 +971,7 @@ func (p *parser) patLists(plists *[]PatternList) {
 				p.curErr("case patterns must be separated with |")
 			}
 		}
-		p.stmtsLimited(&pl.Stmts, DSEMICOLON, ESAC)
+		p.stmtsNested(&pl.Stmts, DSEMICOLON, ESAC)
 		*plists = append(*plists, pl)
 		if !p.got(DSEMICOLON) {
 			break
