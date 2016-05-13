@@ -61,6 +61,7 @@ func (p *parser) quoted(tok Token) bool {
 	return len(p.stops) > 0 && p.stops[len(p.stops)-1] == tok
 }
 func (p *parser) popStops(n int) { p.stops = p.stops[:len(p.stops)-n] }
+func (p *parser) popStop()       { p.popStops(1) }
 
 func (p *parser) readByte() (byte, error) {
 	b, err := p.br.ReadByte()
@@ -203,7 +204,7 @@ func (p *parser) next() {
 		}
 	}
 	switch {
-	case p.quoted('}') && b == '}', p.quoted('{') && paramOps[b]:
+	case p.quoted(RBRACE) && b == '}', p.quoted(LBRACE) && paramOps[b]:
 		p.advanceTok(p.doToken(b))
 	case b == '#' && !p.quoted('"'):
 		p.advanceBoth(COMMENT, p.readLine())
@@ -241,9 +242,11 @@ func (p *parser) readLitBytes() (bs []byte) {
 				bs = append(bs, '\\', b)
 			}
 			continue
-		case b == '$' || b == '`': // end of lit
+		case b == '$', b == '`':
 			return
-		case p.quoted('}') && b == '}', p.quoted('{') && paramOps[b]:
+		case p.quoted(RBRACE) && b == '}':
+			return
+		case p.quoted(LBRACE) && paramOps[b]:
 			return
 		case p.quoted('"'):
 			if b == '"' {
@@ -255,7 +258,7 @@ func (p *parser) readLitBytes() (bs []byte) {
 			}
 			p.consumeByte()
 			return []byte{b}
-		case reserved[b], space[b]: // end of lit
+		case reserved[b], space[b]:
 			return
 		}
 		p.consumeByte()
@@ -549,7 +552,7 @@ func (p *parser) wordPart() Node {
 		dq := DblQuoted{Quote: p.pos}
 		p.enterStops('"')
 		p.readParts(&dq.Parts)
-		p.popStops(1)
+		p.popStop()
 		p.wantQuote(dq.Quote, '"')
 		return dq
 	case !p.quoted('`') && p.peek('`'):
@@ -582,7 +585,7 @@ func (p *parser) dollar() Node {
 		}
 		ar.Rparen = p.pos
 		p.consumeByte()
-		p.popStops(1)
+		p.popStop()
 		p.next()
 		return ar
 	case p.peek(LPAREN):
@@ -610,13 +613,13 @@ func (p *parser) paramExp(dpos Pos) (pe ParamExp) {
 	pe.Dollar = dpos
 	lpos := p.npos
 	p.consumeByte()
-	p.enterStops('{')
+	p.enterStops(LBRACE)
 	pe.Length = p.got(HASH)
 	if !p.gotLit(&pe.Param) {
 		p.posErr(pe.Dollar, "parameter expansion requires a literal")
 	}
 	if p.peek(RBRACE) {
-		p.popStops(1)
+		p.popStop()
 		p.next()
 		return
 	}
@@ -624,10 +627,10 @@ func (p *parser) paramExp(dpos Pos) (pe ParamExp) {
 		p.posErr(pe.Dollar, `string lengths must be like "${#foo}"`)
 	}
 	pe.Exp = &Expansion{Op: p.tok}
-	p.popStops(1)
-	p.enterStops('}')
+	p.popStop()
+	p.enterStops(RBRACE)
 	p.gotWord(&pe.Exp.Word)
-	p.popStops(1)
+	p.popStop()
 	if !p.got(RBRACE) {
 		p.matchingErr(lpos, LBRACE, RBRACE)
 	}
