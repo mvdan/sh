@@ -186,14 +186,14 @@ func (t Token) String() string {
 	return string(t)
 }
 
-func doToken(readOnly func(string) bool, readByte func() (byte, error)) (Token, error) {
+func (p *parser) doToken(b byte) Token {
 	// In reverse, to not treat e.g. && as & two times
 	for i := len(tokList) - 1; i >= 0; i-- {
 		t := tokList[i]
-		if readOnly(t.str) {
-			return t.tok, nil
+		if p.readOnly(t.str) {
+			return t.tok
 		}
 	}
-	b, err := readByte()
-	return Token(b), err
+	p.consumeByte()
+	return Token(b)
 }

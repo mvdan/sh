@@ -224,8 +224,7 @@ func (p *parser) next() {
 	}
 	switch {
 	case p.inParamExpEnd && b == '}', p.inParamExp && paramOps[b]:
-		tok, _ := doToken(p.readOnly, p.readByte)
-		p.advanceTok(tok)
+		p.advanceTok(p.doToken(b))
 	case b == '#' && !p.doubleQuoted():
 		p.advanceBoth(COMMENT, p.readLine())
 	case reserved[b]:
@@ -239,8 +238,7 @@ func (p *parser) next() {
 				return
 			}
 		}
-		tok, _ := doToken(p.readOnly, p.readByte)
-		p.advanceTok(tok)
+		p.advanceTok(p.doToken(b))
 	default:
 		p.advanceReadLit()
 	}
