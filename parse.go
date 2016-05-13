@@ -518,7 +518,7 @@ func (p *parser) gotLit(l *Lit) bool {
 }
 
 func (p *parser) readParts(ns *[]Node) {
-	for !p.eof() {
+	for {
 		n := p.wordPart()
 		if n == nil {
 			break
