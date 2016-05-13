@@ -534,7 +534,7 @@ func (p *parser) wordPart() Node {
 	case p.peek(DOLLAR):
 		switch {
 		case p.peekString("("):
-		case p.peekString("'"), p.peekSpaced():
+		case p.peekAnyByte('\'', '"', '`'), p.peekSpaced():
 			p.next()
 			return Lit{
 				ValuePos: p.lpos,

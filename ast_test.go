@@ -863,6 +863,16 @@ var astTests = []testCase{
 		word(lit("$"), sglQuoted("foo")),
 	},
 	{
+		[]string{`"foo$"`},
+		word(dblQuoted(lit("foo"), lit("$"))),
+	},
+	{
+		[]string{"`foo$`"},
+		word(bckQuoted(
+			stmt(cmd(word(lit("foo"), lit("$")))),
+		)),
+	},
+	{
 		[]string{"foo$bar"},
 		word(lit("foo"), litParamExp("bar")),
 	},
