@@ -43,7 +43,6 @@ type parser struct {
 
 	inParamExp    bool
 	inParamExpEnd bool
-	inArithmExp   bool
 
 	ltok, tok Token
 	lval, val string
@@ -76,11 +75,18 @@ func (p *parser) stopIndex(tok Token) int {
 }
 func (p *parser) quoted(tok Token) bool { return p.stopIndex(tok) >= 0 }
 
-// Subshells inside double quotes do not keep spaces, e.g. "$(foo  bar)"
-// equals "$(foo bar)"
 func (p *parser) doubleQuoted() bool {
-	return p.stopIndex('"') > p.stopIndex('`') &&
+	return p.stopIndex('"') != -1 &&
+		p.stopIndex('"') > p.stopIndex('`') &&
+		p.stopIndex('"') > p.stopIndex(DRPAREN) &&
 		p.stopIndex('"') > p.stopIndex(RPAREN)
+}
+
+func (p *parser) inArithmExp() bool {
+	return p.stopIndex(DRPAREN) != -1 &&
+		p.stopIndex(DRPAREN) > p.stopIndex('"') &&
+		p.stopIndex(DRPAREN) > p.stopIndex('`') &&
+		p.stopIndex(DRPAREN) > p.stopIndex(RPAREN)
 }
 
 func (p *parser) readByte() (byte, error) {
@@ -248,7 +254,7 @@ func (p *parser) next() {
 
 func (p *parser) advanceReadLit() { p.advanceBoth(LIT, string(p.readLitBytes())) }
 func (p *parser) readLitBytes() (bs []byte) {
-	if p.inArithmExp {
+	if p.inArithmExp() {
 		p.spaced = true
 	}
 	for {
@@ -271,7 +277,7 @@ func (p *parser) readLitBytes() (bs []byte) {
 			if b == '"' {
 				return
 			}
-		case p.inArithmExp && arithmOps[b]:
+		case p.inArithmExp() && arithmOps[b]:
 			if len(bs) > 0 {
 				return
 			}
@@ -606,15 +612,15 @@ func (p *parser) dollar() Node {
 	switch {
 	case p.peek(LPAREN) && p.readOnly("("):
 		ar := ArithmExp{Dollar: dpos}
-		p.inArithmExp = true
+		p.addStops(DRPAREN)
 		p.next()
 		p.arithmWords(&ar.Words)
-		p.inArithmExp = false
 		if !p.peekArithmEnd() {
 			p.matchingErr(lpos, DLPAREN, DRPAREN)
 		}
 		ar.Rparen = p.pos
 		p.consumeByte()
+		p.popStops()
 		p.next()
 		return ar
 	case p.peek(LPAREN):

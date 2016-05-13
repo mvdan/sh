@@ -849,6 +849,12 @@ var astTests = []testCase{
 		)),
 	},
 	{
+		[]string{`"$((1 + 3))"`},
+		word(dblQuoted(arithmExp(
+			litWord("1"), litWord("+"), litWord("3"),
+		))),
+	},
+	{
 		[]string{"foo$bar"},
 		word(lit("foo"), litParamExp("bar")),
 	},
