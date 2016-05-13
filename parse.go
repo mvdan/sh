@@ -55,11 +55,15 @@ type parser struct {
 	heredocs    []Word
 }
 
-func (p *parser) addStops(stops ...Token) { p.stops = append(p.stops, stops...) }
-func (p *parser) popStops(n int)          { p.stops = p.stops[:len(p.stops)-n] }
+func (p *parser) enterStops(stops ...Token) {
+	p.stops = append(p.stops, stops...)
+	p.next()
+}
+
 func (p *parser) quoted(tok Token) bool {
 	return len(p.stops) > 0 && p.stops[len(p.stops)-1] == tok
 }
+func (p *parser) popStops(n int) { p.stops = p.stops[:len(p.stops)-n] }
 
 func (p *parser) readByte() (byte, error) {
 	b, err := p.br.ReadByte()
@@ -196,8 +200,7 @@ func (p *parser) next() {
 		if b == '\n' {
 			p.newLine = true
 			if len(p.heredocs) > 0 {
-				p.consumeHeredocs()
-				p.next()
+				p.doHeredocs()
 				return
 			}
 		}
@@ -292,7 +295,7 @@ func (p *parser) readLine() string {
 	return s
 }
 
-func (p *parser) consumeHeredocs() {
+func (p *parser) doHeredocs() {
 	for i, w := range p.heredocs {
 		endLine := unquote(w).String()
 		if i > 0 {
@@ -305,6 +308,7 @@ func (p *parser) consumeHeredocs() {
 		}
 	}
 	p.heredocs = nil
+	p.next()
 }
 
 func (p *parser) readHeredocContent(endLine string) (string, bool) {
@@ -493,8 +497,7 @@ func (p *parser) invalidStmtStart() {
 }
 
 func (p *parser) stmtsNested(sts *[]Stmt, stops ...Token) {
-	p.addStops(stops...)
-	p.next()
+	p.enterStops(stops...)
 	p.stmts(sts, stops...)
 	p.popStops(len(stops))
 }
@@ -547,8 +550,7 @@ func (p *parser) wordPart() Node {
 		return sq
 	case !p.quoted('"') && p.peek('"'):
 		dq := DblQuoted{Quote: p.pos}
-		p.addStops('"')
-		p.next()
+		p.enterStops('"')
 		p.readParts(&dq.Parts)
 		p.popStops(1)
 		p.wantQuote(dq.Quote, '"')
@@ -576,8 +578,7 @@ func (p *parser) dollar() Node {
 	switch {
 	case p.peek(LPAREN) && p.readOnly("("):
 		ar := ArithmExp{Dollar: dpos}
-		p.addStops(DRPAREN)
-		p.next()
+		p.enterStops(DRPAREN)
 		p.arithmWords(&ar.Words)
 		if !p.peekArithmEnd() {
 			p.matchingErr(lpos, DLPAREN, DRPAREN)
