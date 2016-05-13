@@ -495,7 +495,7 @@ func (p *parser) stmts(sts *[]Stmt, stops ...Token) {
 			p.invalidStmtStart()
 		}
 		*sts = append(*sts, s)
-		if !p.peekAny(stops...) && !p.gotEnd {
+		if !p.gotEnd {
 			p.curErr("statements must be separated by &, ; or a newline")
 		}
 	}
@@ -778,7 +778,7 @@ func (p *parser) gotStmt(s *Stmt) bool {
 		}
 	}
 	p.gotStmtAndOr(s, addRedir)
-	if !p.peekEnd() {
+	if !p.newLine {
 		for p.peekRedir() {
 			addRedir()
 		}
