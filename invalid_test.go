@@ -308,7 +308,7 @@ var errTests = []struct {
 	},
 	{
 		"echo $'",
-		`1:7: quotes cannot follow a dollar sign`,
+		`1:7: reached EOF without closing quote '`,
 	},
 	{
 		"echo ${}",

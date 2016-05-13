@@ -532,7 +532,9 @@ func (p *parser) readParts(ns *[]Node) {
 func (p *parser) wordPart() Node {
 	switch {
 	case p.peek(DOLLAR):
-		if p.peekSpaced() && !p.peekString("(") {
+		switch {
+		case p.peekString("("):
+		case p.peekString("'"), p.peekSpaced():
 			p.next()
 			return Lit{
 				ValuePos: p.lpos,
@@ -600,9 +602,6 @@ func (p *parser) dollar() Node {
 		p.stmtsNested(&cs.Stmts, RPAREN)
 		p.wantMatched(lpos, LPAREN, RPAREN, &cs.Right)
 		return cs
-	case p.peekAny('\'', '`', '"'):
-		p.curErr("quotes cannot follow a dollar sign")
-		return nil
 	default:
 		p.next()
 		return ParamExp{
