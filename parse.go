@@ -586,9 +586,11 @@ func (p *parser) dollar() Node {
 	lpos := p.pos
 	switch {
 	case p.peek(LPAREN) && p.readOnly("("):
-		ar := ArithmExp{Dollar: dpos}
 		p.enterStops(DRPAREN)
-		p.arithmWords(&ar.Words)
+		ar := ArithmExp{
+			Dollar: dpos,
+			Words:  p.arithmWords(),
+		}
 		if !p.peekArithmEnd() {
 			p.matchingErr(lpos, DLPAREN, DRPAREN)
 		}
@@ -647,7 +649,7 @@ func (p *parser) peekArithmEnd() bool {
 	return p.peek(RPAREN) && p.peekString(")")
 }
 
-func (p *parser) readPartsArithm(ns *[]Node) {
+func (p *parser) partsArithm() (ns []Node) {
 	for !p.eof() && !p.peekArithmEnd() {
 		n := p.wordPart()
 		if n == nil {
@@ -657,19 +659,19 @@ func (p *parser) readPartsArithm(ns *[]Node) {
 			}
 			p.next()
 		}
-		*ns = append(*ns, n)
+		ns = append(ns, n)
 		if !p.quoted('"') && p.spaced {
 			return
 		}
 	}
+	return
 }
 
-func (p *parser) arithmWords(ws *[]Word) {
+func (p *parser) arithmWords() (ws []Word) {
 	for !p.eof() && !p.peekArithmEnd() {
-		var w Word
-		p.readPartsArithm(&w.Parts)
-		*ws = append(*ws, w)
+		ws = append(ws, Word{Parts: p.partsArithm()})
 	}
+	return
 }
 
 func (p *parser) wordList(ws *[]Word) {
@@ -941,12 +943,12 @@ func (p *parser) caseStmt() (cs CaseStmt) {
 	cs.Case = p.lpos
 	p.wantFollowWord(CASE, &cs.Word)
 	p.wantFollow(cs.Case, "case x", IN)
-	p.patLists(&cs.List)
+	cs.List = p.patLists()
 	p.wantStmtEnd(cs.Case, CASE, ESAC, &cs.Esac)
 	return
 }
 
-func (p *parser) patLists(plists *[]PatternList) {
+func (p *parser) patLists() (pls []PatternList) {
 	if p.gotNoNewline(SEMICOLON) {
 		return
 	}
@@ -967,11 +969,12 @@ func (p *parser) patLists(plists *[]PatternList) {
 			}
 		}
 		p.stmtsNested(&pl.Stmts, DSEMICOLON, ESAC)
-		*plists = append(*plists, pl)
+		pls = append(pls, pl)
 		if !p.got(DSEMICOLON) {
 			break
 		}
 	}
+	return
 }
 
 func (p *parser) cmdOrFunc(addRedir func()) Node {
