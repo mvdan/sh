@@ -40,8 +40,6 @@ type parser struct {
 
 	spaced, newLine bool
 
-	gotEnd bool
-
 	ltok, tok Token
 	lval, val string
 
@@ -401,7 +399,7 @@ func (p *parser) wantFollow(lpos Pos, left string, tok Token) {
 }
 
 func (p *parser) wantFollowStmt(lpos Pos, left string, s *Stmt) {
-	if !p.gotStmt(s) {
+	if !p.gotStmt(s, false) {
 		p.followErr(lpos, left, "a statement")
 	}
 }
@@ -482,13 +480,10 @@ func (p *parser) curErr(format string, v ...interface{}) {
 func (p *parser) stmts(sts *[]Stmt, stops ...Token) {
 	for !p.eof() && !p.peekAny(stops...) {
 		var s Stmt
-		if !p.gotStmt(&s) {
+		if !p.gotStmt(&s, true) {
 			p.invalidStmtStart()
 		}
 		*sts = append(*sts, s)
-		if !p.gotEnd && !p.newLine {
-			p.curErr("statements must be separated by &, ; or a newline")
-		}
 	}
 }
 
@@ -736,7 +731,7 @@ func (p *parser) assignSplit() int {
 	return i
 }
 
-func (p *parser) gotStmt(s *Stmt) bool {
+func (p *parser) gotStmt(s *Stmt, wantStop bool) bool {
 	if p.peek(RBRACE) {
 		// don't let it be a LIT
 		return false
@@ -789,7 +784,9 @@ func (p *parser) gotStmt(s *Stmt) bool {
 	if _, ok := s.Node.(FuncDecl); ok {
 		return true
 	}
-	p.gotEnd = p.peekStop()
+	if wantStop && !p.peekStop() {
+		p.curErr("statements must be separated by &, ; or a newline")
+	}
 	switch {
 	case p.got(LAND), p.got(LOR):
 		*s = p.binaryStmt(*s, addRedir)
