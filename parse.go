@@ -541,6 +541,7 @@ func (p *parser) wordPart() Node {
 	case p.peek(DOLLAR):
 		switch {
 		case p.peekString("("):
+			// otherwise it is seen as a word break
 		case p.peekAnyByte('\'', '"', '`'), p.peekSpaced():
 			p.next()
 			return Lit{
@@ -747,9 +748,7 @@ func (p *parser) gotStmt(s *Stmt) bool {
 		s.Redirs = append(s.Redirs, p.redirect())
 	}
 	for {
-		if p.peekRedir() {
-			addRedir()
-		} else if i := p.assignSplit(); i >= 0 {
+		if i := p.assignSplit(); i >= 0 {
 			name := Lit{ValuePos: p.pos, Value: p.val[:i]}
 			start := Lit{
 				ValuePos: p.pos,
@@ -768,6 +767,8 @@ func (p *parser) gotStmt(s *Stmt) bool {
 				Name:  name,
 				Value: w,
 			})
+		} else if p.peekRedir() {
+			addRedir()
 		} else {
 			break
 		}
