@@ -487,6 +487,15 @@ var astTests = []testCase{
 		},
 	},
 	{
+		[]string{"foo <<\"EOF\"2\nbar\nEOF2"},
+		Stmt{
+			Node: litCmd("foo"),
+			Redirs: []Redirect{
+				{Op: HEREDOC, Word: litWord("\"EOF\"2\nbar\nEOF2")},
+			},
+		},
+	},
+	{
 		[]string{
 			"foo <<-EOF\nbar\nEOF",
 			"foo <<- EOF\nbar\nEOF",

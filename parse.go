@@ -49,7 +49,7 @@ type parser struct {
 	stops []Token
 
 	stopNewline bool
-	heredocs    []Word
+	heredocs    []*Word
 }
 
 func (p *parser) enterStops(stops ...Token) {
@@ -303,7 +303,7 @@ func (p *parser) readLine() string {
 
 func (p *parser) doHeredocs() {
 	for i, w := range p.heredocs {
-		endLine := unquote(w).String()
+		endLine := unquote(*w).String()
 		if i > 0 {
 			p.consumeByte()
 		}
@@ -312,6 +312,7 @@ func (p *parser) doHeredocs() {
 			ValuePos: w.Pos(),
 			Value:    fmt.Sprintf("%s\n%s", w, s),
 		}
+		w.Parts = w.Parts[:1]
 	}
 	p.heredocs = nil
 	p.next()
@@ -868,7 +869,7 @@ func (p *parser) redirect() (r Redirect) {
 		p.stopNewline = true
 		p.wantFollowWord(r.Op, &r.Word)
 		p.stopNewline = false
-		p.heredocs = append(p.heredocs, r.Word)
+		p.heredocs = append(p.heredocs, &r.Word)
 		p.got(STOPPED)
 	default:
 		p.wantFollowWord(r.Op, &r.Word)
