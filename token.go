@@ -31,23 +31,24 @@ const (
 	CASE
 	ESAC
 
+	NOT    // !
+	LBRACE // {
+	RBRACE // }
+
 	// Bash reserved words
 	FUNCTION
 
+	// Rest of tokens
 	AND  // &
 	LAND // &&
 	OR   // |
 	LOR  // ||
 
-	NOT    // !
 	ASSIGN // =
-
 	DOLLAR // $
 	LPAREN // (
-	LBRACE // {
 
 	RPAREN     // )
-	RBRACE     // }
 	SEMICOLON  // ;
 	DSEMICOLON // ;;
 
@@ -128,6 +129,10 @@ var (
 		CASE:  "case",
 		ESAC:  "esac",
 
+		NOT:    "!",
+		LBRACE: "{",
+		RBRACE: "}",
+
 		FUNCTION: "function",
 
 		DLPAREN: "((",
@@ -143,15 +148,12 @@ var (
 		{"|", OR},
 		{"||", LOR},
 
-		{"!", NOT},
 		{"=", ASSIGN},
-
 		{"$", DOLLAR},
 		{"(", LPAREN},
-		{"{", LBRACE},
 
+		{"}", RBRACE}, // TODO: remove from tokens
 		{")", RPAREN},
-		{"}", RBRACE},
 		{";", SEMICOLON},
 		{";;", DSEMICOLON},
 
