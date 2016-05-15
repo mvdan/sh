@@ -38,7 +38,9 @@ type parser struct {
 	file File
 	err  error
 
-	spaced, newLine, gotEnd bool
+	spaced, newLine bool
+
+	gotEnd bool
 
 	ltok, tok Token
 	lval, val string
@@ -484,7 +486,7 @@ func (p *parser) stmts(sts *[]Stmt, stops ...Token) {
 			p.invalidStmtStart()
 		}
 		*sts = append(*sts, s)
-		if !p.gotEnd {
+		if !p.gotEnd && !p.newLine {
 			p.curErr("statements must be separated by &, ; or a newline")
 		}
 	}
@@ -739,7 +741,6 @@ func (p *parser) gotStmt(s *Stmt) bool {
 		// don't let it be a LIT
 		return false
 	}
-	p.gotEnd = false
 	s.Position = p.pos
 	if p.got(NOT) {
 		s.Negated = true
@@ -773,7 +774,6 @@ func (p *parser) gotStmt(s *Stmt) bool {
 			break
 		}
 		if p.newLine {
-			p.gotEnd = true
 			return true
 		}
 	}
