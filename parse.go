@@ -844,20 +844,18 @@ func (p *parser) binaryStmt(left Stmt, addRedir func()) Stmt {
 	}
 }
 
-func unquote(w Word) Word {
-	w2 := w
-	w2.Parts = nil
+func unquote(w Word) (unq Word) {
 	for _, n := range w.Parts {
 		switch x := n.(type) {
 		case SglQuoted:
-			w2.Parts = append(w2.Parts, Lit{Value: x.Value})
+			unq.Parts = append(unq.Parts, Lit{Value: x.Value})
 		case DblQuoted:
-			w2.Parts = append(w2.Parts, x.Parts...)
+			unq.Parts = append(unq.Parts, x.Parts...)
 		default:
-			w2.Parts = append(w2.Parts, n)
+			unq.Parts = append(unq.Parts, n)
 		}
 	}
-	return w2
+	return unq
 }
 
 func (p *parser) redirect() (r Redirect) {
