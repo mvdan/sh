@@ -152,7 +152,6 @@ var (
 		{"$", DOLLAR},
 		{"(", LPAREN},
 
-		{"}", RBRACE}, // TODO: remove from tokens
 		{")", RPAREN},
 		{";", SEMICOLON},
 		{";;", DSEMICOLON},

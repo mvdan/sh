@@ -205,7 +205,13 @@ func (p *parser) next() {
 	}
 	switch {
 	case p.quoted(RBRACE) && b == '}', p.quoted(LBRACE) && paramOps[b]:
-		p.advanceTok(p.doToken(b))
+		if b == '}' {
+			// '}' is a token only in this context
+			p.consumeByte()
+			p.advanceTok(RBRACE)
+		} else {
+			p.advanceTok(p.doToken(b))
+		}
 	case b == '#' && !p.quoted('"'):
 		p.advanceBoth(COMMENT, p.readLine())
 	case reserved[b]:
