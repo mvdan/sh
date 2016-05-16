@@ -628,7 +628,7 @@ func (p *parser) paramExp(dpos Pos) (pe ParamExp) {
 	p.consumeByte()
 	p.enterStops(LBRACE)
 	pe.Length = p.got(HASH)
-	if !p.gotLit(&pe.Param) {
+	if !p.gotLit(&pe.Param) && !pe.Length {
 		p.posErr(pe.Dollar, "parameter expansion requires a literal")
 	}
 	if p.peek(RBRACE) {
