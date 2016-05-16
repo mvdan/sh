@@ -54,6 +54,7 @@ func litStmts(strs ...string) []Stmt {
 func sglQuoted(s string) SglQuoted      { return SglQuoted{Value: s} }
 func dblQuoted(ns ...Node) DblQuoted    { return DblQuoted{Parts: ns} }
 func block(sts ...Stmt) Block           { return Block{Stmts: sts} }
+func subshell(sts ...Stmt) Subshell     { return Subshell{Stmts: sts} }
 func arithmExp(words ...Word) ArithmExp { return ArithmExp{Words: words} }
 
 func cmdSubst(sts ...Stmt) CmdSubst { return CmdSubst{Stmts: sts} }
@@ -101,15 +102,15 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"(foo)", "(foo;)", "(\nfoo\n)"},
-		Subshell{Stmts: litStmts("foo")},
+		subshell(litStmt("foo")),
 	},
 	{
 		[]string{"(foo; bar)"},
-		Subshell{Stmts: litStmts("foo", "bar")},
+		subshell(litStmt("foo"), litStmt("bar")),
 	},
 	{
 		[]string{"( )"},
-		Subshell{},
+		subshell(),
 	},
 	{
 		[]string{"{ foo; }", "{\nfoo\n}"},
@@ -900,7 +901,7 @@ var astTests = []testCase{
 	{
 		[]string{"(foo); bar"},
 		[]Node{
-			Subshell{Stmts: litStmts("foo")},
+			subshell(litStmt("foo")),
 			litCmd("bar"),
 		},
 	},
@@ -908,14 +909,14 @@ var astTests = []testCase{
 		[]string{"foo; (bar)", "foo\n(bar)"},
 		[]Node{
 			litCmd("foo"),
-			Subshell{Stmts: litStmts("bar")},
+			subshell(litStmt("bar")),
 		},
 	},
 	{
 		[]string{"foo; (bar)", "foo\n(bar)"},
 		[]Node{
 			litCmd("foo"),
-			Subshell{Stmts: litStmts("bar")},
+			subshell(litStmt("bar")),
 		},
 	},
 	{
