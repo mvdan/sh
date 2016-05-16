@@ -219,7 +219,7 @@ func (p *parser) next() {
 		// circumstnaces do we tokenize
 		if p.quoted('"') {
 			switch {
-			case b == '`', b == '"', b == '$', p.peek(DOLLAR):
+			case b == '`', b == '"', b == '$', p.tok == DOLLAR:
 			default:
 				p.advanceReadLit()
 				return
@@ -584,7 +584,7 @@ func (p *parser) dollar() Node {
 		return p.paramExp(dpos)
 	}
 	if p.readOnly("#") {
-		p.advanceBoth(Token('#'), "#")
+		p.advanceTok(Token('#'))
 	} else {
 		p.next()
 	}
