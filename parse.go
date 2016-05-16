@@ -572,7 +572,8 @@ func (p *parser) wordPart() Node {
 	case !p.quoted('`') && p.peek('`'):
 		cs := CmdSubst{Backquotes: true, Left: p.pos}
 		p.stmtsNested(&cs.Stmts, '`')
-		p.wantMatched(cs.Left, '`', '`', &cs.Right)
+		p.wantQuote(cs.Left, '`')
+		cs.Right = p.lpos
 		return cs
 	}
 	return nil

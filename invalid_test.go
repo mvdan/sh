@@ -83,6 +83,10 @@ var errTests = []struct {
 		`1:1: ) can only be used to close a subshell`,
 	},
 	{
+		"`",
+		"1:1: reached EOF without closing quote `",
+	},
+	{
 		";;",
 		`1:1: ;; is not a valid start for a statement`,
 	},
@@ -380,7 +384,7 @@ var errTests = []struct {
 	},
 	{
 		"`\"`",
-		"1:3: reached EOF without matching token ` with `",
+		"1:3: reached EOF without closing quote `",
 	},
 	{
 		"echo \"`)`\"",
