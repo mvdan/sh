@@ -622,13 +622,26 @@ func (p *parser) dollar() Node {
 	}
 }
 
+func (p *parser) gotParamLit(l *Lit) bool {
+	if p.gotLit(l) {
+		return true
+	}
+	switch {
+	case p.got(DOLLAR), p.got(QUEST):
+		l.Value = p.lval
+	default:
+		return false
+	}
+	return true
+}
+
 func (p *parser) paramExp(dpos Pos) (pe ParamExp) {
 	pe.Dollar = dpos
 	lpos := p.npos
 	p.consumeByte()
 	p.enterStops(LBRACE)
 	pe.Length = p.got(HASH)
-	if !p.gotLit(&pe.Param) && !pe.Length {
+	if !p.gotParamLit(&pe.Param) && !pe.Length {
 		p.posErr(pe.Dollar, "parameter expansion requires a literal")
 	}
 	if p.peek(RBRACE) {

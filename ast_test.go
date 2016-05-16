@@ -717,11 +717,20 @@ var astTests = []testCase{
 		word(dblQuoted(lit("#foo"))),
 	},
 	{
-		[]string{`$@ $# $$`},
+		[]string{`$@ $# $$ $?`},
 		cmd(
 			word(litParamExp("@")),
 			word(litParamExp("#")),
 			word(litParamExp("$")),
+			word(litParamExp("?")),
+		),
+	},
+	{
+		[]string{`${@} ${$} ${?}`},
+		cmd(
+			word(ParamExp{Param: lit("@")}),
+			word(ParamExp{Param: lit("$")}),
+			word(ParamExp{Param: lit("?")}),
 		),
 	},
 	{
@@ -806,8 +815,11 @@ var astTests = []testCase{
 		}),
 	},
 	{
-		[]string{`${#}`},
-		word(ParamExp{Length: true}),
+		[]string{`${#} ${#?}`},
+		cmd(
+			word(ParamExp{Length: true}),
+			word(ParamExp{Length: true, Param: lit("?")}),
+		),
 	},
 	{
 		[]string{`"${foo}"`},
