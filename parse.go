@@ -370,7 +370,7 @@ func (p *parser) got(tok Token) bool {
 	}
 	return false
 }
-func (p *parser) gotNoNewline(tok Token) bool { return !p.newLine && p.got(tok) }
+func (p *parser) gotSameLine(tok Token) bool { return !p.newLine && p.got(tok) }
 
 func readableStr(v interface{}) string {
 	var s string
@@ -405,7 +405,7 @@ func (p *parser) wantFollowStmt(lpos Pos, left string, s *Stmt) {
 }
 
 func (p *parser) wantFollowStmts(left Token, sts *[]Stmt, stops ...Token) {
-	if p.gotNoNewline(SEMICOLON) {
+	if p.gotSameLine(SEMICOLON) {
 		return
 	}
 	p.stmts(sts, stops...)
@@ -700,7 +700,7 @@ func (p *parser) wordList(ws *[]Word) {
 		}
 		*ws = append(*ws, w)
 	}
-	p.gotNoNewline(SEMICOLON)
+	p.gotSameLine(SEMICOLON)
 }
 
 func (p *parser) peekEnd() bool {
@@ -807,7 +807,7 @@ func (p *parser) gotStmt(s *Stmt, wantStop bool, stops ...Token) bool {
 	case p.got(AND):
 		s.Background = true
 	}
-	p.gotNoNewline(SEMICOLON)
+	p.gotSameLine(SEMICOLON)
 	return true
 }
 
@@ -946,7 +946,7 @@ func (p *parser) forStmt() (fs ForStmt) {
 	}
 	if p.got(IN) {
 		p.wordList(&fs.WordList)
-	} else if !p.gotNoNewline(SEMICOLON) && !p.newLine {
+	} else if !p.gotSameLine(SEMICOLON) && !p.newLine {
 		p.followErr(fs.For, "for foo", `"in", ; or a newline`)
 	}
 	p.wantFollow(fs.For, "for foo [in words]", DO)
@@ -965,7 +965,7 @@ func (p *parser) caseStmt() (cs CaseStmt) {
 }
 
 func (p *parser) patLists() (pls []PatternList) {
-	if p.gotNoNewline(SEMICOLON) {
+	if p.gotSameLine(SEMICOLON) {
 		return
 	}
 	for !p.eof() && !p.peek(ESAC) {
@@ -998,14 +998,14 @@ func (p *parser) cmdOrFunc(addRedir func()) Node {
 		fpos := p.lpos
 		var w Word
 		p.wantFollowWord(FUNCTION, &w)
-		if p.gotNoNewline(LPAREN) {
+		if p.gotSameLine(LPAREN) {
 			p.wantFollow(w.Pos(), "foo(", RPAREN)
 		}
 		return p.funcDecl(w, fpos)
 	}
 	var w Word
 	p.gotWord(&w)
-	if p.gotNoNewline(LPAREN) {
+	if p.gotSameLine(LPAREN) {
 		p.wantFollow(w.Pos(), "foo(", RPAREN)
 		return p.funcDecl(w, w.Pos())
 	}
