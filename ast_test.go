@@ -726,6 +726,10 @@ var astTests = []testCase{
 		),
 	},
 	{
+		[]string{`$`, `$ #`},
+		litWord("$"),
+	},
+	{
 		[]string{`${@} ${$} ${?}`},
 		cmd(
 			word(ParamExp{Param: lit("@")}),
