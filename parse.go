@@ -527,7 +527,7 @@ func (p *parser) readParts(ns *[]Node) {
 			break
 		}
 		*ns = append(*ns, n)
-		if !p.quoted('"') && p.spaced {
+		if p.spaced {
 			break
 		}
 	}
@@ -678,7 +678,7 @@ func (p *parser) partsArithm() (ns []Node) {
 			p.next()
 		}
 		ns = append(ns, n)
-		if !p.quoted('"') && p.spaced {
+		if p.spaced {
 			return
 		}
 	}
