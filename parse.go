@@ -172,10 +172,10 @@ func (p *parser) next() {
 		return
 	}
 	p.lpos = p.pos
-	var b byte
+	p.pos = p.npos
 	p.spaced = false
 	p.newLine = false
-	p.pos = p.npos
+	var b byte
 	for {
 		if p.readOnly("\\\n") {
 			continue
@@ -205,9 +205,8 @@ func (p *parser) next() {
 	}
 	switch {
 	case p.quoted(RBRACE) && b == '}', p.quoted(LBRACE) && paramOps[b]:
-		if b == '}' {
+		if p.readOnly("}") {
 			// '}' is a token only in this context
-			p.consumeByte()
 			p.advanceTok(RBRACE)
 		} else {
 			p.advanceTok(p.doToken(b))
@@ -237,17 +236,17 @@ func (p *parser) readLitBytes() (bs []byte) {
 		p.spaced = true
 	}
 	for {
+		if p.readOnly("\\") { // escaped byte
+			if b, _ := p.readByte(); b != '\n' {
+				bs = append(bs, '\\', b)
+			}
+			continue
+		}
 		b, err := p.peekByte()
 		if err != nil {
 			return
 		}
 		switch {
-		case b == '\\': // escaped byte
-			p.consumeByte()
-			if b, _ = p.readByte(); b != '\n' {
-				bs = append(bs, '\\', b)
-			}
-			continue
 		case b == '$', b == '`':
 			return
 		case p.quoted(RBRACE) && b == '}':
@@ -305,7 +304,7 @@ func (p *parser) doHeredocs() {
 	for i, w := range p.heredocs {
 		endLine := unquote(*w).String()
 		if i > 0 {
-			p.consumeByte()
+			p.readOnly("\n")
 		}
 		s, _ := p.readHeredocContent(endLine)
 		w.Parts[0] = Lit{
@@ -327,7 +326,7 @@ func (p *parser) readHeredocContent(endLine string) (string, bool) {
 			return buf.String(), true
 		}
 		fmt.Fprintln(&buf, line)
-		p.consumeByte() // newline
+		p.readOnly("\n")
 	}
 	fmt.Fprint(&buf, endLine)
 	return buf.String(), false
@@ -559,7 +558,7 @@ func (p *parser) wordPart() Node {
 			p.wantQuote(sq.Quote, '\'')
 		}
 		sq.Value = s
-		p.consumeByte()
+		p.readOnly("'")
 		p.next()
 		return sq
 	case !p.quoted('"') && p.peek('"'):
@@ -601,7 +600,7 @@ func (p *parser) dollar() Node {
 			p.matchingErr(lpos, DLPAREN, DRPAREN)
 		}
 		ar.Rparen = p.pos
-		p.consumeByte()
+		p.readOnly(")")
 		p.popStop()
 		p.next()
 		return ar
@@ -639,7 +638,7 @@ func (p *parser) gotParamLit(l *Lit) bool {
 func (p *parser) paramExp(dpos Pos) (pe ParamExp) {
 	pe.Dollar = dpos
 	lpos := p.npos
-	p.consumeByte()
+	p.readOnly("{")
 	p.enterStops(LBRACE)
 	pe.Length = p.got(HASH)
 	if !p.gotParamLit(&pe.Param) && !pe.Length {
