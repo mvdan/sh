@@ -177,6 +177,20 @@ var astTests = []testCase{
 		},
 	},
 	{
+		[]string{"while { a; }; do b; done", "while { a; } do b; done"},
+		WhileStmt{
+			Conds:   []Stmt{stmt(block(litStmt("a")))},
+			DoStmts: litStmts("b"),
+		},
+	},
+	{
+		[]string{"while (a); do b; done", "while (a) do b; done"},
+		WhileStmt{
+			Conds:   []Stmt{stmt(subshell(litStmt("a")))},
+			DoStmts: litStmts("b"),
+		},
+	},
+	{
 		[]string{"until a; do b; done", "until a\ndo\nb\ndone"},
 		UntilStmt{
 			Conds:   litStmts("a"),

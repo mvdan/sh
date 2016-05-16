@@ -480,7 +480,7 @@ func (p *parser) curErr(format string, v ...interface{}) {
 func (p *parser) stmts(sts *[]Stmt, stops ...Token) {
 	for !p.eof() && !p.peekAny(stops...) {
 		var s Stmt
-		if !p.gotStmt(&s, true) {
+		if !p.gotStmt(&s, true, stops...) {
 			p.invalidStmtStart()
 		}
 		*sts = append(*sts, s)
@@ -731,7 +731,7 @@ func (p *parser) assignSplit() int {
 	return i
 }
 
-func (p *parser) gotStmt(s *Stmt, wantStop bool) bool {
+func (p *parser) gotStmt(s *Stmt, wantStop bool, stops ...Token) bool {
 	if p.peek(RBRACE) {
 		// don't let it be a LIT
 		return false
@@ -784,7 +784,7 @@ func (p *parser) gotStmt(s *Stmt, wantStop bool) bool {
 	if _, ok := s.Node.(FuncDecl); ok {
 		return true
 	}
-	if wantStop && !p.peekStop() {
+	if wantStop && !p.peekAny(stops...) && !p.peekStop() {
 		p.curErr("statements must be separated by &, ; or a newline")
 	}
 	switch {
