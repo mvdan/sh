@@ -159,7 +159,7 @@ type Redirect struct {
 }
 
 func (r Redirect) String() string {
-	return fmt.Sprintf("%s%s%s", r.N, r.Op, r.Word)
+	return fmt.Sprint(r.N, r.Op.String(), r.Word)
 }
 
 type Command struct {
@@ -277,9 +277,7 @@ type BinaryExpr struct {
 	X, Y Stmt
 }
 
-func (b BinaryExpr) String() string {
-	return fmt.Sprintf("%s %s %s", b.X, b.Op, b.Y)
-}
+func (b BinaryExpr) String() string { return fmt.Sprint(b.X, b.Op, b.Y) }
 func (b BinaryExpr) Pos() Pos { return b.X.Pos() }
 
 type FuncDecl struct {
@@ -355,7 +353,7 @@ type ParamExp struct {
 
 func (p ParamExp) String() string {
 	if p.Short {
-		return fmt.Sprintf("$%s", p.Param)
+		return fmt.Sprint("$", p.Param)
 	}
 	if p.Length {
 		return fmt.Sprintf("${#%s}", p.Param)
@@ -372,7 +370,7 @@ type Expansion struct {
 	Word Word
 }
 
-func (e Expansion) String() string { return fmt.Sprintf("%s%s", e.Op, e.Word) }
+func (e Expansion) String() string { return fmt.Sprint(e.Op.String(), e.Word) }
 
 type ArithmExp struct {
 	Dollar, Rparen Pos
@@ -392,12 +390,10 @@ type CaseStmt struct {
 
 func (c CaseStmt) String() string {
 	var b bytes.Buffer
-	fmt.Fprintf(&b, "%s %s %s", CASE, c.Word, IN)
+	fmt.Fprint(&b, CASE, c.Word, IN)
 	for i, plist := range c.List {
-		if i == 0 {
-			fmt.Fprint(&b, " ")
-		} else {
-			fmt.Fprint(&b, ";; ")
+		if i > 0 {
+			fmt.Fprint(&b, ";;")
 		}
 		fmt.Fprint(&b, plist)
 	}
@@ -412,5 +408,5 @@ type PatternList struct {
 }
 
 func (p PatternList) String() string {
-	return fmt.Sprintf("%s) %s", wordJoin(p.Patterns, " | "), stmtJoin(p.Stmts))
+	return fmt.Sprintf(" %s) %s", wordJoin(p.Patterns, " | "), stmtJoin(p.Stmts))
 }
