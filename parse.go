@@ -536,7 +536,7 @@ func (p *parser) wordPart() Node {
 	switch {
 	case p.peek(DOLLAR):
 		switch {
-		case p.peekString("("):
+		case p.peekAnyByte('('):
 			// otherwise it is seen as a word break
 		case p.peekAnyByte('\'', '"', '`'), p.peekSpaced():
 			p.next()
@@ -664,7 +664,7 @@ func (p *parser) paramExp(dpos Pos) (pe ParamExp) {
 }
 
 func (p *parser) peekArithmEnd() bool {
-	return p.peek(RPAREN) && p.peekString(")")
+	return p.peek(RPAREN) && p.peekAnyByte(')')
 }
 
 func (p *parser) partsArithm() (ns []Node) {
