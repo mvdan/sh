@@ -679,7 +679,7 @@ func (p *parser) partsArithm() (ns []Node) {
 		}
 		ns = append(ns, n)
 		if p.spaced {
-			return
+			break
 		}
 	}
 	return
