@@ -274,7 +274,7 @@ type BinaryExpr struct {
 	OpPos Pos
 
 	Op   Token
-	X, Y Stmt
+	X, Y Node
 }
 
 func (b BinaryExpr) String() string { return fmt.Sprint(b.X, b.Op, b.Y) }

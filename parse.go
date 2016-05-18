@@ -845,11 +845,13 @@ func (p *parser) binaryStmt(left Stmt, addRedir func()) Stmt {
 		Op:    p.ltok,
 		X:     left,
 	}
+	var s Stmt
 	if b.Op == LAND || b.Op == LOR {
-		p.wantFollowStmt(b.OpPos, b.Op.String(), &b.Y)
-	} else if !p.gotStmtAndOr(&b.Y, addRedir) {
+		p.wantFollowStmt(b.OpPos, b.Op.String(), &s)
+	} else if !p.gotStmtAndOr(&s, addRedir) {
 		p.followErr(b.OpPos, b.Op, "a statement")
 	}
+	b.Y = s
 	return Stmt{
 		Position: left.Position,
 		Node:     b,
