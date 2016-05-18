@@ -55,8 +55,8 @@ func sglQuoted(s string) SglQuoted    { return SglQuoted{Value: s} }
 func dblQuoted(ns ...Node) DblQuoted  { return DblQuoted{Parts: ns} }
 func block(sts ...Stmt) Block         { return Block{Stmts: sts} }
 func subshell(sts ...Stmt) Subshell   { return Subshell{Stmts: sts} }
-func arithmExpr(expr Node) ArithmExpr { return ArithmExpr{Expr: expr} }
-func parenExpr(expr Node) ParenExpr   { return ParenExpr{Expr: expr} }
+func arithmExpr(expr Node) ArithmExpr { return ArithmExpr{X: expr} }
+func parenExpr(expr Node) ParenExpr   { return ParenExpr{X: expr} }
 
 func cmdSubst(sts ...Stmt) CmdSubst { return CmdSubst{Stmts: sts} }
 func bckQuoted(sts ...Stmt) CmdSubst {
@@ -944,8 +944,8 @@ var astTests = []testCase{
 	{
 		[]string{`$((-(1)))`},
 		word(arithmExpr(UnaryExpr{
-			Op:   SUB,
-			Expr: parenExpr(litWord("1")),
+			Op: SUB,
+			X:  parenExpr(litWord("1")),
 		})),
 	},
 	{
@@ -1281,7 +1281,7 @@ func setPosRecurse(t *testing.T, v interface{}, to Pos, diff bool) Node {
 		return x
 	case UnaryExpr:
 		setPos(&x.OpPos)
-		setPosRecurse(t, &x.Expr, to, diff)
+		setPosRecurse(t, &x.X, to, diff)
 		return x
 	case BinaryExpr:
 		setPos(&x.OpPos)
@@ -1303,12 +1303,12 @@ func setPosRecurse(t *testing.T, v interface{}, to Pos, diff bool) Node {
 	case ArithmExpr:
 		setPos(&x.Dollar)
 		setPos(&x.Rparen)
-		setPosRecurse(t, &x.Expr, to, diff)
+		setPosRecurse(t, &x.X, to, diff)
 		return x
 	case ParenExpr:
 		setPos(&x.Lparen)
 		setPos(&x.Rparen)
-		setPosRecurse(t, &x.Expr, to, diff)
+		setPosRecurse(t, &x.X, to, diff)
 		return x
 	case CmdSubst:
 		setPos(&x.Left)

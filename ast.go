@@ -105,8 +105,7 @@ func wordJoin(words []Word, sep string) string {
 
 type Stmt struct {
 	Node
-	Position Pos
-
+	Position   Pos
 	Negated    bool
 	Assigns    []Assign
 	Redirs     []Redirect
@@ -152,10 +151,9 @@ func (a Assign) String() string { return fmt.Sprint(a.Name, "=", a.Value) }
 
 type Redirect struct {
 	OpPos Pos
-
-	Op   Token
-	N    Lit
-	Word Word
+	Op    Token
+	N     Lit
+	Word  Word
 }
 
 func (r Redirect) String() string {
@@ -171,8 +169,7 @@ func (c Command) Pos() Pos       { return wordFirstPos(c.Args) }
 
 type Subshell struct {
 	Lparen, Rparen Pos
-
-	Stmts []Stmt
+	Stmts          []Stmt
 }
 
 func (s Subshell) String() string {
@@ -186,16 +183,14 @@ func (s Subshell) Pos() Pos { return s.Lparen }
 
 type Block struct {
 	Lbrace, Rbrace Pos
-
-	Stmts []Stmt
+	Stmts          []Stmt
 }
 
 func (b Block) String() string { return "{" + stmtList(b.Stmts) + "}" }
 func (b Block) Pos() Pos       { return b.Rbrace }
 
 type IfStmt struct {
-	If, Fi Pos
-
+	If, Fi    Pos
 	Conds     []Stmt
 	ThenStmts []Stmt
 	Elifs     []Elif
@@ -217,8 +212,7 @@ func (s IfStmt) String() string {
 func (s IfStmt) Pos() Pos { return s.If }
 
 type Elif struct {
-	Elif Pos
-
+	Elif      Pos
 	Conds     []Stmt
 	ThenStmts []Stmt
 }
@@ -229,9 +223,8 @@ func (e Elif) String() string {
 
 type WhileStmt struct {
 	While, Done Pos
-
-	Conds   []Stmt
-	DoStmts []Stmt
+	Conds       []Stmt
+	DoStmts     []Stmt
 }
 
 func (w WhileStmt) String() string {
@@ -241,9 +234,8 @@ func (w WhileStmt) Pos() Pos { return w.While }
 
 type UntilStmt struct {
 	Until, Done Pos
-
-	Conds   []Stmt
-	DoStmts []Stmt
+	Conds       []Stmt
+	DoStmts     []Stmt
 }
 
 func (u UntilStmt) String() string {
@@ -253,10 +245,9 @@ func (u UntilStmt) Pos() Pos { return u.Until }
 
 type ForStmt struct {
 	For, Done Pos
-
-	Name     Lit
-	WordList []Word
-	DoStmts  []Stmt
+	Name      Lit
+	WordList  []Word
+	DoStmts   []Stmt
 }
 
 func (f ForStmt) String() string {
@@ -272,19 +263,17 @@ func (f ForStmt) Pos() Pos { return f.For }
 
 type UnaryExpr struct {
 	OpPos Pos
-
-	Op   Token
-	Expr Node
+	Op    Token
+	X     Node
 }
 
-func (u UnaryExpr) String() string { return fmt.Sprint(u.Op, "", u.Expr) }
+func (u UnaryExpr) String() string { return fmt.Sprint(u.Op, "", u.X) }
 func (u UnaryExpr) Pos() Pos       { return u.OpPos }
 
 type BinaryExpr struct {
 	OpPos Pos
-
-	Op   Token
-	X, Y Node
+	Op    Token
+	X, Y  Node
 }
 
 func (b BinaryExpr) String() string { return fmt.Sprint(b.X, b.Op, b.Y) }
@@ -293,9 +282,8 @@ func (b BinaryExpr) Pos() Pos       { return b.X.Pos() }
 type FuncDecl struct {
 	Position  Pos
 	BashStyle bool
-
-	Name Lit
-	Body Stmt
+	Name      Lit
+	Body      Stmt
 }
 
 func (f FuncDecl) String() string {
@@ -340,8 +328,7 @@ func (q DblQuoted) Pos() Pos       { return q.Quote }
 type CmdSubst struct {
 	Left, Right Pos
 	Backquotes  bool
-
-	Stmts []Stmt
+	Stmts       []Stmt
 }
 
 func (c CmdSubst) String() string {
@@ -353,12 +340,10 @@ func (c CmdSubst) String() string {
 func (c CmdSubst) Pos() Pos { return c.Left }
 
 type ParamExp struct {
-	Dollar Pos
-
+	Dollar        Pos
 	Short, Length bool
-
-	Param Lit
-	Exp   *Expansion
+	Param         Lit
+	Exp           *Expansion
 }
 
 func (p ParamExp) String() string {
@@ -384,32 +369,29 @@ func (e Expansion) String() string { return fmt.Sprint(e.Op.String(), e.Word) }
 
 type ArithmExpr struct {
 	Dollar, Rparen Pos
-
-	Expr Node
+	X              Node
 }
 
 func (a ArithmExpr) String() string {
-	if a.Expr == nil {
+	if a.X == nil {
 		return "$(())"
 	}
-	return fmt.Sprintf("$((%s))", a.Expr)
+	return fmt.Sprintf("$((%s))", a.X)
 }
 func (a ArithmExpr) Pos() Pos { return a.Dollar }
 
 type ParenExpr struct {
 	Lparen, Rparen Pos
-
-	Expr Node
+	X              Node
 }
 
-func (p ParenExpr) String() string { return fmt.Sprintf("(%s)", p.Expr) }
+func (p ParenExpr) String() string { return fmt.Sprintf("(%s)", p.X) }
 func (p ParenExpr) Pos() Pos       { return p.Lparen }
 
 type CaseStmt struct {
 	Case, Esac Pos
-
-	Word Word
-	List []PatternList
+	Word       Word
+	List       []PatternList
 }
 
 func (c CaseStmt) String() string {

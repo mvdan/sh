@@ -595,7 +595,7 @@ func (p *parser) dollar() Node {
 		p.enterStops(DRPAREN)
 		ar := ArithmExpr{
 			Dollar: dpos,
-			Expr:   p.arithmExpr(DLPAREN),
+			X:      p.arithmExpr(DLPAREN),
 		}
 		if !p.peekArithmEnd() {
 			p.matchingErr(lpos, DLPAREN, DRPAREN)
@@ -630,8 +630,8 @@ func (p *parser) arithmExpr(following Token) Node {
 	var left Node
 	if p.got(LPAREN) {
 		pe := ParenExpr{Lparen: p.lpos}
-		pe.Expr = p.arithmExpr(LPAREN)
-		if pe.Expr == nil {
+		pe.X = p.arithmExpr(LPAREN)
+		if pe.X == nil {
 			p.posErr(pe.Lparen, "parentheses must enclose an expression")
 		}
 		p.wantMatched(pe.Lparen, LPAREN, RPAREN, &pe.Rparen)
@@ -642,8 +642,8 @@ func (p *parser) arithmExpr(following Token) Node {
 			Op:    t,
 		}
 		p.next()
-		ue.Expr = p.arithmExpr(ue.Op)
-		if ue.Expr == nil {
+		ue.X = p.arithmExpr(ue.Op)
+		if ue.X == nil {
 			p.followErr(ue.OpPos, ue.Op, "an expression")
 		}
 		left = ue
