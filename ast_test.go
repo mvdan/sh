@@ -921,6 +921,20 @@ var astTests = []testCase{
 		}))),
 	},
 	{
+		[]string{`$((1 + (3 - 2)))`},
+		word(arithmExpr(BinaryExpr{
+			Op: ADD,
+			X:  litWord("1"),
+			Y: ParenExpr{
+				Expr: BinaryExpr{
+					Op: SUB,
+					X:  litWord("3"),
+					Y:  litWord("2"),
+				},
+			},
+		})),
+	},
+	{
 		[]string{"foo$"},
 		word(lit("foo"), lit("$")),
 	},
@@ -1270,6 +1284,11 @@ func setPosRecurse(t *testing.T, v interface{}, to Pos, diff bool) Node {
 		return x
 	case ArithmExpr:
 		setPos(&x.Dollar)
+		setPos(&x.Rparen)
+		setPosRecurse(t, &x.Expr, to, diff)
+		return x
+	case ParenExpr:
+		setPos(&x.Lparen)
 		setPos(&x.Rparen)
 		setPosRecurse(t, &x.Expr, to, diff)
 		return x

@@ -626,6 +626,12 @@ func (p *parser) arithmExpr(following Token) Node {
 	if p.eof() || p.peekArithmEnd() {
 		return nil
 	}
+	if p.got(LPAREN) {
+		pe := ParenExpr{Lparen: p.lpos}
+		pe.Expr = p.arithmExpr(LPAREN)
+		p.wantMatched(pe.Lparen, LPAREN, RPAREN, &pe.Rparen)
+		return pe
+	}
 	var w Word
 	p.wantFollowWord(following, &w)
 	if p.eof() || p.peek(RPAREN) {

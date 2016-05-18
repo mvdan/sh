@@ -386,6 +386,20 @@ func (a ArithmExpr) String() string {
 }
 func (a ArithmExpr) Pos() Pos { return a.Dollar }
 
+type ParenExpr struct {
+	Lparen, Rparen Pos
+
+	Expr Node
+}
+
+func (p ParenExpr) String() string {
+	if p.Expr == nil {
+		return "()"
+	}
+	return fmt.Sprintf("(%s)", p.Expr)
+}
+func (p ParenExpr) Pos() Pos { return p.Lparen }
+
 type CaseStmt struct {
 	Case, Esac Pos
 
