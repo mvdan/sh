@@ -1190,138 +1190,141 @@ func setPosRecurse(t *testing.T, v interface{}, to Pos, diff bool) Node {
 		}
 		*p = to
 	}
+	recurse := func(v interface{}) Node {
+		return setPosRecurse(t, v, to, diff)
+	}
 	switch x := v.(type) {
 	case []Stmt:
 		for i := range x {
-			setPosRecurse(t, &x[i], to, diff)
+			recurse(&x[i])
 		}
 	case *Stmt:
 		setPos(&x.Position)
-		x.Node = setPosRecurse(t, x.Node, to, diff)
+		x.Node = recurse(x.Node)
 		for i := range x.Assigns {
-			setPosRecurse(t, &x.Assigns[i].Name, to, diff)
-			setPosRecurse(t, x.Assigns[i].Value, to, diff)
+			recurse(&x.Assigns[i].Name)
+			recurse(x.Assigns[i].Value)
 		}
 		for i := range x.Redirs {
 			setPos(&x.Redirs[i].OpPos)
-			setPosRecurse(t, &x.Redirs[i].N, to, diff)
-			setPosRecurse(t, x.Redirs[i].Word, to, diff)
+			recurse(&x.Redirs[i].N)
+			recurse(x.Redirs[i].Word)
 		}
 	case Stmt:
-		setPosRecurse(t, &x, to, diff)
+		recurse(&x)
 		return x
 	case Command:
-		setPosRecurse(t, x.Args, to, diff)
+		recurse(x.Args)
 		return x
 	case []Word:
 		for _, w := range x {
-			setPosRecurse(t, w, to, diff)
+			recurse(w)
 		}
 	case Word:
-		setPosRecurse(t, x.Parts, to, diff)
+		recurse(x.Parts)
 		return x
 	case []Node:
 		for i := range x {
-			setPosRecurse(t, &x[i], to, diff)
+			recurse(&x[i])
 		}
 	case *Node:
-		*x = setPosRecurse(t, *x, to, diff)
+		*x = recurse(*x)
 	case *Lit:
 		setPos(&x.ValuePos)
 	case Lit:
-		setPosRecurse(t, &x, to, diff)
+		recurse(&x)
 		return x
 	case Subshell:
 		setPos(&x.Lparen)
 		setPos(&x.Rparen)
-		setPosRecurse(t, x.Stmts, to, diff)
+		recurse(x.Stmts)
 		return x
 	case Block:
 		setPos(&x.Lbrace)
 		setPos(&x.Rbrace)
-		setPosRecurse(t, x.Stmts, to, diff)
+		recurse(x.Stmts)
 		return x
 	case IfStmt:
 		setPos(&x.If)
 		setPos(&x.Fi)
-		setPosRecurse(t, x.Conds, to, diff)
-		setPosRecurse(t, x.ThenStmts, to, diff)
+		recurse(x.Conds)
+		recurse(x.ThenStmts)
 		for i := range x.Elifs {
 			setPos(&x.Elifs[i].Elif)
-			setPosRecurse(t, x.Elifs[i].Conds, to, diff)
-			setPosRecurse(t, x.Elifs[i].ThenStmts, to, diff)
+			recurse(x.Elifs[i].Conds)
+			recurse(x.Elifs[i].ThenStmts)
 		}
-		setPosRecurse(t, x.ElseStmts, to, diff)
+		recurse(x.ElseStmts)
 		return x
 	case WhileStmt:
 		setPos(&x.While)
 		setPos(&x.Done)
-		setPosRecurse(t, x.Conds, to, diff)
-		setPosRecurse(t, x.DoStmts, to, diff)
+		recurse(x.Conds)
+		recurse(x.DoStmts)
 		return x
 	case UntilStmt:
 		setPos(&x.Until)
 		setPos(&x.Done)
-		setPosRecurse(t, x.Conds, to, diff)
-		setPosRecurse(t, x.DoStmts, to, diff)
+		recurse(x.Conds)
+		recurse(x.DoStmts)
 		return x
 	case ForStmt:
 		setPos(&x.For)
 		setPos(&x.Done)
-		setPosRecurse(t, &x.Name, to, diff)
-		setPosRecurse(t, x.WordList, to, diff)
-		setPosRecurse(t, x.DoStmts, to, diff)
+		recurse(&x.Name)
+		recurse(x.WordList)
+		recurse(x.DoStmts)
 		return x
 	case SglQuoted:
 		setPos(&x.Quote)
 		return x
 	case DblQuoted:
 		setPos(&x.Quote)
-		setPosRecurse(t, x.Parts, to, diff)
+		recurse(x.Parts)
 		return x
 	case UnaryExpr:
 		setPos(&x.OpPos)
-		setPosRecurse(t, &x.X, to, diff)
+		recurse(&x.X)
 		return x
 	case BinaryExpr:
 		setPos(&x.OpPos)
-		setPosRecurse(t, &x.X, to, diff)
-		setPosRecurse(t, &x.Y, to, diff)
+		recurse(&x.X)
+		recurse(&x.Y)
 		return x
 	case FuncDecl:
 		setPos(&x.Position)
-		setPosRecurse(t, &x.Name, to, diff)
-		setPosRecurse(t, &x.Body, to, diff)
+		recurse(&x.Name)
+		recurse(&x.Body)
 		return x
 	case ParamExp:
 		setPos(&x.Dollar)
-		setPosRecurse(t, &x.Param, to, diff)
+		recurse(&x.Param)
 		if x.Exp != nil {
-			setPosRecurse(t, x.Exp.Word, to, diff)
+			recurse(x.Exp.Word)
 		}
 		return x
 	case ArithmExpr:
 		setPos(&x.Dollar)
 		setPos(&x.Rparen)
-		setPosRecurse(t, &x.X, to, diff)
+		recurse(&x.X)
 		return x
 	case ParenExpr:
 		setPos(&x.Lparen)
 		setPos(&x.Rparen)
-		setPosRecurse(t, &x.X, to, diff)
+		recurse(&x.X)
 		return x
 	case CmdSubst:
 		setPos(&x.Left)
 		setPos(&x.Right)
-		setPosRecurse(t, x.Stmts, to, diff)
+		recurse(x.Stmts)
 		return x
 	case CaseStmt:
 		setPos(&x.Case)
 		setPos(&x.Esac)
-		setPosRecurse(t, x.Word, to, diff)
+		recurse(x.Word)
 		for _, pl := range x.List {
-			setPosRecurse(t, pl.Patterns, to, diff)
-			setPosRecurse(t, pl.Stmts, to, diff)
+			recurse(pl.Patterns)
+			recurse(pl.Stmts)
 		}
 		return x
 	case nil:
