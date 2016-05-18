@@ -861,6 +861,10 @@ var astTests = []testCase{
 		word(sglQuoted("${foo}")),
 	},
 	{
+		[]string{"$(())"},
+		word(arithmExpr(nil)),
+	},
+	{
 		[]string{"$((1))"},
 		word(arithmExpr(litWord("1"))),
 	},

@@ -378,8 +378,13 @@ type ArithmExpr struct {
 	Expr Node
 }
 
-func (a ArithmExpr) String() string { return fmt.Sprintf("$((%s))", a.Expr) }
-func (a ArithmExpr) Pos() Pos       { return a.Dollar }
+func (a ArithmExpr) String() string {
+	if a.Expr == nil {
+		return "$(())"
+	}
+	return fmt.Sprintf("$((%s))", a.Expr)
+}
+func (a ArithmExpr) Pos() Pos { return a.Dollar }
 
 type CaseStmt struct {
 	Case, Esac Pos
