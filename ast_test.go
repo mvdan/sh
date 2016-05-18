@@ -56,6 +56,7 @@ func dblQuoted(ns ...Node) DblQuoted  { return DblQuoted{Parts: ns} }
 func block(sts ...Stmt) Block         { return Block{Stmts: sts} }
 func subshell(sts ...Stmt) Subshell   { return Subshell{Stmts: sts} }
 func arithmExpr(expr Node) ArithmExpr { return ArithmExpr{Expr: expr} }
+func parenExpr(expr Node) ParenExpr   { return ParenExpr{Expr: expr} }
 
 func cmdSubst(sts ...Stmt) CmdSubst { return CmdSubst{Stmts: sts} }
 func bckQuoted(sts ...Stmt) CmdSubst {
@@ -924,7 +925,7 @@ var astTests = []testCase{
 		[]string{`$(((1) + 3))`},
 		word(arithmExpr(BinaryExpr{
 			Op: ADD,
-			X:  ParenExpr{Expr: litWord("1")},
+			X:  parenExpr(litWord("1")),
 			Y:  litWord("3"),
 		})),
 	},
@@ -933,13 +934,11 @@ var astTests = []testCase{
 		word(arithmExpr(BinaryExpr{
 			Op: ADD,
 			X:  litWord("1"),
-			Y: ParenExpr{
-				Expr: BinaryExpr{
-					Op: SUB,
-					X:  litWord("3"),
-					Y:  litWord("2"),
-				},
-			},
+			Y: parenExpr(BinaryExpr{
+				Op: SUB,
+				X:  litWord("3"),
+				Y:  litWord("2"),
+			}),
 		})),
 	},
 	{
