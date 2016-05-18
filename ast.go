@@ -278,7 +278,7 @@ type BinaryExpr struct {
 }
 
 func (b BinaryExpr) String() string { return fmt.Sprint(b.X, b.Op, b.Y) }
-func (b BinaryExpr) Pos() Pos { return b.X.Pos() }
+func (b BinaryExpr) Pos() Pos       { return b.X.Pos() }
 
 type FuncDecl struct {
 	Position  Pos

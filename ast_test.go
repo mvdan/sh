@@ -82,7 +82,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"foo", "foo ", " foo", "foo # bar"},
-		litCmd("foo"),
+		litWord("foo"),
 	},
 	{
 		[]string{"foo; bar", "foo; bar;", "foo;bar;", "\nfoo\nbar\n"},
@@ -94,7 +94,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"foobar", "foo\\\nbar"},
-		litCmd("foobar"),
+		litWord("foobar"),
 	},
 	{
 		[]string{"foo'bar'"},
@@ -637,7 +637,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"foo#bar"},
-		litCmd("foo#bar"),
+		litWord("foo#bar"),
 	},
 	{
 		[]string{"{ echo } }; }"},
@@ -645,7 +645,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{`{foo}`},
-		litCmd(`{foo}`),
+		litWord(`{foo}`),
 	},
 	{
 		[]string{`{"foo"`},
@@ -653,7 +653,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{`!foo`},
-		litCmd(`!foo`),
+		litWord(`!foo`),
 	},
 	{
 		[]string{"$(foo bar)"},
