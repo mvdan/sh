@@ -1168,12 +1168,14 @@ func setPosRecurse(t *testing.T, v interface{}, to Pos, diff bool) Node {
 		setPosRecurse(t, x.Parts, to, diff)
 	case []Node:
 		for i := range x {
-			x[i] = setPosRecurse(t, x[i], to, diff)
+			setPosRecurse(t, &x[i], to, diff)
 		}
+	case *Node:
+		*x = setPosRecurse(t, *x, to, diff)
 	case *Lit:
 		setPos(&x.ValuePos)
 	case Lit:
-		setPos(&x.ValuePos)
+		setPosRecurse(t, &x, to, diff)
 		return x
 	case Subshell:
 		setPos(&x.Lparen)
@@ -1261,7 +1263,7 @@ func setPosRecurse(t *testing.T, v interface{}, to Pos, diff bool) Node {
 		return x
 	case nil:
 	default:
-		panic(v)
+		panic(reflect.TypeOf(v))
 	}
 	return nil
 }
