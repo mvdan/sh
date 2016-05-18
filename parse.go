@@ -636,6 +636,17 @@ func (p *parser) arithmExpr(following Token) Node {
 		}
 		p.wantMatched(pe.Lparen, LPAREN, RPAREN, &pe.Rparen)
 		left = pe
+	} else if t := p.doTokenString(p.val); t == ADD || t == SUB {
+		ue := UnaryExpr{
+			OpPos: p.pos,
+			Op:    t,
+		}
+		p.next()
+		ue.Expr = p.arithmExpr(ue.Op)
+		if ue.Expr == nil {
+			p.followErr(ue.OpPos, ue.Op, "an expression")
+		}
+		left = ue
 	} else {
 		var w Word
 		p.wantFollowWord(following, &w)

@@ -270,6 +270,16 @@ func (f ForStmt) String() string {
 }
 func (f ForStmt) Pos() Pos { return f.For }
 
+type UnaryExpr struct {
+	OpPos Pos
+
+	Op   Token
+	Expr Node
+}
+
+func (u UnaryExpr) String() string { return fmt.Sprint(u.Op, "", u.Expr) }
+func (u UnaryExpr) Pos() Pos       { return u.OpPos }
+
 type BinaryExpr struct {
 	OpPos Pos
 
