@@ -592,9 +592,9 @@ func (p *parser) dollar() Node {
 	switch {
 	case p.peek(LPAREN) && p.readOnly("("):
 		p.enterStops(DRPAREN)
-		ar := ArithmExp{
+		ar := ArithmExpr{
 			Dollar: dpos,
-			Words:  p.arithmWords(),
+			Expr:   p.arithmExpr(DLPAREN),
 		}
 		if !p.peekArithmEnd() {
 			p.matchingErr(lpos, DLPAREN, DRPAREN)
@@ -620,6 +620,25 @@ func (p *parser) dollar() Node {
 			},
 		}
 	}
+}
+
+func (p *parser) arithmExpr(following Token) Node {
+	if p.eof() || p.peekArithmEnd() {
+		return nil
+	}
+	var w Word
+	p.wantFollowWord(following, &w)
+	if p.eof() || p.peek(RPAREN) {
+		return w
+	}
+	b := BinaryExpr{
+		OpPos: p.pos,
+		Op:    p.doTokenString(p.val),
+		X:     w,
+	}
+	p.next()
+	b.Y = p.arithmExpr(b.Op)
+	return b
 }
 
 func (p *parser) gotParamLit(l *Lit) bool {
@@ -665,31 +684,6 @@ func (p *parser) paramExp(dpos Pos) (pe ParamExp) {
 
 func (p *parser) peekArithmEnd() bool {
 	return p.peek(RPAREN) && p.peekAnyByte(')')
-}
-
-func (p *parser) partsArithm() (ns []Node) {
-	for !p.eof() && !p.peekArithmEnd() {
-		n := p.wordPart()
-		if n == nil {
-			n = Lit{
-				Value:    p.val,
-				ValuePos: p.pos,
-			}
-			p.next()
-		}
-		ns = append(ns, n)
-		if p.spaced {
-			break
-		}
-	}
-	return
-}
-
-func (p *parser) arithmWords() (ws []Word) {
-	for !p.eof() && !p.peekArithmEnd() {
-		ws = append(ws, Word{Parts: p.partsArithm()})
-	}
-	return
 }
 
 func (p *parser) wordList(ws *[]Word) {

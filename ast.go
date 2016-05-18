@@ -372,14 +372,14 @@ type Expansion struct {
 
 func (e Expansion) String() string { return fmt.Sprint(e.Op.String(), e.Word) }
 
-type ArithmExp struct {
+type ArithmExpr struct {
 	Dollar, Rparen Pos
 
-	Words []Word
+	Expr Node
 }
 
-func (a ArithmExp) String() string { return "$((" + wordJoin(a.Words, " ") + "))" }
-func (a ArithmExp) Pos() Pos       { return a.Dollar }
+func (a ArithmExpr) String() string { return fmt.Sprintf("$((%s))", a.Expr) }
+func (a ArithmExpr) Pos() Pos       { return a.Dollar }
 
 type CaseStmt struct {
 	Case, Esac Pos

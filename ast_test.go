@@ -51,11 +51,11 @@ func litStmts(strs ...string) []Stmt {
 	return l
 }
 
-func sglQuoted(s string) SglQuoted      { return SglQuoted{Value: s} }
-func dblQuoted(ns ...Node) DblQuoted    { return DblQuoted{Parts: ns} }
-func block(sts ...Stmt) Block           { return Block{Stmts: sts} }
-func subshell(sts ...Stmt) Subshell     { return Subshell{Stmts: sts} }
-func arithmExp(words ...Word) ArithmExp { return ArithmExp{Words: words} }
+func sglQuoted(s string) SglQuoted    { return SglQuoted{Value: s} }
+func dblQuoted(ns ...Node) DblQuoted  { return DblQuoted{Parts: ns} }
+func block(sts ...Stmt) Block         { return Block{Stmts: sts} }
+func subshell(sts ...Stmt) Subshell   { return Subshell{Stmts: sts} }
+func arithmExpr(expr Node) ArithmExpr { return ArithmExpr{Expr: expr} }
 
 func cmdSubst(sts ...Stmt) CmdSubst { return CmdSubst{Stmts: sts} }
 func bckQuoted(sts ...Stmt) CmdSubst {
@@ -861,42 +861,60 @@ var astTests = []testCase{
 		word(sglQuoted("${foo}")),
 	},
 	{
-		[]string{"$((1 + 3))"},
-		word(arithmExp(
-			litWord("1"), litWord("+"), litWord("3"),
-		)),
+		[]string{"$((1))"},
+		word(arithmExpr(litWord("1"))),
+	},
+	{
+		[]string{"$((1 + 3))", "$((1+3))"},
+		word(arithmExpr(BinaryExpr{
+			Op: ADD,
+			X:  litWord("1"),
+			Y:  litWord("3"),
+		})),
 	},
 	{
 		[]string{"$((5 * 2 - 1))", "$((5*2-1))"},
-		word(arithmExp(
-			litWords("5", "*", "2", "-", "1")...,
-		)),
+		word(arithmExpr(BinaryExpr{
+			Op: MUL,
+			X:  litWord("5"),
+			Y: BinaryExpr{
+				Op: SUB,
+				X:  litWord("2"),
+				Y:  litWord("1"),
+			},
+		})),
 	},
 	{
 		[]string{"$(($i + 13))"},
-		word(arithmExp(
-			word(litParamExp("i")),
-			litWord("+"), litWord("13"),
-		)),
+		word(arithmExpr(BinaryExpr{
+			Op: ADD,
+			X:  word(litParamExp("i")),
+			Y:  litWord("13"),
+		})),
 	},
 	{
 		[]string{"$((3 + $((4))))"},
-		word(arithmExp(
-			litWord("3"), litWord("+"),
-			word(arithmExp(litWord("4"))),
-		)),
+		word(arithmExpr(BinaryExpr{
+			Op: ADD,
+			X:  litWord("3"),
+			Y:  word(arithmExpr(litWord("4"))),
+		})),
 	},
 	{
 		[]string{"$((3 & 7))"},
-		word(arithmExp(
-			litWord("3"), litWord("&"), litWord("7"),
-		)),
+		word(arithmExpr(BinaryExpr{
+			Op: AND,
+			X:  litWord("3"),
+			Y:  litWord("7"),
+		})),
 	},
 	{
 		[]string{`"$((1 + 3))"`},
-		word(dblQuoted(arithmExp(
-			litWord("1"), litWord("+"), litWord("3"),
-		))),
+		word(dblQuoted(arithmExpr(BinaryExpr{
+			Op: ADD,
+			X:  litWord("1"),
+			Y:  litWord("3"),
+		}))),
 	},
 	{
 		[]string{"foo$"},
@@ -1169,6 +1187,7 @@ func setPosRecurse(t *testing.T, v interface{}, to Pos, diff bool) Node {
 		}
 	case Word:
 		setPosRecurse(t, x.Parts, to, diff)
+		return x
 	case []Node:
 		for i := range x {
 			setPosRecurse(t, &x[i], to, diff)
@@ -1245,10 +1264,10 @@ func setPosRecurse(t *testing.T, v interface{}, to Pos, diff bool) Node {
 			setPosRecurse(t, x.Exp.Word, to, diff)
 		}
 		return x
-	case ArithmExp:
+	case ArithmExpr:
 		setPos(&x.Dollar)
 		setPos(&x.Rparen)
-		setPosRecurse(t, x.Words, to, diff)
+		setPosRecurse(t, &x.Expr, to, diff)
 		return x
 	case CmdSubst:
 		setPos(&x.Left)
