@@ -307,6 +307,10 @@ var errTests = []struct {
 		`1:7: reached EOF without matching token (( with ))`,
 	},
 	{
+		"echo $((()))",
+		`1:9: parentheses must enclose an expression`,
+	},
+	{
 		"echo ${foo",
 		`1:7: reached EOF without matching token { with }`,
 	},

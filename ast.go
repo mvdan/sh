@@ -392,13 +392,8 @@ type ParenExpr struct {
 	Expr Node
 }
 
-func (p ParenExpr) String() string {
-	if p.Expr == nil {
-		return "()"
-	}
-	return fmt.Sprintf("(%s)", p.Expr)
-}
-func (p ParenExpr) Pos() Pos { return p.Lparen }
+func (p ParenExpr) String() string { return fmt.Sprintf("(%s)", p.Expr) }
+func (p ParenExpr) Pos() Pos       { return p.Lparen }
 
 type CaseStmt struct {
 	Case, Esac Pos

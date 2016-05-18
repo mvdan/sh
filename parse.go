@@ -158,6 +158,7 @@ var (
 		'*': true,
 		'/': true,
 		'%': true,
+		'^': true,
 	}
 	// bytes that will be treated as space
 	space = map[byte]bool{
@@ -629,6 +630,9 @@ func (p *parser) arithmExpr(following Token) Node {
 	if p.got(LPAREN) {
 		pe := ParenExpr{Lparen: p.lpos}
 		pe.Expr = p.arithmExpr(LPAREN)
+		if pe.Expr == nil {
+			p.posErr(pe.Lparen, "parentheses must enclose an expression")
+		}
 		p.wantMatched(pe.Lparen, LPAREN, RPAREN, &pe.Rparen)
 		return pe
 	}
