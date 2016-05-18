@@ -627,6 +627,7 @@ func (p *parser) arithmExpr(following Token) Node {
 	if p.eof() || p.peekArithmEnd() {
 		return nil
 	}
+	var left Node
 	if p.got(LPAREN) {
 		pe := ParenExpr{Lparen: p.lpos}
 		pe.Expr = p.arithmExpr(LPAREN)
@@ -634,17 +635,19 @@ func (p *parser) arithmExpr(following Token) Node {
 			p.posErr(pe.Lparen, "parentheses must enclose an expression")
 		}
 		p.wantMatched(pe.Lparen, LPAREN, RPAREN, &pe.Rparen)
-		return pe
+		left = pe
+	} else {
+		var w Word
+		p.wantFollowWord(following, &w)
+		left = w
 	}
-	var w Word
-	p.wantFollowWord(following, &w)
 	if p.eof() || p.peek(RPAREN) {
-		return w
+		return left
 	}
 	b := BinaryExpr{
 		OpPos: p.pos,
 		Op:    p.doTokenString(p.val),
-		X:     w,
+		X:     left,
 	}
 	p.next()
 	b.Y = p.arithmExpr(b.Op)
