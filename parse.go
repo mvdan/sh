@@ -396,26 +396,29 @@ func (p *parser) wantFollow(lpos Pos, left string, tok Token) {
 	}
 }
 
-func (p *parser) wantFollowStmt(lpos Pos, left string, s *Stmt) {
-	if !p.gotStmt(s) {
+func (p *parser) wantFollowStmt(lpos Pos, left string) (s Stmt) {
+	if !p.gotStmt(&s) {
 		p.followErr(lpos, left, "a statement")
 	}
+	return
 }
 
-func (p *parser) wantFollowStmts(left Token, sts *[]Stmt, stops ...Token) {
+func (p *parser) wantFollowStmts(left Token, stops ...Token) []Stmt {
 	if p.gotSameLine(SEMICOLON) {
-		return
+		return nil
 	}
-	*sts = p.stmts(stops...)
-	if len(*sts) < 1 && !p.newLine {
+	sts := p.stmts(stops...)
+	if len(sts) < 1 && !p.newLine {
 		p.followErr(p.lpos, left, "a statement list")
 	}
+	return sts
 }
 
-func (p *parser) wantFollowWord(left Token, w *Word) {
-	if !p.gotWord(w) {
+func (p *parser) wantFollowWord(left Token) (w Word) {
+	if !p.gotWord(&w) {
 		p.followErr(p.lpos, left, "a word")
 	}
+	return
 }
 
 func (p *parser) wantStmtEnd(startPos Pos, startTok, tok Token, pos *Pos) {
@@ -437,11 +440,11 @@ func (p *parser) matchingErr(lpos Pos, left, right Token) {
 		p.tok, left, right)
 }
 
-func (p *parser) wantMatched(lpos Pos, left, right Token, rpos *Pos) {
+func (p *parser) wantMatched(lpos Pos, left, right Token) Pos {
 	if !p.got(right) {
 		p.matchingErr(lpos, left, right)
 	}
-	*rpos = p.lpos
+	return p.lpos
 }
 
 func (p *parser) errPass(err error) {
@@ -612,7 +615,7 @@ func (p *parser) dollar() Node {
 	case p.peek(LPAREN):
 		cs := CmdSubst{Left: dpos}
 		cs.Stmts = p.stmtsNested(RPAREN)
-		p.wantMatched(lpos, LPAREN, RPAREN, &cs.Right)
+		cs.Right = p.wantMatched(lpos, LPAREN, RPAREN)
 		return cs
 	default:
 		p.next()
@@ -638,7 +641,7 @@ func (p *parser) arithmExpr(following Token) Node {
 		if pe.X == nil {
 			p.posErr(pe.Lparen, "parentheses must enclose an expression")
 		}
-		p.wantMatched(pe.Lparen, LPAREN, RPAREN, &pe.Rparen)
+		pe.Rparen = p.wantMatched(pe.Lparen, LPAREN, RPAREN)
 		left = pe
 	} else if p.got(ADD) || p.got(SUB) {
 		ue := UnaryExpr{
@@ -651,9 +654,7 @@ func (p *parser) arithmExpr(following Token) Node {
 		}
 		left = ue
 	} else {
-		var w Word
-		p.wantFollowWord(following, &w)
-		left = w
+		left = p.wantFollowWord(following)
 	}
 	if p.got(INC) || p.got(DEC) {
 		left = UnaryExpr{
@@ -873,7 +874,7 @@ func (p *parser) binaryStmt(left Stmt, addRedir func()) Stmt {
 	}
 	var s Stmt
 	if b.Op == LAND || b.Op == LOR {
-		p.wantFollowStmt(b.OpPos, b.Op.String(), &s)
+		s = p.wantFollowStmt(b.OpPos, b.Op.String())
 	} else if !p.gotStmtAndOr(&s, addRedir) {
 		p.followErr(b.OpPos, b.Op, "a statement")
 	}
@@ -906,12 +907,12 @@ func (p *parser) redirect() (r Redirect) {
 	switch r.Op {
 	case HEREDOC, DHEREDOC:
 		p.stopNewline = true
-		p.wantFollowWord(r.Op, &r.Word)
+		r.Word = p.wantFollowWord(r.Op)
 		p.stopNewline = false
 		p.heredocs = append(p.heredocs, &r.Word)
 		p.got(STOPPED)
 	default:
-		p.wantFollowWord(r.Op, &r.Word)
+		r.Word = p.wantFollowWord(r.Op)
 	}
 	return
 }
@@ -919,31 +920,31 @@ func (p *parser) redirect() (r Redirect) {
 func (p *parser) subshell() (s Subshell) {
 	s.Lparen = p.pos
 	s.Stmts = p.stmtsNested(RPAREN)
-	p.wantMatched(s.Lparen, LPAREN, RPAREN, &s.Rparen)
+	s.Rparen = p.wantMatched(s.Lparen, LPAREN, RPAREN)
 	return
 }
 
 func (p *parser) block() (b Block) {
 	b.Lbrace = p.lpos
 	b.Stmts = p.stmts(RBRACE)
-	p.wantMatched(b.Lbrace, LBRACE, RBRACE, &b.Rbrace)
+	b.Rbrace = p.wantMatched(b.Lbrace, LBRACE, RBRACE)
 	return
 }
 
 func (p *parser) ifStmt() (fs IfStmt) {
 	fs.If = p.lpos
-	p.wantFollowStmts(IF, &fs.Conds, THEN)
+	fs.Conds = p.wantFollowStmts(IF, THEN)
 	p.wantFollow(fs.If, "if [stmts]", THEN)
-	p.wantFollowStmts(THEN, &fs.ThenStmts, FI, ELIF, ELSE)
+	fs.ThenStmts = p.wantFollowStmts(THEN, FI, ELIF, ELSE)
 	for p.got(ELIF) {
 		elf := Elif{Elif: p.lpos}
-		p.wantFollowStmts(ELIF, &elf.Conds, THEN)
+		elf.Conds = p.wantFollowStmts(ELIF, THEN)
 		p.wantFollow(elf.Elif, "elif [stmts]", THEN)
-		p.wantFollowStmts(THEN, &elf.ThenStmts, FI, ELIF, ELSE)
+		elf.ThenStmts = p.wantFollowStmts(THEN, FI, ELIF, ELSE)
 		fs.Elifs = append(fs.Elifs, elf)
 	}
 	if p.got(ELSE) {
-		p.wantFollowStmts(ELSE, &fs.ElseStmts, FI)
+		fs.ElseStmts = p.wantFollowStmts(ELSE, FI)
 	}
 	p.wantStmtEnd(fs.If, IF, FI, &fs.Fi)
 	return
@@ -951,18 +952,18 @@ func (p *parser) ifStmt() (fs IfStmt) {
 
 func (p *parser) whileStmt() (ws WhileStmt) {
 	ws.While = p.lpos
-	p.wantFollowStmts(WHILE, &ws.Conds, DO)
+	ws.Conds = p.wantFollowStmts(WHILE, DO)
 	p.wantFollow(ws.While, "while [stmts]", DO)
-	p.wantFollowStmts(DO, &ws.DoStmts, DONE)
+	ws.DoStmts = p.wantFollowStmts(DO, DONE)
 	p.wantStmtEnd(ws.While, WHILE, DONE, &ws.Done)
 	return
 }
 
 func (p *parser) untilStmt() (us UntilStmt) {
 	us.Until = p.lpos
-	p.wantFollowStmts(UNTIL, &us.Conds, DO)
+	us.Conds = p.wantFollowStmts(UNTIL, DO)
 	p.wantFollow(us.Until, "until [stmts]", DO)
-	p.wantFollowStmts(DO, &us.DoStmts, DONE)
+	us.DoStmts = p.wantFollowStmts(DO, DONE)
 	p.wantStmtEnd(us.Until, UNTIL, DONE, &us.Done)
 	return
 }
@@ -978,14 +979,14 @@ func (p *parser) forStmt() (fs ForStmt) {
 		p.followErr(fs.For, "for foo", `"in", ; or a newline`)
 	}
 	p.wantFollow(fs.For, "for foo [in words]", DO)
-	p.wantFollowStmts(DO, &fs.DoStmts, DONE)
+	fs.DoStmts = p.wantFollowStmts(DO, DONE)
 	p.wantStmtEnd(fs.For, FOR, DONE, &fs.Done)
 	return
 }
 
 func (p *parser) caseStmt() (cs CaseStmt) {
 	cs.Case = p.lpos
-	p.wantFollowWord(CASE, &cs.Word)
+	cs.Word = p.wantFollowWord(CASE)
 	p.wantFollow(cs.Case, "case x", IN)
 	cs.List = p.patLists()
 	p.wantStmtEnd(cs.Case, CASE, ESAC, &cs.Esac)
@@ -1024,8 +1025,7 @@ func (p *parser) patLists() (pls []PatternList) {
 func (p *parser) cmdOrFunc(addRedir func()) Node {
 	if p.got(FUNCTION) {
 		fpos := p.lpos
-		var w Word
-		p.wantFollowWord(FUNCTION, &w)
+		w := p.wantFollowWord(FUNCTION)
 		if p.gotSameLine(LPAREN) {
 			p.wantFollow(w.Pos(), "foo(", RPAREN)
 		}
@@ -1064,6 +1064,6 @@ func (p *parser) funcDecl(w Word, pos Pos) FuncDecl {
 	if !identRe.MatchString(fd.Name.Value) {
 		p.posErr(fd.Pos(), "invalid func name: %s", fd.Name.Value)
 	}
-	p.wantFollowStmt(fd.Pos(), "foo()", &fd.Body)
+	fd.Body = p.wantFollowStmt(fd.Pos(), "foo()")
 	return fd
 }
