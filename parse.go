@@ -260,9 +260,9 @@ func (p *parser) readLitBytes() (bs []byte) {
 			if b == '"' {
 				return
 			}
-		case p.quoted(DRPAREN) && arithmOps[b]:
-			return
 		case reserved[b], space[b]:
+			return
+		case p.quoted(DRPAREN) && arithmOps[b]:
 			return
 		}
 		p.consumeByte()
@@ -369,6 +369,14 @@ func (p *parser) got(tok Token) bool {
 	return false
 }
 func (p *parser) gotSameLine(tok Token) bool { return !p.newLine && p.got(tok) }
+func (p *parser) gotAny(toks ...Token) bool {
+	for _, tok := range toks {
+		if p.got(tok) {
+			return true
+		}
+	}
+	return false
+}
 
 func readableStr(v interface{}) string {
 	var s string
@@ -643,7 +651,7 @@ func (p *parser) arithmExpr(following Token) Node {
 		}
 		pe.Rparen = p.wantMatched(pe.Lparen, LPAREN, RPAREN)
 		left = pe
-	} else if p.got(ADD) || p.got(SUB) {
+	} else if p.gotAny(ADD, SUB) {
 		ue := UnaryExpr{
 			OpPos: p.lpos,
 			Op:    p.ltok,
@@ -656,7 +664,7 @@ func (p *parser) arithmExpr(following Token) Node {
 	} else {
 		left = p.wantFollowWord(following)
 	}
-	if p.got(INC) || p.got(DEC) {
+	if p.gotAny(INC, DEC) {
 		left = UnaryExpr{
 			Post:  true,
 			OpPos: p.lpos,
@@ -667,12 +675,14 @@ func (p *parser) arithmExpr(following Token) Node {
 	if p.eof() || p.peek(RPAREN) {
 		return left
 	}
+	if !p.gotAny(ADD, SUB, REM, MUL, QUO, INC, AND, OR, APPEND, HEREDOC) {
+		p.curErr("not a valid arithmetic operator")
+	}
 	b := BinaryExpr{
-		OpPos: p.pos,
-		Op:    p.tok,
+		OpPos: p.lpos,
+		Op:    p.ltok,
 		X:     left,
 	}
-	p.next()
 	b.Y = p.arithmExpr(b.Op)
 	return b
 }
