@@ -683,7 +683,9 @@ func (p *parser) arithmExpr(following Token) Node {
 		Op:    p.ltok,
 		X:     left,
 	}
-	b.Y = p.arithmExpr(b.Op)
+	if b.Y = p.arithmExpr(b.Op); b.Y == nil {
+		p.followErr(b.OpPos, b.Op, "an expression")
+	}
 	return b
 }
 
