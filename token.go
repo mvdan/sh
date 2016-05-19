@@ -51,6 +51,7 @@ const (
 	RPAREN     // )
 	SEMICOLON  // ;
 	DSEMICOLON // ;;
+	COLON      // :
 
 	LSS // <
 	GTR // >
@@ -161,6 +162,7 @@ var (
 		{")", RPAREN},
 		{";", SEMICOLON},
 		{";;", DSEMICOLON},
+		{":", COLON},
 
 		{"<", LSS},
 		{">", GTR},
