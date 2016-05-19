@@ -67,6 +67,7 @@ const (
 	REM // %
 	MUL // *
 	QUO // /
+	XOR // ^
 	INC // ++
 	DEC // --
 
@@ -175,6 +176,7 @@ var (
 		{"%", REM},
 		{"*", MUL},
 		{"/", QUO},
+		{"^", XOR},
 		{"++", INC},
 		{"--", DEC},
 

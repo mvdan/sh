@@ -675,7 +675,8 @@ func (p *parser) arithmExpr(following Token) Node {
 	if p.eof() || p.peek(RPAREN) {
 		return left
 	}
-	if !p.gotAny(ADD, SUB, REM, MUL, QUO, INC, AND, OR, APPEND, HEREDOC) {
+	if !p.gotAny(ADD, SUB, REM, MUL, QUO, XOR, INC, AND, OR,
+			RDRIN, RDROUT, APPEND, HEREDOC) {
 		p.curErr("not a valid arithmetic operator")
 	}
 	b := BinaryExpr{

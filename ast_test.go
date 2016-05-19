@@ -978,6 +978,14 @@ var astTests = []testCase{
 		})),
 	},
 	{
+		[]string{`$((1 < 3))`},
+		word(arithmExpr(BinaryExpr{
+			Op: RDRIN,
+			X:  litWord("1"),
+			Y:  litWord("3"),
+		})),
+	},
+	{
 		[]string{"foo$"},
 		word(lit("foo"), lit("$")),
 	},
