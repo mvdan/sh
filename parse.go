@@ -746,7 +746,7 @@ func (p *parser) peekStop() bool {
 		if p.peek(stop) {
 			return true
 		}
-		if stop == '`' || stop == RBRACE {
+		if stop == '`' || stop == RPAREN {
 			break
 		}
 	}

@@ -680,6 +680,15 @@ var astTests = []testCase{
 		)),
 	},
 	{
+		[]string{`"$(foo "bar")"`},
+		word(dblQuoted(cmdSubst(
+			stmt(cmd(
+				litWord("foo"),
+				word(dblQuoted(lit("bar"))),
+			)),
+		))),
+	},
+	{
 		[]string{"`foo`"},
 		word(bckQuoted(litStmt("foo"))),
 	},
