@@ -652,6 +652,23 @@ func (p *parser) arithmExpr(following Token) Node {
 		p.wantFollowWord(following, &w)
 		left = w
 	}
+	if p.val == "+" && p.readOnly("+") {
+		left = UnaryExpr{
+			Post:  true,
+			OpPos: p.pos,
+			Op:    INC,
+			X:     left,
+		}
+		p.next()
+	} else if p.val == "-" && p.readOnly("-") {
+		left = UnaryExpr{
+			Post:  true,
+			OpPos: p.pos,
+			Op:    DEC,
+			X:     left,
+		}
+		p.next()
+	}
 	if p.eof() || p.peek(RPAREN) {
 		return left
 	}

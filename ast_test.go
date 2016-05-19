@@ -961,6 +961,14 @@ var astTests = []testCase{
 		})),
 	},
 	{
+		[]string{`$((i++))`},
+		word(arithmExpr(UnaryExpr{
+			Op:   INC,
+			Post: true,
+			X:    litWord("i"),
+		})),
+	},
+	{
 		[]string{"foo$"},
 		word(lit("foo"), lit("$")),
 	},

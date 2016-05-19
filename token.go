@@ -67,6 +67,8 @@ const (
 	REM // %
 	MUL // *
 	QUO // /
+	INC // ++
+	DEC // --
 
 	CADD    // :+
 	CSUB    // :-
@@ -173,6 +175,8 @@ var (
 		{"%", REM},
 		{"*", MUL},
 		{"/", QUO},
+		{"++", INC},
+		{"--", DEC},
 
 		{":+", CADD},
 		{":-", CSUB},

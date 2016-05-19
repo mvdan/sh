@@ -264,11 +264,17 @@ func (f ForStmt) Pos() Pos { return f.For }
 type UnaryExpr struct {
 	OpPos Pos
 	Op    Token
+	Post  bool
 	X     Node
 }
 
-func (u UnaryExpr) String() string { return fmt.Sprint(u.Op, "", u.X) }
-func (u UnaryExpr) Pos() Pos       { return u.OpPos }
+func (u UnaryExpr) String() string {
+	if u.Post {
+		return fmt.Sprint(u.X, "", u.Op)
+	}
+	return fmt.Sprint(u.Op, "", u.X)
+}
+func (u UnaryExpr) Pos() Pos { return u.OpPos }
 
 type BinaryExpr struct {
 	OpPos Pos
