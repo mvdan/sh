@@ -28,7 +28,7 @@ func Parse(r io.Reader, name string) (File, error) {
 		},
 	}
 	p.next()
-	p.stmts(&p.file.Stmts)
+	p.file.Stmts = p.stmts()
 	return p.file, p.err
 }
 
@@ -397,7 +397,7 @@ func (p *parser) wantFollow(lpos Pos, left string, tok Token) {
 }
 
 func (p *parser) wantFollowStmt(lpos Pos, left string, s *Stmt) {
-	if !p.gotStmt(s, false) {
+	if !p.gotStmt(s) {
 		p.followErr(lpos, left, "a statement")
 	}
 }
@@ -406,7 +406,7 @@ func (p *parser) wantFollowStmts(left Token, sts *[]Stmt, stops ...Token) {
 	if p.gotSameLine(SEMICOLON) {
 		return
 	}
-	p.stmts(sts, stops...)
+	*sts = p.stmts(stops...)
 	if len(*sts) < 1 && !p.newLine {
 		p.followErr(p.lpos, left, "a statement list")
 	}
@@ -475,14 +475,19 @@ func (p *parser) curErr(format string, v ...interface{}) {
 	p.posErr(p.pos, format, v...)
 }
 
-func (p *parser) stmts(sts *[]Stmt, stops ...Token) {
+func (p *parser) stmts(stops ...Token) (sts []Stmt) {
 	for !p.eof() && !p.peekAny(stops...) {
+		gotEnd := p.newLine || p.ltok == AND || p.ltok == SEMICOLON
+		if len(sts) > 0 && !gotEnd {
+			p.curErr("statements must be separated by &, ; or a newline")
+		}
 		var s Stmt
-		if !p.gotStmt(&s, true, stops...) {
+		if !p.gotStmt(&s, stops...) {
 			p.invalidStmtStart()
 		}
-		*sts = append(*sts, s)
+		sts = append(sts, s)
 	}
+	return
 }
 
 func (p *parser) invalidStmtStart() {
@@ -498,10 +503,11 @@ func (p *parser) invalidStmtStart() {
 	}
 }
 
-func (p *parser) stmtsNested(sts *[]Stmt, stops ...Token) {
+func (p *parser) stmtsNested(stops ...Token) []Stmt {
 	p.enterStops(stops...)
-	p.stmts(sts, stops...)
+	sts := p.stmts(stops...)
 	p.popStops(len(stops))
+	return sts
 }
 
 func (p *parser) gotWord(w *Word) bool {
@@ -569,7 +575,7 @@ func (p *parser) wordPart() Node {
 		return dq
 	case !p.quoted('`') && p.peek('`'):
 		cs := CmdSubst{Backquotes: true, Left: p.pos}
-		p.stmtsNested(&cs.Stmts, '`')
+		cs.Stmts = p.stmtsNested('`')
 		p.wantQuote(cs.Left, '`')
 		cs.Right = p.lpos
 		return cs
@@ -605,7 +611,7 @@ func (p *parser) dollar() Node {
 		return ar
 	case p.peek(LPAREN):
 		cs := CmdSubst{Left: dpos}
-		p.stmtsNested(&cs.Stmts, RPAREN)
+		cs.Stmts = p.stmtsNested(RPAREN)
 		p.wantMatched(lpos, LPAREN, RPAREN, &cs.Right)
 		return cs
 	default:
@@ -767,7 +773,7 @@ func (p *parser) assignSplit() int {
 	return i
 }
 
-func (p *parser) gotStmt(s *Stmt, wantStop bool, stops ...Token) bool {
+func (p *parser) gotStmt(s *Stmt, stops ...Token) bool {
 	if p.peek(RBRACE) {
 		// don't let it be a LIT
 		return false
@@ -819,9 +825,6 @@ func (p *parser) gotStmt(s *Stmt, wantStop bool, stops ...Token) bool {
 	}
 	if _, ok := s.Node.(FuncDecl); ok {
 		return true
-	}
-	if wantStop && !p.peekAny(stops...) && !p.peekStop() {
-		p.curErr("statements must be separated by &, ; or a newline")
 	}
 	switch {
 	case p.got(LAND), p.got(LOR):
@@ -915,14 +918,14 @@ func (p *parser) redirect() (r Redirect) {
 
 func (p *parser) subshell() (s Subshell) {
 	s.Lparen = p.pos
-	p.stmtsNested(&s.Stmts, RPAREN)
+	s.Stmts = p.stmtsNested(RPAREN)
 	p.wantMatched(s.Lparen, LPAREN, RPAREN, &s.Rparen)
 	return
 }
 
 func (p *parser) block() (b Block) {
 	b.Lbrace = p.lpos
-	p.stmts(&b.Stmts, RBRACE)
+	b.Stmts = p.stmts(RBRACE)
 	p.wantMatched(b.Lbrace, LBRACE, RBRACE, &b.Rbrace)
 	return
 }
@@ -1009,7 +1012,7 @@ func (p *parser) patLists() (pls []PatternList) {
 				p.curErr("case patterns must be separated with |")
 			}
 		}
-		p.stmtsNested(&pl.Stmts, DSEMICOLON, ESAC)
+		pl.Stmts = p.stmtsNested(DSEMICOLON, ESAC)
 		pls = append(pls, pl)
 		if !p.got(DSEMICOLON) {
 			break
