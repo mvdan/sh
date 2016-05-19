@@ -52,15 +52,10 @@ const (
 	SEMICOLON  // ;
 	DSEMICOLON // ;;
 
-	RDRIN    // <
-	RDROUT   // >
-	RDRINOUT // <>
-	DPLIN    // <&
-	DPLOUT   // >&
-	APPEND   // >>
-	HEREDOC  // <<
-	DHEREDOC // <<-
-	WHEREDOC // <<<
+	LSS // <
+	GTR // >
+	SHL // <<
+	SHR // >>
 
 	ADD // +
 	SUB // -
@@ -70,6 +65,12 @@ const (
 	XOR // ^
 	INC // ++
 	DEC // --
+
+	RDRINOUT // <>
+	DPLIN    // <&
+	DPLOUT   // >&
+	DHEREDOC // <<-
+	WHEREDOC // <<<
 
 	CADD    // :+
 	CSUB    // :-
@@ -161,15 +162,10 @@ var (
 		{";", SEMICOLON},
 		{";;", DSEMICOLON},
 
-		{"<", RDRIN},
-		{">", RDROUT},
-		{"<>", RDRINOUT},
-		{"<&", DPLIN},
-		{">&", DPLOUT},
-		{">>", APPEND},
-		{"<<", HEREDOC},
-		{"<<-", DHEREDOC},
-		{"<<<", WHEREDOC},
+		{"<", LSS},
+		{">", GTR},
+		{"<<", SHL},
+		{">>", SHR},
 
 		{"+", ADD},
 		{"-", SUB},
@@ -179,6 +175,12 @@ var (
 		{"^", XOR},
 		{"++", INC},
 		{"--", DEC},
+
+		{"<>", RDRINOUT},
+		{"<&", DPLIN},
+		{">&", DPLOUT},
+		{"<<-", DHEREDOC},
+		{"<<<", WHEREDOC},
 
 		{":+", CADD},
 		{":-", CSUB},

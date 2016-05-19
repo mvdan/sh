@@ -394,9 +394,9 @@ var astTests = []testCase{
 		Stmt{
 			Node: litCmd("foo"),
 			Redirs: []Redirect{
-				{Op: RDROUT, Word: litWord("a")},
-				{Op: APPEND, Word: litWord("b")},
-				{Op: RDRIN, Word: litWord("c")},
+				{Op: GTR, Word: litWord("a")},
+				{Op: SHR, Word: litWord("b")},
+				{Op: LSS, Word: litWord("c")},
 			},
 		},
 	},
@@ -408,7 +408,7 @@ var astTests = []testCase{
 		Stmt{
 			Node: litCmd("foo", "bar"),
 			Redirs: []Redirect{
-				{Op: RDROUT, Word: litWord("a")},
+				{Op: GTR, Word: litWord("a")},
 			},
 		},
 	},
@@ -416,8 +416,8 @@ var astTests = []testCase{
 		[]string{`>a >\b`},
 		Stmt{
 			Redirs: []Redirect{
-				{Op: RDROUT, Word: litWord("a")},
-				{Op: RDROUT, Word: litWord(`\b`)},
+				{Op: GTR, Word: litWord("a")},
+				{Op: GTR, Word: litWord(`\b`)},
 			},
 		},
 	},
@@ -428,7 +428,7 @@ var astTests = []testCase{
 			{
 				Node: litCmd("foo2"),
 				Redirs: []Redirect{
-					{Op: RDROUT, Word: litWord("r2")},
+					{Op: GTR, Word: litWord("r2")},
 				},
 			},
 		},
@@ -441,7 +441,7 @@ var astTests = []testCase{
 		Stmt{
 			Node: litCmd("foo"),
 			Redirs: []Redirect{
-				{Op: HEREDOC, Word: litWord("EOF\nbar\nEOF")},
+				{Op: SHL, Word: litWord("EOF\nbar\nEOF")},
 			},
 		},
 	},
@@ -450,7 +450,7 @@ var astTests = []testCase{
 		Stmt{
 			Node: litCmd("foo"),
 			Redirs: []Redirect{
-				{Op: HEREDOC, Word: litWord("EOF\nl1\nl2\nl3\nEOF")},
+				{Op: SHL, Word: litWord("EOF\nl1\nl2\nl3\nEOF")},
 			},
 		},
 	},
@@ -459,7 +459,7 @@ var astTests = []testCase{
 		block(Stmt{
 			Node: litCmd("foo"),
 			Redirs: []Redirect{
-				{Op: HEREDOC, Word: litWord("EOF\nbar\nEOF")},
+				{Op: SHL, Word: litWord("EOF\nbar\nEOF")},
 			},
 		}),
 	},
@@ -469,7 +469,7 @@ var astTests = []testCase{
 			{
 				Node: litCmd("foo"),
 				Redirs: []Redirect{
-					{Op: HEREDOC, Word: litWord("EOF\nbar\nEOF")},
+					{Op: SHL, Word: litWord("EOF\nbar\nEOF")},
 				},
 			},
 			litStmt("foo2"),
@@ -480,7 +480,7 @@ var astTests = []testCase{
 		Stmt{
 			Node: litCmd("foo"),
 			Redirs: []Redirect{
-				{Op: HEREDOC, Word: litWord("FOOBAR\nbar\nFOOBAR")},
+				{Op: SHL, Word: litWord("FOOBAR\nbar\nFOOBAR")},
 			},
 		},
 	},
@@ -489,7 +489,7 @@ var astTests = []testCase{
 		Stmt{
 			Node: litCmd("foo"),
 			Redirs: []Redirect{
-				{Op: HEREDOC, Word: litWord("\"EOF\"\nbar\nEOF")},
+				{Op: SHL, Word: litWord("\"EOF\"\nbar\nEOF")},
 			},
 		},
 	},
@@ -498,7 +498,7 @@ var astTests = []testCase{
 		Stmt{
 			Node: litCmd("foo"),
 			Redirs: []Redirect{
-				{Op: HEREDOC, Word: litWord("'EOF'\nbar\nEOF")},
+				{Op: SHL, Word: litWord("'EOF'\nbar\nEOF")},
 			},
 		},
 	},
@@ -507,7 +507,7 @@ var astTests = []testCase{
 		Stmt{
 			Node: litCmd("foo"),
 			Redirs: []Redirect{
-				{Op: HEREDOC, Word: litWord("\"EOF\"2\nbar\nEOF2")},
+				{Op: SHL, Word: litWord("\"EOF\"2\nbar\nEOF2")},
 			},
 		},
 	},
@@ -533,7 +533,7 @@ var astTests = []testCase{
 				Node: litCmd("f1"),
 				Redirs: []Redirect{
 					{
-						Op:   HEREDOC,
+						Op:   SHL,
 						Word: litWord("EOF1\nh1\nEOF1"),
 					},
 				},
@@ -542,7 +542,7 @@ var astTests = []testCase{
 				Node: litCmd("f2"),
 				Redirs: []Redirect{
 					{
-						Op:   HEREDOC,
+						Op:   SHL,
 						Word: litWord("EOF2\nh2\nEOF2"),
 					},
 				},
@@ -556,7 +556,7 @@ var astTests = []testCase{
 			Redirs: []Redirect{
 				{Op: DPLOUT, Word: litWord("2")},
 				{Op: DPLIN, Word: litWord("0")},
-				{Op: RDROUT, N: lit("2"), Word: litWord("file")},
+				{Op: GTR, N: lit("2"), Word: litWord("file")},
 				{Op: RDRINOUT, Word: litWord("f2")},
 			},
 		},
@@ -566,11 +566,11 @@ var astTests = []testCase{
 		[]Stmt{
 			{
 				Node:   litCmd("a"),
-				Redirs: []Redirect{{Op: RDROUT, Word: litWord("f1")}},
+				Redirs: []Redirect{{Op: GTR, Word: litWord("f1")}},
 			},
 			{
 				Node:   litCmd("b"),
-				Redirs: []Redirect{{Op: RDROUT, Word: litWord("f2")}},
+				Redirs: []Redirect{{Op: GTR, Word: litWord("f2")}},
 			},
 		},
 	},
@@ -631,7 +631,7 @@ var astTests = []testCase{
 				ThenStmts: litStmts("bar"),
 			},
 			Redirs: []Redirect{
-				{Op: RDROUT, Word: litWord("/dev/null")},
+				{Op: GTR, Word: litWord("/dev/null")},
 			},
 			Background: true,
 		},
@@ -980,7 +980,7 @@ var astTests = []testCase{
 	{
 		[]string{`$((1 < 3))`},
 		word(arithmExpr(BinaryExpr{
-			Op: RDRIN,
+			Op: LSS,
 			X:  litWord("1"),
 			Y:  litWord("3"),
 		})),
@@ -1114,7 +1114,7 @@ var astTests = []testCase{
 		IfStmt{
 			ThenStmts: []Stmt{
 				{Redirs: []Redirect{
-					{Op: RDROUT, Word: litWord("f")},
+					{Op: GTR, Word: litWord("f")},
 				}},
 			},
 		},
@@ -1181,7 +1181,7 @@ var astTests = []testCase{
 			X: Stmt{
 				Node: litCmd("foo"),
 				Redirs: []Redirect{
-					{Op: RDROUT, Word: litWord("f")},
+					{Op: GTR, Word: litWord("f")},
 				},
 			},
 			Y: litStmt("bar"),
@@ -1194,7 +1194,7 @@ var astTests = []testCase{
 			X: Stmt{
 				Node: litCmd("foo"),
 				Redirs: []Redirect{
-					{Op: RDROUT, Word: litWord("f")},
+					{Op: GTR, Word: litWord("f")},
 				},
 			},
 			Y: litStmt("bar"),

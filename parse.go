@@ -675,8 +675,8 @@ func (p *parser) arithmExpr(following Token) Node {
 	if p.eof() || p.peek(RPAREN) {
 		return left
 	}
-	if !p.gotAny(ADD, SUB, REM, MUL, QUO, XOR, INC, AND, OR,
-			RDRIN, RDROUT, APPEND, HEREDOC) {
+	if !p.gotAny(ADD, SUB, REM, MUL, QUO, XOR, INC, AND, OR, LSS, GTR,
+		SHR, SHL) {
 		p.curErr("not a valid arithmetic operator")
 	}
 	b := BinaryExpr{
@@ -770,8 +770,8 @@ func (p *parser) peekRedir() bool {
 	if p.peek(LIT) && p.peekAnyByte('>', '<') {
 		return true
 	}
-	return p.peekAny(RDROUT, APPEND, RDRIN, DPLIN, DPLOUT, RDRINOUT,
-		HEREDOC, DHEREDOC, WHEREDOC)
+	return p.peekAny(GTR, SHR, LSS, DPLIN, DPLOUT, RDRINOUT,
+		SHL, DHEREDOC, WHEREDOC)
 }
 
 var identRe = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
@@ -918,7 +918,7 @@ func (p *parser) redirect() (r Redirect) {
 	r.OpPos = p.pos
 	p.next()
 	switch r.Op {
-	case HEREDOC, DHEREDOC:
+	case SHL, DHEREDOC:
 		p.stopNewline = true
 		r.Word = p.wantFollowWord(r.Op)
 		p.stopNewline = false
