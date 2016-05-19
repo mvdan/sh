@@ -214,6 +214,8 @@ func (p *parser) next() {
 		}
 	case b == '#' && !p.quoted('"'):
 		p.advanceBoth(COMMENT, p.readLine())
+	case p.quoted(DRPAREN) && arithmOps[b]:
+		p.advanceTok(p.doToken(b))
 	case reserved[b]:
 		// Between double quotes, only under certain
 		// circumstnaces do we tokenize
@@ -259,11 +261,7 @@ func (p *parser) readLitBytes() (bs []byte) {
 				return
 			}
 		case p.quoted(DRPAREN) && arithmOps[b]:
-			if len(bs) > 0 {
-				return
-			}
-			p.consumeByte()
-			return []byte{b}
+			return
 		case reserved[b], space[b]:
 			return
 		}
@@ -636,12 +634,11 @@ func (p *parser) arithmExpr(following Token) Node {
 		}
 		p.wantMatched(pe.Lparen, LPAREN, RPAREN, &pe.Rparen)
 		left = pe
-	} else if t := p.doTokenString(p.val); t == ADD || t == SUB {
+	} else if p.got(ADD) || p.got(SUB) {
 		ue := UnaryExpr{
-			OpPos: p.pos,
-			Op:    t,
+			OpPos: p.lpos,
+			Op:    p.ltok,
 		}
-		p.next()
 		ue.X = p.arithmExpr(ue.Op)
 		if ue.X == nil {
 			p.followErr(ue.OpPos, ue.Op, "an expression")
@@ -652,29 +649,20 @@ func (p *parser) arithmExpr(following Token) Node {
 		p.wantFollowWord(following, &w)
 		left = w
 	}
-	if p.val == "+" && p.readOnly("+") {
+	if p.got(INC) || p.got(DEC) {
 		left = UnaryExpr{
 			Post:  true,
-			OpPos: p.pos,
-			Op:    INC,
+			OpPos: p.lpos,
+			Op:    p.ltok,
 			X:     left,
 		}
-		p.next()
-	} else if p.val == "-" && p.readOnly("-") {
-		left = UnaryExpr{
-			Post:  true,
-			OpPos: p.pos,
-			Op:    DEC,
-			X:     left,
-		}
-		p.next()
 	}
 	if p.eof() || p.peek(RPAREN) {
 		return left
 	}
 	b := BinaryExpr{
 		OpPos: p.pos,
-		Op:    p.doTokenString(p.val),
+		Op:    p.tok,
 		X:     left,
 	}
 	p.next()

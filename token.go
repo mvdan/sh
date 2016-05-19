@@ -207,14 +207,3 @@ func (p *parser) doToken(b byte) Token {
 	p.consumeByte()
 	return Token(b)
 }
-
-func (p *parser) doTokenString(s string) Token {
-	// In reverse, to not treat e.g. && as & two times
-	for i := len(tokList) - 1; i >= 0; i-- {
-		t := tokList[i]
-		if s == t.str {
-			return t.tok
-		}
-	}
-	return ILLEGAL
-}
