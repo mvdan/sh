@@ -358,6 +358,14 @@ var astTests = []testCase{
 		},
 	},
 	{
+		[]string{"foo |& bar", "foo|&bar"},
+		BinaryExpr{
+			Op: PIPEALL,
+			X:  litStmt("foo"),
+			Y:  litStmt("bar"),
+		},
+	},
+	{
 		[]string{
 			"foo() { a; b; }",
 			"foo() {\na\nb\n}",

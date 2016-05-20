@@ -771,7 +771,7 @@ func (p *parser) peekEnd() bool {
 }
 
 func (p *parser) peekStop() bool {
-	if p.peekEnd() || p.peekAny(AND, OR, LAND, LOR) {
+	if p.peekEnd() || p.peekAny(AND, OR, LAND, LOR, PIPEALL) {
 		return true
 	}
 	for i := len(p.stops) - 1; i >= 0; i-- {
@@ -903,7 +903,7 @@ func (p *parser) gotStmtAndOr(s *Stmt, addRedir func()) bool {
 	default:
 		return false
 	}
-	if p.got(OR) {
+	if p.got(OR) || p.got(PIPEALL) {
 		*s = p.binaryStmt(*s, addRedir)
 	}
 	return true

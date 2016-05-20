@@ -68,6 +68,7 @@ const (
 	INC // ++
 	DEC // --
 
+	PIPEALL  // |&
 	RDRINOUT // <>
 	DPLIN    // <&
 	DPLOUT   // >&
@@ -180,6 +181,7 @@ var (
 		{"++", INC},
 		{"--", DEC},
 
+		{"|&", PIPEALL},
 		{"<>", RDRINOUT},
 		{"<&", DPLIN},
 		{">&", DPLOUT},

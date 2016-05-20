@@ -175,6 +175,10 @@ var errTests = []struct {
 		`1:5: | must be followed by a statement`,
 	},
 	{
+		"foo |&",
+		`1:5: |& must be followed by a statement`,
+	},
+	{
 		"foo ||",
 		`1:5: || must be followed by a statement`,
 	},
