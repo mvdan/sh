@@ -267,6 +267,16 @@ func (w WordIter) String() string {
 }
 func (w WordIter) Pos() Pos { return w.Name.Pos() }
 
+type CStyleLoop struct {
+	Lparen, Rparen   Pos
+	Init, Cond, Post Node
+}
+
+func (c CStyleLoop) String() string {
+	return fmt.Sprintf("((%s; %s; %s))", c.Init, c.Cond, c.Post)
+}
+func (c CStyleLoop) Pos() Pos { return c.Lparen }
+
 type UnaryExpr struct {
 	OpPos Pos
 	Op    Token

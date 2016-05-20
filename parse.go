@@ -662,7 +662,7 @@ func (p *parser) arithmExpr(following Token) Node {
 			X:     left,
 		}
 	}
-	if p.eof() || p.peek(RPAREN) {
+	if p.eof() || p.peekAny(RPAREN, SEMICOLON) {
 		return left
 	}
 	if !p.gotAny(ADD, SUB, REM, MUL, QUO, XOR, AND, OR, LSS, GTR,
@@ -998,16 +998,35 @@ func (p *parser) untilStmt() (us UntilStmt) {
 
 func (p *parser) forStmt() (fs ForStmt) {
 	fs.For = p.lpos
-	var w WordIter
-	if !p.gotLit(&w.Name) {
-		p.followErr(fs.For, FOR, "a literal")
+	if p.peek(LPAREN) && p.readOnly("(") {
+		c := CStyleLoop{Lparen: p.pos}
+		p.enterStops(DRPAREN)
+		c.Init = p.arithmExpr(DLPAREN)
+		p.wantFollow(c.Init.Pos(), "expression", SEMICOLON)
+		c.Cond = p.arithmExpr(SEMICOLON)
+		p.wantFollow(c.Cond.Pos(), "expression", SEMICOLON)
+		c.Post = p.arithmExpr(SEMICOLON)
+		if !p.peekArithmEnd() {
+			p.matchingErr(c.Lparen, DLPAREN, DRPAREN)
+		}
+		c.Rparen = p.pos
+		p.readOnly(")")
+		p.popStop()
+		p.next()
+		p.gotSameLine(SEMICOLON)
+		fs.Cond = c
+	} else {
+		var w WordIter
+		if !p.gotLit(&w.Name) {
+			p.followErr(fs.For, FOR, "a literal")
+		}
+		if p.got(IN) {
+			p.wordList(&w.List)
+		} else if !p.gotSameLine(SEMICOLON) && !p.newLine {
+			p.followErr(fs.For, "for foo", `"in", ; or a newline`)
+		}
+		fs.Cond = w
 	}
-	if p.got(IN) {
-		p.wordList(&w.List)
-	} else if !p.gotSameLine(SEMICOLON) && !p.newLine {
-		p.followErr(fs.For, "for foo", `"in", ; or a newline`)
-	}
-	fs.Cond = w
 	p.wantFollow(fs.For, "for foo [in words]", DO)
 	fs.DoStmts = p.wantFollowStmts(DO, DONE)
 	p.wantStmtEnd(fs.For, FOR, DONE, &fs.Done)

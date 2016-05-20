@@ -228,6 +228,36 @@ var astTests = []testCase{
 		},
 	},
 	{
+		[]string{
+			"for ((i = 0; i < 10; i++)); do echo $i; done",
+			"for ((i=0;i<10;i++)) do echo $i; done",
+			"for (( i = 0 ; i < 10 ; i++ ))\ndo echo $i\ndone",
+		},
+		ForStmt{
+			Cond: CStyleLoop{
+				Init: BinaryExpr{
+					Op: ASSIGN,
+					X:  litWord("i"),
+					Y:  litWord("0"),
+				},
+				Cond: BinaryExpr{
+					Op: LSS,
+					X:  litWord("i"),
+					Y:  litWord("10"),
+				},
+				Post: UnaryExpr{
+					Op:   INC,
+					Post: true,
+					X:    litWord("i"),
+				},
+			},
+			DoStmts: stmts(cmd(
+				litWord("echo"),
+				word(litParamExp("i")),
+			)),
+		},
+	},
+	{
 		[]string{`' ' "foo bar"`},
 		cmd(
 			word(sglQuoted(" ")),
@@ -1333,6 +1363,13 @@ func setPosRecurse(t *testing.T, v interface{}, to Pos, diff bool) Node {
 	case WordIter:
 		recurse(&x.Name)
 		recurse(x.List)
+		return x
+	case CStyleLoop:
+		setPos(&x.Lparen)
+		setPos(&x.Rparen)
+		recurse(&x.Init)
+		recurse(&x.Cond)
+		recurse(&x.Post)
 		return x
 	case SglQuoted:
 		setPos(&x.Quote)
