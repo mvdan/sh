@@ -641,7 +641,7 @@ func (p *parser) arithmExpr(following Token) Node {
 		return nil
 	}
 	var left Node
-	if p.gotAny(INC, DEC) {
+	if p.gotAny(INC, DEC, NOT) {
 		pre := UnaryExpr{
 			OpPos: p.lpos,
 			Op:    p.ltok,

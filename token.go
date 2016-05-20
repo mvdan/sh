@@ -138,7 +138,6 @@ var (
 		CASE:  "case",
 		ESAC:  "esac",
 
-		NOT:    "!",
 		LBRACE: "{",
 		RBRACE: "}",
 
@@ -180,6 +179,7 @@ var (
 		{"^", XOR},
 		{"++", INC},
 		{"--", DEC},
+		{"!", NOT},
 
 		{"|&", PIPEALL},
 		{"<>", RDRINOUT},
