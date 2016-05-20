@@ -645,19 +645,15 @@ func (p *parser) arithmExpr(following Token) Node {
 	if p.eof() || p.peekArithmEnd() {
 		return nil
 	}
-	var pre UnaryExpr
+	var left Node
 	if p.gotAny(INC, DEC) {
-		pre = UnaryExpr{
+		pre := UnaryExpr{
 			OpPos: p.lpos,
 			Op:    p.ltok,
 		}
-		following = pre.Op
-	}
-	left := p.arithmExprBase(following)
-	if pre.Op != 0 {
-		pre.X = left
+		pre.X = p.arithmExprBase(pre.Op)
 		left = pre
-	} else if p.gotAny(INC, DEC) {
+	} else if left = p.arithmExprBase(following); p.gotAny(INC, DEC) {
 		left = UnaryExpr{
 			Post:  true,
 			OpPos: p.lpos,
