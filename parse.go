@@ -876,9 +876,6 @@ func (p *parser) gotStmt(s *Stmt, stops ...Token) bool {
 		}
 	}
 	p.gotStmtAndOr(s, addRedir)
-	for !p.newLine && p.peekRedir() {
-		addRedir()
-	}
 	if !s.Negated && s.Node == nil && len(s.Assigns) == 0 && len(s.Redirs) == 0 {
 		return false
 	}
@@ -916,6 +913,9 @@ func (p *parser) gotStmtAndOr(s *Stmt, addRedir func()) bool {
 		s.Node = p.cmdOrFunc(addRedir)
 	default:
 		return false
+	}
+	for !p.newLine && p.peekRedir() {
+		addRedir()
 	}
 	if p.got(OR) || p.got(PIPEALL) {
 		*s = p.binaryStmt(*s, addRedir)

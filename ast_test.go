@@ -1372,11 +1372,11 @@ var astTests = []testCase{
 		},
 	},
 	{
-		[]string{"foo >f || bar"},
+		[]string{"(foo) >f | bar"},
 		BinaryExpr{
-			Op: LOR,
+			Op: OR,
 			X: Stmt{
-				Node: litCmd("foo"),
+				Node: subshell(litStmt("foo")),
 				Redirs: []Redirect{
 					{Op: GTR, Word: litWord("f")},
 				},
