@@ -909,9 +909,10 @@ func (p *parser) gotStmtAndOr(s *Stmt, addRedir func()) bool {
 		s.Node = p.caseStmt()
 	case p.got(DECLARE):
 		s.Node = p.declStmt()
-	case p.peekAny(LIT, DOLLAR, '"', '\'', '`'):
-		s.Node = p.cmdOrFunc(addRedir)
 	default:
+		s.Node = p.cmdOrFunc(addRedir)
+	}
+	if s.Node == nil {
 		return false
 	}
 	for !p.newLine && p.peekRedir() {
@@ -1137,7 +1138,9 @@ func (p *parser) cmdOrFunc(addRedir func()) Node {
 		return p.funcDecl(w, fpos)
 	}
 	var w Word
-	p.gotWord(&w)
+	if !p.gotWord(&w) {
+		return nil
+	}
 	if p.gotSameLine(LPAREN) {
 		p.followTok(w.Pos(), "foo(", RPAREN)
 		return p.funcDecl(w, w.Pos())
