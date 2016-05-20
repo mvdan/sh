@@ -655,6 +655,20 @@ var astTests = []testCase{
 		},
 	},
 	{
+		[]string{"cat < <(echo foo)"},
+		Stmt{
+			Node: litCmd("cat"),
+			Redirs: []Redirect{
+				{
+					Op: LSS,
+					Word: word(
+						CmdInput{Stmt: litStmt("echo", "foo")},
+					),
+				},
+			},
+		},
+	},
+	{
 		[]string{"!"},
 		Stmt{Negated: true},
 	},
@@ -1500,6 +1514,11 @@ func setPosRecurse(t *testing.T, v interface{}, to Pos, diff bool) Node {
 		setPos(&x.Lparen)
 		setPos(&x.Rparen)
 		recurse(x.List)
+		return x
+	case CmdInput:
+		setPos(&x.Lss)
+		setPos(&x.Rparen)
+		recurse(&x.Stmt)
 		return x
 	case nil:
 	default:

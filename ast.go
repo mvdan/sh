@@ -474,3 +474,13 @@ func (a ArrayExpr) String() string {
 	return fmt.Sprint(LPAREN, wordJoin(a.List, " "), RPAREN)
 }
 func (a ArrayExpr) Pos() Pos { return a.Lparen }
+
+type CmdInput struct {
+	Lss, Rparen Pos
+	Stmt        Stmt
+}
+
+func (c CmdInput) String() string {
+	return fmt.Sprint(" ", LSS, "", LPAREN, "", c.Stmt, "", RPAREN)
+}
+func (c CmdInput) Pos() Pos { return c.Lss }

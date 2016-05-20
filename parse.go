@@ -564,6 +564,13 @@ func (p *parser) wordPart() Node {
 			ValuePos: p.lpos,
 			Value:    p.lval,
 		}
+	case p.peek(LSS) && p.readOnly("("):
+		ci := CmdInput{Lss: p.pos}
+		p.enterStops(RPAREN)
+		p.gotStmt(&ci.Stmt)
+		p.popStop()
+		ci.Rparen = p.matchedTok(ci.Lss, LPAREN, RPAREN)
+		return ci
 	case p.peek('\''):
 		sq := SglQuoted{Quote: p.pos}
 		s, found := p.readUntil("'")
