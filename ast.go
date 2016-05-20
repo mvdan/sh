@@ -145,9 +145,16 @@ func (s Stmt) newlineAfter() bool {
 type Assign struct {
 	Name  Lit
 	Value Word
+
+	NameOnly bool // TODO: ugly
 }
 
-func (a Assign) String() string { return fmt.Sprint(a.Name, "=", a.Value) }
+func (a Assign) String() string {
+	if a.NameOnly {
+		return a.Name.String()
+	}
+	return fmt.Sprint(a.Name, "=", a.Value)
+}
 
 type Redirect struct {
 	OpPos Pos

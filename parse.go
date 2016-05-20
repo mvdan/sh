@@ -1088,6 +1088,15 @@ func (p *parser) declStmt() Node {
 	for !p.peekStop() {
 		if as, ok := p.getAssign(); ok {
 			ds.Assigns = append(ds.Assigns, as)
+		} else if p.peek(LIT) && p.peekSpaced() {
+			ds.Assigns = append(ds.Assigns, Assign{
+				NameOnly: true,
+				Name: Lit{
+					ValuePos: p.pos,
+					Value:    p.val,
+				},
+			})
+			p.next()
 		}
 	}
 	return ds
