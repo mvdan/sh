@@ -58,16 +58,17 @@ const (
 	SHL // <<
 	SHR // >>
 
-	ADD // +
-	SUB // -
-	REM // %
-	MUL // *
-	QUO // /
-	XOR // ^
-	INC // ++
-	DEC // --
-	NOT // !
-	POW // **
+	ADD   // +
+	SUB   // -
+	REM   // %
+	MUL   // *
+	QUO   // /
+	XOR   // ^
+	INC   // ++
+	DEC   // --
+	NOT   // !
+	POW   // **
+	COMMA // ,
 
 	PIPEALL  // |&
 	RDRINOUT // <>
@@ -182,6 +183,7 @@ var (
 		{"--", DEC},
 		{"!", NOT},
 		{"**", POW},
+		{",", COMMA},
 
 		{"|&", PIPEALL},
 		{"<>", RDRINOUT},

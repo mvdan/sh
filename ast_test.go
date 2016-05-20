@@ -1127,6 +1127,22 @@ var astTests = []testCase{
 		})),
 	},
 	{
+		[]string{"$((a = 2, b = 3))"},
+		word(arithmExpr(BinaryExpr{
+			Op: ASSIGN,
+			X:  litWord("a"),
+			Y: BinaryExpr{
+				Op: COMMA,
+				X:  litWord("2"),
+				Y: BinaryExpr{
+					Op: ASSIGN,
+					X:  litWord("b"),
+					Y:  litWord("3"),
+				},
+			},
+		})),
+	},
+	{
 		[]string{"foo$"},
 		word(lit("foo"), lit("$")),
 	},
