@@ -949,6 +949,11 @@ func unquote(w Word) (unq Word) {
 			unq.Parts = append(unq.Parts, Lit{Value: x.Value})
 		case DblQuoted:
 			unq.Parts = append(unq.Parts, x.Parts...)
+		case Lit:
+			if x.Value[0] == '\\' {
+				x.Value = x.Value[1:]
+			}
+			unq.Parts = append(unq.Parts, x)
 		default:
 			unq.Parts = append(unq.Parts, n)
 		}

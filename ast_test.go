@@ -566,6 +566,18 @@ var astTests = []testCase{
 	},
 	{
 		[]string{
+			"foo <<\\EOF\nbar\nEOF",
+			"foo <<\\EOF\nbar",
+		},
+		Stmt{
+			Node: litCmd("foo"),
+			Redirs: []Redirect{
+				{Op: SHL, Word: litWord("\\EOF\nbar\nEOF")},
+			},
+		},
+	},
+	{
+		[]string{
 			"foo <<-EOF\nbar\nEOF",
 			"foo <<- EOF\nbar\nEOF",
 		},
