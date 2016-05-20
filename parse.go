@@ -998,14 +998,16 @@ func (p *parser) untilStmt() (us UntilStmt) {
 
 func (p *parser) forStmt() (fs ForStmt) {
 	fs.For = p.lpos
-	if !p.gotLit(&fs.Name) {
+	var w WordIter
+	if !p.gotLit(&w.Name) {
 		p.followErr(fs.For, FOR, "a literal")
 	}
 	if p.got(IN) {
-		p.wordList(&fs.WordList)
+		p.wordList(&w.List)
 	} else if !p.gotSameLine(SEMICOLON) && !p.newLine {
 		p.followErr(fs.For, "for foo", `"in", ; or a newline`)
 	}
+	fs.Cond = w
 	p.wantFollow(fs.For, "for foo [in words]", DO)
 	fs.DoStmts = p.wantFollowStmts(DO, DONE)
 	p.wantStmtEnd(fs.For, FOR, DONE, &fs.Done)

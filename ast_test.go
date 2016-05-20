@@ -204,7 +204,9 @@ var astTests = []testCase{
 			"for i in; do foo; done",
 		},
 		ForStmt{
-			Name:    lit("i"),
+			Cond: WordIter{
+				Name: lit("i"),
+			},
 			DoStmts: litStmts("foo"),
 		},
 	},
@@ -215,8 +217,10 @@ var astTests = []testCase{
 			"for i in 1 2 3 #foo\ndo echo $i\ndone",
 		},
 		ForStmt{
-			Name:     lit("i"),
-			WordList: litWords("1", "2", "3"),
+			Cond: WordIter{
+				Name: lit("i"),
+				List: litWords("1", "2", "3"),
+			},
 			DoStmts: stmts(cmd(
 				litWord("echo"),
 				word(litParamExp("i")),
@@ -1159,7 +1163,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"for i; do; done", "for i\ndo\ndone"},
-		ForStmt{Name: lit("i")},
+		ForStmt{Cond: WordIter{Name: lit("i")}},
 	},
 	{
 		[]string{"case i in; esac"},
@@ -1323,9 +1327,12 @@ func setPosRecurse(t *testing.T, v interface{}, to Pos, diff bool) Node {
 	case ForStmt:
 		setPos(&x.For)
 		setPos(&x.Done)
-		recurse(&x.Name)
-		recurse(x.WordList)
+		recurse(&x.Cond)
 		recurse(x.DoStmts)
+		return x
+	case WordIter:
+		recurse(&x.Name)
+		recurse(x.List)
 		return x
 	case SglQuoted:
 		setPos(&x.Quote)

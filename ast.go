@@ -245,21 +245,27 @@ func (u UntilStmt) Pos() Pos { return u.Until }
 
 type ForStmt struct {
 	For, Done Pos
-	Name      Lit
-	WordList  []Word
+	Cond      Node
 	DoStmts   []Stmt
 }
 
 func (f ForStmt) String() string {
-	var b bytes.Buffer
-	fmt.Fprint(&b, FOR, " ", f.Name)
-	if len(f.WordList) > 0 {
-		fmt.Fprintf(&b, " %s %s", IN, wordJoin(f.WordList, " "))
-	}
-	fmt.Fprint(&b, "; ", DO, stmtList(f.DoStmts), DONE)
-	return b.String()
+	return fmt.Sprint(FOR, " ", f.Cond, "; ", DO, stmtList(f.DoStmts), DONE)
 }
 func (f ForStmt) Pos() Pos { return f.For }
+
+type WordIter struct {
+	Name Lit
+	List []Word
+}
+
+func (w WordIter) String() string {
+	if len(w.List) < 1 {
+		return w.Name.String()
+	}
+	return fmt.Sprint(w.Name, IN, " ", wordJoin(w.List, " "))
+}
+func (w WordIter) Pos() Pos { return w.Name.Pos() }
 
 type UnaryExpr struct {
 	OpPos Pos
