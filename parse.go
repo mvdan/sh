@@ -397,7 +397,7 @@ func (p *parser) followErr(lpos Pos, left interface{}, right string) {
 	p.posErr(lpos, "%s must be followed by %s", leftStr, right)
 }
 
-func (p *parser) wantFollow(lpos Pos, left string, tok Token) {
+func (p *parser) followTok(lpos Pos, left string, tok Token) {
 	if !p.got(tok) {
 		p.followErr(lpos, left, fmt.Sprintf(`%q`, tok))
 	}
@@ -410,7 +410,7 @@ func (p *parser) followStmt(lpos Pos, left string) (s Stmt) {
 	return
 }
 
-func (p *parser) wantFollowStmts(left Token, stops ...Token) []Stmt {
+func (p *parser) followStmts(left Token, stops ...Token) []Stmt {
 	if p.gotSameLine(SEMICOLON) {
 		return nil
 	}
@@ -421,14 +421,14 @@ func (p *parser) wantFollowStmts(left Token, stops ...Token) []Stmt {
 	return sts
 }
 
-func (p *parser) wantFollowWord(left Token) (w Word) {
+func (p *parser) followWord(left Token) (w Word) {
 	if !p.gotWord(&w) {
 		p.followErr(p.lpos, left, "a word")
 	}
 	return
 }
 
-func (p *parser) wantStmtEnd(startPos Pos, startTok, tok Token, pos *Pos) {
+func (p *parser) stmtEnd(startPos Pos, startTok, tok Token, pos *Pos) {
 	if !p.got(tok) {
 		p.posErr(startPos, `%s statement must end with %q`, startTok, tok)
 	}
@@ -689,7 +689,7 @@ func (p *parser) arithmExprBase(following Token) Node {
 		}
 		return ue
 	default:
-		return p.wantFollowWord(following)
+		return p.followWord(following)
 	}
 }
 
@@ -957,12 +957,12 @@ func (p *parser) redirect() (r Redirect) {
 	switch r.Op {
 	case SHL, DHEREDOC:
 		p.stopNewline = true
-		r.Word = p.wantFollowWord(r.Op)
+		r.Word = p.followWord(r.Op)
 		p.stopNewline = false
 		p.heredocs = append(p.heredocs, &r.Word)
 		p.got(STOPPED)
 	default:
-		r.Word = p.wantFollowWord(r.Op)
+		r.Word = p.followWord(r.Op)
 	}
 	return
 }
@@ -983,38 +983,38 @@ func (p *parser) block() (b Block) {
 
 func (p *parser) ifStmt() (fs IfStmt) {
 	fs.If = p.lpos
-	fs.Conds = p.wantFollowStmts(IF, THEN)
-	p.wantFollow(fs.If, "if [stmts]", THEN)
-	fs.ThenStmts = p.wantFollowStmts(THEN, FI, ELIF, ELSE)
+	fs.Conds = p.followStmts(IF, THEN)
+	p.followTok(fs.If, "if [stmts]", THEN)
+	fs.ThenStmts = p.followStmts(THEN, FI, ELIF, ELSE)
 	for p.got(ELIF) {
 		elf := Elif{Elif: p.lpos}
-		elf.Conds = p.wantFollowStmts(ELIF, THEN)
-		p.wantFollow(elf.Elif, "elif [stmts]", THEN)
-		elf.ThenStmts = p.wantFollowStmts(THEN, FI, ELIF, ELSE)
+		elf.Conds = p.followStmts(ELIF, THEN)
+		p.followTok(elf.Elif, "elif [stmts]", THEN)
+		elf.ThenStmts = p.followStmts(THEN, FI, ELIF, ELSE)
 		fs.Elifs = append(fs.Elifs, elf)
 	}
 	if p.got(ELSE) {
-		fs.ElseStmts = p.wantFollowStmts(ELSE, FI)
+		fs.ElseStmts = p.followStmts(ELSE, FI)
 	}
-	p.wantStmtEnd(fs.If, IF, FI, &fs.Fi)
+	p.stmtEnd(fs.If, IF, FI, &fs.Fi)
 	return
 }
 
 func (p *parser) whileStmt() (ws WhileStmt) {
 	ws.While = p.lpos
-	ws.Conds = p.wantFollowStmts(WHILE, DO)
-	p.wantFollow(ws.While, "while [stmts]", DO)
-	ws.DoStmts = p.wantFollowStmts(DO, DONE)
-	p.wantStmtEnd(ws.While, WHILE, DONE, &ws.Done)
+	ws.Conds = p.followStmts(WHILE, DO)
+	p.followTok(ws.While, "while [stmts]", DO)
+	ws.DoStmts = p.followStmts(DO, DONE)
+	p.stmtEnd(ws.While, WHILE, DONE, &ws.Done)
 	return
 }
 
 func (p *parser) untilStmt() (us UntilStmt) {
 	us.Until = p.lpos
-	us.Conds = p.wantFollowStmts(UNTIL, DO)
-	p.wantFollow(us.Until, "until [stmts]", DO)
-	us.DoStmts = p.wantFollowStmts(DO, DONE)
-	p.wantStmtEnd(us.Until, UNTIL, DONE, &us.Done)
+	us.Conds = p.followStmts(UNTIL, DO)
+	p.followTok(us.Until, "until [stmts]", DO)
+	us.DoStmts = p.followStmts(DO, DONE)
+	p.stmtEnd(us.Until, UNTIL, DONE, &us.Done)
 	return
 }
 
@@ -1023,9 +1023,9 @@ func (p *parser) forStmt() (fs ForStmt) {
 	if p.gotArithmStart() {
 		c := CStyleLoop{Lparen: p.lpos}
 		c.Init = p.arithmExpr(DLPAREN)
-		p.wantFollow(c.Init.Pos(), "expression", SEMICOLON)
+		p.followTok(c.Init.Pos(), "expression", SEMICOLON)
 		c.Cond = p.arithmExpr(SEMICOLON)
-		p.wantFollow(c.Cond.Pos(), "expression", SEMICOLON)
+		p.followTok(c.Cond.Pos(), "expression", SEMICOLON)
 		c.Post = p.arithmExpr(SEMICOLON)
 		c.Rparen = p.arithmEnd(c.Lparen)
 		p.gotSameLine(SEMICOLON)
@@ -1042,18 +1042,18 @@ func (p *parser) forStmt() (fs ForStmt) {
 		}
 		fs.Cond = w
 	}
-	p.wantFollow(fs.For, "for foo [in words]", DO)
-	fs.DoStmts = p.wantFollowStmts(DO, DONE)
-	p.wantStmtEnd(fs.For, FOR, DONE, &fs.Done)
+	p.followTok(fs.For, "for foo [in words]", DO)
+	fs.DoStmts = p.followStmts(DO, DONE)
+	p.stmtEnd(fs.For, FOR, DONE, &fs.Done)
 	return
 }
 
 func (p *parser) caseStmt() (cs CaseStmt) {
 	cs.Case = p.lpos
-	cs.Word = p.wantFollowWord(CASE)
-	p.wantFollow(cs.Case, "case x", IN)
+	cs.Word = p.followWord(CASE)
+	p.followTok(cs.Case, "case x", IN)
 	cs.List = p.patLists()
-	p.wantStmtEnd(cs.Case, CASE, ESAC, &cs.Esac)
+	p.stmtEnd(cs.Case, CASE, ESAC, &cs.Esac)
 	return
 }
 
@@ -1118,16 +1118,16 @@ func (p *parser) declStmt() Node {
 func (p *parser) cmdOrFunc(addRedir func()) Node {
 	if p.got(FUNCTION) {
 		fpos := p.lpos
-		w := p.wantFollowWord(FUNCTION)
+		w := p.followWord(FUNCTION)
 		if p.gotSameLine(LPAREN) {
-			p.wantFollow(w.Pos(), "foo(", RPAREN)
+			p.followTok(w.Pos(), "foo(", RPAREN)
 		}
 		return p.funcDecl(w, fpos)
 	}
 	var w Word
 	p.gotWord(&w)
 	if p.gotSameLine(LPAREN) {
-		p.wantFollow(w.Pos(), "foo(", RPAREN)
+		p.followTok(w.Pos(), "foo(", RPAREN)
 		return p.funcDecl(w, w.Pos())
 	}
 	cmd := Command{Args: []Word{w}}
