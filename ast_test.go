@@ -993,6 +993,14 @@ var astTests = []testCase{
 		})),
 	},
 	{
+		[]string{`$((i = 2))`, `$((i=2))`},
+		word(arithmExpr(BinaryExpr{
+			Op: ASSIGN,
+			X:  litWord("i"),
+			Y:  litWord("2"),
+		})),
+	},
+	{
 		[]string{"foo$"},
 		word(lit("foo"), lit("$")),
 	},

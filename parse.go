@@ -162,6 +162,7 @@ var (
 		'<': true,
 		'>': true,
 		':': true,
+		'=': true,
 	}
 	// bytes that will be treated as space
 	space = map[byte]bool{
@@ -665,7 +666,7 @@ func (p *parser) arithmExpr(following Token) Node {
 		return left
 	}
 	if !p.gotAny(ADD, SUB, REM, MUL, QUO, XOR, AND, OR, LSS, GTR,
-		SHR, SHL, QUEST, COLON) {
+		SHR, SHL, QUEST, COLON, ASSIGN) {
 		p.curErr("not a valid arithmetic operator")
 	}
 	b := BinaryExpr{
