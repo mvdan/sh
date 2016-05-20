@@ -218,8 +218,6 @@ func (p *parser) next() {
 		}
 	case b == '#' && !p.quoted('"'):
 		p.advanceBoth(COMMENT, p.readLine())
-	case p.quoted(DRPAREN) && arithmOps[b]:
-		p.advanceTok(p.doToken(b))
 	case reserved[b]:
 		// Between double quotes, only under certain
 		// circumstnaces do we tokenize
@@ -231,6 +229,8 @@ func (p *parser) next() {
 				return
 			}
 		}
+		fallthrough
+	case p.quoted(DRPAREN) && arithmOps[b]:
 		p.advanceTok(p.doToken(b))
 	default:
 		p.advanceReadLit()
@@ -239,9 +239,6 @@ func (p *parser) next() {
 
 func (p *parser) advanceReadLit() { p.advanceBoth(LIT, string(p.readLitBytes())) }
 func (p *parser) readLitBytes() (bs []byte) {
-	if p.quoted(DRPAREN) {
-		p.spaced = true
-	}
 	for {
 		if p.readOnly("\\") { // escaped byte
 			if b, _ := p.readByte(); b != '\n' {
