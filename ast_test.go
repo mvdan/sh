@@ -517,6 +517,21 @@ var astTests = []testCase{
 		}),
 	},
 	{
+		[]string{"if true; then foo <<-EOF\n\tbar\n\tEOF\nfi"},
+		IfStmt{
+			Conds: litStmts("true"),
+			ThenStmts: []Stmt{{
+				Node: litCmd("foo"),
+				Redirs: []Redirect{
+					{
+						Op:   DHEREDOC,
+						Word: litWord("EOF\n\tbar\n\tEOF"),
+					},
+				},
+			}},
+		},
+	},
+	{
 		[]string{"foo <<EOF\nbar\nEOF\nfoo2"},
 		[]Stmt{
 			{

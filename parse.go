@@ -49,7 +49,7 @@ type parser struct {
 	stops []Token
 
 	stopNewline bool
-	heredocs    []*Word
+	heredocs    []*Redirect
 }
 
 func (p *parser) enterStops(stops ...Token) {
@@ -299,34 +299,34 @@ func (p *parser) readLine() string {
 }
 
 func (p *parser) doHeredocs() {
-	for i, w := range p.heredocs {
-		endLine := unquote(*w).String()
+	for i, r := range p.heredocs {
+		end := unquote(r.Word).String()
 		if i > 0 {
 			p.readOnly("\n")
 		}
-		s, _ := p.readHeredocContent(endLine)
-		w.Parts[0] = Lit{
-			ValuePos: w.Pos(),
-			Value:    fmt.Sprintf("%s\n%s", w, s),
+		s, _ := p.readHdocBody(end, r.Op == DHEREDOC)
+		r.Word.Parts[0] = Lit{
+			ValuePos: r.Word.Pos(),
+			Value:    fmt.Sprintf("%s\n%s", r.Word, s),
 		}
-		w.Parts = w.Parts[:1]
+		r.Word.Parts = r.Word.Parts[:1]
 	}
 	p.heredocs = nil
 	p.next()
 }
 
-func (p *parser) readHeredocContent(endLine string) (string, bool) {
+func (p *parser) readHdocBody(end string, noTabs bool) (string, bool) {
 	var buf bytes.Buffer
 	for !p.eof() {
 		line := p.readLine()
-		if line == endLine {
+		if line == end || (noTabs && strings.TrimLeft(line, "\t") == end) {
 			fmt.Fprint(&buf, line)
 			return buf.String(), true
 		}
 		fmt.Fprintln(&buf, line)
 		p.readOnly("\n")
 	}
-	fmt.Fprint(&buf, endLine)
+	fmt.Fprint(&buf, end)
 	return buf.String(), false
 }
 
@@ -971,7 +971,7 @@ func (p *parser) redirect() (r Redirect) {
 		p.stopNewline = true
 		r.Word = p.followWord(r.Op)
 		p.stopNewline = false
-		p.heredocs = append(p.heredocs, &r.Word)
+		p.heredocs = append(p.heredocs, &r)
 		p.got(STOPPED)
 	default:
 		r.Word = p.followWord(r.Op)
