@@ -192,7 +192,7 @@ func (p *parser) next() {
 			p.advanceTok(STOPPED)
 			return
 		}
-		if p.quoted('"') || !space[b] {
+		if p.quoted('"') || p.quoted(RBRACE) || !space[b] {
 			break
 		}
 		p.consumeByte()
@@ -259,6 +259,7 @@ func (p *parser) readLitBytes() (bs []byte) {
 			if b == '"' {
 				return
 			}
+		case p.quoted(RBRACE):
 		case reserved[b], space[b]:
 			return
 		case p.quoted(DRPAREN) && arithmOps[b]:

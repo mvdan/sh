@@ -871,6 +871,16 @@ var astTests = []testCase{
 		}),
 	},
 	{
+		[]string{`${foo:?bar1 bar2}`},
+		word(ParamExp{
+			Param: lit("foo"),
+			Exp: &Expansion{
+				Op: CQUEST,
+				Word: litWord("bar1 bar2"),
+			},
+		}),
+	},
+	{
 		[]string{`${foo%bar}`},
 		word(ParamExp{
 			Param: lit("foo"),
