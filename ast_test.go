@@ -659,19 +659,21 @@ var astTests = []testCase{
 		Stmt{
 			Node: cmd(
 				litWord("cat"),
-				word(CmdInput{Stmt: litStmt("echo", "foo")}),
+				word(CmdInput{Stmts: []Stmt{
+					litStmt("echo", "foo"),
+				}}),
 			),
 		},
 	},
 	{
-		[]string{"cat < <(echo foo)"},
+		[]string{"cat < <(f1; f2)"},
 		Stmt{
 			Node: litCmd("cat"),
 			Redirs: []Redirect{
 				{
 					Op: LSS,
 					Word: word(
-						CmdInput{Stmt: litStmt("echo", "foo")},
+						CmdInput{Stmts: litStmts("f1", "f2")},
 					),
 				},
 			},
@@ -1567,7 +1569,7 @@ func setPosRecurse(t *testing.T, v interface{}, to Pos, diff bool) Node {
 	case CmdInput:
 		setPos(&x.Lss)
 		setPos(&x.Rparen)
-		recurse(&x.Stmt)
+		recurse(x.Stmts)
 		return x
 	case nil:
 	default:

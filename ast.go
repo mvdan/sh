@@ -481,10 +481,10 @@ func (a ArrayExpr) Pos() Pos { return a.Lparen }
 
 type CmdInput struct {
 	Lss, Rparen Pos
-	Stmt        Stmt
+	Stmts       []Stmt
 }
 
 func (c CmdInput) String() string {
-	return fmt.Sprint(LSS, "", LPAREN, "", c.Stmt, "", RPAREN)
+	return fmt.Sprint(LSS, "", LPAREN, stmtJoin(c.Stmts), RPAREN)
 }
 func (c CmdInput) Pos() Pos { return c.Lss }

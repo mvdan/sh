@@ -567,9 +567,7 @@ func (p *parser) wordPart() Node {
 		}
 	case p.peek(LSS) && p.readOnly("("):
 		ci := CmdInput{Lss: p.pos}
-		p.enterStops(RPAREN)
-		p.gotStmt(&ci.Stmt)
-		p.popStop()
+		ci.Stmts = p.stmtsNested(RPAREN)
 		ci.Rparen = p.matchedTok(ci.Lss, LPAREN, RPAREN)
 		return ci
 	case p.peek('\''):
