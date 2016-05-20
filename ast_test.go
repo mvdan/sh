@@ -1249,6 +1249,14 @@ var astTests = []testCase{
 			Y: litStmt("bar"),
 		},
 	},
+	{
+		[]string{"declare foo=bar"},
+		DeclStmt{
+			Assigns: []Assign{
+				{Name: lit("foo"), Value: litWord("bar")},
+			},
+		},
+	},
 }
 
 func fullProg(v interface{}) (f File) {
@@ -1428,6 +1436,11 @@ func setPosRecurse(t *testing.T, v interface{}, to Pos, diff bool) Node {
 			recurse(pl.Patterns)
 			recurse(pl.Stmts)
 		}
+		return x
+	case DeclStmt:
+		setPos(&x.Declare)
+		recurse(x.Opts)
+		recurse(x.Assigns)
 		return x
 	case nil:
 	default:

@@ -37,6 +37,7 @@ const (
 
 	// Bash reserved words
 	FUNCTION
+	DECLARE
 
 	// Rest of tokens
 	AND  // &
@@ -141,6 +142,7 @@ var (
 		RBRACE: "}",
 
 		FUNCTION: "function",
+		DECLARE:  "declare",
 
 		DLPAREN: "((",
 		DRPAREN: "))",

@@ -900,6 +900,8 @@ func (p *parser) gotStmtAndOr(s *Stmt, addRedir func()) bool {
 		s.Node = p.forStmt()
 	case p.got(CASE):
 		s.Node = p.caseStmt()
+	case p.got(DECLARE):
+		s.Node = p.declStmt()
 	case p.peekAny(LIT, DOLLAR, '"', '\'', '`'):
 		s.Node = p.cmdOrFunc(addRedir)
 	default:
@@ -1079,6 +1081,16 @@ func (p *parser) patLists() (pls []PatternList) {
 		}
 	}
 	return
+}
+
+func (p *parser) declStmt() Node {
+	ds := DeclStmt{Declare: p.lpos}
+	for !p.peekStop() {
+		if as, ok := p.getAssign(); ok {
+			ds.Assigns = append(ds.Assigns, as)
+		}
+	}
+	return ds
 }
 
 func (p *parser) cmdOrFunc(addRedir func()) Node {

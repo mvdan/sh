@@ -438,3 +438,22 @@ type PatternList struct {
 func (p PatternList) String() string {
 	return fmt.Sprintf(" %s) %s", wordJoin(p.Patterns, " | "), stmtJoin(p.Stmts))
 }
+
+type DeclStmt struct {
+	Declare Pos
+	Opts    []Word
+	Assigns []Assign
+}
+
+func (d DeclStmt) String() string {
+	var strs []fmt.Stringer
+	strs = append(strs, DECLARE)
+	for _, w := range d.Opts {
+		strs = append(strs, w)
+	}
+	for _, a := range d.Assigns {
+		strs = append(strs, a)
+	}
+	return stringerJoin(strs, " ")
+}
+func (d DeclStmt) Pos() Pos { return d.Declare }
