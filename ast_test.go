@@ -1267,6 +1267,31 @@ var astTests = []testCase{
 			},
 		},
 	},
+	{
+		[]string{"declare -a foo=(b1 `b2`)"},
+		DeclStmt{
+			Opts: litWords("-a"),
+			Assigns: []Assign{
+				{Name: lit("foo"), Value: word(
+					ArrayExpr{List: []Word{
+						litWord("b1"),
+						word(bckQuoted(litStmt("b2"))),
+					}},
+				)},
+			},
+		},
+	},
+	{
+		[]string{"a=(b c) foo"},
+		Stmt{
+			Assigns: []Assign{
+				{Name: lit("a"), Value: word(
+					ArrayExpr{List: litWords("b", "c")},
+				)},
+			},
+			Node: litCmd("foo"),
+		},
+	},
 }
 
 func fullProg(v interface{}) (f File) {
@@ -1451,6 +1476,11 @@ func setPosRecurse(t *testing.T, v interface{}, to Pos, diff bool) Node {
 		setPos(&x.Declare)
 		recurse(x.Opts)
 		recurse(x.Assigns)
+		return x
+	case ArrayExpr:
+		setPos(&x.Lparen)
+		setPos(&x.Rparen)
+		recurse(x.List)
 		return x
 	case nil:
 	default:

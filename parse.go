@@ -762,8 +762,8 @@ func (p *parser) arithmEnd(left Pos) Pos {
 	return right
 }
 
-func (p *parser) wordList(ws *[]Word) {
-	for !p.peekEnd() {
+func (p *parser) wordList(ws *[]Word, stops ...Token) {
+	for !p.peekEnd() && !p.peekAny(stops...) {
 		var w Word
 		if !p.gotWord(&w) {
 			p.curErr("word list can only contain words")
@@ -830,7 +830,15 @@ func (p *parser) getAssign() (Assign, bool) {
 		as.Value.Parts = append(as.Value.Parts, start)
 	}
 	p.next()
-	if !p.spaced {
+	if p.spaced {
+		return as, true
+	}
+	if start.Value == "" && p.got(LPAREN) {
+		ae := ArrayExpr{Lparen: p.lpos}
+		p.wordList(&ae.List, RPAREN)
+		ae.Rparen = p.matchedTok(ae.Lparen, LPAREN, RPAREN)
+		as.Value.Parts = append(as.Value.Parts, ae)
+	} else if !p.peekStop() {
 		p.gotWord(&as.Value)
 	}
 	return as, true

@@ -464,3 +464,13 @@ func (d DeclStmt) String() string {
 	return stringerJoin(strs, " ")
 }
 func (d DeclStmt) Pos() Pos { return d.Declare }
+
+type ArrayExpr struct {
+	Lparen, Rparen Pos
+	List           []Word
+}
+
+func (a ArrayExpr) String() string {
+	return fmt.Sprint(LPAREN, wordJoin(a.List, " "), RPAREN)
+}
+func (a ArrayExpr) Pos() Pos { return a.Lparen }
