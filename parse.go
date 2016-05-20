@@ -872,9 +872,6 @@ func (p *parser) gotStmt(s *Stmt, stops ...Token) bool {
 	if !s.Negated && s.Node == nil && len(s.Assigns) == 0 && len(s.Redirs) == 0 {
 		return false
 	}
-	if _, ok := s.Node.(FuncDecl); ok {
-		return true
-	}
 	switch {
 	case p.got(LAND), p.got(LOR):
 		*s = p.binaryStmt(*s, addRedir)
