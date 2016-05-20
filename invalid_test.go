@@ -422,6 +422,10 @@ var errTests = []struct {
 		"declare (",
 		`1:9: declare statements must be followed by literals`,
 	},
+	{
+		"declare {",
+		`1:9: invalid var name: {`,
+	},
 }
 
 func TestParseErr(t *testing.T) {

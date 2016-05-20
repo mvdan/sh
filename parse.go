@@ -1094,6 +1094,9 @@ func (p *parser) declStmt() Node {
 		if as, ok := p.getAssign(); ok {
 			ds.Assigns = append(ds.Assigns, as)
 		} else if p.peek(LIT) && p.peekSpaced() {
+			if !identRe.MatchString(p.val) {
+				p.curErr("invalid var name: %s", p.val)
+			}
 			ds.Assigns = append(ds.Assigns, Assign{
 				NameOnly: true,
 				Name: Lit{
