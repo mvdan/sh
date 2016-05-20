@@ -610,19 +610,12 @@ func (p *parser) dollar() Node {
 	}
 	lpos := p.pos
 	switch {
-	case p.peek(LPAREN) && p.readOnly("("):
-		p.enterStops(DRPAREN)
+	case p.gotArithmStart():
 		ar := ArithmExpr{
 			Dollar: dpos,
 			X:      p.arithmExpr(DLPAREN),
 		}
-		if !p.peekArithmEnd() {
-			p.matchingErr(lpos, DLPAREN, DRPAREN)
-		}
-		ar.Rparen = p.pos
-		p.readOnly(")")
-		p.popStop()
-		p.next()
+		ar.Rparen = p.arithmEnd(lpos)
 		return ar
 	case p.peek(LPAREN):
 		cs := CmdSubst{Left: dpos}
@@ -746,8 +739,27 @@ func (p *parser) paramExp(dpos Pos) (pe ParamExp) {
 	return
 }
 
+func (p *parser) gotArithmStart() bool {
+	if p.peek(LPAREN) && p.readOnly("(") {
+		p.enterStops(DRPAREN)
+		return true
+	}
+	return false
+}
+
 func (p *parser) peekArithmEnd() bool {
 	return p.peek(RPAREN) && p.peekAnyByte(')')
+}
+
+func (p *parser) arithmEnd(left Pos) Pos {
+	if !p.peekArithmEnd() {
+		p.matchingErr(left, DLPAREN, DRPAREN)
+	}
+	right := p.pos
+	p.readOnly(")")
+	p.popStop()
+	p.next()
+	return right
 }
 
 func (p *parser) wordList(ws *[]Word) {
@@ -998,21 +1010,14 @@ func (p *parser) untilStmt() (us UntilStmt) {
 
 func (p *parser) forStmt() (fs ForStmt) {
 	fs.For = p.lpos
-	if p.peek(LPAREN) && p.readOnly("(") {
-		c := CStyleLoop{Lparen: p.pos}
-		p.enterStops(DRPAREN)
+	if p.gotArithmStart() {
+		c := CStyleLoop{Lparen: p.lpos}
 		c.Init = p.arithmExpr(DLPAREN)
 		p.wantFollow(c.Init.Pos(), "expression", SEMICOLON)
 		c.Cond = p.arithmExpr(SEMICOLON)
 		p.wantFollow(c.Cond.Pos(), "expression", SEMICOLON)
 		c.Post = p.arithmExpr(SEMICOLON)
-		if !p.peekArithmEnd() {
-			p.matchingErr(c.Lparen, DLPAREN, DRPAREN)
-		}
-		c.Rparen = p.pos
-		p.readOnly(")")
-		p.popStop()
-		p.next()
+		c.Rparen = p.arithmEnd(c.Lparen)
 		p.gotSameLine(SEMICOLON)
 		fs.Cond = c
 	} else {
