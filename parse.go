@@ -1016,9 +1016,9 @@ func (p *parser) forStmt() (fs ForStmt) {
 	if p.gotArithmStart() {
 		c := CStyleLoop{Lparen: p.lpos}
 		c.Init = p.arithmExpr(DLPAREN)
-		p.followTok(c.Init.Pos(), "expression", SEMICOLON)
+		p.followTok(p.pos, "expression", SEMICOLON)
 		c.Cond = p.arithmExpr(SEMICOLON)
-		p.followTok(c.Cond.Pos(), "expression", SEMICOLON)
+		p.followTok(p.pos, "expression", SEMICOLON)
 		c.Post = p.arithmExpr(SEMICOLON)
 		c.Rparen = p.arithmEnd(c.Lparen)
 		p.gotSameLine(SEMICOLON)
