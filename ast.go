@@ -87,13 +87,13 @@ func stmtJoin(stmts []Stmt) string {
 
 func stmtList(stmts []Stmt) string {
 	if len(stmts) == 0 {
-		return "; "
+		return fmt.Sprint(SEMICOLON, " ")
 	}
 	s := stmtJoin(stmts)
 	if len(s) > 0 && s[len(s)-1] == '\n' {
 		return " " + s
 	}
-	return " " + s + "; "
+	return fmt.Sprintf(" %s%s ", s, SEMICOLON)
 }
 
 func wordJoin(words []Word, sep string) string {
@@ -185,10 +185,10 @@ type Subshell struct {
 
 func (s Subshell) String() string {
 	if len(s.Stmts) == 0 {
-		// To avoid confusion with ()
-		return "( )"
+		// A space in between to avoid confusion with ()
+		return fmt.Sprint(LPAREN, RPAREN)
 	}
-	return "(" + stmtJoin(s.Stmts) + ")"
+	return fmt.Sprint(LPAREN, stmtJoin(s.Stmts), RPAREN)
 }
 func (s Subshell) Pos() Pos { return s.Lparen }
 
@@ -197,8 +197,10 @@ type Block struct {
 	Stmts          []Stmt
 }
 
-func (b Block) String() string { return "{" + stmtList(b.Stmts) + "}" }
-func (b Block) Pos() Pos       { return b.Rbrace }
+func (b Block) String() string {
+	return fmt.Sprint(LBRACE, stmtList(b.Stmts), RBRACE)
+}
+func (b Block) Pos() Pos { return b.Rbrace }
 
 type IfStmt struct {
 	If, Fi    Pos
@@ -321,9 +323,9 @@ type FuncDecl struct {
 
 func (f FuncDecl) String() string {
 	if f.BashStyle {
-		return fmt.Sprintf("%s %s() %s", FUNCTION, f.Name, f.Body)
+		return fmt.Sprint(FUNCTION, f.Name, "() ", f.Body)
 	}
-	return fmt.Sprintf("%s() %s", f.Name, f.Body)
+	return fmt.Sprint(f.Name, "() ", f.Body)
 }
 func (f FuncDecl) Pos() Pos { return f.Position }
 
@@ -368,7 +370,7 @@ func (c CmdSubst) String() string {
 	if c.Backquotes {
 		return "`" + stmtJoin(c.Stmts) + "`"
 	}
-	return "$(" + stmtJoin(c.Stmts) + ")"
+	return fmt.Sprint(DOLLAR, "", LPAREN, stmtJoin(c.Stmts), RPAREN)
 }
 func (c CmdSubst) Pos() Pos { return c.Left }
 
@@ -381,7 +383,7 @@ type ParamExp struct {
 
 func (p ParamExp) String() string {
 	if p.Short {
-		return fmt.Sprint("$", p.Param)
+		return fmt.Sprint(DOLLAR, "", p.Param)
 	}
 	if p.Length {
 		return fmt.Sprintf("${#%s}", p.Param)
