@@ -176,10 +176,8 @@ func (p *parser) next() {
 	if p.tok == EOF {
 		return
 	}
-	p.lpos = p.pos
-	p.pos = p.npos
-	p.spaced = false
-	p.newLine = false
+	p.lpos, p.pos = p.pos, p.npos
+	p.spaced, p.newLine = false, false
 	var b byte
 	for {
 		if p.readOnly("\\\n") {
