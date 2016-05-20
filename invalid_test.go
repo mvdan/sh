@@ -327,6 +327,14 @@ var errTests = []struct {
 		`1:11: * must be followed by an expression`,
 	},
 	{
+		"echo $((--i++))",
+		`1:12: not a valid arithmetic operator`,
+	},
+	{
+		"echo $((++))",
+		`1:9: ++ must be followed by a word`,
+	},
+	{
 		"echo ${foo",
 		`1:7: reached EOF without matching token { with }`,
 	},

@@ -978,6 +978,13 @@ var astTests = []testCase{
 		})),
 	},
 	{
+		[]string{`$((--i))`},
+		word(arithmExpr(UnaryExpr{
+			Op: DEC,
+			X:  litWord("i"),
+		})),
+	},
+	{
 		[]string{`$((1 < 3))`},
 		word(arithmExpr(BinaryExpr{
 			Op: LSS,

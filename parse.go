@@ -645,7 +645,15 @@ func (p *parser) arithmExpr(following Token) Node {
 	if p.eof() || p.peekArithmEnd() {
 		return nil
 	}
+	var pre UnaryExpr
 	var left Node
+	if p.gotAny(INC, DEC) {
+		pre = UnaryExpr{
+			OpPos: p.lpos,
+			Op:    p.ltok,
+		}
+		following = pre.Op
+	}
 	if p.got(LPAREN) {
 		pe := ParenExpr{Lparen: p.lpos}
 		pe.X = p.arithmExpr(LPAREN)
@@ -667,7 +675,10 @@ func (p *parser) arithmExpr(following Token) Node {
 	} else {
 		left = p.wantFollowWord(following)
 	}
-	if p.gotAny(INC, DEC) {
+	if pre.Op != 0 {
+		pre.X = left
+		left = pre
+	} else if p.gotAny(INC, DEC) {
 		left = UnaryExpr{
 			Post:  true,
 			OpPos: p.lpos,
@@ -678,7 +689,7 @@ func (p *parser) arithmExpr(following Token) Node {
 	if p.eof() || p.peek(RPAREN) {
 		return left
 	}
-	if !p.gotAny(ADD, SUB, REM, MUL, QUO, XOR, INC, AND, OR, LSS, GTR,
+	if !p.gotAny(ADD, SUB, REM, MUL, QUO, XOR, AND, OR, LSS, GTR,
 		SHR, SHL, QUEST, COLON) {
 		p.curErr("not a valid arithmetic operator")
 	}
