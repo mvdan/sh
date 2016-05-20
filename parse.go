@@ -281,16 +281,14 @@ func (p *parser) advanceBoth(tok Token, val string) {
 
 func (p *parser) readUntil(s string) (string, bool) {
 	var bs []byte
-	for {
-		if p.peekString(s) {
-			return string(bs), true
-		}
+	for !p.peekString(s) {
 		b, err := p.readByte()
 		if err != nil {
 			return string(bs), false
 		}
 		bs = append(bs, b)
 	}
+	return string(bs), true
 }
 
 func (p *parser) readLine() string {
