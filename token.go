@@ -31,7 +31,6 @@ const (
 	CASE
 	ESAC
 
-	NOT    // !
 	LBRACE // {
 	RBRACE // }
 
@@ -67,6 +66,8 @@ const (
 	XOR // ^
 	INC // ++
 	DEC // --
+	NOT // !
+	POW // **
 
 	PIPEALL  // |&
 	RDRINOUT // <>
@@ -180,6 +181,7 @@ var (
 		{"++", INC},
 		{"--", DEC},
 		{"!", NOT},
+		{"**", POW},
 
 		{"|&", PIPEALL},
 		{"<>", RDRINOUT},

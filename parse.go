@@ -643,7 +643,7 @@ func (p *parser) arithmExpr(following Token) Node {
 		return left
 	}
 	if !p.gotAny(ADD, SUB, REM, MUL, QUO, XOR, AND, OR, LSS, GTR,
-		SHR, SHL, QUEST, COLON, ASSIGN) {
+		SHR, SHL, QUEST, COLON, ASSIGN, POW) {
 		p.curErr("not a valid arithmetic operator")
 	}
 	b := BinaryExpr{

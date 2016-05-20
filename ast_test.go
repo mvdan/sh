@@ -1031,6 +1031,14 @@ var astTests = []testCase{
 		}))),
 	},
 	{
+		[]string{"$((2 ** 10))"},
+		word(arithmExpr(BinaryExpr{
+			Op: POW,
+			X:  litWord("2"),
+			Y:  litWord("10"),
+		})),
+	},
+	{
 		[]string{`$(((1) + 3))`},
 		word(arithmExpr(BinaryExpr{
 			Op: ADD,
