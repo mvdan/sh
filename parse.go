@@ -864,10 +864,8 @@ func (p *parser) gotStmt(s *Stmt, stops ...Token) bool {
 		}
 	}
 	p.gotStmtAndOr(s, addRedir)
-	if !p.newLine {
-		for p.peekRedir() {
-			addRedir()
-		}
+	for !p.newLine && p.peekRedir() {
+		addRedir()
 	}
 	if !s.Negated && s.Node == nil && len(s.Assigns) == 0 && len(s.Redirs) == 0 {
 		return false

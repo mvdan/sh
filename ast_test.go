@@ -456,6 +456,17 @@ var astTests = []testCase{
 		},
 	},
 	{
+		[]string{">a; >b", ">a\n>b"},
+		[]Stmt{
+			{Redirs: []Redirect{
+				{Op: GTR, Word: litWord("a")},
+			}},
+			{Redirs: []Redirect{
+				{Op: GTR, Word: litWord("b")},
+			}},
+		},
+	},
+	{
 		[]string{"foo1; foo2 >r2", "foo1\n>r2 foo2"},
 		[]Stmt{
 			litStmt("foo1"),
