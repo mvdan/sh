@@ -801,6 +801,10 @@ func (p *parser) peekRedir() bool {
 	if p.peek(LIT) && p.peekAnyByte('>', '<') {
 		return true
 	}
+	if p.peek(LSS) && p.peekString("(") {
+		// do not confuse <(stmt) with a redirect
+		return false
+	}
 	return p.peekAny(GTR, SHR, LSS, DPLIN, DPLOUT, RDRINOUT,
 		SHL, DHEREDOC, WHEREDOC)
 }

@@ -655,6 +655,15 @@ var astTests = []testCase{
 		},
 	},
 	{
+		[]string{"cat <(echo foo)"},
+		Stmt{
+			Node: cmd(
+				litWord("cat"),
+				word(CmdInput{Stmt: litStmt("echo", "foo")}),
+			),
+		},
+	},
+	{
 		[]string{"cat < <(echo foo)"},
 		Stmt{
 			Node: litCmd("cat"),

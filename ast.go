@@ -6,6 +6,7 @@ package sh
 import (
 	"bytes"
 	"fmt"
+	"strings"
 )
 
 var defaultPos = Pos{}
@@ -164,6 +165,9 @@ type Redirect struct {
 }
 
 func (r Redirect) String() string {
+	if strings.HasPrefix(r.Word.String(), "<") {
+		return fmt.Sprint(r.N, r.Op.String(), " ", r.Word)
+	}
 	return fmt.Sprint(r.N, r.Op.String(), r.Word)
 }
 
@@ -481,6 +485,6 @@ type CmdInput struct {
 }
 
 func (c CmdInput) String() string {
-	return fmt.Sprint(" ", LSS, "", LPAREN, "", c.Stmt, "", RPAREN)
+	return fmt.Sprint(LSS, "", LPAREN, "", c.Stmt, "", RPAREN)
 }
 func (c CmdInput) Pos() Pos { return c.Lss }
