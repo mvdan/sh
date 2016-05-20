@@ -875,7 +875,7 @@ var astTests = []testCase{
 		word(ParamExp{
 			Param: lit("foo"),
 			Exp: &Expansion{
-				Op: CQUEST,
+				Op:   CQUEST,
 				Word: litWord("bar1 bar2"),
 			},
 		}),
@@ -1066,6 +1066,29 @@ var astTests = []testCase{
 		word(arithmExpr(UnaryExpr{
 			Op: NOT,
 			X:  litWord("i"),
+		})),
+	},
+	{
+		[]string{`$((-!+i))`},
+		word(arithmExpr(UnaryExpr{
+			Op: SUB,
+			X: UnaryExpr{
+				Op: NOT,
+				X: UnaryExpr{
+					Op: ADD,
+					X:  litWord("i"),
+				},
+			},
+		})),
+	},
+	{
+		[]string{`$((!!i))`},
+		word(arithmExpr(UnaryExpr{
+			Op: NOT,
+			X: UnaryExpr{
+				Op: NOT,
+				X:  litWord("i"),
+			},
 		})),
 	},
 	{

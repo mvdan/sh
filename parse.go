@@ -640,22 +640,7 @@ func (p *parser) arithmExpr(following Token) Node {
 	if p.eof() || p.peekArithmEnd() {
 		return nil
 	}
-	var left Node
-	if p.gotAny(INC, DEC, NOT) {
-		pre := UnaryExpr{
-			OpPos: p.lpos,
-			Op:    p.ltok,
-		}
-		pre.X = p.arithmExprBase(pre.Op)
-		left = pre
-	} else if left = p.arithmExprBase(following); p.gotAny(INC, DEC) {
-		left = UnaryExpr{
-			Post:  true,
-			OpPos: p.lpos,
-			Op:    p.ltok,
-			X:     left,
-		}
-	}
+	left := p.arithmExprBase(following)
 	if p.eof() || p.peekAny(RPAREN, SEMICOLON) {
 		return left
 	}
@@ -675,6 +660,15 @@ func (p *parser) arithmExpr(following Token) Node {
 }
 
 func (p *parser) arithmExprBase(following Token) Node {
+	if p.gotAny(INC, DEC, NOT) {
+		pre := UnaryExpr{
+			OpPos: p.lpos,
+			Op:    p.ltok,
+		}
+		pre.X = p.arithmExprBase(pre.Op)
+		return pre
+	}
+	var x Node
 	switch {
 	case p.got(LPAREN):
 		pe := ParenExpr{Lparen: p.lpos}
@@ -683,7 +677,7 @@ func (p *parser) arithmExprBase(following Token) Node {
 			p.posErr(pe.Lparen, "parentheses must enclose an expression")
 		}
 		pe.Rparen = p.matchedTok(pe.Lparen, LPAREN, RPAREN)
-		return pe
+		x = pe
 	case p.gotAny(ADD, SUB):
 		ue := UnaryExpr{
 			OpPos: p.lpos,
@@ -693,10 +687,19 @@ func (p *parser) arithmExprBase(following Token) Node {
 		if ue.X == nil {
 			p.followErr(ue.OpPos, ue.Op, "an expression")
 		}
-		return ue
+		x = ue
 	default:
-		return p.followWord(following)
+		x = p.followWord(following)
 	}
+	if p.gotAny(INC, DEC) {
+		return UnaryExpr{
+			Post:  true,
+			OpPos: p.lpos,
+			Op:    p.ltok,
+			X:     x,
+		}
+	}
+	return x
 }
 
 func (p *parser) gotParamLit(l *Lit) bool {
