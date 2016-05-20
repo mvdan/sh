@@ -646,7 +646,6 @@ func (p *parser) arithmExpr(following Token) Node {
 		return nil
 	}
 	var pre UnaryExpr
-	var left Node
 	if p.gotAny(INC, DEC) {
 		pre = UnaryExpr{
 			OpPos: p.lpos,
@@ -654,27 +653,7 @@ func (p *parser) arithmExpr(following Token) Node {
 		}
 		following = pre.Op
 	}
-	if p.got(LPAREN) {
-		pe := ParenExpr{Lparen: p.lpos}
-		pe.X = p.arithmExpr(LPAREN)
-		if pe.X == nil {
-			p.posErr(pe.Lparen, "parentheses must enclose an expression")
-		}
-		pe.Rparen = p.wantMatched(pe.Lparen, LPAREN, RPAREN)
-		left = pe
-	} else if p.gotAny(ADD, SUB) {
-		ue := UnaryExpr{
-			OpPos: p.lpos,
-			Op:    p.ltok,
-		}
-		ue.X = p.arithmExpr(ue.Op)
-		if ue.X == nil {
-			p.followErr(ue.OpPos, ue.Op, "an expression")
-		}
-		left = ue
-	} else {
-		left = p.wantFollowWord(following)
-	}
+	left := p.arithmExprBase(following)
 	if pre.Op != 0 {
 		pre.X = left
 		left = pre
@@ -702,6 +681,31 @@ func (p *parser) arithmExpr(following Token) Node {
 		p.followErr(b.OpPos, b.Op, "an expression")
 	}
 	return b
+}
+
+func (p *parser) arithmExprBase(following Token) Node {
+	switch {
+	case p.got(LPAREN):
+		pe := ParenExpr{Lparen: p.lpos}
+		pe.X = p.arithmExpr(LPAREN)
+		if pe.X == nil {
+			p.posErr(pe.Lparen, "parentheses must enclose an expression")
+		}
+		pe.Rparen = p.wantMatched(pe.Lparen, LPAREN, RPAREN)
+		return pe
+	case p.gotAny(ADD, SUB):
+		ue := UnaryExpr{
+			OpPos: p.lpos,
+			Op:    p.ltok,
+		}
+		ue.X = p.arithmExpr(ue.Op)
+		if ue.X == nil {
+			p.followErr(ue.OpPos, ue.Op, "an expression")
+		}
+		return ue
+	default:
+		return p.wantFollowWord(following)
+	}
 }
 
 func (p *parser) gotParamLit(l *Lit) bool {
