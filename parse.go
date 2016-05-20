@@ -407,7 +407,7 @@ func (p *parser) wantFollow(lpos Pos, left string, tok Token) {
 	}
 }
 
-func (p *parser) wantFollowStmt(lpos Pos, left string) (s Stmt) {
+func (p *parser) followStmt(lpos Pos, left string) (s Stmt) {
 	if !p.gotStmt(&s) {
 		p.followErr(lpos, left, "a statement")
 	}
@@ -439,7 +439,7 @@ func (p *parser) wantStmtEnd(startPos Pos, startTok, tok Token, pos *Pos) {
 	*pos = p.lpos
 }
 
-func (p *parser) wantQuote(lpos Pos, b byte) {
+func (p *parser) closingQuote(lpos Pos, b byte) {
 	tok := Token(b)
 	if !p.got(tok) {
 		p.posErr(lpos, `reached %s without closing quote %s`, p.tok, tok)
@@ -451,7 +451,7 @@ func (p *parser) matchingErr(lpos Pos, left, right Token) {
 		p.tok, left, right)
 }
 
-func (p *parser) wantMatched(lpos Pos, left, right Token) Pos {
+func (p *parser) matchedTok(lpos Pos, left, right Token) Pos {
 	if !p.got(right) {
 		p.matchingErr(lpos, left, right)
 	}
@@ -574,7 +574,7 @@ func (p *parser) wordPart() Node {
 		sq := SglQuoted{Quote: p.pos}
 		s, found := p.readUntil("'")
 		if !found {
-			p.wantQuote(sq.Quote, '\'')
+			p.closingQuote(sq.Quote, '\'')
 		}
 		sq.Value = s
 		p.readOnly("'")
@@ -585,12 +585,12 @@ func (p *parser) wordPart() Node {
 		p.enterStops('"')
 		p.readParts(&dq.Parts)
 		p.popStop()
-		p.wantQuote(dq.Quote, '"')
+		p.closingQuote(dq.Quote, '"')
 		return dq
 	case !p.quoted('`') && p.peek('`'):
 		cs := CmdSubst{Backquotes: true, Left: p.pos}
 		cs.Stmts = p.stmtsNested('`')
-		p.wantQuote(cs.Left, '`')
+		p.closingQuote(cs.Left, '`')
 		cs.Right = p.lpos
 		return cs
 	}
@@ -626,7 +626,7 @@ func (p *parser) dollar() Node {
 	case p.peek(LPAREN):
 		cs := CmdSubst{Left: dpos}
 		cs.Stmts = p.stmtsNested(RPAREN)
-		cs.Right = p.wantMatched(lpos, LPAREN, RPAREN)
+		cs.Right = p.matchedTok(lpos, LPAREN, RPAREN)
 		return cs
 	default:
 		p.next()
@@ -687,7 +687,7 @@ func (p *parser) arithmExprBase(following Token) Node {
 		if pe.X == nil {
 			p.posErr(pe.Lparen, "parentheses must enclose an expression")
 		}
-		pe.Rparen = p.wantMatched(pe.Lparen, LPAREN, RPAREN)
+		pe.Rparen = p.matchedTok(pe.Lparen, LPAREN, RPAREN)
 		return pe
 	case p.gotAny(ADD, SUB):
 		ue := UnaryExpr{
@@ -901,7 +901,7 @@ func (p *parser) binaryStmt(left Stmt, addRedir func()) Stmt {
 	}
 	var s Stmt
 	if b.Op == LAND || b.Op == LOR {
-		s = p.wantFollowStmt(b.OpPos, b.Op.String())
+		s = p.followStmt(b.OpPos, b.Op.String())
 	} else if !p.gotStmtAndOr(&s, addRedir) {
 		p.followErr(b.OpPos, b.Op, "a statement")
 	}
@@ -947,14 +947,14 @@ func (p *parser) redirect() (r Redirect) {
 func (p *parser) subshell() (s Subshell) {
 	s.Lparen = p.pos
 	s.Stmts = p.stmtsNested(RPAREN)
-	s.Rparen = p.wantMatched(s.Lparen, LPAREN, RPAREN)
+	s.Rparen = p.matchedTok(s.Lparen, LPAREN, RPAREN)
 	return
 }
 
 func (p *parser) block() (b Block) {
 	b.Lbrace = p.lpos
 	b.Stmts = p.stmts(RBRACE)
-	b.Rbrace = p.wantMatched(b.Lbrace, LBRACE, RBRACE)
+	b.Rbrace = p.matchedTok(b.Lbrace, LBRACE, RBRACE)
 	return
 }
 
@@ -1091,6 +1091,6 @@ func (p *parser) funcDecl(w Word, pos Pos) FuncDecl {
 	if !identRe.MatchString(fd.Name.Value) {
 		p.posErr(fd.Pos(), "invalid func name: %s", fd.Name.Value)
 	}
-	fd.Body = p.wantFollowStmt(fd.Pos(), "foo()")
+	fd.Body = p.followStmt(fd.Pos(), "foo()")
 	return fd
 }
