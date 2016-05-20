@@ -1277,7 +1277,11 @@ func setPosRecurse(t *testing.T, v interface{}, to Pos, diff bool) Node {
 		*p = to
 	}
 	recurse := func(v interface{}) Node {
-		return setPosRecurse(t, v, to, diff)
+		n := setPosRecurse(t, v, to, diff)
+		if n != nil && n.Pos() != to {
+			t.Fatalf("Found unexpected Pos in %#v", n)
+		}
+		return n
 	}
 	switch x := v.(type) {
 	case []Stmt:
@@ -1448,29 +1452,22 @@ func TestNodePos(t *testing.T) {
 	for _, c := range allTests {
 		want := fullProg(c.ast)
 		setPosRecurse(t, want.Stmts, p, true)
-		for _, s := range want.Stmts {
-			if s.Pos() != p {
-				t.Fatalf("Found unexpected Pos in %v", s)
-			}
-			n := s.Node
-			if n != nil && n.Pos() != p {
-				t.Fatalf("Found unexpected Pos in %v", n)
-			}
-		}
 	}
 }
 
 func TestParseAST(t *testing.T) {
+	p := Pos{}
+	defaultPos = p
 	for _, c := range astTests {
 		want := fullProg(c.ast)
-		setPosRecurse(t, want.Stmts, Pos{}, false)
+		setPosRecurse(t, want.Stmts, p, false)
 		for _, in := range c.strs {
 			r := strings.NewReader(in)
 			got, err := Parse(r, "")
 			if err != nil {
 				t.Fatalf("Unexpected error in %q: %v", in, err)
 			}
-			setPosRecurse(t, got.Stmts, Pos{}, true)
+			setPosRecurse(t, got.Stmts, p, true)
 			if !reflect.DeepEqual(got, want) {
 				t.Fatalf("AST mismatch in %q\nwant: %s\ngot:  %s\ndiff:\n%s",
 					in, want, got,
