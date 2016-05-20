@@ -1291,14 +1291,16 @@ func setPosRecurse(t *testing.T, v interface{}, to Pos, diff bool) Node {
 	case *Stmt:
 		setPos(&x.Position)
 		x.Node = recurse(x.Node)
-		for i := range x.Assigns {
-			recurse(&x.Assigns[i].Name)
-			recurse(x.Assigns[i].Value)
-		}
+		recurse(x.Assigns)
 		for i := range x.Redirs {
 			setPos(&x.Redirs[i].OpPos)
 			recurse(&x.Redirs[i].N)
 			recurse(x.Redirs[i].Word)
+		}
+	case []Assign:
+		for i := range x {
+			recurse(&x[i].Name)
+			recurse(x[i].Value)
 		}
 	case Stmt:
 		recurse(&x)

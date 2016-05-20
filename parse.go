@@ -814,6 +814,28 @@ func (p *parser) assignSplit() int {
 	return i
 }
 
+func (p *parser) getAssign() (Assign, bool) {
+	var as Assign
+	i := p.assignSplit()
+	if i < 0 {
+		return as, false
+	}
+	as.Name = Lit{ValuePos: p.pos, Value: p.val[:i]}
+	start := Lit{
+		ValuePos: p.pos,
+		Value:    p.val[i+1:],
+	}
+	if start.Value != "" {
+		start.ValuePos.Column += len(as.Name.Value)
+		as.Value.Parts = append(as.Value.Parts, start)
+	}
+	p.next()
+	if !p.spaced {
+		p.gotWord(&as.Value)
+	}
+	return as, true
+}
+
 func (p *parser) gotStmt(s *Stmt, stops ...Token) bool {
 	if p.peek(RBRACE) {
 		// don't let it be a LIT
@@ -827,25 +849,8 @@ func (p *parser) gotStmt(s *Stmt, stops ...Token) bool {
 		s.Redirs = append(s.Redirs, p.redirect())
 	}
 	for {
-		if i := p.assignSplit(); i >= 0 {
-			name := Lit{ValuePos: p.pos, Value: p.val[:i]}
-			start := Lit{
-				ValuePos: p.pos,
-				Value:    p.val[i+1:],
-			}
-			var w Word
-			if start.Value != "" {
-				start.ValuePos.Column += len(name.Value)
-				w.Parts = append(w.Parts, start)
-			}
-			p.next()
-			if !p.spaced {
-				p.gotWord(&w)
-			}
-			s.Assigns = append(s.Assigns, Assign{
-				Name:  name,
-				Value: w,
-			})
+		if as, ok := p.getAssign(); ok {
+			s.Assigns = append(s.Assigns, as)
 		} else if p.peekRedir() {
 			addRedir()
 		} else {
