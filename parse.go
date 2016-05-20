@@ -881,7 +881,7 @@ func (p *parser) gotStmt(s *Stmt, stops ...Token) bool {
 	}
 	switch {
 	case p.got(LAND), p.got(LOR):
-		*s = p.binaryStmt(*s, addRedir)
+		*s = p.binaryStmt(*s)
 		return true
 	case p.got(AND):
 		s.Background = true
@@ -912,25 +912,28 @@ func (p *parser) gotStmtAndOr(s *Stmt, addRedir func()) bool {
 	default:
 		s.Node = p.cmdOrFunc(addRedir)
 	}
-	if s.Node == nil {
-		return false
-	}
 	for !p.newLine && p.peekRedir() {
 		addRedir()
 	}
+	if s.Node == nil && len(s.Redirs) == 0 {
+		return false
+	}
 	if p.got(OR) || p.got(PIPEALL) {
-		*s = p.binaryStmt(*s, addRedir)
+		*s = p.binaryStmt(*s)
 	}
 	return true
 }
 
-func (p *parser) binaryStmt(left Stmt, addRedir func()) Stmt {
+func (p *parser) binaryStmt(left Stmt) Stmt {
 	b := BinaryExpr{
 		OpPos: p.lpos,
 		Op:    p.ltok,
 		X:     left,
 	}
 	var s Stmt
+	addRedir := func() {
+		s.Redirs = append(s.Redirs, p.redirect())
+	}
 	if b.Op == LAND || b.Op == LOR {
 		s = p.followStmt(b.OpPos, b.Op.String())
 	} else if !p.gotStmtAndOr(&s, addRedir) {

@@ -1385,6 +1385,18 @@ var astTests = []testCase{
 		},
 	},
 	{
+		[]string{"foo | >f"},
+		BinaryExpr{
+			Op: OR,
+			X:  litStmt("foo"),
+			Y: Stmt{
+				Redirs: []Redirect{
+					{Op: GTR, Word: litWord("f")},
+				},
+			},
+		},
+	},
+	{
 		[]string{"declare alone foo=bar"},
 		DeclStmt{
 			Assigns: []Assign{
