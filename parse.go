@@ -1085,6 +1085,11 @@ func (p *parser) patLists() (pls []PatternList) {
 
 func (p *parser) declStmt() Node {
 	ds := DeclStmt{Declare: p.lpos}
+	for p.peek(LIT) && p.peekSpaced() && p.val[0] == '-' {
+		var w Word
+		p.gotWord(&w)
+		ds.Opts = append(ds.Opts, w)
+	}
 	for !p.peekStop() {
 		if as, ok := p.getAssign(); ok {
 			ds.Assigns = append(ds.Assigns, as)
@@ -1097,6 +1102,8 @@ func (p *parser) declStmt() Node {
 				},
 			})
 			p.next()
+		} else {
+			p.curErr("declare statements must be followed by literals")
 		}
 	}
 	return ds

@@ -1258,6 +1258,15 @@ var astTests = []testCase{
 			},
 		},
 	},
+	{
+		[]string{"declare -a -bc foo=bar"},
+		DeclStmt{
+			Opts: litWords("-a", "-bc"),
+			Assigns: []Assign{
+				{Name: lit("foo"), Value: litWord("bar")},
+			},
+		},
+	},
 }
 
 func fullProg(v interface{}) (f File) {

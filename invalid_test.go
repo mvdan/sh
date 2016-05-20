@@ -418,6 +418,10 @@ var errTests = []struct {
 		"echo \"`)`\"",
 		`1:8: ) can only be used to close a subshell`,
 	},
+	{
+		"declare (",
+		`1:9: declare statements must be followed by literals`,
+	},
 }
 
 func TestParseErr(t *testing.T) {
