@@ -18,13 +18,6 @@ func nodeFirstPos(ns []Node) Pos {
 	return ns[0].Pos()
 }
 
-func stmtFirstPos(sts []Stmt) Pos {
-	if len(sts) == 0 {
-		return defaultPos
-	}
-	return sts[0].Pos()
-}
-
 func wordFirstPos(ws []Word) Pos {
 	if len(ws) == 0 {
 		return defaultPos
@@ -243,7 +236,7 @@ type StmtCond struct {
 }
 
 func (s StmtCond) String() string { return stmtList(s.Stmts) }
-func (s StmtCond) Pos() Pos       { return stmtFirstPos(s.Stmts) }
+func (s StmtCond) Pos() Pos       { return s.Stmts[0].Pos() }
 
 type CStyleCond struct {
 	Lparen, Rparen Pos

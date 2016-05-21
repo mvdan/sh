@@ -1576,6 +1576,7 @@ func setPosRecurse(t *testing.T, v interface{}, to Pos, diff bool) Node {
 		return x
 	case StmtCond:
 		recurse(x.Stmts)
+		return x
 	case CStyleCond:
 		setPos(&x.Lparen)
 		setPos(&x.Rparen)
