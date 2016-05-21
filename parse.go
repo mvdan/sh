@@ -60,6 +60,14 @@ func (p *parser) enterStops(stops ...Token) {
 func (p *parser) quoted(tok Token) bool {
 	return len(p.stops) > 0 && p.stops[len(p.stops)-1] == tok
 }
+func (p *parser) quotedAny(toks ...Token) bool {
+	for _, tok := range toks {
+		if p.quoted(tok) {
+			return true
+		}
+	}
+	return false
+}
 func (p *parser) popStops(n int) { p.stops = p.stops[:len(p.stops)-n] }
 func (p *parser) popStop()       { p.popStops(1) }
 
@@ -193,7 +201,7 @@ func (p *parser) next() {
 			p.advanceTok(STOPPED)
 			return
 		}
-		if p.quoted(DQUOTE) || p.quoted(RBRACE) || !space[b] {
+		if p.quotedAny(DQUOTE, RBRACE) || !space[b] {
 			break
 		}
 		p.consumeByte()
@@ -208,13 +216,11 @@ func (p *parser) next() {
 		}
 	}
 	switch {
-	case p.quoted(RBRACE) && b == '}', p.quoted(LBRACE) && paramOps[b]:
-		if p.readOnly("}") {
-			// '}' is a token only in this context
-			p.advanceTok(RBRACE)
-		} else {
-			p.advanceTok(p.doParamToken())
-		}
+	case p.quotedAny(RBRACE, LBRACE) && b == '}':
+		p.consumeByte()
+		p.advanceTok(RBRACE)
+	case p.quoted(LBRACE) && paramOps[b]:
+		p.advanceTok(p.doParamToken())
 	case b == '#' && !p.quoted(DQUOTE):
 		p.advanceBoth(COMMENT, p.readLine())
 	case p.quoted(DRPAREN) && arithmOps[b]:
@@ -252,15 +258,16 @@ func (p *parser) readLitBytes() (bs []byte) {
 		switch {
 		case b == '$', b == '`':
 			return
-		case p.quoted(RBRACE) && b == '}':
-			return
+		case p.quoted(RBRACE):
+			if b == '}' {
+				return
+			}
 		case p.quoted(LBRACE) && paramOps[b]:
 			return
 		case p.quoted(DQUOTE):
 			if b == '"' {
 				return
 			}
-		case p.quoted(RBRACE):
 		case reserved[b], space[b]:
 			return
 		case p.quoted(DRPAREN) && arithmOps[b]:
