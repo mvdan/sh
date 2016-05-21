@@ -572,7 +572,7 @@ func (p *parser) wordPart() Node {
 			ValuePos: p.lpos,
 			Value:    p.lval,
 		}
-	case p.peek(LSS) && p.readOnly("("):
+	case p.peek(CMDIN):
 		ci := CmdInput{Lss: p.pos}
 		ci.Stmts = p.stmtsNested(RPAREN)
 		ci.Rparen = p.matchedTok(ci.Lss, LPAREN, RPAREN)
@@ -805,10 +805,6 @@ func (p *parser) peekStop() bool {
 func (p *parser) peekRedir() bool {
 	if p.peek(LIT) && p.peekAnyByte('>', '<') {
 		return true
-	}
-	if p.peek(LSS) && p.peekString("(") {
-		// do not confuse <(stmt) with a redirect
-		return false
 	}
 	return p.peekAny(GTR, SHR, LSS, DPLIN, DPLOUT, RDRINOUT,
 		SHL, DHEREDOC, WHEREDOC)

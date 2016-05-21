@@ -83,6 +83,7 @@ const (
 	DPLOUT   // >&
 	DHEREDOC // <<-
 	WHEREDOC // <<<
+	CMDIN    // <(
 
 	CADD    // :+
 	CSUB    // :-
@@ -195,6 +196,7 @@ var (
 		{">&", DPLOUT},
 		{"<<-", DHEREDOC},
 		{"<<<", WHEREDOC},
+		{"<(", CMDIN},
 	}
 	paramList = []tokEntry{
 		{"+", ADD},
