@@ -649,10 +649,10 @@ func (p *parser) arithmExpr(following Token) Node {
 	if p.eof() || p.peekAny(RPAREN, SEMICOLON) {
 		return left
 	}
-	if !p.gotAny(ADD, SUB, REM, MUL, QUO, XOR, AND, OR, LSS, GTR,
-		SHR, SHL, QUEST, COLON, ASSIGN, POW, COMMA, NEQ, LEQ, GEQ) {
+	if p.peek(LIT) {
 		p.curErr("not a valid arithmetic operator: %s", p.tok)
 	}
+	p.next()
 	b := BinaryExpr{
 		OpPos: p.lpos,
 		Op:    p.ltok,
