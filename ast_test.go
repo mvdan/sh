@@ -1196,6 +1196,14 @@ var astTests = []testCase{
 		})),
 	},
 	{
+		[]string{"$((2 >= 10))"},
+		word(arithmExpr(BinaryExpr{
+			Op: GEQ,
+			X:  litWord("2"),
+			Y:  litWord("10"),
+		})),
+	},
+	{
 		[]string{"foo$"},
 		word(lit("foo"), lit("$")),
 	},

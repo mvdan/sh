@@ -69,6 +69,9 @@ const (
 	NOT   // !
 	POW   // **
 	COMMA // ,
+	NEQ   // !=
+	LEQ   // <=
+	GEQ   // >=
 
 	PIPEALL  // |&
 	RDRINOUT // <>
@@ -184,6 +187,9 @@ var (
 		{"!", NOT},
 		{"**", POW},
 		{",", COMMA},
+		{"!=", NEQ},
+		{"<=", LEQ},
+		{">=", GEQ},
 
 		{"|&", PIPEALL},
 		{"<>", RDRINOUT},
