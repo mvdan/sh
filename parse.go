@@ -999,12 +999,12 @@ func (p *parser) block() (b Block) {
 
 func (p *parser) ifStmt() (fs IfStmt) {
 	fs.If = p.lpos
-	fs.Cond = p.stmtCond(IF, THEN)
+	fs.Cond = p.cond(IF, THEN)
 	p.followTok(fs.If, "if [stmts]", THEN)
 	fs.ThenStmts = p.followStmts(THEN, FI, ELIF, ELSE)
 	for p.got(ELIF) {
 		elf := Elif{Elif: p.lpos}
-		elf.Cond = p.stmtCond(ELIF, THEN)
+		elf.Cond = p.cond(ELIF, THEN)
 		p.followTok(elf.Elif, "elif [stmts]", THEN)
 		elf.ThenStmts = p.followStmts(THEN, FI, ELIF, ELSE)
 		fs.Elifs = append(fs.Elifs, elf)
@@ -1016,7 +1016,14 @@ func (p *parser) ifStmt() (fs IfStmt) {
 	return
 }
 
-func (p *parser) stmtCond(left Token, stops ...Token) Node {
+func (p *parser) cond(left Token, stops ...Token) Node {
+	if p.gotArithmStart() {
+		c := CStyleCond{Lparen: p.lpos}
+		c.Cond = p.arithmExpr(DLPAREN)
+		c.Rparen = p.arithmEnd(c.Lparen)
+		p.gotSameLine(SEMICOLON)
+		return c
+	}
 	stmts := p.followStmts(left, stops...)
 	if len(stmts) == 0 {
 		return nil
@@ -1028,7 +1035,7 @@ func (p *parser) stmtCond(left Token, stops ...Token) Node {
 
 func (p *parser) whileStmt() (ws WhileStmt) {
 	ws.While = p.lpos
-	ws.Cond = p.stmtCond(WHILE, DO)
+	ws.Cond = p.cond(WHILE, DO)
 	p.followTok(ws.While, "while [stmts]", DO)
 	ws.DoStmts = p.followStmts(DO, DONE)
 	p.stmtEnd(ws.While, WHILE, DONE, &ws.Done)
@@ -1037,7 +1044,7 @@ func (p *parser) whileStmt() (ws WhileStmt) {
 
 func (p *parser) untilStmt() (us UntilStmt) {
 	us.Until = p.lpos
-	us.Cond = p.stmtCond(UNTIL, DO)
+	us.Cond = p.cond(UNTIL, DO)
 	p.followTok(us.Until, "until [stmts]", DO)
 	us.DoStmts = p.followStmts(DO, DONE)
 	p.stmtEnd(us.Until, UNTIL, DONE, &us.Done)

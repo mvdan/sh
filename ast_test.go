@@ -171,6 +171,17 @@ var astTests = []testCase{
 		},
 	},
 	{
+		[]string{"if ((1 > 2)); then b; fi"},
+		IfStmt{
+			Cond: CStyleCond{Cond: BinaryExpr{
+				Op: GTR,
+				X:  litWord("1"),
+				Y:  litWord("2"),
+			}},
+			ThenStmts: litStmts("b"),
+		},
+	},
+	{
 		[]string{"while a; do b; done", "while a\ndo\nb\ndone"},
 		WhileStmt{
 			Cond:    StmtCond{Stmts: litStmts("a")},
@@ -191,6 +202,17 @@ var astTests = []testCase{
 		WhileStmt{
 			Cond: StmtCond{Stmts: []Stmt{
 				stmt(subshell(litStmt("a"))),
+			}},
+			DoStmts: litStmts("b"),
+		},
+	},
+	{
+		[]string{"while ((1 > 2)); do b; done"},
+		WhileStmt{
+			Cond: CStyleCond{Cond: BinaryExpr{
+				Op: GTR,
+				X:  litWord("1"),
+				Y:  litWord("2"),
 			}},
 			DoStmts: litStmts("b"),
 		},
@@ -1535,7 +1557,7 @@ func setPosRecurse(t *testing.T, v interface{}, to Pos, diff bool) Node {
 	case IfStmt:
 		setPos(&x.If)
 		setPos(&x.Fi)
-		recurse(x.Cond)
+		recurse(&x.Cond)
 		recurse(x.ThenStmts)
 		for i := range x.Elifs {
 			setPos(&x.Elifs[i].Elif)
@@ -1546,16 +1568,21 @@ func setPosRecurse(t *testing.T, v interface{}, to Pos, diff bool) Node {
 		return x
 	case StmtCond:
 		recurse(x.Stmts)
+	case CStyleCond:
+		setPos(&x.Lparen)
+		setPos(&x.Rparen)
+		recurse(&x.Cond)
+		return x
 	case WhileStmt:
 		setPos(&x.While)
 		setPos(&x.Done)
-		recurse(x.Cond)
+		recurse(&x.Cond)
 		recurse(x.DoStmts)
 		return x
 	case UntilStmt:
 		setPos(&x.Until)
 		setPos(&x.Done)
-		recurse(x.Cond)
+		recurse(&x.Cond)
 		recurse(x.DoStmts)
 		return x
 	case ForStmt:

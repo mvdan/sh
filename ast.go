@@ -245,6 +245,16 @@ type StmtCond struct {
 func (s StmtCond) String() string { return stmtList(s.Stmts) }
 func (s StmtCond) Pos() Pos       { return stmtFirstPos(s.Stmts) }
 
+type CStyleCond struct {
+	Lparen, Rparen Pos
+	Cond           Node
+}
+
+func (c CStyleCond) String() string {
+	return fmt.Sprintf(" ((%s)); ", c.Cond)
+}
+func (c CStyleCond) Pos() Pos { return c.Lparen }
+
 type Elif struct {
 	Elif      Pos
 	Cond      Node
