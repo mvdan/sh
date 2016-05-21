@@ -31,6 +31,10 @@ const (
 	CASE
 	ESAC
 
+	SQUOTE // '
+	DQUOTE // "
+	BQUOTE // `
+
 	NOT    // !
 	LBRACE // {
 	RBRACE // }
@@ -166,6 +170,10 @@ var (
 	}
 
 	regList = []tokEntry{
+		{"'", SQUOTE},
+		{"\"", DQUOTE},
+		{"`", BQUOTE},
+
 		{"&", AND},
 		{"&&", LAND},
 		{"|", OR},
@@ -241,7 +249,7 @@ func (t Token) String() string {
 	return string(t)
 }
 
-func (p *parser) doToken(tokList []tokEntry, b byte) Token {
+func (p *parser) doToken(tokList []tokEntry) Token {
 	// In reverse, to not treat e.g. && as & two times
 	for i := len(tokList) - 1; i >= 0; i-- {
 		t := tokList[i]
@@ -249,10 +257,9 @@ func (p *parser) doToken(tokList []tokEntry, b byte) Token {
 			return t.tok
 		}
 	}
-	p.consumeByte()
-	return Token(b)
+	return ILLEGAL
 }
 
-func (p *parser) doRegToken(b byte) Token    { return p.doToken(regList, b) }
-func (p *parser) doParamToken(b byte) Token  { return p.doToken(paramList, b) }
-func (p *parser) doArithmToken(b byte) Token { return p.doToken(arithmList, b) }
+func (p *parser) doRegToken() Token    { return p.doToken(regList) }
+func (p *parser) doParamToken() Token  { return p.doToken(paramList) }
+func (p *parser) doArithmToken() Token { return p.doToken(arithmList) }

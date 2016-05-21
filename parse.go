@@ -193,7 +193,7 @@ func (p *parser) next() {
 			p.advanceTok(STOPPED)
 			return
 		}
-		if p.quoted('"') || p.quoted(RBRACE) || !space[b] {
+		if p.quoted(DQUOTE) || p.quoted(RBRACE) || !space[b] {
 			break
 		}
 		p.consumeByte()
@@ -213,16 +213,16 @@ func (p *parser) next() {
 			// '}' is a token only in this context
 			p.advanceTok(RBRACE)
 		} else {
-			p.advanceTok(p.doParamToken(b))
+			p.advanceTok(p.doParamToken())
 		}
-	case b == '#' && !p.quoted('"'):
+	case b == '#' && !p.quoted(DQUOTE):
 		p.advanceBoth(COMMENT, p.readLine())
 	case p.quoted(DRPAREN) && arithmOps[b]:
-		p.advanceTok(p.doArithmToken(b))
+		p.advanceTok(p.doArithmToken())
 	case reserved[b]:
 		// Between double quotes, only under certain
 		// circumstnaces do we tokenize
-		if p.quoted('"') {
+		if p.quoted(DQUOTE) {
 			switch {
 			case b == '`', b == '"', b == '$', p.tok == DOLLAR:
 			default:
@@ -230,7 +230,7 @@ func (p *parser) next() {
 				return
 			}
 		}
-		p.advanceTok(p.doRegToken(b))
+		p.advanceTok(p.doRegToken())
 	default:
 		p.advanceReadLit()
 	}
@@ -256,7 +256,7 @@ func (p *parser) readLitBytes() (bs []byte) {
 			return
 		case p.quoted(LBRACE) && paramOps[b]:
 			return
-		case p.quoted('"'):
+		case p.quoted(DQUOTE):
 			if b == '"' {
 				return
 			}
@@ -435,8 +435,7 @@ func (p *parser) stmtEnd(startPos Pos, startTok, tok Token, pos *Pos) {
 	*pos = p.lpos
 }
 
-func (p *parser) closingQuote(lpos Pos, b byte) {
-	tok := Token(b)
+func (p *parser) closingQuote(lpos Pos, tok Token) {
 	if !p.got(tok) {
 		p.posErr(lpos, `reached %s without closing quote %s`, p.tok, tok)
 	}
@@ -571,27 +570,27 @@ func (p *parser) wordPart() Node {
 		ci.Stmts = p.stmtsNested(RPAREN)
 		ci.Rparen = p.matchedTok(ci.Lss, LPAREN, RPAREN)
 		return ci
-	case p.peek('\''):
+	case p.peek(SQUOTE):
 		sq := SglQuoted{Quote: p.pos}
 		s, found := p.readUntil("'")
 		if !found {
-			p.closingQuote(sq.Quote, '\'')
+			p.closingQuote(sq.Quote, SQUOTE)
 		}
 		sq.Value = s
 		p.readOnly("'")
 		p.next()
 		return sq
-	case !p.quoted('"') && p.peek('"'):
+	case !p.quoted(DQUOTE) && p.peek(DQUOTE):
 		dq := DblQuoted{Quote: p.pos}
-		p.enterStops('"')
+		p.enterStops(DQUOTE)
 		p.readParts(&dq.Parts)
 		p.popStop()
-		p.closingQuote(dq.Quote, '"')
+		p.closingQuote(dq.Quote, DQUOTE)
 		return dq
-	case !p.quoted('`') && p.peek('`'):
+	case !p.quoted(BQUOTE) && p.peek(BQUOTE):
 		cs := CmdSubst{Backquotes: true, Left: p.pos}
-		cs.Stmts = p.stmtsNested('`')
-		p.closingQuote(cs.Left, '`')
+		cs.Stmts = p.stmtsNested(BQUOTE)
+		p.closingQuote(cs.Left, BQUOTE)
 		cs.Right = p.lpos
 		return cs
 	}
@@ -789,7 +788,7 @@ func (p *parser) peekStop() bool {
 		if p.peek(stop) {
 			return true
 		}
-		if stop == '`' || stop == RPAREN {
+		if stop == BQUOTE || stop == RPAREN {
 			break
 		}
 	}
