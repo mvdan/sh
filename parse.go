@@ -121,6 +121,7 @@ func (p *parser) readOnly(s string) bool {
 	}
 	return false
 }
+func (p *parser) readOnlyTok(tok Token) bool { return p.readOnly(tok.String()) }
 
 var (
 	// bytes that form or start a token
@@ -584,7 +585,7 @@ func (p *parser) wordPart() Node {
 			p.closingQuote(sq.Quote, SQUOTE)
 		}
 		sq.Value = s
-		p.readOnly("'")
+		p.readOnlyTok(SQUOTE)
 		p.next()
 		return sq
 	case !p.quoted(DQUOTE) && p.peek(DQUOTE):
@@ -609,8 +610,8 @@ func (p *parser) dollar() Node {
 	if p.peekAnyByte('{') {
 		return p.paramExp(dpos)
 	}
-	if p.readOnly("#") {
-		p.advanceTok(Token('#'))
+	if p.readOnlyTok(HASH) {
+		p.advanceTok(HASH)
 	} else {
 		p.next()
 	}
@@ -723,7 +724,7 @@ func (p *parser) gotParamLit(l *Lit) bool {
 func (p *parser) paramExp(dpos Pos) (pe ParamExp) {
 	pe.Dollar = dpos
 	lpos := p.npos
-	p.readOnly("{")
+	p.readOnlyTok(LBRACE)
 	p.enterStops(LBRACE)
 	pe.Length = p.got(HASH)
 	if !p.gotParamLit(&pe.Param) && !pe.Length {
@@ -749,7 +750,7 @@ func (p *parser) paramExp(dpos Pos) (pe ParamExp) {
 }
 
 func (p *parser) gotArithmStart() bool {
-	if p.peek(LPAREN) && p.readOnly("(") {
+	if p.peek(LPAREN) && p.readOnlyTok(LPAREN) {
 		p.enterStops(DRPAREN)
 		return true
 	}
@@ -765,7 +766,7 @@ func (p *parser) arithmEnd(left Pos) Pos {
 		p.matchingErr(left, DLPAREN, DRPAREN)
 	}
 	right := p.pos
-	p.readOnly(")")
+	p.readOnlyTok(RPAREN)
 	p.popStop()
 	p.next()
 	return right
