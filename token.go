@@ -31,6 +31,7 @@ const (
 	CASE
 	ESAC
 
+	NOT    // !
 	LBRACE // {
 	RBRACE // }
 
@@ -66,7 +67,6 @@ const (
 	XOR   // ^
 	INC   // ++
 	DEC   // --
-	NOT   // !
 	POW   // **
 	COMMA // ,
 	NEQ   // !=
@@ -116,9 +116,20 @@ func (p Position) String() string {
 }
 
 func init() {
-	for _, t := range tokList {
+	for _, t := range regList {
 		tokNames[t.tok] = t.str
 	}
+	for _, t := range arithmList {
+		tokNames[t.tok] = t.str
+	}
+	for _, t := range paramList {
+		tokNames[t.tok] = t.str
+	}
+}
+
+type tokEntry struct {
+	str string
+	tok Token
 }
 
 var (
@@ -143,6 +154,7 @@ var (
 		CASE:  "case",
 		ESAC:  "esac",
 
+		NOT:    "!",
 		LBRACE: "{",
 		RBRACE: "}",
 
@@ -153,24 +165,52 @@ var (
 		DRPAREN: "))",
 	}
 
-	tokList = [...]struct {
-		str string
-		tok Token
-	}{
+	regList = []tokEntry{
 		{"&", AND},
 		{"&&", LAND},
 		{"|", OR},
 		{"||", LOR},
 
-		{"=", ASSIGN},
 		{"$", DOLLAR},
 		{"(", LPAREN},
-
 		{")", RPAREN},
 		{";", SEMICOLON},
 		{";;", DSEMICOLON},
-		{":", COLON},
 
+		{"<", LSS},
+		{">", GTR},
+		{"<<", SHL},
+		{">>", SHR},
+		{"|&", PIPEALL},
+		{"<>", RDRINOUT},
+		{"<&", DPLIN},
+		{">&", DPLOUT},
+		{"<<-", DHEREDOC},
+		{"<<<", WHEREDOC},
+	}
+	paramList = []tokEntry{
+		{"+", ADD},
+		{":+", CADD},
+		{"-", SUB},
+		{":-", CSUB},
+		{"?", QUEST},
+		{":?", CQUEST},
+		{"=", ASSIGN},
+		{":=", CASSIGN},
+		{"%", REM},
+		{"%%", DREM},
+		{"#", HASH},
+		{"##", DHASH},
+	}
+	arithmList = []tokEntry{
+		{"!", NOT},
+		{"=", ASSIGN},
+		{"(", LPAREN},
+		{")", RPAREN},
+		{"&", AND},
+		{"&&", LAND},
+		{"|", OR},
+		{"||", LOR},
 		{"<", LSS},
 		{">", GTR},
 		{"<<", SHL},
@@ -184,28 +224,13 @@ var (
 		{"^", XOR},
 		{"++", INC},
 		{"--", DEC},
-		{"!", NOT},
 		{"**", POW},
 		{",", COMMA},
 		{"!=", NEQ},
 		{"<=", LEQ},
 		{">=", GEQ},
-
-		{"|&", PIPEALL},
-		{"<>", RDRINOUT},
-		{"<&", DPLIN},
-		{">&", DPLOUT},
-		{"<<-", DHEREDOC},
-		{"<<<", WHEREDOC},
-
-		{":+", CADD},
-		{":-", CSUB},
 		{"?", QUEST},
-		{":?", CQUEST},
-		{":=", CASSIGN},
-		{"%%", DREM},
-		{"#", HASH},
-		{"##", DHASH},
+		{":", COLON},
 	}
 )
 
@@ -216,7 +241,7 @@ func (t Token) String() string {
 	return string(t)
 }
 
-func (p *parser) doToken(b byte) Token {
+func (p *parser) doToken(tokList []tokEntry, b byte) Token {
 	// In reverse, to not treat e.g. && as & two times
 	for i := len(tokList) - 1; i >= 0; i-- {
 		t := tokList[i]
@@ -227,3 +252,7 @@ func (p *parser) doToken(b byte) Token {
 	p.consumeByte()
 	return Token(b)
 }
+
+func (p *parser) doRegToken(b byte) Token    { return p.doToken(regList, b) }
+func (p *parser) doParamToken(b byte) Token  { return p.doToken(paramList, b) }
+func (p *parser) doArithmToken(b byte) Token { return p.doToken(arithmList, b) }

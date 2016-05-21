@@ -213,10 +213,12 @@ func (p *parser) next() {
 			// '}' is a token only in this context
 			p.advanceTok(RBRACE)
 		} else {
-			p.advanceTok(p.doToken(b))
+			p.advanceTok(p.doParamToken(b))
 		}
 	case b == '#' && !p.quoted('"'):
 		p.advanceBoth(COMMENT, p.readLine())
+	case p.quoted(DRPAREN) && arithmOps[b]:
+		p.advanceTok(p.doArithmToken(b))
 	case reserved[b]:
 		// Between double quotes, only under certain
 		// circumstnaces do we tokenize
@@ -228,9 +230,7 @@ func (p *parser) next() {
 				return
 			}
 		}
-		fallthrough
-	case p.quoted(DRPAREN) && arithmOps[b]:
-		p.advanceTok(p.doToken(b))
+		p.advanceTok(p.doRegToken(b))
 	default:
 		p.advanceReadLit()
 	}
@@ -645,7 +645,7 @@ func (p *parser) arithmExpr(following Token) Node {
 	}
 	if !p.gotAny(ADD, SUB, REM, MUL, QUO, XOR, AND, OR, LSS, GTR,
 		SHR, SHL, QUEST, COLON, ASSIGN, POW, COMMA, NEQ, LEQ, GEQ) {
-		p.curErr("not a valid arithmetic operator")
+		p.curErr("not a valid arithmetic operator: %s", p.tok)
 	}
 	b := BinaryExpr{
 		OpPos: p.lpos,
