@@ -18,6 +18,13 @@ func nodeFirstPos(ns []Node) Pos {
 	return ns[0].Pos()
 }
 
+func stmtFirstPos(sts []Stmt) Pos {
+	if len(sts) == 0 {
+		return defaultPos
+	}
+	return sts[0].Pos()
+}
+
 func wordFirstPos(ws []Word) Pos {
 	if len(ws) == 0 {
 		return defaultPos
@@ -94,6 +101,13 @@ func stmtList(stmts []Stmt) string {
 		return " " + s
 	}
 	return fmt.Sprintf(" %s%s ", s, SEMICOLON)
+}
+
+func cond(n Node) string {
+	if n == nil {
+		return fmt.Sprint(SEMICOLON, " ")
+	}
+	return n.String()
 }
 
 func wordJoin(words []Word, sep string) string {
@@ -204,7 +218,7 @@ func (b Block) Pos() Pos { return b.Rbrace }
 
 type IfStmt struct {
 	If, Fi    Pos
-	Conds     []Stmt
+	Cond      Node
 	ThenStmts []Stmt
 	Elifs     []Elif
 	ElseStmts []Stmt
@@ -212,7 +226,7 @@ type IfStmt struct {
 
 func (s IfStmt) String() string {
 	var b bytes.Buffer
-	fmt.Fprint(&b, IF, stmtList(s.Conds), THEN, stmtList(s.ThenStmts))
+	fmt.Fprint(&b, IF, cond(s.Cond), THEN, stmtList(s.ThenStmts))
 	for _, elif := range s.Elifs {
 		fmt.Fprint(&b, elif)
 	}
@@ -224,35 +238,42 @@ func (s IfStmt) String() string {
 }
 func (s IfStmt) Pos() Pos { return s.If }
 
+type StmtCond struct {
+	Stmts []Stmt
+}
+
+func (s StmtCond) String() string { return stmtList(s.Stmts) }
+func (s StmtCond) Pos() Pos       { return stmtFirstPos(s.Stmts) }
+
 type Elif struct {
 	Elif      Pos
-	Conds     []Stmt
+	Cond      Node
 	ThenStmts []Stmt
 }
 
 func (e Elif) String() string {
-	return fmt.Sprint(ELIF, stmtList(e.Conds), THEN, stmtList(e.ThenStmts))
+	return fmt.Sprint(ELIF, cond(e.Cond), THEN, stmtList(e.ThenStmts))
 }
 
 type WhileStmt struct {
 	While, Done Pos
-	Conds       []Stmt
+	Cond        Node
 	DoStmts     []Stmt
 }
 
 func (w WhileStmt) String() string {
-	return fmt.Sprint(WHILE, stmtList(w.Conds), DO, stmtList(w.DoStmts), DONE)
+	return fmt.Sprint(WHILE, cond(w.Cond), DO, stmtList(w.DoStmts), DONE)
 }
 func (w WhileStmt) Pos() Pos { return w.While }
 
 type UntilStmt struct {
 	Until, Done Pos
-	Conds       []Stmt
+	Cond        Node
 	DoStmts     []Stmt
 }
 
 func (u UntilStmt) String() string {
-	return fmt.Sprint(UNTIL, stmtList(u.Conds), DO, stmtList(u.DoStmts), DONE)
+	return fmt.Sprint(UNTIL, cond(u.Cond), DO, stmtList(u.DoStmts), DONE)
 }
 func (u UntilStmt) Pos() Pos { return u.Until }
 

@@ -123,7 +123,7 @@ var astTests = []testCase{
 			"if a\nthen\nb\nfi",
 		},
 		IfStmt{
-			Conds:     litStmts("a"),
+			Cond:      StmtCond{Stmts: litStmts("a")},
 			ThenStmts: litStmts("b"),
 		},
 	},
@@ -133,7 +133,7 @@ var astTests = []testCase{
 			"if a\nthen b\nelse\nc\nfi",
 		},
 		IfStmt{
-			Conds:     litStmts("a"),
+			Cond:      StmtCond{Stmts: litStmts("a")},
 			ThenStmts: litStmts("b"),
 			ElseStmts: litStmts("c"),
 		},
@@ -144,15 +144,15 @@ var astTests = []testCase{
 			"if a\nthen a\nelif b\nthen b\nelif c\nthen c\nelse\nd\nfi",
 		},
 		IfStmt{
-			Conds:     litStmts("a"),
+			Cond:      StmtCond{Stmts: litStmts("a")},
 			ThenStmts: litStmts("a"),
 			Elifs: []Elif{
 				{
-					Conds:     litStmts("b"),
+					Cond:      StmtCond{Stmts: litStmts("b")},
 					ThenStmts: litStmts("b"),
 				},
 				{
-					Conds:     litStmts("c"),
+					Cond:      StmtCond{Stmts: litStmts("c")},
 					ThenStmts: litStmts("c"),
 				},
 			},
@@ -162,39 +162,43 @@ var astTests = []testCase{
 	{
 		[]string{"if a1; a2 foo; a3 bar; then b; fi"},
 		IfStmt{
-			Conds: []Stmt{
+			Cond: StmtCond{Stmts: []Stmt{
 				litStmt("a1"),
 				litStmt("a2", "foo"),
 				litStmt("a3", "bar"),
-			},
+			}},
 			ThenStmts: litStmts("b"),
 		},
 	},
 	{
 		[]string{"while a; do b; done", "while a\ndo\nb\ndone"},
 		WhileStmt{
-			Conds:   litStmts("a"),
+			Cond:    StmtCond{Stmts: litStmts("a")},
 			DoStmts: litStmts("b"),
 		},
 	},
 	{
 		[]string{"while { a; }; do b; done", "while { a; } do b; done"},
 		WhileStmt{
-			Conds:   []Stmt{stmt(block(litStmt("a")))},
+			Cond: StmtCond{Stmts: []Stmt{
+				stmt(block(litStmt("a"))),
+			}},
 			DoStmts: litStmts("b"),
 		},
 	},
 	{
 		[]string{"while (a); do b; done", "while (a) do b; done"},
 		WhileStmt{
-			Conds:   []Stmt{stmt(subshell(litStmt("a")))},
+			Cond: StmtCond{Stmts: []Stmt{
+				stmt(subshell(litStmt("a"))),
+			}},
 			DoStmts: litStmts("b"),
 		},
 	},
 	{
 		[]string{"until a; do b; done", "until a\ndo\nb\ndone"},
 		UntilStmt{
-			Conds:   litStmts("a"),
+			Cond:    StmtCond{Stmts: litStmts("a")},
 			DoStmts: litStmts("b"),
 		},
 	},
@@ -316,11 +320,11 @@ var astTests = []testCase{
 		BinaryExpr{
 			Op: LOR,
 			X: stmt(IfStmt{
-				Conds:     litStmts("a"),
+				Cond:      StmtCond{Stmts: litStmts("a")},
 				ThenStmts: litStmts("b"),
 			}),
 			Y: stmt(WhileStmt{
-				Conds:   litStmts("a"),
+				Cond:    StmtCond{Stmts: litStmts("a")},
 				DoStmts: litStmts("b"),
 			}),
 		},
@@ -519,7 +523,7 @@ var astTests = []testCase{
 	{
 		[]string{"if true; then foo <<-EOF\n\tbar\n\tEOF\nfi"},
 		IfStmt{
-			Conds: litStmts("true"),
+			Cond: StmtCond{Stmts: litStmts("true")},
 			ThenStmts: []Stmt{{
 				Node: litCmd("foo"),
 				Redirs: []Redirect{
@@ -732,7 +736,7 @@ var astTests = []testCase{
 		Stmt{
 			Negated: true,
 			Node: IfStmt{
-				Conds:     litStmts("foo"),
+				Cond:      StmtCond{Stmts: litStmts("foo")},
 				ThenStmts: litStmts("bar"),
 			},
 			Redirs: []Redirect{
@@ -1251,7 +1255,9 @@ var astTests = []testCase{
 			Op: OR,
 			X:  litStmt("foo"),
 			Y: stmt(WhileStmt{
-				Conds:   []Stmt{litStmt("read", "a")},
+				Cond: StmtCond{Stmts: []Stmt{
+					litStmt("read", "a"),
+				}},
 				DoStmts: litStmts("b"),
 			}),
 		},
@@ -1259,7 +1265,7 @@ var astTests = []testCase{
 	{
 		[]string{"while read l; do foo || bar; done"},
 		WhileStmt{
-			Conds: []Stmt{litStmt("read", "l")},
+			Cond: StmtCond{Stmts: []Stmt{litStmt("read", "l")}},
 			DoStmts: stmts(BinaryExpr{
 				Op: LOR,
 				X:  litStmt("foo"),
@@ -1529,25 +1535,27 @@ func setPosRecurse(t *testing.T, v interface{}, to Pos, diff bool) Node {
 	case IfStmt:
 		setPos(&x.If)
 		setPos(&x.Fi)
-		recurse(x.Conds)
+		recurse(x.Cond)
 		recurse(x.ThenStmts)
 		for i := range x.Elifs {
 			setPos(&x.Elifs[i].Elif)
-			recurse(x.Elifs[i].Conds)
+			recurse(x.Elifs[i].Cond)
 			recurse(x.Elifs[i].ThenStmts)
 		}
 		recurse(x.ElseStmts)
 		return x
+	case StmtCond:
+		recurse(x.Stmts)
 	case WhileStmt:
 		setPos(&x.While)
 		setPos(&x.Done)
-		recurse(x.Conds)
+		recurse(x.Cond)
 		recurse(x.DoStmts)
 		return x
 	case UntilStmt:
 		setPos(&x.Until)
 		setPos(&x.Done)
-		recurse(x.Conds)
+		recurse(x.Cond)
 		recurse(x.DoStmts)
 		return x
 	case ForStmt:

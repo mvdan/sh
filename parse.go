@@ -999,12 +999,12 @@ func (p *parser) block() (b Block) {
 
 func (p *parser) ifStmt() (fs IfStmt) {
 	fs.If = p.lpos
-	fs.Conds = p.followStmts(IF, THEN)
+	fs.Cond = p.stmtCond(IF, THEN)
 	p.followTok(fs.If, "if [stmts]", THEN)
 	fs.ThenStmts = p.followStmts(THEN, FI, ELIF, ELSE)
 	for p.got(ELIF) {
 		elf := Elif{Elif: p.lpos}
-		elf.Conds = p.followStmts(ELIF, THEN)
+		elf.Cond = p.stmtCond(ELIF, THEN)
 		p.followTok(elf.Elif, "elif [stmts]", THEN)
 		elf.ThenStmts = p.followStmts(THEN, FI, ELIF, ELSE)
 		fs.Elifs = append(fs.Elifs, elf)
@@ -1016,9 +1016,19 @@ func (p *parser) ifStmt() (fs IfStmt) {
 	return
 }
 
+func (p *parser) stmtCond(left Token, stops ...Token) Node {
+	stmts := p.followStmts(left, stops...)
+	if len(stmts) == 0 {
+		return nil
+	}
+	return StmtCond{
+		Stmts: stmts,
+	}
+}
+
 func (p *parser) whileStmt() (ws WhileStmt) {
 	ws.While = p.lpos
-	ws.Conds = p.followStmts(WHILE, DO)
+	ws.Cond = p.stmtCond(WHILE, DO)
 	p.followTok(ws.While, "while [stmts]", DO)
 	ws.DoStmts = p.followStmts(DO, DONE)
 	p.stmtEnd(ws.While, WHILE, DONE, &ws.Done)
@@ -1027,7 +1037,7 @@ func (p *parser) whileStmt() (ws WhileStmt) {
 
 func (p *parser) untilStmt() (us UntilStmt) {
 	us.Until = p.lpos
-	us.Conds = p.followStmts(UNTIL, DO)
+	us.Cond = p.stmtCond(UNTIL, DO)
 	p.followTok(us.Until, "until [stmts]", DO)
 	us.DoStmts = p.followStmts(DO, DONE)
 	p.stmtEnd(us.Until, UNTIL, DONE, &us.Done)
