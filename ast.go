@@ -103,11 +103,11 @@ func stmtList(stmts []Stmt) string {
 	return fmt.Sprintf(" %s%s ", s, SEMICOLON)
 }
 
-func cond(n Node) string {
-	if n == nil {
+func semicolonIfNil(s fmt.Stringer) string {
+	if s == nil {
 		return fmt.Sprint(SEMICOLON, " ")
 	}
-	return n.String()
+	return s.String()
 }
 
 func wordJoin(words []Word, sep string) string {
@@ -226,7 +226,7 @@ type IfStmt struct {
 
 func (s IfStmt) String() string {
 	var b bytes.Buffer
-	fmt.Fprint(&b, IF, cond(s.Cond), THEN, stmtList(s.ThenStmts))
+	fmt.Fprint(&b, IF, semicolonIfNil(s.Cond), THEN, stmtList(s.ThenStmts))
 	for _, elif := range s.Elifs {
 		fmt.Fprint(&b, elif)
 	}
@@ -262,7 +262,7 @@ type Elif struct {
 }
 
 func (e Elif) String() string {
-	return fmt.Sprint(ELIF, cond(e.Cond), THEN, stmtList(e.ThenStmts))
+	return fmt.Sprint(ELIF, semicolonIfNil(e.Cond), THEN, stmtList(e.ThenStmts))
 }
 
 type WhileStmt struct {
@@ -272,7 +272,7 @@ type WhileStmt struct {
 }
 
 func (w WhileStmt) String() string {
-	return fmt.Sprint(WHILE, cond(w.Cond), DO, stmtList(w.DoStmts), DONE)
+	return fmt.Sprint(WHILE, semicolonIfNil(w.Cond), DO, stmtList(w.DoStmts), DONE)
 }
 func (w WhileStmt) Pos() Pos { return w.While }
 
@@ -283,7 +283,7 @@ type UntilStmt struct {
 }
 
 func (u UntilStmt) String() string {
-	return fmt.Sprint(UNTIL, cond(u.Cond), DO, stmtList(u.DoStmts), DONE)
+	return fmt.Sprint(UNTIL, semicolonIfNil(u.Cond), DO, stmtList(u.DoStmts), DONE)
 }
 func (u UntilStmt) Pos() Pos { return u.Until }
 
