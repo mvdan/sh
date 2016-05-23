@@ -1220,7 +1220,7 @@ var astTests = []testCase{
 		word(arithmExpr(BinaryExpr{
 			Op: QUEST,
 			X:  litWord("foo"),
-			Y:  BinaryExpr{
+			Y: BinaryExpr{
 				Op: COLON,
 				X:  litWord("b1"),
 				Y:  litWord("b2"),
@@ -1478,6 +1478,21 @@ var astTests = []testCase{
 		[]string{"declare -a foo=(b1 `b2`)"},
 		DeclStmt{
 			Opts: litWords("-a"),
+			Assigns: []Assign{
+				{Name: lit("foo"), Value: word(
+					ArrayExpr{List: []Word{
+						litWord("b1"),
+						word(bckQuoted(litStmt("b2"))),
+					}},
+				)},
+			},
+		},
+	},
+	{
+		[]string{"local -a foo=(b1 `b2`)"},
+		DeclStmt{
+			Local: true,
+			Opts:  litWords("-a"),
 			Assigns: []Assign{
 				{Name: lit("foo"), Value: word(
 					ArrayExpr{List: []Word{

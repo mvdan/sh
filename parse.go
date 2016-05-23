@@ -916,7 +916,7 @@ func (p *parser) gotStmtAndOr(s *Stmt, addRedir func()) bool {
 		s.Node = p.forStmt()
 	case p.got(CASE):
 		s.Node = p.caseStmt()
-	case p.got(DECLARE):
+	case p.gotAny(DECLARE, LOCAL):
 		s.Node = p.declStmt()
 	default:
 		s.Node = p.cmdOrFunc(addRedir)
@@ -1129,7 +1129,10 @@ func (p *parser) patLists() (pls []PatternList) {
 }
 
 func (p *parser) declStmt() Node {
-	ds := DeclStmt{Declare: p.lpos}
+	ds := DeclStmt{
+		Declare: p.lpos,
+		Local:   p.lval == LOCAL.String(),
+	}
 	for p.peek(LIT) && p.peekSpaced() && p.val[0] == '-' {
 		var w Word
 		p.gotWord(&w)

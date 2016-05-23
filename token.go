@@ -42,6 +42,7 @@ const (
 	// Bash reserved words
 	FUNCTION
 	DECLARE
+	LOCAL
 
 	// Rest of tokens
 	AND  // &
@@ -165,6 +166,7 @@ var (
 
 		FUNCTION: "function",
 		DECLARE:  "declare",
+		LOCAL:    "local",
 
 		DLPAREN: "((",
 		DRPAREN: "))",

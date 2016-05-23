@@ -483,13 +483,18 @@ func (p PatternList) String() string {
 
 type DeclStmt struct {
 	Declare Pos
+	Local   bool
 	Opts    []Word
 	Assigns []Assign
 }
 
 func (d DeclStmt) String() string {
 	var strs []fmt.Stringer
-	strs = append(strs, DECLARE)
+	if d.Local {
+		strs = append(strs, LOCAL)
+	} else {
+		strs = append(strs, DECLARE)
+	}
 	for _, w := range d.Opts {
 		strs = append(strs, w)
 	}
