@@ -347,7 +347,7 @@ func (p *parser) peek(tok Token) bool {
 }
 
 func (p *parser) peekReservedWord(tok Token) bool {
-	return p.val == tokNames[tok] && p.peekSpaced()
+	return p.val == reservedWords[tok] && p.peekSpaced()
 }
 
 func (p *parser) peekSpaced() bool {

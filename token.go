@@ -122,6 +122,9 @@ func (p Position) String() string {
 }
 
 func init() {
+	for tok, str := range reservedWords {
+		tokNames[tok] = str
+	}
 	for _, t := range regList {
 		tokNames[t.tok] = t.str
 	}
@@ -146,6 +149,11 @@ var (
 		LIT:     `literal`,
 		COMMENT: `comment`,
 
+		DLPAREN: "((",
+		DRPAREN: "))",
+	}
+
+	reservedWords = map[Token]string{
 		IF:    "if",
 		THEN:  "then",
 		ELIF:  "elif",
@@ -167,9 +175,6 @@ var (
 		FUNCTION: "function",
 		DECLARE:  "declare",
 		LOCAL:    "local",
-
-		DLPAREN: "((",
-		DRPAREN: "))",
 	}
 
 	regList = []tokEntry{
