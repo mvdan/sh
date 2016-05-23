@@ -442,11 +442,11 @@ func (p *parser) followWord(left Token) (w Word) {
 	return
 }
 
-func (p *parser) stmtEnd(startPos Pos, startTok, tok Token, pos *Pos) {
+func (p *parser) stmtEnd(startPos Pos, startTok, tok Token) Pos {
 	if !p.got(tok) {
 		p.posErr(startPos, `%s statement must end with %q`, startTok, tok)
 	}
-	*pos = p.lpos
+	return p.lpos
 }
 
 func (p *parser) closingQuote(lpos Pos, tok Token) {
@@ -778,15 +778,16 @@ func (p *parser) arithmEnd(left Pos) Pos {
 	return right
 }
 
-func (p *parser) wordList(ws *[]Word, stops ...Token) {
+func (p *parser) wordList(stops ...Token) (ws []Word) {
 	for !p.peekEnd() && !p.peekAny(stops...) {
 		var w Word
 		if !p.gotWord(&w) {
 			p.curErr("word list can only contain words")
 		}
-		*ws = append(*ws, w)
+		ws = append(ws, w)
 	}
 	p.gotSameLine(SEMICOLON)
+	return
 }
 
 func (p *parser) peekEnd() bool {
@@ -851,7 +852,7 @@ func (p *parser) getAssign() (Assign, bool) {
 	}
 	if start.Value == "" && p.got(LPAREN) {
 		ae := ArrayExpr{Lparen: p.lpos}
-		p.wordList(&ae.List, RPAREN)
+		ae.List = p.wordList(RPAREN)
 		ae.Rparen = p.matchedTok(ae.Lparen, LPAREN, RPAREN)
 		as.Value.Parts = append(as.Value.Parts, ae)
 	} else if !p.peekStop() {
@@ -1021,7 +1022,7 @@ func (p *parser) ifStmt() (fs IfStmt) {
 	if p.got(ELSE) {
 		fs.ElseStmts = p.followStmts(ELSE, FI)
 	}
-	p.stmtEnd(fs.If, IF, FI, &fs.Fi)
+	fs.Fi = p.stmtEnd(fs.If, IF, FI)
 	return
 }
 
@@ -1047,7 +1048,7 @@ func (p *parser) whileStmt() (ws WhileStmt) {
 	ws.Cond = p.cond(WHILE, DO)
 	p.followTok(ws.While, "while [stmts]", DO)
 	ws.DoStmts = p.followStmts(DO, DONE)
-	p.stmtEnd(ws.While, WHILE, DONE, &ws.Done)
+	ws.Done = p.stmtEnd(ws.While, WHILE, DONE)
 	return
 }
 
@@ -1056,7 +1057,7 @@ func (p *parser) untilStmt() (us UntilStmt) {
 	us.Cond = p.cond(UNTIL, DO)
 	p.followTok(us.Until, "until [stmts]", DO)
 	us.DoStmts = p.followStmts(DO, DONE)
-	p.stmtEnd(us.Until, UNTIL, DONE, &us.Done)
+	us.Done = p.stmtEnd(us.Until, UNTIL, DONE)
 	return
 }
 
@@ -1078,7 +1079,7 @@ func (p *parser) forStmt() (fs ForStmt) {
 			p.followErr(fs.For, FOR, "a literal")
 		}
 		if p.got(IN) {
-			p.wordList(&w.List)
+			w.List = p.wordList()
 		} else if !p.gotSameLine(SEMICOLON) && !p.newLine {
 			p.followErr(fs.For, "for foo", `"in", ; or a newline`)
 		}
@@ -1086,7 +1087,7 @@ func (p *parser) forStmt() (fs ForStmt) {
 	}
 	p.followTok(fs.For, "for foo [in words]", DO)
 	fs.DoStmts = p.followStmts(DO, DONE)
-	p.stmtEnd(fs.For, FOR, DONE, &fs.Done)
+	fs.Done = p.stmtEnd(fs.For, FOR, DONE)
 	return
 }
 
@@ -1095,7 +1096,7 @@ func (p *parser) caseStmt() (cs CaseStmt) {
 	cs.Word = p.followWord(CASE)
 	p.followTok(cs.Case, "case x", IN)
 	cs.List = p.patLists()
-	p.stmtEnd(cs.Case, CASE, ESAC, &cs.Esac)
+	cs.Esac = p.stmtEnd(cs.Case, CASE, ESAC)
 	return
 }
 
