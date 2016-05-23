@@ -173,6 +173,7 @@ var (
 		':': true,
 		'=': true,
 		',': true,
+		'?': true,
 	}
 	// bytes that will be treated as space
 	space = map[byte]bool{
