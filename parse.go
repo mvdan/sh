@@ -350,6 +350,11 @@ func (p *parser) peekReservedWord(tok Token) bool {
 }
 
 func (p *parser) peekSpaced() bool {
+	for _, stop := range p.stops {
+		if p.peekString(stop.String()) {
+			return true
+		}
+	}
 	b, err := p.peekByte()
 	return err != nil || space[b] || wordBreak[b]
 }

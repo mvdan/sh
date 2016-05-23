@@ -782,6 +782,12 @@ var astTests = []testCase{
 		block(litStmt("echo", "}", "}")),
 	},
 	{
+		[]string{"`{ echo; }`"},
+		word(bckQuoted(stmt(
+			block(litStmt("echo")),
+		))),
+	},
+	{
 		[]string{`{foo}`},
 		litWord(`{foo}`),
 	},
