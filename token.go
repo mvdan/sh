@@ -244,12 +244,7 @@ var (
 	}
 )
 
-func (t Token) String() string {
-	if s, e := tokNames[t]; e {
-		return s
-	}
-	return string(t)
-}
+func (t Token) String() string { return tokNames[t] }
 
 func (p *parser) doToken(tokList []tokEntry) Token {
 	// In reverse, to not treat e.g. && as & two times
