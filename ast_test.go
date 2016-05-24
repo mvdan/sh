@@ -1460,7 +1460,7 @@ var astTests = []testCase{
 		[]string{"declare alone foo=bar"},
 		DeclStmt{
 			Assigns: []Assign{
-				{Name: lit("alone"), NameOnly: true},
+				{Value: litWord("alone")},
 				{Name: lit("foo"), Value: litWord("bar")},
 			},
 		},

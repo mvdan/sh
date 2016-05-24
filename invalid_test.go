@@ -424,11 +424,7 @@ var errTests = []struct {
 	},
 	{
 		"declare (",
-		`1:9: declare statements must be followed by literals`,
-	},
-	{
-		"declare {",
-		`1:9: invalid var name: {`,
+		`1:9: declare statement must be followed by words`,
 	},
 }
 

@@ -843,7 +843,7 @@ func (p *parser) getAssign() (Assign, bool) {
 		Value:    p.val[i+1:],
 	}
 	if start.Value != "" {
-		start.ValuePos.Column += len(as.Name.Value)
+		start.ValuePos.Column += i
 		as.Value.Parts = append(as.Value.Parts, start)
 	}
 	p.next()
@@ -1142,20 +1142,14 @@ func (p *parser) declStmt() Node {
 	for !p.peekStop() {
 		if as, ok := p.getAssign(); ok {
 			ds.Assigns = append(ds.Assigns, as)
-		} else if p.peek(LIT) && p.peekSpaced() {
-			if !identRe.MatchString(p.val) {
-				p.curErr("invalid var name: %s", p.val)
+		} else {
+			var w Word
+			if !p.gotWord(&w) {
+				p.curErr("declare statement must be followed by words")
 			}
 			ds.Assigns = append(ds.Assigns, Assign{
-				NameOnly: true,
-				Name: Lit{
-					ValuePos: p.pos,
-					Value:    p.val,
-				},
+				Value: w,
 			})
-			p.next()
-		} else {
-			p.curErr("declare statements must be followed by literals")
 		}
 	}
 	return ds
