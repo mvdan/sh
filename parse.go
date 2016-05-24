@@ -444,16 +444,16 @@ func (p *parser) followWord(left Token) (w Word) {
 	return
 }
 
-func (p *parser) stmtEnd(startPos Pos, startTok, tok Token) Pos {
+func (p *parser) stmtEnd(n Node, startTok, tok Token) Pos {
 	if !p.got(tok) {
-		p.posErr(startPos, `%s statement must end with %q`, startTok, tok)
+		p.posErr(n.Pos(), `%s statement must end with %q`, startTok, tok)
 	}
 	return p.lpos
 }
 
-func (p *parser) closingQuote(lpos Pos, tok Token) {
+func (p *parser) closingQuote(n Node, tok Token) {
 	if !p.got(tok) {
-		p.posErr(lpos, `reached %s without closing quote %s`, p.tok, tok)
+		p.posErr(n.Pos(), `reached %s without closing quote %s`, p.tok, tok)
 	}
 }
 
@@ -485,19 +485,19 @@ func (e lineErr) Error() string {
 	return fmt.Sprintf("%s: %s", e.pos, e.text)
 }
 
-func (p *parser) posErr(pos Pos, format string, v ...interface{}) {
+func (p *parser) posErr(pos Pos, format string, a ...interface{}) {
 	p.errPass(lineErr{
 		pos: Position{
 			Filename: p.file.Name,
 			Line:     pos.Line,
 			Column:   pos.Column,
 		},
-		text: fmt.Sprintf(format, v...),
+		text: fmt.Sprintf(format, a...),
 	})
 }
 
-func (p *parser) curErr(format string, v ...interface{}) {
-	p.posErr(p.pos, format, v...)
+func (p *parser) curErr(format string, a ...interface{}) {
+	p.posErr(p.pos, format, a...)
 }
 
 func (p *parser) stmts(stops ...Token) (sts []Stmt) {
@@ -590,7 +590,7 @@ func (p *parser) wordPart() Node {
 		sq := SglQuoted{Quote: p.pos}
 		s, found := p.readUntil("'")
 		if !found {
-			p.closingQuote(sq.Quote, SQUOTE)
+			p.closingQuote(sq, SQUOTE)
 		}
 		sq.Value = s
 		p.readOnlyTok(SQUOTE)
@@ -601,12 +601,12 @@ func (p *parser) wordPart() Node {
 		p.enterStops(DQUOTE)
 		p.readParts(&dq.Parts)
 		p.popStop()
-		p.closingQuote(dq.Quote, DQUOTE)
+		p.closingQuote(dq, DQUOTE)
 		return dq
 	case !p.quoted(BQUOTE) && p.peek(BQUOTE):
 		cs := CmdSubst{Backquotes: true, Left: p.pos}
 		cs.Stmts = p.stmtsNested(BQUOTE)
-		p.closingQuote(cs.Left, BQUOTE)
+		p.closingQuote(cs, BQUOTE)
 		cs.Right = p.lpos
 		return cs
 	}
@@ -731,7 +731,6 @@ func (p *parser) gotParamLit(l *Lit) bool {
 
 func (p *parser) paramExp(dpos Pos) (pe ParamExp) {
 	pe.Dollar = dpos
-	lpos := p.npos
 	p.readOnlyTok(LBRACE)
 	p.enterStops(LBRACE)
 	pe.Length = p.got(HASH)
@@ -763,6 +762,8 @@ func (p *parser) paramExp(dpos Pos) (pe ParamExp) {
 	p.gotWord(&pe.Exp.Word)
 	p.popStop()
 	if !p.got(RBRACE) {
+		lpos := pe.Dollar
+		lpos.Column++
 		p.matchingErr(lpos, LBRACE, RBRACE)
 	}
 	return
@@ -1041,7 +1042,7 @@ func (p *parser) ifStmt() (fs IfStmt) {
 	if p.got(ELSE) {
 		fs.ElseStmts = p.followStmts(ELSE, FI)
 	}
-	fs.Fi = p.stmtEnd(fs.If, IF, FI)
+	fs.Fi = p.stmtEnd(fs, IF, FI)
 	return
 }
 
@@ -1067,7 +1068,7 @@ func (p *parser) whileStmt() (ws WhileStmt) {
 	ws.Cond = p.cond(WHILE, DO)
 	p.followTok(ws.While, "while [stmts]", DO)
 	ws.DoStmts = p.followStmts(DO, DONE)
-	ws.Done = p.stmtEnd(ws.While, WHILE, DONE)
+	ws.Done = p.stmtEnd(ws, WHILE, DONE)
 	return
 }
 
@@ -1076,7 +1077,7 @@ func (p *parser) untilStmt() (us UntilStmt) {
 	us.Cond = p.cond(UNTIL, DO)
 	p.followTok(us.Until, "until [stmts]", DO)
 	us.DoStmts = p.followStmts(DO, DONE)
-	us.Done = p.stmtEnd(us.Until, UNTIL, DONE)
+	us.Done = p.stmtEnd(us, UNTIL, DONE)
 	return
 }
 
@@ -1106,7 +1107,7 @@ func (p *parser) forStmt() (fs ForStmt) {
 	}
 	p.followTok(fs.For, "for foo [in words]", DO)
 	fs.DoStmts = p.followStmts(DO, DONE)
-	fs.Done = p.stmtEnd(fs.For, FOR, DONE)
+	fs.Done = p.stmtEnd(fs, FOR, DONE)
 	return
 }
 
@@ -1115,7 +1116,7 @@ func (p *parser) caseStmt() (cs CaseStmt) {
 	cs.Word = p.followWord(CASE)
 	p.followTok(cs.Case, "case x", IN)
 	cs.List = p.patLists()
-	cs.Esac = p.stmtEnd(cs.Case, CASE, ESAC)
+	cs.Esac = p.stmtEnd(cs, CASE, ESAC)
 	return
 }
 
