@@ -151,13 +151,17 @@ func (s Stmt) newlineAfter() bool {
 }
 
 type Assign struct {
-	Name  Node
-	Value Word
+	Append bool
+	Name   Node
+	Value  Word
 }
 
 func (a Assign) String() string {
 	if a.Name == nil {
 		return a.Value.String()
+	}
+	if a.Append {
+		return fmt.Sprint(a.Name, "+=", a.Value)
 	}
 	return fmt.Sprint(a.Name, "=", a.Value)
 }

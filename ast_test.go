@@ -447,10 +447,8 @@ var astTests = []testCase{
 	{
 		[]string{"a= foo"},
 		Stmt{
-			Node: litCmd("foo"),
-			Assigns: []Assign{
-				{Name: lit("a")},
-			},
+			Node:    litCmd("foo"),
+			Assigns: []Assign{{Name: lit("a")}},
 		},
 	},
 	{
@@ -1493,25 +1491,46 @@ var astTests = []testCase{
 		DeclStmt{
 			Local: true,
 			Opts:  litWords("-a"),
-			Assigns: []Assign{
-				{Name: lit("foo"), Value: word(
+			Assigns: []Assign{{
+				Name: lit("foo"),
+				Value: word(
 					ArrayExpr{List: []Word{
 						litWord("b1"),
 						word(bckQuoted(litStmt("b2"))),
 					}},
-				)},
-			},
+				),
+			}},
 		},
 	},
 	{
 		[]string{"a=(b c) foo"},
 		Stmt{
-			Assigns: []Assign{
-				{Name: lit("a"), Value: word(
+			Assigns: []Assign{{
+				Name: lit("a"),
+				Value: word(
 					ArrayExpr{List: litWords("b", "c")},
-				)},
-			},
+				),
+			}},
 			Node: litCmd("foo"),
+		},
+	},
+	{
+		[]string{"a+=1 b+=(2 3)"},
+		Stmt{
+			Assigns: []Assign{
+				{
+					Append: true,
+					Name:   lit("a"),
+					Value:  litWord("1"),
+				},
+				{
+					Append: true,
+					Name:   lit("b"),
+					Value: word(
+						ArrayExpr{List: litWords("2", "3")},
+					),
+				},
+			},
 		},
 	},
 }

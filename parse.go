@@ -824,11 +824,13 @@ func (p *parser) assignSplit() int {
 	if !p.peek(LIT) {
 		return -1
 	}
-	i := strings.IndexByte(p.val, '=')
-	if i == -1 || !identRe.MatchString(p.val[:i]) {
-		return -1
+	for _, s := range [...]string{"+=", "="} {
+		i := strings.Index(p.val, s)
+		if i >= 0 && identRe.MatchString(p.val[:i]) {
+			return i
+		}
 	}
-	return i
+	return -1
 }
 
 func (p *parser) getAssign() (Assign, bool) {
@@ -838,6 +840,10 @@ func (p *parser) getAssign() (Assign, bool) {
 		return as, false
 	}
 	as.Name = Lit{ValuePos: p.pos, Value: p.val[:i]}
+	if p.val[i] == '+' {
+		as.Append = true
+		i++
+	}
 	start := Lit{
 		ValuePos: p.pos,
 		Value:    p.val[i+1:],
