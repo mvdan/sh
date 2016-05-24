@@ -4,6 +4,7 @@
 package sh
 
 import (
+	"fmt"
 	"reflect"
 	"strings"
 	"testing"
@@ -1783,43 +1784,49 @@ func TestNodePos(t *testing.T) {
 	} {
 		allTests = append(allTests, testCase{nil, v})
 	}
-	for _, c := range allTests {
-		want := fullProg(c.ast)
-		setPosRecurse(t, want.Stmts, p, true)
+	for i, c := range allTests {
+		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+			want := fullProg(c.ast)
+			setPosRecurse(t, want.Stmts, p, true)
+		})
 	}
 }
 
 func TestParseAST(t *testing.T) {
 	p := Pos{}
 	defaultPos = p
-	for _, c := range astTests {
-		want := fullProg(c.ast)
-		setPosRecurse(t, want.Stmts, p, false)
-		for _, in := range c.strs {
-			r := strings.NewReader(in)
-			got, err := Parse(r, "")
-			if err != nil {
-				t.Fatalf("Unexpected error in %q: %v", in, err)
+	for i, c := range astTests {
+		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+			want := fullProg(c.ast)
+			setPosRecurse(t, want.Stmts, p, false)
+			for _, in := range c.strs {
+				r := strings.NewReader(in)
+				got, err := Parse(r, "")
+				if err != nil {
+					t.Fatalf("Unexpected error in %q: %v", in, err)
+				}
+				setPosRecurse(t, got.Stmts, p, true)
+				if !reflect.DeepEqual(got, want) {
+					t.Fatalf("AST mismatch in %q\nwant: %s\ngot:  %s\ndiff:\n%s",
+						in, want, got,
+						strings.Join(pretty.Diff(want, got), "\n"),
+					)
+				}
 			}
-			setPosRecurse(t, got.Stmts, p, true)
-			if !reflect.DeepEqual(got, want) {
-				t.Fatalf("AST mismatch in %q\nwant: %s\ngot:  %s\ndiff:\n%s",
-					in, want, got,
-					strings.Join(pretty.Diff(want, got), "\n"),
-				)
-			}
-		}
+		})
 	}
 }
 
 func TestPrintAST(t *testing.T) {
-	for _, c := range astTests {
-		in := fullProg(c.ast)
-		want := c.strs[0]
-		got := in.String()
-		if got != want {
-			t.Fatalf("AST print mismatch\nwant: %s\ngot:  %s",
-				want, got)
-		}
+	for i, c := range astTests {
+		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+			in := fullProg(c.ast)
+			want := c.strs[0]
+			got := in.String()
+			if got != want {
+				t.Fatalf("AST print mismatch\nwant: %s\ngot:  %s",
+					want, got)
+			}
+		})
 	}
 }
