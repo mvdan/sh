@@ -94,6 +94,8 @@ const (
 	DREM    // %%
 	HASH    // #
 	DHASH   // ##
+	LBRACK  // [
+	RBRACK  // ]
 
 	DLPAREN // ((
 	DRPAREN // ))
@@ -218,6 +220,8 @@ var (
 		{"%%", DREM},
 		{"#", HASH},
 		{"##", DHASH},
+		{"[", LBRACK},
+		{"]", RBRACK},
 	}
 	arithmList = []tokEntry{
 		{"!", NOT},

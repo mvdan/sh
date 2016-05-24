@@ -409,6 +409,7 @@ type ParamExp struct {
 	Dollar        Pos
 	Short, Length bool
 	Param         Lit
+	Ind           *Index
 	Exp           *Expansion
 }
 
@@ -416,15 +417,28 @@ func (p ParamExp) String() string {
 	if p.Short {
 		return fmt.Sprint(DOLLAR, "", p.Param)
 	}
+	var b bytes.Buffer
+	fmt.Fprint(&b, "${")
 	if p.Length {
-		return fmt.Sprintf("${#%s}", p.Param)
+		fmt.Fprint(&b, HASH)
 	}
-	if p.Exp == nil {
-		return fmt.Sprintf("${%s}", p.Param)
+	fmt.Fprint(&b, p.Param)
+	if p.Ind != nil {
+		fmt.Fprint(&b, p.Ind)
 	}
-	return fmt.Sprintf("${%s%s}", p.Param, p.Exp)
+	if p.Exp != nil {
+		fmt.Fprint(&b, p.Exp)
+	}
+	fmt.Fprint(&b, "}")
+	return b.String()
 }
 func (p ParamExp) Pos() Pos { return p.Dollar }
+
+type Index struct {
+	Word Word
+}
+
+func (i Index) String() string { return fmt.Sprintf("[%s]", i.Word) }
 
 type Expansion struct {
 	Op   Token

@@ -985,6 +985,28 @@ var astTests = []testCase{
 		}),
 	},
 	{
+		[]string{`${foo[bar]}`},
+		word(ParamExp{
+			Param: lit("foo"),
+			Ind: &Index{
+				Word: litWord("bar"),
+			},
+		}),
+	},
+	{
+		[]string{`${foo[bar]-etc}`},
+		word(ParamExp{
+			Param: lit("foo"),
+			Ind: &Index{
+				Word: litWord("bar"),
+			},
+			Exp: &Expansion{
+				Op:   SUB,
+				Word: litWord("etc"),
+			},
+		}),
+	},
+	{
 		[]string{`${#foo}`},
 		word(ParamExp{
 			Length: true,
@@ -1693,6 +1715,9 @@ func setPosRecurse(t *testing.T, v interface{}, to Pos, diff bool) Node {
 	case ParamExp:
 		setPos(&x.Dollar)
 		recurse(&x.Param)
+		if x.Ind != nil {
+			recurse(x.Ind.Word)
+		}
 		if x.Exp != nil {
 			recurse(x.Exp.Word)
 		}
