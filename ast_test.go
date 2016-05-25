@@ -1017,6 +1017,16 @@ var astTests = []testCase{
 		}),
 	},
 	{
+		[]string{`${foo/b1/b2}`},
+		word(ParamExp{
+			Param: lit("foo"),
+			Repl: &Replace{
+				Orig: litWord("b1"),
+				With: litWord("b2"),
+			},
+		}),
+	},
+	{
 		[]string{`${#foo}`},
 		word(ParamExp{
 			Length: true,
@@ -1727,6 +1737,10 @@ func setPosRecurse(t *testing.T, v interface{}, to Pos, diff bool) Node {
 		recurse(&x.Param)
 		if x.Ind != nil {
 			recurse(x.Ind.Word)
+		}
+		if x.Repl != nil {
+			recurse(x.Repl.Orig)
+			recurse(x.Repl.With)
 		}
 		if x.Exp != nil {
 			recurse(x.Exp.Word)

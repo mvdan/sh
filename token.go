@@ -222,6 +222,7 @@ var (
 		{"##", DHASH},
 		{"[", LBRACK},
 		{"]", RBRACK},
+		{"/", QUO},
 	}
 	arithmList = []tokEntry{
 		{"!", NOT},

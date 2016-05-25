@@ -410,6 +410,7 @@ type ParamExp struct {
 	Short, Length bool
 	Param         Lit
 	Ind           *Index
+	Repl          *Replace
 	Exp           *Expansion
 }
 
@@ -426,6 +427,9 @@ func (p ParamExp) String() string {
 	if p.Ind != nil {
 		fmt.Fprint(&b, p.Ind)
 	}
+	if p.Repl != nil {
+		fmt.Fprint(&b, p.Repl)
+	}
 	if p.Exp != nil {
 		fmt.Fprint(&b, p.Exp)
 	}
@@ -439,6 +443,12 @@ type Index struct {
 }
 
 func (i Index) String() string { return fmt.Sprintf("[%s]", i.Word) }
+
+type Replace struct {
+	Orig, With Word
+}
+
+func (r Replace) String() string { return fmt.Sprintf("/%s/%s", r.Orig, r.With) }
 
 type Expansion struct {
 	Op   Token

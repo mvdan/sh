@@ -159,6 +159,7 @@ var (
 		'?': true,
 		'%': true,
 		'[': true,
+		'/': true,
 	}
 	// tokenize these inside arithmetic expansions
 	arithmOps = map[byte]bool{
@@ -759,10 +760,17 @@ func (p *parser) paramExp(dpos Pos) (pe ParamExp) {
 	if pe.Length {
 		p.posErr(pe.Dollar, `string lengths must be like "${#foo}"`)
 	}
-	pe.Exp = &Expansion{Op: p.tok}
-	p.popStop()
-	p.enterStops(RBRACE)
-	p.gotWord(&pe.Exp.Word)
+	if p.got(QUO) {
+		pe.Repl = &Replace{}
+		p.gotWord(&pe.Repl.Orig)
+		p.got(QUO)
+		p.gotWord(&pe.Repl.With)
+	} else {
+		pe.Exp = &Expansion{Op: p.tok}
+		p.popStop()
+		p.enterStops(RBRACE)
+		p.gotWord(&pe.Exp.Word)
+	}
 	p.popStop()
 	if !p.got(RBRACE) {
 		lpos := pe.Dollar
