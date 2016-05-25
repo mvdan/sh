@@ -53,7 +53,7 @@ func litStmts(strs ...string) []Stmt {
 }
 
 func sglQuoted(s string) SglQuoted    { return SglQuoted{Value: s} }
-func dblQuoted(ns ...Node) DblQuoted  { return DblQuoted{Parts: ns} }
+func dblQuoted(ns ...Node) Quoted     { return Quoted{Quote: DQUOTE, Parts: ns} }
 func block(sts ...Stmt) Block         { return Block{Stmts: sts} }
 func subshell(sts ...Stmt) Subshell   { return Subshell{Stmts: sts} }
 func arithmExpr(expr Node) ArithmExpr { return ArithmExpr{X: expr} }
@@ -1317,11 +1317,11 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"$'foo'"},
-		word(lit("$"), sglQuoted("foo")),
+		word(Quoted{Quote: DOLLSQ, Parts: lits("foo")}),
 	},
 	{
 		[]string{`"foo$"`},
-		word(dblQuoted(lit("foo"), lit("$"))),
+		word(dblQuoted(lit("foo$"))),
 	},
 	{
 		[]string{"`foo$`"},
@@ -1758,8 +1758,8 @@ func setPosRecurse(t *testing.T, v interface{}, to Pos, diff bool) Node {
 	case SglQuoted:
 		setPos(&x.Quote)
 		return x
-	case DblQuoted:
-		setPos(&x.Quote)
+	case Quoted:
+		setPos(&x.QuotePos)
 		recurse(x.Parts)
 		return x
 	case UnaryExpr:

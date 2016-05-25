@@ -340,7 +340,7 @@ var errTests = []struct {
 	},
 	{
 		"echo $'",
-		`1:7: reached EOF without closing quote '`,
+		`1:6: reached EOF without closing quote '`,
 	},
 	{
 		"echo ${}",

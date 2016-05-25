@@ -237,7 +237,8 @@ func (p *parser) next() {
 		// circumstnaces do we tokenize
 		if p.quoted(DQUOTE) {
 			switch {
-			case b == '`', b == '"', b == '$', p.tok == DOLLAR:
+			case b == '`', b == '"', p.tok == DOLLAR:
+			case b == '$' && !p.peekString(`$"`):
 			default:
 				p.advanceReadLit()
 				return
@@ -263,7 +264,7 @@ func (p *parser) readLitBytes() (bs []byte) {
 			return
 		}
 		switch {
-		case b == '$', b == '`':
+		case b == '$' && !p.peekString(`$"`), b == '`':
 			return
 		case p.quotedAny(RBRACE):
 			if b == '}' {
@@ -575,7 +576,7 @@ func (p *parser) wordPart() Node {
 		switch {
 		case p.peekAnyByte('('):
 			// otherwise it is seen as a word break
-		case p.peekAnyByte('\'', '"', '`'), p.peekSpaced():
+		case p.peekSpaced():
 			p.next()
 			return Lit{
 				ValuePos: p.lpos,
@@ -593,7 +594,7 @@ func (p *parser) wordPart() Node {
 		ci.Stmts = p.stmtsNested(RPAREN)
 		ci.Rparen = p.matchedTok(ci.Lss, LPAREN, RPAREN)
 		return ci
-	case p.peek(SQUOTE):
+	case !p.quoted(SQUOTE) && p.peek(SQUOTE):
 		sq := SglQuoted{Quote: p.pos}
 		s, found := p.readUntil("'")
 		if !found {
@@ -603,13 +604,21 @@ func (p *parser) wordPart() Node {
 		p.readOnlyTok(SQUOTE)
 		p.next()
 		return sq
-	case !p.quoted(DQUOTE) && p.peek(DQUOTE):
-		dq := DblQuoted{Quote: p.pos}
-		p.enterStops(DQUOTE)
-		p.readParts(&dq.Parts)
+	case !p.quoted(SQUOTE) && p.peek(DOLLSQ):
+		fallthrough
+	case !p.quoted(DQUOTE) && p.peekAny(DQUOTE, DOLLDQ):
+		q := Quoted{Quote: p.tok, QuotePos: p.pos}
+		stop := q.Quote
+		if stop == DOLLSQ {
+			stop = SQUOTE
+		} else if stop == DOLLDQ {
+			stop = DQUOTE
+		}
+		p.enterStops(stop)
+		p.readParts(&q.Parts)
 		p.popStop()
-		p.closingQuote(dq, DQUOTE)
-		return dq
+		p.closingQuote(q, stop)
+		return q
 	case !p.quoted(BQUOTE) && p.peek(BQUOTE):
 		cs := CmdSubst{Backquotes: true, Left: p.pos}
 		cs.Stmts = p.stmtsNested(BQUOTE)
@@ -1000,7 +1009,7 @@ func unquote(w Word) (unq Word) {
 		switch x := n.(type) {
 		case SglQuoted:
 			unq.Parts = append(unq.Parts, Lit{Value: x.Value})
-		case DblQuoted:
+		case Quoted:
 			unq.Parts = append(unq.Parts, x.Parts...)
 		case Lit:
 			if x.Value[0] == '\\' {

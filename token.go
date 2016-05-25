@@ -52,6 +52,8 @@ const (
 
 	ASSIGN // =
 	DOLLAR // $
+	DOLLSQ // $'
+	DOLLDQ // $"
 	LPAREN // (
 
 	RPAREN     // )
@@ -182,7 +184,7 @@ var (
 
 	regList = []tokEntry{
 		{"'", SQUOTE},
-		{"\"", DQUOTE},
+		{`"`, DQUOTE},
 		{"`", BQUOTE},
 
 		{"&", AND},
@@ -191,6 +193,8 @@ var (
 		{"||", LOR},
 
 		{"$", DOLLAR},
+		{"$'", DOLLSQ},
+		{`$"`, DOLLDQ},
 		{"(", LPAREN},
 		{")", RPAREN},
 		{";", SEMICOLON},

@@ -383,13 +383,22 @@ type SglQuoted struct {
 func (q SglQuoted) String() string { return `'` + q.Value + `'` }
 func (q SglQuoted) Pos() Pos       { return q.Quote }
 
-type DblQuoted struct {
-	Quote Pos
-	Parts []Node
+type Quoted struct {
+	QuotePos Pos
+	Quote    Token
+	Parts    []Node
 }
 
-func (q DblQuoted) String() string { return `"` + nodeJoin(q.Parts, "") + `"` }
-func (q DblQuoted) Pos() Pos       { return q.Quote }
+func (q Quoted) String() string {
+	stop := q.Quote
+	if stop == DOLLSQ {
+		stop = SQUOTE
+	} else if stop == DOLLDQ {
+		stop = DQUOTE
+	}
+	return fmt.Sprint(q.Quote, nodeJoin(q.Parts, ""), stop)
+}
+func (q Quoted) Pos() Pos { return q.QuotePos }
 
 type CmdSubst struct {
 	Left, Right Pos
