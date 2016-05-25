@@ -765,13 +765,15 @@ func (p *parser) paramExp(dpos Pos) (pe ParamExp) {
 		return
 	}
 	if pe.Length {
-		p.posErr(pe.Dollar, `string lengths must be like "${#foo}"`)
+		p.curErr(`can only get length of a simple parameter`)
 	}
 	if p.peekAny(QUO, DQUO) {
 		pe.Repl = &Replace{All: p.tok == DQUO}
 		p.enterStops(QUO)
 		p.gotWord(&pe.Repl.Orig)
-		p.got(QUO)
+		if !p.got(QUO) {
+			p.curErr(`replace word must be supplied after /`)
+		}
 		p.gotWord(&pe.Repl.With)
 		p.popStop()
 	} else {

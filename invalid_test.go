@@ -352,7 +352,11 @@ var errTests = []struct {
 	},
 	{
 		"echo ${#foo-bar}",
-		`1:6: string lengths must be like "${#foo}"`,
+		`1:12: can only get length of a simple parameter`,
+	},
+	{
+		"echo ${foo/bar}",
+		`1:15: replace word must be supplied after /`,
 	},
 	{
 		"#foo\n{",
