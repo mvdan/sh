@@ -1654,6 +1654,22 @@ var astTests = []testCase{
 		}},
 	},
 	{
+		[]string{
+			"let i++; bar",
+			"let i++\nbar",
+		},
+		[]Stmt{
+			stmt(LetStmt{Exprs: []Node{
+				UnaryExpr{
+					Op:   INC,
+					Post: true,
+					X:    litWord("i"),
+				},
+			}}),
+			litStmt("bar"),
+		},
+	},
+	{
 		[]string{"a=(b c) foo"},
 		Stmt{
 			Assigns: []Assign{{
