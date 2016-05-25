@@ -974,6 +974,8 @@ func (p *parser) gotStmtAndOr(s *Stmt, addRedir func()) bool {
 		s.Node = p.caseStmt()
 	case p.gotAny(DECLARE, LOCAL):
 		s.Node = p.declStmt()
+	case p.got(EVAL):
+		s.Node = p.evalStmt()
 	default:
 		s.Node = p.cmdOrFunc(addRedir)
 	}
@@ -1208,6 +1210,12 @@ func (p *parser) declStmt() Node {
 		}
 	}
 	return ds
+}
+
+func (p *parser) evalStmt() Node {
+	es := EvalStmt{Eval: p.lpos}
+	p.gotStmt(&es.Stmt)
+	return es
 }
 
 func (p *parser) cmdOrFunc(addRedir func()) Node {

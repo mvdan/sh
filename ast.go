@@ -565,3 +565,11 @@ func (c CmdInput) String() string {
 	return fmt.Sprint(LSS, "", LPAREN, stmtJoin(c.Stmts), RPAREN)
 }
 func (c CmdInput) Pos() Pos { return c.Lss }
+
+type EvalStmt struct {
+	Eval Pos
+	Stmt Stmt
+}
+
+func (e EvalStmt) String() string { return fmt.Sprint(EVAL, e.Stmt) }
+func (e EvalStmt) Pos() Pos       { return e.Eval }

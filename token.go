@@ -43,6 +43,7 @@ const (
 	FUNCTION
 	DECLARE
 	LOCAL
+	EVAL
 
 	// Rest of tokens
 	AND  // &
@@ -180,6 +181,7 @@ var (
 		FUNCTION: "function",
 		DECLARE:  "declare",
 		LOCAL:    "local",
+		EVAL:     "eval",
 	}
 
 	regList = []tokEntry{

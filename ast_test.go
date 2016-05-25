@@ -1621,6 +1621,13 @@ var astTests = []testCase{
 		},
 	},
 	{
+		[]string{"eval a=b foo"},
+		EvalStmt{Stmt: Stmt{
+			Node:    litCmd("foo"),
+			Assigns: []Assign{{Name: lit("a"), Value: litWord("b")}},
+		}},
+	},
+	{
 		[]string{"a=(b c) foo"},
 		Stmt{
 			Assigns: []Assign{{
@@ -1850,6 +1857,10 @@ func setPosRecurse(t *testing.T, v interface{}, to Pos, diff bool) Node {
 		setPos(&x.Declare)
 		recurse(x.Opts)
 		recurse(x.Assigns)
+		return x
+	case EvalStmt:
+		setPos(&x.Eval)
+		recurse(&x.Stmt)
 		return x
 	case ArrayExpr:
 		setPos(&x.Lparen)
