@@ -220,18 +220,16 @@ func (p *parser) next() {
 		}
 	}
 	switch {
-	case p.quotedAny(RBRACE, LBRACE, QUO) && b == '}':
-		p.consumeByte()
+	case p.quotedAny(RBRACE, LBRACE, QUO) && p.readOnlyTok(RBRACE):
 		p.advanceTok(RBRACE)
-	case p.quoted(QUO) && b == '/':
-		p.consumeByte()
+	case p.quoted(QUO) && p.readOnlyTok(QUO):
 		p.advanceTok(QUO)
+	case p.quoted(RBRACK) && p.readOnlyTok(RBRACK):
+		p.advanceTok(RBRACK)
+	case b == '#' && !p.quotedAny(DQUOTE, LBRACE, RBRACE, QUO):
+		p.advanceBoth(COMMENT, p.readLine())
 	case p.quoted(LBRACE) && paramOps[b]:
 		p.advanceTok(p.doParamToken())
-	case p.quoted(RBRACK) && b == ']':
-		p.advanceTok(p.doParamToken())
-	case b == '#' && !p.quotedAny(DQUOTE, RBRACE, QUO):
-		p.advanceBoth(COMMENT, p.readLine())
 	case p.quoted(DRPAREN) && arithmOps[b]:
 		p.advanceTok(p.doArithmToken())
 	case reserved[b]:
