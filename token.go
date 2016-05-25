@@ -96,6 +96,7 @@ const (
 	DHASH   // ##
 	LBRACK  // [
 	RBRACK  // ]
+	DQUO    // //
 
 	DLPAREN // ((
 	DRPAREN // ))
@@ -223,6 +224,7 @@ var (
 		{"[", LBRACK},
 		{"]", RBRACK},
 		{"/", QUO},
+		{"//", DQUO},
 	}
 	arithmList = []tokEntry{
 		{"!", NOT},

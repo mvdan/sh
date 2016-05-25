@@ -445,10 +445,16 @@ type Index struct {
 func (i Index) String() string { return fmt.Sprintf("[%s]", i.Word) }
 
 type Replace struct {
+	All        bool
 	Orig, With Word
 }
 
-func (r Replace) String() string { return fmt.Sprintf("/%s/%s", r.Orig, r.With) }
+func (r Replace) String() string {
+	if r.All {
+		return fmt.Sprintf("//%s/%s", r.Orig, r.With)
+	}
+	return fmt.Sprintf("/%s/%s", r.Orig, r.With)
+}
 
 type Expansion struct {
 	Op   Token

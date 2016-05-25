@@ -767,8 +767,8 @@ func (p *parser) paramExp(dpos Pos) (pe ParamExp) {
 	if pe.Length {
 		p.posErr(pe.Dollar, `string lengths must be like "${#foo}"`)
 	}
-	if p.peek(QUO) {
-		pe.Repl = &Replace{}
+	if p.peekAny(QUO, DQUO) {
+		pe.Repl = &Replace{All: p.tok == DQUO}
 		p.enterStops(QUO)
 		p.gotWord(&pe.Repl.Orig)
 		p.got(QUO)
