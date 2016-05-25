@@ -230,7 +230,7 @@ func (p *parser) next() {
 		p.advanceTok(p.doParamToken())
 	case p.quoted(RBRACK) && b == ']':
 		p.advanceTok(p.doParamToken())
-	case b == '#' && !p.quoted(DQUOTE):
+	case b == '#' && !p.quotedAny(DQUOTE, RBRACE, QUO):
 		p.advanceBoth(COMMENT, p.readLine())
 	case p.quoted(DRPAREN) && arithmOps[b]:
 		p.advanceTok(p.doArithmToken())
