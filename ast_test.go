@@ -1628,6 +1628,32 @@ var astTests = []testCase{
 		}},
 	},
 	{
+		[]string{`let i++`},
+		LetStmt{Exprs: []Node{
+			UnaryExpr{
+				Op:   INC,
+				Post: true,
+				X:    litWord("i"),
+			},
+		}},
+	},
+	{
+		[]string{`let "--i"`},
+		LetStmt{Exprs: []Node{
+			word(dblQuoted(lit("--i"))),
+		}},
+	},
+	{
+		[]string{`let (1 + 2)`},
+		LetStmt{Exprs: []Node{
+			parenExpr(BinaryExpr{
+				Op: ADD,
+				X:  litWord("1"),
+				Y:  litWord("2"),
+			}),
+		}},
+	},
+	{
 		[]string{"a=(b c) foo"},
 		Stmt{
 			Assigns: []Assign{{
@@ -1861,6 +1887,10 @@ func setPosRecurse(t *testing.T, v interface{}, to Pos, diff bool) Node {
 	case EvalStmt:
 		setPos(&x.Eval)
 		recurse(&x.Stmt)
+		return x
+	case LetStmt:
+		setPos(&x.Let)
+		recurse(x.Exprs)
 		return x
 	case ArrayExpr:
 		setPos(&x.Lparen)

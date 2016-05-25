@@ -573,3 +573,13 @@ type EvalStmt struct {
 
 func (e EvalStmt) String() string { return fmt.Sprint(EVAL, e.Stmt) }
 func (e EvalStmt) Pos() Pos       { return e.Eval }
+
+type LetStmt struct {
+	Let   Pos
+	Exprs []Node
+}
+
+func (l LetStmt) String() string {
+	return fmt.Sprint(LET, " ", nodeJoin(l.Exprs, " "))
+}
+func (l LetStmt) Pos() Pos { return l.Let }

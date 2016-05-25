@@ -44,6 +44,7 @@ const (
 	DECLARE
 	LOCAL
 	EVAL
+	LET
 
 	// Rest of tokens
 	AND  // &
@@ -182,6 +183,7 @@ var (
 		DECLARE:  "declare",
 		LOCAL:    "local",
 		EVAL:     "eval",
+		LET:      "let",
 	}
 
 	regList = []tokEntry{
