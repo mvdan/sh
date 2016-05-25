@@ -1316,11 +1316,11 @@ var astTests = []testCase{
 		word(lit("foo"), lit("$")),
 	},
 	{
-		[]string{"$'foo'"},
+		[]string{`$'foo'`},
 		word(Quoted{Quote: DOLLSQ, Parts: lits("foo")}),
 	},
 	{
-		[]string{"$'foo$'"},
+		[]string{`$'foo$'`},
 		word(Quoted{Quote: DOLLSQ, Parts: lits("foo$")}),
 	},
 	{
@@ -1330,6 +1330,22 @@ var astTests = []testCase{
 	{
 		[]string{`$'f\'oo'`},
 		word(Quoted{Quote: DOLLSQ, Parts: lits(`f\'oo`)}),
+	},
+	{
+		[]string{`$"foo"`},
+		word(Quoted{Quote: DOLLDQ, Parts: lits("foo")}),
+	},
+	{
+		[]string{`$"foo$"`},
+		word(Quoted{Quote: DOLLDQ, Parts: lits("foo$")}),
+	},
+	{
+		[]string{`$"foo bar"`},
+		word(Quoted{Quote: DOLLDQ, Parts: lits(`foo bar`)}),
+	},
+	{
+		[]string{`$"f\"oo"`},
+		word(Quoted{Quote: DOLLDQ, Parts: lits(`f\"oo`)}),
 	},
 	{
 		[]string{`"foo$"`},
