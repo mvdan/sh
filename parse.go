@@ -159,7 +159,6 @@ var (
 		'?': true,
 		'%': true,
 		'[': true,
-		']': true,
 	}
 	// tokenize these inside arithmetic expansions
 	arithmOps = map[byte]bool{
@@ -225,6 +224,8 @@ func (p *parser) next() {
 		p.advanceTok(RBRACE)
 	case p.quoted(LBRACE) && paramOps[b]:
 		p.advanceTok(p.doParamToken())
+	case p.quoted(RBRACK) && b == ']':
+		p.advanceTok(p.doParamToken())
 	case b == '#' && !p.quoted(DQUOTE):
 		p.advanceBoth(COMMENT, p.readLine())
 	case p.quoted(DRPAREN) && arithmOps[b]:
@@ -267,6 +268,8 @@ func (p *parser) readLitBytes() (bs []byte) {
 				return
 			}
 		case p.quoted(LBRACE) && paramOps[b]:
+			return
+		case p.quoted(RBRACK) && b == ']':
 			return
 		case p.quoted(DQUOTE):
 			if b == '"' {
@@ -353,10 +356,8 @@ func (p *parser) peekReservedWord(tok Token) bool {
 }
 
 func (p *parser) peekSpaced() bool {
-	for _, stop := range p.stops {
-		if p.peekString(stop.String()) {
-			return true
-		}
+	if len(p.stops) > 0 && p.peekString(p.stops[len(p.stops)-1].String()) {
+		return true
 	}
 	b, err := p.peekByte()
 	return err != nil || space[b] || wordBreak[b]
@@ -742,10 +743,12 @@ func (p *parser) paramExp(dpos Pos) (pe ParamExp) {
 		p.next()
 		return
 	}
-	if p.got(LBRACK) {
+	if p.peek(LBRACK) {
+		p.enterStops(RBRACK)
 		lpos := p.lpos
 		pe.Ind = &Index{}
 		p.gotWord(&pe.Ind.Word)
+		p.popStop()
 		p.matchedTok(lpos, LBRACK, RBRACK)
 	}
 	if p.peek(RBRACE) {

@@ -1008,6 +1008,15 @@ var astTests = []testCase{
 		}),
 	},
 	{
+		[]string{`${foo[${bar}]}`},
+		word(ParamExp{
+			Param: lit("foo"),
+			Ind: &Index{
+				Word: word(ParamExp{Param: lit("bar")}),
+			},
+		}),
+	},
+	{
 		[]string{`${#foo}`},
 		word(ParamExp{
 			Length: true,
