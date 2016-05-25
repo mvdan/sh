@@ -132,14 +132,10 @@ func init() {
 	for tok, str := range reservedWords {
 		tokNames[tok] = str
 	}
-	for _, t := range regList {
-		tokNames[t.tok] = t.str
-	}
-	for _, t := range arithmList {
-		tokNames[t.tok] = t.str
-	}
-	for _, t := range paramList {
-		tokNames[t.tok] = t.str
+	for _, list := range [...][]tokEntry{regList, arithmList, paramList} {
+		for _, t := range list {
+			tokNames[t.tok] = t.str
+		}
 	}
 }
 
@@ -159,7 +155,6 @@ var (
 		DLPAREN: "((",
 		DRPAREN: "))",
 	}
-
 	reservedWords = map[Token]string{
 		IF:    "if",
 		THEN:  "then",
@@ -278,7 +273,6 @@ func (p *parser) doToken(tokList []tokEntry) Token {
 	}
 	return ILLEGAL
 }
-
 func (p *parser) doRegToken() Token    { return p.doToken(regList) }
 func (p *parser) doParamToken() Token  { return p.doToken(paramList) }
 func (p *parser) doArithmToken() Token { return p.doToken(arithmList) }
