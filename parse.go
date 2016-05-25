@@ -205,7 +205,7 @@ func (p *parser) next() {
 			p.advanceTok(STOPPED)
 			return
 		}
-		if p.quotedAny(DQUOTE, RBRACE, QUO) || !space[b] {
+		if p.quotedAny(DQUOTE, SQUOTE, RBRACE, QUO) || !space[b] {
 			break
 		}
 		p.consumeByte()
@@ -226,7 +226,7 @@ func (p *parser) next() {
 		p.advanceTok(QUO)
 	case p.quoted(RBRACK) && p.readOnlyTok(RBRACK):
 		p.advanceTok(RBRACK)
-	case b == '#' && !p.quotedAny(DQUOTE, LBRACE, RBRACE, QUO):
+	case b == '#' && !p.quotedAny(DQUOTE, SQUOTE, LBRACE, RBRACE, QUO):
 		p.advanceBoth(COMMENT, p.readLine())
 	case p.quoted(LBRACE) && paramOps[b]:
 		p.advanceTok(p.doParamToken())
@@ -264,7 +264,7 @@ func (p *parser) readLitBytes() (bs []byte) {
 			return
 		}
 		switch {
-		case b == '$' && !p.peekString(`$"`), b == '`':
+		case b == '$' && !p.peekString(`$"`) && !p.peekString(`$'`), b == '`':
 			return
 		case p.quotedAny(RBRACE):
 			if b == '}' {
@@ -276,6 +276,10 @@ func (p *parser) readLitBytes() (bs []byte) {
 			return
 		case p.quoted(QUO):
 			if b == '/' || b == '}' {
+				return
+			}
+		case p.quoted(SQUOTE):
+			if b == '\'' {
 				return
 			}
 		case p.quoted(DQUOTE):
