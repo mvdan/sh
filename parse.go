@@ -785,7 +785,9 @@ func (p *parser) paramExp(dpos Pos) (pe ParamExp) {
 		pe.Repl = &Replace{All: p.tok == DQUO}
 		p.enterStops(QUO)
 		p.gotWord(&pe.Repl.Orig)
-		if p.got(QUO) {
+		if p.peek(QUO) {
+			p.popStop()
+			p.enterStops(RBRACE)
 			p.gotWord(&pe.Repl.With)
 		}
 		p.popStop()

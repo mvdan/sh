@@ -1047,6 +1047,16 @@ var astTests = []testCase{
 		}),
 	},
 	{
+		[]string{`${foo/bar/b/a/r}`},
+		word(ParamExp{
+			Param: lit("foo"),
+			Repl: &Replace{
+				Orig: litWord("bar"),
+				With: litWord("b/a/r"),
+			},
+		}),
+	},
+	{
 		[]string{`${foo//b1/b2}`},
 		word(ParamExp{
 			Param: lit("foo"),
