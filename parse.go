@@ -638,9 +638,12 @@ func (p *parser) dollar() Node {
 	if p.peekAnyByte('{') {
 		return p.paramExp(dpos)
 	}
-	if p.readOnlyTok(HASH) {
+	switch {
+	case p.readOnlyTok(HASH):
 		p.advanceTok(HASH)
-	} else {
+	case p.readOnlyTok(DOLLAR):
+		p.advanceTok(DOLLAR)
+	default:
 		p.next()
 	}
 	lpos := p.pos
