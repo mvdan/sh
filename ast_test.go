@@ -1302,6 +1302,14 @@ var astTests = []testCase{
 		})),
 	},
 	{
+		[]string{"$((i *= 3))"},
+		word(arithmExpr(BinaryExpr{
+			Op: MUL_ASSIGN,
+			X:  litWord("i"),
+			Y:  litWord("3"),
+		})),
+	},
+	{
 		[]string{"$((2 >= 10))"},
 		word(arithmExpr(BinaryExpr{
 			Op: GEQ,

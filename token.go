@@ -82,6 +82,17 @@ const (
 	LEQ   // <=
 	GEQ   // >=
 
+	ADD_ASSIGN // +=
+	SUB_ASSIGN // -=
+	MUL_ASSIGN // *=
+	QUO_ASSIGN // /=
+	REM_ASSIGN // %=
+	AND_ASSIGN // &=
+	OR_ASSIGN  // |=
+	XOR_ASSIGN // ^=
+	SHL_ASSIGN // <<=
+	SHR_ASSIGN // >>=
+
 	PIPEALL  // |&
 	RDRINOUT // <>
 	DPLIN    // <&
@@ -258,6 +269,17 @@ var (
 		{">=", GEQ},
 		{"?", QUEST},
 		{":", COLON},
+
+		{"+=", ADD_ASSIGN},
+		{"-=", SUB_ASSIGN},
+		{"*=", MUL_ASSIGN},
+		{"/=", QUO_ASSIGN},
+		{"%=", REM_ASSIGN},
+		{"&=", AND_ASSIGN},
+		{"|=", OR_ASSIGN},
+		{"^=", XOR_ASSIGN},
+		{"<<=", SHL_ASSIGN},
+		{">>=", SHR_ASSIGN},
 	}
 )
 
