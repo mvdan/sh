@@ -220,9 +220,12 @@ func (p *parser) next() {
 		}
 	}
 	switch {
-	case p.quotedAny(RBRACE, LBRACE) && b == '}':
+	case p.quotedAny(RBRACE, LBRACE, QUO) && b == '}':
 		p.consumeByte()
 		p.advanceTok(RBRACE)
+	case p.quoted(QUO) && b == '/':
+		p.consumeByte()
+		p.advanceTok(QUO)
 	case p.quoted(LBRACE) && paramOps[b]:
 		p.advanceTok(p.doParamToken())
 	case p.quoted(RBRACK) && b == ']':
@@ -264,10 +267,12 @@ func (p *parser) readLitBytes() (bs []byte) {
 		switch {
 		case b == '$', b == '`':
 			return
-		case p.quoted(RBRACE):
+		case p.quotedAny(RBRACE):
 			if b == '}' {
 				return
 			}
+		case p.quotedAny(QUO) && (b == '/' || b == '}'):
+			return
 		case p.quoted(LBRACE) && paramOps[b]:
 			return
 		case p.quoted(RBRACK) && b == ']':
@@ -760,11 +765,13 @@ func (p *parser) paramExp(dpos Pos) (pe ParamExp) {
 	if pe.Length {
 		p.posErr(pe.Dollar, `string lengths must be like "${#foo}"`)
 	}
-	if p.got(QUO) {
+	if p.peek(QUO) {
 		pe.Repl = &Replace{}
+		p.enterStops(QUO)
 		p.gotWord(&pe.Repl.Orig)
 		p.got(QUO)
 		p.gotWord(&pe.Repl.With)
+		p.popStop()
 	} else {
 		pe.Exp = &Expansion{Op: p.tok}
 		p.popStop()
