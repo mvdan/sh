@@ -771,10 +771,9 @@ func (p *parser) paramExp(dpos Pos) (pe ParamExp) {
 		pe.Repl = &Replace{All: p.tok == DQUO}
 		p.enterStops(QUO)
 		p.gotWord(&pe.Repl.Orig)
-		if !p.got(QUO) {
-			p.curErr(`replace word must be supplied after /`)
+		if p.got(QUO) {
+			p.gotWord(&pe.Repl.With)
 		}
-		p.gotWord(&pe.Repl.With)
 		p.popStop()
 	} else {
 		pe.Exp = &Expansion{Op: p.tok}

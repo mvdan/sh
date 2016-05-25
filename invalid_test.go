@@ -355,10 +355,6 @@ var errTests = []struct {
 		`1:12: can only get length of a simple parameter`,
 	},
 	{
-		"echo ${foo/bar}",
-		`1:15: replace word must be supplied after /`,
-	},
-	{
 		"#foo\n{",
 		`2:1: reached EOF without matching token { with }`,
 	},
