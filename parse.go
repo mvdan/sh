@@ -651,7 +651,7 @@ func (p *parser) dollar() Node {
 	case p.gotArithmStart():
 		ar := ArithmExpr{
 			Dollar: dpos,
-			X:      p.arithmExpr(DLPAREN, false),
+			X:      p.arithmExpr(DLPAREN),
 		}
 		ar.Rparen = p.arithmEnd(lpos)
 		return ar
@@ -673,12 +673,12 @@ func (p *parser) dollar() Node {
 	}
 }
 
-func (p *parser) arithmExpr(following Token, alone bool) Node {
-	if p.eof() || p.peekArithmEnd() {
+func (p *parser) arithmExpr(following Token) Node {
+	if p.eof() || p.peekArithmEnd() || p.peek(STOPPED) {
 		return nil
 	}
-	left := p.arithmExprBase(following, alone)
-	if p.eof() || p.peekAny(RPAREN, SEMICOLON) || (alone && p.peekStop()) {
+	left := p.arithmExprBase(following)
+	if p.eof() || p.peekAny(RPAREN, SEMICOLON, STOPPED) {
 		return left
 	}
 	if p.peek(LIT) {
@@ -690,26 +690,26 @@ func (p *parser) arithmExpr(following Token, alone bool) Node {
 		Op:    p.ltok,
 		X:     left,
 	}
-	if b.Y = p.arithmExpr(b.Op, alone); b.Y == nil {
+	if b.Y = p.arithmExpr(b.Op); b.Y == nil {
 		p.followErr(b.OpPos, b.Op, "an expression")
 	}
 	return b
 }
 
-func (p *parser) arithmExprBase(following Token, alone bool) Node {
+func (p *parser) arithmExprBase(following Token) Node {
 	if p.gotAny(INC, DEC, NOT) {
 		pre := UnaryExpr{
 			OpPos: p.lpos,
 			Op:    p.ltok,
 		}
-		pre.X = p.arithmExprBase(pre.Op, alone)
+		pre.X = p.arithmExprBase(pre.Op)
 		return pre
 	}
 	var x Node
 	switch {
 	case p.got(LPAREN):
 		pe := ParenExpr{Lparen: p.lpos}
-		pe.X = p.arithmExpr(LPAREN, alone)
+		pe.X = p.arithmExpr(LPAREN)
 		if pe.X == nil {
 			p.posErr(pe.Lparen, "parentheses must enclose an expression")
 		}
@@ -720,7 +720,7 @@ func (p *parser) arithmExprBase(following Token, alone bool) Node {
 			OpPos: p.lpos,
 			Op:    p.ltok,
 		}
-		ue.X = p.arithmExpr(ue.Op, alone)
+		ue.X = p.arithmExpr(ue.Op)
 		if ue.X == nil {
 			p.followErr(ue.OpPos, ue.Op, "an expression")
 		}
@@ -1088,7 +1088,7 @@ func (p *parser) ifStmt() (fs IfStmt) {
 func (p *parser) cond(left Token, stops ...Token) Node {
 	if p.gotArithmStart() {
 		c := CStyleCond{Lparen: p.lpos}
-		c.Cond = p.arithmExpr(DLPAREN, false)
+		c.Cond = p.arithmExpr(DLPAREN)
 		c.Rparen = p.arithmEnd(c.Lparen)
 		p.gotSameLine(SEMICOLON)
 		return c
@@ -1124,11 +1124,11 @@ func (p *parser) forStmt() (fs ForStmt) {
 	fs.For = p.lpos
 	if p.gotArithmStart() {
 		c := CStyleLoop{Lparen: p.lpos}
-		c.Init = p.arithmExpr(DLPAREN, false)
+		c.Init = p.arithmExpr(DLPAREN)
 		p.followTok(p.pos, "expression", SEMICOLON)
-		c.Cond = p.arithmExpr(SEMICOLON, false)
+		c.Cond = p.arithmExpr(SEMICOLON)
 		p.followTok(p.pos, "expression", SEMICOLON)
-		c.Post = p.arithmExpr(SEMICOLON, false)
+		c.Post = p.arithmExpr(SEMICOLON)
 		c.Rparen = p.arithmEnd(c.Lparen)
 		p.gotSameLine(SEMICOLON)
 		fs.Cond = c
@@ -1223,11 +1223,14 @@ func (p *parser) evalStmt() (es EvalStmt) {
 func (p *parser) letStmt() (ls LetStmt) {
 	p.enterStops(DRPAREN)
 	ls.Let = p.lpos
-	for !p.peekStop() {
-		x := p.arithmExpr(LET, true)
+	p.stopNewline = true
+	for !p.peekStop() && !p.peek(STOPPED) {
+		x := p.arithmExpr(LET)
 		ls.Exprs = append(ls.Exprs, x)
 	}
+	p.stopNewline = false
 	p.popStop()
+	p.got(STOPPED)
 	return
 }
 

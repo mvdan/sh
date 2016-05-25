@@ -1670,6 +1670,29 @@ var astTests = []testCase{
 		},
 	},
 	{
+		[]string{
+			"let i++; foo=(bar)",
+			"let i++\nfoo=(bar)",
+		},
+		[]Stmt{
+			stmt(LetStmt{Exprs: []Node{
+				UnaryExpr{
+					Op:   INC,
+					Post: true,
+					X:    litWord("i"),
+				},
+			}}),
+			Stmt{
+				Assigns: []Assign{{
+					Name: lit("foo"),
+					Value: word(
+						ArrayExpr{List: litWords("bar")},
+					),
+				}},
+			},
+		},
+	},
+	{
 		[]string{"a=(b c) foo"},
 		Stmt{
 			Assigns: []Assign{{
