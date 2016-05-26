@@ -426,6 +426,18 @@ var errTests = []struct {
 		"declare (",
 		`1:9: declare statement must be followed by words`,
 	},
+	{
+		"let a+ b",
+		`1:6: + must be followed by an expression`,
+	},
+	{
+		"let + a",
+		`1:5: + must be followed by an expression`,
+	},
+	{
+		"let a ++",
+		`1:7: ++ must be followed by a word`,
+	},
 }
 
 func TestParseErr(t *testing.T) {

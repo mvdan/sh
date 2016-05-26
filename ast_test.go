@@ -1656,19 +1656,29 @@ var astTests = []testCase{
 		}},
 	},
 	{
-		[]string{`let "--i"`},
+		[]string{`let a++ b++ c +d`},
 		LetStmt{Exprs: []Node{
-			word(dblQuoted(lit("--i"))),
+			UnaryExpr{
+				Op:   INC,
+				Post: true,
+				X:    litWord("a"),
+			},
+			UnaryExpr{
+				Op:   INC,
+				Post: true,
+				X:    litWord("b"),
+			},
+			litWord("c"),
+			UnaryExpr{
+				Op:   ADD,
+				X:    litWord("d"),
+			},
 		}},
 	},
 	{
-		[]string{`let (1 + 2)`},
+		[]string{`let "--i"`},
 		LetStmt{Exprs: []Node{
-			parenExpr(BinaryExpr{
-				Op: ADD,
-				X:  litWord("1"),
-				Y:  litWord("2"),
-			}),
+			word(dblQuoted(lit("--i"))),
 		}},
 	},
 	{

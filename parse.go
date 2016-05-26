@@ -230,7 +230,7 @@ func (p *parser) next() {
 		p.advanceBoth(COMMENT, p.readLine())
 	case p.quoted(LBRACE) && paramOps[b]:
 		p.advanceTok(p.doParamToken())
-	case p.quoted(DRPAREN) && arithmOps[b]:
+	case p.quotedAny(DLPAREN, DRPAREN) && arithmOps[b]:
 		p.advanceTok(p.doArithmToken())
 	case reserved[b]:
 		// Between double quotes, only under certain
@@ -288,7 +288,7 @@ func (p *parser) readLitBytes() (bs []byte) {
 			}
 		case reserved[b], space[b]:
 			return
-		case p.quoted(DRPAREN) && arithmOps[b]:
+		case p.quotedAny(DLPAREN, DRPAREN) && arithmOps[b]:
 			return
 		}
 		p.consumeByte()
@@ -678,6 +678,9 @@ func (p *parser) arithmExpr(following Token) Node {
 		return nil
 	}
 	left := p.arithmExprBase(following)
+	if !p.quoted(DRPAREN) && p.spaced {
+		return left
+	}
 	if p.eof() || p.peekAny(RPAREN, SEMICOLON, STOPPED) {
 		return left
 	}
@@ -689,6 +692,9 @@ func (p *parser) arithmExpr(following Token) Node {
 		OpPos: p.lpos,
 		Op:    p.ltok,
 		X:     left,
+	}
+	if !p.quoted(DRPAREN) && p.spaced {
+		p.followErr(b.OpPos, b.Op, "an expression")
 	}
 	if b.Y = p.arithmExpr(b.Op); b.Y == nil {
 		p.followErr(b.OpPos, b.Op, "an expression")
@@ -720,6 +726,9 @@ func (p *parser) arithmExprBase(following Token) Node {
 			OpPos: p.lpos,
 			Op:    p.ltok,
 		}
+		if !p.quoted(DRPAREN) && p.spaced {
+			p.followErr(ue.OpPos, ue.Op, "an expression")
+		}
 		ue.X = p.arithmExpr(ue.Op)
 		if ue.X == nil {
 			p.followErr(ue.OpPos, ue.Op, "an expression")
@@ -727,6 +736,9 @@ func (p *parser) arithmExprBase(following Token) Node {
 		x = ue
 	default:
 		x = p.followWord(following)
+	}
+	if !p.quoted(DRPAREN) && p.spaced {
+		return x
 	}
 	if p.gotAny(INC, DEC) {
 		return UnaryExpr{
@@ -1223,7 +1235,7 @@ func (p *parser) evalStmt() (es EvalStmt) {
 }
 
 func (p *parser) letStmt() (ls LetStmt) {
-	p.enterStops(DRPAREN)
+	p.enterStops(DLPAREN)
 	ls.Let = p.lpos
 	p.stopNewline = true
 	for !p.peekStop() && !p.peek(STOPPED) {
