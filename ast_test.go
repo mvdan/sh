@@ -2043,10 +2043,10 @@ func TestParseAST(t *testing.T) {
 	p := Pos{}
 	defaultPos = p
 	for i, c := range astTests {
-		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
-			want := fullProg(c.ast)
-			setPosRecurse(t, want.Stmts, p, false)
-			for _, in := range c.strs {
+		want := fullProg(c.ast)
+		setPosRecurse(t, want.Stmts, p, false)
+		for j, in := range c.strs {
+			t.Run(fmt.Sprintf("%d-%d", i, j), func(t *testing.T) {
 				r := strings.NewReader(in)
 				got, err := Parse(r, "")
 				if err != nil {
@@ -2058,8 +2058,8 @@ func TestParseAST(t *testing.T) {
 						strings.Join(pretty.Diff(want, got), "\n"),
 					)
 				}
-			}
-		})
+			})
+		}
 	}
 }
 
