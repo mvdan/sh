@@ -39,7 +39,7 @@ var (
 	}
 )
 
-func (p *printer) pr(a ...interface{}) {
+func (p *printer) nonSpaced(a ...interface{}) {
 	for _, v := range a {
 		if p.err != nil {
 			break
@@ -64,9 +64,9 @@ func (p *printer) spaced(a ...interface{}) {
 	for _, v := range a {
 		if t, ok := v.(Token); ok && contiguousPost[t] {
 		} else if p.contiguous {
-			p.pr(" ")
+			p.nonSpaced(" ")
 		}
-		p.pr(v)
+		p.nonSpaced(v)
 	}
 }
 
@@ -86,7 +86,7 @@ func (p *printer) node(v interface{}) {
 		}
 		for _, r := range x.Redirs {
 			p.spaced(r.N)
-			p.pr(r.Op, r.Word)
+			p.nonSpaced(r.Op, r.Word)
 			p.needNewline = r.Op == SHL || r.Op == DHEREDOC
 		}
 		if x.Background {
@@ -94,30 +94,30 @@ func (p *printer) node(v interface{}) {
 		}
 	case Assign:
 		if x.Name != nil {
-			p.pr(x.Name)
+			p.spaced(x.Name)
 			if x.Append {
-				p.pr(ADD_ASSIGN)
+				p.nonSpaced(ADD_ASSIGN)
 			} else {
-				p.pr(ASSIGN)
+				p.nonSpaced(ASSIGN)
 			}
 		}
-		p.pr(x.Value)
+		p.nonSpaced(x.Value)
 	case Command:
 		p.wordJoin(x.Args)
 	case Subshell:
-		p.pr(LPAREN)
+		p.spaced(LPAREN)
 		if len(x.Stmts) == 0 {
 			// avoid conflict with ()
-			p.pr(" ")
+			p.nonSpaced(" ")
 		}
 		p.stmtJoin(x.Stmts)
-		p.pr(RPAREN)
+		p.nonSpaced(RPAREN)
 	case Block:
-		p.pr(LBRACE)
+		p.spaced(LBRACE)
 		p.stmtList(x.Stmts)
-		p.pr(RBRACE)
+		p.spaced(RBRACE)
 	case IfStmt:
-		p.pr(IF)
+		p.spaced(IF)
 		p.semicolonIfNil(x.Cond)
 		p.spaced(THEN)
 		p.stmtList(x.ThenStmts)
@@ -128,10 +128,10 @@ func (p *printer) node(v interface{}) {
 			p.stmtList(el.ThenStmts)
 		}
 		if len(x.ElseStmts) > 0 {
-			p.pr(ELSE)
+			p.spaced(ELSE)
 			p.stmtList(x.ElseStmts)
 		}
-		p.pr(FI)
+		p.spaced(FI)
 	case StmtCond:
 		p.stmtList(x.Stmts)
 	case CStyleCond:
@@ -164,25 +164,29 @@ func (p *printer) node(v interface{}) {
 	case UnaryExpr:
 		if x.Post {
 			p.spaced(x.X)
-			p.pr(x.Op)
+			p.nonSpaced(x.Op)
 		} else {
 			p.spaced(x.Op)
 			p.contiguous = false
-			p.pr(x.X)
+			p.nonSpaced(x.X)
 		}
 	case BinaryExpr:
 		p.spaced(x.X, x.Op, x.Y)
 	case FuncDecl:
 		if x.BashStyle {
-			p.pr(FUNCTION, " ")
+			p.spaced(FUNCTION)
 		}
-		p.pr(x.Name, LPAREN, RPAREN, " ", x.Body)
+		p.spaced(x.Name)
+		p.nonSpaced(LPAREN, RPAREN)
+		p.spaced(x.Body)
 	case Word:
-		p.nodeJoin(x.Parts, "")
+		for _, n := range x.Parts {
+			p.nonSpaced(n)
+		}
 	case Lit:
-		p.pr(x.Value)
+		p.nonSpaced(x.Value)
 	case SglQuoted:
-		p.pr(SQUOTE, x.Value, SQUOTE)
+		p.nonSpaced(SQUOTE, x.Value, SQUOTE)
 	case Quoted:
 		stop := x.Quote
 		if stop == DOLLSQ {
@@ -190,52 +194,54 @@ func (p *printer) node(v interface{}) {
 		} else if stop == DOLLDQ {
 			stop = DQUOTE
 		}
-		p.pr(x.Quote)
-		p.nodeJoin(x.Parts, "")
-		p.pr(stop)
+		p.nonSpaced(x.Quote)
+		for _, n := range x.Parts {
+			p.nonSpaced(n)
+		}
+		p.nonSpaced(stop)
 	case CmdSubst:
 		if x.Backquotes {
-			p.pr(BQUOTE)
+			p.nonSpaced(BQUOTE)
 		} else {
-			p.pr(DOLLPR)
+			p.nonSpaced(DOLLPR)
 		}
 		p.stmtJoin(x.Stmts)
 		if x.Backquotes {
-			p.pr(BQUOTE)
+			p.nonSpaced(BQUOTE)
 		} else {
-			p.pr(RPAREN)
+			p.nonSpaced(RPAREN)
 		}
 	case ParamExp:
 		if x.Short {
-			p.pr(DOLLAR, x.Param)
+			p.nonSpaced(DOLLAR, x.Param)
 			return
 		}
-		p.pr(DOLLBR)
+		p.nonSpaced(DOLLBR)
 		if x.Length {
-			p.pr(HASH)
+			p.nonSpaced(HASH)
 		}
-		p.pr(x.Param)
+		p.nonSpaced(x.Param)
 		if x.Ind != nil {
-			p.pr(LBRACK, x.Ind.Word, RBRACK)
+			p.nonSpaced(LBRACK, x.Ind.Word, RBRACK)
 		}
 		if x.Repl != nil {
 			if x.Repl.All {
-				p.pr(QUO)
+				p.nonSpaced(QUO)
 			}
-			p.pr(QUO, x.Repl.Orig, QUO, x.Repl.With)
+			p.nonSpaced(QUO, x.Repl.Orig, QUO, x.Repl.With)
 		} else if x.Exp != nil {
-			p.pr(x.Exp.Op, x.Exp.Word)
+			p.nonSpaced(x.Exp.Op, x.Exp.Word)
 		}
-		p.pr(RBRACE)
+		p.nonSpaced(RBRACE)
 	case ArithmExpr:
-		p.pr(DOLLDP, x.X, DRPAREN)
+		p.nonSpaced(DOLLDP, x.X, DRPAREN)
 	case ParenExpr:
-		p.pr(LPAREN, x.X, RPAREN)
+		p.spaced(LPAREN, x.X, RPAREN)
 	case CaseStmt:
-		p.pr(CASE, " ", x.Word, " ", IN)
+		p.spaced(CASE, x.Word, IN)
 		for i, pl := range x.List {
 			if i > 0 {
-				p.pr(DSEMICOLON)
+				p.nonSpaced(DSEMICOLON)
 			}
 			for i, w := range pl.Patterns {
 				if i > 0 {
@@ -243,15 +249,15 @@ func (p *printer) node(v interface{}) {
 				}
 				p.spaced(w)
 			}
-			p.pr(RPAREN)
+			p.nonSpaced(RPAREN)
 			p.stmtJoin(pl.Stmts)
 		}
-		p.pr(SEMICOLON, " ", ESAC)
+		p.spaced(SEMICOLON, ESAC)
 	case DeclStmt:
 		if x.Local {
-			p.pr(LOCAL)
+			p.spaced(LOCAL)
 		} else {
-			p.pr(DECLARE)
+			p.spaced(DECLARE)
 		}
 		for _, w := range x.Opts {
 			p.spaced(w)
@@ -260,30 +266,21 @@ func (p *printer) node(v interface{}) {
 			p.spaced(a)
 		}
 	case ArrayExpr:
-		p.pr(LPAREN)
+		p.nonSpaced(LPAREN)
 		p.wordJoin(x.List)
-		p.pr(RPAREN)
+		p.nonSpaced(RPAREN)
 	case CmdInput:
 		// avoid conflict with <<
 		p.spaced(CMDIN)
 		p.stmtJoin(x.Stmts)
-		p.pr(RPAREN)
+		p.nonSpaced(RPAREN)
 	case EvalStmt:
-		p.pr(EVAL, " ", x.Stmt)
+		p.spaced(EVAL, x.Stmt)
 	case LetStmt:
-		p.pr(LET)
+		p.spaced(LET)
 		for _, n := range x.Exprs {
 			p.spaced(n)
 		}
-	}
-}
-
-func (p *printer) nodeJoin(ns []Node, sep string) {
-	for i, n := range ns {
-		if i > 0 {
-			p.pr(sep)
-		}
-		p.node(n)
 	}
 }
 
@@ -296,9 +293,9 @@ func (p *printer) wordJoin(ws []Word) {
 func (p *printer) stmtJoin(stmts []Stmt) {
 	for i, s := range stmts {
 		if p.needNewline {
-			p.pr("\n")
+			p.nonSpaced("\n")
 		} else if i > 0 {
-			p.pr(SEMICOLON, " ")
+			p.nonSpaced(SEMICOLON)
 		}
 		p.node(s)
 	}
@@ -306,20 +303,20 @@ func (p *printer) stmtJoin(stmts []Stmt) {
 
 func (p *printer) stmtList(stmts []Stmt) {
 	if len(stmts) == 0 {
-		p.pr(SEMICOLON, " ")
+		p.nonSpaced(SEMICOLON)
 		return
 	}
 	p.stmtJoin(stmts)
 	if p.needNewline {
-		p.pr("\n")
+		p.nonSpaced("\n")
 	} else {
-		p.pr(SEMICOLON, " ")
+		p.nonSpaced(SEMICOLON)
 	}
 }
 
 func (p *printer) semicolonIfNil(v interface{}) {
 	if v == nil {
-		p.pr(SEMICOLON)
+		p.nonSpaced(SEMICOLON)
 		return
 	}
 	p.node(v)
