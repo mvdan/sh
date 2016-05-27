@@ -215,7 +215,7 @@ func (p *printer) node(v interface{}) {
 				p.pr(DSEMICOLON)
 			}
 			p.pr(" ")
-			p.wordJoin(pl.Patterns, " " + OR.String() + " ")
+			p.wordJoin(pl.Patterns, " "+OR.String()+" ")
 			p.pr(RPAREN, " ")
 			p.stmtJoin(pl.Stmts)
 		}

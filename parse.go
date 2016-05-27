@@ -237,7 +237,7 @@ func (p *parser) next() {
 		// circumstnaces do we tokenize
 		if p.quoted(DQUOTE) {
 			switch {
-			case b == '`', b == '"', p.tok == DOLLAR:
+			case b == '`', b == '"':
 			case b == '$' && !p.peekString(`$"`):
 			default:
 				p.advanceReadLit()
@@ -596,15 +596,27 @@ func (p *parser) wordPart() Node {
 		cs.Right = p.matchedTok(cs.Left, LPAREN, RPAREN)
 		return cs
 	case p.peek(DOLLAR):
-		switch {
-		case p.peekSpaced():
+		if p.peekSpaced() {
 			p.next()
 			return Lit{
 				ValuePos: p.lpos,
 				Value:    p.lval,
 			}
 		}
-		return p.dollar()
+		switch {
+		case p.readOnlyTok(HASH):
+			p.advanceBoth(LIT, HASH.String())
+		case p.readOnlyTok(DOLLAR):
+			p.advanceBoth(LIT, DOLLAR.String())
+		default:
+			p.next()
+		}
+		pe := ParamExp{
+			Dollar: p.lpos,
+			Short:  true,
+		}
+		p.gotLit(&pe.Param)
+		return pe
 	case p.got(LIT):
 		return Lit{
 			ValuePos: p.lpos,
@@ -648,27 +660,6 @@ func (p *parser) wordPart() Node {
 		return cs
 	}
 	return nil
-}
-
-func (p *parser) dollar() Node {
-	dpos := p.pos
-	switch {
-	case p.readOnlyTok(HASH):
-		p.advanceTok(HASH)
-	case p.readOnlyTok(DOLLAR):
-		p.advanceTok(DOLLAR)
-	default:
-		p.next()
-	}
-	p.next()
-	return ParamExp{
-		Dollar: dpos,
-		Short:  true,
-		Param: Lit{
-			ValuePos: p.lpos,
-			Value:    p.lval,
-		},
-	}
 }
 
 func (p *parser) arithmExpr(following Token) Node {
@@ -823,11 +814,10 @@ func (p *parser) arithmEnd(left Pos) Pos {
 	if !p.peekArithmEnd() {
 		p.matchingErr(left, DLPAREN, DRPAREN)
 	}
-	right := p.pos
 	p.readOnlyTok(RPAREN)
 	p.popStop()
 	p.next()
-	return right
+	return p.lpos
 }
 
 func (p *parser) wordList(stops ...Token) (ws []Word) {
