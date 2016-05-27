@@ -39,6 +39,14 @@ var (
 	}
 )
 
+func (p *printer) space(b byte) {
+	if p.err != nil {
+		return
+	}
+	_, p.err = p.w.Write([]byte{b})
+	p.contiguous = false
+}
+
 func (p *printer) nonSpaced(a ...interface{}) {
 	for _, v := range a {
 		if p.err != nil {
@@ -64,7 +72,7 @@ func (p *printer) spaced(a ...interface{}) {
 	for _, v := range a {
 		if t, ok := v.(Token); ok && contiguousPost[t] {
 		} else if p.contiguous {
-			p.nonSpaced(" ")
+			p.space(' ')
 		}
 		p.nonSpaced(v)
 	}
@@ -108,7 +116,7 @@ func (p *printer) node(v interface{}) {
 		p.spaced(LPAREN)
 		if len(x.Stmts) == 0 {
 			// avoid conflict with ()
-			p.nonSpaced(" ")
+			p.space(' ')
 		}
 		p.stmtJoin(x.Stmts)
 		p.nonSpaced(RPAREN)
@@ -293,7 +301,7 @@ func (p *printer) wordJoin(ws []Word) {
 func (p *printer) stmtJoin(stmts []Stmt) {
 	for i, s := range stmts {
 		if p.needNewline {
-			p.nonSpaced("\n")
+			p.space('\n')
 		} else if i > 0 {
 			p.nonSpaced(SEMICOLON)
 		}
@@ -308,7 +316,7 @@ func (p *printer) stmtList(stmts []Stmt) {
 	}
 	p.stmtJoin(stmts)
 	if p.needNewline {
-		p.nonSpaced("\n")
+		p.space('\n')
 	} else {
 		p.nonSpaced(SEMICOLON)
 	}
