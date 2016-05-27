@@ -639,12 +639,7 @@ func (p *parser) wordPart() Node {
 		fallthrough
 	case !p.quoted(DQUOTE) && p.peekAny(DQUOTE, DOLLDQ):
 		q := Quoted{Quote: p.tok, QuotePos: p.pos}
-		stop := q.Quote
-		if stop == DOLLSQ {
-			stop = SQUOTE
-		} else if stop == DOLLDQ {
-			stop = DQUOTE
-		}
+		stop := quotedStop(q.Quote)
 		p.enterStops(stop)
 		p.readParts(&q.Parts)
 		p.popStop()
@@ -658,6 +653,16 @@ func (p *parser) wordPart() Node {
 		return cs
 	}
 	return nil
+}
+
+func quotedStop(start Token) Token {
+	switch start {
+	case DOLLSQ:
+		return SQUOTE
+	case DOLLDQ:
+		return DQUOTE
+	}
+	return start
 }
 
 func (p *parser) arithmExpr(following Token) Node {

@@ -196,17 +196,11 @@ func (p *printer) node(v interface{}) {
 	case SglQuoted:
 		p.nonSpaced(SQUOTE, x.Value, SQUOTE)
 	case Quoted:
-		stop := x.Quote
-		if stop == DOLLSQ {
-			stop = SQUOTE
-		} else if stop == DOLLDQ {
-			stop = DQUOTE
-		}
 		p.nonSpaced(x.Quote)
 		for _, n := range x.Parts {
 			p.nonSpaced(n)
 		}
-		p.nonSpaced(stop)
+		p.nonSpaced(quotedStop(x.Quote))
 	case CmdSubst:
 		if x.Backquotes {
 			p.nonSpaced(BQUOTE)
