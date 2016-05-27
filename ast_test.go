@@ -1711,7 +1711,7 @@ var astTests = []testCase{
 					X:    litWord("i"),
 				},
 			}}),
-			Stmt{
+			{
 				Assigns: []Assign{{
 					Name: lit("foo"),
 					Value: word(

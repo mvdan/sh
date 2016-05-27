@@ -270,9 +270,7 @@ func (p *parser) readLitBytes() (bs []byte) {
 			if b == '}' {
 				return
 			}
-		case p.quoted(LBRACE) && paramOps[b]:
-			return
-		case p.quoted(RBRACK) && b == ']':
+		case p.quoted(LBRACE) && paramOps[b], p.quoted(RBRACK) && b == ']':
 			return
 		case p.quoted(QUO):
 			if b == '/' || b == '}' {
@@ -1196,15 +1194,15 @@ func (p *parser) declStmt() Node {
 	for !p.peekStop() {
 		if as, ok := p.getAssign(); ok {
 			ds.Assigns = append(ds.Assigns, as)
-		} else {
-			var w Word
-			if !p.gotWord(&w) {
-				p.curErr("declare statement must be followed by words")
-			}
-			ds.Assigns = append(ds.Assigns, Assign{
-				Value: w,
-			})
+			continue
 		}
+		var w Word
+		if !p.gotWord(&w) {
+			p.curErr("declare statement must be followed by words")
+		}
+		ds.Assigns = append(ds.Assigns, Assign{
+			Value: w,
+		})
 	}
 	return ds
 }
