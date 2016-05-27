@@ -40,41 +40,30 @@ func (p *printer) node(v interface{}) {
 	case File:
 		p.stmtJoinWithEnd(x.Stmts, false)
 	case Stmt:
-		first := true
+		spacing := ""
+		spaced := func(a ...interface{}) {
+			p.pr(spacing)
+			p.pr(a...)
+			spacing = " "
+		}
 		if x.Negated {
-			p.pr(NOT)
-			first = false
+			spaced(NOT)
 		}
 		for _, a := range x.Assigns {
-			if !first {
-				p.pr(" ")
-			}
-			p.pr(a)
-			first = false
+			spaced(a)
 		}
 		if x.Node != nil {
-			if !first {
-				p.pr(" ")
-			}
-			p.pr(x.Node)
-			first = false
+			spaced(x.Node)
 		}
 		for _, r := range x.Redirs {
-			if !first {
-				p.pr(" ")
-			}
-			p.pr(r.N, r.Op)
+			spaced(r.N, r.Op)
 			if _, ok := r.Word.Parts[0].(CmdInput); ok {
 				p.pr(" ")
 			}
 			p.pr(r.Word)
-			first = false
 		}
 		if x.Background {
-			if !first {
-				p.pr(" ")
-			}
-			p.pr(AND)
+			spaced(AND)
 		}
 	case Assign:
 		if x.Name != nil {
