@@ -59,6 +59,7 @@ func (p *printer) node(v interface{}) {
 			spaced(r.N, r.Op)
 			p.needNewline = r.Op == SHL || r.Op == DHEREDOC
 			if _, ok := r.Word.Parts[0].(CmdInput); ok {
+				// avoid conflict with <<
 				p.pr(" ")
 			}
 			p.pr(r.Word)
@@ -81,7 +82,7 @@ func (p *printer) node(v interface{}) {
 	case Subshell:
 		p.pr(LPAREN)
 		if len(x.Stmts) == 0 {
-			// A space in between to avoid confusion with ()
+			// avoid conflict with ()
 			p.pr(" ")
 		}
 		p.stmtJoin(x.Stmts)
@@ -174,7 +175,7 @@ func (p *printer) node(v interface{}) {
 		if x.Backquotes {
 			p.pr(BQUOTE)
 		} else {
-			p.pr(DOLLAR, "", LPAREN)
+			p.pr(DOLLPR)
 		}
 		p.stmtJoin(x.Stmts)
 		if x.Backquotes {
@@ -187,7 +188,7 @@ func (p *printer) node(v interface{}) {
 			p.pr(DOLLAR, x.Param)
 			return
 		}
-		p.pr(DOLLAR, LBRACE)
+		p.pr(DOLLBR)
 		if x.Length {
 			p.pr(HASH)
 		}
@@ -205,7 +206,7 @@ func (p *printer) node(v interface{}) {
 		}
 		p.pr(RBRACE)
 	case ArithmExpr:
-		p.pr(DOLLAR, DLPAREN, x.X, DRPAREN)
+		p.pr(DOLLDP, x.X, DRPAREN)
 	case ParenExpr:
 		p.pr(LPAREN, x.X, RPAREN)
 	case CaseStmt:
