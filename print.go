@@ -38,7 +38,7 @@ func (p *printer) pr(a ...interface{}) {
 func (p *printer) node(v interface{}) {
 	switch x := v.(type) {
 	case File:
-		p.stmtJoinWithEnd(x.Stmts, false)
+		p.stmtJoin(x.Stmts)
 	case Stmt:
 		spacing := ""
 		spaced := func(a ...interface{}) {
@@ -57,6 +57,7 @@ func (p *printer) node(v interface{}) {
 		}
 		for _, r := range x.Redirs {
 			spaced(r.N, r.Op)
+			p.needNewline = r.Op == SHL || r.Op == DHEREDOC
 			if _, ok := r.Word.Parts[0].(CmdInput); ok {
 				p.pr(" ")
 			}
@@ -83,7 +84,7 @@ func (p *printer) node(v interface{}) {
 			// A space in between to avoid confusion with ()
 			p.pr(" ")
 		}
-		p.stmtJoinWithEnd(x.Stmts, false)
+		p.stmtJoin(x.Stmts)
 		p.pr(RPAREN)
 	case Block:
 		p.pr(LBRACE)
@@ -199,8 +200,7 @@ func (p *printer) node(v interface{}) {
 				p.pr(QUO)
 			}
 			p.pr(QUO, x.Repl.Orig, QUO, x.Repl.With)
-		}
-		if x.Exp != nil {
+		} else if x.Exp != nil {
 			p.pr(x.Exp.Op, x.Exp.Word)
 		}
 		p.pr(RBRACE)
@@ -266,30 +266,16 @@ func (p *printer) wordJoin(ws []Word, sep string) {
 	}
 }
 
-func newlineAfter(s Stmt) bool {
-	for _, r := range s.Redirs {
-		if r.Op == SHL || r.Op == DHEREDOC {
-			return true
-		}
-	}
-	return false
-}
-
-func (p *printer) stmtJoinWithEnd(stmts []Stmt, end bool) {
-	p.needNewline = false
+func (p *printer) stmtJoin(stmts []Stmt) {
 	for i, s := range stmts {
 		if p.needNewline {
-			p.needNewline = false
 			p.pr("\n")
 		} else if i > 0 {
 			p.pr(SEMICOLON, " ")
 		}
 		p.node(s)
-		p.needNewline = newlineAfter(s)
 	}
 }
-
-func (p *printer) stmtJoin(stmts []Stmt) { p.stmtJoinWithEnd(stmts, true) }
 
 func (p *printer) stmtList(stmts []Stmt) {
 	if len(stmts) == 0 {
