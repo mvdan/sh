@@ -304,11 +304,11 @@ var errTests = []struct {
 	},
 	{
 		"echo $(foo",
-		`1:7: reached EOF without matching token ( with )`,
+		`1:6: reached EOF without matching token ( with )`,
 	},
 	{
 		"echo $((foo",
-		`1:7: reached EOF without matching token (( with ))`,
+		`1:6: reached EOF without matching token (( with ))`,
 	},
 	{
 		"echo $((()))",
@@ -316,7 +316,7 @@ var errTests = []struct {
 	},
 	{
 		"echo $(((3))",
-		`1:7: reached ) without matching token (( with ))`,
+		`1:6: reached ) without matching token (( with ))`,
 	},
 	{
 		"echo $((+))",

@@ -584,10 +584,19 @@ func (p *parser) wordPart() Node {
 	switch {
 	case p.peek(DOLLBR):
 		return p.paramExp()
+	case p.peek(DOLLDP):
+		p.enterStops(DRPAREN)
+		ar := ArithmExpr{Dollar: p.lpos}
+		ar.X = p.arithmExpr(DLPAREN)
+		ar.Rparen = p.arithmEnd(ar.Dollar)
+		return ar
+	case p.peek(DOLLPR):
+		cs := CmdSubst{Left: p.pos}
+		cs.Stmts = p.stmtsNested(RPAREN)
+		cs.Right = p.matchedTok(cs.Left, LPAREN, RPAREN)
+		return cs
 	case p.peek(DOLLAR):
 		switch {
-		case p.peekAnyByte('('):
-			// otherwise it is seen as a word break
 		case p.peekSpaced():
 			p.next()
 			return Lit{
@@ -651,30 +660,14 @@ func (p *parser) dollar() Node {
 	default:
 		p.next()
 	}
-	lpos := p.pos
-	switch {
-	case p.gotArithmStart():
-		ar := ArithmExpr{
-			Dollar: dpos,
-			X:      p.arithmExpr(DLPAREN),
-		}
-		ar.Rparen = p.arithmEnd(lpos)
-		return ar
-	case p.peek(LPAREN):
-		cs := CmdSubst{Left: dpos}
-		cs.Stmts = p.stmtsNested(RPAREN)
-		cs.Right = p.matchedTok(lpos, LPAREN, RPAREN)
-		return cs
-	default:
-		p.next()
-		return ParamExp{
-			Dollar: dpos,
-			Short:  true,
-			Param: Lit{
-				ValuePos: p.lpos,
-				Value:    p.lval,
-			},
-		}
+	p.next()
+	return ParamExp{
+		Dollar: dpos,
+		Short:  true,
+		Param: Lit{
+			ValuePos: p.lpos,
+			Value:    p.lval,
+		},
 	}
 }
 
@@ -820,14 +813,6 @@ func (p *parser) paramExp() (pe ParamExp) {
 		p.matchingErr(lpos, LBRACE, RBRACE)
 	}
 	return
-}
-
-func (p *parser) gotArithmStart() bool {
-	if p.peek(LPAREN) && p.readOnlyTok(LPAREN) {
-		p.enterStops(DRPAREN)
-		return true
-	}
-	return false
 }
 
 func (p *parser) peekArithmEnd() bool {
@@ -1104,7 +1089,8 @@ func (p *parser) ifStmt() (fs IfStmt) {
 }
 
 func (p *parser) cond(left Token, stops ...Token) Node {
-	if p.gotArithmStart() {
+	if p.peek(LPAREN) && p.readOnlyTok(LPAREN) {
+		p.enterStops(DRPAREN)
 		c := CStyleCond{Lparen: p.lpos}
 		c.Cond = p.arithmExpr(DLPAREN)
 		c.Rparen = p.arithmEnd(c.Lparen)
@@ -1140,7 +1126,8 @@ func (p *parser) untilStmt() (us UntilStmt) {
 
 func (p *parser) forStmt() (fs ForStmt) {
 	fs.For = p.lpos
-	if p.gotArithmStart() {
+	if p.peek(LPAREN) && p.readOnlyTok(LPAREN) {
+		p.enterStops(DRPAREN)
 		c := CStyleLoop{Lparen: p.lpos}
 		c.Init = p.arithmExpr(DLPAREN)
 		p.followTok(p.pos, "expression", SEMICOLON)
