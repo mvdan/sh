@@ -207,30 +207,20 @@ func (p *printer) node(v interface{}) {
 		}
 		p.pr(x.Param)
 		if x.Ind != nil {
-			p.pr(*x.Ind)
+			p.pr(LBRACK, x.Ind.Word, RBRACK)
 		}
 		if x.Repl != nil {
-			p.pr(*x.Repl)
+			if x.Repl.All {
+				p.pr(QUO)
+			}
+			p.pr(QUO, x.Repl.Orig, QUO, x.Repl.With)
 		}
 		if x.Exp != nil {
-			p.pr(*x.Exp)
+			p.pr(x.Exp.Op, x.Exp.Word)
 		}
 		p.pr("}")
-	case Index:
-		p.pr(LBRACK, x.Word, RBRACK)
-	case Replace:
-		if x.All {
-			p.pr(QUO)
-		}
-		p.pr(QUO, x.Orig, QUO, x.With)
-	case Expansion:
-		p.pr(x.Op, x.Word)
 	case ArithmExpr:
-		p.pr("$((")
-		if x.X != nil {
-			p.pr(x.X)
-		}
-		p.pr("))")
+		p.pr("$((", x.X, "))")
 	case ParenExpr:
 		p.pr("(", x.X, ")")
 	case CaseStmt:
