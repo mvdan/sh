@@ -113,7 +113,7 @@ func (p *printer) node(v interface{}) {
 	case StmtCond:
 		p.stmtList(x.Stmts)
 	case CStyleCond:
-		p.pr(" ((", x.Cond, ")); ")
+		p.pr(" ", DLPAREN, x.Cond, DRPAREN, SEMICOLON, " ")
 	case WhileStmt:
 		p.pr(WHILE)
 		p.semicolonIfNil(x.Cond)
@@ -127,7 +127,7 @@ func (p *printer) node(v interface{}) {
 		p.stmtList(x.DoStmts)
 		p.pr(DONE)
 	case ForStmt:
-		p.pr(FOR, " ", x.Cond, "; ", DO)
+		p.pr(FOR, " ", x.Cond, SEMICOLON, " ", DO)
 		p.stmtList(x.DoStmts)
 		p.pr(DONE)
 	case WordIter:
@@ -137,7 +137,8 @@ func (p *printer) node(v interface{}) {
 			p.wordJoin(x.List, " ")
 		}
 	case CStyleLoop:
-		p.pr(DLPAREN, x.Init, "; ", x.Cond, "; ", x.Post, DRPAREN)
+		p.pr(DLPAREN, x.Init, SEMICOLON, " ", x.Cond,
+			SEMICOLON, " ", x.Post, DRPAREN)
 	case UnaryExpr:
 		if !x.Post {
 			p.pr(x.Op)
@@ -156,7 +157,7 @@ func (p *printer) node(v interface{}) {
 		if x.BashStyle {
 			p.pr(FUNCTION, " ")
 		}
-		p.pr(x.Name, "() ", x.Body)
+		p.pr(x.Name, LPAREN, RPAREN, " ", x.Body)
 	case Word:
 		p.nodeJoin(x.Parts, "")
 	case Lit:
@@ -219,11 +220,11 @@ func (p *printer) node(v interface{}) {
 				p.pr(DSEMICOLON)
 			}
 			p.pr(" ")
-			p.wordJoin(pl.Patterns, " | ")
-			p.pr(") ")
+			p.wordJoin(pl.Patterns, " " + OR.String() + " ")
+			p.pr(RPAREN, " ")
 			p.stmtJoin(pl.Stmts)
 		}
-		p.pr("; ", ESAC)
+		p.pr(SEMICOLON, " ", ESAC)
 	case DeclStmt:
 		if x.Local {
 			p.pr(LOCAL)
@@ -286,7 +287,7 @@ func (p *printer) stmtJoinWithEnd(stmts []Stmt, end bool) {
 			p.needNewline = false
 			p.pr("\n")
 		} else if i > 0 {
-			p.pr("; ")
+			p.pr(SEMICOLON, " ")
 		}
 		p.node(s)
 		p.needNewline = newlineAfter(s)
