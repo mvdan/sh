@@ -20,6 +20,8 @@ type printer struct {
 
 	contiguous  bool
 	needNewline bool
+
+	compactArithm bool
 }
 
 var (
@@ -171,15 +173,18 @@ func (p *printer) node(v interface{}) {
 			SEMICOLON, x.Post, DRPAREN)
 	case UnaryExpr:
 		if x.Post {
-			p.spaced(x.X)
-			p.nonSpaced(x.Op)
+			p.nonSpaced(x.X, x.Op)
 		} else {
-			p.spaced(x.Op)
+			p.nonSpaced(x.Op)
 			p.contiguous = false
 			p.nonSpaced(x.X)
 		}
 	case BinaryExpr:
-		p.spaced(x.X, x.Op, x.Y)
+		if p.compactArithm {
+			p.nonSpaced(x.X, x.Op, x.Y)
+		} else {
+			p.spaced(x.X, x.Op, x.Y)
+		}
 	case FuncDecl:
 		if x.BashStyle {
 			p.spaced(FUNCTION)
@@ -238,7 +243,12 @@ func (p *printer) node(v interface{}) {
 	case ArithmExpr:
 		p.nonSpaced(DOLLDP, x.X, DRPAREN)
 	case ParenExpr:
-		p.spaced(LPAREN, x.X, RPAREN)
+		p.nonSpaced(LPAREN)
+		oldCompact := p.compactArithm
+		p.compactArithm = false
+		p.nonSpaced(x.X)
+		p.compactArithm = oldCompact
+		p.nonSpaced(RPAREN)
 	case CaseStmt:
 		p.spaced(CASE, x.Word, IN)
 		for i, pl := range x.List {
@@ -280,9 +290,11 @@ func (p *printer) node(v interface{}) {
 		p.spaced(EVAL, x.Stmt)
 	case LetStmt:
 		p.spaced(LET)
+		p.compactArithm = true
 		for _, n := range x.Exprs {
 			p.spaced(n)
 		}
+		p.compactArithm = false
 	}
 }
 

@@ -52,7 +52,7 @@ type parser struct {
 	heredocs    []*Redirect
 }
 
-func (p *parser) enterStops(stops ...Token) {
+func (p *parser) pushStops(stops ...Token) {
 	p.stops = append(p.stops, stops...)
 	p.next()
 }
@@ -230,7 +230,7 @@ func (p *parser) next() {
 		p.advanceBoth(COMMENT, p.readLine())
 	case p.quoted(LBRACE) && paramOps[b]:
 		p.advanceTok(p.doParamToken())
-	case p.quotedAny(DLPAREN, DRPAREN) && arithmOps[b]:
+	case p.quotedAny(DLPAREN, DRPAREN, LPAREN) && arithmOps[b]:
 		p.advanceTok(p.doArithmToken())
 	case reserved[b]:
 		// Between double quotes, only under certain
@@ -286,7 +286,7 @@ func (p *parser) readLitBytes() (bs []byte) {
 			}
 		case reserved[b], space[b]:
 			return
-		case p.quotedAny(DLPAREN, DRPAREN) && arithmOps[b]:
+		case p.quotedAny(DLPAREN, DRPAREN, LPAREN) && arithmOps[b]:
 			return
 		}
 		p.consumeByte()
@@ -545,7 +545,7 @@ func (p *parser) invalidStmtStart() {
 }
 
 func (p *parser) stmtsNested(stops ...Token) []Stmt {
-	p.enterStops(stops...)
+	p.pushStops(stops...)
 	sts := p.stmts(stops...)
 	p.popStops(len(stops))
 	return sts
@@ -583,7 +583,7 @@ func (p *parser) wordPart() Node {
 	case p.peek(DOLLBR):
 		return p.paramExp()
 	case p.peek(DOLLDP):
-		p.enterStops(DRPAREN)
+		p.pushStops(DRPAREN)
 		ar := ArithmExpr{Dollar: p.lpos}
 		ar.X = p.arithmExpr(DLPAREN)
 		ar.Rparen = p.arithmEnd(ar.Dollar)
@@ -640,7 +640,7 @@ func (p *parser) wordPart() Node {
 	case !p.quoted(DQUOTE) && p.peekAny(DQUOTE, DOLLDQ):
 		q := Quoted{Quote: p.tok, QuotePos: p.pos}
 		stop := quotedStop(q.Quote)
-		p.enterStops(stop)
+		p.pushStops(stop)
 		p.readParts(&q.Parts)
 		p.popStop()
 		p.closingQuote(q, stop)
@@ -670,7 +670,7 @@ func (p *parser) arithmExpr(following Token) Node {
 		return nil
 	}
 	left := p.arithmExprBase(following)
-	if !p.quoted(DRPAREN) && p.spaced {
+	if !p.quotedAny(DRPAREN, LPAREN) && p.spaced {
 		return left
 	}
 	if p.eof() || p.peekAny(RPAREN, SEMICOLON, STOPPED) {
@@ -685,7 +685,7 @@ func (p *parser) arithmExpr(following Token) Node {
 		Op:    p.ltok,
 		X:     left,
 	}
-	if !p.quoted(DRPAREN) && p.spaced {
+	if !p.quotedAny(DRPAREN, LPAREN) && p.spaced {
 		p.followErr(b.OpPos, b.Op, "an expression")
 	}
 	if b.Y = p.arithmExpr(b.Op); b.Y == nil {
@@ -705,12 +705,14 @@ func (p *parser) arithmExprBase(following Token) Node {
 	}
 	var x Node
 	switch {
-	case p.got(LPAREN):
+	case p.peek(LPAREN):
+		p.pushStops(LPAREN)
 		pe := ParenExpr{Lparen: p.lpos}
 		pe.X = p.arithmExpr(LPAREN)
 		if pe.X == nil {
 			p.posErr(pe.Lparen, "parentheses must enclose an expression")
 		}
+		p.popStop()
 		pe.Rparen = p.matchedTok(pe.Lparen, LPAREN, RPAREN)
 		x = pe
 	case p.gotAny(ADD, SUB):
@@ -718,7 +720,7 @@ func (p *parser) arithmExprBase(following Token) Node {
 			OpPos: p.lpos,
 			Op:    p.ltok,
 		}
-		if !p.quoted(DRPAREN) && p.spaced {
+		if !p.quotedAny(DRPAREN, LPAREN) && p.spaced {
 			p.followErr(ue.OpPos, ue.Op, "an expression")
 		}
 		ue.X = p.arithmExpr(ue.Op)
@@ -729,7 +731,7 @@ func (p *parser) arithmExprBase(following Token) Node {
 	default:
 		x = p.followWord(following)
 	}
-	if !p.quoted(DRPAREN) && p.spaced {
+	if !p.quotedAny(DRPAREN, LPAREN) && p.spaced {
 		return x
 	}
 	if p.gotAny(INC, DEC) {
@@ -758,7 +760,7 @@ func (p *parser) gotParamLit(l *Lit) bool {
 
 func (p *parser) paramExp() (pe ParamExp) {
 	pe.Dollar = p.pos
-	p.enterStops(LBRACE)
+	p.pushStops(LBRACE)
 	pe.Length = p.got(HASH)
 	if !p.gotParamLit(&pe.Param) && !pe.Length {
 		p.posErr(pe.Dollar, "parameter expansion requires a literal")
@@ -769,7 +771,7 @@ func (p *parser) paramExp() (pe ParamExp) {
 		return
 	}
 	if p.peek(LBRACK) {
-		p.enterStops(RBRACK)
+		p.pushStops(RBRACK)
 		lpos := p.lpos
 		pe.Ind = &Index{}
 		p.gotWord(&pe.Ind.Word)
@@ -786,18 +788,18 @@ func (p *parser) paramExp() (pe ParamExp) {
 	}
 	if p.peekAny(QUO, DQUO) {
 		pe.Repl = &Replace{All: p.tok == DQUO}
-		p.enterStops(QUO)
+		p.pushStops(QUO)
 		p.gotWord(&pe.Repl.Orig)
 		if p.peek(QUO) {
 			p.popStop()
-			p.enterStops(RBRACE)
+			p.pushStops(RBRACE)
 			p.gotWord(&pe.Repl.With)
 		}
 		p.popStop()
 	} else {
 		pe.Exp = &Expansion{Op: p.tok}
 		p.popStop()
-		p.enterStops(RBRACE)
+		p.pushStops(RBRACE)
 		p.gotWord(&pe.Exp.Word)
 	}
 	p.popStop()
@@ -1083,7 +1085,7 @@ func (p *parser) ifStmt() (fs IfStmt) {
 
 func (p *parser) cond(left Token, stops ...Token) Node {
 	if p.peek(LPAREN) && p.readOnlyTok(LPAREN) {
-		p.enterStops(DRPAREN)
+		p.pushStops(DRPAREN)
 		c := CStyleCond{Lparen: p.lpos}
 		c.Cond = p.arithmExpr(DLPAREN)
 		c.Rparen = p.arithmEnd(c.Lparen)
@@ -1120,7 +1122,7 @@ func (p *parser) untilStmt() (us UntilStmt) {
 func (p *parser) forStmt() (fs ForStmt) {
 	fs.For = p.lpos
 	if p.peek(LPAREN) && p.readOnlyTok(LPAREN) {
-		p.enterStops(DRPAREN)
+		p.pushStops(DRPAREN)
 		c := CStyleLoop{Lparen: p.lpos}
 		c.Init = p.arithmExpr(DLPAREN)
 		p.followTok(p.pos, "expression", SEMICOLON)
@@ -1219,7 +1221,7 @@ func (p *parser) evalStmt() (es EvalStmt) {
 }
 
 func (p *parser) letStmt() (ls LetStmt) {
-	p.enterStops(DLPAREN)
+	p.pushStops(DLPAREN)
 	ls.Let = p.lpos
 	p.stopNewline = true
 	for !p.peekStop() && !p.peek(STOPPED) {

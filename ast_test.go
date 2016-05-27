@@ -1331,6 +1331,18 @@ var astTests = []testCase{
 		})),
 	},
 	{
+		[]string{`$((a = (1 + 2)))`},
+		word(arithmExpr(BinaryExpr{
+			Op: ASSIGN,
+			X:  litWord("a"),
+			Y: parenExpr(BinaryExpr{
+				Op: ADD,
+				X:  litWord("1"),
+				Y:  litWord("2"),
+			}),
+		})),
+	},
+	{
 		[]string{"foo$"},
 		word(lit("foo"), lit("$")),
 	},
@@ -1681,6 +1693,36 @@ var astTests = []testCase{
 		LetStmt{Exprs: []Node{
 			word(dblQuoted(lit("--i"))),
 		}},
+	},
+	{
+		[]string{
+			`let a=(1 + 2) b=3+4`,
+			`let a=(1+2) b=3+4`,
+		},
+		LetStmt{Exprs: []Node{
+			BinaryExpr{
+				Op: ASSIGN,
+				X:  litWord("a"),
+				Y: parenExpr(BinaryExpr{
+					Op: ADD,
+					X:  litWord("1"),
+					Y:  litWord("2"),
+				}),
+			},
+			BinaryExpr{
+				Op: ASSIGN,
+				X:  litWord("b"),
+				Y: BinaryExpr{
+					Op: ADD,
+					X:  litWord("3"),
+					Y:  litWord("4"),
+				},
+			},
+		}},
+	},
+	{
+		[]string{"(foo-bar)"},
+		subshell(litStmt("foo-bar")),
 	},
 	{
 		[]string{
