@@ -18,7 +18,15 @@ type printer struct {
 	w   io.Writer
 	err error
 
+	contiguous  bool
 	needNewline bool
+}
+
+var contiguousTokens = map[Token]bool{
+	DOLLPR: true,
+	LPAREN: true,
+	BQUOTE: true,
+	CMDIN:  true,
 }
 
 func (p *printer) pr(a ...interface{}) {
@@ -26,13 +34,27 @@ func (p *printer) pr(a ...interface{}) {
 		if p.err != nil {
 			break
 		}
-		switch v.(type) {
-		case string, Token:
-			_, p.err = fmt.Fprint(p.w, v)
+		switch x := v.(type) {
+		case string:
+			if len(x) > 0 {
+				b := x[len(x)-1]
+				p.contiguous = !space[b]
+			}
+			_, p.err = fmt.Fprint(p.w, x)
+		case Token:
+			p.contiguous = !contiguousTokens[x]
+			_, p.err = fmt.Fprint(p.w, x)
 		default:
 			p.node(v)
 		}
 	}
+}
+
+func (p *printer) spaced(a ...interface{}) {
+	if p.contiguous {
+		p.pr(" ")
+	}
+	p.pr(a...)
 }
 
 func (p *printer) node(v interface{}) {
@@ -40,32 +62,22 @@ func (p *printer) node(v interface{}) {
 	case File:
 		p.stmtJoin(x.Stmts)
 	case Stmt:
-		spacing := ""
-		spaced := func(a ...interface{}) {
-			p.pr(spacing)
-			p.pr(a...)
-			spacing = " "
-		}
 		if x.Negated {
-			spaced(NOT)
+			p.spaced(NOT)
 		}
 		for _, a := range x.Assigns {
-			spaced(a)
+			p.spaced(a)
 		}
 		if x.Node != nil {
-			spaced(x.Node)
+			p.spaced(x.Node)
 		}
 		for _, r := range x.Redirs {
-			spaced(r.N, r.Op)
-			p.needNewline = r.Op == SHL || r.Op == DHEREDOC
-			if _, ok := r.Word.Parts[0].(CmdInput); ok {
-				// avoid conflict with <<
-				p.pr(" ")
-			}
+			p.spaced(r.N, r.Op)
 			p.pr(r.Word)
+			p.needNewline = r.Op == SHL || r.Op == DHEREDOC
 		}
 		if x.Background {
-			spaced(AND)
+			p.spaced(AND)
 		}
 	case Assign:
 		if x.Name != nil {
@@ -238,6 +250,10 @@ func (p *printer) node(v interface{}) {
 		p.wordJoin(x.List, " ")
 		p.pr(RPAREN)
 	case CmdInput:
+		if p.contiguous {
+			// avoid conflict with <<
+			p.pr(" ")
+		}
 		p.pr(CMDIN)
 		p.stmtJoin(x.Stmts)
 		p.pr(RPAREN)
