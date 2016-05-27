@@ -69,9 +69,9 @@ func (p *printer) node(v interface{}) {
 		if x.Name != nil {
 			p.pr(x.Name)
 			if x.Append {
-				p.pr("+=")
+				p.pr(ADD_ASSIGN)
 			} else {
-				p.pr("=")
+				p.pr(ASSIGN)
 			}
 		}
 		p.pr(x.Value)
@@ -137,7 +137,7 @@ func (p *printer) node(v interface{}) {
 			p.wordJoin(x.List, " ")
 		}
 	case CStyleLoop:
-		p.pr("((", x.Init, "; ", x.Cond, "; ", x.Post, "))")
+		p.pr(DLPAREN, x.Init, "; ", x.Cond, "; ", x.Post, DRPAREN)
 	case UnaryExpr:
 		if !x.Post {
 			p.pr(x.Op)
@@ -190,7 +190,7 @@ func (p *printer) node(v interface{}) {
 			p.pr(DOLLAR, x.Param)
 			return
 		}
-		p.pr("${")
+		p.pr(DOLLAR, LBRACE)
 		if x.Length {
 			p.pr(HASH)
 		}
@@ -207,16 +207,16 @@ func (p *printer) node(v interface{}) {
 		if x.Exp != nil {
 			p.pr(x.Exp.Op, x.Exp.Word)
 		}
-		p.pr("}")
+		p.pr(RBRACE)
 	case ArithmExpr:
-		p.pr("$((", x.X, "))")
+		p.pr(DOLLAR, DLPAREN, x.X, DRPAREN)
 	case ParenExpr:
-		p.pr("(", x.X, ")")
+		p.pr(LPAREN, x.X, RPAREN)
 	case CaseStmt:
 		p.pr(CASE, " ", x.Word, " ", IN)
 		for i, pl := range x.List {
 			if i > 0 {
-				p.pr(";;")
+				p.pr(DSEMICOLON)
 			}
 			p.pr(" ")
 			p.wordJoin(pl.Patterns, " | ")
