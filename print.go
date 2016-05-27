@@ -26,17 +26,26 @@ func (p *printer) wordJoin(ws []Word, sep string) {
 	}
 }
 
+func newlineAfter(s Stmt) bool {
+	for _, r := range s.Redirs {
+		if r.Op == SHL || r.Op == DHEREDOC {
+			return true
+		}
+	}
+	return false
+}
+
 func (p *printer) stmtJoinWithEnd(stmts []Stmt, end bool) {
-	p.newline = false
+	p.needNewline = false
 	for i, s := range stmts {
-		if p.newline {
-			p.newline = false
+		if p.needNewline {
+			p.needNewline = false
 			p.pr("\n")
 		} else if i > 0 {
 			p.pr("; ")
 		}
 		p.node(s)
-		p.newline = s.newlineAfter()
+		p.needNewline = newlineAfter(s)
 	}
 }
 
@@ -49,7 +58,7 @@ func (p *printer) stmtList(stmts []Stmt) {
 	}
 	p.pr(" ")
 	p.stmtJoin(stmts)
-	if p.newline {
+	if p.needNewline {
 		p.pr("\n")
 	} else {
 		p.pr(SEMICOLON, " ")
@@ -74,14 +83,16 @@ type printer struct {
 	w   io.Writer
 	err error
 
-	newline bool
+	needNewline bool
 }
 
 func (p *printer) pr(a ...interface{}) {
-	if p.err != nil {
-		return
+	for _, v := range a {
+		if p.err != nil {
+			break
+		}
+		_, p.err = fmt.Fprint(p.w, v)
 	}
-	_, p.err = fmt.Fprint(p.w, a...)
 }
 
 func (p *printer) node(v interface{}) {

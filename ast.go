@@ -42,15 +42,6 @@ type Stmt struct {
 
 func (s Stmt) Pos() Pos { return s.Position }
 
-func (s Stmt) newlineAfter() bool {
-	for _, r := range s.Redirs {
-		if r.Op == SHL || r.Op == DHEREDOC {
-			return true
-		}
-	}
-	return false
-}
-
 type Assign struct {
 	Append bool
 	Name   Node
