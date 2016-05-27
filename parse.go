@@ -582,6 +582,8 @@ func (p *parser) readParts(ns *[]Node) {
 
 func (p *parser) wordPart() Node {
 	switch {
+	case p.peek(DOLLBR):
+		return p.paramExp()
 	case p.peek(DOLLAR):
 		switch {
 		case p.peekAnyByte('('):
@@ -641,9 +643,6 @@ func (p *parser) wordPart() Node {
 
 func (p *parser) dollar() Node {
 	dpos := p.pos
-	if p.peekAnyByte('{') {
-		return p.paramExp(dpos)
-	}
 	switch {
 	case p.readOnlyTok(HASH):
 		p.advanceTok(HASH)
@@ -770,9 +769,8 @@ func (p *parser) gotParamLit(l *Lit) bool {
 	return true
 }
 
-func (p *parser) paramExp(dpos Pos) (pe ParamExp) {
-	pe.Dollar = dpos
-	p.readOnlyTok(LBRACE)
+func (p *parser) paramExp() (pe ParamExp) {
+	pe.Dollar = p.pos
 	p.enterStops(LBRACE)
 	pe.Length = p.got(HASH)
 	if !p.gotParamLit(&pe.Param) && !pe.Length {

@@ -56,6 +56,7 @@ const (
 	DOLLAR // $
 	DOLLSQ // $'
 	DOLLDQ // $"
+	DOLLBR // ${
 	LPAREN // (
 
 	RPAREN     // )
@@ -205,6 +206,7 @@ var (
 		{"$", DOLLAR},
 		{"$'", DOLLSQ},
 		{`$"`, DOLLDQ},
+		{`${`, DOLLBR},
 		{"(", LPAREN},
 		{")", RPAREN},
 		{";", SEMICOLON},
