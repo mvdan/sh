@@ -323,16 +323,22 @@ func (p *parser) readLine() string {
 	return s
 }
 
+func wordStr(w Word) string {
+	var buf bytes.Buffer
+	Fprint(&buf, w)
+	return buf.String()
+}
+
 func (p *parser) doHeredocs() {
 	for i, r := range p.heredocs {
-		end := unquote(r.Word).String()
+		end := wordStr(unquote(r.Word))
 		if i > 0 {
 			p.readOnly("\n")
 		}
 		s, _ := p.readHdocBody(end, r.Op == DHEREDOC)
 		r.Word.Parts[0] = Lit{
 			ValuePos: r.Word.Pos(),
-			Value:    fmt.Sprintf("%s\n%s", r.Word, s),
+			Value:    fmt.Sprintf("%s\n%s", wordStr(r.Word), s),
 		}
 		r.Word.Parts = r.Word.Parts[:1]
 	}
@@ -1285,7 +1291,7 @@ func (p *parser) funcDecl(w Word, pos Pos) FuncDecl {
 		Position:  pos,
 		BashStyle: pos != w.Pos(),
 		Name: Lit{
-			Value:    w.String(),
+			Value:    wordStr(w),
 			ValuePos: w.Pos(),
 		},
 	}

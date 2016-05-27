@@ -4,311 +4,348 @@
 package sh
 
 import (
-	"bytes"
 	"fmt"
-	"strings"
+	"io"
 )
 
-func stringerJoin(strs []fmt.Stringer, sep string) string {
-	var b bytes.Buffer
-	for i, s := range strs {
-		if i > 0 {
-			fmt.Fprint(&b, sep)
-		}
-		fmt.Fprint(&b, s)
-	}
-	return b.String()
-}
-
-func nodeJoin(ns []Node, sep string) string {
-	var b bytes.Buffer
+func (p *printer) nodeJoin(ns []Node, sep string) {
 	for i, n := range ns {
 		if i > 0 {
-			fmt.Fprint(&b, sep)
+			p.pr(sep)
 		}
-		fmt.Fprint(&b, n)
+		p.node(n)
 	}
-	return b.String()
 }
 
-func stmtJoinWithEnd(stmts []Stmt, end bool) string {
-	var b bytes.Buffer
-	newline := false
-	for i, s := range stmts {
-		if newline {
-			newline = false
-			fmt.Fprintln(&b)
-		} else if i > 0 {
-			fmt.Fprint(&b, "; ")
-		}
-		fmt.Fprint(&b, s)
-		newline = s.newlineAfter()
-	}
-	if newline && end {
-		fmt.Fprintln(&b)
-	}
-	return b.String()
-}
-
-func stmtJoin(stmts []Stmt) string {
-	return stmtJoinWithEnd(stmts, true)
-}
-
-func stmtList(stmts []Stmt) string {
-	if len(stmts) == 0 {
-		return fmt.Sprint(SEMICOLON, " ")
-	}
-	s := stmtJoin(stmts)
-	if len(s) > 0 && s[len(s)-1] == '\n' {
-		return " " + s
-	}
-	return fmt.Sprintf(" %s%s ", s, SEMICOLON)
-}
-
-func semicolonIfNil(s fmt.Stringer) string {
-	if s == nil {
-		return fmt.Sprint(SEMICOLON, " ")
-	}
-	return s.String()
-}
-
-func wordJoin(words []Word, sep string) string {
-	ns := make([]Node, len(words))
-	for i, w := range words {
-		ns[i] = w
-	}
-	return nodeJoin(ns, sep)
-}
-
-func (f File) String() string { return stmtJoinWithEnd(f.Stmts, false) }
-
-func (s Stmt) String() string {
-	var strs []fmt.Stringer
-	if s.Negated {
-		strs = append(strs, NOT)
-	}
-	for _, a := range s.Assigns {
-		strs = append(strs, a)
-	}
-	if s.Node != nil {
-		strs = append(strs, s.Node)
-	}
-	for _, r := range s.Redirs {
-		strs = append(strs, r)
-	}
-	if s.Background {
-		strs = append(strs, AND)
-	}
-	return stringerJoin(strs, " ")
-}
-
-func (a Assign) String() string {
-	if a.Name == nil {
-		return a.Value.String()
-	}
-	if a.Append {
-		return fmt.Sprint(a.Name, "+=", a.Value)
-	}
-	return fmt.Sprint(a.Name, "=", a.Value)
-}
-
-func (r Redirect) String() string {
-	if strings.HasPrefix(r.Word.String(), "<") {
-		return fmt.Sprint(r.N, r.Op.String(), " ", r.Word)
-	}
-	return fmt.Sprint(r.N, r.Op.String(), r.Word)
-}
-
-func (c Command) String() string { return wordJoin(c.Args, " ") }
-
-func (s Subshell) String() string {
-	if len(s.Stmts) == 0 {
-		// A space in between to avoid confusion with ()
-		return fmt.Sprint(LPAREN, RPAREN)
-	}
-	return fmt.Sprint(LPAREN, stmtJoin(s.Stmts), RPAREN)
-}
-
-func (b Block) String() string {
-	return fmt.Sprint(LBRACE, stmtList(b.Stmts), RBRACE)
-}
-
-func (s IfStmt) String() string {
-	var b bytes.Buffer
-	fmt.Fprint(&b, IF, semicolonIfNil(s.Cond), THEN, stmtList(s.ThenStmts))
-	for _, elif := range s.Elifs {
-		fmt.Fprint(&b, elif)
-	}
-	if len(s.ElseStmts) > 0 {
-		fmt.Fprint(&b, ELSE, stmtList(s.ElseStmts))
-	}
-	fmt.Fprint(&b, FI)
-	return b.String()
-}
-
-func (s StmtCond) String() string { return stmtList(s.Stmts) }
-
-func (c CStyleCond) String() string {
-	return fmt.Sprintf(" ((%s)); ", c.Cond)
-}
-
-func (e Elif) String() string {
-	return fmt.Sprint(ELIF, semicolonIfNil(e.Cond), THEN, stmtList(e.ThenStmts))
-}
-
-func (w WhileStmt) String() string {
-	return fmt.Sprint(WHILE, semicolonIfNil(w.Cond), DO, stmtList(w.DoStmts), DONE)
-}
-
-func (u UntilStmt) String() string {
-	return fmt.Sprint(UNTIL, semicolonIfNil(u.Cond), DO, stmtList(u.DoStmts), DONE)
-}
-
-func (f ForStmt) String() string {
-	return fmt.Sprint(FOR, " ", f.Cond, "; ", DO, stmtList(f.DoStmts), DONE)
-}
-
-func (w WordIter) String() string {
-	if len(w.List) < 1 {
-		return w.Name.String()
-	}
-	return fmt.Sprint(w.Name, IN, " ", wordJoin(w.List, " "))
-}
-
-func (c CStyleLoop) String() string {
-	return fmt.Sprintf("((%s; %s; %s))", c.Init, c.Cond, c.Post)
-}
-
-func (u UnaryExpr) String() string {
-	if u.Post {
-		return fmt.Sprint(u.X, "", u.Op)
-	}
-	return fmt.Sprint(u.Op, "", u.X)
-}
-
-func (b BinaryExpr) String() string {
-	if b.Op == COMMA {
-		return fmt.Sprint(b.X, "", b.Op, b.Y)
-	}
-	return fmt.Sprint(b.X, b.Op, b.Y)
-}
-
-func (f FuncDecl) String() string {
-	if f.BashStyle {
-		return fmt.Sprint(FUNCTION, f.Name, "() ", f.Body)
-	}
-	return fmt.Sprint(f.Name, "() ", f.Body)
-}
-
-func (w Word) String() string { return nodeJoin(w.Parts, "") }
-
-func (l Lit) String() string { return l.Value }
-
-func (q SglQuoted) String() string { return `'` + q.Value + `'` }
-
-func (q Quoted) String() string {
-	stop := q.Quote
-	if stop == DOLLSQ {
-		stop = SQUOTE
-	} else if stop == DOLLDQ {
-		stop = DQUOTE
-	}
-	return fmt.Sprint(q.Quote, nodeJoin(q.Parts, ""), stop)
-}
-
-func (c CmdSubst) String() string {
-	if c.Backquotes {
-		return "`" + stmtJoin(c.Stmts) + "`"
-	}
-	return fmt.Sprint(DOLLAR, "", LPAREN, stmtJoin(c.Stmts), RPAREN)
-}
-
-func (p ParamExp) String() string {
-	if p.Short {
-		return fmt.Sprint(DOLLAR, "", p.Param)
-	}
-	var b bytes.Buffer
-	fmt.Fprint(&b, "${")
-	if p.Length {
-		fmt.Fprint(&b, HASH)
-	}
-	fmt.Fprint(&b, p.Param)
-	if p.Ind != nil {
-		fmt.Fprint(&b, p.Ind)
-	}
-	if p.Repl != nil {
-		fmt.Fprint(&b, p.Repl)
-	}
-	if p.Exp != nil {
-		fmt.Fprint(&b, p.Exp)
-	}
-	fmt.Fprint(&b, "}")
-	return b.String()
-}
-
-func (i Index) String() string { return fmt.Sprintf("[%s]", i.Word) }
-
-func (r Replace) String() string {
-	if r.All {
-		return fmt.Sprintf("//%s/%s", r.Orig, r.With)
-	}
-	return fmt.Sprintf("/%s/%s", r.Orig, r.With)
-}
-
-func (e Expansion) String() string { return fmt.Sprint(e.Op.String(), e.Word) }
-
-func (a ArithmExpr) String() string {
-	if a.X == nil {
-		return "$(())"
-	}
-	return fmt.Sprintf("$((%s))", a.X)
-}
-
-func (p ParenExpr) String() string { return fmt.Sprintf("(%s)", p.X) }
-
-func (c CaseStmt) String() string {
-	var b bytes.Buffer
-	fmt.Fprint(&b, CASE, c.Word, IN)
-	for i, plist := range c.List {
+func (p *printer) wordJoin(ws []Word, sep string) {
+	for i, w := range ws {
 		if i > 0 {
-			fmt.Fprint(&b, ";;")
+			p.pr(sep)
 		}
-		fmt.Fprint(&b, plist)
+		p.node(w)
 	}
-	fmt.Fprint(&b, "; ", ESAC)
-	return b.String()
 }
 
-func (p PatternList) String() string {
-	return fmt.Sprintf(" %s) %s", wordJoin(p.Patterns, " | "), stmtJoin(p.Stmts))
+func (p *printer) stmtJoinWithEnd(stmts []Stmt, end bool) {
+	p.newline = false
+	for i, s := range stmts {
+		if p.newline {
+			p.newline = false
+			p.pr("\n")
+		} else if i > 0 {
+			p.pr("; ")
+		}
+		p.node(s)
+		p.newline = s.newlineAfter()
+	}
 }
 
-func (d DeclStmt) String() string {
-	var strs []fmt.Stringer
-	if d.Local {
-		strs = append(strs, LOCAL)
+func (p *printer) stmtJoin(stmts []Stmt) { p.stmtJoinWithEnd(stmts, true) }
+
+func (p *printer) stmtList(stmts []Stmt) {
+	if len(stmts) == 0 {
+		p.pr(SEMICOLON, " ")
+		return
+	}
+	p.pr(" ")
+	p.stmtJoin(stmts)
+	if p.newline {
+		p.pr("\n")
 	} else {
-		strs = append(strs, DECLARE)
+		p.pr(SEMICOLON, " ")
 	}
-	for _, w := range d.Opts {
-		strs = append(strs, w)
-	}
-	for _, a := range d.Assigns {
-		strs = append(strs, a)
-	}
-	return stringerJoin(strs, " ")
 }
 
-func (a ArrayExpr) String() string {
-	return fmt.Sprint(LPAREN, wordJoin(a.List, " "), RPAREN)
+func (p *printer) semicolonIfNil(v interface{}) {
+	if v == nil {
+		p.pr(SEMICOLON, " ")
+		return
+	}
+	p.node(v)
 }
 
-func (c CmdInput) String() string {
-	return fmt.Sprint(LSS, "", LPAREN, stmtJoin(c.Stmts), RPAREN)
+func Fprint(w io.Writer, v interface{}) error {
+	p := printer{w: w}
+	p.node(v)
+	return p.err
 }
 
-func (e EvalStmt) String() string { return fmt.Sprint(EVAL, e.Stmt) }
+type printer struct {
+	w   io.Writer
+	err error
 
-func (l LetStmt) String() string {
-	return fmt.Sprint(LET, " ", nodeJoin(l.Exprs, " "))
+	newline bool
+}
+
+func (p *printer) pr(a ...interface{}) {
+	if p.err != nil {
+		return
+	}
+	_, p.err = fmt.Fprint(p.w, a...)
+}
+
+func (p *printer) node(v interface{}) {
+	switch x := v.(type) {
+	case File:
+		p.stmtJoinWithEnd(x.Stmts, false)
+	case Stmt:
+		first := true
+		if x.Negated {
+			p.pr(NOT)
+			first = false
+		}
+		for _, a := range x.Assigns {
+			if !first {
+				p.pr(" ")
+			}
+			p.node(a)
+			first = false
+		}
+		if x.Node != nil {
+			if !first {
+				p.pr(" ")
+			}
+			p.node(x.Node)
+			first = false
+		}
+		for _, r := range x.Redirs {
+			if !first {
+				p.pr(" ")
+			}
+			p.node(r.N)
+			p.pr(r.Op)
+			if _, ok := r.Word.Parts[0].(CmdInput); ok {
+				p.pr(" ")
+			}
+			p.node(r.Word)
+			first = false
+		}
+		if x.Background {
+			if !first {
+				p.pr(" ")
+			}
+			p.pr(AND)
+		}
+	case Assign:
+		if x.Name != nil {
+			p.node(x.Name)
+			if x.Append {
+				p.pr("+=")
+			} else {
+				p.pr("=")
+			}
+		}
+		p.node(x.Value)
+	case Command:
+		for i, w := range x.Args {
+			if i > 0 {
+				p.pr(" ")
+			}
+			p.node(w)
+		}
+	case Subshell:
+		p.pr(LPAREN)
+		if len(x.Stmts) == 0 {
+			// A space in between to avoid confusion with ()
+			p.pr(" ")
+		}
+		p.stmtJoinWithEnd(x.Stmts, false)
+		p.pr(RPAREN)
+	case Block:
+		p.pr(LBRACE)
+		p.stmtList(x.Stmts)
+		p.pr(RBRACE)
+	case IfStmt:
+		p.pr(IF)
+		p.semicolonIfNil(x.Cond)
+		p.pr(THEN)
+		p.stmtList(x.ThenStmts)
+		for _, el := range x.Elifs {
+			p.pr(ELIF)
+			p.semicolonIfNil(el.Cond)
+			p.pr(THEN)
+			p.stmtList(el.ThenStmts)
+		}
+		if len(x.ElseStmts) > 0 {
+			p.pr(ELSE)
+			p.stmtList(x.ElseStmts)
+		}
+		p.pr(FI)
+	case StmtCond:
+		p.stmtList(x.Stmts)
+	case CStyleCond:
+		p.pr(" ((")
+		p.node(x.Cond)
+		p.pr(")); ")
+	case WhileStmt:
+		p.pr(WHILE)
+		p.semicolonIfNil(x.Cond)
+		p.pr(DO)
+		p.stmtList(x.DoStmts)
+		p.pr(DONE)
+	case UntilStmt:
+		p.pr(UNTIL)
+		p.semicolonIfNil(x.Cond)
+		p.pr(DO)
+		p.stmtList(x.DoStmts)
+		p.pr(DONE)
+	case ForStmt:
+		p.pr(FOR, " ")
+		p.node(x.Cond)
+		p.pr("; ", DO)
+		p.stmtList(x.DoStmts)
+		p.pr(DONE)
+	case WordIter:
+		p.node(x.Name)
+		if len(x.List) > 0 {
+			p.pr(" ", IN, " ")
+			p.wordJoin(x.List, " ")
+		}
+	case CStyleLoop:
+		p.pr("((")
+		p.node(x.Init)
+		p.pr("; ")
+		p.node(x.Cond)
+		p.pr("; ")
+		p.node(x.Post)
+		p.pr("))")
+	case UnaryExpr:
+		if !x.Post {
+			p.pr(x.Op)
+		}
+		p.node(x.X)
+		if x.Post {
+			p.pr(x.Op)
+		}
+	case BinaryExpr:
+		p.node(x.X)
+		if x.Op != COMMA {
+			p.pr(" ")
+		}
+		p.pr(x.Op, " ")
+		p.node(x.Y)
+	case FuncDecl:
+		if x.BashStyle {
+			p.pr(FUNCTION, " ")
+		}
+		p.node(x.Name)
+		p.pr("() ")
+		p.node(x.Body)
+	case Word:
+		p.nodeJoin(x.Parts, "")
+	case Lit:
+		p.pr(x.Value)
+	case SglQuoted:
+		p.pr(SQUOTE, x.Value, SQUOTE)
+	case Quoted:
+		stop := x.Quote
+		if stop == DOLLSQ {
+			stop = SQUOTE
+		} else if stop == DOLLDQ {
+			stop = DQUOTE
+		}
+		p.pr(x.Quote)
+		p.nodeJoin(x.Parts, "")
+		p.pr(stop)
+	case CmdSubst:
+		if x.Backquotes {
+			p.pr(BQUOTE)
+		} else {
+			p.pr(DOLLAR, "", LPAREN)
+		}
+		p.stmtJoin(x.Stmts)
+		if x.Backquotes {
+			p.pr(BQUOTE)
+		} else {
+			p.pr(RPAREN)
+		}
+	case ParamExp:
+		if x.Short {
+			p.pr(DOLLAR)
+			p.node(x.Param)
+			return
+		}
+		p.pr("${")
+		if x.Length {
+			p.pr(HASH)
+		}
+		p.node(x.Param)
+		if x.Ind != nil {
+			p.node(*x.Ind)
+		}
+		if x.Repl != nil {
+			p.node(*x.Repl)
+		}
+		if x.Exp != nil {
+			p.node(*x.Exp)
+		}
+		p.pr("}")
+	case Index:
+		p.pr(LBRACK)
+		p.node(x.Word)
+		p.pr(RBRACK)
+	case Replace:
+		if x.All {
+			p.pr(QUO)
+		}
+		p.pr(QUO)
+		p.node(x.Orig)
+		p.pr(QUO)
+		p.node(x.With)
+	case Expansion:
+		p.pr(x.Op)
+		p.node(x.Word)
+	case ArithmExpr:
+		p.pr("$((")
+		if x.X != nil {
+			p.node(x.X)
+		}
+		p.pr("))")
+	case ParenExpr:
+		p.pr("(")
+		p.node(x.X)
+		p.pr(")")
+	case CaseStmt:
+		p.pr(CASE, " ")
+		p.node(x.Word)
+		p.pr(" ", IN)
+		for i, pl := range x.List {
+			if i > 0 {
+				p.pr(";;")
+			}
+			p.pr(" ")
+			p.wordJoin(pl.Patterns, " | ")
+			p.pr(") ")
+			p.stmtJoin(pl.Stmts)
+		}
+		p.pr("; ", ESAC)
+	case DeclStmt:
+		if x.Local {
+			p.pr(LOCAL)
+		} else {
+			p.pr(DECLARE)
+		}
+		for _, w := range x.Opts {
+			p.pr(" ")
+			p.node(w)
+		}
+		for _, a := range x.Assigns {
+			p.pr(" ")
+			p.node(a)
+		}
+	case ArrayExpr:
+		p.pr(LPAREN)
+		p.wordJoin(x.List, " ")
+		p.pr(RPAREN)
+	case CmdInput:
+		p.pr(CMDIN)
+		p.stmtJoin(x.Stmts)
+		p.pr(RPAREN)
+	case EvalStmt:
+		p.pr(EVAL, " ")
+		p.node(x.Stmt)
+	case LetStmt:
+		p.pr(LET, " ")
+		p.nodeJoin(x.Exprs, " ")
+	}
 }

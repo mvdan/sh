@@ -4,6 +4,7 @@
 package sh
 
 import (
+	"bytes"
 	"fmt"
 	"reflect"
 	"strings"
@@ -2029,7 +2030,9 @@ func TestPrintAST(t *testing.T) {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
 			in := fullProg(c.ast)
 			want := c.strs[0]
-			got := in.String()
+			var buf bytes.Buffer
+			Fprint(&buf, in)
+			got := buf.String()
 			if got != want {
 				t.Fatalf("AST print mismatch\nwant: %s\ngot:  %s",
 					want, got)

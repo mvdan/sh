@@ -3,8 +3,6 @@
 
 package sh
 
-import "fmt"
-
 var defaultPos = Pos{}
 
 func nodeFirstPos(ns []Node) Pos {
@@ -30,7 +28,6 @@ type File struct {
 
 // Node represents an AST node.
 type Node interface {
-	fmt.Stringer
 	Pos() Pos
 }
 
