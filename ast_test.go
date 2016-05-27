@@ -2015,8 +2015,7 @@ func TestParseAST(t *testing.T) {
 				}
 				setPosRecurse(t, got.Stmts, p, true)
 				if !reflect.DeepEqual(got, want) {
-					t.Fatalf("AST mismatch in %q\nwant: %s\ngot:  %s\ndiff:\n%s",
-						in, want, got,
+					t.Fatalf("AST mismatch in %q\ndiff:\n%s", in,
 						strings.Join(pretty.Diff(want, got), "\n"),
 					)
 				}
