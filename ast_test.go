@@ -1970,9 +1970,6 @@ func setPosRecurse(t *testing.T, v interface{}, to Pos, diff bool) Node {
 		setPos(&x.Rparen)
 		recurse(x.Stmts)
 		return x
-	case nil:
-	default:
-		panic(reflect.TypeOf(v))
 	}
 	return nil
 }
