@@ -2017,11 +2017,10 @@ func setPosRecurse(t *testing.T, v interface{}, to Pos, diff bool) Node {
 }
 
 func TestNodePos(t *testing.T) {
-	p := Pos{
+	defaultPos = Pos{
 		Line:   12,
 		Column: 34,
 	}
-	defaultPos = p
 	allTests := astTests
 	for _, v := range []interface{}{
 		Command{},
@@ -2034,31 +2033,34 @@ func TestNodePos(t *testing.T) {
 	for i, c := range allTests {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
 			want := fullProg(c.ast)
-			setPosRecurse(t, want.Stmts, p, true)
+			setPosRecurse(t, want.Stmts, defaultPos, true)
 		})
 	}
 }
 
 func TestParseAST(t *testing.T) {
-	p := Pos{}
-	defaultPos = p
+	defaultPos = Pos{}
 	for i, c := range astTests {
 		want := fullProg(c.ast)
-		setPosRecurse(t, want.Stmts, p, false)
+		setPosRecurse(t, want.Stmts, defaultPos, false)
 		for j, in := range c.strs {
-			t.Run(fmt.Sprintf("%d-%d", i, j), func(t *testing.T) {
-				r := strings.NewReader(in)
-				got, err := Parse(r, "")
-				if err != nil {
-					t.Fatalf("Unexpected error in %q: %v", in, err)
-				}
-				setPosRecurse(t, got.Stmts, p, true)
-				if !reflect.DeepEqual(got, want) {
-					t.Fatalf("AST mismatch in %q\ndiff:\n%s", in,
-						strings.Join(pretty.Diff(want, got), "\n"),
-					)
-				}
-			})
+			t.Run(fmt.Sprintf("%d-%d", i, j), singleParseAST(in, want))
+		}
+	}
+}
+
+func singleParseAST(in string, want File) func(t *testing.T) {
+	return func(t *testing.T) {
+		r := strings.NewReader(in)
+		got, err := Parse(r, "")
+		if err != nil {
+			t.Fatalf("Unexpected error in %q: %v", in, err)
+		}
+		setPosRecurse(t, got.Stmts, defaultPos, true)
+		if !reflect.DeepEqual(got, want) {
+			t.Fatalf("AST mismatch in %q\ndiff:\n%s", in,
+				strings.Join(pretty.Diff(want, got), "\n"),
+			)
 		}
 	}
 }
