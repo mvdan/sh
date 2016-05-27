@@ -4,13 +4,8 @@
 package sh
 
 import (
-	"bytes"
 	"fmt"
-	"reflect"
-	"strings"
 	"testing"
-
-	"github.com/kr/pretty"
 )
 
 func lit(s string) Lit { return Lit{Value: s} }
@@ -2034,49 +2029,6 @@ func TestNodePos(t *testing.T) {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
 			want := fullProg(c.ast)
 			setPosRecurse(t, want.Stmts, defaultPos, true)
-		})
-	}
-}
-
-func TestParseAST(t *testing.T) {
-	defaultPos = Pos{}
-	for i, c := range astTests {
-		want := fullProg(c.ast)
-		setPosRecurse(t, want.Stmts, defaultPos, false)
-		for j, in := range c.strs {
-			t.Run(fmt.Sprintf("%d-%d", i, j), singleParseAST(in, want))
-		}
-	}
-}
-
-func singleParseAST(in string, want File) func(t *testing.T) {
-	return func(t *testing.T) {
-		r := strings.NewReader(in)
-		got, err := Parse(r, "")
-		if err != nil {
-			t.Fatalf("Unexpected error in %q: %v", in, err)
-		}
-		setPosRecurse(t, got.Stmts, defaultPos, true)
-		if !reflect.DeepEqual(got, want) {
-			t.Fatalf("AST mismatch in %q\ndiff:\n%s", in,
-				strings.Join(pretty.Diff(want, got), "\n"),
-			)
-		}
-	}
-}
-
-func TestPrintAST(t *testing.T) {
-	for i, c := range astTests {
-		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
-			in := fullProg(c.ast)
-			want := c.strs[0]
-			var buf bytes.Buffer
-			Fprint(&buf, in)
-			got := buf.String()
-			if got != want {
-				t.Fatalf("AST print mismatch\nwant: %s\ngot:  %s",
-					want, got)
-			}
 		})
 	}
 }
