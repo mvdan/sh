@@ -424,9 +424,9 @@ func readableStr(v interface{}) string {
 	return s
 }
 
-func (p *parser) followErr(lpos Pos, left interface{}, right string) {
+func (p *parser) followErr(pos Pos, left interface{}, right string) {
 	leftStr := readableStr(left)
-	p.posErr(lpos, "%s must be followed by %s", leftStr, right)
+	p.posErr(pos, "%s must be followed by %s", leftStr, right)
 }
 
 func (p *parser) followTok(lpos Pos, left string, tok Token) {
@@ -1198,7 +1198,7 @@ func (p *parser) declStmt() Node {
 		}
 		var w Word
 		if !p.gotWord(&w) {
-			p.curErr("declare statement must be followed by words")
+			p.followErr(p.pos, DECLARE, "words")
 		}
 		ds.Assigns = append(ds.Assigns, Assign{
 			Value: w,
@@ -1219,6 +1219,9 @@ func (p *parser) letStmt() (ls LetStmt) {
 	p.stopNewline = true
 	for !p.peekStop() && !p.peek(STOPPED) {
 		x := p.arithmExpr(LET)
+		if x == nil {
+			p.followErr(p.pos, LET, "arithmetic expressions")
+		}
 		ls.Exprs = append(ls.Exprs, x)
 	}
 	p.stopNewline = false

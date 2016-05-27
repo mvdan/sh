@@ -424,7 +424,7 @@ var errTests = []struct {
 	},
 	{
 		"declare (",
-		`1:9: declare statement must be followed by words`,
+		`1:9: "declare" must be followed by words`,
 	},
 	{
 		"let a+ b",
@@ -437,6 +437,10 @@ var errTests = []struct {
 	{
 		"let a ++",
 		`1:7: ++ must be followed by a word`,
+	},
+	{
+		"let ))",
+		`1:5: "let" must be followed by arithmetic expressions`,
 	},
 }
 
