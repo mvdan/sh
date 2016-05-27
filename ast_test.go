@@ -1670,8 +1670,8 @@ var astTests = []testCase{
 			},
 			litWord("c"),
 			UnaryExpr{
-				Op:   ADD,
-				X:    litWord("d"),
+				Op: ADD,
+				X:  litWord("d"),
 			},
 		}},
 	},
