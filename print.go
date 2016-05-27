@@ -76,12 +76,7 @@ func (p *printer) node(v interface{}) {
 		}
 		p.pr(x.Value)
 	case Command:
-		for i, w := range x.Args {
-			if i > 0 {
-				p.pr(" ")
-			}
-			p.pr(w)
-		}
+		p.wordJoin(x.Args, " ")
 	case Subshell:
 		p.pr(LPAREN)
 		if len(x.Stmts) == 0 {
