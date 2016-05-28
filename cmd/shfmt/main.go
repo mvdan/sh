@@ -26,7 +26,7 @@ func main() {
 }
 
 func format(path string) error {
-	f, err := os.Open(path)
+	f, err := os.OpenFile(path, os.O_RDWR, 0)
 	if err != nil {
 		return err
 	}
@@ -35,6 +35,6 @@ func format(path string) error {
 	if err != nil {
 		return err
 	}
-	_ = prog
-	return nil
+	f.Seek(0, 0)
+	return sh.Fprint(f, prog)
 }
