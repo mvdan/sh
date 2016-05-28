@@ -25,7 +25,7 @@ type printer struct {
 }
 
 var (
-	contiguousPre = map[Token]bool{
+	contiguousRight = map[Token]bool{
 		DOLLPR:  true,
 		LPAREN:  true,
 		DLPAREN: true,
@@ -33,7 +33,7 @@ var (
 		CMDIN:   true,
 		DOLLDP:  true,
 	}
-	contiguousPost = map[Token]bool{
+	contiguousLeft = map[Token]bool{
 		SEMICOLON: true,
 		RPAREN:    true,
 		DRPAREN:   true,
@@ -57,12 +57,12 @@ func (p *printer) nonSpaced(a ...interface{}) {
 		switch x := v.(type) {
 		case string:
 			if len(x) > 0 {
-				b := x[len(x)-1]
-				p.contiguous = !space[b]
+				last := x[len(x)-1]
+				p.contiguous = !space[last]
 			}
 			_, p.err = fmt.Fprint(p.w, x)
 		case Token:
-			p.contiguous = !contiguousPre[x]
+			p.contiguous = !contiguousRight[x]
 			_, p.err = fmt.Fprint(p.w, x)
 		default:
 			p.node(v)
@@ -75,7 +75,7 @@ func (p *printer) spaced(a ...interface{}) {
 		if v == nil {
 			continue
 		}
-		if t, ok := v.(Token); ok && contiguousPost[t] {
+		if t, ok := v.(Token); ok && contiguousLeft[t] {
 		} else if p.contiguous {
 			p.space(' ')
 		}
