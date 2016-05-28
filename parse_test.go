@@ -12,18 +12,18 @@ import (
 	"github.com/kr/pretty"
 )
 
-func TestParseAST(t *testing.T) {
+func TestParse(t *testing.T) {
 	defaultPos = Pos{}
 	for i, c := range astTests {
 		want := fullProg(c.ast)
 		setPosRecurse(t, want.Stmts, defaultPos, false)
 		for j, in := range c.strs {
-			t.Run(fmt.Sprintf("%d-%d", i, j), singleParseAST(in, want))
+			t.Run(fmt.Sprintf("%d-%d", i, j), singleParse(in, want))
 		}
 	}
 }
 
-func singleParseAST(in string, want File) func(t *testing.T) {
+func singleParse(in string, want File) func(t *testing.T) {
 	return func(t *testing.T) {
 		r := strings.NewReader(in)
 		got, err := Parse(r, "")
