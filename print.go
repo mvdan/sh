@@ -72,6 +72,9 @@ func (p *printer) nonSpaced(a ...interface{}) {
 
 func (p *printer) spaced(a ...interface{}) {
 	for _, v := range a {
+		if v == nil {
+			continue
+		}
 		if t, ok := v.(Token); ok && contiguousPost[t] {
 		} else if p.contiguous {
 			p.space(' ')
@@ -91,9 +94,7 @@ func (p *printer) node(v interface{}) {
 		for _, a := range x.Assigns {
 			p.spaced(a)
 		}
-		if x.Node != nil {
-			p.spaced(x.Node)
-		}
+		p.spaced(x.Node)
 		for _, r := range x.Redirs {
 			p.spaced(r.N)
 			p.nonSpaced(r.Op, r.Word)
@@ -127,14 +128,10 @@ func (p *printer) node(v interface{}) {
 		p.stmtList(x.Stmts)
 		p.spaced(RBRACE)
 	case IfStmt:
-		p.spaced(IF)
-		p.semicolonIfNil(x.Cond)
-		p.spaced(THEN)
+		p.spaced(IF, x.Cond, SEMICOLON, THEN)
 		p.stmtList(x.ThenStmts)
 		for _, el := range x.Elifs {
-			p.spaced(ELIF)
-			p.semicolonIfNil(el.Cond)
-			p.spaced(THEN)
+			p.spaced(ELIF, el.Cond, SEMICOLON, THEN)
 			p.stmtList(el.ThenStmts)
 		}
 		if len(x.ElseStmts) > 0 {
@@ -143,19 +140,15 @@ func (p *printer) node(v interface{}) {
 		}
 		p.spaced(FI)
 	case StmtCond:
-		p.stmtList(x.Stmts)
+		p.stmtJoin(x.Stmts)
 	case CStyleCond:
-		p.spaced(DLPAREN, x.Cond, DRPAREN, SEMICOLON)
+		p.spaced(DLPAREN, x.Cond, DRPAREN)
 	case WhileStmt:
-		p.spaced(WHILE)
-		p.semicolonIfNil(x.Cond)
-		p.spaced(DO)
+		p.spaced(WHILE, x.Cond, SEMICOLON, DO)
 		p.stmtList(x.DoStmts)
 		p.spaced(DONE)
 	case UntilStmt:
-		p.spaced(UNTIL)
-		p.semicolonIfNil(x.Cond)
-		p.spaced(DO)
+		p.spaced(UNTIL, x.Cond, SEMICOLON, DO)
 		p.stmtList(x.DoStmts)
 		p.spaced(DONE)
 	case ForStmt:
@@ -326,12 +319,4 @@ func (p *printer) stmtList(stmts []Stmt) {
 	} else {
 		p.nonSpaced(SEMICOLON)
 	}
-}
-
-func (p *printer) semicolonIfNil(v interface{}) {
-	if v == nil {
-		p.nonSpaced(SEMICOLON)
-		return
-	}
-	p.node(v)
 }
