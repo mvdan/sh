@@ -39,21 +39,21 @@ func singleParseAST(in string, want File) func(t *testing.T) {
 	}
 }
 
-var errBadInput = fmt.Errorf("read: bad input")
+var errBadReader = fmt.Errorf("read: expected error")
 
-type badInput struct{}
+type badReader struct{}
 
-func (b badInput) Read(p []byte) (int, error) { return 0, errBadInput }
+func (b badReader) Read(p []byte) (int, error) { return 0, errBadReader }
 
 func TestReadErr(t *testing.T) {
-	var in badInput
+	var in badReader
 	_, err := Parse(in, "")
 	if err == nil {
 		t.Fatalf("Expected error with bad reader")
 	}
-	if err != errBadInput {
+	if err != errBadReader {
 		t.Fatalf("Error mismatch with bad reader:\nwant: %v\ngot:  %v",
-			errBadInput, err)
+			errBadReader, err)
 	}
 }
 

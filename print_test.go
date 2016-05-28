@@ -24,3 +24,29 @@ func TestFprint(t *testing.T) {
 		})
 	}
 }
+
+var errBadWriter = fmt.Errorf("write: expected error")
+
+type badWriter struct{}
+
+func (b badWriter) Write(p []byte) (int, error) { return 0, errBadWriter }
+
+func TestWriteErr(t *testing.T) {
+	var out badWriter
+	f := File{
+		Stmts: []Stmt{
+			{
+				Redirs: []Redirect{{}},
+				Node: Subshell{},
+			},
+		},
+	}
+	err := Fprint(out, f)
+	if err == nil {
+		t.Fatalf("Expected error with bad writer")
+	}
+	if err != errBadWriter {
+		t.Fatalf("Error mismatch with bad writer:\nwant: %v\ngot:  %v",
+			errBadWriter, err)
+	}
+}
