@@ -35,9 +35,9 @@ type Stmt struct {
 	Node
 	Position   Pos
 	Negated    bool
+	Background bool
 	Assigns    []Assign
 	Redirs     []Redirect
-	Background bool
 }
 
 func (s Stmt) Pos() Pos { return s.Position }
