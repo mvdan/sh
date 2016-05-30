@@ -15,7 +15,7 @@ import (
 func TestParse(t *testing.T) {
 	defaultPos = Pos{}
 	for i, c := range astTests {
-		want := fullProg(c.ast)
+		want := c.ast.(File)
 		setPosRecurse(t, want.Stmts, defaultPos, false)
 		for j, in := range c.strs {
 			t.Run(fmt.Sprintf("%d-%d", i, j), singleParse(in, want))

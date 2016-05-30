@@ -4,9 +4,19 @@
 package sh
 
 import (
+	"flag"
 	"fmt"
+	"os"
 	"testing"
 )
+
+func TestMain(m *testing.M) {
+	flag.Parse()
+	for i := range astTests {
+		astTests[i].ast = fullProg(astTests[i].ast)
+	}
+	os.Exit(m.Run())
+}
 
 func lit(s string) Lit { return Lit{Value: s} }
 func lits(strs ...string) []Node {
@@ -2023,11 +2033,11 @@ func TestNodePos(t *testing.T) {
 			{},
 		}},
 	} {
-		allTests = append(allTests, testCase{nil, v})
+		allTests = append(allTests, testCase{nil, fullProg(v)})
 	}
 	for i, c := range allTests {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
-			want := fullProg(c.ast)
+			want := c.ast.(File)
 			setPosRecurse(t, want.Stmts, defaultPos, true)
 		})
 	}

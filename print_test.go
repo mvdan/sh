@@ -12,7 +12,7 @@ import (
 func TestFprint(t *testing.T) {
 	for i, c := range astTests {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
-			in := fullProg(c.ast)
+			in := c.ast.(File)
 			want := c.strs[0]
 			var buf bytes.Buffer
 			Fprint(&buf, in)
@@ -37,7 +37,7 @@ func TestWriteErr(t *testing.T) {
 		Stmts: []Stmt{
 			{
 				Redirs: []Redirect{{}},
-				Node: Subshell{},
+				Node:   Subshell{},
 			},
 		},
 	}
