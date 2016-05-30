@@ -324,7 +324,7 @@ func (p *parser) readLine() string {
 func wordStr(w Word) string {
 	var buf bytes.Buffer
 	Fprint(&buf, w)
-	return buf.String()
+	return strings.TrimRight(buf.String(), "\n")
 }
 
 func (p *parser) doHeredocs() {

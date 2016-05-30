@@ -11,6 +11,7 @@ import (
 func Fprint(w io.Writer, v interface{}) error {
 	p := printer{w: w}
 	p.node(v)
+	p.space('\n')
 	return p.err
 }
 

@@ -1,0 +1,1 @@
+foo  -opt    arg
