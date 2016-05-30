@@ -1819,17 +1819,17 @@ func fullProg(v interface{}) (f File) {
 	return
 }
 
-func setPosRecurse(t *testing.T, v interface{}, to Pos, diff bool) Node {
+func setPosRecurse(tb testing.TB, v interface{}, to Pos, diff bool) Node {
 	setPos := func(p *Pos) {
 		if diff && *p == to {
-			t.Fatalf("Pos in %v (%T) is already %v", v, v, to)
+			tb.Fatalf("Pos in %v (%T) is already %v", v, v, to)
 		}
 		*p = to
 	}
 	recurse := func(v interface{}) Node {
-		n := setPosRecurse(t, v, to, diff)
+		n := setPosRecurse(tb, v, to, diff)
 		if n != nil && n.Pos() != to {
-			t.Fatalf("Found unexpected Pos in %#v", n)
+			tb.Fatalf("Found unexpected Pos in %#v", n)
 		}
 		return n
 	}
