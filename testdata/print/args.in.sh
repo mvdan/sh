@@ -1,1 +1,1 @@
-foo  -opt    arg
+foo  -opt    arg;

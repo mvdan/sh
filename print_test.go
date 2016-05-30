@@ -67,7 +67,7 @@ func TestFprint(t *testing.T) {
 			want := string(outb)
 
 			if got != want {
-				t.Fatalf("Output mismatch in Fprint:\nwant:\n%s\ngot:\n%s",
+				t.Fatalf("Output mismatch in Fprint:\nwant: %q\ngot:  %q",
 					want, got)
 			}
 		})
