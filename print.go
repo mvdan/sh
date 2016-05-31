@@ -42,10 +42,11 @@ var (
 		DOLLDP:  true,
 	}
 	contiguousLeft = map[Token]bool{
-		SEMICOLON: true,
-		RPAREN:    true,
-		DRPAREN:   true,
-		COMMA:     true,
+		SEMICOLON:  true,
+		DSEMICOLON: true,
+		RPAREN:     true,
+		DRPAREN:    true,
+		COMMA:      true,
 	}
 )
 
@@ -287,7 +288,6 @@ func (p *printer) node(n Node) {
 		p.nonSpaced(RPAREN)
 	case CaseStmt:
 		p.spaced(CASE, x.Word, IN)
-		p.level++
 		for _, pl := range x.List {
 			p.separate(wordFirstPos(pl.Patterns), false)
 			for i, w := range pl.Patterns {
@@ -298,9 +298,10 @@ func (p *printer) node(n Node) {
 			}
 			p.nonSpaced(RPAREN)
 			p.stmtJoin(pl.Stmts)
-			p.nonSpaced(DSEMICOLON)
+			p.level++
+			p.sepNewline(DSEMICOLON, pl.Dsemi)
+			p.level--
 		}
-		p.level--
 		if len(x.List) == 0 {
 			p.sepSemicolon(ESAC, x.Esac)
 		} else {

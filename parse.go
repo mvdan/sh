@@ -1180,6 +1180,7 @@ func (p *parser) patLists() (pls []PatternList) {
 			}
 		}
 		pl.Stmts = p.stmtsNested(DSEMICOLON, ESAC)
+		pl.Dsemi = p.pos
 		pls = append(pls, pl)
 		if !p.got(DSEMICOLON) {
 			break

@@ -1992,7 +1992,9 @@ func setPosRecurse(tb testing.TB, v interface{}, to Pos, diff bool) Node {
 		setPos(&x.Case)
 		setPos(&x.Esac)
 		recurse(x.Word)
-		for _, pl := range x.List {
+		for i := range x.List {
+			pl := &x.List[i]
+			setPos(&pl.Dsemi)
 			recurse(pl.Patterns)
 			recurse(pl.Stmts)
 		}

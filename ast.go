@@ -262,6 +262,7 @@ type CaseStmt struct {
 func (c CaseStmt) Pos() Pos { return c.Case }
 
 type PatternList struct {
+	Dsemi    Pos
 	Patterns []Word
 	Stmts    []Stmt
 }
