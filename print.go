@@ -223,7 +223,9 @@ func (p *printer) node(n Node) {
 			p.spaced(FUNCTION)
 		}
 		p.spaced(x.Name)
-		p.nonSpaced(LPAREN, RPAREN)
+		if !x.BashStyle {
+			p.nonSpaced(LPAREN, RPAREN)
+		}
 		p.spaced(x.Body)
 	case Word:
 		for _, n := range x.Parts {

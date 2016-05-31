@@ -421,8 +421,8 @@ var astTests = []testCase{
 	},
 	{
 		[]string{
+			"function foo { a; b; }",
 			"function foo() { a; b; }",
-			"function foo() {\na\nb\n}",
 			"function foo ( ) {\na\nb\n}",
 		},
 		FuncDecl{

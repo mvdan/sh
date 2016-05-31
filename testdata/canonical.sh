@@ -62,6 +62,8 @@ foo 2>&1
 foo <<EOF
 bar
 EOF
+
+function foo { bar; }
 foo <<<"bar"
 foo <(bar)
 
