@@ -5,6 +5,13 @@ package sh
 
 var defaultPos = Pos{}
 
+func stmtFirstPos(sts []Stmt) Pos {
+	if len(sts) == 0 {
+		return defaultPos
+	}
+	return sts[0].Pos()
+}
+
 func nodeFirstPos(ns []Node) Pos {
 	if len(ns) == 0 {
 		return defaultPos
@@ -26,7 +33,7 @@ type File struct {
 	Stmts []Stmt
 }
 
-func (f File) Pos() Pos { return Pos{Line: 1, Column: 1} }
+func (f File) Pos() Pos { return stmtFirstPos(f.Stmts) }
 
 // Node represents an AST node.
 type Node interface {

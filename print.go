@@ -94,16 +94,12 @@ func (p *printer) spaced(a ...interface{}) {
 }
 
 func (p *printer) indent(n int) {
-	if p.err != nil {
-		return
+	for i := 0; i < n; i++ {
+		p.space('\t')
 	}
-	_, p.err = io.WriteString(p.w, strings.Repeat("\t", n))
 }
 
 func (p *printer) separate(pos Pos, fallback bool) {
-	if p.curLine == 0 {
-		return
-	}
 	if pos.Line > p.curLine {
 		p.space('\n')
 		if pos.Line > p.curLine+1 {

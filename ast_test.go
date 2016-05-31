@@ -1826,14 +1826,20 @@ func setPosRecurse(tb testing.TB, v interface{}, to Pos, diff bool) Node {
 		}
 		*p = to
 	}
-	recurse := func(v interface{}) Node {
-		n := setPosRecurse(tb, v, to, diff)
+	checkPos := func(n Node) {
 		if n != nil && n.Pos() != to {
 			tb.Fatalf("Found unexpected Pos in %#v", n)
 		}
+	}
+	recurse := func(v interface{}) Node {
+		n := setPosRecurse(tb, v, to, diff)
+		checkPos(n)
 		return n
 	}
 	switch x := v.(type) {
+	case File:
+		recurse(x.Stmts)
+		checkPos(x)
 	case []Stmt:
 		for i := range x {
 			recurse(&x[i])
@@ -1851,6 +1857,7 @@ func setPosRecurse(tb testing.TB, v interface{}, to Pos, diff bool) Node {
 		for i := range x {
 			recurse(&x[i].Name)
 			recurse(x[i].Value)
+			checkPos(x[i])
 		}
 	case Stmt:
 		recurse(&x)
@@ -2043,7 +2050,7 @@ func TestNodePos(t *testing.T) {
 	for i, c := range allTests {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
 			want := c.ast.(File)
-			setPosRecurse(t, want.Stmts, defaultPos, true)
+			setPosRecurse(t, want, defaultPos, true)
 		})
 	}
 }
