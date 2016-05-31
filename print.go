@@ -19,8 +19,7 @@ type printer struct {
 	w   io.Writer
 	err error
 
-	contiguous  bool
-	needNewline bool
+	contiguous bool
 
 	lastLine int
 
@@ -126,7 +125,6 @@ func (p *printer) node(n Node) {
 		for _, r := range x.Redirs {
 			p.spaced(r.N)
 			p.nonSpaced(r.Op, r.Word)
-			p.needNewline = r.Op == SHL || r.Op == DHEREDOC
 		}
 		if x.Background {
 			p.spaced(AND)
