@@ -99,12 +99,12 @@ func (p *parser) peekByte() (byte, error) {
 	return bs[0], nil
 }
 
-func (p *parser) peekString(s string) bool {
+func (p *parser) willRead(s string) bool {
 	bs, err := p.br.Peek(len(s))
 	return err == nil && string(bs) == s
 }
 
-func (p *parser) peekAnyByte(bs ...byte) bool {
+func (p *parser) willAnyByte(bs ...byte) bool {
 	peek, err := p.br.Peek(1)
 	if err != nil {
 		return false
@@ -113,7 +113,7 @@ func (p *parser) peekAnyByte(bs ...byte) bool {
 }
 
 func (p *parser) readOnly(s string) bool {
-	if p.peekString(s) {
+	if p.willRead(s) {
 		for i := 0; i < len(s); i++ {
 			p.consumeByte()
 		}
@@ -238,7 +238,7 @@ func (p *parser) next() {
 		if p.quoted(DQUOTE) {
 			switch {
 			case b == '`', b == '"':
-			case b == '$' && !p.peekString(`$"`):
+			case b == '$' && !p.willRead(`$"`):
 			default:
 				p.advanceReadLit()
 				return
@@ -264,7 +264,7 @@ func (p *parser) readLitBytes() (bs []byte) {
 			return
 		}
 		switch {
-		case b == '$' && !p.peekString(`$"`) && !p.peekString(`$'`), b == '`':
+		case b == '$' && !p.willRead(`$"`) && !p.willRead(`$'`), b == '`':
 			return
 		case p.quotedAny(RBRACE):
 			if b == '}' {
@@ -306,7 +306,7 @@ func (p *parser) advanceBoth(tok Token, val string) {
 
 func (p *parser) readUntil(s string) (string, bool) {
 	var bs []byte
-	for !p.peekString(s) {
+	for !p.willRead(s) {
 		b, err := p.readByte()
 		if err != nil {
 			return string(bs), false
@@ -367,11 +367,11 @@ func (p *parser) peek(tok Token) bool {
 }
 
 func (p *parser) peekReservedWord(tok Token) bool {
-	return p.val == reservedWords[tok] && p.peekSpaced()
+	return p.val == reservedWords[tok] && p.willSpaced()
 }
 
-func (p *parser) peekSpaced() bool {
-	if len(p.stops) > 0 && p.peekString(p.stops[len(p.stops)-1].String()) {
+func (p *parser) willSpaced() bool {
+	if len(p.stops) > 0 && p.willRead(p.stops[len(p.stops)-1].String()) {
 		return true
 	}
 	b, err := p.peekByte()
@@ -594,7 +594,7 @@ func (p *parser) wordPart() Node {
 		cs.Right = p.matchedTok(cs.Left, LPAREN, RPAREN)
 		return cs
 	case p.peek(DOLLAR):
-		if p.peekSpaced() {
+		if p.willSpaced() {
 			p.next()
 			return Lit{
 				ValuePos: p.lpos,
@@ -812,7 +812,7 @@ func (p *parser) paramExp() (pe ParamExp) {
 }
 
 func (p *parser) peekArithmEnd() bool {
-	return p.peek(RPAREN) && p.peekAnyByte(')')
+	return p.peek(RPAREN) && p.willAnyByte(')')
 }
 
 func (p *parser) arithmEnd(left Pos) Pos {
@@ -858,7 +858,7 @@ func (p *parser) peekStop() bool {
 }
 
 func (p *parser) peekRedir() bool {
-	if p.peek(LIT) && p.peekAnyByte('>', '<') {
+	if p.peek(LIT) && p.willAnyByte('>', '<') {
 		return true
 	}
 	return p.peekAny(GTR, SHR, LSS, DPLIN, DPLOUT, RDRINOUT,
@@ -1193,7 +1193,7 @@ func (p *parser) declStmt() Node {
 		Declare: p.lpos,
 		Local:   p.lval == LOCAL.String(),
 	}
-	for p.peek(LIT) && p.peekSpaced() && p.val[0] == '-' {
+	for p.peek(LIT) && p.willSpaced() && p.val[0] == '-' {
 		var w Word
 		p.gotWord(&w)
 		ds.Opts = append(ds.Opts, w)
