@@ -35,6 +35,7 @@ func format(path string) error {
 	if err != nil {
 		return err
 	}
+	f.Truncate(0)
 	f.Seek(0, 0)
 	return sh.Fprint(f, prog)
 }
