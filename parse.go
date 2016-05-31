@@ -954,7 +954,6 @@ func (p *parser) gotStmt(s *Stmt, stops ...Token) bool {
 }
 
 func (p *parser) gotStmtAndOr(s *Stmt, addRedir func()) bool {
-	s.Position = p.pos
 	switch {
 	case p.peek(LPAREN):
 		s.Node = p.subshell()
@@ -997,7 +996,7 @@ func (p *parser) binaryStmt(left Stmt) Stmt {
 		Op:    p.ltok,
 		X:     left,
 	}
-	var s Stmt
+	s := Stmt{Position: p.pos}
 	addRedir := func() {
 		s.Redirs = append(s.Redirs, p.redirect())
 	}
