@@ -106,7 +106,7 @@ func (p *printer) indent() {
 }
 
 func (p *printer) separate(pos Pos, fallback, allowTwo bool) {
-	p.addComments(pos)
+	p.commentsUpTo(pos.Line)
 	if pos.Line > p.curLine {
 		p.space('\n')
 		if allowTwo && pos.Line > p.curLine+1 {
@@ -130,23 +130,24 @@ func (p *printer) sepNewline(v interface{}, pos Pos) {
 	p.spaced(v)
 }
 
-func (p *printer) addComments(pos Pos) {
+func (p *printer) commentsUpTo(line int) {
 	if len(p.comments) < 1 {
 		return
 	}
 	c := p.comments[0]
-	if c.Hash.Line >= pos.Line {
+	if line > 0 && c.Hash.Line >= line {
 		return
 	}
 	p.sepNewline(c, c.Hash)
 	p.comments = p.comments[1:]
-	p.addComments(pos)
+	p.commentsUpTo(line)
 }
 
 func (p *printer) node(n Node) {
 	switch x := n.(type) {
 	case File:
 		p.progStmts(x.Stmts)
+		p.commentsUpTo(0)
 		p.space('\n')
 	case Stmt:
 		if x.Negated {
