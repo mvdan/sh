@@ -121,6 +121,9 @@ func (p *printer) separate(pos Pos, fallback, allowTwo bool) {
 }
 
 func (p *printer) sepSemicolon(v interface{}, pos Pos) {
+	p.level++
+	p.commentsUpTo(pos.Line)
+	p.level--
 	p.separate(pos, true, false)
 	p.spaced(v)
 }
