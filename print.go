@@ -13,7 +13,6 @@ func Fprint(w io.Writer, n Node) error {
 	p := printer{
 		w:       w,
 		curLine: 1,
-		level:   -1,
 	}
 	if f, ok := n.(File); ok {
 		p.comments = f.Comments
@@ -106,11 +105,11 @@ func (p *printer) indent() {
 	}
 }
 
-func (p *printer) separate(pos Pos, fallback bool) {
+func (p *printer) separate(pos Pos, fallback, allowTwo bool) {
 	p.addComments(pos)
 	if pos.Line > p.curLine {
 		p.space('\n')
-		if pos.Line > p.curLine+1 {
+		if allowTwo && pos.Line > p.curLine+1 {
 			// preserve single empty lines
 			p.space('\n')
 		}
@@ -122,12 +121,12 @@ func (p *printer) separate(pos Pos, fallback bool) {
 }
 
 func (p *printer) sepSemicolon(v interface{}, pos Pos) {
-	p.separate(pos, true)
+	p.separate(pos, true, false)
 	p.spaced(v)
 }
 
 func (p *printer) sepNewline(v interface{}, pos Pos) {
-	p.separate(pos, false)
+	p.separate(pos, false, true)
 	p.spaced(v)
 }
 
@@ -147,7 +146,7 @@ func (p *printer) addComments(pos Pos) {
 func (p *printer) node(n Node) {
 	switch x := n.(type) {
 	case File:
-		p.stmtJoin(x.Stmts)
+		p.progStmts(x.Stmts)
 		p.space('\n')
 	case Stmt:
 		if x.Negated {
@@ -309,7 +308,7 @@ func (p *printer) node(n Node) {
 	case CaseStmt:
 		p.spaced(CASE, x.Word, IN)
 		for _, pl := range x.List {
-			p.separate(wordFirstPos(pl.Patterns), false)
+			p.separate(wordFirstPos(pl.Patterns), false, true)
 			for i, w := range pl.Patterns {
 				if i > 0 {
 					p.spaced(OR)
@@ -378,10 +377,17 @@ func (p *printer) wordJoin(ws []Word, keepNewlines bool) {
 	}
 }
 
+func (p *printer) progStmts(stmts []Stmt) {
+	for i, s := range stmts {
+		p.separate(s.Pos(), i > 0, true)
+		p.node(s)
+	}
+}
+
 func (p *printer) stmtJoin(stmts []Stmt) {
 	p.level++
 	for i, s := range stmts {
-		p.separate(s.Pos(), i > 0)
+		p.separate(s.Pos(), i > 0, i > 0)
 		p.node(s)
 	}
 	p.level--
