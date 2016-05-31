@@ -13,6 +13,7 @@ func Fprint(w io.Writer, n Node) error {
 	p := printer{
 		w:       w,
 		curLine: 1,
+		level:   -1,
 	}
 	p.node(n)
 	p.space('\n')
@@ -26,6 +27,7 @@ type printer struct {
 	contiguous bool
 
 	curLine int
+	level   int
 
 	compactArithm bool
 }
@@ -90,6 +92,13 @@ func (p *printer) spaced(a ...interface{}) {
 	}
 }
 
+func (p *printer) indent(n int) {
+	if p.err != nil {
+		return
+	}
+	_, p.err = io.WriteString(p.w, strings.Repeat("\t", n))
+}
+
 func (p *printer) separate(pos Pos, fallback bool) {
 	if p.curLine == 0 {
 		return
@@ -100,6 +109,7 @@ func (p *printer) separate(pos Pos, fallback bool) {
 			// preserve single empty lines
 			p.space('\n')
 		}
+		p.indent(p.level)
 		p.curLine = pos.Line
 	} else if fallback {
 		p.nonSpaced(SEMICOLON)
@@ -331,8 +341,10 @@ func (p *printer) wordJoin(ws []Word) {
 }
 
 func (p *printer) stmtJoin(stmts []Stmt) {
+	p.level++
 	for i, s := range stmts {
 		p.separate(s.Pos(), i > 0)
 		p.node(s)
 	}
+	p.level--
 }

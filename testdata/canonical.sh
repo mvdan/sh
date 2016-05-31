@@ -3,15 +3,15 @@
 
 { foo; }
 {
-foo
+	foo
 }
 
 foo() { bar; }
 foo() {
-bar
+	bar
 }
 
 (foo)
 (
-foo
+	foo
 )
