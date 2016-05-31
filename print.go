@@ -287,10 +287,7 @@ func (p *printer) node(n Node) {
 		p.nonSpaced(RPAREN)
 	case CaseStmt:
 		p.spaced(CASE, x.Word, IN)
-		for i, pl := range x.List {
-			if i > 0 {
-				p.nonSpaced(DSEMICOLON)
-			}
+		for _, pl := range x.List {
 			for i, w := range pl.Patterns {
 				if i > 0 {
 					p.spaced(OR)
@@ -299,8 +296,13 @@ func (p *printer) node(n Node) {
 			}
 			p.nonSpaced(RPAREN)
 			p.stmtJoin(pl.Stmts)
+			p.nonSpaced(DSEMICOLON)
 		}
-		p.sepSemicolon(ESAC, x.Esac)
+		if len(x.List) == 0 {
+			p.sepSemicolon(ESAC, x.Esac)
+		} else {
+			p.sepNewline(ESAC, x.Esac)
+		}
 	case DeclStmt:
 		if x.Local {
 			p.spaced(LOCAL)
