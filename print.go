@@ -16,7 +16,6 @@ func Fprint(w io.Writer, n Node) error {
 		level:   -1,
 	}
 	p.node(n)
-	p.space('\n')
 	return p.err
 }
 
@@ -127,6 +126,7 @@ func (p *printer) node(n Node) {
 	switch x := n.(type) {
 	case File:
 		p.stmtJoin(x.Stmts)
+		p.space('\n')
 	case Stmt:
 		if x.Negated {
 			p.spaced(NOT)
