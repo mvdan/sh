@@ -22,6 +22,8 @@ type printer struct {
 	contiguous  bool
 	needNewline bool
 
+	lastLine int
+
 	compactArithm bool
 }
 
@@ -84,7 +86,32 @@ func (p *printer) spaced(a ...interface{}) {
 	}
 }
 
+func (p *printer) separate(pos Pos, fallback bool) {
+	if p.lastLine == 0 {
+		return
+	}
+	if pos.Line > p.lastLine {
+		p.space('\n')
+	} else if fallback {
+		p.nonSpaced(SEMICOLON)
+	}
+}
+
+func (p *printer) sepSemicolon(v interface{}, pos Pos) {
+	p.separate(pos, true)
+	p.spaced(v)
+}
+
+func (p *printer) sepNewline(v interface{}, pos Pos) {
+	p.separate(pos, false)
+	p.spaced(v)
+}
+
 func (p *printer) node(n Node) {
+	// otherwise zero-value nodes set it back to 0
+	if curLine := n.Pos().Line; curLine > 0 {
+		p.lastLine = curLine
+	}
 	switch x := n.(type) {
 	case File:
 		p.stmtJoin(x.Stmts)
@@ -123,23 +150,24 @@ func (p *printer) node(n Node) {
 			p.space(' ')
 		}
 		p.stmtJoin(x.Stmts)
-		p.nonSpaced(RPAREN)
+		p.sepNewline(RPAREN, x.Rparen)
 	case Block:
 		p.spaced(LBRACE)
 		p.stmtList(x.Stmts)
-		p.spaced(RBRACE)
+		p.sepSemicolon(RBRACE, x.Rbrace)
 	case IfStmt:
 		p.spaced(IF, x.Cond, SEMICOLON, THEN)
 		p.stmtList(x.ThenStmts)
 		for _, el := range x.Elifs {
-			p.spaced(ELIF, el.Cond, SEMICOLON, THEN)
+			p.sepSemicolon(ELIF, el.Elif)
+			p.spaced(el.Cond, SEMICOLON, THEN)
 			p.stmtList(el.ThenStmts)
 		}
 		if len(x.ElseStmts) > 0 {
-			p.spaced(ELSE)
+			p.sepSemicolon(ELSE, x.Else)
 			p.stmtList(x.ElseStmts)
 		}
-		p.spaced(FI)
+		p.sepSemicolon(FI, x.Fi)
 	case StmtCond:
 		p.stmtJoin(x.Stmts)
 	case CStyleCond:
@@ -147,15 +175,15 @@ func (p *printer) node(n Node) {
 	case WhileStmt:
 		p.spaced(WHILE, x.Cond, SEMICOLON, DO)
 		p.stmtList(x.DoStmts)
-		p.spaced(DONE)
+		p.sepSemicolon(DONE, x.Done)
 	case UntilStmt:
 		p.spaced(UNTIL, x.Cond, SEMICOLON, DO)
 		p.stmtList(x.DoStmts)
-		p.spaced(DONE)
+		p.sepSemicolon(DONE, x.Done)
 	case ForStmt:
 		p.spaced(FOR, x.Cond, SEMICOLON, DO)
 		p.stmtList(x.DoStmts)
-		p.spaced(DONE)
+		p.sepSemicolon(DONE, x.Done)
 	case WordIter:
 		p.spaced(x.Name)
 		if len(x.List) > 0 {
@@ -258,7 +286,7 @@ func (p *printer) node(n Node) {
 			p.nonSpaced(RPAREN)
 			p.stmtJoin(pl.Stmts)
 		}
-		p.spaced(SEMICOLON, ESAC)
+		p.sepSemicolon(ESAC, x.Esac)
 	case DeclStmt:
 		if x.Local {
 			p.spaced(LOCAL)
@@ -300,24 +328,14 @@ func (p *printer) wordJoin(ws []Word) {
 
 func (p *printer) stmtJoin(stmts []Stmt) {
 	for i, s := range stmts {
-		if p.needNewline {
-			p.space('\n')
-		} else if i > 0 {
-			p.nonSpaced(SEMICOLON)
-		}
+		p.separate(s.Pos(), i > 0)
 		p.node(s)
 	}
 }
 
 func (p *printer) stmtList(stmts []Stmt) {
 	if len(stmts) == 0 {
-		p.nonSpaced(SEMICOLON)
 		return
 	}
 	p.stmtJoin(stmts)
-	if p.needNewline {
-		p.space('\n')
-	} else {
-		p.nonSpaced(SEMICOLON)
-	}
 }

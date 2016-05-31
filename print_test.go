@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -21,11 +22,15 @@ func strFprint(n Node) string {
 func TestFprintOld(t *testing.T) {
 	for i, c := range astTests {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
-			in := c.ast.(File)
-			want := c.strs[0] + "\n"
+			in, err := Parse(strings.NewReader(c.strs[0]), "")
+			if err != nil {
+				t.Fatal(err)
+			}
+			want := c.strs[0]
 			got := strFprint(in)
+			got = got[:len(got)-1]
 			if got != want {
-				t.Fatalf("AST print mismatch\nwant: %s\ngot:  %s",
+				t.Fatalf("AST print mismatch\nwant: %q\ngot:  %q",
 					want, got)
 			}
 		})
