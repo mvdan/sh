@@ -8,9 +8,9 @@ import (
 	"io"
 )
 
-func Fprint(w io.Writer, v interface{}) error {
+func Fprint(w io.Writer, n Node) error {
 	p := printer{w: w}
-	p.node(v)
+	p.node(n)
 	p.space('\n')
 	return p.err
 }
@@ -65,8 +65,8 @@ func (p *printer) nonSpaced(a ...interface{}) {
 		case Token:
 			p.contiguous = !contiguousRight[x]
 			_, p.err = fmt.Fprint(p.w, x)
-		default:
-			p.node(v)
+		case Node:
+			p.node(x)
 		}
 	}
 }
@@ -84,8 +84,8 @@ func (p *printer) spaced(a ...interface{}) {
 	}
 }
 
-func (p *printer) node(v interface{}) {
-	switch x := v.(type) {
+func (p *printer) node(n Node) {
+	switch x := n.(type) {
 	case File:
 		p.stmtJoin(x.Stmts)
 	case Stmt:

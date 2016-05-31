@@ -12,9 +12,9 @@ import (
 	"testing"
 )
 
-func strFprint(v interface{}) string {
+func strFprint(n Node) string {
 	var buf bytes.Buffer
-	Fprint(&buf, v)
+	Fprint(&buf, n)
 	return buf.String()
 }
 

@@ -26,6 +26,8 @@ type File struct {
 	Stmts []Stmt
 }
 
+func (f File) Pos() Pos { return Pos{Line: 1, Column: 1} }
+
 // Node represents an AST node.
 type Node interface {
 	Pos() Pos
@@ -47,6 +49,8 @@ type Assign struct {
 	Name   Node
 	Value  Word
 }
+
+func (a Assign) Pos() Pos { return a.Name.Pos() }
 
 type Redirect struct {
 	OpPos Pos
