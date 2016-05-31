@@ -287,7 +287,9 @@ func (p *printer) node(n Node) {
 		p.nonSpaced(RPAREN)
 	case CaseStmt:
 		p.spaced(CASE, x.Word, IN)
+		p.level++
 		for _, pl := range x.List {
+			p.separate(wordFirstPos(pl.Patterns), false)
 			for i, w := range pl.Patterns {
 				if i > 0 {
 					p.spaced(OR)
@@ -298,6 +300,7 @@ func (p *printer) node(n Node) {
 			p.stmtJoin(pl.Stmts)
 			p.nonSpaced(DSEMICOLON)
 		}
+		p.level--
 		if len(x.List) == 0 {
 			p.sepSemicolon(ESAC, x.Esac)
 		} else {

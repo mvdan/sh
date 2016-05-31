@@ -35,6 +35,11 @@ for foo in a b c; do
 	bar
 done
 
+case $foo in
+	a) A;;
+	b) B;;
+esac
+
 $foo ${foo} ${#foo} ${foo:-bar}
 
 foo | bar
