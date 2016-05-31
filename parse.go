@@ -1077,6 +1077,7 @@ func (p *parser) ifStmt() (fs IfStmt) {
 		fs.Elifs = append(fs.Elifs, elf)
 	}
 	if p.got(ELSE) {
+		fs.Else = p.lpos
 		fs.ElseStmts = p.followStmts(ELSE, FI)
 	}
 	fs.Fi = p.stmtEnd(fs, IF, FI)

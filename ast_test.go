@@ -1896,7 +1896,10 @@ func setPosRecurse(tb testing.TB, v interface{}, to Pos, diff bool) Node {
 			recurse(x.Elifs[i].Cond)
 			recurse(x.Elifs[i].ThenStmts)
 		}
-		recurse(x.ElseStmts)
+		if len(x.ElseStmts) > 0 {
+			setPos(&x.Else)
+			recurse(x.ElseStmts)
+		}
 		return x
 	case StmtCond:
 		recurse(x.Stmts)

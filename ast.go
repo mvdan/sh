@@ -89,6 +89,7 @@ type IfStmt struct {
 	Cond      Node
 	ThenStmts []Stmt
 	Elifs     []Elif
+	Else      Pos
 	ElseStmts []Stmt
 }
 
