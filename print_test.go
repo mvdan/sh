@@ -19,18 +19,19 @@ func strFprint(n Node) string {
 	return buf.String()
 }
 
-func TestFprintOld(t *testing.T) {
+func TestFprintCompact(t *testing.T) {
 	for i, c := range astTests {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
-			in, err := Parse(strings.NewReader(c.strs[0]), "")
+			in := c.strs[0]
+			prog, err := Parse(strings.NewReader(in), "")
 			if err != nil {
 				t.Fatal(err)
 			}
-			want := c.strs[0]
-			got := strFprint(in)
+			want := in
+			got := strFprint(prog)
 			got = got[:len(got)-1]
 			if got != want {
-				t.Fatalf("AST print mismatch\nwant: %q\ngot:  %q",
+				t.Fatalf("Fprint mismatch\nwant: %q\ngot:  %q",
 					want, got)
 			}
 		})
@@ -50,32 +51,19 @@ func parsePath(tb testing.TB, path string) File {
 	return prog
 }
 
-var printDir = filepath.Join("testdata", "print")
+func TestFprintMultiline(t *testing.T) {
+	path := filepath.Join("testdata", "canonical.sh")
+	prog := parsePath(t, path)
+	got := strFprint(prog)
 
-func TestFprint(t *testing.T) {
-	outpaths, err := filepath.Glob(filepath.Join(printDir, "*.out.sh"))
+	outb, err := ioutil.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, outPath := range outpaths {
-		fullName := outPath[:len(outPath)-len(".out.sh")]
-		name := fullName[len(printDir)+1:]
-		t.Run(name, func(t *testing.T) {
-			inPath := fullName + ".in.sh"
-			prog := parsePath(t, inPath)
-			got := strFprint(prog)
-
-			outb, err := ioutil.ReadFile(outPath)
-			if err != nil {
-				t.Fatal(err)
-			}
-			want := string(outb)
-
-			if got != want {
-				t.Fatalf("Output mismatch in Fprint:\nwant: %q\ngot:  %q",
-					want, got)
-			}
-		})
+	want := string(outb)
+	if got != want {
+		t.Fatalf("Fprint mismatch:\nwant:\n%sgot:\n%s",
+			want, got)
 	}
 }
 
