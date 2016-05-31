@@ -26,7 +26,7 @@ func TestParse(t *testing.T) {
 func singleParse(in string, want File) func(t *testing.T) {
 	return func(t *testing.T) {
 		r := strings.NewReader(in)
-		got, err := Parse(r, "")
+		got, err := Parse(r, "", 0)
 		if err != nil {
 			t.Fatalf("Unexpected error in %q: %v", in, err)
 		}
@@ -47,7 +47,7 @@ func (b badReader) Read(p []byte) (int, error) { return 0, errBadReader }
 
 func TestReadErr(t *testing.T) {
 	var in badReader
-	_, err := Parse(in, "")
+	_, err := Parse(in, "", 0)
 	if err == nil {
 		t.Fatalf("Expected error with bad reader")
 	}
@@ -478,7 +478,7 @@ func TestParseErr(t *testing.T) {
 	for i, c := range errTests {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
 			r := strings.NewReader(c.in)
-			_, err := Parse(r, "")
+			_, err := Parse(r, "", 0)
 			if err == nil {
 				t.Fatalf("Expected error in %q: %v", c.in, c.want)
 			}
@@ -495,7 +495,7 @@ func TestInputName(t *testing.T) {
 	in := errTests[0].in
 	want := "some-file.sh:" + errTests[0].want
 	r := strings.NewReader(in)
-	_, err := Parse(r, "some-file.sh")
+	_, err := Parse(r, "some-file.sh", 0)
 	if err == nil {
 		t.Fatalf("Expected error in %q: %v", in, want)
 	}

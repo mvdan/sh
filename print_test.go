@@ -23,7 +23,7 @@ func TestFprintCompact(t *testing.T) {
 	for i, c := range astTests {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
 			in := c.strs[0]
-			prog, err := Parse(strings.NewReader(in), "")
+			prog, err := Parse(strings.NewReader(in), "", 0)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -44,7 +44,7 @@ func parsePath(tb testing.TB, path string) File {
 		tb.Fatal(err)
 	}
 	defer f.Close()
-	prog, err := Parse(f, "")
+	prog, err := Parse(f, "", 0)
 	if err != nil {
 		tb.Fatal(err)
 	}

@@ -30,10 +30,16 @@ func wordFirstPos(ws []Word) Pos {
 type File struct {
 	Name string
 
-	Stmts []Stmt
+	Stmts    []Stmt
+	Comments []Comment
 }
 
 func (f File) Pos() Pos { return stmtFirstPos(f.Stmts) }
+
+type Comment struct {
+	Hash Pos
+	Text string
+}
 
 // Node represents an AST node.
 type Node interface {

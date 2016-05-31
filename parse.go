@@ -13,15 +13,22 @@ import (
 	"strings"
 )
 
+type Mode uint
+
+const (
+	ParseComments Mode = 1 << iota
+)
+
 // Parse reads and parses a shell program with an optional name. It
 // returns the parsed program if no issues were encountered. Otherwise,
 // an error is returned.
-func Parse(r io.Reader, name string) (File, error) {
+func Parse(r io.Reader, name string, mode Mode) (File, error) {
 	p := &parser{
 		br: bufio.NewReader(r),
 		file: File{
 			Name: name,
 		},
+		mode: mode,
 		npos: Pos{
 			Line:   1,
 			Column: 1,
@@ -37,6 +44,7 @@ type parser struct {
 
 	file File
 	err  error
+	mode Mode
 
 	spaced, newLine bool
 
@@ -227,7 +235,14 @@ func (p *parser) next() {
 	case p.quoted(RBRACK) && p.readOnlyTok(RBRACK):
 		p.advanceTok(RBRACK)
 	case b == '#' && !p.quotedAny(DQUOTE, SQUOTE, LBRACE, RBRACE, QUO):
-		p.advanceBoth(COMMENT, p.readLine())
+		line := p.readLine()
+		if p.mode&ParseComments > 0 {
+			p.file.Comments = append(p.file.Comments, Comment{
+				Hash: p.pos,
+				Text: line,
+			})
+		}
+		p.next()
 	case p.quoted(LBRACE) && paramOps[b]:
 		p.advanceTok(p.doParamToken())
 	case p.quotedAny(DLPAREN, DRPAREN, LPAREN) && arithmOps[b]:
@@ -360,11 +375,9 @@ func (p *parser) readHdocBody(end string, noTabs bool) (string, bool) {
 }
 
 func (p *parser) peek(tok Token) bool {
-	for p.tok == COMMENT {
-		p.next()
-	}
 	return p.tok == tok || p.peekReservedWord(tok)
 }
+func (p *parser) eof() bool { return p.tok == EOF }
 
 func (p *parser) peekReservedWord(tok Token) bool {
 	return p.val == reservedWords[tok] && p.willSpaced()
@@ -376,11 +389,6 @@ func (p *parser) willSpaced() bool {
 	}
 	b, err := p.peekByte()
 	return err != nil || space[b] || wordBreak[b]
-}
-
-func (p *parser) eof() bool {
-	p.peek(COMMENT)
-	return p.tok == EOF
 }
 
 func (p *parser) peekAny(toks ...Token) bool {

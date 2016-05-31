@@ -14,7 +14,6 @@ const (
 	STOPPED
 	EOF
 	LIT
-	COMMENT
 
 	// POSIX Shell reserved words
 	IF
@@ -164,7 +163,6 @@ var (
 		STOPPED: `STOPPED`,
 		EOF:     `EOF`,
 		LIT:     `literal`,
-		COMMENT: `comment`,
 
 		DLPAREN: "((",
 		DRPAREN: "))",
