@@ -157,19 +157,19 @@ func (p *printer) node(n Node) {
 		p.sepNewline(RPAREN, x.Rparen)
 	case Block:
 		p.spaced(LBRACE)
-		p.stmtList(x.Stmts)
+		p.stmtJoin(x.Stmts)
 		p.sepSemicolon(RBRACE, x.Rbrace)
 	case IfStmt:
 		p.spaced(IF, x.Cond, SEMICOLON, THEN)
-		p.stmtList(x.ThenStmts)
+		p.stmtJoin(x.ThenStmts)
 		for _, el := range x.Elifs {
 			p.sepSemicolon(ELIF, el.Elif)
 			p.spaced(el.Cond, SEMICOLON, THEN)
-			p.stmtList(el.ThenStmts)
+			p.stmtJoin(el.ThenStmts)
 		}
 		if len(x.ElseStmts) > 0 {
 			p.sepSemicolon(ELSE, x.Else)
-			p.stmtList(x.ElseStmts)
+			p.stmtJoin(x.ElseStmts)
 		}
 		p.sepSemicolon(FI, x.Fi)
 	case StmtCond:
@@ -178,15 +178,15 @@ func (p *printer) node(n Node) {
 		p.spaced(DLPAREN, x.Cond, DRPAREN)
 	case WhileStmt:
 		p.spaced(WHILE, x.Cond, SEMICOLON, DO)
-		p.stmtList(x.DoStmts)
+		p.stmtJoin(x.DoStmts)
 		p.sepSemicolon(DONE, x.Done)
 	case UntilStmt:
 		p.spaced(UNTIL, x.Cond, SEMICOLON, DO)
-		p.stmtList(x.DoStmts)
+		p.stmtJoin(x.DoStmts)
 		p.sepSemicolon(DONE, x.Done)
 	case ForStmt:
 		p.spaced(FOR, x.Cond, SEMICOLON, DO)
-		p.stmtList(x.DoStmts)
+		p.stmtJoin(x.DoStmts)
 		p.sepSemicolon(DONE, x.Done)
 	case WordIter:
 		p.spaced(x.Name)
@@ -335,11 +335,4 @@ func (p *printer) stmtJoin(stmts []Stmt) {
 		p.separate(s.Pos(), i > 0)
 		p.node(s)
 	}
-}
-
-func (p *printer) stmtList(stmts []Stmt) {
-	if len(stmts) == 0 {
-		return
-	}
-	p.stmtJoin(stmts)
 }
