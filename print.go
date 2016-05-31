@@ -6,10 +6,14 @@ package sh
 import (
 	"fmt"
 	"io"
+	"strings"
 )
 
 func Fprint(w io.Writer, n Node) error {
-	p := printer{w: w}
+	p := printer{
+		w:       w,
+		curLine: 1,
+	}
 	p.node(n)
 	p.space('\n')
 	return p.err
@@ -21,7 +25,7 @@ type printer struct {
 
 	contiguous bool
 
-	lastLine int
+	curLine int
 
 	compactArithm bool
 }
@@ -62,7 +66,8 @@ func (p *printer) nonSpaced(a ...interface{}) {
 				last := x[len(x)-1]
 				p.contiguous = !space[last]
 			}
-			_, p.err = fmt.Fprint(p.w, x)
+			_, p.err = io.WriteString(p.w, x)
+			p.curLine += strings.Count(x, "\n")
 		case Token:
 			p.contiguous = !contiguousRight[x]
 			_, p.err = fmt.Fprint(p.w, x)
@@ -86,11 +91,16 @@ func (p *printer) spaced(a ...interface{}) {
 }
 
 func (p *printer) separate(pos Pos, fallback bool) {
-	if p.lastLine == 0 {
+	if p.curLine == 0 {
 		return
 	}
-	if pos.Line > p.lastLine {
+	if pos.Line > p.curLine {
 		p.space('\n')
+		if pos.Line > p.curLine+1 {
+			// preserve single empty lines
+			p.space('\n')
+		}
+		p.curLine = pos.Line
 	} else if fallback {
 		p.nonSpaced(SEMICOLON)
 	}
@@ -107,10 +117,6 @@ func (p *printer) sepNewline(v interface{}, pos Pos) {
 }
 
 func (p *printer) node(n Node) {
-	// otherwise zero-value nodes set it back to 0
-	if curLine := n.Pos().Line; curLine > 0 {
-		p.lastLine = curLine
-	}
 	switch x := n.(type) {
 	case File:
 		p.stmtJoin(x.Stmts)
