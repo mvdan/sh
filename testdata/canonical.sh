@@ -1,6 +1,6 @@
 #!/bin/sh
 
-foo
+foo # inline comment
 
 # separate comment
 

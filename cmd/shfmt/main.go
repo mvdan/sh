@@ -31,7 +31,7 @@ func format(path string) error {
 		return err
 	}
 	defer f.Close()
-	prog, err := sh.Parse(f, path)
+	prog, err := sh.Parse(f, path, sh.ParseComments)
 	if err != nil {
 		return err
 	}
