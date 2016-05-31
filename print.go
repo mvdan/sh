@@ -76,6 +76,7 @@ func (p *printer) nonSpaced(a ...interface{}) {
 			_, p.err = io.WriteString(p.w, x)
 			p.curLine += strings.Count(x, "\n")
 		case Comment:
+			p.contiguous = true
 			_, p.err = fmt.Fprint(p.w, HASH, x.Text)
 		case Token:
 			p.contiguous = !contiguousRight[x]
@@ -106,6 +107,7 @@ func (p *printer) indent() {
 }
 
 func (p *printer) separate(pos Pos, fallback bool) {
+	p.addComments(pos)
 	if pos.Line > p.curLine {
 		p.space('\n')
 		if pos.Line > p.curLine+1 {
@@ -143,7 +145,6 @@ func (p *printer) addComments(pos Pos) {
 }
 
 func (p *printer) node(n Node) {
-	p.addComments(n.Pos())
 	switch x := n.(type) {
 	case File:
 		p.stmtJoin(x.Stmts)

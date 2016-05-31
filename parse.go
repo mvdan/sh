@@ -236,14 +236,7 @@ func (p *parser) next() {
 		p.advanceTok(RBRACK)
 	case b == '#' && !p.quotedAny(DQUOTE, SQUOTE, LBRACE, RBRACE, QUO):
 		p.consumeByte()
-		line := p.readLine()
-		if p.mode&ParseComments > 0 {
-			p.file.Comments = append(p.file.Comments, Comment{
-				Hash: p.pos,
-				Text: line,
-			})
-		}
-		p.next()
+		p.advanceBoth(COMMENT, p.readLine())
 	case p.quoted(LBRACE) && paramOps[b]:
 		p.advanceTok(p.doParamToken())
 	case p.quotedAny(DLPAREN, DRPAREN, LPAREN) && arithmOps[b]:
@@ -375,10 +368,26 @@ func (p *parser) readHdocBody(end string, noTabs bool) (string, bool) {
 	return buf.String(), false
 }
 
+func (p *parser) saveComments() {
+	for p.tok == COMMENT {
+		if p.mode&ParseComments > 0 {
+			p.file.Comments = append(p.file.Comments, Comment{
+				Hash: p.pos,
+				Text: p.val,
+			})
+		}
+		p.next()
+	}
+}
+
 func (p *parser) peek(tok Token) bool {
+	p.saveComments()
 	return p.tok == tok || p.peekReservedWord(tok)
 }
-func (p *parser) eof() bool { return p.tok == EOF }
+func (p *parser) eof() bool {
+	p.saveComments()
+	return p.tok == EOF
+}
 
 func (p *parser) peekReservedWord(tok Token) bool {
 	return p.val == reservedWords[tok] && p.willSpaced()

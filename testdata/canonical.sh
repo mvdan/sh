@@ -1,5 +1,7 @@
 #!/bin/sh
 
+foo
+
 # separate comment
 
 ! foo bar >a &
