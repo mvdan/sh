@@ -50,7 +50,12 @@ type Assign struct {
 	Value  Word
 }
 
-func (a Assign) Pos() Pos { return a.Name.Pos() }
+func (a Assign) Pos() Pos {
+	if a.Name == nil {
+		return a.Value.Pos()
+	}
+	return a.Name.Pos()
+}
 
 type Redirect struct {
 	OpPos Pos
