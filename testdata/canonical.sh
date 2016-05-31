@@ -58,6 +58,10 @@ foo && bar
 $(foo bar)
 `foo bar`
 
+some really long line starts here \
+	continues here \
+	and ends here
+
 foo 2>&1
 foo <<EOF
 bar

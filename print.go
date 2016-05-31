@@ -93,8 +93,8 @@ func (p *printer) spaced(a ...interface{}) {
 	}
 }
 
-func (p *printer) indent(n int) {
-	for i := 0; i < n; i++ {
+func (p *printer) indent() {
+	for i := 0; i < p.level; i++ {
 		p.space('\t')
 	}
 }
@@ -106,7 +106,7 @@ func (p *printer) separate(pos Pos, fallback bool) {
 			// preserve single empty lines
 			p.space('\n')
 		}
-		p.indent(p.level)
+		p.indent()
 		p.curLine = pos.Line
 	} else if fallback {
 		p.nonSpaced(SEMICOLON)
@@ -153,7 +153,7 @@ func (p *printer) node(n Node) {
 		}
 		p.nonSpaced(x.Value)
 	case Command:
-		p.wordJoin(x.Args)
+		p.wordJoin(x.Args, true)
 	case Subshell:
 		p.spaced(LPAREN)
 		if len(x.Stmts) == 0 {
@@ -199,7 +199,7 @@ func (p *printer) node(n Node) {
 		p.spaced(x.Name)
 		if len(x.List) > 0 {
 			p.spaced(IN)
-			p.wordJoin(x.List)
+			p.wordJoin(x.List, false)
 		}
 	case CStyleLoop:
 		p.spaced(DLPAREN, x.Init, SEMICOLON, x.Cond,
@@ -319,7 +319,7 @@ func (p *printer) node(n Node) {
 		}
 	case ArrayExpr:
 		p.nonSpaced(LPAREN)
-		p.wordJoin(x.List)
+		p.wordJoin(x.List, false)
 		p.nonSpaced(RPAREN)
 	case CmdInput:
 		// avoid conflict with <<
@@ -338,9 +338,21 @@ func (p *printer) node(n Node) {
 	}
 }
 
-func (p *printer) wordJoin(ws []Word) {
+func (p *printer) wordJoin(ws []Word, keepNewlines bool) {
+	anyNewline := false
 	for _, w := range ws {
+		if keepNewlines && w.Pos().Line > p.curLine {
+			p.spaced("\\\n")
+			if !anyNewline {
+				p.level++
+				anyNewline = true
+			}
+			p.indent()
+		}
 		p.spaced(w)
+	}
+	if anyNewline {
+		p.level--
 	}
 }
 
