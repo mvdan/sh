@@ -15,6 +15,9 @@ func Fprint(w io.Writer, n Node) error {
 		curLine: 1,
 		level:   -1,
 	}
+	if f, ok := n.(File); ok {
+		p.comments = f.Comments
+	}
 	p.node(n)
 	return p.err
 }
@@ -27,6 +30,8 @@ type printer struct {
 
 	curLine int
 	level   int
+
+	comments []Comment
 
 	compactArithm bool
 }
@@ -70,6 +75,8 @@ func (p *printer) nonSpaced(a ...interface{}) {
 			}
 			_, p.err = io.WriteString(p.w, x)
 			p.curLine += strings.Count(x, "\n")
+		case Comment:
+			_, p.err = fmt.Fprint(p.w, HASH, x.Text)
 		case Token:
 			p.contiguous = !contiguousRight[x]
 			_, p.err = fmt.Fprint(p.w, x)
@@ -122,7 +129,21 @@ func (p *printer) sepNewline(v interface{}, pos Pos) {
 	p.spaced(v)
 }
 
+func (p *printer) addComments(pos Pos) {
+	if len(p.comments) < 1 {
+		return
+	}
+	c := p.comments[0]
+	if c.Hash.Line >= pos.Line {
+		return
+	}
+	p.sepNewline(c, c.Hash)
+	p.comments = p.comments[1:]
+	p.addComments(pos)
+}
+
 func (p *printer) node(n Node) {
+	p.addComments(n.Pos())
 	switch x := n.(type) {
 	case File:
 		p.stmtJoin(x.Stmts)

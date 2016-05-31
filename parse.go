@@ -235,6 +235,7 @@ func (p *parser) next() {
 	case p.quoted(RBRACK) && p.readOnlyTok(RBRACK):
 		p.advanceTok(RBRACK)
 	case b == '#' && !p.quotedAny(DQUOTE, SQUOTE, LBRACE, RBRACE, QUO):
+		p.consumeByte()
 		line := p.readLine()
 		if p.mode&ParseComments > 0 {
 			p.file.Comments = append(p.file.Comments, Comment{

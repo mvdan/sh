@@ -44,7 +44,7 @@ func parsePath(tb testing.TB, path string) File {
 		tb.Fatal(err)
 	}
 	defer f.Close()
-	prog, err := Parse(f, "", 0)
+	prog, err := Parse(f, "", ParseComments)
 	if err != nil {
 		tb.Fatal(err)
 	}

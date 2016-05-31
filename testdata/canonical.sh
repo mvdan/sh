@@ -1,3 +1,7 @@
+#!/bin/sh
+
+# separate comment
+
 ! foo bar >a &
 'foo bar' "foo bar"
 
