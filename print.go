@@ -49,6 +49,7 @@ var (
 		RPAREN:     true,
 		DRPAREN:    true,
 		COMMA:      true,
+		BQUOTE:     true,
 	}
 )
 
@@ -273,9 +274,9 @@ func (p *printer) node(n Node) {
 		}
 		p.stmtJoin(x.Stmts)
 		if x.Backquotes {
-			p.nonSpaced(BQUOTE)
+			p.sepNewline(BQUOTE, x.Right)
 		} else {
-			p.nonSpaced(RPAREN)
+			p.sepNewline(RPAREN, x.Right)
 		}
 	case ParamExp:
 		if x.Short {
