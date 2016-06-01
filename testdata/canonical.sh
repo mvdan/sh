@@ -1,10 +1,8 @@
 #!/bin/sh
 
-foo # inline comment
-
 # separate comment
 
-! foo bar >a &
+! foo bar >a & # inline comment
 'foo bar' "foo bar"
 
 { foo; }
@@ -20,15 +18,6 @@ foo() {
 if foo; then bar; fi
 if foo; then
 	bar
-fi
-
-if a; then A; elif b; then B; else C; fi
-if a; then
-	A
-elif b; then
-	B
-else
-	C
 fi
 
 while foo; do bar; done
@@ -57,8 +46,7 @@ foo && bar
 	foo
 )
 
-$(foo bar)
-`foo bar`
+$(foo bar) `foo bar`
 
 some really long line starts here \
 	continues here \
