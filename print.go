@@ -86,7 +86,6 @@ var (
 		DOLLPR:  true,
 		LPAREN:  true,
 		DLPAREN: true,
-		BQUOTE:  true,
 		CMDIN:   true,
 		DOLLDP:  true,
 	}
@@ -97,7 +96,6 @@ var (
 		RPAREN:     true,
 		DRPAREN:    true,
 		COMMA:      true,
-		BQUOTE:     true,
 	}
 )
 
@@ -341,11 +339,13 @@ func (p *printer) node(n Node) {
 	case CmdSubst:
 		if x.Backquotes {
 			p.nonSpaced(BQUOTE)
+			p.wantSpace = false
 		} else {
 			p.nonSpaced(DOLLPR)
 		}
 		p.stmtJoin(x.Stmts)
 		if x.Backquotes {
+			p.wantSpace = false
 			p.sepNewline(BQUOTE, x.Right)
 		} else {
 			p.sepNewline(RPAREN, x.Right)
