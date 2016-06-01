@@ -717,7 +717,7 @@ var astTests = []testCase{
 		},
 	},
 	{
-		[]string{"foo >&2 <&0 2>file <>f2"},
+		[]string{"foo >&2 <&0 2>file <>f2 &>/dev/null"},
 		Stmt{
 			Node: litCmd("foo"),
 			Redirs: []Redirect{
@@ -725,6 +725,7 @@ var astTests = []testCase{
 				{Op: DPLIN, Word: litWord("0")},
 				{Op: GTR, N: lit("2"), Word: litWord("file")},
 				{Op: RDRINOUT, Word: litWord("f2")},
+				{Op: RDRALL, Word: litWord("/dev/null")},
 			},
 		},
 	},

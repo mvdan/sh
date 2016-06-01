@@ -103,6 +103,7 @@ const (
 	DHEREDOC // <<-
 	WHEREDOC // <<<
 	CMDIN    // <(
+	RDRALL   // &>
 
 	CADD    // :+
 	CSUB    // :-
@@ -227,6 +228,7 @@ var (
 		{"<<-", DHEREDOC},
 		{"<<<", WHEREDOC},
 		{"<(", CMDIN},
+		{"&>", RDRALL},
 	}
 	paramList = []tokEntry{
 		{":", COLON},
