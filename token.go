@@ -229,6 +229,7 @@ var (
 		{"<(", CMDIN},
 	}
 	paramList = []tokEntry{
+		{":", COLON},
 		{"+", ADD},
 		{":+", CADD},
 		{"-", SUB},
