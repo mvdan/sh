@@ -36,6 +36,14 @@ type printer struct {
 	stack []Node
 }
 
+func (p *printer) nestedBinary() bool {
+	if len(p.stack) < 3 {
+		return false
+	}
+	_, ok := p.stack[len(p.stack)-3].(BinaryExpr)
+	return ok
+}
+
 func (p *printer) inBinary() bool {
 	for i := len(p.stack) - 1; i >= 0; i-- {
 		switch p.stack[i].(type) {
@@ -298,10 +306,14 @@ func (p *printer) node(n Node) {
 			p.spaced(x.X, x.Op, x.Y)
 		default:
 			p.spaced(x.X, x.Op)
-			p.level++
+			if !p.nestedBinary() {
+				p.level++
+			}
 			p.separate(x.Y.Pos(), false)
 			p.nonSpaced(x.Y)
-			p.level--
+			if !p.nestedBinary() {
+				p.level--
+			}
 		}
 	case FuncDecl:
 		if x.BashStyle {
