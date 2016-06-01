@@ -42,10 +42,6 @@ for foo in a b c; do
 done
 
 case $foo in
-a) A;;
-b) B;;
-esac
-case $foo in
 a)
 	A
 	;;
@@ -73,9 +69,10 @@ foo <<EOF
 bar
 EOF
 
+$((3 + 4))
+
+# bash-only
 function foo { bar; }
 foo <<<"bar"
 foo <(bar)
-
-$((3 + 4))
 let a=1+2 b=(3 + 4)
