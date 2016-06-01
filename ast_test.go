@@ -525,16 +525,16 @@ var astTests = []testCase{
 		Stmt{
 			Node: litCmd("foo"),
 			Redirs: []Redirect{
-				{Op: SHL, Word: litWord("EOF\nbar\nEOF")},
+				{Op: SHL, Word: litWord("EOF"), Hdoc: "bar\n"},
 			},
 		},
 	},
 	{
-		[]string{"foo <<EOF\nl1\nl2\nl3\nEOF"},
+		[]string{"foo <<EOF\n1\n2\n3\nEOF"},
 		Stmt{
 			Node: litCmd("foo"),
 			Redirs: []Redirect{
-				{Op: SHL, Word: litWord("EOF\nl1\nl2\nl3\nEOF")},
+				{Op: SHL, Word: litWord("EOF"), Hdoc: "1\n2\n3\n"},
 			},
 		},
 	},
@@ -543,7 +543,7 @@ var astTests = []testCase{
 		block(Stmt{
 			Node: litCmd("foo"),
 			Redirs: []Redirect{
-				{Op: SHL, Word: litWord("EOF\nbar\nEOF")},
+				{Op: SHL, Word: litWord("EOF"), Hdoc: "bar\n"},
 			},
 		}),
 	},
@@ -552,7 +552,7 @@ var astTests = []testCase{
 		word(cmdSubst(Stmt{
 			Node: litCmd("foo"),
 			Redirs: []Redirect{
-				{Op: SHL, Word: litWord("EOF\nbar\nEOF")},
+				{Op: SHL, Word: litWord("EOF"), Hdoc: "bar\n"},
 			},
 		})),
 	},
@@ -562,7 +562,7 @@ var astTests = []testCase{
 			Node: litCmd("foo"),
 			Redirs: []Redirect{
 				{Op: GTR, Word: litWord("bar")},
-				{Op: SHL, Word: litWord("EOF\nbar\nEOF")},
+				{Op: SHL, Word: litWord("EOF"), Hdoc: "bar\n"},
 			},
 		},
 	},
@@ -572,12 +572,11 @@ var astTests = []testCase{
 			Cond: StmtCond{Stmts: litStmts("true")},
 			ThenStmts: []Stmt{{
 				Node: litCmd("foo"),
-				Redirs: []Redirect{
-					{
-						Op:   DHEREDOC,
-						Word: litWord("EOF\n\tbar\n\tEOF"),
-					},
-				},
+				Redirs: []Redirect{{
+					Op:   DHEREDOC,
+					Word: litWord("EOF"),
+					Hdoc: "\tbar\n\t",
+				}},
 			}},
 		},
 	},
@@ -586,9 +585,11 @@ var astTests = []testCase{
 		[]Stmt{
 			{
 				Node: litCmd("foo"),
-				Redirs: []Redirect{
-					{Op: SHL, Word: litWord("EOF\nbar\nEOF")},
-				},
+				Redirs: []Redirect{{
+					Op:   SHL,
+					Word: litWord("EOF"),
+					Hdoc: "bar\n",
+				}},
 			},
 			litStmt("foo2"),
 		},
@@ -598,7 +599,7 @@ var astTests = []testCase{
 		Stmt{
 			Node: litCmd("foo"),
 			Redirs: []Redirect{
-				{Op: SHL, Word: litWord("FOOBAR\nbar\nFOOBAR")},
+				{Op: SHL, Word: litWord("FOOBAR"), Hdoc: "bar\n"},
 			},
 		},
 	},
@@ -606,9 +607,11 @@ var astTests = []testCase{
 		[]string{"foo <<\"EOF\"\nbar\nEOF"},
 		Stmt{
 			Node: litCmd("foo"),
-			Redirs: []Redirect{
-				{Op: SHL, Word: litWord("\"EOF\"\nbar\nEOF")},
-			},
+			Redirs: []Redirect{{
+				Op:   SHL,
+				Word: word(dblQuoted(lit("EOF"))),
+				Hdoc: "bar\n",
+			}},
 		},
 	},
 	{
@@ -616,7 +619,11 @@ var astTests = []testCase{
 		Stmt{
 			Node: litCmd("foo"),
 			Redirs: []Redirect{
-				{Op: SHL, Word: litWord("'EOF'\nbar\nEOF")},
+				{
+					Op:   SHL,
+					Word: word(sglQuoted("EOF")),
+					Hdoc: "bar\n",
+				},
 			},
 		},
 	},
@@ -624,27 +631,33 @@ var astTests = []testCase{
 		[]string{"foo <<\"EOF\"2\nbar\nEOF2"},
 		Stmt{
 			Node: litCmd("foo"),
-			Redirs: []Redirect{
-				{Op: SHL, Word: litWord("\"EOF\"2\nbar\nEOF2")},
-			},
+			Redirs: []Redirect{{
+				Op:   SHL,
+				Word: word(dblQuoted(lit("EOF")), lit("2")),
+				Hdoc: "bar\n",
+			}},
 		},
 	},
 	{
 		[]string{"foo <<\\EOF\nbar\nEOF"},
 		Stmt{
 			Node: litCmd("foo"),
-			Redirs: []Redirect{
-				{Op: SHL, Word: litWord("\\EOF\nbar\nEOF")},
-			},
+			Redirs: []Redirect{{
+				Op:   SHL,
+				Word: litWord("\\EOF"),
+				Hdoc: "bar\n",
+			}},
 		},
 	},
 	{
 		[]string{"foo <<$EOF\nbar\n$EOF"},
 		Stmt{
 			Node: litCmd("foo"),
-			Redirs: []Redirect{
-				{Op: SHL, Word: litWord("$EOF\nbar\n$EOF")},
-			},
+			Redirs: []Redirect{{
+				Op:   SHL,
+				Word: word(litParamExp("EOF")),
+				Hdoc: "bar\n",
+			}},
 		},
 	},
 	{
@@ -654,9 +667,11 @@ var astTests = []testCase{
 		},
 		Stmt{
 			Node: litCmd("foo"),
-			Redirs: []Redirect{
-				{Op: DHEREDOC, Word: litWord("EOF\nbar\nEOF")},
-			},
+			Redirs: []Redirect{{
+				Op:   DHEREDOC,
+				Word: litWord("EOF"),
+				Hdoc: "bar\n",
+			}},
 		},
 	},
 	{
@@ -667,21 +682,19 @@ var astTests = []testCase{
 		[]Stmt{
 			{
 				Node: litCmd("f1"),
-				Redirs: []Redirect{
-					{
-						Op:   SHL,
-						Word: litWord("EOF1\nh1\nEOF1"),
-					},
-				},
+				Redirs: []Redirect{{
+					Op:   SHL,
+					Word: litWord("EOF1"),
+					Hdoc: "h1\n",
+				}},
 			},
 			{
 				Node: litCmd("f2"),
-				Redirs: []Redirect{
-					{
-						Op:   SHL,
-						Word: litWord("EOF2\nh2\nEOF2"),
-					},
-				},
+				Redirs: []Redirect{{
+					Op:   SHL,
+					Word: litWord("EOF2"),
+					Hdoc: "h2\n",
+				}},
 			},
 		},
 	},

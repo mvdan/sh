@@ -342,12 +342,7 @@ func (p *parser) doHeredocs() {
 		if i > 0 {
 			p.readOnly("\n")
 		}
-		s, _ := p.readHdocBody(end, r.Op == DHEREDOC)
-		r.Word.Parts[0] = Lit{
-			ValuePos: r.Word.Pos(),
-			Value:    fmt.Sprintf("%s\n%s", wordStr(r.Word), s),
-		}
-		r.Word.Parts = r.Word.Parts[:1]
+		r.Hdoc, _ = p.readHdocBody(end, r.Op == DHEREDOC)
 	}
 	p.heredocs = nil
 	p.next()
@@ -358,13 +353,13 @@ func (p *parser) readHdocBody(end string, noTabs bool) (string, bool) {
 	for !p.eof() {
 		line := p.readLine()
 		if line == end || (noTabs && strings.TrimLeft(line, "\t") == end) {
-			fmt.Fprint(&buf, line)
+			// add trailing tabs
+			fmt.Fprint(&buf, line[:len(line)-len(end)])
 			return buf.String(), true
 		}
 		fmt.Fprintln(&buf, line)
 		p.readOnly("\n")
 	}
-	fmt.Fprint(&buf, end)
 	return buf.String(), false
 }
 
@@ -942,7 +937,8 @@ func (p *parser) gotStmt(s *Stmt, stops ...Token) bool {
 		s.Negated = true
 	}
 	addRedir := func() {
-		s.Redirs = append(s.Redirs, p.redirect())
+		s.Redirs = append(s.Redirs, Redirect{})
+		p.redirect(&s.Redirs[len(s.Redirs)-1])
 	}
 	for {
 		if as, ok := p.getAssign(); ok {
@@ -1016,7 +1012,8 @@ func (p *parser) binaryStmt(left Stmt) Stmt {
 	}
 	s := Stmt{Position: p.pos}
 	addRedir := func() {
-		s.Redirs = append(s.Redirs, p.redirect())
+		s.Redirs = append(s.Redirs, Redirect{})
+		p.redirect(&s.Redirs[len(s.Redirs)-1])
 	}
 	if b.Op == LAND || b.Op == LOR {
 		s = p.followStmt(b.OpPos, b.Op.String())
@@ -1049,7 +1046,7 @@ func unquote(w Word) (unq Word) {
 	return unq
 }
 
-func (p *parser) redirect() (r Redirect) {
+func (p *parser) redirect(r *Redirect) {
 	p.gotLit(&r.N)
 	r.Op = p.tok
 	r.OpPos = p.pos
@@ -1059,7 +1056,7 @@ func (p *parser) redirect() (r Redirect) {
 		p.stopNewline = true
 		r.Word = p.followWord(r.Op)
 		p.stopNewline = false
-		p.heredocs = append(p.heredocs, &r)
+		p.heredocs = append(p.heredocs, r)
 		p.got(STOPPED)
 	default:
 		r.Word = p.followWord(r.Op)

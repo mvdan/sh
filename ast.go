@@ -75,6 +75,7 @@ type Redirect struct {
 	Op    Token
 	N     Lit
 	Word  Word
+	Hdoc  string
 }
 
 type Command struct {
