@@ -24,7 +24,7 @@ type printer struct {
 	w   io.Writer
 	err error
 
-	contiguous bool
+	wantSpace bool
 
 	curLine int
 	level   int
@@ -35,6 +35,7 @@ type printer struct {
 }
 
 var (
+	// these never want a following space
 	contiguousRight = map[Token]bool{
 		DOLLPR:  true,
 		LPAREN:  true,
@@ -43,6 +44,7 @@ var (
 		CMDIN:   true,
 		DOLLDP:  true,
 	}
+	// these never want a preceding space
 	contiguousLeft = map[Token]bool{
 		SEMICOLON:  true,
 		DSEMICOLON: true,
@@ -58,7 +60,7 @@ func (p *printer) space(b byte) {
 		return
 	}
 	_, p.err = p.w.Write([]byte{b})
-	p.contiguous = false
+	p.wantSpace = false
 }
 
 func (p *printer) nonSpaced(a ...interface{}) {
@@ -70,15 +72,15 @@ func (p *printer) nonSpaced(a ...interface{}) {
 		case string:
 			if len(x) > 0 {
 				last := x[len(x)-1]
-				p.contiguous = !space[last]
+				p.wantSpace = !space[last]
 			}
 			_, p.err = io.WriteString(p.w, x)
 			p.curLine += strings.Count(x, "\n")
 		case Comment:
-			p.contiguous = true
+			p.wantSpace = true
 			_, p.err = fmt.Fprint(p.w, HASH, x.Text)
 		case Token:
-			p.contiguous = !contiguousRight[x]
+			p.wantSpace = !contiguousRight[x]
 			_, p.err = fmt.Fprint(p.w, x)
 		case Node:
 			p.node(x)
@@ -92,7 +94,7 @@ func (p *printer) spaced(a ...interface{}) {
 			continue
 		}
 		if t, ok := v.(Token); ok && contiguousLeft[t] {
-		} else if p.contiguous {
+		} else if p.wantSpace {
 			p.space(' ')
 		}
 		p.nonSpaced(v)
@@ -234,7 +236,7 @@ func (p *printer) node(n Node) {
 			p.nonSpaced(x.X, x.Op)
 		} else {
 			p.nonSpaced(x.Op)
-			p.contiguous = false
+			p.wantSpace = false
 			p.nonSpaced(x.X)
 		}
 	case BinaryExpr:
