@@ -952,7 +952,8 @@ func (p *parser) gotStmt(s *Stmt, stops ...Token) bool {
 		} else {
 			break
 		}
-		if p.newLine {
+		if p.peekEnd() {
+			p.gotSameLine(SEMICOLON)
 			return true
 		}
 	}

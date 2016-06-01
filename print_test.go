@@ -45,11 +45,12 @@ func TestFprintWeirdFormat(t *testing.T) {
 		{"foo\n\n\nbar", "foo\n\nbar"},
 		{"foo\n\n", "foo"},
 		{"\n\nfoo", "foo"},
+		{"a=b # inline\nbar", "a=b # inline\nbar"},
 	}
 
 	for i, tc := range weirdFormats {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
-			prog, err := Parse(strings.NewReader(tc.in), "", 0)
+			prog, err := Parse(strings.NewReader(tc.in), "", ParseComments)
 			if err != nil {
 				t.Fatal(err)
 			}
