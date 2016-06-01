@@ -38,6 +38,36 @@ func TestFprintCompact(t *testing.T) {
 	}
 }
 
+func TestFprintWeirdFormat(t *testing.T) {
+	var weirdFormats = [...]struct {
+		in, want string
+	}{
+		{
+			"foo\n\n\nbar",
+			"foo\n\nbar",
+		},
+		{
+			"foo\n\n",
+			"foo",
+		},
+	}
+
+	for i, tc := range weirdFormats {
+		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+			prog, err := Parse(strings.NewReader(tc.in), "", 0)
+			if err != nil {
+				t.Fatal(err)
+			}
+			want := tc.want + "\n"
+			got := strFprint(prog)
+			if got != want {
+				t.Fatalf("Fprint mismatch:\nwant:\n%sgot:\n%s",
+					want, got)
+			}
+		})
+	}
+}
+
 func parsePath(tb testing.TB, path string) File {
 	f, err := os.Open(path)
 	if err != nil {
