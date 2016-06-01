@@ -202,6 +202,7 @@ func (p *parser) next() {
 	var b byte
 	for {
 		if !p.quoted(DQUOTE) && p.readOnly("\\\n") {
+			p.pos = p.npos
 			continue
 		}
 		var err error

@@ -211,7 +211,17 @@ func (p *printer) node(n Node) {
 			p.spaced(a)
 		}
 		p.spaced(x.Node)
+		anyNewline := false
 		for _, r := range x.Redirs {
+			if r.OpPos.Line > p.curLine {
+				p.spaced("\\\n")
+				if !anyNewline {
+					p.level++
+					anyNewline = true
+				}
+				p.indent()
+			}
+			p.separate(r.OpPos, false)
 			p.spaced(r.N)
 			p.nonSpaced(r.Op, r.Word)
 		}
