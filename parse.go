@@ -201,7 +201,7 @@ func (p *parser) next() {
 	p.spaced, p.newLine = false, false
 	var b byte
 	for {
-		if p.readOnly("\\\n") {
+		if !p.quoted(DQUOTE) && p.readOnly("\\\n") {
 			continue
 		}
 		var err error
@@ -263,7 +263,7 @@ func (p *parser) advanceReadLit() { p.advanceBoth(LIT, string(p.readLitBytes()))
 func (p *parser) readLitBytes() (bs []byte) {
 	for {
 		if p.readOnly("\\") { // escaped byte
-			if b, _ := p.readByte(); b != '\n' {
+			if b, _ := p.readByte(); p.quoted(DQUOTE) || b != '\n' {
 				bs = append(bs, '\\', b)
 			}
 			continue
