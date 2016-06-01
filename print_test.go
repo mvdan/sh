@@ -50,6 +50,14 @@ func TestFprintWeirdFormat(t *testing.T) {
 		{"`a` `b`", "`a` `b`"},
 		{"if a\nthen\n\tb\nfi", "if a; then\n\tb\nfi"},
 		{
+			"{\nbar\n# extra\n}",
+			"{\n\tbar\n\t# extra\n}",
+		},
+		{
+			"(\nbar\n# extra\n)",
+			"(\n\tbar\n\t# extra\n)",
+		},
+		{
 			"for a in 1 2\ndo\n\t# bar\ndone",
 			"for a in 1 2; do\n\t# bar\ndone",
 		},
