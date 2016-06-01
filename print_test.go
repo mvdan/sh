@@ -42,14 +42,9 @@ func TestFprintWeirdFormat(t *testing.T) {
 	var weirdFormats = [...]struct {
 		in, want string
 	}{
-		{
-			"foo\n\n\nbar",
-			"foo\n\nbar",
-		},
-		{
-			"foo\n\n",
-			"foo",
-		},
+		{"foo\n\n\nbar", "foo\n\nbar"},
+		{"foo\n\n", "foo"},
+		{"\n\nfoo", "foo"},
 	}
 
 	for i, tc := range weirdFormats {

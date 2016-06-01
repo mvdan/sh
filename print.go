@@ -11,8 +11,7 @@ import (
 
 func Fprint(w io.Writer, n Node) error {
 	p := printer{
-		w:       w,
-		curLine: 1,
+		w: w,
 	}
 	if f, ok := n.(File); ok {
 		p.comments = f.Comments
@@ -107,17 +106,17 @@ func (p *printer) indent() {
 
 func (p *printer) separate(pos Pos, fallback, allowTwo bool) {
 	p.commentsUpTo(pos.Line)
-	if pos.Line > p.curLine {
+	if p.curLine > 0 && pos.Line > p.curLine {
 		p.space('\n')
 		if allowTwo && pos.Line > p.curLine+1 {
 			// preserve single empty lines
 			p.space('\n')
 		}
 		p.indent()
-		p.curLine = pos.Line
 	} else if fallback {
 		p.nonSpaced(SEMICOLON)
 	}
+	p.curLine = pos.Line
 }
 
 func (p *printer) sepSemicolon(v interface{}, pos Pos) {
