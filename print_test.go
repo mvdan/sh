@@ -51,6 +51,10 @@ func TestFprintWeirdFormat(t *testing.T) {
 			"for a in 1 2\ndo\n\t# bar\ndone",
 			"for a in 1 2; do\n\t# bar\ndone",
 		},
+		{
+			"for a in 1 2; do\n\n\tbar\ndone",
+			"for a in 1 2; do\n\n\tbar\ndone",
+		},
 	}
 
 	for i, tc := range weirdFormats {

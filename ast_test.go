@@ -1864,13 +1864,13 @@ func fullProg(v interface{}) (f File) {
 func setPosRecurse(tb testing.TB, v interface{}, to Pos, diff bool) Node {
 	setPos := func(p *Pos) {
 		if diff && *p == to {
-			tb.Fatalf("Pos in %v (%T) is already %v", v, v, to)
+			tb.Fatalf("Pos in %T is already %v", v, to)
 		}
 		*p = to
 	}
 	checkPos := func(n Node) {
 		if n != nil && n.Pos() != to {
-			tb.Fatalf("Found unexpected Pos in %#v", n)
+			tb.Fatalf("Found unexpected Pos in %T", n)
 		}
 	}
 	recurse := func(v interface{}) Node {
@@ -1937,11 +1937,13 @@ func setPosRecurse(tb testing.TB, v interface{}, to Pos, diff bool) Node {
 		return x
 	case IfStmt:
 		setPos(&x.If)
+		setPos(&x.Then)
 		setPos(&x.Fi)
 		recurse(&x.Cond)
 		recurse(x.ThenStmts)
 		for i := range x.Elifs {
 			setPos(&x.Elifs[i].Elif)
+			setPos(&x.Elifs[i].Then)
 			recurse(x.Elifs[i].Cond)
 			recurse(x.Elifs[i].ThenStmts)
 		}
@@ -1960,18 +1962,21 @@ func setPosRecurse(tb testing.TB, v interface{}, to Pos, diff bool) Node {
 		return x
 	case WhileStmt:
 		setPos(&x.While)
+		setPos(&x.Do)
 		setPos(&x.Done)
 		recurse(&x.Cond)
 		recurse(x.DoStmts)
 		return x
 	case UntilStmt:
 		setPos(&x.Until)
+		setPos(&x.Do)
 		setPos(&x.Done)
 		recurse(&x.Cond)
 		recurse(x.DoStmts)
 		return x
 	case ForStmt:
 		setPos(&x.For)
+		setPos(&x.Do)
 		setPos(&x.Done)
 		recurse(&x.Cond)
 		recurse(x.DoStmts)

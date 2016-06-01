@@ -99,12 +99,12 @@ type Block struct {
 func (b Block) Pos() Pos { return b.Rbrace }
 
 type IfStmt struct {
-	If, Fi    Pos
-	Cond      Node
-	ThenStmts []Stmt
-	Elifs     []Elif
-	Else      Pos
-	ElseStmts []Stmt
+	If, Then, Fi Pos
+	Cond         Node
+	ThenStmts    []Stmt
+	Elifs        []Elif
+	Else         Pos
+	ElseStmts    []Stmt
 }
 
 func (s IfStmt) Pos() Pos { return s.If }
@@ -123,31 +123,31 @@ type CStyleCond struct {
 func (c CStyleCond) Pos() Pos { return c.Lparen }
 
 type Elif struct {
-	Elif      Pos
-	Cond      Node
-	ThenStmts []Stmt
+	Elif, Then Pos
+	Cond       Node
+	ThenStmts  []Stmt
 }
 
 type WhileStmt struct {
-	While, Done Pos
-	Cond        Node
-	DoStmts     []Stmt
+	While, Do, Done Pos
+	Cond            Node
+	DoStmts         []Stmt
 }
 
 func (w WhileStmt) Pos() Pos { return w.While }
 
 type UntilStmt struct {
-	Until, Done Pos
-	Cond        Node
-	DoStmts     []Stmt
+	Until, Do, Done Pos
+	Cond            Node
+	DoStmts         []Stmt
 }
 
 func (u UntilStmt) Pos() Pos { return u.Until }
 
 type ForStmt struct {
-	For, Done Pos
-	Cond      Node
-	DoStmts   []Stmt
+	For, Do, Done Pos
+	Cond          Node
+	DoStmts       []Stmt
 }
 
 func (f ForStmt) Pos() Pos { return f.For }

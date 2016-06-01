@@ -107,11 +107,11 @@ func (p *printer) indent() {
 	}
 }
 
-func (p *printer) separate(pos Pos, fallback, allowEmpty bool) {
-	p.commentsUpTo(pos.Line, allowEmpty)
+func (p *printer) separate(pos Pos, fallback bool) {
+	p.commentsUpTo(pos.Line)
 	if p.curLine > 0 && pos.Line > p.curLine {
 		p.space('\n')
-		if allowEmpty && pos.Line > p.curLine+1 {
+		if pos.Line > p.curLine+1 {
 			// preserve single empty lines
 			p.space('\n')
 		}
@@ -124,18 +124,18 @@ func (p *printer) separate(pos Pos, fallback, allowEmpty bool) {
 
 func (p *printer) sepSemicolon(v interface{}, pos Pos) {
 	p.level++
-	p.commentsUpTo(pos.Line, false)
+	p.commentsUpTo(pos.Line)
 	p.level--
-	p.separate(pos, true, false)
+	p.separate(pos, true)
 	p.spaced(v)
 }
 
 func (p *printer) sepNewline(v interface{}, pos Pos) {
-	p.separate(pos, false, true)
+	p.separate(pos, false)
 	p.spaced(v)
 }
 
-func (p *printer) commentsUpTo(line int, allowEmpty bool) {
+func (p *printer) commentsUpTo(line int) {
 	if len(p.comments) < 1 {
 		return
 	}
@@ -143,17 +143,17 @@ func (p *printer) commentsUpTo(line int, allowEmpty bool) {
 	if line > 0 && c.Hash.Line >= line {
 		return
 	}
-	p.separate(c.Hash, false, allowEmpty)
+	p.separate(c.Hash, false)
 	p.spaced(c)
 	p.comments = p.comments[1:]
-	p.commentsUpTo(line, allowEmpty)
+	p.commentsUpTo(line)
 }
 
 func (p *printer) node(n Node) {
 	switch x := n.(type) {
 	case File:
 		p.progStmts(x.Stmts)
-		p.commentsUpTo(0, true)
+		p.commentsUpTo(0)
 		p.space('\n')
 	case Stmt:
 		if x.Negated {
@@ -203,6 +203,7 @@ func (p *printer) node(n Node) {
 		p.sepSemicolon(RBRACE, x.Rbrace)
 	case IfStmt:
 		p.spaced(IF, x.Cond, SEMICOLON, THEN)
+		p.curLine = x.Then.Line
 		p.stmtJoin(x.ThenStmts)
 		for _, el := range x.Elifs {
 			p.sepSemicolon(ELIF, el.Elif)
@@ -220,14 +221,17 @@ func (p *printer) node(n Node) {
 		p.spaced(DLPAREN, x.Cond, DRPAREN)
 	case WhileStmt:
 		p.spaced(WHILE, x.Cond, SEMICOLON, DO)
+		p.curLine = x.Do.Line
 		p.stmtJoin(x.DoStmts)
 		p.sepSemicolon(DONE, x.Done)
 	case UntilStmt:
 		p.spaced(UNTIL, x.Cond, SEMICOLON, DO)
+		p.curLine = x.Do.Line
 		p.stmtJoin(x.DoStmts)
 		p.sepSemicolon(DONE, x.Done)
 	case ForStmt:
 		p.spaced(FOR, x.Cond, SEMICOLON, DO)
+		p.curLine = x.Do.Line
 		p.stmtJoin(x.DoStmts)
 		p.sepSemicolon(DONE, x.Done)
 	case WordIter:
@@ -322,7 +326,7 @@ func (p *printer) node(n Node) {
 	case CaseStmt:
 		p.spaced(CASE, x.Word, IN)
 		for _, pl := range x.List {
-			p.separate(wordFirstPos(pl.Patterns), false, true)
+			p.separate(wordFirstPos(pl.Patterns), false)
 			for i, w := range pl.Patterns {
 				if i > 0 {
 					p.spaced(OR)
@@ -393,7 +397,7 @@ func (p *printer) wordJoin(ws []Word, keepNewlines bool) {
 
 func (p *printer) progStmts(stmts []Stmt) {
 	for i, s := range stmts {
-		p.separate(s.Pos(), i > 0, true)
+		p.separate(s.Pos(), i > 0)
 		p.node(s)
 	}
 }
@@ -401,7 +405,7 @@ func (p *printer) progStmts(stmts []Stmt) {
 func (p *printer) stmtJoin(stmts []Stmt) {
 	p.level++
 	for i, s := range stmts {
-		p.separate(s.Pos(), i > 0, i > 0)
+		p.separate(s.Pos(), i > 0)
 		p.node(s)
 	}
 	p.level--

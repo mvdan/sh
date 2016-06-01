@@ -442,10 +442,11 @@ func (p *parser) followErr(pos Pos, left interface{}, right string) {
 	p.posErr(pos, "%s must be followed by %s", leftStr, right)
 }
 
-func (p *parser) followTok(lpos Pos, left string, tok Token) {
+func (p *parser) followTok(lpos Pos, left string, tok Token) Pos {
 	if !p.got(tok) {
 		p.followErr(lpos, left, fmt.Sprintf(`%q`, tok))
 	}
+	return p.lpos
 }
 
 func (p *parser) followStmt(lpos Pos, left string) (s Stmt) {
@@ -1090,12 +1091,12 @@ func (p *parser) block() (b Block) {
 func (p *parser) ifStmt() (fs IfStmt) {
 	fs.If = p.lpos
 	fs.Cond = p.cond(IF, THEN)
-	p.followTok(fs.If, "if [stmts]", THEN)
+	fs.Then = p.followTok(fs.If, "if [stmts]", THEN)
 	fs.ThenStmts = p.followStmts(THEN, FI, ELIF, ELSE)
 	for p.got(ELIF) {
 		elf := Elif{Elif: p.lpos}
 		elf.Cond = p.cond(ELIF, THEN)
-		p.followTok(elf.Elif, "elif [stmts]", THEN)
+		elf.Then = p.followTok(elf.Elif, "elif [stmts]", THEN)
 		elf.ThenStmts = p.followStmts(THEN, FI, ELIF, ELSE)
 		fs.Elifs = append(fs.Elifs, elf)
 	}
@@ -1128,7 +1129,7 @@ func (p *parser) cond(left Token, stops ...Token) Node {
 func (p *parser) whileStmt() (ws WhileStmt) {
 	ws.While = p.lpos
 	ws.Cond = p.cond(WHILE, DO)
-	p.followTok(ws.While, "while [stmts]", DO)
+	ws.Do = p.followTok(ws.While, "while [stmts]", DO)
 	ws.DoStmts = p.followStmts(DO, DONE)
 	ws.Done = p.stmtEnd(ws, WHILE, DONE)
 	return
@@ -1137,7 +1138,7 @@ func (p *parser) whileStmt() (ws WhileStmt) {
 func (p *parser) untilStmt() (us UntilStmt) {
 	us.Until = p.lpos
 	us.Cond = p.cond(UNTIL, DO)
-	p.followTok(us.Until, "until [stmts]", DO)
+	us.Do = p.followTok(us.Until, "until [stmts]", DO)
 	us.DoStmts = p.followStmts(DO, DONE)
 	us.Done = p.stmtEnd(us, UNTIL, DONE)
 	return
@@ -1168,7 +1169,7 @@ func (p *parser) forStmt() (fs ForStmt) {
 		}
 		fs.Cond = w
 	}
-	p.followTok(fs.For, "for foo [in words]", DO)
+	fs.Do = p.followTok(fs.For, "for foo [in words]", DO)
 	fs.DoStmts = p.followStmts(DO, DONE)
 	fs.Done = p.stmtEnd(fs, FOR, DONE)
 	return
