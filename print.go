@@ -107,11 +107,11 @@ func (p *printer) indent() {
 	}
 }
 
-func (p *printer) separate(pos Pos, fallback, allowTwo bool) {
-	p.commentsUpTo(pos.Line)
+func (p *printer) separate(pos Pos, fallback, allowEmpty bool) {
+	p.commentsUpTo(pos.Line, allowEmpty)
 	if p.curLine > 0 && pos.Line > p.curLine {
 		p.space('\n')
-		if allowTwo && pos.Line > p.curLine+1 {
+		if allowEmpty && pos.Line > p.curLine+1 {
 			// preserve single empty lines
 			p.space('\n')
 		}
@@ -124,7 +124,7 @@ func (p *printer) separate(pos Pos, fallback, allowTwo bool) {
 
 func (p *printer) sepSemicolon(v interface{}, pos Pos) {
 	p.level++
-	p.commentsUpTo(pos.Line)
+	p.commentsUpTo(pos.Line, false)
 	p.level--
 	p.separate(pos, true, false)
 	p.spaced(v)
@@ -135,7 +135,7 @@ func (p *printer) sepNewline(v interface{}, pos Pos) {
 	p.spaced(v)
 }
 
-func (p *printer) commentsUpTo(line int) {
+func (p *printer) commentsUpTo(line int, allowEmpty bool) {
 	if len(p.comments) < 1 {
 		return
 	}
@@ -143,16 +143,17 @@ func (p *printer) commentsUpTo(line int) {
 	if line > 0 && c.Hash.Line >= line {
 		return
 	}
-	p.sepNewline(c, c.Hash)
+	p.separate(c.Hash, false, allowEmpty)
+	p.spaced(c)
 	p.comments = p.comments[1:]
-	p.commentsUpTo(line)
+	p.commentsUpTo(line, allowEmpty)
 }
 
 func (p *printer) node(n Node) {
 	switch x := n.(type) {
 	case File:
 		p.progStmts(x.Stmts)
-		p.commentsUpTo(0)
+		p.commentsUpTo(0, true)
 		p.space('\n')
 	case Stmt:
 		if x.Negated {
