@@ -26,12 +26,14 @@ type printer struct {
 
 	wantSpace bool
 
+	splitNotEscaped bool
+
 	curLine int
 	level   int
 
 	comments []Comment
 
-	compactArithm bool
+	inArithm, compactArithm bool
 }
 
 var (
@@ -218,7 +220,10 @@ func (p *printer) node(n Node) {
 	case StmtCond:
 		p.stmtJoin(x.Stmts)
 	case CStyleCond:
+		oldArithm := p.inArithm
+		p.inArithm = true
 		p.spaced(DLPAREN, x.Cond, DRPAREN)
+		p.inArithm = oldArithm
 	case WhileStmt:
 		p.spaced(WHILE, x.Cond, SEMICOLON, DO)
 		p.curLine = x.Do.Line
@@ -241,8 +246,11 @@ func (p *printer) node(n Node) {
 			p.wordJoin(x.List, false)
 		}
 	case CStyleLoop:
+		oldArithm := p.inArithm
+		p.inArithm = true
 		p.spaced(DLPAREN, x.Init, SEMICOLON, x.Cond,
 			SEMICOLON, x.Post, DRPAREN)
+		p.inArithm = oldArithm
 	case UnaryExpr:
 		if x.Post {
 			p.nonSpaced(x.X, x.Op)
@@ -252,10 +260,20 @@ func (p *printer) node(n Node) {
 			p.nonSpaced(x.X)
 		}
 	case BinaryExpr:
-		if p.compactArithm {
+		switch {
+		case p.compactArithm:
 			p.nonSpaced(x.X, x.Op, x.Y)
-		} else {
+		case p.inArithm:
 			p.spaced(x.X, x.Op, x.Y)
+		default:
+			p.spaced(x.X, x.Op)
+			oldSplit := p.splitNotEscaped
+			p.splitNotEscaped = true
+			p.level++
+			p.separate(x.Y.Pos(), false)
+			p.nonSpaced(x.Y)
+			p.level--
+			p.splitNotEscaped = oldSplit
 		}
 	case FuncDecl:
 		if x.BashStyle {
@@ -315,7 +333,10 @@ func (p *printer) node(n Node) {
 		}
 		p.nonSpaced(RBRACE)
 	case ArithmExpr:
+		oldArithm := p.inArithm
+		p.inArithm = true
 		p.nonSpaced(DOLLDP, x.X, DRPAREN)
+		p.inArithm = oldArithm
 	case ParenExpr:
 		p.nonSpaced(LPAREN)
 		oldCompact := p.compactArithm
@@ -369,11 +390,14 @@ func (p *printer) node(n Node) {
 		p.spaced(EVAL, x.Stmt)
 	case LetStmt:
 		p.spaced(LET)
+		oldArithm := p.inArithm
+		p.inArithm = true
 		p.compactArithm = true
 		for _, n := range x.Exprs {
 			p.spaced(n)
 		}
 		p.compactArithm = false
+		p.inArithm = oldArithm
 	}
 }
 
@@ -381,7 +405,10 @@ func (p *printer) wordJoin(ws []Word, keepNewlines bool) {
 	anyNewline := false
 	for _, w := range ws {
 		if keepNewlines && w.Pos().Line > p.curLine {
-			p.spaced("\\\n")
+			if !p.splitNotEscaped {
+				p.spaced("\\")
+			}
+			p.nonSpaced("\n")
 			if !anyNewline {
 				p.level++
 				anyNewline = true
