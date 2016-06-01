@@ -557,12 +557,22 @@ var astTests = []testCase{
 		})),
 	},
 	{
-		[]string{"foo >bar <<EOF\nbar\nEOF"},
+		[]string{"foo >f <<EOF\nbar\nEOF"},
 		Stmt{
 			Node: litCmd("foo"),
 			Redirs: []Redirect{
-				{Op: GTR, Word: litWord("bar")},
+				{Op: GTR, Word: litWord("f")},
 				{Op: SHL, Word: litWord("EOF"), Hdoc: "bar\n"},
+			},
+		},
+	},
+	{
+		[]string{"foo <<EOF >f\nbar\nEOF"},
+		Stmt{
+			Node: litCmd("foo"),
+			Redirs: []Redirect{
+				{Op: SHL, Word: litWord("EOF"), Hdoc: "bar\n"},
+				{Op: GTR, Word: litWord("f")},
 			},
 		},
 	},

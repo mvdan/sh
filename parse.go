@@ -937,6 +937,10 @@ func (p *parser) gotStmt(s *Stmt, stops ...Token) bool {
 		s.Negated = true
 	}
 	addRedir := func() {
+		// TODO fix properly
+		if s.Redirs == nil {
+			s.Redirs = make([]Redirect, 0, 16)
+		}
 		s.Redirs = append(s.Redirs, Redirect{})
 		p.redirect(&s.Redirs[len(s.Redirs)-1])
 	}
@@ -1012,6 +1016,10 @@ func (p *parser) binaryStmt(left Stmt) Stmt {
 	}
 	s := Stmt{Position: p.pos}
 	addRedir := func() {
+		// TODO fix properly
+		if s.Redirs == nil {
+			s.Redirs = make([]Redirect, 0, 16)
+		}
 		s.Redirs = append(s.Redirs, Redirect{})
 		p.redirect(&s.Redirs[len(s.Redirs)-1])
 	}

@@ -165,6 +165,8 @@ func (p *printer) node(n Node) {
 		for _, r := range x.Redirs {
 			p.spaced(r.N)
 			p.nonSpaced(r.Op, r.Word)
+		}
+		for _, r := range x.Redirs {
 			if r.Op == SHL || r.Op == DHEREDOC {
 				p.space('\n')
 				p.curLine++
