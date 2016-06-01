@@ -33,7 +33,43 @@ type printer struct {
 
 	comments []Comment
 
-	inArithm, compactArithm bool
+	stack []Node
+}
+
+func (p *printer) inBinary() bool {
+	for i := len(p.stack) - 1; i >= 0; i-- {
+		switch p.stack[i].(type) {
+		case BinaryExpr:
+			return true
+		case Stmt:
+			return false
+		}
+	}
+	return false
+}
+
+func (p *printer) inArithm() bool {
+	for i := len(p.stack) - 1; i >= 0; i-- {
+		switch p.stack[i].(type) {
+		case ArithmExpr, LetStmt, CStyleCond, CStyleLoop:
+			return true
+		case Stmt:
+			return false
+		}
+	}
+	return false
+}
+
+func (p *printer) compactArithm() bool {
+	for i := len(p.stack) - 1; i >= 0; i-- {
+		switch p.stack[i].(type) {
+		case LetStmt:
+			return true
+		case ParenExpr:
+			return false
+		}
+	}
+	return false
 }
 
 var (
@@ -152,6 +188,7 @@ func (p *printer) commentsUpTo(line int) {
 }
 
 func (p *printer) node(n Node) {
+	p.stack = append(p.stack, n)
 	switch x := n.(type) {
 	case File:
 		p.progStmts(x.Stmts)
@@ -220,10 +257,7 @@ func (p *printer) node(n Node) {
 	case StmtCond:
 		p.stmtJoin(x.Stmts)
 	case CStyleCond:
-		oldArithm := p.inArithm
-		p.inArithm = true
 		p.spaced(DLPAREN, x.Cond, DRPAREN)
-		p.inArithm = oldArithm
 	case WhileStmt:
 		p.spaced(WHILE, x.Cond, SEMICOLON, DO)
 		p.curLine = x.Do.Line
@@ -246,11 +280,8 @@ func (p *printer) node(n Node) {
 			p.wordJoin(x.List, false)
 		}
 	case CStyleLoop:
-		oldArithm := p.inArithm
-		p.inArithm = true
 		p.spaced(DLPAREN, x.Init, SEMICOLON, x.Cond,
 			SEMICOLON, x.Post, DRPAREN)
-		p.inArithm = oldArithm
 	case UnaryExpr:
 		if x.Post {
 			p.nonSpaced(x.X, x.Op)
@@ -261,19 +292,16 @@ func (p *printer) node(n Node) {
 		}
 	case BinaryExpr:
 		switch {
-		case p.compactArithm:
+		case p.compactArithm():
 			p.nonSpaced(x.X, x.Op, x.Y)
-		case p.inArithm:
+		case p.inArithm():
 			p.spaced(x.X, x.Op, x.Y)
 		default:
 			p.spaced(x.X, x.Op)
-			oldSplit := p.splitNotEscaped
-			p.splitNotEscaped = true
 			p.level++
 			p.separate(x.Y.Pos(), false)
 			p.nonSpaced(x.Y)
 			p.level--
-			p.splitNotEscaped = oldSplit
 		}
 	case FuncDecl:
 		if x.BashStyle {
@@ -313,7 +341,7 @@ func (p *printer) node(n Node) {
 	case ParamExp:
 		if x.Short {
 			p.nonSpaced(DOLLAR, x.Param)
-			return
+			break
 		}
 		p.nonSpaced(DOLLBR)
 		if x.Length {
@@ -333,17 +361,9 @@ func (p *printer) node(n Node) {
 		}
 		p.nonSpaced(RBRACE)
 	case ArithmExpr:
-		oldArithm := p.inArithm
-		p.inArithm = true
 		p.nonSpaced(DOLLDP, x.X, DRPAREN)
-		p.inArithm = oldArithm
 	case ParenExpr:
-		p.nonSpaced(LPAREN)
-		oldCompact := p.compactArithm
-		p.compactArithm = false
-		p.nonSpaced(x.X)
-		p.compactArithm = oldCompact
-		p.nonSpaced(RPAREN)
+		p.nonSpaced(LPAREN, x.X, RPAREN)
 	case CaseStmt:
 		p.spaced(CASE, x.Word, IN)
 		for _, pl := range x.List {
@@ -390,22 +410,18 @@ func (p *printer) node(n Node) {
 		p.spaced(EVAL, x.Stmt)
 	case LetStmt:
 		p.spaced(LET)
-		oldArithm := p.inArithm
-		p.inArithm = true
-		p.compactArithm = true
 		for _, n := range x.Exprs {
 			p.spaced(n)
 		}
-		p.compactArithm = false
-		p.inArithm = oldArithm
 	}
+	p.stack = p.stack[:len(p.stack)-1]
 }
 
 func (p *printer) wordJoin(ws []Word, keepNewlines bool) {
 	anyNewline := false
 	for _, w := range ws {
 		if keepNewlines && w.Pos().Line > p.curLine {
-			if !p.splitNotEscaped {
+			if !p.inBinary() {
 				p.spaced("\\")
 			}
 			p.nonSpaced("\n")
