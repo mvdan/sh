@@ -81,6 +81,14 @@ func TestFprintWeirdFormat(t *testing.T) {
 			"foo \\\nfoo2 \\\n>bar",
 			"foo \\\n\tfoo2 \\\n\t>bar",
 		},
+		{
+			"case $i in\n1)\nfoo\n;;\nesac",
+			"case $i in\n1)\n\tfoo\n\t;;\nesac",
+		},
+		{
+			"case $i in\n1)\nfoo\nesac",
+			"case $i in\n1)\n\tfoo\n\t;;\nesac",
+		},
 	}
 
 	for i, tc := range weirdFormats {

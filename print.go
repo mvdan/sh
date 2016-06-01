@@ -403,6 +403,9 @@ func (p *printer) node(n Node) {
 			p.stmtJoin(pl.Stmts)
 			p.level++
 			p.sepNewline(DSEMICOLON, pl.Dsemi)
+			if pl.Dsemi == x.Esac {
+				p.curLine--
+			}
 			p.level--
 		}
 		if len(x.List) == 0 {
