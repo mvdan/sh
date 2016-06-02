@@ -93,7 +93,7 @@ var astTests = []testCase{
 		litWord("foo"),
 	},
 	{
-		[]string{"foo; bar", "foo; bar;", "foo;bar;", "\nfoo\nbar\n"},
+		[]string{"foo\nbar", "foo; bar;", "foo;bar;", "\nfoo\nbar\n"},
 		litStmts("foo", "bar"),
 	},
 	{
@@ -113,7 +113,7 @@ var astTests = []testCase{
 		subshell(litStmt("foo")),
 	},
 	{
-		[]string{"(foo; bar)"},
+		[]string{"(\n\tfoo\n\tbar\n)", "(foo; bar)"},
 		subshell(litStmt("foo"), litStmt("bar")),
 	},
 	{
@@ -167,7 +167,10 @@ var astTests = []testCase{
 		},
 	},
 	{
-		[]string{"if a1; a2 foo; a3 bar; then b; fi"},
+		[]string{
+			"if\n\ta1\n\ta2 foo\n\ta3 bar; then b; fi",
+			"if a1; a2 foo; a3 bar; then b; fi",
+		},
 		IfStmt{
 			Cond: StmtCond{Stmts: []Stmt{
 				litStmt("a1"),
@@ -408,8 +411,8 @@ var astTests = []testCase{
 	},
 	{
 		[]string{
+			"foo() {\n\ta\n\tb\n}",
 			"foo() { a; b; }",
-			"foo() {\na\nb\n}",
 			"foo ( ) {\na\nb\n}",
 		},
 		FuncDecl{
@@ -418,7 +421,7 @@ var astTests = []testCase{
 		},
 	},
 	{
-		[]string{"foo() { a; }; bar", "foo() {\na\n}\nbar"},
+		[]string{"foo() { a; }\nbar", "foo() {\na\n}; bar"},
 		[]Node{
 			FuncDecl{
 				Name: lit("foo"),
@@ -429,7 +432,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{
-			"function foo { a; b; }",
+			"function foo {\n\ta\n\tb\n}",
 			"function foo() { a; b; }",
 			"function foo ( ) {\na\nb\n}",
 		},
@@ -503,7 +506,7 @@ var astTests = []testCase{
 		},
 	},
 	{
-		[]string{">a; >b", ">a\n>b"},
+		[]string{">a\n>b", ">a; >b"},
 		[]Stmt{
 			{Redirs: []Redirect{
 				{Op: GTR, Word: litWord("a")},
@@ -514,7 +517,7 @@ var astTests = []testCase{
 		},
 	},
 	{
-		[]string{"foo1; foo2 >r2", "foo1\n>r2 foo2"},
+		[]string{"foo1\nfoo2 >r2", "foo1; >r2 foo2"},
 		[]Stmt{
 			litStmt("foo1"),
 			{
@@ -730,7 +733,7 @@ var astTests = []testCase{
 		},
 	},
 	{
-		[]string{"a >f1; b >f2"},
+		[]string{"a >f1\nb >f2", "a >f1; b >f2"},
 		[]Stmt{
 			{
 				Node:   litCmd("a"),
@@ -770,28 +773,22 @@ var astTests = []testCase{
 		},
 	},
 	{
-		[]string{"cat <(echo foo)"},
+		[]string{"cat <(foo)"},
 		Stmt{
 			Node: cmd(
 				litWord("cat"),
-				word(CmdInput{Stmts: []Stmt{
-					litStmt("echo", "foo"),
-				}}),
+				word(CmdInput{Stmts: litStmts("foo")}),
 			),
 		},
 	},
 	{
-		[]string{"cat < <(f1; f2)"},
+		[]string{"cat < <(foo)"},
 		Stmt{
 			Node: litCmd("cat"),
-			Redirs: []Redirect{
-				{
-					Op: LSS,
-					Word: word(
-						CmdInput{Stmts: litStmts("f1", "f2")},
-					),
-				},
-			},
+			Redirs: []Redirect{{
+				Op:   LSS,
+				Word: word(CmdInput{Stmts: litStmts("foo")}),
+			}},
 		},
 	},
 	{
@@ -806,7 +803,7 @@ var astTests = []testCase{
 		},
 	},
 	{
-		[]string{"foo &; bar", "foo & bar", "foo&bar"},
+		[]string{"foo &\nbar", "foo &; bar", "foo & bar", "foo&bar"},
 		[]Stmt{
 			{
 				Node:       litCmd("foo"),
@@ -1475,21 +1472,21 @@ var astTests = []testCase{
 		word(sglQuoted("foo${bar")),
 	},
 	{
-		[]string{"(foo); bar"},
+		[]string{"(foo)\nbar", "(foo); bar"},
 		[]Node{
 			subshell(litStmt("foo")),
 			litCmd("bar"),
 		},
 	},
 	{
-		[]string{"foo; (bar)", "foo\n(bar)"},
+		[]string{"foo\n(bar)", "foo; (bar)"},
 		[]Node{
 			litCmd("foo"),
 			subshell(litStmt("bar")),
 		},
 	},
 	{
-		[]string{"foo; (bar)", "foo\n(bar)"},
+		[]string{"foo\n(bar)", "foo; (bar)"},
 		[]Node{
 			litCmd("foo"),
 			subshell(litStmt("bar")),
@@ -1577,7 +1574,7 @@ var astTests = []testCase{
 		},
 	},
 	{
-		[]string{"a=b; c=d", "a=b\nc=d"},
+		[]string{"a=b\nc=d", "a=b; c=d"},
 		[]Stmt{
 			{Assigns: []Assign{
 				{Name: lit("a"), Value: litWord("b")},
@@ -1792,8 +1789,8 @@ var astTests = []testCase{
 	},
 	{
 		[]string{
-			"let i++; bar",
 			"let i++\nbar",
+			"let i++; bar",
 		},
 		[]Stmt{
 			stmt(LetStmt{Exprs: []Node{
@@ -1808,8 +1805,8 @@ var astTests = []testCase{
 	},
 	{
 		[]string{
-			"let i++; foo=(bar)",
 			"let i++\nfoo=(bar)",
+			"let i++; foo=(bar)",
 		},
 		[]Stmt{
 			stmt(LetStmt{Exprs: []Node{

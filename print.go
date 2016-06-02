@@ -137,6 +137,19 @@ func (p *printer) indent() {
 	}
 }
 
+func (p *printer) sepNewline(pos Pos) {
+	p.commentsUpTo(pos.Line)
+	if p.curLine > 0 {
+		p.space('\n')
+		if pos.Line > p.curLine+1 {
+			// preserve single empty lines
+			p.space('\n')
+		}
+		p.indent()
+	}
+	p.curLine = pos.Line
+}
+
 func (p *printer) separate(pos Pos, fallback bool) {
 	p.commentsUpTo(pos.Line)
 	if p.curLine > 0 && pos.Line > p.curLine {
@@ -238,7 +251,9 @@ func (p *printer) node(n Node) {
 		p.nestedStmts(x.Stmts)
 		p.separated(RBRACE, x.Rbrace, true)
 	case IfStmt:
-		p.spaced(IF, x.Cond, SEMICOLON, THEN)
+		p.spaced(IF)
+		p.nonSpaced(x.Cond)
+		p.spaced(SEMICOLON, THEN)
 		p.curLine = x.Then.Line
 		p.nestedStmts(x.ThenStmts)
 		for _, el := range x.Elifs {
@@ -256,17 +271,23 @@ func (p *printer) node(n Node) {
 	case CStyleCond:
 		p.spaced(DLPAREN, x.Cond, DRPAREN)
 	case WhileStmt:
-		p.spaced(WHILE, x.Cond, SEMICOLON, DO)
+		p.spaced(WHILE)
+		p.nonSpaced(x.Cond)
+		p.spaced(SEMICOLON, DO)
 		p.curLine = x.Do.Line
 		p.nestedStmts(x.DoStmts)
 		p.separated(DONE, x.Done, true)
 	case UntilStmt:
-		p.spaced(UNTIL, x.Cond, SEMICOLON, DO)
+		p.spaced(UNTIL)
+		p.nonSpaced(x.Cond)
+		p.spaced(SEMICOLON, DO)
 		p.curLine = x.Do.Line
 		p.nestedStmts(x.DoStmts)
 		p.separated(DONE, x.Done, true)
 	case ForStmt:
-		p.spaced(FOR, x.Cond, SEMICOLON, DO)
+		p.spaced(FOR)
+		p.nonSpaced(x.Cond)
+		p.spaced(SEMICOLON, DO)
 		p.curLine = x.Do.Line
 		p.nestedStmts(x.DoStmts)
 		p.separated(DONE, x.Done, true)
@@ -438,8 +459,14 @@ func (p *printer) wordJoin(ws []Word, keepNewlines bool) {
 }
 
 func (p *printer) stmts(stmts []Stmt) {
-	for i, s := range stmts {
-		p.separate(s.Pos(), i > 0)
+	if len(stmts) == 1 {
+		s := stmts[0]
+		p.separate(s.Pos(), false)
+		p.node(s)
+		return
+	}
+	for _, s := range stmts {
+		p.sepNewline(s.Pos())
 		p.node(s)
 	}
 }
