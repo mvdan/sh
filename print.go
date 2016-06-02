@@ -514,6 +514,7 @@ func (p *printer) stmts(stmts []Stmt) bool {
 		p.sepNewline(s.Pos())
 		p.node(s)
 		if !p.hasInline(s.Pos()) {
+			p.inlineIndent = 0
 			continue
 		}
 		if p.inlineIndent == 0 {
