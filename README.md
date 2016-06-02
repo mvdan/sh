@@ -1,4 +1,18 @@
 # sh
 
-A shell parser. Still in active development, so the API will probably
-change considerably.
+A shell parser and formatter. Supports POSIX Shell and Bash.
+
+Still in active development, so the API might change a little.
+
+#### shfmt
+
+`shfmt` formats shell programs. It uses tabs for indentation and blanks
+for alignment.
+
+	go get github.com/mvdan/sh/cmd/shfmt
+
+You can feed it standard input, any number of files or any number of
+directories to recurse into. When recursing, it will operate on .sh and
+.bash files and ignore files starting with a period.
+
+	shfmt -l -w script.sh dir
