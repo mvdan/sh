@@ -37,20 +37,19 @@ type Stmt struct {
 func (s Stmt) Pos() Pos { return s.Position }
 func (s Stmt) End() Pos {
 	end := s.Position
+	if s.Negated {
+		end = posAfter(end, NOT)
+	}
 	if s.Node != nil {
 		end = s.Node.End()
 	}
 	if len(s.Assigns) > 0 {
 		assEnd := s.Assigns[len(s.Assigns)-1].End()
-		if posGreater(assEnd, end) {
-			end = assEnd
-		}
+		end = posMax(end, assEnd)
 	}
 	if len(s.Redirs) > 0 {
 		redEnd := s.Redirs[len(s.Redirs)-1].End()
-		if posGreater(redEnd, end) {
-			end = redEnd
-		}
+		end = posMax(end, redEnd)
 	}
 	return end
 }
@@ -67,7 +66,12 @@ func (a Assign) Pos() Pos {
 	}
 	return a.Name.Pos()
 }
-func (a Assign) End() Pos { return a.Value.End() }
+func (a Assign) End() Pos {
+	if a.Name != nil {
+		return posMax(a.Name.End(), a.Value.End())
+	}
+	return a.Value.End()
+}
 
 type Redirect struct {
 	OpPos Pos
@@ -174,7 +178,7 @@ type WordIter struct {
 }
 
 func (w WordIter) Pos() Pos { return w.Name.Pos() }
-func (w WordIter) End() Pos { return wordLastEnd(w.List) }
+func (w WordIter) End() Pos { return posMax(w.Name.End(), wordLastEnd(w.List)) }
 
 type CStyleLoop struct {
 	Lparen, Rparen   Pos
@@ -288,14 +292,14 @@ type ParamExp struct {
 func (p ParamExp) Pos() Pos { return p.Dollar }
 func (p ParamExp) End() Pos {
 	end := p.Param.End()
-	if p.Ind != nil && posGreater(p.Ind.Word.End(), end) {
-		end = p.Ind.Word.End()
+	if p.Ind != nil {
+		end = posMax(end, p.Ind.Word.End())
 	}
-	if p.Repl != nil && posGreater(p.Repl.With.End(), end) {
-		end = p.Repl.With.End()
+	if p.Repl != nil {
+		end = posMax(end, p.Repl.With.End())
 	}
-	if p.Exp != nil && posGreater(p.Exp.Word.End(), end) {
-		end = p.Exp.Word.End()
+	if p.Exp != nil {
+		end = posMax(end, p.Exp.Word.End())
 	}
 	return posAfter(end, RBRACE)
 }
@@ -357,9 +361,7 @@ func (d DeclStmt) End() Pos {
 	end := wordLastEnd(d.Opts)
 	if len(d.Assigns) > 0 {
 		assignEnd := d.Assigns[len(d.Assigns)-1].End()
-		if posGreater(assignEnd, end) {
-			end = assignEnd
-		}
+		end = posMax(end, assignEnd)
 	}
 	return end
 }

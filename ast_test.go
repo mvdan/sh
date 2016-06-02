@@ -7,6 +7,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 )
 
@@ -1877,6 +1878,11 @@ func fullProg(v interface{}) (f File) {
 	return
 }
 
+func emptyNode(n Node) bool {
+	s := strings.TrimRight(strFprint(n), "\n")
+	return len(s) == 0
+}
+
 func setPosRecurse(tb testing.TB, v interface{}, to Pos, diff bool) Node {
 	setPos := func(p *Pos) {
 		if diff && *p == to {
@@ -1895,9 +1901,14 @@ func setPosRecurse(tb testing.TB, v interface{}, to Pos, diff bool) Node {
 			if n.End() != to {
 				tb.Fatalf("Found unexpected End() in %T", n)
 			}
-		} else if posGreater(n.Pos(), n.End()) {
-			// TODO: also error if they equal
-			tb.Fatalf("Found unexpected End() in %T", n)
+			return
+		}
+		if posGreater(n.Pos(), n.End()) {
+			tb.Fatalf("Found End() before Pos() in %T", n)
+		}
+		if !emptyNode(n) && n.Pos() == n.End() {
+			fmt.Printf("%q\n", strFprint(n))
+			tb.Fatalf("Found End() at Pos() in %T %#v", n, n)
 		}
 	}
 	recurse := func(v interface{}) Node {
@@ -2112,16 +2123,7 @@ func TestNodePos(t *testing.T) {
 		Line:   12,
 		Column: 34,
 	}
-	allTests := astTests
-	for _, v := range []interface{}{
-		Command{},
-		Command{Args: []Word{
-			{},
-		}},
-	} {
-		allTests = append(allTests, testCase{nil, fullProg(v)})
-	}
-	for i, c := range allTests {
+	for i, c := range astTests {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
 			want := c.ast.(File)
 			setPosRecurse(t, want, defaultPos, true)

@@ -135,6 +135,13 @@ func posGreater(p1, p2 Pos) bool {
 	return p1.Line > p2.Line
 }
 
+func posMax(p1, p2 Pos) Pos {
+	if posGreater(p2, p1) {
+		return p2
+	}
+	return p1
+}
+
 // Position describes an arbitrary position in a source file. Offsets,
 // including column numbers, are in bytes.
 type Position struct {
