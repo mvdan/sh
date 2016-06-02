@@ -199,6 +199,7 @@ func (p *printer) commentsUpTo(line int) {
 	if line > 0 && c.Hash.Line >= line {
 		return
 	}
+	p.wantNewline = false
 	p.separate(c.Hash, false)
 	p.spaced(c)
 	p.comments = p.comments[1:]
