@@ -399,8 +399,11 @@ func (p *printer) node(n Node) {
 				p.spaced(w)
 			}
 			p.nonSpaced(RPAREN)
-			p.nestedStmts(pl.Stmts)
+			sep := p.nestedStmts(pl.Stmts)
 			p.level++
+			if !sep && pl.Dsemi == x.Esac {
+				p.curLine++
+			}
 			p.separated(DSEMICOLON, pl.Dsemi, false)
 			if pl.Dsemi == x.Esac {
 				p.curLine--
@@ -458,21 +461,24 @@ func (p *printer) wordJoin(ws []Word, keepNewlines bool) {
 	}
 }
 
-func (p *printer) stmts(stmts []Stmt) {
-	if len(stmts) == 1 {
+func (p *printer) stmts(stmts []Stmt) bool {
+	sameLine := stmtFirstPos(stmts).Line == p.curLine
+	if len(stmts) == 1 && sameLine {
 		s := stmts[0]
 		p.separate(s.Pos(), false)
 		p.node(s)
-		return
+		return false
 	}
 	for _, s := range stmts {
 		p.sepNewline(s.Pos())
 		p.node(s)
 	}
+	return true
 }
 
-func (p *printer) nestedStmts(stmts []Stmt) {
+func (p *printer) nestedStmts(stmts []Stmt) bool {
 	p.level++
-	p.stmts(stmts)
+	sep := p.stmts(stmts)
 	p.level--
+	return sep
 }
