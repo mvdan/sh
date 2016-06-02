@@ -26,8 +26,6 @@ type printer struct {
 
 	wantSpace bool
 
-	splitNotEscaped bool
-
 	curLine int
 	level   int
 
@@ -42,18 +40,6 @@ func (p *printer) nestedBinary() bool {
 	}
 	_, ok := p.stack[len(p.stack)-3].(BinaryExpr)
 	return ok
-}
-
-func (p *printer) inBinary() bool {
-	for i := len(p.stack) - 1; i >= 0; i-- {
-		switch p.stack[i].(type) {
-		case BinaryExpr:
-			return true
-		case Stmt:
-			return false
-		}
-	}
-	return false
 }
 
 func (p *printer) inArithm() bool {
@@ -449,10 +435,7 @@ func (p *printer) wordJoin(ws []Word, keepNewlines bool) {
 	anyNewline := false
 	for _, w := range ws {
 		if keepNewlines && w.Pos().Line > p.curLine {
-			if !p.inBinary() {
-				p.spaced("\\")
-			}
-			p.nonSpaced("\n")
+			p.spaced("\\\n")
 			if !anyNewline {
 				p.level++
 				anyNewline = true
