@@ -1849,6 +1849,18 @@ var astTests = []testCase{
 		},
 	},
 	{
+		[]string{"a=(b c) foo", "a=(\nb\nc\n) foo"},
+		Stmt{
+			Assigns: []Assign{{
+				Name: lit("a"),
+				Value: word(
+					ArrayExpr{List: litWords("b", "c")},
+				),
+			}},
+			Node: litCmd("foo"),
+		},
+	},
+	{
 		[]string{"a+=1 b+=(2 3)"},
 		Stmt{
 			Assigns: []Assign{
