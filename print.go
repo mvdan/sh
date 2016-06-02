@@ -550,8 +550,14 @@ func (p *printer) stmts(stmts []Stmt) bool {
 
 func strFprint(n Node) string {
 	var buf bytes.Buffer
-	Fprint(&buf, n)
-	return buf.String()
+	p := printer{w: &buf}
+	p.curLine = n.Pos().Line
+	if f, ok := n.(File); ok {
+		p.comments = f.Comments
+	}
+	p.node(n)
+	// TODO: get rid of leading newlines properly
+	return strings.TrimLeft(buf.String(), "\n")
 }
 
 func (p *printer) nestedStmts(stmts []Stmt) bool {

@@ -22,7 +22,9 @@ func TestFprintCompact(t *testing.T) {
 			}
 			want := in
 			got := strFprint(prog)
-			got = got[:len(got)-1]
+			if len(got) > 0 {
+				got = got[:len(got)-1]
+			}
 			if got != want {
 				t.Fatalf("Fprint mismatch\nwant: %q\ngot:  %q",
 					want, got)
@@ -78,6 +80,10 @@ func TestFprintWeirdFormat(t *testing.T) {
 		{
 			"foobar # 1\n#foo\nfoo # 2",
 			"foobar # 1\n#foo\nfoo # 2",
+		},
+		{
+			"foo # 2\nfoo2 bar # 1",
+			"foo      # 2\nfoo2 bar # 1",
 		},
 		{
 			"foo bar # 1\n! foo # 2",
