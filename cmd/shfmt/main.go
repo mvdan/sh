@@ -36,7 +36,7 @@ func main() {
 }
 
 var (
-	hidden = regexp.MustCompile(`^\.[^/.]`)
+	hidden    = regexp.MustCompile(`^\.[^/.]`)
 	shellFile = regexp.MustCompile(`^.*\.(sh|bash)$`)
 )
 
@@ -59,6 +59,14 @@ func work(path string) error {
 	})
 }
 
+func empty(f *os.File) error {
+	if err := f.Truncate(0); err != nil {
+		return err
+	}
+	_, err := f.Seek(0, 0)
+	return err
+}
+
 func format(path string) error {
 	f, err := os.OpenFile(path, os.O_RDWR, 0)
 	if err != nil {
@@ -70,7 +78,9 @@ func format(path string) error {
 	}
 	var orig string
 	if *list {
-		f.Seek(0, 0)
+		if _, err := f.Seek(0, 0); err != nil {
+			return err
+		}
 		b, err := ioutil.ReadAll(f)
 		if err != nil {
 			return err
@@ -86,16 +96,18 @@ func format(path string) error {
 		if buf.String() != orig {
 			fmt.Println(path)
 		}
-		f.Truncate(0)
-		f.Seek(0, 0)
+		if err := empty(f); err != nil {
+			return err
+		}
 		_, err := io.Copy(f, &buf)
 		if err != nil {
 			return err
 		}
 		return f.Close()
 	case *write:
-		f.Truncate(0)
-		f.Seek(0, 0)
+		if err := empty(f); err != nil {
+			return err
+		}
 		if err := sh.Fprint(f, prog); err != nil {
 			return err
 		}
