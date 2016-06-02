@@ -58,6 +58,14 @@ func TestFprintWeirdFormat(t *testing.T) {
 			"foo <<EOF\nl1\nEOF\n\nfoo2",
 		},
 		{
+			"{ foo; bar; }",
+			"{\n\tfoo\n\tbar\n}",
+		},
+		{
+			"(foo; bar)",
+			"(\n\tfoo\n\tbar\n)",
+		},
+		{
 			"{\nfoo\nbar; }",
 			"{\n\tfoo\n\tbar\n}",
 		},

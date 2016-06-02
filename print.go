@@ -134,11 +134,11 @@ func (p *printer) spaced(a ...interface{}) {
 		if v == nil {
 			continue
 		}
-		if t, ok := v.(Token); ok && contiguousLeft[t] {
-		} else if p.wantNewline {
+		if p.wantNewline {
 			p.space('\n')
 			p.indent()
 			p.wantNewline = false
+		} else if t, ok := v.(Token); ok && contiguousLeft[t] {
 		} else if p.wantSpace {
 			p.space(' ')
 		}
@@ -175,13 +175,8 @@ func (p *printer) sepNewline(pos Pos) {
 
 func (p *printer) didSeparate(pos Pos, fallback bool) bool {
 	p.commentsUpTo(pos.Line)
-	if p.wantNewline {
-		if p.curLine >= pos.Line {
-			p.curLine = pos.Line - 1
-		}
+	if p.wantNewline || (p.curLine > 0 && pos.Line > p.curLine) {
 		p.wantNewline = false
-	}
-	if p.curLine > 0 && pos.Line > p.curLine {
 		p.space('\n')
 		if pos.Line > p.curLine+1 {
 			// preserve single empty lines
