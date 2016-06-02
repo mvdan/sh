@@ -11,9 +11,7 @@ import (
 )
 
 func Fprint(w io.Writer, n Node) error {
-	p := printer{
-		w: w,
-	}
+	p := printer{w: w}
 	if f, ok := n.(File); ok {
 		p.comments = f.Comments
 	}
@@ -546,8 +544,7 @@ func (p *printer) stmts(stmts []Stmt) bool {
 func strFprint(n Node) string {
 	var buf bytes.Buffer
 	Fprint(&buf, n)
-	// prefix is present if n.Pos().Line > 0
-	return strings.TrimPrefix(buf.String(), "\\\n\t")
+	return buf.String()
 }
 
 func (p *printer) nestedStmts(stmts []Stmt) bool {
