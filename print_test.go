@@ -98,6 +98,10 @@ func TestFprintWeirdFormat(t *testing.T) {
 			"case $i in\n1) foo; bar\nesac",
 			"case $i in\n1)\n\tfoo\n\tbar\n\t;;\nesac",
 		},
+		{
+			"case $i in\n1) foo; bar;;\nesac",
+			"case $i in\n1)\n\tfoo\n\tbar\n\t;;\nesac",
+		},
 	}
 
 	for i, tc := range weirdFormats {
@@ -109,8 +113,8 @@ func TestFprintWeirdFormat(t *testing.T) {
 			want := tc.want + "\n"
 			got := strFprint(prog)
 			if got != want {
-				t.Fatalf("Fprint mismatch:\nwant:\n%sgot:\n%s",
-					want, got)
+				t.Fatalf("Fprint mismatch:\nin:\n%s\nwant:\n%sgot:\n%s",
+					tc.in, want, got)
 			}
 		})
 	}

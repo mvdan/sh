@@ -401,8 +401,10 @@ func (p *printer) node(n Node) {
 			p.nonSpaced(RPAREN)
 			sep := p.nestedStmts(pl.Stmts)
 			p.level++
-			if !sep && pl.Dsemi == x.Esac {
+			if !sep {
 				p.curLine++
+			} else if pl.Dsemi.Line == p.curLine && pl.Dsemi != x.Esac {
+				p.curLine--
 			}
 			p.separated(DSEMICOLON, pl.Dsemi, false)
 			if pl.Dsemi == x.Esac {
