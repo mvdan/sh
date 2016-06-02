@@ -1880,13 +1880,24 @@ func fullProg(v interface{}) (f File) {
 func setPosRecurse(tb testing.TB, v interface{}, to Pos, diff bool) Node {
 	setPos := func(p *Pos) {
 		if diff && *p == to {
-			tb.Fatalf("Pos in %T is already %v", v, to)
+			tb.Fatalf("Pos() in %T is already %v", v, to)
 		}
 		*p = to
 	}
 	checkPos := func(n Node) {
-		if n != nil && n.Pos() != to {
-			tb.Fatalf("Found unexpected Pos in %T", n)
+		if n == nil {
+			return
+		}
+		if n.Pos() != to {
+			tb.Fatalf("Found unexpected Pos() in %T", n)
+		}
+		if to.Line == 0 {
+			if n.End() != to {
+				tb.Fatalf("Found unexpected End() in %T", n)
+			}
+		} else if posGreater(n.Pos(), n.End()) {
+			// TODO: also error if they equal
+			tb.Fatalf("Found unexpected End() in %T", n)
 		}
 	}
 	recurse := func(v interface{}) Node {

@@ -91,6 +91,9 @@ func (p *parser) readByte() (byte, error) {
 func (p *parser) consumeByte() { p.readByte() }
 
 func moveWith(pos Pos, b byte) Pos {
+	if pos.Line == 0 {
+		return pos
+	}
 	if b == '\n' {
 		pos.Line++
 		pos.Column = 1

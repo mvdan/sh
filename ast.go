@@ -35,6 +35,7 @@ type Stmt struct {
 }
 
 func (s Stmt) Pos() Pos { return s.Position }
+func (s Stmt) End() Pos { return s.Position }
 
 type Assign struct {
 	Append bool
@@ -57,6 +58,14 @@ type Redirect struct {
 	Word  Word
 	Hdoc  string
 }
+
+func (r Redirect) Pos() Pos {
+	if r.N.Pos().Line > 0 {
+		return r.N.Pos()
+	}
+	return r.OpPos
+}
+func (r Redirect) End() Pos { return r.Word.End() }
 
 type Command struct {
 	Args []Word
@@ -358,6 +367,9 @@ func (l LetStmt) Pos() Pos { return l.Let }
 func (l LetStmt) End() Pos { return nodeLastEnd(l.Exprs) }
 
 func posAfter(pos Pos, tok Token) Pos {
+	if pos.Line == 0 {
+		return pos
+	}
 	pos.Column += len(tok.String())
 	return pos
 }
