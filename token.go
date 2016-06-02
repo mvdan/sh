@@ -128,6 +128,13 @@ type Pos struct {
 	Column int // column number, starting at 1
 }
 
+func posGreater(p1, p2 Pos) bool {
+	if p1.Line == p2.Line {
+		return p1.Column > p2.Column
+	}
+	return p1.Line > p2.Line
+}
+
 // Position describes an arbitrary position in a source file. Offsets,
 // including column numbers, are in bytes.
 type Position struct {

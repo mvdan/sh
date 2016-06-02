@@ -3,27 +3,10 @@
 
 package sh
 
-var defaultPos = Pos{}
-
-func stmtFirstPos(sts []Stmt) Pos {
-	if len(sts) == 0 {
-		return defaultPos
-	}
-	return sts[0].Pos()
-}
-
-func nodeFirstPos(ns []Node) Pos {
-	if len(ns) == 0 {
-		return defaultPos
-	}
-	return ns[0].Pos()
-}
-
-func wordFirstPos(ws []Word) Pos {
-	if len(ws) == 0 {
-		return defaultPos
-	}
-	return ws[0].Pos()
+// Node represents an AST node.
+type Node interface {
+	Pos() Pos
+	End() Pos
 }
 
 // File is a shell program.
@@ -35,15 +18,11 @@ type File struct {
 }
 
 func (f File) Pos() Pos { return stmtFirstPos(f.Stmts) }
+func (f File) End() Pos { return stmtLastEnd(f.Stmts) }
 
 type Comment struct {
 	Hash Pos
 	Text string
-}
-
-// Node represents an AST node.
-type Node interface {
-	Pos() Pos
 }
 
 type Stmt struct {
@@ -69,6 +48,7 @@ func (a Assign) Pos() Pos {
 	}
 	return a.Name.Pos()
 }
+func (a Assign) End() Pos { return a.Value.End() }
 
 type Redirect struct {
 	OpPos Pos
@@ -83,6 +63,7 @@ type Command struct {
 }
 
 func (c Command) Pos() Pos { return wordFirstPos(c.Args) }
+func (c Command) End() Pos { return wordLastEnd(c.Args) }
 
 type Subshell struct {
 	Lparen, Rparen Pos
@@ -90,6 +71,7 @@ type Subshell struct {
 }
 
 func (s Subshell) Pos() Pos { return s.Lparen }
+func (s Subshell) End() Pos { return posAfter(s.Rparen, RPAREN) }
 
 type Block struct {
 	Lbrace, Rbrace Pos
@@ -97,6 +79,7 @@ type Block struct {
 }
 
 func (b Block) Pos() Pos { return b.Rbrace }
+func (b Block) End() Pos { return posAfter(b.Rbrace, RBRACE) }
 
 type IfStmt struct {
 	If, Then, Fi Pos
@@ -108,12 +91,14 @@ type IfStmt struct {
 }
 
 func (s IfStmt) Pos() Pos { return s.If }
+func (s IfStmt) End() Pos { return posAfter(s.Fi, FI) }
 
 type StmtCond struct {
 	Stmts []Stmt
 }
 
 func (s StmtCond) Pos() Pos { return s.Stmts[0].Pos() }
+func (s StmtCond) End() Pos { return stmtLastEnd(s.Stmts) }
 
 type CStyleCond struct {
 	Lparen, Rparen Pos
@@ -121,6 +106,7 @@ type CStyleCond struct {
 }
 
 func (c CStyleCond) Pos() Pos { return c.Lparen }
+func (c CStyleCond) End() Pos { return posAfter(c.Rparen, RPAREN) }
 
 type Elif struct {
 	Elif, Then Pos
@@ -135,6 +121,7 @@ type WhileStmt struct {
 }
 
 func (w WhileStmt) Pos() Pos { return w.While }
+func (w WhileStmt) End() Pos { return posAfter(w.Done, DONE) }
 
 type UntilStmt struct {
 	Until, Do, Done Pos
@@ -143,6 +130,7 @@ type UntilStmt struct {
 }
 
 func (u UntilStmt) Pos() Pos { return u.Until }
+func (u UntilStmt) End() Pos { return posAfter(u.Done, DONE) }
 
 type ForStmt struct {
 	For, Do, Done Pos
@@ -151,6 +139,7 @@ type ForStmt struct {
 }
 
 func (f ForStmt) Pos() Pos { return f.For }
+func (f ForStmt) End() Pos { return posAfter(f.Done, DONE) }
 
 type WordIter struct {
 	Name Lit
@@ -158,6 +147,7 @@ type WordIter struct {
 }
 
 func (w WordIter) Pos() Pos { return w.Name.Pos() }
+func (w WordIter) End() Pos { return wordLastEnd(w.List) }
 
 type CStyleLoop struct {
 	Lparen, Rparen   Pos
@@ -165,6 +155,7 @@ type CStyleLoop struct {
 }
 
 func (c CStyleLoop) Pos() Pos { return c.Lparen }
+func (c CStyleLoop) End() Pos { return posAfter(c.Rparen, RPAREN) }
 
 type UnaryExpr struct {
 	OpPos Pos
@@ -173,7 +164,18 @@ type UnaryExpr struct {
 	X     Node
 }
 
-func (u UnaryExpr) Pos() Pos { return u.OpPos }
+func (u UnaryExpr) Pos() Pos {
+	if u.Post {
+		return u.X.Pos()
+	}
+	return u.OpPos
+}
+func (u UnaryExpr) End() Pos {
+	if u.Post {
+		return posAfter(u.OpPos, u.Op)
+	}
+	return u.X.End()
+}
 
 type BinaryExpr struct {
 	OpPos Pos
@@ -182,6 +184,7 @@ type BinaryExpr struct {
 }
 
 func (b BinaryExpr) Pos() Pos { return b.X.Pos() }
+func (b BinaryExpr) End() Pos { return b.Y.End() }
 
 type FuncDecl struct {
 	Position  Pos
@@ -191,12 +194,14 @@ type FuncDecl struct {
 }
 
 func (f FuncDecl) Pos() Pos { return f.Position }
+func (f FuncDecl) End() Pos { return f.Body.End() }
 
 type Word struct {
 	Parts []Node
 }
 
 func (w Word) Pos() Pos { return nodeFirstPos(w.Parts) }
+func (w Word) End() Pos { return nodeLastEnd(w.Parts) }
 
 type Lit struct {
 	ValuePos Pos
@@ -204,6 +209,13 @@ type Lit struct {
 }
 
 func (l Lit) Pos() Pos { return l.ValuePos }
+func (l Lit) End() Pos {
+	end := l.ValuePos
+	for _, b := range []byte(l.Value) {
+		end = moveWith(end, b)
+	}
+	return end
+}
 
 type SglQuoted struct {
 	Quote Pos
@@ -211,6 +223,13 @@ type SglQuoted struct {
 }
 
 func (q SglQuoted) Pos() Pos { return q.Quote }
+func (q SglQuoted) End() Pos {
+	end := posAfter(q.Quote, SQUOTE)
+	for _, b := range []byte(q.Value) {
+		end = moveWith(end, b)
+	}
+	return posAfter(end, SQUOTE)
+}
 
 type Quoted struct {
 	QuotePos Pos
@@ -219,6 +238,7 @@ type Quoted struct {
 }
 
 func (q Quoted) Pos() Pos { return q.QuotePos }
+func (q Quoted) End() Pos { return posAfter(nodeLastEnd(q.Parts), q.Quote) }
 
 type CmdSubst struct {
 	Left, Right Pos
@@ -227,6 +247,7 @@ type CmdSubst struct {
 }
 
 func (c CmdSubst) Pos() Pos { return c.Left }
+func (c CmdSubst) End() Pos { return posAfter(c.Right, RPAREN) }
 
 type ParamExp struct {
 	Dollar        Pos
@@ -238,6 +259,7 @@ type ParamExp struct {
 }
 
 func (p ParamExp) Pos() Pos { return p.Dollar }
+func (p ParamExp) End() Pos { return p.Dollar }
 
 type Index struct {
 	Word Word
@@ -259,6 +281,7 @@ type ArithmExpr struct {
 }
 
 func (a ArithmExpr) Pos() Pos { return a.Dollar }
+func (a ArithmExpr) End() Pos { return posAfter(a.Rparen, DRPAREN) }
 
 type ParenExpr struct {
 	Lparen, Rparen Pos
@@ -266,6 +289,7 @@ type ParenExpr struct {
 }
 
 func (p ParenExpr) Pos() Pos { return p.Lparen }
+func (p ParenExpr) End() Pos { return posAfter(p.Rparen, RPAREN) }
 
 type CaseStmt struct {
 	Case, Esac Pos
@@ -274,6 +298,7 @@ type CaseStmt struct {
 }
 
 func (c CaseStmt) Pos() Pos { return c.Case }
+func (c CaseStmt) End() Pos { return posAfter(c.Esac, ESAC) }
 
 type PatternList struct {
 	Dsemi    Pos
@@ -289,6 +314,16 @@ type DeclStmt struct {
 }
 
 func (d DeclStmt) Pos() Pos { return d.Declare }
+func (d DeclStmt) End() Pos {
+	end := wordLastEnd(d.Opts)
+	if len(d.Assigns) > 0 {
+		assignEnd := d.Assigns[len(d.Assigns)-1].End()
+		if posGreater(assignEnd, end) {
+			end = assignEnd
+		}
+	}
+	return end
+}
 
 type ArrayExpr struct {
 	Lparen, Rparen Pos
@@ -296,6 +331,7 @@ type ArrayExpr struct {
 }
 
 func (a ArrayExpr) Pos() Pos { return a.Lparen }
+func (a ArrayExpr) End() Pos { return posAfter(a.Rparen, RPAREN) }
 
 type CmdInput struct {
 	Lss, Rparen Pos
@@ -303,6 +339,7 @@ type CmdInput struct {
 }
 
 func (c CmdInput) Pos() Pos { return c.Lss }
+func (c CmdInput) End() Pos { return posAfter(c.Rparen, RPAREN) }
 
 type EvalStmt struct {
 	Eval Pos
@@ -310,6 +347,7 @@ type EvalStmt struct {
 }
 
 func (e EvalStmt) Pos() Pos { return e.Eval }
+func (e EvalStmt) End() Pos { return e.Stmt.End() }
 
 type LetStmt struct {
 	Let   Pos
@@ -317,3 +355,53 @@ type LetStmt struct {
 }
 
 func (l LetStmt) Pos() Pos { return l.Let }
+func (l LetStmt) End() Pos { return nodeLastEnd(l.Exprs) }
+
+func posAfter(pos Pos, tok Token) Pos {
+	pos.Column += len(tok.String())
+	return pos
+}
+
+var defaultPos = Pos{}
+
+func stmtFirstPos(sts []Stmt) Pos {
+	if len(sts) == 0 {
+		return defaultPos
+	}
+	return sts[0].Pos()
+}
+
+func stmtLastEnd(sts []Stmt) Pos {
+	if len(sts) == 0 {
+		return defaultPos
+	}
+	return sts[len(sts)-1].End()
+}
+
+func nodeFirstPos(ns []Node) Pos {
+	if len(ns) == 0 {
+		return defaultPos
+	}
+	return ns[0].Pos()
+}
+
+func nodeLastEnd(ns []Node) Pos {
+	if len(ns) == 0 {
+		return defaultPos
+	}
+	return ns[len(ns)-1].End()
+}
+
+func wordFirstPos(ws []Word) Pos {
+	if len(ws) == 0 {
+		return defaultPos
+	}
+	return ws[0].Pos()
+}
+
+func wordLastEnd(ws []Word) Pos {
+	if len(ws) == 0 {
+		return defaultPos
+	}
+	return ws[len(ws)-1].End()
+}

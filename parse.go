@@ -85,18 +85,19 @@ func (p *parser) readByte() (byte, error) {
 		p.errPass(err)
 		return 0, err
 	}
-	p.moveWith(b)
+	p.npos = moveWith(p.npos, b)
 	return b, nil
 }
 func (p *parser) consumeByte() { p.readByte() }
 
-func (p *parser) moveWith(b byte) {
+func moveWith(pos Pos, b byte) Pos {
 	if b == '\n' {
-		p.npos.Line++
-		p.npos.Column = 1
+		pos.Line++
+		pos.Column = 1
 	} else {
-		p.npos.Column++
+		pos.Column++
 	}
+	return pos
 }
 
 func (p *parser) peekByte() (byte, error) {
