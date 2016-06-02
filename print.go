@@ -378,6 +378,7 @@ func (p *printer) node(n Node) {
 				p.level++
 			}
 			p.didSeparate(x.Y.Pos(), false)
+			p.commentsUpTo(x.Y.Pos().Line)
 			p.nonSpaced(x.Y)
 			if !p.nestedBinary() {
 				p.level--

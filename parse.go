@@ -1030,6 +1030,7 @@ func (p *parser) binaryStmt(left Stmt) Stmt {
 		Op:    p.ltok,
 		X:     left,
 	}
+	p.got(COMMENT)
 	s := Stmt{Position: p.pos}
 	p.stmtStack = append(p.stmtStack, &s)
 	if b.Op == LAND || b.Op == LOR {
