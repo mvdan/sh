@@ -259,7 +259,7 @@ func (p *printer) node(n Node) {
 				p.nonSpaced(r.Op, r.Word)
 				startRedirs++
 			}
-			p.wordJoin(c.Args[1:], true)
+			p.wordJoin(c.Args[1:], true, true)
 		} else {
 			p.spaced(x.Node)
 		}
@@ -294,7 +294,7 @@ func (p *printer) node(n Node) {
 		}
 		p.nonSpaced(x.Value)
 	case Command:
-		p.wordJoin(x.Args, true)
+		p.wordJoin(x.Args, true, true)
 	case Subshell:
 		p.spaced(LPAREN)
 		if len(x.Stmts) == 0 {
@@ -353,7 +353,7 @@ func (p *printer) node(n Node) {
 		p.spaced(x.Name)
 		if len(x.List) > 0 {
 			p.spaced(IN)
-			p.wordJoin(x.List, false)
+			p.wordJoin(x.List, false, true)
 		}
 	case CStyleLoop:
 		p.spaced(DLPAREN, x.Init, SEMICOLON, x.Cond,
@@ -484,8 +484,8 @@ func (p *printer) node(n Node) {
 		}
 	case ArrayExpr:
 		p.nonSpaced(LPAREN)
-		p.wordJoin(x.List, false)
-		p.nonSpaced(RPAREN)
+		p.wordJoin(x.List, true, false)
+		p.separated(RPAREN, x.Rparen, false)
 	case CmdInput:
 		// avoid conflict with <<
 		p.spaced(CMDIN)
@@ -502,11 +502,14 @@ func (p *printer) node(n Node) {
 	p.stack = p.stack[:len(p.stack)-1]
 }
 
-func (p *printer) wordJoin(ws []Word, keepNewlines bool) {
+func (p *printer) wordJoin(ws []Word, keepNewlines, needBackslash bool) {
 	anyNewline := false
 	for _, w := range ws {
 		if keepNewlines && w.Pos().Line > p.curLine {
-			p.spaced("\\\n")
+			if needBackslash {
+				p.spaced("\\")
+			}
+			p.nonSpaced("\n")
 			if !anyNewline {
 				p.level++
 				anyNewline = true

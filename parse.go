@@ -847,8 +847,8 @@ func (p *parser) arithmEnd(left Pos) Pos {
 	return p.lpos
 }
 
-func (p *parser) arrayElems(stops ...Token) (ws []Word) {
-	for !p.eof() && !p.peekAny(stops...) {
+func (p *parser) arrayElems() (ws []Word) {
+	for !p.eof() && !p.peek(RPAREN) {
 		var w Word
 		if !p.gotWord(&w) {
 			p.curErr("array elements must be words")
@@ -938,7 +938,7 @@ func (p *parser) getAssign() (Assign, bool) {
 	}
 	if start.Value == "" && p.got(LPAREN) {
 		ae := ArrayExpr{Lparen: p.lpos}
-		ae.List = p.arrayElems(RPAREN)
+		ae.List = p.arrayElems()
 		ae.Rparen = p.matchedTok(ae.Lparen, LPAREN, RPAREN)
 		as.Value.Parts = append(as.Value.Parts, ae)
 	} else if !p.peekStop() {
