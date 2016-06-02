@@ -4,7 +4,6 @@
 package sh
 
 import (
-	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -12,12 +11,6 @@ import (
 	"strings"
 	"testing"
 )
-
-func strFprint(n Node) string {
-	var buf bytes.Buffer
-	Fprint(&buf, n)
-	return buf.String()
-}
 
 func TestFprintCompact(t *testing.T) {
 	for i, c := range astTests {
@@ -61,6 +54,14 @@ func TestFprintWeirdFormat(t *testing.T) {
 		{
 			"foo\nbar  # extra",
 			"foo\nbar # extra",
+		},
+		{
+			"foo # 1\nfooo # 2\nfo # 3",
+			"foo  # 1\nfooo # 2\nfo   # 3",
+		},
+		{
+			"foo   # 1\nfooo  # 2\nfo    # 3",
+			"foo  # 1\nfooo # 2\nfo   # 3",
 		},
 		{
 			"(\nbar\n# extra\n)",

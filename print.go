@@ -4,6 +4,7 @@
 package sh
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"strings"
@@ -29,6 +30,8 @@ type printer struct {
 
 	curLine int
 	level   int
+
+	inlineIndent int
 
 	comments []Comment
 
@@ -156,6 +159,7 @@ func (p *printer) sepNewline(pos Pos) {
 		if pos.Line > p.curLine+1 {
 			// preserve single empty lines
 			p.space('\n')
+			p.inlineIndent = 0
 		}
 		p.indent()
 	}
@@ -175,6 +179,7 @@ func (p *printer) separate(pos Pos, fallback bool) {
 		if pos.Line > p.curLine+1 {
 			// preserve single empty lines
 			p.space('\n')
+			p.inlineIndent = 0
 		}
 		p.indent()
 	} else if fallback {
@@ -189,6 +194,18 @@ func (p *printer) separated(v interface{}, pos Pos, fallback bool) {
 	p.level--
 	p.separate(pos, fallback)
 	p.spaced(v)
+}
+
+func (p *printer) hasInline(pos Pos) bool {
+	if len(p.comments) < 1 {
+		return false
+	}
+	for _, c := range p.comments {
+		if c.Hash.Line == pos.Line {
+			return true
+		}
+	}
+	return false
 }
 
 func (p *printer) commentsUpTo(line int) {
@@ -494,12 +511,43 @@ func (p *printer) stmts(stmts []Stmt) bool {
 		p.node(s)
 		return false
 	}
-	for _, s := range stmts {
+	p.inlineIndent = 0
+	lastLine := stmts[0].Pos().Line
+	for i, s := range stmts {
 		p.sepNewline(s.Pos())
 		p.node(s)
+		if !p.hasInline(s.Pos()) {
+			continue
+		}
+		if p.inlineIndent == 0 {
+			for _, s := range stmts[i:] {
+				pos := s.Pos()
+				if !p.hasInline(pos) || pos.Line > lastLine+1 {
+					break
+				}
+				l := len(strFprint(s))
+				if l > p.inlineIndent {
+					p.inlineIndent = l
+				}
+				lastLine = pos.Line
+			}
+		}
+		l := len(strFprint(s))
+		for i := 0; i < p.inlineIndent-l; i++ {
+			p.space(' ')
+		}
+		p.space(' ')
 	}
+	p.inlineIndent = 0
 	p.wantNewline = true
 	return true
+}
+
+func strFprint(n Node) string {
+	var buf bytes.Buffer
+	Fprint(&buf, n)
+	// prefix is present if n.Pos().Line > 0
+	return strings.TrimPrefix(buf.String(), "\\\n\t")
 }
 
 func (p *printer) nestedStmts(stmts []Stmt) bool {
