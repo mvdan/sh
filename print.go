@@ -235,9 +235,26 @@ func (p *printer) node(n Node) {
 		for _, a := range x.Assigns {
 			p.spaced(a)
 		}
-		p.spaced(x.Node)
+		startRedirs := 0
+		if c, ok := x.Node.(Command); ok && len(c.Args) > 1 {
+			p.spaced(c.Args[0])
+			for _, r := range x.Redirs {
+				if posGreater(r.Pos(), c.Args[1].Pos()) {
+					break
+				}
+				if r.Op == SHL || r.Op == DHEREDOC {
+					break
+				}
+				p.spaced(r.N)
+				p.nonSpaced(r.Op, r.Word)
+				startRedirs++
+			}
+			p.wordJoin(c.Args[1:], true)
+		} else {
+			p.spaced(x.Node)
+		}
 		anyNewline := false
-		for _, r := range x.Redirs {
+		for _, r := range x.Redirs[startRedirs:] {
 			if r.OpPos.Line > p.curLine {
 				p.spaced("\\\n")
 				if !anyNewline {
@@ -250,7 +267,7 @@ func (p *printer) node(n Node) {
 			p.spaced(r.N)
 			p.nonSpaced(r.Op, r.Word)
 		}
-		for _, r := range x.Redirs {
+		for _, r := range x.Redirs[startRedirs:] {
 			if r.Op == SHL || r.Op == DHEREDOC {
 				p.space('\n')
 				p.curLine++

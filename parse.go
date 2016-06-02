@@ -56,6 +56,9 @@ type parser struct {
 	// stack of stop tokens
 	stops []Token
 
+	// stack of stmts (to save redirects)
+	stmtStack []*Stmt
+
 	stopNewline bool
 	heredocs    []*Redirect
 }
@@ -933,6 +936,16 @@ func (p *parser) getAssign() (Assign, bool) {
 	return as, true
 }
 
+func (p *parser) doRedirect() {
+	s := p.stmtStack[len(p.stmtStack)-1]
+	// TODO fix properly
+	if s.Redirs == nil {
+		s.Redirs = make([]Redirect, 0, 16)
+	}
+	s.Redirs = append(s.Redirs, Redirect{})
+	p.redirect(&s.Redirs[len(s.Redirs)-1])
+}
+
 func (p *parser) gotStmt(s *Stmt, stops ...Token) bool {
 	if p.peek(RBRACE) {
 		// don't let it be a LIT
@@ -942,19 +955,15 @@ func (p *parser) gotStmt(s *Stmt, stops ...Token) bool {
 	if p.got(NOT) {
 		s.Negated = true
 	}
-	addRedir := func() {
-		// TODO fix properly
-		if s.Redirs == nil {
-			s.Redirs = make([]Redirect, 0, 16)
-		}
-		s.Redirs = append(s.Redirs, Redirect{})
-		p.redirect(&s.Redirs[len(s.Redirs)-1])
-	}
+	p.stmtStack = append(p.stmtStack, s)
+	defer func() {
+		p.stmtStack = p.stmtStack[:len(p.stmtStack)-1]
+	}()
 	for {
 		if as, ok := p.getAssign(); ok {
 			s.Assigns = append(s.Assigns, as)
 		} else if p.peekRedir() {
-			addRedir()
+			p.doRedirect()
 		} else {
 			break
 		}
@@ -963,7 +972,7 @@ func (p *parser) gotStmt(s *Stmt, stops ...Token) bool {
 			return true
 		}
 	}
-	p.gotStmtAndOr(s, addRedir)
+	p.gotStmtAndOr(s)
 	if !s.Negated && s.Node == nil && len(s.Assigns) == 0 && len(s.Redirs) == 0 {
 		return false
 	}
@@ -978,7 +987,7 @@ func (p *parser) gotStmt(s *Stmt, stops ...Token) bool {
 	return true
 }
 
-func (p *parser) gotStmtAndOr(s *Stmt, addRedir func()) bool {
+func (p *parser) gotStmtAndOr(s *Stmt) bool {
 	switch {
 	case p.peek(LPAREN):
 		s.Node = p.subshell()
@@ -1001,10 +1010,10 @@ func (p *parser) gotStmtAndOr(s *Stmt, addRedir func()) bool {
 	case p.peek(LET):
 		s.Node = p.letStmt()
 	default:
-		s.Node = p.cmdOrFunc(addRedir)
+		s.Node = p.cmdOrFunc()
 	}
 	for !p.newLine && p.peekRedir() {
-		addRedir()
+		p.doRedirect()
 	}
 	if s.Node == nil && len(s.Redirs) == 0 {
 		return false
@@ -1022,20 +1031,14 @@ func (p *parser) binaryStmt(left Stmt) Stmt {
 		X:     left,
 	}
 	s := Stmt{Position: p.pos}
-	addRedir := func() {
-		// TODO fix properly
-		if s.Redirs == nil {
-			s.Redirs = make([]Redirect, 0, 16)
-		}
-		s.Redirs = append(s.Redirs, Redirect{})
-		p.redirect(&s.Redirs[len(s.Redirs)-1])
-	}
+	p.stmtStack = append(p.stmtStack, &s)
 	if b.Op == LAND || b.Op == LOR {
 		s = p.followStmt(b.OpPos, b.Op.String())
-	} else if !p.gotStmtAndOr(&s, addRedir) {
+	} else if !p.gotStmtAndOr(&s) {
 		p.followErr(b.OpPos, b.Op, "a statement")
 	}
 	b.Y = s
+	p.stmtStack = p.stmtStack[:len(p.stmtStack)-1]
 	return Stmt{
 		Position: left.Position,
 		Node:     b,
@@ -1268,7 +1271,7 @@ func (p *parser) letStmt() (ls LetStmt) {
 	return
 }
 
-func (p *parser) cmdOrFunc(addRedir func()) Node {
+func (p *parser) cmdOrFunc() Node {
 	if p.got(FUNCTION) {
 		fpos := p.lpos
 		w := p.followWord(FUNCTION)
@@ -1290,7 +1293,7 @@ func (p *parser) cmdOrFunc(addRedir func()) Node {
 		var w Word
 		switch {
 		case p.peekRedir():
-			addRedir()
+			p.doRedirect()
 		case p.gotWord(&w):
 			cmd.Args = append(cmd.Args, w)
 		default:

@@ -474,7 +474,7 @@ var astTests = []testCase{
 		[]string{
 			"foo >a >>b <c",
 			"foo > a >> b < c",
-			">a >>b foo <c",
+			">a >>b <c foo",
 		},
 		Stmt{
 			Node: litCmd("foo"),

@@ -81,12 +81,7 @@ type Redirect struct {
 	Hdoc  string
 }
 
-func (r Redirect) Pos() Pos {
-	if r.N.Pos().Line > 0 {
-		return r.N.Pos()
-	}
-	return r.OpPos
-}
+func (r Redirect) Pos() Pos { return r.N.Pos() }
 func (r Redirect) End() Pos { return r.Word.End() }
 
 type Command struct {
