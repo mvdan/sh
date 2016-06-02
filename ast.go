@@ -35,7 +35,25 @@ type Stmt struct {
 }
 
 func (s Stmt) Pos() Pos { return s.Position }
-func (s Stmt) End() Pos { return s.Position }
+func (s Stmt) End() Pos {
+	end := s.Position
+	if s.Node != nil {
+		end = s.Node.End()
+	}
+	if len(s.Assigns) > 0 {
+		assEnd := s.Assigns[len(s.Assigns)-1].End()
+		if posGreater(assEnd, end) {
+			end = assEnd
+		}
+	}
+	if len(s.Redirs) > 0 {
+		redEnd := s.Redirs[len(s.Redirs)-1].End()
+		if posGreater(redEnd, end) {
+			end = redEnd
+		}
+	}
+	return end
+}
 
 type Assign struct {
 	Append bool
@@ -268,7 +286,19 @@ type ParamExp struct {
 }
 
 func (p ParamExp) Pos() Pos { return p.Dollar }
-func (p ParamExp) End() Pos { return p.Dollar }
+func (p ParamExp) End() Pos {
+	end := p.Param.End()
+	if p.Ind != nil && posGreater(p.Ind.Word.End(), end) {
+		end = p.Ind.Word.End()
+	}
+	if p.Repl != nil && posGreater(p.Repl.With.End(), end) {
+		end = p.Repl.With.End()
+	}
+	if p.Exp != nil && posGreater(p.Exp.Word.End(), end) {
+		end = p.Exp.Word.End()
+	}
+	return posAfter(end, RBRACE)
+}
 
 type Index struct {
 	Word Word
