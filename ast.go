@@ -5,7 +5,9 @@ package sh
 
 // Node represents an AST node.
 type Node interface {
+	// Pos returns the first character of the node
 	Pos() Pos
+	// End returns the character immediately after the node
 	End() Pos
 }
 
@@ -20,11 +22,15 @@ type File struct {
 func (f File) Pos() Pos { return stmtFirstPos(f.Stmts) }
 func (f File) End() Pos { return stmtLastEnd(f.Stmts) }
 
+// Comment represents a single comment on a single line.
 type Comment struct {
 	Hash Pos
 	Text string
 }
 
+// Stmt represents a statement, otherwise known as a compound command.
+// It is compromised of a node, like Command or IfStmt, and other
+// components that may come before or after it.
 type Stmt struct {
 	Node
 	Position   Pos
@@ -54,6 +60,7 @@ func (s Stmt) End() Pos {
 	return end
 }
 
+// Assign represents an assignment to a variable.
 type Assign struct {
 	Append bool
 	Name   Node
@@ -73,6 +80,7 @@ func (a Assign) End() Pos {
 	return a.Value.End()
 }
 
+// Redirect represents an input/output redirection.
 type Redirect struct {
 	OpPos Pos
 	Op    Token
@@ -84,6 +92,7 @@ type Redirect struct {
 func (r Redirect) Pos() Pos { return r.N.Pos() }
 func (r Redirect) End() Pos { return r.Word.End() }
 
+// Command represents a command execution or function call.
 type Command struct {
 	Args []Word
 }
@@ -91,6 +100,8 @@ type Command struct {
 func (c Command) Pos() Pos { return wordFirstPos(c.Args) }
 func (c Command) End() Pos { return wordLastEnd(c.Args) }
 
+// Subshell represents a series of commands that should be executed in a
+// nested shell environment.
 type Subshell struct {
 	Lparen, Rparen Pos
 	Stmts          []Stmt
@@ -99,6 +110,8 @@ type Subshell struct {
 func (s Subshell) Pos() Pos { return s.Lparen }
 func (s Subshell) End() Pos { return posAfter(s.Rparen, RPAREN) }
 
+// Block represents a series of commands that should be executed in a
+// nested scope.
 type Block struct {
 	Lbrace, Rbrace Pos
 	Stmts          []Stmt
