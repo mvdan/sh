@@ -884,7 +884,7 @@ func (p *parser) peekRedir() bool {
 		return true
 	}
 	return p.peekAny(GTR, SHR, LSS, DPLIN, DPLOUT, RDRINOUT,
-		SHL, DHEREDOC, WHEREDOC, RDRALL)
+		SHL, DHEREDOC, WHEREDOC, RDRALL, APPALL)
 }
 
 var identRe = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
