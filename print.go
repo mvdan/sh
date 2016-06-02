@@ -35,6 +35,8 @@ type printer struct {
 	comments []Comment
 
 	stack []Node
+
+	pendingHdocs []Redirect
 }
 
 func (p *printer) nestedBinary() bool {
@@ -94,6 +96,12 @@ func (p *printer) space(b byte) {
 	}
 	_, p.err = p.w.Write([]byte{b})
 	p.wantSpace = false
+	if b == '\n' {
+		for _, r := range p.pendingHdocs {
+			p.nonSpaced(r.Hdoc, wordStr(unquote(r.Word)), "\n")
+		}
+		p.pendingHdocs = nil
+	}
 }
 
 func (p *printer) nonSpaced(a ...interface{}) {
@@ -273,12 +281,8 @@ func (p *printer) node(n Node) {
 			p.didSeparate(r.OpPos, false)
 			p.spaced(r.N)
 			p.nonSpaced(r.Op, r.Word)
-		}
-		for _, r := range x.Redirs[startRedirs:] {
 			if r.Op == SHL || r.Op == DHEREDOC {
-				p.space('\n')
-				p.curLine++
-				p.nonSpaced(r.Hdoc, wordStr(unquote(r.Word)))
+				p.pendingHdocs = append(p.pendingHdocs, r)
 			}
 		}
 		if x.Background {
