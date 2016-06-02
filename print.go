@@ -24,7 +24,8 @@ type printer struct {
 	w   io.Writer
 	err error
 
-	wantSpace bool
+	wantSpace   bool
+	wantNewline bool
 
 	curLine int
 	level   int
@@ -124,11 +125,22 @@ func (p *printer) spaced(a ...interface{}) {
 			continue
 		}
 		if t, ok := v.(Token); ok && contiguousLeft[t] {
+		} else if p.wantNewline {
+			p.space('\n')
+			p.indent()
+			p.wantNewline = false
 		} else if p.wantSpace {
 			p.space(' ')
 		}
 		p.nonSpaced(v)
 	}
+}
+
+func (p *printer) semiOrNewl(v interface{}) {
+	if !p.wantNewline {
+		p.nonSpaced(SEMICOLON)
+	}
+	p.spaced(v)
 }
 
 func (p *printer) indent() {
@@ -152,6 +164,12 @@ func (p *printer) sepNewline(pos Pos) {
 
 func (p *printer) separate(pos Pos, fallback bool) {
 	p.commentsUpTo(pos.Line)
+	if p.wantNewline {
+		if p.curLine >= pos.Line {
+			p.curLine = pos.Line - 1
+		}
+		p.wantNewline = false
+	}
 	if p.curLine > 0 && pos.Line > p.curLine {
 		p.space('\n')
 		if pos.Line > p.curLine+1 {
@@ -253,12 +271,13 @@ func (p *printer) node(n Node) {
 	case IfStmt:
 		p.spaced(IF)
 		p.nonSpaced(x.Cond)
-		p.spaced(SEMICOLON, THEN)
+		p.semiOrNewl(THEN)
 		p.curLine = x.Then.Line
 		p.nestedStmts(x.ThenStmts)
 		for _, el := range x.Elifs {
 			p.separated(ELIF, el.Elif, true)
-			p.spaced(el.Cond, SEMICOLON, THEN)
+			p.nonSpaced(el.Cond)
+			p.semiOrNewl(THEN)
 			p.nestedStmts(el.ThenStmts)
 		}
 		if len(x.ElseStmts) > 0 {
@@ -273,21 +292,21 @@ func (p *printer) node(n Node) {
 	case WhileStmt:
 		p.spaced(WHILE)
 		p.nonSpaced(x.Cond)
-		p.spaced(SEMICOLON, DO)
+		p.semiOrNewl(DO)
 		p.curLine = x.Do.Line
 		p.nestedStmts(x.DoStmts)
 		p.separated(DONE, x.Done, true)
 	case UntilStmt:
 		p.spaced(UNTIL)
 		p.nonSpaced(x.Cond)
-		p.spaced(SEMICOLON, DO)
+		p.semiOrNewl(DO)
 		p.curLine = x.Do.Line
 		p.nestedStmts(x.DoStmts)
 		p.separated(DONE, x.Done, true)
 	case ForStmt:
 		p.spaced(FOR)
 		p.nonSpaced(x.Cond)
-		p.spaced(SEMICOLON, DO)
+		p.semiOrNewl(DO)
 		p.curLine = x.Do.Line
 		p.nestedStmts(x.DoStmts)
 		p.separated(DONE, x.Done, true)
@@ -464,6 +483,9 @@ func (p *printer) wordJoin(ws []Word, keepNewlines bool) {
 }
 
 func (p *printer) stmts(stmts []Stmt) bool {
+	if len(stmts) == 0 {
+		return false
+	}
 	sameLine := stmtFirstPos(stmts).Line == p.curLine
 	if len(stmts) == 1 && sameLine {
 		s := stmts[0]
@@ -475,6 +497,7 @@ func (p *printer) stmts(stmts []Stmt) bool {
 		p.sepNewline(s.Pos())
 		p.node(s)
 	}
+	p.wantNewline = true
 	return true
 }
 

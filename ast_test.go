@@ -168,7 +168,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{
-			"if\n\ta1\n\ta2 foo\n\ta3 bar; then b; fi",
+			"if\n\ta1\n\ta2 foo\n\ta3 bar\nthen b; fi",
 			"if a1; a2 foo; a3 bar; then b; fi",
 		},
 		IfStmt{
