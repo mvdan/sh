@@ -10,6 +10,8 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path/filepath"
+	"regexp"
 
 	"github.com/mvdan/sh"
 )
@@ -23,7 +25,7 @@ func main() {
 	flag.Parse()
 	anyErr := false
 	for _, path := range flag.Args() {
-		if err := format(path); err != nil {
+		if err := work(path); err != nil {
 			anyErr = true
 			fmt.Fprintln(os.Stderr, err)
 		}
@@ -31,6 +33,30 @@ func main() {
 	if anyErr {
 		os.Exit(1)
 	}
+}
+
+var (
+	hidden = regexp.MustCompile(`^\.[^/.]`)
+	shellFile = regexp.MustCompile(`^.*\.(sh|bash)$`)
+)
+
+func work(path string) error {
+	info, err := os.Stat(path)
+	if err != nil {
+		return err
+	}
+	if !info.IsDir() {
+		return format(path)
+	}
+	return filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
+		if hidden.MatchString(path) {
+			return filepath.SkipDir
+		}
+		if info.IsDir() || !shellFile.MatchString(path) {
+			return nil
+		}
+		return format(path)
+	})
 }
 
 func format(path string) error {
