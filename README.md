@@ -1,5 +1,8 @@
 # sh
 
+[![GoDoc](https://godoc.org/github.com/mvdan/xurls?status.svg)](https://godoc.org/github.com/mvdan/xurls)
+[![Build Status](https://travis-ci.org/mvdan/sh.svg?branch=master)](https://travis-ci.org/mvdan/sh)
+
 A shell parser and formatter. Supports POSIX Shell and Bash.
 
 Still in active development, so the API might change a little.
