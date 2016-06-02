@@ -59,7 +59,7 @@ func (p *printer) compactArithm() bool {
 		switch p.stack[i].(type) {
 		case LetStmt:
 			return true
-		case ParenExpr:
+		case ArithmExpr, ParenExpr:
 			return false
 		}
 	}
@@ -152,19 +152,11 @@ func (p *printer) separate(pos Pos, fallback bool) {
 	p.curLine = pos.Line
 }
 
-func (p *printer) sepSemicolon(v interface{}, pos Pos) {
+func (p *printer) separated(v interface{}, pos Pos, fallback bool) {
 	p.level++
 	p.commentsUpTo(pos.Line)
 	p.level--
-	p.separate(pos, true)
-	p.spaced(v)
-}
-
-func (p *printer) sepNewline(v interface{}, pos Pos) {
-	p.level++
-	p.commentsUpTo(pos.Line)
-	p.level--
-	p.separate(pos, false)
+	p.separate(pos, fallback)
 	p.spaced(v)
 }
 
@@ -186,7 +178,7 @@ func (p *printer) node(n Node) {
 	p.stack = append(p.stack, n)
 	switch x := n.(type) {
 	case File:
-		p.progStmts(x.Stmts)
+		p.stmts(x.Stmts)
 		p.commentsUpTo(0)
 		p.space('\n')
 	case Stmt:
@@ -239,45 +231,45 @@ func (p *printer) node(n Node) {
 			// avoid conflict with ()
 			p.space(' ')
 		}
-		p.stmtJoin(x.Stmts)
-		p.sepNewline(RPAREN, x.Rparen)
+		p.nestedStmts(x.Stmts)
+		p.separated(RPAREN, x.Rparen, false)
 	case Block:
 		p.spaced(LBRACE)
-		p.stmtJoin(x.Stmts)
-		p.sepSemicolon(RBRACE, x.Rbrace)
+		p.nestedStmts(x.Stmts)
+		p.separated(RBRACE, x.Rbrace, true)
 	case IfStmt:
 		p.spaced(IF, x.Cond, SEMICOLON, THEN)
 		p.curLine = x.Then.Line
-		p.stmtJoin(x.ThenStmts)
+		p.nestedStmts(x.ThenStmts)
 		for _, el := range x.Elifs {
-			p.sepSemicolon(ELIF, el.Elif)
+			p.separated(ELIF, el.Elif, true)
 			p.spaced(el.Cond, SEMICOLON, THEN)
-			p.stmtJoin(el.ThenStmts)
+			p.nestedStmts(el.ThenStmts)
 		}
 		if len(x.ElseStmts) > 0 {
-			p.sepSemicolon(ELSE, x.Else)
-			p.stmtJoin(x.ElseStmts)
+			p.separated(ELSE, x.Else, true)
+			p.nestedStmts(x.ElseStmts)
 		}
-		p.sepSemicolon(FI, x.Fi)
+		p.separated(FI, x.Fi, true)
 	case StmtCond:
-		p.stmtJoin(x.Stmts)
+		p.nestedStmts(x.Stmts)
 	case CStyleCond:
 		p.spaced(DLPAREN, x.Cond, DRPAREN)
 	case WhileStmt:
 		p.spaced(WHILE, x.Cond, SEMICOLON, DO)
 		p.curLine = x.Do.Line
-		p.stmtJoin(x.DoStmts)
-		p.sepSemicolon(DONE, x.Done)
+		p.nestedStmts(x.DoStmts)
+		p.separated(DONE, x.Done, true)
 	case UntilStmt:
 		p.spaced(UNTIL, x.Cond, SEMICOLON, DO)
 		p.curLine = x.Do.Line
-		p.stmtJoin(x.DoStmts)
-		p.sepSemicolon(DONE, x.Done)
+		p.nestedStmts(x.DoStmts)
+		p.separated(DONE, x.Done, true)
 	case ForStmt:
 		p.spaced(FOR, x.Cond, SEMICOLON, DO)
 		p.curLine = x.Do.Line
-		p.stmtJoin(x.DoStmts)
-		p.sepSemicolon(DONE, x.Done)
+		p.nestedStmts(x.DoStmts)
+		p.separated(DONE, x.Done, true)
 	case WordIter:
 		p.spaced(x.Name)
 		if len(x.List) > 0 {
@@ -342,12 +334,12 @@ func (p *printer) node(n Node) {
 		} else {
 			p.nonSpaced(DOLLPR)
 		}
-		p.stmtJoin(x.Stmts)
+		p.nestedStmts(x.Stmts)
 		if x.Backquotes {
 			p.wantSpace = false
-			p.sepNewline(BQUOTE, x.Right)
+			p.separated(BQUOTE, x.Right, false)
 		} else {
-			p.sepNewline(RPAREN, x.Right)
+			p.separated(RPAREN, x.Right, false)
 		}
 	case ParamExp:
 		if x.Short {
@@ -386,19 +378,15 @@ func (p *printer) node(n Node) {
 				p.spaced(w)
 			}
 			p.nonSpaced(RPAREN)
-			p.stmtJoin(pl.Stmts)
+			p.nestedStmts(pl.Stmts)
 			p.level++
-			p.sepNewline(DSEMICOLON, pl.Dsemi)
+			p.separated(DSEMICOLON, pl.Dsemi, false)
 			if pl.Dsemi == x.Esac {
 				p.curLine--
 			}
 			p.level--
 		}
-		if len(x.List) == 0 {
-			p.sepSemicolon(ESAC, x.Esac)
-		} else {
-			p.sepNewline(ESAC, x.Esac)
-		}
+		p.separated(ESAC, x.Esac, len(x.List) == 0)
 	case DeclStmt:
 		if x.Local {
 			p.spaced(LOCAL)
@@ -418,7 +406,7 @@ func (p *printer) node(n Node) {
 	case CmdInput:
 		// avoid conflict with <<
 		p.spaced(CMDIN)
-		p.stmtJoin(x.Stmts)
+		p.nestedStmts(x.Stmts)
 		p.nonSpaced(RPAREN)
 	case EvalStmt:
 		p.spaced(EVAL, x.Stmt)
@@ -449,18 +437,15 @@ func (p *printer) wordJoin(ws []Word, keepNewlines bool) {
 	}
 }
 
-func (p *printer) progStmts(stmts []Stmt) {
+func (p *printer) stmts(stmts []Stmt) {
 	for i, s := range stmts {
 		p.separate(s.Pos(), i > 0)
 		p.node(s)
 	}
 }
 
-func (p *printer) stmtJoin(stmts []Stmt) {
+func (p *printer) nestedStmts(stmts []Stmt) {
 	p.level++
-	for i, s := range stmts {
-		p.separate(s.Pos(), i > 0)
-		p.node(s)
-	}
+	p.stmts(stmts)
 	p.level--
 }
