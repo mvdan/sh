@@ -510,7 +510,6 @@ func (p *printer) stmts(stmts []Stmt) bool {
 		return false
 	}
 	p.inlineIndent = 0
-	lastLine := stmts[0].Pos().Line
 	for i, s := range stmts {
 		p.sepNewline(s.Pos())
 		p.node(s)
@@ -518,6 +517,7 @@ func (p *printer) stmts(stmts []Stmt) bool {
 			continue
 		}
 		if p.inlineIndent == 0 {
+			lastLine := stmts[i].Pos().Line
 			for _, s := range stmts[i:] {
 				pos := s.Pos()
 				if !p.hasInline(pos) || pos.Line > lastLine+1 {
