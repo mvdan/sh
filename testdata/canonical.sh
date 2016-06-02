@@ -60,7 +60,7 @@ EOF
 $((3 + 4))
 
 # bash-only
-function foo { bar; }
+function foo() { bar; }
 foo <<<"bar"
 foo <(bar)
 let a=1+2 b=(3 + 4)

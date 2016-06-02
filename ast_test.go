@@ -433,14 +433,22 @@ var astTests = []testCase{
 	},
 	{
 		[]string{
+			"function foo() {\n\ta\n\tb\n}",
 			"function foo {\n\ta\n\tb\n}",
 			"function foo() { a; b; }",
-			"function foo ( ) {\na\nb\n}",
 		},
 		FuncDecl{
 			BashStyle: true,
 			Name:      lit("foo"),
 			Body:      stmt(block(litStmts("a", "b")...)),
+		},
+	},
+	{
+		[]string{"function foo() (a)"},
+		FuncDecl{
+			BashStyle: true,
+			Name:      lit("foo"),
+			Body:      stmt(subshell(litStmt("a"))),
 		},
 	},
 	{
