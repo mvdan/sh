@@ -1028,15 +1028,17 @@ func (p *parser) binaryStmt(left Stmt) Stmt {
 		X:     left,
 	}
 	p.got(COMMENT)
-	s := Stmt{Position: p.pos}
-	p.stmtStack = append(p.stmtStack, &s)
 	if b.Op == LAND || b.Op == LOR {
-		s = p.followStmt(b.OpPos, b.Op.String())
-	} else if !p.gotStmtPipe(&s) {
-		p.followErr(b.OpPos, b.Op, "a statement")
+		b.Y = p.followStmt(b.OpPos, b.Op.String())
+	} else {
+		s := Stmt{Position: p.pos}
+		p.stmtStack = append(p.stmtStack, &s)
+		if !p.gotStmtPipe(&s) {
+			p.followErr(b.OpPos, b.Op, "a statement")
+		}
+		p.stmtStack = p.stmtStack[:len(p.stmtStack)-1]
+		b.Y = s
 	}
-	b.Y = s
-	p.stmtStack = p.stmtStack[:len(p.stmtStack)-1]
 	return Stmt{
 		Position: left.Position,
 		Node:     b,
