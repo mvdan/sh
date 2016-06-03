@@ -58,9 +58,15 @@ type parser struct {
 
 	// stack of stmts (to save redirects)
 	stmtStack []*Stmt
+	// list of pending heredoc bodies
+	heredocs []hdocRef
 
 	stopNewline bool
-	heredocs    []*Redirect
+}
+
+type hdocRef struct {
+	stmt  *Stmt
+	index int
 }
 
 func (p *parser) pushStops(stops ...Token) {
@@ -345,7 +351,8 @@ func wordStr(w Word) string {
 }
 
 func (p *parser) doHeredocs() {
-	for i, r := range p.heredocs {
+	for i, hr := range p.heredocs {
+		r := &hr.stmt.Redirs[hr.index]
 		end := wordStr(unquote(r.Word))
 		if i > 0 {
 			p.readOnly("\n")
@@ -932,12 +939,25 @@ func (p *parser) getAssign() (Assign, bool) {
 
 func (p *parser) doRedirect() {
 	s := p.stmtStack[len(p.stmtStack)-1]
-	// TODO fix properly
-	if s.Redirs == nil {
-		s.Redirs = make([]Redirect, 0, 16)
-	}
 	s.Redirs = append(s.Redirs, Redirect{})
-	p.redirect(&s.Redirs[len(s.Redirs)-1])
+	r := &s.Redirs[len(s.Redirs)-1]
+	p.gotLit(&r.N)
+	r.Op = p.tok
+	r.OpPos = p.pos
+	p.next()
+	switch r.Op {
+	case SHL, DHEREDOC:
+		p.stopNewline = true
+		r.Word = p.followWord(r.Op)
+		p.stopNewline = false
+		p.heredocs = append(p.heredocs, hdocRef{
+			stmt:  s,
+			index: len(s.Redirs) - 1,
+		})
+		p.got(STOPPED)
+	default:
+		r.Word = p.followWord(r.Op)
+	}
 }
 
 func (p *parser) gotStmt(s *Stmt, stops ...Token) bool {
@@ -1062,24 +1082,6 @@ func unquote(w Word) (unq Word) {
 		}
 	}
 	return unq
-}
-
-func (p *parser) redirect(r *Redirect) {
-	p.gotLit(&r.N)
-	r.Op = p.tok
-	r.OpPos = p.pos
-	p.next()
-	switch r.Op {
-	case SHL, DHEREDOC:
-		p.stopNewline = true
-		r.Word = p.followWord(r.Op)
-		p.stopNewline = false
-		p.heredocs = append(p.heredocs, r)
-		p.got(STOPPED)
-	default:
-		r.Word = p.followWord(r.Op)
-	}
-	return
 }
 
 func (p *parser) subshell() (s Subshell) {

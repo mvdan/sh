@@ -729,6 +729,25 @@ var astTests = []testCase{
 		},
 	},
 	{
+		[]string{
+			"a <<EOF\nfoo\nEOF\nb\nb\nb\nb\nb\nb\nb\nb\nb",
+			"a <<EOF;b;b;b;b;b;b;b;b;b\nfoo\nEOF",
+		},
+		[]Stmt{
+			{
+				Node: litCmd("a"),
+				Redirs: []Redirect{{
+					Op:   SHL,
+					Word: litWord("EOF"),
+					Hdoc: "foo\n",
+				}},
+			},
+			litStmt("b"), litStmt("b"), litStmt("b"),
+			litStmt("b"), litStmt("b"), litStmt("b"),
+			litStmt("b"), litStmt("b"), litStmt("b"),
+		},
+	},
+	{
 		[]string{"foo >&2 <&0 2>file <>f2 &>f3 &>>f4"},
 		Stmt{
 			Node: litCmd("foo"),
