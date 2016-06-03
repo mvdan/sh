@@ -264,7 +264,7 @@ func (p *printer) node(n Node) {
 		}
 		anyNewline := false
 		for _, r := range x.Redirs[startRedirs:] {
-			if r.OpPos.Line > p.curLine {
+			if p.curLine > 0 && r.OpPos.Line > p.curLine {
 				p.spaced("\\\n")
 				if !anyNewline {
 					p.level++
@@ -504,7 +504,7 @@ func (p *printer) node(n Node) {
 func (p *printer) wordJoin(ws []Word, keepNewlines, needBackslash bool) {
 	anyNewline := false
 	for _, w := range ws {
-		if keepNewlines && w.Pos().Line > p.curLine {
+		if keepNewlines && p.curLine > 0 && w.Pos().Line > p.curLine {
 			if needBackslash {
 				p.spaced("\\")
 			}
@@ -572,13 +572,11 @@ func (p *printer) stmts(stmts []Stmt) bool {
 func strFprint(n Node) string {
 	var buf bytes.Buffer
 	p := printer{w: &buf}
-	p.curLine = n.Pos().Line
 	if f, ok := n.(File); ok {
 		p.comments = f.Comments
 	}
 	p.node(n)
-	// TODO: get rid of leading newlines properly
-	return strings.TrimLeft(buf.String(), "\n")
+	return buf.String()
 }
 
 func (p *printer) nestedStmts(stmts []Stmt) bool {
