@@ -472,6 +472,10 @@ var errTests = []struct {
 		"let ))",
 		`1:5: "let" must be followed by arithmetic expressions`,
 	},
+	{
+		"a=(<)",
+		`1:4: array elements must be words`,
+	},
 }
 
 func TestParseErr(t *testing.T) {
