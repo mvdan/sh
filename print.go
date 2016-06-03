@@ -82,11 +82,10 @@ var (
 	}
 	// these never want a preceding space
 	contiguousLeft = map[Token]bool{
-		SEMICOLON:  true,
-		DSEMICOLON: true,
-		RPAREN:     true,
-		DRPAREN:    true,
-		COMMA:      true,
+		SEMICOLON: true,
+		RPAREN:    true,
+		DRPAREN:   true,
+		COMMA:     true,
 	}
 )
 

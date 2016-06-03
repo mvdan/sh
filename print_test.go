@@ -159,7 +159,7 @@ func TestFprintWeirdFormat(t *testing.T) {
 		},
 		{
 			"case $i in\n1) foo\nesac",
-			"case $i in\n1) foo;;\nesac",
+			"case $i in\n1) foo ;;\nesac",
 		},
 		{
 			"case $i in\n1) foo; bar\nesac",
