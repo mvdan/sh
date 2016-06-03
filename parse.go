@@ -941,6 +941,13 @@ func (p *parser) doRedirect() {
 }
 
 func (p *parser) gotStmt(s *Stmt, stops ...Token) bool {
+	p.stmtStack = append(p.stmtStack, s)
+	got := p.gotStmtAndOr(s, stops...)
+	p.stmtStack = p.stmtStack[:len(p.stmtStack)-1]
+	return got
+}
+
+func (p *parser) gotStmtAndOr(s *Stmt, stops ...Token) bool {
 	if p.peek(RBRACE) {
 		// don't let it be a LIT
 		return false
@@ -949,10 +956,6 @@ func (p *parser) gotStmt(s *Stmt, stops ...Token) bool {
 	if p.got(NOT) {
 		s.Negated = true
 	}
-	p.stmtStack = append(p.stmtStack, s)
-	defer func() {
-		p.stmtStack = p.stmtStack[:len(p.stmtStack)-1]
-	}()
 	for {
 		if as, ok := p.getAssign(); ok {
 			s.Assigns = append(s.Assigns, as)
@@ -966,7 +969,7 @@ func (p *parser) gotStmt(s *Stmt, stops ...Token) bool {
 			return true
 		}
 	}
-	p.gotStmtAndOr(s)
+	p.gotStmtPipe(s)
 	if !s.Negated && s.Node == nil && len(s.Assigns) == 0 && len(s.Redirs) == 0 {
 		return false
 	}
@@ -981,7 +984,7 @@ func (p *parser) gotStmt(s *Stmt, stops ...Token) bool {
 	return true
 }
 
-func (p *parser) gotStmtAndOr(s *Stmt) bool {
+func (p *parser) gotStmtPipe(s *Stmt) bool {
 	switch {
 	case p.peek(LPAREN):
 		s.Node = p.subshell()
@@ -1029,7 +1032,7 @@ func (p *parser) binaryStmt(left Stmt) Stmt {
 	p.stmtStack = append(p.stmtStack, &s)
 	if b.Op == LAND || b.Op == LOR {
 		s = p.followStmt(b.OpPos, b.Op.String())
-	} else if !p.gotStmtAndOr(&s) {
+	} else if !p.gotStmtPipe(&s) {
 		p.followErr(b.OpPos, b.Op, "a statement")
 	}
 	b.Y = s
