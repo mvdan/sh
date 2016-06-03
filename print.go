@@ -158,32 +158,31 @@ func (p *printer) indent() {
 	}
 }
 
+func (p *printer) newlines(pos Pos) {
+	p.wantNewline = false
+	p.space('\n')
+	if pos.Line > p.curLine+1 {
+		// preserve single empty lines
+		p.space('\n')
+		p.inlineIndent = 0
+	}
+	p.curLine = pos.Line
+	p.indent()
+}
+
 func (p *printer) sepNewline(pos Pos) {
 	p.commentsUpTo(pos.Line)
 	if p.curLine > 0 {
-		p.space('\n')
-		if pos.Line > p.curLine+1 {
-			// preserve single empty lines
-			p.space('\n')
-			p.inlineIndent = 0
-		}
-		p.indent()
+		p.newlines(pos)
+	} else {
+		p.curLine = pos.Line
 	}
-	p.curLine = pos.Line
 }
 
 func (p *printer) didSeparate(pos Pos, fallback bool) bool {
 	p.commentsUpTo(pos.Line)
 	if p.wantNewline || (p.curLine > 0 && pos.Line > p.curLine) {
-		p.wantNewline = false
-		p.space('\n')
-		if pos.Line > p.curLine+1 {
-			// preserve single empty lines
-			p.space('\n')
-			p.inlineIndent = 0
-		}
-		p.curLine = pos.Line
-		p.indent()
+		p.newlines(pos)
 		return true
 	}
 	if fallback {
