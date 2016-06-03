@@ -847,29 +847,6 @@ func (p *parser) arithmEnd(left Pos) Pos {
 	return p.lpos
 }
 
-func (p *parser) arrayElems() (ws []Word) {
-	for !p.eof() && !p.peek(RPAREN) {
-		var w Word
-		if !p.gotWord(&w) {
-			p.curErr("array elements must be words")
-		}
-		ws = append(ws, w)
-	}
-	return
-}
-
-func (p *parser) wordList(stops ...Token) (ws []Word) {
-	for !p.peekEnd() && !p.peekAny(stops...) {
-		var w Word
-		if !p.gotWord(&w) {
-			p.curErr("word list can only contain words")
-		}
-		ws = append(ws, w)
-	}
-	p.gotSameLine(SEMICOLON)
-	return
-}
-
 func (p *parser) peekEnd() bool {
 	return p.eof() || p.newLine || p.peek(SEMICOLON)
 }
@@ -938,7 +915,13 @@ func (p *parser) getAssign() (Assign, bool) {
 	}
 	if start.Value == "" && p.got(LPAREN) {
 		ae := ArrayExpr{Lparen: p.lpos}
-		ae.List = p.arrayElems()
+		for !p.eof() && !p.peek(RPAREN) {
+			var w Word
+			if !p.gotWord(&w) {
+				p.curErr("array elements must be words")
+			}
+			ae.List = append(ae.List, w)
+		}
 		ae.Rparen = p.matchedTok(ae.Lparen, LPAREN, RPAREN)
 		as.Value.Parts = append(as.Value.Parts, ae)
 	} else if !p.peekStop() {
@@ -1178,16 +1161,23 @@ func (p *parser) forStmt() (fs ForStmt) {
 		p.gotSameLine(SEMICOLON)
 		fs.Cond = c
 	} else {
-		var w WordIter
-		if !p.gotLit(&w.Name) {
+		var wi WordIter
+		if !p.gotLit(&wi.Name) {
 			p.followErr(fs.For, FOR, "a literal")
 		}
 		if p.got(IN) {
-			w.List = p.wordList()
+			for !p.peekEnd() {
+				var w Word
+				if !p.gotWord(&w) {
+					p.curErr("word list can only contain words")
+				}
+				wi.List = append(wi.List, w)
+			}
+			p.gotSameLine(SEMICOLON)
 		} else if !p.gotSameLine(SEMICOLON) && !p.newLine {
 			p.followErr(fs.For, "for foo", `"in", ; or a newline`)
 		}
-		fs.Cond = w
+		fs.Cond = wi
 	}
 	fs.Do = p.followTok(fs.For, "for foo [in words]", DO)
 	fs.DoStmts = p.followStmts(DO, DONE)
