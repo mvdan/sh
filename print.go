@@ -454,6 +454,7 @@ func (p *printer) node(n Node) {
 		p.nonSpaced(LPAREN, x.X, RPAREN)
 	case CaseStmt:
 		p.spaced(CASE, x.Word, IN)
+		p.level++
 		for _, pl := range x.List {
 			p.didSeparate(wordFirstPos(pl.Patterns))
 			for i, w := range pl.Patterns {
@@ -476,6 +477,7 @@ func (p *printer) node(n Node) {
 			}
 			p.level--
 		}
+		p.level--
 		p.separated(ESAC, x.Esac, len(x.List) == 0)
 	case DeclStmt:
 		if x.Local {

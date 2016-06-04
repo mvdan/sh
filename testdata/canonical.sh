@@ -31,9 +31,10 @@ for foo in a b c; do
 done
 
 case $foo in
-a)
-	A
-	;;
+	a) A ;;
+	b)
+		B
+		;;
 esac
 
 $foo ${foo} ${#foo} ${foo:-bar}
