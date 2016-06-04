@@ -1898,6 +1898,18 @@ var astTests = []testCase{
 			},
 		},
 	},
+	{
+		[]string{"<<EOF | b\nfoo\nEOF", "<<EOF|b;\nfoo"},
+		BinaryExpr{
+			Op: OR,
+			X: Stmt{Redirs: []Redirect{{
+				Op:   SHL,
+				Word: litWord("EOF"),
+				Hdoc: "foo\n",
+			}}},
+			Y: litStmt("b"),
+		},
+	},
 }
 
 func fullProg(v interface{}) (f File) {

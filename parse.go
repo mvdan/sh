@@ -995,7 +995,7 @@ func (p *parser) gotStmtAndOr(s *Stmt, stops ...Token) bool {
 	}
 	switch {
 	case p.got(LAND), p.got(LOR):
-		*s = p.binaryStmt(*s)
+		*s = p.binaryStmt(s)
 		return true
 	case p.got(AND):
 		s.Background = true
@@ -1036,16 +1036,17 @@ func (p *parser) gotStmtPipe(s *Stmt) bool {
 		return false
 	}
 	if p.got(OR) || p.got(PIPEALL) {
-		*s = p.binaryStmt(*s)
+		*s = p.binaryStmt(s)
 	}
 	return true
 }
 
-func (p *parser) binaryStmt(left Stmt) Stmt {
+func (p *parser) binaryStmt(left *Stmt) Stmt {
+	x := *left
 	b := BinaryExpr{
 		OpPos: p.lpos,
 		Op:    p.ltok,
-		X:     left,
+		X:     x,
 	}
 	p.got(COMMENT)
 	if b.Op == LAND || b.Op == LOR {
@@ -1058,6 +1059,13 @@ func (p *parser) binaryStmt(left Stmt) Stmt {
 		}
 		p.stmtStack = p.stmtStack[:len(p.stmtStack)-1]
 		b.Y = s
+	}
+	for i := range p.heredocs {
+		hr := &p.heredocs[i]
+		if hr.stmt == left {
+			hr.stmt = &x
+			break
+		}
 	}
 	return Stmt{
 		Position: left.Position,
