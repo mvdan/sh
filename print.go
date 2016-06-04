@@ -156,15 +156,19 @@ func (p *printer) indent() {
 	}
 }
 
-func (p *printer) newlines(pos Pos) {
+func (p *printer) newline() {
 	p.wantNewline = false
 	p.space('\n')
+}
+
+func (p *printer) newlines(pos Pos) {
+	p.newline()
 	if pos.Line > p.curLine+1 {
 		// preserve single empty lines
 		p.space('\n')
 	}
-	p.curLine = pos.Line
 	p.indent()
+	p.curLine = pos.Line
 }
 
 func (p *printer) alwaysSeparate(pos Pos) {
@@ -184,6 +188,15 @@ func (p *printer) didSeparate(pos Pos) bool {
 	}
 	p.curLine = pos.Line
 	return false
+}
+
+func (p *printer) singleStmtSeparate(pos Pos) {
+	if p.wantNewline || (p.curLine > 0 && pos.Line > p.curLine) {
+		p.spaced("\\")
+		p.newline()
+		p.indent()
+	}
+	p.curLine = pos.Line
 }
 
 func (p *printer) separated(v interface{}, pos Pos, fallback bool) {
@@ -367,12 +380,12 @@ func (p *printer) node(n Node) {
 		case p.inArithm():
 			p.spaced(x.X, x.Op, x.Y)
 		default:
-			p.spaced(x.X, x.Op)
+			p.spaced(x.X)
 			if !p.nestedBinary() {
 				p.level++
 			}
-			p.didSeparate(x.Y.Pos())
-			p.commentsUpTo(x.Y.Pos().Line)
+			p.singleStmtSeparate(x.Y.Pos())
+			p.spaced(x.Op)
 			p.nonSpaced(x.Y)
 			if !p.nestedBinary() {
 				p.level--

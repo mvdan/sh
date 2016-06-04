@@ -122,10 +122,6 @@ func TestFprintWeirdFormat(t *testing.T) {
 			"foo\nfoooo # 1",
 		},
 		{
-			"foo |\n# between\nbar",
-			"foo |\n\t# between\n\tbar",
-		},
-		{
 			"(\nbar\n# extra\n)",
 			"(\n\tbar\n\t# extra\n)",
 		},
@@ -138,8 +134,16 @@ func TestFprintWeirdFormat(t *testing.T) {
 			"for a in 1 2; do\n\n\tbar\ndone",
 		},
 		{
-			"a &&\nb &&\nc",
-			"a &&\n\tb &&\n\tc",
+			"a \\\n\t&& b",
+			"a \\\n\t&& b",
+		},
+		{
+			"a |\nb |\nc",
+			"a \\\n\t| b \\\n\t| c",
+		},
+		{
+			"foo |\n# misplaced\nbar",
+			"foo \\\n\t| bar # misplaced",
 		},
 		{
 			"\"\\\nfoo\\\n  bar\"",

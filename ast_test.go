@@ -341,7 +341,7 @@ var astTests = []testCase{
 		},
 	},
 	{
-		[]string{"foo &&\n\tbar"},
+		[]string{"foo \\\n\t&& bar"},
 		BinaryExpr{
 			Op: LAND,
 			X:  litStmt("foo"),
