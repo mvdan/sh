@@ -30,8 +30,6 @@ type printer struct {
 	curLine int
 	level   int
 
-	inlineIndent int
-
 	comments []Comment
 
 	stack []Node
@@ -164,7 +162,6 @@ func (p *printer) newlines(pos Pos) {
 	if pos.Line > p.curLine+1 {
 		// preserve single empty lines
 		p.space('\n')
-		p.inlineIndent = 0
 	}
 	p.curLine = pos.Line
 	p.indent()
@@ -532,21 +529,21 @@ func (p *printer) stmts(stmts []Stmt) bool {
 		p.node(s)
 		return false
 	}
-	p.inlineIndent = 0
+	inlineIndent := 0
 	lastLine := stmts[0].Pos().Line
 	for i, s := range stmts {
 		pos := s.Pos()
 		p.sepNewline(pos)
 		p.node(s)
 		if pos.Line > lastLine+1 {
-			p.inlineIndent = 0
+			inlineIndent = 0
 		}
 		lastLine = pos.Line
 		if !p.hasInline(pos) {
-			p.inlineIndent = 0
+			inlineIndent = 0
 			continue
 		}
-		if p.inlineIndent == 0 {
+		if inlineIndent == 0 {
 			lastLine := stmts[i].Pos().Line
 			for _, s := range stmts[i:] {
 				pos := s.Pos()
@@ -554,16 +551,16 @@ func (p *printer) stmts(stmts []Stmt) bool {
 					break
 				}
 				l := len(strFprint(s))
-				if l > p.inlineIndent {
-					p.inlineIndent = l
+				if l > inlineIndent {
+					inlineIndent = l
 				}
 				lastLine = pos.Line
 			}
 		}
 		l := len(strFprint(s))
-		p.wantSpaces = p.inlineIndent - l
+		p.wantSpaces = inlineIndent - l
 	}
-	p.inlineIndent = 0
+	inlineIndent = 0
 	p.wantNewline = true
 	return true
 }
