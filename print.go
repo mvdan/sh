@@ -167,7 +167,7 @@ func (p *printer) newlines(pos Pos) {
 	p.indent()
 }
 
-func (p *printer) sepNewline(pos Pos) {
+func (p *printer) alwaysSeparate(pos Pos) {
 	p.commentsUpTo(pos.Line)
 	if p.curLine > 0 {
 		p.newlines(pos)
@@ -176,14 +176,11 @@ func (p *printer) sepNewline(pos Pos) {
 	}
 }
 
-func (p *printer) didSeparate(pos Pos, fallback bool) bool {
+func (p *printer) didSeparate(pos Pos) bool {
 	p.commentsUpTo(pos.Line)
 	if p.wantNewline || (p.curLine > 0 && pos.Line > p.curLine) {
 		p.newlines(pos)
 		return true
-	}
-	if fallback {
-		p.nonSpaced(SEMICOLON)
 	}
 	p.curLine = pos.Line
 	return false
@@ -193,7 +190,9 @@ func (p *printer) separated(v interface{}, pos Pos, fallback bool) {
 	p.level++
 	p.commentsUpTo(pos.Line)
 	p.level--
-	p.didSeparate(pos, fallback)
+	if !p.didSeparate(pos) && fallback {
+		p.nonSpaced(SEMICOLON)
+	}
 	p.spaced(v)
 }
 
@@ -218,7 +217,7 @@ func (p *printer) commentsUpTo(line int) {
 		return
 	}
 	p.wantNewline = false
-	if !p.didSeparate(c.Hash, false) && p.wantSpaces > 0 {
+	if !p.didSeparate(c.Hash) && p.wantSpaces > 0 {
 		p.nonSpaced(strings.Repeat(" ", p.wantSpaces+1))
 	}
 	p.spaced(c)
@@ -268,7 +267,7 @@ func (p *printer) node(n Node) {
 				}
 				p.indent()
 			}
-			p.didSeparate(r.OpPos, false)
+			p.didSeparate(r.OpPos)
 			p.spaced(r.N)
 			p.nonSpaced(r.Op, r.Word)
 			if r.Op == SHL || r.Op == DHEREDOC {
@@ -372,7 +371,7 @@ func (p *printer) node(n Node) {
 			if !p.nestedBinary() {
 				p.level++
 			}
-			p.didSeparate(x.Y.Pos(), false)
+			p.didSeparate(x.Y.Pos())
 			p.commentsUpTo(x.Y.Pos().Line)
 			p.nonSpaced(x.Y)
 			if !p.nestedBinary() {
@@ -443,7 +442,7 @@ func (p *printer) node(n Node) {
 	case CaseStmt:
 		p.spaced(CASE, x.Word, IN)
 		for _, pl := range x.List {
-			p.didSeparate(wordFirstPos(pl.Patterns), false)
+			p.didSeparate(wordFirstPos(pl.Patterns))
 			for i, w := range pl.Patterns {
 				if i > 0 {
 					p.spaced(OR)
@@ -525,7 +524,7 @@ func (p *printer) stmts(stmts []Stmt) bool {
 	sameLine := stmtFirstPos(stmts).Line == p.curLine
 	if len(stmts) == 1 && sameLine {
 		s := stmts[0]
-		p.didSeparate(s.Pos(), false)
+		p.didSeparate(s.Pos())
 		p.node(s)
 		return false
 	}
@@ -533,7 +532,7 @@ func (p *printer) stmts(stmts []Stmt) bool {
 	lastLine := stmts[0].Pos().Line
 	for i, s := range stmts {
 		pos := s.Pos()
-		p.sepNewline(pos)
+		p.alwaysSeparate(pos)
 		p.node(s)
 		if pos.Line > lastLine+1 {
 			inlineIndent = 0
