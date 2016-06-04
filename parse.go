@@ -115,6 +115,7 @@ func moveWith(pos Pos, b byte) Pos {
 func (p *parser) peekByte() (byte, error) {
 	bs, err := p.br.Peek(1)
 	if err != nil {
+		p.errPass(err)
 		return 0, err
 	}
 	return bs[0], nil
@@ -212,7 +213,6 @@ func (p *parser) next() {
 		}
 		var err error
 		if b, err = p.peekByte(); err != nil {
-			p.errPass(err)
 			return
 		}
 		if p.stopNewline && b == '\n' {
@@ -396,11 +396,14 @@ func (p *parser) peekReservedWord(tok Token) bool {
 }
 
 func (p *parser) willSpaced() bool {
+	if p.tok == EOF {
+		return true
+	}
 	if len(p.stops) > 0 && p.willRead(p.stops[len(p.stops)-1].String()) {
 		return true
 	}
-	b, err := p.peekByte()
-	return err != nil || space[b] || wordBreak[b]
+	bs, err := p.br.Peek(1)
+	return err != nil || space[bs[0]] || wordBreak[bs[0]]
 }
 
 func (p *parser) peekAny(toks ...Token) bool {
