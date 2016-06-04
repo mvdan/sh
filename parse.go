@@ -866,14 +866,6 @@ func (p *parser) peekStop() bool {
 	return false
 }
 
-func (p *parser) peekRedir() bool {
-	if p.peek(LIT) && (p.willRead(">") || p.willRead("<")) {
-		return true
-	}
-	return p.peekAny(GTR, SHR, LSS, DPLIN, DPLOUT, RDRINOUT,
-		SHL, DHEREDOC, WHEREDOC, RDRALL, APPALL)
-}
-
 var identRe = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
 
 func (p *parser) assignSplit() int {
@@ -929,7 +921,18 @@ func (p *parser) getAssign() (Assign, bool) {
 	return as, true
 }
 
-func (p *parser) doRedirect() {
+func (p *parser) peekRedir() bool {
+	if p.peek(LIT) && (p.willRead(">") || p.willRead("<")) {
+		return true
+	}
+	return p.peekAny(GTR, SHR, LSS, DPLIN, DPLOUT, RDRINOUT,
+		SHL, DHEREDOC, WHEREDOC, RDRALL, APPALL)
+}
+
+func (p *parser) gotRedirect() bool {
+	if !p.peekRedir() {
+		return false
+	}
 	s := p.stmtStack[len(p.stmtStack)-1]
 	s.Redirs = append(s.Redirs, Redirect{})
 	r := &s.Redirs[len(s.Redirs)-1]
@@ -950,6 +953,7 @@ func (p *parser) doRedirect() {
 	default:
 		r.Word = p.followWord(r.Op)
 	}
+	return true
 }
 
 func (p *parser) gotStmt(s *Stmt, stops ...Token) bool {
@@ -971,9 +975,7 @@ func (p *parser) gotStmtAndOr(s *Stmt, stops ...Token) bool {
 	for {
 		if as, ok := p.getAssign(); ok {
 			s.Assigns = append(s.Assigns, as)
-		} else if p.peekRedir() {
-			p.doRedirect()
-		} else {
+		} else if !p.gotRedirect() {
 			break
 		}
 		if p.peekEnd() {
@@ -1021,8 +1023,7 @@ func (p *parser) gotStmtPipe(s *Stmt) bool {
 	default:
 		s.Node = p.cmdOrFunc()
 	}
-	for !p.newLine && p.peekRedir() {
-		p.doRedirect()
+	for !p.newLine && p.gotRedirect() {
 	}
 	if s.Node == nil && len(s.Redirs) == 0 {
 		return false
@@ -1301,8 +1302,7 @@ func (p *parser) cmdOrFunc() Node {
 	for !p.peekStop() {
 		var w Word
 		switch {
-		case p.peekRedir():
-			p.doRedirect()
+		case p.gotRedirect():
 		case p.gotWord(&w):
 			cmd.Args = append(cmd.Args, w)
 		default:
