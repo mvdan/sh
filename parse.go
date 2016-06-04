@@ -394,9 +394,6 @@ func (p *parser) peekReservedWord(tok Token) bool {
 }
 
 func (p *parser) willSpaced() bool {
-	if p.tok == EOF {
-		return true
-	}
 	if len(p.stops) > 0 && p.willRead(p.stops[len(p.stops)-1].String()) {
 		return true
 	}
