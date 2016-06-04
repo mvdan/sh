@@ -1317,18 +1317,17 @@ func (p *parser) cmdOrFunc() Node {
 
 var fnameRe = regexp.MustCompile(`^[a-zA-Z_-][a-zA-Z0-9_-]*$`)
 
-func (p *parser) funcDecl(w Word, pos Pos) FuncDecl {
-	fd := FuncDecl{
-		Position:  pos,
-		BashStyle: pos != w.Pos(),
-		Name: Lit{
-			Value:    wordStr(w),
-			ValuePos: w.Pos(),
-		},
+func (p *parser) funcDecl(w Word, pos Pos) (fd FuncDecl) {
+	if len(w.Parts) == 0 {
+		return
 	}
-	if !fnameRe.MatchString(fd.Name.Value) {
-		p.posErr(fd.Pos(), "invalid func name: %s", fd.Name.Value)
+	fd.Position = pos
+	fd.BashStyle = pos != w.Pos()
+	var ok bool
+	fd.Name, ok = w.Parts[0].(Lit)
+	if !ok || len(w.Parts) > 1 || !fnameRe.MatchString(fd.Name.Value) {
+		p.posErr(fd.Pos(), "invalid func name: %s", wordStr(w))
 	}
 	fd.Body = p.followStmt(fd.Pos(), "foo()")
-	return fd
+	return
 }
