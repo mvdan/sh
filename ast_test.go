@@ -432,6 +432,13 @@ var astTests = []testCase{
 		},
 	},
 	{
+		[]string{"-foo-bar() { a; }"},
+		FuncDecl{
+			Name: lit("-foo-bar"),
+			Body: stmt(block(litStmts("a")...)),
+		},
+	},
+	{
 		[]string{
 			"function foo() {\n\ta\n\tb\n}",
 			"function foo {\n\ta\n\tb\n}",

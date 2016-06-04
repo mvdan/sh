@@ -1315,6 +1315,8 @@ func (p *parser) cmdOrFunc() Node {
 	return cmd
 }
 
+var fnameRe = regexp.MustCompile(`^[a-zA-Z_-][a-zA-Z0-9_-]*$`)
+
 func (p *parser) funcDecl(w Word, pos Pos) FuncDecl {
 	fd := FuncDecl{
 		Position:  pos,
@@ -1324,7 +1326,7 @@ func (p *parser) funcDecl(w Word, pos Pos) FuncDecl {
 			ValuePos: w.Pos(),
 		},
 	}
-	if !identRe.MatchString(fd.Name.Value) {
+	if !fnameRe.MatchString(fd.Name.Value) {
 		p.posErr(fd.Pos(), "invalid func name: %s", fd.Name.Value)
 	}
 	fd.Body = p.followStmt(fd.Pos(), "foo()")
