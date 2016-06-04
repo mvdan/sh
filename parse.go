@@ -312,11 +312,9 @@ func (p *parser) readLitBytes() (bs []byte) {
 func (p *parser) advanceTok(tok Token) { p.advanceBoth(tok, tok.String()) }
 func (p *parser) advanceBoth(tok Token, val string) {
 	if p.tok != EOF {
-		p.ltok = p.tok
-		p.lval = p.val
+		p.ltok, p.lval = p.tok, p.val
 	}
-	p.tok = tok
-	p.val = val
+	p.tok, p.val = tok, val
 }
 
 func (p *parser) readUntil(s string) (string, bool) {
@@ -510,10 +508,12 @@ func (p *parser) matchedTok(lpos Pos, left, right Token) Pos {
 }
 
 func (p *parser) errPass(err error) {
-	if p.err == nil && err != io.EOF {
-		p.err = err
+	if p.err == nil {
+		if err != io.EOF {
+			p.err = err
+		}
+		p.advanceTok(EOF)
 	}
-	p.advanceTok(EOF)
 }
 
 type lineErr struct {
