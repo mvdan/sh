@@ -125,14 +125,6 @@ func (p *parser) willRead(s string) bool {
 	return err == nil && string(bs) == s
 }
 
-func (p *parser) willAnyByte(bs ...byte) bool {
-	peek, err := p.br.Peek(1)
-	if err != nil {
-		return false
-	}
-	return bytes.IndexByte(bs, peek[0]) >= 0
-}
-
 func (p *parser) readOnly(s string) bool {
 	if p.willRead(s) {
 		for i := 0; i < len(s); i++ {
@@ -841,7 +833,7 @@ func (p *parser) paramExp() (pe ParamExp) {
 }
 
 func (p *parser) peekArithmEnd() bool {
-	return p.peek(RPAREN) && p.willAnyByte(')')
+	return p.peek(RPAREN) && p.willRead(")")
 }
 
 func (p *parser) arithmEnd(left Pos) Pos {
@@ -875,7 +867,7 @@ func (p *parser) peekStop() bool {
 }
 
 func (p *parser) peekRedir() bool {
-	if p.peek(LIT) && p.willAnyByte('>', '<') {
+	if p.peek(LIT) && (p.willRead(">") || p.willRead("<")) {
 		return true
 	}
 	return p.peekAny(GTR, SHR, LSS, DPLIN, DPLOUT, RDRINOUT,
