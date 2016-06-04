@@ -18,7 +18,7 @@ func TestParse(t *testing.T) {
 		want := c.ast.(File)
 		setPosRecurse(t, want.Stmts, defaultPos, false)
 		for j, in := range c.strs {
-			t.Run(fmt.Sprintf("%d-%d", i, j), singleParse(in, want))
+			t.Run(fmt.Sprintf("%03d-%d", i, j), singleParse(in, want))
 		}
 	}
 }
@@ -480,7 +480,7 @@ var errTests = []struct {
 
 func TestParseErr(t *testing.T) {
 	for i, c := range errTests {
-		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
 			r := strings.NewReader(c.in)
 			_, err := Parse(r, "", 0)
 			if err == nil {

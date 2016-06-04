@@ -2176,7 +2176,7 @@ func TestNodePos(t *testing.T) {
 		Column: 34,
 	}
 	for i, c := range astTests {
-		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
 			want := c.ast.(File)
 			setPosRecurse(t, want, defaultPos, true)
 		})
