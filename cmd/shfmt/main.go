@@ -23,6 +23,13 @@ var (
 
 func main() {
 	flag.Parse()
+	if flag.NArg() == 0 {
+		if err := formatStdin(); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		return
+	}
 	anyErr := false
 	for _, path := range flag.Args() {
 		if err := work(path); err != nil {
@@ -33,6 +40,17 @@ func main() {
 	if anyErr {
 		os.Exit(1)
 	}
+}
+
+func formatStdin() error {
+	if *write || *list {
+		return fmt.Errorf("-w and -l can only be used on files")
+	}
+	prog, err := sh.Parse(os.Stdin, "", sh.ParseComments)
+	if err != nil {
+		return err
+	}
+	return sh.Fprint(os.Stdout, prog)
 }
 
 var (
@@ -46,7 +64,7 @@ func work(path string) error {
 		return err
 	}
 	if !info.IsDir() {
-		return format(path)
+		return formatPath(path)
 	}
 	return filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
 		if hidden.MatchString(path) {
@@ -55,7 +73,7 @@ func work(path string) error {
 		if info.IsDir() || !shellFile.MatchString(path) {
 			return nil
 		}
-		return format(path)
+		return formatPath(path)
 	})
 }
 
@@ -67,7 +85,7 @@ func empty(f *os.File) error {
 	return err
 }
 
-func format(path string) error {
+func formatPath(path string) error {
 	f, err := os.OpenFile(path, os.O_RDWR, 0)
 	if err != nil {
 		return err
