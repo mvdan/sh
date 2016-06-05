@@ -1862,6 +1862,7 @@ var astTests = []testCase{
 		[]string{
 			"let i++\nfoo=(bar)",
 			"let i++; foo=(bar)",
+			"let i++; foo=(bar)\n",
 		},
 		[]Stmt{
 			stmt(LetStmt{Exprs: []Node{

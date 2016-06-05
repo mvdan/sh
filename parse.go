@@ -1259,6 +1259,7 @@ func (p *parser) letStmt() (ls LetStmt) {
 		}
 		ls.Exprs = append(ls.Exprs, x)
 	}
+	p.stopNewline = false
 	p.popStop()
 	p.got(STOPPED)
 	return
