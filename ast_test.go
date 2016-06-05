@@ -1975,6 +1975,21 @@ var astTests = []testCase{
 			Y: stmt(block(litStmt("bar"))),
 		},
 	},
+	{
+		[]string{"foo() {\n\t<<EOF && { bar; }\nhdoc\nEOF\n}"},
+		FuncDecl{
+			Name: lit("foo"),
+			Body: stmt(block(stmt(BinaryExpr{
+				Op: LAND,
+				X: Stmt{Redirs: []Redirect{{
+					Op:   SHL,
+					Word: litWord("EOF"),
+					Hdoc: litRef("hdoc\n"),
+				}}},
+				Y: stmt(block(litStmt("bar"))),
+			}))),
+		},
+	},
 }
 
 func fullProg(v interface{}) (f File) {
