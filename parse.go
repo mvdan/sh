@@ -216,6 +216,7 @@ func (p *parser) next() {
 			return
 		}
 		if p.stopNewline && b == '\n' {
+			p.stopNewline = false
 			p.advanceTok(STOPPED)
 			return
 		}
@@ -542,6 +543,10 @@ func (p *parser) stmts(stops ...Token) (sts []Stmt) {
 		gotEnd := p.newLine || p.ltok == AND || p.ltok == SEMICOLON
 		if len(sts) > 0 && !gotEnd {
 			p.curErr("statements must be separated by &, ; or a newline")
+		}
+		p.got(STOPPED)
+		if p.eof() {
+			break
 		}
 		var s Stmt
 		if !p.gotStmt(&s, stops...) {
@@ -944,7 +949,6 @@ func (p *parser) gotRedirect() bool {
 	case SHL, DHEREDOC:
 		p.stopNewline = true
 		r.Word = p.followWord(r.Op)
-		p.stopNewline = false
 		p.heredocs = append(p.heredocs, hdocRef{
 			stmt:  s,
 			index: len(s.Redirs) - 1,
@@ -1275,7 +1279,6 @@ func (p *parser) letStmt() (ls LetStmt) {
 		}
 		ls.Exprs = append(ls.Exprs, x)
 	}
-	p.stopNewline = false
 	p.popStop()
 	p.got(STOPPED)
 	return
@@ -1302,6 +1305,7 @@ func (p *parser) cmdOrFunc() Node {
 	for !p.peekStop() {
 		var w Word
 		switch {
+		case p.got(STOPPED):
 		case p.gotRedirect():
 		case p.gotWord(&w):
 			cmd.Args = append(cmd.Args, w)

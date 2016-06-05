@@ -181,21 +181,30 @@ func TestFprintWeirdFormat(t *testing.T) {
 			"a=(\nb\nc\n) foo",
 			"a=(\n\tb\n\tc\n) foo",
 		},
+		{
+			"foo <<EOF | `bar`\n3\nEOF",
+			"foo <<EOF | `bar`\n3\nEOF",
+		},
 	}
 
 	for i, tc := range weirdFormats {
-		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
-			prog, err := Parse(strings.NewReader(tc.in), "", ParseComments)
-			if err != nil {
-				t.Fatal(err)
-			}
-			want := tc.want + "\n"
-			got := strFprint(prog, 0)
-			if got != want {
-				t.Fatalf("Fprint mismatch:\nin:\n%s\nwant:\n%sgot:\n%s",
-					tc.in, want, got)
-			}
-		})
+		for j, s := range [...]string{"", "\n"} {
+			t.Run(fmt.Sprintf("%03d-%d", i, j), func(t *testing.T) {
+				in := s + tc.in + s
+				prog, err := Parse(strings.NewReader(in), "",
+					ParseComments)
+				if err != nil {
+					t.Fatal(err)
+				}
+				want := tc.want + "\n"
+				got := strFprint(prog, 0)
+				if got != want {
+					t.Fatalf("Fprint mismatch:\n"+
+						"in:\n%s\nwant:\n%sgot:\n%s",
+						in, want, got)
+				}
+			})
+		}
 	}
 }
 
