@@ -933,7 +933,10 @@ func (p *parser) gotRedirect() bool {
 	s := p.stmtStack[len(p.stmtStack)-1]
 	s.Redirs = append(s.Redirs, Redirect{})
 	r := &s.Redirs[len(s.Redirs)-1]
-	p.gotLit(&r.N)
+	var l Lit
+	if p.gotLit(&l) {
+		r.N = &l
+	}
 	r.Op = p.tok
 	r.OpPos = p.pos
 	p.next()

@@ -84,12 +84,17 @@ func (a Assign) End() Pos {
 type Redirect struct {
 	OpPos Pos
 	Op    Token
-	N     Lit
+	N     *Lit
 	Word  Word
 	Hdoc  *Lit
 }
 
-func (r Redirect) Pos() Pos { return r.N.Pos() }
+func (r Redirect) Pos() Pos {
+	if r.N != nil {
+		return r.N.Pos()
+	}
+	return r.OpPos
+}
 func (r Redirect) End() Pos { return r.Word.End() }
 
 // Command represents a command execution or function call.

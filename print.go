@@ -418,6 +418,10 @@ func (p *printer) node(n Node) {
 		for _, n := range x.Parts {
 			p.nonSpaced(n)
 		}
+	case *Lit:
+		if x != nil {
+			p.nonSpaced(x.Value)
+		}
 	case Lit:
 		p.nonSpaced(x.Value)
 	case SglQuoted:

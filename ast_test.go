@@ -780,7 +780,7 @@ var astTests = []testCase{
 			Redirs: []Redirect{
 				{Op: DPLOUT, Word: litWord("2")},
 				{Op: DPLIN, Word: litWord("0")},
-				{Op: GTR, N: lit("2"), Word: litWord("file")},
+				{Op: GTR, N: litRef("2"), Word: litWord("file")},
 				{Op: RDRINOUT, Word: litWord("f2")},
 				{Op: RDRALL, Word: litWord("f3")},
 				{Op: APPALL, Word: litWord("f4")},
@@ -2063,7 +2063,9 @@ func setPosRecurse(tb testing.TB, v interface{}, to Pos, diff bool) Node {
 		for i := range x.Redirs {
 			r := &x.Redirs[i]
 			setPos(&r.OpPos)
-			recurse(&r.N)
+			if r.N != nil {
+				recurse(r.N)
+			}
 			recurse(r.Word)
 			if r.Hdoc != nil {
 				recurse(r.Hdoc)
