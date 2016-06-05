@@ -336,6 +336,7 @@ func (p *parser) doHeredocs() {
 		if i > 0 {
 			p.readOnly("\n")
 		}
+		r.Hdoc.ValuePos = p.npos
 		r.Hdoc.Value, _ = p.readHdocBody(end, r.Op == DHEREDOC)
 	}
 	p.heredocs = nil

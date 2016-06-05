@@ -2030,9 +2030,13 @@ func setPosRecurse(tb testing.TB, v interface{}, to Pos, diff bool) Node {
 		x.Node = recurse(x.Node)
 		recurse(x.Assigns)
 		for i := range x.Redirs {
-			setPos(&x.Redirs[i].OpPos)
-			recurse(&x.Redirs[i].N)
-			recurse(x.Redirs[i].Word)
+			r := &x.Redirs[i]
+			setPos(&r.OpPos)
+			recurse(&r.N)
+			recurse(r.Word)
+			if r.Hdoc != nil {
+				recurse(r.Hdoc)
+			}
 		}
 	case []Assign:
 		for i := range x {
