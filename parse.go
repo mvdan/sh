@@ -1312,7 +1312,7 @@ func (p *parser) cmdOrFunc() Node {
 	return cmd
 }
 
-var fnameRe = regexp.MustCompile(`^[a-zA-Z_-][a-zA-Z0-9_-]*$`)
+var fnameRe = regexp.MustCompile(`^[a-zA-Z_.,+-][a-zA-Z0-9_.,+-]*$`)
 
 func (p *parser) funcDecl(w Word, pos Pos) (fd FuncDecl) {
 	if len(w.Parts) == 0 {

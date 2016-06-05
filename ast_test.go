@@ -432,9 +432,9 @@ var astTests = []testCase{
 		},
 	},
 	{
-		[]string{"-foo-bar() { a; }"},
+		[]string{"-foo_.,+-bar() { a; }"},
 		FuncDecl{
-			Name: lit("-foo-bar"),
+			Name: lit("-foo_.,+-bar"),
 			Body: stmt(block(litStmts("a")...)),
 		},
 	},
