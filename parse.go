@@ -242,8 +242,8 @@ func (p *parser) next() {
 	case p.quoted(RBRACK) && p.readOnlyTok(RBRACK):
 		p.advanceTok(RBRACK)
 	case b == '#' && !p.quotedAny(DQUOTE, SQUOTE, LBRACE, RBRACE, QUO):
-		p.consumeByte()
-		p.advanceBoth(COMMENT, p.readLine())
+		line, _ := p.readUntil("\n")
+		p.advanceBoth(COMMENT, line[1:])
 	case p.quoted(LBRACE) && paramOps[b]:
 		p.advanceTok(p.doParamToken())
 	case p.quotedAny(DLPAREN, DRPAREN, LPAREN) && arithmOps[b]:
@@ -330,11 +330,6 @@ func (p *parser) readUntil(s string) (string, bool) {
 	return string(bs), true
 }
 
-func (p *parser) readLine() string {
-	s, _ := p.readUntil("\n")
-	return s
-}
-
 func wordStr(w Word) string {
 	var buf bytes.Buffer
 	Fprint(&buf, w)
@@ -357,7 +352,7 @@ func (p *parser) doHeredocs() {
 func (p *parser) readHdocBody(end string, noTabs bool) (string, bool) {
 	var buf bytes.Buffer
 	for !p.eof() {
-		line := p.readLine()
+		line, _ := p.readUntil("\n")
 		if line == end || (noTabs && strings.TrimLeft(line, "\t") == end) {
 			// add trailing tabs
 			fmt.Fprint(&buf, line[:len(line)-len(end)])
