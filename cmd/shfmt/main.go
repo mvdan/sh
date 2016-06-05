@@ -17,12 +17,16 @@ import (
 )
 
 var (
-	write = flag.Bool("w", false, "write result to file instead of stdout")
-	list  = flag.Bool("l", false, "list files whose formatting differs from shfmt's")
+	write  = flag.Bool("w", false, "write result to file instead of stdout")
+	list   = flag.Bool("l", false, "list files whose formatting differs from shfmt's")
+	indent = flag.Int("i", 0, "indent: 0 for tabs (default), >0 for number of spaces")
 )
+
+var config sh.PrintConfig
 
 func main() {
 	flag.Parse()
+	config.Spaces = *indent
 	if flag.NArg() == 0 {
 		if err := formatStdin(); err != nil {
 			fmt.Fprintln(os.Stderr, err)
@@ -50,7 +54,7 @@ func formatStdin() error {
 	if err != nil {
 		return err
 	}
-	return sh.Fprint(os.Stdout, prog)
+	return config.Fprint(os.Stdout, prog)
 }
 
 var (
@@ -108,7 +112,7 @@ func formatPath(path string) error {
 	switch {
 	case *list && *write:
 		var buf bytes.Buffer
-		if err := sh.Fprint(&buf, prog); err != nil {
+		if err := config.Fprint(&buf, prog); err != nil {
 			return err
 		}
 		if buf.String() != orig {
@@ -126,13 +130,13 @@ func formatPath(path string) error {
 		if err := empty(f); err != nil {
 			return err
 		}
-		if err := sh.Fprint(f, prog); err != nil {
+		if err := config.Fprint(f, prog); err != nil {
 			return err
 		}
 		return f.Close()
 	case *list:
 		var buf bytes.Buffer
-		if err := sh.Fprint(&buf, prog); err != nil {
+		if err := config.Fprint(&buf, prog); err != nil {
 			return err
 		}
 		if buf.String() != orig {
@@ -141,7 +145,7 @@ func formatPath(path string) error {
 		f.Close()
 	default:
 		f.Close()
-		return sh.Fprint(os.Stdout, prog)
+		return config.Fprint(os.Stdout, prog)
 	}
 	return nil
 }
