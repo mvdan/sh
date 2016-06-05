@@ -105,7 +105,7 @@ func (p *printer) space(b byte) {
 	p.wantSpace = false
 	if b == '\n' {
 		for _, r := range p.pendingHdocs {
-			p.nonSpaced(r.Hdoc, wordStr(unquote(r.Word)), "\n")
+			p.nonSpaced(*r.Hdoc, wordStr(unquote(r.Word)), "\n")
 		}
 		p.pendingHdocs = nil
 	}

@@ -59,14 +59,9 @@ type parser struct {
 	// stack of stmts (to save redirects)
 	stmtStack []*Stmt
 	// list of pending heredoc bodies
-	heredocs []hdocRef
+	heredocs []Redirect
 
 	stopNewline bool
-}
-
-type hdocRef struct {
-	stmt  *Stmt
-	index int
 }
 
 func (p *parser) pushStops(stops ...Token) {
@@ -336,13 +331,12 @@ func wordStr(w Word) string {
 }
 
 func (p *parser) doHeredocs() {
-	for i, hr := range p.heredocs {
-		r := &hr.stmt.Redirs[hr.index]
+	for i, r := range p.heredocs {
 		end := wordStr(unquote(r.Word))
 		if i > 0 {
 			p.readOnly("\n")
 		}
-		r.Hdoc, _ = p.readHdocBody(end, r.Op == DHEREDOC)
+		r.Hdoc.Value, _ = p.readHdocBody(end, r.Op == DHEREDOC)
 	}
 	p.heredocs = nil
 	p.next()
@@ -943,10 +937,8 @@ func (p *parser) gotRedirect() bool {
 	case SHL, DHEREDOC:
 		p.stopNewline = true
 		r.Word = p.followWord(r.Op)
-		p.heredocs = append(p.heredocs, hdocRef{
-			stmt:  s,
-			index: len(s.Redirs) - 1,
-		})
+		r.Hdoc = &Lit{}
+		p.heredocs = append(p.heredocs, *r)
 		p.got(STOPPED)
 	default:
 		r.Word = p.followWord(r.Op)
@@ -1050,13 +1042,6 @@ func (p *parser) binaryStmt(left *Stmt) Stmt {
 		}
 		p.stmtStack = p.stmtStack[:len(p.stmtStack)-1]
 		b.Y = s
-	}
-	for i := range p.heredocs {
-		hr := &p.heredocs[i]
-		if hr.stmt == left {
-			hr.stmt = &x
-			break
-		}
 	}
 	return Stmt{
 		Position: left.Position,

@@ -86,7 +86,7 @@ type Redirect struct {
 	Op    Token
 	N     Lit
 	Word  Word
-	Hdoc  string
+	Hdoc  *Lit
 }
 
 func (r Redirect) Pos() Pos { return r.N.Pos() }
