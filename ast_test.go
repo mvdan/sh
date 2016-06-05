@@ -1961,7 +1961,10 @@ var astTests = []testCase{
 		},
 	},
 	{
-		[]string{"<<EOF && { bar; }\nhdoc\nEOF"},
+		[]string{
+			"<<EOF && { bar; }\nhdoc\nEOF",
+			"<<EOF &&\nhdoc\nEOF\n{ bar; }",
+		},
 		BinaryExpr{
 			Op: LAND,
 			X: Stmt{Redirs: []Redirect{{

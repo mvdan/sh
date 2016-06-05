@@ -1032,7 +1032,7 @@ func (p *parser) binaryStmt(left *Stmt) Stmt {
 		Op:    p.ltok,
 		X:     x,
 	}
-	p.got(COMMENT)
+	p.got(STOPPED)
 	if b.Op == LAND || b.Op == LOR {
 		b.Y = p.followStmt(b.OpPos, b.Op.String())
 	} else {
