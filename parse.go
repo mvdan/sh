@@ -529,11 +529,11 @@ func (p *parser) curErr(format string, a ...interface{}) {
 
 func (p *parser) stmts(stops ...Token) (sts []Stmt) {
 	for !p.eof() && !p.peekAny(stops...) {
+		p.got(STOPPED)
 		gotEnd := p.newLine || p.ltok == AND || p.ltok == SEMICOLON
 		if len(sts) > 0 && !gotEnd {
 			p.curErr("statements must be separated by &, ; or a newline")
 		}
-		p.got(STOPPED)
 		if p.eof() {
 			break
 		}
