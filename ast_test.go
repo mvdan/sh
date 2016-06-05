@@ -7,6 +7,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -2252,6 +2253,9 @@ func setPosRecurse(tb testing.TB, v interface{}, to Pos, diff bool) Node {
 		setPos(&x.Rparen)
 		recurse(x.Stmts)
 		return x
+	case nil:
+	default:
+		panic(reflect.TypeOf(v))
 	}
 	return nil
 }
