@@ -695,7 +695,7 @@ func (p *parser) arithmExpr(following Token) Node {
 		return left
 	}
 	if p.peek(LIT) {
-		p.curErr("not a valid arithmetic operator: %s", p.tok)
+		p.curErr("not a valid arithmetic operator: %s", p.val)
 	}
 	p.next()
 	b := BinaryExpr{

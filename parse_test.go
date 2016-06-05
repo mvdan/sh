@@ -354,7 +354,7 @@ var errTests = []struct {
 	},
 	{
 		"echo $((a b c))",
-		`1:11: not a valid arithmetic operator: literal`,
+		`1:11: not a valid arithmetic operator: b`,
 	},
 	{
 		"echo $((a *))",
