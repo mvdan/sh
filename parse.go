@@ -203,12 +203,11 @@ func (p *parser) next() {
 	if p.tok == EOF {
 		return
 	}
-	p.lpos, p.pos = p.pos, p.npos
+	p.lpos = p.pos
 	p.spaced, p.newLine = false, false
 	var b byte
 	for {
 		if !p.quoted(DQUOTE) && p.readOnly("\\\n") {
-			p.pos = p.npos
 			continue
 		}
 		var err error
@@ -224,7 +223,6 @@ func (p *parser) next() {
 			break
 		}
 		p.consumeByte()
-		p.pos = p.npos
 		p.spaced = true
 		if b == '\n' {
 			p.newLine = true
@@ -234,6 +232,7 @@ func (p *parser) next() {
 			}
 		}
 	}
+	p.pos = p.npos
 	switch {
 	case p.quotedAny(RBRACE, LBRACE, QUO) && p.readOnlyTok(RBRACE):
 		p.advanceTok(RBRACE)
