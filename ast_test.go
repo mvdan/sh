@@ -789,6 +789,15 @@ var astTests = []testCase{
 		},
 	},
 	{
+		[]string{"foo 2>file bar"},
+		Stmt{
+			Node: litCmd("foo", "bar"),
+			Redirs: []Redirect{
+				{Op: GTR, N: litRef("2"), Word: litWord("file")},
+			},
+		},
+	},
+	{
 		[]string{"a >f1\nb >f2", "a >f1; b >f2"},
 		[]Stmt{
 			{
