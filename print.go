@@ -10,8 +10,12 @@ import (
 	"strings"
 )
 
-func Fprint(w io.Writer, n Node) error {
-	p := printer{w: w}
+type PrintConfig struct {
+	Spaces int // 0 (default) for tabs, >0 for number of spaces
+}
+
+func (c PrintConfig) Fprint(w io.Writer, n Node) error {
+	p := printer{w: w, c: c}
 	if f, ok := n.(File); ok {
 		p.comments = f.Comments
 	}
@@ -19,8 +23,14 @@ func Fprint(w io.Writer, n Node) error {
 	return p.err
 }
 
+func Fprint(w io.Writer, n Node) error {
+	c := PrintConfig{}
+	return c.Fprint(w, n)
+}
+
 type printer struct {
 	w   io.Writer
+	c   PrintConfig
 	err error
 
 	wantSpace   bool
@@ -152,7 +162,13 @@ func (p *printer) semiOrNewl(v interface{}) {
 
 func (p *printer) indent() {
 	for i := 0; i < p.level; i++ {
-		p.space('\t')
+		if p.c.Spaces == 0 {
+			p.space('\t')
+			continue
+		}
+		for j := 0; j < p.c.Spaces; j++ {
+			p.space(' ')
+		}
 	}
 }
 
@@ -564,14 +580,14 @@ func (p *printer) stmts(stmts []Stmt) bool {
 				if !p.hasInline(pos) || pos.Line > lastLine+1 {
 					break
 				}
-				l := len(strFprint(s))
+				l := len(strFprint(s, 0))
 				if l > inlineIndent {
 					inlineIndent = l
 				}
 				lastLine = pos.Line
 			}
 		}
-		l := len(strFprint(s))
+		l := len(strFprint(s, 0))
 		p.wantSpaces = inlineIndent - l
 	}
 	inlineIndent = 0
@@ -579,9 +595,9 @@ func (p *printer) stmts(stmts []Stmt) bool {
 	return true
 }
 
-func strFprint(n Node) string {
+func strFprint(n Node, spaces int) string {
 	var buf bytes.Buffer
-	p := printer{w: &buf}
+	p := printer{w: &buf, c: PrintConfig{Spaces: spaces}}
 	if f, ok := n.(File); ok {
 		p.comments = f.Comments
 	}

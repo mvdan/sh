@@ -21,7 +21,7 @@ func TestFprintCompact(t *testing.T) {
 				t.Fatal(err)
 			}
 			want := in
-			got := strFprint(prog)
+			got := strFprint(prog, 0)
 			if len(got) > 0 {
 				got = got[:len(got)-1]
 			}
@@ -190,7 +190,7 @@ func TestFprintWeirdFormat(t *testing.T) {
 				t.Fatal(err)
 			}
 			want := tc.want + "\n"
-			got := strFprint(prog)
+			got := strFprint(prog, 0)
 			if got != want {
 				t.Fatalf("Fprint mismatch:\nin:\n%s\nwant:\n%sgot:\n%s",
 					tc.in, want, got)
@@ -215,7 +215,7 @@ func parsePath(tb testing.TB, path string) File {
 func TestFprintMultiline(t *testing.T) {
 	path := filepath.Join("testdata", "canonical.sh")
 	prog := parsePath(t, path)
-	got := strFprint(prog)
+	got := strFprint(prog, 0)
 
 	outb, err := ioutil.ReadFile(path)
 	if err != nil {
@@ -225,6 +225,49 @@ func TestFprintMultiline(t *testing.T) {
 	if got != want {
 		t.Fatalf("Fprint mismatch:\nwant:\n%sgot:\n%s",
 			want, got)
+	}
+}
+
+func TestFprintSpaces(t *testing.T) {
+	var spaceFormats = [...]struct {
+		spaces   int
+		in, want string
+	}{
+		{
+			0,
+			"{\nfoo \\\nbar\n}",
+			"{\n\tfoo \\\n\t\tbar\n}",
+		},
+		{
+			-1,
+			"{\nfoo \\\nbar\n}",
+			"{\nfoo \\\nbar\n}",
+		},
+		{
+			2,
+			"{\nfoo \\\nbar\n}",
+			"{\n  foo \\\n    bar\n}",
+		},
+		{
+			4,
+			"{\nfoo \\\nbar\n}",
+			"{\n    foo \\\n        bar\n}",
+		},
+	}
+
+	for i, tc := range spaceFormats {
+		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
+			prog, err := Parse(strings.NewReader(tc.in), "", ParseComments)
+			if err != nil {
+				t.Fatal(err)
+			}
+			want := tc.want + "\n"
+			got := strFprint(prog, tc.spaces)
+			if got != want {
+				t.Fatalf("Fprint mismatch:\nin:\n%s\nwant:\n%sgot:\n%s",
+					tc.in, want, got)
+			}
+		})
 	}
 }
 

@@ -1938,7 +1938,7 @@ func fullProg(v interface{}) (f File) {
 }
 
 func emptyNode(n Node) bool {
-	s := strings.TrimRight(strFprint(n), "\n")
+	s := strings.TrimRight(strFprint(n, 0), "\n")
 	return len(s) == 0
 }
 
@@ -1966,7 +1966,7 @@ func setPosRecurse(tb testing.TB, v interface{}, to Pos, diff bool) Node {
 			tb.Fatalf("Found End() before Pos() in %T", n)
 		}
 		if !emptyNode(n) && n.Pos() == n.End() {
-			fmt.Printf("%q\n", strFprint(n))
+			fmt.Printf("%q\n", strFprint(n, 0))
 			tb.Fatalf("Found End() at Pos() in %T %#v", n, n)
 		}
 	}
