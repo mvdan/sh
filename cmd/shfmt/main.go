@@ -4,6 +4,7 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"flag"
 	"fmt"
@@ -130,7 +131,11 @@ func formatPath(path string) error {
 		if err := empty(f); err != nil {
 			return err
 		}
-		if err := config.Fprint(f, prog); err != nil {
+		w := bufio.NewWriter(f)
+		if err := config.Fprint(w, prog); err != nil {
+			return err
+		}
+		if err := w.Flush(); err != nil {
 			return err
 		}
 		return f.Close()
