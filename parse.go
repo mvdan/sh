@@ -985,8 +985,7 @@ func (p *parser) gotStmtAndOr(s *Stmt, stops ...Token) bool {
 			return true
 		}
 	}
-	p.gotStmtPipe(s)
-	if !s.Negated && s.Node == nil && len(s.Assigns) == 0 && len(s.Redirs) == 0 {
+	if !p.gotStmtPipe(s) && !s.Negated && len(s.Assigns) == 0 {
 		return false
 	}
 	switch {
