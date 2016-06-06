@@ -804,11 +804,7 @@ func (p *parser) paramExp() (pe ParamExp) {
 		p.gotWord(&pe.Exp.Word)
 	}
 	p.popStop()
-	if !p.got(RBRACE) {
-		lpos := pe.Dollar
-		lpos.Column++
-		p.matchingErr(lpos, LBRACE, RBRACE)
-	}
+	p.matchedTok(pe.Dollar, DOLLBR, RBRACE)
 	return
 }
 
