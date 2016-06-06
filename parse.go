@@ -106,13 +106,13 @@ func moveWith(pos Pos, b byte) Pos {
 	return pos
 }
 
-func (p *parser) peekByte() (byte, error) {
+func (p *parser) peekByte() byte {
 	bs, err := p.br.Peek(1)
 	if err != nil {
 		p.errPass(err)
-		return 0, err
+		return 0
 	}
-	return bs[0], nil
+	return bs[0]
 }
 
 func (p *parser) willRead(s string) bool {
@@ -200,8 +200,7 @@ func (p *parser) next() {
 		if !p.quoted(DQUOTE) && p.readOnly("\\\n") {
 			continue
 		}
-		var err error
-		if b, err = p.peekByte(); err != nil {
+		if b = p.peekByte(); p.tok == EOF {
 			p.lpos, p.pos = p.pos, p.npos
 			return
 		}
@@ -262,8 +261,8 @@ func (p *parser) readLitBytes() (bs []byte) {
 			}
 			continue
 		}
-		b, err := p.peekByte()
-		if err != nil {
+		b := p.peekByte()
+		if p.tok == EOF {
 			return
 		}
 		switch {
