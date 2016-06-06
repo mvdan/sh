@@ -5,6 +5,7 @@ package sh
 
 import (
 	"fmt"
+	"io"
 	"reflect"
 	"strings"
 	"testing"
@@ -537,5 +538,36 @@ func TestInputName(t *testing.T) {
 	if got != want {
 		t.Fatalf("Error mismatch in %q\nwant: %s\ngot:  %s",
 			in, want, got)
+	}
+}
+
+type errCounter struct {
+	reader io.Reader
+	count  int
+}
+
+func (e *errCounter) Read(p []byte) (int, error) {
+	n, err := e.reader.Read(p)
+	if err != nil {
+		e.count++
+	}
+	return n, err
+}
+
+func TestParseSingleEOF(t *testing.T) {
+	tests := []string{
+		"",
+	}
+	for i, in := range tests {
+		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+			r := errCounter{reader: strings.NewReader(in)}
+			_, err := Parse(&r, "", 0)
+			if err != nil {
+				t.Fatalf("Unexpected error with EOF reader")
+			}
+			if r.count != 1 {
+				t.Fatalf("Expected %d EOF reads, got %d", 1, r.count)
+			}
+		})
 	}
 }

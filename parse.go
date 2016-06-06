@@ -48,6 +48,8 @@ type parser struct {
 
 	spaced, newLine bool
 
+	nextErr error
+
 	ltok, tok Token
 	lval, val string
 
@@ -83,7 +85,18 @@ func (p *parser) quotedAny(toks ...Token) bool {
 func (p *parser) popStops(n int) { p.stops = p.stops[:len(p.stops)-n] }
 func (p *parser) popStop()       { p.popStops(1) }
 
+func (p *parser) reachingEOF() bool {
+	if p.nextErr != nil {
+		p.errPass(p.nextErr)
+		return true
+	}
+	return false
+}
+
 func (p *parser) readByte() byte {
+	if p.reachingEOF() {
+		return 0
+	}
 	b, err := p.br.ReadByte()
 	if err != nil {
 		p.errPass(err)
@@ -107,6 +120,9 @@ func moveWith(pos Pos, b byte) Pos {
 }
 
 func (p *parser) peekByte() byte {
+	if p.reachingEOF() {
+		return 0
+	}
 	bs, err := p.br.Peek(1)
 	if err != nil {
 		p.errPass(err)
@@ -116,6 +132,10 @@ func (p *parser) peekByte() byte {
 }
 
 func (p *parser) willRead(s string) bool {
+	if _, err := p.br.Peek(1); err != nil {
+		p.nextErr = err
+		return false
+	}
 	bs, err := p.br.Peek(len(s))
 	return err == nil && string(bs) == s
 }
