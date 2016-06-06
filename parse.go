@@ -83,16 +83,15 @@ func (p *parser) quotedAny(toks ...Token) bool {
 func (p *parser) popStops(n int) { p.stops = p.stops[:len(p.stops)-n] }
 func (p *parser) popStop()       { p.popStops(1) }
 
-func (p *parser) readByte() (byte, error) {
+func (p *parser) readByte() byte {
 	b, err := p.br.ReadByte()
 	if err != nil {
 		p.errPass(err)
-		return 0, err
+		return 0
 	}
 	p.npos = moveWith(p.npos, b)
-	return b, nil
+	return b
 }
-func (p *parser) consumeByte() { p.readByte() }
 
 func moveWith(pos Pos, b byte) Pos {
 	if pos.Line == 0 {
@@ -124,7 +123,7 @@ func (p *parser) willRead(s string) bool {
 func (p *parser) readOnly(s string) bool {
 	if p.willRead(s) {
 		for i := 0; i < len(s); i++ {
-			p.consumeByte()
+			p.readByte()
 		}
 		return true
 	}
@@ -214,7 +213,7 @@ func (p *parser) next() {
 			p.advanceTok(STOPPED)
 			return
 		}
-		p.consumeByte()
+		p.readByte()
 		p.spaced = true
 		if b == '\n' {
 			p.newLine = true
@@ -258,7 +257,7 @@ func (p *parser) advanceReadLit() { p.advanceBoth(LIT, string(p.readLitBytes()))
 func (p *parser) readLitBytes() (bs []byte) {
 	for {
 		if p.readOnly("\\") { // escaped byte
-			if b, _ := p.readByte(); p.quoted(DQUOTE) || b != '\n' {
+			if b := p.readByte(); p.quoted(DQUOTE) || b != '\n' {
 				bs = append(bs, '\\', b)
 			}
 			continue
@@ -293,7 +292,7 @@ func (p *parser) readLitBytes() (bs []byte) {
 		case p.quotedAny(DLPAREN, DRPAREN, LPAREN) && arithmOps[b]:
 			return
 		}
-		p.consumeByte()
+		p.readByte()
 		bs = append(bs, b)
 	}
 }
@@ -309,8 +308,8 @@ func (p *parser) advanceBoth(tok Token, val string) {
 func (p *parser) readUntil(s string) (string, bool) {
 	var bs []byte
 	for !p.willRead(s) {
-		b, err := p.readByte()
-		if err != nil {
+		b := p.readByte()
+		if p.tok == EOF {
 			return string(bs), false
 		}
 		bs = append(bs, b)
