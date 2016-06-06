@@ -209,13 +209,13 @@ func (p *parser) next() {
 		if b, err = p.peekByte(); err != nil {
 			return
 		}
+		if p.quotedAny(DQUOTE, SQUOTE, RBRACE, QUO) || !space[b] {
+			break
+		}
 		if p.stopNewline && b == '\n' {
 			p.stopNewline = false
 			p.advanceTok(STOPPED)
 			return
-		}
-		if p.quotedAny(DQUOTE, SQUOTE, RBRACE, QUO) || !space[b] {
-			break
 		}
 		p.consumeByte()
 		p.spaced = true

@@ -775,6 +775,23 @@ var astTests = []testCase{
 		},
 	},
 	{
+		[]string{
+			"foo \"\narg\" <<EOF\nbar\nEOF",
+			"foo <<EOF \"\narg\"\nbar\nEOF",
+		},
+		Stmt{
+			Node: cmd(
+				litWord("foo"),
+				word(dblQuoted(lit("\narg"))),
+			),
+			Redirs: []Redirect{{
+				Op:   SHL,
+				Word: litWord("EOF"),
+				Hdoc: litRef("bar\n"),
+			}},
+		},
+	},
+	{
 		[]string{"foo >&2 <&0 2>file <>f2 &>f3 &>>f4"},
 		Stmt{
 			Node: litCmd("foo"),
