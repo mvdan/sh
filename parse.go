@@ -95,11 +95,7 @@ func (p *parser) readByte() byte {
 		p.errPass(p.nextErr)
 		return 0
 	}
-	b, err := p.br.ReadByte()
-	if err != nil {
-		p.errPass(err)
-		return 0
-	}
+	b, _ := p.br.ReadByte()
 	p.remaining--
 	p.npos = moveWith(p.npos, b)
 	return b
@@ -123,11 +119,7 @@ func (p *parser) peekByte() byte {
 		p.errPass(p.nextErr)
 		return 0
 	}
-	bs, err := p.br.Peek(1)
-	if err != nil {
-		p.errPass(err)
-		return 0
-	}
+	bs, _ := p.br.Peek(1)
 	return bs[0]
 }
 
