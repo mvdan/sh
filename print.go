@@ -153,11 +153,12 @@ func (p *printer) spaced(a ...interface{}) {
 	}
 }
 
-func (p *printer) semiOrNewl(v interface{}) {
+func (p *printer) semiOrNewl(v interface{}, pos Pos) {
 	if !p.wantNewline {
 		p.nonSpaced(SEMICOLON)
 	}
 	p.spaced(v)
+	p.curLine = pos.Line
 }
 
 func (p *printer) indent() {
@@ -334,13 +335,12 @@ func (p *printer) node(n Node) {
 	case IfStmt:
 		p.spaced(IF)
 		p.nonSpaced(x.Cond)
-		p.semiOrNewl(THEN)
-		p.curLine = x.Then.Line
+		p.semiOrNewl(THEN, x.Then)
 		p.nestedStmts(x.ThenStmts)
 		for _, el := range x.Elifs {
 			p.separated(ELIF, el.Elif, true)
 			p.nonSpaced(el.Cond)
-			p.semiOrNewl(THEN)
+			p.semiOrNewl(THEN, el.Then)
 			p.nestedStmts(el.ThenStmts)
 		}
 		if len(x.ElseStmts) > 0 {
@@ -355,22 +355,19 @@ func (p *printer) node(n Node) {
 	case WhileStmt:
 		p.spaced(WHILE)
 		p.nonSpaced(x.Cond)
-		p.semiOrNewl(DO)
-		p.curLine = x.Do.Line
+		p.semiOrNewl(DO, x.Do)
 		p.nestedStmts(x.DoStmts)
 		p.separated(DONE, x.Done, true)
 	case UntilStmt:
 		p.spaced(UNTIL)
 		p.nonSpaced(x.Cond)
-		p.semiOrNewl(DO)
-		p.curLine = x.Do.Line
+		p.semiOrNewl(DO, x.Do)
 		p.nestedStmts(x.DoStmts)
 		p.separated(DONE, x.Done, true)
 	case ForStmt:
 		p.spaced(FOR)
 		p.nonSpaced(x.Cond)
-		p.semiOrNewl(DO)
-		p.curLine = x.Do.Line
+		p.semiOrNewl(DO, x.Do)
 		p.nestedStmts(x.DoStmts)
 		p.separated(DONE, x.Done, true)
 	case WordIter:
