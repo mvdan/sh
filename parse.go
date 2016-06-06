@@ -321,15 +321,9 @@ func (p *parser) readUntil(s string) (string, bool) {
 	return string(bs), true
 }
 
-func wordStr(w Word) string {
-	var buf bytes.Buffer
-	Fprint(&buf, w)
-	return buf.String()
-}
-
 func (p *parser) doHeredocs() {
 	for i, r := range p.heredocs {
-		end := wordStr(unquote(r.Word))
+		end := strFprint(unquote(r.Word), -1)
 		if i > 0 {
 			p.readOnly("\n")
 		}
@@ -1310,7 +1304,7 @@ func (p *parser) funcDecl(w Word, pos Pos) (fd FuncDecl) {
 	var ok bool
 	fd.Name, ok = w.Parts[0].(Lit)
 	if !ok || len(w.Parts) > 1 || !fnameRe.MatchString(fd.Name.Value) {
-		p.posErr(fd.Pos(), "invalid func name: %s", wordStr(w))
+		p.posErr(fd.Pos(), "invalid func name: %s", strFprint(w, -1))
 	}
 	fd.Body = p.followStmt(fd.Pos(), "foo()")
 	return
