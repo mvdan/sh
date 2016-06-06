@@ -162,14 +162,12 @@ func (p *printer) semiOrNewl(v interface{}, pos Pos) {
 }
 
 func (p *printer) indent() {
-	for i := 0; i < p.level; i++ {
-		if p.c.Spaces == 0 {
-			p.space('\t')
-			continue
-		}
-		for j := 0; j < p.c.Spaces; j++ {
-			p.space(' ')
-		}
+	switch {
+	case p.level == 0:
+	case p.c.Spaces == 0:
+		p.nonSpaced(strings.Repeat("\t", p.level))
+	case p.c.Spaces > 0:
+		p.nonSpaced(strings.Repeat(" ", p.c.Spaces*p.level))
 	}
 }
 
