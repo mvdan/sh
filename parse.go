@@ -856,11 +856,12 @@ func (p *parser) assignSplit() int {
 	if !p.peek(LIT) {
 		return -1
 	}
-	for _, s := range [...]string{"+=", "="} {
-		i := strings.Index(p.val, s)
-		if i >= 0 && identRe.MatchString(p.val[:i]) {
-			return i
-		}
+	i := strings.Index(p.val, "=")
+	if i > 0 && p.val[i-1] == '+' {
+		i--
+	}
+	if i >= 0 && identRe.MatchString(p.val[:i]) {
+		return i
 	}
 	return -1
 }
