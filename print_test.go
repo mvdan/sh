@@ -54,6 +54,10 @@ func TestFprintWeirdFormat(t *testing.T) {
 			"foo <<EOF && bar\nl1\nEOF",
 		},
 		{
+			"foo <<EOF &&\nl1\nEOF\nbar",
+			"foo <<EOF && bar\nl1\nEOF",
+		},
+		{
 			"foo <<EOF\nl1\nEOF\n\nfoo2",
 			"foo <<EOF\nl1\nEOF\n\nfoo2",
 		},

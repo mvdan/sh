@@ -207,7 +207,8 @@ func (p *printer) didSeparate(pos Pos) bool {
 }
 
 func (p *printer) singleStmtSeparate(pos Pos) {
-	if p.wantNewline || (p.curLine > 0 && pos.Line > p.curLine) {
+	if len(p.pendingHdocs) > 0 {
+	} else if p.wantNewline || (p.curLine > 0 && pos.Line > p.curLine) {
 		p.spaced("\\")
 		p.newline()
 		p.indent()
