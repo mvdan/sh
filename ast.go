@@ -125,6 +125,7 @@ type Block struct {
 func (b Block) Pos() Pos { return b.Rbrace }
 func (b Block) End() Pos { return posAfter(b.Rbrace, RBRACE) }
 
+// IfStmt represents an if statement.
 type IfStmt struct {
 	If, Then, Fi Pos
 	Cond         Node
@@ -137,6 +138,8 @@ type IfStmt struct {
 func (s IfStmt) Pos() Pos { return s.If }
 func (s IfStmt) End() Pos { return posAfter(s.Fi, FI) }
 
+// StmtCond represents a condition that evaluates to the result of a
+// series of statements.
 type StmtCond struct {
 	Stmts []Stmt
 }
@@ -144,6 +147,8 @@ type StmtCond struct {
 func (s StmtCond) Pos() Pos { return s.Stmts[0].Pos() }
 func (s StmtCond) End() Pos { return stmtLastEnd(s.Stmts) }
 
+// CStyleCond represents a condition that evaluates to the result of an
+// arithmetic expression.
 type CStyleCond struct {
 	Lparen, Rparen Pos
 	Cond           Node
@@ -152,12 +157,14 @@ type CStyleCond struct {
 func (c CStyleCond) Pos() Pos { return c.Lparen }
 func (c CStyleCond) End() Pos { return posAfter(c.Rparen, RPAREN) }
 
+// Elif represents an "else if" case in an if statement.
 type Elif struct {
 	Elif, Then Pos
 	Cond       Node
 	ThenStmts  []Stmt
 }
 
+// WhileStmt represents a while statement.
 type WhileStmt struct {
 	While, Do, Done Pos
 	Cond            Node
@@ -167,6 +174,7 @@ type WhileStmt struct {
 func (w WhileStmt) Pos() Pos { return w.While }
 func (w WhileStmt) End() Pos { return posAfter(w.Done, DONE) }
 
+// UntilStmt represents an until statement.
 type UntilStmt struct {
 	Until, Do, Done Pos
 	Cond            Node
@@ -176,6 +184,7 @@ type UntilStmt struct {
 func (u UntilStmt) Pos() Pos { return u.Until }
 func (u UntilStmt) End() Pos { return posAfter(u.Done, DONE) }
 
+// ForStmt represents a for statement.
 type ForStmt struct {
 	For, Do, Done Pos
 	Cond          Node
@@ -185,6 +194,8 @@ type ForStmt struct {
 func (f ForStmt) Pos() Pos { return f.For }
 func (f ForStmt) End() Pos { return posAfter(f.Done, DONE) }
 
+// WordIter represents the iteration of a variable over a series of
+// words in a for statement.
 type WordIter struct {
 	Name Lit
 	List []Word
@@ -193,6 +204,8 @@ type WordIter struct {
 func (w WordIter) Pos() Pos { return w.Name.Pos() }
 func (w WordIter) End() Pos { return posMax(w.Name.End(), wordLastEnd(w.List)) }
 
+// CStyleLoop represents the behaviour of a for statement similar to the
+// C language.
 type CStyleLoop struct {
 	Lparen, Rparen   Pos
 	Init, Cond, Post Node
@@ -201,6 +214,8 @@ type CStyleLoop struct {
 func (c CStyleLoop) Pos() Pos { return c.Lparen }
 func (c CStyleLoop) End() Pos { return posAfter(c.Rparen, RPAREN) }
 
+// UnaryExpr represents an unary expression over a node, either before
+// or after it.
 type UnaryExpr struct {
 	OpPos Pos
 	Op    Token
@@ -221,6 +236,7 @@ func (u UnaryExpr) End() Pos {
 	return u.X.End()
 }
 
+// BinaryExpr represents a binary expression between two nodes.
 type BinaryExpr struct {
 	OpPos Pos
 	Op    Token
@@ -230,6 +246,7 @@ type BinaryExpr struct {
 func (b BinaryExpr) Pos() Pos { return b.X.Pos() }
 func (b BinaryExpr) End() Pos { return b.Y.End() }
 
+// FuncDecl represents the declaration of a function.
 type FuncDecl struct {
 	Position  Pos
 	BashStyle bool
@@ -240,6 +257,8 @@ type FuncDecl struct {
 func (f FuncDecl) Pos() Pos { return f.Position }
 func (f FuncDecl) End() Pos { return f.Body.End() }
 
+// Word represents a list of nodes that are contiguous to each other and
+// are delimeted by word boundaries.
 type Word struct {
 	Parts []Node
 }
@@ -247,6 +266,8 @@ type Word struct {
 func (w Word) Pos() Pos { return nodeFirstPos(w.Parts) }
 func (w Word) End() Pos { return nodeLastEnd(w.Parts) }
 
+// Lit represents an unquoted string consisting of characters that were
+// not tokenized.
 type Lit struct {
 	ValuePos Pos
 	Value    string
@@ -261,6 +282,7 @@ func (l Lit) End() Pos {
 	return end
 }
 
+// SglQuoted represents a single-quoted string.
 type SglQuoted struct {
 	Quote Pos
 	Value string
@@ -275,6 +297,8 @@ func (q SglQuoted) End() Pos {
 	return posAfter(end, SQUOTE)
 }
 
+// Quoted represents a quoted list of nodes. Single quotes are
+// represented separately as SglQuoted.
 type Quoted struct {
 	QuotePos Pos
 	Quote    Token
@@ -284,6 +308,7 @@ type Quoted struct {
 func (q Quoted) Pos() Pos { return q.QuotePos }
 func (q Quoted) End() Pos { return posAfter(nodeLastEnd(q.Parts), q.Quote) }
 
+// CmdSubst represents a command substitution.
 type CmdSubst struct {
 	Left, Right Pos
 	Backquotes  bool
@@ -293,6 +318,7 @@ type CmdSubst struct {
 func (c CmdSubst) Pos() Pos { return c.Left }
 func (c CmdSubst) End() Pos { return posAfter(c.Right, RPAREN) }
 
+// ParamExp represents a parameter expansion.
 type ParamExp struct {
 	Dollar        Pos
 	Short, Length bool
@@ -317,20 +343,25 @@ func (p ParamExp) End() Pos {
 	return posAfter(end, RBRACE)
 }
 
+// Index represents access to an array via an index inside a ParamExp.
 type Index struct {
 	Word Word
 }
 
+// Replace represents a search and replace inside a ParamExp.
 type Replace struct {
 	All        bool
 	Orig, With Word
 }
 
+// Expansion represents string manipulation in a ParamExp other than
+// those covered by Replace.
 type Expansion struct {
 	Op   Token
 	Word Word
 }
 
+// ArithmExpr represents an arithmetic expression.
 type ArithmExpr struct {
 	Dollar, Rparen Pos
 	X              Node
@@ -339,6 +370,8 @@ type ArithmExpr struct {
 func (a ArithmExpr) Pos() Pos { return a.Dollar }
 func (a ArithmExpr) End() Pos { return posAfter(a.Rparen, DRPAREN) }
 
+// ParenExpr represents an expression within parentheses inside an
+// ArithmExpr.
 type ParenExpr struct {
 	Lparen, Rparen Pos
 	X              Node
@@ -347,6 +380,7 @@ type ParenExpr struct {
 func (p ParenExpr) Pos() Pos { return p.Lparen }
 func (p ParenExpr) End() Pos { return posAfter(p.Rparen, RPAREN) }
 
+// CaseStmt represents a case (switch) statement.
 type CaseStmt struct {
 	Case, Esac Pos
 	Word       Word
@@ -356,6 +390,7 @@ type CaseStmt struct {
 func (c CaseStmt) Pos() Pos { return c.Case }
 func (c CaseStmt) End() Pos { return posAfter(c.Esac, ESAC) }
 
+// PatternList represents a pattern list (case) within a CaseStmt.
 type PatternList struct {
 	Dsemi    Pos
 	Patterns []Word
