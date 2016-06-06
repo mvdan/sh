@@ -556,8 +556,9 @@ func (e *errCounter) Read(p []byte) (int, error) {
 
 func TestParseSingleEOF(t *testing.T) {
 	tests := []string{
-		"",
-		"\\",
+		``,
+		`\`,
+		`"foo"`,
 	}
 	for i, in := range tests {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
@@ -567,7 +568,7 @@ func TestParseSingleEOF(t *testing.T) {
 				t.Fatalf("Unexpected error with EOF reader")
 			}
 			if r.count != 1 {
-				t.Fatalf("Expected %d EOF reads, got %d", 1, r.count)
+				t.Fatalf("Expected 1 EOF reads, got %d", r.count)
 			}
 		})
 	}
