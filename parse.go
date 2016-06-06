@@ -223,7 +223,6 @@ func (p *parser) next() {
 			p.newLine = true
 			if len(p.heredocs) > 0 {
 				p.doHeredocs()
-				return
 			}
 		}
 	}
@@ -340,7 +339,6 @@ func (p *parser) doHeredocs() {
 		r.Hdoc.Value, _ = p.readHdocBody(end, r.Op == DHEREDOC)
 	}
 	p.heredocs = nil
-	p.next()
 }
 
 func (p *parser) readHdocBody(end string, noTabs bool) (string, bool) {
