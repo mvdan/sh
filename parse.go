@@ -198,7 +198,6 @@ func (p *parser) next() {
 	if p.tok == EOF {
 		return
 	}
-	p.lpos = p.pos
 	p.spaced, p.newLine = false, false
 	var b byte
 	for {
@@ -207,6 +206,7 @@ func (p *parser) next() {
 		}
 		var err error
 		if b, err = p.peekByte(); err != nil {
+			p.lpos, p.pos = p.pos, p.npos
 			return
 		}
 		if p.quotedAny(DQUOTE, SQUOTE, RBRACE, QUO) || !space[b] {
@@ -221,12 +221,10 @@ func (p *parser) next() {
 		p.spaced = true
 		if b == '\n' {
 			p.newLine = true
-			if len(p.heredocs) > 0 {
-				p.doHeredocs()
-			}
+			p.doHeredocs()
 		}
 	}
-	p.pos = p.npos
+	p.lpos, p.pos = p.pos, p.npos
 	switch {
 	case p.quotedAny(RBRACE, LBRACE, QUO) && p.readOnlyTok(RBRACE):
 		p.advanceTok(RBRACE)
