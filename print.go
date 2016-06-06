@@ -590,7 +590,6 @@ func (p *printer) stmts(stmts []Stmt) bool {
 		l := len(strFprint(s, 0))
 		p.wantSpaces = inlineIndent - l
 	}
-	inlineIndent = 0
 	p.wantNewline = true
 	return true
 }
