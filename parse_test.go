@@ -557,6 +557,7 @@ func (e *errCounter) Read(p []byte) (int, error) {
 func TestParseSingleEOF(t *testing.T) {
 	tests := []string{
 		"",
+		"\\",
 	}
 	for i, in := range tests {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {

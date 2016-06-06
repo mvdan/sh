@@ -48,7 +48,8 @@ type parser struct {
 
 	spaced, newLine bool
 
-	nextErr error
+	nextErr   error
+	remaining int
 
 	ltok, tok Token
 	lval, val string
@@ -86,15 +87,12 @@ func (p *parser) popStops(n int) { p.stops = p.stops[:len(p.stops)-n] }
 func (p *parser) popStop()       { p.popStops(1) }
 
 func (p *parser) reachingEOF() bool {
-	if p.nextErr != nil {
-		p.errPass(p.nextErr)
-		return true
-	}
-	return false
+	return p.nextErr != nil && p.remaining == 0
 }
 
 func (p *parser) readByte() byte {
 	if p.reachingEOF() {
+		p.errPass(p.nextErr)
 		return 0
 	}
 	b, err := p.br.ReadByte()
@@ -102,6 +100,7 @@ func (p *parser) readByte() byte {
 		p.errPass(err)
 		return 0
 	}
+	p.remaining--
 	p.npos = moveWith(p.npos, b)
 	return b
 }
@@ -121,6 +120,7 @@ func moveWith(pos Pos, b byte) Pos {
 
 func (p *parser) peekByte() byte {
 	if p.reachingEOF() {
+		p.errPass(p.nextErr)
 		return 0
 	}
 	bs, err := p.br.Peek(1)
@@ -132,12 +132,16 @@ func (p *parser) peekByte() byte {
 }
 
 func (p *parser) willRead(s string) bool {
-	if _, err := p.br.Peek(1); err != nil {
-		p.nextErr = err
+	if p.reachingEOF() {
 		return false
 	}
 	bs, err := p.br.Peek(len(s))
-	return err == nil && string(bs) == s
+	if err != nil {
+		p.nextErr = err
+		p.remaining = len(bs)
+		return false
+	}
+	return string(bs) == s
 }
 
 func (p *parser) readOnly(s string) bool {
