@@ -186,13 +186,10 @@ var (
 		',': true,
 		'?': true,
 	}
-	// bytes that will be treated as space
-	space = map[byte]bool{
-		' ':  true,
-		'\t': true,
-		'\n': true,
-	}
 )
+
+// space returns whether a byte acts as a space
+func space(b byte) bool { return b == ' ' || b == '\t' || b == '\n' }
 
 func (p *parser) next() {
 	if p.tok == EOF {
@@ -209,7 +206,7 @@ func (p *parser) next() {
 			p.lpos, p.pos = p.pos, p.npos
 			return
 		}
-		if p.quotedAny(DQUOTE, SQUOTE, RBRACE, QUO) || !space[b] {
+		if p.quotedAny(DQUOTE, SQUOTE, RBRACE, QUO) || !space(b) {
 			break
 		}
 		if p.stopNewline && b == '\n' {
@@ -291,7 +288,7 @@ func (p *parser) readLitBytes() (bs []byte) {
 			if b == '"' {
 				return
 			}
-		case reserved[b], space[b]:
+		case reserved[b], space(b):
 			return
 		case p.quotedAny(DLPAREN, DRPAREN, LPAREN) && arithmOps[b]:
 			return
@@ -378,7 +375,7 @@ func (p *parser) willSpaced() bool {
 		return true
 	}
 	bs, err := p.br.Peek(1)
-	return err != nil || space[bs[0]] || wordBreak[bs[0]]
+	return err != nil || space(bs[0]) || wordBreak[bs[0]]
 }
 
 func (p *parser) peekAny(toks ...Token) bool {

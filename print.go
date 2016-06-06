@@ -120,7 +120,7 @@ func (p *printer) nonSpaced(a ...interface{}) {
 		case string:
 			if len(x) > 0 {
 				last := x[len(x)-1]
-				p.wantSpace = !space[last]
+				p.wantSpace = !space(last)
 			}
 			_, p.err = io.WriteString(p.w, x)
 			p.curLine += strings.Count(x, "\n")
