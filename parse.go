@@ -88,7 +88,6 @@ func (p *parser) popStop()       { p.popStops(1) }
 
 func (p *parser) reachingEOF() bool {
 	if p.nextErr != nil && p.remaining == 0 {
-		p.errPass(p.nextErr)
 		return true
 	}
 	return false
@@ -96,6 +95,7 @@ func (p *parser) reachingEOF() bool {
 
 func (p *parser) readByte() byte {
 	if p.reachingEOF() {
+		p.errPass(p.nextErr)
 		return 0
 	}
 	b, _ := p.br.ReadByte()
@@ -119,6 +119,7 @@ func moveWith(pos Pos, b byte) Pos {
 
 func (p *parser) peekByte() byte {
 	if p.reachingEOF() {
+		p.errPass(p.nextErr)
 		return 0
 	}
 	bs, _ := p.br.Peek(1)
@@ -392,6 +393,9 @@ func (p *parser) peekReservedWord(tok Token) bool {
 }
 
 func (p *parser) willSpaced() bool {
+	if p.reachingEOF() {
+		return true
+	}
 	if len(p.stops) > 0 && p.willRead(p.stops[len(p.stops)-1].String()) {
 		return true
 	}

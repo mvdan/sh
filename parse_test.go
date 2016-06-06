@@ -24,12 +24,28 @@ func TestParse(t *testing.T) {
 	}
 }
 
+type errCounter struct {
+	reader io.Reader
+	count  int
+}
+
+func (e *errCounter) Read(p []byte) (int, error) {
+	n, err := e.reader.Read(p)
+	if err != nil {
+		e.count++
+	}
+	return n, err
+}
+
 func singleParse(in string, want File) func(t *testing.T) {
 	return func(t *testing.T) {
-		r := strings.NewReader(in)
+		r := &errCounter{reader: strings.NewReader(in)}
 		got, err := Parse(r, "", 0)
 		if err != nil {
 			t.Fatalf("Unexpected error in %q: %v", in, err)
+		}
+		if r.count != 1 {
+			t.Fatalf("Expected 1 EOF reads, got %d in %q", r.count, in)
 		}
 		setPosRecurse(t, got.Stmts, defaultPos, true)
 		if !reflect.DeepEqual(got, want) {
@@ -538,38 +554,5 @@ func TestInputName(t *testing.T) {
 	if got != want {
 		t.Fatalf("Error mismatch in %q\nwant: %s\ngot:  %s",
 			in, want, got)
-	}
-}
-
-type errCounter struct {
-	reader io.Reader
-	count  int
-}
-
-func (e *errCounter) Read(p []byte) (int, error) {
-	n, err := e.reader.Read(p)
-	if err != nil {
-		e.count++
-	}
-	return n, err
-}
-
-func TestParseSingleEOF(t *testing.T) {
-	tests := []string{
-		``,
-		`\`,
-		`"foo"`,
-	}
-	for i, in := range tests {
-		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
-			r := errCounter{reader: strings.NewReader(in)}
-			_, err := Parse(&r, "", 0)
-			if err != nil {
-				t.Fatalf("Unexpected error with EOF reader")
-			}
-			if r.count != 1 {
-				t.Fatalf("Expected 1 EOF reads, got %d", r.count)
-			}
-		})
 	}
 }
