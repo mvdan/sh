@@ -585,6 +585,11 @@ func (p *parser) readParts(ns *[]Node) {
 
 func (p *parser) wordPart() Node {
 	switch {
+	case p.got(LIT):
+		return Lit{
+			ValuePos: p.lpos,
+			Value:    p.lval,
+		}
 	case p.peek(DOLLBR):
 		return p.paramExp()
 	case p.peek(DOLLDP):
@@ -620,11 +625,6 @@ func (p *parser) wordPart() Node {
 		}
 		p.gotLit(&pe.Param)
 		return pe
-	case p.got(LIT):
-		return Lit{
-			ValuePos: p.lpos,
-			Value:    p.lval,
-		}
 	case p.peek(CMDIN):
 		ci := CmdInput{Lss: p.pos}
 		ci.Stmts = p.stmtsNested(RPAREN)
