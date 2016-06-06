@@ -39,6 +39,36 @@ func singleParse(in string, want File) func(t *testing.T) {
 	}
 }
 
+func BenchmarkParse(b *testing.B) {
+	type benchmark struct {
+		name, in string
+	}
+	benchmarks := []benchmark{
+		{"Empty", "\n\t    \n"},
+		{"Comment", "# comment body"},
+		{"LongLit", "really___long___literal___goes___here"},
+		{"Cmds", "a;a;a;a;a;a;a;a"},
+		{"Quoted", "'foo bar' \"foo bar\""},
+		{"Block", "{ foo; }; (foo)"},
+		{"IfStmt", "if foo; then bar; fi"},
+		{"ForStmt", "for foo in a b c; do bar; done"},
+		{"CmdSubst", "$(foo) `bar`"},
+		{"Binary", "foo && bar | etc"},
+		{"Redirect", "foo >a 2>&1 <<EOF\nbar\nEOF"},
+	}
+	for _, c := range benchmarks {
+		r := strings.NewReader(c.in)
+		b.Run(c.name, func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				r.Seek(0, 0)
+				if _, err := Parse(r, "", ParseComments); err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
+	}
+}
+
 var errBadReader = fmt.Errorf("read: expected error")
 
 type badReader struct{}
