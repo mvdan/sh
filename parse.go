@@ -604,11 +604,8 @@ func (p *parser) wordPart() Node {
 		return cs
 	case p.peek(DOLLAR):
 		if p.willSpaced() {
-			p.next()
-			return Lit{
-				ValuePos: p.lpos,
-				Value:    p.lval,
-			}
+			p.tok = LIT
+			return p.wordPart()
 		}
 		switch {
 		case p.readOnlyTok(HASH):
@@ -924,8 +921,7 @@ func (p *parser) gotRedirect() bool {
 	if p.gotLit(&l) {
 		r.N = &l
 	}
-	r.Op = p.tok
-	r.OpPos = p.pos
+	r.Op, r.OpPos = p.tok, p.pos
 	p.next()
 	switch r.Op {
 	case SHL, DHEREDOC:
