@@ -274,7 +274,12 @@ func (p *parser) advanceReadLit() { p.advanceBoth(LIT, string(p.readLitBytes()))
 func (p *parser) readLitBytes() (bs []byte) {
 	for {
 		if p.readOnly("\\") { // escaped byte
-			if b := p.readByte(); p.quoted(DQUOTE) || b != '\n' {
+			b := p.readByte()
+			if p.tok == EOF {
+				bs = append(bs, '\\')
+				return
+			}
+			if p.quoted(DQUOTE) || b != '\n' {
 				bs = append(bs, '\\', b)
 			}
 			continue

@@ -96,6 +96,10 @@ var astTests = []testCase{
 		litWord("foo"),
 	},
 	{
+		[]string{`\`},
+		litWord(`\`),
+	},
+	{
 		[]string{"foo\nbar", "foo; bar;", "foo;bar;", "\nfoo\nbar\n"},
 		litStmts("foo", "bar"),
 	},
