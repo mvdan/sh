@@ -37,8 +37,9 @@ type printer struct {
 	wantSpaces  int
 	wantNewline bool
 
-	curLine int
-	level   int
+	curLine   int
+	lastLevel int
+	level     int
 
 	comments []Comment
 
@@ -162,6 +163,13 @@ func (p *printer) semiOrNewl(v interface{}, pos Pos) {
 }
 
 func (p *printer) indent() {
+	if p.level > p.lastLevel+1 {
+		p.level = p.lastLevel + 1
+	}
+	if p.level < 0 { // TODO: fix root cause
+		p.level = 0
+	}
+	p.lastLevel = p.level
 	switch {
 	case p.level == 0:
 	case p.c.Spaces == 0:

@@ -143,12 +143,36 @@ func TestFprintWeirdFormat(t *testing.T) {
 			"a \\\n\t&& b",
 		},
 		{
+			"a \\\n\t&& b\nc",
+			"a \\\n\t&& b\nc",
+		},
+		{
+			"$(a \\\n\t&& b)\nc",
+			"$(a \\\n\t&& b)\nc",
+		},
+		{
+			"a && b \\\n&& c",
+			"a && b \\\n\t&& c",
+		},
+		{
+			"a \\\n&& b && c \\\n&& d",
+			"a \\\n\t&& b && c \\\n\t&& d",
+		},
+		{
+			"a \\\n\t&& if foo; then\nbar\nfi",
+			"a \\\n\t&& if foo; then\n\t\tbar\n\tfi",
+		},
+		{
 			"a |\nb |\nc",
 			"a \\\n\t| b \\\n\t| c",
 		},
 		{
 			"foo |\n# misplaced\nbar",
 			"foo \\\n\t| bar # misplaced",
+		},
+		{
+			"foo | while read l; do\nbar\ndone",
+			"foo | while read l; do\n\tbar\ndone",
 		},
 		{
 			"\"\\\nfoo\\\n  bar\"",
