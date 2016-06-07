@@ -193,8 +193,8 @@ func TestFprintWeirdFormat(t *testing.T) {
 	}
 
 	for i, tc := range weirdFormats {
-		for j, s := range [...]string{"", "\n"} {
-			t.Run(fmt.Sprintf("%03d-%d", i, j), func(t *testing.T) {
+		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
+			for _, s := range [...]string{"", "\n"} {
 				in := s + tc.in + s
 				prog, err := Parse(strings.NewReader(in), "",
 					ParseComments)
@@ -208,8 +208,8 @@ func TestFprintWeirdFormat(t *testing.T) {
 						"in:\n%s\nwant:\n%sgot:\n%s",
 						in, want, got)
 				}
-			})
-		}
+			}
+		})
 	}
 }
 
