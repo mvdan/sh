@@ -147,8 +147,8 @@ func TestFprintWeirdFormat(t *testing.T) {
 			"a \\\n\t&& b\nc",
 		},
 		{
-			"$(a \\\n\t&& b)\nc",
-			"$(a \\\n\t&& b)\nc",
+			"{\n(a \\\n&& b)\nc\n}",
+			"{\n\t(a \\\n\t\t&& b)\n\tc\n}",
 		},
 		{
 			"a && b \\\n&& c",

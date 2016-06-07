@@ -40,6 +40,7 @@ type printer struct {
 	curLine   int
 	lastLevel int
 	level     int
+	levelIncs []bool
 
 	comments []Comment
 
@@ -162,13 +163,28 @@ func (p *printer) semiOrNewl(v interface{}, pos Pos) {
 	p.curLine = pos.Line
 }
 
+func (p *printer) incLevel() {
+	inc := false
+	if p.level == p.lastLevel {
+		p.level++
+		inc = true
+	} else if last := &p.levelIncs[len(p.levelIncs)-1]; *last {
+		*last = false
+		inc = true
+	}
+	p.levelIncs = append(p.levelIncs, inc)
+}
+
+func (p *printer) decLevel() {
+	inc := p.levelIncs[len(p.levelIncs)-1]
+	p.levelIncs = p.levelIncs[:len(p.levelIncs)-1]
+	if inc {
+		p.level--
+		p.lastLevel = p.level
+	}
+}
+
 func (p *printer) indent() {
-	if p.level > p.lastLevel+1 {
-		p.level = p.lastLevel + 1
-	}
-	if p.level < 0 { // TODO: fix root cause
-		p.level = 0
-	}
 	p.lastLevel = p.level
 	switch {
 	case p.level == 0:
@@ -299,7 +315,7 @@ func (p *printer) node(n Node) {
 			if p.curLine > 0 && r.OpPos.Line > p.curLine {
 				p.spaced("\\\n")
 				if !anyNewline {
-					p.level++
+					p.incLevel()
 					anyNewline = true
 				}
 				p.indent()
@@ -312,7 +328,7 @@ func (p *printer) node(n Node) {
 			}
 		}
 		if anyNewline {
-			p.level--
+			p.decLevel()
 		}
 		if x.Background {
 			p.spaced(AND)
@@ -407,13 +423,13 @@ func (p *printer) node(n Node) {
 		default:
 			p.spaced(x.X)
 			if !p.nestedBinary() {
-				p.level++
+				p.incLevel()
 			}
 			p.singleStmtSeparate(x.Y.Pos())
 			p.spaced(x.Op)
 			p.nonSpaced(x.Y)
 			if !p.nestedBinary() {
-				p.level--
+				p.decLevel()
 			}
 		}
 	case FuncDecl:
@@ -483,7 +499,7 @@ func (p *printer) node(n Node) {
 		p.nonSpaced(LPAREN, x.X, RPAREN)
 	case CaseStmt:
 		p.spaced(CASE, x.Word, IN)
-		p.level++
+		p.incLevel()
 		for _, pl := range x.List {
 			p.didSeparate(wordFirstPos(pl.Patterns))
 			for i, w := range pl.Patterns {
@@ -506,7 +522,7 @@ func (p *printer) node(n Node) {
 			}
 			p.level--
 		}
-		p.level--
+		p.decLevel()
 		p.separated(ESAC, x.Esac, len(x.List) == 0)
 	case DeclStmt:
 		if x.Local {
@@ -549,7 +565,7 @@ func (p *printer) wordJoin(ws []Word, keepNewlines, needBackslash bool) {
 			}
 			p.nonSpaced("\n")
 			if !anyNewline {
-				p.level++
+				p.incLevel()
 				anyNewline = true
 			}
 			p.indent()
@@ -557,7 +573,7 @@ func (p *printer) wordJoin(ws []Word, keepNewlines, needBackslash bool) {
 		p.spaced(w)
 	}
 	if anyNewline {
-		p.level--
+		p.decLevel()
 	}
 }
 
@@ -618,8 +634,8 @@ func strFprint(n Node, spaces int) string {
 }
 
 func (p *printer) nestedStmts(stmts []Stmt) bool {
-	p.level++
+	p.incLevel()
 	sep := p.stmts(stmts)
-	p.level--
+	p.decLevel()
 	return sep
 }
