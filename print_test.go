@@ -163,6 +163,18 @@ func TestFprintWeirdFormat(t *testing.T) {
 			"a \\\n\t&& if foo; then\n\t\tbar\n\tfi",
 		},
 		{
+			"if\nfoo\nthen\nbar\nfi",
+			"if\n\tfoo\nthen\n\tbar\nfi",
+		},
+		{
+			"if foo \\\nbar\nthen\nbar\nfi",
+			"if foo \\\n\t\tbar; then\n\tbar\nfi",
+		},
+		{
+			"if foo \\\n&& bar\nthen\nbar\nfi",
+			"if foo \\\n\t\t&& bar; then\n\tbar\nfi",
+		},
+		{
 			"a |\nb |\nc",
 			"a \\\n\t| b \\\n\t| c",
 		},
