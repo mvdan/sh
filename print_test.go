@@ -255,14 +255,12 @@ func TestFprintMultiline(t *testing.T) {
 	prog := parsePath(t, path)
 	got := strFprint(prog, 0)
 
-	outb, err := ioutil.ReadFile(path)
+	want, err := ioutil.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := string(outb)
-	if got != want {
-		t.Fatalf("Fprint mismatch:\nwant:\n%sgot:\n%s",
-			want, got)
+	if got != string(want) {
+		t.Fatalf("Fprint mismatch in canonical.sh")
 	}
 }
 
