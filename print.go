@@ -81,21 +81,6 @@ func (p *printer) compactArithm() bool {
 	return false
 }
 
-// inStmtCondCont returns whether we are in one of the statements of a
-// StmtCond.
-func (p *printer) inStmtCondCont() bool {
-	b := false
-	for i := len(p.stack) - 1; i >= 0; i-- {
-		switch p.stack[i].(type) {
-		case Stmt:
-			b = true
-		case StmtCond:
-			return b
-		}
-	}
-	return false
-}
-
 var (
 	// these never want a following space
 	contiguousRight = map[Token]bool{
@@ -180,7 +165,7 @@ func (p *printer) semiOrNewl(v interface{}, pos Pos) {
 
 func (p *printer) incLevel() {
 	inc := false
-	if p.inStmtCondCont() || p.level == p.lastLevel {
+	if p.level == p.lastLevel {
 		p.level++
 		inc = true
 	} else if last := &p.levelIncs[len(p.levelIncs)-1]; *last {

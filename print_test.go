@@ -168,11 +168,11 @@ func TestFprintWeirdFormat(t *testing.T) {
 		},
 		{
 			"if foo \\\nbar\nthen\nbar\nfi",
-			"if foo \\\n\t\tbar; then\n\tbar\nfi",
+			"if foo \\\n\tbar; then\n\tbar\nfi",
 		},
 		{
 			"if foo \\\n&& bar\nthen\nbar\nfi",
-			"if foo \\\n\t\t&& bar; then\n\tbar\nfi",
+			"if foo \\\n\t&& bar; then\n\tbar\nfi",
 		},
 		{
 			"a |\nb |\nc",
