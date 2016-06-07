@@ -311,6 +311,9 @@ func (p *printer) node(n Node) {
 				p.pendingHdocs = append(p.pendingHdocs, r)
 			}
 		}
+		if anyNewline {
+			p.level--
+		}
 		if x.Background {
 			p.spaced(AND)
 		}

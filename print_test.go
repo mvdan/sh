@@ -179,8 +179,8 @@ func TestFprintWeirdFormat(t *testing.T) {
 			"\"\\\nfoo\\\n  bar\"",
 		},
 		{
-			"foo \\\n>bar",
-			"foo \\\n\t>bar",
+			"foo \\\n>bar\netc",
+			"foo \\\n\t>bar\netc",
 		},
 		{
 			"foo \\\nfoo2 \\\n>bar",
