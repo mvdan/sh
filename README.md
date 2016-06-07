@@ -16,5 +16,9 @@ its style.
 	go get github.com/mvdan/sh/cmd/shfmt
 
 You can feed it standard input, any number of files or any number of
-directories to recurse into. When recursing, it will operate on .sh and
-.bash files and ignore files starting with a period.
+directories to recurse into. When recursing, it will operate on `.sh`
+and `.bash` files and ignore files starting with a period.
+
+	shfmt -l -w script.sh
+
+Use `-i N` to indent with a number of spaces instead of tabs.
