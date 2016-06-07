@@ -344,6 +344,8 @@ func (p *printer) node(n Node) {
 		if len(x.ElseStmts) > 0 {
 			p.separated(ELSE, x.Else, true)
 			p.nestedStmts(x.ElseStmts)
+		} else if x.Else.Line > 0 {
+			p.curLine = x.Else.Line
 		}
 		p.separated(FI, x.Fi, true)
 	case StmtCond:
