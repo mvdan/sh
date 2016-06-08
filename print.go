@@ -88,6 +88,7 @@ var (
 		LPAREN:  true,
 		DLPAREN: true,
 		CMDIN:   true,
+		CMDOUT:  true,
 		DOLLDP:  true,
 	}
 	// these never want a preceding space
@@ -540,9 +541,9 @@ func (p *printer) node(n Node) {
 		p.nonSpaced(LPAREN)
 		p.wordJoin(x.List, true, false)
 		p.separated(RPAREN, x.Rparen, false)
-	case CmdInput:
-		// avoid conflict with <<
-		p.spaced(CMDIN)
+	case ProcSubst:
+		// avoid conflict with << and others
+		p.spaced(x.Op)
 		p.nestedStmts(x.Stmts)
 		p.nonSpaced(RPAREN)
 	case EvalStmt:

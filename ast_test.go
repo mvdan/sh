@@ -859,21 +859,27 @@ var astTests = []testCase{
 		},
 	},
 	{
-		[]string{"cat <(foo)"},
+		[]string{"foo >(foo)"},
 		Stmt{
 			Node: cmd(
-				litWord("cat"),
-				word(CmdInput{Stmts: litStmts("foo")}),
+				litWord("foo"),
+				word(ProcSubst{
+					Op:    CMDOUT,
+					Stmts: litStmts("foo"),
+				}),
 			),
 		},
 	},
 	{
-		[]string{"cat < <(foo)"},
+		[]string{"foo < <(foo)"},
 		Stmt{
-			Node: litCmd("cat"),
+			Node: litCmd("foo"),
 			Redirs: []Redirect{{
-				Op:   LSS,
-				Word: word(CmdInput{Stmts: litStmts("foo")}),
+				Op: LSS,
+				Word: word(ProcSubst{
+					Op:    CMDIN,
+					Stmts: litStmts("foo"),
+				}),
 			}},
 		},
 	},
@@ -2278,8 +2284,8 @@ func setPosRecurse(tb testing.TB, v interface{}, to Pos, diff bool) Node {
 		setPos(&x.Rparen)
 		recurse(x.List)
 		return x
-	case CmdInput:
-		setPos(&x.Lss)
+	case ProcSubst:
+		setPos(&x.OpPos)
 		setPos(&x.Rparen)
 		recurse(x.Stmts)
 		return x

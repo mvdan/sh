@@ -645,11 +645,11 @@ func (p *parser) wordPart() Node {
 		}
 		p.gotLit(&pe.Param)
 		return pe
-	case p.peek(CMDIN):
-		ci := CmdInput{Lss: p.pos}
-		ci.Stmts = p.stmtsNested(RPAREN)
-		ci.Rparen = p.matchedTok(ci.Lss, LPAREN, RPAREN)
-		return ci
+	case p.peekAny(CMDIN, CMDOUT):
+		ps := ProcSubst{Op: p.tok, OpPos: p.pos}
+		ps.Stmts = p.stmtsNested(RPAREN)
+		ps.Rparen = p.matchedTok(ps.OpPos, ps.Op, RPAREN)
+		return ps
 	case !p.quoted(SQUOTE) && p.peek(SQUOTE):
 		sq := SglQuoted{Quote: p.pos}
 		s, found := p.readUntil("'")

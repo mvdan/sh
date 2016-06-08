@@ -103,6 +103,7 @@ const (
 	DHEREDOC // <<-
 	WHEREDOC // <<<
 	CMDIN    // <(
+	CMDOUT   // >(
 	RDRALL   // &>
 	APPALL   // &>>
 
@@ -243,6 +244,7 @@ var (
 		{"<<-", DHEREDOC},
 		{"<<<", WHEREDOC},
 		{"<(", CMDIN},
+		{">(", CMDOUT},
 		{"&>", RDRALL},
 		{"&>>", APPALL},
 	}

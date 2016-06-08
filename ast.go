@@ -422,13 +422,14 @@ type ArrayExpr struct {
 func (a ArrayExpr) Pos() Pos { return a.Lparen }
 func (a ArrayExpr) End() Pos { return posAfter(a.Rparen, RPAREN) }
 
-type CmdInput struct {
-	Lss, Rparen Pos
-	Stmts       []Stmt
+type ProcSubst struct {
+	OpPos, Rparen Pos
+	Op            Token
+	Stmts         []Stmt
 }
 
-func (c CmdInput) Pos() Pos { return c.Lss }
-func (c CmdInput) End() Pos { return posAfter(c.Rparen, RPAREN) }
+func (s ProcSubst) Pos() Pos { return s.OpPos }
+func (s ProcSubst) End() Pos { return posAfter(s.Rparen, RPAREN) }
 
 type EvalStmt struct {
 	Eval Pos
