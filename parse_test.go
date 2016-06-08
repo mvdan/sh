@@ -128,16 +128,12 @@ var errTests = []struct {
 		`1:3: ; can only immediately follow a statement`,
 	},
 	{
-		"à(){}",
-		`1:1: invalid func name: à`,
-	},
-	{
 		`"foo"(){}`,
 		`1:1: invalid func name: "foo"`,
 	},
 	{
-		`'foo'(){}`,
-		`1:1: invalid func name: 'foo'`,
+		`foo$bar(){}`,
+		`1:1: invalid func name: foo$bar`,
 	},
 	{
 		"{",

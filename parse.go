@@ -1307,8 +1307,6 @@ func (p *parser) cmdOrFunc() Node {
 	return cmd
 }
 
-var fnameRe = regexp.MustCompile(`^[a-zA-Z_.,+-][a-zA-Z0-9_.,+-]*$`)
-
 func (p *parser) funcDecl(w Word, pos Pos) (fd FuncDecl) {
 	if len(w.Parts) == 0 {
 		return
@@ -1317,7 +1315,7 @@ func (p *parser) funcDecl(w Word, pos Pos) (fd FuncDecl) {
 	fd.BashStyle = pos != w.Pos()
 	var ok bool
 	fd.Name, ok = w.Parts[0].(Lit)
-	if !ok || len(w.Parts) > 1 || !fnameRe.MatchString(fd.Name.Value) {
+	if !ok || len(w.Parts) > 1 {
 		p.posErr(fd.Pos(), "invalid func name: %s", strFprint(w, -1))
 	}
 	fd.Body = p.followStmt(fd.Pos(), "foo()")
