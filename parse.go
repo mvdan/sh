@@ -254,12 +254,10 @@ func (p *parser) next() {
 	case p.quotedAny(DLPAREN, DRPAREN, LPAREN) && arithmOps[b]:
 		p.advanceTok(p.doArithmToken())
 	case reserved[b]:
-		// Between double quotes, only under certain
-		// circumstnaces do we tokenize
-		if p.quoted(DQUOTE) {
+		// Limited tokenization in these circumstances
+		if p.quotedAny(DQUOTE, RBRACE) {
 			switch {
-			case b == '`', b == '"':
-			case b == '$' && !p.willRead(`$"`):
+			case b == '`', b == '"', b == '$':
 			default:
 				p.advanceReadLit()
 				return
@@ -292,8 +290,8 @@ func (p *parser) readLitBytes() (bs []byte) {
 		switch {
 		case b == '$' && !p.willRead(`$"`) && !p.willRead(`$'`), b == '`':
 			return
-		case p.quotedAny(RBRACE):
-			if b == '}' {
+		case p.quoted(RBRACE):
+			if b == '}' || b == '"' {
 				return
 			}
 		case p.quoted(LBRACE) && paramOps[b], p.quoted(RBRACK) && b == ']':

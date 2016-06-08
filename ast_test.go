@@ -1064,12 +1064,12 @@ var astTests = []testCase{
 		),
 	},
 	{
-		[]string{`${foo:="bar"}`},
+		[]string{`${foo:=<"bar"}`},
 		word(ParamExp{
 			Param: lit("foo"),
 			Exp: &Expansion{
 				Op:   CASSIGN,
-				Word: word(dblQuoted(lit("bar"))),
+				Word: word(lit("<"), dblQuoted(lit("bar"))),
 			},
 		}),
 	},
