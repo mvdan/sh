@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 
 	"github.com/mvdan/sh"
 )
@@ -61,6 +62,7 @@ func formatStdin() error {
 var (
 	hidden    = regexp.MustCompile(`^\.[^/.]`)
 	shellFile = regexp.MustCompile(`^.*\.(sh|bash)$`)
+	shebang   = regexp.MustCompile(`^#!/(usr/)?bin/(env *)?(sh|bash)`)
 )
 
 func work(path string) error {
@@ -69,16 +71,16 @@ func work(path string) error {
 		return err
 	}
 	if !info.IsDir() {
-		return formatPath(path)
+		return formatPath(path, true)
 	}
 	return filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
 		if hidden.MatchString(path) {
 			return filepath.SkipDir
 		}
-		if info.IsDir() || !shellFile.MatchString(path) {
+		if info.IsDir() {
 			return nil
 		}
-		return formatPath(path)
+		return formatPath(path, false)
 	})
 }
 
@@ -90,7 +92,21 @@ func empty(f *os.File) error {
 	return err
 }
 
-func formatPath(path string) error {
+func validShebang(r io.Reader) (bool, error) {
+	b := make([]byte, 32)
+	n, err := r.Read(b)
+	if err != nil {
+		return false, err
+	}
+	return shebang.Match(b[:n]), nil
+}
+
+func formatPath(path string, always bool) error {
+	shellExt := always || shellFile.MatchString(path)
+	if !shellExt && strings.Contains(path, ".") {
+		// has an unwanted extension
+		return nil
+	}
 	mode := os.O_RDONLY
 	if *write {
 		mode = os.O_RDWR
@@ -100,6 +116,12 @@ func formatPath(path string) error {
 		return err
 	}
 	defer f.Close()
+	if !shellExt {
+		valid, err := validShebang(f)
+		if !valid || err != nil {
+			return err
+		}
+	}
 	prog, err := sh.Parse(f, path, sh.ParseComments)
 	if err != nil {
 		return err

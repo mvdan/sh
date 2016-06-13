@@ -17,7 +17,8 @@ its style.
 
 You can feed it standard input, any number of files or any number of
 directories to recurse into. When recursing, it will operate on `.sh`
-and `.bash` files and ignore files starting with a period.
+and `.bash` files and ignore files starting with a period. It will also
+operate on files with no extension and a shell shebang.
 
 	shfmt -l -w script.sh
 
