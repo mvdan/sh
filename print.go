@@ -193,7 +193,7 @@ func (p *printer) newlines(pos Pos) {
 	p.newline()
 	if pos.Line > p.curLine+1 {
 		// preserve single empty lines
-		p.newline()
+		p.space('\n')
 	}
 	p.indent()
 	p.curLine = pos.Line
@@ -225,8 +225,7 @@ func (p *printer) didSeparate(pos Pos) bool {
 func (p *printer) singleStmtSeparate(pos Pos) {
 	if len(p.pendingHdocs) > 0 {
 	} else if p.wantNewline || (p.curLine > 0 && pos.Line > p.curLine) {
-		p.spacedStr("\\")
-		p.newline()
+		p.spacedStr("\\\n")
 		p.indent()
 	}
 	p.curLine = pos.Line
@@ -264,10 +263,7 @@ func (p *printer) commentsUpTo(line int) {
 	}
 	p.wantNewline = false
 	if !p.didSeparate(c.Hash) {
-		if p.wantSpaces == 0 {
-			p.wantSpaces++
-		}
-		p.str(strings.Repeat(" ", p.wantSpaces))
+		p.str(strings.Repeat(" ", p.wantSpaces+1))
 	}
 	_, p.err = fmt.Fprint(p.w, HASH, c.Text)
 	p.comments = p.comments[1:]
@@ -684,7 +680,7 @@ func (p *printer) stmts(stmts []Stmt) bool {
 			}
 		}
 		l := len(strFprint(s, 0))
-		p.wantSpaces = (inlineIndent - l) + 1
+		p.wantSpaces = inlineIndent - l
 	}
 	p.wantNewline = true
 	return true
