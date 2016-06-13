@@ -131,6 +131,9 @@ func formatPath(path string, size int64, always bool) error {
 		if !valid || err != nil {
 			return err
 		}
+		if _, err := f.Seek(0, 0); err != nil {
+			return err
+		}
 	}
 	prog, err := sh.Parse(f, path, sh.ParseComments)
 	if err != nil {
