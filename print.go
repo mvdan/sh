@@ -70,18 +70,6 @@ func (p *printer) nestedBinary() bool {
 	return ok
 }
 
-func (p *printer) inArithm() bool {
-	for i := len(p.stack) - 1; i >= 0; i-- {
-		switch p.stack[i].(type) {
-		case ArithmExpr, LetStmt, CStyleCond, CStyleLoop:
-			return true
-		case Stmt:
-			return false
-		}
-	}
-	return false
-}
-
 func (p *printer) compactArithm() bool {
 	for i := len(p.stack) - 1; i >= 0; i-- {
 		switch p.stack[i].(type) {
@@ -119,14 +107,6 @@ func (p *printer) space(b byte) {
 	}
 	_, p.err = p.w.Write([]byte{b})
 	p.wantSpace = false
-	if b == '\n' {
-		for _, r := range p.pendingHdocs {
-			p.lit(*r.Hdoc)
-			p.str(strFprint(unquote(r.Word), -1))
-			p.str("\n")
-		}
-		p.pendingHdocs = nil
-	}
 }
 
 func (p *printer) str(s string) {
@@ -213,6 +193,12 @@ func (p *printer) indent() {
 func (p *printer) newline() {
 	p.wantNewline = false
 	p.space('\n')
+	for _, r := range p.pendingHdocs {
+		p.lit(*r.Hdoc)
+		p.str(strFprint(unquote(r.Word), -1))
+		p.str("\n")
+	}
+	p.pendingHdocs = nil
 }
 
 func (p *printer) newlines(pos Pos) {
@@ -311,14 +297,12 @@ func (p *printer) node(node Node) {
 		p.stmt(x)
 	case Command:
 		p.command(x)
-	case Subshell:
-		p.spacedTok(LPAREN)
-		p.nestedStmts(x.Stmts)
-		p.separated(RPAREN, x.Rparen, false)
 	case Block:
 		p.spacedTok(LBRACE)
 		p.nestedStmts(x.Stmts)
 		p.separated(RBRACE, x.Rbrace, true)
+	case Lit:
+		p.lit(x)
 	case IfStmt:
 		p.spacedTok(IF)
 		p.cond(x.Cond)
@@ -337,6 +321,10 @@ func (p *printer) node(node Node) {
 			p.curLine = x.Else.Line
 		}
 		p.separated(FI, x.Fi, true)
+	case Subshell:
+		p.spacedTok(LPAREN)
+		p.nestedStmts(x.Stmts)
+		p.separated(RPAREN, x.Rparen, false)
 	case WhileStmt:
 		p.spacedTok(WHILE)
 		p.cond(x.Cond)
@@ -350,26 +338,15 @@ func (p *printer) node(node Node) {
 		p.nestedStmts(x.DoStmts)
 		p.separated(DONE, x.Done, true)
 	case BinaryExpr:
-		switch {
-		case p.compactArithm():
-			p.node(x.X)
-			p.token(x.Op)
-			p.node(x.Y)
-		case p.inArithm():
-			p.spacedNode(x.X)
-			p.spacedTok(x.Op)
-			p.spacedNode(x.Y)
-		default:
-			p.spacedNode(x.X)
-			if !p.nestedBinary() {
-				p.incLevel()
-			}
-			p.singleStmtSeparate(x.Y.Pos())
-			p.spacedTok(x.Op)
-			p.node(x.Y)
-			if !p.nestedBinary() {
-				p.decLevel()
-			}
+		p.spacedNode(x.X)
+		if !p.nestedBinary() {
+			p.incLevel()
+		}
+		p.singleStmtSeparate(x.Y.Pos())
+		p.spacedTok(x.Op)
+		p.node(x.Y)
+		if !p.nestedBinary() {
+			p.decLevel()
 		}
 	case FuncDecl:
 		if x.BashStyle {
@@ -383,8 +360,6 @@ func (p *printer) node(node Node) {
 		p.stmt(x.Body)
 	case Word:
 		p.word(x)
-	case Lit:
-		p.lit(x)
 	case SglQuoted:
 		p.token(SQUOTE)
 		p.str(x.Value)
@@ -446,21 +421,8 @@ func (p *printer) node(node Node) {
 		p.separated(DONE, x.Done, true)
 	case ArithmExpr:
 		p.token(DOLLDP)
-		p.node(x.X)
+		p.arithm(x.X)
 		p.token(DRPAREN)
-	case UnaryExpr:
-		if x.Post {
-			p.node(x.X)
-			p.token(x.Op)
-		} else {
-			p.token(x.Op)
-			p.wantSpace = false
-			p.node(x.X)
-		}
-	case ParenExpr:
-		p.token(LPAREN)
-		p.node(x.X)
-		p.token(RPAREN)
 	case CaseStmt:
 		p.spacedTok(CASE)
 		p.spacedWord(x.Word)
@@ -516,7 +478,7 @@ func (p *printer) node(node Node) {
 	case LetStmt:
 		p.spacedTok(LET)
 		for _, n := range x.Exprs {
-			p.spacedNode(n)
+			p.spacedArithm(n)
 		}
 	}
 	p.stack = p.stack[:len(p.stack)-1]
@@ -538,18 +500,56 @@ func (p *printer) cond(node Node) {
 		}
 	case CStyleCond:
 		p.spacedTok(DLPAREN)
-		p.node(x.X)
+		p.arithm(x.X)
 		p.spacedTok(DRPAREN)
 	case CStyleLoop:
 		p.spacedTok(DLPAREN)
-		p.spacedNode(x.Init)
+		p.spacedArithm(x.Init)
 		p.spacedTok(SEMICOLON)
-		p.spacedNode(x.Cond)
+		p.spacedArithm(x.Cond)
 		p.spacedTok(SEMICOLON)
-		p.spacedNode(x.Post)
+		p.spacedArithm(x.Post)
 		p.spacedTok(DRPAREN)
 	}
 	p.stack = p.stack[:len(p.stack)-1]
+}
+
+func (p *printer) arithm(node Node) {
+	p.stack = append(p.stack, node)
+	switch x := node.(type) {
+	case Word:
+		p.word(x)
+	case BinaryExpr:
+		if p.compactArithm() {
+			p.arithm(x.X)
+			p.token(x.Op)
+			p.arithm(x.Y)
+		} else {
+			p.spacedArithm(x.X)
+			p.spacedTok(x.Op)
+			p.spacedArithm(x.Y)
+		}
+	case UnaryExpr:
+		if x.Post {
+			p.arithm(x.X)
+			p.token(x.Op)
+		} else {
+			p.token(x.Op)
+			p.wantSpace = false
+			p.arithm(x.X)
+		}
+	case ParenExpr:
+		p.token(LPAREN)
+		p.arithm(x.X)
+		p.token(RPAREN)
+	}
+	p.stack = p.stack[:len(p.stack)-1]
+}
+func (p *printer) spacedArithm(node Node) {
+	if p.wantSpace {
+		p.space(' ')
+	}
+	p.arithm(node)
 }
 
 func (p *printer) word(w Word) {
@@ -572,9 +572,10 @@ func (p *printer) wordJoin(ws []Word, needBackslash bool) {
 	for _, w := range ws {
 		if p.curLine > 0 && w.Pos().Line > p.curLine {
 			if needBackslash {
-				p.spacedStr("\\")
+				p.spacedStr("\\\n")
+			} else {
+				p.str("\n")
 			}
-			p.str("\n")
 			if !anyNewline {
 				p.incLevel()
 				anyNewline = true
