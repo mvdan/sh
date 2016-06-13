@@ -99,6 +99,7 @@ func formatPath(path string) error {
 	if err != nil {
 		return err
 	}
+	defer f.Close()
 	prog, err := sh.Parse(f, path, sh.ParseComments)
 	if err != nil {
 		return err
@@ -127,10 +128,7 @@ func formatPath(path string) error {
 			return err
 		}
 		_, err := io.Copy(f, &buf)
-		if err != nil {
-			return err
-		}
-		return f.Close()
+		return err
 	case *write:
 		if err := empty(f); err != nil {
 			return err
@@ -139,10 +137,7 @@ func formatPath(path string) error {
 		if err := config.Fprint(w, prog); err != nil {
 			return err
 		}
-		if err := w.Flush(); err != nil {
-			return err
-		}
-		return f.Close()
+		return w.Flush()
 	case *list:
 		var buf bytes.Buffer
 		if err := config.Fprint(&buf, prog); err != nil {
@@ -151,9 +146,7 @@ func formatPath(path string) error {
 		if buf.String() != orig {
 			fmt.Println(path)
 		}
-		f.Close()
 	default:
-		f.Close()
 		return config.Fprint(os.Stdout, prog)
 	}
 	return nil
