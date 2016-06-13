@@ -186,7 +186,7 @@ var astTests = []testCase{
 	{
 		[]string{"if ((1 > 2)); then b; fi"},
 		IfStmt{
-			Cond: CStyleCond{Cond: BinaryExpr{
+			Cond: CStyleCond{X: BinaryExpr{
 				Op: GTR,
 				X:  litWord("1"),
 				Y:  litWord("2"),
@@ -222,7 +222,7 @@ var astTests = []testCase{
 	{
 		[]string{"while ((1 > 2)); do b; done"},
 		WhileStmt{
-			Cond: CStyleCond{Cond: BinaryExpr{
+			Cond: CStyleCond{X: BinaryExpr{
 				Op: GTR,
 				X:  litWord("1"),
 				Y:  litWord("2"),
@@ -2166,7 +2166,7 @@ func setPosRecurse(tb testing.TB, v interface{}, to Pos, diff bool) Node {
 	case CStyleCond:
 		setPos(&x.Lparen)
 		setPos(&x.Rparen)
-		recurse(&x.Cond)
+		recurse(&x.X)
 		return x
 	case WhileStmt:
 		setPos(&x.While)

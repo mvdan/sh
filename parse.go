@@ -1119,7 +1119,7 @@ func (p *parser) cond(left Token, stops ...Token) Node {
 	if p.peek(LPAREN) && p.readOnlyTok(LPAREN) {
 		p.pushStops(DRPAREN)
 		c := CStyleCond{Lparen: p.lpos}
-		c.Cond = p.arithmExpr(DLPAREN)
+		c.X = p.arithmExpr(DLPAREN)
 		c.Rparen = p.arithmEnd(c.Lparen)
 		p.gotSameLine(SEMICOLON)
 		return c

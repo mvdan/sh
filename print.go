@@ -311,7 +311,7 @@ func (p *printer) node(node Node) {
 	case Stmt:
 		p.stmt(x)
 	case Command:
-		p.wordJoin(x.Args, true, true)
+		p.command(x)
 	case Subshell:
 		p.spacedTok(LPAREN)
 		p.nestedStmts(x.Stmts)
@@ -322,12 +322,12 @@ func (p *printer) node(node Node) {
 		p.separated(RBRACE, x.Rbrace, true)
 	case IfStmt:
 		p.spacedTok(IF)
-		p.node(x.Cond)
+		p.cond(x.Cond)
 		p.semiOrNewl(THEN, x.Then)
 		p.nestedStmts(x.ThenStmts)
 		for _, el := range x.Elifs {
 			p.separated(ELIF, el.Elif, true)
-			p.node(el.Cond)
+			p.cond(el.Cond)
 			p.semiOrNewl(THEN, el.Then)
 			p.nestedStmts(el.ThenStmts)
 		}
@@ -338,17 +338,15 @@ func (p *printer) node(node Node) {
 			p.curLine = x.Else.Line
 		}
 		p.separated(FI, x.Fi, true)
-	case StmtCond:
-		p.nestedStmts(x.Stmts)
 	case WhileStmt:
 		p.spacedTok(WHILE)
-		p.node(x.Cond)
+		p.cond(x.Cond)
 		p.semiOrNewl(DO, x.Do)
 		p.nestedStmts(x.DoStmts)
 		p.separated(DONE, x.Done, true)
 	case ForStmt:
 		p.spacedTok(FOR)
-		p.node(x.Cond)
+		p.cond(x.Cond)
 		p.semiOrNewl(DO, x.Do)
 		p.nestedStmts(x.DoStmts)
 		p.separated(DONE, x.Done, true)
@@ -443,33 +441,12 @@ func (p *printer) node(node Node) {
 			p.word(x.Exp.Word)
 		}
 		p.token(RBRACE)
-	case WordIter:
-		if p.wantSpace {
-			p.space(' ')
-		}
-		p.lit(x.Name)
-		if len(x.List) > 0 {
-			p.spacedTok(IN)
-			p.wordJoin(x.List, false, true)
-		}
 	case UntilStmt:
 		p.spacedTok(UNTIL)
-		p.node(x.Cond)
+		p.cond(x.Cond)
 		p.semiOrNewl(DO, x.Do)
 		p.nestedStmts(x.DoStmts)
 		p.separated(DONE, x.Done, true)
-	case CStyleCond:
-		p.spacedTok(DLPAREN)
-		p.node(x.Cond)
-		p.spacedTok(DRPAREN)
-	case CStyleLoop:
-		p.spacedTok(DLPAREN)
-		p.spacedNode(x.Init)
-		p.spacedTok(SEMICOLON)
-		p.spacedNode(x.Cond)
-		p.spacedTok(SEMICOLON)
-		p.spacedNode(x.Post)
-		p.spacedTok(DRPAREN)
 	case ArithmExpr:
 		p.token(DOLLDP)
 		p.node(x.X)
@@ -537,12 +514,43 @@ func (p *printer) node(node Node) {
 		p.token(RPAREN)
 	case EvalStmt:
 		p.spacedTok(EVAL)
-		p.spacedNode(x.Stmt)
+		p.space(' ')
+		p.stmt(x.Stmt)
 	case LetStmt:
 		p.spacedTok(LET)
 		for _, n := range x.Exprs {
 			p.spacedNode(n)
 		}
+	}
+	p.stack = p.stack[:len(p.stack)-1]
+}
+
+func (p *printer) cond(node Node) {
+	p.stack = append(p.stack, node)
+	switch x := node.(type) {
+	case StmtCond:
+		p.nestedStmts(x.Stmts)
+	case WordIter:
+		if p.wantSpace {
+			p.space(' ')
+		}
+		p.lit(x.Name)
+		if len(x.List) > 0 {
+			p.spacedTok(IN)
+			p.wordJoin(x.List, false, true)
+		}
+	case CStyleCond:
+		p.spacedTok(DLPAREN)
+		p.node(x.X)
+		p.spacedTok(DRPAREN)
+	case CStyleLoop:
+		p.spacedTok(DLPAREN)
+		p.spacedNode(x.Init)
+		p.spacedTok(SEMICOLON)
+		p.spacedNode(x.Cond)
+		p.spacedTok(SEMICOLON)
+		p.spacedNode(x.Post)
+		p.spacedTok(DRPAREN)
 	}
 	p.stack = p.stack[:len(p.stack)-1]
 }
@@ -591,10 +599,11 @@ func (p *printer) stmt(s Stmt) {
 	}
 	p.assigns(s.Assigns)
 	startRedirs := 0
-	if c, ok := s.Node.(Command); ok && len(c.Args) > 1 {
-		p.spacedWord(c.Args[0])
+	cmd, ok := s.Node.(Command)
+	if len(cmd.Args) > 1 {
+		p.spacedWord(cmd.Args[0])
 		for _, r := range s.Redirs {
-			if posGreater(r.Pos(), c.Args[1].Pos()) {
+			if posGreater(r.Pos(), cmd.Args[1].Pos()) {
 				break
 			}
 			if r.Op == SHL || r.Op == DHEREDOC {
@@ -610,7 +619,9 @@ func (p *printer) stmt(s Stmt) {
 			p.word(r.Word)
 			startRedirs++
 		}
-		p.wordJoin(c.Args[1:], true, true)
+		p.wordJoin(cmd.Args[1:], true, true)
+	} else if ok {
+		p.command(cmd)
 	} else {
 		p.spacedNode(s.Node)
 	}
@@ -707,6 +718,8 @@ func (p *printer) nestedStmts(stmts []Stmt) bool {
 	p.decLevel()
 	return sep
 }
+
+func (p *printer) command(cmd Command) { p.wordJoin(cmd.Args, true, true) }
 
 func (p *printer) assigns(assigns []Assign) {
 	for _, a := range assigns {

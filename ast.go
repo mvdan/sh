@@ -151,7 +151,7 @@ func (s StmtCond) End() Pos { return stmtLastEnd(s.Stmts) }
 // arithmetic expression.
 type CStyleCond struct {
 	Lparen, Rparen Pos
-	Cond           Node
+	X              Node
 }
 
 func (c CStyleCond) Pos() Pos { return c.Lparen }
