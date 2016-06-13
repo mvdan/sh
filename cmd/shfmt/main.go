@@ -37,10 +37,13 @@ func main() {
 		return
 	}
 	anyErr := false
+	onError := func(err error) {
+		anyErr = true
+		fmt.Fprintln(os.Stderr, err)
+	}
 	for _, path := range flag.Args() {
-		if err := work(path); err != nil {
-			anyErr = true
-			fmt.Fprintln(os.Stderr, err)
+		if err := walk(path, onError); err != nil {
+			onError(err)
 		}
 	}
 	if anyErr {
@@ -65,7 +68,7 @@ var (
 	shebang   = regexp.MustCompile(`^#!/(usr/)?bin/(env *)?(sh|bash)`)
 )
 
-func work(path string) error {
+func walk(path string, onError func(error)) error {
 	info, err := os.Stat(path)
 	if err != nil {
 		return err
@@ -80,7 +83,10 @@ func work(path string) error {
 		if info.IsDir() {
 			return nil
 		}
-		return formatPath(path, false)
+		if err := formatPath(path, false); err != nil {
+			onError(err)
+		}
+		return nil
 	})
 }
 
