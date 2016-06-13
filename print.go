@@ -179,7 +179,7 @@ func (p *printer) semiOrNewl(v interface{}, pos Pos) {
 
 func (p *printer) incLevel() {
 	inc := false
-	if p.level == p.lastLevel {
+	if p.level <= p.lastLevel {
 		p.level++
 		inc = true
 	} else if last := &p.levelIncs[len(p.levelIncs)-1]; *last {
@@ -194,7 +194,6 @@ func (p *printer) decLevel() {
 	p.levelIncs = p.levelIncs[:len(p.levelIncs)-1]
 	if inc {
 		p.level--
-		p.lastLevel = p.level
 	}
 }
 
