@@ -159,11 +159,7 @@ func (p *printer) spacedNode(node Node) {
 	if node == nil {
 		return
 	}
-	if p.wantNewline {
-		p.space('\n')
-		p.indent()
-		p.wantNewline = false
-	} else if p.wantSpace {
+	if p.wantSpace {
 		p.space(' ')
 	}
 	p.node(node)
@@ -321,7 +317,7 @@ func (p *printer) node(node Node) {
 		}
 		startRedirs := 0
 		if c, ok := x.Node.(Command); ok && len(c.Args) > 1 {
-			p.spacedNode(c.Args[0])
+			p.spacedWord(c.Args[0])
 			for _, r := range x.Redirs {
 				if posGreater(r.Pos(), c.Args[1].Pos()) {
 					break
@@ -329,9 +325,14 @@ func (p *printer) node(node Node) {
 				if r.Op == SHL || r.Op == DHEREDOC {
 					break
 				}
-				p.spacedNode(r.N)
+				if p.wantSpace {
+					p.space(' ')
+				}
+				if r.N != nil {
+					p.lit(*r.N)
+				}
 				p.token(r.Op)
-				p.node(r.Word)
+				p.word(r.Word)
 				startRedirs++
 			}
 			p.wordJoin(c.Args[1:], true, true)
@@ -349,9 +350,14 @@ func (p *printer) node(node Node) {
 				p.indent()
 			}
 			p.didSeparate(r.OpPos)
-			p.spacedNode(r.N)
+			if p.wantSpace {
+				p.space(' ')
+			}
+			if r.N != nil {
+				p.lit(*r.N)
+			}
 			p.token(r.Op)
-			p.node(r.Word)
+			p.word(r.Word)
 			if r.Op == SHL || r.Op == DHEREDOC {
 				p.pendingHdocs = append(p.pendingHdocs, r)
 			}
@@ -371,7 +377,7 @@ func (p *printer) node(node Node) {
 				p.token(ASSIGN)
 			}
 		}
-		p.node(x.Value)
+		p.word(x.Value)
 	case Command:
 		p.wordJoin(x.Args, true, true)
 	case Subshell:
@@ -429,7 +435,10 @@ func (p *printer) node(node Node) {
 		p.nestedStmts(x.DoStmts)
 		p.separated(DONE, x.Done, true)
 	case WordIter:
-		p.spacedNode(x.Name)
+		if p.wantSpace {
+			p.space(' ')
+		}
+		p.lit(x.Name)
 		if len(x.List) > 0 {
 			p.spacedTok(IN)
 			p.wordJoin(x.List, false, true)
@@ -482,15 +491,9 @@ func (p *printer) node(node Node) {
 		p.token(RPAREN)
 		p.spacedNode(x.Body)
 	case Word:
-		for _, n := range x.Parts {
-			p.node(n)
-		}
-	case *Lit:
-		if x != nil {
-			p.str(x.Value)
-		}
+		p.word(x)
 	case Lit:
-		p.str(x.Value)
+		p.lit(x)
 	case SglQuoted:
 		p.token(SQUOTE)
 		p.str(x.Value)
@@ -518,17 +521,17 @@ func (p *printer) node(node Node) {
 	case ParamExp:
 		if x.Short {
 			p.token(DOLLAR)
-			p.node(x.Param)
+			p.lit(x.Param)
 			break
 		}
 		p.token(DOLLBR)
 		if x.Length {
 			p.token(HASH)
 		}
-		p.node(x.Param)
+		p.lit(x.Param)
 		if x.Ind != nil {
 			p.token(LBRACK)
-			p.node(x.Ind.Word)
+			p.word(x.Ind.Word)
 			p.token(RBRACK)
 		}
 		if x.Repl != nil {
@@ -536,12 +539,12 @@ func (p *printer) node(node Node) {
 				p.token(QUO)
 			}
 			p.token(QUO)
-			p.node(x.Repl.Orig)
+			p.word(x.Repl.Orig)
 			p.token(QUO)
-			p.node(x.Repl.With)
+			p.word(x.Repl.With)
 		} else if x.Exp != nil {
 			p.token(x.Exp.Op)
-			p.node(x.Exp.Word)
+			p.word(x.Exp.Word)
 		}
 		p.token(RBRACE)
 	case ArithmExpr:
@@ -554,7 +557,7 @@ func (p *printer) node(node Node) {
 		p.token(RPAREN)
 	case CaseStmt:
 		p.spacedTok(CASE)
-		p.spacedNode(x.Word)
+		p.spacedWord(x.Word)
 		p.spacedTok(IN)
 		p.incLevel()
 		for _, pl := range x.List {
@@ -563,7 +566,7 @@ func (p *printer) node(node Node) {
 				if i > 0 {
 					p.spacedTok(OR)
 				}
-				p.spacedNode(w)
+				p.spacedWord(w)
 			}
 			p.token(RPAREN)
 			sep := p.nestedStmts(pl.Stmts)
@@ -588,7 +591,7 @@ func (p *printer) node(node Node) {
 			p.spacedTok(DECLARE)
 		}
 		for _, w := range x.Opts {
-			p.spacedNode(w)
+			p.spacedWord(w)
 		}
 		for _, a := range x.Assigns {
 			p.spacedNode(a)
@@ -614,6 +617,21 @@ func (p *printer) node(node Node) {
 	p.stack = p.stack[:len(p.stack)-1]
 }
 
+func (p *printer) word(w Word) {
+	for _, n := range w.Parts {
+		p.node(n)
+	}
+}
+
+func (p *printer) spacedWord(w Word) {
+	if p.wantSpace {
+		p.space(' ')
+	}
+	p.word(w)
+}
+
+func (p *printer) lit(l Lit) { p.str(l.Value) }
+
 func (p *printer) wordJoin(ws []Word, keepNewlines, needBackslash bool) {
 	anyNewline := false
 	for _, w := range ws {
@@ -627,8 +645,10 @@ func (p *printer) wordJoin(ws []Word, keepNewlines, needBackslash bool) {
 				anyNewline = true
 			}
 			p.indent()
+		} else if p.wantSpace {
+			p.space(' ')
 		}
-		p.spacedNode(w)
+		p.word(w)
 	}
 	if anyNewline {
 		p.decLevel()
