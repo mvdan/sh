@@ -1082,6 +1082,9 @@ func (p *parser) subshell() (s Subshell) {
 	s.Lparen = p.pos
 	s.Stmts = p.stmtsNested(RPAREN)
 	s.Rparen = p.matchedTok(s.Lparen, LPAREN, RPAREN)
+	if len(s.Stmts) == 0 {
+		p.posErr(s.Lparen, "a subshell must contain at least one statement")
+	}
 	return
 }
 

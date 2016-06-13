@@ -124,10 +124,6 @@ var astTests = []testCase{
 		subshell(litStmt("foo"), litStmt("bar")),
 	},
 	{
-		[]string{"( )"},
-		subshell(),
-	},
-	{
 		[]string{"{ foo; }", "{\nfoo\n}"},
 		block(litStmt("foo")),
 	},

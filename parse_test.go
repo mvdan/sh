@@ -156,6 +156,10 @@ var errTests = []struct {
 		`1:1: ) can only be used to close a subshell`,
 	},
 	{
+		"( )",
+		`1:1: a subshell must contain at least one statement`,
+	},
+	{
 		"`",
 		"1:1: reached EOF without closing quote `",
 	},

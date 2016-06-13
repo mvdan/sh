@@ -314,10 +314,6 @@ func (p *printer) node(node Node) {
 		p.wordJoin(x.Args, true, true)
 	case Subshell:
 		p.spacedTok(LPAREN)
-		if len(x.Stmts) == 0 {
-			// avoid conflict with ()
-			p.space(' ')
-		}
 		p.nestedStmts(x.Stmts)
 		p.separated(RPAREN, x.Rparen, false)
 	case Block:
