@@ -344,18 +344,8 @@ func (p *printer) node(node Node) {
 		p.separated(FI, x.Fi, true)
 	case StmtCond:
 		p.nestedStmts(x.Stmts)
-	case CStyleCond:
-		p.spacedTok(DLPAREN)
-		p.node(x.Cond)
-		p.spacedTok(DRPAREN)
 	case WhileStmt:
 		p.spacedTok(WHILE)
-		p.node(x.Cond)
-		p.semiOrNewl(DO, x.Do)
-		p.nestedStmts(x.DoStmts)
-		p.separated(DONE, x.Done, true)
-	case UntilStmt:
-		p.spacedTok(UNTIL)
 		p.node(x.Cond)
 		p.semiOrNewl(DO, x.Do)
 		p.nestedStmts(x.DoStmts)
@@ -366,32 +356,6 @@ func (p *printer) node(node Node) {
 		p.semiOrNewl(DO, x.Do)
 		p.nestedStmts(x.DoStmts)
 		p.separated(DONE, x.Done, true)
-	case WordIter:
-		if p.wantSpace {
-			p.space(' ')
-		}
-		p.lit(x.Name)
-		if len(x.List) > 0 {
-			p.spacedTok(IN)
-			p.wordJoin(x.List, false, true)
-		}
-	case CStyleLoop:
-		p.spacedTok(DLPAREN)
-		p.spacedNode(x.Init)
-		p.spacedTok(SEMICOLON)
-		p.spacedNode(x.Cond)
-		p.spacedTok(SEMICOLON)
-		p.spacedNode(x.Post)
-		p.spacedTok(DRPAREN)
-	case UnaryExpr:
-		if x.Post {
-			p.node(x.X)
-			p.token(x.Op)
-		} else {
-			p.token(x.Op)
-			p.wantSpace = false
-			p.node(x.X)
-		}
 	case BinaryExpr:
 		switch {
 		case p.compactArithm():
@@ -483,10 +447,46 @@ func (p *printer) node(node Node) {
 			p.word(x.Exp.Word)
 		}
 		p.token(RBRACE)
+	case WordIter:
+		if p.wantSpace {
+			p.space(' ')
+		}
+		p.lit(x.Name)
+		if len(x.List) > 0 {
+			p.spacedTok(IN)
+			p.wordJoin(x.List, false, true)
+		}
+	case UntilStmt:
+		p.spacedTok(UNTIL)
+		p.node(x.Cond)
+		p.semiOrNewl(DO, x.Do)
+		p.nestedStmts(x.DoStmts)
+		p.separated(DONE, x.Done, true)
+	case CStyleCond:
+		p.spacedTok(DLPAREN)
+		p.node(x.Cond)
+		p.spacedTok(DRPAREN)
+	case CStyleLoop:
+		p.spacedTok(DLPAREN)
+		p.spacedNode(x.Init)
+		p.spacedTok(SEMICOLON)
+		p.spacedNode(x.Cond)
+		p.spacedTok(SEMICOLON)
+		p.spacedNode(x.Post)
+		p.spacedTok(DRPAREN)
 	case ArithmExpr:
 		p.token(DOLLDP)
 		p.node(x.X)
 		p.token(DRPAREN)
+	case UnaryExpr:
+		if x.Post {
+			p.node(x.X)
+			p.token(x.Op)
+		} else {
+			p.token(x.Op)
+			p.wantSpace = false
+			p.node(x.X)
+		}
 	case ParenExpr:
 		p.token(LPAREN)
 		p.node(x.X)
