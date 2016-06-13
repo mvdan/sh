@@ -121,7 +121,7 @@ func (p *printer) space(b byte) {
 	p.wantSpace = false
 	if b == '\n' {
 		for _, r := range p.pendingHdocs {
-			p.node(*r.Hdoc)
+			p.lit(*r.Hdoc)
 			p.str(strFprint(unquote(r.Word), -1))
 			p.str("\n")
 		}
@@ -309,75 +309,7 @@ func (p *printer) node(node Node) {
 		p.commentsUpTo(0)
 		p.space('\n')
 	case Stmt:
-		if x.Negated {
-			p.spacedTok(NOT)
-		}
-		for _, a := range x.Assigns {
-			p.spacedNode(a)
-		}
-		startRedirs := 0
-		if c, ok := x.Node.(Command); ok && len(c.Args) > 1 {
-			p.spacedWord(c.Args[0])
-			for _, r := range x.Redirs {
-				if posGreater(r.Pos(), c.Args[1].Pos()) {
-					break
-				}
-				if r.Op == SHL || r.Op == DHEREDOC {
-					break
-				}
-				if p.wantSpace {
-					p.space(' ')
-				}
-				if r.N != nil {
-					p.lit(*r.N)
-				}
-				p.token(r.Op)
-				p.word(r.Word)
-				startRedirs++
-			}
-			p.wordJoin(c.Args[1:], true, true)
-		} else {
-			p.spacedNode(x.Node)
-		}
-		anyNewline := false
-		for _, r := range x.Redirs[startRedirs:] {
-			if p.curLine > 0 && r.OpPos.Line > p.curLine {
-				p.spacedStr("\\\n")
-				if !anyNewline {
-					p.incLevel()
-					anyNewline = true
-				}
-				p.indent()
-			}
-			p.didSeparate(r.OpPos)
-			if p.wantSpace {
-				p.space(' ')
-			}
-			if r.N != nil {
-				p.lit(*r.N)
-			}
-			p.token(r.Op)
-			p.word(r.Word)
-			if r.Op == SHL || r.Op == DHEREDOC {
-				p.pendingHdocs = append(p.pendingHdocs, r)
-			}
-		}
-		if anyNewline {
-			p.decLevel()
-		}
-		if x.Background {
-			p.spacedTok(AND)
-		}
-	case Assign:
-		if x.Name != nil {
-			p.spacedNode(x.Name)
-			if x.Append {
-				p.token(ADD_ASSIGN)
-			} else {
-				p.token(ASSIGN)
-			}
-		}
-		p.word(x.Value)
+		p.stmt(x)
 	case Command:
 		p.wordJoin(x.Args, true, true)
 	case Subshell:
@@ -486,10 +418,14 @@ func (p *printer) node(node Node) {
 		if x.BashStyle {
 			p.spacedTok(FUNCTION)
 		}
-		p.spacedNode(x.Name)
+		if p.wantSpace {
+			p.space(' ')
+		}
+		p.lit(x.Name)
 		p.token(LPAREN)
 		p.token(RPAREN)
-		p.spacedNode(x.Body)
+		p.space(' ')
+		p.stmt(x.Body)
 	case Word:
 		p.word(x)
 	case Lit:
@@ -593,9 +529,7 @@ func (p *printer) node(node Node) {
 		for _, w := range x.Opts {
 			p.spacedWord(w)
 		}
-		for _, a := range x.Assigns {
-			p.spacedNode(a)
-		}
+		p.assigns(x.Assigns)
 	case ArrayExpr:
 		p.token(LPAREN)
 		p.wordJoin(x.List, true, false)
@@ -655,6 +589,66 @@ func (p *printer) wordJoin(ws []Word, keepNewlines, needBackslash bool) {
 	}
 }
 
+func (p *printer) stmt(s Stmt) {
+	if s.Negated {
+		p.spacedTok(NOT)
+	}
+	p.assigns(s.Assigns)
+	startRedirs := 0
+	if c, ok := s.Node.(Command); ok && len(c.Args) > 1 {
+		p.spacedWord(c.Args[0])
+		for _, r := range s.Redirs {
+			if posGreater(r.Pos(), c.Args[1].Pos()) {
+				break
+			}
+			if r.Op == SHL || r.Op == DHEREDOC {
+				break
+			}
+			if p.wantSpace {
+				p.space(' ')
+			}
+			if r.N != nil {
+				p.lit(*r.N)
+			}
+			p.token(r.Op)
+			p.word(r.Word)
+			startRedirs++
+		}
+		p.wordJoin(c.Args[1:], true, true)
+	} else {
+		p.spacedNode(s.Node)
+	}
+	anyNewline := false
+	for _, r := range s.Redirs[startRedirs:] {
+		if p.curLine > 0 && r.OpPos.Line > p.curLine {
+			p.spacedStr("\\\n")
+			if !anyNewline {
+				p.incLevel()
+				anyNewline = true
+			}
+			p.indent()
+		}
+		p.didSeparate(r.OpPos)
+		if p.wantSpace {
+			p.space(' ')
+		}
+		if r.N != nil {
+			p.lit(*r.N)
+		}
+		p.token(r.Op)
+		p.word(r.Word)
+		if r.Op == SHL || r.Op == DHEREDOC {
+			p.pendingHdocs = append(p.pendingHdocs, r)
+		}
+	}
+	if anyNewline {
+		p.decLevel()
+	}
+	if s.Background {
+		p.spacedTok(AND)
+	}
+}
+
 func (p *printer) stmts(stmts []Stmt) bool {
 	if len(stmts) == 0 {
 		return false
@@ -663,7 +657,7 @@ func (p *printer) stmts(stmts []Stmt) bool {
 	if len(stmts) == 1 && sameLine {
 		s := stmts[0]
 		p.didSeparate(s.Pos())
-		p.node(s)
+		p.stmt(s)
 		return false
 	}
 	inlineIndent := 0
@@ -671,7 +665,7 @@ func (p *printer) stmts(stmts []Stmt) bool {
 	for i, s := range stmts {
 		pos := s.Pos()
 		p.alwaysSeparate(pos)
-		p.node(s)
+		p.stmt(s)
 		if pos.Line > lastLine+1 {
 			inlineIndent = 0
 		}
@@ -716,4 +710,21 @@ func (p *printer) nestedStmts(stmts []Stmt) bool {
 	sep := p.stmts(stmts)
 	p.decLevel()
 	return sep
+}
+
+func (p *printer) assigns(assigns []Assign) {
+	for _, a := range assigns {
+		if p.wantSpace {
+			p.space(' ')
+		}
+		if a.Name != nil {
+			p.node(a.Name)
+			if a.Append {
+				p.token(ADD_ASSIGN)
+			} else {
+				p.token(ASSIGN)
+			}
+		}
+		p.word(a.Value)
+	}
 }
