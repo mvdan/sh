@@ -70,18 +70,6 @@ func (p *printer) nestedBinary() bool {
 	return ok
 }
 
-func (p *printer) compactArithm() bool {
-	for i := len(p.stack) - 1; i >= 0; i-- {
-		switch p.stack[i].(type) {
-		case LetStmt:
-			return true
-		case ArithmExpr, ParenExpr:
-			return false
-		}
-	}
-	return false
-}
-
 var (
 	// these never want a following space
 	contiguousRight = map[Token]bool{
@@ -339,13 +327,14 @@ func (p *printer) node(node Node) {
 		p.separated(DONE, x.Done, true)
 	case BinaryExpr:
 		p.spacedNode(x.X)
-		if !p.nestedBinary() {
+		indent := !p.nestedBinary()
+		if indent {
 			p.incLevel()
 		}
 		p.singleStmtSeparate(x.Y.Pos())
 		p.spacedTok(x.Op)
 		p.node(x.Y)
-		if !p.nestedBinary() {
+		if indent {
 			p.decLevel()
 		}
 	case FuncDecl:
@@ -421,7 +410,7 @@ func (p *printer) node(node Node) {
 		p.separated(DONE, x.Done, true)
 	case ArithmExpr:
 		p.token(DOLLDP)
-		p.arithm(x.X)
+		p.arithm(x.X, false)
 		p.token(DRPAREN)
 	case CaseStmt:
 		p.spacedTok(CASE)
@@ -478,7 +467,8 @@ func (p *printer) node(node Node) {
 	case LetStmt:
 		p.spacedTok(LET)
 		for _, n := range x.Exprs {
-			p.spacedArithm(n)
+			p.space(' ')
+			p.arithm(n, true)
 		}
 	}
 	p.stack = p.stack[:len(p.stack)-1]
@@ -500,7 +490,7 @@ func (p *printer) cond(node Node) {
 		}
 	case CStyleCond:
 		p.spacedTok(DLPAREN)
-		p.arithm(x.X)
+		p.arithm(x.X, false)
 		p.spacedTok(DRPAREN)
 	case CStyleLoop:
 		p.spacedTok(DLPAREN)
@@ -514,16 +504,16 @@ func (p *printer) cond(node Node) {
 	p.stack = p.stack[:len(p.stack)-1]
 }
 
-func (p *printer) arithm(node Node) {
+func (p *printer) arithm(node Node, compact bool) {
 	p.stack = append(p.stack, node)
 	switch x := node.(type) {
 	case Word:
 		p.word(x)
 	case BinaryExpr:
-		if p.compactArithm() {
-			p.arithm(x.X)
+		if compact {
+			p.arithm(x.X, true)
 			p.token(x.Op)
-			p.arithm(x.Y)
+			p.arithm(x.Y, true)
 		} else {
 			p.spacedArithm(x.X)
 			p.spacedTok(x.Op)
@@ -531,16 +521,16 @@ func (p *printer) arithm(node Node) {
 		}
 	case UnaryExpr:
 		if x.Post {
-			p.arithm(x.X)
+			p.arithm(x.X, compact)
 			p.token(x.Op)
 		} else {
 			p.token(x.Op)
 			p.wantSpace = false
-			p.arithm(x.X)
+			p.arithm(x.X, compact)
 		}
 	case ParenExpr:
 		p.token(LPAREN)
-		p.arithm(x.X)
+		p.arithm(x.X, false)
 		p.token(RPAREN)
 	}
 	p.stack = p.stack[:len(p.stack)-1]
@@ -549,7 +539,7 @@ func (p *printer) spacedArithm(node Node) {
 	if p.wantSpace {
 		p.space(' ')
 	}
-	p.arithm(node)
+	p.arithm(node, false)
 }
 
 func (p *printer) word(w Word) {
