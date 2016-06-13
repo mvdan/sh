@@ -37,15 +37,24 @@ type printer struct {
 	wantSpaces  int
 	wantNewline bool
 
-	curLine   int
+	// curLine is the line that is currently being printed (counted
+	// in original lines).
+	curLine int
+	// lastLevel is the last level of indentation that was used.
 	lastLevel int
-	level     int
+	// level is the current level of indentation.
+	level int
+	// levelIncs records which indentation level increments actually
+	// took place, to revert them once their section ends.
 	levelIncs []bool
 
+	// comments is the list of pending comments to write.
 	comments []Comment
 
+	// stack of nodes leading to the current one
 	stack []Node
 
+	// pendingHdocs is the list of pending heredocs to write.
 	pendingHdocs []Redirect
 }
 
