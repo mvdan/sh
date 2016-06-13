@@ -74,7 +74,7 @@ func walk(path string, onError func(error)) error {
 		return err
 	}
 	if !info.IsDir() {
-		return formatPath(path, true)
+		return formatPath(path, 0, true)
 	}
 	return filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
 		if hidden.MatchString(path) {
@@ -83,7 +83,7 @@ func walk(path string, onError func(error)) error {
 		if info.IsDir() {
 			return nil
 		}
-		if err := formatPath(path, false); err != nil {
+		if err := formatPath(path, info.Size(), false); err != nil {
 			onError(err)
 		}
 		return nil
@@ -107,10 +107,14 @@ func validShebang(r io.Reader) (bool, error) {
 	return shebang.Match(b[:n]), nil
 }
 
-func formatPath(path string, always bool) error {
+func formatPath(path string, size int64, always bool) error {
 	shellExt := always || shellFile.MatchString(path)
 	if !shellExt && strings.Contains(path, ".") {
 		// has an unwanted extension
+		return nil
+	}
+	if !shellExt && size < 8 {
+		// cannot possibly hold valid shebang
 		return nil
 	}
 	mode := os.O_RDONLY
