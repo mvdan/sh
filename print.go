@@ -121,34 +121,21 @@ func (p *printer) space(b byte) {
 	p.wantSpace = false
 	if b == '\n' {
 		for _, r := range p.pendingHdocs {
-			p.nonSpaced(*r.Hdoc, strFprint(unquote(r.Word), -1), "\n")
+			p.node(*r.Hdoc)
+			p.str(strFprint(unquote(r.Word), -1))
+			p.str("\n")
 		}
 		p.pendingHdocs = nil
 	}
 }
 
-func (p *printer) nonSpaced(a ...interface{}) {
-	for _, v := range a {
-		if p.err != nil {
-			break
-		}
-		switch x := v.(type) {
-		case string:
-			if len(x) > 0 {
-				last := x[len(x)-1]
-				p.wantSpace = !space(last)
-			}
-			_, p.err = io.WriteString(p.w, x)
-			p.curLine += strings.Count(x, "\n")
-		case Comment:
-			p.wantSpace = true
-			_, p.err = fmt.Fprint(p.w, HASH, x.Text)
-		case Token:
-			p.token(x)
-		case Node:
-			p.node(x)
-		}
+func (p *printer) str(s string) {
+	if len(s) > 0 {
+		last := s[len(s)-1]
+		p.wantSpace = !space(last)
 	}
+	_, p.err = io.WriteString(p.w, s)
+	p.curLine += strings.Count(s, "\n")
 }
 
 func (p *printer) token(tok Token) {
@@ -169,7 +156,17 @@ func (p *printer) spaced(a ...interface{}) {
 		} else if p.wantSpace {
 			p.space(' ')
 		}
-		p.nonSpaced(v)
+		switch x := v.(type) {
+		case string:
+			p.str(x)
+		case Comment:
+			p.wantSpace = true
+			_, p.err = fmt.Fprint(p.w, HASH, x.Text)
+		case Token:
+			p.token(x)
+		case Node:
+			p.node(x)
+		}
 	}
 }
 
@@ -206,9 +203,9 @@ func (p *printer) indent() {
 	switch {
 	case p.level == 0:
 	case p.c.Spaces == 0:
-		p.nonSpaced(strings.Repeat("\t", p.level))
+		p.str(strings.Repeat("\t", p.level))
 	case p.c.Spaces > 0:
-		p.nonSpaced(strings.Repeat(" ", p.c.Spaces*p.level))
+		p.str(strings.Repeat(" ", p.c.Spaces*p.level))
 	}
 }
 
@@ -288,7 +285,7 @@ func (p *printer) commentsUpTo(line int) {
 	}
 	p.wantNewline = false
 	if !p.didSeparate(c.Hash) && p.wantSpaces > 0 {
-		p.nonSpaced(strings.Repeat(" ", p.wantSpaces+1))
+		p.str(strings.Repeat(" ", p.wantSpaces+1))
 	}
 	p.spaced(c)
 	p.comments = p.comments[1:]
@@ -320,7 +317,8 @@ func (p *printer) node(n Node) {
 					break
 				}
 				p.spaced(r.N)
-				p.nonSpaced(r.Op, r.Word)
+				p.token(r.Op)
+				p.node(r.Word)
 				startRedirs++
 			}
 			p.wordJoin(c.Args[1:], true, true)
@@ -339,7 +337,8 @@ func (p *printer) node(n Node) {
 			}
 			p.didSeparate(r.OpPos)
 			p.spaced(r.N)
-			p.nonSpaced(r.Op, r.Word)
+			p.token(r.Op)
+			p.node(r.Word)
 			if r.Op == SHL || r.Op == DHEREDOC {
 				p.pendingHdocs = append(p.pendingHdocs, r)
 			}
@@ -359,7 +358,7 @@ func (p *printer) node(n Node) {
 				p.token(ASSIGN)
 			}
 		}
-		p.nonSpaced(x.Value)
+		p.node(x.Value)
 	case Command:
 		p.wordJoin(x.Args, true, true)
 	case Subshell:
@@ -376,12 +375,12 @@ func (p *printer) node(n Node) {
 		p.separated(RBRACE, x.Rbrace, true)
 	case IfStmt:
 		p.spaced(IF)
-		p.nonSpaced(x.Cond)
+		p.node(x.Cond)
 		p.semiOrNewl(THEN, x.Then)
 		p.nestedStmts(x.ThenStmts)
 		for _, el := range x.Elifs {
 			p.separated(ELIF, el.Elif, true)
-			p.nonSpaced(el.Cond)
+			p.node(el.Cond)
 			p.semiOrNewl(THEN, el.Then)
 			p.nestedStmts(el.ThenStmts)
 		}
@@ -398,19 +397,19 @@ func (p *printer) node(n Node) {
 		p.spaced(DLPAREN, x.Cond, DRPAREN)
 	case WhileStmt:
 		p.spaced(WHILE)
-		p.nonSpaced(x.Cond)
+		p.node(x.Cond)
 		p.semiOrNewl(DO, x.Do)
 		p.nestedStmts(x.DoStmts)
 		p.separated(DONE, x.Done, true)
 	case UntilStmt:
 		p.spaced(UNTIL)
-		p.nonSpaced(x.Cond)
+		p.node(x.Cond)
 		p.semiOrNewl(DO, x.Do)
 		p.nestedStmts(x.DoStmts)
 		p.separated(DONE, x.Done, true)
 	case ForStmt:
 		p.spaced(FOR)
-		p.nonSpaced(x.Cond)
+		p.node(x.Cond)
 		p.semiOrNewl(DO, x.Do)
 		p.nestedStmts(x.DoStmts)
 		p.separated(DONE, x.Done, true)
@@ -425,16 +424,19 @@ func (p *printer) node(n Node) {
 			SEMICOLON, x.Post, DRPAREN)
 	case UnaryExpr:
 		if x.Post {
-			p.nonSpaced(x.X, x.Op)
+			p.node(x.X)
+			p.token(x.Op)
 		} else {
-			p.nonSpaced(x.Op)
+			p.token(x.Op)
 			p.wantSpace = false
-			p.nonSpaced(x.X)
+			p.node(x.X)
 		}
 	case BinaryExpr:
 		switch {
 		case p.compactArithm():
-			p.nonSpaced(x.X, x.Op, x.Y)
+			p.node(x.X)
+			p.token(x.Op)
+			p.node(x.Y)
 		case p.inArithm():
 			p.spaced(x.X, x.Op, x.Y)
 		default:
@@ -444,7 +446,7 @@ func (p *printer) node(n Node) {
 			}
 			p.singleStmtSeparate(x.Y.Pos())
 			p.spaced(x.Op)
-			p.nonSpaced(x.Y)
+			p.node(x.Y)
 			if !p.nestedBinary() {
 				p.decLevel()
 			}
@@ -459,24 +461,24 @@ func (p *printer) node(n Node) {
 		p.spaced(x.Body)
 	case Word:
 		for _, n := range x.Parts {
-			p.nonSpaced(n)
+			p.node(n)
 		}
 	case *Lit:
 		if x != nil {
-			p.nonSpaced(x.Value)
+			p.str(x.Value)
 		}
 	case Lit:
-		p.nonSpaced(x.Value)
+		p.str(x.Value)
 	case SglQuoted:
 		p.token(SQUOTE)
-		p.nonSpaced(x.Value)
+		p.str(x.Value)
 		p.token(SQUOTE)
 	case Quoted:
-		p.nonSpaced(x.Quote)
+		p.token(x.Quote)
 		for _, n := range x.Parts {
-			p.nonSpaced(n)
+			p.node(n)
 		}
-		p.nonSpaced(quotedStop(x.Quote))
+		p.token(quotedStop(x.Quote))
 	case CmdSubst:
 		if x.Backquotes {
 			p.token(BQUOTE)
@@ -494,17 +496,17 @@ func (p *printer) node(n Node) {
 	case ParamExp:
 		if x.Short {
 			p.token(DOLLAR)
-			p.nonSpaced(x.Param)
+			p.node(x.Param)
 			break
 		}
 		p.token(DOLLBR)
 		if x.Length {
 			p.token(HASH)
 		}
-		p.nonSpaced(x.Param)
+		p.node(x.Param)
 		if x.Ind != nil {
 			p.token(LBRACK)
-			p.nonSpaced(x.Ind.Word)
+			p.node(x.Ind.Word)
 			p.token(RBRACK)
 		}
 		if x.Repl != nil {
@@ -512,17 +514,22 @@ func (p *printer) node(n Node) {
 				p.token(QUO)
 			}
 			p.token(QUO)
-			p.nonSpaced(x.Repl.Orig)
+			p.node(x.Repl.Orig)
 			p.token(QUO)
-			p.nonSpaced(x.Repl.With)
+			p.node(x.Repl.With)
 		} else if x.Exp != nil {
-			p.nonSpaced(x.Exp.Op, x.Exp.Word)
+			p.token(x.Exp.Op)
+			p.node(x.Exp.Word)
 		}
 		p.token(RBRACE)
 	case ArithmExpr:
-		p.nonSpaced(DOLLDP, x.X, DRPAREN)
+		p.token(DOLLDP)
+		p.node(x.X)
+		p.token(DRPAREN)
 	case ParenExpr:
-		p.nonSpaced(LPAREN, x.X, RPAREN)
+		p.token(LPAREN)
+		p.node(x.X)
+		p.token(RPAREN)
 	case CaseStmt:
 		p.spaced(CASE, x.Word, IN)
 		p.incLevel()
@@ -589,7 +596,7 @@ func (p *printer) wordJoin(ws []Word, keepNewlines, needBackslash bool) {
 			if needBackslash {
 				p.spaced("\\")
 			}
-			p.nonSpaced("\n")
+			p.str("\n")
 			if !anyNewline {
 				p.incLevel()
 				anyNewline = true
