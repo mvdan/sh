@@ -91,7 +91,11 @@ func empty(f *os.File) error {
 }
 
 func formatPath(path string) error {
-	f, err := os.OpenFile(path, os.O_RDWR, 0)
+	mode := os.O_RDONLY
+	if *write {
+		mode = os.O_RDWR
+	}
+	f, err := os.OpenFile(path, mode, 0)
 	if err != nil {
 		return err
 	}
