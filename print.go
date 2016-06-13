@@ -145,9 +145,8 @@ func (p *printer) token(tok Token) {
 
 func (p *printer) spacedTok(tok Token) {
 	if p.wantNewline {
-		p.space('\n')
+		p.newline()
 		p.indent()
-		p.wantNewline = false
 	} else if contiguousLeft[tok] {
 	} else if p.wantSpace {
 		p.space(' ')
@@ -220,7 +219,7 @@ func (p *printer) newlines(pos Pos) {
 	p.newline()
 	if pos.Line > p.curLine+1 {
 		// preserve single empty lines
-		p.space('\n')
+		p.newline()
 	}
 	p.indent()
 	p.curLine = pos.Line
@@ -307,7 +306,7 @@ func (p *printer) node(node Node) {
 	case File:
 		p.stmts(x.Stmts)
 		p.commentsUpTo(0)
-		p.space('\n')
+		p.newline()
 	case Stmt:
 		p.stmt(x)
 	case Command:
@@ -375,8 +374,6 @@ func (p *printer) node(node Node) {
 	case FuncDecl:
 		if x.BashStyle {
 			p.spacedTok(FUNCTION)
-		}
-		if p.wantSpace {
 			p.space(' ')
 		}
 		p.lit(x.Name)
@@ -505,7 +502,7 @@ func (p *printer) node(node Node) {
 		p.assigns(x.Assigns)
 	case ArrayExpr:
 		p.token(LPAREN)
-		p.wordJoin(x.List, true, false)
+		p.wordJoin(x.List, false)
 		p.separated(RPAREN, x.Rparen, false)
 	case ProcSubst:
 		// avoid conflict with << and others
@@ -537,7 +534,7 @@ func (p *printer) cond(node Node) {
 		p.lit(x.Name)
 		if len(x.List) > 0 {
 			p.spacedTok(IN)
-			p.wordJoin(x.List, false, true)
+			p.wordJoin(x.List, true)
 		}
 	case CStyleCond:
 		p.spacedTok(DLPAREN)
@@ -570,10 +567,10 @@ func (p *printer) spacedWord(w Word) {
 
 func (p *printer) lit(l Lit) { p.str(l.Value) }
 
-func (p *printer) wordJoin(ws []Word, keepNewlines, needBackslash bool) {
+func (p *printer) wordJoin(ws []Word, needBackslash bool) {
 	anyNewline := false
 	for _, w := range ws {
-		if keepNewlines && p.curLine > 0 && w.Pos().Line > p.curLine {
+		if p.curLine > 0 && w.Pos().Line > p.curLine {
 			if needBackslash {
 				p.spacedStr("\\")
 			}
@@ -619,7 +616,7 @@ func (p *printer) stmt(s Stmt) {
 			p.word(r.Word)
 			startRedirs++
 		}
-		p.wordJoin(cmd.Args[1:], true, true)
+		p.wordJoin(cmd.Args[1:], true)
 	} else if ok {
 		p.command(cmd)
 	} else {
@@ -719,7 +716,7 @@ func (p *printer) nestedStmts(stmts []Stmt) bool {
 	return sep
 }
 
-func (p *printer) command(cmd Command) { p.wordJoin(cmd.Args, true, true) }
+func (p *printer) command(cmd Command) { p.wordJoin(cmd.Args, true) }
 
 func (p *printer) assigns(assigns []Assign) {
 	for _, a := range assigns {
