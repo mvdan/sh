@@ -143,38 +143,44 @@ func (p *printer) token(tok Token) {
 	_, p.err = fmt.Fprint(p.w, tok)
 }
 
-func (p *printer) spaced(a ...interface{}) {
-	for _, v := range a {
-		if v == nil {
-			continue
-		}
-		if p.wantNewline {
-			p.space('\n')
-			p.indent()
-			p.wantNewline = false
-		} else if t, ok := v.(Token); ok && contiguousLeft[t] {
-		} else if p.wantSpace {
-			p.space(' ')
-		}
-		switch x := v.(type) {
-		case string:
-			p.str(x)
-		case Comment:
-			p.wantSpace = true
-			_, p.err = fmt.Fprint(p.w, HASH, x.Text)
-		case Token:
-			p.token(x)
-		case Node:
-			p.node(x)
-		}
+func (p *printer) spacedTok(tok Token) {
+	if p.wantNewline {
+		p.space('\n')
+		p.indent()
+		p.wantNewline = false
+	} else if contiguousLeft[tok] {
+	} else if p.wantSpace {
+		p.space(' ')
 	}
+	p.token(tok)
 }
 
-func (p *printer) semiOrNewl(v interface{}, pos Pos) {
+func (p *printer) spacedNode(node Node) {
+	if node == nil {
+		return
+	}
+	if p.wantNewline {
+		p.space('\n')
+		p.indent()
+		p.wantNewline = false
+	} else if p.wantSpace {
+		p.space(' ')
+	}
+	p.node(node)
+}
+
+func (p *printer) spacedStr(s string) {
+	if p.wantSpace {
+		p.space(' ')
+	}
+	p.str(s)
+}
+
+func (p *printer) semiOrNewl(tok Token, pos Pos) {
 	if !p.wantNewline {
 		p.token(SEMICOLON)
 	}
-	p.spaced(v)
+	p.spacedTok(tok)
 	p.curLine = pos.Line
 }
 
@@ -239,6 +245,10 @@ func (p *printer) didSeparate(pos Pos) bool {
 		p.newlines(pos)
 		return true
 	}
+	if p.curLine == 0 {
+		p.curLine = pos.Line
+		return true
+	}
 	p.curLine = pos.Line
 	return false
 }
@@ -246,21 +256,21 @@ func (p *printer) didSeparate(pos Pos) bool {
 func (p *printer) singleStmtSeparate(pos Pos) {
 	if len(p.pendingHdocs) > 0 {
 	} else if p.wantNewline || (p.curLine > 0 && pos.Line > p.curLine) {
-		p.spaced("\\")
+		p.spacedStr("\\")
 		p.newline()
 		p.indent()
 	}
 	p.curLine = pos.Line
 }
 
-func (p *printer) separated(v interface{}, pos Pos, fallback bool) {
+func (p *printer) separated(tok Token, pos Pos, fallback bool) {
 	p.level++
 	p.commentsUpTo(pos.Line)
 	p.level--
 	if !p.didSeparate(pos) && fallback {
 		p.token(SEMICOLON)
 	}
-	p.spaced(v)
+	p.spacedTok(tok)
 }
 
 func (p *printer) hasInline(pos Pos) bool {
@@ -284,31 +294,34 @@ func (p *printer) commentsUpTo(line int) {
 		return
 	}
 	p.wantNewline = false
-	if !p.didSeparate(c.Hash) && p.wantSpaces > 0 {
-		p.str(strings.Repeat(" ", p.wantSpaces+1))
+	if !p.didSeparate(c.Hash) {
+		if p.wantSpaces == 0 {
+			p.wantSpaces++
+		}
+		p.str(strings.Repeat(" ", p.wantSpaces))
 	}
-	p.spaced(c)
+	_, p.err = fmt.Fprint(p.w, HASH, c.Text)
 	p.comments = p.comments[1:]
 	p.commentsUpTo(line)
 }
 
-func (p *printer) node(n Node) {
-	p.stack = append(p.stack, n)
-	switch x := n.(type) {
+func (p *printer) node(node Node) {
+	p.stack = append(p.stack, node)
+	switch x := node.(type) {
 	case File:
 		p.stmts(x.Stmts)
 		p.commentsUpTo(0)
 		p.space('\n')
 	case Stmt:
 		if x.Negated {
-			p.spaced(NOT)
+			p.spacedTok(NOT)
 		}
 		for _, a := range x.Assigns {
-			p.spaced(a)
+			p.spacedNode(a)
 		}
 		startRedirs := 0
 		if c, ok := x.Node.(Command); ok && len(c.Args) > 1 {
-			p.spaced(c.Args[0])
+			p.spacedNode(c.Args[0])
 			for _, r := range x.Redirs {
 				if posGreater(r.Pos(), c.Args[1].Pos()) {
 					break
@@ -316,19 +329,19 @@ func (p *printer) node(n Node) {
 				if r.Op == SHL || r.Op == DHEREDOC {
 					break
 				}
-				p.spaced(r.N)
+				p.spacedNode(r.N)
 				p.token(r.Op)
 				p.node(r.Word)
 				startRedirs++
 			}
 			p.wordJoin(c.Args[1:], true, true)
 		} else {
-			p.spaced(x.Node)
+			p.spacedNode(x.Node)
 		}
 		anyNewline := false
 		for _, r := range x.Redirs[startRedirs:] {
 			if p.curLine > 0 && r.OpPos.Line > p.curLine {
-				p.spaced("\\\n")
+				p.spacedStr("\\\n")
 				if !anyNewline {
 					p.incLevel()
 					anyNewline = true
@@ -336,7 +349,7 @@ func (p *printer) node(n Node) {
 				p.indent()
 			}
 			p.didSeparate(r.OpPos)
-			p.spaced(r.N)
+			p.spacedNode(r.N)
 			p.token(r.Op)
 			p.node(r.Word)
 			if r.Op == SHL || r.Op == DHEREDOC {
@@ -347,11 +360,11 @@ func (p *printer) node(n Node) {
 			p.decLevel()
 		}
 		if x.Background {
-			p.spaced(AND)
+			p.spacedTok(AND)
 		}
 	case Assign:
 		if x.Name != nil {
-			p.spaced(x.Name)
+			p.spacedNode(x.Name)
 			if x.Append {
 				p.token(ADD_ASSIGN)
 			} else {
@@ -362,7 +375,7 @@ func (p *printer) node(n Node) {
 	case Command:
 		p.wordJoin(x.Args, true, true)
 	case Subshell:
-		p.spaced(LPAREN)
+		p.spacedTok(LPAREN)
 		if len(x.Stmts) == 0 {
 			// avoid conflict with ()
 			p.space(' ')
@@ -370,11 +383,11 @@ func (p *printer) node(n Node) {
 		p.nestedStmts(x.Stmts)
 		p.separated(RPAREN, x.Rparen, false)
 	case Block:
-		p.spaced(LBRACE)
+		p.spacedTok(LBRACE)
 		p.nestedStmts(x.Stmts)
 		p.separated(RBRACE, x.Rbrace, true)
 	case IfStmt:
-		p.spaced(IF)
+		p.spacedTok(IF)
 		p.node(x.Cond)
 		p.semiOrNewl(THEN, x.Then)
 		p.nestedStmts(x.ThenStmts)
@@ -394,34 +407,41 @@ func (p *printer) node(n Node) {
 	case StmtCond:
 		p.nestedStmts(x.Stmts)
 	case CStyleCond:
-		p.spaced(DLPAREN, x.Cond, DRPAREN)
+		p.spacedTok(DLPAREN)
+		p.node(x.Cond)
+		p.spacedTok(DRPAREN)
 	case WhileStmt:
-		p.spaced(WHILE)
+		p.spacedTok(WHILE)
 		p.node(x.Cond)
 		p.semiOrNewl(DO, x.Do)
 		p.nestedStmts(x.DoStmts)
 		p.separated(DONE, x.Done, true)
 	case UntilStmt:
-		p.spaced(UNTIL)
+		p.spacedTok(UNTIL)
 		p.node(x.Cond)
 		p.semiOrNewl(DO, x.Do)
 		p.nestedStmts(x.DoStmts)
 		p.separated(DONE, x.Done, true)
 	case ForStmt:
-		p.spaced(FOR)
+		p.spacedTok(FOR)
 		p.node(x.Cond)
 		p.semiOrNewl(DO, x.Do)
 		p.nestedStmts(x.DoStmts)
 		p.separated(DONE, x.Done, true)
 	case WordIter:
-		p.spaced(x.Name)
+		p.spacedNode(x.Name)
 		if len(x.List) > 0 {
-			p.spaced(IN)
+			p.spacedTok(IN)
 			p.wordJoin(x.List, false, true)
 		}
 	case CStyleLoop:
-		p.spaced(DLPAREN, x.Init, SEMICOLON, x.Cond,
-			SEMICOLON, x.Post, DRPAREN)
+		p.spacedTok(DLPAREN)
+		p.spacedNode(x.Init)
+		p.spacedTok(SEMICOLON)
+		p.spacedNode(x.Cond)
+		p.spacedTok(SEMICOLON)
+		p.spacedNode(x.Post)
+		p.spacedTok(DRPAREN)
 	case UnaryExpr:
 		if x.Post {
 			p.node(x.X)
@@ -438,14 +458,16 @@ func (p *printer) node(n Node) {
 			p.token(x.Op)
 			p.node(x.Y)
 		case p.inArithm():
-			p.spaced(x.X, x.Op, x.Y)
+			p.spacedNode(x.X)
+			p.spacedTok(x.Op)
+			p.spacedNode(x.Y)
 		default:
-			p.spaced(x.X)
+			p.spacedNode(x.X)
 			if !p.nestedBinary() {
 				p.incLevel()
 			}
 			p.singleStmtSeparate(x.Y.Pos())
-			p.spaced(x.Op)
+			p.spacedTok(x.Op)
 			p.node(x.Y)
 			if !p.nestedBinary() {
 				p.decLevel()
@@ -453,12 +475,12 @@ func (p *printer) node(n Node) {
 		}
 	case FuncDecl:
 		if x.BashStyle {
-			p.spaced(FUNCTION)
+			p.spacedTok(FUNCTION)
 		}
-		p.spaced(x.Name)
+		p.spacedNode(x.Name)
 		p.token(LPAREN)
 		p.token(RPAREN)
-		p.spaced(x.Body)
+		p.spacedNode(x.Body)
 	case Word:
 		for _, n := range x.Parts {
 			p.node(n)
@@ -531,15 +553,17 @@ func (p *printer) node(n Node) {
 		p.node(x.X)
 		p.token(RPAREN)
 	case CaseStmt:
-		p.spaced(CASE, x.Word, IN)
+		p.spacedTok(CASE)
+		p.spacedNode(x.Word)
+		p.spacedTok(IN)
 		p.incLevel()
 		for _, pl := range x.List {
 			p.didSeparate(wordFirstPos(pl.Patterns))
 			for i, w := range pl.Patterns {
 				if i > 0 {
-					p.spaced(OR)
+					p.spacedTok(OR)
 				}
-				p.spaced(w)
+				p.spacedNode(w)
 			}
 			p.token(RPAREN)
 			sep := p.nestedStmts(pl.Stmts)
@@ -559,15 +583,15 @@ func (p *printer) node(n Node) {
 		p.separated(ESAC, x.Esac, len(x.List) == 0)
 	case DeclStmt:
 		if x.Local {
-			p.spaced(LOCAL)
+			p.spacedTok(LOCAL)
 		} else {
-			p.spaced(DECLARE)
+			p.spacedTok(DECLARE)
 		}
 		for _, w := range x.Opts {
-			p.spaced(w)
+			p.spacedNode(w)
 		}
 		for _, a := range x.Assigns {
-			p.spaced(a)
+			p.spacedNode(a)
 		}
 	case ArrayExpr:
 		p.token(LPAREN)
@@ -575,15 +599,16 @@ func (p *printer) node(n Node) {
 		p.separated(RPAREN, x.Rparen, false)
 	case ProcSubst:
 		// avoid conflict with << and others
-		p.spaced(x.Op)
+		p.spacedTok(x.Op)
 		p.nestedStmts(x.Stmts)
 		p.token(RPAREN)
 	case EvalStmt:
-		p.spaced(EVAL, x.Stmt)
+		p.spacedTok(EVAL)
+		p.spacedNode(x.Stmt)
 	case LetStmt:
-		p.spaced(LET)
+		p.spacedTok(LET)
 		for _, n := range x.Exprs {
-			p.spaced(n)
+			p.spacedNode(n)
 		}
 	}
 	p.stack = p.stack[:len(p.stack)-1]
@@ -594,7 +619,7 @@ func (p *printer) wordJoin(ws []Word, keepNewlines, needBackslash bool) {
 	for _, w := range ws {
 		if keepNewlines && p.curLine > 0 && w.Pos().Line > p.curLine {
 			if needBackslash {
-				p.spaced("\\")
+				p.spacedStr("\\")
 			}
 			p.str("\n")
 			if !anyNewline {
@@ -603,7 +628,7 @@ func (p *printer) wordJoin(ws []Word, keepNewlines, needBackslash bool) {
 			}
 			p.indent()
 		}
-		p.spaced(w)
+		p.spacedNode(w)
 	}
 	if anyNewline {
 		p.decLevel()
@@ -650,7 +675,7 @@ func (p *printer) stmts(stmts []Stmt) bool {
 			}
 		}
 		l := len(strFprint(s, 0))
-		p.wantSpaces = inlineIndent - l
+		p.wantSpaces = (inlineIndent - l) + 1
 	}
 	p.wantNewline = true
 	return true

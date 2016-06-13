@@ -41,6 +41,7 @@ func TestFprintWeirdFormat(t *testing.T) {
 		{"foo\n\n\nbar", "foo\n\nbar"},
 		{"foo\n\n", "foo"},
 		{"\n\nfoo", "foo"},
+		{"# foo\n # bar", "# foo\n# bar"},
 		{"a=b # inline\nbar", "a=b # inline\nbar"},
 		{"a=`b` # inline", "a=`b` # inline"},
 		{"`a` `b`", "`a` `b`"},
