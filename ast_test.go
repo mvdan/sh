@@ -2076,7 +2076,6 @@ func setPosRecurse(tb testing.TB, v interface{}, to Pos, diff bool) Node {
 			tb.Fatalf("Found End() before Pos() in %T", n)
 		}
 		if !emptyNode(n) && n.Pos() == n.End() {
-			fmt.Printf("%q\n", strFprint(n, 0))
 			tb.Fatalf("Found End() at Pos() in %T %#v", n, n)
 		}
 	}
