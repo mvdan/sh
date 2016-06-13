@@ -10,10 +10,12 @@ import (
 	"strings"
 )
 
+// PrintConfig controls how the printing of an AST node will behave.
 type PrintConfig struct {
 	Spaces int // 0 (default) for tabs, >0 for number of spaces
 }
 
+// Fprint "pretty-prints" the given AST node to the given writer.
 func (c PrintConfig) Fprint(w io.Writer, n Node) error {
 	p := printer{w: w, c: c}
 	if f, ok := n.(File); ok {
@@ -23,6 +25,8 @@ func (c PrintConfig) Fprint(w io.Writer, n Node) error {
 	return p.err
 }
 
+// Fprint "pretty-prints" the given AST node to the given writer. It
+// calls PrintConfig.Fprint with its default settings.
 func Fprint(w io.Writer, n Node) error {
 	c := PrintConfig{}
 	return c.Fprint(w, n)

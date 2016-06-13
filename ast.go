@@ -397,6 +397,7 @@ type PatternList struct {
 	Stmts    []Stmt
 }
 
+// DeclStmt represents a Bash declare statement.
 type DeclStmt struct {
 	Declare Pos
 	Local   bool
@@ -414,6 +415,7 @@ func (d DeclStmt) End() Pos {
 	return end
 }
 
+// ArrayExpr represents a Bash array expression.
 type ArrayExpr struct {
 	Lparen, Rparen Pos
 	List           []Word
@@ -422,6 +424,7 @@ type ArrayExpr struct {
 func (a ArrayExpr) Pos() Pos { return a.Lparen }
 func (a ArrayExpr) End() Pos { return posAfter(a.Rparen, RPAREN) }
 
+// ProcSubst represents a Bash process substitution.
 type ProcSubst struct {
 	OpPos, Rparen Pos
 	Op            Token
@@ -431,6 +434,7 @@ type ProcSubst struct {
 func (s ProcSubst) Pos() Pos { return s.OpPos }
 func (s ProcSubst) End() Pos { return posAfter(s.Rparen, RPAREN) }
 
+// EvalStmt represents a Bash eval statement.
 type EvalStmt struct {
 	Eval Pos
 	Stmt Stmt
@@ -439,6 +443,7 @@ type EvalStmt struct {
 func (e EvalStmt) Pos() Pos { return e.Eval }
 func (e EvalStmt) End() Pos { return e.Stmt.End() }
 
+// LetStmt represents a Bash let statement.
 type LetStmt struct {
 	Let   Pos
 	Exprs []Node

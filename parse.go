@@ -13,10 +13,11 @@ import (
 	"strings"
 )
 
+// Mode controls the parser behaviour via a set of flags.
 type Mode uint
 
 const (
-	ParseComments Mode = 1 << iota
+	ParseComments Mode = 1 << iota // add comments to the AST
 )
 
 // Parse reads and parses a shell program with an optional name. It
