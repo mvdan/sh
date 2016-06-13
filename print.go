@@ -144,12 +144,16 @@ func (p *printer) nonSpaced(a ...interface{}) {
 			p.wantSpace = true
 			_, p.err = fmt.Fprint(p.w, HASH, x.Text)
 		case Token:
-			p.wantSpace = !contiguousRight[x]
-			_, p.err = fmt.Fprint(p.w, x)
+			p.token(x)
 		case Node:
 			p.node(x)
 		}
 	}
+}
+
+func (p *printer) token(tok Token) {
+	p.wantSpace = !contiguousRight[tok]
+	_, p.err = fmt.Fprint(p.w, tok)
 }
 
 func (p *printer) spaced(a ...interface{}) {
@@ -171,7 +175,7 @@ func (p *printer) spaced(a ...interface{}) {
 
 func (p *printer) semiOrNewl(v interface{}, pos Pos) {
 	if !p.wantNewline {
-		p.nonSpaced(SEMICOLON)
+		p.token(SEMICOLON)
 	}
 	p.spaced(v)
 	p.curLine = pos.Line
@@ -257,7 +261,7 @@ func (p *printer) separated(v interface{}, pos Pos, fallback bool) {
 	p.commentsUpTo(pos.Line)
 	p.level--
 	if !p.didSeparate(pos) && fallback {
-		p.nonSpaced(SEMICOLON)
+		p.token(SEMICOLON)
 	}
 	p.spaced(v)
 }
@@ -350,9 +354,9 @@ func (p *printer) node(n Node) {
 		if x.Name != nil {
 			p.spaced(x.Name)
 			if x.Append {
-				p.nonSpaced(ADD_ASSIGN)
+				p.token(ADD_ASSIGN)
 			} else {
-				p.nonSpaced(ASSIGN)
+				p.token(ASSIGN)
 			}
 		}
 		p.nonSpaced(x.Value)
@@ -450,7 +454,8 @@ func (p *printer) node(n Node) {
 			p.spaced(FUNCTION)
 		}
 		p.spaced(x.Name)
-		p.nonSpaced(LPAREN, RPAREN)
+		p.token(LPAREN)
+		p.token(RPAREN)
 		p.spaced(x.Body)
 	case Word:
 		for _, n := range x.Parts {
@@ -463,7 +468,9 @@ func (p *printer) node(n Node) {
 	case Lit:
 		p.nonSpaced(x.Value)
 	case SglQuoted:
-		p.nonSpaced(SQUOTE, x.Value, SQUOTE)
+		p.token(SQUOTE)
+		p.nonSpaced(x.Value)
+		p.token(SQUOTE)
 	case Quoted:
 		p.nonSpaced(x.Quote)
 		for _, n := range x.Parts {
@@ -472,10 +479,10 @@ func (p *printer) node(n Node) {
 		p.nonSpaced(quotedStop(x.Quote))
 	case CmdSubst:
 		if x.Backquotes {
-			p.nonSpaced(BQUOTE)
+			p.token(BQUOTE)
 			p.wantSpace = false
 		} else {
-			p.nonSpaced(DOLLPR)
+			p.token(DOLLPR)
 		}
 		p.nestedStmts(x.Stmts)
 		if x.Backquotes {
@@ -486,26 +493,32 @@ func (p *printer) node(n Node) {
 		}
 	case ParamExp:
 		if x.Short {
-			p.nonSpaced(DOLLAR, x.Param)
+			p.token(DOLLAR)
+			p.nonSpaced(x.Param)
 			break
 		}
-		p.nonSpaced(DOLLBR)
+		p.token(DOLLBR)
 		if x.Length {
-			p.nonSpaced(HASH)
+			p.token(HASH)
 		}
 		p.nonSpaced(x.Param)
 		if x.Ind != nil {
-			p.nonSpaced(LBRACK, x.Ind.Word, RBRACK)
+			p.token(LBRACK)
+			p.nonSpaced(x.Ind.Word)
+			p.token(RBRACK)
 		}
 		if x.Repl != nil {
 			if x.Repl.All {
-				p.nonSpaced(QUO)
+				p.token(QUO)
 			}
-			p.nonSpaced(QUO, x.Repl.Orig, QUO, x.Repl.With)
+			p.token(QUO)
+			p.nonSpaced(x.Repl.Orig)
+			p.token(QUO)
+			p.nonSpaced(x.Repl.With)
 		} else if x.Exp != nil {
 			p.nonSpaced(x.Exp.Op, x.Exp.Word)
 		}
-		p.nonSpaced(RBRACE)
+		p.token(RBRACE)
 	case ArithmExpr:
 		p.nonSpaced(DOLLDP, x.X, DRPAREN)
 	case ParenExpr:
@@ -521,7 +534,7 @@ func (p *printer) node(n Node) {
 				}
 				p.spaced(w)
 			}
-			p.nonSpaced(RPAREN)
+			p.token(RPAREN)
 			sep := p.nestedStmts(pl.Stmts)
 			p.level++
 			if !sep {
@@ -550,14 +563,14 @@ func (p *printer) node(n Node) {
 			p.spaced(a)
 		}
 	case ArrayExpr:
-		p.nonSpaced(LPAREN)
+		p.token(LPAREN)
 		p.wordJoin(x.List, true, false)
 		p.separated(RPAREN, x.Rparen, false)
 	case ProcSubst:
 		// avoid conflict with << and others
 		p.spaced(x.Op)
 		p.nestedStmts(x.Stmts)
-		p.nonSpaced(RPAREN)
+		p.token(RPAREN)
 	case EvalStmt:
 		p.spaced(EVAL, x.Stmt)
 	case LetStmt:
