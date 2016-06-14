@@ -301,7 +301,7 @@ func TestFprintNodeTypes(t *testing.T) {
 	for _, node := range nodes {
 		t.Run(fmt.Sprintf("%T", node), func(t *testing.T) {
 			if err := Fprint(ioutil.Discard, node); err != nil {
-				t.Fatal("unexpected error: %v", err)
+				t.Fatalf("unexpected error: %v", err)
 			}
 		})
 	}
