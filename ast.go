@@ -125,8 +125,8 @@ type Block struct {
 func (b Block) Pos() Pos { return b.Rbrace }
 func (b Block) End() Pos { return posAfter(b.Rbrace, RBRACE) }
 
-// IfStmt represents an if statement.
-type IfStmt struct {
+// IfClause represents an if statement.
+type IfClause struct {
 	If, Then, Fi Pos
 	Cond         Node
 	ThenStmts    []Stmt
@@ -135,8 +135,8 @@ type IfStmt struct {
 	ElseStmts    []Stmt
 }
 
-func (s IfStmt) Pos() Pos { return s.If }
-func (s IfStmt) End() Pos { return posAfter(s.Fi, FI) }
+func (c IfClause) Pos() Pos { return c.If }
+func (c IfClause) End() Pos { return posAfter(c.Fi, FI) }
 
 // StmtCond represents a condition that evaluates to the result of a
 // series of statements.
@@ -144,8 +144,8 @@ type StmtCond struct {
 	Stmts []Stmt
 }
 
-func (s StmtCond) Pos() Pos { return s.Stmts[0].Pos() }
-func (s StmtCond) End() Pos { return stmtLastEnd(s.Stmts) }
+func (c StmtCond) Pos() Pos { return c.Stmts[0].Pos() }
+func (c StmtCond) End() Pos { return stmtLastEnd(c.Stmts) }
 
 // CStyleCond represents a condition that evaluates to the result of an
 // arithmetic expression.
@@ -157,45 +157,45 @@ type CStyleCond struct {
 func (c CStyleCond) Pos() Pos { return c.Lparen }
 func (c CStyleCond) End() Pos { return posAfter(c.Rparen, RPAREN) }
 
-// Elif represents an "else if" case in an if statement.
+// Elif represents an "else if" case in an if clause.
 type Elif struct {
 	Elif, Then Pos
 	Cond       Node
 	ThenStmts  []Stmt
 }
 
-// WhileStmt represents a while statement.
-type WhileStmt struct {
+// WhileClause represents a while clause.
+type WhileClause struct {
 	While, Do, Done Pos
 	Cond            Node
 	DoStmts         []Stmt
 }
 
-func (w WhileStmt) Pos() Pos { return w.While }
-func (w WhileStmt) End() Pos { return posAfter(w.Done, DONE) }
+func (w WhileClause) Pos() Pos { return w.While }
+func (w WhileClause) End() Pos { return posAfter(w.Done, DONE) }
 
-// UntilStmt represents an until statement.
-type UntilStmt struct {
+// UntilClause represents an until clause.
+type UntilClause struct {
 	Until, Do, Done Pos
 	Cond            Node
 	DoStmts         []Stmt
 }
 
-func (u UntilStmt) Pos() Pos { return u.Until }
-func (u UntilStmt) End() Pos { return posAfter(u.Done, DONE) }
+func (u UntilClause) Pos() Pos { return u.Until }
+func (u UntilClause) End() Pos { return posAfter(u.Done, DONE) }
 
-// ForStmt represents a for statement.
-type ForStmt struct {
+// ForClause represents a for clause.
+type ForClause struct {
 	For, Do, Done Pos
 	Cond          Node
 	DoStmts       []Stmt
 }
 
-func (f ForStmt) Pos() Pos { return f.For }
-func (f ForStmt) End() Pos { return posAfter(f.Done, DONE) }
+func (f ForClause) Pos() Pos { return f.For }
+func (f ForClause) End() Pos { return posAfter(f.Done, DONE) }
 
 // WordIter represents the iteration of a variable over a series of
-// words in a for statement.
+// words in a for clause.
 type WordIter struct {
 	Name Lit
 	List []Word
@@ -204,8 +204,8 @@ type WordIter struct {
 func (w WordIter) Pos() Pos { return w.Name.Pos() }
 func (w WordIter) End() Pos { return posMax(w.Name.End(), wordLastEnd(w.List)) }
 
-// CStyleLoop represents the behaviour of a for statement similar to the
-// C language.
+// CStyleLoop represents the behaviour of a for clause similar to the C
+// language.
 type CStyleLoop struct {
 	Lparen, Rparen   Pos
 	Init, Cond, Post Node
@@ -380,33 +380,33 @@ type ParenExpr struct {
 func (p ParenExpr) Pos() Pos { return p.Lparen }
 func (p ParenExpr) End() Pos { return posAfter(p.Rparen, RPAREN) }
 
-// CaseStmt represents a case (switch) statement.
-type CaseStmt struct {
+// CaseClause represents a case (switch) clause.
+type CaseClause struct {
 	Case, Esac Pos
 	Word       Word
 	List       []PatternList
 }
 
-func (c CaseStmt) Pos() Pos { return c.Case }
-func (c CaseStmt) End() Pos { return posAfter(c.Esac, ESAC) }
+func (c CaseClause) Pos() Pos { return c.Case }
+func (c CaseClause) End() Pos { return posAfter(c.Esac, ESAC) }
 
-// PatternList represents a pattern list (case) within a CaseStmt.
+// PatternList represents a pattern list (case) within a CaseClause.
 type PatternList struct {
 	Dsemi    Pos
 	Patterns []Word
 	Stmts    []Stmt
 }
 
-// DeclStmt represents a Bash declare statement.
-type DeclStmt struct {
+// DeclClause represents a Bash declare clause.
+type DeclClause struct {
 	Declare Pos
 	Local   bool
 	Opts    []Word
 	Assigns []Assign
 }
 
-func (d DeclStmt) Pos() Pos { return d.Declare }
-func (d DeclStmt) End() Pos {
+func (d DeclClause) Pos() Pos { return d.Declare }
+func (d DeclClause) End() Pos {
 	end := wordLastEnd(d.Opts)
 	if len(d.Assigns) > 0 {
 		assignEnd := d.Assigns[len(d.Assigns)-1].End()
@@ -434,23 +434,23 @@ type ProcSubst struct {
 func (s ProcSubst) Pos() Pos { return s.OpPos }
 func (s ProcSubst) End() Pos { return posAfter(s.Rparen, RPAREN) }
 
-// EvalStmt represents a Bash eval statement.
-type EvalStmt struct {
+// EvalClause represents a Bash eval clause.
+type EvalClause struct {
 	Eval Pos
 	Stmt Stmt
 }
 
-func (e EvalStmt) Pos() Pos { return e.Eval }
-func (e EvalStmt) End() Pos { return e.Stmt.End() }
+func (e EvalClause) Pos() Pos { return e.Eval }
+func (e EvalClause) End() Pos { return e.Stmt.End() }
 
-// LetStmt represents a Bash let statement.
-type LetStmt struct {
+// LetClause represents a Bash let clause.
+type LetClause struct {
 	Let   Pos
 	Exprs []Node
 }
 
-func (l LetStmt) Pos() Pos { return l.Let }
-func (l LetStmt) End() Pos { return nodeLastEnd(l.Exprs) }
+func (l LetClause) Pos() Pos { return l.Let }
+func (l LetClause) End() Pos { return nodeLastEnd(l.Exprs) }
 
 func posAfter(pos Pos, tok Token) Pos {
 	if pos.Line == 0 {

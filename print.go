@@ -261,7 +261,7 @@ func (p *printer) node(node Node) {
 		p.separated(RBRACE, x.Rbrace, true)
 	case Lit:
 		p.lit(x)
-	case IfStmt:
+	case IfClause:
 		p.spacedTok(IF, true)
 		p.cond(x.Cond)
 		p.semiOrNewl(THEN, x.Then)
@@ -283,13 +283,13 @@ func (p *printer) node(node Node) {
 		p.spacedTok(LPAREN, false)
 		p.nestedStmts(x.Stmts)
 		p.separated(RPAREN, x.Rparen, false)
-	case WhileStmt:
+	case WhileClause:
 		p.spacedTok(WHILE, true)
 		p.cond(x.Cond)
 		p.semiOrNewl(DO, x.Do)
 		p.nestedStmts(x.DoStmts)
 		p.separated(DONE, x.Done, true)
-	case ForStmt:
+	case ForClause:
 		p.spacedTok(FOR, true)
 		p.cond(x.Cond)
 		p.semiOrNewl(DO, x.Do)
@@ -371,7 +371,7 @@ func (p *printer) node(node Node) {
 			p.word(x.Exp.Word)
 		}
 		p.token(RBRACE, true)
-	case UntilStmt:
+	case UntilClause:
 		p.spacedTok(UNTIL, true)
 		p.cond(x.Cond)
 		p.semiOrNewl(DO, x.Do)
@@ -381,7 +381,7 @@ func (p *printer) node(node Node) {
 		p.token(DOLLDP, false)
 		p.arithm(x.X, false)
 		p.token(DRPAREN, true)
-	case CaseStmt:
+	case CaseClause:
 		p.spacedTok(CASE, true)
 		p.spacedWord(x.Word)
 		p.spacedTok(IN, true)
@@ -410,7 +410,7 @@ func (p *printer) node(node Node) {
 		}
 		p.decLevel()
 		p.separated(ESAC, x.Esac, len(x.List) == 0)
-	case DeclStmt:
+	case DeclClause:
 		if x.Local {
 			p.spacedTok(LOCAL, true)
 		} else {
@@ -429,11 +429,11 @@ func (p *printer) node(node Node) {
 		p.spacedTok(x.Op, false)
 		p.nestedStmts(x.Stmts)
 		p.token(RPAREN, true)
-	case EvalStmt:
+	case EvalClause:
 		p.spacedTok(EVAL, true)
 		p.space(' ')
 		p.stmt(x.Stmt)
-	case LetStmt:
+	case LetClause:
 		p.spacedTok(LET, true)
 		for _, n := range x.Exprs {
 			p.space(' ')

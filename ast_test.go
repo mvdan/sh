@@ -132,7 +132,7 @@ var astTests = []testCase{
 			"if a; then b; fi",
 			"if a\nthen\nb\nfi",
 		},
-		IfStmt{
+		IfClause{
 			Cond:      StmtCond{Stmts: litStmts("a")},
 			ThenStmts: litStmts("b"),
 		},
@@ -142,7 +142,7 @@ var astTests = []testCase{
 			"if a; then b; else c; fi",
 			"if a\nthen b\nelse\nc\nfi",
 		},
-		IfStmt{
+		IfClause{
 			Cond:      StmtCond{Stmts: litStmts("a")},
 			ThenStmts: litStmts("b"),
 			ElseStmts: litStmts("c"),
@@ -153,7 +153,7 @@ var astTests = []testCase{
 			"if a; then a; elif b; then b; elif c; then c; else d; fi",
 			"if a\nthen a\nelif b\nthen b\nelif c\nthen c\nelse\nd\nfi",
 		},
-		IfStmt{
+		IfClause{
 			Cond:      StmtCond{Stmts: litStmts("a")},
 			ThenStmts: litStmts("a"),
 			Elifs: []Elif{
@@ -174,7 +174,7 @@ var astTests = []testCase{
 			"if\n\ta1\n\ta2 foo\n\ta3 bar\nthen b; fi",
 			"if a1; a2 foo; a3 bar; then b; fi",
 		},
-		IfStmt{
+		IfClause{
 			Cond: StmtCond{Stmts: []Stmt{
 				litStmt("a1"),
 				litStmt("a2", "foo"),
@@ -185,7 +185,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"if ((1 > 2)); then b; fi"},
-		IfStmt{
+		IfClause{
 			Cond: CStyleCond{X: BinaryExpr{
 				Op: GTR,
 				X:  litWord("1"),
@@ -196,14 +196,14 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"while a; do b; done", "while a\ndo\nb\ndone"},
-		WhileStmt{
+		WhileClause{
 			Cond:    StmtCond{Stmts: litStmts("a")},
 			DoStmts: litStmts("b"),
 		},
 	},
 	{
 		[]string{"while { a; }; do b; done", "while { a; } do b; done"},
-		WhileStmt{
+		WhileClause{
 			Cond: StmtCond{Stmts: []Stmt{
 				stmt(block(litStmt("a"))),
 			}},
@@ -212,7 +212,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"while (a); do b; done", "while (a) do b; done"},
-		WhileStmt{
+		WhileClause{
 			Cond: StmtCond{Stmts: []Stmt{
 				stmt(subshell(litStmt("a"))),
 			}},
@@ -221,7 +221,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"while ((1 > 2)); do b; done"},
-		WhileStmt{
+		WhileClause{
 			Cond: CStyleCond{X: BinaryExpr{
 				Op: GTR,
 				X:  litWord("1"),
@@ -232,7 +232,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"until a; do b; done", "until a\ndo\nb\ndone"},
-		UntilStmt{
+		UntilClause{
 			Cond:    StmtCond{Stmts: litStmts("a")},
 			DoStmts: litStmts("b"),
 		},
@@ -242,7 +242,7 @@ var astTests = []testCase{
 			"for i; do foo; done",
 			"for i in; do foo; done",
 		},
-		ForStmt{
+		ForClause{
 			Cond: WordIter{
 				Name: lit("i"),
 			},
@@ -255,7 +255,7 @@ var astTests = []testCase{
 			"for i in 1 2 3\ndo echo $i\ndone",
 			"for i in 1 2 3 #foo\ndo echo $i\ndone",
 		},
-		ForStmt{
+		ForClause{
 			Cond: WordIter{
 				Name: lit("i"),
 				List: litWords("1", "2", "3"),
@@ -272,7 +272,7 @@ var astTests = []testCase{
 			"for ((i=0;i<10;i++)) do echo $i; done",
 			"for (( i = 0 ; i < 10 ; i++ ))\ndo echo $i\ndone",
 		},
-		ForStmt{
+		ForClause{
 			Cond: CStyleLoop{
 				Init: BinaryExpr{
 					Op: ASSIGN,
@@ -362,11 +362,11 @@ var astTests = []testCase{
 		[]string{"if a; then b; fi || while a; do b; done"},
 		BinaryExpr{
 			Op: LOR,
-			X: stmt(IfStmt{
+			X: stmt(IfClause{
 				Cond:      StmtCond{Stmts: litStmts("a")},
 				ThenStmts: litStmts("b"),
 			}),
-			Y: stmt(WhileStmt{
+			Y: stmt(WhileClause{
 				Cond:    StmtCond{Stmts: litStmts("a")},
 				DoStmts: litStmts("b"),
 			}),
@@ -621,7 +621,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"if true; then foo <<-EOF\n\tbar\n\tEOF\nfi"},
-		IfStmt{
+		IfClause{
 			Cond: StmtCond{Stmts: litStmts("true")},
 			ThenStmts: []Stmt{{
 				Node: litCall("foo"),
@@ -902,7 +902,7 @@ var astTests = []testCase{
 		[]string{"! if foo; then bar; fi >/dev/null &"},
 		Stmt{
 			Negated: true,
-			Node: IfStmt{
+			Node: IfClause{
 				Cond:      StmtCond{Stmts: litStmts("foo")},
 				ThenStmts: litStmts("bar"),
 			},
@@ -1585,7 +1585,7 @@ var astTests = []testCase{
 			"case $i in (1) foo;; 2 | 3*) bar;; esac",
 			"case $i\nin\n#etc\n1)\nfoo\n;;\n2 | 3*)\nbar\n;;\nesac",
 		},
-		CaseStmt{
+		CaseClause{
 			Word: word(litParamExp("i")),
 			List: []PatternList{
 				{
@@ -1604,7 +1604,7 @@ var astTests = []testCase{
 		BinaryExpr{
 			Op: OR,
 			X:  litStmt("foo"),
-			Y: stmt(WhileStmt{
+			Y: stmt(WhileClause{
 				Cond: StmtCond{Stmts: []Stmt{
 					litStmt("read", "a"),
 				}},
@@ -1614,7 +1614,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"while read l; do foo || bar; done"},
-		WhileStmt{
+		WhileClause{
 			Cond: StmtCond{Stmts: []Stmt{litStmt("read", "l")}},
 			DoStmts: stmts(BinaryExpr{
 				Op: LOR,
@@ -1637,11 +1637,11 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"if; then; fi", "if\nthen\nfi"},
-		IfStmt{},
+		IfClause{},
 	},
 	{
 		[]string{"if; then a=; fi", "if; then a=\nfi"},
-		IfStmt{
+		IfClause{
 			ThenStmts: []Stmt{
 				{Assigns: []Assign{
 					{Name: litRef("a")},
@@ -1651,7 +1651,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"if; then >f; fi", "if; then >f\nfi"},
-		IfStmt{
+		IfClause{
 			ThenStmts: []Stmt{
 				{Redirs: []Redirect{
 					{Op: GTR, Word: litWord("f")},
@@ -1672,23 +1672,23 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"while; do; done", "while\ndo\ndone"},
-		WhileStmt{},
+		WhileClause{},
 	},
 	{
 		[]string{"while; do; done", "while\ndo\n#foo\ndone"},
-		WhileStmt{},
+		WhileClause{},
 	},
 	{
 		[]string{"until; do; done", "until\ndo\ndone"},
-		UntilStmt{},
+		UntilClause{},
 	},
 	{
 		[]string{"for i; do; done", "for i\ndo\ndone"},
-		ForStmt{Cond: WordIter{Name: lit("i")}},
+		ForClause{Cond: WordIter{Name: lit("i")}},
 	},
 	{
 		[]string{"case i in; esac"},
-		CaseStmt{Word: litWord("i")},
+		CaseClause{Word: litWord("i")},
 	},
 	{
 		[]string{"foo && write | read"},
@@ -1754,7 +1754,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"declare alone foo=bar"},
-		DeclStmt{
+		DeclClause{
 			Assigns: []Assign{
 				{Value: litWord("alone")},
 				{Name: litRef("foo"), Value: litWord("bar")},
@@ -1763,7 +1763,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"declare -a -bc foo=bar"},
-		DeclStmt{
+		DeclClause{
 			Opts: litWords("-a", "-bc"),
 			Assigns: []Assign{
 				{Name: litRef("foo"), Value: litWord("bar")},
@@ -1772,7 +1772,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"declare -a foo=(b1 `b2`)"},
-		DeclStmt{
+		DeclClause{
 			Opts: litWords("-a"),
 			Assigns: []Assign{{
 				Name: litRef("foo"),
@@ -1787,7 +1787,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"local -a foo=(b1 `b2`)"},
-		DeclStmt{
+		DeclClause{
 			Local: true,
 			Opts:  litWords("-a"),
 			Assigns: []Assign{{
@@ -1803,7 +1803,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"eval a=b foo"},
-		EvalStmt{Stmt: Stmt{
+		EvalClause{Stmt: Stmt{
 			Node: litCall("foo"),
 			Assigns: []Assign{{
 				Name:  litRef("a"),
@@ -1813,7 +1813,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{`let i++`},
-		LetStmt{Exprs: []Node{
+		LetClause{Exprs: []Node{
 			UnaryExpr{
 				Op:   INC,
 				Post: true,
@@ -1823,7 +1823,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{`let a++ b++ c +d`},
-		LetStmt{Exprs: []Node{
+		LetClause{Exprs: []Node{
 			UnaryExpr{
 				Op:   INC,
 				Post: true,
@@ -1843,7 +1843,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{`let "--i"`},
-		LetStmt{Exprs: []Node{
+		LetClause{Exprs: []Node{
 			word(dblQuoted(lit("--i"))),
 		}},
 	},
@@ -1852,7 +1852,7 @@ var astTests = []testCase{
 			`let a=(1 + 2) b=3+4`,
 			`let a=(1+2) b=3+4`,
 		},
-		LetStmt{Exprs: []Node{
+		LetClause{Exprs: []Node{
 			BinaryExpr{
 				Op: ASSIGN,
 				X:  litWord("a"),
@@ -1883,7 +1883,7 @@ var astTests = []testCase{
 			"let i++; bar",
 		},
 		[]Stmt{
-			stmt(LetStmt{Exprs: []Node{
+			stmt(LetClause{Exprs: []Node{
 				UnaryExpr{
 					Op:   INC,
 					Post: true,
@@ -1900,7 +1900,7 @@ var astTests = []testCase{
 			"let i++; foo=(bar)\n",
 		},
 		[]Stmt{
-			stmt(LetStmt{Exprs: []Node{
+			stmt(LetClause{Exprs: []Node{
 				UnaryExpr{
 					Op:   INC,
 					Post: true,
@@ -2147,7 +2147,7 @@ func setPosRecurse(tb testing.TB, v interface{}, to Pos, diff bool) Node {
 		setPos(&x.Rbrace)
 		recurse(x.Stmts)
 		return x
-	case IfStmt:
+	case IfClause:
 		setPos(&x.If)
 		setPos(&x.Then)
 		setPos(&x.Fi)
@@ -2172,21 +2172,21 @@ func setPosRecurse(tb testing.TB, v interface{}, to Pos, diff bool) Node {
 		setPos(&x.Rparen)
 		recurse(&x.X)
 		return x
-	case WhileStmt:
+	case WhileClause:
 		setPos(&x.While)
 		setPos(&x.Do)
 		setPos(&x.Done)
 		recurse(&x.Cond)
 		recurse(x.DoStmts)
 		return x
-	case UntilStmt:
+	case UntilClause:
 		setPos(&x.Until)
 		setPos(&x.Do)
 		setPos(&x.Done)
 		recurse(&x.Cond)
 		recurse(x.DoStmts)
 		return x
-	case ForStmt:
+	case ForClause:
 		setPos(&x.For)
 		setPos(&x.Do)
 		setPos(&x.Done)
@@ -2254,7 +2254,7 @@ func setPosRecurse(tb testing.TB, v interface{}, to Pos, diff bool) Node {
 		setPos(&x.Right)
 		recurse(x.Stmts)
 		return x
-	case CaseStmt:
+	case CaseClause:
 		setPos(&x.Case)
 		setPos(&x.Esac)
 		recurse(x.Word)
@@ -2265,16 +2265,16 @@ func setPosRecurse(tb testing.TB, v interface{}, to Pos, diff bool) Node {
 			recurse(pl.Stmts)
 		}
 		return x
-	case DeclStmt:
+	case DeclClause:
 		setPos(&x.Declare)
 		recurse(x.Opts)
 		recurse(x.Assigns)
 		return x
-	case EvalStmt:
+	case EvalClause:
 		setPos(&x.Eval)
 		recurse(&x.Stmt)
 		return x
-	case LetStmt:
+	case LetClause:
 		setPos(&x.Let)
 		recurse(x.Exprs)
 		return x

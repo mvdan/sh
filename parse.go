@@ -1005,21 +1005,21 @@ func (p *parser) gotStmtPipe(s *Stmt) bool {
 	case p.got(LBRACE):
 		s.Node = p.block()
 	case p.got(IF):
-		s.Node = p.ifStmt()
+		s.Node = p.ifClause()
 	case p.got(WHILE):
-		s.Node = p.whileStmt()
+		s.Node = p.whileClause()
 	case p.got(UNTIL):
-		s.Node = p.untilStmt()
+		s.Node = p.untilClause()
 	case p.got(FOR):
-		s.Node = p.forStmt()
+		s.Node = p.forClause()
 	case p.got(CASE):
-		s.Node = p.caseStmt()
+		s.Node = p.caseClause()
 	case p.gotAny(DECLARE, LOCAL):
-		s.Node = p.declStmt()
+		s.Node = p.declClause()
 	case p.got(EVAL):
-		s.Node = p.evalStmt()
+		s.Node = p.evalClause()
 	case p.peek(LET):
-		s.Node = p.letStmt()
+		s.Node = p.letClause()
 	default:
 		s.Node = p.callOrFunc()
 	}
@@ -1095,23 +1095,23 @@ func (p *parser) block() (b Block) {
 	return
 }
 
-func (p *parser) ifStmt() (fs IfStmt) {
-	fs.If = p.lpos
-	fs.Cond = p.cond(IF, THEN)
-	fs.Then = p.followTok(fs.If, "if [stmts]", THEN)
-	fs.ThenStmts = p.followStmts(THEN, FI, ELIF, ELSE)
+func (p *parser) ifClause() (ic IfClause) {
+	ic.If = p.lpos
+	ic.Cond = p.cond(IF, THEN)
+	ic.Then = p.followTok(ic.If, "if [stmts]", THEN)
+	ic.ThenStmts = p.followStmts(THEN, FI, ELIF, ELSE)
 	for p.got(ELIF) {
 		elf := Elif{Elif: p.lpos}
 		elf.Cond = p.cond(ELIF, THEN)
 		elf.Then = p.followTok(elf.Elif, "elif [stmts]", THEN)
 		elf.ThenStmts = p.followStmts(THEN, FI, ELIF, ELSE)
-		fs.Elifs = append(fs.Elifs, elf)
+		ic.Elifs = append(ic.Elifs, elf)
 	}
 	if p.got(ELSE) {
-		fs.Else = p.lpos
-		fs.ElseStmts = p.followStmts(ELSE, FI)
+		ic.Else = p.lpos
+		ic.ElseStmts = p.followStmts(ELSE, FI)
 	}
-	fs.Fi = p.stmtEnd(fs, IF, FI)
+	ic.Fi = p.stmtEnd(ic, IF, FI)
 	return
 }
 
@@ -1133,26 +1133,26 @@ func (p *parser) cond(left Token, stops ...Token) Node {
 	}
 }
 
-func (p *parser) whileStmt() (ws WhileStmt) {
-	ws.While = p.lpos
-	ws.Cond = p.cond(WHILE, DO)
-	ws.Do = p.followTok(ws.While, "while [stmts]", DO)
-	ws.DoStmts = p.followStmts(DO, DONE)
-	ws.Done = p.stmtEnd(ws, WHILE, DONE)
+func (p *parser) whileClause() (wc WhileClause) {
+	wc.While = p.lpos
+	wc.Cond = p.cond(WHILE, DO)
+	wc.Do = p.followTok(wc.While, "while [stmts]", DO)
+	wc.DoStmts = p.followStmts(DO, DONE)
+	wc.Done = p.stmtEnd(wc, WHILE, DONE)
 	return
 }
 
-func (p *parser) untilStmt() (us UntilStmt) {
-	us.Until = p.lpos
-	us.Cond = p.cond(UNTIL, DO)
-	us.Do = p.followTok(us.Until, "until [stmts]", DO)
-	us.DoStmts = p.followStmts(DO, DONE)
-	us.Done = p.stmtEnd(us, UNTIL, DONE)
+func (p *parser) untilClause() (uc UntilClause) {
+	uc.Until = p.lpos
+	uc.Cond = p.cond(UNTIL, DO)
+	uc.Do = p.followTok(uc.Until, "until [stmts]", DO)
+	uc.DoStmts = p.followStmts(DO, DONE)
+	uc.Done = p.stmtEnd(uc, UNTIL, DONE)
 	return
 }
 
-func (p *parser) forStmt() (fs ForStmt) {
-	fs.For = p.lpos
+func (p *parser) forClause() (fc ForClause) {
+	fc.For = p.lpos
 	if p.peek(LPAREN) && p.readOnlyTok(LPAREN) {
 		p.pushStops(DRPAREN)
 		c := CStyleLoop{Lparen: p.lpos}
@@ -1163,11 +1163,11 @@ func (p *parser) forStmt() (fs ForStmt) {
 		c.Post = p.arithmExpr(SEMICOLON)
 		c.Rparen = p.arithmEnd(c.Lparen)
 		p.gotSameLine(SEMICOLON)
-		fs.Cond = c
+		fc.Cond = c
 	} else {
 		var wi WordIter
 		if !p.gotLit(&wi.Name) {
-			p.followErr(fs.For, FOR, "a literal")
+			p.followErr(fc.For, FOR, "a literal")
 		}
 		if p.got(IN) {
 			for !p.peekEnd() {
@@ -1179,22 +1179,22 @@ func (p *parser) forStmt() (fs ForStmt) {
 			}
 			p.gotSameLine(SEMICOLON)
 		} else if !p.gotSameLine(SEMICOLON) && !p.newLine {
-			p.followErr(fs.For, "for foo", `"in", ; or a newline`)
+			p.followErr(fc.For, "for foo", `"in", ; or a newline`)
 		}
-		fs.Cond = wi
+		fc.Cond = wi
 	}
-	fs.Do = p.followTok(fs.For, "for foo [in words]", DO)
-	fs.DoStmts = p.followStmts(DO, DONE)
-	fs.Done = p.stmtEnd(fs, FOR, DONE)
+	fc.Do = p.followTok(fc.For, "for foo [in words]", DO)
+	fc.DoStmts = p.followStmts(DO, DONE)
+	fc.Done = p.stmtEnd(fc, FOR, DONE)
 	return
 }
 
-func (p *parser) caseStmt() (cs CaseStmt) {
-	cs.Case = p.lpos
-	cs.Word = p.followWord(CASE)
-	p.followTok(cs.Case, "case x", IN)
-	cs.List = p.patLists()
-	cs.Esac = p.stmtEnd(cs, CASE, ESAC)
+func (p *parser) caseClause() (cc CaseClause) {
+	cc.Case = p.lpos
+	cc.Word = p.followWord(CASE)
+	p.followTok(cc.Case, "case x", IN)
+	cc.List = p.patLists()
+	cc.Esac = p.stmtEnd(cc, CASE, ESAC)
 	return
 }
 
@@ -1228,8 +1228,8 @@ func (p *parser) patLists() (pls []PatternList) {
 	return
 }
 
-func (p *parser) declStmt() Node {
-	ds := DeclStmt{
+func (p *parser) declClause() Node {
+	ds := DeclClause{
 		Declare: p.lpos,
 		Local:   p.lval == LOCAL.String(),
 	}
@@ -1254,22 +1254,22 @@ func (p *parser) declStmt() Node {
 	return ds
 }
 
-func (p *parser) evalStmt() (es EvalStmt) {
-	es.Eval = p.lpos
-	p.gotStmt(&es.Stmt)
+func (p *parser) evalClause() (ec EvalClause) {
+	ec.Eval = p.lpos
+	p.gotStmt(&ec.Stmt)
 	return
 }
 
-func (p *parser) letStmt() (ls LetStmt) {
+func (p *parser) letClause() (lc LetClause) {
 	p.pushStops(DLPAREN)
-	ls.Let = p.lpos
+	lc.Let = p.lpos
 	p.stopNewline = true
 	for !p.peekStop() && !p.peek(STOPPED) {
 		x := p.arithmExpr(LET)
 		if x == nil {
 			p.followErr(p.pos, LET, "arithmetic expressions")
 		}
-		ls.Exprs = append(ls.Exprs, x)
+		lc.Exprs = append(lc.Exprs, x)
 	}
 	p.stopNewline = false
 	p.popStop()
