@@ -16,20 +16,20 @@ type PrintConfig struct {
 }
 
 // Fprint "pretty-prints" the given AST node to the given writer.
-func (c PrintConfig) Fprint(w io.Writer, n Node) error {
+func (c PrintConfig) Fprint(w io.Writer, node Node) error {
 	p := printer{w: w, c: c}
-	if f, ok := n.(File); ok {
+	if f, ok := node.(File); ok {
 		p.comments = f.Comments
 	}
-	p.node(n)
+	p.node(node)
 	return p.err
 }
 
 // Fprint "pretty-prints" the given AST node to the given writer. It
 // calls PrintConfig.Fprint with its default settings.
-func Fprint(w io.Writer, n Node) error {
+func Fprint(w io.Writer, node Node) error {
 	c := PrintConfig{}
-	return c.Fprint(w, n)
+	return c.Fprint(w, node)
 }
 
 type printer struct {
@@ -686,13 +686,10 @@ func (p *printer) stmts(stmts []Stmt) bool {
 	return true
 }
 
-func strFprint(n Node, spaces int) string {
+func strFprint(node Node, spaces int) string {
 	var buf bytes.Buffer
-	p := printer{w: &buf, c: PrintConfig{Spaces: spaces}}
-	if f, ok := n.(File); ok {
-		p.comments = f.Comments
-	}
-	p.node(n)
+	c := PrintConfig{Spaces: spaces}
+	c.Fprint(&buf, node)
 	return buf.String()
 }
 
