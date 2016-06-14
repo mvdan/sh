@@ -122,16 +122,6 @@ func (p *printer) spacedTok(tok Token) {
 	p.token(tok)
 }
 
-func (p *printer) spacedNode(node Node) {
-	if node == nil {
-		return
-	}
-	if p.wantSpace {
-		p.space(' ')
-	}
-	p.node(node)
-}
-
 func (p *printer) spacedStr(s string) {
 	if p.wantSpace {
 		p.space(' ')
@@ -322,7 +312,7 @@ func (p *printer) node(node Node) {
 		p.nestedStmts(x.DoStmts)
 		p.separated(DONE, x.Done, true)
 	case BinaryExpr:
-		p.spacedNode(x.X)
+		p.node(x.X)
 		indent := !p.nestedBinary()
 		if indent {
 			p.incLevel()
@@ -607,7 +597,7 @@ func (p *printer) stmt(s Stmt) {
 	} else if ok {
 		p.command(cmd)
 	} else {
-		p.spacedNode(s.Node)
+		p.node(s.Node)
 	}
 	anyNewline := false
 	for _, r := range s.Redirs[startRedirs:] {
