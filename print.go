@@ -672,13 +672,13 @@ func (p *printer) stmts(stmts []Stmt) bool {
 				if !p.hasInline(pos) || pos.Line > lastLine+1 {
 					break
 				}
-				if l := len(stmtStr(s)); l > inlineIndent {
+				if l := stmtLen(s); l > inlineIndent {
 					inlineIndent = l
 				}
 				lastLine = pos.Line
 			}
 		}
-		p.wantSpaces = inlineIndent - len(stmtStr(s))
+		p.wantSpaces = inlineIndent - stmtLen(s)
 	}
 	p.wantNewline = true
 	return true
@@ -691,11 +691,11 @@ func wordStr(w Word) string {
 	return buf.String()
 }
 
-func stmtStr(s Stmt) string {
+func stmtLen(s Stmt) int {
 	var buf bytes.Buffer
 	p := printer{w: &buf}
 	p.stmt(s)
-	return buf.String()
+	return buf.Len()
 }
 
 func (p *printer) nestedStmts(stmts []Stmt) bool {
