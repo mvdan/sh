@@ -194,7 +194,7 @@ func (p *printer) didSeparate(pos Pos) bool {
 
 func (p *printer) singleStmtSeparate(pos Pos) {
 	if len(p.pendingHdocs) > 0 {
-	} else if p.wantNewline || (p.curLine > 0 && pos.Line > p.curLine) {
+	} else if pos.Line > p.curLine {
 		p.spacedStr("\\\n")
 		p.indent()
 	}
@@ -449,9 +449,7 @@ func (p *printer) cond(node Node) {
 	case StmtCond:
 		p.nestedStmts(x.Stmts)
 	case WordIter:
-		if p.wantSpace {
-			p.space(' ')
-		}
+		p.space(' ')
 		p.lit(x.Name)
 		if len(x.List) > 0 {
 			p.spacedTok(IN, true)
@@ -463,11 +461,11 @@ func (p *printer) cond(node Node) {
 		p.token(DRPAREN, true)
 	case CStyleLoop:
 		p.spacedTok(DLPAREN, false)
-		p.spacedArithm(x.Init)
+		p.arithm(x.Init, false)
 		p.token(SEMICOLON, true)
-		p.spacedArithm(x.Cond)
+		p.arithm(x.Cond, false)
 		p.token(SEMICOLON, true)
-		p.spacedArithm(x.Post)
+		p.arithm(x.Post, false)
 		p.token(DRPAREN, true)
 	}
 	p.stack = p.stack[:len(p.stack)-1]
@@ -477,42 +475,35 @@ func (p *printer) arithm(node Node, compact bool) {
 	p.stack = append(p.stack, node)
 	switch x := node.(type) {
 	case Word:
-		p.word(x)
+		p.spacedWord(x)
 	case BinaryExpr:
 		if compact {
 			p.arithm(x.X, true)
-			p.token(x.Op, true)
+			p.token(x.Op, false)
 			p.arithm(x.Y, true)
 		} else {
-			p.spacedArithm(x.X)
+			p.arithm(x.X, false)
 			if x.Op == COMMA {
 				p.token(x.Op, true)
 			} else {
 				p.spacedTok(x.Op, true)
 			}
-			p.spacedArithm(x.Y)
+			p.arithm(x.Y, false)
 		}
 	case UnaryExpr:
 		if x.Post {
 			p.arithm(x.X, compact)
 			p.token(x.Op, true)
 		} else {
-			p.token(x.Op, true)
-			p.wantSpace = false
+			p.spacedTok(x.Op, false)
 			p.arithm(x.X, compact)
 		}
 	case ParenExpr:
-		p.token(LPAREN, false)
+		p.spacedTok(LPAREN, false)
 		p.arithm(x.X, false)
 		p.token(RPAREN, true)
 	}
 	p.stack = p.stack[:len(p.stack)-1]
-}
-func (p *printer) spacedArithm(node Node) {
-	if p.wantSpace {
-		p.space(' ')
-	}
-	p.arithm(node, false)
 }
 
 func (p *printer) word(w Word) {
