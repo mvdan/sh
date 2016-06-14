@@ -536,7 +536,6 @@ func (p *printer) command(cmd Command, redirs []Redirect) (startRedirs int) {
 		p.lit(x.Name)
 		p.token(LPAREN, false)
 		p.token(RPAREN, true)
-		p.space(' ')
 		p.stmt(x.Body)
 	case CaseClause:
 		p.spacedTok(CASE, true)
@@ -585,12 +584,10 @@ func (p *printer) command(cmd Command, redirs []Redirect) (startRedirs int) {
 		p.assigns(x.Assigns)
 	case EvalClause:
 		p.spacedTok(EVAL, true)
-		p.space(' ')
 		p.stmt(x.Stmt)
 	case LetClause:
 		p.spacedTok(LET, true)
 		for _, n := range x.Exprs {
-			p.space(' ')
 			p.arithm(n, true)
 		}
 	}
