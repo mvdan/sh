@@ -190,15 +190,6 @@ func (p *printer) didSeparate(pos Pos) bool {
 	return false
 }
 
-func (p *printer) singleStmtSeparate(pos Pos) {
-	if len(p.pendingHdocs) > 0 {
-	} else if pos.Line > p.curLine {
-		p.spacedStr("\\\n")
-		p.indent()
-	}
-	p.curLine = pos.Line
-}
-
 func (p *printer) separated(tok Token, pos Pos, fallback bool) {
 	p.level++
 	p.commentsUpTo(pos.Line)
@@ -220,6 +211,9 @@ func (p *printer) hasInline(pos Pos) bool {
 	for _, c := range p.comments {
 		if c.Hash.Line == pos.Line {
 			return true
+		}
+		if c.Hash.Line > pos.Line {
+			return false
 		}
 	}
 	return false
@@ -525,7 +519,12 @@ func (p *printer) command(cmd Command, redirs []Redirect) (startRedirs int) {
 			p.incLevel()
 		}
 		_, p.nestedBinary = x.Y.Cmd.(BinaryCmd)
-		p.singleStmtSeparate(x.Y.Pos())
+		if len(p.pendingHdocs) > 0 {
+		} else if x.Y.Pos().Line > p.curLine {
+			p.spacedStr("\\\n")
+			p.indent()
+		}
+		p.curLine = x.Y.Pos().Line
 		p.spacedTok(x.Op, true)
 		p.stmt(x.Y)
 		if indent {
