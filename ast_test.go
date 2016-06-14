@@ -464,27 +464,25 @@ var astTests = []testCase{
 		[]string{"a=b foo=$bar"},
 		Stmt{
 			Assigns: []Assign{
-				{Name: lit("a"), Value: litWord("b")},
-				{Name: lit("foo"), Value: word(litParamExp("bar"))},
+				{Name: litRef("a"), Value: litWord("b")},
+				{Name: litRef("foo"), Value: word(litParamExp("bar"))},
 			},
 		},
 	},
 	{
 		[]string{"a=\"\nbar\""},
 		Stmt{
-			Assigns: []Assign{
-				{
-					Name:  lit("a"),
-					Value: word(dblQuoted(lit("\nbar"))),
-				},
-			},
+			Assigns: []Assign{{
+				Name:  litRef("a"),
+				Value: word(dblQuoted(lit("\nbar"))),
+			}},
 		},
 	},
 	{
 		[]string{"a= foo"},
 		Stmt{
 			Node:    litCmd("foo"),
-			Assigns: []Assign{{Name: lit("a")}},
+			Assigns: []Assign{{Name: litRef("a")}},
 		},
 	},
 	{
@@ -1646,7 +1644,7 @@ var astTests = []testCase{
 		IfStmt{
 			ThenStmts: []Stmt{
 				{Assigns: []Assign{
-					{Name: lit("a")},
+					{Name: litRef("a")},
 				}},
 			},
 		},
@@ -1665,10 +1663,10 @@ var astTests = []testCase{
 		[]string{"a=b\nc=d", "a=b; c=d"},
 		[]Stmt{
 			{Assigns: []Assign{
-				{Name: lit("a"), Value: litWord("b")},
+				{Name: litRef("a"), Value: litWord("b")},
 			}},
 			{Assigns: []Assign{
-				{Name: lit("c"), Value: litWord("d")},
+				{Name: litRef("c"), Value: litWord("d")},
 			}},
 		},
 	},
@@ -1759,7 +1757,7 @@ var astTests = []testCase{
 		DeclStmt{
 			Assigns: []Assign{
 				{Value: litWord("alone")},
-				{Name: lit("foo"), Value: litWord("bar")},
+				{Name: litRef("foo"), Value: litWord("bar")},
 			},
 		},
 	},
@@ -1768,7 +1766,7 @@ var astTests = []testCase{
 		DeclStmt{
 			Opts: litWords("-a", "-bc"),
 			Assigns: []Assign{
-				{Name: lit("foo"), Value: litWord("bar")},
+				{Name: litRef("foo"), Value: litWord("bar")},
 			},
 		},
 	},
@@ -1776,14 +1774,15 @@ var astTests = []testCase{
 		[]string{"declare -a foo=(b1 `b2`)"},
 		DeclStmt{
 			Opts: litWords("-a"),
-			Assigns: []Assign{
-				{Name: lit("foo"), Value: word(
+			Assigns: []Assign{{
+				Name: litRef("foo"),
+				Value: word(
 					ArrayExpr{List: []Word{
 						litWord("b1"),
 						word(bckQuoted(litStmt("b2"))),
 					}},
-				)},
-			},
+				),
+			}},
 		},
 	},
 	{
@@ -1792,7 +1791,7 @@ var astTests = []testCase{
 			Local: true,
 			Opts:  litWords("-a"),
 			Assigns: []Assign{{
-				Name: lit("foo"),
+				Name: litRef("foo"),
 				Value: word(
 					ArrayExpr{List: []Word{
 						litWord("b1"),
@@ -1805,8 +1804,11 @@ var astTests = []testCase{
 	{
 		[]string{"eval a=b foo"},
 		EvalStmt{Stmt: Stmt{
-			Node:    litCmd("foo"),
-			Assigns: []Assign{{Name: lit("a"), Value: litWord("b")}},
+			Node: litCmd("foo"),
+			Assigns: []Assign{{
+				Name:  litRef("a"),
+				Value: litWord("b"),
+			}},
 		}},
 	},
 	{
@@ -1907,7 +1909,7 @@ var astTests = []testCase{
 			}}),
 			{
 				Assigns: []Assign{{
-					Name: lit("foo"),
+					Name: litRef("foo"),
 					Value: word(
 						ArrayExpr{List: litWords("bar")},
 					),
@@ -1919,7 +1921,7 @@ var astTests = []testCase{
 		[]string{"a=(b c) foo"},
 		Stmt{
 			Assigns: []Assign{{
-				Name: lit("a"),
+				Name: litRef("a"),
 				Value: word(
 					ArrayExpr{List: litWords("b", "c")},
 				),
@@ -1931,7 +1933,7 @@ var astTests = []testCase{
 		[]string{"a=(b c) foo", "a=(\nb\nc\n) foo"},
 		Stmt{
 			Assigns: []Assign{{
-				Name: lit("a"),
+				Name: litRef("a"),
 				Value: word(
 					ArrayExpr{List: litWords("b", "c")},
 				),
@@ -1945,12 +1947,12 @@ var astTests = []testCase{
 			Assigns: []Assign{
 				{
 					Append: true,
-					Name:   lit("a"),
+					Name:   litRef("a"),
 					Value:  litWord("1"),
 				},
 				{
 					Append: true,
-					Name:   lit("b"),
+					Name:   litRef("b"),
 					Value: word(
 						ArrayExpr{List: litWords("2", "3")},
 					),
@@ -2104,10 +2106,12 @@ func setPosRecurse(tb testing.TB, v interface{}, to Pos, diff bool) Node {
 			}
 		}
 	case []Assign:
-		for i := range x {
-			recurse(&x[i].Name)
-			recurse(x[i].Value)
-			checkPos(x[i])
+		for _, a := range x {
+			if a.Name != nil {
+				recurse(a.Name)
+			}
+			recurse(a.Value)
+			checkPos(a)
 		}
 	case Stmt:
 		recurse(&x)

@@ -63,7 +63,7 @@ func (s Stmt) End() Pos {
 // Assign represents an assignment to a variable.
 type Assign struct {
 	Append bool
-	Name   Node
+	Name   *Lit
 	Value  Word
 }
 

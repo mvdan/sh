@@ -681,7 +681,7 @@ func (p *printer) assigns(assigns []Assign) {
 			p.space(' ')
 		}
 		if a.Name != nil {
-			p.node(a.Name)
+			p.lit(*a.Name)
 			if a.Append {
 				p.token(ADD_ASSIGN, true)
 			} else {

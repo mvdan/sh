@@ -889,7 +889,7 @@ func (p *parser) getAssign() (Assign, bool) {
 	if i < 0 {
 		return as, false
 	}
-	as.Name = Lit{ValuePos: p.pos, Value: p.val[:i]}
+	as.Name = &Lit{ValuePos: p.pos, Value: p.val[:i]}
 	if p.val[i] == '+' {
 		as.Append = true
 		i++
