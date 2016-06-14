@@ -60,6 +60,8 @@ func (s Stmt) End() Pos {
 	return end
 }
 
+// Command represents all nodes that are simple commands, which are
+// directly placed in a Stmt.
 type Command interface {
 	Node
 	commandNode()
@@ -157,6 +159,8 @@ type IfClause struct {
 func (c IfClause) Pos() Pos { return c.If }
 func (c IfClause) End() Pos { return posAfter(c.Fi, FI) }
 
+// Cond represents all nodes that can be conditions in an if, while or
+// until clause.
 type Cond interface {
 	Node
 	condNode()
@@ -221,6 +225,7 @@ type ForClause struct {
 func (f ForClause) Pos() Pos { return f.For }
 func (f ForClause) End() Pos { return posAfter(f.Done, DONE) }
 
+// Loop represents all nodes that can be loops in a for clause.
 type Loop interface {
 	Node
 	loopNode()
@@ -301,6 +306,7 @@ type Word struct {
 func (w Word) Pos() Pos { return partsFirstPos(w.Parts) }
 func (w Word) End() Pos { return partsLastEnd(w.Parts) }
 
+// WordPart represents all nodes that can form a word.
 type WordPart interface {
 	Node
 	wordPartNode()
@@ -419,6 +425,7 @@ type ArithmExp struct {
 func (a ArithmExp) Pos() Pos { return a.Dollar }
 func (a ArithmExp) End() Pos { return posAfter(a.Rparen, DRPAREN) }
 
+// ArithmExpr represents all nodes that form arithmetic expressions.
 type ArithmExpr interface {
 	Node
 	arithmExprNode()
