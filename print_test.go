@@ -293,6 +293,20 @@ func TestFprintMultiline(t *testing.T) {
 	}
 }
 
+func TestFprintNodeTypes(t *testing.T) {
+	nodes := []Node{
+		File{},
+		Stmt{},
+	}
+	for _, node := range nodes {
+		t.Run(fmt.Sprintf("%T", node), func(t *testing.T) {
+			if err := Fprint(ioutil.Discard, node); err != nil {
+				t.Fatal("unexpected error: %v", err)
+			}
+		})
+	}
+}
+
 func TestFprintSpaces(t *testing.T) {
 	var spaceFormats = [...]struct {
 		spaces   int

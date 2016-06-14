@@ -18,10 +18,17 @@ type PrintConfig struct {
 // Fprint "pretty-prints" the given AST node to the given writer.
 func (c PrintConfig) Fprint(w io.Writer, node Node) error {
 	p := printer{w: w, c: c}
-	if f, ok := node.(File); ok {
-		p.comments = f.Comments
+	switch x := node.(type) {
+	case File:
+		p.comments = x.Comments
+		p.stmts(x.Stmts)
+		p.commentsUpTo(0)
+	case Stmt:
+		p.stmt(x)
+	default:
+		return fmt.Errorf("unsupported root node: %T", node)
 	}
-	p.node(node)
+	p.newline()
 	return p.err
 }
 
@@ -235,16 +242,10 @@ func (p *printer) commentsUpTo(line int) {
 	p.commentsUpTo(line)
 }
 
-func (p *printer) node(node Node) {
-	switch x := node.(type) {
-	case File:
-		p.stmts(x.Stmts)
-		p.commentsUpTo(0)
-		p.newline()
+func (p *printer) wordPart(wp WordPart) {
+	switch x := wp.(type) {
 	case Lit:
 		p.lit(x)
-	case Word:
-		p.word(x)
 	case SglQuoted:
 		p.token(SQUOTE, true)
 		p.str(x.Value)
@@ -252,7 +253,7 @@ func (p *printer) node(node Node) {
 	case Quoted:
 		p.token(x.Quote, true)
 		for _, n := range x.Parts {
-			p.node(n)
+			p.wordPart(n)
 		}
 		p.token(quotedStop(x.Quote), true)
 	case CmdSubst:
@@ -374,7 +375,7 @@ func (p *printer) arithm(expr ArithmExpr, compact bool) {
 
 func (p *printer) word(w Word) {
 	for _, n := range w.Parts {
-		p.node(n)
+		p.wordPart(n)
 	}
 }
 
