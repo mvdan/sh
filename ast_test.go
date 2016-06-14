@@ -22,16 +22,16 @@ func TestMain(m *testing.M) {
 
 func lit(s string) Lit     { return Lit{Value: s} }
 func litRef(s string) *Lit { return &Lit{Value: s} }
-func lits(strs ...string) []Node {
-	l := make([]Node, len(strs))
+func lits(strs ...string) []WordPart {
+	l := make([]WordPart, len(strs))
 	for i, s := range strs {
 		l[i] = lit(s)
 	}
 	return l
 }
 
-func word(ns ...Node) Word  { return Word{Parts: ns} }
-func litWord(s string) Word { return word(lits(s)...) }
+func word(ps ...WordPart) Word { return Word{Parts: ps} }
+func litWord(s string) Word    { return word(lits(s)...) }
 func litWords(strs ...string) []Word {
 	l := make([]Word, 0, len(strs))
 	for _, s := range strs {
@@ -62,7 +62,7 @@ func litStmts(strs ...string) []Stmt {
 }
 
 func sglQuoted(s string) SglQuoted     { return SglQuoted{Value: s} }
-func dblQuoted(ns ...Node) Quoted      { return Quoted{Quote: DQUOTE, Parts: ns} }
+func dblQuoted(ps ...WordPart) Quoted  { return Quoted{Quote: DQUOTE, Parts: ps} }
 func block(sts ...Stmt) Block          { return Block{Stmts: sts} }
 func subshell(sts ...Stmt) Subshell    { return Subshell{Stmts: sts} }
 func arithmExp(e ArithmExpr) ArithmExp { return ArithmExp{X: e} }
@@ -2128,12 +2128,14 @@ func setPosRecurse(tb testing.TB, v interface{}, to Pos, diff bool) Node {
 	case Word:
 		recurse(x.Parts)
 		return x
-	case []Node:
+	case []WordPart:
 		for i := range x {
 			recurse(&x[i])
 		}
 	case *Node:
 		*x = recurse(*x)
+	case *WordPart:
+		*x = recurse(*x).(WordPart)
 	case *ArithmExpr:
 		*x = recurse(*x).(ArithmExpr)
 	case *Lit:

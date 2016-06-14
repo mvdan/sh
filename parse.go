@@ -594,7 +594,7 @@ func (p *parser) gotLit(l *Lit) bool {
 	return false
 }
 
-func (p *parser) readParts(ns *[]Node) {
+func (p *parser) readParts(ns *[]WordPart) {
 	for {
 		n := p.wordPart()
 		if n == nil {
@@ -607,7 +607,7 @@ func (p *parser) readParts(ns *[]Node) {
 	}
 }
 
-func (p *parser) wordPart() Node {
+func (p *parser) wordPart() WordPart {
 	switch {
 	case p.got(LIT):
 		return Lit{

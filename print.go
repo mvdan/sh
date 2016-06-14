@@ -241,8 +241,6 @@ func (p *printer) node(node Node) {
 		p.stmts(x.Stmts)
 		p.commentsUpTo(0)
 		p.newline()
-	case Stmt:
-		p.stmt(x)
 	case Lit:
 		p.lit(x)
 	case Word:

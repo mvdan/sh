@@ -279,11 +279,25 @@ func (f FuncDecl) End() Pos { return f.Body.End() }
 // Word represents a list of nodes that are contiguous to each other and
 // are delimeted by word boundaries.
 type Word struct {
-	Parts []Node
+	Parts []WordPart
 }
 
-func (w Word) Pos() Pos { return nodeFirstPos(w.Parts) }
-func (w Word) End() Pos { return nodeLastEnd(w.Parts) }
+func (w Word) Pos() Pos { return partsFirstPos(w.Parts) }
+func (w Word) End() Pos { return partsLastEnd(w.Parts) }
+
+type WordPart interface {
+	Node
+	wordPartNode()
+}
+
+func (Lit) wordPartNode()       {}
+func (SglQuoted) wordPartNode() {}
+func (Quoted) wordPartNode()    {}
+func (ParamExp) wordPartNode()  {}
+func (CmdSubst) wordPartNode()  {}
+func (ArithmExp) wordPartNode() {}
+func (ProcSubst) wordPartNode() {}
+func (ArrayExpr) wordPartNode() {} // TODO: remove?
 
 // Lit represents an unquoted string consisting of characters that were
 // not tokenized.
@@ -321,11 +335,11 @@ func (q SglQuoted) End() Pos {
 type Quoted struct {
 	QuotePos Pos
 	Quote    Token
-	Parts    []Node
+	Parts    []WordPart
 }
 
 func (q Quoted) Pos() Pos { return q.QuotePos }
-func (q Quoted) End() Pos { return posAfter(nodeLastEnd(q.Parts), q.Quote) }
+func (q Quoted) End() Pos { return posAfter(partsLastEnd(q.Parts), q.Quote) }
 
 // CmdSubst represents a command substitution.
 type CmdSubst struct {
@@ -521,18 +535,18 @@ func stmtLastEnd(sts []Stmt) Pos {
 	return sts[len(sts)-1].End()
 }
 
-func nodeFirstPos(ns []Node) Pos {
-	if len(ns) == 0 {
+func partsFirstPos(ps []WordPart) Pos {
+	if len(ps) == 0 {
 		return defaultPos
 	}
-	return ns[0].Pos()
+	return ps[0].Pos()
 }
 
-func nodeLastEnd(ns []Node) Pos {
-	if len(ns) == 0 {
+func partsLastEnd(ps []WordPart) Pos {
+	if len(ps) == 0 {
 		return defaultPos
 	}
-	return ns[len(ns)-1].End()
+	return ps[len(ps)-1].End()
 }
 
 func wordFirstPos(ws []Word) Pos {
