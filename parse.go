@@ -122,6 +122,19 @@ func (p *parser) peekByte() byte {
 	return bs[0]
 }
 
+func (p *parser) willByte(b byte) bool {
+	if p.nextErr != nil && p.remaining < 1 {
+		return false
+	}
+	bs, err := p.br.Peek(1)
+	if err != nil {
+		p.nextErr = err
+		p.remaining = len(bs)
+		return false
+	}
+	return bs[0] == b
+}
+
 func (p *parser) willRead(s string) bool {
 	if p.nextErr != nil && p.remaining < len(s) {
 		return false
@@ -243,7 +256,7 @@ func (p *parser) next() {
 	case p.quoted(RBRACK) && p.readOnlyTok(RBRACK):
 		p.advanceTok(RBRACK)
 	case b == '#' && !p.quotedAny(DQUOTE, SQUOTE, LBRACE, RBRACE, QUO):
-		line, _ := p.readUntil("\n")
+		line, _ := p.readUntil('\n')
 		p.advanceBoth(COMMENT, line[1:])
 	case p.quoted(LBRACE) && paramOps[b]:
 		p.advanceTok(p.doParamToken())
@@ -322,9 +335,9 @@ func (p *parser) advanceBoth(tok Token, val string) {
 	p.tok, p.val = tok, val
 }
 
-func (p *parser) readUntil(s string) (string, bool) {
+func (p *parser) readUntil(b byte) (string, bool) {
 	var bs []byte
-	for !p.willRead(s) {
+	for !p.willByte(b) {
 		b := p.readByte()
 		if p.tok == EOF {
 			return string(bs), false
@@ -349,7 +362,7 @@ func (p *parser) doHeredocs() {
 func (p *parser) readHdocBody(end string, noTabs bool) (string, bool) {
 	var buf bytes.Buffer
 	for !p.eof() {
-		line, _ := p.readUntil("\n")
+		line, _ := p.readUntil('\n')
 		if line == end || (noTabs && strings.TrimLeft(line, "\t") == end) {
 			// add trailing tabs
 			fmt.Fprint(&buf, line[:len(line)-len(end)])
@@ -647,7 +660,7 @@ func (p *parser) wordPart() WordPart {
 		return ps
 	case !p.quoted(SQUOTE) && p.peek(SQUOTE):
 		sq := SglQuoted{Quote: p.pos}
-		s, found := p.readUntil("'")
+		s, found := p.readUntil('\'')
 		if !found {
 			p.closingQuote(sq, SQUOTE)
 		}
