@@ -325,8 +325,8 @@ func (p *printer) cond(cond Cond) {
 	}
 }
 
-func (p *printer) loop(node Node) {
-	switch x := node.(type) {
+func (p *printer) loop(loop Loop) {
+	switch x := loop.(type) {
 	case WordIter:
 		p.space(' ')
 		p.lit(x.Name)

@@ -214,12 +214,20 @@ func (u UntilClause) End() Pos { return posAfter(u.Done, DONE) }
 // ForClause represents a for clause.
 type ForClause struct {
 	For, Do, Done Pos
-	Loop          Node
+	Loop          Loop
 	DoStmts       []Stmt
 }
 
 func (f ForClause) Pos() Pos { return f.For }
 func (f ForClause) End() Pos { return posAfter(f.Done, DONE) }
+
+type Loop interface {
+	Node
+	loopNode()
+}
+
+func (WordIter) loopNode()   {}
+func (CStyleLoop) loopNode() {}
 
 // WordIter represents the iteration of a variable over a series of
 // words in a for clause.

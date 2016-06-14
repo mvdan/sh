@@ -2115,9 +2115,6 @@ func setPosRecurse(tb testing.TB, v interface{}, to Pos, diff bool) Node {
 			recurse(a.Value)
 			checkPos(a)
 		}
-	case Stmt:
-		recurse(&x)
-		return x
 	case CallExpr:
 		recurse(x.Args)
 		return x
@@ -2132,13 +2129,15 @@ func setPosRecurse(tb testing.TB, v interface{}, to Pos, diff bool) Node {
 		for i := range x {
 			recurse(&x[i])
 		}
-	case *Node:
-		*x = recurse(*x)
 	case *WordPart:
 		*x = recurse(*x).(WordPart)
 	case *Cond:
 		if *x != nil {
 			*x = recurse(*x).(Cond)
+		}
+	case *Loop:
+		if *x != nil {
+			*x = recurse(*x).(Loop)
 		}
 	case *ArithmExpr:
 		if *x != nil {
