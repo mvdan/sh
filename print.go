@@ -55,19 +55,10 @@ type printer struct {
 	// comments is the list of pending comments to write.
 	comments []Comment
 
-	// stack of nodes leading to the current one
-	stack []Node
-
 	// pendingHdocs is the list of pending heredocs to write.
 	pendingHdocs []Redirect
-}
 
-func (p *printer) nestedBinary() bool {
-	if len(p.stack) < 3 {
-		return false
-	}
-	_, ok := p.stack[len(p.stack)-3].(BinaryExpr)
-	return ok
+	nestedBinary bool
 }
 
 func (p *printer) space(b byte) {
@@ -245,7 +236,6 @@ func (p *printer) commentsUpTo(line int) {
 }
 
 func (p *printer) node(node Node) {
-	p.stack = append(p.stack, node)
 	switch x := node.(type) {
 	case File:
 		p.stmts(x.Stmts)
@@ -323,11 +313,9 @@ func (p *printer) node(node Node) {
 		p.nestedStmts(x.Stmts)
 		p.token(RPAREN, true)
 	}
-	p.stack = p.stack[:len(p.stack)-1]
 }
 
 func (p *printer) cond(node Node) {
-	p.stack = append(p.stack, node)
 	switch x := node.(type) {
 	case StmtCond:
 		p.nestedStmts(x.Stmts)
@@ -351,11 +339,9 @@ func (p *printer) cond(node Node) {
 		p.arithm(x.Post, false)
 		p.token(DRPAREN, true)
 	}
-	p.stack = p.stack[:len(p.stack)-1]
 }
 
 func (p *printer) arithm(node Node, compact bool) {
-	p.stack = append(p.stack, node)
 	switch x := node.(type) {
 	case Word:
 		p.spacedWord(x)
@@ -386,7 +372,6 @@ func (p *printer) arithm(node Node, compact bool) {
 		p.arithm(x.X, false)
 		p.token(RPAREN, true)
 	}
-	p.stack = p.stack[:len(p.stack)-1]
 }
 
 func (p *printer) word(w Word) {
@@ -466,7 +451,6 @@ func (p *printer) stmt(s Stmt) {
 }
 
 func (p *printer) command(cmd Command, redirs []Redirect) (startRedirs int) {
-	p.stack = append(p.stack, cmd)
 	switch x := cmd.(type) {
 	case CallExpr:
 		if len(x.Args) <= 1 {
@@ -532,16 +516,18 @@ func (p *printer) command(cmd Command, redirs []Redirect) (startRedirs int) {
 		p.separated(DONE, x.Done, true)
 	case BinaryCmd:
 		p.stmt(x.X)
-		indent := !p.nestedBinary()
+		indent := !p.nestedBinary
 		if indent {
 			p.incLevel()
 		}
+		_, p.nestedBinary = x.Y.Cmd.(BinaryCmd)
 		p.singleStmtSeparate(x.Y.Pos())
 		p.spacedTok(x.Op, true)
 		p.stmt(x.Y)
 		if indent {
 			p.decLevel()
 		}
+		p.nestedBinary = false
 	case FuncDecl:
 		if x.BashStyle {
 			p.spacedTok(FUNCTION, true)
@@ -608,7 +594,6 @@ func (p *printer) command(cmd Command, redirs []Redirect) (startRedirs int) {
 			p.arithm(n, true)
 		}
 	}
-	p.stack = p.stack[:len(p.stack)-1]
 	return startRedirs
 }
 
