@@ -340,7 +340,7 @@ func TestWriteErr(t *testing.T) {
 		Stmts: []Stmt{
 			{
 				Redirs: []Redirect{{}},
-				Node:   Subshell{},
+				Cmd:    Subshell{},
 			},
 		},
 	}

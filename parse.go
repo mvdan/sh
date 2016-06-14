@@ -1001,31 +1001,31 @@ func (p *parser) gotStmtAndOr(s *Stmt, stops ...Token) bool {
 func (p *parser) gotStmtPipe(s *Stmt) bool {
 	switch {
 	case p.peek(LPAREN):
-		s.Node = p.subshell()
+		s.Cmd = p.subshell()
 	case p.got(LBRACE):
-		s.Node = p.block()
+		s.Cmd = p.block()
 	case p.got(IF):
-		s.Node = p.ifClause()
+		s.Cmd = p.ifClause()
 	case p.got(WHILE):
-		s.Node = p.whileClause()
+		s.Cmd = p.whileClause()
 	case p.got(UNTIL):
-		s.Node = p.untilClause()
+		s.Cmd = p.untilClause()
 	case p.got(FOR):
-		s.Node = p.forClause()
+		s.Cmd = p.forClause()
 	case p.got(CASE):
-		s.Node = p.caseClause()
+		s.Cmd = p.caseClause()
 	case p.gotAny(DECLARE, LOCAL):
-		s.Node = p.declClause()
+		s.Cmd = p.declClause()
 	case p.got(EVAL):
-		s.Node = p.evalClause()
+		s.Cmd = p.evalClause()
 	case p.peek(LET):
-		s.Node = p.letClause()
+		s.Cmd = p.letClause()
 	default:
-		s.Node = p.callOrFunc()
+		s.Cmd = p.callOrFunc()
 	}
 	for !p.newLine && p.gotRedirect() {
 	}
-	if s.Node == nil && len(s.Redirs) == 0 {
+	if s.Cmd == nil && len(s.Redirs) == 0 {
 		return false
 	}
 	if p.got(OR) || p.got(PIPEALL) {
@@ -1055,7 +1055,7 @@ func (p *parser) binaryStmt(left *Stmt) Stmt {
 	}
 	return Stmt{
 		Position: left.Position,
-		Node:     b,
+		Cmd:      b,
 	}
 }
 
@@ -1228,11 +1228,9 @@ func (p *parser) patLists() (pls []PatternList) {
 	return
 }
 
-func (p *parser) declClause() Node {
-	ds := DeclClause{
-		Declare: p.lpos,
-		Local:   p.lval == LOCAL.String(),
-	}
+func (p *parser) declClause() (ds DeclClause) {
+	ds.Declare = p.lpos
+	ds.Local = p.lval == LOCAL.String()
 	for p.peek(LIT) && p.willSpaced() && p.val[0] == '-' {
 		var w Word
 		p.gotWord(&w)
@@ -1277,7 +1275,7 @@ func (p *parser) letClause() (lc LetClause) {
 	return
 }
 
-func (p *parser) callOrFunc() Node {
+func (p *parser) callOrFunc() Command {
 	if p.got(FUNCTION) {
 		fpos := p.lpos
 		w := p.followWord(FUNCTION)

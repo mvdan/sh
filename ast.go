@@ -32,7 +32,7 @@ type Comment struct {
 // It is compromised of a node, like Command or IfStmt, and other
 // components that may come before or after it.
 type Stmt struct {
-	Node
+	Cmd        Command
 	Position   Pos
 	Negated    bool
 	Background bool
@@ -46,8 +46,8 @@ func (s Stmt) End() Pos {
 	if s.Negated {
 		end = posAfter(end, NOT)
 	}
-	if s.Node != nil {
-		end = s.Node.End()
+	if s.Cmd != nil {
+		end = s.Cmd.End()
 	}
 	if len(s.Assigns) > 0 {
 		assEnd := s.Assigns[len(s.Assigns)-1].End()
@@ -59,6 +59,25 @@ func (s Stmt) End() Pos {
 	}
 	return end
 }
+
+type Command interface {
+	Node
+	commandNode()
+}
+
+func (CallExpr) commandNode()    {}
+func (IfClause) commandNode()    {}
+func (WhileClause) commandNode() {}
+func (UntilClause) commandNode() {}
+func (ForClause) commandNode()   {}
+func (CaseClause) commandNode()  {}
+func (Block) commandNode()       {}
+func (Subshell) commandNode()    {}
+func (BinaryExpr) commandNode()  {}
+func (FuncDecl) commandNode()    {}
+func (DeclClause) commandNode()  {}
+func (EvalClause) commandNode()  {}
+func (LetClause) commandNode()   {}
 
 // Assign represents an assignment to a variable.
 type Assign struct {

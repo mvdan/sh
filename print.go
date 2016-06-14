@@ -551,7 +551,7 @@ func (p *printer) stmt(s Stmt) {
 	}
 	p.assigns(s.Assigns)
 	startRedirs := 0
-	cmd, ok := s.Node.(CallExpr)
+	cmd, ok := s.Cmd.(CallExpr)
 	if len(cmd.Args) > 1 {
 		p.spacedWord(cmd.Args[0])
 		for _, r := range s.Redirs {
@@ -575,7 +575,7 @@ func (p *printer) stmt(s Stmt) {
 	} else if ok {
 		p.call(cmd)
 	} else {
-		p.node(s.Node)
+		p.node(s.Cmd)
 	}
 	anyNewline := false
 	for _, r := range s.Redirs[startRedirs:] {
