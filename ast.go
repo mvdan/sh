@@ -147,7 +147,7 @@ func (b Block) End() Pos { return posAfter(b.Rbrace, RBRACE) }
 // IfClause represents an if statement.
 type IfClause struct {
 	If, Then, Fi Pos
-	Cond         Node
+	Cond         Cond
 	ThenStmts    []Stmt
 	Elifs        []Elif
 	Else         Pos
@@ -156,6 +156,14 @@ type IfClause struct {
 
 func (c IfClause) Pos() Pos { return c.If }
 func (c IfClause) End() Pos { return posAfter(c.Fi, FI) }
+
+type Cond interface {
+	Node
+	condNode()
+}
+
+func (StmtCond) condNode()   {}
+func (CStyleCond) condNode() {}
 
 // StmtCond represents a condition that evaluates to the result of a
 // series of statements.
@@ -179,14 +187,14 @@ func (c CStyleCond) End() Pos { return posAfter(c.Rparen, RPAREN) }
 // Elif represents an "else if" case in an if clause.
 type Elif struct {
 	Elif, Then Pos
-	Cond       Node
+	Cond       Cond
 	ThenStmts  []Stmt
 }
 
 // WhileClause represents a while clause.
 type WhileClause struct {
 	While, Do, Done Pos
-	Cond            Node
+	Cond            Cond
 	DoStmts         []Stmt
 }
 
@@ -196,7 +204,7 @@ func (w WhileClause) End() Pos { return posAfter(w.Done, DONE) }
 // UntilClause represents an until clause.
 type UntilClause struct {
 	Until, Do, Done Pos
-	Cond            Node
+	Cond            Cond
 	DoStmts         []Stmt
 }
 
@@ -206,7 +214,7 @@ func (u UntilClause) End() Pos { return posAfter(u.Done, DONE) }
 // ForClause represents a for clause.
 type ForClause struct {
 	For, Do, Done Pos
-	Cond          Node
+	Loop          Node
 	DoStmts       []Stmt
 }
 

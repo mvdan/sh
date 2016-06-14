@@ -1115,7 +1115,7 @@ func (p *parser) ifClause() (ic IfClause) {
 	return
 }
 
-func (p *parser) cond(left Token, stops ...Token) Node {
+func (p *parser) cond(left Token, stops ...Token) Cond {
 	if p.peek(LPAREN) && p.readOnlyTok(LPAREN) {
 		p.pushStops(DRPAREN)
 		c := CStyleCond{Lparen: p.lpos}
@@ -1163,7 +1163,7 @@ func (p *parser) forClause() (fc ForClause) {
 		c.Post = p.arithmExpr(SEMICOLON)
 		c.Rparen = p.arithmEnd(c.Lparen)
 		p.gotSameLine(SEMICOLON)
-		fc.Cond = c
+		fc.Loop = c
 	} else {
 		var wi WordIter
 		if !p.gotLit(&wi.Name) {
@@ -1181,7 +1181,7 @@ func (p *parser) forClause() (fc ForClause) {
 		} else if !p.gotSameLine(SEMICOLON) && !p.newLine {
 			p.followErr(fc.For, "for foo", `"in", ; or a newline`)
 		}
-		fc.Cond = wi
+		fc.Loop = wi
 	}
 	fc.Do = p.followTok(fc.For, "for foo [in words]", DO)
 	fc.DoStmts = p.followStmts(DO, DONE)

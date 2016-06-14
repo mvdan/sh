@@ -314,10 +314,19 @@ func (p *printer) wordPart(wp WordPart) {
 	}
 }
 
-func (p *printer) cond(node Node) {
-	switch x := node.(type) {
+func (p *printer) cond(cond Cond) {
+	switch x := cond.(type) {
 	case StmtCond:
 		p.nestedStmts(x.Stmts)
+	case CStyleCond:
+		p.spacedTok(DLPAREN, false)
+		p.arithm(x.X, false)
+		p.token(DRPAREN, true)
+	}
+}
+
+func (p *printer) loop(node Node) {
+	switch x := node.(type) {
 	case WordIter:
 		p.space(' ')
 		p.lit(x.Name)
@@ -325,10 +334,6 @@ func (p *printer) cond(node Node) {
 			p.spacedTok(IN, true)
 			p.wordJoin(x.List, true)
 		}
-	case CStyleCond:
-		p.spacedTok(DLPAREN, false)
-		p.arithm(x.X, false)
-		p.token(DRPAREN, true)
 	case CStyleLoop:
 		p.spacedTok(DLPAREN, false)
 		p.arithm(x.Init, false)
@@ -509,7 +514,7 @@ func (p *printer) command(cmd Command, redirs []Redirect) (startRedirs int) {
 		p.separated(DONE, x.Done, true)
 	case ForClause:
 		p.spacedTok(FOR, true)
-		p.cond(x.Cond)
+		p.loop(x.Loop)
 		p.semiOrNewl(DO, x.Do)
 		p.nestedStmts(x.DoStmts)
 		p.separated(DONE, x.Done, true)

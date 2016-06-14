@@ -243,7 +243,7 @@ var astTests = []testCase{
 			"for i in; do foo; done",
 		},
 		ForClause{
-			Cond: WordIter{
+			Loop: WordIter{
 				Name: lit("i"),
 			},
 			DoStmts: litStmts("foo"),
@@ -256,7 +256,7 @@ var astTests = []testCase{
 			"for i in 1 2 3 #foo\ndo echo $i\ndone",
 		},
 		ForClause{
-			Cond: WordIter{
+			Loop: WordIter{
 				Name: lit("i"),
 				List: litWords("1", "2", "3"),
 			},
@@ -273,7 +273,7 @@ var astTests = []testCase{
 			"for (( i = 0 ; i < 10 ; i++ ))\ndo echo $i\ndone",
 		},
 		ForClause{
-			Cond: CStyleLoop{
+			Loop: CStyleLoop{
 				Init: BinaryExpr{
 					Op: ASSIGN,
 					X:  litWord("i"),
@@ -1684,7 +1684,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"for i; do; done", "for i\ndo\ndone"},
-		ForClause{Cond: WordIter{Name: lit("i")}},
+		ForClause{Loop: WordIter{Name: lit("i")}},
 	},
 	{
 		[]string{"case i in; esac"},
@@ -2136,8 +2136,14 @@ func setPosRecurse(tb testing.TB, v interface{}, to Pos, diff bool) Node {
 		*x = recurse(*x)
 	case *WordPart:
 		*x = recurse(*x).(WordPart)
+	case *Cond:
+		if *x != nil {
+			*x = recurse(*x).(Cond)
+		}
 	case *ArithmExpr:
-		*x = recurse(*x).(ArithmExpr)
+		if *x != nil {
+			*x = recurse(*x).(ArithmExpr)
+		}
 	case *Lit:
 		setPos(&x.ValuePos)
 	case Lit:
@@ -2160,10 +2166,11 @@ func setPosRecurse(tb testing.TB, v interface{}, to Pos, diff bool) Node {
 		recurse(&x.Cond)
 		recurse(x.ThenStmts)
 		for i := range x.Elifs {
-			setPos(&x.Elifs[i].Elif)
-			setPos(&x.Elifs[i].Then)
-			recurse(x.Elifs[i].Cond)
-			recurse(x.Elifs[i].ThenStmts)
+			e := &x.Elifs[i]
+			setPos(&e.Elif)
+			setPos(&e.Then)
+			recurse(e.Cond)
+			recurse(e.ThenStmts)
 		}
 		if len(x.ElseStmts) > 0 {
 			setPos(&x.Else)
@@ -2196,7 +2203,7 @@ func setPosRecurse(tb testing.TB, v interface{}, to Pos, diff bool) Node {
 		setPos(&x.For)
 		setPos(&x.Do)
 		setPos(&x.Done)
-		recurse(&x.Cond)
+		recurse(&x.Loop)
 		recurse(x.DoStmts)
 		return x
 	case WordIter:
@@ -2253,9 +2260,7 @@ func setPosRecurse(tb testing.TB, v interface{}, to Pos, diff bool) Node {
 	case ArithmExp:
 		setPos(&x.Dollar)
 		setPos(&x.Rparen)
-		if x.X != nil {
-			recurse(&x.X)
-		}
+		recurse(&x.X)
 		return x
 	case ParenExpr:
 		setPos(&x.Lparen)
