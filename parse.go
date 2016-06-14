@@ -1153,40 +1153,43 @@ func (p *parser) untilClause() (uc UntilClause) {
 
 func (p *parser) forClause() (fc ForClause) {
 	fc.For = p.lpos
-	if p.peek(LPAREN) && p.readOnlyTok(LPAREN) {
-		p.pushStops(DRPAREN)
-		c := CStyleLoop{Lparen: p.lpos}
-		c.Init = p.arithmExpr(DLPAREN)
-		p.followTok(p.pos, "expression", SEMICOLON)
-		c.Cond = p.arithmExpr(SEMICOLON)
-		p.followTok(p.pos, "expression", SEMICOLON)
-		c.Post = p.arithmExpr(SEMICOLON)
-		c.Rparen = p.arithmEnd(c.Lparen)
-		p.gotSameLine(SEMICOLON)
-		fc.Loop = c
-	} else {
-		var wi WordIter
-		if !p.gotLit(&wi.Name) {
-			p.followErr(fc.For, FOR, "a literal")
-		}
-		if p.got(IN) {
-			for !p.peekEnd() {
-				var w Word
-				if !p.gotWord(&w) {
-					p.curErr("word list can only contain words")
-				}
-				wi.List = append(wi.List, w)
-			}
-			p.gotSameLine(SEMICOLON)
-		} else if !p.gotSameLine(SEMICOLON) && !p.newLine {
-			p.followErr(fc.For, "for foo", `"in", ; or a newline`)
-		}
-		fc.Loop = wi
-	}
+	fc.Loop = p.loop(fc.For)
 	fc.Do = p.followTok(fc.For, "for foo [in words]", DO)
 	fc.DoStmts = p.followStmts(DO, DONE)
 	fc.Done = p.stmtEnd(fc, FOR, DONE)
 	return
+}
+
+func (p *parser) loop(forPos Pos) Loop {
+	if p.peek(LPAREN) && p.readOnlyTok(LPAREN) {
+		p.pushStops(DRPAREN)
+		cl := CStyleLoop{Lparen: p.lpos}
+		cl.Init = p.arithmExpr(DLPAREN)
+		p.followTok(p.pos, "expression", SEMICOLON)
+		cl.Cond = p.arithmExpr(SEMICOLON)
+		p.followTok(p.pos, "expression", SEMICOLON)
+		cl.Post = p.arithmExpr(SEMICOLON)
+		cl.Rparen = p.arithmEnd(cl.Lparen)
+		p.gotSameLine(SEMICOLON)
+		return cl
+	}
+	var wi WordIter
+	if !p.gotLit(&wi.Name) {
+		p.followErr(forPos, FOR, "a literal")
+	}
+	if p.got(IN) {
+		for !p.peekEnd() {
+			var w Word
+			if !p.gotWord(&w) {
+				p.curErr("word list can only contain words")
+			}
+			wi.List = append(wi.List, w)
+		}
+		p.gotSameLine(SEMICOLON)
+	} else if !p.gotSameLine(SEMICOLON) && !p.newLine {
+		p.followErr(forPos, "for foo", `"in", ; or a newline`)
+	}
+	return wi
 }
 
 func (p *parser) caseClause() (cc CaseClause) {
