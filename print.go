@@ -80,13 +80,6 @@ var (
 		CMDOUT:  true,
 		DOLLDP:  true,
 	}
-	// these never want a preceding space
-	contiguousLeft = map[Token]bool{
-		SEMICOLON: true,
-		RPAREN:    true,
-		DRPAREN:   true,
-		COMMA:     true,
-	}
 )
 
 func (p *printer) space(b byte) {
@@ -115,7 +108,6 @@ func (p *printer) spacedTok(tok Token) {
 	if p.wantNewline {
 		p.newline()
 		p.indent()
-	} else if contiguousLeft[tok] {
 	} else if p.wantSpace {
 		p.space(' ')
 	}
@@ -228,7 +220,11 @@ func (p *printer) separated(tok Token, pos Pos, fallback bool) {
 	if !p.didSeparate(pos) && fallback {
 		p.token(SEMICOLON)
 	}
-	p.spacedTok(tok)
+	if tok == RPAREN {
+		p.token(tok)
+	} else {
+		p.spacedTok(tok)
+	}
 }
 
 func (p *printer) hasInline(pos Pos) bool {
@@ -477,15 +473,15 @@ func (p *printer) cond(node Node) {
 	case CStyleCond:
 		p.spacedTok(DLPAREN)
 		p.arithm(x.X, false)
-		p.spacedTok(DRPAREN)
+		p.token(DRPAREN)
 	case CStyleLoop:
 		p.spacedTok(DLPAREN)
 		p.spacedArithm(x.Init)
-		p.spacedTok(SEMICOLON)
+		p.token(SEMICOLON)
 		p.spacedArithm(x.Cond)
-		p.spacedTok(SEMICOLON)
+		p.token(SEMICOLON)
 		p.spacedArithm(x.Post)
-		p.spacedTok(DRPAREN)
+		p.token(DRPAREN)
 	}
 	p.stack = p.stack[:len(p.stack)-1]
 }
@@ -502,7 +498,11 @@ func (p *printer) arithm(node Node, compact bool) {
 			p.arithm(x.Y, true)
 		} else {
 			p.spacedArithm(x.X)
-			p.spacedTok(x.Op)
+			if x.Op == COMMA {
+				p.token(x.Op)
+			} else {
+				p.spacedTok(x.Op)
+			}
 			p.spacedArithm(x.Y)
 		}
 	case UnaryExpr:
