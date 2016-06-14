@@ -97,13 +97,13 @@ func (r Redirect) Pos() Pos {
 }
 func (r Redirect) End() Pos { return r.Word.End() }
 
-// Command represents a command execution or function call.
-type Command struct {
+// CallExpr represents a command execution or function call.
+type CallExpr struct {
 	Args []Word
 }
 
-func (c Command) Pos() Pos { return wordFirstPos(c.Args) }
-func (c Command) End() Pos { return wordLastEnd(c.Args) }
+func (c CallExpr) Pos() Pos { return wordFirstPos(c.Args) }
+func (c CallExpr) End() Pos { return wordLastEnd(c.Args) }
 
 // Subshell represents a series of commands that should be executed in a
 // nested shell environment.

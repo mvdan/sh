@@ -40,8 +40,8 @@ func litWords(strs ...string) []Word {
 	return l
 }
 
-func cmd(words ...Word) Command     { return Command{Args: words} }
-func litCmd(strs ...string) Command { return cmd(litWords(strs...)...) }
+func call(words ...Word) CallExpr     { return CallExpr{Args: words} }
+func litCall(strs ...string) CallExpr { return call(litWords(strs...)...) }
 
 func stmt(n Node) Stmt { return Stmt{Node: n} }
 func stmts(ns ...Node) []Stmt {
@@ -52,7 +52,7 @@ func stmts(ns ...Node) []Stmt {
 	return l
 }
 
-func litStmt(strs ...string) Stmt { return stmt(litCmd(strs...)) }
+func litStmt(strs ...string) Stmt { return stmt(litCall(strs...)) }
 func litStmts(strs ...string) []Stmt {
 	l := make([]Stmt, len(strs))
 	for i, s := range strs {
@@ -105,7 +105,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"foo a b", " foo  a  b ", "foo \\\n a b"},
-		litCmd("foo", "a", "b"),
+		litCall("foo", "a", "b"),
 	},
 	{
 		[]string{"foobar", "foo\\\nbar"},
@@ -260,7 +260,7 @@ var astTests = []testCase{
 				Name: lit("i"),
 				List: litWords("1", "2", "3"),
 			},
-			DoStmts: stmts(cmd(
+			DoStmts: stmts(call(
 				litWord("echo"),
 				word(litParamExp("i")),
 			)),
@@ -290,7 +290,7 @@ var astTests = []testCase{
 					X:    litWord("i"),
 				},
 			},
-			DoStmts: stmts(cmd(
+			DoStmts: stmts(call(
 				litWord("echo"),
 				word(litParamExp("i")),
 			)),
@@ -298,7 +298,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{`' ' "foo bar"`},
-		cmd(
+		call(
 			word(sglQuoted(" ")),
 			word(dblQuoted(lits("foo bar")...)),
 		),
@@ -309,14 +309,14 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"\">foo\" \"\nbar\""},
-		cmd(
+		call(
 			word(dblQuoted(lit(">foo"))),
 			word(dblQuoted(lit("\nbar"))),
 		),
 	},
 	{
 		[]string{`foo \" bar`},
-		litCmd(`foo`, `\"`, `bar`),
+		litCall(`foo`, `\"`, `bar`),
 	},
 	{
 		[]string{`'"'`},
@@ -332,7 +332,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"=a s{s s=s"},
-		litCmd("=a", "s{s", "s=s"),
+		litCall("=a", "s{s", "s=s"),
 	},
 	{
 		[]string{"foo && bar", "foo&&bar", "foo &&\nbar"},
@@ -430,7 +430,7 @@ var astTests = []testCase{
 				Name: lit("foo"),
 				Body: stmt(block(litStmts("a")...)),
 			},
-			litCmd("bar"),
+			litCall("bar"),
 		},
 	},
 	{
@@ -481,7 +481,7 @@ var astTests = []testCase{
 	{
 		[]string{"a= foo"},
 		Stmt{
-			Node:    litCmd("foo"),
+			Node:    litCall("foo"),
 			Assigns: []Assign{{Name: litRef("a")}},
 		},
 	},
@@ -492,7 +492,7 @@ var astTests = []testCase{
 			">a >>b <c foo",
 		},
 		Stmt{
-			Node: litCmd("foo"),
+			Node: litCall("foo"),
 			Redirs: []Redirect{
 				{Op: GTR, Word: litWord("a")},
 				{Op: SHR, Word: litWord("b")},
@@ -506,7 +506,7 @@ var astTests = []testCase{
 			"foo >a bar",
 		},
 		Stmt{
-			Node: litCmd("foo", "bar"),
+			Node: litCall("foo", "bar"),
 			Redirs: []Redirect{
 				{Op: GTR, Word: litWord("a")},
 			},
@@ -537,7 +537,7 @@ var astTests = []testCase{
 		[]Stmt{
 			litStmt("foo1"),
 			{
-				Node: litCmd("foo2"),
+				Node: litCall("foo2"),
 				Redirs: []Redirect{
 					{Op: GTR, Word: litWord("r2")},
 				},
@@ -550,7 +550,7 @@ var astTests = []testCase{
 			"foo <<EOF\nbar",
 		},
 		Stmt{
-			Node: litCmd("foo"),
+			Node: litCall("foo"),
 			Redirs: []Redirect{{
 				Op:   SHL,
 				Word: litWord("EOF"),
@@ -561,7 +561,7 @@ var astTests = []testCase{
 	{
 		[]string{"foo <<EOF\n1\n2\n3\nEOF"},
 		Stmt{
-			Node: litCmd("foo"),
+			Node: litCall("foo"),
 			Redirs: []Redirect{{
 				Op:   SHL,
 				Word: litWord("EOF"),
@@ -572,7 +572,7 @@ var astTests = []testCase{
 	{
 		[]string{"{ foo <<EOF\nbar\nEOF\n}"},
 		block(Stmt{
-			Node: litCmd("foo"),
+			Node: litCall("foo"),
 			Redirs: []Redirect{{
 				Op:   SHL,
 				Word: litWord("EOF"),
@@ -583,7 +583,7 @@ var astTests = []testCase{
 	{
 		[]string{"$(foo <<EOF\nbar\nEOF\n)"},
 		word(cmdSubst(Stmt{
-			Node: litCmd("foo"),
+			Node: litCall("foo"),
 			Redirs: []Redirect{{
 				Op:   SHL,
 				Word: litWord("EOF"),
@@ -594,7 +594,7 @@ var astTests = []testCase{
 	{
 		[]string{"foo >f <<EOF\nbar\nEOF"},
 		Stmt{
-			Node: litCmd("foo"),
+			Node: litCall("foo"),
 			Redirs: []Redirect{
 				{Op: GTR, Word: litWord("f")},
 				{
@@ -608,7 +608,7 @@ var astTests = []testCase{
 	{
 		[]string{"foo <<EOF >f\nbar\nEOF"},
 		Stmt{
-			Node: litCmd("foo"),
+			Node: litCall("foo"),
 			Redirs: []Redirect{
 				{
 					Op:   SHL,
@@ -624,7 +624,7 @@ var astTests = []testCase{
 		IfStmt{
 			Cond: StmtCond{Stmts: litStmts("true")},
 			ThenStmts: []Stmt{{
-				Node: litCmd("foo"),
+				Node: litCall("foo"),
 				Redirs: []Redirect{{
 					Op:   DHEREDOC,
 					Word: litWord("EOF"),
@@ -637,7 +637,7 @@ var astTests = []testCase{
 		[]string{"foo <<EOF\nbar\nEOF\nfoo2"},
 		[]Stmt{
 			{
-				Node: litCmd("foo"),
+				Node: litCall("foo"),
 				Redirs: []Redirect{{
 					Op:   SHL,
 					Word: litWord("EOF"),
@@ -650,7 +650,7 @@ var astTests = []testCase{
 	{
 		[]string{"foo <<FOOBAR\nbar\nFOOBAR"},
 		Stmt{
-			Node: litCmd("foo"),
+			Node: litCall("foo"),
 			Redirs: []Redirect{{
 				Op:   SHL,
 				Word: litWord("FOOBAR"),
@@ -661,7 +661,7 @@ var astTests = []testCase{
 	{
 		[]string{"foo <<\"EOF\"\nbar\nEOF"},
 		Stmt{
-			Node: litCmd("foo"),
+			Node: litCall("foo"),
 			Redirs: []Redirect{{
 				Op:   SHL,
 				Word: word(dblQuoted(lit("EOF"))),
@@ -672,7 +672,7 @@ var astTests = []testCase{
 	{
 		[]string{"foo <<'EOF'\nbar\nEOF"},
 		Stmt{
-			Node: litCmd("foo"),
+			Node: litCall("foo"),
 			Redirs: []Redirect{
 				{
 					Op:   SHL,
@@ -685,7 +685,7 @@ var astTests = []testCase{
 	{
 		[]string{"foo <<\"EOF\"2\nbar\nEOF2"},
 		Stmt{
-			Node: litCmd("foo"),
+			Node: litCall("foo"),
 			Redirs: []Redirect{{
 				Op:   SHL,
 				Word: word(dblQuoted(lit("EOF")), lit("2")),
@@ -696,7 +696,7 @@ var astTests = []testCase{
 	{
 		[]string{"foo <<\\EOF\nbar\nEOF"},
 		Stmt{
-			Node: litCmd("foo"),
+			Node: litCall("foo"),
 			Redirs: []Redirect{{
 				Op:   SHL,
 				Word: litWord("\\EOF"),
@@ -707,7 +707,7 @@ var astTests = []testCase{
 	{
 		[]string{"foo <<$EOF\nbar\n$EOF"},
 		Stmt{
-			Node: litCmd("foo"),
+			Node: litCall("foo"),
 			Redirs: []Redirect{{
 				Op:   SHL,
 				Word: word(litParamExp("EOF")),
@@ -721,7 +721,7 @@ var astTests = []testCase{
 			"foo <<- EOF\nbar\nEOF",
 		},
 		Stmt{
-			Node: litCmd("foo"),
+			Node: litCall("foo"),
 			Redirs: []Redirect{{
 				Op:   DHEREDOC,
 				Word: litWord("EOF"),
@@ -736,7 +736,7 @@ var astTests = []testCase{
 		},
 		[]Stmt{
 			{
-				Node: litCmd("f1"),
+				Node: litCall("f1"),
 				Redirs: []Redirect{{
 					Op:   SHL,
 					Word: litWord("EOF1"),
@@ -744,7 +744,7 @@ var astTests = []testCase{
 				}},
 			},
 			{
-				Node: litCmd("f2"),
+				Node: litCall("f2"),
 				Redirs: []Redirect{{
 					Op:   SHL,
 					Word: litWord("EOF2"),
@@ -760,7 +760,7 @@ var astTests = []testCase{
 		},
 		[]Stmt{
 			{
-				Node: litCmd("a"),
+				Node: litCall("a"),
 				Redirs: []Redirect{{
 					Op:   SHL,
 					Word: litWord("EOF"),
@@ -778,7 +778,7 @@ var astTests = []testCase{
 			"foo <<EOF \"\narg\"\nbar\nEOF",
 		},
 		Stmt{
-			Node: cmd(
+			Node: call(
 				litWord("foo"),
 				word(dblQuoted(lit("\narg"))),
 			),
@@ -792,7 +792,7 @@ var astTests = []testCase{
 	{
 		[]string{"foo >&2 <&0 2>file <>f2 &>f3 &>>f4"},
 		Stmt{
-			Node: litCmd("foo"),
+			Node: litCall("foo"),
 			Redirs: []Redirect{
 				{Op: DPLOUT, Word: litWord("2")},
 				{Op: DPLIN, Word: litWord("0")},
@@ -806,7 +806,7 @@ var astTests = []testCase{
 	{
 		[]string{"foo 2>file bar"},
 		Stmt{
-			Node: litCmd("foo", "bar"),
+			Node: litCall("foo", "bar"),
 			Redirs: []Redirect{
 				{Op: GTR, N: litRef("2"), Word: litWord("file")},
 			},
@@ -816,11 +816,11 @@ var astTests = []testCase{
 		[]string{"a >f1\nb >f2", "a >f1; b >f2"},
 		[]Stmt{
 			{
-				Node:   litCmd("a"),
+				Node:   litCall("a"),
 				Redirs: []Redirect{{Op: GTR, Word: litWord("f1")}},
 			},
 			{
-				Node:   litCmd("b"),
+				Node:   litCall("b"),
 				Redirs: []Redirect{{Op: GTR, Word: litWord("f2")}},
 			},
 		},
@@ -831,7 +831,7 @@ var astTests = []testCase{
 			"foo <<< input",
 		},
 		Stmt{
-			Node: litCmd("foo"),
+			Node: litCall("foo"),
 			Redirs: []Redirect{
 				{Op: WHEREDOC, Word: litWord("input")},
 			},
@@ -843,7 +843,7 @@ var astTests = []testCase{
 			`foo <<< "spaced input"`,
 		},
 		Stmt{
-			Node: litCmd("foo"),
+			Node: litCall("foo"),
 			Redirs: []Redirect{
 				{
 					Op:   WHEREDOC,
@@ -855,7 +855,7 @@ var astTests = []testCase{
 	{
 		[]string{"foo >(foo)"},
 		Stmt{
-			Node: cmd(
+			Node: call(
 				litWord("foo"),
 				word(ProcSubst{
 					Op:    CMDOUT,
@@ -867,7 +867,7 @@ var astTests = []testCase{
 	{
 		[]string{"foo < <(foo)"},
 		Stmt{
-			Node: litCmd("foo"),
+			Node: litCall("foo"),
 			Redirs: []Redirect{{
 				Op: LSS,
 				Word: word(ProcSubst{
@@ -885,14 +885,14 @@ var astTests = []testCase{
 		[]string{"! foo"},
 		Stmt{
 			Negated: true,
-			Node:    litCmd("foo"),
+			Node:    litCall("foo"),
 		},
 	},
 	{
 		[]string{"foo &\nbar", "foo &; bar", "foo & bar", "foo&bar"},
 		[]Stmt{
 			{
-				Node:       litCmd("foo"),
+				Node:       litCall("foo"),
 				Background: true,
 			},
 			litStmt("bar"),
@@ -955,7 +955,7 @@ var astTests = []testCase{
 	{
 		[]string{"$(foo $(b1 b2))"},
 		word(cmdSubst(
-			stmt(cmd(
+			stmt(call(
 				litWord("foo"),
 				word(cmdSubst(litStmt("b1", "b2"))),
 			)),
@@ -964,7 +964,7 @@ var astTests = []testCase{
 	{
 		[]string{`"$(foo "bar")"`},
 		word(dblQuoted(cmdSubst(
-			stmt(cmd(
+			stmt(call(
 				litWord("foo"),
 				word(dblQuoted(lit("bar"))),
 			)),
@@ -986,7 +986,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"`foo 'bar'`"},
-		word(bckQuoted(stmt(cmd(
+		word(bckQuoted(stmt(call(
 			litWord("foo"),
 			word(sglQuoted("bar")),
 		)))),
@@ -994,10 +994,10 @@ var astTests = []testCase{
 	{
 		[]string{"`foo \"bar\"`"},
 		word(bckQuoted(
-			stmt(Command{Args: []Word{
+			stmt(call(
 				litWord("foo"),
 				word(dblQuoted(lit("bar"))),
-			}}),
+			)),
 		)),
 	},
 	{
@@ -1010,7 +1010,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{`$@ $# $$ $?`},
-		cmd(
+		call(
 			word(litParamExp("@")),
 			word(litParamExp("#")),
 			word(litParamExp("$")),
@@ -1023,7 +1023,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{`${@} ${$} ${?}`},
-		cmd(
+		call(
 			word(ParamExp{Param: lit("@")}),
 			word(ParamExp{Param: lit("$")}),
 			word(ParamExp{Param: lit("?")}),
@@ -1239,7 +1239,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{`${#} ${#?}`},
-		cmd(
+		call(
 			word(ParamExp{Length: true}),
 			word(ParamExp{Length: true, Param: lit("?")}),
 		),
@@ -1538,7 +1538,7 @@ var astTests = []testCase{
 	{
 		[]string{"`foo$`"},
 		word(bckQuoted(
-			stmt(cmd(word(lit("foo"), lit("$")))),
+			stmt(call(word(lit("foo"), lit("$")))),
 		)),
 	},
 	{
@@ -1561,20 +1561,20 @@ var astTests = []testCase{
 		[]string{"(foo)\nbar", "(foo); bar"},
 		[]Node{
 			subshell(litStmt("foo")),
-			litCmd("bar"),
+			litCall("bar"),
 		},
 	},
 	{
 		[]string{"foo\n(bar)", "foo; (bar)"},
 		[]Node{
-			litCmd("foo"),
+			litCall("foo"),
 			subshell(litStmt("bar")),
 		},
 	},
 	{
 		[]string{"foo\n(bar)", "foo; (bar)"},
 		[]Node{
-			litCmd("foo"),
+			litCall("foo"),
 			subshell(litStmt("bar")),
 		},
 	},
@@ -1625,7 +1625,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"echo if while"},
-		litCmd("echo", "if", "while"),
+		litCall("echo", "if", "while"),
 	},
 	{
 		[]string{"${foo}if"},
@@ -1719,7 +1719,7 @@ var astTests = []testCase{
 		BinaryExpr{
 			Op: OR,
 			X: Stmt{
-				Node: litCmd("foo"),
+				Node: litCall("foo"),
 				Redirs: []Redirect{
 					{Op: GTR, Word: litWord("f")},
 				},
@@ -1804,7 +1804,7 @@ var astTests = []testCase{
 	{
 		[]string{"eval a=b foo"},
 		EvalStmt{Stmt: Stmt{
-			Node: litCmd("foo"),
+			Node: litCall("foo"),
 			Assigns: []Assign{{
 				Name:  litRef("a"),
 				Value: litWord("b"),
@@ -1926,7 +1926,7 @@ var astTests = []testCase{
 					ArrayExpr{List: litWords("b", "c")},
 				),
 			}},
-			Node: litCmd("foo"),
+			Node: litCall("foo"),
 		},
 	},
 	{
@@ -1938,7 +1938,7 @@ var astTests = []testCase{
 					ArrayExpr{List: litWords("b", "c")},
 				),
 			}},
-			Node: litCmd("foo"),
+			Node: litCall("foo"),
 		},
 	},
 	{
@@ -2038,7 +2038,7 @@ func fullProg(v interface{}) (f File) {
 			f.Stmts = append(f.Stmts, stmt(n))
 		}
 	case Word:
-		return fullProg(cmd(x))
+		return fullProg(call(x))
 	case Node:
 		return fullProg(stmt(x))
 	}
@@ -2116,7 +2116,7 @@ func setPosRecurse(tb testing.TB, v interface{}, to Pos, diff bool) Node {
 	case Stmt:
 		recurse(&x)
 		return x
-	case Command:
+	case CallExpr:
 		recurse(x.Args)
 		return x
 	case []Word:

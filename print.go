@@ -253,8 +253,8 @@ func (p *printer) node(node Node) {
 		p.newline()
 	case Stmt:
 		p.stmt(x)
-	case Command:
-		p.command(x)
+	case CallExpr:
+		p.call(x)
 	case Block:
 		p.spacedTok(LBRACE, true)
 		p.nestedStmts(x.Stmts)
@@ -551,7 +551,7 @@ func (p *printer) stmt(s Stmt) {
 	}
 	p.assigns(s.Assigns)
 	startRedirs := 0
-	cmd, ok := s.Node.(Command)
+	cmd, ok := s.Node.(CallExpr)
 	if len(cmd.Args) > 1 {
 		p.spacedWord(cmd.Args[0])
 		for _, r := range s.Redirs {
@@ -573,7 +573,7 @@ func (p *printer) stmt(s Stmt) {
 		}
 		p.wordJoin(cmd.Args[1:], true)
 	} else if ok {
-		p.command(cmd)
+		p.call(cmd)
 	} else {
 		p.node(s.Node)
 	}
@@ -673,7 +673,7 @@ func (p *printer) nestedStmts(stmts []Stmt) bool {
 	return sep
 }
 
-func (p *printer) command(cmd Command) { p.wordJoin(cmd.Args, true) }
+func (p *printer) call(ce CallExpr) { p.wordJoin(ce.Args, true) }
 
 func (p *printer) assigns(assigns []Assign) {
 	for _, a := range assigns {

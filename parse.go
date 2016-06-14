@@ -1021,7 +1021,7 @@ func (p *parser) gotStmtPipe(s *Stmt) bool {
 	case p.peek(LET):
 		s.Node = p.letStmt()
 	default:
-		s.Node = p.cmdOrFunc()
+		s.Node = p.callOrFunc()
 	}
 	for !p.newLine && p.gotRedirect() {
 	}
@@ -1277,7 +1277,7 @@ func (p *parser) letStmt() (ls LetStmt) {
 	return
 }
 
-func (p *parser) cmdOrFunc() Node {
+func (p *parser) callOrFunc() Node {
 	if p.got(FUNCTION) {
 		fpos := p.lpos
 		w := p.followWord(FUNCTION)
@@ -1294,19 +1294,19 @@ func (p *parser) cmdOrFunc() Node {
 		p.followTok(w.Pos(), "foo(", RPAREN)
 		return p.funcDecl(w, w.Pos())
 	}
-	cmd := Command{Args: []Word{w}}
+	ce := CallExpr{Args: []Word{w}}
 	for !p.peekStop() {
 		var w Word
 		switch {
 		case p.got(STOPPED):
 		case p.gotRedirect():
 		case p.gotWord(&w):
-			cmd.Args = append(cmd.Args, w)
+			ce.Args = append(ce.Args, w)
 		default:
 			p.curErr("a command can only contain words and redirects")
 		}
 	}
-	return cmd
+	return ce
 }
 
 func (p *parser) funcDecl(w Word, pos Pos) (fd FuncDecl) {
