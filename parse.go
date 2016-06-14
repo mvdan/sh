@@ -159,6 +159,14 @@ func (p *parser) readOnly(s string) bool {
 }
 func (p *parser) readOnlyTok(tok Token) bool { return p.readOnly(tok.String()) }
 
+func (p *parser) readOnlyByte(b byte) bool {
+	if p.willByte(b) {
+		p.readByte()
+		return true
+	}
+	return false
+}
+
 var (
 	// bytes that form or start a token
 	reserved = map[byte]bool{
@@ -281,7 +289,7 @@ func (p *parser) next() {
 func (p *parser) advanceReadLit() { p.advanceBoth(LIT, string(p.readLitBytes())) }
 func (p *parser) readLitBytes() (bs []byte) {
 	for {
-		if p.readOnly("\\") { // escaped byte
+		if p.readOnlyByte('\\') { // escaped byte
 			b := p.readByte()
 			if p.tok == EOF {
 				bs = append(bs, '\\')
@@ -351,7 +359,7 @@ func (p *parser) doHeredocs() {
 	for i, r := range p.heredocs {
 		end := unquotedWordStr(r.Word)
 		if i > 0 {
-			p.readOnly("\n")
+			p.readOnlyByte('\n')
 		}
 		r.Hdoc.ValuePos = p.npos
 		r.Hdoc.Value, _ = p.readHdocBody(end, r.Op == DHEREDOC)
@@ -369,7 +377,7 @@ func (p *parser) readHdocBody(end string, noTabs bool) (string, bool) {
 			return buf.String(), true
 		}
 		fmt.Fprintln(&buf, line)
-		p.readOnly("\n")
+		p.readOnlyByte('\n')
 	}
 	return buf.String(), false
 }
@@ -835,7 +843,7 @@ func (p *parser) paramExp() (pe ParamExp) {
 }
 
 func (p *parser) peekArithmEnd() bool {
-	return p.peek(RPAREN) && p.willRead(")")
+	return p.peek(RPAREN) && p.willByte(')')
 }
 
 func (p *parser) arithmEnd(left Pos) Pos {
@@ -895,7 +903,7 @@ func (p *parser) getAssign() (Assign, bool) {
 		as.Append = true
 		i++
 	}
-	start := Lit{ValuePos: p.pos, Value:  p.val[i+1:]}
+	start := Lit{ValuePos: p.pos, Value: p.val[i+1:]}
 	if start.Value != "" {
 		start.ValuePos.Column += i
 		as.Value.Parts = append(as.Value.Parts, start)
@@ -922,7 +930,7 @@ func (p *parser) getAssign() (Assign, bool) {
 }
 
 func (p *parser) peekRedir() bool {
-	if p.peek(LIT) && (p.willRead(">") || p.willRead("<")) {
+	if p.peek(LIT) && (p.willByte('>') || p.willByte('<')) {
 		return true
 	}
 	return p.peekAny(GTR, SHR, LSS, DPLIN, DPLOUT, RDRINOUT,
