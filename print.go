@@ -146,7 +146,7 @@ func (p *printer) newline() {
 	p.space('\n')
 	for _, r := range p.pendingHdocs {
 		p.lit(*r.Hdoc)
-		p.word(unquote(r.Word))
+		p.unquotedWord(r.Word)
 		p.str("\n")
 	}
 	p.pendingHdocs = nil
@@ -370,6 +370,26 @@ func (p *printer) arithm(expr ArithmExpr, compact bool) {
 func (p *printer) word(w Word) {
 	for _, n := range w.Parts {
 		p.wordPart(n)
+	}
+}
+
+func (p *printer) unquotedWord(w Word) {
+	for _, wp := range w.Parts {
+		switch x := wp.(type) {
+		case SglQuoted:
+			p.str(x.Value)
+		case Quoted:
+			for _, qp := range x.Parts {
+				p.wordPart(qp)
+			}
+		case Lit:
+			if x.Value[0] == '\\' {
+				x.Value = x.Value[1:]
+			}
+			p.str(x.Value)
+		default:
+			p.wordPart(wp)
+		}
 	}
 }
 
@@ -633,6 +653,13 @@ func (p *printer) stmts(stmts []Stmt) bool {
 	}
 	p.wantNewline = true
 	return true
+}
+
+func unquotedWordStr(w Word) string {
+	var buf bytes.Buffer
+	p := printer{w: &buf}
+	p.unquotedWord(w)
+	return buf.String()
 }
 
 func wordStr(w Word) string {

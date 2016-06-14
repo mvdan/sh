@@ -336,7 +336,7 @@ func (p *parser) readUntil(s string) (string, bool) {
 
 func (p *parser) doHeredocs() {
 	for i, r := range p.heredocs {
-		end := wordStr(unquote(r.Word))
+		end := unquotedWordStr(r.Word)
 		if i > 0 {
 			p.readOnly("\n")
 		}
@@ -974,7 +974,7 @@ func (p *parser) gotStmtAndOr(s *Stmt, stops ...Token) bool {
 	}
 	switch {
 	case p.got(LAND), p.got(LOR):
-		*s = p.binaryStmt(s)
+		*s = p.binaryStmt(*s)
 		return true
 	case p.got(AND):
 		s.Background = true
@@ -1014,17 +1014,16 @@ func (p *parser) gotStmtPipe(s *Stmt) bool {
 		return false
 	}
 	if p.got(OR) || p.got(PIPEALL) {
-		*s = p.binaryStmt(s)
+		*s = p.binaryStmt(*s)
 	}
 	return true
 }
 
-func (p *parser) binaryStmt(left *Stmt) Stmt {
-	x := *left
+func (p *parser) binaryStmt(left Stmt) Stmt {
 	b := BinaryCmd{
 		OpPos: p.lpos,
 		Op:    p.ltok,
-		X:     x,
+		X:     left,
 	}
 	p.got(STOPPED)
 	if b.Op == LAND || b.Op == LOR {
@@ -1039,25 +1038,6 @@ func (p *parser) binaryStmt(left *Stmt) Stmt {
 		b.Y = s
 	}
 	return Stmt{Position: left.Position, Cmd: b}
-}
-
-func unquote(w Word) (unq Word) {
-	for _, n := range w.Parts {
-		switch x := n.(type) {
-		case SglQuoted:
-			unq.Parts = append(unq.Parts, Lit{Value: x.Value})
-		case Quoted:
-			unq.Parts = append(unq.Parts, x.Parts...)
-		case Lit:
-			if x.Value[0] == '\\' {
-				x.Value = x.Value[1:]
-			}
-			unq.Parts = append(unq.Parts, x)
-		default:
-			unq.Parts = append(unq.Parts, n)
-		}
-	}
-	return unq
 }
 
 func (p *parser) subshell() (s Subshell) {
