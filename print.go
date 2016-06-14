@@ -530,15 +530,15 @@ func (p *printer) command(cmd Command, redirs []Redirect) (startRedirs int) {
 		p.semiOrNewl(DO, x.Do)
 		p.nestedStmts(x.DoStmts)
 		p.separated(DONE, x.Done, true)
-	case BinaryExpr:
-		p.node(x.X)
+	case BinaryCmd:
+		p.stmt(x.X)
 		indent := !p.nestedBinary()
 		if indent {
 			p.incLevel()
 		}
 		p.singleStmtSeparate(x.Y.Pos())
 		p.spacedTok(x.Op, true)
-		p.node(x.Y)
+		p.stmt(x.Y)
 		if indent {
 			p.decLevel()
 		}

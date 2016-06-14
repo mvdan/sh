@@ -1036,7 +1036,7 @@ func (p *parser) gotStmtPipe(s *Stmt) bool {
 
 func (p *parser) binaryStmt(left *Stmt) Stmt {
 	x := *left
-	b := BinaryExpr{
+	b := BinaryCmd{
 		OpPos: p.lpos,
 		Op:    p.ltok,
 		X:     x,

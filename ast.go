@@ -73,7 +73,7 @@ func (ForClause) commandNode()   {}
 func (CaseClause) commandNode()  {}
 func (Block) commandNode()       {}
 func (Subshell) commandNode()    {}
-func (BinaryExpr) commandNode()  {}
+func (BinaryCmd) commandNode()   {}
 func (FuncDecl) commandNode()    {}
 func (DeclClause) commandNode()  {}
 func (EvalClause) commandNode()  {}
@@ -255,15 +255,15 @@ func (u UnaryExpr) End() Pos {
 	return u.X.End()
 }
 
-// BinaryExpr represents a binary expression between two nodes.
-type BinaryExpr struct {
+// BinaryCmd represents a binary expression between two statements.
+type BinaryCmd struct {
 	OpPos Pos
 	Op    Token
-	X, Y  Node
+	X, Y  Stmt
 }
 
-func (b BinaryExpr) Pos() Pos { return b.X.Pos() }
-func (b BinaryExpr) End() Pos { return b.Y.End() }
+func (b BinaryCmd) Pos() Pos { return b.X.Pos() }
+func (b BinaryCmd) End() Pos { return b.Y.End() }
 
 // FuncDecl represents the declaration of a function.
 type FuncDecl struct {
@@ -388,6 +388,17 @@ type ArithmExpr struct {
 
 func (a ArithmExpr) Pos() Pos { return a.Dollar }
 func (a ArithmExpr) End() Pos { return posAfter(a.Rparen, DRPAREN) }
+
+// BinaryExpr represents a binary expression between two arithmetic
+// expression.
+type BinaryExpr struct {
+	OpPos Pos
+	Op    Token
+	X, Y  Node
+}
+
+func (b BinaryExpr) Pos() Pos { return b.X.Pos() }
+func (b BinaryExpr) End() Pos { return b.Y.End() }
 
 // ParenExpr represents an expression within parentheses inside an
 // ArithmExpr.

@@ -336,7 +336,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"foo && bar", "foo&&bar", "foo &&\nbar"},
-		BinaryExpr{
+		BinaryCmd{
 			Op: LAND,
 			X:  litStmt("foo"),
 			Y:  litStmt("bar"),
@@ -344,7 +344,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"foo \\\n\t&& bar"},
-		BinaryExpr{
+		BinaryCmd{
 			Op: LAND,
 			X:  litStmt("foo"),
 			Y:  litStmt("bar"),
@@ -352,7 +352,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"foo || bar", "foo||bar", "foo ||\nbar"},
-		BinaryExpr{
+		BinaryCmd{
 			Op: LOR,
 			X:  litStmt("foo"),
 			Y:  litStmt("bar"),
@@ -360,7 +360,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"if a; then b; fi || while a; do b; done"},
-		BinaryExpr{
+		BinaryCmd{
 			Op: LOR,
 			X: stmt(IfClause{
 				Cond:      StmtCond{Stmts: litStmts("a")},
@@ -374,10 +374,10 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"foo && bar1 || bar2"},
-		BinaryExpr{
+		BinaryCmd{
 			Op: LAND,
 			X:  litStmt("foo"),
-			Y: stmt(BinaryExpr{
+			Y: stmt(BinaryCmd{
 				Op: LOR,
 				X:  litStmt("bar1"),
 				Y:  litStmt("bar2"),
@@ -386,7 +386,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"foo | bar", "foo|bar", "foo |\n#etc\nbar"},
-		BinaryExpr{
+		BinaryCmd{
 			Op: OR,
 			X:  litStmt("foo"),
 			Y:  litStmt("bar"),
@@ -394,10 +394,10 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"foo | bar | extra"},
-		BinaryExpr{
+		BinaryCmd{
 			Op: OR,
 			X:  litStmt("foo"),
-			Y: stmt(BinaryExpr{
+			Y: stmt(BinaryCmd{
 				Op: OR,
 				X:  litStmt("bar"),
 				Y:  litStmt("extra"),
@@ -406,7 +406,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"foo |& bar", "foo|&bar"},
-		BinaryExpr{
+		BinaryCmd{
 			Op: PIPEALL,
 			X:  litStmt("foo"),
 			Y:  litStmt("bar"),
@@ -945,7 +945,7 @@ var astTests = []testCase{
 	{
 		[]string{"$(foo | bar)"},
 		word(cmdSubst(
-			stmt(BinaryExpr{
+			stmt(BinaryCmd{
 				Op: OR,
 				X:  litStmt("foo"),
 				Y:  litStmt("bar"),
@@ -977,7 +977,7 @@ var astTests = []testCase{
 	{
 		[]string{"`foo | bar`"},
 		word(bckQuoted(
-			stmt(BinaryExpr{
+			stmt(BinaryCmd{
 				Op: OR,
 				X:  litStmt("foo"),
 				Y:  litStmt("bar"),
@@ -1601,7 +1601,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"foo | while read a; do b; done"},
-		BinaryExpr{
+		BinaryCmd{
 			Op: OR,
 			X:  litStmt("foo"),
 			Y: stmt(WhileClause{
@@ -1616,7 +1616,7 @@ var astTests = []testCase{
 		[]string{"while read l; do foo || bar; done"},
 		WhileClause{
 			Cond: StmtCond{Stmts: []Stmt{litStmt("read", "l")}},
-			DoStmts: stmts(BinaryExpr{
+			DoStmts: stmts(BinaryCmd{
 				Op: LOR,
 				X:  litStmt("foo"),
 				Y:  litStmt("bar"),
@@ -1692,10 +1692,10 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"foo && write | read"},
-		BinaryExpr{
+		BinaryCmd{
 			Op: LAND,
 			X:  litStmt("foo"),
-			Y: stmt(BinaryExpr{
+			Y: stmt(BinaryCmd{
 				Op: OR,
 				X:  litStmt("write"),
 				Y:  litStmt("read"),
@@ -1704,9 +1704,9 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"write | read && bar"},
-		BinaryExpr{
+		BinaryCmd{
 			Op: LAND,
-			X: stmt(BinaryExpr{
+			X: stmt(BinaryCmd{
 				Op: OR,
 				X:  litStmt("write"),
 				Y:  litStmt("read"),
@@ -1716,7 +1716,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"foo >f | bar"},
-		BinaryExpr{
+		BinaryCmd{
 			Op: OR,
 			X: Stmt{
 				Cmd: litCall("foo"),
@@ -1729,7 +1729,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"(foo) >f | bar"},
-		BinaryExpr{
+		BinaryCmd{
 			Op: OR,
 			X: Stmt{
 				Cmd: subshell(litStmt("foo")),
@@ -1742,7 +1742,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"foo | >f"},
-		BinaryExpr{
+		BinaryCmd{
 			Op: OR,
 			X:  litStmt("foo"),
 			Y: Stmt{
@@ -1962,7 +1962,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"<<EOF | b\nfoo\nEOF", "<<EOF|b;\nfoo"},
-		BinaryExpr{
+		BinaryCmd{
 			Op: OR,
 			X: Stmt{Redirs: []Redirect{{
 				Op:   SHL,
@@ -1974,9 +1974,9 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"<<EOF1 <<EOF2 | c && d\nEOF1\nEOF2"},
-		BinaryExpr{
+		BinaryCmd{
 			Op: LAND,
-			X: stmt(BinaryExpr{
+			X: stmt(BinaryCmd{
 				Op: OR,
 				X: Stmt{Redirs: []Redirect{
 					{
@@ -2000,7 +2000,7 @@ var astTests = []testCase{
 			"<<EOF && { bar; }\nhdoc\nEOF",
 			"<<EOF &&\nhdoc\nEOF\n{ bar; }",
 		},
-		BinaryExpr{
+		BinaryCmd{
 			Op: LAND,
 			X: Stmt{Redirs: []Redirect{{
 				Op:   SHL,
@@ -2014,7 +2014,7 @@ var astTests = []testCase{
 		[]string{"foo() {\n\t<<EOF && { bar; }\nhdoc\nEOF\n}"},
 		FuncDecl{
 			Name: lit("foo"),
-			Body: stmt(block(stmt(BinaryExpr{
+			Body: stmt(block(stmt(BinaryCmd{
 				Op: LAND,
 				X: Stmt{Redirs: []Redirect{{
 					Op:   SHL,
@@ -2216,6 +2216,11 @@ func setPosRecurse(tb testing.TB, v interface{}, to Pos, diff bool) Node {
 	case UnaryExpr:
 		setPos(&x.OpPos)
 		recurse(&x.X)
+		return x
+	case BinaryCmd:
+		setPos(&x.OpPos)
+		recurse(&x.X)
+		recurse(&x.Y)
 		return x
 	case BinaryExpr:
 		setPos(&x.OpPos)
