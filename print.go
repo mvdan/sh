@@ -183,7 +183,7 @@ func (p *printer) newline() {
 	p.space('\n')
 	for _, r := range p.pendingHdocs {
 		p.lit(*r.Hdoc)
-		p.str(strFprint(unquote(r.Word), -1))
+		p.word(unquote(r.Word))
 		p.str("\n")
 	}
 	p.pendingHdocs = nil
@@ -672,24 +672,29 @@ func (p *printer) stmts(stmts []Stmt) bool {
 				if !p.hasInline(pos) || pos.Line > lastLine+1 {
 					break
 				}
-				l := len(strFprint(s, 0))
-				if l > inlineIndent {
+				if l := len(stmtStr(s)); l > inlineIndent {
 					inlineIndent = l
 				}
 				lastLine = pos.Line
 			}
 		}
-		l := len(strFprint(s, 0))
-		p.wantSpaces = inlineIndent - l
+		p.wantSpaces = inlineIndent - len(stmtStr(s))
 	}
 	p.wantNewline = true
 	return true
 }
 
-func strFprint(node Node, spaces int) string {
+func wordStr(w Word) string {
 	var buf bytes.Buffer
-	c := PrintConfig{Spaces: spaces}
-	c.Fprint(&buf, node)
+	p := printer{w: &buf}
+	p.word(w)
+	return buf.String()
+}
+
+func stmtStr(s Stmt) string {
+	var buf bytes.Buffer
+	p := printer{w: &buf}
+	p.stmt(s)
 	return buf.String()
 }
 

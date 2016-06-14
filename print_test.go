@@ -4,6 +4,7 @@
 package sh
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -31,6 +32,13 @@ func TestFprintCompact(t *testing.T) {
 			}
 		})
 	}
+}
+
+func strFprint(node Node, spaces int) string {
+	var buf bytes.Buffer
+	c := PrintConfig{Spaces: spaces}
+	c.Fprint(&buf, node)
+	return buf.String()
 }
 
 func TestFprintWeirdFormat(t *testing.T) {

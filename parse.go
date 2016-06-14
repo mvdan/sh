@@ -341,7 +341,7 @@ func (p *parser) readUntil(s string) (string, bool) {
 
 func (p *parser) doHeredocs() {
 	for i, r := range p.heredocs {
-		end := strFprint(unquote(r.Word), -1)
+		end := wordStr(unquote(r.Word))
 		if i > 0 {
 			p.readOnly("\n")
 		}
@@ -1318,7 +1318,7 @@ func (p *parser) funcDecl(w Word, pos Pos) (fd FuncDecl) {
 	var ok bool
 	fd.Name, ok = w.Parts[0].(Lit)
 	if !ok || len(w.Parts) > 1 {
-		p.posErr(fd.Pos(), "invalid func name: %s", strFprint(w, -1))
+		p.posErr(fd.Pos(), "invalid func name: %s", wordStr(w))
 	}
 	fd.Body = p.followStmt(fd.Pos(), "foo()")
 	return
