@@ -25,15 +25,10 @@ const (
 // an error is returned.
 func Parse(r io.Reader, name string, mode Mode) (File, error) {
 	p := &parser{
-		br: bufio.NewReader(r),
-		file: File{
-			Name: name,
-		},
+		br:   bufio.NewReader(r),
+		file: File{Name: name},
 		mode: mode,
-		npos: Pos{
-			Line:   1,
-			Column: 1,
-		},
+		npos: Pos{Line: 1, Column: 1},
 	}
 	p.next()
 	p.file.Stmts = p.stmts()
@@ -612,10 +607,7 @@ func (p *parser) readParts(ns *[]WordPart) {
 func (p *parser) wordPart() WordPart {
 	switch {
 	case p.got(LIT):
-		return Lit{
-			ValuePos: p.lpos,
-			Value:    p.lval,
-		}
+		return Lit{ValuePos: p.lpos, Value: p.lval}
 	case p.peek(DOLLBR):
 		return p.paramExp()
 	case p.peek(DOLLDP):
@@ -724,10 +716,7 @@ func (p *parser) arithmExpr(following Token) ArithmExpr {
 
 func (p *parser) arithmExprBase(following Token) ArithmExpr {
 	if p.gotAny(INC, DEC, NOT) {
-		pre := UnaryExpr{
-			OpPos: p.lpos,
-			Op:    p.ltok,
-		}
+		pre := UnaryExpr{OpPos: p.lpos, Op: p.ltok}
 		pre.X = p.arithmExprBase(pre.Op)
 		return pre
 	}
@@ -744,10 +733,7 @@ func (p *parser) arithmExprBase(following Token) ArithmExpr {
 		pe.Rparen = p.matchedTok(pe.Lparen, LPAREN, RPAREN)
 		x = pe
 	case p.gotAny(ADD, SUB):
-		ue := UnaryExpr{
-			OpPos: p.lpos,
-			Op:    p.ltok,
-		}
+		ue := UnaryExpr{OpPos: p.lpos, Op: p.ltok}
 		if !p.quotedAny(DRPAREN, LPAREN) && p.spaced {
 			p.followErr(ue.OpPos, ue.Op, "an expression")
 		}
@@ -896,10 +882,7 @@ func (p *parser) getAssign() (Assign, bool) {
 		as.Append = true
 		i++
 	}
-	start := Lit{
-		ValuePos: p.pos,
-		Value:    p.val[i+1:],
-	}
+	start := Lit{ValuePos: p.pos, Value:  p.val[i+1:]}
 	if start.Value != "" {
 		start.ValuePos.Column += i
 		as.Value.Parts = append(as.Value.Parts, start)
@@ -1055,10 +1038,7 @@ func (p *parser) binaryStmt(left *Stmt) Stmt {
 		p.stmtStack = p.stmtStack[:len(p.stmtStack)-1]
 		b.Y = s
 	}
-	return Stmt{
-		Position: left.Position,
-		Cmd:      b,
-	}
+	return Stmt{Position: left.Position, Cmd: b}
 }
 
 func unquote(w Word) (unq Word) {
@@ -1130,9 +1110,7 @@ func (p *parser) cond(left Token, stops ...Token) Cond {
 	if len(stmts) == 0 {
 		return nil
 	}
-	return StmtCond{
-		Stmts: stmts,
-	}
+	return StmtCond{Stmts: stmts}
 }
 
 func (p *parser) whileClause() (wc WhileClause) {
