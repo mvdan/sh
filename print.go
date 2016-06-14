@@ -100,12 +100,7 @@ func (p *printer) spacedTok(tok Token, spaceAfter bool) {
 	p.token(tok, spaceAfter)
 }
 
-func (p *printer) spacedStr(s string) {
-	if p.wantSpace {
-		p.space(' ')
-	}
-	p.str(s)
-}
+func (p *printer) lineJoin() { p.str(" \\\n") }
 
 func (p *printer) semiOrNewl(tok Token, pos Pos) {
 	if !p.wantNewline {
@@ -392,7 +387,7 @@ func (p *printer) wordJoin(ws []Word, needBackslash bool) {
 	for _, w := range ws {
 		if p.curLine > 0 && w.Pos().Line > p.curLine {
 			if needBackslash {
-				p.spacedStr("\\\n")
+				p.lineJoin()
 			} else {
 				p.str("\n")
 			}
@@ -420,7 +415,7 @@ func (p *printer) stmt(s Stmt) {
 	anyNewline := false
 	for _, r := range s.Redirs[startRedirs:] {
 		if p.curLine > 0 && r.OpPos.Line > p.curLine {
-			p.spacedStr("\\\n")
+			p.lineJoin()
 			if !anyNewline {
 				p.incLevel()
 				anyNewline = true
@@ -452,7 +447,7 @@ func (p *printer) command(cmd Command, redirs []Redirect) (startRedirs int) {
 	switch x := cmd.(type) {
 	case CallExpr:
 		if len(x.Args) <= 1 {
-			p.call(x)
+			p.wordJoin(x.Args, true)
 			return 0
 		}
 		p.spacedWord(x.Args[0])
@@ -521,7 +516,7 @@ func (p *printer) command(cmd Command, redirs []Redirect) (startRedirs int) {
 		_, p.nestedBinary = x.Y.Cmd.(BinaryCmd)
 		if len(p.pendingHdocs) > 0 {
 		} else if x.Y.Pos().Line > p.curLine {
-			p.spacedStr("\\\n")
+			p.lineJoin()
 			p.indent()
 		}
 		p.curLine = x.Y.Pos().Line
@@ -601,8 +596,7 @@ func (p *printer) stmts(stmts []Stmt) bool {
 	if len(stmts) == 0 {
 		return false
 	}
-	sameLine := stmtFirstPos(stmts).Line == p.curLine
-	if len(stmts) == 1 && sameLine {
+	if len(stmts) == 1 && stmts[0].Pos().Line == p.curLine {
 		s := stmts[0]
 		p.didSeparate(s.Pos())
 		p.stmt(s)
@@ -661,8 +655,6 @@ func (p *printer) nestedStmts(stmts []Stmt) bool {
 	p.decLevel()
 	return sep
 }
-
-func (p *printer) call(ce CallExpr) { p.wordJoin(ce.Args, true) }
 
 func (p *printer) assigns(assigns []Assign) {
 	for _, a := range assigns {
