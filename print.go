@@ -341,8 +341,8 @@ func (p *printer) cond(node Node) {
 	}
 }
 
-func (p *printer) arithm(node Node, compact bool) {
-	switch x := node.(type) {
+func (p *printer) arithm(expr ArithmExpr, compact bool) {
+	switch x := expr.(type) {
 	case Word:
 		p.spacedWord(x)
 	case BinaryExpr:

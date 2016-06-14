@@ -61,12 +61,12 @@ func litStmts(strs ...string) []Stmt {
 	return l
 }
 
-func sglQuoted(s string) SglQuoted   { return SglQuoted{Value: s} }
-func dblQuoted(ns ...Node) Quoted    { return Quoted{Quote: DQUOTE, Parts: ns} }
-func block(sts ...Stmt) Block        { return Block{Stmts: sts} }
-func subshell(sts ...Stmt) Subshell  { return Subshell{Stmts: sts} }
-func arithmExpr(expr Node) ArithmExp { return ArithmExp{X: expr} }
-func parenExpr(expr Node) ParenExpr  { return ParenExpr{X: expr} }
+func sglQuoted(s string) SglQuoted     { return SglQuoted{Value: s} }
+func dblQuoted(ns ...Node) Quoted      { return Quoted{Quote: DQUOTE, Parts: ns} }
+func block(sts ...Stmt) Block          { return Block{Stmts: sts} }
+func subshell(sts ...Stmt) Subshell    { return Subshell{Stmts: sts} }
+func arithmExp(e ArithmExpr) ArithmExp { return ArithmExp{X: e} }
+func parenExpr(e ArithmExpr) ParenExpr { return ParenExpr{X: e} }
 
 func cmdSubst(sts ...Stmt) CmdSubst { return CmdSubst{Stmts: sts} }
 func bckQuoted(sts ...Stmt) CmdSubst {
@@ -1281,15 +1281,15 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"$(())"},
-		word(arithmExpr(nil)),
+		word(arithmExp(nil)),
 	},
 	{
 		[]string{"$((1))"},
-		word(arithmExpr(litWord("1"))),
+		word(arithmExp(litWord("1"))),
 	},
 	{
 		[]string{"$((1 + 3))", "$((1+3))"},
-		word(arithmExpr(BinaryExpr{
+		word(arithmExp(BinaryExpr{
 			Op: ADD,
 			X:  litWord("1"),
 			Y:  litWord("3"),
@@ -1297,7 +1297,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"$((5 * 2 - 1))", "$((5*2-1))"},
-		word(arithmExpr(BinaryExpr{
+		word(arithmExp(BinaryExpr{
 			Op: MUL,
 			X:  litWord("5"),
 			Y: BinaryExpr{
@@ -1309,7 +1309,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"$(($i + 13))"},
-		word(arithmExpr(BinaryExpr{
+		word(arithmExp(BinaryExpr{
 			Op: ADD,
 			X:  word(litParamExp("i")),
 			Y:  litWord("13"),
@@ -1317,15 +1317,15 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"$((3 + $((4))))"},
-		word(arithmExpr(BinaryExpr{
+		word(arithmExp(BinaryExpr{
 			Op: ADD,
 			X:  litWord("3"),
-			Y:  word(arithmExpr(litWord("4"))),
+			Y:  word(arithmExp(litWord("4"))),
 		})),
 	},
 	{
 		[]string{"$((3 & 7))"},
-		word(arithmExpr(BinaryExpr{
+		word(arithmExp(BinaryExpr{
 			Op: AND,
 			X:  litWord("3"),
 			Y:  litWord("7"),
@@ -1333,7 +1333,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{`"$((1 + 3))"`},
-		word(dblQuoted(arithmExpr(BinaryExpr{
+		word(dblQuoted(arithmExp(BinaryExpr{
 			Op: ADD,
 			X:  litWord("1"),
 			Y:  litWord("3"),
@@ -1341,7 +1341,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"$((2 ** 10))"},
-		word(arithmExpr(BinaryExpr{
+		word(arithmExp(BinaryExpr{
 			Op: POW,
 			X:  litWord("2"),
 			Y:  litWord("10"),
@@ -1349,7 +1349,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{`$(((1) + 3))`},
-		word(arithmExpr(BinaryExpr{
+		word(arithmExp(BinaryExpr{
 			Op: ADD,
 			X:  parenExpr(litWord("1")),
 			Y:  litWord("3"),
@@ -1357,7 +1357,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{`$((1 + (3 - 2)))`},
-		word(arithmExpr(BinaryExpr{
+		word(arithmExp(BinaryExpr{
 			Op: ADD,
 			X:  litWord("1"),
 			Y: parenExpr(BinaryExpr{
@@ -1369,14 +1369,14 @@ var astTests = []testCase{
 	},
 	{
 		[]string{`$((-(1)))`},
-		word(arithmExpr(UnaryExpr{
+		word(arithmExp(UnaryExpr{
 			Op: SUB,
 			X:  parenExpr(litWord("1")),
 		})),
 	},
 	{
 		[]string{`$((i++))`},
-		word(arithmExpr(UnaryExpr{
+		word(arithmExp(UnaryExpr{
 			Op:   INC,
 			Post: true,
 			X:    litWord("i"),
@@ -1384,21 +1384,21 @@ var astTests = []testCase{
 	},
 	{
 		[]string{`$((--i))`},
-		word(arithmExpr(UnaryExpr{
+		word(arithmExp(UnaryExpr{
 			Op: DEC,
 			X:  litWord("i"),
 		})),
 	},
 	{
 		[]string{`$((!i))`},
-		word(arithmExpr(UnaryExpr{
+		word(arithmExp(UnaryExpr{
 			Op: NOT,
 			X:  litWord("i"),
 		})),
 	},
 	{
 		[]string{`$((-!+i))`},
-		word(arithmExpr(UnaryExpr{
+		word(arithmExp(UnaryExpr{
 			Op: SUB,
 			X: UnaryExpr{
 				Op: NOT,
@@ -1411,7 +1411,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{`$((!!i))`},
-		word(arithmExpr(UnaryExpr{
+		word(arithmExp(UnaryExpr{
 			Op: NOT,
 			X: UnaryExpr{
 				Op: NOT,
@@ -1421,7 +1421,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{`$((1 < 3))`},
-		word(arithmExpr(BinaryExpr{
+		word(arithmExp(BinaryExpr{
 			Op: LSS,
 			X:  litWord("1"),
 			Y:  litWord("3"),
@@ -1429,7 +1429,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{`$((i = 2))`, `$((i=2))`},
-		word(arithmExpr(BinaryExpr{
+		word(arithmExp(BinaryExpr{
 			Op: ASSIGN,
 			X:  litWord("i"),
 			Y:  litWord("2"),
@@ -1437,7 +1437,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"$((a = 2, b = 3))"},
-		word(arithmExpr(BinaryExpr{
+		word(arithmExp(BinaryExpr{
 			Op: ASSIGN,
 			X:  litWord("a"),
 			Y: BinaryExpr{
@@ -1453,7 +1453,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"$((i *= 3))"},
-		word(arithmExpr(BinaryExpr{
+		word(arithmExp(BinaryExpr{
 			Op: MUL_ASSIGN,
 			X:  litWord("i"),
 			Y:  litWord("3"),
@@ -1461,7 +1461,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"$((2 >= 10))"},
-		word(arithmExpr(BinaryExpr{
+		word(arithmExp(BinaryExpr{
 			Op: GEQ,
 			X:  litWord("2"),
 			Y:  litWord("10"),
@@ -1469,7 +1469,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{"$((foo ? b1 : b2))"},
-		word(arithmExpr(BinaryExpr{
+		word(arithmExp(BinaryExpr{
 			Op: QUEST,
 			X:  litWord("foo"),
 			Y: BinaryExpr{
@@ -1481,7 +1481,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{`$((a = (1 + 2)))`},
-		word(arithmExpr(BinaryExpr{
+		word(arithmExp(BinaryExpr{
 			Op: ASSIGN,
 			X:  litWord("a"),
 			Y: parenExpr(BinaryExpr{
@@ -1813,7 +1813,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{`let i++`},
-		LetClause{Exprs: []Node{
+		LetClause{Exprs: []ArithmExpr{
 			UnaryExpr{
 				Op:   INC,
 				Post: true,
@@ -1823,7 +1823,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{`let a++ b++ c +d`},
-		LetClause{Exprs: []Node{
+		LetClause{Exprs: []ArithmExpr{
 			UnaryExpr{
 				Op:   INC,
 				Post: true,
@@ -1843,7 +1843,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{`let "--i"`},
-		LetClause{Exprs: []Node{
+		LetClause{Exprs: []ArithmExpr{
 			word(dblQuoted(lit("--i"))),
 		}},
 	},
@@ -1852,7 +1852,7 @@ var astTests = []testCase{
 			`let a=(1 + 2) b=3+4`,
 			`let a=(1+2) b=3+4`,
 		},
-		LetClause{Exprs: []Node{
+		LetClause{Exprs: []ArithmExpr{
 			BinaryExpr{
 				Op: ASSIGN,
 				X:  litWord("a"),
@@ -1883,7 +1883,7 @@ var astTests = []testCase{
 			"let i++; bar",
 		},
 		[]Stmt{
-			stmt(LetClause{Exprs: []Node{
+			stmt(LetClause{Exprs: []ArithmExpr{
 				UnaryExpr{
 					Op:   INC,
 					Post: true,
@@ -1900,7 +1900,7 @@ var astTests = []testCase{
 			"let i++; foo=(bar)\n",
 		},
 		[]Stmt{
-			stmt(LetClause{Exprs: []Node{
+			stmt(LetClause{Exprs: []ArithmExpr{
 				UnaryExpr{
 					Op:   INC,
 					Post: true,
@@ -2134,6 +2134,8 @@ func setPosRecurse(tb testing.TB, v interface{}, to Pos, diff bool) Node {
 		}
 	case *Node:
 		*x = recurse(*x)
+	case *ArithmExpr:
+		*x = recurse(*x).(ArithmExpr)
 	case *Lit:
 		setPos(&x.ValuePos)
 	case Lit:
@@ -2249,7 +2251,9 @@ func setPosRecurse(tb testing.TB, v interface{}, to Pos, diff bool) Node {
 	case ArithmExp:
 		setPos(&x.Dollar)
 		setPos(&x.Rparen)
-		recurse(&x.X)
+		if x.X != nil {
+			recurse(&x.X)
+		}
 		return x
 	case ParenExpr:
 		setPos(&x.Lparen)
@@ -2283,7 +2287,9 @@ func setPosRecurse(tb testing.TB, v interface{}, to Pos, diff bool) Node {
 		return x
 	case LetClause:
 		setPos(&x.Let)
-		recurse(x.Exprs)
+		for i := range x.Exprs {
+			recurse(&x.Exprs[i])
+		}
 		return x
 	case ArrayExpr:
 		setPos(&x.Lparen)

@@ -691,7 +691,7 @@ func quotedStop(start Token) Token {
 	return start
 }
 
-func (p *parser) arithmExpr(following Token) Node {
+func (p *parser) arithmExpr(following Token) ArithmExpr {
 	if p.eof() || p.peekArithmEnd() || p.peek(STOPPED) {
 		return nil
 	}
@@ -720,7 +720,7 @@ func (p *parser) arithmExpr(following Token) Node {
 	return b
 }
 
-func (p *parser) arithmExprBase(following Token) Node {
+func (p *parser) arithmExprBase(following Token) ArithmExpr {
 	if p.gotAny(INC, DEC, NOT) {
 		pre := UnaryExpr{
 			OpPos: p.lpos,
@@ -729,7 +729,7 @@ func (p *parser) arithmExprBase(following Token) Node {
 		pre.X = p.arithmExprBase(pre.Op)
 		return pre
 	}
-	var x Node
+	var x ArithmExpr
 	switch {
 	case p.peek(LPAREN):
 		p.pushStops(LPAREN)

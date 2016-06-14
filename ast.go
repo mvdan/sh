@@ -170,7 +170,7 @@ func (c StmtCond) End() Pos { return stmtLastEnd(c.Stmts) }
 // arithmetic expression.
 type CStyleCond struct {
 	Lparen, Rparen Pos
-	X              Node
+	X              ArithmExpr
 }
 
 func (c CStyleCond) Pos() Pos { return c.Lparen }
@@ -227,7 +227,7 @@ func (w WordIter) End() Pos { return posMax(w.Name.End(), wordLastEnd(w.List)) }
 // language.
 type CStyleLoop struct {
 	Lparen, Rparen   Pos
-	Init, Cond, Post Node
+	Init, Cond, Post ArithmExpr
 }
 
 func (c CStyleLoop) Pos() Pos { return c.Lparen }
@@ -239,7 +239,7 @@ type UnaryExpr struct {
 	OpPos Pos
 	Op    Token
 	Post  bool
-	X     Node
+	X     ArithmExpr
 }
 
 func (u UnaryExpr) Pos() Pos {
@@ -383,18 +383,28 @@ type Expansion struct {
 // ArithmExp represents an arithmetic expansion.
 type ArithmExp struct {
 	Dollar, Rparen Pos
-	X              Node
+	X              ArithmExpr
 }
 
 func (a ArithmExp) Pos() Pos { return a.Dollar }
 func (a ArithmExp) End() Pos { return posAfter(a.Rparen, DRPAREN) }
+
+type ArithmExpr interface {
+	Node
+	arithmExprNode()
+}
+
+func (BinaryExpr) arithmExprNode() {}
+func (UnaryExpr) arithmExprNode()  {}
+func (ParenExpr) arithmExprNode()  {}
+func (Word) arithmExprNode()       {}
 
 // BinaryExpr represents a binary expression between two arithmetic
 // expression.
 type BinaryExpr struct {
 	OpPos Pos
 	Op    Token
-	X, Y  Node
+	X, Y  ArithmExpr
 }
 
 func (b BinaryExpr) Pos() Pos { return b.X.Pos() }
@@ -404,7 +414,7 @@ func (b BinaryExpr) End() Pos { return b.Y.End() }
 // ArithmExp.
 type ParenExpr struct {
 	Lparen, Rparen Pos
-	X              Node
+	X              ArithmExpr
 }
 
 func (p ParenExpr) Pos() Pos { return p.Lparen }
@@ -476,11 +486,16 @@ func (e EvalClause) End() Pos { return e.Stmt.End() }
 // LetClause represents a Bash let clause.
 type LetClause struct {
 	Let   Pos
-	Exprs []Node
+	Exprs []ArithmExpr
 }
 
 func (l LetClause) Pos() Pos { return l.Let }
-func (l LetClause) End() Pos { return nodeLastEnd(l.Exprs) }
+func (l LetClause) End() Pos {
+	if len(l.Exprs) == 0 {
+		return defaultPos
+	}
+	return l.Exprs[len(l.Exprs)-1].End()
+}
 
 func posAfter(pos Pos, tok Token) Pos {
 	if pos.Line == 0 {
