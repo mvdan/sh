@@ -618,7 +618,7 @@ func (p *parser) wordPart() Node {
 		return p.paramExp()
 	case p.peek(DOLLDP):
 		p.pushStops(DRPAREN)
-		ar := ArithmExpr{Dollar: p.lpos}
+		ar := ArithmExp{Dollar: p.lpos}
 		ar.X = p.arithmExpr(DLPAREN)
 		ar.Rparen = p.arithmEnd(ar.Dollar)
 		return ar

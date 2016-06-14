@@ -380,14 +380,14 @@ type Expansion struct {
 	Word Word
 }
 
-// ArithmExpr represents an arithmetic expression.
-type ArithmExpr struct {
+// ArithmExp represents an arithmetic expansion.
+type ArithmExp struct {
 	Dollar, Rparen Pos
 	X              Node
 }
 
-func (a ArithmExpr) Pos() Pos { return a.Dollar }
-func (a ArithmExpr) End() Pos { return posAfter(a.Rparen, DRPAREN) }
+func (a ArithmExp) Pos() Pos { return a.Dollar }
+func (a ArithmExp) End() Pos { return posAfter(a.Rparen, DRPAREN) }
 
 // BinaryExpr represents a binary expression between two arithmetic
 // expression.
@@ -401,7 +401,7 @@ func (b BinaryExpr) Pos() Pos { return b.X.Pos() }
 func (b BinaryExpr) End() Pos { return b.Y.End() }
 
 // ParenExpr represents an expression within parentheses inside an
-// ArithmExpr.
+// ArithmExp.
 type ParenExpr struct {
 	Lparen, Rparen Pos
 	X              Node

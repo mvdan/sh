@@ -61,12 +61,12 @@ func litStmts(strs ...string) []Stmt {
 	return l
 }
 
-func sglQuoted(s string) SglQuoted    { return SglQuoted{Value: s} }
-func dblQuoted(ns ...Node) Quoted     { return Quoted{Quote: DQUOTE, Parts: ns} }
-func block(sts ...Stmt) Block         { return Block{Stmts: sts} }
-func subshell(sts ...Stmt) Subshell   { return Subshell{Stmts: sts} }
-func arithmExpr(expr Node) ArithmExpr { return ArithmExpr{X: expr} }
-func parenExpr(expr Node) ParenExpr   { return ParenExpr{X: expr} }
+func sglQuoted(s string) SglQuoted   { return SglQuoted{Value: s} }
+func dblQuoted(ns ...Node) Quoted    { return Quoted{Quote: DQUOTE, Parts: ns} }
+func block(sts ...Stmt) Block        { return Block{Stmts: sts} }
+func subshell(sts ...Stmt) Subshell  { return Subshell{Stmts: sts} }
+func arithmExpr(expr Node) ArithmExp { return ArithmExp{X: expr} }
+func parenExpr(expr Node) ParenExpr  { return ParenExpr{X: expr} }
 
 func cmdSubst(sts ...Stmt) CmdSubst { return CmdSubst{Stmts: sts} }
 func bckQuoted(sts ...Stmt) CmdSubst {
@@ -2246,7 +2246,7 @@ func setPosRecurse(tb testing.TB, v interface{}, to Pos, diff bool) Node {
 			recurse(x.Exp.Word)
 		}
 		return x
-	case ArithmExpr:
+	case ArithmExp:
 		setPos(&x.Dollar)
 		setPos(&x.Rparen)
 		recurse(&x.X)

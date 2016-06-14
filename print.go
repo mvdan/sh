@@ -299,7 +299,7 @@ func (p *printer) node(node Node) {
 			p.word(x.Exp.Word)
 		}
 		p.token(RBRACE, true)
-	case ArithmExpr:
+	case ArithmExp:
 		p.token(DOLLDP, false)
 		p.arithm(x.X, false)
 		p.token(DRPAREN, true)
