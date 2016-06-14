@@ -515,21 +515,23 @@ func (p *parser) errPass(err error) {
 }
 
 type lineErr struct {
-	pos  Position
+	name string
+	pos  Pos
 	text string
 }
 
 func (e lineErr) Error() string {
-	return fmt.Sprintf("%s: %s", e.pos, e.text)
+	prefix := ""
+	if e.name != "" {
+		prefix = e.name + ":"
+	}
+	return fmt.Sprintf("%s%d:%d: %s", prefix, e.pos.Line, e.pos.Column, e.text)
 }
 
 func (p *parser) posErr(pos Pos, format string, a ...interface{}) {
 	p.errPass(lineErr{
-		pos: Position{
-			Filename: p.file.Name,
-			Line:     pos.Line,
-			Column:   pos.Column,
-		},
+		name: p.file.Name,
+		pos:  pos,
 		text: fmt.Sprintf(format, a...),
 	})
 }
@@ -1248,9 +1250,7 @@ func (p *parser) declClause() (ds DeclClause) {
 		if !p.gotWord(&w) {
 			p.followErr(p.pos, DECLARE, "words")
 		}
-		ds.Assigns = append(ds.Assigns, Assign{
-			Value: w,
-		})
+		ds.Assigns = append(ds.Assigns, Assign{Value: w})
 	}
 	return ds
 }

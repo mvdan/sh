@@ -3,8 +3,6 @@
 
 package sh
 
-import "fmt"
-
 // Token is the set of lexical tokens.
 type Token int
 
@@ -127,7 +125,7 @@ const (
 // file.
 type Pos struct {
 	Line   int // line number, starting at 1
-	Column int // column number, starting at 1
+	Column int // column number (in bytes), starting at 1
 }
 
 func posGreater(p1, p2 Pos) bool {
@@ -142,21 +140,6 @@ func posMax(p1, p2 Pos) Pos {
 		return p2
 	}
 	return p1
-}
-
-// Position describes an arbitrary position in a source file. Offsets,
-// including column numbers, are in bytes.
-type Position struct {
-	Filename string
-	Line     int // line number, starting at 1
-	Column   int // column number, starting at 1
-}
-
-func (p Position) String() string {
-	if p.Filename == "" {
-		return fmt.Sprintf("%d:%d", p.Line, p.Column)
-	}
-	return fmt.Sprintf("%s:%d:%d", p.Filename, p.Line, p.Column)
 }
 
 func init() {
