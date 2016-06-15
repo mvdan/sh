@@ -395,7 +395,7 @@ func (p *parser) eof() bool {
 }
 
 func (p *parser) peekReservedWord(tok Token) bool {
-	return p.val == tok.String() && p.willSpaced()
+	return p.tok == LIT && p.val == tok.String() && p.willSpaced()
 }
 
 func wordBreak(b byte) bool {
