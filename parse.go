@@ -83,10 +83,7 @@ func (p *parser) popStops(n int) { p.stops = p.stops[:len(p.stops)-n] }
 func (p *parser) popStop()       { p.popStops(1) }
 
 func (p *parser) reachingEOF() bool {
-	if p.nextErr != nil && p.remaining == 0 {
-		return true
-	}
-	return false
+	return p.nextErr != nil && p.remaining == 0
 }
 
 func (p *parser) readByte() byte {
@@ -95,7 +92,9 @@ func (p *parser) readByte() byte {
 		return 0
 	}
 	b, _ := p.br.ReadByte()
-	p.remaining--
+	if p.remaining > 0 {
+		p.remaining--
+	}
 	p.npos = moveWith(p.npos, b)
 	return b
 }
@@ -123,7 +122,7 @@ func (p *parser) peekByte() byte {
 }
 
 func (p *parser) willByte(b byte) bool {
-	if p.nextErr != nil && p.remaining < 1 {
+	if p.reachingEOF() {
 		return false
 	}
 	bs, err := p.br.Peek(1)
