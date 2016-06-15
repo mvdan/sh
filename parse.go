@@ -407,14 +407,6 @@ func (p *parser) got(tok Token) bool {
 	return false
 }
 func (p *parser) gotSameLine(tok Token) bool { return !p.newLine && p.got(tok) }
-func (p *parser) gotAny(toks ...Token) bool {
-	for _, tok := range toks {
-		if p.got(tok) {
-			return true
-		}
-	}
-	return false
-}
 
 func readableStr(v interface{}) string {
 	var s string
@@ -634,7 +626,7 @@ func (p *parser) wordPart() WordPart {
 		}
 		p.gotLit(&pe.Param)
 		return pe
-	case p.peekAny(CMDIN, CMDOUT):
+	case p.peek(CMDIN), p.peek(CMDOUT):
 		ps := ProcSubst{Op: p.tok, OpPos: p.pos}
 		ps.Stmts = p.stmtsNested(RPAREN)
 		ps.Rparen = p.matchedTok(ps.OpPos, ps.Op, RPAREN)
@@ -651,7 +643,7 @@ func (p *parser) wordPart() WordPart {
 		return sq
 	case !p.quoted(SQUOTE) && p.peek(DOLLSQ):
 		fallthrough
-	case !p.quoted(DQUOTE) && p.peekAny(DQUOTE, DOLLDQ):
+	case !p.quoted(DQUOTE) && (p.peek(DQUOTE) || p.peek(DOLLDQ)):
 		q := Quoted{Quote: p.tok, QuotePos: p.pos}
 		stop := quotedStop(q.Quote)
 		p.pushStops(stop)
@@ -687,7 +679,7 @@ func (p *parser) arithmExpr(following Token) ArithmExpr {
 	if !p.quotedAny(DRPAREN, LPAREN) && p.spaced {
 		return left
 	}
-	if p.eof() || p.peekAny(RPAREN, SEMICOLON, STOPPED) {
+	if p.eof() || p.peek(RPAREN) || p.peek(SEMICOLON) || p.peek(STOPPED) {
 		return left
 	}
 	if p.peek(LIT) {
@@ -709,7 +701,7 @@ func (p *parser) arithmExpr(following Token) ArithmExpr {
 }
 
 func (p *parser) arithmExprBase(following Token) ArithmExpr {
-	if p.gotAny(INC, DEC, NOT) {
+	if p.got(INC) || p.got(DEC) || p.got(NOT) {
 		pre := UnaryExpr{OpPos: p.lpos, Op: p.ltok}
 		pre.X = p.arithmExprBase(pre.Op)
 		return pre
@@ -726,7 +718,7 @@ func (p *parser) arithmExprBase(following Token) ArithmExpr {
 		p.popStop()
 		pe.Rparen = p.matchedTok(pe.Lparen, LPAREN, RPAREN)
 		x = pe
-	case p.gotAny(ADD, SUB):
+	case p.got(ADD), p.got(SUB):
 		ue := UnaryExpr{OpPos: p.lpos, Op: p.ltok}
 		if !p.quotedAny(DRPAREN, LPAREN) && p.spaced {
 			p.followErr(ue.OpPos, ue.Op, "an expression")
@@ -742,7 +734,7 @@ func (p *parser) arithmExprBase(following Token) ArithmExpr {
 	if !p.quotedAny(DRPAREN, LPAREN) && p.spaced {
 		return x
 	}
-	if p.gotAny(INC, DEC) {
+	if p.got(INC) || p.got(DEC) {
 		return UnaryExpr{
 			Post:  true,
 			OpPos: p.lpos,
@@ -794,7 +786,7 @@ func (p *parser) paramExp() (pe ParamExp) {
 	if pe.Length {
 		p.curErr(`can only get length of a simple parameter`)
 	}
-	if p.peekAny(QUO, DQUO) {
+	if p.peek(QUO) || p.peek(DQUO) {
 		pe.Repl = &Replace{All: p.tok == DQUO}
 		p.pushStops(QUO)
 		p.gotWord(&pe.Repl.Orig)
@@ -834,7 +826,8 @@ func (p *parser) peekEnd() bool {
 }
 
 func (p *parser) peekStop() bool {
-	if p.peekEnd() || p.peekAny(AND, OR, LAND, LOR, PIPEALL) {
+	if p.peekEnd() || p.peek(AND) || p.peek(OR) ||
+		p.peek(LAND) || p.peek(LOR) || p.peek(PIPEALL) {
 		return true
 	}
 	for i := len(p.stops) - 1; i >= 0; i-- {
@@ -906,8 +899,10 @@ func (p *parser) peekRedir() bool {
 	if p.peek(LIT) && (p.willByte('>') || p.willByte('<')) {
 		return true
 	}
-	return p.peekAny(GTR, SHR, LSS, DPLIN, DPLOUT, RDRINOUT,
-		SHL, DHEREDOC, WHEREDOC, RDRALL, APPALL)
+	return p.peek(GTR) || p.peek(SHR) || p.peek(LSS) ||
+		p.peek(DPLIN) || p.peek(DPLOUT) || p.peek(RDRINOUT) ||
+		p.peek(SHL) || p.peek(DHEREDOC) || p.peek(WHEREDOC) ||
+		p.peek(RDRALL) || p.peek(APPALL)
 }
 
 func (p *parser) gotRedirect() bool {
@@ -993,7 +988,7 @@ func (p *parser) gotStmtPipe(s *Stmt) bool {
 		s.Cmd = p.forClause()
 	case p.got(CASE):
 		s.Cmd = p.caseClause()
-	case p.gotAny(DECLARE, LOCAL):
+	case p.got(DECLARE), p.got(LOCAL):
 		s.Cmd = p.declClause()
 	case p.got(EVAL):
 		s.Cmd = p.evalClause()
