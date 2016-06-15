@@ -19,8 +19,8 @@ type File struct {
 	Comments []Comment
 }
 
-func (f File) Pos() Pos { return stmtFirstPos(f.Stmts) }
-func (f File) End() Pos { return stmtLastEnd(f.Stmts) }
+func (f *File) Pos() Pos { return stmtFirstPos(f.Stmts) }
+func (f *File) End() Pos { return stmtLastEnd(f.Stmts) }
 
 // Comment represents a single comment on a single line.
 type Comment struct {
@@ -40,8 +40,8 @@ type Stmt struct {
 	Redirs     []Redirect
 }
 
-func (s Stmt) Pos() Pos { return s.Position }
-func (s Stmt) End() Pos {
+func (s *Stmt) Pos() Pos { return s.Position }
+func (s *Stmt) End() Pos {
 	end := s.Position
 	if s.Negated {
 		end = posAfter(end, NOT)
@@ -67,19 +67,19 @@ type Command interface {
 	commandNode()
 }
 
-func (CallExpr) commandNode()    {}
-func (IfClause) commandNode()    {}
-func (WhileClause) commandNode() {}
-func (UntilClause) commandNode() {}
-func (ForClause) commandNode()   {}
-func (CaseClause) commandNode()  {}
-func (Block) commandNode()       {}
-func (Subshell) commandNode()    {}
-func (BinaryCmd) commandNode()   {}
-func (FuncDecl) commandNode()    {}
-func (DeclClause) commandNode()  {}
-func (EvalClause) commandNode()  {}
-func (LetClause) commandNode()   {}
+func (*CallExpr) commandNode()    {}
+func (*IfClause) commandNode()    {}
+func (*WhileClause) commandNode() {}
+func (*UntilClause) commandNode() {}
+func (*ForClause) commandNode()   {}
+func (*CaseClause) commandNode()  {}
+func (*Block) commandNode()       {}
+func (*Subshell) commandNode()    {}
+func (*BinaryCmd) commandNode()   {}
+func (*FuncDecl) commandNode()    {}
+func (*DeclClause) commandNode()  {}
+func (*EvalClause) commandNode()  {}
+func (*LetClause) commandNode()   {}
 
 // Assign represents an assignment to a variable.
 type Assign struct {
@@ -88,13 +88,13 @@ type Assign struct {
 	Value  Word
 }
 
-func (a Assign) Pos() Pos {
+func (a *Assign) Pos() Pos {
 	if a.Name == nil {
 		return a.Value.Pos()
 	}
 	return a.Name.Pos()
 }
-func (a Assign) End() Pos {
+func (a *Assign) End() Pos {
 	if a.Name != nil {
 		return posMax(a.Name.End(), a.Value.End())
 	}
@@ -110,21 +110,21 @@ type Redirect struct {
 	Hdoc  *Lit
 }
 
-func (r Redirect) Pos() Pos {
+func (r *Redirect) Pos() Pos {
 	if r.N != nil {
 		return r.N.Pos()
 	}
 	return r.OpPos
 }
-func (r Redirect) End() Pos { return r.Word.End() }
+func (r *Redirect) End() Pos { return r.Word.End() }
 
 // CallExpr represents a command execution or function call.
 type CallExpr struct {
 	Args []Word
 }
 
-func (c CallExpr) Pos() Pos { return wordFirstPos(c.Args) }
-func (c CallExpr) End() Pos { return wordLastEnd(c.Args) }
+func (c *CallExpr) Pos() Pos { return wordFirstPos(c.Args) }
+func (c *CallExpr) End() Pos { return wordLastEnd(c.Args) }
 
 // Subshell represents a series of commands that should be executed in a
 // nested shell environment.
@@ -133,8 +133,8 @@ type Subshell struct {
 	Stmts          []Stmt
 }
 
-func (s Subshell) Pos() Pos { return s.Lparen }
-func (s Subshell) End() Pos { return posAfter(s.Rparen, RPAREN) }
+func (s *Subshell) Pos() Pos { return s.Lparen }
+func (s *Subshell) End() Pos { return posAfter(s.Rparen, RPAREN) }
 
 // Block represents a series of commands that should be executed in a
 // nested scope.
@@ -143,8 +143,8 @@ type Block struct {
 	Stmts          []Stmt
 }
 
-func (b Block) Pos() Pos { return b.Rbrace }
-func (b Block) End() Pos { return posAfter(b.Rbrace, RBRACE) }
+func (b *Block) Pos() Pos { return b.Rbrace }
+func (b *Block) End() Pos { return posAfter(b.Rbrace, RBRACE) }
 
 // IfClause represents an if statement.
 type IfClause struct {
@@ -156,8 +156,8 @@ type IfClause struct {
 	ElseStmts    []Stmt
 }
 
-func (c IfClause) Pos() Pos { return c.If }
-func (c IfClause) End() Pos { return posAfter(c.Fi, FI) }
+func (c *IfClause) Pos() Pos { return c.If }
+func (c *IfClause) End() Pos { return posAfter(c.Fi, FI) }
 
 // Cond represents all nodes that can be conditions in an if, while or
 // until clause.
@@ -166,8 +166,8 @@ type Cond interface {
 	condNode()
 }
 
-func (StmtCond) condNode()   {}
-func (CStyleCond) condNode() {}
+func (*StmtCond) condNode()   {}
+func (*CStyleCond) condNode() {}
 
 // StmtCond represents a condition that evaluates to the result of a
 // series of statements.
@@ -175,8 +175,8 @@ type StmtCond struct {
 	Stmts []Stmt
 }
 
-func (c StmtCond) Pos() Pos { return c.Stmts[0].Pos() }
-func (c StmtCond) End() Pos { return stmtLastEnd(c.Stmts) }
+func (c *StmtCond) Pos() Pos { return c.Stmts[0].Pos() }
+func (c *StmtCond) End() Pos { return stmtLastEnd(c.Stmts) }
 
 // CStyleCond represents a condition that evaluates to the result of an
 // arithmetic expression.
@@ -185,8 +185,8 @@ type CStyleCond struct {
 	X              ArithmExpr
 }
 
-func (c CStyleCond) Pos() Pos { return c.Lparen }
-func (c CStyleCond) End() Pos { return posAfter(c.Rparen, RPAREN) }
+func (c *CStyleCond) Pos() Pos { return c.Lparen }
+func (c *CStyleCond) End() Pos { return posAfter(c.Rparen, RPAREN) }
 
 // Elif represents an "else if" case in an if clause.
 type Elif struct {
@@ -202,8 +202,8 @@ type WhileClause struct {
 	DoStmts         []Stmt
 }
 
-func (w WhileClause) Pos() Pos { return w.While }
-func (w WhileClause) End() Pos { return posAfter(w.Done, DONE) }
+func (w *WhileClause) Pos() Pos { return w.While }
+func (w *WhileClause) End() Pos { return posAfter(w.Done, DONE) }
 
 // UntilClause represents an until clause.
 type UntilClause struct {
@@ -212,8 +212,8 @@ type UntilClause struct {
 	DoStmts         []Stmt
 }
 
-func (u UntilClause) Pos() Pos { return u.Until }
-func (u UntilClause) End() Pos { return posAfter(u.Done, DONE) }
+func (u *UntilClause) Pos() Pos { return u.Until }
+func (u *UntilClause) End() Pos { return posAfter(u.Done, DONE) }
 
 // ForClause represents a for clause.
 type ForClause struct {
@@ -222,8 +222,8 @@ type ForClause struct {
 	DoStmts       []Stmt
 }
 
-func (f ForClause) Pos() Pos { return f.For }
-func (f ForClause) End() Pos { return posAfter(f.Done, DONE) }
+func (f *ForClause) Pos() Pos { return f.For }
+func (f *ForClause) End() Pos { return posAfter(f.Done, DONE) }
 
 // Loop represents all nodes that can be loops in a for clause.
 type Loop interface {
@@ -231,8 +231,8 @@ type Loop interface {
 	loopNode()
 }
 
-func (WordIter) loopNode()   {}
-func (CStyleLoop) loopNode() {}
+func (*WordIter) loopNode()   {}
+func (*CStyleLoop) loopNode() {}
 
 // WordIter represents the iteration of a variable over a series of
 // words in a for clause.
@@ -241,8 +241,8 @@ type WordIter struct {
 	List []Word
 }
 
-func (w WordIter) Pos() Pos { return w.Name.Pos() }
-func (w WordIter) End() Pos { return posMax(w.Name.End(), wordLastEnd(w.List)) }
+func (w *WordIter) Pos() Pos { return w.Name.Pos() }
+func (w *WordIter) End() Pos { return posMax(w.Name.End(), wordLastEnd(w.List)) }
 
 // CStyleLoop represents the behaviour of a for clause similar to the C
 // language.
@@ -251,8 +251,8 @@ type CStyleLoop struct {
 	Init, Cond, Post ArithmExpr
 }
 
-func (c CStyleLoop) Pos() Pos { return c.Lparen }
-func (c CStyleLoop) End() Pos { return posAfter(c.Rparen, RPAREN) }
+func (c *CStyleLoop) Pos() Pos { return c.Lparen }
+func (c *CStyleLoop) End() Pos { return posAfter(c.Rparen, RPAREN) }
 
 // UnaryExpr represents an unary expression over a node, either before
 // or after it.
@@ -263,13 +263,13 @@ type UnaryExpr struct {
 	X     ArithmExpr
 }
 
-func (u UnaryExpr) Pos() Pos {
+func (u *UnaryExpr) Pos() Pos {
 	if u.Post {
 		return u.X.Pos()
 	}
 	return u.OpPos
 }
-func (u UnaryExpr) End() Pos {
+func (u *UnaryExpr) End() Pos {
 	if u.Post {
 		return posAfter(u.OpPos, u.Op)
 	}
@@ -283,8 +283,8 @@ type BinaryCmd struct {
 	X, Y  Stmt
 }
 
-func (b BinaryCmd) Pos() Pos { return b.X.Pos() }
-func (b BinaryCmd) End() Pos { return b.Y.End() }
+func (b *BinaryCmd) Pos() Pos { return b.X.Pos() }
+func (b *BinaryCmd) End() Pos { return b.Y.End() }
 
 // FuncDecl represents the declaration of a function.
 type FuncDecl struct {
@@ -294,8 +294,8 @@ type FuncDecl struct {
 	Body      Stmt
 }
 
-func (f FuncDecl) Pos() Pos { return f.Position }
-func (f FuncDecl) End() Pos { return f.Body.End() }
+func (f *FuncDecl) Pos() Pos { return f.Position }
+func (f *FuncDecl) End() Pos { return f.Body.End() }
 
 // Word represents a list of nodes that are contiguous to each other and
 // are delimeted by word boundaries.
@@ -303,8 +303,8 @@ type Word struct {
 	Parts []WordPart
 }
 
-func (w Word) Pos() Pos { return partsFirstPos(w.Parts) }
-func (w Word) End() Pos { return partsLastEnd(w.Parts) }
+func (w *Word) Pos() Pos { return partsFirstPos(w.Parts) }
+func (w *Word) End() Pos { return partsLastEnd(w.Parts) }
 
 // WordPart represents all nodes that can form a word.
 type WordPart interface {
@@ -312,14 +312,14 @@ type WordPart interface {
 	wordPartNode()
 }
 
-func (Lit) wordPartNode()       {}
-func (SglQuoted) wordPartNode() {}
-func (Quoted) wordPartNode()    {}
-func (ParamExp) wordPartNode()  {}
-func (CmdSubst) wordPartNode()  {}
-func (ArithmExp) wordPartNode() {}
-func (ProcSubst) wordPartNode() {}
-func (ArrayExpr) wordPartNode() {} // TODO: remove?
+func (*Lit) wordPartNode()       {}
+func (*SglQuoted) wordPartNode() {}
+func (*Quoted) wordPartNode()    {}
+func (*ParamExp) wordPartNode()  {}
+func (*CmdSubst) wordPartNode()  {}
+func (*ArithmExp) wordPartNode() {}
+func (*ProcSubst) wordPartNode() {}
+func (*ArrayExpr) wordPartNode() {} // TODO: remove?
 
 // Lit represents an unquoted string consisting of characters that were
 // not tokenized.
@@ -328,8 +328,8 @@ type Lit struct {
 	Value    string
 }
 
-func (l Lit) Pos() Pos { return l.ValuePos }
-func (l Lit) End() Pos {
+func (l *Lit) Pos() Pos { return l.ValuePos }
+func (l *Lit) End() Pos {
 	end := l.ValuePos
 	for _, b := range []byte(l.Value) {
 		end = moveWith(end, b)
@@ -343,8 +343,8 @@ type SglQuoted struct {
 	Value string
 }
 
-func (q SglQuoted) Pos() Pos { return q.Quote }
-func (q SglQuoted) End() Pos {
+func (q *SglQuoted) Pos() Pos { return q.Quote }
+func (q *SglQuoted) End() Pos {
 	end := posAfter(q.Quote, SQUOTE)
 	for _, b := range []byte(q.Value) {
 		end = moveWith(end, b)
@@ -360,8 +360,8 @@ type Quoted struct {
 	Parts    []WordPart
 }
 
-func (q Quoted) Pos() Pos { return q.QuotePos }
-func (q Quoted) End() Pos { return posAfter(partsLastEnd(q.Parts), q.Quote) }
+func (q *Quoted) Pos() Pos { return q.QuotePos }
+func (q *Quoted) End() Pos { return posAfter(partsLastEnd(q.Parts), q.Quote) }
 
 // CmdSubst represents a command substitution.
 type CmdSubst struct {
@@ -370,8 +370,8 @@ type CmdSubst struct {
 	Stmts       []Stmt
 }
 
-func (c CmdSubst) Pos() Pos { return c.Left }
-func (c CmdSubst) End() Pos { return posAfter(c.Right, RPAREN) }
+func (c *CmdSubst) Pos() Pos { return c.Left }
+func (c *CmdSubst) End() Pos { return posAfter(c.Right, RPAREN) }
 
 // ParamExp represents a parameter expansion.
 type ParamExp struct {
@@ -383,8 +383,8 @@ type ParamExp struct {
 	Exp           *Expansion
 }
 
-func (p ParamExp) Pos() Pos { return p.Dollar }
-func (p ParamExp) End() Pos {
+func (p *ParamExp) Pos() Pos { return p.Dollar }
+func (p *ParamExp) End() Pos {
 	end := p.Param.End()
 	if p.Ind != nil {
 		end = posMax(end, p.Ind.Word.End())
@@ -422,8 +422,8 @@ type ArithmExp struct {
 	X              ArithmExpr
 }
 
-func (a ArithmExp) Pos() Pos { return a.Dollar }
-func (a ArithmExp) End() Pos { return posAfter(a.Rparen, DRPAREN) }
+func (a *ArithmExp) Pos() Pos { return a.Dollar }
+func (a *ArithmExp) End() Pos { return posAfter(a.Rparen, DRPAREN) }
 
 // ArithmExpr represents all nodes that form arithmetic expressions.
 type ArithmExpr interface {
@@ -431,10 +431,10 @@ type ArithmExpr interface {
 	arithmExprNode()
 }
 
-func (BinaryExpr) arithmExprNode() {}
-func (UnaryExpr) arithmExprNode()  {}
-func (ParenExpr) arithmExprNode()  {}
-func (Word) arithmExprNode()       {}
+func (*BinaryExpr) arithmExprNode() {}
+func (*UnaryExpr) arithmExprNode()  {}
+func (*ParenExpr) arithmExprNode()  {}
+func (*Word) arithmExprNode()       {}
 
 // BinaryExpr represents a binary expression between two arithmetic
 // expression.
@@ -444,8 +444,8 @@ type BinaryExpr struct {
 	X, Y  ArithmExpr
 }
 
-func (b BinaryExpr) Pos() Pos { return b.X.Pos() }
-func (b BinaryExpr) End() Pos { return b.Y.End() }
+func (b *BinaryExpr) Pos() Pos { return b.X.Pos() }
+func (b *BinaryExpr) End() Pos { return b.Y.End() }
 
 // ParenExpr represents an expression within parentheses inside an
 // ArithmExp.
@@ -454,8 +454,8 @@ type ParenExpr struct {
 	X              ArithmExpr
 }
 
-func (p ParenExpr) Pos() Pos { return p.Lparen }
-func (p ParenExpr) End() Pos { return posAfter(p.Rparen, RPAREN) }
+func (p *ParenExpr) Pos() Pos { return p.Lparen }
+func (p *ParenExpr) End() Pos { return posAfter(p.Rparen, RPAREN) }
 
 // CaseClause represents a case (switch) clause.
 type CaseClause struct {
@@ -464,8 +464,8 @@ type CaseClause struct {
 	List       []PatternList
 }
 
-func (c CaseClause) Pos() Pos { return c.Case }
-func (c CaseClause) End() Pos { return posAfter(c.Esac, ESAC) }
+func (c *CaseClause) Pos() Pos { return c.Case }
+func (c *CaseClause) End() Pos { return posAfter(c.Esac, ESAC) }
 
 // PatternList represents a pattern list (case) within a CaseClause.
 type PatternList struct {
@@ -482,8 +482,8 @@ type DeclClause struct {
 	Assigns []Assign
 }
 
-func (d DeclClause) Pos() Pos { return d.Declare }
-func (d DeclClause) End() Pos {
+func (d *DeclClause) Pos() Pos { return d.Declare }
+func (d *DeclClause) End() Pos {
 	end := wordLastEnd(d.Opts)
 	if len(d.Assigns) > 0 {
 		assignEnd := d.Assigns[len(d.Assigns)-1].End()
@@ -498,8 +498,8 @@ type ArrayExpr struct {
 	List           []Word
 }
 
-func (a ArrayExpr) Pos() Pos { return a.Lparen }
-func (a ArrayExpr) End() Pos { return posAfter(a.Rparen, RPAREN) }
+func (a *ArrayExpr) Pos() Pos { return a.Lparen }
+func (a *ArrayExpr) End() Pos { return posAfter(a.Rparen, RPAREN) }
 
 // ProcSubst represents a Bash process substitution.
 type ProcSubst struct {
@@ -508,8 +508,8 @@ type ProcSubst struct {
 	Stmts         []Stmt
 }
 
-func (s ProcSubst) Pos() Pos { return s.OpPos }
-func (s ProcSubst) End() Pos { return posAfter(s.Rparen, RPAREN) }
+func (s *ProcSubst) Pos() Pos { return s.OpPos }
+func (s *ProcSubst) End() Pos { return posAfter(s.Rparen, RPAREN) }
 
 // EvalClause represents a Bash eval clause.
 type EvalClause struct {
@@ -517,8 +517,8 @@ type EvalClause struct {
 	Stmt Stmt
 }
 
-func (e EvalClause) Pos() Pos { return e.Eval }
-func (e EvalClause) End() Pos { return e.Stmt.End() }
+func (e *EvalClause) Pos() Pos { return e.Eval }
+func (e *EvalClause) End() Pos { return e.Stmt.End() }
 
 // LetClause represents a Bash let clause.
 type LetClause struct {
@@ -526,8 +526,8 @@ type LetClause struct {
 	Exprs []ArithmExpr
 }
 
-func (l LetClause) Pos() Pos { return l.Let }
-func (l LetClause) End() Pos {
+func (l *LetClause) Pos() Pos { return l.Let }
+func (l *LetClause) End() Pos {
 	if len(l.Exprs) == 0 {
 		return defaultPos
 	}

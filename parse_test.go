@@ -16,7 +16,7 @@ import (
 func TestParse(t *testing.T) {
 	defaultPos = Pos{}
 	for i, c := range astTests {
-		want := c.ast.(File)
+		want := c.ast.(*File)
 		setPosRecurse(t, want.Stmts, defaultPos, false)
 		for j, in := range c.strs {
 			t.Run(fmt.Sprintf("%03d-%d", i, j), singleParse(in, want))
@@ -37,7 +37,7 @@ func (e *errCounter) Read(p []byte) (int, error) {
 	return n, err
 }
 
-func singleParse(in string, want File) func(t *testing.T) {
+func singleParse(in string, want *File) func(t *testing.T) {
 	return func(t *testing.T) {
 		r := &errCounter{reader: strings.NewReader(in)}
 		got, err := Parse(r, "", 0)

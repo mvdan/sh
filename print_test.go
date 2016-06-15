@@ -266,7 +266,7 @@ func TestFprintWeirdFormat(t *testing.T) {
 	}
 }
 
-func parsePath(tb testing.TB, path string) File {
+func parsePath(tb testing.TB, path string) *File {
 	f, err := os.Open(path)
 	if err != nil {
 		tb.Fatal(err)
@@ -295,8 +295,8 @@ func TestFprintMultiline(t *testing.T) {
 
 func TestFprintNodeTypes(t *testing.T) {
 	nodes := []Node{
-		File{},
-		Stmt{},
+		&File{},
+		&Stmt{},
 	}
 	for _, node := range nodes {
 		t.Run(fmt.Sprintf("%T", node), func(t *testing.T) {
@@ -358,14 +358,12 @@ func (b badWriter) Write(p []byte) (int, error) { return 0, errBadWriter }
 
 func TestWriteErr(t *testing.T) {
 	var out badWriter
-	f := File{
-		Stmts: []Stmt{
-			{
-				Redirs: []Redirect{{}},
-				Cmd:    Subshell{},
-			},
+	f := &File{Stmts: []Stmt{
+		{
+			Redirs: []Redirect{{}},
+			Cmd:    &Subshell{},
 		},
-	}
+	}}
 	err := Fprint(out, f)
 	if err == nil {
 		t.Fatalf("Expected error with bad writer")
