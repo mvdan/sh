@@ -302,7 +302,7 @@ func (p *parser) readLitBytes() (bs []byte) {
 	}
 }
 
-func (p *parser) advanceTok(tok Token) { p.advanceBoth(tok, tok.String()) }
+func (p *parser) advanceTok(tok Token) { p.advanceBoth(tok, "") }
 func (p *parser) advanceBoth(tok Token, val string) {
 	if p.tok != EOF {
 		p.ltok, p.lval = p.tok, p.val
@@ -617,6 +617,7 @@ func (p *parser) wordPart() WordPart {
 	case p.peek(DOLLAR):
 		if p.willSpaced() {
 			p.tok = LIT
+			p.val = DOLLAR.String()
 			return p.wordPart()
 		}
 		switch {
@@ -758,7 +759,7 @@ func (p *parser) gotParamLit(l *Lit) bool {
 	}
 	switch {
 	case p.got(DOLLAR), p.got(QUEST):
-		l.Value = p.lval
+		l.Value = p.ltok.String()
 	default:
 		return false
 	}
