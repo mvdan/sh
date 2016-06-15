@@ -404,7 +404,7 @@ func (p *parser) eof() bool {
 }
 
 func (p *parser) peekReservedWord(tok Token) bool {
-	return p.val == reservedWords[tok] && p.willSpaced()
+	return p.val == tok.String() && p.willSpaced()
 }
 
 func (p *parser) willSpaced() bool {
