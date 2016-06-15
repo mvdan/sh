@@ -168,51 +168,27 @@ func (p *parser) readOnly(b byte) bool {
 	return false
 }
 
-var (
-	// bytes that form or start a token
-	reserved = map[byte]bool{
-		'&':  true,
-		'>':  true,
-		'<':  true,
-		'|':  true,
-		';':  true,
-		'(':  true,
-		')':  true,
-		'$':  true,
-		'"':  true,
-		'\'': true,
-		'`':  true,
-	}
-	// tokenize these inside parameter expansions
-	paramOps = map[byte]bool{
-		'}': true,
-		'#': true,
-		':': true,
-		'-': true,
-		'+': true,
-		'=': true,
-		'?': true,
-		'%': true,
-		'[': true,
-		'/': true,
-	}
-	// tokenize these inside arithmetic expansions
-	arithmOps = map[byte]bool{
-		'+': true,
-		'-': true,
-		'!': true,
-		'*': true,
-		'/': true,
-		'%': true,
-		'^': true,
-		'<': true,
-		'>': true,
-		':': true,
-		'=': true,
-		',': true,
-		'?': true,
-	}
-)
+// bytes that form or start a token
+func regOps(b byte) bool {
+	return b == ';' || b == '"' || b == '\'' || b == '(' ||
+		b == ')' || b == '$' || b == '|' || b == '&' ||
+		b == '>' || b == '<' || b == '`'
+}
+
+// tokenize these inside parameter expansions
+func paramOps(b byte) bool {
+	return b == '}' || b == '#' || b == ':' || b == '-' ||
+		b == '+' || b == '=' || b == '?' || b == '%' ||
+		b == '[' || b == '/'
+}
+
+// tokenize these inside arithmetic expansions
+func arithmOps(b byte) bool {
+	return b == '+' || b == '-' || b == '!' || b == '*' ||
+		b == '/' || b == '%' || b == '^' || b == '<' ||
+		b == '>' || b == ':' || b == '=' || b == ',' ||
+		b == '?'
+}
 
 // space returns whether a byte acts as a space
 func space(b byte) bool { return b == ' ' || b == '\t' || b == '\n' }
@@ -257,11 +233,11 @@ func (p *parser) next() {
 	case b == '#' && !p.quotedAny(DQUOTE, SQUOTE, LBRACE, RBRACE, QUO):
 		line, _ := p.readUntil('\n')
 		p.advanceBoth(COMMENT, line[1:])
-	case p.quoted(LBRACE) && paramOps[b]:
+	case p.quoted(LBRACE) && paramOps(b):
 		p.advanceTok(p.doParamToken())
-	case p.quotedAny(DLPAREN, DRPAREN, LPAREN) && arithmOps[b]:
+	case p.quotedAny(DLPAREN, DRPAREN, LPAREN) && arithmOps(b):
 		p.advanceTok(p.doArithmToken())
-	case reserved[b]:
+	case regOps(b):
 		// Limited tokenization in these circumstances
 		if p.quotedAny(DQUOTE, RBRACE) {
 			switch {
@@ -302,7 +278,7 @@ func (p *parser) readLitBytes() (bs []byte) {
 			if b == '}' || b == '"' {
 				return
 			}
-		case p.quoted(LBRACE) && paramOps[b], p.quoted(RBRACK) && b == ']':
+		case p.quoted(LBRACE) && paramOps(b), p.quoted(RBRACK) && b == ']':
 			return
 		case p.quoted(QUO):
 			if b == '/' || b == '}' {
@@ -316,9 +292,9 @@ func (p *parser) readLitBytes() (bs []byte) {
 			if b == '"' {
 				return
 			}
-		case reserved[b], space(b):
+		case regOps(b), space(b):
 			return
-		case p.quotedAny(DLPAREN, DRPAREN, LPAREN) && arithmOps[b]:
+		case p.quotedAny(DLPAREN, DRPAREN, LPAREN) && arithmOps(b):
 			return
 		}
 		p.readByte()
