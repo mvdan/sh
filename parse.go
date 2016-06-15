@@ -183,16 +183,6 @@ var (
 		'\'': true,
 		'`':  true,
 	}
-	// subset of the above that mark the end of a word
-	wordBreak = map[byte]bool{
-		'&': true,
-		'>': true,
-		'<': true,
-		'|': true,
-		';': true,
-		'(': true,
-		')': true,
-	}
 	// tokenize these inside parameter expansions
 	paramOps = map[byte]bool{
 		'}': true,
@@ -408,6 +398,11 @@ func (p *parser) peekReservedWord(tok Token) bool {
 	return p.val == tok.String() && p.willSpaced()
 }
 
+func wordBreak(b byte) bool {
+	return b == '&' || b == '>' || b == '<' || b == '|' ||
+		b == ';' || b == '(' || b == ')'
+}
+
 func (p *parser) willSpaced() bool {
 	if p.reachingEOF() {
 		return true
@@ -416,7 +411,7 @@ func (p *parser) willSpaced() bool {
 		return true
 	}
 	bs, err := p.br.Peek(1)
-	return err != nil || space(bs[0]) || wordBreak[bs[0]]
+	return err != nil || space(bs[0]) || wordBreak(bs[0])
 }
 
 func (p *parser) peekAny(toks ...Token) bool {
