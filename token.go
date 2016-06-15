@@ -142,19 +142,6 @@ func posMax(p1, p2 Pos) Pos {
 	return p1
 }
 
-func init() {
-	for _, list := range [...][]tokEntry{arithmList, paramList} {
-		for _, t := range list {
-			tokNames[t.tok] = t.str
-		}
-	}
-}
-
-type tokEntry struct {
-	str string
-	tok Token
-}
-
 var (
 	tokNames = map[Token]string{
 		ILLEGAL: `ILLEGAL`,
@@ -224,82 +211,49 @@ var (
 		CMDOUT:   ">(",
 		RDRALL:   "&>",
 		APPALL:   "&>>",
-	}
 
-	paramList = []tokEntry{
-		{":", COLON},
-		{"+", ADD},
-		{":+", CADD},
-		{"-", SUB},
-		{":-", CSUB},
-		{"?", QUEST},
-		{":?", CQUEST},
-		{"=", ASSIGN},
-		{":=", CASSIGN},
-		{"%", REM},
-		{"%%", DREM},
-		{"#", HASH},
-		{"##", DHASH},
-		{"[", LBRACK},
-		{"]", RBRACK},
-		{"/", QUO},
-		{"//", DQUO},
-	}
-	arithmList = []tokEntry{
-		{"!", NOT},
-		{"=", ASSIGN},
-		{"(", LPAREN},
-		{")", RPAREN},
-		{"&", AND},
-		{"&&", LAND},
-		{"|", OR},
-		{"||", LOR},
-		{"<", LSS},
-		{">", GTR},
-		{"<<", SHL},
-		{">>", SHR},
+		COLON:   ":",
+		ADD:     "+",
+		CADD:    ":+",
+		SUB:     "-",
+		CSUB:    ":-",
+		QUEST:   "?",
+		CQUEST:  ":?",
+		ASSIGN:  "=",
+		CASSIGN: ":=",
+		REM:     "%",
+		DREM:    "%%",
+		HASH:    "#",
+		DHASH:   "##",
+		LBRACK:  "[",
+		RBRACK:  "]",
+		QUO:     "/",
+		DQUO:    "//",
 
-		{"+", ADD},
-		{"-", SUB},
-		{"%", REM},
-		{"*", MUL},
-		{"/", QUO},
-		{"^", XOR},
-		{"++", INC},
-		{"--", DEC},
-		{"**", POW},
-		{",", COMMA},
-		{"!=", NEQ},
-		{"<=", LEQ},
-		{">=", GEQ},
-		{"?", QUEST},
-		{":", COLON},
+		MUL:   "*",
+		XOR:   "^",
+		INC:   "++",
+		DEC:   "--",
+		POW:   "**",
+		COMMA: ",",
+		NEQ:   "!=",
+		LEQ:   "<=",
+		GEQ:   ">=",
 
-		{"+=", ADD_ASSIGN},
-		{"-=", SUB_ASSIGN},
-		{"*=", MUL_ASSIGN},
-		{"/=", QUO_ASSIGN},
-		{"%=", REM_ASSIGN},
-		{"&=", AND_ASSIGN},
-		{"|=", OR_ASSIGN},
-		{"^=", XOR_ASSIGN},
-		{"<<=", SHL_ASSIGN},
-		{">>=", SHR_ASSIGN},
+		ADD_ASSIGN: "+=",
+		SUB_ASSIGN: "-=",
+		MUL_ASSIGN: "*=",
+		QUO_ASSIGN: "/=",
+		REM_ASSIGN: "%=",
+		AND_ASSIGN: "&=",
+		OR_ASSIGN:  "|=",
+		XOR_ASSIGN: "^=",
+		SHL_ASSIGN: "<<=",
+		SHR_ASSIGN: ">>=",
 	}
 )
 
 func (t Token) String() string { return tokNames[t] }
-
-func (p *parser) doToken(tokList []tokEntry) Token {
-	// In reverse, to not treat e.g. && as & two times
-	for i := len(tokList) - 1; i >= 0; i-- {
-		t := tokList[i]
-		if p.readOnlyStr(t.str) {
-			return t.tok
-		}
-	}
-	return ILLEGAL
-}
 
 // TODO: decouple from parser. Passing readOnly as a func argument
 // doesn't seem to work well as it means an extra allocation (?).
@@ -385,5 +339,148 @@ func (p *parser) doRegToken() Token {
 	}
 	return ILLEGAL
 }
-func (p *parser) doParamToken() Token  { return p.doToken(paramList) }
-func (p *parser) doArithmToken() Token { return p.doToken(arithmList) }
+
+func (p *parser) doParamToken() Token {
+	switch {
+	case p.readOnly(':'):
+		switch {
+		case p.readOnly('+'):
+			return CADD
+		case p.readOnly('-'):
+			return CSUB
+		case p.readOnly('?'):
+			return CQUEST
+		case p.readOnly('='):
+			return CASSIGN
+		}
+		return COLON
+	case p.readOnly('+'):
+		return ADD
+	case p.readOnly('-'):
+		return SUB
+	case p.readOnly('?'):
+		return QUEST
+	case p.readOnly('='):
+		return ASSIGN
+	case p.readOnly('%'):
+		if p.readOnly('%') {
+			return DREM
+		}
+		return REM
+	case p.readOnly('#'):
+		if p.readOnly('#') {
+			return DHASH
+		}
+		return HASH
+	case p.readOnly('['):
+		return LBRACK
+	case p.readOnly(']'):
+		return RBRACK
+	case p.readOnly('/'):
+		if p.readOnly('/') {
+			return DQUO
+		}
+		return QUO
+	}
+	return ILLEGAL
+}
+
+func (p *parser) doArithmToken() Token {
+	switch {
+	case p.readOnly('!'):
+		if p.readOnly('=') {
+			return NEQ
+		}
+		return NOT
+	case p.readOnly('='):
+		return ASSIGN
+	case p.readOnly('('):
+		return LPAREN
+	case p.readOnly(')'):
+		return RPAREN
+	case p.readOnly('&'):
+		if p.readOnly('&') {
+			return LAND
+		}
+		if p.readOnly('=') {
+			return AND_ASSIGN
+		}
+		return AND
+	case p.readOnly('|'):
+		if p.readOnly('|') {
+			return LOR
+		}
+		if p.readOnly('=') {
+			return OR_ASSIGN
+		}
+		return OR
+	case p.readOnly('<'):
+		switch {
+		case p.readOnly('<'):
+			if p.readOnly('=') {
+				return SHL_ASSIGN
+			}
+			return SHL
+		case p.readOnly('='):
+			return LEQ
+		}
+		return LSS
+	case p.readOnly('>'):
+		switch {
+		case p.readOnly('>'):
+			if p.readOnly('=') {
+				return SHR_ASSIGN
+			}
+			return SHR
+		case p.readOnly('='):
+			return GEQ
+		}
+		return GTR
+	case p.readOnly('+'):
+		if p.readOnly('+') {
+			return INC
+		}
+		if p.readOnly('=') {
+			return ADD_ASSIGN
+		}
+		return ADD
+	case p.readOnly('-'):
+		if p.readOnly('-') {
+			return DEC
+		}
+		if p.readOnly('=') {
+			return SUB_ASSIGN
+		}
+		return SUB
+	case p.readOnly('%'):
+		if p.readOnly('=') {
+			return REM_ASSIGN
+		}
+		return REM
+	case p.readOnly('*'):
+		if p.readOnly('*') {
+			return POW
+		}
+		if p.readOnly('=') {
+			return MUL_ASSIGN
+		}
+		return MUL
+	case p.readOnly('/'):
+		if p.readOnly('=') {
+			return QUO_ASSIGN
+		}
+		return QUO
+	case p.readOnly('^'):
+		if p.readOnly('=') {
+			return XOR_ASSIGN
+		}
+		return XOR
+	case p.readOnly(','):
+		return COMMA
+	case p.readOnly('?'):
+		return QUEST
+	case p.readOnly(':'):
+		return COLON
+	}
+	return ILLEGAL
+}
