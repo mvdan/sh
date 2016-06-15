@@ -143,7 +143,7 @@ func posMax(p1, p2 Pos) Pos {
 }
 
 func init() {
-	for _, list := range [...][]tokEntry{regList, arithmList, paramList} {
+	for _, list := range [...][]tokEntry{arithmList, paramList} {
 		for _, t := range list {
 			tokNames[t.tok] = t.str
 		}
@@ -189,44 +189,43 @@ var (
 		LOCAL:    "local",
 		EVAL:     "eval",
 		LET:      "let",
+
+		SQUOTE: `'`,
+		DQUOTE: `"`,
+		BQUOTE: "`",
+
+		AND:  "&",
+		LAND: "&&",
+		OR:   "|",
+		LOR:  "||",
+
+		DOLLAR:     "$",
+		DOLLSQ:     "$'",
+		DOLLDQ:     `$"`,
+		DOLLBR:     `${`,
+		DOLLPR:     `$(`,
+		DOLLDP:     `$((`,
+		LPAREN:     "(",
+		RPAREN:     ")",
+		SEMICOLON:  ";",
+		DSEMICOLON: ";;",
+
+		LSS:      "<",
+		GTR:      ">",
+		SHL:      "<<",
+		SHR:      ">>",
+		PIPEALL:  "|&",
+		RDRINOUT: "<>",
+		DPLIN:    "<&",
+		DPLOUT:   ">&",
+		DHEREDOC: "<<-",
+		WHEREDOC: "<<<",
+		CMDIN:    "<(",
+		CMDOUT:   ">(",
+		RDRALL:   "&>",
+		APPALL:   "&>>",
 	}
 
-	regList = []tokEntry{
-		{"'", SQUOTE},
-		{`"`, DQUOTE},
-		{"`", BQUOTE},
-
-		{"&", AND},
-		{"&&", LAND},
-		{"|", OR},
-		{"||", LOR},
-
-		{"$", DOLLAR},
-		{"$'", DOLLSQ},
-		{`$"`, DOLLDQ},
-		{`${`, DOLLBR},
-		{`$(`, DOLLPR},
-		{`$((`, DOLLDP},
-		{"(", LPAREN},
-		{")", RPAREN},
-		{";", SEMICOLON},
-		{";;", DSEMICOLON},
-
-		{"<", LSS},
-		{">", GTR},
-		{"<<", SHL},
-		{">>", SHR},
-		{"|&", PIPEALL},
-		{"<>", RDRINOUT},
-		{"<&", DPLIN},
-		{">&", DPLOUT},
-		{"<<-", DHEREDOC},
-		{"<<<", WHEREDOC},
-		{"<(", CMDIN},
-		{">(", CMDOUT},
-		{"&>", RDRALL},
-		{"&>>", APPALL},
-	}
 	paramList = []tokEntry{
 		{":", COLON},
 		{"+", ADD},
@@ -295,12 +294,96 @@ func (p *parser) doToken(tokList []tokEntry) Token {
 	// In reverse, to not treat e.g. && as & two times
 	for i := len(tokList) - 1; i >= 0; i-- {
 		t := tokList[i]
-		if p.readOnly(t.str) {
+		if p.readOnlyStr(t.str) {
 			return t.tok
 		}
 	}
 	return ILLEGAL
 }
-func (p *parser) doRegToken() Token    { return p.doToken(regList) }
+
+// TODO: decouple from parser. Passing readOnly as a func argument
+// doesn't seem to work well as it means an extra allocation (?).
+func (p *parser) doRegToken() Token {
+	switch {
+	case p.readOnly('\''):
+		return SQUOTE
+	case p.readOnly('"'):
+		return DQUOTE
+	case p.readOnly('`'):
+		return BQUOTE
+	case p.readOnly('&'):
+		switch {
+		case p.readOnly('&'):
+			return LAND
+		case p.readOnly('>'):
+			if p.readOnly('>') {
+				return APPALL
+			}
+			return RDRALL
+		}
+		return AND
+	case p.readOnly('|'):
+		switch {
+		case p.readOnly('|'):
+			return LOR
+		case p.readOnly('&'):
+			return PIPEALL
+		}
+		return OR
+	case p.readOnly('$'):
+		switch {
+		case p.readOnly('\''):
+			return DOLLSQ
+		case p.readOnly('"'):
+			return DOLLDQ
+		case p.readOnly('{'):
+			return DOLLBR
+		case p.readOnly('('):
+			if p.readOnly('(') {
+				return DOLLDP
+			}
+			return DOLLPR
+		}
+		return DOLLAR
+	case p.readOnly('('):
+		return LPAREN
+	case p.readOnly(')'):
+		return RPAREN
+	case p.readOnly(';'):
+		if p.readOnly(';') {
+			return DSEMICOLON
+		}
+		return SEMICOLON
+	case p.readOnly('<'):
+		switch {
+		case p.readOnly('<'):
+			if p.readOnly('-') {
+				return DHEREDOC
+			}
+			if p.readOnly('<') {
+				return WHEREDOC
+			}
+			return SHL
+		case p.readOnly('>'):
+			return RDRINOUT
+		case p.readOnly('&'):
+			return DPLIN
+		case p.readOnly('('):
+			return CMDIN
+		}
+		return LSS
+	case p.readOnly('>'):
+		switch {
+		case p.readOnly('>'):
+			return SHR
+		case p.readOnly('&'):
+			return DPLOUT
+		case p.readOnly('('):
+			return CMDOUT
+		}
+		return GTR
+	}
+	return ILLEGAL
+}
 func (p *parser) doParamToken() Token  { return p.doToken(paramList) }
 func (p *parser) doArithmToken() Token { return p.doToken(arithmList) }

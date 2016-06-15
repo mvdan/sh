@@ -147,7 +147,7 @@ func (p *parser) willRead(s string) bool {
 	return string(bs) == s
 }
 
-func (p *parser) readOnly(s string) bool {
+func (p *parser) readOnlyStr(s string) bool {
 	if p.willRead(s) {
 		for i := 0; i < len(s); i++ {
 			p.readByte()
@@ -156,9 +156,11 @@ func (p *parser) readOnly(s string) bool {
 	}
 	return false
 }
-func (p *parser) readOnlyTok(tok Token) bool { return p.readOnly(tok.String()) }
+func (p *parser) readOnlyTok(tok Token) bool {
+	return p.readOnlyStr(tok.String())
+}
 
-func (p *parser) readOnlyByte(b byte) bool {
+func (p *parser) readOnly(b byte) bool {
 	if p.willByte(b) {
 		p.readByte()
 		return true
@@ -232,7 +234,7 @@ func (p *parser) next() {
 	p.spaced, p.newLine = false, false
 	var b byte
 	for {
-		if !p.quoted(DQUOTE) && p.readOnly("\\\n") {
+		if !p.quoted(DQUOTE) && p.readOnlyStr("\\\n") {
 			continue
 		}
 		if b = p.peekByte(); p.tok == EOF {
@@ -288,7 +290,7 @@ func (p *parser) next() {
 func (p *parser) advanceReadLit() { p.advanceBoth(LIT, string(p.readLitBytes())) }
 func (p *parser) readLitBytes() (bs []byte) {
 	for {
-		if p.readOnlyByte('\\') { // escaped byte
+		if p.readOnly('\\') { // escaped byte
 			b := p.readByte()
 			if p.tok == EOF {
 				bs = append(bs, '\\')
@@ -358,7 +360,7 @@ func (p *parser) doHeredocs() {
 	for i, r := range p.heredocs {
 		end := unquotedWordStr(r.Word)
 		if i > 0 {
-			p.readOnlyByte('\n')
+			p.readOnly('\n')
 		}
 		r.Hdoc.ValuePos = p.npos
 		r.Hdoc.Value, _ = p.readHdocBody(end, r.Op == DHEREDOC)
@@ -376,7 +378,7 @@ func (p *parser) readHdocBody(end string, noTabs bool) (string, bool) {
 			return buf.String(), true
 		}
 		fmt.Fprintln(&buf, line)
-		p.readOnlyByte('\n')
+		p.readOnly('\n')
 	}
 	return buf.String(), false
 }
