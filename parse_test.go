@@ -61,17 +61,55 @@ func BenchmarkParse(b *testing.B) {
 		name, in string
 	}
 	benchmarks := []benchmark{
-		{"Empty", "\n\t    \n"},
-		{"Comment", "# comment body"},
-		{"LongLit", "really___long___literal___goes___here"},
-		{"Cmds", "a;a;a;a;a;a;a;a"},
-		{"Quoted", "'foo bar' \"foo bar\""},
-		{"Block", "{ foo; }; (foo)"},
-		{"IfStmt", "if foo; then bar; fi"},
-		{"ForStmt", "for foo in a b c; do bar; done"},
-		{"CmdSubst", "$(foo) `bar`"},
-		{"Binary", "foo && bar | etc"},
-		{"Redirect", "foo >a 2>&1 <<EOF\nbar\nEOF"},
+		{"Empty", ""},
+		{
+			"Whitespace",
+			strings.Repeat("\n\n\n        \n", 10),
+		},
+		{
+			"Comment",
+			"# " + strings.Repeat("foo bar ", 10),
+		},
+		{
+			"LongLit",
+			strings.Repeat("really_long_lit__", 10),
+		},
+		{
+			"Cmds",
+			strings.Repeat("a; ", 10),
+		},
+		{
+			"SglQuoted",
+			"'" + strings.Repeat("foo bar ", 10) + "'",
+		},
+		{
+			"DblQuoted",
+			`"` + strings.Repeat("foo bar ", 10) + `"`,
+		},
+		{
+			"NestedStmts",
+			"a() { (b); { c; }; (d); }",
+		},
+		{
+			"Clauses",
+			"if a; then while b; do c; done; fi",
+		},
+		{
+			"CmdSubst",
+			"$(a `b` $(c) `d`)",
+		},
+		{
+			"Binary",
+			"a | b && c || d | e",
+		},
+		{
+			"Redirect",
+			"foo >a <b <<<c 2>&1 <<EOF\nl1\nl2\nl3\nEOF",
+		},
+		{
+			"Arithm",
+			"$((a + (-b) * c)); let a++ b=(1+2)",
+		},
 	}
 	for _, c := range benchmarks {
 		r := strings.NewReader(c.in)
