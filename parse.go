@@ -435,13 +435,6 @@ func (p *parser) followTok(lpos Pos, left string, tok Token) Pos {
 	return p.lpos
 }
 
-func (p *parser) followStmt(lpos Pos, left string) (s Stmt) {
-	if !p.gotStmt(&s) {
-		p.followErr(lpos, left, "a statement")
-	}
-	return
-}
-
 func (p *parser) followStmts(left Token, stops ...Token) []Stmt {
 	if p.gotSameLine(SEMICOLON) {
 		return nil
@@ -533,11 +526,11 @@ func (p *parser) stmts(stops ...Token) (sts []Stmt) {
 		if p.eof() {
 			break
 		}
-		var s Stmt
-		if !p.gotStmt(&s, stops...) {
+		if s, ok := p.getStmt(stops...); !ok {
 			p.invalidStmtStart()
+		} else {
+			sts = append(sts, s)
 		}
-		sts = append(sts, s)
 	}
 	return
 }
@@ -749,13 +742,11 @@ func (p *parser) gotParamLit(l *Lit) bool {
 	if p.gotLit(l) {
 		return true
 	}
-	switch {
-	case p.got(DOLLAR), p.got(QUEST):
+	if p.got(DOLLAR) || p.got(QUEST) {
 		l.Value = p.ltok.String()
-	default:
-		return false
+		return true
 	}
-	return true
+	return false
 }
 
 func (p *parser) paramExp() (pe ParamExp) {
@@ -931,11 +922,12 @@ func (p *parser) gotRedirect() bool {
 	return true
 }
 
-func (p *parser) gotStmt(s *Stmt, stops ...Token) bool {
-	p.stmtStack = append(p.stmtStack, s)
-	got := p.gotStmtAndOr(s, stops...)
+func (p *parser) getStmt(stops ...Token) (Stmt, bool) {
+	var s Stmt
+	p.stmtStack = append(p.stmtStack, &s)
+	ok := p.gotStmtAndOr(&s, stops...)
 	p.stmtStack = p.stmtStack[:len(p.stmtStack)-1]
-	return got
+	return s, ok
 }
 
 func (p *parser) gotStmtAndOr(s *Stmt, stops ...Token) bool {
@@ -1016,7 +1008,10 @@ func (p *parser) binaryStmt(left Stmt) Stmt {
 	}
 	p.got(STOPPED)
 	if b.Op == LAND || b.Op == LOR {
-		b.Y = p.followStmt(b.OpPos, b.Op.String())
+		var ok bool
+		if b.Y, ok = p.getStmt(); !ok {
+			p.followErr(b.OpPos, b.Op.String(), "a statement")
+		}
 	} else {
 		s := Stmt{Position: p.pos}
 		p.stmtStack = append(p.stmtStack, &s)
@@ -1204,7 +1199,7 @@ func (p *parser) declClause() (ds DeclClause) {
 
 func (p *parser) evalClause() (ec EvalClause) {
 	ec.Eval = p.lpos
-	p.gotStmt(&ec.Stmt)
+	ec.Stmt, _ = p.getStmt()
 	return
 }
 
@@ -1268,6 +1263,8 @@ func (p *parser) funcDecl(w Word, pos Pos) (fd FuncDecl) {
 	if !ok || len(w.Parts) > 1 {
 		p.posErr(fd.Pos(), "invalid func name: %s", wordStr(w))
 	}
-	fd.Body = p.followStmt(fd.Pos(), "foo()")
+	if fd.Body, ok = p.getStmt(); !ok {
+		p.followErr(fd.Pos(), "foo()", "a statement")
+	}
 	return
 }
