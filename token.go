@@ -29,10 +29,6 @@ const (
 	CASE
 	ESAC
 
-	SQUOTE // '
-	DQUOTE // "
-	BQUOTE // `
-
 	NOT    // !
 	LBRACE // {
 	RBRACE // }
@@ -45,6 +41,10 @@ const (
 	LET
 
 	// Rest of tokens
+	SQUOTE // '
+	DQUOTE // "
+	BQUOTE // `
+
 	AND  // &
 	LAND // &&
 	OR   // |
