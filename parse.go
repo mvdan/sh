@@ -446,11 +446,12 @@ func (p *parser) followStmts(left Token, stops ...Token) []Stmt {
 	return sts
 }
 
-func (p *parser) followWord(left Token) (w Word) {
-	if !p.gotWord(&w) {
+func (p *parser) followWord(left Token) Word {
+	w, ok := p.gotWord()
+	if !ok {
 		p.followErr(p.lpos, left, "a word")
 	}
-	return
+	return w
 }
 
 func (p *parser) stmtEnd(n Node, startTok, tok Token) Pos {
@@ -555,9 +556,15 @@ func (p *parser) stmtsNested(stops ...Token) []Stmt {
 	return sts
 }
 
-func (p *parser) gotWord(w *Word) bool {
+func (p *parser) getWord() (w Word) {
 	p.readParts(&w.Parts)
-	return len(w.Parts) > 0
+	return
+}
+
+func (p *parser) gotWord() (Word, bool) {
+	var w Word
+	p.readParts(&w.Parts)
+	return w, len(w.Parts) > 0
 }
 
 func (p *parser) gotLit(l *Lit) bool {
@@ -764,8 +771,7 @@ func (p *parser) paramExp() (pe ParamExp) {
 	if p.peek(LBRACK) {
 		p.pushStops(RBRACK)
 		lpos := p.lpos
-		pe.Ind = &Index{}
-		p.gotWord(&pe.Ind.Word)
+		pe.Ind = &Index{Word: p.getWord()}
 		p.popStop()
 		p.matchedTok(lpos, LBRACK, RBRACK)
 	}
@@ -780,18 +786,18 @@ func (p *parser) paramExp() (pe ParamExp) {
 	if p.peek(QUO) || p.peek(DQUO) {
 		pe.Repl = &Replace{All: p.tok == DQUO}
 		p.pushStops(QUO)
-		p.gotWord(&pe.Repl.Orig)
+		pe.Repl.Orig = p.getWord()
 		if p.peek(QUO) {
 			p.popStop()
 			p.pushStops(RBRACE)
-			p.gotWord(&pe.Repl.With)
+			pe.Repl.With = p.getWord()
 		}
 		p.popStop()
 	} else {
 		pe.Exp = &Expansion{Op: p.tok}
 		p.popStop()
 		p.pushStops(RBRACE)
-		p.gotWord(&pe.Exp.Word)
+		pe.Exp.Word = p.getWord()
 	}
 	p.popStop()
 	p.matchedTok(pe.Dollar, DOLLBR, RBRACE)
@@ -872,16 +878,16 @@ func (p *parser) getAssign() (Assign, bool) {
 	if start.Value == "" && p.got(LPAREN) {
 		ae := ArrayExpr{Lparen: p.lpos}
 		for !p.eof() && !p.peek(RPAREN) {
-			var w Word
-			if !p.gotWord(&w) {
+			if w, ok := p.gotWord(); !ok {
 				p.curErr("array elements must be words")
+			} else {
+				ae.List = append(ae.List, w)
 			}
-			ae.List = append(ae.List, w)
 		}
 		ae.Rparen = p.matchedTok(ae.Lparen, LPAREN, RPAREN)
 		as.Value.Parts = append(as.Value.Parts, ae)
 	} else if !p.peekStop() {
-		p.gotWord(&as.Value)
+		as.Value = p.getWord()
 	}
 	return as, true
 }
@@ -1123,11 +1129,11 @@ func (p *parser) loop(forPos Pos) Loop {
 	}
 	if p.got(IN) {
 		for !p.peekEnd() {
-			var w Word
-			if !p.gotWord(&w) {
+			if w, ok := p.gotWord(); !ok {
 				p.curErr("word list can only contain words")
+			} else {
+				wi.List = append(wi.List, w)
 			}
-			wi.List = append(wi.List, w)
 		}
 		p.gotSameLine(SEMICOLON)
 	} else if !p.gotSameLine(SEMICOLON) && !p.newLine {
@@ -1153,11 +1159,11 @@ func (p *parser) patLists() (pls []PatternList) {
 		var pl PatternList
 		p.got(LPAREN)
 		for !p.eof() {
-			var w Word
-			if !p.gotWord(&w) {
+			if w, ok := p.gotWord(); !ok {
 				p.curErr("case patterns must consist of words")
+			} else {
+				pl.Patterns = append(pl.Patterns, w)
 			}
-			pl.Patterns = append(pl.Patterns, w)
 			if p.peek(RPAREN) {
 				break
 			}
@@ -1179,20 +1185,18 @@ func (p *parser) declClause() (ds DeclClause) {
 	ds.Declare = p.lpos
 	ds.Local = p.lval == LOCAL.String()
 	for p.peek(LIT) && p.willSpaced() && p.val[0] == '-' {
-		var w Word
-		p.gotWord(&w)
-		ds.Opts = append(ds.Opts, w)
+		ds.Opts = append(ds.Opts, p.getWord())
 	}
 	for !p.peekStop() {
 		if as, ok := p.getAssign(); ok {
 			ds.Assigns = append(ds.Assigns, as)
 			continue
 		}
-		var w Word
-		if !p.gotWord(&w) {
+		if w, ok := p.gotWord(); !ok {
 			p.followErr(p.pos, DECLARE, "words")
+		} else {
+			ds.Assigns = append(ds.Assigns, Assign{Value: w})
 		}
-		ds.Assigns = append(ds.Assigns, Assign{Value: w})
 	}
 	return ds
 }
@@ -1229,8 +1233,8 @@ func (p *parser) callOrFunc() Command {
 		}
 		return p.funcDecl(w, fpos)
 	}
-	var w Word
-	if !p.gotWord(&w) {
+	w, ok := p.gotWord()
+	if !ok {
 		return nil
 	}
 	if p.gotSameLine(LPAREN) {
@@ -1239,13 +1243,10 @@ func (p *parser) callOrFunc() Command {
 	}
 	ce := CallExpr{Args: []Word{w}}
 	for !p.peekStop() {
-		var w Word
-		switch {
-		case p.got(STOPPED):
-		case p.gotRedirect():
-		case p.gotWord(&w):
+		if p.got(STOPPED) || p.gotRedirect() {
+		} else if w, ok := p.gotWord(); ok {
 			ce.Args = append(ce.Args, w)
-		default:
+		} else {
 			p.curErr("a command can only contain words and redirects")
 		}
 	}
