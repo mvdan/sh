@@ -1094,7 +1094,7 @@ func (p *parser) ifClause() (ic IfClause) {
 	return
 }
 
-func (p *parser) cond(left Token, stops ...Token) Cond {
+func (p *parser) cond(left Token, stop Token) Cond {
 	if p.peek(LPAREN) && p.readOnlyTok(LPAREN) {
 		p.pushStops(DRPAREN)
 		c := CStyleCond{Lparen: p.lpos}
@@ -1103,7 +1103,7 @@ func (p *parser) cond(left Token, stops ...Token) Cond {
 		p.gotSameLine(SEMICOLON)
 		return c
 	}
-	stmts := p.followStmts(left, stops...)
+	stmts := p.followStmts(left, stop)
 	if len(stmts) == 0 {
 		return nil
 	}
