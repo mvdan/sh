@@ -623,8 +623,7 @@ func (p *parser) wordPart() WordPart {
 		return cs
 	case p.peek(DOLLAR):
 		if p.willSpaced() {
-			p.tok = LIT
-			p.val = DOLLAR.String()
+			p.tok, p.val = LIT, DOLLAR.String()
 			return p.wordPart()
 		}
 		switch {
@@ -1191,8 +1190,7 @@ func (p *parser) patLists() (pls []PatternList) {
 		}
 		pl.Stmts = p.stmtsNested(DSEMICOLON, ESAC, SEMIFALL, DSEMIFALL)
 		if !p.got(DSEMICOLON) && !p.got(SEMIFALL) && !p.got(DSEMIFALL) {
-			pl.Op = DSEMICOLON
-			pl.OpPos = p.lpos
+			pl.Op, pl.OpPos = DSEMICOLON, p.lpos
 			pls = append(pls, pl)
 			break
 		}
