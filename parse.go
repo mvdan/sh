@@ -392,14 +392,11 @@ func (p *parser) peekReservedWord(tok Token) bool {
 
 func wordBreak(b byte) bool {
 	return b == '&' || b == '>' || b == '<' || b == '|' ||
-		b == ';' || b == '(' || b == ')'
+		b == ';' || b == '(' || b == ')' || b == '`'
 }
 
 func (p *parser) willSpaced() bool {
 	if p.reachingEOF() {
-		return true
-	}
-	if len(p.stops) > 0 && p.willRead(p.stops[len(p.stops)-1].String()) {
 		return true
 	}
 	bs, err := p.br.Peek(1)
