@@ -62,6 +62,8 @@ const (
 	RPAREN     // )
 	SEMICOLON  // ;
 	DSEMICOLON // ;;
+	SEMIFALL   // ;&
+	DSEMIFALL  // ;;&
 	COLON      // :
 
 	LSS // <
@@ -196,6 +198,8 @@ var (
 		RPAREN:     ")",
 		SEMICOLON:  ";",
 		DSEMICOLON: ";;",
+		SEMIFALL:   ";&",
+		DSEMIFALL:  ";;&",
 
 		LSS:      "<",
 		GTR:      ">",
@@ -305,7 +309,13 @@ func (p *parser) doRegToken() Token {
 		return RPAREN
 	case p.readOnly(';'):
 		if p.readOnly(';') {
+			if p.readOnly('&') {
+				return DSEMIFALL
+			}
 			return DSEMICOLON
+		}
+		if p.readOnly('&') {
+			return SEMIFALL
 		}
 		return SEMICOLON
 	case p.readOnly('<'):

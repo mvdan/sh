@@ -1704,12 +1704,37 @@ var astTests = []testCase{
 			Word: *word(litParamExp("i")),
 			List: []PatternList{
 				{
+					Op:       DSEMICOLON,
 					Patterns: litWords("1"),
 					Stmts:    litStmts("foo"),
 				},
 				{
+					Op:       DSEMICOLON,
 					Patterns: litWords("2", "3*"),
 					Stmts:    litStmts("bar"),
+				},
+			},
+		},
+	},
+	{
+		[]string{"case $i in 1) a ;;& 2) b ;& 3) c ;; esac"},
+		&CaseClause{
+			Word: *word(litParamExp("i")),
+			List: []PatternList{
+				{
+					Op:       DSEMIFALL,
+					Patterns: litWords("1"),
+					Stmts:    litStmts("a"),
+				},
+				{
+					Op:       SEMIFALL,
+					Patterns: litWords("2"),
+					Stmts:    litStmts("b"),
+				},
+				{
+					Op:       DSEMICOLON,
+					Patterns: litWords("3"),
+					Stmts:    litStmts("c"),
 				},
 			},
 		},
@@ -2364,7 +2389,7 @@ func setPosRecurse(tb testing.TB, v interface{}, to Pos, diff bool) {
 		recurse(&x.Word)
 		for i := range x.List {
 			pl := &x.List[i]
-			setPos(&pl.Dsemi)
+			setPos(&pl.OpPos)
 			recurse(pl.Patterns)
 			recurse(pl.Stmts)
 		}

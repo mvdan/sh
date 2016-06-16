@@ -1189,12 +1189,15 @@ func (p *parser) patLists() (pls []PatternList) {
 				p.curErr("case patterns must be separated with |")
 			}
 		}
-		pl.Stmts = p.stmtsNested(DSEMICOLON, ESAC)
-		pl.Dsemi = p.pos
-		pls = append(pls, pl)
-		if !p.got(DSEMICOLON) {
+		pl.Stmts = p.stmtsNested(DSEMICOLON, ESAC, SEMIFALL, DSEMIFALL)
+		if !p.got(DSEMICOLON) && !p.got(SEMIFALL) && !p.got(DSEMIFALL) {
+			pl.Op = DSEMICOLON
+			pl.OpPos = p.lpos
+			pls = append(pls, pl)
 			break
 		}
+		pl.Op, pl.OpPos = p.ltok, p.lpos
+		pls = append(pls, pl)
 	}
 	return
 }

@@ -574,11 +574,11 @@ func (p *printer) command(cmd Command, redirs []Redirect) (startRedirs int) {
 			p.level++
 			if !sep {
 				p.curLine++
-			} else if pl.Dsemi.Line == p.curLine && pl.Dsemi != x.Esac {
+			} else if pl.OpPos.Line == p.curLine && pl.OpPos != x.Esac {
 				p.curLine--
 			}
-			p.separated(DSEMICOLON, pl.Dsemi, false)
-			if pl.Dsemi == x.Esac {
+			p.separated(pl.Op, pl.OpPos, false)
+			if pl.OpPos == x.Esac {
 				p.curLine--
 			}
 			p.level--
