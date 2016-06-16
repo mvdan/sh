@@ -502,25 +502,25 @@ func (p *parser) errPass(err error) {
 	}
 }
 
-type LineErr struct {
-	Name string
-	Pos  Pos
-	Text string
+type ParseError struct {
+	Pos
+	Filename string
+	Text     string
 }
 
-func (e LineErr) Error() string {
+func (e *ParseError) Error() string {
 	prefix := ""
-	if e.Name != "" {
-		prefix = e.Name + ":"
+	if e.Filename != "" {
+		prefix = e.Filename + ":"
 	}
-	return fmt.Sprintf("%s%d:%d: %s", prefix, e.Pos.Line, e.Pos.Column, e.Text)
+	return fmt.Sprintf("%s%d:%d: %s", prefix, e.Line, e.Column, e.Text)
 }
 
 func (p *parser) posErr(pos Pos, format string, a ...interface{}) {
-	p.errPass(LineErr{
-		Name: p.file.Name,
-		Pos:  pos,
-		Text: fmt.Sprintf(format, a...),
+	p.errPass(&ParseError{
+		Pos:      pos,
+		Filename: p.file.Name,
+		Text:     fmt.Sprintf(format, a...),
 	})
 }
 
