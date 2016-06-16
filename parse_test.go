@@ -458,6 +458,10 @@ var errTests = []struct {
 		`1:6: reached EOF without closing quote '`,
 	},
 	{
+		`echo $"`,
+		`1:6: reached EOF without closing quote "`,
+	},
+	{
 		"echo ${}",
 		`1:6: parameter expansion requires a literal`,
 	},
