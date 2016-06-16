@@ -245,9 +245,9 @@ func (p *parser) next() {
 		p.advanceTok(RBRACK)
 	case q == SQUOTE && p.readOnlyTok(SQUOTE):
 		p.advanceTok(SQUOTE)
-	case q == SQUOTE, q == QUO:
+	case q == SQUOTE:
 		p.advanceReadLit()
-	case q == DQUOTE, q == RBRACE:
+	case q == DQUOTE, q == RBRACE, q == QUO:
 		if b == '`' || b == '"' || b == '$' {
 			p.advanceTok(p.doRegToken())
 		} else {
