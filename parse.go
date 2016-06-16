@@ -68,17 +68,13 @@ func (p *parser) pushStops(stops ...Token) {
 	p.next()
 }
 
-func (p *parser) quoted(tok Token) bool {
-	return len(p.stops) > 0 && p.stops[len(p.stops)-1] == tok
-}
-func (p *parser) quotedAny(toks ...Token) bool {
-	for _, tok := range toks {
-		if p.quoted(tok) {
-			return true
-		}
+func (p *parser) quote() Token {
+	if len(p.stops) == 0 {
+		return ILLEGAL
 	}
-	return false
+	return p.stops[len(p.stops)-1]
 }
+
 func (p *parser) popStops(n int) { p.stops = p.stops[:len(p.stops)-n] }
 func (p *parser) popStop()       { p.popStops(1) }
 
@@ -214,15 +210,16 @@ func (p *parser) next() {
 	}
 	p.spaced, p.newLine = false, false
 	var b byte
+	q := p.quote()
 	for {
-		if !p.quoted(DQUOTE) && p.readOnlyStr("\\\n") {
+		if q != DQUOTE && p.readOnlyStr("\\\n") {
 			continue
 		}
 		if b = p.peekByte(); p.tok == EOF {
 			p.lpos, p.pos = p.pos, p.npos
 			return
 		}
-		if p.quotedAny(DQUOTE, SQUOTE, RBRACE, QUO) || !space(b) {
+		if q == DQUOTE || q == SQUOTE || q == RBRACE || q == QUO || !space(b) {
 			break
 		}
 		if p.stopNewline && b == '\n' {
@@ -239,22 +236,22 @@ func (p *parser) next() {
 	}
 	p.lpos, p.pos = p.pos, p.npos
 	switch {
-	case p.quotedAny(RBRACE, LBRACE, QUO) && p.readOnlyTok(RBRACE):
+	case (q == RBRACE || q == LBRACE || q == QUO) && p.readOnlyTok(RBRACE):
 		p.advanceTok(RBRACE)
-	case p.quoted(QUO) && p.readOnlyTok(QUO):
+	case q == QUO && p.readOnlyTok(QUO):
 		p.advanceTok(QUO)
-	case p.quoted(RBRACK) && p.readOnlyTok(RBRACK):
+	case q == RBRACK && p.readOnlyTok(RBRACK):
 		p.advanceTok(RBRACK)
-	case b == '#' && !p.quotedAny(DQUOTE, SQUOTE, LBRACE, RBRACE, QUO):
+	case b == '#' && q != DQUOTE && q != SQUOTE && q != LBRACE && q != RBRACE && q != QUO:
 		line, _ := p.readUntil('\n')
 		p.advanceBoth(COMMENT, line[1:])
-	case p.quoted(LBRACE) && paramOps(b):
+	case q == LBRACE && paramOps(b):
 		p.advanceTok(p.doParamToken())
-	case p.quotedAny(DLPAREN, DRPAREN, LPAREN) && arithmOps(b):
+	case (q == DLPAREN || q == DRPAREN || q == LPAREN) && arithmOps(b):
 		p.advanceTok(p.doArithmToken())
 	case regOps(b):
 		// Limited tokenization in these circumstances
-		if p.quotedAny(DQUOTE, RBRACE) {
+		if q == DQUOTE || q == RBRACE {
 			switch {
 			case b == '`', b == '"', b == '$':
 			default:
@@ -270,6 +267,7 @@ func (p *parser) next() {
 
 func (p *parser) advanceReadLit() { p.advanceBoth(LIT, string(p.readLitBytes())) }
 func (p *parser) readLitBytes() (bs []byte) {
+	q := p.quote()
 	for {
 		if p.readOnly('\\') { // escaped byte
 			b := p.readByte()
@@ -277,7 +275,7 @@ func (p *parser) readLitBytes() (bs []byte) {
 				bs = append(bs, '\\')
 				return
 			}
-			if p.quoted(DQUOTE) || b != '\n' {
+			if q == DQUOTE || b != '\n' {
 				bs = append(bs, '\\', b)
 			}
 			continue
@@ -289,27 +287,27 @@ func (p *parser) readLitBytes() (bs []byte) {
 		switch {
 		case b == '$' && !p.willRead(`$"`) && !p.willRead(`$'`), b == '`':
 			return
-		case p.quoted(RBRACE):
+		case q == RBRACE:
 			if b == '}' || b == '"' {
 				return
 			}
-		case p.quoted(LBRACE) && paramOps(b), p.quoted(RBRACK) && b == ']':
+		case q == LBRACE && paramOps(b), q == RBRACK && b == ']':
 			return
-		case p.quoted(QUO):
+		case q == QUO:
 			if b == '/' || b == '}' {
 				return
 			}
-		case p.quoted(SQUOTE):
+		case q == SQUOTE:
 			if b == '\'' {
 				return
 			}
-		case p.quoted(DQUOTE):
+		case q == DQUOTE:
 			if b == '"' {
 				return
 			}
 		case regOps(b), space(b):
 			return
-		case p.quotedAny(DLPAREN, DRPAREN, LPAREN) && arithmOps(b):
+		case (q == DLPAREN || q == DRPAREN || q == LPAREN) && arithmOps(b):
 			return
 		}
 		p.readByte()
@@ -612,6 +610,7 @@ func (p *parser) readParts(ns *[]WordPart) {
 }
 
 func (p *parser) wordPart() WordPart {
+	q := p.quote()
 	switch {
 	case p.got(LIT):
 		return &Lit{ValuePos: p.lpos, Value: p.lval}
@@ -653,7 +652,7 @@ func (p *parser) wordPart() WordPart {
 		ps.Stmts = p.stmtsNested(RPAREN)
 		ps.Rparen = p.matchedTok(ps.OpPos, ps.Op, RPAREN)
 		return ps
-	case !p.quoted(SQUOTE) && p.peek(SQUOTE):
+	case q != SQUOTE && p.peek(SQUOTE):
 		sq := &SglQuoted{Quote: p.pos}
 		s, found := p.readUntil('\'')
 		if !found {
@@ -663,9 +662,9 @@ func (p *parser) wordPart() WordPart {
 		p.readOnlyTok(SQUOTE)
 		p.next()
 		return sq
-	case !p.quoted(SQUOTE) && p.peek(DOLLSQ):
+	case q != SQUOTE && p.peek(DOLLSQ):
 		fallthrough
-	case !p.quoted(DQUOTE) && (p.peek(DQUOTE) || p.peek(DOLLDQ)):
+	case q != DQUOTE && (p.peek(DQUOTE) || p.peek(DOLLDQ)):
 		q := &Quoted{Quote: p.tok, QuotePos: p.pos}
 		stop := quotedStop(q.Quote)
 		p.pushStops(stop)
@@ -673,7 +672,7 @@ func (p *parser) wordPart() WordPart {
 		p.popStop()
 		p.closingQuote(q, stop)
 		return q
-	case !p.quoted(BQUOTE) && p.peek(BQUOTE):
+	case q != BQUOTE && p.peek(BQUOTE):
 		cs := &CmdSubst{Backquotes: true, Left: p.pos}
 		cs.Stmts = p.stmtsNested(BQUOTE)
 		p.closingQuote(cs, BQUOTE)
@@ -698,7 +697,8 @@ func (p *parser) arithmExpr(following Token) ArithmExpr {
 		return nil
 	}
 	left := p.arithmExprBase(following)
-	if !p.quotedAny(DRPAREN, LPAREN) && p.spaced {
+	q := p.quote()
+	if q != DRPAREN && q != LPAREN && p.spaced {
 		return left
 	}
 	if p.eof() || p.peek(RPAREN) || p.peek(SEMICOLON) || p.peek(STOPPED) {
@@ -713,7 +713,7 @@ func (p *parser) arithmExpr(following Token) ArithmExpr {
 		Op:    p.ltok,
 		X:     left,
 	}
-	if !p.quotedAny(DRPAREN, LPAREN) && p.spaced {
+	if q != DRPAREN && q != LPAREN && p.spaced {
 		p.followErr(b.OpPos, b.Op, "an expression")
 	}
 	if b.Y = p.arithmExpr(b.Op); b.Y == nil {
@@ -729,6 +729,7 @@ func (p *parser) arithmExprBase(following Token) ArithmExpr {
 		return pre
 	}
 	var x ArithmExpr
+	q := p.quote()
 	switch {
 	case p.peek(LPAREN):
 		p.pushStops(LPAREN)
@@ -742,7 +743,7 @@ func (p *parser) arithmExprBase(following Token) ArithmExpr {
 		x = pe
 	case p.got(ADD), p.got(SUB):
 		ue := &UnaryExpr{OpPos: p.lpos, Op: p.ltok}
-		if !p.quotedAny(DRPAREN, LPAREN) && p.spaced {
+		if q != DRPAREN && q != LPAREN && p.spaced {
 			p.followErr(ue.OpPos, ue.Op, "an expression")
 		}
 		ue.X = p.arithmExpr(ue.Op)
@@ -754,7 +755,7 @@ func (p *parser) arithmExprBase(following Token) ArithmExpr {
 		w := p.followWord(following)
 		x = &w
 	}
-	if !p.quotedAny(DRPAREN, LPAREN) && p.spaced {
+	if q != DRPAREN && q != LPAREN && p.spaced {
 		return x
 	}
 	if p.got(INC) || p.got(DEC) {
