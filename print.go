@@ -100,7 +100,13 @@ func (p *printer) spacedTok(tok Token, spaceAfter bool) {
 	p.token(tok, spaceAfter)
 }
 
-func (p *printer) lineJoin() { p.str(" \\\n") }
+func (p *printer) lineJoin() {
+	if p.wantSpace {
+		p.str(" \\\n")
+	} else {
+		p.str("\\\n")
+	}
+}
 
 func (p *printer) semiOrNewl(tok Token, pos Pos) {
 	if !p.wantNewline {

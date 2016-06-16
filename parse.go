@@ -213,12 +213,12 @@ func (p *parser) next() {
 	var b byte
 	q := p.quote()
 	for {
-		if q != DQUOTE && p.readOnlyStr("\\\n") {
-			continue
-		}
 		if b = p.peekByte(); p.tok == EOF {
 			p.lpos, p.pos = p.pos, p.npos
 			return
+		}
+		if q != DQUOTE && b == '\\' && p.readOnlyStr("\\\n") {
+			continue
 		}
 		if q == DQUOTE || q == SQUOTE || q == RBRACE || q == QUO || !space(b) {
 			break
