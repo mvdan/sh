@@ -192,9 +192,10 @@ func paramOps(b byte) bool {
 // tokenize these inside arithmetic expansions
 func arithmOps(b byte) bool {
 	return b == '+' || b == '-' || b == '!' || b == '*' ||
-		b == '/' || b == '%' || b == '^' || b == '<' ||
-		b == '>' || b == ':' || b == '=' || b == ',' ||
-		b == '?'
+		b == '/' || b == '%' || b == '(' || b == ')' ||
+		b == '^' || b == '<' || b == '>' || b == ':' ||
+		b == '=' || b == ',' || b == '?' || b == '|' ||
+		b == '&'
 }
 
 // space returns whether a byte acts as a space
