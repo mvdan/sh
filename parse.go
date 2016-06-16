@@ -112,12 +112,28 @@ func moveWith(pos Pos, b byte) Pos {
 	return pos
 }
 
+func moveWithBytes(pos Pos, bs []byte) Pos {
+	for _, b := range bs {
+		if b == '\n' {
+			pos.Line++
+			pos.Column = 1
+		} else {
+			pos.Column++
+		}
+	}
+	return pos
+}
+
 func (p *parser) peekByte() byte {
 	if p.reachingEOF() {
 		p.errPass(p.nextErr)
 		return 0
 	}
-	bs, _ := p.br.Peek(1)
+	bs, err := p.br.Peek(1)
+	if err != nil {
+		p.errPass(p.nextErr)
+		return 0
+	}
 	return bs[0]
 }
 
@@ -311,15 +327,23 @@ func (p *parser) advanceBoth(tok Token, val string) {
 }
 
 func (p *parser) readUntil(b byte) (string, bool) {
-	var bs []byte
-	for !p.willByte(b) {
-		b := p.readByte()
-		if p.tok == EOF {
-			return string(bs), false
+	// TODO: fix in a cleaner way
+	if p.nextErr != nil && p.remaining == 1 {
+		if pb := p.peekByte(); pb != b {
+			p.readByte()
+			return string(pb), false
 		}
-		bs = append(bs, b)
 	}
-	return string(bs), true
+	bs, err := p.br.ReadBytes(b)
+	if err != nil {
+		p.nextErr = err
+		p.remaining = 0
+	} else {
+		bs = bs[:len(bs)-1]
+		p.br.UnreadByte()
+	}
+	p.npos = moveWithBytes(p.npos, bs)
+	return string(bs), err == nil
 }
 
 func (p *parser) doHeredocs() {
@@ -336,7 +360,7 @@ func (p *parser) doHeredocs() {
 
 func (p *parser) readHdocBody(end string, noTabs bool) (string, bool) {
 	var buf bytes.Buffer
-	for !p.eof() {
+	for p.tok != EOF && !p.reachingEOF() {
 		line, _ := p.readUntil('\n')
 		if line == end || (noTabs && strings.TrimLeft(line, "\t") == end) {
 			// add trailing tabs
@@ -463,8 +487,12 @@ func (p *parser) stmtEnd(n Node, startTok, tok Token) Pos {
 
 func (p *parser) closingQuote(n Node, tok Token) {
 	if !p.got(tok) {
-		p.posErr(n.Pos(), `reached %s without closing quote %s`, p.tok, tok)
+		p.quoteErr(n.Pos(), tok)
 	}
+}
+
+func (p *parser) quoteErr(lpos Pos, quote Token) {
+	p.posErr(lpos, `reached %s without closing quote %s`, p.tok, quote)
 }
 
 func (p *parser) matchingErr(lpos Pos, left, right Token) {
@@ -635,7 +663,7 @@ func (p *parser) wordPart() WordPart {
 		sq := &SglQuoted{Quote: p.pos}
 		s, found := p.readUntil('\'')
 		if !found {
-			p.closingQuote(sq, SQUOTE)
+			p.posErr(sq.Pos(), `reached EOF without closing quote %s`, SQUOTE)
 		}
 		sq.Value = s
 		p.readOnlyTok(SQUOTE)
