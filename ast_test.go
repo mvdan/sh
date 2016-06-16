@@ -1085,6 +1085,20 @@ var astTests = []testCase{
 		}),
 	},
 	{
+		[]string{"${foo:=b${c}`d`}"},
+		word(&ParamExp{
+			Param: *lit("foo"),
+			Exp: &Expansion{
+				Op:   CASSIGN,
+				Word: *word(
+					lit("b"),
+					&ParamExp{Param: *lit("c")},
+					bckQuoted(litStmt("d")),
+				),
+			},
+		}),
+	},
+	{
 		[]string{`${foo?"${bar}"}`},
 		word(&ParamExp{
 			Param: *lit("foo"),

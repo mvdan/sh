@@ -291,7 +291,11 @@ func (p *parser) readLitBytes() (bs []byte) {
 			if b == '\'' {
 				return
 			}
-		case b == '$' && !p.willRead(`$"`) && !p.willRead(`$'`), b == '`':
+		case q == DQUOTE:
+			if b == '"' || (b == '$' && !p.willRead(`$"`)) {
+				return
+			}
+		case b == '$', b == '`':
 			return
 		case q == RBRACE:
 			if b == '}' || b == '"' {
@@ -301,10 +305,6 @@ func (p *parser) readLitBytes() (bs []byte) {
 			return
 		case q == QUO:
 			if b == '/' || b == '}' {
-				return
-			}
-		case q == DQUOTE:
-			if b == '"' {
 				return
 			}
 		case regOps(b), space(b):
