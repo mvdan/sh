@@ -64,7 +64,7 @@ func BenchmarkParse(b *testing.B) {
 		{"Empty", ""},
 		{
 			"Whitespace",
-			strings.Repeat("\n\n\n        \n", 10),
+			strings.Repeat("\n\n\t\t        \n", 10),
 		},
 		{
 			"Comment",
@@ -80,11 +80,11 @@ func BenchmarkParse(b *testing.B) {
 		},
 		{
 			"SglQuoted",
-			"'" + strings.Repeat("foo bar ", 10) + "'",
+			"'" + strings.Repeat("foo bar ", 10) + "\n'",
 		},
 		{
 			"DblQuoted",
-			`"` + strings.Repeat("foo bar ", 10) + `"`,
+			`"` + strings.Repeat("foo bar ", 10) + "\n\"",
 		},
 		{
 			"NestedStmts",
