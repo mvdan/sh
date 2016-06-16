@@ -45,7 +45,7 @@ type parser struct {
 	spaced, newLine bool
 
 	nextErr   error
-	remaining int
+	remaining []byte
 
 	ltok, tok Token
 	lval, val string
@@ -83,7 +83,7 @@ func (p *parser) popStops(n int) { p.stops = p.stops[:len(p.stops)-n] }
 func (p *parser) popStop()       { p.popStops(1) }
 
 func (p *parser) reachingEOF() bool {
-	return p.nextErr != nil && p.remaining == 0
+	return p.nextErr != nil && len(p.remaining) == 0
 }
 
 func (p *parser) readByte() byte {
@@ -92,8 +92,8 @@ func (p *parser) readByte() byte {
 		return 0
 	}
 	b, _ := p.br.ReadByte()
-	if p.remaining > 0 {
-		p.remaining--
+	if len(p.remaining) > 0 {
+		p.remaining = p.remaining[:len(p.remaining)-1]
 	}
 	p.npos = moveWith(p.npos, b)
 	return b
@@ -144,20 +144,19 @@ func (p *parser) willByte(b byte) bool {
 	bs, err := p.br.Peek(1)
 	if err != nil {
 		p.nextErr = err
-		p.remaining = len(bs)
 		return false
 	}
 	return bs[0] == b
 }
 
 func (p *parser) willRead(s string) bool {
-	if p.nextErr != nil && p.remaining < len(s) {
+	if p.nextErr != nil && len(p.remaining) < len(s) {
 		return false
 	}
 	bs, err := p.br.Peek(len(s))
 	if err != nil {
 		p.nextErr = err
-		p.remaining = len(bs)
+		p.remaining = bs
 		return false
 	}
 	return string(bs) == s
@@ -327,17 +326,12 @@ func (p *parser) advanceBoth(tok Token, val string) {
 }
 
 func (p *parser) readUntil(b byte) (string, bool) {
-	// TODO: fix in a cleaner way
-	if p.nextErr != nil && p.remaining == 1 {
-		if pb := p.peekByte(); pb != b {
-			p.readByte()
-			return string(pb), false
-		}
+	if p.nextErr != nil && len(p.remaining) > 0 && p.remaining[0] != b {
+		return string(p.readByte()), false
 	}
 	bs, err := p.br.ReadBytes(b)
 	if err != nil {
 		p.nextErr = err
-		p.remaining = 0
 	} else {
 		bs = bs[:len(bs)-1]
 		p.br.UnreadByte()
