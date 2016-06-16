@@ -374,8 +374,6 @@ func (p *parser) doParamToken() Token {
 		return HASH
 	case p.readOnly('['):
 		return LBRACK
-	case p.readOnly(']'):
-		return RBRACK
 	case p.readOnly('/'):
 		if p.readOnly('/') {
 			return DQUO

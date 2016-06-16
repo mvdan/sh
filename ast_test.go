@@ -1058,12 +1058,12 @@ var astTests = []testCase{
 		}),
 	},
 	{
-		[]string{`${foo-bar}"bar"`},
+		[]string{`${foo+bar}"bar"`},
 		word(
 			&ParamExp{
 				Param: *lit("foo"),
 				Exp: &Expansion{
-					Op:   SUB,
+					Op:   ADD,
 					Word: *litWord("bar"),
 				},
 			},
@@ -1103,24 +1103,68 @@ var astTests = []testCase{
 		}),
 	},
 	{
-		[]string{`${foo%bar}`},
-		word(&ParamExp{
-			Param: *lit("foo"),
-			Exp: &Expansion{
-				Op:   REM,
-				Word: *litWord("bar"),
+		[]string{`${a:+b}${a:-b}${a=b}`},
+		word(
+			&ParamExp{
+				Param: *lit("a"),
+				Exp: &Expansion{
+					Op:   CADD,
+					Word: *litWord("b"),
+				},
 			},
-		}),
+			&ParamExp{
+				Param: *lit("a"),
+				Exp: &Expansion{
+					Op:   CSUB,
+					Word: *litWord("b"),
+				},
+			},
+			&ParamExp{
+				Param: *lit("a"),
+				Exp: &Expansion{
+					Op:   ASSIGN,
+					Word: *litWord("b"),
+				},
+			},
+		),
 	},
 	{
-		[]string{`${foo##f*}`},
-		word(&ParamExp{
-			Param: *lit("foo"),
-			Exp: &Expansion{
-				Op:   DHASH,
-				Word: *litWord("f*"),
+		[]string{`${foo%bar}${foo%%bar*}`},
+		word(
+			&ParamExp{
+				Param: *lit("foo"),
+				Exp: &Expansion{
+					Op:   REM,
+					Word: *litWord("bar"),
+				},
 			},
-		}),
+			&ParamExp{
+				Param: *lit("foo"),
+				Exp: &Expansion{
+					Op:   DREM,
+					Word: *litWord("bar*"),
+				},
+			},
+		),
+	},
+	{
+		[]string{`${foo#bar}${foo##bar*}`},
+		word(
+			&ParamExp{
+				Param: *lit("foo"),
+				Exp: &Expansion{
+					Op:   HASH,
+					Word: *litWord("bar"),
+				},
+			},
+			&ParamExp{
+				Param: *lit("foo"),
+				Exp: &Expansion{
+					Op:   DHASH,
+					Word: *litWord("bar*"),
+				},
+			},
+		),
 	},
 	{
 		[]string{`${foo%?}`},
