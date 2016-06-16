@@ -462,11 +462,15 @@ var astTests = []testCase{
 		},
 	},
 	{
-		[]string{"a=b foo=$bar"},
+		[]string{"a=b foo=$bar foo=start$bar"},
 		Stmt{
 			Assigns: []Assign{
 				{Name: lit("a"), Value: *litWord("b")},
 				{Name: lit("foo"), Value: *word(litParamExp("bar"))},
+				{Name: lit("foo"), Value: *word(
+					lit("start"),
+					litParamExp("bar"),
+				)},
 			},
 		},
 	},

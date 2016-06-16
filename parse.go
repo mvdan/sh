@@ -909,7 +909,12 @@ func (p *parser) getAssign() (Assign, bool) {
 		ae.Rparen = p.matchedTok(ae.Lparen, LPAREN, RPAREN)
 		as.Value.Parts = append(as.Value.Parts, ae)
 	} else if !p.peekStop() {
-		as.Value = p.getWord()
+		w := p.getWord()
+		if start.Value == "" {
+			as.Value = w
+		} else {
+			as.Value.Parts = append(as.Value.Parts, w.Parts...)
+		}
 	}
 	return as, true
 }
