@@ -2058,7 +2058,7 @@ func emptyNode(n Node) bool {
 	return len(s) == 0
 }
 
-func setPosRecurse(tb testing.TB, v interface{}, to Pos, diff bool) Node {
+func setPosRecurse(tb testing.TB, v interface{}, to Pos, diff bool) {
 	setPos := func(p *Pos) {
 		if diff && *p == to {
 			tb.Fatalf("Pos() in %T is already %v", v, to)
@@ -2085,10 +2085,11 @@ func setPosRecurse(tb testing.TB, v interface{}, to Pos, diff bool) Node {
 			tb.Fatalf("Found End() at Pos() in %T %#v", n, n)
 		}
 	}
-	recurse := func(v interface{}) Node {
-		n := setPosRecurse(tb, v, to, diff)
-		checkPos(n)
-		return n
+	recurse := func(v interface{}) {
+		setPosRecurse(tb, v, to, diff)
+		if n, ok := v.(Node); ok {
+			checkPos(n)
+		}
 	}
 	switch x := v.(type) {
 	case *File:
@@ -2283,7 +2284,6 @@ func setPosRecurse(tb testing.TB, v interface{}, to Pos, diff bool) Node {
 	default:
 		panic(reflect.TypeOf(v))
 	}
-	return nil
 }
 
 func TestNodePos(t *testing.T) {
