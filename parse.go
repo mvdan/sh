@@ -125,11 +125,7 @@ func (p *parser) peekByte() byte {
 		p.errPass(p.nextErr)
 		return 0
 	}
-	bs, err := p.br.Peek(1)
-	if err != nil {
-		p.errPass(p.nextErr)
-		return 0
-	}
+	bs, _ := p.br.Peek(1)
 	return bs[0]
 }
 
