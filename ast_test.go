@@ -1615,12 +1615,12 @@ var astTests = []testCase{
 		word(&Quoted{Quote: DOLLSQ, Parts: lits("foo")}),
 	},
 	{
-		[]string{`$'foo$'`},
-		word(&Quoted{Quote: DOLLSQ, Parts: lits("foo$")}),
+		[]string{`$'foo${'`},
+		word(&Quoted{Quote: DOLLSQ, Parts: lits("foo${")}),
 	},
 	{
-		[]string{`$'foo bar'`},
-		word(&Quoted{Quote: DOLLSQ, Parts: lits(`foo bar`)}),
+		[]string{"$'foo bar`'"},
+		word(&Quoted{Quote: DOLLSQ, Parts: lits("foo bar`")}),
 	},
 	{
 		[]string{`$'f\'oo'`},

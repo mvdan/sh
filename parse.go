@@ -243,7 +243,17 @@ func (p *parser) next() {
 		p.advanceTok(QUO)
 	case q == RBRACK && p.readOnlyTok(RBRACK):
 		p.advanceTok(RBRACK)
-	case b == '#' && q != DQUOTE && q != SQUOTE && q != LBRACE && q != RBRACE && q != QUO:
+	case q == SQUOTE && p.readOnlyTok(SQUOTE):
+		p.advanceTok(SQUOTE)
+	case q == SQUOTE, q == QUO:
+		p.advanceReadLit()
+	case q == DQUOTE, q == RBRACE:
+		if b == '`' || b == '"' || b == '$' {
+			p.advanceTok(p.doRegToken())
+		} else {
+			p.advanceReadLit()
+		}
+	case b == '#' && q != LBRACE:
 		line, _ := p.readUntil('\n')
 		p.advanceBoth(COMMENT, line[1:])
 	case q == LBRACE && paramOps(b):
@@ -251,15 +261,6 @@ func (p *parser) next() {
 	case (q == DLPAREN || q == DRPAREN || q == LPAREN) && arithmOps(b):
 		p.advanceTok(p.doArithmToken())
 	case regOps(b):
-		// Limited tokenization in these circumstances
-		if q == DQUOTE || q == RBRACE {
-			switch {
-			case b == '`', b == '"', b == '$':
-			default:
-				p.advanceReadLit()
-				return
-			}
-		}
 		p.advanceTok(p.doRegToken())
 	default:
 		p.advanceReadLit()
@@ -286,6 +287,10 @@ func (p *parser) readLitBytes() (bs []byte) {
 			return
 		}
 		switch {
+		case q == SQUOTE:
+			if b == '\'' {
+				return
+			}
 		case b == '$' && !p.willRead(`$"`) && !p.willRead(`$'`), b == '`':
 			return
 		case q == RBRACE:
@@ -296,10 +301,6 @@ func (p *parser) readLitBytes() (bs []byte) {
 			return
 		case q == QUO:
 			if b == '/' || b == '}' {
-				return
-			}
-		case q == SQUOTE:
-			if b == '\'' {
 				return
 			}
 		case q == DQUOTE:
