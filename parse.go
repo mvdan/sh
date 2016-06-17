@@ -219,10 +219,13 @@ func (p *parser) next() {
 			p.lpos, p.pos = p.pos, p.npos
 			return
 		}
-		if q != DQUOTE && b == '\\' && p.readOnlyStr("\\\n") {
+		if q == DQUOTE || q == SQUOTE || q == RBRACE || q == QUO {
+			break
+		}
+		if b == '\\' && p.readOnlyStr("\\\n") {
 			continue
 		}
-		if q == DQUOTE || q == SQUOTE || q == RBRACE || q == QUO || !space(b) {
+		if !space(b) {
 			break
 		}
 		if p.stopNewline && b == '\n' {
@@ -231,10 +234,12 @@ func (p *parser) next() {
 			return
 		}
 		p.readByte()
-		p.spaced = true
-		if b == '\n' {
-			p.newLine = true
-			p.doHeredocs()
+		if !p.spaced {
+			p.spaced = true
+			if b == '\n' {
+				p.newLine = true
+				p.doHeredocs()
+			}
 		}
 	}
 	p.lpos, p.pos = p.pos, p.npos
