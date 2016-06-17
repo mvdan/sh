@@ -61,7 +61,6 @@ func BenchmarkParse(b *testing.B) {
 		name, in string
 	}
 	benchmarks := []benchmark{
-		{"Empty", ""},
 		{
 			"Whitespace",
 			strings.Repeat("\n\n\t\t        \n", 10),
@@ -76,7 +75,7 @@ func BenchmarkParse(b *testing.B) {
 		},
 		{
 			"Cmds",
-			strings.Repeat("a; ", 10),
+			strings.Repeat("a b c d; ", 10),
 		},
 		{
 			"SglQuoted",
@@ -92,7 +91,7 @@ func BenchmarkParse(b *testing.B) {
 		},
 		{
 			"Clauses",
-			"if a; then while b; do c; done; fi",
+			"if a; then while b; do for c in d e; do f; done; done; fi",
 		},
 		{
 			"CmdSubst",
