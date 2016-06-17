@@ -420,11 +420,11 @@ func (p *parser) eof() bool {
 }
 
 func (p *parser) peekFull(tok Token) bool { return p.tok == tok }
-func (p *parser) peekReserved(tok Token) bool {
+func (p *parser) peekRsrv(tok Token) bool {
 	return p.tok == LIT && p.val == tok.String() && p.willBreakWord
 }
 func (p *parser) peek(tok Token) bool {
-	return p.peekFull(tok) || p.peekReserved(tok)
+	return p.peekFull(tok) || p.peekRsrv(tok)
 }
 
 func wordBreak(b byte) bool {
@@ -457,9 +457,9 @@ func (p *parser) got(tok Token) bool {
 	}
 	return false
 }
-func (p *parser) gotReserved(tok Token) bool {
+func (p *parser) gotRsrv(tok Token) bool {
 	p.saveComments()
-	if p.peekReserved(tok) {
+	if p.peekRsrv(tok) {
 		p.next()
 		return true
 	}
@@ -603,7 +603,7 @@ func (p *parser) invalidStmtStart() {
 	switch {
 	case p.peekAny(SEMICOLON, AND, OR, LAND, LOR):
 		p.curErr("%s can only immediately follow a statement", p.tok)
-	case p.peekReserved(RBRACE):
+	case p.peekRsrv(RBRACE):
 		p.curErr("%s can only be used to close a block", p.val)
 	case p.peekFull(RPAREN):
 		p.curErr("%s can only be used to close a subshell", p.tok)
@@ -1009,12 +1009,12 @@ func (p *parser) getStmt(stops ...Token) (Stmt, bool) {
 }
 
 func (p *parser) gotStmtAndOr(s *Stmt, stops ...Token) bool {
-	if p.peekReserved(RBRACE) {
+	if p.peekRsrv(RBRACE) {
 		// don't let it be a LIT
 		return false
 	}
 	s.Position = p.pos
-	if p.gotReserved(NOT) {
+	if p.gotRsrv(NOT) {
 		s.Negated = true
 	}
 	for {
@@ -1046,23 +1046,23 @@ func (p *parser) gotStmtPipe(s *Stmt) bool {
 	switch {
 	case p.peekFull(LPAREN):
 		s.Cmd = p.subshell()
-	case p.gotReserved(LBRACE):
+	case p.gotRsrv(LBRACE):
 		s.Cmd = p.block()
-	case p.gotReserved(IF):
+	case p.gotRsrv(IF):
 		s.Cmd = p.ifClause()
-	case p.gotReserved(WHILE):
+	case p.gotRsrv(WHILE):
 		s.Cmd = p.whileClause()
-	case p.gotReserved(UNTIL):
+	case p.gotRsrv(UNTIL):
 		s.Cmd = p.untilClause()
-	case p.gotReserved(FOR):
+	case p.gotRsrv(FOR):
 		s.Cmd = p.forClause()
-	case p.gotReserved(CASE):
+	case p.gotRsrv(CASE):
 		s.Cmd = p.caseClause()
-	case p.gotReserved(DECLARE), p.gotReserved(LOCAL):
+	case p.gotRsrv(DECLARE), p.gotRsrv(LOCAL):
 		s.Cmd = p.declClause()
-	case p.gotReserved(EVAL):
+	case p.gotRsrv(EVAL):
 		s.Cmd = p.evalClause()
-	case p.peekReserved(LET):
+	case p.peekRsrv(LET):
 		s.Cmd = p.letClause()
 	default:
 		s.Cmd = p.callOrFunc()
@@ -1124,14 +1124,14 @@ func (p *parser) ifClause() *IfClause {
 	ic.Cond = p.cond(IF, THEN)
 	ic.Then = p.followTok(ic.If, "if [stmts]", THEN)
 	ic.ThenStmts = p.followStmts(THEN, FI, ELIF, ELSE)
-	for p.gotReserved(ELIF) {
+	for p.gotRsrv(ELIF) {
 		elf := Elif{Elif: p.lpos}
 		elf.Cond = p.cond(ELIF, THEN)
 		elf.Then = p.followTok(elf.Elif, "elif [stmts]", THEN)
 		elf.ThenStmts = p.followStmts(THEN, FI, ELIF, ELSE)
 		ic.Elifs = append(ic.Elifs, elf)
 	}
-	if p.gotReserved(ELSE) {
+	if p.gotRsrv(ELSE) {
 		ic.Else = p.lpos
 		ic.ElseStmts = p.followStmts(ELSE, FI)
 	}
@@ -1199,7 +1199,7 @@ func (p *parser) loop(forPos Pos) Loop {
 	if !p.gotLit(&wi.Name) {
 		p.followErr(forPos, FOR, "a literal")
 	}
-	if p.gotReserved(IN) {
+	if p.gotRsrv(IN) {
 		for !p.peekEnd() {
 			if w, ok := p.gotWord(); !ok {
 				p.curErr("word list can only contain words")
@@ -1227,7 +1227,7 @@ func (p *parser) patLists() (pls []PatternList) {
 	if p.gotSameLine(SEMICOLON) {
 		return
 	}
-	for !p.eof() && !p.peekReserved(ESAC) {
+	for !p.eof() && !p.peekRsrv(ESAC) {
 		var pl PatternList
 		p.got(LPAREN)
 		for !p.eof() {
@@ -1299,7 +1299,7 @@ func (p *parser) letClause() *LetClause {
 }
 
 func (p *parser) callOrFunc() Command {
-	if p.gotReserved(FUNCTION) {
+	if p.gotRsrv(FUNCTION) {
 		fpos := p.lpos
 		w := p.followWord(FUNCTION)
 		if p.gotSameLine(LPAREN) {
