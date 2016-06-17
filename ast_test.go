@@ -1517,13 +1517,13 @@ var astTests = []testCase{
 	{
 		[]string{"$((a += 2, b -= 3))"},
 		word(arithmExp(&BinaryExpr{
-			Op: ADD_ASSIGN,
+			Op: ADDASSGN,
 			X:  litWord("a"),
 			Y: &BinaryExpr{
 				Op: COMMA,
 				X:  litWord("2"),
 				Y: &BinaryExpr{
-					Op: SUB_ASSIGN,
+					Op: SUBASSGN,
 					X:  litWord("b"),
 					Y:  litWord("3"),
 				},
@@ -1533,13 +1533,13 @@ var astTests = []testCase{
 	{
 		[]string{"$((a >>= 2 && b <<= 3))"},
 		word(arithmExp(&BinaryExpr{
-			Op: SHR_ASSIGN,
+			Op: SHRASSGN,
 			X:  litWord("a"),
 			Y: &BinaryExpr{
 				Op: LAND,
 				X:  litWord("2"),
 				Y: &BinaryExpr{
-					Op: SHL_ASSIGN,
+					Op: SHLASSGN,
 					X:  litWord("b"),
 					Y:  litWord("3"),
 				},
@@ -1557,7 +1557,7 @@ var astTests = []testCase{
 	{
 		[]string{"$((a &= b))"},
 		word(arithmExp(&BinaryExpr{
-			Op: AND_ASSIGN,
+			Op: ANDASSGN,
 			X:  litWord("a"),
 			Y:  litWord("b"),
 		})),
@@ -1565,7 +1565,7 @@ var astTests = []testCase{
 	{
 		[]string{"$((a |= b))"},
 		word(arithmExp(&BinaryExpr{
-			Op: OR_ASSIGN,
+			Op: ORASSGN,
 			X:  litWord("a"),
 			Y:  litWord("b"),
 		})),
@@ -1573,7 +1573,7 @@ var astTests = []testCase{
 	{
 		[]string{"$((a %= b))"},
 		word(arithmExp(&BinaryExpr{
-			Op: REM_ASSIGN,
+			Op: REMASSGN,
 			X:  litWord("a"),
 			Y:  litWord("b"),
 		})),
@@ -1581,7 +1581,7 @@ var astTests = []testCase{
 	{
 		[]string{"$((a /= b))"},
 		word(arithmExp(&BinaryExpr{
-			Op: QUO_ASSIGN,
+			Op: QUOASSGN,
 			X:  litWord("a"),
 			Y:  litWord("b"),
 		})),
@@ -1589,7 +1589,7 @@ var astTests = []testCase{
 	{
 		[]string{"$((a ^= b))"},
 		word(arithmExp(&BinaryExpr{
-			Op: XOR_ASSIGN,
+			Op: XORASSGN,
 			X:  litWord("a"),
 			Y:  litWord("b"),
 		})),
@@ -1597,7 +1597,7 @@ var astTests = []testCase{
 	{
 		[]string{"$((i *= 3))"},
 		word(arithmExp(&BinaryExpr{
-			Op: MUL_ASSIGN,
+			Op: MULASSGN,
 			X:  litWord("i"),
 			Y:  litWord("3"),
 		})),

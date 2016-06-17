@@ -714,7 +714,7 @@ func (p *printer) assigns(assigns []Assign) {
 		if a.Name != nil {
 			p.lit(a.Name)
 			if a.Append {
-				p.token(ADD_ASSIGN, true)
+				p.token(ADDASSGN, true)
 			} else {
 				p.token(ASSIGN, true)
 			}

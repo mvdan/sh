@@ -85,16 +85,16 @@ const (
 	LEQ   // <=
 	GEQ   // >=
 
-	ADD_ASSIGN // +=
-	SUB_ASSIGN // -=
-	MUL_ASSIGN // *=
-	QUO_ASSIGN // /=
-	REM_ASSIGN // %=
-	AND_ASSIGN // &=
-	OR_ASSIGN  // |=
-	XOR_ASSIGN // ^=
-	SHL_ASSIGN // <<=
-	SHR_ASSIGN // >>=
+	ADDASSGN // +=
+	SUBASSGN // -=
+	MULASSGN // *=
+	QUOASSGN // /=
+	REMASSGN // %=
+	ANDASSGN // &=
+	ORASSGN  // |=
+	XORASSGN // ^=
+	SHLASSGN // <<=
+	SHRASSGN // >>=
 
 	PIPEALL  // |&
 	RDRINOUT // <>
@@ -244,16 +244,16 @@ var (
 		LEQ:   "<=",
 		GEQ:   ">=",
 
-		ADD_ASSIGN: "+=",
-		SUB_ASSIGN: "-=",
-		MUL_ASSIGN: "*=",
-		QUO_ASSIGN: "/=",
-		REM_ASSIGN: "%=",
-		AND_ASSIGN: "&=",
-		OR_ASSIGN:  "|=",
-		XOR_ASSIGN: "^=",
-		SHL_ASSIGN: "<<=",
-		SHR_ASSIGN: ">>=",
+		ADDASSGN: "+=",
+		SUBASSGN: "-=",
+		MULASSGN: "*=",
+		QUOASSGN: "/=",
+		REMASSGN: "%=",
+		ANDASSGN: "&=",
+		ORASSGN:  "|=",
+		XORASSGN: "^=",
+		SHLASSGN: "<<=",
+		SHRASSGN: ">>=",
 	}
 )
 
@@ -411,7 +411,7 @@ func (p *parser) doArithmToken() Token {
 			return LAND
 		}
 		if p.readOnly('=') {
-			return AND_ASSIGN
+			return ANDASSGN
 		}
 		return AND
 	case p.readOnly('|'):
@@ -419,14 +419,14 @@ func (p *parser) doArithmToken() Token {
 			return LOR
 		}
 		if p.readOnly('=') {
-			return OR_ASSIGN
+			return ORASSGN
 		}
 		return OR
 	case p.readOnly('<'):
 		switch {
 		case p.readOnly('<'):
 			if p.readOnly('=') {
-				return SHL_ASSIGN
+				return SHLASSGN
 			}
 			return SHL
 		case p.readOnly('='):
@@ -437,7 +437,7 @@ func (p *parser) doArithmToken() Token {
 		switch {
 		case p.readOnly('>'):
 			if p.readOnly('=') {
-				return SHR_ASSIGN
+				return SHRASSGN
 			}
 			return SHR
 		case p.readOnly('='):
@@ -449,7 +449,7 @@ func (p *parser) doArithmToken() Token {
 			return INC
 		}
 		if p.readOnly('=') {
-			return ADD_ASSIGN
+			return ADDASSGN
 		}
 		return ADD
 	case p.readOnly('-'):
@@ -457,12 +457,12 @@ func (p *parser) doArithmToken() Token {
 			return DEC
 		}
 		if p.readOnly('=') {
-			return SUB_ASSIGN
+			return SUBASSGN
 		}
 		return SUB
 	case p.readOnly('%'):
 		if p.readOnly('=') {
-			return REM_ASSIGN
+			return REMASSGN
 		}
 		return REM
 	case p.readOnly('*'):
@@ -470,17 +470,17 @@ func (p *parser) doArithmToken() Token {
 			return POW
 		}
 		if p.readOnly('=') {
-			return MUL_ASSIGN
+			return MULASSGN
 		}
 		return MUL
 	case p.readOnly('/'):
 		if p.readOnly('=') {
-			return QUO_ASSIGN
+			return QUOASSGN
 		}
 		return QUO
 	case p.readOnly('^'):
 		if p.readOnly('=') {
-			return XOR_ASSIGN
+			return XORASSGN
 		}
 		return XOR
 	case p.readOnly(','):
