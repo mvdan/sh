@@ -326,9 +326,6 @@ func (p *parser) advanceBoth(tok Token, val string) {
 }
 
 func (p *parser) readUntil(b byte) (string, bool) {
-	if p.nextErr != nil && len(p.remaining) > 0 && p.remaining[0] != b {
-		return string(p.readByte()), false
-	}
 	bs, err := p.br.ReadBytes(b)
 	if err != nil {
 		p.nextErr = err
