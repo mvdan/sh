@@ -127,6 +127,7 @@ func (p *parser) peekByte() byte {
 	}
 	bs, err := p.br.Peek(1)
 	if err != nil {
+		p.nextErr = err // TODO: remove
 		p.errPass(err)
 		return 0
 	}
@@ -271,7 +272,12 @@ func (p *parser) advanceReadLit() { p.advanceBoth(LIT, string(p.readLitBytes()))
 func (p *parser) readLitBytes() (bs []byte) {
 	q := p.quote()
 	for {
-		if p.readOnly('\\') { // escaped byte
+		b := p.peekByte()
+		if p.tok == EOF {
+			return
+		}
+		if b == '\\' { // escaped byte follows
+			p.readByte()
 			b := p.readByte()
 			if p.tok == EOF {
 				bs = append(bs, '\\')
@@ -281,10 +287,6 @@ func (p *parser) readLitBytes() (bs []byte) {
 				bs = append(bs, '\\', b)
 			}
 			continue
-		}
-		b := p.peekByte()
-		if p.tok == EOF {
-			return
 		}
 		switch {
 		case q == SQUOTE:
