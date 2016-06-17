@@ -859,7 +859,7 @@ func (p *parser) peekStop() bool {
 	}
 	for i := len(p.stops) - 1; i >= 0; i-- {
 		stop := p.stops[i]
-		if p.peek(stop) {
+		if p.peekFull(stop) {
 			return true
 		}
 		if stop == BQUOTE || stop == RPAREN {
