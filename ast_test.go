@@ -2215,8 +2215,8 @@ func fullProg(v interface{}) *File {
 }
 
 func emptyNode(n Node) bool {
-	s := strings.TrimRight(strFprint(n, 0), "\n")
-	return len(s) == 0
+	s, _ := strFprint(n, 0)
+	return len(strings.TrimRight(s, "\n")) == 0
 }
 
 func setPosRecurse(tb testing.TB, v interface{}, to Pos, diff bool) {

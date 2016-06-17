@@ -661,12 +661,12 @@ func (p *printer) stmts(stmts []Stmt) bool {
 		if inlineIndent == 0 {
 			lastLine := stmts[i].Pos().Line
 			for j := range stmts[i:] {
-				s := &stmts[i+j]
-				pos := s.Pos()
+				s2 := &stmts[i+j]
+				pos := s2.Pos()
 				if !p.hasInline(pos) || pos.Line > lastLine+1 {
 					break
 				}
-				if l := stmtLen(s); l > inlineIndent {
+				if l := stmtLen(s2); l > inlineIndent {
 					inlineIndent = l
 				}
 				lastLine = pos.Line

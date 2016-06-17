@@ -22,7 +22,10 @@ func TestFprintCompact(t *testing.T) {
 				t.Fatal(err)
 			}
 			want := in
-			got := strFprint(prog, 0)
+			got, err := strFprint(prog, 0)
+			if err != nil {
+				t.Fatal(err)
+			}
 			if len(got) > 0 {
 				got = got[:len(got)-1]
 			}
@@ -34,11 +37,11 @@ func TestFprintCompact(t *testing.T) {
 	}
 }
 
-func strFprint(node Node, spaces int) string {
+func strFprint(node Node, spaces int) (string, error) {
 	var buf bytes.Buffer
 	c := PrintConfig{Spaces: spaces}
-	c.Fprint(&buf, node)
-	return buf.String()
+	err := c.Fprint(&buf, node)
+	return buf.String(), err
 }
 
 func TestFprintWeirdFormat(t *testing.T) {
@@ -259,7 +262,10 @@ func TestFprintWeirdFormat(t *testing.T) {
 					t.Fatal(err)
 				}
 				want := tc.want + "\n"
-				got := strFprint(prog, 0)
+				got, err := strFprint(prog, 0)
+				if err != nil {
+					t.Fatal(err)
+				}
 				if got != want {
 					t.Fatalf("Fprint mismatch:\n"+
 						"in:\n%s\nwant:\n%sgot:\n%s",
@@ -286,7 +292,10 @@ func parsePath(tb testing.TB, path string) *File {
 func TestFprintMultiline(t *testing.T) {
 	path := filepath.Join("testdata", "canonical.sh")
 	prog := parsePath(t, path)
-	got := strFprint(prog, 0)
+	got, err := strFprint(prog, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	want, err := ioutil.ReadFile(path)
 	if err != nil {
@@ -345,7 +354,10 @@ func TestFprintSpaces(t *testing.T) {
 				t.Fatal(err)
 			}
 			want := tc.want + "\n"
-			got := strFprint(prog, tc.spaces)
+			got, err := strFprint(prog, tc.spaces)
+			if err != nil {
+				t.Fatal(err)
+			}
 			if got != want {
 				t.Fatalf("Fprint mismatch:\nin:\n%s\nwant:\n%sgot:\n%s",
 					tc.in, want, got)

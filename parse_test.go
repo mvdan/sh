@@ -115,7 +115,9 @@ func BenchmarkParse(b *testing.B) {
 		r := strings.NewReader(c.in)
 		b.Run(c.name, func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
-				r.Seek(0, 0)
+				if _, err := r.Seek(0, 0); err != nil {
+					b.Fatal(err)
+				}
 				if _, err := Parse(r, "", ParseComments); err != nil {
 					b.Fatal(err)
 				}
