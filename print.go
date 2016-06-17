@@ -257,6 +257,9 @@ func (p *printer) wordPart(wp WordPart) {
 		} else {
 			p.token(DOLLPR, false)
 		}
+		if startsWithLparen(x.Stmts) {
+			p.space(' ')
+		}
 		p.nestedStmts(x.Stmts)
 		if x.Backquotes {
 			p.wantSpace = false
@@ -520,6 +523,9 @@ func (p *printer) command(cmd Command, redirs []Redirect) (startRedirs int) {
 		p.separated(FI, x.Fi, true)
 	case *Subshell:
 		p.spacedTok(LPAREN, false)
+		if startsWithLparen(x.Stmts) {
+			p.space(' ')
+		}
 		p.nestedStmts(x.Stmts)
 		p.separated(RPAREN, x.Rparen, false)
 	case *WhileClause:
@@ -617,6 +623,14 @@ func (p *printer) command(cmd Command, redirs []Redirect) (startRedirs int) {
 		}
 	}
 	return startRedirs
+}
+
+func startsWithLparen(stmts []Stmt) bool {
+	if len(stmts) < 1 {
+		return false
+	}
+	_, ok := stmts[0].Cmd.(*Subshell)
+	return ok
 }
 
 func (p *printer) stmts(stmts []Stmt) bool {

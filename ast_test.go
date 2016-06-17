@@ -1089,7 +1089,7 @@ var astTests = []testCase{
 		word(&ParamExp{
 			Param: *lit("foo"),
 			Exp: &Expansion{
-				Op:   CASSIGN,
+				Op: CASSIGN,
 				Word: *word(
 					lit("b"),
 					&ParamExp{Param: *lit("c")},
