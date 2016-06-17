@@ -354,12 +354,25 @@ func (p *parser) readUntil(b byte) (string, bool) {
 	bs, err := p.br.ReadBytes(b)
 	if err != nil {
 		p.nextErr = err
-	} else {
-		bs = bs[:len(bs)-1]
-		p.br.UnreadByte()
+		p.npos = moveWithBytes(p.npos, bs)
+		return string(bs), false
+	}
+	bs = bs[:len(bs)-1]
+	p.npos = moveWithBytes(p.npos, bs)
+	p.br.UnreadByte()
+	return string(bs), true
+}
+
+func (p *parser) readIncluding(b byte) (string, bool) {
+	bs, err := p.br.ReadBytes(b)
+	if err != nil {
+		p.nextErr = err
+		p.npos = moveWithBytes(p.npos, bs)
+		return string(bs), false
 	}
 	p.npos = moveWithBytes(p.npos, bs)
-	return string(bs), err == nil
+	bs = bs[:len(bs)-1]
+	return string(bs), true
 }
 
 func (p *parser) doHeredocs() {
@@ -377,14 +390,13 @@ func (p *parser) doHeredocs() {
 func (p *parser) readHdocBody(end string, noTabs bool) (string, bool) {
 	var buf bytes.Buffer
 	for p.tok != EOF && !p.reachingEOF() {
-		line, _ := p.readUntil('\n')
+		line, _ := p.readIncluding('\n')
 		if line == end || (noTabs && strings.TrimLeft(line, "\t") == end) {
 			// add trailing tabs
 			fmt.Fprint(&buf, line[:len(line)-len(end)])
 			return buf.String(), true
 		}
 		fmt.Fprintln(&buf, line)
-		p.readOnly('\n')
 	}
 	return buf.String(), false
 }
@@ -683,12 +695,11 @@ func (p *parser) wordPart() WordPart {
 		return ps
 	case q != SQUOTE && p.peekFull(SQUOTE):
 		sq := &SglQuoted{Quote: p.pos}
-		s, found := p.readUntil('\'')
+		s, found := p.readIncluding('\'')
 		if !found {
 			p.posErr(sq.Pos(), `reached EOF without closing quote %s`, SQUOTE)
 		}
 		sq.Value = s
-		p.readOnlyTok(SQUOTE)
 		p.next()
 		return sq
 	case q != SQUOTE && p.peekFull(DOLLSQ):
