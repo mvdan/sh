@@ -61,7 +61,8 @@ type parser struct {
 	// list of pending heredoc bodies
 	heredocs []Redirect
 
-	stopNewline bool
+	stopNewline  bool
+	forbidNested bool
 }
 
 func (p *parser) pushStops(stops ...Token) {
@@ -612,6 +613,9 @@ func (p *parser) invalidStmtStart() {
 }
 
 func (p *parser) stmtsNested(stops ...Token) []Stmt {
+	if p.forbidNested {
+		p.curErr("nested statements not allowed in this word")
+	}
 	p.pushStops(stops...)
 	sts := p.stmts(stops...)
 	p.popStops(len(stops))
@@ -983,7 +987,9 @@ func (p *parser) gotRedirect() bool {
 	switch r.Op {
 	case SHL, DHEREDOC:
 		p.stopNewline = true
+		p.forbidNested = true
 		r.Word = p.followWord(r.Op)
+		p.forbidNested = false
 		r.Hdoc = &Lit{}
 		p.heredocs = append(p.heredocs, r)
 		p.got(STOPPED)

@@ -567,6 +567,10 @@ var errTests = []struct {
 		"a=(<)",
 		`1:4: array elements must be words`,
 	},
+	{
+		"foo <<$(bar)",
+		`1:7: nested statements not allowed in this word`,
+	},
 }
 
 func TestParseErr(t *testing.T) {
