@@ -134,7 +134,7 @@ func (p *parser) peekByte() byte {
 	return bs[0]
 }
 
-func (p *parser) willByte(b byte) bool {
+func (p *parser) willRead(b byte) bool {
 	if p.reachingEOF() {
 		return false
 	}
@@ -146,7 +146,7 @@ func (p *parser) willByte(b byte) bool {
 	return bs[0] == b
 }
 
-func (p *parser) willRead(s string) bool {
+func (p *parser) willReadStr(s string) bool {
 	if p.nextErr != nil && len(p.remaining) < len(s) {
 		return false
 	}
@@ -160,7 +160,7 @@ func (p *parser) willRead(s string) bool {
 }
 
 func (p *parser) readOnlyStr(s string) bool {
-	if p.willRead(s) {
+	if p.willReadStr(s) {
 		for i := 0; i < len(s); i++ {
 			p.readByte()
 		}
@@ -173,7 +173,7 @@ func (p *parser) readOnlyTok(tok Token) bool {
 }
 
 func (p *parser) readOnly(b byte) bool {
-	if p.willByte(b) {
+	if p.willRead(b) {
 		p.readByte()
 		return true
 	}
@@ -294,7 +294,7 @@ func (p *parser) readLitBytes() (bs []byte) {
 				return
 			}
 		case q == DQUOTE:
-			if b == '"' || (b == '$' && !p.willRead(`$"`)) {
+			if b == '"' || (b == '$' && !p.willReadStr(`$"`)) {
 				return
 			}
 		case b == '$', b == '`':
@@ -826,7 +826,7 @@ func (p *parser) paramExp() *ParamExp {
 }
 
 func (p *parser) peekArithmEnd() bool {
-	return p.peek(RPAREN) && p.willByte(')')
+	return p.peek(RPAREN) && p.willRead(')')
 }
 
 func (p *parser) arithmEnd(left Pos) Pos {
@@ -919,7 +919,7 @@ func (p *parser) getAssign() (Assign, bool) {
 }
 
 func (p *parser) peekRedir() bool {
-	if p.peek(LIT) && (p.willByte('>') || p.willByte('<')) {
+	if p.peek(LIT) && (p.willRead('>') || p.willRead('<')) {
 		return true
 	}
 	return p.peek(GTR) || p.peek(SHR) || p.peek(LSS) ||
