@@ -419,12 +419,12 @@ func (p *parser) eof() bool {
 	return p.tok == EOF
 }
 
-func (p *parser) peekFull(tok Token) bool { return p.tok == tok }
+func (p *parser) peek(tok Token) bool { return p.tok == tok }
 func (p *parser) peekRsrv(tok Token) bool {
 	return p.tok == LIT && p.val == tok.String() && p.willBreakWord
 }
-func (p *parser) peek(tok Token) bool {
-	return p.peekFull(tok) || p.peekRsrv(tok)
+func (p *parser) peekEither(tok Token) bool {
+	return p.peek(tok) || p.peekRsrv(tok)
 }
 
 func wordBreak(b byte) bool {
@@ -440,18 +440,18 @@ func (p *parser) willSpaced() bool {
 	return err != nil || space(bs[0]) || wordBreak(bs[0])
 }
 
-func (p *parser) peekAny(toks ...Token) bool {
+func (p *parser) peekEitherAny(toks ...Token) bool {
 	for _, tok := range toks {
-		if p.peek(tok) {
+		if p.peekEither(tok) {
 			return true
 		}
 	}
 	return false
 }
 
-func (p *parser) gotFull(tok Token) bool {
+func (p *parser) got(tok Token) bool {
 	p.saveComments()
-	if p.peekFull(tok) {
+	if p.peek(tok) {
 		p.next()
 		return true
 	}
@@ -466,7 +466,7 @@ func (p *parser) gotRsrv(tok Token) bool {
 	return false
 }
 func (p *parser) gotSameLine(tok Token) bool {
-	return !p.newLine && p.gotFull(tok)
+	return !p.newLine && p.got(tok)
 }
 
 func readableStr(v interface{}) string {
@@ -490,7 +490,7 @@ func (p *parser) followErr(pos Pos, left interface{}, right string) {
 }
 
 func (p *parser) followFull(lpos Pos, left string, tok Token) Pos {
-	if !p.gotFull(tok) {
+	if !p.got(tok) {
 		p.followErr(lpos, left, fmt.Sprintf(`%q`, tok))
 	}
 	return p.lpos
@@ -529,7 +529,7 @@ func (p *parser) stmtEnd(n Node, startTok, tok Token) Pos {
 }
 
 func (p *parser) closingQuote(n Node, tok Token) {
-	if !p.gotFull(tok) {
+	if !p.got(tok) {
 		p.quoteErr(n.Pos(), tok)
 	}
 }
@@ -544,7 +544,7 @@ func (p *parser) matchingErr(lpos Pos, left, right Token) {
 }
 
 func (p *parser) matchedFull(lpos Pos, left, right Token) Pos {
-	if !p.gotFull(right) {
+	if !p.got(right) {
 		p.matchingErr(lpos, left, right)
 	}
 	return p.lpos
@@ -587,8 +587,8 @@ func (p *parser) curErr(format string, a ...interface{}) {
 
 func (p *parser) stmts(stops ...Token) (sts []Stmt) {
 	for !p.eof() {
-		p.gotFull(STOPPED)
-		if p.peekAny(stops...) {
+		p.got(STOPPED)
+		if p.peekEitherAny(stops...) {
 			break
 		}
 		gotEnd := p.newLine || p.ltok == AND || p.ltok == SEMICOLON
@@ -609,11 +609,11 @@ func (p *parser) stmts(stops ...Token) (sts []Stmt) {
 
 func (p *parser) invalidStmtStart() {
 	switch {
-	case p.peekAny(SEMICOLON, AND, OR, LAND, LOR):
+	case p.peekEitherAny(SEMICOLON, AND, OR, LAND, LOR):
 		p.curErr("%s can only immediately follow a statement", p.tok)
 	case p.peekRsrv(RBRACE):
 		p.curErr("%s can only be used to close a block", p.val)
-	case p.peekFull(RPAREN):
+	case p.peek(RPAREN):
 		p.curErr("%s can only be used to close a subshell", p.tok)
 	default:
 		p.curErr("%s is not a valid start for a statement", p.tok)
@@ -643,7 +643,7 @@ func (p *parser) gotWord() (Word, bool) {
 
 func (p *parser) gotLit(l *Lit) bool {
 	l.ValuePos = p.pos
-	if p.gotFull(LIT) {
+	if p.got(LIT) {
 		l.Value = p.lval
 		return true
 	}
@@ -666,22 +666,22 @@ func (p *parser) readParts(ns *[]WordPart) {
 func (p *parser) wordPart() WordPart {
 	q := p.quote()
 	switch {
-	case p.gotFull(LIT):
+	case p.got(LIT):
 		return &Lit{ValuePos: p.lpos, Value: p.lval}
-	case p.peekFull(DOLLBR):
+	case p.peek(DOLLBR):
 		return p.paramExp()
-	case p.peekFull(DOLLDP):
+	case p.peek(DOLLDP):
 		p.pushStops(DRPAREN)
 		ar := &ArithmExp{Dollar: p.lpos}
 		ar.X = p.arithmExpr(DLPAREN)
 		ar.Rparen = p.arithmEnd(ar.Dollar)
 		return ar
-	case p.peekFull(DOLLPR):
+	case p.peek(DOLLPR):
 		cs := &CmdSubst{Left: p.pos}
 		cs.Stmts = p.stmtsNested(RPAREN)
 		cs.Right = p.matchedFull(cs.Left, LPAREN, RPAREN)
 		return cs
-	case p.peekFull(DOLLAR):
+	case p.peek(DOLLAR):
 		if p.willSpaced() {
 			p.tok, p.val = LIT, DOLLAR.String()
 			return p.wordPart()
@@ -700,12 +700,12 @@ func (p *parser) wordPart() WordPart {
 		}
 		p.gotLit(&pe.Param)
 		return pe
-	case p.peekFull(CMDIN), p.peekFull(CMDOUT):
+	case p.peek(CMDIN), p.peek(CMDOUT):
 		ps := &ProcSubst{Op: p.tok, OpPos: p.pos}
 		ps.Stmts = p.stmtsNested(RPAREN)
 		ps.Rparen = p.matchedFull(ps.OpPos, ps.Op, RPAREN)
 		return ps
-	case q != SQUOTE && p.peekFull(SQUOTE):
+	case q != SQUOTE && p.peek(SQUOTE):
 		sq := &SglQuoted{Quote: p.pos}
 		s, found := p.readIncluding('\'')
 		if !found {
@@ -714,9 +714,9 @@ func (p *parser) wordPart() WordPart {
 		sq.Value = s
 		p.next()
 		return sq
-	case q != SQUOTE && p.peekFull(DOLLSQ):
+	case q != SQUOTE && p.peek(DOLLSQ):
 		fallthrough
-	case q != DQUOTE && (p.peekFull(DQUOTE) || p.peekFull(DOLLDQ)):
+	case q != DQUOTE && (p.peek(DQUOTE) || p.peek(DOLLDQ)):
 		q := &Quoted{Quote: p.tok, QuotePos: p.pos}
 		stop := quotedStop(q.Quote)
 		p.pushStops(stop)
@@ -724,7 +724,7 @@ func (p *parser) wordPart() WordPart {
 		p.popStop()
 		p.closingQuote(q, stop)
 		return q
-	case q != BQUOTE && p.peekFull(BQUOTE):
+	case q != BQUOTE && p.peek(BQUOTE):
 		cs := &CmdSubst{Backquotes: true, Left: p.pos}
 		cs.Stmts = p.stmtsNested(BQUOTE)
 		p.closingQuote(cs, BQUOTE)
@@ -753,10 +753,10 @@ func (p *parser) arithmExpr(following Token) ArithmExpr {
 	if q != DRPAREN && q != LPAREN && p.spaced {
 		return left
 	}
-	if p.eof() || p.peekFull(RPAREN) || p.peekFull(SEMICOLON) || p.tok == STOPPED {
+	if p.eof() || p.peek(RPAREN) || p.peek(SEMICOLON) || p.tok == STOPPED {
 		return left
 	}
-	if p.peekFull(LIT) {
+	if p.peek(LIT) {
 		p.curErr("not a valid arithmetic operator: %s", p.val)
 	}
 	p.next()
@@ -775,7 +775,7 @@ func (p *parser) arithmExpr(following Token) ArithmExpr {
 }
 
 func (p *parser) arithmExprBase(following Token) ArithmExpr {
-	if p.gotFull(INC) || p.gotFull(DEC) || p.gotFull(NOT) {
+	if p.got(INC) || p.got(DEC) || p.got(NOT) {
 		pre := &UnaryExpr{OpPos: p.lpos, Op: p.ltok}
 		pre.X = p.arithmExprBase(pre.Op)
 		return pre
@@ -783,7 +783,7 @@ func (p *parser) arithmExprBase(following Token) ArithmExpr {
 	var x ArithmExpr
 	q := p.quote()
 	switch {
-	case p.peekFull(LPAREN):
+	case p.peek(LPAREN):
 		p.pushStops(LPAREN)
 		pe := &ParenExpr{Lparen: p.lpos}
 		pe.X = p.arithmExpr(LPAREN)
@@ -793,7 +793,7 @@ func (p *parser) arithmExprBase(following Token) ArithmExpr {
 		p.popStop()
 		pe.Rparen = p.matchedFull(pe.Lparen, LPAREN, RPAREN)
 		x = pe
-	case p.gotFull(ADD), p.gotFull(SUB):
+	case p.got(ADD), p.got(SUB):
 		ue := &UnaryExpr{OpPos: p.lpos, Op: p.ltok}
 		if q != DRPAREN && q != LPAREN && p.spaced {
 			p.followErr(ue.OpPos, ue.Op, "an expression")
@@ -810,7 +810,7 @@ func (p *parser) arithmExprBase(following Token) ArithmExpr {
 	if q != DRPAREN && q != LPAREN && p.spaced {
 		return x
 	}
-	if p.gotFull(INC) || p.gotFull(DEC) {
+	if p.got(INC) || p.got(DEC) {
 		return &UnaryExpr{
 			Post:  true,
 			OpPos: p.lpos,
@@ -825,7 +825,7 @@ func (p *parser) gotParamLit(l *Lit) bool {
 	if p.gotLit(l) {
 		return true
 	}
-	if p.gotFull(DOLLAR) || p.gotFull(QUEST) {
+	if p.got(DOLLAR) || p.got(QUEST) {
 		l.Value = p.ltok.String()
 		return true
 	}
@@ -835,23 +835,23 @@ func (p *parser) gotParamLit(l *Lit) bool {
 func (p *parser) paramExp() *ParamExp {
 	pe := &ParamExp{Dollar: p.pos}
 	p.pushStops(LBRACE)
-	pe.Length = p.gotFull(HASH)
+	pe.Length = p.got(HASH)
 	if !p.gotParamLit(&pe.Param) && !pe.Length {
 		p.posErr(pe.Dollar, "parameter expansion requires a literal")
 	}
-	if p.peekFull(RBRACE) {
+	if p.peek(RBRACE) {
 		p.popStop()
 		p.next()
 		return pe
 	}
-	if p.peekFull(LBRACK) {
+	if p.peek(LBRACK) {
 		p.pushStops(RBRACK)
 		lpos := p.lpos
 		pe.Ind = &Index{Word: p.getWord()}
 		p.popStop()
 		p.matchedFull(lpos, LBRACK, RBRACK)
 	}
-	if p.peekFull(RBRACE) {
+	if p.peek(RBRACE) {
 		p.popStop()
 		p.next()
 		return pe
@@ -859,11 +859,11 @@ func (p *parser) paramExp() *ParamExp {
 	if pe.Length {
 		p.curErr(`can only get length of a simple parameter`)
 	}
-	if p.peekFull(QUO) || p.peekFull(DQUO) {
+	if p.peek(QUO) || p.peek(DQUO) {
 		pe.Repl = &Replace{All: p.tok == DQUO}
 		p.pushStops(QUO)
 		pe.Repl.Orig = p.getWord()
-		if p.peekFull(QUO) {
+		if p.peek(QUO) {
 			p.popStop()
 			p.pushStops(RBRACE)
 			pe.Repl.With = p.getWord()
@@ -881,7 +881,7 @@ func (p *parser) paramExp() *ParamExp {
 }
 
 func (p *parser) peekArithmEnd() bool {
-	return p.peekFull(RPAREN) && p.willRead(')')
+	return p.peek(RPAREN) && p.willRead(')')
 }
 
 func (p *parser) arithmEnd(left Pos) Pos {
@@ -895,17 +895,17 @@ func (p *parser) arithmEnd(left Pos) Pos {
 }
 
 func (p *parser) peekEnd() bool {
-	return p.eof() || p.newLine || p.peekFull(SEMICOLON)
+	return p.eof() || p.newLine || p.peek(SEMICOLON)
 }
 
 func (p *parser) peekStop() bool {
-	if p.peekEnd() || p.peekFull(AND) || p.peekFull(OR) ||
-		p.peekFull(LAND) || p.peekFull(LOR) || p.peekFull(PIPEALL) {
+	if p.peekEnd() || p.peek(AND) || p.peek(OR) ||
+		p.peek(LAND) || p.peek(LOR) || p.peek(PIPEALL) {
 		return true
 	}
 	for i := len(p.stops) - 1; i >= 0; i-- {
 		stop := p.stops[i]
-		if p.peekFull(stop) {
+		if p.peek(stop) {
 			return true
 		}
 		if stop == BQUOTE || stop == RPAREN {
@@ -948,9 +948,9 @@ func (p *parser) getAssign() (Assign, bool) {
 	if p.spaced {
 		return as, true
 	}
-	if start.Value == "" && p.gotFull(LPAREN) {
+	if start.Value == "" && p.got(LPAREN) {
 		ae := &ArrayExpr{Lparen: p.lpos}
-		for !p.eof() && !p.peekFull(RPAREN) {
+		for !p.eof() && !p.peek(RPAREN) {
 			if w, ok := p.gotWord(); !ok {
 				p.curErr("array elements must be words")
 			} else {
@@ -971,13 +971,13 @@ func (p *parser) getAssign() (Assign, bool) {
 }
 
 func (p *parser) peekRedir() bool {
-	if p.peekFull(LIT) && (p.willRead('>') || p.willRead('<')) {
+	if p.peek(LIT) && (p.willRead('>') || p.willRead('<')) {
 		return true
 	}
-	return p.peekFull(GTR) || p.peekFull(SHR) || p.peekFull(LSS) ||
-		p.peekFull(DPLIN) || p.peekFull(DPLOUT) || p.peekFull(RDRINOUT) ||
-		p.peekFull(SHL) || p.peekFull(DHEREDOC) || p.peekFull(WHEREDOC) ||
-		p.peekFull(RDRALL) || p.peekFull(APPALL)
+	return p.peek(GTR) || p.peek(SHR) || p.peek(LSS) ||
+		p.peek(DPLIN) || p.peek(DPLOUT) || p.peek(RDRINOUT) ||
+		p.peek(SHL) || p.peek(DHEREDOC) || p.peek(WHEREDOC) ||
+		p.peek(RDRALL) || p.peek(APPALL)
 }
 
 func (p *parser) gotRedirect() bool {
@@ -1000,7 +1000,7 @@ func (p *parser) gotRedirect() bool {
 		p.forbidNested = false
 		r.Hdoc = &Lit{}
 		p.heredocs = append(p.heredocs, r)
-		p.gotFull(STOPPED)
+		p.got(STOPPED)
 	default:
 		r.Word = p.followWord(r.Op)
 	}
@@ -1040,10 +1040,10 @@ func (p *parser) gotStmtAndOr(s *Stmt, stops ...Token) bool {
 		return false
 	}
 	switch {
-	case p.gotFull(LAND), p.gotFull(LOR):
+	case p.got(LAND), p.got(LOR):
 		*s = p.binaryStmt(*s)
 		return true
-	case p.gotFull(AND):
+	case p.got(AND):
 		s.Background = true
 	}
 	p.gotSameLine(SEMICOLON)
@@ -1052,7 +1052,7 @@ func (p *parser) gotStmtAndOr(s *Stmt, stops ...Token) bool {
 
 func (p *parser) gotStmtPipe(s *Stmt) bool {
 	switch {
-	case p.peekFull(LPAREN):
+	case p.peek(LPAREN):
 		s.Cmd = p.subshell()
 	case p.gotRsrv(LBRACE):
 		s.Cmd = p.block()
@@ -1080,7 +1080,7 @@ func (p *parser) gotStmtPipe(s *Stmt) bool {
 	if s.Cmd == nil && len(s.Redirs) == 0 {
 		return false
 	}
-	if p.gotFull(OR) || p.gotFull(PIPEALL) {
+	if p.got(OR) || p.got(PIPEALL) {
 		*s = p.binaryStmt(*s)
 	}
 	return true
@@ -1092,7 +1092,7 @@ func (p *parser) binaryStmt(left Stmt) Stmt {
 		Op:    p.ltok,
 		X:     left,
 	}
-	p.gotFull(STOPPED)
+	p.got(STOPPED)
 	if b.Op == LAND || b.Op == LOR {
 		var ok bool
 		if b.Y, ok = p.getStmt(); !ok {
@@ -1151,7 +1151,7 @@ func (p *parser) ifClause() *IfClause {
 }
 
 func (p *parser) cond(left Token, stop Token) Cond {
-	if p.peekFull(LPAREN) && p.readOnlyTok(LPAREN) {
+	if p.peek(LPAREN) && p.readOnlyTok(LPAREN) {
 		p.pushStops(DRPAREN)
 		c := &CStyleCond{Lparen: p.lpos}
 		c.X = p.arithmExpr(DLPAREN)
@@ -1194,7 +1194,7 @@ func (p *parser) forClause() *ForClause {
 }
 
 func (p *parser) loop(forPos Pos) Loop {
-	if p.peekFull(LPAREN) && p.readOnlyTok(LPAREN) {
+	if p.peek(LPAREN) && p.readOnlyTok(LPAREN) {
 		p.pushStops(DRPAREN)
 		cl := &CStyleLoop{Lparen: p.lpos}
 		cl.Init = p.arithmExpr(DLPAREN)
@@ -1240,23 +1240,22 @@ func (p *parser) patLists() (pls []PatternList) {
 	}
 	for !p.eof() && !p.peekRsrv(ESAC) {
 		var pl PatternList
-		p.gotFull(LPAREN)
+		p.got(LPAREN)
 		for !p.eof() {
 			if w, ok := p.gotWord(); !ok {
 				p.curErr("case patterns must consist of words")
 			} else {
 				pl.Patterns = append(pl.Patterns, w)
 			}
-			if p.peekFull(RPAREN) {
+			if p.peek(RPAREN) {
 				break
 			}
-			if !p.gotFull(OR) {
+			if !p.got(OR) {
 				p.curErr("case patterns must be separated with |")
 			}
 		}
 		pl.Stmts = p.stmtsNested(DSEMICOLON, ESAC, SEMIFALL, DSEMIFALL)
-		if !p.gotFull(DSEMICOLON) && !p.gotFull(SEMIFALL) &&
-			!p.gotFull(DSEMIFALL) {
+		if !p.got(DSEMICOLON) && !p.got(SEMIFALL) && !p.got(DSEMIFALL) {
 			pl.Op, pl.OpPos = DSEMICOLON, p.lpos
 			pls = append(pls, pl)
 			break
@@ -1270,7 +1269,7 @@ func (p *parser) patLists() (pls []PatternList) {
 func (p *parser) declClause() *DeclClause {
 	ds := &DeclClause{Declare: p.lpos}
 	ds.Local = p.lval == LOCAL.String()
-	for p.peekFull(LIT) && p.willSpaced() && p.val[0] == '-' {
+	for p.peek(LIT) && p.willSpaced() && p.val[0] == '-' {
 		ds.Opts = append(ds.Opts, p.getWord())
 	}
 	for !p.peekStop() {
@@ -1306,7 +1305,7 @@ func (p *parser) letClause() *LetClause {
 	}
 	p.stopNewline = false
 	p.popStop()
-	p.gotFull(STOPPED)
+	p.got(STOPPED)
 	return lc
 }
 
@@ -1329,7 +1328,7 @@ func (p *parser) callOrFunc() Command {
 	}
 	ce := &CallExpr{Args: []Word{w}}
 	for !p.peekStop() {
-		if p.gotFull(STOPPED) || p.gotRedirect() {
+		if p.got(STOPPED) || p.gotRedirect() {
 		} else if w, ok := p.gotWord(); ok {
 			ce.Args = append(ce.Args, w)
 		} else {
