@@ -214,13 +214,18 @@ func (p *parser) next() {
 	p.spaced, p.newLine = false, false
 	var b byte
 	q := p.quote()
-	for {
+	if q == DQUOTE || q == SQUOTE || q == RBRACE || q == QUO {
 		if b = p.peekByte(); p.tok == EOF {
 			p.lpos, p.pos = p.pos, p.npos
 			return
 		}
-		if q == DQUOTE || q == SQUOTE || q == RBRACE || q == QUO {
-			break
+		p.advance(b, q)
+		return
+	}
+	for {
+		if b = p.peekByte(); p.tok == EOF {
+			p.lpos, p.pos = p.pos, p.npos
+			return
 		}
 		if b == '\\' && p.readOnlyStr("\\\n") {
 			continue
@@ -242,6 +247,10 @@ func (p *parser) next() {
 			}
 		}
 	}
+	p.advance(b, q)
+}
+
+func (p *parser) advance(b byte, q Token) {
 	p.lpos, p.pos = p.pos, p.npos
 	switch {
 	case (q == RBRACE || q == LBRACE || q == QUO) && p.readOnlyTok(RBRACE):
