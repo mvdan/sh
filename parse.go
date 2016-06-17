@@ -43,6 +43,7 @@ type parser struct {
 	mode Mode
 
 	spaced, newLine bool
+	willBreakWord   bool
 
 	nextErr   error
 	remaining []byte
@@ -270,10 +271,12 @@ func (p *parser) next() {
 
 func (p *parser) advanceReadLit() { p.advanceBoth(LIT, string(p.readLitBytes())) }
 func (p *parser) readLitBytes() (bs []byte) {
+	p.willBreakWord = false
 	q := p.quote()
 	for {
 		b := p.peekByte()
 		if p.tok == EOF {
+			p.willBreakWord = true
 			return
 		}
 		if b == '\\' { // escaped byte follows
@@ -298,6 +301,9 @@ func (p *parser) readLitBytes() (bs []byte) {
 				return
 			}
 		case b == '$', b == '`':
+			if b == '`' {
+				p.willBreakWord = true
+			}
 			return
 		case q == RBRACE:
 			if b == '}' || b == '"' {
@@ -309,7 +315,10 @@ func (p *parser) readLitBytes() (bs []byte) {
 			if b == '/' || b == '}' {
 				return
 			}
-		case regOps(b), space(b):
+		case space(b), wordBreak(b):
+			p.willBreakWord = true
+			return
+		case regOps(b):
 			return
 		case (q == DLPAREN || q == DRPAREN || q == LPAREN) && arithmOps(b):
 			return
@@ -385,7 +394,7 @@ func (p *parser) eof() bool {
 
 func (p *parser) peekFull(tok Token) bool { return p.tok == tok }
 func (p *parser) peekReserved(tok Token) bool {
-	return p.tok == LIT && p.val == tok.String() && p.willSpaced()
+	return p.tok == LIT && p.val == tok.String() && p.willBreakWord
 }
 func (p *parser) peek(tok Token) bool {
 	return p.peekFull(tok) || p.peekReserved(tok)
