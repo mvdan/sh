@@ -863,9 +863,6 @@ func (p *parser) peekStop() bool {
 var identRe = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
 
 func (p *parser) assignSplit() int {
-	if !p.peek(LIT) {
-		return -1
-	}
 	i := strings.Index(p.val, "=")
 	if i > 0 && p.val[i-1] == '+' {
 		i--
