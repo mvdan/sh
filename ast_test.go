@@ -132,6 +132,7 @@ var astTests = []testCase{
 		[]string{
 			"if a; then b; fi",
 			"if a\nthen\nb\nfi",
+			"if a \nthen\nb\nfi",
 		},
 		&IfClause{
 			Cond:      &StmtCond{Stmts: litStmts("a")},

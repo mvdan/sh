@@ -240,12 +240,10 @@ func (p *parser) next() {
 			return
 		}
 		p.readByte()
-		if !p.spaced {
-			p.spaced = true
-			if b == '\n' {
-				p.newLine = true
-				p.doHeredocs()
-			}
+		p.spaced = true
+		if b == '\n' {
+			p.newLine = true
+			p.doHeredocs()
 		}
 	}
 	p.advance(b, q)
