@@ -689,6 +689,8 @@ func (p *parser) wordPart() WordPart {
 			p.advanceBoth(LIT, HASH.String())
 		case p.readOnlyTok(DOLLAR):
 			p.advanceBoth(LIT, DOLLAR.String())
+		case p.readOnlyTok(QUEST):
+			p.advanceBoth(LIT, QUEST.String())
 		default:
 			p.next()
 		}

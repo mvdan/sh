@@ -2115,6 +2115,10 @@ var astTests = []testCase{
 		},
 	},
 	{
+		[]string{"let $?"},
+		letClause(word(litParamExp("?"))),
+	},
+	{
 		[]string{"a=(b c) foo"},
 		Stmt{
 			Assigns: []Assign{{
