@@ -1548,6 +1548,14 @@ var astTests = []testCase{
 		})),
 	},
 	{
+		[]string{"$((a == b))"},
+		word(arithmExp(&BinaryExpr{
+			Op: EQL,
+			X:  litWord("a"),
+			Y:  litWord("b"),
+		})),
+	},
+	{
 		[]string{"$((a != b))"},
 		word(arithmExp(&BinaryExpr{
 			Op: NEQ,

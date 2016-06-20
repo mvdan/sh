@@ -81,6 +81,7 @@ const (
 	DEC   // --
 	POW   // **
 	COMMA // ,
+	EQL   // ==
 	NEQ   // !=
 	LEQ   // <=
 	GEQ   // >=
@@ -240,6 +241,7 @@ var (
 		DEC:   "--",
 		POW:   "**",
 		COMMA: ",",
+		EQL:   "==",
 		NEQ:   "!=",
 		LEQ:   "<=",
 		GEQ:   ">=",
@@ -401,6 +403,9 @@ func (p *parser) doArithmToken() Token {
 		}
 		return NOT
 	case p.readOnly('='):
+		if p.readOnly('=') {
+			return EQL
+		}
 		return ASSIGN
 	case p.readOnly('('):
 		return LPAREN
