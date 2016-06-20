@@ -929,12 +929,12 @@ func (p *parser) peekStop() bool {
 
 var identRe = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
 
-func (p *parser) assignSplit() int {
-	i := strings.Index(p.val, "=")
-	if i > 0 && p.val[i-1] == '+' {
+func assignSplit(s string) int {
+	i := strings.Index(s, "=")
+	if i > 0 && s[i-1] == '+' {
 		i--
 	}
-	if i >= 0 && identRe.MatchString(p.val[:i]) {
+	if i >= 0 && identRe.MatchString(s[:i]) {
 		return i
 	}
 	return -1
@@ -942,7 +942,7 @@ func (p *parser) assignSplit() int {
 
 func (p *parser) getAssign() (Assign, bool) {
 	var as Assign
-	i := p.assignSplit()
+	i := assignSplit(p.val)
 	if i < 0 {
 		return as, false
 	}
@@ -1281,7 +1281,7 @@ func (p *parser) patLists() (pls []PatternList) {
 func (p *parser) declClause() *DeclClause {
 	ds := &DeclClause{Declare: p.lpos}
 	ds.Local = p.lval == LOCAL.String()
-	for p.peek(LIT) && p.willSpaced() && p.val[0] == '-' {
+	for p.peek(LIT) && p.willBreakWord && p.val[0] == '-' {
 		ds.Opts = append(ds.Opts, p.getWord())
 	}
 	for !p.peekStop() {
