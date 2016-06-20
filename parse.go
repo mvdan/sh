@@ -261,40 +261,41 @@ func (p *parser) advance(b byte, q Token) {
 	case q == SQUOTE && p.readOnlyTok(SQUOTE):
 		p.advanceTok(SQUOTE)
 	case q == SQUOTE:
-		p.advanceReadLit()
+		p.advanceReadLit(b)
 	case q == DQUOTE, q == RBRACE, q == QUO:
 		if b == '`' || b == '"' || b == '$' {
-			p.advanceTok(p.doRegToken())
+			p.readByte()
+			p.advanceTok(p.doRegToken(b))
 		} else {
-			p.advanceReadLit()
+			p.advanceReadLit(b)
 		}
 	case b == '#' && q != LBRACE:
 		line, _ := p.readUntil('\n')
 		p.advanceBoth(COMMENT, line[1:])
 	case q == LBRACE && paramOps(b):
-		p.advanceTok(p.doParamToken())
+		p.readByte()
+		p.advanceTok(p.doParamToken(b))
 	case (q == DLPAREN || q == DRPAREN || q == LPAREN) && arithmOps(b):
-		p.advanceTok(p.doArithmToken())
+		p.readByte()
+		p.advanceTok(p.doArithmToken(b))
 	case regOps(b):
-		p.advanceTok(p.doRegToken())
+		p.readByte()
+		p.advanceTok(p.doRegToken(b))
 	default:
-		p.advanceReadLit()
+		p.advanceReadLit(b)
 	}
 }
 
-func (p *parser) advanceReadLit() { p.advanceBoth(LIT, string(p.readLitBytes())) }
-func (p *parser) readLitBytes() (bs []byte) {
+func (p *parser) advanceReadLit(b byte) {
+	p.advanceBoth(LIT, string(p.readLitBytes(b)))
+}
+func (p *parser) readLitBytes(b byte) (bs []byte) {
 	p.willBreakWord = false
 	q := p.quote()
-	for {
-		b := p.peekByte()
-		if p.tok == EOF {
-			p.willBreakWord = true
-			return
-		}
+	for p.tok != EOF {
 		if b == '\\' { // escaped byte follows
 			p.readByte()
-			b := p.readByte()
+			b = p.readByte()
 			if p.tok == EOF {
 				bs = append(bs, '\\')
 				return
@@ -302,6 +303,7 @@ func (p *parser) readLitBytes() (bs []byte) {
 			if q == DQUOTE || b != '\n' {
 				bs = append(bs, '\\', b)
 			}
+			b = p.peekByte()
 			continue
 		}
 		switch {
@@ -338,7 +340,10 @@ func (p *parser) readLitBytes() (bs []byte) {
 		}
 		p.readByte()
 		bs = append(bs, b)
+		b = p.peekByte()
 	}
+	p.willBreakWord = true
+	return
 }
 
 func (p *parser) advanceTok(tok Token) { p.advanceBoth(tok, "") }

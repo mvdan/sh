@@ -263,15 +263,15 @@ func (t Token) String() string { return tokNames[t] }
 
 // TODO: decouple from parser. Passing readOnly as a func argument
 // doesn't seem to work well as it means an extra allocation (?).
-func (p *parser) doRegToken() Token {
-	switch {
-	case p.readOnly('\''):
+func (p *parser) doRegToken(b byte) Token {
+	switch b {
+	case '\'':
 		return SQUOTE
-	case p.readOnly('"'):
+	case '"':
 		return DQUOTE
-	case p.readOnly('`'):
+	case '`':
 		return BQUOTE
-	case p.readOnly('&'):
+	case '&':
 		switch {
 		case p.readOnly('&'):
 			return LAND
@@ -282,7 +282,7 @@ func (p *parser) doRegToken() Token {
 			return RDRALL
 		}
 		return AND
-	case p.readOnly('|'):
+	case '|':
 		switch {
 		case p.readOnly('|'):
 			return LOR
@@ -290,7 +290,7 @@ func (p *parser) doRegToken() Token {
 			return PIPEALL
 		}
 		return OR
-	case p.readOnly('$'):
+	case '$':
 		switch {
 		case p.readOnly('\''):
 			return DOLLSQ
@@ -305,11 +305,11 @@ func (p *parser) doRegToken() Token {
 			return DOLLPR
 		}
 		return DOLLAR
-	case p.readOnly('('):
+	case '(':
 		return LPAREN
-	case p.readOnly(')'):
+	case ')':
 		return RPAREN
-	case p.readOnly(';'):
+	case ';':
 		if p.readOnly(';') {
 			if p.readOnly('&') {
 				return DSEMIFALL
@@ -320,7 +320,7 @@ func (p *parser) doRegToken() Token {
 			return SEMIFALL
 		}
 		return SEMICOLON
-	case p.readOnly('<'):
+	case '<':
 		switch {
 		case p.readOnly('<'):
 			if p.readOnly('-') {
@@ -338,7 +338,7 @@ func (p *parser) doRegToken() Token {
 			return CMDIN
 		}
 		return LSS
-	case p.readOnly('>'):
+	case '>':
 		switch {
 		case p.readOnly('>'):
 			return SHR
@@ -352,9 +352,9 @@ func (p *parser) doRegToken() Token {
 	return ILLEGAL
 }
 
-func (p *parser) doParamToken() Token {
-	switch {
-	case p.readOnly(':'):
+func (p *parser) doParamToken(b byte) Token {
+	switch b {
+	case ':':
 		switch {
 		case p.readOnly('+'):
 			return CADD
@@ -366,27 +366,27 @@ func (p *parser) doParamToken() Token {
 			return CASSIGN
 		}
 		return COLON
-	case p.readOnly('+'):
+	case '+':
 		return ADD
-	case p.readOnly('-'):
+	case '-':
 		return SUB
-	case p.readOnly('?'):
+	case '?':
 		return QUEST
-	case p.readOnly('='):
+	case '=':
 		return ASSIGN
-	case p.readOnly('%'):
+	case '%':
 		if p.readOnly('%') {
 			return DREM
 		}
 		return REM
-	case p.readOnly('#'):
+	case '#':
 		if p.readOnly('#') {
 			return DHASH
 		}
 		return HASH
-	case p.readOnly('['):
+	case '[':
 		return LBRACK
-	case p.readOnly('/'):
+	case '/':
 		if p.readOnly('/') {
 			return DQUO
 		}
@@ -395,23 +395,23 @@ func (p *parser) doParamToken() Token {
 	return ILLEGAL
 }
 
-func (p *parser) doArithmToken() Token {
-	switch {
-	case p.readOnly('!'):
+func (p *parser) doArithmToken(b byte) Token {
+	switch b {
+	case '!':
 		if p.readOnly('=') {
 			return NEQ
 		}
 		return NOT
-	case p.readOnly('='):
+	case '=':
 		if p.readOnly('=') {
 			return EQL
 		}
 		return ASSIGN
-	case p.readOnly('('):
+	case '(':
 		return LPAREN
-	case p.readOnly(')'):
+	case ')':
 		return RPAREN
-	case p.readOnly('&'):
+	case '&':
 		if p.readOnly('&') {
 			return LAND
 		}
@@ -419,7 +419,7 @@ func (p *parser) doArithmToken() Token {
 			return ANDASSGN
 		}
 		return AND
-	case p.readOnly('|'):
+	case '|':
 		if p.readOnly('|') {
 			return LOR
 		}
@@ -427,7 +427,7 @@ func (p *parser) doArithmToken() Token {
 			return ORASSGN
 		}
 		return OR
-	case p.readOnly('<'):
+	case '<':
 		switch {
 		case p.readOnly('<'):
 			if p.readOnly('=') {
@@ -438,7 +438,7 @@ func (p *parser) doArithmToken() Token {
 			return LEQ
 		}
 		return LSS
-	case p.readOnly('>'):
+	case '>':
 		switch {
 		case p.readOnly('>'):
 			if p.readOnly('=') {
@@ -449,7 +449,7 @@ func (p *parser) doArithmToken() Token {
 			return GEQ
 		}
 		return GTR
-	case p.readOnly('+'):
+	case '+':
 		if p.readOnly('+') {
 			return INC
 		}
@@ -457,7 +457,7 @@ func (p *parser) doArithmToken() Token {
 			return ADDASSGN
 		}
 		return ADD
-	case p.readOnly('-'):
+	case '-':
 		if p.readOnly('-') {
 			return DEC
 		}
@@ -465,12 +465,12 @@ func (p *parser) doArithmToken() Token {
 			return SUBASSGN
 		}
 		return SUB
-	case p.readOnly('%'):
+	case '%':
 		if p.readOnly('=') {
 			return REMASSGN
 		}
 		return REM
-	case p.readOnly('*'):
+	case '*':
 		if p.readOnly('*') {
 			return POW
 		}
@@ -478,21 +478,21 @@ func (p *parser) doArithmToken() Token {
 			return MULASSGN
 		}
 		return MUL
-	case p.readOnly('/'):
+	case '/':
 		if p.readOnly('=') {
 			return QUOASSGN
 		}
 		return QUO
-	case p.readOnly('^'):
+	case '^':
 		if p.readOnly('=') {
 			return XORASSGN
 		}
 		return XOR
-	case p.readOnly(','):
+	case ',':
 		return COMMA
-	case p.readOnly('?'):
+	case '?':
 		return QUEST
-	case p.readOnly(':'):
+	case ':':
 		return COLON
 	}
 	return ILLEGAL
