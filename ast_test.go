@@ -2087,6 +2087,26 @@ var astTests = []testCase{
 		},
 	},
 	{
+		[]string{
+			"case a in b) let i++ ;; esac",
+			"case a in b) let i++;; esac",
+		},
+		&CaseClause{
+			Word: *word(lit("a")),
+			List: []PatternList{{
+				Op:       DSEMICOLON,
+				Patterns: litWords("b"),
+				Stmts: []Stmt{stmt(letClause(
+					&UnaryExpr{
+						Op:   INC,
+						Post: true,
+						X:    litWord("i"),
+					},
+				))},
+			}},
+		},
+	},
+	{
 		[]string{"a=(b c) foo"},
 		Stmt{
 			Assigns: []Assign{{

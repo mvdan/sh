@@ -419,7 +419,7 @@ func (p *parser) eof() bool {
 
 func (p *parser) peek(tok Token) bool { return p.tok == tok }
 func (p *parser) peekRsrv(tok Token) bool {
-	return p.tok == LIT && p.val == tok.String() && p.willBreakWord
+	return p.peek(LIT) && p.val == tok.String() && p.willBreakWord
 }
 func (p *parser) peekEither(tok Token) bool {
 	return p.peek(tok) || p.peekRsrv(tok)
@@ -743,7 +743,7 @@ func quotedStop(start Token) Token {
 }
 
 func (p *parser) arithmExpr(following Token) ArithmExpr {
-	if p.eof() || p.peekArithmEnd() || p.tok == STOPPED {
+	if p.eof() || p.peekArithmEnd() || p.peek(STOPPED) {
 		return nil
 	}
 	left := p.arithmExprBase(following)
@@ -751,7 +751,8 @@ func (p *parser) arithmExpr(following Token) ArithmExpr {
 	if q != DRPAREN && q != LPAREN && p.spaced {
 		return left
 	}
-	if p.eof() || p.peek(RPAREN) || p.peek(SEMICOLON) || p.tok == STOPPED {
+	if p.eof() || p.peek(RPAREN) || p.peek(SEMICOLON) ||
+		p.peek(DSEMICOLON) || p.peek(STOPPED) {
 		return left
 	}
 	if p.peek(LIT) {
@@ -858,7 +859,7 @@ func (p *parser) paramExp() *ParamExp {
 		p.curErr(`can only get length of a simple parameter`)
 	}
 	if p.peek(QUO) || p.peek(DQUO) {
-		pe.Repl = &Replace{All: p.tok == DQUO}
+		pe.Repl = &Replace{All: p.peek(DQUO)}
 		p.pushStops(QUO)
 		pe.Repl.Orig = p.getWord()
 		if p.peek(QUO) {
