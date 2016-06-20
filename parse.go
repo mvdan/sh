@@ -97,6 +97,17 @@ func (p *parser) readByte() byte {
 	return b
 }
 
+func (p *parser) discByte(b byte) {
+	if p.reachingEOF() {
+		p.errPass(p.nextErr)
+		return
+	}
+	if _, err := p.br.Discard(1); err != nil {
+		p.errPass(err)
+	}
+	p.npos = moveWith(p.npos, b)
+}
+
 func moveWith(pos Pos, b byte) Pos {
 	if pos.Line == 0 {
 		return pos
@@ -148,24 +159,23 @@ func (p *parser) willRead(b byte) bool {
 	return bs[0] == b
 }
 
-func (p *parser) willReadStr(s string) bool {
-	if p.nextErr != nil && len(p.remaining) < len(s) {
+func (p *parser) willReadTwo(b1, b2 byte) bool {
+	if p.nextErr != nil && len(p.remaining) < 2 {
 		return false
 	}
-	bs, err := p.br.Peek(len(s))
+	bs, err := p.br.Peek(2)
 	if err != nil {
 		p.nextErr = err
 		p.remaining = bs
 		return false
 	}
-	return string(bs) == s
+	return bs[0] == b1 && bs[1] == b2
 }
 
-func (p *parser) readOnlyStr(s string) bool {
-	if p.willReadStr(s) {
-		for i := 0; i < len(s); i++ {
-			p.readByte()
-		}
+func (p *parser) readOnlyTwo(b1, b2 byte) bool {
+	if p.willReadTwo(b1, b2) {
+		p.discByte(b1)
+		p.discByte(b2)
 		return true
 	}
 	return false
@@ -173,7 +183,7 @@ func (p *parser) readOnlyStr(s string) bool {
 
 func (p *parser) readOnly(b byte) bool {
 	if p.willRead(b) {
-		p.readByte()
+		p.discByte(b)
 		return true
 	}
 	return false
@@ -225,7 +235,7 @@ func (p *parser) next() {
 			p.lpos, p.pos = p.pos, p.npos
 			return
 		}
-		if b == '\\' && p.readOnlyStr("\\\n") {
+		if b == '\\' && p.readOnlyTwo('\\', '\n') {
 			continue
 		}
 		if !space(b) {
@@ -236,7 +246,7 @@ func (p *parser) next() {
 			p.advanceTok(STOPPED)
 			return
 		}
-		p.readByte()
+		p.discByte(b)
 		p.spaced = true
 		if b == '\n' {
 			p.newLine = true
@@ -250,22 +260,22 @@ func (p *parser) advance(b byte, q Token) {
 	p.lpos, p.pos = p.pos, p.npos
 	switch {
 	case (q == RBRACE || q == LBRACE || q == QUO) && b == '}':
-		p.readByte()
+		p.discByte(b)
 		p.advanceTok(RBRACE)
 	case q == QUO && b == '/':
-		p.readByte()
+		p.discByte(b)
 		p.advanceTok(QUO)
 	case q == RBRACK && b == ']':
-		p.readByte()
+		p.discByte(b)
 		p.advanceTok(RBRACK)
 	case q == SQUOTE && b == '\'':
-		p.readByte()
+		p.discByte(b)
 		p.advanceTok(SQUOTE)
 	case q == SQUOTE:
 		p.advanceReadLit(b)
 	case q == DQUOTE, q == RBRACE, q == QUO:
 		if b == '`' || b == '"' || b == '$' {
-			p.readByte()
+			p.discByte(b)
 			p.advanceTok(p.doRegToken(b))
 		} else {
 			p.advanceReadLit(b)
@@ -274,13 +284,13 @@ func (p *parser) advance(b byte, q Token) {
 		line, _ := p.readUntil('\n')
 		p.advanceBoth(COMMENT, line[1:])
 	case q == LBRACE && paramOps(b):
-		p.readByte()
+		p.discByte(b)
 		p.advanceTok(p.doParamToken(b))
 	case (q == DLPAREN || q == DRPAREN || q == LPAREN) && arithmOps(b):
-		p.readByte()
+		p.discByte(b)
 		p.advanceTok(p.doArithmToken(b))
 	case regOps(b):
-		p.readByte()
+		p.discByte(b)
 		p.advanceTok(p.doRegToken(b))
 	default:
 		p.advanceReadLit(b)
@@ -315,7 +325,7 @@ byteLoop:
 		case b == '`':
 			break byteLoop
 		case q == DQUOTE:
-			if b == '"' || (b == '$' && !p.willReadStr(`$"`)) {
+			if b == '"' || (b == '$' && !p.willReadTwo('$', '"')) {
 				return
 			}
 		case b == '$':
@@ -337,7 +347,7 @@ byteLoop:
 		case (q == DLPAREN || q == DRPAREN || q == LPAREN) && arithmOps(b):
 			return
 		}
-		p.readByte()
+		p.discByte(b)
 		bs = append(bs, b)
 		b = p.peekByte()
 	}
@@ -890,7 +900,7 @@ func (p *parser) arithmEnd(left Pos) Pos {
 	if !p.peekArithmEnd() {
 		p.matchingErr(left, DLPAREN, DRPAREN)
 	}
-	p.readByte() // )
+	p.discByte(')')
 	p.popStop()
 	p.next()
 	return p.lpos
