@@ -292,8 +292,10 @@ func (p *parser) advanceReadLit(b byte) {
 func (p *parser) readLitBytes(b byte) (bs []byte) {
 	p.willBreakWord = false
 	q := p.quote()
+byteLoop:
 	for p.tok != EOF {
-		if b == '\\' { // escaped byte follows
+		switch {
+		case b == '\\': // escaped byte follows
 			p.readByte()
 			b = p.readByte()
 			if p.tok == EOF {
@@ -304,16 +306,13 @@ func (p *parser) readLitBytes(b byte) (bs []byte) {
 				bs = append(bs, '\\', b)
 			}
 			b = p.peekByte()
-			continue
-		}
-		switch {
+			continue byteLoop
 		case q == SQUOTE:
 			if b == '\'' {
 				return
 			}
 		case b == '`':
-			p.willBreakWord = true
-			return
+			break byteLoop
 		case q == DQUOTE:
 			if b == '"' || (b == '$' && !p.willReadStr(`$"`)) {
 				return
@@ -331,8 +330,7 @@ func (p *parser) readLitBytes(b byte) (bs []byte) {
 				return
 			}
 		case space(b), wordBreak(b):
-			p.willBreakWord = true
-			return
+			break byteLoop
 		case regOps(b):
 			return
 		case (q == DLPAREN || q == DRPAREN || q == LPAREN) && arithmOps(b):
