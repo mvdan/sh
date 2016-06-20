@@ -2193,6 +2193,17 @@ var astTests = []testCase{
 			}))),
 		},
 	},
+	{
+		[]string{"\"a`\"\"`\""},
+		word(dblQuoted(
+			lit("a"),
+			bckQuoted(
+				stmt(call(
+					*word(dblQuoted()),
+				)),
+			),
+		)),
+	},
 }
 
 func fullProg(v interface{}) *File {

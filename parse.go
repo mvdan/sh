@@ -311,14 +311,14 @@ func (p *parser) readLitBytes() (bs []byte) {
 			if b == '\'' {
 				return
 			}
+		case b == '`':
+			p.willBreakWord = true
+			return
 		case q == DQUOTE:
 			if b == '"' || (b == '$' && !p.willReadStr(`$"`)) {
 				return
 			}
-		case b == '$', b == '`':
-			if b == '`' {
-				p.willBreakWord = true
-			}
+		case b == '$':
 			return
 		case q == RBRACE:
 			if b == '}' || b == '"' {
