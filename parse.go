@@ -249,13 +249,17 @@ func (p *parser) next() {
 func (p *parser) advance(b byte, q Token) {
 	p.lpos, p.pos = p.pos, p.npos
 	switch {
-	case (q == RBRACE || q == LBRACE || q == QUO) && p.readOnly('}'):
+	case (q == RBRACE || q == LBRACE || q == QUO) && b == '}':
+		p.readByte()
 		p.advanceTok(RBRACE)
-	case q == QUO && p.readOnly('/'):
+	case q == QUO && b == '/':
+		p.readByte()
 		p.advanceTok(QUO)
-	case q == RBRACK && p.readOnly(']'):
+	case q == RBRACK && b == ']':
+		p.readByte()
 		p.advanceTok(RBRACK)
-	case q == SQUOTE && p.readOnly('\''):
+	case q == SQUOTE && b == '\'':
+		p.readByte()
 		p.advanceTok(SQUOTE)
 	case q == SQUOTE:
 		p.advanceReadLit(b)
@@ -375,11 +379,8 @@ func (p *parser) readIncluding(b byte) (string, bool) {
 }
 
 func (p *parser) doHeredocs() {
-	for i, r := range p.heredocs {
+	for _, r := range p.heredocs {
 		end := unquotedWordStr(&r.Word)
-		if i > 0 {
-			p.readOnly('\n')
-		}
 		r.Hdoc.ValuePos = p.npos
 		r.Hdoc.Value, _ = p.readHdocBody(end, r.Op == DHEREDOC)
 	}
@@ -889,7 +890,7 @@ func (p *parser) arithmEnd(left Pos) Pos {
 	if !p.peekArithmEnd() {
 		p.matchingErr(left, DLPAREN, DRPAREN)
 	}
-	p.readOnly(')')
+	p.readByte() // )
 	p.popStop()
 	p.next()
 	return p.lpos
