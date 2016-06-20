@@ -170,9 +170,6 @@ func (p *parser) readOnlyStr(s string) bool {
 	}
 	return false
 }
-func (p *parser) readOnlyTok(tok Token) bool {
-	return p.readOnlyStr(tok.String())
-}
 
 func (p *parser) readOnly(b byte) bool {
 	if p.willRead(b) {
@@ -252,13 +249,13 @@ func (p *parser) next() {
 func (p *parser) advance(b byte, q Token) {
 	p.lpos, p.pos = p.pos, p.npos
 	switch {
-	case (q == RBRACE || q == LBRACE || q == QUO) && p.readOnlyTok(RBRACE):
+	case (q == RBRACE || q == LBRACE || q == QUO) && p.readOnly('}'):
 		p.advanceTok(RBRACE)
-	case q == QUO && p.readOnlyTok(QUO):
+	case q == QUO && p.readOnly('/'):
 		p.advanceTok(QUO)
-	case q == RBRACK && p.readOnlyTok(RBRACK):
+	case q == RBRACK && p.readOnly(']'):
 		p.advanceTok(RBRACK)
-	case q == SQUOTE && p.readOnlyTok(SQUOTE):
+	case q == SQUOTE && p.readOnly('\''):
 		p.advanceTok(SQUOTE)
 	case q == SQUOTE:
 		p.advanceReadLit(b)
@@ -688,11 +685,11 @@ func (p *parser) wordPart() WordPart {
 			return p.wordPart()
 		}
 		switch {
-		case p.readOnlyTok(HASH):
+		case p.readOnly('#'):
 			p.advanceBoth(LIT, HASH.String())
-		case p.readOnlyTok(DOLLAR):
+		case p.readOnly('$'):
 			p.advanceBoth(LIT, DOLLAR.String())
-		case p.readOnlyTok(QUEST):
+		case p.readOnly('?'):
 			p.advanceBoth(LIT, QUEST.String())
 		default:
 			p.next()
@@ -892,7 +889,7 @@ func (p *parser) arithmEnd(left Pos) Pos {
 	if !p.peekArithmEnd() {
 		p.matchingErr(left, DLPAREN, DRPAREN)
 	}
-	p.readOnlyTok(RPAREN)
+	p.readOnly(')')
 	p.popStop()
 	p.next()
 	return p.lpos
@@ -1155,7 +1152,7 @@ func (p *parser) ifClause() *IfClause {
 }
 
 func (p *parser) cond(left Token, stop Token) Cond {
-	if p.peek(LPAREN) && p.readOnlyTok(LPAREN) {
+	if p.peek(LPAREN) && p.readOnly('(') {
 		p.pushStops(DRPAREN)
 		c := &CStyleCond{Lparen: p.lpos}
 		c.X = p.arithmExpr(DLPAREN)
@@ -1198,7 +1195,7 @@ func (p *parser) forClause() *ForClause {
 }
 
 func (p *parser) loop(forPos Pos) Loop {
-	if p.peek(LPAREN) && p.readOnlyTok(LPAREN) {
+	if p.peek(LPAREN) && p.readOnly('(') {
 		p.pushStops(DRPAREN)
 		cl := &CStyleLoop{Lparen: p.lpos}
 		cl.Init = p.arithmExpr(DLPAREN)
