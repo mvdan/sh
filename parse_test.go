@@ -78,32 +78,27 @@ func BenchmarkParse(b *testing.B) {
 			strings.Repeat("a b c d; ", 10),
 		},
 		{
-			"SglQuoted",
-			"'" + strings.Repeat("foo bar ", 10) + "\n'",
-		},
-		{
-			"DblQuoted",
-			`"` + strings.Repeat("foo bar ", 10) + "\n\"",
+			"Quoted",
+			"'" + strings.Repeat("foo bar ", 10) + "\n'" +
+				`"` + strings.Repeat("foo bar ", 10) + "\n\"",
 		},
 		{
 			"NestedStmts",
-			"a() { (b); { c; }; (d); }",
+			"a() { (b); { c; }; (d); }; $(a `b` $(c) `d`)",
 		},
 		{
 			"Clauses",
 			"if a; then while b; do for c in d e; do f; done; done; fi",
 		},
 		{
-			"CmdSubst",
-			"$(a `b` $(c) `d`)",
-		},
-		{
 			"Binary",
-			"a | b && c || d | e",
+			"a | b && c || d | e && g || f | h",
 		},
 		{
 			"Redirect",
-			"foo >a <b <<<c 2>&1 <<EOF\nl1\nl2\nl3\nEOF",
+			"foo >a <b <<<c 2>&1 <<EOF\n" +
+				strings.Repeat("somewhat long heredoc line\n", 10) +
+				"EOF",
 		},
 		{
 			"Arithm",
