@@ -15,13 +15,6 @@ const (
 	LITWORD
 	COMMENT
 
-	// Bash reserved words
-	FUNCTION
-	DECLARE
-	LOCAL
-	EVAL
-	LET
-
 	// Rest of tokens
 	SQUOTE // '
 	DQUOTE // "
@@ -39,6 +32,7 @@ const (
 	DOLLBR // ${
 	DOLLPR // $(
 	DOLLDP // $((
+	LET    // let
 	LBRACE // {
 	LPAREN // (
 
@@ -142,12 +136,6 @@ var (
 		DLPAREN: "((",
 		DRPAREN: "))",
 
-		FUNCTION: "function",
-		DECLARE:  "declare",
-		LOCAL:    "local",
-		EVAL:     "eval",
-		LET:      "let",
-
 		SQUOTE: `'`,
 		DQUOTE: `"`,
 		BQUOTE: "`",
@@ -163,6 +151,7 @@ var (
 		DOLLBR:     `${`,
 		DOLLPR:     `$(`,
 		DOLLDP:     `$((`,
+		LET:        "let",
 		LBRACE:     "{",
 		LPAREN:     "(",
 		RBRACE:     "}",

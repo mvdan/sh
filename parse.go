@@ -672,7 +672,7 @@ func (p *parser) wordPart() WordPart {
 	case p.peek(DOLLDP):
 		p.pushStops(DRPAREN)
 		ar := &ArithmExp{Dollar: p.lpos}
-		ar.X = p.arithmExpr(DLPAREN)
+		ar.X = p.arithmExpr(DOLLDP)
 		ar.Rparen = p.arithmEnd(ar.Dollar)
 		return ar
 	case p.peek(DOLLPR):
@@ -1296,7 +1296,7 @@ func (p *parser) patLists() (pls []*PatternList) {
 
 func (p *parser) declClause() *DeclClause {
 	ds := &DeclClause{Declare: p.lpos}
-	ds.Local = p.lval == LOCAL.String()
+	ds.Local = p.lval == "local"
 	for p.peek(LITWORD) && p.val[0] == '-' {
 		ds.Opts = append(ds.Opts, p.getWord())
 	}

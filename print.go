@@ -576,7 +576,7 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		p.nestedBinary = false
 	case *FuncDecl:
 		if x.BashStyle {
-			p.spacedTok(FUNCTION, true)
+			p.rsrvWord("function")
 			p.space(' ')
 		}
 		p.lit(&x.Name)
@@ -620,19 +620,19 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		p.sepRsrv("done", x.Done, true)
 	case *DeclClause:
 		if x.Local {
-			p.spacedTok(LOCAL, true)
+			p.rsrvWord("local")
 		} else {
-			p.spacedTok(DECLARE, true)
+			p.rsrvWord("declare")
 		}
 		for _, w := range x.Opts {
 			p.spacedWord(w)
 		}
 		p.assigns(x.Assigns)
 	case *EvalClause:
-		p.spacedTok(EVAL, true)
+		p.rsrvWord("eval")
 		p.stmt(x.Stmt)
 	case *LetClause:
-		p.spacedTok(LET, true)
+		p.rsrvWord("let")
 		for _, n := range x.Exprs {
 			p.arithm(n, true)
 		}
