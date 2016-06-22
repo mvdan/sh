@@ -433,11 +433,14 @@ func (p *parser) eof() bool {
 }
 
 func (p *parser) peek(tok Token) bool { return p.tok == tok }
-func (p *parser) peekRsrv(tok Token) bool {
+func (p *parser) peekRsrvTok(tok Token) bool {
 	return p.tok == LITWORD && p.val == tok.String()
 }
+func (p *parser) peekRsrv(val string) bool {
+	return p.tok == LITWORD && p.val == val
+}
 func (p *parser) peekEither(tok Token) bool {
-	return p.peek(tok) || p.peekRsrv(tok)
+	return p.peek(tok) || p.peekRsrvTok(tok)
 }
 
 func wordBreak(b byte) bool {
@@ -470,9 +473,9 @@ func (p *parser) got(tok Token) bool {
 	}
 	return false
 }
-func (p *parser) gotRsrv(tok Token) bool {
+func (p *parser) gotRsrv(val string) bool {
 	p.saveComments()
-	if p.peekRsrv(tok) {
+	if p.peekRsrv(val) {
 		p.next()
 		return true
 	}
@@ -508,9 +511,9 @@ func (p *parser) followFull(lpos Pos, left string, tok Token) Pos {
 	}
 	return p.lpos
 }
-func (p *parser) followRsrv(lpos Pos, left string, tok Token) Pos {
-	if !p.gotRsrv(tok) {
-		p.followErr(lpos, left, fmt.Sprintf(`%q`, tok))
+func (p *parser) followRsrv(lpos Pos, left, val string) Pos {
+	if !p.gotRsrv(val) {
+		p.followErr(lpos, left, fmt.Sprintf(`%q`, val))
 	}
 	return p.lpos
 }
@@ -534,9 +537,9 @@ func (p *parser) followWord(left Token) Word {
 	return w
 }
 
-func (p *parser) stmtEnd(n Node, startTok, tok Token) Pos {
-	if !p.gotRsrv(tok) {
-		p.posErr(n.Pos(), `%s statement must end with %q`, startTok, tok)
+func (p *parser) stmtEnd(n Node, start, end string) Pos {
+	if !p.gotRsrv(end) {
+		p.posErr(n.Pos(), `%s statement must end with %q`, start, end)
 	}
 	return p.lpos
 }
@@ -624,7 +627,7 @@ func (p *parser) invalidStmtStart() {
 	switch {
 	case p.peekEitherAny(SEMICOLON, AND, OR, LAND, LOR):
 		p.curErr("%s can only immediately follow a statement", p.tok)
-	case p.peekRsrv(RBRACE):
+	case p.peekRsrv("}"):
 		p.curErr("%s can only be used to close a block", p.val)
 	case p.peek(RPAREN):
 		p.curErr("%s can only be used to close a subshell", p.tok)
@@ -763,8 +766,8 @@ func (p *parser) arithmExpr(following Token) ArithmExpr {
 	if q != DRPAREN && q != LPAREN && p.spaced {
 		return left
 	}
-	if p.eof() || p.peek(RPAREN) || p.peek(SEMICOLON) ||
-		p.peek(DSEMICOLON) || p.peek(STOPPED) {
+	if p.eof() || p.tok == RPAREN || p.tok == SEMICOLON ||
+		p.tok == DSEMICOLON || p.tok == STOPPED {
 		return left
 	}
 	if p.peek(LIT) || p.peek(LITWORD) {
@@ -906,7 +909,7 @@ func (p *parser) arithmEnd(left Pos) Pos {
 }
 
 func (p *parser) peekEnd() bool {
-	return p.eof() || p.newLine || p.peek(SEMICOLON)
+	return p.eof() || p.newLine || p.tok == SEMICOLON
 }
 
 func (p *parser) peekStop() bool {
@@ -1031,12 +1034,12 @@ func (p *parser) getStmt(stops ...Token) (*Stmt, bool) {
 }
 
 func (p *parser) gotStmtAndOr(s *Stmt, stops ...Token) (*Stmt, bool) {
-	if p.peekRsrv(RBRACE) {
+	if p.peekRsrv("}") {
 		// don't let it be a LIT
 		return nil, false
 	}
 	s.Position = p.pos
-	if p.gotRsrv(NOT) {
+	if p.gotRsrv("!") {
 		s.Negated = true
 	}
 	for {
@@ -1151,7 +1154,7 @@ func (p *parser) subshell() *Subshell {
 func (p *parser) block() *Block {
 	b := &Block{Lbrace: p.lpos}
 	b.Stmts = p.stmts(RBRACE)
-	if !p.gotRsrv(RBRACE) {
+	if !p.gotRsrv("}") {
 		p.matchingErr(b.Lbrace, LBRACE, RBRACE)
 	}
 	b.Rbrace = p.lpos
@@ -1161,20 +1164,20 @@ func (p *parser) block() *Block {
 func (p *parser) ifClause() *IfClause {
 	ic := &IfClause{If: p.lpos}
 	ic.Cond = p.cond(IF, THEN)
-	ic.Then = p.followRsrv(ic.If, "if [stmts]", THEN)
+	ic.Then = p.followRsrv(ic.If, "if [stmts]", "then")
 	ic.ThenStmts = p.followStmts(THEN, FI, ELIF, ELSE)
-	for p.gotRsrv(ELIF) {
+	for p.gotRsrv("elif") {
 		elf := &Elif{Elif: p.lpos}
 		elf.Cond = p.cond(ELIF, THEN)
-		elf.Then = p.followRsrv(elf.Elif, "elif [stmts]", THEN)
+		elf.Then = p.followRsrv(elf.Elif, "elif [stmts]", "then")
 		elf.ThenStmts = p.followStmts(THEN, FI, ELIF, ELSE)
 		ic.Elifs = append(ic.Elifs, elf)
 	}
-	if p.gotRsrv(ELSE) {
+	if p.gotRsrv("else") {
 		ic.Else = p.lpos
 		ic.ElseStmts = p.followStmts(ELSE, FI)
 	}
-	ic.Fi = p.stmtEnd(ic, IF, FI)
+	ic.Fi = p.stmtEnd(ic, "if", "fi")
 	return ic
 }
 
@@ -1197,27 +1200,27 @@ func (p *parser) cond(left Token, stop Token) Cond {
 func (p *parser) whileClause() *WhileClause {
 	wc := &WhileClause{While: p.lpos}
 	wc.Cond = p.cond(WHILE, DO)
-	wc.Do = p.followRsrv(wc.While, "while [stmts]", DO)
+	wc.Do = p.followRsrv(wc.While, "while [stmts]", "do")
 	wc.DoStmts = p.followStmts(DO, DONE)
-	wc.Done = p.stmtEnd(wc, WHILE, DONE)
+	wc.Done = p.stmtEnd(wc, "while", "done")
 	return wc
 }
 
 func (p *parser) untilClause() *UntilClause {
 	uc := &UntilClause{Until: p.lpos}
 	uc.Cond = p.cond(UNTIL, DO)
-	uc.Do = p.followRsrv(uc.Until, "until [stmts]", DO)
+	uc.Do = p.followRsrv(uc.Until, "until [stmts]", "do")
 	uc.DoStmts = p.followStmts(DO, DONE)
-	uc.Done = p.stmtEnd(uc, UNTIL, DONE)
+	uc.Done = p.stmtEnd(uc, "until", "done")
 	return uc
 }
 
 func (p *parser) forClause() *ForClause {
 	fc := &ForClause{For: p.lpos}
 	fc.Loop = p.loop(fc.For)
-	fc.Do = p.followRsrv(fc.For, "for foo [in words]", DO)
+	fc.Do = p.followRsrv(fc.For, "for foo [in words]", "do")
 	fc.DoStmts = p.followStmts(DO, DONE)
-	fc.Done = p.stmtEnd(fc, FOR, DONE)
+	fc.Done = p.stmtEnd(fc, "for", "done")
 	return fc
 }
 
@@ -1238,7 +1241,7 @@ func (p *parser) loop(forPos Pos) Loop {
 	if !p.gotLit(&wi.Name) {
 		p.followErr(forPos, FOR, "a literal")
 	}
-	if p.gotRsrv(IN) {
+	if p.gotRsrv("in") {
 		for !p.peekEnd() {
 			if w, ok := p.gotWord(); !ok {
 				p.curErr("word list can only contain words")
@@ -1256,9 +1259,9 @@ func (p *parser) loop(forPos Pos) Loop {
 func (p *parser) caseClause() *CaseClause {
 	cc := &CaseClause{Case: p.lpos}
 	cc.Word = p.followWord(CASE)
-	p.followRsrv(cc.Case, "case x", IN)
+	p.followRsrv(cc.Case, "case x", "in")
 	cc.List = p.patLists()
-	cc.Esac = p.stmtEnd(cc, CASE, ESAC)
+	cc.Esac = p.stmtEnd(cc, "case", "esac")
 	return cc
 }
 
@@ -1266,7 +1269,7 @@ func (p *parser) patLists() (pls []*PatternList) {
 	if p.gotSameLine(SEMICOLON) {
 		return
 	}
-	for !p.eof() && !p.peekRsrv(ESAC) {
+	for !p.eof() && !p.peekRsrv("esac") {
 		pl := &PatternList{}
 		p.got(LPAREN)
 		for !p.eof() {
@@ -1338,7 +1341,7 @@ func (p *parser) letClause() *LetClause {
 }
 
 func (p *parser) callOrFunc() Command {
-	if p.gotRsrv(FUNCTION) {
+	if p.gotRsrv("function") {
 		fpos := p.lpos
 		w := p.followWord(FUNCTION)
 		if p.gotSameLine(LPAREN) {
