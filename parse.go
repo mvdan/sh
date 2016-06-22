@@ -1066,27 +1066,40 @@ func (p *parser) gotStmtAndOr(s *Stmt, stops ...Token) (*Stmt, bool) {
 }
 
 func (p *parser) gotStmtPipe(s *Stmt) (*Stmt, bool) {
-	switch {
-	case p.peek(LPAREN):
+	switch p.tok {
+	case LPAREN:
 		s.Cmd = p.subshell()
-	case p.gotRsrv(LBRACE):
-		s.Cmd = p.block()
-	case p.gotRsrv(IF):
-		s.Cmd = p.ifClause()
-	case p.gotRsrv(WHILE):
-		s.Cmd = p.whileClause()
-	case p.gotRsrv(UNTIL):
-		s.Cmd = p.untilClause()
-	case p.gotRsrv(FOR):
-		s.Cmd = p.forClause()
-	case p.gotRsrv(CASE):
-		s.Cmd = p.caseClause()
-	case p.gotRsrv(DECLARE), p.gotRsrv(LOCAL):
-		s.Cmd = p.declClause()
-	case p.gotRsrv(EVAL):
-		s.Cmd = p.evalClause()
-	case p.peekRsrv(LET):
-		s.Cmd = p.letClause()
+	case LITWORD:
+		switch p.val {
+		case "{":
+			p.next()
+			s.Cmd = p.block()
+		case "if":
+			p.next()
+			s.Cmd = p.ifClause()
+		case "while":
+			p.next()
+			s.Cmd = p.whileClause()
+		case "until":
+			p.next()
+			s.Cmd = p.untilClause()
+		case "for":
+			p.next()
+			s.Cmd = p.forClause()
+		case "case":
+			p.next()
+			s.Cmd = p.caseClause()
+		case "declare", "local":
+			p.next()
+			s.Cmd = p.declClause()
+		case "eval":
+			p.next()
+			s.Cmd = p.evalClause()
+		case "let":
+			s.Cmd = p.letClause()
+		default:
+			s.Cmd = p.callOrFunc()
+		}
 	default:
 		s.Cmd = p.callOrFunc()
 	}
