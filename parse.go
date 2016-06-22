@@ -43,8 +43,8 @@ type parser struct {
 	mode Mode
 
 	spaced, newLine bool
-	stopNewline  bool
-	forbidNested bool
+	stopNewline     bool
+	forbidNested    bool
 
 	nextErr   error
 	remaining []byte
@@ -982,13 +982,16 @@ func (p *parser) getAssign() (*Assign, bool) {
 }
 
 func (p *parser) peekRedir() bool {
-	if p.peek(LITWORD) && (p.willRead('>') || p.willRead('<')) {
+	switch p.tok {
+	case LITWORD:
+		if p.willRead('>') || p.willRead('<') {
+			return true
+		}
+	case GTR, SHR, LSS, DPLIN, DPLOUT, RDRINOUT,
+		SHL, DHEREDOC, WHEREDOC, RDRALL, APPALL:
 		return true
 	}
-	return p.peek(GTR) || p.peek(SHR) || p.peek(LSS) ||
-		p.peek(DPLIN) || p.peek(DPLOUT) || p.peek(RDRINOUT) ||
-		p.peek(SHL) || p.peek(DHEREDOC) || p.peek(WHEREDOC) ||
-		p.peek(RDRALL) || p.peek(APPALL)
+	return false
 }
 
 func (p *parser) gotRedirect() bool {
