@@ -511,7 +511,7 @@ func (p *parser) followRsrv(lpos Pos, left string, tok Token) Pos {
 	return p.lpos
 }
 
-func (p *parser) followStmts(left Token, stops ...Token) []Stmt {
+func (p *parser) followStmts(left Token, stops ...Token) []*Stmt {
 	if p.gotSameLine(SEMICOLON) {
 		return nil
 	}
@@ -594,7 +594,7 @@ func (p *parser) curErr(format string, a ...interface{}) {
 	p.posErr(p.pos, format, a...)
 }
 
-func (p *parser) stmts(stops ...Token) (sts []Stmt) {
+func (p *parser) stmts(stops ...Token) (sts []*Stmt) {
 	for !p.eof() {
 		p.got(STOPPED)
 		if p.peekEitherAny(stops...) {
@@ -629,7 +629,7 @@ func (p *parser) invalidStmtStart() {
 	}
 }
 
-func (p *parser) stmtsNested(stops ...Token) []Stmt {
+func (p *parser) stmtsNested(stops ...Token) []*Stmt {
 	if p.forbidNested {
 		p.curErr("nested statements not allowed in this word")
 	}
@@ -1020,18 +1020,18 @@ func (p *parser) gotRedirect() bool {
 	return true
 }
 
-func (p *parser) getStmt(stops ...Token) (Stmt, bool) {
-	var s Stmt
-	p.stmtStack = append(p.stmtStack, &s)
-	ok := p.gotStmtAndOr(&s, stops...)
+func (p *parser) getStmt(stops ...Token) (*Stmt, bool) {
+	s := new(Stmt)
+	p.stmtStack = append(p.stmtStack, s)
+	s, ok := p.gotStmtAndOr(s, stops...)
 	p.stmtStack = p.stmtStack[:len(p.stmtStack)-1]
 	return s, ok
 }
 
-func (p *parser) gotStmtAndOr(s *Stmt, stops ...Token) bool {
+func (p *parser) gotStmtAndOr(s *Stmt, stops ...Token) (*Stmt, bool) {
 	if p.peekRsrv(RBRACE) {
 		// don't let it be a LIT
-		return false
+		return nil, false
 	}
 	s.Position = p.pos
 	if p.gotRsrv(NOT) {
@@ -1045,24 +1045,25 @@ func (p *parser) gotStmtAndOr(s *Stmt, stops ...Token) bool {
 		}
 		if p.peekEnd() {
 			p.gotSameLine(SEMICOLON)
-			return true
+			return s, true
 		}
 	}
-	if !p.gotStmtPipe(s) && !s.Negated && len(s.Assigns) == 0 {
-		return false
+	s, ok := p.gotStmtPipe(s)
+	if !ok && !s.Negated && len(s.Assigns) == 0 {
+		return nil, false
 	}
 	switch {
 	case p.got(LAND), p.got(LOR):
-		*s = p.binaryStmt(*s)
-		return true
+		s = p.binaryCmd(s)
+		return s, true
 	case p.got(AND):
 		s.Background = true
 	}
 	p.gotSameLine(SEMICOLON)
-	return true
+	return s, true
 }
 
-func (p *parser) gotStmtPipe(s *Stmt) bool {
+func (p *parser) gotStmtPipe(s *Stmt) (*Stmt, bool) {
 	switch {
 	case p.peek(LPAREN):
 		s.Cmd = p.subshell()
@@ -1090,15 +1091,15 @@ func (p *parser) gotStmtPipe(s *Stmt) bool {
 	for !p.newLine && p.gotRedirect() {
 	}
 	if s.Cmd == nil && len(s.Redirs) == 0 {
-		return false
+		return s, false
 	}
 	if p.got(OR) || p.got(PIPEALL) {
-		*s = p.binaryStmt(*s)
+		s = p.binaryCmd(s)
 	}
-	return true
+	return s, true
 }
 
-func (p *parser) binaryStmt(left Stmt) Stmt {
+func (p *parser) binaryCmd(left *Stmt) *Stmt {
 	b := &BinaryCmd{
 		OpPos: p.lpos,
 		Op:    p.ltok,
@@ -1111,15 +1112,15 @@ func (p *parser) binaryStmt(left Stmt) Stmt {
 			p.followErr(b.OpPos, b.Op.String(), "a statement")
 		}
 	} else {
-		s := Stmt{Position: p.pos}
-		p.stmtStack = append(p.stmtStack, &s)
-		if !p.gotStmtPipe(&s) {
+		b.Y = &Stmt{Position: p.pos}
+		p.stmtStack = append(p.stmtStack, b.Y)
+		var ok bool
+		if b.Y, ok = p.gotStmtPipe(b.Y); !ok {
 			p.followErr(b.OpPos, b.Op, "a statement")
 		}
 		p.stmtStack = p.stmtStack[:len(p.stmtStack)-1]
-		b.Y = s
 	}
-	return Stmt{Position: left.Position, Cmd: b}
+	return &Stmt{Position: left.Position, Cmd: b}
 }
 
 func (p *parser) subshell() *Subshell {

@@ -15,7 +15,7 @@ type Node interface {
 type File struct {
 	Name string
 
-	Stmts    []Stmt
+	Stmts    []*Stmt
 	Comments []Comment
 }
 
@@ -130,7 +130,7 @@ func (c *CallExpr) End() Pos { return wordLastEnd(c.Args) }
 // nested shell environment.
 type Subshell struct {
 	Lparen, Rparen Pos
-	Stmts          []Stmt
+	Stmts          []*Stmt
 }
 
 func (s *Subshell) Pos() Pos { return s.Lparen }
@@ -140,7 +140,7 @@ func (s *Subshell) End() Pos { return posAfter(s.Rparen, RPAREN) }
 // nested scope.
 type Block struct {
 	Lbrace, Rbrace Pos
-	Stmts          []Stmt
+	Stmts          []*Stmt
 }
 
 func (b *Block) Pos() Pos { return b.Rbrace }
@@ -150,10 +150,10 @@ func (b *Block) End() Pos { return posAfter(b.Rbrace, RBRACE) }
 type IfClause struct {
 	If, Then, Fi Pos
 	Cond         Cond
-	ThenStmts    []Stmt
+	ThenStmts    []*Stmt
 	Elifs        []Elif
 	Else         Pos
-	ElseStmts    []Stmt
+	ElseStmts    []*Stmt
 }
 
 func (c *IfClause) Pos() Pos { return c.If }
@@ -172,7 +172,7 @@ func (*CStyleCond) condNode() {}
 // StmtCond represents a condition that evaluates to the result of a
 // series of statements.
 type StmtCond struct {
-	Stmts []Stmt
+	Stmts []*Stmt
 }
 
 func (c *StmtCond) Pos() Pos { return c.Stmts[0].Pos() }
@@ -192,14 +192,14 @@ func (c *CStyleCond) End() Pos { return posAfter(c.Rparen, RPAREN) }
 type Elif struct {
 	Elif, Then Pos
 	Cond       Cond
-	ThenStmts  []Stmt
+	ThenStmts  []*Stmt
 }
 
 // WhileClause represents a while clause.
 type WhileClause struct {
 	While, Do, Done Pos
 	Cond            Cond
-	DoStmts         []Stmt
+	DoStmts         []*Stmt
 }
 
 func (w *WhileClause) Pos() Pos { return w.While }
@@ -209,7 +209,7 @@ func (w *WhileClause) End() Pos { return posAfter(w.Done, DONE) }
 type UntilClause struct {
 	Until, Do, Done Pos
 	Cond            Cond
-	DoStmts         []Stmt
+	DoStmts         []*Stmt
 }
 
 func (u *UntilClause) Pos() Pos { return u.Until }
@@ -219,7 +219,7 @@ func (u *UntilClause) End() Pos { return posAfter(u.Done, DONE) }
 type ForClause struct {
 	For, Do, Done Pos
 	Loop          Loop
-	DoStmts       []Stmt
+	DoStmts       []*Stmt
 }
 
 func (f *ForClause) Pos() Pos { return f.For }
@@ -280,7 +280,7 @@ func (u *UnaryExpr) End() Pos {
 type BinaryCmd struct {
 	OpPos Pos
 	Op    Token
-	X, Y  Stmt
+	X, Y  *Stmt
 }
 
 func (b *BinaryCmd) Pos() Pos { return b.X.Pos() }
@@ -291,7 +291,7 @@ type FuncDecl struct {
 	Position  Pos
 	BashStyle bool
 	Name      Lit
-	Body      Stmt
+	Body      *Stmt
 }
 
 func (f *FuncDecl) Pos() Pos { return f.Position }
@@ -367,7 +367,7 @@ func (q *Quoted) End() Pos { return posAfter(partsLastEnd(q.Parts), q.Quote) }
 type CmdSubst struct {
 	Left, Right Pos
 	Backquotes  bool
-	Stmts       []Stmt
+	Stmts       []*Stmt
 }
 
 func (c *CmdSubst) Pos() Pos { return c.Left }
@@ -472,7 +472,7 @@ type PatternList struct {
 	Op       Token
 	OpPos    Pos
 	Patterns []Word
-	Stmts    []Stmt
+	Stmts    []*Stmt
 }
 
 // DeclClause represents a Bash declare clause.
@@ -506,7 +506,7 @@ func (a *ArrayExpr) End() Pos { return posAfter(a.Rparen, RPAREN) }
 type ProcSubst struct {
 	OpPos, Rparen Pos
 	Op            Token
-	Stmts         []Stmt
+	Stmts         []*Stmt
 }
 
 func (s *ProcSubst) Pos() Pos { return s.OpPos }
@@ -515,7 +515,7 @@ func (s *ProcSubst) End() Pos { return posAfter(s.Rparen, RPAREN) }
 // EvalClause represents a Bash eval clause.
 type EvalClause struct {
 	Eval Pos
-	Stmt Stmt
+	Stmt *Stmt
 }
 
 func (e *EvalClause) Pos() Pos { return e.Eval }
@@ -545,14 +545,14 @@ func posAfter(pos Pos, tok Token) Pos {
 
 var defaultPos = Pos{}
 
-func stmtFirstPos(sts []Stmt) Pos {
+func stmtFirstPos(sts []*Stmt) Pos {
 	if len(sts) == 0 {
 		return defaultPos
 	}
 	return sts[0].Pos()
 }
 
-func stmtLastEnd(sts []Stmt) Pos {
+func stmtLastEnd(sts []*Stmt) Pos {
 	if len(sts) == 0 {
 		return defaultPos
 	}

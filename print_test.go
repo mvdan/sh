@@ -374,7 +374,7 @@ func (b badWriter) Write(p []byte) (int, error) { return 0, errBadWriter }
 
 func TestWriteErr(t *testing.T) {
 	var out badWriter
-	f := &File{Stmts: []Stmt{
+	f := &File{Stmts: []*Stmt{
 		{
 			Redirs: []Redirect{{}},
 			Cmd:    &Subshell{},

@@ -541,7 +541,7 @@ func (p *printer) command(cmd Command, redirs []Redirect) (startRedirs int) {
 		p.nestedStmts(x.DoStmts)
 		p.separated(DONE, x.Done, true)
 	case *BinaryCmd:
-		p.stmt(&x.X)
+		p.stmt(x.X)
 		indent := !p.nestedBinary
 		if indent {
 			p.incLevel()
@@ -554,7 +554,7 @@ func (p *printer) command(cmd Command, redirs []Redirect) (startRedirs int) {
 		}
 		p.curLine = x.Y.Pos().Line
 		p.spacedTok(x.Op, true)
-		p.stmt(&x.Y)
+		p.stmt(x.Y)
 		if indent {
 			p.decLevel()
 		}
@@ -567,7 +567,7 @@ func (p *printer) command(cmd Command, redirs []Redirect) (startRedirs int) {
 		p.lit(&x.Name)
 		p.token(LPAREN, false)
 		p.token(RPAREN, true)
-		p.stmt(&x.Body)
+		p.stmt(x.Body)
 	case *CaseClause:
 		p.spacedTok(CASE, true)
 		p.spacedWord(x.Word)
@@ -615,7 +615,7 @@ func (p *printer) command(cmd Command, redirs []Redirect) (startRedirs int) {
 		p.assigns(x.Assigns)
 	case *EvalClause:
 		p.spacedTok(EVAL, true)
-		p.stmt(&x.Stmt)
+		p.stmt(x.Stmt)
 	case *LetClause:
 		p.spacedTok(LET, true)
 		for _, n := range x.Exprs {
@@ -625,7 +625,7 @@ func (p *printer) command(cmd Command, redirs []Redirect) (startRedirs int) {
 	return startRedirs
 }
 
-func startsWithLparen(stmts []Stmt) bool {
+func startsWithLparen(stmts []*Stmt) bool {
 	if len(stmts) < 1 {
 		return false
 	}
@@ -633,20 +633,19 @@ func startsWithLparen(stmts []Stmt) bool {
 	return ok
 }
 
-func (p *printer) stmts(stmts []Stmt) bool {
+func (p *printer) stmts(stmts []*Stmt) bool {
 	if len(stmts) == 0 {
 		return false
 	}
 	if len(stmts) == 1 && stmts[0].Pos().Line == p.curLine {
-		s := &stmts[0]
+		s := stmts[0]
 		p.didSeparate(s.Pos())
 		p.stmt(s)
 		return false
 	}
 	inlineIndent := 0
 	lastLine := stmts[0].Pos().Line
-	for i := range stmts {
-		s := &stmts[i]
+	for i, s := range stmts {
 		pos := s.Pos()
 		p.alwaysSeparate(pos)
 		p.stmt(s)
@@ -659,9 +658,8 @@ func (p *printer) stmts(stmts []Stmt) bool {
 			continue
 		}
 		if inlineIndent == 0 {
-			lastLine := stmts[i].Pos().Line
-			for j := range stmts[i:] {
-				s2 := &stmts[i+j]
+			lastLine := s.Pos().Line
+			for _, s2 := range stmts[i:] {
 				pos := s2.Pos()
 				if !p.hasInline(pos) || pos.Line > lastLine+1 {
 					break
@@ -699,7 +697,7 @@ func stmtLen(s *Stmt) int {
 	return buf.Len()
 }
 
-func (p *printer) nestedStmts(stmts []Stmt) bool {
+func (p *printer) nestedStmts(stmts []*Stmt) bool {
 	p.incLevel()
 	sep := p.stmts(stmts)
 	p.decLevel()
