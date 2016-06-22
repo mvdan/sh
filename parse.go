@@ -43,7 +43,8 @@ type parser struct {
 	mode Mode
 
 	spaced, newLine bool
-	willBreakWord   bool
+	stopNewline  bool
+	forbidNested bool
 
 	nextErr   error
 	remaining []byte
@@ -61,9 +62,6 @@ type parser struct {
 	stmtStack []*Stmt
 	// list of pending heredoc bodies
 	heredocs []*Redirect
-
-	stopNewline  bool
-	forbidNested bool
 }
 
 func (p *parser) pushStops(stops ...Token) {
@@ -300,10 +298,15 @@ func (p *parser) advance(b byte, q Token) {
 }
 
 func (p *parser) advanceReadLit(b byte) {
-	p.advanceBoth(LIT, string(p.readLitBytes(b)))
+	bs, willBreak := p.readLitBytes(b)
+	if willBreak {
+		p.advanceBoth(LITWORD, string(bs))
+	} else {
+		p.advanceBoth(LIT, string(bs))
+	}
 }
-func (p *parser) readLitBytes(b byte) (bs []byte) {
-	p.willBreakWord = false
+
+func (p *parser) readLitBytes(b byte) (bs []byte, willBreak bool) {
 	q := p.quote
 byteLoop:
 	for p.tok != EOF {
@@ -353,8 +356,7 @@ byteLoop:
 		bs = append(bs, b)
 		b = p.peekByte()
 	}
-	p.willBreakWord = true
-	return
+	return bs, true
 }
 
 func (p *parser) advanceTok(tok Token) { p.advanceBoth(tok, "") }
@@ -432,7 +434,7 @@ func (p *parser) eof() bool {
 
 func (p *parser) peek(tok Token) bool { return p.tok == tok }
 func (p *parser) peekRsrv(tok Token) bool {
-	return p.peek(LIT) && p.val == tok.String() && p.willBreakWord
+	return p.peek(LITWORD) && p.val == tok.String()
 }
 func (p *parser) peekEither(tok Token) bool {
 	return p.peek(tok) || p.peekRsrv(tok)
@@ -649,7 +651,7 @@ func (p *parser) gotWord() (Word, bool) {
 
 func (p *parser) gotLit(l *Lit) bool {
 	l.ValuePos = p.pos
-	if p.got(LIT) {
+	if p.got(LIT) || p.got(LITWORD) {
 		l.Value = p.lval
 		return true
 	}
@@ -672,7 +674,7 @@ func (p *parser) wordParts() (wps []WordPart) {
 func (p *parser) wordPart() WordPart {
 	q := p.quote
 	switch {
-	case p.got(LIT):
+	case p.got(LIT), p.got(LITWORD):
 		return &Lit{ValuePos: p.lpos, Value: p.lval}
 	case p.peek(DOLLBR):
 		return p.paramExp()
@@ -765,7 +767,7 @@ func (p *parser) arithmExpr(following Token) ArithmExpr {
 		p.peek(DSEMICOLON) || p.peek(STOPPED) {
 		return left
 	}
-	if p.peek(LIT) {
+	if p.peek(LIT) || p.peek(LITWORD) {
 		p.curErr("not a valid arithmetic operator: %s", p.val)
 	}
 	p.next()
@@ -980,7 +982,7 @@ func (p *parser) getAssign() (*Assign, bool) {
 }
 
 func (p *parser) peekRedir() bool {
-	if p.peek(LIT) && (p.willRead('>') || p.willRead('<')) {
+	if p.peek(LITWORD) && (p.willRead('>') || p.willRead('<')) {
 		return true
 	}
 	return p.peek(GTR) || p.peek(SHR) || p.peek(LSS) ||
@@ -1279,7 +1281,7 @@ func (p *parser) patLists() (pls []*PatternList) {
 func (p *parser) declClause() *DeclClause {
 	ds := &DeclClause{Declare: p.lpos}
 	ds.Local = p.lval == LOCAL.String()
-	for p.peek(LIT) && p.willBreakWord && p.val[0] == '-' {
+	for p.peek(LITWORD) && p.val[0] == '-' {
 		ds.Opts = append(ds.Opts, p.getWord())
 	}
 	for !p.peekStop() {

@@ -12,6 +12,7 @@ const (
 	STOPPED
 	EOF
 	LIT
+	LITWORD
 	COMMENT
 
 	// POSIX Shell reserved words
@@ -151,6 +152,7 @@ var (
 		STOPPED: `STOPPED`,
 		EOF:     `EOF`,
 		LIT:     `literal`,
+		LITWORD: `literal`,
 		COMMENT: `comment`,
 
 		DLPAREN: "((",
