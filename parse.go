@@ -639,14 +639,9 @@ func (p *parser) stmtsNested(stops ...Token) []*Stmt {
 	return sts
 }
 
-func (p *parser) getWord() (w Word) {
-	p.readParts(&w.Parts)
-	return
-}
-
+func (p *parser) getWord() Word { return Word{Parts: p.wordParts()} }
 func (p *parser) gotWord() (Word, bool) {
-	var w Word
-	p.readParts(&w.Parts)
+	w := p.getWord()
 	return w, len(w.Parts) > 0
 }
 
@@ -659,15 +654,15 @@ func (p *parser) gotLit(l *Lit) bool {
 	return false
 }
 
-func (p *parser) readParts(ns *[]WordPart) {
+func (p *parser) wordParts() (wps []WordPart) {
 	for {
 		n := p.wordPart()
 		if n == nil {
-			break
+			return
 		}
-		*ns = append(*ns, n)
+		wps = append(wps, n)
 		if p.spaced {
-			break
+			return
 		}
 	}
 }
@@ -731,7 +726,7 @@ func (p *parser) wordPart() WordPart {
 		q := &Quoted{Quote: p.tok, QuotePos: p.pos}
 		stop := quotedStop(q.Quote)
 		p.pushStops(stop)
-		p.readParts(&q.Parts)
+		q.Parts = p.wordParts()
 		p.popStop()
 		p.closingQuote(q, stop)
 		return q
