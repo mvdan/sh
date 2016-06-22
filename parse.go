@@ -586,10 +586,15 @@ func (p *parser) curErr(format string, a ...interface{}) {
 	p.posErr(p.pos, format, a...)
 }
 
+func dsemicolon(t Token) bool {
+	return t == DSEMICOLON || t == SEMIFALL || t == DSEMIFALL
+}
+
 func (p *parser) stmts(stops ...string) (sts []*Stmt) {
 	if p.forbidNested {
 		p.curErr("nested statements not allowed in this word")
 	}
+	q := p.quote
 	for !p.eof() {
 		p.got(STOPPED)
 		for _, stop := range stops {
@@ -597,10 +602,7 @@ func (p *parser) stmts(stops ...string) (sts []*Stmt) {
 				return
 			}
 		}
-		if p.tok == p.quote {
-			return
-		}
-		if p.quote == DSEMICOLON && (p.tok == SEMIFALL || p.tok == DSEMIFALL) {
+		if p.tok == q || (q == DSEMICOLON && dsemicolon(p.tok)) {
 			return
 		}
 		gotEnd := p.newLine || p.ltok == AND || p.ltok == SEMICOLON
@@ -757,7 +759,7 @@ func (p *parser) arithmExpr(following Token) ArithmExpr {
 		return left
 	}
 	if p.eof() || p.tok == RPAREN || p.tok == SEMICOLON ||
-		p.tok == DSEMICOLON || p.tok == STOPPED {
+		dsemicolon(p.tok) || p.tok == STOPPED {
 		return left
 	}
 	if p.peek(LIT) || p.peek(LITWORD) {
@@ -911,13 +913,8 @@ func (p *parser) peekStop() bool {
 		p.tok == LAND || p.tok == LOR || p.tok == PIPEALL {
 		return true
 	}
-	if p.tok == p.quote {
-		return true
-	}
-	if p.quote == DSEMICOLON && (p.tok == SEMIFALL || p.tok == DSEMIFALL) {
-		return true
-	}
-	return false
+	q := p.quote
+	return p.tok == q || (q == DSEMICOLON && dsemicolon(p.tok))
 }
 
 var identRe = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
@@ -1280,11 +1277,12 @@ func (p *parser) patLists() (pls []*PatternList) {
 		p.pushStop(DSEMICOLON)
 		pl.Stmts = p.stmts("esac")
 		p.popStop()
-		if !p.got(DSEMICOLON) && !p.got(SEMIFALL) && !p.got(DSEMIFALL) {
+		if !dsemicolon(p.tok) {
 			pl.Op, pl.OpPos = DSEMICOLON, p.lpos
 			pls = append(pls, pl)
 			break
 		}
+		p.next()
 		pl.Op, pl.OpPos = p.ltok, p.lpos
 		pls = append(pls, pl)
 	}
@@ -1321,7 +1319,7 @@ func (p *parser) letClause() *LetClause {
 	lc := &LetClause{Let: p.pos}
 	p.pushStop(DLPAREN)
 	p.stopNewline = true
-	for !p.peekStop() && p.tok != STOPPED && p.tok != DSEMICOLON && p.tok != SEMIFALL && p.tok != DSEMIFALL {
+	for !p.peekStop() && p.tok != STOPPED && !dsemicolon(p.tok) {
 		x := p.arithmExpr(LET)
 		if x == nil {
 			p.followErr(p.pos, "let", "arithmetic expressions")
