@@ -684,16 +684,16 @@ func (p *parser) wordPart() WordPart {
 		return cs
 	case p.peek(DOLLAR):
 		if p.willSpaced() {
-			p.tok, p.val = LIT, DOLLAR.String()
+			p.tok, p.val = LIT, "$"
 			return p.wordPart()
 		}
 		switch {
 		case p.readOnly('#'):
-			p.advanceBoth(LIT, HASH.String())
+			p.advanceBoth(LIT, "#")
 		case p.readOnly('$'):
-			p.advanceBoth(LIT, DOLLAR.String())
+			p.advanceBoth(LIT, "$")
 		case p.readOnly('?'):
-			p.advanceBoth(LIT, QUEST.String())
+			p.advanceBoth(LIT, "?")
 		default:
 			p.next()
 		}
@@ -830,14 +830,18 @@ func (p *parser) arithmExprBase(following Token) ArithmExpr {
 }
 
 func (p *parser) gotParamLit(l *Lit) bool {
-	if p.gotLit(l) {
-		return true
+	switch {
+	case p.gotLit(l):
+	case p.got(DOLLAR):
+		l.ValuePos = p.lpos
+		l.Value = "$"
+	case p.got(QUEST):
+		l.ValuePos = p.lpos
+		l.Value = "?"
+	default:
+		return false
 	}
-	if p.got(DOLLAR) || p.got(QUEST) {
-		l.Value = p.ltok.String()
-		return true
-	}
-	return false
+	return true
 }
 
 func (p *parser) paramExp() *ParamExp {
