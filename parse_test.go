@@ -531,7 +531,7 @@ var errTests = []struct {
 	},
 	{
 		"`{\n`",
-		"2:1: ` is not a valid start for a statement",
+		"1:2: reached ` without matching token { with }",
 	},
 	{
 		"echo \"`)`\"",
@@ -563,7 +563,7 @@ var errTests = []struct {
 	},
 	{
 		"foo <<$(bar)",
-		`1:7: nested statements not allowed in this word`,
+		`1:9: nested statements not allowed in this word`,
 	},
 }
 
