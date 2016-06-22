@@ -55,6 +55,7 @@ type parser struct {
 
 	// stack of stop tokens
 	stops []Token
+	quote Token
 
 	// stack of stmts (to save redirects)
 	stmtStack []*Stmt
@@ -67,18 +68,19 @@ type parser struct {
 
 func (p *parser) pushStops(stops ...Token) {
 	p.stops = append(p.stops, stops...)
+	p.quote = stops[len(stops)-1]
 	p.next()
 }
 
-func (p *parser) quote() Token {
+func (p *parser) popStops(n int) {
+	p.stops = p.stops[:len(p.stops)-n]
 	if len(p.stops) == 0 {
-		return ILLEGAL
+		p.quote = ILLEGAL
+	} else {
+		p.quote = p.stops[len(p.stops)-1]
 	}
-	return p.stops[len(p.stops)-1]
 }
-
-func (p *parser) popStops(n int) { p.stops = p.stops[:len(p.stops)-n] }
-func (p *parser) popStop()       { p.popStops(1) }
+func (p *parser) popStop() { p.popStops(1) }
 
 func (p *parser) reachingEOF() bool {
 	return p.nextErr != nil && len(p.remaining) == 0
@@ -221,7 +223,7 @@ func (p *parser) next() {
 	}
 	p.spaced, p.newLine = false, false
 	var b byte
-	q := p.quote()
+	q := p.quote
 	if q == DQUOTE || q == SQUOTE || q == RBRACE || q == QUO {
 		if b = p.peekByte(); p.tok == EOF {
 			p.lpos, p.pos = p.pos, p.npos
@@ -302,7 +304,7 @@ func (p *parser) advanceReadLit(b byte) {
 }
 func (p *parser) readLitBytes(b byte) (bs []byte) {
 	p.willBreakWord = false
-	q := p.quote()
+	q := p.quote
 byteLoop:
 	for p.tok != EOF {
 		switch {
@@ -668,7 +670,7 @@ func (p *parser) wordParts() (wps []WordPart) {
 }
 
 func (p *parser) wordPart() WordPart {
-	q := p.quote()
+	q := p.quote
 	switch {
 	case p.got(LIT):
 		return &Lit{ValuePos: p.lpos, Value: p.lval}
@@ -755,7 +757,7 @@ func (p *parser) arithmExpr(following Token) ArithmExpr {
 		return nil
 	}
 	left := p.arithmExprBase(following)
-	q := p.quote()
+	q := p.quote
 	if q != DRPAREN && q != LPAREN && p.spaced {
 		return left
 	}
@@ -788,7 +790,7 @@ func (p *parser) arithmExprBase(following Token) ArithmExpr {
 		return pre
 	}
 	var x ArithmExpr
-	q := p.quote()
+	q := p.quote
 	switch {
 	case p.peek(LPAREN):
 		p.pushStops(LPAREN)
