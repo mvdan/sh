@@ -434,7 +434,7 @@ func (p *parser) eof() bool {
 
 func (p *parser) peek(tok Token) bool { return p.tok == tok }
 func (p *parser) peekRsrv(tok Token) bool {
-	return p.peek(LITWORD) && p.val == tok.String()
+	return p.tok == LITWORD && p.val == tok.String()
 }
 func (p *parser) peekEither(tok Token) bool {
 	return p.peek(tok) || p.peekRsrv(tok)
@@ -464,7 +464,7 @@ func (p *parser) peekEitherAny(toks ...Token) bool {
 
 func (p *parser) got(tok Token) bool {
 	p.saveComments()
-	if p.peek(tok) {
+	if p.tok == tok {
 		p.next()
 		return true
 	}
@@ -910,13 +910,13 @@ func (p *parser) peekEnd() bool {
 }
 
 func (p *parser) peekStop() bool {
-	if p.peekEnd() || p.peek(AND) || p.peek(OR) ||
-		p.peek(LAND) || p.peek(LOR) || p.peek(PIPEALL) {
+	if p.peekEnd() || p.tok == AND || p.tok == OR ||
+		p.tok == LAND || p.tok == LOR || p.tok == PIPEALL {
 		return true
 	}
 	for i := len(p.stops) - 1; i >= 0; i-- {
 		stop := p.stops[i]
-		if p.peek(stop) {
+		if p.tok == stop {
 			return true
 		}
 		if stop == BQUOTE || stop == RPAREN {
