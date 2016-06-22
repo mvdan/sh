@@ -158,7 +158,7 @@ var astTests = []testCase{
 		&IfClause{
 			Cond:      &StmtCond{Stmts: litStmts("a")},
 			ThenStmts: litStmts("a"),
-			Elifs: []Elif{
+			Elifs: []*Elif{
 				{
 					Cond:      &StmtCond{Stmts: litStmts("b")},
 					ThenStmts: litStmts("b"),
@@ -465,7 +465,7 @@ var astTests = []testCase{
 	{
 		[]string{"a=b foo=$bar foo=start$bar"},
 		&Stmt{
-			Assigns: []Assign{
+			Assigns: []*Assign{
 				{Name: lit("a"), Value: *litWord("b")},
 				{Name: lit("foo"), Value: *word(litParamExp("bar"))},
 				{Name: lit("foo"), Value: *word(
@@ -478,7 +478,7 @@ var astTests = []testCase{
 	{
 		[]string{"a=\"\nbar\""},
 		&Stmt{
-			Assigns: []Assign{{
+			Assigns: []*Assign{{
 				Name:  lit("a"),
 				Value: *word(dblQuoted(lit("\nbar"))),
 			}},
@@ -488,7 +488,7 @@ var astTests = []testCase{
 		[]string{"a= foo"},
 		&Stmt{
 			Cmd:     litCall("foo"),
-			Assigns: []Assign{{Name: lit("a")}},
+			Assigns: []*Assign{{Name: lit("a")}},
 		},
 	},
 	{
@@ -499,7 +499,7 @@ var astTests = []testCase{
 		},
 		&Stmt{
 			Cmd: litCall("foo"),
-			Redirs: []Redirect{
+			Redirs: []*Redirect{
 				{Op: GTR, Word: *litWord("a")},
 				{Op: SHR, Word: *litWord("b")},
 				{Op: LSS, Word: *litWord("c")},
@@ -513,7 +513,7 @@ var astTests = []testCase{
 		},
 		&Stmt{
 			Cmd: litCall("foo", "bar"),
-			Redirs: []Redirect{
+			Redirs: []*Redirect{
 				{Op: GTR, Word: *litWord("a")},
 			},
 		},
@@ -521,7 +521,7 @@ var astTests = []testCase{
 	{
 		[]string{`>a >\b`},
 		&Stmt{
-			Redirs: []Redirect{
+			Redirs: []*Redirect{
 				{Op: GTR, Word: *litWord("a")},
 				{Op: GTR, Word: *litWord(`\b`)},
 			},
@@ -530,10 +530,10 @@ var astTests = []testCase{
 	{
 		[]string{">a\n>b", ">a; >b"},
 		[]*Stmt{
-			{Redirs: []Redirect{
+			{Redirs: []*Redirect{
 				{Op: GTR, Word: *litWord("a")},
 			}},
-			{Redirs: []Redirect{
+			{Redirs: []*Redirect{
 				{Op: GTR, Word: *litWord("b")},
 			}},
 		},
@@ -544,7 +544,7 @@ var astTests = []testCase{
 			litStmt("foo1"),
 			{
 				Cmd: litCall("foo2"),
-				Redirs: []Redirect{
+				Redirs: []*Redirect{
 					{Op: GTR, Word: *litWord("r2")},
 				},
 			},
@@ -557,7 +557,7 @@ var astTests = []testCase{
 		},
 		&Stmt{
 			Cmd: litCall("foo"),
-			Redirs: []Redirect{{
+			Redirs: []*Redirect{{
 				Op:   SHL,
 				Word: *litWord("EOF"),
 				Hdoc: lit("bar\n"),
@@ -568,7 +568,7 @@ var astTests = []testCase{
 		[]string{"foo <<EOF\n1\n2\n3\nEOF"},
 		&Stmt{
 			Cmd: litCall("foo"),
-			Redirs: []Redirect{{
+			Redirs: []*Redirect{{
 				Op:   SHL,
 				Word: *litWord("EOF"),
 				Hdoc: lit("1\n2\n3\n"),
@@ -579,7 +579,7 @@ var astTests = []testCase{
 		[]string{"{ foo <<EOF\nbar\nEOF\n}"},
 		block(&Stmt{
 			Cmd: litCall("foo"),
-			Redirs: []Redirect{{
+			Redirs: []*Redirect{{
 				Op:   SHL,
 				Word: *litWord("EOF"),
 				Hdoc: lit("bar\n"),
@@ -590,7 +590,7 @@ var astTests = []testCase{
 		[]string{"$(foo <<EOF\nbar\nEOF\n)"},
 		word(cmdSubst(&Stmt{
 			Cmd: litCall("foo"),
-			Redirs: []Redirect{{
+			Redirs: []*Redirect{{
 				Op:   SHL,
 				Word: *litWord("EOF"),
 				Hdoc: lit("bar\n"),
@@ -601,7 +601,7 @@ var astTests = []testCase{
 		[]string{"foo >f <<EOF\nbar\nEOF"},
 		&Stmt{
 			Cmd: litCall("foo"),
-			Redirs: []Redirect{
+			Redirs: []*Redirect{
 				{Op: GTR, Word: *litWord("f")},
 				{
 					Op:   SHL,
@@ -615,7 +615,7 @@ var astTests = []testCase{
 		[]string{"foo <<EOF >f\nbar\nEOF"},
 		&Stmt{
 			Cmd: litCall("foo"),
-			Redirs: []Redirect{
+			Redirs: []*Redirect{
 				{
 					Op:   SHL,
 					Word: *litWord("EOF"),
@@ -631,7 +631,7 @@ var astTests = []testCase{
 			Cond: &StmtCond{Stmts: litStmts("true")},
 			ThenStmts: []*Stmt{{
 				Cmd: litCall("foo"),
-				Redirs: []Redirect{{
+				Redirs: []*Redirect{{
 					Op:   DHEREDOC,
 					Word: *litWord("EOF"),
 					Hdoc: lit("\tbar\n\t"),
@@ -644,7 +644,7 @@ var astTests = []testCase{
 		[]*Stmt{
 			{
 				Cmd: litCall("foo"),
-				Redirs: []Redirect{{
+				Redirs: []*Redirect{{
 					Op:   SHL,
 					Word: *litWord("EOF"),
 					Hdoc: lit("bar\n"),
@@ -657,7 +657,7 @@ var astTests = []testCase{
 		[]string{"foo <<FOOBAR\nbar\nFOOBAR"},
 		&Stmt{
 			Cmd: litCall("foo"),
-			Redirs: []Redirect{{
+			Redirs: []*Redirect{{
 				Op:   SHL,
 				Word: *litWord("FOOBAR"),
 				Hdoc: lit("bar\n"),
@@ -668,7 +668,7 @@ var astTests = []testCase{
 		[]string{"foo <<\"EOF\"\nbar\nEOF"},
 		&Stmt{
 			Cmd: litCall("foo"),
-			Redirs: []Redirect{{
+			Redirs: []*Redirect{{
 				Op:   SHL,
 				Word: *word(dblQuoted(lit("EOF"))),
 				Hdoc: lit("bar\n"),
@@ -679,7 +679,7 @@ var astTests = []testCase{
 		[]string{"foo <<'EOF'\nbar\nEOF"},
 		&Stmt{
 			Cmd: litCall("foo"),
-			Redirs: []Redirect{
+			Redirs: []*Redirect{
 				{
 					Op:   SHL,
 					Word: *word(sglQuoted("EOF")),
@@ -692,7 +692,7 @@ var astTests = []testCase{
 		[]string{"foo <<\"EOF\"2\nbar\nEOF2"},
 		&Stmt{
 			Cmd: litCall("foo"),
-			Redirs: []Redirect{{
+			Redirs: []*Redirect{{
 				Op:   SHL,
 				Word: *word(dblQuoted(lit("EOF")), lit("2")),
 				Hdoc: lit("bar\n"),
@@ -703,7 +703,7 @@ var astTests = []testCase{
 		[]string{"foo <<\\EOF\nbar\nEOF"},
 		&Stmt{
 			Cmd: litCall("foo"),
-			Redirs: []Redirect{{
+			Redirs: []*Redirect{{
 				Op:   SHL,
 				Word: *litWord("\\EOF"),
 				Hdoc: lit("bar\n"),
@@ -714,7 +714,7 @@ var astTests = []testCase{
 		[]string{"foo <<$EOF\nbar\n$EOF"},
 		&Stmt{
 			Cmd: litCall("foo"),
-			Redirs: []Redirect{{
+			Redirs: []*Redirect{{
 				Op:   SHL,
 				Word: *word(litParamExp("EOF")),
 				Hdoc: lit("bar\n"),
@@ -728,7 +728,7 @@ var astTests = []testCase{
 		},
 		&Stmt{
 			Cmd: litCall("foo"),
-			Redirs: []Redirect{{
+			Redirs: []*Redirect{{
 				Op:   DHEREDOC,
 				Word: *litWord("EOF"),
 				Hdoc: lit("bar\n"),
@@ -743,7 +743,7 @@ var astTests = []testCase{
 		[]*Stmt{
 			{
 				Cmd: litCall("f1"),
-				Redirs: []Redirect{{
+				Redirs: []*Redirect{{
 					Op:   SHL,
 					Word: *litWord("EOF1"),
 					Hdoc: lit("h1\n"),
@@ -751,7 +751,7 @@ var astTests = []testCase{
 			},
 			{
 				Cmd: litCall("f2"),
-				Redirs: []Redirect{{
+				Redirs: []*Redirect{{
 					Op:   SHL,
 					Word: *litWord("EOF2"),
 					Hdoc: lit("h2\n"),
@@ -767,7 +767,7 @@ var astTests = []testCase{
 		[]*Stmt{
 			{
 				Cmd: litCall("a"),
-				Redirs: []Redirect{{
+				Redirs: []*Redirect{{
 					Op:   SHL,
 					Word: *litWord("EOF"),
 					Hdoc: lit("foo\n"),
@@ -788,7 +788,7 @@ var astTests = []testCase{
 				*litWord("foo"),
 				*word(dblQuoted(lit("\narg"))),
 			),
-			Redirs: []Redirect{{
+			Redirs: []*Redirect{{
 				Op:   SHL,
 				Word: *litWord("EOF"),
 				Hdoc: lit("bar\n"),
@@ -799,7 +799,7 @@ var astTests = []testCase{
 		[]string{"foo >&2 <&0 2>file <>f2 &>f3 &>>f4"},
 		&Stmt{
 			Cmd: litCall("foo"),
-			Redirs: []Redirect{
+			Redirs: []*Redirect{
 				{Op: DPLOUT, Word: *litWord("2")},
 				{Op: DPLIN, Word: *litWord("0")},
 				{Op: GTR, N: lit("2"), Word: *litWord("file")},
@@ -813,7 +813,7 @@ var astTests = []testCase{
 		[]string{"foo 2>file bar"},
 		&Stmt{
 			Cmd: litCall("foo", "bar"),
-			Redirs: []Redirect{
+			Redirs: []*Redirect{
 				{Op: GTR, N: lit("2"), Word: *litWord("file")},
 			},
 		},
@@ -823,11 +823,11 @@ var astTests = []testCase{
 		[]*Stmt{
 			{
 				Cmd:    litCall("a"),
-				Redirs: []Redirect{{Op: GTR, Word: *litWord("f1")}},
+				Redirs: []*Redirect{{Op: GTR, Word: *litWord("f1")}},
 			},
 			{
 				Cmd:    litCall("b"),
-				Redirs: []Redirect{{Op: GTR, Word: *litWord("f2")}},
+				Redirs: []*Redirect{{Op: GTR, Word: *litWord("f2")}},
 			},
 		},
 	},
@@ -838,7 +838,7 @@ var astTests = []testCase{
 		},
 		&Stmt{
 			Cmd: litCall("foo"),
-			Redirs: []Redirect{
+			Redirs: []*Redirect{
 				{Op: WHEREDOC, Word: *litWord("input")},
 			},
 		},
@@ -850,7 +850,7 @@ var astTests = []testCase{
 		},
 		&Stmt{
 			Cmd: litCall("foo"),
-			Redirs: []Redirect{
+			Redirs: []*Redirect{
 				{
 					Op:   WHEREDOC,
 					Word: *word(dblQuoted(lit("spaced input"))),
@@ -874,7 +874,7 @@ var astTests = []testCase{
 		[]string{"foo < <(foo)"},
 		&Stmt{
 			Cmd: litCall("foo"),
-			Redirs: []Redirect{{
+			Redirs: []*Redirect{{
 				Op: LSS,
 				Word: *word(&ProcSubst{
 					Op:    CMDIN,
@@ -912,7 +912,7 @@ var astTests = []testCase{
 				Cond:      &StmtCond{Stmts: litStmts("foo")},
 				ThenStmts: litStmts("bar"),
 			},
-			Redirs: []Redirect{
+			Redirs: []*Redirect{
 				{Op: GTR, Word: *litWord("/dev/null")},
 			},
 			Background: true,
@@ -1739,7 +1739,7 @@ var astTests = []testCase{
 		},
 		&CaseClause{
 			Word: *word(litParamExp("i")),
-			List: []PatternList{
+			List: []*PatternList{
 				{
 					Op:       DSEMICOLON,
 					Patterns: litWords("1"),
@@ -1757,7 +1757,7 @@ var astTests = []testCase{
 		[]string{"case $i in 1) a ;;& 2) b ;& 3) c ;; esac"},
 		&CaseClause{
 			Word: *word(litParamExp("i")),
-			List: []PatternList{
+			List: []*PatternList{
 				{
 					Op:       DSEMIFALL,
 					Patterns: litWords("1"),
@@ -1820,7 +1820,7 @@ var astTests = []testCase{
 		[]string{"if; then a=; fi", "if; then a=\nfi"},
 		&IfClause{
 			ThenStmts: []*Stmt{
-				{Assigns: []Assign{
+				{Assigns: []*Assign{
 					{Name: lit("a")},
 				}},
 			},
@@ -1830,7 +1830,7 @@ var astTests = []testCase{
 		[]string{"if; then >f; fi", "if; then >f\nfi"},
 		&IfClause{
 			ThenStmts: []*Stmt{
-				{Redirs: []Redirect{
+				{Redirs: []*Redirect{
 					{Op: GTR, Word: *litWord("f")},
 				}},
 			},
@@ -1839,10 +1839,10 @@ var astTests = []testCase{
 	{
 		[]string{"a=b\nc=d", "a=b; c=d"},
 		[]*Stmt{
-			{Assigns: []Assign{
+			{Assigns: []*Assign{
 				{Name: lit("a"), Value: *litWord("b")},
 			}},
-			{Assigns: []Assign{
+			{Assigns: []*Assign{
 				{Name: lit("c"), Value: *litWord("d")},
 			}},
 		},
@@ -1897,7 +1897,7 @@ var astTests = []testCase{
 			Op: OR,
 			X: &Stmt{
 				Cmd: litCall("foo"),
-				Redirs: []Redirect{
+				Redirs: []*Redirect{
 					{Op: GTR, Word: *litWord("f")},
 				},
 			},
@@ -1910,7 +1910,7 @@ var astTests = []testCase{
 			Op: OR,
 			X: &Stmt{
 				Cmd: subshell(litStmt("foo")),
-				Redirs: []Redirect{
+				Redirs: []*Redirect{
 					{Op: GTR, Word: *litWord("f")},
 				},
 			},
@@ -1923,7 +1923,7 @@ var astTests = []testCase{
 			Op: OR,
 			X:  litStmt("foo"),
 			Y: &Stmt{
-				Redirs: []Redirect{
+				Redirs: []*Redirect{
 					{Op: GTR, Word: *litWord("f")},
 				},
 			},
@@ -1932,7 +1932,7 @@ var astTests = []testCase{
 	{
 		[]string{"declare alone foo=bar"},
 		&DeclClause{
-			Assigns: []Assign{
+			Assigns: []*Assign{
 				{Value: *litWord("alone")},
 				{Name: lit("foo"), Value: *litWord("bar")},
 			},
@@ -1942,7 +1942,7 @@ var astTests = []testCase{
 		[]string{"declare -a -bc foo=bar"},
 		&DeclClause{
 			Opts: litWords("-a", "-bc"),
-			Assigns: []Assign{
+			Assigns: []*Assign{
 				{Name: lit("foo"), Value: *litWord("bar")},
 			},
 		},
@@ -1951,7 +1951,7 @@ var astTests = []testCase{
 		[]string{"declare -a foo=(b1 `b2`)"},
 		&DeclClause{
 			Opts: litWords("-a"),
-			Assigns: []Assign{{
+			Assigns: []*Assign{{
 				Name: lit("foo"),
 				Value: *word(
 					&ArrayExpr{List: []Word{
@@ -1967,7 +1967,7 @@ var astTests = []testCase{
 		&DeclClause{
 			Local: true,
 			Opts:  litWords("-a"),
-			Assigns: []Assign{{
+			Assigns: []*Assign{{
 				Name: lit("foo"),
 				Value: *word(
 					&ArrayExpr{List: []Word{
@@ -1982,7 +1982,7 @@ var astTests = []testCase{
 		[]string{"eval a=b foo"},
 		&EvalClause{Stmt: &Stmt{
 			Cmd: litCall("foo"),
-			Assigns: []Assign{{
+			Assigns: []*Assign{{
 				Name:  lit("a"),
 				Value: *litWord("b"),
 			}},
@@ -2085,7 +2085,7 @@ var astTests = []testCase{
 				},
 			)),
 			{
-				Assigns: []Assign{{
+				Assigns: []*Assign{{
 					Name: lit("foo"),
 					Value: *word(
 						&ArrayExpr{List: litWords("bar")},
@@ -2101,7 +2101,7 @@ var astTests = []testCase{
 		},
 		&CaseClause{
 			Word: *word(lit("a")),
-			List: []PatternList{{
+			List: []*PatternList{{
 				Op:       DSEMICOLON,
 				Patterns: litWords("b"),
 				Stmts: []*Stmt{stmt(letClause(
@@ -2121,7 +2121,7 @@ var astTests = []testCase{
 	{
 		[]string{"a=(b c) foo"},
 		&Stmt{
-			Assigns: []Assign{{
+			Assigns: []*Assign{{
 				Name: lit("a"),
 				Value: *word(
 					&ArrayExpr{List: litWords("b", "c")},
@@ -2133,7 +2133,7 @@ var astTests = []testCase{
 	{
 		[]string{"a=(b c) foo", "a=(\nb\nc\n) foo"},
 		&Stmt{
-			Assigns: []Assign{{
+			Assigns: []*Assign{{
 				Name: lit("a"),
 				Value: *word(
 					&ArrayExpr{List: litWords("b", "c")},
@@ -2145,7 +2145,7 @@ var astTests = []testCase{
 	{
 		[]string{"a+=1 b+=(2 3)"},
 		&Stmt{
-			Assigns: []Assign{
+			Assigns: []*Assign{
 				{
 					Append: true,
 					Name:   lit("a"),
@@ -2165,7 +2165,7 @@ var astTests = []testCase{
 		[]string{"<<EOF | b\nfoo\nEOF", "<<EOF|b;\nfoo"},
 		&BinaryCmd{
 			Op: OR,
-			X: &Stmt{Redirs: []Redirect{{
+			X: &Stmt{Redirs: []*Redirect{{
 				Op:   SHL,
 				Word: *litWord("EOF"),
 				Hdoc: lit("foo\n"),
@@ -2179,7 +2179,7 @@ var astTests = []testCase{
 			Op: LAND,
 			X: stmt(&BinaryCmd{
 				Op: OR,
-				X: &Stmt{Redirs: []Redirect{
+				X: &Stmt{Redirs: []*Redirect{
 					{
 						Op:   SHL,
 						Word: *litWord("EOF1"),
@@ -2203,7 +2203,7 @@ var astTests = []testCase{
 		},
 		&BinaryCmd{
 			Op: LAND,
-			X: &Stmt{Redirs: []Redirect{{
+			X: &Stmt{Redirs: []*Redirect{{
 				Op:   SHL,
 				Word: *litWord("EOF"),
 				Hdoc: lit("hdoc\n"),
@@ -2217,7 +2217,7 @@ var astTests = []testCase{
 			Name: *lit("foo"),
 			Body: stmt(block(stmt(&BinaryCmd{
 				Op: LAND,
-				X: &Stmt{Redirs: []Redirect{{
+				X: &Stmt{Redirs: []*Redirect{{
 					Op:   SHL,
 					Word: *litWord("EOF"),
 					Hdoc: lit("hdoc\n"),
@@ -2310,8 +2310,7 @@ func setPosRecurse(tb testing.TB, v interface{}, to Pos, diff bool) {
 			recurse(x.Cmd)
 		}
 		recurse(x.Assigns)
-		for i := range x.Redirs {
-			r := &x.Redirs[i]
+		for _, r := range x.Redirs {
 			setPos(&r.OpPos)
 			if r.N != nil {
 				recurse(r.N)
@@ -2321,9 +2320,8 @@ func setPosRecurse(tb testing.TB, v interface{}, to Pos, diff bool) {
 				recurse(r.Hdoc)
 			}
 		}
-	case []Assign:
-		for i := range x {
-			a := &x[i]
+	case []*Assign:
+		for _, a := range x {
 			if a.Name != nil {
 				recurse(a.Name)
 			}
@@ -2366,8 +2364,7 @@ func setPosRecurse(tb testing.TB, v interface{}, to Pos, diff bool) {
 		setPos(&x.Fi)
 		recurse(&x.Cond)
 		recurse(x.ThenStmts)
-		for i := range x.Elifs {
-			e := &x.Elifs[i]
+		for _, e := range x.Elifs {
 			setPos(&e.Elif)
 			setPos(&e.Then)
 			recurse(e.Cond)
@@ -2459,8 +2456,7 @@ func setPosRecurse(tb testing.TB, v interface{}, to Pos, diff bool) {
 		setPos(&x.Case)
 		setPos(&x.Esac)
 		recurse(&x.Word)
-		for i := range x.List {
-			pl := &x.List[i]
+		for _, pl := range x.List {
 			setPos(&pl.OpPos)
 			recurse(pl.Patterns)
 			recurse(pl.Stmts)

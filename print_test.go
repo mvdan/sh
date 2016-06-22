@@ -376,7 +376,7 @@ func TestWriteErr(t *testing.T) {
 	var out badWriter
 	f := &File{Stmts: []*Stmt{
 		{
-			Redirs: []Redirect{{}},
+			Redirs: []*Redirect{{}},
 			Cmd:    &Subshell{},
 		},
 	}}

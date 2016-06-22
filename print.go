@@ -60,10 +60,10 @@ type printer struct {
 	levelIncs []bool
 
 	// comments is the list of pending comments to write.
-	comments []Comment
+	comments []*Comment
 
 	// pendingHdocs is the list of pending heredocs to write.
-	pendingHdocs []Redirect
+	pendingHdocs []*Redirect
 
 	nestedBinary bool
 }
@@ -473,7 +473,7 @@ func (p *printer) stmt(s *Stmt) {
 	}
 }
 
-func (p *printer) command(cmd Command, redirs []Redirect) (startRedirs int) {
+func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 	switch x := cmd.(type) {
 	case *CallExpr:
 		if len(x.Args) <= 1 {
@@ -704,7 +704,7 @@ func (p *printer) nestedStmts(stmts []*Stmt) bool {
 	return sep
 }
 
-func (p *printer) assigns(assigns []Assign) {
+func (p *printer) assigns(assigns []*Assign) {
 	for _, a := range assigns {
 		if p.wantSpace {
 			p.space(' ')

@@ -414,7 +414,7 @@ func (p *parser) readHdocBody(end string, noTabs bool) (string, bool) {
 func (p *parser) saveComments() {
 	for p.tok == COMMENT {
 		if p.mode&ParseComments > 0 {
-			p.file.Comments = append(p.file.Comments, Comment{
+			p.file.Comments = append(p.file.Comments, &Comment{
 				Hash: p.pos,
 				Text: p.val,
 			})
@@ -940,12 +940,12 @@ func assignSplit(s string) int {
 	return -1
 }
 
-func (p *parser) getAssign() (Assign, bool) {
-	var as Assign
+func (p *parser) getAssign() (*Assign, bool) {
 	i := assignSplit(p.val)
 	if i < 0 {
-		return as, false
+		return nil, false
 	}
+	as := &Assign{}
 	as.Name = &Lit{ValuePos: p.pos, Value: p.val[:i]}
 	if p.val[i] == '+' {
 		as.Append = true
@@ -1016,12 +1016,12 @@ func (p *parser) gotRedirect() bool {
 	default:
 		r.Word = p.followWord(r.Op)
 	}
-	s.Redirs = append(s.Redirs, r)
+	s.Redirs = append(s.Redirs, &r)
 	return true
 }
 
 func (p *parser) getStmt(stops ...Token) (*Stmt, bool) {
-	s := new(Stmt)
+	s := &Stmt{}
 	p.stmtStack = append(p.stmtStack, s)
 	s, ok := p.gotStmtAndOr(s, stops...)
 	p.stmtStack = p.stmtStack[:len(p.stmtStack)-1]
@@ -1149,7 +1149,7 @@ func (p *parser) ifClause() *IfClause {
 	ic.Then = p.followRsrv(ic.If, "if [stmts]", THEN)
 	ic.ThenStmts = p.followStmts(THEN, FI, ELIF, ELSE)
 	for p.gotRsrv(ELIF) {
-		elf := Elif{Elif: p.lpos}
+		elf := &Elif{Elif: p.lpos}
 		elf.Cond = p.cond(ELIF, THEN)
 		elf.Then = p.followRsrv(elf.Elif, "elif [stmts]", THEN)
 		elf.ThenStmts = p.followStmts(THEN, FI, ELIF, ELSE)
@@ -1247,12 +1247,12 @@ func (p *parser) caseClause() *CaseClause {
 	return cc
 }
 
-func (p *parser) patLists() (pls []PatternList) {
+func (p *parser) patLists() (pls []*PatternList) {
 	if p.gotSameLine(SEMICOLON) {
 		return
 	}
 	for !p.eof() && !p.peekRsrv(ESAC) {
-		var pl PatternList
+		pl := &PatternList{}
 		p.got(LPAREN)
 		for !p.eof() {
 			if w, ok := p.gotWord(); !ok {
@@ -1293,7 +1293,7 @@ func (p *parser) declClause() *DeclClause {
 		if w, ok := p.gotWord(); !ok {
 			p.followErr(p.pos, DECLARE, "words")
 		} else {
-			ds.Assigns = append(ds.Assigns, Assign{Value: w})
+			ds.Assigns = append(ds.Assigns, &Assign{Value: w})
 		}
 	}
 	return ds

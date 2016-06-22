@@ -16,7 +16,7 @@ type File struct {
 	Name string
 
 	Stmts    []*Stmt
-	Comments []Comment
+	Comments []*Comment
 }
 
 func (f *File) Pos() Pos { return stmtFirstPos(f.Stmts) }
@@ -36,8 +36,8 @@ type Stmt struct {
 	Position   Pos
 	Negated    bool
 	Background bool
-	Assigns    []Assign
-	Redirs     []Redirect
+	Assigns    []*Assign
+	Redirs     []*Redirect
 }
 
 func (s *Stmt) Pos() Pos { return s.Position }
@@ -151,7 +151,7 @@ type IfClause struct {
 	If, Then, Fi Pos
 	Cond         Cond
 	ThenStmts    []*Stmt
-	Elifs        []Elif
+	Elifs        []*Elif
 	Else         Pos
 	ElseStmts    []*Stmt
 }
@@ -461,7 +461,7 @@ func (p *ParenExpr) End() Pos { return posAfter(p.Rparen, RPAREN) }
 type CaseClause struct {
 	Case, Esac Pos
 	Word       Word
-	List       []PatternList
+	List       []*PatternList
 }
 
 func (c *CaseClause) Pos() Pos { return c.Case }
@@ -480,7 +480,7 @@ type DeclClause struct {
 	Declare Pos
 	Local   bool
 	Opts    []Word
-	Assigns []Assign
+	Assigns []*Assign
 }
 
 func (d *DeclClause) Pos() Pos { return d.Declare }
