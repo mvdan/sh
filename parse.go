@@ -121,14 +121,12 @@ func moveWith(pos Pos, b byte) Pos {
 }
 
 func moveWithBytes(pos Pos, bs []byte) Pos {
-	for _, b := range bs {
-		if b == '\n' {
-			pos.Line++
-			pos.Column = 1
-		} else {
-			pos.Column++
-		}
+	if i := bytes.IndexByte(bs, '\n'); i != -1 {
+		pos.Line++
+		pos.Column = len(bs) - i
+		return pos
 	}
+	pos.Column += len(bs)
 	return pos
 }
 
