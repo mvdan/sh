@@ -8,7 +8,7 @@ type Token int
 
 // The list of all possible tokens.
 const (
-	ILLEGAL Token = -iota
+	ILLEGAL Token = iota
 	STOPPED
 	EOF
 	LIT
