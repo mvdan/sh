@@ -44,7 +44,7 @@ func (s *Stmt) Pos() Pos { return s.Position }
 func (s *Stmt) End() Pos {
 	end := s.Position
 	if s.Negated {
-		end = posAfter(end, NOT)
+		end = posAfterStr(end, "!")
 	}
 	if s.Cmd != nil {
 		end = s.Cmd.End()
@@ -144,7 +144,7 @@ type Block struct {
 }
 
 func (b *Block) Pos() Pos { return b.Rbrace }
-func (b *Block) End() Pos { return posAfter(b.Rbrace, RBRACE) }
+func (b *Block) End() Pos { return posAfterStr(b.Rbrace, "}") }
 
 // IfClause represents an if statement.
 type IfClause struct {
@@ -157,7 +157,7 @@ type IfClause struct {
 }
 
 func (c *IfClause) Pos() Pos { return c.If }
-func (c *IfClause) End() Pos { return posAfter(c.Fi, FI) }
+func (c *IfClause) End() Pos { return posAfterStr(c.Fi, "fi") }
 
 // Cond represents all nodes that can be conditions in an if, while or
 // until clause.
@@ -203,7 +203,7 @@ type WhileClause struct {
 }
 
 func (w *WhileClause) Pos() Pos { return w.While }
-func (w *WhileClause) End() Pos { return posAfter(w.Done, DONE) }
+func (w *WhileClause) End() Pos { return posAfterStr(w.Done, "done") }
 
 // UntilClause represents an until clause.
 type UntilClause struct {
@@ -213,7 +213,7 @@ type UntilClause struct {
 }
 
 func (u *UntilClause) Pos() Pos { return u.Until }
-func (u *UntilClause) End() Pos { return posAfter(u.Done, DONE) }
+func (u *UntilClause) End() Pos { return posAfterStr(u.Done, "done") }
 
 // ForClause represents a for clause.
 type ForClause struct {
@@ -223,7 +223,7 @@ type ForClause struct {
 }
 
 func (f *ForClause) Pos() Pos { return f.For }
-func (f *ForClause) End() Pos { return posAfter(f.Done, DONE) }
+func (f *ForClause) End() Pos { return posAfterStr(f.Done, "done") }
 
 // Loop represents all nodes that can be loops in a for clause.
 type Loop interface {
@@ -395,7 +395,7 @@ func (p *ParamExp) End() Pos {
 	if p.Exp != nil {
 		end = posMax(end, p.Exp.Word.End())
 	}
-	return posAfter(end, RBRACE)
+	return posAfterStr(end, "}")
 }
 
 // Index represents access to an array via an index inside a ParamExp.
@@ -465,7 +465,7 @@ type CaseClause struct {
 }
 
 func (c *CaseClause) Pos() Pos { return c.Case }
-func (c *CaseClause) End() Pos { return posAfter(c.Esac, ESAC) }
+func (c *CaseClause) End() Pos { return posAfterStr(c.Esac, "esac") }
 
 // PatternList represents a pattern list (case) within a CaseClause.
 type PatternList struct {
@@ -540,6 +540,14 @@ func posAfter(pos Pos, tok Token) Pos {
 		return pos
 	}
 	pos.Column += len(tok.String())
+	return pos
+}
+
+func posAfterStr(pos Pos, s string) Pos {
+	if pos.Line == 0 {
+		return pos
+	}
+	pos.Column += len(s)
 	return pos
 }
 

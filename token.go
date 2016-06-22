@@ -15,25 +15,6 @@ const (
 	LITWORD
 	COMMENT
 
-	// POSIX Shell reserved words
-	IF
-	THEN
-	ELIF
-	ELSE
-	FI
-	WHILE
-	FOR
-	IN
-	UNTIL
-	DO
-	DONE
-	CASE
-	ESAC
-
-	NOT    // !
-	LBRACE // {
-	RBRACE // }
-
 	// Bash reserved words
 	FUNCTION
 	DECLARE
@@ -58,8 +39,10 @@ const (
 	DOLLBR // ${
 	DOLLPR // $(
 	DOLLDP // $((
+	LBRACE // {
 	LPAREN // (
 
+	RBRACE     // }
 	RPAREN     // )
 	SEMICOLON  // ;
 	DSEMICOLON // ;;
@@ -78,6 +61,7 @@ const (
 	MUL   // *
 	QUO   // /
 	XOR   // ^
+	NOT   // !
 	INC   // ++
 	DEC   // --
 	POW   // **
@@ -158,24 +142,6 @@ var (
 		DLPAREN: "((",
 		DRPAREN: "))",
 
-		IF:    "if",
-		THEN:  "then",
-		ELIF:  "elif",
-		ELSE:  "else",
-		FI:    "fi",
-		WHILE: "while",
-		FOR:   "for",
-		IN:    "in",
-		UNTIL: "until",
-		DO:    "do",
-		DONE:  "done",
-		CASE:  "case",
-		ESAC:  "esac",
-
-		NOT:    "!",
-		LBRACE: "{",
-		RBRACE: "}",
-
 		FUNCTION: "function",
 		DECLARE:  "declare",
 		LOCAL:    "local",
@@ -197,7 +163,9 @@ var (
 		DOLLBR:     `${`,
 		DOLLPR:     `$(`,
 		DOLLDP:     `$((`,
+		LBRACE:     "{",
 		LPAREN:     "(",
+		RBRACE:     "}",
 		RPAREN:     ")",
 		SEMICOLON:  ";",
 		DSEMICOLON: ";;",
@@ -239,6 +207,7 @@ var (
 
 		MUL:   "*",
 		XOR:   "^",
+		NOT:   "!",
 		INC:   "++",
 		DEC:   "--",
 		POW:   "**",

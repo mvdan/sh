@@ -507,10 +507,18 @@ func (p *parser) followStmts(left string, stops ...string) []*Stmt {
 	return sts
 }
 
-func (p *parser) followWord(left Token) Word {
+func (p *parser) followWordTok(tok Token) Word {
 	w, ok := p.gotWord()
 	if !ok {
-		p.followErr(p.lpos, left.String(), "a word")
+		p.followErr(p.lpos, tok.String(), "a word")
+	}
+	return w
+}
+
+func (p *parser) followWord(s string) Word {
+	w, ok := p.gotWord()
+	if !ok {
+		p.followErr(p.lpos, s, "a word")
 	}
 	return w
 }
@@ -804,7 +812,7 @@ func (p *parser) arithmExprBase(following Token) ArithmExpr {
 		}
 		x = ue
 	default:
-		w := p.followWord(following)
+		w := p.followWordTok(following)
 		x = &w
 	}
 	if q != DRPAREN && q != LPAREN && p.spaced {
@@ -998,13 +1006,13 @@ func (p *parser) gotRedirect() bool {
 	case SHL, DHEREDOC:
 		p.stopNewline = true
 		p.forbidNested = true
-		r.Word = p.followWord(r.Op)
+		r.Word = p.followWordTok(r.Op)
 		p.forbidNested = false
 		r.Hdoc = &Lit{}
 		p.heredocs = append(p.heredocs, r)
 		p.got(STOPPED)
 	default:
-		r.Word = p.followWord(r.Op)
+		r.Word = p.followWordTok(r.Op)
 	}
 	s := p.stmtStack[len(p.stmtStack)-1]
 	s.Redirs = append(s.Redirs, r)
@@ -1141,7 +1149,8 @@ func (p *parser) block() *Block {
 	b := &Block{Lbrace: p.lpos}
 	b.Stmts = p.stmts("}")
 	if !p.gotRsrv("}") {
-		p.matchingErr(b.Lbrace, LBRACE, RBRACE)
+		p.posErr(b.Lbrace, `reached %s without matching word { with }`,
+			p.tok)
 	}
 	b.Rbrace = p.lpos
 	return b
@@ -1244,7 +1253,7 @@ func (p *parser) loop(forPos Pos) Loop {
 
 func (p *parser) caseClause() *CaseClause {
 	cc := &CaseClause{Case: p.lpos}
-	cc.Word = p.followWord(CASE)
+	cc.Word = p.followWord("case")
 	p.followRsrv(cc.Case, "case x", "in")
 	cc.List = p.patLists()
 	cc.Esac = p.stmtEnd(cc, "case", "esac")
@@ -1331,7 +1340,7 @@ func (p *parser) letClause() *LetClause {
 func (p *parser) callOrFunc() Command {
 	if p.gotRsrv("function") {
 		fpos := p.lpos
-		w := p.followWord(FUNCTION)
+		w := p.followWord("function")
 		if p.gotSameLine(LPAREN) {
 			p.followFull(w.Pos(), "foo(", RPAREN)
 		}

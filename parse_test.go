@@ -171,7 +171,7 @@ var errTests = []struct {
 	},
 	{
 		"{",
-		`1:1: reached EOF without matching token { with }`,
+		`1:1: reached EOF without matching word { with }`,
 	},
 	{
 		"}",
@@ -179,7 +179,7 @@ var errTests = []struct {
 	},
 	{
 		"{ #}",
-		`1:1: reached EOF without matching token { with }`,
+		`1:1: reached EOF without matching word { with }`,
 	},
 	{
 		"(",
@@ -271,7 +271,7 @@ var errTests = []struct {
 	},
 	{
 		"foo() {",
-		`1:7: reached EOF without matching token { with }`,
+		`1:7: reached EOF without matching word { with }`,
 	},
 	{
 		"echo foo(",
@@ -471,7 +471,7 @@ var errTests = []struct {
 	},
 	{
 		"#foo\n{",
-		`2:1: reached EOF without matching token { with }`,
+		`2:1: reached EOF without matching word { with }`,
 	},
 	{
 		`echo "foo${bar"`,
@@ -531,7 +531,7 @@ var errTests = []struct {
 	},
 	{
 		"`{\n`",
-		"1:2: reached ` without matching token { with }",
+		"1:2: reached ` without matching word { with }",
 	},
 	{
 		"echo \"`)`\"",

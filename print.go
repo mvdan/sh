@@ -90,11 +90,18 @@ func (p *printer) token(tok Token, spaceAfter bool) {
 	_, p.err = fmt.Fprint(p.w, tok)
 }
 
-func (p *printer) spacedTok(tok Token, spaceAfter bool) {
+func (p *printer) rsrvWord(s string) {
 	if p.wantNewline {
 		p.newline()
 		p.indent()
 	} else if p.wantSpace {
+		p.space(' ')
+	}
+	p.str(s)
+}
+
+func (p *printer) spacedTok(tok Token, spaceAfter bool) {
+	if p.wantSpace {
 		p.space(' ')
 	}
 	p.token(tok, spaceAfter)
@@ -108,11 +115,11 @@ func (p *printer) lineJoin() {
 	}
 }
 
-func (p *printer) semiOrNewl(tok Token, pos Pos) {
+func (p *printer) semiOrNewl(s string, pos Pos) {
 	if !p.wantNewline {
 		p.token(SEMICOLON, true)
 	}
-	p.spacedTok(tok, true)
+	p.rsrvWord(s)
 	p.curLine = pos.Line
 }
 
@@ -191,18 +198,26 @@ func (p *printer) didSeparate(pos Pos) bool {
 	return false
 }
 
-func (p *printer) separated(tok Token, pos Pos, fallback bool) {
+func (p *printer) sepTok(tok Token, pos Pos) {
+	p.level++
+	p.commentsUpTo(pos.Line)
+	p.level--
+	p.didSeparate(pos)
+	if tok == RPAREN {
+		p.token(tok, true)
+	} else {
+		p.spacedTok(tok, true)
+	}
+}
+
+func (p *printer) sepRsrv(s string, pos Pos, fallback bool) {
 	p.level++
 	p.commentsUpTo(pos.Line)
 	p.level--
 	if !p.didSeparate(pos) && fallback {
 		p.token(SEMICOLON, true)
 	}
-	if tok == RPAREN {
-		p.token(tok, true)
-	} else {
-		p.spacedTok(tok, true)
-	}
+	p.rsrvWord(s)
 }
 
 func (p *printer) hasInline(pos Pos) bool {
@@ -263,9 +278,9 @@ func (p *printer) wordPart(wp WordPart) {
 		p.nestedStmts(x.Stmts)
 		if x.Backquotes {
 			p.wantSpace = false
-			p.separated(BQUOTE, x.Right, false)
+			p.sepTok(BQUOTE, x.Right)
 		} else {
-			p.separated(RPAREN, x.Right, false)
+			p.sepTok(RPAREN, x.Right)
 		}
 	case *ParamExp:
 		if x.Short {
@@ -295,7 +310,7 @@ func (p *printer) wordPart(wp WordPart) {
 			p.token(x.Exp.Op, true)
 			p.word(x.Exp.Word)
 		}
-		p.token(RBRACE, true)
+		p.str("}")
 	case *ArithmExp:
 		p.token(DOLLDP, false)
 		p.arithm(x.X, false)
@@ -303,7 +318,7 @@ func (p *printer) wordPart(wp WordPart) {
 	case *ArrayExpr:
 		p.token(LPAREN, false)
 		p.wordJoin(x.List, false)
-		p.separated(RPAREN, x.Rparen, false)
+		p.sepTok(RPAREN, x.Rparen)
 	case *ProcSubst:
 		// avoid conflict with << and others
 		p.spacedTok(x.Op, false)
@@ -329,7 +344,7 @@ func (p *printer) loop(loop Loop) {
 		p.space(' ')
 		p.lit(&x.Name)
 		if len(x.List) > 0 {
-			p.spacedTok(IN, true)
+			p.rsrvWord("in")
 			p.wordJoin(x.List, true)
 		}
 	case *CStyleLoop:
@@ -438,7 +453,7 @@ func (p *printer) wordJoin(ws []Word, needBackslash bool) {
 
 func (p *printer) stmt(s *Stmt) {
 	if s.Negated {
-		p.spacedTok(NOT, true)
+		p.rsrvWord("!")
 	}
 	p.assigns(s.Assigns)
 	startRedirs := p.command(s.Cmd, s.Redirs)
@@ -500,46 +515,46 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		}
 		p.wordJoin(x.Args[1:], true)
 	case *Block:
-		p.spacedTok(LBRACE, true)
+		p.rsrvWord("{")
 		p.nestedStmts(x.Stmts)
-		p.separated(RBRACE, x.Rbrace, true)
+		p.sepRsrv("}", x.Rbrace, true)
 	case *IfClause:
-		p.spacedTok(IF, true)
+		p.rsrvWord("if")
 		p.cond(x.Cond)
-		p.semiOrNewl(THEN, x.Then)
+		p.semiOrNewl("then", x.Then)
 		p.nestedStmts(x.ThenStmts)
 		for _, el := range x.Elifs {
-			p.separated(ELIF, el.Elif, true)
+			p.sepRsrv("elif", el.Elif, true)
 			p.cond(el.Cond)
-			p.semiOrNewl(THEN, el.Then)
+			p.semiOrNewl("then", el.Then)
 			p.nestedStmts(el.ThenStmts)
 		}
 		if len(x.ElseStmts) > 0 {
-			p.separated(ELSE, x.Else, true)
+			p.sepRsrv("else", x.Else, true)
 			p.nestedStmts(x.ElseStmts)
 		} else if x.Else.Line > 0 {
 			p.curLine = x.Else.Line
 		}
-		p.separated(FI, x.Fi, true)
+		p.sepRsrv("fi", x.Fi, true)
 	case *Subshell:
 		p.spacedTok(LPAREN, false)
 		if startsWithLparen(x.Stmts) {
 			p.space(' ')
 		}
 		p.nestedStmts(x.Stmts)
-		p.separated(RPAREN, x.Rparen, false)
+		p.sepTok(RPAREN, x.Rparen)
 	case *WhileClause:
-		p.spacedTok(WHILE, true)
+		p.rsrvWord("while")
 		p.cond(x.Cond)
-		p.semiOrNewl(DO, x.Do)
+		p.semiOrNewl("do", x.Do)
 		p.nestedStmts(x.DoStmts)
-		p.separated(DONE, x.Done, true)
+		p.sepRsrv("done", x.Done, true)
 	case *ForClause:
-		p.spacedTok(FOR, true)
+		p.rsrvWord("for")
 		p.loop(x.Loop)
-		p.semiOrNewl(DO, x.Do)
+		p.semiOrNewl("do", x.Do)
 		p.nestedStmts(x.DoStmts)
-		p.separated(DONE, x.Done, true)
+		p.sepRsrv("done", x.Done, true)
 	case *BinaryCmd:
 		p.stmt(x.X)
 		indent := !p.nestedBinary
@@ -569,9 +584,9 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		p.token(RPAREN, true)
 		p.stmt(x.Body)
 	case *CaseClause:
-		p.spacedTok(CASE, true)
+		p.rsrvWord("case")
 		p.spacedWord(x.Word)
-		p.spacedTok(IN, true)
+		p.rsrvWord("in")
 		p.incLevel()
 		for _, pl := range x.List {
 			p.didSeparate(wordFirstPos(pl.Patterns))
@@ -589,20 +604,20 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			} else if pl.OpPos.Line == p.curLine && pl.OpPos != x.Esac {
 				p.curLine--
 			}
-			p.separated(pl.Op, pl.OpPos, false)
+			p.sepTok(pl.Op, pl.OpPos)
 			if pl.OpPos == x.Esac {
 				p.curLine--
 			}
 			p.level--
 		}
 		p.decLevel()
-		p.separated(ESAC, x.Esac, len(x.List) == 0)
+		p.sepRsrv("esac", x.Esac, len(x.List) == 0)
 	case *UntilClause:
-		p.spacedTok(UNTIL, true)
+		p.rsrvWord("until")
 		p.cond(x.Cond)
-		p.semiOrNewl(DO, x.Do)
+		p.semiOrNewl("do", x.Do)
 		p.nestedStmts(x.DoStmts)
-		p.separated(DONE, x.Done, true)
+		p.sepRsrv("done", x.Done, true)
 	case *DeclClause:
 		if x.Local {
 			p.spacedTok(LOCAL, true)
