@@ -60,7 +60,7 @@ type parser struct {
 	// stack of stmts (to save redirects)
 	stmtStack []*Stmt
 	// list of pending heredoc bodies
-	heredocs []Redirect
+	heredocs []*Redirect
 
 	stopNewline  bool
 	forbidNested bool
@@ -993,8 +993,7 @@ func (p *parser) gotRedirect() bool {
 	if !p.peekRedir() {
 		return false
 	}
-	s := p.stmtStack[len(p.stmtStack)-1]
-	var r Redirect
+	r := &Redirect{}
 	var l Lit
 	if p.gotLit(&l) {
 		r.N = &l
@@ -1013,7 +1012,8 @@ func (p *parser) gotRedirect() bool {
 	default:
 		r.Word = p.followWord(r.Op)
 	}
-	s.Redirs = append(s.Redirs, &r)
+	s := p.stmtStack[len(p.stmtStack)-1]
+	s.Redirs = append(s.Redirs, r)
 	return true
 }
 
