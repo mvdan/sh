@@ -47,7 +47,7 @@ type parser struct {
 	forbidNested    bool
 
 	nextErr   error
-	remaining []byte
+	remaining int
 
 	ltok, tok Token
 	lval, val string
@@ -80,7 +80,7 @@ func (p *parser) popStop() {
 }
 
 func (p *parser) reachingEOF() bool {
-	return p.nextErr != nil && len(p.remaining) == 0
+	return p.nextErr != nil && p.remaining == 0
 }
 
 func (p *parser) readByte() byte {
@@ -89,8 +89,8 @@ func (p *parser) readByte() byte {
 		return 0
 	}
 	b, _ := p.br.ReadByte()
-	if len(p.remaining) > 0 {
-		p.remaining = p.remaining[:len(p.remaining)-1]
+	if p.remaining > 0 {
+		p.remaining--
 	}
 	p.npos = moveWith(p.npos, b)
 	return b
@@ -156,23 +156,23 @@ func (p *parser) willRead(b byte) bool {
 	return bs[0] == b
 }
 
-func (p *parser) willReadTwo(b1, b2 byte) bool {
-	if p.nextErr != nil && len(p.remaining) < 2 {
+func (p *parser) willReadAfter(b byte) bool {
+	if p.nextErr != nil && p.remaining < 2 {
 		return false
 	}
 	bs, err := p.br.Peek(2)
 	if err != nil {
 		p.nextErr = err
-		p.remaining = bs
+		p.remaining = len(bs)
 		return false
 	}
-	return bs[0] == b1 && bs[1] == b2
+	return bs[1] == b
 }
 
-func (p *parser) readOnlyTwo(b1, b2 byte) bool {
-	if p.willReadTwo(b1, b2) {
-		p.discByte(b1)
-		p.discByte(b2)
+func (p *parser) readNewlineAfter() bool {
+	if p.willReadAfter('\n') {
+		p.discByte(' ')
+		p.discByte('\n')
 		return true
 	}
 	return false
@@ -232,7 +232,7 @@ func (p *parser) next() {
 			p.lpos, p.pos = p.pos, p.npos
 			return
 		}
-		if b == '\\' && p.readOnlyTwo('\\', '\n') {
+		if b == '\\' && p.readNewlineAfter() {
 			continue
 		}
 		if !space(b) {
@@ -327,7 +327,7 @@ byteLoop:
 		case b == '`':
 			break byteLoop
 		case q == DQUOTE:
-			if b == '"' || (b == '$' && !p.willReadTwo('$', '"')) {
+			if b == '"' || (b == '$' && !p.willReadAfter('"')) {
 				return
 			}
 		case b == '$':
