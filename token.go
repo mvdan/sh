@@ -129,8 +129,8 @@ var (
 		ILLEGAL: `ILLEGAL`,
 		STOPPED: `STOPPED`,
 		EOF:     `EOF`,
-		LIT:     `literal`,
-		LITWORD: `literal`,
+		LIT:     `lit`,
+		LITWORD: `litword`,
 		COMMENT: `comment`,
 
 		DLPAREN: "((",

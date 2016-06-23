@@ -49,6 +49,7 @@ type parser struct {
 
 	nextErr   error
 	remaining int
+	nextByte  byte
 
 	ltok, tok Token
 	lval, val string
@@ -130,20 +131,6 @@ func moveWithBytes(pos Pos, bs []byte) Pos {
 	return pos
 }
 
-func (p *parser) peekByte() byte {
-	if p.reachingEOF() {
-		p.errPass(p.nextErr)
-		return 0
-	}
-	bs, err := p.br.Peek(1)
-	if err != nil {
-		p.nextErr = err // TODO: remove
-		p.errPass(err)
-		return 0
-	}
-	return bs[0]
-}
-
 func (p *parser) willRead(b byte) bool {
 	if p.reachingEOF() {
 		return false
@@ -154,19 +141,6 @@ func (p *parser) willRead(b byte) bool {
 		return false
 	}
 	return bs[0] == b
-}
-
-func (p *parser) willReadAfter(b byte) bool {
-	if p.nextErr != nil && p.remaining < 2 {
-		return false
-	}
-	bs, err := p.br.Peek(2)
-	if err != nil {
-		p.nextErr = err
-		p.remaining = len(bs)
-		return false
-	}
-	return bs[1] == b
 }
 
 func (p *parser) readOnly(b byte) bool {
@@ -214,22 +188,26 @@ func (p *parser) next() {
 	} else {
 		p.spaced, p.newLine = false, false
 	}
-	var b byte
-	q := p.quote
-	if q == DQUOTE || q == SQUOTE || q == RBRACE || q == QUO {
+	b := p.nextByte
+	if b == 0 {
 		if b = p.readByte(); p.tok == EOF {
 			p.lpos, p.pos = p.pos, p.npos
 			return
 		}
+	} else {
+		p.nextByte = 0
+	}
+	q := p.quote
+	if q == DQUOTE || q == SQUOTE || q == RBRACE || q == QUO {
 		p.advance(b, q)
 		return
 	}
 	for {
-		if b = p.readByte(); p.tok == EOF {
-			p.lpos, p.pos = p.pos, p.npos
-			return
-		}
 		if b == '\\' && p.readOnly('\n') {
+			if b = p.readByte(); p.tok == EOF {
+				p.lpos, p.pos = p.pos, p.npos
+				return
+			}
 			continue
 		}
 		if !space(b) {
@@ -244,6 +222,10 @@ func (p *parser) next() {
 				return
 			}
 			p.newLine = true
+		}
+		if b = p.readByte(); p.tok == EOF {
+			p.lpos, p.pos = p.pos, p.npos
+			return
 		}
 	}
 	p.advance(b, q)
@@ -285,69 +267,82 @@ func (p *parser) advance(b byte, q Token) {
 }
 
 func (p *parser) advanceReadLit(b byte) {
-	bs, willBreak := p.readLitBytes(b)
-	if willBreak {
-		p.advanceBoth(LITWORD, string(bs))
-	} else {
-		p.advanceBoth(LIT, string(bs))
+	if b == '\\' && p.reachingEOF() {
+		p.advanceBoth(LITWORD, string([]byte{b}))
+		return
 	}
-}
-
-func (p *parser) readLitBytes(b byte) (bs []byte, willBreak bool) {
+	var err error
+	var bs []byte
 	q := p.quote
+	willBreak := false
 byteLoop:
 	for p.tok != EOF {
 		switch {
 		case b == '\\': // escaped byte follows
-			if len(bs) > 0 {
-				p.discByte('\\')
-			}
-			b = p.readByte()
-			if p.tok == EOF {
+			if b, err = p.br.ReadByte(); err != nil {
 				bs = append(bs, '\\')
-				return
+				break byteLoop
 			}
 			if q == DQUOTE || b != '\n' {
 				bs = append(bs, '\\', b)
 			}
-			b = p.peekByte()
+			if b, err = p.br.ReadByte(); err != nil {
+				break byteLoop
+			}
+			p.npos.Column++
 			continue byteLoop
 		case q == SQUOTE:
 			if b == '\'' {
-				return
+				break byteLoop
 			}
 		case b == '`':
+			willBreak = true
 			break byteLoop
 		case q == DQUOTE:
-			if b == '"' || (b == '$' && !p.willReadAfter('"')) {
-				return
+			if b == '"' || (b == '$' && !p.willRead('"')) {
+				break byteLoop
 			}
 		case b == '$':
-			return
+			break byteLoop
 		case q == RBRACE:
 			if b == '}' || b == '"' {
-				return
+				break byteLoop
 			}
 		case q == LBRACE && paramOps(b), q == RBRACK && b == ']':
-			return
+			break byteLoop
 		case q == QUO:
 			if b == '/' || b == '}' {
-				return
+				break byteLoop
 			}
+		case b == '\n':
+			p.npos.Line++
+			p.npos.Column = 1
+			p.hadNewline = true
+			fallthrough
 		case space(b), wordBreak(b):
+			willBreak = true
 			break byteLoop
 		case regOps(b):
-			return
+			break byteLoop
 		case (q == DLPAREN || q == DRPAREN || q == LPAREN) && arithmOps(b):
-			return
-		}
-		if len(bs) > 0 {
-			p.discByte(b)
+			break byteLoop
 		}
 		bs = append(bs, b)
-		b = p.peekByte()
+		if b, err = p.br.ReadByte(); err != nil {
+			break
+		}
+		p.npos.Column++
 	}
-	return bs, true
+	p.nextByte = b
+	switch {
+	case err != nil:
+		p.nextErr = err
+		fallthrough
+	case willBreak:
+		p.advanceBoth(LITWORD, string(bs))
+	default:
+		p.advanceBoth(LIT, string(bs))
+	}
 }
 
 func (p *parser) advanceTok(tok Token) { p.advanceBoth(tok, "") }
@@ -954,7 +949,7 @@ func (p *parser) getAssign() (*Assign, bool) {
 func (p *parser) peekRedir() bool {
 	switch p.tok {
 	case LITWORD:
-		if p.willRead('>') || p.willRead('<') {
+		if p.nextByte == '>' || p.nextByte == '<' {
 			return true
 		}
 	case GTR, SHR, LSS, DPLIN, DPLOUT, RDRINOUT,

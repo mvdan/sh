@@ -101,6 +101,10 @@ var astTests = []testCase{
 		litWord(`\`),
 	},
 	{
+		[]string{`foo\`},
+		litWord(`foo\`),
+	},
+	{
 		[]string{"foo\nbar", "foo; bar;", "foo;bar;", "\nfoo\nbar\n"},
 		litStmts("foo", "bar"),
 	},
@@ -111,6 +115,10 @@ var astTests = []testCase{
 	{
 		[]string{"foobar", "foo\\\nbar"},
 		litWord("foobar"),
+	},
+	{
+		[]string{"foo", "foo \\\n"},
+		litWord("foo"),
 	},
 	{
 		[]string{"foo'bar'"},
