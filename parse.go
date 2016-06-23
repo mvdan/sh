@@ -47,9 +47,8 @@ type parser struct {
 	forbidNested    bool
 	hadNewline      bool
 
-	nextErr   error
-	remaining int
-	nextByte  byte
+	nextErr  error
+	nextByte byte
 
 	ltok, tok Token
 	lval, val string
@@ -81,12 +80,8 @@ func (p *parser) popStop() {
 	}
 }
 
-func (p *parser) reachingEOF() bool {
-	return p.nextErr != nil && p.remaining == 0
-}
-
 func (p *parser) readByte() byte {
-	if p.reachingEOF() {
+	if p.nextErr != nil {
 		p.errPass(p.nextErr)
 		return 0
 	}
@@ -94,15 +89,12 @@ func (p *parser) readByte() byte {
 	if err != nil {
 		p.errPass(err)
 	}
-	if p.remaining > 0 {
-		p.remaining--
-	}
 	p.npos = moveWith(p.npos, b)
 	return b
 }
 
 func (p *parser) discByte(b byte) {
-	if p.reachingEOF() {
+	if p.nextErr != nil {
 		p.errPass(p.nextErr)
 		return
 	}
@@ -132,7 +124,7 @@ func moveWithBytes(pos Pos, bs []byte) Pos {
 }
 
 func (p *parser) willRead(b byte) bool {
-	if p.reachingEOF() {
+	if p.nextErr != nil {
 		return false
 	}
 	bs, err := p.br.Peek(1)
@@ -267,7 +259,7 @@ func (p *parser) advance(b byte, q Token) {
 }
 
 func (p *parser) advanceReadLit(b byte) {
-	if b == '\\' && p.reachingEOF() {
+	if b == '\\' && p.nextErr != nil {
 		p.advanceBoth(LITWORD, string([]byte{b}))
 		return
 	}
@@ -376,7 +368,7 @@ func (p *parser) doHeredocs() {
 
 func (p *parser) readHdocBody(end string, noTabs bool) (string, bool) {
 	var buf bytes.Buffer
-	for p.tok != EOF && !p.reachingEOF() {
+	for p.tok != EOF && p.nextErr == nil {
 		line, _ := p.readIncluding('\n')
 		if line == end || (noTabs && strings.TrimLeft(line, "\t") == end) {
 			// add trailing tabs
@@ -416,7 +408,7 @@ func wordBreak(b byte) bool {
 }
 
 func (p *parser) willSpaced() bool {
-	if p.reachingEOF() {
+	if p.nextErr != nil {
 		return true
 	}
 	bs, err := p.br.Peek(1)
