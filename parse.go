@@ -45,6 +45,7 @@ type parser struct {
 	spaced, newLine bool
 	stopNewline     bool
 	forbidNested    bool
+	hadNewline      bool
 
 	nextErr   error
 	remaining int
@@ -212,7 +213,12 @@ func (p *parser) next() {
 	if p.tok == EOF {
 		return
 	}
-	p.spaced, p.newLine = false, false
+	if p.hadNewline {
+		p.spaced, p.newLine = true, true
+		p.hadNewline = false
+	} else {
+		p.spaced, p.newLine = false, false
+	}
 	var b byte
 	q := p.quote
 	if q == DQUOTE || q == SQUOTE || q == RBRACE || q == QUO {
@@ -274,7 +280,8 @@ func (p *parser) advance(b byte, q Token) {
 			p.advanceReadLit(b)
 		}
 	case b == '#' && q != LBRACE:
-		line, _ := p.readUntil('\n')
+		line, _ := p.readIncluding('\n')
+		p.hadNewline = true
 		p.advanceBoth(COMMENT, line[1:])
 	case q == LBRACE && paramOps(b):
 		p.discByte(b)
@@ -358,19 +365,6 @@ func (p *parser) advanceBoth(tok Token, val string) {
 		p.ltok, p.lval = p.tok, p.val
 	}
 	p.tok, p.val = tok, val
-}
-
-func (p *parser) readUntil(b byte) (string, bool) {
-	bs, err := p.br.ReadBytes(b)
-	if err != nil {
-		p.nextErr = err
-		p.npos = moveWithBytes(p.npos, bs)
-		return string(bs), false
-	}
-	bs = bs[:len(bs)-1]
-	p.npos = moveWithBytes(p.npos, bs)
-	p.br.UnreadByte()
-	return string(bs), true
 }
 
 func (p *parser) readIncluding(b byte) (string, bool) {
