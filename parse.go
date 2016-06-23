@@ -108,9 +108,6 @@ func (p *parser) discByte(b byte) {
 }
 
 func moveWith(pos Pos, b byte) Pos {
-	if pos.Line == 0 {
-		return pos
-	}
 	if b == '\n' {
 		pos.Line++
 		pos.Column = 1
@@ -123,8 +120,7 @@ func moveWith(pos Pos, b byte) Pos {
 func moveWithBytes(pos Pos, bs []byte) Pos {
 	if i := bytes.IndexByte(bs, '\n'); i != -1 {
 		pos.Line++
-		pos.Column = len(bs) - i
-		return pos
+		pos.Column = -i
 	}
 	pos.Column += len(bs)
 	return pos

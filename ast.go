@@ -331,8 +331,8 @@ type Lit struct {
 func (l *Lit) Pos() Pos { return l.ValuePos }
 func (l *Lit) End() Pos {
 	end := l.ValuePos
-	for _, b := range []byte(l.Value) {
-		end = moveWith(end, b)
+	if end.Line != 0 {
+		end = moveWithBytes(end, []byte(l.Value))
 	}
 	return end
 }
@@ -346,8 +346,8 @@ type SglQuoted struct {
 func (q *SglQuoted) Pos() Pos { return q.Quote }
 func (q *SglQuoted) End() Pos {
 	end := posAfter(q.Quote, SQUOTE)
-	for _, b := range []byte(q.Value) {
-		end = moveWith(end, b)
+	if end.Line != 0 {
+		end = moveWithBytes(end, []byte(q.Value))
 	}
 	return posAfter(end, SQUOTE)
 }
