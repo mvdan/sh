@@ -1268,6 +1268,9 @@ func (p *parser) letClause() *LetClause {
 		}
 		lc.Exprs = append(lc.Exprs, x)
 	}
+	if len(lc.Exprs) == 0 {
+		p.curErr("let clause requires at least one expression")
+	}
 	p.stopNewline = false
 	p.popStop()
 	p.got(STOPPED)

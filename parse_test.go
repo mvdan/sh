@@ -542,6 +542,10 @@ var errTests = []struct {
 		`1:9: "declare" must be followed by words`,
 	},
 	{
+		"let",
+		`1:4: let clause requires at least one expression`,
+	},
+	{
 		"let a+ b",
 		`1:6: + must be followed by an expression`,
 	},
