@@ -4,11 +4,9 @@
 package main
 
 import (
-	"bufio"
 	"bytes"
 	"flag"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -98,13 +96,8 @@ func empty(f *os.File) error {
 	return err
 }
 
-func validShebang(r io.Reader) (bool, error) {
-	b := make([]byte, 32)
-	n, err := r.Read(b)
-	if err != nil {
-		return false, err
-	}
-	return shebang.Match(b[:n]), nil
+func validShebang(bs []byte) bool {
+	return shebang.Match(bs[:32])
 }
 
 func formatPath(path string, size int64, always bool) error {
@@ -126,63 +119,39 @@ func formatPath(path string, size int64, always bool) error {
 		return err
 	}
 	defer f.Close()
-	if !shellExt {
-		valid, err := validShebang(f)
-		if !valid || err != nil {
-			return err
-		}
-		if _, err := f.Seek(0, 0); err != nil {
-			return err
-		}
-	}
-	prog, err := sh.Parse(f, path, sh.ParseComments)
+	src, err := ioutil.ReadAll(f)
 	if err != nil {
 		return err
 	}
-	var orig string
-	if *list {
-		if _, err := f.Seek(0, 0); err != nil {
-			return err
-		}
-		b, err := ioutil.ReadAll(f)
-		if err != nil {
-			return err
-		}
-		orig = string(b)
+	if !shellExt && !validShebang(src) {
+		return nil
 	}
-	switch {
-	case *list && *write:
-		var buf bytes.Buffer
-		if err := config.Fprint(&buf, prog); err != nil {
-			return err
-		}
-		if buf.String() != orig {
-			fmt.Println(path)
-		}
-		if err := empty(f); err != nil {
-			return err
-		}
-		_, err := io.Copy(f, &buf)
+	prog, err := sh.Parse(bytes.NewBuffer(src), path, sh.ParseComments)
+	if err != nil {
 		return err
-	case *write:
-		if err := empty(f); err != nil {
-			return err
-		}
-		w := bufio.NewWriter(f)
-		if err := config.Fprint(w, prog); err != nil {
-			return err
-		}
-		return w.Flush()
-	case *list:
-		var buf bytes.Buffer
-		if err := config.Fprint(&buf, prog); err != nil {
-			return err
-		}
-		if buf.String() != orig {
+	}
+	var buf bytes.Buffer
+	if err := config.Fprint(&buf, prog); err != nil {
+		return err
+	}
+	res := buf.Bytes()
+	if !bytes.Equal(src, res) {
+		if *list {
 			fmt.Println(path)
 		}
-	default:
-		return config.Fprint(os.Stdout, prog)
+		if *write {
+			if err := empty(f); err != nil {
+				return err
+			}
+			if _, err := f.Write(res); err != nil {
+				return err
+			}
+		}
+	}
+	if !*list && !*write {
+		if _, err := os.Stdout.Write(res); err != nil {
+			return err
+		}
 	}
 	return nil
 }
