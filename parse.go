@@ -93,17 +93,6 @@ func (p *parser) readByte() byte {
 	return b
 }
 
-func (p *parser) discByte(b byte) {
-	if p.nextErr != nil {
-		p.errPass(p.nextErr)
-		return
-	}
-	if _, err := p.br.Discard(1); err != nil {
-		p.errPass(err)
-	}
-	p.npos = moveWith(p.npos, b)
-}
-
 func moveWith(pos Pos, b byte) Pos {
 	if b == '\n' {
 		pos.Line++
@@ -137,7 +126,7 @@ func (p *parser) willRead(b byte) bool {
 
 func (p *parser) readOnly(b byte) bool {
 	if p.willRead(b) {
-		p.discByte(b)
+		p.readByte()
 		return true
 	}
 	return false
@@ -854,7 +843,7 @@ func (p *parser) arithmEnd(left Pos) Pos {
 	if !p.peekArithmEnd() {
 		p.matchingErr(left, DLPAREN, DRPAREN)
 	}
-	p.discByte(')')
+	p.readByte()
 	p.popStop()
 	p.next()
 	return p.lpos
