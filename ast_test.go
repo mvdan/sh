@@ -1987,6 +1987,10 @@ var astTests = []testCase{
 		},
 	},
 	{
+		[]string{"eval"},
+		&EvalClause{},
+	},
+	{
 		[]string{"eval a=b foo"},
 		&EvalClause{Stmt: &Stmt{
 			Cmd: litCall("foo"),
@@ -2475,7 +2479,9 @@ func setPosRecurse(tb testing.TB, v interface{}, to Pos, diff bool) {
 		recurse(x.Assigns)
 	case *EvalClause:
 		setPos(&x.Eval)
-		recurse(x.Stmt)
+		if x.Stmt != nil {
+			recurse(x.Stmt)
+		}
 	case *LetClause:
 		setPos(&x.Let)
 		for i := range x.Exprs {

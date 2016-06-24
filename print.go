@@ -630,7 +630,9 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		p.assigns(x.Assigns)
 	case *EvalClause:
 		p.rsrvWord("eval")
-		p.stmt(x.Stmt)
+		if x.Stmt != nil {
+			p.stmt(x.Stmt)
+		}
 	case *LetClause:
 		p.rsrvWord("let")
 		for _, n := range x.Exprs {

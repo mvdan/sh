@@ -519,7 +519,12 @@ type EvalClause struct {
 }
 
 func (e *EvalClause) Pos() Pos { return e.Eval }
-func (e *EvalClause) End() Pos { return e.Stmt.End() }
+func (e *EvalClause) End() Pos {
+	if e.Stmt == nil {
+		return posAfterStr(e.Eval, "eval")
+	}
+	return e.Stmt.End()
+}
 
 // LetClause represents a Bash let clause.
 type LetClause struct {
