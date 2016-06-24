@@ -254,6 +254,10 @@ var errTests = []struct {
 		`1:10: "foo(" must be followed by ")"`,
 	},
 	{
+		"function `function",
+		`1:11: "function" must be followed by a word`,
+	},
+	{
 		"foo'",
 		`1:4: reached EOF without closing quote '`,
 	},

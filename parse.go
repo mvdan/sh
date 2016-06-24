@@ -1315,7 +1315,9 @@ func (p *parser) funcDecl(w Word, pos Pos) *FuncDecl {
 		BashStyle: pos != w.Pos(),
 	}
 	if lit, ok := w.Parts[0].(*Lit); !ok || len(w.Parts) > 1 {
-		p.posErr(fd.Pos(), "invalid func name: %s", wordStr(w))
+		if p.err == nil {
+			p.posErr(fd.Pos(), "invalid func name: %s", wordStr(w))
+		}
 	} else {
 		fd.Name = *lit
 	}
