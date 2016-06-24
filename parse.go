@@ -45,7 +45,6 @@ type parser struct {
 	spaced, newLine bool
 	stopNewline     bool
 	forbidNested    bool
-	hadNewline      bool
 
 	nextErr  error
 	nextByte byte
@@ -162,14 +161,13 @@ func (p *parser) next() {
 	if p.tok == EOF {
 		return
 	}
-	if p.hadNewline {
+	b := p.nextByte
+	if b == '\n' {
 		p.doHeredocs()
 		p.spaced, p.newLine = true, true
-		p.hadNewline = false
 	} else {
 		p.spaced, p.newLine = false, false
 	}
-	b := p.nextByte
 	if b == 0 {
 		if b = p.readByte(); p.tok == EOF {
 			p.lpos, p.pos = p.pos, p.npos
@@ -197,7 +195,7 @@ func (p *parser) next() {
 		p.spaced = true
 		if b == '\n' {
 			if p.stopNewline {
-				p.hadNewline = true
+				p.nextByte = '\n'
 				p.stopNewline = false
 				p.advanceTok(STOPPED)
 				return
@@ -234,7 +232,7 @@ func (p *parser) advance(b byte, q Token) {
 		}
 	case b == '#' && q != LBRACE:
 		line, _ := p.readIncluding('\n')
-		p.hadNewline = true
+		p.nextByte = '\n'
 		p.advanceBoth(COMMENT, line)
 	case q == LBRACE && paramOps(b):
 		p.advanceTok(p.doParamToken(b))
@@ -298,7 +296,7 @@ byteLoop:
 		case b == '\n':
 			p.npos.Line++
 			p.npos.Column = 1
-			p.hadNewline = true
+			p.nextByte = '\n'
 			fallthrough
 		case space(b), wordBreak(b):
 			willBreak = true
