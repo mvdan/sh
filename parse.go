@@ -87,6 +87,7 @@ func (p *parser) readByte() byte {
 	b, err := p.br.ReadByte()
 	if err != nil {
 		p.errPass(err)
+		return 0
 	}
 	p.npos = moveWith(p.npos, b)
 	return b
@@ -125,7 +126,8 @@ func (p *parser) willRead(b byte) bool {
 
 func (p *parser) readOnly(b byte) bool {
 	if p.willRead(b) {
-		p.readByte()
+		p.br.ReadByte()
+		p.npos = moveWith(p.npos, b)
 		return true
 	}
 	return false
@@ -841,7 +843,8 @@ func (p *parser) arithmEnd(left Pos) Pos {
 	if !p.peekArithmEnd() {
 		p.matchingErr(left, DLPAREN, DRPAREN)
 	}
-	p.readByte()
+	p.br.ReadByte()
+	p.npos = moveWith(p.npos, ')')
 	p.popStop()
 	p.next()
 	return p.lpos
