@@ -407,14 +407,6 @@ func wordBreak(b byte) bool {
 		b == ';' || b == '(' || b == ')' || b == '`'
 }
 
-func (p *parser) willSpaced() bool {
-	if p.nextErr != nil {
-		return true
-	}
-	bs, err := p.br.Peek(1)
-	return err != nil || space(bs[0]) || wordBreak(bs[0])
-}
-
 func (p *parser) got(tok Token) bool {
 	p.saveComments()
 	if p.tok == tok {
@@ -647,18 +639,16 @@ func (p *parser) wordPart() WordPart {
 		cs.Right = p.matchedFull(cs.Left, LPAREN, RPAREN)
 		return cs
 	case p.peek(DOLLAR):
-		if p.willSpaced() {
+		b := p.readByte()
+		if p.tok == EOF || space(b) || wordBreak(b) {
 			p.tok, p.val = LIT, "$"
+			p.nextByte = b
 			return p.wordPart()
 		}
-		switch {
-		case p.readOnly('#'):
-			p.advanceBoth(LIT, "#")
-		case p.readOnly('$'):
-			p.advanceBoth(LIT, "$")
-		case p.readOnly('?'):
-			p.advanceBoth(LIT, "?")
-		default:
+		if b == '#' || b == '$' || b == '?' {
+			p.advanceBoth(LIT, string(b))
+		} else {
+			p.nextByte = b
 			p.next()
 		}
 		pe := &ParamExp{
