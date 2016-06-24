@@ -640,10 +640,7 @@ func (p *parser) wordPart() WordPart {
 			p.nextByte = b
 			p.next()
 		}
-		pe := &ParamExp{
-			Dollar: p.lpos,
-			Short:  true,
-		}
+		pe := &ParamExp{Dollar: p.lpos, Short: true}
 		p.gotLit(&pe.Param)
 		return pe
 	case p.peek(CMDIN), p.peek(CMDOUT):
@@ -1089,8 +1086,7 @@ func (p *parser) block() *Block {
 	b := &Block{Lbrace: p.lpos}
 	b.Stmts = p.stmts("}")
 	if !p.gotRsrv("}") {
-		p.posErr(b.Lbrace, `reached %s without matching word { with }`,
-			p.tok)
+		p.posErr(b.Lbrace, `reached %s without matching word { with }`, p.tok)
 	}
 	b.Rbrace = p.lpos
 	return b

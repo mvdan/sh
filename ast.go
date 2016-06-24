@@ -528,12 +528,7 @@ type LetClause struct {
 }
 
 func (l *LetClause) Pos() Pos { return l.Let }
-func (l *LetClause) End() Pos {
-	if len(l.Exprs) == 0 {
-		return defaultPos
-	}
-	return l.Exprs[len(l.Exprs)-1].End()
-}
+func (l *LetClause) End() Pos { return l.Exprs[len(l.Exprs)-1].End() }
 
 func posAfter(pos Pos, tok Token) Pos {
 	if pos.Line == 0 {
@@ -581,13 +576,7 @@ func partsLastEnd(ps []WordPart) Pos {
 	return ps[len(ps)-1].End()
 }
 
-func wordFirstPos(ws []Word) Pos {
-	if len(ws) == 0 {
-		return defaultPos
-	}
-	return ws[0].Pos()
-}
-
+func wordFirstPos(ws []Word) Pos { return ws[0].Pos() }
 func wordLastEnd(ws []Word) Pos {
 	if len(ws) == 0 {
 		return defaultPos
