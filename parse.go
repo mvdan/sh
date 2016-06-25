@@ -28,7 +28,7 @@ func Parse(r io.Reader, name string, mode Mode) (*File, error) {
 		br:   bufio.NewReader(r),
 		file: &File{Name: name},
 		mode: mode,
-		npos: Pos{Line: 1, Column: 0},
+		npos: Pos{Line: 1},
 	}
 	p.next()
 	p.file.Stmts = p.stmts()
@@ -690,7 +690,7 @@ func quotedStop(start Token) Token {
 }
 
 func (p *parser) arithmExpr(following Token) ArithmExpr {
-	if p.eof() || p.peekArithmEnd() || p.peek(STOPPED) {
+	if p.eof() || p.peekArithmEnd() {
 		return nil
 	}
 	left := p.arithmExprBase(following)
@@ -698,8 +698,7 @@ func (p *parser) arithmExpr(following Token) ArithmExpr {
 	if q != DRPAREN && q != LPAREN && p.spaced {
 		return left
 	}
-	if p.eof() || p.tok == RPAREN || p.tok == SEMICOLON ||
-		dsemicolon(p.tok) || p.tok == STOPPED {
+	if p.eof() || p.tok == RPAREN || p.tok == SEMICOLON || dsemicolon(p.tok) {
 		return left
 	}
 	if p.peek(LIT) || p.peek(LITWORD) {
