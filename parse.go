@@ -257,7 +257,7 @@ func (p *parser) advanceReadLit(b byte) {
 	q := p.quote
 	willBreak := false
 byteLoop:
-	for p.tok != EOF {
+	for {
 		switch {
 		case b == '\\': // escaped byte follows
 			if b, err = p.br.ReadByte(); err != nil {
@@ -357,7 +357,7 @@ func (p *parser) doHeredocs() {
 
 func (p *parser) readHdocBody(end string, noTabs bool) (string, bool) {
 	var buf bytes.Buffer
-	for p.tok != EOF && p.nextErr == nil {
+	for p.nextErr == nil {
 		line, _ := p.readIncluding('\n')
 		if line == end || (noTabs && strings.TrimLeft(line, "\t") == end) {
 			// add trailing tabs
