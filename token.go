@@ -298,7 +298,7 @@ func (p *parser) doRegToken(b byte) Token {
 			return CMDIN
 		}
 		return LSS
-	case '>':
+	default: // '>'
 		switch {
 		case p.readOnly('>'):
 			return SHR
@@ -309,7 +309,6 @@ func (p *parser) doRegToken(b byte) Token {
 		}
 		return GTR
 	}
-	return ILLEGAL
 }
 
 func (p *parser) doParamToken(b byte) Token {
@@ -346,13 +345,12 @@ func (p *parser) doParamToken(b byte) Token {
 		return HASH
 	case '[':
 		return LBRACK
-	case '/':
+	default: // '/'
 		if p.readOnly('/') {
 			return DQUO
 		}
 		return QUO
 	}
-	return ILLEGAL
 }
 
 func (p *parser) doArithmToken(b byte) Token {
@@ -452,8 +450,7 @@ func (p *parser) doArithmToken(b byte) Token {
 		return COMMA
 	case '?':
 		return QUEST
-	case ':':
+	default: // ':'
 		return COLON
 	}
-	return ILLEGAL
 }
