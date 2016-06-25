@@ -28,7 +28,7 @@ func Parse(r io.Reader, name string, mode Mode) (*File, error) {
 		br:   bufio.NewReader(r),
 		file: &File{Name: name},
 		mode: mode,
-		npos: Pos{Line: 1, Column: 1},
+		npos: Pos{Line: 1, Column: 0},
 	}
 	p.next()
 	p.file.Stmts = p.stmts()
@@ -96,7 +96,7 @@ func (p *parser) readByte() byte {
 func moveWith(pos Pos, b byte) Pos {
 	if b == '\n' {
 		pos.Line++
-		pos.Column = 1
+		pos.Column = 0
 	} else {
 		pos.Column++
 	}
@@ -106,7 +106,7 @@ func moveWith(pos Pos, b byte) Pos {
 func moveWithBytes(pos Pos, bs []byte) Pos {
 	if i := bytes.IndexByte(bs, '\n'); i != -1 {
 		pos.Line++
-		pos.Column = -i
+		pos.Column = -(i + 1)
 	}
 	pos.Column += len(bs)
 	return pos
@@ -214,7 +214,6 @@ func (p *parser) next() {
 
 func (p *parser) advance(b byte, q Token) {
 	p.lpos, p.pos = p.pos, p.npos
-	p.pos.Column--
 	switch {
 	case (q == RBRACE || q == LBRACE || q == QUO) && b == '}':
 		p.advanceTok(RBRACE)
@@ -296,8 +295,6 @@ byteLoop:
 				break byteLoop
 			}
 		case b == '\n':
-			p.npos.Line++
-			p.npos.Column = 1
 			p.nextByte = '\n'
 			fallthrough
 		case space(b), wordBreak(b):
@@ -312,7 +309,7 @@ byteLoop:
 		if b, err = p.br.ReadByte(); err != nil {
 			break
 		}
-		p.npos.Column++
+		p.npos = moveWith(p.npos, b)
 	}
 	p.nextByte = b
 	switch {
@@ -1269,7 +1266,7 @@ func (p *parser) letClause() *LetClause {
 		lc.Exprs = append(lc.Exprs, x)
 	}
 	if len(lc.Exprs) == 0 {
-		p.curErr("let clause requires at least one expression")
+		p.posErr(lc.Let, "let clause requires at least one expression")
 	}
 	p.stopNewline = false
 	p.popStop()

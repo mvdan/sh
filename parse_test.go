@@ -547,7 +547,7 @@ var errTests = []struct {
 	},
 	{
 		"let",
-		`1:4: let clause requires at least one expression`,
+		`1:1: let clause requires at least one expression`,
 	},
 	{
 		"let a+ b",
