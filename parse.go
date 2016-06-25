@@ -263,13 +263,14 @@ byteLoop:
 				bs = append(bs, '\\')
 				break byteLoop
 			}
+			p.npos = moveWith(p.npos, b)
 			if q == DQUOTE || b != '\n' {
 				bs = append(bs, '\\', b)
 			}
 			if b, err = p.br.ReadByte(); err != nil {
 				break byteLoop
 			}
-			p.npos.Column++
+			p.npos = moveWith(p.npos, b)
 			continue byteLoop
 		case q == SQUOTE:
 			if b == '\'' {
