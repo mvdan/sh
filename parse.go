@@ -403,7 +403,6 @@ func (p *parser) got(tok Token) bool {
 	return false
 }
 func (p *parser) gotRsrv(val string) bool {
-	p.saveComments()
 	if p.peekRsrv(val) {
 		p.next()
 		return true
