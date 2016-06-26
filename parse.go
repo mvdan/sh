@@ -24,7 +24,7 @@ const (
 // returns the parsed program if no issues were encountered. Otherwise,
 // an error is returned.
 func Parse(r io.Reader, name string, mode Mode) (*File, error) {
-	p := &parser{
+	p := parser{
 		br:   bufio.NewReader(r),
 		file: &File{Name: name},
 		mode: mode,
