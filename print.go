@@ -489,7 +489,7 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			p.wordJoin(x.Args, true)
 			return 0
 		}
-		p.spacedWord(x.Args[0])
+		p.wordJoin(x.Args[:1], true)
 		for _, r := range redirs {
 			if posGreater(r.Pos(), x.Args[1].Pos()) {
 				break
