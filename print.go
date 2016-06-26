@@ -716,8 +716,16 @@ func (p *printer) nestedStmts(stmts []*Stmt) bool {
 }
 
 func (p *printer) assigns(assigns []*Assign) {
+	anyNewline := false
 	for _, a := range assigns {
-		if p.wantSpace {
+		if p.curLine > 0 && a.Pos().Line > p.curLine {
+			p.lineJoin()
+			if !anyNewline {
+				p.incLevel()
+				anyNewline = true
+			}
+			p.indent()
+		} else if p.wantSpace {
 			p.space(' ')
 		}
 		if a.Name != nil {
@@ -729,5 +737,8 @@ func (p *printer) assigns(assigns []*Assign) {
 			}
 		}
 		p.word(a.Value)
+	}
+	if anyNewline {
+		p.decLevel()
 	}
 }
