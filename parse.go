@@ -183,19 +183,13 @@ func (p *parser) next() {
 		p.advance(b, q)
 		return
 	}
+skipSpace:
 	for {
-		if b == '\\' && p.readOnly('\n') {
-			if b = p.readByte(); p.tok == EOF {
-				p.lpos, p.pos = p.pos, p.npos
-				return
-			}
-			continue
-		}
-		if !space(b) {
-			break
-		}
-		p.spaced = true
-		if b == '\n' {
+		switch b {
+		case ' ', '\t':
+			p.spaced = true
+		case '\n':
+			p.spaced = true
 			if p.stopNewline {
 				p.nextByte = '\n'
 				p.stopNewline = false
@@ -203,6 +197,17 @@ func (p *parser) next() {
 				return
 			}
 			p.newLine = true
+		case '\\':
+			if p.readOnly('\n') {
+				if b = p.readByte(); p.tok == EOF {
+					p.lpos, p.pos = p.pos, p.npos
+					return
+				}
+				continue skipSpace
+			}
+			break skipSpace
+		default:
+			break skipSpace
 		}
 		if b = p.readByte(); p.tok == EOF {
 			p.lpos, p.pos = p.pos, p.npos
