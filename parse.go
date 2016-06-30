@@ -194,14 +194,9 @@ skipSpace:
 			}
 			p.newLine = true
 		case '\\':
-			if p.readOnly('\n') {
-				if b = p.readByte(); p.tok == EOF {
-					p.lpos, p.pos = p.pos, p.npos
-					return
-				}
-				continue skipSpace
+			if !p.readOnly('\n') {
+				break skipSpace
 			}
-			break skipSpace
 		default:
 			break skipSpace
 		}
