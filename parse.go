@@ -261,7 +261,7 @@ func (p *parser) advanceReadLit(b byte, q Token) {
 	case DQUOTE:
 		bs, b, err = p.dqLoopByte(b)
 	default:
-		bs, b, willBreak, err = p.regLoopByte(b, q)
+		bs, b, err = p.regLoopByte(b, q)
 	}
 	p.nextByte = b
 	switch {
@@ -275,7 +275,7 @@ func (p *parser) advanceReadLit(b byte, q Token) {
 	}
 }
 
-func (p *parser) regLoopByte(b0 byte, q Token) (bs []byte, b byte, willBreak bool, err error) {
+func (p *parser) regLoopByte(b0 byte, q Token) (bs []byte, b byte, err error) {
 	b = b0
 byteLoop:
 	for {
@@ -298,10 +298,7 @@ byteLoop:
 			if b == '\'' {
 				return
 			}
-		case b == '`':
-			willBreak = true
-			return
-		case b == '$':
+		case b == '`', b == '$':
 			return
 		case q == RBRACE:
 			if b == '}' || b == '"' {
@@ -313,12 +310,7 @@ byteLoop:
 			if b == '/' || b == '}' {
 				return
 			}
-		case b == '\n':
-			fallthrough
-		case wordBreak(b):
-			willBreak = true
-			return
-		case regOps(b):
+		case wordBreak(b), regOps(b):
 			return
 		case (q == DLPAREN || q == DRPAREN || q == LPAREN) && arithmOps(b):
 			return
