@@ -76,12 +76,18 @@ func (p *printer) space(b byte) {
 	p.wantSpace = false
 }
 
-func (p *printer) str(s string) {
-	if len(s) > 0 {
-		last := s[len(s)-1]
-		p.wantSpace = !space(last)
+func (p *printer) spaces(s string) {
+	if p.err != nil {
+		return
 	}
 	_, p.err = io.WriteString(p.w, s)
+	p.wantSpace = false
+	p.curLine += strings.Count(s, "\n")
+}
+
+func (p *printer) str(s string) {
+	_, p.err = io.WriteString(p.w, s)
+	p.wantSpace = true
 	p.curLine += strings.Count(s, "\n")
 }
 
@@ -107,7 +113,7 @@ func (p *printer) spacedTok(tok Token, spaceAfter bool) {
 	p.token(tok, spaceAfter)
 }
 
-func (p *printer) lineJoin() { p.str(" \\\n") }
+func (p *printer) lineJoin() { p.spaces(" \\\n") }
 
 func (p *printer) semiOrNewl(s string, pos Pos) {
 	if !p.wantNewline {
@@ -142,9 +148,9 @@ func (p *printer) indent() {
 	switch {
 	case p.level == 0:
 	case p.c.Spaces == 0:
-		p.str(strings.Repeat("\t", p.level))
+		p.spaces(strings.Repeat("\t", p.level))
 	case p.c.Spaces > 0:
-		p.str(strings.Repeat(" ", p.c.Spaces*p.level))
+		p.spaces(strings.Repeat(" ", p.c.Spaces*p.level))
 	}
 }
 
@@ -154,7 +160,7 @@ func (p *printer) newline() {
 	for _, r := range p.pendingHdocs {
 		p.lit(r.Hdoc)
 		p.unquotedWord(&r.Word)
-		p.str("\n")
+		p.spaces("\n")
 	}
 	p.pendingHdocs = nil
 }
@@ -239,7 +245,7 @@ func (p *printer) commentsUpTo(line int) {
 	}
 	p.wantNewline = false
 	if !p.didSeparate(c.Hash) {
-		p.str(strings.Repeat(" ", p.wantSpaces+1))
+		p.spaces(strings.Repeat(" ", p.wantSpaces+1))
 	}
 	_, p.err = fmt.Fprint(p.w, HASH, c.Text)
 	p.comments = p.comments[1:]
@@ -428,7 +434,7 @@ func (p *printer) wordJoin(ws []Word, needBackslash bool) {
 			if needBackslash {
 				p.lineJoin()
 			} else {
-				p.str("\n")
+				p.spaces("\n")
 			}
 			if !anyNewline {
 				p.incLevel()

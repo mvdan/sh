@@ -156,9 +156,6 @@ func arithmOps(b byte) bool {
 		b == '&'
 }
 
-// space returns whether a byte acts as a space
-func space(b byte) bool { return b == ' ' || b == '\t' || b == '\n' }
-
 func (p *parser) next() {
 	if p.tok == EOF {
 		return
@@ -303,7 +300,7 @@ byteLoop:
 		case b == '\n':
 			p.nextByte = '\n'
 			fallthrough
-		case space(b), wordBreak(b):
+		case wordBreak(b):
 			willBreak = true
 			break byteLoop
 		case regOps(b):
@@ -395,8 +392,9 @@ func (p *parser) peekRsrv(val string) bool {
 }
 
 func wordBreak(b byte) bool {
-	return b == '&' || b == '>' || b == '<' || b == '|' ||
-		b == ';' || b == '(' || b == ')' || b == '`'
+	return b == ' ' || b == '\t' || b == '\n' || b == '&' ||
+		b == '>' || b == '<' || b == '|' || b == ';' ||
+		b == '(' || b == ')' || b == '`'
 }
 
 func (p *parser) got(tok Token) bool {
@@ -631,7 +629,7 @@ func (p *parser) wordPart() WordPart {
 		return cs
 	case p.peek(DOLLAR):
 		b := p.readByte()
-		if p.tok == EOF || space(b) || wordBreak(b) {
+		if p.tok == EOF || wordBreak(b) {
 			p.tok, p.val = LIT, "$"
 			p.nextByte = b
 			return p.wordPart()
