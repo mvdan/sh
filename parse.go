@@ -225,12 +225,12 @@ func (p *parser) advance(b byte, q Token) {
 	case q == SQUOTE && b == '\'':
 		p.advanceTok(SQUOTE)
 	case q == SQUOTE:
-		p.advanceReadLit(b)
+		p.advanceReadLit(b, q)
 	case q == DQUOTE, q == RBRACE, q == QUO:
 		if b == '`' || b == '"' || b == '$' {
 			p.advanceTok(p.doRegToken(b))
 		} else {
-			p.advanceReadLit(b)
+			p.advanceReadLit(b, q)
 		}
 	case b == '#' && q != LBRACE:
 		line, _ := p.readIncluding('\n')
@@ -243,75 +243,25 @@ func (p *parser) advance(b byte, q Token) {
 	case regOps(b):
 		p.advanceTok(p.doRegToken(b))
 	default:
-		p.advanceReadLit(b)
+		p.advanceReadLit(b, q)
 	}
 }
 
-func (p *parser) advanceReadLit(b byte) {
+func (p *parser) advanceReadLit(b byte, q Token) {
 	if b == '\\' && p.nextErr != nil {
 		p.advanceBoth(LITWORD, string([]byte{b}))
 		return
 	}
-	var err error
 	var bs []byte
-	q := p.quote
-	willBreak := false
-byteLoop:
-	for {
-		switch {
-		case b == '\\': // escaped byte follows
-			if b, err = p.br.ReadByte(); err != nil {
-				bs = append(bs, '\\')
-				break byteLoop
-			}
-			p.npos = moveWith(p.npos, b)
-			if q == DQUOTE || b != '\n' {
-				bs = append(bs, '\\', b)
-			}
-			if b, err = p.br.ReadByte(); err != nil {
-				break byteLoop
-			}
-			p.npos = moveWith(p.npos, b)
-			continue byteLoop
-		case q == SQUOTE:
-			if b == '\'' {
-				break byteLoop
-			}
-		case b == '`':
-			willBreak = true
-			break byteLoop
-		case q == DQUOTE:
-			if b == '"' || (b == '$' && !p.willRead('"')) {
-				break byteLoop
-			}
-		case b == '$':
-			break byteLoop
-		case q == RBRACE:
-			if b == '}' || b == '"' {
-				break byteLoop
-			}
-		case q == LBRACE && paramOps(b), q == RBRACK && b == ']':
-			break byteLoop
-		case q == QUO:
-			if b == '/' || b == '}' {
-				break byteLoop
-			}
-		case b == '\n':
-			p.nextByte = '\n'
-			fallthrough
-		case wordBreak(b):
-			willBreak = true
-			break byteLoop
-		case regOps(b):
-			break byteLoop
-		case (q == DLPAREN || q == DRPAREN || q == LPAREN) && arithmOps(b):
-			break byteLoop
-		}
-		bs = append(bs, b)
-		if b, err = p.br.ReadByte(); err != nil {
-			break
-		}
-		p.npos = moveWith(p.npos, b)
+	var willBreak bool
+	var err error
+	switch q {
+	case ILLEGAL, RPAREN, BQUOTE, DSEMICOLON:
+		bs, b, willBreak, err = p.noneLoopByte(b)
+	case DQUOTE:
+		bs, b, err = p.dqLoopByte(b)
+	default:
+		bs, b, willBreak, err = p.regLoopByte(b, q)
 	}
 	p.nextByte = b
 	switch {
@@ -322,6 +272,123 @@ byteLoop:
 		p.advanceBoth(LITWORD, string(bs))
 	default:
 		p.advanceBoth(LIT, string(bs))
+	}
+}
+
+func (p *parser) regLoopByte(b0 byte, q Token) (bs []byte, b byte, willBreak bool, err error) {
+	b = b0
+byteLoop:
+	for {
+		switch {
+		case b == '\\': // escaped byte follows
+			if b, err = p.br.ReadByte(); err != nil {
+				bs = append(bs, '\\')
+				return
+			}
+			p.npos = moveWith(p.npos, b)
+			if b != '\n' {
+				bs = append(bs, '\\', b)
+			}
+			if b, err = p.br.ReadByte(); err != nil {
+				return
+			}
+			p.npos = moveWith(p.npos, b)
+			continue byteLoop
+		case q == SQUOTE:
+			if b == '\'' {
+				return
+			}
+		case b == '`':
+			willBreak = true
+			return
+		case b == '$':
+			return
+		case q == RBRACE:
+			if b == '}' || b == '"' {
+				return
+			}
+		case q == LBRACE && paramOps(b), q == RBRACK && b == ']':
+			return
+		case q == QUO:
+			if b == '/' || b == '}' {
+				return
+			}
+		case b == '\n':
+			fallthrough
+		case wordBreak(b):
+			willBreak = true
+			return
+		case regOps(b):
+			return
+		case (q == DLPAREN || q == DRPAREN || q == LPAREN) && arithmOps(b):
+			return
+		}
+		bs = append(bs, b)
+		if b, err = p.br.ReadByte(); err != nil {
+			return
+		}
+		p.npos = moveWith(p.npos, b)
+	}
+}
+
+func (p *parser) noneLoopByte(b0 byte) (bs []byte, b byte, willBreak bool, err error) {
+	b = b0
+byteLoop:
+	for {
+		switch {
+		case b == '\\': // escaped byte follows
+			if b, err = p.br.ReadByte(); err != nil {
+				bs = append(bs, '\\')
+				return
+			}
+			p.npos = moveWith(p.npos, b)
+			if b != '\n' {
+				bs = append(bs, '\\', b)
+			}
+			if b, err = p.br.ReadByte(); err != nil {
+				return
+			}
+			p.npos = moveWith(p.npos, b)
+			continue byteLoop
+		case wordBreak(b):
+			willBreak = true
+			return
+		case regOps(b):
+			return
+		}
+		bs = append(bs, b)
+		if b, err = p.br.ReadByte(); err != nil {
+			return
+		}
+		p.npos = moveWith(p.npos, b)
+	}
+}
+
+func (p *parser) dqLoopByte(b0 byte) (bs []byte, b byte, err error) {
+	b = b0
+byteLoop:
+	for {
+		switch {
+		case b == '\\': // escaped byte follows
+			if b, err = p.br.ReadByte(); err != nil {
+				bs = append(bs, '\\')
+				return
+			}
+			p.npos = moveWith(p.npos, b)
+			bs = append(bs, '\\', b)
+			if b, err = p.br.ReadByte(); err != nil {
+				return
+			}
+			p.npos = moveWith(p.npos, b)
+			continue byteLoop
+		case b == '`', b == '"', b == '$' && !p.willRead('"'):
+			return
+		}
+		bs = append(bs, b)
+		if b, err = p.br.ReadByte(); err != nil {
+			return
+		}
+		p.npos = moveWith(p.npos, b)
 	}
 }
 
