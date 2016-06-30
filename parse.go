@@ -42,9 +42,8 @@ type parser struct {
 	err  error
 	mode Mode
 
-	spaced, newLine bool
-	stopNewline     bool
-	forbidNested    bool
+	spaced, newLine           bool
+	stopNewline, forbidNested bool
 
 	nextErr  error
 	nextByte byte
@@ -507,10 +506,10 @@ func (p *parser) errPass(err error) {
 	}
 }
 
+// ParseError represents an error found when parsing a source file.
 type ParseError struct {
 	Pos
-	Filename string
-	Text     string
+	Filename, Text string
 }
 
 func (e *ParseError) Error() string {
