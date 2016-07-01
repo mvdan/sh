@@ -266,6 +266,18 @@ var errTests = []struct {
 		`1:4: reached EOF without closing quote "`,
 	},
 	{
+		`"foo`,
+		`1:1: reached EOF without closing quote "`,
+	},
+	{
+		`"foo\`,
+		`1:1: reached EOF without closing quote "`,
+	},
+	{
+		`"foo\a`,
+		`1:1: reached EOF without closing quote "`,
+	},
+	{
 		"foo()",
 		`1:1: "foo()" must be followed by a statement`,
 	},
@@ -423,6 +435,14 @@ var errTests = []struct {
 	},
 	{
 		"echo $((foo",
+		`1:6: reached EOF without matching token (( with ))`,
+	},
+	{
+		`echo $((foo\`,
+		`1:6: reached EOF without matching token (( with ))`,
+	},
+	{
+		`echo $((foo\a`,
 		`1:6: reached EOF without matching token (( with ))`,
 	},
 	{

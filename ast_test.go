@@ -500,6 +500,10 @@ var astTests = []testCase{
 		},
 	},
 	{
+		[]string{"à=b foo"},
+		litStmt("à=b", "foo"),
+	},
+	{
 		[]string{
 			"foo >a >>b <c",
 			"foo > a >> b < c",
