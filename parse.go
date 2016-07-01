@@ -175,8 +175,46 @@ func (p *parser) next() {
 		p.nextByte = 0
 	}
 	q := p.quote
-	if q == DQUOTE || q == SQUOTE || q == RBRACE || q == QUO {
-		p.advance(b, q)
+	switch q {
+	case QUO:
+		p.lpos, p.pos = p.pos, p.npos
+		switch b {
+		case '}':
+			p.advanceTok(RBRACE)
+		case '/':
+			p.advanceTok(QUO)
+		case '`', '"', '$':
+			p.advanceTok(p.doRegToken(b))
+		default:
+			p.advanceReadLit(b, q)
+		}
+		return
+	case DQUOTE:
+		p.lpos, p.pos = p.pos, p.npos
+		if b == '`' || b == '"' || b == '$' {
+			p.advanceTok(p.doRegToken(b))
+		} else {
+			p.advanceReadLit(b, q)
+		}
+		return
+	case RBRACE:
+		p.lpos, p.pos = p.pos, p.npos
+		switch b {
+		case '}':
+			p.advanceTok(RBRACE)
+		case '`', '"', '$':
+			p.advanceTok(p.doRegToken(b))
+		default:
+			p.advanceReadLit(b, q)
+		}
+		return
+	case SQUOTE:
+		p.lpos, p.pos = p.pos, p.npos
+		if b == '\'' {
+			p.advanceTok(SQUOTE)
+		} else {
+			p.advanceReadLit(b, q)
+		}
 		return
 	}
 skipSpace:
@@ -211,22 +249,10 @@ skipSpace:
 func (p *parser) advance(b byte, q Token) {
 	p.lpos, p.pos = p.pos, p.npos
 	switch {
-	case (q == RBRACE || q == LBRACE || q == QUO) && b == '}':
+	case q == LBRACE && b == '}':
 		p.advanceTok(RBRACE)
-	case q == QUO && b == '/':
-		p.advanceTok(QUO)
 	case q == RBRACK && b == ']':
 		p.advanceTok(RBRACK)
-	case q == SQUOTE && b == '\'':
-		p.advanceTok(SQUOTE)
-	case q == SQUOTE:
-		p.advanceReadLit(b, q)
-	case q == DQUOTE, q == RBRACE, q == QUO:
-		if b == '`' || b == '"' || b == '$' {
-			p.advanceTok(p.doRegToken(b))
-		} else {
-			p.advanceReadLit(b, q)
-		}
 	case b == '#' && q != LBRACE:
 		line, _ := p.readIncluding('\n')
 		p.nextByte = '\n'
