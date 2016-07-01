@@ -160,18 +160,17 @@ func (p *parser) next() {
 		return
 	}
 	b := p.nextByte
-	if b == '\n' {
-		p.doHeredocs()
-		p.spaced, p.newLine = true, true
-	} else {
-		p.spaced, p.newLine = false, false
-	}
-	if b == 0 {
+	p.spaced, p.newLine = false, false
+	switch b {
+	case 0:
 		if b = p.readByte(); p.tok == EOF {
 			p.lpos, p.pos = p.pos, p.npos
 			return
 		}
-	} else {
+	case '\n':
+		p.nextByte = 0
+		p.doHeredocs()
+	default:
 		p.nextByte = 0
 	}
 	q := p.quote
