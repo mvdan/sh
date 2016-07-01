@@ -941,13 +941,16 @@ var identRe = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
 
 func assignSplit(s string) int {
 	i := strings.Index(s, "=")
-	if i > 0 && s[i-1] == '+' {
+	if i <= 0 {
+		return -1
+	}
+	if s[i-1] == '+' {
 		i--
 	}
-	if i >= 0 && identRe.MatchString(s[:i]) {
-		return i
+	if !identRe.MatchString(s[:i]) {
+		return -1
 	}
-	return -1
+	return i
 }
 
 func (p *parser) getAssign() (*Assign, bool) {
@@ -995,9 +998,7 @@ func (p *parser) getAssign() (*Assign, bool) {
 func (p *parser) peekRedir() bool {
 	switch p.tok {
 	case LITWORD:
-		if p.nextByte == '>' || p.nextByte == '<' {
-			return true
-		}
+		return p.nextByte == '>' || p.nextByte == '<'
 	case GTR, SHR, LSS, DPLIN, DPLOUT, RDRINOUT,
 		SHL, DHEREDOC, WHEREDOC, RDRALL, APPALL:
 		return true
