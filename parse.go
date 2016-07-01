@@ -25,7 +25,7 @@ const (
 // an error is returned.
 func Parse(r io.Reader, name string, mode Mode) (*File, error) {
 	p := parser{
-		br:   bufio.NewReader(r),
+		br:   bufio.NewReaderSize(r, 256),
 		file: &File{Name: name},
 		mode: mode,
 		npos: Pos{Line: 1},
