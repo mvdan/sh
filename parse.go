@@ -406,9 +406,7 @@ byteLoop:
 
 func (p *parser) advanceTok(tok Token) { p.advanceBoth(tok, "") }
 func (p *parser) advanceBoth(tok Token, val string) {
-	if p.tok != EOF {
-		p.ltok, p.lval = p.tok, p.val
-	}
+	p.ltok, p.lval = p.tok, p.val
 	p.tok, p.val = tok, val
 }
 
