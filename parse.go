@@ -505,7 +505,7 @@ func (p *parser) followErr(pos Pos, left, right string) {
 	p.posErr(pos, "%s must be followed by %s", leftStr, right)
 }
 
-func (p *parser) followFull(lpos Pos, left string, tok Token) Pos {
+func (p *parser) follow(lpos Pos, left string, tok Token) Pos {
 	if !p.got(tok) {
 		p.followErr(lpos, left, fmt.Sprintf(`%q`, tok))
 	}
@@ -567,7 +567,7 @@ func (p *parser) matchingErr(lpos Pos, left, right Token) {
 		p.tok, left, right)
 }
 
-func (p *parser) matchedFull(lpos Pos, left, right Token) Pos {
+func (p *parser) matched(lpos Pos, left, right Token) Pos {
 	if !p.got(right) {
 		p.matchingErr(lpos, left, right)
 	}
@@ -701,7 +701,7 @@ func (p *parser) wordPart() WordPart {
 		p.pushStop(RPAREN)
 		cs.Stmts = p.stmts()
 		p.popStop()
-		cs.Right = p.matchedFull(cs.Left, LPAREN, RPAREN)
+		cs.Right = p.matched(cs.Left, LPAREN, RPAREN)
 		return cs
 	case p.peek(DOLLAR):
 		b := p.readByte()
@@ -724,7 +724,7 @@ func (p *parser) wordPart() WordPart {
 		p.pushStop(RPAREN)
 		ps.Stmts = p.stmts()
 		p.popStop()
-		ps.Rparen = p.matchedFull(ps.OpPos, ps.Op, RPAREN)
+		ps.Rparen = p.matched(ps.OpPos, ps.Op, RPAREN)
 		return ps
 	case q != SQUOTE && p.peek(SQUOTE):
 		sq := &SglQuoted{Quote: p.pos}
@@ -814,7 +814,7 @@ func (p *parser) arithmExprBase(following Token) ArithmExpr {
 			p.posErr(pe.Lparen, "parentheses must enclose an expression")
 		}
 		p.popStop()
-		pe.Rparen = p.matchedFull(pe.Lparen, LPAREN, RPAREN)
+		pe.Rparen = p.matched(pe.Lparen, LPAREN, RPAREN)
 		x = pe
 	case p.got(ADD), p.got(SUB):
 		ue := &UnaryExpr{OpPos: p.lpos, Op: p.ltok}
@@ -876,7 +876,7 @@ func (p *parser) paramExp() *ParamExp {
 		lpos := p.lpos
 		pe.Ind = &Index{Word: p.getWord()}
 		p.popStop()
-		p.matchedFull(lpos, LBRACK, RBRACK)
+		p.matched(lpos, LBRACK, RBRACK)
 	}
 	if p.peek(RBRACE) {
 		p.popStop()
@@ -903,7 +903,7 @@ func (p *parser) paramExp() *ParamExp {
 		pe.Exp.Word = p.getWord()
 	}
 	p.popStop()
-	p.matchedFull(pe.Dollar, DOLLBR, RBRACE)
+	p.matched(pe.Dollar, DOLLBR, RBRACE)
 	return pe
 }
 
@@ -980,7 +980,7 @@ func (p *parser) getAssign() (*Assign, bool) {
 				ae.List = append(ae.List, w)
 			}
 		}
-		ae.Rparen = p.matchedFull(ae.Lparen, LPAREN, RPAREN)
+		ae.Rparen = p.matched(ae.Lparen, LPAREN, RPAREN)
 		as.Value.Parts = append(as.Value.Parts, ae)
 	} else if !p.peekStop() {
 		w := p.getWord()
@@ -1151,7 +1151,7 @@ func (p *parser) subshell() *Subshell {
 	p.pushStop(RPAREN)
 	s.Stmts = p.stmts()
 	p.popStop()
-	s.Rparen = p.matchedFull(s.Lparen, LPAREN, RPAREN)
+	s.Rparen = p.matched(s.Lparen, LPAREN, RPAREN)
 	if len(s.Stmts) == 0 {
 		p.posErr(s.Lparen, "a subshell must contain at least one statement")
 	}
@@ -1236,9 +1236,9 @@ func (p *parser) loop(forPos Pos) Loop {
 		p.pushStop(DRPAREN)
 		cl := &CStyleLoop{Lparen: p.lpos}
 		cl.Init = p.arithmExpr(DLPAREN)
-		p.followFull(p.pos, "expression", SEMICOLON)
+		p.follow(p.pos, "expression", SEMICOLON)
 		cl.Cond = p.arithmExpr(SEMICOLON)
-		p.followFull(p.pos, "expression", SEMICOLON)
+		p.follow(p.pos, "expression", SEMICOLON)
 		cl.Post = p.arithmExpr(SEMICOLON)
 		cl.Rparen = p.arithmEnd(cl.Lparen)
 		p.gotSameLine(SEMICOLON)
@@ -1358,7 +1358,7 @@ func (p *parser) callOrFunc() Command {
 		fpos := p.lpos
 		w := p.followWord("function")
 		if p.gotSameLine(LPAREN) {
-			p.followFull(w.Pos(), "foo(", RPAREN)
+			p.follow(w.Pos(), "foo(", RPAREN)
 		}
 		return p.funcDecl(w, fpos)
 	}
@@ -1367,7 +1367,7 @@ func (p *parser) callOrFunc() Command {
 		return nil
 	}
 	if p.gotSameLine(LPAREN) {
-		p.followFull(w.Pos(), "foo(", RPAREN)
+		p.follow(w.Pos(), "foo(", RPAREN)
 		return p.funcDecl(w, w.Pos())
 	}
 	ce := &CallExpr{Args: []Word{w}}
