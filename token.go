@@ -311,6 +311,26 @@ func (p *parser) doRegToken(b byte) Token {
 	}
 }
 
+func (p *parser) doDqToken(b byte) Token {
+	switch b {
+	case '"':
+		return DQUOTE
+	case '`':
+		return BQUOTE
+	default: // '$'
+		switch {
+		case p.readOnly('{'):
+			return DOLLBR
+		case p.readOnly('('):
+			if p.readOnly('(') {
+				return DOLLDP
+			}
+			return DOLLPR
+		}
+		return DOLLAR
+	}
+}
+
 func (p *parser) doParamToken(b byte) Token {
 	switch b {
 	case ':':

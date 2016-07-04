@@ -191,7 +191,7 @@ func (p *parser) next() {
 	case DQUOTE:
 		p.lpos, p.pos = p.pos, p.npos
 		if b == '`' || b == '"' || b == '$' {
-			p.advanceTok(p.doRegToken(b))
+			p.advanceTok(p.doDqToken(b))
 		} else {
 			p.advanceReadLit(b, q)
 		}
@@ -393,7 +393,7 @@ byteLoop:
 			}
 			p.npos = moveWith(p.npos, b)
 			continue byteLoop
-		case b == '`', b == '"', b == '$' && !p.willRead('"'):
+		case b == '`', b == '"', b == '$':
 			return
 		}
 		bs = append(bs, b)
@@ -707,7 +707,7 @@ func (p *parser) wordPart() WordPart {
 		return cs
 	case p.peek(DOLLAR):
 		b := p.readByte()
-		if p.tok == EOF || wordBreak(b) {
+		if p.tok == EOF || wordBreak(b) || b == '"' {
 			p.tok, p.val = LIT, "$"
 			p.nextByte = b
 			return p.wordPart()

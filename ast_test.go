@@ -1681,7 +1681,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{`$"foo$"`},
-		word(&Quoted{Quote: DOLLDQ, Parts: lits("foo$")}),
+		word(&Quoted{Quote: DOLLDQ, Parts: lits("foo", "$")}),
 	},
 	{
 		[]string{`$"foo bar"`},
@@ -1693,7 +1693,7 @@ var astTests = []testCase{
 	},
 	{
 		[]string{`"foo$"`},
-		word(dblQuoted(lit("foo$"))),
+		word(dblQuoted(lit("foo"), lit("$"))),
 	},
 	{
 		[]string{`"foo$$"`},
