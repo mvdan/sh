@@ -672,6 +672,9 @@ func (p *parser) gotLit(l *Lit) bool {
 
 func (p *parser) wordParts() (wps []WordPart) {
 	for {
+		if p.quote == p.tok {
+			return
+		}
 		n := p.wordPart()
 		if n == nil {
 			return
@@ -684,26 +687,26 @@ func (p *parser) wordParts() (wps []WordPart) {
 }
 
 func (p *parser) wordPart() WordPart {
-	q := p.quote
-	switch {
-	case p.got(LIT), p.got(LITWORD):
+	switch p.tok {
+	case LIT, LITWORD:
+		p.next()
 		return &Lit{ValuePos: p.lpos, Value: p.lval}
-	case p.peek(DOLLBR):
+	case DOLLBR:
 		return p.paramExp()
-	case p.peek(DOLLDP):
+	case DOLLDP:
 		p.pushStop(DRPAREN)
 		ar := &ArithmExp{Dollar: p.lpos}
 		ar.X = p.arithmExpr(DOLLDP)
 		ar.Rparen = p.arithmEnd(ar.Dollar)
 		return ar
-	case p.peek(DOLLPR):
+	case DOLLPR:
 		cs := &CmdSubst{Left: p.pos}
 		p.pushStop(RPAREN)
 		cs.Stmts = p.stmts()
 		p.popStop()
 		cs.Right = p.matched(cs.Left, LPAREN, RPAREN)
 		return cs
-	case p.peek(DOLLAR):
+	case DOLLAR:
 		b := p.readByte()
 		if p.tok == EOF || wordBreak(b) || b == '"' {
 			p.tok, p.val = LIT, "$"
@@ -719,14 +722,14 @@ func (p *parser) wordPart() WordPart {
 		pe := &ParamExp{Dollar: p.lpos, Short: true}
 		p.gotLit(&pe.Param)
 		return pe
-	case p.peek(CMDIN), p.peek(CMDOUT):
+	case CMDIN, CMDOUT:
 		ps := &ProcSubst{Op: p.tok, OpPos: p.pos}
 		p.pushStop(RPAREN)
 		ps.Stmts = p.stmts()
 		p.popStop()
 		ps.Rparen = p.matched(ps.OpPos, ps.Op, RPAREN)
 		return ps
-	case q != SQUOTE && p.peek(SQUOTE):
+	case SQUOTE:
 		sq := &SglQuoted{Quote: p.pos}
 		s, found := p.readIncluding('\'')
 		if !found {
@@ -735,9 +738,9 @@ func (p *parser) wordPart() WordPart {
 		sq.Value = s
 		p.next()
 		return sq
-	case q != SQUOTE && p.peek(DOLLSQ):
+	case DOLLSQ:
 		fallthrough
-	case q != DQUOTE && (p.peek(DQUOTE) || p.peek(DOLLDQ)):
+	case DQUOTE, DOLLDQ:
 		q := &Quoted{Quote: p.tok, QuotePos: p.pos}
 		stop := quotedStop(q.Quote)
 		p.pushStop(stop)
@@ -745,7 +748,7 @@ func (p *parser) wordPart() WordPart {
 		p.popStop()
 		p.closingQuote(q, stop)
 		return q
-	case q != BQUOTE && p.peek(BQUOTE):
+	case BQUOTE:
 		cs := &CmdSubst{Backquotes: true, Left: p.pos}
 		p.pushStop(BQUOTE)
 		cs.Stmts = p.stmts()
