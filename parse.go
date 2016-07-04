@@ -462,7 +462,6 @@ func (p *parser) eof() bool {
 	return p.tok == EOF
 }
 
-func (p *parser) peek(tok Token) bool { return p.tok == tok }
 func (p *parser) peekRsrv(val string) bool {
 	return p.tok == LITWORD && p.val == val
 }
@@ -782,7 +781,7 @@ func (p *parser) arithmExpr(following Token) ArithmExpr {
 	if p.eof() || p.tok == RPAREN || p.tok == SEMICOLON || dsemicolon(p.tok) {
 		return left
 	}
-	if p.peek(LIT) || p.peek(LITWORD) {
+	if p.tok == LIT || p.tok == LITWORD {
 		p.curErr("not a valid arithmetic operator: %s", p.val)
 	}
 	p.next()
@@ -808,8 +807,8 @@ func (p *parser) arithmExprBase(following Token) ArithmExpr {
 	}
 	var x ArithmExpr
 	q := p.quote
-	switch {
-	case p.peek(LPAREN):
+	switch p.tok {
+	case LPAREN:
 		p.pushStop(LPAREN)
 		pe := &ParenExpr{Lparen: p.lpos}
 		pe.X = p.arithmExpr(LPAREN)
@@ -819,7 +818,8 @@ func (p *parser) arithmExprBase(following Token) ArithmExpr {
 		p.popStop()
 		pe.Rparen = p.matched(pe.Lparen, LPAREN, RPAREN)
 		x = pe
-	case p.got(ADD), p.got(SUB):
+	case ADD, SUB:
+		p.next()
 		ue := &UnaryExpr{OpPos: p.lpos, Op: p.ltok}
 		if q != DRPAREN && q != LPAREN && p.spaced {
 			p.followErr(ue.OpPos, ue.Op.String(), "an expression")
@@ -869,19 +869,19 @@ func (p *parser) paramExp() *ParamExp {
 	if !p.gotParamLit(&pe.Param) && !pe.Length {
 		p.posErr(pe.Dollar, "parameter expansion requires a literal")
 	}
-	if p.peek(RBRACE) {
+	if p.tok == RBRACE {
 		p.popStop()
 		p.next()
 		return pe
 	}
-	if p.peek(LBRACK) {
+	if p.tok == LBRACK {
 		p.pushStop(RBRACK)
 		lpos := p.lpos
 		pe.Ind = &Index{Word: p.getWord()}
 		p.popStop()
 		p.matched(lpos, LBRACK, RBRACK)
 	}
-	if p.peek(RBRACE) {
+	if p.tok == RBRACE {
 		p.popStop()
 		p.next()
 		return pe
@@ -889,11 +889,11 @@ func (p *parser) paramExp() *ParamExp {
 	if pe.Length {
 		p.curErr(`can only get length of a simple parameter`)
 	}
-	if p.peek(QUO) || p.peek(DQUO) {
-		pe.Repl = &Replace{All: p.peek(DQUO)}
+	if p.tok == QUO || p.tok == DQUO {
+		pe.Repl = &Replace{All: p.tok == DQUO}
 		p.pushStop(QUO)
 		pe.Repl.Orig = p.getWord()
-		if p.peek(QUO) {
+		if p.tok == QUO {
 			p.popStop()
 			p.pushStop(RBRACE)
 			pe.Repl.With = p.getWord()
@@ -911,7 +911,7 @@ func (p *parser) paramExp() *ParamExp {
 }
 
 func (p *parser) peekArithmEnd() bool {
-	return p.peek(RPAREN) && p.willRead(')')
+	return p.tok == RPAREN && p.willRead(')')
 }
 
 func (p *parser) arithmEnd(left Pos) Pos {
@@ -976,7 +976,7 @@ func (p *parser) getAssign() (*Assign, bool) {
 	}
 	if start.Value == "" && p.got(LPAREN) {
 		ae := &ArrayExpr{Lparen: p.lpos}
-		for !p.eof() && !p.peek(RPAREN) {
+		for !p.eof() && p.tok != RPAREN {
 			if w, ok := p.gotWord(); !ok {
 				p.curErr("array elements must be words")
 			} else {
@@ -1063,11 +1063,13 @@ func (p *parser) gotStmtAndOr(s *Stmt) (*Stmt, bool) {
 	if !ok && !s.Negated && len(s.Assigns) == 0 {
 		return nil, false
 	}
-	switch {
-	case p.got(LAND), p.got(LOR):
+	switch p.tok {
+	case LAND, LOR:
+		p.next()
 		s = p.binaryCmd(s)
 		return s, true
-	case p.got(AND):
+	case AND:
+		p.next()
 		s.Background = true
 	}
 	p.gotSameLine(SEMICOLON)
@@ -1192,7 +1194,7 @@ func (p *parser) ifClause() *IfClause {
 }
 
 func (p *parser) cond(left string, stop string) Cond {
-	if p.peek(LPAREN) && p.readOnly('(') {
+	if p.tok == LPAREN && p.readOnly('(') {
 		p.pushStop(DRPAREN)
 		c := &CStyleCond{Lparen: p.lpos}
 		c.X = p.arithmExpr(DLPAREN)
@@ -1235,7 +1237,7 @@ func (p *parser) forClause() *ForClause {
 }
 
 func (p *parser) loop(forPos Pos) Loop {
-	if p.peek(LPAREN) && p.readOnly('(') {
+	if p.tok == LPAREN && p.readOnly('(') {
 		p.pushStop(DRPAREN)
 		cl := &CStyleLoop{Lparen: p.lpos}
 		cl.Init = p.arithmExpr(DLPAREN)
@@ -1288,7 +1290,7 @@ func (p *parser) patLists() (pls []*PatternList) {
 			} else {
 				pl.Patterns = append(pl.Patterns, w)
 			}
-			if p.peek(RPAREN) {
+			if p.tok == RPAREN {
 				break
 			}
 			if !p.got(OR) {
@@ -1313,7 +1315,7 @@ func (p *parser) patLists() (pls []*PatternList) {
 func (p *parser) declClause() *DeclClause {
 	ds := &DeclClause{Declare: p.lpos}
 	ds.Local = p.lval == "local"
-	for p.peek(LITWORD) && p.val[0] == '-' {
+	for p.tok == LITWORD && p.val[0] == '-' {
 		ds.Opts = append(ds.Opts, p.getWord())
 	}
 	for !p.peekStop() {
