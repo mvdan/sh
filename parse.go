@@ -345,7 +345,6 @@ byteLoop:
 
 func (p *parser) noneLoopByte(b0 byte) (bs []byte, b byte, willBreak bool, err error) {
 	b = b0
-byteLoop:
 	for {
 		switch {
 		case b == '\\': // escaped byte follows
@@ -361,24 +360,23 @@ byteLoop:
 				return
 			}
 			p.moveWith(b)
-			continue byteLoop
 		case wordBreak(b):
 			willBreak = true
 			return
 		case regOps(b):
 			return
+		default:
+			bs = append(bs, b)
+			if b, err = p.br.ReadByte(); err != nil {
+				return
+			}
+			p.moveWith(b)
 		}
-		bs = append(bs, b)
-		if b, err = p.br.ReadByte(); err != nil {
-			return
-		}
-		p.moveWith(b)
 	}
 }
 
 func (p *parser) dqLoopByte(b0 byte) (bs []byte, b byte, err error) {
 	b = b0
-byteLoop:
 	for {
 		switch {
 		case b == '\\': // escaped byte follows
@@ -392,15 +390,15 @@ byteLoop:
 				return
 			}
 			p.moveWith(b)
-			continue byteLoop
 		case b == '`', b == '"', b == '$':
 			return
+		default:
+			bs = append(bs, b)
+			if b, err = p.br.ReadByte(); err != nil {
+				return
+			}
+			p.moveWith(b)
 		}
-		bs = append(bs, b)
-		if b, err = p.br.ReadByte(); err != nil {
-			return
-		}
-		p.moveWith(b)
 	}
 }
 
