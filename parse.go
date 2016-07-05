@@ -694,9 +694,9 @@ func (p *parser) wordParts() (wps []WordPart) {
 func (p *parser) wordPart() WordPart {
 	switch p.tok {
 	case LIT, LITWORD:
-		l := Lit{ValuePos: p.pos, Value: p.val}
+		l := &Lit{ValuePos: p.pos, Value: p.val}
 		p.next()
-		return &l
+		return l
 	case DOLLBR:
 		return p.paramExp()
 	case DOLLDP:
@@ -845,14 +845,14 @@ func (p *parser) arithmExprBase(ftok Token, fpos Pos) ArithmExpr {
 		return x
 	}
 	if p.tok == INC || p.tok == DEC {
-		u := UnaryExpr{
+		u := &UnaryExpr{
 			Post:  true,
 			OpPos: p.pos,
 			Op:    p.tok,
 			X:     x,
 		}
 		p.next()
-		return &u
+		return u
 	}
 	return x
 }
