@@ -248,16 +248,14 @@ skipSpace:
 func (p *parser) advance(b byte, q Token) {
 	p.lpos, p.pos = p.pos, p.npos
 	switch {
-	case q == LBRACE && b == '}':
-		p.advanceTok(RBRACE)
+	case q == LBRACE && paramOps(b):
+		p.advanceTok(p.doParamToken(b))
 	case q == RBRACK && b == ']':
 		p.advanceTok(RBRACK)
 	case b == '#' && q != LBRACE:
 		line, _ := p.readIncluding('\n')
 		p.nextByte = '\n'
 		p.advanceBoth(COMMENT, line)
-	case q == LBRACE && paramOps(b):
-		p.advanceTok(p.doParamToken(b))
 	case (q == DLPAREN || q == DRPAREN || q == LPAREN) && arithmOps(b):
 		p.advanceTok(p.doArithmToken(b))
 	case regOps(b):

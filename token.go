@@ -333,6 +333,8 @@ func (p *parser) doDqToken(b byte) Token {
 
 func (p *parser) doParamToken(b byte) Token {
 	switch b {
+	case '}':
+		return RBRACE
 	case ':':
 		switch {
 		case p.readOnly('+'):
