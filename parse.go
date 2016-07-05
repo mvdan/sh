@@ -57,8 +57,6 @@ type parser struct {
 	stops []Token
 	quote Token
 
-	// stack of stmts (to save redirects)
-	stmtStack []*Stmt
 	// list of pending heredoc bodies
 	heredocs []*Redirect
 }
@@ -1017,7 +1015,7 @@ func (p *parser) peekRedir() bool {
 	return false
 }
 
-func (p *parser) doRedirect() {
+func (p *parser) doRedirect(s *Stmt) {
 	r := &Redirect{}
 	var l Lit
 	if p.gotLit(&l) {
@@ -1037,15 +1035,12 @@ func (p *parser) doRedirect() {
 	default:
 		r.Word = p.followWordTok(r.Op, r.OpPos)
 	}
-	s := p.stmtStack[len(p.stmtStack)-1]
 	s.Redirs = append(s.Redirs, r)
 }
 
 func (p *parser) getStmt() (*Stmt, bool) {
 	s := &Stmt{}
-	p.stmtStack = append(p.stmtStack, s)
 	s, ok := p.gotStmtAndOr(s)
-	p.stmtStack = p.stmtStack[:len(p.stmtStack)-1]
 	return s, ok
 }
 
@@ -1061,13 +1056,13 @@ preLoop:
 			if as, ok := p.getAssign(); ok {
 				s.Assigns = append(s.Assigns, as)
 			} else if p.nextByte == '>' || p.nextByte == '<' {
-				p.doRedirect()
+				p.doRedirect(s)
 			} else {
 				break preLoop
 			}
 		case GTR, SHR, LSS, DPLIN, DPLOUT, RDRINOUT,
 			SHL, DHEREDOC, WHEREDOC, RDRALL, APPALL:
-			p.doRedirect()
+			p.doRedirect(s)
 		default:
 			break preLoop
 		}
@@ -1121,13 +1116,13 @@ func (p *parser) gotStmtPipe(s *Stmt) (*Stmt, bool) {
 		case "let":
 			s.Cmd = p.letClause()
 		default:
-			s.Cmd = p.callOrFunc()
+			s.Cmd = p.callOrFunc(s)
 		}
 	default:
-		s.Cmd = p.callOrFunc()
+		s.Cmd = p.callOrFunc(s)
 	}
 	for !p.newLine && p.peekRedir() {
-		p.doRedirect()
+		p.doRedirect(s)
 	}
 	if s.Cmd == nil && len(s.Redirs) == 0 {
 		return s, false
@@ -1153,12 +1148,10 @@ func (p *parser) binaryCmd(left *Stmt) *Stmt {
 		}
 	} else {
 		b.Y = &Stmt{Position: p.pos}
-		p.stmtStack = append(p.stmtStack, b.Y)
 		var ok bool
 		if b.Y, ok = p.gotStmtPipe(b.Y); !ok {
 			p.followErr(b.OpPos, b.Op.String(), "a statement")
 		}
-		p.stmtStack = p.stmtStack[:len(p.stmtStack)-1]
 	}
 	return &Stmt{Position: left.Position, Cmd: b}
 }
@@ -1382,7 +1375,7 @@ func (p *parser) letClause() *LetClause {
 	return lc
 }
 
-func (p *parser) callOrFunc() Command {
+func (p *parser) callOrFunc(s *Stmt) Command {
 	fpos := p.pos
 	if p.gotRsrv("function") {
 		w := p.followWord("function", fpos)
@@ -1407,7 +1400,7 @@ argLoop:
 			p.next()
 		case LITWORD:
 			if p.nextByte == '>' || p.nextByte == '<' {
-				p.doRedirect()
+				p.doRedirect(s)
 				continue argLoop
 			}
 			fallthrough
@@ -1416,7 +1409,7 @@ argLoop:
 			ce.Args = append(ce.Args, p.getWord())
 		case GTR, SHR, LSS, DPLIN, DPLOUT, RDRINOUT,
 			SHL, DHEREDOC, WHEREDOC, RDRALL, APPALL:
-			p.doRedirect()
+			p.doRedirect(s)
 		default:
 			p.curErr("a command can only contain words and redirects")
 		}
