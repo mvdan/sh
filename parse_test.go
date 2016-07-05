@@ -438,6 +438,10 @@ var errTests = []struct {
 		`1:6: reached EOF without matching token (( with ))`,
 	},
 	{
+		`echo $((\`,
+		`1:6: reached EOF without matching token (( with ))`,
+	},
+	{
 		`echo $((foo\`,
 		`1:6: reached EOF without matching token (( with ))`,
 	},
