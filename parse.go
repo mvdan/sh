@@ -260,8 +260,28 @@ func (p *parser) advance(b byte, q Token) {
 		p.advanceTok(p.doArithmToken(b))
 	case regOps(b):
 		p.advanceTok(p.doRegToken(b))
+	case q == ILLEGAL, q == RPAREN, q == BQUOTE, q == DSEMICOLON:
+		p.advanceReadLitNone(b)
 	default:
 		p.advanceReadLit(b, q)
+	}
+}
+
+func (p *parser) advanceReadLitNone(b byte) {
+	if b == '\\' && p.nextErr != nil {
+		p.advanceBoth(LITWORD, string([]byte{b}))
+		return
+	}
+	bs, b2, willBreak, err := p.noneLoopByte(b)
+	p.nextByte = b2
+	switch {
+	case err != nil:
+		p.nextErr = err
+		fallthrough
+	case willBreak:
+		p.advanceBoth(LITWORD, string(bs))
+	default:
+		p.advanceBoth(LIT, string(bs))
 	}
 }
 
@@ -271,24 +291,17 @@ func (p *parser) advanceReadLit(b byte, q Token) {
 		return
 	}
 	var bs []byte
-	var willBreak bool
 	var err error
-	switch q {
-	case ILLEGAL, RPAREN, BQUOTE, DSEMICOLON:
-		bs, b, willBreak, err = p.noneLoopByte(b)
-	case DQUOTE:
+	if q == DQUOTE {
 		bs, b, err = p.dqLoopByte(b)
-	default:
+	} else {
 		bs, b, err = p.regLoopByte(b, q)
 	}
 	p.nextByte = b
-	switch {
-	case err != nil:
+	if err != nil {
 		p.nextErr = err
-		fallthrough
-	case willBreak:
 		p.advanceBoth(LITWORD, string(bs))
-	default:
+	} else {
 		p.advanceBoth(LIT, string(bs))
 	}
 }
