@@ -672,8 +672,13 @@ func (p *parser) gotWord() (Word, bool) {
 }
 
 func (p *parser) gotLit(l *Lit) bool {
-	l.ValuePos, l.Value = p.pos, p.val
-	return p.got(LIT) || p.got(LITWORD)
+	l.ValuePos = p.pos
+	if p.tok == LIT || p.tok == LITWORD {
+		l.Value = p.val
+		p.next()
+		return true
+	}
+	return false
 }
 
 func (p *parser) wordParts() (wps []WordPart) {
