@@ -51,7 +51,7 @@ type parser struct {
 	ltok, tok Token
 	val       string
 
-	lpos, pos, npos Pos
+	pos, npos Pos
 
 	// stack of stop tokens
 	stops []Token
@@ -164,7 +164,7 @@ func (p *parser) next() {
 	switch b {
 	case 0:
 		if b = p.readByte(); p.tok == EOF {
-			p.lpos, p.pos = p.pos, p.npos
+			p.pos = p.npos
 			return
 		}
 	case '\n':
@@ -176,7 +176,7 @@ func (p *parser) next() {
 	q := p.quote
 	switch q {
 	case QUO:
-		p.lpos, p.pos = p.pos, p.npos
+		p.pos = p.npos
 		switch b {
 		case '}':
 			p.advanceTok(RBRACE)
@@ -189,7 +189,7 @@ func (p *parser) next() {
 		}
 		return
 	case DQUOTE:
-		p.lpos, p.pos = p.pos, p.npos
+		p.pos = p.npos
 		if b == '`' || b == '"' || b == '$' {
 			p.advanceTok(p.doDqToken(b))
 		} else {
@@ -197,7 +197,7 @@ func (p *parser) next() {
 		}
 		return
 	case RBRACE:
-		p.lpos, p.pos = p.pos, p.npos
+		p.pos = p.npos
 		switch b {
 		case '}':
 			p.advanceTok(RBRACE)
@@ -208,7 +208,7 @@ func (p *parser) next() {
 		}
 		return
 	case SQUOTE:
-		p.lpos, p.pos = p.pos, p.npos
+		p.pos = p.npos
 		if b == '\'' {
 			p.advanceTok(SQUOTE)
 		} else {
@@ -238,7 +238,7 @@ skipSpace:
 			break skipSpace
 		}
 		if b = p.readByte(); p.tok == EOF {
-			p.lpos, p.pos = p.pos, p.npos
+			p.pos = p.npos
 			return
 		}
 	}
@@ -246,7 +246,7 @@ skipSpace:
 }
 
 func (p *parser) advance(b byte, q Token) {
-	p.lpos, p.pos = p.pos, p.npos
+	p.pos = p.npos
 	switch {
 	case q == LBRACE && paramOps(b):
 		p.advanceTok(p.doParamToken(b))
@@ -526,29 +526,29 @@ func (p *parser) followRsrv(lpos Pos, left, val string) Pos {
 	return pos
 }
 
-func (p *parser) followStmts(left string, stops ...string) []*Stmt {
+func (p *parser) followStmts(left string, lpos Pos, stops ...string) []*Stmt {
 	if p.gotSameLine(SEMICOLON) {
 		return nil
 	}
 	sts := p.stmts(stops...)
 	if len(sts) < 1 && !p.newLine {
-		p.followErr(p.lpos, left, "a statement list")
+		p.followErr(lpos, left, "a statement list")
 	}
 	return sts
 }
 
-func (p *parser) followWordTok(tok Token) Word {
+func (p *parser) followWordTok(tok Token, pos Pos) Word {
 	w, ok := p.gotWord()
 	if !ok {
-		p.followErr(p.lpos, tok.String(), "a word")
+		p.followErr(pos, tok.String(), "a word")
 	}
 	return w
 }
 
-func (p *parser) followWord(s string) Word {
+func (p *parser) followWord(s string, pos Pos) Word {
 	w, ok := p.gotWord()
 	if !ok {
-		p.followErr(p.lpos, s, "a word")
+		p.followErr(pos, s, "a word")
 	}
 	return w
 }
@@ -708,7 +708,7 @@ func (p *parser) wordPart() WordPart {
 	case DOLLDP:
 		ar := &ArithmExp{Dollar: p.pos}
 		p.pushStop(DRPAREN)
-		ar.X = p.arithmExpr(DOLLDP)
+		ar.X = p.arithmExpr(DOLLDP, ar.Dollar)
 		ar.Rparen = p.arithmEnd(ar.Dollar)
 		return ar
 	case DOLLPR:
@@ -782,11 +782,11 @@ func quotedStop(start Token) Token {
 	return start
 }
 
-func (p *parser) arithmExpr(following Token) ArithmExpr {
+func (p *parser) arithmExpr(ftok Token, fpos Pos) ArithmExpr {
 	if p.eof() || p.peekArithmEnd() {
 		return nil
 	}
-	left := p.arithmExprBase(following)
+	left := p.arithmExprBase(ftok, fpos)
 	q := p.quote
 	if q != DRPAREN && q != LPAREN && p.spaced {
 		return left
@@ -806,17 +806,17 @@ func (p *parser) arithmExpr(following Token) ArithmExpr {
 	if q != DRPAREN && q != LPAREN && p.spaced {
 		p.followErr(b.OpPos, b.Op.String(), "an expression")
 	}
-	if b.Y = p.arithmExpr(b.Op); b.Y == nil {
+	if b.Y = p.arithmExpr(b.Op, b.OpPos); b.Y == nil {
 		p.followErr(b.OpPos, b.Op.String(), "an expression")
 	}
 	return b
 }
 
-func (p *parser) arithmExprBase(following Token) ArithmExpr {
+func (p *parser) arithmExprBase(ftok Token, fpos Pos) ArithmExpr {
 	if p.tok == INC || p.tok == DEC || p.tok == NOT {
 		pre := &UnaryExpr{OpPos: p.pos, Op: p.tok}
 		p.next()
-		pre.X = p.arithmExprBase(pre.Op)
+		pre.X = p.arithmExprBase(pre.Op, pre.OpPos)
 		return pre
 	}
 	var x ArithmExpr
@@ -825,7 +825,7 @@ func (p *parser) arithmExprBase(following Token) ArithmExpr {
 	case LPAREN:
 		pe := &ParenExpr{Lparen: p.pos}
 		p.pushStop(LPAREN)
-		pe.X = p.arithmExpr(LPAREN)
+		pe.X = p.arithmExpr(LPAREN, pe.Lparen)
 		if pe.X == nil {
 			p.posErr(pe.Lparen, "parentheses must enclose an expression")
 		}
@@ -838,13 +838,13 @@ func (p *parser) arithmExprBase(following Token) ArithmExpr {
 		if q != DRPAREN && q != LPAREN && p.spaced {
 			p.followErr(ue.OpPos, ue.Op.String(), "an expression")
 		}
-		ue.X = p.arithmExpr(ue.Op)
+		ue.X = p.arithmExpr(ue.Op, ue.OpPos)
 		if ue.X == nil {
 			p.followErr(ue.OpPos, ue.Op.String(), "an expression")
 		}
 		x = ue
 	default:
-		w := p.followWordTok(following)
+		w := p.followWordTok(ftok, fpos)
 		x = &w
 	}
 	if q != DRPAREN && q != LPAREN && p.spaced {
@@ -1041,13 +1041,13 @@ func (p *parser) gotRedirect() bool {
 	case SHL, DHEREDOC:
 		p.stopNewline = true
 		p.forbidNested = true
-		r.Word = p.followWordTok(r.Op)
+		r.Word = p.followWordTok(r.Op, r.OpPos)
 		p.forbidNested = false
 		r.Hdoc = &Lit{}
 		p.heredocs = append(p.heredocs, r)
 		p.got(STOPPED)
 	default:
-		r.Word = p.followWordTok(r.Op)
+		r.Word = p.followWordTok(r.Op, r.OpPos)
 	}
 	s := p.stmtStack[len(p.stmtStack)-1]
 	s.Redirs = append(s.Redirs, r)
@@ -1190,37 +1190,37 @@ func (p *parser) block() *Block {
 func (p *parser) ifClause() *IfClause {
 	ic := &IfClause{If: p.pos}
 	p.next()
-	ic.Cond = p.cond("if", "then")
+	ic.Cond = p.cond("if", ic.If, "then")
 	ic.Then = p.followRsrv(ic.If, "if [stmts]", "then")
-	ic.ThenStmts = p.followStmts("then", "fi", "elif", "else")
+	ic.ThenStmts = p.followStmts("then", ic.Then, "fi", "elif", "else")
 	elifPos := p.pos
 	for p.gotRsrv("elif") {
 		elf := &Elif{Elif: elifPos}
-		elf.Cond = p.cond("elif", "then")
+		elf.Cond = p.cond("elif", elf.Elif, "then")
 		elf.Then = p.followRsrv(elf.Elif, "elif [stmts]", "then")
-		elf.ThenStmts = p.followStmts("then", "fi", "elif", "else")
+		elf.ThenStmts = p.followStmts("then", elf.Then, "fi", "elif", "else")
 		ic.Elifs = append(ic.Elifs, elf)
 		elifPos = p.pos
 	}
 	elsePos := p.pos
 	if p.gotRsrv("else") {
 		ic.Else = elsePos
-		ic.ElseStmts = p.followStmts("else", "fi")
+		ic.ElseStmts = p.followStmts("else", ic.Else, "fi")
 	}
 	ic.Fi = p.stmtEnd(ic, "if", "fi")
 	return ic
 }
 
-func (p *parser) cond(left string, stop string) Cond {
+func (p *parser) cond(left string, lpos Pos, stop string) Cond {
 	if p.tok == LPAREN && p.readOnly('(') {
 		c := &CStyleCond{Lparen: p.pos}
 		p.pushStop(DRPAREN)
-		c.X = p.arithmExpr(DLPAREN)
+		c.X = p.arithmExpr(DLPAREN, c.Lparen)
 		c.Rparen = p.arithmEnd(c.Lparen)
 		p.gotSameLine(SEMICOLON)
 		return c
 	}
-	stmts := p.followStmts(left, stop)
+	stmts := p.followStmts(left, lpos, stop)
 	if len(stmts) == 0 {
 		return nil
 	}
@@ -1230,9 +1230,9 @@ func (p *parser) cond(left string, stop string) Cond {
 func (p *parser) whileClause() *WhileClause {
 	wc := &WhileClause{While: p.pos}
 	p.next()
-	wc.Cond = p.cond("while", "do")
+	wc.Cond = p.cond("while", wc.While, "do")
 	wc.Do = p.followRsrv(wc.While, "while [stmts]", "do")
-	wc.DoStmts = p.followStmts("do", "done")
+	wc.DoStmts = p.followStmts("do", wc.Do, "done")
 	wc.Done = p.stmtEnd(wc, "while", "done")
 	return wc
 }
@@ -1240,9 +1240,9 @@ func (p *parser) whileClause() *WhileClause {
 func (p *parser) untilClause() *UntilClause {
 	uc := &UntilClause{Until: p.pos}
 	p.next()
-	uc.Cond = p.cond("until", "do")
+	uc.Cond = p.cond("until", uc.Until, "do")
 	uc.Do = p.followRsrv(uc.Until, "until [stmts]", "do")
-	uc.DoStmts = p.followStmts("do", "done")
+	uc.DoStmts = p.followStmts("do", uc.Do, "done")
 	uc.Done = p.stmtEnd(uc, "until", "done")
 	return uc
 }
@@ -1252,7 +1252,7 @@ func (p *parser) forClause() *ForClause {
 	p.next()
 	fc.Loop = p.loop(fc.For)
 	fc.Do = p.followRsrv(fc.For, "for foo [in words]", "do")
-	fc.DoStmts = p.followStmts("do", "done")
+	fc.DoStmts = p.followStmts("do", fc.Do, "done")
 	fc.Done = p.stmtEnd(fc, "for", "done")
 	return fc
 }
@@ -1261,11 +1261,13 @@ func (p *parser) loop(forPos Pos) Loop {
 	if p.tok == LPAREN && p.readOnly('(') {
 		cl := &CStyleLoop{Lparen: p.pos}
 		p.pushStop(DRPAREN)
-		cl.Init = p.arithmExpr(DLPAREN)
+		cl.Init = p.arithmExpr(DLPAREN, cl.Lparen)
+		scPos := p.pos
 		p.follow(p.pos, "expression", SEMICOLON)
-		cl.Cond = p.arithmExpr(SEMICOLON)
+		cl.Cond = p.arithmExpr(SEMICOLON, scPos)
+		scPos = p.pos
 		p.follow(p.pos, "expression", SEMICOLON)
-		cl.Post = p.arithmExpr(SEMICOLON)
+		cl.Post = p.arithmExpr(SEMICOLON, scPos)
 		cl.Rparen = p.arithmEnd(cl.Lparen)
 		p.gotSameLine(SEMICOLON)
 		return cl
@@ -1292,7 +1294,7 @@ func (p *parser) loop(forPos Pos) Loop {
 func (p *parser) caseClause() *CaseClause {
 	cc := &CaseClause{Case: p.pos}
 	p.next()
-	cc.Word = p.followWord("case")
+	cc.Word = p.followWord("case", cc.Case)
 	p.followRsrv(cc.Case, "case x", "in")
 	cc.List = p.patLists()
 	cc.Esac = p.stmtEnd(cc, "case", "esac")
@@ -1366,7 +1368,7 @@ func (p *parser) letClause() *LetClause {
 	p.pushStop(DLPAREN)
 	p.stopNewline = true
 	for !p.peekStop() && p.tok != STOPPED && !dsemicolon(p.tok) {
-		x := p.arithmExpr(LET)
+		x := p.arithmExpr(LET, lc.Let)
 		if x == nil {
 			p.followErr(p.pos, "let", "arithmetic expressions")
 		}
@@ -1384,7 +1386,7 @@ func (p *parser) letClause() *LetClause {
 func (p *parser) callOrFunc() Command {
 	fpos := p.pos
 	if p.gotRsrv("function") {
-		w := p.followWord("function")
+		w := p.followWord("function", fpos)
 		if p.gotSameLine(LPAREN) {
 			p.follow(w.Pos(), "foo(", RPAREN)
 		}
