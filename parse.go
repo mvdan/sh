@@ -512,16 +512,18 @@ func (p *parser) followErr(pos Pos, left, right string) {
 }
 
 func (p *parser) follow(lpos Pos, left string, tok Token) Pos {
+	pos := p.pos
 	if !p.got(tok) {
 		p.followErr(lpos, left, fmt.Sprintf(`%q`, tok))
 	}
-	return p.lpos
+	return pos
 }
 func (p *parser) followRsrv(lpos Pos, left, val string) Pos {
+	pos := p.pos
 	if !p.gotRsrv(val) {
 		p.followErr(lpos, left, fmt.Sprintf(`%q`, val))
 	}
-	return p.lpos
+	return pos
 }
 
 func (p *parser) followStmts(left string, stops ...string) []*Stmt {
@@ -552,10 +554,11 @@ func (p *parser) followWord(s string) Word {
 }
 
 func (p *parser) stmtEnd(n Node, start, end string) Pos {
+	pos := p.pos
 	if !p.gotRsrv(end) {
 		p.posErr(n.Pos(), `%s statement must end with %q`, start, end)
 	}
-	return p.lpos
+	return pos
 }
 
 func (p *parser) closingQuote(n Node, tok Token) {
@@ -574,10 +577,11 @@ func (p *parser) matchingErr(lpos Pos, left, right Token) {
 }
 
 func (p *parser) matched(lpos Pos, left, right Token) Pos {
+	pos := p.pos
 	if !p.got(right) {
 		p.matchingErr(lpos, left, right)
 	}
-	return p.lpos
+	return pos
 }
 
 func (p *parser) errPass(err error) {
@@ -697,8 +701,8 @@ func (p *parser) wordPart() WordPart {
 	case DOLLBR:
 		return p.paramExp()
 	case DOLLDP:
+		ar := &ArithmExp{Dollar: p.pos}
 		p.pushStop(DRPAREN)
-		ar := &ArithmExp{Dollar: p.lpos}
 		ar.X = p.arithmExpr(DOLLDP)
 		ar.Rparen = p.arithmEnd(ar.Dollar)
 		return ar
@@ -716,13 +720,13 @@ func (p *parser) wordPart() WordPart {
 			p.nextByte = b
 			return p.wordPart()
 		}
+		pe := &ParamExp{Dollar: p.pos, Short: true}
 		if b == '#' || b == '$' || b == '?' {
 			p.advanceBoth(LIT, string(b))
 		} else {
 			p.nextByte = b
 			p.next()
 		}
-		pe := &ParamExp{Dollar: p.lpos, Short: true}
 		p.gotLit(&pe.Param)
 		return pe
 	case CMDIN, CMDOUT:
@@ -756,8 +760,8 @@ func (p *parser) wordPart() WordPart {
 		p.pushStop(BQUOTE)
 		cs.Stmts = p.stmts()
 		p.popStop()
+		cs.Right = p.pos
 		p.closingQuote(cs, BQUOTE)
-		cs.Right = p.lpos
 		return cs
 	}
 	return nil
@@ -788,12 +792,12 @@ func (p *parser) arithmExpr(following Token) ArithmExpr {
 	if p.tok == LIT || p.tok == LITWORD {
 		p.curErr("not a valid arithmetic operator: %s", p.val)
 	}
-	p.next()
 	b := &BinaryExpr{
-		OpPos: p.lpos,
-		Op:    p.ltok,
+		OpPos: p.pos,
+		Op:    p.tok,
 		X:     left,
 	}
+	p.next()
 	if q != DRPAREN && q != LPAREN && p.spaced {
 		p.followErr(b.OpPos, b.Op.String(), "an expression")
 	}
@@ -804,8 +808,9 @@ func (p *parser) arithmExpr(following Token) ArithmExpr {
 }
 
 func (p *parser) arithmExprBase(following Token) ArithmExpr {
-	if p.got(INC) || p.got(DEC) || p.got(NOT) {
-		pre := &UnaryExpr{OpPos: p.lpos, Op: p.ltok}
+	if p.tok == INC || p.tok == DEC || p.tok == NOT {
+		pre := &UnaryExpr{OpPos: p.pos, Op: p.tok}
+		p.next()
 		pre.X = p.arithmExprBase(pre.Op)
 		return pre
 	}
@@ -813,8 +818,8 @@ func (p *parser) arithmExprBase(following Token) ArithmExpr {
 	q := p.quote
 	switch p.tok {
 	case LPAREN:
+		pe := &ParenExpr{Lparen: p.pos}
 		p.pushStop(LPAREN)
-		pe := &ParenExpr{Lparen: p.lpos}
 		pe.X = p.arithmExpr(LPAREN)
 		if pe.X == nil {
 			p.posErr(pe.Lparen, "parentheses must enclose an expression")
@@ -823,8 +828,8 @@ func (p *parser) arithmExprBase(following Token) ArithmExpr {
 		pe.Rparen = p.matched(pe.Lparen, LPAREN, RPAREN)
 		x = pe
 	case ADD, SUB:
+		ue := &UnaryExpr{OpPos: p.pos, Op: p.tok}
 		p.next()
-		ue := &UnaryExpr{OpPos: p.lpos, Op: p.ltok}
 		if q != DRPAREN && q != LPAREN && p.spaced {
 			p.followErr(ue.OpPos, ue.Op.String(), "an expression")
 		}
@@ -840,29 +845,32 @@ func (p *parser) arithmExprBase(following Token) ArithmExpr {
 	if q != DRPAREN && q != LPAREN && p.spaced {
 		return x
 	}
-	if p.got(INC) || p.got(DEC) {
-		return &UnaryExpr{
+	if p.tok == INC || p.tok == DEC {
+		u := UnaryExpr{
 			Post:  true,
-			OpPos: p.lpos,
-			Op:    p.ltok,
+			OpPos: p.pos,
+			Op:    p.tok,
 			X:     x,
 		}
+		p.next()
+		return &u
 	}
 	return x
 }
 
 func (p *parser) gotParamLit(l *Lit) bool {
-	switch {
-	case p.gotLit(l):
-	case p.got(DOLLAR):
-		l.ValuePos = p.lpos
-		l.Value = "$"
-	case p.got(QUEST):
-		l.ValuePos = p.lpos
-		l.Value = "?"
+	switch p.tok {
+	case LIT, LITWORD:
+		l.ValuePos, l.Value = p.pos, p.val
+	case DOLLAR:
+		l.ValuePos, l.Value = p.pos, "$"
+	case QUEST:
+		l.ValuePos, l.Value = p.pos, "?"
 	default:
+		l.ValuePos = p.pos
 		return false
 	}
+	p.next()
 	return true
 }
 
@@ -1069,7 +1077,6 @@ func (p *parser) gotStmtAndOr(s *Stmt) (*Stmt, bool) {
 	}
 	switch p.tok {
 	case LAND, LOR:
-		p.next()
 		s = p.binaryCmd(s)
 		return s, true
 	case AND:
@@ -1128,7 +1135,7 @@ func (p *parser) gotStmtPipe(s *Stmt) (*Stmt, bool) {
 	if s.Cmd == nil && len(s.Redirs) == 0 {
 		return s, false
 	}
-	if p.got(OR) || p.got(PIPEALL) {
+	if p.tok == OR || p.tok == PIPEALL {
 		s = p.binaryCmd(s)
 	}
 	return s, true
@@ -1136,10 +1143,11 @@ func (p *parser) gotStmtPipe(s *Stmt) (*Stmt, bool) {
 
 func (p *parser) binaryCmd(left *Stmt) *Stmt {
 	b := &BinaryCmd{
-		OpPos: p.lpos,
-		Op:    p.ltok,
+		OpPos: p.pos,
+		Op:    p.tok,
 		X:     left,
 	}
+	p.next()
 	p.got(STOPPED)
 	if b.Op == LAND || b.Op == LOR {
 		var ok bool
@@ -1312,8 +1320,8 @@ func (p *parser) patLists() (pls []*PatternList) {
 			pls = append(pls, pl)
 			break
 		}
+		pl.Op, pl.OpPos = p.tok, p.pos
 		p.next()
-		pl.Op, pl.OpPos = p.ltok, p.lpos
 		pls = append(pls, pl)
 	}
 	return
