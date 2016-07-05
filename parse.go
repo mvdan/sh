@@ -942,12 +942,9 @@ func (p *parser) peekEnd() bool {
 }
 
 func (p *parser) peekStop() bool {
-	if p.peekEnd() || p.tok == AND || p.tok == OR ||
-		p.tok == LAND || p.tok == LOR || p.tok == PIPEALL {
-		return true
-	}
-	q := p.quote
-	return p.tok == q || (q == DSEMICOLON && dsemicolon(p.tok))
+	return p.peekEnd() || p.tok == AND || p.tok == OR ||
+		p.tok == LAND || p.tok == LOR || p.tok == PIPEALL ||
+		p.tok == p.quote || (p.quote == DSEMICOLON && dsemicolon(p.tok))
 }
 
 var identRe = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
@@ -1020,10 +1017,7 @@ func (p *parser) peekRedir() bool {
 	return false
 }
 
-func (p *parser) gotRedirect() bool {
-	if !p.peekRedir() {
-		return false
-	}
+func (p *parser) doRedirect() {
 	r := &Redirect{}
 	var l Lit
 	if p.gotLit(&l) {
@@ -1045,7 +1039,6 @@ func (p *parser) gotRedirect() bool {
 	}
 	s := p.stmtStack[len(p.stmtStack)-1]
 	s.Redirs = append(s.Redirs, r)
-	return true
 }
 
 func (p *parser) getStmt() (*Stmt, bool) {
@@ -1061,11 +1054,22 @@ func (p *parser) gotStmtAndOr(s *Stmt) (*Stmt, bool) {
 	if p.gotRsrv("!") {
 		s.Negated = true
 	}
+preLoop:
 	for {
-		if as, ok := p.getAssign(); ok {
-			s.Assigns = append(s.Assigns, as)
-		} else if !p.gotRedirect() {
-			break
+		switch p.tok {
+		case LIT, LITWORD:
+			if as, ok := p.getAssign(); ok {
+				s.Assigns = append(s.Assigns, as)
+			} else if p.nextByte == '>' || p.nextByte == '<' {
+				p.doRedirect()
+			} else {
+				break preLoop
+			}
+		case GTR, SHR, LSS, DPLIN, DPLOUT, RDRINOUT,
+			SHL, DHEREDOC, WHEREDOC, RDRALL, APPALL:
+			p.doRedirect()
+		default:
+			break preLoop
 		}
 		if p.peekEnd() {
 			p.gotSameLine(SEMICOLON)
@@ -1122,7 +1126,8 @@ func (p *parser) gotStmtPipe(s *Stmt) (*Stmt, bool) {
 	default:
 		s.Cmd = p.callOrFunc()
 	}
-	for !p.newLine && p.gotRedirect() {
+	for !p.newLine && p.peekRedir() {
+		p.doRedirect()
 	}
 	if s.Cmd == nil && len(s.Redirs) == 0 {
 		return s, false
@@ -1395,11 +1400,24 @@ func (p *parser) callOrFunc() Command {
 		return p.funcDecl(w, w.Pos())
 	}
 	ce := &CallExpr{Args: []Word{w}}
+argLoop:
 	for !p.peekStop() {
-		if p.got(STOPPED) || p.gotRedirect() {
-		} else if w, ok := p.gotWord(); ok {
-			ce.Args = append(ce.Args, w)
-		} else {
+		switch p.tok {
+		case STOPPED:
+			p.next()
+		case LITWORD:
+			if p.nextByte == '>' || p.nextByte == '<' {
+				p.doRedirect()
+				continue argLoop
+			}
+			fallthrough
+		case LIT, DOLLBR, DOLLDP, DOLLPR, DOLLAR, CMDIN, CMDOUT,
+			SQUOTE, DOLLSQ, DQUOTE, DOLLDQ, BQUOTE:
+			ce.Args = append(ce.Args, p.getWord())
+		case GTR, SHR, LSS, DPLIN, DPLOUT, RDRINOUT,
+			SHL, DHEREDOC, WHEREDOC, RDRALL, APPALL:
+			p.doRedirect()
+		default:
 			p.curErr("a command can only contain words and redirects")
 		}
 	}
