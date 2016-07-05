@@ -164,7 +164,6 @@ func (p *parser) next() {
 	switch b {
 	case 0:
 		if b = p.readByte(); p.tok == EOF {
-			p.pos = p.npos
 			return
 		}
 	case '\n':
@@ -238,14 +237,9 @@ skipSpace:
 			break skipSpace
 		}
 		if b = p.readByte(); p.tok == EOF {
-			p.pos = p.npos
 			return
 		}
 	}
-	p.advance(b, q)
-}
-
-func (p *parser) advance(b byte, q Token) {
 	p.pos = p.npos
 	switch {
 	case q == LBRACE && paramOps(b):
