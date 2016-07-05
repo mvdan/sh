@@ -1849,6 +1849,14 @@ var astTests = []testCase{
 		},
 	},
 	{
+		[]string{"if; then (a); fi", "if; then (a) fi"},
+		&IfClause{
+			ThenStmts: []*Stmt{
+				stmt(subshell(litStmt("a"))),
+			},
+		},
+	},
+	{
 		[]string{"a=b\nc=d", "a=b; c=d"},
 		[]*Stmt{
 			{Assigns: []*Assign{
