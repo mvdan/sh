@@ -410,14 +410,12 @@ func (p *parser) advanceBoth(tok Token, val string) {
 
 func (p *parser) readIncluding(b byte) (string, bool) {
 	bs, err := p.br.ReadBytes(b)
+	p.npos = moveWithBytes(p.npos, bs)
 	if err != nil {
 		p.nextErr = err
-		p.npos = moveWithBytes(p.npos, bs)
 		return string(bs), false
 	}
-	p.npos = moveWithBytes(p.npos, bs)
-	bs = bs[:len(bs)-1]
-	return string(bs), true
+	return string(bs[:len(bs)-1]), true
 }
 
 func (p *parser) doHeredocs() {
