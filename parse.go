@@ -88,24 +88,24 @@ func (p *parser) readByte() byte {
 		p.errPass(err)
 		return 0
 	}
-	p.npos = moveWith(p.npos, b)
+	p.moveWith(b)
 	return b
 }
 
-func moveWith(pos Pos, b byte) Pos {
+func (p *parser) moveWith(b byte) {
 	if b == '\n' {
-		pos.Line++
-		pos.Column = 0
+		p.npos.Line++
+		p.npos.Column = 0
 	} else {
-		pos.Column++
+		p.npos.Column++
 	}
-	return pos
 }
 
 func moveWithBytes(pos Pos, bs []byte) Pos {
 	if i := bytes.IndexByte(bs, '\n'); i != -1 {
 		pos.Line++
-		pos.Column = -(i + 1)
+		pos.Column = len(bs) -(i + 1)
+		return pos
 	}
 	pos.Column += len(bs)
 	return pos
@@ -126,7 +126,7 @@ func (p *parser) willRead(b byte) bool {
 func (p *parser) readOnly(b byte) bool {
 	if p.willRead(b) {
 		p.br.ReadByte()
-		p.npos = moveWith(p.npos, b)
+		p.moveWith(b)
 		return true
 	}
 	return false
@@ -305,14 +305,14 @@ byteLoop:
 				bs = append(bs, '\\')
 				return
 			}
-			p.npos = moveWith(p.npos, b)
+			p.moveWith(b)
 			if b != '\n' {
 				bs = append(bs, '\\', b)
 			}
 			if b, err = p.br.ReadByte(); err != nil {
 				return
 			}
-			p.npos = moveWith(p.npos, b)
+			p.moveWith(b)
 			continue byteLoop
 		case q == SQUOTE:
 			if b == '\'' {
@@ -339,7 +339,7 @@ byteLoop:
 		if b, err = p.br.ReadByte(); err != nil {
 			return
 		}
-		p.npos = moveWith(p.npos, b)
+		p.moveWith(b)
 	}
 }
 
@@ -353,14 +353,14 @@ byteLoop:
 				bs = append(bs, '\\')
 				return
 			}
-			p.npos = moveWith(p.npos, b)
+			p.moveWith(b)
 			if b != '\n' {
 				bs = append(bs, '\\', b)
 			}
 			if b, err = p.br.ReadByte(); err != nil {
 				return
 			}
-			p.npos = moveWith(p.npos, b)
+			p.moveWith(b)
 			continue byteLoop
 		case wordBreak(b):
 			willBreak = true
@@ -372,7 +372,7 @@ byteLoop:
 		if b, err = p.br.ReadByte(); err != nil {
 			return
 		}
-		p.npos = moveWith(p.npos, b)
+		p.moveWith(b)
 	}
 }
 
@@ -386,12 +386,12 @@ byteLoop:
 				bs = append(bs, '\\')
 				return
 			}
-			p.npos = moveWith(p.npos, b)
+			p.moveWith(b)
 			bs = append(bs, '\\', b)
 			if b, err = p.br.ReadByte(); err != nil {
 				return
 			}
-			p.npos = moveWith(p.npos, b)
+			p.moveWith(b)
 			continue byteLoop
 		case b == '`', b == '"', b == '$':
 			return
@@ -400,7 +400,7 @@ byteLoop:
 		if b, err = p.br.ReadByte(); err != nil {
 			return
 		}
-		p.npos = moveWith(p.npos, b)
+		p.moveWith(b)
 	}
 }
 
@@ -919,7 +919,7 @@ func (p *parser) arithmEnd(left Pos) Pos {
 		p.matchingErr(left, DLPAREN, DRPAREN)
 	}
 	p.br.ReadByte()
-	p.npos = moveWith(p.npos, ')')
+	p.moveWith(')')
 	p.popStop()
 	p.next()
 	return p.lpos
