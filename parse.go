@@ -49,7 +49,7 @@ type parser struct {
 	nextByte byte
 
 	ltok, tok Token
-	lval, val string
+	val string
 
 	lpos, pos, npos Pos
 
@@ -415,7 +415,7 @@ func (p *parser) dqLoopByte(b0 byte) (bs []byte, b byte, err error) {
 
 func (p *parser) advanceTok(tok Token) { p.advanceBoth(tok, "") }
 func (p *parser) advanceBoth(tok Token, val string) {
-	p.ltok, p.lval = p.tok, p.val
+	p.ltok = p.tok
 	p.tok, p.val = tok, val
 }
 
@@ -668,12 +668,8 @@ func (p *parser) gotWord() (Word, bool) {
 }
 
 func (p *parser) gotLit(l *Lit) bool {
-	l.ValuePos = p.pos
-	if p.got(LIT) || p.got(LITWORD) {
-		l.Value = p.lval
-		return true
-	}
-	return false
+	l.ValuePos, l.Value = p.pos, p.val
+	return p.got(LIT) || p.got(LITWORD)
 }
 
 func (p *parser) wordParts() (wps []WordPart) {
@@ -695,8 +691,9 @@ func (p *parser) wordParts() (wps []WordPart) {
 func (p *parser) wordPart() WordPart {
 	switch p.tok {
 	case LIT, LITWORD:
+		l := Lit{ValuePos: p.pos, Value: p.val}
 		p.next()
-		return &Lit{ValuePos: p.lpos, Value: p.lval}
+		return &l
 	case DOLLBR:
 		return p.paramExp()
 	case DOLLDP:
@@ -1109,9 +1106,12 @@ func (p *parser) gotStmtPipe(s *Stmt) (*Stmt, bool) {
 		case "case":
 			p.next()
 			s.Cmd = p.caseClause()
-		case "declare", "local":
+		case "declare":
 			p.next()
-			s.Cmd = p.declClause()
+			s.Cmd = p.declClause(false)
+		case "local":
+			p.next()
+			s.Cmd = p.declClause(true)
 		case "eval":
 			p.next()
 			s.Cmd = p.evalClause()
@@ -1319,9 +1319,8 @@ func (p *parser) patLists() (pls []*PatternList) {
 	return
 }
 
-func (p *parser) declClause() *DeclClause {
-	ds := &DeclClause{Declare: p.lpos}
-	ds.Local = p.lval == "local"
+func (p *parser) declClause(local bool) *DeclClause {
+	ds := &DeclClause{Declare: p.lpos, Local: local}
 	for p.tok == LITWORD && p.val[0] == '-' {
 		ds.Opts = append(ds.Opts, p.getWord())
 	}
