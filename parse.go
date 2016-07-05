@@ -49,7 +49,7 @@ type parser struct {
 	nextByte byte
 
 	ltok, tok Token
-	val string
+	val       string
 
 	lpos, pos, npos Pos
 
@@ -104,7 +104,7 @@ func (p *parser) moveWith(b byte) {
 func moveWithBytes(pos Pos, bs []byte) Pos {
 	if i := bytes.IndexByte(bs, '\n'); i != -1 {
 		pos.Line++
-		pos.Column = len(bs) -(i + 1)
+		pos.Column = len(bs) - (i + 1)
 		return pos
 	}
 	pos.Column += len(bs)
@@ -892,8 +892,8 @@ func (p *parser) paramExp() *ParamExp {
 		return pe
 	}
 	if p.tok == LBRACK {
+		lpos := p.pos
 		p.pushStop(RBRACK)
-		lpos := p.lpos
 		pe.Ind = &Index{Word: p.getWord()}
 		p.popStop()
 		p.matched(lpos, LBRACK, RBRACK)
@@ -938,8 +938,9 @@ func (p *parser) arithmEnd(left Pos) Pos {
 	p.br.ReadByte()
 	p.moveWith(')')
 	p.popStop()
+	pos := p.pos
 	p.next()
-	return p.lpos
+	return pos
 }
 
 func (p *parser) peekEnd() bool {
@@ -991,8 +992,9 @@ func (p *parser) getAssign() (*Assign, bool) {
 	if p.spaced {
 		return as, true
 	}
-	if start.Value == "" && p.got(LPAREN) {
-		ae := &ArrayExpr{Lparen: p.lpos}
+	if start.Value == "" && p.tok == LPAREN {
+		ae := &ArrayExpr{Lparen: p.pos}
+		p.next()
 		for !p.eof() && p.tok != RPAREN {
 			if w, ok := p.gotWord(); !ok {
 				p.curErr("array elements must be words")
@@ -1101,31 +1103,22 @@ func (p *parser) gotStmtPipe(s *Stmt) (*Stmt, bool) {
 		case "}":
 			p.curErr("%s can only be used to close a block", p.val)
 		case "{":
-			p.next()
 			s.Cmd = p.block()
 		case "if":
-			p.next()
 			s.Cmd = p.ifClause()
 		case "while":
-			p.next()
 			s.Cmd = p.whileClause()
 		case "until":
-			p.next()
 			s.Cmd = p.untilClause()
 		case "for":
-			p.next()
 			s.Cmd = p.forClause()
 		case "case":
-			p.next()
 			s.Cmd = p.caseClause()
 		case "declare":
-			p.next()
 			s.Cmd = p.declClause(false)
 		case "local":
-			p.next()
 			s.Cmd = p.declClause(true)
 		case "eval":
-			p.next()
 			s.Cmd = p.evalClause()
 		case "let":
 			s.Cmd = p.letClause()
@@ -1184,29 +1177,34 @@ func (p *parser) subshell() *Subshell {
 }
 
 func (p *parser) block() *Block {
-	b := &Block{Lbrace: p.lpos}
+	b := &Block{Lbrace: p.pos}
+	p.next()
 	b.Stmts = p.stmts("}")
+	b.Rbrace = p.pos
 	if !p.gotRsrv("}") {
 		p.posErr(b.Lbrace, `reached %s without matching word { with }`, p.tok)
 	}
-	b.Rbrace = p.lpos
 	return b
 }
 
 func (p *parser) ifClause() *IfClause {
-	ic := &IfClause{If: p.lpos}
+	ic := &IfClause{If: p.pos}
+	p.next()
 	ic.Cond = p.cond("if", "then")
 	ic.Then = p.followRsrv(ic.If, "if [stmts]", "then")
 	ic.ThenStmts = p.followStmts("then", "fi", "elif", "else")
+	elifPos := p.pos
 	for p.gotRsrv("elif") {
-		elf := &Elif{Elif: p.lpos}
+		elf := &Elif{Elif: elifPos}
 		elf.Cond = p.cond("elif", "then")
 		elf.Then = p.followRsrv(elf.Elif, "elif [stmts]", "then")
 		elf.ThenStmts = p.followStmts("then", "fi", "elif", "else")
 		ic.Elifs = append(ic.Elifs, elf)
+		elifPos = p.pos
 	}
+	elsePos := p.pos
 	if p.gotRsrv("else") {
-		ic.Else = p.lpos
+		ic.Else = elsePos
 		ic.ElseStmts = p.followStmts("else", "fi")
 	}
 	ic.Fi = p.stmtEnd(ic, "if", "fi")
@@ -1215,8 +1213,8 @@ func (p *parser) ifClause() *IfClause {
 
 func (p *parser) cond(left string, stop string) Cond {
 	if p.tok == LPAREN && p.readOnly('(') {
+		c := &CStyleCond{Lparen: p.pos}
 		p.pushStop(DRPAREN)
-		c := &CStyleCond{Lparen: p.lpos}
 		c.X = p.arithmExpr(DLPAREN)
 		c.Rparen = p.arithmEnd(c.Lparen)
 		p.gotSameLine(SEMICOLON)
@@ -1230,7 +1228,8 @@ func (p *parser) cond(left string, stop string) Cond {
 }
 
 func (p *parser) whileClause() *WhileClause {
-	wc := &WhileClause{While: p.lpos}
+	wc := &WhileClause{While: p.pos}
+	p.next()
 	wc.Cond = p.cond("while", "do")
 	wc.Do = p.followRsrv(wc.While, "while [stmts]", "do")
 	wc.DoStmts = p.followStmts("do", "done")
@@ -1239,7 +1238,8 @@ func (p *parser) whileClause() *WhileClause {
 }
 
 func (p *parser) untilClause() *UntilClause {
-	uc := &UntilClause{Until: p.lpos}
+	uc := &UntilClause{Until: p.pos}
+	p.next()
 	uc.Cond = p.cond("until", "do")
 	uc.Do = p.followRsrv(uc.Until, "until [stmts]", "do")
 	uc.DoStmts = p.followStmts("do", "done")
@@ -1248,7 +1248,8 @@ func (p *parser) untilClause() *UntilClause {
 }
 
 func (p *parser) forClause() *ForClause {
-	fc := &ForClause{For: p.lpos}
+	fc := &ForClause{For: p.pos}
+	p.next()
 	fc.Loop = p.loop(fc.For)
 	fc.Do = p.followRsrv(fc.For, "for foo [in words]", "do")
 	fc.DoStmts = p.followStmts("do", "done")
@@ -1258,8 +1259,8 @@ func (p *parser) forClause() *ForClause {
 
 func (p *parser) loop(forPos Pos) Loop {
 	if p.tok == LPAREN && p.readOnly('(') {
+		cl := &CStyleLoop{Lparen: p.pos}
 		p.pushStop(DRPAREN)
-		cl := &CStyleLoop{Lparen: p.lpos}
 		cl.Init = p.arithmExpr(DLPAREN)
 		p.follow(p.pos, "expression", SEMICOLON)
 		cl.Cond = p.arithmExpr(SEMICOLON)
@@ -1289,7 +1290,8 @@ func (p *parser) loop(forPos Pos) Loop {
 }
 
 func (p *parser) caseClause() *CaseClause {
-	cc := &CaseClause{Case: p.lpos}
+	cc := &CaseClause{Case: p.pos}
+	p.next()
 	cc.Word = p.followWord("case")
 	p.followRsrv(cc.Case, "case x", "in")
 	cc.List = p.patLists()
@@ -1321,7 +1323,7 @@ func (p *parser) patLists() (pls []*PatternList) {
 		pl.Stmts = p.stmts("esac")
 		p.popStop()
 		if !dsemicolon(p.tok) {
-			pl.Op, pl.OpPos = DSEMICOLON, p.lpos
+			pl.Op, pl.OpPos = DSEMICOLON, p.pos
 			pls = append(pls, pl)
 			break
 		}
@@ -1333,7 +1335,8 @@ func (p *parser) patLists() (pls []*PatternList) {
 }
 
 func (p *parser) declClause(local bool) *DeclClause {
-	ds := &DeclClause{Declare: p.lpos, Local: local}
+	ds := &DeclClause{Declare: p.pos, Local: local}
+	p.next()
 	for p.tok == LITWORD && p.val[0] == '-' {
 		ds.Opts = append(ds.Opts, p.getWord())
 	}
@@ -1352,7 +1355,8 @@ func (p *parser) declClause(local bool) *DeclClause {
 }
 
 func (p *parser) evalClause() *EvalClause {
-	ec := &EvalClause{Eval: p.lpos}
+	ec := &EvalClause{Eval: p.pos}
+	p.next()
 	ec.Stmt, _ = p.getStmt()
 	return ec
 }
@@ -1378,8 +1382,8 @@ func (p *parser) letClause() *LetClause {
 }
 
 func (p *parser) callOrFunc() Command {
+	fpos := p.pos
 	if p.gotRsrv("function") {
-		fpos := p.lpos
 		w := p.followWord("function")
 		if p.gotSameLine(LPAREN) {
 			p.follow(w.Pos(), "foo(", RPAREN)
