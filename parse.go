@@ -541,12 +541,6 @@ func (p *parser) stmtEnd(n Node, start, end string) Pos {
 	return pos
 }
 
-func (p *parser) closingQuote(n Node, tok Token) {
-	if !p.got(tok) {
-		p.quoteErr(n.Pos(), tok)
-	}
-}
-
 func (p *parser) quoteErr(lpos Pos, quote Token) {
 	p.posErr(lpos, `reached %s without closing quote %s`, p.tok, quote)
 }
@@ -668,6 +662,11 @@ func (p *parser) gotLit(l *Lit) bool {
 }
 
 func (p *parser) wordParts() (wps []WordPart) {
+	if p.tok == LITWORD {
+		wps = append(wps, &Lit{ValuePos: p.pos, Value: p.val})
+		p.next()
+		return
+	}
 	for {
 		n := p.wordPart()
 		if n == nil {
@@ -743,7 +742,9 @@ func (p *parser) wordPart() WordPart {
 		p.pushStop(stop)
 		q.Parts = p.wordParts()
 		p.popStop()
-		p.closingQuote(q, stop)
+		if !p.got(stop) {
+			p.quoteErr(q.Pos(), stop)
+		}
 		return q
 	case BQUOTE:
 		cs := &CmdSubst{Backquotes: true, Left: p.pos}
@@ -751,7 +752,9 @@ func (p *parser) wordPart() WordPart {
 		cs.Stmts = p.stmts()
 		p.popStop()
 		cs.Right = p.pos
-		p.closingQuote(cs, BQUOTE)
+		if !p.got(BQUOTE) {
+			p.quoteErr(cs.Pos(), BQUOTE)
+		}
 		return cs
 	}
 	return nil
