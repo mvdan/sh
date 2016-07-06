@@ -76,13 +76,13 @@ func (p *printer) space(b byte) {
 	p.wantSpace = false
 }
 
-func (p *printer) spaces(s string) {
+func (p *printer) spaces(s string, newls int) {
 	if p.err != nil {
 		return
 	}
 	_, p.err = io.WriteString(p.w, s)
 	p.wantSpace = false
-	p.curLine += strings.Count(s, "\n")
+	p.curLine += newls
 }
 
 func (p *printer) str(s string) {
@@ -103,7 +103,8 @@ func (p *printer) rsrvWord(s string) {
 	} else if p.wantSpace {
 		p.space(' ')
 	}
-	p.str(s)
+	_, p.err = io.WriteString(p.w, s)
+	p.wantSpace = true
 }
 
 func (p *printer) spacedTok(s string, spaceAfter bool) {
@@ -146,9 +147,9 @@ func (p *printer) indent() {
 	switch {
 	case p.level == 0:
 	case p.c.Spaces == 0:
-		p.spaces(strings.Repeat("\t", p.level))
+		p.spaces(strings.Repeat("\t", p.level), 0)
 	case p.c.Spaces > 0:
-		p.spaces(strings.Repeat(" ", p.c.Spaces*p.level))
+		p.spaces(strings.Repeat(" ", p.c.Spaces*p.level), 0)
 	}
 }
 
@@ -158,7 +159,7 @@ func (p *printer) newline() {
 	for _, r := range p.pendingHdocs {
 		p.lit(r.Hdoc)
 		p.unquotedWord(&r.Word)
-		p.spaces("\n")
+		p.spaces("\n", 1)
 	}
 	p.pendingHdocs = nil
 }
@@ -243,7 +244,7 @@ func (p *printer) commentsUpTo(line int) {
 	}
 	p.wantNewline = false
 	if !p.didSeparate(c.Hash) {
-		p.spaces(strings.Repeat(" ", p.wantSpaces+1))
+		p.spaces(strings.Repeat(" ", p.wantSpaces+1), 0)
 	}
 	_, p.err = io.WriteString(p.w, "#"+c.Text)
 	p.comments = p.comments[1:]
@@ -430,9 +431,9 @@ func (p *printer) wordJoin(ws []Word, needBackslash bool) {
 	for _, w := range ws {
 		if p.curLine > 0 && w.Pos().Line > p.curLine {
 			if needBackslash {
-				p.spaces(" \\\n")
+				p.spaces(" \\\n", 1)
 			} else {
-				p.spaces("\n")
+				p.spaces("\n", 1)
 			}
 			if !anyNewline {
 				p.incLevel()
@@ -458,7 +459,7 @@ func (p *printer) stmt(s *Stmt) {
 	anyNewline := false
 	for _, r := range s.Redirs[startRedirs:] {
 		if p.curLine > 0 && r.OpPos.Line > p.curLine {
-			p.spaces(" \\\n")
+			p.spaces(" \\\n", 1)
 			if !anyNewline {
 				p.incLevel()
 				anyNewline = true
@@ -562,7 +563,7 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		_, p.nestedBinary = x.Y.Cmd.(*BinaryCmd)
 		if len(p.pendingHdocs) > 0 {
 		} else if x.Y.Pos().Line > p.curLine {
-			p.spaces(" \\\n")
+			p.spaces(" \\\n", 1)
 			p.indent()
 		}
 		p.curLine = x.Y.Pos().Line
@@ -722,7 +723,7 @@ func (p *printer) assigns(assigns []*Assign) {
 	anyNewline := false
 	for _, a := range assigns {
 		if p.curLine > 0 && a.Pos().Line > p.curLine {
-			p.spaces(" \\\n")
+			p.spaces(" \\\n", 1)
 			if !anyNewline {
 				p.incLevel()
 				anyNewline = true
