@@ -637,7 +637,7 @@ func (p *parser) stmts(stops ...string) (sts []*Stmt) {
 		if p.eof() {
 			break
 		}
-		if s, ok := p.getStmt(); !ok {
+		if s := p.getStmt(); s == nil {
 			p.invalidStmtStart()
 		} else {
 			sts = append(sts, s)
@@ -1038,7 +1038,7 @@ func (p *parser) doRedirect(s *Stmt) {
 	s.Redirs = append(s.Redirs, r)
 }
 
-func (p *parser) getStmt() (*Stmt, bool) {
+func (p *parser) getStmt() *Stmt {
 	s := &Stmt{Position: p.pos}
 	if p.gotRsrv("!") {
 		s.Negated = true
@@ -1062,23 +1062,22 @@ preLoop:
 		}
 		if p.peekEnd() {
 			p.gotSameLine(SEMICOLON)
-			return s, true
+			return s
 		}
 	}
 	s, ok := p.gotStmtPipe(s)
 	if !ok && !s.Negated && len(s.Assigns) == 0 {
-		return nil, false
+		return nil
 	}
 	switch p.tok {
 	case LAND, LOR:
-		s = p.binaryCmd(s)
-		return s, true
+		return p.binaryCmdAndOr(s)
 	case AND:
 		p.next()
 		s.Background = true
 	}
 	p.gotSameLine(SEMICOLON)
-	return s, true
+	return s
 }
 
 func (p *parser) gotStmtPipe(s *Stmt) (*Stmt, bool) {
@@ -1122,30 +1121,29 @@ func (p *parser) gotStmtPipe(s *Stmt) (*Stmt, bool) {
 		return s, false
 	}
 	if p.tok == OR || p.tok == PIPEALL {
-		s = p.binaryCmd(s)
+		s = p.binaryCmdPipe(s)
 	}
 	return s, true
 }
 
-func (p *parser) binaryCmd(left *Stmt) *Stmt {
-	b := &BinaryCmd{
-		OpPos: p.pos,
-		Op:    p.tok,
-		X:     left,
-	}
+func (p *parser) binaryCmdAndOr(left *Stmt) *Stmt {
+	b := &BinaryCmd{OpPos: p.pos, Op: p.tok, X: left}
 	p.next()
 	p.got(STOPPED)
-	if b.Op == LAND || b.Op == LOR {
-		var ok bool
-		if b.Y, ok = p.getStmt(); !ok {
-			p.followErr(b.OpPos, b.Op.String(), "a statement")
-		}
-	} else {
-		b.Y = &Stmt{Position: p.pos}
-		var ok bool
-		if b.Y, ok = p.gotStmtPipe(b.Y); !ok {
-			p.followErr(b.OpPos, b.Op.String(), "a statement")
-		}
+	if b.Y = p.getStmt(); b.Y == nil {
+		p.followErr(b.OpPos, b.Op.String(), "a statement")
+	}
+	return &Stmt{Position: left.Position, Cmd: b}
+}
+
+func (p *parser) binaryCmdPipe(left *Stmt) *Stmt {
+	b := &BinaryCmd{OpPos: p.pos, Op: p.tok, X: left}
+	p.next()
+	p.got(STOPPED)
+	b.Y = &Stmt{Position: p.pos}
+	var ok bool
+	if b.Y, ok = p.gotStmtPipe(b.Y); !ok {
+		p.followErr(b.OpPos, b.Op.String(), "a statement")
 	}
 	return &Stmt{Position: left.Position, Cmd: b}
 }
@@ -1345,7 +1343,7 @@ func (p *parser) declClause(local bool) *DeclClause {
 func (p *parser) evalClause() *EvalClause {
 	ec := &EvalClause{Eval: p.pos}
 	p.next()
-	ec.Stmt, _ = p.getStmt()
+	ec.Stmt = p.getStmt()
 	return ec
 }
 
@@ -1426,8 +1424,7 @@ func (p *parser) funcDecl(w Word, pos Pos) *FuncDecl {
 	} else {
 		fd.Name = *lit
 	}
-	var ok bool
-	if fd.Body, ok = p.getStmt(); !ok {
+	if fd.Body = p.getStmt(); fd.Body == nil {
 		p.followErr(fd.Pos(), "foo()", "a statement")
 	}
 	return fd
