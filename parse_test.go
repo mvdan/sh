@@ -170,6 +170,10 @@ var errTests = []struct {
 		`1:1: invalid func name: foo$bar`,
 	},
 	{
+		`function "foo"(){}`,
+		`1:10: invalid func name: "foo"`,
+	},
+	{
 		"{",
 		`1:1: reached EOF without matching word { with }`,
 	},

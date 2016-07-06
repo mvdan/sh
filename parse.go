@@ -1111,11 +1111,22 @@ func (p *parser) gotStmtPipe(s *Stmt) (*Stmt, bool) {
 		case "function":
 			s.Cmd = p.bashFuncDecl()
 		default:
-			s.Cmd = p.callOrFunc(s)
+			name := Lit{ValuePos: p.pos, Value: p.val}
+			w := p.getWord()
+			if p.gotSameLine(LPAREN) {
+				p.follow(name.ValuePos, "foo(", RPAREN)
+				s.Cmd = p.funcDecl(name, name.ValuePos)
+			} else {
+				s.Cmd = p.callExpr(s, w)
+			}
 		}
 	case LIT, DOLLBR, DOLLDP, DOLLPR, DOLLAR, CMDIN, CMDOUT,
 		SQUOTE, DOLLSQ, DQUOTE, DOLLDQ, BQUOTE:
-		s.Cmd = p.callOrFunc(s)
+		w := p.getWord()
+		if p.gotSameLine(LPAREN) && p.err == nil {
+			p.posErr(w.Pos(), "invalid func name: %s", wordStr(w))
+		}
+		s.Cmd = p.callExpr(s, w)
 	}
 	for !p.newLine && p.peekRedir() {
 		p.doRedirect(s)
@@ -1373,19 +1384,21 @@ func (p *parser) letClause() *LetClause {
 func (p *parser) bashFuncDecl() *FuncDecl {
 	fpos := p.pos
 	p.next()
-	w := p.followWord("function", fpos)
-	if p.gotSameLine(LPAREN) {
-		p.follow(w.Pos(), "foo(", RPAREN)
+	if p.tok != LITWORD {
+		w := p.followWord("function", fpos)
+		if p.err == nil {
+			p.posErr(w.Pos(), "invalid func name: %s", wordStr(w))
+		}
 	}
-	return p.funcDecl(w, fpos)
+	name := Lit{ValuePos: p.pos, Value: p.val}
+	p.next()
+	if p.gotSameLine(LPAREN) {
+		p.follow(name.ValuePos, "foo(", RPAREN)
+	}
+	return p.funcDecl(name, fpos)
 }
 
-func (p *parser) callOrFunc(s *Stmt) Command {
-	w := p.getWord()
-	if p.gotSameLine(LPAREN) {
-		p.follow(w.Pos(), "foo(", RPAREN)
-		return p.funcDecl(w, w.Pos())
-	}
+func (p *parser) callExpr(s *Stmt, w Word) *CallExpr {
 	ce := &CallExpr{Args: []Word{w}}
 argLoop:
 	for !p.peekStop() {
@@ -1411,20 +1424,11 @@ argLoop:
 	return ce
 }
 
-func (p *parser) funcDecl(w Word, pos Pos) *FuncDecl {
-	if len(w.Parts) == 0 {
-		return nil
-	}
+func (p *parser) funcDecl(name Lit, pos Pos) *FuncDecl {
 	fd := &FuncDecl{
 		Position:  pos,
-		BashStyle: pos != w.Pos(),
-	}
-	if lit, ok := w.Parts[0].(*Lit); !ok || len(w.Parts) > 1 {
-		if p.err == nil {
-			p.posErr(fd.Pos(), "invalid func name: %s", wordStr(w))
-		}
-	} else {
-		fd.Name = *lit
+		BashStyle: pos != name.ValuePos,
+		Name:      name,
 	}
 	if fd.Body = p.getStmt(); fd.Body == nil {
 		p.followErr(fd.Pos(), "foo()", "a statement")
