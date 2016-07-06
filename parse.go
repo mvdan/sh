@@ -1111,7 +1111,8 @@ func (p *parser) gotStmtPipe(s *Stmt) (*Stmt, bool) {
 		default:
 			s.Cmd = p.callOrFunc(s)
 		}
-	default:
+	case LIT, DOLLBR, DOLLDP, DOLLPR, DOLLAR, CMDIN, CMDOUT,
+		SQUOTE, DOLLSQ, DQUOTE, DOLLDQ, BQUOTE:
 		s.Cmd = p.callOrFunc(s)
 	}
 	for !p.newLine && p.peekRedir() {
@@ -1376,10 +1377,7 @@ func (p *parser) callOrFunc(s *Stmt) Command {
 		}
 		return p.funcDecl(w, fpos)
 	}
-	w, ok := p.gotWord()
-	if !ok {
-		return nil
-	}
+	w := p.getWord()
 	if p.gotSameLine(LPAREN) {
 		p.follow(w.Pos(), "foo(", RPAREN)
 		return p.funcDecl(w, w.Pos())
