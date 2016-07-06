@@ -1108,6 +1108,8 @@ func (p *parser) gotStmtPipe(s *Stmt) (*Stmt, bool) {
 			s.Cmd = p.evalClause()
 		case "let":
 			s.Cmd = p.letClause()
+		case "function":
+			s.Cmd = p.bashFuncDecl()
 		default:
 			s.Cmd = p.callOrFunc(s)
 		}
@@ -1368,15 +1370,17 @@ func (p *parser) letClause() *LetClause {
 	return lc
 }
 
-func (p *parser) callOrFunc(s *Stmt) Command {
+func (p *parser) bashFuncDecl() *FuncDecl {
 	fpos := p.pos
-	if p.gotRsrv("function") {
-		w := p.followWord("function", fpos)
-		if p.gotSameLine(LPAREN) {
-			p.follow(w.Pos(), "foo(", RPAREN)
-		}
-		return p.funcDecl(w, fpos)
+	p.next()
+	w := p.followWord("function", fpos)
+	if p.gotSameLine(LPAREN) {
+		p.follow(w.Pos(), "foo(", RPAREN)
 	}
+	return p.funcDecl(w, fpos)
+}
+
+func (p *parser) callOrFunc(s *Stmt) Command {
 	w := p.getWord()
 	if p.gotSameLine(LPAREN) {
 		p.follow(w.Pos(), "foo(", RPAREN)
