@@ -96,6 +96,11 @@ func (p *printer) token(tok Token, spaceAfter bool) {
 	_, p.err = io.WriteString(p.w, tok.String())
 }
 
+func (p *printer) tokenStr(s string, spaceAfter bool) {
+	p.wantSpace = spaceAfter
+	_, p.err = io.WriteString(p.w, s)
+}
+
 func (p *printer) rsrvWord(s string) {
 	if p.wantNewline {
 		p.newline()
@@ -115,7 +120,7 @@ func (p *printer) spacedTok(tok Token, spaceAfter bool) {
 
 func (p *printer) semiOrNewl(s string, pos Pos) {
 	if !p.wantNewline {
-		p.token(SEMICOLON, true)
+		p.tokenStr(";", true)
 	}
 	p.rsrvWord(s)
 	p.curLine = pos.Line
@@ -213,7 +218,7 @@ func (p *printer) sepRsrv(s string, pos Pos, fallback bool) {
 	p.commentsUpTo(pos.Line)
 	p.level--
 	if !p.didSeparate(pos) && fallback {
-		p.token(SEMICOLON, true)
+		p.tokenStr(";", true)
 	}
 	p.rsrvWord(s)
 }
@@ -255,9 +260,9 @@ func (p *printer) wordPart(wp WordPart) {
 	case *Lit:
 		p.lit(x)
 	case *SglQuoted:
-		p.token(SQUOTE, true)
+		p.tokenStr("'", true)
 		p.str(x.Value)
-		p.token(SQUOTE, true)
+		p.tokenStr("'", true)
 	case *Quoted:
 		p.token(x.Quote, true)
 		for _, n := range x.Parts {
@@ -266,9 +271,9 @@ func (p *printer) wordPart(wp WordPart) {
 		p.token(quotedStop(x.Quote), true)
 	case *CmdSubst:
 		if x.Backquotes {
-			p.token(BQUOTE, false)
+			p.tokenStr("`", false)
 		} else {
-			p.token(DOLLPR, false)
+			p.tokenStr("$(", false)
 		}
 		if startsWithLparen(x.Stmts) {
 			p.space(' ')
@@ -282,27 +287,27 @@ func (p *printer) wordPart(wp WordPart) {
 		}
 	case *ParamExp:
 		if x.Short {
-			p.token(DOLLAR, true)
+			p.tokenStr("$", true)
 			p.lit(&x.Param)
 			break
 		}
-		p.token(DOLLBR, true)
+		p.tokenStr("${", true)
 		if x.Length {
-			p.token(HASH, true)
+			p.tokenStr("#", true)
 		}
 		p.lit(&x.Param)
 		if x.Ind != nil {
-			p.token(LBRACK, true)
+			p.tokenStr("[", true)
 			p.word(x.Ind.Word)
-			p.token(RBRACK, true)
+			p.tokenStr("]", true)
 		}
 		if x.Repl != nil {
 			if x.Repl.All {
-				p.token(QUO, true)
+				p.tokenStr("/", true)
 			}
-			p.token(QUO, true)
+			p.tokenStr("/", true)
 			p.word(x.Repl.Orig)
-			p.token(QUO, true)
+			p.tokenStr("/", true)
 			p.word(x.Repl.With)
 		} else if x.Exp != nil {
 			p.token(x.Exp.Op, true)
@@ -310,18 +315,18 @@ func (p *printer) wordPart(wp WordPart) {
 		}
 		p.str("}")
 	case *ArithmExp:
-		p.token(DOLLDP, false)
+		p.tokenStr("$((", false)
 		p.arithm(x.X, false)
-		p.token(DRPAREN, true)
+		p.tokenStr("))", true)
 	case *ArrayExpr:
-		p.token(LPAREN, false)
+		p.tokenStr("(", false)
 		p.wordJoin(x.List, false)
 		p.sepTok(RPAREN, x.Rparen)
 	case *ProcSubst:
 		// avoid conflict with << and others
 		p.spacedTok(x.Op, false)
 		p.nestedStmts(x.Stmts)
-		p.token(RPAREN, true)
+		p.tokenStr(")", true)
 	}
 }
 
@@ -332,7 +337,7 @@ func (p *printer) cond(cond Cond) {
 	case *CStyleCond:
 		p.spacedTok(DLPAREN, false)
 		p.arithm(x.X, false)
-		p.token(DRPAREN, true)
+		p.tokenStr("))", true)
 	}
 }
 
@@ -348,11 +353,11 @@ func (p *printer) loop(loop Loop) {
 	case *CStyleLoop:
 		p.spacedTok(DLPAREN, false)
 		p.arithm(x.Init, false)
-		p.token(SEMICOLON, true)
+		p.tokenStr(";", true)
 		p.arithm(x.Cond, false)
-		p.token(SEMICOLON, true)
+		p.tokenStr(";", true)
 		p.arithm(x.Post, false)
-		p.token(DRPAREN, true)
+		p.tokenStr("))", true)
 	}
 }
 
@@ -385,7 +390,7 @@ func (p *printer) arithm(expr ArithmExpr, compact bool) {
 	case *ParenExpr:
 		p.spacedTok(LPAREN, false)
 		p.arithm(x.X, false)
-		p.token(RPAREN, true)
+		p.tokenStr(")", true)
 	}
 }
 
@@ -578,8 +583,7 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			p.space(' ')
 		}
 		p.lit(&x.Name)
-		p.token(LPAREN, false)
-		p.token(RPAREN, true)
+		p.tokenStr("()", true)
 		p.stmt(x.Body)
 	case *CaseClause:
 		p.rsrvWord("case")
@@ -594,7 +598,7 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 				}
 				p.spacedWord(w)
 			}
-			p.token(RPAREN, true)
+			p.tokenStr(")", true)
 			sep := p.nestedStmts(pl.Stmts)
 			p.level++
 			if !sep {
@@ -735,9 +739,9 @@ func (p *printer) assigns(assigns []*Assign) {
 		if a.Name != nil {
 			p.lit(a.Name)
 			if a.Append {
-				p.token(ADDASSGN, true)
+				p.tokenStr("+=", true)
 			} else {
-				p.token(ASSIGN, true)
+				p.tokenStr("=", true)
 			}
 		}
 		p.word(a.Value)
