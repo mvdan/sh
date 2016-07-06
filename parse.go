@@ -716,9 +716,10 @@ func (p *parser) wordPart() WordPart {
 			p.errPass(err)
 		}
 		if p.tok == EOF || wordBreak(b) || b == '"' {
-			p.tok, p.val = LIT, "$"
+			l := &Lit{ValuePos: p.pos, Value: "$"}
 			p.nextByte = b
-			return p.wordPart()
+			p.next()
+			return l
 		}
 		pe := &ParamExp{Dollar: p.pos, Short: true}
 		if b == '#' || b == '$' || b == '?' {
