@@ -178,7 +178,7 @@ func (p *printer) indent() {
 
 func (p *printer) newline() {
 	p.wantNewline = false
-	_, p.err = p.w.Write([]byte{'\n'})
+	_, p.err = io.WriteString(p.w, "\n")
 	p.wantSpace = false
 	for _, r := range p.pendingHdocs {
 		p.str(r.Hdoc.Value)
@@ -192,7 +192,7 @@ func (p *printer) newlines(pos Pos) {
 	p.newline()
 	if pos.Line > p.curLine+1 {
 		// preserve single empty lines
-		_, p.err = p.w.Write([]byte{'\n'})
+		_, p.err = io.WriteString(p.w, "\n")
 	}
 	p.indent()
 	p.curLine = pos.Line
