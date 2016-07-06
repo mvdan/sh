@@ -609,14 +609,19 @@ func (p *parser) stmts(stops ...string) (sts []*Stmt) {
 	}
 	q := p.quote
 	for p.tok != EOF {
-		p.got(STOPPED)
-		for _, stop := range stops {
-			if p.val == stop {
+		switch p.tok {
+		case LITWORD:
+			for _, stop := range stops {
+				if p.val == stop {
+					return
+				}
+			}
+		case q:
+			return
+		case SEMIFALL, DSEMIFALL:
+			if q == DSEMICOLON {
 				return
 			}
-		}
-		if p.tok == q || (q == DSEMICOLON && dsemicolon(p.tok)) {
-			return
 		}
 		gotEnd := p.newLine || p.ltok == AND || p.ltok == SEMICOLON
 		if len(sts) > 0 && !gotEnd {
@@ -630,6 +635,7 @@ func (p *parser) stmts(stops ...string) (sts []*Stmt) {
 		} else {
 			sts = append(sts, s)
 		}
+		p.got(STOPPED)
 	}
 	return
 }
@@ -770,10 +776,10 @@ func (p *parser) arithmExpr(ftok Token, fpos Pos) ArithmExpr {
 	if q != DRPAREN && q != LPAREN && p.spaced {
 		return left
 	}
-	if p.tok == EOF || p.tok == RPAREN || p.tok == SEMICOLON || dsemicolon(p.tok) {
+	switch p.tok {
+	case EOF, RPAREN, SEMICOLON, DSEMICOLON, SEMIFALL, DSEMIFALL:
 		return left
-	}
-	if p.tok == LIT || p.tok == LITWORD {
+	case LIT, LITWORD:
 		p.curErr("not a valid arithmetic operator: %s", p.val)
 	}
 	b := &BinaryExpr{
