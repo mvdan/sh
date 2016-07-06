@@ -93,7 +93,7 @@ func (p *printer) str(s string) {
 
 func (p *printer) token(tok Token, spaceAfter bool) {
 	p.wantSpace = spaceAfter
-	_, p.err = fmt.Fprint(p.w, tok)
+	_, p.err = io.WriteString(p.w, tok.String())
 }
 
 func (p *printer) rsrvWord(s string) {
@@ -245,7 +245,7 @@ func (p *printer) commentsUpTo(line int) {
 	if !p.didSeparate(c.Hash) {
 		p.spaces(strings.Repeat(" ", p.wantSpaces+1))
 	}
-	_, p.err = fmt.Fprint(p.w, HASH, c.Text)
+	_, p.err = io.WriteString(p.w, "#"+c.Text)
 	p.comments = p.comments[1:]
 	p.commentsUpTo(line)
 }
