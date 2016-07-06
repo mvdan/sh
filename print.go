@@ -68,21 +68,21 @@ type printer struct {
 	nestedBinary bool
 }
 
-func (p *printer) space(b byte) {
+func (p *printer) spaces(bs ...byte) {
 	if p.err != nil {
 		return
 	}
-	_, p.err = p.w.Write([]byte{b})
+	_, p.err = p.w.Write(bs)
 	p.wantSpace = false
 }
 
-func (p *printer) spaces(s string, newls int) {
+func (p *printer) spacesNewl(s string) {
 	if p.err != nil {
 		return
 	}
 	_, p.err = io.WriteString(p.w, s)
 	p.wantSpace = false
-	p.curLine += newls
+	p.curLine++
 }
 
 func (p *printer) str(s string) {
@@ -101,7 +101,7 @@ func (p *printer) rsrvWord(s string) {
 		p.newline()
 		p.indent()
 	} else if p.wantSpace {
-		p.space(' ')
+		p.spaces(' ')
 	}
 	_, p.err = io.WriteString(p.w, s)
 	p.wantSpace = true
@@ -109,7 +109,7 @@ func (p *printer) rsrvWord(s string) {
 
 func (p *printer) spacedTok(s string, spaceAfter bool) {
 	if p.wantSpace {
-		p.space(' ')
+		p.spaces(' ')
 	}
 	p.token(s, spaceAfter)
 }
@@ -147,19 +147,19 @@ func (p *printer) indent() {
 	switch {
 	case p.level == 0:
 	case p.c.Spaces == 0:
-		p.spaces(strings.Repeat("\t", p.level), 0)
+		p.spaces(bytes.Repeat([]byte{'\t'}, p.level)...)
 	case p.c.Spaces > 0:
-		p.spaces(strings.Repeat(" ", p.c.Spaces*p.level), 0)
+		p.spaces(bytes.Repeat([]byte{' '}, p.c.Spaces*p.level)...)
 	}
 }
 
 func (p *printer) newline() {
 	p.wantNewline = false
-	p.space('\n')
+	p.spaces('\n')
 	for _, r := range p.pendingHdocs {
-		p.lit(r.Hdoc)
+		p.str(r.Hdoc.Value)
 		p.unquotedWord(&r.Word)
-		p.spaces("\n", 1)
+		p.spacesNewl("\n")
 	}
 	p.pendingHdocs = nil
 }
@@ -168,7 +168,7 @@ func (p *printer) newlines(pos Pos) {
 	p.newline()
 	if pos.Line > p.curLine+1 {
 		// preserve single empty lines
-		p.space('\n')
+		p.spaces('\n')
 	}
 	p.indent()
 	p.curLine = pos.Line
@@ -244,7 +244,7 @@ func (p *printer) commentsUpTo(line int) {
 	}
 	p.wantNewline = false
 	if !p.didSeparate(c.Hash) {
-		p.spaces(strings.Repeat(" ", p.wantSpaces+1), 0)
+		p.spaces(bytes.Repeat([]byte{' '}, p.wantSpaces+1)...)
 	}
 	_, p.err = io.WriteString(p.w, "#"+c.Text)
 	p.comments = p.comments[1:]
@@ -254,7 +254,7 @@ func (p *printer) commentsUpTo(line int) {
 func (p *printer) wordPart(wp WordPart) {
 	switch x := wp.(type) {
 	case *Lit:
-		p.lit(x)
+		p.str(x.Value)
 	case *SglQuoted:
 		p.token("'", true)
 		p.str(x.Value)
@@ -272,7 +272,7 @@ func (p *printer) wordPart(wp WordPart) {
 			p.token("$(", false)
 		}
 		if startsWithLparen(x.Stmts) {
-			p.space(' ')
+			p.spaces(' ')
 		}
 		p.nestedStmts(x.Stmts)
 		if x.Backquotes {
@@ -284,14 +284,14 @@ func (p *printer) wordPart(wp WordPart) {
 	case *ParamExp:
 		if x.Short {
 			p.token("$", true)
-			p.lit(&x.Param)
+			p.str(x.Param.Value)
 			break
 		}
 		p.token("${", true)
 		if x.Length {
 			p.token("#", true)
 		}
-		p.lit(&x.Param)
+		p.str(x.Param.Value)
 		if x.Ind != nil {
 			p.token("[", true)
 			p.word(x.Ind.Word)
@@ -309,7 +309,7 @@ func (p *printer) wordPart(wp WordPart) {
 			p.token(x.Exp.Op.String(), true)
 			p.word(x.Exp.Word)
 		}
-		p.str("}")
+		p.token("}", true)
 	case *ArithmExp:
 		p.token("$((", false)
 		p.arithm(x.X, false)
@@ -340,7 +340,7 @@ func (p *printer) cond(cond Cond) {
 func (p *printer) loop(loop Loop) {
 	switch x := loop.(type) {
 	case *WordIter:
-		p.lit(&x.Name)
+		p.str(x.Name.Value)
 		if len(x.List) > 0 {
 			p.rsrvWord("in")
 			p.wordJoin(x.List, true)
@@ -418,21 +418,19 @@ func (p *printer) unquotedWord(w *Word) {
 
 func (p *printer) spacedWord(w Word) {
 	if p.wantSpace {
-		p.space(' ')
+		p.spaces(' ')
 	}
 	p.word(w)
 }
-
-func (p *printer) lit(l *Lit) { p.str(l.Value) }
 
 func (p *printer) wordJoin(ws []Word, needBackslash bool) {
 	anyNewline := false
 	for _, w := range ws {
 		if p.curLine > 0 && w.Pos().Line > p.curLine {
 			if needBackslash {
-				p.spaces(" \\\n", 1)
+				p.spacesNewl(" \\\n")
 			} else {
-				p.spaces("\n", 1)
+				p.spacesNewl("\n")
 			}
 			if !anyNewline {
 				p.incLevel()
@@ -440,7 +438,7 @@ func (p *printer) wordJoin(ws []Word, needBackslash bool) {
 			}
 			p.indent()
 		} else if p.wantSpace {
-			p.space(' ')
+			p.spaces(' ')
 		}
 		p.word(w)
 	}
@@ -458,7 +456,7 @@ func (p *printer) stmt(s *Stmt) {
 	anyNewline := false
 	for _, r := range s.Redirs[startRedirs:] {
 		if p.curLine > 0 && r.OpPos.Line > p.curLine {
-			p.spaces(" \\\n", 1)
+			p.spacesNewl(" \\\n")
 			if !anyNewline {
 				p.incLevel()
 				anyNewline = true
@@ -467,10 +465,10 @@ func (p *printer) stmt(s *Stmt) {
 		}
 		p.didSeparate(r.OpPos)
 		if p.wantSpace {
-			p.space(' ')
+			p.spaces(' ')
 		}
 		if r.N != nil {
-			p.lit(r.N)
+			p.str(r.N.Value)
 		}
 		p.token(r.Op.String(), true)
 		p.word(r.Word)
@@ -502,10 +500,10 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 				break
 			}
 			if p.wantSpace {
-				p.space(' ')
+				p.spaces(' ')
 			}
 			if r.N != nil {
-				p.lit(r.N)
+				p.str(r.N.Value)
 			}
 			p.token(r.Op.String(), true)
 			p.word(r.Word)
@@ -537,7 +535,7 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 	case *Subshell:
 		p.spacedTok("(", false)
 		if startsWithLparen(x.Stmts) {
-			p.space(' ')
+			p.spaces(' ')
 		}
 		p.nestedStmts(x.Stmts)
 		p.sepTok(")", x.Rparen)
@@ -562,7 +560,7 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		_, p.nestedBinary = x.Y.Cmd.(*BinaryCmd)
 		if len(p.pendingHdocs) > 0 {
 		} else if x.Y.Pos().Line > p.curLine {
-			p.spaces(" \\\n", 1)
+			p.spacesNewl(" \\\n")
 			p.indent()
 		}
 		p.curLine = x.Y.Pos().Line
@@ -576,7 +574,7 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		if x.BashStyle {
 			p.rsrvWord("function ")
 		}
-		p.lit(&x.Name)
+		p.str(x.Name.Value)
 		p.token("()", true)
 		p.stmt(x.Body)
 	case *CaseClause:
@@ -721,17 +719,17 @@ func (p *printer) assigns(assigns []*Assign) {
 	anyNewline := false
 	for _, a := range assigns {
 		if p.curLine > 0 && a.Pos().Line > p.curLine {
-			p.spaces(" \\\n", 1)
+			p.spacesNewl(" \\\n")
 			if !anyNewline {
 				p.incLevel()
 				anyNewline = true
 			}
 			p.indent()
 		} else if p.wantSpace {
-			p.space(' ')
+			p.spaces(' ')
 		}
 		if a.Name != nil {
-			p.lit(a.Name)
+			p.str(a.Name.Value)
 			if a.Append {
 				p.token("+=", true)
 			} else {
