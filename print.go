@@ -113,8 +113,6 @@ func (p *printer) spacedTok(tok Token, spaceAfter bool) {
 	p.token(tok, spaceAfter)
 }
 
-func (p *printer) lineJoin() { p.spaces(" \\\n") }
-
 func (p *printer) semiOrNewl(s string, pos Pos) {
 	if !p.wantNewline {
 		p.token(SEMICOLON, true)
@@ -432,7 +430,7 @@ func (p *printer) wordJoin(ws []Word, needBackslash bool) {
 	for _, w := range ws {
 		if p.curLine > 0 && w.Pos().Line > p.curLine {
 			if needBackslash {
-				p.lineJoin()
+				p.spaces(" \\\n")
 			} else {
 				p.spaces("\n")
 			}
@@ -460,7 +458,7 @@ func (p *printer) stmt(s *Stmt) {
 	anyNewline := false
 	for _, r := range s.Redirs[startRedirs:] {
 		if p.curLine > 0 && r.OpPos.Line > p.curLine {
-			p.lineJoin()
+			p.spaces(" \\\n")
 			if !anyNewline {
 				p.incLevel()
 				anyNewline = true
@@ -564,7 +562,7 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		_, p.nestedBinary = x.Y.Cmd.(*BinaryCmd)
 		if len(p.pendingHdocs) > 0 {
 		} else if x.Y.Pos().Line > p.curLine {
-			p.lineJoin()
+			p.spaces(" \\\n")
 			p.indent()
 		}
 		p.curLine = x.Y.Pos().Line
@@ -725,7 +723,7 @@ func (p *printer) assigns(assigns []*Assign) {
 	anyNewline := false
 	for _, a := range assigns {
 		if p.curLine > 0 && a.Pos().Line > p.curLine {
-			p.lineJoin()
+			p.spaces(" \\\n")
 			if !anyNewline {
 				p.incLevel()
 				anyNewline = true
