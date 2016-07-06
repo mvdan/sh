@@ -22,7 +22,7 @@ const (
 )
 
 var bufFree = sync.Pool{
-	New: func() interface{} { return bufio.NewReaderSize(nil, 256) },
+	New: func() interface{} { return bufio.NewReader(nil) },
 }
 
 // Parse reads and parses a shell program with an optional name. It
