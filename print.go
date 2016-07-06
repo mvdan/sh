@@ -68,23 +68,23 @@ type printer struct {
 	nestedBinary bool
 }
 
-const (
-	spaces = "                                "
-	tabs   = "\t\t\t\t\t\t\t\t"
+var (
+	spaces = []byte("                                ")
+	tabs   = []byte("\t\t\t\t\t\t\t\t")
 )
 
 func (p *printer) space() {
-	_, p.err = io.WriteString(p.w, " ")
+	_, p.err = p.w.Write(spaces[:1])
 	p.wantSpace = false
 }
 
 func (p *printer) spaces(n int) {
 	for n > 0 {
 		if n < len(spaces) {
-			_, p.err = io.WriteString(p.w, spaces[:n])
+			_, p.err = p.w.Write(spaces[:n])
 			break
 		}
-		_, p.err = io.WriteString(p.w, spaces)
+		_, p.err = p.w.Write(spaces)
 		n -= len(spaces)
 	}
 	p.wantSpace = false
@@ -93,10 +93,10 @@ func (p *printer) spaces(n int) {
 func (p *printer) tabs(n int) {
 	for n > 0 {
 		if n < len(tabs) {
-			_, p.err = io.WriteString(p.w, tabs[:n])
+			_, p.err = p.w.Write(tabs[:n])
 			break
 		}
-		_, p.err = io.WriteString(p.w, tabs)
+		_, p.err = p.w.Write(tabs)
 		n -= len(tabs)
 	}
 	p.wantSpace = false
