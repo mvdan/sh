@@ -71,6 +71,9 @@ type printer struct {
 var (
 	spaces = []byte("                                ")
 	tabs   = []byte("\t\t\t\t\t\t\t\t")
+
+	newl   = []byte("\n")
+	bsNewl = []byte(" \\\n")
 )
 
 func (p *printer) space() {
@@ -102,8 +105,8 @@ func (p *printer) tabs(n int) {
 	p.wantSpace = false
 }
 
-func (p *printer) spacesNewl(s string) {
-	_, p.err = io.WriteString(p.w, s)
+func (p *printer) spacesNewl(bs []byte) {
+	_, p.err = p.w.Write(bs)
 	p.wantSpace = false
 	p.curLine++
 }
@@ -183,7 +186,7 @@ func (p *printer) newline() {
 	for _, r := range p.pendingHdocs {
 		p.str(r.Hdoc.Value)
 		p.unquotedWord(&r.Word)
-		p.spacesNewl("\n")
+		p.spacesNewl(newl)
 	}
 	p.pendingHdocs = nil
 }
@@ -453,9 +456,9 @@ func (p *printer) wordJoin(ws []Word, needBackslash bool) {
 	for _, w := range ws {
 		if p.curLine > 0 && w.Pos().Line > p.curLine {
 			if needBackslash {
-				p.spacesNewl(" \\\n")
+				p.spacesNewl(bsNewl)
 			} else {
-				p.spacesNewl("\n")
+				p.spacesNewl(newl)
 			}
 			if !anyNewline {
 				p.incLevel()
@@ -481,7 +484,7 @@ func (p *printer) stmt(s *Stmt) {
 	anyNewline := false
 	for _, r := range s.Redirs[startRedirs:] {
 		if p.curLine > 0 && r.OpPos.Line > p.curLine {
-			p.spacesNewl(" \\\n")
+			p.spacesNewl(bsNewl)
 			if !anyNewline {
 				p.incLevel()
 				anyNewline = true
@@ -585,7 +588,7 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		_, p.nestedBinary = x.Y.Cmd.(*BinaryCmd)
 		if len(p.pendingHdocs) > 0 {
 		} else if x.Y.Pos().Line > p.curLine {
-			p.spacesNewl(" \\\n")
+			p.spacesNewl(bsNewl)
 			p.indent()
 		}
 		p.curLine = x.Y.Pos().Line
@@ -744,7 +747,7 @@ func (p *printer) assigns(assigns []*Assign) {
 	anyNewline := false
 	for _, a := range assigns {
 		if p.curLine > 0 && a.Pos().Line > p.curLine {
-			p.spacesNewl(" \\\n")
+			p.spacesNewl(bsNewl)
 			if !anyNewline {
 				p.incLevel()
 				anyNewline = true
