@@ -68,18 +68,41 @@ type printer struct {
 	nestedBinary bool
 }
 
-func (p *printer) spaces(bs ...byte) {
-	if p.err != nil {
-		return
+const (
+	spaces = "                                "
+	tabs   = "\t\t\t\t\t\t\t\t"
+)
+
+func (p *printer) space() {
+	_, p.err = io.WriteString(p.w, " ")
+	p.wantSpace = false
+}
+
+func (p *printer) spaces(n int) {
+	for n > 0 {
+		if n < len(spaces) {
+			_, p.err = io.WriteString(p.w, spaces[:n])
+			break
+		}
+		_, p.err = io.WriteString(p.w, spaces)
+		n -= len(spaces)
 	}
-	_, p.err = p.w.Write(bs)
+	p.wantSpace = false
+}
+
+func (p *printer) tabs(n int) {
+	for n > 0 {
+		if n < len(tabs) {
+			_, p.err = io.WriteString(p.w, tabs[:n])
+			break
+		}
+		_, p.err = io.WriteString(p.w, tabs)
+		n -= len(tabs)
+	}
 	p.wantSpace = false
 }
 
 func (p *printer) spacesNewl(s string) {
-	if p.err != nil {
-		return
-	}
 	_, p.err = io.WriteString(p.w, s)
 	p.wantSpace = false
 	p.curLine++
@@ -101,7 +124,7 @@ func (p *printer) rsrvWord(s string) {
 		p.newline()
 		p.indent()
 	} else if p.wantSpace {
-		p.spaces(' ')
+		p.space()
 	}
 	_, p.err = io.WriteString(p.w, s)
 	p.wantSpace = true
@@ -109,7 +132,7 @@ func (p *printer) rsrvWord(s string) {
 
 func (p *printer) spacedTok(s string, spaceAfter bool) {
 	if p.wantSpace {
-		p.spaces(' ')
+		p.space()
 	}
 	p.token(s, spaceAfter)
 }
@@ -147,15 +170,16 @@ func (p *printer) indent() {
 	switch {
 	case p.level == 0:
 	case p.c.Spaces == 0:
-		p.spaces(bytes.Repeat([]byte{'\t'}, p.level)...)
+		p.tabs(p.level)
 	case p.c.Spaces > 0:
-		p.spaces(bytes.Repeat([]byte{' '}, p.c.Spaces*p.level)...)
+		p.spaces(p.c.Spaces*p.level)
 	}
 }
 
 func (p *printer) newline() {
 	p.wantNewline = false
-	p.spaces('\n')
+	_, p.err = p.w.Write([]byte{'\n'})
+	p.wantSpace = false
 	for _, r := range p.pendingHdocs {
 		p.str(r.Hdoc.Value)
 		p.unquotedWord(&r.Word)
@@ -168,7 +192,7 @@ func (p *printer) newlines(pos Pos) {
 	p.newline()
 	if pos.Line > p.curLine+1 {
 		// preserve single empty lines
-		p.spaces('\n')
+		_, p.err = p.w.Write([]byte{'\n'})
 	}
 	p.indent()
 	p.curLine = pos.Line
@@ -244,7 +268,7 @@ func (p *printer) commentsUpTo(line int) {
 	}
 	p.wantNewline = false
 	if !p.didSeparate(c.Hash) {
-		p.spaces(bytes.Repeat([]byte{' '}, p.wantSpaces+1)...)
+		p.spaces(p.wantSpaces+1)
 	}
 	_, p.err = io.WriteString(p.w, "#"+c.Text)
 	p.comments = p.comments[1:]
@@ -272,7 +296,7 @@ func (p *printer) wordPart(wp WordPart) {
 			p.token("$(", false)
 		}
 		if startsWithLparen(x.Stmts) {
-			p.spaces(' ')
+			p.space()
 		}
 		p.nestedStmts(x.Stmts)
 		if x.Backquotes {
@@ -418,7 +442,7 @@ func (p *printer) unquotedWord(w *Word) {
 
 func (p *printer) spacedWord(w Word) {
 	if p.wantSpace {
-		p.spaces(' ')
+		p.space()
 	}
 	p.word(w)
 }
@@ -438,7 +462,7 @@ func (p *printer) wordJoin(ws []Word, needBackslash bool) {
 			}
 			p.indent()
 		} else if p.wantSpace {
-			p.spaces(' ')
+			p.space()
 		}
 		p.word(w)
 	}
@@ -465,7 +489,7 @@ func (p *printer) stmt(s *Stmt) {
 		}
 		p.didSeparate(r.OpPos)
 		if p.wantSpace {
-			p.spaces(' ')
+			p.space()
 		}
 		if r.N != nil {
 			p.str(r.N.Value)
@@ -500,7 +524,7 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 				break
 			}
 			if p.wantSpace {
-				p.spaces(' ')
+				p.space()
 			}
 			if r.N != nil {
 				p.str(r.N.Value)
@@ -535,7 +559,7 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 	case *Subshell:
 		p.spacedTok("(", false)
 		if startsWithLparen(x.Stmts) {
-			p.spaces(' ')
+			p.space()
 		}
 		p.nestedStmts(x.Stmts)
 		p.sepTok(")", x.Rparen)
@@ -726,7 +750,7 @@ func (p *printer) assigns(assigns []*Assign) {
 			}
 			p.indent()
 		} else if p.wantSpace {
-			p.spaces(' ')
+			p.space()
 		}
 		if a.Name != nil {
 			p.str(a.Name.Value)
