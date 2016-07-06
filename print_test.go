@@ -305,20 +305,30 @@ func parsePath(tb testing.TB, path string) *File {
 	return prog
 }
 
+var canonicalPath = filepath.Join("testdata", "canonical.sh")
+
 func TestFprintMultiline(t *testing.T) {
-	path := filepath.Join("testdata", "canonical.sh")
-	prog := parsePath(t, path)
+	prog := parsePath(t, canonicalPath)
 	got, err := strFprint(prog, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	want, err := ioutil.ReadFile(path)
+	want, err := ioutil.ReadFile(canonicalPath)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if got != string(want) {
 		t.Fatalf("Fprint mismatch in canonical.sh")
+	}
+}
+
+func BenchmarkFprint(b *testing.B) {
+	prog := parsePath(b, canonicalPath)
+	for i := 0; i < b.N; i++ {
+		if err := Fprint(ioutil.Discard, prog); err != nil {
+			b.Fatal(err)
+		}
 	}
 }
 
