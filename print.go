@@ -91,12 +91,7 @@ func (p *printer) str(s string) {
 	p.curLine += strings.Count(s, "\n")
 }
 
-func (p *printer) token(tok Token, spaceAfter bool) {
-	p.wantSpace = spaceAfter
-	_, p.err = io.WriteString(p.w, tok.String())
-}
-
-func (p *printer) tokenStr(s string, spaceAfter bool) {
+func (p *printer) token(s string, spaceAfter bool) {
 	p.wantSpace = spaceAfter
 	_, p.err = io.WriteString(p.w, s)
 }
@@ -111,16 +106,16 @@ func (p *printer) rsrvWord(s string) {
 	p.str(s)
 }
 
-func (p *printer) spacedTok(tok Token, spaceAfter bool) {
+func (p *printer) spacedTok(s string, spaceAfter bool) {
 	if p.wantSpace {
 		p.space(' ')
 	}
-	p.token(tok, spaceAfter)
+	p.token(s, spaceAfter)
 }
 
 func (p *printer) semiOrNewl(s string, pos Pos) {
 	if !p.wantNewline {
-		p.tokenStr(";", true)
+		p.token(";", true)
 	}
 	p.rsrvWord(s)
 	p.curLine = pos.Line
@@ -201,15 +196,15 @@ func (p *printer) didSeparate(pos Pos) bool {
 	return false
 }
 
-func (p *printer) sepTok(tok Token, pos Pos) {
+func (p *printer) sepTok(s string, pos Pos) {
 	p.level++
 	p.commentsUpTo(pos.Line)
 	p.level--
 	p.didSeparate(pos)
-	if tok == RPAREN {
-		p.token(tok, true)
+	if s == ")" {
+		p.token(s, true)
 	} else {
-		p.spacedTok(tok, true)
+		p.spacedTok(s, true)
 	}
 }
 
@@ -218,7 +213,7 @@ func (p *printer) sepRsrv(s string, pos Pos, fallback bool) {
 	p.commentsUpTo(pos.Line)
 	p.level--
 	if !p.didSeparate(pos) && fallback {
-		p.tokenStr(";", true)
+		p.token(";", true)
 	}
 	p.rsrvWord(s)
 }
@@ -260,20 +255,20 @@ func (p *printer) wordPart(wp WordPart) {
 	case *Lit:
 		p.lit(x)
 	case *SglQuoted:
-		p.tokenStr("'", true)
+		p.token("'", true)
 		p.str(x.Value)
-		p.tokenStr("'", true)
+		p.token("'", true)
 	case *Quoted:
-		p.token(x.Quote, true)
+		p.token(x.Quote.String(), true)
 		for _, n := range x.Parts {
 			p.wordPart(n)
 		}
-		p.token(quotedStop(x.Quote), true)
+		p.token(quotedStop(x.Quote).String(), true)
 	case *CmdSubst:
 		if x.Backquotes {
-			p.tokenStr("`", false)
+			p.token("`", false)
 		} else {
-			p.tokenStr("$(", false)
+			p.token("$(", false)
 		}
 		if startsWithLparen(x.Stmts) {
 			p.space(' ')
@@ -281,52 +276,52 @@ func (p *printer) wordPart(wp WordPart) {
 		p.nestedStmts(x.Stmts)
 		if x.Backquotes {
 			p.wantSpace = false
-			p.sepTok(BQUOTE, x.Right)
+			p.sepTok("`", x.Right)
 		} else {
-			p.sepTok(RPAREN, x.Right)
+			p.sepTok(")", x.Right)
 		}
 	case *ParamExp:
 		if x.Short {
-			p.tokenStr("$", true)
+			p.token("$", true)
 			p.lit(&x.Param)
 			break
 		}
-		p.tokenStr("${", true)
+		p.token("${", true)
 		if x.Length {
-			p.tokenStr("#", true)
+			p.token("#", true)
 		}
 		p.lit(&x.Param)
 		if x.Ind != nil {
-			p.tokenStr("[", true)
+			p.token("[", true)
 			p.word(x.Ind.Word)
-			p.tokenStr("]", true)
+			p.token("]", true)
 		}
 		if x.Repl != nil {
 			if x.Repl.All {
-				p.tokenStr("/", true)
+				p.token("/", true)
 			}
-			p.tokenStr("/", true)
+			p.token("/", true)
 			p.word(x.Repl.Orig)
-			p.tokenStr("/", true)
+			p.token("/", true)
 			p.word(x.Repl.With)
 		} else if x.Exp != nil {
-			p.token(x.Exp.Op, true)
+			p.token(x.Exp.Op.String(), true)
 			p.word(x.Exp.Word)
 		}
 		p.str("}")
 	case *ArithmExp:
-		p.tokenStr("$((", false)
+		p.token("$((", false)
 		p.arithm(x.X, false)
-		p.tokenStr("))", true)
+		p.token("))", true)
 	case *ArrayExpr:
-		p.tokenStr("(", false)
+		p.token("(", false)
 		p.wordJoin(x.List, false)
-		p.sepTok(RPAREN, x.Rparen)
+		p.sepTok(")", x.Rparen)
 	case *ProcSubst:
 		// avoid conflict with << and others
-		p.spacedTok(x.Op, false)
+		p.spacedTok(x.Op.String(), false)
 		p.nestedStmts(x.Stmts)
-		p.tokenStr(")", true)
+		p.token(")", true)
 	}
 }
 
@@ -335,9 +330,9 @@ func (p *printer) cond(cond Cond) {
 	case *StmtCond:
 		p.nestedStmts(x.Stmts)
 	case *CStyleCond:
-		p.spacedTok(DLPAREN, false)
+		p.spacedTok("((", false)
 		p.arithm(x.X, false)
-		p.tokenStr("))", true)
+		p.token("))", true)
 	}
 }
 
@@ -351,13 +346,13 @@ func (p *printer) loop(loop Loop) {
 			p.wordJoin(x.List, true)
 		}
 	case *CStyleLoop:
-		p.spacedTok(DLPAREN, false)
+		p.spacedTok("((", false)
 		p.arithm(x.Init, false)
-		p.tokenStr(";", true)
+		p.token(";", true)
 		p.arithm(x.Cond, false)
-		p.tokenStr(";", true)
+		p.token(";", true)
 		p.arithm(x.Post, false)
-		p.tokenStr("))", true)
+		p.token("))", true)
 	}
 }
 
@@ -368,29 +363,29 @@ func (p *printer) arithm(expr ArithmExpr, compact bool) {
 	case *BinaryExpr:
 		if compact {
 			p.arithm(x.X, true)
-			p.token(x.Op, false)
+			p.token(x.Op.String(), false)
 			p.arithm(x.Y, true)
 		} else {
 			p.arithm(x.X, false)
 			if x.Op == COMMA {
-				p.token(x.Op, true)
+				p.token(",", true)
 			} else {
-				p.spacedTok(x.Op, true)
+				p.spacedTok(x.Op.String(), true)
 			}
 			p.arithm(x.Y, false)
 		}
 	case *UnaryExpr:
 		if x.Post {
 			p.arithm(x.X, compact)
-			p.token(x.Op, true)
+			p.token(x.Op.String(), true)
 		} else {
-			p.spacedTok(x.Op, false)
+			p.spacedTok(x.Op.String(), false)
 			p.arithm(x.X, compact)
 		}
 	case *ParenExpr:
-		p.spacedTok(LPAREN, false)
+		p.spacedTok("(", false)
 		p.arithm(x.X, false)
-		p.tokenStr(")", true)
+		p.token(")", true)
 	}
 }
 
@@ -477,7 +472,7 @@ func (p *printer) stmt(s *Stmt) {
 		if r.N != nil {
 			p.lit(r.N)
 		}
-		p.token(r.Op, true)
+		p.token(r.Op.String(), true)
 		p.word(r.Word)
 		if r.Op == SHL || r.Op == DHEREDOC {
 			p.pendingHdocs = append(p.pendingHdocs, r)
@@ -487,7 +482,7 @@ func (p *printer) stmt(s *Stmt) {
 		p.decLevel()
 	}
 	if s.Background {
-		p.spacedTok(AND, true)
+		p.spacedTok("&", true)
 	}
 }
 
@@ -512,7 +507,7 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			if r.N != nil {
 				p.lit(r.N)
 			}
-			p.token(r.Op, true)
+			p.token(r.Op.String(), true)
 			p.word(r.Word)
 			startRedirs++
 		}
@@ -540,12 +535,12 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		}
 		p.sepRsrv("fi", x.Fi, true)
 	case *Subshell:
-		p.spacedTok(LPAREN, false)
+		p.spacedTok("(", false)
 		if startsWithLparen(x.Stmts) {
 			p.space(' ')
 		}
 		p.nestedStmts(x.Stmts)
-		p.sepTok(RPAREN, x.Rparen)
+		p.sepTok(")", x.Rparen)
 	case *WhileClause:
 		p.rsrvWord("while")
 		p.cond(x.Cond)
@@ -571,7 +566,7 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			p.indent()
 		}
 		p.curLine = x.Y.Pos().Line
-		p.spacedTok(x.Op, true)
+		p.spacedTok(x.Op.String(), true)
 		p.stmt(x.Y)
 		if indent {
 			p.decLevel()
@@ -583,7 +578,7 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			p.space(' ')
 		}
 		p.lit(&x.Name)
-		p.tokenStr("()", true)
+		p.token("()", true)
 		p.stmt(x.Body)
 	case *CaseClause:
 		p.rsrvWord("case")
@@ -594,11 +589,11 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			p.didSeparate(wordFirstPos(pl.Patterns))
 			for i, w := range pl.Patterns {
 				if i > 0 {
-					p.spacedTok(OR, true)
+					p.spacedTok("|", true)
 				}
 				p.spacedWord(w)
 			}
-			p.tokenStr(")", true)
+			p.token(")", true)
 			sep := p.nestedStmts(pl.Stmts)
 			p.level++
 			if !sep {
@@ -606,7 +601,7 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			} else if pl.OpPos.Line == p.curLine && pl.OpPos != x.Esac {
 				p.curLine--
 			}
-			p.sepTok(pl.Op, pl.OpPos)
+			p.sepTok(pl.Op.String(), pl.OpPos)
 			if pl.OpPos == x.Esac {
 				p.curLine--
 			}
@@ -739,9 +734,9 @@ func (p *printer) assigns(assigns []*Assign) {
 		if a.Name != nil {
 			p.lit(a.Name)
 			if a.Append {
-				p.tokenStr("+=", true)
+				p.token("+=", true)
 			} else {
-				p.tokenStr("=", true)
+				p.token("=", true)
 			}
 		}
 		p.word(a.Value)
