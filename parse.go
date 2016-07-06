@@ -349,8 +349,8 @@ byteLoop:
 func (p *parser) noneLoopByte(b0 byte) (bs []byte, b byte, willBreak bool, err error) {
 	b = b0
 	for {
-		switch {
-		case b == '\\': // escaped byte follows
+		switch b {
+		case '\\': // escaped byte follows
 			if b, err = p.br.ReadByte(); err != nil {
 				bs = append(bs, '\\')
 				return
@@ -363,10 +363,10 @@ func (p *parser) noneLoopByte(b0 byte) (bs []byte, b byte, willBreak bool, err e
 				return
 			}
 			p.moveWith(b)
-		case wordBreak(b):
+		case ' ', '\t', '\n', '&', '>', '<', '|', ';', '(', ')', '`':
 			willBreak = true
 			return
-		case regOps(b):
+		case '"', '\'', '$':
 			return
 		default:
 			bs = append(bs, b)
@@ -381,8 +381,8 @@ func (p *parser) noneLoopByte(b0 byte) (bs []byte, b byte, willBreak bool, err e
 func (p *parser) dqLoopByte(b0 byte) (bs []byte, b byte, err error) {
 	b = b0
 	for {
-		switch {
-		case b == '\\': // escaped byte follows
+		switch b {
+		case '\\': // escaped byte follows
 			if b, err = p.br.ReadByte(); err != nil {
 				bs = append(bs, '\\')
 				return
@@ -393,7 +393,7 @@ func (p *parser) dqLoopByte(b0 byte) (bs []byte, b byte, err error) {
 				return
 			}
 			p.moveWith(b)
-		case b == '`', b == '"', b == '$':
+		case '`', '"', '$':
 			return
 		default:
 			bs = append(bs, b)
