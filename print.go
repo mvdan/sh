@@ -340,14 +340,13 @@ func (p *printer) cond(cond Cond) {
 func (p *printer) loop(loop Loop) {
 	switch x := loop.(type) {
 	case *WordIter:
-		p.space(' ')
 		p.lit(&x.Name)
 		if len(x.List) > 0 {
 			p.rsrvWord("in")
 			p.wordJoin(x.List, true)
 		}
 	case *CStyleLoop:
-		p.spacedTok("((", false)
+		p.token("((", false)
 		p.arithm(x.Init, false)
 		p.token(";", true)
 		p.arithm(x.Cond, false)
@@ -549,7 +548,7 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		p.nestedStmts(x.DoStmts)
 		p.sepRsrv("done", x.Done, true)
 	case *ForClause:
-		p.rsrvWord("for")
+		p.rsrvWord("for ")
 		p.loop(x.Loop)
 		p.semiOrNewl("do", x.Do)
 		p.nestedStmts(x.DoStmts)
@@ -575,15 +574,14 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		p.nestedBinary = false
 	case *FuncDecl:
 		if x.BashStyle {
-			p.rsrvWord("function")
-			p.space(' ')
+			p.rsrvWord("function ")
 		}
 		p.lit(&x.Name)
 		p.token("()", true)
 		p.stmt(x.Body)
 	case *CaseClause:
-		p.rsrvWord("case")
-		p.spacedWord(x.Word)
+		p.rsrvWord("case ")
+		p.word(x.Word)
 		p.rsrvWord("in")
 		p.incLevel()
 		for _, pl := range x.List {
