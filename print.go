@@ -270,7 +270,8 @@ func (p *printer) commentsUpTo(line int) {
 	if !p.didSeparate(c.Hash) {
 		p.spaces(p.wantSpaces+1)
 	}
-	_, p.err = io.WriteString(p.w, "#"+c.Text)
+	_, p.err = io.WriteString(p.w, "#")
+	_, p.err = io.WriteString(p.w, c.Text)
 	p.comments = p.comments[1:]
 	p.commentsUpTo(line)
 }
