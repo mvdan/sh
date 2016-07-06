@@ -76,18 +76,16 @@ func (p *parser) popStop() {
 	}
 }
 
-func (p *parser) readByte() byte {
+func (p *parser) readByte() (byte, error) {
 	if p.nextErr != nil {
-		p.errPass(p.nextErr)
-		return 0
+		return 0, p.nextErr
 	}
 	b, err := p.br.ReadByte()
 	if err != nil {
-		p.errPass(err)
-		return 0
+		return 0, err
 	}
 	p.moveWith(b)
-	return b
+	return b, nil
 }
 
 func (p *parser) moveWith(b byte) {
@@ -157,11 +155,13 @@ func (p *parser) next() {
 	if p.tok == EOF {
 		return
 	}
+	var err error
 	b := p.nextByte
 	p.spaced, p.newLine = false, false
 	switch b {
 	case 0:
-		if b = p.readByte(); p.tok == EOF {
+		if b, err = p.readByte(); err != nil {
+			p.errPass(err)
 			return
 		}
 	case '\n':
@@ -234,7 +234,8 @@ skipSpace:
 		default:
 			break skipSpace
 		}
-		if b = p.readByte(); p.tok == EOF {
+		if b, err = p.readByte(); err != nil {
+			p.errPass(err)
 			return
 		}
 	}
@@ -703,7 +704,10 @@ func (p *parser) wordPart() WordPart {
 		cs.Right = p.matched(cs.Left, LPAREN, RPAREN)
 		return cs
 	case DOLLAR:
-		b := p.readByte()
+		b, err := p.readByte()
+		if err != nil {
+			p.errPass(err)
+		}
 		if p.tok == EOF || wordBreak(b) || b == '"' {
 			p.tok, p.val = LIT, "$"
 			p.nextByte = b
