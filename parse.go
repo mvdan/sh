@@ -1039,13 +1039,7 @@ func (p *parser) doRedirect(s *Stmt) {
 }
 
 func (p *parser) getStmt() (*Stmt, bool) {
-	s := &Stmt{}
-	s, ok := p.gotStmtAndOr(s)
-	return s, ok
-}
-
-func (p *parser) gotStmtAndOr(s *Stmt) (*Stmt, bool) {
-	s.Position = p.pos
+	s := &Stmt{Position: p.pos}
 	if p.gotRsrv("!") {
 		s.Negated = true
 	}
