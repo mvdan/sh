@@ -663,9 +663,6 @@ func (p *parser) gotLit(l *Lit) bool {
 
 func (p *parser) wordParts() (wps []WordPart) {
 	for {
-		if p.quote == p.tok {
-			return
-		}
 		n := p.wordPart()
 		if n == nil {
 			return
@@ -683,6 +680,8 @@ func (p *parser) wordPart() WordPart {
 		l := &Lit{ValuePos: p.pos, Value: p.val}
 		p.next()
 		return l
+	case p.quote:
+		return nil
 	case DOLLBR:
 		return p.paramExp()
 	case DOLLDP:
