@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 // Mode controls the parser behaviour via a set of flags.
@@ -20,18 +21,24 @@ const (
 	ParseComments Mode = 1 << iota // add comments to the AST
 )
 
+var bufFree = sync.Pool{
+	New: func() interface{} { return bufio.NewReaderSize(nil, 256) },
+}
+
 // Parse reads and parses a shell program with an optional name. It
 // returns the parsed program if no issues were encountered. Otherwise,
 // an error is returned.
 func Parse(r io.Reader, name string, mode Mode) (*File, error) {
 	p := parser{
-		br:   bufio.NewReaderSize(r, 256),
+		br:   bufFree.Get().(*bufio.Reader),
 		file: &File{Name: name},
 		mode: mode,
 		npos: Pos{Line: 1},
 	}
+	p.br.Reset(r)
 	p.next()
 	p.file.Stmts = p.stmts()
+	bufFree.Put(p.br)
 	return p.file, p.err
 }
 
