@@ -13,7 +13,6 @@ const (
 	EOF
 	LIT
 	LITWORD
-	COMMENT
 
 	// Rest of tokens
 	SQUOTE // '
@@ -131,7 +130,6 @@ var (
 		EOF:     `EOF`,
 		LIT:     `lit`,
 		LITWORD: `litword`,
-		COMMENT: `comment`,
 
 		DLPAREN: "((",
 		DRPAREN: "))",

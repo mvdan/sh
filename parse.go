@@ -247,7 +247,13 @@ skipSpace:
 	case b == '#' && q != LBRACE:
 		line, _ := p.readIncluding('\n')
 		p.nextByte = '\n'
-		p.advanceBoth(COMMENT, line)
+		if p.mode&ParseComments > 0 {
+			p.file.Comments = append(p.file.Comments, &Comment{
+				Hash: p.pos,
+				Text: line,
+			})
+		}
+		p.next()
 	case (q == DLPAREN || q == DRPAREN || q == LPAREN) && arithmOps(b):
 		p.advanceTok(p.doArithmToken(b))
 	case regOps(b):
@@ -444,23 +450,6 @@ func (p *parser) readHdocBody(end string, noTabs bool) (string, bool) {
 	return buf.String(), false
 }
 
-func (p *parser) saveComments() {
-	for p.tok == COMMENT {
-		if p.mode&ParseComments > 0 {
-			p.file.Comments = append(p.file.Comments, &Comment{
-				Hash: p.pos,
-				Text: p.val,
-			})
-		}
-		p.next()
-	}
-}
-
-func (p *parser) eof() bool {
-	p.saveComments()
-	return p.tok == EOF
-}
-
 func (p *parser) peekRsrv(val string) bool {
 	return p.tok == LITWORD && p.val == val
 }
@@ -472,7 +461,6 @@ func wordBreak(b byte) bool {
 }
 
 func (p *parser) got(tok Token) bool {
-	p.saveComments()
 	if p.tok == tok {
 		p.next()
 		return true
@@ -620,7 +608,7 @@ func (p *parser) stmts(stops ...string) (sts []*Stmt) {
 		p.curErr("nested statements not allowed in this word")
 	}
 	q := p.quote
-	for !p.eof() {
+	for p.tok != EOF {
 		p.got(STOPPED)
 		for _, stop := range stops {
 			if p.val == stop {
@@ -634,7 +622,7 @@ func (p *parser) stmts(stops ...string) (sts []*Stmt) {
 		if len(sts) > 0 && !gotEnd {
 			p.curErr("statements must be separated by &, ; or a newline")
 		}
-		if p.eof() {
+		if p.tok == EOF {
 			break
 		}
 		if s := p.getStmt(); s == nil {
@@ -775,7 +763,7 @@ func quotedStop(start Token) Token {
 }
 
 func (p *parser) arithmExpr(ftok Token, fpos Pos) ArithmExpr {
-	if p.eof() || p.peekArithmEnd() {
+	if p.tok == EOF || p.peekArithmEnd() {
 		return nil
 	}
 	left := p.arithmExprBase(ftok, fpos)
@@ -783,7 +771,7 @@ func (p *parser) arithmExpr(ftok Token, fpos Pos) ArithmExpr {
 	if q != DRPAREN && q != LPAREN && p.spaced {
 		return left
 	}
-	if p.eof() || p.tok == RPAREN || p.tok == SEMICOLON || dsemicolon(p.tok) {
+	if p.tok == EOF || p.tok == RPAREN || p.tok == SEMICOLON || dsemicolon(p.tok) {
 		return left
 	}
 	if p.tok == LIT || p.tok == LITWORD {
@@ -936,7 +924,7 @@ func (p *parser) arithmEnd(left Pos) Pos {
 }
 
 func (p *parser) peekEnd() bool {
-	return p.eof() || p.newLine || p.tok == SEMICOLON
+	return p.tok == EOF || p.newLine || p.tok == SEMICOLON
 }
 
 func (p *parser) peekStop() bool {
@@ -984,7 +972,7 @@ func (p *parser) getAssign() (*Assign, bool) {
 	if start.Value == "" && p.tok == LPAREN {
 		ae := &ArrayExpr{Lparen: p.pos}
 		p.next()
-		for !p.eof() && p.tok != RPAREN {
+		for p.tok != EOF && p.tok != RPAREN {
 			if w, ok := p.gotWord(); !ok {
 				p.curErr("array elements must be words")
 			} else {
@@ -1303,10 +1291,10 @@ func (p *parser) patLists() (pls []*PatternList) {
 	if p.gotSameLine(SEMICOLON) {
 		return
 	}
-	for !p.eof() && !p.peekRsrv("esac") {
+	for p.tok != EOF && !p.peekRsrv("esac") {
 		pl := &PatternList{}
 		p.got(LPAREN)
-		for !p.eof() {
+		for p.tok != EOF {
 			if w, ok := p.gotWord(); !ok {
 				p.curErr("case patterns must consist of words")
 			} else {
