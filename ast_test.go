@@ -822,7 +822,7 @@ var astTests = []testCase{
 		},
 	},
 	{
-		[]string{"foo 2>file bar"},
+		[]string{"foo 2>file bar", "2>file foo bar"},
 		&Stmt{
 			Cmd: litCall("foo", "bar"),
 			Redirs: []*Redirect{
