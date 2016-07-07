@@ -57,6 +57,8 @@ type parser struct {
 	ltok, tok Token
 	val       string
 
+	buf [8]byte
+
 	pos, npos Pos
 
 	// stack of stop tokens
@@ -375,6 +377,7 @@ byteLoop:
 }
 
 func (p *parser) noneLoopByte(b0 byte) (bs []byte, b byte, willBreak bool, err error) {
+	bs = p.buf[:0]
 	b = b0
 	for {
 		switch b {
