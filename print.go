@@ -81,26 +81,14 @@ func (p *printer) space() {
 	p.wantSpace = false
 }
 
-func (p *printer) spaces(n int) {
+func (p *printer) spaces(sl []byte, n int) {
 	for n > 0 {
-		if n < len(spaces) {
-			_, p.err = p.w.Write(spaces[:n])
+		if n < len(sl) {
+			_, p.err = p.w.Write(sl[:n])
 			break
 		}
-		_, p.err = p.w.Write(spaces)
-		n -= len(spaces)
-	}
-	p.wantSpace = false
-}
-
-func (p *printer) tabs(n int) {
-	for n > 0 {
-		if n < len(tabs) {
-			_, p.err = p.w.Write(tabs[:n])
-			break
-		}
-		_, p.err = p.w.Write(tabs)
-		n -= len(tabs)
+		_, p.err = p.w.Write(sl)
+		n -= len(sl)
 	}
 	p.wantSpace = false
 }
@@ -183,9 +171,9 @@ func (p *printer) indent() {
 	switch {
 	case p.level == 0:
 	case p.c.Spaces == 0:
-		p.tabs(p.level)
+		p.spaces(tabs, p.level)
 	case p.c.Spaces > 0:
-		p.spaces(p.c.Spaces * p.level)
+		p.spaces(spaces, p.c.Spaces * p.level)
 	}
 }
 
@@ -283,7 +271,7 @@ func (p *printer) commentsUpTo(line int) {
 	}
 	p.wantNewline = false
 	if !p.didSeparate(c.Hash) {
-		p.spaces(p.wantSpaces + 1)
+		p.spaces(spaces, p.wantSpaces + 1)
 	}
 	_, p.err = io.WriteString(p.w, "#")
 	_, p.err = io.WriteString(p.w, c.Text)
