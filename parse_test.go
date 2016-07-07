@@ -550,10 +550,6 @@ var errTests = []struct {
 		`1:11: case patterns must consist of words`,
 	},
 	{
-		"case i\r\nin\r\n3) foo;\r\ndone",
-		`1:1: "case x" must be followed by "in"`,
-	},
-	{
 		"\"`\"",
 		`1:3: reached EOF without closing quote "`,
 	},

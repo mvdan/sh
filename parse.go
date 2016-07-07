@@ -236,7 +236,7 @@ func (p *parser) next() {
 skipSpace:
 	for {
 		switch b {
-		case ' ', '\t':
+		case ' ', '\t', '\r':
 			p.spaced = true
 		case '\n':
 			p.spaced = true
@@ -393,7 +393,7 @@ func (p *parser) noneLoopByte(b0 byte) (bs []byte, b byte, willBreak bool, err e
 				return
 			}
 			p.moveWith(b)
-		case ' ', '\t', '\n', '&', '>', '<', '|', ';', '(', ')', '`':
+		case ' ', '\t', '\r', '\n', '&', '>', '<', '|', ';', '(', ')', '`':
 			willBreak = true
 			return
 		case '"', '\'', '$':
@@ -479,9 +479,9 @@ func (p *parser) readHdocBody(end string, noTabs bool) (string, bool) {
 }
 
 func wordBreak(b byte) bool {
-	return b == ' ' || b == '\t' || b == '\n' || b == '&' ||
-		b == '>' || b == '<' || b == '|' || b == ';' ||
-		b == '(' || b == ')' || b == '`'
+	return b == ' ' || b == '\t' || b == '\r' || b == '\n' ||
+		b == '&' || b == '>' || b == '<' || b == '|' ||
+		b == ';' || b == '(' || b == ')' || b == '`'
 }
 
 func (p *parser) got(tok Token) bool {

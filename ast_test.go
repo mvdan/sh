@@ -85,7 +85,7 @@ type testCase struct {
 
 var astTests = []testCase{
 	{
-		[]string{"", " ", "\t", "\n \n"},
+		[]string{"", " ", "\t", "\n \n", "\r \r\n"},
 		nil,
 	},
 	{
@@ -105,7 +105,13 @@ var astTests = []testCase{
 		litWord(`foo\`),
 	},
 	{
-		[]string{"foo\nbar", "foo; bar;", "foo;bar;", "\nfoo\nbar\n"},
+		[]string{
+			"foo\nbar",
+			"foo; bar;",
+			"foo;bar;",
+			"\nfoo\nbar\n",
+			"foo\r\nbar\r\n",
+		},
 		litStmts("foo", "bar"),
 	},
 	{
