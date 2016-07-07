@@ -54,8 +54,8 @@ type parser struct {
 	nextByte     byte
 	err, nextErr error
 
-	ltok, tok Token
-	val       string
+	tok Token
+	val string
 
 	buf [8]byte
 
@@ -436,11 +436,8 @@ func (p *parser) dqLoopByte(b0 byte) (bs []byte, b byte, err error) {
 	}
 }
 
-func (p *parser) advanceTok(tok Token) { p.advanceBoth(tok, "") }
-func (p *parser) advanceBoth(tok Token, val string) {
-	p.ltok = p.tok
-	p.tok, p.val = tok, val
-}
+func (p *parser) advanceTok(tok Token)              { p.advanceBoth(tok, "") }
+func (p *parser) advanceBoth(tok Token, val string) { p.tok, p.val = tok, val }
 
 func (p *parser) readIncluding(b byte) ([]byte, bool) {
 	bs, err := p.br.ReadBytes(b)
@@ -630,6 +627,7 @@ func (p *parser) stmts(stops ...string) (sts []*Stmt) {
 		p.curErr("nested statements not allowed in this word")
 	}
 	q := p.quote
+	gotEnd := true
 	for p.tok != EOF {
 		switch p.tok {
 		case LITWORD:
@@ -645,17 +643,17 @@ func (p *parser) stmts(stops ...string) (sts []*Stmt) {
 				return
 			}
 		}
-		gotEnd := p.newLine || p.ltok == AND || p.ltok == SEMICOLON
-		if len(sts) > 0 && !gotEnd {
+		if !p.newLine && !gotEnd {
 			p.curErr("statements must be separated by &, ; or a newline")
 		}
 		if p.tok == EOF {
 			break
 		}
-		if s := p.getStmt(); s == nil {
+		if s, end := p.getStmt(true); s == nil {
 			p.invalidStmtStart()
 		} else {
 			sts = append(sts, s)
+			gotEnd = end
 		}
 		p.got(STOPPED)
 	}
@@ -1066,8 +1064,8 @@ func (p *parser) doRedirect(s *Stmt) {
 	s.Redirs = append(s.Redirs, r)
 }
 
-func (p *parser) getStmt() *Stmt {
-	s := &Stmt{Position: p.pos}
+func (p *parser) getStmt(readEnd bool) (s *Stmt, gotEnd bool) {
+	s = &Stmt{Position: p.pos}
 	if p.gotRsrv("!") {
 		s.Negated = true
 	}
@@ -1089,23 +1087,26 @@ preLoop:
 			break preLoop
 		}
 		if p.peekEnd() {
-			p.gotSameLine(SEMICOLON)
-			return s
+			gotEnd = p.gotSameLine(SEMICOLON)
+			return
 		}
 	}
 	s, ok := p.gotStmtPipe(s)
 	if !ok && !s.Negated && len(s.Assigns) == 0 {
-		return nil
+		return nil, false
 	}
 	switch p.tok {
 	case LAND, LOR:
-		return p.binaryCmdAndOr(s)
+		s = p.binaryCmdAndOr(s)
 	case AND:
 		p.next()
 		s.Background = true
+		gotEnd = true
 	}
-	p.gotSameLine(SEMICOLON)
-	return s
+	if readEnd && p.gotSameLine(SEMICOLON) {
+		gotEnd = true
+	}
+	return
 }
 
 func (p *parser) gotStmtPipe(s *Stmt) (*Stmt, bool) {
@@ -1172,7 +1173,7 @@ func (p *parser) binaryCmdAndOr(left *Stmt) *Stmt {
 	b := &BinaryCmd{OpPos: p.pos, Op: p.tok, X: left}
 	p.next()
 	p.got(STOPPED)
-	if b.Y = p.getStmt(); b.Y == nil {
+	if b.Y, _ = p.getStmt(false); b.Y == nil {
 		p.followErr(b.OpPos, b.Op.String(), "a statement")
 	}
 	return &Stmt{Position: left.Position, Cmd: b}
@@ -1385,7 +1386,7 @@ func (p *parser) declClause(local bool) *DeclClause {
 func (p *parser) evalClause() *EvalClause {
 	ec := &EvalClause{Eval: p.pos}
 	p.next()
-	ec.Stmt = p.getStmt()
+	ec.Stmt, _ = p.getStmt(false)
 	return ec
 }
 
@@ -1458,7 +1459,7 @@ func (p *parser) funcDecl(name Lit, pos Pos) *FuncDecl {
 		BashStyle: pos != name.ValuePos,
 		Name:      name,
 	}
-	if fd.Body = p.getStmt(); fd.Body == nil {
+	if fd.Body, _ = p.getStmt(false); fd.Body == nil {
 		p.followErr(fd.Pos(), "foo()", "a statement")
 	}
 	return fd
