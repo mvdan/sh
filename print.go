@@ -358,8 +358,8 @@ func (p *printer) wordPart(wp WordPart) {
 	case *Quoted:
 		p.str(quotedOp(x.Quote))
 		for _, n := range x.Parts {
-			p.curLine = n.Pos().Line
 			p.wordPart(n)
+			p.curLine = n.End().Line
 		}
 		p.str(quotedOp(quotedStop(x.Quote)))
 	case *CmdSubst:

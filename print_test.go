@@ -266,6 +266,10 @@ func TestFprintWeirdFormat(t *testing.T) {
 			"a=b \\\nc=d \\\nfoo \\\nbar",
 			"a=b \\\n\tc=d \\\n\tfoo \\\n\tbar",
 		},
+		{
+			"\"foo\nbar\"\netc",
+			"\"foo\nbar\"\netc",
+		},
 	}
 
 	for i, tc := range weirdFormats {
