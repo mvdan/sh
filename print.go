@@ -124,6 +124,10 @@ func (p *printer) str(s string) {
 	_, p.err = p.w.WriteString(s)
 }
 
+func (p *printer) byte(b byte) {
+	p.err = p.w.WriteByte(b)
+}
+
 func (p *printer) strCount(s string) {
 	_, p.err = p.w.WriteString(s)
 	p.wantSpace = true
@@ -353,9 +357,9 @@ func (p *printer) wordPart(wp WordPart) {
 	case *Lit:
 		p.strCount(x.Value)
 	case *SglQuoted:
-		p.str("'")
+		p.byte('\'')
 		p.strCount(x.Value)
-		p.str("'")
+		p.byte('\'')
 	case *Quoted:
 		p.str(quotedOp(x.Quote))
 		for _, n := range x.Parts {
@@ -364,7 +368,7 @@ func (p *printer) wordPart(wp WordPart) {
 		p.str(quotedOp(quotedStop(x.Quote)))
 	case *CmdSubst:
 		if x.Backquotes {
-			p.str("`")
+			p.byte('`')
 		} else {
 			p.str("$(")
 		}
@@ -380,39 +384,39 @@ func (p *printer) wordPart(wp WordPart) {
 		}
 	case *ParamExp:
 		if x.Short {
-			p.str("$")
+			p.byte('$')
 			p.strCount(x.Param.Value)
 			break
 		}
 		p.str("${")
 		if x.Length {
-			p.str("#")
+			p.byte('#')
 		}
 		p.strCount(x.Param.Value)
 		if x.Ind != nil {
-			p.str("[")
+			p.byte('[')
 			p.word(x.Ind.Word)
-			p.str("]")
+			p.byte(']')
 		}
 		if x.Repl != nil {
 			if x.Repl.All {
-				p.str("/")
+				p.byte('/')
 			}
-			p.str("/")
+			p.byte('/')
 			p.word(x.Repl.Orig)
-			p.str("/")
+			p.byte('/')
 			p.word(x.Repl.With)
 		} else if x.Exp != nil {
 			p.str(expansionOp(x.Exp.Op))
 			p.word(x.Exp.Word)
 		}
-		p.str("}")
+		p.byte('}')
 	case *ArithmExp:
 		p.str("$((")
 		p.arithm(x.X, false)
 		p.str("))")
 	case *ArrayExpr:
-		p.str("(")
+		p.byte('(')
 		p.wordJoin(x.List, false)
 		p.sepTok(")", x.Rparen)
 	case *ProcSubst:
@@ -427,7 +431,7 @@ func (p *printer) wordPart(wp WordPart) {
 			p.str(">(")
 		}
 		p.nestedStmts(x.Stmts)
-		p.str(")")
+		p.byte(')')
 	}
 	p.wantSpace = true
 }
@@ -575,9 +579,9 @@ func (p *printer) arithm(expr ArithmExpr, compact bool) {
 			p.arithm(x.X, compact)
 		}
 	case *ParenExpr:
-		p.str("(")
+		p.byte('(')
 		p.arithm(x.X, false)
-		p.str(")")
+		p.byte(')')
 	}
 }
 
@@ -836,7 +840,7 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 				}
 				p.spacedWord(w)
 			}
-			p.str(")")
+			p.byte(')')
 			sep := p.nestedStmts(pl.Stmts)
 			p.level++
 			if !sep {
