@@ -482,10 +482,6 @@ func (p *parser) readHdocBody(end string, noTabs bool) (string, bool) {
 	return buf.String(), false
 }
 
-func (p *parser) peekRsrv(val string) bool {
-	return p.tok == LITWORD && p.val == val
-}
-
 func wordBreak(b byte) bool {
 	return b == ' ' || b == '\t' || b == '\n' || b == '&' ||
 		b == '>' || b == '<' || b == '|' || b == ';' ||
@@ -500,7 +496,7 @@ func (p *parser) got(tok Token) bool {
 	return false
 }
 func (p *parser) gotRsrv(val string) bool {
-	if p.peekRsrv(val) {
+	if p.tok == LITWORD && p.val == val {
 		p.next()
 		return true
 	}
@@ -1335,7 +1331,7 @@ func (p *parser) patLists() (pls []*PatternList) {
 	if p.gotSameLine(SEMICOLON) {
 		return
 	}
-	for p.tok != EOF && !p.peekRsrv("esac") {
+	for p.tok != EOF && !(p.tok == LITWORD && p.val == "esac") {
 		pl := &PatternList{}
 		p.got(LPAREN)
 		for p.tok != EOF {
