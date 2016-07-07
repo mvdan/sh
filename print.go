@@ -54,13 +54,14 @@ func Fprint(w io.Writer, node Node) error {
 	return c.Fprint(w, node)
 }
 
-type stringWriter interface {
+type bufWriter interface {
 	io.Writer
 	WriteString(string) (int, error)
+	WriteByte(byte) error
 }
 
 type printer struct {
-	w   stringWriter
+	w   bufWriter
 	c   PrintConfig
 	err error
 
@@ -97,7 +98,7 @@ var (
 )
 
 func (p *printer) space() {
-	_, p.err = p.w.Write(spaces[:1])
+	p.err = p.w.WriteByte(' ')
 	p.wantSpace = false
 }
 
@@ -200,7 +201,7 @@ func (p *printer) indent() {
 
 func (p *printer) newline() {
 	p.wantNewline = false
-	_, p.err = p.w.WriteString("\n")
+	p.err = p.w.WriteByte('\n')
 	p.wantSpace = false
 	for _, r := range p.pendingHdocs {
 		p.strCount(r.Hdoc.Value)
@@ -214,7 +215,7 @@ func (p *printer) newlines(pos Pos) {
 	p.newline()
 	if pos.Line > p.curLine+1 {
 		// preserve single empty lines
-		_, p.err = p.w.WriteString("\n")
+		p.err = p.w.WriteByte('\n')
 	}
 	p.indent()
 	p.curLine = pos.Line
@@ -295,7 +296,7 @@ func (p *printer) commentsUpTo(line int) {
 	if !p.didSeparate(c.Hash) {
 		p.spaces(spaces, p.wantSpaces+1)
 	}
-	_, p.err = p.w.WriteString("#")
+	p.err = p.w.WriteByte('#')
 	_, p.err = p.w.WriteString(c.Text)
 	p.comments = p.comments[1:]
 	p.commentsUpTo(line)
