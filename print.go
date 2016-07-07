@@ -122,12 +122,6 @@ func (p *printer) byte(b byte) {
 	p.err = p.w.WriteByte(b)
 }
 
-func (p *printer) strCount(s string) {
-	_, p.err = p.w.WriteString(s)
-	p.wantSpace = true
-	p.curLine += strings.Count(s, "\n")
-}
-
 func (p *printer) token(s string, spaceAfter bool) {
 	p.wantSpace = spaceAfter
 	_, p.err = p.w.WriteString(s)
@@ -202,7 +196,8 @@ func (p *printer) newline() {
 	p.err = p.w.WriteByte('\n')
 	p.wantSpace = false
 	for _, r := range p.pendingHdocs {
-		p.strCount(r.Hdoc.Value)
+		p.str(r.Hdoc.Value)
+		p.curLine += strings.Count(r.Hdoc.Value, "\n")
 		p.unquotedWord(&r.Word)
 		p.err = p.w.WriteByte('\n')
 		p.curLine++
@@ -593,7 +588,7 @@ func (p *printer) unquotedWord(w *Word) {
 	for _, wp := range w.Parts {
 		switch x := wp.(type) {
 		case *SglQuoted:
-			p.strCount(x.Value)
+			p.str(x.Value)
 		case *Quoted:
 			for _, qp := range x.Parts {
 				p.wordPart(qp)

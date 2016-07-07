@@ -198,10 +198,15 @@ func (p *parser) next() {
 		}
 		return
 	case DQUOTE:
-		p.pos = p.npos
-		if b == '`' || b == '"' || b == '$' {
+		switch b {
+		case '`', '"', '$':
+			p.pos = p.npos
 			p.advanceTok(p.doDqToken(b))
-		} else {
+		case '\n':
+			p.pos.Column++
+			p.advanceReadLit(b, q)
+		default:
+			p.pos = p.npos
 			p.advanceReadLit(b, q)
 		}
 		return
