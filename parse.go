@@ -268,12 +268,12 @@ skipSpace:
 	case q == RBRACK && b == ']':
 		p.advanceTok(RBRACK)
 	case b == '#' && q != LBRACE:
-		line, _ := p.readIncluding('\n')
+		bs, _ := p.readIncluding('\n')
 		p.nextByte = '\n'
 		if p.mode&ParseComments > 0 {
 			p.file.Comments = append(p.file.Comments, &Comment{
 				Hash: p.pos,
-				Text: line,
+				Text: string(bs),
 			})
 		}
 		p.next()
@@ -440,7 +440,7 @@ func (p *parser) advanceBoth(tok Token, val string) {
 	p.tok, p.val = tok, val
 }
 
-func (p *parser) readIncluding(b byte) (string, bool) {
+func (p *parser) readIncluding(b byte) ([]byte, bool) {
 	bs, err := p.br.ReadBytes(b)
 	if b == '\n' {
 		p.npos.Line++
@@ -450,9 +450,9 @@ func (p *parser) readIncluding(b byte) (string, bool) {
 	}
 	if err != nil {
 		p.nextErr = err
-		return string(bs), false
+		return bs, false
 	}
-	return string(bs[:len(bs)-1]), true
+	return bs[:len(bs)-1], true
 }
 
 func (p *parser) doHeredocs() {
@@ -467,13 +467,14 @@ func (p *parser) doHeredocs() {
 func (p *parser) readHdocBody(end string, noTabs bool) (string, bool) {
 	var buf bytes.Buffer
 	for p.nextErr == nil {
-		line, _ := p.readIncluding('\n')
+		bs, _ := p.readIncluding('\n')
+		line := string(bs)
 		if line == end || (noTabs && strings.TrimLeft(line, "\t") == end) {
 			// add trailing tabs
-			buf.WriteString(line[:len(line)-len(end)])
+			buf.Write(bs[:len(bs)-len(end)])
 			return buf.String(), true
 		}
-		buf.WriteString(line)
+		buf.Write(bs)
 		buf.WriteByte('\n')
 	}
 	return buf.String(), false
@@ -760,11 +761,11 @@ func (p *parser) wordPart() WordPart {
 		return ps
 	case SQUOTE:
 		sq := &SglQuoted{Quote: p.pos}
-		s, found := p.readIncluding('\'')
+		bs, found := p.readIncluding('\'')
 		if !found {
 			p.posErr(sq.Pos(), `reached EOF without closing quote %s`, SQUOTE)
 		}
-		sq.Value = s
+		sq.Value = string(bs)
 		p.next()
 		return sq
 	case DOLLSQ:
