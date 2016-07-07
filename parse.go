@@ -236,6 +236,10 @@ func (p *parser) next() {
 		}
 		return
 	}
+	if p.nextErr != nil {
+		p.errPass(p.nextErr)
+		return
+	}
 skipSpace:
 	for {
 		switch b {
@@ -257,10 +261,12 @@ skipSpace:
 		default:
 			break skipSpace
 		}
-		if b, err = p.readByte(); err != nil {
+		var err error
+		if b, err = p.br.ReadByte(); err != nil {
 			p.errPass(err)
 			return
 		}
+		p.moveWith(b)
 	}
 	p.pos = p.npos
 	switch {
