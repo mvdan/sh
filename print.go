@@ -89,33 +89,27 @@ type printer struct {
 	nestedBinary bool
 }
 
-var (
-	spaces = []byte("                                ")
-	tabs   = []byte("\t\t\t\t\t\t\t\t")
-
-	newl   = []byte("\n")
-	bsNewl = []byte(" \\\n")
-)
-
 func (p *printer) space() {
 	p.err = p.w.WriteByte(' ')
 	p.wantSpace = false
 }
 
-func (p *printer) spaces(sl []byte, n int) {
-	for n > 0 {
-		if n < len(sl) {
-			_, p.err = p.w.Write(sl[:n])
-			break
-		}
-		_, p.err = p.w.Write(sl)
-		n -= len(sl)
+func (p *printer) spaces(n int) {
+	for i := 0; i < n; i++ {
+		p.w.WriteByte(' ')
 	}
 	p.wantSpace = false
 }
 
-func (p *printer) spacesNewl(bs []byte) {
-	_, p.err = p.w.Write(bs)
+func (p *printer) tabs(n int) {
+	for i := 0; i < n; i++ {
+		p.w.WriteByte('\t')
+	}
+	p.wantSpace = false
+}
+
+func (p *printer) bslashNewl() {
+	_, p.err = p.w.WriteString(" \\\n")
 	p.wantSpace = false
 	p.curLine++
 }
@@ -197,9 +191,9 @@ func (p *printer) indent() {
 	switch {
 	case p.level == 0:
 	case p.c.Spaces == 0:
-		p.spaces(tabs, p.level)
+		p.tabs(p.level)
 	case p.c.Spaces > 0:
-		p.spaces(spaces, p.c.Spaces*p.level)
+		p.spaces(p.c.Spaces * p.level)
 	}
 }
 
@@ -210,7 +204,9 @@ func (p *printer) newline() {
 	for _, r := range p.pendingHdocs {
 		p.strCount(r.Hdoc.Value)
 		p.unquotedWord(&r.Word)
-		p.spacesNewl(newl)
+		p.err = p.w.WriteByte('\n')
+		p.curLine++
+		p.wantSpace = false
 	}
 	p.pendingHdocs = nil
 }
@@ -298,7 +294,7 @@ func (p *printer) commentsUpTo(line int) {
 	}
 	p.wantNewline = false
 	if !p.didSeparate(c.Hash) {
-		p.spaces(spaces, p.wantSpaces+1)
+		p.spaces(p.wantSpaces + 1)
 	}
 	p.err = p.w.WriteByte('#')
 	_, p.err = p.w.WriteString(c.Text)
@@ -628,9 +624,10 @@ func (p *printer) wordJoin(ws []Word, needBackslash bool) {
 	for _, w := range ws {
 		if p.curLine > 0 && w.Pos().Line > p.curLine {
 			if needBackslash {
-				p.spacesNewl(bsNewl)
+				p.bslashNewl()
 			} else {
-				p.spacesNewl(newl)
+				p.err = p.w.WriteByte('\n')
+				p.curLine++
 			}
 			if !anyNewline {
 				p.incLevel()
@@ -658,7 +655,7 @@ func (p *printer) stmt(s *Stmt) {
 	anyNewline := false
 	for _, r := range s.Redirs[startRedirs:] {
 		if p.curLine > 0 && r.OpPos.Line > p.curLine {
-			p.spacesNewl(bsNewl)
+			p.bslashNewl()
 			if !anyNewline {
 				p.incLevel()
 				anyNewline = true
@@ -816,7 +813,7 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		ypos := x.Y.Pos()
 		if len(p.pendingHdocs) > 0 {
 		} else if ypos.Line > p.curLine {
-			p.spacesNewl(bsNewl)
+			p.bslashNewl()
 			p.indent()
 		}
 		p.curLine = ypos.Line
@@ -979,7 +976,7 @@ func (p *printer) assigns(assigns []*Assign) {
 	anyNewline := false
 	for _, a := range assigns {
 		if p.curLine > 0 && a.Pos().Line > p.curLine {
-			p.spacesNewl(bsNewl)
+			p.bslashNewl()
 			if !anyNewline {
 				p.incLevel()
 				anyNewline = true
