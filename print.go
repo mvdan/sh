@@ -307,6 +307,37 @@ func quotedOp(tok Token) string {
 	}
 }
 
+func expansionOp(tok Token) string {
+	switch tok {
+	case COLON:
+		return ":"
+	case ADD:
+		return "+"
+	case CADD:
+		return ":+"
+	case SUB:
+		return "-"
+	case CSUB:
+		return ":-"
+	case QUEST:
+		return "?"
+	case CQUEST:
+		return ":?"
+	case ASSIGN:
+		return "="
+	case CASSIGN:
+		return ":="
+	case REM:
+		return "%"
+	case DREM:
+		return "%%"
+	case HASH:
+		return "#"
+	default: // DHASH
+		return "##"
+	}
+}
+
 func (p *printer) wordPart(wp WordPart) {
 	wantedSpace := p.wantSpace
 	p.wantSpace = false
@@ -364,7 +395,7 @@ func (p *printer) wordPart(wp WordPart) {
 			p.str("/")
 			p.word(x.Repl.With)
 		} else if x.Exp != nil {
-			p.str(x.Exp.Op.String())
+			p.str(expansionOp(x.Exp.Op))
 			p.word(x.Exp.Word)
 		}
 		p.str("}")
@@ -381,7 +412,12 @@ func (p *printer) wordPart(wp WordPart) {
 		if wantedSpace {
 			p.space()
 		}
-		p.str(x.Op.String())
+		switch x.Op {
+		case CMDIN:
+			p.str("<(")
+		case CMDOUT:
+			p.str(">(")
+		}
 		p.nestedStmts(x.Stmts)
 		p.str(")")
 	}
@@ -418,6 +454,91 @@ func (p *printer) loop(loop Loop) {
 	}
 }
 
+func binaryExprOp(tok Token) string {
+	switch tok {
+	case ASSIGN:
+		return "="
+	case ADD:
+		return "+"
+	case SUB:
+		return "-"
+	case REM:
+		return "%"
+	case MUL:
+		return "*"
+	case QUO:
+		return "/"
+	case AND:
+		return "&"
+	case OR:
+		return "|"
+	case LAND:
+		return "&&"
+	case LOR:
+		return "||"
+	case XOR:
+		return "^"
+	case POW:
+		return "**"
+	case EQL:
+		return "=="
+	case NEQ:
+		return "!="
+	case LEQ:
+		return "<="
+	case GEQ:
+		return ">="
+	case ADDASSGN:
+		return "+="
+	case SUBASSGN:
+		return "-="
+	case MULASSGN:
+		return "*="
+	case QUOASSGN:
+		return "/="
+	case REMASSGN:
+		return "%="
+	case ANDASSGN:
+		return "&="
+	case ORASSGN:
+		return "|="
+	case XORASSGN:
+		return "^="
+	case SHLASSGN:
+		return "<<="
+	case SHRASSGN:
+		return ">>="
+	case LSS:
+		return "<"
+	case GTR:
+		return ">"
+	case SHL:
+		return "<<"
+	case SHR:
+		return ">>"
+	case QUEST:
+		return "?"
+	case COLON:
+		return ":"
+	default: // COMMA
+		return ","
+	}
+}
+
+func unaryExprOp(tok Token) string {
+	switch tok {
+	case ADD:
+		return "+"
+	case SUB:
+		return "-"
+	case NOT:
+		return "!"
+	case INC:
+		return "++"
+	default: // DEC
+		return "--"
+	}
+}
 func (p *printer) arithm(expr ArithmExpr, compact bool) {
 	p.wantSpace = false
 	switch x := expr.(type) {
@@ -426,25 +547,23 @@ func (p *printer) arithm(expr ArithmExpr, compact bool) {
 	case *BinaryExpr:
 		if compact {
 			p.arithm(x.X, true)
-			p.str(x.Op.String())
+			p.str(binaryExprOp(x.Op))
 			p.arithm(x.Y, true)
 		} else {
 			p.arithm(x.X, false)
-			if x.Op == COMMA {
-				p.str(", ")
-			} else {
-				p.space()
-				p.str(x.Op.String())
+			if x.Op != COMMA {
 				p.space()
 			}
+			p.str(binaryExprOp(x.Op))
+			p.space()
 			p.arithm(x.Y, false)
 		}
 	case *UnaryExpr:
 		if x.Post {
 			p.arithm(x.X, compact)
-			p.str(x.Op.String())
+			p.str(unaryExprOp(x.Op))
 		} else {
-			p.str(x.Op.String())
+			p.str(unaryExprOp(x.Op))
 			p.arithm(x.X, compact)
 		}
 	case *ParenExpr:
@@ -535,7 +654,7 @@ func (p *printer) stmt(s *Stmt) {
 		if r.N != nil {
 			p.strCount(r.N.Value)
 		}
-		p.str(r.Op.String())
+		p.str(redirectOp(r.Op))
 		p.wantSpace = true
 		p.word(r.Word)
 		if r.Op == SHL || r.Op == DHEREDOC {
@@ -570,10 +689,6 @@ func redirectOp(tok Token) string {
 		return "<<-"
 	case WHEREDOC:
 		return "<<<"
-	case CMDIN:
-		return "<("
-	case CMDOUT:
-		return ">("
 	case RDRALL:
 		return "&>"
 	default: // APPALL
