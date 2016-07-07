@@ -134,7 +134,7 @@ type Subshell struct {
 }
 
 func (s *Subshell) Pos() Pos { return s.Lparen }
-func (s *Subshell) End() Pos { return posAfter(s.Rparen, RPAREN) }
+func (s *Subshell) End() Pos { return posAfter(s.Rparen, 1) }
 
 // Block represents a series of commands that should be executed in a
 // nested scope.
@@ -186,7 +186,7 @@ type CStyleCond struct {
 }
 
 func (c *CStyleCond) Pos() Pos { return c.Lparen }
-func (c *CStyleCond) End() Pos { return posAfter(c.Rparen, RPAREN) }
+func (c *CStyleCond) End() Pos { return posAfter(c.Rparen, 1) }
 
 // Elif represents an "else if" case in an if clause.
 type Elif struct {
@@ -252,7 +252,7 @@ type CStyleLoop struct {
 }
 
 func (c *CStyleLoop) Pos() Pos { return c.Lparen }
-func (c *CStyleLoop) End() Pos { return posAfter(c.Rparen, RPAREN) }
+func (c *CStyleLoop) End() Pos { return posAfter(c.Rparen, 1) }
 
 // UnaryExpr represents an unary expression over a node, either before
 // or after it.
@@ -271,7 +271,7 @@ func (u *UnaryExpr) Pos() Pos {
 }
 func (u *UnaryExpr) End() Pos {
 	if u.Post {
-		return posAfter(u.OpPos, u.Op)
+		return posAfter(u.OpPos, len(unaryExprOp(u.Op)))
 	}
 	return u.X.End()
 }
@@ -345,11 +345,11 @@ type SglQuoted struct {
 
 func (q *SglQuoted) Pos() Pos { return q.Quote }
 func (q *SglQuoted) End() Pos {
-	end := posAfter(q.Quote, SQUOTE)
+	end := posAfter(q.Quote, 1)
 	if end.Line != 0 {
 		end = moveWithBytes(end, []byte(q.Value))
 	}
-	return posAfter(end, SQUOTE)
+	return posAfter(end, 1)
 }
 
 // Quoted represents a quoted list of nodes. Single quotes are
@@ -361,7 +361,9 @@ type Quoted struct {
 }
 
 func (q *Quoted) Pos() Pos { return q.QuotePos }
-func (q *Quoted) End() Pos { return posAfter(partsLastEnd(q.Parts), q.Quote) }
+func (q *Quoted) End() Pos {
+	return posAfter(partsLastEnd(q.Parts), len(quotedOp(q.Quote)))
+}
 
 // CmdSubst represents a command substitution.
 type CmdSubst struct {
@@ -371,7 +373,7 @@ type CmdSubst struct {
 }
 
 func (c *CmdSubst) Pos() Pos { return c.Left }
-func (c *CmdSubst) End() Pos { return posAfter(c.Right, RPAREN) }
+func (c *CmdSubst) End() Pos { return posAfter(c.Right, 1) }
 
 // ParamExp represents a parameter expansion.
 type ParamExp struct {
@@ -423,7 +425,7 @@ type ArithmExp struct {
 }
 
 func (a *ArithmExp) Pos() Pos { return a.Dollar }
-func (a *ArithmExp) End() Pos { return posAfter(a.Rparen, DRPAREN) }
+func (a *ArithmExp) End() Pos { return posAfter(a.Rparen, 2) }
 
 // ArithmExpr represents all nodes that form arithmetic expressions.
 type ArithmExpr interface {
@@ -455,7 +457,7 @@ type ParenExpr struct {
 }
 
 func (p *ParenExpr) Pos() Pos { return p.Lparen }
-func (p *ParenExpr) End() Pos { return posAfter(p.Rparen, RPAREN) }
+func (p *ParenExpr) End() Pos { return posAfter(p.Rparen, 1) }
 
 // CaseClause represents a case (switch) clause.
 type CaseClause struct {
@@ -500,7 +502,7 @@ type ArrayExpr struct {
 }
 
 func (a *ArrayExpr) Pos() Pos { return a.Lparen }
-func (a *ArrayExpr) End() Pos { return posAfter(a.Rparen, RPAREN) }
+func (a *ArrayExpr) End() Pos { return posAfter(a.Rparen, 1) }
 
 // ProcSubst represents a Bash process substitution.
 type ProcSubst struct {
@@ -510,7 +512,7 @@ type ProcSubst struct {
 }
 
 func (s *ProcSubst) Pos() Pos { return s.OpPos }
-func (s *ProcSubst) End() Pos { return posAfter(s.Rparen, RPAREN) }
+func (s *ProcSubst) End() Pos { return posAfter(s.Rparen, 1) }
 
 // EvalClause represents a Bash eval clause.
 type EvalClause struct {
@@ -535,11 +537,10 @@ type LetClause struct {
 func (l *LetClause) Pos() Pos { return l.Let }
 func (l *LetClause) End() Pos { return l.Exprs[len(l.Exprs)-1].End() }
 
-func posAfter(pos Pos, tok Token) Pos {
-	if pos.Line == 0 {
-		return pos
+func posAfter(pos Pos, n int) Pos {
+	if pos.Line > 0 {
+		pos.Column += n
 	}
-	pos.Column += len(tok.String())
 	return pos
 }
 

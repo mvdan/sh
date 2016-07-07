@@ -131,11 +131,8 @@ func (p *printer) rsrv(s string) {
 	p.wantSpace = true
 }
 
-func (p *printer) sepRsrv(s string) {
-	if p.wantNewline {
-		p.newline()
-		p.indent()
-	} else if p.wantSpace {
+func (p *printer) spacedRsrv(s string) {
+	if p.wantSpace {
 		p.space()
 	}
 	_, p.err = io.WriteString(p.w, s)
@@ -633,7 +630,7 @@ func (p *printer) wordJoin(ws []Word, needBackslash bool) {
 
 func (p *printer) stmt(s *Stmt) {
 	if s.Negated {
-		p.sepRsrv("!")
+		p.spacedRsrv("!")
 	}
 	p.assigns(s.Assigns)
 	startRedirs := p.command(s.Cmd, s.Redirs)
@@ -748,11 +745,11 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		}
 		p.wordJoin(x.Args[1:], true)
 	case *Block:
-		p.sepRsrv("{")
+		p.spacedRsrv("{")
 		p.nestedStmts(x.Stmts)
 		p.semiRsrv("}", x.Rbrace, true)
 	case *IfClause:
-		p.sepRsrv("if")
+		p.spacedRsrv("if")
 		p.cond(x.Cond)
 		p.semiOrNewl("then", x.Then)
 		p.nestedStmts(x.ThenStmts)
@@ -777,13 +774,13 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		p.nestedStmts(x.Stmts)
 		p.sepTok(")", x.Rparen)
 	case *WhileClause:
-		p.sepRsrv("while")
+		p.spacedRsrv("while")
 		p.cond(x.Cond)
 		p.semiOrNewl("do", x.Do)
 		p.nestedStmts(x.DoStmts)
 		p.semiRsrv("done", x.Done, true)
 	case *ForClause:
-		p.sepRsrv("for ")
+		p.spacedRsrv("for ")
 		p.loop(x.Loop)
 		p.semiOrNewl("do", x.Do)
 		p.nestedStmts(x.DoStmts)
@@ -809,13 +806,13 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		p.nestedBinary = false
 	case *FuncDecl:
 		if x.BashStyle {
-			p.sepRsrv("function ")
+			p.spacedRsrv("function ")
 		}
 		p.strCount(x.Name.Value)
 		p.str("()")
 		p.stmt(x.Body)
 	case *CaseClause:
-		p.sepRsrv("case ")
+		p.spacedRsrv("case ")
 		p.word(x.Word)
 		p.rsrv(" in")
 		p.incLevel()
@@ -844,28 +841,28 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		p.decLevel()
 		p.semiRsrv("esac", x.Esac, len(x.List) == 0)
 	case *UntilClause:
-		p.sepRsrv("until")
+		p.spacedRsrv("until")
 		p.cond(x.Cond)
 		p.semiOrNewl("do", x.Do)
 		p.nestedStmts(x.DoStmts)
 		p.semiRsrv("done", x.Done, true)
 	case *DeclClause:
 		if x.Local {
-			p.sepRsrv("local")
+			p.spacedRsrv("local")
 		} else {
-			p.sepRsrv("declare")
+			p.spacedRsrv("declare")
 		}
 		for _, w := range x.Opts {
 			p.spacedWord(w)
 		}
 		p.assigns(x.Assigns)
 	case *EvalClause:
-		p.sepRsrv("eval")
+		p.spacedRsrv("eval")
 		if x.Stmt != nil {
 			p.stmt(x.Stmt)
 		}
 	case *LetClause:
-		p.sepRsrv("let")
+		p.spacedRsrv("let")
 		for _, n := range x.Exprs {
 			p.space()
 			p.arithm(n, true)
