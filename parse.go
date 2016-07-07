@@ -1091,9 +1091,8 @@ preLoop:
 			return
 		}
 	}
-	s, ok := p.gotStmtPipe(s)
-	if !ok && !s.Negated && len(s.Assigns) == 0 {
-		return nil, false
+	if s = p.gotStmtPipe(s); s == nil {
+		return
 	}
 	switch p.tok {
 	case LAND, LOR:
@@ -1109,7 +1108,7 @@ preLoop:
 	return
 }
 
-func (p *parser) gotStmtPipe(s *Stmt) (*Stmt, bool) {
+func (p *parser) gotStmtPipe(s *Stmt) *Stmt {
 	switch p.tok {
 	case LPAREN:
 		s.Cmd = p.subshell()
@@ -1160,13 +1159,13 @@ func (p *parser) gotStmtPipe(s *Stmt) (*Stmt, bool) {
 	for !p.newLine && p.peekRedir() {
 		p.doRedirect(s)
 	}
-	if s.Cmd == nil && len(s.Redirs) == 0 {
-		return s, false
+	if s.Cmd == nil && len(s.Redirs) == 0 && !s.Negated && len(s.Assigns) == 0 {
+		return nil
 	}
 	if p.tok == OR || p.tok == PIPEALL {
 		s = p.binaryCmdPipe(s)
 	}
-	return s, true
+	return s
 }
 
 func (p *parser) binaryCmdAndOr(left *Stmt) *Stmt {
@@ -1183,9 +1182,7 @@ func (p *parser) binaryCmdPipe(left *Stmt) *Stmt {
 	b := &BinaryCmd{OpPos: p.pos, Op: p.tok, X: left}
 	p.next()
 	p.got(STOPPED)
-	b.Y = &Stmt{Position: p.pos}
-	var ok bool
-	if b.Y, ok = p.gotStmtPipe(b.Y); !ok {
+	if b.Y = p.gotStmtPipe(&Stmt{Position: p.pos}); b.Y == nil {
 		p.followErr(b.OpPos, b.Op.String(), "a statement")
 	}
 	return &Stmt{Position: left.Position, Cmd: b}
