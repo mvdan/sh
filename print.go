@@ -350,7 +350,6 @@ func (p *printer) wordPart(wp WordPart) {
 	switch x := wp.(type) {
 	case *Lit:
 		_, p.err = p.w.WriteString(x.Value)
-		p.curLine += strings.Count(x.Value, "\n")
 	case *SglQuoted:
 		p.byte('\'')
 		_, p.err = p.w.WriteString(x.Value)
@@ -359,6 +358,7 @@ func (p *printer) wordPart(wp WordPart) {
 	case *Quoted:
 		p.str(quotedOp(x.Quote))
 		for _, n := range x.Parts {
+			p.curLine = n.Pos().Line
 			p.wordPart(n)
 		}
 		p.str(quotedOp(quotedStop(x.Quote)))
@@ -382,14 +382,14 @@ func (p *printer) wordPart(wp WordPart) {
 	case *ParamExp:
 		if x.Short {
 			p.byte('$')
-			p.strCount(x.Param.Value)
+			p.str(x.Param.Value)
 			break
 		}
 		p.str("${")
 		if x.Length {
 			p.byte('#')
 		}
-		p.strCount(x.Param.Value)
+		p.str(x.Param.Value)
 		if x.Ind != nil {
 			p.byte('[')
 			p.word(x.Ind.Word)
@@ -448,7 +448,7 @@ func (p *printer) cond(cond Cond) {
 func (p *printer) loop(loop Loop) {
 	switch x := loop.(type) {
 	case *WordIter:
-		p.strCount(x.Name.Value)
+		p.str(x.Name.Value)
 		if len(x.List) > 0 {
 			p.rsrv(" in")
 			p.wordJoin(x.List, true)
@@ -600,9 +600,9 @@ func (p *printer) unquotedWord(w *Word) {
 			}
 		case *Lit:
 			if x.Value[0] == '\\' {
-				p.strCount(x.Value[1:])
+				p.str(x.Value[1:])
 			} else {
-				p.strCount(x.Value)
+				p.str(x.Value)
 			}
 		default:
 			p.wordPart(wp)
@@ -667,7 +667,7 @@ func (p *printer) stmt(s *Stmt) {
 			p.space()
 		}
 		if r.N != nil {
-			p.strCount(r.N.Value)
+			p.str(r.N.Value)
 		}
 		p.str(redirectOp(r.Op))
 		p.wantSpace = true
@@ -754,7 +754,7 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 				p.space()
 			}
 			if r.N != nil {
-				p.strCount(r.N.Value)
+				p.str(r.N.Value)
 			}
 			p.str(redirectOp(r.Op))
 			p.wantSpace = true
@@ -825,10 +825,10 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		p.nestedBinary = false
 	case *FuncDecl:
 		if x.BashStyle {
-			p.spacedRsrv("function ")
+			p.str("function ")
 		}
-		p.strCount(x.Name.Value)
-		p.str("()")
+		p.str(x.Name.Value)
+		p.str("() ")
 		p.stmt(x.Body)
 	case *CaseClause:
 		p.spacedRsrv("case ")
