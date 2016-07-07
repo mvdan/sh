@@ -30,20 +30,20 @@ var readerFree = sync.Pool{
 // an error is returned.
 func Parse(r io.Reader, name string, mode Mode) (*File, error) {
 	p := parser{
-		br:   readerFree.Get().(*bufio.Reader),
+		r:    readerFree.Get().(*bufio.Reader),
 		file: &File{Name: name},
 		mode: mode,
 		npos: Pos{Line: 1},
 	}
-	p.br.Reset(r)
+	p.r.Reset(r)
 	p.next()
 	p.file.Stmts = p.stmts()
-	readerFree.Put(p.br)
+	readerFree.Put(p.r)
 	return p.file, p.err
 }
 
 type parser struct {
-	br *bufio.Reader
+	r *bufio.Reader
 
 	file *File
 	mode Mode
@@ -112,7 +112,7 @@ func (p *parser) willRead(b byte) bool {
 	if p.nextErr != nil {
 		return false
 	}
-	bs, err := p.br.Peek(1)
+	bs, err := p.r.Peek(1)
 	if err != nil {
 		p.nextErr = err
 		return false
@@ -122,7 +122,7 @@ func (p *parser) willRead(b byte) bool {
 
 func (p *parser) readOnly(b byte) bool {
 	if p.willRead(b) {
-		p.br.ReadByte()
+		p.r.ReadByte()
 		p.moveWith(b)
 		return true
 	}
@@ -165,7 +165,7 @@ func (p *parser) next() {
 			p.errPass(err)
 			return
 		}
-		if b, err = p.br.ReadByte(); err != nil {
+		if b, err = p.r.ReadByte(); err != nil {
 			p.errPass(err)
 			return
 		}
@@ -255,7 +255,7 @@ skipSpace:
 			break skipSpace
 		}
 		var err error
-		if b, err = p.br.ReadByte(); err != nil {
+		if b, err = p.r.ReadByte(); err != nil {
 			p.errPass(err)
 			return
 		}
@@ -333,7 +333,7 @@ byteLoop:
 	for {
 		switch {
 		case b == '\\': // escaped byte follows
-			if b, err = p.br.ReadByte(); err != nil {
+			if b, err = p.r.ReadByte(); err != nil {
 				bs = append(bs, '\\')
 				return
 			}
@@ -341,7 +341,7 @@ byteLoop:
 			if b != '\n' {
 				bs = append(bs, '\\', b)
 			}
-			if b, err = p.br.ReadByte(); err != nil {
+			if b, err = p.r.ReadByte(); err != nil {
 				return
 			}
 			p.moveWith(b)
@@ -368,7 +368,7 @@ byteLoop:
 			return
 		}
 		bs = append(bs, b)
-		if b, err = p.br.ReadByte(); err != nil {
+		if b, err = p.r.ReadByte(); err != nil {
 			return
 		}
 		p.moveWith(b)
@@ -381,7 +381,7 @@ func (p *parser) noneLoopByte(b0 byte) (bs []byte, b byte, willBreak bool, err e
 	for {
 		switch b {
 		case '\\': // escaped byte follows
-			if b, err = p.br.ReadByte(); err != nil {
+			if b, err = p.r.ReadByte(); err != nil {
 				bs = append(bs, '\\')
 				return
 			}
@@ -389,7 +389,7 @@ func (p *parser) noneLoopByte(b0 byte) (bs []byte, b byte, willBreak bool, err e
 			if b != '\n' {
 				bs = append(bs, '\\', b)
 			}
-			if b, err = p.br.ReadByte(); err != nil {
+			if b, err = p.r.ReadByte(); err != nil {
 				return
 			}
 			p.moveWith(b)
@@ -400,7 +400,7 @@ func (p *parser) noneLoopByte(b0 byte) (bs []byte, b byte, willBreak bool, err e
 			return
 		default:
 			bs = append(bs, b)
-			if b, err = p.br.ReadByte(); err != nil {
+			if b, err = p.r.ReadByte(); err != nil {
 				return
 			}
 			p.moveWith(b)
@@ -413,13 +413,13 @@ func (p *parser) dqLoopByte(b0 byte) (bs []byte, b byte, err error) {
 	for {
 		switch b {
 		case '\\': // escaped byte follows
-			if b, err = p.br.ReadByte(); err != nil {
+			if b, err = p.r.ReadByte(); err != nil {
 				bs = append(bs, '\\')
 				return
 			}
 			p.moveWith(b)
 			bs = append(bs, '\\', b)
-			if b, err = p.br.ReadByte(); err != nil {
+			if b, err = p.r.ReadByte(); err != nil {
 				return
 			}
 			p.moveWith(b)
@@ -427,7 +427,7 @@ func (p *parser) dqLoopByte(b0 byte) (bs []byte, b byte, err error) {
 			return
 		default:
 			bs = append(bs, b)
-			if b, err = p.br.ReadByte(); err != nil {
+			if b, err = p.r.ReadByte(); err != nil {
 				return
 			}
 			p.moveWith(b)
@@ -439,7 +439,7 @@ func (p *parser) advanceTok(tok Token)              { p.advanceBoth(tok, "") }
 func (p *parser) advanceBoth(tok Token, val string) { p.tok, p.val = tok, val }
 
 func (p *parser) readIncluding(b byte) ([]byte, bool) {
-	bs, err := p.br.ReadBytes(b)
+	bs, err := p.r.ReadBytes(b)
 	if b == '\n' {
 		p.npos.Line++
 		p.npos.Column = 0
@@ -733,7 +733,7 @@ func (p *parser) wordPart() WordPart {
 			p.errPass(p.nextErr)
 		} else {
 			var err error
-			if b, err = p.br.ReadByte(); err != nil {
+			if b, err = p.r.ReadByte(); err != nil {
 				p.errPass(err)
 			}
 		}
@@ -957,7 +957,7 @@ func (p *parser) arithmEnd(left Pos) Pos {
 	if !p.peekArithmEnd() {
 		p.matchingErr(left, DLPAREN, DRPAREN)
 	}
-	p.br.ReadByte()
+	p.r.ReadByte()
 	p.moveWith(')')
 	p.popStop()
 	pos := p.pos
