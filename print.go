@@ -616,7 +616,9 @@ func (p *printer) spacedWord(w Word) {
 	if p.wantSpace {
 		p.space()
 	}
-	p.word(w)
+	for _, n := range w.Parts {
+		p.wordPart(n)
+	}
 }
 
 func (p *printer) wordJoin(ws []Word, needBackslash bool) {
@@ -636,7 +638,9 @@ func (p *printer) wordJoin(ws []Word, needBackslash bool) {
 		} else if p.wantSpace {
 			p.space()
 		}
-		p.word(w)
+		for _, n := range w.Parts {
+			p.wordPart(n)
+		}
 	}
 	if anyNewline {
 		p.decLevel()
