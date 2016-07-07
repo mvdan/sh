@@ -188,7 +188,7 @@ func (p *printer) indent() {
 	case p.c.Spaces == 0:
 		p.tabs(p.level)
 	case p.c.Spaces > 0:
-		p.spaces(p.c.Spaces*p.level)
+		p.spaces(p.c.Spaces * p.level)
 	}
 }
 
@@ -286,12 +286,25 @@ func (p *printer) commentsUpTo(line int) {
 	}
 	p.wantNewline = false
 	if !p.didSeparate(c.Hash) {
-		p.spaces(p.wantSpaces+1)
+		p.spaces(p.wantSpaces + 1)
 	}
 	_, p.err = io.WriteString(p.w, "#")
 	_, p.err = io.WriteString(p.w, c.Text)
 	p.comments = p.comments[1:]
 	p.commentsUpTo(line)
+}
+
+func quotedOp(tok Token) string {
+	switch tok {
+	case DQUOTE:
+		return `"`
+	case DOLLSQ:
+		return `$'`
+	case SQUOTE:
+		return `'`
+	default: // DOLLDQ
+		return `$"`
+	}
 }
 
 func (p *printer) wordPart(wp WordPart) {
@@ -305,11 +318,11 @@ func (p *printer) wordPart(wp WordPart) {
 		p.strCount(x.Value)
 		p.str("'")
 	case *Quoted:
-		p.str(x.Quote.String())
+		p.str(quotedOp(x.Quote))
 		for _, n := range x.Parts {
 			p.wordPart(n)
 		}
-		p.str(quotedStop(x.Quote).String())
+		p.str(quotedOp(quotedStop(x.Quote)))
 	case *CmdSubst:
 		if x.Backquotes {
 			p.str("`")
@@ -537,6 +550,61 @@ func (p *printer) stmt(s *Stmt) {
 	}
 }
 
+func redirectOp(tok Token) string {
+	switch tok {
+	case LSS:
+		return "<"
+	case GTR:
+		return ">"
+	case SHL:
+		return "<<"
+	case SHR:
+		return ">>"
+	case RDRINOUT:
+		return "<>"
+	case DPLIN:
+		return "<&"
+	case DPLOUT:
+		return ">&"
+	case DHEREDOC:
+		return "<<-"
+	case WHEREDOC:
+		return "<<<"
+	case CMDIN:
+		return "<("
+	case CMDOUT:
+		return ">("
+	case RDRALL:
+		return "&>"
+	default: // APPALL
+		return "&>>"
+	}
+}
+
+func binaryCmdOp(tok Token) string {
+	switch tok {
+	case OR:
+		return "|"
+	case LAND:
+		return "&&"
+	case LOR:
+		return "||"
+	default: // PIPEALL
+		return "|&"
+	}
+}
+
+func caseClauseOp(tok Token) string {
+	switch tok {
+	case DSEMICOLON:
+		return ";;"
+	case SEMIFALL:
+		return ";&"
+	default: // DSEMIFALL
+		return ";;&"
+	}
+}
+
 func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 	switch x := cmd.(type) {
 	case *CallExpr:
@@ -558,7 +626,7 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			if r.N != nil {
 				p.strCount(r.N.Value)
 			}
-			p.str(r.Op.String())
+			p.str(redirectOp(r.Op))
 			p.wantSpace = true
 			p.word(r.Word)
 			startRedirs++
@@ -618,7 +686,7 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			p.indent()
 		}
 		p.curLine = x.Y.Pos().Line
-		p.spacedTok(x.Op.String(), true)
+		p.spacedTok(binaryCmdOp(x.Op), true)
 		p.stmt(x.Y)
 		if indent {
 			p.decLevel()
@@ -652,7 +720,7 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			} else if pl.OpPos.Line == p.curLine && pl.OpPos != x.Esac {
 				p.curLine--
 			}
-			p.sepTok(pl.Op.String(), pl.OpPos)
+			p.sepTok(caseClauseOp(pl.Op), pl.OpPos)
 			if pl.OpPos == x.Esac {
 				p.curLine--
 			}
