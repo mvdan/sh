@@ -46,14 +46,13 @@ type parser struct {
 	br *bufio.Reader
 
 	file *File
-	err  error
 	mode Mode
 
 	spaced, newLine           bool
 	stopNewline, forbidNested bool
 
-	nextErr  error
-	nextByte byte
+	nextByte     byte
+	err, nextErr error
 
 	ltok, tok Token
 	val       string

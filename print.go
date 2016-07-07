@@ -65,9 +65,11 @@ type printer struct {
 	c   PrintConfig
 	err error
 
+	nestedBinary bool
+
 	wantSpace   bool
-	wantSpaces  int
 	wantNewline bool
+	wantSpaces  int
 
 	// curLine is the line that is currently being printed (counted
 	// in original lines).
@@ -85,8 +87,6 @@ type printer struct {
 
 	// pendingHdocs is the list of pending heredocs to write.
 	pendingHdocs []*Redirect
-
-	nestedBinary bool
 }
 
 func (p *printer) space() {
