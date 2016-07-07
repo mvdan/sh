@@ -275,8 +275,20 @@ func TestFprintWeirdFormat(t *testing.T) {
 			"\"foo\nbar\nbar2\"\netc",
 		},
 		{
-			"\"\n\"\n\netc",
-			"\"\n\"\n\netc",
+			"\"\n\"\n\nfoo",
+			"\"\n\"\n\nfoo",
+		},
+		{
+			"$\"\n\"\n\nfoo",
+			"$\"\n\"\n\nfoo",
+		},
+		{
+			"'\n'\n\nfoo",
+			"'\n'\n\nfoo",
+		},
+		{
+			"$'\n'\n\nfoo",
+			"$'\n'\n\nfoo",
 		},
 	}
 

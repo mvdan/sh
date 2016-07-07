@@ -222,10 +222,15 @@ func (p *parser) next() {
 		}
 		return
 	case SQUOTE:
-		p.pos = p.npos
-		if b == '\'' {
+		switch b {
+		case '\'':
+			p.pos = p.npos
 			p.advanceTok(SQUOTE)
-		} else {
+		case '\n':
+			p.pos.Column++
+			p.advanceReadLit(b, q)
+		default:
+			p.pos = p.npos
 			p.advanceReadLit(b, q)
 		}
 		return
