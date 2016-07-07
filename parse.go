@@ -460,10 +460,11 @@ func (p *parser) readHdocBody(end string, noTabs bool) (string, bool) {
 		line, _ := p.readIncluding('\n')
 		if line == end || (noTabs && strings.TrimLeft(line, "\t") == end) {
 			// add trailing tabs
-			fmt.Fprint(&buf, line[:len(line)-len(end)])
+			buf.WriteString(line[:len(line)-len(end)])
 			return buf.String(), true
 		}
-		fmt.Fprintln(&buf, line)
+		buf.WriteString(line)
+		buf.WriteByte('\n')
 	}
 	return buf.String(), false
 }
