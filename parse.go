@@ -432,7 +432,12 @@ func (p *parser) advanceBoth(tok Token, val string) {
 
 func (p *parser) readIncluding(b byte) (string, bool) {
 	bs, err := p.br.ReadBytes(b)
-	p.npos = moveWithBytes(p.npos, bs)
+	if b == '\n' {
+		p.npos.Line++
+		p.npos.Column = 0
+	} else {
+		p.npos = moveWithBytes(p.npos, bs)
+	}
 	if err != nil {
 		p.nextErr = err
 		return string(bs), false
