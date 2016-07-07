@@ -792,12 +792,13 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			p.incLevel()
 		}
 		_, p.nestedBinary = x.Y.Cmd.(*BinaryCmd)
+		ypos := x.Y.Pos()
 		if len(p.pendingHdocs) > 0 {
-		} else if x.Y.Pos().Line > p.curLine {
+		} else if ypos.Line > p.curLine {
 			p.spacesNewl(bsNewl)
 			p.indent()
 		}
-		p.curLine = x.Y.Pos().Line
+		p.curLine = ypos.Line
 		p.spacedTok(binaryCmdOp(x.Op), true)
 		p.stmt(x.Y)
 		if indent {
@@ -883,16 +884,19 @@ func (p *printer) stmts(stmts []*Stmt) bool {
 	if len(stmts) == 0 {
 		return false
 	}
-	if len(stmts) == 1 && stmts[0].Pos().Line == p.curLine {
+	pos := stmts[0].Pos()
+	if len(stmts) == 1 && pos.Line == p.curLine {
 		s := stmts[0]
-		p.didSeparate(s.Pos())
+		p.didSeparate(pos)
 		p.stmt(s)
 		return false
 	}
 	inlineIndent := 0
-	lastLine := stmts[0].Pos().Line
+	lastLine := pos.Line
 	for i, s := range stmts {
-		pos := s.Pos()
+		if i > 0 {
+			pos = s.Pos()
+		}
 		p.alwaysSeparate(pos)
 		p.stmt(s)
 		if pos.Line > lastLine+1 {
@@ -904,16 +908,16 @@ func (p *printer) stmts(stmts []*Stmt) bool {
 			continue
 		}
 		if inlineIndent == 0 {
-			lastLine := s.Pos().Line
+			lastLine := pos.Line
 			for _, s2 := range stmts[i:] {
-				pos := s2.Pos()
-				if !p.hasInline(pos) || pos.Line > lastLine+1 {
+				pos2 := s2.Pos()
+				if !p.hasInline(pos2) || pos2.Line > lastLine+1 {
 					break
 				}
 				if l := stmtLen(s2); l > inlineIndent {
 					inlineIndent = l
 				}
-				lastLine = pos.Line
+				lastLine = pos2.Line
 			}
 		}
 		p.wantSpaces = inlineIndent - stmtLen(s)
