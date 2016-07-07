@@ -4,10 +4,12 @@
 package sh
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"io"
 	"strings"
+	"sync"
 )
 
 // PrintConfig controls how the printing of an AST node will behave.
@@ -15,20 +17,33 @@ type PrintConfig struct {
 	Spaces int // 0 (default) for tabs, >0 for number of spaces
 }
 
+var writerFree = sync.Pool{
+	New: func() interface{} { return bufio.NewWriter(nil) },
+}
+
 // Fprint "pretty-prints" the given AST node to the given writer.
 func (c PrintConfig) Fprint(w io.Writer, node Node) error {
-	p := printer{w: w, c: c}
+	bw := writerFree.Get().(*bufio.Writer)
+	bw.Reset(w)
+	p := printer{
+		w: bw,
+		c: c,
+	}
 	switch x := node.(type) {
 	case *File:
 		p.comments = x.Comments
 		p.stmts(x.Stmts)
 		p.commentsUpTo(0)
+		p.newline()
 	case *Stmt:
 		p.stmt(x)
 	default:
-		return fmt.Errorf("unsupported root node: %T", node)
+		p.err = fmt.Errorf("unsupported root node: %T", node)
 	}
-	p.newline()
+	if p.err == nil {
+		p.err = bw.Flush()
+	}
+	writerFree.Put(p.w)
 	return p.err
 }
 
@@ -39,8 +54,13 @@ func Fprint(w io.Writer, node Node) error {
 	return c.Fprint(w, node)
 }
 
+type stringWriter interface {
+	io.Writer
+	WriteString(string) (int, error)
+}
+
 type printer struct {
-	w   io.Writer
+	w   stringWriter
 	c   PrintConfig
 	err error
 
@@ -100,22 +120,22 @@ func (p *printer) spacesNewl(bs []byte) {
 }
 
 func (p *printer) str(s string) {
-	_, p.err = io.WriteString(p.w, s)
+	_, p.err = p.w.WriteString(s)
 }
 
 func (p *printer) strCount(s string) {
-	_, p.err = io.WriteString(p.w, s)
+	_, p.err = p.w.WriteString(s)
 	p.wantSpace = true
 	p.curLine += strings.Count(s, "\n")
 }
 
 func (p *printer) token(s string, spaceAfter bool) {
 	p.wantSpace = spaceAfter
-	_, p.err = io.WriteString(p.w, s)
+	_, p.err = p.w.WriteString(s)
 }
 
 func (p *printer) rsrv(s string) {
-	_, p.err = io.WriteString(p.w, s)
+	_, p.err = p.w.WriteString(s)
 	p.wantSpace = true
 }
 
@@ -123,7 +143,7 @@ func (p *printer) spacedRsrv(s string) {
 	if p.wantSpace {
 		p.space()
 	}
-	_, p.err = io.WriteString(p.w, s)
+	_, p.err = p.w.WriteString(s)
 	p.wantSpace = true
 }
 
@@ -131,7 +151,8 @@ func (p *printer) spacedTok(s string, spaceAfter bool) {
 	if p.wantSpace {
 		p.space()
 	}
-	p.token(s, spaceAfter)
+	p.wantSpace = spaceAfter
+	_, p.err = p.w.WriteString(s)
 }
 
 func (p *printer) semiOrNewl(s string, pos Pos) {
@@ -141,7 +162,7 @@ func (p *printer) semiOrNewl(s string, pos Pos) {
 	} else {
 		p.str("; ")
 	}
-	_, p.err = io.WriteString(p.w, s)
+	_, p.err = p.w.WriteString(s)
 	p.wantSpace = true
 	p.curLine = pos.Line
 }
@@ -173,13 +194,13 @@ func (p *printer) indent() {
 	case p.c.Spaces == 0:
 		p.spaces(tabs, p.level)
 	case p.c.Spaces > 0:
-		p.spaces(spaces, p.c.Spaces * p.level)
+		p.spaces(spaces, p.c.Spaces*p.level)
 	}
 }
 
 func (p *printer) newline() {
 	p.wantNewline = false
-	_, p.err = io.WriteString(p.w, "\n")
+	_, p.err = p.w.WriteString("\n")
 	p.wantSpace = false
 	for _, r := range p.pendingHdocs {
 		p.strCount(r.Hdoc.Value)
@@ -193,7 +214,7 @@ func (p *printer) newlines(pos Pos) {
 	p.newline()
 	if pos.Line > p.curLine+1 {
 		// preserve single empty lines
-		_, p.err = io.WriteString(p.w, "\n")
+		_, p.err = p.w.WriteString("\n")
 	}
 	p.indent()
 	p.curLine = pos.Line
@@ -227,11 +248,11 @@ func (p *printer) sepTok(s string, pos Pos) {
 	p.commentsUpTo(pos.Line)
 	p.level--
 	p.didSeparate(pos)
-	if s == ")" {
-		p.token(s, true)
-	} else {
-		p.spacedTok(s, true)
+	if s != ")" && p.wantSpace {
+		p.space()
 	}
+	_, p.err = p.w.WriteString(s)
+	p.wantSpace = true
 }
 
 func (p *printer) semiRsrv(s string, pos Pos, fallback bool) {
@@ -243,7 +264,8 @@ func (p *printer) semiRsrv(s string, pos Pos, fallback bool) {
 	} else if p.wantSpace {
 		p.space()
 	}
-	p.rsrv(s)
+	_, p.err = p.w.WriteString(s)
+	p.wantSpace = true
 }
 
 func (p *printer) hasInline(pos Pos) bool {
@@ -271,10 +293,10 @@ func (p *printer) commentsUpTo(line int) {
 	}
 	p.wantNewline = false
 	if !p.didSeparate(c.Hash) {
-		p.spaces(spaces, p.wantSpaces + 1)
+		p.spaces(spaces, p.wantSpaces+1)
 	}
-	_, p.err = io.WriteString(p.w, "#")
-	_, p.err = io.WriteString(p.w, c.Text)
+	_, p.err = p.w.WriteString("#")
+	_, p.err = p.w.WriteString(c.Text)
 	p.comments = p.comments[1:]
 	p.commentsUpTo(line)
 }

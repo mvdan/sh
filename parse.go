@@ -21,7 +21,7 @@ const (
 	ParseComments Mode = 1 << iota // add comments to the AST
 )
 
-var bufFree = sync.Pool{
+var readerFree = sync.Pool{
 	New: func() interface{} { return bufio.NewReader(nil) },
 }
 
@@ -30,7 +30,7 @@ var bufFree = sync.Pool{
 // an error is returned.
 func Parse(r io.Reader, name string, mode Mode) (*File, error) {
 	p := parser{
-		br:   bufFree.Get().(*bufio.Reader),
+		br:   readerFree.Get().(*bufio.Reader),
 		file: &File{Name: name},
 		mode: mode,
 		npos: Pos{Line: 1},
@@ -38,7 +38,7 @@ func Parse(r io.Reader, name string, mode Mode) (*File, error) {
 	p.br.Reset(r)
 	p.next()
 	p.file.Stmts = p.stmts()
-	bufFree.Put(p.br)
+	readerFree.Put(p.br)
 	return p.file, p.err
 }
 
