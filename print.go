@@ -113,6 +113,10 @@ func (p *printer) spacesNewl(bs []byte) {
 
 func (p *printer) str(s string) {
 	_, p.err = io.WriteString(p.w, s)
+}
+
+func (p *printer) strCount(s string) {
+	_, p.err = io.WriteString(p.w, s)
 	p.wantSpace = true
 	p.curLine += strings.Count(s, "\n")
 }
@@ -122,7 +126,12 @@ func (p *printer) token(s string, spaceAfter bool) {
 	_, p.err = io.WriteString(p.w, s)
 }
 
-func (p *printer) rsrvWord(s string) {
+func (p *printer) rsrv(s string) {
+	_, p.err = io.WriteString(p.w, s)
+	p.wantSpace = true
+}
+
+func (p *printer) sepRsrv(s string) {
 	if p.wantNewline {
 		p.newline()
 		p.indent()
@@ -141,10 +150,14 @@ func (p *printer) spacedTok(s string, spaceAfter bool) {
 }
 
 func (p *printer) semiOrNewl(s string, pos Pos) {
-	if !p.wantNewline {
-		p.token(";", true)
+	if p.wantNewline {
+		p.newline()
+		p.indent()
+	} else {
+		p.str("; ")
 	}
-	p.rsrvWord(s)
+	_, p.err = io.WriteString(p.w, s)
+	p.wantSpace = true
 	p.curLine = pos.Line
 }
 
@@ -184,7 +197,7 @@ func (p *printer) newline() {
 	_, p.err = io.WriteString(p.w, "\n")
 	p.wantSpace = false
 	for _, r := range p.pendingHdocs {
-		p.str(r.Hdoc.Value)
+		p.strCount(r.Hdoc.Value)
 		p.unquotedWord(&r.Word)
 		p.spacesNewl(newl)
 	}
@@ -236,14 +249,16 @@ func (p *printer) sepTok(s string, pos Pos) {
 	}
 }
 
-func (p *printer) sepRsrv(s string, pos Pos, fallback bool) {
+func (p *printer) semiRsrv(s string, pos Pos, fallback bool) {
 	p.level++
 	p.commentsUpTo(pos.Line)
 	p.level--
 	if !p.didSeparate(pos) && fallback {
-		p.token(";", true)
+		p.str("; ")
+	} else if p.wantSpace {
+		p.space()
 	}
-	p.rsrvWord(s)
+	p.rsrv(s)
 }
 
 func (p *printer) hasInline(pos Pos) bool {
@@ -280,24 +295,26 @@ func (p *printer) commentsUpTo(line int) {
 }
 
 func (p *printer) wordPart(wp WordPart) {
+	wantedSpace := p.wantSpace
+	p.wantSpace = false
 	switch x := wp.(type) {
 	case *Lit:
-		p.str(x.Value)
+		p.strCount(x.Value)
 	case *SglQuoted:
-		p.token("'", true)
-		p.str(x.Value)
-		p.token("'", true)
+		p.str("'")
+		p.strCount(x.Value)
+		p.str("'")
 	case *Quoted:
-		p.token(x.Quote.String(), true)
+		p.str(x.Quote.String())
 		for _, n := range x.Parts {
 			p.wordPart(n)
 		}
-		p.token(quotedStop(x.Quote).String(), true)
+		p.str(quotedStop(x.Quote).String())
 	case *CmdSubst:
 		if x.Backquotes {
-			p.token("`", false)
+			p.str("`")
 		} else {
-			p.token("$(", false)
+			p.str("$(")
 		}
 		if startsWithLparen(x.Stmts) {
 			p.space()
@@ -311,47 +328,51 @@ func (p *printer) wordPart(wp WordPart) {
 		}
 	case *ParamExp:
 		if x.Short {
-			p.token("$", true)
-			p.str(x.Param.Value)
+			p.str("$")
+			p.strCount(x.Param.Value)
 			break
 		}
-		p.token("${", true)
+		p.str("${")
 		if x.Length {
-			p.token("#", true)
+			p.str("#")
 		}
-		p.str(x.Param.Value)
+		p.strCount(x.Param.Value)
 		if x.Ind != nil {
-			p.token("[", true)
+			p.str("[")
 			p.word(x.Ind.Word)
-			p.token("]", true)
+			p.str("]")
 		}
 		if x.Repl != nil {
 			if x.Repl.All {
-				p.token("/", true)
+				p.str("/")
 			}
-			p.token("/", true)
+			p.str("/")
 			p.word(x.Repl.Orig)
-			p.token("/", true)
+			p.str("/")
 			p.word(x.Repl.With)
 		} else if x.Exp != nil {
-			p.token(x.Exp.Op.String(), true)
+			p.str(x.Exp.Op.String())
 			p.word(x.Exp.Word)
 		}
-		p.token("}", true)
+		p.str("}")
 	case *ArithmExp:
-		p.token("$((", false)
+		p.str("$((")
 		p.arithm(x.X, false)
-		p.token("))", true)
+		p.str("))")
 	case *ArrayExpr:
-		p.token("(", false)
+		p.str("(")
 		p.wordJoin(x.List, false)
 		p.sepTok(")", x.Rparen)
 	case *ProcSubst:
 		// avoid conflict with << and others
-		p.spacedTok(x.Op.String(), false)
+		if wantedSpace {
+			p.space()
+		}
+		p.str(x.Op.String())
 		p.nestedStmts(x.Stmts)
-		p.token(")", true)
+		p.str(")")
 	}
+	p.wantSpace = true
 }
 
 func (p *printer) cond(cond Cond) {
@@ -361,59 +382,62 @@ func (p *printer) cond(cond Cond) {
 	case *CStyleCond:
 		p.spacedTok("((", false)
 		p.arithm(x.X, false)
-		p.token("))", true)
+		p.str("))")
 	}
 }
 
 func (p *printer) loop(loop Loop) {
 	switch x := loop.(type) {
 	case *WordIter:
-		p.str(x.Name.Value)
+		p.strCount(x.Name.Value)
 		if len(x.List) > 0 {
-			p.rsrvWord("in")
+			p.rsrv(" in")
 			p.wordJoin(x.List, true)
 		}
 	case *CStyleLoop:
-		p.token("((", false)
+		p.str("((")
 		p.arithm(x.Init, false)
-		p.token(";", true)
+		p.str("; ")
 		p.arithm(x.Cond, false)
-		p.token(";", true)
+		p.str("; ")
 		p.arithm(x.Post, false)
-		p.token("))", true)
+		p.str("))")
 	}
 }
 
 func (p *printer) arithm(expr ArithmExpr, compact bool) {
+	p.wantSpace = false
 	switch x := expr.(type) {
 	case *Word:
 		p.spacedWord(*x)
 	case *BinaryExpr:
 		if compact {
 			p.arithm(x.X, true)
-			p.token(x.Op.String(), false)
+			p.str(x.Op.String())
 			p.arithm(x.Y, true)
 		} else {
 			p.arithm(x.X, false)
 			if x.Op == COMMA {
-				p.token(",", true)
+				p.str(", ")
 			} else {
-				p.spacedTok(x.Op.String(), true)
+				p.space()
+				p.str(x.Op.String())
+				p.space()
 			}
 			p.arithm(x.Y, false)
 		}
 	case *UnaryExpr:
 		if x.Post {
 			p.arithm(x.X, compact)
-			p.token(x.Op.String(), true)
+			p.str(x.Op.String())
 		} else {
-			p.spacedTok(x.Op.String(), false)
+			p.str(x.Op.String())
 			p.arithm(x.X, compact)
 		}
 	case *ParenExpr:
-		p.spacedTok("(", false)
+		p.str("(")
 		p.arithm(x.X, false)
-		p.token(")", true)
+		p.str(")")
 	}
 }
 
@@ -427,16 +451,16 @@ func (p *printer) unquotedWord(w *Word) {
 	for _, wp := range w.Parts {
 		switch x := wp.(type) {
 		case *SglQuoted:
-			p.str(x.Value)
+			p.strCount(x.Value)
 		case *Quoted:
 			for _, qp := range x.Parts {
 				p.wordPart(qp)
 			}
 		case *Lit:
 			if x.Value[0] == '\\' {
-				p.str(x.Value[1:])
+				p.strCount(x.Value[1:])
 			} else {
-				p.str(x.Value)
+				p.strCount(x.Value)
 			}
 		default:
 			p.wordPart(wp)
@@ -477,7 +501,7 @@ func (p *printer) wordJoin(ws []Word, needBackslash bool) {
 
 func (p *printer) stmt(s *Stmt) {
 	if s.Negated {
-		p.rsrvWord("!")
+		p.sepRsrv("!")
 	}
 	p.assigns(s.Assigns)
 	startRedirs := p.command(s.Cmd, s.Redirs)
@@ -496,9 +520,10 @@ func (p *printer) stmt(s *Stmt) {
 			p.space()
 		}
 		if r.N != nil {
-			p.str(r.N.Value)
+			p.strCount(r.N.Value)
 		}
-		p.token(r.Op.String(), true)
+		p.str(r.Op.String())
+		p.wantSpace = true
 		p.word(r.Word)
 		if r.Op == SHL || r.Op == DHEREDOC {
 			p.pendingHdocs = append(p.pendingHdocs, r)
@@ -508,7 +533,7 @@ func (p *printer) stmt(s *Stmt) {
 		p.decLevel()
 	}
 	if s.Background {
-		p.spacedTok("&", true)
+		p.str(" &")
 	}
 }
 
@@ -531,35 +556,36 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 				p.space()
 			}
 			if r.N != nil {
-				p.str(r.N.Value)
+				p.strCount(r.N.Value)
 			}
-			p.token(r.Op.String(), true)
+			p.str(r.Op.String())
+			p.wantSpace = true
 			p.word(r.Word)
 			startRedirs++
 		}
 		p.wordJoin(x.Args[1:], true)
 	case *Block:
-		p.rsrvWord("{")
+		p.sepRsrv("{")
 		p.nestedStmts(x.Stmts)
-		p.sepRsrv("}", x.Rbrace, true)
+		p.semiRsrv("}", x.Rbrace, true)
 	case *IfClause:
-		p.rsrvWord("if")
+		p.sepRsrv("if")
 		p.cond(x.Cond)
 		p.semiOrNewl("then", x.Then)
 		p.nestedStmts(x.ThenStmts)
 		for _, el := range x.Elifs {
-			p.sepRsrv("elif", el.Elif, true)
+			p.semiRsrv("elif", el.Elif, true)
 			p.cond(el.Cond)
 			p.semiOrNewl("then", el.Then)
 			p.nestedStmts(el.ThenStmts)
 		}
 		if len(x.ElseStmts) > 0 {
-			p.sepRsrv("else", x.Else, true)
+			p.semiRsrv("else", x.Else, true)
 			p.nestedStmts(x.ElseStmts)
 		} else if x.Else.Line > 0 {
 			p.curLine = x.Else.Line
 		}
-		p.sepRsrv("fi", x.Fi, true)
+		p.semiRsrv("fi", x.Fi, true)
 	case *Subshell:
 		p.spacedTok("(", false)
 		if startsWithLparen(x.Stmts) {
@@ -568,17 +594,17 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		p.nestedStmts(x.Stmts)
 		p.sepTok(")", x.Rparen)
 	case *WhileClause:
-		p.rsrvWord("while")
+		p.sepRsrv("while")
 		p.cond(x.Cond)
 		p.semiOrNewl("do", x.Do)
 		p.nestedStmts(x.DoStmts)
-		p.sepRsrv("done", x.Done, true)
+		p.semiRsrv("done", x.Done, true)
 	case *ForClause:
-		p.rsrvWord("for ")
+		p.sepRsrv("for ")
 		p.loop(x.Loop)
 		p.semiOrNewl("do", x.Do)
 		p.nestedStmts(x.DoStmts)
-		p.sepRsrv("done", x.Done, true)
+		p.semiRsrv("done", x.Done, true)
 	case *BinaryCmd:
 		p.stmt(x.X)
 		indent := !p.nestedBinary
@@ -600,15 +626,15 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		p.nestedBinary = false
 	case *FuncDecl:
 		if x.BashStyle {
-			p.rsrvWord("function ")
+			p.sepRsrv("function ")
 		}
-		p.str(x.Name.Value)
-		p.token("()", true)
+		p.strCount(x.Name.Value)
+		p.str("()")
 		p.stmt(x.Body)
 	case *CaseClause:
-		p.rsrvWord("case ")
+		p.sepRsrv("case ")
 		p.word(x.Word)
-		p.rsrvWord("in")
+		p.rsrv(" in")
 		p.incLevel()
 		for _, pl := range x.List {
 			p.didSeparate(wordFirstPos(pl.Patterns))
@@ -618,7 +644,7 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 				}
 				p.spacedWord(w)
 			}
-			p.token(")", true)
+			p.str(")")
 			sep := p.nestedStmts(pl.Stmts)
 			p.level++
 			if !sep {
@@ -633,31 +659,32 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			p.level--
 		}
 		p.decLevel()
-		p.sepRsrv("esac", x.Esac, len(x.List) == 0)
+		p.semiRsrv("esac", x.Esac, len(x.List) == 0)
 	case *UntilClause:
-		p.rsrvWord("until")
+		p.sepRsrv("until")
 		p.cond(x.Cond)
 		p.semiOrNewl("do", x.Do)
 		p.nestedStmts(x.DoStmts)
-		p.sepRsrv("done", x.Done, true)
+		p.semiRsrv("done", x.Done, true)
 	case *DeclClause:
 		if x.Local {
-			p.rsrvWord("local")
+			p.sepRsrv("local")
 		} else {
-			p.rsrvWord("declare")
+			p.sepRsrv("declare")
 		}
 		for _, w := range x.Opts {
 			p.spacedWord(w)
 		}
 		p.assigns(x.Assigns)
 	case *EvalClause:
-		p.rsrvWord("eval")
+		p.sepRsrv("eval")
 		if x.Stmt != nil {
 			p.stmt(x.Stmt)
 		}
 	case *LetClause:
-		p.rsrvWord("let")
+		p.sepRsrv("let")
 		for _, n := range x.Exprs {
+			p.space()
 			p.arithm(n, true)
 		}
 	}
