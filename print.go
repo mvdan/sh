@@ -351,14 +351,14 @@ func expansionOp(tok Token) string {
 }
 
 func (p *printer) wordPart(wp WordPart) {
-	wantedSpace := p.wantSpace
-	p.wantSpace = false
 	switch x := wp.(type) {
 	case *Lit:
-		p.strCount(x.Value)
+		_, p.err = p.w.WriteString(x.Value)
+		p.curLine += strings.Count(x.Value, "\n")
 	case *SglQuoted:
 		p.byte('\'')
-		p.strCount(x.Value)
+		_, p.err = p.w.WriteString(x.Value)
+		p.curLine += strings.Count(x.Value, "\n")
 		p.byte('\'')
 	case *Quoted:
 		p.str(quotedOp(x.Quote))
@@ -367,6 +367,7 @@ func (p *printer) wordPart(wp WordPart) {
 		}
 		p.str(quotedOp(quotedStop(x.Quote)))
 	case *CmdSubst:
+		p.wantSpace = false
 		if x.Backquotes {
 			p.byte('`')
 		} else {
@@ -416,12 +417,13 @@ func (p *printer) wordPart(wp WordPart) {
 		p.arithm(x.X, false)
 		p.str("))")
 	case *ArrayExpr:
+		p.wantSpace = false
 		p.byte('(')
 		p.wordJoin(x.List, false)
 		p.sepTok(")", x.Rparen)
 	case *ProcSubst:
 		// avoid conflict with << and others
-		if wantedSpace {
+		if p.wantSpace {
 			p.space()
 		}
 		switch x.Op {
