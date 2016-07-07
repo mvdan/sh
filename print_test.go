@@ -270,6 +270,10 @@ func TestFprintWeirdFormat(t *testing.T) {
 			"\"foo\nbar\"\netc",
 			"\"foo\nbar\"\netc",
 		},
+		{
+			"\"foo\nbar\nbar2\"\netc",
+			"\"foo\nbar\nbar2\"\netc",
+		},
 	}
 
 	for i, tc := range weirdFormats {

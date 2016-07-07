@@ -105,12 +105,17 @@ func (p *parser) moveWith(b byte) {
 }
 
 func moveWithBytes(pos Pos, bs []byte) Pos {
-	if i := bytes.IndexByte(bs, '\n'); i != -1 {
+	i := 0
+	for {
+		if i = bytes.IndexByte(bs, '\n'); i == -1 {
+			i = 0
+			break
+		}
+		bs = bs[i+1:]
 		pos.Line++
-		pos.Column = len(bs) - (i + 1)
-		return pos
+		pos.Column = 0
 	}
-	pos.Column += len(bs)
+	pos.Column += len(bs) - i
 	return pos
 }
 
