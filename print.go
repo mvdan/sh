@@ -249,9 +249,6 @@ func (p *printer) sepTok(s string, pos Pos) {
 	p.commentsUpTo(pos)
 	p.level--
 	p.didSeparate(pos)
-	if s != ")" && p.wantSpace {
-		p.space()
-	}
 	_, p.err = p.w.WriteString(s)
 	p.wantSpace = true
 }

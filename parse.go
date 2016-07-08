@@ -742,10 +742,7 @@ func (p *parser) wordPart() WordPart {
 		if p.nextErr != nil {
 			p.errPass(p.nextErr)
 		} else {
-			var err error
-			if b, err = p.r.ReadByte(); err != nil {
-				p.errPass(err)
-			}
+			b, _ = p.r.ReadByte()
 			p.npos++
 		}
 		if p.tok == EOF || wordBreak(b) || b == '"' {

@@ -1421,7 +1421,11 @@ var astTests = []testCase{
 		})),
 	},
 	{
-		[]string{"$((3 % 7))"},
+		[]string{
+			"$((3 % 7))",
+			"$((3\n% 7))",
+			"$((3\\\n % 7))",
+		},
 		word(arithmExp(&BinaryExpr{
 			Op: REM,
 			X:  litWord("3"),
@@ -1661,7 +1665,7 @@ var astTests = []testCase{
 		})),
 	},
 	{
-		[]string{"foo$"},
+		[]string{"foo$", "foo$\n"},
 		word(lit("foo"), lit("$")),
 	},
 	{
