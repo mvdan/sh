@@ -17,6 +17,10 @@ type File struct {
 
 	Stmts    []*Stmt
 	Comments []*Comment
+
+	// lines contains the offset of the first character for each
+	// line (the first entry is always 0)
+	lines []int
 }
 
 func (f *File) Pos() Pos { return stmtFirstPos(f.Stmts) }
@@ -44,7 +48,7 @@ func (s *Stmt) Pos() Pos { return s.Position }
 func (s *Stmt) End() Pos {
 	end := s.Position
 	if s.Negated {
-		end = posAfterStr(end, "!")
+		end = posAfter(end, 1)
 	}
 	if s.Cmd != nil {
 		end = s.Cmd.End()
@@ -144,7 +148,7 @@ type Block struct {
 }
 
 func (b *Block) Pos() Pos { return b.Rbrace }
-func (b *Block) End() Pos { return posAfterStr(b.Rbrace, "}") }
+func (b *Block) End() Pos { return posAfter(b.Rbrace, 1) }
 
 // IfClause represents an if statement.
 type IfClause struct {
@@ -157,7 +161,7 @@ type IfClause struct {
 }
 
 func (c *IfClause) Pos() Pos { return c.If }
-func (c *IfClause) End() Pos { return posAfterStr(c.Fi, "fi") }
+func (c *IfClause) End() Pos { return posAfter(c.Fi, 2) }
 
 // Cond represents all nodes that can be conditions in an if, while or
 // until clause.
@@ -186,7 +190,7 @@ type CStyleCond struct {
 }
 
 func (c *CStyleCond) Pos() Pos { return c.Lparen }
-func (c *CStyleCond) End() Pos { return posAfter(c.Rparen, 1) }
+func (c *CStyleCond) End() Pos { return posAfter(c.Rparen, 2) }
 
 // Elif represents an "else if" case in an if clause.
 type Elif struct {
@@ -203,7 +207,7 @@ type WhileClause struct {
 }
 
 func (w *WhileClause) Pos() Pos { return w.While }
-func (w *WhileClause) End() Pos { return posAfterStr(w.Done, "done") }
+func (w *WhileClause) End() Pos { return posAfter(w.Done, 4) }
 
 // UntilClause represents an until clause.
 type UntilClause struct {
@@ -213,7 +217,7 @@ type UntilClause struct {
 }
 
 func (u *UntilClause) Pos() Pos { return u.Until }
-func (u *UntilClause) End() Pos { return posAfterStr(u.Done, "done") }
+func (u *UntilClause) End() Pos { return posAfter(u.Done, 4) }
 
 // ForClause represents a for clause.
 type ForClause struct {
@@ -223,7 +227,7 @@ type ForClause struct {
 }
 
 func (f *ForClause) Pos() Pos { return f.For }
-func (f *ForClause) End() Pos { return posAfterStr(f.Done, "done") }
+func (f *ForClause) End() Pos { return posAfter(f.Done, 4) }
 
 // Loop represents all nodes that can be loops in a for clause.
 type Loop interface {
@@ -252,7 +256,7 @@ type CStyleLoop struct {
 }
 
 func (c *CStyleLoop) Pos() Pos { return c.Lparen }
-func (c *CStyleLoop) End() Pos { return posAfter(c.Rparen, 1) }
+func (c *CStyleLoop) End() Pos { return posAfter(c.Rparen, 2) }
 
 // UnaryExpr represents an unary expression over a node, either before
 // or after it.
@@ -271,7 +275,7 @@ func (u *UnaryExpr) Pos() Pos {
 }
 func (u *UnaryExpr) End() Pos {
 	if u.Post {
-		return posAfter(u.OpPos, len(unaryExprOp(u.Op)))
+		return posAfterStr(u.OpPos, unaryExprOp(u.Op))
 	}
 	return u.X.End()
 }
@@ -329,13 +333,7 @@ type Lit struct {
 }
 
 func (l *Lit) Pos() Pos { return l.ValuePos }
-func (l *Lit) End() Pos {
-	end := l.ValuePos
-	if end.Line != 0 {
-		end = moveWithBytes(end, []byte(l.Value))
-	}
-	return end
-}
+func (l *Lit) End() Pos { return posAfterStr(l.ValuePos, l.Value) }
 
 // SglQuoted represents a single-quoted string.
 type SglQuoted struct {
@@ -345,11 +343,10 @@ type SglQuoted struct {
 
 func (q *SglQuoted) Pos() Pos { return q.Quote }
 func (q *SglQuoted) End() Pos {
-	end := posAfter(q.Quote, 1)
-	if end.Line != 0 {
-		end = moveWithBytes(end, []byte(q.Value))
+	if q.Quote == 0 {
+		return 0
 	}
-	return posAfter(end, 1)
+	return q.Quote + Pos(2) + Pos(len(q.Value))
 }
 
 // Quoted represents a quoted list of nodes. Single quotes are
@@ -362,7 +359,10 @@ type Quoted struct {
 
 func (q *Quoted) Pos() Pos { return q.QuotePos }
 func (q *Quoted) End() Pos {
-	return posAfter(partsLastEnd(q.Parts), len(quotedOp(q.Quote)))
+	if q.QuotePos == 0 {
+		return 0
+	}
+	return posAfterStr(partsLastEnd(q.Parts), quotedOp(q.Quote))
 }
 
 // CmdSubst represents a command substitution.
@@ -397,7 +397,7 @@ func (p *ParamExp) End() Pos {
 	if p.Exp != nil {
 		end = posMax(end, p.Exp.Word.End())
 	}
-	return posAfterStr(end, "}")
+	return posAfter(end, 1)
 }
 
 // Index represents access to an array via an index inside a ParamExp.
@@ -467,7 +467,7 @@ type CaseClause struct {
 }
 
 func (c *CaseClause) Pos() Pos { return c.Case }
-func (c *CaseClause) End() Pos { return posAfterStr(c.Esac, "esac") }
+func (c *CaseClause) End() Pos { return posAfter(c.Esac, 4) }
 
 // PatternList represents a pattern list (case) within a CaseClause.
 type PatternList struct {
@@ -523,7 +523,7 @@ type EvalClause struct {
 func (e *EvalClause) Pos() Pos { return e.Eval }
 func (e *EvalClause) End() Pos {
 	if e.Stmt == nil {
-		return posAfterStr(e.Eval, "eval")
+		return posAfter(e.Eval, 4)
 	}
 	return e.Stmt.End()
 }
@@ -538,21 +538,15 @@ func (l *LetClause) Pos() Pos { return l.Let }
 func (l *LetClause) End() Pos { return l.Exprs[len(l.Exprs)-1].End() }
 
 func posAfter(pos Pos, n int) Pos {
-	if pos.Line > 0 {
-		pos.Column += n
-	}
-	return pos
-}
-
-func posAfterStr(pos Pos, s string) Pos {
-	if pos.Line == 0 {
+	if pos == 0 {
 		return pos
 	}
-	pos.Column += len(s)
-	return pos
+	return pos + Pos(n)
 }
 
-var defaultPos = Pos{}
+func posAfterStr(pos Pos, s string) Pos { return posAfter(pos, len(s)) }
+
+var defaultPos Pos = 0
 
 func stmtFirstPos(sts []*Stmt) Pos {
 	if len(sts) == 0 {

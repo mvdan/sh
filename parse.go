@@ -31,21 +31,21 @@ var readerFree = sync.Pool{
 func Parse(r io.Reader, name string, mode Mode) (*File, error) {
 	p := parser{
 		r:    readerFree.Get().(*bufio.Reader),
-		file: &File{Name: name},
+		f:    &File{Name: name},
 		mode: mode,
-		npos: Pos{Line: 1},
 	}
+	p.f.lines = make([]int, 1, 16)
 	p.r.Reset(r)
 	p.next()
-	p.file.Stmts = p.stmts()
+	p.f.Stmts = p.stmts()
 	readerFree.Put(p.r)
-	return p.file, p.err
+	return p.f, p.err
 }
 
 type parser struct {
 	r *bufio.Reader
 
-	file *File
+	f    *File
 	mode Mode
 
 	spaced, newLine           bool
@@ -84,30 +84,6 @@ func (p *parser) popStop() {
 	}
 }
 
-func (p *parser) moveWith(b byte) {
-	if b == '\n' {
-		p.npos.Line++
-		p.npos.Column = 0
-	} else {
-		p.npos.Column++
-	}
-}
-
-func moveWithBytes(pos Pos, bs []byte) Pos {
-	i := 0
-	for {
-		if i = bytes.IndexByte(bs, '\n'); i == -1 {
-			i = 0
-			break
-		}
-		bs = bs[i+1:]
-		pos.Line++
-		pos.Column = 0
-	}
-	pos.Column += len(bs) - i
-	return pos
-}
-
 func (p *parser) willRead(b byte) bool {
 	if p.nextErr != nil {
 		return false
@@ -123,7 +99,10 @@ func (p *parser) willRead(b byte) bool {
 func (p *parser) readOnly(b byte) bool {
 	if p.willRead(b) {
 		p.r.ReadByte()
-		p.moveWith(b)
+		p.npos++
+		if b == '\n' {
+			p.f.lines = append(p.f.lines, int(p.npos))
+		}
 		return true
 	}
 	return false
@@ -169,7 +148,10 @@ func (p *parser) next() {
 			p.errPass(err)
 			return
 		}
-		p.moveWith(b)
+		p.npos++
+		if b == '\n' {
+			p.f.lines = append(p.f.lines, int(p.npos))
+		}
 	case '\n':
 		p.nextByte = 0
 		p.doHeredocs()
@@ -197,7 +179,7 @@ func (p *parser) next() {
 			p.pos = p.npos
 			p.advanceTok(p.doDqToken(b))
 		case '\n':
-			p.pos.Column++
+			p.pos++
 			p.advanceReadLit(b, q)
 		default:
 			p.pos = p.npos
@@ -221,7 +203,7 @@ func (p *parser) next() {
 			p.pos = p.npos
 			p.advanceTok(SQUOTE)
 		case '\n':
-			p.pos.Column++
+			p.pos++
 			p.advanceReadLit(b, q)
 		default:
 			p.pos = p.npos
@@ -239,7 +221,11 @@ skipSpace:
 		case ' ', '\t', '\r':
 			p.spaced = true
 		case '\n':
-			p.spaced = true
+			if p.spaced {
+				p.f.lines = append(p.f.lines, int(p.npos))
+			} else {
+				p.spaced = true
+			}
 			if p.stopNewline {
 				p.nextByte = '\n'
 				p.stopNewline = false
@@ -259,7 +245,7 @@ skipSpace:
 			p.errPass(err)
 			return
 		}
-		p.moveWith(b)
+		p.npos++
 	}
 	p.pos = p.npos
 	switch {
@@ -269,9 +255,11 @@ skipSpace:
 		p.advanceTok(RBRACK)
 	case b == '#' && q != LBRACE:
 		bs, _ := p.readIncluding('\n')
+		p.npos += Pos(len(bs))
+		p.f.lines = append(p.f.lines, int(p.npos))
 		p.nextByte = '\n'
 		if p.mode&ParseComments > 0 {
-			p.file.Comments = append(p.file.Comments, &Comment{
+			p.f.Comments = append(p.f.Comments, &Comment{
 				Hash: p.pos,
 				Text: string(bs),
 			})
@@ -337,14 +325,16 @@ byteLoop:
 				bs = append(bs, '\\')
 				return
 			}
-			p.moveWith(b)
-			if b != '\n' {
+			p.npos++
+			if b == '\n' {
+				p.f.lines = append(p.f.lines, int(p.npos))
+			} else {
 				bs = append(bs, '\\', b)
 			}
 			if b, err = p.r.ReadByte(); err != nil {
 				return
 			}
-			p.moveWith(b)
+			p.npos++
 			continue byteLoop
 		case q == SQUOTE:
 			if b == '\'' {
@@ -362,6 +352,11 @@ byteLoop:
 			if b == '/' || b == '}' {
 				return
 			}
+		case b == '\n':
+			if bs == nil {
+				p.f.lines = append(p.f.lines, int(p.npos))
+			}
+			return
 		case wordBreak(b), regOps(b):
 			return
 		case (q == DLPAREN || q == DRPAREN || q == LPAREN) && arithmOps(b):
@@ -371,7 +366,7 @@ byteLoop:
 		if b, err = p.r.ReadByte(); err != nil {
 			return
 		}
-		p.moveWith(b)
+		p.npos++
 	}
 }
 
@@ -385,15 +380,22 @@ func (p *parser) noneLoopByte(b0 byte) (bs []byte, b byte, willBreak bool, err e
 				bs = append(bs, '\\')
 				return
 			}
-			p.moveWith(b)
-			if b != '\n' {
+			p.npos++
+			if b == '\n' {
+				p.f.lines = append(p.f.lines, int(p.npos))
+			} else {
 				bs = append(bs, '\\', b)
 			}
 			if b, err = p.r.ReadByte(); err != nil {
 				return
 			}
-			p.moveWith(b)
-		case ' ', '\t', '\r', '\n', '&', '>', '<', '|', ';', '(', ')', '`':
+			p.npos++
+		case '\n':
+			if len(bs) > 0 {
+				p.f.lines = append(p.f.lines, int(p.npos))
+			}
+			fallthrough
+		case ' ', '\t', '\r', '&', '>', '<', '|', ';', '(', ')', '`':
 			willBreak = true
 			return
 		case '"', '\'', '$':
@@ -403,7 +405,7 @@ func (p *parser) noneLoopByte(b0 byte) (bs []byte, b byte, willBreak bool, err e
 			if b, err = p.r.ReadByte(); err != nil {
 				return
 			}
-			p.moveWith(b)
+			p.npos++
 		}
 	}
 }
@@ -417,20 +419,28 @@ func (p *parser) dqLoopByte(b0 byte) (bs []byte, b byte, err error) {
 				bs = append(bs, '\\')
 				return
 			}
-			p.moveWith(b)
+			p.npos++
+			if b == '\n' {
+				p.f.lines = append(p.f.lines, int(p.npos))
+			}
 			bs = append(bs, '\\', b)
 			if b, err = p.r.ReadByte(); err != nil {
 				return
 			}
-			p.moveWith(b)
+			p.npos++
 		case '`', '"', '$':
 			return
+		case '\n':
+			if bs == nil {
+				p.f.lines = append(p.f.lines, int(p.npos))
+			}
+			fallthrough
 		default:
 			bs = append(bs, b)
 			if b, err = p.r.ReadByte(); err != nil {
 				return
 			}
-			p.moveWith(b)
+			p.npos++
 		}
 	}
 }
@@ -440,12 +450,6 @@ func (p *parser) advanceBoth(tok Token, val string) { p.tok, p.val = tok, val }
 
 func (p *parser) readIncluding(b byte) ([]byte, bool) {
 	bs, err := p.r.ReadBytes(b)
-	if b == '\n' {
-		p.npos.Line++
-		p.npos.Column = 0
-	} else {
-		p.npos = moveWithBytes(p.npos, bs)
-	}
 	if err != nil {
 		p.nextErr = err
 		return bs, false
@@ -466,6 +470,8 @@ func (p *parser) readHdocBody(end string, noTabs bool) (string, bool) {
 	var buf bytes.Buffer
 	for p.nextErr == nil {
 		bs, _ := p.readIncluding('\n')
+		p.npos += Pos(len(bs))
+		p.f.lines = append(p.f.lines, int(p.npos))
 		line := string(bs)
 		if line == end || (noTabs && strings.TrimLeft(line, "\t") == end) {
 			// add trailing tabs
@@ -593,7 +599,7 @@ func (p *parser) errPass(err error) {
 
 // ParseError represents an error found when parsing a source file.
 type ParseError struct {
-	Pos
+	Position
 	Filename, Text string
 }
 
@@ -607,8 +613,8 @@ func (e *ParseError) Error() string {
 
 func (p *parser) posErr(pos Pos, format string, a ...interface{}) {
 	p.errPass(&ParseError{
-		Pos:      pos,
-		Filename: p.file.Name,
+		Position: p.f.Position(pos),
+		Filename: p.f.Name,
 		Text:     fmt.Sprintf(format, a...),
 	})
 }
@@ -762,6 +768,18 @@ func (p *parser) wordPart() WordPart {
 	case SQUOTE:
 		sq := &SglQuoted{Quote: p.pos}
 		bs, found := p.readIncluding('\'')
+		rem := bs
+		for {
+			i := bytes.IndexByte(rem, '\n')
+			if i < 0 {
+				p.npos += Pos(len(rem))
+				break
+			}
+			p.npos += Pos(i + 1)
+			p.f.lines = append(p.f.lines, int(p.npos))
+			rem = rem[i+1:]
+		}
+		p.npos++
 		if !found {
 			p.posErr(sq.Pos(), `reached EOF without closing quote %s`, SQUOTE)
 		}
@@ -958,7 +976,7 @@ func (p *parser) arithmEnd(left Pos) Pos {
 		p.matchingErr(left, DLPAREN, DRPAREN)
 	}
 	p.r.ReadByte()
-	p.moveWith(')')
+	p.npos++
 	p.popStop()
 	pos := p.pos
 	p.next()
@@ -1004,7 +1022,7 @@ func (p *parser) getAssign() (*Assign, bool) {
 	}
 	start := &Lit{ValuePos: p.pos, Value: p.val[i+1:]}
 	if start.Value != "" {
-		start.ValuePos.Column += i
+		start.ValuePos += Pos(i)
 		as.Value.Parts = append(as.Value.Parts, start)
 	}
 	p.next()

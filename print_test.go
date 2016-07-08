@@ -37,10 +37,10 @@ func TestFprintCompact(t *testing.T) {
 	}
 }
 
-func strFprint(node Node, spaces int) (string, error) {
+func strFprint(f *File, spaces int) (string, error) {
 	var buf bytes.Buffer
 	c := PrintConfig{Spaces: spaces}
-	err := c.Fprint(&buf, node)
+	err := c.Fprint(&buf, f)
 	return buf.String(), err
 }
 
@@ -353,20 +353,6 @@ func BenchmarkFprint(b *testing.B) {
 		if err := Fprint(ioutil.Discard, prog); err != nil {
 			b.Fatal(err)
 		}
-	}
-}
-
-func TestFprintNodeTypes(t *testing.T) {
-	nodes := []Node{
-		&File{},
-		&Stmt{},
-	}
-	for _, node := range nodes {
-		t.Run(fmt.Sprintf("%T", node), func(t *testing.T) {
-			if err := Fprint(ioutil.Discard, node); err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-		})
 	}
 }
 

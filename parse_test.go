@@ -14,7 +14,7 @@ import (
 )
 
 func TestParse(t *testing.T) {
-	defaultPos = Pos{}
+	defaultPos = 0
 	for i, c := range astTests {
 		want := c.ast.(*File)
 		setPosRecurse(t, want.Stmts, defaultPos, false)
@@ -47,6 +47,7 @@ func singleParse(in string, want *File) func(t *testing.T) {
 		if r.count != 1 {
 			t.Fatalf("Expected 1 EOF reads, got %d in %q", r.count, in)
 		}
+		got.lines = nil
 		setPosRecurse(t, got.Stmts, defaultPos, true)
 		if !reflect.DeepEqual(got, want) {
 			t.Fatalf("AST mismatch in %q\ndiff:\n%s", in,

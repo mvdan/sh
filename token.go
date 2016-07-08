@@ -104,20 +104,45 @@ const (
 
 // Pos is the internal representation of a position within a source
 // file.
-type Pos struct {
+type Pos int
+
+// Position describes a position within a source file including the line
+// and column location. A Position is valid if the line number is > 0.
+type Position struct {
+	Offset int // offset, starting at 0
 	Line   int // line number, starting at 1
-	Column int // column number (in bytes), starting at 1
+	Column int // column number, starting at 1 (byte count)
 }
 
-func posGreater(p1, p2 Pos) bool {
-	if p1.Line == p2.Line {
-		return p1.Column > p2.Column
+func (f *File) Position(p Pos) (pos Position) {
+	if f == nil {
+		return
 	}
-	return p1.Line > p2.Line
+	off := int(p)
+	pos.Offset = off
+	if i := searchInts(f.lines, off); i >= 0 {
+		pos.Line, pos.Column = i+1, off-f.lines[i]
+	}
+	return
+}
+
+// Inlined version of:
+// sort.Search(len(a), func(i int) bool { return a[i] > x }) - 1
+func searchInts(a []int, x int) int {
+	i, j := 0, len(a)
+	for i < j {
+		h := i + (j-i)/2
+		if a[h] <= x {
+			i = h + 1
+		} else {
+			j = h
+		}
+	}
+	return i - 1
 }
 
 func posMax(p1, p2 Pos) Pos {
-	if posGreater(p2, p1) {
+	if p2 > p1 {
 		return p2
 	}
 	return p1
