@@ -459,7 +459,7 @@ func (p *parser) readIncluding(b byte) ([]byte, bool) {
 
 func (p *parser) doHeredocs() {
 	for _, r := range p.heredocs {
-		end := unquotedWordStr(&r.Word)
+		end := unquotedWordStr(p.f, &r.Word)
 		r.Hdoc.ValuePos = p.npos
 		r.Hdoc.Value, _ = p.readHdocBody(end, r.Op == DHEREDOC)
 	}
@@ -1174,7 +1174,7 @@ func (p *parser) gotStmtPipe(s *Stmt) *Stmt {
 		SQUOTE, DOLLSQ, DQUOTE, DOLLDQ, BQUOTE:
 		w := p.getWord()
 		if p.gotSameLine(LPAREN) && p.err == nil {
-			p.posErr(w.Pos(), "invalid func name: %s", wordStr(w))
+			p.posErr(w.Pos(), "invalid func name: %s", wordStr(p.f, w))
 		}
 		s.Cmd = p.callExpr(s, w)
 	}
@@ -1435,7 +1435,7 @@ func (p *parser) bashFuncDecl() *FuncDecl {
 	if p.tok != LITWORD {
 		w := p.followWord("function", fpos)
 		if p.err == nil {
-			p.posErr(w.Pos(), "invalid func name: %s", wordStr(w))
+			p.posErr(w.Pos(), "invalid func name: %s", wordStr(p.f, w))
 		}
 	}
 	name := Lit{ValuePos: p.pos, Value: p.val}

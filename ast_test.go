@@ -2287,10 +2287,6 @@ func fullProg(v interface{}) *File {
 	return f
 }
 
-func emptyNode(n Node) bool {
-	return true // TODO port
-}
-
 func setPosRecurse(tb testing.TB, v interface{}, to Pos, diff bool) {
 	setPos := func(p *Pos) {
 		if diff && *p == to {
@@ -2313,9 +2309,6 @@ func setPosRecurse(tb testing.TB, v interface{}, to Pos, diff bool) {
 		}
 		if n.Pos() > n.End() {
 			tb.Fatalf("Found End() before Pos() in %T", n)
-		}
-		if !emptyNode(n) && n.Pos() == n.End() {
-			tb.Fatalf("Found End() at Pos() in %T %#v", n, n)
 		}
 	}
 	recurse := func(v interface{}) {

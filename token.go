@@ -115,9 +115,6 @@ type Position struct {
 }
 
 func (f *File) Position(p Pos) (pos Position) {
-	if f == nil {
-		return
-	}
 	off := int(p)
 	pos.Offset = off
 	if i := searchInts(f.lines, off); i >= 0 {

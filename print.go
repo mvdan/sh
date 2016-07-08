@@ -925,35 +925,35 @@ func (p *printer) stmts(stmts []*Stmt) bool {
 				if !p.hasInline(pos2) || pos2.Line > lastLine+1 {
 					break
 				}
-				if l := stmtLen(s2); l > inlineIndent {
+				if l := stmtLen(p.f, s2); l > inlineIndent {
 					inlineIndent = l
 				}
 				lastLine = pos2.Line
 			}
 		}
-		p.wantSpaces = inlineIndent - stmtLen(s)
+		p.wantSpaces = inlineIndent - stmtLen(p.f, s)
 	}
 	p.wantNewline = true
 	return true
 }
 
-func unquotedWordStr(w *Word) string {
+func unquotedWordStr(f *File, w *Word) string {
 	var buf bytes.Buffer
-	p := printer{w: &buf}
+	p := printer{w: &buf, f: f}
 	p.unquotedWord(w)
 	return buf.String()
 }
 
-func wordStr(w Word) string {
+func wordStr(f *File, w Word) string {
 	var buf bytes.Buffer
-	p := printer{w: &buf}
+	p := printer{w: &buf, f: f}
 	p.word(w)
 	return buf.String()
 }
 
-func stmtLen(s *Stmt) int {
+func stmtLen(f *File, s *Stmt) int {
 	var buf bytes.Buffer
-	p := printer{w: &buf}
+	p := printer{w: &buf, f: f}
 	p.stmt(s)
 	return buf.Len()
 }
