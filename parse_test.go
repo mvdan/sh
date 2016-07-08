@@ -37,6 +37,19 @@ func (e *errCounter) Read(p []byte) (int, error) {
 	return n, err
 }
 
+func checkNewlines(tb testing.TB, src string, got []int) {
+	want := []int{0}
+	for i, b := range src {
+		if b == '\n' {
+			want = append(want, i+1)
+		}
+	}
+	if !reflect.DeepEqual(got, want) {
+		tb.Fatalf("Unexpected newline offsets at %q:\ngot:  %v\nwant: %v",
+			got, want)
+	}
+}
+
 func singleParse(in string, want *File) func(t *testing.T) {
 	return func(t *testing.T) {
 		r := &errCounter{reader: strings.NewReader(in)}
@@ -47,6 +60,7 @@ func singleParse(in string, want *File) func(t *testing.T) {
 		if r.count != 1 {
 			t.Fatalf("Expected 1 EOF reads, got %d in %q", r.count, in)
 		}
+		checkNewlines(t, in, got.lines)
 		got.lines = nil
 		setPosRecurse(t, got.Stmts, defaultPos, true)
 		if !reflect.DeepEqual(got, want) {
