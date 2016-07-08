@@ -254,9 +254,11 @@ skipSpace:
 	case q == RBRACK && b == ']':
 		p.advanceTok(RBRACK)
 	case b == '#' && q != LBRACE:
-		bs, _ := p.readIncluding('\n')
-		p.npos += Pos(len(bs))
-		p.f.lines = append(p.f.lines, int(p.npos))
+		bs, found := p.readIncluding('\n')
+		p.npos += Pos(len(bs)) + 1
+		if found {
+			p.f.lines = append(p.f.lines, int(p.npos))
+		}
 		p.nextByte = '\n'
 		if p.mode&ParseComments > 0 {
 			p.f.Comments = append(p.f.Comments, &Comment{
@@ -353,7 +355,7 @@ byteLoop:
 				return
 			}
 		case b == '\n':
-			if bs == nil {
+			if bs != nil {
 				p.f.lines = append(p.f.lines, int(p.npos))
 			}
 			return
@@ -431,7 +433,7 @@ func (p *parser) dqLoopByte(b0 byte) (bs []byte, b byte, err error) {
 		case '`', '"', '$':
 			return
 		case '\n':
-			if bs == nil {
+			if bs != nil {
 				p.f.lines = append(p.f.lines, int(p.npos))
 			}
 			fallthrough
@@ -469,9 +471,11 @@ func (p *parser) doHeredocs() {
 func (p *parser) readHdocBody(end string, noTabs bool) (string, bool) {
 	var buf bytes.Buffer
 	for p.nextErr == nil {
-		bs, _ := p.readIncluding('\n')
-		p.npos += Pos(len(bs))
-		p.f.lines = append(p.f.lines, int(p.npos))
+		bs, found := p.readIncluding('\n')
+		p.npos += Pos(len(bs)) + 1
+		if found {
+			p.f.lines = append(p.f.lines, int(p.npos))
+		}
 		line := string(bs)
 		if line == end || (noTabs && strings.TrimLeft(line, "\t") == end) {
 			// add trailing tabs
@@ -742,8 +746,12 @@ func (p *parser) wordPart() WordPart {
 			if b, err = p.r.ReadByte(); err != nil {
 				p.errPass(err)
 			}
+			p.npos++
 		}
 		if p.tok == EOF || wordBreak(b) || b == '"' {
+			if b == '\n' {
+				p.f.lines = append(p.f.lines, int(p.npos))
+			}
 			l := &Lit{ValuePos: p.pos, Value: "$"}
 			p.nextByte = b
 			p.next()

@@ -491,8 +491,8 @@ var errTests = []struct {
 		`1:6: reached EOF without closing quote "`,
 	},
 	{
-		"echo ${}",
-		`1:6: parameter expansion requires a literal`,
+		"echo $foo ${}",
+		`1:11: parameter expansion requires a literal`,
 	},
 	{
 		"echo ${foo-bar",
@@ -547,8 +547,8 @@ var errTests = []struct {
 		`1:12: case patterns must be separated with |`,
 	},
 	{
-		"case i in &) foo;",
-		`1:11: case patterns must consist of words`,
+		"case $i in &) foo;",
+		`1:12: case patterns must consist of words`,
 	},
 	{
 		"\"`\"",

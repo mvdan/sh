@@ -7,7 +7,6 @@ import (
 	"bufio"
 	"bytes"
 	"io"
-	"strings"
 	"sync"
 )
 
@@ -40,6 +39,23 @@ func (c PrintConfig) Fprint(w io.Writer, f *File) error {
 	return p.err
 }
 
+const maxPos = Pos(^uint(0) >> 1)
+
+func (p *printer) incLine() {
+	p.nlineIndex++
+	if p.nlineIndex >= len(p.f.lines) {
+		p.nline = maxPos
+	} else {
+		p.nline = Pos(p.f.lines[p.nlineIndex])
+	}
+}
+
+func (p *printer) incLines(pos Pos) {
+	for p.nline < pos {
+		p.incLine()
+	}
+}
+
 // Fprint "pretty-prints" the given AST file to the given writer. It
 // calls PrintConfig.Fprint with its default settings.
 func Fprint(w io.Writer, f *File) error {
@@ -64,9 +80,9 @@ type printer struct {
 	wantNewline bool
 	wantSpaces  int
 
-	// curLine is the line that is currently being printed (counted
-	// in original lines).
-	curLine int
+	// nline is the position of the next newline
+	nline      Pos
+	nlineIndex int
 	// lastLevel is the last level of indentation that was used.
 	lastLevel int
 	// level is the current level of indentation.
@@ -104,7 +120,7 @@ func (p *printer) tabs(n int) {
 func (p *printer) bslashNewl() {
 	_, p.err = p.w.WriteString(" \\\n")
 	p.wantSpace = false
-	p.curLine++
+	p.incLine()
 }
 
 func (p *printer) str(s string) {
@@ -148,9 +164,9 @@ func (p *printer) semiOrNewl(s string, pos Pos) {
 	} else {
 		p.str("; ")
 	}
+	p.incLines(pos)
 	_, p.err = p.w.WriteString(s)
 	p.wantSpace = true
-	p.curLine = p.f.Position(pos).Line
 }
 
 func (p *printer) incLevel() {
@@ -187,54 +203,50 @@ func (p *printer) indent() {
 func (p *printer) newline() {
 	p.wantNewline = false
 	p.err = p.w.WriteByte('\n')
+	p.incLine()
 	p.wantSpace = false
 	for _, r := range p.pendingHdocs {
 		p.str(r.Hdoc.Value)
-		p.curLine += strings.Count(r.Hdoc.Value, "\n")
+		p.incLines(r.Hdoc.End() + 1)
 		p.unquotedWord(&r.Word)
 		p.err = p.w.WriteByte('\n')
-		p.curLine++
+		p.incLine()
 		p.wantSpace = false
 	}
 	p.pendingHdocs = nil
 }
 
-func (p *printer) newlines(pos Position) {
+func (p *printer) newlines(pos Pos) {
 	p.newline()
-	if pos.Line > p.curLine+1 {
+	if pos > p.nline {
 		// preserve single empty lines
 		p.err = p.w.WriteByte('\n')
+		p.incLine()
 	}
 	p.indent()
-	p.curLine = pos.Line
 }
 
-func (p *printer) alwaysSeparate(pos Position) {
-	p.commentsUpTo(pos.Line)
-	if p.curLine > 0 {
-		p.newlines(pos)
+func (p *printer) alwaysSeparate(pos Pos) {
+	p.commentsUpTo(pos)
+	if p.nlineIndex == 0 {
+		p.incLines(pos)
 	} else {
-		p.curLine = pos.Line
+		p.newlines(pos)
 	}
 }
 
-func (p *printer) didSeparate(pos Position) bool {
-	p.commentsUpTo(pos.Line)
-	if p.wantNewline || (p.curLine > 0 && pos.Line > p.curLine) {
+func (p *printer) didSeparate(pos Pos) bool {
+	p.commentsUpTo(pos)
+	if p.wantNewline || pos > p.nline {
 		p.newlines(pos)
 		return true
 	}
-	if p.curLine == 0 {
-		p.curLine = pos.Line
-		return true
-	}
-	p.curLine = pos.Line
 	return false
 }
 
-func (p *printer) sepTok(s string, pos Position) {
+func (p *printer) sepTok(s string, pos Pos) {
 	p.level++
-	p.commentsUpTo(pos.Line)
+	p.commentsUpTo(pos)
 	p.level--
 	p.didSeparate(pos)
 	if s != ")" && p.wantSpace {
@@ -244,10 +256,9 @@ func (p *printer) sepTok(s string, pos Position) {
 	p.wantSpace = true
 }
 
-func (p *printer) semiRsrv(s string, rpos Pos, fallback bool) {
-	pos := p.f.Position(rpos)
+func (p *printer) semiRsrv(s string, pos Pos, fallback bool) {
 	p.level++
-	p.commentsUpTo(pos.Line)
+	p.commentsUpTo(pos)
 	p.level--
 	if !p.didSeparate(pos) && fallback {
 		p.str("; ")
@@ -258,39 +269,39 @@ func (p *printer) semiRsrv(s string, rpos Pos, fallback bool) {
 	p.wantSpace = true
 }
 
-func (p *printer) hasInline(pos Position) bool {
+func (p *printer) hasInline(pos, nline Pos) bool {
 	if len(p.comments) < 1 {
 		return false
 	}
 	for _, c := range p.comments {
-		cpos := p.f.Position(c.Hash)
-		if cpos.Line == pos.Line {
-			return true
-		}
-		if cpos.Line > pos.Line {
+		if c.Hash > nline {
 			return false
+		}
+		if c.Hash > pos {
+			return true
 		}
 	}
 	return false
 }
 
-func (p *printer) commentsUpTo(line int) {
+func (p *printer) commentsUpTo(pos Pos) {
 	if len(p.comments) < 1 {
 		return
 	}
 	c := p.comments[0]
-	cpos := p.f.Position(c.Hash)
-	if line > 0 && cpos.Line >= line {
+	if pos > 0 && c.Hash >= pos {
 		return
 	}
 	p.wantNewline = false
-	if !p.didSeparate(cpos) {
+	if p.nlineIndex == 0 {
+		p.incLines(c.Hash)
+	} else if !p.didSeparate(c.Hash) {
 		p.spaces(p.wantSpaces + 1)
 	}
 	p.err = p.w.WriteByte('#')
 	_, p.err = p.w.WriteString(c.Text)
 	p.comments = p.comments[1:]
-	p.commentsUpTo(line)
+	p.commentsUpTo(pos)
 }
 
 func quotedOp(tok Token) string {
@@ -341,17 +352,18 @@ func (p *printer) wordPart(wp WordPart) {
 	switch x := wp.(type) {
 	case *Lit:
 		_, p.err = p.w.WriteString(x.Value)
+		p.incLines(x.End())
 	case *SglQuoted:
 		p.byte('\'')
 		_, p.err = p.w.WriteString(x.Value)
-		p.curLine += strings.Count(x.Value, "\n")
+		p.incLines(x.End() - 1)
 		p.byte('\'')
 	case *Quoted:
 		p.str(quotedOp(x.Quote))
 		for _, n := range x.Parts {
 			p.wordPart(n)
-			p.curLine = p.f.Position(n.End()).Line
 		}
+		p.incLines(x.End() - 1)
 		p.str(quotedOp(quotedStop(x.Quote)))
 	case *CmdSubst:
 		p.wantSpace = false
@@ -366,9 +378,9 @@ func (p *printer) wordPart(wp WordPart) {
 		p.nestedStmts(x.Stmts)
 		if x.Backquotes {
 			p.wantSpace = false
-			p.sepTok("`", p.f.Position(x.Right))
+			p.sepTok("`", x.Right)
 		} else {
-			p.sepTok(")", p.f.Position(x.Right))
+			p.sepTok(")", x.Right)
 		}
 	case *ParamExp:
 		if x.Short {
@@ -407,7 +419,7 @@ func (p *printer) wordPart(wp WordPart) {
 		p.wantSpace = false
 		p.byte('(')
 		p.wordJoin(x.List, false)
-		p.sepTok(")", p.f.Position(x.Rparen))
+		p.sepTok(")", x.Rparen)
 	case *ProcSubst:
 		// avoid conflict with << and others
 		if p.wantSpace {
@@ -610,15 +622,15 @@ func (p *printer) spacedWord(w Word) {
 	}
 }
 
-func (p *printer) wordJoin(ws []Word, needBackslash bool) {
+func (p *printer) wordJoin(ws []Word, backslash bool) {
 	anyNewline := false
 	for _, w := range ws {
-		if p.curLine > 0 && p.f.Position(w.Pos()).Line > p.curLine {
-			if needBackslash {
+		if w.Pos() > p.nline {
+			if backslash {
 				p.bslashNewl()
 			} else {
 				p.err = p.w.WriteByte('\n')
-				p.curLine++
+				p.incLine()
 			}
 			if !anyNewline {
 				p.incLevel()
@@ -645,8 +657,7 @@ func (p *printer) stmt(s *Stmt) {
 	startRedirs := p.command(s.Cmd, s.Redirs)
 	anyNewline := false
 	for _, r := range s.Redirs[startRedirs:] {
-		pos := p.f.Position(r.OpPos)
-		if p.curLine > 0 && pos.Line > p.curLine {
+		if r.OpPos > p.nline {
 			p.bslashNewl()
 			if !anyNewline {
 				p.incLevel()
@@ -654,7 +665,7 @@ func (p *printer) stmt(s *Stmt) {
 			}
 			p.indent()
 		}
-		p.didSeparate(pos)
+		p.didSeparate(r.OpPos)
 		if p.wantSpace {
 			p.space()
 		}
@@ -773,7 +784,7 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			p.semiRsrv("else", x.Else, true)
 			p.nestedStmts(x.ElseStmts)
 		} else if x.Else > 0 {
-			p.curLine = p.f.Position(x.Else).Line
+			p.incLines(x.Else)
 		}
 		p.semiRsrv("fi", x.Fi, true)
 	case *Subshell:
@@ -782,7 +793,7 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			p.space()
 		}
 		p.nestedStmts(x.Stmts)
-		p.sepTok(")", p.f.Position(x.Rparen))
+		p.sepTok(")", x.Rparen)
 	case *WhileClause:
 		p.spacedRsrv("while")
 		p.cond(x.Cond)
@@ -802,14 +813,13 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			p.incLevel()
 		}
 		_, p.nestedBinary = x.Y.Cmd.(*BinaryCmd)
-		ypos := p.f.Position(x.Y.Pos())
 		if len(p.pendingHdocs) > 0 {
-		} else if ypos.Line > p.curLine {
+		} else if x.Y.Pos() > p.nline {
 			p.bslashNewl()
 			p.indent()
 		}
-		p.curLine = ypos.Line
 		p.spacedTok(binaryCmdOp(x.Op), true)
+		p.incLines(x.Y.Pos())
 		p.stmt(x.Y)
 		if indent {
 			p.decLevel()
@@ -821,6 +831,7 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		}
 		p.str(x.Name.Value)
 		p.str("() ")
+		p.incLines(x.Body.Pos())
 		p.stmt(x.Body)
 	case *CaseClause:
 		p.spacedRsrv("case ")
@@ -828,7 +839,7 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		p.rsrv(" in")
 		p.incLevel()
 		for _, pl := range x.List {
-			p.didSeparate(p.f.Position(wordFirstPos(pl.Patterns)))
+			p.didSeparate(wordFirstPos(pl.Patterns))
 			for i, w := range pl.Patterns {
 				if i > 0 {
 					p.spacedTok("|", true)
@@ -838,17 +849,15 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			p.byte(')')
 			sep := p.nestedStmts(pl.Stmts)
 			p.level++
-			opPos := p.f.Position(pl.OpPos)
-			if !sep {
-				p.curLine++
-			} else if opPos.Line == p.curLine && pl.OpPos != x.Esac {
-				p.curLine--
-			}
-			p.sepTok(caseClauseOp(pl.Op), opPos)
-			if pl.OpPos == x.Esac {
-				p.curLine--
+			if sep {
+				p.sepTok(caseClauseOp(pl.Op), pl.OpPos)
+			} else {
+				p.spacedTok(caseClauseOp(pl.Op), true)
 			}
 			p.level--
+			if sep || pl.OpPos == x.Esac {
+				p.wantNewline = true
+			}
 		}
 		p.decLevel()
 		p.semiRsrv("esac", x.Esac, len(x.List) == 0)
@@ -895,40 +904,44 @@ func (p *printer) stmts(stmts []*Stmt) bool {
 	if len(stmts) == 0 {
 		return false
 	}
-	pos := p.f.Position(stmts[0].Pos())
-	if len(stmts) == 1 && pos.Line == p.curLine {
+	pos := stmts[0].Pos()
+	if len(stmts) == 1 && pos <= p.nline {
 		s := stmts[0]
 		p.didSeparate(pos)
 		p.stmt(s)
 		return false
 	}
 	inlineIndent := 0
-	lastLine := pos.Line
 	for i, s := range stmts {
-		if i > 0 {
-			pos = p.f.Position(s.Pos())
-		}
-		p.alwaysSeparate(pos)
-		p.stmt(s)
-		if pos.Line > lastLine+1 {
+		pos = s.Pos()
+		ind := p.nlineIndex
+		if ind < len(p.f.lines)-1 && pos > Pos(p.f.lines[ind+1]) {
 			inlineIndent = 0
 		}
-		lastLine = pos.Line
-		if !p.hasInline(pos) {
+		p.alwaysSeparate(pos)
+		p.incLines(s.Pos())
+		p.stmt(s)
+		if !p.hasInline(pos, p.nline) {
 			inlineIndent = 0
 			continue
 		}
+		ind2 := p.nlineIndex
+		nline2 := p.nline
 		if inlineIndent == 0 {
-			lastLine := pos.Line
 			for _, s2 := range stmts[i:] {
-				pos2 := p.f.Position(s2.Pos())
-				if !p.hasInline(pos2) || pos2.Line > lastLine+1 {
+				pos2 := s2.Pos()
+				if pos2 > nline2 || !p.hasInline(pos2, nline2) {
 					break
 				}
 				if l := stmtLen(p.f, s2); l > inlineIndent {
 					inlineIndent = l
 				}
-				lastLine = pos2.Line
+				ind2++
+				if ind2 >= len(p.f.lines) {
+					nline2 = maxPos
+				} else {
+					nline2 = Pos(p.f.lines[ind2])
+				}
 			}
 		}
 		p.wantSpaces = inlineIndent - stmtLen(p.f, s)
@@ -954,6 +967,7 @@ func wordStr(f *File, w Word) string {
 func stmtLen(f *File, s *Stmt) int {
 	var buf bytes.Buffer
 	p := printer{w: &buf, f: f}
+	p.incLines(s.Pos())
 	p.stmt(s)
 	return buf.Len()
 }
@@ -968,7 +982,7 @@ func (p *printer) nestedStmts(stmts []*Stmt) bool {
 func (p *printer) assigns(assigns []*Assign) {
 	anyNewline := false
 	for _, a := range assigns {
-		if p.curLine > 0 && p.f.Position(a.Pos()).Line > p.curLine {
+		if a.Pos() > p.nline {
 			p.bslashNewl()
 			if !anyNewline {
 				p.incLevel()

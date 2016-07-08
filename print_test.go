@@ -87,6 +87,10 @@ func TestFprintWeirdFormat(t *testing.T) {
 			"{\n\tfoo\n\tbar\n}",
 		},
 		{
+			"\"$foo\"\n{\n\tbar\n}",
+			"\"$foo\"\n{\n\tbar\n}",
+		},
+		{
 			"{\nbar\n# extra\n}",
 			"{\n\tbar\n\t# extra\n}",
 		},
@@ -96,6 +100,10 @@ func TestFprintWeirdFormat(t *testing.T) {
 		},
 		{
 			"foo # 1\nfooo # 2\nfo # 3",
+			"foo  # 1\nfooo # 2\nfo   # 3",
+		},
+		{
+			" foo # 1\n fooo # 2\n fo # 3",
 			"foo  # 1\nfooo # 2\nfo   # 3",
 		},
 		{
@@ -275,6 +283,10 @@ func TestFprintWeirdFormat(t *testing.T) {
 			"\"foo\nbar\nbar2\"\netc",
 		},
 		{
+			"a=\"$b\n\"\nd=e",
+			"a=\"$b\n\"\nd=e",
+		},
+		{
 			"\"\n\"\n\nfoo",
 			"\"\n\"\n\nfoo",
 		},
@@ -289,6 +301,10 @@ func TestFprintWeirdFormat(t *testing.T) {
 		{
 			"$'\n'\n\nfoo",
 			"$'\n'\n\nfoo",
+		},
+		{
+			"foo <<EOF\na\nb\nc\nd\nEOF\n{\n\tbar\n}",
+			"foo <<EOF\na\nb\nc\nd\nEOF\n{\n\tbar\n}",
 		},
 	}
 
