@@ -377,33 +377,29 @@ func (p *parser) noneLoopByte() (bs []byte, willBreak bool) {
 }
 
 func (p *parser) dqLoopByte() (bs []byte) {
-	for {
-		if p.npos >= len(p.src) {
-			return
-		}
-		switch p.src[p.npos] {
+	var i int
+loop:
+	for i = p.npos; i < len(p.src); i++ {
+		b := p.src[i]
+		switch b {
 		case '\\': // escaped byte follows
-			if p.npos == len(p.src)-1 {
-				p.npos += 1
-				bs = append(bs, '\\')
-				return
+			i++
+			if i == len(p.src) {
+				break loop
 			}
-			b := p.src[p.npos+1]
-			p.npos += 2
-			if b == '\n' {
-				p.f.lines = append(p.f.lines, p.npos)
+			if p.src[i] == '\n' {
+				p.f.lines = append(p.f.lines, i+1)
 			}
-			bs = append(bs, '\\', b)
 		case '`', '"', '$':
-			return
+			break loop
 		case '\n':
-			p.f.lines = append(p.f.lines, p.npos+1)
-			fallthrough
-		default:
-			bs = append(bs, p.src[p.npos])
-			p.npos++
+			p.f.lines = append(p.f.lines, i+1)
 		}
 	}
+	bs = make([]byte, i-p.npos)
+	copy(bs, p.src[p.npos:i])
+	p.npos = i
+	return
 }
 
 func (p *parser) advanceTok(tok Token)              { p.advanceBoth(tok, "") }
