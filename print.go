@@ -24,19 +24,17 @@ func (c PrintConfig) Fprint(w io.Writer, f *File) error {
 	bw := writerFree.Get().(*bufio.Writer)
 	bw.Reset(w)
 	p := printer{
-		w: bw,
-		f: f,
-		c: c,
+		bufWriter: bw,
+		f:         f,
+		c:         c,
 	}
 	p.comments = f.Comments
 	p.stmts(f.Stmts)
 	p.commentsUpTo(0)
 	p.newline()
-	if p.err == nil {
-		p.err = bw.Flush()
-	}
-	writerFree.Put(p.w)
-	return p.err
+	err := bw.Flush()
+	writerFree.Put(bw)
+	return err
 }
 
 const maxPos = Pos(^uint(0) >> 1)
@@ -69,10 +67,10 @@ type bufWriter interface {
 }
 
 type printer struct {
-	w   bufWriter
-	f   *File
-	c   PrintConfig
-	err error
+	bufWriter
+
+	f *File
+	c PrintConfig
 
 	nestedBinary bool
 
@@ -99,53 +97,40 @@ type printer struct {
 }
 
 func (p *printer) space() {
-	p.err = p.w.WriteByte(' ')
+	p.WriteByte(' ')
 	p.wantSpace = false
 }
 
 func (p *printer) spaces(n int) {
 	for i := 0; i < n; i++ {
-		p.w.WriteByte(' ')
+		p.WriteByte(' ')
 	}
 	p.wantSpace = false
 }
 
 func (p *printer) tabs(n int) {
 	for i := 0; i < n; i++ {
-		p.w.WriteByte('\t')
+		p.WriteByte('\t')
 	}
 	p.wantSpace = false
 }
 
 func (p *printer) bslashNewl() {
-	_, p.err = p.w.WriteString(" \\\n")
+	p.WriteString(" \\\n")
 	p.wantSpace = false
 	p.incLine()
 }
 
-func (p *printer) str(s string) {
-	_, p.err = p.w.WriteString(s)
-}
-
-func (p *printer) byte(b byte) {
-	p.err = p.w.WriteByte(b)
-}
-
 func (p *printer) token(s string, spaceAfter bool) {
 	p.wantSpace = spaceAfter
-	_, p.err = p.w.WriteString(s)
-}
-
-func (p *printer) rsrv(s string) {
-	_, p.err = p.w.WriteString(s)
-	p.wantSpace = true
+	p.WriteString(s)
 }
 
 func (p *printer) spacedRsrv(s string) {
 	if p.wantSpace {
 		p.space()
 	}
-	_, p.err = p.w.WriteString(s)
+	p.WriteString(s)
 	p.wantSpace = true
 }
 
@@ -154,7 +139,7 @@ func (p *printer) spacedTok(s string, spaceAfter bool) {
 		p.space()
 	}
 	p.wantSpace = spaceAfter
-	_, p.err = p.w.WriteString(s)
+	p.WriteString(s)
 }
 
 func (p *printer) semiOrNewl(s string, pos Pos) {
@@ -162,10 +147,10 @@ func (p *printer) semiOrNewl(s string, pos Pos) {
 		p.newline()
 		p.indent()
 	} else {
-		p.str("; ")
+		p.WriteString("; ")
 	}
 	p.incLines(pos)
-	_, p.err = p.w.WriteString(s)
+	p.WriteString(s)
 	p.wantSpace = true
 }
 
@@ -202,14 +187,14 @@ func (p *printer) indent() {
 
 func (p *printer) newline() {
 	p.wantNewline = false
-	p.err = p.w.WriteByte('\n')
+	p.WriteByte('\n')
 	p.incLine()
 	p.wantSpace = false
 	for _, r := range p.pendingHdocs {
-		p.str(r.Hdoc.Value)
+		p.WriteString(r.Hdoc.Value)
 		p.incLines(r.Hdoc.End() + 1)
 		p.unquotedWord(&r.Word)
-		p.err = p.w.WriteByte('\n')
+		p.WriteByte('\n')
 		p.incLine()
 		p.wantSpace = false
 	}
@@ -220,7 +205,7 @@ func (p *printer) newlines(pos Pos) {
 	p.newline()
 	if pos > p.nline {
 		// preserve single empty lines
-		p.err = p.w.WriteByte('\n')
+		p.WriteByte('\n')
 		p.incLine()
 	}
 	p.indent()
@@ -249,7 +234,7 @@ func (p *printer) sepTok(s string, pos Pos) {
 	p.commentsUpTo(pos)
 	p.level--
 	p.didSeparate(pos)
-	_, p.err = p.w.WriteString(s)
+	p.WriteString(s)
 	p.wantSpace = true
 }
 
@@ -258,11 +243,11 @@ func (p *printer) semiRsrv(s string, pos Pos, fallback bool) {
 	p.commentsUpTo(pos)
 	p.level--
 	if !p.didSeparate(pos) && fallback {
-		p.str("; ")
+		p.WriteString("; ")
 	} else if p.wantSpace {
 		p.space()
 	}
-	_, p.err = p.w.WriteString(s)
+	p.WriteString(s)
 	p.wantSpace = true
 }
 
@@ -295,8 +280,8 @@ func (p *printer) commentsUpTo(pos Pos) {
 	} else if !p.didSeparate(c.Hash) {
 		p.spaces(p.wantSpaces + 1)
 	}
-	p.err = p.w.WriteByte('#')
-	_, p.err = p.w.WriteString(c.Text)
+	p.WriteByte('#')
+	p.WriteString(c.Text)
 	p.comments = p.comments[1:]
 	p.commentsUpTo(pos)
 }
@@ -348,26 +333,26 @@ func expansionOp(tok Token) string {
 func (p *printer) wordPart(wp WordPart) {
 	switch x := wp.(type) {
 	case *Lit:
-		_, p.err = p.w.WriteString(x.Value)
+		p.WriteString(x.Value)
 		p.incLines(x.End())
 	case *SglQuoted:
-		p.byte('\'')
-		_, p.err = p.w.WriteString(x.Value)
+		p.WriteByte('\'')
+		p.WriteString(x.Value)
 		p.incLines(x.End() - 1)
-		p.byte('\'')
+		p.WriteByte('\'')
 	case *Quoted:
-		p.str(quotedOp(x.Quote))
+		p.WriteString(quotedOp(x.Quote))
 		for _, n := range x.Parts {
 			p.wordPart(n)
 		}
 		p.incLines(x.End() - 1)
-		p.str(quotedOp(quotedStop(x.Quote)))
+		p.WriteString(quotedOp(quotedStop(x.Quote)))
 	case *CmdSubst:
 		p.wantSpace = false
 		if x.Backquotes {
-			p.byte('`')
+			p.WriteByte('`')
 		} else {
-			p.str("$(")
+			p.WriteString("$(")
 		}
 		if startsWithLparen(x.Stmts) {
 			p.space()
@@ -381,40 +366,40 @@ func (p *printer) wordPart(wp WordPart) {
 		}
 	case *ParamExp:
 		if x.Short {
-			p.byte('$')
-			p.str(x.Param.Value)
+			p.WriteByte('$')
+			p.WriteString(x.Param.Value)
 			break
 		}
-		p.str("${")
+		p.WriteString("${")
 		if x.Length {
-			p.byte('#')
+			p.WriteByte('#')
 		}
-		p.str(x.Param.Value)
+		p.WriteString(x.Param.Value)
 		if x.Ind != nil {
-			p.byte('[')
+			p.WriteByte('[')
 			p.word(x.Ind.Word)
-			p.byte(']')
+			p.WriteByte(']')
 		}
 		if x.Repl != nil {
 			if x.Repl.All {
-				p.byte('/')
+				p.WriteByte('/')
 			}
-			p.byte('/')
+			p.WriteByte('/')
 			p.word(x.Repl.Orig)
-			p.byte('/')
+			p.WriteByte('/')
 			p.word(x.Repl.With)
 		} else if x.Exp != nil {
-			p.str(expansionOp(x.Exp.Op))
+			p.WriteString(expansionOp(x.Exp.Op))
 			p.word(x.Exp.Word)
 		}
-		p.byte('}')
+		p.WriteByte('}')
 	case *ArithmExp:
-		p.str("$((")
+		p.WriteString("$((")
 		p.arithm(x.X, false)
-		p.str("))")
+		p.WriteString("))")
 	case *ArrayExpr:
 		p.wantSpace = false
-		p.byte('(')
+		p.WriteByte('(')
 		p.wordJoin(x.List, false)
 		p.sepTok(")", x.Rparen)
 	case *ProcSubst:
@@ -424,12 +409,12 @@ func (p *printer) wordPart(wp WordPart) {
 		}
 		switch x.Op {
 		case CMDIN:
-			p.str("<(")
+			p.WriteString("<(")
 		case CMDOUT:
-			p.str(">(")
+			p.WriteString(">(")
 		}
 		p.nestedStmts(x.Stmts)
-		p.byte(')')
+		p.WriteByte(')')
 	}
 	p.wantSpace = true
 }
@@ -441,26 +426,26 @@ func (p *printer) cond(cond Cond) {
 	case *CStyleCond:
 		p.spacedTok("((", false)
 		p.arithm(x.X, false)
-		p.str("))")
+		p.WriteString("))")
 	}
 }
 
 func (p *printer) loop(loop Loop) {
 	switch x := loop.(type) {
 	case *WordIter:
-		p.str(x.Name.Value)
+		p.WriteString(x.Name.Value)
 		if len(x.List) > 0 {
-			p.rsrv(" in")
+			p.WriteString(" in")
 			p.wordJoin(x.List, true)
 		}
 	case *CStyleLoop:
-		p.str("((")
+		p.WriteString("((")
 		p.arithm(x.Init, false)
-		p.str("; ")
+		p.WriteString("; ")
 		p.arithm(x.Cond, false)
-		p.str("; ")
+		p.WriteString("; ")
 		p.arithm(x.Post, false)
-		p.str("))")
+		p.WriteString("))")
 	}
 }
 
@@ -557,29 +542,29 @@ func (p *printer) arithm(expr ArithmExpr, compact bool) {
 	case *BinaryExpr:
 		if compact {
 			p.arithm(x.X, true)
-			p.str(binaryExprOp(x.Op))
+			p.WriteString(binaryExprOp(x.Op))
 			p.arithm(x.Y, true)
 		} else {
 			p.arithm(x.X, false)
 			if x.Op != COMMA {
 				p.space()
 			}
-			p.str(binaryExprOp(x.Op))
+			p.WriteString(binaryExprOp(x.Op))
 			p.space()
 			p.arithm(x.Y, false)
 		}
 	case *UnaryExpr:
 		if x.Post {
 			p.arithm(x.X, compact)
-			p.str(unaryExprOp(x.Op))
+			p.WriteString(unaryExprOp(x.Op))
 		} else {
-			p.str(unaryExprOp(x.Op))
+			p.WriteString(unaryExprOp(x.Op))
 			p.arithm(x.X, compact)
 		}
 	case *ParenExpr:
-		p.byte('(')
+		p.WriteByte('(')
 		p.arithm(x.X, false)
-		p.byte(')')
+		p.WriteByte(')')
 	}
 }
 
@@ -593,16 +578,16 @@ func (p *printer) unquotedWord(w *Word) {
 	for _, wp := range w.Parts {
 		switch x := wp.(type) {
 		case *SglQuoted:
-			p.str(x.Value)
+			p.WriteString(x.Value)
 		case *Quoted:
 			for _, qp := range x.Parts {
 				p.wordPart(qp)
 			}
 		case *Lit:
 			if x.Value[0] == '\\' {
-				p.str(x.Value[1:])
+				p.WriteString(x.Value[1:])
 			} else {
-				p.str(x.Value)
+				p.WriteString(x.Value)
 			}
 		default:
 			p.wordPart(wp)
@@ -626,7 +611,7 @@ func (p *printer) wordJoin(ws []Word, backslash bool) {
 			if backslash {
 				p.bslashNewl()
 			} else {
-				p.err = p.w.WriteByte('\n')
+				p.WriteByte('\n')
 				p.incLine()
 			}
 			if !anyNewline {
@@ -667,9 +652,9 @@ func (p *printer) stmt(s *Stmt) {
 			p.space()
 		}
 		if r.N != nil {
-			p.str(r.N.Value)
+			p.WriteString(r.N.Value)
 		}
-		p.str(redirectOp(r.Op))
+		p.WriteString(redirectOp(r.Op))
 		p.wantSpace = true
 		p.word(r.Word)
 		if r.Op == SHL || r.Op == DHEREDOC {
@@ -680,7 +665,7 @@ func (p *printer) stmt(s *Stmt) {
 		p.decLevel()
 	}
 	if s.Background {
-		p.str(" &")
+		p.WriteString(" &")
 	}
 }
 
@@ -754,9 +739,9 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 				p.space()
 			}
 			if r.N != nil {
-				p.str(r.N.Value)
+				p.WriteString(r.N.Value)
 			}
-			p.str(redirectOp(r.Op))
+			p.WriteString(redirectOp(r.Op))
 			p.wantSpace = true
 			p.word(r.Word)
 			startRedirs++
@@ -824,16 +809,16 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		p.nestedBinary = false
 	case *FuncDecl:
 		if x.BashStyle {
-			p.str("function ")
+			p.WriteString("function ")
 		}
-		p.str(x.Name.Value)
-		p.str("() ")
+		p.WriteString(x.Name.Value)
+		p.WriteString("() ")
 		p.incLines(x.Body.Pos())
 		p.stmt(x.Body)
 	case *CaseClause:
 		p.spacedRsrv("case ")
 		p.word(x.Word)
-		p.rsrv(" in")
+		p.WriteString(" in")
 		p.incLevel()
 		for _, pl := range x.List {
 			p.didSeparate(wordFirstPos(pl.Patterns))
@@ -843,7 +828,7 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 				}
 				p.spacedWord(w)
 			}
-			p.byte(')')
+			p.WriteByte(')')
 			sep := p.nestedStmts(pl.Stmts)
 			p.level++
 			if sep {
@@ -950,21 +935,21 @@ func (p *printer) stmts(stmts []*Stmt) bool {
 
 func unquotedWordStr(f *File, w *Word) string {
 	var buf bytes.Buffer
-	p := printer{w: &buf, f: f}
+	p := printer{bufWriter: &buf, f: f}
 	p.unquotedWord(w)
 	return buf.String()
 }
 
 func wordStr(f *File, w Word) string {
 	var buf bytes.Buffer
-	p := printer{w: &buf, f: f}
+	p := printer{bufWriter: &buf, f: f}
 	p.word(w)
 	return buf.String()
 }
 
 func stmtLen(f *File, s *Stmt) int {
 	var buf bytes.Buffer
-	p := printer{w: &buf, f: f}
+	p := printer{bufWriter: &buf, f: f}
 	p.incLines(s.Pos())
 	p.stmt(s)
 	return buf.Len()
@@ -991,7 +976,7 @@ func (p *printer) assigns(assigns []*Assign) {
 			p.space()
 		}
 		if a.Name != nil {
-			p.str(a.Name.Value)
+			p.WriteString(a.Name.Value)
 			if a.Append {
 				p.token("+=", true)
 			} else {
