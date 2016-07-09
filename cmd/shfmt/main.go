@@ -126,7 +126,7 @@ func formatPath(path string, size int64, always bool) error {
 	if !shellExt && !validShebang(src) {
 		return nil
 	}
-	prog, err := sh.Parse(bytes.NewBuffer(src), path, sh.ParseComments)
+	prog, err := sh.Parse(src, path, sh.ParseComments)
 	if err != nil {
 		return err
 	}
