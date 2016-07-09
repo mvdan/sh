@@ -365,6 +365,10 @@ var errTests = []struct {
 		`1:1: if statement must end with "fi"`,
 	},
 	{
+		"if foo; then bar; fi#etc",
+		`1:1: if statement must end with "fi"`,
+	},
+	{
 		"if a; then b; elif c;",
 		`1:15: "elif [stmts]" must be followed by "then"`,
 	},
