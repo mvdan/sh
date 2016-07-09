@@ -4,14 +4,13 @@
 package sh
 
 import (
-	"bufio"
 	"bytes"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"regexp"
 	"strconv"
 	"strings"
-	"sync"
 )
 
 // Mode controls the parser behaviour via a set of flags.
@@ -21,29 +20,41 @@ const (
 	ParseComments Mode = 1 << iota // add comments to the AST
 )
 
-var readerFree = sync.Pool{
-	New: func() interface{} { return bufio.NewReader(nil) },
-}
-
 // Parse reads and parses a shell program with an optional name. It
 // returns the parsed program if no issues were encountered. Otherwise,
 // an error is returned.
-func Parse(r io.Reader, name string, mode Mode) (*File, error) {
+//
+// The type of src must be []byte, string or io.Reader.
+func Parse(src interface{}, name string, mode Mode) (*File, error) {
 	p := parser{
-		r:    readerFree.Get().(*bufio.Reader),
 		f:    &File{Name: name},
 		mode: mode,
 	}
+	if p.src, p.err = getSource(src); p.err != nil {
+		return nil, p.err
+	}
+	p.rem = p.src
 	p.f.lines = make([]int, 1, 16)
-	p.r.Reset(r)
 	p.next()
 	p.f.Stmts = p.stmts()
-	readerFree.Put(p.r)
 	return p.f, p.err
 }
 
+func getSource(src interface{}) ([]byte, error) {
+	switch x := src.(type) {
+	case []byte:
+		return x, nil
+	case string:
+		return []byte(x), nil
+	case io.Reader:
+		return ioutil.ReadAll(x)
+	default:
+		return nil, fmt.Errorf("invalid src type: %T", src)
+	}
+}
+
 type parser struct {
-	r *bufio.Reader
+	src, rem []byte
 
 	f    *File
 	mode Mode
@@ -51,8 +62,8 @@ type parser struct {
 	spaced, newLine           bool
 	stopNewline, forbidNested bool
 
-	nextByte     byte
-	err, nextErr error
+	nextByte byte
+	err      error
 
 	tok Token
 	val string
@@ -84,21 +95,19 @@ func (p *parser) popStop() {
 	}
 }
 
-func (p *parser) willRead(b byte) bool {
-	if p.nextErr != nil {
-		return false
+func (p *parser) readByte() (byte, error) {
+	if len(p.rem) < 1 {
+		return 0, io.EOF
 	}
-	bs, err := p.r.Peek(1)
-	if err != nil {
-		p.nextErr = err
-		return false
-	}
-	return bs[0] == b
+	b := p.rem[0]
+	p.rem = p.rem[1:]
+	p.npos++
+	return b, nil
 }
 
 func (p *parser) readOnly(b byte) bool {
-	if p.willRead(b) {
-		p.r.ReadByte()
+	if len(p.rem) > 0 && p.rem[0] == b {
+		p.rem = p.rem[1:]
 		p.npos++
 		if b == '\n' {
 			p.f.lines = append(p.f.lines, int(p.npos))
@@ -140,15 +149,10 @@ func (p *parser) next() {
 	p.spaced, p.newLine = false, false
 	switch b {
 	case 0:
-		if p.nextErr != nil {
+		if b, err = p.readByte(); err != nil {
 			p.errPass(err)
 			return
 		}
-		if b, err = p.r.ReadByte(); err != nil {
-			p.errPass(err)
-			return
-		}
-		p.npos++
 		if b == '\n' {
 			p.f.lines = append(p.f.lines, int(p.npos))
 		}
@@ -211,10 +215,6 @@ func (p *parser) next() {
 		}
 		return
 	}
-	if p.nextErr != nil {
-		p.errPass(p.nextErr)
-		return
-	}
 skipSpace:
 	for {
 		switch b {
@@ -241,11 +241,10 @@ skipSpace:
 			break skipSpace
 		}
 		var err error
-		if b, err = p.r.ReadByte(); err != nil {
+		if b, err = p.readByte(); err != nil {
 			p.errPass(err)
 			return
 		}
-		p.npos++
 	}
 	p.pos = p.npos
 	switch {
@@ -279,15 +278,10 @@ skipSpace:
 }
 
 func (p *parser) advanceReadLitNone(b byte) {
-	if b == '\\' && p.nextErr != nil {
-		p.advanceBoth(LITWORD, string([]byte{b}))
-		return
-	}
 	bs, b2, willBreak, err := p.noneLoopByte(b)
 	p.nextByte = b2
 	switch {
 	case err != nil:
-		p.nextErr = err
 		fallthrough
 	case willBreak:
 		p.advanceBoth(LITWORD, string(bs))
@@ -297,10 +291,6 @@ func (p *parser) advanceReadLitNone(b byte) {
 }
 
 func (p *parser) advanceReadLit(b byte, q Token) {
-	if b == '\\' && p.nextErr != nil {
-		p.advanceBoth(LITWORD, string([]byte{b}))
-		return
-	}
 	var bs []byte
 	var err error
 	if q == DQUOTE {
@@ -310,7 +300,6 @@ func (p *parser) advanceReadLit(b byte, q Token) {
 	}
 	p.nextByte = b
 	if err != nil {
-		p.nextErr = err
 		p.advanceBoth(LITWORD, string(bs))
 	} else {
 		p.advanceBoth(LIT, string(bs))
@@ -323,20 +312,18 @@ byteLoop:
 	for {
 		switch {
 		case b == '\\': // escaped byte follows
-			if b, err = p.r.ReadByte(); err != nil {
+			if b, err = p.readByte(); err != nil {
 				bs = append(bs, '\\')
 				return
 			}
-			p.npos++
 			if b == '\n' {
 				p.f.lines = append(p.f.lines, int(p.npos))
 			} else {
 				bs = append(bs, '\\', b)
 			}
-			if b, err = p.r.ReadByte(); err != nil {
+			if b, err = p.readByte(); err != nil {
 				return
 			}
-			p.npos++
 			continue byteLoop
 		case q == SQUOTE:
 			if b == '\'' {
@@ -365,10 +352,9 @@ byteLoop:
 			return
 		}
 		bs = append(bs, b)
-		if b, err = p.r.ReadByte(); err != nil {
+		if b, err = p.readByte(); err != nil {
 			return
 		}
-		p.npos++
 	}
 }
 
@@ -378,20 +364,18 @@ func (p *parser) noneLoopByte(b0 byte) (bs []byte, b byte, willBreak bool, err e
 	for {
 		switch b {
 		case '\\': // escaped byte follows
-			if b, err = p.r.ReadByte(); err != nil {
+			if b, err = p.readByte(); err != nil {
 				bs = append(bs, '\\')
 				return
 			}
-			p.npos++
 			if b == '\n' {
 				p.f.lines = append(p.f.lines, int(p.npos))
 			} else {
 				bs = append(bs, '\\', b)
 			}
-			if b, err = p.r.ReadByte(); err != nil {
+			if b, err = p.readByte(); err != nil {
 				return
 			}
-			p.npos++
 		case '\n':
 			if len(bs) > 0 {
 				p.f.lines = append(p.f.lines, int(p.npos))
@@ -404,10 +388,9 @@ func (p *parser) noneLoopByte(b0 byte) (bs []byte, b byte, willBreak bool, err e
 			return
 		default:
 			bs = append(bs, b)
-			if b, err = p.r.ReadByte(); err != nil {
+			if b, err = p.readByte(); err != nil {
 				return
 			}
-			p.npos++
 		}
 	}
 }
@@ -417,19 +400,17 @@ func (p *parser) dqLoopByte(b0 byte) (bs []byte, b byte, err error) {
 	for {
 		switch b {
 		case '\\': // escaped byte follows
-			if b, err = p.r.ReadByte(); err != nil {
+			if b, err = p.readByte(); err != nil {
 				bs = append(bs, '\\')
 				return
 			}
-			p.npos++
 			if b == '\n' {
 				p.f.lines = append(p.f.lines, int(p.npos))
 			}
 			bs = append(bs, '\\', b)
-			if b, err = p.r.ReadByte(); err != nil {
+			if b, err = p.readByte(); err != nil {
 				return
 			}
-			p.npos++
 		case '`', '"', '$':
 			return
 		case '\n':
@@ -439,10 +420,9 @@ func (p *parser) dqLoopByte(b0 byte) (bs []byte, b byte, err error) {
 			fallthrough
 		default:
 			bs = append(bs, b)
-			if b, err = p.r.ReadByte(); err != nil {
+			if b, err = p.readByte(); err != nil {
 				return
 			}
-			p.npos++
 		}
 	}
 }
@@ -451,12 +431,15 @@ func (p *parser) advanceTok(tok Token)              { p.advanceBoth(tok, "") }
 func (p *parser) advanceBoth(tok Token, val string) { p.tok, p.val = tok, val }
 
 func (p *parser) readIncluding(b byte) ([]byte, bool) {
-	bs, err := p.r.ReadBytes(b)
-	if err != nil {
-		p.nextErr = err
+	i := bytes.IndexByte(p.rem, b)
+	if i < 0 {
+		bs := p.rem
+		p.rem = p.rem[len(p.rem):]
 		return bs, false
 	}
-	return bs[:len(bs)-1], true
+	bs := p.rem[:i]
+	p.rem = p.rem[i+1:]
+	return bs, true
 }
 
 func (p *parser) doHeredocs() {
@@ -470,7 +453,7 @@ func (p *parser) doHeredocs() {
 
 func (p *parser) readHdocBody(end string, noTabs bool) (string, bool) {
 	var buf bytes.Buffer
-	for p.nextErr == nil {
+	for len(p.rem) > 0 {
 		bs, found := p.readIncluding('\n')
 		p.npos += Pos(len(bs)) + 1
 		if found {
@@ -739,11 +722,10 @@ func (p *parser) wordPart() WordPart {
 		return cs
 	case DOLLAR:
 		var b byte
-		if p.nextErr != nil {
-			p.errPass(p.nextErr)
+		if len(p.rem) == 0 {
+			p.errPass(io.EOF)
 		} else {
-			b, _ = p.r.ReadByte()
-			p.npos++
+			b, _ = p.readByte()
 		}
 		if p.tok == EOF || wordBreak(b) || b == '"' {
 			if b == '\n' {
@@ -973,15 +955,14 @@ func (p *parser) paramExp() *ParamExp {
 }
 
 func (p *parser) peekArithmEnd() bool {
-	return p.tok == RPAREN && p.willRead(')')
+	return p.tok == RPAREN && len(p.rem) > 0 && p.rem[0] == ')'
 }
 
 func (p *parser) arithmEnd(left Pos) Pos {
 	if !p.peekArithmEnd() {
 		p.matchingErr(left, DLPAREN, DRPAREN)
 	}
-	p.r.ReadByte()
-	p.npos++
+	p.readByte()
 	p.popStop()
 	pos := p.pos
 	p.next()

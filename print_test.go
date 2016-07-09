@@ -9,7 +9,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 )
 
@@ -17,7 +16,7 @@ func TestFprintCompact(t *testing.T) {
 	for i, c := range astTests {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
 			in := c.strs[0]
-			prog, err := Parse(strings.NewReader(in), "", 0)
+			prog, err := Parse(in, "", 0)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -316,8 +315,7 @@ func TestFprintWeirdFormat(t *testing.T) {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
 			for _, s := range [...]string{"", "\n"} {
 				in := s + tc.in + s
-				prog, err := Parse(strings.NewReader(in), "",
-					ParseComments)
+				prog, err := Parse(in, "", ParseComments)
 				checkNewlines(t, in, prog.lines)
 				if err != nil {
 					t.Fatal(err)
@@ -406,7 +404,7 @@ func TestFprintSpaces(t *testing.T) {
 
 	for i, tc := range spaceFormats {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
-			prog, err := Parse(strings.NewReader(tc.in), "", ParseComments)
+			prog, err := Parse(tc.in, "", ParseComments)
 			if err != nil {
 				t.Fatal(err)
 			}

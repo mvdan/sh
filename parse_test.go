@@ -5,7 +5,6 @@ package sh
 
 import (
 	"fmt"
-	"io"
 	"reflect"
 	"strings"
 	"testing"
@@ -24,19 +23,6 @@ func TestParse(t *testing.T) {
 	}
 }
 
-type errCounter struct {
-	reader io.Reader
-	count  int
-}
-
-func (e *errCounter) Read(p []byte) (int, error) {
-	n, err := e.reader.Read(p)
-	if err != nil {
-		e.count++
-	}
-	return n, err
-}
-
 func checkNewlines(tb testing.TB, src string, got []int) {
 	want := []int{0}
 	for i, b := range src {
@@ -52,13 +38,9 @@ func checkNewlines(tb testing.TB, src string, got []int) {
 
 func singleParse(in string, want *File) func(t *testing.T) {
 	return func(t *testing.T) {
-		r := &errCounter{reader: strings.NewReader(in)}
-		got, err := Parse(r, "", 0)
+		got, err := Parse(in, "", 0)
 		if err != nil {
 			t.Fatalf("Unexpected error in %q: %v", in, err)
-		}
-		if r.count != 1 {
-			t.Fatalf("Expected 1 EOF reads, got %d in %q", r.count, in)
 		}
 		checkNewlines(t, in, got.lines)
 		got.lines = nil
@@ -121,13 +103,10 @@ func BenchmarkParse(b *testing.B) {
 		},
 	}
 	for _, c := range benchmarks {
-		r := strings.NewReader(c.in)
 		b.Run(c.name, func(b *testing.B) {
+			in := []byte(c.in)
 			for i := 0; i < b.N; i++ {
-				if _, err := r.Seek(0, 0); err != nil {
-					b.Fatal(err)
-				}
-				if _, err := Parse(r, "", ParseComments); err != nil {
+				if _, err := Parse(in, "", ParseComments); err != nil {
 					b.Fatal(err)
 				}
 			}
@@ -621,8 +600,7 @@ var errTests = []struct {
 func TestParseErr(t *testing.T) {
 	for i, c := range errTests {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
-			r := strings.NewReader(c.in)
-			_, err := Parse(r, "", 0)
+			_, err := Parse(c.in, "", 0)
 			if err == nil {
 				t.Fatalf("Expected error in %q: %v", c.in, c.want)
 			}
@@ -638,8 +616,7 @@ func TestParseErr(t *testing.T) {
 func TestInputName(t *testing.T) {
 	in := errTests[0].in
 	want := "some-file.sh:" + errTests[0].want
-	r := strings.NewReader(in)
-	_, err := Parse(r, "some-file.sh", 0)
+	_, err := Parse(in, "some-file.sh", 0)
 	if err == nil {
 		t.Fatalf("Expected error in %q: %v", in, want)
 	}
