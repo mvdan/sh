@@ -910,9 +910,10 @@ func (p *printer) stmts(stmts []*Stmt) bool {
 	}
 	inlineIndent := 0
 	for i, s := range stmts {
-		pos = s.Pos()
+		pos := s.Pos()
+		end := s.End()
 		ind := p.nlineIndex
-		if ind < len(p.f.lines)-1 && pos > Pos(p.f.lines[ind+1]) {
+		if ind < len(p.f.lines)-1 && end > Pos(p.f.lines[ind+1]) {
 			inlineIndent = 0
 		}
 		p.alwaysSeparate(pos)
