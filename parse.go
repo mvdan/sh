@@ -240,11 +240,13 @@ skipSpace:
 		default:
 			break skipSpace
 		}
-		var err error
-		if b, err = p.readByte(); err != nil {
-			p.errPass(err)
+		if len(p.rem) < 1 {
+			p.errPass(io.EOF)
 			return
 		}
+		b = p.rem[0]
+		p.rem = p.rem[1:]
+		p.npos++
 	}
 	p.pos = p.npos
 	switch {
@@ -388,9 +390,13 @@ func (p *parser) noneLoopByte(b0 byte) (bs []byte, b byte, willBreak bool, err e
 			return
 		default:
 			bs = append(bs, b)
-			if b, err = p.readByte(); err != nil {
+			if len(p.rem) < 1 {
+				b, err = 0, io.EOF
 				return
 			}
+			b = p.rem[0]
+			p.rem = p.rem[1:]
+			p.npos++
 		}
 	}
 }
@@ -420,9 +426,13 @@ func (p *parser) dqLoopByte(b0 byte) (bs []byte, b byte, err error) {
 			fallthrough
 		default:
 			bs = append(bs, b)
-			if b, err = p.readByte(); err != nil {
+			if len(p.rem) < 1 {
+				b, err = 0, io.EOF
 				return
 			}
+			b = p.rem[0]
+			p.rem = p.rem[1:]
+			p.npos++
 		}
 	}
 }
@@ -959,10 +969,12 @@ func (p *parser) peekArithmEnd() bool {
 }
 
 func (p *parser) arithmEnd(left Pos) Pos {
-	if !p.peekArithmEnd() {
+	if p.peekArithmEnd() {
+		p.rem = p.rem[1:]
+		p.npos++
+	} else {
 		p.matchingErr(left, DLPAREN, DRPAREN)
 	}
-	p.readByte()
 	p.popStop()
 	pos := p.pos
 	p.next()
