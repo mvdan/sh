@@ -546,7 +546,7 @@ func posAfter(pos Pos, n int) Pos {
 
 func posAfterStr(pos Pos, s string) Pos { return posAfter(pos, len(s)) }
 
-var defaultPos Pos = 0
+var defaultPos Pos
 
 func stmtFirstPos(sts []*Stmt) Pos {
 	if len(sts) == 0 {
