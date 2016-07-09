@@ -136,7 +136,7 @@ func (p *parser) next() {
 	b := p.src[p.npos]
 	if p.tok == STOPPED && b == '\n' {
 		p.npos++
-		p.f.lines = append(p.f.lines, int(p.npos))
+		p.f.lines = append(p.f.lines, p.npos)
 		p.doHeredocs()
 		if p.npos >= len(p.src) {
 			p.errPass(io.EOF)
@@ -223,12 +223,12 @@ skipSpace:
 			if p.npos < len(p.src) {
 				p.npos++
 			}
-			p.f.lines = append(p.f.lines, int(p.npos))
+			p.f.lines = append(p.f.lines, p.npos)
 			p.newLine = true
 		case '\\':
 			if p.npos < len(p.src)-1 && p.src[p.npos+1] == '\n' {
 				p.npos += 2
-				p.f.lines = append(p.f.lines, int(p.npos))
+				p.f.lines = append(p.f.lines, p.npos)
 			} else {
 				break skipSpace
 			}
@@ -309,7 +309,7 @@ byteLoop:
 			b := p.src[p.npos+1]
 			p.npos += 2
 			if b == '\n' {
-				p.f.lines = append(p.f.lines, int(p.npos))
+				p.f.lines = append(p.f.lines, p.npos)
 			} else {
 				bs = append(bs, '\\', b)
 			}
@@ -317,7 +317,7 @@ byteLoop:
 		case q == SQUOTE:
 			switch b {
 			case '\n':
-				p.f.lines = append(p.f.lines, int(p.npos)+1)
+				p.f.lines = append(p.f.lines, p.npos+1)
 			case '\'':
 				return
 			}
@@ -360,7 +360,7 @@ func (p *parser) noneLoopByte() (bs []byte, willBreak bool) {
 			b := p.src[p.npos+1]
 			p.npos += 2
 			if b == '\n' {
-				p.f.lines = append(p.f.lines, int(p.npos))
+				p.f.lines = append(p.f.lines, p.npos)
 			} else {
 				bs = append(bs, '\\', b)
 			}
@@ -391,13 +391,13 @@ func (p *parser) dqLoopByte() (bs []byte) {
 			b := p.src[p.npos+1]
 			p.npos += 2
 			if b == '\n' {
-				p.f.lines = append(p.f.lines, int(p.npos))
+				p.f.lines = append(p.f.lines, p.npos)
 			}
 			bs = append(bs, '\\', b)
 		case '`', '"', '$':
 			return
 		case '\n':
-			p.f.lines = append(p.f.lines, int(p.npos)+1)
+			p.f.lines = append(p.f.lines, p.npos+1)
 			fallthrough
 		default:
 			bs = append(bs, p.src[p.npos])
@@ -434,7 +434,7 @@ func (p *parser) readHdocBody(end string, noTabs bool) (string, bool) {
 		bs, found := p.readUntil('\n')
 		p.npos += len(bs) + 1
 		if found {
-			p.f.lines = append(p.f.lines, int(p.npos))
+			p.f.lines = append(p.f.lines, p.npos)
 		}
 		line := string(bs)
 		if line == end || (noTabs && strings.TrimLeft(line, "\t") == end) {
@@ -736,7 +736,7 @@ func (p *parser) wordPart() WordPart {
 				break
 			}
 			p.npos += i + 1
-			p.f.lines = append(p.f.lines, int(p.npos))
+			p.f.lines = append(p.f.lines, p.npos)
 			rem = rem[i+1:]
 		}
 		p.npos++
