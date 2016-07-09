@@ -33,7 +33,6 @@ func Parse(src interface{}, name string, mode Mode) (*File, error) {
 	if p.src, p.err = getSource(src); p.err != nil {
 		return nil, p.err
 	}
-	p.rem = p.src
 	p.f.lines = make([]int, 1, 16)
 	p.next()
 	p.f.Stmts = p.stmts()
@@ -54,7 +53,7 @@ func getSource(src interface{}) ([]byte, error) {
 }
 
 type parser struct {
-	src, rem []byte
+	src []byte
 
 	f    *File
 	mode Mode
@@ -69,7 +68,8 @@ type parser struct {
 
 	buf [8]byte
 
-	pos, npos Pos
+	pos  Pos
+	npos int
 
 	// stack of stop tokens
 	stops []Token
@@ -95,8 +95,7 @@ func (p *parser) popStop() {
 }
 
 func (p *parser) readOnly(b byte) bool {
-	if len(p.rem) > 0 && p.rem[0] == b {
-		p.rem = p.rem[1:]
+	if p.npos < len(p.src) && p.src[p.npos] == b {
 		p.npos++
 		return true
 	}
@@ -130,21 +129,20 @@ func (p *parser) next() {
 	if p.tok == EOF {
 		return
 	}
-	if len(p.rem) < 1 {
+	if p.npos >= len(p.src) {
 		p.errPass(io.EOF)
 		return
 	}
-	b := p.rem[0]
+	b := p.src[p.npos]
 	if p.tok == STOPPED && b == '\n' {
 		p.npos++
-		p.rem = p.rem[1:]
 		p.f.lines = append(p.f.lines, int(p.npos))
 		p.doHeredocs()
-		if len(p.rem) < 1 {
+		if p.npos >= len(p.src) {
 			p.errPass(io.EOF)
 			return
 		}
-		b = p.rem[0]
+		b = p.src[p.npos]
 		p.spaced, p.newLine = true, true
 	} else {
 		p.spaced, p.newLine = false, false
@@ -152,18 +150,15 @@ func (p *parser) next() {
 	q := p.quote
 	switch q {
 	case QUO:
-		p.pos = p.npos + 1
+		p.pos = Pos(p.npos + 1)
 		switch b {
 		case '}':
-			p.rem = p.rem[1:]
 			p.npos++
 			p.advanceTok(RBRACE)
 		case '/':
-			p.rem = p.rem[1:]
 			p.npos++
 			p.advanceTok(QUO)
 		case '`', '"', '$':
-			p.rem = p.rem[1:]
 			p.npos++
 			p.advanceTok(p.doRegToken(b))
 		default:
@@ -173,27 +168,24 @@ func (p *parser) next() {
 	case DQUOTE:
 		switch b {
 		case '`', '"', '$':
-			p.pos = p.npos + 1
-			p.rem = p.rem[1:]
+			p.pos = Pos(p.npos + 1)
 			p.npos++
 			p.advanceTok(p.doDqToken(b))
 		case '\n':
 			p.pos++
 			p.advanceReadLit(q)
 		default:
-			p.pos = p.npos + 1
+			p.pos = Pos(p.npos + 1)
 			p.advanceReadLit(q)
 		}
 		return
 	case RBRACE:
-		p.pos = p.npos + 1
+		p.pos = Pos(p.npos + 1)
 		switch b {
 		case '}':
-			p.rem = p.rem[1:]
 			p.npos++
 			p.advanceTok(RBRACE)
 		case '`', '"', '$':
-			p.rem = p.rem[1:]
 			p.npos++
 			p.advanceTok(p.doRegToken(b))
 		default:
@@ -203,15 +195,14 @@ func (p *parser) next() {
 	case SQUOTE:
 		switch b {
 		case '\'':
-			p.pos = p.npos + 1
-			p.rem = p.rem[1:]
+			p.pos = Pos(p.npos + 1)
 			p.npos++
 			p.advanceTok(SQUOTE)
 		case '\n':
 			p.pos++
 			p.advanceReadLit(q)
 		default:
-			p.pos = p.npos + 1
+			p.pos = Pos(p.npos + 1)
 			p.advanceReadLit(q)
 		}
 		return
@@ -221,7 +212,6 @@ skipSpace:
 		switch b {
 		case ' ', '\t', '\r':
 			p.spaced = true
-			p.rem = p.rem[1:]
 			p.npos++
 		case '\n':
 			if p.stopNewline {
@@ -230,44 +220,39 @@ skipSpace:
 				return
 			}
 			p.spaced = true
-			if len(p.rem) > 0 {
-				p.rem = p.rem[1:]
+			if p.npos < len(p.src) {
 				p.npos++
 			}
 			p.f.lines = append(p.f.lines, int(p.npos))
 			p.newLine = true
 		case '\\':
-			if len(p.rem) > 1 && p.rem[1] == '\n' {
+			if p.npos < len(p.src)-1 && p.src[p.npos+1] == '\n' {
 				p.npos += 2
 				p.f.lines = append(p.f.lines, int(p.npos))
-				p.rem = p.rem[2:]
 			} else {
 				break skipSpace
 			}
 		default:
 			break skipSpace
 		}
-		if len(p.rem) < 1 {
+		if p.npos >= len(p.src) {
 			p.errPass(io.EOF)
 			return
 		}
-		b = p.rem[0]
+		b = p.src[p.npos]
 	}
-	p.pos = p.npos + 1
+	p.pos = Pos(p.npos + 1)
 	switch {
 	case q == LBRACE && paramOps(b):
-		p.rem = p.rem[1:]
 		p.npos++
 		p.advanceTok(p.doParamToken(b))
 	case q == RBRACK && b == ']':
-		p.rem = p.rem[1:]
 		p.npos++
 		p.advanceTok(RBRACK)
 	case b == '#' && q != LBRACE:
-		p.rem = p.rem[1:]
 		p.npos++
 		bs, _ := p.readUntil('\n')
-		p.npos += Pos(len(bs))
+		p.npos += len(bs)
 		if p.mode&ParseComments > 0 {
 			p.f.Comments = append(p.f.Comments, &Comment{
 				Hash: p.pos,
@@ -276,11 +261,9 @@ skipSpace:
 		}
 		p.next()
 	case (q == DLPAREN || q == DRPAREN || q == LPAREN) && arithmOps(b):
-		p.rem = p.rem[1:]
 		p.npos++
 		p.advanceTok(p.doArithmToken(b))
 	case regOps(b):
-		p.rem = p.rem[1:]
 		p.npos++
 		p.advanceTok(p.doRegToken(b))
 	case q == ILLEGAL, q == RPAREN, q == BQUOTE, q == DSEMICOLON:
@@ -312,20 +295,18 @@ func (p *parser) advanceReadLit(q Token) {
 func (p *parser) regLoopByte(q Token) (bs []byte) {
 byteLoop:
 	for {
-		if len(p.rem) < 1 {
+		if p.npos >= len(p.src) {
 			return
 		}
-		b := p.rem[0]
+		b := p.src[p.npos]
 		switch {
 		case b == '\\': // escaped byte follows
-			if len(p.rem) == 1 {
-				p.rem = p.rem[1:]
+			if p.npos == len(p.src)-1 {
 				p.npos += 1
 				bs = append(bs, '\\')
 				return
 			}
-			b := p.rem[1]
-			p.rem = p.rem[2:]
+			b := p.src[p.npos+1]
 			p.npos += 2
 			if b == '\n' {
 				p.f.lines = append(p.f.lines, int(p.npos))
@@ -357,8 +338,7 @@ byteLoop:
 		case (q == DLPAREN || q == DRPAREN || q == LPAREN) && arithmOps(b):
 			return
 		}
-		bs = append(bs, p.rem[0])
-		p.rem = p.rem[1:]
+		bs = append(bs, p.src[p.npos])
 		p.npos++
 	}
 }
@@ -366,20 +346,18 @@ byteLoop:
 func (p *parser) noneLoopByte() (bs []byte, willBreak bool) {
 	bs = p.buf[:0]
 	for {
-		if len(p.rem) < 1 {
+		if p.npos >= len(p.src) {
 			willBreak = true
 			return
 		}
-		switch p.rem[0] {
+		switch p.src[p.npos] {
 		case '\\': // escaped byte follows
-			if len(p.rem) == 1 {
-				p.rem = p.rem[1:]
+			if p.npos == len(p.src)-1 {
 				p.npos += 1
 				bs = append(bs, '\\')
 				return
 			}
-			b := p.rem[1]
-			p.rem = p.rem[2:]
+			b := p.src[p.npos+1]
 			p.npos += 2
 			if b == '\n' {
 				p.f.lines = append(p.f.lines, int(p.npos))
@@ -392,8 +370,7 @@ func (p *parser) noneLoopByte() (bs []byte, willBreak bool) {
 		case '"', '\'', '$':
 			return
 		default:
-			bs = append(bs, p.rem[0])
-			p.rem = p.rem[1:]
+			bs = append(bs, p.src[p.npos])
 			p.npos++
 		}
 	}
@@ -401,19 +378,17 @@ func (p *parser) noneLoopByte() (bs []byte, willBreak bool) {
 
 func (p *parser) dqLoopByte() (bs []byte) {
 	for {
-		if len(p.rem) < 1 {
+		if p.npos >= len(p.src) {
 			return
 		}
-		switch p.rem[0] {
+		switch p.src[p.npos] {
 		case '\\': // escaped byte follows
-			if len(p.rem) == 1 {
-				p.rem = p.rem[1:]
+			if p.npos == len(p.src)-1 {
 				p.npos += 1
 				bs = append(bs, '\\')
 				return
 			}
-			b := p.rem[1]
-			p.rem = p.rem[2:]
+			b := p.src[p.npos+1]
 			p.npos += 2
 			if b == '\n' {
 				p.f.lines = append(p.f.lines, int(p.npos))
@@ -425,8 +400,7 @@ func (p *parser) dqLoopByte() (bs []byte) {
 			p.f.lines = append(p.f.lines, int(p.npos)+1)
 			fallthrough
 		default:
-			bs = append(bs, p.rem[0])
-			p.rem = p.rem[1:]
+			bs = append(bs, p.src[p.npos])
 			p.npos++
 		}
 	}
@@ -435,34 +409,20 @@ func (p *parser) dqLoopByte() (bs []byte) {
 func (p *parser) advanceTok(tok Token)              { p.advanceBoth(tok, "") }
 func (p *parser) advanceBoth(tok Token, val string) { p.tok, p.val = tok, val }
 
-func (p *parser) readIncluding(b byte) ([]byte, bool) {
-	i := bytes.IndexByte(p.rem, b)
-	if i < 0 {
-		bs := p.rem
-		p.rem = p.rem[len(p.rem):]
-		return bs, false
-	}
-	bs := p.rem[:i]
-	p.rem = p.rem[i+1:]
-	return bs, true
-}
-
 func (p *parser) readUntil(b byte) ([]byte, bool) {
-	i := bytes.IndexByte(p.rem, b)
+	rem := p.src[p.npos:]
+	i := bytes.IndexByte(rem, b)
 	if i < 0 {
-		bs := p.rem
-		p.rem = p.rem[len(p.rem):]
+		bs := rem
 		return bs, false
 	}
-	bs := p.rem[:i]
-	p.rem = p.rem[i:]
-	return bs, true
+	return rem[:i], true
 }
 
 func (p *parser) doHeredocs() {
 	for _, r := range p.heredocs {
 		end := unquotedWordStr(p.f, &r.Word)
-		r.Hdoc.ValuePos = p.npos
+		r.Hdoc.ValuePos = Pos(p.npos)
 		r.Hdoc.Value, _ = p.readHdocBody(end, r.Op == DHEREDOC)
 	}
 	p.heredocs = nil
@@ -470,9 +430,9 @@ func (p *parser) doHeredocs() {
 
 func (p *parser) readHdocBody(end string, noTabs bool) (string, bool) {
 	var buf bytes.Buffer
-	for len(p.rem) > 0 {
-		bs, found := p.readIncluding('\n')
-		p.npos += Pos(len(bs)) + 1
+	for p.npos < len(p.src) {
+		bs, found := p.readUntil('\n')
+		p.npos += len(bs) + 1
 		if found {
 			p.f.lines = append(p.f.lines, int(p.npos))
 		}
@@ -739,10 +699,10 @@ func (p *parser) wordPart() WordPart {
 		return cs
 	case DOLLAR:
 		var b byte
-		if len(p.rem) == 0 {
+		if p.npos >= len(p.src) {
 			p.errPass(io.EOF)
 		} else {
-			b = p.rem[0]
+			b = p.src[p.npos]
 		}
 		if p.tok == EOF || wordBreak(b) || b == '"' {
 			l := &Lit{ValuePos: p.pos, Value: "$"}
@@ -751,7 +711,6 @@ func (p *parser) wordPart() WordPart {
 		}
 		pe := &ParamExp{Dollar: p.pos, Short: true}
 		if b == '#' || b == '$' || b == '?' {
-			p.rem = p.rem[1:]
 			p.npos++
 			p.advanceBoth(LIT, string(b))
 		} else {
@@ -768,15 +727,15 @@ func (p *parser) wordPart() WordPart {
 		return ps
 	case SQUOTE:
 		sq := &SglQuoted{Quote: p.pos}
-		bs, found := p.readIncluding('\'')
+		bs, found := p.readUntil('\'')
 		rem := bs
 		for {
 			i := bytes.IndexByte(rem, '\n')
 			if i < 0 {
-				p.npos += Pos(len(rem))
+				p.npos += len(rem)
 				break
 			}
-			p.npos += Pos(i + 1)
+			p.npos += i + 1
 			p.f.lines = append(p.f.lines, int(p.npos))
 			rem = rem[i+1:]
 		}
@@ -967,12 +926,11 @@ func (p *parser) paramExp() *ParamExp {
 }
 
 func (p *parser) peekArithmEnd() bool {
-	return p.tok == RPAREN && len(p.rem) > 0 && p.rem[0] == ')'
+	return p.tok == RPAREN && p.npos < len(p.src) && p.src[p.npos] == ')'
 }
 
 func (p *parser) arithmEnd(left Pos) Pos {
 	if p.peekArithmEnd() {
-		p.rem = p.rem[1:]
 		p.npos++
 	} else {
 		p.matchingErr(left, DLPAREN, DRPAREN)
@@ -1055,7 +1013,7 @@ func (p *parser) getAssign() (*Assign, bool) {
 func (p *parser) peekRedir() bool {
 	switch p.tok {
 	case LITWORD:
-		return len(p.rem) > 0 && (p.rem[0] == '>' || p.rem[0] == '<')
+		return p.npos < len(p.src) && (p.src[p.npos] == '>' || p.src[p.npos] == '<')
 	case GTR, SHR, LSS, DPLIN, DPLOUT, RDRINOUT,
 		SHL, DHEREDOC, WHEREDOC, RDRALL, APPALL:
 		return true
@@ -1097,7 +1055,7 @@ preLoop:
 		case LIT, LITWORD:
 			if as, ok := p.getAssign(); ok {
 				s.Assigns = append(s.Assigns, as)
-			} else if len(p.rem) > 0 && (p.rem[0] == '>' || p.rem[0] == '<') {
+			} else if p.npos < len(p.src) && (p.src[p.npos] == '>' || p.src[p.npos] == '<') {
 				p.doRedirect(s)
 			} else {
 				break preLoop
@@ -1454,7 +1412,7 @@ argLoop:
 		case STOPPED:
 			p.next()
 		case LITWORD:
-			if len(p.rem) > 0 && (p.rem[0] == '>' || p.rem[0] == '<') {
+			if p.npos < len(p.src) && (p.src[p.npos] == '>' || p.src[p.npos] == '<') {
 				p.doRedirect(s)
 				continue argLoop
 			}
