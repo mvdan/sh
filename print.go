@@ -105,14 +105,12 @@ func (p *printer) spaces(n int) {
 	for i := 0; i < n; i++ {
 		p.WriteByte(' ')
 	}
-	p.wantSpace = false
 }
 
 func (p *printer) tabs(n int) {
 	for i := 0; i < n; i++ {
 		p.WriteByte('\t')
 	}
-	p.wantSpace = false
 }
 
 func (p *printer) bslashNewl() {
@@ -121,14 +119,9 @@ func (p *printer) bslashNewl() {
 	p.incLine()
 }
 
-func (p *printer) token(s string, spaceAfter bool) {
-	p.wantSpace = spaceAfter
-	p.WriteString(s)
-}
-
 func (p *printer) spacedRsrv(s string) {
 	if p.wantSpace {
-		p.space()
+		p.WriteByte(' ')
 	}
 	p.WriteString(s)
 	p.wantSpace = true
@@ -136,7 +129,7 @@ func (p *printer) spacedRsrv(s string) {
 
 func (p *printer) spacedTok(s string, spaceAfter bool) {
 	if p.wantSpace {
-		p.space()
+		p.WriteByte(' ')
 	}
 	p.wantSpace = spaceAfter
 	p.WriteString(s)
@@ -245,7 +238,7 @@ func (p *printer) semiRsrv(s string, pos Pos, fallback bool) {
 	if !p.didSeparate(pos) && fallback {
 		p.WriteString("; ")
 	} else if p.wantSpace {
-		p.space()
+		p.WriteByte(' ')
 	}
 	p.WriteString(s)
 	p.wantSpace = true
@@ -547,7 +540,7 @@ func (p *printer) arithm(expr ArithmExpr, compact bool) {
 		} else {
 			p.arithm(x.X, false)
 			if x.Op != COMMA {
-				p.space()
+				p.WriteByte(' ')
 			}
 			p.WriteString(binaryExprOp(x.Op))
 			p.space()
@@ -597,7 +590,7 @@ func (p *printer) unquotedWord(w *Word) {
 
 func (p *printer) spacedWord(w Word) {
 	if p.wantSpace {
-		p.space()
+		p.WriteByte(' ')
 	}
 	for _, n := range w.Parts {
 		p.wordPart(n)
@@ -978,12 +971,12 @@ func (p *printer) assigns(assigns []*Assign) {
 		if a.Name != nil {
 			p.WriteString(a.Name.Value)
 			if a.Append {
-				p.token("+=", true)
-			} else {
-				p.token("=", true)
+				p.WriteByte('+')
 			}
+			p.WriteByte('=')
 		}
 		p.word(a.Value)
+		p.wantSpace = true
 	}
 	if anyNewline {
 		p.decLevel()
