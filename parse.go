@@ -301,11 +301,11 @@ func (p *parser) regLoopByte(q Token) (bs []byte) {
 		switch {
 		case b == '\\': // escaped byte follows
 			if p.npos == len(p.src)-1 {
-				p.npos += 1
+				p.npos++
 				bs = append(bs, '\\')
 				return
 			}
-			b := p.src[p.npos+1]
+			b = p.src[p.npos+1]
 			p.npos += 2
 			if b == '\n' {
 				p.f.lines = append(p.f.lines, p.npos)
@@ -352,7 +352,7 @@ func (p *parser) noneLoopByte() (bs []byte, willBreak bool) {
 		switch p.src[p.npos] {
 		case '\\': // escaped byte follows
 			if p.npos == len(p.src)-1 {
-				p.npos += 1
+				p.npos++
 				bs = append(bs, '\\')
 				return
 			}
