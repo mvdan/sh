@@ -62,8 +62,7 @@ type parser struct {
 	spaced, newLine           bool
 	stopNewline, forbidNested bool
 
-	nextByte byte
-	err      error
+	err error
 
 	tok Token
 	val string
@@ -95,23 +94,10 @@ func (p *parser) popStop() {
 	}
 }
 
-func (p *parser) readByte() (byte, error) {
-	if len(p.rem) < 1 {
-		return 0, io.EOF
-	}
-	b := p.rem[0]
-	p.rem = p.rem[1:]
-	p.npos++
-	return b, nil
-}
-
 func (p *parser) readOnly(b byte) bool {
 	if len(p.rem) > 0 && p.rem[0] == b {
 		p.rem = p.rem[1:]
 		p.npos++
-		if b == '\n' {
-			p.f.lines = append(p.f.lines, int(p.npos))
-		}
 		return true
 	}
 	return false
@@ -144,74 +130,89 @@ func (p *parser) next() {
 	if p.tok == EOF {
 		return
 	}
-	var err error
-	b := p.nextByte
-	p.spaced, p.newLine = false, false
-	switch b {
-	case 0:
-		if b, err = p.readByte(); err != nil {
-			p.errPass(err)
+	if len(p.rem) < 1 {
+		p.errPass(io.EOF)
+		return
+	}
+	b := p.rem[0]
+	if p.tok == STOPPED && b == '\n' {
+		p.npos++
+		p.rem = p.rem[1:]
+		p.f.lines = append(p.f.lines, int(p.npos))
+		p.doHeredocs()
+		if len(p.rem) < 1 {
+			p.errPass(io.EOF)
 			return
 		}
-		if b == '\n' {
-			p.f.lines = append(p.f.lines, int(p.npos))
-		}
-	case '\n':
-		p.nextByte = 0
-		p.doHeredocs()
-	default:
-		p.nextByte = 0
+		b = p.rem[0]
+		p.spaced, p.newLine = true, true
+	} else {
+		p.spaced, p.newLine = false, false
 	}
 	q := p.quote
 	switch q {
 	case QUO:
-		p.pos = p.npos
+		p.pos = p.npos + 1
 		switch b {
 		case '}':
+			p.rem = p.rem[1:]
+			p.npos++
 			p.advanceTok(RBRACE)
 		case '/':
+			p.rem = p.rem[1:]
+			p.npos++
 			p.advanceTok(QUO)
 		case '`', '"', '$':
+			p.rem = p.rem[1:]
+			p.npos++
 			p.advanceTok(p.doRegToken(b))
 		default:
-			p.advanceReadLit(b, q)
+			p.advanceReadLit(q)
 		}
 		return
 	case DQUOTE:
 		switch b {
 		case '`', '"', '$':
-			p.pos = p.npos
+			p.pos = p.npos + 1
+			p.rem = p.rem[1:]
+			p.npos++
 			p.advanceTok(p.doDqToken(b))
 		case '\n':
 			p.pos++
-			p.advanceReadLit(b, q)
+			p.advanceReadLit(q)
 		default:
-			p.pos = p.npos
-			p.advanceReadLit(b, q)
+			p.pos = p.npos + 1
+			p.advanceReadLit(q)
 		}
 		return
 	case RBRACE:
-		p.pos = p.npos
+		p.pos = p.npos + 1
 		switch b {
 		case '}':
+			p.rem = p.rem[1:]
+			p.npos++
 			p.advanceTok(RBRACE)
 		case '`', '"', '$':
+			p.rem = p.rem[1:]
+			p.npos++
 			p.advanceTok(p.doRegToken(b))
 		default:
-			p.advanceReadLit(b, q)
+			p.advanceReadLit(q)
 		}
 		return
 	case SQUOTE:
 		switch b {
 		case '\'':
-			p.pos = p.npos
+			p.pos = p.npos + 1
+			p.rem = p.rem[1:]
+			p.npos++
 			p.advanceTok(SQUOTE)
 		case '\n':
 			p.pos++
-			p.advanceReadLit(b, q)
+			p.advanceReadLit(q)
 		default:
-			p.pos = p.npos
-			p.advanceReadLit(b, q)
+			p.pos = p.npos + 1
+			p.advanceReadLit(q)
 		}
 		return
 	}
@@ -220,21 +221,27 @@ skipSpace:
 		switch b {
 		case ' ', '\t', '\r':
 			p.spaced = true
+			p.rem = p.rem[1:]
+			p.npos++
 		case '\n':
-			if p.spaced {
-				p.f.lines = append(p.f.lines, int(p.npos))
-			} else {
-				p.spaced = true
-			}
 			if p.stopNewline {
-				p.nextByte = '\n'
 				p.stopNewline = false
 				p.advanceTok(STOPPED)
 				return
 			}
+			p.spaced = true
+			if len(p.rem) > 0 {
+				p.rem = p.rem[1:]
+				p.npos++
+			}
+			p.f.lines = append(p.f.lines, int(p.npos))
 			p.newLine = true
 		case '\\':
-			if !p.readOnly('\n') {
+			if len(p.rem) > 1 && p.rem[1] == '\n' {
+				p.npos += 2
+				p.f.lines = append(p.f.lines, int(p.npos))
+				p.rem = p.rem[2:]
+			} else {
 				break skipSpace
 			}
 		default:
@@ -245,22 +252,22 @@ skipSpace:
 			return
 		}
 		b = p.rem[0]
-		p.rem = p.rem[1:]
-		p.npos++
 	}
-	p.pos = p.npos
+	p.pos = p.npos + 1
 	switch {
 	case q == LBRACE && paramOps(b):
+		p.rem = p.rem[1:]
+		p.npos++
 		p.advanceTok(p.doParamToken(b))
 	case q == RBRACK && b == ']':
+		p.rem = p.rem[1:]
+		p.npos++
 		p.advanceTok(RBRACK)
 	case b == '#' && q != LBRACE:
-		bs, found := p.readIncluding('\n')
-		p.npos += Pos(len(bs)) + 1
-		if found {
-			p.f.lines = append(p.f.lines, int(p.npos))
-		}
-		p.nextByte = '\n'
+		p.rem = p.rem[1:]
+		p.npos++
+		bs, _ := p.readUntil('\n')
+		p.npos += Pos(len(bs))
 		if p.mode&ParseComments > 0 {
 			p.f.Comments = append(p.f.Comments, &Comment{
 				Hash: p.pos,
@@ -269,66 +276,68 @@ skipSpace:
 		}
 		p.next()
 	case (q == DLPAREN || q == DRPAREN || q == LPAREN) && arithmOps(b):
+		p.rem = p.rem[1:]
+		p.npos++
 		p.advanceTok(p.doArithmToken(b))
 	case regOps(b):
+		p.rem = p.rem[1:]
+		p.npos++
 		p.advanceTok(p.doRegToken(b))
 	case q == ILLEGAL, q == RPAREN, q == BQUOTE, q == DSEMICOLON:
-		p.advanceReadLitNone(b)
+		p.advanceReadLitNone()
 	default:
-		p.advanceReadLit(b, q)
+		p.advanceReadLit(q)
 	}
 }
 
-func (p *parser) advanceReadLitNone(b byte) {
-	bs, b2, willBreak, err := p.noneLoopByte(b)
-	p.nextByte = b2
-	switch {
-	case err != nil:
-		fallthrough
-	case willBreak:
+func (p *parser) advanceReadLitNone() {
+	bs, willBreak := p.noneLoopByte()
+	if willBreak {
 		p.advanceBoth(LITWORD, string(bs))
-	default:
+	} else {
 		p.advanceBoth(LIT, string(bs))
 	}
 }
 
-func (p *parser) advanceReadLit(b byte, q Token) {
+func (p *parser) advanceReadLit(q Token) {
 	var bs []byte
-	var err error
 	if q == DQUOTE {
-		bs, b, err = p.dqLoopByte(b)
+		bs = p.dqLoopByte()
 	} else {
-		bs, b, err = p.regLoopByte(b, q)
+		bs = p.regLoopByte(q)
 	}
-	p.nextByte = b
-	if err != nil {
-		p.advanceBoth(LITWORD, string(bs))
-	} else {
-		p.advanceBoth(LIT, string(bs))
-	}
+	p.advanceBoth(LIT, string(bs))
 }
 
-func (p *parser) regLoopByte(b0 byte, q Token) (bs []byte, b byte, err error) {
-	b = b0
+func (p *parser) regLoopByte(q Token) (bs []byte) {
 byteLoop:
 	for {
+		if len(p.rem) < 1 {
+			return
+		}
+		b := p.rem[0]
 		switch {
 		case b == '\\': // escaped byte follows
-			if b, err = p.readByte(); err != nil {
+			if len(p.rem) == 1 {
+				p.rem = p.rem[1:]
+				p.npos += 1
 				bs = append(bs, '\\')
 				return
 			}
+			b := p.rem[1]
+			p.rem = p.rem[2:]
+			p.npos += 2
 			if b == '\n' {
 				p.f.lines = append(p.f.lines, int(p.npos))
 			} else {
 				bs = append(bs, '\\', b)
 			}
-			if b, err = p.readByte(); err != nil {
-				return
-			}
 			continue byteLoop
 		case q == SQUOTE:
-			if b == '\'' {
+			switch b {
+			case '\n':
+				p.f.lines = append(p.f.lines, int(p.npos)+1)
+			case '\'':
 				return
 			}
 		case b == '`', b == '$':
@@ -343,94 +352,80 @@ byteLoop:
 			if b == '/' || b == '}' {
 				return
 			}
-		case b == '\n':
-			if bs != nil {
-				p.f.lines = append(p.f.lines, int(p.npos))
-			}
-			return
 		case wordBreak(b), regOps(b):
 			return
 		case (q == DLPAREN || q == DRPAREN || q == LPAREN) && arithmOps(b):
 			return
 		}
-		bs = append(bs, b)
-		if b, err = p.readByte(); err != nil {
-			return
-		}
+		bs = append(bs, p.rem[0])
+		p.rem = p.rem[1:]
+		p.npos++
 	}
 }
 
-func (p *parser) noneLoopByte(b0 byte) (bs []byte, b byte, willBreak bool, err error) {
+func (p *parser) noneLoopByte() (bs []byte, willBreak bool) {
 	bs = p.buf[:0]
-	b = b0
 	for {
-		switch b {
+		if len(p.rem) < 1 {
+			willBreak = true
+			return
+		}
+		switch p.rem[0] {
 		case '\\': // escaped byte follows
-			if b, err = p.readByte(); err != nil {
+			if len(p.rem) == 1 {
+				p.rem = p.rem[1:]
+				p.npos += 1
 				bs = append(bs, '\\')
 				return
 			}
+			b := p.rem[1]
+			p.rem = p.rem[2:]
+			p.npos += 2
 			if b == '\n' {
 				p.f.lines = append(p.f.lines, int(p.npos))
 			} else {
 				bs = append(bs, '\\', b)
 			}
-			if b, err = p.readByte(); err != nil {
-				return
-			}
-		case '\n':
-			if len(bs) > 0 {
-				p.f.lines = append(p.f.lines, int(p.npos))
-			}
-			fallthrough
-		case ' ', '\t', '\r', '&', '>', '<', '|', ';', '(', ')', '`':
+		case ' ', '\t', '\n', '\r', '&', '>', '<', '|', ';', '(', ')', '`':
 			willBreak = true
 			return
 		case '"', '\'', '$':
 			return
 		default:
-			bs = append(bs, b)
-			if len(p.rem) < 1 {
-				b, err = 0, io.EOF
-				return
-			}
-			b = p.rem[0]
+			bs = append(bs, p.rem[0])
 			p.rem = p.rem[1:]
 			p.npos++
 		}
 	}
 }
 
-func (p *parser) dqLoopByte(b0 byte) (bs []byte, b byte, err error) {
-	b = b0
+func (p *parser) dqLoopByte() (bs []byte) {
 	for {
-		switch b {
+		if len(p.rem) < 1 {
+			return
+		}
+		switch p.rem[0] {
 		case '\\': // escaped byte follows
-			if b, err = p.readByte(); err != nil {
+			if len(p.rem) == 1 {
+				p.rem = p.rem[1:]
+				p.npos += 1
 				bs = append(bs, '\\')
 				return
 			}
+			b := p.rem[1]
+			p.rem = p.rem[2:]
+			p.npos += 2
 			if b == '\n' {
 				p.f.lines = append(p.f.lines, int(p.npos))
 			}
 			bs = append(bs, '\\', b)
-			if b, err = p.readByte(); err != nil {
-				return
-			}
 		case '`', '"', '$':
 			return
 		case '\n':
-			if bs != nil {
-				p.f.lines = append(p.f.lines, int(p.npos))
-			}
+			p.f.lines = append(p.f.lines, int(p.npos)+1)
 			fallthrough
 		default:
-			bs = append(bs, b)
-			if len(p.rem) < 1 {
-				b, err = 0, io.EOF
-				return
-			}
-			b = p.rem[0]
+			bs = append(bs, p.rem[0])
 			p.rem = p.rem[1:]
 			p.npos++
 		}
@@ -449,6 +444,18 @@ func (p *parser) readIncluding(b byte) ([]byte, bool) {
 	}
 	bs := p.rem[:i]
 	p.rem = p.rem[i+1:]
+	return bs, true
+}
+
+func (p *parser) readUntil(b byte) ([]byte, bool) {
+	i := bytes.IndexByte(p.rem, b)
+	if i < 0 {
+		bs := p.rem
+		p.rem = p.rem[len(p.rem):]
+		return bs, false
+	}
+	bs := p.rem[:i]
+	p.rem = p.rem[i:]
 	return bs, true
 }
 
@@ -735,22 +742,19 @@ func (p *parser) wordPart() WordPart {
 		if len(p.rem) == 0 {
 			p.errPass(io.EOF)
 		} else {
-			b, _ = p.readByte()
+			b = p.rem[0]
 		}
 		if p.tok == EOF || wordBreak(b) || b == '"' {
-			if b == '\n' {
-				p.f.lines = append(p.f.lines, int(p.npos))
-			}
 			l := &Lit{ValuePos: p.pos, Value: "$"}
-			p.nextByte = b
 			p.next()
 			return l
 		}
 		pe := &ParamExp{Dollar: p.pos, Short: true}
 		if b == '#' || b == '$' || b == '?' {
+			p.rem = p.rem[1:]
+			p.npos++
 			p.advanceBoth(LIT, string(b))
 		} else {
-			p.nextByte = b
 			p.next()
 		}
 		p.gotLit(&pe.Param)
@@ -783,9 +787,7 @@ func (p *parser) wordPart() WordPart {
 		sq.Value = string(bs)
 		p.next()
 		return sq
-	case DOLLSQ:
-		fallthrough
-	case DQUOTE, DOLLDQ:
+	case DOLLSQ, DQUOTE, DOLLDQ:
 		q := &Quoted{Quote: p.tok, QuotePos: p.pos}
 		stop := quotedStop(q.Quote)
 		p.pushStop(stop)
@@ -829,7 +831,7 @@ func (p *parser) arithmExpr(ftok Token, fpos Pos) ArithmExpr {
 		return left
 	}
 	switch p.tok {
-	case EOF, RPAREN, SEMICOLON, DSEMICOLON, SEMIFALL, DSEMIFALL:
+	case EOF, STOPPED, RPAREN, SEMICOLON, DSEMICOLON, SEMIFALL, DSEMIFALL:
 		return left
 	case LIT, LITWORD:
 		p.curErr("not a valid arithmetic operator: %s", p.val)
@@ -1053,7 +1055,7 @@ func (p *parser) getAssign() (*Assign, bool) {
 func (p *parser) peekRedir() bool {
 	switch p.tok {
 	case LITWORD:
-		return p.nextByte == '>' || p.nextByte == '<'
+		return len(p.rem) > 0 && (p.rem[0] == '>' || p.rem[0] == '<')
 	case GTR, SHR, LSS, DPLIN, DPLOUT, RDRINOUT,
 		SHL, DHEREDOC, WHEREDOC, RDRALL, APPALL:
 		return true
@@ -1095,7 +1097,7 @@ preLoop:
 		case LIT, LITWORD:
 			if as, ok := p.getAssign(); ok {
 				s.Assigns = append(s.Assigns, as)
-			} else if p.nextByte == '>' || p.nextByte == '<' {
+			} else if len(p.rem) > 0 && (p.rem[0] == '>' || p.rem[0] == '<') {
 				p.doRedirect(s)
 			} else {
 				break preLoop
@@ -1452,7 +1454,7 @@ argLoop:
 		case STOPPED:
 			p.next()
 		case LITWORD:
-			if p.nextByte == '>' || p.nextByte == '<' {
+			if len(p.rem) > 0 && (p.rem[0] == '>' || p.rem[0] == '<') {
 				p.doRedirect(s)
 				continue argLoop
 			}

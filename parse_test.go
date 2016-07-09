@@ -32,7 +32,7 @@ func checkNewlines(tb testing.TB, src string, got []int) {
 	}
 	if !reflect.DeepEqual(got, want) {
 		tb.Fatalf("Unexpected newline offsets at %q:\ngot:  %v\nwant: %v",
-			got, want)
+			src, got, want)
 	}
 }
 
