@@ -293,7 +293,6 @@ func (p *parser) advanceReadLit(q Token) {
 }
 
 func (p *parser) regLoopByte(q Token) (bs []byte) {
-byteLoop:
 	for {
 		if p.npos >= len(p.src) {
 			return
@@ -313,7 +312,7 @@ byteLoop:
 			} else {
 				bs = append(bs, '\\', b)
 			}
-			continue byteLoop
+			continue
 		case q == SQUOTE:
 			switch b {
 			case '\n':
@@ -1345,9 +1344,7 @@ func (p *parser) declClause(local bool) *DeclClause {
 	for !p.peekStop() {
 		if as, ok := p.getAssign(); ok {
 			ds.Assigns = append(ds.Assigns, as)
-			continue
-		}
-		if w, ok := p.gotWord(); !ok {
+		} else if w, ok := p.gotWord(); !ok {
 			p.followErr(p.pos, "declare", "words")
 		} else {
 			ds.Assigns = append(ds.Assigns, &Assign{Value: w})
@@ -1402,7 +1399,6 @@ func (p *parser) bashFuncDecl() *FuncDecl {
 
 func (p *parser) callExpr(s *Stmt, w Word) *CallExpr {
 	ce := &CallExpr{Args: []Word{w}}
-argLoop:
 	for !p.peekStop() {
 		switch p.tok {
 		case STOPPED:
@@ -1410,7 +1406,7 @@ argLoop:
 		case LITWORD:
 			if p.npos < len(p.src) && (p.src[p.npos] == '>' || p.src[p.npos] == '<') {
 				p.doRedirect(s)
-				continue argLoop
+				continue
 			}
 			fallthrough
 		case LIT, DOLLBR, DOLLDP, DOLLPR, DOLLAR, CMDIN, CMDOUT,
