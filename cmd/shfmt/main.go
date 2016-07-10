@@ -22,7 +22,10 @@ var (
 	indent = flag.Int("i", 0, "indent: 0 for tabs (default), >0 for number of spaces")
 )
 
-var config sh.PrintConfig
+var (
+	config sh.PrintConfig
+	buf    bytes.Buffer
+)
 
 func main() {
 	flag.Parse()
@@ -130,7 +133,7 @@ func formatPath(path string, size int64, always bool) error {
 	if err != nil {
 		return err
 	}
-	var buf bytes.Buffer
+	buf.Reset()
 	if err := config.Fprint(&buf, prog); err != nil {
 		return err
 	}
