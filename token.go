@@ -248,7 +248,7 @@ func byteAt(src []byte, i int) byte {
 	return src[i]
 }
 
-func (p *parser) doRegToken(b byte) Token {
+func (p *parser) regToken(b byte) Token {
 	switch b {
 	case '\'':
 		p.npos++
@@ -369,7 +369,7 @@ func (p *parser) doRegToken(b byte) Token {
 	}
 }
 
-func (p *parser) doDqToken(b byte) Token {
+func (p *parser) dqToken(b byte) Token {
 	switch b {
 	case '"':
 		p.npos++
@@ -395,7 +395,7 @@ func (p *parser) doDqToken(b byte) Token {
 	}
 }
 
-func (p *parser) doParamToken(b byte) Token {
+func (p *parser) paramToken(b byte) Token {
 	switch b {
 	case '}':
 		p.npos++
@@ -456,7 +456,7 @@ func (p *parser) doParamToken(b byte) Token {
 	}
 }
 
-func (p *parser) doArithmToken(b byte) Token {
+func (p *parser) arithmToken(b byte) Token {
 	switch b {
 	case '!':
 		if byteAt(p.src, p.npos+1) == '=' {

@@ -151,22 +151,22 @@ func (p *parser) next() {
 			p.npos++
 			p.advanceTok(QUO)
 		case '`', '"', '$':
-			p.advanceTok(p.doRegToken(b))
+			p.advanceTok(p.regToken(b))
 		default:
-			p.advanceReadLitOther(q)
+			p.advanceLitOther(q)
 		}
 		return
 	case DQUOTE:
 		switch b {
 		case '`', '"', '$':
 			p.pos = Pos(p.npos + 1)
-			p.advanceTok(p.doDqToken(b))
+			p.advanceTok(p.dqToken(b))
 		case '\n':
 			p.pos++
-			p.advanceReadLitDquote()
+			p.advanceLitDquote()
 		default:
 			p.pos = Pos(p.npos + 1)
-			p.advanceReadLitDquote()
+			p.advanceLitDquote()
 		}
 		return
 	case RBRACE:
@@ -176,9 +176,9 @@ func (p *parser) next() {
 			p.npos++
 			p.advanceTok(RBRACE)
 		case '`', '"', '$':
-			p.advanceTok(p.doRegToken(b))
+			p.advanceTok(p.regToken(b))
 		default:
-			p.advanceReadLitOther(q)
+			p.advanceLitOther(q)
 		}
 		return
 	case SQUOTE:
@@ -189,10 +189,10 @@ func (p *parser) next() {
 			p.advanceTok(SQUOTE)
 		case '\n':
 			p.pos++
-			p.advanceReadLitOther(q)
+			p.advanceLitOther(q)
 		default:
 			p.pos = Pos(p.npos + 1)
-			p.advanceReadLitOther(q)
+			p.advanceLitOther(q)
 		}
 		return
 	}
@@ -233,7 +233,7 @@ skipSpace:
 	p.pos = Pos(p.npos + 1)
 	switch {
 	case q == LBRACE && paramOps(b):
-		p.advanceTok(p.doParamToken(b))
+		p.advanceTok(p.paramToken(b))
 	case q == RBRACK && b == ']':
 		p.npos++
 		p.advanceTok(RBRACK)
@@ -249,17 +249,17 @@ skipSpace:
 		}
 		p.next()
 	case (q == DLPAREN || q == DRPAREN || q == LPAREN) && arithmOps(b):
-		p.advanceTok(p.doArithmToken(b))
+		p.advanceTok(p.arithmToken(b))
 	case regOps(b):
-		p.advanceTok(p.doRegToken(b))
+		p.advanceTok(p.regToken(b))
 	case q == ILLEGAL, q == RPAREN, q == BQUOTE, q == DSEMICOLON:
-		p.advanceReadLitNone()
+		p.advanceLitNone()
 	default:
-		p.advanceReadLitOther(q)
+		p.advanceLitOther(q)
 	}
 }
 
-func (p *parser) advanceReadLitOther(q Token) {
+func (p *parser) advanceLitOther(q Token) {
 	var bs []byte
 	for {
 		if p.npos >= len(p.src) {
@@ -319,7 +319,7 @@ func (p *parser) advanceReadLitOther(q Token) {
 	}
 }
 
-func (p *parser) advanceReadLitNone() {
+func (p *parser) advanceLitNone() {
 	bs := p.buf[:0]
 	for {
 		if p.npos >= len(p.src) {
@@ -354,12 +354,11 @@ func (p *parser) advanceReadLitNone() {
 	}
 }
 
-func (p *parser) advanceReadLitDquote() {
+func (p *parser) advanceLitDquote() {
 	var i int
 loop:
 	for i = p.npos; i < len(p.src); i++ {
-		b := p.src[i]
-		switch b {
+		switch p.src[i] {
 		case '\\': // escaped byte follows
 			i++
 			if i == len(p.src) {
