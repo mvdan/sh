@@ -159,7 +159,6 @@ func (p *parser) next() {
 			p.npos++
 			p.advanceTok(QUO)
 		case '`', '"', '$':
-			p.npos++
 			p.advanceTok(p.doRegToken(b))
 		default:
 			p.advanceReadLitOther(q)
@@ -186,7 +185,6 @@ func (p *parser) next() {
 			p.npos++
 			p.advanceTok(RBRACE)
 		case '`', '"', '$':
-			p.npos++
 			p.advanceTok(p.doRegToken(b))
 		default:
 			p.advanceReadLitOther(q)
@@ -264,7 +262,6 @@ skipSpace:
 		p.npos++
 		p.advanceTok(p.doArithmToken(b))
 	case regOps(b):
-		p.npos++
 		p.advanceTok(p.doRegToken(b))
 	case q == ILLEGAL, q == RPAREN, q == BQUOTE, q == DSEMICOLON:
 		p.advanceReadLitNone()
@@ -1207,7 +1204,8 @@ func (p *parser) ifClause() *IfClause {
 }
 
 func (p *parser) cond(left string, lpos Pos, stop string) Cond {
-	if p.tok == LPAREN && p.readOnly('(') {
+	if p.tok == LPAREN && p.npos < len(p.src) && p.src[p.npos] == '(' {
+		p.npos++
 		c := &CStyleCond{Lparen: p.pos}
 		p.pushStop(DRPAREN)
 		c.X = p.arithmExpr(DLPAREN, c.Lparen)
@@ -1253,7 +1251,8 @@ func (p *parser) forClause() *ForClause {
 }
 
 func (p *parser) loop(forPos Pos) Loop {
-	if p.tok == LPAREN && p.readOnly('(') {
+	if p.tok == LPAREN && p.npos < len(p.src) && p.src[p.npos] == '(' {
+		p.npos++
 		cl := &CStyleLoop{Lparen: p.pos}
 		p.pushStop(DRPAREN)
 		cl.Init = p.arithmExpr(DLPAREN, cl.Lparen)

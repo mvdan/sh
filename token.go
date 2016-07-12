@@ -241,92 +241,130 @@ var (
 
 func (t Token) String() string { return tokNames[t] }
 
-// TODO: decouple from parser. Passing readOnly as a func argument
-// doesn't seem to work well as it means an extra allocation (?).
+func byteAt(src []byte, i int) byte {
+	if i >= len(src) {
+		return 0
+	}
+	return src[i]
+}
+
 func (p *parser) doRegToken(b byte) Token {
 	switch b {
 	case '\'':
+		p.npos++
 		return SQUOTE
 	case '"':
+		p.npos++
 		return DQUOTE
 	case '`':
+		p.npos++
 		return BQUOTE
 	case '&':
-		switch {
-		case p.readOnly('&'):
+		switch byteAt(p.src, p.npos+1) {
+		case '&':
+			p.npos += 2
 			return LAND
-		case p.readOnly('>'):
-			if p.readOnly('>') {
+		case '>':
+			if byteAt(p.src, p.npos+2) == '>' {
+				p.npos += 3
 				return APPALL
 			}
+			p.npos += 2
 			return RDRALL
 		}
+		p.npos++
 		return AND
 	case '|':
-		switch {
-		case p.readOnly('|'):
+		switch byteAt(p.src, p.npos+1) {
+		case '|':
+			p.npos += 2
 			return LOR
-		case p.readOnly('&'):
+		case '&':
+			p.npos += 2
 			return PIPEALL
 		}
+		p.npos++
 		return OR
 	case '$':
-		switch {
-		case p.readOnly('\''):
+		switch byteAt(p.src, p.npos+1) {
+		case '\'':
+			p.npos += 2
 			return DOLLSQ
-		case p.readOnly('"'):
+		case '"':
+			p.npos += 2
 			return DOLLDQ
-		case p.readOnly('{'):
+		case '{':
+			p.npos += 2
 			return DOLLBR
-		case p.readOnly('('):
-			if p.readOnly('(') {
+		case '(':
+			if byteAt(p.src, p.npos+2) == '(' {
+				p.npos += 3
 				return DOLLDP
 			}
+			p.npos += 2
 			return DOLLPR
 		}
+		p.npos++
 		return DOLLAR
 	case '(':
+		p.npos++
 		return LPAREN
 	case ')':
+		p.npos++
 		return RPAREN
 	case ';':
-		if p.readOnly(';') {
-			if p.readOnly('&') {
+		switch byteAt(p.src, p.npos+1) {
+		case ';':
+			if byteAt(p.src, p.npos+2) == '&' {
+				p.npos += 3
 				return DSEMIFALL
 			}
+			p.npos += 2
 			return DSEMICOLON
-		}
-		if p.readOnly('&') {
+		case '&':
+			p.npos += 2
 			return SEMIFALL
 		}
+		p.npos++
 		return SEMICOLON
 	case '<':
-		switch {
-		case p.readOnly('<'):
-			if p.readOnly('-') {
+		switch byteAt(p.src, p.npos+1) {
+		case '<':
+			switch byteAt(p.src, p.npos+2) {
+			case '-':
+				p.npos += 3
 				return DHEREDOC
-			}
-			if p.readOnly('<') {
+			case '<':
+				p.npos += 3
 				return WHEREDOC
 			}
+			p.npos += 2
 			return SHL
-		case p.readOnly('>'):
+		case '>':
+			p.npos += 2
 			return RDRINOUT
-		case p.readOnly('&'):
+		case '&':
+			p.npos += 2
 			return DPLIN
-		case p.readOnly('('):
+		case '(':
+			p.npos += 2
 			return CMDIN
 		}
+		p.npos++
 		return LSS
 	default: // '>'
-		switch {
-		case p.readOnly('>'):
+		switch byteAt(p.src, p.npos+1) {
+		case '>':
+			p.npos += 2
 			return SHR
-		case p.readOnly('&'):
+		case '&':
+			p.npos += 2
 			return DPLOUT
-		case p.readOnly('('):
+		case '(':
+			p.npos += 2
 			return CMDOUT
 		}
+		p.npos++
 		return GTR
 	}
 }
