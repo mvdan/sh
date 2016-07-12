@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -570,7 +571,7 @@ var astTests = []testCase{
 	{
 		[]string{
 			"foo <<EOF\nbar\nEOF",
-			"foo <<EOF\nbar",
+			"foo <<EOF\nbar\n",
 		},
 		&Stmt{
 			Cmd: litCall("foo"),
@@ -2195,7 +2196,7 @@ var astTests = []testCase{
 		},
 	},
 	{
-		[]string{"<<EOF | b\nfoo\nEOF", "<<EOF|b;\nfoo"},
+		[]string{"<<EOF | b\nfoo\nEOF", "<<EOF|b;\nfoo\n"},
 		&BinaryCmd{
 			Op: OR,
 			X: &Stmt{Redirs: []*Redirect{{
@@ -2296,11 +2297,20 @@ func setPosRecurse(tb testing.TB, src string, v interface{}, to Pos, diff bool) 
 		if src == "" {
 			return
 		}
-		i := int(pos - 1)
-		got := src[i : i+len(want)]
+		offs := int(pos - 1)
+		end := offs + len(want)
+		got := src[offs:end]
+		for {
+			if i := strings.Index(got, "\\\n"); i >= 0 {
+				got = got[:i] + got[i+2:] + src[end:end+2]
+				end += 2
+			} else {
+				break
+			}
+		}
 		if got != want {
 			tb.Fatalf("Expected %q at %d in %q, found %q",
-				want, i, src, got)
+				want, offs, src, got)
 		}
 	}
 	setPos := func(p *Pos, s string) {
@@ -2388,8 +2398,7 @@ func setPosRecurse(tb testing.TB, src string, v interface{}, to Pos, diff bool) 
 	case *ArithmExpr:
 		recurse(*x)
 	case *Lit:
-		// TODO: x.Value
-		setPos(&x.ValuePos, "")
+		setPos(&x.ValuePos, x.Value)
 	case *Subshell:
 		setPos(&x.Lparen, "(")
 		setPos(&x.Rparen, ")")
@@ -2464,7 +2473,11 @@ func setPosRecurse(tb testing.TB, src string, v interface{}, to Pos, diff bool) 
 		recurse(&x.X)
 		recurse(&x.Y)
 	case *FuncDecl:
-		setPos(&x.Position, "")
+		if x.BashStyle {
+			setPos(&x.Position, "function")
+		} else {
+			setPos(&x.Position, "")
+		}
 		recurse(&x.Name)
 		recurse(x.Body)
 	case *ParamExp:

@@ -417,7 +417,7 @@ func (p *parser) readUntil(b byte) ([]byte, bool) {
 func (p *parser) doHeredocs() {
 	for _, r := range p.heredocs {
 		end := unquotedWordStr(p.f, &r.Word)
-		r.Hdoc.ValuePos = Pos(p.npos)
+		r.Hdoc.ValuePos = Pos(p.npos + 1)
 		r.Hdoc.Value, _ = p.readHdocBody(end, r.Op == DHEREDOC)
 	}
 	p.heredocs = nil
@@ -438,7 +438,9 @@ func (p *parser) readHdocBody(end string, noTabs bool) (string, bool) {
 			return buf.String(), true
 		}
 		buf.Write(bs)
-		buf.WriteByte('\n')
+		if found {
+			buf.WriteByte('\n')
+		}
 	}
 	return buf.String(), false
 }
@@ -707,6 +709,7 @@ func (p *parser) wordPart() WordPart {
 		pe := &ParamExp{Dollar: p.pos, Short: true}
 		if b == '#' || b == '$' || b == '?' {
 			p.npos++
+			p.pos++
 			p.advanceBoth(LIT, string(b))
 		} else {
 			p.next()
@@ -973,7 +976,7 @@ func (p *parser) getAssign() (*Assign, bool) {
 		as.Append = true
 		i++
 	}
-	start := &Lit{ValuePos: p.pos, Value: p.val[i+1:]}
+	start := &Lit{ValuePos: p.pos + 1, Value: p.val[i+1:]}
 	if start.Value != "" {
 		start.ValuePos += Pos(i)
 		as.Value.Parts = append(as.Value.Parts, start)
