@@ -225,28 +225,33 @@ skipSpace:
 	}
 	p.pos = Pos(p.npos + 1)
 	switch {
+	case q == ILLEGAL, q == RPAREN, q == BQUOTE, q == DSEMICOLON:
+		switch b {
+		case ';', '"', '\'', '(', ')', '$', '|', '&', '>', '<', '`':
+			p.advanceTok(p.regToken(b))
+		case '#':
+			p.npos++
+			bs, _ := p.readUntil('\n')
+			p.npos += len(bs)
+			if p.mode&ParseComments > 0 {
+				p.f.Comments = append(p.f.Comments, &Comment{
+					Hash: p.pos,
+					Text: string(bs),
+				})
+			}
+			p.next()
+		default:
+			p.advanceLitNone()
+		}
 	case q == LBRACE && paramOps(b):
 		p.advanceTok(p.paramToken(b))
+	case (q == DLPAREN || q == DRPAREN || q == LPAREN) && arithmOps(b):
+		p.advanceTok(p.arithmToken(b))
 	case q == RBRACK && b == ']':
 		p.npos++
 		p.advanceTok(RBRACK)
-	case b == '#' && q != LBRACE:
-		p.npos++
-		bs, _ := p.readUntil('\n')
-		p.npos += len(bs)
-		if p.mode&ParseComments > 0 {
-			p.f.Comments = append(p.f.Comments, &Comment{
-				Hash: p.pos,
-				Text: string(bs),
-			})
-		}
-		p.next()
-	case (q == DLPAREN || q == DRPAREN || q == LPAREN) && arithmOps(b):
-		p.advanceTok(p.arithmToken(b))
 	case regOps(b):
 		p.advanceTok(p.regToken(b))
-	case q == ILLEGAL, q == RPAREN, q == BQUOTE, q == DSEMICOLON:
-		p.advanceLitNone()
 	default:
 		p.advanceLitOther(q)
 	}
