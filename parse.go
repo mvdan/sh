@@ -162,7 +162,7 @@ func (p *parser) next() {
 			p.npos++
 			p.advanceTok(p.doRegToken(b))
 		default:
-			p.advanceReadLit(q)
+			p.advanceReadLitOther(q)
 		}
 		return
 	case DQUOTE:
@@ -173,10 +173,10 @@ func (p *parser) next() {
 			p.advanceTok(p.doDqToken(b))
 		case '\n':
 			p.pos++
-			p.advanceReadLit(q)
+			p.advanceReadLitDquote()
 		default:
 			p.pos = Pos(p.npos + 1)
-			p.advanceReadLit(q)
+			p.advanceReadLitDquote()
 		}
 		return
 	case RBRACE:
@@ -189,7 +189,7 @@ func (p *parser) next() {
 			p.npos++
 			p.advanceTok(p.doRegToken(b))
 		default:
-			p.advanceReadLit(q)
+			p.advanceReadLitOther(q)
 		}
 		return
 	case SQUOTE:
@@ -200,10 +200,10 @@ func (p *parser) next() {
 			p.advanceTok(SQUOTE)
 		case '\n':
 			p.pos++
-			p.advanceReadLit(q)
+			p.advanceReadLitOther(q)
 		default:
 			p.pos = Pos(p.npos + 1)
-			p.advanceReadLit(q)
+			p.advanceReadLitOther(q)
 		}
 		return
 	}
@@ -269,23 +269,15 @@ skipSpace:
 	case q == ILLEGAL, q == RPAREN, q == BQUOTE, q == DSEMICOLON:
 		p.advanceReadLitNone()
 	default:
-		p.advanceReadLit(q)
+		p.advanceReadLitOther(q)
 	}
 }
 
-func (p *parser) advanceReadLit(q Token) {
+func (p *parser) advanceReadLitOther(q Token) {
 	var bs []byte
-	if q == DQUOTE {
-		bs = p.dqLoopByte()
-	} else {
-		bs = p.regLoopByte(q)
-	}
-	p.advanceBoth(LIT, string(bs))
-}
-
-func (p *parser) regLoopByte(q Token) (bs []byte) {
 	for {
 		if p.npos >= len(p.src) {
+			p.advanceBoth(LIT, string(bs))
 			return
 		}
 		b := p.src[p.npos]
@@ -294,6 +286,7 @@ func (p *parser) regLoopByte(q Token) (bs []byte) {
 			if p.npos == len(p.src)-1 {
 				p.npos++
 				bs = append(bs, '\\')
+				p.advanceBoth(LIT, string(bs))
 				return
 			}
 			b = p.src[p.npos+1]
@@ -309,23 +302,30 @@ func (p *parser) regLoopByte(q Token) (bs []byte) {
 			case '\n':
 				p.f.lines = append(p.f.lines, p.npos+1)
 			case '\'':
+				p.advanceBoth(LIT, string(bs))
 				return
 			}
 		case b == '`', b == '$':
+			p.advanceBoth(LIT, string(bs))
 			return
 		case q == RBRACE:
 			if b == '}' || b == '"' {
+				p.advanceBoth(LIT, string(bs))
 				return
 			}
 		case q == LBRACE && paramOps(b), q == RBRACK && b == ']':
+			p.advanceBoth(LIT, string(bs))
 			return
 		case q == QUO:
 			if b == '/' || b == '}' {
+				p.advanceBoth(LIT, string(bs))
 				return
 			}
 		case wordBreak(b), regOps(b):
+			p.advanceBoth(LIT, string(bs))
 			return
 		case (q == DLPAREN || q == DRPAREN || q == LPAREN) && arithmOps(b):
+			p.advanceBoth(LIT, string(bs))
 			return
 		}
 		bs = append(bs, p.src[p.npos])
@@ -368,7 +368,7 @@ func (p *parser) advanceReadLitNone() {
 	}
 }
 
-func (p *parser) dqLoopByte() (bs []byte) {
+func (p *parser) advanceReadLitDquote() {
 	var i int
 loop:
 	for i = p.npos; i < len(p.src); i++ {
@@ -388,10 +388,10 @@ loop:
 			p.f.lines = append(p.f.lines, i+1)
 		}
 	}
-	bs = make([]byte, i-p.npos)
+	bs := make([]byte, i-p.npos)
 	copy(bs, p.src[p.npos:i])
 	p.npos = i
-	return
+	p.advanceBoth(LIT, string(bs))
 }
 
 func (p *parser) advanceTok(tok Token)              { p.advanceBoth(tok, "") }
