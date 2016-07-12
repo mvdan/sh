@@ -258,7 +258,7 @@ skipSpace:
 }
 
 func (p *parser) advanceLitOther(q Token) {
-	var bs []byte
+	bs := p.buf[:0]
 	for {
 		if p.npos >= len(p.src) {
 			p.advanceBoth(LIT, string(bs))
