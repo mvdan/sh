@@ -372,19 +372,25 @@ func (p *parser) doRegToken(b byte) Token {
 func (p *parser) doDqToken(b byte) Token {
 	switch b {
 	case '"':
+		p.npos++
 		return DQUOTE
 	case '`':
+		p.npos++
 		return BQUOTE
 	default: // '$'
-		switch {
-		case p.readOnly('{'):
+		switch byteAt(p.src, p.npos+1) {
+		case '{':
+			p.npos += 2
 			return DOLLBR
-		case p.readOnly('('):
-			if p.readOnly('(') {
+		case '(':
+			if byteAt(p.src, p.npos+2) == '(' {
+				p.npos += 3
 				return DOLLDP
 			}
+			p.npos += 2
 			return DOLLPR
 		}
+		p.npos++
 		return DOLLAR
 	}
 }
@@ -392,43 +398,60 @@ func (p *parser) doDqToken(b byte) Token {
 func (p *parser) doParamToken(b byte) Token {
 	switch b {
 	case '}':
+		p.npos++
 		return RBRACE
 	case ':':
-		switch {
-		case p.readOnly('+'):
+		switch byteAt(p.src, p.npos+1) {
+		case '+':
+			p.npos += 2
 			return CADD
-		case p.readOnly('-'):
+		case '-':
+			p.npos += 2
 			return CSUB
-		case p.readOnly('?'):
+		case '?':
+			p.npos += 2
 			return CQUEST
-		case p.readOnly('='):
+		case '=':
+			p.npos += 2
 			return CASSIGN
 		}
+		p.npos++
 		return COLON
 	case '+':
+		p.npos++
 		return ADD
 	case '-':
+		p.npos++
 		return SUB
 	case '?':
+		p.npos++
 		return QUEST
 	case '=':
+		p.npos++
 		return ASSIGN
 	case '%':
-		if p.readOnly('%') {
+		if byteAt(p.src, p.npos+1) == '%' {
+			p.npos += 2
 			return DREM
 		}
+		p.npos++
 		return REM
 	case '#':
-		if p.readOnly('#') {
+		if byteAt(p.src, p.npos+1) == '#' {
+			p.npos += 2
 			return DHASH
 		}
+		p.npos++
 		return HASH
 	case '[':
+		p.npos++
 		return LBRACK
 	default: // '/'
-		if p.readOnly('/') {
+		if byteAt(p.src, p.npos+1) == '/' {
+			p.npos += 2
 			return DQUO
 		}
+		p.npos++
 		return QUO
 	}
 }
@@ -436,101 +459,139 @@ func (p *parser) doParamToken(b byte) Token {
 func (p *parser) doArithmToken(b byte) Token {
 	switch b {
 	case '!':
-		if p.readOnly('=') {
+		if byteAt(p.src, p.npos+1) == '=' {
+			p.npos += 2
 			return NEQ
 		}
+		p.npos++
 		return NOT
 	case '=':
-		if p.readOnly('=') {
+		if byteAt(p.src, p.npos+1) == '=' {
+			p.npos += 2
 			return EQL
 		}
+		p.npos++
 		return ASSIGN
 	case '(':
+		p.npos++
 		return LPAREN
 	case ')':
+		p.npos++
 		return RPAREN
 	case '&':
-		if p.readOnly('&') {
+		switch byteAt(p.src, p.npos+1) {
+		case '&':
+			p.npos += 2
 			return LAND
-		}
-		if p.readOnly('=') {
+		case '=':
+			p.npos += 2
 			return ANDASSGN
 		}
+		p.npos++
 		return AND
 	case '|':
-		if p.readOnly('|') {
+		switch byteAt(p.src, p.npos+1) {
+		case '|':
+			p.npos += 2
 			return LOR
-		}
-		if p.readOnly('=') {
+		case '=':
+			p.npos += 2
 			return ORASSGN
 		}
+		p.npos++
 		return OR
 	case '<':
-		switch {
-		case p.readOnly('<'):
-			if p.readOnly('=') {
+		switch byteAt(p.src, p.npos+1) {
+		case '<':
+			if byteAt(p.src, p.npos+2) == '=' {
+				p.npos += 3
 				return SHLASSGN
 			}
+			p.npos += 2
 			return SHL
-		case p.readOnly('='):
+		case '=':
+			p.npos += 2
 			return LEQ
 		}
+		p.npos++
 		return LSS
 	case '>':
-		switch {
-		case p.readOnly('>'):
-			if p.readOnly('=') {
+		switch byteAt(p.src, p.npos+1) {
+		case '>':
+			if byteAt(p.src, p.npos+2) == '=' {
+				p.npos += 3
 				return SHRASSGN
 			}
+			p.npos += 2
 			return SHR
-		case p.readOnly('='):
+		case '=':
+			p.npos += 2
 			return GEQ
 		}
+		p.npos++
 		return GTR
 	case '+':
-		if p.readOnly('+') {
+		switch byteAt(p.src, p.npos+1) {
+		case '+':
+			p.npos += 2
 			return INC
-		}
-		if p.readOnly('=') {
+		case '=':
+			p.npos += 2
 			return ADDASSGN
 		}
+		p.npos++
 		return ADD
 	case '-':
-		if p.readOnly('-') {
+		switch byteAt(p.src, p.npos+1) {
+		case '-':
+			p.npos += 2
 			return DEC
-		}
-		if p.readOnly('=') {
+		case '=':
+			p.npos += 2
 			return SUBASSGN
 		}
+		p.npos++
 		return SUB
 	case '%':
-		if p.readOnly('=') {
+		if byteAt(p.src, p.npos+1) == '=' {
+			p.npos += 2
 			return REMASSGN
 		}
+		p.npos++
 		return REM
 	case '*':
-		if p.readOnly('*') {
+		switch byteAt(p.src, p.npos+1) {
+		case '*':
+			p.npos += 2
 			return POW
-		}
-		if p.readOnly('=') {
+		case '=':
+			p.npos += 2
 			return MULASSGN
 		}
+		p.npos++
 		return MUL
 	case '/':
-		if p.readOnly('=') {
+		if byteAt(p.src, p.npos+1) == '=' {
+			p.npos += 2
 			return QUOASSGN
 		}
+		p.npos++
 		return QUO
 	case '^':
-		if p.readOnly('=') {
+		if byteAt(p.src, p.npos+1) == '=' {
+			p.npos += 2
 			return XORASSGN
 		}
+		p.npos++
 		return XOR
 	case ',':
+		p.npos++
 		return COMMA
 	case '?':
+		p.npos++
 		return QUEST
 	default: // ':'
+		p.npos++
 		return COLON
 	}
 }

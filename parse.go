@@ -94,14 +94,6 @@ func (p *parser) popStop() {
 	}
 }
 
-func (p *parser) readOnly(b byte) bool {
-	if p.npos < len(p.src) && p.src[p.npos] == b {
-		p.npos++
-		return true
-	}
-	return false
-}
-
 // bytes that form or start a token
 func regOps(b byte) bool {
 	return b == ';' || b == '"' || b == '\'' || b == '(' ||
@@ -168,7 +160,6 @@ func (p *parser) next() {
 		switch b {
 		case '`', '"', '$':
 			p.pos = Pos(p.npos + 1)
-			p.npos++
 			p.advanceTok(p.doDqToken(b))
 		case '\n':
 			p.pos++
@@ -242,7 +233,6 @@ skipSpace:
 	p.pos = Pos(p.npos + 1)
 	switch {
 	case q == LBRACE && paramOps(b):
-		p.npos++
 		p.advanceTok(p.doParamToken(b))
 	case q == RBRACK && b == ']':
 		p.npos++
@@ -259,7 +249,6 @@ skipSpace:
 		}
 		p.next()
 	case (q == DLPAREN || q == DRPAREN || q == LPAREN) && arithmOps(b):
-		p.npos++
 		p.advanceTok(p.doArithmToken(b))
 	case regOps(b):
 		p.advanceTok(p.doRegToken(b))
