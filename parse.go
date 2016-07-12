@@ -273,15 +273,6 @@ skipSpace:
 	}
 }
 
-func (p *parser) advanceReadLitNone() {
-	bs, willBreak := p.noneLoopByte()
-	if willBreak {
-		p.advanceBoth(LITWORD, string(bs))
-	} else {
-		p.advanceBoth(LIT, string(bs))
-	}
-}
-
 func (p *parser) advanceReadLit(q Token) {
 	var bs []byte
 	if q == DQUOTE {
@@ -342,11 +333,11 @@ func (p *parser) regLoopByte(q Token) (bs []byte) {
 	}
 }
 
-func (p *parser) noneLoopByte() (bs []byte, willBreak bool) {
-	bs = p.buf[:0]
+func (p *parser) advanceReadLitNone() {
+	bs := p.buf[:0]
 	for {
 		if p.npos >= len(p.src) {
-			willBreak = true
+			p.advanceBoth(LITWORD, string(bs))
 			return
 		}
 		switch p.src[p.npos] {
@@ -354,6 +345,7 @@ func (p *parser) noneLoopByte() (bs []byte, willBreak bool) {
 			if p.npos == len(p.src)-1 {
 				p.npos++
 				bs = append(bs, '\\')
+				p.advanceBoth(LIT, string(bs))
 				return
 			}
 			b := p.src[p.npos+1]
@@ -364,9 +356,10 @@ func (p *parser) noneLoopByte() (bs []byte, willBreak bool) {
 				bs = append(bs, '\\', b)
 			}
 		case ' ', '\t', '\n', '\r', '&', '>', '<', '|', ';', '(', ')', '`':
-			willBreak = true
+			p.advanceBoth(LITWORD, string(bs))
 			return
 		case '"', '\'', '$':
+			p.advanceBoth(LIT, string(bs))
 			return
 		default:
 			bs = append(bs, p.src[p.npos])
