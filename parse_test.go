@@ -16,7 +16,7 @@ func TestParse(t *testing.T) {
 	defaultPos = 0
 	for i, c := range astTests {
 		want := c.ast.(*File)
-		setPosRecurse(t, want.Stmts, defaultPos, false)
+		setPosRecurse(t, "", want.Stmts, defaultPos, false)
 		for j, in := range c.strs {
 			t.Run(fmt.Sprintf("%03d-%d", i, j), singleParse(in, want))
 		}
@@ -44,7 +44,7 @@ func singleParse(in string, want *File) func(t *testing.T) {
 		}
 		checkNewlines(t, in, got.lines)
 		got.lines = nil
-		setPosRecurse(t, got.Stmts, defaultPos, true)
+		setPosRecurse(t, in, got.Stmts, defaultPos, true)
 		if !reflect.DeepEqual(got, want) {
 			t.Fatalf("AST mismatch in %q\ndiff:\n%s", in,
 				strings.Join(pretty.Diff(want, got), "\n"),

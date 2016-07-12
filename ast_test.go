@@ -2291,8 +2291,22 @@ func fullProg(v interface{}) *File {
 	return f
 }
 
-func setPosRecurse(tb testing.TB, v interface{}, to Pos, diff bool) {
-	setPos := func(p *Pos) {
+func setPosRecurse(tb testing.TB, src string, v interface{}, to Pos, diff bool) {
+	checkSrc := func(pos Pos, want string) {
+		if src == "" {
+			return
+		}
+		i := int(pos - 1)
+		got := src[i : i+len(want)]
+		if got != want {
+			tb.Fatalf("Expected %q at %d in %q, found %q",
+				want, i, src, got)
+		}
+	}
+	setPos := func(p *Pos, s string) {
+		if s != "" {
+			checkSrc(*p, s)
+		}
 		if diff && *p == to {
 			tb.Fatalf("Pos() in %T is already %v", v, to)
 		}
@@ -2316,7 +2330,7 @@ func setPosRecurse(tb testing.TB, v interface{}, to Pos, diff bool) {
 		}
 	}
 	recurse := func(v interface{}) {
-		setPosRecurse(tb, v, to, diff)
+		setPosRecurse(tb, src, v, to, diff)
 		if n, ok := v.(Node); ok {
 			checkPos(n)
 		}
@@ -2330,13 +2344,13 @@ func setPosRecurse(tb testing.TB, v interface{}, to Pos, diff bool) {
 			recurse(s)
 		}
 	case *Stmt:
-		setPos(&x.Position)
+		setPos(&x.Position, "")
 		if x.Cmd != nil {
 			recurse(x.Cmd)
 		}
 		recurse(x.Assigns)
 		for _, r := range x.Redirs {
-			setPos(&r.OpPos)
+			setPos(&r.OpPos, r.Op.String())
 			if r.N != nil {
 				recurse(r.N)
 			}
@@ -2374,86 +2388,87 @@ func setPosRecurse(tb testing.TB, v interface{}, to Pos, diff bool) {
 	case *ArithmExpr:
 		recurse(*x)
 	case *Lit:
-		setPos(&x.ValuePos)
+		// TODO: x.Value
+		setPos(&x.ValuePos, "")
 	case *Subshell:
-		setPos(&x.Lparen)
-		setPos(&x.Rparen)
+		setPos(&x.Lparen, "(")
+		setPos(&x.Rparen, ")")
 		recurse(x.Stmts)
 	case *Block:
-		setPos(&x.Lbrace)
-		setPos(&x.Rbrace)
+		setPos(&x.Lbrace, "{")
+		setPos(&x.Rbrace, "}")
 		recurse(x.Stmts)
 	case *IfClause:
-		setPos(&x.If)
-		setPos(&x.Then)
-		setPos(&x.Fi)
+		setPos(&x.If, "if")
+		setPos(&x.Then, "then")
+		setPos(&x.Fi, "fi")
 		recurse(&x.Cond)
 		recurse(x.ThenStmts)
 		for _, e := range x.Elifs {
-			setPos(&e.Elif)
-			setPos(&e.Then)
+			setPos(&e.Elif, "elif")
+			setPos(&e.Then, "then")
 			recurse(e.Cond)
 			recurse(e.ThenStmts)
 		}
 		if len(x.ElseStmts) > 0 {
-			setPos(&x.Else)
+			setPos(&x.Else, "else")
 			recurse(x.ElseStmts)
 		}
 	case *StmtCond:
 		recurse(x.Stmts)
 	case *CStyleCond:
-		setPos(&x.Lparen)
-		setPos(&x.Rparen)
+		setPos(&x.Lparen, "((")
+		setPos(&x.Rparen, "))")
 		recurse(&x.X)
 	case *WhileClause:
-		setPos(&x.While)
-		setPos(&x.Do)
-		setPos(&x.Done)
+		setPos(&x.While, "while")
+		setPos(&x.Do, "do")
+		setPos(&x.Done, "done")
 		recurse(&x.Cond)
 		recurse(x.DoStmts)
 	case *UntilClause:
-		setPos(&x.Until)
-		setPos(&x.Do)
-		setPos(&x.Done)
+		setPos(&x.Until, "until")
+		setPos(&x.Do, "do")
+		setPos(&x.Done, "done")
 		recurse(&x.Cond)
 		recurse(x.DoStmts)
 	case *ForClause:
-		setPos(&x.For)
-		setPos(&x.Do)
-		setPos(&x.Done)
+		setPos(&x.For, "for")
+		setPos(&x.Do, "do")
+		setPos(&x.Done, "done")
 		recurse(&x.Loop)
 		recurse(x.DoStmts)
 	case *WordIter:
 		recurse(&x.Name)
 		recurse(x.List)
 	case *CStyleLoop:
-		setPos(&x.Lparen)
-		setPos(&x.Rparen)
+		setPos(&x.Lparen, "((")
+		setPos(&x.Rparen, "))")
 		recurse(&x.Init)
 		recurse(&x.Cond)
 		recurse(&x.Post)
 	case *SglQuoted:
-		setPos(&x.Quote)
+		setPos(&x.Quote, "'")
 	case *Quoted:
-		setPos(&x.QuotePos)
+		setPos(&x.QuotePos, x.Quote.String())
 		recurse(x.Parts)
 	case *UnaryExpr:
-		setPos(&x.OpPos)
+		setPos(&x.OpPos, x.Op.String())
 		recurse(&x.X)
 	case *BinaryCmd:
-		setPos(&x.OpPos)
+		setPos(&x.OpPos, x.Op.String())
 		recurse(x.X)
 		recurse(x.Y)
 	case *BinaryExpr:
-		setPos(&x.OpPos)
+		setPos(&x.OpPos, x.Op.String())
 		recurse(&x.X)
 		recurse(&x.Y)
 	case *FuncDecl:
-		setPos(&x.Position)
+		setPos(&x.Position, "")
 		recurse(&x.Name)
 		recurse(x.Body)
 	case *ParamExp:
-		setPos(&x.Dollar)
+		setPos(&x.Dollar, "$")
 		recurse(&x.Param)
 		if x.Ind != nil {
 			recurse(&x.Ind.Word)
@@ -2466,47 +2481,56 @@ func setPosRecurse(tb testing.TB, v interface{}, to Pos, diff bool) {
 			recurse(&x.Exp.Word)
 		}
 	case *ArithmExp:
-		setPos(&x.Dollar)
-		setPos(&x.Rparen)
+		setPos(&x.Dollar, "$((")
+		setPos(&x.Rparen, "))")
 		recurse(&x.X)
 	case *ParenExpr:
-		setPos(&x.Lparen)
-		setPos(&x.Rparen)
+		setPos(&x.Lparen, "(")
+		setPos(&x.Rparen, ")")
 		recurse(&x.X)
 	case *CmdSubst:
-		setPos(&x.Left)
-		setPos(&x.Right)
+		if x.Backquotes {
+			setPos(&x.Left, "`")
+			setPos(&x.Right, "`")
+		} else {
+			setPos(&x.Left, "$(")
+			setPos(&x.Right, ")")
+		}
 		recurse(x.Stmts)
 	case *CaseClause:
-		setPos(&x.Case)
-		setPos(&x.Esac)
+		setPos(&x.Case, "case")
+		setPos(&x.Esac, "esac")
 		recurse(&x.Word)
 		for _, pl := range x.List {
-			setPos(&pl.OpPos)
+			setPos(&pl.OpPos, "")
 			recurse(pl.Patterns)
 			recurse(pl.Stmts)
 		}
 	case *DeclClause:
-		setPos(&x.Declare)
+		if x.Local {
+			setPos(&x.Declare, "local")
+		} else {
+			setPos(&x.Declare, "declare")
+		}
 		recurse(x.Opts)
 		recurse(x.Assigns)
 	case *EvalClause:
-		setPos(&x.Eval)
+		setPos(&x.Eval, "eval")
 		if x.Stmt != nil {
 			recurse(x.Stmt)
 		}
 	case *LetClause:
-		setPos(&x.Let)
+		setPos(&x.Let, "let")
 		for i := range x.Exprs {
 			recurse(&x.Exprs[i])
 		}
 	case *ArrayExpr:
-		setPos(&x.Lparen)
-		setPos(&x.Rparen)
+		setPos(&x.Lparen, "(")
+		setPos(&x.Rparen, ")")
 		recurse(x.List)
 	case *ProcSubst:
-		setPos(&x.OpPos)
-		setPos(&x.Rparen)
+		setPos(&x.OpPos, x.Op.String())
+		setPos(&x.Rparen, ")")
 		recurse(x.Stmts)
 	case nil:
 	default:
@@ -2519,7 +2543,7 @@ func TestNodePos(t *testing.T) {
 	for i, c := range astTests {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
 			want := c.ast.(*File)
-			setPosRecurse(t, want, defaultPos, true)
+			setPosRecurse(t, "", want, defaultPos, true)
 		})
 	}
 }
