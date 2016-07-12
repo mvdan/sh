@@ -926,26 +926,28 @@ func (p *printer) stmts(stmts []*Stmt) bool {
 	return true
 }
 
+var printBuf bytes.Buffer
+
 func unquotedWordStr(f *File, w *Word) string {
-	var buf bytes.Buffer
-	p := printer{bufWriter: &buf, f: f}
+	printBuf.Reset()
+	p := printer{bufWriter: &printBuf, f: f}
 	p.unquotedWord(w)
-	return buf.String()
+	return printBuf.String()
 }
 
 func wordStr(f *File, w Word) string {
-	var buf bytes.Buffer
-	p := printer{bufWriter: &buf, f: f}
+	printBuf.Reset()
+	p := printer{bufWriter: &printBuf, f: f}
 	p.word(w)
-	return buf.String()
+	return printBuf.String()
 }
 
 func stmtLen(f *File, s *Stmt) int {
-	var buf bytes.Buffer
-	p := printer{bufWriter: &buf, f: f}
+	printBuf.Reset()
+	p := printer{bufWriter: &printBuf, f: f}
 	p.incLines(s.Pos())
 	p.stmt(s)
-	return buf.Len()
+	return printBuf.Len()
 }
 
 func (p *printer) nestedStmts(stmts []*Stmt) bool {
