@@ -436,6 +436,7 @@ func (p *parser) got(tok Token) bool {
 	}
 	return false
 }
+
 func (p *parser) gotRsrv(val string) bool {
 	if p.tok == LITWORD && p.val == val {
 		p.next()
@@ -443,8 +444,13 @@ func (p *parser) gotRsrv(val string) bool {
 	}
 	return false
 }
+
 func (p *parser) gotSameLine(tok Token) bool {
-	return !p.newLine && p.got(tok)
+	if !p.newLine && p.tok == tok {
+		p.next()
+		return true
+	}
+	return false
 }
 
 func readableStr(s string) string {
