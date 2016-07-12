@@ -157,15 +157,13 @@ func (p *parser) next() {
 		}
 		return
 	case DQUOTE:
+		p.pos = Pos(p.npos + 1)
 		switch b {
 		case '`', '"', '$':
-			p.pos = Pos(p.npos + 1)
 			p.advanceTok(p.dqToken(b))
 		case '\n':
-			p.pos++
 			p.advanceLitDquote()
 		default:
-			p.pos = Pos(p.npos + 1)
 			p.advanceLitDquote()
 		}
 		return
@@ -182,16 +180,11 @@ func (p *parser) next() {
 		}
 		return
 	case SQUOTE:
-		switch b {
-		case '\'':
-			p.pos = Pos(p.npos + 1)
+		p.pos = Pos(p.npos + 1)
+		if b == '\'' {
 			p.npos++
 			p.advanceTok(SQUOTE)
-		case '\n':
-			p.pos++
-			p.advanceLitOther(q)
-		default:
-			p.pos = Pos(p.npos + 1)
+		} else {
 			p.advanceLitOther(q)
 		}
 		return
