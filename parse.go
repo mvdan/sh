@@ -619,7 +619,16 @@ func (p *parser) invalidStmtStart() {
 	}
 }
 
-func (p *parser) getWord() Word { return Word{Parts: p.wordParts()} }
+func (p *parser) getWord() (w Word) {
+	if p.tok == LITWORD {
+		w.Parts = append(w.Parts, &Lit{ValuePos: p.pos, Value: p.val})
+		p.next()
+	} else {
+		w.Parts = p.wordParts()
+	}
+	return
+}
+
 func (p *parser) gotWord() (Word, bool) {
 	w := p.getWord()
 	return w, len(w.Parts) > 0
@@ -636,11 +645,6 @@ func (p *parser) gotLit(l *Lit) bool {
 }
 
 func (p *parser) wordParts() (wps []WordPart) {
-	if p.tok == LITWORD {
-		wps = append(wps, &Lit{ValuePos: p.pos, Value: p.val})
-		p.next()
-		return
-	}
 	for {
 		n := p.wordPart()
 		if n == nil {
