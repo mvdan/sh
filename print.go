@@ -72,8 +72,6 @@ type printer struct {
 	f *File
 	c PrintConfig
 
-	nestedBinary bool
-
 	wantSpace   bool
 	wantNewline bool
 	wantSpaces  int
@@ -88,6 +86,8 @@ type printer struct {
 	// levelIncs records which indentation level increments actually
 	// took place, to revert them once their section ends.
 	levelIncs []bool
+
+	nestedBinary bool
 
 	// comments is the list of pending comments to write.
 	comments []*Comment
@@ -160,11 +160,10 @@ func (p *printer) incLevel() {
 }
 
 func (p *printer) decLevel() {
-	inc := p.levelIncs[len(p.levelIncs)-1]
-	p.levelIncs = p.levelIncs[:len(p.levelIncs)-1]
-	if inc {
+	if p.levelIncs[len(p.levelIncs)-1] {
 		p.level--
 	}
+	p.levelIncs = p.levelIncs[:len(p.levelIncs)-1]
 }
 
 func (p *printer) indent() {
@@ -642,7 +641,7 @@ func (p *printer) stmt(s *Stmt) {
 		}
 		p.didSeparate(r.OpPos)
 		if p.wantSpace {
-			p.space()
+			p.WriteByte(' ')
 		}
 		if r.N != nil {
 			p.WriteString(r.N.Value)
@@ -765,7 +764,7 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 	case *Subshell:
 		p.spacedTok("(", false)
 		if startsWithLparen(x.Stmts) {
-			p.space()
+			p.WriteByte(' ')
 		}
 		p.nestedStmts(x.Stmts)
 		p.sepTok(")", x.Rparen)
