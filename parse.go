@@ -129,12 +129,12 @@ func (p *parser) next() {
 		switch b {
 		case '}':
 			p.npos++
-			p.advanceTok(RBRACE)
+			p.tok = RBRACE
 		case '/':
 			p.npos++
-			p.advanceTok(QUO)
+			p.tok = QUO
 		case '`', '"', '$':
-			p.advanceTok(p.regToken(b))
+			p.tok = p.regToken(b)
 		default:
 			p.advanceLitOther(q)
 		}
@@ -143,7 +143,7 @@ func (p *parser) next() {
 		p.pos = Pos(p.npos + 1)
 		switch b {
 		case '`', '"', '$':
-			p.advanceTok(p.dqToken(b))
+			p.tok = p.dqToken(b)
 		case '\n':
 			p.advanceLitDquote()
 		default:
@@ -155,9 +155,9 @@ func (p *parser) next() {
 		switch b {
 		case '}':
 			p.npos++
-			p.advanceTok(RBRACE)
+			p.tok = RBRACE
 		case '`', '"', '$':
-			p.advanceTok(p.regToken(b))
+			p.tok = p.regToken(b)
 		default:
 			p.advanceLitOther(q)
 		}
@@ -166,7 +166,7 @@ func (p *parser) next() {
 		p.pos = Pos(p.npos + 1)
 		if b == '\'' {
 			p.npos++
-			p.advanceTok(SQUOTE)
+			p.tok = SQUOTE
 		} else {
 			p.advanceLitOther(q)
 		}
@@ -181,7 +181,7 @@ skipSpace:
 		case '\n':
 			if p.stopNewline {
 				p.stopNewline = false
-				p.advanceTok(STOPPED)
+				p.tok = STOPPED
 				return
 			}
 			p.spaced = true
@@ -211,7 +211,7 @@ skipSpace:
 	case q == ILLEGAL, q == RPAREN, q == BQUOTE, q == DSEMICOLON:
 		switch b {
 		case ';', '"', '\'', '(', ')', '$', '|', '&', '>', '<', '`':
-			p.advanceTok(p.regToken(b))
+			p.tok = p.regToken(b)
 		case '#':
 			p.npos++
 			bs, _ := p.readUntil('\n')
@@ -227,14 +227,14 @@ skipSpace:
 			p.advanceLitNone()
 		}
 	case q == LBRACE && paramOps(b):
-		p.advanceTok(p.paramToken(b))
+		p.tok = p.paramToken(b)
 	case (q == DLPAREN || q == DRPAREN || q == LPAREN) && arithmOps(b):
-		p.advanceTok(p.arithmToken(b))
+		p.tok = p.arithmToken(b)
 	case q == RBRACK && b == ']':
 		p.npos++
-		p.advanceTok(RBRACK)
+		p.tok = RBRACK
 	case regOps(b):
-		p.advanceTok(p.regToken(b))
+		p.tok = p.regToken(b)
 	default:
 		p.advanceLitOther(q)
 	}
@@ -244,7 +244,7 @@ func (p *parser) advanceLitOther(q Token) {
 	bs := p.buf[:0]
 	for {
 		if p.npos >= len(p.src) {
-			p.advanceBoth(LIT, string(bs))
+			p.tok, p.val = LIT, string(bs)
 			return
 		}
 		b := p.src[p.npos]
@@ -253,7 +253,7 @@ func (p *parser) advanceLitOther(q Token) {
 			if p.npos == len(p.src)-1 {
 				p.npos++
 				bs = append(bs, '\\')
-				p.advanceBoth(LIT, string(bs))
+				p.tok, p.val = LIT, string(bs)
 				return
 			}
 			b = p.src[p.npos+1]
@@ -269,30 +269,30 @@ func (p *parser) advanceLitOther(q Token) {
 			case '\n':
 				p.f.lines = append(p.f.lines, p.npos+1)
 			case '\'':
-				p.advanceBoth(LIT, string(bs))
+				p.tok, p.val = LIT, string(bs)
 				return
 			}
 		case b == '`', b == '$':
-			p.advanceBoth(LIT, string(bs))
+			p.tok, p.val = LIT, string(bs)
 			return
 		case q == RBRACE:
 			if b == '}' || b == '"' {
-				p.advanceBoth(LIT, string(bs))
+				p.tok, p.val = LIT, string(bs)
 				return
 			}
 		case q == LBRACE && paramOps(b), q == RBRACK && b == ']':
-			p.advanceBoth(LIT, string(bs))
+			p.tok, p.val = LIT, string(bs)
 			return
 		case q == QUO:
 			if b == '/' || b == '}' {
-				p.advanceBoth(LIT, string(bs))
+				p.tok, p.val = LIT, string(bs)
 				return
 			}
 		case wordBreak(b), regOps(b):
-			p.advanceBoth(LIT, string(bs))
+			p.tok, p.val = LIT, string(bs)
 			return
 		case (q == DLPAREN || q == DRPAREN || q == LPAREN) && arithmOps(b):
-			p.advanceBoth(LIT, string(bs))
+			p.tok, p.val = LIT, string(bs)
 			return
 		}
 		bs = append(bs, p.src[p.npos])
@@ -304,7 +304,7 @@ func (p *parser) advanceLitNone() {
 	bs := p.buf[:0]
 	for {
 		if p.npos >= len(p.src) {
-			p.advanceBoth(LITWORD, string(bs))
+			p.tok, p.val = LITWORD, string(bs)
 			return
 		}
 		switch p.src[p.npos] {
@@ -312,7 +312,7 @@ func (p *parser) advanceLitNone() {
 			if p.npos == len(p.src)-1 {
 				p.npos++
 				bs = append(bs, '\\')
-				p.advanceBoth(LIT, string(bs))
+				p.tok, p.val = LIT, string(bs)
 				return
 			}
 			b := p.src[p.npos+1]
@@ -323,10 +323,10 @@ func (p *parser) advanceLitNone() {
 				bs = append(bs, '\\', b)
 			}
 		case ' ', '\t', '\n', '\r', '&', '>', '<', '|', ';', '(', ')', '`':
-			p.advanceBoth(LITWORD, string(bs))
+			p.tok, p.val = LITWORD, string(bs)
 			return
 		case '"', '\'', '$':
-			p.advanceBoth(LIT, string(bs))
+			p.tok, p.val = LIT, string(bs)
 			return
 		default:
 			bs = append(bs, p.src[p.npos])
@@ -357,11 +357,8 @@ loop:
 	bs := make([]byte, i-p.npos)
 	copy(bs, p.src[p.npos:i])
 	p.npos = i
-	p.advanceBoth(LIT, string(bs))
+	p.tok, p.val = LIT, string(bs)
 }
-
-func (p *parser) advanceTok(tok Token)              { p.advanceBoth(tok, "") }
-func (p *parser) advanceBoth(tok Token, val string) { p.tok, p.val = tok, val }
 
 func (p *parser) readUntil(b byte) ([]byte, bool) {
 	rem := p.src[p.npos:]
@@ -519,7 +516,7 @@ func (p *parser) errPass(err error) {
 		if err != io.EOF {
 			p.err = err
 		}
-		p.advanceTok(EOF)
+		p.tok = EOF
 	}
 }
 
@@ -683,7 +680,7 @@ func (p *parser) wordPart() WordPart {
 		if b == '#' || b == '$' || b == '?' {
 			p.npos++
 			p.pos++
-			p.advanceBoth(LIT, string(b))
+			p.tok, p.val = LIT, string(b)
 		} else {
 			p.next()
 		}
