@@ -451,6 +451,7 @@ func (p *parser) follow(lpos Pos, left string, tok Token) Pos {
 	}
 	return pos
 }
+
 func (p *parser) followRsrv(lpos Pos, left, val string) Pos {
 	pos := p.pos
 	if !p.gotRsrv(val) {
@@ -799,8 +800,7 @@ func (p *parser) arithmExprBase(ftok Token, fpos Pos) ArithmExpr {
 		old := p.quote
 		p.quote = LPAREN
 		p.next()
-		pe.X = p.arithmExpr(LPAREN, pe.Lparen)
-		if pe.X == nil {
+		if pe.X = p.arithmExpr(LPAREN, pe.Lparen); pe.X == nil {
 			p.posErr(pe.Lparen, "parentheses must enclose an expression")
 		}
 		p.quote = old
@@ -812,8 +812,7 @@ func (p *parser) arithmExprBase(ftok Token, fpos Pos) ArithmExpr {
 		if q != DRPAREN && q != LPAREN && p.spaced {
 			p.followErr(ue.OpPos, ue.Op.String(), "an expression")
 		}
-		ue.X = p.arithmExpr(ue.Op, ue.OpPos)
-		if ue.X == nil {
+		if ue.X = p.arithmExpr(ue.Op, ue.OpPos); ue.X == nil {
 			p.followErr(ue.OpPos, ue.Op.String(), "an expression")
 		}
 		x = ue
@@ -932,23 +931,15 @@ func (p *parser) peekStop() bool {
 
 var identRe = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
 
-func assignSplit(s string) int {
-	i := strings.Index(s, "=")
+func (p *parser) getAssign() (*Assign, bool) {
+	i := strings.Index(p.val, "=")
 	if i <= 0 {
-		return -1
+		return nil, false
 	}
-	if s[i-1] == '+' {
+	if p.val[i-1] == '+' {
 		i--
 	}
-	if !identRe.MatchString(s[:i]) {
-		return -1
-	}
-	return i
-}
-
-func (p *parser) getAssign() (*Assign, bool) {
-	i := assignSplit(p.val)
-	if i < 0 {
+	if !identRe.MatchString(p.val[:i]) {
 		return nil, false
 	}
 	as := &Assign{}
@@ -979,8 +970,7 @@ func (p *parser) getAssign() (*Assign, bool) {
 		ae.Rparen = p.matched(ae.Lparen, LPAREN, RPAREN)
 		as.Value.Parts = append(as.Value.Parts, ae)
 	} else if !p.peekStop() {
-		w := p.getWord()
-		if start.Value == "" {
+		if w := p.getWord(); start.Value == "" {
 			as.Value = w
 		} else {
 			as.Value.Parts = append(as.Value.Parts, w.Parts...)
@@ -1380,8 +1370,7 @@ func (p *parser) bashFuncDecl() *FuncDecl {
 	fpos := p.pos
 	p.next()
 	if p.tok != LITWORD {
-		w := p.followWord("function", fpos)
-		if p.err == nil {
+		if w := p.followWord("function", fpos); p.err == nil {
 			p.posErr(w.Pos(), "invalid func name: %s", wordStr(p.f, w))
 		}
 	}
