@@ -269,7 +269,9 @@ func (p *printer) commentsUpTo(pos Pos) {
 	p.wantNewline = false
 	if p.nlineIndex == 0 {
 		p.incLines(c.Hash)
-	} else if !p.didSeparate(c.Hash) {
+	} else if p.wantNewline || c.Hash > p.nline {
+		p.newlines(c.Hash)
+	} else {
 		p.spaces(p.wantSpaces + 1)
 	}
 	p.WriteByte('#')
