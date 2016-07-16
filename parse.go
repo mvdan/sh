@@ -336,10 +336,8 @@ loop:
 			p.f.lines = append(p.f.lines, i+1)
 		}
 	}
-	bs := make([]byte, i-p.npos)
-	copy(bs, p.src[p.npos:i])
+	p.tok, p.val = LIT, string(p.src[p.npos:i])
 	p.npos = i
-	p.tok, p.val = LIT, string(bs)
 }
 
 func (p *parser) readUntil(b byte) ([]byte, bool) {
