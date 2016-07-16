@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"regexp"
 	"strconv"
 	"strings"
@@ -23,33 +22,16 @@ const (
 // Parse reads and parses a shell program with an optional name. It
 // returns the parsed program if no issues were encountered. Otherwise,
 // an error is returned.
-//
-// The type of src must be []byte, string or io.Reader.
-func Parse(src interface{}, name string, mode Mode) (*File, error) {
+func Parse(src []byte, name string, mode Mode) (*File, error) {
 	p := parser{
 		f:    &File{Name: name},
+		src:  src,
 		mode: mode,
-	}
-	if p.src, p.err = getSource(src); p.err != nil {
-		return nil, p.err
 	}
 	p.f.lines = make([]int, 1, 16)
 	p.next()
 	p.f.Stmts = p.stmts()
 	return p.f, p.err
-}
-
-func getSource(src interface{}) ([]byte, error) {
-	switch x := src.(type) {
-	case []byte:
-		return x, nil
-	case string:
-		return []byte(x), nil
-	case io.Reader:
-		return ioutil.ReadAll(x)
-	default:
-		return nil, fmt.Errorf("invalid src type: %T", src)
-	}
 }
 
 type parser struct {

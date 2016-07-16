@@ -38,7 +38,7 @@ func checkNewlines(tb testing.TB, src string, got []int) {
 
 func singleParse(in string, want *File) func(t *testing.T) {
 	return func(t *testing.T) {
-		got, err := Parse(in, "", 0)
+		got, err := Parse([]byte(in), "", 0)
 		if err != nil {
 			t.Fatalf("Unexpected error in %q: %v", in, err)
 		}
@@ -111,24 +111,6 @@ func BenchmarkParse(b *testing.B) {
 				}
 			}
 		})
-	}
-}
-
-var errBadReader = fmt.Errorf("read: expected error")
-
-type badReader struct{}
-
-func (b badReader) Read(p []byte) (int, error) { return 0, errBadReader }
-
-func TestReadErr(t *testing.T) {
-	var in badReader
-	_, err := Parse(in, "", 0)
-	if err == nil {
-		t.Fatalf("Expected error with bad reader")
-	}
-	if err != errBadReader {
-		t.Fatalf("Error mismatch with bad reader:\nwant: %v\ngot:  %v",
-			errBadReader, err)
 	}
 }
 
@@ -600,7 +582,7 @@ var errTests = []struct {
 func TestParseErr(t *testing.T) {
 	for i, c := range errTests {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
-			_, err := Parse(c.in, "", 0)
+			_, err := Parse([]byte(c.in), "", 0)
 			if err == nil {
 				t.Fatalf("Expected error in %q: %v", c.in, c.want)
 			}
@@ -616,7 +598,7 @@ func TestParseErr(t *testing.T) {
 func TestInputName(t *testing.T) {
 	in := errTests[0].in
 	want := "some-file.sh:" + errTests[0].want
-	_, err := Parse(in, "some-file.sh", 0)
+	_, err := Parse([]byte(in), "some-file.sh", 0)
 	if err == nil {
 		t.Fatalf("Expected error in %q: %v", in, want)
 	}

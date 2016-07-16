@@ -56,7 +56,11 @@ func formatStdin() error {
 	if *write || *list {
 		return fmt.Errorf("-w and -l can only be used on files")
 	}
-	prog, err := sh.Parse(os.Stdin, "", sh.ParseComments)
+	src, err := ioutil.ReadAll(os.Stdin)
+	if err != nil {
+		return err
+	}
+	prog, err := sh.Parse(src, "", sh.ParseComments)
 	if err != nil {
 		return err
 	}

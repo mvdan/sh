@@ -16,7 +16,7 @@ func TestFprintCompact(t *testing.T) {
 	for i, c := range astTests {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
 			in := c.strs[0]
-			prog, err := Parse(in, "", 0)
+			prog, err := Parse([]byte(in), "", 0)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -315,7 +315,7 @@ func TestFprintWeirdFormat(t *testing.T) {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
 			for _, s := range [...]string{"", "\n"} {
 				in := s + tc.in + s
-				prog, err := Parse(in, "", ParseComments)
+				prog, err := Parse([]byte(in), "", ParseComments)
 				checkNewlines(t, in, prog.lines)
 				if err != nil {
 					t.Fatal(err)
@@ -341,7 +341,11 @@ func parsePath(tb testing.TB, path string) *File {
 		tb.Fatal(err)
 	}
 	defer f.Close()
-	prog, err := Parse(f, "", ParseComments)
+	bs, err := ioutil.ReadAll(f)
+	if err != nil {
+		tb.Fatal(err)
+	}
+	prog, err := Parse(bs, "", ParseComments)
 	if err != nil {
 		tb.Fatal(err)
 	}
@@ -404,7 +408,7 @@ func TestFprintSpaces(t *testing.T) {
 
 	for i, tc := range spaceFormats {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
-			prog, err := Parse(tc.in, "", ParseComments)
+			prog, err := Parse([]byte(tc.in), "", ParseComments)
 			if err != nil {
 				t.Fatal(err)
 			}
