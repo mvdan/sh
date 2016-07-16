@@ -197,7 +197,7 @@ var errTests = []struct {
 	},
 	{
 		";;",
-		`1:1: ;; is not a valid start for a statement`,
+		`1:1: ;; can only be used in a case clause`,
 	},
 	{
 		"( foo;",
@@ -229,7 +229,7 @@ var errTests = []struct {
 	},
 	{
 		"foo;;",
-		`1:4: a command can only contain words and redirects`,
+		`1:4: ;; can only be used in a case clause`,
 	},
 	{
 		"foo(",

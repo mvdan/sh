@@ -567,9 +567,11 @@ func (p *parser) stmts(stops ...string) (sts []*Stmt) {
 			}
 		case q:
 			return
-		case SEMIFALL, DSEMIFALL:
+		case DSEMICOLON, SEMIFALL, DSEMIFALL:
 			if q == DSEMICOLON {
 				return
+			} else {
+				p.invalidStmtStart()
 			}
 		}
 		if !p.newLine && !gotEnd {
@@ -595,6 +597,8 @@ func (p *parser) invalidStmtStart() {
 		p.curErr("%s can only immediately follow a statement", p.tok)
 	case RPAREN:
 		p.curErr("%s can only be used to close a subshell", p.tok)
+	case DSEMICOLON, SEMIFALL, DSEMIFALL:
+		p.curErr("%s can only be used in a case clause", p.tok)
 	default:
 		p.curErr("%s is not a valid start for a statement", p.tok)
 	}
@@ -924,9 +928,10 @@ func (p *parser) peekEnd() bool {
 }
 
 func (p *parser) peekStop() bool {
-	return p.peekEnd() || p.tok == AND || p.tok == OR ||
-		p.tok == LAND || p.tok == LOR || p.tok == PIPEALL ||
-		p.tok == p.quote || (p.quote == DSEMICOLON && dsemicolon(p.tok))
+	return p.tok == EOF || p.newLine || p.tok == SEMICOLON ||
+		p.tok == AND || p.tok == OR || p.tok == LAND ||
+		p.tok == LOR || p.tok == PIPEALL || p.tok == p.quote ||
+		p.tok == DSEMICOLON || p.tok == SEMIFALL || p.tok == DSEMIFALL
 }
 
 var identRe = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
