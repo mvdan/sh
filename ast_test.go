@@ -101,8 +101,12 @@ var astTests = []testCase{
 		litWord(`\`),
 	},
 	{
-		[]string{`foo\`},
+		[]string{`foo\`, "f\\\noo\\"},
 		litWord(`foo\`),
+	},
+	{
+		[]string{`foo\a`, "f\\\noo\\a"},
+		litWord(`foo\a`),
 	},
 	{
 		[]string{
@@ -119,7 +123,7 @@ var astTests = []testCase{
 		litCall("foo", "a", "b"),
 	},
 	{
-		[]string{"foobar", "foo\\\nbar"},
+		[]string{"foobar", "foo\\\nbar", "foo\\\nba\\\nr"},
 		litWord("foobar"),
 	},
 	{
@@ -211,7 +215,11 @@ var astTests = []testCase{
 		},
 	},
 	{
-		[]string{"while a; do b; done", "while a\ndo\nb\ndone"},
+		[]string{
+			"while a; do b; done",
+			"wh\\\nile a; do b; done",
+			"while a\ndo\nb\ndone",
+		},
 		&WhileClause{
 			Cond:    &StmtCond{Stmts: litStmts("a")},
 			DoStmts: litStmts("b"),
@@ -963,6 +971,10 @@ var astTests = []testCase{
 	{
 		[]string{`{"foo"`},
 		word(lit("{"), dblQuoted(lit("foo"))),
+	},
+	{
+		[]string{`foo"bar"`, "fo\\\no\"bar\""},
+		word(lit("foo"), dblQuoted(lit("bar"))),
 	},
 	{
 		[]string{`!foo`},
@@ -2298,16 +2310,8 @@ func setPosRecurse(tb testing.TB, src string, v interface{}, to Pos, diff bool) 
 			return
 		}
 		offs := int(pos - 1)
-		end := offs + len(want)
-		got := src[offs:end]
-		for {
-			if i := strings.Index(got, "\\\n"); i >= 0 {
-				got = got[:i] + got[i+2:] + src[end:end+2]
-				end += 2
-			} else {
-				break
-			}
-		}
+		got := string([]byte(src[offs:]))
+		got = strings.Replace(got, "\\\n", "", -1)[:len(want)]
 		if got != want {
 			tb.Fatalf("Expected %q at %d in %q, found %q",
 				want, offs, src, got)
