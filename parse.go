@@ -283,7 +283,38 @@ func (p *parser) advanceLitOther(q Token) {
 }
 
 func (p *parser) advanceLitNone() {
-	bs := p.buf[:0]
+	var i int
+	tok := LIT
+loop:
+	for i = p.npos; i < len(p.src); i++ {
+		switch p.src[i] {
+		case '\\': // escaped byte follows
+			if i == len(p.src)-1 {
+				break
+			}
+			i++
+			if p.src[i] == '\n' {
+				p.f.lines = append(p.f.lines, i+1)
+				bs := p.src[p.npos : i-1]
+				p.npos = i + 1
+				p.advanceLitNoneCont(bs)
+				return
+			}
+		case ' ', '\t', '\n', '\r', '&', '>', '<', '|', ';', '(', ')', '`':
+			tok = LITWORD
+			break loop
+		case '"', '\'', '$':
+			break loop
+		}
+	}
+	if i == len(p.src) {
+		tok = LITWORD
+	}
+	p.tok, p.val = tok, string(p.src[p.npos:i])
+	p.npos = i
+}
+
+func (p *parser) advanceLitNoneCont(bs []byte) {
 	for {
 		if p.npos >= len(p.src) {
 			p.tok, p.val = LITWORD, string(bs)
