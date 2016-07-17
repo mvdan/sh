@@ -116,19 +116,16 @@ func (p *parser) next() {
 			p.npos++
 			p.tok = QUO
 		case '`', '"', '$':
-			p.tok = p.regToken(b)
+			p.tok = p.dqToken(b)
 		default:
 			p.advanceLitOther(q)
 		}
 		return
 	case DQUOTE:
 		p.pos = Pos(p.npos + 1)
-		switch b {
-		case '`', '"', '$':
+		if b == '`' || b == '"' || b == '$' {
 			p.tok = p.dqToken(b)
-		case '\n':
-			p.advanceLitDquote()
-		default:
+		} else {
 			p.advanceLitDquote()
 		}
 		return
@@ -139,7 +136,7 @@ func (p *parser) next() {
 			p.npos++
 			p.tok = RBRACE
 		case '`', '"', '$':
-			p.tok = p.regToken(b)
+			p.tok = p.dqToken(b)
 		default:
 			p.advanceLitOther(q)
 		}
@@ -1061,7 +1058,13 @@ preLoop:
 	}
 	switch p.tok {
 	case LAND, LOR:
-		s = p.binaryCmdAndOr(s)
+		b := &BinaryCmd{OpPos: p.pos, Op: p.tok, X: s}
+		p.next()
+		p.got(STOPPED)
+		if b.Y, _ = p.getStmt(false); b.Y == nil {
+			p.followErr(b.OpPos, b.Op.String(), "a statement")
+		}
+		s = &Stmt{Position: s.Position, Cmd: b}
 	case AND:
 		p.next()
 		s.Background = true
@@ -1128,29 +1131,15 @@ func (p *parser) gotStmtPipe(s *Stmt) *Stmt {
 		return nil
 	}
 	if p.tok == OR || p.tok == PIPEALL {
-		s = p.binaryCmdPipe(s)
+		b := &BinaryCmd{OpPos: p.pos, Op: p.tok, X: s}
+		p.next()
+		p.got(STOPPED)
+		if b.Y = p.gotStmtPipe(&Stmt{Position: p.pos}); b.Y == nil {
+			p.followErr(b.OpPos, b.Op.String(), "a statement")
+		}
+		s = &Stmt{Position: s.Position, Cmd: b}
 	}
 	return s
-}
-
-func (p *parser) binaryCmdAndOr(left *Stmt) *Stmt {
-	b := &BinaryCmd{OpPos: p.pos, Op: p.tok, X: left}
-	p.next()
-	p.got(STOPPED)
-	if b.Y, _ = p.getStmt(false); b.Y == nil {
-		p.followErr(b.OpPos, b.Op.String(), "a statement")
-	}
-	return &Stmt{Position: left.Position, Cmd: b}
-}
-
-func (p *parser) binaryCmdPipe(left *Stmt) *Stmt {
-	b := &BinaryCmd{OpPos: p.pos, Op: p.tok, X: left}
-	p.next()
-	p.got(STOPPED)
-	if b.Y = p.gotStmtPipe(&Stmt{Position: p.pos}); b.Y == nil {
-		p.followErr(b.OpPos, b.Op.String(), "a statement")
-	}
-	return &Stmt{Position: left.Position, Cmd: b}
 }
 
 func (p *parser) subshell() *Subshell {
@@ -1400,8 +1389,10 @@ func (p *parser) bashFuncDecl() *FuncDecl {
 
 func (p *parser) callExpr(s *Stmt, w Word) *CallExpr {
 	ce := &CallExpr{Args: []Word{w}}
-	for !p.peekStop() {
+	for !p.newLine {
 		switch p.tok {
+		case EOF, SEMICOLON, AND, OR, LAND, LOR, PIPEALL, p.quote, DSEMICOLON, SEMIFALL, DSEMIFALL:
+			return ce
 		case STOPPED:
 			p.next()
 		case LITWORD:
