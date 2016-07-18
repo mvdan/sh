@@ -771,13 +771,40 @@ func (p *parser) arithmExpr(ftok Token, fpos Pos) ArithmExpr {
 	if p.tok == EOF || p.peekArithmEnd() {
 		return nil
 	}
+	left := p.arithmExprOps(ftok, fpos)
+	if p.tok != COMMA {
+		return left
+	}
+	q := p.quote
+	if q != DRPAREN && q != LPAREN && p.spaced {
+		return left
+	}
+	b := &BinaryExpr{
+		OpPos: p.pos,
+		Op:    p.tok,
+		X:     left,
+	}
+	p.next()
+	if q != DRPAREN && q != LPAREN && p.spaced {
+		p.followErr(b.OpPos, b.Op.String(), "an expression")
+	}
+	if b.Y = p.arithmExprOps(b.Op, b.OpPos); b.Y == nil {
+		p.followErr(b.OpPos, b.Op.String(), "an expression")
+	}
+	return b
+}
+
+func (p *parser) arithmExprOps(ftok Token, fpos Pos) ArithmExpr {
+	if p.tok == EOF || p.peekArithmEnd() {
+		return nil
+	}
 	left := p.arithmExprBase(ftok, fpos)
 	q := p.quote
 	if q != DRPAREN && q != LPAREN && p.spaced {
 		return left
 	}
 	switch p.tok {
-	case EOF, STOPPED, RPAREN, SEMICOLON, DSEMICOLON, SEMIFALL, DSEMIFALL:
+	case EOF, STOPPED, RPAREN, SEMICOLON, DSEMICOLON, SEMIFALL, DSEMIFALL, COMMA:
 		return left
 	case LIT, LITWORD:
 		p.curErr("not a valid arithmetic operator: %s", p.val)
@@ -791,7 +818,7 @@ func (p *parser) arithmExpr(ftok Token, fpos Pos) ArithmExpr {
 	if q != DRPAREN && q != LPAREN && p.spaced {
 		p.followErr(b.OpPos, b.Op.String(), "an expression")
 	}
-	if b.Y = p.arithmExpr(b.Op, b.OpPos); b.Y == nil {
+	if b.Y = p.arithmExprOps(b.Op, b.OpPos); b.Y == nil {
 		p.followErr(b.OpPos, b.Op.String(), "an expression")
 	}
 	return b

@@ -1552,16 +1552,16 @@ var astTests = []testCase{
 	{
 		[]string{"$((a += 2, b -= 3))"},
 		word(arithmExp(&BinaryExpr{
-			Op: ADDASSGN,
-			X:  litWord("a"),
+			Op: COMMA,
+			X: &BinaryExpr{
+				Op: ADDASSGN,
+				X:  litWord("a"),
+				Y:  litWord("2"),
+			},
 			Y: &BinaryExpr{
-				Op: COMMA,
-				X:  litWord("2"),
-				Y: &BinaryExpr{
-					Op: SUBASSGN,
-					X:  litWord("b"),
-					Y:  litWord("3"),
-				},
+				Op: SUBASSGN,
+				X:  litWord("b"),
+				Y:  litWord("3"),
 			},
 		})),
 	},
