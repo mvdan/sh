@@ -1408,13 +1408,13 @@ var astTests = []testCase{
 	{
 		[]string{"$((5 * 2 - 1))", "$((5*2-1))"},
 		word(arithmExp(&BinaryExpr{
-			Op: MUL,
-			X:  litWord("5"),
-			Y: &BinaryExpr{
-				Op: SUB,
-				X:  litWord("2"),
-				Y:  litWord("1"),
+			Op: SUB,
+			X: &BinaryExpr{
+				Op: MUL,
+				X:  litWord("5"),
+				Y:  litWord("2"),
 			},
+			Y: litWord("1"),
 		})),
 	},
 	{
@@ -1566,27 +1566,35 @@ var astTests = []testCase{
 		})),
 	},
 	{
-		[]string{"$((a >>= 2 && b <<= 3))"},
+		[]string{"$((a >>= 2, b <<= 3))"},
 		word(arithmExp(&BinaryExpr{
-			Op: SHRASSGN,
-			X:  litWord("a"),
+			Op: COMMA,
+			X: &BinaryExpr{
+				Op: SHRASSGN,
+				X:  litWord("a"),
+				Y:  litWord("2"),
+			},
 			Y: &BinaryExpr{
-				Op: LAND,
-				X:  litWord("2"),
-				Y: &BinaryExpr{
-					Op: SHLASSGN,
-					X:  litWord("b"),
-					Y:  litWord("3"),
-				},
+				Op: SHLASSGN,
+				X:  litWord("b"),
+				Y:  litWord("3"),
 			},
 		})),
 	},
 	{
-		[]string{"$((a == b))"},
+		[]string{"$((a == b && c > d))"},
 		word(arithmExp(&BinaryExpr{
-			Op: EQL,
-			X:  litWord("a"),
-			Y:  litWord("b"),
+			Op: LAND,
+			X: &BinaryExpr{
+				Op: EQL,
+				X:  litWord("a"),
+				Y:  litWord("b"),
+			},
+			Y: &BinaryExpr{
+				Op: GTR,
+				X:  litWord("c"),
+				Y:  litWord("d"),
+			},
 		})),
 	},
 	{
