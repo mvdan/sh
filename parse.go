@@ -207,7 +207,7 @@ skipSpace:
 		}
 	case q == LBRACE && paramOps(b):
 		p.tok = p.paramToken(b)
-	case (q == DLPAREN || q == DRPAREN || q == LPAREN) && arithmOps(b):
+	case q == DRPAREN && arithmOps(b):
 		p.tok = p.arithmToken(b)
 	case q == RBRACK && b == ']':
 		p.npos++
@@ -270,7 +270,7 @@ func (p *parser) advanceLitOther(q Token) {
 		case wordBreak(b), regOps(b):
 			p.tok, p.val = LIT, string(bs)
 			return
-		case (q == DLPAREN || q == DRPAREN || q == LPAREN) && arithmOps(b):
+		case q == DRPAREN && arithmOps(b):
 			p.tok, p.val = LIT, string(bs)
 			return
 		}
@@ -665,7 +665,7 @@ func (p *parser) wordPart() WordPart {
 		old := p.quote
 		p.quote = DRPAREN
 		p.next()
-		ar.X = p.arithmExpr(DOLLDP, ar.Dollar)
+		ar.X = p.arithmExpr(DOLLDP, ar.Dollar, false)
 		ar.Rparen = p.arithmEnd(ar.Dollar, old)
 		return ar
 	case DOLLPR:
@@ -767,16 +767,12 @@ func quotedStop(start Token) Token {
 	return start
 }
 
-func (p *parser) arithmExpr(ftok Token, fpos Pos) ArithmExpr {
+func (p *parser) arithmExpr(ftok Token, fpos Pos, compact bool) ArithmExpr {
 	if p.tok == EOF || p.peekArithmEnd() {
 		return nil
 	}
-	left := p.arithmExprOps(ftok, fpos)
-	if p.tok != COMMA {
-		return left
-	}
-	q := p.quote
-	if q != DRPAREN && q != LPAREN && p.spaced {
+	left := p.arithmExprOps(ftok, fpos, compact)
+	if p.tok != COMMA || (compact && p.spaced) {
 		return left
 	}
 	b := &BinaryExpr{
@@ -785,22 +781,21 @@ func (p *parser) arithmExpr(ftok Token, fpos Pos) ArithmExpr {
 		X:     left,
 	}
 	p.next()
-	if q != DRPAREN && q != LPAREN && p.spaced {
+	if compact && p.spaced {
 		p.followErr(b.OpPos, b.Op.String(), "an expression")
 	}
-	if b.Y = p.arithmExprOps(b.Op, b.OpPos); b.Y == nil {
+	if b.Y = p.arithmExprOps(b.Op, b.OpPos, compact); b.Y == nil {
 		p.followErr(b.OpPos, b.Op.String(), "an expression")
 	}
 	return b
 }
 
-func (p *parser) arithmExprOps(ftok Token, fpos Pos) ArithmExpr {
+func (p *parser) arithmExprOps(ftok Token, fpos Pos, compact bool) ArithmExpr {
 	if p.tok == EOF || p.peekArithmEnd() {
 		return nil
 	}
-	left := p.arithmExprBase(ftok, fpos)
-	q := p.quote
-	if q != DRPAREN && q != LPAREN && p.spaced {
+	left := p.arithmExprBase(ftok, fpos, compact)
+	if compact && p.spaced {
 		return left
 	}
 	switch p.tok {
@@ -815,43 +810,39 @@ func (p *parser) arithmExprOps(ftok Token, fpos Pos) ArithmExpr {
 		X:     left,
 	}
 	p.next()
-	if q != DRPAREN && q != LPAREN && p.spaced {
+	if compact && p.spaced {
 		p.followErr(b.OpPos, b.Op.String(), "an expression")
 	}
-	if b.Y = p.arithmExprOps(b.Op, b.OpPos); b.Y == nil {
+	if b.Y = p.arithmExprOps(b.Op, b.OpPos, compact); b.Y == nil {
 		p.followErr(b.OpPos, b.Op.String(), "an expression")
 	}
 	return b
 }
 
-func (p *parser) arithmExprBase(ftok Token, fpos Pos) ArithmExpr {
+func (p *parser) arithmExprBase(ftok Token, fpos Pos, compact bool) ArithmExpr {
 	if p.tok == INC || p.tok == DEC || p.tok == NOT {
 		pre := &UnaryExpr{OpPos: p.pos, Op: p.tok}
 		p.next()
-		pre.X = p.arithmExprBase(pre.Op, pre.OpPos)
+		pre.X = p.arithmExprBase(pre.Op, pre.OpPos, compact)
 		return pre
 	}
 	var x ArithmExpr
-	q := p.quote
 	switch p.tok {
 	case LPAREN:
 		pe := &ParenExpr{Lparen: p.pos}
-		old := p.quote
-		p.quote = LPAREN
 		p.next()
-		if pe.X = p.arithmExpr(LPAREN, pe.Lparen); pe.X == nil {
+		if pe.X = p.arithmExpr(LPAREN, pe.Lparen, false); pe.X == nil {
 			p.posErr(pe.Lparen, "parentheses must enclose an expression")
 		}
-		p.quote = old
 		pe.Rparen = p.matched(pe.Lparen, LPAREN, RPAREN)
 		x = pe
 	case ADD, SUB:
 		ue := &UnaryExpr{OpPos: p.pos, Op: p.tok}
 		p.next()
-		if q != DRPAREN && q != LPAREN && p.spaced {
+		if compact && p.spaced {
 			p.followErr(ue.OpPos, ue.Op.String(), "an expression")
 		}
-		if ue.X = p.arithmExpr(ue.Op, ue.OpPos); ue.X == nil {
+		if ue.X = p.arithmExpr(ue.Op, ue.OpPos, compact); ue.X == nil {
 			p.followErr(ue.OpPos, ue.Op.String(), "an expression")
 		}
 		x = ue
@@ -859,7 +850,7 @@ func (p *parser) arithmExprBase(ftok Token, fpos Pos) ArithmExpr {
 		w := p.followWordTok(ftok, fpos)
 		x = &w
 	}
-	if q != DRPAREN && q != LPAREN && p.spaced {
+	if compact && p.spaced {
 		return x
 	}
 	if p.tok == INC || p.tok == DEC {
@@ -1225,7 +1216,7 @@ func (p *parser) cond(left string, lpos Pos, stop string) Cond {
 		old := p.quote
 		p.quote = DRPAREN
 		p.next()
-		c.X = p.arithmExpr(DLPAREN, c.Lparen)
+		c.X = p.arithmExpr(DLPAREN, c.Lparen, false)
 		c.Rparen = p.arithmEnd(c.Lparen, old)
 		p.gotSameLine(SEMICOLON)
 		return c
@@ -1274,13 +1265,13 @@ func (p *parser) loop(forPos Pos) Loop {
 		old := p.quote
 		p.quote = DRPAREN
 		p.next()
-		cl.Init = p.arithmExpr(DLPAREN, cl.Lparen)
+		cl.Init = p.arithmExpr(DLPAREN, cl.Lparen, false)
 		scPos := p.pos
 		p.follow(p.pos, "expression", SEMICOLON)
-		cl.Cond = p.arithmExpr(SEMICOLON, scPos)
+		cl.Cond = p.arithmExpr(SEMICOLON, scPos, false)
 		scPos = p.pos
 		p.follow(p.pos, "expression", SEMICOLON)
-		cl.Post = p.arithmExpr(SEMICOLON, scPos)
+		cl.Post = p.arithmExpr(SEMICOLON, scPos, false)
 		cl.Rparen = p.arithmEnd(cl.Lparen, old)
 		p.gotSameLine(SEMICOLON)
 		return cl
@@ -1379,11 +1370,11 @@ func (p *parser) evalClause() *EvalClause {
 func (p *parser) letClause() *LetClause {
 	lc := &LetClause{Let: p.pos}
 	old := p.quote
-	p.quote = DLPAREN
+	p.quote = DRPAREN
 	p.next()
 	p.stopNewline = true
 	for !p.peekStop() && p.tok != STOPPED && !dsemicolon(p.tok) {
-		x := p.arithmExpr(LET, lc.Let)
+		x := p.arithmExpr(LET, lc.Let, true)
 		if x == nil {
 			p.followErr(p.pos, "let", "arithmetic expressions")
 		}
