@@ -381,13 +381,14 @@ func (p *parser) readUntil(b byte) ([]byte, bool) {
 func (p *parser) doHeredocs() {
 	for _, r := range p.heredocs {
 		end := unquotedWordStr(p.f, &r.Word)
-		r.Hdoc.ValuePos = Pos(p.npos + 1)
-		r.Hdoc.Value, _ = p.readHdocBody(end, r.Op == DHEREDOC)
+		l := &Lit{ValuePos: Pos(p.npos + 1)}
+		l.Value = p.readHdocBody(end, r.Op == DHEREDOC)
+		r.Hdoc = Word{Parts: []WordPart{l}}
 	}
 	p.heredocs = nil
 }
 
-func (p *parser) readHdocBody(end string, noTabs bool) (string, bool) {
+func (p *parser) readHdocBody(end string, noTabs bool) string {
 	var buf bytes.Buffer
 	for p.npos < len(p.src) {
 		bs, found := p.readUntil('\n')
@@ -399,14 +400,14 @@ func (p *parser) readHdocBody(end string, noTabs bool) (string, bool) {
 		if line == end || (noTabs && strings.TrimLeft(line, "\t") == end) {
 			// add trailing tabs
 			buf.Write(bs[:len(bs)-len(end)])
-			return buf.String(), true
+			break
 		}
 		buf.Write(bs)
 		if found {
 			buf.WriteByte('\n')
 		}
 	}
-	return buf.String(), false
+	return buf.String()
 }
 
 func wordBreak(b byte) bool {
@@ -1046,7 +1047,6 @@ func (p *parser) doRedirect(s *Stmt) {
 		p.forbidNested = true
 		r.Word = p.followWordTok(r.Op, r.OpPos)
 		p.forbidNested = false
-		r.Hdoc = &Lit{}
 		p.heredocs = append(p.heredocs, r)
 		p.got(STOPPED)
 	default:

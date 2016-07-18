@@ -107,11 +107,10 @@ func (a *Assign) End() Pos {
 
 // Redirect represents an input/output redirection.
 type Redirect struct {
-	OpPos Pos
-	Op    Token
-	N     *Lit
-	Word  Word
-	Hdoc  *Lit
+	OpPos      Pos
+	Op         Token
+	N          *Lit
+	Word, Hdoc Word
 }
 
 func (r *Redirect) Pos() Pos {

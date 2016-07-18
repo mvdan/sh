@@ -183,7 +183,7 @@ func (p *printer) newline() {
 	p.incLine()
 	p.wantSpace = false
 	for _, r := range p.pendingHdocs {
-		p.WriteString(r.Hdoc.Value)
+		p.word(r.Hdoc)
 		p.incLines(r.Hdoc.End() + 1)
 		p.unquotedWord(&r.Word)
 		p.WriteByte('\n')

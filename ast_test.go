@@ -586,7 +586,7 @@ var astTests = []testCase{
 			Redirs: []*Redirect{{
 				Op:   SHL,
 				Word: *litWord("EOF"),
-				Hdoc: lit("bar\n"),
+				Hdoc: *litWord("bar\n"),
 			}},
 		},
 	},
@@ -597,7 +597,7 @@ var astTests = []testCase{
 			Redirs: []*Redirect{{
 				Op:   SHL,
 				Word: *litWord("EOF"),
-				Hdoc: lit("1\n2\n3\n"),
+				Hdoc: *litWord("1\n2\n3\n"),
 			}},
 		},
 	},
@@ -608,7 +608,7 @@ var astTests = []testCase{
 			Redirs: []*Redirect{{
 				Op:   SHL,
 				Word: *litWord("EOF"),
-				Hdoc: lit("bar\n"),
+				Hdoc: *litWord("bar\n"),
 			}},
 		}),
 	},
@@ -619,7 +619,7 @@ var astTests = []testCase{
 			Redirs: []*Redirect{{
 				Op:   SHL,
 				Word: *litWord("EOF"),
-				Hdoc: lit("bar\n"),
+				Hdoc: *litWord("bar\n"),
 			}},
 		})),
 	},
@@ -632,7 +632,7 @@ var astTests = []testCase{
 				{
 					Op:   SHL,
 					Word: *litWord("EOF"),
-					Hdoc: lit("bar\n"),
+					Hdoc: *litWord("bar\n"),
 				},
 			},
 		},
@@ -645,7 +645,7 @@ var astTests = []testCase{
 				{
 					Op:   SHL,
 					Word: *litWord("EOF"),
-					Hdoc: lit("bar\n"),
+					Hdoc: *litWord("bar\n"),
 				},
 				{Op: GTR, Word: *litWord("f")},
 			},
@@ -660,7 +660,7 @@ var astTests = []testCase{
 				Redirs: []*Redirect{{
 					Op:   DHEREDOC,
 					Word: *litWord("EOF"),
-					Hdoc: lit("\tbar\n\t"),
+					Hdoc: *litWord("\tbar\n\t"),
 				}},
 			}},
 		},
@@ -673,7 +673,7 @@ var astTests = []testCase{
 				Redirs: []*Redirect{{
 					Op:   SHL,
 					Word: *litWord("EOF"),
-					Hdoc: lit("bar\n"),
+					Hdoc: *litWord("bar\n"),
 				}},
 			},
 			litStmt("foo2"),
@@ -686,7 +686,7 @@ var astTests = []testCase{
 			Redirs: []*Redirect{{
 				Op:   SHL,
 				Word: *litWord("FOOBAR"),
-				Hdoc: lit("bar\n"),
+				Hdoc: *litWord("bar\n"),
 			}},
 		},
 	},
@@ -697,7 +697,7 @@ var astTests = []testCase{
 			Redirs: []*Redirect{{
 				Op:   SHL,
 				Word: *word(dblQuoted(lit("EOF"))),
-				Hdoc: lit("bar\n"),
+				Hdoc: *litWord("bar\n"),
 			}},
 		},
 	},
@@ -709,7 +709,7 @@ var astTests = []testCase{
 				{
 					Op:   SHL,
 					Word: *word(sglQuoted("EOF")),
-					Hdoc: lit("bar\n"),
+					Hdoc: *litWord("bar\n"),
 				},
 			},
 		},
@@ -721,7 +721,7 @@ var astTests = []testCase{
 			Redirs: []*Redirect{{
 				Op:   SHL,
 				Word: *word(dblQuoted(lit("EOF")), lit("2")),
-				Hdoc: lit("bar\n"),
+				Hdoc: *litWord("bar\n"),
 			}},
 		},
 	},
@@ -732,7 +732,7 @@ var astTests = []testCase{
 			Redirs: []*Redirect{{
 				Op:   SHL,
 				Word: *litWord("\\EOF"),
-				Hdoc: lit("bar\n"),
+				Hdoc: *litWord("bar\n"),
 			}},
 		},
 	},
@@ -743,7 +743,7 @@ var astTests = []testCase{
 			Redirs: []*Redirect{{
 				Op:   SHL,
 				Word: *word(litParamExp("EOF")),
-				Hdoc: lit("bar\n"),
+				Hdoc: *litWord("bar\n"),
 			}},
 		},
 	},
@@ -757,7 +757,7 @@ var astTests = []testCase{
 			Redirs: []*Redirect{{
 				Op:   DHEREDOC,
 				Word: *litWord("EOF"),
-				Hdoc: lit("bar\n"),
+				Hdoc: *litWord("bar\n"),
 			}},
 		},
 	},
@@ -772,7 +772,7 @@ var astTests = []testCase{
 				Redirs: []*Redirect{{
 					Op:   SHL,
 					Word: *litWord("EOF1"),
-					Hdoc: lit("h1\n"),
+					Hdoc: *litWord("h1\n"),
 				}},
 			},
 			{
@@ -780,7 +780,7 @@ var astTests = []testCase{
 				Redirs: []*Redirect{{
 					Op:   SHL,
 					Word: *litWord("EOF2"),
-					Hdoc: lit("h2\n"),
+					Hdoc: *litWord("h2\n"),
 				}},
 			},
 		},
@@ -796,7 +796,7 @@ var astTests = []testCase{
 				Redirs: []*Redirect{{
 					Op:   SHL,
 					Word: *litWord("EOF"),
-					Hdoc: lit("foo\n"),
+					Hdoc: *litWord("foo\n"),
 				}},
 			},
 			litStmt("b"), litStmt("b"), litStmt("b"),
@@ -817,7 +817,7 @@ var astTests = []testCase{
 			Redirs: []*Redirect{{
 				Op:   SHL,
 				Word: *litWord("EOF"),
-				Hdoc: lit("bar\n"),
+				Hdoc: *litWord("bar\n"),
 			}},
 		},
 	},
@@ -2222,7 +2222,7 @@ var astTests = []testCase{
 			X: &Stmt{Redirs: []*Redirect{{
 				Op:   SHL,
 				Word: *litWord("EOF"),
-				Hdoc: lit("foo\n"),
+				Hdoc: *litWord("foo\n"),
 			}}},
 			Y: litStmt("b"),
 		},
@@ -2237,12 +2237,12 @@ var astTests = []testCase{
 					{
 						Op:   SHL,
 						Word: *litWord("EOF1"),
-						Hdoc: lit(""),
+						Hdoc: *litWord(""),
 					},
 					{
 						Op:   SHL,
 						Word: *litWord("EOF2"),
-						Hdoc: lit(""),
+						Hdoc: *litWord(""),
 					},
 				}},
 				Y: litStmt("c"),
@@ -2260,7 +2260,7 @@ var astTests = []testCase{
 			X: &Stmt{Redirs: []*Redirect{{
 				Op:   SHL,
 				Word: *litWord("EOF"),
-				Hdoc: lit("hdoc\n"),
+				Hdoc: *litWord("hdoc\n"),
 			}}},
 			Y: stmt(block(litStmt("bar"))),
 		},
@@ -2274,7 +2274,7 @@ var astTests = []testCase{
 				X: &Stmt{Redirs: []*Redirect{{
 					Op:   SHL,
 					Word: *litWord("EOF"),
-					Hdoc: lit("hdoc\n"),
+					Hdoc: *litWord("hdoc\n"),
 				}}},
 				Y: stmt(block(litStmt("bar"))),
 			}))),
@@ -2377,8 +2377,8 @@ func setPosRecurse(tb testing.TB, src string, v interface{}, to Pos, diff bool) 
 				recurse(r.N)
 			}
 			recurse(&r.Word)
-			if r.Hdoc != nil {
-				recurse(r.Hdoc)
+			if len(r.Hdoc.Parts) > 0 {
+				recurse(&r.Hdoc)
 			}
 		}
 	case []*Assign:
