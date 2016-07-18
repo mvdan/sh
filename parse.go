@@ -578,9 +578,8 @@ func (p *parser) stmts(stops ...string) (sts []*Stmt) {
 		case DSEMICOLON, SEMIFALL, DSEMIFALL:
 			if q == DSEMICOLON {
 				return
-			} else {
-				p.invalidStmtStart()
 			}
+			p.curErr("%s can only be used in a case clause", p.tok)
 		}
 		if !p.newLine && !gotEnd {
 			p.curErr("statements must be separated by &, ; or a newline")
@@ -605,8 +604,6 @@ func (p *parser) invalidStmtStart() {
 		p.curErr("%s can only immediately follow a statement", p.tok)
 	case RPAREN:
 		p.curErr("%s can only be used to close a subshell", p.tok)
-	case DSEMICOLON, SEMIFALL, DSEMIFALL:
-		p.curErr("%s can only be used in a case clause", p.tok)
 	default:
 		p.curErr("%s is not a valid start for a statement", p.tok)
 	}
