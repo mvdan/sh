@@ -879,15 +879,15 @@ func (p *parser) arithmExprBase(ftok Token, fpos Pos, compact bool) ArithmExpr {
 }
 
 func (p *parser) gotParamLit(l *Lit) bool {
+	l.ValuePos = p.pos
 	switch p.tok {
 	case LIT, LITWORD:
-		l.ValuePos, l.Value = p.pos, p.val
+		l.Value = p.val
 	case DOLLAR:
-		l.ValuePos, l.Value = p.pos, "$"
+		l.Value = "$"
 	case QUEST:
-		l.ValuePos, l.Value = p.pos, "?"
+		l.Value = "?"
 	default:
-		l.ValuePos = p.pos
 		return false
 	}
 	p.next()
