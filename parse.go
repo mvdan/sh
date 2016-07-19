@@ -961,15 +961,10 @@ func (p *parser) arithmEnd(left Pos, old Token) Pos {
 	return pos
 }
 
-func (p *parser) peekEnd() bool {
-	return p.tok == EOF || p.newLine || p.tok == SEMICOLON
-}
-
-func (p *parser) peekStop() bool {
-	return p.tok == EOF || p.newLine || p.tok == SEMICOLON ||
-		p.tok == AND || p.tok == OR || p.tok == LAND ||
-		p.tok == LOR || p.tok == PIPEALL || p.tok == p.quote ||
-		p.tok == DSEMICOLON || p.tok == SEMIFALL || p.tok == DSEMIFALL
+func stopToken(tok Token) bool {
+	return tok == EOF || tok == SEMICOLON || tok == AND || tok == OR ||
+		tok == LAND || tok == LOR || tok == PIPEALL ||
+		tok == DSEMICOLON || tok == SEMIFALL || tok == DSEMIFALL
 }
 
 var identRe = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
@@ -1012,7 +1007,7 @@ func (p *parser) getAssign() (*Assign, bool) {
 		}
 		ae.Rparen = p.matched(ae.Lparen, LPAREN, RPAREN)
 		as.Value.Parts = append(as.Value.Parts, ae)
-	} else if !p.peekStop() {
+	} else if !p.newLine && !stopToken(p.tok) {
 		if w := p.getWord(); start.Value == "" {
 			as.Value = w
 		} else {
@@ -1077,8 +1072,12 @@ preLoop:
 		default:
 			break preLoop
 		}
-		if p.peekEnd() {
-			gotEnd = p.gotSameLine(SEMICOLON)
+		switch {
+		case p.newLine, p.tok == EOF:
+			return
+		case p.tok == SEMICOLON:
+			p.next()
+			gotEnd = true
 			return
 		}
 	}
@@ -1292,7 +1291,7 @@ func (p *parser) loop(forPos Pos) Loop {
 		p.followErr(forPos, "for", "a literal")
 	}
 	if p.gotRsrv("in") {
-		for !p.peekEnd() {
+		for !p.newLine && p.tok != EOF && p.tok != SEMICOLON {
 			if w, ok := p.gotWord(); !ok {
 				p.curErr("word list can only contain words")
 			} else {
@@ -1341,12 +1340,13 @@ func (p *parser) patLists() (pls []*PatternList) {
 		p.next()
 		pl.Stmts = p.stmts("esac")
 		p.quote = old
-		if !dsemicolon(p.tok) {
-			pl.Op, pl.OpPos = DSEMICOLON, p.pos
+		pl.OpPos = p.pos
+		if p.tok != DSEMICOLON && p.tok != SEMIFALL && p.tok != DSEMIFALL {
+			pl.Op = DSEMICOLON
 			pls = append(pls, pl)
 			break
 		}
-		pl.Op, pl.OpPos = p.tok, p.pos
+		pl.Op = p.tok
 		p.next()
 		pls = append(pls, pl)
 	}
@@ -1359,7 +1359,7 @@ func (p *parser) declClause(local bool) *DeclClause {
 	for p.tok == LITWORD && p.val[0] == '-' {
 		ds.Opts = append(ds.Opts, p.getWord())
 	}
-	for !p.peekStop() {
+	for !p.newLine && !stopToken(p.tok) {
 		if as, ok := p.getAssign(); ok {
 			ds.Assigns = append(ds.Assigns, as)
 		} else if w, ok := p.gotWord(); !ok {
@@ -1384,7 +1384,7 @@ func (p *parser) letClause() *LetClause {
 	p.quote = DRPAREN
 	p.next()
 	p.stopNewline = true
-	for !p.peekStop() && p.tok != STOPPED && !dsemicolon(p.tok) {
+	for !p.newLine && !stopToken(p.tok) && p.tok != STOPPED {
 		x := p.arithmExpr(LET, lc.Let, 0, true)
 		if x == nil {
 			p.followErr(p.pos, "let", "arithmetic expressions")
