@@ -352,10 +352,7 @@ loop:
 		switch p.src[i] {
 		case '\\': // escaped byte follows
 			i++
-			if i == len(p.src) {
-				break loop
-			}
-			if p.src[i] == '\n' {
+			if len(p.src) > i && p.src[i] == '\n' {
 				p.f.lines = append(p.f.lines, i+1)
 			}
 		case '`', '"', '$':
