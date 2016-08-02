@@ -355,6 +355,10 @@ var astTests = []testCase{
 		word(dblQuoted(lit("'"))),
 	},
 	{
+		[]string{`""`},
+		word(dblQuoted()),
+	},
+	{
 		[]string{"=a s{s s=s"},
 		litCall("=a", "s{s", "s=s"),
 	},
@@ -602,6 +606,32 @@ var astTests = []testCase{
 		},
 	},
 	{
+		[]string{"a <<EOF\nfoo$bar\nEOF"},
+		&Stmt{
+			Cmd: litCall("a"),
+			Redirs: []*Redirect{{
+				Op:   SHL,
+				Word: *litWord("EOF"),
+				Hdoc: *word(
+					lit("foo"),
+					litParamExp("bar"),
+					lit("\n"),
+				),
+			}},
+		},
+	},
+	{
+		[]string{"a <<EOF\n\\${\nEOF"},
+		&Stmt{
+			Cmd: litCall("a"),
+			Redirs: []*Redirect{{
+				Op:   SHL,
+				Word: *litWord("EOF"),
+				Hdoc: *litWord("\\${\n"),
+			}},
+		},
+	},
+	{
 		[]string{"{ foo <<EOF\nbar\nEOF\n}"},
 		block(&Stmt{
 			Cmd: litCall("foo"),
@@ -661,6 +691,20 @@ var astTests = []testCase{
 					Op:   DHEREDOC,
 					Word: *litWord("EOF"),
 					Hdoc: *litWord("\tbar\n\t"),
+				}},
+			}},
+		},
+	},
+	{
+		[]string{"if true; then foo <<-EOF\n\tEOF\nfi"},
+		&IfClause{
+			Cond: &StmtCond{Stmts: litStmts("true")},
+			ThenStmts: []*Stmt{{
+				Cmd: litCall("foo"),
+				Redirs: []*Redirect{{
+					Op:   DHEREDOC,
+					Word: *litWord("EOF"),
+					Hdoc: *litWord("\t"),
 				}},
 			}},
 		},
@@ -2237,12 +2281,12 @@ var astTests = []testCase{
 					{
 						Op:   SHL,
 						Word: *litWord("EOF1"),
-						Hdoc: *litWord(""),
+						Hdoc: *word(),
 					},
 					{
 						Op:   SHL,
 						Word: *litWord("EOF2"),
-						Hdoc: *litWord(""),
+						Hdoc: *word(),
 					},
 				}},
 				Y: litStmt("c"),

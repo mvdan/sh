@@ -55,6 +55,9 @@ type parser struct {
 
 	quote Token
 
+	hdocStop string
+	hdocTabs bool
+
 	// list of pending heredoc bodies
 	heredocs []*Redirect
 }
@@ -91,6 +94,9 @@ func (p *parser) next() {
 		return
 	}
 	b := p.src[p.npos]
+	if p.quote == SHL && p.hdocStop == "" {
+		return
+	}
 	if p.tok == STOPPED && b == '\n' {
 		p.npos++
 		p.f.lines = append(p.f.lines, p.npos)
@@ -127,6 +133,14 @@ func (p *parser) next() {
 			p.tok = p.dqToken(b)
 		} else {
 			p.advanceLitDquote()
+		}
+		return
+	case SHL:
+		p.pos = Pos(p.npos + 1)
+		if b == '`' || b == '$' {
+			p.tok = p.dqToken(b)
+		} else {
+			p.advanceLitHdoc()
 		}
 		return
 	case RBRACE:
@@ -365,6 +379,63 @@ loop:
 	p.npos = i
 }
 
+func (p *parser) advanceLitHdoc() {
+	end := []byte(p.hdocStop)
+	isEnd := func(i int) bool {
+		if len(p.src) < i+len(end) {
+			return false
+		}
+		if !bytes.Equal(end, p.src[i:i+len(end)]) {
+			return false
+		}
+		return len(p.src) == i+len(end) || p.src[i+len(end)] == '\n'
+	}
+	n := p.npos
+	for p.hdocTabs && p.src[n] == '\t' {
+		n++
+	}
+	if isEnd(n) {
+		if n == p.npos {
+			p.tok = ILLEGAL
+		} else {
+			p.tok, p.val = LIT, string(p.src[p.npos:n])
+		}
+		p.npos = n + len(end)
+		p.hdocStop = ""
+		return
+	}
+	var i int
+loop:
+	for i = p.npos; i < len(p.src); i++ {
+		switch p.src[i] {
+		case '\\': // escaped byte follows
+			i++
+			if i == len(p.src) {
+				break loop
+			}
+			if p.src[i] == '\n' {
+				p.f.lines = append(p.f.lines, i+1)
+			}
+		case '`', '$':
+			break loop
+		case '\n':
+			n := i + 1
+			p.f.lines = append(p.f.lines, n)
+			for p.hdocTabs && p.src[n] == '\t' {
+				n++
+			}
+			if isEnd(n) {
+				p.tok, p.val = LIT, string(p.src[p.npos:n])
+				p.npos = n + len(end)
+				p.hdocStop = ""
+				return
+			}
+		}
+	}
+	p.tok, p.val = LIT, string(p.src[p.npos:i])
+	p.npos = i
+}
+
 func (p *parser) readUntil(b byte) ([]byte, bool) {
 	rem := p.src[p.npos:]
 	i := bytes.IndexByte(rem, b)
@@ -376,35 +447,21 @@ func (p *parser) readUntil(b byte) ([]byte, bool) {
 }
 
 func (p *parser) doHeredocs() {
+	old := p.quote
+	p.quote = SHL
 	for _, r := range p.heredocs {
-		end := unquotedWordStr(p.f, &r.Word)
-		l := &Lit{ValuePos: Pos(p.npos + 1)}
-		l.Value = p.readHdocBody(end, r.Op == DHEREDOC)
-		r.Hdoc = Word{Parts: []WordPart{l}}
-	}
-	p.heredocs = nil
-}
-
-func (p *parser) readHdocBody(end string, noTabs bool) string {
-	var buf bytes.Buffer
-	for p.npos < len(p.src) {
-		bs, found := p.readUntil('\n')
-		p.npos += len(bs) + 1
-		if found {
+		p.hdocTabs = r.Op == DHEREDOC
+		p.hdocStop = unquotedWordStr(p.f, &r.Word)
+		if p.npos < len(p.src) && p.src[p.npos] == '\n' {
+			p.npos++
+			p.pos++
 			p.f.lines = append(p.f.lines, p.npos)
 		}
-		line := string(bs)
-		if line == end || (noTabs && strings.TrimLeft(line, "\t") == end) {
-			// add trailing tabs
-			buf.Write(bs[:len(bs)-len(end)])
-			break
-		}
-		buf.Write(bs)
-		if found {
-			buf.WriteByte('\n')
-		}
+		p.next()
+		r.Hdoc = p.getWord()
 	}
-	return buf.String()
+	p.quote = old
+	p.heredocs = nil
 }
 
 func wordBreak(b byte) bool {
@@ -639,6 +696,13 @@ func (p *parser) wordParts() (wps []WordPart) {
 		if p.spaced {
 			return
 		}
+		if p.quote == SHL && p.hdocStop == "" {
+			// TODO: don't work around this
+			if p.tok == LIT && p.val == "\n" {
+				wps = append(wps, &Lit{ValuePos: p.pos, Value: p.val})
+			}
+			return
+		}
 	}
 }
 
@@ -687,7 +751,12 @@ func (p *parser) wordPart() WordPart {
 			p.pos++
 			p.tok, p.val = LIT, string(b)
 		} else {
+			old := p.quote
+			if p.quote == SHL {
+				p.quote = ILLEGAL
+			}
 			p.next()
+			p.quote = old
 		}
 		p.gotLit(&pe.Param)
 		return pe
