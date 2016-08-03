@@ -553,10 +553,6 @@ func (p *parser) curErr(format string, a ...interface{}) {
 	p.posErr(p.pos, format, a...)
 }
 
-func dsemicolon(t Token) bool {
-	return t == DSEMICOLON || t == SEMIFALL || t == DSEMIFALL
-}
-
 func (p *parser) stmts(stops ...string) (sts []*Stmt) {
 	if p.forbidNested {
 		p.curErr("nested statements not allowed in this word")
