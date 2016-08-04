@@ -178,10 +178,9 @@ func (p *printer) indent() {
 }
 
 func (p *printer) newline() {
-	p.wantNewline = false
+	p.wantNewline, p.wantSpace = false, false
 	p.WriteByte('\n')
 	p.incLine()
-	p.wantSpace = false
 	for _, r := range p.pendingHdocs {
 		p.word(r.Hdoc)
 		p.incLines(r.Hdoc.End() + 1)
@@ -201,15 +200,6 @@ func (p *printer) newlines(pos Pos) {
 		p.incLine()
 	}
 	p.indent()
-}
-
-func (p *printer) alwaysSeparate(pos Pos) {
-	p.commentsUpTo(pos)
-	if p.nlineIndex == 0 {
-		p.incLines(pos)
-	} else {
-		p.newlines(pos)
-	}
 }
 
 func (p *printer) didSeparate(pos Pos) bool {
@@ -823,7 +813,8 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 				p.spacedWord(w)
 			}
 			p.WriteByte(')')
-			sep := p.nestedStmts(pl.Stmts)
+			sep := len(pl.Stmts) > 1 || pl.Stmts[0].Pos() > p.nline
+			p.nestedStmts(pl.Stmts)
 			p.level++
 			if sep {
 				p.sepTok(caseClauseOp(pl.Op), pl.OpPos)
@@ -876,16 +867,15 @@ func startsWithLparen(stmts []*Stmt) bool {
 	return ok
 }
 
-func (p *printer) stmts(stmts []*Stmt) bool {
+func (p *printer) stmts(stmts []*Stmt) {
 	if len(stmts) == 0 {
-		return false
+		return
 	}
 	pos := stmts[0].Pos()
 	if len(stmts) == 1 && pos <= p.nline {
-		s := stmts[0]
 		p.didSeparate(pos)
-		p.stmt(s)
-		return false
+		p.stmt(stmts[0])
+		return
 	}
 	inlineIndent := 0
 	for i, s := range stmts {
@@ -895,8 +885,13 @@ func (p *printer) stmts(stmts []*Stmt) bool {
 		if ind < len(p.f.lines)-1 && end > Pos(p.f.lines[ind+1]) {
 			inlineIndent = 0
 		}
-		p.alwaysSeparate(pos)
-		p.incLines(s.Pos())
+		p.commentsUpTo(pos)
+		if p.nlineIndex == 0 {
+			p.incLines(pos)
+		} else {
+			p.newlines(pos)
+		}
+		p.incLines(pos)
 		p.stmt(s)
 		if !p.hasInline(pos, p.nline) {
 			inlineIndent = 0
@@ -924,7 +919,6 @@ func (p *printer) stmts(stmts []*Stmt) bool {
 		p.wantSpaces = inlineIndent - stmtLen(p.f, s)
 	}
 	p.wantNewline = true
-	return true
 }
 
 var printBuf bytes.Buffer
@@ -951,11 +945,10 @@ func stmtLen(f *File, s *Stmt) int {
 	return printBuf.Len()
 }
 
-func (p *printer) nestedStmts(stmts []*Stmt) bool {
+func (p *printer) nestedStmts(stmts []*Stmt) {
 	p.incLevel()
-	sep := p.stmts(stmts)
+	p.stmts(stmts)
 	p.decLevel()
-	return sep
 }
 
 func (p *printer) assigns(assigns []*Assign) {
