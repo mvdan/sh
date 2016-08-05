@@ -603,14 +603,15 @@ func (p *parser) invalidStmtStart() {
 	}
 }
 
-func (p *parser) getWord() (w Word) {
+func (p *parser) getWord() Word {
 	if p.tok == LITWORD {
-		w.Parts = append(w.Parts, &Lit{ValuePos: p.pos, Value: p.val})
+		w := Word{Parts: []WordPart{
+			&Lit{ValuePos: p.pos, Value: p.val},
+		}}
 		p.next()
-	} else {
-		w.Parts = p.wordParts()
+		return w
 	}
-	return
+	return Word{Parts: p.wordParts()}
 }
 
 func (p *parser) gotWord() (Word, bool) {
