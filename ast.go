@@ -341,12 +341,7 @@ type SglQuoted struct {
 }
 
 func (q *SglQuoted) Pos() Pos { return q.Quote }
-func (q *SglQuoted) End() Pos {
-	if q.Quote == 0 {
-		return 0
-	}
-	return q.Quote + Pos(2) + Pos(len(q.Value))
-}
+func (q *SglQuoted) End() Pos { return posAfter(q.Quote, 2 + len(q.Value)) }
 
 // Quoted represents a quoted list of nodes. Single quotes are
 // represented separately as SglQuoted.
@@ -538,7 +533,7 @@ func (l *LetClause) End() Pos { return l.Exprs[len(l.Exprs)-1].End() }
 
 func posAfter(pos Pos, n int) Pos {
 	if pos == 0 {
-		return pos
+		return 0
 	}
 	return pos + Pos(n)
 }
