@@ -318,10 +318,12 @@ func (p *printer) wordPart(wp WordPart) {
 		p.WriteByte('\'')
 	case *Quoted:
 		p.WriteString(quotedOp(x.Quote))
-		for _, n := range x.Parts {
+		for i, n := range x.Parts {
 			p.wordPart(n)
+			if i == len(x.Parts)-1 {
+				p.incLines(n.End())
+			}
 		}
-		p.incLines(x.End() - 1)
 		p.WriteString(quotedOp(quotedStop(x.Quote)))
 	case *CmdSubst:
 		p.incLines(x.Pos())
@@ -874,9 +876,6 @@ func (p *printer) stmts(stmts []*Stmt) {
 	for i, s := range stmts {
 		pos := s.Pos()
 		ind := p.nlineIndex
-		if ind < len(p.f.lines)-1 && s.End() > Pos(p.f.lines[ind+1]) {
-			inlineIndent = 0
-		}
 		p.commentsUpTo(pos)
 		if p.nlineIndex == 0 {
 			p.incLines(pos)
@@ -889,9 +888,12 @@ func (p *printer) stmts(stmts []*Stmt) {
 			inlineIndent = 0
 			continue
 		}
-		ind2 := p.nlineIndex
-		nline2 := p.nline
+		if ind < len(p.f.lines)-1 && s.End() > Pos(p.f.lines[ind+1]) {
+			inlineIndent = 0
+		}
 		if inlineIndent == 0 {
+			ind2 := p.nlineIndex
+			nline2 := p.nline
 			for _, s2 := range stmts[i:] {
 				pos2 := s2.Pos()
 				if pos2 > nline2 || !p.hasInline(pos2, nline2) {
