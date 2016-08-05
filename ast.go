@@ -126,8 +126,8 @@ type CallExpr struct {
 	Args []Word
 }
 
-func (c *CallExpr) Pos() Pos { return wordFirstPos(c.Args) }
-func (c *CallExpr) End() Pos { return wordLastEnd(c.Args) }
+func (c *CallExpr) Pos() Pos { return c.Args[0].Pos() }
+func (c *CallExpr) End() Pos { return c.Args[len(c.Args)-1].End() }
 
 // Subshell represents a series of commands that should be executed in a
 // nested shell environment.
@@ -179,7 +179,7 @@ type StmtCond struct {
 }
 
 func (c *StmtCond) Pos() Pos { return c.Stmts[0].Pos() }
-func (c *StmtCond) End() Pos { return stmtLastEnd(c.Stmts) }
+func (c *StmtCond) End() Pos { return c.Stmts[len(c.Stmts)-1].End() }
 
 // CStyleCond represents a condition that evaluates to the result of an
 // arithmetic expression.
@@ -575,7 +575,6 @@ func partsLastEnd(ps []WordPart) Pos {
 	return ps[len(ps)-1].End()
 }
 
-func wordFirstPos(ws []Word) Pos { return ws[0].Pos() }
 func wordLastEnd(ws []Word) Pos {
 	if len(ws) == 0 {
 		return defaultPos

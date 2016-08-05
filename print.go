@@ -799,7 +799,7 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		p.WriteString(" in")
 		p.incLevel()
 		for _, pl := range x.List {
-			p.didSeparate(wordFirstPos(pl.Patterns))
+			p.didSeparate(pl.Patterns[0].Pos())
 			for i, w := range pl.Patterns {
 				if i > 0 {
 					p.spacedTok("|", true)
