@@ -312,11 +312,9 @@ func (p *printer) wordPart(wp WordPart) {
 	switch x := wp.(type) {
 	case *Lit:
 		p.WriteString(x.Value)
-		p.incLines(x.End())
 	case *SglQuoted:
 		p.WriteByte('\'')
 		p.WriteString(x.Value)
-		p.incLines(x.End() - 1)
 		p.WriteByte('\'')
 	case *Quoted:
 		p.WriteString(quotedOp(x.Quote))
@@ -326,6 +324,7 @@ func (p *printer) wordPart(wp WordPart) {
 		p.incLines(x.End() - 1)
 		p.WriteString(quotedOp(quotedStop(x.Quote)))
 	case *CmdSubst:
+		p.incLines(x.Pos())
 		p.wantSpace = false
 		if x.Backquotes {
 			p.WriteByte('`')
@@ -874,9 +873,8 @@ func (p *printer) stmts(stmts []*Stmt) {
 	inlineIndent := 0
 	for i, s := range stmts {
 		pos := s.Pos()
-		end := s.End()
 		ind := p.nlineIndex
-		if ind < len(p.f.lines)-1 && end > Pos(p.f.lines[ind+1]) {
+		if ind < len(p.f.lines)-1 && s.End() > Pos(p.f.lines[ind+1]) {
 			inlineIndent = 0
 		}
 		p.commentsUpTo(pos)
