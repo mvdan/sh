@@ -24,11 +24,11 @@ func (c PrintConfig) Fprint(w io.Writer, f *File) error {
 	bw := writerFree.Get().(*bufio.Writer)
 	bw.Reset(w)
 	p := printer{
-		bufWriter: bw,
-		f:         f,
-		c:         c,
+		Writer:   bw,
+		f:        f,
+		comments: f.Comments,
+		c:        c,
 	}
-	p.comments = f.Comments
 	p.stmts(f.Stmts)
 	p.commentsUpTo(0)
 	p.newline()
@@ -60,14 +60,8 @@ func Fprint(w io.Writer, f *File) error {
 	return PrintConfig{}.Fprint(w, f)
 }
 
-type bufWriter interface {
-	io.Writer
-	WriteString(string) (int, error)
-	WriteByte(byte) error
-}
-
 type printer struct {
-	bufWriter
+	*bufio.Writer
 
 	f *File
 	c PrintConfig
@@ -813,7 +807,7 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 				p.spacedWord(w)
 			}
 			p.WriteByte(')')
-			sep := len(pl.Stmts) > 1 || pl.Stmts[0].Pos() > p.nline
+			sep := len(pl.Stmts) > 1 || (len(pl.Stmts) > 0 && pl.Stmts[0].Pos() > p.nline)
 			p.nestedStmts(pl.Stmts)
 			p.level++
 			if sep {
@@ -921,28 +915,36 @@ func (p *printer) stmts(stmts []*Stmt) {
 	p.wantNewline = true
 }
 
-var printBuf bytes.Buffer
+var (
+	printBuf  bytes.Buffer
+	bufWriter = bufio.NewWriter(&printBuf)
+)
 
 func unquotedWordStr(f *File, w *Word) string {
+	bufWriter.Reset(&printBuf)
 	printBuf.Reset()
-	p := printer{bufWriter: &printBuf, f: f}
+	p := printer{Writer: bufWriter, f: f}
 	p.unquotedWord(w)
+	bufWriter.Flush()
 	return printBuf.String()
 }
 
 func wordStr(f *File, w Word) string {
+	bufWriter.Reset(&printBuf)
 	printBuf.Reset()
-	p := printer{bufWriter: &printBuf, f: f}
+	p := printer{Writer: bufWriter, f: f}
 	p.word(w)
+	bufWriter.Flush()
 	return printBuf.String()
 }
 
 func stmtLen(f *File, s *Stmt) int {
+	bufWriter.Reset(&printBuf)
 	printBuf.Reset()
-	p := printer{bufWriter: &printBuf, f: f}
+	p := printer{Writer: bufWriter, f: f}
 	p.incLines(s.Pos())
 	p.stmt(s)
-	return printBuf.Len()
+	return printBuf.Len() + bufWriter.Buffered()
 }
 
 func (p *printer) nestedStmts(stmts []*Stmt) {
