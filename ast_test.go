@@ -621,6 +621,21 @@ var astTests = []testCase{
 		},
 	},
 	{
+		[]string{"a <<EOF\n\"$bar\"\nEOF"},
+		&Stmt{
+			Cmd: litCall("a"),
+			Redirs: []*Redirect{{
+				Op:   SHL,
+				Word: *litWord("EOF"),
+				Hdoc: *word(
+					lit("\""),
+					litParamExp("bar"),
+					lit("\"\n"),
+				),
+			}},
+		},
+	},
+	{
 		[]string{"a <<EOF\n\\${\nEOF"},
 		&Stmt{
 			Cmd: litCall("a"),

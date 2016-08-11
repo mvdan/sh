@@ -698,7 +698,7 @@ func (p *parser) wordParts() (wps []WordPart) {
 		}
 		if p.quote == SHL && p.hdocStop == "" {
 			// TODO: don't work around this
-			if p.tok == LIT && p.val == "\n" {
+			if len(wps) > 1 && p.tok == LIT {
 				wps = append(wps, &Lit{ValuePos: p.pos, Value: p.val})
 			}
 			return
