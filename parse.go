@@ -391,7 +391,7 @@ func (p *parser) advanceLitHdoc() {
 		return len(p.src) == i+len(end) || p.src[i+len(end)] == '\n'
 	}
 	n := p.npos
-	for p.hdocTabs && p.src[n] == '\t' {
+	for p.hdocTabs && n < len(p.src) && p.src[n] == '\t' {
 		n++
 	}
 	if isEnd(n) {
@@ -421,7 +421,7 @@ loop:
 		case '\n':
 			n := i + 1
 			p.f.lines = append(p.f.lines, n)
-			for p.hdocTabs && p.src[n] == '\t' {
+			for p.hdocTabs && n < len(p.src) && p.src[n] == '\t' {
 				n++
 			}
 			if isEnd(n) {

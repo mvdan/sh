@@ -822,6 +822,34 @@ var astTests = []testCase{
 	},
 	{
 		[]string{
+			"foo <<-EOF\n\tEOF",
+			"foo <<-EOF\n\t",
+		},
+		&Stmt{
+			Cmd: litCall("foo"),
+			Redirs: []*Redirect{{
+				Op:   DHEREDOC,
+				Word: *litWord("EOF"),
+				Hdoc: *litWord("\t"),
+			}},
+		},
+	},
+	{
+		[]string{
+			"foo <<-EOF\n\tbar\n\tEOF",
+			"foo <<-EOF\n\tbar\n\t",
+		},
+		&Stmt{
+			Cmd: litCall("foo"),
+			Redirs: []*Redirect{{
+				Op:   DHEREDOC,
+				Word: *litWord("EOF"),
+				Hdoc: *litWord("\tbar\n\t"),
+			}},
+		},
+	},
+	{
+		[]string{
 			"f1 <<EOF1\nh1\nEOF1\nf2 <<EOF2\nh2\nEOF2",
 			"f1 <<EOF1; f2 <<EOF2\nh1\nEOF1\nh2\nEOF2",
 		},
