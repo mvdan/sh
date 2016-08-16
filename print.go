@@ -175,7 +175,9 @@ func (p *printer) newline() {
 	p.wantNewline, p.wantSpace = false, false
 	p.WriteByte('\n')
 	p.incLine()
-	for _, r := range p.pendingHdocs {
+	hdocs := p.pendingHdocs
+	p.pendingHdocs = nil
+	for _, r := range hdocs {
 		p.word(r.Hdoc)
 		p.incLines(r.Hdoc.End() + 1)
 		p.unquotedWord(&r.Word)
@@ -183,7 +185,6 @@ func (p *printer) newline() {
 		p.incLine()
 		p.wantSpace = false
 	}
-	p.pendingHdocs = nil
 }
 
 func (p *printer) newlines(pos Pos) {
