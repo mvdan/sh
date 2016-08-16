@@ -877,9 +877,7 @@ func (p *printer) stmts(stmts []*Stmt) {
 		pos := s.Pos()
 		ind := p.nlineIndex
 		p.commentsUpTo(pos)
-		if p.nlineIndex == 0 {
-			p.incLines(pos)
-		} else {
+		if p.nlineIndex > 0 {
 			p.newlines(pos)
 		}
 		p.incLines(pos)
