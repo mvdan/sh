@@ -48,8 +48,6 @@ type parser struct {
 	tok Token
 	val string
 
-	buf [8]byte
-
 	pos  Pos
 	npos int
 
@@ -234,7 +232,7 @@ skipSpace:
 }
 
 func (p *parser) advanceLitOther(q Token) {
-	bs := p.buf[:0]
+	bs := make([]byte, 0, 8)
 	for {
 		if p.npos >= len(p.src) {
 			p.tok, p.val = LIT, string(bs)
