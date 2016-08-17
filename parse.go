@@ -109,9 +109,9 @@ func (p *parser) next() {
 		p.spaced, p.newLine = false, false
 	}
 	q := p.quote
+	p.pos = Pos(p.npos + 1)
 	switch q {
 	case QUO:
-		p.pos = Pos(p.npos + 1)
 		switch b {
 		case '}':
 			p.npos++
@@ -126,7 +126,6 @@ func (p *parser) next() {
 		}
 		return
 	case DQUOTE:
-		p.pos = Pos(p.npos + 1)
 		if b == '`' || b == '"' || b == '$' {
 			p.tok = p.dqToken(b)
 		} else {
@@ -134,7 +133,6 @@ func (p *parser) next() {
 		}
 		return
 	case SHL:
-		p.pos = Pos(p.npos + 1)
 		if b == '`' || b == '$' {
 			p.tok = p.dqToken(b)
 		} else {
@@ -142,7 +140,6 @@ func (p *parser) next() {
 		}
 		return
 	case RBRACE:
-		p.pos = Pos(p.npos + 1)
 		switch b {
 		case '}':
 			p.npos++
@@ -154,7 +151,6 @@ func (p *parser) next() {
 		}
 		return
 	case SQUOTE:
-		p.pos = Pos(p.npos + 1)
 		if b == '\'' {
 			p.npos++
 			p.tok = SQUOTE
@@ -292,8 +288,7 @@ func (p *parser) advanceLitOther(q Token) {
 }
 
 func (p *parser) advanceLitNone() {
-	var i int
-	tok := LIT
+	i, tok := 0, LIT
 loop:
 	for i = p.npos; i < len(p.src); i++ {
 		switch p.src[i] {
@@ -436,12 +431,10 @@ loop:
 
 func (p *parser) readUntil(b byte) ([]byte, bool) {
 	rem := p.src[p.npos:]
-	i := bytes.IndexByte(rem, b)
-	if i < 0 {
-		bs := rem
-		return bs, false
+	if i := bytes.IndexByte(rem, b); i >= 0 {
+		return rem[:i], true
 	}
-	return rem[:i], true
+	return rem, false
 }
 
 func (p *parser) doHeredocs() {
