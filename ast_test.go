@@ -636,6 +636,20 @@ var astTests = []testCase{
 		},
 	},
 	{
+		[]string{"a <<EOF\n`b`\nc\nEOF"},
+		&Stmt{
+			Cmd: litCall("a"),
+			Redirs: []*Redirect{{
+				Op:   SHL,
+				Word: *litWord("EOF"),
+				Hdoc: *word(
+					bckQuoted(litStmt("b")),
+					lit("\nc\n"),
+				),
+			}},
+		},
+	},
+	{
 		[]string{"a <<EOF\n\\${\nEOF"},
 		&Stmt{
 			Cmd: litCall("a"),

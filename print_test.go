@@ -255,11 +255,11 @@ func TestFprintWeirdFormat(t *testing.T) {
 		},
 		{
 			"a <<EOF\n`\n\tb\n\tc`\nEOF",
-			"a <<EOF\n`\n\tb\n\tc\n`EOF",
+			"a <<EOF\n`\n\tb\n\tc\n`\nEOF",
 		},
 		{
 			"<<\nEOF #\n``\nb\nEOF",
-			"<<EOF\n``EOF\n#", // TODO: fix
+			"<<EOF\n``\nb\nEOF\n#", // TODO: fix comment position
 		},
 		{
 			"( (foo) )\n$( (foo) )\n<( (foo) )",

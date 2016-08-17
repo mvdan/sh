@@ -678,6 +678,7 @@ func (p *parser) gotLit(l *Lit) bool {
 
 func (p *parser) wordParts() (wps []WordPart) {
 	for {
+		lastLit := p.tok == LIT
 		n := p.wordPart()
 		if n == nil {
 			return
@@ -687,9 +688,12 @@ func (p *parser) wordParts() (wps []WordPart) {
 			return
 		}
 		if p.quote == SHL && p.hdocStop == "" {
-			// TODO: don't work around this
-			if len(wps) > 1 && p.tok == LIT {
-				wps = append(wps, &Lit{ValuePos: p.pos, Value: p.val})
+			// TODO: is this is a hack around a bug?
+			if p.tok == LIT && !lastLit {
+				wps = append(wps, &Lit{
+					ValuePos: p.pos,
+					Value:    p.val,
+				})
 			}
 			return
 		}
