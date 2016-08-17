@@ -39,21 +39,6 @@ func (c PrintConfig) Fprint(w io.Writer, f *File) error {
 
 const maxPos = Pos(^uint(0) >> 1)
 
-func (p *printer) incLine() {
-	p.nlineIndex++
-	if p.nlineIndex >= len(p.f.lines) {
-		p.nline = maxPos
-	} else {
-		p.nline = Pos(p.f.lines[p.nlineIndex])
-	}
-}
-
-func (p *printer) incLines(pos Pos) {
-	for p.nline < pos {
-		p.incLine()
-	}
-}
-
 // Fprint "pretty-prints" the given AST file to the given writer. It
 // calls PrintConfig.Fprint with its default settings.
 func Fprint(w io.Writer, f *File) error {
@@ -88,6 +73,21 @@ type printer struct {
 
 	// pendingHdocs is the list of pending heredocs to write.
 	pendingHdocs []*Redirect
+}
+
+func (p *printer) incLine() {
+	p.nlineIndex++
+	if p.nlineIndex >= len(p.f.lines) {
+		p.nline = maxPos
+	} else {
+		p.nline = Pos(p.f.lines[p.nlineIndex])
+	}
+}
+
+func (p *printer) incLines(pos Pos) {
+	for p.nline < pos {
+		p.incLine()
+	}
 }
 
 func (p *printer) space() {
