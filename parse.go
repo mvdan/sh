@@ -445,7 +445,6 @@ func (p *parser) doHeredocs() {
 		p.hdocStop = unquotedWordStr(p.f, &r.Word)
 		if p.npos < len(p.src) && p.src[p.npos] == '\n' {
 			p.npos++
-			p.pos++
 			p.f.lines = append(p.f.lines, p.npos)
 		}
 		p.next()
