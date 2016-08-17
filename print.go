@@ -387,10 +387,9 @@ func (p *printer) wordPart(wp WordPart) {
 		if p.wantSpace {
 			p.space()
 		}
-		switch x.Op {
-		case CMDIN:
+		if x.Op == CMDIN {
 			p.WriteString("<(")
-		case CMDOUT:
+		} else { // CMDOUT
 			p.WriteString(">(")
 		}
 		p.nestedStmts(x.Stmts)
@@ -709,10 +708,7 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		}
 		p.wordJoin(x.Args[:1], true)
 		for _, r := range redirs {
-			if r.Pos() > x.Args[1].Pos() {
-				break
-			}
-			if r.Op == SHL || r.Op == DHEREDOC {
+			if r.Pos() > x.Args[1].Pos() || r.Op == SHL || r.Op == DHEREDOC {
 				break
 			}
 			if p.wantSpace {
@@ -775,8 +771,7 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			p.incLevel()
 		}
 		_, p.nestedBinary = x.Y.Cmd.(*BinaryCmd)
-		if len(p.pendingHdocs) > 0 {
-		} else if x.Y.Pos() > p.nline {
+		if len(p.pendingHdocs) == 0 && x.Y.Pos() > p.nline {
 			p.bslashNewl()
 			p.indent()
 		}
