@@ -458,6 +458,10 @@ var errTests = []struct {
 		`1:9: ++ must be followed by a word`,
 	},
 	{
+		"<<EOF\n$(()a",
+		`2:1: $(( must be followed by a word`,
+	},
+	{
 		"echo ${foo",
 		`1:6: reached EOF without matching token ${ with }`,
 	},

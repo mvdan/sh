@@ -99,7 +99,7 @@ func (p *parser) next() {
 		p.npos++
 		p.f.lines = append(p.f.lines, p.npos)
 		p.doHeredocs()
-		if p.npos >= len(p.src) {
+		if p.tok == EOF || p.npos >= len(p.src) {
 			p.errPass(io.EOF)
 			return
 		}
