@@ -251,6 +251,7 @@ func (p *printer) commentsUpTo(pos Pos) {
 	if pos > 0 && c.Hash >= pos {
 		return
 	}
+	p.comments = p.comments[1:]
 	p.wantNewline = false
 	if p.nlineIndex == 0 {
 		p.incLines(c.Hash)
@@ -261,7 +262,6 @@ func (p *printer) commentsUpTo(pos Pos) {
 	}
 	p.WriteByte('#')
 	p.WriteString(c.Text)
-	p.comments = p.comments[1:]
 	p.commentsUpTo(pos)
 }
 
