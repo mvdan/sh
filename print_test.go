@@ -259,7 +259,7 @@ func TestFprintWeirdFormat(t *testing.T) {
 		},
 		{
 			"<<\nEOF #\n``\nb\nEOF",
-			"<<EOF\n``\nb\nEOF\n#", // TODO: fix comment position
+			"<<EOF\n``\nb\nEOF\n#",
 		},
 		{
 			"( (foo) )\n$( (foo) )\n<( (foo) )",
