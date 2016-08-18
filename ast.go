@@ -32,6 +32,9 @@ type Comment struct {
 	Text string
 }
 
+func (c *Comment) Pos() Pos { return c.Hash }
+func (c *Comment) End() Pos { return posAfterStr(c.Hash, c.Text) }
+
 // Stmt represents a statement, otherwise known as a compound command.
 // It is compromised of a node, like Command or IfStmt, and other
 // components that may come before or after it.
