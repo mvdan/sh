@@ -187,7 +187,7 @@ func (p *printer) newline() {
 	p.WriteByte('\n')
 	p.incLine()
 	hdocs := p.pendingHdocs
-	p.pendingHdocs = nil
+	p.pendingHdocs = p.pendingHdocs[:0]
 	for _, r := range hdocs {
 		p.word(r.Hdoc)
 		p.incLines(r.Hdoc.End() + 1)

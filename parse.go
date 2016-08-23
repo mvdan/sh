@@ -492,7 +492,7 @@ func (p *parser) doHeredocs() {
 	old := p.quote
 	p.quote = token.SHL
 	hdocs := p.heredocs
-	p.heredocs = nil
+	p.heredocs = p.heredocs[:0]
 	for _, r := range hdocs {
 		p.hdocTabs = r.Op == token.DHEREDOC
 		p.hdocStop = p.unquotedWordStr(&r.Word)
