@@ -8,6 +8,8 @@ import (
 	"bytes"
 	"io"
 	"sync"
+
+	"github.com/mvdan/sh/token"
 )
 
 // PrintConfig controls how the printing of an AST node will behave.
@@ -41,7 +43,7 @@ func (c PrintConfig) Fprint(w io.Writer, f *File) error {
 	return err
 }
 
-const maxPos = Pos(^uint(0) >> 1)
+const maxPos = token.Pos(^uint(0) >> 1)
 
 // Fprint "pretty-prints" the given AST file to the given writer. It
 // calls PrintConfig.Fprint with its default settings.
@@ -60,7 +62,7 @@ type printer struct {
 	wantSpaces  int
 
 	// nline is the position of the next newline
-	nline      Pos
+	nline      token.Pos
 	nlineIndex int
 	// lastLevel is the last level of indentation that was used.
 	lastLevel int
@@ -88,11 +90,11 @@ func (p *printer) incLine() {
 	if p.nlineIndex >= len(p.f.lines) {
 		p.nline = maxPos
 	} else {
-		p.nline = Pos(p.f.lines[p.nlineIndex])
+		p.nline = token.Pos(p.f.lines[p.nlineIndex])
 	}
 }
 
-func (p *printer) incLines(pos Pos) {
+func (p *printer) incLines(pos token.Pos) {
 	for p.nline < pos {
 		p.incLine()
 	}
@@ -137,7 +139,7 @@ func (p *printer) spacedTok(s string, spaceAfter bool) {
 	p.WriteString(s)
 }
 
-func (p *printer) semiOrNewl(s string, pos Pos) {
+func (p *printer) semiOrNewl(s string, pos token.Pos) {
 	if p.wantNewline {
 		p.newline()
 		p.indent()
@@ -195,7 +197,7 @@ func (p *printer) newline() {
 	}
 }
 
-func (p *printer) newlines(pos Pos) {
+func (p *printer) newlines(pos token.Pos) {
 	p.newline()
 	if pos > p.nline {
 		// preserve single empty lines
@@ -205,7 +207,7 @@ func (p *printer) newlines(pos Pos) {
 	p.indent()
 }
 
-func (p *printer) didSeparate(pos Pos) bool {
+func (p *printer) didSeparate(pos token.Pos) bool {
 	p.commentsUpTo(pos)
 	if p.wantNewline || pos > p.nline {
 		p.newlines(pos)
@@ -214,7 +216,7 @@ func (p *printer) didSeparate(pos Pos) bool {
 	return false
 }
 
-func (p *printer) sepTok(s string, pos Pos) {
+func (p *printer) sepTok(s string, pos token.Pos) {
 	p.level++
 	p.commentsUpTo(pos)
 	p.level--
@@ -223,7 +225,7 @@ func (p *printer) sepTok(s string, pos Pos) {
 	p.wantSpace = true
 }
 
-func (p *printer) semiRsrv(s string, pos Pos, fallback bool) {
+func (p *printer) semiRsrv(s string, pos token.Pos, fallback bool) {
 	p.level++
 	p.commentsUpTo(pos)
 	p.level--
@@ -236,7 +238,7 @@ func (p *printer) semiRsrv(s string, pos Pos, fallback bool) {
 	p.wantSpace = true
 }
 
-func (p *printer) hasInline(pos, nline Pos) bool {
+func (p *printer) hasInline(pos, nline token.Pos) bool {
 	if len(p.comments) < 1 {
 		return false
 	}
@@ -251,7 +253,7 @@ func (p *printer) hasInline(pos, nline Pos) bool {
 	return false
 }
 
-func (p *printer) commentsUpTo(pos Pos) {
+func (p *printer) commentsUpTo(pos token.Pos) {
 	if len(p.comments) < 1 {
 		return
 	}
@@ -273,46 +275,46 @@ func (p *printer) commentsUpTo(pos Pos) {
 	p.commentsUpTo(pos)
 }
 
-func quotedOp(tok Token) string {
+func quotedOp(tok token.Token) string {
 	switch tok {
-	case DQUOTE:
+	case token.DQUOTE:
 		return `"`
-	case DOLLSQ:
+	case token.DOLLSQ:
 		return `$'`
-	case SQUOTE:
+	case token.SQUOTE:
 		return `'`
-	default: // DOLLDQ
+	default: // token.DOLLDQ
 		return `$"`
 	}
 }
 
-func expansionOp(tok Token) string {
+func expansionOp(tok token.Token) string {
 	switch tok {
-	case COLON:
+	case token.COLON:
 		return ":"
-	case ADD:
+	case token.ADD:
 		return "+"
-	case CADD:
+	case token.CADD:
 		return ":+"
-	case SUB:
+	case token.SUB:
 		return "-"
-	case CSUB:
+	case token.CSUB:
 		return ":-"
-	case QUEST:
+	case token.QUEST:
 		return "?"
-	case CQUEST:
+	case token.CQUEST:
 		return ":?"
-	case ASSIGN:
+	case token.ASSIGN:
 		return "="
-	case CASSIGN:
+	case token.CASSIGN:
 		return ":="
-	case REM:
+	case token.REM:
 		return "%"
-	case DREM:
+	case token.DREM:
 		return "%%"
-	case HASH:
+	case token.HASH:
 		return "#"
-	default: // DHASH
+	default: // token.DHASH
 		return "##"
 	}
 }
@@ -395,9 +397,9 @@ func (p *printer) wordPart(wp WordPart) {
 		if p.wantSpace {
 			p.space()
 		}
-		if x.Op == CMDIN {
+		if x.Op == token.CMDIN {
 			p.WriteString("<(")
-		} else { // CMDOUT
+		} else { // token.CMDOUT
 			p.WriteString(">(")
 		}
 		p.nestedStmts(x.Stmts)
@@ -436,88 +438,88 @@ func (p *printer) loop(loop Loop) {
 	}
 }
 
-func binaryExprOp(tok Token) string {
+func binaryExprOp(tok token.Token) string {
 	switch tok {
-	case ASSIGN:
+	case token.ASSIGN:
 		return "="
-	case ADD:
+	case token.ADD:
 		return "+"
-	case SUB:
+	case token.SUB:
 		return "-"
-	case REM:
+	case token.REM:
 		return "%"
-	case MUL:
+	case token.MUL:
 		return "*"
-	case QUO:
+	case token.QUO:
 		return "/"
-	case AND:
+	case token.AND:
 		return "&"
-	case OR:
+	case token.OR:
 		return "|"
-	case LAND:
+	case token.LAND:
 		return "&&"
-	case LOR:
+	case token.LOR:
 		return "||"
-	case XOR:
+	case token.XOR:
 		return "^"
-	case POW:
+	case token.POW:
 		return "**"
-	case EQL:
+	case token.EQL:
 		return "=="
-	case NEQ:
+	case token.NEQ:
 		return "!="
-	case LEQ:
+	case token.LEQ:
 		return "<="
-	case GEQ:
+	case token.GEQ:
 		return ">="
-	case ADDASSGN:
+	case token.ADDASSGN:
 		return "+="
-	case SUBASSGN:
+	case token.SUBASSGN:
 		return "-="
-	case MULASSGN:
+	case token.MULASSGN:
 		return "*="
-	case QUOASSGN:
+	case token.QUOASSGN:
 		return "/="
-	case REMASSGN:
+	case token.REMASSGN:
 		return "%="
-	case ANDASSGN:
+	case token.ANDASSGN:
 		return "&="
-	case ORASSGN:
+	case token.ORASSGN:
 		return "|="
-	case XORASSGN:
+	case token.XORASSGN:
 		return "^="
-	case SHLASSGN:
+	case token.SHLASSGN:
 		return "<<="
-	case SHRASSGN:
+	case token.SHRASSGN:
 		return ">>="
-	case LSS:
+	case token.LSS:
 		return "<"
-	case GTR:
+	case token.GTR:
 		return ">"
-	case SHL:
+	case token.SHL:
 		return "<<"
-	case SHR:
+	case token.SHR:
 		return ">>"
-	case QUEST:
+	case token.QUEST:
 		return "?"
-	case COLON:
+	case token.COLON:
 		return ":"
-	default: // COMMA
+	default: // token.COMMA
 		return ","
 	}
 }
 
-func unaryExprOp(tok Token) string {
+func unaryExprOp(tok token.Token) string {
 	switch tok {
-	case ADD:
+	case token.ADD:
 		return "+"
-	case SUB:
+	case token.SUB:
 		return "-"
-	case NOT:
+	case token.NOT:
 		return "!"
-	case INC:
+	case token.INC:
 		return "++"
-	default: // DEC
+	default: // token.DEC
 		return "--"
 	}
 }
@@ -533,7 +535,7 @@ func (p *printer) arithm(expr ArithmExpr, compact bool) {
 			p.arithm(x.Y, true)
 		} else {
 			p.arithm(x.X, false)
-			if x.Op != COMMA {
+			if x.Op != token.COMMA {
 				p.WriteByte(' ')
 			}
 			p.WriteString(binaryExprOp(x.Op))
@@ -644,7 +646,7 @@ func (p *printer) stmt(s *Stmt) {
 		p.WriteString(redirectOp(r.Op))
 		p.wantSpace = true
 		p.word(r.Word)
-		if r.Op == SHL || r.Op == DHEREDOC {
+		if r.Op == token.SHL || r.Op == token.DHEREDOC {
 			p.pendingHdocs = append(p.pendingHdocs, r)
 		}
 	}
@@ -656,53 +658,53 @@ func (p *printer) stmt(s *Stmt) {
 	}
 }
 
-func redirectOp(tok Token) string {
+func redirectOp(tok token.Token) string {
 	switch tok {
-	case LSS:
+	case token.LSS:
 		return "<"
-	case GTR:
+	case token.GTR:
 		return ">"
-	case SHL:
+	case token.SHL:
 		return "<<"
-	case SHR:
+	case token.SHR:
 		return ">>"
-	case RDRINOUT:
+	case token.RDRINOUT:
 		return "<>"
-	case DPLIN:
+	case token.DPLIN:
 		return "<&"
-	case DPLOUT:
+	case token.DPLOUT:
 		return ">&"
-	case DHEREDOC:
+	case token.DHEREDOC:
 		return "<<-"
-	case WHEREDOC:
+	case token.WHEREDOC:
 		return "<<<"
-	case RDRALL:
+	case token.RDRALL:
 		return "&>"
-	default: // APPALL
+	default: // token.APPALL
 		return "&>>"
 	}
 }
 
-func binaryCmdOp(tok Token) string {
+func binaryCmdOp(tok token.Token) string {
 	switch tok {
-	case OR:
+	case token.OR:
 		return "|"
-	case LAND:
+	case token.LAND:
 		return "&&"
-	case LOR:
+	case token.LOR:
 		return "||"
-	default: // PIPEALL
+	default: // token.PIPEALL
 		return "|&"
 	}
 }
 
-func caseClauseOp(tok Token) string {
+func caseClauseOp(tok token.Token) string {
 	switch tok {
-	case DSEMICOLON:
+	case token.DSEMICOLON:
 		return ";;"
-	case SEMIFALL:
+	case token.SEMIFALL:
 		return ";&"
-	default: // DSEMIFALL
+	default: // token.DSEMIFALL
 		return ";;&"
 	}
 }
@@ -716,7 +718,7 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		}
 		p.wordJoin(x.Args[:1], true)
 		for _, r := range redirs {
-			if r.Pos() > x.Args[1].Pos() || r.Op == SHL || r.Op == DHEREDOC {
+			if r.Pos() > x.Args[1].Pos() || r.Op == token.SHL || r.Op == token.DHEREDOC {
 				break
 			}
 			if p.wantSpace {
@@ -890,7 +892,7 @@ func (p *printer) stmts(stmts []*Stmt) {
 			inlineIndent = 0
 			continue
 		}
-		if ind < len(p.f.lines)-1 && s.End() > Pos(p.f.lines[ind+1]) {
+		if ind < len(p.f.lines)-1 && s.End() > token.Pos(p.f.lines[ind+1]) {
 			inlineIndent = 0
 		}
 		if inlineIndent == 0 {
@@ -908,7 +910,7 @@ func (p *printer) stmts(stmts []*Stmt) {
 				if ind2 >= len(p.f.lines) {
 					nline2 = maxPos
 				} else {
-					nline2 = Pos(p.f.lines[ind2])
+					nline2 = token.Pos(p.f.lines[ind2])
 				}
 			}
 		}
