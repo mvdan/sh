@@ -29,7 +29,6 @@ func (c PrintConfig) Fprint(w io.Writer, f *File) error {
 		comments: f.Comments,
 		c:        c,
 	}
-	p.helperWriter = bufio.NewWriter(&p.helperBuf)
 	p.stmts(f.Stmts)
 	p.commentsUpTo(0)
 	p.newline()
@@ -76,7 +75,7 @@ type printer struct {
 	pendingHdocs []*Redirect
 
 	// these are used in stmtLen to align comments
-	helperBuf    bytes.Buffer
+	helperBuf    *bytes.Buffer
 	helperWriter *bufio.Writer
 }
 
@@ -920,8 +919,13 @@ var (
 )
 
 func (p *printer) stmtLen(s *Stmt) int {
-	p.helperWriter.Reset(&p.helperBuf)
-	p.helperBuf.Reset()
+	if p.helperWriter == nil {
+		p.helperBuf = new(bytes.Buffer)
+		p.helperWriter = bufio.NewWriter(p.helperBuf)
+	} else {
+		p.helperWriter.Reset(p.helperBuf)
+		p.helperBuf.Reset()
+	}
 	p2 := printer{Writer: p.helperWriter, f: p.f}
 	p2.incLines(s.Pos())
 	p2.stmt(s)
