@@ -73,22 +73,37 @@ var (
 	validShebang = regexp.MustCompile(`^#!/(usr/)?bin/(env *)?(sh|bash)`)
 )
 
+func isShellFile(info os.FileInfo) bool {
+	name := info.Name()
+	switch {
+	case info.IsDir(), hidden.MatchString(name):
+		return false
+	case shellFile.MatchString(name):
+		return true
+	case !info.Mode().IsRegular():
+		return false
+	case strings.Contains(name, "."):
+		return false // different extension
+	case info.Size() < 8:
+		return false // cannot possibly hold valid shebang
+	default:
+		return true
+	}
+}
+
 func walk(path string, onError func(error)) error {
 	info, err := os.Stat(path)
 	if err != nil {
 		return err
 	}
 	if !info.IsDir() {
-		return formatPath(path, 0, true)
+		return formatPath(path, true)
 	}
 	return filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
-		if hidden.MatchString(path) {
-			return filepath.SkipDir
+		if err == nil && isShellFile(info) {
+			err = formatPath(path, false)
 		}
-		if info.IsDir() {
-			return nil
-		}
-		if err := formatPath(path, info.Size(), false); err != nil {
+		if err != nil {
 			onError(err)
 		}
 		return nil
@@ -103,16 +118,7 @@ func empty(f *os.File) error {
 	return err
 }
 
-func formatPath(path string, size int64, always bool) error {
-	shellExt := always || shellFile.MatchString(path)
-	if !shellExt && strings.Contains(path, ".") {
-		// has an unwanted extension
-		return nil
-	}
-	if !shellExt && size < 8 {
-		// cannot possibly hold valid shebang
-		return nil
-	}
+func formatPath(path string, always bool) error {
 	mode := os.O_RDONLY
 	if *write {
 		mode = os.O_RDWR
@@ -126,7 +132,7 @@ func formatPath(path string, size int64, always bool) error {
 	if err != nil {
 		return err
 	}
-	if !shellExt && !validShebang.Match(src[:32]) {
+	if !always && !validShebang.Match(src[:32]) {
 		return nil
 	}
 	prog, err := sh.Parse(src, path, sh.ParseComments)
