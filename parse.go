@@ -491,7 +491,9 @@ func (p *parser) unquotedWordStr(w *ast.Word) string {
 func (p *parser) doHeredocs() {
 	old := p.quote
 	p.quote = token.SHL
-	for _, r := range p.heredocs {
+	hdocs := p.heredocs
+	p.heredocs = nil
+	for _, r := range hdocs {
 		p.hdocTabs = r.Op == token.DHEREDOC
 		p.hdocStop = p.unquotedWordStr(&r.Word)
 		if p.npos < len(p.src) && p.src[p.npos] == '\n' {
@@ -502,7 +504,6 @@ func (p *parser) doHeredocs() {
 		r.Hdoc = p.getWord()
 	}
 	p.quote = old
-	p.heredocs = nil
 }
 
 func wordBreak(b byte) bool {
