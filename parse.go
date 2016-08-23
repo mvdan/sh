@@ -267,18 +267,13 @@ func (p *parser) advanceLitOther(q Token) {
 				p.tok, p.val = LIT, string(bs)
 				return
 			}
-		case q == LBRACE && paramOps(b), q == RBRACK && b == ']':
-			p.tok, p.val = LIT, string(bs)
-			return
 		case q == QUO:
 			if b == '/' || b == '}' {
 				p.tok, p.val = LIT, string(bs)
 				return
 			}
-		case wordBreak(b), regOps(b):
-			p.tok, p.val = LIT, string(bs)
-			return
-		case q == DRPAREN && arithmOps(b):
+		case wordBreak(b), regOps(b), q == DRPAREN && arithmOps(b),
+			q == LBRACE && paramOps(b), q == RBRACK && b == ']':
 			p.tok, p.val = LIT, string(bs)
 			return
 		}
