@@ -11,16 +11,17 @@ import (
 
 	"github.com/mvdan/sh/ast"
 	"github.com/mvdan/sh/internal"
+	"github.com/mvdan/sh/internal/tests"
 
 	"github.com/kr/pretty"
 )
 
 func TestParse(t *testing.T) {
 	internal.DefaultPos = 0
-	for i, c := range astTests {
-		want := c.ast.(*ast.File)
-		setPosRecurse(t, "", want.Stmts, internal.DefaultPos, false)
-		for j, in := range c.strs {
+	for i, c := range tests.FileTests {
+		want := c.Ast.(*ast.File)
+		tests.SetPosRecurse(t, "", want.Stmts, internal.DefaultPos, false)
+		for j, in := range c.Strs {
 			t.Run(fmt.Sprintf("%03d-%d", i, j), singleParse(in, want))
 		}
 	}
@@ -47,7 +48,7 @@ func singleParse(in string, want *ast.File) func(t *testing.T) {
 		}
 		checkNewlines(t, in, got.Lines)
 		got.Lines = nil
-		setPosRecurse(t, in, got.Stmts, internal.DefaultPos, true)
+		tests.SetPosRecurse(t, in, got.Stmts, internal.DefaultPos, true)
 		if !reflect.DeepEqual(got, want) {
 			t.Fatalf("AST mismatch in %q\ndiff:\n%s", in,
 				strings.Join(pretty.Diff(want, got), "\n"),

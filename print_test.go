@@ -12,12 +12,13 @@ import (
 	"testing"
 
 	"github.com/mvdan/sh/ast"
+	"github.com/mvdan/sh/internal/tests"
 )
 
 func TestFprintCompact(t *testing.T) {
-	for i, c := range astTests {
+	for i, c := range tests.FileTests {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
-			in := c.strs[0]
+			in := c.Strs[0]
 			prog, err := Parse([]byte(in), "", 0)
 			if err != nil {
 				t.Fatal(err)
