@@ -919,24 +919,6 @@ var (
 	bufWriter = bufio.NewWriter(&printBuf)
 )
 
-func unquotedWordStr(f *File, w *Word) string {
-	bufWriter.Reset(&printBuf)
-	printBuf.Reset()
-	p := printer{Writer: bufWriter, f: f}
-	p.unquotedWord(w)
-	bufWriter.Flush()
-	return printBuf.String()
-}
-
-func wordStr(f *File, w Word) string {
-	bufWriter.Reset(&printBuf)
-	printBuf.Reset()
-	p := printer{Writer: bufWriter, f: f}
-	p.word(w)
-	bufWriter.Flush()
-	return printBuf.String()
-}
-
 func (p *printer) stmtLen(s *Stmt) int {
 	p.helperWriter.Reset(&p.helperBuf)
 	p.helperBuf.Reset()

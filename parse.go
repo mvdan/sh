@@ -4,6 +4,7 @@
 package sh
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"io"
@@ -28,6 +29,7 @@ func Parse(src []byte, name string, mode Mode) (*File, error) {
 		src:  src,
 		mode: mode,
 	}
+	p.helperWriter = bufio.NewWriter(&p.helperBuf)
 	p.f.lines = make([]int, 1, 16)
 	p.next()
 	p.f.Stmts = p.stmts()
@@ -58,6 +60,9 @@ type parser struct {
 
 	// list of pending heredoc bodies
 	heredocs []*Redirect
+
+	helperBuf    bytes.Buffer
+	helperWriter *bufio.Writer
 }
 
 // bytes that form or start a token
@@ -444,12 +449,30 @@ func (p *parser) readUntil(b byte) ([]byte, bool) {
 	return rem, false
 }
 
+func (p *parser) wordStr(w Word) string {
+	p.helperWriter.Reset(&p.helperBuf)
+	p.helperBuf.Reset()
+	pr := printer{Writer: p.helperWriter, f: p.f}
+	pr.word(w)
+	p.helperWriter.Flush()
+	return p.helperBuf.String()
+}
+
+func (p *parser) unquotedWordStr(w *Word) string {
+	p.helperWriter.Reset(&p.helperBuf)
+	p.helperBuf.Reset()
+	pr := printer{Writer: p.helperWriter, f: p.f}
+	pr.unquotedWord(w)
+	p.helperWriter.Flush()
+	return p.helperBuf.String()
+}
+
 func (p *parser) doHeredocs() {
 	old := p.quote
 	p.quote = SHL
 	for _, r := range p.heredocs {
 		p.hdocTabs = r.Op == DHEREDOC
-		p.hdocStop = unquotedWordStr(p.f, &r.Word)
+		p.hdocStop = p.unquotedWordStr(&r.Word)
 		if p.npos < len(p.src) && p.src[p.npos] == '\n' {
 			p.npos++
 			p.f.lines = append(p.f.lines, p.npos)
@@ -1212,7 +1235,7 @@ func (p *parser) gotStmtPipe(s *Stmt) *Stmt {
 		SQUOTE, DOLLSQ, DQUOTE, DOLLDQ, BQUOTE:
 		w := p.getWord()
 		if p.gotSameLine(LPAREN) && p.err == nil {
-			p.posErr(w.Pos(), "invalid func name: %s", wordStr(p.f, w))
+			p.posErr(w.Pos(), "invalid func name: %s", p.wordStr(w))
 		}
 		s.Cmd = p.callExpr(s, w)
 	}
@@ -1469,7 +1492,7 @@ func (p *parser) bashFuncDecl() *FuncDecl {
 	p.next()
 	if p.tok != LITWORD {
 		if w := p.followWord("function", fpos); p.err == nil {
-			p.posErr(w.Pos(), "invalid func name: %s", wordStr(p.f, w))
+			p.posErr(w.Pos(), "invalid func name: %s", p.wordStr(w))
 		}
 	}
 	name := Lit{ValuePos: p.pos, Value: p.val}
