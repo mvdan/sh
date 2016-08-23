@@ -277,7 +277,10 @@ func (u *UnaryExpr) Pos() Pos {
 }
 func (u *UnaryExpr) End() Pos {
 	if u.Post {
-		return posAfterStr(u.OpPos, unaryExprOp(u.Op))
+		if u.Op == INC || u.Op == DEC {
+			return posAfter(u.OpPos, 2)
+		}
+		return posAfter(u.OpPos, 1)
 	}
 	return u.X.End()
 }
@@ -359,7 +362,10 @@ func (q *Quoted) End() Pos {
 	if q.QuotePos == 0 {
 		return 0
 	}
-	return posAfterStr(partsLastEnd(q.Parts), quotedOp(q.Quote))
+	if q.Quote == DOLLSQ || q.Quote == DOLLDQ {
+		return posAfter(partsLastEnd(q.Parts), 2)
+	}
+	return posAfter(partsLastEnd(q.Parts), 1)
 }
 
 // CmdSubst represents a command substitution.
