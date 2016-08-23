@@ -29,6 +29,7 @@ func (c PrintConfig) Fprint(w io.Writer, f *File) error {
 		comments: f.Comments,
 		c:        c,
 	}
+	p.helperWriter = bufio.NewWriter(&p.helperBuf)
 	p.stmts(f.Stmts)
 	p.commentsUpTo(0)
 	p.newline()
@@ -73,6 +74,10 @@ type printer struct {
 
 	// pendingHdocs is the list of pending heredocs to write.
 	pendingHdocs []*Redirect
+
+	// these are used in stmtLen to align comments
+	helperBuf    bytes.Buffer
+	helperWriter *bufio.Writer
 }
 
 func (p *printer) incLine() {
@@ -893,7 +898,7 @@ func (p *printer) stmts(stmts []*Stmt) {
 				if pos2 > nline2 || !p.hasInline(pos2, nline2) {
 					break
 				}
-				if l := stmtLen(p.f, s2); l > inlineIndent {
+				if l := p.stmtLen(s2); l > inlineIndent {
 					inlineIndent = l
 				}
 				ind2++
@@ -904,7 +909,7 @@ func (p *printer) stmts(stmts []*Stmt) {
 				}
 			}
 		}
-		p.wantSpaces = inlineIndent - stmtLen(p.f, s)
+		p.wantSpaces = inlineIndent - p.stmtLen(s)
 	}
 	p.wantNewline = true
 }
@@ -932,13 +937,13 @@ func wordStr(f *File, w Word) string {
 	return printBuf.String()
 }
 
-func stmtLen(f *File, s *Stmt) int {
-	bufWriter.Reset(&printBuf)
-	printBuf.Reset()
-	p := printer{Writer: bufWriter, f: f}
-	p.incLines(s.Pos())
-	p.stmt(s)
-	return printBuf.Len() + bufWriter.Buffered()
+func (p *printer) stmtLen(s *Stmt) int {
+	p.helperWriter.Reset(&p.helperBuf)
+	p.helperBuf.Reset()
+	p2 := printer{Writer: p.helperWriter, f: p.f}
+	p2.incLines(s.Pos())
+	p2.stmt(s)
+	return p.helperBuf.Len() + p.helperWriter.Buffered()
 }
 
 func (p *printer) nestedStmts(stmts []*Stmt) {
