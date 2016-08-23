@@ -15,25 +15,29 @@ type PrintConfig struct {
 	Spaces int // 0 (default) for tabs, >0 for number of spaces
 }
 
-var writerFree = sync.Pool{
-	New: func() interface{} { return bufio.NewWriter(nil) },
+var printerFree = sync.Pool{
+	New: func() interface{} {
+		return &printer{Writer: bufio.NewWriter(nil)}
+	},
 }
 
 // Fprint "pretty-prints" the given AST file to the given writer.
 func (c PrintConfig) Fprint(w io.Writer, f *File) error {
-	bw := writerFree.Get().(*bufio.Writer)
-	bw.Reset(w)
-	p := printer{
-		Writer:   bw,
-		f:        f,
-		comments: f.Comments,
-		c:        c,
+	p := printerFree.Get().(*printer)
+	*p = printer{
+		Writer:       p.Writer,
+		helperBuf:    p.helperBuf,
+		helperWriter: p.helperWriter,
+		f:            f,
+		comments:     f.Comments,
+		c:            c,
 	}
+	p.Writer.Reset(w)
 	p.stmts(f.Stmts)
 	p.commentsUpTo(0)
 	p.newline()
-	err := bw.Flush()
-	writerFree.Put(bw)
+	err := p.Writer.Flush()
+	printerFree.Put(p)
 	return err
 }
 
