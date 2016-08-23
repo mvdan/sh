@@ -2395,22 +2395,25 @@ var astTests = []testCase{
 }
 
 func fullProg(v interface{}) *File {
-	f := &File{}
 	switch x := v.(type) {
 	case []*Stmt:
-		f.Stmts = x
+		return &File{Stmts: x}
 	case *Stmt:
-		f.Stmts = append(f.Stmts, x)
+		return &File{Stmts: []*Stmt{x}}
 	case []Command:
+		f := &File{}
 		for _, cmd := range x {
 			f.Stmts = append(f.Stmts, stmt(cmd))
 		}
+		return f
 	case *Word:
 		return fullProg(call(*x))
 	case Command:
 		return fullProg(stmt(x))
+	case nil:
+		return &File{}
 	}
-	return f
+	return nil
 }
 
 func setPosRecurse(tb testing.TB, src string, v interface{}, to Pos, diff bool) {
