@@ -1,9 +1,12 @@
 // Copyright (c) 2016, Daniel Martí <mvdan@mvdan.cc>
 // See LICENSE for licensing information
 
-package sh
+package ast
 
-import "github.com/mvdan/sh/token"
+import (
+	"github.com/mvdan/sh/internal"
+	"github.com/mvdan/sh/token"
+)
 
 // Node represents an AST node.
 type Node interface {
@@ -20,9 +23,9 @@ type File struct {
 	Stmts    []*Stmt
 	Comments []*Comment
 
-	// lines contains the offset of the first character for each
+	// Lines contains the offset of the first character for each
 	// line (the first entry is always 0)
-	lines []int
+	Lines []int
 }
 
 func (f *File) Pos() token.Pos { return stmtFirstPos(f.Stmts) }
@@ -31,8 +34,8 @@ func (f *File) End() token.Pos { return stmtLastEnd(f.Stmts) }
 func (f *File) Position(p token.Pos) (pos token.Position) {
 	off := int(p)
 	pos.Offset = off
-	if i := searchInts(f.lines, off); i >= 0 {
-		pos.Line, pos.Column = i+1, off-f.lines[i]
+	if i := searchInts(f.Lines, off); i >= 0 {
+		pos.Line, pos.Column = i+1, off-f.Lines[i]
 	}
 	return
 }
@@ -582,39 +585,37 @@ func posAfter(pos token.Pos, n int) token.Pos {
 
 func posAfterStr(pos token.Pos, s string) token.Pos { return posAfter(pos, len(s)) }
 
-var defaultPos token.Pos
-
 func stmtFirstPos(sts []*Stmt) token.Pos {
 	if len(sts) == 0 {
-		return defaultPos
+		return internal.DefaultPos
 	}
 	return sts[0].Pos()
 }
 
 func stmtLastEnd(sts []*Stmt) token.Pos {
 	if len(sts) == 0 {
-		return defaultPos
+		return internal.DefaultPos
 	}
 	return sts[len(sts)-1].End()
 }
 
 func partsFirstPos(ps []WordPart) token.Pos {
 	if len(ps) == 0 {
-		return defaultPos
+		return internal.DefaultPos
 	}
 	return ps[0].Pos()
 }
 
 func partsLastEnd(ps []WordPart) token.Pos {
 	if len(ps) == 0 {
-		return defaultPos
+		return internal.DefaultPos
 	}
 	return ps[len(ps)-1].End()
 }
 
 func wordLastEnd(ws []Word) token.Pos {
 	if len(ws) == 0 {
-		return defaultPos
+		return internal.DefaultPos
 	}
 	return ws[len(ws)-1].End()
 }

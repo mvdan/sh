@@ -9,14 +9,17 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/mvdan/sh/ast"
+	"github.com/mvdan/sh/internal"
+
 	"github.com/kr/pretty"
 )
 
 func TestParse(t *testing.T) {
-	defaultPos = 0
+	internal.DefaultPos = 0
 	for i, c := range astTests {
-		want := c.ast.(*File)
-		setPosRecurse(t, "", want.Stmts, defaultPos, false)
+		want := c.ast.(*ast.File)
+		setPosRecurse(t, "", want.Stmts, internal.DefaultPos, false)
 		for j, in := range c.strs {
 			t.Run(fmt.Sprintf("%03d-%d", i, j), singleParse(in, want))
 		}
@@ -36,15 +39,15 @@ func checkNewlines(tb testing.TB, src string, got []int) {
 	}
 }
 
-func singleParse(in string, want *File) func(t *testing.T) {
+func singleParse(in string, want *ast.File) func(t *testing.T) {
 	return func(t *testing.T) {
 		got, err := Parse([]byte(in), "", 0)
 		if err != nil {
 			t.Fatalf("Unexpected error in %q: %v", in, err)
 		}
-		checkNewlines(t, in, got.lines)
-		got.lines = nil
-		setPosRecurse(t, in, got.Stmts, defaultPos, true)
+		checkNewlines(t, in, got.Lines)
+		got.Lines = nil
+		setPosRecurse(t, in, got.Stmts, internal.DefaultPos, true)
 		if !reflect.DeepEqual(got, want) {
 			t.Fatalf("AST mismatch in %q\ndiff:\n%s", in,
 				strings.Join(pretty.Diff(want, got), "\n"),

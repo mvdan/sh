@@ -10,6 +10,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/mvdan/sh/ast"
 )
 
 func TestFprintCompact(t *testing.T) {
@@ -36,7 +38,7 @@ func TestFprintCompact(t *testing.T) {
 	}
 }
 
-func strFprint(f *File, spaces int) (string, error) {
+func strFprint(f *ast.File, spaces int) (string, error) {
 	var buf bytes.Buffer
 	c := PrintConfig{Spaces: spaces}
 	err := c.Fprint(&buf, f)
@@ -324,7 +326,7 @@ func TestFprintWeirdFormat(t *testing.T) {
 			for _, s := range [...]string{"", "\n"} {
 				in := s + tc.in + s
 				prog, err := Parse([]byte(in), "", ParseComments)
-				checkNewlines(t, in, prog.lines)
+				checkNewlines(t, in, prog.Lines)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -343,7 +345,7 @@ func TestFprintWeirdFormat(t *testing.T) {
 	}
 }
 
-func parsePath(tb testing.TB, path string) *File {
+func parsePath(tb testing.TB, path string) *ast.File {
 	f, err := os.Open(path)
 	if err != nil {
 		tb.Fatal(err)
@@ -441,10 +443,10 @@ func (b badWriter) Write(p []byte) (int, error) { return 0, errBadWriter }
 
 func TestWriteErr(t *testing.T) {
 	var out badWriter
-	f := &File{Stmts: []*Stmt{
+	f := &ast.File{Stmts: []*ast.Stmt{
 		{
-			Redirs: []*Redirect{{}},
-			Cmd:    &Subshell{},
+			Redirs: []*ast.Redirect{{}},
+			Cmd:    &ast.Subshell{},
 		},
 	}}
 	err := Fprint(out, f)

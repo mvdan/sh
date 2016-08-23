@@ -13,6 +13,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/mvdan/sh/ast"
 	"github.com/mvdan/sh/token"
 )
 
@@ -30,16 +31,16 @@ var parserFree = sync.Pool{
 // Parse reads and parses a shell program with an optional name. It
 // returns the parsed program if no issues were encountered. Otherwise,
 // an error is returned.
-func Parse(src []byte, name string, mode Mode) (*File, error) {
+func Parse(src []byte, name string, mode Mode) (*ast.File, error) {
 	p := parserFree.Get().(*parser)
 	*p = parser{
-		f:            &File{Name: name},
+		f:            &ast.File{Name: name},
 		src:          src,
 		mode:         mode,
 		helperBuf:    p.helperBuf,
 		helperWriter: p.helperWriter,
 	}
-	p.f.lines = make([]int, 1, 16)
+	p.f.Lines = make([]int, 1, 16)
 	p.next()
 	p.f.Stmts = p.stmts()
 	parserFree.Put(p)
@@ -49,7 +50,7 @@ func Parse(src []byte, name string, mode Mode) (*File, error) {
 type parser struct {
 	src []byte
 
-	f    *File
+	f    *ast.File
 	mode Mode
 
 	spaced, newLine           bool
@@ -69,7 +70,7 @@ type parser struct {
 	hdocTabs bool
 
 	// list of pending heredoc bodies
-	heredocs []*Redirect
+	heredocs []*ast.Redirect
 
 	helperBuf    *bytes.Buffer
 	helperWriter *bufio.Writer
@@ -112,7 +113,7 @@ func (p *parser) next() {
 	}
 	if p.tok == token.STOPPED && b == '\n' {
 		p.npos++
-		p.f.lines = append(p.f.lines, p.npos)
+		p.f.Lines = append(p.f.Lines, p.npos)
 		p.doHeredocs()
 		if p.tok == token.EOF || p.npos >= len(p.src) {
 			p.errPass(io.EOF)
@@ -190,12 +191,12 @@ skipSpace:
 			if p.npos < len(p.src) {
 				p.npos++
 			}
-			p.f.lines = append(p.f.lines, p.npos)
+			p.f.Lines = append(p.f.Lines, p.npos)
 			p.newLine = true
 		case '\\':
 			if p.npos < len(p.src)-1 && p.src[p.npos+1] == '\n' {
 				p.npos += 2
-				p.f.lines = append(p.f.lines, p.npos)
+				p.f.Lines = append(p.f.Lines, p.npos)
 			} else {
 				break skipSpace
 			}
@@ -219,7 +220,7 @@ skipSpace:
 			bs, _ := p.readUntil('\n')
 			p.npos += len(bs)
 			if p.mode&ParseComments > 0 {
-				p.f.Comments = append(p.f.Comments, &Comment{
+				p.f.Comments = append(p.f.Comments, &ast.Comment{
 					Hash: p.pos,
 					Text: string(bs),
 				})
@@ -261,7 +262,7 @@ func (p *parser) advanceLitOther(q token.Token) {
 			b = p.src[p.npos+1]
 			p.npos += 2
 			if b == '\n' {
-				p.f.lines = append(p.f.lines, p.npos)
+				p.f.Lines = append(p.f.Lines, p.npos)
 			} else {
 				bs = append(bs, '\\', b)
 			}
@@ -269,7 +270,7 @@ func (p *parser) advanceLitOther(q token.Token) {
 		case q == token.SQUOTE:
 			switch b {
 			case '\n':
-				p.f.lines = append(p.f.lines, p.npos+1)
+				p.f.Lines = append(p.f.Lines, p.npos+1)
 			case '\'':
 				p.tok, p.val = token.LIT, string(bs)
 				return
@@ -308,7 +309,7 @@ loop:
 			}
 			i++
 			if p.src[i] == '\n' {
-				p.f.lines = append(p.f.lines, i+1)
+				p.f.Lines = append(p.f.Lines, i+1)
 				bs := p.src[p.npos : i-1]
 				p.npos = i + 1
 				p.advanceLitNoneCont(bs)
@@ -350,7 +351,7 @@ func (p *parser) advanceLitNoneCont(bs []byte) {
 			b := p.src[p.npos+1]
 			p.npos += 2
 			if b == '\n' {
-				p.f.lines = append(p.f.lines, p.npos)
+				p.f.Lines = append(p.f.Lines, p.npos)
 			} else {
 				bs = append(bs, '\\', b)
 			}
@@ -382,12 +383,12 @@ loop:
 		case '\\': // escaped byte follows
 			i++
 			if len(p.src) > i && p.src[i] == '\n' {
-				p.f.lines = append(p.f.lines, i+1)
+				p.f.Lines = append(p.f.Lines, i+1)
 			}
 		case '`', '"', '$':
 			break loop
 		case '\n':
-			p.f.lines = append(p.f.lines, i+1)
+			p.f.Lines = append(p.f.Lines, i+1)
 		}
 	}
 	p.tok, p.val = token.LIT, string(p.src[p.npos:i])
@@ -429,13 +430,13 @@ loop:
 				break loop
 			}
 			if p.src[i] == '\n' {
-				p.f.lines = append(p.f.lines, i+1)
+				p.f.Lines = append(p.f.Lines, i+1)
 			}
 		case '`', '$':
 			break loop
 		case '\n':
 			n := i + 1
-			p.f.lines = append(p.f.lines, n)
+			p.f.Lines = append(p.f.Lines, n)
 			for p.hdocTabs && n < len(p.src) && p.src[n] == '\t' {
 				n++
 			}
@@ -459,7 +460,7 @@ func (p *parser) readUntil(b byte) ([]byte, bool) {
 	return rem, false
 }
 
-func (p *parser) wordStr(w Word) string {
+func (p *parser) wordStr(w ast.Word) string {
 	if p.helperWriter == nil {
 		p.helperBuf = new(bytes.Buffer)
 		p.helperWriter = bufio.NewWriter(p.helperBuf)
@@ -473,7 +474,7 @@ func (p *parser) wordStr(w Word) string {
 	return p.helperBuf.String()
 }
 
-func (p *parser) unquotedWordStr(w *Word) string {
+func (p *parser) unquotedWordStr(w *ast.Word) string {
 	if p.helperWriter == nil {
 		p.helperBuf = new(bytes.Buffer)
 		p.helperWriter = bufio.NewWriter(p.helperBuf)
@@ -495,7 +496,7 @@ func (p *parser) doHeredocs() {
 		p.hdocStop = p.unquotedWordStr(&r.Word)
 		if p.npos < len(p.src) && p.src[p.npos] == '\n' {
 			p.npos++
-			p.f.lines = append(p.f.lines, p.npos)
+			p.f.Lines = append(p.f.Lines, p.npos)
 		}
 		p.next()
 		r.Hdoc = p.getWord()
@@ -563,7 +564,7 @@ func (p *parser) followRsrv(lpos token.Pos, left, val string) token.Pos {
 	return pos
 }
 
-func (p *parser) followStmts(left string, lpos token.Pos, stops ...string) []*Stmt {
+func (p *parser) followStmts(left string, lpos token.Pos, stops ...string) []*ast.Stmt {
 	if p.gotSameLine(token.SEMICOLON) {
 		return nil
 	}
@@ -574,7 +575,7 @@ func (p *parser) followStmts(left string, lpos token.Pos, stops ...string) []*St
 	return sts
 }
 
-func (p *parser) followWordTok(tok token.Token, pos token.Pos) Word {
+func (p *parser) followWordTok(tok token.Token, pos token.Pos) ast.Word {
 	w, ok := p.gotWord()
 	if !ok {
 		p.followErr(pos, tok.String(), "a word")
@@ -582,7 +583,7 @@ func (p *parser) followWordTok(tok token.Token, pos token.Pos) Word {
 	return w
 }
 
-func (p *parser) followWord(s string, pos token.Pos) Word {
+func (p *parser) followWord(s string, pos token.Pos) ast.Word {
 	w, ok := p.gotWord()
 	if !ok {
 		p.followErr(pos, s, "a word")
@@ -590,7 +591,7 @@ func (p *parser) followWord(s string, pos token.Pos) Word {
 	return w
 }
 
-func (p *parser) stmtEnd(n Node, start, end string) token.Pos {
+func (p *parser) stmtEnd(n ast.Node, start, end string) token.Pos {
 	pos := p.pos
 	if !p.gotRsrv(end) {
 		p.posErr(n.Pos(), `%s statement must end with %q`, start, end)
@@ -650,7 +651,7 @@ func (p *parser) curErr(format string, a ...interface{}) {
 	p.posErr(p.pos, format, a...)
 }
 
-func (p *parser) stmts(stops ...string) (sts []*Stmt) {
+func (p *parser) stmts(stops ...string) (sts []*ast.Stmt) {
 	if p.forbidNested {
 		p.curErr("nested statements not allowed in this word")
 	}
@@ -700,23 +701,23 @@ func (p *parser) invalidStmtStart() {
 	}
 }
 
-func (p *parser) getWord() Word {
+func (p *parser) getWord() ast.Word {
 	if p.tok == token.LITWORD {
-		w := Word{Parts: []WordPart{
-			&Lit{ValuePos: p.pos, Value: p.val},
+		w := ast.Word{Parts: []ast.WordPart{
+			&ast.Lit{ValuePos: p.pos, Value: p.val},
 		}}
 		p.next()
 		return w
 	}
-	return Word{Parts: p.wordParts()}
+	return ast.Word{Parts: p.wordParts()}
 }
 
-func (p *parser) gotWord() (Word, bool) {
+func (p *parser) gotWord() (ast.Word, bool) {
 	w := p.getWord()
 	return w, len(w.Parts) > 0
 }
 
-func (p *parser) gotLit(l *Lit) bool {
+func (p *parser) gotLit(l *ast.Lit) bool {
 	l.ValuePos = p.pos
 	if p.tok == token.LIT || p.tok == token.LITWORD {
 		l.Value = p.val
@@ -726,7 +727,7 @@ func (p *parser) gotLit(l *Lit) bool {
 	return false
 }
 
-func (p *parser) wordParts() (wps []WordPart) {
+func (p *parser) wordParts() (wps []ast.WordPart) {
 	for {
 		lastLit := p.tok == token.LIT
 		n := p.wordPart()
@@ -740,7 +741,7 @@ func (p *parser) wordParts() (wps []WordPart) {
 		if p.quote == token.SHL && p.hdocStop == "" {
 			// TODO: is this is a hack around a bug?
 			if p.tok == token.LIT && !lastLit {
-				wps = append(wps, &Lit{
+				wps = append(wps, &ast.Lit{
 					ValuePos: p.pos,
 					Value:    p.val,
 				})
@@ -750,10 +751,10 @@ func (p *parser) wordParts() (wps []WordPart) {
 	}
 }
 
-func (p *parser) wordPart() WordPart {
+func (p *parser) wordPart() ast.WordPart {
 	switch p.tok {
 	case token.LIT, token.LITWORD:
-		l := &Lit{ValuePos: p.pos, Value: p.val}
+		l := &ast.Lit{ValuePos: p.pos, Value: p.val}
 		p.next()
 		return l
 	case p.quote:
@@ -761,7 +762,7 @@ func (p *parser) wordPart() WordPart {
 	case token.DOLLBR:
 		return p.paramExp()
 	case token.DOLLDP:
-		ar := &ArithmExp{Dollar: p.pos}
+		ar := &ast.ArithmExp{Dollar: p.pos}
 		old := p.quote
 		p.quote = token.DRPAREN
 		p.next()
@@ -769,7 +770,7 @@ func (p *parser) wordPart() WordPart {
 		ar.Rparen = p.arithmEnd(ar.Dollar, old)
 		return ar
 	case token.DOLLPR:
-		cs := &CmdSubst{Left: p.pos}
+		cs := &ast.CmdSubst{Left: p.pos}
 		old := p.quote
 		p.quote = token.RPAREN
 		p.next()
@@ -785,11 +786,11 @@ func (p *parser) wordPart() WordPart {
 			b = p.src[p.npos]
 		}
 		if p.tok == token.EOF || wordBreak(b) || b == '"' || b == '`' {
-			l := &Lit{ValuePos: p.pos, Value: "$"}
+			l := &ast.Lit{ValuePos: p.pos, Value: "$"}
 			p.next()
 			return l
 		}
-		pe := &ParamExp{Dollar: p.pos, Short: true}
+		pe := &ast.ParamExp{Dollar: p.pos, Short: true}
 		if b == '#' || b == '$' || b == '?' {
 			p.npos++
 			p.pos++
@@ -805,7 +806,7 @@ func (p *parser) wordPart() WordPart {
 		p.gotLit(&pe.Param)
 		return pe
 	case token.CMDIN, token.CMDOUT:
-		ps := &ProcSubst{Op: p.tok, OpPos: p.pos}
+		ps := &ast.ProcSubst{Op: p.tok, OpPos: p.pos}
 		old := p.quote
 		p.quote = token.RPAREN
 		p.next()
@@ -814,7 +815,7 @@ func (p *parser) wordPart() WordPart {
 		ps.Rparen = p.matched(ps.OpPos, ps.Op, token.RPAREN)
 		return ps
 	case token.SQUOTE:
-		sq := &SglQuoted{Quote: p.pos}
+		sq := &ast.SglQuoted{Quote: p.pos}
 		bs, found := p.readUntil('\'')
 		rem := bs
 		for {
@@ -824,7 +825,7 @@ func (p *parser) wordPart() WordPart {
 				break
 			}
 			p.npos += i + 1
-			p.f.lines = append(p.f.lines, p.npos)
+			p.f.Lines = append(p.f.Lines, p.npos)
 			rem = rem[i+1:]
 		}
 		p.npos++
@@ -835,7 +836,7 @@ func (p *parser) wordPart() WordPart {
 		p.next()
 		return sq
 	case token.DOLLSQ, token.DQUOTE, token.DOLLDQ:
-		q := &Quoted{Quote: p.tok, QuotePos: p.pos}
+		q := &ast.Quoted{Quote: p.tok, QuotePos: p.pos}
 		stop := quotedStop(q.Quote)
 		old := p.quote
 		p.quote = stop
@@ -847,7 +848,7 @@ func (p *parser) wordPart() WordPart {
 		}
 		return q
 	case token.BQUOTE:
-		cs := &CmdSubst{Backquotes: true, Left: p.pos}
+		cs := &ast.CmdSubst{Backquotes: true, Left: p.pos}
 		old := p.quote
 		p.quote = token.BQUOTE
 		p.next()
@@ -905,11 +906,11 @@ func arithmOpLevel(tok token.Token) int {
 	return -1
 }
 
-func (p *parser) arithmExpr(ftok token.Token, fpos token.Pos, level int, compact bool) ArithmExpr {
+func (p *parser) arithmExpr(ftok token.Token, fpos token.Pos, level int, compact bool) ast.ArithmExpr {
 	if p.tok == token.EOF || p.peekArithmEnd() {
 		return nil
 	}
-	var left ArithmExpr
+	var left ast.ArithmExpr
 	if level > 11 {
 		left = p.arithmExprBase(ftok, fpos, compact)
 	} else {
@@ -925,7 +926,7 @@ func (p *parser) arithmExpr(ftok token.Token, fpos token.Pos, level int, compact
 	if newLevel < 0 || newLevel < level {
 		return left
 	}
-	b := &BinaryExpr{
+	b := &ast.BinaryExpr{
 		OpPos: p.pos,
 		Op:    p.tok,
 		X:     left,
@@ -939,17 +940,17 @@ func (p *parser) arithmExpr(ftok token.Token, fpos token.Pos, level int, compact
 	return b
 }
 
-func (p *parser) arithmExprBase(ftok token.Token, fpos token.Pos, compact bool) ArithmExpr {
+func (p *parser) arithmExprBase(ftok token.Token, fpos token.Pos, compact bool) ast.ArithmExpr {
 	if p.tok == token.INC || p.tok == token.DEC || p.tok == token.NOT {
-		pre := &UnaryExpr{OpPos: p.pos, Op: p.tok}
+		pre := &ast.UnaryExpr{OpPos: p.pos, Op: p.tok}
 		p.next()
 		pre.X = p.arithmExprBase(pre.Op, pre.OpPos, compact)
 		return pre
 	}
-	var x ArithmExpr
+	var x ast.ArithmExpr
 	switch p.tok {
 	case token.LPAREN:
-		pe := &ParenExpr{Lparen: p.pos}
+		pe := &ast.ParenExpr{Lparen: p.pos}
 		p.next()
 		if pe.X = p.arithmExpr(token.LPAREN, pe.Lparen, 0, false); pe.X == nil {
 			p.posErr(pe.Lparen, "parentheses must enclose an expression")
@@ -957,7 +958,7 @@ func (p *parser) arithmExprBase(ftok token.Token, fpos token.Pos, compact bool) 
 		pe.Rparen = p.matched(pe.Lparen, token.LPAREN, token.RPAREN)
 		x = pe
 	case token.ADD, token.SUB:
-		ue := &UnaryExpr{OpPos: p.pos, Op: p.tok}
+		ue := &ast.UnaryExpr{OpPos: p.pos, Op: p.tok}
 		if p.next(); compact && p.spaced {
 			p.followErr(ue.OpPos, ue.Op.String(), "an expression")
 		}
@@ -973,7 +974,7 @@ func (p *parser) arithmExprBase(ftok token.Token, fpos token.Pos, compact bool) 
 		return x
 	}
 	if p.tok == token.INC || p.tok == token.DEC {
-		u := &UnaryExpr{
+		u := &ast.UnaryExpr{
 			Post:  true,
 			OpPos: p.pos,
 			Op:    p.tok,
@@ -985,7 +986,7 @@ func (p *parser) arithmExprBase(ftok token.Token, fpos token.Pos, compact bool) 
 	return x
 }
 
-func (p *parser) gotParamLit(l *Lit) bool {
+func (p *parser) gotParamLit(l *ast.Lit) bool {
 	l.ValuePos = p.pos
 	switch p.tok {
 	case token.LIT, token.LITWORD:
@@ -1001,8 +1002,8 @@ func (p *parser) gotParamLit(l *Lit) bool {
 	return true
 }
 
-func (p *parser) paramExp() *ParamExp {
-	pe := &ParamExp{Dollar: p.pos}
+func (p *parser) paramExp() *ast.ParamExp {
+	pe := &ast.ParamExp{Dollar: p.pos}
 	old := p.quote
 	p.quote = token.LBRACE
 	p.next()
@@ -1019,7 +1020,7 @@ func (p *parser) paramExp() *ParamExp {
 		lpos := p.pos
 		p.quote = token.RBRACK
 		p.next()
-		pe.Ind = &Index{Word: p.getWord()}
+		pe.Ind = &ast.Index{Word: p.getWord()}
 		p.quote = token.LBRACE
 		p.matched(lpos, token.LBRACK, token.RBRACK)
 	}
@@ -1032,7 +1033,7 @@ func (p *parser) paramExp() *ParamExp {
 		p.curErr(`can only get length of a simple parameter`)
 	}
 	if p.tok == token.QUO || p.tok == token.DQUO {
-		pe.Repl = &Replace{All: p.tok == token.DQUO}
+		pe.Repl = &ast.Replace{All: p.tok == token.DQUO}
 		p.quote = token.QUO
 		p.next()
 		pe.Repl.Orig = p.getWord()
@@ -1042,7 +1043,7 @@ func (p *parser) paramExp() *ParamExp {
 			pe.Repl.With = p.getWord()
 		}
 	} else {
-		pe.Exp = &Expansion{Op: p.tok}
+		pe.Exp = &ast.Expansion{Op: p.tok}
 		p.quote = token.RBRACE
 		p.next()
 		pe.Exp.Word = p.getWord()
@@ -1076,7 +1077,7 @@ func stopToken(tok token.Token) bool {
 
 var identRe = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
 
-func (p *parser) getAssign() (*Assign, bool) {
+func (p *parser) getAssign() (*ast.Assign, bool) {
 	i := strings.Index(p.val, "=")
 	if i <= 0 {
 		return nil, false
@@ -1087,13 +1088,13 @@ func (p *parser) getAssign() (*Assign, bool) {
 	if !identRe.MatchString(p.val[:i]) {
 		return nil, false
 	}
-	as := &Assign{}
-	as.Name = &Lit{ValuePos: p.pos, Value: p.val[:i]}
+	as := &ast.Assign{}
+	as.Name = &ast.Lit{ValuePos: p.pos, Value: p.val[:i]}
 	if p.val[i] == '+' {
 		as.Append = true
 		i++
 	}
-	start := &Lit{ValuePos: p.pos + 1, Value: p.val[i+1:]}
+	start := &ast.Lit{ValuePos: p.pos + 1, Value: p.val[i+1:]}
 	if start.Value != "" {
 		start.ValuePos += token.Pos(i)
 		as.Value.Parts = append(as.Value.Parts, start)
@@ -1103,7 +1104,7 @@ func (p *parser) getAssign() (*Assign, bool) {
 		return as, true
 	}
 	if start.Value == "" && p.tok == token.LPAREN {
-		ae := &ArrayExpr{Lparen: p.pos}
+		ae := &ast.ArrayExpr{Lparen: p.pos}
 		p.next()
 		for p.tok != token.EOF && p.tok != token.RPAREN {
 			if w, ok := p.gotWord(); !ok {
@@ -1135,9 +1136,9 @@ func (p *parser) peekRedir() bool {
 	return false
 }
 
-func (p *parser) doRedirect(s *Stmt) {
-	r := &Redirect{}
-	var l Lit
+func (p *parser) doRedirect(s *ast.Stmt) {
+	r := &ast.Redirect{}
+	var l ast.Lit
 	if p.gotLit(&l) {
 		r.N = &l
 	}
@@ -1157,8 +1158,8 @@ func (p *parser) doRedirect(s *Stmt) {
 	s.Redirs = append(s.Redirs, r)
 }
 
-func (p *parser) getStmt(readEnd bool) (s *Stmt, gotEnd bool) {
-	s = &Stmt{Position: p.pos}
+func (p *parser) getStmt(readEnd bool) (s *ast.Stmt, gotEnd bool) {
+	s = &ast.Stmt{Position: p.pos}
 	if p.gotRsrv("!") {
 		s.Negated = true
 	}
@@ -1193,13 +1194,13 @@ preLoop:
 	}
 	switch p.tok {
 	case token.LAND, token.LOR:
-		b := &BinaryCmd{OpPos: p.pos, Op: p.tok, X: s}
+		b := &ast.BinaryCmd{OpPos: p.pos, Op: p.tok, X: s}
 		p.next()
 		p.got(token.STOPPED)
 		if b.Y, _ = p.getStmt(false); b.Y == nil {
 			p.followErr(b.OpPos, b.Op.String(), "a statement")
 		}
-		s = &Stmt{Position: s.Position, Cmd: b}
+		s = &ast.Stmt{Position: s.Position, Cmd: b}
 	case token.AND:
 		p.next()
 		s.Background = true
@@ -1211,7 +1212,7 @@ preLoop:
 	return
 }
 
-func (p *parser) gotStmtPipe(s *Stmt) *Stmt {
+func (p *parser) gotStmtPipe(s *ast.Stmt) *ast.Stmt {
 	switch p.tok {
 	case token.LPAREN:
 		s.Cmd = p.subshell()
@@ -1242,7 +1243,7 @@ func (p *parser) gotStmtPipe(s *Stmt) *Stmt {
 		case "function":
 			s.Cmd = p.bashFuncDecl()
 		default:
-			name := Lit{ValuePos: p.pos, Value: p.val}
+			name := ast.Lit{ValuePos: p.pos, Value: p.val}
 			w := p.getWord()
 			if p.gotSameLine(token.LPAREN) {
 				p.follow(name.ValuePos, "foo(", token.RPAREN)
@@ -1266,19 +1267,19 @@ func (p *parser) gotStmtPipe(s *Stmt) *Stmt {
 		return nil
 	}
 	if p.tok == token.OR || p.tok == token.PIPEALL {
-		b := &BinaryCmd{OpPos: p.pos, Op: p.tok, X: s}
+		b := &ast.BinaryCmd{OpPos: p.pos, Op: p.tok, X: s}
 		p.next()
 		p.got(token.STOPPED)
-		if b.Y = p.gotStmtPipe(&Stmt{Position: p.pos}); b.Y == nil {
+		if b.Y = p.gotStmtPipe(&ast.Stmt{Position: p.pos}); b.Y == nil {
 			p.followErr(b.OpPos, b.Op.String(), "a statement")
 		}
-		s = &Stmt{Position: s.Position, Cmd: b}
+		s = &ast.Stmt{Position: s.Position, Cmd: b}
 	}
 	return s
 }
 
-func (p *parser) subshell() *Subshell {
-	s := &Subshell{Lparen: p.pos}
+func (p *parser) subshell() *ast.Subshell {
+	s := &ast.Subshell{Lparen: p.pos}
 	old := p.quote
 	p.quote = token.RPAREN
 	p.next()
@@ -1291,8 +1292,8 @@ func (p *parser) subshell() *Subshell {
 	return s
 }
 
-func (p *parser) block() *Block {
-	b := &Block{Lbrace: p.pos}
+func (p *parser) block() *ast.Block {
+	b := &ast.Block{Lbrace: p.pos}
 	p.next()
 	b.Stmts = p.stmts("}")
 	b.Rbrace = p.pos
@@ -1302,15 +1303,15 @@ func (p *parser) block() *Block {
 	return b
 }
 
-func (p *parser) ifClause() *IfClause {
-	ic := &IfClause{If: p.pos}
+func (p *parser) ifClause() *ast.IfClause {
+	ic := &ast.IfClause{If: p.pos}
 	p.next()
 	ic.Cond = p.cond("if", ic.If, "then")
 	ic.Then = p.followRsrv(ic.If, "if [stmts]", "then")
 	ic.ThenStmts = p.followStmts("then", ic.Then, "fi", "elif", "else")
 	elifPos := p.pos
 	for p.gotRsrv("elif") {
-		elf := &Elif{Elif: elifPos}
+		elf := &ast.Elif{Elif: elifPos}
 		elf.Cond = p.cond("elif", elf.Elif, "then")
 		elf.Then = p.followRsrv(elf.Elif, "elif [stmts]", "then")
 		elf.ThenStmts = p.followStmts("then", elf.Then, "fi", "elif", "else")
@@ -1326,10 +1327,10 @@ func (p *parser) ifClause() *IfClause {
 	return ic
 }
 
-func (p *parser) cond(left string, lpos token.Pos, stop string) Cond {
+func (p *parser) cond(left string, lpos token.Pos, stop string) ast.Cond {
 	if p.tok == token.LPAREN && p.npos < len(p.src) && p.src[p.npos] == '(' {
 		p.npos++
-		c := &CStyleCond{Lparen: p.pos}
+		c := &ast.CStyleCond{Lparen: p.pos}
 		old := p.quote
 		p.quote = token.DRPAREN
 		p.next()
@@ -1342,11 +1343,11 @@ func (p *parser) cond(left string, lpos token.Pos, stop string) Cond {
 	if len(stmts) == 0 {
 		return nil
 	}
-	return &StmtCond{Stmts: stmts}
+	return &ast.StmtCond{Stmts: stmts}
 }
 
-func (p *parser) whileClause() *WhileClause {
-	wc := &WhileClause{While: p.pos}
+func (p *parser) whileClause() *ast.WhileClause {
+	wc := &ast.WhileClause{While: p.pos}
 	p.next()
 	wc.Cond = p.cond("while", wc.While, "do")
 	wc.Do = p.followRsrv(wc.While, "while [stmts]", "do")
@@ -1355,8 +1356,8 @@ func (p *parser) whileClause() *WhileClause {
 	return wc
 }
 
-func (p *parser) untilClause() *UntilClause {
-	uc := &UntilClause{Until: p.pos}
+func (p *parser) untilClause() *ast.UntilClause {
+	uc := &ast.UntilClause{Until: p.pos}
 	p.next()
 	uc.Cond = p.cond("until", uc.Until, "do")
 	uc.Do = p.followRsrv(uc.Until, "until [stmts]", "do")
@@ -1365,8 +1366,8 @@ func (p *parser) untilClause() *UntilClause {
 	return uc
 }
 
-func (p *parser) forClause() *ForClause {
-	fc := &ForClause{For: p.pos}
+func (p *parser) forClause() *ast.ForClause {
+	fc := &ast.ForClause{For: p.pos}
 	p.next()
 	fc.Loop = p.loop(fc.For)
 	fc.Do = p.followRsrv(fc.For, "for foo [in words]", "do")
@@ -1375,10 +1376,10 @@ func (p *parser) forClause() *ForClause {
 	return fc
 }
 
-func (p *parser) loop(forPos token.Pos) Loop {
+func (p *parser) loop(forPos token.Pos) ast.Loop {
 	if p.tok == token.LPAREN && p.npos < len(p.src) && p.src[p.npos] == '(' {
 		p.npos++
-		cl := &CStyleLoop{Lparen: p.pos}
+		cl := &ast.CStyleLoop{Lparen: p.pos}
 		old := p.quote
 		p.quote = token.DRPAREN
 		p.next()
@@ -1393,7 +1394,7 @@ func (p *parser) loop(forPos token.Pos) Loop {
 		p.gotSameLine(token.SEMICOLON)
 		return cl
 	}
-	wi := &WordIter{}
+	wi := &ast.WordIter{}
 	if !p.gotLit(&wi.Name) {
 		p.followErr(forPos, "for", "a literal")
 	}
@@ -1412,8 +1413,8 @@ func (p *parser) loop(forPos token.Pos) Loop {
 	return wi
 }
 
-func (p *parser) caseClause() *CaseClause {
-	cc := &CaseClause{Case: p.pos}
+func (p *parser) caseClause() *ast.CaseClause {
+	cc := &ast.CaseClause{Case: p.pos}
 	p.next()
 	cc.Word = p.followWord("case", cc.Case)
 	p.followRsrv(cc.Case, "case x", "in")
@@ -1422,12 +1423,12 @@ func (p *parser) caseClause() *CaseClause {
 	return cc
 }
 
-func (p *parser) patLists() (pls []*PatternList) {
+func (p *parser) patLists() (pls []*ast.PatternList) {
 	if p.gotSameLine(token.SEMICOLON) {
 		return
 	}
 	for p.tok != token.EOF && !(p.tok == token.LITWORD && p.val == "esac") {
-		pl := &PatternList{}
+		pl := &ast.PatternList{}
 		p.got(token.LPAREN)
 		for p.tok != token.EOF {
 			if w, ok := p.gotWord(); !ok {
@@ -1460,8 +1461,8 @@ func (p *parser) patLists() (pls []*PatternList) {
 	return
 }
 
-func (p *parser) declClause(local bool) *DeclClause {
-	ds := &DeclClause{Declare: p.pos, Local: local}
+func (p *parser) declClause(local bool) *ast.DeclClause {
+	ds := &ast.DeclClause{Declare: p.pos, Local: local}
 	p.next()
 	for p.tok == token.LITWORD && p.val[0] == '-' {
 		ds.Opts = append(ds.Opts, p.getWord())
@@ -1472,21 +1473,21 @@ func (p *parser) declClause(local bool) *DeclClause {
 		} else if w, ok := p.gotWord(); !ok {
 			p.followErr(p.pos, "declare", "words")
 		} else {
-			ds.Assigns = append(ds.Assigns, &Assign{Value: w})
+			ds.Assigns = append(ds.Assigns, &ast.Assign{Value: w})
 		}
 	}
 	return ds
 }
 
-func (p *parser) evalClause() *EvalClause {
-	ec := &EvalClause{Eval: p.pos}
+func (p *parser) evalClause() *ast.EvalClause {
+	ec := &ast.EvalClause{Eval: p.pos}
 	p.next()
 	ec.Stmt, _ = p.getStmt(false)
 	return ec
 }
 
-func (p *parser) letClause() *LetClause {
-	lc := &LetClause{Let: p.pos}
+func (p *parser) letClause() *ast.LetClause {
+	lc := &ast.LetClause{Let: p.pos}
 	old := p.quote
 	p.quote = token.DRPAREN
 	p.next()
@@ -1507,7 +1508,7 @@ func (p *parser) letClause() *LetClause {
 	return lc
 }
 
-func (p *parser) bashFuncDecl() *FuncDecl {
+func (p *parser) bashFuncDecl() *ast.FuncDecl {
 	fpos := p.pos
 	p.next()
 	if p.tok != token.LITWORD {
@@ -1515,7 +1516,7 @@ func (p *parser) bashFuncDecl() *FuncDecl {
 			p.posErr(w.Pos(), "invalid func name: %s", p.wordStr(w))
 		}
 	}
-	name := Lit{ValuePos: p.pos, Value: p.val}
+	name := ast.Lit{ValuePos: p.pos, Value: p.val}
 	p.next()
 	if p.gotSameLine(token.LPAREN) {
 		p.follow(name.ValuePos, "foo(", token.RPAREN)
@@ -1523,8 +1524,8 @@ func (p *parser) bashFuncDecl() *FuncDecl {
 	return p.funcDecl(name, fpos)
 }
 
-func (p *parser) callExpr(s *Stmt, w Word) *CallExpr {
-	ce := &CallExpr{Args: []Word{w}}
+func (p *parser) callExpr(s *ast.Stmt, w ast.Word) *ast.CallExpr {
+	ce := &ast.CallExpr{Args: []ast.Word{w}}
 	for !p.newLine {
 		switch p.tok {
 		case token.EOF, token.SEMICOLON, token.AND, token.OR, token.LAND, token.LOR, token.PIPEALL, p.quote, token.DSEMICOLON, token.SEMIFALL, token.DSEMIFALL:
@@ -1550,8 +1551,8 @@ func (p *parser) callExpr(s *Stmt, w Word) *CallExpr {
 	return ce
 }
 
-func (p *parser) funcDecl(name Lit, pos token.Pos) *FuncDecl {
-	fd := &FuncDecl{
+func (p *parser) funcDecl(name ast.Lit, pos token.Pos) *ast.FuncDecl {
+	fd := &ast.FuncDecl{
 		Position:  pos,
 		BashStyle: pos != name.ValuePos,
 		Name:      name,
