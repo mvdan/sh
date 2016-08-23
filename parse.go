@@ -304,8 +304,13 @@ loop:
 				p.advanceLitNoneCont(bs)
 				return
 			}
-		case ' ', '\t', '\n', '\r', '&', '>', '<', '|', ';', '(', ')', '`':
+		case ' ', '\t', '\n', '\r', '&', '>', '<', '|', ';', '(', ')':
 			tok = LITWORD
+			break loop
+		case '`':
+			if p.quote == BQUOTE {
+				tok = LITWORD
+			}
 			break loop
 		case '"', '\'', '$':
 			break loop
@@ -339,8 +344,15 @@ func (p *parser) advanceLitNoneCont(bs []byte) {
 			} else {
 				bs = append(bs, '\\', b)
 			}
-		case ' ', '\t', '\n', '\r', '&', '>', '<', '|', ';', '(', ')', '`':
+		case ' ', '\t', '\n', '\r', '&', '>', '<', '|', ';', '(', ')':
 			p.tok, p.val = LITWORD, string(bs)
+			return
+		case '`':
+			if p.quote == BQUOTE {
+				p.tok, p.val = LITWORD, string(bs)
+			} else {
+				p.tok, p.val = LIT, string(bs)
+			}
 			return
 		case '"', '\'', '$':
 			p.tok, p.val = LIT, string(bs)
@@ -457,7 +469,7 @@ func (p *parser) doHeredocs() {
 func wordBreak(b byte) bool {
 	return b == ' ' || b == '\t' || b == '\r' || b == '\n' ||
 		b == '&' || b == '>' || b == '<' || b == '|' ||
-		b == ';' || b == '(' || b == ')' || b == '`'
+		b == ';' || b == '(' || b == ')'
 }
 
 func (p *parser) got(tok Token) bool {
@@ -734,7 +746,7 @@ func (p *parser) wordPart() WordPart {
 		} else {
 			b = p.src[p.npos]
 		}
-		if p.tok == EOF || wordBreak(b) || b == '"' {
+		if p.tok == EOF || wordBreak(b) || b == '"' || b == '`' {
 			l := &Lit{ValuePos: p.pos, Value: "$"}
 			p.next()
 			return l

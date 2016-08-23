@@ -581,6 +581,18 @@ var astTests = []testCase{
 		},
 	},
 	{
+		[]string{"foo >bar`etc`"},
+		&Stmt{
+			Cmd: litCall("foo"),
+			Redirs: []*Redirect{
+				{Op: GTR, Word: *word(
+					lit("bar"),
+					bckQuoted(litStmt("etc")),
+				)},
+			},
+		},
+	},
+	{
 		[]string{
 			"foo <<EOF\nbar\nEOF",
 			"foo <<EOF\nbar\n",
