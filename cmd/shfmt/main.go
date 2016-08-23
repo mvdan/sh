@@ -68,9 +68,9 @@ func formatStdin() error {
 }
 
 var (
-	hidden    = regexp.MustCompile(`^\.[^/.]`)
-	shellFile = regexp.MustCompile(`^.*\.(sh|bash)$`)
-	shebang   = regexp.MustCompile(`^#!/(usr/)?bin/(env *)?(sh|bash)`)
+	hidden       = regexp.MustCompile(`^\.[^/.]`)
+	shellFile    = regexp.MustCompile(`^.*\.(sh|bash)$`)
+	validShebang = regexp.MustCompile(`^#!/(usr/)?bin/(env *)?(sh|bash)`)
 )
 
 func walk(path string, onError func(error)) error {
@@ -103,10 +103,6 @@ func empty(f *os.File) error {
 	return err
 }
 
-func validShebang(bs []byte) bool {
-	return shebang.Match(bs[:32])
-}
-
 func formatPath(path string, size int64, always bool) error {
 	shellExt := always || shellFile.MatchString(path)
 	if !shellExt && strings.Contains(path, ".") {
@@ -130,7 +126,7 @@ func formatPath(path string, size int64, always bool) error {
 	if err != nil {
 		return err
 	}
-	if !shellExt && !validShebang(src) {
+	if !shellExt && !validShebang.Match(src[:32]) {
 		return nil
 	}
 	prog, err := sh.Parse(src, path, sh.ParseComments)
