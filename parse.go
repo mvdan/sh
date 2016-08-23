@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 // Mode controls the parser behaviour via a set of flags.
@@ -20,18 +21,26 @@ const (
 	ParseComments Mode = 1 << iota // add comments to the AST
 )
 
+var parserFree = sync.Pool{
+	New: func() interface{} { return &parser{} },
+}
+
 // Parse reads and parses a shell program with an optional name. It
 // returns the parsed program if no issues were encountered. Otherwise,
 // an error is returned.
 func Parse(src []byte, name string, mode Mode) (*File, error) {
-	p := parser{
-		f:    &File{Name: name},
-		src:  src,
-		mode: mode,
+	p := parserFree.Get().(*parser)
+	*p = parser{
+		f:            &File{Name: name},
+		src:          src,
+		mode:         mode,
+		helperBuf:    p.helperBuf,
+		helperWriter: p.helperWriter,
 	}
 	p.f.lines = make([]int, 1, 16)
 	p.next()
 	p.f.Stmts = p.stmts()
+	parserFree.Put(p)
 	return p.f, p.err
 }
 
