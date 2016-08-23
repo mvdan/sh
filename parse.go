@@ -29,7 +29,6 @@ func Parse(src []byte, name string, mode Mode) (*File, error) {
 		src:  src,
 		mode: mode,
 	}
-	p.helperWriter = bufio.NewWriter(&p.helperBuf)
 	p.f.lines = make([]int, 1, 16)
 	p.next()
 	p.f.Stmts = p.stmts()
@@ -61,7 +60,7 @@ type parser struct {
 	// list of pending heredoc bodies
 	heredocs []*Redirect
 
-	helperBuf    bytes.Buffer
+	helperBuf    *bytes.Buffer
 	helperWriter *bufio.Writer
 }
 
@@ -450,8 +449,13 @@ func (p *parser) readUntil(b byte) ([]byte, bool) {
 }
 
 func (p *parser) wordStr(w Word) string {
-	p.helperWriter.Reset(&p.helperBuf)
-	p.helperBuf.Reset()
+	if p.helperWriter == nil {
+		p.helperBuf = new(bytes.Buffer)
+		p.helperWriter = bufio.NewWriter(p.helperBuf)
+	} else {
+		p.helperWriter.Reset(p.helperBuf)
+		p.helperBuf.Reset()
+	}
 	pr := printer{Writer: p.helperWriter, f: p.f}
 	pr.word(w)
 	p.helperWriter.Flush()
@@ -459,8 +463,13 @@ func (p *parser) wordStr(w Word) string {
 }
 
 func (p *parser) unquotedWordStr(w *Word) string {
-	p.helperWriter.Reset(&p.helperBuf)
-	p.helperBuf.Reset()
+	if p.helperWriter == nil {
+		p.helperBuf = new(bytes.Buffer)
+		p.helperWriter = bufio.NewWriter(p.helperBuf)
+	} else {
+		p.helperWriter.Reset(p.helperBuf)
+		p.helperBuf.Reset()
+	}
 	pr := printer{Writer: p.helperWriter, f: p.f}
 	pr.unquotedWord(w)
 	p.helperWriter.Flush()
