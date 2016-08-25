@@ -1153,11 +1153,17 @@ func (p *parser) doRedirect(s *ast.Stmt) {
 	case token.SHL, token.DHEREDOC:
 		p.stopNewline = true
 		p.forbidNested = true
+		if p.newLine {
+			p.curErr("heredoc stop word must be on the same line")
+		}
 		r.Word = p.followWordTok(r.Op, r.OpPos)
 		p.forbidNested = false
 		p.heredocs = append(p.heredocs, r)
 		p.got(token.STOPPED)
 	default:
+		if p.newLine {
+			p.curErr("redirect word must be on the same line")
+		}
 		r.Word = p.followWordTok(r.Op, r.OpPos)
 	}
 	s.Redirs = append(s.Redirs, r)

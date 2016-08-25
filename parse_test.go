@@ -306,12 +306,24 @@ var errTests = []struct {
 		`1:5: < must be followed by a word`,
 	},
 	{
+		"foo <\nbar",
+		`2:1: redirect word must be on the same line`,
+	},
+	{
 		"foo <>",
 		`1:5: <> must be followed by a word`,
 	},
 	{
 		"foo <<<",
 		`1:5: <<< must be followed by a word`,
+	},
+	{
+		"foo <<",
+		`1:5: << must be followed by a word`,
+	},
+	{
+		"foo <<\nEOF\nbar\nEOF",
+		`2:1: heredoc stop word must be on the same line`,
 	},
 	{
 		"if",

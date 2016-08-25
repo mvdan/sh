@@ -261,10 +261,6 @@ func TestFprintWeirdFormat(t *testing.T) {
 			"a <<EOF\n`\n\tb\n\tc\n`\nEOF",
 		},
 		{
-			"<<\nEOF #\n``\nb\nEOF",
-			"<<EOF\n``\nb\nEOF\n#",
-		},
-		{
 			"( (foo) )\n$( (foo) )\n<( (foo) )",
 			"( (foo))\n$( (foo))\n<((foo))",
 		},
