@@ -362,10 +362,9 @@ func (p *parser) advanceLitNoneCont(bs []byte) {
 		case '`':
 			if p.quote == token.BQUOTE {
 				p.tok, p.val = token.LITWORD, string(bs)
-			} else {
-				p.tok, p.val = token.LIT, string(bs)
+				return
 			}
-			return
+			fallthrough
 		case '"', '\'', '$':
 			p.tok, p.val = token.LIT, string(bs)
 			return
