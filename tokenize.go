@@ -71,6 +71,10 @@ func (p *parser) regToken(b byte) token.Token {
 		p.npos++
 		return token.DOLLAR
 	case '(':
+		if p.mode&PosixComformant == 0 && byteAt(p.src, p.npos+1) == '(' {
+			p.npos += 2
+			return token.DLPAREN
+		}
 		p.npos++
 		return token.LPAREN
 	case ')':

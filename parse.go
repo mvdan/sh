@@ -763,13 +763,13 @@ func (p *parser) wordPart() ast.WordPart {
 		return nil
 	case token.DOLLBR:
 		return p.paramExp()
-	case token.DOLLDP:
-		ar := &ast.ArithmExp{Dollar: p.pos}
+	case token.DOLLDP, token.DLPAREN:
+		ar := &ast.ArithmExp{Token: p.tok, Left: p.pos}
 		old := p.quote
 		p.quote = token.DRPAREN
 		p.next()
-		ar.X = p.arithmExpr(token.DOLLDP, ar.Dollar, 0, false)
-		ar.Rparen = p.arithmEnd(ar.Dollar, old)
+		ar.X = p.arithmExpr(token.DOLLDP, ar.Left, 0, false)
+		ar.Right = p.arithmEnd(ar.Left, old)
 		return ar
 	case token.DOLLPR:
 		cs := &ast.CmdSubst{Left: p.pos}
@@ -1260,7 +1260,7 @@ func (p *parser) gotStmtPipe(s *ast.Stmt) *ast.Stmt {
 		}
 	case token.LIT, token.DOLLBR, token.DOLLDP, token.DOLLPR, token.DOLLAR,
 		token.CMDIN, token.CMDOUT, token.SQUOTE, token.DOLLSQ,
-		token.DQUOTE, token.DOLLDQ, token.BQUOTE:
+		token.DQUOTE, token.DOLLDQ, token.BQUOTE, token.DLPAREN:
 		w := p.getWord()
 		if p.gotSameLine(token.LPAREN) && p.err == nil {
 			p.posErr(w.Pos(), "invalid func name: %s", p.wordStr(w))
@@ -1335,8 +1335,7 @@ func (p *parser) ifClause() *ast.IfClause {
 }
 
 func (p *parser) cond(left string, lpos token.Pos, stop string) ast.Cond {
-	if p.tok == token.LPAREN && p.npos < len(p.src) && p.src[p.npos] == '(' {
-		p.npos++
+	if p.tok == token.DLPAREN {
 		c := &ast.CStyleCond{Lparen: p.pos}
 		old := p.quote
 		p.quote = token.DRPAREN
@@ -1384,8 +1383,7 @@ func (p *parser) forClause() *ast.ForClause {
 }
 
 func (p *parser) loop(forPos token.Pos) ast.Loop {
-	if p.tok == token.LPAREN && p.npos < len(p.src) && p.src[p.npos] == '(' {
-		p.npos++
+	if p.tok == token.DLPAREN {
 		cl := &ast.CStyleLoop{Lparen: p.pos}
 		old := p.quote
 		p.quote = token.DRPAREN

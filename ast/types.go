@@ -459,12 +459,13 @@ type Expansion struct {
 
 // ArithmExp represents an arithmetic expansion.
 type ArithmExp struct {
-	Dollar, Rparen token.Pos
-	X              ArithmExpr
+	Token       token.Token
+	Left, Right token.Pos
+	X           ArithmExpr
 }
 
-func (a *ArithmExp) Pos() token.Pos { return a.Dollar }
-func (a *ArithmExp) End() token.Pos { return posAfter(a.Rparen, 2) }
+func (a *ArithmExp) Pos() token.Pos { return a.Left }
+func (a *ArithmExp) End() token.Pos { return posAfter(a.Right, 2) }
 
 // ArithmExpr represents all nodes that form arithmetic expressions.
 type ArithmExpr interface {

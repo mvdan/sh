@@ -62,7 +62,7 @@ func sglQuoted(s string) *ast.SglQuoted         { return &ast.SglQuoted{Value: s
 func dblQuoted(ps ...ast.WordPart) *ast.Quoted  { return &ast.Quoted{Quote: token.DQUOTE, Parts: ps} }
 func block(sts ...*ast.Stmt) *ast.Block         { return &ast.Block{Stmts: sts} }
 func subshell(sts ...*ast.Stmt) *ast.Subshell   { return &ast.Subshell{Stmts: sts} }
-func arithmExp(e ast.ArithmExpr) *ast.ArithmExp { return &ast.ArithmExp{X: e} }
+func arithmExp(e ast.ArithmExpr) *ast.ArithmExp { return &ast.ArithmExp{Token: token.DOLLDP, X: e} }
 func parenExpr(e ast.ArithmExpr) *ast.ParenExpr { return &ast.ParenExpr{X: e} }
 
 func cmdSubst(sts ...*ast.Stmt) *ast.CmdSubst { return &ast.CmdSubst{Stmts: sts} }
@@ -1797,6 +1797,14 @@ var FileTests = []TestCase{
 		})),
 	},
 	{
+		[]string{`((a <= 2))`},
+		word(&ast.ArithmExp{Token: token.DLPAREN, X: &ast.BinaryExpr{
+			Op: token.LEQ,
+			X:  litWord("a"),
+			Y:  litWord("2"),
+		}}),
+	},
+	{
 		[]string{"foo$", "foo$\n"},
 		word(lit("foo"), lit("$")),
 	},
@@ -2620,8 +2628,8 @@ func SetPosRecurse(tb testing.TB, src string, v interface{}, to token.Pos, diff 
 			recurse(&x.Exp.Word)
 		}
 	case *ast.ArithmExp:
-		setPos(&x.Dollar, "$((")
-		setPos(&x.Rparen, "))")
+		setPos(&x.Left, x.Token.String())
+		setPos(&x.Right, "))")
 		recurse(&x.X)
 	case *ast.ParenExpr:
 		setPos(&x.Lparen, "(")

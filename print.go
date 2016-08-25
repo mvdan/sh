@@ -385,7 +385,11 @@ func (p *printer) wordPart(wp ast.WordPart) {
 		}
 		p.WriteByte('}')
 	case *ast.ArithmExp:
-		p.WriteString("$((")
+		if x.Token == token.DOLLDP {
+			p.WriteString("$((")
+		} else { // token.DLPAREN
+			p.WriteString("((")
+		}
 		p.arithm(x.X, false)
 		p.WriteString("))")
 	case *ast.ArrayExpr:
