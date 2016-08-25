@@ -879,8 +879,9 @@ func arithmOpLevel(tok token.Token) int {
 	switch tok {
 	case token.COMMA:
 		return 0
-	case token.ADDASSGN, token.SUBASSGN, token.MULASSGN, token.QUOASSGN, token.REMASSGN,
-		token.ANDASSGN, token.ORASSGN, token.XORASSGN, token.SHLASSGN, token.SHRASSGN:
+	case token.ADDASSGN, token.SUBASSGN, token.MULASSGN, token.QUOASSGN,
+		token.REMASSGN, token.ANDASSGN, token.ORASSGN, token.XORASSGN,
+		token.SHLASSGN, token.SHRASSGN:
 		return 1
 	case token.ASSIGN:
 		return 2
@@ -1072,9 +1073,10 @@ func (p *parser) arithmEnd(left token.Pos, old token.Token) token.Pos {
 }
 
 func stopToken(tok token.Token) bool {
-	return tok == token.EOF || tok == token.SEMICOLON || tok == token.AND || tok == token.OR ||
-		tok == token.LAND || tok == token.LOR || tok == token.PIPEALL ||
-		tok == token.DSEMICOLON || tok == token.SEMIFALL || tok == token.DSEMIFALL
+	return tok == token.EOF || tok == token.SEMICOLON || tok == token.AND ||
+		tok == token.OR || tok == token.LAND || tok == token.LOR ||
+		tok == token.PIPEALL || tok == token.DSEMICOLON ||
+		tok == token.SEMIFALL || tok == token.DSEMIFALL
 }
 
 var identRe = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
@@ -1131,8 +1133,9 @@ func (p *parser) peekRedir() bool {
 	switch p.tok {
 	case token.LITWORD:
 		return p.npos < len(p.src) && (p.src[p.npos] == '>' || p.src[p.npos] == '<')
-	case token.GTR, token.SHR, token.LSS, token.DPLIN, token.DPLOUT, token.RDRINOUT,
-		token.SHL, token.DHEREDOC, token.WHEREDOC, token.RDRALL, token.APPALL:
+	case token.GTR, token.SHR, token.LSS, token.DPLIN, token.DPLOUT,
+		token.RDRINOUT, token.SHL, token.DHEREDOC, token.WHEREDOC,
+		token.RDRALL, token.APPALL:
 		return true
 	}
 	return false
@@ -1176,8 +1179,9 @@ preLoop:
 			} else {
 				break preLoop
 			}
-		case token.GTR, token.SHR, token.LSS, token.DPLIN, token.DPLOUT, token.RDRINOUT,
-			token.SHL, token.DHEREDOC, token.WHEREDOC, token.RDRALL, token.APPALL:
+		case token.GTR, token.SHR, token.LSS, token.DPLIN, token.DPLOUT,
+			token.RDRINOUT, token.SHL, token.DHEREDOC,
+			token.WHEREDOC, token.RDRALL, token.APPALL:
 			p.doRedirect(s)
 		default:
 			break preLoop
@@ -1254,8 +1258,9 @@ func (p *parser) gotStmtPipe(s *ast.Stmt) *ast.Stmt {
 				s.Cmd = p.callExpr(s, w)
 			}
 		}
-	case token.LIT, token.DOLLBR, token.DOLLDP, token.DOLLPR, token.DOLLAR, token.CMDIN, token.CMDOUT,
-		token.SQUOTE, token.DOLLSQ, token.DQUOTE, token.DOLLDQ, token.BQUOTE:
+	case token.LIT, token.DOLLBR, token.DOLLDP, token.DOLLPR, token.DOLLAR,
+		token.CMDIN, token.CMDOUT, token.SQUOTE, token.DOLLSQ,
+		token.DQUOTE, token.DOLLDQ, token.BQUOTE:
 		w := p.getWord()
 		if p.gotSameLine(token.LPAREN) && p.err == nil {
 			p.posErr(w.Pos(), "invalid func name: %s", p.wordStr(w))
@@ -1530,7 +1535,9 @@ func (p *parser) callExpr(s *ast.Stmt, w ast.Word) *ast.CallExpr {
 	ce := &ast.CallExpr{Args: []ast.Word{w}}
 	for !p.newLine {
 		switch p.tok {
-		case token.EOF, token.SEMICOLON, token.AND, token.OR, token.LAND, token.LOR, token.PIPEALL, p.quote, token.DSEMICOLON, token.SEMIFALL, token.DSEMIFALL:
+		case token.EOF, token.SEMICOLON, token.AND, token.OR,
+			token.LAND, token.LOR, token.PIPEALL, p.quote,
+			token.DSEMICOLON, token.SEMIFALL, token.DSEMIFALL:
 			return ce
 		case token.STOPPED:
 			p.next()
@@ -1540,11 +1547,13 @@ func (p *parser) callExpr(s *ast.Stmt, w ast.Word) *ast.CallExpr {
 				continue
 			}
 			fallthrough
-		case token.LIT, token.DOLLBR, token.DOLLDP, token.DOLLPR, token.DOLLAR, token.CMDIN, token.CMDOUT,
-			token.SQUOTE, token.DOLLSQ, token.DQUOTE, token.DOLLDQ, token.BQUOTE:
+		case token.LIT, token.DOLLBR, token.DOLLDP, token.DOLLPR,
+			token.DOLLAR, token.CMDIN, token.CMDOUT, token.SQUOTE,
+			token.DOLLSQ, token.DQUOTE, token.DOLLDQ, token.BQUOTE:
 			ce.Args = append(ce.Args, p.getWord())
-		case token.GTR, token.SHR, token.LSS, token.DPLIN, token.DPLOUT, token.RDRINOUT,
-			token.SHL, token.DHEREDOC, token.WHEREDOC, token.RDRALL, token.APPALL:
+		case token.GTR, token.SHR, token.LSS, token.DPLIN, token.DPLOUT,
+			token.RDRINOUT, token.SHL, token.DHEREDOC,
+			token.WHEREDOC, token.RDRALL, token.APPALL:
 			p.doRedirect(s)
 		default:
 			p.curErr("a command can only contain words and redirects")
