@@ -532,7 +532,7 @@ func (p *printer) arithm(expr ast.ArithmExpr, compact bool) {
 	p.wantSpace = false
 	switch x := expr.(type) {
 	case *ast.Word:
-		p.spacedWord(*x)
+		p.word(*x)
 	case *ast.BinaryExpr:
 		if compact {
 			p.arithm(x.X, true)
@@ -586,15 +586,6 @@ func (p *printer) unquotedWord(w *ast.Word) {
 		default:
 			p.wordPart(wp)
 		}
-	}
-}
-
-func (p *printer) spacedWord(w ast.Word) {
-	if p.wantSpace {
-		p.WriteByte(' ')
-	}
-	for _, n := range w.Parts {
-		p.wordPart(n)
 	}
 }
 
@@ -816,7 +807,12 @@ func (p *printer) command(cmd ast.Command, redirs []*ast.Redirect) (startRedirs 
 				if i > 0 {
 					p.spacedTok("|", true)
 				}
-				p.spacedWord(w)
+				if p.wantSpace {
+					p.WriteByte(' ')
+				}
+				for _, n := range w.Parts {
+					p.wordPart(n)
+				}
 			}
 			p.WriteByte(')')
 			sep := len(pl.Stmts) > 1 || (len(pl.Stmts) > 0 && pl.Stmts[0].Pos() > p.nline)
@@ -847,7 +843,8 @@ func (p *printer) command(cmd ast.Command, redirs []*ast.Redirect) (startRedirs 
 			p.spacedRsrv("declare")
 		}
 		for _, w := range x.Opts {
-			p.spacedWord(w)
+			p.WriteByte(' ')
+			p.word(w)
 		}
 		p.assigns(x.Assigns)
 	case *ast.EvalClause:
