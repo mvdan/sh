@@ -67,7 +67,7 @@ type parser struct {
 
 	quote token.Token
 
-	hdocStop string
+	hdocStop []byte
 	hdocTabs bool
 
 	// list of pending heredoc bodies
@@ -109,7 +109,7 @@ func (p *parser) next() {
 		return
 	}
 	b := p.src[p.npos]
-	if p.quote == token.SHL && p.hdocStop == "" {
+	if p.quote == token.SHL && p.hdocStop == nil {
 		return
 	}
 	if p.tok == token.STOPPED && b == '\n' {
@@ -396,7 +396,7 @@ loop:
 }
 
 func (p *parser) advanceLitHdoc() {
-	end := []byte(p.hdocStop)
+	end := p.hdocStop
 	isEnd := func(i int) bool {
 		if len(p.src) < i+len(end) {
 			return false
@@ -417,7 +417,7 @@ func (p *parser) advanceLitHdoc() {
 			p.tok, p.val = token.LIT, string(p.src[p.npos:n])
 		}
 		p.npos = n + len(end)
-		p.hdocStop = ""
+		p.hdocStop = nil
 		return
 	}
 	var i int
@@ -443,7 +443,7 @@ loop:
 			if isEnd(n) {
 				p.tok, p.val = token.LIT, string(p.src[p.npos:n])
 				p.npos = n + len(end)
-				p.hdocStop = ""
+				p.hdocStop = nil
 				return
 			}
 		}
@@ -474,7 +474,7 @@ func (p *parser) wordStr(w ast.Word) string {
 	return p.helperBuf.String()
 }
 
-func (p *parser) unquotedWordStr(w ast.Word) string {
+func (p *parser) unquotedWordBytes(w ast.Word) []byte {
 	if p.helperWriter == nil {
 		p.helperBuf = new(bytes.Buffer)
 		p.helperWriter = bufio.NewWriter(p.helperBuf)
@@ -485,7 +485,10 @@ func (p *parser) unquotedWordStr(w ast.Word) string {
 	pr := printer{Writer: p.helperWriter, f: p.f}
 	pr.unquotedWord(w)
 	p.helperWriter.Flush()
-	return p.helperBuf.String()
+	// safe to just use Bytes() since helperBuf is otherwise only
+	// used to print words for errors, in which case invalid bytes
+	// here is fine.
+	return p.helperBuf.Bytes()
 }
 
 func (p *parser) doHeredocs() {
@@ -495,7 +498,7 @@ func (p *parser) doHeredocs() {
 	p.heredocs = p.heredocs[:0]
 	for _, r := range hdocs {
 		p.hdocTabs = r.Op == token.DHEREDOC
-		p.hdocStop = p.unquotedWordStr(r.Word)
+		p.hdocStop = p.unquotedWordBytes(r.Word)
 		if p.npos < len(p.src) && p.src[p.npos] == '\n' {
 			p.npos++
 			p.f.Lines = append(p.f.Lines, p.npos)
@@ -739,7 +742,7 @@ func (p *parser) wordParts() (wps []ast.WordPart) {
 		if p.spaced {
 			return
 		}
-		if p.quote == token.SHL && p.hdocStop == "" {
+		if p.quote == token.SHL && p.hdocStop == nil {
 			// TODO: is this is a hack around a bug?
 			if p.tok == token.LIT && !lastLit {
 				wps = append(wps, &ast.Lit{
