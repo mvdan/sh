@@ -924,11 +924,6 @@ func (p *printer) stmts(stmts []*ast.Stmt) {
 	p.wantNewline = true
 }
 
-var (
-	printBuf  bytes.Buffer
-	bufWriter = bufio.NewWriter(&printBuf)
-)
-
 func (p *printer) stmtLen(s *ast.Stmt) int {
 	if p.helperWriter == nil {
 		p.helperBuf = new(bytes.Buffer)
