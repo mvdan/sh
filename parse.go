@@ -475,7 +475,7 @@ func (p *parser) wordStr(w ast.Word) string {
 	return p.helperBuf.String()
 }
 
-func (p *parser) unquotedWordStr(w *ast.Word) string {
+func (p *parser) unquotedWordStr(w ast.Word) string {
 	if p.helperWriter == nil {
 		p.helperBuf = new(bytes.Buffer)
 		p.helperWriter = bufio.NewWriter(p.helperBuf)
@@ -496,7 +496,7 @@ func (p *parser) doHeredocs() {
 	p.heredocs = p.heredocs[:0]
 	for _, r := range hdocs {
 		p.hdocTabs = r.Op == token.DHEREDOC
-		p.hdocStop = p.unquotedWordStr(&r.Word)
+		p.hdocStop = p.unquotedWordStr(r.Word)
 		if p.npos < len(p.src) && p.src[p.npos] == '\n' {
 			p.npos++
 			p.f.Lines = append(p.f.Lines, p.npos)

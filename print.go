@@ -191,7 +191,7 @@ func (p *printer) newline() {
 	for _, r := range hdocs {
 		p.word(r.Hdoc)
 		p.incLines(r.Hdoc.End() + 1)
-		p.unquotedWord(&r.Word)
+		p.unquotedWord(r.Word)
 		p.WriteByte('\n')
 		p.incLine()
 		p.wantSpace = false
@@ -568,7 +568,7 @@ func (p *printer) word(w ast.Word) {
 	}
 }
 
-func (p *printer) unquotedWord(w *ast.Word) {
+func (p *printer) unquotedWord(w ast.Word) {
 	for _, wp := range w.Parts {
 		switch x := wp.(type) {
 		case *ast.SglQuoted:
