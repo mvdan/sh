@@ -20,9 +20,7 @@ var (
 	write  = flag.Bool("w", false, "write result to file instead of stdout")
 	list   = flag.Bool("l", false, "list files whose formatting differs from shfmt's")
 	indent = flag.Int("i", 0, "indent: 0 for tabs (default), >0 for number of spaces")
-)
 
-var (
 	config sh.PrintConfig
 	buf    bytes.Buffer
 )
