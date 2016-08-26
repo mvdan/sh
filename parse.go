@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -1081,7 +1080,19 @@ func stopToken(tok token.Token) bool {
 		tok == token.SEMIFALL || tok == token.DSEMIFALL
 }
 
-var identRe = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
+func validIdent(s string) bool {
+	for i, c := range s {
+		switch {
+		case 'a' <= c && c <= 'z':
+		case 'A' <= c && c <= 'Z':
+		case c == '_':
+		case i > 0 && '0' <= c && c <= '9':
+		default:
+			return false
+		}
+	}
+	return true
+}
 
 func (p *parser) getAssign() (*ast.Assign, bool) {
 	i := strings.Index(p.val, "=")
@@ -1091,7 +1102,7 @@ func (p *parser) getAssign() (*ast.Assign, bool) {
 	if p.val[i-1] == '+' {
 		i--
 	}
-	if !identRe.MatchString(p.val[:i]) {
+	if !validIdent(p.val[:i]) {
 		return nil, false
 	}
 	as := &ast.Assign{}

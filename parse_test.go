@@ -88,6 +88,10 @@ func BenchmarkParse(b *testing.B) {
 			"a() { (b); { c; }; (d); }; $(a `b` $(c) `d`)",
 		},
 		{
+			"Assign",
+			"foo=bar a=b c=d abcdé=fg",
+		},
+		{
 			"Clauses",
 			"if a; then while b; do for c in d e; do f; done; done; fi",
 		},
