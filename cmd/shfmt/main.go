@@ -8,18 +8,21 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime/pprof"
 	"strings"
 
 	"github.com/mvdan/sh"
 )
 
 var (
-	write  = flag.Bool("w", false, "write result to file instead of stdout")
-	list   = flag.Bool("l", false, "list files whose formatting differs from shfmt's")
-	indent = flag.Int("i", 0, "indent: 0 for tabs (default), >0 for number of spaces")
+	write      = flag.Bool("w", false, "write result to file instead of stdout")
+	list       = flag.Bool("l", false, "list files whose formatting differs from shfmt's")
+	indent     = flag.Int("i", 0, "indent: 0 for tabs (default), >0 for number of spaces")
+	cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
 
 	config sh.PrintConfig
 	buf    bytes.Buffer
@@ -27,6 +30,15 @@ var (
 
 func main() {
 	flag.Parse()
+	if *cpuprofile != "" {
+		f, err := os.Create(*cpuprofile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		pprof.StartCPUProfile(f)
+		defer pprof.StopCPUProfile()
+	}
+
 	config.Spaces = *indent
 	if flag.NArg() == 0 {
 		if err := formatStdin(); err != nil {
