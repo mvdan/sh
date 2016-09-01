@@ -276,47 +276,47 @@ func (p *printer) commentsUpTo(pos token.Pos) {
 	p.commentsUpTo(pos)
 }
 
-func quotedOp(tok token.Token) string {
+func (p *printer) quotedOp(tok token.Token) {
 	switch tok {
 	case token.DQUOTE:
-		return `"`
+		p.WriteByte('"')
 	case token.DOLLSQ:
-		return `$'`
+		p.WriteString(`$'`)
 	case token.SQUOTE:
-		return `'`
+		p.WriteByte('\'')
 	default: // token.DOLLDQ
-		return `$"`
+		p.WriteString(`$"`)
 	}
 }
 
-func expansionOp(tok token.Token) string {
+func (p *printer) expansionOp(tok token.Token) {
 	switch tok {
 	case token.COLON:
-		return ":"
+		p.WriteByte(':')
 	case token.ADD:
-		return "+"
+		p.WriteByte('+')
 	case token.CADD:
-		return ":+"
+		p.WriteString(":+")
 	case token.SUB:
-		return "-"
+		p.WriteByte('-')
 	case token.CSUB:
-		return ":-"
+		p.WriteString(":-")
 	case token.QUEST:
-		return "?"
+		p.WriteByte('?')
 	case token.CQUEST:
-		return ":?"
+		p.WriteString(":?")
 	case token.ASSIGN:
-		return "="
+		p.WriteByte('=')
 	case token.CASSIGN:
-		return ":="
+		p.WriteString(":=")
 	case token.REM:
-		return "%"
+		p.WriteByte('%')
 	case token.DREM:
-		return "%%"
+		p.WriteString("%%")
 	case token.HASH:
-		return "#"
+		p.WriteByte('#')
 	default: // token.DHASH
-		return "##"
+		p.WriteString("##")
 	}
 }
 
@@ -329,14 +329,14 @@ func (p *printer) wordPart(wp ast.WordPart) {
 		p.WriteString(x.Value)
 		p.WriteByte('\'')
 	case *ast.Quoted:
-		p.WriteString(quotedOp(x.Quote))
+		p.quotedOp(x.Quote)
 		for i, n := range x.Parts {
 			p.wordPart(n)
 			if i == len(x.Parts)-1 {
 				p.incLines(n.End())
 			}
 		}
-		p.WriteString(quotedOp(quotedStop(x.Quote)))
+		p.quotedOp(quotedStop(x.Quote))
 	case *ast.CmdSubst:
 		p.incLines(x.Pos())
 		p.wantSpace = false
@@ -380,7 +380,7 @@ func (p *printer) wordPart(wp ast.WordPart) {
 			p.WriteByte('/')
 			p.word(x.Repl.With)
 		} else if x.Exp != nil {
-			p.WriteString(expansionOp(x.Exp.Op))
+			p.expansionOp(x.Exp.Op)
 			p.word(x.Exp.Word)
 		}
 		p.WriteByte('}')
@@ -443,91 +443,92 @@ func (p *printer) loop(loop ast.Loop) {
 	}
 }
 
-func binaryExprOp(tok token.Token) string {
+func (p *printer) binaryExprOp(tok token.Token) {
 	switch tok {
 	case token.ASSIGN:
-		return "="
+		p.WriteByte('=')
 	case token.ADD:
-		return "+"
+		p.WriteByte('+')
 	case token.SUB:
-		return "-"
+		p.WriteByte('-')
 	case token.REM:
-		return "%"
+		p.WriteByte('%')
 	case token.MUL:
-		return "*"
+		p.WriteByte('*')
 	case token.QUO:
-		return "/"
+		p.WriteByte('/')
 	case token.AND:
-		return "&"
+		p.WriteByte('&')
 	case token.OR:
-		return "|"
+		p.WriteByte('|')
 	case token.LAND:
-		return "&&"
+		p.WriteString("&&")
 	case token.LOR:
-		return "||"
+		p.WriteString("||")
 	case token.XOR:
-		return "^"
+		p.WriteByte('^')
 	case token.POW:
-		return "**"
+		p.WriteString("**")
 	case token.EQL:
-		return "=="
+		p.WriteString("==")
 	case token.NEQ:
-		return "!="
+		p.WriteString("!=")
 	case token.LEQ:
-		return "<="
+		p.WriteString("<=")
 	case token.GEQ:
-		return ">="
+		p.WriteString(">=")
 	case token.ADDASSGN:
-		return "+="
+		p.WriteString("+=")
 	case token.SUBASSGN:
-		return "-="
+		p.WriteString("-=")
 	case token.MULASSGN:
-		return "*="
+		p.WriteString("*=")
 	case token.QUOASSGN:
-		return "/="
+		p.WriteString("/=")
 	case token.REMASSGN:
-		return "%="
+		p.WriteString("%=")
 	case token.ANDASSGN:
-		return "&="
+		p.WriteString("&=")
 	case token.ORASSGN:
-		return "|="
+		p.WriteString("|=")
 	case token.XORASSGN:
-		return "^="
+		p.WriteString("^=")
 	case token.SHLASSGN:
-		return "<<="
+		p.WriteString("<<=")
 	case token.SHRASSGN:
-		return ">>="
+		p.WriteString(">>=")
 	case token.LSS:
-		return "<"
+		p.WriteByte('<')
 	case token.GTR:
-		return ">"
+		p.WriteByte('>')
 	case token.SHL:
-		return "<<"
+		p.WriteString("<<")
 	case token.SHR:
-		return ">>"
+		p.WriteString(">>")
 	case token.QUEST:
-		return "?"
+		p.WriteByte('?')
 	case token.COLON:
-		return ":"
+		p.WriteByte(':')
 	default: // token.COMMA
-		return ","
+		p.WriteByte(',')
 	}
 }
 
-func unaryExprOp(tok token.Token) string {
+func (p *printer) unaryExprOp(tok token.Token) {
 	switch tok {
 	case token.ADD:
-		return "+"
+		p.WriteByte('+')
 	case token.SUB:
-		return "-"
+		p.WriteByte('-')
 	case token.NOT:
-		return "!"
+		p.WriteByte('!')
 	case token.INC:
-		return "++"
+		p.WriteString("++")
 	default: // token.DEC
-		return "--"
+		p.WriteString("--")
 	}
 }
+
 func (p *printer) arithm(expr ast.ArithmExpr, compact bool) {
 	p.wantSpace = false
 	switch x := expr.(type) {
@@ -536,23 +537,23 @@ func (p *printer) arithm(expr ast.ArithmExpr, compact bool) {
 	case *ast.BinaryExpr:
 		if compact {
 			p.arithm(x.X, true)
-			p.WriteString(binaryExprOp(x.Op))
+			p.binaryExprOp(x.Op)
 			p.arithm(x.Y, true)
 		} else {
 			p.arithm(x.X, false)
 			if x.Op != token.COMMA {
 				p.WriteByte(' ')
 			}
-			p.WriteString(binaryExprOp(x.Op))
+			p.binaryExprOp(x.Op)
 			p.space()
 			p.arithm(x.Y, false)
 		}
 	case *ast.UnaryExpr:
 		if x.Post {
 			p.arithm(x.X, compact)
-			p.WriteString(unaryExprOp(x.Op))
+			p.unaryExprOp(x.Op)
 		} else {
-			p.WriteString(unaryExprOp(x.Op))
+			p.unaryExprOp(x.Op)
 			p.arithm(x.X, compact)
 		}
 	case *ast.ParenExpr:
@@ -639,7 +640,7 @@ func (p *printer) stmt(s *ast.Stmt) {
 		if r.N != nil {
 			p.WriteString(r.N.Value)
 		}
-		p.WriteString(redirectOp(r.Op))
+		p.redirectOp(r.Op)
 		p.wantSpace = true
 		p.word(r.Word)
 		if r.Op == token.SHL || r.Op == token.DHEREDOC {
@@ -654,30 +655,30 @@ func (p *printer) stmt(s *ast.Stmt) {
 	}
 }
 
-func redirectOp(tok token.Token) string {
+func (p *printer) redirectOp(tok token.Token) {
 	switch tok {
 	case token.LSS:
-		return "<"
+		p.WriteByte('<')
 	case token.GTR:
-		return ">"
+		p.WriteByte('>')
 	case token.SHL:
-		return "<<"
+		p.WriteString("<<")
 	case token.SHR:
-		return ">>"
+		p.WriteString(">>")
 	case token.RDRINOUT:
-		return "<>"
+		p.WriteString("<>")
 	case token.DPLIN:
-		return "<&"
+		p.WriteString("<&")
 	case token.DPLOUT:
-		return ">&"
+		p.WriteString(">&")
 	case token.DHEREDOC:
-		return "<<-"
+		p.WriteString("<<-")
 	case token.WHEREDOC:
-		return "<<<"
+		p.WriteString("<<<")
 	case token.RDRALL:
-		return "&>"
+		p.WriteString("&>")
 	default: // token.APPALL
-		return "&>>"
+		p.WriteString("&>>")
 	}
 }
 
@@ -723,7 +724,7 @@ func (p *printer) command(cmd ast.Command, redirs []*ast.Redirect) (startRedirs 
 			if r.N != nil {
 				p.WriteString(r.N.Value)
 			}
-			p.WriteString(redirectOp(r.Op))
+			p.redirectOp(r.Op)
 			p.wantSpace = true
 			p.word(r.Word)
 			startRedirs++
