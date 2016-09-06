@@ -13,13 +13,14 @@ import (
 
 	"github.com/mvdan/sh/ast"
 	"github.com/mvdan/sh/internal/tests"
+	"github.com/mvdan/sh/parser"
 )
 
 func TestFprintCompact(t *testing.T) {
 	for i, c := range tests.FileTests {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
 			in := c.Strs[0]
-			prog, err := Parse([]byte(in), "", 0)
+			prog, err := parser.Parse([]byte(in), "", 0)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -322,8 +323,8 @@ func TestFprintWeirdFormat(t *testing.T) {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
 			for _, s := range [...]string{"", "\n"} {
 				in := s + tc.in + s
-				prog, err := Parse([]byte(in), "", ParseComments)
-				checkNewlines(t, in, prog.Lines)
+				prog, err := parser.Parse([]byte(in), "", parser.ParseComments)
+				tests.CheckNewlines(t, in, prog.Lines)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -352,14 +353,14 @@ func parsePath(tb testing.TB, path string) *ast.File {
 	if err != nil {
 		tb.Fatal(err)
 	}
-	prog, err := Parse(bs, "", ParseComments)
+	prog, err := parser.Parse(bs, "", parser.ParseComments)
 	if err != nil {
 		tb.Fatal(err)
 	}
 	return prog
 }
 
-var canonicalPath = filepath.Join("testdata", "canonical.sh")
+var canonicalPath = filepath.Join("..", "testdata", "canonical.sh")
 
 func TestFprintMultiline(t *testing.T) {
 	prog := parsePath(t, canonicalPath)
@@ -415,7 +416,7 @@ func TestFprintSpaces(t *testing.T) {
 
 	for i, tc := range spaceFormats {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
-			prog, err := Parse([]byte(tc.in), "", ParseComments)
+			prog, err := parser.Parse([]byte(tc.in), "", parser.ParseComments)
 			if err != nil {
 				t.Fatal(err)
 			}

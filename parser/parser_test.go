@@ -27,26 +27,13 @@ func TestParse(t *testing.T) {
 	}
 }
 
-func checkNewlines(tb testing.TB, src string, got []int) {
-	want := []int{0}
-	for i, b := range src {
-		if b == '\n' {
-			want = append(want, i+1)
-		}
-	}
-	if !reflect.DeepEqual(got, want) {
-		tb.Fatalf("Unexpected newline offsets at %q:\ngot:  %v\nwant: %v",
-			src, got, want)
-	}
-}
-
 func singleParse(in string, want *ast.File) func(t *testing.T) {
 	return func(t *testing.T) {
 		got, err := Parse([]byte(in), "", 0)
 		if err != nil {
 			t.Fatalf("Unexpected error in %q: %v", in, err)
 		}
-		checkNewlines(t, in, got.Lines)
+		tests.CheckNewlines(t, in, got.Lines)
 		got.Lines = nil
 		tests.SetPosRecurse(t, in, got.Stmts, internal.DefaultPos, true)
 		if !reflect.DeepEqual(got, want) {

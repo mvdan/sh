@@ -2684,3 +2684,16 @@ func SetPosRecurse(tb testing.TB, src string, v interface{}, to token.Pos, diff 
 		panic(reflect.TypeOf(v))
 	}
 }
+
+func CheckNewlines(tb testing.TB, src string, got []int) {
+	want := []int{0}
+	for i, b := range src {
+		if b == '\n' {
+			want = append(want, i+1)
+		}
+	}
+	if !reflect.DeepEqual(got, want) {
+		tb.Fatalf("Unexpected newline offsets at %q:\ngot:  %v\nwant: %v",
+			src, got, want)
+	}
+}
