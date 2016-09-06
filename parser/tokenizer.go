@@ -599,7 +599,8 @@ func (p *parser) advanceLitOther(q token.Token) {
 }
 
 func (p *parser) advanceLitNone() {
-	i, tok := 0, token.LIT
+	var i int
+	tok := token.LIT
 loop:
 	for i = p.npos; i < len(p.src); i++ {
 		switch p.src[i] {
