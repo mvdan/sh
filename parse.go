@@ -34,13 +34,15 @@ var parserFree = sync.Pool{
 func Parse(src []byte, name string, mode Mode) (*ast.File, error) {
 	p := parserFree.Get().(*parser)
 	*p = parser{
-		f:            &ast.File{Name: name},
+		f: &ast.File{
+			Name:  name,
+			Lines: make([]int, 1, 16),
+		},
 		src:          src,
 		mode:         mode,
 		helperBuf:    p.helperBuf,
 		helperWriter: p.helperWriter,
 	}
-	p.f.Lines = make([]int, 1, 16)
 	p.next()
 	p.f.Stmts = p.stmts()
 	parserFree.Put(p)
