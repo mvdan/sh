@@ -4,7 +4,6 @@
 package sh
 
 import (
-	"bufio"
 	"bytes"
 	"fmt"
 	"io"
@@ -38,10 +37,9 @@ func Parse(src []byte, name string, mode Mode) (*ast.File, error) {
 			Name:  name,
 			Lines: make([]int, 1, 16),
 		},
-		src:          src,
-		mode:         mode,
-		helperBuf:    p.helperBuf,
-		helperWriter: p.helperWriter,
+		src:       src,
+		mode:      mode,
+		helperBuf: p.helperBuf,
 	}
 	p.next()
 	p.f.Stmts = p.stmts()
@@ -74,25 +72,39 @@ type parser struct {
 	// list of pending heredoc bodies
 	heredocs []*ast.Redirect
 
-	helperBuf    *bytes.Buffer
-	helperWriter *bufio.Writer
+	helperBuf *bytes.Buffer
 }
 
 func (p *parser) unquotedWordBytes(w ast.Word) []byte {
-	if p.helperWriter == nil {
+	if p.helperBuf == nil {
 		p.helperBuf = new(bytes.Buffer)
-		p.helperWriter = bufio.NewWriter(p.helperBuf)
 	} else {
-		p.helperWriter.Reset(p.helperBuf)
 		p.helperBuf.Reset()
 	}
-	pr := printer{Writer: p.helperWriter, f: p.f}
-	pr.unquotedWord(w)
-	p.helperWriter.Flush()
-	// safe to just use Bytes() since helperBuf is otherwise only
-	// used to print words for errors, in which case invalid bytes
-	// here is fine.
+	for _, wp := range w.Parts {
+		p.unquotedWordPart(p.helperBuf, wp)
+	}
 	return p.helperBuf.Bytes()
+}
+
+func (p *parser) unquotedWordPart(b *bytes.Buffer, wp ast.WordPart) {
+	switch x := wp.(type) {
+	case *ast.Lit:
+		if x.Value[0] == '\\' {
+			b.WriteString(x.Value[1:])
+		} else {
+			b.WriteString(x.Value)
+		}
+	case *ast.SglQuoted:
+		b.WriteString(x.Value)
+	case *ast.Quoted:
+		for _, wp2 := range x.Parts {
+			p.unquotedWordPart(b, wp2)
+		}
+	default:
+		// catch-all for unusual cases such as ParamExp
+		b.Write(p.src[wp.Pos()-1 : wp.End()-1])
+	}
 }
 
 func (p *parser) doHeredocs() {
