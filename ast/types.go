@@ -436,7 +436,10 @@ func (p *ParamExp) End() token.Pos {
 	if p.Exp != nil {
 		end = posMax(end, p.Exp.Word.End())
 	}
-	return posAfter(end, 1)
+	if !p.Short {
+		end = posAfter(end, 1)
+	}
+	return end
 }
 
 // Index represents access to an array via an index inside a ParamExp.
