@@ -336,7 +336,14 @@ func (p *printer) wordPart(wp ast.WordPart) {
 				p.incLines(n.End())
 			}
 		}
-		p.quotedOp(quotedStop(x.Quote))
+		switch x.Quote {
+		case token.DOLLSQ:
+			p.quotedOp(token.SQUOTE)
+		case token.DOLLDQ:
+			p.quotedOp(token.DQUOTE)
+		default:
+			p.quotedOp(x.Quote)
+		}
 	case *ast.CmdSubst:
 		p.incLines(x.Pos())
 		p.wantSpace = false

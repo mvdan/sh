@@ -451,7 +451,12 @@ func (p *parser) wordPart() ast.WordPart {
 		return sq
 	case token.DOLLSQ, token.DQUOTE, token.DOLLDQ:
 		q := &ast.Quoted{Quote: p.tok, QuotePos: p.pos}
-		stop := quotedStop(q.Quote)
+		stop := q.Quote
+		if q.Quote == token.DOLLSQ {
+			stop = token.SQUOTE
+		} else if q.Quote == token.DOLLDQ {
+			stop = token.DQUOTE
+		}
 		old := p.quote
 		p.quote = stop
 		p.next()
@@ -475,16 +480,6 @@ func (p *parser) wordPart() ast.WordPart {
 		return cs
 	}
 	return nil
-}
-
-func quotedStop(start token.Token) token.Token {
-	switch start {
-	case token.DOLLSQ:
-		return token.SQUOTE
-	case token.DOLLDQ:
-		return token.DQUOTE
-	}
-	return start
 }
 
 func arithmOpLevel(tok token.Token) int {
