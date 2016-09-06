@@ -78,20 +78,6 @@ type parser struct {
 	helperWriter *bufio.Writer
 }
 
-func (p *parser) wordStr(w ast.Word) string {
-	if p.helperWriter == nil {
-		p.helperBuf = new(bytes.Buffer)
-		p.helperWriter = bufio.NewWriter(p.helperBuf)
-	} else {
-		p.helperWriter.Reset(p.helperBuf)
-		p.helperBuf.Reset()
-	}
-	pr := printer{Writer: p.helperWriter, f: p.f}
-	pr.word(w)
-	p.helperWriter.Flush()
-	return p.helperBuf.String()
-}
-
 func (p *parser) unquotedWordBytes(w ast.Word) []byte {
 	if p.helperWriter == nil {
 		p.helperBuf = new(bytes.Buffer)
@@ -895,7 +881,8 @@ func (p *parser) gotStmtPipe(s *ast.Stmt) *ast.Stmt {
 		token.DQUOTE, token.DOLLDQ, token.BQUOTE, token.DLPAREN:
 		w := p.getWord()
 		if p.gotSameLine(token.LPAREN) && p.err == nil {
-			p.posErr(w.Pos(), "invalid func name: %s", p.wordStr(w))
+			rawName := string(p.src[w.Pos()-1 : w.End()-1])
+			p.posErr(w.Pos(), "invalid func name: %q", rawName)
 		}
 		s.Cmd = p.callExpr(s, w)
 	}
@@ -1150,7 +1137,8 @@ func (p *parser) bashFuncDecl() *ast.FuncDecl {
 	p.next()
 	if p.tok != token.LITWORD {
 		if w := p.followWord("function", fpos); p.err == nil {
-			p.posErr(w.Pos(), "invalid func name: %s", p.wordStr(w))
+			rawName := string(p.src[w.Pos()-1 : w.End()-1])
+			p.posErr(w.Pos(), "invalid func name: %q", rawName)
 		}
 	}
 	name := ast.Lit{ValuePos: p.pos, Value: p.val}
