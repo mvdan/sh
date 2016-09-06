@@ -1,7 +1,7 @@
 // Copyright (c) 2016, Daniel Martí <mvdan@mvdan.cc>
 // See LICENSE for licensing information
 
-package sh
+package printer
 
 import (
 	"bufio"
@@ -13,8 +13,8 @@ import (
 	"github.com/mvdan/sh/token"
 )
 
-// PrintConfig controls how the printing of an AST node will behave.
-type PrintConfig struct {
+// Config controls how the printing of an AST node will behave.
+type Config struct {
 	Spaces int // 0 (default) for tabs, >0 for number of spaces
 }
 
@@ -25,7 +25,7 @@ var printerFree = sync.Pool{
 }
 
 // Fprint "pretty-prints" the given AST file to the given writer.
-func (c PrintConfig) Fprint(w io.Writer, f *ast.File) error {
+func (c Config) Fprint(w io.Writer, f *ast.File) error {
 	p := printerFree.Get().(*printer)
 	*p = printer{
 		Writer:       p.Writer,
@@ -47,16 +47,16 @@ func (c PrintConfig) Fprint(w io.Writer, f *ast.File) error {
 const maxPos = token.Pos(^uint(0) >> 1)
 
 // Fprint "pretty-prints" the given AST file to the given writer. It
-// calls PrintConfig.Fprint with its default settings.
+// calls Config.Fprint with its default settings.
 func Fprint(w io.Writer, f *ast.File) error {
-	return PrintConfig{}.Fprint(w, f)
+	return Config{}.Fprint(w, f)
 }
 
 type printer struct {
 	*bufio.Writer
 
 	f *ast.File
-	c PrintConfig
+	c Config
 
 	wantSpace   bool
 	wantNewline bool

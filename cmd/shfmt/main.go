@@ -16,6 +16,7 @@ import (
 	"strings"
 
 	"github.com/mvdan/sh"
+	"github.com/mvdan/sh/printer"
 )
 
 var (
@@ -24,7 +25,7 @@ var (
 	indent     = flag.Int("i", 0, "indent: 0 for tabs (default), >0 for number of spaces")
 	cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
 
-	config sh.PrintConfig
+	config printer.Config
 	buf    bytes.Buffer
 )
 
