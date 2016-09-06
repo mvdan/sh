@@ -15,7 +15,7 @@ import (
 	"runtime/pprof"
 	"strings"
 
-	"github.com/mvdan/sh"
+	"github.com/mvdan/sh/parser"
 	"github.com/mvdan/sh/printer"
 )
 
@@ -71,7 +71,7 @@ func formatStdin() error {
 	if err != nil {
 		return err
 	}
-	prog, err := sh.Parse(src, "", sh.ParseComments)
+	prog, err := parser.Parse(src, "", parser.ParseComments)
 	if err != nil {
 		return err
 	}
@@ -146,7 +146,7 @@ func formatPath(path string, always bool) error {
 	if !always && !validShebang.Match(src[:32]) {
 		return nil
 	}
-	prog, err := sh.Parse(src, path, sh.ParseComments)
+	prog, err := parser.Parse(src, path, parser.ParseComments)
 	if err != nil {
 		return err
 	}

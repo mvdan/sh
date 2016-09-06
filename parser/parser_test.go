@@ -1,7 +1,7 @@
 // Copyright (c) 2016, Daniel Martí <mvdan@mvdan.cc>
 // See LICENSE for licensing information
 
-package sh
+package parser
 
 import (
 	"fmt"
