@@ -265,13 +265,14 @@ func (p *printer) commentsUpTo(pos token.Pos) {
 		return
 	}
 	p.comments = p.comments[1:]
-	if p.nlineIndex == 0 {
-		p.incLines(c.Hash)
-	} else if c.Hash > p.nline {
+	switch {
+	case p.nlineIndex == 0:
+	case c.Hash >= p.nline:
 		p.newlines(c.Hash)
-	} else {
+	default:
 		p.spaces(p.wantSpaces + 1)
 	}
+	p.incLines(c.Hash)
 	p.WriteByte('#')
 	p.WriteString(c.Text)
 	p.commentsUpTo(pos)
