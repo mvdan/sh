@@ -646,6 +646,22 @@ var FileTests = []TestCase{
 		},
 	},
 	{
+		[]string{"a <<EOF\n$''$bar\nEOF"},
+		&ast.Stmt{
+			Cmd: litCall("a"),
+			Redirs: []*ast.Redirect{{
+				Op:   token.SHL,
+				Word: *litWord("EOF"),
+				Hdoc: *word(
+					lit("$"),
+					lit("''"),
+					litParamExp("bar"),
+					lit("\n"),
+				),
+			}},
+		},
+	},
+	{
 		[]string{"a <<EOF\n`b`\nc\nEOF"},
 		&ast.Stmt{
 			Cmd: litCall("a"),

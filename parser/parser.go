@@ -399,7 +399,7 @@ func (p *parser) wordPart() ast.WordPart {
 		} else {
 			b = p.src[p.npos]
 		}
-		if p.tok == token.EOF || wordBreak(b) || b == '"' || b == '`' {
+		if p.tok == token.EOF || wordBreak(b) || b == '"' || b == '\'' || b == '`' {
 			l := &ast.Lit{ValuePos: p.pos, Value: "$"}
 			p.next()
 			return l
