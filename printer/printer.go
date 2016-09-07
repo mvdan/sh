@@ -263,10 +263,9 @@ func (p *printer) commentsUpTo(pos token.Pos) {
 		return
 	}
 	p.comments = p.comments[1:]
-	p.wantNewline = false
 	if p.nlineIndex == 0 {
 		p.incLines(c.Hash)
-	} else if p.wantNewline || c.Hash > p.nline {
+	} else if c.Hash > p.nline {
 		p.newlines(c.Hash)
 	} else {
 		p.spaces(p.wantSpaces + 1)
