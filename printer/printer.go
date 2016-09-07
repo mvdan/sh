@@ -38,7 +38,7 @@ func (c Config) Fprint(w io.Writer, f *ast.File) error {
 	p.Writer.Reset(w)
 	p.stmts(f.Stmts)
 	p.commentsUpTo(0)
-	p.newline()
+	p.newline(0)
 	err := p.Writer.Flush()
 	printerFree.Put(p)
 	return err
@@ -142,7 +142,7 @@ func (p *printer) spacedTok(s string, spaceAfter bool) {
 
 func (p *printer) semiOrNewl(s string, pos token.Pos) {
 	if p.wantNewline {
-		p.newline()
+		p.newline(pos)
 		p.indent()
 	} else {
 		p.WriteString("; ")
@@ -182,10 +182,12 @@ func (p *printer) indent() {
 	}
 }
 
-func (p *printer) newline() {
+func (p *printer) newline(pos token.Pos) {
 	p.wantNewline, p.wantSpace = false, false
 	p.WriteByte('\n')
-	p.incLine()
+	if pos > p.nline {
+		p.incLine()
+	}
 	hdocs := p.pendingHdocs
 	p.pendingHdocs = p.pendingHdocs[:0]
 	for _, r := range hdocs {
@@ -199,7 +201,7 @@ func (p *printer) newline() {
 }
 
 func (p *printer) newlines(pos token.Pos) {
-	p.newline()
+	p.newline(pos)
 	if pos > p.nline {
 		// preserve single empty lines
 		p.WriteByte('\n')
