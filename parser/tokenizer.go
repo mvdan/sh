@@ -681,8 +681,7 @@ loop:
 	for i = p.npos; i < len(p.src); i++ {
 		switch p.src[i] {
 		case '\\': // escaped byte follows
-			i++
-			if len(p.src) > i && p.src[i] == '\n' {
+			if i++; len(p.src) > i && p.src[i] == '\n' {
 				p.f.Lines = append(p.f.Lines, i+1)
 			}
 		case '`', '"', '$':
@@ -711,9 +710,7 @@ func (p *parser) advanceLitHdoc() {
 		n++
 	}
 	if isEnd(n) {
-		if n == p.npos {
-			p.tok = token.ILLEGAL
-		} else {
+		if n > p.npos {
 			p.tok, p.val = token.LIT, string(p.src[p.npos:n])
 		}
 		p.npos = n + len(end)
@@ -725,8 +722,7 @@ loop:
 	for i = p.npos; i < len(p.src); i++ {
 		switch p.src[i] {
 		case '\\': // escaped byte follows
-			i++
-			if i == len(p.src) {
+			if i++; i == len(p.src) {
 				break loop
 			}
 			if p.src[i] == '\n' {
