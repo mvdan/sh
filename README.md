@@ -5,15 +5,13 @@
 
 A shell parser and formatter. Supports POSIX Shell and Bash.
 
-Still in active development, so the API might change a little.
-
 ### shfmt
+
+	go get -u github.com/mvdan/sh/cmd/shfmt
 
 `shfmt` formats shell programs. It can use tabs or any number of spaces
 to indent. See [canonical.sh](testdata/canonical.sh) for a quick look at
 its style.
-
-	go get github.com/mvdan/sh/cmd/shfmt
 
 You can feed it standard input, any number of files or any number of
 directories to recurse into. When recursing, it will operate on `.sh`
