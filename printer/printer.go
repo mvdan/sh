@@ -330,6 +330,7 @@ func (p *printer) wordPart(wp ast.WordPart) {
 		p.WriteByte('\'')
 		p.WriteString(x.Value)
 		p.WriteByte('\'')
+		p.incLines(x.End())
 	case *ast.Quoted:
 		p.quotedOp(x.Quote)
 		for i, n := range x.Parts {
