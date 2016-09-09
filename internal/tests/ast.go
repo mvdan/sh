@@ -1525,7 +1525,7 @@ var FileTests = []TestCase{
 		word(arithmExp(litWord("1"))),
 	},
 	{
-		[]string{"$((1 + 3))", "$((1+3))"},
+		[]string{"$((1 + 3))", "$((1+3))", "$[1+3]"},
 		word(arithmExp(&ast.BinaryExpr{
 			Op: token.ADD,
 			X:  litWord("1"),
@@ -2644,8 +2644,14 @@ func SetPosRecurse(tb testing.TB, src string, v interface{}, to token.Pos, diff 
 			recurse(&x.Exp.Word)
 		}
 	case *ast.ArithmExp:
-		setPos(&x.Left, x.Token.String())
-		setPos(&x.Right, "))")
+		if src != "" && src[x.Left] == '[' {
+			// deprecated $(( form
+			setPos(&x.Left, "$[")
+			setPos(&x.Right, "]")
+		} else {
+			setPos(&x.Left, x.Token.String())
+			setPos(&x.Right, "))")
+		}
 		recurse(&x.X)
 	case *ast.ParenExpr:
 		setPos(&x.Lparen, "(")

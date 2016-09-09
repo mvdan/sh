@@ -375,13 +375,29 @@ func (p *parser) wordPart() ast.WordPart {
 		return nil
 	case token.DOLLBR:
 		return p.paramExp()
-	case token.DOLLDP, token.DLPAREN:
+	case token.DOLLDP, token.DLPAREN, token.DOLLBK:
+		left := p.tok
 		ar := &ast.ArithmExp{Token: p.tok, Left: p.pos}
+		if ar.Token == token.DOLLBK {
+			// treat deprecated $[ as $((
+			ar.Token = token.DOLLDP
+		}
 		old := p.quote
 		p.quote = token.DRPAREN
 		p.next()
-		ar.X = p.arithmExpr(token.DOLLDP, ar.Left, 0, false)
-		ar.Right = p.arithmEnd(ar.Left, old)
+		ar.X = p.arithmExpr(ar.Token, ar.Left, 0, false)
+		if left == token.DOLLBK {
+			if p.tok == token.RBRACK {
+				p.npos++
+			} else {
+				p.matchingErr(ar.Left, token.LBRACK, token.RBRACK)
+			}
+			p.quote = old
+			ar.Right = p.pos
+			p.next()
+		} else {
+			ar.Right = p.arithmEnd(ar.Left, old)
+		}
 		return ar
 	case token.DOLLPR:
 		cs := &ast.CmdSubst{Left: p.pos}
@@ -885,7 +901,8 @@ func (p *parser) gotStmtPipe(s *ast.Stmt) *ast.Stmt {
 		}
 	case token.LIT, token.DOLLBR, token.DOLLDP, token.DOLLPR, token.DOLLAR,
 		token.CMDIN, token.CMDOUT, token.SQUOTE, token.DOLLSQ,
-		token.DQUOTE, token.DOLLDQ, token.BQUOTE, token.DLPAREN:
+		token.DQUOTE, token.DOLLDQ, token.BQUOTE, token.DLPAREN,
+		token.DOLLBK:
 		w := p.getWord()
 		if p.gotSameLine(token.LPAREN) && p.err == nil {
 			rawName := string(p.src[w.Pos()-1 : w.End()-1])

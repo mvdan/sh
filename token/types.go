@@ -29,6 +29,7 @@ const (
 	DOLLSQ // $'
 	DOLLDQ // $"
 	DOLLBR // ${
+	DOLLBK // $[
 	DOLLPR // $(
 	DOLLDP // $((
 	LET    // let
@@ -36,6 +37,7 @@ const (
 	LPAREN // (
 
 	RBRACE     // }
+	RBRACK     // ]
 	RPAREN     // )
 	SEMICOLON  // ;
 	DSEMICOLON // ;;
@@ -95,7 +97,6 @@ const (
 	HASH    // #
 	DHASH   // ##
 	LBRACK  // [
-	RBRACK  // ]
 	DQUO    // //
 
 	DLPAREN // ((
@@ -138,12 +139,14 @@ var (
 		DOLLSQ:     "$'",
 		DOLLDQ:     `$"`,
 		DOLLBR:     `${`,
+		DOLLBK:     `$[`,
 		DOLLPR:     `$(`,
 		DOLLDP:     `$((`,
 		LET:        "let",
 		LBRACE:     "{",
 		LPAREN:     "(",
 		RBRACE:     "}",
+		RBRACK:     "]",
 		RPAREN:     ")",
 		SEMICOLON:  ";",
 		DSEMICOLON: ";;",
@@ -179,7 +182,6 @@ var (
 		HASH:    "#",
 		DHASH:   "##",
 		LBRACK:  "[",
-		RBRACK:  "]",
 		QUO:     "/",
 		DQUO:    "//",
 

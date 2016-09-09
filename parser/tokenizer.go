@@ -31,7 +31,7 @@ func arithmOps(b byte) bool {
 		b == '/' || b == '%' || b == '(' || b == ')' ||
 		b == '^' || b == '<' || b == '>' || b == ':' ||
 		b == '=' || b == ',' || b == '?' || b == '|' ||
-		b == '&'
+		b == '&' || b == ']'
 }
 
 func wordBreak(b byte) bool {
@@ -239,6 +239,9 @@ func (p *parser) regToken(b byte) token.Token {
 		case '{':
 			p.npos += 2
 			return token.DOLLBR
+		case '[':
+			p.npos += 2
+			return token.DOLLBK
 		case '(':
 			if byteAt(p.src, p.npos+2) == '(' {
 				p.npos += 3
@@ -329,6 +332,9 @@ func (p *parser) dqToken(b byte) token.Token {
 		case '{':
 			p.npos += 2
 			return token.DOLLBR
+		case '[':
+			p.npos += 2
+			return token.DOLLBK
 		case '(':
 			if byteAt(p.src, p.npos+2) == '(' {
 				p.npos += 3
@@ -537,6 +543,9 @@ func (p *parser) arithmToken(b byte) token.Token {
 	case '?':
 		p.npos++
 		return token.QUEST
+	case ']':
+		p.npos++
+		return token.RBRACK
 	default: // ':'
 		p.npos++
 		return token.COLON
