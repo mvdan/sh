@@ -429,6 +429,18 @@ var errTests = []struct {
 		`1:6: reached EOF without matching token (( with ))`,
 	},
 	{
+		"((foo",
+		`1:1: reached EOF without matching token (( with ))`,
+	},
+	{
+		"echo ((foo",
+		`1:6: a command can only contain words and redirects`,
+	},
+	{
+		"echo $[foo",
+		`1:6: reached EOF without matching token [ with ]`,
+	},
+	{
 		`echo $((\`,
 		`1:6: reached EOF without matching token (( with ))`,
 	},

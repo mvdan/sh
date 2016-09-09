@@ -1191,7 +1191,8 @@ func (p *parser) callExpr(s *ast.Stmt, w ast.Word) *ast.CallExpr {
 			fallthrough
 		case token.LIT, token.DOLLBR, token.DOLLDP, token.DOLLPR,
 			token.DOLLAR, token.CMDIN, token.CMDOUT, token.SQUOTE,
-			token.DOLLSQ, token.DQUOTE, token.DOLLDQ, token.BQUOTE:
+			token.DOLLSQ, token.DQUOTE, token.DOLLDQ, token.BQUOTE,
+			token.DOLLBK:
 			ce.Args = append(ce.Args, p.getWord())
 		case token.GTR, token.SHR, token.LSS, token.DPLIN, token.DPLOUT,
 			token.RDRINOUT, token.SHL, token.DHEREDOC,
