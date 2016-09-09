@@ -426,7 +426,7 @@ var errTests = []struct {
 	},
 	{
 		"echo $((foo",
-		`1:6: reached EOF without matching token (( with ))`,
+		`1:6: reached EOF without matching token $(( with ))`,
 	},
 	{
 		"((foo",
@@ -438,19 +438,19 @@ var errTests = []struct {
 	},
 	{
 		"echo $[foo",
-		`1:6: reached EOF without matching token [ with ]`,
+		`1:6: reached EOF without matching token $[ with ]`,
 	},
 	{
 		`echo $((\`,
-		`1:6: reached EOF without matching token (( with ))`,
+		`1:6: reached EOF without matching token $(( with ))`,
 	},
 	{
 		`echo $((foo\`,
-		`1:6: reached EOF without matching token (( with ))`,
+		`1:6: reached EOF without matching token $(( with ))`,
 	},
 	{
 		`echo $((foo\a`,
-		`1:6: reached EOF without matching token (( with ))`,
+		`1:6: reached EOF without matching token $(( with ))`,
 	},
 	{
 		"echo $((()))",
@@ -458,7 +458,7 @@ var errTests = []struct {
 	},
 	{
 		"echo $(((3))",
-		`1:6: reached ) without matching token (( with ))`,
+		`1:6: reached ) without matching token $(( with ))`,
 	},
 	{
 		"echo $((+))",

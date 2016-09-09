@@ -390,13 +390,13 @@ func (p *parser) wordPart() ast.WordPart {
 			if p.tok == token.RBRACK {
 				p.npos++
 			} else {
-				p.matchingErr(ar.Left, token.LBRACK, token.RBRACK)
+				p.matchingErr(ar.Left, left, token.RBRACK)
 			}
 			p.quote = old
 			ar.Right = p.pos
 			p.next()
 		} else {
-			ar.Right = p.arithmEnd(ar.Left, old)
+			ar.Right = p.arithmEnd(left, ar.Left, old)
 		}
 		return ar
 	case token.DOLLPR:
@@ -683,11 +683,11 @@ func (p *parser) peekArithmEnd() bool {
 	return p.tok == token.RPAREN && p.npos < len(p.src) && p.src[p.npos] == ')'
 }
 
-func (p *parser) arithmEnd(left token.Pos, old token.Token) token.Pos {
+func (p *parser) arithmEnd(ltok token.Token, lpos token.Pos, old token.Token) token.Pos {
 	if p.peekArithmEnd() {
 		p.npos++
 	} else {
-		p.matchingErr(left, token.DLPAREN, token.DRPAREN)
+		p.matchingErr(lpos, ltok, token.DRPAREN)
 	}
 	p.quote = old
 	pos := p.pos
@@ -984,7 +984,7 @@ func (p *parser) cond(left string, lpos token.Pos, stop string) ast.Cond {
 		p.quote = token.DRPAREN
 		p.next()
 		c.X = p.arithmExpr(token.DLPAREN, c.Lparen, 0, false)
-		c.Rparen = p.arithmEnd(c.Lparen, old)
+		c.Rparen = p.arithmEnd(token.DLPAREN, c.Lparen, old)
 		p.gotSameLine(token.SEMICOLON)
 		return c
 	}
@@ -1038,7 +1038,7 @@ func (p *parser) loop(forPos token.Pos) ast.Loop {
 		scPos = p.pos
 		p.follow(p.pos, "expression", token.SEMICOLON)
 		cl.Post = p.arithmExpr(token.SEMICOLON, scPos, 0, false)
-		cl.Rparen = p.arithmEnd(cl.Lparen, old)
+		cl.Rparen = p.arithmEnd(token.DLPAREN, cl.Lparen, old)
 		p.gotSameLine(token.SEMICOLON)
 		return cl
 	}
