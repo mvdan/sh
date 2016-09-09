@@ -387,9 +387,7 @@ func (p *parser) wordPart() ast.WordPart {
 		p.next()
 		ar.X = p.arithmExpr(ar.Token, ar.Left, 0, false)
 		if left == token.DOLLBK {
-			if p.tok == token.RBRACK {
-				p.npos++
-			} else {
+			if p.tok != token.RBRACK {
 				p.matchingErr(ar.Left, left, token.RBRACK)
 			}
 			p.quote = old

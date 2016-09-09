@@ -1140,6 +1140,12 @@ var FileTests = []TestCase{
 		))),
 	},
 	{
+		[]string{`"$((foo))"`, `"$[foo]"`},
+		word(dblQuoted(arithmExp(
+			litWord("foo"),
+		))),
+	},
+	{
 		[]string{"`foo`"},
 		word(bckQuoted(litStmt("foo"))),
 	},
