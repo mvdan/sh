@@ -600,6 +600,10 @@ var errTests = []struct {
 		"foo <<$(bar)",
 		`1:9: nested statements not allowed in this word`,
 	},
+	{
+		`""()`,
+		`1:1: invalid func name: "\"\""`,
+	},
 }
 
 func TestParseErr(t *testing.T) {

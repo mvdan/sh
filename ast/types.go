@@ -398,10 +398,15 @@ func (q *Quoted) End() token.Pos {
 	if q.QuotePos == 0 {
 		return 0
 	}
-	if q.Quote == token.DOLLSQ || q.Quote == token.DOLLDQ {
-		return posAfter(partsLastEnd(q.Parts), 2)
+	end := q.QuotePos
+	if len(q.Parts) > 0 {
+		end = partsLastEnd(q.Parts)
+	} else if q.Quote == token.DOLLSQ || q.Quote == token.DOLLDQ {
+		end += 2
+	} else {
+		end++
 	}
-	return posAfter(partsLastEnd(q.Parts), 1)
+	return posAfter(end, 1)
 }
 
 // CmdSubst represents a command substitution.
