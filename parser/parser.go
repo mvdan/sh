@@ -1138,7 +1138,7 @@ func (p *parser) letClause() *ast.LetClause {
 	p.quote = token.DRPAREN
 	p.next()
 	p.stopNewline = true
-	for !p.newLine && !stopToken(p.tok) && p.tok != token.STOPPED {
+	for !p.newLine && !stopToken(p.tok) && p.tok != token.STOPPED && !p.peekRedir() {
 		x := p.arithmExpr(token.LET, lc.Let, 0, true)
 		if x == nil {
 			p.followErr(p.pos, "let", "arithmetic expressions")

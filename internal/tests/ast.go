@@ -2220,6 +2220,21 @@ var FileTests = []TestCase{
 		),
 	},
 	{
+		[]string{`let ++i >/dev/null`},
+		&ast.Stmt{
+			Cmd: letClause(
+				&ast.UnaryExpr{
+					Op:   token.INC,
+					Post: false,
+					X:    litWord("i"),
+				},
+			),
+			Redirs: []*ast.Redirect{
+				{Op: token.GTR, Word: *litWord("/dev/null")},
+			},
+		},
+	},
+	{
 		[]string{
 			`let a=(1 + 2) b=3+4`,
 			`let a=(1+2) b=3+4`,
