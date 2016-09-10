@@ -1140,12 +1140,6 @@ var FileTests = []TestCase{
 		))),
 	},
 	{
-		[]string{`"$((foo))"`, `"$[foo]"`},
-		word(dblQuoted(arithmExp(
-			litWord("foo"),
-		))),
-	},
-	{
 		[]string{"`foo`"},
 		word(bckQuoted(litStmt("foo"))),
 	},
@@ -1537,6 +1531,22 @@ var FileTests = []TestCase{
 			X:  litWord("1"),
 			Y:  litWord("3"),
 		})),
+	},
+	{
+		[]string{`"$((foo))"`, `"$[foo]"`},
+		word(dblQuoted(arithmExp(
+			litWord("foo"),
+		))),
+	},
+	{
+		[]string{`$((arr[0]++))`},
+		word(arithmExp(
+			&ast.UnaryExpr{
+				Op: token.INC,
+				Post: true,
+				X:  litWord("arr[0]"),
+			},
+		)),
 	},
 	{
 		[]string{"$((5 * 2 - 1))", "$((5*2-1))"},
@@ -2224,9 +2234,8 @@ var FileTests = []TestCase{
 		&ast.Stmt{
 			Cmd: letClause(
 				&ast.UnaryExpr{
-					Op:   token.INC,
-					Post: false,
-					X:    litWord("i"),
+					Op: token.INC,
+					X:  litWord("i"),
 				},
 			),
 			Redirs: []*ast.Redirect{

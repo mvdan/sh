@@ -378,12 +378,14 @@ func (p *parser) wordPart() ast.WordPart {
 	case token.DOLLDP, token.DLPAREN, token.DOLLBK:
 		left := p.tok
 		ar := &ast.ArithmExp{Token: p.tok, Left: p.pos}
+		old := p.quote
 		if ar.Token == token.DOLLBK {
 			// treat deprecated $[ as $((
 			ar.Token = token.DOLLDP
+			p.quote = token.DOLLBK
+		} else {
+			p.quote = token.DRPAREN
 		}
-		old := p.quote
-		p.quote = token.DRPAREN
 		p.next()
 		ar.X = p.arithmExpr(ar.Token, ar.Left, 0, false)
 		if left == token.DOLLBK {

@@ -31,7 +31,7 @@ func arithmOps(b byte) bool {
 		b == '/' || b == '%' || b == '(' || b == ')' ||
 		b == '^' || b == '<' || b == '>' || b == ':' ||
 		b == '=' || b == ',' || b == '?' || b == '|' ||
-		b == '&' || b == ']'
+		b == '&'
 }
 
 func wordBreak(b byte) bool {
@@ -172,9 +172,9 @@ skipSpace:
 		}
 	case q == token.LBRACE && paramOps(b):
 		p.tok = p.paramToken(b)
-	case q == token.DRPAREN && arithmOps(b):
+	case (q == token.DRPAREN || q == token.DOLLBK) && arithmOps(b):
 		p.tok = p.arithmToken(b)
-	case q == token.RBRACK && b == ']':
+	case (q == token.RBRACK || q == token.DOLLBK) && b == ']':
 		p.npos++
 		p.tok = token.RBRACK
 	case regOps(b):
@@ -543,9 +543,6 @@ func (p *parser) arithmToken(b byte) token.Token {
 	case '?':
 		p.npos++
 		return token.QUEST
-	case ']':
-		p.npos++
-		return token.RBRACK
 	default: // ':'
 		p.npos++
 		return token.COLON
@@ -597,8 +594,10 @@ func (p *parser) advanceLitOther(q token.Token) {
 				p.tok, p.val = token.LIT, string(bs)
 				return
 			}
-		case wordBreak(b), regOps(b), q == token.DRPAREN && arithmOps(b),
-			q == token.LBRACE && paramOps(b), q == token.RBRACK && b == ']':
+		case wordBreak(b), regOps(b),
+			(q == token.DRPAREN || q == token.DOLLBK) && arithmOps(b),
+			q == token.LBRACE && paramOps(b),
+			(q == token.RBRACK || q == token.DOLLBK) && b == ']':
 			p.tok, p.val = token.LIT, string(bs)
 			return
 		}
