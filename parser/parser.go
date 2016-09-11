@@ -1115,7 +1115,7 @@ func (p *parser) declClause(local bool) *ast.DeclClause {
 	for p.tok == token.LITWORD && p.val[0] == '-' {
 		ds.Opts = append(ds.Opts, p.getWord())
 	}
-	for !p.newLine && !stopToken(p.tok) {
+	for !p.newLine && !stopToken(p.tok) && !p.peekRedir() {
 		if as, ok := p.getAssign(); ok {
 			ds.Assigns = append(ds.Assigns, as)
 		} else if w, ok := p.gotWord(); !ok {

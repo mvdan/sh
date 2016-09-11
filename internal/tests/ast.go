@@ -2131,11 +2131,11 @@ var FileTests = []TestCase{
 		},
 	},
 	{
-		[]string{"declare alone foo=bar"},
+		[]string{"declare -f func"},
 		&ast.DeclClause{
+			Opts: litWords("-f"),
 			Assigns: []*ast.Assign{
-				{Value: *litWord("alone")},
-				{Name: lit("foo"), Value: *litWord("bar")},
+				{Value: *litWord("func")},
 			},
 		},
 	},
@@ -2177,6 +2177,20 @@ var FileTests = []TestCase{
 					}},
 				),
 			}},
+		},
+	},
+	{
+		[]string{"declare -f func >/dev/null"},
+		&ast.Stmt{
+			Cmd: &ast.DeclClause{
+				Opts: litWords("-f"),
+				Assigns: []*ast.Assign{
+					{Value: *litWord("func")},
+				},
+			},
+			Redirs: []*ast.Redirect{
+				{Op: token.GTR, Word: *litWord("/dev/null")},
+			},
 		},
 	},
 	{
