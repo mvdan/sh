@@ -1542,9 +1542,9 @@ var FileTests = []TestCase{
 		[]string{`$((arr[0]++))`},
 		word(arithmExp(
 			&ast.UnaryExpr{
-				Op: token.INC,
+				Op:   token.INC,
 				Post: true,
-				X:  litWord("arr[0]"),
+				X:    litWord("arr[0]"),
 			},
 		)),
 	},
@@ -1967,6 +1967,24 @@ var FileTests = []TestCase{
 					Stmts:    litStmts("c"),
 				},
 			},
+		},
+	},
+	{
+		[]string{"case $i in 1) cat <<EOF ;;\nfoo\nEOF\nesac"},
+		&ast.CaseClause{
+			Word: *word(litParamExp("i")),
+			List: []*ast.PatternList{{
+				Op:       token.DSEMICOLON,
+				Patterns: litWords("1"),
+				Stmts: []*ast.Stmt{{
+					Cmd: litCall("cat"),
+					Redirs: []*ast.Redirect{{
+						Op:   token.SHL,
+						Word: *litWord("EOF"),
+						Hdoc: *litWord("foo\n"),
+					}},
+				}},
+			}},
 		},
 	},
 	{

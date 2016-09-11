@@ -1105,6 +1105,7 @@ func (p *parser) patLists() (pls []*ast.PatternList) {
 		pl.Op = p.tok
 		p.next()
 		pls = append(pls, pl)
+		p.got(token.STOPPED)
 	}
 	return
 }
