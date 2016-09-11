@@ -114,7 +114,7 @@ func walk(path string, onError func(error)) error {
 		if err == nil && isShellFile(info) {
 			err = formatPath(path, false)
 		}
-		if err != nil {
+		if err != nil && !os.IsNotExist(err) {
 			onError(err)
 		}
 		return nil
