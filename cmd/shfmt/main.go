@@ -82,6 +82,7 @@ var (
 	hidden       = regexp.MustCompile(`^\.[^/.]`)
 	shellFile    = regexp.MustCompile(`^.*\.(sh|bash)$`)
 	validShebang = regexp.MustCompile(`^#!/(usr/)?bin/(env *)?(sh|bash)`)
+	vcsDir       = regexp.MustCompile(`^(\.git|\.svn|\.hg)$`)
 )
 
 func isShellFile(info os.FileInfo) bool {
@@ -111,6 +112,9 @@ func walk(path string, onError func(error)) error {
 		return formatPath(path, true)
 	}
 	return filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
+		if info.IsDir() && vcsDir.MatchString(info.Name()) {
+			return filepath.SkipDir
+		}
 		if err == nil && isShellFile(info) {
 			err = formatPath(path, false)
 		}
