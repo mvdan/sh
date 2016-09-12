@@ -834,6 +834,7 @@ func (p *printer) command(cmd ast.Command, redirs []*ast.Redirect) (startRedirs 
 			} else {
 				p.spacedTok(caseClauseOp(pl.Op), true)
 			}
+			p.incLines(pl.OpPos)
 			p.level--
 			if sep || pl.OpPos == x.Esac {
 				p.wantNewline = true

@@ -270,6 +270,10 @@ func TestFprintWeirdFormat(t *testing.T) {
 			"case $i in\n\t1)\n\t\tfoo\n\t\tbar\n\t\t;;\nesac",
 		},
 		{
+			"case $i in\n1)\n#foo\n;;\nesac",
+			"case $i in\n\t1) ;; #foo\nesac",
+		},
+		{
 			"a=(\nb\nc\n) foo",
 			"a=(\n\tb\n\tc\n) foo",
 		},
