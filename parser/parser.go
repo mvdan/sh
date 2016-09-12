@@ -879,10 +879,8 @@ func (p *parser) gotStmtPipe(s *ast.Stmt) *ast.Stmt {
 			s.Cmd = p.forClause()
 		case "case":
 			s.Cmd = p.caseClause()
-		case "declare":
-			s.Cmd = p.declClause(false)
-		case "local":
-			s.Cmd = p.declClause(true)
+		case "declare", "local":
+			s.Cmd = p.declClause()
 		case "eval":
 			s.Cmd = p.evalClause()
 		case "let":
@@ -1110,8 +1108,8 @@ func (p *parser) patLists() (pls []*ast.PatternList) {
 	return
 }
 
-func (p *parser) declClause(local bool) *ast.DeclClause {
-	ds := &ast.DeclClause{Declare: p.pos, Local: local}
+func (p *parser) declClause() *ast.DeclClause {
+	ds := &ast.DeclClause{Declare: p.pos, Local: p.val == "local"}
 	p.next()
 	for p.tok == token.LITWORD && p.val[0] == '-' {
 		ds.Opts = append(ds.Opts, p.getWord())
