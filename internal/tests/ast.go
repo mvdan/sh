@@ -801,14 +801,14 @@ var FileTests = []TestCase{
 		},
 	},
 	{
-		[]string{"foo <<'EOF'\nbar\nEOF"},
+		[]string{"foo <<'EOF'\n${\nEOF"},
 		&ast.Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*ast.Redirect{
 				{
 					Op:   token.SHL,
 					Word: *word(sglQuoted("EOF")),
-					Hdoc: *litWord("bar\n"),
+					Hdoc: *litWord("${\n"),
 				},
 			},
 		},

@@ -702,26 +702,27 @@ loop:
 	p.npos = i
 }
 
-func (p *parser) advanceLitHdoc() {
+func (p *parser) isHdocEnd(i int) bool {
 	end := p.hdocStop
-	isEnd := func(i int) bool {
-		if len(p.src) < i+len(end) {
-			return false
-		}
-		if !bytes.Equal(end, p.src[i:i+len(end)]) {
-			return false
-		}
-		return len(p.src) == i+len(end) || p.src[i+len(end)] == '\n'
+	if len(p.src) < i+len(end) {
+		return false
 	}
+	if !bytes.Equal(end, p.src[i:i+len(end)]) {
+		return false
+	}
+	return len(p.src) == i+len(end) || p.src[i+len(end)] == '\n'
+}
+
+func (p *parser) advanceLitHdoc() {
 	n := p.npos
 	for p.hdocTabs && n < len(p.src) && p.src[n] == '\t' {
 		n++
 	}
-	if isEnd(n) {
+	if p.isHdocEnd(n) {
 		if n > p.npos {
 			p.tok, p.val = token.LIT, string(p.src[p.npos:n])
 		}
-		p.npos = n + len(end)
+		p.npos = n + len(p.hdocStop)
 		p.hdocStop = nil
 		return
 	}
@@ -744,9 +745,9 @@ loop:
 			for p.hdocTabs && n < len(p.src) && p.src[n] == '\t' {
 				n++
 			}
-			if isEnd(n) {
+			if p.isHdocEnd(n) {
 				p.tok, p.val = token.LIT, string(p.src[p.npos:n])
-				p.npos = n + len(end)
+				p.npos = n + len(p.hdocStop)
 				p.hdocStop = nil
 				return
 			}
@@ -754,6 +755,34 @@ loop:
 	}
 	p.tok, p.val = token.LIT, string(p.src[p.npos:i])
 	p.npos = i
+}
+
+func (p *parser) hdocLitWord() ast.Word {
+	var buf bytes.Buffer
+	end := p.hdocStop
+	pos := p.npos + 1
+	for p.npos < len(p.src) {
+		bs, found := p.readUntil('\n')
+		n := p.npos
+		p.npos += len(bs) + 1
+		if found {
+			p.f.Lines = append(p.f.Lines, p.npos)
+		}
+		for p.hdocTabs && n < len(p.src) && p.src[n] == '\t' {
+			n++
+		}
+		if p.isHdocEnd(n) {
+			// add trailing tabs
+			buf.Write(bs[:len(bs)-len(end)])
+			break
+		}
+		buf.Write(bs)
+		if found {
+			buf.WriteByte('\n')
+		}
+	}
+	l := &ast.Lit{Value: buf.String(), ValuePos: token.Pos(pos)}
+	return ast.Word{Parts: []ast.WordPart{l}}
 }
 
 func (p *parser) readUntil(b byte) ([]byte, bool) {

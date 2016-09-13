@@ -75,35 +75,42 @@ type parser struct {
 	helperBuf *bytes.Buffer
 }
 
-func (p *parser) unquotedWordBytes(w ast.Word) []byte {
+func (p *parser) unquotedWordBytes(w ast.Word) ([]byte, bool) {
 	if p.helperBuf == nil {
 		p.helperBuf = new(bytes.Buffer)
 	} else {
 		p.helperBuf.Reset()
 	}
+	didUnquote := false
 	for _, wp := range w.Parts {
-		p.unquotedWordPart(p.helperBuf, wp)
+		if p.unquotedWordPart(p.helperBuf, wp) {
+			didUnquote = true
+		}
 	}
-	return p.helperBuf.Bytes()
+	return p.helperBuf.Bytes(), didUnquote
 }
 
-func (p *parser) unquotedWordPart(b *bytes.Buffer, wp ast.WordPart) {
+func (p *parser) unquotedWordPart(b *bytes.Buffer, wp ast.WordPart) bool {
 	switch x := wp.(type) {
 	case *ast.Lit:
 		if x.Value[0] == '\\' {
 			b.WriteString(x.Value[1:])
-		} else {
-			b.WriteString(x.Value)
+			return true
 		}
+		b.WriteString(x.Value)
+		return false
 	case *ast.SglQuoted:
 		b.WriteString(x.Value)
+		return true
 	case *ast.Quoted:
 		for _, wp2 := range x.Parts {
 			p.unquotedWordPart(b, wp2)
 		}
+		return true
 	default:
 		// catch-all for unusual cases such as ParamExp
 		b.Write(p.src[wp.Pos()-1 : wp.End()-1])
+		return false
 	}
 }
 
@@ -114,13 +121,19 @@ func (p *parser) doHeredocs() {
 	p.heredocs = p.heredocs[:0]
 	for _, r := range hdocs {
 		p.hdocTabs = r.Op == token.DHEREDOC
-		p.hdocStop = p.unquotedWordBytes(r.Word)
+		var quoted bool
+		p.hdocStop, quoted = p.unquotedWordBytes(r.Word)
 		if p.npos < len(p.src) && p.src[p.npos] == '\n' {
 			p.npos++
 			p.f.Lines = append(p.f.Lines, p.npos)
 		}
-		p.next()
-		r.Hdoc = p.getWord()
+		if !quoted {
+			p.next()
+			r.Hdoc = p.getWord()
+			continue
+		}
+		r.Hdoc = p.hdocLitWord()
+
 	}
 	p.quote = old
 }
