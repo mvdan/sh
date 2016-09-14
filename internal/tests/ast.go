@@ -790,7 +790,10 @@ var FileTests = []TestCase{
 		},
 	},
 	{
-		[]string{"foo <<\"EOF\"\nbar\nEOF"},
+		[]string{
+			"foo <<\"EOF\"\nbar\nEOF",
+			"foo <<\"EOF\"\nbar\n",
+		},
 		&ast.Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*ast.Redirect{{
@@ -884,6 +887,20 @@ var FileTests = []TestCase{
 			Redirs: []*ast.Redirect{{
 				Op:   token.DHEREDOC,
 				Word: *litWord("EOF"),
+				Hdoc: *litWord("\tbar\n\t"),
+			}},
+		},
+	},
+	{
+		[]string{
+			"foo <<-'EOF'\n\tbar\n\tEOF",
+			"foo <<-'EOF'\n\tbar\n\t",
+		},
+		&ast.Stmt{
+			Cmd: litCall("foo"),
+			Redirs: []*ast.Redirect{{
+				Op:   token.DHEREDOC,
+				Word: *word(sglQuoted("EOF")),
 				Hdoc: *litWord("\tbar\n\t"),
 			}},
 		},

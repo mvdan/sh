@@ -758,30 +758,26 @@ loop:
 }
 
 func (p *parser) hdocLitWord() ast.Word {
-	var buf bytes.Buffer
-	end := p.hdocStop
-	pos := p.npos + 1
+	pos := p.npos
+	end := pos
 	for p.npos < len(p.src) {
+		end = p.npos
 		bs, found := p.readUntil('\n')
-		n := p.npos
 		p.npos += len(bs) + 1
 		if found {
 			p.f.Lines = append(p.f.Lines, p.npos)
 		}
-		for p.hdocTabs && n < len(p.src) && p.src[n] == '\t' {
-			n++
+		for p.hdocTabs && end < len(p.src) && p.src[end] == '\t' {
+			end++
 		}
-		if p.isHdocEnd(n) {
-			// add trailing tabs
-			buf.Write(bs[:len(bs)-len(end)])
+		if p.isHdocEnd(end) {
 			break
 		}
-		buf.Write(bs)
-		if found {
-			buf.WriteByte('\n')
-		}
 	}
-	l := &ast.Lit{Value: buf.String(), ValuePos: token.Pos(pos)}
+	if p.npos == len(p.src) {
+		end = p.npos
+	}
+	l := &ast.Lit{Value: string(p.src[pos:end]), ValuePos: token.Pos(pos + 1)}
 	return ast.Word{Parts: []ast.WordPart{l}}
 }
 
