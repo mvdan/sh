@@ -2166,6 +2166,90 @@ var FileTests = []TestCase{
 		},
 	},
 	{
+		[]string{"[[ a ]]"},
+		&ast.TestClause{
+			X: litWord("a"),
+		},
+	},
+	{
+		[]string{"[[ a > b ]]"},
+		&ast.TestClause{
+			X: &ast.BinaryExpr{
+				Op: token.GTR,
+				X:  litWord("a"),
+				Y:  litWord("b"),
+			},
+		},
+	},
+	{
+		[]string{"[[ 1 -eq 2 ]]"},
+		&ast.TestClause{
+			X: &ast.BinaryExpr{
+				Op: token.TEQL,
+				X:  litWord("1"),
+				Y:  litWord("2"),
+			},
+		},
+	},
+	{
+		[]string{"[[ -n $a ]]"},
+		&ast.TestClause{
+			X: &ast.UnaryExpr{
+				Op: token.TNEMPSTR,
+				X:  word(litParamExp("a")),
+			},
+		},
+	},
+	{
+		[]string{"[[ ! $a < 'b' ]]"},
+		&ast.TestClause{
+			X: &ast.UnaryExpr{
+				Op: token.NOT,
+				X: &ast.BinaryExpr{
+					Op: token.LSS,
+					X:  word(litParamExp("a")),
+					Y:  word(sglQuoted("b")),
+				},
+			},
+		},
+	},
+	{
+		[]string{"[[ a > b && c > d ]]"},
+		&ast.TestClause{
+			X: &ast.BinaryExpr{
+				Op: token.GTR,
+				X:  litWord("a"),
+				Y: &ast.BinaryExpr{
+					Op: token.LAND,
+					X:  litWord("b"),
+					Y: &ast.BinaryExpr{
+						Op: token.GTR,
+						X:  litWord("c"),
+						Y:  litWord("d"),
+					},
+				},
+			},
+		},
+	},
+	{
+		[]string{"[[ a == b && c != d ]]"},
+		&ast.TestClause{
+			X: &ast.BinaryExpr{
+				Op: token.EQL,
+				X:  litWord("a"),
+				Y: &ast.BinaryExpr{
+					Op: token.LAND,
+					X:  litWord("b"),
+					Y: &ast.BinaryExpr{
+						Op: token.NEQ,
+						X:  litWord("c"),
+						Y:  litWord("d"),
+					},
+				},
+			},
+		},
+	},
+	{
 		[]string{"declare -f func"},
 		&ast.DeclClause{
 			Opts: litWords("-f"),
@@ -2754,6 +2838,10 @@ func SetPosRecurse(tb testing.TB, src string, v interface{}, to token.Pos, diff 
 			recurse(pl.Patterns)
 			recurse(pl.Stmts)
 		}
+	case *ast.TestClause:
+		setPos(&x.Left, "[[")
+		setPos(&x.Right, "]]")
+		recurse(x.X)
 	case *ast.DeclClause:
 		if x.Local {
 			setPos(&x.Declare, "local")

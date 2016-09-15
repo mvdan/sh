@@ -400,7 +400,7 @@ func (p *printer) wordPart(wp ast.WordPart) {
 		} else { // token.DLPAREN
 			p.WriteString("((")
 		}
-		p.arithm(x.X, false)
+		p.arithm(x.X, false, false)
 		p.WriteString("))")
 	case *ast.ArrayExpr:
 		p.wantSpace = false
@@ -429,7 +429,7 @@ func (p *printer) cond(cond ast.Cond) {
 		p.nestedStmts(x.Stmts)
 	case *ast.CStyleCond:
 		p.spacedTok("((", false)
-		p.arithm(x.X, false)
+		p.arithm(x.X, false, false)
 		p.WriteString("))")
 	}
 }
@@ -444,11 +444,11 @@ func (p *printer) loop(loop ast.Loop) {
 		}
 	case *ast.CStyleLoop:
 		p.WriteString("((")
-		p.arithm(x.Init, false)
+		p.arithm(x.Init, false, false)
 		p.WriteString("; ")
-		p.arithm(x.Cond, false)
+		p.arithm(x.Cond, false, false)
 		p.WriteString("; ")
-		p.arithm(x.Post, false)
+		p.arithm(x.Post, false, false)
 		p.WriteString("))")
 	}
 }
@@ -519,8 +519,26 @@ func (p *printer) binaryExprOp(tok token.Token) {
 		p.WriteByte('?')
 	case token.COLON:
 		p.WriteByte(':')
-	default: // token.COMMA
+	case token.COMMA:
 		p.WriteByte(',')
+	case token.TNEWER:
+		p.WriteString("-nt")
+	case token.TOLDER:
+		p.WriteString("-ot")
+	case token.TDEVIND:
+		p.WriteString("-ef")
+	case token.TEQL:
+		p.WriteString("-eq")
+	case token.TNEQ:
+		p.WriteString("-neq")
+	case token.TLEQ:
+		p.WriteString("-le")
+	case token.TGEQ:
+		p.WriteString("-ge")
+	case token.TLSS:
+		p.WriteString("-lt")
+	default: // token.TGTR
+		p.WriteString("-gt")
 	}
 }
 
@@ -534,41 +552,84 @@ func (p *printer) unaryExprOp(tok token.Token) {
 		p.WriteByte('!')
 	case token.INC:
 		p.WriteString("++")
-	default: // token.DEC
+	case token.DEC:
 		p.WriteString("--")
+	case token.TEXISTS:
+		p.WriteString("-e")
+	case token.TREGFILE:
+		p.WriteString("-f")
+	case token.TDIRECT:
+		p.WriteString("-d")
+	case token.TCHARSP:
+		p.WriteString("-c")
+	case token.TBLCKSP:
+		p.WriteString("-b")
+	case token.TNMPIPE:
+		p.WriteString("-p")
+	case token.TSOCKET:
+		p.WriteString("-S")
+	case token.TSMBLINK:
+		p.WriteString("-L")
+	case token.TSGIDSET:
+		p.WriteString("-g")
+	case token.TSUIDSET:
+		p.WriteString("-u")
+	case token.TREAD:
+		p.WriteString("-r")
+	case token.TWRITE:
+		p.WriteString("-w")
+	case token.TEXEC:
+		p.WriteString("-x")
+	case token.TNOEMPTY:
+		p.WriteString("-s")
+	case token.TFDTERM:
+		p.WriteString("-t")
+	case token.TEMPSTR:
+		p.WriteString("-z")
+	case token.TNEMPSTR:
+		p.WriteString("-n")
+	case token.TOPTSET:
+		p.WriteString("-o")
+	case token.TVARSET:
+		p.WriteString("-v")
+	default: // token.TNRFVAR
+		p.WriteString("-R")
 	}
 }
 
-func (p *printer) arithm(expr ast.ArithmExpr, compact bool) {
+func (p *printer) arithm(expr ast.ArithmExpr, compact, test bool) {
 	p.wantSpace = false
 	switch x := expr.(type) {
 	case *ast.Word:
 		p.word(*x)
 	case *ast.BinaryExpr:
 		if compact {
-			p.arithm(x.X, true)
+			p.arithm(x.X, compact, test)
 			p.binaryExprOp(x.Op)
-			p.arithm(x.Y, true)
+			p.arithm(x.Y, compact, test)
 		} else {
-			p.arithm(x.X, false)
+			p.arithm(x.X, compact, test)
 			if x.Op != token.COMMA {
 				p.WriteByte(' ')
 			}
 			p.binaryExprOp(x.Op)
 			p.space()
-			p.arithm(x.Y, false)
+			p.arithm(x.Y, compact, test)
 		}
 	case *ast.UnaryExpr:
 		if x.Post {
-			p.arithm(x.X, compact)
+			p.arithm(x.X, compact, test)
 			p.unaryExprOp(x.Op)
 		} else {
 			p.unaryExprOp(x.Op)
-			p.arithm(x.X, compact)
+			if test {
+				p.space()
+			}
+			p.arithm(x.X, compact, test)
 		}
 	case *ast.ParenExpr:
 		p.WriteByte('(')
-		p.arithm(x.X, false)
+		p.arithm(x.X, false, test)
 		p.WriteByte(')')
 	}
 }
@@ -849,6 +910,11 @@ func (p *printer) command(cmd ast.Command, redirs []*ast.Redirect) (startRedirs 
 		p.semiOrNewl("do", x.Do)
 		p.nestedStmts(x.DoStmts)
 		p.semiRsrv("done", x.Done, true)
+	case *ast.TestClause:
+		p.spacedRsrv("[[")
+		p.space()
+		p.arithm(x.X, false, true)
+		p.spacedRsrv("]]")
 	case *ast.DeclClause:
 		if x.Local {
 			p.spacedRsrv("local")
@@ -869,7 +935,7 @@ func (p *printer) command(cmd ast.Command, redirs []*ast.Redirect) (startRedirs 
 		p.spacedRsrv("let")
 		for _, n := range x.Exprs {
 			p.space()
-			p.arithm(n, true)
+			p.arithm(n, true, false)
 		}
 	}
 	return startRedirs

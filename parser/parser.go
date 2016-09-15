@@ -892,6 +892,8 @@ func (p *parser) gotStmtPipe(s *ast.Stmt) *ast.Stmt {
 			s.Cmd = p.forClause()
 		case "case":
 			s.Cmd = p.caseClause()
+		case "[[":
+			s.Cmd = p.testClause()
 		case "declare", "local":
 			s.Cmd = p.declClause()
 		case "eval":
@@ -1119,6 +1121,143 @@ func (p *parser) patLists() (pls []*ast.PatternList) {
 		p.got(token.STOPPED)
 	}
 	return
+}
+
+func (p *parser) testClause() *ast.TestClause {
+	tc := &ast.TestClause{Left: p.pos}
+	p.next()
+	if p.tok == token.EOF || p.gotRsrv("]]") {
+		p.posErr(tc.Left, `test clause requires at least one expression`)
+	}
+	tc.X = p.testExpr(token.DLBRCK, tc.Left)
+	tc.Right = p.pos
+	if !p.gotRsrv("]]") {
+		p.posErr(tc.Left, `reached %s without matching word [[ with ]]`, p.tok)
+	}
+	p.next()
+	return tc
+}
+
+func (p *parser) testExpr(ftok token.Token, fpos token.Pos) ast.ArithmExpr {
+	if p.tok == token.EOF || (p.tok == token.LITWORD && p.val == "]]") {
+		return nil
+	}
+	if p.tok == token.LITWORD {
+		if op := testUnaryOp(p.val); op != token.ILLEGAL {
+			p.tok = op
+		}
+	}
+	switch p.tok {
+	case token.NOT, token.TEXISTS, token.TREGFILE, token.TDIRECT,
+		token.TCHARSP, token.TBLCKSP, token.TNMPIPE, token.TSOCKET,
+		token.TSMBLINK, token.TSGIDSET, token.TSUIDSET, token.TREAD,
+		token.TWRITE, token.TEXEC, token.TNOEMPTY, token.TFDTERM,
+		token.TEMPSTR, token.TNEMPSTR, token.TOPTSET, token.TVARSET,
+		token.TNRFVAR:
+		u := &ast.UnaryExpr{OpPos: p.pos, Op: p.tok}
+		p.next()
+		u.X = p.testExpr(u.Op, u.OpPos)
+		return u
+	}
+	left := p.followWordTok(ftok, fpos)
+	if p.tok == token.EOF || (p.tok == token.LITWORD && p.val == "]]") {
+		return &left
+	}
+	b := &ast.BinaryExpr{
+		OpPos: p.pos,
+		Op:    p.tok,
+		X:     &left,
+	}
+	if p.tok == token.LITWORD {
+		if b.Op = testBinaryOp(p.val); b.Op == token.ILLEGAL {
+			p.curErr("not a valid test operator: %s", p.val)
+		}
+	}
+	p.next()
+	if b.Y = p.testExpr(b.Op, b.OpPos); b.Y == nil {
+		p.followErr(b.OpPos, b.Op.String(), "an expression")
+	}
+	return b
+}
+
+func testUnaryOp(val string) token.Token {
+	switch val {
+	case "!":
+		return token.NOT
+	case "-e":
+		return token.TEXISTS
+	case "-f":
+		return token.TREGFILE
+	case "-d":
+		return token.TDIRECT
+	case "-c":
+		return token.TCHARSP
+	case "-b":
+		return token.TBLCKSP
+	case "-p":
+		return token.TNMPIPE
+	case "-S":
+		return token.TSOCKET
+	case "-L":
+		return token.TSMBLINK
+	case "-g":
+		return token.TSGIDSET
+	case "-u":
+		return token.TSUIDSET
+	case "-r":
+		return token.TREAD
+	case "-w":
+		return token.TWRITE
+	case "-x":
+		return token.TEXEC
+	case "-s":
+		return token.TNOEMPTY
+	case "-t":
+		return token.TFDTERM
+	case "-z":
+		return token.TEMPSTR
+	case "-n":
+		return token.TNEMPSTR
+	case "-o":
+		return token.TOPTSET
+	case "-v":
+		return token.TVARSET
+	case "-R":
+		return token.TNRFVAR
+	default:
+		return token.ILLEGAL
+	}
+}
+
+func testBinaryOp(val string) token.Token {
+	switch val {
+	case "=":
+		return token.ASSIGN
+	case "==":
+		return token.EQL
+	case "!=":
+		return token.NEQ
+	case "-nt":
+		return token.TNEWER
+	case "-ot":
+		return token.TOLDER
+	case "-ef":
+		return token.TDEVIND
+	case "-eq":
+		return token.TEQL
+	case "-neq":
+		return token.TNEQ
+	case "-le":
+		return token.TLEQ
+	case "-ge":
+		return token.TGEQ
+	case "-lt":
+		return token.TLSS
+	case "-gt":
+		return token.TGTR
+	default:
+		return token.ILLEGAL
+	}
 }
 
 func (p *parser) declClause() *ast.DeclClause {

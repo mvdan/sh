@@ -6,7 +6,7 @@ package token
 // Token is the set of lexical tokens.
 type Token int
 
-// The list of all possible tokens.
+// The list of all possible tokens and reserved words.
 const (
 	ILLEGAL Token = iota
 	STOPPED
@@ -32,6 +32,7 @@ const (
 	DOLLBK // $[
 	DOLLPR // $(
 	DOLLDP // $((
+	DLBRCK // [[
 	LET    // let
 	LBRACE // {
 	LPAREN // (
@@ -101,6 +102,37 @@ const (
 
 	DLPAREN // ((
 	DRPAREN // ))
+
+	TEXISTS  // -e
+	TREGFILE // -f
+	TDIRECT  // -d
+	TCHARSP  // -c
+	TBLCKSP  // -b
+	TNMPIPE  // -p
+	TSOCKET  // -S
+	TSMBLINK // -L
+	TSGIDSET // -g
+	TSUIDSET // -u
+	TREAD    // -r
+	TWRITE   // -w
+	TEXEC    // -x
+	TNOEMPTY // -s
+	TFDTERM  // -t
+	TEMPSTR  // -z
+	TNEMPSTR // -n
+	TOPTSET  // -o
+	TVARSET  // -v
+	TNRFVAR  // -R
+
+	TNEWER  // -nt
+	TOLDER  // -ot
+	TDEVIND // -ef
+	TEQL    // -eq
+	TNEQ    // -neq
+	TLEQ    // -le
+	TGEQ    // -ge
+	TLSS    // -lt
+	TGTR    // -gt
 )
 
 // Pos is the internal representation of a position within a source
@@ -142,6 +174,7 @@ var (
 		DOLLBK:     `$[`,
 		DOLLPR:     `$(`,
 		DOLLDP:     `$((`,
+		DLBRCK:     "[[",
 		LET:        "let",
 		LBRACE:     "{",
 		LPAREN:     "(",
@@ -207,6 +240,37 @@ var (
 		XORASSGN: "^=",
 		SHLASSGN: "<<=",
 		SHRASSGN: ">>=",
+
+		TEXISTS:  "-e",
+		TREGFILE: "-f",
+		TDIRECT:  "-d",
+		TCHARSP:  "-c",
+		TBLCKSP:  "-b",
+		TNMPIPE:  "-p",
+		TSOCKET:  "-S",
+		TSMBLINK: "-L",
+		TSGIDSET: "-g",
+		TSUIDSET: "-u",
+		TREAD:    "-r",
+		TWRITE:   "-w",
+		TEXEC:    "-x",
+		TNOEMPTY: "-s",
+		TFDTERM:  "-t",
+		TEMPSTR:  "-z",
+		TNEMPSTR: "-n",
+		TOPTSET:  "-o",
+		TVARSET:  "-v",
+		TNRFVAR:  "-R",
+
+		TNEWER:  "-nt",
+		TOLDER:  "-ot",
+		TDEVIND: "-ef",
+		TEQL:    "-eq",
+		TNEQ:    "-neq",
+		TLEQ:    "-le",
+		TGEQ:    "-ge",
+		TLSS:    "-lt",
+		TGTR:    "-gt",
 	}
 )
 

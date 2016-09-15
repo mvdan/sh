@@ -120,6 +120,7 @@ func (*Block) commandNode()       {}
 func (*Subshell) commandNode()    {}
 func (*BinaryCmd) commandNode()   {}
 func (*FuncDecl) commandNode()    {}
+func (*TestClause) commandNode()  {}
 func (*DeclClause) commandNode()  {}
 func (*EvalClause) commandNode()  {}
 func (*LetClause) commandNode()   {}
@@ -524,6 +525,15 @@ type PatternList struct {
 	Patterns []Word
 	Stmts    []*Stmt
 }
+
+// TestClause represents a Bash extended test clause.
+type TestClause struct {
+	Left, Right token.Pos
+	X           ArithmExpr
+}
+
+func (t *TestClause) Pos() token.Pos { return t.Left }
+func (t *TestClause) End() token.Pos { return posAfter(t.Right, 2) }
 
 // DeclClause represents a Bash declare clause.
 type DeclClause struct {

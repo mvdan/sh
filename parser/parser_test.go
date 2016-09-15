@@ -569,6 +569,18 @@ var errTests = []struct {
 		`1:8: ) can only be used to close a subshell`,
 	},
 	{
+		"[[",
+		`1:1: test clause requires at least one expression`,
+	},
+	{
+		"[[ a",
+		`1:1: reached EOF without matching word [[ with ]]`,
+	},
+	{
+		"[[ a b c ]]",
+		`1:6: not a valid test operator: b`,
+	},
+	{
 		"declare (",
 		`1:9: "declare" must be followed by words`,
 	},
