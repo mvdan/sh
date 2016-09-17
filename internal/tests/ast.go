@@ -2214,6 +2214,22 @@ var FileTests = []TestCase{
 		},
 	},
 	{
+		[]string{"[[ -n a && -n b ]]"},
+		&ast.TestClause{
+			X: &ast.BinaryExpr{
+				Op: token.LAND,
+				X: &ast.UnaryExpr{
+					Op: token.TNEMPSTR,
+					X:  litWord("a"),
+				},
+				Y: &ast.UnaryExpr{
+					Op: token.TNEMPSTR,
+					X:  litWord("b"),
+				},
+			},
+		},
+	},
+	{
 		[]string{"[[ a > b && c > d ]]"},
 		&ast.TestClause{
 			X: &ast.BinaryExpr{

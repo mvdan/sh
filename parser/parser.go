@@ -1147,26 +1147,35 @@ func (p *parser) testExpr(ftok token.Token, fpos token.Pos) ast.ArithmExpr {
 			p.tok = op
 		}
 	}
-	switch p.tok {
-	case token.NOT, token.TEXISTS, token.TREGFILE, token.TDIRECT,
-		token.TCHARSP, token.TBLCKSP, token.TNMPIPE, token.TSOCKET,
-		token.TSMBLINK, token.TSGIDSET, token.TSUIDSET, token.TREAD,
-		token.TWRITE, token.TEXEC, token.TNOEMPTY, token.TFDTERM,
-		token.TEMPSTR, token.TNEMPSTR, token.TOPTSET, token.TVARSET,
-		token.TNRFVAR:
+	if p.tok == token.NOT {
 		u := &ast.UnaryExpr{OpPos: p.pos, Op: p.tok}
 		p.next()
 		u.X = p.testExpr(u.Op, u.OpPos)
 		return u
 	}
-	left := p.followWordTok(ftok, fpos)
+	var left ast.ArithmExpr
+	switch p.tok {
+	case token.TEXISTS, token.TREGFILE, token.TDIRECT, token.TCHARSP,
+		token.TBLCKSP, token.TNMPIPE, token.TSOCKET, token.TSMBLINK,
+		token.TSGIDSET, token.TSUIDSET, token.TREAD, token.TWRITE,
+		token.TEXEC, token.TNOEMPTY, token.TFDTERM, token.TEMPSTR,
+		token.TNEMPSTR, token.TOPTSET, token.TVARSET, token.TNRFVAR:
+		u := &ast.UnaryExpr{OpPos: p.pos, Op: p.tok}
+		p.next()
+		w := p.followWordTok(ftok, fpos)
+		u.X = &w
+		left = u
+	default:
+		w := p.followWordTok(ftok, fpos)
+		left = &w
+	}
 	if p.tok == token.EOF || (p.tok == token.LITWORD && p.val == "]]") {
-		return &left
+		return left
 	}
 	b := &ast.BinaryExpr{
 		OpPos: p.pos,
 		Op:    p.tok,
-		X:     &left,
+		X:     left,
 	}
 	switch p.tok {
 	case token.LAND, token.LOR, token.LSS, token.GTR:
