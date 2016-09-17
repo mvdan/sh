@@ -124,15 +124,16 @@ const (
 	TVARSET  // -v
 	TNRFVAR  // -R
 
-	TNEWER  // -nt
-	TOLDER  // -ot
-	TDEVIND // -ef
-	TEQL    // -eq
-	TNEQ    // -ne
-	TLEQ    // -le
-	TGEQ    // -ge
-	TLSS    // -lt
-	TGTR    // -gt
+	TREMATCH // =~
+	TNEWER   // -nt
+	TOLDER   // -ot
+	TDEVIND  // -ef
+	TEQL     // -eq
+	TNEQ     // -ne
+	TLEQ     // -le
+	TGEQ     // -ge
+	TLSS     // -lt
+	TGTR     // -gt
 )
 
 // Pos is the internal representation of a position within a source
@@ -262,15 +263,16 @@ var (
 		TVARSET:  "-v",
 		TNRFVAR:  "-R",
 
-		TNEWER:  "-nt",
-		TOLDER:  "-ot",
-		TDEVIND: "-ef",
-		TEQL:    "-eq",
-		TNEQ:    "-ne",
-		TLEQ:    "-le",
-		TGEQ:    "-ge",
-		TLSS:    "-lt",
-		TGTR:    "-gt",
+		TREMATCH: "=~",
+		TNEWER:   "-nt",
+		TOLDER:   "-ot",
+		TDEVIND:  "-ef",
+		TEQL:     "-eq",
+		TNEQ:     "-ne",
+		TLEQ:     "-le",
+		TGEQ:     "-ge",
+		TLSS:     "-lt",
+		TGTR:     "-gt",
 	}
 )
 

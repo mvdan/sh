@@ -506,6 +506,8 @@ func (p *printer) binaryExprOp(tok token.Token) {
 		p.WriteByte(':')
 	case token.COMMA:
 		p.WriteByte(',')
+	case token.TREMATCH:
+		p.WriteString("=~")
 	case token.TNEWER:
 		p.WriteString("-nt")
 	case token.TOLDER:
