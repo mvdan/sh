@@ -1127,7 +1127,6 @@ func (p *parser) testClause() *ast.TestClause {
 	if !p.gotRsrv("]]") {
 		p.posErr(tc.Left, `reached %s without matching word [[ with ]]`, p.tok)
 	}
-	p.next()
 	return tc
 }
 

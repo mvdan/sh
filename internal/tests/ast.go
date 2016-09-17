@@ -2172,6 +2172,15 @@ var FileTests = []TestCase{
 		},
 	},
 	{
+		[]string{"[[ a ]]\nb"},
+		stmts(
+			&ast.TestClause{
+				X: litWord("a"),
+			},
+			litCall("b"),
+		),
+	},
+	{
 		[]string{"[[ a > b ]]"},
 		&ast.TestClause{
 			X: &ast.BinaryExpr{
