@@ -515,7 +515,7 @@ func (p *printer) binaryExprOp(tok token.Token) {
 	case token.TEQL:
 		p.WriteString("-eq")
 	case token.TNEQ:
-		p.WriteString("-neq")
+		p.WriteString("-ne")
 	case token.TLEQ:
 		p.WriteString("-le")
 	case token.TGEQ:

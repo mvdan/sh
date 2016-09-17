@@ -128,7 +128,7 @@ const (
 	TOLDER  // -ot
 	TDEVIND // -ef
 	TEQL    // -eq
-	TNEQ    // -neq
+	TNEQ    // -ne
 	TLEQ    // -le
 	TGEQ    // -ge
 	TLSS    // -lt
@@ -266,7 +266,7 @@ var (
 		TOLDER:  "-ot",
 		TDEVIND: "-ef",
 		TEQL:    "-eq",
-		TNEQ:    "-neq",
+		TNEQ:    "-ne",
 		TLEQ:    "-le",
 		TGEQ:    "-ge",
 		TLSS:    "-lt",

@@ -1251,7 +1251,7 @@ func testBinaryOp(val string) token.Token {
 		return token.TDEVIND
 	case "-eq":
 		return token.TEQL
-	case "-neq":
+	case "-ne":
 		return token.TNEQ
 	case "-le":
 		return token.TLEQ
