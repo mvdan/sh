@@ -278,6 +278,10 @@ func TestFprintWeirdFormat(t *testing.T) {
 			"a=(\n\tb\n\tc\n) foo",
 		},
 		{
+			"a=(\n\tb #foo\n\tc #bar\n)",
+			"a=(\n\tb #foo\n\tc #bar\n)",
+		},
+		{
 			"foo <<EOF | `bar`\n3\nEOF",
 			"foo <<EOF | `bar`\n3\nEOF",
 		},

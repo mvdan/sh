@@ -603,7 +603,8 @@ func (p *printer) unquotedWord(w ast.Word) {
 func (p *printer) wordJoin(ws []ast.Word, backslash bool) {
 	anyNewline := false
 	for _, w := range ws {
-		if w.Pos() > p.nline {
+		if pos := w.Pos(); pos > p.nline {
+			p.commentsUpTo(pos)
 			if backslash {
 				p.bslashNewl()
 			} else {
