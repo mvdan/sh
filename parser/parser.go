@@ -1189,7 +1189,7 @@ func testUnaryOp(val string) token.Token {
 	switch val {
 	case "!":
 		return token.NOT
-	case "-e":
+	case "-a", "-e":
 		return token.TEXISTS
 	case "-f":
 		return token.TREGFILE
@@ -1203,7 +1203,7 @@ func testUnaryOp(val string) token.Token {
 		return token.TNMPIPE
 	case "-S":
 		return token.TSOCKET
-	case "-L":
+	case "-h", "-L":
 		return token.TSMBLINK
 	case "-g":
 		return token.TSGIDSET

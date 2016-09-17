@@ -2223,16 +2223,34 @@ var FileTests = []TestCase{
 		},
 	},
 	{
-		[]string{"[[ -n a && -n b ]]"},
+		[]string{
+			"[[ ! -e $a ]]",
+			"[[ ! -a $a ]]",
+		},
+		&ast.TestClause{
+			X: &ast.UnaryExpr{
+				Op: token.NOT,
+				X: &ast.UnaryExpr{
+					Op: token.TEXISTS,
+					X:  word(litParamExp("a")),
+				},
+			},
+		},
+	},
+	{
+		[]string{
+			"[[ -S a && -L b ]]",
+			"[[ -S a && -h b ]]",
+		},
 		&ast.TestClause{
 			X: &ast.BinaryExpr{
 				Op: token.LAND,
 				X: &ast.UnaryExpr{
-					Op: token.TNEMPSTR,
+					Op: token.TSOCKET,
 					X:  litWord("a"),
 				},
 				Y: &ast.UnaryExpr{
-					Op: token.TNEMPSTR,
+					Op: token.TSMBLINK,
 					X:  litWord("b"),
 				},
 			},
@@ -2639,22 +2657,27 @@ func fullProg(v interface{}) *ast.File {
 }
 
 func SetPosRecurse(tb testing.TB, src string, v interface{}, to token.Pos, diff bool) {
-	checkSrc := func(pos token.Pos, want string) {
-		if src == "" {
+	checkSrc := func(pos token.Pos, strs []string) {
+		if src == "" || strs == nil {
 			return
 		}
 		offs := int(pos - 1)
-		got := string([]byte(src[offs:]))
-		got = strings.Replace(got, "\\\n", "", -1)[:len(want)]
-		if got != want {
-			tb.Fatalf("Expected %q at %d in %q, found %q",
-				want, offs, src, got)
+		var gotErr string
+		for i, want := range strs {
+			got := string([]byte(src[offs:]))
+			if i == 0 {
+				gotErr = got
+			}
+			got = strings.Replace(got, "\\\n", "", -1)[:len(want)]
+			if got == want {
+				return
+			}
 		}
+		tb.Fatalf("Expected one of %q at %d in %q, found %q",
+			strs, offs, src, gotErr)
 	}
-	setPos := func(p *token.Pos, s string) {
-		if s != "" {
-			checkSrc(*p, s)
-		}
+	setPos := func(p *token.Pos, strs ...string) {
+		checkSrc(*p, strs)
 		if diff && *p == to {
 			tb.Fatalf("Pos() in %T is already %v", v, to)
 		}
@@ -2692,7 +2715,7 @@ func SetPosRecurse(tb testing.TB, src string, v interface{}, to token.Pos, diff 
 			recurse(s)
 		}
 	case *ast.Stmt:
-		setPos(&x.Position, "")
+		setPos(&x.Position)
 		if x.Cmd != nil {
 			recurse(x.Cmd)
 		}
@@ -2792,7 +2815,14 @@ func SetPosRecurse(tb testing.TB, src string, v interface{}, to token.Pos, diff 
 		setPos(&x.QuotePos, x.Quote.String())
 		recurse(x.Parts)
 	case *ast.UnaryExpr:
-		setPos(&x.OpPos, x.Op.String())
+		strs := []string{x.Op.String()}
+		switch x.Op {
+		case token.TEXISTS:
+			strs = append(strs, "-a")
+		case token.TSMBLINK:
+			strs = append(strs, "-h")
+		}
+		setPos(&x.OpPos, strs...)
 		recurse(&x.X)
 	case *ast.BinaryCmd:
 		setPos(&x.OpPos, x.Op.String())
@@ -2806,7 +2836,7 @@ func SetPosRecurse(tb testing.TB, src string, v interface{}, to token.Pos, diff 
 		if x.BashStyle {
 			setPos(&x.Position, "function")
 		} else {
-			setPos(&x.Position, "")
+			setPos(&x.Position)
 		}
 		recurse(&x.Name)
 		recurse(x.Body)
@@ -2851,7 +2881,7 @@ func SetPosRecurse(tb testing.TB, src string, v interface{}, to token.Pos, diff 
 		setPos(&x.Esac, "esac")
 		recurse(&x.Word)
 		for _, pl := range x.List {
-			setPos(&pl.OpPos, "")
+			setPos(&pl.OpPos)
 			recurse(pl.Patterns)
 			recurse(pl.Stmts)
 		}
