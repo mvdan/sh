@@ -1168,10 +1168,14 @@ func (p *parser) testExpr(ftok token.Token, fpos token.Pos) ast.ArithmExpr {
 		Op:    p.tok,
 		X:     &left,
 	}
-	if p.tok == token.LITWORD {
+	switch p.tok {
+	case token.LAND, token.LOR, token.LSS, token.GTR:
+	case token.LITWORD:
 		if b.Op = testBinaryOp(p.val); b.Op == token.ILLEGAL {
 			p.curErr("not a valid test operator: %s", p.val)
 		}
+	default:
+		p.curErr("not a valid test operator: %v", p.tok)
 	}
 	p.next()
 	if b.Y = p.testExpr(b.Op, b.OpPos); b.Y == nil {

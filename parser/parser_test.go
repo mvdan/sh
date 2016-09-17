@@ -581,6 +581,10 @@ var errTests = []struct {
 		`1:6: not a valid test operator: b`,
 	},
 	{
+		"[[ a & b ]]",
+		`1:6: not a valid test operator: &`,
+	},
+	{
 		"declare (",
 		`1:9: "declare" must be followed by words`,
 	},
