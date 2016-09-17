@@ -151,7 +151,7 @@ var FileTests = []TestCase{
 			"if a \nthen\nb\nfi",
 		},
 		&ast.IfClause{
-			Cond:      &ast.StmtCond{Stmts: litStmts("a")},
+			CondStmts: litStmts("a"),
 			ThenStmts: litStmts("b"),
 		},
 	},
@@ -161,7 +161,7 @@ var FileTests = []TestCase{
 			"if a\nthen b\nelse\nc\nfi",
 		},
 		&ast.IfClause{
-			Cond:      &ast.StmtCond{Stmts: litStmts("a")},
+			CondStmts: litStmts("a"),
 			ThenStmts: litStmts("b"),
 			ElseStmts: litStmts("c"),
 		},
@@ -172,15 +172,15 @@ var FileTests = []TestCase{
 			"if a\nthen a\nelif b\nthen b\nelif c\nthen c\nelse\nd\nfi",
 		},
 		&ast.IfClause{
-			Cond:      &ast.StmtCond{Stmts: litStmts("a")},
+			CondStmts: litStmts("a"),
 			ThenStmts: litStmts("a"),
 			Elifs: []*ast.Elif{
 				{
-					Cond:      &ast.StmtCond{Stmts: litStmts("b")},
+					CondStmts: litStmts("b"),
 					ThenStmts: litStmts("b"),
 				},
 				{
-					Cond:      &ast.StmtCond{Stmts: litStmts("c")},
+					CondStmts: litStmts("c"),
 					ThenStmts: litStmts("c"),
 				},
 			},
@@ -193,22 +193,33 @@ var FileTests = []TestCase{
 			"if a1; a2 foo; a3 bar; then b; fi",
 		},
 		&ast.IfClause{
-			Cond: &ast.StmtCond{Stmts: []*ast.Stmt{
+			CondStmts: []*ast.Stmt{
 				litStmt("a1"),
 				litStmt("a2", "foo"),
 				litStmt("a3", "bar"),
-			}},
+			},
 			ThenStmts: litStmts("b"),
 		},
 	},
 	{
+		[]string{`((a <= 2))`},
+		stmt(&ast.ArithmExp{Token: token.DLPAREN, X: &ast.BinaryExpr{
+			Op: token.LEQ,
+			X:  litWord("a"),
+			Y:  litWord("2"),
+		}}),
+	},
+	{
 		[]string{"if ((1 > 2)); then b; fi"},
 		&ast.IfClause{
-			Cond: &ast.CStyleCond{X: &ast.BinaryExpr{
-				Op: token.GTR,
-				X:  litWord("1"),
-				Y:  litWord("2"),
-			}},
+			CondStmts: stmts(&ast.ArithmExp{
+				Token: token.DLPAREN,
+				X: &ast.BinaryExpr{
+					Op: token.GTR,
+					X:  litWord("1"),
+					Y:  litWord("2"),
+				},
+			}),
 			ThenStmts: litStmts("b"),
 		},
 	},
@@ -219,44 +230,47 @@ var FileTests = []TestCase{
 			"while a\ndo\nb\ndone",
 		},
 		&ast.WhileClause{
-			Cond:    &ast.StmtCond{Stmts: litStmts("a")},
-			DoStmts: litStmts("b"),
+			CondStmts: litStmts("a"),
+			DoStmts:   litStmts("b"),
 		},
 	},
 	{
 		[]string{"while { a; }; do b; done", "while { a; } do b; done"},
 		&ast.WhileClause{
-			Cond: &ast.StmtCond{Stmts: []*ast.Stmt{
+			CondStmts: []*ast.Stmt{
 				stmt(block(litStmt("a"))),
-			}},
+			},
 			DoStmts: litStmts("b"),
 		},
 	},
 	{
 		[]string{"while (a); do b; done", "while (a) do b; done"},
 		&ast.WhileClause{
-			Cond: &ast.StmtCond{Stmts: []*ast.Stmt{
+			CondStmts: []*ast.Stmt{
 				stmt(subshell(litStmt("a"))),
-			}},
+			},
 			DoStmts: litStmts("b"),
 		},
 	},
 	{
 		[]string{"while ((1 > 2)); do b; done"},
 		&ast.WhileClause{
-			Cond: &ast.CStyleCond{X: &ast.BinaryExpr{
-				Op: token.GTR,
-				X:  litWord("1"),
-				Y:  litWord("2"),
-			}},
+			CondStmts: stmts(&ast.ArithmExp{
+				Token: token.DLPAREN,
+				X: &ast.BinaryExpr{
+					Op: token.GTR,
+					X:  litWord("1"),
+					Y:  litWord("2"),
+				},
+			}),
 			DoStmts: litStmts("b"),
 		},
 	},
 	{
 		[]string{"until a; do b; done", "until a\ndo\nb\ndone"},
 		&ast.UntilClause{
-			Cond:    &ast.StmtCond{Stmts: litStmts("a")},
-			DoStmts: litStmts("b"),
+			CondStmts: litStmts("a"),
+			DoStmts:   litStmts("b"),
 		},
 	},
 	{
@@ -389,12 +403,12 @@ var FileTests = []TestCase{
 		&ast.BinaryCmd{
 			Op: token.LOR,
 			X: stmt(&ast.IfClause{
-				Cond:      &ast.StmtCond{Stmts: litStmts("a")},
+				CondStmts: litStmts("a"),
 				ThenStmts: litStmts("b"),
 			}),
 			Y: stmt(&ast.WhileClause{
-				Cond:    &ast.StmtCond{Stmts: litStmts("a")},
-				DoStmts: litStmts("b"),
+				CondStmts: litStmts("a"),
+				DoStmts:   litStmts("b"),
 			}),
 		},
 	},
@@ -739,7 +753,7 @@ var FileTests = []TestCase{
 	{
 		[]string{"if true; then foo <<-EOF\n\tbar\n\tEOF\nfi"},
 		&ast.IfClause{
-			Cond: &ast.StmtCond{Stmts: litStmts("true")},
+			CondStmts: litStmts("true"),
 			ThenStmts: []*ast.Stmt{{
 				Cmd: litCall("foo"),
 				Redirs: []*ast.Redirect{{
@@ -753,7 +767,7 @@ var FileTests = []TestCase{
 	{
 		[]string{"if true; then foo <<-EOF\n\tEOF\nfi"},
 		&ast.IfClause{
-			Cond: &ast.StmtCond{Stmts: litStmts("true")},
+			CondStmts: litStmts("true"),
 			ThenStmts: []*ast.Stmt{{
 				Cmd: litCall("foo"),
 				Redirs: []*ast.Redirect{{
@@ -1079,7 +1093,7 @@ var FileTests = []TestCase{
 		&ast.Stmt{
 			Negated: true,
 			Cmd: &ast.IfClause{
-				Cond:      &ast.StmtCond{Stmts: litStmts("foo")},
+				CondStmts: litStmts("foo"),
 				ThenStmts: litStmts("bar"),
 			},
 			Redirs: []*ast.Redirect{
@@ -1846,14 +1860,6 @@ var FileTests = []TestCase{
 		})),
 	},
 	{
-		[]string{`((a <= 2))`},
-		word(&ast.ArithmExp{Token: token.DLPAREN, X: &ast.BinaryExpr{
-			Op: token.LEQ,
-			X:  litWord("a"),
-			Y:  litWord("2"),
-		}}),
-	},
-	{
 		[]string{"foo$", "foo$\n"},
 		word(lit("foo"), lit("$")),
 	},
@@ -2010,9 +2016,9 @@ var FileTests = []TestCase{
 			Op: token.OR,
 			X:  litStmt("foo"),
 			Y: stmt(&ast.WhileClause{
-				Cond: &ast.StmtCond{Stmts: []*ast.Stmt{
+				CondStmts: []*ast.Stmt{
 					litStmt("read", "a"),
-				}},
+				},
 				DoStmts: litStmts("b"),
 			}),
 		},
@@ -2020,7 +2026,7 @@ var FileTests = []TestCase{
 	{
 		[]string{"while read l; do foo || bar; done"},
 		&ast.WhileClause{
-			Cond: &ast.StmtCond{Stmts: []*ast.Stmt{litStmt("read", "l")}},
+			CondStmts: []*ast.Stmt{litStmt("read", "l")},
 			DoStmts: stmts(&ast.BinaryCmd{
 				Op: token.LOR,
 				X:  litStmt("foo"),
@@ -2720,8 +2726,6 @@ func SetPosRecurse(tb testing.TB, src string, v interface{}, to token.Pos, diff 
 		}
 	case *ast.WordPart:
 		recurse(*x)
-	case *ast.Cond:
-		recurse(*x)
 	case *ast.Loop:
 		recurse(*x)
 	case *ast.ArithmExpr:
@@ -2740,35 +2744,29 @@ func SetPosRecurse(tb testing.TB, src string, v interface{}, to token.Pos, diff 
 		setPos(&x.If, "if")
 		setPos(&x.Then, "then")
 		setPos(&x.Fi, "fi")
-		recurse(&x.Cond)
+		recurse(x.CondStmts)
 		recurse(x.ThenStmts)
 		for _, e := range x.Elifs {
 			setPos(&e.Elif, "elif")
 			setPos(&e.Then, "then")
-			recurse(e.Cond)
+			recurse(e.CondStmts)
 			recurse(e.ThenStmts)
 		}
 		if len(x.ElseStmts) > 0 {
 			setPos(&x.Else, "else")
 			recurse(x.ElseStmts)
 		}
-	case *ast.StmtCond:
-		recurse(x.Stmts)
-	case *ast.CStyleCond:
-		setPos(&x.Lparen, "((")
-		setPos(&x.Rparen, "))")
-		recurse(&x.X)
 	case *ast.WhileClause:
 		setPos(&x.While, "while")
 		setPos(&x.Do, "do")
 		setPos(&x.Done, "done")
-		recurse(&x.Cond)
+		recurse(x.CondStmts)
 		recurse(x.DoStmts)
 	case *ast.UntilClause:
 		setPos(&x.Until, "until")
 		setPos(&x.Do, "do")
 		setPos(&x.Done, "done")
-		recurse(&x.Cond)
+		recurse(x.CondStmts)
 		recurse(x.DoStmts)
 	case *ast.ForClause:
 		setPos(&x.For, "for")

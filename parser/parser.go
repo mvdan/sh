@@ -388,7 +388,7 @@ func (p *parser) wordPart() ast.WordPart {
 		return nil
 	case token.DOLLBR:
 		return p.paramExp()
-	case token.DOLLDP, token.DLPAREN, token.DOLLBK:
+	case token.DOLLDP, token.DOLLBK:
 		left := p.tok
 		ar := &ast.ArithmExp{Token: p.tok, Left: p.pos}
 		old := p.quote
@@ -876,6 +876,8 @@ func (p *parser) gotStmtPipe(s *ast.Stmt) *ast.Stmt {
 	switch p.tok {
 	case token.LPAREN:
 		s.Cmd = p.subshell()
+	case token.DLPAREN:
+		s.Cmd = p.arithmExpCmd()
 	case token.LITWORD:
 		switch p.val {
 		case "}":
@@ -914,8 +916,7 @@ func (p *parser) gotStmtPipe(s *ast.Stmt) *ast.Stmt {
 		}
 	case token.LIT, token.DOLLBR, token.DOLLDP, token.DOLLPR, token.DOLLAR,
 		token.CMDIN, token.CMDOUT, token.SQUOTE, token.DOLLSQ,
-		token.DQUOTE, token.DOLLDQ, token.BQUOTE, token.DLPAREN,
-		token.DOLLBK:
+		token.DQUOTE, token.DOLLDQ, token.BQUOTE, token.DOLLBK:
 		w := p.getWord()
 		if p.gotSameLine(token.LPAREN) && p.err == nil {
 			rawName := string(p.src[w.Pos()-1 : w.End()-1])
@@ -955,6 +956,16 @@ func (p *parser) subshell() *ast.Subshell {
 	return s
 }
 
+func (p *parser) arithmExpCmd() *ast.ArithmExp {
+	ar := &ast.ArithmExp{Token: p.tok, Left: p.pos}
+	old := p.quote
+	p.quote = token.DRPAREN
+	p.next()
+	ar.X = p.arithmExpr(ar.Token, ar.Left, 0, false)
+	ar.Right = p.arithmEnd(ar.Token, ar.Left, old)
+	return ar
+}
+
 func (p *parser) block() *ast.Block {
 	b := &ast.Block{Lbrace: p.pos}
 	p.next()
@@ -969,13 +980,13 @@ func (p *parser) block() *ast.Block {
 func (p *parser) ifClause() *ast.IfClause {
 	ic := &ast.IfClause{If: p.pos}
 	p.next()
-	ic.Cond = p.cond("if", ic.If, "then")
+	ic.CondStmts = p.followStmts("if", ic.If, "then")
 	ic.Then = p.followRsrv(ic.If, "if [stmts]", "then")
 	ic.ThenStmts = p.followStmts("then", ic.Then, "fi", "elif", "else")
 	elifPos := p.pos
 	for p.gotRsrv("elif") {
 		elf := &ast.Elif{Elif: elifPos}
-		elf.Cond = p.cond("elif", elf.Elif, "then")
+		elf.CondStmts = p.followStmts("elif", elf.Elif, "then")
 		elf.Then = p.followRsrv(elf.Elif, "elif [stmts]", "then")
 		elf.ThenStmts = p.followStmts("then", elf.Then, "fi", "elif", "else")
 		ic.Elifs = append(ic.Elifs, elf)
@@ -990,28 +1001,10 @@ func (p *parser) ifClause() *ast.IfClause {
 	return ic
 }
 
-func (p *parser) cond(left string, lpos token.Pos, stop string) ast.Cond {
-	if p.tok == token.DLPAREN {
-		c := &ast.CStyleCond{Lparen: p.pos}
-		old := p.quote
-		p.quote = token.DRPAREN
-		p.next()
-		c.X = p.arithmExpr(token.DLPAREN, c.Lparen, 0, false)
-		c.Rparen = p.arithmEnd(token.DLPAREN, c.Lparen, old)
-		p.gotSameLine(token.SEMICOLON)
-		return c
-	}
-	stmts := p.followStmts(left, lpos, stop)
-	if len(stmts) == 0 {
-		return nil
-	}
-	return &ast.StmtCond{Stmts: stmts}
-}
-
 func (p *parser) whileClause() *ast.WhileClause {
 	wc := &ast.WhileClause{While: p.pos}
 	p.next()
-	wc.Cond = p.cond("while", wc.While, "do")
+	wc.CondStmts = p.followStmts("while", wc.While, "do")
 	wc.Do = p.followRsrv(wc.While, "while [stmts]", "do")
 	wc.DoStmts = p.followStmts("do", wc.Do, "done")
 	wc.Done = p.stmtEnd(wc, "while", "done")
@@ -1021,7 +1014,7 @@ func (p *parser) whileClause() *ast.WhileClause {
 func (p *parser) untilClause() *ast.UntilClause {
 	uc := &ast.UntilClause{Until: p.pos}
 	p.next()
-	uc.Cond = p.cond("until", uc.Until, "do")
+	uc.CondStmts = p.followStmts("until", uc.Until, "do")
 	uc.Do = p.followRsrv(uc.Until, "until [stmts]", "do")
 	uc.DoStmts = p.followStmts("do", uc.Do, "done")
 	uc.Done = p.stmtEnd(uc, "until", "done")

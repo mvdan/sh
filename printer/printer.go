@@ -395,11 +395,7 @@ func (p *printer) wordPart(wp ast.WordPart) {
 		}
 		p.WriteByte('}')
 	case *ast.ArithmExp:
-		if x.Token == token.DOLLDP {
-			p.WriteString("$((")
-		} else { // token.DLPAREN
-			p.WriteString("((")
-		}
+		p.WriteString("$((")
 		p.arithm(x.X, false, false)
 		p.WriteString("))")
 	case *ast.ArrayExpr:
@@ -421,17 +417,6 @@ func (p *printer) wordPart(wp ast.WordPart) {
 		p.WriteByte(')')
 	}
 	p.wantSpace = true
-}
-
-func (p *printer) cond(cond ast.Cond) {
-	switch x := cond.(type) {
-	case *ast.StmtCond:
-		p.nestedStmts(x.Stmts)
-	case *ast.CStyleCond:
-		p.spacedTok("((", false)
-		p.arithm(x.X, false, false)
-		p.WriteString("))")
-	}
 }
 
 func (p *printer) loop(loop ast.Loop) {
@@ -808,12 +793,12 @@ func (p *printer) command(cmd ast.Command, redirs []*ast.Redirect) (startRedirs 
 		p.semiRsrv("}", x.Rbrace, true)
 	case *ast.IfClause:
 		p.spacedRsrv("if")
-		p.cond(x.Cond)
+		p.nestedStmts(x.CondStmts)
 		p.semiOrNewl("then", x.Then)
 		p.nestedStmts(x.ThenStmts)
 		for _, el := range x.Elifs {
 			p.semiRsrv("elif", el.Elif, true)
-			p.cond(el.Cond)
+			p.nestedStmts(el.CondStmts)
 			p.semiOrNewl("then", el.Then)
 			p.nestedStmts(el.ThenStmts)
 		}
@@ -833,7 +818,7 @@ func (p *printer) command(cmd ast.Command, redirs []*ast.Redirect) (startRedirs 
 		p.sepTok(")", x.Rparen)
 	case *ast.WhileClause:
 		p.spacedRsrv("while")
-		p.cond(x.Cond)
+		p.nestedStmts(x.CondStmts)
 		p.semiOrNewl("do", x.Do)
 		p.nestedStmts(x.DoStmts)
 		p.semiRsrv("done", x.Done, true)
@@ -906,10 +891,17 @@ func (p *printer) command(cmd ast.Command, redirs []*ast.Redirect) (startRedirs 
 		p.semiRsrv("esac", x.Esac, len(x.List) == 0)
 	case *ast.UntilClause:
 		p.spacedRsrv("until")
-		p.cond(x.Cond)
+		p.nestedStmts(x.CondStmts)
 		p.semiOrNewl("do", x.Do)
 		p.nestedStmts(x.DoStmts)
 		p.semiRsrv("done", x.Done, true)
+	case *ast.ArithmExp:
+		if p.wantSpace {
+			p.space()
+		}
+		p.WriteString("((")
+		p.arithm(x.X, false, false)
+		p.WriteString("))")
 	case *ast.TestClause:
 		p.spacedRsrv("[[")
 		p.space()

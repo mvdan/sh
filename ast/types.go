@@ -120,6 +120,7 @@ func (*Block) commandNode()       {}
 func (*Subshell) commandNode()    {}
 func (*BinaryCmd) commandNode()   {}
 func (*FuncDecl) commandNode()    {}
+func (*ArithmExp) commandNode()   {}
 func (*TestClause) commandNode()  {}
 func (*DeclClause) commandNode()  {}
 func (*EvalClause) commandNode()  {}
@@ -192,7 +193,7 @@ func (b *Block) End() token.Pos { return posAfter(b.Rbrace, 1) }
 // IfClause represents an if statement.
 type IfClause struct {
 	If, Then, Fi token.Pos
-	Cond         Cond
+	CondStmts    []*Stmt
 	ThenStmts    []*Stmt
 	Elifs        []*Elif
 	Else         token.Pos
@@ -202,46 +203,17 @@ type IfClause struct {
 func (c *IfClause) Pos() token.Pos { return c.If }
 func (c *IfClause) End() token.Pos { return posAfter(c.Fi, 2) }
 
-// Cond represents all nodes that can be conditions in an if, while or
-// until clause.
-type Cond interface {
-	Node
-	condNode()
-}
-
-func (*StmtCond) condNode()   {}
-func (*CStyleCond) condNode() {}
-
-// StmtCond represents a condition that evaluates to the result of a
-// series of statements.
-type StmtCond struct {
-	Stmts []*Stmt
-}
-
-func (c *StmtCond) Pos() token.Pos { return c.Stmts[0].Pos() }
-func (c *StmtCond) End() token.Pos { return c.Stmts[len(c.Stmts)-1].End() }
-
-// CStyleCond represents a condition that evaluates to the result of an
-// arithmetic expression.
-type CStyleCond struct {
-	Lparen, Rparen token.Pos
-	X              ArithmExpr
-}
-
-func (c *CStyleCond) Pos() token.Pos { return c.Lparen }
-func (c *CStyleCond) End() token.Pos { return posAfter(c.Rparen, 2) }
-
 // Elif represents an "else if" case in an if clause.
 type Elif struct {
 	Elif, Then token.Pos
-	Cond       Cond
+	CondStmts  []*Stmt
 	ThenStmts  []*Stmt
 }
 
 // WhileClause represents a while clause.
 type WhileClause struct {
 	While, Do, Done token.Pos
-	Cond            Cond
+	CondStmts       []*Stmt
 	DoStmts         []*Stmt
 }
 
@@ -251,7 +223,7 @@ func (w *WhileClause) End() token.Pos { return posAfter(w.Done, 4) }
 // UntilClause represents an until clause.
 type UntilClause struct {
 	Until, Do, Done token.Pos
-	Cond            Cond
+	CondStmts       []*Stmt
 	DoStmts         []*Stmt
 }
 
