@@ -203,11 +203,11 @@ var FileTests = []TestCase{
 	},
 	{
 		[]string{`((a <= 2))`},
-		stmt(&ast.ArithmExp{Token: token.DLPAREN, X: &ast.BinaryExpr{
+		&ast.ArithmExp{Token: token.DLPAREN, X: &ast.BinaryExpr{
 			Op: token.LEQ,
 			X:  litWord("a"),
 			Y:  litWord("2"),
-		}}),
+		}},
 	},
 	{
 		[]string{"if ((1 > 2)); then b; fi"},
@@ -237,19 +237,15 @@ var FileTests = []TestCase{
 	{
 		[]string{"while { a; }; do b; done", "while { a; } do b; done"},
 		&ast.WhileClause{
-			CondStmts: []*ast.Stmt{
-				stmt(block(litStmt("a"))),
-			},
-			DoStmts: litStmts("b"),
+			CondStmts: stmts(block(litStmt("a"))),
+			DoStmts:   litStmts("b"),
 		},
 	},
 	{
 		[]string{"while (a); do b; done", "while (a) do b; done"},
 		&ast.WhileClause{
-			CondStmts: []*ast.Stmt{
-				stmt(subshell(litStmt("a"))),
-			},
-			DoStmts: litStmts("b"),
+			CondStmts: stmts(subshell(litStmt("a"))),
+			DoStmts:   litStmts("b"),
 		},
 	},
 	{
@@ -2073,9 +2069,7 @@ var FileTests = []TestCase{
 	{
 		[]string{"if; then (a); fi", "if; then (a) fi"},
 		&ast.IfClause{
-			ThenStmts: []*ast.Stmt{
-				stmt(subshell(litStmt("a"))),
-			},
+			ThenStmts: stmts(subshell(litStmt("a"))),
 		},
 	},
 	{
@@ -2478,13 +2472,13 @@ var FileTests = []TestCase{
 			List: []*ast.PatternList{{
 				Op:       token.DSEMICOLON,
 				Patterns: litWords("b"),
-				Stmts: []*ast.Stmt{stmt(letClause(
+				Stmts: stmts(letClause(
 					&ast.UnaryExpr{
 						Op:   token.INC,
 						Post: true,
 						X:    litWord("i"),
 					},
-				))},
+				)),
 			}},
 		},
 	},
