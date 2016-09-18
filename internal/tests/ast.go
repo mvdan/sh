@@ -2248,6 +2248,30 @@ var FileTests = []TestCase{
 		},
 	},
 	{
+		[]string{"[[ (a && b) ]]"},
+		&ast.TestClause{
+			X: parenExpr(&ast.BinaryExpr{
+				Op: token.LAND,
+				X:  litWord("a"),
+				Y:  litWord("b"),
+			}),
+		},
+	},
+	{
+		[]string{"[[ (a && b) || c ]]"},
+		&ast.TestClause{
+			X: &ast.BinaryExpr{
+				Op: token.LOR,
+				X: parenExpr(&ast.BinaryExpr{
+					Op: token.LAND,
+					X:  litWord("a"),
+					Y:  litWord("b"),
+				}),
+				Y: litWord("c"),
+			},
+		},
+	},
+	{
 		[]string{
 			"[[ -S a && -L b ]]",
 			"[[ -S a && -h b ]]",

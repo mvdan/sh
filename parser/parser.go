@@ -1157,6 +1157,14 @@ func (p *parser) testExpr(ftok token.Token, fpos token.Pos) ast.ArithmExpr {
 		w := p.followWordTok(ftok, fpos)
 		u.X = &w
 		left = u
+	case token.LPAREN:
+		pe := &ast.ParenExpr{Lparen: p.pos}
+		p.next()
+		if pe.X = p.testExpr(token.LPAREN, pe.Lparen); pe.X == nil {
+			p.posErr(pe.Lparen, "parentheses must enclose an expression")
+		}
+		pe.Rparen = p.matched(pe.Lparen, token.LPAREN, token.RPAREN)
+		left = pe
 	default:
 		w := p.followWordTok(ftok, fpos)
 		left = &w
@@ -1164,19 +1172,21 @@ func (p *parser) testExpr(ftok token.Token, fpos token.Pos) ast.ArithmExpr {
 	if p.tok == token.EOF || (p.tok == token.LITWORD && p.val == "]]") {
 		return left
 	}
+	switch p.tok {
+	case token.LAND, token.LOR, token.LSS, token.GTR:
+	case token.LITWORD:
+		if p.tok = testBinaryOp(p.val); p.tok == token.ILLEGAL {
+			p.curErr("not a valid test operator: %s", p.val)
+		}
+	case token.RPAREN:
+		return left
+	default:
+		p.curErr("not a valid test operator: %v", p.tok)
+	}
 	b := &ast.BinaryExpr{
 		OpPos: p.pos,
 		Op:    p.tok,
 		X:     left,
-	}
-	switch p.tok {
-	case token.LAND, token.LOR, token.LSS, token.GTR:
-	case token.LITWORD:
-		if b.Op = testBinaryOp(p.val); b.Op == token.ILLEGAL {
-			p.curErr("not a valid test operator: %s", p.val)
-		}
-	default:
-		p.curErr("not a valid test operator: %v", p.tok)
 	}
 	p.next()
 	if b.Y = p.testExpr(b.Op, b.OpPos); b.Y == nil {
