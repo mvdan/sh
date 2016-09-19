@@ -845,8 +845,10 @@ preLoop:
 		case p.newLine, p.tok == token.EOF:
 			return
 		case p.tok == token.SEMICOLON:
-			p.next()
-			gotEnd = true
+			if readEnd {
+				p.next()
+				gotEnd = true
+			}
 			return
 		}
 	}

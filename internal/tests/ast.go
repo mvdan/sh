@@ -2407,6 +2407,25 @@ var FileTests = []TestCase{
 		},
 	},
 	{
+		[]string{
+			"a && b=(c)\nd",
+			"a && b=(c); d",
+		},
+		stmts(
+			&ast.BinaryCmd{
+				Op: token.LAND,
+				X:  litStmt("a"),
+				Y: &ast.Stmt{Assigns: []*ast.Assign{{
+					Name: lit("b"),
+					Value: *word(&ast.ArrayExpr{
+						List: litWords("c"),
+					}),
+				}}},
+			},
+			litCall("d"),
+		),
+	},
+	{
 		[]string{"declare -f func >/dev/null"},
 		&ast.Stmt{
 			Cmd: &ast.DeclClause{
