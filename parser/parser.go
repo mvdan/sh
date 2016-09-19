@@ -1189,7 +1189,14 @@ func (p *parser) testExpr(ftok token.Token, fpos token.Pos) ast.ArithmExpr {
 		Op:    p.tok,
 		X:     left,
 	}
-	p.next()
+	if p.tok == token.TREMATCH {
+		old := p.quote
+		p.quote = token.TREMATCH
+		p.next()
+		p.quote = old
+	} else {
+		p.next()
+	}
 	if b.Y = p.testExpr(b.Op, b.OpPos); b.Y == nil {
 		p.followErr(b.OpPos, b.Op.String(), "an expression")
 	}

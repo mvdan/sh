@@ -177,6 +177,10 @@ skipSpace:
 	case (q == token.RBRACK || q == token.DOLLBK) && b == ']':
 		p.npos++
 		p.tok = token.RBRACK
+	case q == token.TREMATCH:
+		// TODO: parse as full regex, or at least don't break if " ]]"
+		// appears in the regex
+		p.advanceLitRe()
 	case regOps(b):
 		p.tok = p.regToken(b)
 	default:
@@ -787,4 +791,16 @@ func (p *parser) readUntil(b byte) ([]byte, bool) {
 		return rem[:i], true
 	}
 	return rem, false
+}
+
+func (p *parser) advanceLitRe() {
+	end := bytes.Index(p.src[p.npos:], []byte(" ]]"))
+	p.tok = token.LIT
+	if end == -1 {
+		p.val = string(p.src[p.npos:])
+		p.npos = len(p.val)
+		return
+	}
+	p.val = string(p.src[p.npos : p.npos+end])
+	p.npos += end
 }

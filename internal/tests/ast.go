@@ -2222,6 +2222,26 @@ var FileTests = []TestCase{
 		},
 	},
 	{
+		[]string{`[[ a =~ " foo "$bar ]]`},
+		&ast.TestClause{
+			X: &ast.BinaryExpr{
+				Op: token.TREMATCH,
+				X:  litWord("a"),
+				Y:  litWord(`" foo "$bar`),
+			},
+		},
+	},
+	{
+		[]string{`[[ a =~ [ab ](c|d) ]]`},
+		&ast.TestClause{
+			X: &ast.BinaryExpr{
+				Op: token.TREMATCH,
+				X:  litWord("a"),
+				Y:  litWord("[ab ](c|d)"),
+			},
+		},
+	},
+	{
 		[]string{"[[ -n $a ]]"},
 		&ast.TestClause{
 			X: &ast.UnaryExpr{
