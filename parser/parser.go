@@ -115,15 +115,16 @@ func (p *parser) unquotedWordPart(b *bytes.Buffer, wp ast.WordPart) bool {
 }
 
 func (p *parser) doHeredocs() {
+	p.tok = token.ILLEGAL
 	old := p.quote
 	p.quote = token.SHL
 	hdocs := p.heredocs
 	p.heredocs = p.heredocs[:0]
-	for _, r := range hdocs {
+	for i, r := range hdocs {
 		p.hdocTabs = r.Op == token.DHEREDOC
 		var quoted bool
 		p.hdocStop, quoted = p.unquotedWordBytes(r.Word)
-		if p.npos < len(p.src) && p.src[p.npos] == '\n' {
+		if i > 0 && p.npos < len(p.src) && p.src[p.npos] == '\n' {
 			p.npos++
 			p.f.Lines = append(p.f.Lines, p.npos)
 		}
