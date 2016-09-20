@@ -519,10 +519,10 @@ var FileTests = []TestCase{
 		},
 	},
 	{
-		[]string{"a= foo"},
+		[]string{"A_3a= foo"},
 		&ast.Stmt{
 			Cmd:     litCall("foo"),
-			Assigns: []*ast.Assign{{Name: lit("a")}},
+			Assigns: []*ast.Assign{{Name: lit("A_3a")}},
 		},
 	},
 	{
