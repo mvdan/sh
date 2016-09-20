@@ -577,6 +577,18 @@ var errTests = []struct {
 		`1:1: reached EOF without matching word [[ with ]]`,
 	},
 	{
+		"[[ -f a",
+		`1:1: reached EOF without matching word [[ with ]]`,
+	},
+	{
+		"[[ a == b",
+		`1:1: reached EOF without matching word [[ with ]]`,
+	},
+	{
+		"[[ a =~ b",
+		`1:1: reached EOF without matching word [[ with ]]`,
+	},
+	{
 		"[[ a b c ]]",
 		`1:6: not a valid test operator: b`,
 	},

@@ -798,7 +798,7 @@ func (p *parser) advanceLitRe() {
 	p.tok = token.LIT
 	if end == -1 {
 		p.val = string(p.src[p.npos:])
-		p.npos = len(p.val)
+		p.npos = len(p.src)
 		return
 	}
 	p.val = string(p.src[p.npos : p.npos+end])
