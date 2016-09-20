@@ -24,7 +24,9 @@ const (
 )
 
 var parserFree = sync.Pool{
-	New: func() interface{} { return &parser{} },
+	New: func() interface{} {
+		return &parser{helperBuf: new(bytes.Buffer)}
+	},
 }
 
 // Parse reads and parses a shell program with an optional name. It
@@ -76,11 +78,7 @@ type parser struct {
 }
 
 func (p *parser) unquotedWordBytes(w ast.Word) ([]byte, bool) {
-	if p.helperBuf == nil {
-		p.helperBuf = new(bytes.Buffer)
-	} else {
-		p.helperBuf.Reset()
-	}
+	p.helperBuf.Reset()
 	didUnquote := false
 	for _, wp := range w.Parts {
 		if p.unquotedWordPart(p.helperBuf, wp) {
