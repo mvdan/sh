@@ -1166,6 +1166,8 @@ func (p *parser) testExpr(ftok token.Token, fpos token.Pos) ast.ArithmExpr {
 		}
 		pe.Rparen = p.matched(pe.Lparen, token.LPAREN, token.RPAREN)
 		left = pe
+	case token.RPAREN:
+		return nil
 	default:
 		w := p.followWordTok(ftok, fpos)
 		left = &w

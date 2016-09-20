@@ -597,6 +597,10 @@ var errTests = []struct {
 		`1:6: not a valid test operator: &`,
 	},
 	{
+		"[[ true && () ]]",
+		`1:12: parentheses must enclose an expression`,
+	},
+	{
 		"declare (",
 		`1:9: "declare" must be followed by words`,
 	},
