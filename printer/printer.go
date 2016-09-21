@@ -988,6 +988,10 @@ func (p *printer) stmts(stmts []*ast.Stmt) {
 					nline2 = token.Pos(p.f.Lines[ind2])
 				}
 			}
+			if ind2 == p.nlineIndex+1 {
+				// no inline comments directly after this one
+				continue
+			}
 		}
 		p.wantSpaces = inlineIndent - p.stmtLen(s)
 	}
