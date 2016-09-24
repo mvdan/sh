@@ -589,7 +589,7 @@ var FileTests = []TestCase{
 		},
 	},
 	{
-		[]string{"foo >bar`etc`"},
+		[]string{"foo >bar`etc`", "foo >b\\\nar`etc`"},
 		&ast.Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*ast.Redirect{
@@ -1883,8 +1883,8 @@ var FileTests = []TestCase{
 		word(&ast.Quoted{Quote: token.DOLLSQ, Parts: lits("foo bar`")}),
 	},
 	{
-		[]string{`$'f\'oo'`},
-		word(&ast.Quoted{Quote: token.DOLLSQ, Parts: lits(`f\'oo`)}),
+		[]string{"$'f\\'oo\n'"},
+		word(&ast.Quoted{Quote: token.DOLLSQ, Parts: lits("f\\'oo\n")}),
 	},
 	{
 		[]string{`$"foo"`},
