@@ -124,20 +124,12 @@ func (p *printer) bslashNewl() {
 	p.incLine()
 }
 
-func (p *printer) spacedRsrv(s string) {
+func (p *printer) spacedString(s string, spaceAfter bool) {
 	if p.wantSpace {
 		p.WriteByte(' ')
 	}
 	p.WriteString(s)
-	p.wantSpace = true
-}
-
-func (p *printer) spacedTok(s string, spaceAfter bool) {
-	if p.wantSpace {
-		p.WriteByte(' ')
-	}
 	p.wantSpace = spaceAfter
-	p.WriteString(s)
 }
 
 func (p *printer) semiOrNewl(s string, pos token.Pos) {
@@ -678,7 +670,7 @@ func (p *printer) wordJoin(ws []ast.Word, backslash bool) {
 
 func (p *printer) stmt(s *ast.Stmt) {
 	if s.Negated {
-		p.spacedRsrv("!")
+		p.spacedString("!", true)
 	}
 	p.assigns(s.Assigns)
 	startRedirs := p.command(s.Cmd, s.Redirs)
@@ -790,11 +782,11 @@ func (p *printer) command(cmd ast.Command, redirs []*ast.Redirect) (startRedirs 
 		}
 		p.wordJoin(x.Args[1:], true)
 	case *ast.Block:
-		p.spacedRsrv("{")
+		p.spacedString("{", true)
 		p.nestedStmts(x.Stmts)
 		p.semiRsrv("}", x.Rbrace, true)
 	case *ast.IfClause:
-		p.spacedRsrv("if")
+		p.spacedString("if", true)
 		p.nestedStmts(x.CondStmts)
 		p.semiOrNewl("then", x.Then)
 		p.nestedStmts(x.ThenStmts)
@@ -812,20 +804,20 @@ func (p *printer) command(cmd ast.Command, redirs []*ast.Redirect) (startRedirs 
 		}
 		p.semiRsrv("fi", x.Fi, true)
 	case *ast.Subshell:
-		p.spacedTok("(", false)
+		p.spacedString("(", false)
 		if startsWithLparen(x.Stmts) {
 			p.WriteByte(' ')
 		}
 		p.nestedStmts(x.Stmts)
 		p.sepTok(")", x.Rparen)
 	case *ast.WhileClause:
-		p.spacedRsrv("while")
+		p.spacedString("while", true)
 		p.nestedStmts(x.CondStmts)
 		p.semiOrNewl("do", x.Do)
 		p.nestedStmts(x.DoStmts)
 		p.semiRsrv("done", x.Done, true)
 	case *ast.ForClause:
-		p.spacedRsrv("for ")
+		p.spacedString("for ", true)
 		p.loop(x.Loop)
 		p.semiOrNewl("do", x.Do)
 		p.nestedStmts(x.DoStmts)
@@ -841,7 +833,7 @@ func (p *printer) command(cmd ast.Command, redirs []*ast.Redirect) (startRedirs 
 			p.bslashNewl()
 			p.indent()
 		}
-		p.spacedTok(binaryCmdOp(x.Op), true)
+		p.spacedString(binaryCmdOp(x.Op), true)
 		p.incLines(x.Y.Pos())
 		p.stmt(x.Y)
 		if indent {
@@ -857,7 +849,7 @@ func (p *printer) command(cmd ast.Command, redirs []*ast.Redirect) (startRedirs 
 		p.incLines(x.Body.Pos())
 		p.stmt(x.Body)
 	case *ast.CaseClause:
-		p.spacedRsrv("case ")
+		p.spacedString("case ", true)
 		p.word(x.Word)
 		p.WriteString(" in")
 		p.incLevel()
@@ -865,7 +857,7 @@ func (p *printer) command(cmd ast.Command, redirs []*ast.Redirect) (startRedirs 
 			p.didSeparate(pl.Patterns[0].Pos())
 			for i, w := range pl.Patterns {
 				if i > 0 {
-					p.spacedTok("|", true)
+					p.spacedString("|", true)
 				}
 				if p.wantSpace {
 					p.WriteByte(' ')
@@ -881,7 +873,7 @@ func (p *printer) command(cmd ast.Command, redirs []*ast.Redirect) (startRedirs 
 			if sep {
 				p.sepTok(caseClauseOp(pl.Op), pl.OpPos)
 			} else {
-				p.spacedTok(caseClauseOp(pl.Op), true)
+				p.spacedString(caseClauseOp(pl.Op), true)
 			}
 			p.incLines(pl.OpPos)
 			p.level--
@@ -892,7 +884,7 @@ func (p *printer) command(cmd ast.Command, redirs []*ast.Redirect) (startRedirs 
 		p.decLevel()
 		p.semiRsrv("esac", x.Esac, len(x.List) == 0)
 	case *ast.UntilClause:
-		p.spacedRsrv("until")
+		p.spacedString("until", true)
 		p.nestedStmts(x.CondStmts)
 		p.semiOrNewl("do", x.Do)
 		p.nestedStmts(x.DoStmts)
@@ -905,15 +897,15 @@ func (p *printer) command(cmd ast.Command, redirs []*ast.Redirect) (startRedirs 
 		p.arithm(x.X, false, false)
 		p.WriteString("))")
 	case *ast.TestClause:
-		p.spacedRsrv("[[")
+		p.spacedString("[[", true)
 		p.space()
 		p.arithm(x.X, false, true)
-		p.spacedRsrv("]]")
+		p.spacedString("]]", true)
 	case *ast.DeclClause:
 		if x.Local {
-			p.spacedRsrv("local")
+			p.spacedString("local", true)
 		} else {
-			p.spacedRsrv("declare")
+			p.spacedString("declare", true)
 		}
 		for _, w := range x.Opts {
 			p.WriteByte(' ')
@@ -921,12 +913,12 @@ func (p *printer) command(cmd ast.Command, redirs []*ast.Redirect) (startRedirs 
 		}
 		p.assigns(x.Assigns)
 	case *ast.EvalClause:
-		p.spacedRsrv("eval")
+		p.spacedString("eval", true)
 		if x.Stmt != nil {
 			p.stmt(x.Stmt)
 		}
 	case *ast.LetClause:
-		p.spacedRsrv("let")
+		p.spacedString("let", true)
 		for _, n := range x.Exprs {
 			p.space()
 			p.arithm(n, true, false)
