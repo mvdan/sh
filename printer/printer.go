@@ -5,7 +5,6 @@ package printer
 
 import (
 	"bufio"
-	"bytes"
 	"io"
 	"sync"
 
@@ -20,7 +19,7 @@ type Config struct {
 
 var printerFree = sync.Pool{
 	New: func() interface{} {
-		return &printer{Writer: bufio.NewWriter(nil)}
+		return &printer{bufWriter: bufio.NewWriter(nil)}
 	},
 }
 
@@ -28,18 +27,18 @@ var printerFree = sync.Pool{
 func (c Config) Fprint(w io.Writer, f *ast.File) error {
 	p := printerFree.Get().(*printer)
 	*p = printer{
-		Writer:       p.Writer,
-		helperBuf:    p.helperBuf,
-		helperWriter: p.helperWriter,
-		f:            f,
-		comments:     f.Comments,
-		c:            c,
+		bufWriter:  p.bufWriter,
+		lenPrinter: p.lenPrinter,
+		lenCounter: p.lenCounter,
+		f:          f,
+		comments:   f.Comments,
+		c:          c,
 	}
-	p.Writer.Reset(w)
+	p.bufWriter.Reset(w)
 	p.stmts(f.Stmts)
 	p.commentsUpTo(0)
 	p.newline(0)
-	err := p.Writer.Flush()
+	err := p.bufWriter.Flush()
 	printerFree.Put(p)
 	return err
 }
@@ -52,8 +51,15 @@ func Fprint(w io.Writer, f *ast.File) error {
 	return Config{}.Fprint(w, f)
 }
 
+type bufWriter interface {
+	WriteByte(byte) error
+	WriteString(string) (int, error)
+	Reset(io.Writer)
+	Flush() error
+}
+
 type printer struct {
-	*bufio.Writer
+	bufWriter
 
 	f *ast.File
 	c Config
@@ -81,9 +87,9 @@ type printer struct {
 	// pendingHdocs is the list of pending heredocs to write.
 	pendingHdocs []*ast.Redirect
 
-	// these are used in stmtLen to align comments
-	helperBuf    *bytes.Buffer
-	helperWriter *bufio.Writer
+	// used in stmtLen to align comments
+	lenPrinter *printer
+	lenCounter byteCounter
 }
 
 func (p *printer) incLine() {
@@ -992,18 +998,30 @@ func (p *printer) stmts(stmts []*ast.Stmt) {
 	p.wantNewline = true
 }
 
+type byteCounter int
+
+func (c *byteCounter) WriteByte(b byte) error {
+	*c++
+	return nil
+}
+
+func (c *byteCounter) WriteString(s string) (int, error) {
+	*c += byteCounter(len(s))
+	return 0, nil
+}
+func (c *byteCounter) Reset(io.Writer) { *c = 0 }
+func (c *byteCounter) Flush() error    { return nil }
+
 func (p *printer) stmtLen(s *ast.Stmt) int {
-	if p.helperWriter == nil {
-		p.helperBuf = new(bytes.Buffer)
-		p.helperWriter = bufio.NewWriter(p.helperBuf)
+	if p.lenPrinter == nil {
+		p.lenPrinter = &printer{bufWriter: &p.lenCounter}
 	} else {
-		p.helperWriter.Reset(p.helperBuf)
-		p.helperBuf.Reset()
+		p.lenPrinter.bufWriter.Reset(nil)
 	}
-	p2 := printer{Writer: p.helperWriter, f: p.f}
-	p2.incLines(s.Pos())
-	p2.stmt(s)
-	return p.helperBuf.Len() + p.helperWriter.Buffered()
+	p.lenPrinter.f = p.f
+	p.lenPrinter.incLines(s.Pos())
+	p.lenPrinter.stmt(s)
+	return int(p.lenCounter)
 }
 
 func (p *printer) nestedStmts(stmts []*ast.Stmt) {
