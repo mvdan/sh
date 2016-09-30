@@ -202,20 +202,20 @@ func (p *printer) newlines(pos token.Pos) {
 	p.indent()
 }
 
-func (p *printer) didSeparate(pos token.Pos) bool {
+func (p *printer) commentsAndSeparate(pos token.Pos) {
 	p.commentsUpTo(pos)
 	if p.wantNewline || pos > p.nline {
 		p.newlines(pos)
-		return true
 	}
-	return false
 }
 
 func (p *printer) sepTok(s string, pos token.Pos) {
 	p.level++
 	p.commentsUpTo(pos)
 	p.level--
-	p.didSeparate(pos)
+	if p.wantNewline || pos > p.nline {
+		p.newlines(pos)
+	}
 	p.WriteString(s)
 	p.wantSpace = true
 }
@@ -224,7 +224,9 @@ func (p *printer) semiRsrv(s string, pos token.Pos, fallback bool) {
 	p.level++
 	p.commentsUpTo(pos)
 	p.level--
-	if !p.didSeparate(pos) && fallback {
+	if p.wantNewline || pos > p.nline {
+		p.newlines(pos)
+	} else if fallback {
 		p.WriteString("; ")
 	} else if p.wantSpace {
 		p.WriteByte(' ')
@@ -684,7 +686,7 @@ func (p *printer) stmt(s *ast.Stmt) {
 			}
 			p.indent()
 		}
-		p.didSeparate(r.OpPos)
+		p.commentsAndSeparate(r.OpPos)
 		if p.wantSpace {
 			p.WriteByte(' ')
 		}
@@ -854,7 +856,7 @@ func (p *printer) command(cmd ast.Command, redirs []*ast.Redirect) (startRedirs 
 		p.WriteString(" in")
 		p.incLevel()
 		for _, pl := range x.List {
-			p.didSeparate(pl.Patterns[0].Pos())
+			p.commentsAndSeparate(pl.Patterns[0].Pos())
 			for i, w := range pl.Patterns {
 				if i > 0 {
 					p.spacedString("|", true)
@@ -941,7 +943,7 @@ func (p *printer) stmts(stmts []*ast.Stmt) {
 	}
 	pos := stmts[0].Pos()
 	if len(stmts) == 1 && pos <= p.nline {
-		p.didSeparate(pos)
+		p.commentsAndSeparate(pos)
 		p.stmt(stmts[0])
 		return
 	}
