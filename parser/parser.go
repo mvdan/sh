@@ -1062,7 +1062,7 @@ func (p *parser) loop(forPos token.Pos) ast.Loop {
 			}
 		}
 		p.gotSameLine(token.SEMICOLON)
-	} else if !p.gotSameLine(token.SEMICOLON) && !p.newLine {
+	} else if !p.newLine && !p.got(token.SEMICOLON) {
 		p.followErr(forPos, "for foo", `"in", ; or a newline`)
 	}
 	return wi
