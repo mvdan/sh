@@ -19,28 +19,37 @@ import (
 	"github.com/kr/pretty"
 )
 
-func TestParse(t *testing.T) {
+func TestParseBash(t *testing.T) {
 	internal.DefaultPos = 0
 	for i, c := range tests.FileTests {
 		want := c.Ast.(*ast.File)
 		tests.SetPosRecurse(t, "", want.Stmts, internal.DefaultPos, false)
 		for j, in := range c.Strs {
-			t.Run(fmt.Sprintf("%03d-%d", i, j), singleParse(in, want))
+			t.Run(fmt.Sprintf("%03d-%d", i, j), singleParse(in, want, 0))
 		}
 	}
 }
 
-func confirmParse(shell, in string, fail bool) func(*testing.T) {
+func confirmParse(in string, posix, fail bool) func(*testing.T) {
 	return func(t *testing.T) {
-		var cmd *exec.Cmd
-		if fail {
-			// -n makes bash accept invalid inputs like
-			// "let" or "`{`". Should be safe to not use -n
-			// anyway since these are supposed to just fail.
-			cmd = exec.Command(shell)
-		} else {
-			cmd = exec.Command(shell, "-n")
+		var opts []string
+		if posix {
+			if strings.HasPrefix(in, "function") {
+				// posix-mode bash accepts bash-style
+				// functions for some reason
+				return
+			}
+			opts = append(opts, "--posix")
 		}
+		if !fail {
+			// -n makes bash accept invalid inputs like
+			// "let" or "`{`", so only use it in
+			// non-erroring tests. Should be safe to not use
+			// -n anyway since these are supposed to just
+			// fail.
+			opts = append(opts, "-n")
+		}
+		cmd := exec.Command("bash", opts...)
 		cmd.Stdin = strings.NewReader(in)
 		var stderr bytes.Buffer
 		cmd.Stderr = &stderr
@@ -54,34 +63,46 @@ func confirmParse(shell, in string, fail bool) func(*testing.T) {
 			}
 		}
 		if fail && err == nil {
-			t.Fatalf("Expected error in `%s` of %q, found none", shell, in)
+			t.Fatalf("Expected error in `%s` of %q, found none", strings.Join(cmd.Args, " "), in)
 		} else if !fail && err != nil {
-			t.Fatalf("Unexpected error in `%s -n` of %q: %v", shell, in, err)
+			t.Fatalf("Unexpected error in `%s` of %q: %v", strings.Join(cmd.Args, " "), in, err)
 		}
 	}
 }
 
-func TestParseConfirm(t *testing.T) {
+func TestParseBashConfirm(t *testing.T) {
 	if testing.Short() {
-		t.Skip("calling bash/dash is slow.")
+		t.Skip("calling bash is slow.")
 	}
 	for i, c := range tests.FileTests {
 		for j, in := range c.Strs {
 			t.Run(fmt.Sprintf("%03d-%d", i, j),
-				confirmParse("bash", in, false))
+				confirmParse(in, false, false))
 		}
 	}
 }
 
-func TestParseErrConfirm(t *testing.T) {
+func TestParseErrBashConfirm(t *testing.T) {
 	for i, c := range shellTests {
-		t.Run(fmt.Sprintf("%03d", i), confirmParse("bash", c.in, true))
+		t.Run(fmt.Sprintf("%03d", i), confirmParse(c.in, false, true))
+	}
+	for i, c := range bashTests {
+		t.Run(fmt.Sprintf("%03d", len(shellTests)+i), confirmParse(c.in, false, true))
 	}
 }
 
-func singleParse(in string, want *ast.File) func(t *testing.T) {
+func TestParseErrPosixConfirm(t *testing.T) {
+	for i, c := range shellTests {
+		t.Run(fmt.Sprintf("%03d", i), confirmParse(c.in, true, true))
+	}
+	for i, c := range posixTests {
+		t.Run(fmt.Sprintf("%03d", len(shellTests)+i), confirmParse(c.in, true, true))
+	}
+}
+
+func singleParse(in string, want *ast.File, mode Mode) func(t *testing.T) {
 	return func(t *testing.T) {
-		got, err := Parse([]byte(in), "", 0)
+		got, err := Parse([]byte(in), "", mode)
 		if err != nil {
 			t.Fatalf("Unexpected error in %q: %v", in, err)
 		}
@@ -193,10 +214,6 @@ var shellTests = []struct {
 		`1:1: invalid func name: "foo$bar"`,
 	},
 	{
-		`function "foo"(){}`,
-		`1:10: invalid func name: "\"foo\""`,
-	},
-	{
 		"{",
 		`1:1: reached EOF without matching word { with }`,
 	},
@@ -277,18 +294,6 @@ var shellTests = []struct {
 		`1:1: "foo(" must be followed by )`,
 	},
 	{
-		"function",
-		`1:1: "function" must be followed by a word`,
-	},
-	{
-		"function foo(",
-		`1:10: "foo(" must be followed by )`,
-	},
-	{
-		"function `function",
-		`1:11: "function" must be followed by a word`,
-	},
-	{
 		"foo'",
 		`1:4: reached EOF without closing quote '`,
 	},
@@ -310,10 +315,6 @@ var shellTests = []struct {
 	},
 	{
 		"foo()",
-		`1:1: "foo()" must be followed by a statement`,
-	},
-	{
-		"function foo()",
 		`1:1: "foo()" must be followed by a statement`,
 	},
 	{
@@ -653,6 +654,78 @@ var shellTests = []struct {
 		`1:8: ) can only be used to close a subshell`,
 	},
 	{
+		"foo <<$(bar)",
+		`1:9: nested statements not allowed in this word`,
+	},
+	{
+		`""()`,
+		`1:1: invalid func name: "\"\""`,
+	},
+}
+
+func checkError(in, want string, mode Mode) func(*testing.T) {
+	return func(t *testing.T) {
+		_, err := Parse([]byte(in), "", mode)
+		if err == nil {
+			t.Fatalf("Expected error in %q: %v", in, want)
+		}
+		if got := err.Error(); got != want {
+			t.Fatalf("Error mismatch in %q\nwant: %s\ngot:  %s",
+				in, want, got)
+		}
+	}
+}
+
+func TestParseErrPosix(t *testing.T) {
+	for i, c := range shellTests {
+		t.Run(fmt.Sprintf("%03d", i), checkError(c.in, c.want, PosixConformant))
+	}
+	for i, c := range posixTests {
+		t.Run(fmt.Sprintf("%03d", len(shellTests)+i), checkError(c.in, c.want, PosixConformant))
+	}
+}
+
+func TestParseErrBash(t *testing.T) {
+	for i, c := range shellTests {
+		t.Run(fmt.Sprintf("%03d", i), checkError(c.in, c.want, 0))
+	}
+	for i, c := range bashTests {
+		t.Run(fmt.Sprintf("%03d", len(shellTests)+i), checkError(c.in, c.want, 0))
+	}
+}
+
+var bashTests = []struct {
+	in, want string
+}{
+	{
+		"((foo",
+		`1:1: reached EOF without matching token (( with ))`,
+	},
+	{
+		"echo ((foo",
+		`1:6: a command can only contain words and redirects`,
+	},
+	{
+		"let",
+		`1:1: let clause requires at least one expression`,
+	},
+	{
+		"let a+ b",
+		`1:6: + must be followed by an expression`,
+	},
+	{
+		"let + a",
+		`1:5: + must be followed by an expression`,
+	},
+	{
+		"let a ++",
+		`1:7: ++ must be followed by a word`,
+	},
+	{
+		"let ))",
+		`1:5: "let" must be followed by arithmetic expressions`,
+	},
+	{
 		"[[",
 		`1:1: test clause requires at least one expression`,
 	},
@@ -689,82 +762,28 @@ var shellTests = []struct {
 		`1:9: "declare" must be followed by words`,
 	},
 	{
-		"let",
-		`1:1: let clause requires at least one expression`,
-	},
-	{
-		"let a+ b",
-		`1:6: + must be followed by an expression`,
-	},
-	{
-		"let + a",
-		`1:5: + must be followed by an expression`,
-	},
-	{
-		"let a ++",
-		`1:7: ++ must be followed by a word`,
-	},
-	{
-		"let ))",
-		`1:5: "let" must be followed by arithmetic expressions`,
-	},
-	{
 		"a=(<)",
 		`1:4: array elements must be words`,
 	},
 	{
-		"foo <<$(bar)",
-		`1:9: nested statements not allowed in this word`,
+		"function",
+		`1:1: "function" must be followed by a word`,
 	},
 	{
-		`""()`,
-		`1:1: invalid func name: "\"\""`,
-	},
-}
-
-func checkError(in, want string, mode Mode) func(*testing.T) {
-	return func(t *testing.T) {
-		_, err := Parse([]byte(in), "", mode)
-		if err == nil {
-			t.Fatalf("Expected error in %q: %v", in, want)
-		}
-		if got := err.Error(); got != want {
-			t.Fatalf("Error mismatch in %q\nwant: %s\ngot:  %s",
-				in, want, got)
-		}
-	}
-}
-
-func TestParseErrPosix(t *testing.T) {
-	for i, c := range shellTests {
-		t.Run(fmt.Sprintf("%03d", i), checkError(c.in, c.want, PosixConformant))
-	}
-	for i, c := range posixTests {
-		t.Run(fmt.Sprintf("%03d", len(shellTests)+i),
-			checkError(c.in, c.want, PosixConformant))
-	}
-}
-
-func TestParseErrBash(t *testing.T) {
-	for i, c := range shellTests {
-		t.Run(fmt.Sprintf("%03d", i), checkError(c.in, c.want, 0))
-	}
-	for i, c := range bashTests {
-		t.Run(fmt.Sprintf("%03d", len(shellTests)+i),
-			checkError(c.in, c.want, 0))
-	}
-}
-
-var bashTests = []struct {
-	in, want string
-}{
-	{
-		"((foo",
-		`1:1: reached EOF without matching token (( with ))`,
+		"function foo(",
+		`1:10: "foo(" must be followed by )`,
 	},
 	{
-		"echo ((foo",
-		`1:6: a command can only contain words and redirects`,
+		"function `function",
+		`1:11: "function" must be followed by a word`,
+	},
+	{
+		`function "foo"(){}`,
+		`1:10: invalid func name: "\"foo\""`,
+	},
+	{
+		"function foo()",
+		`1:1: "foo()" must be followed by a statement`,
 	},
 }
 
@@ -778,6 +797,10 @@ var posixTests = []struct {
 	{
 		"echo ((foo",
 		`1:1: "foo(" must be followed by )`,
+	},
+	{
+		"function foo() { bar; }",
+		`1:13: a command can only contain words and redirects`,
 	},
 }
 

@@ -77,6 +77,8 @@ type parser struct {
 	helperBuf *bytes.Buffer
 }
 
+func (p *parser) bash() bool { return p.mode&PosixConformant == 0 }
+
 func (p *parser) unquotedWordBytes(w ast.Word) ([]byte, bool) {
 	p.helperBuf.Reset()
 	didUnquote := false
@@ -885,30 +887,30 @@ func (p *parser) gotStmtPipe(s *ast.Stmt) *ast.Stmt {
 	case token.DLPAREN:
 		s.Cmd = p.arithmExpCmd()
 	case token.LITWORD:
-		switch p.val {
-		case "}":
+		switch {
+		case p.val == "}":
 			p.curErr("%s can only be used to close a block", p.val)
-		case "{":
+		case p.val == "{":
 			s.Cmd = p.block()
-		case "if":
+		case p.val == "if":
 			s.Cmd = p.ifClause()
-		case "while":
+		case p.val == "while":
 			s.Cmd = p.whileClause()
-		case "until":
+		case p.val == "until":
 			s.Cmd = p.untilClause()
-		case "for":
+		case p.val == "for":
 			s.Cmd = p.forClause()
-		case "case":
+		case p.val == "case":
 			s.Cmd = p.caseClause()
-		case "[[":
+		case p.bash() && p.val == "[[":
 			s.Cmd = p.testClause()
-		case "declare", "local":
+		case p.bash() && (p.val == "declare" || p.val == "local"):
 			s.Cmd = p.declClause()
-		case "eval":
+		case p.bash() && p.val == "eval":
 			s.Cmd = p.evalClause()
-		case "let":
+		case p.bash() && p.val == "let":
 			s.Cmd = p.letClause()
-		case "function":
+		case p.bash() && p.val == "function":
 			s.Cmd = p.bashFuncDecl()
 		default:
 			name := ast.Lit{ValuePos: p.pos, Value: p.val}
