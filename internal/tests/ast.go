@@ -2054,22 +2054,20 @@ var FileTests = []TestCase{
 		word(litParamExp("if")),
 	},
 	{
-		[]string{"if; then; fi", "if\nthen\nfi"},
-		&ast.IfClause{},
-	},
-	{
-		[]string{"if; then a=; fi", "if; then a=\nfi"},
+		[]string{"if a; then b=; fi", "if a; then b=\nfi"},
 		&ast.IfClause{
+			CondStmts: litStmts("a"),
 			ThenStmts: []*ast.Stmt{
 				{Assigns: []*ast.Assign{
-					{Name: lit("a")},
+					{Name: lit("b")},
 				}},
 			},
 		},
 	},
 	{
-		[]string{"if; then >f; fi", "if; then >f\nfi"},
+		[]string{"if a; then >f; fi", "if a; then >f\nfi"},
 		&ast.IfClause{
+			CondStmts: litStmts("a"),
 			ThenStmts: []*ast.Stmt{
 				{Redirs: []*ast.Redirect{
 					{Op: token.GTR, Word: *litWord("f")},
@@ -2078,8 +2076,9 @@ var FileTests = []TestCase{
 		},
 	},
 	{
-		[]string{"if; then (a); fi", "if; then (a) fi"},
+		[]string{"if a; then (a); fi", "if a; then (a) fi"},
 		&ast.IfClause{
+			CondStmts: litStmts("a"),
 			ThenStmts: stmts(subshell(litStmt("a"))),
 		},
 	},
@@ -2093,22 +2092,6 @@ var FileTests = []TestCase{
 				{Name: lit("c"), Value: *litWord("d")},
 			}},
 		},
-	},
-	{
-		[]string{"while; do; done", "while\ndo\ndone"},
-		&ast.WhileClause{},
-	},
-	{
-		[]string{"while; do; done", "while\ndo\n#foo\ndone"},
-		&ast.WhileClause{},
-	},
-	{
-		[]string{"until; do; done", "until\ndo\ndone"},
-		&ast.UntilClause{},
-	},
-	{
-		[]string{"for i; do; done", "for i\ndo\ndone"},
-		&ast.ForClause{Loop: &ast.WordIter{Name: *lit("i")}},
 	},
 	{
 		[]string{"case i in; esac"},

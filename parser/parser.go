@@ -192,11 +192,11 @@ func (p *parser) followRsrv(lpos token.Pos, left, val string) token.Pos {
 
 func (p *parser) followStmts(left string, lpos token.Pos, stops ...string) []*ast.Stmt {
 	if p.gotSameLine(token.SEMICOLON) {
-		return nil
+		p.followErr(lpos, left, "at least one statement")
 	}
 	sts := p.stmts(stops...)
-	if len(sts) < 1 && !p.newLine {
-		p.followErr(lpos, left, "a statement list")
+	if len(sts) < 1 {
+		p.followErr(lpos, left, "at least one statement")
 	}
 	return sts
 }
@@ -987,13 +987,13 @@ func (p *parser) ifClause() *ast.IfClause {
 	ic := &ast.IfClause{If: p.pos}
 	p.next()
 	ic.CondStmts = p.followStmts("if", ic.If, "then")
-	ic.Then = p.followRsrv(ic.If, "if [stmts]", "then")
+	ic.Then = p.followRsrv(ic.If, "if <cond>", "then")
 	ic.ThenStmts = p.followStmts("then", ic.Then, "fi", "elif", "else")
 	elifPos := p.pos
 	for p.gotRsrv("elif") {
 		elf := &ast.Elif{Elif: elifPos}
 		elf.CondStmts = p.followStmts("elif", elf.Elif, "then")
-		elf.Then = p.followRsrv(elf.Elif, "elif [stmts]", "then")
+		elf.Then = p.followRsrv(elf.Elif, "elif <cond>", "then")
 		elf.ThenStmts = p.followStmts("then", elf.Then, "fi", "elif", "else")
 		ic.Elifs = append(ic.Elifs, elf)
 		elifPos = p.pos
@@ -1011,7 +1011,7 @@ func (p *parser) whileClause() *ast.WhileClause {
 	wc := &ast.WhileClause{While: p.pos}
 	p.next()
 	wc.CondStmts = p.followStmts("while", wc.While, "do")
-	wc.Do = p.followRsrv(wc.While, "while [stmts]", "do")
+	wc.Do = p.followRsrv(wc.While, "while <cond>", "do")
 	wc.DoStmts = p.followStmts("do", wc.Do, "done")
 	wc.Done = p.stmtEnd(wc, "while", "done")
 	return wc
@@ -1021,7 +1021,7 @@ func (p *parser) untilClause() *ast.UntilClause {
 	uc := &ast.UntilClause{Until: p.pos}
 	p.next()
 	uc.CondStmts = p.followStmts("until", uc.Until, "do")
-	uc.Do = p.followRsrv(uc.Until, "until [stmts]", "do")
+	uc.Do = p.followRsrv(uc.Until, "until <cond>", "do")
 	uc.DoStmts = p.followStmts("do", uc.Do, "done")
 	uc.Done = p.stmtEnd(uc, "until", "done")
 	return uc
