@@ -76,13 +76,15 @@ func TestParseBashConfirm(t *testing.T) {
 	}
 	for i, c := range tests.FileTests {
 		for j, in := range c.Strs {
-			t.Run(fmt.Sprintf("%03d-%d", i, j),
-				confirmParse(in, false, false))
+			t.Run(fmt.Sprintf("%03d-%d", i, j), confirmParse(in, false, false))
 		}
 	}
 }
 
 func TestParseErrBashConfirm(t *testing.T) {
+	if testing.Short() {
+		t.Skip("calling bash is slow.")
+	}
 	for i, c := range shellTests {
 		t.Run(fmt.Sprintf("%03d", i), confirmParse(c.in, false, true))
 	}
@@ -92,6 +94,9 @@ func TestParseErrBashConfirm(t *testing.T) {
 }
 
 func TestParseErrPosixConfirm(t *testing.T) {
+	if testing.Short() {
+		t.Skip("calling bash is slow.")
+	}
 	for i, c := range shellTests {
 		t.Run(fmt.Sprintf("%03d", i), confirmParse(c.in, true, true))
 	}

@@ -1000,8 +1000,7 @@ func (p *parser) ifClause() *ast.IfClause {
 		ic.Elifs = append(ic.Elifs, elf)
 		elifPos = p.pos
 	}
-	elsePos := p.pos
-	if p.gotRsrv("else") {
+	if elsePos := p.pos; p.gotRsrv("else") {
 		ic.Else = elsePos
 		ic.ElseStmts = p.followStmts("else", ic.Else, "fi")
 	}
