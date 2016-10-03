@@ -85,11 +85,8 @@ func TestParseErrBashConfirm(t *testing.T) {
 	if testing.Short() {
 		t.Skip("calling bash is slow.")
 	}
-	for i, c := range shellTests {
+	for i, c := range append(shellTests, bashTests...) {
 		t.Run(fmt.Sprintf("%03d", i), confirmParse(c.in, false, true))
-	}
-	for i, c := range bashTests {
-		t.Run(fmt.Sprintf("%03d", len(shellTests)+i), confirmParse(c.in, false, true))
 	}
 }
 
@@ -97,11 +94,8 @@ func TestParseErrPosixConfirm(t *testing.T) {
 	if testing.Short() {
 		t.Skip("calling bash is slow.")
 	}
-	for i, c := range shellTests {
+	for i, c := range append(shellTests, posixTests...) {
 		t.Run(fmt.Sprintf("%03d", i), confirmParse(c.in, true, true))
-	}
-	for i, c := range posixTests {
-		t.Run(fmt.Sprintf("%03d", len(shellTests)+i), confirmParse(c.in, true, true))
 	}
 }
 
@@ -682,20 +676,14 @@ func checkError(in, want string, mode Mode) func(*testing.T) {
 }
 
 func TestParseErrPosix(t *testing.T) {
-	for i, c := range shellTests {
+	for i, c := range append(shellTests, posixTests...) {
 		t.Run(fmt.Sprintf("%03d", i), checkError(c.in, c.want, PosixConformant))
-	}
-	for i, c := range posixTests {
-		t.Run(fmt.Sprintf("%03d", len(shellTests)+i), checkError(c.in, c.want, PosixConformant))
 	}
 }
 
 func TestParseErrBash(t *testing.T) {
-	for i, c := range shellTests {
+	for i, c := range append(shellTests, bashTests...) {
 		t.Run(fmt.Sprintf("%03d", i), checkError(c.in, c.want, 0))
-	}
-	for i, c := range bashTests {
-		t.Run(fmt.Sprintf("%03d", len(shellTests)+i), checkError(c.in, c.want, 0))
 	}
 }
 
