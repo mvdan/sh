@@ -177,7 +177,7 @@ func (p *parser) followErr(pos token.Pos, left, right string) {
 func (p *parser) follow(lpos token.Pos, left string, tok token.Token) token.Pos {
 	pos := p.pos
 	if !p.got(tok) {
-		p.followErr(lpos, left, fmt.Sprintf(`%q`, tok))
+		p.followErr(lpos, left, tok.String())
 	}
 	return pos
 }

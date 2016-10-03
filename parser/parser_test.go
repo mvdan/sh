@@ -210,15 +210,15 @@ var shellTests = []struct {
 	},
 	{
 		"foo(",
-		`1:1: "foo(" must be followed by ")"`,
+		`1:1: "foo(" must be followed by )`,
 	},
 	{
 		"foo(bar",
-		`1:1: "foo(" must be followed by ")"`,
+		`1:1: "foo(" must be followed by )`,
 	},
 	{
 		"à(",
-		`1:1: "foo(" must be followed by ")"`,
+		`1:1: "foo(" must be followed by )`,
 	},
 	{
 		"function",
@@ -226,7 +226,7 @@ var shellTests = []struct {
 	},
 	{
 		"function foo(",
-		`1:10: "foo(" must be followed by ")"`,
+		`1:10: "foo(" must be followed by )`,
 	},
 	{
 		"function `function",
@@ -685,7 +685,7 @@ var posixTests = []struct {
 	},
 	{
 		"echo ((foo",
-		`1:1: "foo(" must be followed by ")"`,
+		`1:1: "foo(" must be followed by )`,
 	},
 }
 
