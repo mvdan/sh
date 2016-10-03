@@ -23,6 +23,7 @@ var (
 	write      = flag.Bool("w", false, "write result to file instead of stdout")
 	list       = flag.Bool("l", false, "list files whose formatting differs from shfmt's")
 	indent     = flag.Int("i", 0, "indent: 0 for tabs (default), >0 for number of spaces")
+	posix      = flag.Bool("p", false, "parse POSIX shell code instead of bash")
 	cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
 
 	config printer.Config
@@ -134,11 +135,11 @@ func empty(f *os.File) error {
 }
 
 func formatPath(path string, always bool) error {
-	mode := os.O_RDONLY
+	openMode := os.O_RDONLY
 	if *write {
-		mode = os.O_RDWR
+		openMode = os.O_RDWR
 	}
-	f, err := os.OpenFile(path, mode, 0)
+	f, err := os.OpenFile(path, openMode, 0)
 	if err != nil {
 		return err
 	}
@@ -150,7 +151,11 @@ func formatPath(path string, always bool) error {
 	if !always && !validShebang.Match(src[:32]) {
 		return nil
 	}
-	prog, err := parser.Parse(src, path, parser.ParseComments)
+	parseMode := parser.ParseComments
+	if *posix {
+		parseMode |= parser.PosixConformant
+	}
+	prog, err := parser.Parse(src, path, parseMode)
 	if err != nil {
 		return err
 	}
