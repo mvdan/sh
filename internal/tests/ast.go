@@ -2094,10 +2094,6 @@ var FileTests = []TestCase{
 		},
 	},
 	{
-		[]string{"case i in; esac"},
-		&ast.CaseClause{Word: *litWord("i")},
-	},
-	{
 		[]string{"foo && write | read"},
 		&ast.BinaryCmd{
 			Op: token.LAND,

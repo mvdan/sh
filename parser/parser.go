@@ -1084,9 +1084,6 @@ func (p *parser) caseClause() *ast.CaseClause {
 }
 
 func (p *parser) patLists() (pls []*ast.PatternList) {
-	if p.gotSameLine(token.SEMICOLON) {
-		return
-	}
 	for p.tok != token.EOF && !(p.tok == token.LITWORD && p.val == "esac") {
 		pl := &ast.PatternList{}
 		p.got(token.LPAREN)
