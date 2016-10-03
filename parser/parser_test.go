@@ -109,7 +109,7 @@ func BenchmarkParse(b *testing.B) {
 	}
 }
 
-var errTests = []struct {
+var shellTests = []struct {
 	in, want string
 }{
 	{
@@ -429,14 +429,6 @@ var errTests = []struct {
 		`1:6: reached EOF without matching token $(( with ))`,
 	},
 	{
-		"((foo",
-		`1:1: reached EOF without matching token (( with ))`,
-	},
-	{
-		"echo ((foo",
-		`1:6: a command can only contain words and redirects`,
-	},
-	{
 		"echo $[foo",
 		`1:6: reached EOF without matching token $[ with ]`,
 	},
@@ -638,25 +630,68 @@ var errTests = []struct {
 	},
 }
 
-func TestParseErr(t *testing.T) {
-	for i, c := range errTests {
-		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
-			_, err := Parse([]byte(c.in), "", 0)
-			if err == nil {
-				t.Fatalf("Expected error in %q: %v", c.in, c.want)
-			}
-			got := err.Error()
-			if got != c.want {
-				t.Fatalf("Error mismatch in %q\nwant: %s\ngot:  %s",
-					c.in, c.want, got)
-			}
-		})
+func checkError(in, want string, mode Mode) func(*testing.T) {
+	return func(t *testing.T) {
+		_, err := Parse([]byte(in), "", mode)
+		if err == nil {
+			t.Fatalf("Expected error in %q: %v", in, want)
+		}
+		if got := err.Error(); got != want {
+			t.Fatalf("Error mismatch in %q\nwant: %s\ngot:  %s",
+				in, want, got)
+		}
 	}
 }
 
+func TestParseErrPosix(t *testing.T) {
+	for i, c := range shellTests {
+		t.Run(fmt.Sprintf("%03d", i), checkError(c.in, c.want, PosixConformant))
+	}
+	for i, c := range posixTests {
+		t.Run(fmt.Sprintf("%03d", len(shellTests)+i),
+			checkError(c.in, c.want, PosixConformant))
+	}
+}
+
+func TestParseErrBash(t *testing.T) {
+	for i, c := range shellTests {
+		t.Run(fmt.Sprintf("%03d", i), checkError(c.in, c.want, 0))
+	}
+	for i, c := range bashTests {
+		t.Run(fmt.Sprintf("%03d", len(shellTests)+i),
+			checkError(c.in, c.want, 0))
+	}
+}
+
+var bashTests = []struct {
+	in, want string
+}{
+	{
+		"((foo",
+		`1:1: reached EOF without matching token (( with ))`,
+	},
+	{
+		"echo ((foo",
+		`1:6: a command can only contain words and redirects`,
+	},
+}
+
+var posixTests = []struct {
+	in, want string
+}{
+	{
+		"((foo",
+		`1:2: reached EOF without matching token ( with )`,
+	},
+	{
+		"echo ((foo",
+		`1:1: "foo(" must be followed by ")"`,
+	},
+}
+
 func TestInputName(t *testing.T) {
-	in := errTests[0].in
-	want := "some-file.sh:" + errTests[0].want
+	in := shellTests[0].in
+	want := "some-file.sh:" + shellTests[0].want
 	_, err := Parse([]byte(in), "some-file.sh", 0)
 	if err == nil {
 		t.Fatalf("Expected error in %q: %v", in, want)
