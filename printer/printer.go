@@ -1014,10 +1014,10 @@ func (c *byteCounter) Flush() error    { return nil }
 
 func (p *printer) stmtLen(s *ast.Stmt) int {
 	if p.lenPrinter == nil {
-		p.lenPrinter = &printer{bufWriter: &p.lenCounter}
-	} else {
-		p.lenPrinter.bufWriter.Reset(nil)
+		p.lenPrinter = new(printer)
 	}
+	*p.lenPrinter = printer{bufWriter: &p.lenCounter}
+	p.lenPrinter.bufWriter.Reset(nil)
 	p.lenPrinter.f = p.f
 	p.lenPrinter.incLines(s.Pos())
 	p.lenPrinter.stmt(s)
