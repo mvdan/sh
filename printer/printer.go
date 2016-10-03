@@ -971,6 +971,7 @@ func (p *printer) stmts(stmts []*ast.Stmt) {
 		p.stmt(s)
 		if !p.hasInline(pos, p.nline) {
 			inlineIndent = 0
+			p.wantSpaces = 0
 			continue
 		}
 		if ind < len(p.f.Lines)-1 && s.End() > token.Pos(p.f.Lines[ind+1]) {
