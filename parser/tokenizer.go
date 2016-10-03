@@ -212,6 +212,9 @@ func (p *parser) regToken(b byte) token.Token {
 			p.npos += 2
 			return token.LAND
 		case '>':
+			if !p.bash() {
+				break
+			}
 			if byteAt(p.src, p.npos+2) == '>' {
 				p.npos += 3
 				return token.APPALL
@@ -227,6 +230,9 @@ func (p *parser) regToken(b byte) token.Token {
 			p.npos += 2
 			return token.LOR
 		case '&':
+			if !p.bash() {
+				break
+			}
 			p.npos += 2
 			return token.PIPEALL
 		}
@@ -235,15 +241,24 @@ func (p *parser) regToken(b byte) token.Token {
 	case '$':
 		switch byteAt(p.src, p.npos+1) {
 		case '\'':
+			if !p.bash() {
+				break
+			}
 			p.npos += 2
 			return token.DOLLSQ
 		case '"':
+			if !p.bash() {
+				break
+			}
 			p.npos += 2
 			return token.DOLLDQ
 		case '{':
 			p.npos += 2
 			return token.DOLLBR
 		case '[':
+			if !p.bash() {
+				break
+			}
 			p.npos += 2
 			return token.DOLLBK
 		case '(':
@@ -276,6 +291,9 @@ func (p *parser) regToken(b byte) token.Token {
 			p.npos += 2
 			return token.DSEMICOLON
 		case '&':
+			if !p.bash() {
+				break
+			}
 			p.npos += 2
 			return token.SEMIFALL
 		}
@@ -284,23 +302,31 @@ func (p *parser) regToken(b byte) token.Token {
 	case '<':
 		switch byteAt(p.src, p.npos+1) {
 		case '<':
-			switch byteAt(p.src, p.npos+2) {
-			case '-':
+			if b := byteAt(p.src, p.npos+2); b == '-' {
 				p.npos += 3
 				return token.DHEREDOC
-			case '<':
+			} else if p.bash() && b == '<' {
 				p.npos += 3
 				return token.WHEREDOC
 			}
 			p.npos += 2
 			return token.SHL
 		case '>':
+			if !p.bash() {
+				break
+			}
 			p.npos += 2
 			return token.RDRINOUT
 		case '&':
+			if !p.bash() {
+				break
+			}
 			p.npos += 2
 			return token.DPLIN
 		case '(':
+			if !p.bash() {
+				break
+			}
 			p.npos += 2
 			return token.CMDIN
 		}
@@ -312,9 +338,15 @@ func (p *parser) regToken(b byte) token.Token {
 			p.npos += 2
 			return token.SHR
 		case '&':
+			if !p.bash() {
+				break
+			}
 			p.npos += 2
 			return token.DPLOUT
 		case '(':
+			if !p.bash() {
+				break
+			}
 			p.npos += 2
 			return token.CMDOUT
 		}
@@ -337,6 +369,9 @@ func (p *parser) dqToken(b byte) token.Token {
 			p.npos += 2
 			return token.DOLLBR
 		case '[':
+			if !p.bash() {
+				break
+			}
 			p.npos += 2
 			return token.DOLLBK
 		case '(':

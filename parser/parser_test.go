@@ -333,10 +333,6 @@ var shellTests = []struct {
 		`1:5: | must be followed by a statement`,
 	},
 	{
-		"foo |&",
-		`1:5: |& must be followed by a statement`,
-	},
-	{
 		"foo ||",
 		`1:5: || must be followed by a statement`,
 	},
@@ -355,14 +351,6 @@ var shellTests = []struct {
 	{
 		"foo <\nbar",
 		`2:1: redirect word must be on the same line`,
-	},
-	{
-		"foo <>",
-		`1:5: <> must be followed by a word`,
-	},
-	{
-		"foo <<<",
-		`1:5: <<< must be followed by a word`,
 	},
 	{
 		"foo <<",
@@ -521,10 +509,6 @@ var shellTests = []struct {
 		`1:6: reached EOF without matching token $(( with ))`,
 	},
 	{
-		"echo $[foo",
-		`1:6: reached EOF without matching token $[ with ]`,
-	},
-	{
 		`echo $((\`,
 		`1:6: reached EOF without matching token $(( with ))`,
 	},
@@ -567,14 +551,6 @@ var shellTests = []struct {
 	{
 		"echo ${foo",
 		`1:6: reached EOF without matching token ${ with }`,
-	},
-	{
-		"echo $'",
-		`1:6: reached EOF without closing quote '`,
-	},
-	{
-		`echo $"`,
-		`1:6: reached EOF without closing quote "`,
 	},
 	{
 		"echo $foo ${}",
@@ -699,6 +675,10 @@ var bashTests = []struct {
 		`1:6: a command can only contain words and redirects`,
 	},
 	{
+		"foo |&",
+		`1:5: |& must be followed by a statement`,
+	},
+	{
 		"let",
 		`1:1: let clause requires at least one expression`,
 	},
@@ -778,6 +758,26 @@ var bashTests = []struct {
 		"function foo()",
 		`1:1: "foo()" must be followed by a statement`,
 	},
+	{
+		"foo <>",
+		`1:5: <> must be followed by a word`,
+	},
+	{
+		"foo <<<",
+		`1:5: <<< must be followed by a word`,
+	},
+	{
+		"echo $[foo",
+		`1:6: reached EOF without matching token $[ with ]`,
+	},
+	{
+		"echo $'",
+		`1:6: reached EOF without closing quote '`,
+	},
+	{
+		`echo $"`,
+		`1:6: reached EOF without closing quote "`,
+	},
 }
 
 var posixTests = []struct {
@@ -794,6 +794,38 @@ var posixTests = []struct {
 	{
 		"function foo() { bar; }",
 		`1:13: a command can only contain words and redirects`,
+	},
+	{
+		"foo <>",
+		`1:5: < must be followed by a word`,
+	},
+	{
+		"foo <&",
+		`1:5: < must be followed by a word`,
+	},
+	{
+		"foo <(",
+		`1:5: < must be followed by a word`,
+	},
+	{
+		"foo >&",
+		`1:5: > must be followed by a word`,
+	},
+	{
+		"foo >(",
+		`1:5: > must be followed by a word`,
+	},
+	{
+		"foo &>",
+		`1:6: > must be followed by a word`,
+	},
+	{
+		"foo |&",
+		`1:5: | must be followed by a statement`,
+	},
+	{
+		"echo $[foo'",
+		`1:11: reached EOF without closing quote '`,
 	},
 }
 
