@@ -205,6 +205,10 @@ var shellTests = []struct {
 		`1:7: || can only immediately follow a statement`,
 	},
 	{
+		"foo & ; bar",
+		`1:7: ; can only immediately follow a statement`,
+	},
+	{
 		"foo;;",
 		`1:4: ;; can only be used in a case clause`,
 	},

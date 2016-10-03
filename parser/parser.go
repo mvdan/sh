@@ -862,13 +862,18 @@ preLoop:
 			p.followErr(b.OpPos, b.Op.String(), "a statement")
 		}
 		s = &ast.Stmt{Position: s.Position, Cmd: b}
+		if readEnd && p.gotSameLine(token.SEMICOLON) {
+			gotEnd = true
+		}
 	case token.AND:
 		p.next()
 		s.Background = true
 		gotEnd = true
-	}
-	if readEnd && p.gotSameLine(token.SEMICOLON) {
-		gotEnd = true
+	case token.SEMICOLON:
+		if !p.newLine && readEnd {
+			p.next()
+			gotEnd = true
+		}
 	}
 	return
 }

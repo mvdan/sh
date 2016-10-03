@@ -1086,7 +1086,7 @@ var FileTests = []TestCase{
 		},
 	},
 	{
-		[]string{"foo &\nbar", "foo &; bar", "foo & bar", "foo&bar"},
+		[]string{"foo &\nbar", "foo & bar", "foo&bar"},
 		[]*ast.Stmt{
 			{
 				Cmd:        litCall("foo"),
