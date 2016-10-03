@@ -20,7 +20,7 @@ type Mode uint
 
 const (
 	ParseComments   Mode = 1 << iota // add comments to the AST
-	PosixComformant                  // match the POSIX standard where it differs from bash
+	PosixConformant                  // match the POSIX standard where it differs from bash
 )
 
 var parserFree = sync.Pool{
