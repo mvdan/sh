@@ -4,6 +4,8 @@
 package parser
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
 	"os/exec"
 	"reflect"
@@ -30,11 +32,29 @@ func TestParse(t *testing.T) {
 
 func confirmParse(shell, in string, fail bool) func(*testing.T) {
 	return func(t *testing.T) {
-		cmd := exec.Command(shell, "-n")
+		var cmd *exec.Cmd
+		if fail {
+			// -n makes bash accept invalid inputs like
+			// "let" or "`{`". Should be safe to not use -n
+			// anyway since these are supposed to just fail.
+			cmd = exec.Command(shell)
+		} else {
+			cmd = exec.Command(shell, "-n")
+		}
 		cmd.Stdin = strings.NewReader(in)
+		var stderr bytes.Buffer
+		cmd.Stderr = &stderr
 		err := cmd.Run()
+		if stderr.Len() > 0 {
+			// bash sometimes likes to error on an input via stderr
+			// while forgetting to set the exit code to non-zero.
+			// Fun.
+			if s := stderr.String(); !strings.Contains(s, ": warning: ") {
+				err = errors.New(s)
+			}
+		}
 		if fail && err == nil {
-			t.Fatalf("Expected error in `%s -n` of %q, found none", shell, in)
+			t.Fatalf("Expected error in `%s` of %q, found none", shell, in)
 		} else if !fail && err != nil {
 			t.Fatalf("Unexpected error in `%s -n` of %q: %v", shell, in, err)
 		}
@@ -47,9 +67,15 @@ func TestParseConfirm(t *testing.T) {
 	}
 	for i, c := range tests.FileTests {
 		for j, in := range c.Strs {
-			t.Run(fmt.Sprintf("noerr-%03d-%d", i, j),
+			t.Run(fmt.Sprintf("%03d-%d", i, j),
 				confirmParse("bash", in, false))
 		}
+	}
+}
+
+func TestParseErrConfirm(t *testing.T) {
+	for i, c := range shellTests {
+		t.Run(fmt.Sprintf("%03d", i), confirmParse("bash", c.in, true))
 	}
 }
 
