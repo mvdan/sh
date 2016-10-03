@@ -758,6 +758,21 @@ var FileTests = []TestCase{
 		},
 	},
 	{
+		[]string{"foo <<EOF && {\nbar\nEOF\n\tetc\n}"},
+		&ast.BinaryCmd{
+			Op: token.LAND,
+			X:  &ast.Stmt{
+				Cmd: litCall("foo"),
+				Redirs: []*ast.Redirect{{
+					Op:   token.SHL,
+					Word: *litWord("EOF"),
+					Hdoc: *litWord("bar\n"),
+				}},
+			},
+			Y: stmt(block(litStmt("etc"))),
+		},
+	},
+	{
 		[]string{"if true; then foo <<-EOF\n\tbar\n\tEOF\nfi"},
 		&ast.IfClause{
 			CondStmts: litStmts("true"),

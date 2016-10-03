@@ -287,6 +287,7 @@ func (p *parser) curErr(format string, a ...interface{}) {
 }
 
 func (p *parser) stmts(stops ...string) (sts []*ast.Stmt) {
+	p.got(token.STOPPED)
 	if p.forbidNested {
 		p.curErr("nested statements not allowed in this word")
 	}
