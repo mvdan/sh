@@ -5,6 +5,7 @@ package parser
 
 import (
 	"fmt"
+	"os/exec"
 	"reflect"
 	"strings"
 	"testing"
@@ -23,6 +24,31 @@ func TestParse(t *testing.T) {
 		tests.SetPosRecurse(t, "", want.Stmts, internal.DefaultPos, false)
 		for j, in := range c.Strs {
 			t.Run(fmt.Sprintf("%03d-%d", i, j), singleParse(in, want))
+		}
+	}
+}
+
+func confirmParse(shell, in string, fail bool) func(*testing.T) {
+	return func(t *testing.T) {
+		cmd := exec.Command(shell, "-n")
+		cmd.Stdin = strings.NewReader(in)
+		err := cmd.Run()
+		if fail && err == nil {
+			t.Fatalf("Expected error in `%s -n` of %q, found none", shell, in)
+		} else if !fail && err != nil {
+			t.Fatalf("Unexpected error in `%s -n` of %q: %v", shell, in, err)
+		}
+	}
+}
+
+func TestParseConfirm(t *testing.T) {
+	if testing.Short() {
+		t.Skip("calling bash/dash is slow.")
+	}
+	for i, c := range tests.FileTests {
+		for j, in := range c.Strs {
+			t.Run(fmt.Sprintf("noerr-%03d-%d", i, j),
+				confirmParse("bash", in, false))
 		}
 	}
 }

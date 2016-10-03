@@ -2211,12 +2211,12 @@ var FileTests = []TestCase{
 		},
 	},
 	{
-		[]string{`[[ a =~ [ab ](c|d) ]]`},
+		[]string{`[[ a =~ [ab](c |d) ]]`},
 		&ast.TestClause{
 			X: &ast.BinaryExpr{
 				Op: token.TREMATCH,
 				X:  litWord("a"),
-				Y:  litWord("[ab ](c|d)"),
+				Y:  litWord("[ab](c |d)"),
 			},
 		},
 	},
