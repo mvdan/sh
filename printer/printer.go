@@ -26,14 +26,10 @@ var printerFree = sync.Pool{
 // Fprint "pretty-prints" the given AST file to the given writer.
 func (c Config) Fprint(w io.Writer, f *ast.File) error {
 	p := printerFree.Get().(*printer)
-	*p = printer{
-		bufWriter:  p.bufWriter,
-		lenPrinter: p.lenPrinter,
-		lenCounter: p.lenCounter,
-		f:          f,
-		comments:   f.Comments,
-		c:          c,
-	}
+	p.reset()
+	p.f = f
+	p.comments = f.Comments
+	p.c = c
 	p.bufWriter.Reset(w)
 	p.stmts(f.Stmts)
 	p.commentsUpTo(0)
@@ -90,6 +86,16 @@ type printer struct {
 	// used in stmtLen to align comments
 	lenPrinter *printer
 	lenCounter byteCounter
+}
+
+func (p *printer) reset() {
+	p.wantSpace, p.wantNewline = false, false
+	p.wantSpaces = 0
+	p.nline, p.nlineIndex = 0, 0
+	p.lastLevel, p.level = 0, 0
+	p.levelIncs = p.levelIncs[:]
+	p.nestedBinary = false
+	p.pendingHdocs = p.pendingHdocs[:]
 }
 
 func (p *printer) incLine() {
