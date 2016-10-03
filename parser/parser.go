@@ -34,15 +34,13 @@ var parserFree = sync.Pool{
 // an error is returned.
 func Parse(src []byte, name string, mode Mode) (*ast.File, error) {
 	p := parserFree.Get().(*parser)
-	*p = parser{
-		f: &ast.File{
-			Name:  name,
-			Lines: make([]int, 1, 16),
-		},
-		src:       src,
-		mode:      mode,
-		helperBuf: p.helperBuf,
+	p.reset()
+	p.f = &ast.File{
+		Name:  name,
+		Lines: make([]int, 1, 16),
 	}
+	p.src = src
+	p.mode = mode
 	p.next()
 	p.f.Stmts = p.stmts()
 	parserFree.Put(p)
@@ -78,6 +76,15 @@ type parser struct {
 }
 
 func (p *parser) bash() bool { return p.mode&PosixConformant == 0 }
+
+func (p *parser) reset() {
+	p.spaced, p.newLine = false, false
+	p.stopNewline, p.forbidNested = false, false
+	p.err = nil
+	p.npos = 0
+	p.tok, p.quote = token.ILLEGAL, token.ILLEGAL
+	p.heredocs = p.heredocs[:]
+}
 
 func (p *parser) unquotedWordBytes(w ast.Word) ([]byte, bool) {
 	p.helperBuf.Reset()
