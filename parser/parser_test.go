@@ -122,12 +122,8 @@ func BenchmarkParse(b *testing.B) {
 	}
 	benchmarks := []benchmark{
 		{
-			"Whitespace",
-			strings.Repeat("\n\n\t\t        \n", 10),
-		},
-		{
-			"Comment",
-			"# " + strings.Repeat("foo bar ", 10),
+			"Space+Comment",
+			strings.Repeat("\n\n\t\t        \n", 10) + "# " + strings.Repeat("foo bar ", 10),
 		},
 		{
 			"LongLit",
@@ -147,12 +143,8 @@ func BenchmarkParse(b *testing.B) {
 			"a() { (b); { c; }; (d); }; $(a `b` $(c) `d`)",
 		},
 		{
-			"Assign",
-			"foo=bar a=b c=d abcdé=fg",
-		},
-		{
-			"Clauses",
-			"if a; then while b; do for c in d e; do f; done; done; fi",
+			"Assign+Clauses",
+			"foo=bar a=b c=d abcdé=fg; if a; then while b; do for c in d e; do f; done; done; fi",
 		},
 		{
 			"Binary",
@@ -163,10 +155,6 @@ func BenchmarkParse(b *testing.B) {
 			"foo >a <b <<<c 2>&1 <<EOF\n" +
 				strings.Repeat("somewhat long heredoc line\n", 10) +
 				"EOF",
-		},
-		{
-			"Arithm",
-			"$((a + (-b) * c)); let a++ b=(1+2)",
 		},
 	}
 	for _, c := range benchmarks {
