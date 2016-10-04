@@ -922,12 +922,14 @@ func (p *parser) gotStmtPipe(s *ast.Stmt) *ast.Stmt {
 			s.Cmd = p.bashFuncDecl()
 		default:
 			name := ast.Lit{ValuePos: p.pos, Value: p.val}
-			w := p.getWord()
+			p.next()
 			if p.gotSameLine(token.LPAREN) {
 				p.follow(name.ValuePos, "foo(", token.RPAREN)
 				s.Cmd = p.funcDecl(name, name.ValuePos)
 			} else {
-				s.Cmd = p.callExpr(s, w)
+				s.Cmd = p.callExpr(s, ast.Word{
+					Parts: []ast.WordPart{&name},
+				})
 			}
 		}
 	case token.LIT, token.DOLLBR, token.DOLLDP, token.DOLLPR, token.DOLLAR,
@@ -1377,7 +1379,13 @@ func (p *parser) callExpr(s *ast.Stmt, w ast.Word) *ast.CallExpr {
 				p.doRedirect(s)
 				continue
 			}
-			fallthrough
+			ce.Args = append(ce.Args, ast.Word{
+				Parts: []ast.WordPart{&ast.Lit{
+					ValuePos: p.pos,
+					Value:    p.val,
+				}},
+			})
+			p.next()
 		case token.LIT, token.DOLLBR, token.DOLLDP, token.DOLLPR,
 			token.DOLLAR, token.CMDIN, token.CMDOUT, token.SQUOTE,
 			token.DOLLSQ, token.DQUOTE, token.DOLLDQ, token.BQUOTE,
