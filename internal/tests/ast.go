@@ -1140,8 +1140,9 @@ var FileTests = []TestCase{
 	},
 	{
 		[]string{
-			"$( (echo foo bar) )",
+			"$( (echo foo bar))",
 			"$((echo foo bar) )",
+			"$( (echo foo bar) )",
 		},
 		word(cmdSubst(stmt(
 			subshell(litStmt("echo", "foo", "bar")),
