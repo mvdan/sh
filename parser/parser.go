@@ -73,6 +73,9 @@ type parser struct {
 	heredocs []*ast.Redirect
 
 	helperBuf *bytes.Buffer
+
+	arithmKeepGoing bool
+	arithmFirstErr  error
 }
 
 func (p *parser) bash() bool { return p.mode&PosixConformant == 0 }
@@ -253,6 +256,14 @@ func (p *parser) matched(lpos token.Pos, left, right token.Token) token.Pos {
 
 func (p *parser) errPass(err error) {
 	if p.err == nil {
+		if p.arithmKeepGoing {
+			if err == io.EOF {
+				p.tok = token.EOF
+			} else if p.arithmFirstErr == nil {
+				p.arithmFirstErr = err
+			}
+			return
+		}
 		if err != io.EOF {
 			p.err = err
 		}
@@ -408,8 +419,34 @@ func (p *parser) wordPart() ast.WordPart {
 		} else {
 			p.quote = token.DRPAREN
 		}
+		hadErr := p.err != nil
 		p.next()
+		p.arithmKeepGoing, p.arithmFirstErr = true, nil
 		ar.X = p.arithmExpr(ar.Token, ar.Left, 0, false)
+		p.arithmKeepGoing = false
+		if ar.Token == token.DOLLDP && !hadErr && p.arithmFirstErr != nil &&
+			!p.peekArithmEnd(p.tok) && p.tok != token.EOF {
+			// TODO: this will probably break if there is
+			// extra lingering state, such as pending
+			// heredocs
+			p.tok = token.DOLLPR
+			p.pos = ar.Left
+			p.npos = int(ar.Left) + 1
+			wp := p.wordPart()
+			if p.err != nil {
+				// if retrying fails, report the
+				// arithmetic expr error as that's got
+				// higher precedence
+				p.err = p.arithmFirstErr
+				p.tok = token.EOF
+			}
+			return wp
+		}
+		if p.arithmFirstErr != nil {
+			// not retrying, so recover error
+			p.err = p.arithmFirstErr
+			p.tok = token.EOF
+		}
 		if left == token.DOLLBK {
 			if p.tok != token.RBRACK {
 				p.matchingErr(ar.Left, left, token.RBRACK)
@@ -522,7 +559,7 @@ func (p *parser) wordPart() ast.WordPart {
 
 func arithmOpLevel(tok token.Token) int {
 	switch tok {
-	case token.COMMA:
+	case token.COMMA, token.LIT, token.LITWORD:
 		return 0
 	case token.ADDASSGN, token.SUBASSGN, token.MULASSGN, token.QUOASSGN,
 		token.REMASSGN, token.ANDASSGN, token.ORASSGN, token.XORASSGN,
@@ -555,7 +592,7 @@ func arithmOpLevel(tok token.Token) int {
 }
 
 func (p *parser) arithmExpr(ftok token.Token, fpos token.Pos, level int, compact bool) ast.ArithmExpr {
-	if p.tok == token.EOF || p.peekArithmEnd() {
+	if p.tok == token.EOF || p.peekArithmEnd(p.tok) {
 		return nil
 	}
 	var left ast.ArithmExpr
@@ -701,12 +738,12 @@ func (p *parser) paramExp() *ast.ParamExp {
 	return pe
 }
 
-func (p *parser) peekArithmEnd() bool {
-	return p.tok == token.RPAREN && p.npos < len(p.src) && p.src[p.npos] == ')'
+func (p *parser) peekArithmEnd(tok token.Token) bool {
+	return tok == token.RPAREN && p.npos < len(p.src) && p.src[p.npos] == ')'
 }
 
 func (p *parser) arithmEnd(ltok token.Token, lpos token.Pos, old token.Token) token.Pos {
-	if p.peekArithmEnd() {
+	if p.peekArithmEnd(p.tok) {
 		p.npos++
 	} else {
 		p.matchingErr(lpos, ltok, token.DRPAREN)

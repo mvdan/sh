@@ -761,7 +761,7 @@ var FileTests = []TestCase{
 		[]string{"foo <<EOF && {\nbar\nEOF\n\tetc\n}"},
 		&ast.BinaryCmd{
 			Op: token.LAND,
-			X:  &ast.Stmt{
+			X: &ast.Stmt{
 				Cmd: litCall("foo"),
 				Redirs: []*ast.Redirect{{
 					Op:   token.SHL,
@@ -1136,6 +1136,15 @@ var FileTests = []TestCase{
 		[]string{"$({ echo; })"},
 		word(cmdSubst(stmt(
 			block(litStmt("echo")),
+		))),
+	},
+	{
+		[]string{
+			"$( (echo foo bar) )",
+			"$((echo foo bar) )",
+		},
+		word(cmdSubst(stmt(
+			subshell(litStmt("echo", "foo", "bar")),
 		))),
 	},
 	{
