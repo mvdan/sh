@@ -525,6 +525,10 @@ var shellTests = []struct {
 		`1:11: not a valid arithmetic operator: b`,
 	},
 	{
+		"echo $((a ; c))",
+		`1:11: not a valid arithmetic operator: ;`,
+	},
+	{
 		"echo $((a *))",
 		`1:11: * must be followed by an expression`,
 	},

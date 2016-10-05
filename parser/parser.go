@@ -572,7 +572,7 @@ func (p *parser) wordPart() ast.WordPart {
 
 func arithmOpLevel(tok token.Token) int {
 	switch tok {
-	case token.COMMA, token.LIT, token.LITWORD:
+	case token.COMMA:
 		return 0
 	case token.ADDASSGN, token.SUBASSGN, token.MULASSGN, token.QUOASSGN,
 		token.REMASSGN, token.ANDASSGN, token.ORASSGN, token.XORASSGN,
@@ -617,10 +617,14 @@ func (p *parser) arithmExpr(ftok token.Token, fpos token.Pos, level int, compact
 	if compact && p.spaced {
 		return left
 	}
-	if p.tok == token.LIT || p.tok == token.LITWORD {
-		p.curErr("not a valid arithmetic operator: %s", p.val)
-	}
 	newLevel := arithmOpLevel(p.tok)
+	if p.arithmKeepGoing && p.tok == token.SEMICOLON {
+		p.curErr("not a valid arithmetic operator: %v", p.tok)
+		newLevel = 0
+	} else if p.tok == token.LIT || p.tok == token.LITWORD {
+		p.curErr("not a valid arithmetic operator: %s", p.val)
+		newLevel = 0
+	}
 	if newLevel < 0 || newLevel < level {
 		return left
 	}
