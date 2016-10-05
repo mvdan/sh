@@ -49,7 +49,7 @@ func (p *parser) next() {
 		return
 	}
 	b := p.src[p.npos]
-	if p.quote == token.SHL && p.hdocStop == nil {
+	if p.quote == hdocBody && p.hdocStop == nil {
 		return
 	}
 	if p.tok == token.STOPPED && b == '\n' {
@@ -68,7 +68,7 @@ func (p *parser) next() {
 	q := p.quote
 	p.pos = token.Pos(p.npos + 1)
 	switch q {
-	case token.QUO:
+	case paramExpRepl:
 		switch b {
 		case '}':
 			p.npos++
@@ -82,21 +82,21 @@ func (p *parser) next() {
 			p.advanceLitOther(q)
 		}
 		return
-	case token.DQUOTE:
+	case dblQuotes:
 		if b == '`' || b == '"' || b == '$' {
 			p.tok = p.dqToken(b)
 		} else {
 			p.advanceLitDquote()
 		}
 		return
-	case token.SHL:
+	case hdocBody:
 		if b == '`' || b == '$' {
 			p.tok = p.dqToken(b)
 		} else {
 			p.advanceLitHdoc()
 		}
 		return
-	case token.RBRACE:
+	case paramExpExp:
 		switch b {
 		case '}':
 			p.npos++
@@ -107,7 +107,7 @@ func (p *parser) next() {
 			p.advanceLitOther(q)
 		}
 		return
-	case token.SQUOTE:
+	case sglQuotes:
 		if b == '\'' {
 			p.npos++
 			p.tok = token.SQUOTE
@@ -152,7 +152,7 @@ skipSpace:
 	}
 	p.pos = token.Pos(p.npos + 1)
 	switch {
-	case q == token.ILLEGAL, q == token.RPAREN, q == token.BQUOTE, q == token.DSEMICOLON:
+	case q == noState, q == subCmd, q == subCmdBckquo, q == switchCase:
 		switch b {
 		case ';', '"', '\'', '(', ')', '$', '|', '&', '>', '<', '`':
 			p.tok = p.regToken(b)
@@ -170,14 +170,14 @@ skipSpace:
 		default:
 			p.advanceLitNone()
 		}
-	case q == token.LBRACE && paramOps(b):
+	case q == paramExpName && paramOps(b):
 		p.tok = p.paramToken(b)
-	case (q == token.DRPAREN || q == token.DOLLBK) && arithmOps(b):
+	case (q == arithmExpr || q == arithmExprBrack) && arithmOps(b):
 		p.tok = p.arithmToken(b)
-	case (q == token.RBRACK || q == token.DOLLBK) && b == ']':
+	case (q == paramExpInd || q == arithmExprBrack) && b == ']':
 		p.npos++
 		p.tok = token.RBRACK
-	case q == token.TREMATCH:
+	case q == testRegexp:
 		// TODO: parse as full regex, or at least don't break if " ]]"
 		// appears in the regex
 		p.advanceLitRe()
@@ -588,7 +588,7 @@ func (p *parser) arithmToken(b byte) token.Token {
 	}
 }
 
-func (p *parser) advanceLitOther(q token.Token) {
+func (p *parser) advanceLitOther(q quoteState) {
 	bs := make([]byte, 0, 8)
 	for {
 		if p.npos >= len(p.src) {
@@ -612,7 +612,7 @@ func (p *parser) advanceLitOther(q token.Token) {
 				bs = append(bs, '\\', b)
 			}
 			continue
-		case q == token.SQUOTE:
+		case q == sglQuotes:
 			switch b {
 			case '\n':
 				p.f.Lines = append(p.f.Lines, p.npos+1)
@@ -623,20 +623,20 @@ func (p *parser) advanceLitOther(q token.Token) {
 		case b == '`', b == '$':
 			p.tok, p.val = token.LIT, string(bs)
 			return
-		case q == token.RBRACE:
+		case q == paramExpExp:
 			if b == '}' || b == '"' {
 				p.tok, p.val = token.LIT, string(bs)
 				return
 			}
-		case q == token.QUO:
+		case q == paramExpRepl:
 			if b == '/' || b == '}' {
 				p.tok, p.val = token.LIT, string(bs)
 				return
 			}
 		case wordBreak(b), regOps(b),
-			(q == token.DRPAREN || q == token.DOLLBK) && arithmOps(b),
-			q == token.LBRACE && paramOps(b),
-			(q == token.RBRACK || q == token.DOLLBK) && b == ']':
+			(q == arithmExpr || q == arithmExprBrack) && arithmOps(b),
+			q == paramExpName && paramOps(b),
+			(q == paramExpInd || q == arithmExprBrack) && b == ']':
 			p.tok, p.val = token.LIT, string(bs)
 			return
 		}
@@ -667,7 +667,7 @@ loop:
 			tok = token.LITWORD
 			break loop
 		case '`':
-			if p.quote == token.BQUOTE {
+			if p.quote == subCmdBckquo {
 				tok = token.LITWORD
 			}
 			break loop
@@ -707,7 +707,7 @@ func (p *parser) advanceLitNoneCont(bs []byte) {
 			p.tok, p.val = token.LITWORD, string(bs)
 			return
 		case '`':
-			if p.quote == token.BQUOTE {
+			if p.quote == subCmdBckquo {
 				p.tok, p.val = token.LITWORD, string(bs)
 				return
 			}
