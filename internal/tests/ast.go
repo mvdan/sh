@@ -1160,6 +1160,17 @@ var FileTests = []TestCase{
 		)),
 	},
 	{
+		[]string{
+			`"$( (foo))"`,
+			`"$((foo) )"`,
+		},
+		word(dblQuoted(
+			cmdSubst(stmt(
+				subshell(litStmt("foo")),
+			)),
+		)),
+	},
+	{
 		[]string{"`{ echo; }`"},
 		word(bckQuoted(stmt(
 			block(litStmt("echo")),

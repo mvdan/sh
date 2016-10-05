@@ -411,7 +411,7 @@ func (p *parser) wordPart() ast.WordPart {
 	case token.DOLLDP, token.DOLLBK:
 		left := p.tok
 		ar := &ast.ArithmExp{Token: p.tok, Left: p.pos}
-		old := p.quote
+		oldQuote := p.quote
 		if ar.Token == token.DOLLBK {
 			// treat deprecated $[ as $((
 			ar.Token = token.DOLLDP
@@ -433,6 +433,7 @@ func (p *parser) wordPart() ast.WordPart {
 			// TODO: this will probably break if there is
 			// extra lingering state, such as pending
 			// heredocs
+			p.quote = oldQuote
 			p.tok, p.pos = token.DOLLPR, ar.Left
 			p.npos = int(ar.Left) + 1
 			wp := p.wordPart()
@@ -463,11 +464,11 @@ func (p *parser) wordPart() ast.WordPart {
 			if p.tok != token.RBRACK {
 				p.matchingErr(ar.Left, left, token.RBRACK)
 			}
-			p.quote = old
+			p.quote = oldQuote
 			ar.Right = p.pos
 			p.next()
 		} else {
-			ar.Right = p.arithmEnd(left, ar.Left, old)
+			ar.Right = p.arithmEnd(left, ar.Left, oldQuote)
 		}
 		return ar
 	case token.DOLLPR:
