@@ -1150,7 +1150,7 @@ var FileTests = []TestCase{
 	},
 	{
 		[]string{
-			"$( \n\t(a)\n\tb\n)", // TODO: trailing space
+			"$(\n\t(a)\n\tb\n)",
 			"$( (a); b)",
 			"$((a); b)",
 		},

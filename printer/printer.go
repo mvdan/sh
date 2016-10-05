@@ -362,7 +362,7 @@ func (p *printer) wordPart(wp ast.WordPart) {
 			p.WriteString("$(")
 		}
 		if startsWithLparen(x.Stmts) {
-			p.space()
+			p.wantSpace = true
 		}
 		p.nestedStmts(x.Stmts)
 		if x.Backquotes {
