@@ -1149,6 +1149,17 @@ var FileTests = []TestCase{
 		))),
 	},
 	{
+		[]string{
+			"$( \n\t(a)\n\tb\n)", // TODO: trailing space
+			"$( (a); b)",
+			"$((a); b)",
+		},
+		word(cmdSubst(
+			stmt(subshell(litStmt("a"))),
+			litStmt("b"),
+		)),
+	},
+	{
 		[]string{"`{ echo; }`"},
 		word(bckQuoted(stmt(
 			block(litStmt("echo")),

@@ -424,21 +424,29 @@ func (p *parser) wordPart() ast.WordPart {
 		p.arithmKeepGoing, p.arithmFirstErr = true, nil
 		ar.X = p.arithmExpr(ar.Token, ar.Left, 0, false)
 		p.arithmKeepGoing = false
-		if ar.Token == token.DOLLDP && !hadErr && p.arithmFirstErr != nil &&
-			!p.peekArithmEnd(p.tok) && p.tok != token.EOF {
+		hasEnd := p.peekArithmEnd(p.tok)
+		oldTok := p.tok
+		if p.quote == token.DRPAREN && !hadErr && !hasEnd {
 			// TODO: this will probably break if there is
 			// extra lingering state, such as pending
 			// heredocs
-			p.tok = token.DOLLPR
-			p.pos = ar.Left
+			p.tok, p.pos = token.DOLLPR, ar.Left
 			p.npos = int(ar.Left) + 1
 			wp := p.wordPart()
 			if p.err != nil {
-				// if retrying fails, report the
-				// arithmetic expr error as that's got
-				// higher precedence
-				p.err = p.arithmFirstErr
-				p.tok = token.EOF
+				if p.arithmFirstErr != nil {
+					// if retrying fails, report the
+					// arithmetic expr error as that's got
+					// higher precedence
+					p.err = p.arithmFirstErr
+				} else if !hasEnd {
+					// if both error and the
+					// arithmetic expression wasn't
+					// closed, report that properly
+					p.err = nil
+					p.tok = oldTok
+					goto arithmClose
+				}
 			}
 			return wp
 		}
@@ -447,6 +455,7 @@ func (p *parser) wordPart() ast.WordPart {
 			p.err = p.arithmFirstErr
 			p.tok = token.EOF
 		}
+	arithmClose:
 		if left == token.DOLLBK {
 			if p.tok != token.RBRACK {
 				p.matchingErr(ar.Left, left, token.RBRACK)
