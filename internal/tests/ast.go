@@ -2772,6 +2772,10 @@ func SetPosRecurse(tb testing.TB, src string, v interface{}, to token.Pos, diff 
 			return
 		}
 		offs := int(pos - 1)
+		if offs < 0 || offs > len(src) {
+			tb.Fatalf("Pos() in %T is out of bounds", v)
+			return
+		}
 		var gotErr string
 		for i, want := range strs {
 			got := string([]byte(src[offs:]))
