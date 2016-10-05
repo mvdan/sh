@@ -421,7 +421,10 @@ func (p *parser) wordPart() ast.WordPart {
 		}
 		hadErr := p.err != nil
 		p.next()
-		p.arithmKeepGoing, p.arithmFirstErr = true, nil
+		p.arithmFirstErr = nil
+		if p.quote == token.DRPAREN {
+			p.arithmKeepGoing = true
+		}
 		ar.X = p.arithmExpr(ar.Token, ar.Left, 0, false)
 		p.arithmKeepGoing = false
 		hasEnd := p.peekArithmEnd(p.tok)
