@@ -444,7 +444,7 @@ func (p *parser) wordPart() ast.WordPart {
 					// higher precedence
 					p.err = p.arithmFirstErr
 				} else if !hasEnd {
-					// if both error and the
+					// if retrying fails and the
 					// arithmetic expression wasn't
 					// closed, report that properly
 					p.err = nil
