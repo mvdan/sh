@@ -228,11 +228,11 @@ func (p *parser) followRsrv(lpos token.Pos, left, val string) token.Pos {
 
 func (p *parser) followStmts(left string, lpos token.Pos, stops ...string) []*ast.Stmt {
 	if p.gotSameLine(token.SEMICOLON) {
-		p.followErr(lpos, left, "at least one statement")
+		return nil
 	}
 	sts := p.stmts(stops...)
-	if len(sts) < 1 {
-		p.followErr(lpos, left, "at least one statement")
+	if len(sts) < 1 && !p.newLine {
+		p.followErr(lpos, left, "a statement list")
 	}
 	return sts
 }
@@ -1065,9 +1065,6 @@ func (p *parser) subshell() *ast.Subshell {
 	s.Stmts = p.stmts()
 	p.quote = old
 	s.Rparen = p.matched(s.Lparen, token.LPAREN, token.RPAREN)
-	if len(s.Stmts) == 0 {
-		p.posErr(s.Lparen, "a subshell must contain at least one statement")
-	}
 	return s
 }
 

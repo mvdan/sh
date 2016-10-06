@@ -221,10 +221,6 @@ var shellTests = []struct {
 		`1:1: ) can only be used to close a subshell`,
 	},
 	{
-		"( )",
-		`1:1: a subshell must contain at least one statement`,
-	},
-	{
 		"`",
 		"1:1: reached EOF without closing quote `",
 	},
@@ -350,11 +346,7 @@ var shellTests = []struct {
 	},
 	{
 		"if",
-		`1:1: "if" must be followed by at least one statement`,
-	},
-	{
-		"if; then bar; fi",
-		`1:1: "if" must be followed by at least one statement`,
+		`1:1: "if" must be followed by a statement list`,
 	},
 	{
 		"if foo;",
@@ -369,28 +361,12 @@ var shellTests = []struct {
 		`1:1: if statement must end with "fi"`,
 	},
 	{
-		"if foo; then; fi",
-		`1:9: "then" must be followed by at least one statement`,
-	},
-	{
 		"if foo; then bar; fi#etc",
 		`1:1: if statement must end with "fi"`,
 	},
 	{
 		"if a; then b; elif c;",
 		`1:15: "elif <cond>" must be followed by "then"`,
-	},
-	{
-		"if a; then b; elif; then c; fi",
-		`1:15: "elif" must be followed by at least one statement`,
-	},
-	{
-		"if a; then b; elif c; then; fi",
-		`1:23: "then" must be followed by at least one statement`,
-	},
-	{
-		"if a; then b; else; fi",
-		`1:15: "else" must be followed by at least one statement`,
 	},
 	{
 		"'foo' '",
@@ -402,11 +378,7 @@ var shellTests = []struct {
 	},
 	{
 		"while",
-		`1:1: "while" must be followed by at least one statement`,
-	},
-	{
-		"while; do bar; done",
-		`1:1: "while" must be followed by at least one statement`,
+		`1:1: "while" must be followed by a statement list`,
 	},
 	{
 		"while foo;",
@@ -421,16 +393,8 @@ var shellTests = []struct {
 		`1:1: while statement must end with "done"`,
 	},
 	{
-		"while foo; do; fi",
-		`1:12: "do" must be followed by at least one statement`,
-	},
-	{
 		"until",
-		`1:1: "until" must be followed by at least one statement`,
-	},
-	{
-		"until; do bar; done",
-		`1:1: "until" must be followed by at least one statement`,
+		`1:1: "until" must be followed by a statement list`,
 	},
 	{
 		"until foo;",
@@ -443,10 +407,6 @@ var shellTests = []struct {
 	{
 		"until foo; do bar;",
 		`1:1: until statement must end with "done"`,
-	},
-	{
-		"until foo; do; fi",
-		`1:12: "do" must be followed by at least one statement`,
 	},
 	{
 		"for",
