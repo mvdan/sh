@@ -86,7 +86,7 @@ func (p *parser) next() {
 			p.advanceLitDquote()
 		}
 		return
-	case hdocBody:
+	case hdocBody, hdocBodyTabs:
 		if b == '`' || b == '$' {
 			p.tok = p.dqToken(b)
 		} else {
@@ -751,8 +751,10 @@ func (p *parser) isHdocEnd(i int) bool {
 
 func (p *parser) advanceLitHdoc() {
 	n := p.npos
-	for p.hdocTabs && n < len(p.src) && p.src[n] == '\t' {
-		n++
+	if p.quote == hdocBodyTabs {
+		for n < len(p.src) && p.src[n] == '\t' {
+			n++
+		}
 	}
 	if p.isHdocEnd(n) {
 		if n > p.npos {
@@ -778,8 +780,10 @@ loop:
 		case '\n':
 			n := i + 1
 			p.f.Lines = append(p.f.Lines, n)
-			for p.hdocTabs && n < len(p.src) && p.src[n] == '\t' {
-				n++
+			if p.quote == hdocBodyTabs {
+				for n < len(p.src) && p.src[n] == '\t' {
+					n++
+				}
 			}
 			if p.isHdocEnd(n) {
 				p.tok, p.val = token.LIT, string(p.src[p.npos:n])
@@ -803,8 +807,10 @@ func (p *parser) hdocLitWord() ast.Word {
 		if found {
 			p.f.Lines = append(p.f.Lines, p.npos)
 		}
-		for p.hdocTabs && end < len(p.src) && p.src[end] == '\t' {
-			end++
+		if p.quote == hdocBodyTabs {
+			for end < len(p.src) && p.src[end] == '\t' {
+				end++
+			}
 		}
 		if p.isHdocEnd(end) {
 			break

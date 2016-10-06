@@ -66,11 +66,9 @@ type parser struct {
 
 	quote quoteState
 
-	hdocStop []byte
-	hdocTabs bool
-
 	// list of pending heredoc bodies
 	heredocs []*ast.Redirect
+	hdocStop []byte
 
 	helperBuf *bytes.Buffer
 
@@ -87,6 +85,7 @@ const (
 	sglQuotes
 	dblQuotes
 	hdocBody
+	hdocBodyTabs
 	arithmExpr
 	arithmExprBrack
 	testRegexp
@@ -146,11 +145,14 @@ func (p *parser) unquotedWordPart(b *bytes.Buffer, wp ast.WordPart) bool {
 func (p *parser) doHeredocs() {
 	p.tok = token.ILLEGAL
 	old := p.quote
-	p.quote = hdocBody
 	hdocs := p.heredocs
 	p.heredocs = p.heredocs[:0]
 	for i, r := range hdocs {
-		p.hdocTabs = r.Op == token.DHEREDOC
+		if r.Op == token.DHEREDOC {
+			p.quote = hdocBodyTabs
+		} else {
+			p.quote = hdocBody
+		}
 		var quoted bool
 		p.hdocStop, quoted = p.unquotedWordBytes(r.Word)
 		if i > 0 && p.npos < len(p.src) && p.src[p.npos] == '\n' {
@@ -409,7 +411,7 @@ func (p *parser) wordParts() (wps []ast.WordPart) {
 		if p.spaced {
 			return
 		}
-		if p.quote == hdocBody && p.hdocStop == nil {
+		if (p.quote == hdocBody || p.quote == hdocBodyTabs) && p.hdocStop == nil {
 			// TODO: is this is a hack around a bug?
 			if p.tok == token.LIT && !lastLit {
 				wps = append(wps, &ast.Lit{
@@ -521,7 +523,7 @@ func (p *parser) wordPart() ast.WordPart {
 			p.tok, p.val = token.LIT, string(b)
 		} else {
 			old := p.quote
-			if p.quote == hdocBody {
+			if p.quote == hdocBody || p.quote == hdocBodyTabs {
 				p.quote = noState
 			}
 			p.next()
