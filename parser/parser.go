@@ -261,8 +261,7 @@ func (p *parser) quoteErr(lpos token.Pos, quote token.Token) {
 }
 
 func (p *parser) matchingErr(lpos token.Pos, left, right token.Token) {
-	p.posErr(lpos, `reached %s without matching token %s with %s`,
-		p.tok, left, right)
+	p.posErr(lpos, `reached %s without matching %s with %s`, p.tok, left, right)
 }
 
 func (p *parser) matched(lpos token.Pos, left, right token.Token) token.Pos {
@@ -1084,7 +1083,7 @@ func (p *parser) block() *ast.Block {
 	b.Stmts = p.stmts("}")
 	b.Rbrace = p.pos
 	if !p.gotRsrv("}") {
-		p.posErr(b.Lbrace, `reached %s without matching word { with }`, p.tok)
+		p.matchingErr(b.Lbrace, token.LBRACE, token.RBRACE)
 	}
 	return b
 }
@@ -1233,7 +1232,7 @@ func (p *parser) testClause() *ast.TestClause {
 	tc.X = p.testExpr(token.DLBRCK, tc.Left)
 	tc.Right = p.pos
 	if !p.gotRsrv("]]") {
-		p.posErr(tc.Left, `reached %s without matching word [[ with ]]`, p.tok)
+		p.matchingErr(tc.Left, token.DLBRCK, token.DRBRCK)
 	}
 	return tc
 }

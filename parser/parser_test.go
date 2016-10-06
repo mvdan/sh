@@ -202,7 +202,7 @@ var shellTests = []struct {
 	},
 	{
 		"{",
-		`1:1: reached EOF without matching word { with }`,
+		`1:1: reached EOF without matching { with }`,
 	},
 	{
 		"}",
@@ -210,11 +210,11 @@ var shellTests = []struct {
 	},
 	{
 		"{ #}",
-		`1:1: reached EOF without matching word { with }`,
+		`1:1: reached EOF without matching { with }`,
 	},
 	{
 		"(",
-		`1:1: reached EOF without matching token ( with )`,
+		`1:1: reached EOF without matching ( with )`,
 	},
 	{
 		")",
@@ -234,7 +234,7 @@ var shellTests = []struct {
 	},
 	{
 		"( foo;",
-		`1:1: reached EOF without matching token ( with )`,
+		`1:1: reached EOF without matching ( with )`,
 	},
 	{
 		"&",
@@ -306,7 +306,7 @@ var shellTests = []struct {
 	},
 	{
 		"foo() {",
-		`1:7: reached EOF without matching word { with }`,
+		`1:7: reached EOF without matching { with }`,
 	},
 	{
 		"echo foo(",
@@ -490,23 +490,23 @@ var shellTests = []struct {
 	},
 	{
 		"echo $(foo",
-		`1:6: reached EOF without matching token ( with )`,
+		`1:6: reached EOF without matching ( with )`,
 	},
 	{
 		"echo $((foo",
-		`1:6: reached EOF without matching token $(( with ))`,
+		`1:6: reached EOF without matching $(( with ))`,
 	},
 	{
 		`echo $((\`,
-		`1:6: reached EOF without matching token $(( with ))`,
+		`1:6: reached EOF without matching $(( with ))`,
 	},
 	{
 		`echo $((foo\`,
-		`1:6: reached EOF without matching token $(( with ))`,
+		`1:6: reached EOF without matching $(( with ))`,
 	},
 	{
 		`echo $((foo\a`,
-		`1:6: reached EOF without matching token $(( with ))`,
+		`1:6: reached EOF without matching $(( with ))`,
 	},
 	{
 		"echo $((()))",
@@ -514,7 +514,7 @@ var shellTests = []struct {
 	},
 	{
 		"echo $(((3))",
-		`1:6: reached ) without matching token $(( with ))`,
+		`1:6: reached ) without matching $(( with ))`,
 	},
 	{
 		"echo $((+))",
@@ -542,7 +542,7 @@ var shellTests = []struct {
 	},
 	{
 		"echo ${foo",
-		`1:6: reached EOF without matching token ${ with }`,
+		`1:6: reached EOF without matching ${ with }`,
 	},
 	{
 		"echo $foo ${}",
@@ -550,7 +550,7 @@ var shellTests = []struct {
 	},
 	{
 		"echo ${foo-bar",
-		`1:6: reached EOF without matching token ${ with }`,
+		`1:6: reached EOF without matching ${ with }`,
 	},
 	{
 		"echo ${#foo-bar}",
@@ -558,11 +558,11 @@ var shellTests = []struct {
 	},
 	{
 		"#foo\n{",
-		`2:1: reached EOF without matching word { with }`,
+		`2:1: reached EOF without matching { with }`,
 	},
 	{
 		`echo "foo${bar"`,
-		`1:10: reached EOF without matching token ${ with }`,
+		`1:10: reached EOF without matching ${ with }`,
 	},
 	{
 		"foo\n;",
@@ -614,7 +614,7 @@ var shellTests = []struct {
 	},
 	{
 		"`{\n`",
-		"1:2: reached ` without matching word { with }",
+		"1:2: reached ` without matching { with }",
 	},
 	{
 		"echo \"`)`\"",
@@ -660,7 +660,7 @@ var bashTests = []struct {
 }{
 	{
 		"((foo",
-		`1:1: reached EOF without matching token (( with ))`,
+		`1:1: reached EOF without matching (( with ))`,
 	},
 	{
 		"echo ((foo",
@@ -696,19 +696,19 @@ var bashTests = []struct {
 	},
 	{
 		"[[ a",
-		`1:1: reached EOF without matching word [[ with ]]`,
+		`1:1: reached EOF without matching [[ with ]]`,
 	},
 	{
 		"[[ -f a",
-		`1:1: reached EOF without matching word [[ with ]]`,
+		`1:1: reached EOF without matching [[ with ]]`,
 	},
 	{
 		"[[ a == b",
-		`1:1: reached EOF without matching word [[ with ]]`,
+		`1:1: reached EOF without matching [[ with ]]`,
 	},
 	{
 		"[[ a =~ b",
-		`1:1: reached EOF without matching word [[ with ]]`,
+		`1:1: reached EOF without matching [[ with ]]`,
 	},
 	{
 		"[[ a b c ]]",
@@ -760,7 +760,7 @@ var bashTests = []struct {
 	},
 	{
 		"echo $[foo",
-		`1:6: reached EOF without matching token $[ with ]`,
+		`1:6: reached EOF without matching $[ with ]`,
 	},
 	{
 		"echo $'",
@@ -777,7 +777,7 @@ var posixTests = []struct {
 }{
 	{
 		"((foo",
-		`1:2: reached EOF without matching token ( with )`,
+		`1:2: reached EOF without matching ( with )`,
 	},
 	{
 		"echo ((foo",

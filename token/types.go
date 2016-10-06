@@ -40,6 +40,7 @@ const (
 	RBRACE     // }
 	RBRACK     // ]
 	RPAREN     // )
+	DRBRCK     // ]]
 	SEMICOLON  // ;
 	DSEMICOLON // ;;
 	SEMIFALL   // ;&
@@ -182,6 +183,7 @@ var (
 		RBRACE:     "}",
 		RBRACK:     "]",
 		RPAREN:     ")",
+		DRBRCK:     "]]",
 		SEMICOLON:  ";",
 		DSEMICOLON: ";;",
 		SEMIFALL:   ";&",
