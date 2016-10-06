@@ -73,7 +73,6 @@ type parser struct {
 	helperBuf *bytes.Buffer
 
 	arithmKeepGoing bool
-	arithmFirstErr  error
 }
 
 type quoteState int
@@ -279,8 +278,8 @@ func (p *parser) errPass(err error) {
 		if p.arithmKeepGoing {
 			if err == io.EOF {
 				p.tok = token.EOF
-			} else if p.arithmFirstErr == nil {
-				p.arithmFirstErr = err
+			} else {
+				p.err = err
 			}
 			return
 		}
@@ -443,9 +442,10 @@ func (p *parser) wordPart() ast.WordPart {
 		} else {
 			p.quote = arithmExpr
 		}
-		hadErr := p.err != nil
+		if p.err != nil {
+			return nil
+		}
 		p.next()
-		p.arithmFirstErr = nil
 		if p.quote == arithmExpr {
 			p.arithmKeepGoing = true
 		}
@@ -453,20 +453,22 @@ func (p *parser) wordPart() ast.WordPart {
 		p.arithmKeepGoing = false
 		hasEnd := p.peekArithmEnd(p.tok)
 		oldTok := p.tok
-		if p.quote == arithmExpr && !hadErr && !hasEnd {
+		oldErr := p.err
+		if p.quote == arithmExpr && !hasEnd {
 			// TODO: this will probably break if there is
 			// extra lingering state, such as pending
 			// heredocs
 			p.quote = oldQuote
+			p.err = nil
 			p.tok, p.pos = token.DOLLPR, ar.Left
 			p.npos = int(ar.Left) + 1
 			wp := p.wordPart()
 			if p.err != nil {
-				if p.arithmFirstErr != nil {
+				if oldErr != nil {
 					// if retrying fails, report the
 					// arithmetic expr error as that's got
 					// higher precedence
-					p.err = p.arithmFirstErr
+					p.err = oldErr
 				} else if !hasEnd {
 					// if retrying fails and the
 					// arithmetic expression wasn't
@@ -478,9 +480,9 @@ func (p *parser) wordPart() ast.WordPart {
 			}
 			return wp
 		}
-		if p.arithmFirstErr != nil {
+		if oldErr != nil {
 			// not retrying, so recover error
-			p.err = p.arithmFirstErr
+			p.err = oldErr
 			p.tok = token.EOF
 		}
 	arithmClose:
