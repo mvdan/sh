@@ -27,9 +27,8 @@ var printerFree = sync.Pool{
 func (c Config) Fprint(w io.Writer, f *ast.File) error {
 	p := printerFree.Get().(*printer)
 	p.reset()
-	p.f = f
+	p.f, p.c = f, c
 	p.comments = f.Comments
-	p.c = c
 	p.bufWriter.Reset(w)
 	p.stmts(f.Stmts)
 	p.commentsUpTo(0)
@@ -62,11 +61,13 @@ type printer struct {
 
 	wantSpace   bool
 	wantNewline bool
-	wantSpaces  int
+
+	commentPadding int
 
 	// nline is the position of the next newline
 	nline      token.Pos
 	nlineIndex int
+
 	// lastLevel is the last level of indentation that was used.
 	lastLevel int
 	// level is the current level of indentation.
@@ -90,7 +91,7 @@ type printer struct {
 
 func (p *printer) reset() {
 	p.wantSpace, p.wantNewline = false, false
-	p.wantSpaces = 0
+	p.commentPadding = 0
 	p.nline, p.nlineIndex = 0, 0
 	p.lastLevel, p.level = 0, 0
 	p.levelIncs = p.levelIncs[:]
@@ -276,7 +277,7 @@ func (p *printer) commentsUpTo(pos token.Pos) {
 	case c.Hash >= p.nline:
 		p.newlines(c.Hash)
 	default:
-		p.spaces(p.wantSpaces + 1)
+		p.spaces(p.commentPadding + 1)
 	}
 	p.incLines(c.Hash)
 	p.WriteByte('#')
@@ -971,7 +972,7 @@ func (p *printer) stmts(stmts []*ast.Stmt) {
 		p.stmt(s)
 		if !p.hasInline(pos, p.nline) {
 			inlineIndent = 0
-			p.wantSpaces = 0
+			p.commentPadding = 0
 			continue
 		}
 		if ind < len(p.f.Lines)-1 && s.End() > token.Pos(p.f.Lines[ind+1]) {
@@ -1000,7 +1001,7 @@ func (p *printer) stmts(stmts []*ast.Stmt) {
 				continue
 			}
 		}
-		p.wantSpaces = inlineIndent - p.stmtLen(s)
+		p.commentPadding = inlineIndent - p.stmtLen(s)
 	}
 	p.wantNewline = true
 }
@@ -1011,7 +1012,6 @@ func (c *byteCounter) WriteByte(b byte) error {
 	*c++
 	return nil
 }
-
 func (c *byteCounter) WriteString(s string) (int, error) {
 	*c += byteCounter(len(s))
 	return 0, nil
