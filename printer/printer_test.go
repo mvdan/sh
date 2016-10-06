@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/mvdan/sh/ast"
@@ -383,7 +382,7 @@ func parsePath(tb testing.TB, path string) *ast.File {
 	return prog
 }
 
-var canonicalPath = filepath.Join("..", "testdata", "canonical.sh")
+const canonicalPath = "canonical.sh"
 
 func TestFprintMultiline(t *testing.T) {
 	prog := parsePath(t, canonicalPath)
