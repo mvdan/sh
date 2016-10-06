@@ -71,8 +71,6 @@ type parser struct {
 	hdocStop []byte
 
 	helperBuf *bytes.Buffer
-
-	arithmKeepGoing bool
 }
 
 type quoteState int
@@ -86,6 +84,7 @@ const (
 	hdocBody
 	hdocBodyTabs
 	arithmExpr
+	arithmExprCmd
 	arithmExprBrack
 	testRegexp
 	switchCase
@@ -95,7 +94,7 @@ const (
 	paramExpExp
 
 	allRegTokens  = noState | subCmd | subCmdBckquo | switchCase
-	allArithmExpr = arithmExpr | arithmExprBrack
+	allArithmExpr = arithmExpr | arithmExprCmd | arithmExprBrack
 	allRbrack     = arithmExprBrack | paramExpInd
 	allHdoc       = hdocBody | hdocBodyTabs
 )
@@ -280,7 +279,7 @@ func (p *parser) matched(lpos token.Pos, left, right token.Token) token.Pos {
 
 func (p *parser) errPass(err error) {
 	if p.err == nil {
-		if p.arithmKeepGoing {
+		if p.quote == arithmExpr {
 			if err == io.EOF {
 				p.tok = token.EOF
 			} else {
@@ -451,11 +450,7 @@ func (p *parser) wordPart() ast.WordPart {
 			return nil
 		}
 		p.next()
-		if p.quote == arithmExpr {
-			p.arithmKeepGoing = true
-		}
 		ar.X = p.arithmExpr(ar.Token, ar.Left, 0, false)
-		p.arithmKeepGoing = false
 		hasEnd := p.peekArithmEnd(p.tok)
 		oldTok := p.tok
 		oldErr := p.err
@@ -666,7 +661,7 @@ func (p *parser) arithmExpr(ftok token.Token, fpos token.Pos, level int, compact
 		return left
 	}
 	newLevel := arithmOpLevel(p.tok)
-	if p.arithmKeepGoing && p.tok == token.SEMICOLON {
+	if p.quote == arithmExpr && p.tok == token.SEMICOLON {
 		p.curErr("not a valid arithmetic operator: %v", p.tok)
 		newLevel = 0
 	} else if p.tok == token.LIT || p.tok == token.LITWORD {
@@ -1079,7 +1074,7 @@ func (p *parser) subshell() *ast.Subshell {
 func (p *parser) arithmExpCmd() *ast.ArithmExp {
 	ar := &ast.ArithmExp{Token: p.tok, Left: p.pos}
 	old := p.quote
-	p.quote = arithmExpr
+	p.quote = arithmExprCmd
 	p.next()
 	ar.X = p.arithmExpr(ar.Token, ar.Left, 0, false)
 	ar.Right = p.arithmEnd(ar.Token, ar.Left, old)
@@ -1154,7 +1149,7 @@ func (p *parser) loop(forPos token.Pos) ast.Loop {
 	if p.tok == token.DLPAREN {
 		cl := &ast.CStyleLoop{Lparen: p.pos}
 		old := p.quote
-		p.quote = arithmExpr
+		p.quote = arithmExprCmd
 		p.next()
 		cl.Init = p.arithmExpr(token.DLPAREN, cl.Lparen, 0, false)
 		scPos := p.pos
@@ -1430,7 +1425,7 @@ func (p *parser) evalClause() *ast.EvalClause {
 func (p *parser) letClause() *ast.LetClause {
 	lc := &ast.LetClause{Let: p.pos}
 	old := p.quote
-	p.quote = arithmExpr
+	p.quote = arithmExprCmd
 	p.next()
 	p.stopNewline = true
 	for !p.newLine && !stopToken(p.tok) && p.tok != token.STOPPED && !p.peekRedir() {
