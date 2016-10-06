@@ -149,7 +149,7 @@ skipSpace:
 	}
 	p.pos = token.Pos(p.npos + 1)
 	switch {
-	case q == noState, q == subCmd, q == subCmdBckquo, q == switchCase:
+	case q&allRegTokens != 0:
 		switch b {
 		case ';', '"', '\'', '(', ')', '$', '|', '&', '>', '<', '`':
 			p.tok = p.regToken(b)
@@ -169,9 +169,9 @@ skipSpace:
 		}
 	case q == paramExpName && paramOps(b):
 		p.tok = p.paramToken(b)
-	case (q == arithmExpr || q == arithmExprBrack) && arithmOps(b):
+	case q&allArithmExpr != 0 && arithmOps(b):
 		p.tok = p.arithmToken(b)
-	case (q == paramExpInd || q == arithmExprBrack) && b == ']':
+	case q&allRbrack != 0 && b == ']':
 		p.npos++
 		p.tok = token.RBRACK
 	case q == testRegexp:
@@ -630,10 +630,8 @@ func (p *parser) advanceLitOther(q quoteState) {
 				p.tok, p.val = token.LIT, string(bs)
 				return
 			}
-		case wordBreak(b), regOps(b),
-			(q == arithmExpr || q == arithmExprBrack) && arithmOps(b),
-			q == paramExpName && paramOps(b),
-			(q == paramExpInd || q == arithmExprBrack) && b == ']':
+		case wordBreak(b), regOps(b), q&allArithmExpr != 0 && arithmOps(b),
+			q == paramExpName && paramOps(b), q&allRbrack != 0 && b == ']':
 			p.tok, p.val = token.LIT, string(bs)
 			return
 		}

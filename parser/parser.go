@@ -78,7 +78,7 @@ type parser struct {
 type quoteState int
 
 const (
-	noState quoteState = iota
+	noState quoteState = 1 << iota
 	subCmd
 	subCmdBckquo
 	sglQuotes
@@ -93,6 +93,11 @@ const (
 	paramExpInd
 	paramExpRepl
 	paramExpExp
+
+	allRegTokens  = noState | subCmd | subCmdBckquo | switchCase
+	allArithmExpr = arithmExpr | arithmExprBrack
+	allRbrack     = arithmExprBrack | paramExpInd
+	allHdoc       = hdocBody | hdocBodyTabs
 )
 
 func (p *parser) bash() bool { return p.mode&PosixConformant == 0 }
@@ -410,7 +415,7 @@ func (p *parser) wordParts() (wps []ast.WordPart) {
 		if p.spaced {
 			return
 		}
-		if (p.quote == hdocBody || p.quote == hdocBodyTabs) && p.hdocStop == nil {
+		if p.quote&allHdoc != 0 && p.hdocStop == nil {
 			// TODO: is this is a hack around a bug?
 			if p.tok == token.LIT && !lastLit {
 				wps = append(wps, &ast.Lit{
@@ -525,7 +530,7 @@ func (p *parser) wordPart() ast.WordPart {
 			p.tok, p.val = token.LIT, string(b)
 		} else {
 			old := p.quote
-			if p.quote == hdocBody || p.quote == hdocBodyTabs {
+			if p.quote&allHdoc != 0 {
 				p.quote = noState
 			}
 			p.next()
