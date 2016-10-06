@@ -49,9 +49,6 @@ func (p *parser) next() {
 		return
 	}
 	b := p.src[p.npos]
-	if p.quote == hdocBody && p.hdocStop == nil {
-		return
-	}
 	if p.tok == token.STOPPED && b == '\n' {
 		p.npos++
 		p.f.Lines = append(p.f.Lines, p.npos)
