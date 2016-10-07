@@ -164,7 +164,7 @@ func (p *parser) doHeredocs() {
 		}
 		if !quoted {
 			p.next()
-			r.Hdoc = p.word()
+			r.Hdoc = ast.Word{Parts: p.wordParts()}
 			continue
 		}
 		r.Hdoc = p.hdocLitWord()
@@ -1027,7 +1027,7 @@ func (p *parser) gotStmtPipe(s *ast.Stmt) *ast.Stmt {
 	case token.LIT, token.DOLLBR, token.DOLLDP, token.DOLLPR, token.DOLLAR,
 		token.CMDIN, token.CMDOUT, token.SQUOTE, token.DOLLSQ,
 		token.DQUOTE, token.DOLLDQ, token.BQUOTE, token.DOLLBK:
-		w := p.word()
+		w := ast.Word{Parts: p.wordParts()}
 		if p.gotSameLine(token.LPAREN) && p.err == nil {
 			rawName := string(p.src[w.Pos()-1 : w.End()-1])
 			p.posErr(w.Pos(), "invalid func name: %q", rawName)
@@ -1483,7 +1483,7 @@ func (p *parser) callExpr(s *ast.Stmt, w ast.Word) *ast.CallExpr {
 		case token.LIT, token.DOLLBR, token.DOLLDP, token.DOLLPR,
 			token.DOLLAR, token.CMDIN, token.CMDOUT, token.SQUOTE,
 			token.DOLLSQ, token.DQUOTE, token.DOLLDQ, token.DOLLBK:
-			ce.Args = append(ce.Args, p.word())
+			ce.Args = append(ce.Args, ast.Word{Parts: p.wordParts()})
 		case token.GTR, token.SHR, token.LSS, token.DPLIN, token.DPLOUT,
 			token.RDRINOUT, token.SHL, token.DHEREDOC,
 			token.WHEREDOC, token.RDRALL, token.APPALL:
