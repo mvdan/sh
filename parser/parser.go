@@ -164,7 +164,7 @@ func (p *parser) doHeredocs() {
 		}
 		if !quoted {
 			p.next()
-			r.Hdoc = p.getWord()
+			r.Hdoc = p.word()
 			continue
 		}
 		r.Hdoc = p.hdocLitWord()
@@ -238,16 +238,16 @@ func (p *parser) followStmts(left string, lpos token.Pos, stops ...string) []*as
 }
 
 func (p *parser) followWordTok(tok token.Token, pos token.Pos) ast.Word {
-	w, ok := p.gotWord()
-	if !ok {
+	w := p.word()
+	if w.Parts == nil {
 		p.followErr(pos, tok.String(), "a word")
 	}
 	return w
 }
 
 func (p *parser) followWord(s string, pos token.Pos) ast.Word {
-	w, ok := p.gotWord()
-	if !ok {
+	w := p.word()
+	if w.Parts == nil {
 		p.followErr(pos, s, "a word")
 	}
 	return w
@@ -377,7 +377,7 @@ func (p *parser) invalidStmtStart() {
 	}
 }
 
-func (p *parser) getWord() ast.Word {
+func (p *parser) word() ast.Word {
 	if p.tok == token.LITWORD {
 		w := ast.Word{Parts: []ast.WordPart{
 			&ast.Lit{ValuePos: p.pos, Value: p.val},
@@ -386,11 +386,6 @@ func (p *parser) getWord() ast.Word {
 		return w
 	}
 	return ast.Word{Parts: p.wordParts()}
-}
-
-func (p *parser) gotWord() (ast.Word, bool) {
-	w := p.getWord()
-	return w, len(w.Parts) > 0
 }
 
 func (p *parser) gotLit(l *ast.Lit) bool {
@@ -765,7 +760,7 @@ func (p *parser) paramExp() *ast.ParamExp {
 		lpos := p.pos
 		p.quote = paramExpInd
 		p.next()
-		pe.Ind = &ast.Index{Word: p.getWord()}
+		pe.Ind = &ast.Index{Word: p.word()}
 		p.quote = paramExpName
 		p.matched(lpos, token.LBRACK, token.RBRACK)
 	}
@@ -781,17 +776,17 @@ func (p *parser) paramExp() *ast.ParamExp {
 		pe.Repl = &ast.Replace{All: p.tok == token.DQUO}
 		p.quote = paramExpRepl
 		p.next()
-		pe.Repl.Orig = p.getWord()
+		pe.Repl.Orig = p.word()
 		if p.tok == token.QUO {
 			p.quote = paramExpExp
 			p.next()
-			pe.Repl.With = p.getWord()
+			pe.Repl.With = p.word()
 		}
 	} else {
 		pe.Exp = &ast.Expansion{Op: p.tok}
 		p.quote = paramExpExp
 		p.next()
-		pe.Exp.Word = p.getWord()
+		pe.Exp.Word = p.word()
 	}
 	p.quote = old
 	p.matched(pe.Dollar, token.DOLLBR, token.RBRACE)
@@ -865,7 +860,7 @@ func (p *parser) getAssign() (*ast.Assign, bool) {
 		ae := &ast.ArrayExpr{Lparen: p.pos}
 		p.next()
 		for p.tok != token.EOF && p.tok != token.RPAREN {
-			if w, ok := p.gotWord(); !ok {
+			if w := p.word(); w.Parts == nil {
 				p.curErr("array elements must be words")
 			} else {
 				ae.List = append(ae.List, w)
@@ -874,7 +869,7 @@ func (p *parser) getAssign() (*ast.Assign, bool) {
 		ae.Rparen = p.matched(ae.Lparen, token.LPAREN, token.RPAREN)
 		as.Value.Parts = append(as.Value.Parts, ae)
 	} else if !p.newLine && !stopToken(p.tok) {
-		if w := p.getWord(); start.Value == "" {
+		if w := p.word(); start.Value == "" {
 			as.Value = w
 		} else {
 			as.Value.Parts = append(as.Value.Parts, w.Parts...)
@@ -1032,7 +1027,7 @@ func (p *parser) gotStmtPipe(s *ast.Stmt) *ast.Stmt {
 	case token.LIT, token.DOLLBR, token.DOLLDP, token.DOLLPR, token.DOLLAR,
 		token.CMDIN, token.CMDOUT, token.SQUOTE, token.DOLLSQ,
 		token.DQUOTE, token.DOLLDQ, token.BQUOTE, token.DOLLBK:
-		w := p.getWord()
+		w := p.word()
 		if p.gotSameLine(token.LPAREN) && p.err == nil {
 			rawName := string(p.src[w.Pos()-1 : w.End()-1])
 			p.posErr(w.Pos(), "invalid func name: %q", rawName)
@@ -1165,7 +1160,7 @@ func (p *parser) loop(forPos token.Pos) ast.Loop {
 	}
 	if p.gotRsrv("in") {
 		for !p.newLine && p.tok != token.EOF && p.tok != token.SEMICOLON {
-			if w, ok := p.gotWord(); !ok {
+			if w := p.word(); w.Parts == nil {
 				p.curErr("word list can only contain words")
 			} else {
 				wi.List = append(wi.List, w)
@@ -1193,7 +1188,7 @@ func (p *parser) patLists() (pls []*ast.PatternList) {
 		pl := &ast.PatternList{}
 		p.got(token.LPAREN)
 		for p.tok != token.EOF {
-			if w, ok := p.gotWord(); !ok {
+			if w := p.word(); w.Parts == nil {
 				p.curErr("case patterns must consist of words")
 			} else {
 				pl.Patterns = append(pl.Patterns, w)
@@ -1398,12 +1393,12 @@ func (p *parser) declClause() *ast.DeclClause {
 	ds := &ast.DeclClause{Declare: p.pos, Local: p.val == "local"}
 	p.next()
 	for p.tok == token.LITWORD && p.val[0] == '-' {
-		ds.Opts = append(ds.Opts, p.getWord())
+		ds.Opts = append(ds.Opts, p.word())
 	}
 	for !p.newLine && !stopToken(p.tok) && !p.peekRedir() {
 		if as, ok := p.getAssign(); ok {
 			ds.Assigns = append(ds.Assigns, as)
-		} else if w, ok := p.gotWord(); !ok {
+		} else if w := p.word(); w.Parts == nil {
 			p.followErr(p.pos, "declare", "words")
 		} else {
 			ds.Assigns = append(ds.Assigns, &ast.Assign{Value: w})
@@ -1488,7 +1483,7 @@ func (p *parser) callExpr(s *ast.Stmt, w ast.Word) *ast.CallExpr {
 		case token.LIT, token.DOLLBR, token.DOLLDP, token.DOLLPR,
 			token.DOLLAR, token.CMDIN, token.CMDOUT, token.SQUOTE,
 			token.DOLLSQ, token.DQUOTE, token.DOLLDQ, token.DOLLBK:
-			ce.Args = append(ce.Args, p.getWord())
+			ce.Args = append(ce.Args, p.word())
 		case token.GTR, token.SHR, token.LSS, token.DPLIN, token.DPLOUT,
 			token.RDRINOUT, token.SHL, token.DHEREDOC,
 			token.WHEREDOC, token.RDRALL, token.APPALL:
