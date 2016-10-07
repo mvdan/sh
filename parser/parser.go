@@ -72,6 +72,7 @@ type parser struct {
 	helperBuf *bytes.Buffer
 
 	litBatch  []ast.Lit
+	wpsBatch  []ast.WordPart
 	stmtBatch []ast.Stmt
 }
 
@@ -84,6 +85,16 @@ func (p *parser) lit(pos token.Pos, val string) *ast.Lit {
 	l.Value = val
 	p.litBatch = p.litBatch[1:]
 	return l
+}
+
+func (p *parser) wps(wp ast.WordPart) []ast.WordPart {
+	if len(p.wpsBatch) == 0 {
+		p.wpsBatch = make([]ast.WordPart, 32)
+	}
+	wps := p.wpsBatch[:1]
+	p.wpsBatch = p.wpsBatch[1:]
+	wps[0] = wp
+	return wps
 }
 
 func (p *parser) stmt(pos token.Pos) *ast.Stmt {
@@ -402,7 +413,7 @@ func (p *parser) invalidStmtStart() {
 
 func (p *parser) word() ast.Word {
 	if p.tok == token.LITWORD {
-		w := ast.Word{Parts: []ast.WordPart{p.lit(p.pos, p.val)}}
+		w := ast.Word{Parts: p.wps(p.lit(p.pos, p.val))}
 		p.next()
 		return w
 	}
@@ -1039,7 +1050,7 @@ func (p *parser) gotStmtPipe(s *ast.Stmt) *ast.Stmt {
 				s.Cmd = p.funcDecl(name, name.ValuePos)
 			} else {
 				s.Cmd = p.callExpr(s, ast.Word{
-					Parts: []ast.WordPart{&name},
+					Parts: p.wps(&name),
 				})
 			}
 		}
@@ -1497,7 +1508,7 @@ func (p *parser) callExpr(s *ast.Stmt, w ast.Word) *ast.CallExpr {
 				continue
 			}
 			ce.Args = append(ce.Args, ast.Word{
-				Parts: []ast.WordPart{p.lit(p.pos, p.val)},
+				Parts: p.wps(p.lit(p.pos, p.val)),
 			})
 			p.next()
 		case token.BQUOTE:
