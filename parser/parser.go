@@ -39,8 +39,7 @@ func Parse(src []byte, name string, mode Mode) (*ast.File, error) {
 		Name:  name,
 		Lines: make([]int, 1, 16),
 	}
-	p.src = src
-	p.mode = mode
+	p.src, p.mode = src, mode
 	p.next()
 	p.f.Stmts = p.stmts()
 	parserFree.Put(p)
@@ -71,6 +70,19 @@ type parser struct {
 	hdocStop []byte
 
 	helperBuf *bytes.Buffer
+
+	litBatch []ast.Lit
+}
+
+func (p *parser) lit(pos token.Pos, val string) *ast.Lit {
+	if len(p.litBatch) == 0 {
+		p.litBatch = make([]ast.Lit, 32)
+	}
+	l := &p.litBatch[0]
+	l.ValuePos = pos
+	l.Value = val
+	p.litBatch = p.litBatch[1:]
+	return l
 }
 
 type quoteState int
@@ -379,9 +391,7 @@ func (p *parser) invalidStmtStart() {
 
 func (p *parser) word() ast.Word {
 	if p.tok == token.LITWORD {
-		w := ast.Word{Parts: []ast.WordPart{
-			&ast.Lit{ValuePos: p.pos, Value: p.val},
-		}}
+		w := ast.Word{Parts: []ast.WordPart{p.lit(p.pos, p.val)}}
 		p.next()
 		return w
 	}
@@ -412,10 +422,7 @@ func (p *parser) wordParts() (wps []ast.WordPart) {
 		if p.quote&allHdoc != 0 && p.hdocStop == nil {
 			// TODO: is this is a hack around a bug?
 			if p.tok == token.LIT && !lastLit {
-				wps = append(wps, &ast.Lit{
-					ValuePos: p.pos,
-					Value:    p.val,
-				})
+				wps = append(wps, p.lit(p.pos, p.val))
 			}
 			return
 		}
@@ -425,7 +432,7 @@ func (p *parser) wordParts() (wps []ast.WordPart) {
 func (p *parser) wordPart() ast.WordPart {
 	switch p.tok {
 	case token.LIT, token.LITWORD:
-		l := &ast.Lit{ValuePos: p.pos, Value: p.val}
+		l := p.lit(p.pos, p.val)
 		p.next()
 		return l
 	case token.DOLLBR:
@@ -509,7 +516,7 @@ func (p *parser) wordPart() ast.WordPart {
 			b = p.src[p.npos]
 		}
 		if p.tok == token.EOF || wordBreak(b) || b == '"' || b == '\'' || b == '`' {
-			l := &ast.Lit{ValuePos: p.pos, Value: "$"}
+			l := p.lit(p.pos, "$")
 			p.next()
 			return l
 		}
@@ -842,12 +849,12 @@ func (p *parser) getAssign() (*ast.Assign, bool) {
 		return nil, false
 	}
 	as := &ast.Assign{}
-	as.Name = &ast.Lit{ValuePos: p.pos, Value: p.val[:i]}
+	as.Name = p.lit(p.pos, p.val[:i])
 	if p.val[i] == '+' {
 		as.Append = true
 		i++
 	}
-	start := &ast.Lit{ValuePos: p.pos + 1, Value: p.val[i+1:]}
+	start := p.lit(p.pos + 1, p.val[i+1:])
 	if start.Value != "" {
 		start.ValuePos += token.Pos(i)
 		as.Value.Parts = append(as.Value.Parts, start)
@@ -1469,10 +1476,7 @@ func (p *parser) callExpr(s *ast.Stmt, w ast.Word) *ast.CallExpr {
 				continue
 			}
 			ce.Args = append(ce.Args, ast.Word{
-				Parts: []ast.WordPart{&ast.Lit{
-					ValuePos: p.pos,
-					Value:    p.val,
-				}},
+				Parts: []ast.WordPart{p.lit(p.pos, p.val)},
 			})
 			p.next()
 		case token.BQUOTE:
