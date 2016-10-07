@@ -1063,10 +1063,11 @@ func (p *parser) gotStmtPipe(s *ast.Stmt) *ast.Stmt {
 		b := &ast.BinaryCmd{OpPos: p.pos, Op: p.tok, X: s}
 		p.next()
 		p.got(token.STOPPED)
-		if b.Y = p.gotStmtPipe(&ast.Stmt{Position: p.pos}); b.Y == nil {
+		if b.Y = p.gotStmtPipe(p.stmt(p.pos)); b.Y == nil {
 			p.followErr(b.OpPos, b.Op.String(), "a statement")
 		}
-		s = &ast.Stmt{Position: s.Position, Cmd: b}
+		s = p.stmt(s.Position)
+		s.Cmd = b
 	}
 	return s
 }
