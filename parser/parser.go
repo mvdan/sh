@@ -865,7 +865,7 @@ func (p *parser) getAssign() (*ast.Assign, bool) {
 		as.Append = true
 		i++
 	}
-	start := p.lit(p.pos + 1, p.val[i+1:])
+	start := p.lit(p.pos+1, p.val[i+1:])
 	if start.Value != "" {
 		start.ValuePos += token.Pos(i)
 		as.Value.Parts = append(as.Value.Parts, start)
@@ -1473,8 +1473,16 @@ func (p *parser) bashFuncDecl() *ast.FuncDecl {
 	return p.funcDecl(name, fpos)
 }
 
+type callAlloc struct {
+	ce ast.CallExpr
+	ws [4]ast.Word
+}
+
 func (p *parser) callExpr(s *ast.Stmt, w ast.Word) *ast.CallExpr {
-	ce := &ast.CallExpr{Args: []ast.Word{w}}
+	alloc := &callAlloc{}
+	ce := &alloc.ce
+	ce.Args = alloc.ws[:1]
+	ce.Args[0] = w
 	for !p.newLine {
 		switch p.tok {
 		case token.EOF, token.SEMICOLON, token.AND, token.OR,
