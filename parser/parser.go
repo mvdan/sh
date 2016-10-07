@@ -71,7 +71,8 @@ type parser struct {
 
 	helperBuf *bytes.Buffer
 
-	litBatch []ast.Lit
+	litBatch  []ast.Lit
+	stmtBatch []ast.Stmt
 }
 
 func (p *parser) lit(pos token.Pos, val string) *ast.Lit {
@@ -83,6 +84,16 @@ func (p *parser) lit(pos token.Pos, val string) *ast.Lit {
 	l.Value = val
 	p.litBatch = p.litBatch[1:]
 	return l
+}
+
+func (p *parser) stmt(pos token.Pos) *ast.Stmt {
+	if len(p.stmtBatch) == 0 {
+		p.stmtBatch = make([]ast.Stmt, 16)
+	}
+	s := &p.stmtBatch[0]
+	s.Position = pos
+	p.stmtBatch = p.stmtBatch[1:]
+	return s
 }
 
 type quoteState int
@@ -926,7 +937,7 @@ func (p *parser) doRedirect(s *ast.Stmt) {
 }
 
 func (p *parser) getStmt(readEnd bool) (s *ast.Stmt, gotEnd bool) {
-	s = &ast.Stmt{Position: p.pos}
+	s = p.stmt(p.pos)
 	if p.gotRsrv("!") {
 		s.Negated = true
 	}
@@ -970,7 +981,8 @@ preLoop:
 		if b.Y, _ = p.getStmt(false); b.Y == nil {
 			p.followErr(b.OpPos, b.Op.String(), "a statement")
 		}
-		s = &ast.Stmt{Position: s.Position, Cmd: b}
+		s = p.stmt(s.Position)
+		s.Cmd = b
 		if readEnd && p.gotSameLine(token.SEMICOLON) {
 			gotEnd = true
 		}
