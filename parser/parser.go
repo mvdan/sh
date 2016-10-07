@@ -29,18 +29,16 @@ var parserFree = sync.Pool{
 	},
 }
 
-type fileAlloc struct {
-	f ast.File
-	l [16]int
-}
-
 // Parse reads and parses a shell program with an optional name. It
 // returns the parsed program if no issues were encountered. Otherwise,
 // an error is returned.
 func Parse(src []byte, name string, mode Mode) (*ast.File, error) {
 	p := parserFree.Get().(*parser)
 	p.reset()
-	alloc := &fileAlloc{}
+	alloc := &struct {
+		f ast.File
+		l [16]int
+	}{}
 	p.f = &alloc.f
 	p.f.Name = name
 	p.f.Lines = alloc.l[:1]
@@ -1489,13 +1487,11 @@ func (p *parser) bashFuncDecl() *ast.FuncDecl {
 	return p.funcDecl(name, fpos)
 }
 
-type callAlloc struct {
-	ce ast.CallExpr
-	ws [4]ast.Word
-}
-
 func (p *parser) callExpr(s *ast.Stmt, w ast.Word) *ast.CallExpr {
-	alloc := &callAlloc{}
+	alloc := &struct {
+		ce ast.CallExpr
+		ws [4]ast.Word
+	}{}
 	ce := &alloc.ce
 	ce.Args = alloc.ws[:1]
 	ce.Args[0] = w
