@@ -14,13 +14,13 @@ import (
 func TestWalk(t *testing.T) {
 	for i, c := range tests.FileTests {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
-			ast.Walk(visitor{}, c.Ast.(*ast.File))
+			ast.Walk(nopVisitor{}, c.Ast.(*ast.File))
 		})
 	}
 }
 
-type visitor struct{}
+type nopVisitor struct{}
 
-func (v visitor) Visit(node ast.Node) ast.Visitor {
+func (v nopVisitor) Visit(node ast.Node) ast.Visitor {
 	return v
 }
