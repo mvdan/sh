@@ -57,9 +57,11 @@ func (v *posVisitor) Visit(n ast.Node) ast.Visitor {
 	pos := v.f.Position(n.Pos())
 	offs := 0
 	for l := 0; l < pos.Line-1; l++ {
+		// since lines here are missing the trailing newline
 		offs += len(v.lines[l]) + 1
 	}
-	offs += pos.Column
+	// column is 1-indexed, offset is 0-indexed
+	offs += pos.Column - 1
 	if offs != pos.Offset {
 		v.t.Fatalf("Inconsistent Position: line %d, col %d; wanted offset %d, got %d ",
 			pos.Line, pos.Column, pos.Offset, offs)

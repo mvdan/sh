@@ -144,9 +144,9 @@ type Pos int
 // Position describes a position within a source file including the line
 // and column location. A Position is valid if the line number is > 0.
 type Position struct {
-	Offset int // offset, starting at 0
+	Offset int // byte offset, starting at 0
 	Line   int // line number, starting at 1
-	Column int // column number, starting at 1 (byte count)
+	Column int // column number, starting at 1 (in bytes)
 }
 
 var (

@@ -32,10 +32,10 @@ func (f *File) Pos() token.Pos { return stmtFirstPos(f.Stmts) }
 func (f *File) End() token.Pos { return stmtLastEnd(f.Stmts) }
 
 func (f *File) Position(p token.Pos) (pos token.Position) {
-	off := int(p)
-	pos.Offset = off
-	if i := searchInts(f.Lines, off); i >= 0 {
-		pos.Line, pos.Column = i+1, off-f.Lines[i]
+	intp := int(p)
+	pos.Offset = intp - 1
+	if i := searchInts(f.Lines, intp); i >= 0 {
+		pos.Line, pos.Column = i+1, intp-f.Lines[i]
 	}
 	return
 }
