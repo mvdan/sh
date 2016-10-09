@@ -906,10 +906,14 @@ func (p *parser) getAssign() *ast.Assign {
 	return as
 }
 
+func litRedir(src []byte, npos int) bool {
+	return npos < len(src) && (src[npos] == '>' || src[npos] == '<')
+}
+
 func (p *parser) peekRedir() bool {
 	switch p.tok {
 	case token.LITWORD:
-		return p.npos < len(p.src) && (p.src[p.npos] == '>' || p.src[p.npos] == '<')
+		return litRedir(p.src, p.npos)
 	case token.GTR, token.SHR, token.LSS, token.DPLIN, token.DPLOUT,
 		token.RDRINOUT, token.SHL, token.DHEREDOC, token.WHEREDOC,
 		token.RDRALL, token.APPALL:
@@ -957,7 +961,7 @@ preLoop:
 		case token.LIT, token.LITWORD:
 			if p.asPos > 0 && validIdent(p.val[:p.asPos]) {
 				s.Assigns = append(s.Assigns, p.getAssign())
-			} else if p.npos < len(p.src) && (p.src[p.npos] == '>' || p.src[p.npos] == '<') {
+			} else if litRedir(p.src, p.npos) {
 				p.doRedirect(s)
 			} else {
 				break preLoop
@@ -1500,7 +1504,7 @@ func (p *parser) callExpr(s *ast.Stmt, w ast.Word) *ast.CallExpr {
 		case token.STOPPED:
 			p.next()
 		case token.LITWORD:
-			if p.npos < len(p.src) && (p.src[p.npos] == '>' || p.src[p.npos] == '<') {
+			if litRedir(p.src, p.npos) {
 				p.doRedirect(s)
 				continue
 			}
