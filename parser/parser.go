@@ -868,19 +868,19 @@ func validIdent(s string) bool {
 	return true
 }
 
-func (p *parser) getAssign() (*ast.Assign, bool) {
+func (p *parser) getAssign() *ast.Assign {
 	i := strings.Index(p.val, "=")
 	if i <= 0 {
-		return nil, false
+		return nil
 	}
 	if p.val[i-1] == '+' {
 		i--
 	}
-	if !validIdent(p.val[:i]) {
-		return nil, false
+	ident := p.val[:i]
+	if !validIdent(ident) {
+		return nil
 	}
-	as := &ast.Assign{}
-	as.Name = p.lit(p.pos, p.val[:i])
+	as := &ast.Assign{Name: p.lit(p.pos, ident)}
 	if p.val[i] == '+' {
 		as.Append = true
 		i++
@@ -892,7 +892,7 @@ func (p *parser) getAssign() (*ast.Assign, bool) {
 	}
 	p.next()
 	if p.spaced {
-		return as, true
+		return as
 	}
 	if start.Value == "" && p.tok == token.LPAREN {
 		ae := &ast.ArrayExpr{Lparen: p.pos}
@@ -913,7 +913,7 @@ func (p *parser) getAssign() (*ast.Assign, bool) {
 			as.Value.Parts = append(as.Value.Parts, w.Parts...)
 		}
 	}
-	return as, true
+	return as
 }
 
 func (p *parser) peekRedir() bool {
@@ -965,7 +965,7 @@ preLoop:
 	for {
 		switch p.tok {
 		case token.LIT, token.LITWORD:
-			if as, ok := p.getAssign(); ok {
+			if as := p.getAssign(); as != nil {
 				s.Assigns = append(s.Assigns, as)
 			} else if p.npos < len(p.src) && (p.src[p.npos] == '>' || p.src[p.npos] == '<') {
 				p.doRedirect(s)
@@ -1436,7 +1436,7 @@ func (p *parser) declClause() *ast.DeclClause {
 		ds.Opts = append(ds.Opts, p.word())
 	}
 	for !p.newLine && !stopToken(p.tok) && !p.peekRedir() {
-		if as, ok := p.getAssign(); ok {
+		if as := p.getAssign(); as != nil {
 			ds.Assigns = append(ds.Assigns, as)
 		} else if w := p.word(); w.Parts == nil {
 			p.followErr(p.pos, "declare", "words")
