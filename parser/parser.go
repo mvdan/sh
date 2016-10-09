@@ -886,7 +886,7 @@ func (p *parser) getAssign() (*ast.Assign, bool) {
 	start := p.lit(p.pos+1, p.val[i+1:])
 	if start.Value != "" {
 		start.ValuePos += token.Pos(i)
-		as.Value.Parts = append(as.Value.Parts, start)
+		as.Value.Parts = p.wps(start)
 	}
 	p.next()
 	if p.spaced {
@@ -903,7 +903,7 @@ func (p *parser) getAssign() (*ast.Assign, bool) {
 			}
 		}
 		ae.Rparen = p.matched(ae.Lparen, token.LPAREN, token.RPAREN)
-		as.Value.Parts = append(as.Value.Parts, ae)
+		as.Value.Parts = p.wps(ae)
 	} else if !p.newLine && !stopToken(p.tok) {
 		if w := p.word(); start.Value == "" {
 			as.Value = w
