@@ -94,7 +94,7 @@ func (p *parser) wps(wp ast.WordPart) []ast.WordPart {
 	if len(p.wpsBatch) == 0 {
 		p.wpsBatch = make([]ast.WordPart, 32)
 	}
-	wps := p.wpsBatch[:1]
+	wps := p.wpsBatch[:1:1]
 	p.wpsBatch = p.wpsBatch[1:]
 	wps[0] = wp
 	return wps
@@ -440,7 +440,11 @@ func (p *parser) wordParts() (wps []ast.WordPart) {
 		if n == nil {
 			return
 		}
-		wps = append(wps, n)
+		if wps == nil {
+			wps = p.wps(n)
+		} else {
+			wps = append(wps, n)
+		}
 		if p.spaced {
 			return
 		}
