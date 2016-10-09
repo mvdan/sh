@@ -586,7 +586,7 @@ func (p *parser) arithmToken(b byte) token.Token {
 }
 
 func (p *parser) advanceLitOther(q quoteState) {
-	bs := make([]byte, 0, 8)
+	bs := p.litBuf[:0]
 	for {
 		if p.npos >= len(p.src) {
 			p.tok, p.val = token.LIT, string(bs)

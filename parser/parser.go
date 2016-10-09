@@ -77,6 +77,8 @@ type parser struct {
 	litBatch  []ast.Lit
 	wpsBatch  []ast.WordPart
 	stmtBatch []ast.Stmt
+
+	litBuf [32]byte
 }
 
 func (p *parser) lit(pos token.Pos, val string) *ast.Lit {
