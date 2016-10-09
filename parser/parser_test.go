@@ -126,33 +126,25 @@ func BenchmarkParse(b *testing.B) {
 			strings.Repeat("\n\n\t\t        \n", 10) + "# " + strings.Repeat("foo bar ", 10),
 		},
 		{
-			"LongLit",
-			strings.Repeat("really_long_lit__", 10),
-		},
-		{
-			"Cmds",
-			strings.Repeat("a b c d; ", 10),
-		},
-		{
-			"Quoted",
-			"'" + strings.Repeat("foo bar ", 10) + "\n'" +
+			"LongLit+Quoted",
+			strings.Repeat("really_long_lit__", 10) +
+				"'" + strings.Repeat("foo bar ", 10) + "\n'" +
 				`"` + strings.Repeat("foo bar ", 10) + "\n\"",
 		},
 		{
-			"NestedStmts",
-			"a() { (b); { c; }; (d); }; $(a `b` $(c) `d`)",
+			"Cmds+Nested",
+			strings.Repeat("a b c d; ", 8) +
+				"a() { (b); { c; }; }; $(d; `e`)",
 		},
 		{
 			"Assign+Clauses",
-			"foo=bar a=b c=d abcdé=fg; if a; then while b; do for c in d e; do f; done; done; fi",
+			"foo=bar a=b c=d $foo ${bar} $a $b ${c} ${d}; " +
+				"if a; then while b; do for c in d e; do f; done; done; fi",
 		},
 		{
-			"Binary",
-			"a | b && c || d | e && g || f | h",
-		},
-		{
-			"Redirect",
-			"foo >a <b <<<c 2>&1 <<EOF\n" +
+			"Binary+Redirs",
+			"a | b && c || d | e && g || f | h; " +
+				"foo >a <b <<<c 2>&1 <<EOF\n" +
 				strings.Repeat("somewhat long heredoc line\n", 10) +
 				"EOF",
 		},
