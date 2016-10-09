@@ -643,6 +643,7 @@ func (p *parser) advanceLitOther(q quoteState) {
 func (p *parser) advanceLitNone() {
 	var i int
 	tok := token.LIT
+	p.asPos = 0
 loop:
 	for i = p.npos; i < len(p.src); i++ {
 		switch p.src[i] {
@@ -668,6 +669,12 @@ loop:
 			break loop
 		case '"', '\'', '$':
 			break loop
+		case '=':
+			if as := i - p.npos; as > 0 && p.src[p.npos+as-1] == '+' {
+				p.asPos = as - 1 // a+=(b)
+			} else {
+				p.asPos = as
+			}
 		}
 	}
 	if i == len(p.src) {

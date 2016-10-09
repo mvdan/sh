@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"strconv"
-	"strings"
 	"sync"
 
 	"github.com/mvdan/sh/ast"
@@ -67,6 +66,7 @@ type parser struct {
 	npos int
 
 	quote quoteState
+	asPos int
 
 	// list of pending heredoc bodies
 	heredocs []*ast.Redirect
@@ -869,25 +869,15 @@ func validIdent(s string) bool {
 }
 
 func (p *parser) getAssign() *ast.Assign {
-	i := strings.Index(p.val, "=")
-	if i <= 0 {
-		return nil
-	}
-	if p.val[i-1] == '+' {
-		i--
-	}
-	ident := p.val[:i]
-	if !validIdent(ident) {
-		return nil
-	}
-	as := &ast.Assign{Name: p.lit(p.pos, ident)}
-	if p.val[i] == '+' {
+	asPos := p.asPos
+	as := &ast.Assign{Name: p.lit(p.pos, p.val[:asPos])}
+	if p.val[asPos] == '+' {
 		as.Append = true
-		i++
+		asPos++
 	}
-	start := p.lit(p.pos+1, p.val[i+1:])
+	start := p.lit(p.pos+1, p.val[asPos+1:])
 	if start.Value != "" {
-		start.ValuePos += token.Pos(i)
+		start.ValuePos += token.Pos(asPos)
 		as.Value.Parts = p.wps(start)
 	}
 	p.next()
@@ -965,8 +955,8 @@ preLoop:
 	for {
 		switch p.tok {
 		case token.LIT, token.LITWORD:
-			if as := p.getAssign(); as != nil {
-				s.Assigns = append(s.Assigns, as)
+			if p.asPos > 0 && validIdent(p.val[:p.asPos]) {
+				s.Assigns = append(s.Assigns, p.getAssign())
 			} else if p.npos < len(p.src) && (p.src[p.npos] == '>' || p.src[p.npos] == '<') {
 				p.doRedirect(s)
 			} else {
@@ -1436,8 +1426,8 @@ func (p *parser) declClause() *ast.DeclClause {
 		ds.Opts = append(ds.Opts, p.word())
 	}
 	for !p.newLine && !stopToken(p.tok) && !p.peekRedir() {
-		if as := p.getAssign(); as != nil {
-			ds.Assigns = append(ds.Assigns, as)
+		if p.asPos > 0 && validIdent(p.val[:p.asPos]) {
+			ds.Assigns = append(ds.Assigns, p.getAssign())
 		} else if w := p.word(); w.Parts == nil {
 			p.followErr(p.pos, "declare", "words")
 		} else {
