@@ -14,7 +14,21 @@ import (
 
 func init() {
 	for i := range FileTests {
-		FileTests[i].All = fullProg(FileTests[i].All)
+		c := &FileTests[i]
+		c.common = fullProg(c.common)
+		c.bash = fullProg(c.bash)
+		c.posix = fullProg(c.posix)
+		if f, ok := c.common.(*ast.File); ok && f != nil {
+			c.All = append(c.All, f)
+			c.Bash = f
+			c.Posix = f
+		}
+		if f, ok := c.bash.(*ast.File); ok && f != nil {
+			c.Bash = f
+		}
+		if f, ok := c.posix.(*ast.File); ok && f != nil {
+			c.Posix = f
+		}
 	}
 }
 
@@ -77,34 +91,36 @@ func letClause(exps ...ast.ArithmExpr) *ast.LetClause {
 }
 
 type TestCase struct {
-	Strs []string
-	All  interface{}
+	Strs                []string
+	common, bash, posix interface{}
+	All                 []*ast.File
+	Bash, Posix         *ast.File
 }
 
 var FileTests = []TestCase{
 	{
-		Strs: []string{"", " ", "\t", "\n \n", "\r \r\n"},
-		All:  &ast.File{},
+		Strs:   []string{"", " ", "\t", "\n \n", "\r \r\n"},
+		common: &ast.File{},
 	},
 	{
-		Strs: []string{"", "# foo", "# foo ( bar", "# foo'bar"},
-		All:  &ast.File{},
+		Strs:   []string{"", "# foo", "# foo ( bar", "# foo'bar"},
+		common: &ast.File{},
 	},
 	{
-		Strs: []string{"foo", "foo ", " foo", "foo # bar"},
-		All:  litWord("foo"),
+		Strs:   []string{"foo", "foo ", " foo", "foo # bar"},
+		common: litWord("foo"),
 	},
 	{
-		Strs: []string{`\`},
-		All:  litWord(`\`),
+		Strs:   []string{`\`},
+		common: litWord(`\`),
 	},
 	{
-		Strs: []string{`foo\`, "f\\\noo\\"},
-		All:  litWord(`foo\`),
+		Strs:   []string{`foo\`, "f\\\noo\\"},
+		common: litWord(`foo\`),
 	},
 	{
-		Strs: []string{`foo\a`, "f\\\noo\\a"},
-		All:  litWord(`foo\a`),
+		Strs:   []string{`foo\a`, "f\\\noo\\a"},
+		common: litWord(`foo\a`),
 	},
 	{
 		Strs: []string{
@@ -114,35 +130,35 @@ var FileTests = []TestCase{
 			"\nfoo\nbar\n",
 			"foo\r\nbar\r\n",
 		},
-		All: litStmts("foo", "bar"),
+		common: litStmts("foo", "bar"),
 	},
 	{
-		Strs: []string{"foo a b", " foo  a  b ", "foo \\\n a b"},
-		All:  litCall("foo", "a", "b"),
+		Strs:   []string{"foo a b", " foo  a  b ", "foo \\\n a b"},
+		common: litCall("foo", "a", "b"),
 	},
 	{
-		Strs: []string{"foobar", "foo\\\nbar", "foo\\\nba\\\nr"},
-		All:  litWord("foobar"),
+		Strs:   []string{"foobar", "foo\\\nbar", "foo\\\nba\\\nr"},
+		common: litWord("foobar"),
 	},
 	{
-		Strs: []string{"foo", "foo \\\n"},
-		All:  litWord("foo"),
+		Strs:   []string{"foo", "foo \\\n"},
+		common: litWord("foo"),
 	},
 	{
-		Strs: []string{"foo'bar'"},
-		All:  word(lit("foo"), sglQuoted("bar")),
+		Strs:   []string{"foo'bar'"},
+		common: word(lit("foo"), sglQuoted("bar")),
 	},
 	{
-		Strs: []string{"(foo)", "(foo;)", "(\nfoo\n)"},
-		All:  subshell(litStmt("foo")),
+		Strs:   []string{"(foo)", "(foo;)", "(\nfoo\n)"},
+		common: subshell(litStmt("foo")),
 	},
 	{
-		Strs: []string{"(\n\tfoo\n\tbar\n)", "(foo; bar)"},
-		All:  subshell(litStmt("foo"), litStmt("bar")),
+		Strs:   []string{"(\n\tfoo\n\tbar\n)", "(foo; bar)"},
+		common: subshell(litStmt("foo"), litStmt("bar")),
 	},
 	{
-		Strs: []string{"{ foo; }", "{\nfoo\n}"},
-		All:  block(litStmt("foo")),
+		Strs:   []string{"{ foo; }", "{\nfoo\n}"},
+		common: block(litStmt("foo")),
 	},
 	{
 		Strs: []string{
@@ -150,7 +166,7 @@ var FileTests = []TestCase{
 			"if a\nthen\nb\nfi",
 			"if a \nthen\nb\nfi",
 		},
-		All: &ast.IfClause{
+		common: &ast.IfClause{
 			CondStmts: litStmts("a"),
 			ThenStmts: litStmts("b"),
 		},
@@ -160,7 +176,7 @@ var FileTests = []TestCase{
 			"if a; then b; else c; fi",
 			"if a\nthen b\nelse\nc\nfi",
 		},
-		All: &ast.IfClause{
+		common: &ast.IfClause{
 			CondStmts: litStmts("a"),
 			ThenStmts: litStmts("b"),
 			ElseStmts: litStmts("c"),
@@ -171,7 +187,7 @@ var FileTests = []TestCase{
 			"if a; then a; elif b; then b; elif c; then c; else d; fi",
 			"if a\nthen a\nelif b\nthen b\nelif c\nthen c\nelse\nd\nfi",
 		},
-		All: &ast.IfClause{
+		common: &ast.IfClause{
 			CondStmts: litStmts("a"),
 			ThenStmts: litStmts("a"),
 			Elifs: []*ast.Elif{
@@ -192,7 +208,7 @@ var FileTests = []TestCase{
 			"if\n\ta1\n\ta2 foo\n\ta3 bar\nthen b; fi",
 			"if a1; a2 foo; a3 bar; then b; fi",
 		},
-		All: &ast.IfClause{
+		common: &ast.IfClause{
 			CondStmts: []*ast.Stmt{
 				litStmt("a1"),
 				litStmt("a2", "foo"),
@@ -203,7 +219,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{`((a <= 2))`},
-		All: stmt(&ast.ArithmExp{Token: token.DLPAREN, X: &ast.BinaryExpr{
+		bash: stmt(&ast.ArithmExp{Token: token.DLPAREN, X: &ast.BinaryExpr{
 			Op: token.LEQ,
 			X:  litWord("a"),
 			Y:  litWord("2"),
@@ -211,7 +227,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"if ((1 > 2)); then b; fi"},
-		All: &ast.IfClause{
+		bash: &ast.IfClause{
 			CondStmts: stmts(&ast.ArithmExp{
 				Token: token.DLPAREN,
 				X: &ast.BinaryExpr{
@@ -229,28 +245,28 @@ var FileTests = []TestCase{
 			"wh\\\nile a; do b; done",
 			"while a\ndo\nb\ndone",
 		},
-		All: &ast.WhileClause{
+		common: &ast.WhileClause{
 			CondStmts: litStmts("a"),
 			DoStmts:   litStmts("b"),
 		},
 	},
 	{
 		Strs: []string{"while { a; }; do b; done", "while { a; } do b; done"},
-		All: &ast.WhileClause{
+		common: &ast.WhileClause{
 			CondStmts: stmts(block(litStmt("a"))),
 			DoStmts:   litStmts("b"),
 		},
 	},
 	{
 		Strs: []string{"while (a); do b; done", "while (a) do b; done"},
-		All: &ast.WhileClause{
+		common: &ast.WhileClause{
 			CondStmts: stmts(subshell(litStmt("a"))),
 			DoStmts:   litStmts("b"),
 		},
 	},
 	{
 		Strs: []string{"while ((1 > 2)); do b; done"},
-		All: &ast.WhileClause{
+		bash: &ast.WhileClause{
 			CondStmts: stmts(&ast.ArithmExp{
 				Token: token.DLPAREN,
 				X: &ast.BinaryExpr{
@@ -264,7 +280,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"until a; do b; done", "until a\ndo\nb\ndone"},
-		All: &ast.UntilClause{
+		common: &ast.UntilClause{
 			CondStmts: litStmts("a"),
 			DoStmts:   litStmts("b"),
 		},
@@ -274,7 +290,7 @@ var FileTests = []TestCase{
 			"for i; do foo; done",
 			"for i in; do foo; done",
 		},
-		All: &ast.ForClause{
+		common: &ast.ForClause{
 			Loop: &ast.WordIter{
 				Name: *lit("i"),
 			},
@@ -287,7 +303,7 @@ var FileTests = []TestCase{
 			"for i in 1 2 3\ndo echo $i\ndone",
 			"for i in 1 2 3 #foo\ndo echo $i\ndone",
 		},
-		All: &ast.ForClause{
+		common: &ast.ForClause{
 			Loop: &ast.WordIter{
 				Name: *lit("i"),
 				List: litWords("1", "2", "3"),
@@ -304,7 +320,7 @@ var FileTests = []TestCase{
 			"for ((i=0;i<10;i++)) do echo $i; done",
 			"for (( i = 0 ; i < 10 ; i++ ))\ndo echo $i\ndone",
 		},
-		All: &ast.ForClause{
+		bash: &ast.ForClause{
 			Loop: &ast.CStyleLoop{
 				Init: &ast.BinaryExpr{
 					Op: token.ASSIGN,
@@ -330,49 +346,49 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{`' ' "foo bar"`},
-		All: call(
+		common: call(
 			*word(sglQuoted(" ")),
 			*word(dblQuoted(lits("foo bar")...)),
 		),
 	},
 	{
-		Strs: []string{`"foo \" bar"`},
-		All:  word(dblQuoted(lits(`foo \" bar`)...)),
+		Strs:   []string{`"foo \" bar"`},
+		common: word(dblQuoted(lits(`foo \" bar`)...)),
 	},
 	{
 		Strs: []string{"\">foo\" \"\nbar\""},
-		All: call(
+		common: call(
 			*word(dblQuoted(lit(">foo"))),
 			*word(dblQuoted(lit("\nbar"))),
 		),
 	},
 	{
-		Strs: []string{`foo \" bar`},
-		All:  litCall(`foo`, `\"`, `bar`),
+		Strs:   []string{`foo \" bar`},
+		common: litCall(`foo`, `\"`, `bar`),
 	},
 	{
-		Strs: []string{`'"'`},
-		All:  sglQuoted(`"`),
+		Strs:   []string{`'"'`},
+		common: sglQuoted(`"`),
 	},
 	{
-		Strs: []string{"'`'"},
-		All:  sglQuoted("`"),
+		Strs:   []string{"'`'"},
+		common: sglQuoted("`"),
 	},
 	{
-		Strs: []string{`"'"`},
-		All:  dblQuoted(lit("'")),
+		Strs:   []string{`"'"`},
+		common: dblQuoted(lit("'")),
 	},
 	{
-		Strs: []string{`""`},
-		All:  dblQuoted(),
+		Strs:   []string{`""`},
+		common: dblQuoted(),
 	},
 	{
-		Strs: []string{"=a s{s s=s"},
-		All:  litCall("=a", "s{s", "s=s"),
+		Strs:   []string{"=a s{s s=s"},
+		common: litCall("=a", "s{s", "s=s"),
 	},
 	{
 		Strs: []string{"foo && bar", "foo&&bar", "foo &&\nbar"},
-		All: &ast.BinaryCmd{
+		common: &ast.BinaryCmd{
 			Op: token.LAND,
 			X:  litStmt("foo"),
 			Y:  litStmt("bar"),
@@ -380,7 +396,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"foo \\\n\t&& bar"},
-		All: &ast.BinaryCmd{
+		common: &ast.BinaryCmd{
 			Op: token.LAND,
 			X:  litStmt("foo"),
 			Y:  litStmt("bar"),
@@ -388,7 +404,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"foo || bar", "foo||bar", "foo ||\nbar"},
-		All: &ast.BinaryCmd{
+		common: &ast.BinaryCmd{
 			Op: token.LOR,
 			X:  litStmt("foo"),
 			Y:  litStmt("bar"),
@@ -396,7 +412,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"if a; then b; fi || while a; do b; done"},
-		All: &ast.BinaryCmd{
+		common: &ast.BinaryCmd{
 			Op: token.LOR,
 			X: stmt(&ast.IfClause{
 				CondStmts: litStmts("a"),
@@ -410,7 +426,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"foo && bar1 || bar2"},
-		All: &ast.BinaryCmd{
+		common: &ast.BinaryCmd{
 			Op: token.LAND,
 			X:  litStmt("foo"),
 			Y: stmt(&ast.BinaryCmd{
@@ -422,7 +438,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"foo | bar", "foo|bar", "foo |\n#etc\nbar"},
-		All: &ast.BinaryCmd{
+		common: &ast.BinaryCmd{
 			Op: token.OR,
 			X:  litStmt("foo"),
 			Y:  litStmt("bar"),
@@ -430,7 +446,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"foo | bar | extra"},
-		All: &ast.BinaryCmd{
+		common: &ast.BinaryCmd{
 			Op: token.OR,
 			X:  litStmt("foo"),
 			Y: stmt(&ast.BinaryCmd{
@@ -442,7 +458,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"foo |& bar", "foo|&bar"},
-		All: &ast.BinaryCmd{
+		bash: &ast.BinaryCmd{
 			Op: token.PIPEALL,
 			X:  litStmt("foo"),
 			Y:  litStmt("bar"),
@@ -454,14 +470,14 @@ var FileTests = []TestCase{
 			"foo() { a; b; }",
 			"foo ( ) {\na\nb\n}",
 		},
-		All: &ast.FuncDecl{
+		common: &ast.FuncDecl{
 			Name: *lit("foo"),
 			Body: stmt(block(litStmts("a", "b")...)),
 		},
 	},
 	{
 		Strs: []string{"foo() { a; }\nbar", "foo() {\na\n}; bar"},
-		All: []ast.Command{
+		common: []ast.Command{
 			&ast.FuncDecl{
 				Name: *lit("foo"),
 				Body: stmt(block(litStmts("a")...)),
@@ -471,7 +487,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"-foo_.,+-bar() { a; }"},
-		All: &ast.FuncDecl{
+		common: &ast.FuncDecl{
 			Name: *lit("-foo_.,+-bar"),
 			Body: stmt(block(litStmts("a")...)),
 		},
@@ -482,7 +498,7 @@ var FileTests = []TestCase{
 			"function foo {\n\ta\n\tb\n}",
 			"function foo() { a; b; }",
 		},
-		All: &ast.FuncDecl{
+		bash: &ast.FuncDecl{
 			BashStyle: true,
 			Name:      *lit("foo"),
 			Body:      stmt(block(litStmts("a", "b")...)),
@@ -490,7 +506,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"function foo() (a)"},
-		All: &ast.FuncDecl{
+		bash: &ast.FuncDecl{
 			BashStyle: true,
 			Name:      *lit("foo"),
 			Body:      stmt(subshell(litStmt("a"))),
@@ -498,7 +514,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"a=b foo=$bar foo=start$bar"},
-		All: &ast.Stmt{
+		common: &ast.Stmt{
 			Assigns: []*ast.Assign{
 				{Name: lit("a"), Value: *litWord("b")},
 				{Name: lit("foo"), Value: *word(litParamExp("bar"))},
@@ -511,7 +527,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"a=\"\nbar\""},
-		All: &ast.Stmt{
+		common: &ast.Stmt{
 			Assigns: []*ast.Assign{{
 				Name:  lit("a"),
 				Value: *word(dblQuoted(lit("\nbar"))),
@@ -520,14 +536,14 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"A_3a= foo"},
-		All: &ast.Stmt{
+		common: &ast.Stmt{
 			Cmd:     litCall("foo"),
 			Assigns: []*ast.Assign{{Name: lit("A_3a")}},
 		},
 	},
 	{
-		Strs: []string{"à=b foo"},
-		All:  litStmt("à=b", "foo"),
+		Strs:   []string{"à=b foo"},
+		common: litStmt("à=b", "foo"),
 	},
 	{
 		Strs: []string{
@@ -535,7 +551,7 @@ var FileTests = []TestCase{
 			"foo > a >> b < c",
 			">a >>b <c foo",
 		},
-		All: &ast.Stmt{
+		common: &ast.Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*ast.Redirect{
 				{Op: token.GTR, Word: *litWord("a")},
@@ -549,7 +565,7 @@ var FileTests = []TestCase{
 			"foo bar >a",
 			"foo >a bar",
 		},
-		All: &ast.Stmt{
+		common: &ast.Stmt{
 			Cmd: litCall("foo", "bar"),
 			Redirs: []*ast.Redirect{
 				{Op: token.GTR, Word: *litWord("a")},
@@ -558,7 +574,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{`>a >\b`},
-		All: &ast.Stmt{
+		common: &ast.Stmt{
 			Redirs: []*ast.Redirect{
 				{Op: token.GTR, Word: *litWord("a")},
 				{Op: token.GTR, Word: *litWord(`\b`)},
@@ -567,7 +583,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{">a\n>b", ">a; >b"},
-		All: []*ast.Stmt{
+		common: []*ast.Stmt{
 			{Redirs: []*ast.Redirect{
 				{Op: token.GTR, Word: *litWord("a")},
 			}},
@@ -578,7 +594,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"foo1\nfoo2 >r2", "foo1; >r2 foo2"},
-		All: []*ast.Stmt{
+		common: []*ast.Stmt{
 			litStmt("foo1"),
 			{
 				Cmd: litCall("foo2"),
@@ -590,7 +606,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"foo >bar`etc`", "foo >b\\\nar`etc`"},
-		All: &ast.Stmt{
+		common: &ast.Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*ast.Redirect{
 				{Op: token.GTR, Word: *word(
@@ -605,7 +621,7 @@ var FileTests = []TestCase{
 			"foo <<EOF\nbar\nEOF",
 			"foo <<EOF\nbar\n",
 		},
-		All: &ast.Stmt{
+		common: &ast.Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*ast.Redirect{{
 				Op:   token.SHL,
@@ -616,7 +632,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"foo <<EOF\n\nbar\nEOF"},
-		All: &ast.Stmt{
+		common: &ast.Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*ast.Redirect{{
 				Op:   token.SHL,
@@ -627,7 +643,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"foo <<EOF\n1\n2\n3\nEOF"},
-		All: &ast.Stmt{
+		common: &ast.Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*ast.Redirect{{
 				Op:   token.SHL,
@@ -638,7 +654,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"a <<EOF\nfoo$bar\nEOF"},
-		All: &ast.Stmt{
+		common: &ast.Stmt{
 			Cmd: litCall("a"),
 			Redirs: []*ast.Redirect{{
 				Op:   token.SHL,
@@ -653,7 +669,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"a <<EOF\n\"$bar\"\nEOF"},
-		All: &ast.Stmt{
+		common: &ast.Stmt{
 			Cmd: litCall("a"),
 			Redirs: []*ast.Redirect{{
 				Op:   token.SHL,
@@ -668,7 +684,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"a <<EOF\n$''$bar\nEOF"},
-		All: &ast.Stmt{
+		bash: &ast.Stmt{
 			Cmd: litCall("a"),
 			Redirs: []*ast.Redirect{{
 				Op:   token.SHL,
@@ -684,7 +700,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"a <<EOF\n`b`\nc\nEOF"},
-		All: &ast.Stmt{
+		common: &ast.Stmt{
 			Cmd: litCall("a"),
 			Redirs: []*ast.Redirect{{
 				Op:   token.SHL,
@@ -698,7 +714,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"a <<EOF\n\\${\nEOF"},
-		All: &ast.Stmt{
+		common: &ast.Stmt{
 			Cmd: litCall("a"),
 			Redirs: []*ast.Redirect{{
 				Op:   token.SHL,
@@ -709,7 +725,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"{ foo <<EOF\nbar\nEOF\n}"},
-		All: block(&ast.Stmt{
+		common: block(&ast.Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*ast.Redirect{{
 				Op:   token.SHL,
@@ -720,7 +736,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"$(foo <<EOF\nbar\nEOF\n)"},
-		All: cmdSubst(&ast.Stmt{
+		common: cmdSubst(&ast.Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*ast.Redirect{{
 				Op:   token.SHL,
@@ -731,7 +747,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"foo >f <<EOF\nbar\nEOF"},
-		All: &ast.Stmt{
+		common: &ast.Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*ast.Redirect{
 				{Op: token.GTR, Word: *litWord("f")},
@@ -745,7 +761,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"foo <<EOF >f\nbar\nEOF"},
-		All: &ast.Stmt{
+		common: &ast.Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*ast.Redirect{
 				{
@@ -759,7 +775,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"foo <<EOF && {\nbar\nEOF\n\tetc\n}"},
-		All: &ast.BinaryCmd{
+		common: &ast.BinaryCmd{
 			Op: token.LAND,
 			X: &ast.Stmt{
 				Cmd: litCall("foo"),
@@ -774,7 +790,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"if true; then foo <<-EOF\n\tbar\n\tEOF\nfi"},
-		All: &ast.IfClause{
+		common: &ast.IfClause{
 			CondStmts: litStmts("true"),
 			ThenStmts: []*ast.Stmt{{
 				Cmd: litCall("foo"),
@@ -788,7 +804,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"if true; then foo <<-EOF\n\tEOF\nfi"},
-		All: &ast.IfClause{
+		common: &ast.IfClause{
 			CondStmts: litStmts("true"),
 			ThenStmts: []*ast.Stmt{{
 				Cmd: litCall("foo"),
@@ -802,7 +818,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"foo <<EOF\nbar\nEOF\nfoo2"},
-		All: []*ast.Stmt{
+		common: []*ast.Stmt{
 			{
 				Cmd: litCall("foo"),
 				Redirs: []*ast.Redirect{{
@@ -816,7 +832,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"foo <<FOOBAR\nbar\nFOOBAR"},
-		All: &ast.Stmt{
+		common: &ast.Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*ast.Redirect{{
 				Op:   token.SHL,
@@ -830,7 +846,7 @@ var FileTests = []TestCase{
 			"foo <<\"EOF\"\nbar\nEOF",
 			"foo <<\"EOF\"\nbar\n",
 		},
-		All: &ast.Stmt{
+		common: &ast.Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*ast.Redirect{{
 				Op:   token.SHL,
@@ -841,7 +857,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"foo <<'EOF'\n${\nEOF"},
-		All: &ast.Stmt{
+		common: &ast.Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*ast.Redirect{
 				{
@@ -854,7 +870,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"foo <<\"EOF\"2\nbar\nEOF2"},
-		All: &ast.Stmt{
+		common: &ast.Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*ast.Redirect{{
 				Op:   token.SHL,
@@ -865,7 +881,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"foo <<\\EOF\nbar\nEOF"},
-		All: &ast.Stmt{
+		common: &ast.Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*ast.Redirect{{
 				Op:   token.SHL,
@@ -876,7 +892,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"foo <<$EOF\nbar\n$EOF"},
-		All: &ast.Stmt{
+		common: &ast.Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*ast.Redirect{{
 				Op:   token.SHL,
@@ -890,7 +906,7 @@ var FileTests = []TestCase{
 			"foo <<-EOF\nbar\nEOF",
 			"foo <<- EOF\nbar\nEOF",
 		},
-		All: &ast.Stmt{
+		common: &ast.Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*ast.Redirect{{
 				Op:   token.DHEREDOC,
@@ -904,7 +920,7 @@ var FileTests = []TestCase{
 			"foo <<-EOF\n\tEOF",
 			"foo <<-EOF\n\t",
 		},
-		All: &ast.Stmt{
+		common: &ast.Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*ast.Redirect{{
 				Op:   token.DHEREDOC,
@@ -918,7 +934,7 @@ var FileTests = []TestCase{
 			"foo <<-EOF\n\tbar\n\tEOF",
 			"foo <<-EOF\n\tbar\n\t",
 		},
-		All: &ast.Stmt{
+		common: &ast.Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*ast.Redirect{{
 				Op:   token.DHEREDOC,
@@ -932,7 +948,7 @@ var FileTests = []TestCase{
 			"foo <<-'EOF'\n\tbar\n\tEOF",
 			"foo <<-'EOF'\n\tbar\n\t",
 		},
-		All: &ast.Stmt{
+		common: &ast.Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*ast.Redirect{{
 				Op:   token.DHEREDOC,
@@ -946,7 +962,7 @@ var FileTests = []TestCase{
 			"f1 <<EOF1\nh1\nEOF1\nf2 <<EOF2\nh2\nEOF2",
 			"f1 <<EOF1; f2 <<EOF2\nh1\nEOF1\nh2\nEOF2",
 		},
-		All: []*ast.Stmt{
+		common: []*ast.Stmt{
 			{
 				Cmd: litCall("f1"),
 				Redirs: []*ast.Redirect{{
@@ -970,7 +986,7 @@ var FileTests = []TestCase{
 			"a <<EOF\nfoo\nEOF\nb\nb\nb\nb\nb\nb\nb\nb\nb",
 			"a <<EOF;b;b;b;b;b;b;b;b;b\nfoo\nEOF",
 		},
-		All: []*ast.Stmt{
+		common: []*ast.Stmt{
 			{
 				Cmd: litCall("a"),
 				Redirs: []*ast.Redirect{{
@@ -989,7 +1005,7 @@ var FileTests = []TestCase{
 			"foo \"\narg\" <<EOF\nbar\nEOF",
 			"foo <<EOF \"\narg\"\nbar\nEOF",
 		},
-		All: &ast.Stmt{
+		common: &ast.Stmt{
 			Cmd: call(
 				*litWord("foo"),
 				*word(dblQuoted(lit("\narg"))),
@@ -1003,7 +1019,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"foo >&2 <&0 2>file <>f2 &>f3 &>>f4"},
-		All: &ast.Stmt{
+		bash: &ast.Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*ast.Redirect{
 				{Op: token.DPLOUT, Word: *litWord("2")},
@@ -1017,7 +1033,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"foo 2>file bar", "2>file foo bar"},
-		All: &ast.Stmt{
+		common: &ast.Stmt{
 			Cmd: litCall("foo", "bar"),
 			Redirs: []*ast.Redirect{
 				{Op: token.GTR, N: lit("2"), Word: *litWord("file")},
@@ -1026,7 +1042,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"a >f1\nb >f2", "a >f1; b >f2"},
-		All: []*ast.Stmt{
+		common: []*ast.Stmt{
 			{
 				Cmd:    litCall("a"),
 				Redirs: []*ast.Redirect{{Op: token.GTR, Word: *litWord("f1")}},
@@ -1042,7 +1058,7 @@ var FileTests = []TestCase{
 			"foo <<<input",
 			"foo <<< input",
 		},
-		All: &ast.Stmt{
+		bash: &ast.Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*ast.Redirect{
 				{Op: token.WHEREDOC, Word: *litWord("input")},
@@ -1054,7 +1070,7 @@ var FileTests = []TestCase{
 			`foo <<<"spaced input"`,
 			`foo <<< "spaced input"`,
 		},
-		All: &ast.Stmt{
+		bash: &ast.Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*ast.Redirect{
 				{
@@ -1066,7 +1082,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"foo >(foo)"},
-		All: &ast.Stmt{
+		bash: &ast.Stmt{
 			Cmd: call(
 				*litWord("foo"),
 				*word(&ast.ProcSubst{
@@ -1078,7 +1094,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"foo < <(foo)"},
-		All: &ast.Stmt{
+		bash: &ast.Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*ast.Redirect{{
 				Op: token.LSS,
@@ -1090,19 +1106,19 @@ var FileTests = []TestCase{
 		},
 	},
 	{
-		Strs: []string{"!"},
-		All:  &ast.Stmt{Negated: true},
+		Strs:   []string{"!"},
+		common: &ast.Stmt{Negated: true},
 	},
 	{
 		Strs: []string{"! foo"},
-		All: &ast.Stmt{
+		common: &ast.Stmt{
 			Negated: true,
 			Cmd:     litCall("foo"),
 		},
 	},
 	{
 		Strs: []string{"foo &\nbar", "foo & bar", "foo&bar"},
-		All: []*ast.Stmt{
+		common: []*ast.Stmt{
 			{
 				Cmd:        litCall("foo"),
 				Background: true,
@@ -1112,7 +1128,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"! if foo; then bar; fi >/dev/null &"},
-		All: &ast.Stmt{
+		common: &ast.Stmt{
 			Negated: true,
 			Cmd: &ast.IfClause{
 				CondStmts: litStmts("foo"),
@@ -1125,16 +1141,16 @@ var FileTests = []TestCase{
 		},
 	},
 	{
-		Strs: []string{"foo#bar"},
-		All:  litWord("foo#bar"),
+		Strs:   []string{"foo#bar"},
+		common: litWord("foo#bar"),
 	},
 	{
-		Strs: []string{"{ echo } }; }"},
-		All:  block(litStmt("echo", "}", "}")),
+		Strs:   []string{"{ echo } }; }"},
+		common: block(litStmt("echo", "}", "}")),
 	},
 	{
 		Strs: []string{"$({ echo; })"},
-		All: cmdSubst(stmt(
+		common: cmdSubst(stmt(
 			block(litStmt("echo")),
 		)),
 	},
@@ -1144,13 +1160,13 @@ var FileTests = []TestCase{
 			"$((echo foo bar) )",
 			"$( (echo foo bar) )",
 		},
-		All: cmdSubst(stmt(
+		common: cmdSubst(stmt(
 			subshell(litStmt("echo", "foo", "bar")),
 		)),
 	},
 	{
 		Strs: []string{"`(foo)`"},
-		All: bckQuoted(stmt(
+		common: bckQuoted(stmt(
 			subshell(litStmt("foo")),
 		)),
 	},
@@ -1160,7 +1176,7 @@ var FileTests = []TestCase{
 			"$( (a); b)",
 			"$((a); b)",
 		},
-		All: cmdSubst(
+		common: cmdSubst(
 			stmt(subshell(litStmt("a"))),
 			litStmt("b"),
 		),
@@ -1170,7 +1186,7 @@ var FileTests = []TestCase{
 			"$( (a) | b)",
 			"$((a) | b)",
 		},
-		All: cmdSubst(
+		common: cmdSubst(
 			stmt(&ast.BinaryCmd{
 				Op: token.OR,
 				X:  stmt(subshell(litStmt("a"))),
@@ -1183,7 +1199,7 @@ var FileTests = []TestCase{
 			`"$( (foo))"`,
 			`"$((foo) )"`,
 		},
-		All: dblQuoted(
+		common: dblQuoted(
 			cmdSubst(stmt(
 				subshell(litStmt("foo")),
 			)),
@@ -1194,7 +1210,7 @@ var FileTests = []TestCase{
 			"\"$( (\n\tfoo\n\tbar\n))\"",
 			"\"$((\n\tfoo\n\tbar\n) )\"",
 		},
-		All: dblQuoted(
+		common: dblQuoted(
 			cmdSubst(stmt(
 				subshell(litStmts("foo", "bar")...),
 			)),
@@ -1202,33 +1218,33 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"`{ echo; }`"},
-		All: bckQuoted(stmt(
+		common: bckQuoted(stmt(
 			block(litStmt("echo")),
 		)),
 	},
 	{
-		Strs: []string{`{foo}`},
-		All:  litWord(`{foo}`),
+		Strs:   []string{`{foo}`},
+		common: litWord(`{foo}`),
 	},
 	{
-		Strs: []string{`{"foo"`},
-		All:  word(lit("{"), dblQuoted(lit("foo"))),
+		Strs:   []string{`{"foo"`},
+		common: word(lit("{"), dblQuoted(lit("foo"))),
 	},
 	{
-		Strs: []string{`foo"bar"`, "fo\\\no\"bar\""},
-		All:  word(lit("foo"), dblQuoted(lit("bar"))),
+		Strs:   []string{`foo"bar"`, "fo\\\no\"bar\""},
+		common: word(lit("foo"), dblQuoted(lit("bar"))),
 	},
 	{
-		Strs: []string{`!foo`},
-		All:  litWord(`!foo`),
+		Strs:   []string{`!foo`},
+		common: litWord(`!foo`),
 	},
 	{
-		Strs: []string{"$(foo bar)"},
-		All:  cmdSubst(litStmt("foo", "bar")),
+		Strs:   []string{"$(foo bar)"},
+		common: cmdSubst(litStmt("foo", "bar")),
 	},
 	{
 		Strs: []string{"$(foo | bar)"},
-		All: cmdSubst(
+		common: cmdSubst(
 			stmt(&ast.BinaryCmd{
 				Op: token.OR,
 				X:  litStmt("foo"),
@@ -1238,7 +1254,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"$(foo $(b1 b2))"},
-		All: cmdSubst(
+		common: cmdSubst(
 			stmt(call(
 				*litWord("foo"),
 				*word(cmdSubst(litStmt("b1", "b2"))),
@@ -1247,7 +1263,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{`"$(foo "bar")"`},
-		All: dblQuoted(cmdSubst(
+		common: dblQuoted(cmdSubst(
 			stmt(call(
 				*litWord("foo"),
 				*word(dblQuoted(lit("bar"))),
@@ -1255,12 +1271,12 @@ var FileTests = []TestCase{
 		)),
 	},
 	{
-		Strs: []string{"`foo`"},
-		All:  bckQuoted(litStmt("foo")),
+		Strs:   []string{"`foo`"},
+		common: bckQuoted(litStmt("foo")),
 	},
 	{
 		Strs: []string{"`foo | bar`"},
-		All: bckQuoted(
+		common: bckQuoted(
 			stmt(&ast.BinaryCmd{
 				Op: token.OR,
 				X:  litStmt("foo"),
@@ -1270,14 +1286,14 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"`foo 'bar'`"},
-		All: bckQuoted(stmt(call(
+		common: bckQuoted(stmt(call(
 			*litWord("foo"),
 			*word(sglQuoted("bar")),
 		))),
 	},
 	{
 		Strs: []string{"`foo \"bar\"`"},
-		All: bckQuoted(
+		common: bckQuoted(
 			stmt(call(
 				*litWord("foo"),
 				*word(dblQuoted(lit("bar"))),
@@ -1285,16 +1301,16 @@ var FileTests = []TestCase{
 		),
 	},
 	{
-		Strs: []string{`"$foo"`},
-		All:  dblQuoted(litParamExp("foo")),
+		Strs:   []string{`"$foo"`},
+		common: dblQuoted(litParamExp("foo")),
 	},
 	{
-		Strs: []string{`"#foo"`},
-		All:  dblQuoted(lit("#foo")),
+		Strs:   []string{`"#foo"`},
+		common: dblQuoted(lit("#foo")),
 	},
 	{
 		Strs: []string{`$@ $# $$ $?`},
-		All: call(
+		common: call(
 			*word(litParamExp("@")),
 			*word(litParamExp("#")),
 			*word(litParamExp("$")),
@@ -1302,31 +1318,31 @@ var FileTests = []TestCase{
 		),
 	},
 	{
-		Strs: []string{`$`, `$ #`},
-		All:  litWord("$"),
+		Strs:   []string{`$`, `$ #`},
+		common: litWord("$"),
 	},
 	{
 		Strs: []string{`${@} ${$} ${?}`},
-		All: call(
+		common: call(
 			*word(&ast.ParamExp{Param: *lit("@")}),
 			*word(&ast.ParamExp{Param: *lit("$")}),
 			*word(&ast.ParamExp{Param: *lit("?")}),
 		),
 	},
 	{
-		Strs: []string{`${foo}`},
-		All:  &ast.ParamExp{Param: *lit("foo")},
+		Strs:   []string{`${foo}`},
+		common: &ast.ParamExp{Param: *lit("foo")},
 	},
 	{
 		Strs: []string{`${foo}"bar"`},
-		All: word(
+		common: word(
 			&ast.ParamExp{Param: *lit("foo")},
 			dblQuoted(lit("bar")),
 		),
 	},
 	{
 		Strs: []string{`${foo-bar}`},
-		All: &ast.ParamExp{
+		common: &ast.ParamExp{
 			Param: *lit("foo"),
 			Exp: &ast.Expansion{
 				Op:   token.SUB,
@@ -1336,7 +1352,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{`${foo+bar}"bar"`},
-		All: word(
+		common: word(
 			&ast.ParamExp{
 				Param: *lit("foo"),
 				Exp: &ast.Expansion{
@@ -1349,7 +1365,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{`${foo:=<"bar"}`},
-		All: &ast.ParamExp{
+		common: &ast.ParamExp{
 			Param: *lit("foo"),
 			Exp: &ast.Expansion{
 				Op:   token.CASSIGN,
@@ -1359,7 +1375,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"${foo:=b${c}`d`}"},
-		All: &ast.ParamExp{
+		common: &ast.ParamExp{
 			Param: *lit("foo"),
 			Exp: &ast.Expansion{
 				Op: token.CASSIGN,
@@ -1373,7 +1389,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{`${foo?"${bar}"}`},
-		All: &ast.ParamExp{
+		common: &ast.ParamExp{
 			Param: *lit("foo"),
 			Exp: &ast.Expansion{
 				Op: token.QUEST,
@@ -1385,7 +1401,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{`${foo:?bar1 bar2}`},
-		All: &ast.ParamExp{
+		common: &ast.ParamExp{
 			Param: *lit("foo"),
 			Exp: &ast.Expansion{
 				Op:   token.CQUEST,
@@ -1395,7 +1411,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{`${a:+b}${a:-b}${a=b}`},
-		All: word(
+		common: word(
 			&ast.ParamExp{
 				Param: *lit("a"),
 				Exp: &ast.Expansion{
@@ -1421,7 +1437,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{`${foo%bar}${foo%%bar*}`},
-		All: word(
+		common: word(
 			&ast.ParamExp{
 				Param: *lit("foo"),
 				Exp: &ast.Expansion{
@@ -1440,7 +1456,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{`${foo#bar}${foo##bar*}`},
-		All: word(
+		common: word(
 			&ast.ParamExp{
 				Param: *lit("foo"),
 				Exp: &ast.Expansion{
@@ -1459,7 +1475,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{`${foo%?}`},
-		All: &ast.ParamExp{
+		common: &ast.ParamExp{
 			Param: *lit("foo"),
 			Exp: &ast.Expansion{
 				Op:   token.REM,
@@ -1469,7 +1485,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{`${foo::}`},
-		All: &ast.ParamExp{
+		common: &ast.ParamExp{
 			Param: *lit("foo"),
 			Exp: &ast.Expansion{
 				Op:   token.COLON,
@@ -1479,7 +1495,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{`${foo[bar]}`},
-		All: &ast.ParamExp{
+		common: &ast.ParamExp{
 			Param: *lit("foo"),
 			Ind: &ast.Index{
 				Word: *litWord("bar"),
@@ -1488,7 +1504,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{`${foo[bar]-etc}`},
-		All: &ast.ParamExp{
+		common: &ast.ParamExp{
 			Param: *lit("foo"),
 			Ind: &ast.Index{
 				Word: *litWord("bar"),
@@ -1501,7 +1517,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{`${foo[${bar}]}`},
-		All: &ast.ParamExp{
+		common: &ast.ParamExp{
 			Param: *lit("foo"),
 			Ind: &ast.Index{
 				Word: *word(&ast.ParamExp{Param: *lit("bar")}),
@@ -1510,7 +1526,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{`${foo/b1/b2}`},
-		All: &ast.ParamExp{
+		common: &ast.ParamExp{
 			Param: *lit("foo"),
 			Repl: &ast.Replace{
 				Orig: *litWord("b1"),
@@ -1520,7 +1536,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{`${foo/a b/c d}`},
-		All: &ast.ParamExp{
+		common: &ast.ParamExp{
 			Param: *lit("foo"),
 			Repl: &ast.Replace{
 				Orig: *litWord("a b"),
@@ -1530,7 +1546,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{`${foo/[/]}`},
-		All: &ast.ParamExp{
+		common: &ast.ParamExp{
 			Param: *lit("foo"),
 			Repl: &ast.Replace{
 				Orig: *litWord("["),
@@ -1540,7 +1556,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{`${foo/bar/b/a/r}`},
-		All: &ast.ParamExp{
+		common: &ast.ParamExp{
 			Param: *lit("foo"),
 			Repl: &ast.Replace{
 				Orig: *litWord("bar"),
@@ -1550,7 +1566,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{`${foo/$a/$b}`},
-		All: &ast.ParamExp{
+		common: &ast.ParamExp{
 			Param: *lit("foo"),
 			Repl: &ast.Replace{
 				Orig: *word(litParamExp("a")),
@@ -1560,7 +1576,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{`${foo//b1/b2}`},
-		All: &ast.ParamExp{
+		common: &ast.ParamExp{
 			Param: *lit("foo"),
 			Repl: &ast.Replace{
 				All:  true,
@@ -1574,7 +1590,7 @@ var FileTests = []TestCase{
 			`${foo//#/}`,
 			`${foo//#}`,
 		},
-		All: &ast.ParamExp{
+		common: &ast.ParamExp{
 			Param: *lit("foo"),
 			Repl: &ast.Replace{
 				All:  true,
@@ -1584,64 +1600,64 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{`${#foo}`},
-		All: &ast.ParamExp{
+		common: &ast.ParamExp{
 			Length: true,
 			Param:  *lit("foo"),
 		},
 	},
 	{
 		Strs: []string{`${#} ${#?}`},
-		All: call(
+		common: call(
 			*word(&ast.ParamExp{Length: true}),
 			*word(&ast.ParamExp{Length: true, Param: *lit("?")}),
 		),
 	},
 	{
-		Strs: []string{`"${foo}"`},
-		All:  dblQuoted(&ast.ParamExp{Param: *lit("foo")}),
+		Strs:   []string{`"${foo}"`},
+		common: dblQuoted(&ast.ParamExp{Param: *lit("foo")}),
 	},
 	{
-		Strs: []string{`"(foo)"`},
-		All:  dblQuoted(lit("(foo)")),
+		Strs:   []string{`"(foo)"`},
+		common: dblQuoted(lit("(foo)")),
 	},
 	{
 		Strs: []string{`"${foo}>"`},
-		All: dblQuoted(
+		common: dblQuoted(
 			&ast.ParamExp{Param: *lit("foo")},
 			lit(">"),
 		),
 	},
 	{
-		Strs: []string{`"$(foo)"`},
-		All:  dblQuoted(cmdSubst(litStmt("foo"))),
+		Strs:   []string{`"$(foo)"`},
+		common: dblQuoted(cmdSubst(litStmt("foo"))),
 	},
 	{
-		Strs: []string{`"$(foo bar)"`, `"$(foo  bar)"`},
-		All:  dblQuoted(cmdSubst(litStmt("foo", "bar"))),
+		Strs:   []string{`"$(foo bar)"`, `"$(foo  bar)"`},
+		common: dblQuoted(cmdSubst(litStmt("foo", "bar"))),
 	},
 	{
-		Strs: []string{"\"`foo`\""},
-		All:  dblQuoted(bckQuoted(litStmt("foo"))),
+		Strs:   []string{"\"`foo`\""},
+		common: dblQuoted(bckQuoted(litStmt("foo"))),
 	},
 	{
-		Strs: []string{"\"`foo bar`\"", "\"`foo  bar`\""},
-		All:  dblQuoted(bckQuoted(litStmt("foo", "bar"))),
+		Strs:   []string{"\"`foo bar`\"", "\"`foo  bar`\""},
+		common: dblQuoted(bckQuoted(litStmt("foo", "bar"))),
 	},
 	{
-		Strs: []string{`'${foo}'`},
-		All:  sglQuoted("${foo}"),
+		Strs:   []string{`'${foo}'`},
+		common: sglQuoted("${foo}"),
 	},
 	{
-		Strs: []string{"$(())"},
-		All:  arithmExp(nil),
+		Strs:   []string{"$(())"},
+		common: arithmExp(nil),
 	},
 	{
-		Strs: []string{"$((1))"},
-		All:  arithmExp(litWord("1")),
+		Strs:   []string{"$((1))"},
+		common: arithmExp(litWord("1")),
 	},
 	{
 		Strs: []string{"$((1 + 3))", "$((1+3))", "$[1+3]"},
-		All: arithmExp(&ast.BinaryExpr{
+		bash: arithmExp(&ast.BinaryExpr{
 			Op: token.ADD,
 			X:  litWord("1"),
 			Y:  litWord("3"),
@@ -1649,13 +1665,13 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{`"$((foo))"`, `"$[foo]"`},
-		All: dblQuoted(arithmExp(
+		bash: dblQuoted(arithmExp(
 			litWord("foo"),
 		)),
 	},
 	{
 		Strs: []string{`$((arr[0]++))`},
-		All: arithmExp(
+		common: arithmExp(
 			&ast.UnaryExpr{
 				Op:   token.INC,
 				Post: true,
@@ -1665,7 +1681,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"$((5 * 2 - 1))", "$((5*2-1))"},
-		All: arithmExp(&ast.BinaryExpr{
+		common: arithmExp(&ast.BinaryExpr{
 			Op: token.SUB,
 			X: &ast.BinaryExpr{
 				Op: token.MUL,
@@ -1677,7 +1693,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"$(($i | 13))"},
-		All: arithmExp(&ast.BinaryExpr{
+		common: arithmExp(&ast.BinaryExpr{
 			Op: token.OR,
 			X:  word(litParamExp("i")),
 			Y:  litWord("13"),
@@ -1685,7 +1701,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"$((3 & $((4))))"},
-		All: arithmExp(&ast.BinaryExpr{
+		common: arithmExp(&ast.BinaryExpr{
 			Op: token.AND,
 			X:  litWord("3"),
 			Y:  word(arithmExp(litWord("4"))),
@@ -1697,7 +1713,7 @@ var FileTests = []TestCase{
 			"$((3\n% 7))",
 			"$((3\\\n % 7))",
 		},
-		All: arithmExp(&ast.BinaryExpr{
+		common: arithmExp(&ast.BinaryExpr{
 			Op: token.REM,
 			X:  litWord("3"),
 			Y:  litWord("7"),
@@ -1705,7 +1721,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{`"$((1 / 3))"`},
-		All: dblQuoted(arithmExp(&ast.BinaryExpr{
+		common: dblQuoted(arithmExp(&ast.BinaryExpr{
 			Op: token.QUO,
 			X:  litWord("1"),
 			Y:  litWord("3"),
@@ -1713,7 +1729,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"$((2 ** 10))"},
-		All: arithmExp(&ast.BinaryExpr{
+		common: arithmExp(&ast.BinaryExpr{
 			Op: token.POW,
 			X:  litWord("2"),
 			Y:  litWord("10"),
@@ -1721,7 +1737,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{`$(((1) ^ 3))`},
-		All: arithmExp(&ast.BinaryExpr{
+		common: arithmExp(&ast.BinaryExpr{
 			Op: token.XOR,
 			X:  parenExpr(litWord("1")),
 			Y:  litWord("3"),
@@ -1729,7 +1745,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{`$((1 >> (3 << 2)))`},
-		All: arithmExp(&ast.BinaryExpr{
+		common: arithmExp(&ast.BinaryExpr{
 			Op: token.SHR,
 			X:  litWord("1"),
 			Y: parenExpr(&ast.BinaryExpr{
@@ -1741,14 +1757,14 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{`$((-(1)))`},
-		All: arithmExp(&ast.UnaryExpr{
+		common: arithmExp(&ast.UnaryExpr{
 			Op: token.SUB,
 			X:  parenExpr(litWord("1")),
 		}),
 	},
 	{
 		Strs: []string{`$((i++))`},
-		All: arithmExp(&ast.UnaryExpr{
+		common: arithmExp(&ast.UnaryExpr{
 			Op:   token.INC,
 			Post: true,
 			X:    litWord("i"),
@@ -1756,21 +1772,21 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{`$((--i))`},
-		All: arithmExp(&ast.UnaryExpr{
+		common: arithmExp(&ast.UnaryExpr{
 			Op: token.DEC,
 			X:  litWord("i"),
 		}),
 	},
 	{
 		Strs: []string{`$((!i))`},
-		All: arithmExp(&ast.UnaryExpr{
+		common: arithmExp(&ast.UnaryExpr{
 			Op: token.NOT,
 			X:  litWord("i"),
 		}),
 	},
 	{
 		Strs: []string{`$((-!+i))`},
-		All: arithmExp(&ast.UnaryExpr{
+		common: arithmExp(&ast.UnaryExpr{
 			Op: token.SUB,
 			X: &ast.UnaryExpr{
 				Op: token.NOT,
@@ -1783,7 +1799,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{`$((!!i))`},
-		All: arithmExp(&ast.UnaryExpr{
+		common: arithmExp(&ast.UnaryExpr{
 			Op: token.NOT,
 			X: &ast.UnaryExpr{
 				Op: token.NOT,
@@ -1793,7 +1809,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{`$((1 < 3))`},
-		All: arithmExp(&ast.BinaryExpr{
+		common: arithmExp(&ast.BinaryExpr{
 			Op: token.LSS,
 			X:  litWord("1"),
 			Y:  litWord("3"),
@@ -1801,7 +1817,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{`$((i = 2))`, `$((i=2))`},
-		All: arithmExp(&ast.BinaryExpr{
+		common: arithmExp(&ast.BinaryExpr{
 			Op: token.ASSIGN,
 			X:  litWord("i"),
 			Y:  litWord("2"),
@@ -1809,7 +1825,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"$((a += 2, b -= 3))"},
-		All: arithmExp(&ast.BinaryExpr{
+		common: arithmExp(&ast.BinaryExpr{
 			Op: token.COMMA,
 			X: &ast.BinaryExpr{
 				Op: token.ADDASSGN,
@@ -1825,7 +1841,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"$((a >>= 2, b <<= 3))"},
-		All: arithmExp(&ast.BinaryExpr{
+		common: arithmExp(&ast.BinaryExpr{
 			Op: token.COMMA,
 			X: &ast.BinaryExpr{
 				Op: token.SHRASSGN,
@@ -1841,7 +1857,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"$((a == b && c > d))"},
-		All: arithmExp(&ast.BinaryExpr{
+		common: arithmExp(&ast.BinaryExpr{
 			Op: token.LAND,
 			X: &ast.BinaryExpr{
 				Op: token.EQL,
@@ -1857,7 +1873,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"$((a != b))"},
-		All: arithmExp(&ast.BinaryExpr{
+		common: arithmExp(&ast.BinaryExpr{
 			Op: token.NEQ,
 			X:  litWord("a"),
 			Y:  litWord("b"),
@@ -1865,7 +1881,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"$((a &= b))"},
-		All: arithmExp(&ast.BinaryExpr{
+		common: arithmExp(&ast.BinaryExpr{
 			Op: token.ANDASSGN,
 			X:  litWord("a"),
 			Y:  litWord("b"),
@@ -1873,7 +1889,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"$((a |= b))"},
-		All: arithmExp(&ast.BinaryExpr{
+		common: arithmExp(&ast.BinaryExpr{
 			Op: token.ORASSGN,
 			X:  litWord("a"),
 			Y:  litWord("b"),
@@ -1881,7 +1897,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"$((a %= b))"},
-		All: arithmExp(&ast.BinaryExpr{
+		common: arithmExp(&ast.BinaryExpr{
 			Op: token.REMASSGN,
 			X:  litWord("a"),
 			Y:  litWord("b"),
@@ -1889,7 +1905,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"$((a /= b))"},
-		All: arithmExp(&ast.BinaryExpr{
+		common: arithmExp(&ast.BinaryExpr{
 			Op: token.QUOASSGN,
 			X:  litWord("a"),
 			Y:  litWord("b"),
@@ -1897,7 +1913,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"$((a ^= b))"},
-		All: arithmExp(&ast.BinaryExpr{
+		common: arithmExp(&ast.BinaryExpr{
 			Op: token.XORASSGN,
 			X:  litWord("a"),
 			Y:  litWord("b"),
@@ -1905,7 +1921,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"$((i *= 3))"},
-		All: arithmExp(&ast.BinaryExpr{
+		common: arithmExp(&ast.BinaryExpr{
 			Op: token.MULASSGN,
 			X:  litWord("i"),
 			Y:  litWord("3"),
@@ -1913,7 +1929,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"$((2 >= 10))"},
-		All: arithmExp(&ast.BinaryExpr{
+		common: arithmExp(&ast.BinaryExpr{
 			Op: token.GEQ,
 			X:  litWord("2"),
 			Y:  litWord("10"),
@@ -1921,7 +1937,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"$((foo ? b1 : b2))"},
-		All: arithmExp(&ast.BinaryExpr{
+		common: arithmExp(&ast.BinaryExpr{
 			Op: token.QUEST,
 			X:  litWord("foo"),
 			Y: &ast.BinaryExpr{
@@ -1933,7 +1949,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{`$((a <= (1 || 2)))`},
-		All: arithmExp(&ast.BinaryExpr{
+		common: arithmExp(&ast.BinaryExpr{
 			Op: token.LEQ,
 			X:  litWord("a"),
 			Y: parenExpr(&ast.BinaryExpr{
@@ -1944,88 +1960,88 @@ var FileTests = []TestCase{
 		}),
 	},
 	{
-		Strs: []string{"foo$", "foo$\n"},
-		All:  word(lit("foo"), lit("$")),
+		Strs:   []string{"foo$", "foo$\n"},
+		common: word(lit("foo"), lit("$")),
 	},
 	{
 		Strs: []string{`$'foo'`},
-		All:  &ast.Quoted{Quote: token.DOLLSQ, Parts: lits("foo")},
+		bash: &ast.Quoted{Quote: token.DOLLSQ, Parts: lits("foo")},
 	},
 	{
 		Strs: []string{`$'foo${'`},
-		All:  &ast.Quoted{Quote: token.DOLLSQ, Parts: lits("foo${")},
+		bash: &ast.Quoted{Quote: token.DOLLSQ, Parts: lits("foo${")},
 	},
 	{
 		Strs: []string{"$'foo bar`'"},
-		All:  &ast.Quoted{Quote: token.DOLLSQ, Parts: lits("foo bar`")},
+		bash: &ast.Quoted{Quote: token.DOLLSQ, Parts: lits("foo bar`")},
 	},
 	{
 		Strs: []string{"$'f\\'oo\n'"},
-		All:  &ast.Quoted{Quote: token.DOLLSQ, Parts: lits("f\\'oo\n")},
+		bash: &ast.Quoted{Quote: token.DOLLSQ, Parts: lits("f\\'oo\n")},
 	},
 	{
 		Strs: []string{`$"foo"`},
-		All:  &ast.Quoted{Quote: token.DOLLDQ, Parts: lits("foo")},
+		bash: &ast.Quoted{Quote: token.DOLLDQ, Parts: lits("foo")},
 	},
 	{
 		Strs: []string{`$"foo$"`},
-		All:  &ast.Quoted{Quote: token.DOLLDQ, Parts: lits("foo", "$")},
+		bash: &ast.Quoted{Quote: token.DOLLDQ, Parts: lits("foo", "$")},
 	},
 	{
 		Strs: []string{`$"foo bar"`},
-		All:  &ast.Quoted{Quote: token.DOLLDQ, Parts: lits(`foo bar`)},
+		bash: &ast.Quoted{Quote: token.DOLLDQ, Parts: lits(`foo bar`)},
 	},
 	{
 		Strs: []string{`$"f\"oo"`},
-		All:  &ast.Quoted{Quote: token.DOLLDQ, Parts: lits(`f\"oo`)},
+		bash: &ast.Quoted{Quote: token.DOLLDQ, Parts: lits(`f\"oo`)},
 	},
 	{
-		Strs: []string{`"foo$"`},
-		All:  dblQuoted(lit("foo"), lit("$")),
+		Strs:   []string{`"foo$"`},
+		common: dblQuoted(lit("foo"), lit("$")),
 	},
 	{
-		Strs: []string{`"foo$$"`},
-		All:  dblQuoted(lit("foo"), litParamExp("$")),
+		Strs:   []string{`"foo$$"`},
+		common: dblQuoted(lit("foo"), litParamExp("$")),
 	},
 	{
 		Strs: []string{"`foo$`"},
-		All: bckQuoted(
+		common: bckQuoted(
 			stmt(call(*word(lit("foo"), lit("$")))),
 		),
 	},
 	{
-		Strs: []string{"foo$bar"},
-		All:  word(lit("foo"), litParamExp("bar")),
+		Strs:   []string{"foo$bar"},
+		common: word(lit("foo"), litParamExp("bar")),
 	},
 	{
-		Strs: []string{"foo$(bar)"},
-		All:  word(lit("foo"), cmdSubst(litStmt("bar"))),
+		Strs:   []string{"foo$(bar)"},
+		common: word(lit("foo"), cmdSubst(litStmt("bar"))),
 	},
 	{
-		Strs: []string{"foo${bar}"},
-		All:  word(lit("foo"), &ast.ParamExp{Param: *lit("bar")}),
+		Strs:   []string{"foo${bar}"},
+		common: word(lit("foo"), &ast.ParamExp{Param: *lit("bar")}),
 	},
 	{
-		Strs: []string{"'foo${bar'"},
-		All:  sglQuoted("foo${bar"),
+		Strs:   []string{"'foo${bar'"},
+		common: sglQuoted("foo${bar"),
 	},
 	{
 		Strs: []string{"(foo)\nbar", "(foo); bar"},
-		All: []ast.Command{
+		common: []ast.Command{
 			subshell(litStmt("foo")),
 			litCall("bar"),
 		},
 	},
 	{
 		Strs: []string{"foo\n(bar)", "foo; (bar)"},
-		All: []ast.Command{
+		common: []ast.Command{
 			litCall("foo"),
 			subshell(litStmt("bar")),
 		},
 	},
 	{
 		Strs: []string{"foo\n(bar)", "foo; (bar)"},
-		All: []ast.Command{
+		common: []ast.Command{
 			litCall("foo"),
 			subshell(litStmt("bar")),
 		},
@@ -2037,7 +2053,7 @@ var FileTests = []TestCase{
 			"case $i in (1) foo;; 2 | 3*) bar;; esac",
 			"case $i\nin\n#etc\n1)\nfoo\n;;\n2 | 3*)\nbar\n;;\nesac",
 		},
-		All: &ast.CaseClause{
+		common: &ast.CaseClause{
 			Word: *word(litParamExp("i")),
 			List: []*ast.PatternList{
 				{
@@ -2055,7 +2071,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"case $i in 1) a ;;& 2) b ;& 3) c ;; esac"},
-		All: &ast.CaseClause{
+		bash: &ast.CaseClause{
 			Word: *word(litParamExp("i")),
 			List: []*ast.PatternList{
 				{
@@ -2078,7 +2094,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"case $i in 1) cat <<EOF ;;\nfoo\nEOF\nesac"},
-		All: &ast.CaseClause{
+		common: &ast.CaseClause{
 			Word: *word(litParamExp("i")),
 			List: []*ast.PatternList{{
 				Op:       token.DSEMICOLON,
@@ -2096,7 +2112,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"foo | while read a; do b; done"},
-		All: &ast.BinaryCmd{
+		common: &ast.BinaryCmd{
 			Op: token.OR,
 			X:  litStmt("foo"),
 			Y: stmt(&ast.WhileClause{
@@ -2109,7 +2125,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"while read l; do foo || bar; done"},
-		All: &ast.WhileClause{
+		common: &ast.WhileClause{
 			CondStmts: []*ast.Stmt{litStmt("read", "l")},
 			DoStmts: stmts(&ast.BinaryCmd{
 				Op: token.LOR,
@@ -2119,20 +2135,20 @@ var FileTests = []TestCase{
 		},
 	},
 	{
-		Strs: []string{"echo if while"},
-		All:  litCall("echo", "if", "while"),
+		Strs:   []string{"echo if while"},
+		common: litCall("echo", "if", "while"),
 	},
 	{
-		Strs: []string{"${foo}if"},
-		All:  word(&ast.ParamExp{Param: *lit("foo")}, lit("if")),
+		Strs:   []string{"${foo}if"},
+		common: word(&ast.ParamExp{Param: *lit("foo")}, lit("if")),
 	},
 	{
-		Strs: []string{"$if"},
-		All:  litParamExp("if"),
+		Strs:   []string{"$if"},
+		common: litParamExp("if"),
 	},
 	{
 		Strs: []string{"if a; then b=; fi", "if a; then b=\nfi"},
-		All: &ast.IfClause{
+		common: &ast.IfClause{
 			CondStmts: litStmts("a"),
 			ThenStmts: []*ast.Stmt{
 				{Assigns: []*ast.Assign{
@@ -2143,7 +2159,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"if a; then >f; fi", "if a; then >f\nfi"},
-		All: &ast.IfClause{
+		common: &ast.IfClause{
 			CondStmts: litStmts("a"),
 			ThenStmts: []*ast.Stmt{
 				{Redirs: []*ast.Redirect{
@@ -2154,14 +2170,14 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"if a; then (a); fi", "if a; then (a) fi"},
-		All: &ast.IfClause{
+		common: &ast.IfClause{
 			CondStmts: litStmts("a"),
 			ThenStmts: stmts(subshell(litStmt("a"))),
 		},
 	},
 	{
 		Strs: []string{"a=b\nc=d", "a=b; c=d"},
-		All: []*ast.Stmt{
+		common: []*ast.Stmt{
 			{Assigns: []*ast.Assign{
 				{Name: lit("a"), Value: *litWord("b")},
 			}},
@@ -2172,7 +2188,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"foo && write | read"},
-		All: &ast.BinaryCmd{
+		common: &ast.BinaryCmd{
 			Op: token.LAND,
 			X:  litStmt("foo"),
 			Y: stmt(&ast.BinaryCmd{
@@ -2184,7 +2200,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"write | read && bar"},
-		All: &ast.BinaryCmd{
+		common: &ast.BinaryCmd{
 			Op: token.LAND,
 			X: stmt(&ast.BinaryCmd{
 				Op: token.OR,
@@ -2196,7 +2212,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"foo >f | bar"},
-		All: &ast.BinaryCmd{
+		common: &ast.BinaryCmd{
 			Op: token.OR,
 			X: &ast.Stmt{
 				Cmd: litCall("foo"),
@@ -2209,7 +2225,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"(foo) >f | bar"},
-		All: &ast.BinaryCmd{
+		common: &ast.BinaryCmd{
 			Op: token.OR,
 			X: &ast.Stmt{
 				Cmd: subshell(litStmt("foo")),
@@ -2222,7 +2238,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"foo | >f"},
-		All: &ast.BinaryCmd{
+		common: &ast.BinaryCmd{
 			Op: token.OR,
 			X:  litStmt("foo"),
 			Y: &ast.Stmt{
@@ -2234,13 +2250,13 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"[[ a ]]"},
-		All: &ast.TestClause{
+		bash: &ast.TestClause{
 			X: litWord("a"),
 		},
 	},
 	{
 		Strs: []string{"[[ a ]]\nb"},
-		All: stmts(
+		bash: stmts(
 			&ast.TestClause{
 				X: litWord("a"),
 			},
@@ -2249,7 +2265,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"[[ a > b ]]"},
-		All: &ast.TestClause{
+		bash: &ast.TestClause{
 			X: &ast.BinaryExpr{
 				Op: token.GTR,
 				X:  litWord("a"),
@@ -2259,7 +2275,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"[[ 1 -eq 2 ]]"},
-		All: &ast.TestClause{
+		bash: &ast.TestClause{
 			X: &ast.BinaryExpr{
 				Op: token.TEQL,
 				X:  litWord("1"),
@@ -2269,7 +2285,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"[[ a =~ b ]]"},
-		All: &ast.TestClause{
+		bash: &ast.TestClause{
 			X: &ast.BinaryExpr{
 				Op: token.TREMATCH,
 				X:  litWord("a"),
@@ -2279,7 +2295,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{`[[ a =~ " foo "$bar ]]`},
-		All: &ast.TestClause{
+		bash: &ast.TestClause{
 			X: &ast.BinaryExpr{
 				Op: token.TREMATCH,
 				X:  litWord("a"),
@@ -2289,7 +2305,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{`[[ a =~ [ab](c |d) ]]`},
-		All: &ast.TestClause{
+		bash: &ast.TestClause{
 			X: &ast.BinaryExpr{
 				Op: token.TREMATCH,
 				X:  litWord("a"),
@@ -2299,7 +2315,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"[[ -n $a ]]"},
-		All: &ast.TestClause{
+		bash: &ast.TestClause{
 			X: &ast.UnaryExpr{
 				Op: token.TNEMPSTR,
 				X:  word(litParamExp("a")),
@@ -2308,7 +2324,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"[[ ! $a < 'b' ]]"},
-		All: &ast.TestClause{
+		bash: &ast.TestClause{
 			X: &ast.UnaryExpr{
 				Op: token.NOT,
 				X: &ast.BinaryExpr{
@@ -2324,7 +2340,7 @@ var FileTests = []TestCase{
 			"[[ ! -e $a ]]",
 			"[[ ! -a $a ]]",
 		},
-		All: &ast.TestClause{
+		bash: &ast.TestClause{
 			X: &ast.UnaryExpr{
 				Op: token.NOT,
 				X: &ast.UnaryExpr{
@@ -2336,7 +2352,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"[[ (a && b) ]]"},
-		All: &ast.TestClause{
+		bash: &ast.TestClause{
 			X: parenExpr(&ast.BinaryExpr{
 				Op: token.LAND,
 				X:  litWord("a"),
@@ -2346,7 +2362,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"[[ (a && b) || c ]]"},
-		All: &ast.TestClause{
+		bash: &ast.TestClause{
 			X: &ast.BinaryExpr{
 				Op: token.LOR,
 				X: parenExpr(&ast.BinaryExpr{
@@ -2363,7 +2379,7 @@ var FileTests = []TestCase{
 			"[[ -S a && -L b ]]",
 			"[[ -S a && -h b ]]",
 		},
-		All: &ast.TestClause{
+		bash: &ast.TestClause{
 			X: &ast.BinaryExpr{
 				Op: token.LAND,
 				X: &ast.UnaryExpr{
@@ -2379,7 +2395,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"[[ a > b && c > d ]]"},
-		All: &ast.TestClause{
+		bash: &ast.TestClause{
 			X: &ast.BinaryExpr{
 				Op: token.GTR,
 				X:  litWord("a"),
@@ -2397,7 +2413,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"[[ a == b && c != d ]]"},
-		All: &ast.TestClause{
+		bash: &ast.TestClause{
 			X: &ast.BinaryExpr{
 				Op: token.EQL,
 				X:  litWord("a"),
@@ -2415,7 +2431,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"declare -f func"},
-		All: &ast.DeclClause{
+		bash: &ast.DeclClause{
 			Opts: litWords("-f"),
 			Assigns: []*ast.Assign{
 				{Value: *litWord("func")},
@@ -2424,7 +2440,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"declare -a -bc foo=bar"},
-		All: &ast.DeclClause{
+		bash: &ast.DeclClause{
 			Opts: litWords("-a", "-bc"),
 			Assigns: []*ast.Assign{
 				{Name: lit("foo"), Value: *litWord("bar")},
@@ -2433,7 +2449,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"declare -a foo=(b1 `b2`)"},
-		All: &ast.DeclClause{
+		bash: &ast.DeclClause{
 			Opts: litWords("-a"),
 			Assigns: []*ast.Assign{{
 				Name: lit("foo"),
@@ -2448,7 +2464,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"local -a foo=(b1 `b2`)"},
-		All: &ast.DeclClause{
+		bash: &ast.DeclClause{
 			Local: true,
 			Opts:  litWords("-a"),
 			Assigns: []*ast.Assign{{
@@ -2467,7 +2483,7 @@ var FileTests = []TestCase{
 			"a && b=(c)\nd",
 			"a && b=(c); d",
 		},
-		All: stmts(
+		bash: stmts(
 			&ast.BinaryCmd{
 				Op: token.LAND,
 				X:  litStmt("a"),
@@ -2483,7 +2499,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"declare -f func >/dev/null"},
-		All: &ast.Stmt{
+		bash: &ast.Stmt{
 			Cmd: &ast.DeclClause{
 				Opts: litWords("-f"),
 				Assigns: []*ast.Assign{
@@ -2497,11 +2513,11 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"eval"},
-		All:  &ast.EvalClause{},
+		bash: &ast.EvalClause{},
 	},
 	{
 		Strs: []string{"eval a=b foo"},
-		All: &ast.EvalClause{Stmt: &ast.Stmt{
+		bash: &ast.EvalClause{Stmt: &ast.Stmt{
 			Cmd: litCall("foo"),
 			Assigns: []*ast.Assign{{
 				Name:  lit("a"),
@@ -2511,7 +2527,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{`let i++`},
-		All: letClause(
+		bash: letClause(
 			&ast.UnaryExpr{
 				Op:   token.INC,
 				Post: true,
@@ -2521,7 +2537,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{`let a++ b++ c +d`},
-		All: letClause(
+		bash: letClause(
 			&ast.UnaryExpr{
 				Op:   token.INC,
 				Post: true,
@@ -2541,13 +2557,13 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{`let "--i"`},
-		All: letClause(
+		bash: letClause(
 			word(dblQuoted(lit("--i"))),
 		),
 	},
 	{
 		Strs: []string{`let ++i >/dev/null`},
-		All: &ast.Stmt{
+		bash: &ast.Stmt{
 			Cmd: letClause(
 				&ast.UnaryExpr{
 					Op: token.INC,
@@ -2564,7 +2580,7 @@ var FileTests = []TestCase{
 			`let a=(1 + 2) b=3+4`,
 			`let a=(1+2) b=3+4`,
 		},
-		All: letClause(
+		bash: letClause(
 			&ast.BinaryExpr{
 				Op: token.ASSIGN,
 				X:  litWord("a"),
@@ -2586,15 +2602,15 @@ var FileTests = []TestCase{
 		),
 	},
 	{
-		Strs: []string{"(foo-bar)"},
-		All:  subshell(litStmt("foo-bar")),
+		Strs:   []string{"(foo-bar)"},
+		common: subshell(litStmt("foo-bar")),
 	},
 	{
 		Strs: []string{
 			"let i++\nbar",
 			"let i++; bar",
 		},
-		All: []*ast.Stmt{
+		bash: []*ast.Stmt{
 			stmt(letClause(
 				&ast.UnaryExpr{
 					Op:   token.INC,
@@ -2611,7 +2627,7 @@ var FileTests = []TestCase{
 			"let i++; foo=(bar)",
 			"let i++; foo=(bar)\n",
 		},
-		All: []*ast.Stmt{
+		bash: []*ast.Stmt{
 			stmt(letClause(
 				&ast.UnaryExpr{
 					Op:   token.INC,
@@ -2634,7 +2650,7 @@ var FileTests = []TestCase{
 			"case a in b) let i++ ;; esac",
 			"case a in b) let i++;; esac",
 		},
-		All: &ast.CaseClause{
+		bash: &ast.CaseClause{
 			Word: *word(lit("a")),
 			List: []*ast.PatternList{{
 				Op:       token.DSEMICOLON,
@@ -2651,11 +2667,11 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"let $?"},
-		All:  letClause(word(litParamExp("?"))),
+		bash: letClause(word(litParamExp("?"))),
 	},
 	{
 		Strs: []string{"a=(b c) foo"},
-		All: &ast.Stmt{
+		bash: &ast.Stmt{
 			Assigns: []*ast.Assign{{
 				Name: lit("a"),
 				Value: *word(
@@ -2667,7 +2683,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"a=(b c) foo", "a=(\nb\nc\n) foo"},
-		All: &ast.Stmt{
+		bash: &ast.Stmt{
 			Assigns: []*ast.Assign{{
 				Name: lit("a"),
 				Value: *word(
@@ -2679,7 +2695,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"a+=1 b+=(2 3)"},
-		All: &ast.Stmt{
+		bash: &ast.Stmt{
 			Assigns: []*ast.Assign{
 				{
 					Append: true,
@@ -2698,7 +2714,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"<<EOF | b\nfoo\nEOF", "<<EOF|b;\nfoo\n"},
-		All: &ast.BinaryCmd{
+		common: &ast.BinaryCmd{
 			Op: token.OR,
 			X: &ast.Stmt{Redirs: []*ast.Redirect{{
 				Op:   token.SHL,
@@ -2710,7 +2726,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"<<EOF1 <<EOF2 | c && d\nEOF1\nEOF2"},
-		All: &ast.BinaryCmd{
+		common: &ast.BinaryCmd{
 			Op: token.LAND,
 			X: stmt(&ast.BinaryCmd{
 				Op: token.OR,
@@ -2736,7 +2752,7 @@ var FileTests = []TestCase{
 			"<<EOF && { bar; }\nhdoc\nEOF",
 			"<<EOF &&\nhdoc\nEOF\n{ bar; }",
 		},
-		All: &ast.BinaryCmd{
+		common: &ast.BinaryCmd{
 			Op: token.LAND,
 			X: &ast.Stmt{Redirs: []*ast.Redirect{{
 				Op:   token.SHL,
@@ -2748,7 +2764,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"foo() {\n\t<<EOF && { bar; }\nhdoc\nEOF\n}"},
-		All: &ast.FuncDecl{
+		common: &ast.FuncDecl{
 			Name: *lit("foo"),
 			Body: stmt(block(stmt(&ast.BinaryCmd{
 				Op: token.LAND,
@@ -2763,7 +2779,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{"\"a`\"\"`\""},
-		All: dblQuoted(
+		common: dblQuoted(
 			lit("a"),
 			bckQuoted(
 				stmt(call(

@@ -22,10 +22,28 @@ import (
 func TestParseBash(t *testing.T) {
 	internal.DefaultPos = 0
 	for i, c := range tests.FileTests {
-		want := c.All.(*ast.File)
+		want := c.Bash
+		if want == nil {
+			continue
+		}
 		tests.SetPosRecurse(t, "", want.Stmts, internal.DefaultPos, false)
 		for j, in := range c.Strs {
 			t.Run(fmt.Sprintf("%03d-%d", i, j), singleParse(in, want, 0))
+		}
+	}
+}
+
+func TestParsePosix(t *testing.T) {
+	internal.DefaultPos = 0
+	for i, c := range tests.FileTests {
+		want := c.Posix
+		if want == nil {
+			continue
+		}
+		tests.SetPosRecurse(t, "", want.Stmts, internal.DefaultPos, false)
+		for j, in := range c.Strs {
+			t.Run(fmt.Sprintf("%03d-%d", i, j),
+				singleParse(in, want, PosixConformant))
 		}
 	}
 }

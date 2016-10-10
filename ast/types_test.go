@@ -17,10 +17,11 @@ import (
 func TestNodePos(t *testing.T) {
 	internal.DefaultPos = 1234
 	for i, c := range tests.FileTests {
-		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
-			want := c.All.(*ast.File)
-			tests.SetPosRecurse(t, "", want, internal.DefaultPos, true)
-		})
+		for j, prog := range c.All {
+			t.Run(fmt.Sprintf("%03d-%d", i, j), func(t *testing.T) {
+				tests.SetPosRecurse(t, "", prog, internal.DefaultPos, true)
+			})
+		}
 	}
 }
 
