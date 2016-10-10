@@ -2707,22 +2707,26 @@ var FileTests = []TestCase{
 		},
 	},
 	{
-		Strs: []string{"a+=1 b+=(2 3)"},
+		Strs: []string{"a+=1"},
 		bash: &ast.Stmt{
-			Assigns: []*ast.Assign{
-				{
-					Append: true,
-					Name:   lit("a"),
-					Value:  *litWord("1"),
-				},
-				{
-					Append: true,
-					Name:   lit("b"),
-					Value: *word(
-						&ast.ArrayExpr{List: litWords("2", "3")},
-					),
-				},
-			},
+			Assigns: []*ast.Assign{{
+				Append: true,
+				Name:   lit("a"),
+				Value:  *litWord("1"),
+			}},
+		},
+		posix: litStmt("a+=1"),
+	},
+	{
+		Strs: []string{"b+=(2 3)"},
+		bash: &ast.Stmt{
+			Assigns: []*ast.Assign{{
+				Append: true,
+				Name:   lit("b"),
+				Value: *word(
+					&ast.ArrayExpr{List: litWords("2", "3")},
+				),
+			}},
 		},
 	},
 	{

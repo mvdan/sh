@@ -886,7 +886,7 @@ func (p *parser) getAssign() *ast.Assign {
 	if p.spaced {
 		return as
 	}
-	if start.Value == "" && p.tok == token.LPAREN {
+	if start.Value == "" && p.tok == token.LPAREN && p.bash() {
 		ae := &ast.ArrayExpr{Lparen: p.pos}
 		p.next()
 		for p.tok != token.EOF && p.tok != token.RPAREN {

@@ -670,10 +670,9 @@ loop:
 		case '"', '\'', '$':
 			break loop
 		case '=':
-			if as := i - p.npos; as > 0 && p.src[p.npos+as-1] == '+' {
-				p.asPos = as - 1 // a+=(b)
-			} else {
-				p.asPos = as
+			p.asPos = i - p.npos
+			if p.bash() && p.asPos > 0 && p.src[p.npos+p.asPos-1] == '+' {
+				p.asPos-- // a+=b
 			}
 		}
 	}
