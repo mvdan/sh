@@ -218,12 +218,13 @@ var FileTests = []TestCase{
 		},
 	},
 	{
-		Strs: []string{`((a <= 2))`},
+		Strs: []string{`((a == 2))`},
 		bash: stmt(&ast.ArithmExp{Token: token.DLPAREN, X: &ast.BinaryExpr{
-			Op: token.LEQ,
+			Op: token.EQL,
 			X:  litWord("a"),
 			Y:  litWord("2"),
 		}}),
+		posix: subshell(stmt(subshell(litStmt("a", "==", "2")))),
 	},
 	{
 		Strs: []string{"if ((1 > 2)); then b; fi"},
@@ -1964,8 +1965,9 @@ var FileTests = []TestCase{
 		common: word(lit("foo"), lit("$")),
 	},
 	{
-		Strs: []string{`$'foo'`},
-		bash: &ast.Quoted{Quote: token.DOLLSQ, Parts: lits("foo")},
+		Strs:  []string{`$'foo'`},
+		bash:  &ast.Quoted{Quote: token.DOLLSQ, Parts: lits("foo")},
+		posix: word(lit("$"), sglQuoted("foo")),
 	},
 	{
 		Strs: []string{`$'foo${'`},
@@ -1980,8 +1982,9 @@ var FileTests = []TestCase{
 		bash: &ast.Quoted{Quote: token.DOLLSQ, Parts: lits("f\\'oo\n")},
 	},
 	{
-		Strs: []string{`$"foo"`},
-		bash: &ast.Quoted{Quote: token.DOLLDQ, Parts: lits("foo")},
+		Strs:  []string{`$"foo"`},
+		bash:  &ast.Quoted{Quote: token.DOLLDQ, Parts: lits("foo")},
+		posix: word(lit("$"), dblQuoted(lit("foo"))),
 	},
 	{
 		Strs: []string{`$"foo$"`},
@@ -2249,10 +2252,9 @@ var FileTests = []TestCase{
 		},
 	},
 	{
-		Strs: []string{"[[ a ]]"},
-		bash: &ast.TestClause{
-			X: litWord("a"),
-		},
+		Strs:  []string{"[[ a ]]"},
+		bash:  &ast.TestClause{X: litWord("a")},
+		posix: litStmt("[[", "a", "]]"),
 	},
 	{
 		Strs: []string{"[[ a ]]\nb"},
@@ -2437,6 +2439,15 @@ var FileTests = []TestCase{
 				{Value: *litWord("func")},
 			},
 		},
+		posix: litStmt("declare", "-f", "func"),
+	},
+	{
+		Strs: []string{"local bar"},
+		bash: &ast.DeclClause{
+			Local:   true,
+			Assigns: []*ast.Assign{{Value: *litWord("bar")}},
+		},
+		posix: litStmt("local", "bar"),
 	},
 	{
 		Strs: []string{"declare -a -bc foo=bar"},
@@ -2512,8 +2523,9 @@ var FileTests = []TestCase{
 		},
 	},
 	{
-		Strs: []string{"eval"},
-		bash: &ast.EvalClause{},
+		Strs:  []string{"eval"},
+		bash:  &ast.EvalClause{},
+		posix: litStmt("eval"),
 	},
 	{
 		Strs: []string{"eval a=b foo"},
@@ -2534,6 +2546,7 @@ var FileTests = []TestCase{
 				X:    litWord("i"),
 			},
 		),
+		posix: litStmt("let", "i++"),
 	},
 	{
 		Strs: []string{`let a++ b++ c +d`},
