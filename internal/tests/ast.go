@@ -1149,6 +1149,12 @@ var FileTests = []TestCase{
 		))),
 	},
 	{
+		[]string{"`(foo)`"},
+		word(bckQuoted(stmt(
+			subshell(litStmt("foo")),
+		))),
+	},
+	{
 		[]string{
 			"$(\n\t(a)\n\tb\n)",
 			"$( (a); b)",

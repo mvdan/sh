@@ -356,14 +356,12 @@ func (p *printer) wordPart(wp ast.WordPart) {
 		}
 	case *ast.CmdSubst:
 		p.incLines(x.Pos())
-		p.wantSpace = false
 		if x.Backquotes {
 			p.WriteByte('`')
+			p.wantSpace = false
 		} else {
 			p.WriteString("$(")
-		}
-		if len(x.Stmts) > 0 && startsWithLparen(x.Stmts[0]) {
-			p.wantSpace = true
+			p.wantSpace = len(x.Stmts) > 0 && startsWithLparen(x.Stmts[0])
 		}
 		p.nestedStmts(x.Stmts)
 		if x.Backquotes {
@@ -820,9 +818,7 @@ func (p *printer) command(cmd ast.Command, redirs []*ast.Redirect) (startRedirs 
 		p.semiRsrv("fi", x.Fi, true)
 	case *ast.Subshell:
 		p.spacedString("(", false)
-		if len(x.Stmts) > 0 && startsWithLparen(x.Stmts[0]) {
-			p.wantSpace = true
-		}
+		p.wantSpace = len(x.Stmts) > 0 && startsWithLparen(x.Stmts[0])
 		p.nestedStmts(x.Stmts)
 		p.sepTok(")", x.Rparen)
 	case *ast.WhileClause:
