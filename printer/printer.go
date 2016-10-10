@@ -362,7 +362,7 @@ func (p *printer) wordPart(wp ast.WordPart) {
 		} else {
 			p.WriteString("$(")
 		}
-		if startsWithLparen(x.Stmts) {
+		if len(x.Stmts) > 0 && startsWithLparen(x.Stmts[0]) {
 			p.wantSpace = true
 		}
 		p.nestedStmts(x.Stmts)
@@ -820,8 +820,8 @@ func (p *printer) command(cmd ast.Command, redirs []*ast.Redirect) (startRedirs 
 		p.semiRsrv("fi", x.Fi, true)
 	case *ast.Subshell:
 		p.spacedString("(", false)
-		if startsWithLparen(x.Stmts) {
-			p.WriteByte(' ')
+		if len(x.Stmts) > 0 && startsWithLparen(x.Stmts[0]) {
+			p.wantSpace = true
 		}
 		p.nestedStmts(x.Stmts)
 		p.sepTok(")", x.Rparen)
@@ -942,12 +942,14 @@ func (p *printer) command(cmd ast.Command, redirs []*ast.Redirect) (startRedirs 
 	return startRedirs
 }
 
-func startsWithLparen(stmts []*ast.Stmt) bool {
-	if len(stmts) < 1 {
-		return false
+func startsWithLparen(s *ast.Stmt) bool {
+	switch x := s.Cmd.(type) {
+	case *ast.Subshell:
+		return true
+	case *ast.BinaryCmd:
+		return startsWithLparen(x.X)
 	}
-	_, ok := stmts[0].Cmd.(*ast.Subshell)
-	return ok
+	return false
 }
 
 func (p *printer) stmts(stmts []*ast.Stmt) {

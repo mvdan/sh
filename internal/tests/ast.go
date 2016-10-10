@@ -1161,6 +1161,19 @@ var FileTests = []TestCase{
 	},
 	{
 		[]string{
+			"$( (a) | b)",
+			"$((a) | b)",
+		},
+		word(cmdSubst(
+			stmt(&ast.BinaryCmd{
+				Op: token.OR,
+				X:  stmt(subshell(litStmt("a"))),
+				Y:  litStmt("b"),
+			}),
+		)),
+	},
+	{
+		[]string{
 			`"$( (foo))"`,
 			`"$((foo) )"`,
 		},
