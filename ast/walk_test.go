@@ -14,7 +14,7 @@ import (
 func TestWalk(t *testing.T) {
 	for i, c := range tests.FileTests {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
-			ast.Walk(nopVisitor{}, c.Ast.(*ast.File))
+			ast.Walk(nopVisitor{}, c.All.(*ast.File))
 		})
 	}
 }

@@ -22,7 +22,7 @@ import (
 func TestParseBash(t *testing.T) {
 	internal.DefaultPos = 0
 	for i, c := range tests.FileTests {
-		want := c.Ast.(*ast.File)
+		want := c.All.(*ast.File)
 		tests.SetPosRecurse(t, "", want.Stmts, internal.DefaultPos, false)
 		for j, in := range c.Strs {
 			t.Run(fmt.Sprintf("%03d-%d", i, j), singleParse(in, want, 0))
