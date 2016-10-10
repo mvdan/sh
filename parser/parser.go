@@ -472,6 +472,7 @@ func (p *parser) wordPart() ast.WordPart {
 		left := p.tok
 		ar := &ast.ArithmExp{Token: p.tok, Left: p.pos}
 		oldQuote := p.quote
+		oldLines := len(p.f.Lines)
 		if ar.Token == token.DOLLBK {
 			// treat deprecated $[ as $((
 			ar.Token = token.DOLLDP
@@ -495,6 +496,7 @@ func (p *parser) wordPart() ast.WordPart {
 			p.err = nil
 			p.tok, p.pos = token.DOLLPR, ar.Left
 			p.npos = int(ar.Left) + 1
+			p.f.Lines = p.f.Lines[:oldLines]
 			wp := p.wordPart()
 			if p.err != nil {
 				if oldErr != nil {
