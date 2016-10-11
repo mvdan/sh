@@ -654,8 +654,7 @@ loop:
 			if i == len(p.src)-1 {
 				break
 			}
-			i++
-			if p.src[i] == '\n' {
+			if i++; p.src[i] == '\n' {
 				p.f.Lines = append(p.f.Lines, i+1)
 				bs := p.src[p.npos : i-1]
 				p.npos = i + 1
@@ -733,7 +732,10 @@ loop:
 	for i = p.npos; i < len(p.src); i++ {
 		switch p.src[i] {
 		case '\\': // escaped byte follows
-			if i++; len(p.src) > i && p.src[i] == '\n' {
+			if i == len(p.src)-1 {
+				break
+			}
+			if i++; p.src[i] == '\n' {
 				p.f.Lines = append(p.f.Lines, i+1)
 			}
 		case '"':
@@ -780,10 +782,10 @@ loop:
 	for i = p.npos; i < len(p.src); i++ {
 		switch p.src[i] {
 		case '\\': // escaped byte follows
-			if i++; i == len(p.src) {
+			if i == len(p.src)-1 {
 				break loop
 			}
-			if p.src[i] == '\n' {
+			if i++; p.src[i] == '\n' {
 				p.f.Lines = append(p.f.Lines, i+1)
 			}
 		case '`', '$':

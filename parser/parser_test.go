@@ -299,7 +299,7 @@ var shellTests = []struct {
 		`1:1: reached EOF without closing quote "`,
 	},
 	{
-		`"foo\`,
+		`"foobar\`,
 		`1:1: reached EOF without closing quote "`,
 	},
 	{
@@ -467,12 +467,12 @@ var shellTests = []struct {
 		`1:6: reached EOF without matching $(( with ))`,
 	},
 	{
-		`echo $((\`,
-		`1:6: reached EOF without matching $(( with ))`,
+		`foo $((\`,
+		`1:5: reached EOF without matching $(( with ))`,
 	},
 	{
-		`echo $((foo\`,
-		`1:6: reached EOF without matching $(( with ))`,
+		`fo $((o\`,
+		`1:4: reached EOF without matching $(( with ))`,
 	},
 	{
 		`echo $((foo\a`,
