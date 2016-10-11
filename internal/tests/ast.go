@@ -2847,7 +2847,10 @@ func SetPosRecurse(tb testing.TB, src string, v interface{}, to token.Pos, diff 
 			if i == 0 {
 				gotErr = got
 			}
-			got = strings.Replace(got, "\\\n", "", -1)[:len(want)]
+			got = strings.Replace(got, "\\\n", "", -1)
+			if len(got) > len(want) {
+				got = got[:len(want)]
+			}
 			if got == want {
 				return
 			}
