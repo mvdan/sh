@@ -782,10 +782,10 @@ loop:
 	for i = p.npos; i < len(p.src); i++ {
 		switch p.src[i] {
 		case '\\': // escaped byte follows
-			if i == len(p.src)-1 {
+			if i++; i == len(p.src) {
 				break loop
 			}
-			if i++; p.src[i] == '\n' {
+			if p.src[i] == '\n' {
 				p.f.Lines = append(p.f.Lines, i+1)
 			}
 		case '`', '$':

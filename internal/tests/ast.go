@@ -12,23 +12,29 @@ import (
 	. "github.com/mvdan/sh/token"
 )
 
+func prepareTest(c *TestCase) {
+	c.common = fullProg(c.common)
+	c.bash = fullProg(c.bash)
+	c.posix = fullProg(c.posix)
+	if f, ok := c.common.(*File); ok && f != nil {
+		c.All = append(c.All, f)
+		c.Bash = f
+		c.Posix = f
+	}
+	if f, ok := c.bash.(*File); ok && f != nil {
+		c.Bash = f
+	}
+	if f, ok := c.posix.(*File); ok && f != nil {
+		c.Posix = f
+	}
+}
+
 func init() {
 	for i := range FileTests {
-		c := &FileTests[i]
-		c.common = fullProg(c.common)
-		c.bash = fullProg(c.bash)
-		c.posix = fullProg(c.posix)
-		if f, ok := c.common.(*File); ok && f != nil {
-			c.All = append(c.All, f)
-			c.Bash = f
-			c.Posix = f
-		}
-		if f, ok := c.bash.(*File); ok && f != nil {
-			c.Bash = f
-		}
-		if f, ok := c.posix.(*File); ok && f != nil {
-			c.Posix = f
-		}
+		prepareTest(&FileTests[i])
+	}
+	for i := range FileTestsNoPrint {
+		prepareTest(&FileTestsNoPrint[i])
 	}
 }
 
@@ -2804,6 +2810,18 @@ var FileTests = []TestCase{
 				)),
 			),
 		),
+	},
+}
+
+// these don't have a canonical format with the same AST
+var FileTestsNoPrint = []TestCase{
+	{
+		Strs: []string{"<<EOF\n\\"},
+		common: &Stmt{Redirs: []*Redirect{{
+			Op:   SHL,
+			Word: *litWord("EOF"),
+			Hdoc: *litWord("\\"),
+		}}},
 	},
 }
 

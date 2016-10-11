@@ -21,7 +21,7 @@ import (
 
 func TestParseBash(t *testing.T) {
 	internal.DefaultPos = 0
-	for i, c := range tests.FileTests {
+	for i, c := range append(tests.FileTests, tests.FileTestsNoPrint...) {
 		want := c.Bash
 		if want == nil {
 			continue
@@ -35,7 +35,7 @@ func TestParseBash(t *testing.T) {
 
 func TestParsePosix(t *testing.T) {
 	internal.DefaultPos = 0
-	for i, c := range tests.FileTests {
+	for i, c := range append(tests.FileTests, tests.FileTestsNoPrint...) {
 		want := c.Posix
 		if want == nil {
 			continue
@@ -92,7 +92,7 @@ func TestParseBashConfirm(t *testing.T) {
 	if testing.Short() {
 		t.Skip("calling bash is slow.")
 	}
-	for i, c := range tests.FileTests {
+	for i, c := range append(tests.FileTests, tests.FileTestsNoPrint...) {
 		for j, in := range c.Strs {
 			t.Run(fmt.Sprintf("%03d-%d", i, j), confirmParse(in, false, false))
 		}
