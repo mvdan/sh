@@ -156,7 +156,7 @@ func BenchmarkParse(b *testing.B) {
 		},
 		{
 			"Assign+Clauses",
-			"foo=bar a=b c=d $foo ${bar} $a $b ${c} ${d}; " +
+			"foo=bar a=b c=d$foo${bar}e $a $b ${c} ${d}; " +
 				"if a; then while b; do for c in d e; do f; done; done; fi",
 		},
 		{
