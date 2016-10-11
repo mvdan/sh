@@ -755,14 +755,13 @@ func (p *parser) arithmExpr(ftok token.Token, fpos token.Pos, level int, compact
 }
 
 func (p *parser) arithmExprBase(ftok token.Token, fpos token.Pos, compact bool) ast.ArithmExpr {
-	if p.tok == token.INC || p.tok == token.DEC || p.tok == token.NOT {
+	var x ast.ArithmExpr
+	switch p.tok {
+	case token.INC, token.DEC, token.NOT:
 		pre := &ast.UnaryExpr{OpPos: p.pos, Op: p.tok}
 		p.next()
 		pre.X = p.arithmExprBase(pre.Op, pre.OpPos, compact)
 		return pre
-	}
-	var x ast.ArithmExpr
-	switch p.tok {
 	case token.LPAREN:
 		pe := &ast.ParenExpr{Lparen: p.pos}
 		p.next()
