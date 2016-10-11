@@ -339,7 +339,7 @@ func (p *parser) matched(lpos token.Pos, left, right token.Token) token.Pos {
 func (p *parser) errPass(err error) {
 	if p.err == nil {
 		if p.quote == arithmExpr {
-			if err == io.EOF {
+			if err == io.EOF || p.npos >= len(p.src) {
 				p.tok = token.EOF
 			} else {
 				p.err = err
