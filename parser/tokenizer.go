@@ -629,11 +629,8 @@ func (p *parser) advanceLitOther(q quoteState) {
 				return
 			}
 		case q == paramExpRepl:
-			if b == '}' {
+			if b == '}' || b == '/' {
 				p.tok, p.val = token.LITWORD, string(bs)
-				return
-			} else if b == '/' {
-				p.tok, p.val = token.LIT, string(bs)
 				return
 			}
 		case wordBreak(b), regOps(b), q&allArithmExpr != 0 && arithmOps(b),
