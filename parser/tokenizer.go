@@ -824,7 +824,7 @@ func (p *parser) hdocLitWord() ast.Word {
 		end = p.npos
 	}
 	l := p.lit(token.Pos(pos+1), string(p.src[pos:end]))
-	return ast.Word{Parts: p.wps(l)}
+	return ast.Word{Parts: p.singleWps(l)}
 }
 
 func (p *parser) readUntil(b byte) ([]byte, bool) {

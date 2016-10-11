@@ -93,13 +93,23 @@ func (p *parser) lit(pos token.Pos, val string) *ast.Lit {
 	return l
 }
 
-func (p *parser) wps(wp ast.WordPart) []ast.WordPart {
+func (p *parser) singleWps(wp ast.WordPart) []ast.WordPart {
 	if len(p.wpsBatch) == 0 {
-		p.wpsBatch = make([]ast.WordPart, 32)
+		p.wpsBatch = make([]ast.WordPart, 64)
 	}
 	wps := p.wpsBatch[:1:1]
 	p.wpsBatch = p.wpsBatch[1:]
 	wps[0] = wp
+	return wps
+}
+
+func (p *parser) wps() []ast.WordPart {
+	const c = 4
+	if len(p.wpsBatch) < c {
+		p.wpsBatch = make([]ast.WordPart, 64)
+	}
+	wps := p.wpsBatch[:0:c]
+	p.wpsBatch = p.wpsBatch[c:]
 	return wps
 }
 
@@ -431,7 +441,7 @@ func (p *parser) invalidStmtStart() {
 
 func (p *parser) word() ast.Word {
 	if p.tok == token.LITWORD {
-		w := ast.Word{Parts: p.wps(p.lit(p.pos, p.val))}
+		w := ast.Word{Parts: p.singleWps(p.lit(p.pos, p.val))}
 		p.next()
 		return w
 	}
@@ -456,10 +466,9 @@ func (p *parser) wordParts() (wps []ast.WordPart) {
 			return
 		}
 		if wps == nil {
-			wps = p.wps(n)
-		} else {
-			wps = append(wps, n)
+			wps = p.wps()
 		}
+		wps = append(wps, n)
 		if p.spaced {
 			return
 		}
@@ -893,7 +902,7 @@ func (p *parser) getAssign() *ast.Assign {
 	start := p.lit(p.pos+1, p.val[asPos+1:])
 	if start.Value != "" {
 		start.ValuePos += token.Pos(asPos)
-		as.Value.Parts = p.wps(start)
+		as.Value.Parts = p.singleWps(start)
 	}
 	p.next()
 	if p.spaced {
@@ -910,7 +919,7 @@ func (p *parser) getAssign() *ast.Assign {
 			}
 		}
 		ae.Rparen = p.matched(ae.Lparen, token.LPAREN, token.RPAREN)
-		as.Value.Parts = p.wps(ae)
+		as.Value.Parts = p.singleWps(ae)
 	} else if !p.newLine && !stopToken(p.tok) {
 		if w := p.word(); start.Value == "" {
 			as.Value = w
@@ -1068,7 +1077,7 @@ func (p *parser) gotStmtPipe(s *ast.Stmt) *ast.Stmt {
 				s.Cmd = p.funcDecl(name, name.ValuePos)
 			} else {
 				s.Cmd = p.callExpr(s, ast.Word{
-					Parts: p.wps(&name),
+					Parts: p.singleWps(&name),
 				})
 			}
 		}
@@ -1524,7 +1533,7 @@ func (p *parser) callExpr(s *ast.Stmt, w ast.Word) *ast.CallExpr {
 				continue
 			}
 			ce.Args = append(ce.Args, ast.Word{
-				Parts: p.wps(p.lit(p.pos, p.val)),
+				Parts: p.singleWps(p.lit(p.pos, p.val)),
 			})
 			p.next()
 		case token.BQUOTE:
