@@ -7,7 +7,7 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -26,8 +26,8 @@ var (
 	posix      = flag.Bool("p", false, "parse POSIX shell code instead of bash")
 	cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
 
-	config printer.Config
-	buf    bytes.Buffer
+	printConfig       printer.Config
+	readBuf, writeBuf bytes.Buffer
 )
 
 func main() {
@@ -41,7 +41,7 @@ func main() {
 		defer pprof.StopCPUProfile()
 	}
 
-	config.Spaces = *indent
+	printConfig.Spaces = *indent
 	if flag.NArg() == 0 {
 		if err := formatStdin(); err != nil {
 			fmt.Fprintln(os.Stderr, err)
@@ -68,15 +68,16 @@ func formatStdin() error {
 	if *write || *list {
 		return fmt.Errorf("-w and -l can only be used on files")
 	}
-	src, err := ioutil.ReadAll(os.Stdin)
-	if err != nil {
+	readBuf.Reset()
+	if _, err := io.Copy(&readBuf, os.Stdin); err != nil {
 		return err
 	}
+	src := readBuf.Bytes()
 	prog, err := parser.Parse(src, "", parser.ParseComments)
 	if err != nil {
 		return err
 	}
-	return config.Fprint(os.Stdout, prog)
+	return printConfig.Fprint(os.Stdout, prog)
 }
 
 var (
@@ -144,10 +145,11 @@ func formatPath(path string, always bool) error {
 		return err
 	}
 	defer f.Close()
-	src, err := ioutil.ReadAll(f)
-	if err != nil {
+	readBuf.Reset()
+	if _, err := io.Copy(&readBuf, f); err != nil {
 		return err
 	}
+	src := readBuf.Bytes()
 	if !always && !validShebang.Match(src[:32]) {
 		return nil
 	}
@@ -159,11 +161,11 @@ func formatPath(path string, always bool) error {
 	if err != nil {
 		return err
 	}
-	buf.Reset()
-	if err := config.Fprint(&buf, prog); err != nil {
+	writeBuf.Reset()
+	if err := printConfig.Fprint(&writeBuf, prog); err != nil {
 		return err
 	}
-	res := buf.Bytes()
+	res := writeBuf.Bytes()
 	if !bytes.Equal(src, res) {
 		if *list {
 			fmt.Println(path)
