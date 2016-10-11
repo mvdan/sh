@@ -21,3 +21,8 @@ operate on files with no extension and a shell shebang.
 	shfmt -l -w script.sh
 
 Use `-i N` to indent with a number of spaces instead of tabs.
+
+### Related projects
+
+* [format-shell](https://atom.io/packages/format-shell) - Atom plugin
+  for `shfmt`
