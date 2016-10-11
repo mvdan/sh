@@ -74,9 +74,10 @@ type parser struct {
 
 	helperBuf *bytes.Buffer
 
-	litBatch  []ast.Lit
-	wpsBatch  []ast.WordPart
-	stmtBatch []ast.Stmt
+	litBatch    []ast.Lit
+	wpsBatch    []ast.WordPart
+	stmtBatch   []ast.Stmt
+	stListBatch []*ast.Stmt
 
 	litBuf [32]byte
 }
@@ -110,6 +111,15 @@ func (p *parser) stmt(pos token.Pos) *ast.Stmt {
 	s.Position = pos
 	p.stmtBatch = p.stmtBatch[1:]
 	return s
+}
+
+func (p *parser) stList() []*ast.Stmt {
+	if len(p.stListBatch) == 0 {
+		p.stListBatch = make([]*ast.Stmt, 128)
+	}
+	stmts := p.stListBatch[:0:4]
+	p.stListBatch = p.stListBatch[4:]
+	return stmts
 }
 
 type quoteState int
@@ -397,6 +407,9 @@ func (p *parser) stmts(stops ...string) (sts []*ast.Stmt) {
 		if s, end := p.getStmt(true); s == nil {
 			p.invalidStmtStart()
 		} else {
+			if sts == nil {
+				sts = p.stList()
+			}
 			sts = append(sts, s)
 			gotEnd = end
 		}
