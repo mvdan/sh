@@ -223,7 +223,7 @@ func (p *parser) doHeredocs() {
 		}
 		if !quoted {
 			p.next()
-			r.Hdoc = ast.Word{Parts: p.wordParts()}
+			r.Hdoc = p.word()
 			continue
 		}
 		r.Hdoc = p.hdocLitWord()
@@ -474,7 +474,7 @@ func (p *parser) wordParts() (wps []ast.WordPart) {
 		}
 		if p.quote&allHdoc != 0 && p.hdocStop == nil {
 			// TODO: is this is a hack around a bug?
-			if p.tok == token.LIT && !lastLit {
+			if p.tok == token.LITWORD && !lastLit {
 				wps = append(wps, p.lit(p.pos, p.val))
 			}
 			return
@@ -645,7 +645,12 @@ func (p *parser) wordPart() ast.WordPart {
 			p.quote = dblQuotes
 		}
 		p.next()
-		q.Parts = p.wordParts()
+		if p.tok == token.LITWORD {
+			q.Parts = p.singleWps(p.lit(p.pos, p.val))
+			p.next()
+		} else {
+			q.Parts = p.wordParts()
+		}
 		p.quote = old
 		if !p.got(stop) {
 			p.quoteErr(q.Pos(), stop)
