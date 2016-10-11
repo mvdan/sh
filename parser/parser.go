@@ -723,14 +723,21 @@ func (p *parser) arithmExpr(ftok token.Token, fpos token.Pos, level int, compact
 		return left
 	}
 	newLevel := arithmOpLevel(p.tok)
-	if p.quote == arithmExpr && p.tok == token.SEMICOLON {
-		p.curErr("not a valid arithmetic operator: %v", p.tok)
-		newLevel = 0
-	} else if p.tok == token.LIT || p.tok == token.LITWORD {
-		p.curErr("not a valid arithmetic operator: %s", p.val)
-		newLevel = 0
+	if newLevel < 0 {
+		switch p.tok {
+		case token.LIT, token.LITWORD:
+			p.curErr("not a valid arithmetic operator: %s", p.val)
+			newLevel = 0
+		case token.RPAREN, token.EOF:
+		default:
+			if p.quote == arithmExpr {
+				p.curErr("not a valid arithmetic operator: %v", p.tok)
+				newLevel = 0
+			}
+		}
 	}
-	if newLevel < 0 || newLevel < level {
+	// can't check for EOF as we might be skipping errors
+	if p.npos >= len(p.src) || newLevel < 0 || newLevel < level {
 		return left
 	}
 	b := &ast.BinaryExpr{
