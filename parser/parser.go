@@ -499,15 +499,11 @@ func (p *parser) wordPart() ast.WordPart {
 		} else {
 			p.quote = arithmExpr
 		}
-		if p.err != nil {
-			return nil
-		}
 		p.next()
 		ar.X = p.arithmExpr(ar.Token, ar.Left, 0, false)
-		hasEnd := p.peekArithmEnd(p.tok)
 		oldTok := p.tok
 		oldErr := p.err
-		if p.quote == arithmExpr && !hasEnd {
+		if p.quote == arithmExpr && !p.peekArithmEnd() {
 			// TODO: this will probably break if there is
 			// extra lingering state, such as pending
 			// heredocs
@@ -518,19 +514,12 @@ func (p *parser) wordPart() ast.WordPart {
 			p.f.Lines = p.f.Lines[:oldLines]
 			wp := p.wordPart()
 			if p.err != nil {
-				if !hasEnd {
-					// if retrying fails and the
-					// arithmetic expression wasn't
-					// closed, report that properly
-					p.err = nil
-					p.tok = oldTok
-					goto arithmClose
-				} else if oldErr != nil {
-					// if retrying fails, report the
-					// arithmetic expr error as that's got
-					// higher precedence
-					p.err = oldErr
-				}
+				// if retrying fails, report that the
+				// arithmetic expression wasn't closed
+				// properly
+				p.err = nil
+				p.tok = oldTok
+				goto arithmClose
 			}
 			return wp
 		}
@@ -707,7 +696,7 @@ func arithmOpLevel(tok token.Token) int {
 }
 
 func (p *parser) arithmExpr(ftok token.Token, fpos token.Pos, level int, compact bool) ast.ArithmExpr {
-	if p.tok == token.EOF || p.peekArithmEnd(p.tok) {
+	if p.tok == token.EOF || p.peekArithmEnd() {
 		return nil
 	}
 	var left ast.ArithmExpr
@@ -785,7 +774,7 @@ func (p *parser) arithmExprBase(ftok token.Token, fpos token.Pos, compact bool) 
 		w := p.word()
 		if w.Parts == nil {
 			p.followErr(fpos, ftok.String(), "a word")
-			if !p.peekArithmEnd(p.tok) {
+			if !p.peekArithmEnd() {
 				// get past weird characters to ))
 				p.next()
 			}
@@ -875,12 +864,12 @@ func (p *parser) paramExp() *ast.ParamExp {
 	return pe
 }
 
-func (p *parser) peekArithmEnd(tok token.Token) bool {
-	return tok == token.RPAREN && p.npos < len(p.src) && p.src[p.npos] == ')'
+func (p *parser) peekArithmEnd() bool {
+	return p.tok == token.RPAREN && p.npos < len(p.src) && p.src[p.npos] == ')'
 }
 
 func (p *parser) arithmEnd(ltok token.Token, lpos token.Pos, old quoteState) token.Pos {
-	if p.peekArithmEnd(p.tok) {
+	if p.peekArithmEnd() {
 		p.npos++
 	} else {
 		p.matchingErr(lpos, ltok, token.DRPAREN)
