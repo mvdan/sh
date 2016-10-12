@@ -480,43 +480,43 @@ var shellTests = []struct {
 	},
 	{
 		`$(("`,
-		`1:1: reached EOF without matching $(( with ))`,
+		`1:4: not allowed in arithmetic expressions: "`,
 	},
 	{
 		`$((a"`,
-		`1:1: reached EOF without matching $(( with ))`,
+		`1:5: not allowed in arithmetic expressions: "`,
 	},
 	{
 		`$(($((a"`,
-		`1:1: reached EOF without matching $(( with ))`,
+		`1:8: not allowed in arithmetic expressions: "`,
 	},
 	{
 		`$(('`,
-		`1:1: reached EOF without matching $(( with ))`,
+		`1:4: not allowed in arithmetic expressions: '`,
 	},
 	{
 		`$((& $(`,
-		`1:1: reached EOF without matching $(( with ))`,
+		`1:1: $(( must be followed by a word`,
 	},
 	{
 		`$((& 0 $(`,
-		`1:1: reached EOF without matching $(( with ))`,
+		`1:1: $(( must be followed by a word`,
 	},
 	{
 		`$((a'`,
-		`1:1: reached EOF without matching $(( with ))`,
+		`1:5: not allowed in arithmetic expressions: '`,
 	},
 	{
 		`$((a b"`,
-		`1:1: reached EOF without matching $(( with ))`,
+		`1:6: not a valid arithmetic operator: b`,
 	},
 	{
 		`$((a"'`,
-		`1:1: reached EOF without matching $(( with ))`,
+		`1:5: not allowed in arithmetic expressions: "`,
 	},
 	{
 		"$((\"`)",
-		`1:1: reached EOF without matching $(( with ))`,
+		`1:4: not allowed in arithmetic expressions: "`,
 	},
 	{
 		"echo $((()))",
@@ -524,7 +524,7 @@ var shellTests = []struct {
 	},
 	{
 		"echo $(((3))",
-		`1:6: reached ) without matching $(( with ))`,
+		`1:6: reached EOF without matching $(( with ))`,
 	},
 	{
 		"echo $((+))",
@@ -548,7 +548,7 @@ var shellTests = []struct {
 	},
 	{
 		"<<EOF\n$(()a",
-		`2:1: reached EOF without matching $(( with ))`,
+		`2:1: $(( must be followed by a word`,
 	},
 	{
 		"echo ${foo",

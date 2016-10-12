@@ -142,7 +142,7 @@ const (
 	hdocBody
 	hdocBodyTabs
 	arithmExpr
-	arithmExprCmd
+	arithmExprCmdLet
 	arithmExprBrack
 	testRegexp
 	switchCase
@@ -152,7 +152,7 @@ const (
 	paramExpExp
 
 	allRegTokens  = noState | subCmd | subCmdBckquo | switchCase
-	allArithmExpr = arithmExpr | arithmExprCmd | arithmExprBrack
+	allArithmExpr = arithmExpr | arithmExprCmdLet | arithmExprBrack
 	allRbrack     = arithmExprBrack | paramExpInd
 	allHdoc       = hdocBody | hdocBodyTabs
 )
@@ -339,7 +339,8 @@ func (p *parser) errPass(err error) {
 	if p.quote == arithmExpr && (p.tok != token.EOF || p.err == nil) {
 		if p.npos >= len(p.src) {
 			p.tok = token.EOF
-		} else {
+		}
+		if p.err == nil {
 			p.err = err
 		}
 		return
@@ -501,7 +502,6 @@ func (p *parser) wordPart() ast.WordPart {
 		}
 		p.next()
 		ar.X = p.arithmExpr(ar.Token, ar.Left, 0, false)
-		oldTok := p.tok
 		oldErr := p.err
 		if p.quote == arithmExpr && !p.peekArithmEnd() {
 			// TODO: this will probably break if there is
@@ -512,23 +512,23 @@ func (p *parser) wordPart() ast.WordPart {
 			p.tok, p.pos = token.DOLLPR, ar.Left
 			p.npos = int(ar.Left) + 1
 			p.f.Lines = p.f.Lines[:oldLines]
-			wp := p.wordPart()
-			if p.err != nil {
-				// if retrying fails, report that the
-				// arithmetic expression wasn't closed
-				// properly
-				p.err = nil
-				p.tok = oldTok
-				goto arithmClose
+			if wp := p.wordPart(); p.err == nil {
+				return wp
 			}
-			return wp
+			if oldErr != nil {
+				p.err = oldErr
+				p.tok = token.EOF
+			} else {
+				p.err = nil
+				p.matchingErr(ar.Left, left, token.DRPAREN)
+			}
+			return nil
 		}
 		if oldErr != nil {
 			// not retrying, so recover error
 			p.err = oldErr
 			p.tok = token.EOF
 		}
-	arithmClose:
 		if left == token.DOLLBK {
 			if p.tok != token.RBRACK {
 				p.matchingErr(ar.Left, left, token.RBRACK)
@@ -715,6 +715,11 @@ func (p *parser) arithmExpr(ftok token.Token, fpos token.Pos, level int, compact
 			p.curErr("not a valid arithmetic operator: %s", p.val)
 			newLevel = 0
 		case token.RPAREN, token.EOF:
+		case token.SQUOTE, token.DQUOTE, token.BQUOTE, token.DOLLPR:
+			if p.quote == arithmExpr {
+				p.curErr("not allowed in arithmetic expressions: %v", p.tok)
+				newLevel = 0
+			}
 		default:
 			if p.quote == arithmExpr {
 				p.curErr("not a valid arithmetic operator: %v", p.tok)
@@ -773,14 +778,7 @@ func (p *parser) arithmExprBase(ftok token.Token, fpos token.Pos, compact bool) 
 		}
 		fallthrough
 	default:
-		w := p.word()
-		if w.Parts == nil {
-			p.followErr(fpos, ftok.String(), "a word")
-			if !p.peekArithmEnd() {
-				// get past weird characters to ))
-				p.next()
-			}
-		}
+		w := p.followWordTok(ftok, fpos)
 		x = &w
 	}
 	if compact && p.spaced {
@@ -1135,7 +1133,7 @@ func (p *parser) subshell() *ast.Subshell {
 func (p *parser) arithmExpCmd() *ast.ArithmExp {
 	ar := &ast.ArithmExp{Token: p.tok, Left: p.pos}
 	old := p.quote
-	p.quote = arithmExprCmd
+	p.quote = arithmExprCmdLet
 	p.next()
 	ar.X = p.arithmExpr(ar.Token, ar.Left, 0, false)
 	ar.Right = p.arithmEnd(ar.Token, ar.Left, old)
@@ -1210,7 +1208,7 @@ func (p *parser) loop(forPos token.Pos) ast.Loop {
 	if p.tok == token.DLPAREN {
 		cl := &ast.CStyleLoop{Lparen: p.pos}
 		old := p.quote
-		p.quote = arithmExprCmd
+		p.quote = arithmExprCmdLet
 		p.next()
 		cl.Init = p.arithmExpr(token.DLPAREN, cl.Lparen, 0, false)
 		scPos := p.pos
@@ -1486,7 +1484,7 @@ func (p *parser) evalClause() *ast.EvalClause {
 func (p *parser) letClause() *ast.LetClause {
 	lc := &ast.LetClause{Let: p.pos}
 	old := p.quote
-	p.quote = arithmExprCmd
+	p.quote = arithmExprCmdLet
 	p.next()
 	p.stopNewline = true
 	for !p.newLine && !stopToken(p.tok) && p.tok != token.STOPPED && !p.peekRedir() {
