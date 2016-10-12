@@ -515,6 +515,10 @@ var shellTests = []struct {
 		`1:1: reached EOF without matching $(( with ))`,
 	},
 	{
+		"$((\"`)",
+		`1:1: reached EOF without matching $(( with ))`,
+	},
+	{
 		"echo $((()))",
 		`1:9: parentheses must enclose an expression`,
 	},

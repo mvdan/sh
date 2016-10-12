@@ -765,9 +765,11 @@ func (p *parser) arithmExprBase(ftok token.Token, fpos token.Pos, compact bool) 
 			p.followErr(ue.OpPos, ue.Op.String(), "an expression")
 		}
 		x = ue
-	case token.SQUOTE, token.DQUOTE:
+	case token.SQUOTE, token.DQUOTE, token.BQUOTE, token.DOLLPR:
 		if p.quote == arithmExpr {
-			p.curErr("not a valid arithmetic operator: %v", p.tok)
+			p.curErr("not allowed in arithmetic expressions: %v", p.tok)
+			p.next()
+			return p.arithmExprBase(ftok, fpos, compact)
 		}
 		fallthrough
 	default:
