@@ -6,7 +6,6 @@ package parser
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"strconv"
 	"sync"
 
@@ -338,7 +337,7 @@ func (p *parser) matched(lpos token.Pos, left, right token.Token) token.Pos {
 
 func (p *parser) errPass(err error) {
 	if p.quote == arithmExpr && (p.tok != token.EOF || p.err == nil) {
-		if err == io.EOF || p.npos >= len(p.src) {
+		if p.npos >= len(p.src) {
 			p.tok = token.EOF
 		} else {
 			p.err = err
@@ -346,9 +345,7 @@ func (p *parser) errPass(err error) {
 		return
 	}
 	if p.err == nil {
-		if err != io.EOF {
-			p.err = err
-		}
+		p.err = err
 		p.tok = token.EOF
 	}
 }
@@ -566,7 +563,7 @@ func (p *parser) wordPart() ast.WordPart {
 	case token.DOLLAR:
 		var b byte
 		if p.npos >= len(p.src) {
-			p.errPass(io.EOF)
+			p.tok = token.EOF
 		} else {
 			b = p.src[p.npos]
 		}

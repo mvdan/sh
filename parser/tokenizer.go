@@ -5,7 +5,6 @@ package parser
 
 import (
 	"bytes"
-	"io"
 
 	"github.com/mvdan/sh/ast"
 	"github.com/mvdan/sh/token"
@@ -45,7 +44,6 @@ func (p *parser) next() {
 		return
 	}
 	if p.npos >= len(p.src) {
-		p.errPass(io.EOF)
 		p.tok = token.EOF
 		return
 	}
@@ -55,7 +53,7 @@ func (p *parser) next() {
 		p.f.Lines = append(p.f.Lines, p.npos)
 		p.doHeredocs()
 		if p.tok == token.EOF || p.npos >= len(p.src) {
-			p.errPass(io.EOF)
+			p.tok = token.EOF
 			return
 		}
 		b = p.src[p.npos]
@@ -143,7 +141,7 @@ skipSpace:
 			break skipSpace
 		}
 		if p.npos >= len(p.src) {
-			p.errPass(io.EOF)
+			p.tok = token.EOF
 			return
 		}
 		b = p.src[p.npos]
