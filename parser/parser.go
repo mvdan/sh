@@ -337,15 +337,15 @@ func (p *parser) matched(lpos token.Pos, left, right token.Token) token.Pos {
 }
 
 func (p *parser) errPass(err error) {
-	if p.err == nil {
-		if p.quote == arithmExpr {
-			if err == io.EOF || p.npos >= len(p.src) {
-				p.tok = token.EOF
-			} else {
-				p.err = err
-			}
-			return
+	if p.quote == arithmExpr && (p.tok != token.EOF || p.err == nil) {
+		if err == io.EOF || p.npos >= len(p.src) {
+			p.tok = token.EOF
+		} else {
+			p.err = err
 		}
+		return
+	}
+	if p.err == nil {
 		if err != io.EOF {
 			p.err = err
 		}
@@ -779,8 +779,20 @@ func (p *parser) arithmExprBase(ftok token.Token, fpos token.Pos, compact bool) 
 			p.followErr(ue.OpPos, ue.Op.String(), "an expression")
 		}
 		x = ue
+	case token.SQUOTE, token.DQUOTE:
+		if p.quote == arithmExpr {
+			p.curErr("not a valid arithmetic operator: %v", p.tok)
+		}
+		fallthrough
 	default:
-		w := p.followWordTok(ftok, fpos)
+		w := p.word()
+		if w.Parts == nil {
+			p.followErr(fpos, ftok.String(), "a word")
+			if !p.peekArithmEnd(p.tok) {
+				// get past weird characters to ))
+				p.next()
+			}
+		}
 		x = &w
 	}
 	if compact && p.spaced {
