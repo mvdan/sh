@@ -496,7 +496,7 @@ var shellTests = []struct {
 	},
 	{
 		`$((& $(`,
-		`1:1: $(( must be followed by a word`,
+		`1:1: reached EOF without matching $(( with ))`,
 	},
 	{
 		`$((a'`,
@@ -504,11 +504,11 @@ var shellTests = []struct {
 	},
 	{
 		`$((a b"`,
-		`1:6: not a valid arithmetic operator: b`,
+		`1:1: reached EOF without matching $(( with ))`,
 	},
 	{
 		`$((a"'`,
-		`1:5: not a valid arithmetic operator: "`,
+		`1:1: reached EOF without matching $(( with ))`,
 	},
 	{
 		"echo $((()))",
@@ -540,7 +540,7 @@ var shellTests = []struct {
 	},
 	{
 		"<<EOF\n$(()a",
-		`2:1: $(( must be followed by a word`,
+		`2:1: reached EOF without matching $(( with ))`,
 	},
 	{
 		"echo ${foo",

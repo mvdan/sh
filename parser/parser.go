@@ -521,18 +521,18 @@ func (p *parser) wordPart() ast.WordPart {
 			p.f.Lines = p.f.Lines[:oldLines]
 			wp := p.wordPart()
 			if p.err != nil {
-				if oldErr != nil {
-					// if retrying fails, report the
-					// arithmetic expr error as that's got
-					// higher precedence
-					p.err = oldErr
-				} else if !hasEnd {
+				if !hasEnd {
 					// if retrying fails and the
 					// arithmetic expression wasn't
 					// closed, report that properly
 					p.err = nil
 					p.tok = oldTok
 					goto arithmClose
+				} else if oldErr != nil {
+					// if retrying fails, report the
+					// arithmetic expr error as that's got
+					// higher precedence
+					p.err = oldErr
 				}
 			}
 			return wp
