@@ -499,6 +499,10 @@ var shellTests = []struct {
 		`1:1: reached EOF without matching $(( with ))`,
 	},
 	{
+		`$((& 0 $(`,
+		`1:1: reached EOF without matching $(( with ))`,
+	},
+	{
 		`$((a'`,
 		`1:1: reached EOF without matching $(( with ))`,
 	},

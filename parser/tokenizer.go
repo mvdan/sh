@@ -46,6 +46,7 @@ func (p *parser) next() {
 	}
 	if p.npos >= len(p.src) {
 		p.errPass(io.EOF)
+		p.tok = token.EOF
 		return
 	}
 	b := p.src[p.npos]
