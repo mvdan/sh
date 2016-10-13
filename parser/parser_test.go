@@ -650,6 +650,12 @@ var shellTests = []struct {
 		`""()`,
 		`1:1: invalid func name: "\"\""`,
 	},
+	{
+		// bash errors on the empty condition here, this is to
+		// add coverage for empty statement lists
+		`if; then bar; fi; ;`,
+		`1:19: ; can only immediately follow a statement`,
+	},
 }
 
 func checkError(in, want string, mode Mode) func(*testing.T) {

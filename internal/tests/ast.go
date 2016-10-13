@@ -1322,8 +1322,15 @@ var FileTests = []TestCase{
 		)),
 	},
 	{
-		Strs:   []string{"`foo`"},
+		Strs:   []string{"`foo`", "`fo\\\no`"},
 		common: bckQuoted(litStmt("foo")),
+	},
+	{
+		Strs: []string{"foo `bar`"},
+		common: call(
+			*litWord("foo"),
+			*word(bckQuoted(litStmt("bar"))),
+		),
 	},
 	{
 		Strs: []string{"`foo | bar`"},
