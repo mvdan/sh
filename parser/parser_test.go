@@ -636,7 +636,11 @@ var shellTests = []struct {
 	},
 	{
 		"foo <<$(bar)",
-		`1:9: nested statements not allowed in this word`,
+		`1:7: nested statements not allowed in heredoc words`,
+	},
+	{
+		"foo <<`bar`",
+		`1:7: nested statements not allowed in heredoc words`,
 	},
 	{
 		`""()`,

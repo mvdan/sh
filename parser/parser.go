@@ -54,7 +54,6 @@ type parser struct {
 	mode Mode
 
 	spaced, newLine bool
-	forbidNested    bool
 
 	err error
 
@@ -140,6 +139,7 @@ const (
 	subCmdBckquo
 	sglQuotes
 	dblQuotes
+	hdocWord
 	hdocBody
 	hdocBodyTabs
 	arithmExpr
@@ -153,7 +153,7 @@ const (
 	paramExpRepl
 	paramExpExp
 
-	allRegTokens  = noState | subCmd | subCmdBckquo | switchCase
+	allRegTokens  = noState | subCmd | subCmdBckquo | hdocWord | switchCase
 	allArithmExpr = arithmExpr | arithmExprLet | arithmExprCmd | arithmExprBrack
 	allRbrack     = arithmExprBrack | paramExpInd
 	allHdoc       = hdocBody | hdocBodyTabs
@@ -163,7 +163,6 @@ func (p *parser) bash() bool { return p.mode&PosixConformant == 0 }
 
 func (p *parser) reset() {
 	p.spaced, p.newLine = false, false
-	p.forbidNested = false
 	p.err = nil
 	p.npos = 0
 	p.tok, p.quote = token.ILLEGAL, noState
@@ -390,9 +389,6 @@ func (p *parser) curErr(format string, a ...interface{}) {
 
 func (p *parser) stmts(stops ...string) (sts []*ast.Stmt) {
 	p.got(token.STOPPED)
-	if p.forbidNested {
-		p.curErr("nested statements not allowed in this word")
-	}
 	q := p.quote
 	gotEnd := true
 	for p.tok != token.EOF {
@@ -533,6 +529,9 @@ func (p *parser) wordPart() ast.WordPart {
 		}
 		return ar
 	case token.DOLLPR:
+		if p.quote == hdocWord {
+			p.curErr("nested statements not allowed in heredoc words")
+		}
 		cs := &ast.CmdSubst{Left: p.pos}
 		old := p.preNested(subCmd)
 		p.next()
@@ -633,7 +632,10 @@ func (p *parser) wordPart() ast.WordPart {
 		}
 		return q
 	case token.BQUOTE:
-		if p.quote == subCmdBckquo {
+		switch p.quote {
+		case hdocWord:
+			p.curErr("nested statements not allowed in heredoc words")
+		case subCmdBckquo:
 			return nil
 		}
 		cs := &ast.CmdSubst{Backquotes: true, Left: p.pos}
@@ -960,13 +962,14 @@ func (p *parser) doRedirect(s *ast.Stmt) {
 	p.next()
 	switch r.Op {
 	case token.SHL, token.DHEREDOC:
-		p.forbidNested = true
+		old := p.quote
+		p.quote = hdocWord
 		if p.newLine {
 			p.curErr("heredoc stop word must be on the same line")
 		}
 		p.heredocs = append(p.heredocs, r)
 		r.Word = p.followWordTok(r.Op, r.OpPos)
-		p.forbidNested = false
+		p.quote = old
 		p.got(token.STOPPED)
 	default:
 		if p.newLine {
