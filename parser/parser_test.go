@@ -745,8 +745,8 @@ var bashTests = []struct {
 		`1:12: parentheses must enclose an expression`,
 	},
 	{
-		"declare (",
-		`1:9: "declare" must be followed by words`,
+		"local (",
+		`1:7: "local" must be followed by words`,
 	},
 	{
 		"declare 0=${o})",

@@ -1444,7 +1444,8 @@ func testBinaryOp(val string) token.Token {
 }
 
 func (p *parser) declClause() *ast.DeclClause {
-	ds := &ast.DeclClause{Declare: p.pos, Local: p.val == "local"}
+	name := p.val
+	ds := &ast.DeclClause{Declare: p.pos, Local: name == "local"}
 	p.next()
 	for p.tok == token.LITWORD && p.val[0] == '-' {
 		ds.Opts = append(ds.Opts, p.word())
@@ -1454,7 +1455,7 @@ func (p *parser) declClause() *ast.DeclClause {
 			p.asPos > 0 && validIdent(p.val[:p.asPos]) {
 			ds.Assigns = append(ds.Assigns, p.getAssign())
 		} else if w := p.word(); w.Parts == nil {
-			p.followErr(p.pos, "declare", "words")
+			p.followErr(p.pos, name, "words")
 		} else {
 			ds.Assigns = append(ds.Assigns, &ast.Assign{Value: w})
 		}
