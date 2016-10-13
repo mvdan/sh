@@ -47,23 +47,15 @@ func (p *parser) next() {
 		p.tok = token.EOF
 		return
 	}
-	b := p.src[p.npos]
-	if p.tok == token.STOPPED && b == '\n' {
-		p.npos++
-		p.f.Lines = append(p.f.Lines, p.npos)
-		p.doHeredocs()
-		if p.tok == token.EOF || p.npos >= len(p.src) {
-			p.tok = token.EOF
-			return
-		}
-		b = p.src[p.npos]
-		p.spaced, p.newLine = true, true
-	} else {
-		p.spaced, p.newLine = false, false
-	}
-	q := p.quote
+	p.spaced, p.newLine = false, false
+	b, q := p.src[p.npos], p.quote
 	p.pos = token.Pos(p.npos + 1)
 	switch q {
+	case hdocWord:
+		if wordBreak(b) {
+			p.spaced = true
+			return
+		}
 	case paramExpRepl:
 		switch b {
 		case '}':
@@ -119,7 +111,7 @@ skipSpace:
 			p.spaced = true
 			p.npos++
 		case '\n':
-			if p.quote == arithmExprLet || len(p.heredocs) > p.buriedHdocs {
+			if p.quote == arithmExprLet {
 				p.tok = token.STOPPED
 				return
 			}
@@ -129,6 +121,9 @@ skipSpace:
 			}
 			p.f.Lines = append(p.f.Lines, p.npos)
 			p.newLine = true
+			if len(p.heredocs) > p.buriedHdocs {
+				p.doHeredocs()
+			}
 		case '\\':
 			if p.npos < len(p.src)-1 && p.src[p.npos+1] == '\n' {
 				p.npos += 2

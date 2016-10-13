@@ -388,7 +388,6 @@ func (p *parser) curErr(format string, a ...interface{}) {
 }
 
 func (p *parser) stmts(stops ...string) (sts []*ast.Stmt) {
-	p.got(token.STOPPED)
 	q := p.quote
 	gotEnd := true
 	for p.tok != token.EOF {
@@ -428,7 +427,6 @@ func (p *parser) stmts(stops ...string) (sts []*ast.Stmt) {
 			sts = append(sts, s)
 			gotEnd = end
 		}
-		p.got(token.STOPPED)
 	}
 	return
 }
@@ -970,7 +968,7 @@ func (p *parser) doRedirect(s *ast.Stmt) {
 		p.heredocs = append(p.heredocs, r)
 		r.Word = p.followWordTok(r.Op, r.OpPos)
 		p.quote = old
-		p.got(token.STOPPED)
+		p.next()
 	default:
 		if p.newLine {
 			p.curErr("redirect word must be on the same line")
@@ -1021,7 +1019,6 @@ preLoop:
 	case token.LAND, token.LOR:
 		b := &ast.BinaryCmd{OpPos: p.pos, Op: p.tok, X: s}
 		p.next()
-		p.got(token.STOPPED)
 		if b.Y, _ = p.getStmt(false); b.Y == nil {
 			p.followErr(b.OpPos, b.Op.String(), "a statement")
 		}
@@ -1106,7 +1103,6 @@ func (p *parser) gotStmtPipe(s *ast.Stmt) *ast.Stmt {
 	if p.tok == token.OR || p.tok == token.PIPEALL {
 		b := &ast.BinaryCmd{OpPos: p.pos, Op: p.tok, X: s}
 		p.next()
-		p.got(token.STOPPED)
 		if b.Y = p.gotStmtPipe(p.stmt(p.pos)); b.Y == nil {
 			p.followErr(b.OpPos, b.Op.String(), "a statement")
 		}
@@ -1274,7 +1270,6 @@ func (p *parser) patLists() (pls []*ast.PatternList) {
 		pl.Op = p.tok
 		p.next()
 		pls = append(pls, pl)
-		p.got(token.STOPPED)
 	}
 	return
 }
@@ -1523,8 +1518,6 @@ func (p *parser) callExpr(s *ast.Stmt, w ast.Word) *ast.CallExpr {
 			token.LAND, token.LOR, token.PIPEALL,
 			token.DSEMICOLON, token.SEMIFALL, token.DSEMIFALL:
 			return ce
-		case token.STOPPED:
-			p.next()
 		case token.LITWORD:
 			if litRedir(p.src, p.npos) {
 				p.doRedirect(s)

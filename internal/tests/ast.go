@@ -627,6 +627,8 @@ var FileTests = []TestCase{
 		Strs: []string{
 			"foo <<EOF\nbar\nEOF",
 			"foo <<EOF\nbar\n",
+			"foo <<EOF \nbar\nEOF",
+			"foo <<EOF\t\nbar\nEOF",
 		},
 		common: &Stmt{
 			Cmd: litCall("foo"),
