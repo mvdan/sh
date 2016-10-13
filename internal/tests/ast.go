@@ -2671,6 +2671,7 @@ var FileTests = []TestCase{
 	{
 		Strs: []string{
 			"let i++\nbar",
+			"let i++ \nbar",
 			"let i++; bar",
 		},
 		bash: []*Stmt{

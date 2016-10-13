@@ -1472,7 +1472,7 @@ func (p *parser) letClause() *ast.LetClause {
 	lc := &ast.LetClause{Let: p.pos}
 	old := p.preNested(arithmExprLet)
 	p.next()
-	for !p.newLine && !stopToken(p.tok) && p.tok != token.STOPPED && !p.peekRedir() {
+	for !p.newLine && !stopToken(p.tok) && !p.peekRedir() {
 		x := p.arithmExpr(token.LET, lc.Let, 0, true)
 		if x == nil {
 			p.followErr(p.pos, "let", "arithmetic expressions")
@@ -1483,7 +1483,9 @@ func (p *parser) letClause() *ast.LetClause {
 		p.posErr(lc.Let, "let clause requires at least one expression")
 	}
 	p.postNested(old)
-	p.got(token.STOPPED)
+	if p.newLine {
+		p.next()
+	}
 	return lc
 }
 

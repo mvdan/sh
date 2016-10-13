@@ -9,7 +9,6 @@ type Token int
 // The list of all possible tokens and reserved words.
 const (
 	ILLEGAL Token = iota
-	STOPPED
 	EOF
 	LIT
 	LITWORD
@@ -152,7 +151,6 @@ type Position struct {
 var (
 	tokNames = map[Token]string{
 		ILLEGAL: `ILLEGAL`,
-		STOPPED: `STOPPED`,
 		EOF:     `EOF`,
 		LIT:     `lit`,
 		LITWORD: `litword`,
