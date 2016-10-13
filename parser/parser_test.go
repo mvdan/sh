@@ -710,11 +710,15 @@ var bashTests = []struct {
 	},
 	{
 		"let a+\n",
-		`1:7: + must be followed by an expression`,
+		`1:6: + must be followed by an expression`,
 	},
 	{
 		"let ))",
 		`1:5: "let" must be followed by arithmetic expressions`,
+	},
+	{
+		"let 'foo'\n'",
+		`2:1: reached EOF without closing quote '`,
 	},
 	{
 		"[[",

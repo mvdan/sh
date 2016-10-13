@@ -1485,7 +1485,7 @@ func (p *parser) letClause() *ast.LetClause {
 		p.posErr(lc.Let, "let clause requires at least one expression")
 	}
 	p.postNested(old)
-	if p.newLine {
+	if p.tok == token.ILLEGAL {
 		p.next()
 	}
 	return lc

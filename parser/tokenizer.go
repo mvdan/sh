@@ -115,7 +115,8 @@ skipSpace:
 			p.npos++
 		case '\n':
 			if p.quote == arithmExprLet {
-				p.newLine = true
+				p.tok = token.ILLEGAL
+				p.newLine, p.spaced = true, true
 				return
 			}
 			p.spaced = true
