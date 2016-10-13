@@ -573,9 +573,6 @@ func (p *parser) wordPart() ast.WordPart {
 		ps.Rparen = p.matched(ps.OpPos, ps.Op, token.RPAREN)
 		return ps
 	case token.SQUOTE:
-		if p.quote == sglQuotes {
-			return nil
-		}
 		sq := &ast.SglQuoted{Quote: p.pos}
 		bs, found := p.readUntil('\'')
 		rem := bs
@@ -612,8 +609,6 @@ func (p *parser) wordPart() ast.WordPart {
 		case token.DOLLDQ:
 			stop = token.DQUOTE
 			p.quote = dblQuotes
-		case token.SQUOTE:
-			p.quote = sglQuotes
 		case token.DQUOTE:
 			p.quote = dblQuotes
 		}
