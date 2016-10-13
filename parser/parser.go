@@ -485,7 +485,7 @@ func (p *parser) wordPart() ast.WordPart {
 		left := p.tok
 		ar := &ast.ArithmExp{Token: p.tok, Left: p.pos}
 		old, oldBur := p.quote, p.buriedHdocs
-		p.buriedHdocs = len(p.heredocs)
+		p.buriedHdocs, p.stopNewline = len(p.heredocs), false
 		if ar.Token == token.DOLLBK {
 			// treat deprecated $[ as $((
 			ar.Token = token.DOLLDP
@@ -524,7 +524,7 @@ func (p *parser) wordPart() ast.WordPart {
 	case token.DOLLPR:
 		cs := &ast.CmdSubst{Left: p.pos}
 		old, oldBur := p.quote, p.buriedHdocs
-		p.buriedHdocs = len(p.heredocs)
+		p.buriedHdocs, p.stopNewline = len(p.heredocs), false
 		p.quote = subCmd
 		p.next()
 		cs.Stmts = p.stmts()
@@ -631,7 +631,7 @@ func (p *parser) wordPart() ast.WordPart {
 		}
 		cs := &ast.CmdSubst{Backquotes: true, Left: p.pos}
 		old, oldBur := p.quote, p.buriedHdocs
-		p.buriedHdocs = len(p.heredocs)
+		p.buriedHdocs, p.stopNewline = len(p.heredocs), false
 		p.quote = subCmdBckquo
 		p.next()
 		cs.Stmts = p.stmts()
@@ -1115,7 +1115,7 @@ func (p *parser) gotStmtPipe(s *ast.Stmt) *ast.Stmt {
 func (p *parser) subshell() *ast.Subshell {
 	s := &ast.Subshell{Lparen: p.pos}
 	old, oldBur := p.quote, p.buriedHdocs
-	p.buriedHdocs = len(p.heredocs)
+	p.buriedHdocs, p.stopNewline = len(p.heredocs), false
 	p.quote = subCmd
 	p.next()
 	s.Stmts = p.stmts()
@@ -1128,7 +1128,7 @@ func (p *parser) subshell() *ast.Subshell {
 func (p *parser) arithmExpCmd() *ast.ArithmExp {
 	ar := &ast.ArithmExp{Token: p.tok, Left: p.pos}
 	old, oldBur := p.quote, p.buriedHdocs
-	p.buriedHdocs = len(p.heredocs)
+	p.buriedHdocs, p.stopNewline = len(p.heredocs), false
 	p.quote = arithmExprCmdLet
 	p.next()
 	ar.X = p.arithmExpr(ar.Token, ar.Left, 0, false)
@@ -1204,7 +1204,7 @@ func (p *parser) loop(forPos token.Pos) ast.Loop {
 	if p.tok == token.DLPAREN {
 		cl := &ast.CStyleLoop{Lparen: p.pos}
 		old, oldBur := p.quote, p.buriedHdocs
-		p.buriedHdocs = len(p.heredocs)
+		p.buriedHdocs, p.stopNewline = len(p.heredocs), false
 		p.quote = arithmExprCmdLet
 		p.next()
 		cl.Init = p.arithmExpr(token.DLPAREN, cl.Lparen, 0, false)
