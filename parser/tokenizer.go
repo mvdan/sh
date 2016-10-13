@@ -126,6 +126,9 @@ skipSpace:
 			p.newLine = true
 			if len(p.heredocs) > p.buriedHdocs {
 				p.doHeredocs()
+				if p.tok == token.EOF {
+					return
+				}
 			}
 		case '\\':
 			if p.npos < len(p.src)-1 && p.src[p.npos+1] == '\n' {

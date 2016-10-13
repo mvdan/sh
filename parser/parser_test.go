@@ -555,6 +555,10 @@ var shellTests = []struct {
 		`2:1: reached EOF without matching $(( with ))`,
 	},
 	{
+		"<<EOF\n`))",
+		`2:2: ) can only be used to close a subshell`,
+	},
+	{
 		"echo ${foo",
 		`1:6: reached EOF without matching ${ with }`,
 	},
