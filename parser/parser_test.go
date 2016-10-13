@@ -749,6 +749,10 @@ var bashTests = []struct {
 		`1:9: "declare" must be followed by words`,
 	},
 	{
+		"declare 0=${o})",
+		`1:15: "declare" must be followed by words`,
+	},
+	{
 		"a=(<)",
 		`1:4: array elements must be words`,
 	},

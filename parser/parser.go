@@ -1450,7 +1450,8 @@ func (p *parser) declClause() *ast.DeclClause {
 		ds.Opts = append(ds.Opts, p.word())
 	}
 	for !p.newLine && !stopToken(p.tok) && !p.peekRedir() {
-		if p.asPos > 0 && validIdent(p.val[:p.asPos]) {
+		if (p.tok == token.LIT || p.tok == token.LITWORD) &&
+			p.asPos > 0 && validIdent(p.val[:p.asPos]) {
 			ds.Assigns = append(ds.Assigns, p.getAssign())
 		} else if w := p.word(); w.Parts == nil {
 			p.followErr(p.pos, "declare", "words")
