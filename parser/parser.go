@@ -166,7 +166,7 @@ func (p *parser) reset() {
 	p.err = nil
 	p.npos = 0
 	p.tok, p.quote = token.ILLEGAL, noState
-	p.heredocs = p.heredocs[:]
+	p.heredocs = p.heredocs[:0]
 	p.buriedHdocs = 0
 }
 
