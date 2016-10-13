@@ -796,6 +796,48 @@ var FileTests = []TestCase{
 		},
 	},
 	{
+		Strs: []string{
+			"$(\n\tfoo\n) <<EOF\nbar\nEOF",
+			"<<EOF $(\n\tfoo\n)\nbar\nEOF",
+		},
+		common: &Stmt{
+			Cmd: call(*word(cmdSubst(litStmt("foo")))),
+			Redirs: []*Redirect{{
+				Op:   SHL,
+				Word: *litWord("EOF"),
+				Hdoc: *litWord("bar\n"),
+			}},
+		},
+	},
+	{
+		Strs: []string{
+			"`\n\tfoo\n` <<EOF\nbar\nEOF",
+			"<<EOF `\n\tfoo\n`\nbar\nEOF",
+		},
+		common: &Stmt{
+			Cmd: call(*word(bckQuoted(litStmt("foo")))),
+			Redirs: []*Redirect{{
+				Op:   SHL,
+				Word: *litWord("EOF"),
+				Hdoc: *litWord("bar\n"),
+			}},
+		},
+	},
+	{
+		Strs: []string{
+			"$((foo)) <<EOF\nbar\nEOF",
+			"<<EOF $((\n\tfoo\n))\nbar\nEOF",
+		},
+		common: &Stmt{
+			Cmd: call(*word(arithmExp(litWord("foo")))),
+			Redirs: []*Redirect{{
+				Op:   SHL,
+				Word: *litWord("EOF"),
+				Hdoc: *litWord("bar\n"),
+			}},
+		},
+	},
+	{
 		Strs: []string{"if true; then foo <<-EOF\n\tbar\n\tEOF\nfi"},
 		common: &IfClause{
 			CondStmts: litStmts("true"),
