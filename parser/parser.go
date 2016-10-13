@@ -170,6 +170,24 @@ func (p *parser) reset() {
 	p.buriedHdocs = 0
 }
 
+type saveState struct {
+	quote       quoteState
+	buriedHdocs int
+}
+
+func (p *parser) preNested(quote quoteState) (s saveState) {
+	s.quote = p.quote
+	s.buriedHdocs = p.buriedHdocs
+	p.buriedHdocs, p.stopNewline = len(p.heredocs), false
+	p.quote = quote
+	return
+}
+
+func (p *parser) postNested(s saveState) {
+	p.stopNewline = s.buriedHdocs < p.buriedHdocs
+	p.quote, p.buriedHdocs = s.quote, s.buriedHdocs
+}
+
 func (p *parser) unquotedWordBytes(w ast.Word) ([]byte, bool) {
 	p.helperBuf.Reset()
 	didUnquote := false
@@ -484,27 +502,22 @@ func (p *parser) wordPart() ast.WordPart {
 	case token.DOLLDP, token.DOLLBK:
 		left := p.tok
 		ar := &ast.ArithmExp{Token: p.tok, Left: p.pos}
-		old, oldBur := p.quote, p.buriedHdocs
-		p.buriedHdocs, p.stopNewline = len(p.heredocs), false
+		old := p.preNested(arithmExpr)
 		if ar.Token == token.DOLLBK {
 			// treat deprecated $[ as $((
 			ar.Token = token.DOLLDP
 			p.quote = arithmExprBrack
-		} else {
-			p.quote = arithmExpr
-			if !p.couldBeArithm() {
-				p.stopNewline = oldBur < p.buriedHdocs
-				p.quote, p.buriedHdocs = old, oldBur
-				p.npos = int(ar.Left) + 1
-				p.tok = token.DOLLPR
-				p.pos = ar.Left
-				wp := p.wordPart()
-				if p.err != nil {
-					p.err = nil
-					p.matchingErr(ar.Left, left, token.DRPAREN)
-				}
-				return wp
+		} else if !p.couldBeArithm() {
+			p.postNested(old)
+			p.npos = int(ar.Left) + 1
+			p.tok = token.DOLLPR
+			p.pos = ar.Left
+			wp := p.wordPart()
+			if p.err != nil {
+				p.err = nil
+				p.matchingErr(ar.Left, left, token.DRPAREN)
 			}
+			return wp
 		}
 		p.next()
 		ar.X = p.arithmExpr(ar.Token, ar.Left, 0, false)
@@ -512,24 +525,19 @@ func (p *parser) wordPart() ast.WordPart {
 			if p.tok != token.RBRACK {
 				p.matchingErr(ar.Left, left, token.RBRACK)
 			}
-			p.quote = old
-			p.stopNewline = oldBur < p.buriedHdocs
-			p.quote, p.buriedHdocs = old, oldBur
+			p.postNested(old)
 			ar.Right = p.pos
 			p.next()
 		} else {
-			ar.Right = p.arithmEnd(left, ar.Left, old, oldBur)
+			ar.Right = p.arithmEnd(left, ar.Left, old)
 		}
 		return ar
 	case token.DOLLPR:
 		cs := &ast.CmdSubst{Left: p.pos}
-		old, oldBur := p.quote, p.buriedHdocs
-		p.buriedHdocs, p.stopNewline = len(p.heredocs), false
-		p.quote = subCmd
+		old := p.preNested(subCmd)
 		p.next()
 		cs.Stmts = p.stmts()
-		p.stopNewline = oldBur < p.buriedHdocs
-		p.quote, p.buriedHdocs = old, oldBur
+		p.postNested(old)
 		cs.Right = p.matched(cs.Left, token.LPAREN, token.RPAREN)
 		return cs
 	case token.DOLLAR:
@@ -630,13 +638,10 @@ func (p *parser) wordPart() ast.WordPart {
 			return nil
 		}
 		cs := &ast.CmdSubst{Backquotes: true, Left: p.pos}
-		old, oldBur := p.quote, p.buriedHdocs
-		p.buriedHdocs, p.stopNewline = len(p.heredocs), false
-		p.quote = subCmdBckquo
+		old := p.preNested(subCmdBckquo)
 		p.next()
 		cs.Stmts = p.stmts()
-		p.stopNewline = oldBur < p.buriedHdocs
-		p.quote, p.buriedHdocs = old, oldBur
+		p.postNested(old)
 		cs.Right = p.pos
 		if !p.got(token.BQUOTE) {
 			p.quoteErr(cs.Pos(), token.BQUOTE)
@@ -860,14 +865,13 @@ func (p *parser) peekArithmEnd() bool {
 	return p.tok == token.RPAREN && p.npos < len(p.src) && p.src[p.npos] == ')'
 }
 
-func (p *parser) arithmEnd(ltok token.Token, lpos token.Pos, old quoteState, oldBur int) token.Pos {
+func (p *parser) arithmEnd(ltok token.Token, lpos token.Pos, old saveState) token.Pos {
 	if p.peekArithmEnd() {
 		p.npos++
 	} else {
 		p.matchingErr(lpos, ltok, token.DRPAREN)
 	}
-	p.stopNewline = oldBur < p.buriedHdocs
-	p.quote, p.buriedHdocs = old, oldBur
+	p.postNested(old)
 	pos := p.pos
 	p.next()
 	return pos
@@ -1114,25 +1118,20 @@ func (p *parser) gotStmtPipe(s *ast.Stmt) *ast.Stmt {
 
 func (p *parser) subshell() *ast.Subshell {
 	s := &ast.Subshell{Lparen: p.pos}
-	old, oldBur := p.quote, p.buriedHdocs
-	p.buriedHdocs, p.stopNewline = len(p.heredocs), false
-	p.quote = subCmd
+	old := p.preNested(subCmd)
 	p.next()
 	s.Stmts = p.stmts()
-	p.stopNewline = oldBur < p.buriedHdocs
-	p.quote, p.buriedHdocs = old, oldBur
+	p.postNested(old)
 	s.Rparen = p.matched(s.Lparen, token.LPAREN, token.RPAREN)
 	return s
 }
 
 func (p *parser) arithmExpCmd() *ast.ArithmExp {
 	ar := &ast.ArithmExp{Token: p.tok, Left: p.pos}
-	old, oldBur := p.quote, p.buriedHdocs
-	p.buriedHdocs, p.stopNewline = len(p.heredocs), false
-	p.quote = arithmExprCmdLet
+	old := p.preNested(arithmExprCmdLet)
 	p.next()
 	ar.X = p.arithmExpr(ar.Token, ar.Left, 0, false)
-	ar.Right = p.arithmEnd(ar.Token, ar.Left, old, oldBur)
+	ar.Right = p.arithmEnd(ar.Token, ar.Left, old)
 	return ar
 }
 
@@ -1203,9 +1202,7 @@ func (p *parser) forClause() *ast.ForClause {
 func (p *parser) loop(forPos token.Pos) ast.Loop {
 	if p.tok == token.DLPAREN {
 		cl := &ast.CStyleLoop{Lparen: p.pos}
-		old, oldBur := p.quote, p.buriedHdocs
-		p.buriedHdocs, p.stopNewline = len(p.heredocs), false
-		p.quote = arithmExprCmdLet
+		old := p.preNested(arithmExprCmdLet)
 		p.next()
 		cl.Init = p.arithmExpr(token.DLPAREN, cl.Lparen, 0, false)
 		scPos := p.pos
@@ -1214,7 +1211,7 @@ func (p *parser) loop(forPos token.Pos) ast.Loop {
 		scPos = p.pos
 		p.follow(p.pos, "expression", token.SEMICOLON)
 		cl.Post = p.arithmExpr(token.SEMICOLON, scPos, 0, false)
-		cl.Rparen = p.arithmEnd(token.DLPAREN, cl.Lparen, old, oldBur)
+		cl.Rparen = p.arithmEnd(token.DLPAREN, cl.Lparen, old)
 		p.gotSameLine(token.SEMICOLON)
 		return cl
 	}
