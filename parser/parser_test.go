@@ -705,6 +705,10 @@ var bashTests = []struct {
 		`1:7: ++ must be followed by a word`,
 	},
 	{
+		"let a+\n",
+		`1:7: + must be followed by an expression`,
+	},
+	{
 		"let ))",
 		`1:5: "let" must be followed by arithmetic expressions`,
 	},

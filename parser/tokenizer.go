@@ -43,6 +43,9 @@ func (p *parser) next() {
 	if p.tok == token.EOF {
 		return
 	}
+	if p.newLine && p.quote == arithmExprLet {
+		p.npos++
+	}
 	if p.npos >= len(p.src) {
 		p.tok = token.EOF
 		return
