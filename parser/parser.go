@@ -53,8 +53,8 @@ type parser struct {
 	f    *ast.File
 	mode Mode
 
-	spaced, newLine           bool
-	stopNewline, forbidNested bool
+	spaced, newLine bool
+	forbidNested    bool
 
 	err error
 
@@ -143,7 +143,8 @@ const (
 	hdocBody
 	hdocBodyTabs
 	arithmExpr
-	arithmExprCmdLet
+	arithmExprLet
+	arithmExprCmd
 	arithmExprBrack
 	testRegexp
 	switchCase
@@ -153,7 +154,7 @@ const (
 	paramExpExp
 
 	allRegTokens  = noState | subCmd | subCmdBckquo | switchCase
-	allArithmExpr = arithmExpr | arithmExprCmdLet | arithmExprBrack
+	allArithmExpr = arithmExpr | arithmExprLet | arithmExprCmd | arithmExprBrack
 	allRbrack     = arithmExprBrack | paramExpInd
 	allHdoc       = hdocBody | hdocBodyTabs
 )
@@ -162,7 +163,7 @@ func (p *parser) bash() bool { return p.mode&PosixConformant == 0 }
 
 func (p *parser) reset() {
 	p.spaced, p.newLine = false, false
-	p.stopNewline, p.forbidNested = false, false
+	p.forbidNested = false
 	p.err = nil
 	p.npos = 0
 	p.tok, p.quote = token.ILLEGAL, noState
@@ -178,13 +179,12 @@ type saveState struct {
 func (p *parser) preNested(quote quoteState) (s saveState) {
 	s.quote = p.quote
 	s.buriedHdocs = p.buriedHdocs
-	p.buriedHdocs, p.stopNewline = len(p.heredocs), false
+	p.buriedHdocs = len(p.heredocs)
 	p.quote = quote
 	return
 }
 
 func (p *parser) postNested(s saveState) {
-	p.stopNewline = s.buriedHdocs < len(p.heredocs)
 	p.quote, p.buriedHdocs = s.quote, s.buriedHdocs
 }
 
@@ -960,14 +960,13 @@ func (p *parser) doRedirect(s *ast.Stmt) {
 	p.next()
 	switch r.Op {
 	case token.SHL, token.DHEREDOC:
-		p.stopNewline = true
 		p.forbidNested = true
 		if p.newLine {
 			p.curErr("heredoc stop word must be on the same line")
 		}
+		p.heredocs = append(p.heredocs, r)
 		r.Word = p.followWordTok(r.Op, r.OpPos)
 		p.forbidNested = false
-		p.heredocs = append(p.heredocs, r)
 		p.got(token.STOPPED)
 	default:
 		if p.newLine {
@@ -1126,7 +1125,7 @@ func (p *parser) subshell() *ast.Subshell {
 
 func (p *parser) arithmExpCmd() *ast.ArithmExp {
 	ar := &ast.ArithmExp{Token: p.tok, Left: p.pos}
-	old := p.preNested(arithmExprCmdLet)
+	old := p.preNested(arithmExprCmd)
 	p.next()
 	ar.X = p.arithmExpr(ar.Token, ar.Left, 0, false)
 	ar.Right = p.arithmEnd(ar.Token, ar.Left, old)
@@ -1200,7 +1199,7 @@ func (p *parser) forClause() *ast.ForClause {
 func (p *parser) loop(forPos token.Pos) ast.Loop {
 	if p.tok == token.DLPAREN {
 		cl := &ast.CStyleLoop{Lparen: p.pos}
-		old := p.preNested(arithmExprCmdLet)
+		old := p.preNested(arithmExprCmd)
 		p.next()
 		cl.Init = p.arithmExpr(token.DLPAREN, cl.Lparen, 0, false)
 		scPos := p.pos
@@ -1473,9 +1472,8 @@ func (p *parser) evalClause() *ast.EvalClause {
 
 func (p *parser) letClause() *ast.LetClause {
 	lc := &ast.LetClause{Let: p.pos}
-	old := p.preNested(arithmExprCmdLet)
+	old := p.preNested(arithmExprLet)
 	p.next()
-	p.stopNewline = true
 	for !p.newLine && !stopToken(p.tok) && p.tok != token.STOPPED && !p.peekRedir() {
 		x := p.arithmExpr(token.LET, lc.Let, 0, true)
 		if x == nil {

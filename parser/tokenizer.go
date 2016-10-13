@@ -119,8 +119,7 @@ skipSpace:
 			p.spaced = true
 			p.npos++
 		case '\n':
-			if p.stopNewline {
-				p.stopNewline = false
+			if p.quote == arithmExprLet || len(p.heredocs) > p.buriedHdocs {
 				p.tok = token.STOPPED
 				return
 			}
