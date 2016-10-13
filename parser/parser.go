@@ -336,15 +336,6 @@ func (p *parser) matched(lpos token.Pos, left, right token.Token) token.Pos {
 }
 
 func (p *parser) errPass(err error) {
-	if p.quote == arithmExpr && (p.tok != token.EOF || p.err == nil) {
-		if p.npos >= len(p.src) {
-			p.tok = token.EOF
-		}
-		if p.err == nil {
-			p.err = err
-		}
-		return
-	}
 	if p.err == nil {
 		p.err = err
 		p.tok = token.EOF
@@ -492,43 +483,27 @@ func (p *parser) wordPart() ast.WordPart {
 		left := p.tok
 		ar := &ast.ArithmExp{Token: p.tok, Left: p.pos}
 		oldQuote := p.quote
-		oldLines := len(p.f.Lines)
 		if ar.Token == token.DOLLBK {
 			// treat deprecated $[ as $((
 			ar.Token = token.DOLLDP
 			p.quote = arithmExprBrack
 		} else {
 			p.quote = arithmExpr
+			if !p.couldBeArithm() {
+				p.quote = oldQuote
+				p.npos = int(ar.Left) + 1
+				p.tok = token.DOLLPR
+				p.pos = ar.Left
+				wp := p.wordPart()
+				if p.err != nil {
+					p.err = nil
+					p.matchingErr(ar.Left, left, token.DRPAREN)
+				}
+				return wp
+			}
 		}
 		p.next()
 		ar.X = p.arithmExpr(ar.Token, ar.Left, 0, false)
-		oldErr := p.err
-		if p.quote == arithmExpr && !p.peekArithmEnd() {
-			// TODO: this will probably break if there is
-			// extra lingering state, such as pending
-			// heredocs
-			p.quote = oldQuote
-			p.err = nil
-			p.tok, p.pos = token.DOLLPR, ar.Left
-			p.npos = int(ar.Left) + 1
-			p.f.Lines = p.f.Lines[:oldLines]
-			if wp := p.wordPart(); p.err == nil {
-				return wp
-			}
-			if oldErr != nil {
-				p.err = oldErr
-				p.tok = token.EOF
-			} else {
-				p.err = nil
-				p.matchingErr(ar.Left, left, token.DRPAREN)
-			}
-			return nil
-		}
-		if oldErr != nil {
-			// not retrying, so recover error
-			p.err = oldErr
-			p.tok = token.EOF
-		}
 		if left == token.DOLLBK {
 			if p.tok != token.RBRACK {
 				p.matchingErr(ar.Left, left, token.RBRACK)
@@ -661,6 +636,27 @@ func (p *parser) wordPart() ast.WordPart {
 	return nil
 }
 
+func (p *parser) couldBeArithm() (could bool) {
+	// save state
+	oldTok := p.tok
+	oldNpos := p.npos
+	oldLines := len(p.f.Lines)
+	// TODO: don't modify extra state like heredocs
+	p.next()
+	for p.tok != token.EOF {
+		if p.peekArithmEnd() {
+			could = true
+			break
+		}
+		p.next()
+	}
+	// recover state
+	p.tok = oldTok
+	p.npos = oldNpos
+	p.f.Lines = p.f.Lines[:oldLines]
+	return
+}
+
 func arithmOpLevel(tok token.Token) int {
 	switch tok {
 	case token.COMMA:
@@ -715,11 +711,6 @@ func (p *parser) arithmExpr(ftok token.Token, fpos token.Pos, level int, compact
 			p.curErr("not a valid arithmetic operator: %s", p.val)
 			newLevel = 0
 		case token.RPAREN, token.EOF:
-		case token.SQUOTE, token.DQUOTE, token.BQUOTE, token.DOLLPR:
-			if p.quote == arithmExpr {
-				p.curErr("not allowed in arithmetic expressions: %v", p.tok)
-				newLevel = 0
-			}
 		default:
 			if p.quote == arithmExpr {
 				p.curErr("not a valid arithmetic operator: %v", p.tok)
@@ -727,8 +718,7 @@ func (p *parser) arithmExpr(ftok token.Token, fpos token.Pos, level int, compact
 			}
 		}
 	}
-	// can't check for EOF as we might be skipping errors
-	if p.npos >= len(p.src) || newLevel < 0 || newLevel < level {
+	if newLevel < 0 || newLevel < level {
 		return left
 	}
 	b := &ast.BinaryExpr{
@@ -770,13 +760,6 @@ func (p *parser) arithmExprBase(ftok token.Token, fpos token.Pos, compact bool) 
 			p.followErr(ue.OpPos, ue.Op.String(), "an expression")
 		}
 		x = ue
-	case token.SQUOTE, token.DQUOTE, token.BQUOTE, token.DOLLPR:
-		if p.quote == arithmExpr {
-			p.curErr("not allowed in arithmetic expressions: %v", p.tok)
-			p.next()
-			return p.arithmExprBase(ftok, fpos, compact)
-		}
-		fallthrough
 	default:
 		w := p.followWordTok(ftok, fpos)
 		x = &w
