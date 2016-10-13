@@ -184,7 +184,7 @@ func (p *parser) preNested(quote quoteState) (s saveState) {
 }
 
 func (p *parser) postNested(s saveState) {
-	p.stopNewline = s.buriedHdocs < p.buriedHdocs
+	p.stopNewline = s.buriedHdocs < len(p.heredocs)
 	p.quote, p.buriedHdocs = s.quote, s.buriedHdocs
 }
 
@@ -569,11 +569,10 @@ func (p *parser) wordPart() ast.WordPart {
 		return pe
 	case token.CMDIN, token.CMDOUT:
 		ps := &ast.ProcSubst{Op: p.tok, OpPos: p.pos}
-		old := p.quote
-		p.quote = subCmd
+		old := p.preNested(subCmd)
 		p.next()
 		ps.Stmts = p.stmts()
-		p.quote = old
+		p.postNested(old)
 		ps.Rparen = p.matched(ps.OpPos, ps.Op, token.RPAREN)
 		return ps
 	case token.SQUOTE:
@@ -812,15 +811,14 @@ func (p *parser) gotParamLit(l *ast.Lit) bool {
 
 func (p *parser) paramExp() *ast.ParamExp {
 	pe := &ast.ParamExp{Dollar: p.pos}
-	old := p.quote
-	p.quote = paramExpName
+	old := p.preNested(paramExpName)
 	p.next()
 	pe.Length = p.got(token.HASH)
 	if !p.gotParamLit(&pe.Param) && !pe.Length {
 		p.posErr(pe.Dollar, "parameter expansion requires a literal")
 	}
 	if p.tok == token.RBRACE {
-		p.quote = old
+		p.postNested(old)
 		p.next()
 		return pe
 	}
@@ -833,7 +831,7 @@ func (p *parser) paramExp() *ast.ParamExp {
 		p.matched(lpos, token.LBRACK, token.RBRACK)
 	}
 	if p.tok == token.RBRACE {
-		p.quote = old
+		p.postNested(old)
 		p.next()
 		return pe
 	}
@@ -856,7 +854,7 @@ func (p *parser) paramExp() *ast.ParamExp {
 		p.next()
 		pe.Exp.Word = p.word()
 	}
-	p.quote = old
+	p.postNested(old)
 	p.matched(pe.Dollar, token.DOLLBR, token.RBRACE)
 	return pe
 }
@@ -1261,11 +1259,10 @@ func (p *parser) patLists() (pls []*ast.PatternList) {
 				p.curErr("case patterns must be separated with |")
 			}
 		}
-		old := p.quote
-		p.quote = switchCase
+		old := p.preNested(switchCase)
 		p.next()
 		pl.Stmts = p.stmts("esac")
-		p.quote = old
+		p.postNested(old)
 		pl.OpPos = p.pos
 		if p.tok != token.DSEMICOLON && p.tok != token.SEMIFALL && p.tok != token.DSEMIFALL {
 			pl.Op = token.DSEMICOLON
@@ -1355,10 +1352,9 @@ func (p *parser) testExpr(ftok token.Token, fpos token.Pos) ast.ArithmExpr {
 		X:     left,
 	}
 	if p.tok == token.TREMATCH {
-		old := p.quote
-		p.quote = testRegexp
+		old := p.preNested(testRegexp)
 		p.next()
-		p.quote = old
+		p.postNested(old)
 	} else {
 		p.next()
 	}
@@ -1477,8 +1473,7 @@ func (p *parser) evalClause() *ast.EvalClause {
 
 func (p *parser) letClause() *ast.LetClause {
 	lc := &ast.LetClause{Let: p.pos}
-	old := p.quote
-	p.quote = arithmExprCmdLet
+	old := p.preNested(arithmExprCmdLet)
 	p.next()
 	p.stopNewline = true
 	for !p.newLine && !stopToken(p.tok) && p.tok != token.STOPPED && !p.peekRedir() {
@@ -1491,8 +1486,7 @@ func (p *parser) letClause() *ast.LetClause {
 	if len(lc.Exprs) == 0 {
 		p.posErr(lc.Let, "let clause requires at least one expression")
 	}
-	p.stopNewline = false
-	p.quote = old
+	p.postNested(old)
 	p.got(token.STOPPED)
 	return lc
 }
