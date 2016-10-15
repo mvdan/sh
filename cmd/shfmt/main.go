@@ -90,19 +90,27 @@ var (
 	vcsDir       = regexp.MustCompile(`^(\.git|\.svn|\.hg)$`)
 )
 
-func isShellFile(info os.FileInfo) bool {
+type shellConfidence int
+
+const (
+	notShellFile shellConfidence = iota
+	ifValidShebang
+	isShellFile
+)
+
+func getConfidence(info os.FileInfo) shellConfidence {
 	name := info.Name()
 	switch {
 	case info.IsDir(), hidden.MatchString(name), !info.Mode().IsRegular():
-		return false
+		return notShellFile
 	case shellFile.MatchString(name):
-		return true
+		return isShellFile
 	case strings.Contains(name, "."):
-		return false // different extension
+		return notShellFile // different extension
 	case info.Size() < 8:
-		return false // cannot possibly hold valid shebang
+		return notShellFile // cannot possibly hold valid shebang
 	default:
-		return true
+		return ifValidShebang
 	}
 }
 
@@ -112,13 +120,21 @@ func walk(path string, onError func(error)) error {
 		return err
 	}
 	if !info.IsDir() {
-		return formatPath(path, true)
+		return formatPath(path, false)
 	}
 	return filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
 		if info.IsDir() && vcsDir.MatchString(info.Name()) {
 			return filepath.SkipDir
 		}
-		if err == nil && isShellFile(info) {
+		if err != nil {
+			onError(err)
+			return nil
+		}
+		switch getConfidence(info) {
+		case notShellFile:
+		case ifValidShebang:
+			err = formatPath(path, true)
+		default: // isShellFile
 			err = formatPath(path, false)
 		}
 		if err != nil && !os.IsNotExist(err) {
@@ -136,7 +152,7 @@ func empty(f *os.File) error {
 	return err
 }
 
-func formatPath(path string, always bool) error {
+func formatPath(path string, checkShebang bool) error {
 	openMode := os.O_RDONLY
 	if *write {
 		openMode = os.O_RDWR
@@ -151,7 +167,7 @@ func formatPath(path string, always bool) error {
 		return err
 	}
 	src := readBuf.Bytes()
-	if !always && !validShebang.Match(src[:32]) {
+	if checkShebang && !validShebang.Match(src[:32]) {
 		return nil
 	}
 	parseMode := parser.ParseComments
