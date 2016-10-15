@@ -28,6 +28,8 @@ var (
 
 	printConfig       printer.Config
 	readBuf, writeBuf bytes.Buffer
+
+	out io.Writer
 )
 
 func main() {
@@ -41,6 +43,7 @@ func main() {
 		defer pprof.StopCPUProfile()
 	}
 
+	out = os.Stdout
 	printConfig.Spaces = *indent
 	if flag.NArg() == 0 {
 		if err := formatStdin(); err != nil {
@@ -77,7 +80,7 @@ func formatStdin() error {
 	if err != nil {
 		return err
 	}
-	return printConfig.Fprint(os.Stdout, prog)
+	return printConfig.Fprint(out, prog)
 }
 
 var (
@@ -166,7 +169,7 @@ func formatPath(path string, always bool) error {
 	res := writeBuf.Bytes()
 	if !bytes.Equal(src, res) {
 		if *list {
-			fmt.Println(path)
+			fmt.Fprintln(out, path)
 		}
 		if *write {
 			if err := empty(f); err != nil {
@@ -178,7 +181,7 @@ func formatPath(path string, always bool) error {
 		}
 	}
 	if !*list && !*write {
-		if _, err := os.Stdout.Write(res); err != nil {
+		if _, err := out.Write(res); err != nil {
 			return err
 		}
 	}
