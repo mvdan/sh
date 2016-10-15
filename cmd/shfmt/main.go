@@ -84,7 +84,6 @@ func formatStdin() error {
 }
 
 var (
-	hidden       = regexp.MustCompile(`^\.[^/.]`)
 	shellFile    = regexp.MustCompile(`^.*\.(sh|bash)$`)
 	validShebang = regexp.MustCompile(`^#!/(usr/)?bin/(env *)?(sh|bash)`)
 	vcsDir       = regexp.MustCompile(`^(\.git|\.svn|\.hg)$`)
@@ -101,7 +100,7 @@ const (
 func getConfidence(info os.FileInfo) shellConfidence {
 	name := info.Name()
 	switch {
-	case info.IsDir(), hidden.MatchString(name), !info.Mode().IsRegular():
+	case info.IsDir(), name[0] == '.', !info.Mode().IsRegular():
 		return notShellFile
 	case shellFile.MatchString(name):
 		return isShellFile

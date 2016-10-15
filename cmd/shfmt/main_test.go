@@ -26,6 +26,7 @@ var walkTests = []struct {
 	{true, "ext-shebang.sh", "#!/bin/sh\n foo"},
 	{false, ".hidden", " foo long enough"},
 	{false, ".hidden-shebang", "#!/bin/sh\n foo"},
+	{false, "..hidden-shebang", "#!/bin/sh\n foo"},
 	{false, "noext-empty", " foo"},
 	{false, "noext-noshebang", " foo long enough"},
 	{false, "ext.other", " foo"},
