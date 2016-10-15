@@ -49,6 +49,7 @@ func TestWalk(t *testing.T) {
 	var buf bytes.Buffer
 	out = &buf
 	*list = true
+	*write = true
 	onError := func(err error) {
 	}
 	if err := walk(".", onError); err != nil {
