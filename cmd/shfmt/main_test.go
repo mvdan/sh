@@ -7,7 +7,6 @@ import (
 	"bufio"
 	"bytes"
 	"io/ioutil"
-	"log"
 	"os"
 	"testing"
 )
@@ -34,26 +33,25 @@ var walkTests = []struct {
 func TestWalk(t *testing.T) {
 	dir, err := ioutil.TempDir("", "shfmt-walk")
 	if err != nil {
-		log.Fatal(err)
+		t.Fatal(err)
 	}
 	defer os.RemoveAll(dir)
 
 	if err := os.Chdir(dir); err != nil {
-		log.Fatal(err)
+		t.Fatal(err)
 	}
 	for _, wt := range walkTests {
 		if err := ioutil.WriteFile(wt.name, []byte(wt.body), 0666); err != nil {
-			log.Fatal(err)
+			t.Fatal(err)
 		}
 	}
 	var buf bytes.Buffer
 	out = &buf
-	*list = true
-	*write = true
+	*list, *write = true, true
 	onError := func(err error) {
 	}
 	if err := walk(".", onError); err != nil {
-		log.Fatal(err)
+		t.Fatal(err)
 	}
 	modified := make(map[string]bool, 0)
 	scanner := bufio.NewScanner(&buf)
@@ -72,5 +70,18 @@ func TestWalk(t *testing.T) {
 				t.Fatalf("walk had to not run on %s but did", wt.name)
 			}
 		})
+	}
+	if err := walk(".", onError); err != nil {
+		t.Fatal(err)
+	}
+	if buf.Len() > 0 {
+		t.Fatal("shfmt -l -w printed filenames on a duplicate run")
+	}
+	*list, *write = false, false
+	if err := walk(".", onError); err != nil {
+		t.Fatal(err)
+	}
+	if buf.Len() == 0 {
+		t.Fatal("shfmt without -l nor -w did not print anything")
 	}
 }
