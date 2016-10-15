@@ -34,6 +34,7 @@ var walkTests = []struct {
 	{false, filepath.Join(".git", "ext.sh"), " foo"},
 	{false, filepath.Join(".svn", "ext.sh"), " foo"},
 	{false, filepath.Join(".hg", "ext.sh"), " foo"},
+	{false, "ext-error.sh", " foo("},
 }
 
 func TestWalk(t *testing.T) {
@@ -58,11 +59,18 @@ func TestWalk(t *testing.T) {
 	var buf bytes.Buffer
 	out = &buf
 	*list, *write = true, true
+	gotError := false
 	onError := func(err error) {
+		gotError = true
 	}
-	if err := walk(".", onError); err != nil {
-		t.Fatal(err)
+	doWalk := func(path string) {
+		gotError = false
+		buf.Reset()
+		if err := walk(path, onError); err != nil {
+			gotError = true
+		}
 	}
+	doWalk(".")
 	modified := make(map[string]bool, 0)
 	scanner := bufio.NewScanner(&buf)
 	for scanner.Scan() {
@@ -81,17 +89,24 @@ func TestWalk(t *testing.T) {
 			}
 		})
 	}
-	if err := walk(".", onError); err != nil {
-		t.Fatal(err)
-	}
-	if buf.Len() > 0 {
+	if doWalk("."); buf.Len() > 0 {
 		t.Fatal("shfmt -l -w printed paths on a duplicate run")
 	}
 	*list, *write = false, false
-	if err := walk(".", onError); err != nil {
+	if doWalk("."); buf.Len() == 0 {
+		t.Fatal("shfmt without -l nor -w did not print anything")
+	}
+	if doWalk(".hidden"); buf.Len() == 0 {
+		t.Fatal("`shfmt .hidden` did not print anything")
+	}
+	if doWalk("nonexistent"); !gotError {
+		t.Fatal("`shfmt nonexistent` did not error")
+	}
+	if err := ioutil.WriteFile("nowrite", []byte(" foo"), 0444); err != nil {
 		t.Fatal(err)
 	}
-	if buf.Len() == 0 {
-		t.Fatal("shfmt without -l nor -w did not print anything")
+	*write = true
+	if doWalk("nowrite"); !gotError {
+		t.Fatal("`shfmt nowrite` did not error")
 	}
 }
