@@ -94,9 +94,9 @@ func (p *printer) reset() {
 	p.commentPadding = 0
 	p.nline, p.nlineIndex = 0, 0
 	p.lastLevel, p.level = 0, 0
-	p.levelIncs = p.levelIncs[:]
+	p.levelIncs = p.levelIncs[:0]
 	p.nestedBinary = false
-	p.pendingHdocs = p.pendingHdocs[:]
+	p.pendingHdocs = p.pendingHdocs[:0]
 }
 
 func (p *printer) incLine() {
