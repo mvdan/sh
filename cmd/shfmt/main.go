@@ -90,12 +90,10 @@ var (
 func isShellFile(info os.FileInfo) bool {
 	name := info.Name()
 	switch {
-	case info.IsDir(), hidden.MatchString(name):
+	case info.IsDir(), hidden.MatchString(name), !info.Mode().IsRegular():
 		return false
 	case shellFile.MatchString(name):
 		return true
-	case !info.Mode().IsRegular():
-		return false
 	case strings.Contains(name, "."):
 		return false // different extension
 	case info.Size() < 8:
