@@ -8,12 +8,13 @@ import (
 	"bytes"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"testing"
 )
 
 var walkTests = []struct {
 	run        bool
-	name, body string
+	path, body string
 }{
 	{true, "shebang-1", "#!/bin/sh\n foo"},
 	{true, "shebang-2", "#!/bin/bash\n foo"},
@@ -29,6 +30,9 @@ var walkTests = []struct {
 	{false, "noext-noshebang", " foo long enough"},
 	{false, "ext.other", " foo"},
 	{false, "ext-shebang.other", "#!/bin/sh\n foo"},
+	{false, filepath.Join(".git", "ext.sh"), " foo"},
+	{false, filepath.Join(".svn", "ext.sh"), " foo"},
+	{false, filepath.Join(".hg", "ext.sh"), " foo"},
 }
 
 func TestWalk(t *testing.T) {
@@ -42,7 +46,11 @@ func TestWalk(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, wt := range walkTests {
-		if err := ioutil.WriteFile(wt.name, []byte(wt.body), 0666); err != nil {
+		if dir, _ := filepath.Split(wt.path); dir != "" {
+			dir = dir[:len(dir)-1]
+			os.Mkdir(dir, 0777)
+		}
+		if err := ioutil.WriteFile(wt.path, []byte(wt.body), 0666); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -57,18 +65,18 @@ func TestWalk(t *testing.T) {
 	modified := make(map[string]bool, 0)
 	scanner := bufio.NewScanner(&buf)
 	for scanner.Scan() {
-		name := scanner.Text()
-		modified[name] = true
+		path := scanner.Text()
+		modified[path] = true
 	}
 	for _, wt := range walkTests {
-		t.Run(wt.name, func(t *testing.T) {
-			if modified[wt.name] == wt.run {
+		t.Run(wt.path, func(t *testing.T) {
+			if modified[wt.path] == wt.run {
 				return
 			}
 			if wt.run {
-				t.Fatalf("walk had to run on %s but didn't", wt.name)
+				t.Fatalf("walk had to run on %s but didn't", wt.path)
 			} else {
-				t.Fatalf("walk had to not run on %s but did", wt.name)
+				t.Fatalf("walk had to not run on %s but did", wt.path)
 			}
 		})
 	}
@@ -76,7 +84,7 @@ func TestWalk(t *testing.T) {
 		t.Fatal(err)
 	}
 	if buf.Len() > 0 {
-		t.Fatal("shfmt -l -w printed filenames on a duplicate run")
+		t.Fatal("shfmt -l -w printed paths on a duplicate run")
 	}
 	*list, *write = false, false
 	if err := walk(".", onError); err != nil {
