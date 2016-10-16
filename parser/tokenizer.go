@@ -53,6 +53,7 @@ func (p *parser) next() {
 	switch q {
 	case hdocWord:
 		if wordBreak(b) {
+			p.tok = token.ILLEGAL
 			p.spaced = true
 			return
 		}
