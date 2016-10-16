@@ -40,10 +40,7 @@ func wordBreak(b byte) bool {
 }
 
 func (p *parser) next() {
-	if p.tok == token.EOF {
-		return
-	}
-	if p.npos >= len(p.src) {
+	if p.tok == token.EOF || p.npos >= len(p.src) {
 		p.tok = token.EOF
 		return
 	}
