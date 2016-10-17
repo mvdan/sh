@@ -286,10 +286,7 @@ func (u *UnaryExpr) Pos() token.Pos {
 }
 func (u *UnaryExpr) End() token.Pos {
 	if u.Post {
-		if u.Op == token.INC || u.Op == token.DEC {
-			return posAfter(u.OpPos, 2)
-		}
-		return posAfter(u.OpPos, 1)
+		return posAfter(u.OpPos, 2)
 	}
 	return u.X.End()
 }
