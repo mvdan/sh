@@ -348,12 +348,19 @@ func (l *Lit) End() token.Pos { return posAfterStr(l.ValuePos, l.Value) }
 
 // SglQuoted represents a single-quoted string.
 type SglQuoted struct {
-	Quote token.Pos
-	Value string
+	QuotePos token.Pos
+	Quote    token.Token
+	Value    string
 }
 
-func (q *SglQuoted) Pos() token.Pos { return q.Quote }
-func (q *SglQuoted) End() token.Pos { return posAfter(q.Quote, 2+len(q.Value)) }
+func (q *SglQuoted) Pos() token.Pos { return q.QuotePos }
+func (q *SglQuoted) End() token.Pos {
+	pos := posAfter(q.QuotePos, 2+len(q.Value))
+	if pos > 0 && q.Quote == token.DOLLSQ {
+		pos++
+	}
+	return pos
+}
 
 // Quoted represents a quoted list of nodes. Single quotes are
 // represented separately as SglQuoted.

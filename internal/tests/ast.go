@@ -80,7 +80,7 @@ func litStmts(strs ...string) []*Stmt {
 	return l
 }
 
-func sglQuoted(s string) *SglQuoted     { return &SglQuoted{Value: s} }
+func sglQuoted(s string) *SglQuoted     { return &SglQuoted{Quote: SQUOTE, Value: s} }
 func dblQuoted(ps ...WordPart) *Quoted  { return &Quoted{Quote: DQUOTE, Parts: ps} }
 func block(sts ...*Stmt) *Block         { return &Block{Stmts: sts} }
 func subshell(sts ...*Stmt) *Subshell   { return &Subshell{Stmts: sts} }
@@ -2025,7 +2025,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs:  []string{`$''`},
-		bash:  &Quoted{Quote: DOLLSQ},
+		bash:  &SglQuoted{Quote: DOLLSQ},
 		posix: word(lit("$"), sglQuoted("")),
 	},
 	{
@@ -2035,20 +2035,32 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs:  []string{`$'foo'`},
-		bash:  &Quoted{Quote: DOLLSQ, Parts: lits("foo")},
+		bash:  &SglQuoted{Quote: DOLLSQ, Value: "foo"},
 		posix: word(lit("$"), sglQuoted("foo")),
 	},
 	{
 		Strs: []string{`$'foo${'`},
-		bash: &Quoted{Quote: DOLLSQ, Parts: lits("foo${")},
+		bash: &SglQuoted{Quote: DOLLSQ, Value: "foo${"},
 	},
 	{
 		Strs: []string{"$'foo bar`'"},
-		bash: &Quoted{Quote: DOLLSQ, Parts: lits("foo bar`")},
+		bash: &SglQuoted{Quote: DOLLSQ, Value: "foo bar`"},
+	},
+	{
+		Strs: []string{"$'a ${b} c'"},
+		bash: &SglQuoted{Quote: DOLLSQ, Value: "a ${b} c"},
+	},
+	{
+		Strs: []string{`$"a ${b} c"`},
+		bash: &Quoted{Quote: DOLLDQ, Parts: []WordPart{
+			lit("a "),
+			&ParamExp{Param: *lit("b")},
+			lit(" c"),
+		}},
 	},
 	{
 		Strs: []string{"$'f\\'oo\n'"},
-		bash: &Quoted{Quote: DOLLSQ, Parts: lits("f\\'oo\n")},
+		bash: &SglQuoted{Quote: DOLLSQ, Value: "f\\'oo\n"},
 	},
 	{
 		Strs:  []string{`$"foo"`},
@@ -2065,7 +2077,7 @@ var FileTests = []TestCase{
 	},
 	{
 		Strs: []string{`$'f\'oo'`},
-		bash: &Quoted{Quote: DOLLSQ, Parts: lits(`f\'oo`)},
+		bash: &SglQuoted{Quote: DOLLSQ, Value: `f\'oo`},
 	},
 	{
 		Strs: []string{`$"f\"oo"`},
@@ -3078,7 +3090,7 @@ func SetPosRecurse(tb testing.TB, src string, v interface{}, to Pos, diff bool) 
 		recurse(&x.Cond)
 		recurse(&x.Post)
 	case *SglQuoted:
-		setPos(&x.Quote, "'")
+		setPos(&x.QuotePos, x.Quote.String())
 	case *Quoted:
 		setPos(&x.QuotePos, x.Quote.String())
 		recurse(x.Parts)

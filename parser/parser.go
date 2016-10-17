@@ -573,7 +573,7 @@ func (p *parser) wordPart() ast.WordPart {
 		ps.Rparen = p.matched(ps.OpPos, ps.Op, token.RPAREN)
 		return ps
 	case token.SQUOTE:
-		sq := &ast.SglQuoted{Quote: p.pos}
+		sq := &ast.SglQuoted{Quote: p.tok, QuotePos: p.pos}
 		bs, found := p.readUntil('\'')
 		rem := bs
 		for {
@@ -593,25 +593,31 @@ func (p *parser) wordPart() ast.WordPart {
 		sq.Value = string(bs)
 		p.next()
 		return sq
+	case token.DOLLSQ:
+		sq := &ast.SglQuoted{Quote: p.tok, QuotePos: p.pos}
+		old := p.quote
+		p.quote = sglQuotes
+		p.next()
+		if p.tok == token.SQUOTE {
+			p.quote = old
+		} else {
+			sq.Value = p.val
+			p.quote = old
+			p.next()
+		}
+		if !p.got(token.SQUOTE) {
+			p.quoteErr(sq.Pos(), token.SQUOTE)
+		}
+		return sq
 	case token.DQUOTE:
 		if p.quote == dblQuotes {
 			return nil
 		}
 		fallthrough
-	case token.DOLLSQ, token.DOLLDQ:
+	case token.DOLLDQ:
 		q := &ast.Quoted{Quote: p.tok, QuotePos: p.pos}
-		stop := q.Quote
 		old := p.quote
-		switch q.Quote {
-		case token.DOLLSQ:
-			stop = token.SQUOTE
-			p.quote = sglQuotes
-		case token.DOLLDQ:
-			stop = token.DQUOTE
-			p.quote = dblQuotes
-		case token.DQUOTE:
-			p.quote = dblQuotes
-		}
+		p.quote = dblQuotes
 		p.next()
 		switch p.tok {
 		case token.LITWORD:
@@ -622,8 +628,8 @@ func (p *parser) wordPart() ast.WordPart {
 			q.Parts = p.wordParts()
 		}
 		p.quote = old
-		if !p.got(stop) {
-			p.quoteErr(q.Pos(), stop)
+		if !p.got(token.DQUOTE) {
+			p.quoteErr(q.Pos(), token.DQUOTE)
 		}
 		return q
 	case token.BQUOTE:

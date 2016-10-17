@@ -334,6 +334,9 @@ func (p *printer) wordPart(wp ast.WordPart) {
 	case *ast.Lit:
 		p.WriteString(x.Value)
 	case *ast.SglQuoted:
+		if x.Quote == token.DOLLSQ {
+			p.WriteByte('$')
+		}
 		p.WriteByte('\'')
 		p.WriteString(x.Value)
 		p.WriteByte('\'')
