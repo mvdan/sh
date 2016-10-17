@@ -78,6 +78,8 @@ func (p *parser) next() {
 	case hdocBody, hdocBodyTabs:
 		if b == '`' || b == '$' {
 			p.tok = p.dqToken(b)
+		} else if p.hdocStop == nil {
+			p.tok = token.ILLEGAL
 		} else {
 			p.advanceLitHdoc()
 		}
@@ -748,7 +750,7 @@ loop:
 
 func (p *parser) isHdocEnd(i int) bool {
 	end := p.hdocStop
-	if len(p.src) < i+len(end) {
+	if end == nil || len(p.src) < i+len(end) {
 		return false
 	}
 	if !bytes.Equal(end, p.src[i:i+len(end)]) {

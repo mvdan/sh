@@ -464,7 +464,6 @@ func (p *parser) gotLit(l *ast.Lit) bool {
 
 func (p *parser) wordParts() (wps []ast.WordPart) {
 	for {
-		lastLit := p.tok == token.LIT
 		n := p.wordPart()
 		if n == nil {
 			return
@@ -474,13 +473,6 @@ func (p *parser) wordParts() (wps []ast.WordPart) {
 		}
 		wps = append(wps, n)
 		if p.spaced {
-			return
-		}
-		if p.quote&allHdoc != 0 && p.hdocStop == nil {
-			// TODO: is this is a hack around a bug?
-			if p.tok == token.LITWORD && !lastLit {
-				wps = append(wps, p.lit(p.pos, p.val))
-			}
 			return
 		}
 	}
