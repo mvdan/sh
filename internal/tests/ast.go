@@ -2024,6 +2024,16 @@ var FileTests = []TestCase{
 		common: word(lit("foo"), lit("$")),
 	},
 	{
+		Strs:  []string{`$''`},
+		bash:  &Quoted{Quote: DOLLSQ},
+		posix: word(lit("$"), sglQuoted("")),
+	},
+	{
+		Strs:  []string{`$""`},
+		bash:  &Quoted{Quote: DOLLDQ},
+		posix: word(lit("$"), dblQuoted()),
+	},
+	{
 		Strs:  []string{`$'foo'`},
 		bash:  &Quoted{Quote: DOLLSQ, Parts: lits("foo")},
 		posix: word(lit("$"), sglQuoted("foo")),
@@ -2052,6 +2062,10 @@ var FileTests = []TestCase{
 	{
 		Strs: []string{`$"foo bar"`},
 		bash: &Quoted{Quote: DOLLDQ, Parts: lits(`foo bar`)},
+	},
+	{
+		Strs: []string{`$'f\'oo'`},
+		bash: &Quoted{Quote: DOLLSQ, Parts: lits(`f\'oo`)},
 	},
 	{
 		Strs: []string{`$"f\"oo"`},
