@@ -2974,6 +2974,9 @@ func fullProg(v interface{}) *File {
 		return fullProg(word(x))
 	case Command:
 		return fullProg(stmt(x))
+	case nil:
+	default:
+		panic(reflect.TypeOf(v))
 	}
 	return nil
 }

@@ -855,8 +855,8 @@ var posixTests = []struct {
 		`1:5: | must be followed by a statement`,
 	},
 	{
-		"echo $[foo'",
-		`1:11: reached EOF without closing quote '`,
+		"foo ;&",
+		`1:6: & can only immediately follow a statement`,
 	},
 }
 
