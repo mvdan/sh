@@ -72,8 +72,8 @@ func (c *Comment) Pos() token.Pos { return c.Hash }
 func (c *Comment) End() token.Pos { return posAfterStr(c.Hash, c.Text) }
 
 // Stmt represents a statement, otherwise known as a compound command.
-// It is compromised of a node, like Command or IfStmt, and other
-// components that may come before or after it.
+// It is compromised of a command and other components that may come
+// before or after it.
 type Stmt struct {
 	Cmd        Command
 	Position   token.Pos
@@ -312,8 +312,8 @@ type FuncDecl struct {
 func (f *FuncDecl) Pos() token.Pos { return f.Position }
 func (f *FuncDecl) End() token.Pos { return f.Body.End() }
 
-// Word represents a list of nodes that are contiguous to each other and
-// are delimeted by word boundaries.
+// Word represents a list of nodes that are contiguous to each other.
+// The word is delimeted by word boundaries.
 type Word struct {
 	Parts []WordPart
 }
@@ -362,8 +362,7 @@ func (q *SglQuoted) End() token.Pos {
 	return pos
 }
 
-// Quoted represents a quoted list of nodes. Single quotes are
-// represented separately as SglQuoted.
+// Quoted represents a list of nodes within double quotes.
 type Quoted struct {
 	QuotePos token.Pos
 	Quote    token.Token
@@ -578,7 +577,9 @@ func posAfter(pos token.Pos, n int) token.Pos {
 	return pos + token.Pos(n)
 }
 
-func posAfterStr(pos token.Pos, s string) token.Pos { return posAfter(pos, len(s)) }
+func posAfterStr(pos token.Pos, s string) token.Pos {
+	return posAfter(pos, len(s))
+}
 
 func stmtFirstPos(sts []*Stmt) token.Pos {
 	if len(sts) == 0 {
