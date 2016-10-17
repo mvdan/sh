@@ -26,7 +26,6 @@ func TestParseBash(t *testing.T) {
 		if want == nil {
 			continue
 		}
-		tests.SetPosRecurse(t, "", want.Stmts, internal.DefaultPos, false)
 		for j, in := range c.Strs {
 			t.Run(fmt.Sprintf("%03d-%d", i, j), singleParse(in, want, 0))
 		}
@@ -40,7 +39,6 @@ func TestParsePosix(t *testing.T) {
 		if want == nil {
 			continue
 		}
-		tests.SetPosRecurse(t, "", want.Stmts, internal.DefaultPos, false)
 		for j, in := range c.Strs {
 			t.Run(fmt.Sprintf("%03d-%d", i, j),
 				singleParse(in, want, PosixConformant))
@@ -125,6 +123,7 @@ func singleParse(in string, want *ast.File, mode Mode) func(t *testing.T) {
 		}
 		tests.CheckNewlines(t, in, got.Lines)
 		got.Lines = nil
+		tests.SetPosRecurse(t, "", want.Stmts, internal.DefaultPos, false)
 		tests.SetPosRecurse(t, in, got.Stmts, internal.DefaultPos, true)
 		if !reflect.DeepEqual(got, want) {
 			t.Fatalf("AST mismatch in %q\ndiff:\n%s", in,
