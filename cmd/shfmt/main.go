@@ -129,13 +129,11 @@ func walk(path string, onError func(error)) error {
 			onError(err)
 			return nil
 		}
-		switch getConfidence(info) {
-		case notShellFile:
-		case ifValidShebang:
-			err = formatPath(path, true)
-		default: // isShellFile
-			err = formatPath(path, false)
+		conf := getConfidence(info)
+		if conf == notShellFile {
+			return nil
 		}
+		err = formatPath(path, conf == ifValidShebang)
 		if err != nil && !os.IsNotExist(err) {
 			onError(err)
 		}
