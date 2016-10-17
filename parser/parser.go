@@ -535,7 +535,7 @@ func (p *parser) wordPart() ast.WordPart {
 		} else {
 			b = p.src[p.npos]
 		}
-		if p.tok == token.EOF || wordBreak(b) || b == '"' || b == '\'' || b == '`' {
+		if p.tok == token.EOF || wordBreak(b) || b == '"' || b == '\'' || b == '`' || b == '[' {
 			l := p.lit(p.pos, "$")
 			p.next()
 			return l

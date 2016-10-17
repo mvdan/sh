@@ -2944,6 +2944,14 @@ var FileTestsNoPrint = []TestCase{
 			Hdoc: *litWord("\\"),
 		}}},
 	},
+	{
+		Strs:  []string{`$[foo]`},
+		posix: word(lit("$"), lit("[foo]")),
+	},
+	{
+		Strs:  []string{`"$[foo]"`},
+		posix: dblQuoted(lit("$"), lit("[foo]")),
+	},
 }
 
 func fullProg(v interface{}) *File {
