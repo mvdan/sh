@@ -22,9 +22,11 @@ func prepareTest(c *TestCase) {
 		c.Posix = f
 	}
 	if f, ok := c.bash.(*File); ok && f != nil {
+		c.All = append(c.All, f)
 		c.Bash = f
 	}
 	if f, ok := c.posix.(*File); ok && f != nil {
+		c.All = append(c.All, f)
 		c.Posix = f
 	}
 }
