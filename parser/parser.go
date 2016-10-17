@@ -790,6 +790,10 @@ func (p *parser) gotParamLit(l *ast.Lit) bool {
 		l.Value = "$"
 	case token.QUEST:
 		l.Value = "?"
+	case token.HASH:
+		l.Value = "#"
+	case token.SUB:
+		l.Value = "-"
 	default:
 		return false
 	}
@@ -801,7 +805,17 @@ func (p *parser) paramExp() *ast.ParamExp {
 	pe := &ast.ParamExp{Dollar: p.pos}
 	old := p.preNested(paramExpName)
 	p.next()
-	pe.Length = p.got(token.HASH)
+	switch p.tok {
+	case token.DHASH:
+		p.tok = token.HASH
+		p.npos--
+		fallthrough
+	case token.HASH:
+		if p.npos < len(p.src) && p.src[p.npos] != '}' {
+			pe.Length = true
+			p.next()
+		}
+	}
 	if !p.gotParamLit(&pe.Param) && !pe.Length {
 		p.posErr(pe.Dollar, "parameter expansion requires a literal")
 	}

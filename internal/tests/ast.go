@@ -1386,11 +1386,30 @@ var FileTests = []TestCase{
 		common: litWord("$"),
 	},
 	{
-		Strs: []string{`${@} ${$} ${?}`},
+		Strs: []string{`${@} ${*} ${#} ${$} ${?} ${!} ${0} ${-}`},
 		common: call(
 			*word(&ParamExp{Param: *lit("@")}),
+			*word(&ParamExp{Param: *lit("*")}),
+			*word(&ParamExp{Param: *lit("#")}),
 			*word(&ParamExp{Param: *lit("$")}),
 			*word(&ParamExp{Param: *lit("?")}),
+			*word(&ParamExp{Param: *lit("!")}),
+			*word(&ParamExp{Param: *lit("0")}),
+			*word(&ParamExp{Param: *lit("-")}),
+		),
+	},
+	{
+		Strs: []string{`${#$} ${##} ${?/a/b}`},
+		common: call(
+			*word(&ParamExp{Length: true, Param: *lit("$")}),
+			*word(&ParamExp{Length: true, Param: *lit("#")}),
+			*word(&ParamExp{
+				Param: *lit("?"),
+				Repl: &Replace{
+					Orig: *litWord("a"),
+					With: *litWord("b"),
+				},
+			}),
 		),
 	},
 	{
@@ -1670,9 +1689,8 @@ var FileTests = []TestCase{
 		},
 	},
 	{
-		Strs: []string{`${#} ${#?}`},
+		Strs: []string{`${#?}`},
 		common: call(
-			*word(&ParamExp{Length: true}),
 			*word(&ParamExp{Length: true, Param: *lit("?")}),
 		),
 	},
