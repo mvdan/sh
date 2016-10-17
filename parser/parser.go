@@ -620,12 +620,10 @@ func (p *parser) wordPart() ast.WordPart {
 		old := p.quote
 		p.quote = dblQuotes
 		p.next()
-		switch p.tok {
-		case token.LITWORD:
+		if p.tok == token.LITWORD {
 			q.Parts = p.singleWps(p.lit(p.pos, p.val))
 			p.next()
-		case token.SQUOTE:
-		default:
+		} else {
 			q.Parts = p.wordParts()
 		}
 		p.quote = old
