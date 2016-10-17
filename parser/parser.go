@@ -157,7 +157,6 @@ const (
 	allRegTokens  = noState | subCmd | subCmdBckquo | hdocWord | switchCase
 	allArithmExpr = arithmExpr | arithmExprLet | arithmExprCmd | arithmExprBrack
 	allRbrack     = arithmExprBrack | paramExpInd
-	allHdoc       = hdocBody | hdocBodyTabs
 )
 
 func (p *parser) bash() bool { return p.mode&PosixConformant == 0 }
