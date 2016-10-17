@@ -1369,12 +1369,16 @@ var FileTests = []TestCase{
 		common: dblQuoted(lit("#foo")),
 	},
 	{
-		Strs: []string{`$@ $# $$ $?`},
+		Strs: []string{`$@a $*a $#a $$a $?a $!a $0a $-a`},
 		common: call(
-			*word(litParamExp("@")),
-			*word(litParamExp("#")),
-			*word(litParamExp("$")),
-			*word(litParamExp("?")),
+			*word(litParamExp("@"), lit("a")),
+			*word(litParamExp("*"), lit("a")),
+			*word(litParamExp("#"), lit("a")),
+			*word(litParamExp("$"), lit("a")),
+			*word(litParamExp("?"), lit("a")),
+			*word(litParamExp("!"), lit("a")),
+			*word(litParamExp("0"), lit("a")),
+			*word(litParamExp("-"), lit("a")),
 		),
 	},
 	{

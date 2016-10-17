@@ -542,10 +542,11 @@ func (p *parser) wordPart() ast.WordPart {
 		}
 		pe := &ast.ParamExp{Dollar: p.pos, Short: true}
 		p.pos++
-		if b == '#' || b == '$' || b == '?' {
+		switch b {
+		case '@', '*', '#', '$', '?', '!', '0', '-':
 			p.npos++
 			p.tok, p.val = token.LIT, string(b)
-		} else {
+		default:
 			p.advanceLitOther(p.quote)
 		}
 		p.gotLit(&pe.Param)
