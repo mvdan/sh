@@ -153,6 +153,7 @@ const (
 	paramExpRepl
 	paramExpExp
 
+	allParamExp   = paramExpName | paramExpInd | paramExpRepl | paramExpExp
 	allRegTokens  = noState | subCmd | subCmdBckquo | hdocWord | switchCase
 	allArithmExpr = arithmExpr | arithmExprLet | arithmExprCmd | arithmExprBrack
 	allRbrack     = arithmExprBrack | paramExpInd
@@ -556,7 +557,7 @@ func (p *parser) wordPart() ast.WordPart {
 			p.tok, p.val = token.LIT, string(b)
 		} else {
 			old := p.quote
-			if p.quote&allHdoc != 0 {
+			if p.quote&allParamExp == 0 {
 				p.quote = noState
 			}
 			p.next()

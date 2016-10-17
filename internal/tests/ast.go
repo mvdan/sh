@@ -2059,6 +2059,18 @@ var FileTests = []TestCase{
 		}},
 	},
 	{
+		Strs:   []string{`"a $b c"`},
+		common: dblQuoted(lit("a "), litParamExp("b"), lit(" c")),
+	},
+	{
+		Strs: []string{`$"a $b c"`},
+		bash: &Quoted{Quote: DOLLDQ, Parts: []WordPart{
+			lit("a "),
+			litParamExp("b"),
+			lit(" c"),
+		}},
+	},
+	{
 		Strs: []string{"$'f\\'oo\n'"},
 		bash: &SglQuoted{Quote: DOLLSQ, Value: "f\\'oo\n"},
 	},
