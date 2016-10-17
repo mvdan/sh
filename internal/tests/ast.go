@@ -1730,6 +1730,13 @@ var FileTests = []TestCase{
 		)),
 	},
 	{
+		Strs: []string{`$(($a)) b`, `$[$a] b`},
+		bash: call(
+			*word(arithmExp(word(litParamExp("a")))),
+			*litWord("b"),
+		),
+	},
+	{
 		Strs: []string{`$((arr[0]++))`},
 		common: arithmExp(
 			&UnaryExpr{

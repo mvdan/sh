@@ -153,7 +153,6 @@ const (
 	paramExpRepl
 	paramExpExp
 
-	allParamExp   = paramExpName | paramExpInd | paramExpRepl | paramExpExp
 	allRegTokens  = noState | subCmd | subCmdBckquo | hdocWord | switchCase
 	allArithmExpr = arithmExpr | arithmExprLet | arithmExprCmd | arithmExprBrack
 	allRbrack     = arithmExprBrack | paramExpInd
@@ -542,17 +541,12 @@ func (p *parser) wordPart() ast.WordPart {
 			return l
 		}
 		pe := &ast.ParamExp{Dollar: p.pos, Short: true}
+		p.pos++
 		if b == '#' || b == '$' || b == '?' {
 			p.npos++
-			p.pos++
 			p.tok, p.val = token.LIT, string(b)
 		} else {
-			old := p.quote
-			if p.quote&allParamExp == 0 {
-				p.quote = noState
-			}
-			p.next()
-			p.quote = old
+			p.advanceLitOther(p.quote)
 		}
 		p.gotLit(&pe.Param)
 		return pe
