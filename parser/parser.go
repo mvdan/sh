@@ -1042,6 +1042,11 @@ preLoop:
 	return
 }
 
+func bashDeclareWord(s string) bool {
+	return s == "declare" || s == "local" || s == "typeset" ||
+		s == "nameref" || s == "readonly"
+}
+
 func (p *parser) gotStmtPipe(s *ast.Stmt) *ast.Stmt {
 	switch p.tok {
 	case token.LPAREN:
@@ -1066,7 +1071,7 @@ func (p *parser) gotStmtPipe(s *ast.Stmt) *ast.Stmt {
 			s.Cmd = p.caseClause()
 		case p.bash() && p.val == "[[":
 			s.Cmd = p.testClause()
-		case p.bash() && (p.val == "declare" || p.val == "local"):
+		case p.bash() && bashDeclareWord(p.val):
 			s.Cmd = p.declClause()
 		case p.bash() && p.val == "eval":
 			s.Cmd = p.evalClause()
@@ -1447,7 +1452,12 @@ func testBinaryOp(val string) token.Token {
 
 func (p *parser) declClause() *ast.DeclClause {
 	name := p.val
-	ds := &ast.DeclClause{Declare: p.pos, Local: name == "local"}
+	ds := &ast.DeclClause{Position: p.pos}
+	switch name {
+	case "declare", "typeset": // typeset is an obsolete synonym
+	default:
+		ds.Variant = name
+	}
 	p.next()
 	for p.tok == token.LITWORD && p.val[0] == '-' {
 		ds.Opts = append(ds.Opts, p.word())

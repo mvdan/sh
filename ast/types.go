@@ -512,13 +512,13 @@ func (t *TestClause) End() token.Pos { return posAfter(t.Right, 2) }
 
 // DeclClause represents a Bash declare clause.
 type DeclClause struct {
-	Declare token.Pos
-	Local   bool
-	Opts    []Word
-	Assigns []*Assign
+	Position token.Pos
+	Variant  string
+	Opts     []Word
+	Assigns  []*Assign
 }
 
-func (d *DeclClause) Pos() token.Pos { return d.Declare }
+func (d *DeclClause) Pos() token.Pos { return d.Position }
 func (d *DeclClause) End() token.Pos {
 	end := wordLastEnd(d.Opts)
 	if len(d.Assigns) > 0 {

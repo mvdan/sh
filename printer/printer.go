@@ -916,11 +916,11 @@ func (p *printer) command(cmd ast.Command, redirs []*ast.Redirect) (startRedirs 
 		p.arithm(x.X, false, true)
 		p.spacedString("]]", true)
 	case *ast.DeclClause:
-		if x.Local {
-			p.spacedString("local", true)
-		} else {
-			p.spacedString("declare", true)
+		name := x.Variant
+		if name == "" {
+			name = "declare"
 		}
+		p.spacedString(name, true)
 		for _, w := range x.Opts {
 			p.WriteByte(' ')
 			p.word(w)

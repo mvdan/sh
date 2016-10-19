@@ -2558,22 +2558,40 @@ var FileTests = []TestCase{
 		},
 	},
 	{
-		Strs: []string{"declare -f func"},
+		Strs: []string{
+			"declare -f func",
+			"typeset -f func",
+		},
 		bash: &DeclClause{
 			Opts: litWords("-f"),
 			Assigns: []*Assign{
 				{Value: *litWord("func")},
 			},
 		},
-		posix: litStmt("declare", "-f", "func"),
 	},
 	{
 		Strs: []string{"local bar"},
 		bash: &DeclClause{
-			Local:   true,
+			Variant: "local",
 			Assigns: []*Assign{{Value: *litWord("bar")}},
 		},
 		posix: litStmt("local", "bar"),
+	},
+	{
+		Strs: []string{"readonly bar"},
+		bash: &DeclClause{
+			Variant: "readonly",
+			Assigns: []*Assign{{Value: *litWord("bar")}},
+		},
+		posix: litStmt("readonly", "bar"),
+	},
+	{
+		Strs: []string{"nameref bar"},
+		bash: &DeclClause{
+			Variant: "nameref",
+			Assigns: []*Assign{{Value: *litWord("bar")}},
+		},
+		posix: litStmt("nameref", "bar"),
 	},
 	{
 		Strs: []string{"declare -a -bc foo=bar"},
@@ -2602,8 +2620,8 @@ var FileTests = []TestCase{
 	{
 		Strs: []string{"local -a foo=(b1 `b2`)"},
 		bash: &DeclClause{
-			Local: true,
-			Opts:  litWords("-a"),
+			Variant: "local",
+			Opts:    litWords("-a"),
 			Assigns: []*Assign{{
 				Name: lit("foo"),
 				Value: *word(
@@ -3222,10 +3240,10 @@ func SetPosRecurse(tb testing.TB, src string, v interface{}, to Pos, diff bool) 
 		setPos(&x.Right, "]]")
 		recurse(x.X)
 	case *DeclClause:
-		if x.Local {
-			setPos(&x.Declare, "local")
+		if x.Variant == "" {
+			setPos(&x.Position, "declare", "typeset")
 		} else {
-			setPos(&x.Declare, "declare")
+			setPos(&x.Position, x.Variant)
 		}
 		recurse(x.Opts)
 		recurse(x.Assigns)
