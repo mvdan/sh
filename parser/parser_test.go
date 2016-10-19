@@ -719,7 +719,7 @@ var bashTests = []struct {
 	},
 	{
 		"let ))",
-		`1:5: "let" must be followed by arithmetic expressions`,
+		`1:1: let clause requires at least one expression`,
 	},
 	{
 		"let 'foo'\n'",
@@ -763,7 +763,7 @@ var bashTests = []struct {
 	},
 	{
 		"declare 0=${o})",
-		`1:15: "declare" must be followed by words`,
+		`1:15: statements must be separated by &, ; or a newline`,
 	},
 	{
 		"a=(<)",

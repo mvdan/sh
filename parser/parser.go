@@ -881,7 +881,8 @@ func stopToken(tok token.Token) bool {
 	return tok == token.EOF || tok == token.SEMICOLON || tok == token.AND ||
 		tok == token.OR || tok == token.LAND || tok == token.LOR ||
 		tok == token.PIPEALL || tok == token.DSEMICOLON ||
-		tok == token.SEMIFALL || tok == token.DSEMIFALL
+		tok == token.SEMIFALL || tok == token.DSEMIFALL ||
+		tok == token.RPAREN
 }
 
 func validIdent(s string) bool {
@@ -1489,7 +1490,7 @@ func (p *parser) letClause() *ast.LetClause {
 	for !p.newLine && !stopToken(p.tok) && !p.peekRedir() {
 		x := p.arithmExpr(token.LET, lc.Let, 0, true)
 		if x == nil {
-			p.followErr(p.pos, "let", "arithmetic expressions")
+			break
 		}
 		lc.Exprs = append(lc.Exprs, x)
 	}

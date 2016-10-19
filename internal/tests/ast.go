@@ -2570,12 +2570,12 @@ var FileTests = []TestCase{
 		},
 	},
 	{
-		Strs: []string{"local bar"},
-		bash: &DeclClause{
+		Strs: []string{"(local bar)"},
+		bash: subshell(stmt(&DeclClause{
 			Variant: "local",
 			Assigns: []*Assign{{Value: *litWord("bar")}},
-		},
-		posix: litStmt("local", "bar"),
+		})),
+		posix: subshell(litStmt("local", "bar")),
 	},
 	{
 		Strs: []string{"readonly bar"},
