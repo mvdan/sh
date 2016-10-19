@@ -1044,8 +1044,8 @@ preLoop:
 }
 
 func bashDeclareWord(s string) bool {
-	return s == "declare" || s == "local" || s == "typeset" ||
-		s == "nameref" || s == "readonly"
+	return s == "declare" || s == "local" || s == "export" ||
+		s == "readonly" || s == "typeset" || s == "nameref"
 }
 
 func (p *parser) gotStmtPipe(s *ast.Stmt) *ast.Stmt {

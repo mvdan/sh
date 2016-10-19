@@ -2578,6 +2578,14 @@ var FileTests = []TestCase{
 		posix: subshell(litStmt("local", "bar")),
 	},
 	{
+		Strs: []string{"export bar"},
+		bash: &DeclClause{
+			Variant: "export",
+			Assigns: []*Assign{{Value: *litWord("bar")}},
+		},
+		posix: litStmt("export", "bar"),
+	},
+	{
 		Strs: []string{"readonly bar"},
 		bash: &DeclClause{
 			Variant: "readonly",
