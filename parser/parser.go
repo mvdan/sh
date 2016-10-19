@@ -1208,13 +1208,19 @@ func (p *parser) loop(forPos token.Pos) ast.Loop {
 		cl := &ast.CStyleLoop{Lparen: p.pos}
 		old := p.preNested(arithmExprCmd)
 		p.next()
-		cl.Init = p.arithmExpr(token.DLPAREN, cl.Lparen, 0, false)
+		if p.tok != token.SEMICOLON {
+			cl.Init = p.arithmExpr(token.DLPAREN, cl.Lparen, 0, false)
+		}
 		scPos := p.pos
 		p.follow(p.pos, "expression", token.SEMICOLON)
-		cl.Cond = p.arithmExpr(token.SEMICOLON, scPos, 0, false)
+		if p.tok != token.SEMICOLON {
+			cl.Cond = p.arithmExpr(token.SEMICOLON, scPos, 0, false)
+		}
 		scPos = p.pos
 		p.follow(p.pos, "expression", token.SEMICOLON)
-		cl.Post = p.arithmExpr(token.SEMICOLON, scPos, 0, false)
+		if p.tok != token.SEMICOLON {
+			cl.Post = p.arithmExpr(token.SEMICOLON, scPos, 0, false)
+		}
 		cl.Rparen = p.arithmEnd(token.DLPAREN, cl.Lparen, old)
 		p.gotSameLine(token.SEMICOLON)
 		return cl

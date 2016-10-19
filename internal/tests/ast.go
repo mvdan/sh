@@ -354,6 +354,13 @@ var FileTests = []TestCase{
 		},
 	},
 	{
+		Strs: []string{"for (( ; ; )); do foo; done"},
+		bash: &ForClause{
+			Loop:    &CStyleLoop{},
+			DoStmts: litStmts("foo"),
+		},
+	},
+	{
 		Strs: []string{`' ' "foo bar"`},
 		common: call(
 			*word(sglQuoted(" ")),

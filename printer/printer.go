@@ -437,6 +437,9 @@ func (p *printer) loop(loop ast.Loop) {
 		}
 	case *ast.CStyleLoop:
 		p.WriteString("((")
+		if x.Init == nil {
+			p.WriteByte(' ')
+		}
 		p.arithm(x.Init, false, false)
 		p.WriteString("; ")
 		p.arithm(x.Cond, false, false)

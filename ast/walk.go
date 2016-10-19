@@ -88,9 +88,15 @@ func Walk(v Visitor, node Node) {
 		Walk(v, &x.Name)
 		walkWords(v, x.List)
 	case *CStyleLoop:
-		Walk(v, x.Init)
-		Walk(v, x.Cond)
-		Walk(v, x.Post)
+		if x.Init != nil {
+			Walk(v, x.Init)
+		}
+		if x.Cond != nil {
+			Walk(v, x.Cond)
+		}
+		if x.Post != nil {
+			Walk(v, x.Post)
+		}
 	case *UnaryExpr:
 		Walk(v, x.X)
 	case *BinaryCmd:
