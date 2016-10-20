@@ -306,15 +306,9 @@ func (p *parser) regToken(b byte) token.Token {
 			p.npos += 2
 			return token.SHL
 		case '>':
-			if !p.bash() {
-				break
-			}
 			p.npos += 2
 			return token.RDRINOUT
 		case '&':
-			if !p.bash() {
-				break
-			}
 			p.npos += 2
 			return token.DPLIN
 		case '(':
@@ -332,9 +326,6 @@ func (p *parser) regToken(b byte) token.Token {
 			p.npos += 2
 			return token.SHR
 		case '&':
-			if !p.bash() {
-				break
-			}
 			p.npos += 2
 			return token.DPLOUT
 		case '(':

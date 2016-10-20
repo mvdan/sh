@@ -1078,17 +1078,34 @@ var FileTests = []TestCase{
 		},
 	},
 	{
-		Strs: []string{"foo >&2 <&0 2>file <>f2 &>f3 &>>f4"},
-		bash: &Stmt{
+		Strs: []string{"foo >&2 <&0 2>file <>f2"},
+		common: &Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*Redirect{
 				{Op: DPLOUT, Word: *litWord("2")},
 				{Op: DPLIN, Word: *litWord("0")},
 				{Op: GTR, N: lit("2"), Word: *litWord("file")},
 				{Op: RDRINOUT, Word: *litWord("f2")},
-				{Op: RDRALL, Word: *litWord("f3")},
-				{Op: APPALL, Word: *litWord("f4")},
 			},
+		},
+	},
+	{
+		Strs: []string{"foo &>a &>>b"},
+		bash: &Stmt{
+			Cmd: litCall("foo"),
+			Redirs: []*Redirect{
+				{Op: RDRALL, Word: *litWord("a")},
+				{Op: APPALL, Word: *litWord("b")},
+			},
+		},
+		posix: []*Stmt{
+			{Cmd: litCall("foo"), Background: true},
+			{Redirs: []*Redirect{
+				{Op: GTR, Word: *litWord("a")},
+			}, Background: true},
+			{Redirs: []*Redirect{
+				{Op: SHR, Word: *litWord("b")},
+			}},
 		},
 	},
 	{

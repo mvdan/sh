@@ -790,10 +790,6 @@ var bashTests = []struct {
 		`1:1: "foo()" must be followed by a statement`,
 	},
 	{
-		"foo <>",
-		`1:5: <> must be followed by a word`,
-	},
-	{
 		"foo <<<",
 		`1:5: <<< must be followed by a word`,
 	},
@@ -827,28 +823,12 @@ var posixTests = []struct {
 		`1:13: a command can only contain words and redirects`,
 	},
 	{
-		"foo <>",
-		`1:5: < must be followed by a word`,
-	},
-	{
-		"foo <&",
-		`1:5: < must be followed by a word`,
-	},
-	{
 		"foo <(",
 		`1:5: < must be followed by a word`,
 	},
 	{
-		"foo >&",
-		`1:5: > must be followed by a word`,
-	},
-	{
 		"foo >(",
 		`1:5: > must be followed by a word`,
-	},
-	{
-		"foo &>",
-		`1:6: > must be followed by a word`,
 	},
 	{
 		"foo |&",
