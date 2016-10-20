@@ -26,6 +26,7 @@ var (
 	posix      = flag.Bool("p", false, "parse POSIX shell code instead of bash")
 	cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
 
+	parseMode         parser.Mode
 	printConfig       printer.Config
 	readBuf, writeBuf bytes.Buffer
 
@@ -45,6 +46,10 @@ func main() {
 
 	out = os.Stdout
 	printConfig.Spaces = *indent
+	parseMode |= parser.ParseComments
+	if *posix {
+		parseMode |= parser.PosixConformant
+	}
 	if flag.NArg() == 0 {
 		if err := formatStdin(); err != nil {
 			fmt.Fprintln(os.Stderr, err)
@@ -76,7 +81,7 @@ func formatStdin() error {
 		return err
 	}
 	src := readBuf.Bytes()
-	prog, err := parser.Parse(src, "", parser.ParseComments)
+	prog, err := parser.Parse(src, "", parseMode)
 	if err != nil {
 		return err
 	}
@@ -166,10 +171,6 @@ func formatPath(path string, checkShebang bool) error {
 	src := readBuf.Bytes()
 	if checkShebang && !validShebang.Match(src[:32]) {
 		return nil
-	}
-	parseMode := parser.ParseComments
-	if *posix {
-		parseMode |= parser.PosixConformant
 	}
 	prog, err := parser.Parse(src, path, parseMode)
 	if err != nil {
