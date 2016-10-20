@@ -1130,9 +1130,21 @@ func (p *parser) subshell() *ast.Subshell {
 	return s
 }
 
-func (p *parser) arithmExpCmd() *ast.ArithmExp {
+func (p *parser) arithmExpCmd() ast.Command {
 	ar := &ast.ArithmExp{Token: p.tok, Left: p.pos}
 	old := p.preNested(arithmExprCmd)
+	if !p.couldBeArithm() {
+		p.postNested(old)
+		p.npos = int(ar.Left)
+		p.tok = token.LPAREN
+		p.pos = ar.Left
+		s := p.subshell()
+		if p.err != nil {
+			p.err = nil
+			p.matchingErr(ar.Left, token.DLPAREN, token.DRPAREN)
+		}
+		return s
+	}
 	p.next()
 	ar.X = p.arithmExpr(ar.Token, ar.Left, 0, false)
 	ar.Right = p.arithmEnd(ar.Token, ar.Left, old)

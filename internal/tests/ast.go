@@ -1242,6 +1242,16 @@ var FileTests = []TestCase{
 		)),
 	},
 	{
+		Strs: []string{
+			"( (echo foo bar))",
+			"((echo foo bar) )",
+			"( (echo foo bar) )",
+		},
+		common: subshell(stmt(
+			subshell(litStmt("echo", "foo", "bar")),
+		)),
+	},
+	{
 		Strs: []string{"`(foo)`"},
 		common: bckQuoted(stmt(
 			subshell(litStmt("foo")),
