@@ -12,7 +12,7 @@ import (
 	. "github.com/mvdan/sh/token"
 )
 
-func prepareTest(c *TestCase) {
+func prepareTest(c *testCase) {
 	c.common = fullProg(c.common)
 	c.bash = fullProg(c.bash)
 	c.posix = fullProg(c.posix)
@@ -98,14 +98,14 @@ func letClause(exps ...ArithmExpr) *LetClause {
 	return &LetClause{Exprs: exps}
 }
 
-type TestCase struct {
+type testCase struct {
 	Strs                []string
 	common, bash, posix interface{}
 	All                 []*File
 	Bash, Posix         *File
 }
 
-var FileTests = []TestCase{
+var FileTests = []testCase{
 	{
 		Strs:   []string{"", " ", "\t", "\n \n", "\r \r\n"},
 		common: &File{},
@@ -2995,7 +2995,7 @@ var FileTests = []TestCase{
 }
 
 // these don't have a canonical format with the same AST
-var FileTestsNoPrint = []TestCase{
+var FileTestsNoPrint = []testCase{
 	{
 		Strs: []string{"<<EOF\n\\"},
 		common: &Stmt{Redirs: []*Redirect{{
