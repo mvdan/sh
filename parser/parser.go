@@ -644,10 +644,18 @@ func (p *parser) couldBeArithm() (could bool) {
 	oldNpos := p.npos
 	oldLines := len(p.f.Lines)
 	p.next()
+	lparens := 0
 	for p.tok != token.EOF {
 		if p.peekArithmEnd() {
 			could = true
 			break
+		}
+		if p.tok == token.LPAREN {
+			lparens++
+		} else if p.tok == token.RPAREN {
+			if lparens--; lparens < 0 {
+				break
+			}
 		}
 		p.next()
 	}

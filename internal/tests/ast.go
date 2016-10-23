@@ -1295,6 +1295,16 @@ var FileTests = []testCase{
 	},
 	{
 		Strs: []string{
+			"$(\n\t(foo)\n\t(bar)\n)",
+			"$((foo); (bar))",
+		},
+		common: cmdSubst(
+			stmt(subshell(litStmt("foo"))),
+			stmt(subshell(litStmt("bar"))),
+		),
+	},
+	{
+		Strs: []string{
 			`"$( (foo))"`,
 			`"$((foo) )"`,
 		},
