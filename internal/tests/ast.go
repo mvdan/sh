@@ -354,7 +354,10 @@ var FileTests = []testCase{
 		},
 	},
 	{
-		Strs: []string{"for (( ; ; )); do foo; done"},
+		Strs: []string{
+			"for (( ; ; )); do foo; done",
+			"for ((;;)); do foo; done",
+		},
 		bash: &ForClause{
 			Loop:    &CStyleLoop{},
 			DoStmts: litStmts("foo"),
