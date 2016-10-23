@@ -741,6 +741,8 @@ func (p *printer) redirectOp(tok token.Token) {
 		p.WriteString("<&")
 	case token.DPLOUT:
 		p.WriteString(">&")
+	case token.CLBOUT:
+		p.WriteString(">|")
 	case token.DHEREDOC:
 		p.WriteString("<<-")
 	case token.WHEREDOC:

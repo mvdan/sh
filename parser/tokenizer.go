@@ -328,6 +328,9 @@ func (p *parser) regToken(b byte) token.Token {
 		case '&':
 			p.npos += 2
 			return token.DPLOUT
+		case '|':
+			p.npos += 2
+			return token.CLBOUT
 		case '(':
 			if !p.bash() {
 				break

@@ -946,8 +946,8 @@ func (p *parser) peekRedir() bool {
 	case token.LITWORD:
 		return litRedir(p.src, p.npos)
 	case token.GTR, token.SHR, token.LSS, token.DPLIN, token.DPLOUT,
-		token.RDRINOUT, token.SHL, token.DHEREDOC, token.WHEREDOC,
-		token.RDRALL, token.APPALL:
+		token.CLBOUT, token.RDRINOUT, token.SHL, token.DHEREDOC,
+		token.WHEREDOC, token.RDRALL, token.APPALL:
 		return true
 	}
 	return false
@@ -998,7 +998,7 @@ preLoop:
 				break preLoop
 			}
 		case token.GTR, token.SHR, token.LSS, token.DPLIN, token.DPLOUT,
-			token.RDRINOUT, token.SHL, token.DHEREDOC,
+			token.CLBOUT, token.RDRINOUT, token.SHL, token.DHEREDOC,
 			token.WHEREDOC, token.RDRALL, token.APPALL:
 			p.doRedirect(s)
 		default:
@@ -1572,7 +1572,7 @@ func (p *parser) callExpr(s *ast.Stmt, w ast.Word) *ast.CallExpr {
 			token.DOLLSQ, token.DQUOTE, token.DOLLDQ, token.DOLLBK:
 			ce.Args = append(ce.Args, ast.Word{Parts: p.wordParts()})
 		case token.GTR, token.SHR, token.LSS, token.DPLIN, token.DPLOUT,
-			token.RDRINOUT, token.SHL, token.DHEREDOC,
+			token.CLBOUT, token.RDRINOUT, token.SHL, token.DHEREDOC,
 			token.WHEREDOC, token.RDRALL, token.APPALL:
 			p.doRedirect(s)
 		case token.RPAREN:

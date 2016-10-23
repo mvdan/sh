@@ -82,6 +82,7 @@ const (
 	RDRINOUT // <>
 	DPLIN    // <&
 	DPLOUT   // >&
+	CLBOUT   // >|
 	DHEREDOC // <<-
 	WHEREDOC // <<<
 	CMDIN    // <(
@@ -194,6 +195,7 @@ var tokNames = map[Token]string{
 	RDRINOUT: "<>",
 	DPLIN:    "<&",
 	DPLOUT:   ">&",
+	CLBOUT:   ">|",
 	DHEREDOC: "<<-",
 	WHEREDOC: "<<<",
 	CMDIN:    "<(",

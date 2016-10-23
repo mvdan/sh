@@ -1131,6 +1131,15 @@ var FileTests = []testCase{
 		},
 	},
 	{
+		Strs: []string{"foo >|bar"},
+		common: &Stmt{
+			Cmd: litCall("foo"),
+			Redirs: []*Redirect{
+				{Op: CLBOUT, Word: *litWord("bar")},
+			},
+		},
+	},
+	{
 		Strs: []string{
 			"foo <<<input",
 			"foo <<< input",
