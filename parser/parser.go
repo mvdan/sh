@@ -1084,6 +1084,8 @@ func (p *parser) gotStmtPipe(s *ast.Stmt) *ast.Stmt {
 			s.Cmd = p.declClause()
 		case p.bash() && p.val == "eval":
 			s.Cmd = p.evalClause()
+		case p.bash() && p.val == "coproc":
+			s.Cmd = p.coprocClause()
 		case p.bash() && p.val == "let":
 			s.Cmd = p.letClause()
 		case p.bash() && p.val == "function":
@@ -1511,6 +1513,14 @@ func (p *parser) evalClause() *ast.EvalClause {
 	p.next()
 	ec.Stmt, _ = p.getStmt(false)
 	return ec
+}
+
+func (p *parser) coprocClause() *ast.CoprocClause {
+	cc := &ast.CoprocClause{Coproc: p.pos}
+	p.next()
+	p.gotLit(&cc.Name)
+	cc.Stmt, _ = p.getStmt(false)
+	return cc
 }
 
 func (p *parser) letClause() *ast.LetClause {

@@ -2755,6 +2755,13 @@ var FileTests = []testCase{
 		}},
 	},
 	{
+		Strs: []string{"coproc a { b; }"},
+		bash: &CoprocClause{
+			Name: *lit("a"),
+			Stmt: stmt(block(litStmt("b"))),
+		},
+	},
+	{
 		Strs: []string{`let i++`},
 		bash: letClause(
 			&UnaryExpr{
@@ -3325,6 +3332,10 @@ func SetPosRecurse(tb testing.TB, src string, v interface{}, to Pos, diff bool) 
 		if x.Stmt != nil {
 			recurse(x.Stmt)
 		}
+	case *CoprocClause:
+		setPos(&x.Coproc, "coproc")
+		recurse(&x.Name)
+		recurse(x.Stmt)
 	case *LetClause:
 		setPos(&x.Let, "let")
 		for i := range x.Exprs {

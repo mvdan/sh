@@ -110,21 +110,22 @@ type Command interface {
 	commandNode()
 }
 
-func (*CallExpr) commandNode()    {}
-func (*IfClause) commandNode()    {}
-func (*WhileClause) commandNode() {}
-func (*UntilClause) commandNode() {}
-func (*ForClause) commandNode()   {}
-func (*CaseClause) commandNode()  {}
-func (*Block) commandNode()       {}
-func (*Subshell) commandNode()    {}
-func (*BinaryCmd) commandNode()   {}
-func (*FuncDecl) commandNode()    {}
-func (*ArithmExp) commandNode()   {}
-func (*TestClause) commandNode()  {}
-func (*DeclClause) commandNode()  {}
-func (*EvalClause) commandNode()  {}
-func (*LetClause) commandNode()   {}
+func (*CallExpr) commandNode()     {}
+func (*IfClause) commandNode()     {}
+func (*WhileClause) commandNode()  {}
+func (*UntilClause) commandNode()  {}
+func (*ForClause) commandNode()    {}
+func (*CaseClause) commandNode()   {}
+func (*Block) commandNode()        {}
+func (*Subshell) commandNode()     {}
+func (*BinaryCmd) commandNode()    {}
+func (*FuncDecl) commandNode()     {}
+func (*ArithmExp) commandNode()    {}
+func (*TestClause) commandNode()   {}
+func (*DeclClause) commandNode()   {}
+func (*EvalClause) commandNode()   {}
+func (*LetClause) commandNode()    {}
+func (*CoprocClause) commandNode() {}
 
 // Assign represents an assignment to a variable.
 type Assign struct {
@@ -560,6 +561,16 @@ func (e *EvalClause) End() token.Pos {
 	}
 	return e.Stmt.End()
 }
+
+// CoprocClause represents a Bash coproc clause.
+type CoprocClause struct {
+	Coproc token.Pos
+	Name   Lit
+	Stmt   *Stmt
+}
+
+func (c *CoprocClause) Pos() token.Pos { return c.Coproc }
+func (c *CoprocClause) End() token.Pos { return c.Stmt.End() }
 
 // LetClause represents a Bash let clause.
 type LetClause struct {

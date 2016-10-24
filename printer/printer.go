@@ -936,6 +936,10 @@ func (p *printer) command(cmd ast.Command, redirs []*ast.Redirect) (startRedirs 
 		if x.Stmt != nil {
 			p.stmt(x.Stmt)
 		}
+	case *ast.CoprocClause:
+		p.spacedString("coproc ", true)
+		p.WriteString(x.Name.Value)
+		p.stmt(x.Stmt)
 	case *ast.LetClause:
 		p.spacedString("let", true)
 		for _, n := range x.Exprs {
