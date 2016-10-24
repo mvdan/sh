@@ -153,6 +153,8 @@ func Walk(v Visitor, node Node) {
 		}
 	case *ArrayExpr:
 		walkWords(v, x.List)
+	case *ExtGlob:
+		Walk(v, &x.Pattern)
 	case *ProcSubst:
 		walkStmts(v, x.Stmts)
 	case *EvalClause:

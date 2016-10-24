@@ -57,7 +57,12 @@ func confirmParse(in string, posix, fail bool) func(*testing.T) {
 			}
 			opts = append(opts, "--posix")
 		}
-		if !fail {
+		if strings.Contains(in, "@(") {
+			// otherwise bash refuses to parse these
+			// properly. Also avoid -n since that too makes
+			// bash bail.
+			in = "shopt -s extglob\n" + in
+		} else if !fail {
 			// -n makes bash accept invalid inputs like
 			// "let" or "`{`", so only use it in
 			// non-erroring tests. Should be safe to not use
@@ -801,6 +806,10 @@ var bashTests = []struct {
 		`echo $"`,
 		`1:6: reached EOF without closing quote "`,
 	},
+	{
+		"echo @(a",
+		`1:6: reached EOF without matching @( with )`,
+	},
 }
 
 var posixTests = []struct {
@@ -833,6 +842,10 @@ var posixTests = []struct {
 	{
 		"foo ;&",
 		`1:6: & can only immediately follow a statement`,
+	},
+	{
+		"echo !(a)",
+		`1:7: a command can only contain words and redirects`,
 	},
 }
 

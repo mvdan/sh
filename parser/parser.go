@@ -634,6 +634,19 @@ func (p *parser) wordPart() ast.WordPart {
 			p.quoteErr(cs.Pos(), token.BQUOTE)
 		}
 		return cs
+	case token.GQUEST, token.GMUL, token.GADD, token.GAT, token.GNOT:
+		eg := &ast.ExtGlob{Token: p.tok}
+		bs, ok := p.readUntil(')')
+		eg.Pattern.Value = string(bs)
+		eg.Pattern.ValuePos = token.Pos(p.npos + 1)
+		p.npos += len(bs) + 1
+		if !ok {
+			p.next()
+			p.matchingErr(p.pos, eg.Token, token.RPAREN)
+			p.curErr("extended globbing was not closed")
+		}
+		p.next()
+		return eg
 	}
 	return nil
 }
@@ -1106,7 +1119,8 @@ func (p *parser) gotStmtPipe(s *ast.Stmt) *ast.Stmt {
 		}
 	case token.LIT, token.DOLLBR, token.DOLLDP, token.DOLLPR, token.DOLLAR,
 		token.CMDIN, token.CMDOUT, token.SQUOTE, token.DOLLSQ,
-		token.DQUOTE, token.DOLLDQ, token.BQUOTE, token.DOLLBK:
+		token.DQUOTE, token.DOLLDQ, token.BQUOTE, token.DOLLBK,
+		token.GQUEST, token.GMUL, token.GADD, token.GAT, token.GNOT:
 		w := ast.Word{Parts: p.wordParts()}
 		if p.gotSameLine(token.LPAREN) && p.err == nil {
 			rawName := string(p.src[w.Pos()-1 : w.End()-1])
@@ -1632,7 +1646,8 @@ func (p *parser) callExpr(s *ast.Stmt, w ast.Word) *ast.CallExpr {
 			fallthrough
 		case token.LIT, token.DOLLBR, token.DOLLDP, token.DOLLPR,
 			token.DOLLAR, token.CMDIN, token.CMDOUT, token.SQUOTE,
-			token.DOLLSQ, token.DQUOTE, token.DOLLDQ, token.DOLLBK:
+			token.DOLLSQ, token.DQUOTE, token.DOLLDQ, token.DOLLBK,
+			token.GQUEST, token.GMUL, token.GADD, token.GAT, token.GNOT:
 			ce.Args = append(ce.Args, ast.Word{Parts: p.wordParts()})
 		case token.GTR, token.SHR, token.LSS, token.DPLIN, token.DPLOUT,
 			token.CLBOUT, token.RDRINOUT, token.SHL, token.DHEREDOC,

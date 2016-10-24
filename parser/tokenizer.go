@@ -165,6 +165,24 @@ skipSpace:
 				})
 			}
 			p.next()
+		case '?', '*', '+', '@', '!':
+			if p.bash() && p.npos+1 < len(p.src) && p.src[p.npos+1] == '(' {
+				switch b {
+				case '?':
+					p.tok = token.GQUEST
+				case '*':
+					p.tok = token.GMUL
+				case '+':
+					p.tok = token.GADD
+				case '@':
+					p.tok = token.GAT
+				default: // '!'
+					p.tok = token.GNOT
+				}
+				p.npos += 2
+			} else {
+				p.advanceLitNone()
+			}
 		default:
 			p.advanceLitNone()
 		}
@@ -675,6 +693,10 @@ loop:
 		case ' ', '\t', '\n', '\r', '&', '>', '<', '|', ';', '(', ')':
 			tok = token.LITWORD
 			break loop
+		case '?', '*', '+', '@', '!':
+			if p.bash() && i+1 < len(p.src) && p.src[i+1] == '(' {
+				break loop
+			}
 		case '`':
 			if p.quote == subCmdBckquo {
 				tok = token.LITWORD

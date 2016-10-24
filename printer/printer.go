@@ -419,6 +419,11 @@ func (p *printer) wordPart(wp ast.WordPart) {
 		p.WriteByte('(')
 		p.wordJoin(x.List, false)
 		p.sepTok(")", x.Rparen)
+	case *ast.ExtGlob:
+		p.wantSpace = false
+		p.WriteString(x.Token.String())
+		p.WriteString(x.Pattern.Value)
+		p.WriteByte(')')
 	case *ast.ProcSubst:
 		// avoid conflict with << and others
 		if p.wantSpace {

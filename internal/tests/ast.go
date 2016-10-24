@@ -3104,6 +3104,24 @@ var FileTests = []testCase{
 			),
 		),
 	},
+	{
+		Strs: []string{"echo ?(b)*(c)+(d)@(e)!(f)"},
+		bash: stmt(call(*litWord("echo"), *word(
+			&ExtGlob{Token: GQUEST, Pattern: *lit("b")},
+			&ExtGlob{Token: GMUL, Pattern: *lit("c")},
+			&ExtGlob{Token: GADD, Pattern: *lit("d")},
+			&ExtGlob{Token: GAT, Pattern: *lit("e")},
+			&ExtGlob{Token: GNOT, Pattern: *lit("f")},
+		))),
+	},
+	{
+		Strs: []string{"echo foo@(b)ar"},
+		bash: stmt(call(*litWord("echo"), *word(
+			lit("foo"),
+			&ExtGlob{Token: GAT, Pattern: *lit("b")},
+			lit("ar"),
+		))),
+	},
 }
 
 // these don't have a canonical format with the same AST
@@ -3154,13 +3172,13 @@ func fullProg(v interface{}) *File {
 }
 
 func SetPosRecurse(tb testing.TB, src string, v interface{}, to Pos, diff bool) {
-	checkSrc := func(pos Pos, strs []string) {
+	checkSrc := func(pos Pos, strs ...string) {
 		if src == "" || strs == nil {
 			return
 		}
 		offs := int(pos - 1)
 		if offs < 0 || offs > len(src) {
-			tb.Fatalf("Pos() in %T is out of bounds", v)
+			tb.Fatalf("Pos() in %T is out of bounds: %d", v, offs)
 			return
 		}
 		var gotErr string
@@ -3181,7 +3199,7 @@ func SetPosRecurse(tb testing.TB, src string, v interface{}, to Pos, diff bool) 
 			strs, offs, src, gotErr)
 	}
 	setPos := func(p *Pos, strs ...string) {
-		checkSrc(*p, strs)
+		checkSrc(*p, strs...)
 		if diff && *p == to {
 			tb.Fatalf("Pos() in %T is already %v", v, to)
 		}
@@ -3192,7 +3210,8 @@ func SetPosRecurse(tb testing.TB, src string, v interface{}, to Pos, diff bool) 
 			return
 		}
 		if n.Pos() != to {
-			tb.Fatalf("Found unexpected Pos() in %T", n)
+			tb.Fatalf("Found unexpected Pos() in %T: want %d, got %d",
+				n, to, n.Pos())
 		}
 		if to == 0 {
 			if n.End() != to {
@@ -3421,6 +3440,10 @@ func SetPosRecurse(tb testing.TB, src string, v interface{}, to Pos, diff bool) 
 		setPos(&x.Lparen, "(")
 		setPos(&x.Rparen, ")")
 		recurse(x.List)
+	case *ExtGlob:
+		checkSrc(x.Pos(), x.Token.String())
+		checkSrc(x.Pattern.End(), ")")
+		recurse(&x.Pattern)
 	case *ProcSubst:
 		setPos(&x.OpPos, x.Op.String())
 		setPos(&x.Rparen, ")")

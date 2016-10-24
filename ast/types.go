@@ -335,7 +335,8 @@ func (*ParamExp) wordPartNode()  {}
 func (*CmdSubst) wordPartNode()  {}
 func (*ArithmExp) wordPartNode() {}
 func (*ProcSubst) wordPartNode() {}
-func (*ArrayExpr) wordPartNode() {} // TODO: remove?
+func (*ArrayExpr) wordPartNode() {}
+func (*ExtGlob) wordPartNode()   {}
 
 // Lit represents an unquoted string consisting of characters that were
 // not tokenized.
@@ -538,6 +539,15 @@ type ArrayExpr struct {
 func (a *ArrayExpr) Pos() token.Pos { return a.Lparen }
 func (a *ArrayExpr) End() token.Pos { return posAfter(a.Rparen, 1) }
 
+// ExtGlob represents a Bash array expression.
+type ExtGlob struct {
+	Token   token.Token
+	Pattern Lit
+}
+
+func (e *ExtGlob) Pos() token.Pos { return posAfter(e.Pattern.Pos(), -2) }
+func (e *ExtGlob) End() token.Pos { return posAfter(e.Pattern.End(), 1) }
+
 // ProcSubst represents a Bash process substitution.
 type ProcSubst struct {
 	OpPos, Rparen token.Pos
@@ -582,8 +592,8 @@ func (l *LetClause) Pos() token.Pos { return l.Let }
 func (l *LetClause) End() token.Pos { return l.Exprs[len(l.Exprs)-1].End() }
 
 func posAfter(pos token.Pos, n int) token.Pos {
-	if pos == 0 {
-		return 0
+	if pos == internal.DefaultPos {
+		return pos
 	}
 	return pos + token.Pos(n)
 }

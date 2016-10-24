@@ -137,6 +137,12 @@ const (
 	TGEQ     // -ge
 	TLSS     // -lt
 	TGTR     // -gt
+
+	GQUEST // ?(
+	GMUL   // *(
+	GADD   // +(
+	GAT    // @(
+	GNOT   // !(
 )
 
 // Pos is the internal representation of a position within a source
@@ -278,6 +284,12 @@ var tokNames = map[Token]string{
 	TGEQ:     "-ge",
 	TLSS:     "-lt",
 	TGTR:     "-gt",
+
+	GQUEST: "?(",
+	GMUL:   "*(",
+	GADD:   "+(",
+	GAT:    "@(",
+	GNOT:   "!(",
 }
 
 func (t Token) String() string { return tokNames[t] }
