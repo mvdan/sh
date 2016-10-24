@@ -1455,10 +1455,14 @@ var FileTests = []testCase{
 		),
 	},
 	{
-		Strs: []string{`${#$} ${##} ${?/a/b}`},
+		Strs: []string{`${#$} ${##} ${#:a} ${?/a/b}`},
 		common: call(
 			*word(&ParamExp{Length: true, Param: *lit("$")}),
 			*word(&ParamExp{Length: true, Param: *lit("#")}),
+			*word(&ParamExp{Length: true, Exp: &Expansion{
+				Op:   COLON,
+				Word: *litWord("a"),
+			}}),
 			*word(&ParamExp{
 				Param: *lit("?"),
 				Repl: &Replace{

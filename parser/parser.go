@@ -840,15 +840,12 @@ func (p *parser) paramExp() *ast.ParamExp {
 		p.quote = paramExpName
 		p.matched(lpos, token.LBRACK, token.RBRACK)
 	}
-	if p.tok == token.RBRACE {
+	switch p.tok {
+	case token.RBRACE:
 		p.postNested(old)
 		p.next()
 		return pe
-	}
-	if pe.Length {
-		p.curErr(`can only get length of a simple parameter`)
-	}
-	if p.tok == token.QUO || p.tok == token.DQUO {
+	case token.QUO, token.DQUO:
 		pe.Repl = &ast.Replace{All: p.tok == token.DQUO}
 		p.quote = paramExpRepl
 		p.next()
@@ -858,7 +855,7 @@ func (p *parser) paramExp() *ast.ParamExp {
 			p.next()
 			pe.Repl.With = p.word()
 		}
-	} else {
+	default:
 		pe.Exp = &ast.Expansion{Op: p.tok}
 		p.quote = paramExpExp
 		p.next()

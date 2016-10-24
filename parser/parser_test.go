@@ -570,10 +570,6 @@ var shellTests = []struct {
 		`1:6: reached EOF without matching ${ with }`,
 	},
 	{
-		"echo ${#foo-bar}",
-		`1:12: can only get length of a simple parameter`,
-	},
-	{
 		"#foo\n{",
 		`2:1: reached EOF without matching { with }`,
 	},
