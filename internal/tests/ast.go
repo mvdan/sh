@@ -1856,6 +1856,12 @@ var FileTests = []testCase{
 		)),
 	},
 	{
+		Strs: []string{"$((`echo 1`))"},
+		common: arithmExp(word(
+			bckQuoted(litStmt("echo", "1")),
+		)),
+	},
+	{
 		Strs: []string{`$(($a)) b`, `$[$a] b`},
 		bash: call(
 			*word(arithmExp(word(litParamExp("a")))),
