@@ -18,10 +18,14 @@ func regOps(b byte) bool {
 }
 
 // tokenize these inside parameter expansions
-func paramOps(b byte) bool {
-	return b == '}' || b == '#' || b == ':' || b == '-' ||
-		b == '+' || b == '=' || b == '?' || b == '%' ||
-		b == '[' || b == '/'
+func paramOps(b byte, bash bool) bool {
+	switch b {
+	case '}', '#', ':', '-', '+', '=', '?', '%', '[', '/':
+		return true
+	case '^', ',':
+		return bash
+	}
+	return false
 }
 
 // tokenize these inside arithmetic expansions
@@ -164,7 +168,7 @@ skipSpace:
 		default:
 			p.advanceLitNone()
 		}
-	case q == paramExpName && paramOps(b):
+	case q == paramExpName && paramOps(b, p.bash()):
 		p.tok = p.paramToken(b)
 	case q&allArithmExpr != 0 && arithmOps(b):
 		p.tok = p.arithmToken(b)
@@ -426,6 +430,20 @@ func (p *parser) paramToken(b byte) token.Token {
 	case '[':
 		p.npos++
 		return token.LBRACK
+	case '^':
+		if byteAt(p.src, p.npos+1) == '^' {
+			p.npos += 2
+			return token.DXOR
+		}
+		p.npos++
+		return token.XOR
+	case ',':
+		if byteAt(p.src, p.npos+1) == ',' {
+			p.npos += 2
+			return token.DCOMMA
+		}
+		p.npos++
+		return token.COMMA
 	default: // '/'
 		if byteAt(p.src, p.npos+1) == '/' {
 			p.npos += 2
@@ -626,7 +644,8 @@ func (p *parser) advanceLitOther(q quoteState) {
 			}
 		case q == paramExpInd && wordBreak(b):
 		case wordBreak(b), regOps(b), q&allArithmExpr != 0 && arithmOps(b),
-			q == paramExpName && paramOps(b), q&allRbrack != 0 && b == ']':
+			q == paramExpName && paramOps(b, p.bash()),
+			q&allRbrack != 0 && b == ']':
 			p.tok, p.val = token.LITWORD, string(bs)
 			return
 		}

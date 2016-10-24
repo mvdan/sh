@@ -324,8 +324,16 @@ func (p *printer) expansionOp(tok token.Token) {
 		p.WriteString("%%")
 	case token.HASH:
 		p.WriteByte('#')
-	default: // token.DHASH
+	case token.DHASH:
 		p.WriteString("##")
+	case token.XOR:
+		p.WriteByte('^')
+	case token.DXOR:
+		p.WriteString("^^")
+	case token.COMMA:
+		p.WriteByte(',')
+	default: // token.DCOMMA
+		p.WriteString(",,")
 	}
 }
 

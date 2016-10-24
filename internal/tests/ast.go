@@ -1751,6 +1751,41 @@ var FileTests = []testCase{
 		},
 	},
 	{
+		Strs: []string{`${a^b} ${a^^b} ${a,b} ${a,,b}`},
+		bash: call(
+			*word(&ParamExp{Param: *lit("a"),
+				Exp: &Expansion{
+					Op:   XOR,
+					Word: *litWord("b"),
+				},
+			}),
+			*word(&ParamExp{Param: *lit("a"),
+				Exp: &Expansion{
+					Op:   DXOR,
+					Word: *litWord("b"),
+				},
+			}),
+			*word(&ParamExp{Param: *lit("a"),
+				Exp: &Expansion{
+					Op:   COMMA,
+					Word: *litWord("b"),
+				},
+			}),
+			*word(&ParamExp{Param: *lit("a"),
+				Exp: &Expansion{
+					Op:   DCOMMA,
+					Word: *litWord("b"),
+				},
+			}),
+		),
+		posix: call(
+			*word(&ParamExp{Param: *lit("a^b")}),
+			*word(&ParamExp{Param: *lit("a^^b")}),
+			*word(&ParamExp{Param: *lit("a,b")}),
+			*word(&ParamExp{Param: *lit("a,,b")}),
+		),
+	},
+	{
 		Strs: []string{`${#foo}`},
 		common: &ParamExp{
 			Length: true,

@@ -100,6 +100,8 @@ const (
 	DHASH   // ##
 	LBRACK  // [
 	DQUO    // //
+	DXOR    // ^^
+	DCOMMA  // ,,
 
 	DLPAREN // ((
 	DRPAREN // ))
@@ -219,6 +221,8 @@ var tokNames = map[Token]string{
 	LBRACK:  "[",
 	QUO:     "/",
 	DQUO:    "//",
+	DXOR:    "^^",
+	DCOMMA:  ",,",
 
 	MUL:   "*",
 	XOR:   "^",
