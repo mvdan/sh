@@ -3115,11 +3115,11 @@ var FileTests = []testCase{
 		))),
 	},
 	{
-		Strs: []string{"echo foo@(b)ar"},
+		Strs: []string{"echo foo@(b*(c|d))bar"},
 		bash: stmt(call(*litWord("echo"), *word(
 			lit("foo"),
-			&ExtGlob{Token: GAT, Pattern: *lit("b")},
-			lit("ar"),
+			&ExtGlob{Token: GAT, Pattern: *lit("b*(c|d)")},
+			lit("bar"),
 		))),
 	},
 }
