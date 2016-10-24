@@ -819,6 +819,10 @@ var bashTests = []struct {
 		`1:1: coproc clause requires a command`,
 	},
 	{
+		"coproc\n$",
+		`1:1: coproc clause requires a command`,
+	},
+	{
 		"`let` { foo; }",
 		`1:2: let clause requires at least one expression`,
 	},

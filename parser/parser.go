@@ -1568,6 +1568,9 @@ func (p *parser) coprocClause() *ast.CoprocClause {
 		cc.Stmt, _ = p.getStmt(false)
 		return cc
 	}
+	if p.newLine {
+		p.posErr(cc.Coproc, "coproc clause requires a command")
+	}
 	var l ast.Lit
 	if p.gotLit(&l) {
 		cc.Name = &l
