@@ -790,6 +790,11 @@ func (p *parser) arithmExprBase(ftok token.Token, fpos token.Pos, compact bool) 
 			p.followErr(ue.OpPos, ue.Op.String(), "an expression")
 		}
 		x = ue
+	case token.BQUOTE:
+		if p.quote == arithmExprLet {
+			return nil
+		}
+		fallthrough
 	default:
 		w := p.followWordTok(ftok, fpos)
 		x = &w
