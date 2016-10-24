@@ -890,13 +890,18 @@ func stopToken(tok token.Token) bool {
 		tok == token.RPAREN
 }
 
-func validIdent(s string) bool {
+func (p *parser) validIdent() bool {
+	if p.asPos <= 0 {
+		return false
+	}
+	s := p.val[:p.asPos]
 	for i, c := range s {
 		switch {
 		case 'a' <= c && c <= 'z':
 		case 'A' <= c && c <= 'Z':
 		case c == '_':
 		case i > 0 && '0' <= c && c <= '9':
+		case i > 0 && (c == '[' || c == ']') && p.bash():
 		default:
 			return false
 		}
@@ -995,7 +1000,7 @@ preLoop:
 	for {
 		switch p.tok {
 		case token.LIT, token.LITWORD:
-			if p.asPos > 0 && validIdent(p.val[:p.asPos]) {
+			if p.validIdent() {
 				s.Assigns = append(s.Assigns, p.getAssign())
 			} else if litRedir(p.src, p.npos) {
 				p.doRedirect(s)
@@ -1493,8 +1498,7 @@ func (p *parser) declClause() *ast.DeclClause {
 		ds.Opts = append(ds.Opts, p.word())
 	}
 	for !p.newLine && !stopToken(p.tok) && !p.peekRedir() {
-		if (p.tok == token.LIT || p.tok == token.LITWORD) &&
-			p.asPos > 0 && validIdent(p.val[:p.asPos]) {
+		if (p.tok == token.LIT || p.tok == token.LITWORD) && p.validIdent() {
 			ds.Assigns = append(ds.Assigns, p.getAssign())
 		} else if w := p.word(); w.Parts == nil {
 			p.followErr(p.pos, name, "words")

@@ -3018,6 +3018,17 @@ var FileTests = []testCase{
 		},
 	},
 	{
+		Strs: []string{"a[2]=(b)"},
+		bash: &Stmt{
+			Assigns: []*Assign{{
+				Name: lit("a[2]"),
+				Value: *word(
+					&ArrayExpr{List: litWords("b")},
+				),
+			}},
+		},
+	},
+	{
 		Strs: []string{"<<EOF | b\nfoo\nEOF", "<<EOF|b;\nfoo\n"},
 		common: &BinaryCmd{
 			Op: OR,
