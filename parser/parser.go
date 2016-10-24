@@ -645,11 +645,11 @@ func (p *parser) wordPart() ast.WordPart {
 				lparens++
 			} else if b == ')' {
 				if lparens--; lparens < 0 {
+					eg.Pattern.Value = string(p.src[start : p.npos-1])
 					break
 				}
 			}
 		}
-		eg.Pattern.Value = string(p.src[start : p.npos-1])
 		p.next()
 		if lparens != -1 {
 			p.matchingErr(p.pos, eg.Token, token.RPAREN)
