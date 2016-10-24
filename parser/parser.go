@@ -1569,6 +1569,10 @@ func (p *parser) coprocClause() *ast.CoprocClause {
 	}
 	cc.Stmt, _ = p.getStmt(false)
 	if cc.Stmt == nil {
+		if cc.Name == nil {
+			p.posErr(cc.Coproc, "coproc clause requires a command")
+			return nil
+		}
 		// name was in fact the stmt
 		cc.Stmt = &ast.Stmt{
 			Position: cc.Name.ValuePos,
