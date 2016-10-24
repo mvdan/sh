@@ -69,7 +69,7 @@ type Comment struct {
 }
 
 func (c *Comment) Pos() token.Pos { return c.Hash }
-func (c *Comment) End() token.Pos { return posAfterStr(c.Hash, c.Text) }
+func (c *Comment) End() token.Pos { return posAddStr(c.Hash, c.Text) }
 
 // Stmt represents a statement, otherwise known as a compound command.
 // It is compromised of a command and other components that may come
@@ -87,7 +87,7 @@ func (s *Stmt) Pos() token.Pos { return s.Position }
 func (s *Stmt) End() token.Pos {
 	end := s.Position
 	if s.Negated {
-		end = posAfter(end, 1)
+		end = posAdd(end, 1)
 	}
 	if s.Cmd != nil {
 		end = s.Cmd.End()
@@ -179,7 +179,7 @@ type Subshell struct {
 }
 
 func (s *Subshell) Pos() token.Pos { return s.Lparen }
-func (s *Subshell) End() token.Pos { return posAfter(s.Rparen, 1) }
+func (s *Subshell) End() token.Pos { return posAdd(s.Rparen, 1) }
 
 // Block represents a series of commands that should be executed in a
 // nested scope.
@@ -189,7 +189,7 @@ type Block struct {
 }
 
 func (b *Block) Pos() token.Pos { return b.Rbrace }
-func (b *Block) End() token.Pos { return posAfter(b.Rbrace, 1) }
+func (b *Block) End() token.Pos { return posAdd(b.Rbrace, 1) }
 
 // IfClause represents an if statement.
 type IfClause struct {
@@ -202,7 +202,7 @@ type IfClause struct {
 }
 
 func (c *IfClause) Pos() token.Pos { return c.If }
-func (c *IfClause) End() token.Pos { return posAfter(c.Fi, 2) }
+func (c *IfClause) End() token.Pos { return posAdd(c.Fi, 2) }
 
 // Elif represents an "else if" case in an if clause.
 type Elif struct {
@@ -219,7 +219,7 @@ type WhileClause struct {
 }
 
 func (w *WhileClause) Pos() token.Pos { return w.While }
-func (w *WhileClause) End() token.Pos { return posAfter(w.Done, 4) }
+func (w *WhileClause) End() token.Pos { return posAdd(w.Done, 4) }
 
 // UntilClause represents an until clause.
 type UntilClause struct {
@@ -229,7 +229,7 @@ type UntilClause struct {
 }
 
 func (u *UntilClause) Pos() token.Pos { return u.Until }
-func (u *UntilClause) End() token.Pos { return posAfter(u.Done, 4) }
+func (u *UntilClause) End() token.Pos { return posAdd(u.Done, 4) }
 
 // ForClause represents a for clause.
 type ForClause struct {
@@ -239,7 +239,7 @@ type ForClause struct {
 }
 
 func (f *ForClause) Pos() token.Pos { return f.For }
-func (f *ForClause) End() token.Pos { return posAfter(f.Done, 4) }
+func (f *ForClause) End() token.Pos { return posAdd(f.Done, 4) }
 
 // Loop represents all nodes that can be loops in a for clause.
 type Loop interface {
@@ -268,7 +268,7 @@ type CStyleLoop struct {
 }
 
 func (c *CStyleLoop) Pos() token.Pos { return c.Lparen }
-func (c *CStyleLoop) End() token.Pos { return posAfter(c.Rparen, 2) }
+func (c *CStyleLoop) End() token.Pos { return posAdd(c.Rparen, 2) }
 
 // UnaryExpr represents an unary expression over a node, either before
 // or after it.
@@ -287,7 +287,7 @@ func (u *UnaryExpr) Pos() token.Pos {
 }
 func (u *UnaryExpr) End() token.Pos {
 	if u.Post {
-		return posAfter(u.OpPos, 2)
+		return posAdd(u.OpPos, 2)
 	}
 	return u.X.End()
 }
@@ -346,7 +346,7 @@ type Lit struct {
 }
 
 func (l *Lit) Pos() token.Pos { return l.ValuePos }
-func (l *Lit) End() token.Pos { return posAfterStr(l.ValuePos, l.Value) }
+func (l *Lit) End() token.Pos { return posAddStr(l.ValuePos, l.Value) }
 
 // SglQuoted represents a single-quoted string.
 type SglQuoted struct {
@@ -357,7 +357,7 @@ type SglQuoted struct {
 
 func (q *SglQuoted) Pos() token.Pos { return q.QuotePos }
 func (q *SglQuoted) End() token.Pos {
-	pos := posAfter(q.QuotePos, 2+len(q.Value))
+	pos := posAdd(q.QuotePos, 2+len(q.Value))
 	if pos > 0 && q.Quote == token.DOLLSQ {
 		pos++
 	}
@@ -384,7 +384,7 @@ func (q *Quoted) End() token.Pos {
 	} else {
 		end++
 	}
-	return posAfter(end, 1)
+	return posAdd(end, 1)
 }
 
 // CmdSubst represents a command substitution.
@@ -395,7 +395,7 @@ type CmdSubst struct {
 }
 
 func (c *CmdSubst) Pos() token.Pos { return c.Left }
-func (c *CmdSubst) End() token.Pos { return posAfter(c.Right, 1) }
+func (c *CmdSubst) End() token.Pos { return posAdd(c.Right, 1) }
 
 // ParamExp represents a parameter expansion.
 type ParamExp struct {
@@ -420,7 +420,7 @@ func (p *ParamExp) End() token.Pos {
 		end = posMax(end, p.Exp.Word.End())
 	}
 	if !p.Short {
-		end = posAfter(end, 1)
+		end = posAdd(end, 1)
 	}
 	return end
 }
@@ -451,7 +451,7 @@ type ArithmExp struct {
 }
 
 func (a *ArithmExp) Pos() token.Pos { return a.Left }
-func (a *ArithmExp) End() token.Pos { return posAfter(a.Right, 2) }
+func (a *ArithmExp) End() token.Pos { return posAdd(a.Right, 2) }
 
 // ArithmExpr represents all nodes that form arithmetic expressions.
 type ArithmExpr interface {
@@ -483,7 +483,7 @@ type ParenExpr struct {
 }
 
 func (p *ParenExpr) Pos() token.Pos { return p.Lparen }
-func (p *ParenExpr) End() token.Pos { return posAfter(p.Rparen, 1) }
+func (p *ParenExpr) End() token.Pos { return posAdd(p.Rparen, 1) }
 
 // CaseClause represents a case (switch) clause.
 type CaseClause struct {
@@ -493,7 +493,7 @@ type CaseClause struct {
 }
 
 func (c *CaseClause) Pos() token.Pos { return c.Case }
-func (c *CaseClause) End() token.Pos { return posAfter(c.Esac, 4) }
+func (c *CaseClause) End() token.Pos { return posAdd(c.Esac, 4) }
 
 // PatternList represents a pattern list (case) within a CaseClause.
 type PatternList struct {
@@ -510,7 +510,7 @@ type TestClause struct {
 }
 
 func (t *TestClause) Pos() token.Pos { return t.Left }
-func (t *TestClause) End() token.Pos { return posAfter(t.Right, 2) }
+func (t *TestClause) End() token.Pos { return posAdd(t.Right, 2) }
 
 // DeclClause represents a Bash declare clause.
 type DeclClause struct {
@@ -537,7 +537,7 @@ type ArrayExpr struct {
 }
 
 func (a *ArrayExpr) Pos() token.Pos { return a.Lparen }
-func (a *ArrayExpr) End() token.Pos { return posAfter(a.Rparen, 1) }
+func (a *ArrayExpr) End() token.Pos { return posAdd(a.Rparen, 1) }
 
 // ExtGlob represents a Bash extended globbing expression. Note that
 // these are parsed independently of whether shopt has been called or
@@ -547,8 +547,8 @@ type ExtGlob struct {
 	Pattern Lit
 }
 
-func (e *ExtGlob) Pos() token.Pos { return posAfter(e.Pattern.Pos(), -2) }
-func (e *ExtGlob) End() token.Pos { return posAfter(e.Pattern.End(), 1) }
+func (e *ExtGlob) Pos() token.Pos { return posAdd(e.Pattern.Pos(), -2) }
+func (e *ExtGlob) End() token.Pos { return posAdd(e.Pattern.End(), 1) }
 
 // ProcSubst represents a Bash process substitution.
 type ProcSubst struct {
@@ -558,7 +558,7 @@ type ProcSubst struct {
 }
 
 func (s *ProcSubst) Pos() token.Pos { return s.OpPos }
-func (s *ProcSubst) End() token.Pos { return posAfter(s.Rparen, 1) }
+func (s *ProcSubst) End() token.Pos { return posAdd(s.Rparen, 1) }
 
 // EvalClause represents a Bash eval clause.
 type EvalClause struct {
@@ -569,7 +569,7 @@ type EvalClause struct {
 func (e *EvalClause) Pos() token.Pos { return e.Eval }
 func (e *EvalClause) End() token.Pos {
 	if e.Stmt == nil {
-		return posAfter(e.Eval, 4)
+		return posAdd(e.Eval, 4)
 	}
 	return e.Stmt.End()
 }
@@ -593,15 +593,15 @@ type LetClause struct {
 func (l *LetClause) Pos() token.Pos { return l.Let }
 func (l *LetClause) End() token.Pos { return l.Exprs[len(l.Exprs)-1].End() }
 
-func posAfter(pos token.Pos, n int) token.Pos {
+func posAdd(pos token.Pos, n int) token.Pos {
 	if pos == internal.DefaultPos {
 		return pos
 	}
 	return pos + token.Pos(n)
 }
 
-func posAfterStr(pos token.Pos, s string) token.Pos {
-	return posAfter(pos, len(s))
+func posAddStr(pos token.Pos, s string) token.Pos {
+	return posAdd(pos, len(s))
 }
 
 func stmtFirstPos(sts []*Stmt) token.Pos {
