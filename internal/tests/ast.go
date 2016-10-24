@@ -2825,6 +2825,14 @@ var FileTests = []testCase{
 		},
 	},
 	{
+		Strs: []string{"coproc ``"},
+		bash: &CoprocClause{
+			Stmt: stmt(call(
+				*word(bckQuoted()),
+			)),
+		},
+	},
+	{
 		Strs: []string{`let i++`},
 		bash: letClause(
 			&UnaryExpr{

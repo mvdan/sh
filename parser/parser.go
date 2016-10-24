@@ -1589,11 +1589,13 @@ func (p *parser) coprocClause() *ast.CoprocClause {
 			}},
 		}
 		cc.Name = nil
-	} else if call, ok := cc.Stmt.Cmd.(*ast.CallExpr); ok {
-		// name was in fact the start of a call
-		call.Args = append([]ast.Word{{Parts: p.singleWps(cc.Name)}},
-			call.Args...)
-		cc.Name = nil
+	} else if cc.Name != nil {
+		if call, ok := cc.Stmt.Cmd.(*ast.CallExpr); ok {
+			// name was in fact the start of a call
+			call.Args = append([]ast.Word{{Parts: p.singleWps(cc.Name)}},
+				call.Args...)
+			cc.Name = nil
+		}
 	}
 	return cc
 }
