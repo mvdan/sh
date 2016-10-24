@@ -160,7 +160,9 @@ func Walk(v Visitor, node Node) {
 			Walk(v, x.Stmt)
 		}
 	case *CoprocClause:
-		Walk(v, &x.Name)
+		if x.Name != nil {
+			Walk(v, x.Name)
+		}
 		Walk(v, x.Stmt)
 	case *LetClause:
 		for _, expr := range x.Exprs {

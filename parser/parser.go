@@ -1515,11 +1515,51 @@ func (p *parser) evalClause() *ast.EvalClause {
 	return ec
 }
 
+func isBashCompoundCommand(tok token.Token, val string) bool {
+	switch tok {
+	case token.LPAREN, token.DLPAREN:
+		return true
+	case token.LITWORD:
+		switch val {
+		case "{", "if", "while", "until", "for", "case", "[[", "eval",
+			"coproc", "let", "function":
+			return true
+		}
+		if bashDeclareWord(val) {
+			return true
+		}
+	}
+	return false
+}
+
 func (p *parser) coprocClause() *ast.CoprocClause {
 	cc := &ast.CoprocClause{Coproc: p.pos}
 	p.next()
-	p.gotLit(&cc.Name)
+	if isBashCompoundCommand(p.tok, p.val) {
+		// has no name
+		cc.Stmt, _ = p.getStmt(false)
+		return cc
+	}
+	var l ast.Lit
+	if p.gotLit(&l) {
+		cc.Name = &l
+	}
 	cc.Stmt, _ = p.getStmt(false)
+	if cc.Stmt == nil {
+		// name was in fact the stmt
+		cc.Stmt = &ast.Stmt{
+			Position: cc.Name.ValuePos,
+			Cmd: &ast.CallExpr{Args: []ast.Word{
+				{Parts: p.singleWps(cc.Name)},
+			}},
+		}
+		cc.Name = nil
+	} else if call, ok := cc.Stmt.Cmd.(*ast.CallExpr); ok {
+		// name was in fact the start of a call
+		call.Args = append([]ast.Word{{Parts: p.singleWps(cc.Name)}},
+			call.Args...)
+		cc.Name = nil
+	}
 	return cc
 }
 

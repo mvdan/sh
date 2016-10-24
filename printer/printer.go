@@ -937,8 +937,11 @@ func (p *printer) command(cmd ast.Command, redirs []*ast.Redirect) (startRedirs 
 			p.stmt(x.Stmt)
 		}
 	case *ast.CoprocClause:
-		p.spacedString("coproc ", true)
-		p.WriteString(x.Name.Value)
+		p.spacedString("coproc", true)
+		if x.Name != nil {
+			p.WriteByte(' ')
+			p.WriteString(x.Name.Value)
+		}
 		p.stmt(x.Stmt)
 	case *ast.LetClause:
 		p.spacedString("let", true)

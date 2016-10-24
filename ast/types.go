@@ -565,7 +565,7 @@ func (e *EvalClause) End() token.Pos {
 // CoprocClause represents a Bash coproc clause.
 type CoprocClause struct {
 	Coproc token.Pos
-	Name   Lit
+	Name   *Lit
 	Stmt   *Stmt
 }
 
