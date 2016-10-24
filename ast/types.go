@@ -539,7 +539,9 @@ type ArrayExpr struct {
 func (a *ArrayExpr) Pos() token.Pos { return a.Lparen }
 func (a *ArrayExpr) End() token.Pos { return posAfter(a.Rparen, 1) }
 
-// ExtGlob represents a Bash array expression.
+// ExtGlob represents a Bash extended globbing expression. Note that
+// these are parsed independently of whether shopt has been called or
+// not.
 type ExtGlob struct {
 	Token   token.Token
 	Pattern Lit
