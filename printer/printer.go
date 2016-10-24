@@ -285,19 +285,6 @@ func (p *printer) commentsUpTo(pos token.Pos) {
 	p.commentsUpTo(pos)
 }
 
-func (p *printer) quotedOp(tok token.Token) {
-	switch tok {
-	case token.DQUOTE:
-		p.WriteByte('"')
-	case token.DOLLSQ:
-		p.WriteString(`$'`)
-	case token.SQUOTE:
-		p.WriteByte('\'')
-	default: // token.DOLLDQ
-		p.WriteString(`$"`)
-	}
-}
-
 func (p *printer) expansionOp(tok token.Token) {
 	switch tok {
 	case token.COLON:
@@ -350,21 +337,17 @@ func (p *printer) wordPart(wp ast.WordPart) {
 		p.WriteByte('\'')
 		p.incLines(x.End())
 	case *ast.Quoted:
-		p.quotedOp(x.Quote)
+		if x.Quote == token.DOLLDQ {
+			p.WriteByte('$')
+		}
+		p.WriteByte('"')
 		for i, n := range x.Parts {
 			p.wordPart(n)
 			if i == len(x.Parts)-1 {
 				p.incLines(n.End())
 			}
 		}
-		switch x.Quote {
-		case token.DOLLSQ:
-			p.quotedOp(token.SQUOTE)
-		case token.DOLLDQ:
-			p.quotedOp(token.DQUOTE)
-		default:
-			p.quotedOp(x.Quote)
-		}
+		p.WriteByte('"')
 	case *ast.CmdSubst:
 		p.incLines(x.Pos())
 		if x.Backquotes {
