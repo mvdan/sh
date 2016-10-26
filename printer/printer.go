@@ -248,21 +248,6 @@ func (p *printer) semiRsrv(s string, pos token.Pos, fallback bool) {
 	p.wantSpace = true
 }
 
-func (p *printer) hasInline(pos, nline token.Pos) bool {
-	if len(p.comments) < 1 {
-		return false
-	}
-	for _, c := range p.comments {
-		if c.Hash > nline {
-			return false
-		}
-		if c.Hash > pos {
-			return true
-		}
-	}
-	return false
-}
-
 func (p *printer) commentsUpTo(pos token.Pos) {
 	if len(p.comments) < 1 {
 		return
@@ -955,6 +940,21 @@ func startsWithLparen(s *ast.Stmt) bool {
 		return true
 	case *ast.BinaryCmd:
 		return startsWithLparen(x.X)
+	}
+	return false
+}
+
+func (p *printer) hasInline(pos, nline token.Pos) bool {
+	if len(p.comments) < 1 {
+		return false
+	}
+	for _, c := range p.comments {
+		if c.Hash > nline {
+			return false
+		}
+		if c.Hash > pos {
+			return true
+		}
 	}
 	return false
 }
