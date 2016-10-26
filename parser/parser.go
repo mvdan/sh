@@ -1376,16 +1376,19 @@ func (p *parser) testClause() *ast.TestClause {
 
 func (p *parser) testExpr(ftok token.Token, fpos token.Pos) ast.ArithmExpr {
 	left := p.testExprBase(ftok, fpos)
-	if left == nil || p.tok == _EOF || (p.tok == _LITWORD && p.val == "]]") {
+	if left == nil {
 		return left
 	}
 	switch p.tok {
 	case token.LAND, token.LOR, token.LSS, token.GTR:
 	case _LITWORD:
+		if p.val == "]]" {
+			return left
+		}
 		if p.tok = testBinaryOp(p.val); p.tok == token.ILLEGAL {
 			p.curErr("not a valid test operator: %s", p.val)
 		}
-	case token.RPAREN:
+	case _EOF, token.RPAREN:
 		return left
 	default:
 		p.curErr("not a valid test operator: %v", p.tok)
@@ -1409,21 +1412,23 @@ func (p *parser) testExpr(ftok token.Token, fpos token.Pos) ast.ArithmExpr {
 }
 
 func (p *parser) testExprBase(ftok token.Token, fpos token.Pos) ast.ArithmExpr {
-	if p.tok == _EOF || (p.tok == _LITWORD && p.val == "]]") {
+	switch p.tok {
+	case _EOF:
 		return nil
-	}
-	if p.tok == _LITWORD {
+	case _LITWORD:
+		if p.val == "]]" {
+			return nil
+		}
 		if op := testUnaryOp(p.val); op != token.ILLEGAL {
 			p.tok = op
 		}
 	}
-	if p.tok == token.NOT {
+	switch p.tok {
+	case token.NOT:
 		u := &ast.UnaryExpr{OpPos: p.pos, Op: p.tok}
 		p.next()
 		u.X = p.testExpr(u.Op, u.OpPos)
 		return u
-	}
-	switch p.tok {
 	case token.TEXISTS, token.TREGFILE, token.TDIRECT, token.TCHARSP,
 		token.TBLCKSP, token.TNMPIPE, token.TSOCKET, token.TSMBLINK,
 		token.TSGIDSET, token.TSUIDSET, token.TREAD, token.TWRITE,
