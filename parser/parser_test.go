@@ -19,6 +19,23 @@ import (
 	"github.com/kr/pretty"
 )
 
+func TestParseComments(t *testing.T) {
+	internal.DefaultPos = 0
+	in := "# foo\ncmd\n# bar"
+	want := &ast.File{
+		Comments: []*ast.Comment{
+			{Text: " foo"},
+			{Text: " bar"},
+		},
+		Stmts: []*ast.Stmt{{
+			Cmd: &ast.CallExpr{Args: []ast.Word{
+				{Parts: []ast.WordPart{&ast.Lit{Value: "cmd"}}},
+			}},
+		}},
+	}
+	singleParse(in, want, ParseComments)(t)
+}
+
 func TestParseBash(t *testing.T) {
 	internal.DefaultPos = 0
 	for i, c := range append(tests.FileTests, tests.FileTestsNoPrint...) {
@@ -128,8 +145,8 @@ func singleParse(in string, want *ast.File, mode Mode) func(t *testing.T) {
 		}
 		tests.CheckNewlines(t, in, got.Lines)
 		got.Lines = nil
-		tests.SetPosRecurse(t, "", want.Stmts, internal.DefaultPos, false)
-		tests.SetPosRecurse(t, in, got.Stmts, internal.DefaultPos, true)
+		tests.SetPosRecurse(t, "", want, internal.DefaultPos, false)
+		tests.SetPosRecurse(t, in, got, internal.DefaultPos, true)
 		if !reflect.DeepEqual(got, want) {
 			t.Fatalf("AST mismatch in %q\ndiff:\n%s", in,
 				strings.Join(pretty.Diff(want, got), "\n"),

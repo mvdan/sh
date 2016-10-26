@@ -3283,6 +3283,9 @@ func SetPosRecurse(tb testing.TB, src string, v interface{}, to Pos, diff bool) 
 	}
 	switch x := v.(type) {
 	case *File:
+		for _, c := range x.Comments {
+			setPos(&c.Hash)
+		}
 		recurse(x.Stmts)
 		checkPos(x)
 	case []*Stmt:
