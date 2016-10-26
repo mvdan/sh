@@ -194,8 +194,6 @@ skipSpace:
 		p.npos++
 		p.tok = token.RBRACK
 	case q == testRegexp:
-		// TODO: parse as full regex, or at least don't break if " ]]"
-		// appears in the regex
 		p.advanceLitRe()
 	case regOps(b):
 		p.tok = p.regToken(b)
