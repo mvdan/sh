@@ -888,3 +888,85 @@ func (p *parser) advanceLitRe() {
 	p.val = string(p.src[p.npos : p.npos+end])
 	p.npos += end
 }
+
+func testUnaryOp(val string) token.Token {
+	switch val {
+	case "!":
+		return token.NOT
+	case "-e", "-a":
+		return token.TEXISTS
+	case "-f":
+		return token.TREGFILE
+	case "-d":
+		return token.TDIRECT
+	case "-c":
+		return token.TCHARSP
+	case "-b":
+		return token.TBLCKSP
+	case "-p":
+		return token.TNMPIPE
+	case "-S":
+		return token.TSOCKET
+	case "-L", "-h":
+		return token.TSMBLINK
+	case "-g":
+		return token.TSGIDSET
+	case "-u":
+		return token.TSUIDSET
+	case "-r":
+		return token.TREAD
+	case "-w":
+		return token.TWRITE
+	case "-x":
+		return token.TEXEC
+	case "-s":
+		return token.TNOEMPTY
+	case "-t":
+		return token.TFDTERM
+	case "-z":
+		return token.TEMPSTR
+	case "-n":
+		return token.TNEMPSTR
+	case "-o":
+		return token.TOPTSET
+	case "-v":
+		return token.TVARSET
+	case "-R":
+		return token.TNRFVAR
+	default:
+		return token.ILLEGAL
+	}
+}
+
+func testBinaryOp(val string) token.Token {
+	switch val {
+	case "=":
+		return token.ASSIGN
+	case "==":
+		return token.EQL
+	case "=~":
+		return token.TREMATCH
+	case "!=":
+		return token.NEQ
+	case "-nt":
+		return token.TNEWER
+	case "-ot":
+		return token.TOLDER
+	case "-ef":
+		return token.TDEVIND
+	case "-eq":
+		return token.TEQL
+	case "-ne":
+		return token.TNEQ
+	case "-le":
+		return token.TLEQ
+	case "-ge":
+		return token.TGEQ
+	case "-lt":
+		return token.TLSS
+	case "-gt":
+		return token.TGTR
+	default:
+		return token.ILLEGAL
+	}
+}
