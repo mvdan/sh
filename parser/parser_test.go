@@ -739,7 +739,7 @@ var bashTests = []struct {
 		`1:1: reached EOF without matching [[ with ]]`,
 	},
 	{
-		"[[ a == b",
+		"[[ a -nt b",
 		`1:1: reached EOF without matching [[ with ]]`,
 	},
 	{

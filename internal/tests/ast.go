@@ -2492,11 +2492,26 @@ var FileTests = []testCase{
 		}},
 	},
 	{
+		Strs: []string{"[[ 1 -nt 2 ]]"},
+		bash: &TestClause{X: &BinaryExpr{
+			Op: TNEWER,
+			X:  litWord("1"),
+			Y:  litWord("2"),
+		}},
+	},
+	{
 		Strs: []string{"[[ 1 -eq 2 ]]"},
 		bash: &TestClause{X: &BinaryExpr{
 			Op: TEQL,
 			X:  litWord("1"),
 			Y:  litWord("2"),
+		}},
+	},
+	{
+		Strs: []string{"[[ -R a ]]"},
+		bash: &TestClause{X: &UnaryExpr{
+			Op: TNRFVAR,
+			X:  litWord("a"),
 		}},
 	},
 	{
@@ -2560,7 +2575,7 @@ var FileTests = []testCase{
 		})},
 	},
 	{
-		Strs: []string{"[[ (a && b) || c ]]"},
+		Strs: []string{"[[ (a && b) || -f c ]]"},
 		bash: &TestClause{X: &BinaryExpr{
 			Op: LOR,
 			X: parenExpr(&BinaryExpr{
@@ -2568,7 +2583,7 @@ var FileTests = []testCase{
 				X:  litWord("a"),
 				Y:  litWord("b"),
 			}),
-			Y: litWord("c"),
+			Y: &UnaryExpr{Op: TREGFILE, X: litWord("c")},
 		}},
 	},
 	{
@@ -2583,15 +2598,71 @@ var FileTests = []testCase{
 		}},
 	},
 	{
-		Strs: []string{"[[ a > b && c > d ]]"},
+		Strs: []string{"[[ -d a && -c b ]]"},
 		bash: &TestClause{X: &BinaryExpr{
-			Op: GTR,
+			Op: LAND,
+			X:  &UnaryExpr{Op: TDIRECT, X: litWord("a")},
+			Y:  &UnaryExpr{Op: TCHARSP, X: litWord("b")},
+		}},
+	},
+	{
+		Strs: []string{"[[ -b a && -p b ]]"},
+		bash: &TestClause{X: &BinaryExpr{
+			Op: LAND,
+			X:  &UnaryExpr{Op: TBLCKSP, X: litWord("a")},
+			Y:  &UnaryExpr{Op: TNMPIPE, X: litWord("b")},
+		}},
+	},
+	{
+		Strs: []string{"[[ -g a && -u b ]]"},
+		bash: &TestClause{X: &BinaryExpr{
+			Op: LAND,
+			X:  &UnaryExpr{Op: TSGIDSET, X: litWord("a")},
+			Y:  &UnaryExpr{Op: TSUIDSET, X: litWord("b")},
+		}},
+	},
+	{
+		Strs: []string{"[[ -r a && -w b ]]"},
+		bash: &TestClause{X: &BinaryExpr{
+			Op: LAND,
+			X:  &UnaryExpr{Op: TREAD, X: litWord("a")},
+			Y:  &UnaryExpr{Op: TWRITE, X: litWord("b")},
+		}},
+	},
+	{
+		Strs: []string{"[[ -x a && -s b ]]"},
+		bash: &TestClause{X: &BinaryExpr{
+			Op: LAND,
+			X:  &UnaryExpr{Op: TEXEC, X: litWord("a")},
+			Y:  &UnaryExpr{Op: TNOEMPTY, X: litWord("b")},
+		}},
+	},
+	{
+		Strs: []string{"[[ -t a && -z b ]]"},
+		bash: &TestClause{X: &BinaryExpr{
+			Op: LAND,
+			X:  &UnaryExpr{Op: TFDTERM, X: litWord("a")},
+			Y:  &UnaryExpr{Op: TEMPSTR, X: litWord("b")},
+		}},
+	},
+	{
+		Strs: []string{"[[ -o a && -v b ]]"},
+		bash: &TestClause{X: &BinaryExpr{
+			Op: LAND,
+			X:  &UnaryExpr{Op: TOPTSET, X: litWord("a")},
+			Y:  &UnaryExpr{Op: TVARSET, X: litWord("b")},
+		}},
+	},
+	{
+		Strs: []string{"[[ a -ot b && c -ef d ]]"},
+		bash: &TestClause{X: &BinaryExpr{
+			Op: TOLDER,
 			X:  litWord("a"),
 			Y: &BinaryExpr{
 				Op: LAND,
 				X:  litWord("b"),
 				Y: &BinaryExpr{
-					Op: GTR,
+					Op: TDEVIND,
 					X:  litWord("c"),
 					Y:  litWord("d"),
 				},
@@ -2608,6 +2679,54 @@ var FileTests = []testCase{
 				X:  litWord("b"),
 				Y: &BinaryExpr{
 					Op: NEQ,
+					X:  litWord("c"),
+					Y:  litWord("d"),
+				},
+			},
+		}},
+	},
+	{
+		Strs: []string{"[[ a -ne b && c -le d ]]"},
+		bash: &TestClause{X: &BinaryExpr{
+			Op: TNEQ,
+			X:  litWord("a"),
+			Y: &BinaryExpr{
+				Op: LAND,
+				X:  litWord("b"),
+				Y: &BinaryExpr{
+					Op: TLEQ,
+					X:  litWord("c"),
+					Y:  litWord("d"),
+				},
+			},
+		}},
+	},
+	{
+		Strs: []string{"[[ a = b && c -ge d ]]"},
+		bash: &TestClause{X: &BinaryExpr{
+			Op: ASSIGN,
+			X:  litWord("a"),
+			Y: &BinaryExpr{
+				Op: LAND,
+				X:  litWord("b"),
+				Y: &BinaryExpr{
+					Op: TGEQ,
+					X:  litWord("c"),
+					Y:  litWord("d"),
+				},
+			},
+		}},
+	},
+	{
+		Strs: []string{"[[ a -lt b && c -gt d ]]"},
+		bash: &TestClause{X: &BinaryExpr{
+			Op: TLSS,
+			X:  litWord("a"),
+			Y: &BinaryExpr{
+				Op: LAND,
+				X:  litWord("b"),
+				Y: &BinaryExpr{
+					Op: TGTR,
 					X:  litWord("c"),
 					Y:  litWord("d"),
 				},
