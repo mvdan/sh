@@ -185,6 +185,14 @@ func TestFprintWeirdFormat(t *testing.T) {
 			"foo\nfoooo # 1",
 		},
 		{
+			"aaa; b #1\nc #2",
+			"aaa\nb #1\nc #2",
+		},
+		{
+			"a #1\nbbb; c #2\nd #3",
+			"a #1\nbbb\nc #2\nd #3",
+		},
+		{
 			"(\nbar\n# extra\n)",
 			"(\n\tbar\n\t# extra\n)",
 		},

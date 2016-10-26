@@ -943,12 +943,12 @@ func startsWithLparen(s *ast.Stmt) bool {
 	return false
 }
 
-func (p *printer) hasInline(pos, nline token.Pos) bool {
+func (p *printer) hasInline(pos, npos, nline token.Pos) bool {
 	for _, c := range p.comments {
 		if c.Hash > nline {
 			return false
 		}
-		if c.Hash > pos {
+		if c.Hash > pos && (npos == 0 || c.Hash < npos) {
 			return true
 		}
 	}
@@ -986,7 +986,11 @@ func (p *printer) stmts(stmts []*ast.Stmt) {
 		}
 		p.incLines(pos)
 		p.stmt(s)
-		if !p.hasInline(pos, p.nline) {
+		var npos token.Pos
+		if i+1 < len(stmts) {
+			npos = stmts[i+1].Pos()
+		}
+		if !p.hasInline(pos, npos, p.nline) {
 			inlineIndent = 0
 			p.commentPadding = 0
 			continue
@@ -997,9 +1001,14 @@ func (p *printer) stmts(stmts []*ast.Stmt) {
 		if inlineIndent == 0 {
 			ind2 := p.nlineIndex
 			nline2 := p.nline
-			for _, s2 := range stmts[i:] {
+			follow := stmts[i:]
+			for j, s2 := range follow {
 				pos2 := s2.Pos()
-				if pos2 > nline2 || !p.hasInline(pos2, nline2) {
+				var npos2 token.Pos
+				if j+1 < len(follow) {
+					npos2 = follow[j+1].Pos()
+				}
+				if pos2 > nline2 || !p.hasInline(pos2, npos2, nline2) {
 					break
 				}
 				if l := p.stmtLen(s2); l > inlineIndent {
@@ -1016,7 +1025,9 @@ func (p *printer) stmts(stmts []*ast.Stmt) {
 				continue
 			}
 		}
-		p.commentPadding = inlineIndent - p.stmtLen(s)
+		if inlineIndent > 0 {
+			p.commentPadding = inlineIndent - p.stmtLen(s)
+		}
 	}
 	p.wantNewline = true
 }
