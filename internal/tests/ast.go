@@ -3290,7 +3290,7 @@ func SetPosRecurse(tb testing.TB, src string, v interface{}, to Pos, diff bool) 
 	switch x := v.(type) {
 	case *File:
 		for _, c := range x.Comments {
-			setPos(&c.Hash)
+			setPos(&c.Hash, "#"+c.Text)
 		}
 		recurse(x.Stmts)
 		checkPos(x)
@@ -3394,6 +3394,7 @@ func SetPosRecurse(tb testing.TB, src string, v interface{}, to Pos, diff bool) 
 		recurse(&x.Cond)
 		recurse(&x.Post)
 	case *SglQuoted:
+		checkSrc(x.QuotePos+Pos(len(x.Quote.String())), x.Value)
 		setPos(&x.QuotePos, x.Quote.String())
 	case *Quoted:
 		setPos(&x.QuotePos, x.Quote.String())
@@ -3465,7 +3466,7 @@ func SetPosRecurse(tb testing.TB, src string, v interface{}, to Pos, diff bool) 
 		setPos(&x.Esac, "esac")
 		recurse(&x.Word)
 		for _, pl := range x.List {
-			setPos(&pl.OpPos)
+			setPos(&pl.OpPos, pl.Op.String(), "esac")
 			recurse(pl.Patterns)
 			recurse(pl.Stmts)
 		}
