@@ -305,7 +305,7 @@ func (p *parser) regToken(b byte) token.Token {
 	case ';':
 		switch byteAt(p.src, p.npos+1) {
 		case ';':
-			if byteAt(p.src, p.npos+2) == '&' {
+			if p.bash() && byteAt(p.src, p.npos+2) == '&' {
 				p.npos += 3
 				return token.DSEMIFALL
 			}

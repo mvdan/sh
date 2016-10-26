@@ -881,6 +881,10 @@ var posixTests = []struct {
 		`1:6: & can only immediately follow a statement`,
 	},
 	{
+		"foo ;;&",
+		`1:5: ;; can only be used in a case clause`,
+	},
+	{
 		"echo !(a)",
 		`1:7: a command can only contain words and redirects`,
 	},
