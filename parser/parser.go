@@ -258,7 +258,7 @@ func (p *parser) got(tok token.Token) bool {
 }
 
 func (p *parser) gotRsrv(val string) bool {
-	if p.tok == token.LITWORD && p.val == val {
+	if p.tok == _LITWORD && p.val == val {
 		p.next()
 		return true
 	}
@@ -275,7 +275,7 @@ func (p *parser) gotSameLine(tok token.Token) bool {
 
 func readableStr(s string) string {
 	// don't quote tokens like & or }
-	if s[0] >= 'a' && s[0] <= 'z' {
+	if s != "" && s[0] >= 'a' && s[0] <= 'z' {
 		return strconv.Quote(s)
 	}
 	return s
@@ -337,12 +337,24 @@ func (p *parser) stmtEnd(n ast.Node, start, end string) token.Pos {
 	return pos
 }
 
+func tokenStr(tok token.Token) string {
+	switch tok {
+	case _EOF:
+		return "EOF"
+	case _LIT:
+		return "lit"
+	case _LITWORD:
+		return "litword"
+	}
+	return tok.String()
+}
+
 func (p *parser) quoteErr(lpos token.Pos, quote token.Token) {
-	p.posErr(lpos, "reached %s without closing quote %s", p.tok, quote)
+	p.posErr(lpos, "reached %s without closing quote %s", tokenStr(p.tok), quote)
 }
 
 func (p *parser) matchingErr(lpos token.Pos, left, right token.Token) {
-	p.posErr(lpos, "reached %s without matching %s with %s", p.tok, left, right)
+	p.posErr(lpos, "reached %s without matching %s with %s", tokenStr(p.tok), left, right)
 }
 
 func (p *parser) matched(lpos token.Pos, left, right token.Token) token.Pos {
@@ -356,7 +368,7 @@ func (p *parser) matched(lpos token.Pos, left, right token.Token) token.Pos {
 func (p *parser) errPass(err error) {
 	if p.err == nil {
 		p.err = err
-		p.tok = token.EOF
+		p.tok = _EOF
 	}
 }
 
@@ -389,9 +401,9 @@ func (p *parser) curErr(format string, a ...interface{}) {
 func (p *parser) stmts(stops ...string) (sts []*ast.Stmt) {
 	q := p.quote
 	gotEnd := true
-	for p.tok != token.EOF {
+	for p.tok != _EOF {
 		switch p.tok {
-		case token.LITWORD:
+		case _LITWORD:
 			for _, stop := range stops {
 				if p.val == stop {
 					return
@@ -414,7 +426,7 @@ func (p *parser) stmts(stops ...string) (sts []*ast.Stmt) {
 		if !p.newLine && !gotEnd {
 			p.curErr("statements must be separated by &, ; or a newline")
 		}
-		if p.tok == token.EOF {
+		if p.tok == _EOF {
 			break
 		}
 		if s, end := p.getStmt(true); s == nil {
@@ -442,7 +454,7 @@ func (p *parser) invalidStmtStart() {
 }
 
 func (p *parser) word() ast.Word {
-	if p.tok == token.LITWORD {
+	if p.tok == _LITWORD {
 		w := ast.Word{Parts: p.singleWps(p.lit(p.pos, p.val))}
 		p.next()
 		return w
@@ -452,7 +464,7 @@ func (p *parser) word() ast.Word {
 
 func (p *parser) gotLit(l *ast.Lit) bool {
 	l.ValuePos = p.pos
-	if p.tok == token.LIT || p.tok == token.LITWORD {
+	if p.tok == _LIT || p.tok == _LITWORD {
 		l.Value = p.val
 		p.next()
 		return true
@@ -478,7 +490,7 @@ func (p *parser) wordParts() (wps []ast.WordPart) {
 
 func (p *parser) wordPart() ast.WordPart {
 	switch p.tok {
-	case token.LIT, token.LITWORD:
+	case _LIT, _LITWORD:
 		l := p.lit(p.pos, p.val)
 		p.next()
 		return l
@@ -531,11 +543,11 @@ func (p *parser) wordPart() ast.WordPart {
 	case token.DOLLAR:
 		var b byte
 		if p.npos >= len(p.src) {
-			p.tok = token.EOF
+			p.tok = _EOF
 		} else {
 			b = p.src[p.npos]
 		}
-		if p.tok == token.EOF || wordBreak(b) || b == '"' || b == '\'' || b == '`' || b == '[' {
+		if p.tok == _EOF || wordBreak(b) || b == '"' || b == '\'' || b == '`' || b == '[' {
 			l := p.lit(p.pos, "$")
 			p.next()
 			return l
@@ -545,7 +557,7 @@ func (p *parser) wordPart() ast.WordPart {
 		switch b {
 		case '@', '*', '#', '$', '?', '!', '0', '-':
 			p.npos++
-			p.tok, p.val = token.LIT, string(b)
+			p.tok, p.val = _LIT, string(b)
 		default:
 			p.advanceLitOther(p.quote)
 		}
@@ -606,7 +618,7 @@ func (p *parser) wordPart() ast.WordPart {
 		old := p.quote
 		p.quote = dblQuotes
 		p.next()
-		if p.tok == token.LITWORD {
+		if p.tok == _LITWORD {
 			q.Parts = p.singleWps(p.lit(p.pos, p.val))
 			p.next()
 		} else {
@@ -666,7 +678,7 @@ func (p *parser) couldBeArithm() (could bool) {
 	oldLines := len(p.f.Lines)
 	p.next()
 	lparens := 0
-	for p.tok != token.EOF {
+	for p.tok != _EOF {
 		if p.peekArithmEnd() {
 			could = true
 			break
@@ -722,7 +734,7 @@ func arithmOpLevel(tok token.Token) int {
 }
 
 func (p *parser) arithmExpr(ftok token.Token, fpos token.Pos, level int, compact bool) ast.ArithmExpr {
-	if p.tok == token.EOF || p.peekArithmEnd() {
+	if p.tok == _EOF || p.peekArithmEnd() {
 		return nil
 	}
 	var left ast.ArithmExpr
@@ -737,10 +749,10 @@ func (p *parser) arithmExpr(ftok token.Token, fpos token.Pos, level int, compact
 	newLevel := arithmOpLevel(p.tok)
 	if newLevel < 0 {
 		switch p.tok {
-		case token.LIT, token.LITWORD:
+		case _LIT, _LITWORD:
 			p.curErr("not a valid arithmetic operator: %s", p.val)
 			newLevel = 0
-		case token.RPAREN, token.EOF:
+		case token.RPAREN, _EOF:
 		default:
 			if p.quote == arithmExpr {
 				p.curErr("not a valid arithmetic operator: %v", p.tok)
@@ -818,7 +830,7 @@ func (p *parser) arithmExprBase(ftok token.Token, fpos token.Pos, compact bool) 
 func (p *parser) gotParamLit(l *ast.Lit) bool {
 	l.ValuePos = p.pos
 	switch p.tok {
-	case token.LIT, token.LITWORD:
+	case _LIT, _LITWORD:
 		l.Value = p.val
 	case token.DOLLAR:
 		l.Value = "$"
@@ -910,7 +922,7 @@ func (p *parser) arithmEnd(ltok token.Token, lpos token.Pos, old saveState) toke
 
 func stopToken(tok token.Token) bool {
 	switch tok {
-	case token.EOF, token.SEMICOLON, token.AND, token.OR, token.LAND,
+	case _EOF, token.SEMICOLON, token.AND, token.OR, token.LAND,
 		token.LOR, token.PIPEALL, token.DSEMICOLON, token.SEMIFALL,
 		token.DSEMIFALL, token.RPAREN:
 		return true
@@ -956,7 +968,7 @@ func (p *parser) getAssign() *ast.Assign {
 	if start.Value == "" && p.tok == token.LPAREN && p.bash() {
 		ae := &ast.ArrayExpr{Lparen: p.pos}
 		p.next()
-		for p.tok != token.EOF && p.tok != token.RPAREN {
+		for p.tok != _EOF && p.tok != token.RPAREN {
 			if w := p.word(); w.Parts == nil {
 				p.curErr("array elements must be words")
 			} else {
@@ -981,7 +993,7 @@ func litRedir(src []byte, npos int) bool {
 
 func (p *parser) peekRedir() bool {
 	switch p.tok {
-	case token.LITWORD:
+	case _LITWORD:
 		return litRedir(p.src, p.npos)
 	case token.GTR, token.SHR, token.LSS, token.DPLIN, token.DPLOUT,
 		token.CLBOUT, token.RDRINOUT, token.SHL, token.DHEREDOC,
@@ -1027,7 +1039,7 @@ func (p *parser) getStmt(readEnd bool) (s *ast.Stmt, gotEnd bool) {
 preLoop:
 	for {
 		switch p.tok {
-		case token.LIT, token.LITWORD:
+		case _LIT, _LITWORD:
 			if p.validIdent() {
 				s.Assigns = append(s.Assigns, p.getAssign())
 			} else if litRedir(p.src, p.npos) {
@@ -1043,7 +1055,7 @@ preLoop:
 			break preLoop
 		}
 		switch {
-		case p.newLine, p.tok == token.EOF:
+		case p.newLine, p.tok == _EOF:
 			return
 		case p.tok == token.SEMICOLON:
 			if readEnd {
@@ -1095,7 +1107,7 @@ func (p *parser) gotStmtPipe(s *ast.Stmt) *ast.Stmt {
 		s.Cmd = p.subshell()
 	case token.DLPAREN:
 		s.Cmd = p.arithmExpCmd()
-	case token.LITWORD:
+	case _LITWORD:
 		switch {
 		case p.val == "}":
 			p.curErr("%s can only be used to close a block", p.val)
@@ -1135,7 +1147,7 @@ func (p *parser) gotStmtPipe(s *ast.Stmt) *ast.Stmt {
 				})
 			}
 		}
-	case token.LIT, token.DOLLBR, token.DOLLDP, token.DOLLPR, token.DOLLAR,
+	case _LIT, token.DOLLBR, token.DOLLDP, token.DOLLPR, token.DOLLAR,
 		token.CMDIN, token.CMDOUT, token.SQUOTE, token.DOLLSQ,
 		token.DQUOTE, token.DOLLDQ, token.BQUOTE, token.DOLLBK,
 		token.GQUEST, token.GMUL, token.GADD, token.GAT, token.GNOT:
@@ -1290,7 +1302,7 @@ func (p *parser) loop(forPos token.Pos) ast.Loop {
 		p.followErr(forPos, "for", "a literal")
 	}
 	if p.gotRsrv("in") {
-		for !p.newLine && p.tok != token.EOF && p.tok != token.SEMICOLON {
+		for !p.newLine && p.tok != _EOF && p.tok != token.SEMICOLON {
 			if w := p.word(); w.Parts == nil {
 				p.curErr("word list can only contain words")
 			} else {
@@ -1315,10 +1327,10 @@ func (p *parser) caseClause() *ast.CaseClause {
 }
 
 func (p *parser) patLists() (pls []*ast.PatternList) {
-	for p.tok != token.EOF && !(p.tok == token.LITWORD && p.val == "esac") {
+	for p.tok != _EOF && !(p.tok == _LITWORD && p.val == "esac") {
 		pl := &ast.PatternList{}
 		p.got(token.LPAREN)
-		for p.tok != token.EOF {
+		for p.tok != _EOF {
 			if w := p.word(); w.Parts == nil {
 				p.curErr("case patterns must consist of words")
 			} else {
@@ -1351,7 +1363,7 @@ func (p *parser) patLists() (pls []*ast.PatternList) {
 func (p *parser) testClause() *ast.TestClause {
 	tc := &ast.TestClause{Left: p.pos}
 	p.next()
-	if p.tok == token.EOF || p.gotRsrv("]]") {
+	if p.tok == _EOF || p.gotRsrv("]]") {
 		p.posErr(tc.Left, "test clause requires at least one expression")
 	}
 	tc.X = p.testExpr(token.DLBRCK, tc.Left)
@@ -1363,10 +1375,10 @@ func (p *parser) testClause() *ast.TestClause {
 }
 
 func (p *parser) testExpr(ftok token.Token, fpos token.Pos) ast.ArithmExpr {
-	if p.tok == token.EOF || (p.tok == token.LITWORD && p.val == "]]") {
+	if p.tok == _EOF || (p.tok == _LITWORD && p.val == "]]") {
 		return nil
 	}
-	if p.tok == token.LITWORD {
+	if p.tok == _LITWORD {
 		if op := testUnaryOp(p.val); op != token.ILLEGAL {
 			p.tok = op
 		}
@@ -1403,12 +1415,12 @@ func (p *parser) testExpr(ftok token.Token, fpos token.Pos) ast.ArithmExpr {
 		w := p.followWordTok(ftok, fpos)
 		left = &w
 	}
-	if p.tok == token.EOF || (p.tok == token.LITWORD && p.val == "]]") {
+	if p.tok == _EOF || (p.tok == _LITWORD && p.val == "]]") {
 		return left
 	}
 	switch p.tok {
 	case token.LAND, token.LOR, token.LSS, token.GTR:
-	case token.LITWORD:
+	case _LITWORD:
 		if p.tok = testBinaryOp(p.val); p.tok == token.ILLEGAL {
 			p.curErr("not a valid test operator: %s", p.val)
 		}
@@ -1444,11 +1456,11 @@ func (p *parser) declClause() *ast.DeclClause {
 		ds.Variant = name
 	}
 	p.next()
-	for p.tok == token.LITWORD && p.val[0] == '-' {
+	for p.tok == _LITWORD && p.val[0] == '-' {
 		ds.Opts = append(ds.Opts, p.word())
 	}
 	for !p.newLine && !stopToken(p.tok) && !p.peekRedir() {
-		if (p.tok == token.LIT || p.tok == token.LITWORD) && p.validIdent() {
+		if (p.tok == _LIT || p.tok == _LITWORD) && p.validIdent() {
 			ds.Assigns = append(ds.Assigns, p.getAssign())
 		} else if w := p.word(); w.Parts == nil {
 			p.followErr(p.pos, name, "words")
@@ -1470,7 +1482,7 @@ func isBashCompoundCommand(tok token.Token, val string) bool {
 	switch tok {
 	case token.LPAREN, token.DLPAREN:
 		return true
-	case token.LITWORD:
+	case _LITWORD:
 		switch val {
 		case "{", "if", "while", "until", "for", "case", "[[", "eval",
 			"coproc", "let", "function":
@@ -1547,7 +1559,7 @@ func (p *parser) letClause() *ast.LetClause {
 func (p *parser) bashFuncDecl() *ast.FuncDecl {
 	fpos := p.pos
 	p.next()
-	if p.tok != token.LITWORD {
+	if p.tok != _LITWORD {
 		if w := p.followWord("function", fpos); p.err == nil {
 			rawName := string(p.src[w.Pos()-1 : w.End()-1])
 			p.posErr(w.Pos(), "invalid func name: %q", rawName)
@@ -1571,11 +1583,11 @@ func (p *parser) callExpr(s *ast.Stmt, w ast.Word) *ast.CallExpr {
 	ce.Args[0] = w
 	for !p.newLine {
 		switch p.tok {
-		case token.EOF, token.SEMICOLON, token.AND, token.OR,
+		case _EOF, token.SEMICOLON, token.AND, token.OR,
 			token.LAND, token.LOR, token.PIPEALL,
 			token.DSEMICOLON, token.SEMIFALL, token.DSEMIFALL:
 			return ce
-		case token.LITWORD:
+		case _LITWORD:
 			if litRedir(p.src, p.npos) {
 				p.doRedirect(s)
 				continue
@@ -1589,7 +1601,7 @@ func (p *parser) callExpr(s *ast.Stmt, w ast.Word) *ast.CallExpr {
 				return ce
 			}
 			fallthrough
-		case token.LIT, token.DOLLBR, token.DOLLDP, token.DOLLPR,
+		case _LIT, token.DOLLBR, token.DOLLDP, token.DOLLPR,
 			token.DOLLAR, token.CMDIN, token.CMDOUT, token.SQUOTE,
 			token.DOLLSQ, token.DQUOTE, token.DOLLDQ, token.DOLLBK,
 			token.GQUEST, token.GMUL, token.GADD, token.GAT, token.GNOT:

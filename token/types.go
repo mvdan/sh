@@ -3,17 +3,13 @@
 
 package token
 
-// Token is the set of lexical tokens.
+// Token is the set of lexical tokens and reserved words.
 type Token int
 
 // The list of all possible tokens and reserved words.
 const (
 	ILLEGAL Token = iota
-	EOF
-	LIT
-	LITWORD
 
-	// Rest of tokens
 	SQUOTE // '
 	DQUOTE // "
 	BQUOTE // `
@@ -159,9 +155,6 @@ type Position struct {
 
 var tokNames = map[Token]string{
 	ILLEGAL: "ILLEGAL",
-	EOF:     "EOF",
-	LIT:     "lit",
-	LITWORD: "litword",
 
 	DLPAREN: "((",
 	DRPAREN: "))",
