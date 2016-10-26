@@ -909,11 +909,13 @@ func (p *parser) arithmEnd(ltok token.Token, lpos token.Pos, old saveState) toke
 }
 
 func stopToken(tok token.Token) bool {
-	return tok == token.EOF || tok == token.SEMICOLON || tok == token.AND ||
-		tok == token.OR || tok == token.LAND || tok == token.LOR ||
-		tok == token.PIPEALL || tok == token.DSEMICOLON ||
-		tok == token.SEMIFALL || tok == token.DSEMIFALL ||
-		tok == token.RPAREN
+	switch tok {
+	case token.EOF, token.SEMICOLON, token.AND, token.OR, token.LAND,
+		token.LOR, token.PIPEALL, token.DSEMICOLON, token.SEMIFALL,
+		token.DSEMIFALL, token.RPAREN:
+		return true
+	}
+	return false
 }
 
 func (p *parser) validIdent() bool {
@@ -1080,8 +1082,11 @@ preLoop:
 }
 
 func bashDeclareWord(s string) bool {
-	return s == "declare" || s == "local" || s == "export" ||
-		s == "readonly" || s == "typeset" || s == "nameref"
+	switch s {
+	case "declare", "local", "export", "readonly", "typeset", "nameref":
+		return true
+	}
+	return false
 }
 
 func (p *parser) gotStmtPipe(s *ast.Stmt) *ast.Stmt {
