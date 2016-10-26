@@ -944,9 +944,6 @@ func startsWithLparen(s *ast.Stmt) bool {
 }
 
 func (p *printer) hasInline(pos, nline token.Pos) bool {
-	if len(p.comments) < 1 {
-		return false
-	}
 	for _, c := range p.comments {
 		if c.Hash > nline {
 			return false
