@@ -29,6 +29,9 @@ func prepareTest(c *testCase) {
 		c.All = append(c.All, f)
 		c.Posix = f
 	}
+	if c.Simple == "" {
+		c.Simple = c.Strs[0]
+	}
 }
 
 func init() {
@@ -100,6 +103,7 @@ func letClause(exps ...ArithmExpr) *LetClause {
 
 type testCase struct {
 	Strs                []string
+	Simple              string
 	common, bash, posix interface{}
 	All                 []*File
 	Bash, Posix         *File
@@ -624,7 +628,8 @@ var FileTests = []testCase{
 		},
 	},
 	{
-		Strs: []string{"foo >bar`etc`", "foo >b\\\nar`etc`"},
+		Strs:   []string{"foo >bar`etc`", "foo >b\\\nar`etc`"},
+		Simple: "foo >bar$(etc)",
 		common: &Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*Redirect{
@@ -720,7 +725,8 @@ var FileTests = []testCase{
 		},
 	},
 	{
-		Strs: []string{"a <<EOF\n`b`\nc\nEOF"},
+		Strs:   []string{"a <<EOF\n`b`\nc\nEOF"},
+		Simple: "a <<EOF\n$(b)\nc\nEOF",
 		common: &Stmt{
 			Cmd: litCall("a"),
 			Redirs: []*Redirect{{
@@ -834,6 +840,7 @@ var FileTests = []testCase{
 			"`\n\tfoo\n` <<EOF\nbar\nEOF",
 			"<<EOF `\n\tfoo\n`\nbar\nEOF",
 		},
+		Simple: "$(\n\tfoo\n) <<EOF\nbar\nEOF",
 		common: &Stmt{
 			Cmd: call(*word(bckQuoted(litStmt("foo")))),
 			Redirs: []*Redirect{{
@@ -1270,7 +1277,8 @@ var FileTests = []testCase{
 		)),
 	},
 	{
-		Strs: []string{"`(foo)`"},
+		Strs:   []string{"`(foo)`"},
+		Simple: "$( (foo))",
 		common: bckQuoted(stmt(
 			subshell(litStmt("foo")),
 		)),
@@ -1332,7 +1340,8 @@ var FileTests = []testCase{
 		),
 	},
 	{
-		Strs: []string{"`{ echo; }`"},
+		Strs:   []string{"`{ echo; }`"},
+		Simple: "$({ echo; })",
 		common: bckQuoted(stmt(
 			block(litStmt("echo")),
 		)),
@@ -1387,17 +1396,20 @@ var FileTests = []testCase{
 	},
 	{
 		Strs:   []string{"`foo`", "`fo\\\no`"},
+		Simple: "$(foo)",
 		common: bckQuoted(litStmt("foo")),
 	},
 	{
-		Strs: []string{"foo `bar`"},
+		Strs:   []string{"foo `bar`"},
+		Simple: "foo $(bar)",
 		common: call(
 			*litWord("foo"),
 			*word(bckQuoted(litStmt("bar"))),
 		),
 	},
 	{
-		Strs: []string{"`foo | bar`"},
+		Strs:   []string{"`foo | bar`"},
+		Simple: "$(foo | bar)",
 		common: bckQuoted(
 			stmt(&BinaryCmd{
 				Op: OR,
@@ -1407,14 +1419,16 @@ var FileTests = []testCase{
 		),
 	},
 	{
-		Strs: []string{"`foo 'bar'`"},
+		Strs:   []string{"`foo 'bar'`"},
+		Simple: "$(foo 'bar')",
 		common: bckQuoted(stmt(call(
 			*litWord("foo"),
 			*word(sglQuoted("bar")),
 		))),
 	},
 	{
-		Strs: []string{"`foo \"bar\"`"},
+		Strs:   []string{"`foo \"bar\"`"},
+		Simple: `$(foo "bar")`,
 		common: bckQuoted(
 			stmt(call(
 				*litWord("foo"),
@@ -1523,7 +1537,8 @@ var FileTests = []testCase{
 		},
 	},
 	{
-		Strs: []string{"${foo:=b${c}`d`}"},
+		Strs:   []string{"${foo:=b${c}`d`}"},
+		Simple: "${foo:=b${c}$(d)}",
 		common: &ParamExp{
 			Param: *lit("foo"),
 			Exp: &Expansion{
@@ -1829,10 +1844,12 @@ var FileTests = []testCase{
 	},
 	{
 		Strs:   []string{"\"`foo`\""},
+		Simple: `"$(foo)"`,
 		common: dblQuoted(bckQuoted(litStmt("foo"))),
 	},
 	{
 		Strs:   []string{"\"`foo bar`\"", "\"`foo  bar`\""},
+		Simple: `"$(foo bar)"`,
 		common: dblQuoted(bckQuoted(litStmt("foo", "bar"))),
 	},
 	{
@@ -1862,7 +1879,8 @@ var FileTests = []testCase{
 		)),
 	},
 	{
-		Strs: []string{"$((`echo 1`))"},
+		Strs:   []string{"$((`echo 1`))"},
+		Simple: "$(($(echo 1)))",
 		common: arithmExp(word(
 			bckQuoted(litStmt("echo", "1")),
 		)),
@@ -2233,7 +2251,8 @@ var FileTests = []testCase{
 		common: dblQuoted(lit("foo"), litParamExp("$")),
 	},
 	{
-		Strs: []string{"`foo$`"},
+		Strs:   []string{"`foo$`"},
+		Simple: "$(foo$)",
 		common: bckQuoted(
 			stmt(call(*word(lit("foo"), lit("$")))),
 		),
@@ -2793,7 +2812,8 @@ var FileTests = []testCase{
 		},
 	},
 	{
-		Strs: []string{"declare -a foo=(b1 `b2`)"},
+		Strs:   []string{"declare -a foo=(b1 `b2`)"},
+		Simple: "declare -a foo=(b1 $(b2))",
 		bash: &DeclClause{
 			Opts: litWords("-a"),
 			Assigns: []*Assign{{
@@ -2808,7 +2828,8 @@ var FileTests = []testCase{
 		},
 	},
 	{
-		Strs: []string{"local -a foo=(b1 `b2`)"},
+		Strs:   []string{"local -a foo=(b1 `b2`)"},
+		Simple: "local -a foo=(b1 $(b2))",
 		bash: &DeclClause{
 			Variant: "local",
 			Opts:    litWords("-a"),
@@ -2899,7 +2920,8 @@ var FileTests = []testCase{
 		},
 	},
 	{
-		Strs: []string{"coproc ``"},
+		Strs:   []string{"coproc ``"},
+		Simple: "coproc $()",
 		bash: &CoprocClause{Stmt: stmt(call(
 			*word(bckQuoted()),
 		))},
@@ -3152,7 +3174,8 @@ var FileTests = []testCase{
 		},
 	},
 	{
-		Strs: []string{"\"a`\"\"`\""},
+		Strs:   []string{"\"a`\"\"`\""},
+		Simple: `"a$("")"`,
 		common: dblQuoted(
 			lit("a"),
 			bckQuoted(
