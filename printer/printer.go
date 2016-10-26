@@ -100,8 +100,7 @@ func (p *printer) reset() {
 }
 
 func (p *printer) incLine() {
-	p.nlineIndex++
-	if p.nlineIndex >= len(p.f.Lines) {
+	if p.nlineIndex++; p.nlineIndex >= len(p.f.Lines) {
 		p.nline = maxPos
 	} else {
 		p.nline = token.Pos(p.f.Lines[p.nlineIndex])
@@ -1009,8 +1008,7 @@ func (p *printer) stmts(stmts []*ast.Stmt) {
 				if l := p.stmtLen(s2); l > inlineIndent {
 					inlineIndent = l
 				}
-				ind2++
-				if ind2 >= len(p.f.Lines) {
+				if ind2++; ind2 >= len(p.f.Lines) {
 					nline2 = maxPos
 				} else {
 					nline2 = token.Pos(p.f.Lines[ind2])
