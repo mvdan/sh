@@ -1375,47 +1375,8 @@ func (p *parser) testClause() *ast.TestClause {
 }
 
 func (p *parser) testExpr(ftok token.Token, fpos token.Pos) ast.ArithmExpr {
-	if p.tok == _EOF || (p.tok == _LITWORD && p.val == "]]") {
-		return nil
-	}
-	if p.tok == _LITWORD {
-		if op := testUnaryOp(p.val); op != token.ILLEGAL {
-			p.tok = op
-		}
-	}
-	if p.tok == token.NOT {
-		u := &ast.UnaryExpr{OpPos: p.pos, Op: p.tok}
-		p.next()
-		u.X = p.testExpr(u.Op, u.OpPos)
-		return u
-	}
-	var left ast.ArithmExpr
-	switch p.tok {
-	case token.TEXISTS, token.TREGFILE, token.TDIRECT, token.TCHARSP,
-		token.TBLCKSP, token.TNMPIPE, token.TSOCKET, token.TSMBLINK,
-		token.TSGIDSET, token.TSUIDSET, token.TREAD, token.TWRITE,
-		token.TEXEC, token.TNOEMPTY, token.TFDTERM, token.TEMPSTR,
-		token.TNEMPSTR, token.TOPTSET, token.TVARSET, token.TNRFVAR:
-		u := &ast.UnaryExpr{OpPos: p.pos, Op: p.tok}
-		p.next()
-		w := p.followWordTok(ftok, fpos)
-		u.X = &w
-		left = u
-	case token.LPAREN:
-		pe := &ast.ParenExpr{Lparen: p.pos}
-		p.next()
-		if pe.X = p.testExpr(token.LPAREN, pe.Lparen); pe.X == nil {
-			p.posErr(pe.Lparen, "parentheses must enclose an expression")
-		}
-		pe.Rparen = p.matched(pe.Lparen, token.LPAREN, token.RPAREN)
-		left = pe
-	case token.RPAREN:
-		return nil
-	default:
-		w := p.followWordTok(ftok, fpos)
-		left = &w
-	}
-	if p.tok == _EOF || (p.tok == _LITWORD && p.val == "]]") {
+	left := p.testExprBase(ftok, fpos)
+	if left == nil || p.tok == _EOF || (p.tok == _LITWORD && p.val == "]]") {
 		return left
 	}
 	switch p.tok {
@@ -1445,6 +1406,48 @@ func (p *parser) testExpr(ftok token.Token, fpos token.Pos) ast.ArithmExpr {
 		p.followErr(b.OpPos, b.Op.String(), "an expression")
 	}
 	return b
+}
+
+func (p *parser) testExprBase(ftok token.Token, fpos token.Pos) ast.ArithmExpr {
+	if p.tok == _EOF || (p.tok == _LITWORD && p.val == "]]") {
+		return nil
+	}
+	if p.tok == _LITWORD {
+		if op := testUnaryOp(p.val); op != token.ILLEGAL {
+			p.tok = op
+		}
+	}
+	if p.tok == token.NOT {
+		u := &ast.UnaryExpr{OpPos: p.pos, Op: p.tok}
+		p.next()
+		u.X = p.testExpr(u.Op, u.OpPos)
+		return u
+	}
+	switch p.tok {
+	case token.TEXISTS, token.TREGFILE, token.TDIRECT, token.TCHARSP,
+		token.TBLCKSP, token.TNMPIPE, token.TSOCKET, token.TSMBLINK,
+		token.TSGIDSET, token.TSUIDSET, token.TREAD, token.TWRITE,
+		token.TEXEC, token.TNOEMPTY, token.TFDTERM, token.TEMPSTR,
+		token.TNEMPSTR, token.TOPTSET, token.TVARSET, token.TNRFVAR:
+		u := &ast.UnaryExpr{OpPos: p.pos, Op: p.tok}
+		p.next()
+		w := p.followWordTok(ftok, fpos)
+		u.X = &w
+		return u
+	case token.LPAREN:
+		pe := &ast.ParenExpr{Lparen: p.pos}
+		p.next()
+		if pe.X = p.testExpr(token.LPAREN, pe.Lparen); pe.X == nil {
+			p.posErr(pe.Lparen, "parentheses must enclose an expression")
+		}
+		pe.Rparen = p.matched(pe.Lparen, token.LPAREN, token.RPAREN)
+		return pe
+	case token.RPAREN:
+	default:
+		w := p.followWordTok(ftok, fpos)
+		return &w
+	}
+	return nil
 }
 
 func (p *parser) declClause() *ast.DeclClause {
