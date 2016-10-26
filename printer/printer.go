@@ -960,13 +960,24 @@ func (p *printer) hasInline(pos, nline token.Pos) bool {
 }
 
 func (p *printer) stmts(stmts []*ast.Stmt) {
-	if len(stmts) == 0 {
+	switch len(stmts) {
+	case 0:
 		return
-	}
-	pos := stmts[0].Pos()
-	if len(stmts) == 1 && pos <= p.nline {
-		p.commentsAndSeparate(pos)
-		p.stmt(stmts[0])
+	case 1:
+		s := stmts[0]
+		pos := s.Pos()
+		p.commentsUpTo(pos)
+		if pos <= p.nline {
+			p.stmt(s)
+		} else {
+			if p.nlineIndex > 0 {
+				p.newlines(pos)
+			} else {
+				p.incLines(pos)
+			}
+			p.stmt(s)
+			p.wantNewline = true
+		}
 		return
 	}
 	inlineIndent := 0
