@@ -357,7 +357,7 @@ func (p *printer) wordPart(wp ast.WordPart) {
 			p.WriteString("$(")
 			p.wantSpace = len(x.Stmts) > 0 && startsWithLparen(x.Stmts[0])
 		}
-		p.nestedStmts(x.Stmts)
+		p.nestedStmts(x.Stmts, x.Right)
 		if x.Backquotes {
 			p.wantSpace = false
 			p.sepTok("`", x.Right)
@@ -417,7 +417,7 @@ func (p *printer) wordPart(wp ast.WordPart) {
 		} else { // token.CMDOUT
 			p.WriteString(">(")
 		}
-		p.nestedStmts(x.Stmts)
+		p.nestedStmts(x.Stmts, 0)
 		p.WriteByte(')')
 	}
 	p.wantSpace = true
@@ -800,22 +800,22 @@ func (p *printer) command(cmd ast.Command, redirs []*ast.Redirect) (startRedirs 
 		p.wordJoin(x.Args[1:], true)
 	case *ast.Block:
 		p.spacedString("{", true)
-		p.nestedStmts(x.Stmts)
+		p.nestedStmts(x.Stmts, x.Rbrace)
 		p.semiRsrv("}", x.Rbrace, true)
 	case *ast.IfClause:
 		p.spacedString("if", true)
-		p.nestedStmts(x.CondStmts)
+		p.nestedStmts(x.CondStmts, 0)
 		p.semiOrNewl("then", x.Then)
-		p.nestedStmts(x.ThenStmts)
+		p.nestedStmts(x.ThenStmts, 0)
 		for _, el := range x.Elifs {
 			p.semiRsrv("elif", el.Elif, true)
-			p.nestedStmts(el.CondStmts)
+			p.nestedStmts(el.CondStmts, 0)
 			p.semiOrNewl("then", el.Then)
-			p.nestedStmts(el.ThenStmts)
+			p.nestedStmts(el.ThenStmts, 0)
 		}
 		if len(x.ElseStmts) > 0 {
 			p.semiRsrv("else", x.Else, true)
-			p.nestedStmts(x.ElseStmts)
+			p.nestedStmts(x.ElseStmts, 0)
 		} else if x.Else > 0 {
 			p.incLines(x.Else)
 		}
@@ -823,19 +823,19 @@ func (p *printer) command(cmd ast.Command, redirs []*ast.Redirect) (startRedirs 
 	case *ast.Subshell:
 		p.spacedString("(", false)
 		p.wantSpace = len(x.Stmts) > 0 && startsWithLparen(x.Stmts[0])
-		p.nestedStmts(x.Stmts)
+		p.nestedStmts(x.Stmts, x.Rparen)
 		p.sepTok(")", x.Rparen)
 	case *ast.WhileClause:
 		p.spacedString("while", true)
-		p.nestedStmts(x.CondStmts)
+		p.nestedStmts(x.CondStmts, 0)
 		p.semiOrNewl("do", x.Do)
-		p.nestedStmts(x.DoStmts)
+		p.nestedStmts(x.DoStmts, 0)
 		p.semiRsrv("done", x.Done, true)
 	case *ast.ForClause:
 		p.spacedString("for ", true)
 		p.loop(x.Loop)
 		p.semiOrNewl("do", x.Do)
-		p.nestedStmts(x.DoStmts)
+		p.nestedStmts(x.DoStmts, 0)
 		p.semiRsrv("done", x.Done, true)
 	case *ast.BinaryCmd:
 		p.stmt(x.X)
@@ -883,7 +883,7 @@ func (p *printer) command(cmd ast.Command, redirs []*ast.Redirect) (startRedirs 
 			}
 			p.WriteByte(')')
 			sep := len(pl.Stmts) > 1 || (len(pl.Stmts) > 0 && pl.Stmts[0].Pos() > p.nline)
-			p.nestedStmts(pl.Stmts)
+			p.nestedStmts(pl.Stmts, 0)
 			p.level++
 			if sep {
 				p.sepTok(caseClauseOp(pl.Op), pl.OpPos)
@@ -900,9 +900,9 @@ func (p *printer) command(cmd ast.Command, redirs []*ast.Redirect) (startRedirs 
 		p.semiRsrv("esac", x.Esac, len(x.List) == 0)
 	case *ast.UntilClause:
 		p.spacedString("until", true)
-		p.nestedStmts(x.CondStmts)
+		p.nestedStmts(x.CondStmts, 0)
 		p.semiOrNewl("do", x.Do)
-		p.nestedStmts(x.DoStmts)
+		p.nestedStmts(x.DoStmts, 0)
 		p.semiRsrv("done", x.Done, true)
 	case *ast.ArithmExp:
 		if p.wantSpace {
@@ -1040,8 +1040,12 @@ func (p *printer) stmtLen(s *ast.Stmt) int {
 	return int(p.lenCounter)
 }
 
-func (p *printer) nestedStmts(stmts []*ast.Stmt) {
+func (p *printer) nestedStmts(stmts []*ast.Stmt, closing token.Pos) {
 	p.incLevel()
+	if len(stmts) == 1 && closing > p.nline && stmts[0].End() <= p.nline {
+		p.newline(0)
+		p.indent()
+	}
 	p.stmts(stmts)
 	p.decLevel()
 }

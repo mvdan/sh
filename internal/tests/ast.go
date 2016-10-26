@@ -745,7 +745,10 @@ var FileTests = []testCase{
 		},
 	},
 	{
-		Strs: []string{"{ foo <<EOF\nbar\nEOF\n}"},
+		Strs: []string{
+			"{\n\tfoo <<EOF\nbar\nEOF\n}",
+			"{ foo <<EOF\nbar\nEOF\n}",
+		},
 		common: block(&Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*Redirect{{
@@ -756,7 +759,10 @@ var FileTests = []testCase{
 		}),
 	},
 	{
-		Strs: []string{"$(foo <<EOF\nbar\nEOF\n)"},
+		Strs: []string{
+			"$(\n\tfoo <<EOF\nbar\nEOF\n)",
+			"$(foo <<EOF\nbar\nEOF\n)",
+		},
 		common: cmdSubst(&Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*Redirect{{
