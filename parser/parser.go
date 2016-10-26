@@ -297,7 +297,7 @@ func (p *parser) follow(lpos token.Pos, left string, tok token.Token) token.Pos 
 func (p *parser) followRsrv(lpos token.Pos, left, val string) token.Pos {
 	pos := p.pos
 	if !p.gotRsrv(val) {
-		p.followErr(lpos, left, fmt.Sprintf(`%q`, val))
+		p.followErr(lpos, left, fmt.Sprintf("%q", val))
 	}
 	return pos
 }
@@ -332,17 +332,17 @@ func (p *parser) followWord(s string, pos token.Pos) ast.Word {
 func (p *parser) stmtEnd(n ast.Node, start, end string) token.Pos {
 	pos := p.pos
 	if !p.gotRsrv(end) {
-		p.posErr(n.Pos(), `%s statement must end with %q`, start, end)
+		p.posErr(n.Pos(), "%s statement must end with %q", start, end)
 	}
 	return pos
 }
 
 func (p *parser) quoteErr(lpos token.Pos, quote token.Token) {
-	p.posErr(lpos, `reached %s without closing quote %s`, p.tok, quote)
+	p.posErr(lpos, "reached %s without closing quote %s", p.tok, quote)
 }
 
 func (p *parser) matchingErr(lpos token.Pos, left, right token.Token) {
-	p.posErr(lpos, `reached %s without matching %s with %s`, p.tok, left, right)
+	p.posErr(lpos, "reached %s without matching %s with %s", p.tok, left, right)
 }
 
 func (p *parser) matched(lpos token.Pos, left, right token.Token) token.Pos {
@@ -575,7 +575,7 @@ func (p *parser) wordPart() ast.WordPart {
 		}
 		p.npos++
 		if !found {
-			p.posErr(sq.Pos(), `reached EOF without closing quote %s`, token.SQUOTE)
+			p.posErr(sq.Pos(), "reached EOF without closing quote %s", token.SQUOTE)
 		}
 		sq.Value = string(bs)
 		p.next()
@@ -1352,7 +1352,7 @@ func (p *parser) testClause() *ast.TestClause {
 	tc := &ast.TestClause{Left: p.pos}
 	p.next()
 	if p.tok == token.EOF || p.gotRsrv("]]") {
-		p.posErr(tc.Left, `test clause requires at least one expression`)
+		p.posErr(tc.Left, "test clause requires at least one expression")
 	}
 	tc.X = p.testExpr(token.DLBRCK, tc.Left)
 	tc.Right = p.pos

@@ -158,15 +158,15 @@ type Position struct {
 }
 
 var tokNames = map[Token]string{
-	ILLEGAL: `ILLEGAL`,
-	EOF:     `EOF`,
-	LIT:     `lit`,
-	LITWORD: `litword`,
+	ILLEGAL: "ILLEGAL",
+	EOF:     "EOF",
+	LIT:     "lit",
+	LITWORD: "litword",
 
 	DLPAREN: "((",
 	DRPAREN: "))",
 
-	SQUOTE: `'`,
+	SQUOTE: "'",
 	DQUOTE: `"`,
 	BQUOTE: "`",
 
@@ -178,10 +178,10 @@ var tokNames = map[Token]string{
 	DOLLAR:     "$",
 	DOLLSQ:     "$'",
 	DOLLDQ:     `$"`,
-	DOLLBR:     `${`,
-	DOLLBK:     `$[`,
-	DOLLPR:     `$(`,
-	DOLLDP:     `$((`,
+	DOLLBR:     "${",
+	DOLLBK:     "$[",
+	DOLLPR:     "$(",
+	DOLLDP:     "$((",
 	DLBRCK:     "[[",
 	LET:        "let",
 	LBRACE:     "{",
