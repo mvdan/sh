@@ -4,19 +4,14 @@
 
 ! foo bar >a & # inline comment
 
-{ foo; }
+foo() { bar; }
+
 {
 	foo
 }
 
-foo() { bar; }
-
 if foo; then bar; fi
-if foo; then
-	bar
-fi
 
-for foo in a b c; do bar; done
 for foo in a b c; do
 	bar
 done
@@ -31,12 +26,7 @@ esac
 foo | bar
 foo \
 	&& $(bar) \
-	&& `more`
-
-(foo)
-(
-	foo
-)
+	&& (more)
 
 foo 2>&1
 foo <<EOF
