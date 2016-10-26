@@ -1871,11 +1871,7 @@ var FileTests = []testCase{
 	{
 		Strs: []string{`$((arr[0]++))`},
 		common: arithmExp(
-			&UnaryExpr{
-				Op:   INC,
-				Post: true,
-				X:    litWord("arr[0]"),
-			},
+			&UnaryExpr{Op: INC, Post: true, X: litWord("arr[0]")},
 		),
 	},
 	{
@@ -1970,18 +1966,12 @@ var FileTests = []testCase{
 		}),
 	},
 	{
-		Strs: []string{`$((--i))`},
-		common: arithmExp(&UnaryExpr{
-			Op: DEC,
-			X:  litWord("i"),
-		}),
+		Strs:   []string{`$((--i))`},
+		common: arithmExp(&UnaryExpr{Op: DEC, X: litWord("i")}),
 	},
 	{
-		Strs: []string{`$((!i))`},
-		common: arithmExp(&UnaryExpr{
-			Op: NOT,
-			X:  litWord("i"),
-		}),
+		Strs:   []string{`$((!i))`},
+		common: arithmExp(&UnaryExpr{Op: NOT, X: litWord("i")}),
 	},
 	{
 		Strs: []string{`$((-!+i))`},
@@ -1989,10 +1979,7 @@ var FileTests = []testCase{
 			Op: SUB,
 			X: &UnaryExpr{
 				Op: NOT,
-				X: &UnaryExpr{
-					Op: ADD,
-					X:  litWord("i"),
-				},
+				X:  &UnaryExpr{Op: ADD, X: litWord("i")},
 			},
 		}),
 	},
@@ -2000,10 +1987,7 @@ var FileTests = []testCase{
 		Strs: []string{`$((!!i))`},
 		common: arithmExp(&UnaryExpr{
 			Op: NOT,
-			X: &UnaryExpr{
-				Op: NOT,
-				X:  litWord("i"),
-			},
+			X:  &UnaryExpr{Op: NOT, X: litWord("i")},
 		}),
 	},
 	{
@@ -2495,177 +2479,140 @@ var FileTests = []testCase{
 	{
 		Strs: []string{"[[ a ]]\nb"},
 		bash: stmts(
-			&TestClause{
-				X: litWord("a"),
-			},
+			&TestClause{X: litWord("a")},
 			litCall("b"),
 		),
 	},
 	{
 		Strs: []string{"[[ a > b ]]"},
-		bash: &TestClause{
-			X: &BinaryExpr{
-				Op: GTR,
-				X:  litWord("a"),
-				Y:  litWord("b"),
-			},
-		},
+		bash: &TestClause{X: &BinaryExpr{
+			Op: GTR,
+			X:  litWord("a"),
+			Y:  litWord("b"),
+		}},
 	},
 	{
 		Strs: []string{"[[ 1 -eq 2 ]]"},
-		bash: &TestClause{
-			X: &BinaryExpr{
-				Op: TEQL,
-				X:  litWord("1"),
-				Y:  litWord("2"),
-			},
-		},
+		bash: &TestClause{X: &BinaryExpr{
+			Op: TEQL,
+			X:  litWord("1"),
+			Y:  litWord("2"),
+		}},
 	},
 	{
 		Strs: []string{"[[ a =~ b ]]"},
-		bash: &TestClause{
-			X: &BinaryExpr{
-				Op: TREMATCH,
-				X:  litWord("a"),
-				Y:  litWord("b"),
-			},
+		bash: &TestClause{X: &BinaryExpr{
+			Op: TREMATCH,
+			X:  litWord("a"),
+			Y:  litWord("b"),
+		},
 		},
 	},
 	{
 		Strs: []string{`[[ a =~ " foo "$bar ]]`},
-		bash: &TestClause{
-			X: &BinaryExpr{
-				Op: TREMATCH,
-				X:  litWord("a"),
-				Y:  litWord(`" foo "$bar`),
-			},
-		},
+		bash: &TestClause{X: &BinaryExpr{
+			Op: TREMATCH,
+			X:  litWord("a"),
+			Y:  litWord(`" foo "$bar`),
+		}},
 	},
 	{
 		Strs: []string{`[[ a =~ [ab](c |d) ]]`},
-		bash: &TestClause{
-			X: &BinaryExpr{
-				Op: TREMATCH,
-				X:  litWord("a"),
-				Y:  litWord("[ab](c |d)"),
-			},
-		},
+		bash: &TestClause{X: &BinaryExpr{
+			Op: TREMATCH,
+			X:  litWord("a"),
+			Y:  litWord("[ab](c |d)"),
+		}},
 	},
 	{
 		Strs: []string{"[[ -n $a ]]"},
 		bash: &TestClause{
-			X: &UnaryExpr{
-				Op: TNEMPSTR,
-				X:  word(litParamExp("a")),
-			},
+			X: &UnaryExpr{Op: TNEMPSTR, X: word(litParamExp("a"))},
 		},
 	},
 	{
 		Strs: []string{"[[ ! $a < 'b' ]]"},
-		bash: &TestClause{
-			X: &UnaryExpr{
-				Op: NOT,
-				X: &BinaryExpr{
-					Op: LSS,
-					X:  word(litParamExp("a")),
-					Y:  word(sglQuoted("b")),
-				},
+		bash: &TestClause{X: &UnaryExpr{
+			Op: NOT,
+			X: &BinaryExpr{
+				Op: LSS,
+				X:  word(litParamExp("a")),
+				Y:  word(sglQuoted("b")),
 			},
-		},
+		}},
 	},
 	{
 		Strs: []string{
 			"[[ ! -e $a ]]",
 			"[[ ! -a $a ]]",
 		},
-		bash: &TestClause{
-			X: &UnaryExpr{
-				Op: NOT,
-				X: &UnaryExpr{
-					Op: TEXISTS,
-					X:  word(litParamExp("a")),
-				},
-			},
-		},
+		bash: &TestClause{X: &UnaryExpr{
+			Op: NOT,
+			X:  &UnaryExpr{Op: TEXISTS, X: word(litParamExp("a"))},
+		}},
 	},
 	{
 		Strs: []string{"[[ (a && b) ]]"},
-		bash: &TestClause{
+		bash: &TestClause{X: parenExpr(&BinaryExpr{
+			Op: LAND,
+			X:  litWord("a"),
+			Y:  litWord("b"),
+		})},
+	},
+	{
+		Strs: []string{"[[ (a && b) || c ]]"},
+		bash: &TestClause{X: &BinaryExpr{
+			Op: LOR,
 			X: parenExpr(&BinaryExpr{
 				Op: LAND,
 				X:  litWord("a"),
 				Y:  litWord("b"),
 			}),
-		},
-	},
-	{
-		Strs: []string{"[[ (a && b) || c ]]"},
-		bash: &TestClause{
-			X: &BinaryExpr{
-				Op: LOR,
-				X: parenExpr(&BinaryExpr{
-					Op: LAND,
-					X:  litWord("a"),
-					Y:  litWord("b"),
-				}),
-				Y: litWord("c"),
-			},
-		},
+			Y: litWord("c"),
+		}},
 	},
 	{
 		Strs: []string{
 			"[[ -S a && -L b ]]",
 			"[[ -S a && -h b ]]",
 		},
-		bash: &TestClause{
-			X: &BinaryExpr{
-				Op: LAND,
-				X: &UnaryExpr{
-					Op: TSOCKET,
-					X:  litWord("a"),
-				},
-				Y: &UnaryExpr{
-					Op: TSMBLINK,
-					X:  litWord("b"),
-				},
-			},
-		},
+		bash: &TestClause{X: &BinaryExpr{
+			Op: LAND,
+			X:  &UnaryExpr{Op: TSOCKET, X: litWord("a")},
+			Y:  &UnaryExpr{Op: TSMBLINK, X: litWord("b")},
+		}},
 	},
 	{
 		Strs: []string{"[[ a > b && c > d ]]"},
-		bash: &TestClause{
-			X: &BinaryExpr{
-				Op: GTR,
-				X:  litWord("a"),
+		bash: &TestClause{X: &BinaryExpr{
+			Op: GTR,
+			X:  litWord("a"),
+			Y: &BinaryExpr{
+				Op: LAND,
+				X:  litWord("b"),
 				Y: &BinaryExpr{
-					Op: LAND,
-					X:  litWord("b"),
-					Y: &BinaryExpr{
-						Op: GTR,
-						X:  litWord("c"),
-						Y:  litWord("d"),
-					},
+					Op: GTR,
+					X:  litWord("c"),
+					Y:  litWord("d"),
 				},
 			},
-		},
+		}},
 	},
 	{
 		Strs: []string{"[[ a == b && c != d ]]"},
-		bash: &TestClause{
-			X: &BinaryExpr{
-				Op: EQL,
-				X:  litWord("a"),
+		bash: &TestClause{X: &BinaryExpr{
+			Op: EQL,
+			X:  litWord("a"),
+			Y: &BinaryExpr{
+				Op: LAND,
+				X:  litWord("b"),
 				Y: &BinaryExpr{
-					Op: LAND,
-					X:  litWord("b"),
-					Y: &BinaryExpr{
-						Op: NEQ,
-						X:  litWord("c"),
-						Y:  litWord("d"),
-					},
+					Op: NEQ,
+					X:  litWord("c"),
+					Y:  litWord("d"),
 				},
 			},
-		},
+		}},
 	},
 	{
 		Strs: []string{
@@ -2808,15 +2755,11 @@ var FileTests = []testCase{
 	},
 	{
 		Strs: []string{"coproc a", "coproc a;"},
-		bash: &CoprocClause{
-			Stmt: litStmt("a"),
-		},
+		bash: &CoprocClause{Stmt: litStmt("a")},
 	},
 	{
 		Strs: []string{"coproc a b"},
-		bash: &CoprocClause{
-			Stmt: litStmt("a", "b"),
-		},
+		bash: &CoprocClause{Stmt: litStmt("a", "b")},
 	},
 	{
 		Strs: []string{"coproc { a; }"},
@@ -2832,41 +2775,24 @@ var FileTests = []testCase{
 	},
 	{
 		Strs: []string{"coproc ``"},
-		bash: &CoprocClause{
-			Stmt: stmt(call(
-				*word(bckQuoted()),
-			)),
-		},
+		bash: &CoprocClause{Stmt: stmt(call(
+			*word(bckQuoted()),
+		))},
 	},
 	{
 		Strs: []string{`let i++`},
 		bash: letClause(
-			&UnaryExpr{
-				Op:   INC,
-				Post: true,
-				X:    litWord("i"),
-			},
+			&UnaryExpr{Op: INC, Post: true, X: litWord("i")},
 		),
 		posix: litStmt("let", "i++"),
 	},
 	{
 		Strs: []string{`let a++ b++ c +d`},
 		bash: letClause(
-			&UnaryExpr{
-				Op:   INC,
-				Post: true,
-				X:    litWord("a"),
-			},
-			&UnaryExpr{
-				Op:   INC,
-				Post: true,
-				X:    litWord("b"),
-			},
+			&UnaryExpr{Op: INC, Post: true, X: litWord("a")},
+			&UnaryExpr{Op: INC, Post: true, X: litWord("b")},
 			litWord("c"),
-			&UnaryExpr{
-				Op: ADD,
-				X:  litWord("d"),
-			},
+			&UnaryExpr{Op: ADD, X: litWord("d")},
 		),
 	},
 	{
@@ -2878,15 +2804,8 @@ var FileTests = []testCase{
 	{
 		Strs: []string{`let ++i >/dev/null`},
 		bash: &Stmt{
-			Cmd: letClause(
-				&UnaryExpr{
-					Op: INC,
-					X:  litWord("i"),
-				},
-			),
-			Redirs: []*Redirect{
-				{Op: GTR, Word: *litWord("/dev/null")},
-			},
+			Cmd:    letClause(&UnaryExpr{Op: INC, X: litWord("i")}),
+			Redirs: []*Redirect{{Op: GTR, Word: *litWord("/dev/null")}},
 		},
 	},
 	{
