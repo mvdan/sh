@@ -711,10 +711,8 @@ func arithmOpLevel(tok token.Token) int {
 		return 2
 	case token.QUEST, token.COLON:
 		return 3
-	case token.LOR:
+	case token.LAND, token.LOR:
 		return 4
-	case token.LAND:
-		return 5
 	case token.AND, token.OR, token.XOR:
 		return 5
 	case token.EQL, token.NEQ:
@@ -751,12 +749,12 @@ func (p *parser) arithmExpr(ftok token.Token, fpos token.Pos, level int, compact
 		switch p.tok {
 		case _LIT, _LITWORD:
 			p.curErr("not a valid arithmetic operator: %s", p.val)
-			newLevel = 0
+			return nil
 		case token.RPAREN, _EOF:
 		default:
 			if p.quote == arithmExpr {
 				p.curErr("not a valid arithmetic operator: %v", p.tok)
-				newLevel = 0
+				return nil
 			}
 		}
 	}
