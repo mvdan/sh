@@ -1364,7 +1364,7 @@ func (p *parser) testClause() *ast.TestClause {
 	if p.tok == _EOF || p.gotRsrv("]]") {
 		p.posErr(tc.Left, "test clause requires at least one expression")
 	}
-	tc.X = p.testExpr(token.DLBRCK, tc.Left)
+	tc.X = p.testExpr(token.DLBRCK, tc.Left, 0)
 	tc.Right = p.pos
 	if !p.gotRsrv("]]") {
 		p.matchingErr(tc.Left, token.DLBRCK, token.DRBRCK)
@@ -1372,24 +1372,38 @@ func (p *parser) testClause() *ast.TestClause {
 	return tc
 }
 
-func (p *parser) testExpr(ftok token.Token, fpos token.Pos) ast.ArithmExpr {
-	left := p.testExprBase(ftok, fpos)
+func (p *parser) testExpr(ftok token.Token, fpos token.Pos, level int) ast.ArithmExpr {
+	var left ast.ArithmExpr
+	if level > 1 {
+		left = p.testExprBase(ftok, fpos)
+	} else {
+		left = p.testExpr(ftok, fpos, level+1)
+	}
 	if left == nil {
 		return left
 	}
+	var newLevel int
 	switch p.tok {
-	case token.LAND, token.LOR, token.LSS, token.GTR:
+	case token.LAND, token.LOR:
 	case _LITWORD:
 		if p.val == "]]" {
 			return left
 		}
-		if p.tok = testBinaryOp(p.val); p.tok == token.ILLEGAL {
-			p.curErr("not a valid test operator: %s", p.val)
-		}
+		fallthrough
+	case token.LSS, token.GTR:
+		newLevel = 1
 	case _EOF, token.RPAREN:
 		return left
 	default:
 		p.curErr("not a valid test operator: %v", p.tok)
+	}
+	if newLevel < level {
+		return left
+	}
+	if p.tok == _LITWORD {
+		if p.tok = testBinaryOp(p.val); p.tok == token.ILLEGAL {
+			p.curErr("not a valid test operator: %s", p.val)
+		}
 	}
 	b := &ast.BinaryExpr{
 		OpPos: p.pos,
@@ -1403,7 +1417,7 @@ func (p *parser) testExpr(ftok token.Token, fpos token.Pos) ast.ArithmExpr {
 	} else {
 		p.next()
 	}
-	if b.Y = p.testExpr(b.Op, b.OpPos); b.Y == nil {
+	if b.Y = p.testExpr(b.Op, b.OpPos, newLevel); b.Y == nil {
 		p.followErr(b.OpPos, b.Op.String(), "an expression")
 	}
 	return b
@@ -1425,7 +1439,7 @@ func (p *parser) testExprBase(ftok token.Token, fpos token.Pos) ast.ArithmExpr {
 	case token.NOT:
 		u := &ast.UnaryExpr{OpPos: p.pos, Op: p.tok}
 		p.next()
-		u.X = p.testExpr(u.Op, u.OpPos)
+		u.X = p.testExpr(u.Op, u.OpPos, 0)
 		return u
 	case token.TEXISTS, token.TREGFILE, token.TDIRECT, token.TCHARSP,
 		token.TBLCKSP, token.TNMPIPE, token.TSOCKET, token.TSMBLINK,
@@ -1440,7 +1454,7 @@ func (p *parser) testExprBase(ftok token.Token, fpos token.Pos) ast.ArithmExpr {
 	case token.LPAREN:
 		pe := &ast.ParenExpr{Lparen: p.pos}
 		p.next()
-		if pe.X = p.testExpr(token.LPAREN, pe.Lparen); pe.X == nil {
+		if pe.X = p.testExpr(token.LPAREN, pe.Lparen, 0); pe.X == nil {
 			p.posErr(pe.Lparen, "parentheses must enclose an expression")
 		}
 		pe.Rparen = p.matched(pe.Lparen, token.LPAREN, token.RPAREN)

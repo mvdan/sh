@@ -2662,80 +2662,80 @@ var FileTests = []testCase{
 	{
 		Strs: []string{"[[ a -ot b && c -ef d ]]"},
 		bash: &TestClause{X: &BinaryExpr{
-			Op: TOLDER,
-			X:  litWord("a"),
+			Op: LAND,
+			X: &BinaryExpr{
+				Op: TOLDER,
+				X:  litWord("a"),
+				Y:  litWord("b"),
+			},
 			Y: &BinaryExpr{
-				Op: LAND,
-				X:  litWord("b"),
-				Y: &BinaryExpr{
-					Op: TDEVIND,
-					X:  litWord("c"),
-					Y:  litWord("d"),
-				},
+				Op: TDEVIND,
+				X:  litWord("c"),
+				Y:  litWord("d"),
 			},
 		}},
 	},
 	{
 		Strs: []string{"[[ a == b && c != d ]]"},
 		bash: &TestClause{X: &BinaryExpr{
-			Op: EQL,
-			X:  litWord("a"),
+			Op: LAND,
+			X: &BinaryExpr{
+				Op: EQL,
+				X:  litWord("a"),
+				Y:  litWord("b"),
+			},
 			Y: &BinaryExpr{
-				Op: LAND,
-				X:  litWord("b"),
-				Y: &BinaryExpr{
-					Op: NEQ,
-					X:  litWord("c"),
-					Y:  litWord("d"),
-				},
+				Op: NEQ,
+				X:  litWord("c"),
+				Y:  litWord("d"),
 			},
 		}},
 	},
 	{
 		Strs: []string{"[[ a -ne b && c -le d ]]"},
 		bash: &TestClause{X: &BinaryExpr{
-			Op: TNEQ,
-			X:  litWord("a"),
+			Op: LAND,
+			X: &BinaryExpr{
+				Op: TNEQ,
+				X:  litWord("a"),
+				Y:  litWord("b"),
+			},
 			Y: &BinaryExpr{
-				Op: LAND,
-				X:  litWord("b"),
-				Y: &BinaryExpr{
-					Op: TLEQ,
-					X:  litWord("c"),
-					Y:  litWord("d"),
-				},
+				Op: TLEQ,
+				X:  litWord("c"),
+				Y:  litWord("d"),
 			},
 		}},
 	},
 	{
 		Strs: []string{"[[ a = b && c -ge d ]]"},
 		bash: &TestClause{X: &BinaryExpr{
-			Op: ASSIGN,
-			X:  litWord("a"),
+			Op: LAND,
+			X: &BinaryExpr{
+				Op: ASSIGN,
+				X:  litWord("a"),
+				Y:  litWord("b"),
+			},
 			Y: &BinaryExpr{
-				Op: LAND,
-				X:  litWord("b"),
-				Y: &BinaryExpr{
-					Op: TGEQ,
-					X:  litWord("c"),
-					Y:  litWord("d"),
-				},
+				Op: TGEQ,
+				X:  litWord("c"),
+				Y:  litWord("d"),
 			},
 		}},
 	},
 	{
 		Strs: []string{"[[ a -lt b && c -gt d ]]"},
 		bash: &TestClause{X: &BinaryExpr{
-			Op: TLSS,
-			X:  litWord("a"),
+			Op: LAND,
+			X: &BinaryExpr{
+				Op: TLSS,
+				X:  litWord("a"),
+				Y:  litWord("b"),
+			},
 			Y: &BinaryExpr{
-				Op: LAND,
-				X:  litWord("b"),
-				Y: &BinaryExpr{
-					Op: TGTR,
-					X:  litWord("c"),
-					Y:  litWord("d"),
-				},
+				Op: TGTR,
+				X:  litWord("c"),
+				Y:  litWord("d"),
 			},
 		}},
 	},
