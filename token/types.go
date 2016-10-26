@@ -19,27 +19,29 @@ const (
 	OR   // |
 	LOR  // ||
 
-	ASSIGN // =
-	DOLLAR // $
-	DOLLSQ // $'
-	DOLLDQ // $"
-	DOLLBR // ${
-	DOLLBK // $[
-	DOLLPR // $(
-	DOLLDP // $((
-	DLBRCK // [[
-	LET    // let
-	LBRACE // {
-	LPAREN // (
+	ASSIGN  // =
+	DOLLAR  // $
+	DOLLSQ  // $' - bash
+	DOLLDQ  // $" - bash
+	DOLLBR  // ${
+	DOLLBK  // $[
+	DOLLPR  // $(
+	DOLLDP  // $((
+	DLBRCK  // [[
+	LET     // let - bash
+	LBRACE  // {
+	LPAREN  // (
+	DLPAREN // (( - bash
 
 	RBRACE     // }
 	RBRACK     // ]
-	RPAREN     // )
 	DRBRCK     // ]]
+	RPAREN     // )
+	DRPAREN    // ))
 	SEMICOLON  // ;
 	DSEMICOLON // ;;
-	SEMIFALL   // ;&
-	DSEMIFALL  // ;;&
+	SEMIFALL   // ;& - bash
+	DSEMIFALL  // ;;& - bash
 	COLON      // :
 
 	LSS // <
@@ -74,17 +76,17 @@ const (
 	SHLASSGN // <<=
 	SHRASSGN // >>=
 
-	PIPEALL  // |&
+	PIPEALL  // |& - bash
 	RDRINOUT // <>
 	DPLIN    // <&
 	DPLOUT   // >&
 	CLBOUT   // >|
 	DHEREDOC // <<-
-	WHEREDOC // <<<
-	CMDIN    // <(
-	CMDOUT   // >(
-	RDRALL   // &>
-	APPALL   // &>>
+	WHEREDOC // <<< - bash
+	CMDIN    // <( - bash
+	CMDOUT   // >( - bash
+	RDRALL   // &> - bash
+	APPALL   // &>> - bash
 
 	CADD    // :+
 	CSUB    // :-
@@ -96,12 +98,10 @@ const (
 	DHASH   // ##
 	LBRACK  // [
 	DQUO    // //
-	DXOR    // ^^
-	DCOMMA  // ,,
+	DXOR    // ^^ - bash
+	DCOMMA  // ,, - bash
 
-	DLPAREN // ((
-	DRPAREN // ))
-
+	// All of the below are bash-only.
 	TEXISTS  // -e
 	TREGFILE // -f
 	TDIRECT  // -d
@@ -156,9 +156,6 @@ type Position struct {
 var tokNames = map[Token]string{
 	ILLEGAL: "ILLEGAL",
 
-	DLPAREN: "((",
-	DRPAREN: "))",
-
 	SQUOTE: "'",
 	DQUOTE: `"`,
 	BQUOTE: "`",
@@ -168,21 +165,24 @@ var tokNames = map[Token]string{
 	OR:   "|",
 	LOR:  "||",
 
-	DOLLAR:     "$",
-	DOLLSQ:     "$'",
-	DOLLDQ:     `$"`,
-	DOLLBR:     "${",
-	DOLLBK:     "$[",
-	DOLLPR:     "$(",
-	DOLLDP:     "$((",
-	DLBRCK:     "[[",
-	LET:        "let",
-	LBRACE:     "{",
-	LPAREN:     "(",
+	DOLLAR:  "$",
+	DOLLSQ:  "$'",
+	DOLLDQ:  `$"`,
+	DOLLBR:  "${",
+	DOLLBK:  "$[",
+	DOLLPR:  "$(",
+	DOLLDP:  "$((",
+	DLBRCK:  "[[",
+	LET:     "let",
+	LBRACE:  "{",
+	LPAREN:  "(",
+	DLPAREN: "((",
+
 	RBRACE:     "}",
 	RBRACK:     "]",
-	RPAREN:     ")",
 	DRBRCK:     "]]",
+	RPAREN:     ")",
+	DRPAREN:    "))",
 	SEMICOLON:  ";",
 	DSEMICOLON: ";;",
 	SEMIFALL:   ";&",
