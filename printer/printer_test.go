@@ -364,14 +364,12 @@ func TestFprintWeirdFormat(t *testing.T) {
 
 	for i, tc := range weirdFormats {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
-			for _, s := range [...]string{"", "\n"} {
-				in := s + tc.in + s
+			check := func(in, want string) {
 				prog, err := parser.Parse([]byte(in), "", parser.ParseComments)
 				tests.CheckNewlines(t, in, prog.Lines)
 				if err != nil {
 					t.Fatal(err)
 				}
-				want := tc.want + "\n"
 				got, err := strFprint(prog, 0)
 				if err != nil {
 					t.Fatal(err)
@@ -382,6 +380,11 @@ func TestFprintWeirdFormat(t *testing.T) {
 						in, want, got)
 				}
 			}
+			want := tc.want + "\n"
+			for _, s := range [...]string{"", "\n"} {
+				check(s+tc.in+s, want)
+			}
+			check(want, want)
 		})
 	}
 }
