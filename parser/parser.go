@@ -636,7 +636,7 @@ func (p *parser) wordPart() ast.WordPart {
 		case subCmdBckquo:
 			return nil
 		}
-		cs := &ast.CmdSubst{Backquotes: true, Left: p.pos}
+		cs := &ast.CmdSubst{Left: p.pos}
 		old := p.preNested(subCmdBckquo)
 		p.next()
 		cs.Stmts = p.stmts()

@@ -334,20 +334,10 @@ func (p *printer) wordPart(wp ast.WordPart) {
 		p.WriteByte('"')
 	case *ast.CmdSubst:
 		p.incLines(x.Pos())
-		if x.Backquotes {
-			p.WriteByte('`')
-			p.wantSpace = false
-		} else {
-			p.WriteString("$(")
-			p.wantSpace = len(x.Stmts) > 0 && startsWithLparen(x.Stmts[0])
-		}
+		p.WriteString("$(")
+		p.wantSpace = len(x.Stmts) > 0 && startsWithLparen(x.Stmts[0])
 		p.nestedStmts(x.Stmts, x.Right)
-		if x.Backquotes {
-			p.wantSpace = false
-			p.sepTok("`", x.Right)
-		} else {
-			p.sepTok(")", x.Right)
-		}
+		p.sepTok(")", x.Right)
 	case *ast.ParamExp:
 		if x.Short {
 			p.WriteByte('$')

@@ -88,9 +88,6 @@ func arithmExp(e ArithmExpr) *ArithmExp { return &ArithmExp{Token: DOLLDP, X: e}
 func parenExpr(e ArithmExpr) *ParenExpr { return &ParenExpr{X: e} }
 
 func cmdSubst(sts ...*Stmt) *CmdSubst { return &CmdSubst{Stmts: sts} }
-func bckQuoted(sts ...*Stmt) *CmdSubst {
-	return &CmdSubst{Backquotes: true, Stmts: sts}
-}
 func litParamExp(s string) *ParamExp {
 	return &ParamExp{Short: true, Param: *lit(s)}
 }
@@ -624,13 +621,13 @@ var FileTests = []testCase{
 		},
 	},
 	{
-		Strs: []string{"foo >bar`etc`", "foo >b\\\nar`etc`"},
+		Strs: []string{"foo >bar$(etc)", "foo >b\\\nar`etc`"},
 		common: &Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*Redirect{
 				{Op: GTR, Word: *word(
 					lit("bar"),
-					bckQuoted(litStmt("etc")),
+					cmdSubst(litStmt("etc")),
 				)},
 			},
 		},
@@ -720,14 +717,17 @@ var FileTests = []testCase{
 		},
 	},
 	{
-		Strs: []string{"a <<EOF\n`b`\nc\nEOF"},
+		Strs: []string{
+			"a <<EOF\n$(b)\nc\nEOF",
+			"a <<EOF\n`b`\nc\nEOF",
+		},
 		common: &Stmt{
 			Cmd: litCall("a"),
 			Redirs: []*Redirect{{
 				Op:   SHL,
 				Word: *litWord("EOF"),
 				Hdoc: *word(
-					bckQuoted(litStmt("b")),
+					cmdSubst(litStmt("b")),
 					lit("\nc\n"),
 				),
 			}},
@@ -831,11 +831,12 @@ var FileTests = []testCase{
 	},
 	{
 		Strs: []string{
+			"$(\n\tfoo\n) <<EOF\nbar\nEOF",
 			"`\n\tfoo\n` <<EOF\nbar\nEOF",
 			"<<EOF `\n\tfoo\n`\nbar\nEOF",
 		},
 		common: &Stmt{
-			Cmd: call(*word(bckQuoted(litStmt("foo")))),
+			Cmd: call(*word(cmdSubst(litStmt("foo")))),
 			Redirs: []*Redirect{{
 				Op:   SHL,
 				Word: *litWord("EOF"),
@@ -1254,6 +1255,7 @@ var FileTests = []testCase{
 			"$( (echo foo bar))",
 			"$((echo foo bar) )",
 			"$( (echo foo bar) )",
+			"`(echo foo bar)`",
 		},
 		common: cmdSubst(stmt(
 			subshell(litStmt("echo", "foo", "bar")),
@@ -1270,16 +1272,11 @@ var FileTests = []testCase{
 		)),
 	},
 	{
-		Strs: []string{"`(foo)`"},
-		common: bckQuoted(stmt(
-			subshell(litStmt("foo")),
-		)),
-	},
-	{
 		Strs: []string{
 			"$(\n\t(a)\n\tb\n)",
 			"$( (a); b)",
 			"$((a); b)",
+			"`(a); b`",
 		},
 		common: cmdSubst(
 			stmt(subshell(litStmt("a"))),
@@ -1332,8 +1329,8 @@ var FileTests = []testCase{
 		),
 	},
 	{
-		Strs: []string{"`{ echo; }`"},
-		common: bckQuoted(stmt(
+		Strs: []string{"$({ echo; })", "`{ echo; }`"},
+		common: cmdSubst(stmt(
 			block(litStmt("echo")),
 		)),
 	},
@@ -1354,11 +1351,11 @@ var FileTests = []testCase{
 		common: litWord(`!foo`),
 	},
 	{
-		Strs:   []string{"$(foo bar)"},
+		Strs:   []string{"$(foo bar)", "`foo bar`"},
 		common: cmdSubst(litStmt("foo", "bar")),
 	},
 	{
-		Strs: []string{"$(foo | bar)"},
+		Strs: []string{"$(foo | bar)", "`foo | bar`"},
 		common: cmdSubst(
 			stmt(&BinaryCmd{
 				Op: OR,
@@ -1386,36 +1383,26 @@ var FileTests = []testCase{
 		)),
 	},
 	{
-		Strs:   []string{"`foo`", "`fo\\\no`"},
-		common: bckQuoted(litStmt("foo")),
+		Strs:   []string{"$(foo)", "`fo\\\no`"},
+		common: cmdSubst(litStmt("foo")),
 	},
 	{
-		Strs: []string{"foo `bar`"},
+		Strs: []string{"foo $(bar)", "foo `bar`"},
 		common: call(
 			*litWord("foo"),
-			*word(bckQuoted(litStmt("bar"))),
+			*word(cmdSubst(litStmt("bar"))),
 		),
 	},
 	{
-		Strs: []string{"`foo | bar`"},
-		common: bckQuoted(
-			stmt(&BinaryCmd{
-				Op: OR,
-				X:  litStmt("foo"),
-				Y:  litStmt("bar"),
-			}),
-		),
-	},
-	{
-		Strs: []string{"`foo 'bar'`"},
-		common: bckQuoted(stmt(call(
+		Strs: []string{"$(foo 'bar')", "`foo 'bar'`"},
+		common: cmdSubst(stmt(call(
 			*litWord("foo"),
 			*word(sglQuoted("bar")),
 		))),
 	},
 	{
-		Strs: []string{"`foo \"bar\"`"},
-		common: bckQuoted(
+		Strs: []string{`$(foo "bar")`, "`foo \"bar\"`"},
+		common: cmdSubst(
 			stmt(call(
 				*litWord("foo"),
 				*word(dblQuoted(lit("bar"))),
@@ -1523,7 +1510,10 @@ var FileTests = []testCase{
 		},
 	},
 	{
-		Strs: []string{"${foo:=b${c}`d`}"},
+		Strs: []string{
+			"${foo:=b${c}$(d)}",
+			"${foo:=b${c}`d`}",
+		},
 		common: &ParamExp{
 			Param: *lit("foo"),
 			Exp: &Expansion{
@@ -1531,7 +1521,7 @@ var FileTests = []testCase{
 				Word: *word(
 					lit("b"),
 					&ParamExp{Param: *lit("c")},
-					bckQuoted(litStmt("d")),
+					cmdSubst(litStmt("d")),
 				),
 			},
 		},
@@ -1820,20 +1810,17 @@ var FileTests = []testCase{
 		),
 	},
 	{
-		Strs:   []string{`"$(foo)"`},
+		Strs:   []string{`"$(foo)"`, "\"`foo`\""},
 		common: dblQuoted(cmdSubst(litStmt("foo"))),
 	},
 	{
-		Strs:   []string{`"$(foo bar)"`, `"$(foo  bar)"`},
+		Strs: []string{
+			`"$(foo bar)"`,
+			`"$(foo  bar)"`,
+			"\"`foo bar`\"",
+			"\"`foo  bar`\"",
+		},
 		common: dblQuoted(cmdSubst(litStmt("foo", "bar"))),
-	},
-	{
-		Strs:   []string{"\"`foo`\""},
-		common: dblQuoted(bckQuoted(litStmt("foo"))),
-	},
-	{
-		Strs:   []string{"\"`foo bar`\"", "\"`foo  bar`\""},
-		common: dblQuoted(bckQuoted(litStmt("foo", "bar"))),
 	},
 	{
 		Strs:   []string{`'${foo}'`},
@@ -1862,9 +1849,9 @@ var FileTests = []testCase{
 		)),
 	},
 	{
-		Strs: []string{"$((`echo 1`))"},
+		Strs: []string{"$(($(echo 1)))", "$((`echo 1`))"},
 		common: arithmExp(word(
-			bckQuoted(litStmt("echo", "1")),
+			cmdSubst(litStmt("echo", "1")),
 		)),
 	},
 	{
@@ -2233,8 +2220,8 @@ var FileTests = []testCase{
 		common: dblQuoted(lit("foo"), litParamExp("$")),
 	},
 	{
-		Strs: []string{"`foo$`"},
-		common: bckQuoted(
+		Strs: []string{"$(foo$)", "`foo$`"},
+		common: cmdSubst(
 			stmt(call(*word(lit("foo"), lit("$")))),
 		),
 	},
@@ -2793,7 +2780,10 @@ var FileTests = []testCase{
 		},
 	},
 	{
-		Strs: []string{"declare -a foo=(b1 `b2`)"},
+		Strs: []string{
+			"declare -a foo=(b1 $(b2))",
+			"declare -a foo=(b1 `b2`)",
+		},
 		bash: &DeclClause{
 			Opts: litWords("-a"),
 			Assigns: []*Assign{{
@@ -2801,24 +2791,21 @@ var FileTests = []testCase{
 				Value: *word(
 					&ArrayExpr{List: []Word{
 						*litWord("b1"),
-						*word(bckQuoted(litStmt("b2"))),
+						*word(cmdSubst(litStmt("b2"))),
 					}},
 				),
 			}},
 		},
 	},
 	{
-		Strs: []string{"local -a foo=(b1 `b2`)"},
+		Strs: []string{"local -a foo=(b1)"},
 		bash: &DeclClause{
 			Variant: "local",
 			Opts:    litWords("-a"),
 			Assigns: []*Assign{{
 				Name: lit("foo"),
 				Value: *word(
-					&ArrayExpr{List: []Word{
-						*litWord("b1"),
-						*word(bckQuoted(litStmt("b2"))),
-					}},
+					&ArrayExpr{List: litWords("b1")},
 				),
 			}},
 		},
@@ -2899,9 +2886,9 @@ var FileTests = []testCase{
 		},
 	},
 	{
-		Strs: []string{"coproc ``"},
+		Strs: []string{"coproc $()", "coproc ``"},
 		bash: &CoprocClause{Stmt: stmt(call(
-			*word(bckQuoted()),
+			*word(cmdSubst()),
 		))},
 	},
 	{
@@ -3152,10 +3139,10 @@ var FileTests = []testCase{
 		},
 	},
 	{
-		Strs: []string{"\"a`\"\"`\""},
+		Strs: []string{`"a$("")"`, "\"a`\"\"`\""},
 		common: dblQuoted(
 			lit("a"),
-			bckQuoted(
+			cmdSubst(
 				stmt(call(
 					*word(dblQuoted()),
 				)),
@@ -3453,13 +3440,8 @@ func SetPosRecurse(tb testing.TB, src string, v interface{}, to Pos, diff bool) 
 		setPos(&x.Rparen, ")")
 		recurse(&x.X)
 	case *CmdSubst:
-		if x.Backquotes {
-			setPos(&x.Left, "`")
-			setPos(&x.Right, "`")
-		} else {
-			setPos(&x.Left, "$(")
-			setPos(&x.Right, ")")
-		}
+		setPos(&x.Left, "$(", "`")
+		setPos(&x.Right, ")", "`")
 		recurse(x.Stmts)
 	case *CaseClause:
 		setPos(&x.Case, "case")

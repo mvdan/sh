@@ -56,8 +56,8 @@ func TestFprintWeirdFormat(t *testing.T) {
 		{"\n\nfoo", "foo"},
 		{"# foo\n # bar", "# foo\n# bar"},
 		{"a=b # inline\nbar", "a=b # inline\nbar"},
-		{"a=`b` # inline", "a=`b` # inline"},
-		{"`a` `b`", "`a` `b`"},
+		{"a=$(b) # inline", "a=$(b) # inline"},
+		{"$(a) $(b)", "$(a) $(b)"},
 		{"if a\nthen\n\tb\nfi", "if a; then\n\tb\nfi"},
 		{"if a; then\nb\nelse\nfi", "if a; then\n\tb\nfi"},
 		{"foo >&2 <f bar", "foo >&2 <f bar"},
@@ -305,12 +305,12 @@ func TestFprintWeirdFormat(t *testing.T) {
 			"a=(\n\tb #foo\n\tc #bar\n)",
 		},
 		{
-			"foo <<EOF | `bar`\n3\nEOF",
-			"foo <<EOF | `bar`\n3\nEOF",
+			"foo <<EOF | $(bar)\n3\nEOF",
+			"foo <<EOF | $(bar)\n3\nEOF",
 		},
 		{
-			"a <<EOF\n`\n\tb\n\tc`\nEOF",
-			"a <<EOF\n`\n\tb\n\tc\n`\nEOF",
+			"a <<EOF\n$(\n\tb\n\tc)\nEOF",
+			"a <<EOF\n$(\n\tb\n\tc\n)\nEOF",
 		},
 		{
 			"( (foo) )\n$( (foo) )\n<( (foo) )",

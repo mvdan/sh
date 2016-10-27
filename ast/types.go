@@ -390,7 +390,6 @@ func (q *Quoted) End() token.Pos {
 // CmdSubst represents a command substitution.
 type CmdSubst struct {
 	Left, Right token.Pos
-	Backquotes  bool
 	Stmts       []*Stmt
 }
 
