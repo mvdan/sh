@@ -149,7 +149,8 @@ func singleParse(in string, want *ast.File, mode Mode) func(t *testing.T) {
 		tests.SetPosRecurse(t, in, got, internal.DefaultPos, true)
 		if !reflect.DeepEqual(got, want) {
 			t.Fatalf("AST mismatch in %q\ndiff:\n%s", in,
-				strings.Join(pretty.Diff(want, got), "\n"))
+				strings.Join(pretty.Diff(want, got), "\n"),
+			)
 		}
 	}
 }
