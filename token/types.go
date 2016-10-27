@@ -28,7 +28,6 @@ const (
 	DOLLPR  // $(
 	DOLLDP  // $((
 	DLBRCK  // [[
-	LET     // let - bash
 	LBRACE  // {
 	LPAREN  // (
 	DLPAREN // (( - bash
@@ -173,7 +172,6 @@ var tokNames = map[Token]string{
 	DOLLPR:  "$(",
 	DOLLDP:  "$((",
 	DLBRCK:  "[[",
-	LET:     "let",
 	LBRACE:  "{",
 	LPAREN:  "(",
 	DLPAREN: "((",

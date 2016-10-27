@@ -15,6 +15,7 @@ const (
 	_EOF
 	_LIT
 	_LITWORD
+	_LET
 )
 
 // bytes that form or start a token

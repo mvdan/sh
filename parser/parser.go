@@ -806,7 +806,14 @@ func (p *parser) arithmExprBase(ftok token.Token, fpos token.Pos, compact bool) 
 		}
 		fallthrough
 	default:
-		w := p.followWordTok(ftok, fpos)
+		w := p.word()
+		if w.Parts == nil {
+			if ftok == _LET {
+				p.followErr(fpos, "let", "a word")
+			} else {
+				p.followErr(fpos, ftok.String(), "a word")
+			}
+		}
 		x = &w
 	}
 	if compact && p.spaced {
@@ -1560,7 +1567,7 @@ func (p *parser) letClause() *ast.LetClause {
 	old := p.preNested(arithmExprLet)
 	p.next()
 	for !p.newLine && !stopToken(p.tok) && !p.peekRedir() {
-		x := p.arithmExpr(token.LET, lc.Let, 0, true)
+		x := p.arithmExpr(_LET, lc.Let, 0, true)
 		if x == nil {
 			break
 		}
