@@ -379,7 +379,7 @@ func (q *Quoted) End() token.Pos {
 	end := q.QuotePos
 	if len(q.Parts) > 0 {
 		end = partsLastEnd(q.Parts)
-	} else if q.Quote == token.DOLLSQ || q.Quote == token.DOLLDQ {
+	} else if q.Quote == token.DOLLDQ {
 		end += 2
 	} else {
 		end++
