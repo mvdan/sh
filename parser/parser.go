@@ -804,11 +804,11 @@ func (p *parser) arithmExprBase(ftok token.Token, fpos token.Pos, compact bool) 
 	default:
 		w := p.word()
 		if w.Parts == nil {
+			left := ftok.String()
 			if ftok == _LET {
-				p.followErr(fpos, "let", "a word")
-			} else {
-				p.followErr(fpos, ftok.String(), "a word")
+				left = "let"
 			}
+			p.followErr(fpos, left, "an expression")
 		}
 		x = &w
 	}

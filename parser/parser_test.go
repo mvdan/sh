@@ -569,7 +569,7 @@ var shellTests = []struct {
 	},
 	{
 		"echo $((++))",
-		`1:9: ++ must be followed by a word`,
+		`1:9: ++ must be followed by an expression`,
 	},
 	{
 		"<<EOF\n$(()a",
@@ -729,7 +729,7 @@ var bashTests = []struct {
 	},
 	{
 		"let a ++",
-		`1:7: ++ must be followed by a word`,
+		`1:7: ++ must be followed by an expression`,
 	},
 	{
 		"let a+\n",
