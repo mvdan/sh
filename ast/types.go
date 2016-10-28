@@ -450,7 +450,12 @@ type ArithmExp struct {
 }
 
 func (a *ArithmExp) Pos() token.Pos { return a.Left }
-func (a *ArithmExp) End() token.Pos { return posAdd(a.Right, 2) }
+func (a *ArithmExp) End() token.Pos {
+	if a.Token == token.DOLLBK {
+		return posAdd(a.Right, 1)
+	}
+	return posAdd(a.Right, 2)
+}
 
 // ArithmExpr represents all nodes that form arithmetic expressions.
 type ArithmExpr interface {

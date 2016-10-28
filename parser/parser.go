@@ -497,12 +497,9 @@ func (p *parser) wordPart() ast.WordPart {
 	case token.DOLLBR:
 		return p.paramExp()
 	case token.DOLLDP, token.DOLLBK:
-		left := p.tok
 		ar := &ast.ArithmExp{Token: p.tok, Left: p.pos}
 		old := p.preNested(arithmExpr)
 		if ar.Token == token.DOLLBK {
-			// treat deprecated $[ as $((
-			ar.Token = token.DOLLDP
 			p.quote = arithmExprBrack
 		} else if !p.couldBeArithm() {
 			p.postNested(old)
@@ -512,21 +509,21 @@ func (p *parser) wordPart() ast.WordPart {
 			wp := p.wordPart()
 			if p.err != nil {
 				p.err = nil
-				p.matchingErr(ar.Left, left, token.DRPAREN)
+				p.matchingErr(ar.Left, ar.Token, token.DRPAREN)
 			}
 			return wp
 		}
 		p.next()
 		ar.X = p.arithmExpr(ar.Token, ar.Left, 0, false)
-		if left == token.DOLLBK {
+		if ar.Token == token.DOLLBK {
 			if p.tok != token.RBRACK {
-				p.matchingErr(ar.Left, left, token.RBRACK)
+				p.matchingErr(ar.Left, ar.Token, token.RBRACK)
 			}
 			p.postNested(old)
 			ar.Right = p.pos
 			p.next()
 		} else {
-			ar.Right = p.arithmEnd(left, ar.Left, old)
+			ar.Right = p.arithmEnd(ar.Token, ar.Left, old)
 		}
 		return ar
 	case token.DOLLPR:

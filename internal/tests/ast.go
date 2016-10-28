@@ -79,6 +79,7 @@ func dblDQuoted(ps ...WordPart) *DblQuoted { return &DblQuoted{Quote: DOLLDQ, Pa
 func block(sts ...*Stmt) *Block            { return &Block{Stmts: sts} }
 func subshell(sts ...*Stmt) *Subshell      { return &Subshell{Stmts: sts} }
 func arithmExp(e ArithmExpr) *ArithmExp    { return &ArithmExp{Token: DOLLDP, X: e} }
+func arithmExpBr(e ArithmExpr) *ArithmExp  { return &ArithmExp{Token: DOLLBK, X: e} }
 func parenExpr(e ArithmExpr) *ParenExpr    { return &ParenExpr{X: e} }
 
 func cmdSubst(sts ...*Stmt) *CmdSubst { return &CmdSubst{Stmts: sts} }
@@ -1829,7 +1830,7 @@ var FileTests = []testCase{
 		common: arithmExp(litWord("1")),
 	},
 	{
-		Strs: []string{"$((1 + 3))", "$((1+3))", "$[1+3]"},
+		Strs: []string{"$((1 + 3))", "$((1+3))"},
 		bash: arithmExp(&BinaryExpr{
 			Op: ADD,
 			X:  litWord("1"),
@@ -1837,7 +1838,7 @@ var FileTests = []testCase{
 		}),
 	},
 	{
-		Strs: []string{`"$((foo))"`, `"$[foo]"`},
+		Strs: []string{`"$((foo))"`},
 		bash: dblQuoted(arithmExp(
 			litWord("foo"),
 		)),
@@ -1849,7 +1850,7 @@ var FileTests = []testCase{
 		)),
 	},
 	{
-		Strs: []string{`$(($a)) b`, `$[$a] b`},
+		Strs: []string{`$(($a)) b`},
 		bash: call(
 			*word(arithmExp(word(litParamExp("a")))),
 			*litWord("b"),
@@ -3181,6 +3182,14 @@ var FileTestsNoPrint = []testCase{
 		Strs:  []string{`"$[foo]"`},
 		posix: dblQuoted(lit("$"), lit("[foo]")),
 	},
+	{
+		Strs: []string{`"$[1 + 3]"`},
+		bash: dblQuoted(arithmExpBr(&BinaryExpr{
+			Op: ADD,
+			X:  litWord("1"),
+			Y:  litWord("3"),
+		})),
+	},
 }
 
 func fullProg(v interface{}) *File {
@@ -3216,8 +3225,8 @@ func SetPosRecurse(tb testing.TB, src string, v interface{}, to Pos, diff bool) 
 			return
 		}
 		offs := int(pos - 1)
-		if offs < 0 || offs > len(src) {
-			tb.Fatalf("Pos() in %T is out of bounds: %d", v, offs)
+		if offs < 0 || offs >= len(src) {
+			tb.Fatalf("Pos in %T is out of bounds: %d", v, pos)
 			return
 		}
 		var gotErr string
@@ -3375,9 +3384,11 @@ func SetPosRecurse(tb testing.TB, src string, v interface{}, to Pos, diff bool) 
 		recurse(&x.Cond)
 		recurse(&x.Post)
 	case *SglQuoted:
+		checkSrc(x.End()-1, "'")
 		checkSrc(x.QuotePos+Pos(len(x.Quote.String())), x.Value)
 		setPos(&x.QuotePos, x.Quote.String())
 	case *DblQuoted:
+		checkSrc(x.End()-1, `"`)
 		setPos(&x.QuotePos, x.Quote.String())
 		recurse(x.Parts)
 	case *UnaryExpr:
