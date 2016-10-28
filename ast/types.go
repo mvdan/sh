@@ -374,7 +374,7 @@ type DblQuoted struct {
 func (q *DblQuoted) Pos() token.Pos { return q.QuotePos }
 func (q *DblQuoted) End() token.Pos {
 	if q.QuotePos == 0 {
-		return 0
+		return internal.DefaultPos
 	}
 	end := q.QuotePos
 	if len(q.Parts) > 0 {
