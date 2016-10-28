@@ -103,12 +103,11 @@ func (p *parser) singleWps(wp ast.WordPart) []ast.WordPart {
 }
 
 func (p *parser) wps() []ast.WordPart {
-	const c = 4
-	if len(p.wpsBatch) < c {
+	if len(p.wpsBatch) < 4 {
 		p.wpsBatch = make([]ast.WordPart, 64)
 	}
-	wps := p.wpsBatch[:0:c]
-	p.wpsBatch = p.wpsBatch[c:]
+	wps := p.wpsBatch[:0:4]
+	p.wpsBatch = p.wpsBatch[4:]
 	return wps
 }
 
