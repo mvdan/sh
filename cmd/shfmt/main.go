@@ -179,9 +179,7 @@ func formatPath(path string, checkShebang bool) error {
 		return err
 	}
 	writeBuf.Reset()
-	if err := printConfig.Fprint(&writeBuf, prog); err != nil {
-		return err
-	}
+	printConfig.Fprint(&writeBuf, prog)
 	res := writeBuf.Bytes()
 	if !bytes.Equal(src, res) {
 		if *list {
