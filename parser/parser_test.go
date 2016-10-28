@@ -200,9 +200,11 @@ func BenchmarkParse(b *testing.B) {
 	}
 }
 
-var shellTests = []struct {
+type errorCase struct {
 	in, want string
-}{
+}
+
+var shellTests = []errorCase{
 	{
 		"'",
 		`1:1: reached EOF without closing quote '`,
@@ -700,9 +702,7 @@ func TestParseErrBash(t *testing.T) {
 	}
 }
 
-var bashTests = []struct {
-	in, want string
-}{
+var bashTests = []errorCase{
 	{
 		"((foo",
 		`1:1: reached EOF without matching (( with ))`,
@@ -849,9 +849,7 @@ var bashTests = []struct {
 	},
 }
 
-var posixTests = []struct {
-	in, want string
-}{
+var posixTests = []errorCase{
 	{
 		"((foo",
 		`1:2: reached EOF without matching ( with )`,
