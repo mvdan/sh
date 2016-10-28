@@ -111,7 +111,7 @@ func Walk(v Visitor, node Node) {
 		}
 	case *Lit:
 	case *SglQuoted:
-	case *Quoted:
+	case *DblQuoted:
 		for _, wp := range x.Parts {
 			Walk(v, wp)
 		}

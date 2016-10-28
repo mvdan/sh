@@ -320,7 +320,7 @@ func (p *printer) wordPart(wp ast.WordPart) {
 		p.WriteString(x.Value)
 		p.WriteByte('\'')
 		p.incLines(x.End())
-	case *ast.Quoted:
+	case *ast.DblQuoted:
 		if x.Quote == token.DOLLDQ {
 			p.WriteByte('$')
 		}
@@ -613,7 +613,7 @@ func (p *printer) unquotedWord(w ast.Word) {
 		switch x := wp.(type) {
 		case *ast.SglQuoted:
 			p.WriteString(x.Value)
-		case *ast.Quoted:
+		case *ast.DblQuoted:
 			for _, qp := range x.Parts {
 				p.wordPart(qp)
 			}

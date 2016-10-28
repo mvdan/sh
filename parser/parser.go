@@ -209,7 +209,7 @@ func (p *parser) unquotedWordPart(b *bytes.Buffer, wp ast.WordPart) bool {
 	case *ast.SglQuoted:
 		b.WriteString(x.Value)
 		return true
-	case *ast.Quoted:
+	case *ast.DblQuoted:
 		for _, wp2 := range x.Parts {
 			p.unquotedWordPart(b, wp2)
 		}
@@ -614,7 +614,7 @@ func (p *parser) wordPart() ast.WordPart {
 		}
 		fallthrough
 	case token.DOLLDQ:
-		q := &ast.Quoted{Quote: p.tok, QuotePos: p.pos}
+		q := &ast.DblQuoted{Quote: p.tok, QuotePos: p.pos}
 		old := p.quote
 		p.quote = dblQuotes
 		p.next()

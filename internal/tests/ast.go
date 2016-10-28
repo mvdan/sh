@@ -80,12 +80,12 @@ func litStmts(strs ...string) []*Stmt {
 	return l
 }
 
-func sglQuoted(s string) *SglQuoted     { return &SglQuoted{Quote: SQUOTE, Value: s} }
-func dblQuoted(ps ...WordPart) *Quoted  { return &Quoted{Quote: DQUOTE, Parts: ps} }
-func block(sts ...*Stmt) *Block         { return &Block{Stmts: sts} }
-func subshell(sts ...*Stmt) *Subshell   { return &Subshell{Stmts: sts} }
-func arithmExp(e ArithmExpr) *ArithmExp { return &ArithmExp{Token: DOLLDP, X: e} }
-func parenExpr(e ArithmExpr) *ParenExpr { return &ParenExpr{X: e} }
+func sglQuoted(s string) *SglQuoted       { return &SglQuoted{Quote: SQUOTE, Value: s} }
+func dblQuoted(ps ...WordPart) *DblQuoted { return &DblQuoted{Quote: DQUOTE, Parts: ps} }
+func block(sts ...*Stmt) *Block           { return &Block{Stmts: sts} }
+func subshell(sts ...*Stmt) *Subshell     { return &Subshell{Stmts: sts} }
+func arithmExp(e ArithmExpr) *ArithmExp   { return &ArithmExp{Token: DOLLDP, X: e} }
+func parenExpr(e ArithmExpr) *ParenExpr   { return &ParenExpr{X: e} }
 
 func cmdSubst(sts ...*Stmt) *CmdSubst { return &CmdSubst{Stmts: sts} }
 func litParamExp(s string) *ParamExp {
@@ -2146,7 +2146,7 @@ var FileTests = []testCase{
 	},
 	{
 		Strs:  []string{`$""`},
-		bash:  &Quoted{Quote: DOLLDQ},
+		bash:  &DblQuoted{Quote: DOLLDQ},
 		posix: word(lit("$"), dblQuoted()),
 	},
 	{
@@ -2168,7 +2168,7 @@ var FileTests = []testCase{
 	},
 	{
 		Strs: []string{`$"a ${b} c"`},
-		bash: &Quoted{Quote: DOLLDQ, Parts: []WordPart{
+		bash: &DblQuoted{Quote: DOLLDQ, Parts: []WordPart{
 			lit("a "),
 			&ParamExp{Param: *lit("b")},
 			lit(" c"),
@@ -2180,7 +2180,7 @@ var FileTests = []testCase{
 	},
 	{
 		Strs: []string{`$"a $b c"`},
-		bash: &Quoted{Quote: DOLLDQ, Parts: []WordPart{
+		bash: &DblQuoted{Quote: DOLLDQ, Parts: []WordPart{
 			lit("a "),
 			litParamExp("b"),
 			lit(" c"),
@@ -2192,16 +2192,16 @@ var FileTests = []testCase{
 	},
 	{
 		Strs:  []string{`$"foo"`},
-		bash:  &Quoted{Quote: DOLLDQ, Parts: lits("foo")},
+		bash:  &DblQuoted{Quote: DOLLDQ, Parts: lits("foo")},
 		posix: word(lit("$"), dblQuoted(lit("foo"))),
 	},
 	{
 		Strs: []string{`$"foo$"`},
-		bash: &Quoted{Quote: DOLLDQ, Parts: lits("foo", "$")},
+		bash: &DblQuoted{Quote: DOLLDQ, Parts: lits("foo", "$")},
 	},
 	{
 		Strs: []string{`$"foo bar"`},
-		bash: &Quoted{Quote: DOLLDQ, Parts: lits(`foo bar`)},
+		bash: &DblQuoted{Quote: DOLLDQ, Parts: lits(`foo bar`)},
 	},
 	{
 		Strs: []string{`$'f\'oo'`},
@@ -2209,7 +2209,7 @@ var FileTests = []testCase{
 	},
 	{
 		Strs: []string{`$"f\"oo"`},
-		bash: &Quoted{Quote: DOLLDQ, Parts: lits(`f\"oo`)},
+		bash: &DblQuoted{Quote: DOLLDQ, Parts: lits(`f\"oo`)},
 	},
 	{
 		Strs:   []string{`"foo$"`},
@@ -3383,7 +3383,7 @@ func SetPosRecurse(tb testing.TB, src string, v interface{}, to Pos, diff bool) 
 	case *SglQuoted:
 		checkSrc(x.QuotePos+Pos(len(x.Quote.String())), x.Value)
 		setPos(&x.QuotePos, x.Quote.String())
-	case *Quoted:
+	case *DblQuoted:
 		setPos(&x.QuotePos, x.Quote.String())
 		recurse(x.Parts)
 	case *UnaryExpr:

@@ -330,7 +330,7 @@ type WordPart interface {
 
 func (*Lit) wordPartNode()       {}
 func (*SglQuoted) wordPartNode() {}
-func (*Quoted) wordPartNode()    {}
+func (*DblQuoted) wordPartNode() {}
 func (*ParamExp) wordPartNode()  {}
 func (*CmdSubst) wordPartNode()  {}
 func (*ArithmExp) wordPartNode() {}
@@ -348,7 +348,7 @@ type Lit struct {
 func (l *Lit) Pos() token.Pos { return l.ValuePos }
 func (l *Lit) End() token.Pos { return posAddStr(l.ValuePos, l.Value) }
 
-// SglQuoted represents a single-quoted string.
+// SglQuoted represents a string within single quotes.
 type SglQuoted struct {
 	QuotePos token.Pos
 	Quote    token.Token
@@ -364,15 +364,15 @@ func (q *SglQuoted) End() token.Pos {
 	return pos
 }
 
-// Quoted represents a list of nodes within double quotes.
-type Quoted struct {
+// DblQuoted represents a list of nodes within double quotes.
+type DblQuoted struct {
 	QuotePos token.Pos
 	Quote    token.Token
 	Parts    []WordPart
 }
 
-func (q *Quoted) Pos() token.Pos { return q.QuotePos }
-func (q *Quoted) End() token.Pos {
+func (q *DblQuoted) Pos() token.Pos { return q.QuotePos }
+func (q *DblQuoted) End() token.Pos {
 	if q.QuotePos == 0 {
 		return 0
 	}
