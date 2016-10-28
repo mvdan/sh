@@ -40,17 +40,9 @@ func init() {
 	}
 }
 
-func lit(s string) *Lit { return &Lit{Value: s} }
-func lits(strs ...string) []WordPart {
-	l := make([]WordPart, len(strs))
-	for i, s := range strs {
-		l[i] = lit(s)
-	}
-	return l
-}
-
+func lit(s string) *Lit         { return &Lit{Value: s} }
 func word(ps ...WordPart) *Word { return &Word{Parts: ps} }
-func litWord(s string) *Word    { return word(lits(s)...) }
+func litWord(s string) *Word    { return word(lit(s)) }
 func litWords(strs ...string) []Word {
 	l := make([]Word, 0, len(strs))
 	for _, s := range strs {
@@ -80,12 +72,14 @@ func litStmts(strs ...string) []*Stmt {
 	return l
 }
 
-func sglQuoted(s string) *SglQuoted       { return &SglQuoted{Quote: SQUOTE, Value: s} }
-func dblQuoted(ps ...WordPart) *DblQuoted { return &DblQuoted{Quote: DQUOTE, Parts: ps} }
-func block(sts ...*Stmt) *Block           { return &Block{Stmts: sts} }
-func subshell(sts ...*Stmt) *Subshell     { return &Subshell{Stmts: sts} }
-func arithmExp(e ArithmExpr) *ArithmExp   { return &ArithmExp{Token: DOLLDP, X: e} }
-func parenExpr(e ArithmExpr) *ParenExpr   { return &ParenExpr{X: e} }
+func sglQuoted(s string) *SglQuoted        { return &SglQuoted{Quote: SQUOTE, Value: s} }
+func sglDQuoted(s string) *SglQuoted       { return &SglQuoted{Quote: DOLLSQ, Value: s} }
+func dblQuoted(ps ...WordPart) *DblQuoted  { return &DblQuoted{Quote: DQUOTE, Parts: ps} }
+func dblDQuoted(ps ...WordPart) *DblQuoted { return &DblQuoted{Quote: DOLLDQ, Parts: ps} }
+func block(sts ...*Stmt) *Block            { return &Block{Stmts: sts} }
+func subshell(sts ...*Stmt) *Subshell      { return &Subshell{Stmts: sts} }
+func arithmExp(e ArithmExpr) *ArithmExp    { return &ArithmExp{Token: DOLLDP, X: e} }
+func parenExpr(e ArithmExpr) *ParenExpr    { return &ParenExpr{X: e} }
 
 func cmdSubst(sts ...*Stmt) *CmdSubst { return &CmdSubst{Stmts: sts} }
 func litParamExp(s string) *ParamExp {
@@ -364,12 +358,12 @@ var FileTests = []testCase{
 		Strs: []string{`' ' "foo bar"`},
 		common: call(
 			*word(sglQuoted(" ")),
-			*word(dblQuoted(lits("foo bar")...)),
+			*word(dblQuoted(lit("foo bar"))),
 		),
 	},
 	{
 		Strs:   []string{`"foo \" bar"`},
-		common: word(dblQuoted(lits(`foo \" bar`)...)),
+		common: word(dblQuoted(lit(`foo \" bar`))),
 	},
 	{
 		Strs: []string{"\">foo\" \"\nbar\""},
@@ -2141,38 +2135,38 @@ var FileTests = []testCase{
 	},
 	{
 		Strs:  []string{`$''`},
-		bash:  &SglQuoted{Quote: DOLLSQ},
+		bash:  sglDQuoted(""),
 		posix: word(lit("$"), sglQuoted("")),
 	},
 	{
 		Strs:  []string{`$""`},
-		bash:  &DblQuoted{Quote: DOLLDQ},
+		bash:  dblDQuoted(),
 		posix: word(lit("$"), dblQuoted()),
 	},
 	{
 		Strs:  []string{`$'foo'`},
-		bash:  &SglQuoted{Quote: DOLLSQ, Value: "foo"},
+		bash:  sglDQuoted("foo"),
 		posix: word(lit("$"), sglQuoted("foo")),
 	},
 	{
 		Strs: []string{`$'foo${'`},
-		bash: &SglQuoted{Quote: DOLLSQ, Value: "foo${"},
+		bash: sglDQuoted("foo${"),
 	},
 	{
 		Strs: []string{"$'foo bar`'"},
-		bash: &SglQuoted{Quote: DOLLSQ, Value: "foo bar`"},
+		bash: sglDQuoted("foo bar`"),
 	},
 	{
 		Strs: []string{"$'a ${b} c'"},
-		bash: &SglQuoted{Quote: DOLLSQ, Value: "a ${b} c"},
+		bash: sglDQuoted("a ${b} c"),
 	},
 	{
 		Strs: []string{`$"a ${b} c"`},
-		bash: &DblQuoted{Quote: DOLLDQ, Parts: []WordPart{
+		bash: dblDQuoted(
 			lit("a "),
 			&ParamExp{Param: *lit("b")},
 			lit(" c"),
-		}},
+		),
 	},
 	{
 		Strs:   []string{`"a $b c"`},
@@ -2180,36 +2174,36 @@ var FileTests = []testCase{
 	},
 	{
 		Strs: []string{`$"a $b c"`},
-		bash: &DblQuoted{Quote: DOLLDQ, Parts: []WordPart{
+		bash: dblDQuoted(
 			lit("a "),
 			litParamExp("b"),
 			lit(" c"),
-		}},
+		),
 	},
 	{
 		Strs: []string{"$'f\\'oo\n'"},
-		bash: &SglQuoted{Quote: DOLLSQ, Value: "f\\'oo\n"},
+		bash: sglDQuoted("f\\'oo\n"),
 	},
 	{
 		Strs:  []string{`$"foo"`},
-		bash:  &DblQuoted{Quote: DOLLDQ, Parts: lits("foo")},
+		bash:  dblDQuoted(lit("foo")),
 		posix: word(lit("$"), dblQuoted(lit("foo"))),
 	},
 	{
 		Strs: []string{`$"foo$"`},
-		bash: &DblQuoted{Quote: DOLLDQ, Parts: lits("foo", "$")},
+		bash: dblDQuoted(lit("foo"), lit("$")),
 	},
 	{
 		Strs: []string{`$"foo bar"`},
-		bash: &DblQuoted{Quote: DOLLDQ, Parts: lits(`foo bar`)},
+		bash: dblDQuoted(lit("foo bar")),
 	},
 	{
 		Strs: []string{`$'f\'oo'`},
-		bash: &SglQuoted{Quote: DOLLSQ, Value: `f\'oo`},
+		bash: sglDQuoted(`f\'oo`),
 	},
 	{
 		Strs: []string{`$"f\"oo"`},
-		bash: &DblQuoted{Quote: DOLLDQ, Parts: lits(`f\"oo`)},
+		bash: dblDQuoted(lit(`f\"oo`)),
 	},
 	{
 		Strs:   []string{`"foo$"`},
