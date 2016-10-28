@@ -63,9 +63,7 @@ func main() {
 		fmt.Fprintln(os.Stderr, err)
 	}
 	for _, path := range flag.Args() {
-		if err := walk(path, onError); err != nil {
-			onError(err)
-		}
+		walk(path, onError)
 	}
 	if anyErr {
 		os.Exit(1)
@@ -118,15 +116,19 @@ func getConfidence(info os.FileInfo) shellConfidence {
 	}
 }
 
-func walk(path string, onError func(error)) error {
+func walk(path string, onError func(error)) {
 	info, err := os.Stat(path)
 	if err != nil {
-		return err
+		onError(err)
+		return
 	}
 	if !info.IsDir() {
-		return formatPath(path, false)
+		if err := formatPath(path, false); err != nil {
+			onError(err)
+		}
+		return
 	}
-	return filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
+	filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
 		if info.IsDir() && vcsDir.MatchString(info.Name()) {
 			return filepath.SkipDir
 		}

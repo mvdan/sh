@@ -66,9 +66,7 @@ func TestWalk(t *testing.T) {
 	doWalk := func(path string) {
 		gotError = false
 		buf.Reset()
-		if err := walk(path, onError); err != nil {
-			gotError = true
-		}
+		walk(path, onError)
 	}
 	doWalk(".")
 	modified := make(map[string]bool, 0)
