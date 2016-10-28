@@ -3321,15 +3321,9 @@ func SetPosRecurse(tb testing.TB, src string, v interface{}, to Pos, diff bool) 
 	case *Word:
 		recurse(x.Parts)
 	case []WordPart:
-		for i := range x {
-			recurse(&x[i])
+		for _, wp := range x {
+			recurse(wp)
 		}
-	case *WordPart:
-		recurse(*x)
-	case *Loop:
-		recurse(*x)
-	case *ArithmExpr:
-		recurse(*x)
 	case *Lit:
 		setPos(&x.ValuePos, x.Value)
 	case *Subshell:
@@ -3372,7 +3366,7 @@ func SetPosRecurse(tb testing.TB, src string, v interface{}, to Pos, diff bool) 
 		setPos(&x.For, "for")
 		setPos(&x.Do, "do")
 		setPos(&x.Done, "done")
-		recurse(&x.Loop)
+		recurse(x.Loop)
 		recurse(x.DoStmts)
 	case *WordIter:
 		recurse(&x.Name)
@@ -3380,9 +3374,9 @@ func SetPosRecurse(tb testing.TB, src string, v interface{}, to Pos, diff bool) 
 	case *CStyleLoop:
 		setPos(&x.Lparen, "((")
 		setPos(&x.Rparen, "))")
-		recurse(&x.Init)
-		recurse(&x.Cond)
-		recurse(&x.Post)
+		recurse(x.Init)
+		recurse(x.Cond)
+		recurse(x.Post)
 	case *SglQuoted:
 		checkSrc(x.End()-1, "'")
 		checkSrc(x.QuotePos+Pos(len(x.Quote.String())), x.Value)
@@ -3400,15 +3394,15 @@ func SetPosRecurse(tb testing.TB, src string, v interface{}, to Pos, diff bool) 
 			strs = append(strs, "-h")
 		}
 		setPos(&x.OpPos, strs...)
-		recurse(&x.X)
+		recurse(x.X)
 	case *BinaryCmd:
 		setPos(&x.OpPos, x.Op.String())
 		recurse(x.X)
 		recurse(x.Y)
 	case *BinaryExpr:
 		setPos(&x.OpPos, x.Op.String())
-		recurse(&x.X)
-		recurse(&x.Y)
+		recurse(x.X)
+		recurse(x.Y)
 	case *FuncDecl:
 		if x.BashStyle {
 			setPos(&x.Position, "function")
@@ -3439,11 +3433,11 @@ func SetPosRecurse(tb testing.TB, src string, v interface{}, to Pos, diff bool) 
 			setPos(&x.Left, x.Token.String())
 			setPos(&x.Right, "))")
 		}
-		recurse(&x.X)
+		recurse(x.X)
 	case *ParenExpr:
 		setPos(&x.Lparen, "(")
 		setPos(&x.Rparen, ")")
-		recurse(&x.X)
+		recurse(x.X)
 	case *CmdSubst:
 		setPos(&x.Left, "$(", "`")
 		setPos(&x.Right, ")", "`")
@@ -3482,8 +3476,8 @@ func SetPosRecurse(tb testing.TB, src string, v interface{}, to Pos, diff bool) 
 		recurse(x.Stmt)
 	case *LetClause:
 		setPos(&x.Let, "let")
-		for i := range x.Exprs {
-			recurse(&x.Exprs[i])
+		for _, expr := range x.Exprs {
+			recurse(expr)
 		}
 	case *ArrayExpr:
 		setPos(&x.Lparen, "(")
