@@ -308,7 +308,7 @@ func (p *printer) wordPart(wp WordPart) {
 	case *Lit:
 		p.WriteString(x.Value)
 	case *SglQuoted:
-		if x.Quote == DOLLSQ {
+		if x.Dollar {
 			p.WriteByte('$')
 		}
 		p.WriteByte('\'')
@@ -316,7 +316,7 @@ func (p *printer) wordPart(wp WordPart) {
 		p.WriteByte('\'')
 		p.incLines(x.End())
 	case *DblQuoted:
-		if x.Quote == DOLLDQ {
+		if x.Dollar {
 			p.WriteByte('$')
 		}
 		p.WriteByte('"')

@@ -345,15 +345,15 @@ func (l *Lit) End() Pos { return posAddStr(l.ValuePos, l.Value) }
 
 // SglQuoted represents a string within single quotes.
 type SglQuoted struct {
-	QuotePos Pos
-	Quote    Token
+	Position Pos
+	Dollar   bool
 	Value    string
 }
 
-func (q *SglQuoted) Pos() Pos { return q.QuotePos }
+func (q *SglQuoted) Pos() Pos { return q.Position }
 func (q *SglQuoted) End() Pos {
-	pos := posAdd(q.QuotePos, 2+len(q.Value))
-	if pos > 0 && q.Quote == DOLLSQ {
+	pos := posAdd(q.Position, 2+len(q.Value))
+	if pos > 0 && q.Dollar {
 		pos++
 	}
 	return pos
@@ -361,20 +361,20 @@ func (q *SglQuoted) End() Pos {
 
 // DblQuoted represents a list of nodes within double quotes.
 type DblQuoted struct {
-	QuotePos Pos
-	Quote    Token
+	Position Pos
+	Dollar   bool
 	Parts    []WordPart
 }
 
-func (q *DblQuoted) Pos() Pos { return q.QuotePos }
+func (q *DblQuoted) Pos() Pos { return q.Position }
 func (q *DblQuoted) End() Pos {
-	if q.QuotePos == 0 {
+	if q.Position == 0 {
 		return defaultPos
 	}
-	end := q.QuotePos
+	end := q.Position
 	if len(q.Parts) > 0 {
 		end = partsLastEnd(q.Parts)
-	} else if q.Quote == DOLLDQ {
+	} else if q.Dollar {
 		end += 2
 	} else {
 		end++

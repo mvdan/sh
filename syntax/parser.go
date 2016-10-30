@@ -565,7 +565,7 @@ func (p *parser) wordPart() WordPart {
 		ps.Rparen = p.matched(ps.OpPos, ps.Op, RPAREN)
 		return ps
 	case SQUOTE:
-		sq := &SglQuoted{Quote: p.tok, QuotePos: p.pos}
+		sq := &SglQuoted{Position: p.pos}
 		bs, found := p.readUntil('\'')
 		rem := bs
 		for {
@@ -586,7 +586,7 @@ func (p *parser) wordPart() WordPart {
 		p.next()
 		return sq
 	case DOLLSQ:
-		sq := &SglQuoted{Quote: p.tok, QuotePos: p.pos}
+		sq := &SglQuoted{Position: p.pos, Dollar: true}
 		old := p.quote
 		p.quote = sglQuotes
 		p.next()
@@ -607,7 +607,7 @@ func (p *parser) wordPart() WordPart {
 		}
 		fallthrough
 	case DOLLDQ:
-		q := &DblQuoted{Quote: p.tok, QuotePos: p.pos}
+		q := &DblQuoted{Position: p.pos, Dollar: p.tok == DOLLDQ}
 		old := p.quote
 		p.quote = dblQuotes
 		p.next()

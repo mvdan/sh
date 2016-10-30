@@ -69,10 +69,10 @@ func litStmts(strs ...string) []*Stmt {
 	return l
 }
 
-func sglQuoted(s string) *SglQuoted        { return &SglQuoted{Quote: SQUOTE, Value: s} }
-func sglDQuoted(s string) *SglQuoted       { return &SglQuoted{Quote: DOLLSQ, Value: s} }
-func dblQuoted(ps ...WordPart) *DblQuoted  { return &DblQuoted{Quote: DQUOTE, Parts: ps} }
-func dblDQuoted(ps ...WordPart) *DblQuoted { return &DblQuoted{Quote: DOLLDQ, Parts: ps} }
+func sglQuoted(s string) *SglQuoted        { return &SglQuoted{Value: s} }
+func sglDQuoted(s string) *SglQuoted       { return &SglQuoted{Dollar: true, Value: s} }
+func dblQuoted(ps ...WordPart) *DblQuoted  { return &DblQuoted{Parts: ps} }
+func dblDQuoted(ps ...WordPart) *DblQuoted { return &DblQuoted{Dollar: true, Parts: ps} }
 func block(sts ...*Stmt) *Block            { return &Block{Stmts: sts} }
 func subshell(sts ...*Stmt) *Subshell      { return &Subshell{Stmts: sts} }
 func arithmExp(e ArithmExpr) *ArithmExp    { return &ArithmExp{Token: DOLLDP, X: e} }
@@ -3376,11 +3376,15 @@ func setPosRecurse(tb testing.TB, src string, v interface{}, to Pos, diff bool) 
 		recurse(x.Post)
 	case *SglQuoted:
 		checkSrc(x.End()-1, "'")
-		checkSrc(x.QuotePos+Pos(len(x.Quote.String())), x.Value)
-		setPos(&x.QuotePos, x.Quote.String())
+		valuePos := x.Position + 1
+		if x.Dollar {
+			valuePos++
+		}
+		checkSrc(valuePos, x.Value)
+		setPos(&x.Position, "'", "$'")
 	case *DblQuoted:
 		checkSrc(x.End()-1, `"`)
-		setPos(&x.QuotePos, x.Quote.String())
+		setPos(&x.Position, `"`, `$"`)
 		recurse(x.Parts)
 	case *UnaryExpr:
 		strs := []string{x.Op.String()}
