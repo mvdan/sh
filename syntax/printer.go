@@ -373,7 +373,7 @@ func (p *printer) wordPart(wp WordPart) {
 		p.sepTok(")", x.Rparen)
 	case *ExtGlob:
 		p.wantSpace = false
-		p.WriteString(x.Token.String())
+		p.WriteString(x.Op.String())
 		p.WriteString(x.Pattern.Value)
 		p.WriteByte(')')
 	case *ProcSubst:

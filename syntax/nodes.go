@@ -551,7 +551,7 @@ func (a *ArrayExpr) End() Pos { return posAdd(a.Rparen, 1) }
 // these are parsed independently of whether shopt has been called or
 // not.
 type ExtGlob struct {
-	Token   Token
+	Op      Token
 	Pattern Lit
 }
 

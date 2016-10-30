@@ -641,7 +641,7 @@ func (p *parser) wordPart() WordPart {
 		}
 		return cs
 	case GQUEST, GMUL, GADD, GAT, GNOT:
-		eg := &ExtGlob{Token: p.tok}
+		eg := &ExtGlob{Op: p.tok}
 		eg.Pattern.ValuePos = Pos(p.npos + 1)
 		start := p.npos
 		lparens := 0
@@ -658,7 +658,7 @@ func (p *parser) wordPart() WordPart {
 		}
 		p.next()
 		if lparens != -1 {
-			p.matchingErr(p.pos, eg.Token, RPAREN)
+			p.matchingErr(p.pos, eg.Op, RPAREN)
 		}
 		return eg
 	}

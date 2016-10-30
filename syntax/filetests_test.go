@@ -3139,18 +3139,18 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"echo ?(b)*(c)+(d)@(e)!(f)"},
 		bash: stmt(call(*litWord("echo"), *word(
-			&ExtGlob{Token: GQUEST, Pattern: *lit("b")},
-			&ExtGlob{Token: GMUL, Pattern: *lit("c")},
-			&ExtGlob{Token: GADD, Pattern: *lit("d")},
-			&ExtGlob{Token: GAT, Pattern: *lit("e")},
-			&ExtGlob{Token: GNOT, Pattern: *lit("f")},
+			&ExtGlob{Op: GQUEST, Pattern: *lit("b")},
+			&ExtGlob{Op: GMUL, Pattern: *lit("c")},
+			&ExtGlob{Op: GADD, Pattern: *lit("d")},
+			&ExtGlob{Op: GAT, Pattern: *lit("e")},
+			&ExtGlob{Op: GNOT, Pattern: *lit("f")},
 		))),
 	},
 	{
 		Strs: []string{"echo foo@(b*(c|d))bar"},
 		bash: stmt(call(*litWord("echo"), *word(
 			lit("foo"),
-			&ExtGlob{Token: GAT, Pattern: *lit("b*(c|d)")},
+			&ExtGlob{Op: GAT, Pattern: *lit("b*(c|d)")},
 			lit("bar"),
 		))),
 	},
@@ -3484,7 +3484,7 @@ func setPosRecurse(tb testing.TB, src string, v interface{}, to Pos, diff bool) 
 		setPos(&x.Rparen, ")")
 		recurse(x.List)
 	case *ExtGlob:
-		checkSrc(x.Pos(), x.Token.String())
+		checkSrc(x.Pos(), x.Op.String())
 		checkSrc(x.Pattern.End(), ")")
 		recurse(&x.Pattern)
 	case *ProcSubst:
