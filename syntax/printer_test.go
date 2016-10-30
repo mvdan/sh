@@ -1,7 +1,7 @@
 // Copyright (c) 2016, Daniel Martí <mvdan@mvdan.cc>
 // See LICENSE for licensing information
 
-package printer
+package syntax
 
 import (
 	"bytes"
@@ -9,16 +9,13 @@ import (
 	"io/ioutil"
 	"os"
 	"testing"
-
-	"github.com/mvdan/sh/internal/tests"
-	"github.com/mvdan/sh/syntax"
 )
 
 func TestFprintCompact(t *testing.T) {
-	for i, c := range tests.FileTests {
+	for i, c := range FileTests {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
 			in := c.Strs[0]
-			prog, err := syntax.Parse([]byte(in), "", 0)
+			prog, err := Parse([]byte(in), "", 0)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -38,7 +35,7 @@ func TestFprintCompact(t *testing.T) {
 	}
 }
 
-func strFprint(f *syntax.File, spaces int) (string, error) {
+func strFprint(f *File, spaces int) (string, error) {
 	var buf bytes.Buffer
 	c := Config{Spaces: spaces}
 	err := c.Fprint(&buf, f)
@@ -372,8 +369,8 @@ func TestFprintWeirdFormat(t *testing.T) {
 	for i, tc := range weirdFormats {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
 			check := func(in, want string) {
-				prog, err := syntax.Parse([]byte(in), "", syntax.ParseComments)
-				tests.CheckNewlines(t, in, prog.Lines)
+				prog, err := Parse([]byte(in), "", ParseComments)
+				CheckNewlines(t, in, prog.Lines)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -396,7 +393,7 @@ func TestFprintWeirdFormat(t *testing.T) {
 	}
 }
 
-func parsePath(tb testing.TB, path string) *syntax.File {
+func parsePath(tb testing.TB, path string) *File {
 	f, err := os.Open(path)
 	if err != nil {
 		tb.Fatal(err)
@@ -406,7 +403,7 @@ func parsePath(tb testing.TB, path string) *syntax.File {
 	if err != nil {
 		tb.Fatal(err)
 	}
-	prog, err := syntax.Parse(bs, "", syntax.ParseComments)
+	prog, err := Parse(bs, "", ParseComments)
 	if err != nil {
 		tb.Fatal(err)
 	}
@@ -469,7 +466,7 @@ func TestFprintSpaces(t *testing.T) {
 
 	for i, tc := range spaceFormats {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
-			prog, err := syntax.Parse([]byte(tc.in), "", syntax.ParseComments)
+			prog, err := Parse([]byte(tc.in), "", ParseComments)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -494,10 +491,10 @@ func (b badWriter) Write(p []byte) (int, error) { return 0, errBadWriter }
 
 func TestWriteErr(t *testing.T) {
 	var out badWriter
-	f := &syntax.File{Stmts: []*syntax.Stmt{
+	f := &File{Stmts: []*Stmt{
 		{
-			Redirs: []*syntax.Redirect{{}},
-			Cmd:    &syntax.Subshell{},
+			Redirs: []*Redirect{{}},
+			Cmd:    &Subshell{},
 		},
 	}}
 	err := Fprint(out, f)

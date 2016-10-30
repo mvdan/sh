@@ -1,35 +1,31 @@
 // Copyright (c) 2016, Daniel Martí <mvdan@mvdan.cc>
 // See LICENSE for licensing information
 
-package syntax_test
+package syntax
 
 import (
 	"fmt"
 	"strings"
 	"testing"
-
-	"github.com/mvdan/sh/internal"
-	"github.com/mvdan/sh/internal/tests"
-	"github.com/mvdan/sh/syntax"
 )
 
 func TestNodePos(t *testing.T) {
-	internal.DefaultPos = 1234
-	for i, c := range tests.FileTests {
+	DefaultPos = 1234
+	for i, c := range FileTests {
 		for j, prog := range c.All {
 			t.Run(fmt.Sprintf("%03d-%d", i, j), func(t *testing.T) {
-				tests.SetPosRecurse(t, "", prog, internal.DefaultPos, true)
+				SetPosRecurse(t, "", prog, DefaultPos, true)
 			})
 		}
 	}
 }
 
 func TestPosition(t *testing.T) {
-	internal.DefaultPos = 0
-	for i, c := range tests.FileTests {
+	DefaultPos = 0
+	for i, c := range FileTests {
 		for j, in := range c.Strs {
 			t.Run(fmt.Sprintf("%03d-%d", i, j), func(t *testing.T) {
-				prog, err := parser.Parse([]byte(in), "", 0)
+				prog, err := Parse([]byte(in), "", 0)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -38,7 +34,7 @@ func TestPosition(t *testing.T) {
 					f:     prog,
 					lines: strings.Split(in, "\n"),
 				}
-				syntax.Walk(v, prog)
+				Walk(v, prog)
 			})
 		}
 	}
@@ -46,11 +42,11 @@ func TestPosition(t *testing.T) {
 
 type posVisitor struct {
 	t     *testing.T
-	f     *syntax.File
+	f     *File
 	lines []string
 }
 
-func (v *posVisitor) Visit(n syntax.Node) syntax.Visitor {
+func (v *posVisitor) Visit(n Node) Visitor {
 	if n == nil {
 		return v
 	}

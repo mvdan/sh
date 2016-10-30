@@ -1,7 +1,7 @@
 // Copyright (c) 2016, Daniel Martí <mvdan@mvdan.cc>
 // See LICENSE for licensing information
 
-package token
+package syntax
 
 // Token is the set of lexical tokens and reserved words.
 type Token int
@@ -143,6 +143,8 @@ const (
 // Pos is the internal representation of a position within a source
 // file.
 type Pos int
+
+var DefaultPos Pos = 0
 
 // Position describes a position within a source file including the line
 // and column location. A Position is valid if the line number is > 0.

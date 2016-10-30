@@ -12,23 +12,20 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mvdan/sh/internal"
-	"github.com/mvdan/sh/internal/tests"
-
 	"github.com/kr/pretty"
 )
 
 func TestParseComments(t *testing.T) {
-	internal.DefaultPos = 0
+	DefaultPos = 0
 	in := "# foo\ncmd\n# bar"
-	want := &ast.File{
-		Comments: []*ast.Comment{
+	want := &File{
+		Comments: []*Comment{
 			{Text: " foo"},
 			{Text: " bar"},
 		},
-		Stmts: []*ast.Stmt{{
-			Cmd: &ast.CallExpr{Args: []ast.Word{
-				{Parts: []ast.WordPart{&ast.Lit{Value: "cmd"}}},
+		Stmts: []*Stmt{{
+			Cmd: &CallExpr{Args: []Word{
+				{Parts: []WordPart{&Lit{Value: "cmd"}}},
 			}},
 		}},
 	}
@@ -36,8 +33,8 @@ func TestParseComments(t *testing.T) {
 }
 
 func TestParseBash(t *testing.T) {
-	internal.DefaultPos = 0
-	for i, c := range append(tests.FileTests, tests.FileTestsNoPrint...) {
+	DefaultPos = 0
+	for i, c := range append(FileTests, FileTestsNoPrint...) {
 		want := c.Bash
 		if want == nil {
 			continue
@@ -49,8 +46,8 @@ func TestParseBash(t *testing.T) {
 }
 
 func TestParsePosix(t *testing.T) {
-	internal.DefaultPos = 0
-	for i, c := range append(tests.FileTests, tests.FileTestsNoPrint...) {
+	DefaultPos = 0
+	for i, c := range append(FileTests, FileTestsNoPrint...) {
 		want := c.Posix
 		if want == nil {
 			continue
@@ -111,7 +108,7 @@ func TestParseBashConfirm(t *testing.T) {
 	if testing.Short() {
 		t.Skip("calling bash is slow.")
 	}
-	for i, c := range append(tests.FileTests, tests.FileTestsNoPrint...) {
+	for i, c := range append(FileTests, FileTestsNoPrint...) {
 		for j, in := range c.Strs {
 			t.Run(fmt.Sprintf("%03d-%d", i, j), confirmParse(in, false, false))
 		}
@@ -136,16 +133,16 @@ func TestParseErrPosixConfirm(t *testing.T) {
 	}
 }
 
-func singleParse(in string, want *ast.File, mode Mode) func(t *testing.T) {
+func singleParse(in string, want *File, mode Mode) func(t *testing.T) {
 	return func(t *testing.T) {
 		got, err := Parse([]byte(in), "", mode)
 		if err != nil {
 			t.Fatalf("Unexpected error in %q: %v", in, err)
 		}
-		tests.CheckNewlines(t, in, got.Lines)
+		CheckNewlines(t, in, got.Lines)
 		got.Lines = nil
-		tests.SetPosRecurse(t, "", want, internal.DefaultPos, false)
-		tests.SetPosRecurse(t, in, got, internal.DefaultPos, true)
+		SetPosRecurse(t, "", want, DefaultPos, false)
+		SetPosRecurse(t, in, got, DefaultPos, true)
 		if !reflect.DeepEqual(got, want) {
 			t.Fatalf("AST mismatch in %q\ndiff:\n%s", in,
 				strings.Join(pretty.Diff(want, got), "\n"),

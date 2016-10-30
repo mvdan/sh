@@ -1,15 +1,12 @@
 // Copyright (c) 2016, Daniel Martí <mvdan@mvdan.cc>
 // See LICENSE for licensing information
 
-package tests
+package syntax
 
 import (
 	"reflect"
 	"strings"
 	"testing"
-
-	. "github.com/mvdan/sh/syntax"
-	. "github.com/mvdan/sh/token"
 )
 
 func prepareTest(c *testCase) {

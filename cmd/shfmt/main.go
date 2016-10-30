@@ -15,7 +15,6 @@ import (
 	"runtime/pprof"
 	"strings"
 
-	"github.com/mvdan/sh/printer"
 	"github.com/mvdan/sh/syntax"
 )
 
@@ -27,7 +26,7 @@ var (
 	cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
 
 	parseMode         syntax.Mode
-	printConfig       printer.Config
+	printConfig       syntax.Config
 	readBuf, writeBuf bytes.Buffer
 
 	out io.Writer

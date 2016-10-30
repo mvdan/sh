@@ -5,12 +5,10 @@ package syntax
 
 import (
 	"bytes"
-
-	"github.com/mvdan/sh/token"
 )
 
 const (
-	_ token.Token = -iota
+	_ Token = -iota
 	_EOF
 	_LIT
 	_LITWORD
@@ -57,11 +55,11 @@ func (p *parser) next() {
 	}
 	p.spaced, p.newLine = false, false
 	b, q := p.src[p.npos], p.quote
-	p.pos = token.Pos(p.npos + 1)
+	p.pos = Pos(p.npos + 1)
 	switch q {
 	case hdocWord:
 		if wordBreak(b) {
-			p.tok = token.ILLEGAL
+			p.tok = ILLEGAL
 			p.spaced = true
 			return
 		}
@@ -69,10 +67,10 @@ func (p *parser) next() {
 		switch b {
 		case '}':
 			p.npos++
-			p.tok = token.RBRACE
+			p.tok = RBRACE
 		case '/':
 			p.npos++
-			p.tok = token.QUO
+			p.tok = QUO
 		case '`', '"', '$':
 			p.tok = p.dqToken(b)
 		default:
@@ -90,7 +88,7 @@ func (p *parser) next() {
 		if b == '`' || b == '$' {
 			p.tok = p.dqToken(b)
 		} else if p.hdocStop == nil {
-			p.tok = token.ILLEGAL
+			p.tok = ILLEGAL
 		} else {
 			p.advanceLitHdoc()
 		}
@@ -99,7 +97,7 @@ func (p *parser) next() {
 		switch b {
 		case '}':
 			p.npos++
-			p.tok = token.RBRACE
+			p.tok = RBRACE
 		case '`', '"', '$':
 			p.tok = p.dqToken(b)
 		default:
@@ -109,7 +107,7 @@ func (p *parser) next() {
 	case sglQuotes:
 		if b == '\'' {
 			p.npos++
-			p.tok = token.SQUOTE
+			p.tok = SQUOTE
 		} else {
 			p.advanceLitOther(q)
 		}
@@ -123,7 +121,7 @@ skipSpace:
 			p.npos++
 		case '\n':
 			if p.quote == arithmExprLet {
-				p.tok = token.ILLEGAL
+				p.tok = ILLEGAL
 				p.newLine, p.spaced = true, true
 				return
 			}
@@ -155,7 +153,7 @@ skipSpace:
 		}
 		b = p.src[p.npos]
 	}
-	p.pos = token.Pos(p.npos + 1)
+	p.pos = Pos(p.npos + 1)
 	switch {
 	case q&allRegTokens != 0:
 		switch b {
@@ -176,15 +174,15 @@ skipSpace:
 			if p.bash() && p.npos+1 < len(p.src) && p.src[p.npos+1] == '(' {
 				switch b {
 				case '?':
-					p.tok = token.GQUEST
+					p.tok = GQUEST
 				case '*':
-					p.tok = token.GMUL
+					p.tok = GMUL
 				case '+':
-					p.tok = token.GADD
+					p.tok = GADD
 				case '@':
-					p.tok = token.GAT
+					p.tok = GAT
 				default: // '!'
-					p.tok = token.GNOT
+					p.tok = GNOT
 				}
 				p.npos += 2
 			} else {
@@ -199,7 +197,7 @@ skipSpace:
 		p.tok = p.arithmToken(b)
 	case q&allRbrack != 0 && b == ']':
 		p.npos++
-		p.tok = token.RBRACK
+		p.tok = RBRACK
 	case q == testRegexp:
 		p.advanceLitRe()
 	case regOps(b):
@@ -216,49 +214,49 @@ func byteAt(src []byte, i int) byte {
 	return src[i]
 }
 
-func (p *parser) regToken(b byte) token.Token {
+func (p *parser) regToken(b byte) Token {
 	switch b {
 	case '\'':
 		p.npos++
-		return token.SQUOTE
+		return SQUOTE
 	case '"':
 		p.npos++
-		return token.DQUOTE
+		return DQUOTE
 	case '`':
 		p.npos++
-		return token.BQUOTE
+		return BQUOTE
 	case '&':
 		switch byteAt(p.src, p.npos+1) {
 		case '&':
 			p.npos += 2
-			return token.LAND
+			return LAND
 		case '>':
 			if !p.bash() {
 				break
 			}
 			if byteAt(p.src, p.npos+2) == '>' {
 				p.npos += 3
-				return token.APPALL
+				return APPALL
 			}
 			p.npos += 2
-			return token.RDRALL
+			return RDRALL
 		}
 		p.npos++
-		return token.AND
+		return AND
 	case '|':
 		switch byteAt(p.src, p.npos+1) {
 		case '|':
 			p.npos += 2
-			return token.LOR
+			return LOR
 		case '&':
 			if !p.bash() {
 				break
 			}
 			p.npos += 2
-			return token.PIPEALL
+			return PIPEALL
 		}
 		p.npos++
-		return token.OR
+		return OR
 	case '$':
 		switch byteAt(p.src, p.npos+1) {
 		case '\'':
@@ -266,354 +264,354 @@ func (p *parser) regToken(b byte) token.Token {
 				break
 			}
 			p.npos += 2
-			return token.DOLLSQ
+			return DOLLSQ
 		case '"':
 			if !p.bash() {
 				break
 			}
 			p.npos += 2
-			return token.DOLLDQ
+			return DOLLDQ
 		case '{':
 			p.npos += 2
-			return token.DOLLBR
+			return DOLLBR
 		case '[':
 			if !p.bash() {
 				break
 			}
 			p.npos += 2
-			return token.DOLLBK
+			return DOLLBK
 		case '(':
 			if byteAt(p.src, p.npos+2) == '(' {
 				p.npos += 3
-				return token.DOLLDP
+				return DOLLDP
 			}
 			p.npos += 2
-			return token.DOLLPR
+			return DOLLPR
 		}
 		p.npos++
-		return token.DOLLAR
+		return DOLLAR
 	case '(':
 		if p.bash() && byteAt(p.src, p.npos+1) == '(' {
 			p.npos += 2
-			return token.DLPAREN
+			return DLPAREN
 		}
 		p.npos++
-		return token.LPAREN
+		return LPAREN
 	case ')':
 		p.npos++
-		return token.RPAREN
+		return RPAREN
 	case ';':
 		switch byteAt(p.src, p.npos+1) {
 		case ';':
 			if p.bash() && byteAt(p.src, p.npos+2) == '&' {
 				p.npos += 3
-				return token.DSEMIFALL
+				return DSEMIFALL
 			}
 			p.npos += 2
-			return token.DSEMICOLON
+			return DSEMICOLON
 		case '&':
 			if !p.bash() {
 				break
 			}
 			p.npos += 2
-			return token.SEMIFALL
+			return SEMIFALL
 		}
 		p.npos++
-		return token.SEMICOLON
+		return SEMICOLON
 	case '<':
 		switch byteAt(p.src, p.npos+1) {
 		case '<':
 			if b := byteAt(p.src, p.npos+2); b == '-' {
 				p.npos += 3
-				return token.DHEREDOC
+				return DHEREDOC
 			} else if p.bash() && b == '<' {
 				p.npos += 3
-				return token.WHEREDOC
+				return WHEREDOC
 			}
 			p.npos += 2
-			return token.SHL
+			return SHL
 		case '>':
 			p.npos += 2
-			return token.RDRINOUT
+			return RDRINOUT
 		case '&':
 			p.npos += 2
-			return token.DPLIN
+			return DPLIN
 		case '(':
 			if !p.bash() {
 				break
 			}
 			p.npos += 2
-			return token.CMDIN
+			return CMDIN
 		}
 		p.npos++
-		return token.LSS
+		return LSS
 	default: // '>'
 		switch byteAt(p.src, p.npos+1) {
 		case '>':
 			p.npos += 2
-			return token.SHR
+			return SHR
 		case '&':
 			p.npos += 2
-			return token.DPLOUT
+			return DPLOUT
 		case '|':
 			p.npos += 2
-			return token.CLBOUT
+			return CLBOUT
 		case '(':
 			if !p.bash() {
 				break
 			}
 			p.npos += 2
-			return token.CMDOUT
+			return CMDOUT
 		}
 		p.npos++
-		return token.GTR
+		return GTR
 	}
 }
 
-func (p *parser) dqToken(b byte) token.Token {
+func (p *parser) dqToken(b byte) Token {
 	switch b {
 	case '"':
 		p.npos++
-		return token.DQUOTE
+		return DQUOTE
 	case '`':
 		p.npos++
-		return token.BQUOTE
+		return BQUOTE
 	default: // '$'
 		switch byteAt(p.src, p.npos+1) {
 		case '{':
 			p.npos += 2
-			return token.DOLLBR
+			return DOLLBR
 		case '[':
 			if !p.bash() {
 				break
 			}
 			p.npos += 2
-			return token.DOLLBK
+			return DOLLBK
 		case '(':
 			if byteAt(p.src, p.npos+2) == '(' {
 				p.npos += 3
-				return token.DOLLDP
+				return DOLLDP
 			}
 			p.npos += 2
-			return token.DOLLPR
+			return DOLLPR
 		}
 		p.npos++
-		return token.DOLLAR
+		return DOLLAR
 	}
 }
 
-func (p *parser) paramToken(b byte) token.Token {
+func (p *parser) paramToken(b byte) Token {
 	switch b {
 	case '}':
 		p.npos++
-		return token.RBRACE
+		return RBRACE
 	case ':':
 		switch byteAt(p.src, p.npos+1) {
 		case '+':
 			p.npos += 2
-			return token.CADD
+			return CADD
 		case '-':
 			p.npos += 2
-			return token.CSUB
+			return CSUB
 		case '?':
 			p.npos += 2
-			return token.CQUEST
+			return CQUEST
 		case '=':
 			p.npos += 2
-			return token.CASSIGN
+			return CASSIGN
 		}
 		p.npos++
-		return token.COLON
+		return COLON
 	case '+':
 		p.npos++
-		return token.ADD
+		return ADD
 	case '-':
 		p.npos++
-		return token.SUB
+		return SUB
 	case '?':
 		p.npos++
-		return token.QUEST
+		return QUEST
 	case '=':
 		p.npos++
-		return token.ASSIGN
+		return ASSIGN
 	case '%':
 		if byteAt(p.src, p.npos+1) == '%' {
 			p.npos += 2
-			return token.DREM
+			return DREM
 		}
 		p.npos++
-		return token.REM
+		return REM
 	case '#':
 		if byteAt(p.src, p.npos+1) == '#' {
 			p.npos += 2
-			return token.DHASH
+			return DHASH
 		}
 		p.npos++
-		return token.HASH
+		return HASH
 	case '[':
 		p.npos++
-		return token.LBRACK
+		return LBRACK
 	case '^':
 		if byteAt(p.src, p.npos+1) == '^' {
 			p.npos += 2
-			return token.DXOR
+			return DXOR
 		}
 		p.npos++
-		return token.XOR
+		return XOR
 	case ',':
 		if byteAt(p.src, p.npos+1) == ',' {
 			p.npos += 2
-			return token.DCOMMA
+			return DCOMMA
 		}
 		p.npos++
-		return token.COMMA
+		return COMMA
 	default: // '/'
 		if byteAt(p.src, p.npos+1) == '/' {
 			p.npos += 2
-			return token.DQUO
+			return DQUO
 		}
 		p.npos++
-		return token.QUO
+		return QUO
 	}
 }
 
-func (p *parser) arithmToken(b byte) token.Token {
+func (p *parser) arithmToken(b byte) Token {
 	switch b {
 	case '!':
 		if byteAt(p.src, p.npos+1) == '=' {
 			p.npos += 2
-			return token.NEQ
+			return NEQ
 		}
 		p.npos++
-		return token.NOT
+		return NOT
 	case '=':
 		if byteAt(p.src, p.npos+1) == '=' {
 			p.npos += 2
-			return token.EQL
+			return EQL
 		}
 		p.npos++
-		return token.ASSIGN
+		return ASSIGN
 	case '(':
 		p.npos++
-		return token.LPAREN
+		return LPAREN
 	case ')':
 		p.npos++
-		return token.RPAREN
+		return RPAREN
 	case '&':
 		switch byteAt(p.src, p.npos+1) {
 		case '&':
 			p.npos += 2
-			return token.LAND
+			return LAND
 		case '=':
 			p.npos += 2
-			return token.ANDASSGN
+			return ANDASSGN
 		}
 		p.npos++
-		return token.AND
+		return AND
 	case '|':
 		switch byteAt(p.src, p.npos+1) {
 		case '|':
 			p.npos += 2
-			return token.LOR
+			return LOR
 		case '=':
 			p.npos += 2
-			return token.ORASSGN
+			return ORASSGN
 		}
 		p.npos++
-		return token.OR
+		return OR
 	case '<':
 		switch byteAt(p.src, p.npos+1) {
 		case '<':
 			if byteAt(p.src, p.npos+2) == '=' {
 				p.npos += 3
-				return token.SHLASSGN
+				return SHLASSGN
 			}
 			p.npos += 2
-			return token.SHL
+			return SHL
 		case '=':
 			p.npos += 2
-			return token.LEQ
+			return LEQ
 		}
 		p.npos++
-		return token.LSS
+		return LSS
 	case '>':
 		switch byteAt(p.src, p.npos+1) {
 		case '>':
 			if byteAt(p.src, p.npos+2) == '=' {
 				p.npos += 3
-				return token.SHRASSGN
+				return SHRASSGN
 			}
 			p.npos += 2
-			return token.SHR
+			return SHR
 		case '=':
 			p.npos += 2
-			return token.GEQ
+			return GEQ
 		}
 		p.npos++
-		return token.GTR
+		return GTR
 	case '+':
 		switch byteAt(p.src, p.npos+1) {
 		case '+':
 			p.npos += 2
-			return token.INC
+			return INC
 		case '=':
 			p.npos += 2
-			return token.ADDASSGN
+			return ADDASSGN
 		}
 		p.npos++
-		return token.ADD
+		return ADD
 	case '-':
 		switch byteAt(p.src, p.npos+1) {
 		case '-':
 			p.npos += 2
-			return token.DEC
+			return DEC
 		case '=':
 			p.npos += 2
-			return token.SUBASSGN
+			return SUBASSGN
 		}
 		p.npos++
-		return token.SUB
+		return SUB
 	case '%':
 		if byteAt(p.src, p.npos+1) == '=' {
 			p.npos += 2
-			return token.REMASSGN
+			return REMASSGN
 		}
 		p.npos++
-		return token.REM
+		return REM
 	case '*':
 		switch byteAt(p.src, p.npos+1) {
 		case '*':
 			p.npos += 2
-			return token.POW
+			return POW
 		case '=':
 			p.npos += 2
-			return token.MULASSGN
+			return MULASSGN
 		}
 		p.npos++
-		return token.MUL
+		return MUL
 	case '/':
 		if byteAt(p.src, p.npos+1) == '=' {
 			p.npos += 2
-			return token.QUOASSGN
+			return QUOASSGN
 		}
 		p.npos++
-		return token.QUO
+		return QUO
 	case '^':
 		if byteAt(p.src, p.npos+1) == '=' {
 			p.npos += 2
-			return token.XORASSGN
+			return XORASSGN
 		}
 		p.npos++
-		return token.XOR
+		return XOR
 	case ',':
 		p.npos++
-		return token.COMMA
+		return COMMA
 	case '?':
 		p.npos++
-		return token.QUEST
+		return QUEST
 	default: // ':'
 		p.npos++
-		return token.COLON
+		return COLON
 	}
 }
 
@@ -870,7 +868,7 @@ func (p *parser) hdocLitWord() Word {
 	if p.npos == len(p.src) {
 		end = p.npos
 	}
-	l := p.lit(token.Pos(pos+1), string(p.src[pos:end]))
+	l := p.lit(Pos(pos+1), string(p.src[pos:end]))
 	return Word{Parts: p.singleWps(l)}
 }
 
@@ -894,84 +892,84 @@ func (p *parser) advanceLitRe() {
 	p.npos += end
 }
 
-func testUnaryOp(val string) token.Token {
+func testUnaryOp(val string) Token {
 	switch val {
 	case "!":
-		return token.NOT
+		return NOT
 	case "-e", "-a":
-		return token.TEXISTS
+		return TEXISTS
 	case "-f":
-		return token.TREGFILE
+		return TREGFILE
 	case "-d":
-		return token.TDIRECT
+		return TDIRECT
 	case "-c":
-		return token.TCHARSP
+		return TCHARSP
 	case "-b":
-		return token.TBLCKSP
+		return TBLCKSP
 	case "-p":
-		return token.TNMPIPE
+		return TNMPIPE
 	case "-S":
-		return token.TSOCKET
+		return TSOCKET
 	case "-L", "-h":
-		return token.TSMBLINK
+		return TSMBLINK
 	case "-g":
-		return token.TSGIDSET
+		return TSGIDSET
 	case "-u":
-		return token.TSUIDSET
+		return TSUIDSET
 	case "-r":
-		return token.TREAD
+		return TREAD
 	case "-w":
-		return token.TWRITE
+		return TWRITE
 	case "-x":
-		return token.TEXEC
+		return TEXEC
 	case "-s":
-		return token.TNOEMPTY
+		return TNOEMPTY
 	case "-t":
-		return token.TFDTERM
+		return TFDTERM
 	case "-z":
-		return token.TEMPSTR
+		return TEMPSTR
 	case "-n":
-		return token.TNEMPSTR
+		return TNEMPSTR
 	case "-o":
-		return token.TOPTSET
+		return TOPTSET
 	case "-v":
-		return token.TVARSET
+		return TVARSET
 	case "-R":
-		return token.TNRFVAR
+		return TNRFVAR
 	default:
-		return token.ILLEGAL
+		return ILLEGAL
 	}
 }
 
-func testBinaryOp(val string) token.Token {
+func testBinaryOp(val string) Token {
 	switch val {
 	case "=":
-		return token.ASSIGN
+		return ASSIGN
 	case "==":
-		return token.EQL
+		return EQL
 	case "=~":
-		return token.TREMATCH
+		return TREMATCH
 	case "!=":
-		return token.NEQ
+		return NEQ
 	case "-nt":
-		return token.TNEWER
+		return TNEWER
 	case "-ot":
-		return token.TOLDER
+		return TOLDER
 	case "-ef":
-		return token.TDEVIND
+		return TDEVIND
 	case "-eq":
-		return token.TEQL
+		return TEQL
 	case "-ne":
-		return token.TNEQ
+		return TNEQ
 	case "-le":
-		return token.TLEQ
+		return TLEQ
 	case "-ge":
-		return token.TGEQ
+		return TGEQ
 	case "-lt":
-		return token.TLSS
+		return TLSS
 	case "-gt":
-		return token.TGTR
+		return TGTR
 	default:
-		return token.ILLEGAL
+		return ILLEGAL
 	}
 }
