@@ -115,7 +115,7 @@ func (*Block) commandNode()        {}
 func (*Subshell) commandNode()     {}
 func (*BinaryCmd) commandNode()    {}
 func (*FuncDecl) commandNode()     {}
-func (*ArithmExp) commandNode()    {}
+func (*ArithmCmd) commandNode()    {}
 func (*TestClause) commandNode()   {}
 func (*DeclClause) commandNode()   {}
 func (*EvalClause) commandNode()   {}
@@ -439,18 +439,27 @@ type Expansion struct {
 
 // ArithmExp represents an arithmetic expansion.
 type ArithmExp struct {
-	Token       Token
 	Left, Right Pos
+	Bracket     bool
 	X           ArithmExpr
 }
 
 func (a *ArithmExp) Pos() Pos { return a.Left }
 func (a *ArithmExp) End() Pos {
-	if a.Token == DOLLBK {
+	if a.Bracket {
 		return posAdd(a.Right, 1)
 	}
 	return posAdd(a.Right, 2)
 }
+
+// ArithmCmd represents an arithmetic command.
+type ArithmCmd struct {
+	Left, Right Pos
+	X           ArithmExpr
+}
+
+func (a *ArithmCmd) Pos() Pos { return a.Left }
+func (a *ArithmCmd) End() Pos { return posAdd(a.Right, 2) }
 
 // ArithmExpr represents all nodes that form arithmetic expressions.
 type ArithmExpr interface {

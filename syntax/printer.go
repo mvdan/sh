@@ -873,7 +873,7 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		p.semiOrNewl("do", x.Do)
 		p.nestedStmts(x.DoStmts, 0)
 		p.semiRsrv("done", x.Done, true)
-	case *ArithmExp:
+	case *ArithmCmd:
 		if p.wantSpace {
 			p.space()
 		}

@@ -133,6 +133,10 @@ func Walk(v Visitor, node Node) {
 		if x.X != nil {
 			Walk(v, x.X)
 		}
+	case *ArithmCmd:
+		if x.X != nil {
+			Walk(v, x.X)
+		}
 	case *BinaryExpr:
 		Walk(v, x.X)
 		Walk(v, x.Y)

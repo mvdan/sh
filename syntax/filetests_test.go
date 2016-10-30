@@ -75,8 +75,9 @@ func dblQuoted(ps ...WordPart) *DblQuoted  { return &DblQuoted{Parts: ps} }
 func dblDQuoted(ps ...WordPart) *DblQuoted { return &DblQuoted{Dollar: true, Parts: ps} }
 func block(sts ...*Stmt) *Block            { return &Block{Stmts: sts} }
 func subshell(sts ...*Stmt) *Subshell      { return &Subshell{Stmts: sts} }
-func arithmExp(e ArithmExpr) *ArithmExp    { return &ArithmExp{Token: DOLLDP, X: e} }
-func arithmExpBr(e ArithmExpr) *ArithmExp  { return &ArithmExp{Token: DOLLBK, X: e} }
+func arithmExp(e ArithmExpr) *ArithmExp    { return &ArithmExp{X: e} }
+func arithmExpBr(e ArithmExpr) *ArithmExp  { return &ArithmExp{Bracket: true, X: e} }
+func arithmCmd(e ArithmExpr) *ArithmCmd    { return &ArithmCmd{X: e} }
 func parenExpr(e ArithmExpr) *ParenExpr    { return &ParenExpr{X: e} }
 
 func cmdSubst(sts ...*Stmt) *CmdSubst { return &CmdSubst{Stmts: sts} }
@@ -216,24 +217,21 @@ var fileTests = []testCase{
 	},
 	{
 		Strs: []string{`((a == 2))`},
-		bash: stmt(&ArithmExp{Token: DLPAREN, X: &BinaryExpr{
+		bash: stmt(arithmCmd(&BinaryExpr{
 			Op: EQL,
 			X:  litWord("a"),
 			Y:  litWord("2"),
-		}}),
+		})),
 		posix: subshell(stmt(subshell(litStmt("a", "==", "2")))),
 	},
 	{
 		Strs: []string{"if ((1 > 2)); then b; fi"},
 		bash: &IfClause{
-			CondStmts: stmts(&ArithmExp{
-				Token: DLPAREN,
-				X: &BinaryExpr{
-					Op: GTR,
-					X:  litWord("1"),
-					Y:  litWord("2"),
-				},
-			}),
+			CondStmts: stmts(arithmCmd(&BinaryExpr{
+				Op: GTR,
+				X:  litWord("1"),
+				Y:  litWord("2"),
+			})),
 			ThenStmts: litStmts("b"),
 		},
 	},
@@ -265,14 +263,11 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"while ((1 > 2)); do b; done"},
 		bash: &WhileClause{
-			CondStmts: stmts(&ArithmExp{
-				Token: DLPAREN,
-				X: &BinaryExpr{
-					Op: GTR,
-					X:  litWord("1"),
-					Y:  litWord("2"),
-				},
-			}),
+			CondStmts: stmts(arithmCmd(&BinaryExpr{
+				Op: GTR,
+				X:  litWord("1"),
+				Y:  litWord("2"),
+			})),
 			DoStmts: litStmts("b"),
 		},
 	},
@@ -3426,14 +3421,18 @@ func setPosRecurse(tb testing.TB, src string, v interface{}, to Pos, diff bool) 
 			recurse(&x.Exp.Word)
 		}
 	case *ArithmExp:
-		if src != "" && src[x.Left] == '[' {
+		if x.Bracket {
 			// deprecated $(( form
 			setPos(&x.Left, "$[")
 			setPos(&x.Right, "]")
 		} else {
-			setPos(&x.Left, x.Token.String())
+			setPos(&x.Left, "$((")
 			setPos(&x.Right, "))")
 		}
+		recurse(x.X)
+	case *ArithmCmd:
+		setPos(&x.Left, "((")
+		setPos(&x.Right, "))")
 		recurse(x.X)
 	case *ParenExpr:
 		setPos(&x.Lparen, "(")

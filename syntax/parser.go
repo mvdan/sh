@@ -493,9 +493,10 @@ func (p *parser) wordPart() WordPart {
 	case DOLLBR:
 		return p.paramExp()
 	case DOLLDP, DOLLBK:
-		ar := &ArithmExp{Token: p.tok, Left: p.pos}
+		left := p.tok
+		ar := &ArithmExp{Left: p.pos, Bracket: left == DOLLBK}
 		old := p.preNested(arithmExpr)
-		if ar.Token == DOLLBK {
+		if ar.Bracket {
 			p.quote = arithmExprBrack
 		} else if !p.couldBeArithm() {
 			p.postNested(old)
@@ -505,21 +506,21 @@ func (p *parser) wordPart() WordPart {
 			wp := p.wordPart()
 			if p.err != nil {
 				p.err = nil
-				p.matchingErr(ar.Left, ar.Token, DRPAREN)
+				p.matchingErr(ar.Left, DOLLDP, DRPAREN)
 			}
 			return wp
 		}
 		p.next()
-		ar.X = p.arithmExpr(ar.Token, ar.Left, 0, false)
-		if ar.Token == DOLLBK {
+		ar.X = p.arithmExpr(left, ar.Left, 0, false)
+		if ar.Bracket {
 			if p.tok != RBRACK {
-				p.matchingErr(ar.Left, ar.Token, RBRACK)
+				p.matchingErr(ar.Left, DOLLBK, RBRACK)
 			}
 			p.postNested(old)
 			ar.Right = p.pos
 			p.next()
 		} else {
-			ar.Right = p.arithmEnd(ar.Token, ar.Left, old)
+			ar.Right = p.arithmEnd(DOLLDP, ar.Left, old)
 		}
 		return ar
 	case DOLLPR:
@@ -1180,7 +1181,7 @@ func (p *parser) subshell() *Subshell {
 }
 
 func (p *parser) arithmExpCmd() Command {
-	ar := &ArithmExp{Token: p.tok, Left: p.pos}
+	ar := &ArithmCmd{Left: p.pos}
 	old := p.preNested(arithmExprCmd)
 	if !p.couldBeArithm() {
 		p.postNested(old)
@@ -1195,8 +1196,8 @@ func (p *parser) arithmExpCmd() Command {
 		return s
 	}
 	p.next()
-	ar.X = p.arithmExpr(ar.Token, ar.Left, 0, false)
-	ar.Right = p.arithmEnd(ar.Token, ar.Left, old)
+	ar.X = p.arithmExpr(DLPAREN, ar.Left, 0, false)
+	ar.Right = p.arithmEnd(DLPAREN, ar.Left, old)
 	return ar
 }
 
