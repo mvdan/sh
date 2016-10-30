@@ -15,8 +15,8 @@ import (
 	"runtime/pprof"
 	"strings"
 
-	"github.com/mvdan/sh/parser"
 	"github.com/mvdan/sh/printer"
+	"github.com/mvdan/sh/syntax"
 )
 
 var (
@@ -26,7 +26,7 @@ var (
 	posix      = flag.Bool("p", false, "parse POSIX shell code instead of bash")
 	cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
 
-	parseMode         parser.Mode
+	parseMode         syntax.Mode
 	printConfig       printer.Config
 	readBuf, writeBuf bytes.Buffer
 
@@ -46,9 +46,9 @@ func main() {
 
 	out = os.Stdout
 	printConfig.Spaces = *indent
-	parseMode |= parser.ParseComments
+	parseMode |= syntax.ParseComments
 	if *posix {
-		parseMode |= parser.PosixConformant
+		parseMode |= syntax.PosixConformant
 	}
 	if flag.NArg() == 0 {
 		if err := formatStdin(); err != nil {
@@ -79,7 +79,7 @@ func formatStdin() error {
 		return err
 	}
 	src := readBuf.Bytes()
-	prog, err := parser.Parse(src, "", parseMode)
+	prog, err := syntax.Parse(src, "", parseMode)
 	if err != nil {
 		return err
 	}
@@ -174,7 +174,7 @@ func formatPath(path string, checkShebang bool) error {
 	if checkShebang && !validShebang.Match(src[:32]) {
 		return nil
 	}
-	prog, err := parser.Parse(src, path, parseMode)
+	prog, err := syntax.Parse(src, path, parseMode)
 	if err != nil {
 		return err
 	}
