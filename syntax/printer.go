@@ -9,8 +9,8 @@ import (
 	"sync"
 )
 
-// Config controls how the printing of an AST node will behave.
-type Config struct {
+// PrintConfig controls how the printing of an AST node will behave.
+type PrintConfig struct {
 	Spaces int // 0 (default) for tabs, >0 for number of spaces
 }
 
@@ -21,7 +21,7 @@ var printerFree = sync.Pool{
 }
 
 // Fprint "pretty-prints" the given AST file to the given writer.
-func (c Config) Fprint(w io.Writer, f *File) error {
+func (c PrintConfig) Fprint(w io.Writer, f *File) error {
 	p := printerFree.Get().(*printer)
 	p.reset()
 	p.f, p.c = f, c
@@ -35,12 +35,10 @@ func (c Config) Fprint(w io.Writer, f *File) error {
 	return err
 }
 
-const maxPos = Pos(^uint(0) >> 1)
-
 // Fprint "pretty-prints" the given AST file to the given writer. It
-// calls Config.Fprint with its default settings.
+// calls PrintConfig.Fprint with its default settings.
 func Fprint(w io.Writer, f *File) error {
-	return Config{}.Fprint(w, f)
+	return PrintConfig{}.Fprint(w, f)
 }
 
 type bufWriter interface {
@@ -54,7 +52,7 @@ type printer struct {
 	bufWriter
 
 	f *File
-	c Config
+	c PrintConfig
 
 	wantSpace   bool
 	wantNewline bool

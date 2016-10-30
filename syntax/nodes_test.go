@@ -10,19 +10,19 @@ import (
 )
 
 func TestNodePos(t *testing.T) {
-	DefaultPos = 1234
-	for i, c := range FileTests {
+	defaultPos = 1234
+	for i, c := range fileTests {
 		for j, prog := range c.All {
 			t.Run(fmt.Sprintf("%03d-%d", i, j), func(t *testing.T) {
-				SetPosRecurse(t, "", prog, DefaultPos, true)
+				setPosRecurse(t, "", prog, defaultPos, true)
 			})
 		}
 	}
 }
 
 func TestPosition(t *testing.T) {
-	DefaultPos = 0
-	for i, c := range FileTests {
+	defaultPos = 0
+	for i, c := range fileTests {
 		for j, in := range c.Strs {
 			t.Run(fmt.Sprintf("%03d-%d", i, j), func(t *testing.T) {
 				prog, err := Parse([]byte(in), "", 0)

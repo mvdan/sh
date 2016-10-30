@@ -16,7 +16,7 @@ import (
 )
 
 func TestParseComments(t *testing.T) {
-	DefaultPos = 0
+	defaultPos = 0
 	in := "# foo\ncmd\n# bar"
 	want := &File{
 		Comments: []*Comment{
@@ -33,8 +33,8 @@ func TestParseComments(t *testing.T) {
 }
 
 func TestParseBash(t *testing.T) {
-	DefaultPos = 0
-	for i, c := range append(FileTests, FileTestsNoPrint...) {
+	defaultPos = 0
+	for i, c := range append(fileTests, fileTestsNoPrint...) {
 		want := c.Bash
 		if want == nil {
 			continue
@@ -46,8 +46,8 @@ func TestParseBash(t *testing.T) {
 }
 
 func TestParsePosix(t *testing.T) {
-	DefaultPos = 0
-	for i, c := range append(FileTests, FileTestsNoPrint...) {
+	defaultPos = 0
+	for i, c := range append(fileTests, fileTestsNoPrint...) {
 		want := c.Posix
 		if want == nil {
 			continue
@@ -108,7 +108,7 @@ func TestParseBashConfirm(t *testing.T) {
 	if testing.Short() {
 		t.Skip("calling bash is slow.")
 	}
-	for i, c := range append(FileTests, FileTestsNoPrint...) {
+	for i, c := range append(fileTests, fileTestsNoPrint...) {
 		for j, in := range c.Strs {
 			t.Run(fmt.Sprintf("%03d-%d", i, j), confirmParse(in, false, false))
 		}
@@ -133,16 +133,16 @@ func TestParseErrPosixConfirm(t *testing.T) {
 	}
 }
 
-func singleParse(in string, want *File, mode Mode) func(t *testing.T) {
+func singleParse(in string, want *File, mode ParseMode) func(t *testing.T) {
 	return func(t *testing.T) {
 		got, err := Parse([]byte(in), "", mode)
 		if err != nil {
 			t.Fatalf("Unexpected error in %q: %v", in, err)
 		}
-		CheckNewlines(t, in, got.Lines)
+		checkNewlines(t, in, got.Lines)
 		got.Lines = nil
-		SetPosRecurse(t, "", want, DefaultPos, false)
-		SetPosRecurse(t, in, got, DefaultPos, true)
+		setPosRecurse(t, "", want, defaultPos, false)
+		setPosRecurse(t, in, got, defaultPos, true)
 		if !reflect.DeepEqual(got, want) {
 			t.Fatalf("AST mismatch in %q\ndiff:\n%s", in,
 				strings.Join(pretty.Diff(want, got), "\n"),
@@ -673,7 +673,7 @@ var shellTests = []errorCase{
 	},
 }
 
-func checkError(in, want string, mode Mode) func(*testing.T) {
+func checkError(in, want string, mode ParseMode) func(*testing.T) {
 	return func(t *testing.T) {
 		_, err := Parse([]byte(in), "", mode)
 		if err == nil {

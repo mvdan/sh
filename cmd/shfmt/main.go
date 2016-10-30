@@ -25,8 +25,8 @@ var (
 	posix      = flag.Bool("p", false, "parse POSIX shell code instead of bash")
 	cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
 
-	parseMode         syntax.Mode
-	printConfig       syntax.Config
+	parseMode         syntax.ParseMode
+	printConfig       syntax.PrintConfig
 	readBuf, writeBuf bytes.Buffer
 
 	out io.Writer

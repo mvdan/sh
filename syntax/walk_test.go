@@ -9,7 +9,7 @@ import (
 )
 
 func TestWalk(t *testing.T) {
-	for i, c := range FileTests {
+	for i, c := range fileTests {
 		for j, prog := range c.All {
 			t.Run(fmt.Sprintf("%03d-%d", i, j), func(t *testing.T) {
 				Walk(nopVisitor{}, prog)

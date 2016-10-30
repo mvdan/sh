@@ -10,12 +10,12 @@ import (
 	"sync"
 )
 
-// Mode controls the parser behaviour via a set of flags.
-type Mode uint
+// ParseMode controls the parser behaviour via a set of flags.
+type ParseMode uint
 
 const (
-	ParseComments   Mode = 1 << iota // add comments to the AST
-	PosixConformant                  // match the POSIX standard where it differs from bash
+	ParseComments   ParseMode = 1 << iota // add comments to the AST
+	PosixConformant                       // match the POSIX standard where it differs from bash
 )
 
 var parserFree = sync.Pool{
@@ -27,7 +27,7 @@ var parserFree = sync.Pool{
 // Parse reads and parses a shell program with an optional name. It
 // returns the parsed program if no issues were encountered. Otherwise,
 // an error is returned.
-func Parse(src []byte, name string, mode Mode) (*File, error) {
+func Parse(src []byte, name string, mode ParseMode) (*File, error) {
 	p := parserFree.Get().(*parser)
 	p.reset()
 	alloc := &struct {
@@ -48,7 +48,7 @@ type parser struct {
 	src []byte
 
 	f    *File
-	mode Mode
+	mode ParseMode
 
 	spaced, newLine bool
 

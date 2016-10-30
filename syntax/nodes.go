@@ -369,7 +369,7 @@ type DblQuoted struct {
 func (q *DblQuoted) Pos() Pos { return q.QuotePos }
 func (q *DblQuoted) End() Pos {
 	if q.QuotePos == 0 {
-		return DefaultPos
+		return defaultPos
 	}
 	end := q.QuotePos
 	if len(q.Parts) > 0 {
@@ -593,7 +593,7 @@ func (l *LetClause) Pos() Pos { return l.Let }
 func (l *LetClause) End() Pos { return l.Exprs[len(l.Exprs)-1].End() }
 
 func posAdd(pos Pos, n int) Pos {
-	if pos == DefaultPos {
+	if pos == defaultPos {
 		return pos
 	}
 	return pos + Pos(n)
@@ -605,35 +605,35 @@ func posAddStr(pos Pos, s string) Pos {
 
 func stmtFirstPos(sts []*Stmt) Pos {
 	if len(sts) == 0 {
-		return DefaultPos
+		return defaultPos
 	}
 	return sts[0].Pos()
 }
 
 func stmtLastEnd(sts []*Stmt) Pos {
 	if len(sts) == 0 {
-		return DefaultPos
+		return defaultPos
 	}
 	return sts[len(sts)-1].End()
 }
 
 func partsFirstPos(ps []WordPart) Pos {
 	if len(ps) == 0 {
-		return DefaultPos
+		return defaultPos
 	}
 	return ps[0].Pos()
 }
 
 func partsLastEnd(ps []WordPart) Pos {
 	if len(ps) == 0 {
-		return DefaultPos
+		return defaultPos
 	}
 	return ps[len(ps)-1].End()
 }
 
 func wordLastEnd(ws []Word) Pos {
 	if len(ws) == 0 {
-		return DefaultPos
+		return defaultPos
 	}
 	return ws[len(ws)-1].End()
 }

@@ -12,7 +12,7 @@ import (
 )
 
 func TestFprintCompact(t *testing.T) {
-	for i, c := range FileTests {
+	for i, c := range fileTests {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
 			in := c.Strs[0]
 			prog, err := Parse([]byte(in), "", 0)
@@ -37,7 +37,7 @@ func TestFprintCompact(t *testing.T) {
 
 func strFprint(f *File, spaces int) (string, error) {
 	var buf bytes.Buffer
-	c := Config{Spaces: spaces}
+	c := PrintConfig{Spaces: spaces}
 	err := c.Fprint(&buf, f)
 	return buf.String(), err
 }
@@ -370,7 +370,7 @@ func TestFprintWeirdFormat(t *testing.T) {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
 			check := func(in, want string) {
 				prog, err := Parse([]byte(in), "", ParseComments)
-				CheckNewlines(t, in, prog.Lines)
+				checkNewlines(t, in, prog.Lines)
 				if err != nil {
 					t.Fatal(err)
 				}

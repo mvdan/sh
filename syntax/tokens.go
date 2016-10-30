@@ -144,7 +144,9 @@ const (
 // file.
 type Pos int
 
-var DefaultPos Pos = 0
+var defaultPos Pos
+
+const maxPos = Pos(^uint(0) >> 1)
 
 // Position describes a position within a source file including the line
 // and column location. A Position is valid if the line number is > 0.

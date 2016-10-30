@@ -10,7 +10,7 @@ A shell parser and formatter. Supports POSIX Shell and Bash.
 	go get -u github.com/mvdan/sh/cmd/shfmt
 
 `shfmt` formats shell programs. It can use tabs or any number of spaces
-to indent. See [canonical.sh](printer/canonical.sh) for a quick look at
+to indent. See [canonical.sh](syntax/canonical.sh) for a quick look at
 its style.
 
 You can feed it standard input, any number of files or any number of

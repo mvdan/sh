@@ -29,11 +29,11 @@ func prepareTest(c *testCase) {
 }
 
 func init() {
-	for i := range FileTests {
-		prepareTest(&FileTests[i])
+	for i := range fileTests {
+		prepareTest(&fileTests[i])
 	}
-	for i := range FileTestsNoPrint {
-		prepareTest(&FileTestsNoPrint[i])
+	for i := range fileTestsNoPrint {
+		prepareTest(&fileTestsNoPrint[i])
 	}
 }
 
@@ -94,7 +94,7 @@ type testCase struct {
 	Bash, Posix         *File
 }
 
-var FileTests = []testCase{
+var fileTests = []testCase{
 	{
 		Strs:   []string{"", " ", "\t", "\n \n", "\r \r\n"},
 		common: &File{},
@@ -3162,7 +3162,7 @@ var FileTests = []testCase{
 }
 
 // these don't have a canonical format with the same AST
-var FileTestsNoPrint = []testCase{
+var fileTestsNoPrint = []testCase{
 	{
 		Strs: []string{"<<EOF\n\\"},
 		common: &Stmt{Redirs: []*Redirect{{
@@ -3216,7 +3216,7 @@ func fullProg(v interface{}) *File {
 	return nil
 }
 
-func SetPosRecurse(tb testing.TB, src string, v interface{}, to Pos, diff bool) {
+func setPosRecurse(tb testing.TB, src string, v interface{}, to Pos, diff bool) {
 	checkSrc := func(pos Pos, strs ...string) {
 		if src == "" || strs == nil {
 			return
@@ -3269,7 +3269,7 @@ func SetPosRecurse(tb testing.TB, src string, v interface{}, to Pos, diff bool) 
 		}
 	}
 	recurse := func(v interface{}) {
-		SetPosRecurse(tb, src, v, to, diff)
+		setPosRecurse(tb, src, v, to, diff)
 		if n, ok := v.(Node); ok {
 			checkPos(n)
 		}
@@ -3494,7 +3494,7 @@ func SetPosRecurse(tb testing.TB, src string, v interface{}, to Pos, diff bool) 
 	}
 }
 
-func CheckNewlines(tb testing.TB, src string, got []int) {
+func checkNewlines(tb testing.TB, src string, got []int) {
 	want := []int{0}
 	for i, b := range src {
 		if b == '\n' {
