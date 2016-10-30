@@ -12,7 +12,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mvdan/sh/ast"
 	"github.com/mvdan/sh/internal"
 	"github.com/mvdan/sh/internal/tests"
 

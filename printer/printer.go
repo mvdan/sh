@@ -8,7 +8,7 @@ import (
 	"io"
 	"sync"
 
-	"github.com/mvdan/sh/ast"
+	ast "github.com/mvdan/sh/syntax"
 	"github.com/mvdan/sh/token"
 )
 

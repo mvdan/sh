@@ -6,7 +6,6 @@ package syntax
 import (
 	"bytes"
 
-	"github.com/mvdan/sh/ast"
 	"github.com/mvdan/sh/token"
 )
 
@@ -167,7 +166,7 @@ skipSpace:
 			bs, _ := p.readUntil('\n')
 			p.npos += len(bs)
 			if p.mode&ParseComments > 0 {
-				p.f.Comments = append(p.f.Comments, &ast.Comment{
+				p.f.Comments = append(p.f.Comments, &Comment{
 					Hash: p.pos,
 					Text: string(bs),
 				})
@@ -849,7 +848,7 @@ loop:
 	p.npos = i
 }
 
-func (p *parser) hdocLitWord() ast.Word {
+func (p *parser) hdocLitWord() Word {
 	pos := p.npos
 	end := pos
 	for p.npos < len(p.src) {
@@ -872,7 +871,7 @@ func (p *parser) hdocLitWord() ast.Word {
 		end = p.npos
 	}
 	l := p.lit(token.Pos(pos+1), string(p.src[pos:end]))
-	return ast.Word{Parts: p.singleWps(l)}
+	return Word{Parts: p.singleWps(l)}
 }
 
 func (p *parser) readUntil(b byte) ([]byte, bool) {

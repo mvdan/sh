@@ -10,16 +10,15 @@ import (
 	"os"
 	"testing"
 
-	"github.com/mvdan/sh/ast"
 	"github.com/mvdan/sh/internal/tests"
-	"github.com/mvdan/sh/parser"
+	"github.com/mvdan/sh/syntax"
 )
 
 func TestFprintCompact(t *testing.T) {
 	for i, c := range tests.FileTests {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
 			in := c.Strs[0]
-			prog, err := parser.Parse([]byte(in), "", 0)
+			prog, err := syntax.Parse([]byte(in), "", 0)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -39,7 +38,7 @@ func TestFprintCompact(t *testing.T) {
 	}
 }
 
-func strFprint(f *ast.File, spaces int) (string, error) {
+func strFprint(f *syntax.File, spaces int) (string, error) {
 	var buf bytes.Buffer
 	c := Config{Spaces: spaces}
 	err := c.Fprint(&buf, f)
@@ -373,7 +372,7 @@ func TestFprintWeirdFormat(t *testing.T) {
 	for i, tc := range weirdFormats {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
 			check := func(in, want string) {
-				prog, err := parser.Parse([]byte(in), "", parser.ParseComments)
+				prog, err := syntax.Parse([]byte(in), "", syntax.ParseComments)
 				tests.CheckNewlines(t, in, prog.Lines)
 				if err != nil {
 					t.Fatal(err)
@@ -397,7 +396,7 @@ func TestFprintWeirdFormat(t *testing.T) {
 	}
 }
 
-func parsePath(tb testing.TB, path string) *ast.File {
+func parsePath(tb testing.TB, path string) *syntax.File {
 	f, err := os.Open(path)
 	if err != nil {
 		tb.Fatal(err)
@@ -407,7 +406,7 @@ func parsePath(tb testing.TB, path string) *ast.File {
 	if err != nil {
 		tb.Fatal(err)
 	}
-	prog, err := parser.Parse(bs, "", parser.ParseComments)
+	prog, err := syntax.Parse(bs, "", syntax.ParseComments)
 	if err != nil {
 		tb.Fatal(err)
 	}
@@ -470,7 +469,7 @@ func TestFprintSpaces(t *testing.T) {
 
 	for i, tc := range spaceFormats {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
-			prog, err := parser.Parse([]byte(tc.in), "", parser.ParseComments)
+			prog, err := syntax.Parse([]byte(tc.in), "", syntax.ParseComments)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -495,10 +494,10 @@ func (b badWriter) Write(p []byte) (int, error) { return 0, errBadWriter }
 
 func TestWriteErr(t *testing.T) {
 	var out badWriter
-	f := &ast.File{Stmts: []*ast.Stmt{
+	f := &syntax.File{Stmts: []*syntax.Stmt{
 		{
-			Redirs: []*ast.Redirect{{}},
-			Cmd:    &ast.Subshell{},
+			Redirs: []*syntax.Redirect{{}},
+			Cmd:    &syntax.Subshell{},
 		},
 	}}
 	err := Fprint(out, f)

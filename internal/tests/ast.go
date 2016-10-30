@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	. "github.com/mvdan/sh/ast"
+	. "github.com/mvdan/sh/syntax"
 	. "github.com/mvdan/sh/token"
 )
 

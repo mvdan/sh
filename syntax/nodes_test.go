@@ -1,17 +1,16 @@
 // Copyright (c) 2016, Daniel Martí <mvdan@mvdan.cc>
 // See LICENSE for licensing information
 
-package ast_test
+package syntax_test
 
 import (
 	"fmt"
 	"strings"
 	"testing"
 
-	"github.com/mvdan/sh/ast"
 	"github.com/mvdan/sh/internal"
 	"github.com/mvdan/sh/internal/tests"
-	"github.com/mvdan/sh/parser"
+	"github.com/mvdan/sh/syntax"
 )
 
 func TestNodePos(t *testing.T) {
@@ -39,7 +38,7 @@ func TestPosition(t *testing.T) {
 					f:     prog,
 					lines: strings.Split(in, "\n"),
 				}
-				ast.Walk(v, prog)
+				syntax.Walk(v, prog)
 			})
 		}
 	}
@@ -47,11 +46,11 @@ func TestPosition(t *testing.T) {
 
 type posVisitor struct {
 	t     *testing.T
-	f     *ast.File
+	f     *syntax.File
 	lines []string
 }
 
-func (v *posVisitor) Visit(n ast.Node) ast.Visitor {
+func (v *posVisitor) Visit(n syntax.Node) syntax.Visitor {
 	if n == nil {
 		return v
 	}
