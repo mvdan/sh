@@ -7,14 +7,6 @@ import (
 	"bytes"
 )
 
-const (
-	_ Token = -iota
-	_EOF
-	_LIT
-	_LITWORD
-	_LET
-)
-
 // bytes that form or start a token
 func regOps(b byte) bool {
 	return b == ';' || b == '"' || b == '\'' || b == '(' ||

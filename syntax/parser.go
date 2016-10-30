@@ -333,24 +333,12 @@ func (p *parser) stmtEnd(n Node, start, end string) Pos {
 	return pos
 }
 
-func tokenStr(tok Token) string {
-	switch tok {
-	case _EOF:
-		return "EOF"
-	case _LIT:
-		return "lit"
-	case _LITWORD:
-		return "litword"
-	}
-	return tok.String()
-}
-
 func (p *parser) quoteErr(lpos Pos, quote Token) {
-	p.posErr(lpos, "reached %s without closing quote %s", tokenStr(p.tok), quote)
+	p.posErr(lpos, "reached %s without closing quote %s", p.tok, quote)
 }
 
 func (p *parser) matchingErr(lpos Pos, left, right Token) {
-	p.posErr(lpos, "reached %s without matching %s with %s", tokenStr(p.tok), left, right)
+	p.posErr(lpos, "reached %s without matching %s with %s", p.tok, left, right)
 }
 
 func (p *parser) matched(lpos Pos, left, right Token) Pos {
