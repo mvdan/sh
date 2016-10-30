@@ -801,11 +801,7 @@ func (p *parser) arithmExprBase(ftok Token, fpos Pos, compact bool) ArithmExpr {
 	default:
 		w := p.word()
 		if w.Parts == nil {
-			left := ftok.String()
-			if ftok == _LET {
-				left = "let"
-			}
-			p.followErr(fpos, left, "an expression")
+			p.followErr(fpos, ftok.String(), "an expression")
 		}
 		x = &w
 	}
@@ -1424,9 +1420,6 @@ func (p *parser) testExprBase(ftok Token, fpos Pos) ArithmExpr {
 	case _EOF:
 		return nil
 	case _LITWORD:
-		if p.val == "]]" {
-			return nil
-		}
 		if op := testUnaryOp(p.val); op != ILLEGAL {
 			p.tok = op
 		}

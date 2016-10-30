@@ -744,6 +744,10 @@ var bashTests = []errorCase{
 		`1:1: test clause requires at least one expression`,
 	},
 	{
+		"[[ ]]",
+		`1:1: test clause requires at least one expression`,
+	},
+	{
 		"[[ a",
 		`1:1: reached EOF without matching [[ with ]]`,
 	},
