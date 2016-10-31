@@ -21,5 +21,8 @@ func TestWalk(t *testing.T) {
 type nopVisitor struct{}
 
 func (v nopVisitor) Visit(node Node) Visitor {
+	if _, ok := node.(*Lit); ok {
+		return nil
+	}
 	return v
 }
