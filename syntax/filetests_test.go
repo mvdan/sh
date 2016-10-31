@@ -2260,12 +2260,12 @@ var fileTests = []testCase{
 			Word: *word(litParamExp("i")),
 			List: []*PatternList{
 				{
-					Op:       DSEMICOLON,
+					Op:       DblSemicolon,
 					Patterns: litWords("1"),
 					Stmts:    litStmts("foo"),
 				},
 				{
-					Op:       DSEMICOLON,
+					Op:       DblSemicolon,
 					Patterns: litWords("2", "3*"),
 					Stmts:    litStmts("bar"),
 				},
@@ -2278,17 +2278,17 @@ var fileTests = []testCase{
 			Word: *word(litParamExp("i")),
 			List: []*PatternList{
 				{
-					Op:       DSEMIFALL,
+					Op:       DblSemiFall,
 					Patterns: litWords("1"),
 					Stmts:    litStmts("a"),
 				},
 				{
-					Op:       SEMIFALL,
+					Op:       SemiFall,
 					Patterns: litWords("2"),
 					Stmts:    litStmts("b"),
 				},
 				{
-					Op:       DSEMICOLON,
+					Op:       DblSemicolon,
 					Patterns: litWords("3"),
 					Stmts:    litStmts("c"),
 				},
@@ -2300,7 +2300,7 @@ var fileTests = []testCase{
 		common: &CaseClause{
 			Word: *word(litParamExp("i")),
 			List: []*PatternList{{
-				Op:       DSEMICOLON,
+				Op:       DblSemicolon,
 				Patterns: litWords("1"),
 				Stmts: []*Stmt{{
 					Cmd: litCall("cat"),
@@ -2986,7 +2986,7 @@ var fileTests = []testCase{
 		bash: &CaseClause{
 			Word: *word(lit("a")),
 			List: []*PatternList{{
-				Op:       DSEMICOLON,
+				Op:       DblSemicolon,
 				Patterns: litWords("b"),
 				Stmts: stmts(letClause(
 					&UnaryExpr{

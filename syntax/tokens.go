@@ -22,48 +22,47 @@ const (
 	OR   // |
 	LOR  // ||
 
-	ASSIGN  // =
-	DOLLAR  // $
-	DOLLSQ  // $' - bash
-	DOLLDQ  // $" - bash
-	DOLLBR  // ${
-	DOLLBK  // $[
-	DOLLPR  // $(
-	DOLLDP  // $((
-	LBRACE  // {
-	LPAREN  // (
-	DLPAREN // (( - bash
+	dollar       // $
+	dollSglQuote // $' - bash
+	dollDblQuote // $" - bash
+	dollBrace    // ${
+	dollBrack    // $[
+	dollParen    // $(
+	dollDblParen // $((
+	leftParen    // (
+	dblLeftParen // (( - bash
 
-	RBRACE     // }
-	RBRACK     // ]
-	RPAREN     // )
-	DRPAREN    // ))
-	SEMICOLON  // ;
-	DSEMICOLON // ;;
-	SEMIFALL   // ;& - bash
-	DSEMIFALL  // ;;& - bash
-	COLON      // :
+	rightBrace    // }
+	rightBrack    // ]
+	rightParen    // )
+	dblRightParen // ))
+	semicolon     // ;
+
+	DblSemicolon // ;;
+	SemiFall     // ;& - bash
+	DblSemiFall  // ;;& - bash
 
 	LSS // <
 	GTR // >
 	SHL // <<
 	SHR // >>
 
-	ADD   // +
-	SUB   // -
-	REM   // %
-	MUL   // *
-	QUO   // /
-	XOR   // ^
-	NOT   // !
-	INC   // ++
-	DEC   // --
-	POW   // **
-	COMMA // ,
-	EQL   // ==
-	NEQ   // !=
-	LEQ   // <=
-	GEQ   // >=
+	ADD    // +
+	SUB    // -
+	REM    // %
+	MUL    // *
+	QUO    // /
+	XOR    // ^
+	NOT    // !
+	INC    // ++
+	DEC    // --
+	POW    // **
+	COMMA  // ,
+	ASSIGN // =
+	EQL    // ==
+	NEQ    // !=
+	LEQ    // <=
+	GEQ    // >=
 
 	ADDASSGN // +=
 	SUBASSGN // -=
@@ -88,6 +87,7 @@ const (
 	RDRALL   // &> - bash
 	APPALL   // &>> - bash
 
+	COLON   // :
 	CADD    // :+
 	CSUB    // :-
 	QUEST   // ?
@@ -172,25 +172,25 @@ var tokNames = map[Token]string{
 	OR:   "|",
 	LOR:  "||",
 
-	DOLLAR:  "$",
-	DOLLSQ:  "$'",
-	DOLLDQ:  `$"`,
-	DOLLBR:  "${",
-	DOLLBK:  "$[",
-	DOLLPR:  "$(",
-	DOLLDP:  "$((",
-	LBRACE:  "{",
-	LPAREN:  "(",
-	DLPAREN: "((",
+	dollar:       "$",
+	dollSglQuote: "$'",
+	dollDblQuote: `$"`,
+	dollBrace:    "${",
+	dollBrack:    "$[",
+	dollParen:    "$(",
+	dollDblParen: "$((",
+	leftParen:    "(",
+	dblLeftParen: "((",
 
-	RBRACE:     "}",
-	RBRACK:     "]",
-	RPAREN:     ")",
-	DRPAREN:    "))",
-	SEMICOLON:  ";",
-	DSEMICOLON: ";;",
-	SEMIFALL:   ";&",
-	DSEMIFALL:  ";;&",
+	rightBrace:    "}",
+	rightBrack:    "]",
+	rightParen:    ")",
+	dblRightParen: "))",
+	semicolon:     ";",
+
+	DblSemicolon: ";;",
+	SemiFall:     ";&",
+	DblSemiFall:  ";;&",
 
 	LSS:      "<",
 	GTR:      ">",
@@ -215,7 +215,6 @@ var tokNames = map[Token]string{
 	CSUB:    ":-",
 	QUEST:   "?",
 	CQUEST:  ":?",
-	ASSIGN:  "=",
 	CASSIGN: ":=",
 	REM:     "%",
 	DREM:    "%%",
@@ -227,17 +226,18 @@ var tokNames = map[Token]string{
 	DXOR:    "^^",
 	DCOMMA:  ",,",
 
-	MUL:   "*",
-	XOR:   "^",
-	NOT:   "!",
-	INC:   "++",
-	DEC:   "--",
-	POW:   "**",
-	COMMA: ",",
-	EQL:   "==",
-	NEQ:   "!=",
-	LEQ:   "<=",
-	GEQ:   ">=",
+	MUL:    "*",
+	XOR:    "^",
+	NOT:    "!",
+	INC:    "++",
+	DEC:    "--",
+	POW:    "**",
+	COMMA:  ",",
+	ASSIGN: "=",
+	EQL:    "==",
+	NEQ:    "!=",
+	LEQ:    "<=",
+	GEQ:    ">=",
 
 	ADDASSGN: "+=",
 	SUBASSGN: "-=",

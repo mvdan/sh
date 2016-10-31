@@ -59,7 +59,7 @@ func (p *parser) next() {
 		switch b {
 		case '}':
 			p.npos++
-			p.tok = RBRACE
+			p.tok = rightBrace
 		case '/':
 			p.npos++
 			p.tok = QUO
@@ -89,7 +89,7 @@ func (p *parser) next() {
 		switch b {
 		case '}':
 			p.npos++
-			p.tok = RBRACE
+			p.tok = rightBrace
 		case '`', '"', '$':
 			p.tok = p.dqToken(b)
 		default:
@@ -189,7 +189,7 @@ skipSpace:
 		p.tok = p.arithmToken(b)
 	case q&allRbrack != 0 && b == ']':
 		p.npos++
-		p.tok = RBRACK
+		p.tok = rightBrack
 	case q == testRegexp:
 		p.advanceLitRe()
 	case regOps(b):
@@ -256,60 +256,60 @@ func (p *parser) regToken(b byte) Token {
 				break
 			}
 			p.npos += 2
-			return DOLLSQ
+			return dollSglQuote
 		case '"':
 			if !p.bash() {
 				break
 			}
 			p.npos += 2
-			return DOLLDQ
+			return dollDblQuote
 		case '{':
 			p.npos += 2
-			return DOLLBR
+			return dollBrace
 		case '[':
 			if !p.bash() {
 				break
 			}
 			p.npos += 2
-			return DOLLBK
+			return dollBrack
 		case '(':
 			if byteAt(p.src, p.npos+2) == '(' {
 				p.npos += 3
-				return DOLLDP
+				return dollDblParen
 			}
 			p.npos += 2
-			return DOLLPR
+			return dollParen
 		}
 		p.npos++
-		return DOLLAR
+		return dollar
 	case '(':
 		if p.bash() && byteAt(p.src, p.npos+1) == '(' {
 			p.npos += 2
-			return DLPAREN
+			return dblLeftParen
 		}
 		p.npos++
-		return LPAREN
+		return leftParen
 	case ')':
 		p.npos++
-		return RPAREN
+		return rightParen
 	case ';':
 		switch byteAt(p.src, p.npos+1) {
 		case ';':
 			if p.bash() && byteAt(p.src, p.npos+2) == '&' {
 				p.npos += 3
-				return DSEMIFALL
+				return DblSemiFall
 			}
 			p.npos += 2
-			return DSEMICOLON
+			return DblSemicolon
 		case '&':
 			if !p.bash() {
 				break
 			}
 			p.npos += 2
-			return SEMIFALL
+			return SemiFall
 		}
 		p.npos++
-		return SEMICOLON
+		return semicolon
 	case '<':
 		switch byteAt(p.src, p.npos+1) {
 		case '<':
@@ -372,23 +372,23 @@ func (p *parser) dqToken(b byte) Token {
 		switch byteAt(p.src, p.npos+1) {
 		case '{':
 			p.npos += 2
-			return DOLLBR
+			return dollBrace
 		case '[':
 			if !p.bash() {
 				break
 			}
 			p.npos += 2
-			return DOLLBK
+			return dollBrack
 		case '(':
 			if byteAt(p.src, p.npos+2) == '(' {
 				p.npos += 3
-				return DOLLDP
+				return dollDblParen
 			}
 			p.npos += 2
-			return DOLLPR
+			return dollParen
 		}
 		p.npos++
-		return DOLLAR
+		return dollar
 	}
 }
 
@@ -396,7 +396,7 @@ func (p *parser) paramToken(b byte) Token {
 	switch b {
 	case '}':
 		p.npos++
-		return RBRACE
+		return rightBrace
 	case ':':
 		switch byteAt(p.src, p.npos+1) {
 		case '+':
@@ -485,10 +485,10 @@ func (p *parser) arithmToken(b byte) Token {
 		return ASSIGN
 	case '(':
 		p.npos++
-		return LPAREN
+		return leftParen
 	case ')':
 		p.npos++
-		return RPAREN
+		return rightParen
 	case '&':
 		switch byteAt(p.src, p.npos+1) {
 		case '&':

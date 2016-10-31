@@ -734,11 +734,11 @@ func binaryCmdOp(tok Token) string {
 
 func caseClauseOp(tok Token) string {
 	switch tok {
-	case DSEMICOLON:
+	case DblSemicolon:
 		return ";;"
-	case SEMIFALL:
+	case SemiFall:
 		return ";&"
-	default: // DSEMIFALL
+	default: // DblSemiFall
 		return ";;&"
 	}
 }
