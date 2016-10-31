@@ -337,7 +337,7 @@ func (p *parser) quoteErr(lpos Pos, quote Token) {
 	p.posErr(lpos, "reached %s without closing quote %s", p.tok, quote)
 }
 
-func (p *parser) matchingErr(lpos Pos, left, right Token) {
+func (p *parser) matchingErr(lpos Pos, left, right interface{}) {
 	p.posErr(lpos, "reached %s without matching %s with %s", p.tok, left, right)
 }
 
@@ -1344,10 +1344,10 @@ func (p *parser) testClause() *TestClause {
 	if p.tok == _EOF || p.gotRsrv("]]") {
 		p.posErr(tc.Left, "test clause requires at least one expression")
 	}
-	tc.X = p.testExpr(DLBRCK, tc.Left, 0)
+	tc.X = p.testExpr(ILLEGAL, tc.Left, 0)
 	tc.Right = p.pos
 	if !p.gotRsrv("]]") {
-		p.matchingErr(tc.Left, DLBRCK, DRBRCK)
+		p.matchingErr(tc.Left, "[[", "]]")
 	}
 	return tc
 }

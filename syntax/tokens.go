@@ -31,14 +31,12 @@ const (
 	DOLLBK  // $[
 	DOLLPR  // $(
 	DOLLDP  // $((
-	DLBRCK  // [[
 	LBRACE  // {
 	LPAREN  // (
 	DLPAREN // (( - bash
 
 	RBRACE     // }
 	RBRACK     // ]
-	DRBRCK     // ]]
 	RPAREN     // )
 	DRPAREN    // ))
 	SEMICOLON  // ;
@@ -183,14 +181,12 @@ var tokNames = map[Token]string{
 	DOLLBK:  "$[",
 	DOLLPR:  "$(",
 	DOLLDP:  "$((",
-	DLBRCK:  "[[",
 	LBRACE:  "{",
 	LPAREN:  "(",
 	DLPAREN: "((",
 
 	RBRACE:     "}",
 	RBRACK:     "]",
-	DRBRCK:     "]]",
 	RPAREN:     ")",
 	DRPAREN:    "))",
 	SEMICOLON:  ";",
