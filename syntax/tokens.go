@@ -8,10 +8,10 @@ type Token int
 
 // The list of all possible tokens and reserved words.
 const (
-	ILLEGAL Token = iota
+	IllegalTok Token = iota
 	_EOF
-	_LIT
-	_LITWORD
+	_Lit
+	_LitWord
 
 	sglQuote // '
 	dblQuote // "
@@ -158,10 +158,10 @@ type Position struct {
 }
 
 var tokNames = map[Token]string{
-	ILLEGAL:  "ILLEGAL",
-	_EOF:     "EOF",
-	_LIT:     "LIT",
-	_LITWORD: "LITWORD",
+	IllegalTok: "illegal",
+	_EOF:       "EOF",
+	_Lit:       "Lit",
+	_LitWord:   "LitWord",
 
 	sglQuote: "'",
 	dblQuote: `"`,

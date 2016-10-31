@@ -51,7 +51,7 @@ func (p *parser) next() {
 	switch q {
 	case hdocWord:
 		if wordBreak(b) {
-			p.tok = ILLEGAL
+			p.tok = IllegalTok
 			p.spaced = true
 			return
 		}
@@ -80,7 +80,7 @@ func (p *parser) next() {
 		if b == '`' || b == '$' {
 			p.tok = p.dqToken(b)
 		} else if p.hdocStop == nil {
-			p.tok = ILLEGAL
+			p.tok = IllegalTok
 		} else {
 			p.advanceLitHdoc()
 		}
@@ -113,7 +113,7 @@ skipSpace:
 			p.npos++
 		case '\n':
 			if p.quote == arithmExprLet {
-				p.tok = ILLEGAL
+				p.tok = IllegalTok
 				p.newLine, p.spaced = true, true
 				return
 			}
@@ -611,7 +611,7 @@ func (p *parser) advanceLitOther(q quoteState) {
 	bs := p.litBuf[:0]
 	for {
 		if p.npos >= len(p.src) {
-			p.tok, p.val = _LITWORD, string(bs)
+			p.tok, p.val = _LitWord, string(bs)
 			return
 		}
 		b := p.src[p.npos]
@@ -620,7 +620,7 @@ func (p *parser) advanceLitOther(q quoteState) {
 			if p.npos == len(p.src)-1 {
 				p.npos++
 				bs = append(bs, '\\')
-				p.tok, p.val = _LITWORD, string(bs)
+				p.tok, p.val = _LitWord, string(bs)
 				return
 			}
 			b = p.src[p.npos+1]
@@ -636,30 +636,30 @@ func (p *parser) advanceLitOther(q quoteState) {
 			case '\n':
 				p.f.Lines = append(p.f.Lines, p.npos+1)
 			case '\'':
-				p.tok, p.val = _LITWORD, string(bs)
+				p.tok, p.val = _LitWord, string(bs)
 				return
 			}
 		case b == '`', b == '$':
-			p.tok, p.val = _LIT, string(bs)
+			p.tok, p.val = _Lit, string(bs)
 			return
 		case q == paramExpExp:
 			if b == '}' {
-				p.tok, p.val = _LITWORD, string(bs)
+				p.tok, p.val = _LitWord, string(bs)
 				return
 			} else if b == '"' {
-				p.tok, p.val = _LIT, string(bs)
+				p.tok, p.val = _Lit, string(bs)
 				return
 			}
 		case q == paramExpRepl:
 			if b == '}' || b == '/' {
-				p.tok, p.val = _LITWORD, string(bs)
+				p.tok, p.val = _LitWord, string(bs)
 				return
 			}
 		case q == paramExpInd && wordBreak(b):
 		case wordBreak(b), regOps(b), q&allArithmExpr != 0 && arithmOps(b),
 			q == paramExpName && paramOps(b, p.bash()),
 			q&allRbrack != 0 && b == ']':
-			p.tok, p.val = _LITWORD, string(bs)
+			p.tok, p.val = _LitWord, string(bs)
 			return
 		}
 		bs = append(bs, p.src[p.npos])
@@ -669,7 +669,7 @@ func (p *parser) advanceLitOther(q quoteState) {
 
 func (p *parser) advanceLitNone() {
 	var i int
-	tok := _LIT
+	tok := _Lit
 	p.asPos = 0
 loop:
 	for i = p.npos; i < len(p.src); i++ {
@@ -686,7 +686,7 @@ loop:
 				return
 			}
 		case ' ', '\t', '\n', '\r', '&', '>', '<', '|', ';', '(', ')':
-			tok = _LITWORD
+			tok = _LitWord
 			break loop
 		case '?', '*', '+', '@', '!':
 			if p.bash() && i+1 < len(p.src) && p.src[i+1] == '(' {
@@ -694,7 +694,7 @@ loop:
 			}
 		case '`':
 			if p.quote == subCmdBckquo {
-				tok = _LITWORD
+				tok = _LitWord
 			}
 			break loop
 		case '"', '\'', '$':
@@ -707,7 +707,7 @@ loop:
 		}
 	}
 	if i == len(p.src) {
-		tok = _LITWORD
+		tok = _LitWord
 	}
 	p.tok, p.val = tok, string(p.src[p.npos:i])
 	p.npos = i
@@ -716,7 +716,7 @@ loop:
 func (p *parser) advanceLitNoneCont(bs []byte) {
 	for {
 		if p.npos >= len(p.src) {
-			p.tok, p.val = _LITWORD, string(bs)
+			p.tok, p.val = _LitWord, string(bs)
 			return
 		}
 		switch p.src[p.npos] {
@@ -724,7 +724,7 @@ func (p *parser) advanceLitNoneCont(bs []byte) {
 			if p.npos == len(p.src)-1 {
 				p.npos++
 				bs = append(bs, '\\')
-				p.tok, p.val = _LITWORD, string(bs)
+				p.tok, p.val = _LitWord, string(bs)
 				return
 			}
 			b := p.src[p.npos+1]
@@ -735,16 +735,16 @@ func (p *parser) advanceLitNoneCont(bs []byte) {
 				bs = append(bs, '\\', b)
 			}
 		case ' ', '\t', '\n', '\r', '&', '>', '<', '|', ';', '(', ')':
-			p.tok, p.val = _LITWORD, string(bs)
+			p.tok, p.val = _LitWord, string(bs)
 			return
 		case '`':
 			if p.quote == subCmdBckquo {
-				p.tok, p.val = _LITWORD, string(bs)
+				p.tok, p.val = _LitWord, string(bs)
 				return
 			}
 			fallthrough
 		case '"', '\'', '$':
-			p.tok, p.val = _LIT, string(bs)
+			p.tok, p.val = _Lit, string(bs)
 			return
 		default:
 			bs = append(bs, p.src[p.npos])
@@ -755,7 +755,7 @@ func (p *parser) advanceLitNoneCont(bs []byte) {
 
 func (p *parser) advanceLitDquote() {
 	var i int
-	tok := _LIT
+	tok := _Lit
 loop:
 	for i = p.npos; i < len(p.src); i++ {
 		switch p.src[i] {
@@ -767,7 +767,7 @@ loop:
 				p.f.Lines = append(p.f.Lines, i+1)
 			}
 		case '"':
-			tok = _LITWORD
+			tok = _LitWord
 			break loop
 		case '`', '$':
 			break loop
@@ -799,7 +799,7 @@ func (p *parser) advanceLitHdoc() {
 	}
 	if p.isHdocEnd(n) {
 		if n > p.npos {
-			p.tok, p.val = _LITWORD, string(p.src[p.npos:n])
+			p.tok, p.val = _LitWord, string(p.src[p.npos:n])
 		}
 		p.npos = n + len(p.hdocStop)
 		p.hdocStop = nil
@@ -827,14 +827,14 @@ loop:
 				}
 			}
 			if p.isHdocEnd(n) {
-				p.tok, p.val = _LITWORD, string(p.src[p.npos:n])
+				p.tok, p.val = _LitWord, string(p.src[p.npos:n])
 				p.npos = n + len(p.hdocStop)
 				p.hdocStop = nil
 				return
 			}
 		}
 	}
-	p.tok, p.val = _LIT, string(p.src[p.npos:i])
+	p.tok, p.val = _Lit, string(p.src[p.npos:i])
 	p.npos = i
 }
 
@@ -874,7 +874,7 @@ func (p *parser) readUntil(b byte) ([]byte, bool) {
 
 func (p *parser) advanceLitRe() {
 	end := bytes.Index(p.src[p.npos:], []byte(" ]]"))
-	p.tok = _LITWORD
+	p.tok = _LitWord
 	if end == -1 {
 		p.val = string(p.src[p.npos:])
 		p.npos = len(p.src)
@@ -929,7 +929,7 @@ func testUnaryOp(val string) Token {
 	case "-R":
 		return TNRFVAR
 	default:
-		return ILLEGAL
+		return IllegalTok
 	}
 }
 
@@ -962,6 +962,6 @@ func testBinaryOp(val string) Token {
 	case "-gt":
 		return TGTR
 	default:
-		return ILLEGAL
+		return IllegalTok
 	}
 }
