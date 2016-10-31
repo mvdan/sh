@@ -22,6 +22,15 @@ operate on files with no extension and a shell shebang.
 
 Use `-i N` to indent with a number of spaces instead of tabs.
 
+### Fuzzing
+
+This project makes use of [go-fuzz](https://github.com/dvyukov/go-fuzz)
+to find crashes and hangs in both the parser and the printer. To get
+started, run:
+
+	git checkout fuzz
+	./fuzz
+
 ### Related projects
 
 * [format-shell](https://atom.io/packages/format-shell) - Atom plugin
