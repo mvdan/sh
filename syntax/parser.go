@@ -397,7 +397,7 @@ func (p *parser) stmts(stops ...string) (sts []*Stmt) {
 			if q == subCmd {
 				return
 			}
-		case BQUOTE:
+		case bckQuote:
 			if q == subCmdBckquo {
 				return
 			}
@@ -553,7 +553,7 @@ func (p *parser) wordPart() WordPart {
 		p.postNested(old)
 		ps.Rparen = p.matched(ps.OpPos, ps.Op, RPAREN)
 		return ps
-	case SQUOTE:
+	case sglQuote:
 		sq := &SglQuoted{Position: p.pos}
 		bs, found := p.readUntil('\'')
 		rem := bs
@@ -569,7 +569,7 @@ func (p *parser) wordPart() WordPart {
 		}
 		p.npos++
 		if !found {
-			p.posErr(sq.Pos(), "reached EOF without closing quote %s", SQUOTE)
+			p.posErr(sq.Pos(), "reached EOF without closing quote %s", sglQuote)
 		}
 		sq.Value = string(bs)
 		p.next()
@@ -579,18 +579,18 @@ func (p *parser) wordPart() WordPart {
 		old := p.quote
 		p.quote = sglQuotes
 		p.next()
-		if p.tok == SQUOTE {
+		if p.tok == sglQuote {
 			p.quote = old
 		} else {
 			sq.Value = p.val
 			p.quote = old
 			p.next()
 		}
-		if !p.got(SQUOTE) {
-			p.quoteErr(sq.Pos(), SQUOTE)
+		if !p.got(sglQuote) {
+			p.quoteErr(sq.Pos(), sglQuote)
 		}
 		return sq
-	case DQUOTE:
+	case dblQuote:
 		if p.quote == dblQuotes {
 			return nil
 		}
@@ -607,11 +607,11 @@ func (p *parser) wordPart() WordPart {
 			q.Parts = p.wordParts()
 		}
 		p.quote = old
-		if !p.got(DQUOTE) {
-			p.quoteErr(q.Pos(), DQUOTE)
+		if !p.got(dblQuote) {
+			p.quoteErr(q.Pos(), dblQuote)
 		}
 		return q
-	case BQUOTE:
+	case bckQuote:
 		switch p.quote {
 		case hdocWord:
 			p.curErr("nested statements not allowed in heredoc words")
@@ -624,8 +624,8 @@ func (p *parser) wordPart() WordPart {
 		cs.Stmts = p.stmts()
 		p.postNested(old)
 		cs.Right = p.pos
-		if !p.got(BQUOTE) {
-			p.quoteErr(cs.Pos(), BQUOTE)
+		if !p.got(bckQuote) {
+			p.quoteErr(cs.Pos(), bckQuote)
 		}
 		return cs
 	case GQUEST, GMUL, GADD, GAT, GNOT:
@@ -781,7 +781,7 @@ func (p *parser) arithmExprBase(ftok Token, fpos Pos, compact bool) ArithmExpr {
 			p.followErr(ue.OpPos, ue.Op.String(), "an expression")
 		}
 		x = ue
-	case BQUOTE:
+	case bckQuote:
 		if p.quote == arithmExprLet {
 			return nil
 		}
@@ -1126,8 +1126,8 @@ func (p *parser) gotStmtPipe(s *Stmt) *Stmt {
 				})
 			}
 		}
-	case _LIT, DOLLBR, DOLLDP, DOLLPR, DOLLAR, CMDIN, CMDOUT, SQUOTE,
-		DOLLSQ, DQUOTE, DOLLDQ, BQUOTE, DOLLBK, GQUEST, GMUL, GADD,
+	case _LIT, DOLLBR, DOLLDP, DOLLPR, DOLLAR, CMDIN, CMDOUT, sglQuote,
+		DOLLSQ, dblQuote, DOLLDQ, bckQuote, DOLLBK, GQUEST, GMUL, GADD,
 		GAT, GNOT:
 		w := Word{Parts: p.wordParts()}
 		if p.gotSameLine(LPAREN) && p.err == nil {
@@ -1590,13 +1590,13 @@ func (p *parser) callExpr(s *Stmt, w Word) *CallExpr {
 				Parts: p.singleWps(p.lit(p.pos, p.val)),
 			})
 			p.next()
-		case BQUOTE:
+		case bckQuote:
 			if p.quote == subCmdBckquo {
 				return ce
 			}
 			fallthrough
 		case _LIT, DOLLBR, DOLLDP, DOLLPR, DOLLAR, CMDIN, CMDOUT,
-			SQUOTE, DOLLSQ, DQUOTE, DOLLDQ, DOLLBK, GQUEST,
+			sglQuote, DOLLSQ, dblQuote, DOLLDQ, DOLLBK, GQUEST,
 			GMUL, GADD, GAT, GNOT:
 			ce.Args = append(ce.Args, Word{Parts: p.wordParts()})
 		case GTR, SHR, LSS, DPLIN, DPLOUT, CLBOUT, RDRINOUT, SHL,

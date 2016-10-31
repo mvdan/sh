@@ -99,7 +99,7 @@ func (p *parser) next() {
 	case sglQuotes:
 		if b == '\'' {
 			p.npos++
-			p.tok = SQUOTE
+			p.tok = sglQuote
 		} else {
 			p.advanceLitOther(q)
 		}
@@ -210,13 +210,13 @@ func (p *parser) regToken(b byte) Token {
 	switch b {
 	case '\'':
 		p.npos++
-		return SQUOTE
+		return sglQuote
 	case '"':
 		p.npos++
-		return DQUOTE
+		return dblQuote
 	case '`':
 		p.npos++
-		return BQUOTE
+		return bckQuote
 	case '&':
 		switch byteAt(p.src, p.npos+1) {
 		case '&':
@@ -364,10 +364,10 @@ func (p *parser) dqToken(b byte) Token {
 	switch b {
 	case '"':
 		p.npos++
-		return DQUOTE
+		return dblQuote
 	case '`':
 		p.npos++
-		return BQUOTE
+		return bckQuote
 	default: // '$'
 		switch byteAt(p.src, p.npos+1) {
 		case '{':

@@ -14,9 +14,9 @@ const (
 	_LITWORD
 	_LET
 
-	SQUOTE // '
-	DQUOTE // "
-	BQUOTE // `
+	sglQuote // '
+	dblQuote // "
+	bckQuote // `
 
 	AND  // &
 	LAND // &&
@@ -165,9 +165,9 @@ var tokNames = map[Token]string{
 	_LITWORD: "LITWORD",
 	_LET:     "LET",
 
-	SQUOTE: "'",
-	DQUOTE: `"`,
-	BQUOTE: "`",
+	sglQuote: "'",
+	dblQuote: `"`,
+	bckQuote: "`",
 
 	AND:  "&",
 	LAND: "&&",
