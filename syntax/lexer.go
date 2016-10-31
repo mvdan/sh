@@ -51,7 +51,7 @@ func (p *parser) next() {
 	switch q {
 	case hdocWord:
 		if wordBreak(b) {
-			p.tok = IllegalTok
+			p.tok = illegalTok
 			p.spaced = true
 			return
 		}
@@ -80,7 +80,7 @@ func (p *parser) next() {
 		if b == '`' || b == '$' {
 			p.tok = p.dqToken(b)
 		} else if p.hdocStop == nil {
-			p.tok = IllegalTok
+			p.tok = illegalTok
 		} else {
 			p.advanceLitHdoc()
 		}
@@ -113,7 +113,7 @@ skipSpace:
 			p.npos++
 		case '\n':
 			if p.quote == arithmExprLet {
-				p.tok = IllegalTok
+				p.tok = illegalTok
 				p.newLine, p.spaced = true, true
 				return
 			}
@@ -442,7 +442,7 @@ func (p *parser) paramToken(b byte) Token {
 		return HASH
 	case '[':
 		p.npos++
-		return LBRACK
+		return leftBrack
 	case '^':
 		if byteAt(p.src, p.npos+1) == '^' {
 			p.npos += 2
@@ -929,7 +929,7 @@ func testUnaryOp(val string) Token {
 	case "-R":
 		return TNRFVAR
 	default:
-		return IllegalTok
+		return illegalTok
 	}
 }
 
@@ -962,6 +962,6 @@ func testBinaryOp(val string) Token {
 	case "-gt":
 		return TGTR
 	default:
-		return IllegalTok
+		return illegalTok
 	}
 }

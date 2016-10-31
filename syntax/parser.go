@@ -160,7 +160,7 @@ func (p *parser) reset() {
 	p.spaced, p.newLine = false, false
 	p.err = nil
 	p.npos = 0
-	p.tok, p.quote = IllegalTok, noState
+	p.tok, p.quote = illegalTok, noState
 	p.heredocs = p.heredocs[:0]
 	p.buriedHdocs = 0
 }
@@ -218,7 +218,7 @@ func (p *parser) unquotedWordPart(b *bytes.Buffer, wp WordPart) bool {
 }
 
 func (p *parser) doHeredocs() {
-	p.tok = IllegalTok
+	p.tok = illegalTok
 	old := p.quote
 	hdocs := p.heredocs[p.buriedHdocs:]
 	p.heredocs = p.heredocs[:p.buriedHdocs]
@@ -852,13 +852,13 @@ func (p *parser) paramExp() *ParamExp {
 		p.next()
 		return pe
 	}
-	if p.tok == LBRACK {
+	if p.tok == leftBrack {
 		lpos := p.pos
 		p.quote = paramExpInd
 		p.next()
 		pe.Ind = &Index{Word: p.word()}
 		p.quote = paramExpName
-		p.matched(lpos, LBRACK, rightBrack)
+		p.matched(lpos, leftBrack, rightBrack)
 	}
 	switch p.tok {
 	case rightBrace:
@@ -1344,7 +1344,7 @@ func (p *parser) testClause() *TestClause {
 	if p.tok == _EOF || p.gotRsrv("]]") {
 		p.posErr(tc.Left, "test clause requires at least one expression")
 	}
-	tc.X = p.testExpr(IllegalTok, tc.Left, 0)
+	tc.X = p.testExpr(illegalTok, tc.Left, 0)
 	tc.Right = p.pos
 	if !p.gotRsrv("]]") {
 		p.matchingErr(tc.Left, "[[", "]]")
@@ -1381,7 +1381,7 @@ func (p *parser) testExpr(ftok Token, fpos Pos, level int) ArithmExpr {
 		return left
 	}
 	if p.tok == _LitWord {
-		if p.tok = testBinaryOp(p.val); p.tok == IllegalTok {
+		if p.tok = testBinaryOp(p.val); p.tok == illegalTok {
 			p.curErr("not a valid test operator: %s", p.val)
 		}
 	}
@@ -1408,7 +1408,7 @@ func (p *parser) testExprBase(ftok Token, fpos Pos) ArithmExpr {
 	case _EOF:
 		return nil
 	case _LitWord:
-		if op := testUnaryOp(p.val); op != IllegalTok {
+		if op := testUnaryOp(p.val); op != illegalTok {
 			p.tok = op
 		}
 	}
@@ -1535,7 +1535,7 @@ func (p *parser) letClause() *LetClause {
 	old := p.preNested(arithmExprLet)
 	p.next()
 	for !p.newLine && !stopToken(p.tok) && !p.peekRedir() {
-		x := p.arithmExpr(IllegalTok, lc.Let, 0, true)
+		x := p.arithmExpr(illegalTok, lc.Let, 0, true)
 		if x == nil {
 			break
 		}
@@ -1545,7 +1545,7 @@ func (p *parser) letClause() *LetClause {
 		p.posErr(lc.Let, "let clause requires at least one expression")
 	}
 	p.postNested(old)
-	if p.tok == IllegalTok {
+	if p.tok == illegalTok {
 		p.next()
 	}
 	return lc

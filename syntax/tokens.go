@@ -8,7 +8,7 @@ type Token int
 
 // The list of all possible tokens and reserved words.
 const (
-	IllegalTok Token = iota
+	illegalTok Token = iota
 	_EOF
 	_Lit
 	_LitWord
@@ -29,6 +29,7 @@ const (
 	dollBrack    // $[
 	dollParen    // $(
 	dollDblParen // $((
+	leftBrack    // [
 	leftParen    // (
 	dblLeftParen // (( - bash
 
@@ -96,7 +97,6 @@ const (
 	DREM    // %%
 	HASH    // #
 	DHASH   // ##
-	LBRACK  // [
 	DQUO    // //
 	DXOR    // ^^ - bash
 	DCOMMA  // ,, - bash
@@ -158,7 +158,7 @@ type Position struct {
 }
 
 var tokNames = map[Token]string{
-	IllegalTok: "illegal",
+	illegalTok: "illegal",
 	_EOF:       "EOF",
 	_Lit:       "Lit",
 	_LitWord:   "LitWord",
@@ -179,6 +179,7 @@ var tokNames = map[Token]string{
 	dollBrack:    "$[",
 	dollParen:    "$(",
 	dollDblParen: "$((",
+	leftBrack:    "[",
 	leftParen:    "(",
 	dblLeftParen: "((",
 
@@ -220,7 +221,6 @@ var tokNames = map[Token]string{
 	DREM:    "%%",
 	HASH:    "#",
 	DHASH:   "##",
-	LBRACK:  "[",
 	QUO:     "/",
 	DQUO:    "//",
 	DXOR:    "^^",
