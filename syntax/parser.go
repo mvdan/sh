@@ -428,7 +428,7 @@ func (p *parser) stmts(stops ...string) (sts []*Stmt) {
 
 func (p *parser) invalidStmtStart() {
 	switch p.tok {
-	case semicolon, AND, OR, LAND, LOR:
+	case semicolon, And, Or, AndIf, OrIf:
 		p.curErr("%s can only immediately follow a statement", p.tok)
 	case rightParen:
 		p.curErr("%s can only be used to close a subshell", p.tok)
@@ -692,9 +692,9 @@ func arithmOpLevel(tok Token) int {
 		return 2
 	case QUEST, COLON:
 		return 3
-	case LAND, LOR:
+	case AndIf, OrIf:
 		return 4
-	case AND, OR, XOR:
+	case And, Or, XOR:
 		return 5
 	case EQL, NEQ:
 		return 6
@@ -904,7 +904,7 @@ func (p *parser) arithmEnd(ltok Token, lpos Pos, old saveState) Pos {
 
 func stopToken(tok Token) bool {
 	switch tok {
-	case _EOF, semicolon, AND, OR, LAND, LOR, PIPEALL, DblSemicolon,
+	case _EOF, semicolon, And, Or, AndIf, OrIf, PIPEALL, DblSemicolon,
 		SemiFall, DblSemiFall, rightParen:
 		return true
 	}
@@ -1048,7 +1048,7 @@ preLoop:
 		return
 	}
 	switch p.tok {
-	case LAND, LOR:
+	case AndIf, OrIf:
 		b := &BinaryCmd{OpPos: p.pos, Op: p.tok, X: s}
 		p.next()
 		if b.Y, _ = p.getStmt(false); b.Y == nil {
@@ -1059,7 +1059,7 @@ preLoop:
 		if readEnd && p.gotSameLine(semicolon) {
 			gotEnd = true
 		}
-	case AND:
+	case And:
 		p.next()
 		s.Background = true
 		gotEnd = true
@@ -1142,7 +1142,7 @@ func (p *parser) gotStmtPipe(s *Stmt) *Stmt {
 	if s.Cmd == nil && len(s.Redirs) == 0 && !s.Negated && len(s.Assigns) == 0 {
 		return nil
 	}
-	if p.tok == OR || p.tok == PIPEALL {
+	if p.tok == Or || p.tok == PIPEALL {
 		b := &BinaryCmd{OpPos: p.pos, Op: p.tok, X: s}
 		p.next()
 		if b.Y = p.gotStmtPipe(p.stmt(p.pos)); b.Y == nil {
@@ -1317,7 +1317,7 @@ func (p *parser) patLists() (pls []*PatternList) {
 			if p.tok == rightParen {
 				break
 			}
-			if !p.got(OR) {
+			if !p.got(Or) {
 				p.curErr("case patterns must be separated with |")
 			}
 		}
@@ -1364,7 +1364,7 @@ func (p *parser) testExpr(ftok Token, fpos Pos, level int) ArithmExpr {
 	}
 	var newLevel int
 	switch p.tok {
-	case LAND, LOR:
+	case AndIf, OrIf:
 	case _LitWord:
 		if p.val == "]]" {
 			return left
@@ -1578,7 +1578,7 @@ func (p *parser) callExpr(s *Stmt, w Word) *CallExpr {
 	ce.Args[0] = w
 	for !p.newLine {
 		switch p.tok {
-		case _EOF, semicolon, AND, OR, LAND, LOR, PIPEALL,
+		case _EOF, semicolon, And, Or, AndIf, OrIf, PIPEALL,
 			DblSemicolon, SemiFall, DblSemiFall:
 			return ce
 		case _LitWord:

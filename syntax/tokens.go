@@ -17,10 +17,10 @@ const (
 	dblQuote // "
 	bckQuote // `
 
-	AND  // &
-	LAND // &&
-	OR   // |
-	LOR  // ||
+	And   // &
+	AndIf // &&
+	Or    // |
+	OrIf  // ||
 
 	dollar       // $
 	dollSglQuote // $' - bash
@@ -167,10 +167,10 @@ var tokNames = map[Token]string{
 	dblQuote: `"`,
 	bckQuote: "`",
 
-	AND:  "&",
-	LAND: "&&",
-	OR:   "|",
-	LOR:  "||",
+	And:   "&",
+	AndIf: "&&",
+	Or:    "|",
+	OrIf:  "||",
 
 	dollar:       "$",
 	dollSglQuote: "$'",

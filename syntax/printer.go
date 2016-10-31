@@ -428,13 +428,13 @@ func (p *printer) binaryExprOp(tok Token) {
 		p.WriteByte('*')
 	case QUO:
 		p.WriteByte('/')
-	case AND:
+	case And:
 		p.WriteByte('&')
-	case OR:
+	case Or:
 		p.WriteByte('|')
-	case LAND:
+	case AndIf:
 		p.WriteString("&&")
-	case LOR:
+	case OrIf:
 		p.WriteString("||")
 	case XOR:
 		p.WriteByte('^')
@@ -721,11 +721,11 @@ func (p *printer) redirectOp(tok Token) {
 
 func binaryCmdOp(tok Token) string {
 	switch tok {
-	case OR:
+	case Or:
 		return "|"
-	case LAND:
+	case AndIf:
 		return "&&"
-	case LOR:
+	case OrIf:
 		return "||"
 	default: // PIPEALL
 		return "|&"

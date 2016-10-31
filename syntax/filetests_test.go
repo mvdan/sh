@@ -392,7 +392,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"foo && bar", "foo&&bar", "foo &&\nbar"},
 		common: &BinaryCmd{
-			Op: LAND,
+			Op: AndIf,
 			X:  litStmt("foo"),
 			Y:  litStmt("bar"),
 		},
@@ -400,7 +400,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"foo \\\n\t&& bar"},
 		common: &BinaryCmd{
-			Op: LAND,
+			Op: AndIf,
 			X:  litStmt("foo"),
 			Y:  litStmt("bar"),
 		},
@@ -408,7 +408,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"foo || bar", "foo||bar", "foo ||\nbar"},
 		common: &BinaryCmd{
-			Op: LOR,
+			Op: OrIf,
 			X:  litStmt("foo"),
 			Y:  litStmt("bar"),
 		},
@@ -416,7 +416,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"if a; then b; fi || while a; do b; done"},
 		common: &BinaryCmd{
-			Op: LOR,
+			Op: OrIf,
 			X: stmt(&IfClause{
 				CondStmts: litStmts("a"),
 				ThenStmts: litStmts("b"),
@@ -430,10 +430,10 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"foo && bar1 || bar2"},
 		common: &BinaryCmd{
-			Op: LAND,
+			Op: AndIf,
 			X:  litStmt("foo"),
 			Y: stmt(&BinaryCmd{
-				Op: LOR,
+				Op: OrIf,
 				X:  litStmt("bar1"),
 				Y:  litStmt("bar2"),
 			}),
@@ -442,7 +442,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"foo | bar", "foo|bar", "foo |\n#etc\nbar"},
 		common: &BinaryCmd{
-			Op: OR,
+			Op: Or,
 			X:  litStmt("foo"),
 			Y:  litStmt("bar"),
 		},
@@ -450,10 +450,10 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"foo | bar | extra"},
 		common: &BinaryCmd{
-			Op: OR,
+			Op: Or,
 			X:  litStmt("foo"),
 			Y: stmt(&BinaryCmd{
-				Op: OR,
+				Op: Or,
 				X:  litStmt("bar"),
 				Y:  litStmt("extra"),
 			}),
@@ -790,7 +790,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"foo <<EOF && {\nbar\nEOF\n\tetc\n}"},
 		common: &BinaryCmd{
-			Op: LAND,
+			Op: AndIf,
 			X: &Stmt{
 				Cmd: litCall("foo"),
 				Redirs: []*Redirect{{
@@ -1277,7 +1277,7 @@ var fileTests = []testCase{
 		},
 		common: cmdSubst(
 			stmt(&BinaryCmd{
-				Op: OR,
+				Op: Or,
 				X:  stmt(subshell(litStmt("a"))),
 				Y:  litStmt("b"),
 			}),
@@ -1345,7 +1345,7 @@ var fileTests = []testCase{
 		Strs: []string{"$(foo | bar)", "`foo | bar`"},
 		common: cmdSubst(
 			stmt(&BinaryCmd{
-				Op: OR,
+				Op: Or,
 				X:  litStmt("foo"),
 				Y:  litStmt("bar"),
 			}),
@@ -1869,7 +1869,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"$(($i | 13))"},
 		common: arithmExp(&BinaryExpr{
-			Op: OR,
+			Op: Or,
 			X:  word(litParamExp("i")),
 			Y:  litWord("13"),
 		}),
@@ -1877,7 +1877,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"$((3 & $((4))))"},
 		common: arithmExp(&BinaryExpr{
-			Op: AND,
+			Op: And,
 			X:  litWord("3"),
 			Y:  word(arithmExp(litWord("4"))),
 		}),
@@ -2021,7 +2021,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"$((a == b && c > d))"},
 		common: arithmExp(&BinaryExpr{
-			Op: LAND,
+			Op: AndIf,
 			X: &BinaryExpr{
 				Op: EQL,
 				X:  litWord("a"),
@@ -2116,7 +2116,7 @@ var fileTests = []testCase{
 			Op: LEQ,
 			X:  litWord("a"),
 			Y: parenExpr(&BinaryExpr{
-				Op: LOR,
+				Op: OrIf,
 				X:  litWord("1"),
 				Y:  litWord("2"),
 			}),
@@ -2316,7 +2316,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"foo | while read a; do b; done"},
 		common: &BinaryCmd{
-			Op: OR,
+			Op: Or,
 			X:  litStmt("foo"),
 			Y: stmt(&WhileClause{
 				CondStmts: []*Stmt{
@@ -2331,7 +2331,7 @@ var fileTests = []testCase{
 		common: &WhileClause{
 			CondStmts: []*Stmt{litStmt("read", "l")},
 			DoStmts: stmts(&BinaryCmd{
-				Op: LOR,
+				Op: OrIf,
 				X:  litStmt("foo"),
 				Y:  litStmt("bar"),
 			}),
@@ -2392,10 +2392,10 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"foo && write | read"},
 		common: &BinaryCmd{
-			Op: LAND,
+			Op: AndIf,
 			X:  litStmt("foo"),
 			Y: stmt(&BinaryCmd{
-				Op: OR,
+				Op: Or,
 				X:  litStmt("write"),
 				Y:  litStmt("read"),
 			}),
@@ -2404,9 +2404,9 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"write | read && bar"},
 		common: &BinaryCmd{
-			Op: LAND,
+			Op: AndIf,
 			X: stmt(&BinaryCmd{
-				Op: OR,
+				Op: Or,
 				X:  litStmt("write"),
 				Y:  litStmt("read"),
 			}),
@@ -2416,7 +2416,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"foo >f | bar"},
 		common: &BinaryCmd{
-			Op: OR,
+			Op: Or,
 			X: &Stmt{
 				Cmd: litCall("foo"),
 				Redirs: []*Redirect{
@@ -2429,7 +2429,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"(foo) >f | bar"},
 		common: &BinaryCmd{
-			Op: OR,
+			Op: Or,
 			X: &Stmt{
 				Cmd: subshell(litStmt("foo")),
 				Redirs: []*Redirect{
@@ -2442,7 +2442,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"foo | >f"},
 		common: &BinaryCmd{
-			Op: OR,
+			Op: Or,
 			X:  litStmt("foo"),
 			Y: &Stmt{
 				Redirs: []*Redirect{
@@ -2549,7 +2549,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"[[ (a && b) ]]"},
 		bash: &TestClause{X: parenExpr(&BinaryExpr{
-			Op: LAND,
+			Op: AndIf,
 			X:  litWord("a"),
 			Y:  litWord("b"),
 		})},
@@ -2557,9 +2557,9 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"[[ (a && b) || -f c ]]"},
 		bash: &TestClause{X: &BinaryExpr{
-			Op: LOR,
+			Op: OrIf,
 			X: parenExpr(&BinaryExpr{
-				Op: LAND,
+				Op: AndIf,
 				X:  litWord("a"),
 				Y:  litWord("b"),
 			}),
@@ -2572,7 +2572,7 @@ var fileTests = []testCase{
 			"[[ -S a && -h b ]]",
 		},
 		bash: &TestClause{X: &BinaryExpr{
-			Op: LAND,
+			Op: AndIf,
 			X:  &UnaryExpr{Op: TSOCKET, X: litWord("a")},
 			Y:  &UnaryExpr{Op: TSMBLINK, X: litWord("b")},
 		}},
@@ -2580,7 +2580,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"[[ -d a && -c b ]]"},
 		bash: &TestClause{X: &BinaryExpr{
-			Op: LAND,
+			Op: AndIf,
 			X:  &UnaryExpr{Op: TDIRECT, X: litWord("a")},
 			Y:  &UnaryExpr{Op: TCHARSP, X: litWord("b")},
 		}},
@@ -2588,7 +2588,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"[[ -b a && -p b ]]"},
 		bash: &TestClause{X: &BinaryExpr{
-			Op: LAND,
+			Op: AndIf,
 			X:  &UnaryExpr{Op: TBLCKSP, X: litWord("a")},
 			Y:  &UnaryExpr{Op: TNMPIPE, X: litWord("b")},
 		}},
@@ -2596,7 +2596,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"[[ -g a && -u b ]]"},
 		bash: &TestClause{X: &BinaryExpr{
-			Op: LAND,
+			Op: AndIf,
 			X:  &UnaryExpr{Op: TSGIDSET, X: litWord("a")},
 			Y:  &UnaryExpr{Op: TSUIDSET, X: litWord("b")},
 		}},
@@ -2604,7 +2604,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"[[ -r a && -w b ]]"},
 		bash: &TestClause{X: &BinaryExpr{
-			Op: LAND,
+			Op: AndIf,
 			X:  &UnaryExpr{Op: TREAD, X: litWord("a")},
 			Y:  &UnaryExpr{Op: TWRITE, X: litWord("b")},
 		}},
@@ -2612,7 +2612,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"[[ -x a && -s b ]]"},
 		bash: &TestClause{X: &BinaryExpr{
-			Op: LAND,
+			Op: AndIf,
 			X:  &UnaryExpr{Op: TEXEC, X: litWord("a")},
 			Y:  &UnaryExpr{Op: TNOEMPTY, X: litWord("b")},
 		}},
@@ -2620,7 +2620,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"[[ -t a && -z b ]]"},
 		bash: &TestClause{X: &BinaryExpr{
-			Op: LAND,
+			Op: AndIf,
 			X:  &UnaryExpr{Op: TFDTERM, X: litWord("a")},
 			Y:  &UnaryExpr{Op: TEMPSTR, X: litWord("b")},
 		}},
@@ -2628,7 +2628,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"[[ -o a && -v b ]]"},
 		bash: &TestClause{X: &BinaryExpr{
-			Op: LAND,
+			Op: AndIf,
 			X:  &UnaryExpr{Op: TOPTSET, X: litWord("a")},
 			Y:  &UnaryExpr{Op: TVARSET, X: litWord("b")},
 		}},
@@ -2636,7 +2636,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"[[ a -ot b && c -ef d ]]"},
 		bash: &TestClause{X: &BinaryExpr{
-			Op: LAND,
+			Op: AndIf,
 			X: &BinaryExpr{
 				Op: TOLDER,
 				X:  litWord("a"),
@@ -2652,7 +2652,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"[[ a == b && c != d ]]"},
 		bash: &TestClause{X: &BinaryExpr{
-			Op: LAND,
+			Op: AndIf,
 			X: &BinaryExpr{
 				Op: EQL,
 				X:  litWord("a"),
@@ -2668,7 +2668,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"[[ a -ne b && c -le d ]]"},
 		bash: &TestClause{X: &BinaryExpr{
-			Op: LAND,
+			Op: AndIf,
 			X: &BinaryExpr{
 				Op: TNEQ,
 				X:  litWord("a"),
@@ -2684,7 +2684,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"[[ a = b && c -ge d ]]"},
 		bash: &TestClause{X: &BinaryExpr{
-			Op: LAND,
+			Op: AndIf,
 			X: &BinaryExpr{
 				Op: ASSIGN,
 				X:  litWord("a"),
@@ -2700,7 +2700,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"[[ a -lt b && c -gt d ]]"},
 		bash: &TestClause{X: &BinaryExpr{
-			Op: LAND,
+			Op: AndIf,
 			X: &BinaryExpr{
 				Op: TLSS,
 				X:  litWord("a"),
@@ -2804,7 +2804,7 @@ var fileTests = []testCase{
 		},
 		bash: stmts(
 			&BinaryCmd{
-				Op: LAND,
+				Op: AndIf,
 				X:  litStmt("a"),
 				Y: &Stmt{Assigns: []*Assign{{
 					Name: lit("b"),
@@ -3063,7 +3063,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"<<EOF | b\nfoo\nEOF", "<<EOF|b;\nfoo\n"},
 		common: &BinaryCmd{
-			Op: OR,
+			Op: Or,
 			X: &Stmt{Redirs: []*Redirect{{
 				Op:   SHL,
 				Word: *litWord("EOF"),
@@ -3075,9 +3075,9 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"<<EOF1 <<EOF2 | c && d\nEOF1\nEOF2"},
 		common: &BinaryCmd{
-			Op: LAND,
+			Op: AndIf,
 			X: stmt(&BinaryCmd{
-				Op: OR,
+				Op: Or,
 				X: &Stmt{Redirs: []*Redirect{
 					{
 						Op:   SHL,
@@ -3101,7 +3101,7 @@ var fileTests = []testCase{
 			"<<EOF &&\nhdoc\nEOF\n{ bar; }",
 		},
 		common: &BinaryCmd{
-			Op: LAND,
+			Op: AndIf,
 			X: &Stmt{Redirs: []*Redirect{{
 				Op:   SHL,
 				Word: *litWord("EOF"),
@@ -3115,7 +3115,7 @@ var fileTests = []testCase{
 		common: &FuncDecl{
 			Name: *lit("foo"),
 			Body: stmt(block(stmt(&BinaryCmd{
-				Op: LAND,
+				Op: AndIf,
 				X: &Stmt{Redirs: []*Redirect{{
 					Op:   SHL,
 					Word: *litWord("EOF"),
