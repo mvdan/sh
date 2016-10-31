@@ -1535,7 +1535,7 @@ func (p *parser) letClause() *LetClause {
 	old := p.preNested(arithmExprLet)
 	p.next()
 	for !p.newLine && !stopToken(p.tok) && !p.peekRedir() {
-		x := p.arithmExpr(_LET, lc.Let, 0, true)
+		x := p.arithmExpr(ILLEGAL, lc.Let, 0, true)
 		if x == nil {
 			break
 		}

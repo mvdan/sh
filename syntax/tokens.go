@@ -12,7 +12,6 @@ const (
 	_EOF
 	_LIT
 	_LITWORD
-	_LET
 
 	sglQuote // '
 	dblQuote // "
@@ -163,7 +162,6 @@ var tokNames = map[Token]string{
 	_EOF:     "EOF",
 	_LIT:     "LIT",
 	_LITWORD: "LITWORD",
-	_LET:     "LET",
 
 	sglQuote: "'",
 	dblQuote: `"`,
