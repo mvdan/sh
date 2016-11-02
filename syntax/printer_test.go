@@ -109,6 +109,14 @@ func TestFprintWeirdFormat(t *testing.T) {
 			"a bbcc \\\n\td",
 		},
 		{
+			"a \\\n\tb \\\n\tc \\\n\t;",
+			"a \\\n\tb \\\n\tc \\\n\t;",
+		},
+		{
+			"a=1 \\\n\tb=2 \\\n\tc=3 \\\n\t;",
+			"a=1 \\\n\tb=2 \\\n\tc=3 \\\n\t;",
+		},
+		{
 			"a 'b\nb' c",
 			"a 'b\nb' c",
 		},

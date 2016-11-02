@@ -1044,6 +1044,7 @@ preLoop:
 			return
 		case p.tok == semicolon:
 			if readEnd {
+				s.SemiPos = p.pos
 				p.next()
 				gotEnd = true
 			}
@@ -1071,6 +1072,7 @@ preLoop:
 		gotEnd = true
 	case semicolon:
 		if !p.newLine && readEnd {
+			s.SemiPos = p.pos
 			p.next()
 			gotEnd = true
 		}

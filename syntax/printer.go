@@ -682,11 +682,17 @@ func (p *printer) stmt(s *Stmt) {
 			p.pendingHdocs = append(p.pendingHdocs, r)
 		}
 	}
+	if s.SemiPos > 0 && s.SemiPos > p.nline {
+		p.incLevel()
+		p.bslashNewl()
+		p.indent()
+		p.decLevel()
+		p.WriteString(";")
+	} else if s.Background {
+		p.WriteString(" &")
+	}
 	if anyNewline {
 		p.decLevel()
-	}
-	if s.Background {
-		p.WriteString(" &")
 	}
 }
 
