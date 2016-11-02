@@ -228,10 +228,10 @@ func (p *parser) regToken(b byte) Token {
 			}
 			if byteAt(p.src, p.npos+2) == '>' {
 				p.npos += 3
-				return AppAll
+				return appAll
 			}
 			p.npos += 2
-			return RdrAll
+			return rdrAll
 		}
 		p.npos++
 		return And
@@ -245,7 +245,7 @@ func (p *parser) regToken(b byte) Token {
 				break
 			}
 			p.npos += 2
-			return PipeAll
+			return pipeAll
 		}
 		p.npos++
 		return Or
@@ -315,25 +315,25 @@ func (p *parser) regToken(b byte) Token {
 		case '<':
 			if b := byteAt(p.src, p.npos+2); b == '-' {
 				p.npos += 3
-				return DashHdoc
+				return dashHdoc
 			} else if p.bash() && b == '<' {
 				p.npos += 3
-				return WordHdoc
+				return wordHdoc
 			}
 			p.npos += 2
 			return Shl
 		case '>':
 			p.npos += 2
-			return RdrInOut
+			return rdrInOut
 		case '&':
 			p.npos += 2
-			return DplIn
+			return dplIn
 		case '(':
 			if !p.bash() {
 				break
 			}
 			p.npos += 2
-			return CmdIn
+			return cmdIn
 		}
 		p.npos++
 		return Lss
@@ -344,16 +344,16 @@ func (p *parser) regToken(b byte) Token {
 			return Shr
 		case '&':
 			p.npos += 2
-			return DplOut
+			return dplOut
 		case '|':
 			p.npos += 2
-			return ClbOut
+			return clbOut
 		case '(':
 			if !p.bash() {
 				break
 			}
 			p.npos += 2
-			return CmdOut
+			return cmdOut
 		}
 		p.npos++
 		return Gtr

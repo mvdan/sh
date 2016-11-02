@@ -381,9 +381,9 @@ func (p *printer) wordPart(wp WordPart) {
 		if p.wantSpace {
 			p.space()
 		}
-		if x.Op == CmdIn {
+		if x.Op == cmdIn {
 			p.WriteString("<(")
-		} else { // CmdOut
+		} else { // cmdOut
 			p.WriteString(">(")
 		}
 		p.nestedStmts(x.Stmts, 0)
@@ -678,7 +678,7 @@ func (p *printer) stmt(s *Stmt) {
 		p.redirectOp(r.Op)
 		p.wantSpace = true
 		p.word(r.Word)
-		if r.Op == Shl || r.Op == DashHdoc {
+		if r.Op == Hdoc || r.Op == DashHdoc {
 			p.pendingHdocs = append(p.pendingHdocs, r)
 		}
 	}
@@ -690,15 +690,15 @@ func (p *printer) stmt(s *Stmt) {
 	}
 }
 
-func (p *printer) redirectOp(tok Token) {
-	switch tok {
-	case Lss:
+func (p *printer) redirectOp(op RedirOperator) {
+	switch op {
+	case RdrIn:
 		p.WriteByte('<')
-	case Gtr:
+	case RdrOut:
 		p.WriteByte('>')
-	case Shl:
+	case Hdoc:
 		p.WriteString("<<")
-	case Shr:
+	case AppOut:
 		p.WriteString(">>")
 	case RdrInOut:
 		p.WriteString("<>")
@@ -727,7 +727,7 @@ func binaryCmdOp(tok Token) string {
 		return "&&"
 	case OrIf:
 		return "||"
-	default: // PipeAll
+	default: // pipeAll
 		return "|&"
 	}
 }
@@ -752,7 +752,7 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		}
 		p.wordJoin(x.Args[:1], true)
 		for _, r := range redirs {
-			if r.Pos() > x.Args[1].Pos() || r.Op == Shl || r.Op == DashHdoc {
+			if r.Pos() > x.Args[1].Pos() || r.Op == Hdoc || r.Op == DashHdoc {
 				break
 			}
 			if p.wantSpace {

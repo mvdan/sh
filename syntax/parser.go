@@ -545,7 +545,7 @@ func (p *parser) wordPart() WordPart {
 		}
 		p.gotLit(&pe.Param)
 		return pe
-	case CmdIn, CmdOut:
+	case cmdIn, cmdOut:
 		ps := &ProcSubst{Op: p.tok, OpPos: p.pos}
 		old := p.preNested(subCmd)
 		p.next()
@@ -904,7 +904,7 @@ func (p *parser) arithmEnd(ltok Token, lpos Pos, old saveState) Pos {
 
 func stopToken(tok Token) bool {
 	switch tok {
-	case _EOF, semicolon, And, Or, AndIf, OrIf, PipeAll, DblSemicolon,
+	case _EOF, semicolon, And, Or, AndIf, OrIf, pipeAll, DblSemicolon,
 		SemiFall, DblSemiFall, rightParen:
 		return true
 	}
@@ -976,8 +976,8 @@ func (p *parser) peekRedir() bool {
 	switch p.tok {
 	case _LitWord:
 		return litRedir(p.src, p.npos)
-	case Gtr, Shr, Lss, DplIn, DplOut, ClbOut, RdrInOut, Shl, DashHdoc,
-		WordHdoc, RdrAll, AppAll:
+	case Gtr, Shr, Lss, dplIn, dplOut, clbOut, rdrInOut, Shl, dashHdoc,
+		wordHdoc, rdrAll, appAll:
 		return true
 	}
 	return false
@@ -989,24 +989,28 @@ func (p *parser) doRedirect(s *Stmt) {
 	if p.gotLit(&l) {
 		r.N = &l
 	}
-	r.Op, r.OpPos = p.tok, p.pos
+	r.Op, r.OpPos = toRedirOp(p.tok), p.pos
 	p.next()
 	switch r.Op {
-	case Shl, DashHdoc:
+	case Hdoc, DashHdoc:
 		old := p.quote
 		p.quote = hdocWord
 		if p.newLine {
 			p.curErr("heredoc stop word must be on the same line")
 		}
 		p.heredocs = append(p.heredocs, r)
-		r.Word = p.followWordTok(r.Op, r.OpPos)
+		if r.Word = p.word(); r.Word.Parts == nil {
+			p.followErr(r.OpPos, fromRedirOp(r.Op).String(), "a word")
+		}
 		p.quote = old
 		p.next()
 	default:
 		if p.newLine {
 			p.curErr("redirect word must be on the same line")
 		}
-		r.Word = p.followWordTok(r.Op, r.OpPos)
+		if r.Word = p.word(); r.Word.Parts == nil {
+			p.followErr(r.OpPos, fromRedirOp(r.Op).String(), "a word")
+		}
 	}
 	s.Redirs = append(s.Redirs, r)
 }
@@ -1027,8 +1031,8 @@ preLoop:
 			} else {
 				break preLoop
 			}
-		case Gtr, Shr, Lss, DplIn, DplOut, ClbOut, RdrInOut, Shl, DashHdoc,
-			WordHdoc, RdrAll, AppAll:
+		case Gtr, Shr, Lss, dplIn, dplOut, clbOut, rdrInOut, Shl, dashHdoc,
+			wordHdoc, rdrAll, appAll:
 			p.doRedirect(s)
 		default:
 			break preLoop
@@ -1126,7 +1130,7 @@ func (p *parser) gotStmtPipe(s *Stmt) *Stmt {
 				})
 			}
 		}
-	case _Lit, dollBrace, dollDblParen, dollParen, dollar, CmdIn, CmdOut, sglQuote,
+	case _Lit, dollBrace, dollDblParen, dollParen, dollar, cmdIn, cmdOut, sglQuote,
 		dollSglQuote, dblQuote, dollDblQuote, bckQuote, dollBrack, GlobQuest, GlobMul, GlobAdd,
 		GlobAt, GlobNot:
 		w := Word{Parts: p.wordParts()}
@@ -1142,7 +1146,7 @@ func (p *parser) gotStmtPipe(s *Stmt) *Stmt {
 	if s.Cmd == nil && len(s.Redirs) == 0 && !s.Negated && len(s.Assigns) == 0 {
 		return nil
 	}
-	if p.tok == Or || p.tok == PipeAll {
+	if p.tok == Or || p.tok == pipeAll {
 		b := &BinaryCmd{OpPos: p.pos, Op: p.tok, X: s}
 		p.next()
 		if b.Y = p.gotStmtPipe(p.stmt(p.pos)); b.Y == nil {
@@ -1578,7 +1582,7 @@ func (p *parser) callExpr(s *Stmt, w Word) *CallExpr {
 	ce.Args[0] = w
 	for !p.newLine {
 		switch p.tok {
-		case _EOF, semicolon, And, Or, AndIf, OrIf, PipeAll,
+		case _EOF, semicolon, And, Or, AndIf, OrIf, pipeAll,
 			DblSemicolon, SemiFall, DblSemiFall:
 			return ce
 		case _LitWord:
@@ -1595,12 +1599,12 @@ func (p *parser) callExpr(s *Stmt, w Word) *CallExpr {
 				return ce
 			}
 			fallthrough
-		case _Lit, dollBrace, dollDblParen, dollParen, dollar, CmdIn, CmdOut,
+		case _Lit, dollBrace, dollDblParen, dollParen, dollar, cmdIn, cmdOut,
 			sglQuote, dollSglQuote, dblQuote, dollDblQuote, dollBrack, GlobQuest,
 			GlobMul, GlobAdd, GlobAt, GlobNot:
 			ce.Args = append(ce.Args, Word{Parts: p.wordParts()})
-		case Gtr, Shr, Lss, DplIn, DplOut, ClbOut, RdrInOut, Shl,
-			DashHdoc, WordHdoc, RdrAll, AppAll:
+		case Gtr, Shr, Lss, dplIn, dplOut, clbOut, rdrInOut, Shl,
+			dashHdoc, wordHdoc, rdrAll, appAll:
 			p.doRedirect(s)
 		case rightParen:
 			if p.quote == subCmd {

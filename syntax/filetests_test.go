@@ -462,7 +462,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"foo |& bar", "foo|&bar"},
 		bash: &BinaryCmd{
-			Op: PipeAll,
+			Op: pipeAll,
 			X:  litStmt("foo"),
 			Y:  litStmt("bar"),
 		},
@@ -557,9 +557,9 @@ var fileTests = []testCase{
 		common: &Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*Redirect{
-				{Op: Gtr, Word: *litWord("a")},
-				{Op: Shr, Word: *litWord("b")},
-				{Op: Lss, Word: *litWord("c")},
+				{Op: RdrOut, Word: *litWord("a")},
+				{Op: AppOut, Word: *litWord("b")},
+				{Op: RdrIn, Word: *litWord("c")},
 			},
 		},
 	},
@@ -571,7 +571,7 @@ var fileTests = []testCase{
 		common: &Stmt{
 			Cmd: litCall("foo", "bar"),
 			Redirs: []*Redirect{
-				{Op: Gtr, Word: *litWord("a")},
+				{Op: RdrOut, Word: *litWord("a")},
 			},
 		},
 	},
@@ -579,8 +579,8 @@ var fileTests = []testCase{
 		Strs: []string{`>a >\b`},
 		common: &Stmt{
 			Redirs: []*Redirect{
-				{Op: Gtr, Word: *litWord("a")},
-				{Op: Gtr, Word: *litWord(`\b`)},
+				{Op: RdrOut, Word: *litWord("a")},
+				{Op: RdrOut, Word: *litWord(`\b`)},
 			},
 		},
 	},
@@ -588,10 +588,10 @@ var fileTests = []testCase{
 		Strs: []string{">a\n>b", ">a; >b"},
 		common: []*Stmt{
 			{Redirs: []*Redirect{
-				{Op: Gtr, Word: *litWord("a")},
+				{Op: RdrOut, Word: *litWord("a")},
 			}},
 			{Redirs: []*Redirect{
-				{Op: Gtr, Word: *litWord("b")},
+				{Op: RdrOut, Word: *litWord("b")},
 			}},
 		},
 	},
@@ -602,7 +602,7 @@ var fileTests = []testCase{
 			{
 				Cmd: litCall("foo2"),
 				Redirs: []*Redirect{
-					{Op: Gtr, Word: *litWord("r2")},
+					{Op: RdrOut, Word: *litWord("r2")},
 				},
 			},
 		},
@@ -612,7 +612,7 @@ var fileTests = []testCase{
 		common: &Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*Redirect{
-				{Op: Gtr, Word: *word(
+				{Op: RdrOut, Word: *word(
 					lit("bar"),
 					cmdSubst(litStmt("etc")),
 				)},
@@ -629,7 +629,7 @@ var fileTests = []testCase{
 		common: &Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*Redirect{{
-				Op:   Shl,
+				Op:   Hdoc,
 				Word: *litWord("EOF"),
 				Hdoc: *litWord("bar\n"),
 			}},
@@ -640,7 +640,7 @@ var fileTests = []testCase{
 		common: &Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*Redirect{{
-				Op:   Shl,
+				Op:   Hdoc,
 				Word: *litWord("EOF"),
 				Hdoc: *litWord("\nbar\n"),
 			}},
@@ -651,7 +651,7 @@ var fileTests = []testCase{
 		common: &Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*Redirect{{
-				Op:   Shl,
+				Op:   Hdoc,
 				Word: *litWord("EOF"),
 				Hdoc: *litWord("1\n2\n3\n"),
 			}},
@@ -662,7 +662,7 @@ var fileTests = []testCase{
 		common: &Stmt{
 			Cmd: litCall("a"),
 			Redirs: []*Redirect{{
-				Op:   Shl,
+				Op:   Hdoc,
 				Word: *litWord("EOF"),
 				Hdoc: *word(
 					lit("foo"),
@@ -677,7 +677,7 @@ var fileTests = []testCase{
 		common: &Stmt{
 			Cmd: litCall("a"),
 			Redirs: []*Redirect{{
-				Op:   Shl,
+				Op:   Hdoc,
 				Word: *litWord("EOF"),
 				Hdoc: *word(
 					lit("\""),
@@ -692,7 +692,7 @@ var fileTests = []testCase{
 		bash: &Stmt{
 			Cmd: litCall("a"),
 			Redirs: []*Redirect{{
-				Op:   Shl,
+				Op:   Hdoc,
 				Word: *litWord("EOF"),
 				Hdoc: *word(
 					lit("$"),
@@ -711,7 +711,7 @@ var fileTests = []testCase{
 		common: &Stmt{
 			Cmd: litCall("a"),
 			Redirs: []*Redirect{{
-				Op:   Shl,
+				Op:   Hdoc,
 				Word: *litWord("EOF"),
 				Hdoc: *word(
 					cmdSubst(litStmt("b")),
@@ -725,7 +725,7 @@ var fileTests = []testCase{
 		common: &Stmt{
 			Cmd: litCall("a"),
 			Redirs: []*Redirect{{
-				Op:   Shl,
+				Op:   Hdoc,
 				Word: *litWord("EOF"),
 				Hdoc: *litWord("\\${\n"),
 			}},
@@ -739,7 +739,7 @@ var fileTests = []testCase{
 		common: block(&Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*Redirect{{
-				Op:   Shl,
+				Op:   Hdoc,
 				Word: *litWord("EOF"),
 				Hdoc: *litWord("bar\n"),
 			}},
@@ -753,7 +753,7 @@ var fileTests = []testCase{
 		common: cmdSubst(&Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*Redirect{{
-				Op:   Shl,
+				Op:   Hdoc,
 				Word: *litWord("EOF"),
 				Hdoc: *litWord("bar\n"),
 			}},
@@ -764,9 +764,9 @@ var fileTests = []testCase{
 		common: &Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*Redirect{
-				{Op: Gtr, Word: *litWord("f")},
+				{Op: RdrOut, Word: *litWord("f")},
 				{
-					Op:   Shl,
+					Op:   Hdoc,
 					Word: *litWord("EOF"),
 					Hdoc: *litWord("bar\n"),
 				},
@@ -779,11 +779,11 @@ var fileTests = []testCase{
 			Cmd: litCall("foo"),
 			Redirs: []*Redirect{
 				{
-					Op:   Shl,
+					Op:   Hdoc,
 					Word: *litWord("EOF"),
 					Hdoc: *litWord("bar\n"),
 				},
-				{Op: Gtr, Word: *litWord("f")},
+				{Op: RdrOut, Word: *litWord("f")},
 			},
 		},
 	},
@@ -794,7 +794,7 @@ var fileTests = []testCase{
 			X: &Stmt{
 				Cmd: litCall("foo"),
 				Redirs: []*Redirect{{
-					Op:   Shl,
+					Op:   Hdoc,
 					Word: *litWord("EOF"),
 					Hdoc: *litWord("bar\n"),
 				}},
@@ -810,7 +810,7 @@ var fileTests = []testCase{
 		common: &Stmt{
 			Cmd: call(*word(cmdSubst(litStmt("foo")))),
 			Redirs: []*Redirect{{
-				Op:   Shl,
+				Op:   Hdoc,
 				Word: *litWord("EOF"),
 				Hdoc: *litWord("bar\n"),
 			}},
@@ -825,7 +825,7 @@ var fileTests = []testCase{
 		common: &Stmt{
 			Cmd: call(*word(cmdSubst(litStmt("foo")))),
 			Redirs: []*Redirect{{
-				Op:   Shl,
+				Op:   Hdoc,
 				Word: *litWord("EOF"),
 				Hdoc: *litWord("bar\n"),
 			}},
@@ -839,7 +839,7 @@ var fileTests = []testCase{
 		common: &Stmt{
 			Cmd: call(*word(arithmExp(litWord("foo")))),
 			Redirs: []*Redirect{{
-				Op:   Shl,
+				Op:   Hdoc,
 				Word: *litWord("EOF"),
 				Hdoc: *litWord("bar\n"),
 			}},
@@ -879,7 +879,7 @@ var fileTests = []testCase{
 			{
 				Cmd: litCall("foo"),
 				Redirs: []*Redirect{{
-					Op:   Shl,
+					Op:   Hdoc,
 					Word: *litWord("EOF"),
 					Hdoc: *litWord("bar\n"),
 				}},
@@ -892,7 +892,7 @@ var fileTests = []testCase{
 		common: &Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*Redirect{{
-				Op:   Shl,
+				Op:   Hdoc,
 				Word: *litWord("FOOBAR"),
 				Hdoc: *litWord("bar\n"),
 			}},
@@ -906,7 +906,7 @@ var fileTests = []testCase{
 		common: &Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*Redirect{{
-				Op:   Shl,
+				Op:   Hdoc,
 				Word: *word(dblQuoted(lit("EOF"))),
 				Hdoc: *litWord("bar\n"),
 			}},
@@ -918,7 +918,7 @@ var fileTests = []testCase{
 			Cmd: litCall("foo"),
 			Redirs: []*Redirect{
 				{
-					Op:   Shl,
+					Op:   Hdoc,
 					Word: *word(sglQuoted("EOF")),
 					Hdoc: *litWord("${\n"),
 				},
@@ -930,7 +930,7 @@ var fileTests = []testCase{
 		common: &Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*Redirect{{
-				Op:   Shl,
+				Op:   Hdoc,
 				Word: *word(dblQuoted(lit("EOF")), lit("2")),
 				Hdoc: *litWord("bar\n"),
 			}},
@@ -941,7 +941,7 @@ var fileTests = []testCase{
 		common: &Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*Redirect{{
-				Op:   Shl,
+				Op:   Hdoc,
 				Word: *litWord("\\EOF"),
 				Hdoc: *litWord("bar\n"),
 			}},
@@ -952,7 +952,7 @@ var fileTests = []testCase{
 		common: &Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*Redirect{{
-				Op:   Shl,
+				Op:   Hdoc,
 				Word: *word(litParamExp("EOF")),
 				Hdoc: *litWord("bar\n"),
 			}},
@@ -1023,7 +1023,7 @@ var fileTests = []testCase{
 			{
 				Cmd: litCall("f1"),
 				Redirs: []*Redirect{{
-					Op:   Shl,
+					Op:   Hdoc,
 					Word: *litWord("EOF1"),
 					Hdoc: *litWord("h1\n"),
 				}},
@@ -1031,7 +1031,7 @@ var fileTests = []testCase{
 			{
 				Cmd: litCall("f2"),
 				Redirs: []*Redirect{{
-					Op:   Shl,
+					Op:   Hdoc,
 					Word: *litWord("EOF2"),
 					Hdoc: *litWord("h2\n"),
 				}},
@@ -1047,7 +1047,7 @@ var fileTests = []testCase{
 			{
 				Cmd: litCall("a"),
 				Redirs: []*Redirect{{
-					Op:   Shl,
+					Op:   Hdoc,
 					Word: *litWord("EOF"),
 					Hdoc: *litWord("foo\n"),
 				}},
@@ -1068,7 +1068,7 @@ var fileTests = []testCase{
 				*word(dblQuoted(lit("\narg"))),
 			),
 			Redirs: []*Redirect{{
-				Op:   Shl,
+				Op:   Hdoc,
 				Word: *litWord("EOF"),
 				Hdoc: *litWord("bar\n"),
 			}},
@@ -1081,7 +1081,7 @@ var fileTests = []testCase{
 			Redirs: []*Redirect{
 				{Op: DplOut, Word: *litWord("2")},
 				{Op: DplIn, Word: *litWord("0")},
-				{Op: Gtr, N: lit("2"), Word: *litWord("file")},
+				{Op: RdrOut, N: lit("2"), Word: *litWord("file")},
 				{Op: RdrInOut, Word: *litWord("f2")},
 			},
 		},
@@ -1098,10 +1098,10 @@ var fileTests = []testCase{
 		posix: []*Stmt{
 			{Cmd: litCall("foo"), Background: true},
 			{Redirs: []*Redirect{
-				{Op: Gtr, Word: *litWord("a")},
+				{Op: RdrOut, Word: *litWord("a")},
 			}, Background: true},
 			{Redirs: []*Redirect{
-				{Op: Shr, Word: *litWord("b")},
+				{Op: AppOut, Word: *litWord("b")},
 			}},
 		},
 	},
@@ -1110,7 +1110,7 @@ var fileTests = []testCase{
 		common: &Stmt{
 			Cmd: litCall("foo", "bar"),
 			Redirs: []*Redirect{
-				{Op: Gtr, N: lit("2"), Word: *litWord("file")},
+				{Op: RdrOut, N: lit("2"), Word: *litWord("file")},
 			},
 		},
 	},
@@ -1119,11 +1119,11 @@ var fileTests = []testCase{
 		common: []*Stmt{
 			{
 				Cmd:    litCall("a"),
-				Redirs: []*Redirect{{Op: Gtr, Word: *litWord("f1")}},
+				Redirs: []*Redirect{{Op: RdrOut, Word: *litWord("f1")}},
 			},
 			{
 				Cmd:    litCall("b"),
-				Redirs: []*Redirect{{Op: Gtr, Word: *litWord("f2")}},
+				Redirs: []*Redirect{{Op: RdrOut, Word: *litWord("f2")}},
 			},
 		},
 	},
@@ -1169,7 +1169,7 @@ var fileTests = []testCase{
 			Cmd: call(
 				*litWord("foo"),
 				*word(&ProcSubst{
-					Op:    CmdOut,
+					Op:    cmdOut,
 					Stmts: litStmts("foo"),
 				}),
 			),
@@ -1180,9 +1180,9 @@ var fileTests = []testCase{
 		bash: &Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*Redirect{{
-				Op: Lss,
+				Op: RdrIn,
 				Word: *word(&ProcSubst{
-					Op:    CmdIn,
+					Op:    cmdIn,
 					Stmts: litStmts("foo"),
 				}),
 			}},
@@ -1218,7 +1218,7 @@ var fileTests = []testCase{
 				ThenStmts: litStmts("bar"),
 			},
 			Redirs: []*Redirect{
-				{Op: Gtr, Word: *litWord("/dev/null")},
+				{Op: RdrOut, Word: *litWord("/dev/null")},
 			},
 			Background: true,
 		},
@@ -2305,7 +2305,7 @@ var fileTests = []testCase{
 				Stmts: []*Stmt{{
 					Cmd: litCall("cat"),
 					Redirs: []*Redirect{{
-						Op:   Shl,
+						Op:   Hdoc,
 						Word: *litWord("EOF"),
 						Hdoc: *litWord("foo\n"),
 					}},
@@ -2366,7 +2366,7 @@ var fileTests = []testCase{
 			CondStmts: litStmts("a"),
 			ThenStmts: []*Stmt{
 				{Redirs: []*Redirect{
-					{Op: Gtr, Word: *litWord("f")},
+					{Op: RdrOut, Word: *litWord("f")},
 				}},
 			},
 		},
@@ -2420,7 +2420,7 @@ var fileTests = []testCase{
 			X: &Stmt{
 				Cmd: litCall("foo"),
 				Redirs: []*Redirect{
-					{Op: Gtr, Word: *litWord("f")},
+					{Op: RdrOut, Word: *litWord("f")},
 				},
 			},
 			Y: litStmt("bar"),
@@ -2433,7 +2433,7 @@ var fileTests = []testCase{
 			X: &Stmt{
 				Cmd: subshell(litStmt("foo")),
 				Redirs: []*Redirect{
-					{Op: Gtr, Word: *litWord("f")},
+					{Op: RdrOut, Word: *litWord("f")},
 				},
 			},
 			Y: litStmt("bar"),
@@ -2446,7 +2446,7 @@ var fileTests = []testCase{
 			X:  litStmt("foo"),
 			Y: &Stmt{
 				Redirs: []*Redirect{
-					{Op: Gtr, Word: *litWord("f")},
+					{Op: RdrOut, Word: *litWord("f")},
 				},
 			},
 		},
@@ -2826,7 +2826,7 @@ var fileTests = []testCase{
 				},
 			},
 			Redirs: []*Redirect{
-				{Op: Gtr, Word: *litWord("/dev/null")},
+				{Op: RdrOut, Word: *litWord("/dev/null")},
 			},
 		},
 	},
@@ -2904,7 +2904,7 @@ var fileTests = []testCase{
 		Strs: []string{`let ++i >/dev/null`},
 		bash: &Stmt{
 			Cmd:    letClause(&UnaryExpr{Op: Inc, X: litWord("i")}),
-			Redirs: []*Redirect{{Op: Gtr, Word: *litWord("/dev/null")}},
+			Redirs: []*Redirect{{Op: RdrOut, Word: *litWord("/dev/null")}},
 		},
 	},
 	{
@@ -3065,7 +3065,7 @@ var fileTests = []testCase{
 		common: &BinaryCmd{
 			Op: Or,
 			X: &Stmt{Redirs: []*Redirect{{
-				Op:   Shl,
+				Op:   Hdoc,
 				Word: *litWord("EOF"),
 				Hdoc: *litWord("foo\n"),
 			}}},
@@ -3080,12 +3080,12 @@ var fileTests = []testCase{
 				Op: Or,
 				X: &Stmt{Redirs: []*Redirect{
 					{
-						Op:   Shl,
+						Op:   Hdoc,
 						Word: *litWord("EOF1"),
 						Hdoc: *word(),
 					},
 					{
-						Op:   Shl,
+						Op:   Hdoc,
 						Word: *litWord("EOF2"),
 						Hdoc: *word(),
 					},
@@ -3103,7 +3103,7 @@ var fileTests = []testCase{
 		common: &BinaryCmd{
 			Op: AndIf,
 			X: &Stmt{Redirs: []*Redirect{{
-				Op:   Shl,
+				Op:   Hdoc,
 				Word: *litWord("EOF"),
 				Hdoc: *litWord("hdoc\n"),
 			}}},
@@ -3117,7 +3117,7 @@ var fileTests = []testCase{
 			Body: stmt(block(stmt(&BinaryCmd{
 				Op: AndIf,
 				X: &Stmt{Redirs: []*Redirect{{
-					Op:   Shl,
+					Op:   Hdoc,
 					Word: *litWord("EOF"),
 					Hdoc: *litWord("hdoc\n"),
 				}}},
@@ -3161,7 +3161,7 @@ var fileTestsNoPrint = []testCase{
 	{
 		Strs: []string{"<<EOF\n\\"},
 		common: &Stmt{Redirs: []*Redirect{{
-			Op:   Shl,
+			Op:   Hdoc,
 			Word: *litWord("EOF"),
 			Hdoc: *litWord("\\"),
 		}}},

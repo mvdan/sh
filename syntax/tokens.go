@@ -17,10 +17,11 @@ const (
 	dblQuote // "
 	bckQuote // `
 
-	And   // &
-	AndIf // &&
-	Or    // |
-	OrIf  // ||
+	And     // &
+	AndIf   // &&
+	Or      // |
+	OrIf    // ||
+	pipeAll // |& - bash
 
 	dollar       // $
 	dollSglQuote // $' - bash
@@ -42,11 +43,6 @@ const (
 	DblSemicolon // ;;
 	SemiFall     // ;& - bash
 	DblSemiFall  // ;;& - bash
-
-	Lss // <
-	Gtr // >
-	Shl // <<
-	Shr // >>
 
 	Add   // +
 	Sub   // -
@@ -76,17 +72,20 @@ const (
 	ShlAssgn // <<=
 	ShrAssgn // >>=
 
-	PipeAll  // |& - bash
-	RdrInOut // <>
-	DplIn    // <&
-	DplOut   // >&
-	ClbOut   // >|
-	DashHdoc // <<-
-	WordHdoc // <<< - bash
-	CmdIn    // <( - bash
-	CmdOut   // >( - bash
-	RdrAll   // &> - bash
-	AppAll   // &>> - bash
+	Gtr      // >
+	Shr      // >>
+	Lss      // <
+	rdrInOut // <>
+	dplIn    // <&
+	dplOut   // >&
+	clbOut   // >|
+	Shl      // <<
+	dashHdoc // <<-
+	wordHdoc // <<< - bash
+	cmdIn    // <( - bash
+	cmdOut   // >( - bash
+	rdrAll   // &> - bash
+	appAll   // &>> - bash
 
 	Colon    // :
 	ColAdd   // :+
@@ -141,6 +140,29 @@ const (
 	GlobNot   // !(
 )
 
+type RedirOperator Token
+
+const (
+	RdrOut RedirOperator = iota
+	AppOut
+	RdrIn
+	RdrInOut
+	DplIn
+	DplOut
+	ClbOut
+	Hdoc
+	DashHdoc
+	WordHdoc
+	CmdIn
+	CmdOut
+	RdrAll
+	AppAll
+)
+
+func (o RedirOperator) String() string  { return fromRedirOp(o).String() }
+func toRedirOp(t Token) RedirOperator   { return RedirOperator(t - Gtr) }
+func fromRedirOp(o RedirOperator) Token { return Token(o) + Gtr }
+
 // Pos is the internal representation of a position within a source
 // file.
 type Pos int
@@ -167,10 +189,11 @@ var tokNames = map[Token]string{
 	dblQuote: `"`,
 	bckQuote: "`",
 
-	And:   "&",
-	AndIf: "&&",
-	Or:    "|",
-	OrIf:  "||",
+	And:     "&",
+	AndIf:   "&&",
+	Or:      "|",
+	OrIf:    "||",
+	pipeAll: "|&",
 
 	dollar:       "$",
 	dollSglQuote: "$'",
@@ -193,21 +216,20 @@ var tokNames = map[Token]string{
 	SemiFall:     ";&",
 	DblSemiFall:  ";;&",
 
-	Lss:      "<",
 	Gtr:      ">",
-	Shl:      "<<",
 	Shr:      ">>",
-	PipeAll:  "|&",
-	RdrInOut: "<>",
-	DplIn:    "<&",
-	DplOut:   ">&",
-	ClbOut:   ">|",
-	DashHdoc: "<<-",
-	WordHdoc: "<<<",
-	CmdIn:    "<(",
-	CmdOut:   ">(",
-	RdrAll:   "&>",
-	AppAll:   "&>>",
+	Lss:      "<",
+	rdrInOut: "<>",
+	dplIn:    "<&",
+	dplOut:   ">&",
+	clbOut:   ">|",
+	Shl:      "<<",
+	dashHdoc: "<<-",
+	wordHdoc: "<<<",
+	cmdIn:    "<(",
+	cmdOut:   ">(",
+	rdrAll:   "&>",
+	appAll:   "&>>",
 
 	Colon:    ":",
 	Add:      "+",
