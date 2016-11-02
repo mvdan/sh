@@ -21,6 +21,8 @@ var walkTests = []struct {
 	{true, "shebang-3", "#!/usr/bin/sh\n foo"},
 	{true, "shebang-4", "#!/usr/bin/env bash\n foo"},
 	{true, "shebang-5", "#!/bin/env sh\n foo"},
+	{true, "shebang-space", "#! /bin/sh\n foo"},
+	{true, "shebang-tab", "#!\t/bin/sh\n foo"},
 	{true, "ext.sh", " foo"},
 	{true, "ext.bash", " foo"},
 	{true, "ext-shebang.sh", "#!/bin/sh\n foo"},

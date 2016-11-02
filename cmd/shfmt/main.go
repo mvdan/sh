@@ -87,7 +87,7 @@ func formatStdin() error {
 
 var (
 	shellFile    = regexp.MustCompile(`^.*\.(sh|bash)$`)
-	validShebang = regexp.MustCompile(`^#!/(usr/)?bin/(env *)?(sh|bash)`)
+	validShebang = regexp.MustCompile(`^#!\s?/(usr/)?bin/(env *)?(sh|bash)`)
 	vcsDir       = regexp.MustCompile(`^(\.git|\.svn|\.hg)$`)
 )
 
