@@ -1883,6 +1883,14 @@ var fileTests = []testCase{
 		}),
 	},
 	{
+		Strs: []string{"$(($(a) + 2))"},
+		common: arithmExp(&BinaryExpr{
+			Op: Add,
+			X:  word(cmdSubst(litStmt("a"))),
+			Y:  litWord("2"),
+		}),
+	},
+	{
 		Strs: []string{
 			"$((3 % 7))",
 			"$((3\n% 7))",

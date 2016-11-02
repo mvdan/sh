@@ -660,16 +660,18 @@ func (p *parser) couldBeArithm() (could bool) {
 	oldLines := len(p.f.Lines)
 	p.next()
 	lparens := 0
+tokLoop:
 	for p.tok != _EOF {
 		if p.peekArithmEnd() {
 			could = true
 			break
 		}
-		if p.tok == leftParen {
+		switch p.tok {
+		case leftParen, dollParen:
 			lparens++
-		} else if p.tok == rightParen {
+		case rightParen:
 			if lparens--; lparens < 0 {
-				break
+				break tokLoop
 			}
 		}
 		p.next()
