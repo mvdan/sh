@@ -43,102 +43,102 @@ const (
 	SemiFall     // ;& - bash
 	DblSemiFall  // ;;& - bash
 
-	LSS // <
-	GTR // >
-	SHL // <<
-	SHR // >>
+	Lss // <
+	Gtr // >
+	Shl // <<
+	Shr // >>
 
-	ADD    // +
-	SUB    // -
-	REM    // %
-	MUL    // *
-	QUO    // /
-	XOR    // ^
-	NOT    // !
-	INC    // ++
-	DEC    // --
-	POW    // **
-	COMMA  // ,
-	ASSIGN // =
-	EQL    // ==
-	NEQ    // !=
-	LEQ    // <=
-	GEQ    // >=
+	Add   // +
+	Sub   // -
+	Rem   // %
+	Mul   // *
+	Quo   // /
+	Xor   // ^
+	Not   // !
+	Inc   // ++
+	Dec   // --
+	Pow   // **
+	Comma // ,
+	Assgn // =
+	Eql   // ==
+	Neq   // !=
+	Leq   // <=
+	Geq   // >=
 
-	ADDASSGN // +=
-	SUBASSGN // -=
-	MULASSGN // *=
-	QUOASSGN // /=
-	REMASSGN // %=
-	ANDASSGN // &=
-	ORASSGN  // |=
-	XORASSGN // ^=
-	SHLASSGN // <<=
-	SHRASSGN // >>=
+	AddAssgn // +=
+	SubAssgn // -=
+	MulAssgn // *=
+	QuoAssgn // /=
+	RemAssgn // %=
+	AndAssgn // &=
+	OrAssgn  // |=
+	XorAssgn // ^=
+	ShlAssgn // <<=
+	ShrAssgn // >>=
 
-	PIPEALL  // |& - bash
-	RDRINOUT // <>
-	DPLIN    // <&
-	DPLOUT   // >&
-	CLBOUT   // >|
-	DHEREDOC // <<-
-	WHEREDOC // <<< - bash
-	CMDIN    // <( - bash
-	CMDOUT   // >( - bash
-	RDRALL   // &> - bash
-	APPALL   // &>> - bash
+	PipeAll  // |& - bash
+	RdrInOut // <>
+	DplIn    // <&
+	DplOut   // >&
+	ClbOut   // >|
+	DashHdoc // <<-
+	WordHdoc // <<< - bash
+	CmdIn    // <( - bash
+	CmdOut   // >( - bash
+	RdrAll   // &> - bash
+	AppAll   // &>> - bash
 
-	COLON   // :
-	CADD    // :+
-	CSUB    // :-
-	QUEST   // ?
-	CQUEST  // :?
-	CASSIGN // :=
-	DREM    // %%
-	HASH    // #
-	DHASH   // ##
-	DQUO    // //
-	DXOR    // ^^ - bash
-	DCOMMA  // ,, - bash
+	Colon    // :
+	ColAdd   // :+
+	ColSub   // :-
+	Quest    // ?
+	ColQuest // :?
+	ColAssgn // :=
+	DblRem   // %%
+	Hash     // #
+	DblHash  // ##
+	DblQuo   // //
+	DblXor   // ^^ - bash
+	DblComma // ,, - bash
 
 	// All of the below are bash-only.
-	TEXISTS  // -e
-	TREGFILE // -f
-	TDIRECT  // -d
-	TCHARSP  // -c
-	TBLCKSP  // -b
-	TNMPIPE  // -p
-	TSOCKET  // -S
-	TSMBLINK // -L
-	TSGIDSET // -g
-	TSUIDSET // -u
-	TREAD    // -r
-	TWRITE   // -w
-	TEXEC    // -x
-	TNOEMPTY // -s
-	TFDTERM  // -t
-	TEMPSTR  // -z
-	TNEMPSTR // -n
-	TOPTSET  // -o
-	TVARSET  // -v
-	TNRFVAR  // -R
+	TsExists  // -e
+	TsRegFile // -f
+	TsDirect  // -d
+	TsCharSp  // -c
+	TsBlckSp  // -b
+	TsNmPipe  // -p
+	TsSocket  // -S
+	TsSmbLink // -L
+	TsGIDSet  // -g
+	TsUIDSet  // -u
+	TsRead    // -r
+	TsWrite   // -w
+	TsExec    // -x
+	TsNoEmpty // -s
+	TsFdTerm  // -t
+	TsEmpStr  // -z
+	TsNempStr // -n
+	TsOptSet  // -o
+	TsVarSet  // -v
+	TsRefVar  // -R
 
-	TREMATCH // =~
-	TNEWER   // -nt
-	TOLDER   // -ot
-	TDEVIND  // -ef
-	TEQL     // -eq
-	TNEQ     // -ne
-	TLEQ     // -le
-	TGEQ     // -ge
-	TLSS     // -lt
-	TGTR     // -gt
+	TsReMatch // =~
+	TsNewer   // -nt
+	TsOlder   // -ot
+	TsDevIno  // -ef
+	TsEql     // -eq
+	TsNeq     // -ne
+	TsLeq     // -le
+	TsGeq     // -ge
+	TsLss     // -lt
+	TsGtr     // -gt
 
-	GQUEST // ?(
-	GMUL   // *(
-	GADD   // +(
-	GAT    // @(
-	GNOT   // !(
+	GlobQuest // ?(
+	GlobMul   // *(
+	GlobAdd   // +(
+	GlobAt    // @(
+	GlobNot   // !(
 )
 
 // Pos is the internal representation of a position within a source
@@ -193,100 +193,100 @@ var tokNames = map[Token]string{
 	SemiFall:     ";&",
 	DblSemiFall:  ";;&",
 
-	LSS:      "<",
-	GTR:      ">",
-	SHL:      "<<",
-	SHR:      ">>",
-	PIPEALL:  "|&",
-	RDRINOUT: "<>",
-	DPLIN:    "<&",
-	DPLOUT:   ">&",
-	CLBOUT:   ">|",
-	DHEREDOC: "<<-",
-	WHEREDOC: "<<<",
-	CMDIN:    "<(",
-	CMDOUT:   ">(",
-	RDRALL:   "&>",
-	APPALL:   "&>>",
+	Lss:      "<",
+	Gtr:      ">",
+	Shl:      "<<",
+	Shr:      ">>",
+	PipeAll:  "|&",
+	RdrInOut: "<>",
+	DplIn:    "<&",
+	DplOut:   ">&",
+	ClbOut:   ">|",
+	DashHdoc: "<<-",
+	WordHdoc: "<<<",
+	CmdIn:    "<(",
+	CmdOut:   ">(",
+	RdrAll:   "&>",
+	AppAll:   "&>>",
 
-	COLON:   ":",
-	ADD:     "+",
-	CADD:    ":+",
-	SUB:     "-",
-	CSUB:    ":-",
-	QUEST:   "?",
-	CQUEST:  ":?",
-	CASSIGN: ":=",
-	REM:     "%",
-	DREM:    "%%",
-	HASH:    "#",
-	DHASH:   "##",
-	QUO:     "/",
-	DQUO:    "//",
-	DXOR:    "^^",
-	DCOMMA:  ",,",
+	Colon:    ":",
+	Add:      "+",
+	ColAdd:   ":+",
+	Sub:      "-",
+	ColSub:   ":-",
+	Quest:    "?",
+	ColQuest: ":?",
+	ColAssgn: ":=",
+	Rem:      "%",
+	DblRem:   "%%",
+	Hash:     "#",
+	DblHash:  "##",
+	Quo:      "/",
+	DblQuo:   "//",
+	DblXor:   "^^",
+	DblComma: ",,",
 
-	MUL:    "*",
-	XOR:    "^",
-	NOT:    "!",
-	INC:    "++",
-	DEC:    "--",
-	POW:    "**",
-	COMMA:  ",",
-	ASSIGN: "=",
-	EQL:    "==",
-	NEQ:    "!=",
-	LEQ:    "<=",
-	GEQ:    ">=",
+	Mul:   "*",
+	Xor:   "^",
+	Not:   "!",
+	Inc:   "++",
+	Dec:   "--",
+	Pow:   "**",
+	Comma: ",",
+	Assgn: "=",
+	Eql:   "==",
+	Neq:   "!=",
+	Leq:   "<=",
+	Geq:   ">=",
 
-	ADDASSGN: "+=",
-	SUBASSGN: "-=",
-	MULASSGN: "*=",
-	QUOASSGN: "/=",
-	REMASSGN: "%=",
-	ANDASSGN: "&=",
-	ORASSGN:  "|=",
-	XORASSGN: "^=",
-	SHLASSGN: "<<=",
-	SHRASSGN: ">>=",
+	AddAssgn: "+=",
+	SubAssgn: "-=",
+	MulAssgn: "*=",
+	QuoAssgn: "/=",
+	RemAssgn: "%=",
+	AndAssgn: "&=",
+	OrAssgn:  "|=",
+	XorAssgn: "^=",
+	ShlAssgn: "<<=",
+	ShrAssgn: ">>=",
 
-	TEXISTS:  "-e",
-	TREGFILE: "-f",
-	TDIRECT:  "-d",
-	TCHARSP:  "-c",
-	TBLCKSP:  "-b",
-	TNMPIPE:  "-p",
-	TSOCKET:  "-S",
-	TSMBLINK: "-L",
-	TSGIDSET: "-g",
-	TSUIDSET: "-u",
-	TREAD:    "-r",
-	TWRITE:   "-w",
-	TEXEC:    "-x",
-	TNOEMPTY: "-s",
-	TFDTERM:  "-t",
-	TEMPSTR:  "-z",
-	TNEMPSTR: "-n",
-	TOPTSET:  "-o",
-	TVARSET:  "-v",
-	TNRFVAR:  "-R",
+	TsExists:  "-e",
+	TsRegFile: "-f",
+	TsDirect:  "-d",
+	TsCharSp:  "-c",
+	TsBlckSp:  "-b",
+	TsNmPipe:  "-p",
+	TsSocket:  "-S",
+	TsSmbLink: "-L",
+	TsGIDSet:  "-g",
+	TsUIDSet:  "-u",
+	TsRead:    "-r",
+	TsWrite:   "-w",
+	TsExec:    "-x",
+	TsNoEmpty: "-s",
+	TsFdTerm:  "-t",
+	TsEmpStr:  "-z",
+	TsNempStr: "-n",
+	TsOptSet:  "-o",
+	TsVarSet:  "-v",
+	TsRefVar:  "-R",
 
-	TREMATCH: "=~",
-	TNEWER:   "-nt",
-	TOLDER:   "-ot",
-	TDEVIND:  "-ef",
-	TEQL:     "-eq",
-	TNEQ:     "-ne",
-	TLEQ:     "-le",
-	TGEQ:     "-ge",
-	TLSS:     "-lt",
-	TGTR:     "-gt",
+	TsReMatch: "=~",
+	TsNewer:   "-nt",
+	TsOlder:   "-ot",
+	TsDevIno:  "-ef",
+	TsEql:     "-eq",
+	TsNeq:     "-ne",
+	TsLeq:     "-le",
+	TsGeq:     "-ge",
+	TsLss:     "-lt",
+	TsGtr:     "-gt",
 
-	GQUEST: "?(",
-	GMUL:   "*(",
-	GADD:   "+(",
-	GAT:    "@(",
-	GNOT:   "!(",
+	GlobQuest: "?(",
+	GlobMul:   "*(",
+	GlobAdd:   "+(",
+	GlobAt:    "@(",
+	GlobNot:   "!(",
 }
 
 func (t Token) String() string { return tokNames[t] }

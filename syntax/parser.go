@@ -223,7 +223,7 @@ func (p *parser) doHeredocs() {
 	hdocs := p.heredocs[p.buriedHdocs:]
 	p.heredocs = p.heredocs[:p.buriedHdocs]
 	for i, r := range hdocs {
-		if r.Op == DHEREDOC {
+		if r.Op == DashHdoc {
 			p.quote = hdocBodyTabs
 		} else {
 			p.quote = hdocBody
@@ -545,7 +545,7 @@ func (p *parser) wordPart() WordPart {
 		}
 		p.gotLit(&pe.Param)
 		return pe
-	case CMDIN, CMDOUT:
+	case CmdIn, CmdOut:
 		ps := &ProcSubst{Op: p.tok, OpPos: p.pos}
 		old := p.preNested(subCmd)
 		p.next()
@@ -628,7 +628,7 @@ func (p *parser) wordPart() WordPart {
 			p.quoteErr(cs.Pos(), bckQuote)
 		}
 		return cs
-	case GQUEST, GMUL, GADD, GAT, GNOT:
+	case GlobQuest, GlobMul, GlobAdd, GlobAt, GlobNot:
 		eg := &ExtGlob{Op: p.tok}
 		eg.Pattern.ValuePos = Pos(p.npos + 1)
 		start := p.npos
@@ -683,30 +683,30 @@ func (p *parser) couldBeArithm() (could bool) {
 
 func arithmOpLevel(tok Token) int {
 	switch tok {
-	case COMMA:
+	case Comma:
 		return 0
-	case ADDASSGN, SUBASSGN, MULASSGN, QUOASSGN, REMASSGN, ANDASSGN,
-		ORASSGN, XORASSGN, SHLASSGN, SHRASSGN:
+	case AddAssgn, SubAssgn, MulAssgn, QuoAssgn, RemAssgn, AndAssgn,
+		OrAssgn, XorAssgn, ShlAssgn, ShrAssgn:
 		return 1
-	case ASSIGN:
+	case Assgn:
 		return 2
-	case QUEST, COLON:
+	case Quest, Colon:
 		return 3
 	case AndIf, OrIf:
 		return 4
-	case And, Or, XOR:
+	case And, Or, Xor:
 		return 5
-	case EQL, NEQ:
+	case Eql, Neq:
 		return 6
-	case LSS, GTR, LEQ, GEQ:
+	case Lss, Gtr, Leq, Geq:
 		return 7
-	case SHL, SHR:
+	case Shl, Shr:
 		return 8
-	case ADD, SUB:
+	case Add, Sub:
 		return 9
-	case MUL, QUO, REM:
+	case Mul, Quo, Rem:
 		return 10
-	case POW:
+	case Pow:
 		return 11
 	}
 	return -1
@@ -759,7 +759,7 @@ func (p *parser) arithmExpr(ftok Token, fpos Pos, level int, compact bool) Arith
 func (p *parser) arithmExprBase(ftok Token, fpos Pos, compact bool) ArithmExpr {
 	var x ArithmExpr
 	switch p.tok {
-	case INC, DEC, NOT:
+	case Inc, Dec, Not:
 		pre := &UnaryExpr{OpPos: p.pos, Op: p.tok}
 		p.next()
 		pre.X = p.arithmExprBase(pre.Op, pre.OpPos, compact)
@@ -772,7 +772,7 @@ func (p *parser) arithmExprBase(ftok Token, fpos Pos, compact bool) ArithmExpr {
 		}
 		pe.Rparen = p.matched(pe.Lparen, leftParen, rightParen)
 		x = pe
-	case ADD, SUB:
+	case Add, Sub:
 		ue := &UnaryExpr{OpPos: p.pos, Op: p.tok}
 		if p.next(); compact && p.spaced {
 			p.followErr(ue.OpPos, ue.Op.String(), "an expression")
@@ -796,7 +796,7 @@ func (p *parser) arithmExprBase(ftok Token, fpos Pos, compact bool) ArithmExpr {
 	if compact && p.spaced {
 		return x
 	}
-	if p.tok == INC || p.tok == DEC {
+	if p.tok == Inc || p.tok == Dec {
 		u := &UnaryExpr{
 			Post:  true,
 			OpPos: p.pos,
@@ -816,11 +816,11 @@ func (p *parser) gotParamLit(l *Lit) bool {
 		l.Value = p.val
 	case dollar:
 		l.Value = "$"
-	case QUEST:
+	case Quest:
 		l.Value = "?"
-	case HASH:
+	case Hash:
 		l.Value = "#"
-	case SUB:
+	case Sub:
 		l.Value = "-"
 	default:
 		return false
@@ -834,11 +834,11 @@ func (p *parser) paramExp() *ParamExp {
 	old := p.preNested(paramExpName)
 	p.next()
 	switch p.tok {
-	case DHASH:
-		p.tok = HASH
+	case DblHash:
+		p.tok = Hash
 		p.npos--
 		fallthrough
-	case HASH:
+	case Hash:
 		if p.npos < len(p.src) && p.src[p.npos] != '}' {
 			pe.Length = true
 			p.next()
@@ -865,12 +865,12 @@ func (p *parser) paramExp() *ParamExp {
 		p.postNested(old)
 		p.next()
 		return pe
-	case QUO, DQUO:
-		pe.Repl = &Replace{All: p.tok == DQUO}
+	case Quo, DblQuo:
+		pe.Repl = &Replace{All: p.tok == DblQuo}
 		p.quote = paramExpRepl
 		p.next()
 		pe.Repl.Orig = p.word()
-		if p.tok == QUO {
+		if p.tok == Quo {
 			p.quote = paramExpExp
 			p.next()
 			pe.Repl.With = p.word()
@@ -904,7 +904,7 @@ func (p *parser) arithmEnd(ltok Token, lpos Pos, old saveState) Pos {
 
 func stopToken(tok Token) bool {
 	switch tok {
-	case _EOF, semicolon, And, Or, AndIf, OrIf, PIPEALL, DblSemicolon,
+	case _EOF, semicolon, And, Or, AndIf, OrIf, PipeAll, DblSemicolon,
 		SemiFall, DblSemiFall, rightParen:
 		return true
 	}
@@ -976,8 +976,8 @@ func (p *parser) peekRedir() bool {
 	switch p.tok {
 	case _LitWord:
 		return litRedir(p.src, p.npos)
-	case GTR, SHR, LSS, DPLIN, DPLOUT, CLBOUT, RDRINOUT, SHL, DHEREDOC,
-		WHEREDOC, RDRALL, APPALL:
+	case Gtr, Shr, Lss, DplIn, DplOut, ClbOut, RdrInOut, Shl, DashHdoc,
+		WordHdoc, RdrAll, AppAll:
 		return true
 	}
 	return false
@@ -992,7 +992,7 @@ func (p *parser) doRedirect(s *Stmt) {
 	r.Op, r.OpPos = p.tok, p.pos
 	p.next()
 	switch r.Op {
-	case SHL, DHEREDOC:
+	case Shl, DashHdoc:
 		old := p.quote
 		p.quote = hdocWord
 		if p.newLine {
@@ -1027,8 +1027,8 @@ preLoop:
 			} else {
 				break preLoop
 			}
-		case GTR, SHR, LSS, DPLIN, DPLOUT, CLBOUT, RDRINOUT, SHL, DHEREDOC,
-			WHEREDOC, RDRALL, APPALL:
+		case Gtr, Shr, Lss, DplIn, DplOut, ClbOut, RdrInOut, Shl, DashHdoc,
+			WordHdoc, RdrAll, AppAll:
 			p.doRedirect(s)
 		default:
 			break preLoop
@@ -1126,9 +1126,9 @@ func (p *parser) gotStmtPipe(s *Stmt) *Stmt {
 				})
 			}
 		}
-	case _Lit, dollBrace, dollDblParen, dollParen, dollar, CMDIN, CMDOUT, sglQuote,
-		dollSglQuote, dblQuote, dollDblQuote, bckQuote, dollBrack, GQUEST, GMUL, GADD,
-		GAT, GNOT:
+	case _Lit, dollBrace, dollDblParen, dollParen, dollar, CmdIn, CmdOut, sglQuote,
+		dollSglQuote, dblQuote, dollDblQuote, bckQuote, dollBrack, GlobQuest, GlobMul, GlobAdd,
+		GlobAt, GlobNot:
 		w := Word{Parts: p.wordParts()}
 		if p.gotSameLine(leftParen) && p.err == nil {
 			rawName := string(p.src[w.Pos()-1 : w.End()-1])
@@ -1142,7 +1142,7 @@ func (p *parser) gotStmtPipe(s *Stmt) *Stmt {
 	if s.Cmd == nil && len(s.Redirs) == 0 && !s.Negated && len(s.Assigns) == 0 {
 		return nil
 	}
-	if p.tok == Or || p.tok == PIPEALL {
+	if p.tok == Or || p.tok == PipeAll {
 		b := &BinaryCmd{OpPos: p.pos, Op: p.tok, X: s}
 		p.next()
 		if b.Y = p.gotStmtPipe(p.stmt(p.pos)); b.Y == nil {
@@ -1370,7 +1370,7 @@ func (p *parser) testExpr(ftok Token, fpos Pos, level int) ArithmExpr {
 			return left
 		}
 		fallthrough
-	case LSS, GTR:
+	case Lss, Gtr:
 		newLevel = 1
 	case _EOF, rightParen:
 		return left
@@ -1390,7 +1390,7 @@ func (p *parser) testExpr(ftok Token, fpos Pos, level int) ArithmExpr {
 		Op:    p.tok,
 		X:     left,
 	}
-	if p.tok == TREMATCH {
+	if p.tok == TsReMatch {
 		old := p.preNested(testRegexp)
 		p.next()
 		p.postNested(old)
@@ -1413,14 +1413,14 @@ func (p *parser) testExprBase(ftok Token, fpos Pos) ArithmExpr {
 		}
 	}
 	switch p.tok {
-	case NOT:
+	case Not:
 		u := &UnaryExpr{OpPos: p.pos, Op: p.tok}
 		p.next()
 		u.X = p.testExpr(u.Op, u.OpPos, 0)
 		return u
-	case TEXISTS, TREGFILE, TDIRECT, TCHARSP, TBLCKSP, TNMPIPE, TSOCKET, TSMBLINK,
-		TSGIDSET, TSUIDSET, TREAD, TWRITE, TEXEC, TNOEMPTY, TFDTERM, TEMPSTR,
-		TNEMPSTR, TOPTSET, TVARSET, TNRFVAR:
+	case TsExists, TsRegFile, TsDirect, TsCharSp, TsBlckSp, TsNmPipe, TsSocket, TsSmbLink,
+		TsGIDSet, TsUIDSet, TsRead, TsWrite, TsExec, TsNoEmpty, TsFdTerm, TsEmpStr,
+		TsNempStr, TsOptSet, TsVarSet, TsRefVar:
 		u := &UnaryExpr{OpPos: p.pos, Op: p.tok}
 		p.next()
 		w := p.followWordTok(ftok, fpos)
@@ -1578,7 +1578,7 @@ func (p *parser) callExpr(s *Stmt, w Word) *CallExpr {
 	ce.Args[0] = w
 	for !p.newLine {
 		switch p.tok {
-		case _EOF, semicolon, And, Or, AndIf, OrIf, PIPEALL,
+		case _EOF, semicolon, And, Or, AndIf, OrIf, PipeAll,
 			DblSemicolon, SemiFall, DblSemiFall:
 			return ce
 		case _LitWord:
@@ -1595,12 +1595,12 @@ func (p *parser) callExpr(s *Stmt, w Word) *CallExpr {
 				return ce
 			}
 			fallthrough
-		case _Lit, dollBrace, dollDblParen, dollParen, dollar, CMDIN, CMDOUT,
-			sglQuote, dollSglQuote, dblQuote, dollDblQuote, dollBrack, GQUEST,
-			GMUL, GADD, GAT, GNOT:
+		case _Lit, dollBrace, dollDblParen, dollParen, dollar, CmdIn, CmdOut,
+			sglQuote, dollSglQuote, dblQuote, dollDblQuote, dollBrack, GlobQuest,
+			GlobMul, GlobAdd, GlobAt, GlobNot:
 			ce.Args = append(ce.Args, Word{Parts: p.wordParts()})
-		case GTR, SHR, LSS, DPLIN, DPLOUT, CLBOUT, RDRINOUT, SHL,
-			DHEREDOC, WHEREDOC, RDRALL, APPALL:
+		case Gtr, Shr, Lss, DplIn, DplOut, ClbOut, RdrInOut, Shl,
+			DashHdoc, WordHdoc, RdrAll, AppAll:
 			p.doRedirect(s)
 		case rightParen:
 			if p.quote == subCmd {

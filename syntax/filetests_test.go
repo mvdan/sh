@@ -218,7 +218,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{`((a == 2))`},
 		bash: stmt(arithmCmd(&BinaryExpr{
-			Op: EQL,
+			Op: Eql,
 			X:  litWord("a"),
 			Y:  litWord("2"),
 		})),
@@ -228,7 +228,7 @@ var fileTests = []testCase{
 		Strs: []string{"if ((1 > 2)); then b; fi"},
 		bash: &IfClause{
 			CondStmts: stmts(arithmCmd(&BinaryExpr{
-				Op: GTR,
+				Op: Gtr,
 				X:  litWord("1"),
 				Y:  litWord("2"),
 			})),
@@ -264,7 +264,7 @@ var fileTests = []testCase{
 		Strs: []string{"while ((1 > 2)); do b; done"},
 		bash: &WhileClause{
 			CondStmts: stmts(arithmCmd(&BinaryExpr{
-				Op: GTR,
+				Op: Gtr,
 				X:  litWord("1"),
 				Y:  litWord("2"),
 			})),
@@ -316,17 +316,17 @@ var fileTests = []testCase{
 		bash: &ForClause{
 			Loop: &CStyleLoop{
 				Init: &BinaryExpr{
-					Op: ASSIGN,
+					Op: Assgn,
 					X:  litWord("i"),
 					Y:  litWord("0"),
 				},
 				Cond: &BinaryExpr{
-					Op: LSS,
+					Op: Lss,
 					X:  litWord("i"),
 					Y:  litWord("10"),
 				},
 				Post: &UnaryExpr{
-					Op:   INC,
+					Op:   Inc,
 					Post: true,
 					X:    litWord("i"),
 				},
@@ -462,7 +462,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"foo |& bar", "foo|&bar"},
 		bash: &BinaryCmd{
-			Op: PIPEALL,
+			Op: PipeAll,
 			X:  litStmt("foo"),
 			Y:  litStmt("bar"),
 		},
@@ -557,9 +557,9 @@ var fileTests = []testCase{
 		common: &Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*Redirect{
-				{Op: GTR, Word: *litWord("a")},
-				{Op: SHR, Word: *litWord("b")},
-				{Op: LSS, Word: *litWord("c")},
+				{Op: Gtr, Word: *litWord("a")},
+				{Op: Shr, Word: *litWord("b")},
+				{Op: Lss, Word: *litWord("c")},
 			},
 		},
 	},
@@ -571,7 +571,7 @@ var fileTests = []testCase{
 		common: &Stmt{
 			Cmd: litCall("foo", "bar"),
 			Redirs: []*Redirect{
-				{Op: GTR, Word: *litWord("a")},
+				{Op: Gtr, Word: *litWord("a")},
 			},
 		},
 	},
@@ -579,8 +579,8 @@ var fileTests = []testCase{
 		Strs: []string{`>a >\b`},
 		common: &Stmt{
 			Redirs: []*Redirect{
-				{Op: GTR, Word: *litWord("a")},
-				{Op: GTR, Word: *litWord(`\b`)},
+				{Op: Gtr, Word: *litWord("a")},
+				{Op: Gtr, Word: *litWord(`\b`)},
 			},
 		},
 	},
@@ -588,10 +588,10 @@ var fileTests = []testCase{
 		Strs: []string{">a\n>b", ">a; >b"},
 		common: []*Stmt{
 			{Redirs: []*Redirect{
-				{Op: GTR, Word: *litWord("a")},
+				{Op: Gtr, Word: *litWord("a")},
 			}},
 			{Redirs: []*Redirect{
-				{Op: GTR, Word: *litWord("b")},
+				{Op: Gtr, Word: *litWord("b")},
 			}},
 		},
 	},
@@ -602,7 +602,7 @@ var fileTests = []testCase{
 			{
 				Cmd: litCall("foo2"),
 				Redirs: []*Redirect{
-					{Op: GTR, Word: *litWord("r2")},
+					{Op: Gtr, Word: *litWord("r2")},
 				},
 			},
 		},
@@ -612,7 +612,7 @@ var fileTests = []testCase{
 		common: &Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*Redirect{
-				{Op: GTR, Word: *word(
+				{Op: Gtr, Word: *word(
 					lit("bar"),
 					cmdSubst(litStmt("etc")),
 				)},
@@ -629,7 +629,7 @@ var fileTests = []testCase{
 		common: &Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*Redirect{{
-				Op:   SHL,
+				Op:   Shl,
 				Word: *litWord("EOF"),
 				Hdoc: *litWord("bar\n"),
 			}},
@@ -640,7 +640,7 @@ var fileTests = []testCase{
 		common: &Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*Redirect{{
-				Op:   SHL,
+				Op:   Shl,
 				Word: *litWord("EOF"),
 				Hdoc: *litWord("\nbar\n"),
 			}},
@@ -651,7 +651,7 @@ var fileTests = []testCase{
 		common: &Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*Redirect{{
-				Op:   SHL,
+				Op:   Shl,
 				Word: *litWord("EOF"),
 				Hdoc: *litWord("1\n2\n3\n"),
 			}},
@@ -662,7 +662,7 @@ var fileTests = []testCase{
 		common: &Stmt{
 			Cmd: litCall("a"),
 			Redirs: []*Redirect{{
-				Op:   SHL,
+				Op:   Shl,
 				Word: *litWord("EOF"),
 				Hdoc: *word(
 					lit("foo"),
@@ -677,7 +677,7 @@ var fileTests = []testCase{
 		common: &Stmt{
 			Cmd: litCall("a"),
 			Redirs: []*Redirect{{
-				Op:   SHL,
+				Op:   Shl,
 				Word: *litWord("EOF"),
 				Hdoc: *word(
 					lit("\""),
@@ -692,7 +692,7 @@ var fileTests = []testCase{
 		bash: &Stmt{
 			Cmd: litCall("a"),
 			Redirs: []*Redirect{{
-				Op:   SHL,
+				Op:   Shl,
 				Word: *litWord("EOF"),
 				Hdoc: *word(
 					lit("$"),
@@ -711,7 +711,7 @@ var fileTests = []testCase{
 		common: &Stmt{
 			Cmd: litCall("a"),
 			Redirs: []*Redirect{{
-				Op:   SHL,
+				Op:   Shl,
 				Word: *litWord("EOF"),
 				Hdoc: *word(
 					cmdSubst(litStmt("b")),
@@ -725,7 +725,7 @@ var fileTests = []testCase{
 		common: &Stmt{
 			Cmd: litCall("a"),
 			Redirs: []*Redirect{{
-				Op:   SHL,
+				Op:   Shl,
 				Word: *litWord("EOF"),
 				Hdoc: *litWord("\\${\n"),
 			}},
@@ -739,7 +739,7 @@ var fileTests = []testCase{
 		common: block(&Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*Redirect{{
-				Op:   SHL,
+				Op:   Shl,
 				Word: *litWord("EOF"),
 				Hdoc: *litWord("bar\n"),
 			}},
@@ -753,7 +753,7 @@ var fileTests = []testCase{
 		common: cmdSubst(&Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*Redirect{{
-				Op:   SHL,
+				Op:   Shl,
 				Word: *litWord("EOF"),
 				Hdoc: *litWord("bar\n"),
 			}},
@@ -764,9 +764,9 @@ var fileTests = []testCase{
 		common: &Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*Redirect{
-				{Op: GTR, Word: *litWord("f")},
+				{Op: Gtr, Word: *litWord("f")},
 				{
-					Op:   SHL,
+					Op:   Shl,
 					Word: *litWord("EOF"),
 					Hdoc: *litWord("bar\n"),
 				},
@@ -779,11 +779,11 @@ var fileTests = []testCase{
 			Cmd: litCall("foo"),
 			Redirs: []*Redirect{
 				{
-					Op:   SHL,
+					Op:   Shl,
 					Word: *litWord("EOF"),
 					Hdoc: *litWord("bar\n"),
 				},
-				{Op: GTR, Word: *litWord("f")},
+				{Op: Gtr, Word: *litWord("f")},
 			},
 		},
 	},
@@ -794,7 +794,7 @@ var fileTests = []testCase{
 			X: &Stmt{
 				Cmd: litCall("foo"),
 				Redirs: []*Redirect{{
-					Op:   SHL,
+					Op:   Shl,
 					Word: *litWord("EOF"),
 					Hdoc: *litWord("bar\n"),
 				}},
@@ -810,7 +810,7 @@ var fileTests = []testCase{
 		common: &Stmt{
 			Cmd: call(*word(cmdSubst(litStmt("foo")))),
 			Redirs: []*Redirect{{
-				Op:   SHL,
+				Op:   Shl,
 				Word: *litWord("EOF"),
 				Hdoc: *litWord("bar\n"),
 			}},
@@ -825,7 +825,7 @@ var fileTests = []testCase{
 		common: &Stmt{
 			Cmd: call(*word(cmdSubst(litStmt("foo")))),
 			Redirs: []*Redirect{{
-				Op:   SHL,
+				Op:   Shl,
 				Word: *litWord("EOF"),
 				Hdoc: *litWord("bar\n"),
 			}},
@@ -839,7 +839,7 @@ var fileTests = []testCase{
 		common: &Stmt{
 			Cmd: call(*word(arithmExp(litWord("foo")))),
 			Redirs: []*Redirect{{
-				Op:   SHL,
+				Op:   Shl,
 				Word: *litWord("EOF"),
 				Hdoc: *litWord("bar\n"),
 			}},
@@ -852,7 +852,7 @@ var fileTests = []testCase{
 			ThenStmts: []*Stmt{{
 				Cmd: litCall("foo"),
 				Redirs: []*Redirect{{
-					Op:   DHEREDOC,
+					Op:   DashHdoc,
 					Word: *litWord("EOF"),
 					Hdoc: *litWord("\tbar\n\t"),
 				}},
@@ -866,7 +866,7 @@ var fileTests = []testCase{
 			ThenStmts: []*Stmt{{
 				Cmd: litCall("foo"),
 				Redirs: []*Redirect{{
-					Op:   DHEREDOC,
+					Op:   DashHdoc,
 					Word: *litWord("EOF"),
 					Hdoc: *litWord("\t"),
 				}},
@@ -879,7 +879,7 @@ var fileTests = []testCase{
 			{
 				Cmd: litCall("foo"),
 				Redirs: []*Redirect{{
-					Op:   SHL,
+					Op:   Shl,
 					Word: *litWord("EOF"),
 					Hdoc: *litWord("bar\n"),
 				}},
@@ -892,7 +892,7 @@ var fileTests = []testCase{
 		common: &Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*Redirect{{
-				Op:   SHL,
+				Op:   Shl,
 				Word: *litWord("FOOBAR"),
 				Hdoc: *litWord("bar\n"),
 			}},
@@ -906,7 +906,7 @@ var fileTests = []testCase{
 		common: &Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*Redirect{{
-				Op:   SHL,
+				Op:   Shl,
 				Word: *word(dblQuoted(lit("EOF"))),
 				Hdoc: *litWord("bar\n"),
 			}},
@@ -918,7 +918,7 @@ var fileTests = []testCase{
 			Cmd: litCall("foo"),
 			Redirs: []*Redirect{
 				{
-					Op:   SHL,
+					Op:   Shl,
 					Word: *word(sglQuoted("EOF")),
 					Hdoc: *litWord("${\n"),
 				},
@@ -930,7 +930,7 @@ var fileTests = []testCase{
 		common: &Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*Redirect{{
-				Op:   SHL,
+				Op:   Shl,
 				Word: *word(dblQuoted(lit("EOF")), lit("2")),
 				Hdoc: *litWord("bar\n"),
 			}},
@@ -941,7 +941,7 @@ var fileTests = []testCase{
 		common: &Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*Redirect{{
-				Op:   SHL,
+				Op:   Shl,
 				Word: *litWord("\\EOF"),
 				Hdoc: *litWord("bar\n"),
 			}},
@@ -952,7 +952,7 @@ var fileTests = []testCase{
 		common: &Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*Redirect{{
-				Op:   SHL,
+				Op:   Shl,
 				Word: *word(litParamExp("EOF")),
 				Hdoc: *litWord("bar\n"),
 			}},
@@ -966,7 +966,7 @@ var fileTests = []testCase{
 		common: &Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*Redirect{{
-				Op:   DHEREDOC,
+				Op:   DashHdoc,
 				Word: *litWord("EOF"),
 				Hdoc: *litWord("bar\n"),
 			}},
@@ -980,7 +980,7 @@ var fileTests = []testCase{
 		common: &Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*Redirect{{
-				Op:   DHEREDOC,
+				Op:   DashHdoc,
 				Word: *litWord("EOF"),
 				Hdoc: *litWord("\t"),
 			}},
@@ -994,7 +994,7 @@ var fileTests = []testCase{
 		common: &Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*Redirect{{
-				Op:   DHEREDOC,
+				Op:   DashHdoc,
 				Word: *litWord("EOF"),
 				Hdoc: *litWord("\tbar\n\t"),
 			}},
@@ -1008,7 +1008,7 @@ var fileTests = []testCase{
 		common: &Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*Redirect{{
-				Op:   DHEREDOC,
+				Op:   DashHdoc,
 				Word: *word(sglQuoted("EOF")),
 				Hdoc: *litWord("\tbar\n\t"),
 			}},
@@ -1023,7 +1023,7 @@ var fileTests = []testCase{
 			{
 				Cmd: litCall("f1"),
 				Redirs: []*Redirect{{
-					Op:   SHL,
+					Op:   Shl,
 					Word: *litWord("EOF1"),
 					Hdoc: *litWord("h1\n"),
 				}},
@@ -1031,7 +1031,7 @@ var fileTests = []testCase{
 			{
 				Cmd: litCall("f2"),
 				Redirs: []*Redirect{{
-					Op:   SHL,
+					Op:   Shl,
 					Word: *litWord("EOF2"),
 					Hdoc: *litWord("h2\n"),
 				}},
@@ -1047,7 +1047,7 @@ var fileTests = []testCase{
 			{
 				Cmd: litCall("a"),
 				Redirs: []*Redirect{{
-					Op:   SHL,
+					Op:   Shl,
 					Word: *litWord("EOF"),
 					Hdoc: *litWord("foo\n"),
 				}},
@@ -1068,7 +1068,7 @@ var fileTests = []testCase{
 				*word(dblQuoted(lit("\narg"))),
 			),
 			Redirs: []*Redirect{{
-				Op:   SHL,
+				Op:   Shl,
 				Word: *litWord("EOF"),
 				Hdoc: *litWord("bar\n"),
 			}},
@@ -1079,10 +1079,10 @@ var fileTests = []testCase{
 		common: &Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*Redirect{
-				{Op: DPLOUT, Word: *litWord("2")},
-				{Op: DPLIN, Word: *litWord("0")},
-				{Op: GTR, N: lit("2"), Word: *litWord("file")},
-				{Op: RDRINOUT, Word: *litWord("f2")},
+				{Op: DplOut, Word: *litWord("2")},
+				{Op: DplIn, Word: *litWord("0")},
+				{Op: Gtr, N: lit("2"), Word: *litWord("file")},
+				{Op: RdrInOut, Word: *litWord("f2")},
 			},
 		},
 	},
@@ -1091,17 +1091,17 @@ var fileTests = []testCase{
 		bash: &Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*Redirect{
-				{Op: RDRALL, Word: *litWord("a")},
-				{Op: APPALL, Word: *litWord("b")},
+				{Op: RdrAll, Word: *litWord("a")},
+				{Op: AppAll, Word: *litWord("b")},
 			},
 		},
 		posix: []*Stmt{
 			{Cmd: litCall("foo"), Background: true},
 			{Redirs: []*Redirect{
-				{Op: GTR, Word: *litWord("a")},
+				{Op: Gtr, Word: *litWord("a")},
 			}, Background: true},
 			{Redirs: []*Redirect{
-				{Op: SHR, Word: *litWord("b")},
+				{Op: Shr, Word: *litWord("b")},
 			}},
 		},
 	},
@@ -1110,7 +1110,7 @@ var fileTests = []testCase{
 		common: &Stmt{
 			Cmd: litCall("foo", "bar"),
 			Redirs: []*Redirect{
-				{Op: GTR, N: lit("2"), Word: *litWord("file")},
+				{Op: Gtr, N: lit("2"), Word: *litWord("file")},
 			},
 		},
 	},
@@ -1119,11 +1119,11 @@ var fileTests = []testCase{
 		common: []*Stmt{
 			{
 				Cmd:    litCall("a"),
-				Redirs: []*Redirect{{Op: GTR, Word: *litWord("f1")}},
+				Redirs: []*Redirect{{Op: Gtr, Word: *litWord("f1")}},
 			},
 			{
 				Cmd:    litCall("b"),
-				Redirs: []*Redirect{{Op: GTR, Word: *litWord("f2")}},
+				Redirs: []*Redirect{{Op: Gtr, Word: *litWord("f2")}},
 			},
 		},
 	},
@@ -1132,7 +1132,7 @@ var fileTests = []testCase{
 		common: &Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*Redirect{
-				{Op: CLBOUT, Word: *litWord("bar")},
+				{Op: ClbOut, Word: *litWord("bar")},
 			},
 		},
 	},
@@ -1144,7 +1144,7 @@ var fileTests = []testCase{
 		bash: &Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*Redirect{
-				{Op: WHEREDOC, Word: *litWord("input")},
+				{Op: WordHdoc, Word: *litWord("input")},
 			},
 		},
 	},
@@ -1157,7 +1157,7 @@ var fileTests = []testCase{
 			Cmd: litCall("foo"),
 			Redirs: []*Redirect{
 				{
-					Op:   WHEREDOC,
+					Op:   WordHdoc,
 					Word: *word(dblQuoted(lit("spaced input"))),
 				},
 			},
@@ -1169,7 +1169,7 @@ var fileTests = []testCase{
 			Cmd: call(
 				*litWord("foo"),
 				*word(&ProcSubst{
-					Op:    CMDOUT,
+					Op:    CmdOut,
 					Stmts: litStmts("foo"),
 				}),
 			),
@@ -1180,9 +1180,9 @@ var fileTests = []testCase{
 		bash: &Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*Redirect{{
-				Op: LSS,
+				Op: Lss,
 				Word: *word(&ProcSubst{
-					Op:    CMDIN,
+					Op:    CmdIn,
 					Stmts: litStmts("foo"),
 				}),
 			}},
@@ -1218,7 +1218,7 @@ var fileTests = []testCase{
 				ThenStmts: litStmts("bar"),
 			},
 			Redirs: []*Redirect{
-				{Op: GTR, Word: *litWord("/dev/null")},
+				{Op: Gtr, Word: *litWord("/dev/null")},
 			},
 			Background: true,
 		},
@@ -1440,7 +1440,7 @@ var fileTests = []testCase{
 			*word(&ParamExp{Length: true, Param: *lit("$")}),
 			*word(&ParamExp{Length: true, Param: *lit("#")}),
 			*word(&ParamExp{Length: true, Exp: &Expansion{
-				Op:   COLON,
+				Op:   Colon,
 				Word: *litWord("a"),
 			}}),
 			*word(&ParamExp{
@@ -1468,7 +1468,7 @@ var fileTests = []testCase{
 		common: &ParamExp{
 			Param: *lit("foo"),
 			Exp: &Expansion{
-				Op:   SUB,
+				Op:   Sub,
 				Word: *litWord("bar"),
 			},
 		},
@@ -1479,7 +1479,7 @@ var fileTests = []testCase{
 			&ParamExp{
 				Param: *lit("foo"),
 				Exp: &Expansion{
-					Op:   ADD,
+					Op:   Add,
 					Word: *litWord("bar"),
 				},
 			},
@@ -1491,7 +1491,7 @@ var fileTests = []testCase{
 		common: &ParamExp{
 			Param: *lit("foo"),
 			Exp: &Expansion{
-				Op:   CASSIGN,
+				Op:   ColAssgn,
 				Word: *word(lit("<"), dblQuoted(lit("bar"))),
 			},
 		},
@@ -1504,7 +1504,7 @@ var fileTests = []testCase{
 		common: &ParamExp{
 			Param: *lit("foo"),
 			Exp: &Expansion{
-				Op: CASSIGN,
+				Op: ColAssgn,
 				Word: *word(
 					lit("b"),
 					&ParamExp{Param: *lit("c")},
@@ -1518,7 +1518,7 @@ var fileTests = []testCase{
 		common: &ParamExp{
 			Param: *lit("foo"),
 			Exp: &Expansion{
-				Op: QUEST,
+				Op: Quest,
 				Word: *word(dblQuoted(
 					&ParamExp{Param: *lit("bar")},
 				)),
@@ -1530,7 +1530,7 @@ var fileTests = []testCase{
 		common: &ParamExp{
 			Param: *lit("foo"),
 			Exp: &Expansion{
-				Op:   CQUEST,
+				Op:   ColQuest,
 				Word: *litWord("bar1 bar2"),
 			},
 		},
@@ -1541,21 +1541,21 @@ var fileTests = []testCase{
 			&ParamExp{
 				Param: *lit("a"),
 				Exp: &Expansion{
-					Op:   CADD,
+					Op:   ColAdd,
 					Word: *litWord("b"),
 				},
 			},
 			&ParamExp{
 				Param: *lit("a"),
 				Exp: &Expansion{
-					Op:   CSUB,
+					Op:   ColSub,
 					Word: *litWord("b"),
 				},
 			},
 			&ParamExp{
 				Param: *lit("a"),
 				Exp: &Expansion{
-					Op:   ASSIGN,
+					Op:   Assgn,
 					Word: *litWord("b"),
 				},
 			},
@@ -1567,14 +1567,14 @@ var fileTests = []testCase{
 			&ParamExp{
 				Param: *lit("foo"),
 				Exp: &Expansion{
-					Op:   REM,
+					Op:   Rem,
 					Word: *litWord("bar"),
 				},
 			},
 			&ParamExp{
 				Param: *lit("foo"),
 				Exp: &Expansion{
-					Op:   DREM,
+					Op:   DblRem,
 					Word: *litWord("bar*"),
 				},
 			},
@@ -1586,14 +1586,14 @@ var fileTests = []testCase{
 			&ParamExp{
 				Param: *lit("foo"),
 				Exp: &Expansion{
-					Op:   HASH,
+					Op:   Hash,
 					Word: *litWord("bar"),
 				},
 			},
 			&ParamExp{
 				Param: *lit("foo"),
 				Exp: &Expansion{
-					Op:   DHASH,
+					Op:   DblHash,
 					Word: *litWord("bar*"),
 				},
 			},
@@ -1604,7 +1604,7 @@ var fileTests = []testCase{
 		common: &ParamExp{
 			Param: *lit("foo"),
 			Exp: &Expansion{
-				Op:   REM,
+				Op:   Rem,
 				Word: *litWord("?"),
 			},
 		},
@@ -1614,7 +1614,7 @@ var fileTests = []testCase{
 		common: &ParamExp{
 			Param: *lit("foo"),
 			Exp: &Expansion{
-				Op:   COLON,
+				Op:   Colon,
 				Word: *litWord(":"),
 			},
 		},
@@ -1645,7 +1645,7 @@ var fileTests = []testCase{
 				Word: *litWord("bar"),
 			},
 			Exp: &Expansion{
-				Op:   SUB,
+				Op:   Sub,
 				Word: *litWord("etc"),
 			},
 		},
@@ -1738,25 +1738,25 @@ var fileTests = []testCase{
 		bash: call(
 			*word(&ParamExp{Param: *lit("a"),
 				Exp: &Expansion{
-					Op:   XOR,
+					Op:   Xor,
 					Word: *litWord("b"),
 				},
 			}),
 			*word(&ParamExp{Param: *lit("a"),
 				Exp: &Expansion{
-					Op:   DXOR,
+					Op:   DblXor,
 					Word: *litWord("b"),
 				},
 			}),
 			*word(&ParamExp{Param: *lit("a"),
 				Exp: &Expansion{
-					Op:   COMMA,
+					Op:   Comma,
 					Word: *litWord("b"),
 				},
 			}),
 			*word(&ParamExp{Param: *lit("a"),
 				Exp: &Expansion{
-					Op:   DCOMMA,
+					Op:   DblComma,
 					Word: *litWord("b"),
 				},
 			}),
@@ -1824,7 +1824,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"$((1 + 3))", "$((1+3))"},
 		bash: arithmExp(&BinaryExpr{
-			Op: ADD,
+			Op: Add,
 			X:  litWord("1"),
 			Y:  litWord("3"),
 		}),
@@ -1851,15 +1851,15 @@ var fileTests = []testCase{
 	{
 		Strs: []string{`$((arr[0]++))`},
 		common: arithmExp(
-			&UnaryExpr{Op: INC, Post: true, X: litWord("arr[0]")},
+			&UnaryExpr{Op: Inc, Post: true, X: litWord("arr[0]")},
 		),
 	},
 	{
 		Strs: []string{"$((5 * 2 - 1))", "$((5*2-1))"},
 		common: arithmExp(&BinaryExpr{
-			Op: SUB,
+			Op: Sub,
 			X: &BinaryExpr{
-				Op: MUL,
+				Op: Mul,
 				X:  litWord("5"),
 				Y:  litWord("2"),
 			},
@@ -1889,7 +1889,7 @@ var fileTests = []testCase{
 			"$((3\\\n % 7))",
 		},
 		common: arithmExp(&BinaryExpr{
-			Op: REM,
+			Op: Rem,
 			X:  litWord("3"),
 			Y:  litWord("7"),
 		}),
@@ -1897,7 +1897,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{`"$((1 / 3))"`},
 		common: dblQuoted(arithmExp(&BinaryExpr{
-			Op: QUO,
+			Op: Quo,
 			X:  litWord("1"),
 			Y:  litWord("3"),
 		})),
@@ -1905,7 +1905,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"$((2 ** 10))"},
 		common: arithmExp(&BinaryExpr{
-			Op: POW,
+			Op: Pow,
 			X:  litWord("2"),
 			Y:  litWord("10"),
 		}),
@@ -1913,7 +1913,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{`$(((1) ^ 3))`},
 		common: arithmExp(&BinaryExpr{
-			Op: XOR,
+			Op: Xor,
 			X:  parenExpr(litWord("1")),
 			Y:  litWord("3"),
 		}),
@@ -1921,10 +1921,10 @@ var fileTests = []testCase{
 	{
 		Strs: []string{`$((1 >> (3 << 2)))`},
 		common: arithmExp(&BinaryExpr{
-			Op: SHR,
+			Op: Shr,
 			X:  litWord("1"),
 			Y: parenExpr(&BinaryExpr{
-				Op: SHL,
+				Op: Shl,
 				X:  litWord("3"),
 				Y:  litWord("2"),
 			}),
@@ -1933,47 +1933,47 @@ var fileTests = []testCase{
 	{
 		Strs: []string{`$((-(1)))`},
 		common: arithmExp(&UnaryExpr{
-			Op: SUB,
+			Op: Sub,
 			X:  parenExpr(litWord("1")),
 		}),
 	},
 	{
 		Strs: []string{`$((i++))`},
 		common: arithmExp(&UnaryExpr{
-			Op:   INC,
+			Op:   Inc,
 			Post: true,
 			X:    litWord("i"),
 		}),
 	},
 	{
 		Strs:   []string{`$((--i))`},
-		common: arithmExp(&UnaryExpr{Op: DEC, X: litWord("i")}),
+		common: arithmExp(&UnaryExpr{Op: Dec, X: litWord("i")}),
 	},
 	{
 		Strs:   []string{`$((!i))`},
-		common: arithmExp(&UnaryExpr{Op: NOT, X: litWord("i")}),
+		common: arithmExp(&UnaryExpr{Op: Not, X: litWord("i")}),
 	},
 	{
 		Strs: []string{`$((-!+i))`},
 		common: arithmExp(&UnaryExpr{
-			Op: SUB,
+			Op: Sub,
 			X: &UnaryExpr{
-				Op: NOT,
-				X:  &UnaryExpr{Op: ADD, X: litWord("i")},
+				Op: Not,
+				X:  &UnaryExpr{Op: Add, X: litWord("i")},
 			},
 		}),
 	},
 	{
 		Strs: []string{`$((!!i))`},
 		common: arithmExp(&UnaryExpr{
-			Op: NOT,
-			X:  &UnaryExpr{Op: NOT, X: litWord("i")},
+			Op: Not,
+			X:  &UnaryExpr{Op: Not, X: litWord("i")},
 		}),
 	},
 	{
 		Strs: []string{`$((1 < 3))`},
 		common: arithmExp(&BinaryExpr{
-			Op: LSS,
+			Op: Lss,
 			X:  litWord("1"),
 			Y:  litWord("3"),
 		}),
@@ -1981,7 +1981,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{`$((i = 2))`, `$((i=2))`},
 		common: arithmExp(&BinaryExpr{
-			Op: ASSIGN,
+			Op: Assgn,
 			X:  litWord("i"),
 			Y:  litWord("2"),
 		}),
@@ -1989,14 +1989,14 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"$((a += 2, b -= 3))"},
 		common: arithmExp(&BinaryExpr{
-			Op: COMMA,
+			Op: Comma,
 			X: &BinaryExpr{
-				Op: ADDASSGN,
+				Op: AddAssgn,
 				X:  litWord("a"),
 				Y:  litWord("2"),
 			},
 			Y: &BinaryExpr{
-				Op: SUBASSGN,
+				Op: SubAssgn,
 				X:  litWord("b"),
 				Y:  litWord("3"),
 			},
@@ -2005,14 +2005,14 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"$((a >>= 2, b <<= 3))"},
 		common: arithmExp(&BinaryExpr{
-			Op: COMMA,
+			Op: Comma,
 			X: &BinaryExpr{
-				Op: SHRASSGN,
+				Op: ShrAssgn,
 				X:  litWord("a"),
 				Y:  litWord("2"),
 			},
 			Y: &BinaryExpr{
-				Op: SHLASSGN,
+				Op: ShlAssgn,
 				X:  litWord("b"),
 				Y:  litWord("3"),
 			},
@@ -2023,12 +2023,12 @@ var fileTests = []testCase{
 		common: arithmExp(&BinaryExpr{
 			Op: AndIf,
 			X: &BinaryExpr{
-				Op: EQL,
+				Op: Eql,
 				X:  litWord("a"),
 				Y:  litWord("b"),
 			},
 			Y: &BinaryExpr{
-				Op: GTR,
+				Op: Gtr,
 				X:  litWord("c"),
 				Y:  litWord("d"),
 			},
@@ -2037,7 +2037,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"$((a != b))"},
 		common: arithmExp(&BinaryExpr{
-			Op: NEQ,
+			Op: Neq,
 			X:  litWord("a"),
 			Y:  litWord("b"),
 		}),
@@ -2045,7 +2045,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"$((a &= b))"},
 		common: arithmExp(&BinaryExpr{
-			Op: ANDASSGN,
+			Op: AndAssgn,
 			X:  litWord("a"),
 			Y:  litWord("b"),
 		}),
@@ -2053,7 +2053,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"$((a |= b))"},
 		common: arithmExp(&BinaryExpr{
-			Op: ORASSGN,
+			Op: OrAssgn,
 			X:  litWord("a"),
 			Y:  litWord("b"),
 		}),
@@ -2061,7 +2061,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"$((a %= b))"},
 		common: arithmExp(&BinaryExpr{
-			Op: REMASSGN,
+			Op: RemAssgn,
 			X:  litWord("a"),
 			Y:  litWord("b"),
 		}),
@@ -2069,7 +2069,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"$((a /= b))"},
 		common: arithmExp(&BinaryExpr{
-			Op: QUOASSGN,
+			Op: QuoAssgn,
 			X:  litWord("a"),
 			Y:  litWord("b"),
 		}),
@@ -2077,7 +2077,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"$((a ^= b))"},
 		common: arithmExp(&BinaryExpr{
-			Op: XORASSGN,
+			Op: XorAssgn,
 			X:  litWord("a"),
 			Y:  litWord("b"),
 		}),
@@ -2085,7 +2085,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"$((i *= 3))"},
 		common: arithmExp(&BinaryExpr{
-			Op: MULASSGN,
+			Op: MulAssgn,
 			X:  litWord("i"),
 			Y:  litWord("3"),
 		}),
@@ -2093,7 +2093,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"$((2 >= 10))"},
 		common: arithmExp(&BinaryExpr{
-			Op: GEQ,
+			Op: Geq,
 			X:  litWord("2"),
 			Y:  litWord("10"),
 		}),
@@ -2101,10 +2101,10 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"$((foo ? b1 : b2))"},
 		common: arithmExp(&BinaryExpr{
-			Op: QUEST,
+			Op: Quest,
 			X:  litWord("foo"),
 			Y: &BinaryExpr{
-				Op: COLON,
+				Op: Colon,
 				X:  litWord("b1"),
 				Y:  litWord("b2"),
 			},
@@ -2113,7 +2113,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{`$((a <= (1 || 2)))`},
 		common: arithmExp(&BinaryExpr{
-			Op: LEQ,
+			Op: Leq,
 			X:  litWord("a"),
 			Y: parenExpr(&BinaryExpr{
 				Op: OrIf,
@@ -2305,7 +2305,7 @@ var fileTests = []testCase{
 				Stmts: []*Stmt{{
 					Cmd: litCall("cat"),
 					Redirs: []*Redirect{{
-						Op:   SHL,
+						Op:   Shl,
 						Word: *litWord("EOF"),
 						Hdoc: *litWord("foo\n"),
 					}},
@@ -2366,7 +2366,7 @@ var fileTests = []testCase{
 			CondStmts: litStmts("a"),
 			ThenStmts: []*Stmt{
 				{Redirs: []*Redirect{
-					{Op: GTR, Word: *litWord("f")},
+					{Op: Gtr, Word: *litWord("f")},
 				}},
 			},
 		},
@@ -2420,7 +2420,7 @@ var fileTests = []testCase{
 			X: &Stmt{
 				Cmd: litCall("foo"),
 				Redirs: []*Redirect{
-					{Op: GTR, Word: *litWord("f")},
+					{Op: Gtr, Word: *litWord("f")},
 				},
 			},
 			Y: litStmt("bar"),
@@ -2433,7 +2433,7 @@ var fileTests = []testCase{
 			X: &Stmt{
 				Cmd: subshell(litStmt("foo")),
 				Redirs: []*Redirect{
-					{Op: GTR, Word: *litWord("f")},
+					{Op: Gtr, Word: *litWord("f")},
 				},
 			},
 			Y: litStmt("bar"),
@@ -2446,7 +2446,7 @@ var fileTests = []testCase{
 			X:  litStmt("foo"),
 			Y: &Stmt{
 				Redirs: []*Redirect{
-					{Op: GTR, Word: *litWord("f")},
+					{Op: Gtr, Word: *litWord("f")},
 				},
 			},
 		},
@@ -2466,7 +2466,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"[[ a > b ]]"},
 		bash: &TestClause{X: &BinaryExpr{
-			Op: GTR,
+			Op: Gtr,
 			X:  litWord("a"),
 			Y:  litWord("b"),
 		}},
@@ -2474,7 +2474,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"[[ 1 -nt 2 ]]"},
 		bash: &TestClause{X: &BinaryExpr{
-			Op: TNEWER,
+			Op: TsNewer,
 			X:  litWord("1"),
 			Y:  litWord("2"),
 		}},
@@ -2482,7 +2482,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"[[ 1 -eq 2 ]]"},
 		bash: &TestClause{X: &BinaryExpr{
-			Op: TEQL,
+			Op: TsEql,
 			X:  litWord("1"),
 			Y:  litWord("2"),
 		}},
@@ -2490,14 +2490,14 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"[[ -R a ]]"},
 		bash: &TestClause{X: &UnaryExpr{
-			Op: TNRFVAR,
+			Op: TsRefVar,
 			X:  litWord("a"),
 		}},
 	},
 	{
 		Strs: []string{"[[ a =~ b ]]"},
 		bash: &TestClause{X: &BinaryExpr{
-			Op: TREMATCH,
+			Op: TsReMatch,
 			X:  litWord("a"),
 			Y:  litWord("b"),
 		},
@@ -2506,7 +2506,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{`[[ a =~ " foo "$bar ]]`},
 		bash: &TestClause{X: &BinaryExpr{
-			Op: TREMATCH,
+			Op: TsReMatch,
 			X:  litWord("a"),
 			Y:  litWord(`" foo "$bar`),
 		}},
@@ -2514,7 +2514,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{`[[ a =~ [ab](c |d) ]]`},
 		bash: &TestClause{X: &BinaryExpr{
-			Op: TREMATCH,
+			Op: TsReMatch,
 			X:  litWord("a"),
 			Y:  litWord("[ab](c |d)"),
 		}},
@@ -2522,15 +2522,15 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"[[ -n $a ]]"},
 		bash: &TestClause{
-			X: &UnaryExpr{Op: TNEMPSTR, X: word(litParamExp("a"))},
+			X: &UnaryExpr{Op: TsNempStr, X: word(litParamExp("a"))},
 		},
 	},
 	{
 		Strs: []string{"[[ ! $a < 'b' ]]"},
 		bash: &TestClause{X: &UnaryExpr{
-			Op: NOT,
+			Op: Not,
 			X: &BinaryExpr{
-				Op: LSS,
+				Op: Lss,
 				X:  word(litParamExp("a")),
 				Y:  word(sglQuoted("b")),
 			},
@@ -2542,8 +2542,8 @@ var fileTests = []testCase{
 			"[[ ! -a $a ]]",
 		},
 		bash: &TestClause{X: &UnaryExpr{
-			Op: NOT,
-			X:  &UnaryExpr{Op: TEXISTS, X: word(litParamExp("a"))},
+			Op: Not,
+			X:  &UnaryExpr{Op: TsExists, X: word(litParamExp("a"))},
 		}},
 	},
 	{
@@ -2563,7 +2563,7 @@ var fileTests = []testCase{
 				X:  litWord("a"),
 				Y:  litWord("b"),
 			}),
-			Y: &UnaryExpr{Op: TREGFILE, X: litWord("c")},
+			Y: &UnaryExpr{Op: TsRegFile, X: litWord("c")},
 		}},
 	},
 	{
@@ -2573,64 +2573,64 @@ var fileTests = []testCase{
 		},
 		bash: &TestClause{X: &BinaryExpr{
 			Op: AndIf,
-			X:  &UnaryExpr{Op: TSOCKET, X: litWord("a")},
-			Y:  &UnaryExpr{Op: TSMBLINK, X: litWord("b")},
+			X:  &UnaryExpr{Op: TsSocket, X: litWord("a")},
+			Y:  &UnaryExpr{Op: TsSmbLink, X: litWord("b")},
 		}},
 	},
 	{
 		Strs: []string{"[[ -d a && -c b ]]"},
 		bash: &TestClause{X: &BinaryExpr{
 			Op: AndIf,
-			X:  &UnaryExpr{Op: TDIRECT, X: litWord("a")},
-			Y:  &UnaryExpr{Op: TCHARSP, X: litWord("b")},
+			X:  &UnaryExpr{Op: TsDirect, X: litWord("a")},
+			Y:  &UnaryExpr{Op: TsCharSp, X: litWord("b")},
 		}},
 	},
 	{
 		Strs: []string{"[[ -b a && -p b ]]"},
 		bash: &TestClause{X: &BinaryExpr{
 			Op: AndIf,
-			X:  &UnaryExpr{Op: TBLCKSP, X: litWord("a")},
-			Y:  &UnaryExpr{Op: TNMPIPE, X: litWord("b")},
+			X:  &UnaryExpr{Op: TsBlckSp, X: litWord("a")},
+			Y:  &UnaryExpr{Op: TsNmPipe, X: litWord("b")},
 		}},
 	},
 	{
 		Strs: []string{"[[ -g a && -u b ]]"},
 		bash: &TestClause{X: &BinaryExpr{
 			Op: AndIf,
-			X:  &UnaryExpr{Op: TSGIDSET, X: litWord("a")},
-			Y:  &UnaryExpr{Op: TSUIDSET, X: litWord("b")},
+			X:  &UnaryExpr{Op: TsGIDSet, X: litWord("a")},
+			Y:  &UnaryExpr{Op: TsUIDSet, X: litWord("b")},
 		}},
 	},
 	{
 		Strs: []string{"[[ -r a && -w b ]]"},
 		bash: &TestClause{X: &BinaryExpr{
 			Op: AndIf,
-			X:  &UnaryExpr{Op: TREAD, X: litWord("a")},
-			Y:  &UnaryExpr{Op: TWRITE, X: litWord("b")},
+			X:  &UnaryExpr{Op: TsRead, X: litWord("a")},
+			Y:  &UnaryExpr{Op: TsWrite, X: litWord("b")},
 		}},
 	},
 	{
 		Strs: []string{"[[ -x a && -s b ]]"},
 		bash: &TestClause{X: &BinaryExpr{
 			Op: AndIf,
-			X:  &UnaryExpr{Op: TEXEC, X: litWord("a")},
-			Y:  &UnaryExpr{Op: TNOEMPTY, X: litWord("b")},
+			X:  &UnaryExpr{Op: TsExec, X: litWord("a")},
+			Y:  &UnaryExpr{Op: TsNoEmpty, X: litWord("b")},
 		}},
 	},
 	{
 		Strs: []string{"[[ -t a && -z b ]]"},
 		bash: &TestClause{X: &BinaryExpr{
 			Op: AndIf,
-			X:  &UnaryExpr{Op: TFDTERM, X: litWord("a")},
-			Y:  &UnaryExpr{Op: TEMPSTR, X: litWord("b")},
+			X:  &UnaryExpr{Op: TsFdTerm, X: litWord("a")},
+			Y:  &UnaryExpr{Op: TsEmpStr, X: litWord("b")},
 		}},
 	},
 	{
 		Strs: []string{"[[ -o a && -v b ]]"},
 		bash: &TestClause{X: &BinaryExpr{
 			Op: AndIf,
-			X:  &UnaryExpr{Op: TOPTSET, X: litWord("a")},
-			Y:  &UnaryExpr{Op: TVARSET, X: litWord("b")},
+			X:  &UnaryExpr{Op: TsOptSet, X: litWord("a")},
+			Y:  &UnaryExpr{Op: TsVarSet, X: litWord("b")},
 		}},
 	},
 	{
@@ -2638,12 +2638,12 @@ var fileTests = []testCase{
 		bash: &TestClause{X: &BinaryExpr{
 			Op: AndIf,
 			X: &BinaryExpr{
-				Op: TOLDER,
+				Op: TsOlder,
 				X:  litWord("a"),
 				Y:  litWord("b"),
 			},
 			Y: &BinaryExpr{
-				Op: TDEVIND,
+				Op: TsDevIno,
 				X:  litWord("c"),
 				Y:  litWord("d"),
 			},
@@ -2654,12 +2654,12 @@ var fileTests = []testCase{
 		bash: &TestClause{X: &BinaryExpr{
 			Op: AndIf,
 			X: &BinaryExpr{
-				Op: EQL,
+				Op: Eql,
 				X:  litWord("a"),
 				Y:  litWord("b"),
 			},
 			Y: &BinaryExpr{
-				Op: NEQ,
+				Op: Neq,
 				X:  litWord("c"),
 				Y:  litWord("d"),
 			},
@@ -2670,12 +2670,12 @@ var fileTests = []testCase{
 		bash: &TestClause{X: &BinaryExpr{
 			Op: AndIf,
 			X: &BinaryExpr{
-				Op: TNEQ,
+				Op: TsNeq,
 				X:  litWord("a"),
 				Y:  litWord("b"),
 			},
 			Y: &BinaryExpr{
-				Op: TLEQ,
+				Op: TsLeq,
 				X:  litWord("c"),
 				Y:  litWord("d"),
 			},
@@ -2686,12 +2686,12 @@ var fileTests = []testCase{
 		bash: &TestClause{X: &BinaryExpr{
 			Op: AndIf,
 			X: &BinaryExpr{
-				Op: ASSIGN,
+				Op: Assgn,
 				X:  litWord("a"),
 				Y:  litWord("b"),
 			},
 			Y: &BinaryExpr{
-				Op: TGEQ,
+				Op: TsGeq,
 				X:  litWord("c"),
 				Y:  litWord("d"),
 			},
@@ -2702,12 +2702,12 @@ var fileTests = []testCase{
 		bash: &TestClause{X: &BinaryExpr{
 			Op: AndIf,
 			X: &BinaryExpr{
-				Op: TLSS,
+				Op: TsLss,
 				X:  litWord("a"),
 				Y:  litWord("b"),
 			},
 			Y: &BinaryExpr{
-				Op: TGTR,
+				Op: TsGtr,
 				X:  litWord("c"),
 				Y:  litWord("d"),
 			},
@@ -2826,7 +2826,7 @@ var fileTests = []testCase{
 				},
 			},
 			Redirs: []*Redirect{
-				{Op: GTR, Word: *litWord("/dev/null")},
+				{Op: Gtr, Word: *litWord("/dev/null")},
 			},
 		},
 	},
@@ -2881,17 +2881,17 @@ var fileTests = []testCase{
 	{
 		Strs: []string{`let i++`},
 		bash: letClause(
-			&UnaryExpr{Op: INC, Post: true, X: litWord("i")},
+			&UnaryExpr{Op: Inc, Post: true, X: litWord("i")},
 		),
 		posix: litStmt("let", "i++"),
 	},
 	{
 		Strs: []string{`let a++ b++ c +d`},
 		bash: letClause(
-			&UnaryExpr{Op: INC, Post: true, X: litWord("a")},
-			&UnaryExpr{Op: INC, Post: true, X: litWord("b")},
+			&UnaryExpr{Op: Inc, Post: true, X: litWord("a")},
+			&UnaryExpr{Op: Inc, Post: true, X: litWord("b")},
 			litWord("c"),
-			&UnaryExpr{Op: ADD, X: litWord("d")},
+			&UnaryExpr{Op: Add, X: litWord("d")},
 		),
 	},
 	{
@@ -2903,8 +2903,8 @@ var fileTests = []testCase{
 	{
 		Strs: []string{`let ++i >/dev/null`},
 		bash: &Stmt{
-			Cmd:    letClause(&UnaryExpr{Op: INC, X: litWord("i")}),
-			Redirs: []*Redirect{{Op: GTR, Word: *litWord("/dev/null")}},
+			Cmd:    letClause(&UnaryExpr{Op: Inc, X: litWord("i")}),
+			Redirs: []*Redirect{{Op: Gtr, Word: *litWord("/dev/null")}},
 		},
 	},
 	{
@@ -2914,19 +2914,19 @@ var fileTests = []testCase{
 		},
 		bash: letClause(
 			&BinaryExpr{
-				Op: ASSIGN,
+				Op: Assgn,
 				X:  litWord("a"),
 				Y: parenExpr(&BinaryExpr{
-					Op: ADD,
+					Op: Add,
 					X:  litWord("1"),
 					Y:  litWord("2"),
 				}),
 			},
 			&BinaryExpr{
-				Op: ASSIGN,
+				Op: Assgn,
 				X:  litWord("b"),
 				Y: &BinaryExpr{
-					Op: ADD,
+					Op: Add,
 					X:  litWord("3"),
 					Y:  litWord("4"),
 				},
@@ -2946,7 +2946,7 @@ var fileTests = []testCase{
 		bash: []*Stmt{
 			stmt(letClause(
 				&UnaryExpr{
-					Op:   INC,
+					Op:   Inc,
 					Post: true,
 					X:    litWord("i"),
 				},
@@ -2963,7 +2963,7 @@ var fileTests = []testCase{
 		bash: []*Stmt{
 			stmt(letClause(
 				&UnaryExpr{
-					Op:   INC,
+					Op:   Inc,
 					Post: true,
 					X:    litWord("i"),
 				},
@@ -2990,7 +2990,7 @@ var fileTests = []testCase{
 				Patterns: litWords("b"),
 				Stmts: stmts(letClause(
 					&UnaryExpr{
-						Op:   INC,
+						Op:   Inc,
 						Post: true,
 						X:    litWord("i"),
 					},
@@ -3065,7 +3065,7 @@ var fileTests = []testCase{
 		common: &BinaryCmd{
 			Op: Or,
 			X: &Stmt{Redirs: []*Redirect{{
-				Op:   SHL,
+				Op:   Shl,
 				Word: *litWord("EOF"),
 				Hdoc: *litWord("foo\n"),
 			}}},
@@ -3080,12 +3080,12 @@ var fileTests = []testCase{
 				Op: Or,
 				X: &Stmt{Redirs: []*Redirect{
 					{
-						Op:   SHL,
+						Op:   Shl,
 						Word: *litWord("EOF1"),
 						Hdoc: *word(),
 					},
 					{
-						Op:   SHL,
+						Op:   Shl,
 						Word: *litWord("EOF2"),
 						Hdoc: *word(),
 					},
@@ -3103,7 +3103,7 @@ var fileTests = []testCase{
 		common: &BinaryCmd{
 			Op: AndIf,
 			X: &Stmt{Redirs: []*Redirect{{
-				Op:   SHL,
+				Op:   Shl,
 				Word: *litWord("EOF"),
 				Hdoc: *litWord("hdoc\n"),
 			}}},
@@ -3117,7 +3117,7 @@ var fileTests = []testCase{
 			Body: stmt(block(stmt(&BinaryCmd{
 				Op: AndIf,
 				X: &Stmt{Redirs: []*Redirect{{
-					Op:   SHL,
+					Op:   Shl,
 					Word: *litWord("EOF"),
 					Hdoc: *litWord("hdoc\n"),
 				}}},
@@ -3139,18 +3139,18 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"echo ?(b)*(c)+(d)@(e)!(f)"},
 		bash: stmt(call(*litWord("echo"), *word(
-			&ExtGlob{Op: GQUEST, Pattern: *lit("b")},
-			&ExtGlob{Op: GMUL, Pattern: *lit("c")},
-			&ExtGlob{Op: GADD, Pattern: *lit("d")},
-			&ExtGlob{Op: GAT, Pattern: *lit("e")},
-			&ExtGlob{Op: GNOT, Pattern: *lit("f")},
+			&ExtGlob{Op: GlobQuest, Pattern: *lit("b")},
+			&ExtGlob{Op: GlobMul, Pattern: *lit("c")},
+			&ExtGlob{Op: GlobAdd, Pattern: *lit("d")},
+			&ExtGlob{Op: GlobAt, Pattern: *lit("e")},
+			&ExtGlob{Op: GlobNot, Pattern: *lit("f")},
 		))),
 	},
 	{
 		Strs: []string{"echo foo@(b*(c|d))bar"},
 		bash: stmt(call(*litWord("echo"), *word(
 			lit("foo"),
-			&ExtGlob{Op: GAT, Pattern: *lit("b*(c|d)")},
+			&ExtGlob{Op: GlobAt, Pattern: *lit("b*(c|d)")},
 			lit("bar"),
 		))),
 	},
@@ -3161,7 +3161,7 @@ var fileTestsNoPrint = []testCase{
 	{
 		Strs: []string{"<<EOF\n\\"},
 		common: &Stmt{Redirs: []*Redirect{{
-			Op:   SHL,
+			Op:   Shl,
 			Word: *litWord("EOF"),
 			Hdoc: *litWord("\\"),
 		}}},
@@ -3177,7 +3177,7 @@ var fileTestsNoPrint = []testCase{
 	{
 		Strs: []string{`"$[1 + 3]"`},
 		bash: dblQuoted(arithmExpBr(&BinaryExpr{
-			Op: ADD,
+			Op: Add,
 			X:  litWord("1"),
 			Y:  litWord("3"),
 		})),
@@ -3386,9 +3386,9 @@ func setPosRecurse(tb testing.TB, src string, v interface{}, to Pos, diff bool) 
 	case *UnaryExpr:
 		strs := []string{x.Op.String()}
 		switch x.Op {
-		case TEXISTS:
+		case TsExists:
 			strs = append(strs, "-a")
-		case TSMBLINK:
+		case TsSmbLink:
 			strs = append(strs, "-h")
 		}
 		setPos(&x.OpPos, strs...)

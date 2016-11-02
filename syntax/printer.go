@@ -266,39 +266,39 @@ func (p *printer) commentsUpTo(pos Pos) {
 
 func (p *printer) expansionOp(tok Token) {
 	switch tok {
-	case COLON:
+	case Colon:
 		p.WriteByte(':')
-	case ADD:
+	case Add:
 		p.WriteByte('+')
-	case CADD:
+	case ColAdd:
 		p.WriteString(":+")
-	case SUB:
+	case Sub:
 		p.WriteByte('-')
-	case CSUB:
+	case ColSub:
 		p.WriteString(":-")
-	case QUEST:
+	case Quest:
 		p.WriteByte('?')
-	case CQUEST:
+	case ColQuest:
 		p.WriteString(":?")
-	case ASSIGN:
+	case Assgn:
 		p.WriteByte('=')
-	case CASSIGN:
+	case ColAssgn:
 		p.WriteString(":=")
-	case REM:
+	case Rem:
 		p.WriteByte('%')
-	case DREM:
+	case DblRem:
 		p.WriteString("%%")
-	case HASH:
+	case Hash:
 		p.WriteByte('#')
-	case DHASH:
+	case DblHash:
 		p.WriteString("##")
-	case XOR:
+	case Xor:
 		p.WriteByte('^')
-	case DXOR:
+	case DblXor:
 		p.WriteString("^^")
-	case COMMA:
+	case Comma:
 		p.WriteByte(',')
-	default: // DCOMMA
+	default: // DblComma
 		p.WriteString(",,")
 	}
 }
@@ -381,9 +381,9 @@ func (p *printer) wordPart(wp WordPart) {
 		if p.wantSpace {
 			p.space()
 		}
-		if x.Op == CMDIN {
+		if x.Op == CmdIn {
 			p.WriteString("<(")
-		} else { // CMDOUT
+		} else { // CmdOut
 			p.WriteString(">(")
 		}
 		p.nestedStmts(x.Stmts, 0)
@@ -416,17 +416,17 @@ func (p *printer) loop(loop Loop) {
 
 func (p *printer) binaryExprOp(tok Token) {
 	switch tok {
-	case ASSIGN:
+	case Assgn:
 		p.WriteByte('=')
-	case ADD:
+	case Add:
 		p.WriteByte('+')
-	case SUB:
+	case Sub:
 		p.WriteByte('-')
-	case REM:
+	case Rem:
 		p.WriteByte('%')
-	case MUL:
+	case Mul:
 		p.WriteByte('*')
-	case QUO:
+	case Quo:
 		p.WriteByte('/')
 	case And:
 		p.WriteByte('&')
@@ -436,126 +436,126 @@ func (p *printer) binaryExprOp(tok Token) {
 		p.WriteString("&&")
 	case OrIf:
 		p.WriteString("||")
-	case XOR:
+	case Xor:
 		p.WriteByte('^')
-	case POW:
+	case Pow:
 		p.WriteString("**")
-	case EQL:
+	case Eql:
 		p.WriteString("==")
-	case NEQ:
+	case Neq:
 		p.WriteString("!=")
-	case LEQ:
+	case Leq:
 		p.WriteString("<=")
-	case GEQ:
+	case Geq:
 		p.WriteString(">=")
-	case ADDASSGN:
+	case AddAssgn:
 		p.WriteString("+=")
-	case SUBASSGN:
+	case SubAssgn:
 		p.WriteString("-=")
-	case MULASSGN:
+	case MulAssgn:
 		p.WriteString("*=")
-	case QUOASSGN:
+	case QuoAssgn:
 		p.WriteString("/=")
-	case REMASSGN:
+	case RemAssgn:
 		p.WriteString("%=")
-	case ANDASSGN:
+	case AndAssgn:
 		p.WriteString("&=")
-	case ORASSGN:
+	case OrAssgn:
 		p.WriteString("|=")
-	case XORASSGN:
+	case XorAssgn:
 		p.WriteString("^=")
-	case SHLASSGN:
+	case ShlAssgn:
 		p.WriteString("<<=")
-	case SHRASSGN:
+	case ShrAssgn:
 		p.WriteString(">>=")
-	case LSS:
+	case Lss:
 		p.WriteByte('<')
-	case GTR:
+	case Gtr:
 		p.WriteByte('>')
-	case SHL:
+	case Shl:
 		p.WriteString("<<")
-	case SHR:
+	case Shr:
 		p.WriteString(">>")
-	case QUEST:
+	case Quest:
 		p.WriteByte('?')
-	case COLON:
+	case Colon:
 		p.WriteByte(':')
-	case COMMA:
+	case Comma:
 		p.WriteByte(',')
-	case TREMATCH:
+	case TsReMatch:
 		p.WriteString("=~")
-	case TNEWER:
+	case TsNewer:
 		p.WriteString("-nt")
-	case TOLDER:
+	case TsOlder:
 		p.WriteString("-ot")
-	case TDEVIND:
+	case TsDevIno:
 		p.WriteString("-ef")
-	case TEQL:
+	case TsEql:
 		p.WriteString("-eq")
-	case TNEQ:
+	case TsNeq:
 		p.WriteString("-ne")
-	case TLEQ:
+	case TsLeq:
 		p.WriteString("-le")
-	case TGEQ:
+	case TsGeq:
 		p.WriteString("-ge")
-	case TLSS:
+	case TsLss:
 		p.WriteString("-lt")
-	default: // TGTR
+	default: // TsGtr
 		p.WriteString("-gt")
 	}
 }
 
 func (p *printer) unaryExprOp(tok Token) {
 	switch tok {
-	case ADD:
+	case Add:
 		p.WriteByte('+')
-	case SUB:
+	case Sub:
 		p.WriteByte('-')
-	case NOT:
+	case Not:
 		p.WriteByte('!')
-	case INC:
+	case Inc:
 		p.WriteString("++")
-	case DEC:
+	case Dec:
 		p.WriteString("--")
-	case TEXISTS:
+	case TsExists:
 		p.WriteString("-e")
-	case TREGFILE:
+	case TsRegFile:
 		p.WriteString("-f")
-	case TDIRECT:
+	case TsDirect:
 		p.WriteString("-d")
-	case TCHARSP:
+	case TsCharSp:
 		p.WriteString("-c")
-	case TBLCKSP:
+	case TsBlckSp:
 		p.WriteString("-b")
-	case TNMPIPE:
+	case TsNmPipe:
 		p.WriteString("-p")
-	case TSOCKET:
+	case TsSocket:
 		p.WriteString("-S")
-	case TSMBLINK:
+	case TsSmbLink:
 		p.WriteString("-L")
-	case TSGIDSET:
+	case TsGIDSet:
 		p.WriteString("-g")
-	case TSUIDSET:
+	case TsUIDSet:
 		p.WriteString("-u")
-	case TREAD:
+	case TsRead:
 		p.WriteString("-r")
-	case TWRITE:
+	case TsWrite:
 		p.WriteString("-w")
-	case TEXEC:
+	case TsExec:
 		p.WriteString("-x")
-	case TNOEMPTY:
+	case TsNoEmpty:
 		p.WriteString("-s")
-	case TFDTERM:
+	case TsFdTerm:
 		p.WriteString("-t")
-	case TEMPSTR:
+	case TsEmpStr:
 		p.WriteString("-z")
-	case TNEMPSTR:
+	case TsNempStr:
 		p.WriteString("-n")
-	case TOPTSET:
+	case TsOptSet:
 		p.WriteString("-o")
-	case TVARSET:
+	case TsVarSet:
 		p.WriteString("-v")
-	default: // TNRFVAR
+	default: // TsRefVar
 		p.WriteString("-R")
 	}
 }
@@ -572,7 +572,7 @@ func (p *printer) arithm(expr ArithmExpr, compact, test bool) {
 			p.arithm(x.Y, compact, test)
 		} else {
 			p.arithm(x.X, compact, test)
-			if x.Op != COMMA {
+			if x.Op != Comma {
 				p.WriteByte(' ')
 			}
 			p.binaryExprOp(x.Op)
@@ -678,7 +678,7 @@ func (p *printer) stmt(s *Stmt) {
 		p.redirectOp(r.Op)
 		p.wantSpace = true
 		p.word(r.Word)
-		if r.Op == SHL || r.Op == DHEREDOC {
+		if r.Op == Shl || r.Op == DashHdoc {
 			p.pendingHdocs = append(p.pendingHdocs, r)
 		}
 	}
@@ -692,29 +692,29 @@ func (p *printer) stmt(s *Stmt) {
 
 func (p *printer) redirectOp(tok Token) {
 	switch tok {
-	case LSS:
+	case Lss:
 		p.WriteByte('<')
-	case GTR:
+	case Gtr:
 		p.WriteByte('>')
-	case SHL:
+	case Shl:
 		p.WriteString("<<")
-	case SHR:
+	case Shr:
 		p.WriteString(">>")
-	case RDRINOUT:
+	case RdrInOut:
 		p.WriteString("<>")
-	case DPLIN:
+	case DplIn:
 		p.WriteString("<&")
-	case DPLOUT:
+	case DplOut:
 		p.WriteString(">&")
-	case CLBOUT:
+	case ClbOut:
 		p.WriteString(">|")
-	case DHEREDOC:
+	case DashHdoc:
 		p.WriteString("<<-")
-	case WHEREDOC:
+	case WordHdoc:
 		p.WriteString("<<<")
-	case RDRALL:
+	case RdrAll:
 		p.WriteString("&>")
-	default: // APPALL
+	default: // AppAll
 		p.WriteString("&>>")
 	}
 }
@@ -727,7 +727,7 @@ func binaryCmdOp(tok Token) string {
 		return "&&"
 	case OrIf:
 		return "||"
-	default: // PIPEALL
+	default: // PipeAll
 		return "|&"
 	}
 }
@@ -752,7 +752,7 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		}
 		p.wordJoin(x.Args[:1], true)
 		for _, r := range redirs {
-			if r.Pos() > x.Args[1].Pos() || r.Op == SHL || r.Op == DHEREDOC {
+			if r.Pos() > x.Args[1].Pos() || r.Op == Shl || r.Op == DashHdoc {
 				break
 			}
 			if p.wantSpace {
