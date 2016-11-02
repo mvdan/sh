@@ -1883,11 +1883,30 @@ var fileTests = []testCase{
 		}),
 	},
 	{
-		Strs: []string{"$(($(a) + 2))"},
+		Strs: []string{"$(($(a) + $((b))))"},
 		common: arithmExp(&BinaryExpr{
 			Op: Add,
 			X:  word(cmdSubst(litStmt("a"))),
+			Y:  word(arithmExp(litWord("b"))),
+		}),
+	},
+	{
+		Strs: []string{
+			"$(($(1) + 2))",
+			"$(($(1)+2))",
+		},
+		common: arithmExp(&BinaryExpr{
+			Op: Add,
+			X:  word(cmdSubst(litStmt("1"))),
 			Y:  litWord("2"),
+		}),
+	},
+	{
+		Strs: []string{"$(((a) + ((b))))"},
+		common: arithmExp(&BinaryExpr{
+			Op: Add,
+			X:  parenExpr(litWord("a")),
+			Y:  parenExpr(parenExpr(litWord("b"))),
 		}),
 	},
 	{

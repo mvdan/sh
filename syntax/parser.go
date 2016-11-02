@@ -662,17 +662,17 @@ func (p *parser) couldBeArithm() (could bool) {
 	lparens := 0
 tokLoop:
 	for p.tok != _EOF {
-		if p.peekArithmEnd() {
-			could = true
-			break
-		}
 		switch p.tok {
 		case leftParen, dollParen:
 			lparens++
+		case dollDblParen, dblLeftParen:
+			lparens += 2
 		case rightParen:
-			if lparens--; lparens < 0 {
+			if lparens == 0 {
+				could = p.peekArithmEnd()
 				break tokLoop
 			}
+			lparens--
 		}
 		p.next()
 	}

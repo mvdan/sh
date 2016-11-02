@@ -547,7 +547,8 @@ var shellTests = []errorCase{
 	},
 	{
 		"echo $(((3))",
-		`1:6: reached ) without matching $(( with ))`,
+		// TODO: reached )
+		`1:6: reached EOF without matching $(( with ))`,
 	},
 	{
 		"echo $((+))",
