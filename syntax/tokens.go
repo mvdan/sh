@@ -123,16 +123,16 @@ const (
 	tsVarSet  // -v
 	tsRefVar  // -R
 
-	TsReMatch // =~
-	TsNewer   // -nt
-	TsOlder   // -ot
-	TsDevIno  // -ef
-	TsEql     // -eq
-	TsNeq     // -ne
-	TsLeq     // -le
-	TsGeq     // -ge
-	TsLss     // -lt
-	TsGtr     // -gt
+	tsReMatch // =~
+	tsNewer   // -nt
+	tsOlder   // -ot
+	tsDevIno  // -ef
+	tsEql     // -eq
+	tsNeq     // -ne
+	tsLeq     // -le
+	tsGeq     // -ge
+	tsLss     // -lt
+	tsGtr     // -gt
 
 	globQuest // ?(
 	globMul   // *(
@@ -239,13 +239,36 @@ const (
 	TsRefVar
 )
 
-func (o RedirOperator) String() string  { return Token(o).String() }
-func (o ProcOperator) String() string   { return Token(o).String() }
-func (o GlobOperator) String() string   { return Token(o).String() }
-func (o BinCmdOperator) String() string { return Token(o).String() }
-func (o CaseOperator) String() string   { return Token(o).String() }
-func (o ParExpOperator) String() string { return Token(o).String() }
-func (o UnTestOperator) String() string { return Token(o).String() }
+type BinTestOperator Token
+
+const (
+	TsReMatch = BinTestOperator(tsReMatch) + iota
+	TsNewer
+	TsOlder
+	TsDevIno
+	TsEql
+	TsNeq
+	TsLeq
+	TsGeq
+	TsLss
+	TsGtr
+	AndTest  = BinTestOperator(AndExpr)
+	OrTest   = BinTestOperator(OrExpr)
+	TsAssgn  = BinTestOperator(Assgn)
+	TsEqual  = BinTestOperator(Eql)
+	TsNequal = BinTestOperator(Neq)
+	TsBefore = BinTestOperator(Lss)
+	TsAfter  = BinTestOperator(Gtr)
+)
+
+func (o RedirOperator) String() string   { return Token(o).String() }
+func (o ProcOperator) String() string    { return Token(o).String() }
+func (o GlobOperator) String() string    { return Token(o).String() }
+func (o BinCmdOperator) String() string  { return Token(o).String() }
+func (o CaseOperator) String() string    { return Token(o).String() }
+func (o ParExpOperator) String() string  { return Token(o).String() }
+func (o UnTestOperator) String() string  { return Token(o).String() }
+func (o BinTestOperator) String() string { return Token(o).String() }
 
 // Pos is the internal representation of a position within a source
 // file.
@@ -379,16 +402,16 @@ var tokNames = map[Token]string{
 	tsVarSet:  "-v",
 	tsRefVar:  "-R",
 
-	TsReMatch: "=~",
-	TsNewer:   "-nt",
-	TsOlder:   "-ot",
-	TsDevIno:  "-ef",
-	TsEql:     "-eq",
-	TsNeq:     "-ne",
-	TsLeq:     "-le",
-	TsGeq:     "-ge",
-	TsLss:     "-lt",
-	TsGtr:     "-gt",
+	tsReMatch: "=~",
+	tsNewer:   "-nt",
+	tsOlder:   "-ot",
+	tsDevIno:  "-ef",
+	tsEql:     "-eq",
+	tsNeq:     "-ne",
+	tsLeq:     "-le",
+	tsGeq:     "-ge",
+	tsLss:     "-lt",
+	tsGtr:     "-gt",
 
 	globQuest: "?(",
 	globMul:   "*(",

@@ -486,28 +486,8 @@ func (p *printer) binaryExprOp(tok Token) {
 		p.WriteByte('?')
 	case Colon:
 		p.WriteByte(':')
-	case Comma:
+	default: // Comma
 		p.WriteByte(',')
-	case TsReMatch:
-		p.WriteString("=~")
-	case TsNewer:
-		p.WriteString("-nt")
-	case TsOlder:
-		p.WriteString("-ot")
-	case TsDevIno:
-		p.WriteString("-ef")
-	case TsEql:
-		p.WriteString("-eq")
-	case TsNeq:
-		p.WriteString("-ne")
-	case TsLeq:
-		p.WriteString("-le")
-	case TsGeq:
-		p.WriteString("-ge")
-	case TsLss:
-		p.WriteString("-lt")
-	default: // TsGtr
-		p.WriteString("-gt")
 	}
 }
 
@@ -607,6 +587,45 @@ func (p *printer) unaryTestOp(op UnTestOperator) {
 	}
 }
 
+func (p *printer) binaryTestOp(op BinTestOperator) {
+	switch op {
+	case AndTest:
+		p.WriteString("&&")
+	case OrTest:
+		p.WriteString("||")
+	case TsAssgn:
+		p.WriteByte('=')
+	case TsEqual:
+		p.WriteString("==")
+	case TsNequal:
+		p.WriteString("!=")
+	case TsReMatch:
+		p.WriteString("=~")
+	case TsNewer:
+		p.WriteString("-nt")
+	case TsOlder:
+		p.WriteString("-ot")
+	case TsDevIno:
+		p.WriteString("-ef")
+	case TsEql:
+		p.WriteString("-eq")
+	case TsNeq:
+		p.WriteString("-ne")
+	case TsLeq:
+		p.WriteString("-le")
+	case TsGeq:
+		p.WriteString("-ge")
+	case TsLss:
+		p.WriteString("-lt")
+	case TsGtr:
+		p.WriteString("-gt")
+	case TsBefore:
+		p.WriteByte('<')
+	case TsAfter:
+		p.WriteByte('>')
+	}
+}
+
 func (p *printer) testExpr(expr TestExpr) {
 	p.wantSpace = false
 	switch x := expr.(type) {
@@ -615,7 +634,7 @@ func (p *printer) testExpr(expr TestExpr) {
 	case *BinaryTest:
 		p.testExpr(x.X)
 		p.space()
-		p.binaryExprOp(x.Op)
+		p.binaryTestOp(x.Op)
 		p.space()
 		p.testExpr(x.Y)
 	case *UnaryTest:
@@ -719,7 +738,7 @@ func (p *printer) stmt(s *Stmt) {
 		p.bslashNewl()
 		p.indent()
 		p.decLevel()
-		p.WriteString(";")
+		p.WriteByte(';')
 	} else if s.Background {
 		p.WriteString(" &")
 	}

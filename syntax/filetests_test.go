@@ -2497,7 +2497,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"[[ a > b ]]"},
 		bash: &TestClause{X: &BinaryTest{
-			Op: Gtr,
+			Op: TsAfter,
 			X:  litWord("a"),
 			Y:  litWord("b"),
 		}},
@@ -2561,7 +2561,7 @@ var fileTests = []testCase{
 		bash: &TestClause{X: &UnaryTest{
 			Op: TsNot,
 			X: &BinaryTest{
-				Op: Lss,
+				Op: TsBefore,
 				X:  word(litParamExp("a")),
 				Y:  word(sglQuoted("b")),
 			},
@@ -2580,7 +2580,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"[[ (a && b) ]]"},
 		bash: &TestClause{X: parenTest(&BinaryTest{
-			Op: AndExpr,
+			Op: AndTest,
 			X:  litWord("a"),
 			Y:  litWord("b"),
 		})},
@@ -2588,9 +2588,9 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"[[ (a && b) || -f c ]]"},
 		bash: &TestClause{X: &BinaryTest{
-			Op: OrExpr,
+			Op: OrTest,
 			X: parenTest(&BinaryTest{
-				Op: AndExpr,
+				Op: AndTest,
 				X:  litWord("a"),
 				Y:  litWord("b"),
 			}),
@@ -2603,7 +2603,7 @@ var fileTests = []testCase{
 			"[[ -S a && -h b ]]",
 		},
 		bash: &TestClause{X: &BinaryTest{
-			Op: AndExpr,
+			Op: AndTest,
 			X:  &UnaryTest{Op: TsSocket, X: litWord("a")},
 			Y:  &UnaryTest{Op: TsSmbLink, X: litWord("b")},
 		}},
@@ -2611,7 +2611,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"[[ -d a && -c b ]]"},
 		bash: &TestClause{X: &BinaryTest{
-			Op: AndExpr,
+			Op: AndTest,
 			X:  &UnaryTest{Op: TsDirect, X: litWord("a")},
 			Y:  &UnaryTest{Op: TsCharSp, X: litWord("b")},
 		}},
@@ -2619,7 +2619,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"[[ -b a && -p b ]]"},
 		bash: &TestClause{X: &BinaryTest{
-			Op: AndExpr,
+			Op: AndTest,
 			X:  &UnaryTest{Op: TsBlckSp, X: litWord("a")},
 			Y:  &UnaryTest{Op: TsNmPipe, X: litWord("b")},
 		}},
@@ -2627,7 +2627,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"[[ -g a && -u b ]]"},
 		bash: &TestClause{X: &BinaryTest{
-			Op: AndExpr,
+			Op: AndTest,
 			X:  &UnaryTest{Op: TsGIDSet, X: litWord("a")},
 			Y:  &UnaryTest{Op: TsUIDSet, X: litWord("b")},
 		}},
@@ -2635,7 +2635,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"[[ -r a && -w b ]]"},
 		bash: &TestClause{X: &BinaryTest{
-			Op: AndExpr,
+			Op: AndTest,
 			X:  &UnaryTest{Op: TsRead, X: litWord("a")},
 			Y:  &UnaryTest{Op: TsWrite, X: litWord("b")},
 		}},
@@ -2643,7 +2643,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"[[ -x a && -s b ]]"},
 		bash: &TestClause{X: &BinaryTest{
-			Op: AndExpr,
+			Op: AndTest,
 			X:  &UnaryTest{Op: TsExec, X: litWord("a")},
 			Y:  &UnaryTest{Op: TsNoEmpty, X: litWord("b")},
 		}},
@@ -2651,7 +2651,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"[[ -t a && -z b ]]"},
 		bash: &TestClause{X: &BinaryTest{
-			Op: AndExpr,
+			Op: AndTest,
 			X:  &UnaryTest{Op: TsFdTerm, X: litWord("a")},
 			Y:  &UnaryTest{Op: TsEmpStr, X: litWord("b")},
 		}},
@@ -2659,7 +2659,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"[[ -o a && -v b ]]"},
 		bash: &TestClause{X: &BinaryTest{
-			Op: AndExpr,
+			Op: AndTest,
 			X:  &UnaryTest{Op: TsOptSet, X: litWord("a")},
 			Y:  &UnaryTest{Op: TsVarSet, X: litWord("b")},
 		}},
@@ -2667,7 +2667,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"[[ a -ot b && c -ef d ]]"},
 		bash: &TestClause{X: &BinaryTest{
-			Op: AndExpr,
+			Op: AndTest,
 			X: &BinaryTest{
 				Op: TsOlder,
 				X:  litWord("a"),
@@ -2683,14 +2683,14 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"[[ a == b && c != d ]]"},
 		bash: &TestClause{X: &BinaryTest{
-			Op: AndExpr,
+			Op: AndTest,
 			X: &BinaryTest{
-				Op: Eql,
+				Op: TsEqual,
 				X:  litWord("a"),
 				Y:  litWord("b"),
 			},
 			Y: &BinaryTest{
-				Op: Neq,
+				Op: TsNequal,
 				X:  litWord("c"),
 				Y:  litWord("d"),
 			},
@@ -2699,7 +2699,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"[[ a -ne b && c -le d ]]"},
 		bash: &TestClause{X: &BinaryTest{
-			Op: AndExpr,
+			Op: AndTest,
 			X: &BinaryTest{
 				Op: TsNeq,
 				X:  litWord("a"),
@@ -2715,9 +2715,9 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"[[ a = b && c -ge d ]]"},
 		bash: &TestClause{X: &BinaryTest{
-			Op: AndExpr,
+			Op: AndTest,
 			X: &BinaryTest{
-				Op: Assgn,
+				Op: TsAssgn,
 				X:  litWord("a"),
 				Y:  litWord("b"),
 			},
@@ -2731,7 +2731,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"[[ a -lt b && c -gt d ]]"},
 		bash: &TestClause{X: &BinaryTest{
-			Op: AndExpr,
+			Op: AndTest,
 			X: &BinaryTest{
 				Op: TsLss,
 				X:  litWord("a"),

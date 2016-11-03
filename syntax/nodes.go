@@ -537,7 +537,7 @@ func (*Word) testExprNode()       {}
 // expression.
 type BinaryTest struct {
 	OpPos Pos
-	Op    Token
+	Op    BinTestOperator
 	X, Y  TestExpr
 }
 

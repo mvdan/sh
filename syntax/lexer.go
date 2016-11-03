@@ -935,28 +935,28 @@ func testBinaryOp(val string) Token {
 		return Assgn
 	case "==":
 		return Eql
-	case "=~":
-		return TsReMatch
 	case "!=":
 		return Neq
+	case "=~":
+		return tsReMatch
 	case "-nt":
-		return TsNewer
+		return tsNewer
 	case "-ot":
-		return TsOlder
+		return tsOlder
 	case "-ef":
-		return TsDevIno
+		return tsDevIno
 	case "-eq":
-		return TsEql
+		return tsEql
 	case "-ne":
-		return TsNeq
+		return tsNeq
 	case "-le":
-		return TsLeq
+		return tsLeq
 	case "-ge":
-		return TsGeq
+		return tsGeq
 	case "-lt":
-		return TsLss
+		return tsLss
 	case "-gt":
-		return TsGtr
+		return tsGtr
 	default:
 		return illegalTok
 	}

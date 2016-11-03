@@ -1411,17 +1411,17 @@ func (p *parser) testExpr(ftok Token, fpos Pos, level int) TestExpr {
 	}
 	b := &BinaryTest{
 		OpPos: p.pos,
-		Op:    p.tok,
+		Op:    BinTestOperator(p.tok),
 		X:     left,
 	}
-	if p.tok == TsReMatch {
+	if b.Op == TsReMatch {
 		old := p.preNested(testRegexp)
 		p.next()
 		p.postNested(old)
 	} else {
 		p.next()
 	}
-	if b.Y = p.testExpr(b.Op, b.OpPos, newLevel); b.Y == nil {
+	if b.Y = p.testExpr(Token(b.Op), b.OpPos, newLevel); b.Y == nil {
 		p.followErr(b.OpPos, b.Op.String(), "an expression")
 	}
 	return b
