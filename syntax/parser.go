@@ -886,7 +886,9 @@ func (p *parser) paramExp() *ParamExp {
 		pe.Slice = &Slice{}
 		colonPos := p.pos
 		p.next()
-		pe.Slice.Offset = p.followWordTok(Colon, colonPos)
+		if p.tok != Colon {
+			pe.Slice.Offset = p.followWordTok(Colon, colonPos)
+		}
 		colonPos = p.pos
 		if p.got(Colon) {
 			pe.Slice.Length = p.followWordTok(Colon, colonPos)

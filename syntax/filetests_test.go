@@ -1654,9 +1654,7 @@ var fileTests = []testCase{
 		Strs: []string{`${foo:1}`, `${foo: 1 }`},
 		bash: &ParamExp{
 			Param: *lit("foo"),
-			Slice: &Slice{
-				Offset: *litWord("1"),
-			},
+			Slice: &Slice{Offset: *litWord("1")},
 		},
 	},
 	{
@@ -1667,6 +1665,13 @@ var fileTests = []testCase{
 				Offset: *litWord("1"),
 				Length: *litWord("2"),
 			},
+		},
+	},
+	{
+		Strs: []string{`${foo::3}`},
+		bash: &ParamExp{
+			Param: *lit("foo"),
+			Slice: &Slice{Length: *litWord("3")},
 		},
 	},
 	{
