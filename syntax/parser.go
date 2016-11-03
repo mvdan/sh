@@ -836,7 +836,7 @@ func (p *parser) paramExp() *ParamExp {
 	old := p.preNested(paramExpName)
 	p.next()
 	switch p.tok {
-	case DblHash:
+	case dblHash:
 		p.tok = Hash
 		p.npos--
 		fallthrough
@@ -869,8 +869,8 @@ func (p *parser) paramExp() *ParamExp {
 		p.postNested(old)
 		p.next()
 		return pe
-	case Quo, DblQuo:
-		pe.Repl = &Replace{All: p.tok == DblQuo}
+	case Quo, dblQuo:
+		pe.Repl = &Replace{All: p.tok == dblQuo}
 		p.quote = paramExpRepl
 		p.next()
 		pe.Repl.Orig = p.word()
@@ -891,13 +891,13 @@ func (p *parser) paramExp() *ParamExp {
 		if p.got(Colon) {
 			pe.Slice.Length = p.followWordTok(Colon, colonPos)
 		}
-	case Xor, DblXor, Comma, DblComma:
+	case Xor, dblXor, Comma, dblComma:
 		if !p.bash() {
 			p.curErr("case expansions are a bash feature")
 		}
 		fallthrough
 	default:
-		pe.Exp = &Expansion{Op: p.tok}
+		pe.Exp = &Expansion{Op: ParExpOperator(p.tok)}
 		p.quote = paramExpExp
 		p.next()
 		pe.Exp.Word = p.word()

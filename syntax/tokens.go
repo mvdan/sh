@@ -89,17 +89,17 @@ const (
 	ColQuest // :?
 	Assgn    // =
 	ColAssgn // :=
-	Colon    // :
 	Rem      // %
-	DblRem   // %%
+	dblRem   // %%
 	Hash     // #
-	DblHash  // ##
-	Quo      // /
-	DblQuo   // //
+	dblHash  // ##
 	Xor      // ^
-	DblXor   // ^^ - bash
+	dblXor   // ^^ - bash
 	Comma    // ,
-	DblComma // ,, - bash
+	dblComma // ,, - bash
+	Quo      // /
+	dblQuo   // //
+	Colon    // :
 
 	// All of the below are bash-only.
 	TsExists  // -e
@@ -202,6 +202,29 @@ const (
 
 func (o CaseOperator) String() string { return Token(o).String() }
 
+type ParExpOperator Token
+
+const (
+	SubstAdd = ParExpOperator(Add) + iota
+	SubstColAdd
+	SubstSub
+	SubstColSub
+	SubstQuest
+	SubstColQuest
+	SubstAssgn
+	SubstColAssgn
+	RemSmallSuffix
+	RemLargeSuffix
+	RemSmallPrefix
+	RemLargePrefix
+	UpperFirst
+	UpperAll
+	LowerFirst
+	LowerAll
+)
+
+func (o ParExpOperator) String() string { return Token(o).String() }
+
 // Pos is the internal representation of a position within a source
 // file.
 type Pos int
@@ -279,17 +302,17 @@ var tokNames = map[Token]string{
 	ColQuest: ":?",
 	Assgn:    "=",
 	ColAssgn: ":=",
-	Colon:    ":",
 	Rem:      "%",
-	DblRem:   "%%",
+	dblRem:   "%%",
 	Hash:     "#",
-	DblHash:  "##",
-	Quo:      "/",
-	DblQuo:   "//",
+	dblHash:  "##",
 	Xor:      "^",
-	DblXor:   "^^",
+	dblXor:   "^^",
 	Comma:    ",",
-	DblComma: ",,",
+	dblComma: ",,",
+	Quo:      "/",
+	dblQuo:   "//",
+	Colon:    ":",
 
 	Mul: "*",
 	Not: "!",

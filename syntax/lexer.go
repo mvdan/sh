@@ -425,14 +425,14 @@ func (p *parser) paramToken(b byte) Token {
 	case '%':
 		if byteAt(p.src, p.npos+1) == '%' {
 			p.npos += 2
-			return DblRem
+			return dblRem
 		}
 		p.npos++
 		return Rem
 	case '#':
 		if byteAt(p.src, p.npos+1) == '#' {
 			p.npos += 2
-			return DblHash
+			return dblHash
 		}
 		p.npos++
 		return Hash
@@ -442,21 +442,21 @@ func (p *parser) paramToken(b byte) Token {
 	case '^':
 		if byteAt(p.src, p.npos+1) == '^' {
 			p.npos += 2
-			return DblXor
+			return dblXor
 		}
 		p.npos++
 		return Xor
 	case ',':
 		if byteAt(p.src, p.npos+1) == ',' {
 			p.npos += 2
-			return DblComma
+			return dblComma
 		}
 		p.npos++
 		return Comma
 	default: // '/'
 		if byteAt(p.src, p.npos+1) == '/' {
 			p.npos += 2
-			return DblQuo
+			return dblQuo
 		}
 		p.npos++
 		return Quo

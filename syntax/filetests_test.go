@@ -1440,7 +1440,7 @@ var fileTests = []testCase{
 			*word(&ParamExp{Length: true, Param: *lit("$")}),
 			*word(&ParamExp{Length: true, Param: *lit("#")}),
 			*word(&ParamExp{Length: true, Exp: &Expansion{
-				Op:   ColSub,
+				Op:   SubstColSub,
 				Word: *litWord("a"),
 			}}),
 			*word(&ParamExp{
@@ -1468,7 +1468,7 @@ var fileTests = []testCase{
 		common: &ParamExp{
 			Param: *lit("foo"),
 			Exp: &Expansion{
-				Op:   Sub,
+				Op:   SubstSub,
 				Word: *litWord("bar"),
 			},
 		},
@@ -1479,7 +1479,7 @@ var fileTests = []testCase{
 			&ParamExp{
 				Param: *lit("foo"),
 				Exp: &Expansion{
-					Op:   Add,
+					Op:   SubstAdd,
 					Word: *litWord("bar"),
 				},
 			},
@@ -1491,7 +1491,7 @@ var fileTests = []testCase{
 		common: &ParamExp{
 			Param: *lit("foo"),
 			Exp: &Expansion{
-				Op:   ColAssgn,
+				Op:   SubstColAssgn,
 				Word: *word(lit("<"), dblQuoted(lit("bar"))),
 			},
 		},
@@ -1504,7 +1504,7 @@ var fileTests = []testCase{
 		common: &ParamExp{
 			Param: *lit("foo"),
 			Exp: &Expansion{
-				Op: ColAssgn,
+				Op: SubstColAssgn,
 				Word: *word(
 					lit("b"),
 					&ParamExp{Param: *lit("c")},
@@ -1518,7 +1518,7 @@ var fileTests = []testCase{
 		common: &ParamExp{
 			Param: *lit("foo"),
 			Exp: &Expansion{
-				Op: Quest,
+				Op: SubstQuest,
 				Word: *word(dblQuoted(
 					&ParamExp{Param: *lit("bar")},
 				)),
@@ -1530,7 +1530,7 @@ var fileTests = []testCase{
 		common: &ParamExp{
 			Param: *lit("foo"),
 			Exp: &Expansion{
-				Op:   ColQuest,
+				Op:   SubstColQuest,
 				Word: *litWord("bar1 bar2"),
 			},
 		},
@@ -1541,21 +1541,21 @@ var fileTests = []testCase{
 			&ParamExp{
 				Param: *lit("a"),
 				Exp: &Expansion{
-					Op:   ColAdd,
+					Op:   SubstColAdd,
 					Word: *litWord("b"),
 				},
 			},
 			&ParamExp{
 				Param: *lit("a"),
 				Exp: &Expansion{
-					Op:   ColSub,
+					Op:   SubstColSub,
 					Word: *litWord("b"),
 				},
 			},
 			&ParamExp{
 				Param: *lit("a"),
 				Exp: &Expansion{
-					Op:   Assgn,
+					Op:   SubstAssgn,
 					Word: *litWord("b"),
 				},
 			},
@@ -1567,14 +1567,14 @@ var fileTests = []testCase{
 			&ParamExp{
 				Param: *lit("foo"),
 				Exp: &Expansion{
-					Op:   Rem,
+					Op:   RemSmallSuffix,
 					Word: *litWord("bar"),
 				},
 			},
 			&ParamExp{
 				Param: *lit("foo"),
 				Exp: &Expansion{
-					Op:   DblRem,
+					Op:   RemLargeSuffix,
 					Word: *litWord("bar*"),
 				},
 			},
@@ -1586,14 +1586,14 @@ var fileTests = []testCase{
 			&ParamExp{
 				Param: *lit("foo"),
 				Exp: &Expansion{
-					Op:   Hash,
+					Op:   RemSmallPrefix,
 					Word: *litWord("bar"),
 				},
 			},
 			&ParamExp{
 				Param: *lit("foo"),
 				Exp: &Expansion{
-					Op:   DblHash,
+					Op:   RemLargePrefix,
 					Word: *litWord("bar*"),
 				},
 			},
@@ -1604,7 +1604,7 @@ var fileTests = []testCase{
 		common: &ParamExp{
 			Param: *lit("foo"),
 			Exp: &Expansion{
-				Op:   Rem,
+				Op:   RemSmallSuffix,
 				Word: *litWord("?"),
 			},
 		},
@@ -1635,7 +1635,7 @@ var fileTests = []testCase{
 				Word: *litWord("bar"),
 			},
 			Exp: &Expansion{
-				Op:   Sub,
+				Op:   SubstSub,
 				Word: *litWord("etc"),
 			},
 		},
@@ -1747,25 +1747,25 @@ var fileTests = []testCase{
 		bash: call(
 			*word(&ParamExp{Param: *lit("a"),
 				Exp: &Expansion{
-					Op:   Xor,
+					Op:   UpperFirst,
 					Word: *litWord("b"),
 				},
 			}),
 			*word(&ParamExp{Param: *lit("a"),
 				Exp: &Expansion{
-					Op:   DblXor,
+					Op:   UpperAll,
 					Word: *litWord("b"),
 				},
 			}),
 			*word(&ParamExp{Param: *lit("a"),
 				Exp: &Expansion{
-					Op:   Comma,
+					Op:   LowerFirst,
 					Word: *litWord("b"),
 				},
 			}),
 			*word(&ParamExp{Param: *lit("a"),
 				Exp: &Expansion{
-					Op:   DblComma,
+					Op:   LowerAll,
 					Word: *litWord("b"),
 				},
 			}),

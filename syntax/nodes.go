@@ -433,7 +433,7 @@ type Replace struct {
 // Expansion represents string manipulation in a ParamExp other than
 // those covered by Replace.
 type Expansion struct {
-	Op   Token
+	Op   ParExpOperator
 	Word Word
 }
 

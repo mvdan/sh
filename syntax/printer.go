@@ -264,39 +264,39 @@ func (p *printer) commentsUpTo(pos Pos) {
 	p.commentsUpTo(pos)
 }
 
-func (p *printer) expansionOp(tok Token) {
-	switch tok {
-	case Add:
+func (p *printer) expansionOp(op ParExpOperator) {
+	switch op {
+	case SubstAdd:
 		p.WriteByte('+')
-	case ColAdd:
+	case SubstColAdd:
 		p.WriteString(":+")
-	case Sub:
+	case SubstSub:
 		p.WriteByte('-')
-	case ColSub:
+	case SubstColSub:
 		p.WriteString(":-")
-	case Quest:
+	case SubstQuest:
 		p.WriteByte('?')
-	case ColQuest:
+	case SubstColQuest:
 		p.WriteString(":?")
-	case Assgn:
+	case SubstAssgn:
 		p.WriteByte('=')
-	case ColAssgn:
+	case SubstColAssgn:
 		p.WriteString(":=")
-	case Rem:
+	case RemSmallSuffix:
 		p.WriteByte('%')
-	case DblRem:
+	case RemLargeSuffix:
 		p.WriteString("%%")
-	case Hash:
+	case RemSmallPrefix:
 		p.WriteByte('#')
-	case DblHash:
+	case RemLargePrefix:
 		p.WriteString("##")
-	case Xor:
+	case UpperFirst:
 		p.WriteByte('^')
-	case DblXor:
+	case UpperAll:
 		p.WriteString("^^")
-	case Comma:
+	case LowerFirst:
 		p.WriteByte(',')
-	default: // DblComma
+	default: // LowerAll
 		p.WriteString(",,")
 	}
 }
