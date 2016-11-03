@@ -266,8 +266,6 @@ func (p *printer) commentsUpTo(pos Pos) {
 
 func (p *printer) expansionOp(tok Token) {
 	switch tok {
-	case Colon:
-		p.WriteByte(':')
 	case Add:
 		p.WriteByte('+')
 	case ColAdd:
