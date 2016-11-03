@@ -64,6 +64,7 @@ var bashParamExp = regexp.MustCompile(`\${[^}]*[,^:]`)
 
 func confirmParse(in string, posix, fail bool) func(*testing.T) {
 	return func(t *testing.T) {
+		t.Parallel()
 		var opts []string
 		if posix {
 			if strings.HasPrefix(in, "function") {
