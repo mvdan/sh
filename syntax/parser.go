@@ -744,7 +744,7 @@ func (p *parser) arithmExpr(ftok Token, fpos Pos, level int, compact bool) Arith
 	if newLevel < 0 || newLevel < level {
 		return left
 	}
-	b := &BinaryExpr{
+	b := &BinaryArithm{
 		OpPos: p.pos,
 		Op:    p.tok,
 		X:     left,
@@ -762,12 +762,12 @@ func (p *parser) arithmExprBase(ftok Token, fpos Pos, compact bool) ArithmExpr {
 	var x ArithmExpr
 	switch p.tok {
 	case Inc, Dec, Not:
-		pre := &UnaryExpr{OpPos: p.pos, Op: p.tok}
+		pre := &UnaryArithm{OpPos: p.pos, Op: p.tok}
 		p.next()
 		pre.X = p.arithmExprBase(pre.Op, pre.OpPos, compact)
 		return pre
 	case leftParen:
-		pe := &ParenExpr{Lparen: p.pos}
+		pe := &ParenArithm{Lparen: p.pos}
 		p.next()
 		if pe.X = p.arithmExpr(leftParen, pe.Lparen, 0, false); pe.X == nil {
 			p.posErr(pe.Lparen, "parentheses must enclose an expression")
@@ -775,7 +775,7 @@ func (p *parser) arithmExprBase(ftok Token, fpos Pos, compact bool) ArithmExpr {
 		pe.Rparen = p.matched(pe.Lparen, leftParen, rightParen)
 		x = pe
 	case Add, Sub:
-		ue := &UnaryExpr{OpPos: p.pos, Op: p.tok}
+		ue := &UnaryArithm{OpPos: p.pos, Op: p.tok}
 		if p.next(); compact && p.spaced {
 			p.followErr(ue.OpPos, ue.Op.String(), "an expression")
 		}
@@ -799,7 +799,7 @@ func (p *parser) arithmExprBase(ftok Token, fpos Pos, compact bool) ArithmExpr {
 		return x
 	}
 	if p.tok == Inc || p.tok == Dec {
-		u := &UnaryExpr{
+		u := &UnaryArithm{
 			Post:  true,
 			OpPos: p.pos,
 			Op:    p.tok,
@@ -1376,8 +1376,8 @@ func (p *parser) testClause() *TestClause {
 	return tc
 }
 
-func (p *parser) testExpr(ftok Token, fpos Pos, level int) ArithmExpr {
-	var left ArithmExpr
+func (p *parser) testExpr(ftok Token, fpos Pos, level int) TestExpr {
+	var left TestExpr
 	if level > 1 {
 		left = p.testExprBase(ftok, fpos)
 	} else {
@@ -1409,7 +1409,7 @@ func (p *parser) testExpr(ftok Token, fpos Pos, level int) ArithmExpr {
 			p.curErr("not a valid test operator: %s", p.val)
 		}
 	}
-	b := &BinaryExpr{
+	b := &BinaryTest{
 		OpPos: p.pos,
 		Op:    p.tok,
 		X:     left,
@@ -1427,7 +1427,7 @@ func (p *parser) testExpr(ftok Token, fpos Pos, level int) ArithmExpr {
 	return b
 }
 
-func (p *parser) testExprBase(ftok Token, fpos Pos) ArithmExpr {
+func (p *parser) testExprBase(ftok Token, fpos Pos) TestExpr {
 	switch p.tok {
 	case _EOF:
 		return nil
@@ -1438,20 +1438,20 @@ func (p *parser) testExprBase(ftok Token, fpos Pos) ArithmExpr {
 	}
 	switch p.tok {
 	case Not:
-		u := &UnaryExpr{OpPos: p.pos, Op: p.tok}
+		u := &UnaryTest{OpPos: p.pos, Op: p.tok}
 		p.next()
 		u.X = p.testExpr(u.Op, u.OpPos, 0)
 		return u
 	case TsExists, TsRegFile, TsDirect, TsCharSp, TsBlckSp, TsNmPipe, TsSocket, TsSmbLink,
 		TsGIDSet, TsUIDSet, TsRead, TsWrite, TsExec, TsNoEmpty, TsFdTerm, TsEmpStr,
 		TsNempStr, TsOptSet, TsVarSet, TsRefVar:
-		u := &UnaryExpr{OpPos: p.pos, Op: p.tok}
+		u := &UnaryTest{OpPos: p.pos, Op: p.tok}
 		p.next()
 		w := p.followWordTok(ftok, fpos)
 		u.X = &w
 		return u
 	case leftParen:
-		pe := &ParenExpr{Lparen: p.pos}
+		pe := &ParenTest{Lparen: p.pos}
 		p.next()
 		if pe.X = p.testExpr(leftParen, pe.Lparen, 0); pe.X == nil {
 			p.posErr(pe.Lparen, "parentheses must enclose an expression")

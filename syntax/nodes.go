@@ -139,6 +139,7 @@ func (a *Assign) Pos() Pos {
 	}
 	return a.Name.Pos()
 }
+
 func (a *Assign) End() Pos {
 	if a.Name != nil {
 		return posMax(a.Name.End(), a.Value.End())
@@ -268,28 +269,6 @@ type CStyleLoop struct {
 
 func (c *CStyleLoop) Pos() Pos { return c.Lparen }
 func (c *CStyleLoop) End() Pos { return posAdd(c.Rparen, 2) }
-
-// UnaryExpr represents an unary expression over a node, either before
-// or after it.
-type UnaryExpr struct {
-	OpPos Pos
-	Op    Token
-	Post  bool
-	X     ArithmExpr
-}
-
-func (u *UnaryExpr) Pos() Pos {
-	if u.Post {
-		return u.X.Pos()
-	}
-	return u.OpPos
-}
-func (u *UnaryExpr) End() Pos {
-	if u.Post {
-		return posAdd(u.OpPos, 2)
-	}
-	return u.X.End()
-}
 
 // BinaryCmd represents a binary expression between two statements.
 type BinaryCmd struct {
@@ -467,31 +446,54 @@ type ArithmExpr interface {
 	arithmExprNode()
 }
 
-func (*BinaryExpr) arithmExprNode() {}
-func (*UnaryExpr) arithmExprNode()  {}
-func (*ParenExpr) arithmExprNode()  {}
-func (*Word) arithmExprNode()       {}
+func (*BinaryArithm) arithmExprNode() {}
+func (*UnaryArithm) arithmExprNode()  {}
+func (*ParenArithm) arithmExprNode()  {}
+func (*Word) arithmExprNode()         {}
 
-// BinaryExpr represents a binary expression between two arithmetic
+// BinaryArithm represents a binary expression between two arithmetic
 // expression.
-type BinaryExpr struct {
+type BinaryArithm struct {
 	OpPos Pos
 	Op    Token
 	X, Y  ArithmExpr
 }
 
-func (b *BinaryExpr) Pos() Pos { return b.X.Pos() }
-func (b *BinaryExpr) End() Pos { return b.Y.End() }
+func (b *BinaryArithm) Pos() Pos { return b.X.Pos() }
+func (b *BinaryArithm) End() Pos { return b.Y.End() }
 
-// ParenExpr represents an expression within parentheses inside an
+// UnaryArithm represents an unary expression over a node, either before
+// or after it.
+type UnaryArithm struct {
+	OpPos Pos
+	Op    Token
+	Post  bool
+	X     ArithmExpr
+}
+
+func (u *UnaryArithm) Pos() Pos {
+	if u.Post {
+		return u.X.Pos()
+	}
+	return u.OpPos
+}
+
+func (u *UnaryArithm) End() Pos {
+	if u.Post {
+		return posAdd(u.OpPos, 2)
+	}
+	return u.X.End()
+}
+
+// ParenArithm represents an expression within parentheses inside an
 // ArithmExp.
-type ParenExpr struct {
+type ParenArithm struct {
 	Lparen, Rparen Pos
 	X              ArithmExpr
 }
 
-func (p *ParenExpr) Pos() Pos { return p.Lparen }
-func (p *ParenExpr) End() Pos { return posAdd(p.Rparen, 1) }
+func (p *ParenArithm) Pos() Pos { return p.Lparen }
+func (p *ParenArithm) End() Pos { return posAdd(p.Rparen, 1) }
 
 // CaseClause represents a case (switch) clause.
 type CaseClause struct {
@@ -514,11 +516,54 @@ type PatternList struct {
 // TestClause represents a Bash extended test clause.
 type TestClause struct {
 	Left, Right Pos
-	X           ArithmExpr
+	X           TestExpr
 }
 
 func (t *TestClause) Pos() Pos { return t.Left }
 func (t *TestClause) End() Pos { return posAdd(t.Right, 2) }
+
+// TestExpr represents all nodes that form arithmetic expressions.
+type TestExpr interface {
+	Node
+	testExprNode()
+}
+
+func (*BinaryTest) testExprNode() {}
+func (*UnaryTest) testExprNode()  {}
+func (*ParenTest) testExprNode()  {}
+func (*Word) testExprNode()       {}
+
+// BinaryTest represents a binary expression between two arithmetic
+// expression.
+type BinaryTest struct {
+	OpPos Pos
+	Op    Token
+	X, Y  TestExpr
+}
+
+func (b *BinaryTest) Pos() Pos { return b.X.Pos() }
+func (b *BinaryTest) End() Pos { return b.Y.End() }
+
+// UnaryTest represents an unary expression over a node, either before
+// or after it.
+type UnaryTest struct {
+	OpPos Pos
+	Op    Token
+	X     TestExpr
+}
+
+func (u *UnaryTest) Pos() Pos { return u.OpPos }
+func (u *UnaryTest) End() Pos { return u.X.End() }
+
+// ParenTest represents an expression within parentheses inside an
+// TestExp.
+type ParenTest struct {
+	Lparen, Rparen Pos
+	X              TestExpr
+}
+
+func (p *ParenTest) Pos() Pos { return p.Lparen }
+func (p *ParenTest) End() Pos { return posAdd(p.Rparen, 1) }
 
 // DeclClause represents a Bash declare clause.
 type DeclClause struct {

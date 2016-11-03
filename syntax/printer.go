@@ -369,7 +369,7 @@ func (p *printer) wordPart(wp WordPart) {
 		p.WriteByte('}')
 	case *ArithmExp:
 		p.WriteString("$((")
-		p.arithm(x.X, false, false)
+		p.arithmExpr(x.X, false)
 		p.WriteString("))")
 	case *ArrayExpr:
 		p.wantSpace = false
@@ -411,11 +411,11 @@ func (p *printer) loop(loop Loop) {
 		if x.Init == nil {
 			p.WriteByte(' ')
 		}
-		p.arithm(x.Init, false, false)
+		p.arithmExpr(x.Init, false)
 		p.WriteString("; ")
-		p.arithm(x.Cond, false, false)
+		p.arithmExpr(x.Cond, false)
 		p.WriteString("; ")
-		p.arithm(x.Post, false, false)
+		p.arithmExpr(x.Post, false)
 		p.WriteString("))")
 	}
 }
@@ -566,39 +566,58 @@ func (p *printer) unaryExprOp(tok Token) {
 	}
 }
 
-func (p *printer) arithm(expr ArithmExpr, compact, test bool) {
+func (p *printer) arithmExpr(expr ArithmExpr, compact bool) {
 	p.wantSpace = false
 	switch x := expr.(type) {
 	case *Word:
 		p.word(*x)
-	case *BinaryExpr:
+	case *BinaryArithm:
 		if compact {
-			p.arithm(x.X, compact, test)
+			p.arithmExpr(x.X, compact)
 			p.binaryExprOp(x.Op)
-			p.arithm(x.Y, compact, test)
+			p.arithmExpr(x.Y, compact)
 		} else {
-			p.arithm(x.X, compact, test)
+			p.arithmExpr(x.X, compact)
 			if x.Op != Comma {
 				p.WriteByte(' ')
 			}
 			p.binaryExprOp(x.Op)
 			p.space()
-			p.arithm(x.Y, compact, test)
+			p.arithmExpr(x.Y, compact)
 		}
-	case *UnaryExpr:
+	case *UnaryArithm:
 		if x.Post {
-			p.arithm(x.X, compact, test)
+			p.arithmExpr(x.X, compact)
 			p.unaryExprOp(x.Op)
 		} else {
 			p.unaryExprOp(x.Op)
-			if test {
-				p.space()
-			}
-			p.arithm(x.X, compact, test)
+			p.arithmExpr(x.X, compact)
 		}
-	case *ParenExpr:
+	case *ParenArithm:
 		p.WriteByte('(')
-		p.arithm(x.X, false, test)
+		p.arithmExpr(x.X, false)
+		p.WriteByte(')')
+	}
+}
+
+func (p *printer) testExpr(expr TestExpr) {
+	p.wantSpace = false
+	switch x := expr.(type) {
+	case *Word:
+		p.word(*x)
+	case *BinaryTest:
+		p.testExpr(x.X)
+		p.space()
+		p.binaryExprOp(x.Op)
+		p.space()
+		p.testExpr(x.Y)
+	case *UnaryTest:
+		p.unaryExprOp(x.Op)
+		p.space()
+		p.testExpr(x.X)
+	case *ParenTest:
+		p.WriteByte('(')
+		p.testExpr(x.X)
 		p.WriteByte(')')
 	}
 }
@@ -890,12 +909,12 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			p.space()
 		}
 		p.WriteString("((")
-		p.arithm(x.X, false, false)
+		p.arithmExpr(x.X, false)
 		p.WriteString("))")
 	case *TestClause:
 		p.spacedString("[[", true)
 		p.space()
-		p.arithm(x.X, false, true)
+		p.testExpr(x.X)
 		p.spacedString("]]", true)
 	case *DeclClause:
 		name := x.Variant
@@ -924,7 +943,7 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		p.spacedString("let", true)
 		for _, n := range x.Exprs {
 			p.space()
-			p.arithm(n, true, false)
+			p.arithmExpr(n, true)
 		}
 	}
 	return startRedirs

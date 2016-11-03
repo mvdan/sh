@@ -97,8 +97,6 @@ func Walk(v Visitor, node Node) {
 		if x.Post != nil {
 			Walk(v, x.Post)
 		}
-	case *UnaryExpr:
-		Walk(v, x.X)
 	case *BinaryCmd:
 		Walk(v, x.X)
 		Walk(v, x.Y)
@@ -137,10 +135,19 @@ func Walk(v Visitor, node Node) {
 		if x.X != nil {
 			Walk(v, x.X)
 		}
-	case *BinaryExpr:
+	case *BinaryArithm:
 		Walk(v, x.X)
 		Walk(v, x.Y)
-	case *ParenExpr:
+	case *BinaryTest:
+		Walk(v, x.X)
+		Walk(v, x.Y)
+	case *UnaryArithm:
+		Walk(v, x.X)
+	case *UnaryTest:
+		Walk(v, x.X)
+	case *ParenArithm:
+		Walk(v, x.X)
+	case *ParenTest:
 		Walk(v, x.X)
 	case *CaseClause:
 		Walk(v, &x.Word)
