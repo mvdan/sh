@@ -18,9 +18,9 @@ const (
 	bckQuote // `
 
 	And     // &
-	AndIf   // &&
+	AndExpr // &&
+	OrExpr  // ||
 	Or      // |
-	OrIf    // ||
 	pipeAll // |& - bash
 
 	dollar       // $
@@ -173,6 +173,17 @@ const (
 
 func (o GlobOperator) String() string { return Token(o).String() }
 
+type BinCmdOperator Token
+
+const (
+	AndStmt = BinCmdOperator(AndExpr) + iota
+	OrStmt
+	Pipe
+	PipeAll
+)
+
+func (o BinCmdOperator) String() string { return Token(o).String() }
+
 type CaseOperator Token
 
 const (
@@ -210,9 +221,9 @@ var tokNames = map[Token]string{
 	bckQuote: "`",
 
 	And:     "&",
-	AndIf:   "&&",
+	AndExpr: "&&",
+	OrExpr:  "||",
 	Or:      "|",
-	OrIf:    "||",
 	pipeAll: "|&",
 
 	dollar:       "$",

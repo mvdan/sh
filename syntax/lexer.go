@@ -221,7 +221,7 @@ func (p *parser) regToken(b byte) Token {
 		switch byteAt(p.src, p.npos+1) {
 		case '&':
 			p.npos += 2
-			return AndIf
+			return AndExpr
 		case '>':
 			if !p.bash() {
 				break
@@ -239,7 +239,7 @@ func (p *parser) regToken(b byte) Token {
 		switch byteAt(p.src, p.npos+1) {
 		case '|':
 			p.npos += 2
-			return OrIf
+			return OrExpr
 		case '&':
 			if !p.bash() {
 				break
@@ -493,7 +493,7 @@ func (p *parser) arithmToken(b byte) Token {
 		switch byteAt(p.src, p.npos+1) {
 		case '&':
 			p.npos += 2
-			return AndIf
+			return AndExpr
 		case '=':
 			p.npos += 2
 			return AndAssgn
@@ -504,7 +504,7 @@ func (p *parser) arithmToken(b byte) Token {
 		switch byteAt(p.src, p.npos+1) {
 		case '|':
 			p.npos += 2
-			return OrIf
+			return OrExpr
 		case '=':
 			p.npos += 2
 			return OrAssgn

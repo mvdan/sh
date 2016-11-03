@@ -294,7 +294,7 @@ func (u *UnaryExpr) End() Pos {
 // BinaryCmd represents a binary expression between two statements.
 type BinaryCmd struct {
 	OpPos Pos
-	Op    Token
+	Op    BinCmdOperator
 	X, Y  *Stmt
 }
 
