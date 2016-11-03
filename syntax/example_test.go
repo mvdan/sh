@@ -9,7 +9,7 @@ import (
 	"github.com/mvdan/sh/syntax"
 )
 
-func ExampleFormat() {
+func Example() {
 	in := "{ foo;bar; }"
 	f, err := syntax.Parse([]byte(in), "", 0)
 	if err != nil {
