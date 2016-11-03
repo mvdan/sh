@@ -397,31 +397,21 @@ func (c *CmdSubst) End() Pos { return posAdd(c.Right, 1) }
 
 // ParamExp represents a parameter expansion.
 type ParamExp struct {
-	Dollar        Pos
-	Short, Length bool
-	Param         Lit
-	Ind           *Index
-	Slice         *Slice
-	Repl          *Replace
-	Exp           *Expansion
+	Dollar, Rbrace Pos
+	Short, Length  bool
+	Param          Lit
+	Ind            *Index
+	Slice          *Slice
+	Repl           *Replace
+	Exp            *Expansion
 }
 
 func (p *ParamExp) Pos() Pos { return p.Dollar }
 func (p *ParamExp) End() Pos {
-	end := p.Param.End()
-	if p.Ind != nil {
-		end = posMax(end, p.Ind.Word.End())
+	if p.Rbrace > 0 {
+		return p.Rbrace + 1
 	}
-	if p.Repl != nil {
-		end = posMax(end, p.Repl.With.End())
-	}
-	if p.Exp != nil {
-		end = posMax(end, p.Exp.Word.End())
-	}
-	if !p.Short {
-		end = posAdd(end, 1)
-	}
-	return end
+	return p.Param.End()
 }
 
 // Index represents access to an array via an index inside a ParamExp.

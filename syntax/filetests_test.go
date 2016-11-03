@@ -3291,7 +3291,8 @@ func setPosRecurse(tb testing.TB, src string, v interface{}, to Pos, diff bool) 
 		}
 		if to == 0 {
 			if n.End() != to {
-				tb.Fatalf("Found unexpected End() in %T", n)
+				tb.Fatalf("Found unexpected End() in %T: want %d, got %d",
+					n, to, n.End())
 			}
 			return
 		}
@@ -3450,6 +3451,9 @@ func setPosRecurse(tb testing.TB, src string, v interface{}, to Pos, diff bool) 
 		recurse(x.Body)
 	case *ParamExp:
 		setPos(&x.Dollar, "$")
+		if !x.Short {
+			setPos(&x.Rbrace, "}")
+		}
 		recurse(&x.Param)
 		if x.Ind != nil {
 			recurse(&x.Ind.Word)

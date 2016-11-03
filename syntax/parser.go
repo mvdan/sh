@@ -850,6 +850,7 @@ func (p *parser) paramExp() *ParamExp {
 		p.posErr(pe.Dollar, "parameter expansion requires a literal")
 	}
 	if p.tok == rightBrace {
+		pe.Rbrace = p.pos
 		p.postNested(old)
 		p.next()
 		return pe
@@ -864,6 +865,7 @@ func (p *parser) paramExp() *ParamExp {
 	}
 	switch p.tok {
 	case rightBrace:
+		pe.Rbrace = p.pos
 		p.postNested(old)
 		p.next()
 		return pe
@@ -896,6 +898,7 @@ func (p *parser) paramExp() *ParamExp {
 		pe.Exp.Word = p.word()
 	}
 	p.postNested(old)
+	pe.Rbrace = p.pos
 	p.matched(pe.Dollar, dollBrace, rightBrace)
 	return pe
 }
