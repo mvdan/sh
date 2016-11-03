@@ -147,6 +147,9 @@ func confirmParse(in string, posix, fail bool) func(*testing.T) {
 }
 
 func TestParseBashConfirm(t *testing.T) {
+	if testing.Short() {
+		t.Skip("calling bash is slow.")
+	}
 	if bashError != nil {
 		t.Skip(bashError)
 	}
@@ -158,6 +161,9 @@ func TestParseBashConfirm(t *testing.T) {
 }
 
 func TestParseErrBashConfirm(t *testing.T) {
+	if testing.Short() {
+		t.Skip("calling bash is slow.")
+	}
 	if bashError != nil {
 		t.Skip(bashError)
 	}
@@ -167,6 +173,9 @@ func TestParseErrBashConfirm(t *testing.T) {
 }
 
 func TestParseErrPosixConfirm(t *testing.T) {
+	if testing.Short() {
+		t.Skip("calling bash is slow.")
+	}
 	if bashError != nil {
 		t.Skip(bashError)
 	}
