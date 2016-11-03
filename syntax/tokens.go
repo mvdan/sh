@@ -158,16 +158,12 @@ const (
 	AppAll
 )
 
-func (o RedirOperator) String() string { return Token(o).String() }
-
 type ProcOperator Token
 
 const (
 	CmdIn = ProcOperator(cmdIn) + iota
 	CmdOut
 )
-
-func (o ProcOperator) String() string { return Token(o).String() }
 
 type GlobOperator Token
 
@@ -179,8 +175,6 @@ const (
 	GlobNot
 )
 
-func (o GlobOperator) String() string { return Token(o).String() }
-
 type BinCmdOperator Token
 
 const (
@@ -190,8 +184,6 @@ const (
 	PipeAll
 )
 
-func (o BinCmdOperator) String() string { return Token(o).String() }
-
 type CaseOperator Token
 
 const (
@@ -199,8 +191,6 @@ const (
 	SemiFall
 	DblSemiFall
 )
-
-func (o CaseOperator) String() string { return Token(o).String() }
 
 type ParExpOperator Token
 
@@ -222,8 +212,6 @@ const (
 	LowerFirst
 	LowerAll
 )
-
-func (o ParExpOperator) String() string { return Token(o).String() }
 
 type UnTestOperator Token
 
@@ -251,6 +239,12 @@ const (
 	TsRefVar
 )
 
+func (o RedirOperator) String() string  { return Token(o).String() }
+func (o ProcOperator) String() string   { return Token(o).String() }
+func (o GlobOperator) String() string   { return Token(o).String() }
+func (o BinCmdOperator) String() string { return Token(o).String() }
+func (o CaseOperator) String() string   { return Token(o).String() }
+func (o ParExpOperator) String() string { return Token(o).String() }
 func (o UnTestOperator) String() string { return Token(o).String() }
 
 // Pos is the internal representation of a position within a source
