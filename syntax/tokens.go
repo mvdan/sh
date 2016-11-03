@@ -101,27 +101,27 @@ const (
 	dblQuo   // //
 	Colon    // :
 
-	// All of the below are bash-only.
-	TsExists  // -e
-	TsRegFile // -f
-	TsDirect  // -d
-	TsCharSp  // -c
-	TsBlckSp  // -b
-	TsNmPipe  // -p
-	TsSocket  // -S
-	TsSmbLink // -L
-	TsGIDSet  // -g
-	TsUIDSet  // -u
-	TsRead    // -r
-	TsWrite   // -w
-	TsExec    // -x
-	TsNoEmpty // -s
-	TsFdTerm  // -t
-	TsEmpStr  // -z
-	TsNempStr // -n
-	TsOptSet  // -o
-	TsVarSet  // -v
-	TsRefVar  // -R
+	tsNot     // !
+	tsExists  // -e
+	tsRegFile // -f
+	tsDirect  // -d
+	tsCharSp  // -c
+	tsBlckSp  // -b
+	tsNmPipe  // -p
+	tsSocket  // -S
+	tsSmbLink // -L
+	tsGIDSet  // -g
+	tsUIDSet  // -u
+	tsRead    // -r
+	tsWrite   // -w
+	tsExec    // -x
+	tsNoEmpty // -s
+	tsFdTerm  // -t
+	tsEmpStr  // -z
+	tsNempStr // -n
+	tsOptSet  // -o
+	tsVarSet  // -v
+	tsRefVar  // -R
 
 	TsReMatch // =~
 	TsNewer   // -nt
@@ -224,6 +224,34 @@ const (
 )
 
 func (o ParExpOperator) String() string { return Token(o).String() }
+
+type UnTestOperator Token
+
+const (
+	TsNot = UnTestOperator(tsNot) + iota
+	TsExists
+	TsRegFile
+	TsDirect
+	TsCharSp
+	TsBlckSp
+	TsNmPipe
+	TsSocket
+	TsSmbLink
+	TsGIDSet
+	TsUIDSet
+	TsRead
+	TsWrite
+	TsExec
+	TsNoEmpty
+	TsFdTerm
+	TsEmpStr
+	TsNempStr
+	TsOptSet
+	TsVarSet
+	TsRefVar
+)
+
+func (o UnTestOperator) String() string { return Token(o).String() }
 
 // Pos is the internal representation of a position within a source
 // file.
@@ -335,26 +363,27 @@ var tokNames = map[Token]string{
 	ShlAssgn: "<<=",
 	ShrAssgn: ">>=",
 
-	TsExists:  "-e",
-	TsRegFile: "-f",
-	TsDirect:  "-d",
-	TsCharSp:  "-c",
-	TsBlckSp:  "-b",
-	TsNmPipe:  "-p",
-	TsSocket:  "-S",
-	TsSmbLink: "-L",
-	TsGIDSet:  "-g",
-	TsUIDSet:  "-u",
-	TsRead:    "-r",
-	TsWrite:   "-w",
-	TsExec:    "-x",
-	TsNoEmpty: "-s",
-	TsFdTerm:  "-t",
-	TsEmpStr:  "-z",
-	TsNempStr: "-n",
-	TsOptSet:  "-o",
-	TsVarSet:  "-v",
-	TsRefVar:  "-R",
+	tsNot:     "!",
+	tsExists:  "-e",
+	tsRegFile: "-f",
+	tsDirect:  "-d",
+	tsCharSp:  "-c",
+	tsBlckSp:  "-b",
+	tsNmPipe:  "-p",
+	tsSocket:  "-S",
+	tsSmbLink: "-L",
+	tsGIDSet:  "-g",
+	tsUIDSet:  "-u",
+	tsRead:    "-r",
+	tsWrite:   "-w",
+	tsExec:    "-x",
+	tsNoEmpty: "-s",
+	tsFdTerm:  "-t",
+	tsEmpStr:  "-z",
+	tsNempStr: "-n",
+	tsOptSet:  "-o",
+	tsVarSet:  "-v",
+	tsRefVar:  "-R",
 
 	TsReMatch: "=~",
 	TsNewer:   "-nt",

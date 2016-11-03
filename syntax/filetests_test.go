@@ -2559,7 +2559,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"[[ ! $a < 'b' ]]"},
 		bash: &TestClause{X: &UnaryTest{
-			Op: Not,
+			Op: TsNot,
 			X: &BinaryTest{
 				Op: Lss,
 				X:  word(litParamExp("a")),
@@ -2573,7 +2573,7 @@ var fileTests = []testCase{
 			"[[ ! -a $a ]]",
 		},
 		bash: &TestClause{X: &UnaryTest{
-			Op: Not,
+			Op: TsNot,
 			X:  &UnaryTest{Op: TsExists, X: word(litParamExp("a"))},
 		}},
 	},

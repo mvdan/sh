@@ -521,8 +521,49 @@ func (p *printer) unaryExprOp(tok Token) {
 		p.WriteByte('!')
 	case Inc:
 		p.WriteString("++")
-	case Dec:
+	default: // Dec
 		p.WriteString("--")
+	}
+}
+
+func (p *printer) arithmExpr(expr ArithmExpr, compact bool) {
+	p.wantSpace = false
+	switch x := expr.(type) {
+	case *Word:
+		p.word(*x)
+	case *BinaryArithm:
+		if compact {
+			p.arithmExpr(x.X, compact)
+			p.binaryExprOp(x.Op)
+			p.arithmExpr(x.Y, compact)
+		} else {
+			p.arithmExpr(x.X, compact)
+			if x.Op != Comma {
+				p.WriteByte(' ')
+			}
+			p.binaryExprOp(x.Op)
+			p.space()
+			p.arithmExpr(x.Y, compact)
+		}
+	case *UnaryArithm:
+		if x.Post {
+			p.arithmExpr(x.X, compact)
+			p.unaryExprOp(x.Op)
+		} else {
+			p.unaryExprOp(x.Op)
+			p.arithmExpr(x.X, compact)
+		}
+	case *ParenArithm:
+		p.WriteByte('(')
+		p.arithmExpr(x.X, false)
+		p.WriteByte(')')
+	}
+}
+
+func (p *printer) unaryTestOp(op UnTestOperator) {
+	switch op {
+	case TsNot:
+		p.WriteByte('!')
 	case TsExists:
 		p.WriteString("-e")
 	case TsRegFile:
@@ -566,40 +607,6 @@ func (p *printer) unaryExprOp(tok Token) {
 	}
 }
 
-func (p *printer) arithmExpr(expr ArithmExpr, compact bool) {
-	p.wantSpace = false
-	switch x := expr.(type) {
-	case *Word:
-		p.word(*x)
-	case *BinaryArithm:
-		if compact {
-			p.arithmExpr(x.X, compact)
-			p.binaryExprOp(x.Op)
-			p.arithmExpr(x.Y, compact)
-		} else {
-			p.arithmExpr(x.X, compact)
-			if x.Op != Comma {
-				p.WriteByte(' ')
-			}
-			p.binaryExprOp(x.Op)
-			p.space()
-			p.arithmExpr(x.Y, compact)
-		}
-	case *UnaryArithm:
-		if x.Post {
-			p.arithmExpr(x.X, compact)
-			p.unaryExprOp(x.Op)
-		} else {
-			p.unaryExprOp(x.Op)
-			p.arithmExpr(x.X, compact)
-		}
-	case *ParenArithm:
-		p.WriteByte('(')
-		p.arithmExpr(x.X, false)
-		p.WriteByte(')')
-	}
-}
-
 func (p *printer) testExpr(expr TestExpr) {
 	p.wantSpace = false
 	switch x := expr.(type) {
@@ -612,7 +619,7 @@ func (p *printer) testExpr(expr TestExpr) {
 		p.space()
 		p.testExpr(x.Y)
 	case *UnaryTest:
-		p.unaryExprOp(x.Op)
+		p.unaryTestOp(x.Op)
 		p.space()
 		p.testExpr(x.X)
 	case *ParenTest:

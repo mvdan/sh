@@ -548,7 +548,7 @@ func (b *BinaryTest) End() Pos { return b.Y.End() }
 // or after it.
 type UnaryTest struct {
 	OpPos Pos
-	Op    Token
+	Op    UnTestOperator
 	X     TestExpr
 }
 

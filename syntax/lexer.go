@@ -885,45 +885,45 @@ func testUnaryOp(val string) Token {
 	case "!":
 		return Not
 	case "-e", "-a":
-		return TsExists
+		return tsExists
 	case "-f":
-		return TsRegFile
+		return tsRegFile
 	case "-d":
-		return TsDirect
+		return tsDirect
 	case "-c":
-		return TsCharSp
+		return tsCharSp
 	case "-b":
-		return TsBlckSp
+		return tsBlckSp
 	case "-p":
-		return TsNmPipe
+		return tsNmPipe
 	case "-S":
-		return TsSocket
+		return tsSocket
 	case "-L", "-h":
-		return TsSmbLink
+		return tsSmbLink
 	case "-g":
-		return TsGIDSet
+		return tsGIDSet
 	case "-u":
-		return TsUIDSet
+		return tsUIDSet
 	case "-r":
-		return TsRead
+		return tsRead
 	case "-w":
-		return TsWrite
+		return tsWrite
 	case "-x":
-		return TsExec
+		return tsExec
 	case "-s":
-		return TsNoEmpty
+		return tsNoEmpty
 	case "-t":
-		return TsFdTerm
+		return tsFdTerm
 	case "-z":
-		return TsEmpStr
+		return tsEmpStr
 	case "-n":
-		return TsNempStr
+		return tsNempStr
 	case "-o":
-		return TsOptSet
+		return tsOptSet
 	case "-v":
-		return TsVarSet
+		return tsVarSet
 	case "-R":
-		return TsRefVar
+		return tsRefVar
 	default:
 		return illegalTok
 	}

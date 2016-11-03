@@ -1438,14 +1438,14 @@ func (p *parser) testExprBase(ftok Token, fpos Pos) TestExpr {
 	}
 	switch p.tok {
 	case Not:
-		u := &UnaryTest{OpPos: p.pos, Op: p.tok}
+		u := &UnaryTest{OpPos: p.pos, Op: TsNot}
 		p.next()
-		u.X = p.testExpr(u.Op, u.OpPos, 0)
+		u.X = p.testExpr(Token(u.Op), u.OpPos, 0)
 		return u
-	case TsExists, TsRegFile, TsDirect, TsCharSp, TsBlckSp, TsNmPipe, TsSocket, TsSmbLink,
-		TsGIDSet, TsUIDSet, TsRead, TsWrite, TsExec, TsNoEmpty, TsFdTerm, TsEmpStr,
-		TsNempStr, TsOptSet, TsVarSet, TsRefVar:
-		u := &UnaryTest{OpPos: p.pos, Op: p.tok}
+	case tsExists, tsRegFile, tsDirect, tsCharSp, tsBlckSp, tsNmPipe, tsSocket, tsSmbLink,
+		tsGIDSet, tsUIDSet, tsRead, tsWrite, tsExec, tsNoEmpty, tsFdTerm, tsEmpStr,
+		tsNempStr, tsOptSet, tsVarSet, tsRefVar:
+		u := &UnaryTest{OpPos: p.pos, Op: UnTestOperator(p.tok)}
 		p.next()
 		w := p.followWordTok(ftok, fpos)
 		u.X = &w
