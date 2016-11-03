@@ -44,22 +44,15 @@ const (
 	semiFall     // ;& - bash
 	dblSemiFall  // ;;& - bash
 
-	Add   // +
-	Sub   // -
-	Rem   // %
-	Mul   // *
-	Quo   // /
-	Xor   // ^
-	Not   // !
-	Inc   // ++
-	Dec   // --
-	Pow   // **
-	Comma // ,
-	Assgn // =
-	Eql   // ==
-	Neq   // !=
-	Leq   // <=
-	Geq   // >=
+	Mul // *
+	Not // !
+	Inc // ++
+	Dec // --
+	Pow // **
+	Eql // ==
+	Neq // !=
+	Leq // <=
+	Geq // >=
 
 	AddAssgn // +=
 	SubAssgn // -=
@@ -88,17 +81,24 @@ const (
 	cmdIn  // <( - bash
 	cmdOut // >( - bash
 
-	Colon    // :
+	Add      // +
 	ColAdd   // :+
+	Sub      // -
 	ColSub   // :-
 	Quest    // ?
 	ColQuest // :?
+	Assgn    // =
 	ColAssgn // :=
+	Colon    // :
+	Rem      // %
 	DblRem   // %%
 	Hash     // #
 	DblHash  // ##
+	Quo      // /
 	DblQuo   // //
+	Xor      // ^
 	DblXor   // ^^ - bash
+	Comma    // ,
 	DblComma // ,, - bash
 
 	// All of the below are bash-only.
@@ -271,35 +271,35 @@ var tokNames = map[Token]string{
 	cmdIn:  "<(",
 	cmdOut: ">(",
 
-	Colon:    ":",
 	Add:      "+",
 	ColAdd:   ":+",
 	Sub:      "-",
 	ColSub:   ":-",
 	Quest:    "?",
 	ColQuest: ":?",
+	Assgn:    "=",
 	ColAssgn: ":=",
+	Colon:    ":",
 	Rem:      "%",
 	DblRem:   "%%",
 	Hash:     "#",
 	DblHash:  "##",
 	Quo:      "/",
 	DblQuo:   "//",
+	Xor:      "^",
 	DblXor:   "^^",
+	Comma:    ",",
 	DblComma: ",,",
 
-	Mul:   "*",
-	Xor:   "^",
-	Not:   "!",
-	Inc:   "++",
-	Dec:   "--",
-	Pow:   "**",
-	Comma: ",",
-	Assgn: "=",
-	Eql:   "==",
-	Neq:   "!=",
-	Leq:   "<=",
-	Geq:   ">=",
+	Mul: "*",
+	Not: "!",
+	Inc: "++",
+	Dec: "--",
+	Pow: "**",
+	Eql: "==",
+	Neq: "!=",
+	Leq: "<=",
+	Geq: ">=",
 
 	AddAssgn: "+=",
 	SubAssgn: "-=",
