@@ -349,7 +349,14 @@ func (p *printer) wordPart(wp WordPart) {
 			p.word(x.Ind.Word)
 			p.WriteByte(']')
 		}
-		if x.Repl != nil {
+		if x.Slice != nil {
+			p.WriteByte(':')
+			p.word(x.Slice.Offset)
+			if w2 := x.Slice.Length; w2.Parts != nil {
+				p.WriteByte(':')
+				p.word(w2)
+			}
+		} else if x.Repl != nil {
 			if x.Repl.All {
 				p.WriteByte('/')
 			}

@@ -848,6 +848,22 @@ var bashTests = []errorCase{
 		"`let` { foo; }",
 		`1:2: let clause requires at least one expression`,
 	},
+	{
+		"echo ${foo:",
+		`1:11: : must be followed by a word`,
+	},
+	{
+		"echo ${foo:1",
+		`1:6: reached EOF without matching ${ with }`,
+	},
+	{
+		"echo ${foo:1:",
+		`1:13: : must be followed by a word`,
+	},
+	{
+		"echo ${foo:1:2",
+		`1:6: reached EOF without matching ${ with }`,
+	},
 }
 
 var posixTests = []errorCase{
@@ -886,6 +902,10 @@ var posixTests = []errorCase{
 	{
 		"echo !(a)",
 		`1:7: a command can only contain words and redirects`,
+	},
+	{
+		"echo ${foo:1}",
+		`1:11: slicing is a bash feature`,
 	},
 }
 

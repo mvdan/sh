@@ -877,6 +877,18 @@ func (p *parser) paramExp() *ParamExp {
 			p.next()
 			pe.Repl.With = p.word()
 		}
+	case Colon:
+		if !p.bash() {
+			p.curErr("slicing is a bash feature")
+		}
+		pe.Slice = &Slice{}
+		colonPos := p.pos
+		p.next()
+		pe.Slice.Offset = p.followWordTok(Colon, colonPos)
+		colonPos = p.pos
+		if p.got(Colon) {
+			pe.Slice.Length = p.followWordTok(Colon, colonPos)
+		}
 	default:
 		pe.Exp = &Expansion{Op: p.tok}
 		p.quote = paramExpExp

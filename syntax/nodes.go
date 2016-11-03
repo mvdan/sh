@@ -401,6 +401,7 @@ type ParamExp struct {
 	Short, Length bool
 	Param         Lit
 	Ind           *Index
+	Slice         *Slice
 	Repl          *Replace
 	Exp           *Expansion
 }
@@ -426,6 +427,11 @@ func (p *ParamExp) End() Pos {
 // Index represents access to an array via an index inside a ParamExp.
 type Index struct {
 	Word Word
+}
+
+// Slice represents character slicing inside a ParamExp.
+type Slice struct {
+	Offset, Length Word
 }
 
 // Replace represents a search and replace inside a ParamExp.
