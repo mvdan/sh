@@ -15,14 +15,10 @@ func regOps(b byte) bool {
 }
 
 // tokenize these inside parameter expansions
-func paramOps(b byte, bash bool) bool {
-	switch b {
-	case '}', '#', ':', '-', '+', '=', '?', '%', '[', '/':
-		return true
-	case '^', ',':
-		return bash
-	}
-	return false
+func paramOps(b byte) bool {
+	return b == '}' || b == '#' || b == ':' || b == '-' || b == '+' ||
+		b == '=' || b == '?' || b == '%' || b == '[' || b == '/' ||
+		b == '^' || b == ','
 }
 
 // tokenize these inside arithmetic expansions
@@ -183,7 +179,7 @@ skipSpace:
 		default:
 			p.advanceLitNone()
 		}
-	case q == paramExpName && paramOps(b, p.bash()):
+	case q == paramExpName && paramOps(b):
 		p.tok = p.paramToken(b)
 	case q&allArithmExpr != 0 && arithmOps(b):
 		p.tok = p.arithmToken(b)
@@ -657,7 +653,7 @@ func (p *parser) advanceLitOther(q quoteState) {
 			}
 		case q == paramExpInd && wordBreak(b):
 		case wordBreak(b), regOps(b), q&allArithmExpr != 0 && arithmOps(b),
-			q == paramExpName && paramOps(b, p.bash()),
+			q == paramExpName && paramOps(b),
 			q&allRbrack != 0 && b == ']':
 			p.tok, p.val = _LitWord, string(bs)
 			return

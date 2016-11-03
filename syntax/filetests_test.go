@@ -1770,12 +1770,6 @@ var fileTests = []testCase{
 				},
 			}),
 		),
-		posix: call(
-			*word(&ParamExp{Param: *lit("a^b")}),
-			*word(&ParamExp{Param: *lit("a^^b")}),
-			*word(&ParamExp{Param: *lit("a,b")}),
-			*word(&ParamExp{Param: *lit("a,,b")}),
-		),
 	},
 	{
 		Strs: []string{`${#foo}`},

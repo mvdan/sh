@@ -907,6 +907,10 @@ var posixTests = []errorCase{
 		"echo ${foo:1}",
 		`1:11: slicing is a bash feature`,
 	},
+	{
+		"echo ${foo,bar}",
+		`1:11: case expansions are a bash feature`,
+	},
 }
 
 func TestInputName(t *testing.T) {

@@ -891,6 +891,11 @@ func (p *parser) paramExp() *ParamExp {
 		if p.got(Colon) {
 			pe.Slice.Length = p.followWordTok(Colon, colonPos)
 		}
+	case Xor, DblXor, Comma, DblComma:
+		if !p.bash() {
+			p.curErr("case expansions are a bash feature")
+		}
+		fallthrough
 	default:
 		pe.Exp = &Expansion{Op: p.tok}
 		p.quote = paramExpExp
