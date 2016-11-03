@@ -100,12 +100,12 @@ func confirmParse(in string, posix, fail bool) func(*testing.T) {
 		t.Parallel()
 		var opts []string
 		if posix {
-			if strings.HasPrefix(in, "function") {
+			if fail && strings.HasPrefix(in, "function") {
 				// posix-mode bash accepts bash-style
 				// functions for some reason
 				return
 			}
-			if bashParamExp.MatchString(in) {
+			if fail && bashParamExp.MatchString(in) {
 				// posix-mode bash accepts non-posix
 				// parameter expansions like ${foo,bar}
 				return
