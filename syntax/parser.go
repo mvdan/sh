@@ -628,8 +628,8 @@ func (p *parser) wordPart() WordPart {
 			p.quoteErr(cs.Pos(), bckQuote)
 		}
 		return cs
-	case GlobQuest, GlobMul, GlobAdd, GlobAt, GlobNot:
-		eg := &ExtGlob{Op: p.tok}
+	case globQuest, globMul, globAdd, globAt, globNot:
+		eg := &ExtGlob{Op: GlobOperator(p.tok)}
 		eg.Pattern.ValuePos = Pos(p.npos + 1)
 		start := p.npos
 		lparens := 0
@@ -1131,8 +1131,8 @@ func (p *parser) gotStmtPipe(s *Stmt) *Stmt {
 			}
 		}
 	case _Lit, dollBrace, dollDblParen, dollParen, dollar, cmdIn, cmdOut, sglQuote,
-		dollSglQuote, dblQuote, dollDblQuote, bckQuote, dollBrack, GlobQuest, GlobMul, GlobAdd,
-		GlobAt, GlobNot:
+		dollSglQuote, dblQuote, dollDblQuote, bckQuote, dollBrack, globQuest, globMul, globAdd,
+		globAt, globNot:
 		w := Word{Parts: p.wordParts()}
 		if p.gotSameLine(leftParen) && p.err == nil {
 			rawName := string(p.src[w.Pos()-1 : w.End()-1])
@@ -1600,8 +1600,8 @@ func (p *parser) callExpr(s *Stmt, w Word) *CallExpr {
 			}
 			fallthrough
 		case _Lit, dollBrace, dollDblParen, dollParen, dollar, cmdIn, cmdOut,
-			sglQuote, dollSglQuote, dblQuote, dollDblQuote, dollBrack, GlobQuest,
-			GlobMul, GlobAdd, GlobAt, GlobNot:
+			sglQuote, dollSglQuote, dblQuote, dollDblQuote, dollBrack, globQuest,
+			globMul, globAdd, globAt, globNot:
 			ce.Args = append(ce.Args, Word{Parts: p.wordParts()})
 		case Gtr, Shr, Lss, dplIn, dplOut, clbOut, rdrInOut, Shl,
 			dashHdoc, wordHdoc, rdrAll, appAll:

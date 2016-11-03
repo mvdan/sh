@@ -133,11 +133,11 @@ const (
 	TsLss     // -lt
 	TsGtr     // -gt
 
-	GlobQuest // ?(
-	GlobMul   // *(
-	GlobAdd   // +(
-	GlobAt    // @(
-	GlobNot   // !(
+	globQuest // ?(
+	globMul   // *(
+	globAdd   // +(
+	globAt    // @(
+	globNot   // !(
 )
 
 type RedirOperator Token
@@ -160,6 +160,18 @@ const (
 )
 
 func (o RedirOperator) String() string { return Token(o).String() }
+
+type GlobOperator Token
+
+const (
+	GlobQuest = GlobOperator(globQuest) + iota
+	GlobMul
+	GlobAdd
+	GlobAt
+	GlobNot
+)
+
+func (o GlobOperator) String() string { return Token(o).String() }
 
 // Pos is the internal representation of a position within a source
 // file.
@@ -302,11 +314,11 @@ var tokNames = map[Token]string{
 	TsLss:     "-lt",
 	TsGtr:     "-gt",
 
-	GlobQuest: "?(",
-	GlobMul:   "*(",
-	GlobAdd:   "+(",
-	GlobAt:    "@(",
-	GlobNot:   "!(",
+	globQuest: "?(",
+	globMul:   "*(",
+	globAdd:   "+(",
+	globAt:    "@(",
+	globNot:   "!(",
 }
 
 func (t Token) String() string { return tokNames[t] }

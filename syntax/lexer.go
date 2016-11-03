@@ -166,15 +166,15 @@ skipSpace:
 			if p.bash() && p.npos+1 < len(p.src) && p.src[p.npos+1] == '(' {
 				switch b {
 				case '?':
-					p.tok = GlobQuest
+					p.tok = globQuest
 				case '*':
-					p.tok = GlobMul
+					p.tok = globMul
 				case '+':
-					p.tok = GlobAdd
+					p.tok = globAdd
 				case '@':
-					p.tok = GlobAt
+					p.tok = globAt
 				default: // '!'
-					p.tok = GlobNot
+					p.tok = globNot
 				}
 				p.npos += 2
 			} else {
