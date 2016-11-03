@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os/exec"
 	"reflect"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -59,6 +60,8 @@ func TestParsePosix(t *testing.T) {
 	}
 }
 
+var bashParamExp = regexp.MustCompile(`\${[^}]*[,^:]`)
+
 func confirmParse(in string, posix, fail bool) func(*testing.T) {
 	return func(t *testing.T) {
 		var opts []string
@@ -66,6 +69,11 @@ func confirmParse(in string, posix, fail bool) func(*testing.T) {
 			if strings.HasPrefix(in, "function") {
 				// posix-mode bash accepts bash-style
 				// functions for some reason
+				return
+			}
+			if bashParamExp.MatchString(in) {
+				// posix-mode bash accepts non-posix
+				// parameter expansions like ${foo,bar}
 				return
 			}
 			opts = append(opts, "--posix")
