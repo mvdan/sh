@@ -297,16 +297,16 @@ func (p *parser) regToken(b byte) Token {
 		case ';':
 			if p.bash() && byteAt(p.src, p.npos+2) == '&' {
 				p.npos += 3
-				return DblSemiFall
+				return dblSemiFall
 			}
 			p.npos += 2
-			return DblSemicolon
+			return dblSemicolon
 		case '&':
 			if !p.bash() {
 				break
 			}
 			p.npos += 2
-			return SemiFall
+			return semiFall
 		}
 		p.npos++
 		return semicolon

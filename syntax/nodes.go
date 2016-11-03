@@ -509,7 +509,7 @@ func (c *CaseClause) End() Pos { return posAdd(c.Esac, 4) }
 
 // PatternList represents a pattern list (case) within a CaseClause.
 type PatternList struct {
-	Op       Token
+	Op       CaseOperator
 	OpPos    Pos
 	Patterns []Word
 	Stmts    []*Stmt

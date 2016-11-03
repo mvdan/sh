@@ -738,8 +738,8 @@ func binaryCmdOp(tok Token) string {
 	}
 }
 
-func caseClauseOp(tok Token) string {
-	switch tok {
+func caseClauseOp(op CaseOperator) string {
+	switch op {
 	case DblSemicolon:
 		return ";;"
 	case SemiFall:

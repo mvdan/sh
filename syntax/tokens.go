@@ -40,9 +40,9 @@ const (
 	dblRightParen // ))
 	semicolon     // ;
 
-	DblSemicolon // ;;
-	SemiFall     // ;& - bash
-	DblSemiFall  // ;;& - bash
+	dblSemicolon // ;;
+	semiFall     // ;& - bash
+	dblSemiFall  // ;;& - bash
 
 	Add   // +
 	Sub   // -
@@ -173,6 +173,16 @@ const (
 
 func (o GlobOperator) String() string { return Token(o).String() }
 
+type CaseOperator Token
+
+const (
+	DblSemicolon = CaseOperator(dblSemicolon) + iota
+	SemiFall
+	DblSemiFall
+)
+
+func (o CaseOperator) String() string { return Token(o).String() }
+
 // Pos is the internal representation of a position within a source
 // file.
 type Pos int
@@ -222,9 +232,9 @@ var tokNames = map[Token]string{
 	dblRightParen: "))",
 	semicolon:     ";",
 
-	DblSemicolon: ";;",
-	SemiFall:     ";&",
-	DblSemiFall:  ";;&",
+	dblSemicolon: ";;",
+	semiFall:     ";&",
+	dblSemiFall:  ";;&",
 
 	Gtr:      ">",
 	Shr:      ">>",

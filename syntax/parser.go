@@ -401,7 +401,7 @@ func (p *parser) stmts(stops ...string) (sts []*Stmt) {
 			if q == subCmdBckquo {
 				return
 			}
-		case DblSemicolon, SemiFall, DblSemiFall:
+		case dblSemicolon, semiFall, dblSemiFall:
 			if q == switchCase {
 				return
 			}
@@ -906,8 +906,8 @@ func (p *parser) arithmEnd(ltok Token, lpos Pos, old saveState) Pos {
 
 func stopToken(tok Token) bool {
 	switch tok {
-	case _EOF, semicolon, And, Or, AndIf, OrIf, pipeAll, DblSemicolon,
-		SemiFall, DblSemiFall, rightParen:
+	case _EOF, semicolon, And, Or, AndIf, OrIf, pipeAll, dblSemicolon,
+		semiFall, dblSemiFall, rightParen:
 		return true
 	}
 	return false
@@ -1258,7 +1258,7 @@ func (p *parser) loop(forPos Pos) Loop {
 		cl := &CStyleLoop{Lparen: p.pos}
 		old := p.preNested(arithmExprCmd)
 		p.next()
-		if p.tok == DblSemicolon {
+		if p.tok == dblSemicolon {
 			p.npos--
 			p.tok = semicolon
 		}
@@ -1330,12 +1330,12 @@ func (p *parser) patLists() (pls []*PatternList) {
 		pl.Stmts = p.stmts("esac")
 		p.postNested(old)
 		pl.OpPos = p.pos
-		if p.tok != DblSemicolon && p.tok != SemiFall && p.tok != DblSemiFall {
+		if p.tok != dblSemicolon && p.tok != semiFall && p.tok != dblSemiFall {
 			pl.Op = DblSemicolon
 			pls = append(pls, pl)
 			break
 		}
-		pl.Op = p.tok
+		pl.Op = CaseOperator(p.tok)
 		p.next()
 		pls = append(pls, pl)
 	}
@@ -1583,7 +1583,7 @@ func (p *parser) callExpr(s *Stmt, w Word) *CallExpr {
 	for !p.newLine {
 		switch p.tok {
 		case _EOF, semicolon, And, Or, AndIf, OrIf, pipeAll,
-			DblSemicolon, SemiFall, DblSemiFall:
+			dblSemicolon, semiFall, dblSemiFall:
 			return ce
 		case _LitWord:
 			if litRedir(p.src, p.npos) {
