@@ -565,7 +565,7 @@ func (e *ExtGlob) End() Pos { return posAdd(e.Pattern.End(), 1) }
 // ProcSubst represents a Bash process substitution.
 type ProcSubst struct {
 	OpPos, Rparen Pos
-	Op            Token
+	Op            ProcOperator
 	Stmts         []*Stmt
 }
 

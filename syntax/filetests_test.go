@@ -1169,7 +1169,7 @@ var fileTests = []testCase{
 			Cmd: call(
 				*litWord("foo"),
 				*word(&ProcSubst{
-					Op:    cmdOut,
+					Op:    CmdOut,
 					Stmts: litStmts("foo"),
 				}),
 			),
@@ -1182,7 +1182,7 @@ var fileTests = []testCase{
 			Redirs: []*Redirect{{
 				Op: RdrIn,
 				Word: *word(&ProcSubst{
-					Op:    cmdIn,
+					Op:    CmdIn,
 					Stmts: litStmts("foo"),
 				}),
 			}},

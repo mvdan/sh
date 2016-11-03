@@ -82,10 +82,11 @@ const (
 	Shl      // <<
 	dashHdoc // <<-
 	wordHdoc // <<< - bash
-	cmdIn    // <( - bash
-	cmdOut   // >( - bash
 	rdrAll   // &> - bash
 	appAll   // &>> - bash
+
+	cmdIn  // <( - bash
+	cmdOut // >( - bash
 
 	Colon    // :
 	ColAdd   // :+
@@ -153,13 +154,20 @@ const (
 	Hdoc
 	DashHdoc
 	WordHdoc
-	CmdIn
-	CmdOut
 	RdrAll
 	AppAll
 )
 
 func (o RedirOperator) String() string { return Token(o).String() }
+
+type ProcOperator Token
+
+const (
+	CmdIn = ProcOperator(cmdIn) + iota
+	CmdOut
+)
+
+func (o ProcOperator) String() string { return Token(o).String() }
 
 type GlobOperator Token
 
@@ -257,10 +265,11 @@ var tokNames = map[Token]string{
 	Shl:      "<<",
 	dashHdoc: "<<-",
 	wordHdoc: "<<<",
-	cmdIn:    "<(",
-	cmdOut:   ">(",
 	rdrAll:   "&>",
 	appAll:   "&>>",
+
+	cmdIn:  "<(",
+	cmdOut: ">(",
 
 	Colon:    ":",
 	Add:      "+",

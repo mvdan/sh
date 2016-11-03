@@ -381,9 +381,10 @@ func (p *printer) wordPart(wp WordPart) {
 		if p.wantSpace {
 			p.space()
 		}
-		if x.Op == cmdIn {
+		switch x.Op {
+		case CmdIn:
 			p.WriteString("<(")
-		} else { // cmdOut
+		default: // CmdOut
 			p.WriteString(">(")
 		}
 		p.nestedStmts(x.Stmts, 0)

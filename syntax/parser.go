@@ -546,12 +546,12 @@ func (p *parser) wordPart() WordPart {
 		p.gotLit(&pe.Param)
 		return pe
 	case cmdIn, cmdOut:
-		ps := &ProcSubst{Op: p.tok, OpPos: p.pos}
+		ps := &ProcSubst{Op: ProcOperator(p.tok), OpPos: p.pos}
 		old := p.preNested(subCmd)
 		p.next()
 		ps.Stmts = p.stmts()
 		p.postNested(old)
-		ps.Rparen = p.matched(ps.OpPos, ps.Op, rightParen)
+		ps.Rparen = p.matched(ps.OpPos, Token(ps.Op), rightParen)
 		return ps
 	case sglQuote:
 		sq := &SglQuoted{Position: p.pos}
