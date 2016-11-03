@@ -143,7 +143,7 @@ const (
 type RedirOperator Token
 
 const (
-	RdrOut RedirOperator = iota
+	RdrOut = RedirOperator(Gtr) + iota
 	AppOut
 	RdrIn
 	RdrInOut
@@ -159,9 +159,7 @@ const (
 	AppAll
 )
 
-func (o RedirOperator) String() string  { return fromRedirOp(o).String() }
-func toRedirOp(t Token) RedirOperator   { return RedirOperator(t - Gtr) }
-func fromRedirOp(o RedirOperator) Token { return Token(o) + Gtr }
+func (o RedirOperator) String() string { return Token(o).String() }
 
 // Pos is the internal representation of a position within a source
 // file.

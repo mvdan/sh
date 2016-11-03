@@ -991,7 +991,7 @@ func (p *parser) doRedirect(s *Stmt) {
 	if p.gotLit(&l) {
 		r.N = &l
 	}
-	r.Op, r.OpPos = toRedirOp(p.tok), p.pos
+	r.Op, r.OpPos = RedirOperator(p.tok), p.pos
 	p.next()
 	switch r.Op {
 	case Hdoc, DashHdoc:
@@ -1001,18 +1001,14 @@ func (p *parser) doRedirect(s *Stmt) {
 			p.curErr("heredoc stop word must be on the same line")
 		}
 		p.heredocs = append(p.heredocs, r)
-		if r.Word = p.word(); r.Word.Parts == nil {
-			p.followErr(r.OpPos, fromRedirOp(r.Op).String(), "a word")
-		}
+		r.Word = p.followWordTok(Token(r.Op), r.OpPos)
 		p.quote = old
 		p.next()
 	default:
 		if p.newLine {
 			p.curErr("redirect word must be on the same line")
 		}
-		if r.Word = p.word(); r.Word.Parts == nil {
-			p.followErr(r.OpPos, fromRedirOp(r.Op).String(), "a word")
-		}
+		r.Word = p.followWordTok(Token(r.Op), r.OpPos)
 	}
 	s.Redirs = append(s.Redirs, r)
 }
