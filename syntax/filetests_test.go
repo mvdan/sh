@@ -3418,10 +3418,18 @@ func setPosRecurse(tb testing.TB, src string, v interface{}, to Pos, diff bool) 
 			valuePos++
 		}
 		checkSrc(valuePos, x.Value)
-		setPos(&x.Position, "'", "$'")
+		if x.Dollar {
+			setPos(&x.Position, "$'")
+		} else {
+			setPos(&x.Position, "'")
+		}
 	case *DblQuoted:
 		checkSrc(x.End()-1, `"`)
-		setPos(&x.Position, `"`, `$"`)
+		if x.Dollar {
+			setPos(&x.Position, `$"`)
+		} else {
+			setPos(&x.Position, `"`)
+		}
 		recurse(x.Parts)
 	case *UnaryExpr:
 		strs := []string{x.Op.String()}
