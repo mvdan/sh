@@ -6,7 +6,9 @@ package syntax
 import (
 	"bytes"
 	"errors"
+	"flag"
 	"fmt"
+	"os"
 	"os/exec"
 	"reflect"
 	"regexp"
@@ -60,7 +62,38 @@ func TestParsePosix(t *testing.T) {
 	}
 }
 
-var bashParamExp = regexp.MustCompile(`\${[^}]*[,^:]`)
+func TestMain(m *testing.M) {
+	flag.Parse()
+	if bashError = bashCheck(); bashError != nil {
+		fmt.Printf("skipping bash exec tests: %v\n", bashError)
+	}
+	os.Exit(m.Run())
+}
+
+var (
+	bashParamExp = regexp.MustCompile(`\${[^}]*[,^:]`)
+	bashVersion  = regexp.MustCompile(`version ([^ ]\+)`)
+
+	bashError error
+)
+
+func bashCheck() error {
+	out, err := exec.Command("bash", "-c", "echo -n $BASH_VERSION").Output()
+	if err != nil {
+		return err
+	}
+	got := string(out)
+	versions := []string{
+		"4.3",
+		"4.4",
+	}
+	for _, ver := range versions {
+		if strings.HasPrefix(got, ver) {
+			return nil
+		}
+	}
+	return fmt.Errorf("need bash %s, found %s", strings.Join(versions, "/"), got)
+}
 
 func confirmParse(in string, posix, fail bool) func(*testing.T) {
 	return func(t *testing.T) {
@@ -114,8 +147,8 @@ func confirmParse(in string, posix, fail bool) func(*testing.T) {
 }
 
 func TestParseBashConfirm(t *testing.T) {
-	if testing.Short() {
-		t.Skip("calling bash is slow.")
+	if bashError != nil {
+		t.Skip(bashError)
 	}
 	for i, c := range append(fileTests, fileTestsNoPrint...) {
 		for j, in := range c.Strs {
@@ -125,8 +158,8 @@ func TestParseBashConfirm(t *testing.T) {
 }
 
 func TestParseErrBashConfirm(t *testing.T) {
-	if testing.Short() {
-		t.Skip("calling bash is slow.")
+	if bashError != nil {
+		t.Skip(bashError)
 	}
 	for i, c := range append(shellTests, bashTests...) {
 		t.Run(fmt.Sprintf("%03d", i), confirmParse(c.in, false, true))
@@ -134,8 +167,8 @@ func TestParseErrBashConfirm(t *testing.T) {
 }
 
 func TestParseErrPosixConfirm(t *testing.T) {
-	if testing.Short() {
-		t.Skip("calling bash is slow.")
+	if bashError != nil {
+		t.Skip(bashError)
 	}
 	for i, c := range append(shellTests, posixTests...) {
 		t.Run(fmt.Sprintf("%03d", i), confirmParse(c.in, true, true))
