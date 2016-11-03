@@ -5,6 +5,9 @@
 
 A shell parser and formatter. Supports POSIX Shell and Bash.
 
+For a quick overview, see the
+[examples](https://godoc.org/github.com/mvdan/sh/syntax#pkg-examples).
+
 ### shfmt
 
 	go get -u github.com/mvdan/sh/cmd/shfmt
