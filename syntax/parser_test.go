@@ -11,7 +11,6 @@ import (
 	"os"
 	"os/exec"
 	"reflect"
-	"regexp"
 	"strings"
 	"testing"
 
@@ -70,12 +69,7 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-var (
-	bashParamExp = regexp.MustCompile(`\${[^}]*[,^:]`)
-	bashVersion  = regexp.MustCompile(`version ([^ ]\+)`)
-
-	bashError error
-)
+var bashError error
 
 func bashCheck() error {
 	out, err := exec.Command("bash", "-c", "echo -n $BASH_VERSION").Output()
@@ -100,17 +94,10 @@ func confirmParse(in string, posix, fail bool) func(*testing.T) {
 		t.Parallel()
 		var opts []string
 		if posix {
-			if fail && strings.HasPrefix(in, "function") {
-				// posix-mode bash accepts bash-style
-				// functions for some reason
-				return
-			}
-			if fail && bashParamExp.MatchString(in) {
-				// posix-mode bash accepts non-posix
-				// parameter expansions like ${foo,bar}
-				return
-			}
 			opts = append(opts, "--posix")
+		}
+		if strings.Contains(in, "#INVBASH") {
+			fail = !fail
 		}
 		if strings.Contains(in, "@(") {
 			// otherwise bash refuses to parse these
@@ -908,7 +895,7 @@ var bashTests = []errorCase{
 		`1:11: : must be followed by a word`,
 	},
 	{
-		"echo ${foo:1 2}",
+		"echo ${foo:1 2} #INVBASH lazy eval",
 		`1:6: reached LitWord without matching ${ with }`,
 	},
 	{
@@ -935,7 +922,7 @@ var posixTests = []errorCase{
 		`1:1: "foo(" must be followed by )`,
 	},
 	{
-		"function foo() { bar; }",
+		"function foo() { bar; } #INVBASH posix is wrong",
 		`1:13: a command can only contain words and redirects`,
 	},
 	{
@@ -963,19 +950,19 @@ var posixTests = []errorCase{
 		`1:7: a command can only contain words and redirects`,
 	},
 	{
-		"foo=(1 2)",
+		"foo=(1 2) #INVBASH --posix is wrong",
 		`1:5: arrays are a bash feature`,
 	},
 	{
-		"echo ${foo[1]}",
+		"echo ${foo[1]} #INVBASH --posix is wrong",
 		`1:11: arrays are a bash feature`,
 	},
 	{
-		"echo ${foo:1}",
+		"echo ${foo:1} #INVBASH --posix is wrong",
 		`1:11: slicing is a bash feature`,
 	},
 	{
-		"echo ${foo,bar}",
+		"echo ${foo,bar} #INVBASH --posix is wrong",
 		`1:11: case expansions are a bash feature`,
 	},
 }
