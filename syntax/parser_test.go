@@ -109,6 +109,8 @@ func confirmParse(in string, posix, fail bool) func(*testing.T) {
 			// non-erroring tests. Should be safe to not use
 			// -n anyway since these are supposed to just
 			// fail.
+			// also, -n will break if we are using extglob
+			// as extglob is not actually applied.
 			opts = append(opts, "-n")
 		}
 		cmd := exec.Command("bash", opts...)
