@@ -117,6 +117,10 @@ func TestFprintWeirdFormat(t *testing.T) {
 			"a=1 \\\n\tb=2 \\\n\tc=3 \\\n\t;",
 		},
 		{
+			"if a \\\n\t; then b; fi",
+			"if a \\\n\t; then b; fi",
+		},
+		{
 			"a 'b\nb' c",
 			"a 'b\nb' c",
 		},

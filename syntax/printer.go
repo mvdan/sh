@@ -56,6 +56,7 @@ type printer struct {
 
 	wantSpace   bool
 	wantNewline bool
+	wroteSemi   bool
 
 	commentPadding int
 
@@ -144,7 +145,10 @@ func (p *printer) semiOrNewl(s string, pos Pos) {
 		p.newline(pos)
 		p.indent()
 	} else {
-		p.WriteString("; ")
+		if !p.wroteSemi {
+			p.WriteByte(';')
+		}
+		p.WriteByte(' ')
 	}
 	p.incLines(pos)
 	p.WriteString(s)
@@ -234,7 +238,10 @@ func (p *printer) semiRsrv(s string, pos Pos, fallback bool) {
 	if p.wantNewline || pos > p.nline {
 		p.newlines(pos)
 	} else if fallback {
-		p.WriteString("; ")
+		if !p.wroteSemi {
+			p.WriteByte(';')
+		}
+		p.WriteByte(' ')
 	} else if p.wantSpace {
 		p.WriteByte(' ')
 	}
@@ -733,12 +740,14 @@ func (p *printer) stmt(s *Stmt) {
 			p.pendingHdocs = append(p.pendingHdocs, r)
 		}
 	}
+	p.wroteSemi = false
 	if s.SemiPos > 0 && s.SemiPos > p.nline {
 		p.incLevel()
 		p.bslashNewl()
 		p.indent()
 		p.decLevel()
 		p.WriteByte(';')
+		p.wroteSemi = true
 	} else if s.Background {
 		p.WriteString(" &")
 	}
