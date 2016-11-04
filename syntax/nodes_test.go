@@ -9,20 +9,8 @@ import (
 	"testing"
 )
 
-func TestNodePos(t *testing.T) {
-	defaultPos = 1234
-	for i, c := range fileTests {
-		for j, prog := range c.All {
-			t.Run(fmt.Sprintf("%03d-%d", i, j), func(t *testing.T) {
-				setPosRecurse(t, "", prog, defaultPos, true)
-			})
-		}
-	}
-}
-
 func TestPosition(t *testing.T) {
 	t.Parallel()
-	defaultPos = 0
 	for i, c := range fileTests {
 		for j, in := range c.Strs {
 			t.Run(fmt.Sprintf("%03d-%d", i, j), func(t *testing.T) {

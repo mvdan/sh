@@ -274,8 +274,6 @@ func (o BinTestOperator) String() string { return Token(o).String() }
 // file.
 type Pos int
 
-var defaultPos Pos
-
 const maxPos = Pos(^uint(0) >> 1)
 
 // Position describes a position within a source file including the line

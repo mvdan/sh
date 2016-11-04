@@ -18,7 +18,6 @@ import (
 )
 
 func TestParseComments(t *testing.T) {
-	defaultPos = 0
 	in := "# foo\ncmd\n# bar"
 	want := &File{
 		Comments: []*Comment{
@@ -35,7 +34,6 @@ func TestParseComments(t *testing.T) {
 }
 
 func TestParseBash(t *testing.T) {
-	defaultPos = 0
 	t.Parallel()
 	for i, c := range append(fileTests, fileTestsNoPrint...) {
 		want := c.Bash
@@ -49,7 +47,6 @@ func TestParseBash(t *testing.T) {
 }
 
 func TestParsePosix(t *testing.T) {
-	defaultPos = 0
 	t.Parallel()
 	for i, c := range append(fileTests, fileTestsNoPrint...) {
 		want := c.Posix
@@ -181,8 +178,8 @@ func singleParse(in string, want *File, mode ParseMode) func(t *testing.T) {
 		}
 		checkNewlines(t, in, got.Lines)
 		got.Lines = nil
-		setPosRecurse(t, "", want, defaultPos, false)
-		setPosRecurse(t, in, got, defaultPos, true)
+		setPosRecurse(t, "", want, 0, false)
+		setPosRecurse(t, in, got, 0, true)
 		if !reflect.DeepEqual(got, want) {
 			t.Fatalf("AST mismatch in %q\ndiff:\n%s", in,
 				strings.Join(pretty.Diff(want, got), "\n"),
