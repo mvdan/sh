@@ -963,6 +963,10 @@ var posixTests = []errorCase{
 		`1:7: a command can only contain words and redirects`,
 	},
 	{
+		"foo=(1 2)",
+		`1:5: arrays are a bash feature`,
+	},
+	{
 		"echo ${foo[1]}",
 		`1:11: arrays are a bash feature`,
 	},

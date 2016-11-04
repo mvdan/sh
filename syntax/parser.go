@@ -973,7 +973,10 @@ func (p *parser) getAssign() *Assign {
 	if p.spaced {
 		return as
 	}
-	if start.Value == "" && p.tok == leftParen && p.bash() {
+	if start.Value == "" && p.tok == leftParen {
+		if !p.bash() {
+			p.curErr("arrays are a bash feature")
+		}
 		ae := &ArrayExpr{Lparen: p.pos}
 		p.next()
 		for p.tok != _EOF && p.tok != rightParen {
