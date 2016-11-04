@@ -1615,14 +1615,14 @@ var fileTests = []testCase{
 			`${foo[1]}`,
 			`${foo[ 1 ]}`,
 		},
-		common: &ParamExp{
+		bash: &ParamExp{
 			Param: *lit("foo"),
 			Ind:   &Index{Word: *litWord("1")},
 		},
 	},
 	{
 		Strs: []string{`${foo[1]-etc}`},
-		common: &ParamExp{
+		bash: &ParamExp{
 			Param: *lit("foo"),
 			Ind: &Index{
 				Word: *litWord("1"),
@@ -1635,7 +1635,7 @@ var fileTests = []testCase{
 	},
 	{
 		Strs: []string{`${foo[${bar}]}`},
-		common: &ParamExp{
+		bash: &ParamExp{
 			Param: *lit("foo"),
 			Ind: &Index{
 				Word: *word(&ParamExp{Param: *lit("bar")}),

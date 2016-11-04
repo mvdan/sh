@@ -856,6 +856,9 @@ func (p *parser) paramExp() *ParamExp {
 		return pe
 	}
 	if p.tok == leftBrack {
+		if !p.bash() {
+			p.curErr("arrays are a bash feature")
+		}
 		lpos := p.pos
 		p.quote = paramExpInd
 		p.next()
