@@ -866,7 +866,8 @@ func (p *parser) paramExp() *ParamExp {
 		lpos := p.pos
 		p.quote = paramExpInd
 		p.next()
-		pe.Ind = &Index{Word: p.word()}
+		w := p.word()
+		pe.Ind = &Index{Expr: &w}
 		p.quote = paramExpName
 		p.matched(lpos, leftBrack, rightBrack)
 	}
@@ -895,12 +896,14 @@ func (p *parser) paramExp() *ParamExp {
 		p.quote = paramExpOff
 		p.next()
 		if p.tok != Colon {
-			pe.Slice.Offset = p.followWordTok(Colon, colonPos)
+			w := p.followWordTok(Colon, colonPos)
+			pe.Slice.Offset = &w
 		}
 		colonPos = p.pos
 		p.quote = paramExpLen
 		if p.got(Colon) {
-			pe.Slice.Length = p.followWordTok(Colon, colonPos)
+			w := p.followWordTok(Colon, colonPos)
+			pe.Slice.Length = &w
 		}
 	case Xor, dblXor, Comma, dblComma:
 		if !p.bash() {

@@ -399,14 +399,14 @@ func (p *ParamExp) End() Pos {
 //
 // This node will never appear when in PosixConformant mode.
 type Index struct {
-	Word Word
+	Expr ArithmExpr
 }
 
 // Slice represents character slicing inside a ParamExp.
 //
 // This node will never appear when in PosixConformant mode.
 type Slice struct {
-	Offset, Length Word
+	Offset, Length ArithmExpr
 }
 
 // Replace represents a search and replace inside a ParamExp.

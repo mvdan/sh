@@ -118,7 +118,7 @@ func Walk(v Visitor, node Node) {
 	case *ParamExp:
 		Walk(v, &x.Param)
 		if x.Ind != nil {
-			Walk(v, &x.Ind.Word)
+			Walk(v, x.Ind.Expr)
 		}
 		if x.Repl != nil {
 			Walk(v, &x.Repl.Orig)

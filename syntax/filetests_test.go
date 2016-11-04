@@ -1617,7 +1617,7 @@ var fileTests = []testCase{
 		},
 		bash: &ParamExp{
 			Param: *lit("foo"),
-			Ind:   &Index{Word: *litWord("1")},
+			Ind:   &Index{Expr: litWord("1")},
 		},
 	},
 	{
@@ -1625,7 +1625,7 @@ var fileTests = []testCase{
 		bash: &ParamExp{
 			Param: *lit("foo"),
 			Ind: &Index{
-				Word: *litWord("1"),
+				Expr: litWord("1"),
 			},
 			Exp: &Expansion{
 				Op:   SubstSub,
@@ -1638,7 +1638,7 @@ var fileTests = []testCase{
 		bash: &ParamExp{
 			Param: *lit("foo"),
 			Ind: &Index{
-				Word: *word(&ParamExp{Param: *lit("bar")}),
+				Expr: word(&ParamExp{Param: *lit("bar")}),
 			},
 		},
 	},
@@ -1646,7 +1646,7 @@ var fileTests = []testCase{
 		Strs: []string{`${foo:1}`, `${foo: 1 }`},
 		bash: &ParamExp{
 			Param: *lit("foo"),
-			Slice: &Slice{Offset: *litWord("1")},
+			Slice: &Slice{Offset: litWord("1")},
 		},
 	},
 	{
@@ -1654,8 +1654,8 @@ var fileTests = []testCase{
 		bash: &ParamExp{
 			Param: *lit("foo"),
 			Slice: &Slice{
-				Offset: *litWord("1"),
-				Length: *litWord("2"),
+				Offset: litWord("1"),
+				Length: litWord("2"),
 			},
 		},
 	},
@@ -1664,8 +1664,8 @@ var fileTests = []testCase{
 		bash: &ParamExp{
 			Param: *lit("foo"),
 			Slice: &Slice{
-				Offset: *litWord("1"),
-				Length: *litWord("-2"),
+				Offset: litWord("1"),
+				Length: litWord("-2"),
 			},
 		},
 	},
@@ -1673,7 +1673,7 @@ var fileTests = []testCase{
 		Strs: []string{`${foo::+3}`},
 		bash: &ParamExp{
 			Param: *lit("foo"),
-			Slice: &Slice{Length: *litWord("+3")},
+			Slice: &Slice{Length: litWord("+3")},
 		},
 	},
 	{
@@ -3481,12 +3481,12 @@ func setPosRecurse(tb testing.TB, src string, v interface{}, to Pos, diff bool) 
 		}
 		recurse(&x.Param)
 		if x.Ind != nil {
-			recurse(&x.Ind.Word)
+			recurse(x.Ind.Expr)
 		}
 		if x.Slice != nil {
-			recurse(&x.Slice.Offset)
-			if x.Slice.Length.Parts != nil {
-				recurse(&x.Slice.Length)
+			recurse(x.Slice.Offset)
+			if x.Slice.Length != nil {
+				recurse(x.Slice.Length)
 			}
 		}
 		if x.Repl != nil {
