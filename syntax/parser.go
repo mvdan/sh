@@ -146,12 +146,16 @@ const (
 	switchCase
 	paramExpName
 	paramExpInd
+	paramExpOff
+	paramExpLen
 	paramExpRepl
 	paramExpExp
 
 	allRegTokens  = noState | subCmd | subCmdBckquo | hdocWord | switchCase
 	allArithmExpr = arithmExpr | arithmExprLet | arithmExprCmd | arithmExprBrack
 	allRbrack     = arithmExprBrack | paramExpInd
+	allParamExp   = paramExpName | paramExpInd | paramExpOff | paramExpLen |
+		paramExpRepl | paramExpExp
 )
 
 func (p *parser) bash() bool { return p.mode&PosixConformant == 0 }
@@ -888,11 +892,13 @@ func (p *parser) paramExp() *ParamExp {
 		}
 		pe.Slice = &Slice{}
 		colonPos := p.pos
+		p.quote = paramExpOff
 		p.next()
 		if p.tok != Colon {
 			pe.Slice.Offset = p.followWordTok(Colon, colonPos)
 		}
 		colonPos = p.pos
+		p.quote = paramExpLen
 		if p.got(Colon) {
 			pe.Slice.Length = p.followWordTok(Colon, colonPos)
 		}

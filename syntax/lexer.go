@@ -179,7 +179,16 @@ skipSpace:
 		default:
 			p.advanceLitNone()
 		}
-	case q == paramExpName && paramOps(b):
+	case q == paramExpOff && b == ':':
+		p.npos++
+		p.tok = Colon
+	case q == paramExpLen:
+		if paramOps(b) && b != '+' && b != '-' {
+			p.tok = p.paramToken(b)
+		} else {
+			p.advanceLitOther(q)
+		}
+	case q&allParamExp != 0 && paramOps(b):
 		p.tok = p.paramToken(b)
 	case q&allArithmExpr != 0 && arithmOps(b):
 		p.tok = p.arithmToken(b)
@@ -651,8 +660,9 @@ func (p *parser) advanceLitOther(q quoteState) {
 				p.tok, p.val = _LitWord, string(bs)
 				return
 			}
+		case q == paramExpLen && (b == '+' || b == '-'):
 		case wordBreak(b), regOps(b), q&allArithmExpr != 0 && arithmOps(b),
-			q == paramExpName && paramOps(b),
+			q&allParamExp != 0 && paramOps(b),
 			q&allRbrack != 0 && b == ']':
 			p.tok, p.val = _LitWord, string(bs)
 			return
