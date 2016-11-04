@@ -21,6 +21,7 @@ func TestNodePos(t *testing.T) {
 }
 
 func TestPosition(t *testing.T) {
+	t.Parallel()
 	defaultPos = 0
 	for i, c := range fileTests {
 		for j, in := range c.Strs {

@@ -36,6 +36,7 @@ func TestParseComments(t *testing.T) {
 
 func TestParseBash(t *testing.T) {
 	defaultPos = 0
+	t.Parallel()
 	for i, c := range append(fileTests, fileTestsNoPrint...) {
 		want := c.Bash
 		if want == nil {
@@ -49,6 +50,7 @@ func TestParseBash(t *testing.T) {
 
 func TestParsePosix(t *testing.T) {
 	defaultPos = 0
+	t.Parallel()
 	for i, c := range append(fileTests, fileTestsNoPrint...) {
 		want := c.Posix
 		if want == nil {
@@ -726,12 +728,14 @@ func checkError(in, want string, mode ParseMode) func(*testing.T) {
 }
 
 func TestParseErrPosix(t *testing.T) {
+	t.Parallel()
 	for i, c := range append(shellTests, posixTests...) {
 		t.Run(fmt.Sprintf("%03d", i), checkError(c.in, c.want, PosixConformant))
 	}
 }
 
 func TestParseErrBash(t *testing.T) {
+	t.Parallel()
 	for i, c := range append(shellTests, bashTests...) {
 		t.Run(fmt.Sprintf("%03d", i), checkError(c.in, c.want, 0))
 	}

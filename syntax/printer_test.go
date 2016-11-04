@@ -12,6 +12,7 @@ import (
 )
 
 func TestFprintCompact(t *testing.T) {
+	t.Parallel()
 	for i, c := range fileTests {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
 			in := c.Strs[0]
@@ -43,6 +44,7 @@ func strFprint(f *File, spaces int) (string, error) {
 }
 
 func TestFprintWeirdFormat(t *testing.T) {
+	t.Parallel()
 	var weirdFormats = [...]struct {
 		in, want string
 	}{
