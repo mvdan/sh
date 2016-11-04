@@ -1611,29 +1611,21 @@ var fileTests = []testCase{
 		},
 	},
 	{
-		Strs: []string{`${foo[bar]}`},
+		Strs: []string{
+			`${foo[1]}`,
+			`${foo[ 1 ]}`,
+		},
 		common: &ParamExp{
 			Param: *lit("foo"),
-			Ind: &Index{
-				Word: *litWord("bar"),
-			},
+			Ind:   &Index{Word: *litWord("1")},
 		},
 	},
 	{
-		Strs: []string{`${foo[bar1 bar2]}`},
+		Strs: []string{`${foo[1]-etc}`},
 		common: &ParamExp{
 			Param: *lit("foo"),
 			Ind: &Index{
-				Word: *litWord("bar1 bar2"),
-			},
-		},
-	},
-	{
-		Strs: []string{`${foo[bar]-etc}`},
-		common: &ParamExp{
-			Param: *lit("foo"),
-			Ind: &Index{
-				Word: *litWord("bar"),
+				Word: *litWord("1"),
 			},
 			Exp: &Expansion{
 				Op:   SubstSub,

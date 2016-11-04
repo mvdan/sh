@@ -651,9 +651,9 @@ func (p *parser) advanceLitOther(q quoteState) {
 				p.tok, p.val = _LitWord, string(bs)
 				return
 			}
-		case q == paramExpInd && wordBreak(b):
 		case wordBreak(b), regOps(b), q&allArithmExpr != 0 && arithmOps(b),
 			q == paramExpName && paramOps(b),
+			q == paramExpInd && wordBreak(b),
 			q&allRbrack != 0 && b == ']':
 			p.tok, p.val = _LitWord, string(bs)
 			return

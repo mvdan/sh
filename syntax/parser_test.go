@@ -955,6 +955,10 @@ var posixTests = []errorCase{
 		`1:7: a command can only contain words and redirects`,
 	},
 	{
+		"echo ${foo[1 2]}",
+		`1:11: reached LitWord without matching [ with ]`,
+	},
+	{
 		"echo ${foo:1}",
 		`1:11: slicing is a bash feature`,
 	},
