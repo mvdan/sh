@@ -262,6 +262,8 @@ func (w *WordIter) End() Pos { return posMax(w.Name.End(), wordLastEnd(w.List)) 
 
 // CStyleLoop represents the behaviour of a for clause similar to the C
 // language.
+//
+// This node will never appear when in PosixConformant mode.
 type CStyleLoop struct {
 	Lparen, Rparen   Pos
 	Init, Cond, Post ArithmExpr
@@ -394,11 +396,15 @@ func (p *ParamExp) End() Pos {
 }
 
 // Index represents access to an array via an index inside a ParamExp.
+//
+// This node will never appear when in PosixConformant mode.
 type Index struct {
 	Word Word
 }
 
 // Slice represents character slicing inside a ParamExp.
+//
+// This node will never appear when in PosixConformant mode.
 type Slice struct {
 	Offset, Length Word
 }
@@ -432,6 +438,8 @@ func (a *ArithmExp) End() Pos {
 }
 
 // ArithmCmd represents an arithmetic command.
+//
+// This node will never appear when in PosixConformant mode.
 type ArithmCmd struct {
 	Left, Right Pos
 	X           ArithmExpr
@@ -514,6 +522,8 @@ type PatternList struct {
 }
 
 // TestClause represents a Bash extended test clause.
+//
+// This node will never appear when in PosixConformant mode.
 type TestClause struct {
 	Left, Right Pos
 	X           TestExpr
@@ -566,6 +576,8 @@ func (p *ParenTest) Pos() Pos { return p.Lparen }
 func (p *ParenTest) End() Pos { return posAdd(p.Rparen, 1) }
 
 // DeclClause represents a Bash declare clause.
+//
+// This node will never appear when in PosixConformant mode.
 type DeclClause struct {
 	Position Pos
 	Variant  string
@@ -584,6 +596,8 @@ func (d *DeclClause) End() Pos {
 }
 
 // ArrayExpr represents a Bash array expression.
+//
+// This node will never appear when in PosixConformant mode.
 type ArrayExpr struct {
 	Lparen, Rparen Pos
 	List           []Word
@@ -595,6 +609,8 @@ func (a *ArrayExpr) End() Pos { return posAdd(a.Rparen, 1) }
 // ExtGlob represents a Bash extended globbing expression. Note that
 // these are parsed independently of whether shopt has been called or
 // not.
+//
+// This node will never appear when in PosixConformant mode.
 type ExtGlob struct {
 	Op      GlobOperator
 	Pattern Lit
@@ -604,6 +620,8 @@ func (e *ExtGlob) Pos() Pos { return posAdd(e.Pattern.Pos(), -2) }
 func (e *ExtGlob) End() Pos { return posAdd(e.Pattern.End(), 1) }
 
 // ProcSubst represents a Bash process substitution.
+//
+// This node will never appear when in PosixConformant mode.
 type ProcSubst struct {
 	OpPos, Rparen Pos
 	Op            ProcOperator
@@ -614,6 +632,8 @@ func (s *ProcSubst) Pos() Pos { return s.OpPos }
 func (s *ProcSubst) End() Pos { return posAdd(s.Rparen, 1) }
 
 // EvalClause represents a Bash eval clause.
+//
+// This node will never appear when in PosixConformant mode.
 type EvalClause struct {
 	Eval Pos
 	Stmt *Stmt
@@ -628,6 +648,8 @@ func (e *EvalClause) End() Pos {
 }
 
 // CoprocClause represents a Bash coproc clause.
+//
+// This node will never appear when in PosixConformant mode.
 type CoprocClause struct {
 	Coproc Pos
 	Name   *Lit
@@ -638,6 +660,8 @@ func (c *CoprocClause) Pos() Pos { return c.Coproc }
 func (c *CoprocClause) End() Pos { return c.Stmt.End() }
 
 // LetClause represents a Bash let clause.
+//
+// This node will never appear when in PosixConformant mode.
 type LetClause struct {
 	Let   Pos
 	Exprs []ArithmExpr
