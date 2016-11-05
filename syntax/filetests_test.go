@@ -1188,6 +1188,21 @@ var fileTests = []testCase{
 		},
 	},
 	{
+		Strs: []string{"a<(b) c>(d)"},
+		bash: &Stmt{
+			Cmd: call(
+				*word(lit("a"), &ProcSubst{
+					Op:    CmdIn,
+					Stmts: litStmts("b"),
+				}),
+				*word(lit("c"), &ProcSubst{
+					Op:    CmdOut,
+					Stmts: litStmts("d"),
+				}),
+			),
+		},
+	},
+	{
 		Strs:   []string{"!"},
 		common: &Stmt{Negated: true},
 	},

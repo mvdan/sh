@@ -1008,7 +1008,7 @@ func (p *parser) getAssign() *Assign {
 }
 
 func litRedir(src []byte, npos int) bool {
-	return npos < len(src) && (src[npos] == '>' || src[npos] == '<')
+	return npos+1 < len(src) && (src[npos] == '>' || src[npos] == '<') && src[npos+1] != '('
 }
 
 func (p *parser) peekRedir() bool {

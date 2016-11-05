@@ -690,7 +690,13 @@ loop:
 				p.advanceLitNoneCont(bs)
 				return
 			}
-		case ' ', '\t', '\n', '\r', '&', '>', '<', '|', ';', '(', ')':
+		case '>', '<':
+			if i+1 < len(p.src) && p.src[i+1] == '(' {
+				tok = _Lit
+				break loop
+			}
+			fallthrough
+		case ' ', '\t', '\n', '\r', '&', '|', ';', '(', ')':
 			tok = _LitWord
 			break loop
 		case '?', '*', '+', '@', '!':

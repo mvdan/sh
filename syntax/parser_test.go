@@ -401,6 +401,10 @@ var shellTests = []errorCase{
 		`1:5: < must be followed by a word`,
 	},
 	{
+		"foo 2>",
+		`1:6: > must be followed by a word`,
+	},
+	{
 		"foo <\nbar",
 		`2:1: redirect word must be on the same line`,
 	},
