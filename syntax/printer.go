@@ -379,7 +379,6 @@ func (p *printer) wordPart(wp WordPart) {
 		p.wordJoin(x.List, false)
 		p.sepTok(")", x.Rparen)
 	case *ExtGlob:
-		p.wantSpace = false
 		p.WriteString(x.Op.String())
 		p.WriteString(x.Pattern.Value)
 		p.WriteByte(')')
@@ -398,7 +397,6 @@ func (p *printer) wordPart(wp WordPart) {
 		p.nestedStmts(x.Stmts, 0)
 		p.WriteByte(')')
 	}
-	p.wantSpace = true
 }
 
 func (p *printer) loop(loop Loop) {
@@ -510,7 +508,6 @@ func (p *printer) unaryExprOp(tok Token) {
 }
 
 func (p *printer) arithmExpr(expr ArithmExpr, compact bool) {
-	p.wantSpace = false
 	switch x := expr.(type) {
 	case *Word:
 		p.word(*x)
@@ -630,7 +627,6 @@ func (p *printer) binaryTestOp(op BinTestOperator) {
 }
 
 func (p *printer) testExpr(expr TestExpr) {
-	p.wantSpace = false
 	switch x := expr.(type) {
 	case *Word:
 		p.word(*x)
@@ -655,6 +651,7 @@ func (p *printer) word(w Word) {
 	for _, n := range w.Parts {
 		p.wordPart(n)
 	}
+	p.wantSpace = true
 }
 
 func (p *printer) unquotedWord(w Word) {
@@ -698,9 +695,7 @@ func (p *printer) wordJoin(ws []Word, backslash bool) {
 			p.WriteByte(' ')
 			p.wantSpace = false
 		}
-		for _, n := range w.Parts {
-			p.wordPart(n)
-		}
+		p.word(w)
 	}
 	if anyNewline {
 		p.decLevel()
@@ -819,7 +814,6 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			}
 			if p.wantSpace {
 				p.WriteByte(' ')
-				p.wantSpace = false
 			}
 			if r.N != nil {
 				p.WriteString(r.N.Value)
@@ -908,11 +902,10 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 				if p.wantSpace {
 					p.WriteByte(' ')
 				}
-				for _, n := range w.Parts {
-					p.wordPart(n)
-				}
+				p.word(w)
 			}
 			p.WriteByte(')')
+			p.wantSpace = true
 			sep := len(pl.Stmts) > 1 || (len(pl.Stmts) > 0 && pl.Stmts[0].Pos() > p.nline)
 			p.nestedStmts(pl.Stmts, 0)
 			p.level++
