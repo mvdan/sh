@@ -266,43 +266,6 @@ func (p *printer) commentsUpTo(pos Pos) {
 	p.commentsUpTo(pos)
 }
 
-func (p *printer) expansionOp(op ParExpOperator) {
-	switch op {
-	case SubstAdd:
-		p.WriteByte('+')
-	case SubstColAdd:
-		p.WriteString(":+")
-	case SubstSub:
-		p.WriteByte('-')
-	case SubstColSub:
-		p.WriteString(":-")
-	case SubstQuest:
-		p.WriteByte('?')
-	case SubstColQuest:
-		p.WriteString(":?")
-	case SubstAssgn:
-		p.WriteByte('=')
-	case SubstColAssgn:
-		p.WriteString(":=")
-	case RemSmallSuffix:
-		p.WriteByte('%')
-	case RemLargeSuffix:
-		p.WriteString("%%")
-	case RemSmallPrefix:
-		p.WriteByte('#')
-	case RemLargePrefix:
-		p.WriteString("##")
-	case UpperFirst:
-		p.WriteByte('^')
-	case UpperAll:
-		p.WriteString("^^")
-	case LowerFirst:
-		p.WriteByte(',')
-	default: // LowerAll
-		p.WriteString(",,")
-	}
-}
-
 func (p *printer) wordPart(wp WordPart) {
 	switch x := wp.(type) {
 	case *Lit:
@@ -365,7 +328,7 @@ func (p *printer) wordPart(wp WordPart) {
 			p.WriteByte('/')
 			p.word(x.Repl.With)
 		} else if x.Exp != nil {
-			p.expansionOp(x.Exp.Op)
+			p.WriteString(x.Exp.Op.String())
 			p.word(x.Exp.Word)
 		}
 		p.WriteByte('}')
@@ -421,92 +384,6 @@ func (p *printer) loop(loop Loop) {
 	}
 }
 
-func (p *printer) binaryExprOp(tok Token) {
-	switch tok {
-	case Assgn:
-		p.WriteByte('=')
-	case Add:
-		p.WriteByte('+')
-	case Sub:
-		p.WriteByte('-')
-	case Rem:
-		p.WriteByte('%')
-	case Mul:
-		p.WriteByte('*')
-	case Quo:
-		p.WriteByte('/')
-	case And:
-		p.WriteByte('&')
-	case Or:
-		p.WriteByte('|')
-	case AndExpr:
-		p.WriteString("&&")
-	case OrExpr:
-		p.WriteString("||")
-	case Xor:
-		p.WriteByte('^')
-	case Pow:
-		p.WriteString("**")
-	case Eql:
-		p.WriteString("==")
-	case Neq:
-		p.WriteString("!=")
-	case Leq:
-		p.WriteString("<=")
-	case Geq:
-		p.WriteString(">=")
-	case AddAssgn:
-		p.WriteString("+=")
-	case SubAssgn:
-		p.WriteString("-=")
-	case MulAssgn:
-		p.WriteString("*=")
-	case QuoAssgn:
-		p.WriteString("/=")
-	case RemAssgn:
-		p.WriteString("%=")
-	case AndAssgn:
-		p.WriteString("&=")
-	case OrAssgn:
-		p.WriteString("|=")
-	case XorAssgn:
-		p.WriteString("^=")
-	case ShlAssgn:
-		p.WriteString("<<=")
-	case ShrAssgn:
-		p.WriteString(">>=")
-	case Lss:
-		p.WriteByte('<')
-	case Gtr:
-		p.WriteByte('>')
-	case Shl:
-		p.WriteString("<<")
-	case Shr:
-		p.WriteString(">>")
-	case Quest:
-		p.WriteByte('?')
-	case Colon:
-		p.WriteByte(':')
-	default: // Comma
-		p.WriteByte(',')
-	}
-}
-
-func (p *printer) unaryExprOp(tok Token) {
-	switch tok {
-	case Add:
-		p.WriteByte('+')
-	case Sub:
-		p.WriteByte('-')
-	case Not:
-		p.WriteByte('!')
-	case Inc:
-		p.WriteString("++")
-	default: // Dec
-		p.WriteString("--")
-	}
-}
-
 func (p *printer) arithmExpr(expr ArithmExpr, compact bool) {
 	switch x := expr.(type) {
 	case *Word:
@@ -514,115 +391,29 @@ func (p *printer) arithmExpr(expr ArithmExpr, compact bool) {
 	case *BinaryArithm:
 		if compact {
 			p.arithmExpr(x.X, compact)
-			p.binaryExprOp(x.Op)
+			p.WriteString(x.Op.String())
 			p.arithmExpr(x.Y, compact)
 		} else {
 			p.arithmExpr(x.X, compact)
 			if x.Op != Comma {
 				p.WriteByte(' ')
 			}
-			p.binaryExprOp(x.Op)
+			p.WriteString(x.Op.String())
 			p.WriteByte(' ')
 			p.arithmExpr(x.Y, compact)
 		}
 	case *UnaryArithm:
 		if x.Post {
 			p.arithmExpr(x.X, compact)
-			p.unaryExprOp(x.Op)
+			p.WriteString(x.Op.String())
 		} else {
-			p.unaryExprOp(x.Op)
+			p.WriteString(x.Op.String())
 			p.arithmExpr(x.X, compact)
 		}
 	case *ParenArithm:
 		p.WriteByte('(')
 		p.arithmExpr(x.X, false)
 		p.WriteByte(')')
-	}
-}
-
-func (p *printer) unaryTestOp(op UnTestOperator) {
-	switch op {
-	case TsNot:
-		p.WriteByte('!')
-	case TsExists:
-		p.WriteString("-e")
-	case TsRegFile:
-		p.WriteString("-f")
-	case TsDirect:
-		p.WriteString("-d")
-	case TsCharSp:
-		p.WriteString("-c")
-	case TsBlckSp:
-		p.WriteString("-b")
-	case TsNmPipe:
-		p.WriteString("-p")
-	case TsSocket:
-		p.WriteString("-S")
-	case TsSmbLink:
-		p.WriteString("-L")
-	case TsGIDSet:
-		p.WriteString("-g")
-	case TsUIDSet:
-		p.WriteString("-u")
-	case TsRead:
-		p.WriteString("-r")
-	case TsWrite:
-		p.WriteString("-w")
-	case TsExec:
-		p.WriteString("-x")
-	case TsNoEmpty:
-		p.WriteString("-s")
-	case TsFdTerm:
-		p.WriteString("-t")
-	case TsEmpStr:
-		p.WriteString("-z")
-	case TsNempStr:
-		p.WriteString("-n")
-	case TsOptSet:
-		p.WriteString("-o")
-	case TsVarSet:
-		p.WriteString("-v")
-	default: // TsRefVar
-		p.WriteString("-R")
-	}
-}
-
-func (p *printer) binaryTestOp(op BinTestOperator) {
-	switch op {
-	case AndTest:
-		p.WriteString("&&")
-	case OrTest:
-		p.WriteString("||")
-	case TsAssgn:
-		p.WriteByte('=')
-	case TsEqual:
-		p.WriteString("==")
-	case TsNequal:
-		p.WriteString("!=")
-	case TsReMatch:
-		p.WriteString("=~")
-	case TsNewer:
-		p.WriteString("-nt")
-	case TsOlder:
-		p.WriteString("-ot")
-	case TsDevIno:
-		p.WriteString("-ef")
-	case TsEql:
-		p.WriteString("-eq")
-	case TsNeq:
-		p.WriteString("-ne")
-	case TsLeq:
-		p.WriteString("-le")
-	case TsGeq:
-		p.WriteString("-ge")
-	case TsLss:
-		p.WriteString("-lt")
-	case TsGtr:
-		p.WriteString("-gt")
-	case TsBefore:
-		p.WriteByte('<')
-	case TsAfter:
-		p.WriteByte('>')
 	}
 }
 
@@ -633,11 +424,11 @@ func (p *printer) testExpr(expr TestExpr) {
 	case *BinaryTest:
 		p.testExpr(x.X)
 		p.WriteByte(' ')
-		p.binaryTestOp(x.Op)
+		p.WriteString(x.Op.String())
 		p.WriteByte(' ')
 		p.testExpr(x.Y)
 	case *UnaryTest:
-		p.unaryTestOp(x.Op)
+		p.WriteString(x.Op.String())
 		p.WriteByte(' ')
 		p.testExpr(x.X)
 	case *ParenTest:
@@ -725,7 +516,7 @@ func (p *printer) stmt(s *Stmt) {
 		if r.N != nil {
 			p.WriteString(r.N.Value)
 		}
-		p.redirectOp(r.Op)
+		p.WriteString(r.Op.String())
 		p.word(r.Word)
 		if r.Op == Hdoc || r.Op == DashHdoc {
 			p.pendingHdocs = append(p.pendingHdocs, r)
@@ -747,59 +538,6 @@ func (p *printer) stmt(s *Stmt) {
 	}
 }
 
-func (p *printer) redirectOp(op RedirOperator) {
-	switch op {
-	case RdrIn:
-		p.WriteByte('<')
-	case RdrOut:
-		p.WriteByte('>')
-	case Hdoc:
-		p.WriteString("<<")
-	case AppOut:
-		p.WriteString(">>")
-	case RdrInOut:
-		p.WriteString("<>")
-	case DplIn:
-		p.WriteString("<&")
-	case DplOut:
-		p.WriteString(">&")
-	case ClbOut:
-		p.WriteString(">|")
-	case DashHdoc:
-		p.WriteString("<<-")
-	case WordHdoc:
-		p.WriteString("<<<")
-	case RdrAll:
-		p.WriteString("&>")
-	default: // AppAll
-		p.WriteString("&>>")
-	}
-}
-
-func binaryCmdOp(op BinCmdOperator) string {
-	switch op {
-	case AndStmt:
-		return "&&"
-	case OrStmt:
-		return "||"
-	case Pipe:
-		return "|"
-	default: // PipeAll
-		return "|&"
-	}
-}
-
-func caseClauseOp(op CaseOperator) string {
-	switch op {
-	case DblSemicolon:
-		return ";;"
-	case SemiFall:
-		return ";&"
-	default: // DblSemiFall
-		return ";;&"
-	}
-}
-
 func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 	switch x := cmd.(type) {
 	case *CallExpr:
@@ -818,7 +556,7 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			if r.N != nil {
 				p.WriteString(r.N.Value)
 			}
-			p.redirectOp(r.Op)
+			p.WriteString(r.Op.String())
 			p.word(r.Word)
 			startRedirs++
 		}
@@ -873,7 +611,7 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			p.bslashNewl()
 			p.indent()
 		}
-		p.spacedString(binaryCmdOp(x.Op), true)
+		p.spacedString(x.Op.String(), true)
 		p.incLines(x.Y.Pos())
 		p.stmt(x.Y)
 		if indent {
@@ -910,9 +648,9 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			p.nestedStmts(pl.Stmts, 0)
 			p.level++
 			if sep {
-				p.sepTok(caseClauseOp(pl.Op), pl.OpPos)
+				p.sepTok(pl.Op.String(), pl.OpPos)
 			} else {
-				p.spacedString(caseClauseOp(pl.Op), true)
+				p.spacedString(pl.Op.String(), true)
 			}
 			p.incLines(pl.OpPos)
 			p.level--
