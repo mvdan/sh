@@ -1166,15 +1166,13 @@ var fileTests = []testCase{
 	},
 	{
 		Strs: []string{"foo >(foo)"},
-		bash: &Stmt{
-			Cmd: call(
-				*litWord("foo"),
-				*word(&ProcSubst{
-					Op:    CmdOut,
-					Stmts: litStmts("foo"),
-				}),
-			),
-		},
+		bash: call(
+			*litWord("foo"),
+			*word(&ProcSubst{
+				Op:    CmdOut,
+				Stmts: litStmts("foo"),
+			}),
+		),
 	},
 	{
 		Strs: []string{"foo < <(foo)"},
@@ -2482,11 +2480,9 @@ var fileTests = []testCase{
 		common: &BinaryCmd{
 			Op: Pipe,
 			X:  litStmt("foo"),
-			Y: &Stmt{
-				Redirs: []*Redirect{
-					{Op: RdrOut, Word: *litWord("f")},
-				},
-			},
+			Y: &Stmt{Redirs: []*Redirect{
+				{Op: RdrOut, Word: *litWord("f")},
+			}},
 		},
 	},
 	{
@@ -3077,26 +3073,22 @@ var fileTests = []testCase{
 	},
 	{
 		Strs: []string{"b+=(2 3)"},
-		bash: &Stmt{
-			Assigns: []*Assign{{
-				Append: true,
-				Name:   lit("b"),
-				Value: *word(
-					&ArrayExpr{List: litWords("2", "3")},
-				),
-			}},
-		},
+		bash: &Stmt{Assigns: []*Assign{{
+			Append: true,
+			Name:   lit("b"),
+			Value: *word(
+				&ArrayExpr{List: litWords("2", "3")},
+			),
+		}}},
 	},
 	{
 		Strs: []string{"a[2]=(b)"},
-		bash: &Stmt{
-			Assigns: []*Assign{{
-				Name: lit("a[2]"),
-				Value: *word(
-					&ArrayExpr{List: litWords("b")},
-				),
-			}},
-		},
+		bash: &Stmt{Assigns: []*Assign{{
+			Name: lit("a[2]"),
+			Value: *word(
+				&ArrayExpr{List: litWords("b")},
+			),
+		}}},
 	},
 	{
 		Strs: []string{"<<EOF | b\nfoo\nEOF", "<<EOF|b;\nfoo\n"},
