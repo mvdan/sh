@@ -109,11 +109,6 @@ func (p *printer) incLines(pos Pos) {
 	}
 }
 
-func (p *printer) space() {
-	p.WriteByte(' ')
-	p.wantSpace = false
-}
-
 func (p *printer) spaces(n int) {
 	for i := 0; i < n; i++ {
 		p.WriteByte(' ')
@@ -391,7 +386,8 @@ func (p *printer) wordPart(wp WordPart) {
 	case *ProcSubst:
 		// avoid conflict with << and others
 		if p.wantSpace {
-			p.space()
+			p.WriteByte(' ')
+			p.wantSpace = false
 		}
 		switch x.Op {
 		case CmdIn:
@@ -529,7 +525,7 @@ func (p *printer) arithmExpr(expr ArithmExpr, compact bool) {
 				p.WriteByte(' ')
 			}
 			p.binaryExprOp(x.Op)
-			p.space()
+			p.WriteByte(' ')
 			p.arithmExpr(x.Y, compact)
 		}
 	case *UnaryArithm:
@@ -640,13 +636,13 @@ func (p *printer) testExpr(expr TestExpr) {
 		p.word(*x)
 	case *BinaryTest:
 		p.testExpr(x.X)
-		p.space()
+		p.WriteByte(' ')
 		p.binaryTestOp(x.Op)
-		p.space()
+		p.WriteByte(' ')
 		p.testExpr(x.Y)
 	case *UnaryTest:
 		p.unaryTestOp(x.Op)
-		p.space()
+		p.WriteByte(' ')
 		p.testExpr(x.X)
 	case *ParenTest:
 		p.WriteByte('(')
@@ -699,7 +695,8 @@ func (p *printer) wordJoin(ws []Word, backslash bool) {
 			}
 			p.indent()
 		} else if p.wantSpace {
-			p.space()
+			p.WriteByte(' ')
+			p.wantSpace = false
 		}
 		for _, n := range w.Parts {
 			p.wordPart(n)
@@ -734,7 +731,6 @@ func (p *printer) stmt(s *Stmt) {
 			p.WriteString(r.N.Value)
 		}
 		p.redirectOp(r.Op)
-		p.wantSpace = true
 		p.word(r.Word)
 		if r.Op == Hdoc || r.Op == DashHdoc {
 			p.pendingHdocs = append(p.pendingHdocs, r)
@@ -822,13 +818,13 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 				break
 			}
 			if p.wantSpace {
-				p.space()
+				p.WriteByte(' ')
+				p.wantSpace = false
 			}
 			if r.N != nil {
 				p.WriteString(r.N.Value)
 			}
 			p.redirectOp(r.Op)
-			p.wantSpace = true
 			p.word(r.Word)
 			startRedirs++
 		}
@@ -941,14 +937,13 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		p.semiRsrv("done", x.Done, true)
 	case *ArithmCmd:
 		if p.wantSpace {
-			p.space()
+			p.WriteByte(' ')
 		}
 		p.WriteString("((")
 		p.arithmExpr(x.X, false)
 		p.WriteString("))")
 	case *TestClause:
-		p.spacedString("[[", true)
-		p.space()
+		p.spacedString("[[ ", true)
 		p.testExpr(x.X)
 		p.spacedString("]]", true)
 	case *DeclClause:
@@ -977,7 +972,7 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 	case *LetClause:
 		p.spacedString("let", true)
 		for _, n := range x.Exprs {
-			p.space()
+			p.WriteByte(' ')
 			p.arithmExpr(n, true)
 		}
 	}
@@ -1129,7 +1124,7 @@ func (p *printer) assigns(assigns []*Assign) {
 			}
 			p.indent()
 		} else if p.wantSpace {
-			p.space()
+			p.WriteByte(' ')
 		}
 		if a.Name != nil {
 			p.WriteString(a.Name.Value)
