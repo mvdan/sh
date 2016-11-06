@@ -3,9 +3,7 @@
 
 package syntax
 
-import (
-	"bytes"
-)
+import "bytes"
 
 // bytes that form or start a token
 func regOps(b byte) bool {
@@ -185,6 +183,8 @@ skipSpace:
 	case q == paramExpLen:
 		if paramOps(b) && b != '+' && b != '-' {
 			p.tok = p.paramToken(b)
+		} else if regOps(b) {
+			p.tok = p.regToken(b)
 		} else {
 			p.advanceLitOther(q)
 		}
