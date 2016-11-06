@@ -211,8 +211,8 @@ func BenchmarkParse(b *testing.B) {
 				"a() { (b); { c; }; }; $(d; `e`)",
 		},
 		{
-			"Assign+Clauses",
-			"foo=bar a=b c=d$foo${bar}e $a $b ${c} ${d}; " +
+			"Vars+Clauses",
+			"foo=bar a=b c=d$foo${bar}e $simple ${complex:-default}; " +
 				"if a; then while b; do for c in d e; do f; done; done; fi",
 		},
 		{
