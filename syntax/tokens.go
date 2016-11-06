@@ -21,18 +21,18 @@ const (
 	AndExpr // &&
 	OrExpr  // ||
 	Or      // |
-	pipeAll // |& - bash
+	pipeAll // |&
 
 	dollar       // $
-	dollSglQuote // $' - bash
-	dollDblQuote // $" - bash
+	dollSglQuote // $'
+	dollDblQuote // $"
 	dollBrace    // ${
 	dollBrack    // $[
 	dollParen    // $(
 	dollDblParen // $((
 	leftBrack    // [
 	leftParen    // (
-	dblLeftParen // (( - bash
+	dblLeftParen // ((
 
 	rightBrace    // }
 	rightBrack    // ]
@@ -41,8 +41,8 @@ const (
 	semicolon     // ;
 
 	dblSemicolon // ;;
-	semiFall     // ;& - bash
-	dblSemiFall  // ;;& - bash
+	semiFall     // ;&
+	dblSemiFall  // ;;&
 
 	Mul // *
 	Not // !
@@ -74,12 +74,12 @@ const (
 	clbOut   // >|
 	Shl      // <<
 	dashHdoc // <<-
-	wordHdoc // <<< - bash
-	rdrAll   // &> - bash
-	appAll   // &>> - bash
+	wordHdoc // <<<
+	rdrAll   // &>
+	appAll   // &>>
 
-	cmdIn  // <( - bash
-	cmdOut // >( - bash
+	cmdIn  // <(
+	cmdOut // >(
 
 	Add      // +
 	ColAdd   // :+
@@ -94,9 +94,9 @@ const (
 	Hash     // #
 	dblHash  // ##
 	Xor      // ^
-	dblXor   // ^^ - bash
+	dblXor   // ^^
 	Comma    // ,
-	dblComma // ,, - bash
+	dblComma // ,,
 	Quo      // /
 	dblQuo   // //
 	Colon    // :
