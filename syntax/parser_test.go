@@ -782,6 +782,10 @@ var bashTests = []errorCase{
 		`1:1: let clause requires at least one expression`,
 	},
 	{
+		"`let !`",
+		`1:6: ! must be followed by an expression`,
+	},
+	{
 		"let 'foo'\n'",
 		`2:1: reached EOF without closing quote '`,
 	},

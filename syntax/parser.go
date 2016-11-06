@@ -766,10 +766,12 @@ func (p *parser) arithmExprBase(ftok Token, fpos Pos, compact bool) ArithmExpr {
 	var x ArithmExpr
 	switch p.tok {
 	case Inc, Dec, Not:
-		pre := &UnaryArithm{OpPos: p.pos, Op: p.tok}
+		ue := &UnaryArithm{OpPos: p.pos, Op: p.tok}
 		p.next()
-		pre.X = p.arithmExprBase(pre.Op, pre.OpPos, compact)
-		return pre
+		if ue.X = p.arithmExprBase(ue.Op, ue.OpPos, compact); ue.X == nil {
+			p.followErr(ue.OpPos, ue.Op.String(), "an expression")
+		}
+		return ue
 	case leftParen:
 		pe := &ParenArithm{Lparen: p.pos}
 		p.next()
@@ -793,11 +795,9 @@ func (p *parser) arithmExprBase(ftok Token, fpos Pos, compact bool) ArithmExpr {
 		}
 		fallthrough
 	default:
-		w := p.word()
-		if w.Parts == nil {
-			p.followErr(fpos, ftok.String(), "an expression")
+		if w := p.word(); w.Parts != nil {
+			x = &w
 		}
-		x = &w
 	}
 	if compact && p.spaced {
 		return x
