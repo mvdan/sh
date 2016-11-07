@@ -19,10 +19,10 @@ const (
 	dblSlashte // "
 	bckQuote   // `
 
-	And     // &
-	AndExpr // &&
-	OrExpr  // ||
-	Or      // |
+	and     // &
+	andAnd  // &&
+	orOr    // ||
+	or      // |
 	pipeAll // |&
 
 	dollar       // $
@@ -49,32 +49,32 @@ const (
 	exclMark // !
 	addAdd   // ++
 	subSub   // --
-	Mul      // *
-	Pow      // **
-	Eql      // ==
-	Neq      // !=
-	Leq      // <=
-	Geq      // >=
+	star     // *
+	power    // **
+	equal    // ==
+	nequal   // !=
+	lequal   // <=
+	gequal   // >=
 
-	AddAssgn // +=
-	SubAssgn // -=
-	MulAssgn // *=
-	QuoAssgn // /=
-	RemAssgn // %=
-	AndAssgn // &=
-	OrAssgn  // |=
-	XorAssgn // ^=
-	ShlAssgn // <<=
-	ShrAssgn // >>=
+	addAssgn // +=
+	subAssgn // -=
+	mulAssgn // *=
+	quoAssgn // /=
+	remAssgn // %=
+	andAssgn // &=
+	orAssgn  // |=
+	xorAssgn // ^=
+	shlAssgn // <<=
+	shrAssgn // >>=
 
-	Gtr      // >
-	Shr      // >>
-	Lss      // <
+	rdrOut   // >
+	appOut   // >>
+	rdrIn    // <
 	rdrInOut // <>
 	dplIn    // <&
 	dplOut   // >&
 	clbOut   // >|
-	Shl      // <<
+	hdoc     // <<
 	dashHdoc // <<-
 	wordHdoc // <<<
 	rdrAll   // &>
@@ -83,25 +83,25 @@ const (
 	cmdIn  // <(
 	cmdOut // >(
 
-	Add      // +
+	plus     // +
 	colPlus  // :+
-	Sub      // -
+	minus    // -
 	colMinus // :-
-	Quest    // ?
+	quest    // ?
 	colQuest // :?
-	Assgn    // =
+	assgn    // =
 	colAssgn // :=
-	Rem      // %
+	perc     // %
 	dblPerc  // %%
 	hash     // #
 	dblHash  // ##
-	Xor      // ^
+	caret    // ^
 	dblCaret // ^^
-	Comma    // ,
+	comma    // ,
 	dblComma // ,,
-	Quo      // /
+	slash    // /
 	dblSlash // //
-	Colon    // :
+	colon    // :
 
 	tsNot     // !
 	tsExists  // -e
@@ -146,7 +146,7 @@ const (
 type RedirOperator Token
 
 const (
-	RdrOut = RedirOperator(Gtr) + iota
+	RdrOut = RedirOperator(rdrOut) + iota
 	AppOut
 	RdrIn
 	RdrInOut
@@ -180,7 +180,7 @@ const (
 type BinCmdOperator Token
 
 const (
-	AndStmt = BinCmdOperator(AndExpr) + iota
+	AndStmt = BinCmdOperator(andAnd) + iota
 	OrStmt
 	Pipe
 	PipeAll
@@ -197,7 +197,7 @@ const (
 type ParExpOperator Token
 
 const (
-	SubstPlus = ParExpOperator(Add) + iota
+	SubstPlus = ParExpOperator(plus) + iota
 	SubstColPlus
 	SubstMinus
 	SubstColMinus
@@ -221,8 +221,48 @@ const (
 	Not = UnAritOperator(exclMark) + iota
 	Inc
 	Dec
-	Plus  = UnAritOperator(Add)
-	Minus = UnAritOperator(Sub)
+	Plus  = UnAritOperator(plus)
+	Minus = UnAritOperator(minus)
+)
+
+type BinAritOperator Token
+
+const (
+	Add = BinAritOperator(plus)
+	Sub = BinAritOperator(minus)
+	Mul = BinAritOperator(star)
+	Quo = BinAritOperator(slash)
+	Rem = BinAritOperator(perc)
+	Pow = BinAritOperator(power)
+	Eql = BinAritOperator(equal)
+	Gtr = BinAritOperator(rdrOut)
+	Lss = BinAritOperator(rdrIn)
+	Neq = BinAritOperator(nequal)
+	Leq = BinAritOperator(lequal)
+	Geq = BinAritOperator(gequal)
+	And = BinAritOperator(and)
+	Or  = BinAritOperator(or)
+	Xor = BinAritOperator(caret)
+	Shr = BinAritOperator(appOut)
+	Shl = BinAritOperator(hdoc)
+
+	AndArit = BinAritOperator(andAnd)
+	OrArit  = BinAritOperator(orOr)
+	Comma   = BinAritOperator(comma)
+	Quest   = BinAritOperator(quest)
+	Colon   = BinAritOperator(colon)
+
+	Assgn    = BinAritOperator(assgn)
+	AddAssgn = BinAritOperator(addAssgn)
+	SubAssgn = BinAritOperator(subAssgn)
+	MulAssgn = BinAritOperator(mulAssgn)
+	QuoAssgn = BinAritOperator(quoAssgn)
+	RemAssgn = BinAritOperator(remAssgn)
+	AndAssgn = BinAritOperator(andAssgn)
+	OrAssgn  = BinAritOperator(orAssgn)
+	XorAssgn = BinAritOperator(xorAssgn)
+	ShlAssgn = BinAritOperator(shlAssgn)
+	ShrAssgn = BinAritOperator(shrAssgn)
 )
 
 type UnTestOperator Token
@@ -264,13 +304,13 @@ const (
 	TsGeq
 	TsLss
 	TsGtr
-	AndTest  = BinTestOperator(AndExpr)
-	OrTest   = BinTestOperator(OrExpr)
-	TsAssgn  = BinTestOperator(Assgn)
-	TsEqual  = BinTestOperator(Eql)
-	TsNequal = BinTestOperator(Neq)
-	TsBefore = BinTestOperator(Lss)
-	TsAfter  = BinTestOperator(Gtr)
+	AndTest  = BinTestOperator(andAnd)
+	OrTest   = BinTestOperator(orOr)
+	TsAssgn  = BinTestOperator(assgn)
+	TsEqual  = BinTestOperator(equal)
+	TsNequal = BinTestOperator(nequal)
+	TsBefore = BinTestOperator(rdrIn)
+	TsAfter  = BinTestOperator(rdrOut)
 )
 
 func (o RedirOperator) String() string   { return Token(o).String() }
@@ -280,6 +320,7 @@ func (o BinCmdOperator) String() string  { return Token(o).String() }
 func (o CaseOperator) String() string    { return Token(o).String() }
 func (o ParExpOperator) String() string  { return Token(o).String() }
 func (o UnAritOperator) String() string  { return Token(o).String() }
+func (o BinAritOperator) String() string { return Token(o).String() }
 func (o UnTestOperator) String() string  { return Token(o).String() }
 func (o BinTestOperator) String() string { return Token(o).String() }
 

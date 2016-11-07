@@ -2082,7 +2082,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"$((a == b && c > d))"},
 		common: arithmExp(&BinaryArithm{
-			Op: AndExpr,
+			Op: AndArit,
 			X: &BinaryArithm{
 				Op: Eql,
 				X:  litWord("a"),
@@ -2177,7 +2177,7 @@ var fileTests = []testCase{
 			Op: Leq,
 			X:  litWord("a"),
 			Y: parenArit(&BinaryArithm{
-				Op: OrExpr,
+				Op: OrArit,
 				X:  litWord("1"),
 				Y:  litWord("2"),
 			}),

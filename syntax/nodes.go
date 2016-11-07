@@ -463,7 +463,7 @@ func (*Word) arithmExprNode()         {}
 // expression.
 type BinaryArithm struct {
 	OpPos Pos
-	Op    Token
+	Op    BinAritOperator
 	X, Y  ArithmExpr
 }
 

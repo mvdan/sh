@@ -56,7 +56,7 @@ func (p *parser) next() {
 			p.tok = rightBrace
 		case '/':
 			p.npos++
-			p.tok = Quo
+			p.tok = slash
 		case '`', '"', '$':
 			p.tok = p.dqToken(b)
 		default:
@@ -179,7 +179,7 @@ skipSpace:
 		}
 	case q == paramExpOff && b == ':':
 		p.npos++
-		p.tok = Colon
+		p.tok = colon
 	case q == paramExpLen:
 		if paramOps(b) && b != '+' && b != '-' {
 			p.tok = p.paramToken(b)
@@ -226,7 +226,7 @@ func (p *parser) regToken(b byte) Token {
 		switch byteAt(p.src, p.npos+1) {
 		case '&':
 			p.npos += 2
-			return AndExpr
+			return andAnd
 		case '>':
 			if !p.bash() {
 				break
@@ -239,12 +239,12 @@ func (p *parser) regToken(b byte) Token {
 			return rdrAll
 		}
 		p.npos++
-		return And
+		return and
 	case '|':
 		switch byteAt(p.src, p.npos+1) {
 		case '|':
 			p.npos += 2
-			return OrExpr
+			return orOr
 		case '&':
 			if !p.bash() {
 				break
@@ -253,7 +253,7 @@ func (p *parser) regToken(b byte) Token {
 			return pipeAll
 		}
 		p.npos++
-		return Or
+		return or
 	case '$':
 		switch byteAt(p.src, p.npos+1) {
 		case '\'':
@@ -326,7 +326,7 @@ func (p *parser) regToken(b byte) Token {
 				return wordHdoc
 			}
 			p.npos += 2
-			return Shl
+			return hdoc
 		case '>':
 			p.npos += 2
 			return rdrInOut
@@ -341,12 +341,12 @@ func (p *parser) regToken(b byte) Token {
 			return cmdIn
 		}
 		p.npos++
-		return Lss
+		return rdrIn
 	default: // '>'
 		switch byteAt(p.src, p.npos+1) {
 		case '>':
 			p.npos += 2
-			return Shr
+			return appOut
 		case '&':
 			p.npos += 2
 			return dplOut
@@ -361,7 +361,7 @@ func (p *parser) regToken(b byte) Token {
 			return cmdOut
 		}
 		p.npos++
-		return Gtr
+		return rdrOut
 	}
 }
 
@@ -418,26 +418,26 @@ func (p *parser) paramToken(b byte) Token {
 			return colAssgn
 		}
 		p.npos++
-		return Colon
+		return colon
 	case '+':
 		p.npos++
-		return Add
+		return plus
 	case '-':
 		p.npos++
-		return Sub
+		return minus
 	case '?':
 		p.npos++
-		return Quest
+		return quest
 	case '=':
 		p.npos++
-		return Assgn
+		return assgn
 	case '%':
 		if byteAt(p.src, p.npos+1) == '%' {
 			p.npos += 2
 			return dblPerc
 		}
 		p.npos++
-		return Rem
+		return perc
 	case '#':
 		if byteAt(p.src, p.npos+1) == '#' {
 			p.npos += 2
@@ -454,21 +454,21 @@ func (p *parser) paramToken(b byte) Token {
 			return dblCaret
 		}
 		p.npos++
-		return Xor
+		return caret
 	case ',':
 		if byteAt(p.src, p.npos+1) == ',' {
 			p.npos += 2
 			return dblComma
 		}
 		p.npos++
-		return Comma
+		return comma
 	default: // '/'
 		if byteAt(p.src, p.npos+1) == '/' {
 			p.npos += 2
 			return dblSlash
 		}
 		p.npos++
-		return Quo
+		return slash
 	}
 }
 
@@ -477,17 +477,17 @@ func (p *parser) arithmToken(b byte) Token {
 	case '!':
 		if byteAt(p.src, p.npos+1) == '=' {
 			p.npos += 2
-			return Neq
+			return nequal
 		}
 		p.npos++
 		return exclMark
 	case '=':
 		if byteAt(p.src, p.npos+1) == '=' {
 			p.npos += 2
-			return Eql
+			return equal
 		}
 		p.npos++
-		return Assgn
+		return assgn
 	case '(':
 		p.npos++
 		return leftParen
@@ -498,54 +498,54 @@ func (p *parser) arithmToken(b byte) Token {
 		switch byteAt(p.src, p.npos+1) {
 		case '&':
 			p.npos += 2
-			return AndExpr
+			return andAnd
 		case '=':
 			p.npos += 2
-			return AndAssgn
+			return andAssgn
 		}
 		p.npos++
-		return And
+		return and
 	case '|':
 		switch byteAt(p.src, p.npos+1) {
 		case '|':
 			p.npos += 2
-			return OrExpr
+			return orOr
 		case '=':
 			p.npos += 2
-			return OrAssgn
+			return orAssgn
 		}
 		p.npos++
-		return Or
+		return or
 	case '<':
 		switch byteAt(p.src, p.npos+1) {
 		case '<':
 			if byteAt(p.src, p.npos+2) == '=' {
 				p.npos += 3
-				return ShlAssgn
+				return shlAssgn
 			}
 			p.npos += 2
-			return Shl
+			return hdoc
 		case '=':
 			p.npos += 2
-			return Leq
+			return lequal
 		}
 		p.npos++
-		return Lss
+		return rdrIn
 	case '>':
 		switch byteAt(p.src, p.npos+1) {
 		case '>':
 			if byteAt(p.src, p.npos+2) == '=' {
 				p.npos += 3
-				return ShrAssgn
+				return shrAssgn
 			}
 			p.npos += 2
-			return Shr
+			return appOut
 		case '=':
 			p.npos += 2
-			return Geq
+			return gequal
 		}
 		p.npos++
-		return Gtr
+		return rdrOut
 	case '+':
 		switch byteAt(p.src, p.npos+1) {
 		case '+':
@@ -553,10 +553,10 @@ func (p *parser) arithmToken(b byte) Token {
 			return addAdd
 		case '=':
 			p.npos += 2
-			return AddAssgn
+			return addAssgn
 		}
 		p.npos++
-		return Add
+		return plus
 	case '-':
 		switch byteAt(p.src, p.npos+1) {
 		case '-':
@@ -564,51 +564,51 @@ func (p *parser) arithmToken(b byte) Token {
 			return subSub
 		case '=':
 			p.npos += 2
-			return SubAssgn
+			return subAssgn
 		}
 		p.npos++
-		return Sub
+		return minus
 	case '%':
 		if byteAt(p.src, p.npos+1) == '=' {
 			p.npos += 2
-			return RemAssgn
+			return remAssgn
 		}
 		p.npos++
-		return Rem
+		return perc
 	case '*':
 		switch byteAt(p.src, p.npos+1) {
 		case '*':
 			p.npos += 2
-			return Pow
+			return power
 		case '=':
 			p.npos += 2
-			return MulAssgn
+			return mulAssgn
 		}
 		p.npos++
-		return Mul
+		return star
 	case '/':
 		if byteAt(p.src, p.npos+1) == '=' {
 			p.npos += 2
-			return QuoAssgn
+			return quoAssgn
 		}
 		p.npos++
-		return Quo
+		return slash
 	case '^':
 		if byteAt(p.src, p.npos+1) == '=' {
 			p.npos += 2
-			return XorAssgn
+			return xorAssgn
 		}
 		p.npos++
-		return Xor
+		return caret
 	case ',':
 		p.npos++
-		return Comma
+		return comma
 	case '?':
 		p.npos++
-		return Quest
+		return quest
 	default: // ':'
 		p.npos++
-		return Colon
+		return colon
 	}
 }
 
@@ -917,11 +917,11 @@ func testUnaryOp(val string) Token {
 func testBinaryOp(val string) Token {
 	switch val {
 	case "=":
-		return Assgn
+		return assgn
 	case "==":
-		return Eql
+		return equal
 	case "!=":
-		return Neq
+		return nequal
 	case "=~":
 		return tsReMatch
 	case "-nt":

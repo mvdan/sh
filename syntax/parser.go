@@ -432,7 +432,7 @@ func (p *parser) stmts(stops ...string) (sts []*Stmt) {
 
 func (p *parser) invalidStmtStart() {
 	switch p.tok {
-	case semicolon, And, Or, AndExpr, OrExpr:
+	case semicolon, and, or, andAnd, orOr:
 		p.curErr("%s can only immediately follow a statement", p.tok)
 	case rightParen:
 		p.curErr("%s can only be used to close a subshell", p.tok)
@@ -687,8 +687,8 @@ tokLoop:
 	return
 }
 
-func arithmOpLevel(tok Token) int {
-	switch tok {
+func arithmOpLevel(op BinAritOperator) int {
+	switch op {
 	case Comma:
 		return 0
 	case AddAssgn, SubAssgn, MulAssgn, QuoAssgn, RemAssgn, AndAssgn,
@@ -698,7 +698,7 @@ func arithmOpLevel(tok Token) int {
 		return 2
 	case Quest, Colon:
 		return 3
-	case AndExpr, OrExpr:
+	case AndArit, OrArit:
 		return 4
 	case And, Or, Xor:
 		return 5
@@ -731,7 +731,7 @@ func (p *parser) arithmExpr(ftok Token, fpos Pos, level int, compact bool) Arith
 	if compact && p.spaced {
 		return left
 	}
-	newLevel := arithmOpLevel(p.tok)
+	newLevel := arithmOpLevel(BinAritOperator(p.tok))
 	if newLevel < 0 {
 		switch p.tok {
 		case _Lit, _LitWord:
@@ -750,13 +750,13 @@ func (p *parser) arithmExpr(ftok Token, fpos Pos, level int, compact bool) Arith
 	}
 	b := &BinaryArithm{
 		OpPos: p.pos,
-		Op:    p.tok,
+		Op:    BinAritOperator(p.tok),
 		X:     left,
 	}
 	if p.next(); compact && p.spaced {
 		p.followErr(b.OpPos, b.Op.String(), "an expression")
 	}
-	if b.Y = p.arithmExpr(b.Op, b.OpPos, newLevel, compact); b.Y == nil {
+	if b.Y = p.arithmExpr(Token(b.Op), b.OpPos, newLevel, compact); b.Y == nil {
 		p.followErr(b.OpPos, b.Op.String(), "an expression")
 	}
 	return b
@@ -780,7 +780,7 @@ func (p *parser) arithmExprBase(ftok Token, fpos Pos, compact bool) ArithmExpr {
 		}
 		pe.Rparen = p.matched(pe.Lparen, leftParen, rightParen)
 		x = pe
-	case Add, Sub:
+	case plus, minus:
 		ue := &UnaryArithm{OpPos: p.pos, Op: UnAritOperator(p.tok)}
 		if p.next(); compact && p.spaced {
 			p.followErr(ue.OpPos, ue.Op.String(), "an expression")
@@ -822,11 +822,11 @@ func (p *parser) gotParamLit(l *Lit) bool {
 		l.Value = p.val
 	case dollar:
 		l.Value = "$"
-	case Quest:
+	case quest:
 		l.Value = "?"
 	case hash:
 		l.Value = "#"
-	case Sub:
+	case minus:
 		l.Value = "-"
 	default:
 		return false
@@ -877,17 +877,17 @@ func (p *parser) paramExp() *ParamExp {
 		p.postNested(old)
 		p.next()
 		return pe
-	case Quo, dblSlash:
+	case slash, dblSlash:
 		pe.Repl = &Replace{All: p.tok == dblSlash}
 		p.quote = paramExpRepl
 		p.next()
 		pe.Repl.Orig = p.word()
-		if p.tok == Quo {
+		if p.tok == slash {
 			p.quote = paramExpExp
 			p.next()
 			pe.Repl.With = p.word()
 		}
-	case Colon:
+	case colon:
 		if !p.bash() {
 			p.curErr("slicing is a bash feature")
 		}
@@ -895,17 +895,17 @@ func (p *parser) paramExp() *ParamExp {
 		colonPos := p.pos
 		p.quote = paramExpOff
 		p.next()
-		if p.tok != Colon {
-			w := p.followWordTok(Colon, colonPos)
+		if p.tok != colon {
+			w := p.followWordTok(colon, colonPos)
 			pe.Slice.Offset = &w
 		}
 		colonPos = p.pos
 		p.quote = paramExpLen
-		if p.got(Colon) {
-			w := p.followWordTok(Colon, colonPos)
+		if p.got(colon) {
+			w := p.followWordTok(colon, colonPos)
 			pe.Slice.Length = &w
 		}
-	case Xor, dblCaret, Comma, dblComma:
+	case caret, dblCaret, comma, dblComma:
 		if !p.bash() {
 			p.curErr("case expansions are a bash feature")
 		}
@@ -940,7 +940,7 @@ func (p *parser) arithmEnd(ltok Token, lpos Pos, old saveState) Pos {
 
 func stopToken(tok Token) bool {
 	switch tok {
-	case _EOF, semicolon, And, Or, AndExpr, OrExpr, pipeAll, dblSemicolon,
+	case _EOF, semicolon, and, or, andAnd, orOr, pipeAll, dblSemicolon,
 		semiFall, dblSemiFall, rightParen:
 		return true
 	}
@@ -1015,8 +1015,8 @@ func (p *parser) peekRedir() bool {
 	switch p.tok {
 	case _LitWord:
 		return litRedir(p.src, p.npos)
-	case Gtr, Shr, Lss, dplIn, dplOut, clbOut, rdrInOut, Shl, dashHdoc,
-		wordHdoc, rdrAll, appAll:
+	case rdrOut, appOut, rdrIn, dplIn, dplOut, clbOut, rdrInOut,
+		hdoc, dashHdoc, wordHdoc, rdrAll, appAll:
 		return true
 	}
 	return false
@@ -1066,8 +1066,8 @@ preLoop:
 			} else {
 				break preLoop
 			}
-		case Gtr, Shr, Lss, dplIn, dplOut, clbOut, rdrInOut, Shl, dashHdoc,
-			wordHdoc, rdrAll, appAll:
+		case rdrOut, appOut, rdrIn, dplIn, dplOut, clbOut, rdrInOut,
+			hdoc, dashHdoc, wordHdoc, rdrAll, appAll:
 			p.doRedirect(s)
 		default:
 			break preLoop
@@ -1088,7 +1088,7 @@ preLoop:
 		return
 	}
 	switch p.tok {
-	case AndExpr, OrExpr:
+	case andAnd, orOr:
 		b := &BinaryCmd{OpPos: p.pos, Op: BinCmdOperator(p.tok), X: s}
 		p.next()
 		if b.Y, _ = p.getStmt(false); b.Y == nil {
@@ -1099,7 +1099,7 @@ preLoop:
 		if readEnd && p.gotSameLine(semicolon) {
 			gotEnd = true
 		}
-	case And:
+	case and:
 		p.next()
 		s.Background = true
 		gotEnd = true
@@ -1183,7 +1183,7 @@ func (p *parser) gotStmtPipe(s *Stmt) *Stmt {
 	if s.Cmd == nil && len(s.Redirs) == 0 && !s.Negated && len(s.Assigns) == 0 {
 		return nil
 	}
-	if p.tok == Or || p.tok == pipeAll {
+	if p.tok == or || p.tok == pipeAll {
 		b := &BinaryCmd{OpPos: p.pos, Op: BinCmdOperator(p.tok), X: s}
 		p.next()
 		if b.Y = p.gotStmtPipe(p.stmt(p.pos)); b.Y == nil {
@@ -1358,7 +1358,7 @@ func (p *parser) patLists() (pls []*PatternList) {
 			if p.tok == rightParen {
 				break
 			}
-			if !p.got(Or) {
+			if !p.got(or) {
 				p.curErr("case patterns must be separated with |")
 			}
 		}
@@ -1405,13 +1405,13 @@ func (p *parser) testExpr(ftok Token, fpos Pos, level int) TestExpr {
 	}
 	var newLevel int
 	switch p.tok {
-	case AndExpr, OrExpr:
+	case andAnd, orOr:
 	case _LitWord:
 		if p.val == "]]" {
 			return left
 		}
 		fallthrough
-	case Lss, Gtr:
+	case rdrIn, rdrOut:
 		newLevel = 1
 	case _EOF, rightParen:
 		return left
@@ -1619,7 +1619,7 @@ func (p *parser) callExpr(s *Stmt, w Word) *CallExpr {
 	ce.Args[0] = w
 	for !p.newLine {
 		switch p.tok {
-		case _EOF, semicolon, And, Or, AndExpr, OrExpr, pipeAll,
+		case _EOF, semicolon, and, or, andAnd, orOr, pipeAll,
 			dblSemicolon, semiFall, dblSemiFall:
 			return ce
 		case _LitWord:
@@ -1640,8 +1640,8 @@ func (p *parser) callExpr(s *Stmt, w Word) *CallExpr {
 			sglQuote, dollSglQuote, dblSlashte, dollDblQuote, dollBrack, globQuest,
 			globStar, globPlus, globAt, globExcl:
 			ce.Args = append(ce.Args, Word{Parts: p.wordParts()})
-		case Gtr, Shr, Lss, dplIn, dplOut, clbOut, rdrInOut, Shl,
-			dashHdoc, wordHdoc, rdrAll, appAll:
+		case rdrOut, appOut, rdrIn, dplIn, dplOut, clbOut, rdrInOut,
+			hdoc, dashHdoc, wordHdoc, rdrAll, appAll:
 			p.doRedirect(s)
 		case rightParen:
 			if p.quote == subCmd {
