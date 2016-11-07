@@ -480,7 +480,7 @@ func (p *parser) arithmToken(b byte) Token {
 			return Neq
 		}
 		p.npos++
-		return Not
+		return exclMark
 	case '=':
 		if byteAt(p.src, p.npos+1) == '=' {
 			p.npos += 2
@@ -550,7 +550,7 @@ func (p *parser) arithmToken(b byte) Token {
 		switch byteAt(p.src, p.npos+1) {
 		case '+':
 			p.npos += 2
-			return Inc
+			return addAdd
 		case '=':
 			p.npos += 2
 			return AddAssgn
@@ -561,7 +561,7 @@ func (p *parser) arithmToken(b byte) Token {
 		switch byteAt(p.src, p.npos+1) {
 		case '-':
 			p.npos += 2
-			return Dec
+			return subSub
 		case '=':
 			p.npos += 2
 			return SubAssgn
@@ -868,7 +868,7 @@ func (p *parser) advanceLitRe() {
 func testUnaryOp(val string) Token {
 	switch val {
 	case "!":
-		return Not
+		return exclMark
 	case "-e", "-a":
 		return tsExists
 	case "-f":

@@ -46,15 +46,15 @@ const (
 	semiFall     // ;&
 	dblSemiFall  // ;;&
 
-	Mul // *
-	Not // !
-	Inc // ++
-	Dec // --
-	Pow // **
-	Eql // ==
-	Neq // !=
-	Leq // <=
-	Geq // >=
+	exclMark // !
+	addAdd   // ++
+	subSub   // --
+	Mul      // *
+	Pow      // **
+	Eql      // ==
+	Neq      // !=
+	Leq      // <=
+	Geq      // >=
 
 	AddAssgn // +=
 	SubAssgn // -=
@@ -215,6 +215,16 @@ const (
 	LowerAll
 )
 
+type UnAritOperator Token
+
+const (
+	Not = UnAritOperator(exclMark) + iota
+	Inc
+	Dec
+	Plus  = UnAritOperator(Add)
+	Minus = UnAritOperator(Sub)
+)
+
 type UnTestOperator Token
 
 const (
@@ -269,6 +279,7 @@ func (o GlobOperator) String() string    { return Token(o).String() }
 func (o BinCmdOperator) String() string  { return Token(o).String() }
 func (o CaseOperator) String() string    { return Token(o).String() }
 func (o ParExpOperator) String() string  { return Token(o).String() }
+func (o UnAritOperator) String() string  { return Token(o).String() }
 func (o UnTestOperator) String() string  { return Token(o).String() }
 func (o BinTestOperator) String() string { return Token(o).String() }
 

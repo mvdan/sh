@@ -765,10 +765,10 @@ func (p *parser) arithmExpr(ftok Token, fpos Pos, level int, compact bool) Arith
 func (p *parser) arithmExprBase(ftok Token, fpos Pos, compact bool) ArithmExpr {
 	var x ArithmExpr
 	switch p.tok {
-	case Inc, Dec, Not:
-		ue := &UnaryArithm{OpPos: p.pos, Op: p.tok}
+	case addAdd, subSub, exclMark:
+		ue := &UnaryArithm{OpPos: p.pos, Op: UnAritOperator(p.tok)}
 		p.next()
-		if ue.X = p.arithmExprBase(ue.Op, ue.OpPos, compact); ue.X == nil {
+		if ue.X = p.arithmExprBase(Token(ue.Op), ue.OpPos, compact); ue.X == nil {
 			p.followErr(ue.OpPos, ue.Op.String(), "an expression")
 		}
 		return ue
@@ -781,11 +781,11 @@ func (p *parser) arithmExprBase(ftok Token, fpos Pos, compact bool) ArithmExpr {
 		pe.Rparen = p.matched(pe.Lparen, leftParen, rightParen)
 		x = pe
 	case Add, Sub:
-		ue := &UnaryArithm{OpPos: p.pos, Op: p.tok}
+		ue := &UnaryArithm{OpPos: p.pos, Op: UnAritOperator(p.tok)}
 		if p.next(); compact && p.spaced {
 			p.followErr(ue.OpPos, ue.Op.String(), "an expression")
 		}
-		if ue.X = p.arithmExpr(ue.Op, ue.OpPos, 0, compact); ue.X == nil {
+		if ue.X = p.arithmExpr(Token(ue.Op), ue.OpPos, 0, compact); ue.X == nil {
 			p.followErr(ue.OpPos, ue.Op.String(), "an expression")
 		}
 		x = ue
@@ -802,11 +802,11 @@ func (p *parser) arithmExprBase(ftok Token, fpos Pos, compact bool) ArithmExpr {
 	if compact && p.spaced {
 		return x
 	}
-	if p.tok == Inc || p.tok == Dec {
+	if p.tok == addAdd || p.tok == subSub {
 		u := &UnaryArithm{
 			Post:  true,
 			OpPos: p.pos,
-			Op:    p.tok,
+			Op:    UnAritOperator(p.tok),
 			X:     x,
 		}
 		p.next()
@@ -1454,7 +1454,7 @@ func (p *parser) testExprBase(ftok Token, fpos Pos) TestExpr {
 		}
 	}
 	switch p.tok {
-	case Not:
+	case exclMark:
 		u := &UnaryTest{OpPos: p.pos, Op: TsNot}
 		p.next()
 		u.X = p.testExpr(Token(u.Op), u.OpPos, 0)

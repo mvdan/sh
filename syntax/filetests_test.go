@@ -1994,7 +1994,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{`$((-(1)))`},
 		common: arithmExp(&UnaryArithm{
-			Op: Sub,
+			Op: Minus,
 			X:  parenArit(litWord("1")),
 		}),
 	},
@@ -2017,10 +2017,10 @@ var fileTests = []testCase{
 	{
 		Strs: []string{`$((-!+i))`},
 		common: arithmExp(&UnaryArithm{
-			Op: Sub,
+			Op: Minus,
 			X: &UnaryArithm{
 				Op: Not,
-				X:  &UnaryArithm{Op: Add, X: litWord("i")},
+				X:  &UnaryArithm{Op: Plus, X: litWord("i")},
 			},
 		}),
 	},
@@ -2950,7 +2950,7 @@ var fileTests = []testCase{
 			&UnaryArithm{Op: Inc, Post: true, X: litWord("a")},
 			&UnaryArithm{Op: Inc, Post: true, X: litWord("b")},
 			litWord("c"),
-			&UnaryArithm{Op: Add, X: litWord("d")},
+			&UnaryArithm{Op: Plus, X: litWord("d")},
 		),
 	},
 	{

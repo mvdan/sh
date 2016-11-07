@@ -474,7 +474,7 @@ func (b *BinaryArithm) End() Pos { return b.Y.End() }
 // or after it.
 type UnaryArithm struct {
 	OpPos Pos
-	Op    Token
+	Op    UnAritOperator
 	Post  bool
 	X     ArithmExpr
 }
