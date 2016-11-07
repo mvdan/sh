@@ -54,7 +54,7 @@ type parser struct {
 
 	err error
 
-	tok Token
+	tok token
 	val string
 
 	pos  Pos
@@ -249,7 +249,7 @@ func (p *parser) doHeredocs() {
 	p.quote = old
 }
 
-func (p *parser) got(tok Token) bool {
+func (p *parser) got(tok token) bool {
 	if p.tok == tok {
 		p.next()
 		return true
@@ -265,7 +265,7 @@ func (p *parser) gotRsrv(val string) bool {
 	return false
 }
 
-func (p *parser) gotSameLine(tok Token) bool {
+func (p *parser) gotSameLine(tok token) bool {
 	if !p.newLine && p.tok == tok {
 		p.next()
 		return true
@@ -286,7 +286,7 @@ func (p *parser) followErr(pos Pos, left, right string) {
 	p.posErr(pos, "%s must be followed by %s", leftStr, right)
 }
 
-func (p *parser) follow(lpos Pos, left string, tok Token) Pos {
+func (p *parser) follow(lpos Pos, left string, tok token) Pos {
 	pos := p.pos
 	if !p.got(tok) {
 		p.followErr(lpos, left, tok.String())
@@ -313,7 +313,7 @@ func (p *parser) followStmts(left string, lpos Pos, stops ...string) []*Stmt {
 	return sts
 }
 
-func (p *parser) followWordTok(tok Token, pos Pos) Word {
+func (p *parser) followWordTok(tok token, pos Pos) Word {
 	w := p.word()
 	if w.Parts == nil {
 		p.followErr(pos, tok.String(), "a word")
@@ -337,7 +337,7 @@ func (p *parser) stmtEnd(n Node, start, end string) Pos {
 	return pos
 }
 
-func (p *parser) quoteErr(lpos Pos, quote Token) {
+func (p *parser) quoteErr(lpos Pos, quote token) {
 	p.posErr(lpos, "reached %s without closing quote %s", p.tok, quote)
 }
 
@@ -345,7 +345,7 @@ func (p *parser) matchingErr(lpos Pos, left, right interface{}) {
 	p.posErr(lpos, "reached %s without matching %s with %s", p.tok, left, right)
 }
 
-func (p *parser) matched(lpos Pos, left, right Token) Pos {
+func (p *parser) matched(lpos Pos, left, right token) Pos {
 	pos := p.pos
 	if !p.got(right) {
 		p.matchingErr(lpos, left, right)
@@ -555,7 +555,7 @@ func (p *parser) wordPart() WordPart {
 		p.next()
 		ps.Stmts = p.stmts()
 		p.postNested(old)
-		ps.Rparen = p.matched(ps.OpPos, Token(ps.Op), rightParen)
+		ps.Rparen = p.matched(ps.OpPos, token(ps.Op), rightParen)
 		return ps
 	case sglQuote:
 		sq := &SglQuoted{Position: p.pos}
@@ -718,7 +718,7 @@ func arithmOpLevel(op BinAritOperator) int {
 	return -1
 }
 
-func (p *parser) arithmExpr(ftok Token, fpos Pos, level int, compact bool) ArithmExpr {
+func (p *parser) arithmExpr(ftok token, fpos Pos, level int, compact bool) ArithmExpr {
 	if p.tok == _EOF || p.peekArithmEnd() {
 		return nil
 	}
@@ -756,19 +756,19 @@ func (p *parser) arithmExpr(ftok Token, fpos Pos, level int, compact bool) Arith
 	if p.next(); compact && p.spaced {
 		p.followErr(b.OpPos, b.Op.String(), "an expression")
 	}
-	if b.Y = p.arithmExpr(Token(b.Op), b.OpPos, newLevel, compact); b.Y == nil {
+	if b.Y = p.arithmExpr(token(b.Op), b.OpPos, newLevel, compact); b.Y == nil {
 		p.followErr(b.OpPos, b.Op.String(), "an expression")
 	}
 	return b
 }
 
-func (p *parser) arithmExprBase(ftok Token, fpos Pos, compact bool) ArithmExpr {
+func (p *parser) arithmExprBase(ftok token, fpos Pos, compact bool) ArithmExpr {
 	var x ArithmExpr
 	switch p.tok {
 	case addAdd, subSub, exclMark:
 		ue := &UnaryArithm{OpPos: p.pos, Op: UnAritOperator(p.tok)}
 		p.next()
-		if ue.X = p.arithmExprBase(Token(ue.Op), ue.OpPos, compact); ue.X == nil {
+		if ue.X = p.arithmExprBase(token(ue.Op), ue.OpPos, compact); ue.X == nil {
 			p.followErr(ue.OpPos, ue.Op.String(), "an expression")
 		}
 		return ue
@@ -785,7 +785,7 @@ func (p *parser) arithmExprBase(ftok Token, fpos Pos, compact bool) ArithmExpr {
 		if p.next(); compact && p.spaced {
 			p.followErr(ue.OpPos, ue.Op.String(), "an expression")
 		}
-		if ue.X = p.arithmExpr(Token(ue.Op), ue.OpPos, 0, compact); ue.X == nil {
+		if ue.X = p.arithmExpr(token(ue.Op), ue.OpPos, 0, compact); ue.X == nil {
 			p.followErr(ue.OpPos, ue.Op.String(), "an expression")
 		}
 		x = ue
@@ -926,7 +926,7 @@ func (p *parser) peekArithmEnd() bool {
 	return p.tok == rightParen && p.npos < len(p.src) && p.src[p.npos] == ')'
 }
 
-func (p *parser) arithmEnd(ltok Token, lpos Pos, old saveState) Pos {
+func (p *parser) arithmEnd(ltok token, lpos Pos, old saveState) Pos {
 	if p.peekArithmEnd() {
 		p.npos++
 	} else {
@@ -938,7 +938,7 @@ func (p *parser) arithmEnd(ltok Token, lpos Pos, old saveState) Pos {
 	return pos
 }
 
-func stopToken(tok Token) bool {
+func stopToken(tok token) bool {
 	switch tok {
 	case _EOF, semicolon, and, or, andAnd, orOr, pipeAll, dblSemicolon,
 		semiFall, dblSemiFall, rightParen:
@@ -1038,14 +1038,14 @@ func (p *parser) doRedirect(s *Stmt) {
 			p.curErr("heredoc stop word must be on the same line")
 		}
 		p.heredocs = append(p.heredocs, r)
-		r.Word = p.followWordTok(Token(r.Op), r.OpPos)
+		r.Word = p.followWordTok(token(r.Op), r.OpPos)
 		p.quote = old
 		p.next()
 	default:
 		if p.newLine {
 			p.curErr("redirect word must be on the same line")
 		}
-		r.Word = p.followWordTok(Token(r.Op), r.OpPos)
+		r.Word = p.followWordTok(token(r.Op), r.OpPos)
 	}
 	s.Redirs = append(s.Redirs, r)
 }
@@ -1393,7 +1393,7 @@ func (p *parser) testClause() *TestClause {
 	return tc
 }
 
-func (p *parser) testExpr(ftok Token, fpos Pos, level int) TestExpr {
+func (p *parser) testExpr(ftok token, fpos Pos, level int) TestExpr {
 	var left TestExpr
 	if level > 1 {
 		left = p.testExprBase(ftok, fpos)
@@ -1438,13 +1438,13 @@ func (p *parser) testExpr(ftok Token, fpos Pos, level int) TestExpr {
 	} else {
 		p.next()
 	}
-	if b.Y = p.testExpr(Token(b.Op), b.OpPos, newLevel); b.Y == nil {
+	if b.Y = p.testExpr(token(b.Op), b.OpPos, newLevel); b.Y == nil {
 		p.followErr(b.OpPos, b.Op.String(), "an expression")
 	}
 	return b
 }
 
-func (p *parser) testExprBase(ftok Token, fpos Pos) TestExpr {
+func (p *parser) testExprBase(ftok token, fpos Pos) TestExpr {
 	switch p.tok {
 	case _EOF:
 		return nil
@@ -1457,7 +1457,7 @@ func (p *parser) testExprBase(ftok Token, fpos Pos) TestExpr {
 	case exclMark:
 		u := &UnaryTest{OpPos: p.pos, Op: TsNot}
 		p.next()
-		u.X = p.testExpr(Token(u.Op), u.OpPos, 0)
+		u.X = p.testExpr(token(u.Op), u.OpPos, 0)
 		return u
 	case tsExists, tsRegFile, tsDirect, tsCharSp, tsBlckSp, tsNmPipe, tsSocket, tsSmbLink,
 		tsGIDSet, tsUIDSet, tsRead, tsWrite, tsExec, tsNoEmpty, tsFdTerm, tsEmpStr,
@@ -1514,7 +1514,7 @@ func (p *parser) evalClause() *EvalClause {
 	return ec
 }
 
-func isBashCompoundCommand(tok Token, val string) bool {
+func isBashCompoundCommand(tok token, val string) bool {
 	switch tok {
 	case leftParen, dblLeftParen:
 		return true

@@ -3,14 +3,13 @@
 
 package syntax
 
-// Token is the set of lexical tokens and reserved words.
-type Token int
+type token int
 
-//go:generate stringer -type Token
+//go:generate stringer -type token
 
 // The list of all possible tokens and reserved words.
 const (
-	illegalTok Token = iota
+	illegalTok token = iota
 	_EOF
 	_Lit
 	_LitWord
@@ -143,7 +142,7 @@ const (
 	globExcl  // !(
 )
 
-type RedirOperator Token
+type RedirOperator token
 
 const (
 	RdrOut = RedirOperator(rdrOut) + iota
@@ -160,14 +159,14 @@ const (
 	AppAll
 )
 
-type ProcOperator Token
+type ProcOperator token
 
 const (
 	CmdIn = ProcOperator(cmdIn) + iota
 	CmdOut
 )
 
-type GlobOperator Token
+type GlobOperator token
 
 const (
 	GlobQuest = GlobOperator(globQuest) + iota
@@ -177,7 +176,7 @@ const (
 	GlobExcl
 )
 
-type BinCmdOperator Token
+type BinCmdOperator token
 
 const (
 	AndStmt = BinCmdOperator(andAnd) + iota
@@ -186,7 +185,7 @@ const (
 	PipeAll
 )
 
-type CaseOperator Token
+type CaseOperator token
 
 const (
 	DblSemicolon = CaseOperator(dblSemicolon) + iota
@@ -194,7 +193,7 @@ const (
 	DblSemiFall
 )
 
-type ParExpOperator Token
+type ParExpOperator token
 
 const (
 	SubstPlus = ParExpOperator(plus) + iota
@@ -215,7 +214,7 @@ const (
 	LowerAll
 )
 
-type UnAritOperator Token
+type UnAritOperator token
 
 const (
 	Not = UnAritOperator(exclMark) + iota
@@ -225,7 +224,7 @@ const (
 	Minus = UnAritOperator(minus)
 )
 
-type BinAritOperator Token
+type BinAritOperator token
 
 const (
 	Add = BinAritOperator(plus)
@@ -265,7 +264,7 @@ const (
 	ShrAssgn = BinAritOperator(shrAssgn)
 )
 
-type UnTestOperator Token
+type UnTestOperator token
 
 const (
 	TsNot = UnTestOperator(tsNot) + iota
@@ -291,7 +290,7 @@ const (
 	TsRefVar
 )
 
-type BinTestOperator Token
+type BinTestOperator token
 
 const (
 	TsReMatch = BinTestOperator(tsReMatch) + iota
@@ -313,16 +312,16 @@ const (
 	TsAfter  = BinTestOperator(rdrOut)
 )
 
-func (o RedirOperator) String() string   { return Token(o).String() }
-func (o ProcOperator) String() string    { return Token(o).String() }
-func (o GlobOperator) String() string    { return Token(o).String() }
-func (o BinCmdOperator) String() string  { return Token(o).String() }
-func (o CaseOperator) String() string    { return Token(o).String() }
-func (o ParExpOperator) String() string  { return Token(o).String() }
-func (o UnAritOperator) String() string  { return Token(o).String() }
-func (o BinAritOperator) String() string { return Token(o).String() }
-func (o UnTestOperator) String() string  { return Token(o).String() }
-func (o BinTestOperator) String() string { return Token(o).String() }
+func (o RedirOperator) String() string   { return token(o).String() }
+func (o ProcOperator) String() string    { return token(o).String() }
+func (o GlobOperator) String() string    { return token(o).String() }
+func (o BinCmdOperator) String() string  { return token(o).String() }
+func (o CaseOperator) String() string    { return token(o).String() }
+func (o ParExpOperator) String() string  { return token(o).String() }
+func (o UnAritOperator) String() string  { return token(o).String() }
+func (o BinAritOperator) String() string { return token(o).String() }
+func (o UnTestOperator) String() string  { return token(o).String() }
+func (o BinTestOperator) String() string { return token(o).String() }
 
 // Pos is the internal representation of a position within a source
 // file.

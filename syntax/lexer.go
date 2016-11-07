@@ -211,7 +211,7 @@ func byteAt(src []byte, i int) byte {
 	return src[i]
 }
 
-func (p *parser) regToken(b byte) Token {
+func (p *parser) regToken(b byte) token {
 	switch b {
 	case '\'':
 		p.npos++
@@ -365,7 +365,7 @@ func (p *parser) regToken(b byte) Token {
 	}
 }
 
-func (p *parser) dqToken(b byte) Token {
+func (p *parser) dqToken(b byte) token {
 	switch b {
 	case '"':
 		p.npos++
@@ -397,7 +397,7 @@ func (p *parser) dqToken(b byte) Token {
 	}
 }
 
-func (p *parser) paramToken(b byte) Token {
+func (p *parser) paramToken(b byte) token {
 	switch b {
 	case '}':
 		p.npos++
@@ -472,7 +472,7 @@ func (p *parser) paramToken(b byte) Token {
 	}
 }
 
-func (p *parser) arithmToken(b byte) Token {
+func (p *parser) arithmToken(b byte) token {
 	switch b {
 	case '!':
 		if byteAt(p.src, p.npos+1) == '=' {
@@ -865,7 +865,7 @@ func (p *parser) advanceLitRe() {
 	p.npos += end
 }
 
-func testUnaryOp(val string) Token {
+func testUnaryOp(val string) token {
 	switch val {
 	case "!":
 		return exclMark
@@ -914,7 +914,7 @@ func testUnaryOp(val string) Token {
 	}
 }
 
-func testBinaryOp(val string) Token {
+func testBinaryOp(val string) token {
 	switch val {
 	case "=":
 		return assgn
