@@ -63,7 +63,7 @@ func (p *parser) next() {
 			p.advanceLitOther(q)
 		}
 		return
-	case dblQuotes:
+	case dblSlashtes:
 		if b == '`' || b == '"' || b == '$' {
 			p.tok = p.dqToken(b)
 		} else {
@@ -162,13 +162,13 @@ skipSpace:
 				case '?':
 					p.tok = globQuest
 				case '*':
-					p.tok = globMul
+					p.tok = globStar
 				case '+':
-					p.tok = globAdd
+					p.tok = globPlus
 				case '@':
 					p.tok = globAt
 				default: // '!'
-					p.tok = globNot
+					p.tok = globExcl
 				}
 				p.npos += 2
 			} else {
@@ -218,7 +218,7 @@ func (p *parser) regToken(b byte) Token {
 		return sglQuote
 	case '"':
 		p.npos++
-		return dblQuote
+		return dblSlashte
 	case '`':
 		p.npos++
 		return bckQuote
@@ -369,7 +369,7 @@ func (p *parser) dqToken(b byte) Token {
 	switch b {
 	case '"':
 		p.npos++
-		return dblQuote
+		return dblSlashte
 	case '`':
 		p.npos++
 		return bckQuote
@@ -406,10 +406,10 @@ func (p *parser) paramToken(b byte) Token {
 		switch byteAt(p.src, p.npos+1) {
 		case '+':
 			p.npos += 2
-			return colAdd
+			return colPlus
 		case '-':
 			p.npos += 2
-			return colSub
+			return colMinus
 		case '?':
 			p.npos += 2
 			return colQuest
@@ -434,7 +434,7 @@ func (p *parser) paramToken(b byte) Token {
 	case '%':
 		if byteAt(p.src, p.npos+1) == '%' {
 			p.npos += 2
-			return dblRem
+			return dblPerc
 		}
 		p.npos++
 		return Rem
@@ -451,7 +451,7 @@ func (p *parser) paramToken(b byte) Token {
 	case '^':
 		if byteAt(p.src, p.npos+1) == '^' {
 			p.npos += 2
-			return dblXor
+			return dblCaret
 		}
 		p.npos++
 		return Xor
@@ -465,7 +465,7 @@ func (p *parser) paramToken(b byte) Token {
 	default: // '/'
 		if byteAt(p.src, p.npos+1) == '/' {
 			p.npos += 2
-			return dblQuo
+			return dblSlash
 		}
 		p.npos++
 		return Quo

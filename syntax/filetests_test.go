@@ -1454,7 +1454,7 @@ var fileTests = []testCase{
 			*word(&ParamExp{Length: true, Param: *lit("$")}),
 			*word(&ParamExp{Length: true, Param: *lit("#")}),
 			*word(&ParamExp{Length: true, Exp: &Expansion{
-				Op:   SubstColSub,
+				Op:   SubstColMinus,
 				Word: *litWord("a"),
 			}}),
 			*word(&ParamExp{
@@ -1482,7 +1482,7 @@ var fileTests = []testCase{
 		common: &ParamExp{
 			Param: *lit("foo"),
 			Exp: &Expansion{
-				Op:   SubstSub,
+				Op:   SubstMinus,
 				Word: *litWord("bar"),
 			},
 		},
@@ -1493,7 +1493,7 @@ var fileTests = []testCase{
 			&ParamExp{
 				Param: *lit("foo"),
 				Exp: &Expansion{
-					Op:   SubstAdd,
+					Op:   SubstPlus,
 					Word: *litWord("bar"),
 				},
 			},
@@ -1555,14 +1555,14 @@ var fileTests = []testCase{
 			&ParamExp{
 				Param: *lit("a"),
 				Exp: &Expansion{
-					Op:   SubstColAdd,
+					Op:   SubstColPlus,
 					Word: *litWord("b"),
 				},
 			},
 			&ParamExp{
 				Param: *lit("a"),
 				Exp: &Expansion{
-					Op:   SubstColSub,
+					Op:   SubstColMinus,
 					Word: *litWord("b"),
 				},
 			},
@@ -1641,7 +1641,7 @@ var fileTests = []testCase{
 				Expr: litWord("1"),
 			},
 			Exp: &Expansion{
-				Op:   SubstSub,
+				Op:   SubstMinus,
 				Word: *litWord("etc"),
 			},
 		},
@@ -3195,10 +3195,10 @@ var fileTests = []testCase{
 		Strs: []string{"echo ?(b)*(c)+(d)@(e)!(f)"},
 		bash: stmt(call(*litWord("echo"), *word(
 			&ExtGlob{Op: GlobQuest, Pattern: *lit("b")},
-			&ExtGlob{Op: GlobMul, Pattern: *lit("c")},
-			&ExtGlob{Op: GlobAdd, Pattern: *lit("d")},
+			&ExtGlob{Op: GlobStar, Pattern: *lit("c")},
+			&ExtGlob{Op: GlobPlus, Pattern: *lit("d")},
 			&ExtGlob{Op: GlobAt, Pattern: *lit("e")},
-			&ExtGlob{Op: GlobNot, Pattern: *lit("f")},
+			&ExtGlob{Op: GlobExcl, Pattern: *lit("f")},
 		))),
 	},
 	{

@@ -15,9 +15,9 @@ const (
 	_Lit
 	_LitWord
 
-	sglQuote // '
-	dblQuote // "
-	bckQuote // `
+	sglQuote   // '
+	dblSlashte // "
+	bckQuote   // `
 
 	And     // &
 	AndExpr // &&
@@ -84,23 +84,23 @@ const (
 	cmdOut // >(
 
 	Add      // +
-	colAdd   // :+
+	colPlus  // :+
 	Sub      // -
-	colSub   // :-
+	colMinus // :-
 	Quest    // ?
 	colQuest // :?
 	Assgn    // =
 	colAssgn // :=
 	Rem      // %
-	dblRem   // %%
+	dblPerc  // %%
 	hash     // #
 	dblHash  // ##
 	Xor      // ^
-	dblXor   // ^^
+	dblCaret // ^^
 	Comma    // ,
 	dblComma // ,,
 	Quo      // /
-	dblQuo   // //
+	dblSlash // //
 	Colon    // :
 
 	tsNot     // !
@@ -137,10 +137,10 @@ const (
 	tsGtr     // -gt
 
 	globQuest // ?(
-	globMul   // *(
-	globAdd   // +(
+	globStar  // *(
+	globPlus  // +(
 	globAt    // @(
-	globNot   // !(
+	globExcl  // !(
 )
 
 type RedirOperator Token
@@ -171,10 +171,10 @@ type GlobOperator Token
 
 const (
 	GlobQuest = GlobOperator(globQuest) + iota
-	GlobMul
-	GlobAdd
+	GlobStar
+	GlobPlus
 	GlobAt
-	GlobNot
+	GlobExcl
 )
 
 type BinCmdOperator Token
@@ -197,10 +197,10 @@ const (
 type ParExpOperator Token
 
 const (
-	SubstAdd = ParExpOperator(Add) + iota
-	SubstColAdd
-	SubstSub
-	SubstColSub
+	SubstPlus = ParExpOperator(Add) + iota
+	SubstColPlus
+	SubstMinus
+	SubstColMinus
 	SubstQuest
 	SubstColQuest
 	SubstAssgn
