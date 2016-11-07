@@ -102,7 +102,6 @@ const (
 	dblSlash // //
 	colon    // :
 
-	tsNot     // !
 	tsExists  // -e
 	tsRegFile // -f
 	tsDirect  // -d
@@ -267,8 +266,7 @@ const (
 type UnTestOperator token
 
 const (
-	TsNot = UnTestOperator(tsNot) + iota
-	TsExists
+	TsExists = UnTestOperator(tsExists) + iota
 	TsRegFile
 	TsDirect
 	TsCharSp
@@ -288,6 +286,7 @@ const (
 	TsOptSet
 	TsVarSet
 	TsRefVar
+	TsNot = UnTestOperator(exclMark)
 )
 
 type BinTestOperator token
