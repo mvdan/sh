@@ -84,16 +84,16 @@ const (
 	cmdOut // >(
 
 	Add      // +
-	ColAdd   // :+
+	colAdd   // :+
 	Sub      // -
-	ColSub   // :-
+	colSub   // :-
 	Quest    // ?
-	ColQuest // :?
+	colQuest // :?
 	Assgn    // =
-	ColAssgn // :=
+	colAssgn // :=
 	Rem      // %
 	dblRem   // %%
-	Hash     // #
+	hash     // #
 	dblHash  // ##
 	Xor      // ^
 	dblXor   // ^^

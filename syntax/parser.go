@@ -824,7 +824,7 @@ func (p *parser) gotParamLit(l *Lit) bool {
 		l.Value = "$"
 	case Quest:
 		l.Value = "?"
-	case Hash:
+	case hash:
 		l.Value = "#"
 	case Sub:
 		l.Value = "-"
@@ -841,10 +841,10 @@ func (p *parser) paramExp() *ParamExp {
 	p.next()
 	switch p.tok {
 	case dblHash:
-		p.tok = Hash
+		p.tok = hash
 		p.npos--
 		fallthrough
-	case Hash:
+	case hash:
 		if p.npos < len(p.src) && p.src[p.npos] != '}' {
 			pe.Length = true
 			p.next()

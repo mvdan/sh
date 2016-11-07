@@ -406,16 +406,16 @@ func (p *parser) paramToken(b byte) Token {
 		switch byteAt(p.src, p.npos+1) {
 		case '+':
 			p.npos += 2
-			return ColAdd
+			return colAdd
 		case '-':
 			p.npos += 2
-			return ColSub
+			return colSub
 		case '?':
 			p.npos += 2
-			return ColQuest
+			return colQuest
 		case '=':
 			p.npos += 2
-			return ColAssgn
+			return colAssgn
 		}
 		p.npos++
 		return Colon
@@ -444,7 +444,7 @@ func (p *parser) paramToken(b byte) Token {
 			return dblHash
 		}
 		p.npos++
-		return Hash
+		return hash
 	case '[':
 		p.npos++
 		return leftBrack
