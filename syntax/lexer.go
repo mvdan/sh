@@ -673,58 +673,8 @@ func (p *parser) advanceLitOther(q quoteState) {
 }
 
 func (p *parser) advanceLitNone() {
-	var i int
-	tok := _Lit
+	bs := p.litBuf[:0]
 	p.asPos = 0
-loop:
-	for i = p.npos; i < len(p.src); i++ {
-		switch p.src[i] {
-		case '\\': // escaped byte follows
-			if i == len(p.src)-1 {
-				break
-			}
-			if i++; p.src[i] == '\n' {
-				p.f.Lines = append(p.f.Lines, i+1)
-				bs := p.src[p.npos : i-1]
-				p.npos = i + 1
-				p.advanceLitNoneCont(bs)
-				return
-			}
-		case '>', '<':
-			if i+1 < len(p.src) && p.src[i+1] == '(' {
-				tok = _Lit
-				break loop
-			}
-			fallthrough
-		case ' ', '\t', '\n', '\r', '&', '|', ';', '(', ')':
-			tok = _LitWord
-			break loop
-		case '?', '*', '+', '@', '!':
-			if p.bash() && i+1 < len(p.src) && p.src[i+1] == '(' {
-				break loop
-			}
-		case '`':
-			if p.quote == subCmdBckquo {
-				tok = _LitWord
-			}
-			break loop
-		case '"', '\'', '$':
-			break loop
-		case '=':
-			p.asPos = i - p.npos
-			if p.bash() && p.asPos > 0 && p.src[p.npos+p.asPos-1] == '+' {
-				p.asPos-- // a+=b
-			}
-		}
-	}
-	if i == len(p.src) {
-		tok = _LitWord
-	}
-	p.tok, p.val = tok, string(p.src[p.npos:i])
-	p.npos = i
-}
-
-func (p *parser) advanceLitNoneCont(bs []byte) {
 	for {
 		if p.npos >= len(p.src) {
 			p.tok, p.val = _LitWord, string(bs)
@@ -745,7 +695,13 @@ func (p *parser) advanceLitNoneCont(bs []byte) {
 			} else {
 				bs = append(bs, '\\', b)
 			}
-		case ' ', '\t', '\n', '\r', '&', '>', '<', '|', ';', '(', ')':
+		case '>', '<':
+			if p.npos+1 < len(p.src) && p.src[p.npos+1] == '(' {
+				p.tok, p.val = _Lit, string(bs)
+				return
+			}
+			fallthrough
+		case ' ', '\t', '\n', '\r', '&', '|', ';', '(', ')':
 			p.tok, p.val = _LitWord, string(bs)
 			return
 		case '`':
@@ -757,6 +713,20 @@ func (p *parser) advanceLitNoneCont(bs []byte) {
 		case '"', '\'', '$':
 			p.tok, p.val = _Lit, string(bs)
 			return
+		case '?', '*', '+', '@', '!':
+			if p.bash() && p.npos+1 < len(p.src) && p.src[p.npos+1] == '(' {
+				p.tok, p.val = _Lit, string(bs)
+				return
+			}
+			bs = append(bs, p.src[p.npos])
+			p.npos++
+		case '=':
+			p.asPos = len(bs)
+			if p.bash() && p.asPos > 0 && p.src[p.npos-1] == '+' {
+				p.asPos-- // a+=b
+			}
+			bs = append(bs, p.src[p.npos])
+			p.npos++
 		default:
 			bs = append(bs, p.src[p.npos])
 			p.npos++

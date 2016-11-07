@@ -75,7 +75,7 @@ type parser struct {
 	stmtBatch   []Stmt
 	stListBatch []*Stmt
 
-	litBuf [32]byte
+	litBuf [128]byte
 }
 
 func (p *parser) lit(pos Pos, val string) *Lit {
