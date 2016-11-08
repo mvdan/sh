@@ -127,7 +127,7 @@ func (p *parser) stList() []*Stmt {
 	return stmts
 }
 
-type quoteState int
+type quoteState uint
 
 const (
 	noState quoteState = 1 << iota
