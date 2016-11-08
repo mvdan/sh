@@ -1172,9 +1172,9 @@ func (p *parser) gotStmtPipe(s *Stmt) *Stmt {
 			return s
 		}
 		fallthrough
-	case _Lit, dollBrace, dollDblParen, dollParen, dollar, cmdIn, cmdOut, sglQuote,
-		dollSglQuote, dblSlashte, dollDblQuote, dollBrack, globQuest, globStar, globPlus,
-		globAt, globExcl:
+	case _Lit, dollBrace, dollDblParen, dollParen, dollar, cmdIn, cmdOut,
+		sglQuote, dollSglQuote, dblSlashte, dollDblQuote, dollBrack,
+		globQuest, globStar, globPlus, globAt, globExcl:
 		w := Word{Parts: p.wordParts()}
 		if p.gotSameLine(leftParen) && p.err == nil {
 			rawName := string(p.src[w.Pos()-1 : w.End()-1])
@@ -1464,9 +1464,10 @@ func (p *parser) testExprBase(ftok token, fpos Pos) TestExpr {
 		p.next()
 		u.X = p.testExpr(token(u.Op), u.OpPos, 0)
 		return u
-	case tsExists, tsRegFile, tsDirect, tsCharSp, tsBlckSp, tsNmPipe, tsSocket, tsSmbLink,
-		tsGIDSet, tsUIDSet, tsRead, tsWrite, tsExec, tsNoEmpty, tsFdTerm, tsEmpStr,
-		tsNempStr, tsOptSet, tsVarSet, tsRefVar:
+	case tsExists, tsRegFile, tsDirect, tsCharSp, tsBlckSp, tsNmPipe,
+		tsSocket, tsSmbLink, tsGIDSet, tsUIDSet, tsRead, tsWrite,
+		tsExec, tsNoEmpty, tsFdTerm, tsEmpStr, tsNempStr, tsOptSet,
+		tsVarSet, tsRefVar:
 		u := &UnaryTest{OpPos: p.pos, Op: UnTestOperator(p.tok)}
 		p.next()
 		w := p.followWordTok(ftok, fpos)
@@ -1642,8 +1643,8 @@ func (p *parser) callExpr(s *Stmt, w Word) *CallExpr {
 			}
 			fallthrough
 		case _Lit, dollBrace, dollDblParen, dollParen, dollar, cmdIn, cmdOut,
-			sglQuote, dollSglQuote, dblSlashte, dollDblQuote, dollBrack, globQuest,
-			globStar, globPlus, globAt, globExcl:
+			sglQuote, dollSglQuote, dblSlashte, dollDblQuote, dollBrack,
+			globQuest, globStar, globPlus, globAt, globExcl:
 			ce.Args = append(ce.Args, Word{Parts: p.wordParts()})
 		case rdrOut, appOut, rdrIn, dplIn, dplOut, clbOut, rdrInOut,
 			hdoc, dashHdoc, wordHdoc, rdrAll, appAll:
