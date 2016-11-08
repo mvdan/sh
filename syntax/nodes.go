@@ -23,8 +23,19 @@ type File struct {
 	Lines []int
 }
 
-func (f *File) Pos() Pos { return stmtFirstPos(f.Stmts) }
-func (f *File) End() Pos { return stmtLastEnd(f.Stmts) }
+func (f *File) Pos() Pos {
+	if len(f.Stmts) == 0 {
+		return 0
+	}
+	return f.Stmts[0].Pos()
+}
+
+func (f *File) End() Pos {
+	if len(f.Stmts) == 0 {
+		return 0
+	}
+	return f.Stmts[len(f.Stmts)-1].End()
+}
 
 func (f *File) Position(p Pos) (pos Position) {
 	intp := int(p)
@@ -299,7 +310,12 @@ type Word struct {
 	Parts []WordPart
 }
 
-func (w *Word) Pos() Pos { return partsFirstPos(w.Parts) }
+func (w *Word) Pos() Pos {
+	if len(w.Parts) == 0 {
+		return 0
+	}
+	return w.Parts[0].Pos()
+}
 func (w *Word) End() Pos { return partsLastEnd(w.Parts) }
 
 // WordPart represents all nodes that can form a word.
@@ -675,27 +691,6 @@ func posAdd(pos Pos, n int) Pos {
 		return pos
 	}
 	return pos + Pos(n)
-}
-
-func stmtFirstPos(sts []*Stmt) Pos {
-	if len(sts) == 0 {
-		return 0
-	}
-	return sts[0].Pos()
-}
-
-func stmtLastEnd(sts []*Stmt) Pos {
-	if len(sts) == 0 {
-		return 0
-	}
-	return sts[len(sts)-1].End()
-}
-
-func partsFirstPos(ps []WordPart) Pos {
-	if len(ps) == 0 {
-		return 0
-	}
-	return ps[0].Pos()
 }
 
 func partsLastEnd(ps []WordPart) Pos {
