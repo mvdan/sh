@@ -64,7 +64,7 @@ type Comment struct {
 }
 
 func (c *Comment) Pos() Pos { return c.Hash }
-func (c *Comment) End() Pos { return posAddStr(c.Hash, c.Text) }
+func (c *Comment) End() Pos { return posAdd(c.Hash, len(c.Text)) }
 
 // Stmt represents a statement, otherwise known as a compound command.
 // It is compromised of a command and other components that may come
@@ -326,7 +326,7 @@ type Lit struct {
 }
 
 func (l *Lit) Pos() Pos { return l.ValuePos }
-func (l *Lit) End() Pos { return posAddStr(l.ValuePos, l.Value) }
+func (l *Lit) End() Pos { return posAdd(l.ValuePos, len(l.Value)) }
 
 // SglQuoted represents a string within single quotes.
 type SglQuoted struct {
@@ -675,10 +675,6 @@ func posAdd(pos Pos, n int) Pos {
 		return pos
 	}
 	return pos + Pos(n)
-}
-
-func posAddStr(pos Pos, s string) Pos {
-	return posAdd(pos, len(s))
 }
 
 func stmtFirstPos(sts []*Stmt) Pos {
