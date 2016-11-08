@@ -3,7 +3,7 @@
 
 package syntax
 
-type token uint
+type token uint32
 
 //go:generate stringer -type token
 
