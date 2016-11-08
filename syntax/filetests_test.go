@@ -1153,9 +1153,10 @@ var fileTests = []testCase{
 		},
 		bash: &Stmt{
 			Cmd: litCall("foo"),
-			Redirs: []*Redirect{
-				{Op: WordHdoc, Word: *litWord("input")},
-			},
+			Redirs: []*Redirect{{
+				Op:   WordHdoc,
+				Word: *litWord("input"),
+			}},
 		},
 	},
 	{
@@ -1165,12 +1166,10 @@ var fileTests = []testCase{
 		},
 		bash: &Stmt{
 			Cmd: litCall("foo"),
-			Redirs: []*Redirect{
-				{
-					Op:   WordHdoc,
-					Word: *word(dblQuoted(lit("spaced input"))),
-				},
-			},
+			Redirs: []*Redirect{{
+				Op:   WordHdoc,
+				Word: *word(dblQuoted(lit("spaced input"))),
+			}},
 		},
 	},
 	{
@@ -1225,10 +1224,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"foo &\nbar", "foo & bar", "foo&bar"},
 		common: []*Stmt{
-			{
-				Cmd:        litCall("foo"),
-				Background: true,
-			},
+			{Cmd: litCall("foo"), Background: true},
 			litStmt("bar"),
 		},
 	},
@@ -2582,8 +2578,7 @@ var fileTests = []testCase{
 			Op: TsReMatch,
 			X:  litWord("a"),
 			Y:  litWord("b"),
-		},
-		},
+		}},
 	},
 	{
 		Strs: []string{`[[ a =~ " foo "$bar ]]`},
@@ -2801,10 +2796,8 @@ var fileTests = []testCase{
 			"typeset -f func",
 		},
 		bash: &DeclClause{
-			Opts: litWords("-f"),
-			Assigns: []*Assign{
-				{Value: *litWord("func")},
-			},
+			Opts:    litWords("-f"),
+			Assigns: []*Assign{{Value: *litWord("func")}},
 		},
 	},
 	{
@@ -2857,12 +2850,10 @@ var fileTests = []testCase{
 			Opts: litWords("-a"),
 			Assigns: []*Assign{{
 				Name: lit("foo"),
-				Value: *word(
-					&ArrayExpr{List: []Word{
-						*litWord("b1"),
-						*word(cmdSubst(litStmt("b2"))),
-					}},
-				),
+				Value: *word(&ArrayExpr{List: []Word{
+					*litWord("b1"),
+					*word(cmdSubst(litStmt("b2"))),
+				}}),
 			}},
 		},
 	},
@@ -2902,10 +2893,8 @@ var fileTests = []testCase{
 		Strs: []string{"declare -f func >/dev/null"},
 		bash: &Stmt{
 			Cmd: &DeclClause{
-				Opts: litWords("-f"),
-				Assigns: []*Assign{
-					{Value: *litWord("func")},
-				},
+				Opts:    litWords("-f"),
+				Assigns: []*Assign{{Value: *litWord("func")}},
 			},
 			Redirs: []*Redirect{
 				{Op: RdrOut, Word: *litWord("/dev/null")},
