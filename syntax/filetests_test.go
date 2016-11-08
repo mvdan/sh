@@ -484,7 +484,7 @@ var fileTests = []testCase{
 		common: []Command{
 			&FuncDecl{
 				Name: *lit("foo"),
-				Body: stmt(block(litStmts("a")...)),
+				Body: stmt(block(litStmt("a"))),
 			},
 			litCall("bar"),
 		},
@@ -493,7 +493,7 @@ var fileTests = []testCase{
 		Strs: []string{"-foo_.,+-bar() { a; }"},
 		common: &FuncDecl{
 			Name: *lit("-foo_.,+-bar"),
-			Body: stmt(block(litStmts("a")...)),
+			Body: stmt(block(litStmt("a"))),
 		},
 	},
 	{
