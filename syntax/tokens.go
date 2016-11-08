@@ -324,9 +324,9 @@ func (o BinTestOperator) String() string { return token(o).String() }
 
 // Pos is the internal representation of a position within a source
 // file.
-type Pos int
+type Pos uint32
 
-const maxPos = Pos(^uint(0) >> 1)
+const maxPos = Pos(^uint32(0))
 
 // Position describes a position within a source file including the line
 // and column location. A Position is valid if the line number is > 0.
