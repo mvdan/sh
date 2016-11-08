@@ -899,7 +899,7 @@ var bashTests = []errorCase{
 	},
 	{
 		"echo ${foo[1 2]}",
-		`1:11: reached LitWord without matching [ with ]`,
+		`1:11: reached "2" without matching [ with ]`,
 	},
 	{
 		"echo ${foo[}",
@@ -911,7 +911,7 @@ var bashTests = []errorCase{
 	},
 	{
 		"echo ${foo:1 2} #INVBASH lazy eval",
-		`1:6: reached LitWord without matching ${ with }`,
+		`1:6: reached "2" without matching ${ with }`,
 	},
 	{
 		"echo ${foo:1",
