@@ -902,6 +902,10 @@ var bashTests = []errorCase{
 		`1:11: reached LitWord without matching [ with ]`,
 	},
 	{
+		"echo ${foo[}",
+		`1:11: reached } without matching [ with ]`,
+	},
+	{
 		"echo ${foo:",
 		`1:11: : must be followed by a word`,
 	},

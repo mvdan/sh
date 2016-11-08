@@ -1643,6 +1643,13 @@ var fileTests = []testCase{
 		},
 	},
 	{
+		Strs: []string{`${foo[-1]}`},
+		bash: &ParamExp{
+			Param: *lit("foo"),
+			Ind:   &Index{Expr: litWord("-1")},
+		},
+	},
+	{
 		Strs: []string{`${foo[1]-etc}`},
 		bash: &ParamExp{
 			Param: *lit("foo"),

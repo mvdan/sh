@@ -177,6 +177,17 @@ skipSpace:
 		default:
 			p.advanceLitNone()
 		}
+	case q == paramExpInd:
+		if b == ']' {
+			p.npos++
+			p.tok = rightBrack
+		} else if paramOps(b) && b != '+' && b != '-' {
+			p.tok = p.paramToken(b)
+		} else if regOps(b) {
+			p.tok = p.regToken(b)
+		} else {
+			p.advanceLitOther(q)
+		}
 	case q == paramExpOff:
 		if b == ':' {
 			p.npos++
@@ -200,7 +211,7 @@ skipSpace:
 		p.tok = p.paramToken(b)
 	case q&allArithmExpr != 0 && arithmOps(b):
 		p.tok = p.arithmToken(b)
-	case q&allRbrack != 0 && b == ']':
+	case q == arithmExprBrack && b == ']':
 		p.npos++
 		p.tok = rightBrack
 	case q == testRegexp:
@@ -668,7 +679,9 @@ func (p *parser) advanceLitOther(q quoteState) {
 				p.tok, p.val = _LitWord, string(bs)
 				return
 			}
-		case (q == paramExpLen || q == paramExpOff) && (b == '+' || b == '-'):
+		case q == paramExpInd && (b == '+' || b == '-'):
+		case q == paramExpLen && (b == '+' || b == '-'):
+		case q == paramExpOff && (b == '+' || b == '-'):
 		case wordBreak(b), regOps(b), q&allArithmExpr != 0 && arithmOps(b),
 			q&allParamExp != 0 && paramOps(b),
 			q&allRbrack != 0 && b == ']':
