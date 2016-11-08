@@ -177,9 +177,17 @@ skipSpace:
 		default:
 			p.advanceLitNone()
 		}
-	case q == paramExpOff && b == ':':
-		p.npos++
-		p.tok = colon
+	case q == paramExpOff:
+		if b == ':' {
+			p.npos++
+			p.tok = colon
+		} else if paramOps(b) && b != '+' && b != '-' {
+			p.tok = p.paramToken(b)
+		} else if regOps(b) {
+			p.tok = p.regToken(b)
+		} else {
+			p.advanceLitOther(q)
+		}
 	case q == paramExpLen:
 		if paramOps(b) && b != '+' && b != '-' {
 			p.tok = p.paramToken(b)
@@ -660,7 +668,7 @@ func (p *parser) advanceLitOther(q quoteState) {
 				p.tok, p.val = _LitWord, string(bs)
 				return
 			}
-		case q == paramExpLen && (b == '+' || b == '-'):
+		case (q == paramExpLen || q == paramExpOff) && (b == '+' || b == '-'):
 		case wordBreak(b), regOps(b), q&allArithmExpr != 0 && arithmOps(b),
 			q&allParamExp != 0 && paramOps(b),
 			q&allRbrack != 0 && b == ']':
