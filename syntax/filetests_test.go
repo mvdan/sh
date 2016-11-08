@@ -761,6 +761,15 @@ var fileTests = []testCase{
 		}),
 	},
 	{
+		Strs: []string{"$(<foo)", "`<foo`"},
+		common: cmdSubst(&Stmt{
+			Redirs: []*Redirect{{
+				Op:   RdrIn,
+				Word: *litWord("foo"),
+			}},
+		}),
+	},
+	{
 		Strs: []string{"foo >f <<EOF\nbar\nEOF"},
 		common: &Stmt{
 			Cmd: litCall("foo"),

@@ -1167,8 +1167,13 @@ func (p *parser) gotStmtPipe(s *Stmt) *Stmt {
 				})
 			}
 		}
+	case bckQuote:
+		if p.quote == subCmdBckquo {
+			return s
+		}
+		fallthrough
 	case _Lit, dollBrace, dollDblParen, dollParen, dollar, cmdIn, cmdOut, sglQuote,
-		dollSglQuote, dblSlashte, dollDblQuote, bckQuote, dollBrack, globQuest, globStar, globPlus,
+		dollSglQuote, dblSlashte, dollDblQuote, dollBrack, globQuest, globStar, globPlus,
 		globAt, globExcl:
 		w := Word{Parts: p.wordParts()}
 		if p.gotSameLine(leftParen) && p.err == nil {
