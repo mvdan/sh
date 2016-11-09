@@ -264,7 +264,7 @@ func (*CStyleLoop) loopNode() {}
 // WordIter represents the iteration of a variable over a series of
 // words in a for clause.
 type WordIter struct {
-	Name Lit
+	Name *Lit
 	List []*Word
 }
 
@@ -297,7 +297,7 @@ func (b *BinaryCmd) End() Pos { return b.Y.End() }
 type FuncDecl struct {
 	Position  Pos
 	BashStyle bool
-	Name      Lit
+	Name      *Lit
 	Body      *Stmt
 }
 
@@ -401,7 +401,7 @@ func (c *CmdSubst) End() Pos { return posAdd(c.Right, 1) }
 type ParamExp struct {
 	Dollar, Rbrace Pos
 	Short, Length  bool
-	Param          Lit
+	Param          *Lit
 	Ind            *Index
 	Slice          *Slice
 	Repl           *Replace
@@ -410,8 +410,8 @@ type ParamExp struct {
 
 func (p *ParamExp) Pos() Pos { return p.Dollar }
 func (p *ParamExp) End() Pos {
-	if p.Rbrace > 0 {
-		return p.Rbrace + 1
+	if !p.Short {
+		return posAdd(p.Rbrace, 1)
 	}
 	return p.Param.End()
 }
@@ -634,7 +634,7 @@ func (a *ArrayExpr) End() Pos { return posAdd(a.Rparen, 1) }
 // This node will never appear when in PosixConformant mode.
 type ExtGlob struct {
 	Op      GlobOperator
-	Pattern Lit
+	Pattern *Lit
 }
 
 func (e *ExtGlob) Pos() Pos { return posAdd(e.Pattern.Pos(), -2) }

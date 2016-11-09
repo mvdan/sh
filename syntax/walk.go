@@ -87,7 +87,7 @@ func Walk(v Visitor, node Node) {
 		Walk(v, x.Loop)
 		walkStmts(v, x.DoStmts)
 	case *WordIter:
-		Walk(v, &x.Name)
+		Walk(v, x.Name)
 		walkWords(v, x.List)
 	case *CStyleLoop:
 		if x.Init != nil {
@@ -103,7 +103,7 @@ func Walk(v Visitor, node Node) {
 		Walk(v, x.X)
 		Walk(v, x.Y)
 	case *FuncDecl:
-		Walk(v, &x.Name)
+		Walk(v, x.Name)
 		Walk(v, x.Body)
 	case *Word:
 		for _, wp := range x.Parts {
@@ -118,7 +118,9 @@ func Walk(v Visitor, node Node) {
 	case *CmdSubst:
 		walkStmts(v, x.Stmts)
 	case *ParamExp:
-		Walk(v, &x.Param)
+		if x.Param != nil {
+			Walk(v, x.Param)
+		}
 		if x.Ind != nil {
 			Walk(v, x.Ind.Expr)
 		}
@@ -169,7 +171,7 @@ func Walk(v Visitor, node Node) {
 	case *ArrayExpr:
 		walkWords(v, x.List)
 	case *ExtGlob:
-		Walk(v, &x.Pattern)
+		Walk(v, x.Pattern)
 	case *ProcSubst:
 		walkStmts(v, x.Stmts)
 	case *EvalClause:

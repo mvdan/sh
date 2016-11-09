@@ -306,7 +306,9 @@ func (p *printer) wordPart(wp WordPart) {
 		if x.Length {
 			p.WriteByte('#')
 		}
-		p.WriteString(x.Param.Value)
+		if x.Param != nil {
+			p.WriteString(x.Param.Value)
+		}
 		if x.Ind != nil {
 			p.WriteByte('[')
 			p.arithmExpr(x.Ind.Expr, false)

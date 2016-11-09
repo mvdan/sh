@@ -475,14 +475,13 @@ func (p *parser) getWord() *Word {
 	return nil
 }
 
-func (p *parser) gotLit(l *Lit) bool {
-	l.ValuePos = p.pos
+func (p *parser) getLit() *Lit {
 	if p.tok == _Lit || p.tok == _LitWord {
-		l.Value = p.val
+		l := p.lit(p.pos, p.val)
 		p.next()
-		return true
+		return l
 	}
-	return false
+	return nil
 }
 
 func (p *parser) wordParts() (wps []WordPart) {
@@ -572,7 +571,7 @@ func (p *parser) wordPart() WordPart {
 		default:
 			p.advanceLitOther(p.quote)
 		}
-		p.gotLit(&pe.Param)
+		pe.Param = p.getLit()
 		return pe
 	case cmdIn, cmdOut:
 		ps := &ProcSubst{Op: ProcOperator(p.tok), OpPos: p.pos}
@@ -659,7 +658,7 @@ func (p *parser) wordPart() WordPart {
 		return cs
 	case globQuest, globStar, globPlus, globAt, globExcl:
 		eg := &ExtGlob{Op: GlobOperator(p.tok)}
-		eg.Pattern.ValuePos = Pos(p.npos + 1)
+		eg.Pattern = p.lit(Pos(p.npos+1), "")
 		start := p.npos
 		lparens := 0
 		for _, b := range p.src[start:] {
@@ -678,8 +677,9 @@ func (p *parser) wordPart() WordPart {
 			p.matchingErr(p.pos, eg.Op, rightParen)
 		}
 		return eg
+	default:
+		return nil
 	}
-	return nil
 }
 
 func (p *parser) couldBeArithm() (could bool) {
@@ -842,24 +842,17 @@ func (p *parser) arithmExprBase(ftok token, fpos Pos, compact bool) ArithmExpr {
 	return x
 }
 
-func (p *parser) gotParamLit(l *Lit) bool {
-	l.ValuePos = p.pos
+func (p *parser) getParamLit() (l *Lit) {
 	switch p.tok {
 	case _Lit, _LitWord:
-		l.Value = p.val
-	case dollar:
-		l.Value = "$"
-	case quest:
-		l.Value = "?"
-	case hash:
-		l.Value = "#"
-	case minus:
-		l.Value = "-"
+		l = p.lit(p.pos, p.val)
+	case dollar, quest, hash, minus:
+		l = p.lit(p.pos, p.tok.String())
 	default:
-		return false
+		return nil
 	}
 	p.next()
-	return true
+	return l
 }
 
 func (p *parser) paramExp() *ParamExp {
@@ -877,7 +870,7 @@ func (p *parser) paramExp() *ParamExp {
 			p.next()
 		}
 	}
-	if !p.gotParamLit(&pe.Param) && !pe.Length {
+	if pe.Param = p.getParamLit(); pe.Param == nil && !pe.Length {
 		p.posErr(pe.Dollar, "parameter expansion requires a literal")
 	}
 	if p.tok == rightBrace {
@@ -1048,10 +1041,7 @@ func (p *parser) peekRedir() bool {
 
 func (p *parser) doRedirect(s *Stmt) {
 	r := &Redirect{}
-	var l Lit
-	if p.gotLit(&l) {
-		r.N = &l
-	}
+	r.N = p.getLit()
 	r.Op, r.OpPos = RedirOperator(p.tok), p.pos
 	p.next()
 	switch r.Op {
@@ -1180,13 +1170,13 @@ func (p *parser) gotStmtPipe(s *Stmt) *Stmt {
 		case p.bash() && p.val == "function":
 			s.Cmd = p.bashFuncDecl()
 		default:
-			name := Lit{ValuePos: p.pos, Value: p.val}
+			name := p.lit(p.pos, p.val)
 			p.next()
 			if p.gotSameLine(leftParen) {
 				p.follow(name.ValuePos, "foo(", rightParen)
 				s.Cmd = p.funcDecl(name, name.ValuePos)
 			} else {
-				s.Cmd = p.callExpr(s, p.word(p.singleWps(&name)))
+				s.Cmd = p.callExpr(s, p.word(p.singleWps(name)))
 			}
 		}
 	case bckQuote:
@@ -1344,7 +1334,7 @@ func (p *parser) loop(forPos Pos) Loop {
 		return cl
 	}
 	wi := &WordIter{}
-	if !p.gotLit(&wi.Name) {
+	if wi.Name = p.getLit(); wi.Name == nil {
 		p.followErr(forPos, "for", "a literal")
 	}
 	if p.gotRsrv("in") {
@@ -1568,10 +1558,7 @@ func (p *parser) coprocClause() *CoprocClause {
 	if p.newLine {
 		p.posErr(cc.Coproc, "coproc clause requires a command")
 	}
-	var l Lit
-	if p.gotLit(&l) {
-		cc.Name = &l
-	}
+	cc.Name = p.getLit()
 	cc.Stmt, _ = p.getStmt(false)
 	if cc.Stmt == nil {
 		if cc.Name == nil {
@@ -1627,7 +1614,7 @@ func (p *parser) bashFuncDecl() *FuncDecl {
 			p.posErr(w.Pos(), "invalid func name: %q", rawName)
 		}
 	}
-	name := Lit{ValuePos: p.pos, Value: p.val}
+	name := p.lit(p.pos, p.val)
 	p.next()
 	if p.gotSameLine(leftParen) {
 		p.follow(name.ValuePos, "foo(", rightParen)
@@ -1681,7 +1668,7 @@ func (p *parser) callExpr(s *Stmt, w *Word) *CallExpr {
 	return ce
 }
 
-func (p *parser) funcDecl(name Lit, pos Pos) *FuncDecl {
+func (p *parser) funcDecl(name *Lit, pos Pos) *FuncDecl {
 	fd := &FuncDecl{
 		Position:  pos,
 		BashStyle: pos != name.ValuePos,

@@ -83,7 +83,7 @@ func parenTest(e TestExpr) *ParenTest      { return &ParenTest{X: e} }
 
 func cmdSubst(sts ...*Stmt) *CmdSubst { return &CmdSubst{Stmts: sts} }
 func litParamExp(s string) *ParamExp {
-	return &ParamExp{Short: true, Param: *lit(s)}
+	return &ParamExp{Short: true, Param: lit(s)}
 }
 func letClause(exps ...ArithmExpr) *LetClause {
 	return &LetClause{Exprs: exps}
@@ -285,9 +285,7 @@ var fileTests = []testCase{
 			"for i in; do foo; done",
 		},
 		common: &ForClause{
-			Loop: &WordIter{
-				Name: *lit("i"),
-			},
+			Loop:    &WordIter{Name: lit("i")},
 			DoStmts: litStmts("foo"),
 		},
 	},
@@ -299,7 +297,7 @@ var fileTests = []testCase{
 		},
 		common: &ForClause{
 			Loop: &WordIter{
-				Name: *lit("i"),
+				Name: lit("i"),
 				List: litWords("1", "2", "3"),
 			},
 			DoStmts: stmts(call(
@@ -475,7 +473,7 @@ var fileTests = []testCase{
 			"foo ( ) {\na\nb\n}",
 		},
 		common: &FuncDecl{
-			Name: *lit("foo"),
+			Name: lit("foo"),
 			Body: stmt(block(litStmts("a", "b")...)),
 		},
 	},
@@ -483,7 +481,7 @@ var fileTests = []testCase{
 		Strs: []string{"foo() { a; }\nbar", "foo() {\na\n}; bar"},
 		common: []Command{
 			&FuncDecl{
-				Name: *lit("foo"),
+				Name: lit("foo"),
 				Body: stmt(block(litStmt("a"))),
 			},
 			litCall("bar"),
@@ -492,7 +490,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"-foo_.,+-bar() { a; }"},
 		common: &FuncDecl{
-			Name: *lit("-foo_.,+-bar"),
+			Name: lit("-foo_.,+-bar"),
 			Body: stmt(block(litStmt("a"))),
 		},
 	},
@@ -504,7 +502,7 @@ var fileTests = []testCase{
 		},
 		bash: &FuncDecl{
 			BashStyle: true,
-			Name:      *lit("foo"),
+			Name:      lit("foo"),
 			Body:      stmt(block(litStmts("a", "b")...)),
 		},
 	},
@@ -512,7 +510,7 @@ var fileTests = []testCase{
 		Strs: []string{"function foo() (a)"},
 		bash: &FuncDecl{
 			BashStyle: true,
-			Name:      *lit("foo"),
+			Name:      lit("foo"),
 			Body:      stmt(subshell(litStmt("a"))),
 		},
 	},
@@ -1443,27 +1441,27 @@ var fileTests = []testCase{
 	{
 		Strs: []string{`${@} ${*} ${#} ${$} ${?} ${!} ${0} ${-}`},
 		common: call(
-			word(&ParamExp{Param: *lit("@")}),
-			word(&ParamExp{Param: *lit("*")}),
-			word(&ParamExp{Param: *lit("#")}),
-			word(&ParamExp{Param: *lit("$")}),
-			word(&ParamExp{Param: *lit("?")}),
-			word(&ParamExp{Param: *lit("!")}),
-			word(&ParamExp{Param: *lit("0")}),
-			word(&ParamExp{Param: *lit("-")}),
+			word(&ParamExp{Param: lit("@")}),
+			word(&ParamExp{Param: lit("*")}),
+			word(&ParamExp{Param: lit("#")}),
+			word(&ParamExp{Param: lit("$")}),
+			word(&ParamExp{Param: lit("?")}),
+			word(&ParamExp{Param: lit("!")}),
+			word(&ParamExp{Param: lit("0")}),
+			word(&ParamExp{Param: lit("-")}),
 		),
 	},
 	{
 		Strs: []string{`${#$} ${##} ${#:-a} ${?/a/b}`},
 		common: call(
-			word(&ParamExp{Length: true, Param: *lit("$")}),
-			word(&ParamExp{Length: true, Param: *lit("#")}),
+			word(&ParamExp{Length: true, Param: lit("$")}),
+			word(&ParamExp{Length: true, Param: lit("#")}),
 			word(&ParamExp{Length: true, Exp: &Expansion{
 				Op:   SubstColMinus,
 				Word: litWord("a"),
 			}}),
 			word(&ParamExp{
-				Param: *lit("?"),
+				Param: lit("?"),
 				Repl: &Replace{
 					Orig: litWord("a"),
 					With: litWord("b"),
@@ -1473,19 +1471,19 @@ var fileTests = []testCase{
 	},
 	{
 		Strs:   []string{`${foo}`},
-		common: &ParamExp{Param: *lit("foo")},
+		common: &ParamExp{Param: lit("foo")},
 	},
 	{
 		Strs: []string{`${foo}"bar"`},
 		common: word(
-			&ParamExp{Param: *lit("foo")},
+			&ParamExp{Param: lit("foo")},
 			dblQuoted(lit("bar")),
 		),
 	},
 	{
 		Strs: []string{`${foo-bar}`},
 		common: &ParamExp{
-			Param: *lit("foo"),
+			Param: lit("foo"),
 			Exp: &Expansion{
 				Op:   SubstMinus,
 				Word: litWord("bar"),
@@ -1496,7 +1494,7 @@ var fileTests = []testCase{
 		Strs: []string{`${foo+bar}"bar"`},
 		common: word(
 			&ParamExp{
-				Param: *lit("foo"),
+				Param: lit("foo"),
 				Exp: &Expansion{
 					Op:   SubstPlus,
 					Word: litWord("bar"),
@@ -1508,7 +1506,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{`${foo:=<"bar"}`},
 		common: &ParamExp{
-			Param: *lit("foo"),
+			Param: lit("foo"),
 			Exp: &Expansion{
 				Op:   SubstColAssgn,
 				Word: word(lit("<"), dblQuoted(lit("bar"))),
@@ -1521,12 +1519,12 @@ var fileTests = []testCase{
 			"${foo:=b${c}`d`}",
 		},
 		common: &ParamExp{
-			Param: *lit("foo"),
+			Param: lit("foo"),
 			Exp: &Expansion{
 				Op: SubstColAssgn,
 				Word: word(
 					lit("b"),
-					&ParamExp{Param: *lit("c")},
+					&ParamExp{Param: lit("c")},
 					cmdSubst(litStmt("d")),
 				),
 			},
@@ -1535,11 +1533,11 @@ var fileTests = []testCase{
 	{
 		Strs: []string{`${foo?"${bar}"}`},
 		common: &ParamExp{
-			Param: *lit("foo"),
+			Param: lit("foo"),
 			Exp: &Expansion{
 				Op: SubstQuest,
 				Word: word(dblQuoted(
-					&ParamExp{Param: *lit("bar")},
+					&ParamExp{Param: lit("bar")},
 				)),
 			},
 		},
@@ -1547,7 +1545,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{`${foo:?bar1 bar2}`},
 		common: &ParamExp{
-			Param: *lit("foo"),
+			Param: lit("foo"),
 			Exp: &Expansion{
 				Op:   SubstColQuest,
 				Word: litWord("bar1 bar2"),
@@ -1558,21 +1556,21 @@ var fileTests = []testCase{
 		Strs: []string{`${a:+b}${a:-b}${a=b}`},
 		common: word(
 			&ParamExp{
-				Param: *lit("a"),
+				Param: lit("a"),
 				Exp: &Expansion{
 					Op:   SubstColPlus,
 					Word: litWord("b"),
 				},
 			},
 			&ParamExp{
-				Param: *lit("a"),
+				Param: lit("a"),
 				Exp: &Expansion{
 					Op:   SubstColMinus,
 					Word: litWord("b"),
 				},
 			},
 			&ParamExp{
-				Param: *lit("a"),
+				Param: lit("a"),
 				Exp: &Expansion{
 					Op:   SubstAssgn,
 					Word: litWord("b"),
@@ -1584,14 +1582,14 @@ var fileTests = []testCase{
 		Strs: []string{`${foo%bar}${foo%%bar*}`},
 		common: word(
 			&ParamExp{
-				Param: *lit("foo"),
+				Param: lit("foo"),
 				Exp: &Expansion{
 					Op:   RemSmallSuffix,
 					Word: litWord("bar"),
 				},
 			},
 			&ParamExp{
-				Param: *lit("foo"),
+				Param: lit("foo"),
 				Exp: &Expansion{
 					Op:   RemLargeSuffix,
 					Word: litWord("bar*"),
@@ -1603,14 +1601,14 @@ var fileTests = []testCase{
 		Strs: []string{`${foo#bar}${foo##bar*}`},
 		common: word(
 			&ParamExp{
-				Param: *lit("foo"),
+				Param: lit("foo"),
 				Exp: &Expansion{
 					Op:   RemSmallPrefix,
 					Word: litWord("bar"),
 				},
 			},
 			&ParamExp{
-				Param: *lit("foo"),
+				Param: lit("foo"),
 				Exp: &Expansion{
 					Op:   RemLargePrefix,
 					Word: litWord("bar*"),
@@ -1621,7 +1619,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{`${foo%?}`},
 		common: &ParamExp{
-			Param: *lit("foo"),
+			Param: lit("foo"),
 			Exp: &Expansion{
 				Op:   RemSmallSuffix,
 				Word: litWord("?"),
@@ -1634,21 +1632,21 @@ var fileTests = []testCase{
 			`${foo[ 1 ]}`,
 		},
 		bash: &ParamExp{
-			Param: *lit("foo"),
+			Param: lit("foo"),
 			Ind:   &Index{Expr: litWord("1")},
 		},
 	},
 	{
 		Strs: []string{`${foo[-1]}`},
 		bash: &ParamExp{
-			Param: *lit("foo"),
+			Param: lit("foo"),
 			Ind:   &Index{Expr: litWord("-1")},
 		},
 	},
 	{
 		Strs: []string{`${foo[1]-etc}`},
 		bash: &ParamExp{
-			Param: *lit("foo"),
+			Param: lit("foo"),
 			Ind: &Index{
 				Expr: litWord("1"),
 			},
@@ -1661,23 +1659,23 @@ var fileTests = []testCase{
 	{
 		Strs: []string{`${foo[${bar}]}`},
 		bash: &ParamExp{
-			Param: *lit("foo"),
+			Param: lit("foo"),
 			Ind: &Index{
-				Expr: word(&ParamExp{Param: *lit("bar")}),
+				Expr: word(&ParamExp{Param: lit("bar")}),
 			},
 		},
 	},
 	{
 		Strs: []string{`${foo:1}`, `${foo: 1 }`},
 		bash: &ParamExp{
-			Param: *lit("foo"),
+			Param: lit("foo"),
 			Slice: &Slice{Offset: litWord("1")},
 		},
 	},
 	{
 		Strs: []string{`${foo:1:2}`, `${foo: 1 : 2 }`},
 		bash: &ParamExp{
-			Param: *lit("foo"),
+			Param: lit("foo"),
 			Slice: &Slice{
 				Offset: litWord("1"),
 				Length: litWord("2"),
@@ -1687,7 +1685,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{`${foo:$a:$b}`},
 		bash: &ParamExp{
-			Param: *lit("foo"),
+			Param: lit("foo"),
 			Slice: &Slice{
 				Offset: word(litParamExp("a")),
 				Length: word(litParamExp("b")),
@@ -1697,7 +1695,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{`${foo:1:-2}`},
 		bash: &ParamExp{
-			Param: *lit("foo"),
+			Param: lit("foo"),
 			Slice: &Slice{
 				Offset: litWord("1"),
 				Length: litWord("-2"),
@@ -1707,21 +1705,21 @@ var fileTests = []testCase{
 	{
 		Strs: []string{`${foo::+3}`},
 		bash: &ParamExp{
-			Param: *lit("foo"),
+			Param: lit("foo"),
 			Slice: &Slice{Length: litWord("+3")},
 		},
 	},
 	{
 		Strs: []string{`${foo: -1}`},
 		bash: &ParamExp{
-			Param: *lit("foo"),
+			Param: lit("foo"),
 			Slice: &Slice{Offset: litWord("-1")},
 		},
 	},
 	{
 		Strs: []string{`${foo/b1/b2}`},
 		common: &ParamExp{
-			Param: *lit("foo"),
+			Param: lit("foo"),
 			Repl: &Replace{
 				Orig: litWord("b1"),
 				With: litWord("b2"),
@@ -1731,7 +1729,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{`${foo/a b/c d}`},
 		common: &ParamExp{
-			Param: *lit("foo"),
+			Param: lit("foo"),
 			Repl: &Replace{
 				Orig: litWord("a b"),
 				With: litWord("c d"),
@@ -1741,7 +1739,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{`${foo/[/]}`},
 		common: &ParamExp{
-			Param: *lit("foo"),
+			Param: lit("foo"),
 			Repl: &Replace{
 				Orig: litWord("["),
 				With: litWord("]"),
@@ -1751,7 +1749,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{`${foo/bar/b/a/r}`},
 		common: &ParamExp{
-			Param: *lit("foo"),
+			Param: lit("foo"),
 			Repl: &Replace{
 				Orig: litWord("bar"),
 				With: litWord("b/a/r"),
@@ -1761,7 +1759,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{`${foo/$a/$b}`},
 		common: &ParamExp{
-			Param: *lit("foo"),
+			Param: lit("foo"),
 			Repl: &Replace{
 				Orig: word(litParamExp("a")),
 				With: word(litParamExp("b")),
@@ -1771,7 +1769,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{`${foo//b1/b2}`},
 		common: &ParamExp{
-			Param: *lit("foo"),
+			Param: lit("foo"),
 			Repl: &Replace{
 				All:  true,
 				Orig: litWord("b1"),
@@ -1785,7 +1783,7 @@ var fileTests = []testCase{
 			`${foo//#}`,
 		},
 		common: &ParamExp{
-			Param: *lit("foo"),
+			Param: lit("foo"),
 			Repl: &Replace{
 				All:  true,
 				Orig: litWord("#"),
@@ -1795,25 +1793,25 @@ var fileTests = []testCase{
 	{
 		Strs: []string{`${a^b} ${a^^b} ${a,b} ${a,,b}`},
 		bash: call(
-			word(&ParamExp{Param: *lit("a"),
+			word(&ParamExp{Param: lit("a"),
 				Exp: &Expansion{
 					Op:   UpperFirst,
 					Word: litWord("b"),
 				},
 			}),
-			word(&ParamExp{Param: *lit("a"),
+			word(&ParamExp{Param: lit("a"),
 				Exp: &Expansion{
 					Op:   UpperAll,
 					Word: litWord("b"),
 				},
 			}),
-			word(&ParamExp{Param: *lit("a"),
+			word(&ParamExp{Param: lit("a"),
 				Exp: &Expansion{
 					Op:   LowerFirst,
 					Word: litWord("b"),
 				},
 			}),
-			word(&ParamExp{Param: *lit("a"),
+			word(&ParamExp{Param: lit("a"),
 				Exp: &Expansion{
 					Op:   LowerAll,
 					Word: litWord("b"),
@@ -1825,18 +1823,18 @@ var fileTests = []testCase{
 		Strs: []string{`${#foo}`},
 		common: &ParamExp{
 			Length: true,
-			Param:  *lit("foo"),
+			Param:  lit("foo"),
 		},
 	},
 	{
 		Strs: []string{`${#?}`},
 		common: call(
-			word(&ParamExp{Length: true, Param: *lit("?")}),
+			word(&ParamExp{Length: true, Param: lit("?")}),
 		),
 	},
 	{
 		Strs:   []string{`"${foo}"`},
-		common: dblQuoted(&ParamExp{Param: *lit("foo")}),
+		common: dblQuoted(&ParamExp{Param: lit("foo")}),
 	},
 	{
 		Strs:   []string{`"(foo)"`},
@@ -1845,7 +1843,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{`"${foo}>"`},
 		common: dblQuoted(
-			&ParamExp{Param: *lit("foo")},
+			&ParamExp{Param: lit("foo")},
 			lit(">"),
 		),
 	},
@@ -2237,7 +2235,7 @@ var fileTests = []testCase{
 		Strs: []string{`$"a ${b} c"`},
 		bash: dblDQuoted(
 			lit("a "),
-			&ParamExp{Param: *lit("b")},
+			&ParamExp{Param: lit("b")},
 			lit(" c"),
 		),
 	},
@@ -2302,7 +2300,7 @@ var fileTests = []testCase{
 	},
 	{
 		Strs:   []string{"foo${bar}"},
-		common: word(lit("foo"), &ParamExp{Param: *lit("bar")}),
+		common: word(lit("foo"), &ParamExp{Param: lit("bar")}),
 	},
 	{
 		Strs:   []string{"'foo${bar'"},
@@ -2423,7 +2421,7 @@ var fileTests = []testCase{
 	},
 	{
 		Strs:   []string{"${foo}if"},
-		common: word(&ParamExp{Param: *lit("foo")}, lit("if")),
+		common: word(&ParamExp{Param: lit("foo")}, lit("if")),
 	},
 	{
 		Strs:   []string{"$if"},
@@ -3180,7 +3178,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"foo() {\n\t<<EOF && { bar; }\nhdoc\nEOF\n}"},
 		common: &FuncDecl{
-			Name: *lit("foo"),
+			Name: lit("foo"),
 			Body: stmt(block(stmt(&BinaryCmd{
 				Op: AndStmt,
 				X: &Stmt{Redirs: []*Redirect{{
@@ -3206,18 +3204,18 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"echo ?(b)*(c)+(d)@(e)!(f)"},
 		bash: stmt(call(litWord("echo"), word(
-			&ExtGlob{Op: GlobQuest, Pattern: *lit("b")},
-			&ExtGlob{Op: GlobStar, Pattern: *lit("c")},
-			&ExtGlob{Op: GlobPlus, Pattern: *lit("d")},
-			&ExtGlob{Op: GlobAt, Pattern: *lit("e")},
-			&ExtGlob{Op: GlobExcl, Pattern: *lit("f")},
+			&ExtGlob{Op: GlobQuest, Pattern: lit("b")},
+			&ExtGlob{Op: GlobStar, Pattern: lit("c")},
+			&ExtGlob{Op: GlobPlus, Pattern: lit("d")},
+			&ExtGlob{Op: GlobAt, Pattern: lit("e")},
+			&ExtGlob{Op: GlobExcl, Pattern: lit("f")},
 		))),
 	},
 	{
 		Strs: []string{"echo foo@(b*(c|d))bar"},
 		bash: stmt(call(litWord("echo"), word(
 			lit("foo"),
-			&ExtGlob{Op: GlobAt, Pattern: *lit("b*(c|d)")},
+			&ExtGlob{Op: GlobAt, Pattern: lit("b*(c|d)")},
 			lit("bar"),
 		))),
 	},
@@ -3436,7 +3434,7 @@ func setPosRecurse(tb testing.TB, src string, v interface{}, to Pos, diff bool) 
 		recurse(x.Loop)
 		recurse(x.DoStmts)
 	case *WordIter:
-		recurse(&x.Name)
+		recurse(x.Name)
 		recurse(x.List)
 	case *CStyleLoop:
 		setPos(&x.Lparen, "((")
@@ -3503,14 +3501,16 @@ func setPosRecurse(tb testing.TB, src string, v interface{}, to Pos, diff bool) 
 		} else {
 			setPos(&x.Position)
 		}
-		recurse(&x.Name)
+		recurse(x.Name)
 		recurse(x.Body)
 	case *ParamExp:
 		setPos(&x.Dollar, "$")
 		if !x.Short {
 			setPos(&x.Rbrace, "}")
 		}
-		recurse(&x.Param)
+		if x.Param != nil {
+			recurse(x.Param)
+		}
 		if x.Ind != nil {
 			recurse(x.Ind.Expr)
 		}
@@ -3591,7 +3591,7 @@ func setPosRecurse(tb testing.TB, src string, v interface{}, to Pos, diff bool) 
 	case *ExtGlob:
 		checkSrc(x.Pos(), x.Op.String())
 		checkSrc(x.Pattern.End(), ")")
-		recurse(&x.Pattern)
+		recurse(x.Pattern)
 	case *ProcSubst:
 		setPos(&x.OpPos, x.Op.String())
 		setPos(&x.Rparen, ")")
