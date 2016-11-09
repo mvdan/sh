@@ -1493,10 +1493,10 @@ func (p *parser) testExprBase(ftok token, fpos Pos) TestExpr {
 		pe.Rparen = p.matched(pe.Lparen, leftParen, rightParen)
 		return pe
 	case rightParen:
+		return nil
 	default:
 		return p.followWordTok(ftok, fpos)
 	}
-	return nil
 }
 
 func (p *parser) declClause() *DeclClause {
@@ -1566,17 +1566,15 @@ func (p *parser) coprocClause() *CoprocClause {
 			return nil
 		}
 		// name was in fact the stmt
-		cc.Stmt = &Stmt{
-			Position: cc.Name.ValuePos,
-			Cmd: &CallExpr{Args: []*Word{
-				{Parts: p.singleWps(cc.Name)},
-			}},
-		}
+		cc.Stmt = p.stmt(cc.Name.ValuePos)
+		cc.Stmt.Cmd = &CallExpr{Args: []*Word{
+			p.word(p.singleWps(cc.Name)),
+		}}
 		cc.Name = nil
 	} else if cc.Name != nil {
 		if call, ok := cc.Stmt.Cmd.(*CallExpr); ok {
 			// name was in fact the start of a call
-			call.Args = append([]*Word{{Parts: p.singleWps(cc.Name)}},
+			call.Args = append([]*Word{p.word(p.singleWps(cc.Name))},
 				call.Args...)
 			cc.Name = nil
 		}
