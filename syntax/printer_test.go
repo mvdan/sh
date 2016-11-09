@@ -507,8 +507,11 @@ func TestWriteErr(t *testing.T) {
 	var out badWriter
 	f := &File{Stmts: []*Stmt{
 		{
-			Redirs: []*Redirect{{}},
-			Cmd:    &Subshell{},
+			Redirs: []*Redirect{{
+				Op:   RdrOut,
+				Word: litWord("foo"),
+			}},
+			Cmd: &Subshell{},
 		},
 	}}
 	err := Fprint(out, f)

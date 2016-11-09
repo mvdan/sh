@@ -840,7 +840,7 @@ loop:
 	p.npos = i
 }
 
-func (p *parser) hdocLitWord() Word {
+func (p *parser) hdocLitWord() *Word {
 	pos := p.npos
 	end := pos
 	for p.npos < len(p.src) {
@@ -863,7 +863,7 @@ func (p *parser) hdocLitWord() Word {
 		end = p.npos
 	}
 	l := p.lit(Pos(pos+1), string(p.src[pos:end]))
-	return Word{Parts: p.singleWps(l)}
+	return &Word{Parts: p.singleWps(l)}
 }
 
 func (p *parser) readUntil(b byte) ([]byte, bool) {

@@ -141,7 +141,7 @@ func (*CoprocClause) commandNode() {}
 type Assign struct {
 	Append bool
 	Name   *Lit
-	Value  Word
+	Value  *Word
 }
 
 func (a *Assign) Pos() Pos {
@@ -152,10 +152,10 @@ func (a *Assign) Pos() Pos {
 }
 
 func (a *Assign) End() Pos {
-	if a.Name != nil {
-		return posMax(a.Name.End(), a.Value.End())
+	if a.Value != nil {
+		return a.Value.End()
 	}
-	return a.Value.End()
+	return a.Name.End()
 }
 
 // Redirect represents an input/output redirection.
@@ -163,7 +163,7 @@ type Redirect struct {
 	OpPos      Pos
 	Op         RedirOperator
 	N          *Lit
-	Word, Hdoc Word
+	Word, Hdoc *Word
 }
 
 func (r *Redirect) Pos() Pos {
@@ -176,7 +176,7 @@ func (r *Redirect) End() Pos { return r.Word.End() }
 
 // CallExpr represents a command execution or function call.
 type CallExpr struct {
-	Args []Word
+	Args []*Word
 }
 
 func (c *CallExpr) Pos() Pos { return c.Args[0].Pos() }
@@ -265,7 +265,7 @@ func (*CStyleLoop) loopNode() {}
 // words in a for clause.
 type WordIter struct {
 	Name Lit
-	List []Word
+	List []*Word
 }
 
 func (w *WordIter) Pos() Pos { return w.Name.Pos() }
@@ -433,14 +433,14 @@ type Slice struct {
 // Replace represents a search and replace inside a ParamExp.
 type Replace struct {
 	All        bool
-	Orig, With Word
+	Orig, With *Word
 }
 
 // Expansion represents string manipulation in a ParamExp other than
 // those covered by Replace.
 type Expansion struct {
 	Op   ParExpOperator
-	Word Word
+	Word *Word
 }
 
 // ArithmExp represents an arithmetic expansion.
@@ -527,7 +527,7 @@ func (p *ParenArithm) End() Pos { return posAdd(p.Rparen, 1) }
 // CaseClause represents a case (switch) clause.
 type CaseClause struct {
 	Case, Esac Pos
-	Word       Word
+	Word       *Word
 	List       []*PatternList
 }
 
@@ -538,7 +538,7 @@ func (c *CaseClause) End() Pos { return posAdd(c.Esac, 4) }
 type PatternList struct {
 	Op       CaseOperator
 	OpPos    Pos
-	Patterns []Word
+	Patterns []*Word
 	Stmts    []*Stmt
 }
 
@@ -602,7 +602,7 @@ func (p *ParenTest) End() Pos { return posAdd(p.Rparen, 1) }
 type DeclClause struct {
 	Position Pos
 	Variant  string
-	Opts     []Word
+	Opts     []*Word
 	Assigns  []*Assign
 }
 
@@ -621,7 +621,7 @@ func (d *DeclClause) End() Pos {
 // This node will never appear when in PosixConformant mode.
 type ArrayExpr struct {
 	Lparen, Rparen Pos
-	List           []Word
+	List           []*Word
 }
 
 func (a *ArrayExpr) Pos() Pos { return a.Lparen }
@@ -698,7 +698,7 @@ func posAdd(pos Pos, n int) Pos {
 	return pos + Pos(n)
 }
 
-func wordLastEnd(ws []Word) Pos {
+func wordLastEnd(ws []*Word) Pos {
 	if len(ws) == 0 {
 		return 0
 	}

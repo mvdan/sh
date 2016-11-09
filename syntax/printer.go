@@ -335,7 +335,9 @@ func (p *printer) wordPart(wp WordPart) {
 			p.WriteByte('/')
 			p.word(x.Repl.Orig)
 			p.WriteByte('/')
-			p.word(x.Repl.With)
+			if x.Repl.With != nil {
+				p.word(x.Repl.With)
+			}
 		} else if x.Exp != nil {
 			p.WriteString(x.Exp.Op.String())
 			p.word(x.Exp.Word)
@@ -396,7 +398,7 @@ func (p *printer) loop(loop Loop) {
 func (p *printer) arithmExpr(expr ArithmExpr, compact bool) {
 	switch x := expr.(type) {
 	case *Word:
-		p.word(*x)
+		p.word(x)
 	case *BinaryArithm:
 		if compact {
 			p.arithmExpr(x.X, compact)
@@ -429,7 +431,7 @@ func (p *printer) arithmExpr(expr ArithmExpr, compact bool) {
 func (p *printer) testExpr(expr TestExpr) {
 	switch x := expr.(type) {
 	case *Word:
-		p.word(*x)
+		p.word(x)
 	case *BinaryTest:
 		p.testExpr(x.X)
 		p.WriteByte(' ')
@@ -447,14 +449,14 @@ func (p *printer) testExpr(expr TestExpr) {
 	}
 }
 
-func (p *printer) word(w Word) {
+func (p *printer) word(w *Word) {
 	for _, n := range w.Parts {
 		p.wordPart(n)
 	}
 	p.wantSpace = true
 }
 
-func (p *printer) unquotedWord(w Word) {
+func (p *printer) unquotedWord(w *Word) {
 	for _, wp := range w.Parts {
 		switch x := wp.(type) {
 		case *SglQuoted:
@@ -475,7 +477,7 @@ func (p *printer) unquotedWord(w Word) {
 	}
 }
 
-func (p *printer) wordJoin(ws []Word, backslash bool) {
+func (p *printer) wordJoin(ws []*Word, backslash bool) {
 	anyNewline := false
 	for _, w := range ws {
 		if pos := w.Pos(); pos > p.nline {
@@ -873,7 +875,9 @@ func (p *printer) assigns(assigns []*Assign) {
 			}
 			p.WriteByte('=')
 		}
-		p.word(a.Value)
+		if a.Value != nil {
+			p.word(a.Value)
+		}
 		p.wantSpace = true
 	}
 	if anyNewline {

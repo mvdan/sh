@@ -24,11 +24,7 @@ func TestParseComments(t *testing.T) {
 			{Text: " foo"},
 			{Text: " bar"},
 		},
-		Stmts: []*Stmt{{
-			Cmd: &CallExpr{Args: []Word{
-				{Parts: []WordPart{&Lit{Value: "cmd"}}},
-			}},
-		}},
+		Stmts: litStmts("cmd"),
 	}
 	singleParse(in, want, ParseComments)(t)
 }

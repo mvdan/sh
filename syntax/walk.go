@@ -19,9 +19,9 @@ func walkStmts(v Visitor, stmts []*Stmt) {
 	}
 }
 
-func walkWords(v Visitor, words []Word) {
-	for i := range words {
-		Walk(v, &words[i])
+func walkWords(v Visitor, words []*Word) {
+	for _, w := range words {
+		Walk(v, w)
 	}
 }
 
@@ -52,14 +52,16 @@ func Walk(v Visitor, node Node) {
 		if x.Name != nil {
 			Walk(v, x.Name)
 		}
-		Walk(v, &x.Value)
+		if x.Value != nil {
+			Walk(v, x.Value)
+		}
 	case *Redirect:
 		if x.N != nil {
 			Walk(v, x.N)
 		}
-		Walk(v, &x.Word)
-		if len(x.Hdoc.Parts) > 0 {
-			Walk(v, &x.Hdoc)
+		Walk(v, x.Word)
+		if x.Hdoc != nil {
+			Walk(v, x.Hdoc)
 		}
 	case *CallExpr:
 		walkWords(v, x.Args)
@@ -121,11 +123,13 @@ func Walk(v Visitor, node Node) {
 			Walk(v, x.Ind.Expr)
 		}
 		if x.Repl != nil {
-			Walk(v, &x.Repl.Orig)
-			Walk(v, &x.Repl.With)
+			Walk(v, x.Repl.Orig)
+			if x.Repl.With != nil {
+				Walk(v, x.Repl.With)
+			}
 		}
 		if x.Exp != nil {
-			Walk(v, &x.Exp.Word)
+			Walk(v, x.Exp.Word)
 		}
 	case *ArithmExp:
 		if x.X != nil {
@@ -150,7 +154,7 @@ func Walk(v Visitor, node Node) {
 	case *ParenTest:
 		Walk(v, x.X)
 	case *CaseClause:
-		Walk(v, &x.Word)
+		Walk(v, x.Word)
 		for _, pl := range x.List {
 			walkWords(v, pl.Patterns)
 			walkStmts(v, pl.Stmts)
