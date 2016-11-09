@@ -342,7 +342,9 @@ func (p *printer) wordPart(wp WordPart) {
 			}
 		} else if x.Exp != nil {
 			p.WriteString(x.Exp.Op.String())
-			p.word(x.Exp.Word)
+			if x.Exp.Word != nil {
+				p.word(x.Exp.Word)
+			}
 		}
 		p.WriteByte('}')
 	case *ArithmExp:

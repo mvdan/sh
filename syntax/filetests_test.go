@@ -1491,14 +1491,11 @@ var fileTests = []testCase{
 		},
 	},
 	{
-		Strs: []string{`${foo+bar}"bar"`},
+		Strs: []string{`${foo+}"bar"`},
 		common: word(
 			&ParamExp{
 				Param: lit("foo"),
-				Exp: &Expansion{
-					Op:   SubstPlus,
-					Word: litWord("bar"),
-				},
+				Exp:   &Expansion{Op: SubstPlus},
 			},
 			dblQuoted(lit("bar")),
 		),
@@ -3526,7 +3523,7 @@ func setPosRecurse(tb testing.TB, src string, v interface{}, to Pos, diff bool) 
 				recurse(x.Repl.With)
 			}
 		}
-		if x.Exp != nil {
+		if x.Exp != nil && x.Exp.Word != nil {
 			recurse(x.Exp.Word)
 		}
 	case *ArithmExp:
