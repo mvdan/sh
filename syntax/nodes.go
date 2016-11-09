@@ -316,7 +316,12 @@ func (w *Word) Pos() Pos {
 	}
 	return w.Parts[0].Pos()
 }
-func (w *Word) End() Pos { return partsLastEnd(w.Parts) }
+func (w *Word) End() Pos {
+	if len(w.Parts) == 0 {
+		return 0
+	}
+	return w.Parts[len(w.Parts)-1].End()
+}
 
 // WordPart represents all nodes that can form a word.
 type WordPart interface {
@@ -374,7 +379,7 @@ func (q *DblQuoted) End() Pos {
 	}
 	end := q.Position
 	if len(q.Parts) > 0 {
-		end = partsLastEnd(q.Parts)
+		end = q.Parts[len(q.Parts)-1].End()
 	} else if q.Dollar {
 		end += 2
 	} else {
@@ -691,13 +696,6 @@ func posAdd(pos Pos, n int) Pos {
 		return pos
 	}
 	return pos + Pos(n)
-}
-
-func partsLastEnd(ps []WordPart) Pos {
-	if len(ps) == 0 {
-		return 0
-	}
-	return ps[len(ps)-1].End()
 }
 
 func wordLastEnd(ws []Word) Pos {
