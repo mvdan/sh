@@ -75,6 +75,7 @@ type parser struct {
 	wpsBatch    []WordPart
 	stmtBatch   []Stmt
 	stListBatch []*Stmt
+	callBatch   []callAlloc
 
 	litBuf [128]byte
 }
@@ -136,6 +137,23 @@ func (p *parser) stList() []*Stmt {
 	stmts := p.stListBatch[:0:4]
 	p.stListBatch = p.stListBatch[4:]
 	return stmts
+}
+
+type callAlloc struct {
+	ce CallExpr
+	ws [4]*Word
+}
+
+func (p *parser) call(w *Word) *CallExpr {
+	if len(p.callBatch) == 0 {
+		p.callBatch = make([]callAlloc, 32)
+	}
+	alloc := &p.callBatch[0]
+	p.callBatch = p.callBatch[1:]
+	ce := &alloc.ce
+	ce.Args = alloc.ws[:1]
+	ce.Args[0] = w
+	return ce
 }
 
 type quoteState uint
@@ -1567,9 +1585,7 @@ func (p *parser) coprocClause() *CoprocClause {
 		}
 		// name was in fact the stmt
 		cc.Stmt = p.stmt(cc.Name.ValuePos)
-		cc.Stmt.Cmd = &CallExpr{Args: []*Word{
-			p.word(p.singleWps(cc.Name)),
-		}}
+		cc.Stmt.Cmd = p.call(p.word(p.singleWps(cc.Name)))
 		cc.Name = nil
 	} else if cc.Name != nil {
 		if call, ok := cc.Stmt.Cmd.(*CallExpr); ok {
@@ -1621,13 +1637,7 @@ func (p *parser) bashFuncDecl() *FuncDecl {
 }
 
 func (p *parser) callExpr(s *Stmt, w *Word) *CallExpr {
-	alloc := &struct {
-		ce CallExpr
-		ws [4]*Word
-	}{}
-	ce := &alloc.ce
-	ce.Args = alloc.ws[:1]
-	ce.Args[0] = w
+	ce := p.call(w)
 	for !p.newLine {
 		switch p.tok {
 		case _EOF, semicolon, and, or, andAnd, orOr, pipeAll,
