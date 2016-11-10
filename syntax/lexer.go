@@ -800,9 +800,7 @@ func (p *parser) advanceLitHdoc() {
 		}
 	}
 	if p.isHdocEnd(n) {
-		if n > p.npos {
-			p.tok, p.val = _LitWord, string(p.src[p.npos:n])
-		}
+		p.tok, p.val = _LitWord, string(p.src[p.npos:n])
 		p.npos = n + len(p.hdocStop)
 		p.hdocStop = nil
 		return

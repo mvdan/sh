@@ -3144,12 +3144,12 @@ var fileTests = []testCase{
 					{
 						Op:   Hdoc,
 						Word: litWord("EOF1"),
-						Hdoc: word(),
+						Hdoc: litWord(""),
 					},
 					{
 						Op:   Hdoc,
 						Word: litWord("EOF2"),
-						Hdoc: word(),
+						Hdoc: litWord(""),
 					},
 				}},
 				Y: litStmt("c"),

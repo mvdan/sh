@@ -304,24 +304,14 @@ type FuncDecl struct {
 func (f *FuncDecl) Pos() Pos { return f.Position }
 func (f *FuncDecl) End() Pos { return f.Body.End() }
 
-// Word represents a list of nodes that are contiguous to each other.
-// The word is delimeted by word boundaries.
+// Word represents a non-empty list of nodes that are contiguous to each
+// other. The word is delimeted by word boundaries.
 type Word struct {
 	Parts []WordPart
 }
 
-func (w *Word) Pos() Pos {
-	if len(w.Parts) == 0 {
-		return 0
-	}
-	return w.Parts[0].Pos()
-}
-func (w *Word) End() Pos {
-	if len(w.Parts) == 0 {
-		return 0
-	}
-	return w.Parts[len(w.Parts)-1].End()
-}
+func (w *Word) Pos() Pos { return w.Parts[0].Pos() }
+func (w *Word) End() Pos { return w.Parts[len(w.Parts)-1].End() }
 
 // WordPart represents all nodes that can form a word.
 type WordPart interface {
