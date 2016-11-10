@@ -13,6 +13,9 @@ func prepareTest(c *testCase) {
 	c.common = fullProg(c.common)
 	c.bash = fullProg(c.bash)
 	c.posix = fullProg(c.posix)
+	if c.minBash < 42 {
+		c.minBash = 42
+	}
 	if f, ok := c.common.(*File); ok && f != nil {
 		c.All = append(c.All, f)
 		c.Bash = f
@@ -94,6 +97,7 @@ type testCase struct {
 	common, bash, posix interface{}
 	All                 []*File
 	Bash, Posix         *File
+	minBash             int
 }
 
 var fileTests = []testCase{
@@ -2566,6 +2570,7 @@ var fileTests = []testCase{
 			Op: TsRefVar,
 			X:  litWord("a"),
 		}},
+		minBash: 43,
 	},
 	{
 		Strs: []string{"[[ a =~ b ]]"},

@@ -58,34 +58,45 @@ func TestParsePosix(t *testing.T) {
 
 func TestMain(m *testing.M) {
 	flag.Parse()
-	if bashError = bashCheck(); bashError != nil {
-		fmt.Printf("skipping bash exec tests: %v\n", bashError)
-	}
+	bashVersion, bashError = checkBash()
 	os.Exit(m.Run())
 }
 
-var bashError error
+var (
+	bashVersion int
+	bashError   error
+)
 
-func bashCheck() error {
+func checkBash() (int, error) {
 	out, err := exec.Command("bash", "-c", "echo -n $BASH_VERSION").Output()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	got := string(out)
 	versions := []string{
+		"4.2",
 		"4.3",
 		"4.4",
 	}
-	for _, ver := range versions {
+	vercodes := []int{
+		42,
+		43,
+		44,
+	}
+	for i, ver := range versions {
 		if strings.HasPrefix(got, ver) {
-			return nil
+			return vercodes[i], nil
 		}
 	}
-	return fmt.Errorf("need bash %s, found %s", strings.Join(versions, "/"), got)
+	return 0, fmt.Errorf("need bash %s, found %s", strings.Join(versions, "/"), got)
 }
 
-func confirmParse(in string, posix, fail bool) func(*testing.T) {
+func confirmParse(in string, min int, posix, fail bool) func(*testing.T) {
 	return func(t *testing.T) {
+		if bashVersion < min {
+			t.Skip("need bash%d, have bash%d", min, bashVersion)
+			return
+		}
 		t.Parallel()
 		var opts []string
 		if posix {
@@ -139,7 +150,8 @@ func TestParseBashConfirm(t *testing.T) {
 	}
 	for i, c := range append(fileTests, fileTestsNoPrint...) {
 		for j, in := range c.Strs {
-			t.Run(fmt.Sprintf("%03d-%d", i, j), confirmParse(in, false, false))
+			t.Run(fmt.Sprintf("%03d-%d", i, j),
+				confirmParse(in, c.minBash, false, false))
 		}
 	}
 }
@@ -152,7 +164,7 @@ func TestParseErrBashConfirm(t *testing.T) {
 		t.Skip(bashError)
 	}
 	for i, c := range append(shellTests, bashTests...) {
-		t.Run(fmt.Sprintf("%03d", i), confirmParse(c.in, false, true))
+		t.Run(fmt.Sprintf("%03d", i), confirmParse(c.in, 0, false, true))
 	}
 }
 
@@ -164,7 +176,7 @@ func TestParseErrPosixConfirm(t *testing.T) {
 		t.Skip(bashError)
 	}
 	for i, c := range append(shellTests, posixTests...) {
-		t.Run(fmt.Sprintf("%03d", i), confirmParse(c.in, true, true))
+		t.Run(fmt.Sprintf("%03d", i), confirmParse(c.in, 0, true, true))
 	}
 }
 
@@ -584,7 +596,6 @@ var shellTests = []errorCase{
 	},
 	{
 		"echo $(((3))",
-		// TODO: reached )
 		`1:6: reached EOF without matching $(( with ))`,
 	},
 	{
@@ -931,7 +942,7 @@ var posixTests = []errorCase{
 		`1:1: "foo(" must be followed by )`,
 	},
 	{
-		"function foo() { bar; } #INVBASH posix is wrong",
+		"function foo() { bar; } #INVBASH --posix is wrong",
 		`1:13: a command can only contain words and redirects`,
 	},
 	{
