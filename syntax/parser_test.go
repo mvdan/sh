@@ -192,14 +192,12 @@ func BenchmarkParse(b *testing.B) {
 	}
 	benchmarks := []benchmark{
 		{
-			"Space+Comment",
-			strings.Repeat("\n\n\t\t        \n", 10) + "# " + strings.Repeat("foo bar ", 10),
-		},
-		{
-			"LongLit+Quoted",
-			strings.Repeat("really_long_lit__", 10) +
-				"'" + strings.Repeat("foo bar ", 10) + "\n'" +
-				`"` + strings.Repeat("foo bar ", 10) + "\n\"",
+			"LongStrs",
+			strings.Repeat("\n\n\t\t        \n", 10) +
+				"# " + strings.Repeat("foo bar ", 10) + "\n" +
+				strings.Repeat("longlit_", 10) + "\n" +
+				"'" + strings.Repeat("foo bar ", 20) + "'\n" +
+				`"` + strings.Repeat("foo bar ", 20) + `"`,
 		},
 		{
 			"Cmds+Nested",
