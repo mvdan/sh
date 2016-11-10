@@ -204,12 +204,11 @@ func (b *Block) End() Pos { return posAdd(b.Rbrace, 1) }
 
 // IfClause represents an if statement.
 type IfClause struct {
-	If, Then, Fi Pos
-	CondStmts    []*Stmt
-	ThenStmts    []*Stmt
-	Elifs        []*Elif
-	Else         Pos
-	ElseStmts    []*Stmt
+	If, Then, Else, Fi Pos
+	CondStmts          []*Stmt
+	ThenStmts          []*Stmt
+	Elifs              []*Elif
+	ElseStmts          []*Stmt
 }
 
 func (c *IfClause) Pos() Pos { return c.If }
