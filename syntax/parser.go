@@ -40,6 +40,11 @@ func Parse(src []byte, name string, mode ParseMode) (*File, error) {
 	p.src, p.mode = src, mode
 	p.next()
 	p.f.Stmts = p.stmts()
+	if p.err == nil {
+		// EOF immediately after heredoc word so no newline to
+		// trigger it
+		p.doHeredocs()
+	}
 	parserFree.Put(p)
 	return p.f, p.err
 }
@@ -270,6 +275,9 @@ func (p *parser) doHeredocs() {
 		if !quoted {
 			p.next()
 			r.Hdoc = p.word(p.wordParts())
+			if len(r.Hdoc.Parts) == 0 {
+				r.Hdoc.Parts = append(r.Hdoc.Parts, p.lit(p.pos, ""))
+			}
 			continue
 		}
 		r.Hdoc = p.hdocLitWord()
