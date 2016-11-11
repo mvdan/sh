@@ -1456,7 +1456,7 @@ var fileTests = []testCase{
 		),
 	},
 	{
-		Strs: []string{`${#$} ${##} ${#:-a} ${?/a/b}`},
+		Strs: []string{`${#$} ${##} ${#:-a} ${?+b}`},
 		common: call(
 			word(&ParamExp{Length: true, Param: lit("$")}),
 			word(&ParamExp{Length: true, Param: lit("#")}),
@@ -1466,9 +1466,9 @@ var fileTests = []testCase{
 			}}),
 			word(&ParamExp{
 				Param: lit("?"),
-				Repl: &Replace{
-					Orig: litWord("a"),
-					With: litWord("b"),
+				Exp: &Expansion{
+					Op:   SubstPlus,
+					Word: litWord("b"),
 				},
 			}),
 		),
@@ -1719,7 +1719,7 @@ var fileTests = []testCase{
 	},
 	{
 		Strs: []string{`${foo/b1/b2}`},
-		common: &ParamExp{
+		bash: &ParamExp{
 			Param: lit("foo"),
 			Repl: &Replace{
 				Orig: litWord("b1"),
@@ -1729,7 +1729,7 @@ var fileTests = []testCase{
 	},
 	{
 		Strs: []string{`${foo/a b/c d}`},
-		common: &ParamExp{
+		bash: &ParamExp{
 			Param: lit("foo"),
 			Repl: &Replace{
 				Orig: litWord("a b"),
@@ -1739,7 +1739,7 @@ var fileTests = []testCase{
 	},
 	{
 		Strs: []string{`${foo/[/]}`},
-		common: &ParamExp{
+		bash: &ParamExp{
 			Param: lit("foo"),
 			Repl: &Replace{
 				Orig: litWord("["),
@@ -1749,7 +1749,7 @@ var fileTests = []testCase{
 	},
 	{
 		Strs: []string{`${foo/bar/b/a/r}`},
-		common: &ParamExp{
+		bash: &ParamExp{
 			Param: lit("foo"),
 			Repl: &Replace{
 				Orig: litWord("bar"),
@@ -1759,7 +1759,7 @@ var fileTests = []testCase{
 	},
 	{
 		Strs: []string{`${foo/$a/$b}`},
-		common: &ParamExp{
+		bash: &ParamExp{
 			Param: lit("foo"),
 			Repl: &Replace{
 				Orig: word(litParamExp("a")),
@@ -1769,7 +1769,7 @@ var fileTests = []testCase{
 	},
 	{
 		Strs: []string{`${foo//b1/b2}`},
-		common: &ParamExp{
+		bash: &ParamExp{
 			Param: lit("foo"),
 			Repl: &Replace{
 				All:  true,
@@ -1780,7 +1780,7 @@ var fileTests = []testCase{
 	},
 	{
 		Strs: []string{`${foo///}`, `${foo//}`},
-		common: &ParamExp{
+		bash: &ParamExp{
 			Param: lit("foo"),
 			Repl: &Replace{
 				All:  true,
@@ -1794,7 +1794,7 @@ var fileTests = []testCase{
 			`${foo//#/}`,
 			`${foo//#}`,
 		},
-		common: &ParamExp{
+		bash: &ParamExp{
 			Param: lit("foo"),
 			Repl: &Replace{
 				All:  true,

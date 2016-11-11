@@ -982,6 +982,10 @@ var posixTests = []errorCase{
 		`1:11: arrays are a bash feature`,
 	},
 	{
+		"echo ${foo/a/b} #INVBASH --posix is wrong",
+		`1:11: search and replace is a bash feature`,
+	},
+	{
 		"echo ${foo:1} #INVBASH --posix is wrong",
 		`1:11: slicing is a bash feature`,
 	},

@@ -932,6 +932,9 @@ func (p *parser) paramExp() *ParamExp {
 		p.next()
 		return pe
 	case slash, dblSlash:
+		if !p.bash() {
+			p.curErr("search and replace is a bash feature")
+		}
 		pe.Repl = &Replace{All: p.tok == dblSlash}
 		p.quote = paramExpRepl
 		p.next()
