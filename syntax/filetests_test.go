@@ -1779,6 +1779,17 @@ var fileTests = []testCase{
 		},
 	},
 	{
+		Strs: []string{`${foo///}`, `${foo//}`},
+		common: &ParamExp{
+			Param: lit("foo"),
+			Repl: &Replace{
+				All:  true,
+				Orig: litWord(""),
+				With: litWord(""),
+			},
+		},
+	},
+	{
 		Strs: []string{
 			`${foo//#/}`,
 			`${foo//#}`,
@@ -1788,6 +1799,7 @@ var fileTests = []testCase{
 			Repl: &Replace{
 				All:  true,
 				Orig: litWord("#"),
+				With: litWord(""),
 			},
 		},
 	},
@@ -3517,9 +3529,7 @@ func setPosRecurse(tb testing.TB, src string, v interface{}, to Pos, diff bool) 
 		}
 		if x.Repl != nil {
 			recurse(x.Repl.Orig)
-			if x.Repl.With != nil {
-				recurse(x.Repl.With)
-			}
+			recurse(x.Repl.With)
 		}
 		if x.Exp != nil && x.Exp.Word != nil {
 			recurse(x.Exp.Word)

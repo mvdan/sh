@@ -126,9 +126,7 @@ func Walk(v Visitor, node Node) {
 		}
 		if x.Repl != nil {
 			Walk(v, x.Repl.Orig)
-			if x.Repl.With != nil {
-				Walk(v, x.Repl.With)
-			}
+			Walk(v, x.Repl.With)
 		}
 		if x.Exp != nil && x.Exp.Word != nil {
 			Walk(v, x.Exp.Word)

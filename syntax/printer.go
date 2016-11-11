@@ -337,9 +337,7 @@ func (p *printer) wordPart(wp WordPart) {
 			p.WriteByte('/')
 			p.word(x.Repl.Orig)
 			p.WriteByte('/')
-			if x.Repl.With != nil {
-				p.word(x.Repl.With)
-			}
+			p.word(x.Repl.With)
 		} else if x.Exp != nil {
 			p.WriteString(x.Exp.Op.String())
 			if x.Exp.Word != nil {

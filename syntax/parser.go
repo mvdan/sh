@@ -274,10 +274,7 @@ func (p *parser) doHeredocs() {
 		}
 		if !quoted {
 			p.next()
-			r.Hdoc = p.word(p.wordParts())
-			if len(r.Hdoc.Parts) == 0 {
-				r.Hdoc.Parts = append(r.Hdoc.Parts, p.lit(p.pos, ""))
-			}
+			r.Hdoc = p.getWordOrEmpty()
 			continue
 		}
 		r.Hdoc = p.hdocLitWord()
@@ -499,6 +496,14 @@ func (p *parser) getWord() *Word {
 		return p.word(parts)
 	}
 	return nil
+}
+
+func (p *parser) getWordOrEmpty() *Word {
+	parts := p.wordParts()
+	if len(parts) == 0 {
+		return p.word(p.singleWps(p.lit(p.pos, "")))
+	}
+	return p.word(parts)
 }
 
 func (p *parser) getLit() *Lit {
@@ -930,12 +935,12 @@ func (p *parser) paramExp() *ParamExp {
 		pe.Repl = &Replace{All: p.tok == dblSlash}
 		p.quote = paramExpRepl
 		p.next()
-		pe.Repl.Orig = p.getWord()
+		pe.Repl.Orig = p.getWordOrEmpty()
 		if p.tok == slash {
 			p.quote = paramExpExp
 			p.next()
-			pe.Repl.With = p.getWord()
 		}
+		pe.Repl.With = p.getWordOrEmpty()
 	case colon:
 		if !p.bash() {
 			p.curErr("slicing is a bash feature")
