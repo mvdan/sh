@@ -3320,13 +3320,6 @@ func setPosRecurse(tb testing.TB, src string, v interface{}, to Pos, diff bool) 
 			tb.Fatalf("Found unexpected Pos() in %T: want %d, got %d",
 				n, to, n.Pos())
 		}
-		if to == 0 {
-			if n.End() != to {
-				tb.Fatalf("Found unexpected End() in %T: want %d, got %d",
-					n, to, n.End())
-			}
-			return
-		}
 		if n.Pos() > n.End() {
 			tb.Fatalf("Found End() before Pos() in %T", n)
 		}
@@ -3591,7 +3584,7 @@ func setPosRecurse(tb testing.TB, src string, v interface{}, to Pos, diff bool) 
 		setPos(&x.Rparen, ")")
 		recurse(x.List)
 	case *ExtGlob:
-		checkSrc(x.Pos(), x.Op.String())
+		setPos(&x.OpPos, x.Op.String())
 		checkSrc(x.Pattern.End(), ")")
 		recurse(x.Pattern)
 	case *ProcSubst:

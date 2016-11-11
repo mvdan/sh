@@ -675,7 +675,7 @@ func (p *parser) wordPart() WordPart {
 		}
 		return cs
 	case globQuest, globStar, globPlus, globAt, globExcl:
-		eg := &ExtGlob{Op: GlobOperator(p.tok)}
+		eg := &ExtGlob{Op: GlobOperator(p.tok), OpPos: p.pos}
 		eg.Pattern = p.lit(Pos(p.npos+1), "")
 		start := p.npos
 		lparens := 0
