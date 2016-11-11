@@ -1033,10 +1033,12 @@ func (p *parser) getAssign() *Assign {
 		ae.Rparen = p.matched(ae.Lparen, leftParen, rightParen)
 		as.Value = p.word(p.singleWps(ae))
 	} else if !p.newLine && !stopToken(p.tok) {
-		if w := p.getWord(); start.Value == "" {
-			as.Value = w
-		} else {
-			as.Value.Parts = append(as.Value.Parts, w.Parts...)
+		if w := p.getWord(); w != nil {
+			if as.Value == nil {
+				as.Value = w
+			} else {
+				as.Value.Parts = append(as.Value.Parts, w.Parts...)
+			}
 		}
 	}
 	return as
