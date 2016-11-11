@@ -912,7 +912,11 @@ func (p *parser) paramExp() *ParamExp {
 		lpos := p.pos
 		p.quote = paramExpInd
 		p.next()
-		pe.Ind = &Index{Expr: p.getWord()}
+		if w := p.getWord(); w == nil {
+			p.followErr(lpos, "[", "an expression")
+		} else {
+			pe.Ind = &Index{Expr: w}
+		}
 		p.quote = paramExpName
 		p.matched(lpos, leftBrack, rightBrack)
 	}

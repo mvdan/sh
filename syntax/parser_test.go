@@ -908,7 +908,11 @@ var bashTests = []errorCase{
 	},
 	{
 		"echo ${foo[}",
-		`1:11: reached } without matching [ with ]`,
+		`1:11: [ must be followed by an expression`,
+	},
+	{
+		"echo ${foo[]}",
+		`1:11: [ must be followed by an expression`,
 	},
 	{
 		"echo ${foo:",
