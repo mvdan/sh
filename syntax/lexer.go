@@ -15,8 +15,8 @@ func regOps(b byte) bool {
 // tokenize these inside parameter expansions
 func paramOps(b byte) bool {
 	return b == '}' || b == '#' || b == ':' || b == '-' || b == '+' ||
-		b == '=' || b == '?' || b == '%' || b == '[' || b == '/' ||
-		b == '^' || b == ','
+		b == '=' || b == '?' || b == '%' || b == '[' || b == ']' ||
+		b == '/' || b == '^' || b == ','
 }
 
 // tokenize these inside arithmetic expansions
@@ -29,9 +29,9 @@ func arithmOps(b byte) bool {
 }
 
 func wordBreak(b byte) bool {
-	return b == ' ' || b == '\t' || b == '\r' || b == '\n' ||
+	return b == ' ' || b == '\t' || b == '\n' || b == ';' ||
 		b == '&' || b == '>' || b == '<' || b == '|' ||
-		b == ';' || b == '(' || b == ')'
+		b == '(' || b == ')' || b == '\r'
 }
 
 func (p *parser) next() {
@@ -106,20 +106,15 @@ skipSpace:
 			p.spaced = true
 			p.npos++
 		case '\n':
+			p.spaced, p.newLine = true, true
 			if q == arithmExprLet {
 				p.tok = illegalTok
-				p.newLine, p.spaced = true, true
 				return
 			}
-			p.spaced = true
-			if p.npos < len(p.src) {
-				p.npos++
-			}
+			p.npos++
 			p.f.Lines = append(p.f.Lines, p.npos)
-			p.newLine = true
 			if len(p.heredocs) > p.buriedHdocs {
-				p.doHeredocs()
-				if p.tok == _EOF {
+				if p.doHeredocs(); p.tok == _EOF {
 					return
 				}
 			}
@@ -178,10 +173,7 @@ skipSpace:
 			p.advanceLitNone()
 		}
 	case q == paramExpInd:
-		if b == ']' {
-			p.npos++
-			p.tok = rightBrack
-		} else if paramOps(b) && b != '+' && b != '-' {
+		if paramOps(b) && b != '+' && b != '-' {
 			p.tok = p.paramToken(b)
 		} else if regOps(b) {
 			p.tok = p.regToken(b)
@@ -190,6 +182,7 @@ skipSpace:
 		}
 	case q == paramExpOff:
 		if b == ':' {
+			// to avoid :- and such
 			p.npos++
 			p.tok = colon
 		} else if paramOps(b) && b != '+' && b != '-' {
@@ -473,6 +466,9 @@ func (p *parser) paramToken(b byte) token {
 	case '[':
 		p.npos++
 		return leftBrack
+	case ']':
+		p.npos++
+		return rightBrack
 	case '^':
 		if byteAt(p.src, p.npos+1) == '^' {
 			p.npos += 2
@@ -647,14 +643,14 @@ func (p *parser) advanceLitOther(q quoteState) {
 		b := p.src[p.npos]
 		switch {
 		case b == '\\': // escaped byte follows
-			if p.npos == len(p.src)-1 {
-				p.npos++
+			p.npos++
+			if p.npos == len(p.src) {
 				bs = append(bs, '\\')
 				p.tok, p.val = _LitWord, string(bs)
 				return
 			}
-			b = p.src[p.npos+1]
-			p.npos += 2
+			b = p.src[p.npos]
+			p.npos++
 			if b == '\n' {
 				p.f.Lines = append(p.f.Lines, p.npos)
 			} else {
@@ -710,14 +706,14 @@ func (p *parser) advanceLitNone() {
 		b := p.src[p.npos]
 		switch b {
 		case '\\': // escaped byte follows
-			if p.npos == len(p.src)-1 {
-				p.npos++
+			p.npos++
+			if p.npos == len(p.src) {
 				bs = append(bs, '\\')
 				p.tok, p.val = _LitWord, string(bs)
 				return
 			}
-			b := p.src[p.npos+1]
-			p.npos += 2
+			b := p.src[p.npos]
+			p.npos++
 			if b == '\n' {
 				p.f.Lines = append(p.f.Lines, p.npos)
 			} else {
