@@ -3371,7 +3371,7 @@ func setPosRecurse(tb testing.TB, src string, v interface{}, to Pos, diff bool) 
 		}
 		setPos(&x.Position)
 		if x.SemiPos > 0 {
-			setPos(&x.SemiPos)
+			setPos(&x.SemiPos, ";")
 		}
 		if x.Cmd != nil {
 			recurse(x.Cmd)
