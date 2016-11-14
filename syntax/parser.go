@@ -692,15 +692,17 @@ func (p *parser) wordPart() WordPart {
 		eg := &ExtGlob{Op: GlobOperator(p.tok), OpPos: p.pos}
 		start := p.npos
 		lparens := 0
+	byteLoop:
 		for _, b := range p.src[start:] {
-			if b == '(' {
+			switch b {
+			case '(':
 				lparens++
-			} else if b == ')' {
+			case ')':
 				if lparens--; lparens < 0 {
 					eg.Pattern = p.lit(Pos(start+1),
 						string(p.src[start:p.npos]))
 					p.npos++
-					break
+					break byteLoop
 				}
 			}
 			p.npos++

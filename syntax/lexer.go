@@ -215,7 +215,13 @@ skipSpace:
 		p.npos++
 		p.tok = rightBrack
 	case q == testRegexp:
-		p.advanceLitRe()
+		if b == '(' {
+			p.advanceLitRe()
+		} else if regOps(b) {
+			p.tok = p.regToken(b)
+		} else {
+			p.advanceLitRe()
+		}
 	case regOps(b):
 		p.tok = p.regToken(b)
 	default:
@@ -875,15 +881,24 @@ func (p *parser) readUntil(b byte) ([]byte, bool) {
 }
 
 func (p *parser) advanceLitRe() {
-	end := bytes.Index(p.src[p.npos:], []byte(" ]]"))
-	p.tok = _LitWord
-	if end == -1 {
-		p.val = string(p.src[p.npos:])
-		p.npos = len(p.src)
-		return
+	start := p.npos
+	lparens := 0
+byteLoop:
+	for _, b := range p.src[p.npos:] {
+		switch b {
+		case '(':
+			lparens++
+		case ')':
+			lparens--
+		case ' ', '\t', '\r', '\n':
+			if lparens == 0 {
+				break byteLoop
+			}
+		}
+		p.npos++
 	}
-	p.val = string(p.src[p.npos : p.npos+end])
-	p.npos += end
+	p.tok = _LitWord
+	p.val = string(p.src[start:p.npos])
 }
 
 func testUnaryOp(val string) token {
