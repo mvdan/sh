@@ -53,3 +53,11 @@ func (v *posVisitor) Visit(n Node) Visitor {
 	}
 	return v
 }
+
+func TestWeirdOperatorString(t *testing.T) {
+	op := RedirOperator(1000)
+	want := "token(1000)"
+	if got := op.String(); got != want {
+		t.Fatalf("token.String() mismatch: want %s, got %s", want, got)
+	}
+}

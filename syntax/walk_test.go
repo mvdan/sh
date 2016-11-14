@@ -27,3 +27,17 @@ func (v nopVisitor) Visit(node Node) Visitor {
 	}
 	return v
 }
+
+type newNode struct{}
+
+func (newNode) Pos() Pos { return 0 }
+func (newNode) End() Pos { return 0 }
+
+func TestWalkUnexpectedType(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("did not panic")
+		}
+	}()
+	Walk(nopVisitor{}, newNode{})
+}
