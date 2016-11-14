@@ -712,7 +712,7 @@ func (p *parser) advanceLitNone() {
 				p.tok, p.val = _LitWord, string(bs)
 				return
 			}
-			b := p.src[p.npos]
+			b = p.src[p.npos]
 			p.npos++
 			if b == '\n' {
 				p.f.Lines = append(p.f.Lines, p.npos)
@@ -749,8 +749,7 @@ func (p *parser) advanceLitNone() {
 			if p.bash() && p.asPos > 0 && p.src[p.npos-1] == '+' {
 				p.asPos-- // a+=b
 			}
-			bs = append(bs, b)
-			p.npos++
+			fallthrough
 		default:
 			bs = append(bs, b)
 			p.npos++

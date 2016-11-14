@@ -279,7 +279,6 @@ func (p *parser) doHeredocs() {
 			continue
 		}
 		r.Hdoc = p.hdocLitWord()
-
 	}
 	p.quote = old
 }
