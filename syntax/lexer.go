@@ -859,6 +859,8 @@ func (p *parser) hdocLitWord() *Word {
 	}
 	if p.npos == len(p.src) {
 		end = p.npos
+	} else if p.npos > len(p.src) {
+		p.npos = len(p.src)
 	}
 	l := p.lit(Pos(pos+1), string(p.src[pos:end]))
 	return p.word(p.singleWps(l))

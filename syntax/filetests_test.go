@@ -3292,12 +3292,16 @@ func fullProg(v interface{}) *File {
 
 func setPosRecurse(tb testing.TB, src string, v interface{}, to Pos, diff bool) {
 	checkSrc := func(pos Pos, strs ...string) {
-		if src == "" || strs == nil {
+		if src == "" {
 			return
 		}
 		offs := int(pos - 1)
-		if offs < 0 || offs >= len(src) {
-			tb.Fatalf("Pos in %T is out of bounds: %d", v, pos)
+		if offs < 0 || offs > len(src) {
+			tb.Fatalf("Pos %d in %T is out of bounds in %q",
+				pos, v, string(src))
+			return
+		}
+		if strs == nil {
 			return
 		}
 		var gotErr string
@@ -3320,7 +3324,7 @@ func setPosRecurse(tb testing.TB, src string, v interface{}, to Pos, diff bool) 
 	setPos := func(p *Pos, strs ...string) {
 		checkSrc(*p, strs...)
 		if diff && *p == to {
-			tb.Fatalf("Pos() in %T is already %v", v, to)
+			tb.Fatalf("Pos in %T is already %v", v, to)
 		}
 		*p = to
 	}
