@@ -928,13 +928,11 @@ var fileTests = []testCase{
 		Strs: []string{"foo <<'EOF'\n${\nEOF"},
 		common: &Stmt{
 			Cmd: litCall("foo"),
-			Redirs: []*Redirect{
-				{
-					Op:   Hdoc,
-					Word: word(sglQuoted("EOF")),
-					Hdoc: litWord("${\n"),
-				},
-			},
+			Redirs: []*Redirect{{
+				Op:   Hdoc,
+				Word: word(sglQuoted("EOF")),
+				Hdoc: litWord("${\n"),
+			}},
 		},
 	},
 	{
@@ -1199,18 +1197,16 @@ var fileTests = []testCase{
 	},
 	{
 		Strs: []string{"a<(b) c>(d)"},
-		bash: &Stmt{
-			Cmd: call(
-				word(lit("a"), &ProcSubst{
-					Op:    CmdIn,
-					Stmts: litStmts("b"),
-				}),
-				word(lit("c"), &ProcSubst{
-					Op:    CmdOut,
-					Stmts: litStmts("d"),
-				}),
-			),
-		},
+		bash: call(
+			word(lit("a"), &ProcSubst{
+				Op:    CmdIn,
+				Stmts: litStmts("b"),
+			}),
+			word(lit("c"), &ProcSubst{
+				Op:    CmdOut,
+				Stmts: litStmts("d"),
+			}),
+		),
 	},
 	{
 		Strs:   []string{"!"},
@@ -1319,22 +1315,18 @@ var fileTests = []testCase{
 			`"$( (foo))"`,
 			`"$((foo) )"`,
 		},
-		common: dblQuoted(
-			cmdSubst(stmt(
-				subshell(litStmt("foo")),
-			)),
-		),
+		common: dblQuoted(cmdSubst(stmt(
+			subshell(litStmt("foo")),
+		))),
 	},
 	{
 		Strs: []string{
 			"\"$( (\n\tfoo\n\tbar\n))\"",
 			"\"$((\n\tfoo\n\tbar\n) )\"",
 		},
-		common: dblQuoted(
-			cmdSubst(stmt(
-				subshell(litStmts("foo", "bar")...),
-			)),
-		),
+		common: dblQuoted(cmdSubst(stmt(
+			subshell(litStmts("foo", "bar")...),
+		))),
 	},
 	{
 		Strs: []string{"$({ echo; })", "`{ echo; }`"},
@@ -1374,21 +1366,17 @@ var fileTests = []testCase{
 	},
 	{
 		Strs: []string{"$(foo $(b1 b2))"},
-		common: cmdSubst(
-			stmt(call(
-				litWord("foo"),
-				word(cmdSubst(litStmt("b1", "b2"))),
-			)),
-		),
+		common: cmdSubst(stmt(call(
+			litWord("foo"),
+			word(cmdSubst(litStmt("b1", "b2"))),
+		))),
 	},
 	{
 		Strs: []string{`"$(foo "bar")"`},
-		common: dblQuoted(cmdSubst(
-			stmt(call(
-				litWord("foo"),
-				word(dblQuoted(lit("bar"))),
-			)),
-		)),
+		common: dblQuoted(cmdSubst(stmt(call(
+			litWord("foo"),
+			word(dblQuoted(lit("bar"))),
+		)))),
 	},
 	{
 		Strs:   []string{"$(foo)", "`fo\\\no`"},
@@ -1410,12 +1398,10 @@ var fileTests = []testCase{
 	},
 	{
 		Strs: []string{`$(foo "bar")`, "`foo \"bar\"`"},
-		common: cmdSubst(
-			stmt(call(
-				litWord("foo"),
-				word(dblQuoted(lit("bar"))),
-			)),
-		),
+		common: cmdSubst(stmt(call(
+			litWord("foo"),
+			word(dblQuoted(lit("bar"))),
+		))),
 	},
 	{
 		Strs:   []string{`"$foo"`},
@@ -2840,11 +2826,8 @@ var fileTests = []testCase{
 		posix: litStmt("export", "bar"),
 	},
 	{
-		Strs: []string{"readonly -n"},
-		bash: &DeclClause{
-			Variant: "readonly",
-			Opts:    litWords("-n"),
-		},
+		Strs:  []string{"readonly -n"},
+		bash:  &DeclClause{Variant: "readonly", Opts: litWords("-n")},
 		posix: litStmt("readonly", "-n"),
 	},
 	{
@@ -2886,10 +2869,8 @@ var fileTests = []testCase{
 			Variant: "local",
 			Opts:    litWords("-a"),
 			Assigns: []*Assign{{
-				Name: lit("foo"),
-				Value: word(
-					&ArrayExpr{List: litWords("b1")},
-				),
+				Name:  lit("foo"),
+				Value: word(&ArrayExpr{List: litWords("b1")}),
 			}},
 		},
 	},
@@ -3038,13 +3019,11 @@ var fileTests = []testCase{
 			"let i++; bar",
 		},
 		bash: []*Stmt{
-			stmt(letClause(
-				&UnaryArithm{
-					Op:   Inc,
-					Post: true,
-					X:    litWord("i"),
-				},
-			)),
+			stmt(letClause(&UnaryArithm{
+				Op:   Inc,
+				Post: true,
+				X:    litWord("i"),
+			})),
 			litStmt("bar"),
 		},
 	},
@@ -3055,13 +3034,11 @@ var fileTests = []testCase{
 			"let i++; foo=(bar)\n",
 		},
 		bash: []*Stmt{
-			stmt(letClause(
-				&UnaryArithm{
-					Op:   Inc,
-					Post: true,
-					X:    litWord("i"),
-				},
-			)),
+			stmt(letClause(&UnaryArithm{
+				Op:   Inc,
+				Post: true,
+				X:    litWord("i"),
+			})),
 			{
 				Assigns: []*Assign{{
 					Name: lit("foo"),
@@ -3082,13 +3059,11 @@ var fileTests = []testCase{
 			List: []*PatternList{{
 				Op:       DblSemicolon,
 				Patterns: litWords("b"),
-				Stmts: stmts(letClause(
-					&UnaryArithm{
-						Op:   Inc,
-						Post: true,
-						X:    litWord("i"),
-					},
-				)),
+				Stmts: stmts(letClause(&UnaryArithm{
+					Op:   Inc,
+					Post: true,
+					X:    litWord("i"),
+				})),
 			}},
 		},
 	},
@@ -3219,11 +3194,9 @@ var fileTests = []testCase{
 		Strs: []string{`"a$("")"`, "\"a`\"\"`\""},
 		common: dblQuoted(
 			lit("a"),
-			cmdSubst(
-				stmt(call(
-					word(dblQuoted()),
-				)),
-			),
+			cmdSubst(stmt(call(
+				word(dblQuoted()),
+			))),
 		),
 	},
 	{
