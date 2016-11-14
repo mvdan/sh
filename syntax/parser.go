@@ -639,11 +639,9 @@ func (p *parser) wordPart() WordPart {
 		old := p.quote
 		p.quote = sglQuotes
 		p.next()
-		if p.tok == sglQuote {
-			p.quote = old
-		} else {
+		p.quote = old
+		if p.tok != sglQuote {
 			sq.Value = p.val
-			p.quote = old
 			p.next()
 		}
 		if !p.got(sglQuote) {
