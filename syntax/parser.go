@@ -402,6 +402,7 @@ func (p *parser) matched(lpos Pos, left, right token) Pos {
 func (p *parser) errPass(err error) {
 	if p.err == nil {
 		p.err = err
+		p.npos = len(p.src)
 		p.tok = _EOF
 	}
 }
