@@ -103,12 +103,10 @@ func (s *Stmt) End() Pos {
 		end = s.Cmd.End()
 	}
 	if len(s.Assigns) > 0 {
-		assEnd := s.Assigns[len(s.Assigns)-1].End()
-		end = posMax(end, assEnd)
+		end = posMax(end, s.Assigns[len(s.Assigns)-1].End())
 	}
 	if len(s.Redirs) > 0 {
-		redEnd := s.Redirs[len(s.Redirs)-1].End()
-		end = posMax(end, redEnd)
+		end = posMax(end, s.Redirs[len(s.Redirs)-1].End())
 	}
 	return end
 }
@@ -592,12 +590,10 @@ type DeclClause struct {
 
 func (d *DeclClause) Pos() Pos { return d.Position }
 func (d *DeclClause) End() Pos {
-	end := wordLastEnd(d.Opts)
 	if len(d.Assigns) > 0 {
-		assignEnd := d.Assigns[len(d.Assigns)-1].End()
-		end = posMax(end, assignEnd)
+		return d.Assigns[len(d.Assigns)-1].End()
 	}
-	return end
+	return wordLastEnd(d.Opts)
 }
 
 // ArrayExpr represents a Bash array expression.
