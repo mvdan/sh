@@ -91,6 +91,7 @@ func (p *parser) lit(pos Pos, val string) *Lit {
 	}
 	l := &p.litBatch[0]
 	l.ValuePos = pos
+	l.ValueEnd = Pos(p.npos + 1)
 	l.Value = val
 	p.litBatch = p.litBatch[1:]
 	return l
@@ -689,19 +690,20 @@ func (p *parser) wordPart() WordPart {
 		return cs
 	case globQuest, globStar, globPlus, globAt, globExcl:
 		eg := &ExtGlob{Op: GlobOperator(p.tok), OpPos: p.pos}
-		eg.Pattern = p.lit(Pos(p.npos+1), "")
 		start := p.npos
 		lparens := 0
 		for _, b := range p.src[start:] {
-			p.npos++
 			if b == '(' {
 				lparens++
 			} else if b == ')' {
 				if lparens--; lparens < 0 {
-					eg.Pattern.Value = string(p.src[start : p.npos-1])
+					eg.Pattern = p.lit(Pos(start+1),
+						string(p.src[start:p.npos]))
+					p.npos++
 					break
 				}
 			}
+			p.npos++
 		}
 		p.next()
 		if lparens != -1 {
@@ -1024,6 +1026,8 @@ func (p *parser) validIdent() bool {
 func (p *parser) getAssign() *Assign {
 	asPos := p.asPos
 	as := &Assign{Name: p.lit(p.pos, p.val[:asPos])}
+	// since we're not using the entire p.val
+	as.Name.ValueEnd = as.Name.ValuePos + Pos(asPos)
 	if p.val[asPos] == '+' {
 		as.Append = true
 		asPos++

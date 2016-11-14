@@ -329,12 +329,12 @@ func (*ExtGlob) wordPartNode()   {}
 // Lit represents an unquoted string consisting of characters that were
 // not tokenized.
 type Lit struct {
-	ValuePos Pos
-	Value    string
+	ValuePos, ValueEnd Pos
+	Value              string
 }
 
 func (l *Lit) Pos() Pos { return l.ValuePos }
-func (l *Lit) End() Pos { return l.ValuePos + Pos(len(l.Value)) }
+func (l *Lit) End() Pos { return l.ValueEnd }
 
 // SglQuoted represents a string within single quotes.
 type SglQuoted struct {

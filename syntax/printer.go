@@ -193,7 +193,6 @@ func (p *printer) newline(pos Pos) {
 		p.incLines(r.Hdoc.End() + 1)
 		p.unquotedWord(r.Word)
 		p.WriteByte('\n')
-		p.incLine()
 		p.wantSpace = false
 	}
 }

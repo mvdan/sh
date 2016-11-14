@@ -3366,10 +3366,8 @@ func setPosRecurse(tb testing.TB, src string, v interface{}, to Pos, diff bool) 
 		case endOff > 0 && src[endOff-1] == ';':
 			// ended by semicolon
 		default:
-			// TODO: enable once we fix Lit.End() for
-			// literals that escape newlines
-			//tb.Fatalf("Unexpected Stmt.End() %d %q in %q",
-			//	endOff, src[endOff], string(src))
+			tb.Fatalf("Unexpected Stmt.End() %d %q in %q",
+				endOff, src[endOff], string(src))
 		}
 		setPos(&x.Position)
 		if x.SemiPos > 0 {
@@ -3413,6 +3411,7 @@ func setPosRecurse(tb testing.TB, src string, v interface{}, to Pos, diff bool) 
 		}
 	case *Lit:
 		setPos(&x.ValuePos, x.Value)
+		setPos(&x.ValueEnd)
 	case *Subshell:
 		setPos(&x.Lparen, "(")
 		setPos(&x.Rparen, ")")
