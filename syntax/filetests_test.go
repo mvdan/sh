@@ -3356,6 +3356,21 @@ func setPosRecurse(tb testing.TB, src string, v interface{}, to Pos, diff bool) 
 			recurse(s)
 		}
 	case *Stmt:
+		endOff := int(x.End() - 1)
+		switch {
+		case src == "":
+		case endOff >= len(src):
+			// ended by EOF
+		case wordBreak(src[endOff]), regOps(src[endOff]):
+			// ended by end character
+		case endOff > 0 && src[endOff-1] == ';':
+			// ended by semicolon
+		default:
+			// TODO: enable once we fix Lit.End() for
+			// literals that escape newlines
+			//tb.Fatalf("Unexpected Stmt.End() %d %q in %q",
+			//	endOff, src[endOff], string(src))
+		}
 		setPos(&x.Position)
 		if x.SemiPos > 0 {
 			setPos(&x.SemiPos)

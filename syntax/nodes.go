@@ -153,7 +153,7 @@ func (a *Assign) End() Pos {
 	if a.Value != nil {
 		return a.Value.End()
 	}
-	return a.Name.End()
+	return a.Name.End() + 1
 }
 
 // Redirect represents an input/output redirection.
