@@ -2840,12 +2840,12 @@ var fileTests = []testCase{
 		posix: litStmt("export", "bar"),
 	},
 	{
-		Strs: []string{"readonly bar"},
+		Strs: []string{"readonly -n"},
 		bash: &DeclClause{
 			Variant: "readonly",
-			Assigns: []*Assign{{Value: litWord("bar")}},
+			Opts:    litWords("-n"),
 		},
-		posix: litStmt("readonly", "bar"),
+		posix: litStmt("readonly", "-n"),
 	},
 	{
 		Strs: []string{"nameref bar"},
