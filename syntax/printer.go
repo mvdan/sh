@@ -363,12 +363,7 @@ func (p *printer) wordPart(wp WordPart) {
 			p.WriteByte(' ')
 			p.wantSpace = false
 		}
-		switch x.Op {
-		case CmdIn:
-			p.WriteString("<(")
-		default: // CmdOut
-			p.WriteString(">(")
-		}
+		p.WriteString(x.Op.String())
 		p.nestedStmts(x.Stmts, 0)
 		p.WriteByte(')')
 	}
