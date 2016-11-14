@@ -694,7 +694,7 @@ func (p *parser) advanceLitOther(q quoteState) {
 			p.tok, p.val = _LitWord, string(bs)
 			return
 		}
-		bs = append(bs, p.src[p.npos])
+		bs = append(bs, b)
 		p.npos++
 	}
 }
@@ -707,7 +707,8 @@ func (p *parser) advanceLitNone() {
 			p.tok, p.val = _LitWord, string(bs)
 			return
 		}
-		switch p.src[p.npos] {
+		b := p.src[p.npos]
+		switch b {
 		case '\\': // escaped byte follows
 			if p.npos == len(p.src)-1 {
 				p.npos++
@@ -745,17 +746,17 @@ func (p *parser) advanceLitNone() {
 				p.tok, p.val = _Lit, string(bs)
 				return
 			}
-			bs = append(bs, p.src[p.npos])
+			bs = append(bs, b)
 			p.npos++
 		case '=':
 			p.asPos = len(bs)
 			if p.bash() && p.asPos > 0 && p.src[p.npos-1] == '+' {
 				p.asPos-- // a+=b
 			}
-			bs = append(bs, p.src[p.npos])
+			bs = append(bs, b)
 			p.npos++
 		default:
-			bs = append(bs, p.src[p.npos])
+			bs = append(bs, b)
 			p.npos++
 		}
 	}
