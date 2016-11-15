@@ -14,9 +14,9 @@ const (
 	_Lit
 	_LitWord
 
-	sglQuote   // '
-	dblSlashte // "
-	bckQuote   // `
+	sglQuote // '
+	dblQuote // "
+	bckQuote // `
 
 	and     // &
 	andAnd  // &&

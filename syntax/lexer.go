@@ -63,7 +63,7 @@ func (p *parser) next() {
 			p.advanceLitOther(q)
 		}
 		return
-	case dblSlashtes:
+	case dblQuotes:
 		if b == '`' || b == '"' || b == '$' {
 			p.tok = p.dqToken(b)
 		} else {
@@ -236,7 +236,7 @@ func (p *parser) regToken(b byte) token {
 		return sglQuote
 	case '"':
 		p.npos++
-		return dblSlashte
+		return dblQuote
 	case '`':
 		p.npos++
 		return bckQuote
@@ -387,7 +387,7 @@ func (p *parser) dqToken(b byte) token {
 	switch b {
 	case '"':
 		p.npos++
-		return dblSlashte
+		return dblQuote
 	case '`':
 		p.npos++
 		return bckQuote

@@ -169,7 +169,7 @@ const (
 	subCmd
 	subCmdBckquo
 	sglQuotes
-	dblSlashtes
+	dblQuotes
 	hdocWord
 	hdocBody
 	hdocBodyTabs
@@ -646,15 +646,15 @@ func (p *parser) wordPart() WordPart {
 			p.quoteErr(sq.Pos(), sglQuote)
 		}
 		return sq
-	case dblSlashte:
-		if p.quote == dblSlashtes {
+	case dblQuote:
+		if p.quote == dblQuotes {
 			return nil
 		}
 		fallthrough
 	case dollDblQuote:
 		q := &DblQuoted{Position: p.pos, Dollar: p.tok == dollDblQuote}
 		old := p.quote
-		p.quote = dblSlashtes
+		p.quote = dblQuotes
 		p.next()
 		if p.tok == _LitWord {
 			q.Parts = p.singleWps(p.lit(p.pos, p.val))
@@ -663,8 +663,8 @@ func (p *parser) wordPart() WordPart {
 			q.Parts = p.wordParts()
 		}
 		p.quote = old
-		if !p.got(dblSlashte) {
-			p.quoteErr(q.Pos(), dblSlashte)
+		if !p.got(dblQuote) {
+			p.quoteErr(q.Pos(), dblQuote)
 		}
 		return q
 	case bckQuote:
@@ -1227,7 +1227,7 @@ func (p *parser) gotStmtPipe(s *Stmt) *Stmt {
 		}
 		fallthrough
 	case _Lit, dollBrace, dollDblParen, dollParen, dollar, cmdIn, cmdOut,
-		sglQuote, dollSglQuote, dblSlashte, dollDblQuote, dollBrack,
+		sglQuote, dollSglQuote, dblQuote, dollDblQuote, dollBrack,
 		globQuest, globStar, globPlus, globAt, globExcl:
 		w := p.word(p.wordParts())
 		if p.gotSameLine(leftParen) && p.err == nil {
@@ -1682,7 +1682,7 @@ func (p *parser) callExpr(s *Stmt, w *Word) *CallExpr {
 			}
 			fallthrough
 		case _Lit, dollBrace, dollDblParen, dollParen, dollar, cmdIn, cmdOut,
-			sglQuote, dollSglQuote, dblSlashte, dollDblQuote, dollBrack,
+			sglQuote, dollSglQuote, dblQuote, dollDblQuote, dollBrack,
 			globQuest, globStar, globPlus, globAt, globExcl:
 			ce.Args = append(ce.Args, p.word(p.wordParts()))
 		case rdrOut, appOut, rdrIn, dplIn, dplOut, clbOut, rdrInOut,
