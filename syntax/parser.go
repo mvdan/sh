@@ -584,12 +584,10 @@ func (p *parser) wordPart() WordPart {
 		return cs
 	case dollar:
 		var b byte
-		if p.npos >= len(p.src) {
-			p.tok = _EOF
-		} else {
+		if p.npos < len(p.src) {
 			b = p.src[p.npos]
 		}
-		if p.tok == _EOF || wordBreak(b) || b == '"' || b == '\'' || b == '`' || b == '[' {
+		if b == 0 || wordBreak(b) || b == '"' || b == '\'' || b == '`' || b == '[' {
 			l := p.lit(p.pos, "$")
 			p.next()
 			return l
