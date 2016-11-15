@@ -641,8 +641,8 @@ func (p *parser) advanceLitOther(q quoteState) {
 			return
 		}
 		b := p.src[p.npos]
-		switch {
-		case b == '\\': // escaped byte follows
+		switch b {
+		case '\\': // escaped byte follows
 			p.npos++
 			if p.npos == len(p.src) {
 				bs = append(bs, '\\')
@@ -657,38 +657,70 @@ func (p *parser) advanceLitOther(q quoteState) {
 				bs = append(bs, '\\', b)
 			}
 			continue
-		case q == sglQuotes:
-			switch b {
-			case '\n':
+		case '\n':
+			if q == sglQuotes {
 				p.f.Lines = append(p.f.Lines, p.npos+1)
-			case '\'':
+			} else {
 				p.tok, p.val = _LitWord, string(bs)
 				return
 			}
-		case b == '`', b == '$':
-			p.tok, p.val = _Lit, string(bs)
-			return
-		case q == paramExpExp:
-			if b == '}' {
+		case '\'':
+			switch q {
+			case paramExpExp, paramExpRepl:
+			default:
 				p.tok, p.val = _LitWord, string(bs)
 				return
-			} else if b == '"' {
+			}
+		case '"', '`', '$':
+			if q != sglQuotes {
 				p.tok, p.val = _Lit, string(bs)
 				return
 			}
-		case q == paramExpRepl:
-			if b == '}' || b == '/' {
+		case '}':
+			if q&allParamExp != 0 {
 				p.tok, p.val = _LitWord, string(bs)
 				return
 			}
-		case q == paramExpInd && (b == '+' || b == '-'):
-		case q == paramExpLen && (b == '+' || b == '-'):
-		case q == paramExpOff && (b == '+' || b == '-'):
-		case wordBreak(b), regOps(b), q&allArithmExpr != 0 && arithmOps(b),
-			q&allParamExp != 0 && paramOps(b),
-			q&allRbrack != 0 && b == ']':
-			p.tok, p.val = _LitWord, string(bs)
-			return
+		case '/':
+			if q&allParamExp != 0 && q != paramExpExp {
+				p.tok, p.val = _LitWord, string(bs)
+				return
+			}
+		case ']':
+			if q&allRbrack != 0 {
+				p.tok, p.val = _LitWord, string(bs)
+				return
+			}
+		case '!', '*':
+			if q&allArithmExpr != 0 {
+				p.tok, p.val = _LitWord, string(bs)
+				return
+			}
+		case ':', '=', '%', '?', '^', ',':
+			if q&allArithmExpr != 0 || q&allParamReg != 0 {
+				p.tok, p.val = _LitWord, string(bs)
+				return
+			}
+		case '#', '[':
+			if q&allParamReg != 0 {
+				p.tok, p.val = _LitWord, string(bs)
+				return
+			}
+		case '+', '-':
+			switch q {
+			case paramExpInd, paramExpLen, paramExpOff,
+				paramExpExp, paramExpRepl, sglQuotes:
+			default:
+				p.tok, p.val = _LitWord, string(bs)
+				return
+			}
+		case ' ', '\t', ';', '&', '>', '<', '|', '(', ')', '\r':
+			switch q {
+			case paramExpExp, paramExpRepl, sglQuotes:
+			default:
+				p.tok, p.val = _LitWord, string(bs)
+				return
+			}
 		}
 		bs = append(bs, b)
 		p.npos++

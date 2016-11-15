@@ -189,8 +189,8 @@ const (
 	allRegTokens  = noState | subCmd | subCmdBckquo | hdocWord | switchCase
 	allArithmExpr = arithmExpr | arithmExprLet | arithmExprCmd | arithmExprBrack
 	allRbrack     = arithmExprBrack | paramExpInd
-	allParamExp   = paramExpName | paramExpInd | paramExpOff | paramExpLen |
-		paramExpRepl | paramExpExp
+	allParamReg   = paramExpName | paramExpInd | paramExpOff | paramExpLen
+	allParamExp   = allParamReg | paramExpRepl | paramExpExp
 )
 
 func (p *parser) bash() bool { return p.mode&PosixConformant == 0 }

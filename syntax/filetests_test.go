@@ -1724,12 +1724,12 @@ var fileTests = []testCase{
 		},
 	},
 	{
-		Strs: []string{`${foo/[/]}`},
+		Strs: []string{`${foo/[/]-}`},
 		bash: &ParamExp{
 			Param: lit("foo"),
 			Repl: &Replace{
 				Orig: litWord("["),
-				With: litWord("]"),
+				With: litWord("]-"),
 			},
 		},
 	},
@@ -2423,8 +2423,8 @@ var fileTests = []testCase{
 		common: word(&ParamExp{Param: lit("foo")}, lit("if")),
 	},
 	{
-		Strs:   []string{"$if"},
-		common: litParamExp("if"),
+		Strs:   []string{"$if'|'"},
+		common: word(litParamExp("if"), sglQuoted("|")),
 	},
 	{
 		Strs: []string{"if a; then b=; fi", "if a; then b=\nfi"},
