@@ -6,7 +6,6 @@ package syntax
 import (
 	"bytes"
 	"errors"
-	"flag"
 	"fmt"
 	"os"
 	"os/exec"
@@ -57,7 +56,6 @@ func TestParsePosix(t *testing.T) {
 }
 
 func TestMain(m *testing.M) {
-	flag.Parse()
 	bashVersion, bashError = checkBash()
 	os.Exit(m.Run())
 }
