@@ -168,13 +168,20 @@ func formatPath(path string, checkShebang bool) error {
 	}
 	defer f.Close()
 	readBuf.Reset()
+	if checkShebang {
+		n, err := f.Read(copyBuf[:32])
+		if err != nil {
+			return err
+		}
+		if !validShebang.Match(copyBuf[:n]) {
+			return nil
+		}
+		readBuf.Write(copyBuf[:n])
+	}
 	if _, err := io.CopyBuffer(&readBuf, f, copyBuf); err != nil {
 		return err
 	}
 	src := readBuf.Bytes()
-	if checkShebang && !validShebang.Match(src[:32]) {
-		return nil
-	}
 	prog, err := syntax.Parse(src, path, parseMode)
 	if err != nil {
 		return err
