@@ -46,7 +46,6 @@ func (p *parser) next() {
 	case hdocWord:
 		if wordBreak(b) {
 			p.tok = illegalTok
-			p.spaced = true
 			return
 		}
 	case paramExpRepl:
