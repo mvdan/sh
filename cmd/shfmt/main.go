@@ -8,11 +8,9 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 	"regexp"
-	"runtime/pprof"
 	"strings"
 
 	"github.com/mvdan/sh/syntax"
@@ -36,14 +34,6 @@ var (
 
 func main() {
 	flag.Parse()
-	if *cpuprofile != "" {
-		f, err := os.Create(*cpuprofile)
-		if err != nil {
-			log.Fatal(err)
-		}
-		pprof.StartCPUProfile(f)
-		defer pprof.StopCPUProfile()
-	}
 
 	out = os.Stdout
 	printConfig.Spaces = *indent
