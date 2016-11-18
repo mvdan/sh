@@ -29,6 +29,8 @@ var (
 	printConfig       syntax.PrintConfig
 	readBuf, writeBuf bytes.Buffer
 
+	copyBuf = make([]byte, 32*1024)
+
 	out io.Writer
 )
 
@@ -74,7 +76,7 @@ func formatStdin() error {
 		return fmt.Errorf("-w and -l can only be used on files")
 	}
 	readBuf.Reset()
-	if _, err := io.Copy(&readBuf, os.Stdin); err != nil {
+	if _, err := io.CopyBuffer(&readBuf, os.Stdin, copyBuf); err != nil {
 		return err
 	}
 	src := readBuf.Bytes()
