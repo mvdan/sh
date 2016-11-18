@@ -635,18 +635,15 @@ func (p *parser) arithmToken(b byte) token {
 
 func (p *parser) advanceLitOther(q quoteState) {
 	bs := p.litBuf[:0]
-	for {
-		if p.npos >= len(p.src) {
-			p.tok, p.val = _LitWord, string(bs)
-			return
-		}
+	tok := _LitWord
+loop:
+	for p.npos < len(p.src) {
 		b := p.src[p.npos]
 		switch b {
 		case '\\': // escaped byte follows
 			if p.npos++; p.npos == len(p.src) {
 				bs = append(bs, '\\')
-				p.tok, p.val = _LitWord, string(bs)
-				return
+				break loop
 			}
 			b = p.src[p.npos]
 			p.npos++
@@ -657,73 +654,63 @@ func (p *parser) advanceLitOther(q quoteState) {
 			}
 			continue
 		case '\n':
-			if q == sglQuotes {
-				p.f.Lines = append(p.f.Lines, p.npos+1)
-			} else {
-				p.tok, p.val = _LitWord, string(bs)
-				return
+			if q != sglQuotes {
+				break loop
 			}
+			p.f.Lines = append(p.f.Lines, p.npos+1)
 		case '\'':
 			switch q {
 			case paramExpExp, paramExpRepl:
 			default:
-				p.tok, p.val = _LitWord, string(bs)
-				return
+				break loop
 			}
 		case '"', '`', '$':
 			if q != sglQuotes {
-				p.tok, p.val = _Lit, string(bs)
-				return
+				tok = _Lit
+				break loop
 			}
 		case '}':
 			if q&allParamExp != 0 {
-				p.tok, p.val = _LitWord, string(bs)
-				return
+				break loop
 			}
 		case '/':
 			if q&allParamExp != 0 && q != paramExpExp {
-				p.tok, p.val = _LitWord, string(bs)
-				return
+				break loop
 			}
 		case ']':
 			if q&allRbrack != 0 {
-				p.tok, p.val = _LitWord, string(bs)
-				return
+				break loop
 			}
 		case '!', '*':
 			if q&allArithmExpr != 0 {
-				p.tok, p.val = _LitWord, string(bs)
-				return
+				break loop
 			}
 		case ':', '=', '%', '?', '^', ',':
 			if q&allArithmExpr != 0 || q&allParamReg != 0 {
-				p.tok, p.val = _LitWord, string(bs)
-				return
+				break loop
 			}
 		case '#', '[':
 			if q&allParamReg != 0 {
-				p.tok, p.val = _LitWord, string(bs)
-				return
+				break loop
 			}
 		case '+', '-':
 			switch q {
 			case paramExpInd, paramExpLen, paramExpOff,
 				paramExpExp, paramExpRepl, sglQuotes:
 			default:
-				p.tok, p.val = _LitWord, string(bs)
-				return
+				break loop
 			}
 		case ' ', '\t', ';', '&', '>', '<', '|', '(', ')', '\r':
 			switch q {
 			case paramExpExp, paramExpRepl, sglQuotes:
 			default:
-				p.tok, p.val = _LitWord, string(bs)
-				return
+				break loop
 			}
 		}
 		bs = append(bs, b)
 		p.npos++
 	}
+	p.tok, p.val = tok, string(bs)
 }
 
 func (p *parser) advanceLitNone() {
