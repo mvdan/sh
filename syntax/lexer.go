@@ -25,7 +25,7 @@ func arithmOps(b byte) bool {
 		b == '/' || b == '%' || b == '(' || b == ')' ||
 		b == '^' || b == '<' || b == '>' || b == ':' ||
 		b == '=' || b == ',' || b == '?' || b == '|' ||
-		b == '&'
+		b == '&' || b == ']'
 }
 
 func wordBreak(b byte) bool {
@@ -204,9 +204,6 @@ skipSpace:
 		p.tok = p.paramToken(b)
 	case q&allArithmExpr != 0 && arithmOps(b):
 		p.tok = p.arithmToken(b)
-	case q == arithmExprBrack && b == ']':
-		p.npos++
-		p.tok = rightBrack
 	case q == testRegexp:
 		if b == '(' {
 			p.advanceLitRe()
@@ -621,6 +618,9 @@ func (p *parser) arithmToken(b byte) token {
 		}
 		p.npos++
 		return caret
+	case ']':
+		p.npos++
+		return rightBrack
 	case ',':
 		p.npos++
 		return comma
