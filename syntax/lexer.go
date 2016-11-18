@@ -172,34 +172,12 @@ skipSpace:
 		default:
 			p.advanceLitNone()
 		}
-	case q == paramExpInd:
-		if paramOps(b) && b != '+' && b != '-' {
-			p.tok = p.paramToken(b)
-		} else if regOps(b) {
-			p.tok = p.regToken(b)
-		} else {
-			p.advanceLitOther(q)
-		}
-	case q == paramExpOff:
-		if b == ':' {
-			// to avoid :- and such
-			p.npos++
-			p.tok = colon
-		} else if paramOps(b) && b != '+' && b != '-' {
-			p.tok = p.paramToken(b)
-		} else if regOps(b) {
-			p.tok = p.regToken(b)
-		} else {
-			p.advanceLitOther(q)
-		}
-	case q == paramExpLen:
-		if paramOps(b) && b != '+' && b != '-' {
-			p.tok = p.paramToken(b)
-		} else if regOps(b) {
-			p.tok = p.regToken(b)
-		} else {
-			p.advanceLitOther(q)
-		}
+	case q == paramExpOff && b == ':':
+		// to avoid :- and such
+		p.npos++
+		p.tok = colon
+	case q&allParamArith != 0 && (b == '+' || b == '-'):
+		p.advanceLitOther(q)
 	case q&allParamExp != 0 && paramOps(b):
 		p.tok = p.paramToken(b)
 	case q&allArithmExpr != 0 && arithmOps(b):

@@ -189,7 +189,8 @@ const (
 	allRegTokens  = noState | subCmd | subCmdBckquo | hdocWord | switchCase
 	allArithmExpr = arithmExpr | arithmExprLet | arithmExprCmd | arithmExprBrack
 	allRbrack     = arithmExprBrack | paramExpInd
-	allParamReg   = paramExpName | paramExpInd | paramExpOff | paramExpLen
+	allParamArith = paramExpInd | paramExpOff | paramExpLen
+	allParamReg   = paramExpName | allParamArith
 	allParamExp   = allParamReg | paramExpRepl | paramExpExp
 )
 
