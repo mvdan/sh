@@ -168,7 +168,7 @@ func formatPath(path string, checkShebang bool) error {
 	}
 	defer f.Close()
 	readBuf.Reset()
-	if _, err := io.Copy(&readBuf, f); err != nil {
+	if _, err := io.CopyBuffer(&readBuf, f, copyBuf); err != nil {
 		return err
 	}
 	src := readBuf.Bytes()
