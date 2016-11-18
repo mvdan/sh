@@ -873,19 +873,6 @@ func (p *parser) arithmExprBase(ftok token, fpos Pos, compact bool) ArithmExpr {
 	return x
 }
 
-func (p *parser) getParamLit() (l *Lit) {
-	switch p.tok {
-	case _Lit, _LitWord:
-		l = p.lit(p.pos, p.val)
-	case dollar, quest, hash, minus:
-		l = p.lit(p.pos, p.tok.String())
-	default:
-		return nil
-	}
-	p.next()
-	return l
-}
-
 func (p *parser) paramExp() *ParamExp {
 	pe := &ParamExp{Dollar: p.pos}
 	old := p.preNested(paramExpName)
@@ -901,8 +888,17 @@ func (p *parser) paramExp() *ParamExp {
 			p.next()
 		}
 	}
-	if pe.Param = p.getParamLit(); pe.Param == nil && !pe.Length {
-		p.posErr(pe.Dollar, "parameter expansion requires a literal")
+	switch p.tok {
+	case _Lit, _LitWord:
+		pe.Param = p.lit(p.pos, p.val)
+		p.next()
+	case dollar, quest, hash, minus:
+		pe.Param = p.lit(p.pos, p.tok.String())
+		p.next()
+	default:
+		if !pe.Length {
+			p.posErr(pe.Dollar, "parameter expansion requires a literal")
+		}
 	}
 	if p.tok == rightBrace {
 		pe.Rbrace = p.pos
