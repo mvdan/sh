@@ -643,8 +643,7 @@ func (p *parser) advanceLitOther(q quoteState) {
 		b := p.src[p.npos]
 		switch b {
 		case '\\': // escaped byte follows
-			p.npos++
-			if p.npos == len(p.src) {
+			if p.npos++; p.npos == len(p.src) {
 				bs = append(bs, '\\')
 				p.tok, p.val = _LitWord, string(bs)
 				return
@@ -730,63 +729,52 @@ func (p *parser) advanceLitOther(q quoteState) {
 func (p *parser) advanceLitNone() {
 	bs := p.litBuf[:0]
 	p.asPos = 0
-	for {
-		if p.npos >= len(p.src) {
-			p.tok, p.val = _LitWord, string(bs)
-			return
-		}
+	tok := _LitWord
+loop:
+	for p.npos < len(p.src) {
 		b := p.src[p.npos]
 		switch b {
 		case '\\': // escaped byte follows
-			p.npos++
-			if p.npos == len(p.src) {
+			if p.npos++; p.npos == len(p.src) {
 				bs = append(bs, '\\')
-				p.tok, p.val = _LitWord, string(bs)
-				return
+				break loop
 			}
-			b = p.src[p.npos]
-			p.npos++
-			if b == '\n' {
+			if b = p.src[p.npos]; b == '\n' {
+				p.npos++
 				p.f.Lines = append(p.f.Lines, p.npos)
-			} else {
-				bs = append(bs, '\\', b)
+				continue
 			}
+			bs = append(bs, '\\')
 		case '>', '<':
 			if p.npos+1 < len(p.src) && p.src[p.npos+1] == '(' {
-				p.tok, p.val = _Lit, string(bs)
-				return
+				tok = _Lit
 			}
-			fallthrough
+			break loop
 		case ' ', '\t', '\n', '\r', '&', '|', ';', '(', ')':
-			p.tok, p.val = _LitWord, string(bs)
-			return
+			break loop
 		case '`':
-			if p.quote == subCmdBckquo {
-				p.tok, p.val = _LitWord, string(bs)
-				return
+			if p.quote != subCmdBckquo {
+				tok = _Lit
 			}
-			fallthrough
+			break loop
 		case '"', '\'', '$':
-			p.tok, p.val = _Lit, string(bs)
-			return
+			tok = _Lit
+			break loop
 		case '?', '*', '+', '@', '!':
 			if p.bash() && p.npos+1 < len(p.src) && p.src[p.npos+1] == '(' {
-				p.tok, p.val = _Lit, string(bs)
-				return
+				tok = _Lit
+				break loop
 			}
-			bs = append(bs, b)
-			p.npos++
 		case '=':
 			p.asPos = len(bs)
 			if p.bash() && p.asPos > 0 && p.src[p.npos-1] == '+' {
 				p.asPos-- // a+=b
 			}
-			fallthrough
-		default:
-			bs = append(bs, b)
-			p.npos++
 		}
+		bs = append(bs, b)
+		p.npos++
 	}
+	p.tok, p.val = tok, string(bs)
 }
 
 func (p *parser) advanceLitDquote() {
