@@ -1485,7 +1485,10 @@ var fileTests = []testCase{
 		common: word(
 			&ParamExp{
 				Param: lit("foo"),
-				Exp:   &Expansion{Op: SubstPlus},
+				Exp: &Expansion{
+					Op:   SubstPlus,
+					Word: litWord(""),
+				},
 			},
 			dblQuoted(lit("bar")),
 		),
@@ -3533,7 +3536,7 @@ func setPosRecurse(tb testing.TB, src string, v interface{}, to Pos, diff bool) 
 			recurse(x.Repl.Orig)
 			recurse(x.Repl.With)
 		}
-		if x.Exp != nil && x.Exp.Word != nil {
+		if x.Exp != nil {
 			recurse(x.Exp.Word)
 		}
 	case *ArithmExp:

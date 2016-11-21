@@ -128,7 +128,7 @@ func Walk(v Visitor, node Node) {
 			Walk(v, x.Repl.Orig)
 			Walk(v, x.Repl.With)
 		}
-		if x.Exp != nil && x.Exp.Word != nil {
+		if x.Exp != nil {
 			Walk(v, x.Exp.Word)
 		}
 	case *ArithmExp:

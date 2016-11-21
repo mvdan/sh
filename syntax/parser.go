@@ -966,7 +966,7 @@ func (p *parser) paramExp() *ParamExp {
 		pe.Exp = &Expansion{Op: ParExpOperator(p.tok)}
 		p.quote = paramExpExp
 		p.next()
-		pe.Exp.Word = p.getWord()
+		pe.Exp.Word = p.getWordOrEmpty()
 	}
 	p.postNested(old)
 	pe.Rbrace = p.pos
