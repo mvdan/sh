@@ -503,7 +503,12 @@ func (p *parser) getWord() *Word {
 func (p *parser) getWordOrEmpty() *Word {
 	parts := p.wordParts()
 	if len(parts) == 0 {
-		return p.word(p.singleWps(p.lit(p.pos, "")))
+		oldNpos := p.npos
+		// force Lit.Pos() == Lit.End()
+		p.npos = int(p.pos) - 1
+		w := p.word(p.singleWps(p.lit(p.pos, "")))
+		p.npos = oldNpos
+		return w
 	}
 	return p.word(parts)
 }
