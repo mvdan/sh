@@ -3401,6 +3401,20 @@ func setPosRecurse(tb testing.TB, src string, v interface{}, to Pos, diff bool) 
 			recurse(wp)
 		}
 	case *Lit:
+		pos, end := int(x.Pos()), int(x.End())
+		want := pos+len(x.Value)
+		switch {
+		case src == "":
+		case strings.Contains(src, "\\\n"):
+		case end-1 < len(src) && src[end-1] == '\n':
+			// heredoc literals that end with the
+			// stop word and a newline
+		case end-1 == len(src):
+			// same as above, but with word and EOF
+		case end != want:
+			tb.Fatalf("Unexpected Lit.End() %d (wanted %d) in %q",
+				end, want, string(src))
+		}
 		setPos(&x.ValuePos, x.Value)
 		setPos(&x.ValueEnd)
 	case *Subshell:
