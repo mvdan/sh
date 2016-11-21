@@ -115,12 +115,6 @@ func (p *printer) spaces(n int) {
 	}
 }
 
-func (p *printer) tabs(n int) {
-	for i := 0; i < n; i++ {
-		p.WriteByte('\t')
-	}
-}
-
 func (p *printer) bslashNewl() {
 	p.WriteString(" \\\n")
 	p.wantSpace = false
@@ -174,7 +168,9 @@ func (p *printer) indent() {
 	switch {
 	case p.level == 0:
 	case p.c.Spaces == 0:
-		p.tabs(p.level)
+		for i := 0; i < p.level; i++ {
+			p.WriteByte('\t')
+		}
 	case p.c.Spaces > 0:
 		p.spaces(p.c.Spaces * p.level)
 	}
