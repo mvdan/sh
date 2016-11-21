@@ -16,7 +16,10 @@ type PrintConfig struct {
 
 var printerFree = sync.Pool{
 	New: func() interface{} {
-		return &printer{bufWriter: bufio.NewWriter(nil)}
+		return &printer{
+			bufWriter:  bufio.NewWriter(nil),
+			lenPrinter: new(printer),
+		}
 	},
 }
 
@@ -138,8 +141,8 @@ func (p *printer) semiOrNewl(s string, pos Pos) {
 			p.WriteByte(';')
 		}
 		p.WriteByte(' ')
+		p.incLines(pos)
 	}
-	p.incLines(pos)
 	p.WriteString(s)
 	p.wantSpace = true
 }
@@ -825,9 +828,6 @@ func (c *byteCounter) Reset(io.Writer) { *c = 0 }
 func (c *byteCounter) Flush() error    { return nil }
 
 func (p *printer) stmtLen(s *Stmt) int {
-	if p.lenPrinter == nil {
-		p.lenPrinter = new(printer)
-	}
 	*p.lenPrinter = printer{bufWriter: &p.lenCounter}
 	p.lenPrinter.bufWriter.Reset(nil)
 	p.lenPrinter.f = p.f
