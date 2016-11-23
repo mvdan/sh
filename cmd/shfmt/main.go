@@ -17,11 +17,10 @@ import (
 )
 
 var (
-	write      = flag.Bool("w", false, "write result to file instead of stdout")
-	list       = flag.Bool("l", false, "list files whose formatting differs from shfmt's")
-	indent     = flag.Int("i", 0, "indent: 0 for tabs (default), >0 for number of spaces")
-	posix      = flag.Bool("p", false, "parse POSIX shell code instead of bash")
-	cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
+	write  = flag.Bool("w", false, "write result to file instead of stdout")
+	list   = flag.Bool("l", false, "list files whose formatting differs from shfmt's")
+	indent = flag.Int("i", 0, "indent: 0 for tabs (default), >0 for number of spaces")
+	posix  = flag.Bool("p", false, "parse POSIX shell code instead of bash")
 
 	parseMode         syntax.ParseMode
 	printConfig       syntax.PrintConfig
