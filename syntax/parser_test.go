@@ -902,7 +902,7 @@ var bashTests = []errorCase{
 	},
 	{
 		"echo ${foo[1 2]}",
-		`1:11: reached "2" without matching [ with ]`,
+		`1:14: not a valid arithmetic operator: 2`,
 	},
 	{
 		"echo ${foo[}",
@@ -914,11 +914,11 @@ var bashTests = []errorCase{
 	},
 	{
 		"echo ${foo:",
-		`1:11: : must be followed by a word`,
+		`1:11: : must be followed by an expression`,
 	},
 	{
 		"echo ${foo:1 2} #INVBASH lazy eval",
-		`1:6: reached "2" without matching ${ with }`,
+		`1:14: not a valid arithmetic operator: 2`,
 	},
 	{
 		"echo ${foo:1",
@@ -926,7 +926,7 @@ var bashTests = []errorCase{
 	},
 	{
 		"echo ${foo:1:",
-		`1:13: : must be followed by a word`,
+		`1:13: : must be followed by an expression`,
 	},
 	{
 		"echo ${foo:1:2",

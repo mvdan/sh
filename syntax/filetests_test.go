@@ -1630,7 +1630,10 @@ var fileTests = []testCase{
 		Strs: []string{`${foo[-1]}`},
 		bash: &ParamExp{
 			Param: lit("foo"),
-			Ind:   &Index{Expr: litWord("-1")},
+			Ind: &Index{Expr: &UnaryArithm{
+				Op: Minus,
+				X:  litWord("1"),
+			}},
 		},
 	},
 	{
@@ -1688,7 +1691,7 @@ var fileTests = []testCase{
 			Param: lit("foo"),
 			Slice: &Slice{
 				Offset: litWord("1"),
-				Length: litWord("-2"),
+				Length: &UnaryArithm{Op: Minus, X: litWord("2")},
 			},
 		},
 	},
@@ -1696,14 +1699,18 @@ var fileTests = []testCase{
 		Strs: []string{`${foo::+3}`},
 		bash: &ParamExp{
 			Param: lit("foo"),
-			Slice: &Slice{Length: litWord("+3")},
+			Slice: &Slice{
+				Length: &UnaryArithm{Op: Plus, X: litWord("3")},
+			},
 		},
 	},
 	{
 		Strs: []string{`${foo: -1}`},
 		bash: &ParamExp{
 			Param: lit("foo"),
-			Slice: &Slice{Offset: litWord("-1")},
+			Slice: &Slice{
+				Offset: &UnaryArithm{Op: Minus, X: litWord("1")},
+			},
 		},
 	},
 	{
@@ -3402,7 +3409,7 @@ func setPosRecurse(tb testing.TB, src string, v interface{}, to Pos, diff bool) 
 		}
 	case *Lit:
 		pos, end := int(x.Pos()), int(x.End())
-		want := pos+len(x.Value)
+		want := pos + len(x.Value)
 		switch {
 		case src == "":
 		case strings.Contains(src, "\\\n"):

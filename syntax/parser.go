@@ -187,7 +187,8 @@ const (
 	paramExpExp
 
 	allRegTokens  = noState | subCmd | subCmdBckquo | hdocWord | switchCase
-	allArithmExpr = arithmExpr | arithmExprLet | arithmExprCmd | arithmExprBrack
+	allArithmExpr = arithmExpr | arithmExprLet | arithmExprCmd |
+		arithmExprBrack | allParamArith
 	allRbrack     = arithmExprBrack | paramExpInd
 	allParamArith = paramExpInd | paramExpOff | paramExpLen
 	allParamReg   = paramExpName | allParamArith
@@ -794,6 +795,9 @@ func (p *parser) arithmExpr(ftok token, fpos Pos, level int, compact bool) Arith
 		return left
 	}
 	newLevel := arithmOpLevel(BinAritOperator(p.tok))
+	if p.tok == colon && p.quote&allParamArith != 0 {
+		newLevel = -1
+	}
 	if newLevel < 0 {
 		switch p.tok {
 		case _Lit, _LitWord:
@@ -919,10 +923,11 @@ func (p *parser) paramExp() *ParamExp {
 		lpos := p.pos
 		p.quote = paramExpInd
 		p.next()
-		if w := p.getWord(); w == nil {
+		pe.Ind = &Index{
+			Expr: p.arithmExpr(leftBrack, lpos, 0, false),
+		}
+		if pe.Ind.Expr == nil {
 			p.followErr(lpos, "[", "an expression")
-		} else {
-			pe.Ind = &Index{Expr: w}
 		}
 		p.quote = paramExpName
 		p.matched(lpos, leftBrack, rightBrack)
@@ -955,12 +960,18 @@ func (p *parser) paramExp() *ParamExp {
 		p.quote = paramExpOff
 		p.next()
 		if p.tok != colon {
-			pe.Slice.Offset = p.followWordTok(colon, colonPos)
+			pe.Slice.Offset = p.arithmExpr(colon, colonPos, 0, false)
+			if pe.Slice.Offset == nil {
+				p.followErr(colonPos, ":", "an expression")
+			}
 		}
 		colonPos = p.pos
 		p.quote = paramExpLen
 		if p.got(colon) {
-			pe.Slice.Length = p.followWordTok(colon, colonPos)
+			pe.Slice.Length = p.arithmExpr(colon, colonPos, 0, false)
+			if pe.Slice.Length == nil {
+				p.followErr(colonPos, ":", "an expression")
+			}
 		}
 	case caret, dblCaret, comma, dblComma:
 		if !p.bash() {

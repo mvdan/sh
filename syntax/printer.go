@@ -315,13 +315,10 @@ func (p *printer) wordPart(wp WordPart) {
 		}
 		if x.Slice != nil {
 			p.WriteByte(':')
-			if w, ok := x.Slice.Offset.(*Word); ok {
-				if lit, ok := w.Parts[0].(*Lit); ok {
-					switch lit.Value[0] {
-					case '+', '-':
-						// to avoid :+ and :-
-						p.WriteByte(' ')
-					}
+			if un, ok := x.Slice.Offset.(*UnaryArithm); ok {
+				if un.Op == Plus || un.Op == Minus {
+					// to avoid :+ and :-
+					p.WriteByte(' ')
 				}
 			}
 			p.arithmExpr(x.Slice.Offset, true)

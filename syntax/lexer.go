@@ -171,16 +171,10 @@ skipSpace:
 		default:
 			p.advanceLitNone()
 		}
-	case q == paramExpOff && b == ':':
-		// to avoid :- and such
-		p.npos++
-		p.tok = colon
-	case q&allParamArith != 0 && (b == '+' || b == '-'):
-		p.advanceLitOther(q)
-	case q&allParamExp != 0 && paramOps(b):
-		p.tok = p.paramToken(b)
 	case q&allArithmExpr != 0 && arithmOps(b):
 		p.tok = p.arithmToken(b)
+	case q&allParamExp != 0 && paramOps(b):
+		p.tok = p.paramToken(b)
 	case q == testRegexp:
 		if b == '(' {
 			p.advanceLitRe()
