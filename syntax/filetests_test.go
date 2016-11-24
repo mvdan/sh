@@ -1637,11 +1637,11 @@ var fileTests = []testCase{
 		},
 	},
 	{
-		Strs: []string{`${foo[1]-etc}`},
+		Strs: []string{`${foo[*]-etc}`},
 		bash: &ParamExp{
 			Param: lit("foo"),
 			Ind: &Index{
-				Expr: litWord("1"),
+				Expr: litWord("*"),
 			},
 			Exp: &Expansion{
 				Op:   SubstMinus,

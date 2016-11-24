@@ -914,6 +914,9 @@ func (p *parser) paramExp() *ParamExp {
 		lpos := p.pos
 		p.quote = paramExpInd
 		p.next()
+		if p.tok == star {
+			p.tok, p.val = _LitWord, "*"
+		}
 		pe.Ind = &Index{
 			Expr: p.arithmExpr(leftBrack, lpos, 0, false),
 		}
