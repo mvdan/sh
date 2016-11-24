@@ -3145,12 +3145,11 @@ var fileTests = []testCase{
 		}}},
 	},
 	{
-		Strs: []string{"a[2]=(b)"},
+		Strs:  []string{"a[2]=b"},
+		posix: litStmt("a[2]=b"),
 		bash: &Stmt{Assigns: []*Assign{{
-			Name: lit("a[2]"),
-			Value: word(
-				&ArrayExpr{List: litWords("b")},
-			),
+			Name:  lit("a[2]"),
+			Value: litWord("b"),
 		}}},
 	},
 	{
