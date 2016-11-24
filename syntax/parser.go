@@ -373,23 +373,14 @@ func (p *parser) stmtEnd(n Node, start, end string) Pos {
 	return pos
 }
 
-func (p *parser) descTok() string {
-	switch p.tok {
-	case _Lit, _LitWord:
-		return strconv.Quote(p.val)
-	default:
-		return p.tok.String()
-	}
-}
-
 func (p *parser) quoteErr(lpos Pos, quote token) {
 	p.posErr(lpos, "reached %s without closing quote %s",
-		p.descTok(), quote)
+		p.tok.String(), quote)
 }
 
 func (p *parser) matchingErr(lpos Pos, left, right interface{}) {
 	p.posErr(lpos, "reached %s without matching %s with %s",
-		p.descTok(), left, right)
+		p.tok.String(), left, right)
 }
 
 func (p *parser) matched(lpos Pos, left, right token) Pos {

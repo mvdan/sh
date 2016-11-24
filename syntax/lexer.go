@@ -434,9 +434,6 @@ func (p *parser) paramToken(b byte) token {
 	case '[':
 		p.npos++
 		return leftBrack
-	case ']':
-		p.npos++
-		return rightBrack
 	case '^':
 		if byteAt(p.src, p.npos+1) == '^' {
 			p.npos += 2
