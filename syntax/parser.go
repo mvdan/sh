@@ -45,8 +45,9 @@ func Parse(src []byte, name string, mode ParseMode) (*File, error) {
 		// trigger it
 		p.doHeredocs()
 	}
+	f, err := p.f, p.err
 	parserFree.Put(p)
-	return p.f, p.err
+	return f, err
 }
 
 type parser struct {
