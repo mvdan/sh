@@ -622,7 +622,9 @@ loop:
 			}
 			continue
 		case '\n':
-			if q != sglQuotes {
+			switch q {
+			case sglQuotes, paramExpRepl, paramExpExp:
+			default:
 				break loop
 			}
 			p.f.Lines = append(p.f.Lines, p.npos+1)

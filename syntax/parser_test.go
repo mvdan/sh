@@ -913,6 +913,14 @@ var bashTests = []errorCase{
 		`1:11: [ must be followed by an expression`,
 	},
 	{
+		"echo ${a/\n",
+		`1:6: reached EOF without matching ${ with }`,
+	},
+	{
+		"echo ${a-\n",
+		`1:6: reached EOF without matching ${ with }`,
+	},
+	{
 		"echo ${foo:",
 		`1:11: : must be followed by an expression`,
 	},
