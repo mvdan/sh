@@ -3301,7 +3301,8 @@ func fullProg(v interface{}) *File {
 	return nil
 }
 
-func setPosRecurse(tb testing.TB, src string, v interface{}, to Pos, diff bool) {
+func clearPosRecurse(tb testing.TB, src string, v interface{}) {
+	const zeroPos = 0
 	checkSrc := func(pos Pos, strs ...string) {
 		if src == "" {
 			return
@@ -3334,25 +3335,25 @@ func setPosRecurse(tb testing.TB, src string, v interface{}, to Pos, diff bool) 
 	}
 	setPos := func(p *Pos, strs ...string) {
 		checkSrc(*p, strs...)
-		if diff && *p == to {
-			tb.Fatalf("Pos in %T is already %v", v, to)
+		if *p == zeroPos {
+			tb.Fatalf("Pos in %T is already %v", v, zeroPos)
 		}
-		*p = to
+		*p = zeroPos
 	}
 	checkPos := func(n Node) {
 		if n == nil {
 			return
 		}
-		if n.Pos() != to {
+		if n.Pos() != zeroPos {
 			tb.Fatalf("Found unexpected Pos() in %T: want %d, got %d",
-				n, to, n.Pos())
+				n, zeroPos, n.Pos())
 		}
 		if n.Pos() > n.End() {
 			tb.Fatalf("Found End() before Pos() in %T", n)
 		}
 	}
 	recurse := func(v interface{}) {
-		setPosRecurse(tb, src, v, to, diff)
+		clearPosRecurse(tb, src, v)
 		if n, ok := v.(Node); ok {
 			checkPos(n)
 		}

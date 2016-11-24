@@ -186,8 +186,7 @@ func singleParse(in string, want *File, mode ParseMode) func(t *testing.T) {
 		}
 		checkNewlines(t, in, got.Lines)
 		got.Lines = nil
-		setPosRecurse(t, "", want, 0, false)
-		setPosRecurse(t, in, got, 0, true)
+		clearPosRecurse(t, in, got)
 		if !reflect.DeepEqual(got, want) {
 			t.Fatalf("AST mismatch in %q\ndiff:\n%s", in,
 				strings.Join(pretty.Diff(want, got), "\n"),
