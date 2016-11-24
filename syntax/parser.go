@@ -322,6 +322,10 @@ func (p *parser) followErr(pos Pos, left, right string) {
 	p.posErr(pos, "%s must be followed by %s", leftStr, right)
 }
 
+func (p *parser) followErrExp(pos Pos, left string) {
+	p.followErr(pos, left, "an expression")
+}
+
 func (p *parser) follow(lpos Pos, left string, tok token) Pos {
 	pos := p.pos
 	if !p.got(tok) {
@@ -811,11 +815,11 @@ func (p *parser) arithmExpr(ftok token, fpos Pos, level int, compact, tern bool)
 		X:     left,
 	}
 	if p.next(); compact && p.spaced {
-		p.followErr(b.OpPos, b.Op.String(), "an expression")
+		p.followErrExp(b.OpPos, b.Op.String())
 	}
 	b.Y = p.arithmExpr(token(b.Op), b.OpPos, newLevel, compact, b.Op == Quest)
 	if b.Y == nil {
-		p.followErr(b.OpPos, b.Op.String(), "an expression")
+		p.followErrExp(b.OpPos, b.Op.String())
 	}
 	return b
 }
@@ -827,7 +831,7 @@ func (p *parser) arithmExprBase(ftok token, fpos Pos, compact bool) ArithmExpr {
 		ue := &UnaryArithm{OpPos: p.pos, Op: UnAritOperator(p.tok)}
 		p.next()
 		if ue.X = p.arithmExprBase(token(ue.Op), ue.OpPos, compact); ue.X == nil {
-			p.followErr(ue.OpPos, ue.Op.String(), "an expression")
+			p.followErrExp(ue.OpPos, ue.Op.String())
 		}
 		return ue
 	case leftParen:
@@ -842,11 +846,11 @@ func (p *parser) arithmExprBase(ftok token, fpos Pos, compact bool) ArithmExpr {
 	case plus, minus:
 		ue := &UnaryArithm{OpPos: p.pos, Op: UnAritOperator(p.tok)}
 		if p.next(); compact && p.spaced {
-			p.followErr(ue.OpPos, ue.Op.String(), "an expression")
+			p.followErrExp(ue.OpPos, ue.Op.String())
 		}
 		ue.X = p.arithmExpr(token(ue.Op), ue.OpPos, 0, compact, false)
 		if ue.X == nil {
-			p.followErr(ue.OpPos, ue.Op.String(), "an expression")
+			p.followErrExp(ue.OpPos, ue.Op.String())
 		}
 		x = ue
 	case bckQuote:
@@ -924,7 +928,7 @@ func (p *parser) paramExp() *ParamExp {
 			Expr: p.arithmExpr(leftBrack, lpos, 0, false, false),
 		}
 		if pe.Ind.Expr == nil {
-			p.followErr(lpos, "[", "an expression")
+			p.followErrExp(lpos, "[")
 		}
 		p.quote = paramExpName
 		p.matched(lpos, leftBrack, rightBrack)
@@ -959,7 +963,7 @@ func (p *parser) paramExp() *ParamExp {
 		if p.tok != colon {
 			pe.Slice.Offset = p.arithmExpr(colon, colonPos, 0, false, false)
 			if pe.Slice.Offset == nil {
-				p.followErr(colonPos, ":", "an expression")
+				p.followErrExp(colonPos, ":")
 			}
 		}
 		colonPos = p.pos
@@ -967,7 +971,7 @@ func (p *parser) paramExp() *ParamExp {
 		if p.got(colon) {
 			pe.Slice.Length = p.arithmExpr(colon, colonPos, 0, false, false)
 			if pe.Slice.Length == nil {
-				p.followErr(colonPos, ":", "an expression")
+				p.followErrExp(colonPos, ":")
 			}
 		}
 	case caret, dblCaret, comma, dblComma:
@@ -1508,7 +1512,7 @@ func (p *parser) testExpr(ftok token, fpos Pos, level int) TestExpr {
 		p.next()
 	}
 	if b.Y = p.testExpr(token(b.Op), b.OpPos, newLevel); b.Y == nil {
-		p.followErr(b.OpPos, b.Op.String(), "an expression")
+		p.followErrExp(b.OpPos, b.Op.String())
 	}
 	return b
 }
