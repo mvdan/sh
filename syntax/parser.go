@@ -557,7 +557,7 @@ func (p *parser) wordPart() WordPart {
 			return wp
 		}
 		p.next()
-		ar.X = p.arithmExpr(left, ar.Left, 0, false)
+		ar.X = p.arithmExpr(left, ar.Left, 0, false, false)
 		if ar.Bracket {
 			if p.tok != rightBrack {
 				p.matchingErr(ar.Left, dollBrack, rightBrack)
@@ -772,7 +772,7 @@ func arithmOpLevel(op BinAritOperator) int {
 	return -1
 }
 
-func (p *parser) arithmExpr(ftok token, fpos Pos, level int, compact bool) ArithmExpr {
+func (p *parser) arithmExpr(ftok token, fpos Pos, level int, compact, tern bool) ArithmExpr {
 	if p.tok == _EOF || p.peekArithmEnd() {
 		return nil
 	}
@@ -780,13 +780,13 @@ func (p *parser) arithmExpr(ftok token, fpos Pos, level int, compact bool) Arith
 	if level > 11 {
 		left = p.arithmExprBase(ftok, fpos, compact)
 	} else {
-		left = p.arithmExpr(ftok, fpos, level+1, compact)
+		left = p.arithmExpr(ftok, fpos, level+1, compact, false)
 	}
 	if compact && p.spaced {
 		return left
 	}
 	newLevel := arithmOpLevel(BinAritOperator(p.tok))
-	if p.tok == colon && p.quote&allParamArith != 0 {
+	if !tern && p.tok == colon && p.quote&allParamArith != 0 {
 		newLevel = -1
 	}
 	if newLevel < 0 {
@@ -813,7 +813,8 @@ func (p *parser) arithmExpr(ftok token, fpos Pos, level int, compact bool) Arith
 	if p.next(); compact && p.spaced {
 		p.followErr(b.OpPos, b.Op.String(), "an expression")
 	}
-	if b.Y = p.arithmExpr(token(b.Op), b.OpPos, newLevel, compact); b.Y == nil {
+	b.Y = p.arithmExpr(token(b.Op), b.OpPos, newLevel, compact, b.Op == Quest)
+	if b.Y == nil {
 		p.followErr(b.OpPos, b.Op.String(), "an expression")
 	}
 	return b
@@ -832,7 +833,8 @@ func (p *parser) arithmExprBase(ftok token, fpos Pos, compact bool) ArithmExpr {
 	case leftParen:
 		pe := &ParenArithm{Lparen: p.pos}
 		p.next()
-		if pe.X = p.arithmExpr(leftParen, pe.Lparen, 0, false); pe.X == nil {
+		pe.X = p.arithmExpr(leftParen, pe.Lparen, 0, false, false)
+		if pe.X == nil {
 			p.posErr(pe.Lparen, "parentheses must enclose an expression")
 		}
 		pe.Rparen = p.matched(pe.Lparen, leftParen, rightParen)
@@ -842,7 +844,8 @@ func (p *parser) arithmExprBase(ftok token, fpos Pos, compact bool) ArithmExpr {
 		if p.next(); compact && p.spaced {
 			p.followErr(ue.OpPos, ue.Op.String(), "an expression")
 		}
-		if ue.X = p.arithmExpr(token(ue.Op), ue.OpPos, 0, compact); ue.X == nil {
+		ue.X = p.arithmExpr(token(ue.Op), ue.OpPos, 0, compact, false)
+		if ue.X == nil {
 			p.followErr(ue.OpPos, ue.Op.String(), "an expression")
 		}
 		x = ue
@@ -918,7 +921,7 @@ func (p *parser) paramExp() *ParamExp {
 			p.tok, p.val = _LitWord, "*"
 		}
 		pe.Ind = &Index{
-			Expr: p.arithmExpr(leftBrack, lpos, 0, false),
+			Expr: p.arithmExpr(leftBrack, lpos, 0, false, false),
 		}
 		if pe.Ind.Expr == nil {
 			p.followErr(lpos, "[", "an expression")
@@ -954,7 +957,7 @@ func (p *parser) paramExp() *ParamExp {
 		p.quote = paramExpOff
 		p.next()
 		if p.tok != colon {
-			pe.Slice.Offset = p.arithmExpr(colon, colonPos, 0, false)
+			pe.Slice.Offset = p.arithmExpr(colon, colonPos, 0, false, false)
 			if pe.Slice.Offset == nil {
 				p.followErr(colonPos, ":", "an expression")
 			}
@@ -962,7 +965,7 @@ func (p *parser) paramExp() *ParamExp {
 		colonPos = p.pos
 		p.quote = paramExpLen
 		if p.got(colon) {
-			pe.Slice.Length = p.arithmExpr(colon, colonPos, 0, false)
+			pe.Slice.Length = p.arithmExpr(colon, colonPos, 0, false, false)
 			if pe.Slice.Length == nil {
 				p.followErr(colonPos, ":", "an expression")
 			}
@@ -1287,7 +1290,7 @@ func (p *parser) arithmExpCmd() Command {
 		return s
 	}
 	p.next()
-	ar.X = p.arithmExpr(dblLeftParen, ar.Left, 0, false)
+	ar.X = p.arithmExpr(dblLeftParen, ar.Left, 0, false, false)
 	ar.Right = p.arithmEnd(dblLeftParen, ar.Left, old)
 	return ar
 }
@@ -1366,17 +1369,17 @@ func (p *parser) loop(forPos Pos) Loop {
 			p.tok = semicolon
 		}
 		if p.tok != semicolon {
-			cl.Init = p.arithmExpr(dblLeftParen, cl.Lparen, 0, false)
+			cl.Init = p.arithmExpr(dblLeftParen, cl.Lparen, 0, false, false)
 		}
 		scPos := p.pos
 		p.follow(p.pos, "expression", semicolon)
 		if p.tok != semicolon {
-			cl.Cond = p.arithmExpr(semicolon, scPos, 0, false)
+			cl.Cond = p.arithmExpr(semicolon, scPos, 0, false, false)
 		}
 		scPos = p.pos
 		p.follow(p.pos, "expression", semicolon)
 		if p.tok != semicolon {
-			cl.Post = p.arithmExpr(semicolon, scPos, 0, false)
+			cl.Post = p.arithmExpr(semicolon, scPos, 0, false, false)
 		}
 		cl.Rparen = p.arithmEnd(dblLeftParen, cl.Lparen, old)
 		p.gotSameLine(semicolon)
@@ -1634,7 +1637,7 @@ func (p *parser) letClause() *LetClause {
 	old := p.preNested(arithmExprLet)
 	p.next()
 	for !p.newLine && !stopToken(p.tok) && !p.peekRedir() {
-		x := p.arithmExpr(illegalTok, lc.Let, 0, true)
+		x := p.arithmExpr(illegalTok, lc.Let, 0, true, false)
 		if x == nil {
 			break
 		}

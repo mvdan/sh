@@ -1714,6 +1714,24 @@ var fileTests = []testCase{
 		},
 	},
 	{
+		Strs: []string{`${foo:a?1:2:3}`},
+		bash: &ParamExp{
+			Param: lit("foo"),
+			Slice: &Slice{
+				Offset: &BinaryArithm{
+					Op: Quest,
+					X:  litWord("a"),
+					Y: &BinaryArithm{
+						Op: Colon,
+						X:  litWord("1"),
+						Y:  litWord("2"),
+					},
+				},
+				Length: litWord("3"),
+			},
+		},
+	},
+	{
 		Strs: []string{`${foo/b1/b2}`},
 		bash: &ParamExp{
 			Param: lit("foo"),
