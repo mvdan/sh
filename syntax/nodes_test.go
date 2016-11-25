@@ -14,7 +14,7 @@ func TestPosition(t *testing.T) {
 	for i, c := range fileTests {
 		for j, in := range c.Strs {
 			t.Run(fmt.Sprintf("%03d-%d", i, j), func(t *testing.T) {
-				prog, err := Parse([]byte(in), "", 0)
+				prog, err := Parse(strings.NewReader(in), "", 0)
 				if err != nil {
 					t.Fatal(err)
 				}

@@ -64,12 +64,7 @@ func formatStdin() error {
 	if *write || *list {
 		return fmt.Errorf("-w and -l can only be used on files")
 	}
-	readBuf.Reset()
-	if _, err := io.CopyBuffer(&readBuf, os.Stdin, copyBuf); err != nil {
-		return err
-	}
-	src := readBuf.Bytes()
-	prog, err := syntax.Parse(src, "", parseMode)
+	prog, err := syntax.Parse(os.Stdin, "", parseMode)
 	if err != nil {
 		return err
 	}
@@ -171,7 +166,7 @@ func formatPath(path string, checkShebang bool) error {
 		return err
 	}
 	src := readBuf.Bytes()
-	prog, err := syntax.Parse(src, path, parseMode)
+	prog, err := syntax.Parse(&readBuf, path, parseMode)
 	if err != nil {
 		return err
 	}

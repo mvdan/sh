@@ -22,7 +22,7 @@ func (u paramUpper) Visit(node syntax.Node) syntax.Visitor {
 
 func ExampleWalk() {
 	in := `echo $foo "and $bar"`
-	f, err := syntax.Parse([]byte(in), "", 0)
+	f, err := syntax.Parse(strings.NewReader(in), "", 0)
 	if err != nil {
 		return
 	}

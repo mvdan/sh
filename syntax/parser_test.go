@@ -180,7 +180,7 @@ func TestParseErrPosixConfirm(t *testing.T) {
 
 func singleParse(in string, want *File, mode ParseMode) func(t *testing.T) {
 	return func(t *testing.T) {
-		got, err := Parse([]byte(in), "", mode)
+		got, err := Parse(strings.NewReader(in), "", mode)
 		if err != nil {
 			t.Fatalf("Unexpected error in %q: %v", in, err)
 		}
@@ -227,12 +227,13 @@ func BenchmarkParse(b *testing.B) {
 		},
 	}
 	for _, c := range benchmarks {
+		in := strings.NewReader(c.in)
 		b.Run(c.name, func(b *testing.B) {
-			in := []byte(c.in)
 			for i := 0; i < b.N; i++ {
 				if _, err := Parse(in, "", ParseComments); err != nil {
 					b.Fatal(err)
 				}
+				in.Reset(c.in)
 			}
 		})
 	}
@@ -721,7 +722,7 @@ var shellTests = []errorCase{
 
 func checkError(in, want string, mode ParseMode) func(*testing.T) {
 	return func(t *testing.T) {
-		_, err := Parse([]byte(in), "", mode)
+		_, err := Parse(strings.NewReader(in), "", mode)
 		if err == nil {
 			t.Fatalf("Expected error in %q: %v", in, want)
 		}
@@ -1003,7 +1004,7 @@ var posixTests = []errorCase{
 func TestInputName(t *testing.T) {
 	in := shellTests[0].in
 	want := "some-file.sh:" + shellTests[0].want
-	_, err := Parse([]byte(in), "some-file.sh", 0)
+	_, err := Parse(strings.NewReader(in), "some-file.sh", 0)
 	if err == nil {
 		t.Fatalf("Expected error in %q: %v", in, want)
 	}
@@ -1011,5 +1012,23 @@ func TestInputName(t *testing.T) {
 	if got != want {
 		t.Fatalf("Error mismatch in %q\nwant: %s\ngot:  %s",
 			in, want, got)
+	}
+}
+
+var errBadReader = fmt.Errorf("write: expected error")
+
+type badReader struct{}
+
+func (b badReader) Read(p []byte) (int, error) { return 0, errBadReader }
+
+func TestReadErr(t *testing.T) {
+	var in badReader
+	_, err := Parse(in, "", 0)
+	if err == nil {
+		t.Fatalf("Expected error with bad reader")
+	}
+	if err != errBadReader {
+		t.Fatalf("Error mismatch with bad reader:\nwant: %v\ngot:  %v",
+			errBadReader, err)
 	}
 }

@@ -5,13 +5,14 @@ package syntax_test
 
 import (
 	"os"
+	"strings"
 
 	"github.com/mvdan/sh/syntax"
 )
 
 func Example() {
 	in := "{ foo;bar; }"
-	f, err := syntax.Parse([]byte(in), "", 0)
+	f, err := syntax.Parse(strings.NewReader(in), "", 0)
 	if err != nil {
 		return
 	}

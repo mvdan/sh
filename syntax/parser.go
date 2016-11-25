@@ -6,6 +6,7 @@ package syntax
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"strconv"
 	"sync"
 )
@@ -20,16 +21,24 @@ const (
 
 var parserFree = sync.Pool{
 	New: func() interface{} {
-		return &parser{helperBuf: new(bytes.Buffer)}
+		return &parser{
+			helperBuf: new(bytes.Buffer),
+			readBuf:   new(bytes.Buffer),
+			copyBuf:   make([]byte, 32*1024),
+		}
 	},
 }
 
 // Parse reads and parses a shell program with an optional name. It
 // returns the parsed program if no issues were encountered. Otherwise,
 // an error is returned.
-func Parse(src []byte, name string, mode ParseMode) (*File, error) {
+func Parse(src io.Reader, name string, mode ParseMode) (*File, error) {
 	p := parserFree.Get().(*parser)
 	p.reset()
+	if _, err := io.CopyBuffer(p.readBuf, src, p.copyBuf); err != nil {
+		parserFree.Put(p)
+		return nil, err
+	}
 	alloc := &struct {
 		f File
 		l [16]int
@@ -37,7 +46,7 @@ func Parse(src []byte, name string, mode ParseMode) (*File, error) {
 	p.f = &alloc.f
 	p.f.Name = name
 	p.f.Lines = alloc.l[:1]
-	p.src, p.mode = src, mode
+	p.src, p.mode = p.readBuf.Bytes(), mode
 	p.next()
 	p.f.Stmts = p.stmts()
 	if p.err == nil {
@@ -83,10 +92,13 @@ type parser struct {
 	stListBatch []*Stmt
 	callBatch   []callAlloc
 
-	litBuf [128]byte
+	litBuf  [128]byte
+	readBuf *bytes.Buffer
+	copyBuf []byte
 }
 
 func (p *parser) reset() {
+	p.readBuf.Reset()
 	p.spaced, p.newLine = false, false
 	p.err = nil
 	p.npos = 0
