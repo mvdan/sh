@@ -650,10 +650,10 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			p.nestedStmts(pl.Stmts, 0)
 			p.level++
 			if sep {
-				p.sepTok(pl.Op.String(), pl.OpPos)
-			} else {
-				p.spacedString(pl.Op.String(), true)
+				p.commentsUpTo(pl.OpPos)
+				p.newlines(pl.OpPos)
 			}
+			p.spacedString(pl.Op.String(), true)
 			p.incLines(pl.OpPos)
 			p.level--
 			if sep || pl.OpPos == x.Esac {
