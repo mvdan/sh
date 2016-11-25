@@ -43,49 +43,41 @@ func strFprint(f *File, spaces int) (string, error) {
 	return buf.String(), err
 }
 
+type printCase struct {
+	in, want string
+}
+
+func samePrint(s string) printCase { return printCase{in: s, want: s} }
+
 func TestFprintWeirdFormat(t *testing.T) {
 	t.Parallel()
-	var weirdFormats = [...]struct {
-		in, want string
-	}{
+	var weirdFormats = [...]printCase{
 		{"foo; bar", "foo\nbar"},
 		{"foo\n\n\nbar", "foo\n\nbar"},
 		{"foo\n\n", "foo"},
 		{"\n\nfoo", "foo"},
 		{"# foo\n # bar", "# foo\n# bar"},
-		{"a=b # inline\nbar", "a=b # inline\nbar"},
-		{"a=$(b) # inline", "a=$(b) # inline"},
-		{"$(a) $(b)", "$(a) $(b)"},
+		samePrint("a=b # inline\nbar"),
+		samePrint("a=$(b) # inline"),
+		samePrint("$(a) $(b)"),
 		{"if a\nthen\n\tb\nfi", "if a; then\n\tb\nfi"},
 		{"if a; then\nb\nelse\nfi", "if a; then\n\tb\nfi"},
-		{"foo >&2 <f bar", "foo >&2 <f bar"},
-		{"foo >&2 bar <f", "foo >&2 bar <f"},
+		samePrint("foo >&2 <f bar"),
+		samePrint("foo >&2 bar <f"),
 		{"foo >&2 bar <f bar2", "foo >&2 bar bar2 <f"},
 		{"foo <<EOF bar\nl1\nEOF", "foo bar <<EOF\nl1\nEOF"},
-		{
-			"foo <<EOF && bar\nl1\nEOF",
-			"foo <<EOF && bar\nl1\nEOF",
-		},
+		samePrint("foo <<EOF && bar\nl1\nEOF"),
 		{
 			"foo <<EOF &&\nl1\nEOF\nbar",
 			"foo <<EOF && bar\nl1\nEOF",
 		},
-		{
-			"foo <<EOF\nl1\nEOF\n\nfoo2",
-			"foo <<EOF\nl1\nEOF\n\nfoo2",
-		},
+		samePrint("foo <<EOF\nl1\nEOF\n\nfoo2"),
 		{
 			"<<EOF",
 			"<<EOF\nEOF",
 		},
-		{
-			"foo <<EOF\nEOF\n\nbar",
-			"foo <<EOF\nEOF\n\nbar",
-		},
-		{
-			"foo <<'EOF'\nEOF\n\nbar",
-			"foo <<'EOF'\nEOF\n\nbar",
-		},
+		samePrint("foo <<EOF\nEOF\n\nbar"),
+		samePrint("foo <<'EOF'\nEOF\n\nbar"),
 		{
 			"{ foo; bar; }",
 			"{\n\tfoo\n\tbar\n}",
@@ -122,22 +114,10 @@ func TestFprintWeirdFormat(t *testing.T) {
 			"a bb\\\ncc d",
 			"a bbcc \\\n\td",
 		},
-		{
-			"a \\\n\tb \\\n\tc \\\n\t;",
-			"a \\\n\tb \\\n\tc \\\n\t;",
-		},
-		{
-			"a=1 \\\n\tb=2 \\\n\tc=3 \\\n\t;",
-			"a=1 \\\n\tb=2 \\\n\tc=3 \\\n\t;",
-		},
-		{
-			"if a \\\n\t; then b; fi",
-			"if a \\\n\t; then b; fi",
-		},
-		{
-			"a 'b\nb' c",
-			"a 'b\nb' c",
-		},
+		samePrint("a \\\n\tb \\\n\tc \\\n\t;"),
+		samePrint("a=1 \\\n\tb=2 \\\n\tc=3 \\\n\t;"),
+		samePrint("if a \\\n\t; then b; fi"),
+		samePrint("a 'b\nb' c"),
 		{
 			"(foo; bar)",
 			"(\n\tfoo\n\tbar\n)",
@@ -146,10 +126,7 @@ func TestFprintWeirdFormat(t *testing.T) {
 			"{\nfoo\nbar; }",
 			"{\n\tfoo\n\tbar\n}",
 		},
-		{
-			"\"$foo\"\n{\n\tbar\n}",
-			"\"$foo\"\n{\n\tbar\n}",
-		},
+		samePrint("\"$foo\"\n{\n\tbar\n}"),
 		{
 			"{\nbar\n# extra\n}",
 			"{\n\tbar\n\t# extra\n}",
@@ -178,18 +155,9 @@ func TestFprintWeirdFormat(t *testing.T) {
 			"foo\nbar\nfoo # 1\nfooo # 2",
 			"foo\nbar\nfoo  # 1\nfooo # 2",
 		},
-		{
-			"foobar # 1\nfoo\nfoo # 2",
-			"foobar # 1\nfoo\nfoo # 2",
-		},
-		{
-			"foobar # 1\n#foo\nfoo # 2",
-			"foobar # 1\n#foo\nfoo # 2",
-		},
-		{
-			"foobar # 1\n\nfoo # 2",
-			"foobar # 1\n\nfoo # 2",
-		},
+		samePrint("foobar # 1\nfoo\nfoo # 2"),
+		samePrint("foobar # 1\n#foo\nfoo # 2"),
+		samePrint("foobar # 1\n\nfoo # 2"),
 		{
 			"foo # 2\nfoo2 bar # 1",
 			"foo      # 2\nfoo2 bar # 1",
@@ -222,18 +190,9 @@ func TestFprintWeirdFormat(t *testing.T) {
 			"for a in 1 2\ndo\n\t# bar\ndone",
 			"for a in 1 2; do\n\t# bar\ndone",
 		},
-		{
-			"for a in 1 2; do\n\n\tbar\ndone",
-			"for a in 1 2; do\n\n\tbar\ndone",
-		},
-		{
-			"a \\\n\t&& b",
-			"a \\\n\t&& b",
-		},
-		{
-			"a \\\n\t&& b\nc",
-			"a \\\n\t&& b\nc",
-		},
+		samePrint("for a in 1 2; do\n\n\tbar\ndone"),
+		samePrint("a \\\n\t&& b"),
+		samePrint("a \\\n\t&& b\nc"),
 		{
 			"{\n(a \\\n&& b)\nc\n}",
 			"{\n\t(a \\\n\t\t&& b)\n\tc\n}",
@@ -282,10 +241,7 @@ func TestFprintWeirdFormat(t *testing.T) {
 			"foo | while read l; do\nbar\ndone",
 			"foo | while read l; do\n\tbar\ndone",
 		},
-		{
-			"\"\\\nfoo\\\n  bar\"",
-			"\"\\\nfoo\\\n  bar\"",
-		},
+		samePrint("\"\\\nfoo\\\n  bar\""),
 		{
 			"foo \\\n>bar\netc",
 			"foo \\\n\t>bar\netc",
@@ -318,22 +274,13 @@ func TestFprintWeirdFormat(t *testing.T) {
 			"case $i in\n1)\n#foo\n;;\nesac",
 			"case $i in\n\t1) ;; #foo\nesac",
 		},
-		{
-			"case $i in\n\t1)\n\t\ta\n\t\t#b\n\t\t;;\nesac",
-			"case $i in\n\t1)\n\t\ta\n\t\t#b\n\t\t;;\nesac",
-		},
+		samePrint("case $i in\n\t1)\n\t\ta\n\t\t#b\n\t\t;;\nesac"),
 		{
 			"a=(\nb\nc\n) foo",
 			"a=(\n\tb\n\tc\n) foo",
 		},
-		{
-			"a=(\n\tb #foo\n\tc #bar\n)",
-			"a=(\n\tb #foo\n\tc #bar\n)",
-		},
-		{
-			"foo <<EOF | $(bar)\n3\nEOF",
-			"foo <<EOF | $(bar)\n3\nEOF",
-		},
+		samePrint("a=(\n\tb #foo\n\tc #bar\n)"),
+		samePrint("foo <<EOF | $(bar)\n3\nEOF"),
 		{
 			"a <<EOF\n$(\n\tb\n\tc)\nEOF",
 			"a <<EOF\n$(\n\tb\n\tc\n)\nEOF",
@@ -342,14 +289,8 @@ func TestFprintWeirdFormat(t *testing.T) {
 			"( (foo) )\n$( (foo) )\n<( (foo) )",
 			"( (foo))\n$( (foo))\n<((foo))",
 		},
-		{
-			"\"foo\n$(bar)\"",
-			"\"foo\n$(bar)\"",
-		},
-		{
-			"\"foo\\\n$(bar)\"",
-			"\"foo\\\n$(bar)\"",
-		},
+		samePrint("\"foo\n$(bar)\""),
+		samePrint("\"foo\\\n$(bar)\""),
 		{
 			"a=b \\\nc=d \\\nfoo",
 			"a=b \\\n\tc=d \\\n\tfoo",
@@ -358,42 +299,15 @@ func TestFprintWeirdFormat(t *testing.T) {
 			"a=b \\\nc=d \\\nfoo \\\nbar",
 			"a=b \\\n\tc=d \\\n\tfoo \\\n\tbar",
 		},
-		{
-			"\"foo\nbar\"\netc",
-			"\"foo\nbar\"\netc",
-		},
-		{
-			"\"foo\nbar\nbar2\"\netc",
-			"\"foo\nbar\nbar2\"\netc",
-		},
-		{
-			"a=\"$b\n\"\nd=e",
-			"a=\"$b\n\"\nd=e",
-		},
-		{
-			"\"\n\"\n\nfoo",
-			"\"\n\"\n\nfoo",
-		},
-		{
-			"$\"\n\"\n\nfoo",
-			"$\"\n\"\n\nfoo",
-		},
-		{
-			"'\n'\n\nfoo",
-			"'\n'\n\nfoo",
-		},
-		{
-			"$'\n'\n\nfoo",
-			"$'\n'\n\nfoo",
-		},
-		{
-			"foo <<EOF\na\nb\nc\nd\nEOF\n{\n\tbar\n}",
-			"foo <<EOF\na\nb\nc\nd\nEOF\n{\n\tbar\n}",
-		},
-		{
-			"foo bar # one\nif a; then\n\tb\nfi # two",
-			"foo bar # one\nif a; then\n\tb\nfi # two",
-		},
+		samePrint("\"foo\nbar\"\netc"),
+		samePrint("\"foo\nbar\nbar2\"\netc"),
+		samePrint("a=\"$b\n\"\nd=e"),
+		samePrint("\"\n\"\n\nfoo"),
+		samePrint("$\"\n\"\n\nfoo"),
+		samePrint("'\n'\n\nfoo"),
+		samePrint("$'\n'\n\nfoo"),
+		samePrint("foo <<EOF\na\nb\nc\nd\nEOF\n{\n\tbar\n}"),
+		samePrint("foo bar # one\nif a; then\n\tb\nfi # two"),
 	}
 
 	for i, tc := range weirdFormats {
