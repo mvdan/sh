@@ -86,6 +86,15 @@ type parser struct {
 	litBuf [128]byte
 }
 
+func (p *parser) reset() {
+	p.spaced, p.newLine = false, false
+	p.err = nil
+	p.npos = 0
+	p.tok, p.quote = illegalTok, noState
+	p.heredocs = p.heredocs[:0]
+	p.buriedHdocs = 0
+}
+
 func (p *parser) lit(pos Pos, val string) *Lit {
 	if len(p.litBatch) == 0 {
 		p.litBatch = make([]Lit, 32)
@@ -197,15 +206,6 @@ const (
 )
 
 func (p *parser) bash() bool { return p.mode&PosixConformant == 0 }
-
-func (p *parser) reset() {
-	p.spaced, p.newLine = false, false
-	p.err = nil
-	p.npos = 0
-	p.tok, p.quote = illegalTok, noState
-	p.heredocs = p.heredocs[:0]
-	p.buriedHdocs = 0
-}
 
 type saveState struct {
 	quote       quoteState
