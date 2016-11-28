@@ -309,6 +309,10 @@ func TestFprintWeirdFormat(t *testing.T) {
 		samePrint("$'\n'\n\nfoo"),
 		samePrint("foo <<EOF\na\nb\nc\nd\nEOF\n{\n\tbar\n}"),
 		samePrint("foo bar # one\nif a; then\n\tb\nfi # two"),
+		{
+			"# foo\n\n\nbar",
+			"# foo\n\nbar",
+		},
 	}
 
 	for i, tc := range weirdFormats {

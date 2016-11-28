@@ -747,9 +747,8 @@ func (p *printer) stmts(stmts []*Stmt) {
 		} else {
 			if p.nlineIndex > 0 {
 				p.newlines(pos)
-			} else {
-				p.incLines(pos)
 			}
+			p.incLines(pos)
 			p.stmt(s)
 			p.wantNewline = true
 		}
