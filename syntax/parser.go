@@ -78,6 +78,8 @@ type parser struct {
 	quote quoteState
 	asPos int
 
+	forbidNested bool
+
 	// list of pending heredoc bodies
 	buriedHdocs int
 	heredocs    []*Redirect
@@ -103,6 +105,7 @@ func (p *parser) reset() {
 	p.err = nil
 	p.npos = 0
 	p.tok, p.quote = illegalTok, noState
+	p.forbidNested = false
 	p.heredocs = p.heredocs[:0]
 	p.buriedHdocs = 0
 }
@@ -545,6 +548,12 @@ func (p *parser) wordParts() (wps []WordPart) {
 	}
 }
 
+func (p *parser) ensureNoNested() {
+	if p.forbidNested {
+		p.curErr("expansions not allowed in heredoc words")
+	}
+}
+
 func (p *parser) wordPart() WordPart {
 	switch p.tok {
 	case _Lit, _LitWord:
@@ -552,8 +561,10 @@ func (p *parser) wordPart() WordPart {
 		p.next()
 		return l
 	case dollBrace:
+		p.ensureNoNested()
 		return p.paramExp()
 	case dollDblParen, dollBrack:
+		p.ensureNoNested()
 		left := p.tok
 		ar := &ArithmExp{Left: p.pos, Bracket: left == dollBrack}
 		old := p.preNested(arithmExpr)
@@ -585,9 +596,7 @@ func (p *parser) wordPart() WordPart {
 		}
 		return ar
 	case dollParen:
-		if p.quote == hdocWord {
-			p.curErr("nested statements not allowed in heredoc words")
-		}
+		p.ensureNoNested()
 		cs := &CmdSubst{Left: p.pos}
 		old := p.preNested(subCmd)
 		p.next()
@@ -596,6 +605,7 @@ func (p *parser) wordPart() WordPart {
 		cs.Right = p.matched(cs.Left, leftParen, rightParen)
 		return cs
 	case dollar:
+		p.ensureNoNested()
 		var b byte
 		if p.npos < len(p.src) {
 			b = p.src[p.npos]
@@ -617,6 +627,7 @@ func (p *parser) wordPart() WordPart {
 		pe.Param = p.getLit()
 		return pe
 	case cmdIn, cmdOut:
+		p.ensureNoNested()
 		ps := &ProcSubst{Op: ProcOperator(p.tok), OpPos: p.pos}
 		old := p.preNested(subCmd)
 		p.next()
@@ -681,10 +692,8 @@ func (p *parser) wordPart() WordPart {
 		}
 		return q
 	case bckQuote:
-		switch p.quote {
-		case hdocWord:
-			p.curErr("nested statements not allowed in heredoc words")
-		case subCmdBckquo:
+		p.ensureNoNested()
+		if p.quote == subCmdBckquo {
 			return nil
 		}
 		cs := &CmdSubst{Left: p.pos}
@@ -1115,13 +1124,13 @@ func (p *parser) doRedirect(s *Stmt) {
 	switch r.Op {
 	case Hdoc, DashHdoc:
 		old := p.quote
-		p.quote = hdocWord
+		p.quote, p.forbidNested = hdocWord, true
 		if p.newLine {
 			p.curErr("heredoc stop word must be on the same line")
 		}
 		p.heredocs = append(p.heredocs, r)
 		r.Word = p.followWordTok(token(r.Op), r.OpPos)
-		p.quote = old
+		p.quote, p.forbidNested = old, false
 		p.next()
 	default:
 		if p.newLine {

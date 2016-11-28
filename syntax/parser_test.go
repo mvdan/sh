@@ -701,12 +701,24 @@ var shellTests = []errorCase{
 		`1:8: ) can only be used to close a subshell`,
 	},
 	{
+		"foo <<$bar",
+		`1:7: expansions not allowed in heredoc words`,
+	},
+	{
+		"foo <<${bar}",
+		`1:7: expansions not allowed in heredoc words`,
+	},
+	{
 		"foo <<$(bar)",
-		`1:7: nested statements not allowed in heredoc words`,
+		`1:7: expansions not allowed in heredoc words`,
 	},
 	{
 		"foo <<`bar`",
-		`1:7: nested statements not allowed in heredoc words`,
+		`1:7: expansions not allowed in heredoc words`,
+	},
+	{
+		`foo <<"$bar"`,
+		`1:8: expansions not allowed in heredoc words`,
 	},
 	{
 		`""()`,
