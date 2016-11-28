@@ -53,6 +53,11 @@ func samePrint(s string) printCase { return printCase{in: s, want: s} }
 func TestFprintWeirdFormat(t *testing.T) {
 	t.Parallel()
 	var weirdFormats = [...]printCase{
+		samePrint(`fo○ b\år`),
+		samePrint(`"fo○ b\år"`),
+		samePrint(`'fo○ b\år'`),
+		samePrint(`${a#fo○ b\år}`),
+		samePrint("<<EOF\nfo○ b\\år\nEOF"),
 		{"foo; bar", "foo\nbar"},
 		{"foo\n\n\nbar", "foo\n\nbar"},
 		{"foo\n\n", "foo"},
