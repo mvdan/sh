@@ -266,11 +266,11 @@ var shellTests = []errorCase{
 	},
 	{
 		`"foo"(){}`,
-		`1:1: invalid func name: "\"foo\""`,
+		`1:1: invalid func name`,
 	},
 	{
 		`foo$bar(){}`,
-		`1:1: invalid func name: "foo$bar"`,
+		`1:1: invalid func name`,
 	},
 	{
 		"{",
@@ -710,7 +710,7 @@ var shellTests = []errorCase{
 	},
 	{
 		`""()`,
-		`1:1: invalid func name: "\"\""`,
+		`1:1: invalid func name`,
 	},
 	{
 		// bash errors on the empty condition here, this is to
@@ -854,7 +854,7 @@ var bashTests = []errorCase{
 	},
 	{
 		`function "foo"(){}`,
-		`1:10: invalid func name: "\"foo\""`,
+		`1:10: invalid func name`,
 	},
 	{
 		"function foo()",

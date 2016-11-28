@@ -92,7 +92,7 @@ type parser struct {
 	stListBatch []*Stmt
 	callBatch   []callAlloc
 
-	litBuf  [128]byte
+	litBuf  [256]byte
 	readBuf *bytes.Buffer
 	copyBuf []byte
 }
@@ -265,8 +265,6 @@ func (p *parser) unquotedWordPart(b *bytes.Buffer, wp WordPart) bool {
 		}
 		return true
 	default:
-		// catch-all for unusual cases such as ParamExp
-		b.Write(p.src[wp.Pos()-1 : wp.End()-1])
 		return false
 	}
 }
@@ -701,26 +699,27 @@ func (p *parser) wordPart() WordPart {
 		return cs
 	case globQuest, globStar, globPlus, globAt, globExcl:
 		eg := &ExtGlob{Op: GlobOperator(p.tok), OpPos: p.pos}
-		start := p.npos
+		bs := p.litBuf[:0]
 		lparens := 0
 	byteLoop:
-		for _, b := range p.src[start:] {
+		for p.npos < len(p.src) {
+			b := p.src[p.npos]
 			switch b {
 			case '(':
 				lparens++
 			case ')':
 				if lparens--; lparens < 0 {
-					eg.Pattern = p.lit(Pos(start+1),
-						string(p.src[start:p.npos]))
-					p.npos++
 					break byteLoop
 				}
 			}
+			bs = append(bs, b)
 			p.npos++
 		}
+		eg.Pattern = p.lit(eg.OpPos+2, string(bs))
+		p.npos++
 		p.next()
 		if lparens != -1 {
-			p.matchingErr(p.pos, eg.Op, rightParen)
+			p.matchingErr(eg.OpPos, eg.Op, rightParen)
 		}
 		return eg
 	default:
@@ -1258,8 +1257,7 @@ func (p *parser) gotStmtPipe(s *Stmt) *Stmt {
 		globQuest, globStar, globPlus, globAt, globExcl:
 		w := p.word(p.wordParts())
 		if p.gotSameLine(leftParen) && p.err == nil {
-			rawName := string(p.src[w.Pos()-1 : w.End()-1])
-			p.posErr(w.Pos(), "invalid func name: %q", rawName)
+			p.posErr(w.Pos(), "invalid func name")
 		}
 		s.Cmd = p.callExpr(s, w)
 	}
@@ -1675,8 +1673,7 @@ func (p *parser) bashFuncDecl() *FuncDecl {
 	p.next()
 	if p.tok != _LitWord {
 		if w := p.followWord("function", fpos); p.err == nil {
-			rawName := string(p.src[w.Pos()-1 : w.End()-1])
-			p.posErr(w.Pos(), "invalid func name: %q", rawName)
+			p.posErr(w.Pos(), "invalid func name")
 		}
 	}
 	name := p.lit(p.pos, p.val)

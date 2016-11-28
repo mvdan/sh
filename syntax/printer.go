@@ -462,8 +462,6 @@ func (p *printer) unquotedWord(w *Word) {
 			} else {
 				p.WriteString(x.Value)
 			}
-		default:
-			p.wordPart(wp)
 		}
 	}
 }

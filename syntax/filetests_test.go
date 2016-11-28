@@ -958,17 +958,6 @@ var fileTests = []testCase{
 		},
 	},
 	{
-		Strs: []string{"foo <<$EOF\nbar\n$EOF"},
-		common: &Stmt{
-			Cmd: litCall("foo"),
-			Redirs: []*Redirect{{
-				Op:   Hdoc,
-				Word: word(litParamExp("EOF")),
-				Hdoc: litWord("bar\n"),
-			}},
-		},
-	},
-	{
 		Strs: []string{
 			"foo <<-EOF\nbar\nEOF",
 			"foo <<- EOF\nbar\nEOF",

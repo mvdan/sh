@@ -735,17 +735,19 @@ loop:
 }
 
 func (p *parser) advanceLitDquote() {
-	var i int
+	bs := p.litBuf[:0]
 	tok := _LitWord
 loop:
-	for i = p.npos; i < len(p.src); i++ {
-		switch p.src[i] {
+	for p.npos < len(p.src) {
+		b := p.src[p.npos]
+		switch b {
 		case '\\': // escaped byte follows
-			if i++; i == len(p.src) {
+			if p.npos++; p.npos == len(p.src) {
 				break loop
 			}
-			if p.src[i] == '\n' {
-				p.f.Lines = append(p.f.Lines, i+1)
+			bs = append(bs, '\\')
+			if b = p.src[p.npos]; b == '\n' {
+				p.f.Lines = append(p.f.Lines, p.npos+1)
 			}
 		case '"':
 			break loop
@@ -753,11 +755,12 @@ loop:
 			tok = _Lit
 			break loop
 		case '\n':
-			p.f.Lines = append(p.f.Lines, i+1)
+			p.f.Lines = append(p.f.Lines, p.npos+1)
 		}
+		bs = append(bs, b)
+		p.npos++
 	}
-	p.tok, p.val = tok, string(p.src[p.npos:i])
-	p.npos = i
+	p.tok, p.val = tok, string(bs)
 }
 
 func (p *parser) isHdocEnd(i int) bool {
@@ -855,10 +858,11 @@ func (p *parser) readUntil(b byte) ([]byte, bool) {
 }
 
 func (p *parser) advanceLitRe() {
-	start := p.npos
 	lparens := 0
+	bs := p.litBuf[:0]
 byteLoop:
-	for _, b := range p.src[p.npos:] {
+	for p.npos < len(p.src) {
+		b := p.src[p.npos]
 		switch b {
 		case '(':
 			lparens++
@@ -869,10 +873,10 @@ byteLoop:
 				break byteLoop
 			}
 		}
+		bs = append(bs, b)
 		p.npos++
 	}
-	p.tok = _LitWord
-	p.val = string(p.src[start:p.npos])
+	p.tok, p.val = _LitWord, string(bs)
 }
 
 func testUnaryOp(val string) token {
