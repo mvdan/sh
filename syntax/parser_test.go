@@ -989,7 +989,11 @@ var posixTests = []errorCase{
 	},
 	{
 		"echo !(a)",
-		`1:7: a command can only contain words and redirects`,
+		`1:6: extended globs are a bash feature`,
+	},
+	{
+		"echo $a@(b)",
+		`1:8: extended globs are a bash feature`,
 	},
 	{
 		"foo=(1 2) #INVBASH --posix is wrong",

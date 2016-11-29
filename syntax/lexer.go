@@ -155,7 +155,7 @@ skipSpace:
 			}
 			p.next()
 		case '?', '*', '+', '@', '!':
-			if p.bash() && byteAt(p.src, p.npos+1) == '(' {
+			if byteAt(p.src, p.npos+1) == '(' {
 				switch b {
 				case '?':
 					p.tok = globQuest
@@ -657,7 +657,7 @@ loop:
 			if q&allArithmExpr != 0 {
 				break loop
 			}
-			if p.bash() && byteAt(p.src, p.npos+1) == '(' {
+			if byteAt(p.src, p.npos+1) == '(' {
 				tok = _Lit
 				break loop
 			}
@@ -665,7 +665,7 @@ loop:
 			if q&allArithmExpr != 0 || q&allParamReg != 0 {
 				break loop
 			}
-			if b == '?' && p.bash() && byteAt(p.src, p.npos+1) == '(' {
+			if b == '?' && byteAt(p.src, p.npos+1) == '(' {
 				tok = _Lit
 				break loop
 			}
@@ -680,12 +680,12 @@ loop:
 			default:
 				break loop
 			}
-			if b == '+' && p.bash() && byteAt(p.src, p.npos+1) == '(' {
+			if b == '+' && byteAt(p.src, p.npos+1) == '(' {
 				tok = _Lit
 				break loop
 			}
 		case '@':
-			if p.bash() && byteAt(p.src, p.npos+1) == '(' {
+			if byteAt(p.src, p.npos+1) == '(' {
 				tok = _Lit
 				break loop
 			}
@@ -737,7 +737,7 @@ loop:
 			tok = _Lit
 			break loop
 		case '?', '*', '+', '@', '!':
-			if p.bash() && byteAt(p.src, p.npos+1) == '(' {
+			if byteAt(p.src, p.npos+1) == '(' {
 				tok = _Lit
 				break loop
 			}

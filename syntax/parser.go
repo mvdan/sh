@@ -704,6 +704,9 @@ func (p *parser) wordPart() WordPart {
 		}
 		return cs
 	case globQuest, globStar, globPlus, globAt, globExcl:
+		if !p.bash() {
+			p.curErr("extended globs are a bash feature")
+		}
 		eg := &ExtGlob{Op: GlobOperator(p.tok), OpPos: p.pos}
 		bs := p.litBuf[:0]
 		lparens := 0
