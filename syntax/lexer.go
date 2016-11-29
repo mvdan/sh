@@ -50,12 +50,8 @@ func (p *parser) next() {
 		}
 	case paramExpRepl:
 		switch b {
-		case '}':
-			p.npos++
-			p.tok = rightBrace
-		case '/':
-			p.npos++
-			p.tok = slash
+		case '}', '/':
+			p.tok = p.paramToken(b)
 		case '`', '"', '$':
 			p.tok = p.dqToken(b)
 		default:
@@ -63,9 +59,10 @@ func (p *parser) next() {
 		}
 		return
 	case dblQuotes:
-		if b == '`' || b == '"' || b == '$' {
+		switch b {
+		case '`', '"', '$':
 			p.tok = p.dqToken(b)
-		} else {
+		default:
 			p.advanceLitDquote()
 		}
 		return
