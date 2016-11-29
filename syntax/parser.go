@@ -1018,7 +1018,7 @@ func (p *parser) paramExp() *ParamExp {
 }
 
 func (p *parser) peekArithmEnd() bool {
-	return p.tok == rightParen && p.npos < len(p.src) && p.src[p.npos] == ')'
+	return p.tok == rightParen && byteAt(p.src, p.npos) == ')'
 }
 
 func (p *parser) arithmEnd(ltok token, lpos Pos, old saveState) Pos {

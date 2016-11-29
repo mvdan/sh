@@ -694,7 +694,7 @@ loop:
 			}
 		case '=':
 			p.asPos = len(bs)
-			if p.bash() && p.asPos > 0 && p.src[p.npos-1] == '+' {
+			if p.bash() && p.asPos > 0 && bs[len(bs)-1] == '+' {
 				p.asPos-- // a+=r
 			}
 		}
