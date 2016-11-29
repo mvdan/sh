@@ -285,7 +285,7 @@ func (p *parser) doHeredocs() {
 		}
 		var quoted bool
 		p.hdocStop, quoted = p.unquotedWordBytes(r.Word)
-		if i > 0 && p.npos < len(p.src) && p.src[p.npos] == '\n' {
+		if i > 0 && byteAt(p.src, p.npos) == '\n' {
 			p.npos++
 			p.f.Lines = append(p.f.Lines, p.npos)
 		}
@@ -605,10 +605,7 @@ func (p *parser) wordPart() WordPart {
 		cs.Right = p.matched(cs.Left, leftParen, rightParen)
 		return cs
 	case dollar:
-		var b byte
-		if p.npos < len(p.src) {
-			b = p.src[p.npos]
-		}
+		b := byteAt(p.src, p.npos)
 		if b == 0 || wordBreak(b) || b == '"' || b == '\'' || b == '`' || b == '[' {
 			l := p.lit(p.pos, "$")
 			p.next()
@@ -912,7 +909,7 @@ func (p *parser) paramExp() *ParamExp {
 		p.npos--
 		fallthrough
 	case hash:
-		if p.npos < len(p.src) && p.src[p.npos] != '}' {
+		if byteAt(p.src, p.npos) != '}' {
 			pe.Length = true
 			p.next()
 		}

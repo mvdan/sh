@@ -122,7 +122,7 @@ skipSpace:
 				}
 			}
 		case '\\':
-			if p.npos < len(p.src)-1 && p.src[p.npos+1] == '\n' {
+			if byteAt(p.src, p.npos+1) == '\n' {
 				p.npos += 2
 				p.f.Lines = append(p.f.Lines, p.npos)
 			} else {
@@ -155,7 +155,7 @@ skipSpace:
 			}
 			p.next()
 		case '?', '*', '+', '@', '!':
-			if p.bash() && p.npos+1 < len(p.src) && p.src[p.npos+1] == '(' {
+			if p.bash() && byteAt(p.src, p.npos+1) == '(' {
 				switch b {
 				case '?':
 					p.tok = globQuest
@@ -705,7 +705,7 @@ loop:
 			}
 			bs = append(bs, '\\')
 		case '>', '<':
-			if p.npos+1 < len(p.src) && p.src[p.npos+1] == '(' {
+			if byteAt(p.src, p.npos+1) == '(' {
 				tok = _Lit
 			}
 			break loop
@@ -720,7 +720,7 @@ loop:
 			tok = _Lit
 			break loop
 		case '?', '*', '+', '@', '!':
-			if p.bash() && p.npos+1 < len(p.src) && p.src[p.npos+1] == '(' {
+			if p.bash() && byteAt(p.src, p.npos+1) == '(' {
 				tok = _Lit
 				break loop
 			}
@@ -779,7 +779,7 @@ func (p *parser) isHdocEnd(i int) bool {
 func (p *parser) advanceLitHdoc() {
 	n := p.npos
 	if p.quote == hdocBodyTabs {
-		for n < len(p.src) && p.src[n] == '\t' {
+		for byteAt(p.src, n) == '\t' {
 			n++
 		}
 	}
@@ -806,7 +806,7 @@ loop:
 			n := i + 1
 			p.f.Lines = append(p.f.Lines, n)
 			if p.quote == hdocBodyTabs {
-				for n < len(p.src) && p.src[n] == '\t' {
+				for byteAt(p.src, n) == '\t' {
 					n++
 				}
 			}
@@ -833,7 +833,7 @@ func (p *parser) hdocLitWord() *Word {
 			p.f.Lines = append(p.f.Lines, p.npos)
 		}
 		if p.quote == hdocBodyTabs {
-			for end < len(p.src) && p.src[end] == '\t' {
+			for byteAt(p.src, end) == '\t' {
 				end++
 			}
 		}
