@@ -772,14 +772,14 @@ var fileTests = []testCase{
 		}),
 	},
 	{
-		Strs: []string{"foo >f <<EOF\nbar\nEOF"},
+		Strs: []string{"foo >f <<$\nbar\n$"},
 		common: &Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*Redirect{
 				{Op: RdrOut, Word: litWord("f")},
 				{
 					Op:   Hdoc,
-					Word: litWord("EOF"),
+					Word: litWord("$"),
 					Hdoc: litWord("bar\n"),
 				},
 			},

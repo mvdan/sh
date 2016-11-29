@@ -605,7 +605,6 @@ func (p *parser) wordPart() WordPart {
 		cs.Right = p.matched(cs.Left, leftParen, rightParen)
 		return cs
 	case dollar:
-		p.ensureNoNested()
 		var b byte
 		if p.npos < len(p.src) {
 			b = p.src[p.npos]
@@ -615,6 +614,7 @@ func (p *parser) wordPart() WordPart {
 			p.next()
 			return l
 		}
+		p.ensureNoNested()
 		pe := &ParamExp{Dollar: p.pos, Short: true}
 		p.pos++
 		switch b {
@@ -692,10 +692,10 @@ func (p *parser) wordPart() WordPart {
 		}
 		return q
 	case bckQuote:
-		p.ensureNoNested()
 		if p.quote == subCmdBckquo {
 			return nil
 		}
+		p.ensureNoNested()
 		cs := &CmdSubst{Left: p.pos}
 		old := p.preNested(subCmdBckquo)
 		p.next()
