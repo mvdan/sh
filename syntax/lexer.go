@@ -145,7 +145,7 @@ skipSpace:
 			p.tok = p.regToken(r)
 		case '#':
 			p.npos++
-			bs, _ := p.readUntil('\n')
+			bs, _ := p.readLine()
 			p.npos += len(bs)
 			if p.mode&ParseComments > 0 {
 				p.f.Comments = append(p.f.Comments, &Comment{
@@ -844,7 +844,7 @@ func (p *parser) hdocLitWord() *Word {
 	end := pos
 	for p.npos < len(p.src) {
 		end = p.npos
-		bs, found := p.readUntil('\n')
+		bs, found := p.readLine()
 		p.npos += len(bs) + 1
 		if found {
 			p.f.Lines = append(p.f.Lines, p.npos)
@@ -868,9 +868,9 @@ func (p *parser) hdocLitWord() *Word {
 	return p.word(p.singleWps(l))
 }
 
-func (p *parser) readUntil(b byte) ([]byte, bool) {
+func (p *parser) readLine() ([]byte, bool) {
 	rem := p.src[p.npos:]
-	if i := bytes.IndexByte(rem, b); i >= 0 {
+	if i := bytes.IndexByte(rem, '\n'); i >= 0 {
 		return rem[:i], true
 	}
 	return rem, false

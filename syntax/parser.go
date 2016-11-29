@@ -630,19 +630,21 @@ func (p *parser) wordPart() WordPart {
 		return ps
 	case sglQuote:
 		sq := &SglQuoted{Position: p.pos}
-		bs, found := p.readUntil('\'')
-		rem := bs
-		for {
-			i := bytes.IndexByte(rem, '\n')
-			if i < 0 {
-				p.npos += len(rem)
-				break
+		bs, found := p.litBuf[:0], false
+	sqLoop:
+		for p.npos < len(p.src) {
+			r := p.src[p.npos]
+			switch r {
+			case '\'':
+				p.npos++
+				found = true
+				break sqLoop
+			case '\n':
+				p.f.Lines = append(p.f.Lines, p.npos+1)
 			}
-			p.npos += i + 1
-			p.f.Lines = append(p.f.Lines, p.npos)
-			rem = rem[i+1:]
+			bs = append(bs, byte(r))
+			p.npos++
 		}
-		p.npos++
 		if !found {
 			p.posErr(sq.Pos(), "reached EOF without closing quote %s", sglQuote)
 		}
