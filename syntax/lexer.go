@@ -41,6 +41,15 @@ func wordBreak(r rune) bool {
 	return false
 }
 
+func (p *parser) rune() rune {
+	p.npos++
+	r := byteAt(p.src, p.npos)
+	if r == '\n' {
+		p.f.Lines = append(p.f.Lines, p.npos+1)
+	}
+	return r
+}
+
 func (p *parser) next() {
 	if p.npos >= len(p.src) {
 		p.tok = _EOF
@@ -85,7 +94,7 @@ func (p *parser) next() {
 	case paramExpExp:
 		switch r {
 		case '}':
-			p.npos++
+			p.rune()
 			p.tok = rightBrace
 		case '`', '"', '$':
 			p.tok = p.dqToken(r)
@@ -95,7 +104,7 @@ func (p *parser) next() {
 		return
 	case sglQuotes:
 		if r == '\'' {
-			p.npos++
+			p.rune()
 			p.tok = sglQuote
 		} else {
 			p.advanceLitOther()
@@ -107,24 +116,24 @@ skipSpace:
 		switch r {
 		case ' ', '\t', '\r':
 			p.spaced = true
-			p.npos++
+			r = p.rune()
 		case '\n':
 			p.spaced, p.newLine = true, true
 			if p.quote == arithmExprLet {
 				p.tok = illegalTok
 				return
 			}
-			p.npos++
-			p.f.Lines = append(p.f.Lines, p.npos)
+			r = p.rune()
 			if len(p.heredocs) > p.buriedHdocs {
 				if p.doHeredocs(); p.tok == _EOF {
 					return
 				}
 			}
+			r = byteAt(p.src, p.npos)
 		case '\\':
 			if byteAt(p.src, p.npos+1) == '\n' {
-				p.npos += 2
-				p.f.Lines = append(p.f.Lines, p.npos)
+				p.rune()
+				r = p.rune()
 			} else {
 				break skipSpace
 			}
@@ -135,7 +144,6 @@ skipSpace:
 			p.tok = _EOF
 			return
 		}
-		r = rune(p.src[p.npos])
 	}
 	p.pos = Pos(p.npos + 1)
 	switch {
@@ -144,9 +152,8 @@ skipSpace:
 		case ';', '"', '\'', '(', ')', '$', '|', '&', '>', '<', '`':
 			p.tok = p.regToken(r)
 		case '#':
-			p.npos++
-			bs, _ := p.readLine()
-			p.npos += len(bs)
+			p.rune()
+			bs, _ := p.readLine(p.litBuf[:0])
 			if p.mode&ParseComments > 0 {
 				p.f.Comments = append(p.f.Comments, &Comment{
 					Hash: p.pos,
@@ -168,7 +175,8 @@ skipSpace:
 				default: // '!'
 					p.tok = globExcl
 				}
-				p.npos += 2
+				p.rune()
+				p.rune()
 			} else {
 				p.advanceLitNone()
 			}
@@ -202,153 +210,142 @@ func byteAt(src []byte, i int) rune {
 func (p *parser) regToken(r rune) token {
 	switch r {
 	case '\'':
-		p.npos++
+		p.rune()
 		return sglQuote
 	case '"':
-		p.npos++
+		p.rune()
 		return dblQuote
 	case '`':
-		p.npos++
+		p.rune()
 		return bckQuote
 	case '&':
-		switch byteAt(p.src, p.npos+1) {
+		switch p.rune() {
 		case '&':
-			p.npos += 2
+			p.rune()
 			return andAnd
 		case '>':
 			if !p.bash() {
 				break
 			}
-			if byteAt(p.src, p.npos+2) == '>' {
-				p.npos += 3
+			if p.rune() == '>' {
+				p.rune()
 				return appAll
 			}
-			p.npos += 2
 			return rdrAll
 		}
-		p.npos++
 		return and
 	case '|':
-		switch byteAt(p.src, p.npos+1) {
+		switch p.rune() {
 		case '|':
-			p.npos += 2
+			p.rune()
 			return orOr
 		case '&':
 			if !p.bash() {
 				break
 			}
-			p.npos += 2
+			p.rune()
 			return pipeAll
 		}
-		p.npos++
 		return or
 	case '$':
-		switch byteAt(p.src, p.npos+1) {
+		switch p.rune() {
 		case '\'':
 			if !p.bash() {
 				break
 			}
-			p.npos += 2
+			p.rune()
 			return dollSglQuote
 		case '"':
 			if !p.bash() {
 				break
 			}
-			p.npos += 2
+			p.rune()
 			return dollDblQuote
 		case '{':
-			p.npos += 2
+			p.rune()
 			return dollBrace
 		case '[':
 			if !p.bash() {
 				break
 			}
-			p.npos += 2
+			p.rune()
 			return dollBrack
 		case '(':
-			if byteAt(p.src, p.npos+2) == '(' {
-				p.npos += 3
+			if p.rune() == '(' {
+				p.rune()
 				return dollDblParen
 			}
-			p.npos += 2
 			return dollParen
 		}
-		p.npos++
 		return dollar
 	case '(':
-		if p.bash() && byteAt(p.src, p.npos+1) == '(' {
-			p.npos += 2
+		if p.rune() == '(' && p.bash() {
+			p.rune()
 			return dblLeftParen
 		}
-		p.npos++
 		return leftParen
 	case ')':
-		p.npos++
+		p.rune()
 		return rightParen
 	case ';':
-		switch byteAt(p.src, p.npos+1) {
+		switch p.rune() {
 		case ';':
-			if p.bash() && byteAt(p.src, p.npos+2) == '&' {
-				p.npos += 3
+			if p.rune() == '&' && p.bash() {
+				p.rune()
 				return dblSemiFall
 			}
-			p.npos += 2
 			return dblSemicolon
 		case '&':
 			if !p.bash() {
 				break
 			}
-			p.npos += 2
+			p.rune()
 			return semiFall
 		}
-		p.npos++
 		return semicolon
 	case '<':
-		switch byteAt(p.src, p.npos+1) {
+		switch p.rune() {
 		case '<':
-			if r := byteAt(p.src, p.npos+2); r == '-' {
-				p.npos += 3
+			if r = p.rune(); r == '-' {
+				p.rune()
 				return dashHdoc
-			} else if p.bash() && r == '<' {
-				p.npos += 3
+			} else if r == '<' && p.bash() {
+				p.rune()
 				return wordHdoc
 			}
-			p.npos += 2
 			return hdoc
 		case '>':
-			p.npos += 2
+			p.rune()
 			return rdrInOut
 		case '&':
-			p.npos += 2
+			p.rune()
 			return dplIn
 		case '(':
 			if !p.bash() {
 				break
 			}
-			p.npos += 2
+			p.rune()
 			return cmdIn
 		}
-		p.npos++
 		return rdrIn
 	default: // '>'
-		switch byteAt(p.src, p.npos+1) {
+		switch p.rune() {
 		case '>':
-			p.npos += 2
+			p.rune()
 			return appOut
 		case '&':
-			p.npos += 2
+			p.rune()
 			return dplOut
 		case '|':
-			p.npos += 2
+			p.rune()
 			return clbOut
 		case '(':
 			if !p.bash() {
 				break
 			}
-			p.npos += 2
+			p.rune()
 			return cmdOut
 		}
-		p.npos++
 		return rdrOut
 	}
 }
@@ -356,31 +353,29 @@ func (p *parser) regToken(r rune) token {
 func (p *parser) dqToken(r rune) token {
 	switch r {
 	case '"':
-		p.npos++
+		p.rune()
 		return dblQuote
 	case '`':
-		p.npos++
+		p.rune()
 		return bckQuote
 	default: // '$'
-		switch byteAt(p.src, p.npos+1) {
+		switch p.rune() {
 		case '{':
-			p.npos += 2
+			p.rune()
 			return dollBrace
 		case '[':
 			if !p.bash() {
 				break
 			}
-			p.npos += 2
+			p.rune()
 			return dollBrack
 		case '(':
-			if byteAt(p.src, p.npos+2) == '(' {
-				p.npos += 3
+			if p.rune() == '(' {
+				p.rune()
 				return dollDblParen
 			}
-			p.npos += 2
 			return dollParen
 		}
-		p.npos++
 		return dollar
 	}
 }
@@ -388,74 +383,68 @@ func (p *parser) dqToken(r rune) token {
 func (p *parser) paramToken(r rune) token {
 	switch r {
 	case '}':
-		p.npos++
+		p.rune()
 		return rightBrace
 	case ':':
-		switch byteAt(p.src, p.npos+1) {
+		switch p.rune() {
 		case '+':
-			p.npos += 2
+			p.rune()
 			return colPlus
 		case '-':
-			p.npos += 2
+			p.rune()
 			return colMinus
 		case '?':
-			p.npos += 2
+			p.rune()
 			return colQuest
 		case '=':
-			p.npos += 2
+			p.rune()
 			return colAssgn
 		}
-		p.npos++
 		return colon
 	case '+':
-		p.npos++
+		p.rune()
 		return plus
 	case '-':
-		p.npos++
+		p.rune()
 		return minus
 	case '?':
-		p.npos++
+		p.rune()
 		return quest
 	case '=':
-		p.npos++
+		p.rune()
 		return assgn
 	case '%':
-		if byteAt(p.src, p.npos+1) == '%' {
-			p.npos += 2
+		if p.rune() == '%' {
+			p.rune()
 			return dblPerc
 		}
-		p.npos++
 		return perc
 	case '#':
-		if byteAt(p.src, p.npos+1) == '#' {
-			p.npos += 2
+		if p.rune() == '#' {
+			p.rune()
 			return dblHash
 		}
-		p.npos++
 		return hash
 	case '[':
-		p.npos++
+		p.rune()
 		return leftBrack
 	case '^':
-		if byteAt(p.src, p.npos+1) == '^' {
-			p.npos += 2
+		if p.rune() == '^' {
+			p.rune()
 			return dblCaret
 		}
-		p.npos++
 		return caret
 	case ',':
-		if byteAt(p.src, p.npos+1) == ',' {
-			p.npos += 2
+		if p.rune() == ',' {
+			p.rune()
 			return dblComma
 		}
-		p.npos++
 		return comma
 	default: // '/'
-		if byteAt(p.src, p.npos+1) == '/' {
-			p.npos += 2
+		if p.rune() == '/' {
+			p.rune()
 			return dblSlash
 		}
-		p.npos++
 		return slash
 	}
 }
@@ -463,142 +452,128 @@ func (p *parser) paramToken(r rune) token {
 func (p *parser) arithmToken(r rune) token {
 	switch r {
 	case '!':
-		if byteAt(p.src, p.npos+1) == '=' {
-			p.npos += 2
+		if p.rune() == '=' {
+			p.rune()
 			return nequal
 		}
-		p.npos++
 		return exclMark
 	case '=':
-		if byteAt(p.src, p.npos+1) == '=' {
-			p.npos += 2
+		if p.rune() == '=' {
+			p.rune()
 			return equal
 		}
-		p.npos++
 		return assgn
 	case '(':
-		p.npos++
+		p.rune()
 		return leftParen
 	case ')':
-		p.npos++
+		p.rune()
 		return rightParen
 	case '&':
-		switch byteAt(p.src, p.npos+1) {
+		switch p.rune() {
 		case '&':
-			p.npos += 2
+			p.rune()
 			return andAnd
 		case '=':
-			p.npos += 2
+			p.rune()
 			return andAssgn
 		}
-		p.npos++
 		return and
 	case '|':
-		switch byteAt(p.src, p.npos+1) {
+		switch p.rune() {
 		case '|':
-			p.npos += 2
+			p.rune()
 			return orOr
 		case '=':
-			p.npos += 2
+			p.rune()
 			return orAssgn
 		}
-		p.npos++
 		return or
 	case '<':
-		switch byteAt(p.src, p.npos+1) {
+		switch p.rune() {
 		case '<':
-			if byteAt(p.src, p.npos+2) == '=' {
-				p.npos += 3
+			if p.rune() == '=' {
+				p.rune()
 				return shlAssgn
 			}
-			p.npos += 2
 			return hdoc
 		case '=':
-			p.npos += 2
+			p.rune()
 			return lequal
 		}
-		p.npos++
 		return rdrIn
 	case '>':
-		switch byteAt(p.src, p.npos+1) {
+		switch p.rune() {
 		case '>':
-			if byteAt(p.src, p.npos+2) == '=' {
-				p.npos += 3
+			if p.rune() == '=' {
+				p.rune()
 				return shrAssgn
 			}
-			p.npos += 2
 			return appOut
 		case '=':
-			p.npos += 2
+			p.rune()
 			return gequal
 		}
-		p.npos++
 		return rdrOut
 	case '+':
-		switch byteAt(p.src, p.npos+1) {
+		switch p.rune() {
 		case '+':
-			p.npos += 2
+			p.rune()
 			return addAdd
 		case '=':
-			p.npos += 2
+			p.rune()
 			return addAssgn
 		}
-		p.npos++
 		return plus
 	case '-':
-		switch byteAt(p.src, p.npos+1) {
+		switch p.rune() {
 		case '-':
-			p.npos += 2
+			p.rune()
 			return subSub
 		case '=':
-			p.npos += 2
+			p.rune()
 			return subAssgn
 		}
-		p.npos++
 		return minus
 	case '%':
-		if byteAt(p.src, p.npos+1) == '=' {
-			p.npos += 2
+		if p.rune() == '=' {
+			p.rune()
 			return remAssgn
 		}
-		p.npos++
 		return perc
 	case '*':
-		switch byteAt(p.src, p.npos+1) {
+		switch p.rune() {
 		case '*':
-			p.npos += 2
+			p.rune()
 			return power
 		case '=':
-			p.npos += 2
+			p.rune()
 			return mulAssgn
 		}
-		p.npos++
 		return star
 	case '/':
-		if byteAt(p.src, p.npos+1) == '=' {
-			p.npos += 2
+		if p.rune() == '=' {
+			p.rune()
 			return quoAssgn
 		}
-		p.npos++
 		return slash
 	case '^':
-		if byteAt(p.src, p.npos+1) == '=' {
-			p.npos += 2
+		if p.rune() == '=' {
+			p.rune()
 			return xorAssgn
 		}
-		p.npos++
 		return caret
 	case ']':
-		p.npos++
+		p.rune()
 		return rightBrack
 	case ',':
-		p.npos++
+		p.rune()
 		return comma
 	case '?':
-		p.npos++
+		p.rune()
 		return quest
 	default: // ':'
-		p.npos++
+		p.rune()
 		return colon
 	}
 }
@@ -606,22 +581,19 @@ func (p *parser) arithmToken(r rune) token {
 func (p *parser) advanceLitOther() {
 	bs := p.litBuf[:0]
 	tok := _LitWord
+	r := byteAt(p.src, p.npos)
 loop:
 	for p.npos < len(p.src) {
-		r := rune(p.src[p.npos])
 		switch r {
 		case '\\': // escaped byte follows
-			if p.npos++; p.npos == len(p.src) {
+			if r = p.rune(); p.npos == len(p.src) {
 				bs = append(bs, '\\')
 				break loop
 			}
-			r = rune(p.src[p.npos])
-			p.npos++
-			if r == '\n' {
-				p.f.Lines = append(p.f.Lines, p.npos)
-			} else {
+			if r != '\n' {
 				bs = append(bs, '\\', byte(r))
 			}
+			r = p.rune()
 			continue
 		case '\n':
 			switch p.quote {
@@ -629,7 +601,6 @@ loop:
 			default:
 				break loop
 			}
-			p.f.Lines = append(p.f.Lines, p.npos+1)
 		case '\'':
 			switch p.quote {
 			case paramExpExp, paramExpRepl:
@@ -697,7 +668,7 @@ loop:
 			}
 		}
 		bs = append(bs, byte(r))
-		p.npos++
+		r = p.rune()
 	}
 	p.tok, p.val = tok, string(bs)
 }
@@ -706,18 +677,17 @@ func (p *parser) advanceLitNone() {
 	bs := p.litBuf[:0]
 	p.asPos = 0
 	tok := _LitWord
+	r := byteAt(p.src, p.npos)
 loop:
 	for p.npos < len(p.src) {
-		r := rune(p.src[p.npos])
 		switch r {
 		case '\\': // escaped byte follows
-			if p.npos++; p.npos == len(p.src) {
+			if r = p.rune(); p.npos == len(p.src) {
 				bs = append(bs, '\\')
 				break loop
 			}
-			if r = rune(p.src[p.npos]); r == '\n' {
-				p.npos++
-				p.f.Lines = append(p.f.Lines, p.npos)
+			if r == '\n' {
+				r = p.rune()
 				continue
 			}
 			bs = append(bs, '\\')
@@ -748,7 +718,7 @@ loop:
 			}
 		}
 		bs = append(bs, byte(r))
-		p.npos++
+		r = p.rune()
 	}
 	p.tok, p.val = tok, string(bs)
 }
@@ -756,132 +726,123 @@ loop:
 func (p *parser) advanceLitDquote() {
 	bs := p.litBuf[:0]
 	tok := _LitWord
+	r := byteAt(p.src, p.npos)
 loop:
 	for p.npos < len(p.src) {
-		r := rune(p.src[p.npos])
 		switch r {
 		case '\\': // escaped byte follows
-			if p.npos++; p.npos == len(p.src) {
+			if r = p.rune(); p.npos == len(p.src) {
 				break loop
 			}
 			bs = append(bs, '\\')
-			if r = rune(p.src[p.npos]); r == '\n' {
-				p.f.Lines = append(p.f.Lines, p.npos+1)
-			}
 		case '"':
 			break loop
 		case '`', '$':
 			tok = _Lit
 			break loop
-		case '\n':
-			p.f.Lines = append(p.f.Lines, p.npos+1)
 		}
 		bs = append(bs, byte(r))
-		p.npos++
+		r = p.rune()
 	}
 	p.tok, p.val = tok, string(bs)
 }
 
-func (p *parser) isHdocEnd(i int) bool {
-	end := p.hdocStop
-	if end == nil || len(p.src) < i+len(end) {
-		return false
-	}
-	if !bytes.Equal(end, p.src[i:i+len(end)]) {
-		return false
-	}
-	return len(p.src) == i+len(end) || p.src[i+len(end)] == '\n'
-}
-
 func (p *parser) advanceLitHdoc() {
-	n := p.npos
+	bs := p.litBuf[:0]
+	r := byteAt(p.src, p.npos)
 	if p.quote == hdocBodyTabs {
-		for byteAt(p.src, n) == '\t' {
-			n++
+		for r == '\t' {
+			bs = append(bs, byte(r))
+			r = p.rune()
 		}
 	}
-	if p.isHdocEnd(n) {
-		p.tok, p.val = _LitWord, string(p.src[p.npos:n])
-		p.npos = n + len(p.hdocStop)
-		p.hdocStop = nil
-		return
-	}
-	var i int
+	endOff := len(bs)
 loop:
-	for i = p.npos; i < len(p.src); i++ {
-		switch p.src[i] {
+	for p.npos < len(p.src) {
+		switch r {
 		case '\\': // escaped byte follows
-			if i++; i == len(p.src) {
+			bs = append(bs, byte(r))
+			if r = p.rune(); p.npos == len(p.src) {
 				break loop
-			}
-			if p.src[i] == '\n' {
-				p.f.Lines = append(p.f.Lines, i+1)
 			}
 		case '`', '$':
 			break loop
 		case '\n':
-			n := i + 1
-			p.f.Lines = append(p.f.Lines, n)
+			if bytes.Equal(bs[endOff:], p.hdocStop) {
+				bs = bs[:endOff]
+				p.hdocStop = nil
+				break loop
+			}
+			bs = append(bs, byte(r))
+			r = p.rune()
 			if p.quote == hdocBodyTabs {
-				for byteAt(p.src, n) == '\t' {
-					n++
+				for r == '\t' {
+					bs = append(bs, byte(r))
+					r = p.rune()
 				}
 			}
-			if p.isHdocEnd(n) {
-				p.tok, p.val = _LitWord, string(p.src[p.npos:n])
-				p.npos = n + len(p.hdocStop)
-				p.hdocStop = nil
-				return
+			if p.npos >= len(p.src) {
+				break loop
 			}
+			endOff = len(bs)
 		}
+		bs = append(bs, byte(r))
+		r = p.rune()
 	}
-	p.tok, p.val = _Lit, string(p.src[p.npos:i])
-	p.npos = i
+	if bytes.Equal(bs[endOff:], p.hdocStop) {
+		p.hdocStop = nil
+		bs = bs[:endOff]
+	}
+	p.tok, p.val = _Lit, string(bs)
 }
 
 func (p *parser) hdocLitWord() *Word {
+	bs := p.litBuf[:0]
+	r := byteAt(p.src, p.npos)
 	pos := p.npos
-	end := pos
 	for p.npos < len(p.src) {
-		end = p.npos
-		bs, found := p.readLine()
-		p.npos += len(bs) + 1
-		if found {
-			p.f.Lines = append(p.f.Lines, p.npos)
-		}
 		if p.quote == hdocBodyTabs {
-			for byteAt(p.src, end) == '\t' {
-				end++
+			for r == '\t' {
+				bs = append(bs, byte(r))
+				r = p.rune()
 			}
 		}
-		if p.isHdocEnd(end) {
+		endOff := len(bs)
+		var found bool
+		bs, found = p.readLine(bs)
+		if bytes.Equal(bs[endOff:], p.hdocStop) {
+			bs = bs[:endOff]
 			break
 		}
+		r = byteAt(p.src, p.npos)
+		if found {
+			bs = append(bs, byte(r))
+			r = p.rune()
+		}
 	}
-	if p.npos == len(p.src) {
-		end = p.npos
-	}
-	oldNpos := p.npos
-	p.npos = end // since we're slicing until end
-	l := p.lit(Pos(pos+1), string(p.src[pos:end]))
-	p.npos = oldNpos
+	l := p.lit(Pos(pos+1), string(bs))
 	return p.word(p.singleWps(l))
 }
 
-func (p *parser) readLine() ([]byte, bool) {
+func (p *parser) readLine(bs []byte) ([]byte, bool) {
 	rem := p.src[p.npos:]
 	if i := bytes.IndexByte(rem, '\n'); i >= 0 {
-		return rem[:i], true
+		p.npos += i
+		p.f.Lines = append(p.f.Lines, p.npos+1)
+		bs = append(bs, rem[:i]...)
+		return bs, true
 	}
-	return rem, false
+	p.npos = len(p.src)
+	bs = append(bs, rem...)
+	return bs, false
 }
 
 func (p *parser) advanceLitRe() {
 	lparens := 0
 	bs := p.litBuf[:0]
+	r := byteAt(p.src, p.npos)
 byteLoop:
 	for p.npos < len(p.src) {
-		r := rune(p.src[p.npos])
 		switch r {
 		case '(':
 			lparens++
@@ -893,7 +854,7 @@ byteLoop:
 			}
 		}
 		bs = append(bs, byte(r))
-		p.npos++
+		r = p.rune()
 	}
 	p.tok, p.val = _LitWord, string(bs)
 }

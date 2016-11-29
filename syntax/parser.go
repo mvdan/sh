@@ -47,6 +47,9 @@ func Parse(src io.Reader, name string, mode ParseMode) (*File, error) {
 	p.f.Name = name
 	p.f.Lines = alloc.l[:1]
 	p.src, p.mode = p.readBuf.Bytes(), mode
+	if byteAt(p.src, 0) == '\n' {
+		p.f.Lines = append(p.f.Lines, 1)
+	}
 	p.next()
 	p.f.Stmts = p.stmts()
 	if p.err == nil {
@@ -94,7 +97,7 @@ type parser struct {
 	stListBatch []*Stmt
 	callBatch   []callAlloc
 
-	litBuf  [256]byte
+	litBuf  [1 << 10]byte
 	readBuf *bytes.Buffer
 	copyBuf []byte
 }
@@ -286,15 +289,14 @@ func (p *parser) doHeredocs() {
 		var quoted bool
 		p.hdocStop, quoted = p.unquotedWordBytes(r.Word)
 		if i > 0 && byteAt(p.src, p.npos) == '\n' {
-			p.npos++
-			p.f.Lines = append(p.f.Lines, p.npos)
+			p.rune()
 		}
-		if !quoted {
+		if quoted {
+			r.Hdoc = p.hdocLitWord()
+		} else {
 			p.next()
 			r.Hdoc = p.getWordOrEmpty()
-			continue
 		}
-		r.Hdoc = p.hdocLitWord()
 	}
 	p.quote = old
 }
@@ -570,6 +572,9 @@ func (p *parser) wordPart() WordPart {
 		} else if !p.couldBeArithm() {
 			p.postNested(old)
 			p.npos = int(ar.Left) + 1
+			for len(p.f.Lines) > 0 && p.f.Lines[len(p.f.Lines)-1] > p.npos {
+				p.f.Lines = p.f.Lines[:len(p.f.Lines)-1]
+			}
 			p.tok, p.pos = dollParen, ar.Left
 			wp := p.wordPart()
 			if p.err != nil {
@@ -612,7 +617,7 @@ func (p *parser) wordPart() WordPart {
 		p.pos++
 		switch r {
 		case '@', '*', '#', '$', '?', '!', '0', '-':
-			p.npos++
+			p.rune()
 			p.tok, p.val = _Lit, string(r)
 		default:
 			p.advanceLitOther()
@@ -631,19 +636,15 @@ func (p *parser) wordPart() WordPart {
 	case sglQuote:
 		sq := &SglQuoted{Position: p.pos}
 		bs, found := p.litBuf[:0], false
-	sqLoop:
+		r := byteAt(p.src, p.npos)
 		for p.npos < len(p.src) {
-			r := p.src[p.npos]
-			switch r {
-			case '\'':
-				p.npos++
+			if r == '\'' {
+				p.rune()
 				found = true
-				break sqLoop
-			case '\n':
-				p.f.Lines = append(p.f.Lines, p.npos+1)
+				break
 			}
 			bs = append(bs, byte(r))
-			p.npos++
+			r = p.rune()
 		}
 		if !found {
 			p.posErr(sq.Pos(), "reached EOF without closing quote %s", sglQuote)
@@ -708,9 +709,9 @@ func (p *parser) wordPart() WordPart {
 		eg := &ExtGlob{Op: GlobOperator(p.tok), OpPos: p.pos}
 		bs := p.litBuf[:0]
 		lparens := 0
+		r := byteAt(p.src, p.npos)
 	byteLoop:
 		for p.npos < len(p.src) {
-			r := p.src[p.npos]
 			switch r {
 			case '(':
 				lparens++
@@ -720,10 +721,10 @@ func (p *parser) wordPart() WordPart {
 				}
 			}
 			bs = append(bs, byte(r))
-			p.npos++
+			r = p.rune()
 		}
 		eg.Pattern = p.lit(eg.OpPos+2, string(bs))
-		p.npos++
+		p.rune()
 		p.next()
 		if lparens != -1 {
 			p.matchingErr(eg.OpPos, eg.Op, rightParen)
@@ -1018,7 +1019,7 @@ func (p *parser) peekArithmEnd() bool {
 
 func (p *parser) arithmEnd(ltok token, lpos Pos, old saveState) Pos {
 	if p.peekArithmEnd() {
-		p.npos++
+		p.rune()
 	} else {
 		p.matchingErr(lpos, ltok, dblRightParen)
 	}
@@ -1302,6 +1303,9 @@ func (p *parser) arithmExpCmd() Command {
 	if !p.couldBeArithm() {
 		p.postNested(old)
 		p.npos = int(ar.Left)
+		for len(p.f.Lines) > 0 && p.f.Lines[len(p.f.Lines)-1] > p.npos {
+			p.f.Lines = p.f.Lines[:len(p.f.Lines)-1]
+		}
 		p.tok, p.pos = leftParen, ar.Left
 		s := p.subshell()
 		if p.err != nil {
