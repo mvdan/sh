@@ -3380,7 +3380,7 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 		case src == "":
 		case endOff >= len(src):
 			// ended by EOF
-		case wordBreak(src[endOff]), regOps(src[endOff]):
+		case wordBreak(rune(src[endOff])), regOps(rune(src[endOff])):
 			// ended by end character
 		case endOff > 0 && src[endOff-1] == ';':
 			// ended by semicolon

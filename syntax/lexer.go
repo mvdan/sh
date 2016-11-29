@@ -6,8 +6,8 @@ package syntax
 import "bytes"
 
 // bytes that form or start a token
-func regOps(b byte) bool {
-	switch b {
+func regOps(r rune) bool {
+	switch r {
 	case ';', '"', '\'', '(', ')', '$', '|', '&', '>', '<', '`':
 		return true
 	}
@@ -15,8 +15,8 @@ func regOps(b byte) bool {
 }
 
 // tokenize these inside parameter expansions
-func paramOps(b byte) bool {
-	switch b {
+func paramOps(r rune) bool {
+	switch r {
 	case '}', '#', ':', '-', '+', '=', '?', '%', '[', ']', '/', '^', ',':
 		return true
 	}
@@ -24,8 +24,8 @@ func paramOps(b byte) bool {
 }
 
 // tokenize these inside arithmetic expansions
-func arithmOps(b byte) bool {
-	switch b {
+func arithmOps(r rune) bool {
+	switch r {
 	case '+', '-', '!', '*', '/', '%', '(', ')', '^', '<', '>', ':', '=',
 		',', '?', '|', '&', ']':
 		return true
@@ -33,8 +33,8 @@ func arithmOps(b byte) bool {
 	return false
 }
 
-func wordBreak(b byte) bool {
-	switch b {
+func wordBreak(r rune) bool {
+	switch r {
 	case ' ', '\t', '\n', ';', '&', '>', '<', '|', '(', ')', '\r':
 		return true
 	}
@@ -47,35 +47,35 @@ func (p *parser) next() {
 		return
 	}
 	p.spaced, p.newLine = false, false
-	b := p.src[p.npos]
+	r := rune(p.src[p.npos])
 	p.pos = Pos(p.npos + 1)
 	switch p.quote {
 	case hdocWord:
-		if wordBreak(b) {
+		if wordBreak(r) {
 			p.tok = illegalTok
 			return
 		}
 	case paramExpRepl:
-		switch b {
+		switch r {
 		case '}', '/':
-			p.tok = p.paramToken(b)
+			p.tok = p.paramToken(r)
 		case '`', '"', '$':
-			p.tok = p.dqToken(b)
+			p.tok = p.dqToken(r)
 		default:
 			p.advanceLitOther()
 		}
 		return
 	case dblQuotes:
-		switch b {
+		switch r {
 		case '`', '"', '$':
-			p.tok = p.dqToken(b)
+			p.tok = p.dqToken(r)
 		default:
 			p.advanceLitDquote()
 		}
 		return
 	case hdocBody, hdocBodyTabs:
-		if b == '`' || b == '$' {
-			p.tok = p.dqToken(b)
+		if r == '`' || r == '$' {
+			p.tok = p.dqToken(r)
 		} else if p.hdocStop == nil {
 			p.tok = illegalTok
 		} else {
@@ -83,18 +83,18 @@ func (p *parser) next() {
 		}
 		return
 	case paramExpExp:
-		switch b {
+		switch r {
 		case '}':
 			p.npos++
 			p.tok = rightBrace
 		case '`', '"', '$':
-			p.tok = p.dqToken(b)
+			p.tok = p.dqToken(r)
 		default:
 			p.advanceLitOther()
 		}
 		return
 	case sglQuotes:
-		if b == '\'' {
+		if r == '\'' {
 			p.npos++
 			p.tok = sglQuote
 		} else {
@@ -104,7 +104,7 @@ func (p *parser) next() {
 	}
 skipSpace:
 	for {
-		switch b {
+		switch r {
 		case ' ', '\t', '\r':
 			p.spaced = true
 			p.npos++
@@ -135,14 +135,14 @@ skipSpace:
 			p.tok = _EOF
 			return
 		}
-		b = p.src[p.npos]
+		r = rune(p.src[p.npos])
 	}
 	p.pos = Pos(p.npos + 1)
 	switch {
 	case p.quote&allRegTokens != 0:
-		switch b {
+		switch r {
 		case ';', '"', '\'', '(', ')', '$', '|', '&', '>', '<', '`':
-			p.tok = p.regToken(b)
+			p.tok = p.regToken(r)
 		case '#':
 			p.npos++
 			bs, _ := p.readUntil('\n')
@@ -156,7 +156,7 @@ skipSpace:
 			p.next()
 		case '?', '*', '+', '@', '!':
 			if byteAt(p.src, p.npos+1) == '(' {
-				switch b {
+				switch r {
 				case '?':
 					p.tok = globQuest
 				case '*':
@@ -175,32 +175,32 @@ skipSpace:
 		default:
 			p.advanceLitNone()
 		}
-	case p.quote&allArithmExpr != 0 && arithmOps(b):
-		p.tok = p.arithmToken(b)
-	case p.quote&allParamExp != 0 && paramOps(b):
-		p.tok = p.paramToken(b)
+	case p.quote&allArithmExpr != 0 && arithmOps(r):
+		p.tok = p.arithmToken(r)
+	case p.quote&allParamExp != 0 && paramOps(r):
+		p.tok = p.paramToken(r)
 	case p.quote == testRegexp:
-		if regOps(b) && b != '(' {
-			p.tok = p.regToken(b)
+		if regOps(r) && r != '(' {
+			p.tok = p.regToken(r)
 		} else {
 			p.advanceLitRe()
 		}
-	case regOps(b):
-		p.tok = p.regToken(b)
+	case regOps(r):
+		p.tok = p.regToken(r)
 	default:
 		p.advanceLitOther()
 	}
 }
 
-func byteAt(src []byte, i int) byte {
+func byteAt(src []byte, i int) rune {
 	if i >= len(src) {
 		return 0
 	}
-	return src[i]
+	return rune(src[i])
 }
 
-func (p *parser) regToken(b byte) token {
-	switch b {
+func (p *parser) regToken(r rune) token {
+	switch r {
 	case '\'':
 		p.npos++
 		return sglQuote
@@ -306,10 +306,10 @@ func (p *parser) regToken(b byte) token {
 	case '<':
 		switch byteAt(p.src, p.npos+1) {
 		case '<':
-			if b := byteAt(p.src, p.npos+2); b == '-' {
+			if r := byteAt(p.src, p.npos+2); r == '-' {
 				p.npos += 3
 				return dashHdoc
-			} else if p.bash() && b == '<' {
+			} else if p.bash() && r == '<' {
 				p.npos += 3
 				return wordHdoc
 			}
@@ -353,8 +353,8 @@ func (p *parser) regToken(b byte) token {
 	}
 }
 
-func (p *parser) dqToken(b byte) token {
-	switch b {
+func (p *parser) dqToken(r rune) token {
+	switch r {
 	case '"':
 		p.npos++
 		return dblQuote
@@ -385,8 +385,8 @@ func (p *parser) dqToken(b byte) token {
 	}
 }
 
-func (p *parser) paramToken(b byte) token {
-	switch b {
+func (p *parser) paramToken(r rune) token {
+	switch r {
 	case '}':
 		p.npos++
 		return rightBrace
@@ -460,8 +460,8 @@ func (p *parser) paramToken(b byte) token {
 	}
 }
 
-func (p *parser) arithmToken(b byte) token {
-	switch b {
+func (p *parser) arithmToken(r rune) token {
+	switch r {
 	case '!':
 		if byteAt(p.src, p.npos+1) == '=' {
 			p.npos += 2
@@ -608,19 +608,19 @@ func (p *parser) advanceLitOther() {
 	tok := _LitWord
 loop:
 	for p.npos < len(p.src) {
-		b := p.src[p.npos]
-		switch b {
+		r := rune(p.src[p.npos])
+		switch r {
 		case '\\': // escaped byte follows
 			if p.npos++; p.npos == len(p.src) {
 				bs = append(bs, '\\')
 				break loop
 			}
-			b = p.src[p.npos]
+			r = rune(p.src[p.npos])
 			p.npos++
-			if b == '\n' {
+			if r == '\n' {
 				p.f.Lines = append(p.f.Lines, p.npos)
 			} else {
-				bs = append(bs, '\\', b)
+				bs = append(bs, '\\', byte(r))
 			}
 			continue
 		case '\n':
@@ -665,7 +665,7 @@ loop:
 			if p.quote&allArithmExpr != 0 || p.quote&allParamReg != 0 {
 				break loop
 			}
-			if b == '?' && byteAt(p.src, p.npos+1) == '(' {
+			if r == '?' && byteAt(p.src, p.npos+1) == '(' {
 				tok = _Lit
 				break loop
 			}
@@ -680,7 +680,7 @@ loop:
 			default:
 				break loop
 			}
-			if b == '+' && byteAt(p.src, p.npos+1) == '(' {
+			if r == '+' && byteAt(p.src, p.npos+1) == '(' {
 				tok = _Lit
 				break loop
 			}
@@ -696,7 +696,7 @@ loop:
 				break loop
 			}
 		}
-		bs = append(bs, b)
+		bs = append(bs, byte(r))
 		p.npos++
 	}
 	p.tok, p.val = tok, string(bs)
@@ -708,14 +708,14 @@ func (p *parser) advanceLitNone() {
 	tok := _LitWord
 loop:
 	for p.npos < len(p.src) {
-		b := p.src[p.npos]
-		switch b {
+		r := rune(p.src[p.npos])
+		switch r {
 		case '\\': // escaped byte follows
 			if p.npos++; p.npos == len(p.src) {
 				bs = append(bs, '\\')
 				break loop
 			}
-			if b = p.src[p.npos]; b == '\n' {
+			if r = rune(p.src[p.npos]); r == '\n' {
 				p.npos++
 				p.f.Lines = append(p.f.Lines, p.npos)
 				continue
@@ -744,10 +744,10 @@ loop:
 		case '=':
 			p.asPos = len(bs)
 			if p.bash() && p.asPos > 0 && p.src[p.npos-1] == '+' {
-				p.asPos-- // a+=b
+				p.asPos-- // a+=r
 			}
 		}
-		bs = append(bs, b)
+		bs = append(bs, byte(r))
 		p.npos++
 	}
 	p.tok, p.val = tok, string(bs)
@@ -758,14 +758,14 @@ func (p *parser) advanceLitDquote() {
 	tok := _LitWord
 loop:
 	for p.npos < len(p.src) {
-		b := p.src[p.npos]
-		switch b {
+		r := rune(p.src[p.npos])
+		switch r {
 		case '\\': // escaped byte follows
 			if p.npos++; p.npos == len(p.src) {
 				break loop
 			}
 			bs = append(bs, '\\')
-			if b = p.src[p.npos]; b == '\n' {
+			if r = rune(p.src[p.npos]); r == '\n' {
 				p.f.Lines = append(p.f.Lines, p.npos+1)
 			}
 		case '"':
@@ -776,7 +776,7 @@ loop:
 		case '\n':
 			p.f.Lines = append(p.f.Lines, p.npos+1)
 		}
-		bs = append(bs, b)
+		bs = append(bs, byte(r))
 		p.npos++
 	}
 	p.tok, p.val = tok, string(bs)
@@ -881,8 +881,8 @@ func (p *parser) advanceLitRe() {
 	bs := p.litBuf[:0]
 byteLoop:
 	for p.npos < len(p.src) {
-		b := p.src[p.npos]
-		switch b {
+		r := rune(p.src[p.npos])
+		switch r {
 		case '(':
 			lparens++
 		case ')':
@@ -892,7 +892,7 @@ byteLoop:
 				break byteLoop
 			}
 		}
-		bs = append(bs, b)
+		bs = append(bs, byte(r))
 		p.npos++
 	}
 	p.tok, p.val = _LitWord, string(bs)

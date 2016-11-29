@@ -601,8 +601,8 @@ func (p *parser) wordPart() WordPart {
 		cs.Right = p.matched(cs.Left, leftParen, rightParen)
 		return cs
 	case dollar:
-		b := byteAt(p.src, p.npos)
-		if b == 0 || wordBreak(b) || b == '"' || b == '\'' || b == '`' || b == '[' {
+		r := byteAt(p.src, p.npos)
+		if r == 0 || wordBreak(r) || r == '"' || r == '\'' || r == '`' || r == '[' {
 			l := p.lit(p.pos, "$")
 			p.next()
 			return l
@@ -610,10 +610,10 @@ func (p *parser) wordPart() WordPart {
 		p.ensureNoNested()
 		pe := &ParamExp{Dollar: p.pos, Short: true}
 		p.pos++
-		switch b {
+		switch r {
 		case '@', '*', '#', '$', '?', '!', '0', '-':
 			p.npos++
-			p.tok, p.val = _Lit, string(b)
+			p.tok, p.val = _Lit, string(r)
 		default:
 			p.advanceLitOther()
 		}
@@ -708,8 +708,8 @@ func (p *parser) wordPart() WordPart {
 		lparens := 0
 	byteLoop:
 		for p.npos < len(p.src) {
-			b := p.src[p.npos]
-			switch b {
+			r := p.src[p.npos]
+			switch r {
 			case '(':
 				lparens++
 			case ')':
@@ -717,7 +717,7 @@ func (p *parser) wordPart() WordPart {
 					break byteLoop
 				}
 			}
-			bs = append(bs, b)
+			bs = append(bs, byte(r))
 			p.npos++
 		}
 		eg.Pattern = p.lit(eg.OpPos+2, string(bs))
