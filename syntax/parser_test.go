@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"reflect"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -89,6 +90,8 @@ func checkBash() (int, error) {
 	return 0, fmt.Errorf("need bash %s, found %s", strings.Join(versions, "/"), got)
 }
 
+var extGlobRe = regexp.MustCompile(`[@?*+!]\(`)
+
 func confirmParse(in string, min int, posix, fail bool) func(*testing.T) {
 	return func(t *testing.T) {
 		if bashVersion < min {
@@ -103,7 +106,7 @@ func confirmParse(in string, min int, posix, fail bool) func(*testing.T) {
 		if strings.Contains(in, "#INVBASH") {
 			fail = !fail
 		}
-		if strings.Contains(in, "@(") {
+		if extGlobRe.MatchString(in) {
 			// otherwise bash refuses to parse these
 			// properly. Also avoid -n since that too makes
 			// bash bail.
@@ -988,11 +991,11 @@ var posixTests = []errorCase{
 		`1:5: ;; can only be used in a case clause`,
 	},
 	{
-		"echo !(a)",
+		"echo !(a) #INVBASH --posix is wrong",
 		`1:6: extended globs are a bash feature`,
 	},
 	{
-		"echo $a@(b)",
+		"echo $a@(b) #INVBASH --posix is wrong",
 		`1:8: extended globs are a bash feature`,
 	},
 	{
