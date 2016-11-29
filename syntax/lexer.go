@@ -71,7 +71,7 @@ func (p *parser) next() {
 		case '`', '"', '$':
 			p.tok = p.dqToken(r)
 		default:
-			p.advanceLitOther()
+			p.advanceLitOther(r)
 		}
 		return
 	case dblQuotes:
@@ -79,7 +79,7 @@ func (p *parser) next() {
 		case '`', '"', '$':
 			p.tok = p.dqToken(r)
 		default:
-			p.advanceLitDquote()
+			p.advanceLitDquote(r)
 		}
 		return
 	case hdocBody, hdocBodyTabs:
@@ -88,7 +88,7 @@ func (p *parser) next() {
 		} else if p.hdocStop == nil {
 			p.tok = illegalTok
 		} else {
-			p.advanceLitHdoc()
+			p.advanceLitHdoc(r)
 		}
 		return
 	case paramExpExp:
@@ -99,7 +99,7 @@ func (p *parser) next() {
 		case '`', '"', '$':
 			p.tok = p.dqToken(r)
 		default:
-			p.advanceLitOther()
+			p.advanceLitOther(r)
 		}
 		return
 	case sglQuotes:
@@ -107,7 +107,7 @@ func (p *parser) next() {
 			p.rune()
 			p.tok = sglQuote
 		} else {
-			p.advanceLitOther()
+			p.advanceLitOther(r)
 		}
 		return
 	}
@@ -128,8 +128,8 @@ skipSpace:
 				if p.doHeredocs(); p.tok == _EOF {
 					return
 				}
+				r = byteAt(p.src, p.npos)
 			}
-			r = byteAt(p.src, p.npos)
 		case '\\':
 			if byteAt(p.src, p.npos+1) == '\n' {
 				p.rune()
@@ -178,10 +178,10 @@ skipSpace:
 				p.rune()
 				p.rune()
 			} else {
-				p.advanceLitNone()
+				p.advanceLitNone(r)
 			}
 		default:
-			p.advanceLitNone()
+			p.advanceLitNone(r)
 		}
 	case p.quote&allArithmExpr != 0 && arithmOps(r):
 		p.tok = p.arithmToken(r)
@@ -191,12 +191,12 @@ skipSpace:
 		if regOps(r) && r != '(' {
 			p.tok = p.regToken(r)
 		} else {
-			p.advanceLitRe()
+			p.advanceLitRe(r)
 		}
 	case regOps(r):
 		p.tok = p.regToken(r)
 	default:
-		p.advanceLitOther()
+		p.advanceLitOther(r)
 	}
 }
 
@@ -578,10 +578,9 @@ func (p *parser) arithmToken(r rune) token {
 	}
 }
 
-func (p *parser) advanceLitOther() {
+func (p *parser) advanceLitOther(r rune) {
 	bs := p.litBuf[:0]
 	tok := _LitWord
-	r := byteAt(p.src, p.npos)
 loop:
 	for p.npos < len(p.src) {
 		switch r {
@@ -673,11 +672,10 @@ loop:
 	p.tok, p.val = tok, string(bs)
 }
 
-func (p *parser) advanceLitNone() {
+func (p *parser) advanceLitNone(r rune) {
 	bs := p.litBuf[:0]
 	p.asPos = 0
 	tok := _LitWord
-	r := byteAt(p.src, p.npos)
 loop:
 	for p.npos < len(p.src) {
 		switch r {
@@ -723,10 +721,9 @@ loop:
 	p.tok, p.val = tok, string(bs)
 }
 
-func (p *parser) advanceLitDquote() {
+func (p *parser) advanceLitDquote(r rune) {
 	bs := p.litBuf[:0]
 	tok := _LitWord
-	r := byteAt(p.src, p.npos)
 loop:
 	for p.npos < len(p.src) {
 		switch r {
@@ -747,9 +744,8 @@ loop:
 	p.tok, p.val = tok, string(bs)
 }
 
-func (p *parser) advanceLitHdoc() {
+func (p *parser) advanceLitHdoc(r rune) {
 	bs := p.litBuf[:0]
-	r := byteAt(p.src, p.npos)
 	if p.quote == hdocBodyTabs {
 		for r == '\t' {
 			bs = append(bs, byte(r))
@@ -837,10 +833,9 @@ func (p *parser) readLine(bs []byte) ([]byte, bool) {
 	return bs, false
 }
 
-func (p *parser) advanceLitRe() {
+func (p *parser) advanceLitRe(r rune) {
 	lparens := 0
 	bs := p.litBuf[:0]
-	r := byteAt(p.src, p.npos)
 byteLoop:
 	for p.npos < len(p.src) {
 		switch r {

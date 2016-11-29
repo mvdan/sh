@@ -620,7 +620,7 @@ func (p *parser) wordPart() WordPart {
 			p.rune()
 			p.tok, p.val = _Lit, string(r)
 		default:
-			p.advanceLitOther()
+			p.advanceLitOther(r)
 		}
 		pe.Param = p.getLit()
 		return pe
