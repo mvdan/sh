@@ -968,7 +968,11 @@ func (p *parser) paramExp() *ParamExp {
 		p.quote = paramExpRepl
 		p.next()
 		pe.Repl.Orig = p.getWordOrEmpty()
-		if p.tok == slash {
+		switch p.tok {
+		case dblSlash:
+			p.npos--
+			fallthrough
+		case slash:
 			p.quote = paramExpExp
 			p.next()
 		}

@@ -1721,33 +1721,24 @@ var fileTests = []testCase{
 		},
 	},
 	{
-		Strs: []string{`${foo/b1/b2}`},
+		Strs: []string{`${foo/a/b}`},
 		bash: &ParamExp{
 			Param: lit("foo"),
-			Repl: &Replace{
-				Orig: litWord("b1"),
-				With: litWord("b2"),
-			},
+			Repl: &Replace{Orig: litWord("a"), With: litWord("b")},
 		},
 	},
 	{
-		Strs: []string{`${foo/a b/c d}`},
+		Strs: []string{"${foo/ /\t}"},
 		bash: &ParamExp{
 			Param: lit("foo"),
-			Repl: &Replace{
-				Orig: litWord("a b"),
-				With: litWord("c d"),
-			},
+			Repl: &Replace{Orig: litWord(" "), With: litWord("\t")},
 		},
 	},
 	{
 		Strs: []string{`${foo/[/]-}`},
 		bash: &ParamExp{
 			Param: lit("foo"),
-			Repl: &Replace{
-				Orig: litWord("["),
-				With: litWord("]-"),
-			},
+			Repl: &Replace{Orig: litWord("["), With: litWord("]-")},
 		},
 	},
 	{
@@ -1790,6 +1781,13 @@ var fileTests = []testCase{
 				Orig: litWord(""),
 				With: litWord(""),
 			},
+		},
+	},
+	{
+		Strs: []string{`${foo/-//}`},
+		bash: &ParamExp{
+			Param: lit("foo"),
+			Repl:  &Replace{Orig: litWord("-"), With: litWord("/")},
 		},
 	},
 	{
