@@ -1724,21 +1724,21 @@ var fileTests = []testCase{
 		Strs: []string{`${foo/a/b}`},
 		bash: &ParamExp{
 			Param: lit("foo"),
-			Repl: &Replace{Orig: litWord("a"), With: litWord("b")},
+			Repl:  &Replace{Orig: litWord("a"), With: litWord("b")},
 		},
 	},
 	{
 		Strs: []string{"${foo/ /\t}"},
 		bash: &ParamExp{
 			Param: lit("foo"),
-			Repl: &Replace{Orig: litWord(" "), With: litWord("\t")},
+			Repl:  &Replace{Orig: litWord(" "), With: litWord("\t")},
 		},
 	},
 	{
 		Strs: []string{`${foo/[/]-}`},
 		bash: &ParamExp{
 			Param: lit("foo"),
-			Repl: &Replace{Orig: litWord("["), With: litWord("]-")},
+			Repl:  &Replace{Orig: litWord("["), With: litWord("]-")},
 		},
 	},
 	{
@@ -3229,6 +3229,22 @@ var fileTests = []testCase{
 			lit("foo"),
 			&ExtGlob{Op: GlobAt, Pattern: lit("b*(c|d)")},
 			lit("bar"),
+		))),
+	},
+	{
+		Strs: []string{"echo $a@(b)$c?(d)$e*(f)$g+(h)$i!(j)$k"},
+		bash: stmt(call(litWord("echo"), word(
+			litParamExp("a"),
+			&ExtGlob{Op: GlobAt, Pattern: lit("b")},
+			litParamExp("c"),
+			&ExtGlob{Op: GlobQuest, Pattern: lit("d")},
+			litParamExp("e"),
+			&ExtGlob{Op: GlobStar, Pattern: lit("f")},
+			litParamExp("g"),
+			&ExtGlob{Op: GlobPlus, Pattern: lit("h")},
+			litParamExp("i"),
+			&ExtGlob{Op: GlobExcl, Pattern: lit("j")},
+			litParamExp("k"),
 		))),
 	},
 }

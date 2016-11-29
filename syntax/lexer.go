@@ -657,8 +657,16 @@ loop:
 			if q&allArithmExpr != 0 {
 				break loop
 			}
+			if p.bash() && byteAt(p.src, p.npos+1) == '(' {
+				tok = _Lit
+				break loop
+			}
 		case ':', '=', '%', '?', '^', ',':
 			if q&allArithmExpr != 0 || q&allParamReg != 0 {
+				break loop
+			}
+			if b == '?' && p.bash() && byteAt(p.src, p.npos+1) == '(' {
+				tok = _Lit
 				break loop
 			}
 		case '#', '[':
@@ -670,6 +678,15 @@ loop:
 			case paramExpInd, paramExpLen, paramExpOff,
 				paramExpExp, paramExpRepl, sglQuotes:
 			default:
+				break loop
+			}
+			if b == '+' && p.bash() && byteAt(p.src, p.npos+1) == '(' {
+				tok = _Lit
+				break loop
+			}
+		case '@':
+			if p.bash() && byteAt(p.src, p.npos+1) == '(' {
+				tok = _Lit
 				break loop
 			}
 		case ' ', '\t', ';', '&', '>', '<', '|', '(', ')', '\r':
