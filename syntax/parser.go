@@ -444,7 +444,6 @@ func (p *parser) curErr(format string, a ...interface{}) {
 }
 
 func (p *parser) stmts(stops ...string) (sts []*Stmt) {
-	q := p.quote
 	gotEnd := true
 	for p.tok != _EOF {
 		switch p.tok {
@@ -455,15 +454,15 @@ func (p *parser) stmts(stops ...string) (sts []*Stmt) {
 				}
 			}
 		case rightParen:
-			if q == subCmd {
+			if p.quote == subCmd {
 				return
 			}
 		case bckQuote:
-			if q == subCmdBckquo {
+			if p.quote == subCmdBckquo {
 				return
 			}
 		case dblSemicolon, semiFall, dblSemiFall:
-			if q == switchCase {
+			if p.quote == switchCase {
 				return
 			}
 			p.curErr("%s can only be used in a case clause", p.tok)
@@ -571,8 +570,7 @@ func (p *parser) wordPart() WordPart {
 		} else if !p.couldBeArithm() {
 			p.postNested(old)
 			p.npos = int(ar.Left) + 1
-			p.tok = dollParen
-			p.pos = ar.Left
+			p.tok, p.pos = dollParen, ar.Left
 			wp := p.wordPart()
 			if p.err != nil {
 				p.err = nil
@@ -736,8 +734,7 @@ func (p *parser) wordPart() WordPart {
 
 func (p *parser) couldBeArithm() (could bool) {
 	// save state
-	oldTok := p.tok
-	oldNpos := p.npos
+	oldTok, oldNpos := p.tok, p.npos
 	oldLines := len(p.f.Lines)
 	p.next()
 	lparens := 0
@@ -758,8 +755,7 @@ tokLoop:
 		p.next()
 	}
 	// recover state
-	p.tok = oldTok
-	p.npos = oldNpos
+	p.tok, p.npos = oldTok, oldNpos
 	p.f.Lines = p.f.Lines[:oldLines]
 	return
 }
@@ -825,7 +821,7 @@ func (p *parser) arithmExpr(ftok token, fpos Pos, level int, compact, tern bool)
 			}
 		}
 	}
-	if newLevel < 0 || newLevel < level {
+	if newLevel < level {
 		return left
 	}
 	b := &BinaryArithm{
@@ -1043,8 +1039,7 @@ func (p *parser) validIdent() bool {
 	if p.asPos <= 0 {
 		return false
 	}
-	s := p.val[:p.asPos]
-	for i, c := range s {
+	for i, c := range p.val[:p.asPos] {
 		switch {
 		case 'a' <= c && c <= 'z':
 		case 'A' <= c && c <= 'Z':
@@ -1059,17 +1054,16 @@ func (p *parser) validIdent() bool {
 }
 
 func (p *parser) getAssign() *Assign {
-	asPos := p.asPos
-	as := &Assign{Name: p.lit(p.pos, p.val[:asPos])}
+	as := &Assign{Name: p.lit(p.pos, p.val[:p.asPos])}
 	// since we're not using the entire p.val
-	as.Name.ValueEnd = as.Name.ValuePos + Pos(asPos)
-	if p.val[asPos] == '+' {
+	as.Name.ValueEnd = as.Name.ValuePos + Pos(p.asPos)
+	if p.val[p.asPos] == '+' {
 		as.Append = true
-		asPos++
+		p.asPos++
 	}
-	start := p.lit(p.pos+1, p.val[asPos+1:])
+	start := p.lit(p.pos+1, p.val[p.asPos+1:])
 	if start.Value != "" {
-		start.ValuePos += Pos(asPos)
+		start.ValuePos += Pos(p.asPos)
 		as.Value = p.word(p.singleWps(start))
 	}
 	p.next()
@@ -1306,8 +1300,7 @@ func (p *parser) arithmExpCmd() Command {
 	if !p.couldBeArithm() {
 		p.postNested(old)
 		p.npos = int(ar.Left)
-		p.tok = leftParen
-		p.pos = ar.Left
+		p.tok, p.pos = leftParen, ar.Left
 		s := p.subshell()
 		if p.err != nil {
 			p.err = nil
@@ -1338,14 +1331,13 @@ func (p *parser) ifClause() *IfClause {
 	ic.CondStmts = p.followStmts("if", ic.If, "then")
 	ic.Then = p.followRsrv(ic.If, "if <cond>", "then")
 	ic.ThenStmts = p.followStmts("then", ic.Then, "fi", "elif", "else")
-	elifPos := p.pos
-	for p.gotRsrv("elif") {
-		elf := &Elif{Elif: elifPos}
+	for p.tok == _LitWord && p.val == "elif" {
+		elf := &Elif{Elif: p.pos}
+		p.next()
 		elf.CondStmts = p.followStmts("elif", elf.Elif, "then")
 		elf.Then = p.followRsrv(elf.Elif, "elif <cond>", "then")
 		elf.ThenStmts = p.followStmts("then", elf.Then, "fi", "elif", "else")
 		ic.Elifs = append(ic.Elifs, elf)
-		elifPos = p.pos
 	}
 	if elsePos := p.pos; p.gotRsrv("else") {
 		ic.Else = elsePos
