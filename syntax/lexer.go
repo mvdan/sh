@@ -47,9 +47,9 @@ func (p *parser) next() {
 		return
 	}
 	p.spaced, p.newLine = false, false
-	b, q := p.src[p.npos], p.quote
+	b := p.src[p.npos]
 	p.pos = Pos(p.npos + 1)
-	switch q {
+	switch p.quote {
 	case hdocWord:
 		if wordBreak(b) {
 			p.tok = illegalTok
@@ -62,7 +62,7 @@ func (p *parser) next() {
 		case '`', '"', '$':
 			p.tok = p.dqToken(b)
 		default:
-			p.advanceLitOther(q)
+			p.advanceLitOther()
 		}
 		return
 	case dblQuotes:
@@ -90,7 +90,7 @@ func (p *parser) next() {
 		case '`', '"', '$':
 			p.tok = p.dqToken(b)
 		default:
-			p.advanceLitOther(q)
+			p.advanceLitOther()
 		}
 		return
 	case sglQuotes:
@@ -98,7 +98,7 @@ func (p *parser) next() {
 			p.npos++
 			p.tok = sglQuote
 		} else {
-			p.advanceLitOther(q)
+			p.advanceLitOther()
 		}
 		return
 	}
@@ -110,7 +110,7 @@ skipSpace:
 			p.npos++
 		case '\n':
 			p.spaced, p.newLine = true, true
-			if q == arithmExprLet {
+			if p.quote == arithmExprLet {
 				p.tok = illegalTok
 				return
 			}
@@ -139,7 +139,7 @@ skipSpace:
 	}
 	p.pos = Pos(p.npos + 1)
 	switch {
-	case q&allRegTokens != 0:
+	case p.quote&allRegTokens != 0:
 		switch b {
 		case ';', '"', '\'', '(', ')', '$', '|', '&', '>', '<', '`':
 			p.tok = p.regToken(b)
@@ -175,11 +175,11 @@ skipSpace:
 		default:
 			p.advanceLitNone()
 		}
-	case q&allArithmExpr != 0 && arithmOps(b):
+	case p.quote&allArithmExpr != 0 && arithmOps(b):
 		p.tok = p.arithmToken(b)
-	case q&allParamExp != 0 && paramOps(b):
+	case p.quote&allParamExp != 0 && paramOps(b):
 		p.tok = p.paramToken(b)
-	case q == testRegexp:
+	case p.quote == testRegexp:
 		if regOps(b) && b != '(' {
 			p.tok = p.regToken(b)
 		} else {
@@ -188,7 +188,7 @@ skipSpace:
 	case regOps(b):
 		p.tok = p.regToken(b)
 	default:
-		p.advanceLitOther(q)
+		p.advanceLitOther()
 	}
 }
 
@@ -603,7 +603,7 @@ func (p *parser) arithmToken(b byte) token {
 	}
 }
 
-func (p *parser) advanceLitOther(q quoteState) {
+func (p *parser) advanceLitOther() {
 	bs := p.litBuf[:0]
 	tok := _LitWord
 loop:
@@ -624,37 +624,37 @@ loop:
 			}
 			continue
 		case '\n':
-			switch q {
+			switch p.quote {
 			case sglQuotes, paramExpRepl, paramExpExp:
 			default:
 				break loop
 			}
 			p.f.Lines = append(p.f.Lines, p.npos+1)
 		case '\'':
-			switch q {
+			switch p.quote {
 			case paramExpExp, paramExpRepl:
 			default:
 				break loop
 			}
 		case '"', '`', '$':
-			if q != sglQuotes {
+			if p.quote != sglQuotes {
 				tok = _Lit
 				break loop
 			}
 		case '}':
-			if q&allParamExp != 0 {
+			if p.quote&allParamExp != 0 {
 				break loop
 			}
 		case '/':
-			if q&allParamExp != 0 && q != paramExpExp {
+			if p.quote&allParamExp != 0 && p.quote != paramExpExp {
 				break loop
 			}
 		case ']':
-			if q&allRbrack != 0 {
+			if p.quote&allRbrack != 0 {
 				break loop
 			}
 		case '!', '*':
-			if q&allArithmExpr != 0 {
+			if p.quote&allArithmExpr != 0 {
 				break loop
 			}
 			if byteAt(p.src, p.npos+1) == '(' {
@@ -662,7 +662,7 @@ loop:
 				break loop
 			}
 		case ':', '=', '%', '?', '^', ',':
-			if q&allArithmExpr != 0 || q&allParamReg != 0 {
+			if p.quote&allArithmExpr != 0 || p.quote&allParamReg != 0 {
 				break loop
 			}
 			if b == '?' && byteAt(p.src, p.npos+1) == '(' {
@@ -670,11 +670,11 @@ loop:
 				break loop
 			}
 		case '#', '[':
-			if q&allParamReg != 0 {
+			if p.quote&allParamReg != 0 {
 				break loop
 			}
 		case '+', '-':
-			switch q {
+			switch p.quote {
 			case paramExpInd, paramExpLen, paramExpOff,
 				paramExpExp, paramExpRepl, sglQuotes:
 			default:
@@ -690,7 +690,7 @@ loop:
 				break loop
 			}
 		case ' ', '\t', ';', '&', '>', '<', '|', '(', ')', '\r':
-			switch q {
+			switch p.quote {
 			case paramExpExp, paramExpRepl, sglQuotes:
 			default:
 				break loop

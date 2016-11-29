@@ -615,7 +615,7 @@ func (p *parser) wordPart() WordPart {
 			p.npos++
 			p.tok, p.val = _Lit, string(b)
 		default:
-			p.advanceLitOther(p.quote)
+			p.advanceLitOther()
 		}
 		pe.Param = p.getLit()
 		return pe
