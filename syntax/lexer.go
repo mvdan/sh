@@ -180,9 +180,7 @@ skipSpace:
 	case q&allParamExp != 0 && paramOps(b):
 		p.tok = p.paramToken(b)
 	case q == testRegexp:
-		if b == '(' {
-			p.advanceLitRe()
-		} else if regOps(b) {
+		if regOps(b) && b != '(' {
 			p.tok = p.regToken(b)
 		} else {
 			p.advanceLitRe()
