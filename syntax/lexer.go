@@ -7,31 +7,38 @@ import "bytes"
 
 // bytes that form or start a token
 func regOps(b byte) bool {
-	return b == ';' || b == '"' || b == '\'' || b == '(' ||
-		b == ')' || b == '$' || b == '|' || b == '&' ||
-		b == '>' || b == '<' || b == '`'
+	switch b {
+	case ';', '"', '\'', '(', ')', '$', '|', '&', '>', '<', '`':
+		return true
+	}
+	return false
 }
 
 // tokenize these inside parameter expansions
 func paramOps(b byte) bool {
-	return b == '}' || b == '#' || b == ':' || b == '-' || b == '+' ||
-		b == '=' || b == '?' || b == '%' || b == '[' || b == ']' ||
-		b == '/' || b == '^' || b == ','
+	switch b {
+	case '}', '#', ':', '-', '+', '=', '?', '%', '[', ']', '/', '^', ',':
+		return true
+	}
+	return false
 }
 
 // tokenize these inside arithmetic expansions
 func arithmOps(b byte) bool {
-	return b == '+' || b == '-' || b == '!' || b == '*' ||
-		b == '/' || b == '%' || b == '(' || b == ')' ||
-		b == '^' || b == '<' || b == '>' || b == ':' ||
-		b == '=' || b == ',' || b == '?' || b == '|' ||
-		b == '&' || b == ']'
+	switch b {
+	case '+', '-', '!', '*', '/', '%', '(', ')', '^', '<', '>', ':', '=',
+		',', '?', '|', '&', ']':
+		return true
+	}
+	return false
 }
 
 func wordBreak(b byte) bool {
-	return b == ' ' || b == '\t' || b == '\n' || b == ';' ||
-		b == '&' || b == '>' || b == '<' || b == '|' ||
-		b == '(' || b == ')' || b == '\r'
+	switch b {
+	case ' ', '\t', '\n', ';', '&', '>', '<', '|', '(', ')', '\r':
+		return true
+	}
+	return false
 }
 
 func (p *parser) next() {
