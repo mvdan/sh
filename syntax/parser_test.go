@@ -776,6 +776,10 @@ var bashTests = []errorCase{
 		`1:5: |& must be followed by a statement`,
 	},
 	{
+		"|& a",
+		`1:1: |& is not a valid start for a statement`,
+	},
+	{
 		"let",
 		`1:1: let clause requires at least one expression`,
 	},

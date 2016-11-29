@@ -494,6 +494,8 @@ func (p *parser) invalidStmtStart() {
 		p.curErr("%s can only immediately follow a statement", p.tok)
 	case rightParen:
 		p.curErr("%s can only be used to close a subshell", p.tok)
+	default:
+		p.curErr("%s is not a valid start for a statement", p.tok)
 	}
 }
 
