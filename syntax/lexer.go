@@ -627,16 +627,8 @@ loop:
 			if p.quote&allArithmExpr != 0 {
 				break loop
 			}
-			if byteAt(p.src, p.npos+1) == '(' {
-				tok = _Lit
-				break loop
-			}
 		case ':', '=', '%', '?', '^', ',':
 			if p.quote&allArithmExpr != 0 || p.quote&allParamReg != 0 {
-				break loop
-			}
-			if r == '?' && byteAt(p.src, p.npos+1) == '(' {
-				tok = _Lit
 				break loop
 			}
 		case '#', '[':
@@ -648,15 +640,6 @@ loop:
 			case paramExpInd, paramExpLen, paramExpOff,
 				paramExpExp, paramExpRepl, sglQuotes:
 			default:
-				break loop
-			}
-			if r == '+' && byteAt(p.src, p.npos+1) == '(' {
-				tok = _Lit
-				break loop
-			}
-		case '@':
-			if byteAt(p.src, p.npos+1) == '(' {
-				tok = _Lit
 				break loop
 			}
 		case ' ', '\t', ';', '&', '>', '<', '|', '(', ')', '\r':

@@ -904,6 +904,10 @@ var bashTests = []errorCase{
 		`1:6: reached EOF without matching @( with )`,
 	},
 	{
+		"((@(",
+		`1:1: reached EOF without matching (( with ))`,
+	},
+	{
 		"coproc",
 		`1:1: coproc clause requires a command`,
 	},

@@ -622,7 +622,11 @@ func (p *parser) wordPart() WordPart {
 			p.rune()
 			p.tok, p.val = _Lit, string(r)
 		default:
-			p.advanceLitOther(r)
+			if p.quote&allRegTokens != 0 {
+				p.advanceLitNone(r)
+			} else {
+				p.advanceLitOther(r)
+			}
 		}
 		pe.Param = p.getLit()
 		return pe
