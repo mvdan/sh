@@ -823,9 +823,11 @@ func (p *parser) hdocLitWord() *Word {
 func (p *parser) readLine(bs []byte) ([]byte, bool) {
 	rem := p.src[p.npos:]
 	if i := bytes.IndexByte(rem, '\n'); i >= 0 {
-		p.npos += i
-		p.f.Lines = append(p.f.Lines, p.npos+1)
-		bs = append(bs, rem[:i]...)
+		if i > 0 {
+			p.npos += i
+			p.f.Lines = append(p.f.Lines, p.npos+1)
+			bs = append(bs, rem[:i]...)
+		}
 		return bs, true
 	}
 	p.npos = len(p.src)

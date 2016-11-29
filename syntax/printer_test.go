@@ -318,6 +318,7 @@ func TestFprintWeirdFormat(t *testing.T) {
 			"# foo\n\n\nbar",
 			"# foo\n\nbar",
 		},
+		samePrint("#foo\n#\n#bar"),
 	}
 
 	for i, tc := range weirdFormats {
