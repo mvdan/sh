@@ -766,7 +766,7 @@ var bashTests = []errorCase{
 	},
 	{
 		"echo ((foo",
-		`1:6: a command can only contain words and redirects`,
+		`1:6: (( can only be used to open an arithmetic cmd`,
 	},
 	{
 		"foo |&",

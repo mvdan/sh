@@ -493,8 +493,6 @@ func (p *parser) invalidStmtStart() {
 		p.curErr("%s can only immediately follow a statement", p.tok)
 	case rightParen:
 		p.curErr("%s can only be used to close a subshell", p.tok)
-	default:
-		p.curErr("%s is not a valid start for a statement", p.tok)
 	}
 }
 
@@ -1725,6 +1723,8 @@ func (p *parser) callExpr(s *Stmt, w *Word) *CallExpr {
 		case rdrOut, appOut, rdrIn, dplIn, dplOut, clbOut, rdrInOut,
 			hdoc, dashHdoc, wordHdoc, rdrAll, appAll:
 			p.doRedirect(s)
+		case dblLeftParen:
+			p.curErr("%s can only be used to open an arithmetic cmd", p.tok)
 		case rightParen:
 			if p.quote == subCmd {
 				return ce
