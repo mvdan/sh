@@ -1320,6 +1320,15 @@ var fileTests = []testCase{
 		))),
 	},
 	{
+		Strs: []string{
+			"( (\n\tfoo\n\tbar\n))",
+			"((\n\tfoo\n\tbar\n) )",
+		},
+		bash: subshell(stmt(
+			subshell(litStmts("foo", "bar")...),
+		)),
+	},
+	{
 		Strs: []string{"$({ echo; })", "`{ echo; }`"},
 		common: cmdSubst(stmt(
 			block(litStmt("echo")),

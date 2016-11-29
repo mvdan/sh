@@ -261,7 +261,6 @@ func (p *parser) unquotedWordPart(b *bytes.Buffer, wp WordPart) bool {
 			return true
 		}
 		b.WriteString(x.Value)
-		return false
 	case *SglQuoted:
 		b.WriteString(x.Value)
 		return true
@@ -270,9 +269,8 @@ func (p *parser) unquotedWordPart(b *bytes.Buffer, wp WordPart) bool {
 			p.unquotedWordPart(b, wp2)
 		}
 		return true
-	default:
-		return false
 	}
+	return false
 }
 
 func (p *parser) doHeredocs() {

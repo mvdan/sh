@@ -33,7 +33,12 @@ func (c PrintConfig) Fprint(w io.Writer, f *File) error {
 	p.stmts(f.Stmts)
 	p.commentsUpTo(0)
 	p.newline(0)
-	err := p.bufWriter.Flush()
+	var err error
+	if flusher, ok := p.bufWriter.(interface {
+		Flush() error
+	}); ok {
+		err = flusher.Flush()
+	}
 	printerFree.Put(p)
 	return err
 }
@@ -48,7 +53,6 @@ type bufWriter interface {
 	WriteByte(byte) error
 	WriteString(string) (int, error)
 	Reset(io.Writer)
-	Flush() error
 }
 
 type printer struct {
@@ -819,7 +823,6 @@ func (c *byteCounter) WriteString(s string) (int, error) {
 	return 0, nil
 }
 func (c *byteCounter) Reset(io.Writer) { *c = 0 }
-func (c *byteCounter) Flush() error    { return nil }
 
 func (p *printer) stmtLen(s *Stmt) int {
 	*p.lenPrinter = printer{bufWriter: &p.lenCounter}
