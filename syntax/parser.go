@@ -610,7 +610,7 @@ func (p *parser) wordPart() WordPart {
 		return cs
 	case dollar:
 		r := p.r
-		if r == 0 || wordBreak(r) || r == '"' || r == '\'' || r == '`' || r == '[' {
+		if r == utf8.RuneSelf || wordBreak(r) || r == '"' || r == '\'' || r == '`' || r == '[' {
 			l := p.lit(p.pos, "$")
 			p.next()
 			return l

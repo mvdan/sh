@@ -60,7 +60,7 @@ func (p *parser) rune() rune {
 		}
 	} else if p.npos == len(p.src) {
 		p.npos++
-		p.r = 0
+		p.r = utf8.RuneSelf
 	}
 	return p.r
 }
@@ -221,7 +221,7 @@ skipSpace:
 
 func byteAt(src []byte, i int) rune {
 	if i >= len(src) {
-		return 0
+		return utf8.RuneSelf
 	}
 	return rune(src[i])
 }
@@ -854,7 +854,7 @@ func (p *parser) readLine(bs []byte) ([]byte, bool) {
 		return bs, true
 	}
 	p.npos = len(p.src) + 1
-	p.r = 0
+	p.r = utf8.RuneSelf
 	bs = append(bs, rem...)
 	return bs, false
 }
