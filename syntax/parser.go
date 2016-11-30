@@ -643,9 +643,8 @@ func (p *parser) wordPart() WordPart {
 	case sglQuote:
 		sq := &SglQuoted{Position: p.pos}
 		r := p.r
-		p.newLit(r)
 	loop:
-		for {
+		for p.newLit(r); ; r = p.rune() {
 			switch r {
 			case utf8.RuneSelf:
 				break loop
@@ -654,7 +653,6 @@ func (p *parser) wordPart() WordPart {
 				p.rune()
 				break loop
 			}
-			r = p.rune()
 		}
 		if r != '\'' {
 			p.posErr(sq.Pos(), "reached EOF without closing quote %s", sglQuote)
@@ -718,9 +716,8 @@ func (p *parser) wordPart() WordPart {
 		eg := &ExtGlob{Op: GlobOperator(p.tok), OpPos: p.pos}
 		lparens := 0
 		r := p.r
-		p.newLit(r)
 	globLoop:
-		for {
+		for p.newLit(r); ; r = p.rune() {
 			switch r {
 			case utf8.RuneSelf:
 				break globLoop
@@ -731,7 +728,6 @@ func (p *parser) wordPart() WordPart {
 					break globLoop
 				}
 			}
-			r = p.rune()
 		}
 		eg.Pattern = p.lit(eg.OpPos+2, p.endLit())
 		p.rune()
