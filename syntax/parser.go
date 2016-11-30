@@ -646,9 +646,7 @@ func (p *parser) wordPart() WordPart {
 	loop:
 		for p.newLit(r); ; r = p.rune() {
 			switch r {
-			case utf8.RuneSelf:
-				break loop
-			case '\'':
+			case utf8.RuneSelf, '\'':
 				sq.Value = p.endLit()
 				p.rune()
 				break loop

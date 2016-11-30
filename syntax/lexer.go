@@ -702,7 +702,7 @@ func (p *parser) advanceLitNone(r rune) {
 loop:
 	for p.newLit(r); ; r = p.rune() {
 		switch r {
-		case utf8.RuneSelf:
+		case utf8.RuneSelf, ' ', '\t', '\n', '\r', '&', '|', ';', '(', ')':
 			break loop
 		case '\\': // escaped byte follows
 			if r = p.rune(); r == utf8.RuneSelf {
@@ -715,8 +715,6 @@ loop:
 			if p.peekByte('(') {
 				tok = _Lit
 			}
-			break loop
-		case ' ', '\t', '\n', '\r', '&', '|', ';', '(', ')':
 			break loop
 		case '`':
 			if p.quote != subCmdBckquo {
@@ -746,14 +744,12 @@ func (p *parser) advanceLitDquote(r rune) {
 loop:
 	for p.newLit(r); ; r = p.rune() {
 		switch r {
-		case utf8.RuneSelf:
+		case utf8.RuneSelf, '"':
 			break loop
 		case '\\': // escaped byte follows
 			if r = p.rune(); r == utf8.RuneSelf {
 				break loop
 			}
-		case '"':
-			break loop
 		case '`', '$':
 			tok = _Lit
 			break loop
@@ -773,14 +769,12 @@ func (p *parser) advanceLitHdoc(r rune) {
 loop:
 	for ; ; r = p.rune() {
 		switch r {
-		case utf8.RuneSelf:
+		case utf8.RuneSelf, '`', '$':
 			break loop
 		case '\\': // escaped byte follows
 			if r = p.rune(); r == utf8.RuneSelf {
 				break loop
 			}
-		case '`', '$':
-			break loop
 		case '\n':
 			if bytes.Equal(p.litBs[endOff:len(p.litBs)-1], p.hdocStop) {
 				p.discardLit(len(p.hdocStop))
