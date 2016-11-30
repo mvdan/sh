@@ -323,17 +323,3 @@ func (o UnAritOperator) String() string  { return token(o).String() }
 func (o BinAritOperator) String() string { return token(o).String() }
 func (o UnTestOperator) String() string  { return token(o).String() }
 func (o BinTestOperator) String() string { return token(o).String() }
-
-// Pos is the internal representation of a position within a source
-// file.
-type Pos uint32
-
-const maxPos = Pos(^uint32(0))
-
-// Position describes a position within a source file including the line
-// and column location. A Position is valid if the line number is > 0.
-type Position struct {
-	Offset int // byte offset, starting at 0
-	Line   int // line number, starting at 1
-	Column int // column number, starting at 1 (in bytes)
-}
