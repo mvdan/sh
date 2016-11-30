@@ -42,24 +42,26 @@ func wordBreak(r rune) bool {
 }
 
 func (p *parser) rune() rune {
-	if p.npos++; p.npos < len(p.src) {
+	if p.npos < len(p.src) {
 		if p.r = rune(p.src[p.npos]); p.r == '\n' {
 			p.f.Lines = append(p.f.Lines, p.npos+1)
 		}
+		p.npos++
 	} else {
+		p.npos++
 		p.r = 0
 	}
 	return p.r
 }
 
 func (p *parser) next() {
-	if p.npos >= len(p.src) {
+	if p.npos > len(p.src) {
 		p.tok = _EOF
 		return
 	}
 	p.spaced, p.newLine = false, false
 	r := p.r
-	p.pos = Pos(p.npos + 1)
+	p.pos = Pos(p.npos)
 	switch p.quote {
 	case hdocWord:
 		if wordBreak(r) {
@@ -126,14 +128,14 @@ skipSpace:
 				return
 			}
 			r = p.rune()
-			if len(p.heredocs) > p.buriedHdocs {
+			if len(p.heredocs) > p.buriedHdocs && p.err == nil {
 				if p.doHeredocs(); p.tok == _EOF {
 					return
 				}
 				r = p.r
 			}
 		case '\\':
-			if byteAt(p.src, p.npos+1) == '\n' {
+			if byteAt(p.src, p.npos) == '\n' {
 				p.rune()
 				r = p.rune()
 			} else {
@@ -142,12 +144,12 @@ skipSpace:
 		default:
 			break skipSpace
 		}
-		if p.npos >= len(p.src) {
+		if p.npos > len(p.src) {
 			p.tok = _EOF
 			return
 		}
 	}
-	p.pos = Pos(p.npos + 1)
+	p.pos = Pos(p.npos)
 	switch {
 	case p.quote&allRegTokens != 0:
 		switch r {
@@ -164,7 +166,7 @@ skipSpace:
 			}
 			p.next()
 		case '?', '*', '+', '@', '!':
-			if byteAt(p.src, p.npos+1) == '(' {
+			if byteAt(p.src, p.npos) == '(' {
 				switch r {
 				case '?':
 					p.tok = globQuest
@@ -584,10 +586,10 @@ func (p *parser) advanceLitOther(r rune) {
 	bs := p.litBuf[:0]
 	tok := _LitWord
 loop:
-	for p.npos < len(p.src) {
+	for p.npos <= len(p.src) {
 		switch r {
 		case '\\': // escaped byte follows
-			if r = p.rune(); p.npos == len(p.src) {
+			if r = p.rune(); p.npos > len(p.src) {
 				bs = append(bs, '\\')
 				break loop
 			}
@@ -662,10 +664,10 @@ func (p *parser) advanceLitNone(r rune) {
 	p.asPos = 0
 	tok := _LitWord
 loop:
-	for p.npos < len(p.src) {
+	for p.npos <= len(p.src) {
 		switch r {
 		case '\\': // escaped byte follows
-			if r = p.rune(); p.npos == len(p.src) {
+			if r = p.rune(); p.npos > len(p.src) {
 				bs = append(bs, '\\')
 				break loop
 			}
@@ -675,7 +677,7 @@ loop:
 			}
 			bs = append(bs, '\\')
 		case '>', '<':
-			if byteAt(p.src, p.npos+1) == '(' {
+			if byteAt(p.src, p.npos) == '(' {
 				tok = _Lit
 			}
 			break loop
@@ -690,7 +692,7 @@ loop:
 			tok = _Lit
 			break loop
 		case '?', '*', '+', '@', '!':
-			if byteAt(p.src, p.npos+1) == '(' {
+			if byteAt(p.src, p.npos) == '(' {
 				tok = _Lit
 				break loop
 			}
@@ -710,10 +712,10 @@ func (p *parser) advanceLitDquote(r rune) {
 	bs := p.litBuf[:0]
 	tok := _LitWord
 loop:
-	for p.npos < len(p.src) {
+	for p.npos <= len(p.src) {
 		switch r {
 		case '\\': // escaped byte follows
-			if r = p.rune(); p.npos == len(p.src) {
+			if r = p.rune(); p.npos > len(p.src) {
 				break loop
 			}
 			bs = append(bs, '\\')
@@ -739,11 +741,11 @@ func (p *parser) advanceLitHdoc(r rune) {
 	}
 	endOff := len(bs)
 loop:
-	for p.npos < len(p.src) {
+	for p.npos <= len(p.src) {
 		switch r {
 		case '\\': // escaped byte follows
 			bs = append(bs, byte(r))
-			if r = p.rune(); p.npos == len(p.src) {
+			if r = p.rune(); p.npos > len(p.src) {
 				break loop
 			}
 		case '`', '$':
@@ -762,7 +764,7 @@ loop:
 					r = p.rune()
 				}
 			}
-			if p.npos >= len(p.src) {
+			if p.npos > len(p.src) {
 				break loop
 			}
 			endOff = len(bs)
@@ -780,8 +782,8 @@ loop:
 func (p *parser) hdocLitWord() *Word {
 	bs := p.litBuf[:0]
 	r := p.r
-	pos := p.npos
-	for p.npos < len(p.src) {
+	pos := Pos(p.npos)
+	for p.npos <= len(p.src) {
 		if p.quote == hdocBodyTabs {
 			for r == '\t' {
 				bs = append(bs, byte(r))
@@ -795,28 +797,28 @@ func (p *parser) hdocLitWord() *Word {
 			bs = bs[:endOff]
 			break
 		}
-		r = p.r
 		if found {
-			bs = append(bs, byte(r))
+			bs = append(bs, '\n')
 			r = p.rune()
 		}
 	}
-	l := p.lit(Pos(pos+1), string(bs))
+	l := p.lit(pos, string(bs))
 	return p.word(p.singleWps(l))
 }
 
 func (p *parser) readLine(bs []byte) ([]byte, bool) {
-	rem := p.src[p.npos:]
+	rem := p.src[p.npos-1:]
 	if i := bytes.IndexByte(rem, '\n'); i >= 0 {
 		if i > 0 {
 			p.npos += i
 			p.r = '\n'
-			p.f.Lines = append(p.f.Lines, p.npos+1)
+			p.f.Lines = append(p.f.Lines, p.npos)
 			bs = append(bs, rem[:i]...)
 		}
 		return bs, true
 	}
-	p.npos = len(p.src)
+	p.npos = len(p.src) + 1
+	p.r = 0
 	bs = append(bs, rem...)
 	return bs, false
 }
@@ -825,7 +827,7 @@ func (p *parser) advanceLitRe(r rune) {
 	lparens := 0
 	bs := p.litBuf[:0]
 byteLoop:
-	for p.npos < len(p.src) {
+	for p.npos <= len(p.src) {
 		switch r {
 		case '(':
 			lparens++

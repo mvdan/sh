@@ -47,9 +47,7 @@ func Parse(src io.Reader, name string, mode ParseMode) (*File, error) {
 	p.f.Name = name
 	p.f.Lines = alloc.l[:1]
 	p.src, p.mode = p.readBuf.Bytes(), mode
-	if p.r = byteAt(p.src, 0); p.r == '\n' {
-		p.f.Lines = append(p.f.Lines, 1)
-	}
+	p.rune()
 	p.next()
 	p.f.Stmts = p.stmts()
 	if p.err == nil {
@@ -120,7 +118,7 @@ func (p *parser) lit(pos Pos, val string) *Lit {
 	}
 	l := &p.litBatch[0]
 	l.ValuePos = pos
-	l.ValueEnd = Pos(p.npos + 1)
+	l.ValueEnd = Pos(p.npos)
 	l.Value = val
 	p.litBatch = p.litBatch[1:]
 	return l
@@ -413,7 +411,7 @@ func (p *parser) matched(lpos Pos, left, right token) Pos {
 func (p *parser) errPass(err error) {
 	if p.err == nil {
 		p.err = err
-		p.npos = len(p.src)
+		p.npos = len(p.src) + 1
 		p.tok = _EOF
 	}
 }
@@ -515,7 +513,7 @@ func (p *parser) getWordOrEmpty() *Word {
 	if len(parts) == 0 {
 		oldNpos := p.npos
 		// force Lit.Pos() == Lit.End()
-		p.npos = int(p.pos) - 1
+		p.npos = int(p.pos)
 		w := p.word(p.singleWps(p.lit(p.pos, "")))
 		p.npos = oldNpos
 		return w
@@ -572,7 +570,7 @@ func (p *parser) wordPart() WordPart {
 			p.quote = arithmExprBrack
 		} else if !p.couldBeArithm() {
 			p.postNested(old)
-			p.npos = int(ar.Left) + 1
+			p.npos = int(ar.Left) + 2
 			p.r = '('
 			for len(p.f.Lines) > 0 && p.f.Lines[len(p.f.Lines)-1] > p.npos {
 				p.f.Lines = p.f.Lines[:len(p.f.Lines)-1]
@@ -643,7 +641,7 @@ func (p *parser) wordPart() WordPart {
 		sq := &SglQuoted{Position: p.pos}
 		bs, found := p.litBuf[:0], false
 		r := p.r
-		for p.npos < len(p.src) {
+		for p.npos <= len(p.src) {
 			if r == '\'' {
 				p.rune()
 				found = true
@@ -717,7 +715,7 @@ func (p *parser) wordPart() WordPart {
 		lparens := 0
 		r := p.r
 	byteLoop:
-		for p.npos < len(p.src) {
+		for p.npos <= len(p.src) {
 			switch r {
 			case '(':
 				lparens++
@@ -1107,14 +1105,14 @@ func (p *parser) getAssign() *Assign {
 	return as
 }
 
-func litRedir(src []byte, npos int) bool {
-	return npos+1 < len(src) && (src[npos] == '>' || src[npos] == '<') && src[npos+1] != '('
+func (p *parser) litRedir() bool {
+	return p.npos < len(p.src) && (p.r == '>' || p.r == '<') && p.src[p.npos] != '('
 }
 
 func (p *parser) peekRedir() bool {
 	switch p.tok {
 	case _LitWord:
-		return litRedir(p.src, p.npos)
+		return p.litRedir()
 	case rdrOut, appOut, rdrIn, dplIn, dplOut, clbOut, rdrInOut,
 		hdoc, dashHdoc, wordHdoc, rdrAll, appAll:
 		return true
@@ -1158,7 +1156,7 @@ preLoop:
 		case _Lit, _LitWord:
 			if p.validIdent() {
 				s.Assigns = append(s.Assigns, p.getAssign())
-			} else if litRedir(p.src, p.npos) {
+			} else if p.litRedir() {
 				p.doRedirect(s)
 			} else {
 				break preLoop
@@ -1308,7 +1306,7 @@ func (p *parser) arithmExpCmd() Command {
 	old := p.preNested(arithmExprCmd)
 	if !p.couldBeArithm() {
 		p.postNested(old)
-		p.npos = int(ar.Left)
+		p.npos = int(ar.Left) + 1
 		p.r = '('
 		for len(p.f.Lines) > 0 && p.f.Lines[len(p.f.Lines)-1] > p.npos {
 			p.f.Lines = p.f.Lines[:len(p.f.Lines)-1]
@@ -1705,7 +1703,7 @@ func (p *parser) callExpr(s *Stmt, w *Word) *CallExpr {
 			dblSemicolon, semiFall, dblSemiFall:
 			return ce
 		case _LitWord:
-			if litRedir(p.src, p.npos) {
+			if p.litRedir() {
 				p.doRedirect(s)
 				continue
 			}
