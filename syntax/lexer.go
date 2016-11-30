@@ -42,9 +42,12 @@ func wordBreak(r rune) bool {
 }
 
 func (p *parser) rune() rune {
-	p.npos++
-	if p.r = byteAt(p.src, p.npos); p.r == '\n' {
-		p.f.Lines = append(p.f.Lines, p.npos+1)
+	if p.npos++; p.npos < len(p.src) {
+		if p.r = rune(p.src[p.npos]); p.r == '\n' {
+			p.f.Lines = append(p.f.Lines, p.npos+1)
+		}
+	} else {
+		p.r = 0
 	}
 	return p.r
 }
