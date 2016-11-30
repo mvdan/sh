@@ -947,8 +947,7 @@ func (p *parser) paramExp() *ParamExp {
 		}
 		lpos := p.pos
 		p.quote = paramExpInd
-		p.next()
-		if p.tok == star {
+		if p.next(); p.tok == star {
 			p.tok, p.val = _LitWord, "*"
 		}
 		pe.Ind = &Index{
@@ -991,8 +990,7 @@ func (p *parser) paramExp() *ParamExp {
 		pe.Slice = &Slice{}
 		colonPos := p.pos
 		p.quote = paramExpOff
-		p.next()
-		if p.tok != colon {
+		if p.next(); p.tok != colon {
 			pe.Slice.Offset = p.arithmExpr(colon, colonPos, 0, false, false)
 			if pe.Slice.Offset == nil {
 				p.followErrExp(colonPos, ":")
@@ -1079,8 +1077,7 @@ func (p *parser) getAssign() *Assign {
 		start.ValuePos += Pos(p.asPos)
 		as.Value = p.word(p.singleWps(start))
 	}
-	p.next()
-	if p.spaced {
+	if p.next(); p.spaced {
 		return as
 	}
 	if start.Value == "" && p.tok == leftParen {
@@ -1257,8 +1254,7 @@ func (p *parser) gotStmtPipe(s *Stmt) *Stmt {
 			s.Cmd = p.bashFuncDecl()
 		default:
 			name := p.lit(p.pos, p.val)
-			p.next()
-			if p.gotSameLine(leftParen) {
+			if p.next(); p.gotSameLine(leftParen) {
 				p.follow(name.ValuePos, "foo(", rightParen)
 				s.Cmd = p.funcDecl(name, name.ValuePos)
 			} else {
@@ -1398,8 +1394,7 @@ func (p *parser) loop(forPos Pos) Loop {
 	if p.tok == dblLeftParen {
 		cl := &CStyleLoop{Lparen: p.pos}
 		old := p.preNested(arithmExprCmd)
-		p.next()
-		if p.tok == dblSemicolon {
+		if p.next(); p.tok == dblSemicolon {
 			p.npos--
 			p.r = ';'
 			p.tok = semicolon
@@ -1486,8 +1481,7 @@ func (p *parser) patLists() (pls []*PatternList) {
 
 func (p *parser) testClause() *TestClause {
 	tc := &TestClause{Left: p.pos}
-	p.next()
-	if p.tok == _EOF || p.gotRsrv("]]") {
+	if p.next(); p.tok == _EOF || p.gotRsrv("]]") {
 		p.posErr(tc.Left, "test clause requires at least one expression")
 	}
 	tc.X = p.testExpr(illegalTok, tc.Left, 0)
@@ -1637,8 +1631,7 @@ func isBashCompoundCommand(tok token, val string) bool {
 
 func (p *parser) coprocClause() *CoprocClause {
 	cc := &CoprocClause{Coproc: p.pos}
-	p.next()
-	if isBashCompoundCommand(p.tok, p.val) {
+	if p.next(); isBashCompoundCommand(p.tok, p.val) {
 		// has no name
 		cc.Stmt, _ = p.getStmt(false)
 		return cc
@@ -1698,8 +1691,7 @@ func (p *parser) bashFuncDecl() *FuncDecl {
 		}
 	}
 	name := p.lit(p.pos, p.val)
-	p.next()
-	if p.gotSameLine(leftParen) {
+	if p.next(); p.gotSameLine(leftParen) {
 		p.follow(name.ValuePos, "foo(", rightParen)
 	}
 	return p.funcDecl(name, fpos)
