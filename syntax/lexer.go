@@ -53,12 +53,12 @@ func (p *parser) rune() rune {
 			}
 			p.r = rune(b)
 		} else {
-			r, sz := utf8.DecodeRune(p.src[p.npos:])
-			p.r = r
+			var sz int
+			p.r, sz = utf8.DecodeRune(p.src[p.npos:])
 			p.rbs = p.src[p.npos : p.npos+sz]
 			p.npos += sz
 		}
-	} else {
+	} else if p.npos == len(p.src) {
 		p.npos++
 		p.r = 0
 	}
@@ -72,7 +72,9 @@ func (p *parser) next() {
 	}
 	p.spaced, p.newLine = false, false
 	r := p.r
-	p.pos = Pos(p.npos)
+	if p.pos = Pos(p.npos); r > utf8.RuneSelf {
+		p.pos -= Pos(utf8.RuneLen(r) - 1)
+	}
 	switch p.quote {
 	case hdocWord:
 		if wordBreak(r) {
@@ -160,7 +162,9 @@ skipSpace:
 			return
 		}
 	}
-	p.pos = Pos(p.npos)
+	if p.pos = Pos(p.npos); r > utf8.RuneSelf {
+		p.pos -= Pos(utf8.RuneLen(r) - 1)
+	}
 	switch {
 	case p.quote&allRegTokens != 0:
 		switch r {

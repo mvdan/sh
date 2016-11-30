@@ -3345,7 +3345,7 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 			}
 		}
 		tb.Fatalf("Expected one of %q at %d in %q, found %q",
-			strs, offs, src, gotErr)
+			strs, pos, src, gotErr)
 	}
 	setPos := func(p *Pos, strs ...string) {
 		checkSrc(*p, strs...)
