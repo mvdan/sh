@@ -159,7 +159,7 @@ skipSpace:
 				r = p.r
 			}
 		case '\\':
-			if byteAt(p.src, p.npos) == '\n' {
+			if p.peekByte('\n') {
 				p.rune()
 				r = p.rune()
 			} else {
@@ -188,7 +188,7 @@ skipSpace:
 			}
 			p.next()
 		case '?', '*', '+', '@', '!':
-			if byteAt(p.src, p.npos) == '(' {
+			if p.peekByte('(') {
 				switch r {
 				case '?':
 					p.tok = globQuest
@@ -226,11 +226,8 @@ skipSpace:
 	}
 }
 
-func byteAt(src []byte, i int) rune {
-	if i >= len(src) {
-		return utf8.RuneSelf
-	}
-	return rune(src[i])
+func (p *parser) peekByte(b byte) bool {
+	return p.npos < len(p.src) && p.src[p.npos] == b
 }
 
 func (p *parser) regToken(r rune) token {
@@ -715,7 +712,7 @@ loop:
 				p.discardLit(2)
 			}
 		case '>', '<':
-			if byteAt(p.src, p.npos) == '(' {
+			if p.peekByte('(') {
 				tok = _Lit
 			}
 			break loop
@@ -730,7 +727,7 @@ loop:
 			tok = _Lit
 			break loop
 		case '?', '*', '+', '@', '!':
-			if byteAt(p.src, p.npos) == '(' {
+			if p.peekByte('(') {
 				tok = _Lit
 				break loop
 			}

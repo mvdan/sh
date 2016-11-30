@@ -1108,7 +1108,7 @@ func (p *parser) getAssign() *Assign {
 }
 
 func (p *parser) litRedir() bool {
-	return p.npos < len(p.src) && (p.r == '>' || p.r == '<') && p.src[p.npos] != '('
+	return (p.r == '>' || p.r == '<') && !p.peekByte('(')
 }
 
 func (p *parser) peekRedir() bool {
