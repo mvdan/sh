@@ -119,10 +119,10 @@ func (p *parser) lit(pos Pos, val string) *Lit {
 		p.litBatch = make([]Lit, 32)
 	}
 	l := &p.litBatch[0]
+	p.litBatch = p.litBatch[1:]
 	l.ValuePos = pos
 	l.ValueEnd = Pos(p.npos)
 	l.Value = val
-	p.litBatch = p.litBatch[1:]
 	return l
 }
 
@@ -131,8 +131,8 @@ func (p *parser) word(parts []WordPart) *Word {
 		p.wordBatch = make([]Word, 32)
 	}
 	w := &p.wordBatch[0]
-	w.Parts = parts
 	p.wordBatch = p.wordBatch[1:]
+	w.Parts = parts
 	return w
 }
 
@@ -160,8 +160,8 @@ func (p *parser) stmt(pos Pos) *Stmt {
 		p.stmtBatch = make([]Stmt, 16)
 	}
 	s := &p.stmtBatch[0]
-	s.Position = pos
 	p.stmtBatch = p.stmtBatch[1:]
+	s.Position = pos
 	return s
 }
 
