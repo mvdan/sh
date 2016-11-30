@@ -20,7 +20,7 @@ func regOps(r rune) bool {
 // tokenize these inside parameter expansions
 func paramOps(r rune) bool {
 	switch r {
-	case '}', '#', ':', '-', '+', '=', '?', '%', '[', ']', '/', '^', ',':
+	case '}', '#', ':', '-', '+', '=', '?', '%', '[', ']', '/', '^', ',', '@':
 		return true
 	}
 	return false
@@ -451,6 +451,12 @@ func (p *parser) paramToken(r rune) token {
 	case '[':
 		p.rune()
 		return leftBrack
+	case '/':
+		if p.rune() == '/' {
+			p.rune()
+			return dblSlash
+		}
+		return slash
 	case '^':
 		if p.rune() == '^' {
 			p.rune()
@@ -463,12 +469,9 @@ func (p *parser) paramToken(r rune) token {
 			return dblComma
 		}
 		return comma
-	default: // '/'
-		if p.rune() == '/' {
-			p.rune()
-			return dblSlash
-		}
-		return slash
+	default: // '@'
+		p.rune()
+		return at
 	}
 }
 
@@ -674,7 +677,7 @@ loop:
 			if p.quote&allArithmExpr != 0 || p.quote&allParamReg != 0 {
 				break loop
 			}
-		case '#', '[':
+		case '#', '[', '@':
 			if p.quote&allParamReg != 0 {
 				break loop
 			}

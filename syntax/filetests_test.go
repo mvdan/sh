@@ -1845,6 +1845,24 @@ var fileTests = []testCase{
 		),
 	},
 	{
+		Strs: []string{`${a@E} ${b@a}`},
+		bash: call(
+			word(&ParamExp{Param: lit("a"),
+				Exp: &Expansion{
+					Op:   OtherParamOps,
+					Word: litWord("E"),
+				},
+			}),
+			word(&ParamExp{Param: lit("b"),
+				Exp: &Expansion{
+					Op:   OtherParamOps,
+					Word: litWord("a"),
+				},
+			}),
+		),
+		minBash: 44,
+	},
+	{
 		Strs: []string{`${#foo}`},
 		common: &ParamExp{
 			Length: true,

@@ -98,6 +98,7 @@ const (
 	dblCaret // ^^
 	comma    // ,
 	dblComma // ,,
+	at       // @
 	slash    // /
 	dblSlash // //
 	colon    // :
@@ -211,6 +212,7 @@ const (
 	UpperAll
 	LowerFirst
 	LowerAll
+	OtherParamOps
 )
 
 type UnAritOperator token

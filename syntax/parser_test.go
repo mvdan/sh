@@ -975,6 +975,14 @@ var bashTests = []errorCase{
 		"echo ${foo:1:2",
 		`1:6: reached EOF without matching ${ with }`,
 	},
+	{
+		"echo ${foo,",
+		`1:6: reached EOF without matching ${ with }`,
+	},
+	{
+		"echo ${foo@",
+		`1:6: reached EOF without matching ${ with }`,
+	},
 }
 
 var posixTests = []errorCase{
@@ -1036,7 +1044,11 @@ var posixTests = []errorCase{
 	},
 	{
 		"echo ${foo,bar} #INVBASH --posix is wrong",
-		`1:11: case expansions are a bash feature`,
+		`1:11: this expansion operator is a bash feature`,
+	},
+	{
+		"echo ${foo@bar} #INVBASH --posix is wrong",
+		`1:11: this expansion operator is a bash feature`,
 	},
 }
 

@@ -910,6 +910,8 @@ func (p *parser) paramExp() *ParamExp {
 	old := p.preNested(paramExpName)
 	p.next()
 	switch p.tok {
+	case at:
+		p.tok, p.val = _Lit, "@"
 	case dblHash:
 		p.tok = hash
 		p.npos--
@@ -1002,9 +1004,9 @@ func (p *parser) paramExp() *ParamExp {
 				p.followErrExp(colonPos, ":")
 			}
 		}
-	case caret, dblCaret, comma, dblComma:
+	case caret, dblCaret, comma, dblComma, at:
 		if !p.bash() {
-			p.curErr("case expansions are a bash feature")
+			p.curErr("this expansion operator is a bash feature")
 		}
 		fallthrough
 	default:
