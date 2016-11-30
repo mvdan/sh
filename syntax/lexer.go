@@ -43,11 +43,10 @@ func wordBreak(r rune) bool {
 
 func (p *parser) rune() rune {
 	p.npos++
-	r := byteAt(p.src, p.npos)
-	if r == '\n' {
+	if p.r = byteAt(p.src, p.npos); p.r == '\n' {
 		p.f.Lines = append(p.f.Lines, p.npos+1)
 	}
-	return r
+	return p.r
 }
 
 func (p *parser) next() {
@@ -56,7 +55,7 @@ func (p *parser) next() {
 		return
 	}
 	p.spaced, p.newLine = false, false
-	r := rune(p.src[p.npos])
+	r := p.r
 	p.pos = Pos(p.npos + 1)
 	switch p.quote {
 	case hdocWord:
@@ -128,7 +127,7 @@ skipSpace:
 				if p.doHeredocs(); p.tok == _EOF {
 					return
 				}
-				r = byteAt(p.src, p.npos)
+				r = p.r
 			}
 		case '\\':
 			if byteAt(p.src, p.npos+1) == '\n' {
@@ -777,7 +776,7 @@ loop:
 
 func (p *parser) hdocLitWord() *Word {
 	bs := p.litBuf[:0]
-	r := byteAt(p.src, p.npos)
+	r := p.r
 	pos := p.npos
 	for p.npos < len(p.src) {
 		if p.quote == hdocBodyTabs {
@@ -793,7 +792,7 @@ func (p *parser) hdocLitWord() *Word {
 			bs = bs[:endOff]
 			break
 		}
-		r = byteAt(p.src, p.npos)
+		r = p.r
 		if found {
 			bs = append(bs, byte(r))
 			r = p.rune()
@@ -808,6 +807,7 @@ func (p *parser) readLine(bs []byte) ([]byte, bool) {
 	if i := bytes.IndexByte(rem, '\n'); i >= 0 {
 		if i > 0 {
 			p.npos += i
+			p.r = '\n'
 			p.f.Lines = append(p.f.Lines, p.npos+1)
 			bs = append(bs, rem[:i]...)
 		}

@@ -47,7 +47,7 @@ func Parse(src io.Reader, name string, mode ParseMode) (*File, error) {
 	p.f.Name = name
 	p.f.Lines = alloc.l[:1]
 	p.src, p.mode = p.readBuf.Bytes(), mode
-	if byteAt(p.src, 0) == '\n' {
+	if p.r = byteAt(p.src, 0); p.r == '\n' {
 		p.f.Lines = append(p.f.Lines, 1)
 	}
 	p.next()
@@ -64,6 +64,7 @@ func Parse(src io.Reader, name string, mode ParseMode) (*File, error) {
 
 type parser struct {
 	src []byte
+	r   rune
 
 	f    *File
 	mode ParseMode
@@ -286,7 +287,7 @@ func (p *parser) doHeredocs() {
 		}
 		var quoted bool
 		p.hdocStop, quoted = p.unquotedWordBytes(r.Word)
-		if i > 0 && byteAt(p.src, p.npos) == '\n' {
+		if i > 0 && p.r == '\n' {
 			p.rune()
 		}
 		if quoted {
@@ -572,6 +573,7 @@ func (p *parser) wordPart() WordPart {
 		} else if !p.couldBeArithm() {
 			p.postNested(old)
 			p.npos = int(ar.Left) + 1
+			p.r = '('
 			for len(p.f.Lines) > 0 && p.f.Lines[len(p.f.Lines)-1] > p.npos {
 				p.f.Lines = p.f.Lines[:len(p.f.Lines)-1]
 			}
@@ -606,7 +608,7 @@ func (p *parser) wordPart() WordPart {
 		cs.Right = p.matched(cs.Left, leftParen, rightParen)
 		return cs
 	case dollar:
-		r := byteAt(p.src, p.npos)
+		r := p.r
 		if r == 0 || wordBreak(r) || r == '"' || r == '\'' || r == '`' || r == '[' {
 			l := p.lit(p.pos, "$")
 			p.next()
@@ -640,7 +642,7 @@ func (p *parser) wordPart() WordPart {
 	case sglQuote:
 		sq := &SglQuoted{Position: p.pos}
 		bs, found := p.litBuf[:0], false
-		r := byteAt(p.src, p.npos)
+		r := p.r
 		for p.npos < len(p.src) {
 			if r == '\'' {
 				p.rune()
@@ -713,7 +715,7 @@ func (p *parser) wordPart() WordPart {
 		eg := &ExtGlob{Op: GlobOperator(p.tok), OpPos: p.pos}
 		bs := p.litBuf[:0]
 		lparens := 0
-		r := byteAt(p.src, p.npos)
+		r := p.r
 	byteLoop:
 		for p.npos < len(p.src) {
 			switch r {
@@ -742,6 +744,7 @@ func (p *parser) wordPart() WordPart {
 func (p *parser) couldBeArithm() (could bool) {
 	// save state
 	oldTok, oldNpos := p.tok, p.npos
+	oldRune := p.r
 	oldLines := len(p.f.Lines)
 	p.next()
 	lparens := 0
@@ -763,6 +766,7 @@ tokLoop:
 	}
 	// recover state
 	p.tok, p.npos = oldTok, oldNpos
+	p.r = oldRune
 	p.f.Lines = p.f.Lines[:oldLines]
 	return
 }
@@ -911,9 +915,10 @@ func (p *parser) paramExp() *ParamExp {
 	case dblHash:
 		p.tok = hash
 		p.npos--
+		p.r = '#'
 		fallthrough
 	case hash:
-		if byteAt(p.src, p.npos) != '}' {
+		if p.r != '}' {
 			pe.Length = true
 			p.next()
 		}
@@ -972,6 +977,7 @@ func (p *parser) paramExp() *ParamExp {
 		switch p.tok {
 		case dblSlash:
 			p.npos--
+			p.r = '/'
 			fallthrough
 		case slash:
 			p.quote = paramExpExp
@@ -1018,7 +1024,7 @@ func (p *parser) paramExp() *ParamExp {
 }
 
 func (p *parser) peekArithmEnd() bool {
-	return p.tok == rightParen && byteAt(p.src, p.npos) == ')'
+	return p.tok == rightParen && p.r == ')'
 }
 
 func (p *parser) arithmEnd(ltok token, lpos Pos, old saveState) Pos {
@@ -1307,6 +1313,7 @@ func (p *parser) arithmExpCmd() Command {
 	if !p.couldBeArithm() {
 		p.postNested(old)
 		p.npos = int(ar.Left)
+		p.r = '('
 		for len(p.f.Lines) > 0 && p.f.Lines[len(p.f.Lines)-1] > p.npos {
 			p.f.Lines = p.f.Lines[:len(p.f.Lines)-1]
 		}
@@ -1394,6 +1401,7 @@ func (p *parser) loop(forPos Pos) Loop {
 		p.next()
 		if p.tok == dblSemicolon {
 			p.npos--
+			p.r = ';'
 			p.tok = semicolon
 		}
 		if p.tok != semicolon {
