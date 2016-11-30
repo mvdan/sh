@@ -51,11 +51,16 @@ func (p *parser) rune() rune {
 			if b == '\n' {
 				p.f.Lines = append(p.f.Lines, p.npos)
 			}
+			if p.litBs != nil {
+				p.litBs = append(p.litBs, b)
+			}
 			p.r = rune(b)
 		} else {
 			var w int
 			p.r, w = utf8.DecodeRune(p.src[p.npos:])
-			p.rbs = p.src[p.npos : p.npos+w]
+			if p.litBs != nil {
+				p.litBs = append(p.litBs, p.src[p.npos:p.npos+w]...)
+			}
 			p.npos += w
 			if p.r == utf8.RuneError && w == 1 {
 				p.posErr(Pos(p.npos), "invalid UTF-8 encoding")
@@ -599,15 +604,30 @@ func (p *parser) arithmToken(r rune) token {
 	}
 }
 
-func (p *parser) appendRune(bs []byte, r rune) []byte {
+func (p *parser) newLit(r rune) {
 	if r < utf8.RuneSelf {
-		return append(bs, byte(r))
+		p.litBs = p.litBuf[:1]
+		p.litBs[0] = byte(r)
+	} else {
+		w := utf8.RuneLen(r)
+		p.litBs = append(p.litBuf[:0], p.src[p.npos-w:p.npos]...)
 	}
-	return append(bs, p.rbs...)
+}
+
+func (p *parser) discardLit(n int) { p.litBs = p.litBs[:len(p.litBs)-n] }
+
+func (p *parser) endLit() (s string) {
+	if p.r == utf8.RuneSelf {
+		s = string(p.litBs)
+	} else {
+		s = string(p.litBs[:len(p.litBs)-1])
+	}
+	p.litBs = nil
+	return
 }
 
 func (p *parser) advanceLitOther(r rune) {
-	bs := p.litBuf[:0]
+	p.newLit(r)
 	tok := _LitWord
 loop:
 	for {
@@ -616,12 +636,10 @@ loop:
 			break loop
 		case '\\': // escaped byte follows
 			if r = p.rune(); r == utf8.RuneSelf {
-				bs = append(bs, '\\')
 				break loop
 			}
-			if r != '\n' {
-				bs = append(bs, '\\')
-				bs = p.appendRune(bs, r)
+			if r == '\n' {
+				p.discardLit(2)
 			}
 			r = p.rune()
 			continue
@@ -680,14 +698,13 @@ loop:
 				break loop
 			}
 		}
-		bs = p.appendRune(bs, r)
 		r = p.rune()
 	}
-	p.tok, p.val = tok, string(bs)
+	p.tok, p.val = tok, p.endLit()
 }
 
 func (p *parser) advanceLitNone(r rune) {
-	bs := p.litBuf[:0]
+	p.newLit(r)
 	p.asPos = 0
 	tok := _LitWord
 loop:
@@ -697,14 +714,13 @@ loop:
 			break loop
 		case '\\': // escaped byte follows
 			if r = p.rune(); r == utf8.RuneSelf {
-				bs = append(bs, '\\')
 				break loop
 			}
 			if r == '\n' {
+				p.discardLit(2)
 				r = p.rune()
 				continue
 			}
-			bs = append(bs, '\\')
 		case '>', '<':
 			if byteAt(p.src, p.npos) == '(' {
 				tok = _Lit
@@ -726,19 +742,18 @@ loop:
 				break loop
 			}
 		case '=':
-			p.asPos = len(bs)
-			if p.bash() && p.asPos > 0 && bs[len(bs)-1] == '+' {
+			p.asPos = len(p.litBs) - 1
+			if p.bash() && p.asPos > 0 && p.litBs[len(p.litBs)-2] == '+' {
 				p.asPos-- // a+=r
 			}
 		}
-		bs = p.appendRune(bs, r)
 		r = p.rune()
 	}
-	p.tok, p.val = tok, string(bs)
+	p.tok, p.val = tok, p.endLit()
 }
 
 func (p *parser) advanceLitDquote(r rune) {
-	bs := p.litBuf[:0]
+	p.newLit(r)
 	tok := _LitWord
 loop:
 	for {
@@ -749,67 +764,60 @@ loop:
 			if r = p.rune(); r == utf8.RuneSelf {
 				break loop
 			}
-			bs = append(bs, '\\')
 		case '"':
 			break loop
 		case '`', '$':
 			tok = _Lit
 			break loop
 		}
-		bs = p.appendRune(bs, r)
 		r = p.rune()
 	}
-	p.tok, p.val = tok, string(bs)
+	p.tok, p.val = tok, p.endLit()
 }
 
 func (p *parser) advanceLitHdoc(r rune) {
-	bs := p.litBuf[:0]
+	p.newLit(r)
 	if p.quote == hdocBodyTabs {
 		for r == '\t' {
-			bs = append(bs, '\t')
 			r = p.rune()
 		}
 	}
-	endOff := len(bs)
+	endOff := len(p.litBs) - 1
 loop:
 	for {
 		switch r {
 		case utf8.RuneSelf:
 			break loop
 		case '\\': // escaped byte follows
-			bs = append(bs, '\\')
 			if r = p.rune(); r == utf8.RuneSelf {
 				break loop
 			}
 		case '`', '$':
 			break loop
 		case '\n':
-			if bytes.Equal(bs[endOff:], p.hdocStop) {
-				bs = bs[:endOff]
+			if bytes.Equal(p.litBs[endOff:len(p.litBs)-1], p.hdocStop) {
+				p.discardLit(len(p.hdocStop))
 				p.hdocStop = nil
 				break loop
 			}
-			bs = append(bs, '\n')
 			r = p.rune()
 			if p.quote == hdocBodyTabs {
 				for r == '\t' {
-					bs = append(bs, '\t')
 					r = p.rune()
 				}
 			}
 			if r == utf8.RuneSelf {
 				break loop
 			}
-			endOff = len(bs)
+			endOff = len(p.litBs) - 1
 		}
-		bs = p.appendRune(bs, r)
 		r = p.rune()
 	}
-	if bytes.Equal(bs[endOff:], p.hdocStop) {
+	if bytes.Equal(p.litBs[endOff:], p.hdocStop) {
+		p.discardLit(len(p.hdocStop))
 		p.hdocStop = nil
-		bs = bs[:endOff]
 	}
-	p.tok, p.val = _Lit, string(bs)
+	p.tok, p.val = _Lit, p.endLit()
 }
 
 func (p *parser) hdocLitWord() *Word {
@@ -855,7 +863,7 @@ func (p *parser) readLine(bs []byte) []byte {
 
 func (p *parser) advanceLitRe(r rune) {
 	lparens := 0
-	bs := p.litBuf[:0]
+	p.newLit(r)
 loop:
 	for {
 		switch r {
@@ -870,10 +878,9 @@ loop:
 				break loop
 			}
 		}
-		bs = p.appendRune(bs, r)
 		r = p.rune()
 	}
-	p.tok, p.val = _LitWord, string(bs)
+	p.tok, p.val = _LitWord, p.endLit()
 }
 
 func testUnaryOp(val string) token {

@@ -64,7 +64,6 @@ func Parse(src io.Reader, name string, mode ParseMode) (*File, error) {
 type parser struct {
 	src []byte
 	r   rune
-	rbs []byte
 
 	f    *File
 	mode ParseMode
@@ -99,6 +98,7 @@ type parser struct {
 	callBatch   []callAlloc
 
 	litBuf  [1 << 10]byte
+	litBs   []byte
 	readBuf *bytes.Buffer
 	copyBuf []byte
 }
@@ -642,24 +642,23 @@ func (p *parser) wordPart() WordPart {
 		return ps
 	case sglQuote:
 		sq := &SglQuoted{Position: p.pos}
-		bs := p.litBuf[:0]
 		r := p.r
+		p.newLit(r)
 	loop:
 		for {
 			switch r {
 			case utf8.RuneSelf:
 				break loop
 			case '\'':
+				sq.Value = p.endLit()
 				p.rune()
 				break loop
 			}
-			bs = p.appendRune(bs, r)
 			r = p.rune()
 		}
 		if r != '\'' {
 			p.posErr(sq.Pos(), "reached EOF without closing quote %s", sglQuote)
 		}
-		sq.Value = string(bs)
 		p.next()
 		return sq
 	case dollSglQuote:
@@ -717,9 +716,9 @@ func (p *parser) wordPart() WordPart {
 			p.curErr("extended globs are a bash feature")
 		}
 		eg := &ExtGlob{Op: GlobOperator(p.tok), OpPos: p.pos}
-		bs := p.litBuf[:0]
 		lparens := 0
 		r := p.r
+		p.newLit(r)
 	globLoop:
 		for {
 			switch r {
@@ -732,10 +731,9 @@ func (p *parser) wordPart() WordPart {
 					break globLoop
 				}
 			}
-			bs = p.appendRune(bs, r)
 			r = p.rune()
 		}
-		eg.Pattern = p.lit(eg.OpPos+2, string(bs))
+		eg.Pattern = p.lit(eg.OpPos+2, p.endLit())
 		p.rune()
 		p.next()
 		if lparens != -1 {
