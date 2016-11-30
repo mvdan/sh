@@ -596,6 +596,13 @@ func (p *parser) arithmToken(r rune) token {
 	}
 }
 
+func (p *parser) appendRune(bs []byte, r rune) []byte {
+	if r < utf8.RuneSelf {
+		return append(bs, byte(r))
+	}
+	return append(bs, p.rbs...)
+}
+
 func (p *parser) advanceLitOther(r rune) {
 	bs := p.litBuf[:0]
 	tok := _LitWord
@@ -611,11 +618,7 @@ loop:
 			}
 			if r != '\n' {
 				bs = append(bs, '\\')
-				if r < utf8.RuneSelf {
-					bs = append(bs, byte(r))
-				} else {
-					bs = append(bs, p.rbs...)
-				}
+				bs = p.appendRune(bs, r)
 			}
 			r = p.rune()
 			continue
@@ -674,11 +677,7 @@ loop:
 				break loop
 			}
 		}
-		if r < utf8.RuneSelf {
-			bs = append(bs, byte(r))
-		} else {
-			bs = append(bs, p.rbs...)
-		}
+		bs = p.appendRune(bs, r)
 		r = p.rune()
 	}
 	p.tok, p.val = tok, string(bs)
@@ -729,11 +728,7 @@ loop:
 				p.asPos-- // a+=r
 			}
 		}
-		if r < utf8.RuneSelf {
-			bs = append(bs, byte(r))
-		} else {
-			bs = append(bs, p.rbs...)
-		}
+		bs = p.appendRune(bs, r)
 		r = p.rune()
 	}
 	p.tok, p.val = tok, string(bs)
@@ -758,11 +753,7 @@ loop:
 			tok = _Lit
 			break loop
 		}
-		if r < utf8.RuneSelf {
-			bs = append(bs, byte(r))
-		} else {
-			bs = append(bs, p.rbs...)
-		}
+		bs = p.appendRune(bs, r)
 		r = p.rune()
 	}
 	p.tok, p.val = tok, string(bs)
@@ -808,11 +799,7 @@ loop:
 			}
 			endOff = len(bs)
 		}
-		if r < utf8.RuneSelf {
-			bs = append(bs, byte(r))
-		} else {
-			bs = append(bs, p.rbs...)
-		}
+		bs = p.appendRune(bs, r)
 		r = p.rune()
 	}
 	if bytes.Equal(bs[endOff:], p.hdocStop) {
@@ -883,11 +870,7 @@ loop:
 				break loop
 			}
 		}
-		if r < utf8.RuneSelf {
-			bs = append(bs, byte(r))
-		} else {
-			bs = append(bs, p.rbs...)
-		}
+		bs = p.appendRune(bs, r)
 		r = p.rune()
 	}
 	p.tok, p.val = _LitWord, string(bs)

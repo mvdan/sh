@@ -655,11 +655,7 @@ func (p *parser) wordPart() WordPart {
 				found = true
 				break loop
 			}
-			if r < utf8.RuneSelf {
-				bs = append(bs, byte(r))
-			} else {
-				bs = append(bs, p.rbs...)
-			}
+			bs = p.appendRune(bs, r)
 			r = p.rune()
 		}
 		if !found {
@@ -738,11 +734,7 @@ func (p *parser) wordPart() WordPart {
 					break globLoop
 				}
 			}
-			if r < utf8.RuneSelf {
-				bs = append(bs, byte(r))
-			} else {
-				bs = append(bs, p.rbs...)
-			}
+			bs = p.appendRune(bs, r)
 			r = p.rune()
 		}
 		eg.Pattern = p.lit(eg.OpPos+2, string(bs))
