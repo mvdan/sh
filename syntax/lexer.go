@@ -53,10 +53,13 @@ func (p *parser) rune() rune {
 			}
 			p.r = rune(b)
 		} else {
-			var sz int
-			p.r, sz = utf8.DecodeRune(p.src[p.npos:])
-			p.rbs = p.src[p.npos : p.npos+sz]
-			p.npos += sz
+			var w int
+			p.r, w = utf8.DecodeRune(p.src[p.npos:])
+			p.rbs = p.src[p.npos : p.npos+w]
+			p.npos += w
+			if p.r == utf8.RuneError && w == 1 {
+				p.posErr(Pos(p.npos), "invalid UTF-8 encoding")
+			}
 		}
 	} else if p.npos == len(p.src) {
 		p.npos++

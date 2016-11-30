@@ -248,6 +248,18 @@ type errorCase struct {
 
 var shellTests = []errorCase{
 	{
+		"\x80",
+		`1:1: invalid UTF-8 encoding`,
+	},
+	{
+		"foo\x80bar",
+		`1:4: invalid UTF-8 encoding`,
+	},
+	{
+		"foo\xc3",
+		`1:4: invalid UTF-8 encoding`,
+	},
+	{
 		"'",
 		`1:1: reached EOF without closing quote '`,
 	},
