@@ -3,7 +3,10 @@
 
 package syntax
 
-import "bytes"
+import (
+	"bytes"
+	"unicode/utf8"
+)
 
 // bytes that form or start a token
 func regOps(r rune) bool {
@@ -43,10 +46,18 @@ func wordBreak(r rune) bool {
 
 func (p *parser) rune() rune {
 	if p.npos < len(p.src) {
-		if p.r = rune(p.src[p.npos]); p.r == '\n' {
-			p.f.Lines = append(p.f.Lines, p.npos+1)
+		if b := p.src[p.npos]; b < utf8.RuneSelf {
+			p.npos++
+			if b == '\n' {
+				p.f.Lines = append(p.f.Lines, p.npos)
+			}
+			p.r = rune(b)
+		} else {
+			r, sz := utf8.DecodeRune(p.src[p.npos:])
+			p.r = r
+			p.rbs = p.src[p.npos : p.npos+sz]
+			p.npos += sz
 		}
-		p.npos++
 	} else {
 		p.npos++
 		p.r = 0
@@ -594,7 +605,12 @@ loop:
 				break loop
 			}
 			if r != '\n' {
-				bs = append(bs, '\\', byte(r))
+				bs = append(bs, '\\')
+				if r < utf8.RuneSelf {
+					bs = append(bs, byte(r))
+				} else {
+					bs = append(bs, p.rbs...)
+				}
 			}
 			r = p.rune()
 			continue
@@ -653,7 +669,11 @@ loop:
 				break loop
 			}
 		}
-		bs = append(bs, byte(r))
+		if r < utf8.RuneSelf {
+			bs = append(bs, byte(r))
+		} else {
+			bs = append(bs, p.rbs...)
+		}
 		r = p.rune()
 	}
 	p.tok, p.val = tok, string(bs)
@@ -702,7 +722,11 @@ loop:
 				p.asPos-- // a+=r
 			}
 		}
-		bs = append(bs, byte(r))
+		if r < utf8.RuneSelf {
+			bs = append(bs, byte(r))
+		} else {
+			bs = append(bs, p.rbs...)
+		}
 		r = p.rune()
 	}
 	p.tok, p.val = tok, string(bs)
@@ -725,7 +749,11 @@ loop:
 			tok = _Lit
 			break loop
 		}
-		bs = append(bs, byte(r))
+		if r < utf8.RuneSelf {
+			bs = append(bs, byte(r))
+		} else {
+			bs = append(bs, p.rbs...)
+		}
 		r = p.rune()
 	}
 	p.tok, p.val = tok, string(bs)
@@ -735,7 +763,7 @@ func (p *parser) advanceLitHdoc(r rune) {
 	bs := p.litBuf[:0]
 	if p.quote == hdocBodyTabs {
 		for r == '\t' {
-			bs = append(bs, byte(r))
+			bs = append(bs, '\t')
 			r = p.rune()
 		}
 	}
@@ -744,7 +772,7 @@ loop:
 	for p.npos <= len(p.src) {
 		switch r {
 		case '\\': // escaped byte follows
-			bs = append(bs, byte(r))
+			bs = append(bs, '\\')
 			if r = p.rune(); p.npos > len(p.src) {
 				break loop
 			}
@@ -756,11 +784,11 @@ loop:
 				p.hdocStop = nil
 				break loop
 			}
-			bs = append(bs, byte(r))
+			bs = append(bs, '\n')
 			r = p.rune()
 			if p.quote == hdocBodyTabs {
 				for r == '\t' {
-					bs = append(bs, byte(r))
+					bs = append(bs, '\t')
 					r = p.rune()
 				}
 			}
@@ -769,7 +797,11 @@ loop:
 			}
 			endOff = len(bs)
 		}
-		bs = append(bs, byte(r))
+		if r < utf8.RuneSelf {
+			bs = append(bs, byte(r))
+		} else {
+			bs = append(bs, p.rbs...)
+		}
 		r = p.rune()
 	}
 	if bytes.Equal(bs[endOff:], p.hdocStop) {
@@ -786,7 +818,7 @@ func (p *parser) hdocLitWord() *Word {
 	for p.npos <= len(p.src) {
 		if p.quote == hdocBodyTabs {
 			for r == '\t' {
-				bs = append(bs, byte(r))
+				bs = append(bs, '\t')
 				r = p.rune()
 			}
 		}
@@ -838,7 +870,11 @@ byteLoop:
 				break byteLoop
 			}
 		}
-		bs = append(bs, byte(r))
+		if r < utf8.RuneSelf {
+			bs = append(bs, byte(r))
+		} else {
+			bs = append(bs, p.rbs...)
+		}
 		r = p.rune()
 	}
 	p.tok, p.val = _LitWord, string(bs)

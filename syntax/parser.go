@@ -9,6 +9,7 @@ import (
 	"io"
 	"strconv"
 	"sync"
+	"unicode/utf8"
 )
 
 // ParseMode controls the parser behaviour via a set of flags.
@@ -63,6 +64,7 @@ func Parse(src io.Reader, name string, mode ParseMode) (*File, error) {
 type parser struct {
 	src []byte
 	r   rune
+	rbs []byte
 
 	f    *File
 	mode ParseMode
@@ -647,7 +649,11 @@ func (p *parser) wordPart() WordPart {
 				found = true
 				break
 			}
-			bs = append(bs, byte(r))
+			if r < utf8.RuneSelf {
+				bs = append(bs, byte(r))
+			} else {
+				bs = append(bs, p.rbs...)
+			}
 			r = p.rune()
 		}
 		if !found {
@@ -724,7 +730,11 @@ func (p *parser) wordPart() WordPart {
 					break byteLoop
 				}
 			}
-			bs = append(bs, byte(r))
+			if r < utf8.RuneSelf {
+				bs = append(bs, byte(r))
+			} else {
+				bs = append(bs, p.rbs...)
+			}
 			r = p.rune()
 		}
 		eg.Pattern = p.lit(eg.OpPos+2, string(bs))
