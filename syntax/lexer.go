@@ -174,7 +174,7 @@ skipSpace:
 			p.tok = p.regToken(r)
 		case '#':
 			p.rune()
-			bs, _ := p.readLine(p.litBuf[:0])
+			bs := p.readLine(p.litBuf[:0])
 			if p.mode&ParseComments > 0 {
 				p.f.Comments = append(p.f.Comments, &Comment{
 					Hash: p.pos,
@@ -824,13 +824,12 @@ func (p *parser) hdocLitWord() *Word {
 			}
 		}
 		endOff := len(bs)
-		var found bool
-		bs, found = p.readLine(bs)
+		bs = p.readLine(bs)
 		if bytes.Equal(bs[endOff:], p.hdocStop) {
 			bs = bs[:endOff]
 			break
 		}
-		if found {
+		if r = p.r; r == '\n' {
 			bs = append(bs, '\n')
 			r = p.rune()
 		}
@@ -839,21 +838,19 @@ func (p *parser) hdocLitWord() *Word {
 	return p.word(p.singleWps(l))
 }
 
-func (p *parser) readLine(bs []byte) ([]byte, bool) {
+func (p *parser) readLine(bs []byte) []byte {
 	rem := p.src[p.npos-1:]
-	if i := bytes.IndexByte(rem, '\n'); i >= 0 {
-		if i > 0 {
-			p.npos += i
-			p.r = '\n'
-			p.f.Lines = append(p.f.Lines, p.npos)
-			bs = append(bs, rem[:i]...)
-		}
-		return bs, true
+	if i := bytes.IndexByte(rem, '\n'); i > 0 {
+		p.npos += i
+		p.r = '\n'
+		p.f.Lines = append(p.f.Lines, p.npos)
+		bs = append(bs, rem[:i]...)
+	} else if i < 0 {
+		p.npos = len(p.src) + 1
+		p.r = utf8.RuneSelf
+		bs = append(bs, rem...)
 	}
-	p.npos = len(p.src) + 1
-	p.r = utf8.RuneSelf
-	bs = append(bs, rem...)
-	return bs, false
+	return bs
 }
 
 func (p *parser) advanceLitRe(r rune) {

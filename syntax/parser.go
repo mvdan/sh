@@ -642,7 +642,7 @@ func (p *parser) wordPart() WordPart {
 		return ps
 	case sglQuote:
 		sq := &SglQuoted{Position: p.pos}
-		bs, found := p.litBuf[:0], false
+		bs := p.litBuf[:0]
 		r := p.r
 	loop:
 		for {
@@ -651,13 +651,12 @@ func (p *parser) wordPart() WordPart {
 				break loop
 			case '\'':
 				p.rune()
-				found = true
 				break loop
 			}
 			bs = p.appendRune(bs, r)
 			r = p.rune()
 		}
-		if !found {
+		if r != '\'' {
 			p.posErr(sq.Pos(), "reached EOF without closing quote %s", sglQuote)
 		}
 		sq.Value = string(bs)
