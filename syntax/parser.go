@@ -78,7 +78,6 @@ type parser struct {
 
 	pos  Pos
 	npos int
-	sz   int
 
 	quote quoteState
 	asPos int
