@@ -640,7 +640,6 @@ loop:
 			if r == '\n' {
 				p.discardLit(2)
 			}
-			continue
 		case '\n':
 			switch p.quote {
 			case sglQuotes, paramExpRepl, paramExpExp:
@@ -714,7 +713,6 @@ loop:
 			}
 			if r == '\n' {
 				p.discardLit(2)
-				continue
 			}
 		case '>', '<':
 			if byteAt(p.src, p.npos) == '(' {
@@ -797,9 +795,6 @@ loop:
 				for r == '\t' {
 					r = p.rune()
 				}
-			}
-			if r == utf8.RuneSelf {
-				break loop
 			}
 			endOff = len(p.litBs) - 1
 		}
