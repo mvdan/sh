@@ -415,6 +415,7 @@ func (p *parser) errPass(err error) {
 	if p.err == nil {
 		p.err = err
 		p.npos = len(p.src) + 1
+		p.r = utf8.RuneSelf
 		p.tok = _EOF
 	}
 }
@@ -644,11 +645,15 @@ func (p *parser) wordPart() WordPart {
 		sq := &SglQuoted{Position: p.pos}
 		bs, found := p.litBuf[:0], false
 		r := p.r
-		for p.npos <= len(p.src) {
-			if r == '\'' {
+	loop:
+		for {
+			switch r {
+			case utf8.RuneSelf:
+				break loop
+			case '\'':
 				p.rune()
 				found = true
-				break
+				break loop
 			}
 			if r < utf8.RuneSelf {
 				bs = append(bs, byte(r))
@@ -721,14 +726,16 @@ func (p *parser) wordPart() WordPart {
 		bs := p.litBuf[:0]
 		lparens := 0
 		r := p.r
-	byteLoop:
-		for p.npos <= len(p.src) {
+	globLoop:
+		for {
 			switch r {
+			case utf8.RuneSelf:
+				break globLoop
 			case '(':
 				lparens++
 			case ')':
 				if lparens--; lparens < 0 {
-					break byteLoop
+					break globLoop
 				}
 			}
 			if r < utf8.RuneSelf {

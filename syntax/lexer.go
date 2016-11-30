@@ -66,7 +66,7 @@ func (p *parser) rune() rune {
 }
 
 func (p *parser) next() {
-	if p.npos > len(p.src) {
+	if p.r == utf8.RuneSelf {
 		p.tok = _EOF
 		return
 	}
@@ -131,6 +131,9 @@ func (p *parser) next() {
 skipSpace:
 	for {
 		switch r {
+		case utf8.RuneSelf:
+			p.tok = _EOF
+			return
 		case ' ', '\t', '\r':
 			p.spaced = true
 			r = p.rune()
@@ -156,10 +159,6 @@ skipSpace:
 			}
 		default:
 			break skipSpace
-		}
-		if p.npos > len(p.src) {
-			p.tok = _EOF
-			return
 		}
 	}
 	if p.pos = Pos(p.npos); r > utf8.RuneSelf {
@@ -601,10 +600,12 @@ func (p *parser) advanceLitOther(r rune) {
 	bs := p.litBuf[:0]
 	tok := _LitWord
 loop:
-	for p.npos <= len(p.src) {
+	for {
 		switch r {
+		case utf8.RuneSelf:
+			break loop
 		case '\\': // escaped byte follows
-			if r = p.rune(); p.npos > len(p.src) {
+			if r = p.rune(); r == utf8.RuneSelf {
 				bs = append(bs, '\\')
 				break loop
 			}
@@ -688,10 +689,12 @@ func (p *parser) advanceLitNone(r rune) {
 	p.asPos = 0
 	tok := _LitWord
 loop:
-	for p.npos <= len(p.src) {
+	for {
 		switch r {
+		case utf8.RuneSelf:
+			break loop
 		case '\\': // escaped byte follows
-			if r = p.rune(); p.npos > len(p.src) {
+			if r = p.rune(); r == utf8.RuneSelf {
 				bs = append(bs, '\\')
 				break loop
 			}
@@ -740,10 +743,12 @@ func (p *parser) advanceLitDquote(r rune) {
 	bs := p.litBuf[:0]
 	tok := _LitWord
 loop:
-	for p.npos <= len(p.src) {
+	for {
 		switch r {
+		case utf8.RuneSelf:
+			break loop
 		case '\\': // escaped byte follows
-			if r = p.rune(); p.npos > len(p.src) {
+			if r = p.rune(); r == utf8.RuneSelf {
 				break loop
 			}
 			bs = append(bs, '\\')
@@ -773,11 +778,13 @@ func (p *parser) advanceLitHdoc(r rune) {
 	}
 	endOff := len(bs)
 loop:
-	for p.npos <= len(p.src) {
+	for {
 		switch r {
+		case utf8.RuneSelf:
+			break loop
 		case '\\': // escaped byte follows
 			bs = append(bs, '\\')
-			if r = p.rune(); p.npos > len(p.src) {
+			if r = p.rune(); r == utf8.RuneSelf {
 				break loop
 			}
 		case '`', '$':
@@ -796,7 +803,7 @@ loop:
 					r = p.rune()
 				}
 			}
-			if p.npos > len(p.src) {
+			if r == utf8.RuneSelf {
 				break loop
 			}
 			endOff = len(bs)
@@ -819,7 +826,7 @@ func (p *parser) hdocLitWord() *Word {
 	bs := p.litBuf[:0]
 	r := p.r
 	pos := Pos(p.npos)
-	for p.npos <= len(p.src) {
+	for r != utf8.RuneSelf {
 		if p.quote == hdocBodyTabs {
 			for r == '\t' {
 				bs = append(bs, '\t')
@@ -862,16 +869,18 @@ func (p *parser) readLine(bs []byte) ([]byte, bool) {
 func (p *parser) advanceLitRe(r rune) {
 	lparens := 0
 	bs := p.litBuf[:0]
-byteLoop:
-	for p.npos <= len(p.src) {
+loop:
+	for {
 		switch r {
+		case utf8.RuneSelf:
+			break loop
 		case '(':
 			lparens++
 		case ')':
 			lparens--
 		case ' ', '\t', '\r', '\n':
 			if lparens == 0 {
-				break byteLoop
+				break loop
 			}
 		}
 		if r < utf8.RuneSelf {
