@@ -248,16 +248,16 @@ type errorCase struct {
 
 var shellTests = []errorCase{
 	{
-		"\x80",
-		`1:1: invalid UTF-8 encoding`,
+		"echo \x80 #INVBASH bash uses bytes",
+		`1:6: invalid UTF-8 encoding`,
 	},
 	{
-		"foo\x80bar",
-		`1:4: invalid UTF-8 encoding`,
+		"echo foo\x80bar #INVBASH bash uses bytes",
+		`1:9: invalid UTF-8 encoding`,
 	},
 	{
-		"foo\xc3",
-		`1:4: invalid UTF-8 encoding`,
+		"echo foo\xc3 #INVBASH bash uses bytes",
+		`1:9: invalid UTF-8 encoding`,
 	},
 	{
 		"'",
