@@ -272,6 +272,26 @@ var shellTests = []errorCase{
 		`1:6: invalid UTF-8 encoding`,
 	},
 	{
+		";\x80",
+		`1:2: invalid UTF-8 encoding`,
+	},
+	{
+		"a\x80",
+		`1:2: invalid UTF-8 encoding`,
+	},
+	{
+		"${a\x80",
+		`1:4: invalid UTF-8 encoding`,
+	},
+	{
+		"${a#\x80",
+		`1:5: invalid UTF-8 encoding`,
+	},
+	{
+		"$((a |\x80",
+		`1:7: invalid UTF-8 encoding`,
+	},
+	{
 		"'",
 		`1:1: reached EOF without closing quote '`,
 	},

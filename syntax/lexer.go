@@ -235,6 +235,9 @@ skipSpace:
 	default:
 		p.advanceLitOther(r)
 	}
+	if p.err != nil && p.tok != _EOF {
+		p.tok = _EOF
+	}
 }
 
 func (p *parser) peekByte(b byte) bool {
