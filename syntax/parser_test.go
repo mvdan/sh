@@ -260,6 +260,10 @@ var shellTests = []errorCase{
 		`1:9: invalid UTF-8 encoding`,
 	},
 	{
+		"#foo\xc3 #INVBASH bash uses bytes",
+		`1:5: invalid UTF-8 encoding`,
+	},
+	{
 		"'",
 		`1:1: reached EOF without closing quote '`,
 	},

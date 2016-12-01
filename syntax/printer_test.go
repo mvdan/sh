@@ -30,8 +30,8 @@ func TestFprintCompact(t *testing.T) {
 				got = got[:len(got)-1]
 			}
 			if got != want {
-				t.Fatalf("Fprint mismatch\nwant: %q\ngot:  %q",
-					want, got)
+				t.Fatalf("Fprint mismatch of %q\nwant: %q\ngot:  %q",
+					in, want, got)
 			}
 		})
 	}
@@ -57,6 +57,7 @@ func TestFprintWeirdFormat(t *testing.T) {
 		samePrint(`"fo○ b\år"`),
 		samePrint(`'fo○ b\år'`),
 		samePrint(`${a#fo○ b\år}`),
+		samePrint(`#fo○ b\år`),
 		samePrint("<<EOF\nfo○ b\\år\nEOF"),
 		{"foo; bar", "foo\nbar"},
 		{"foo\n\n\nbar", "foo\n\nbar"},

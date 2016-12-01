@@ -178,13 +178,18 @@ skipSpace:
 		case ';', '"', '\'', '(', ')', '$', '|', '&', '>', '<', '`':
 			p.tok = p.regToken(r)
 		case '#':
-			p.rune()
-			bs := p.readLine(p.litBuf[:0])
+			r = p.rune()
+			p.newLit(r)
+			for r != utf8.RuneSelf && r != '\n' {
+				r = p.rune()
+			}
 			if p.mode&ParseComments > 0 {
 				p.f.Comments = append(p.f.Comments, &Comment{
 					Hash: p.pos,
-					Text: string(bs),
+					Text: p.endLit(),
 				})
+			} else {
+				p.litBs = nil
 			}
 			p.next()
 		case '?', '*', '+', '@', '!':
@@ -801,44 +806,31 @@ loop:
 }
 
 func (p *parser) hdocLitWord() *Word {
-	bs := p.litBuf[:0]
 	r := p.r
+	p.newLit(r)
 	pos := Pos(p.npos)
 	for r != utf8.RuneSelf {
 		if p.quote == hdocBodyTabs {
 			for r == '\t' {
-				bs = append(bs, '\t')
 				r = p.rune()
 			}
 		}
-		endOff := len(bs)
-		bs = p.readLine(bs)
-		if bytes.Equal(bs[endOff:], p.hdocStop) {
-			bs = bs[:endOff]
-			break
-		}
-		if r = p.r; r == '\n' {
-			bs = append(bs, '\n')
+		endOff := len(p.litBs) - 1
+		for r != utf8.RuneSelf && r != '\n' {
 			r = p.rune()
 		}
+		if r == utf8.RuneSelf && bytes.Equal(p.litBs[endOff:], p.hdocStop) {
+			p.discardLit(len(p.hdocStop))
+			break
+		}
+		if bytes.Equal(p.litBs[endOff:len(p.litBs)-1], p.hdocStop) {
+			p.discardLit(len(p.hdocStop))
+			break
+		}
+		r = p.rune()
 	}
-	l := p.lit(pos, string(bs))
+	l := p.lit(pos, p.endLit())
 	return p.word(p.singleWps(l))
-}
-
-func (p *parser) readLine(bs []byte) []byte {
-	rem := p.src[p.npos-1:]
-	if i := bytes.IndexByte(rem, '\n'); i > 0 {
-		p.npos += i
-		p.r = '\n'
-		p.f.Lines = append(p.f.Lines, p.npos)
-		bs = append(bs, rem[:i]...)
-	} else if i < 0 {
-		p.npos = len(p.src) + 1
-		p.r = utf8.RuneSelf
-		bs = append(bs, rem...)
-	}
-	return bs
 }
 
 func (p *parser) advanceLitRe(r rune) {
