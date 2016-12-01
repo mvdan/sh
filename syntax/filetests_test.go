@@ -1248,7 +1248,6 @@ var fileTests = []testCase{
 	{
 		Strs: []string{
 			"$( (echo foo bar))",
-			"$((echo foo bar) )",
 			"$( (echo foo bar) )",
 			"`(echo foo bar)`",
 		},
@@ -1258,19 +1257,8 @@ var fileTests = []testCase{
 	},
 	{
 		Strs: []string{
-			"( (echo foo bar))",
-			"((echo foo bar) )",
-			"( (echo foo bar) )",
-		},
-		common: subshell(stmt(
-			subshell(litStmt("echo", "foo", "bar")),
-		)),
-	},
-	{
-		Strs: []string{
 			"$(\n\t(a)\n\tb\n)",
 			"$( (a); b)",
-			"$((a); b)",
 			"`(a); b`",
 		},
 		common: cmdSubst(
@@ -1279,10 +1267,7 @@ var fileTests = []testCase{
 		),
 	},
 	{
-		Strs: []string{
-			"$( (a) | b)",
-			"$((a) | b)",
-		},
+		Strs: []string{"$( (a) | b)"},
 		common: cmdSubst(
 			stmt(&BinaryCmd{
 				Op: Pipe,
@@ -1292,41 +1277,10 @@ var fileTests = []testCase{
 		),
 	},
 	{
-		Strs: []string{
-			"$(\n\t(foo)\n\t(bar)\n)",
-			"$((foo); (bar))",
-		},
-		common: cmdSubst(
-			stmt(subshell(litStmt("foo"))),
-			stmt(subshell(litStmt("bar"))),
-		),
-	},
-	{
-		Strs: []string{
-			`"$( (foo))"`,
-			`"$((foo) )"`,
-		},
+		Strs: []string{`"$( (foo))"`},
 		common: dblQuoted(cmdSubst(stmt(
 			subshell(litStmt("foo")),
 		))),
-	},
-	{
-		Strs: []string{
-			"\"$( (\n\tfoo\n\tbar\n))\"",
-			"\"$((\n\tfoo\n\tbar\n) )\"",
-		},
-		common: dblQuoted(cmdSubst(stmt(
-			subshell(litStmts("foo", "bar")...),
-		))),
-	},
-	{
-		Strs: []string{
-			"( (\n\tfoo\n\tbar\n))",
-			"((\n\tfoo\n\tbar\n) )",
-		},
-		bash: subshell(stmt(
-			subshell(litStmts("foo", "bar")...),
-		)),
 	},
 	{
 		Strs: []string{"$({ echo; })", "`{ echo; }`"},

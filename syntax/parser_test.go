@@ -264,6 +264,14 @@ var shellTests = []errorCase{
 		`1:5: invalid UTF-8 encoding`,
 	},
 	{
+		"$((foo\x80bar",
+		`1:7: invalid UTF-8 encoding`,
+	},
+	{
+		"((foo\x80bar",
+		`1:6: invalid UTF-8 encoding`,
+	},
+	{
 		"'",
 		`1:1: reached EOF without closing quote '`,
 	},
@@ -565,47 +573,43 @@ var shellTests = []errorCase{
 	},
 	{
 		`$(("`,
-		`1:1: reached EOF without matching $(( with ))`,
+		`1:4: reached EOF without closing quote "`,
 	},
 	{
 		`$((a"`,
-		`1:1: reached EOF without matching $(( with ))`,
+		`1:5: reached EOF without closing quote "`,
 	},
 	{
 		`$(($((a"`,
-		`1:1: reached EOF without matching $(( with ))`,
+		`1:8: reached EOF without closing quote "`,
 	},
 	{
 		`$(('`,
-		`1:1: reached EOF without matching $(( with ))`,
+		`1:4: reached EOF without closing quote '`,
 	},
 	{
 		`$((& $(`,
-		`1:1: reached EOF without matching $(( with ))`,
+		`1:6: reached EOF without matching ( with )`,
 	},
 	{
 		`$((& 0 $(`,
-		`1:1: reached EOF without matching $(( with ))`,
+		`1:8: not a valid arithmetic operator: $(`,
 	},
 	{
 		`$((a'`,
-		`1:1: reached EOF without matching $(( with ))`,
+		`1:5: not a valid arithmetic operator: '`,
 	},
 	{
 		`$((a b"`,
-		`1:1: reached EOF without matching $(( with ))`,
+		`1:6: not a valid arithmetic operator: b`,
 	},
 	{
 		`$((a"'`,
-		`1:1: reached EOF without matching $(( with ))`,
+		`1:5: reached EOF without closing quote "`,
 	},
 	{
 		"$((\"`)",
-		`1:1: reached EOF without matching $(( with ))`,
-	},
-	{
-		"$((\"a`b((",
-		`1:1: reached EOF without matching $(( with ))`,
+		`1:6: ) can only be used to close a subshell`,
 	},
 	{
 		"echo $((()))",
@@ -613,7 +617,7 @@ var shellTests = []errorCase{
 	},
 	{
 		"echo $(((3))",
-		`1:6: reached EOF without matching $(( with ))`,
+		`1:6: reached ) without matching $(( with ))`,
 	},
 	{
 		"echo $((+))",
@@ -637,7 +641,7 @@ var shellTests = []errorCase{
 	},
 	{
 		"<<EOF\n$(()a",
-		`2:1: reached EOF without matching $(( with ))`,
+		`2:1: reached ) without matching $(( with ))`,
 	},
 	{
 		"<<EOF\n`))",
@@ -921,7 +925,11 @@ var bashTests = []errorCase{
 	},
 	{
 		"((@(",
-		`1:1: reached EOF without matching (( with ))`,
+		`1:1: reached ( without matching (( with ))`,
+	},
+	{
+		"$((\"a`b((",
+		`1:8: (( can only be used to open an arithmetic cmd`,
 	},
 	{
 		"coproc",
@@ -986,6 +994,14 @@ var bashTests = []errorCase{
 	{
 		"echo ${foo@",
 		`1:6: reached EOF without matching ${ with }`,
+	},
+	{
+		`$((echo :); (echo :)) #INVBASH bash does backtrack`,
+		`1:9: : must be followed by an expression`,
+	},
+	{
+		`((echo :); (echo :)) #INVBASH bash does backtrack`,
+		`1:8: : must be followed by an expression`,
 	},
 }
 

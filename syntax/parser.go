@@ -234,10 +234,8 @@ type saveState struct {
 }
 
 func (p *parser) preNested(quote quoteState) (s saveState) {
-	s.quote = p.quote
-	s.buriedHdocs = p.buriedHdocs
-	p.buriedHdocs = len(p.heredocs)
-	p.quote = quote
+	s.quote, s.buriedHdocs = p.quote, p.buriedHdocs
+	p.buriedHdocs, p.quote = len(p.heredocs), quote
 	return
 }
 
@@ -570,23 +568,11 @@ func (p *parser) wordPart() WordPart {
 		p.ensureNoNested()
 		left := p.tok
 		ar := &ArithmExp{Left: p.pos, Bracket: left == dollBrack}
-		old := p.preNested(arithmExpr)
+		var old saveState
 		if ar.Bracket {
-			p.quote = arithmExprBrack
-		} else if !p.couldBeArithm() {
-			p.postNested(old)
-			p.npos = int(ar.Left) + 2
-			p.r = '('
-			for len(p.f.Lines) > 0 && p.f.Lines[len(p.f.Lines)-1] > p.npos {
-				p.f.Lines = p.f.Lines[:len(p.f.Lines)-1]
-			}
-			p.tok, p.pos = dollParen, ar.Left
-			wp := p.wordPart()
-			if p.err != nil {
-				p.err = nil
-				p.matchingErr(ar.Left, dollDblParen, dblRightParen)
-			}
-			return wp
+			old = p.preNested(arithmExprBrack)
+		} else {
+			old = p.preNested(arithmExpr)
 		}
 		p.next()
 		ar.X = p.arithmExpr(left, ar.Left, 0, false, false)
@@ -739,36 +725,6 @@ func (p *parser) wordPart() WordPart {
 	default:
 		return nil
 	}
-}
-
-func (p *parser) couldBeArithm() (could bool) {
-	// save state
-	oldTok, oldNpos := p.tok, p.npos
-	oldRune := p.r
-	oldLines := len(p.f.Lines)
-	p.next()
-	lparens := 0
-tokLoop:
-	for p.tok != _EOF {
-		switch p.tok {
-		case leftParen, dollParen:
-			lparens++
-		case dollDblParen, dblLeftParen:
-			lparens += 2
-		case rightParen:
-			if lparens == 0 {
-				could = p.peekArithmEnd()
-				break tokLoop
-			}
-			lparens--
-		}
-		p.next()
-	}
-	// recover state
-	p.tok, p.npos = oldTok, oldNpos
-	p.r = oldRune
-	p.f.Lines = p.f.Lines[:oldLines]
-	return
 }
 
 func arithmOpLevel(op BinAritOperator) int {
@@ -1312,21 +1268,6 @@ func (p *parser) subshell() *Subshell {
 func (p *parser) arithmExpCmd() Command {
 	ar := &ArithmCmd{Left: p.pos}
 	old := p.preNested(arithmExprCmd)
-	if !p.couldBeArithm() {
-		p.postNested(old)
-		p.npos = int(ar.Left) + 1
-		p.r = '('
-		for len(p.f.Lines) > 0 && p.f.Lines[len(p.f.Lines)-1] > p.npos {
-			p.f.Lines = p.f.Lines[:len(p.f.Lines)-1]
-		}
-		p.tok, p.pos = leftParen, ar.Left
-		s := p.subshell()
-		if p.err != nil {
-			p.err = nil
-			p.matchingErr(ar.Left, dblLeftParen, dblRightParen)
-		}
-		return s
-	}
 	p.next()
 	ar.X = p.arithmExpr(dblLeftParen, ar.Left, 0, false, false)
 	ar.Right = p.arithmEnd(dblLeftParen, ar.Left, old)
