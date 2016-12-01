@@ -1637,6 +1637,13 @@ var fileTests = []testCase{
 		},
 	},
 	{
+		Strs: []string{`${foo[@]}`},
+		bash: &ParamExp{
+			Param: lit("foo"),
+			Ind:   &Index{Expr: litWord("@")},
+		},
+	},
+	{
 		Strs: []string{`${foo[*]-etc}`},
 		bash: &ParamExp{
 			Param: lit("foo"),
