@@ -73,12 +73,7 @@ func (p *parser) rune() rune {
 	return p.r
 }
 
-func (p *parser) next() {
-	if p.r == utf8.RuneSelf {
-		p.tok = _EOF
-		return
-	}
-	p.spaced, p.newLine = false, false
+func (p *parser) nextKeepSpaces() {
 	r := p.r
 	if p.pos = Pos(p.npos); r > utf8.RuneSelf {
 		p.pos -= Pos(utf8.RuneLen(r) - 1)
@@ -87,7 +82,10 @@ func (p *parser) next() {
 	case hdocWord:
 		if wordBreak(r) {
 			p.tok = illegalTok
-			return
+		} else {
+			p.quote = noState
+			p.next()
+			p.quote = hdocWord
 		}
 	case paramExpRepl:
 		switch r {
@@ -98,7 +96,6 @@ func (p *parser) next() {
 		default:
 			p.advanceLitOther(r)
 		}
-		return
 	case dblQuotes:
 		switch r {
 		case '`', '"', '$':
@@ -106,7 +103,6 @@ func (p *parser) next() {
 		default:
 			p.advanceLitDquote(r)
 		}
-		return
 	case hdocBody, hdocBodyTabs:
 		if r == '`' || r == '$' {
 			p.tok = p.dqToken(r)
@@ -115,7 +111,6 @@ func (p *parser) next() {
 		} else {
 			p.advanceLitHdoc(r)
 		}
-		return
 	case paramExpExp:
 		switch r {
 		case '}':
@@ -126,16 +121,27 @@ func (p *parser) next() {
 		default:
 			p.advanceLitOther(r)
 		}
-		return
-	case sglQuotes:
+	default: // sglQuotes
 		if r == '\'' {
 			p.rune()
 			p.tok = sglQuote
 		} else {
 			p.advanceLitOther(r)
 		}
+	}
+}
+
+func (p *parser) next() {
+	if p.r == utf8.RuneSelf {
+		p.tok = _EOF
 		return
 	}
+	p.spaced, p.newLine = false, false
+	if p.quote&allKeepSpaces != 0 {
+		p.nextKeepSpaces()
+		return
+	}
+	r := p.r
 skipSpace:
 	for {
 		switch r {

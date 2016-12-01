@@ -215,6 +215,8 @@ const (
 	paramExpRepl
 	paramExpExp
 
+	allKeepSpaces = hdocWord | paramExpRepl | dblQuotes | hdocBody |
+		hdocBodyTabs | paramExpExp | sglQuotes
 	allRegTokens  = noState | subCmd | subCmdBckquo | hdocWord | switchCase
 	allArithmExpr = arithmExpr | arithmExprLet | arithmExprCmd |
 		arithmExprBrack | allParamArith
