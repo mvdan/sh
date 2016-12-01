@@ -59,6 +59,7 @@ func TestFprintWeirdFormat(t *testing.T) {
 		samePrint(`${a#fo○ b\år}`),
 		samePrint(`#fo○ b\år`),
 		samePrint("<<EOF\nfo○ b\\år\nEOF"),
+		samePrint(`$'○ b\år'`),
 		{"foo; bar", "foo\nbar"},
 		{"foo\n\n\nbar", "foo\n\nbar"},
 		{"foo\n\n", "foo"},

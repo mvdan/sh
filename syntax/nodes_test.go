@@ -39,7 +39,14 @@ func (v *posVisitor) Visit(n Node) Visitor {
 	if n == nil {
 		return v
 	}
-	pos := v.f.Position(n.Pos())
+	p := n.Pos()
+	if !p.IsValid() && len(v.f.Stmts) > 0 {
+		v.t.Fatalf("Invalid Pos")
+	}
+	pos := v.f.Position(p)
+	if !pos.IsValid() && len(v.f.Stmts) > 0 {
+		v.t.Fatalf("Invalid Position")
+	}
 	offs := 0
 	for l := 0; l < pos.Line-1; l++ {
 		// since lines here are missing the trailing newline

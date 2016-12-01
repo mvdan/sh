@@ -2263,8 +2263,8 @@ var fileTests = []testCase{
 		posix: word(lit("$"), sglQuoted("foo")),
 	},
 	{
-		Strs: []string{`$'foo${'`},
-		bash: sglDQuoted("foo${"),
+		Strs: []string{`$'f+oo${'`},
+		bash: sglDQuoted("f+oo${"),
 	},
 	{
 		Strs: []string{"$'foo bar`'"},
