@@ -3418,7 +3418,7 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 				endOff, src[endOff], string(src))
 		}
 		setPos(&x.Position)
-		if x.SemiPos > 0 {
+		if x.SemiPos.IsValid() {
 			setPos(&x.SemiPos, ";")
 		}
 		if x.Cmd != nil {

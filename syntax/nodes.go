@@ -27,6 +27,8 @@ type File struct {
 // file.
 type Pos uint32
 
+func (p Pos) IsValid() bool { return p > 0 }
+
 const maxPos = Pos(^uint32(0))
 
 // Position describes a position within a source file including the line
@@ -36,6 +38,8 @@ type Position struct {
 	Line   int // line number, starting at 1
 	Column int // column number, starting at 1 (in bytes)
 }
+
+func (p Position) IsValid() bool { return p.Line > 0 }
 
 func (f *File) Pos() Pos {
 	if len(f.Stmts) == 0 {
@@ -106,7 +110,7 @@ type Stmt struct {
 
 func (s *Stmt) Pos() Pos { return s.Position }
 func (s *Stmt) End() Pos {
-	if s.SemiPos > 0 {
+	if s.SemiPos.IsValid() {
 		return s.SemiPos + 1
 	}
 	end := s.Position

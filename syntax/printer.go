@@ -252,7 +252,7 @@ func (p *printer) commentsUpTo(pos Pos) {
 		return
 	}
 	c := p.comments[0]
-	if pos > 0 && c.Hash >= pos {
+	if pos.IsValid() && c.Hash >= pos {
 		return
 	}
 	p.comments = p.comments[1:]
@@ -527,7 +527,7 @@ func (p *printer) stmt(s *Stmt) {
 		}
 	}
 	p.wroteSemi = false
-	if s.SemiPos > 0 && s.SemiPos > p.nline {
+	if s.SemiPos.IsValid() && s.SemiPos > p.nline {
 		p.incLevel()
 		p.bslashNewl()
 		p.indent()
@@ -583,7 +583,7 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		if len(x.ElseStmts) > 0 {
 			p.semiRsrv("else", x.Else, true)
 			p.nestedStmts(x.ElseStmts, 0)
-		} else if x.Else > 0 {
+		} else if x.Else.IsValid() {
 			p.incLines(x.Else)
 		}
 		p.semiRsrv("fi", x.Fi, true)
