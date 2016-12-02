@@ -105,13 +105,9 @@ type parser struct {
 
 func (p *parser) reset() {
 	p.readBuf.Reset()
-	p.spaced, p.newLine = false, false
-	p.err = nil
-	p.npos = 0
-	p.tok, p.quote = illegalTok, noState
-	p.forbidNested = false
-	p.heredocs = p.heredocs[:0]
-	p.buriedHdocs = 0
+	p.npos, p.err = 0, nil
+	p.quote, p.forbidNested = noState, false
+	p.heredocs, p.buriedHdocs = p.heredocs[:0], 0
 }
 
 func (p *parser) lit(pos Pos, val string) *Lit {
