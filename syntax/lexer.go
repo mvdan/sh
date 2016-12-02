@@ -47,24 +47,24 @@ func wordBreak(r rune) bool {
 func (p *parser) rune() rune {
 	if p.npos < len(p.src) {
 		if b := p.src[p.npos]; b < utf8.RuneSelf {
-			p.npos++
-			if b == '\n' {
+			if p.npos++; b == '\n' {
 				p.f.Lines = append(p.f.Lines, p.npos)
 			}
 			if p.litBs != nil {
 				p.litBs = append(p.litBs, b)
 			}
-			p.r = rune(b)
-		} else {
-			var w int
-			p.r, w = utf8.DecodeRune(p.src[p.npos:])
-			if p.litBs != nil {
-				p.litBs = append(p.litBs, p.src[p.npos:p.npos+w]...)
-			}
-			p.npos += w
-			if p.r == utf8.RuneError && w == 1 {
-				p.posErr(Pos(p.npos), "invalid UTF-8 encoding")
-			}
+			r := rune(b)
+			p.r = r
+			return r
+		}
+		var w int
+		p.r, w = utf8.DecodeRune(p.src[p.npos:])
+		if p.litBs != nil {
+			p.litBs = append(p.litBs, p.src[p.npos:p.npos+w]...)
+		}
+		p.npos += w
+		if p.r == utf8.RuneError && w == 1 {
+			p.posErr(Pos(p.npos), "invalid UTF-8 encoding")
 		}
 	} else if p.npos == len(p.src) {
 		p.npos++
