@@ -611,7 +611,9 @@ func (p *parser) arithmToken(r rune) token {
 }
 
 func (p *parser) newLit(r rune) {
-	if r < utf8.RuneSelf {
+	// don't let r == utf8.RuneSelf go to the second case as RuneLen
+	// would return -1
+	if r <= utf8.RuneSelf {
 		p.litBs = p.litBuf[:1]
 		p.litBs[0] = byte(r)
 	} else {
