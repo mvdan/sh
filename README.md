@@ -40,15 +40,19 @@ drawbacks explained below.
 * Associative arrays. Cannot be parsed statically as that depends on
   whether `array` was defined via `declare -A`.
 
-	 $ echo '${array[string keys]}' | shfmt
-	1:16: not a valid arithmetic operator: keys
+```
+ $ echo '${array[string keys]}' | shfmt
+1:16: not a valid arithmetic operator: keys
+```
 
 * `$((` and `((` ambiguity. This means backtracking, which would greatly
   complicate the parser. In practice, the POSIX spec recommends to
   [space the operands][posix-ambiguity] if `$( (` is meant.
 
-	 $ echo '$((foo); (bar))' | shfmt
-	1:1: reached ) without matching $(( with ))
+```
+ $ echo '$((foo); (bar))' | shfmt
+1:1: reached ) without matching $(( with ))
+```
 
 ### Related projects
 
