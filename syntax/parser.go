@@ -1006,9 +1006,6 @@ func stopToken(tok token) bool {
 }
 
 func (p *parser) validIdent() bool {
-	if p.asPos <= 0 {
-		return false
-	}
 	for i, c := range p.val[:p.asPos] {
 		switch {
 		case 'a' <= c && c <= 'z':
@@ -1117,7 +1114,7 @@ preLoop:
 	for {
 		switch p.tok {
 		case _Lit, _LitWord:
-			if p.validIdent() {
+			if p.asPos > 0 && p.validIdent() {
 				s.Assigns = append(s.Assigns, p.getAssign())
 			} else if p.litRedir() {
 				p.doRedirect(s)
@@ -1540,7 +1537,7 @@ func (p *parser) declClause() *DeclClause {
 		ds.Opts = append(ds.Opts, p.getWord())
 	}
 	for !p.newLine && !stopToken(p.tok) && !p.peekRedir() {
-		if (p.tok == _Lit || p.tok == _LitWord) && p.validIdent() {
+		if (p.tok == _Lit || p.tok == _LitWord) && p.asPos > 0 && p.validIdent() {
 			ds.Assigns = append(ds.Assigns, p.getAssign())
 		} else if w := p.getWord(); w == nil {
 			p.followErr(p.pos, name, "words")
