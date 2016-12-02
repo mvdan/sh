@@ -787,22 +787,6 @@ var fileTests = []testCase{
 			}},
 		}),
 	},
-	/* TODO: reenable once $ doesn't break the lit
-	{
-		Strs: []string{"foo >f <<$\nbar\n$"},
-		common: &Stmt{
-			Cmd: litCall("foo"),
-			Redirs: []*Redirect{
-				{Op: RdrOut, Word: litWord("f")},
-				{
-					Op:   Hdoc,
-					Word: litWord("$"),
-					Hdoc: litWord("bar\n"),
-				},
-			},
-		},
-	},
-	*/
 	{
 		Strs: []string{"foo <<EOF >f\nbar\nEOF"},
 		common: &Stmt{
