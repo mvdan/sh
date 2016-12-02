@@ -514,12 +514,9 @@ func (p *parser) getWord() *Word {
 func (p *parser) getWordOrEmpty() *Word {
 	parts := p.wordParts()
 	if len(parts) == 0 {
-		oldNpos := p.npos
-		// force Lit.Pos() == Lit.End()
-		p.npos = int(p.pos)
-		w := p.word(p.singleWps(p.lit(p.pos, "")))
-		p.npos = oldNpos
-		return w
+		l := p.lit(p.pos, "")
+		l.ValueEnd = l.ValuePos // force Lit.Pos() == Lit.End()
+		return p.word(p.singleWps(l))
 	}
 	return p.word(parts)
 }
