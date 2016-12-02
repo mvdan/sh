@@ -101,7 +101,7 @@ func (c *Comment) End() Pos { return c.Hash + Pos(len(c.Text)) }
 type Stmt struct {
 	Cmd        Command
 	Position   Pos
-	SemiPos    Pos
+	Semicolon  Pos
 	Negated    bool
 	Background bool
 	Assigns    []*Assign
@@ -110,8 +110,8 @@ type Stmt struct {
 
 func (s *Stmt) Pos() Pos { return s.Position }
 func (s *Stmt) End() Pos {
-	if s.SemiPos.IsValid() {
-		return s.SemiPos + 1
+	if s.Semicolon.IsValid() {
+		return s.Semicolon + 1
 	}
 	end := s.Position
 	if s.Negated {

@@ -527,7 +527,7 @@ func (p *printer) stmt(s *Stmt) {
 		}
 	}
 	p.wroteSemi = false
-	if s.SemiPos.IsValid() && s.SemiPos > p.nline {
+	if s.Semicolon.IsValid() && s.Semicolon > p.nline {
 		p.incLevel()
 		p.bslashNewl()
 		p.indent()
