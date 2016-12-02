@@ -144,11 +144,11 @@ skipSpace:
 			p.spaced = true
 			r = p.rune()
 		case '\n':
-			p.spaced, p.newLine = true, true
 			if p.quote == arithmExprLet || p.quote == hdocWord {
 				p.tok = illegalTok
 				return
 			}
+			p.spaced, p.newLine = true, true
 			r = p.rune()
 			if len(p.heredocs) > p.buriedHdocs && p.err == nil {
 				if p.doHeredocs(); p.tok == _EOF {
@@ -157,12 +157,11 @@ skipSpace:
 				r = p.r
 			}
 		case '\\':
-			if p.peekByte('\n') {
-				p.rune()
-				r = p.rune()
-			} else {
+			if !p.peekByte('\n') {
 				break skipSpace
 			}
+			p.rune()
+			r = p.rune()
 		default:
 			break skipSpace
 		}
