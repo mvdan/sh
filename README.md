@@ -5,8 +5,7 @@
 
 A shell parser and formatter. Supports POSIX Shell and Bash.
 
-For a quick overview, see the
-[examples](https://godoc.org/github.com/mvdan/sh/syntax#pkg-examples).
+For a quick overview, see the [examples][].
 
 ### shfmt
 
@@ -27,14 +26,35 @@ Use `-i N` to indent with a number of spaces instead of tabs.
 
 ### Fuzzing
 
-This project makes use of [go-fuzz](https://github.com/dvyukov/go-fuzz)
-to find crashes and hangs in both the parser and the printer. To get
-started, run:
+This project makes use of [go-fuzz][] to find crashes and hangs in both
+the parser and the printer. To get started, run:
 
 	git checkout fuzz
 	./fuzz
 
+### Caveats
+
+Supporting some of these could be possible, but they would involve major
+drawbacks explained below.
+
+* Associative arrays. Cannot be parsed statically as that depends on
+  whether `array` was defined via `declare -A`.
+
+	 $ echo '${array[string keys]}' | shfmt
+	1:16: not a valid arithmetic operator: keys
+
+* `$((` and `((` ambiguity. This means backtracking, which would greatly
+  complicate the parser. In practice, the POSIX spec recommends to
+  [space the operands][posix-ambiguity] if `$( (` is meant.
+
+	 $ echo '$((foo); (bar))' | shfmt
+	1:1: reached ) without matching $(( with ))
+
 ### Related projects
 
-* [format-shell](https://atom.io/packages/format-shell) - Atom plugin
-  for `shfmt`
+* [format-shell][] - Atom plugin for `shfmt`
+
+[examples]: https://godoc.org/github.com/mvdan/sh/syntax#pkg-examples
+[go-fuzz]: https://github.com/dvyukov/go-fuzz
+[posix-ambiguity]: http://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_06_03
+[format-shell]: https://atom.io/packages/format-shell
