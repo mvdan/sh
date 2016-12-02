@@ -1342,6 +1342,11 @@ func (p *parser) loop(forPos Pos) Loop {
 			cl.Init = p.arithmExpr(dblLeftParen, cl.Lparen, 0, false, false)
 		}
 		scPos := p.pos
+		if p.tok == dblSemicolon {
+			p.npos--
+			p.r = ';'
+			p.tok = semicolon
+		}
 		p.follow(p.pos, "expression", semicolon)
 		if p.tok != semicolon {
 			cl.Cond = p.arithmExpr(semicolon, scPos, 0, false, false)
