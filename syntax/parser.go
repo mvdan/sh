@@ -215,7 +215,7 @@ const (
 	paramExpRepl
 	paramExpExp
 
-	allKeepSpaces = hdocWord | paramExpRepl | dblQuotes | hdocBody |
+	allKeepSpaces = paramExpRepl | dblQuotes | hdocBody |
 		hdocBodyTabs | paramExpExp | sglQuotes
 	allRegTokens  = noState | subCmd | subCmdBckquo | hdocWord | switchCase
 	allArithmExpr = arithmExpr | arithmExprLet | arithmExprCmd |
@@ -1099,7 +1099,9 @@ func (p *parser) doRedirect(s *Stmt) {
 		p.heredocs = append(p.heredocs, r)
 		r.Word = p.followWordTok(token(r.Op), r.OpPos)
 		p.quote, p.forbidNested = old, false
-		p.next()
+		if p.tok == illegalTok {
+			p.next()
+		}
 	default:
 		if p.newLine {
 			p.curErr("redirect word must be on the same line")

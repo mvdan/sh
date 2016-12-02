@@ -79,14 +79,6 @@ func (p *parser) nextKeepSpaces() {
 		p.pos -= Pos(utf8.RuneLen(r) - 1)
 	}
 	switch p.quote {
-	case hdocWord:
-		if wordBreak(r) {
-			p.tok = illegalTok
-		} else {
-			p.quote = noState
-			p.next()
-			p.quote = hdocWord
-		}
 	case paramExpRepl:
 		switch r {
 		case '}', '/':
@@ -153,7 +145,7 @@ skipSpace:
 			r = p.rune()
 		case '\n':
 			p.spaced, p.newLine = true, true
-			if p.quote == arithmExprLet {
+			if p.quote == arithmExprLet || p.quote == hdocWord {
 				p.tok = illegalTok
 				return
 			}
