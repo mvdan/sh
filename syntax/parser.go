@@ -275,7 +275,6 @@ func (p *parser) unquotedWordPart(b *bytes.Buffer, wp WordPart) bool {
 }
 
 func (p *parser) doHeredocs() {
-	p.tok = illegalTok
 	old := p.quote
 	hdocs := p.heredocs[p.buriedHdocs:]
 	p.heredocs = p.heredocs[:p.buriedHdocs]
@@ -862,7 +861,8 @@ func (p *parser) arithmExprBase(ftok token, fpos Pos, compact bool) ArithmExpr {
 
 func (p *parser) paramExp() *ParamExp {
 	pe := &ParamExp{Dollar: p.pos}
-	old := p.preNested(paramExpName)
+	old := p.quote
+	p.quote = paramExpName
 	p.next()
 	switch p.tok {
 	case at:
@@ -892,7 +892,7 @@ func (p *parser) paramExp() *ParamExp {
 	}
 	if p.tok == rightBrace {
 		pe.Rbrace = p.pos
-		p.postNested(old)
+		p.quote = old
 		p.next()
 		return pe
 	}
@@ -921,7 +921,7 @@ func (p *parser) paramExp() *ParamExp {
 	switch p.tok {
 	case rightBrace:
 		pe.Rbrace = p.pos
-		p.postNested(old)
+		p.quote = old
 		p.next()
 		return pe
 	case slash, dblSlash:
@@ -974,7 +974,7 @@ func (p *parser) paramExp() *ParamExp {
 		p.next()
 		pe.Exp.Word = p.getWordOrEmpty()
 	}
-	p.postNested(old)
+	p.quote = old
 	pe.Rbrace = p.pos
 	p.matched(pe.Dollar, dollBrace, rightBrace)
 	return pe

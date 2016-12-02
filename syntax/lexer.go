@@ -626,7 +626,7 @@ func (p *parser) discardLit(n int) { p.litBs = p.litBs[:len(p.litBs)-n] }
 func (p *parser) endLit() (s string) {
 	if p.r == utf8.RuneSelf {
 		s = string(p.litBs)
-	} else {
+	} else if len(p.litBs) > 0 {
 		s = string(p.litBs[:len(p.litBs)-1])
 	}
 	p.litBs = nil
