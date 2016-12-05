@@ -373,7 +373,7 @@ func (p *printer) loop(loop Loop) {
 	case *WordIter:
 		p.WriteString(x.Name.Value)
 		if len(x.List) > 0 {
-			p.WriteString(" in")
+			p.spacedString(" in", true)
 			p.wordJoin(x.List, true)
 		}
 	case *CStyleLoop:
@@ -599,7 +599,7 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		p.nestedStmts(x.DoStmts, 0)
 		p.semiRsrv("done", x.Done, true)
 	case *ForClause:
-		p.spacedString("for ", true)
+		p.spacedString("for ", false)
 		p.loop(x.Loop)
 		p.semiOrNewl("do", x.Do)
 		p.nestedStmts(x.DoStmts, 0)
@@ -644,7 +644,7 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		p.incLines(x.Body.Pos())
 		p.stmt(x.Body)
 	case *CaseClause:
-		p.spacedString("case ", true)
+		p.spacedString("case ", false)
 		p.word(x.Word)
 		p.WriteString(" in")
 		p.incLevel()
@@ -691,7 +691,7 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		p.arithmExpr(x.X, false)
 		p.WriteString("))")
 	case *TestClause:
-		p.spacedString("[[ ", true)
+		p.spacedString("[[ ", false)
 		p.testExpr(x.X)
 		p.spacedString("]]", true)
 	case *DeclClause:
