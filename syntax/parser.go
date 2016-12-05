@@ -112,7 +112,7 @@ func (p *parser) reset() {
 
 func (p *parser) lit(pos Pos, val string) *Lit {
 	if len(p.litBatch) == 0 {
-		p.litBatch = make([]Lit, 32)
+		p.litBatch = make([]Lit, 64)
 	}
 	l := &p.litBatch[0]
 	p.litBatch = p.litBatch[1:]
