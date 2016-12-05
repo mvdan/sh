@@ -256,6 +256,7 @@ func TestFprintWeirdFormat(t *testing.T) {
 			"{\n\tfoo\n\t#a\n} |\n# misplaced\nbar",
 			"# misplaced\n{\n\tfoo\n\t#a\n} \\\n\t| bar",
 		},
+		samePrint("foo | bar\n#after"),
 		{
 			"{\nfoo &&\n#a1\n#a2\n$(bar)\n}",
 			"{\n\t#a1\n\t#a2\n\tfoo \\\n\t\t&& $(bar)\n}",
