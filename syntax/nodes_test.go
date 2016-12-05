@@ -18,26 +18,26 @@ func TestPosition(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				v := &posVisitor{
+				v := &posWalker{
 					t:     t,
 					f:     prog,
 					lines: strings.Split(in, "\n"),
 				}
-				Walk(v, prog)
+				Walk(prog, v.Visit)
 			})
 		}
 	}
 }
 
-type posVisitor struct {
+type posWalker struct {
 	t     *testing.T
 	f     *File
 	lines []string
 }
 
-func (v *posVisitor) Visit(n Node) Visitor {
+func (v *posWalker) Visit(n Node) bool {
 	if n == nil {
-		return v
+		return true
 	}
 	p := n.Pos()
 	if !p.IsValid() && len(v.f.Stmts) > 0 {
@@ -58,7 +58,7 @@ func (v *posVisitor) Visit(n Node) Visitor {
 		v.t.Fatalf("Inconsistent Position: line %d, col %d; wanted offset %d, got %d ",
 			pos.Line, pos.Column, pos.Offset, offs)
 	}
-	return v
+	return true
 }
 
 func TestWeirdOperatorString(t *testing.T) {

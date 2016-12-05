@@ -5,189 +5,180 @@ package syntax
 
 import "fmt"
 
-// Visitor holds a Visit method which is invoked for each node
-// encountered by Walk. If the result visitor w is not nil, Walk visits
-// each of the children of node with the visitor w, followed by a call
-// of w.Visit(nil).
-type Visitor interface {
-	Visit(node Node) (w Visitor)
-}
-
-func walkStmts(v Visitor, stmts []*Stmt) {
+func walkStmts(stmts []*Stmt, f func(Node) bool) {
 	for _, s := range stmts {
-		Walk(v, s)
+		Walk(s, f)
 	}
 }
 
-func walkWords(v Visitor, words []*Word) {
+func walkWords(words []*Word, f func(Node) bool) {
 	for _, w := range words {
-		Walk(v, w)
+		Walk(w, f)
 	}
 }
 
 // Walk traverses an AST in depth-first order: It starts by calling
-// v.Visit(node); node must not be nil. If the visitor w returned by
-// v.Visit(node) is not nil, Walk is invoked recursively with visitor w
-// for each of the non-nil children of node, followed by a call of
-// w.Visit(nil).
-func Walk(v Visitor, node Node) {
-	if v = v.Visit(node); v == nil {
+// f(node); node must not be nil. If f returns true, Walk invokes f
+// recursively for each of the non-nil children of node, followed by
+// f(nil).
+func Walk(node Node, f func(Node) bool) {
+	if !f(node) {
 		return
 	}
 
 	switch x := node.(type) {
 	case *File:
-		walkStmts(v, x.Stmts)
+		walkStmts(x.Stmts, f)
 	case *Stmt:
 		if x.Cmd != nil {
-			Walk(v, x.Cmd)
+			Walk(x.Cmd, f)
 		}
 		for _, a := range x.Assigns {
-			Walk(v, a)
+			Walk(a, f)
 		}
 		for _, r := range x.Redirs {
-			Walk(v, r)
+			Walk(r, f)
 		}
 	case *Assign:
 		if x.Name != nil {
-			Walk(v, x.Name)
+			Walk(x.Name, f)
 		}
 		if x.Value != nil {
-			Walk(v, x.Value)
+			Walk(x.Value, f)
 		}
 	case *Redirect:
 		if x.N != nil {
-			Walk(v, x.N)
+			Walk(x.N, f)
 		}
-		Walk(v, x.Word)
+		Walk(x.Word, f)
 		if x.Hdoc != nil {
-			Walk(v, x.Hdoc)
+			Walk(x.Hdoc, f)
 		}
 	case *CallExpr:
-		walkWords(v, x.Args)
+		walkWords(x.Args, f)
 	case *Subshell:
-		walkStmts(v, x.Stmts)
+		walkStmts(x.Stmts, f)
 	case *Block:
-		walkStmts(v, x.Stmts)
+		walkStmts(x.Stmts, f)
 	case *IfClause:
-		walkStmts(v, x.CondStmts)
-		walkStmts(v, x.ThenStmts)
+		walkStmts(x.CondStmts, f)
+		walkStmts(x.ThenStmts, f)
 		for _, elif := range x.Elifs {
-			walkStmts(v, elif.CondStmts)
-			walkStmts(v, elif.ThenStmts)
+			walkStmts(elif.CondStmts, f)
+			walkStmts(elif.ThenStmts, f)
 		}
-		walkStmts(v, x.ElseStmts)
+		walkStmts(x.ElseStmts, f)
 	case *WhileClause:
-		walkStmts(v, x.CondStmts)
-		walkStmts(v, x.DoStmts)
+		walkStmts(x.CondStmts, f)
+		walkStmts(x.DoStmts, f)
 	case *UntilClause:
-		walkStmts(v, x.CondStmts)
-		walkStmts(v, x.DoStmts)
+		walkStmts(x.CondStmts, f)
+		walkStmts(x.DoStmts, f)
 	case *ForClause:
-		Walk(v, x.Loop)
-		walkStmts(v, x.DoStmts)
+		Walk(x.Loop, f)
+		walkStmts(x.DoStmts, f)
 	case *WordIter:
-		Walk(v, x.Name)
-		walkWords(v, x.List)
+		Walk(x.Name, f)
+		walkWords(x.List, f)
 	case *CStyleLoop:
 		if x.Init != nil {
-			Walk(v, x.Init)
+			Walk(x.Init, f)
 		}
 		if x.Cond != nil {
-			Walk(v, x.Cond)
+			Walk(x.Cond, f)
 		}
 		if x.Post != nil {
-			Walk(v, x.Post)
+			Walk(x.Post, f)
 		}
 	case *BinaryCmd:
-		Walk(v, x.X)
-		Walk(v, x.Y)
+		Walk(x.X, f)
+		Walk(x.Y, f)
 	case *FuncDecl:
-		Walk(v, x.Name)
-		Walk(v, x.Body)
+		Walk(x.Name, f)
+		Walk(x.Body, f)
 	case *Word:
 		for _, wp := range x.Parts {
-			Walk(v, wp)
+			Walk(wp, f)
 		}
 	case *Lit:
 	case *SglQuoted:
 	case *DblQuoted:
 		for _, wp := range x.Parts {
-			Walk(v, wp)
+			Walk(wp, f)
 		}
 	case *CmdSubst:
-		walkStmts(v, x.Stmts)
+		walkStmts(x.Stmts, f)
 	case *ParamExp:
 		if x.Param != nil {
-			Walk(v, x.Param)
+			Walk(x.Param, f)
 		}
 		if x.Ind != nil {
-			Walk(v, x.Ind.Expr)
+			Walk(x.Ind.Expr, f)
 		}
 		if x.Repl != nil {
-			Walk(v, x.Repl.Orig)
-			Walk(v, x.Repl.With)
+			Walk(x.Repl.Orig, f)
+			Walk(x.Repl.With, f)
 		}
 		if x.Exp != nil {
-			Walk(v, x.Exp.Word)
+			Walk(x.Exp.Word, f)
 		}
 	case *ArithmExp:
 		if x.X != nil {
-			Walk(v, x.X)
+			Walk(x.X, f)
 		}
 	case *ArithmCmd:
 		if x.X != nil {
-			Walk(v, x.X)
+			Walk(x.X, f)
 		}
 	case *BinaryArithm:
-		Walk(v, x.X)
-		Walk(v, x.Y)
+		Walk(x.X, f)
+		Walk(x.Y, f)
 	case *BinaryTest:
-		Walk(v, x.X)
-		Walk(v, x.Y)
+		Walk(x.X, f)
+		Walk(x.Y, f)
 	case *UnaryArithm:
-		Walk(v, x.X)
+		Walk(x.X, f)
 	case *UnaryTest:
-		Walk(v, x.X)
+		Walk(x.X, f)
 	case *ParenArithm:
-		Walk(v, x.X)
+		Walk(x.X, f)
 	case *ParenTest:
-		Walk(v, x.X)
+		Walk(x.X, f)
 	case *CaseClause:
-		Walk(v, x.Word)
+		Walk(x.Word, f)
 		for _, pl := range x.List {
-			walkWords(v, pl.Patterns)
-			walkStmts(v, pl.Stmts)
+			walkWords(pl.Patterns, f)
+			walkStmts(pl.Stmts, f)
 		}
 	case *TestClause:
-		Walk(v, x.X)
+		Walk(x.X, f)
 	case *DeclClause:
-		walkWords(v, x.Opts)
+		walkWords(x.Opts, f)
 		for _, a := range x.Assigns {
-			Walk(v, a)
+			Walk(a, f)
 		}
 	case *ArrayExpr:
-		walkWords(v, x.List)
+		walkWords(x.List, f)
 	case *ExtGlob:
-		Walk(v, x.Pattern)
+		Walk(x.Pattern, f)
 	case *ProcSubst:
-		walkStmts(v, x.Stmts)
+		walkStmts(x.Stmts, f)
 	case *EvalClause:
 		if x.Stmt != nil {
-			Walk(v, x.Stmt)
+			Walk(x.Stmt, f)
 		}
 	case *CoprocClause:
 		if x.Name != nil {
-			Walk(v, x.Name)
+			Walk(x.Name, f)
 		}
-		Walk(v, x.Stmt)
+		Walk(x.Stmt, f)
 	case *LetClause:
 		for _, expr := range x.Exprs {
-			Walk(v, expr)
+			Walk(expr, f)
 		}
 	default:
-		panic(fmt.Sprintf("ast.Walk: unexpected node type %T", x))
+		panic(fmt.Sprintf("syntax.Walk: unexpected node type %T", x))
 	}
 
-	v.Visit(nil)
+	f(nil)
 }

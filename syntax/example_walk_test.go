@@ -10,23 +10,19 @@ import (
 	"github.com/mvdan/sh/syntax"
 )
 
-type paramUpper struct{}
-
-func (u paramUpper) Visit(node syntax.Node) syntax.Visitor {
-	switch x := node.(type) {
-	case *syntax.ParamExp:
-		x.Param.Value = strings.ToUpper(x.Param.Value)
-	}
-	return u
-}
-
 func ExampleWalk() {
 	in := strings.NewReader(`echo $foo "and $bar"`)
 	f, err := syntax.Parse(in, "", 0)
 	if err != nil {
 		return
 	}
-	syntax.Walk(paramUpper{}, f)
+	syntax.Walk(f, func(node syntax.Node) bool {
+		switch x := node.(type) {
+		case *syntax.ParamExp:
+			x.Param.Value = strings.ToUpper(x.Param.Value)
+		}
+		return true
+	})
 	syntax.Fprint(os.Stdout, f)
 	// Output: echo $FOO "and $BAR"
 }

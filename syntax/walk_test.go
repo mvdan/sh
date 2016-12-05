@@ -13,19 +13,13 @@ func TestWalk(t *testing.T) {
 	for i, c := range fileTests {
 		for j, prog := range c.All {
 			t.Run(fmt.Sprintf("%03d-%d", i, j), func(t *testing.T) {
-				Walk(nopVisitor{}, prog)
+				Walk(prog, func(node Node) bool {
+					_, ok := node.(*Lit)
+					return !ok
+				})
 			})
 		}
 	}
-}
-
-type nopVisitor struct{}
-
-func (v nopVisitor) Visit(node Node) Visitor {
-	if _, ok := node.(*Lit); ok {
-		return nil
-	}
-	return v
 }
 
 type newNode struct{}
@@ -39,5 +33,7 @@ func TestWalkUnexpectedType(t *testing.T) {
 			t.Errorf("did not panic")
 		}
 	}()
-	Walk(nopVisitor{}, newNode{})
+	Walk(newNode{}, func(node Node) bool {
+		return true
+	})
 }
