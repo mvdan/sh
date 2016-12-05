@@ -27,7 +27,7 @@ var printerFree = sync.Pool{
 func (c PrintConfig) Fprint(w io.Writer, f *File) error {
 	p := printerFree.Get().(*printer)
 	p.reset()
-	p.f, p.c = f, c
+	p.f, p.PrintConfig = f, c
 	p.comments = f.Comments
 	p.bufWriter.Reset(w)
 	p.stmts(f.Stmts)
@@ -59,7 +59,7 @@ type printer struct {
 	bufWriter
 
 	f *File
-	c PrintConfig
+	PrintConfig
 
 	wantSpace   bool
 	wantNewline bool
@@ -174,12 +174,12 @@ func (p *printer) indent() {
 	p.lastLevel = p.level
 	switch {
 	case p.level == 0:
-	case p.c.Spaces == 0:
+	case p.Spaces == 0:
 		for i := 0; i < p.level; i++ {
 			p.WriteByte('\t')
 		}
-	case p.c.Spaces > 0:
-		p.spaces(p.c.Spaces * p.level)
+	case p.Spaces > 0:
+		p.spaces(p.Spaces * p.level)
 	}
 }
 
