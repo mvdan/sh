@@ -74,6 +74,8 @@ func TestFprintWeirdFormat(t *testing.T) {
 		samePrint("foo >&2 bar <f"),
 		{"foo >&2 bar <f bar2", "foo >&2 bar bar2 <f"},
 		{"foo <<EOF bar\nl1\nEOF", "foo bar <<EOF\nl1\nEOF"},
+		samePrint("foo <<\\\\\\\\EOF\nbar\n\\\\EOF"),
+		samePrint("foo <<\"\\EOF\"\nbar\n\\EOF"),
 		samePrint("foo <<EOF && bar\nl1\nEOF"),
 		{
 			"foo <<EOF &&\nl1\nEOF\nbar",

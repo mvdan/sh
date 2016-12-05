@@ -243,31 +243,35 @@ func (p *parser) unquotedWordBytes(w *Word) ([]byte, bool) {
 	p.helperBuf.Reset()
 	didUnquote := false
 	for _, wp := range w.Parts {
-		if p.unquotedWordPart(p.helperBuf, wp) {
+		if p.unquotedWordPart(p.helperBuf, wp, false) {
 			didUnquote = true
 		}
 	}
 	return p.helperBuf.Bytes(), didUnquote
 }
 
-func (p *parser) unquotedWordPart(b *bytes.Buffer, wp WordPart) bool {
+func (p *parser) unquotedWordPart(buf *bytes.Buffer, wp WordPart, quotes bool) (quoted bool) {
 	switch x := wp.(type) {
 	case *Lit:
-		if x.Value[0] == '\\' {
-			b.WriteString(x.Value[1:])
-			return true
+		for i := 0; i < len(x.Value); i++ {
+			if b := x.Value[i]; b == '\\' && !quotes {
+				i++
+				buf.WriteByte(x.Value[i])
+				quoted = true
+			} else {
+				buf.WriteByte(b)
+			}
 		}
-		b.WriteString(x.Value)
 	case *SglQuoted:
-		b.WriteString(x.Value)
-		return true
+		buf.WriteString(x.Value)
+		quoted = true
 	case *DblQuoted:
 		for _, wp2 := range x.Parts {
-			p.unquotedWordPart(b, wp2)
+			p.unquotedWordPart(buf, wp2, true)
 		}
-		return true
+		quoted = true
 	}
-	return false
+	return
 }
 
 func (p *parser) doHeredocs() {

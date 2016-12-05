@@ -461,10 +461,13 @@ func (p *printer) unquotedWord(w *Word) {
 				p.wordPart(qp)
 			}
 		case *Lit:
-			if x.Value[0] == '\\' {
-				p.WriteString(x.Value[1:])
-			} else {
-				p.WriteString(x.Value)
+			for i := 0; i < len(x.Value); i++ {
+				if b := x.Value[i]; b == '\\' {
+					i++
+					p.WriteByte(x.Value[i])
+				} else {
+					p.WriteByte(b)
+				}
 			}
 		}
 	}
