@@ -472,7 +472,7 @@ var shellTests = []errorCase{
 	},
 	{
 		"foo <<\nEOF\nbar\nEOF",
-		`2:1: heredoc stop word must be on the same line`,
+		`2:1: redirect word must be on the same line`,
 	},
 	{
 		"if",
