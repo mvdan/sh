@@ -463,8 +463,9 @@ func (p *printer) unquotedWord(w *Word) {
 		case *Lit:
 			for i := 0; i < len(x.Value); i++ {
 				if b := x.Value[i]; b == '\\' {
-					i++
-					p.WriteByte(x.Value[i])
+					if i++; i < len(x.Value) {
+						p.WriteByte(x.Value[i])
+					}
 				} else {
 					p.WriteByte(b)
 				}

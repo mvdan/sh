@@ -255,8 +255,9 @@ func (p *parser) unquotedWordPart(buf *bytes.Buffer, wp WordPart, quotes bool) (
 	case *Lit:
 		for i := 0; i < len(x.Value); i++ {
 			if b := x.Value[i]; b == '\\' && !quotes {
-				i++
-				buf.WriteByte(x.Value[i])
+				if i++; i < len(x.Value) {
+					buf.WriteByte(x.Value[i])
+				}
 				quoted = true
 			} else {
 				buf.WriteByte(b)
