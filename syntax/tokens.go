@@ -5,9 +5,12 @@ package syntax
 
 type token uint32
 
+// Modified version of golang.org/x/tools/cmd/stringer that gets the
+// string value from the inline comment of each constant, if there is
+// one. Also removes leading '_'.
 //go:generate stringer -type token
 
-// The list of all possible tokens and reserved words.
+// The list of all possible tokens.
 const (
 	illegalTok token = iota
 	_EOF
