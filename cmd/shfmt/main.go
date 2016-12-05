@@ -175,13 +175,18 @@ func formatPath(path string, checkShebang bool) error {
 	res := writeBuf.Bytes()
 	if !bytes.Equal(src, res) {
 		if *list {
-			fmt.Fprintln(out, path)
+			if _, err := fmt.Fprintln(out, path); err != nil {
+				return err
+			}
 		}
 		if *write {
 			if err := empty(f); err != nil {
 				return err
 			}
 			if _, err := f.Write(res); err != nil {
+				return err
+			}
+			if err := f.Close(); err != nil {
 				return err
 			}
 		}
