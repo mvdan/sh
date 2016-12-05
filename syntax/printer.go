@@ -258,7 +258,7 @@ func (p *printer) commentsUpTo(pos Pos) {
 	p.comments = p.comments[1:]
 	switch {
 	case p.nlineIndex == 0:
-	case c.Hash >= p.nline:
+	case c.Hash > p.nline:
 		p.newlines(c.Hash)
 	default:
 		p.spaces(p.commentPadding + 1)
@@ -605,6 +605,19 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		p.nestedStmts(x.DoStmts, 0)
 		p.semiRsrv("done", x.Done, true)
 	case *BinaryCmd:
+		for _, c := range p.comments {
+			// move comments in between x.X and x.Y before
+			// all of x, since these are confusing and could
+			// break the program
+			if c.Hash > x.Y.Pos() {
+				break
+			}
+			p.comments = p.comments[1:]
+			p.WriteByte('#')
+			p.WriteString(c.Text)
+			p.WriteByte('\n')
+			p.indent()
+		}
 		p.stmt(x.X)
 		indent := !p.nestedBinary
 		if indent {
