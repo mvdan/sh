@@ -103,8 +103,9 @@ func confirmParse(in string, min int, posix, fail bool) func(*testing.T) {
 		if posix {
 			opts = append(opts, "--posix")
 		}
-		if strings.Contains(in, "#INVBASH") {
+		if i := strings.Index(in, " #INVBASH"); i >= 0 {
 			fail = !fail
+			in = in[:i]
 		}
 		if extGlobRe.MatchString(in) {
 			// otherwise bash refuses to parse these
@@ -133,6 +134,9 @@ func confirmParse(in string, min int, posix, fail bool) func(*testing.T) {
 			if s := stderr.String(); !strings.Contains(s, ": warning: ") {
 				err = errors.New(s)
 			}
+		}
+		if err != nil && strings.Contains(err.Error(), "command not found") {
+			err = nil
 		}
 		if fail && err == nil {
 			t.Fatalf("Expected error in `%s` of %q, found none", strings.Join(cmd.Args, " "), in)
@@ -183,6 +187,9 @@ func TestParseErrPosixConfirm(t *testing.T) {
 
 func singleParse(in string, want *File, mode ParseMode) func(t *testing.T) {
 	return func(t *testing.T) {
+		if i := strings.Index(in, " #INVBASH"); i >= 0 {
+			in = in[:i]
+		}
 		got, err := Parse(strings.NewReader(in), "", mode)
 		if err != nil {
 			t.Fatalf("Unexpected error in %q: %v", in, err)
@@ -276,8 +283,8 @@ var shellTests = []errorCase{
 		`1:2: invalid UTF-8 encoding`,
 	},
 	{
-		"a\x80",
-		`1:2: invalid UTF-8 encoding`,
+		"echo a\x80 #INVBASH bash uses bytes",
+		`1:7: invalid UTF-8 encoding`,
 	},
 	{
 		"${a\x80",
@@ -568,7 +575,7 @@ var shellTests = []errorCase{
 		`1:1: "for foo" must be followed by "in", ; or a newline`,
 	},
 	{
-		"foo &\n;",
+		"echo foo &\n;",
 		`2:1: ; can only immediately follow a statement`,
 	},
 	{
@@ -688,7 +695,7 @@ var shellTests = []errorCase{
 		`1:10: reached EOF without matching ${ with }`,
 	},
 	{
-		"foo\n;",
+		"echo foo\n;",
 		`2:1: ; can only immediately follow a statement`,
 	},
 	{
