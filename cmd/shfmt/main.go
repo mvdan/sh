@@ -8,9 +8,11 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime/pprof"
 
 	"github.com/mvdan/sh/fileutil"
 	"github.com/mvdan/sh/syntax"
@@ -29,6 +31,7 @@ var (
 
 	parser            *syntax.Parser
 	printer           *syntax.Printer
+
 	readBuf, writeBuf bytes.Buffer
 
 	copyBuf = make([]byte, 32*1024)
@@ -36,6 +39,9 @@ var (
 	out io.Writer = os.Stdout
 
 	version = "v2-devel"
+
+	cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
+	memprofile = flag.String("memprofile", "", "write heap profile to file")
 )
 
 func main() {
@@ -44,6 +50,23 @@ func main() {
 		flag.PrintDefaults()
 	}
 	flag.Parse()
+	if *cpuprofile != "" {
+		f, err := os.Create(*cpuprofile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		pprof.StartCPUProfile(f)
+		defer pprof.StopCPUProfile()
+	}
+	if *memprofile != "" {
+		f, err := os.Create(*memprofile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer func() {
+			pprof.WriteHeapProfile(f)
+		}()
+	}
 
 	if *showVersion {
 		fmt.Println(version)
