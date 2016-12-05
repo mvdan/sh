@@ -27,8 +27,8 @@ var printerFree = sync.Pool{
 func (c PrintConfig) Fprint(w io.Writer, f *File) error {
 	p := printerFree.Get().(*printer)
 	p.reset()
-	p.f, p.PrintConfig = f, c
-	p.comments = f.Comments
+	p.PrintConfig = c
+	p.lines, p.comments = f.Lines, f.Comments
 	p.bufWriter.Reset(w)
 	p.stmts(f.Stmts)
 	p.commentsUpTo(0)
@@ -58,8 +58,8 @@ type bufWriter interface {
 type printer struct {
 	bufWriter
 
-	f *File
 	PrintConfig
+	lines []int
 
 	wantSpace   bool
 	wantNewline bool
@@ -103,10 +103,10 @@ func (p *printer) reset() {
 }
 
 func (p *printer) incLine() {
-	if p.nlineIndex++; p.nlineIndex >= len(p.f.Lines) {
+	if p.nlineIndex++; p.nlineIndex >= len(p.lines) {
 		p.nline = maxPos
 	} else {
-		p.nline = Pos(p.f.Lines[p.nlineIndex])
+		p.nline = Pos(p.lines[p.nlineIndex])
 	}
 }
 
@@ -800,7 +800,7 @@ func (p *printer) stmts(stmts []*Stmt) {
 			p.commentPadding = 0
 			continue
 		}
-		if ind < len(p.f.Lines)-1 && s.End() > Pos(p.f.Lines[ind+1]) {
+		if ind < len(p.lines)-1 && s.End() > Pos(p.lines[ind+1]) {
 			inlineIndent = 0
 		}
 		if inlineIndent == 0 {
@@ -819,10 +819,10 @@ func (p *printer) stmts(stmts []*Stmt) {
 				if l := p.stmtLen(s2); l > inlineIndent {
 					inlineIndent = l
 				}
-				if ind2++; ind2 >= len(p.f.Lines) {
+				if ind2++; ind2 >= len(p.lines) {
 					nline2 = maxPos
 				} else {
-					nline2 = Pos(p.f.Lines[ind2])
+					nline2 = Pos(p.lines[ind2])
 				}
 			}
 			if ind2 == p.nlineIndex+1 {
@@ -852,7 +852,6 @@ func (c *byteCounter) Reset(io.Writer) { *c = 0 }
 func (p *printer) stmtLen(s *Stmt) int {
 	*p.lenPrinter = printer{bufWriter: &p.lenCounter}
 	p.lenPrinter.bufWriter.Reset(nil)
-	p.lenPrinter.f = p.f
 	p.lenPrinter.incLines(s.Pos())
 	p.lenPrinter.stmt(s)
 	return int(p.lenCounter)
