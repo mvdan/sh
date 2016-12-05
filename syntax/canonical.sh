@@ -2,12 +2,13 @@
 
 # separate comment
 
-! foo bar >a & # inline comment
+! foo bar >a &
 
 foo() { bar; }
 
 {
-	foo
+	var1="some long value" # var1 comment
+	var2=short             # var2 comment
 }
 
 if foo; then bar; fi
@@ -34,9 +35,3 @@ bar
 EOF
 
 $((3 + 4))
-
-# bash-only
-function foo() { bar; }
-foo <<<"bar"
-foo <(bar)
-let a=1+2 b=(3 + 4)
