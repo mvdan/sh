@@ -605,6 +605,7 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		p.nestedStmts(x.DoStmts, 0)
 		p.semiRsrv("done", x.Done, true)
 	case *BinaryCmd:
+		var leftComments []*Comment
 		for _, c := range p.comments {
 			// move comments in between x.X and x.Y before
 			// all of x, since these are confusing and could
@@ -613,10 +614,17 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 				break
 			}
 			p.comments = p.comments[1:]
+			if c.Hash < x.X.End() {
+				leftComments = append(leftComments, c)
+				continue
+			}
 			p.WriteByte('#')
 			p.WriteString(c.Text)
 			p.WriteByte('\n')
 			p.indent()
+		}
+		if leftComments != nil {
+			p.comments = append(leftComments, p.comments...)
 		}
 		p.stmt(x.X)
 		indent := !p.nestedBinary
