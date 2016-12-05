@@ -522,7 +522,8 @@ func (p *parser) getWordOrEmpty() *Word {
 }
 
 func (p *parser) getLit() *Lit {
-	if p.tok == _Lit || p.tok == _LitWord {
+	switch p.tok {
+	case _Lit, _LitWord, _LitRedir:
 		l := p.lit(p.pos, p.val)
 		p.next()
 		return l
@@ -1064,16 +1065,10 @@ func (p *parser) getAssign() *Assign {
 	return as
 }
 
-func (p *parser) litRedir() bool {
-	return (p.r == '>' || p.r == '<') && !p.peekByte('(')
-}
-
 func (p *parser) peekRedir() bool {
 	switch p.tok {
-	case _LitWord:
-		return p.litRedir()
 	case rdrOut, appOut, rdrIn, dplIn, dplOut, clbOut, rdrInOut,
-		hdoc, dashHdoc, wordHdoc, rdrAll, appAll:
+		hdoc, dashHdoc, wordHdoc, rdrAll, appAll, _LitRedir:
 		return true
 	}
 	return false
@@ -1114,13 +1109,11 @@ preLoop:
 		case _Lit, _LitWord:
 			if p.asPos > 0 && p.validIdent() {
 				s.Assigns = append(s.Assigns, p.getAssign())
-			} else if p.litRedir() {
-				p.doRedirect(s)
 			} else {
 				break preLoop
 			}
 		case rdrOut, appOut, rdrIn, dplIn, dplOut, clbOut, rdrInOut,
-			hdoc, dashHdoc, wordHdoc, rdrAll, appAll:
+			hdoc, dashHdoc, wordHdoc, rdrAll, appAll, _LitRedir:
 			p.doRedirect(s)
 		default:
 			break preLoop
@@ -1651,10 +1644,6 @@ func (p *parser) callExpr(s *Stmt, w *Word) *CallExpr {
 			dblSemicolon, semiFall, dblSemiFall:
 			return ce
 		case _LitWord:
-			if p.litRedir() {
-				p.doRedirect(s)
-				continue
-			}
 			ce.Args = append(ce.Args, p.word(
 				p.singleWps(p.lit(p.pos, p.val)),
 			))
@@ -1669,7 +1658,7 @@ func (p *parser) callExpr(s *Stmt, w *Word) *CallExpr {
 			globQuest, globStar, globPlus, globAt, globExcl:
 			ce.Args = append(ce.Args, p.word(p.wordParts()))
 		case rdrOut, appOut, rdrIn, dplIn, dplOut, clbOut, rdrInOut,
-			hdoc, dashHdoc, wordHdoc, rdrAll, appAll:
+			hdoc, dashHdoc, wordHdoc, rdrAll, appAll, _LitRedir:
 			p.doRedirect(s)
 		case dblLeftParen:
 			p.curErr("%s can only be used to open an arithmetic cmd", p.tok)

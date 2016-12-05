@@ -724,6 +724,8 @@ loop:
 		case '>', '<':
 			if p.peekByte('(') {
 				tok = _Lit
+			} else {
+				tok = _LitRedir
 			}
 			break loop
 		case '`':

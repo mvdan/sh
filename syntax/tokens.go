@@ -16,6 +16,7 @@ const (
 	_EOF
 	_Lit
 	_LitWord
+	_LitRedir
 
 	sglQuote // '
 	dblQuote // "
