@@ -59,7 +59,7 @@ type printer struct {
 	bufWriter
 
 	PrintConfig
-	lines []int
+	lines []Pos
 
 	wantSpace   bool
 	wantNewline bool

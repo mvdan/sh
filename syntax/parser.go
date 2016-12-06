@@ -42,7 +42,7 @@ func Parse(src io.Reader, name string, mode ParseMode) (*File, error) {
 	}
 	alloc := &struct {
 		f File
-		l [16]int
+		l [32]Pos
 	}{}
 	p.f = &alloc.f
 	p.f.Name = name

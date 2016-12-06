@@ -3644,11 +3644,11 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 	}
 }
 
-func checkNewlines(tb testing.TB, src string, got []int) {
-	want := []int{0}
+func checkNewlines(tb testing.TB, src string, got []Pos) {
+	want := []Pos{0}
 	for i, b := range src {
 		if b == '\n' {
-			want = append(want, i+1)
+			want = append(want, Pos(i+1))
 		}
 	}
 	if !reflect.DeepEqual(got, want) {

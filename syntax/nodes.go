@@ -18,7 +18,7 @@ type File struct {
 	Stmts    []*Stmt
 	Comments []*Comment
 
-	lines []int
+	lines []Pos
 }
 
 // Pos is the internal representation of a position within a source
@@ -54,17 +54,14 @@ func (f *File) End() Pos {
 }
 
 func (f *File) Position(p Pos) (pos Position) {
-	intp := int(p)
-	pos.Offset = intp - 1
-	if i := searchInts(f.lines, intp); i >= 0 {
-		pos.Line, pos.Column = i+1, intp-f.lines[i]
+	pos.Offset = int(p) - 1
+	if i := searchPos(f.lines, p); i >= 0 {
+		pos.Line, pos.Column = i+1, int(p-f.lines[i])
 	}
 	return
 }
 
-// Inlined version of:
-// sort.Search(len(a), func(i int) bool { return a[i] > x }) - 1
-func searchInts(a []int, x int) int {
+func searchPos(a []Pos, x Pos) int {
 	i, j := 0, len(a)
 	for i < j {
 		h := i + (j-i)/2
