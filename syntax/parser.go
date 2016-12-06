@@ -607,7 +607,7 @@ func (p *parser) wordPart() WordPart {
 		switch r {
 		case '@', '*', '#', '$', '?', '!', '0', '-':
 			p.rune()
-			p.tok, p.val = _Lit, string(r)
+			p.tok, p.val = _LitWord, string(r)
 		default:
 			if p.quote&allRegTokens != 0 {
 				p.advanceLitNone(r)
@@ -868,7 +868,7 @@ func (p *parser) paramExp() *ParamExp {
 	p.next()
 	switch p.tok {
 	case at:
-		p.tok, p.val = _Lit, "@"
+		p.tok, p.val = _LitWord, "@"
 	case dblHash:
 		p.tok = hash
 		p.npos--
