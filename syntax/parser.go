@@ -36,10 +36,6 @@ var parserFree = sync.Pool{
 func Parse(src io.Reader, name string, mode ParseMode) (*File, error) {
 	p := parserFree.Get().(*parser)
 	p.reset()
-	if _, err := io.CopyBuffer(p.readBuf, src, p.copyBuf); err != nil {
-		parserFree.Put(p)
-		return nil, err
-	}
 	alloc := &struct {
 		f File
 		l [32]Pos
@@ -47,7 +43,8 @@ func Parse(src io.Reader, name string, mode ParseMode) (*File, error) {
 	p.f = &alloc.f
 	p.f.Name = name
 	p.f.lines = alloc.l[:1]
-	p.src, p.mode = p.readBuf.Bytes(), mode
+	p.src, p.mode = src, mode
+	p.fill()
 	p.rune()
 	p.next()
 	p.f.Stmts = p.stmts()
@@ -62,7 +59,8 @@ func Parse(src io.Reader, name string, mode ParseMode) (*File, error) {
 }
 
 type parser struct {
-	src []byte
+	src io.Reader
+	bs  []byte
 	r   rune
 
 	f    *File
@@ -413,7 +411,7 @@ func (p *parser) matched(lpos Pos, left, right token) Pos {
 func (p *parser) errPass(err error) {
 	if p.err == nil {
 		p.err = err
-		p.npos = len(p.src) + 1
+		p.npos = len(p.bs) + 1
 		p.r = utf8.RuneSelf
 		p.tok = _EOF
 	}

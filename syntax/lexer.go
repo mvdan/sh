@@ -5,6 +5,7 @@ package syntax
 
 import (
 	"bytes"
+	"io"
 	"unicode/utf8"
 )
 
@@ -45,8 +46,8 @@ func wordBreak(r rune) bool {
 }
 
 func (p *parser) rune() rune {
-	if p.npos < len(p.src) {
-		if b := p.src[p.npos]; b < utf8.RuneSelf {
+	if p.npos < len(p.bs) {
+		if b := p.bs[p.npos]; b < utf8.RuneSelf {
 			if p.npos++; b == '\n' {
 				p.f.lines = append(p.f.lines, Pos(p.npos))
 			}
@@ -58,19 +59,28 @@ func (p *parser) rune() rune {
 			return r
 		}
 		var w int
-		p.r, w = utf8.DecodeRune(p.src[p.npos:])
+		p.r, w = utf8.DecodeRune(p.bs[p.npos:])
 		if p.litBs != nil {
-			p.litBs = append(p.litBs, p.src[p.npos:p.npos+w]...)
+			p.litBs = append(p.litBs, p.bs[p.npos:p.npos+w]...)
 		}
 		p.npos += w
 		if p.r == utf8.RuneError && w == 1 {
 			p.posErr(Pos(p.npos), "invalid UTF-8 encoding")
 		}
-	} else if p.npos == len(p.src) {
+	} else if p.npos == len(p.bs) {
 		p.npos++
 		p.r = utf8.RuneSelf
 	}
 	return p.r
+}
+
+func (p *parser) fill() {
+	n, err := io.CopyBuffer(p.readBuf, p.src, p.copyBuf)
+	if n == 0 && err == io.EOF {
+	} else if err != nil {
+		p.errPass(err)
+	}
+	p.bs = p.readBuf.Bytes()
 }
 
 func (p *parser) nextKeepSpaces() {
@@ -232,7 +242,7 @@ skipSpace:
 }
 
 func (p *parser) peekByte(b byte) bool {
-	return p.npos < len(p.src) && p.src[p.npos] == b
+	return p.npos < len(p.bs) && p.bs[p.npos] == b
 }
 
 func (p *parser) regToken(r rune) token {
@@ -617,7 +627,7 @@ func (p *parser) newLit(r rune) {
 		p.litBs[0] = byte(r)
 	} else {
 		w := utf8.RuneLen(r)
-		p.litBs = append(p.litBuf[:0], p.src[p.npos-w:p.npos]...)
+		p.litBs = append(p.litBuf[:0], p.bs[p.npos-w:p.npos]...)
 	}
 }
 
