@@ -28,7 +28,7 @@ func (c PrintConfig) Fprint(w io.Writer, f *File) error {
 	p := printerFree.Get().(*printer)
 	p.reset()
 	p.PrintConfig = c
-	p.lines, p.comments = f.Lines, f.Comments
+	p.lines, p.comments = f.lines, f.Comments
 	p.bufWriter.Reset(w)
 	p.stmts(f.Stmts)
 	p.commentsUpTo(0)

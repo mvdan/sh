@@ -48,7 +48,7 @@ func (p *parser) rune() rune {
 	if p.npos < len(p.src) {
 		if b := p.src[p.npos]; b < utf8.RuneSelf {
 			if p.npos++; b == '\n' {
-				p.f.Lines = append(p.f.Lines, p.npos)
+				p.f.lines = append(p.f.lines, p.npos)
 			}
 			if p.litBs != nil {
 				p.litBs = append(p.litBs, b)

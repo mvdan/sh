@@ -18,9 +18,7 @@ type File struct {
 	Stmts    []*Stmt
 	Comments []*Comment
 
-	// Lines contains the offset of the first character for each
-	// line (the first entry is always 0)
-	Lines []int
+	lines []int
 }
 
 // Pos is the internal representation of a position within a source
@@ -58,8 +56,8 @@ func (f *File) End() Pos {
 func (f *File) Position(p Pos) (pos Position) {
 	intp := int(p)
 	pos.Offset = intp - 1
-	if i := searchInts(f.Lines, intp); i >= 0 {
-		pos.Line, pos.Column = i+1, intp-f.Lines[i]
+	if i := searchInts(f.lines, intp); i >= 0 {
+		pos.Line, pos.Column = i+1, intp-f.lines[i]
 	}
 	return
 }

@@ -343,7 +343,7 @@ func TestFprintWeirdFormat(t *testing.T) {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
 			check := func(in, want string) {
 				prog, err := Parse(strings.NewReader(in), "", ParseComments)
-				checkNewlines(t, in, prog.Lines)
+				checkNewlines(t, in, prog.lines)
 				if err != nil {
 					t.Fatal(err)
 				}

@@ -46,7 +46,7 @@ func Parse(src io.Reader, name string, mode ParseMode) (*File, error) {
 	}{}
 	p.f = &alloc.f
 	p.f.Name = name
-	p.f.Lines = alloc.l[:1]
+	p.f.lines = alloc.l[:1]
 	p.src, p.mode = p.readBuf.Bytes(), mode
 	p.rune()
 	p.next()
