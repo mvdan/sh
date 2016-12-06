@@ -46,6 +46,7 @@ func wordBreak(r rune) bool {
 }
 
 func (p *parser) rune() rune {
+retry:
 	if p.npos < len(p.bs) {
 		if b := p.bs[p.npos]; b < utf8.RuneSelf {
 			if p.npos++; b == '\n' {
@@ -68,17 +69,25 @@ func (p *parser) rune() rune {
 			p.posErr(Pos(p.npos), "invalid UTF-8 encoding")
 		}
 	} else if p.npos == len(p.bs) {
-		p.npos++
-		p.r = utf8.RuneSelf
+		if p.r == utf8.RuneSelf {
+			p.npos++
+			p.r = utf8.RuneSelf
+		} else {
+			p.fill()
+			goto retry
+		}
 	}
 	return p.r
 }
 
 func (p *parser) fill() {
+	p.readBuf.Reset()
 	n, err := io.CopyBuffer(p.readBuf, p.src, p.copyBuf)
-	if n == 0 && err == io.EOF {
-	} else if err != nil {
-		p.errPass(err)
+	if n == 0 && p.err == nil {
+		// don't use p.errPass as we don't want to overwrite p.tok
+		p.err = err
+		p.npos = len(p.bs) + 1
+		p.r = utf8.RuneSelf
 	}
 	p.bs = p.readBuf.Bytes()
 }

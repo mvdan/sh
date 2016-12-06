@@ -44,7 +44,6 @@ func Parse(src io.Reader, name string, mode ParseMode) (*File, error) {
 	p.f.Name = name
 	p.f.lines = alloc.l[:1]
 	p.src, p.mode = src, mode
-	p.fill()
 	p.rune()
 	p.next()
 	p.f.Stmts = p.stmts()
@@ -102,8 +101,8 @@ type parser struct {
 }
 
 func (p *parser) reset() {
-	p.readBuf.Reset()
-	p.npos, p.err = 0, nil
+	p.bs = nil
+	p.r, p.npos, p.err = 0, 0, nil
 	p.quote, p.forbidNested = noState, false
 	p.heredocs, p.buriedHdocs = p.heredocs[:0], 0
 }
