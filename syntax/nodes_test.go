@@ -16,7 +16,7 @@ func TestPosition(t *testing.T) {
 			t.Run(fmt.Sprintf("%03d-%d", i, j), func(t *testing.T) {
 				prog, err := Parse(strings.NewReader(in), "", 0)
 				if err != nil {
-					t.Fatal(err)
+					t.Fatalf("Unexpected error in %q: %v", in, err)
 				}
 				v := &posWalker{
 					t:     t,

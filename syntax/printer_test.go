@@ -19,12 +19,12 @@ func TestFprintCompact(t *testing.T) {
 			in := c.Strs[0]
 			prog, err := Parse(strings.NewReader(in), "", 0)
 			if err != nil {
-				t.Fatal(err)
+				t.Fatalf("Unexpected error in %q: %v", in, err)
 			}
 			want := in
 			got, err := strFprint(prog, 0)
 			if err != nil {
-				t.Fatal(err)
+				t.Fatalf("Unexpected error in %q: %v", in, err)
 			}
 			if len(got) > 0 {
 				got = got[:len(got)-1]
@@ -343,13 +343,13 @@ func TestFprintWeirdFormat(t *testing.T) {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
 			check := func(in, want string) {
 				prog, err := Parse(strings.NewReader(in), "", ParseComments)
-				checkNewlines(t, in, prog.lines)
 				if err != nil {
-					t.Fatal(err)
+					t.Fatalf("Unexpected error in %q: %v", in, err)
 				}
+				checkNewlines(t, in, prog.lines)
 				got, err := strFprint(prog, 0)
 				if err != nil {
-					t.Fatal(err)
+					t.Fatalf("Unexpected error in %q: %v", in, err)
 				}
 				if got != want {
 					t.Fatalf("Fprint mismatch:\n"+
