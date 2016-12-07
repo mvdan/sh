@@ -342,7 +342,7 @@ func TestFprintWeirdFormat(t *testing.T) {
 	for i, tc := range weirdFormats {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
 			check := func(in, want string) {
-				prog, err := Parse(strings.NewReader(in), "", ParseComments)
+				prog, err := Parse(newStrictReader(in), "", ParseComments)
 				if err != nil {
 					t.Fatalf("Unexpected error in %q: %v", in, err)
 				}

@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"reflect"
@@ -190,7 +191,7 @@ func singleParse(in string, want *File, mode ParseMode) func(t *testing.T) {
 		if i := strings.Index(in, " #INVBASH"); i >= 0 {
 			in = in[:i]
 		}
-		got, err := Parse(strings.NewReader(in), "", mode)
+		got, err := Parse(newStrictReader(in), "", mode)
 		if err != nil {
 			t.Fatalf("Unexpected error in %q: %v", in, err)
 		}
@@ -784,7 +785,7 @@ var shellTests = []errorCase{
 
 func checkError(in, want string, mode ParseMode) func(*testing.T) {
 	return func(t *testing.T) {
-		_, err := Parse(strings.NewReader(in), "", mode)
+		_, err := Parse(newStrictReader(in), "", mode)
 		if err == nil {
 			t.Fatalf("Expected error in %q: %v", in, want)
 		}
@@ -1129,4 +1130,24 @@ func TestReadErr(t *testing.T) {
 		t.Fatalf("Error mismatch with bad reader:\nwant: %v\ngot:  %v",
 			errBadReader, err)
 	}
+}
+
+type strictStringReader struct {
+	*strings.Reader
+	gaveEOF bool
+}
+
+func newStrictReader(s string) *strictStringReader {
+	return &strictStringReader{Reader: strings.NewReader(s)}
+}
+
+func (r *strictStringReader) Read(p []byte) (int, error) {
+	n, err := r.Reader.Read(p)
+	if err == io.EOF {
+		if r.gaveEOF {
+			return n, fmt.Errorf("duplicate EOF read")
+		}
+		r.gaveEOF = true
+	}
+	return n, err
 }
