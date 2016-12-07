@@ -65,6 +65,8 @@ func TestFprintWeirdFormat(t *testing.T) {
 		{strings.Repeat(" ", bufSize-1) + "○", "○"},
 		// peekByte that would (but cannot) go to the next chunk
 		{strings.Repeat(" ", bufSize-2) + ">(a)", ">(a)"},
+		// panics if padding is only 4 (utf8.UTFMax)
+		{strings.Repeat(" ", bufSize-10) + "${a/b//○}", "${a/b//○}"},
 		// multiple p.fill calls
 		{"a" + strings.Repeat(" ", bufSize*4) + "b", "a b"},
 		{"foo; bar", "foo\nbar"},

@@ -45,10 +45,15 @@ func wordBreak(r rune) bool {
 	return false
 }
 
+// Enough bytes to read a full rune and go back another full rune.
+// It is possible for p.unrune to be called right after reading a
+// four-byte rune and a call to p.fill, in which case we need extra
+// bytes behind us to be able to go back that amount.
+const bufPadding = utf8.UTFMax * 2
+
 func (p *parser) rune() rune {
 retry:
-	// make sure we have enough bytes to read a full rune
-	if p.npos+utf8.UTFMax <= len(p.bs) {
+	if p.npos+bufPadding <= len(p.bs) {
 		if b := p.bs[p.npos]; b < utf8.RuneSelf {
 			if p.npos++; b == '\n' {
 				p.f.lines = append(p.f.lines, p.getPos())
