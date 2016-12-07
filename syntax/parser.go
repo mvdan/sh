@@ -55,25 +55,26 @@ func Parse(src io.Reader, name string, mode ParseMode) (*File, error) {
 
 type parser struct {
 	src io.Reader
-	bs  []byte
+	bs  []byte // current chunk of read bytes
 	r   rune
 
 	f    *File
 	mode ParseMode
 
-	spaced, newLine bool
+	spaced  bool // whether tok has whitespace on its left
+	newLine bool // whether tok is on a new line
 
 	err error
 
-	tok token
-	val string
+	tok token  // current token
+	val string // current value (valid if tok is _Lit*)
 
-	pos  Pos
-	offs int
-	npos int
+	pos  Pos // position of tok
+	offs int // chunk offset
+	npos int // pos within chunk for the next rune
 
-	quote quoteState
-	asPos int
+	quote quoteState // current lexer state
+	asPos int        // position of '=' in a literal
 
 	forbidNested bool
 
@@ -91,9 +92,9 @@ type parser struct {
 	stListBatch []*Stmt
 	callBatch   []callAlloc
 
+	readErr int // pos within chunk where EOF took place, -1 otherwise
 	readBuf [bufSizes]byte
 	litBuf  [bufSizes]byte
-	readErr int
 	litBs   []byte
 }
 
