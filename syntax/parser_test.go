@@ -300,6 +300,10 @@ var shellTests = []errorCase{
 		`1:7: invalid UTF-8 encoding`,
 	},
 	{
+		"<<$\xc8 #INVBASH bash uses bytes",
+		`1:4: invalid UTF-8 encoding`,
+	},
+	{
 		"'",
 		`1:1: reached EOF without closing quote '`,
 	},
@@ -588,8 +592,8 @@ var shellTests = []errorCase{
 		`1:6: reached EOF without matching $(( with ))`,
 	},
 	{
-		`foo $((\`,
-		`1:5: reached EOF without matching $(( with ))`,
+		`echo $((\`,
+		`1:6: reached EOF without matching $(( with ))`,
 	},
 	{
 		`fo $((o\`,
@@ -756,24 +760,24 @@ var shellTests = []errorCase{
 		`1:8: ) can only be used to close a subshell`,
 	},
 	{
-		"foo <<$bar",
-		`1:7: expansions not allowed in heredoc words`,
+		"<<$bar #INVBASH bash allows this",
+		`1:3: expansions not allowed in heredoc words`,
 	},
 	{
-		"foo <<${bar}",
-		`1:7: expansions not allowed in heredoc words`,
+		"<<${bar} #INVBASH bash allows this",
+		`1:3: expansions not allowed in heredoc words`,
 	},
 	{
-		"foo <<$(bar)",
-		`1:7: expansions not allowed in heredoc words`,
+		"<<$(bar) #INVBASH bash allows this",
+		`1:3: expansions not allowed in heredoc words`,
 	},
 	{
-		"foo <<`bar`",
-		`1:7: expansions not allowed in heredoc words`,
+		"<<`bar` #INVBASH bash allows this",
+		`1:3: expansions not allowed in heredoc words`,
 	},
 	{
-		`foo <<"$bar"`,
-		`1:8: expansions not allowed in heredoc words`,
+		`<<"$bar" #INVBASH bash allows this`,
+		`1:4: expansions not allowed in heredoc words`,
 	},
 	{
 		`""()`,
@@ -785,14 +789,13 @@ var shellTests = []errorCase{
 		`if; then bar; fi; ;`,
 		`1:19: ; can only immediately follow a statement`,
 	},
-	{
-		"<<$\xc8",
-		`1:3: expansions not allowed in heredoc words`,
-	},
 }
 
 func checkError(in, want string, mode ParseMode) func(*testing.T) {
 	return func(t *testing.T) {
+		if i := strings.Index(in, " #INVBASH"); i >= 0 {
+			in = in[:i]
+		}
 		_, err := Parse(newStrictReader(in), "", mode)
 		if err == nil {
 			t.Fatalf("Expected error in %q: %v", in, want)
@@ -828,8 +831,8 @@ var bashTests = []errorCase{
 		`1:6: (( can only be used to open an arithmetic cmd`,
 	},
 	{
-		"foo |&",
-		`1:5: |& must be followed by a statement`,
+		"echo |&",
+		`1:6: |& must be followed by a statement`,
 	},
 	{
 		"|& a",
@@ -936,8 +939,8 @@ var bashTests = []errorCase{
 		`1:1: "foo()" must be followed by a statement`,
 	},
 	{
-		"foo <<<",
-		`1:5: <<< must be followed by a word`,
+		"echo <<<",
+		`1:6: <<< must be followed by a word`,
 	},
 	{
 		"echo $[foo",
@@ -1059,24 +1062,24 @@ var posixTests = []errorCase{
 		`1:13: a command can only contain words and redirects`,
 	},
 	{
-		"foo <(",
-		`1:5: < must be followed by a word`,
+		"echo <(",
+		`1:6: < must be followed by a word`,
 	},
 	{
-		"foo >(",
-		`1:5: > must be followed by a word`,
+		"echo >(",
+		`1:6: > must be followed by a word`,
 	},
 	{
-		"foo |&",
-		`1:5: | must be followed by a statement`,
+		"echo |&",
+		`1:6: | must be followed by a statement`,
 	},
 	{
-		"foo ;&",
-		`1:6: & can only immediately follow a statement`,
+		"echo ;&",
+		`1:7: & can only immediately follow a statement`,
 	},
 	{
-		"foo ;;&",
-		`1:5: ;; can only be used in a case clause`,
+		"echo ;;&",
+		`1:6: ;; can only be used in a case clause`,
 	},
 	{
 		"echo !(a) #INVBASH --posix is wrong",

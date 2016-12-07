@@ -74,7 +74,11 @@ retry:
 			return p.r
 		}
 		var w int
-		p.r, w = utf8.DecodeRune(p.bs[p.npos:])
+		if p.readErr > 0 {
+			p.r, w = utf8.DecodeRune(p.bs[p.npos:p.readErr])
+		} else {
+			p.r, w = utf8.DecodeRune(p.bs[p.npos:])
+		}
 		if p.litBs != nil {
 			p.litBs = append(p.litBs, p.bs[p.npos:p.npos+w]...)
 		}
