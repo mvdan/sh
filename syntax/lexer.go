@@ -90,6 +90,11 @@ retry:
 	return p.r
 }
 
+func (p *parser) unrune() {
+	p.npos -= utf8.RuneLen(p.r)
+	p.r = rune(p.bs[p.npos-1])
+}
+
 // fill reads more bytes from the input src into readBuf. Any bytes that
 // had not yet been used at the end of the buffer are slid into the
 // beginning of the buffer.
