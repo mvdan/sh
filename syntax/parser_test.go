@@ -1035,6 +1035,10 @@ var bashTests = []errorCase{
 		`((echo :); (echo :)) #INVBASH bash does backtrack`,
 		`1:8: : must be followed by an expression`,
 	},
+	{
+		"for ((;;0000000",
+		`1:5: reached EOF without matching (( with ))`,
+	},
 }
 
 var posixTests = []errorCase{
