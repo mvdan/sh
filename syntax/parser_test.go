@@ -384,12 +384,12 @@ var shellTests = []errorCase{
 		`1:6: || can only immediately follow a statement`,
 	},
 	{
-		"foo & || bar",
-		`1:7: || can only immediately follow a statement`,
+		"echo & || bar",
+		`1:8: || can only immediately follow a statement`,
 	},
 	{
-		"foo & ; bar",
-		`1:7: ; can only immediately follow a statement`,
+		"echo & ; bar",
+		`1:8: ; can only immediately follow a statement`,
 	},
 	{
 		"foo;;",
@@ -440,43 +440,43 @@ var shellTests = []errorCase{
 		`1:9: a command can only contain words and redirects`,
 	},
 	{
-		"foo &&",
-		`1:5: && must be followed by a statement`,
+		"echo &&",
+		`1:6: && must be followed by a statement`,
 	},
 	{
-		"foo |",
-		`1:5: | must be followed by a statement`,
+		"echo |",
+		`1:6: | must be followed by a statement`,
 	},
 	{
-		"foo ||",
-		`1:5: || must be followed by a statement`,
+		"echo ||",
+		`1:6: || must be followed by a statement`,
 	},
 	{
-		"foo >",
-		`1:5: > must be followed by a word`,
-	},
-	{
-		"foo >>",
-		`1:5: >> must be followed by a word`,
-	},
-	{
-		"foo <",
-		`1:5: < must be followed by a word`,
-	},
-	{
-		"foo 2>",
+		"echo >",
 		`1:6: > must be followed by a word`,
 	},
 	{
-		"foo <\nbar",
+		"echo >>",
+		`1:6: >> must be followed by a word`,
+	},
+	{
+		"echo <",
+		`1:6: < must be followed by a word`,
+	},
+	{
+		"echo 2>",
+		`1:7: > must be followed by a word`,
+	},
+	{
+		"echo <\nbar",
 		`2:1: redirect word must be on the same line`,
 	},
 	{
-		"foo <<",
-		`1:5: << must be followed by a word`,
+		"echo <<",
+		`1:6: << must be followed by a word`,
 	},
 	{
-		"foo <<\nEOF\nbar\nEOF",
+		"echo <<\nEOF\nbar\nEOF",
 		`2:1: redirect word must be on the same line`,
 	},
 	{
@@ -484,19 +484,19 @@ var shellTests = []errorCase{
 		`1:1: "if" must be followed by a statement list`,
 	},
 	{
-		"if foo;",
+		"if true;",
 		`1:1: "if <cond>" must be followed by "then"`,
 	},
 	{
-		"if foo then",
+		"if true then",
 		`1:1: "if <cond>" must be followed by "then"`,
 	},
 	{
-		"if foo; then bar;",
+		"if true; then bar;",
 		`1:1: if statement must end with "fi"`,
 	},
 	{
-		"if foo; then bar; fi#etc",
+		"if true; then bar; fi#etc",
 		`1:1: if statement must end with "fi"`,
 	},
 	{
@@ -516,15 +516,15 @@ var shellTests = []errorCase{
 		`1:1: "while" must be followed by a statement list`,
 	},
 	{
-		"while foo;",
+		"while true;",
 		`1:1: "while <cond>" must be followed by "do"`,
 	},
 	{
-		"while foo; do bar",
+		"while true; do bar",
 		`1:1: while statement must end with "done"`,
 	},
 	{
-		"while foo; do bar;",
+		"while true; do bar;",
 		`1:1: while statement must end with "done"`,
 	},
 	{
@@ -532,15 +532,15 @@ var shellTests = []errorCase{
 		`1:1: "until" must be followed by a statement list`,
 	},
 	{
-		"until foo;",
+		"until true;",
 		`1:1: "until <cond>" must be followed by "do"`,
 	},
 	{
-		"until foo; do bar",
+		"until true; do bar",
 		`1:1: until statement must end with "done"`,
 	},
 	{
-		"until foo; do bar;",
+		"until true; do bar;",
 		`1:1: until statement must end with "done"`,
 	},
 	{
