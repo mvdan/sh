@@ -93,12 +93,12 @@ type parser struct {
 	callBatch   []callAlloc
 
 	readErr int // pos within chunk where EOF took place, -1 otherwise
-	readBuf [bufSizes]byte
-	litBuf  [bufSizes]byte
+	readBuf [bufSize]byte
+	litBuf  [bufSize]byte
 	litBs   []byte
 }
 
-const bufSizes = 1 << 10
+const bufSize = 1 << 10
 
 func (p *parser) reset() {
 	p.bs, p.readErr = nil, -1

@@ -60,6 +60,12 @@ func TestFprintWeirdFormat(t *testing.T) {
 		samePrint(`#fo○ b\år`),
 		samePrint("<<EOF\nfo○ b\\år\nEOF"),
 		samePrint(`$'○ b\år'`),
+		// rune split by the chunking
+		{strings.Repeat(" ", bufSize-1) + "○", "○"},
+		// peekByte that would (but cannot) go to the next chunk
+		{strings.Repeat(" ", bufSize-2) + ">(a)", ">(a)"},
+		// multiple p.fill calls
+		{"a" + strings.Repeat(" ", bufSize*4) + "b", "a b"},
 		{"foo; bar", "foo\nbar"},
 		{"foo\n\n\nbar", "foo\n\nbar"},
 		{"foo\n\n", "foo"},
