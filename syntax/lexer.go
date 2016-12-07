@@ -47,10 +47,11 @@ func wordBreak(r rune) bool {
 
 func (p *parser) rune() rune {
 retry:
-	if p.npos < len(p.bs) {
+	// make sure we have enough bytes to read a full rune
+	if p.npos+utf8.UTFMax <= len(p.bs) {
 		if b := p.bs[p.npos]; b < utf8.RuneSelf {
 			if p.npos++; b == '\n' {
-				p.f.lines = append(p.f.lines, Pos(p.npos))
+				p.f.lines = append(p.f.lines, p.getPos())
 			}
 			if p.litBs != nil {
 				p.litBs = append(p.litBs, b)
@@ -59,6 +60,14 @@ retry:
 			p.r = r
 			return r
 		}
+		if p.npos == p.readErr {
+			// there are no remaining bytes - any bytes
+			// after readErr are past EOF.
+			p.npos++
+			p.r = utf8.RuneSelf
+			p.bs = nil
+			return p.r
+		}
 		var w int
 		p.r, w = utf8.DecodeRune(p.bs[p.npos:])
 		if p.litBs != nil {
@@ -66,12 +75,13 @@ retry:
 		}
 		p.npos += w
 		if p.r == utf8.RuneError && w == 1 {
-			p.posErr(Pos(p.npos), "invalid UTF-8 encoding")
+			p.posErr(p.getPos(), "invalid UTF-8 encoding")
 		}
-	} else if p.npos == len(p.bs) {
+	} else {
 		if p.r == utf8.RuneSelf {
-			p.npos++
-			p.r = utf8.RuneSelf
+			if p.npos <= len(p.bs) {
+				p.npos++
+			}
 		} else {
 			p.fill()
 			goto retry
@@ -80,21 +90,43 @@ retry:
 	return p.r
 }
 
+// fill reads more bytes from the input src into readBuf. Any bytes that
+// had not yet been used at the end of the buffer are slid into the
+// beginning of the buffer.
 func (p *parser) fill() {
-	p.readBuf.Reset()
-	n, err := io.CopyBuffer(p.readBuf, p.src, p.copyBuf)
-	if n == 0 && p.err == nil {
-		// don't use p.errPass as we don't want to overwrite p.tok
-		p.err = err
-		p.npos = len(p.bs) + 1
-		p.r = utf8.RuneSelf
+	left := len(p.bs) - p.npos
+	p.offs += p.npos
+	for i := 0; i < left; i++ {
+		p.readBuf[i] = p.readBuf[p.npos+i]
 	}
-	p.bs = p.readBuf.Bytes()
+	n, err := p.src.Read(p.readBuf[left:])
+	if n == 0 {
+		// don't use p.errPass as we don't want to overwrite p.tok
+		if err != nil && err != io.EOF {
+			p.err = err
+		}
+		if left > 0 {
+			// past left so that this holds true:
+			//     p.npos+utf8.UTFMax <= len(p.bs)
+			p.bs = p.readBuf[:]
+			// for peekByte
+			p.bs[left] = utf8.RuneSelf
+			// to not treat the trailing utf8.RuneSelf as
+			// invalid UTF-8
+			p.readErr = left
+		} else {
+			p.bs = nil
+			p.r = utf8.RuneSelf
+		}
+	} else {
+		p.bs = p.readBuf[:left+n]
+	}
+	p.npos = 0
 }
 
 func (p *parser) nextKeepSpaces() {
 	r := p.r
-	if p.pos = Pos(p.npos); r > utf8.RuneSelf {
+	if p.pos = p.getPos(); r > utf8.RuneSelf {
 		p.pos -= Pos(utf8.RuneLen(r) - 1)
 	}
 	switch p.quote {
@@ -185,7 +217,7 @@ skipSpace:
 			break skipSpace
 		}
 	}
-	if p.pos = Pos(p.npos); r > utf8.RuneSelf {
+	if p.pos = p.getPos(); r > utf8.RuneSelf {
 		p.pos -= Pos(utf8.RuneLen(r) - 1)
 	}
 	switch {
@@ -831,7 +863,7 @@ loop:
 func (p *parser) hdocLitWord() *Word {
 	r := p.r
 	p.newLit(r)
-	pos := Pos(p.npos)
+	pos := p.getPos()
 	for r != utf8.RuneSelf {
 		if p.quote == hdocBodyTabs {
 			for r == '\t' {

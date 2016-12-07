@@ -22,11 +22,7 @@ const (
 
 var parserFree = sync.Pool{
 	New: func() interface{} {
-		return &parser{
-			helperBuf: new(bytes.Buffer),
-			readBuf:   new(bytes.Buffer),
-			copyBuf:   make([]byte, 32*1024),
-		}
+		return &parser{helperBuf: new(bytes.Buffer)}
 	},
 }
 
@@ -73,6 +69,7 @@ type parser struct {
 	val string
 
 	pos  Pos
+	offs int
 	npos int
 
 	quote quoteState
@@ -94,18 +91,23 @@ type parser struct {
 	stListBatch []*Stmt
 	callBatch   []callAlloc
 
-	litBuf  [1 << 10]byte
+	readBuf [bufSizes]byte
+	litBuf  [bufSizes]byte
+	readErr int
 	litBs   []byte
-	readBuf *bytes.Buffer
-	copyBuf []byte
 }
 
+const bufSizes = 1 << 10
+
 func (p *parser) reset() {
-	p.bs = nil
-	p.r, p.npos, p.err = 0, 0, nil
+	p.bs, p.readErr = nil, -1
+	p.offs, p.npos = 0, 0
+	p.r, p.err = 0, nil
 	p.quote, p.forbidNested = noState, false
 	p.heredocs, p.buriedHdocs = p.heredocs[:0], 0
 }
+
+func (p *parser) getPos() Pos { return Pos(p.offs + p.npos) }
 
 func (p *parser) lit(pos Pos, val string) *Lit {
 	if len(p.litBatch) == 0 {
@@ -114,7 +116,7 @@ func (p *parser) lit(pos Pos, val string) *Lit {
 	l := &p.litBatch[0]
 	p.litBatch = p.litBatch[1:]
 	l.ValuePos = pos
-	l.ValueEnd = Pos(p.npos)
+	l.ValueEnd = p.getPos()
 	l.Value = val
 	return l
 }
