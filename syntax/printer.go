@@ -123,7 +123,10 @@ func (p *printer) spaces(n int) {
 }
 
 func (p *printer) bslashNewl() {
-	p.WriteString(" \\\n")
+	if p.wantSpace {
+		p.WriteByte(' ')
+	}
+	p.WriteString("\\\n")
 	p.wantSpace = false
 	p.incLine()
 }
@@ -506,7 +509,10 @@ func (p *printer) stmt(s *Stmt) {
 		p.spacedString("!", true)
 	}
 	p.assigns(s.Assigns)
-	startRedirs := p.command(s.Cmd, s.Redirs)
+	var startRedirs int
+	if s.Cmd != nil {
+		startRedirs = p.command(s.Cmd, s.Redirs)
+	}
 	anyNewline := false
 	for _, r := range s.Redirs[startRedirs:] {
 		if r.OpPos > p.nline {
@@ -547,6 +553,10 @@ func (p *printer) stmt(s *Stmt) {
 }
 
 func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
+	if p.wantSpace {
+		p.WriteByte(' ')
+		p.wantSpace = false
+	}
 	switch x := cmd.(type) {
 	case *CallExpr:
 		if len(x.Args) <= 1 {
@@ -570,7 +580,8 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		}
 		p.wordJoin(x.Args[1:], true)
 	case *Block:
-		p.spacedString("{", true)
+		p.WriteByte('{')
+		p.wantSpace = true
 		p.nestedStmts(x.Stmts, x.Rbrace)
 		p.semiRsrv("}", x.Rbrace, true)
 	case *IfClause:
@@ -592,7 +603,7 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		}
 		p.semiRsrv("fi", x.Fi, true)
 	case *Subshell:
-		p.spacedString("(", false)
+		p.WriteByte('(')
 		p.wantSpace = len(x.Stmts) > 0 && startsWithLparen(x.Stmts[0])
 		p.nestedStmts(x.Stmts, x.Rparen)
 		p.sepTok(")", x.Rparen)
@@ -696,9 +707,6 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		p.nestedStmts(x.DoStmts, 0)
 		p.semiRsrv("done", x.Done, true)
 	case *ArithmCmd:
-		if p.wantSpace {
-			p.WriteByte(' ')
-		}
 		p.WriteString("((")
 		p.arithmExpr(x.X, false)
 		p.WriteString("))")
