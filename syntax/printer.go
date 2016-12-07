@@ -106,7 +106,7 @@ func (p *printer) incLine() {
 	if p.nlineIndex++; p.nlineIndex >= len(p.lines) {
 		p.nline = maxPos
 	} else {
-		p.nline = Pos(p.lines[p.nlineIndex])
+		p.nline = p.lines[p.nlineIndex]
 	}
 }
 
@@ -800,7 +800,7 @@ func (p *printer) stmts(stmts []*Stmt) {
 			p.commentPadding = 0
 			continue
 		}
-		if ind < len(p.lines)-1 && s.End() > Pos(p.lines[ind+1]) {
+		if ind < len(p.lines)-1 && s.End() > p.lines[ind+1] {
 			inlineIndent = 0
 		}
 		if inlineIndent == 0 {
@@ -822,7 +822,7 @@ func (p *printer) stmts(stmts []*Stmt) {
 				if ind2++; ind2 >= len(p.lines) {
 					nline2 = maxPos
 				} else {
-					nline2 = Pos(p.lines[ind2])
+					nline2 = p.lines[ind2]
 				}
 			}
 			if ind2 == p.nlineIndex+1 {
