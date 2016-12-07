@@ -696,6 +696,10 @@ var shellTests = []errorCase{
 		`1:10: reached EOF without matching ${ with }`,
 	},
 	{
+		"echo ${##",
+		`1:6: reached EOF without matching ${ with }`,
+	},
+	{
 		"echo foo\n;",
 		`2:1: ; can only immediately follow a statement`,
 	},

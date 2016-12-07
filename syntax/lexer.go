@@ -68,9 +68,9 @@ retry:
 		if p.npos == p.readErr {
 			// there are no remaining bytes - any bytes
 			// after readErr are past EOF.
+			p.bs = p.bs[:p.npos+bufPadding]
 			p.npos++
 			p.r = utf8.RuneSelf
-			p.bs = nil
 			return p.r
 		}
 		var w int
@@ -84,7 +84,7 @@ retry:
 		}
 	} else {
 		if p.r == utf8.RuneSelf {
-			if p.npos <= len(p.bs) {
+			if p.npos <= len(p.bs) && p.npos < p.readErr {
 				p.npos++
 			}
 		} else {
