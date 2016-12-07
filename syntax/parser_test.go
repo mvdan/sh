@@ -785,6 +785,10 @@ var shellTests = []errorCase{
 		`if; then bar; fi; ;`,
 		`1:19: ; can only immediately follow a statement`,
 	},
+	{
+		"<<$\xc8",
+		`1:3: expansions not allowed in heredoc words`,
+	},
 }
 
 func checkError(in, want string, mode ParseMode) func(*testing.T) {
