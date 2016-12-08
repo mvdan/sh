@@ -35,6 +35,10 @@ var (
 )
 
 func main() {
+	flag.Usage = func() {
+		fmt.Fprintf(os.Stderr, "Usage of %s %s:\n", os.Args[0], version)
+		flag.PrintDefaults()
+	}
 	flag.Parse()
 
 	if *showVersion {
