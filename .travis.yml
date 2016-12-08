@@ -1,9 +1,10 @@
 language: go
 
 go:
-  - 1.7
+  - 1.7.x
 
 script:
   - bash --version
   - go test ./...
   - go test -short -race ./...
+  - shfmt -version
