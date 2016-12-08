@@ -99,7 +99,7 @@ func (p *parser) unrune(r rune) {
 func (p *parser) fill() {
 	left := len(p.bs) - p.npos
 	p.offs += p.npos
-	copy(p.readBuf[:left], p.readBuf[p.npos:p.npos+left])
+	copy(p.readBuf[:left], p.readBuf[p.npos:])
 	var n int
 	var err error
 	if p.readErr == nil {
