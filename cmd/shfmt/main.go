@@ -17,10 +17,11 @@ import (
 )
 
 var (
-	write  = flag.Bool("w", false, "write result to file instead of stdout")
-	list   = flag.Bool("l", false, "list files whose formatting differs from shfmt's")
-	indent = flag.Int("i", 0, "indent: 0 for tabs (default), >0 for number of spaces")
-	posix  = flag.Bool("p", false, "parse POSIX shell code instead of bash")
+	write       = flag.Bool("w", false, "write result to file instead of stdout")
+	list        = flag.Bool("l", false, "list files whose formatting differs from shfmt's")
+	indent      = flag.Int("i", 0, "indent: 0 for tabs (default), >0 for number of spaces")
+	posix       = flag.Bool("p", false, "parse POSIX shell code instead of bash")
+	showVersion = flag.Bool("V", false, "show version and exit")
 
 	parseMode         syntax.ParseMode
 	printConfig       syntax.PrintConfig
@@ -29,10 +30,17 @@ var (
 	copyBuf = make([]byte, 32*1024)
 
 	out io.Writer
+
+	version = "v0.6.0"
 )
 
 func main() {
 	flag.Parse()
+
+	if *showVersion {
+		fmt.Println(version)
+		os.Exit(0)
+	}
 
 	out = os.Stdout
 	printConfig.Spaces = *indent
