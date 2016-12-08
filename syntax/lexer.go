@@ -45,15 +45,9 @@ func wordBreak(r rune) bool {
 	return false
 }
 
-// Enough bytes to read a full rune and go back another full rune.
-// It is possible for p.unrune to be called right after reading a
-// four-byte rune and a call to p.fill, in which case we need extra
-// bytes behind us to be able to go back that amount.
-const bufPadding = utf8.UTFMax * 2
-
 func (p *parser) rune() rune {
 retry:
-	if p.npos+bufPadding <= len(p.bs) {
+	if p.npos < len(p.bs) {
 		if b := p.bs[p.npos]; b < utf8.RuneSelf {
 			if p.npos++; b == '\n' {
 				p.f.lines = append(p.f.lines, p.getPos())
@@ -68,10 +62,15 @@ retry:
 		if p.npos == p.readErr {
 			// there are no remaining bytes - any bytes
 			// after readErr are past EOF.
-			p.bs = p.bs[:p.npos+bufPadding]
+			p.bs = p.bs[:p.npos+4]
 			p.npos++
 			p.r = utf8.RuneSelf
 			return p.r
+		}
+		if p.npos+utf8.UTFMax >= len(p.bs) {
+			// we might need up to 4 bytes to read a full
+			// non-ascii rune
+			p.fill()
 		}
 		var w int
 		if p.readErr > 0 {
@@ -88,7 +87,7 @@ retry:
 		}
 	} else {
 		if p.r == utf8.RuneSelf {
-			if p.npos <= len(p.bs) && p.npos < p.readErr {
+			if p.npos <= len(p.bs) && (p.readErr < 0 || p.npos < p.readErr) {
 				p.npos++
 			}
 		} else {
@@ -100,8 +99,10 @@ retry:
 }
 
 func (p *parser) unrune(r rune) {
-	p.npos -= utf8.RuneLen(p.r)
-	p.r = r
+	if p.r != utf8.RuneSelf {
+		p.npos -= utf8.RuneLen(p.r)
+		p.r = r
+	}
 }
 
 // fill reads more bytes from the input src into readBuf. Any bytes that
@@ -680,7 +681,7 @@ func (p *parser) newLit(r rune) {
 	if r <= utf8.RuneSelf {
 		p.litBs = p.litBuf[:1]
 		p.litBs[0] = byte(r)
-	} else if p.npos < len(p.bs) {
+	} else if p.npos <= len(p.bs) {
 		w := utf8.RuneLen(r)
 		p.litBs = append(p.litBuf[:0], p.bs[p.npos-w:p.npos]...)
 	}
