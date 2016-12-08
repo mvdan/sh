@@ -772,6 +772,10 @@ var shellTests = []errorCase{
 		`1:3: expansions not allowed in heredoc words`,
 	},
 	{
+		"<<$+ #INVBASH bash allows this",
+		`1:3: expansions not allowed in heredoc words`,
+	},
+	{
 		"<<`bar` #INVBASH bash allows this",
 		`1:3: expansions not allowed in heredoc words`,
 	},

@@ -282,7 +282,7 @@ skipSpace:
 }
 
 func (p *parser) peekByte(b byte) bool {
-	if p.npos >= len(p.bs) && p.readErr == nil {
+	if p.npos == len(p.bs) && p.readErr == nil {
 		p.fill()
 	}
 	return p.npos < len(p.bs) && p.bs[p.npos] == b
