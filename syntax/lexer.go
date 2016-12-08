@@ -75,11 +75,10 @@ retry:
 		}
 	} else {
 		if p.r == utf8.RuneSelf {
-			if p.npos <= len(p.bs) {
-				p.npos++
-			}
+		} else if p.fill(); p.bs == nil {
+			p.npos++
+			p.r = utf8.RuneSelf
 		} else {
-			p.fill()
 			goto retry
 		}
 	}
@@ -117,7 +116,6 @@ func (p *parser) fill() {
 			p.bs = p.readBuf[:left]
 		} else {
 			p.bs = nil
-			p.r = utf8.RuneSelf
 		}
 	} else {
 		p.bs = p.readBuf[:left+n]
@@ -285,11 +283,7 @@ skipSpace:
 
 func (p *parser) peekByte(b byte) bool {
 	if p.npos >= len(p.bs) && p.readErr == nil {
-		oldRune := p.r
-		if p.fill(); p.r == utf8.RuneSelf {
-			// TODO: better fix?
-			p.r = oldRune
-		}
+		p.fill()
 	}
 	return p.npos < len(p.bs) && p.bs[p.npos] == b
 }
