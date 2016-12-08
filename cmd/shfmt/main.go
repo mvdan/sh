@@ -21,7 +21,7 @@ var (
 	list        = flag.Bool("l", false, "list files whose formatting differs from shfmt's")
 	indent      = flag.Int("i", 0, "indent: 0 for tabs (default), >0 for number of spaces")
 	posix       = flag.Bool("p", false, "parse POSIX shell code instead of bash")
-	showVersion = flag.Bool("V", false, "show version and exit")
+	showVersion = flag.Bool("version", false, "show version and exit")
 
 	parseMode         syntax.ParseMode
 	printConfig       syntax.PrintConfig
@@ -35,15 +35,12 @@ var (
 )
 
 func main() {
-	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage of %s %s:\n", os.Args[0], version)
-		flag.PrintDefaults()
-	}
 	flag.Parse()
 
 	if *showVersion {
 		fmt.Println(version)
 		os.Exit(0)
+		return
 	}
 
 	out = os.Stdout
