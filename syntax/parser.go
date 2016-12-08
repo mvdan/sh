@@ -64,7 +64,8 @@ type parser struct {
 	spaced  bool // whether tok has whitespace on its left
 	newLine bool // whether tok is on a new line
 
-	err error
+	err     error // lexer/parser error
+	readErr error // got a read error, but bytes left
 
 	tok token  // current token
 	val string // current value (valid if tok is _Lit*)
@@ -92,7 +93,6 @@ type parser struct {
 	stListBatch []*Stmt
 	callBatch   []callAlloc
 
-	readErr int // pos within chunk where EOF took place, -1 otherwise
 	readBuf [bufSize]byte
 	litBuf  [bufSize]byte
 	litBs   []byte
@@ -101,9 +101,9 @@ type parser struct {
 const bufSize = 1 << 10
 
 func (p *parser) reset() {
-	p.bs, p.readErr = nil, -1
+	p.bs = nil
 	p.offs, p.npos = 0, 0
-	p.r, p.err = 0, nil
+	p.r, p.err, p.readErr = 0, nil, nil
 	p.quote, p.forbidNested = noState, false
 	p.heredocs, p.buriedHdocs = p.heredocs[:0], 0
 }

@@ -59,25 +59,13 @@ retry:
 			p.r = r
 			return r
 		}
-		if p.npos == p.readErr {
-			// there are no remaining bytes - any bytes
-			// after readErr are past EOF.
-			p.bs = p.bs[:p.npos+4]
-			p.npos++
-			p.r = utf8.RuneSelf
-			return p.r
-		}
 		if p.npos+utf8.UTFMax >= len(p.bs) {
 			// we might need up to 4 bytes to read a full
 			// non-ascii rune
 			p.fill()
 		}
 		var w int
-		if p.readErr > 0 {
-			p.r, w = utf8.DecodeRune(p.bs[p.npos:p.readErr])
-		} else {
-			p.r, w = utf8.DecodeRune(p.bs[p.npos:])
-		}
+		p.r, w = utf8.DecodeRune(p.bs[p.npos:])
 		if p.litBs != nil {
 			p.litBs = append(p.litBs, p.bs[p.npos:p.npos+w]...)
 		}
@@ -87,7 +75,7 @@ retry:
 		}
 	} else {
 		if p.r == utf8.RuneSelf {
-			if p.npos <= len(p.bs) && (p.readErr < 0 || p.npos < p.readErr) {
+			if p.npos <= len(p.bs) {
 				p.npos++
 			}
 		} else {
@@ -112,21 +100,21 @@ func (p *parser) fill() {
 	left := len(p.bs) - p.npos
 	p.offs += p.npos
 	copy(p.readBuf[:left], p.readBuf[p.npos:p.npos+left])
-	n, err := p.src.Read(p.readBuf[left:])
+	var n int
+	var err error
+	if p.readErr == nil {
+		n, err = p.src.Read(p.readBuf[left:])
+		p.readErr = err
+	} else {
+		n, err = 0, p.readErr
+	}
 	if n == 0 {
 		// don't use p.errPass as we don't want to overwrite p.tok
 		if err != nil && err != io.EOF {
 			p.err = err
 		}
 		if left > 0 {
-			// past left so that this holds true:
-			//     p.npos+utf8.UTFMax <= len(p.bs)
-			p.bs = p.readBuf[:]
-			// for peekByte
-			p.bs[left] = utf8.RuneSelf
-			// to not treat the trailing utf8.RuneSelf as
-			// invalid UTF-8
-			p.readErr = left
+			p.bs = p.readBuf[:left]
 		} else {
 			p.bs = nil
 			p.r = utf8.RuneSelf
