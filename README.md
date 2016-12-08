@@ -6,7 +6,7 @@
 A shell parser and formatter. Supports [POSIX Shell][posix-spec] and
 [Bash][bash-site].
 
-For a quick overview, see the [examples][].
+For a quick overview, see the [examples][]. Requires Go 1.6 or later.
 
 ### shfmt
 
