@@ -111,9 +111,7 @@ func (p *parser) unrune(r rune) {
 func (p *parser) fill() {
 	left := len(p.bs) - p.npos
 	p.offs += p.npos
-	for i := 0; i < left; i++ {
-		p.readBuf[i] = p.readBuf[p.npos+i]
-	}
+	copy(p.readBuf[:left], p.readBuf[p.npos:p.npos+left])
 	n, err := p.src.Read(p.readBuf[left:])
 	if n == 0 {
 		// don't use p.errPass as we don't want to overwrite p.tok
