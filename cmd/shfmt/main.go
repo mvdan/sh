@@ -39,7 +39,6 @@ func main() {
 
 	if *showVersion {
 		fmt.Println(version)
-		os.Exit(0)
 		return
 	}
 
