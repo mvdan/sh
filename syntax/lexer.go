@@ -284,6 +284,13 @@ skipSpace:
 }
 
 func (p *parser) peekByte(b byte) bool {
+	if p.npos >= len(p.bs) && p.readErr == nil {
+		oldRune := p.r
+		if p.fill(); p.r == utf8.RuneSelf {
+			// TODO: better fix?
+			p.r = oldRune
+		}
+	}
 	return p.npos < len(p.bs) && p.bs[p.npos] == b
 }
 
