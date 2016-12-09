@@ -9,7 +9,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strings"
+	"regexp"
 	"testing"
 )
 
@@ -23,31 +23,36 @@ const (
 
 var walkTests = []struct {
 	want       action
+	mode       os.FileMode
 	path, body string
 }{
-	{Modify, "shebang-1", "#!/bin/sh\n foo"},
-	{Modify, "shebang-2", "#!/bin/bash\n foo"},
-	{Modify, "shebang-3", "#!/usr/bin/sh\n foo"},
-	{Modify, "shebang-4", "#!/usr/bin/env bash\n foo"},
-	{Modify, "shebang-5", "#!/bin/env sh\n foo"},
-	{Modify, "shebang-space", "#! /bin/sh\n foo"},
-	{Modify, "shebang-tabs", "#!\t/bin/env\tsh\n foo"},
-	{Modify, "ext.sh", " foo"},
-	{Modify, "ext.bash", " foo"},
-	{Modify, "ext-shebang.sh", "#!/bin/sh\n foo"},
-	{None, ".hidden", " foo long enough"},
-	{None, ".hidden-shebang", "#!/bin/sh\n foo"},
-	{None, "..hidden-shebang", "#!/bin/sh\n foo"},
-	{None, "noext-empty", " foo"},
-	{None, "noext-noshebang", " foo long enough"},
-	{None, "ext.other", " foo"},
-	{None, "ext-shebang.other", "#!/bin/sh\n foo"},
-	{None, "shebang-nospace", "#!/bin/envsh\n foo"},
-	{None, filepath.Join(".git", "ext.sh"), " foo"},
-	{None, filepath.Join(".svn", "ext.sh"), " foo"},
-	{None, filepath.Join(".hg", "ext.sh"), " foo"},
-	{Error, "parse-error.sh", " foo("},
+	{Modify, 0666, "shebang-1", "#!/bin/sh\n foo"},
+	{Modify, 0666, "shebang-2", "#!/bin/bash\n foo"},
+	{Modify, 0666, "shebang-3", "#!/usr/bin/sh\n foo"},
+	{Modify, 0666, "shebang-4", "#!/usr/bin/env bash\n foo"},
+	{Modify, 0666, "shebang-5", "#!/bin/env sh\n foo"},
+	{Modify, 0666, "shebang-space", "#! /bin/sh\n foo"},
+	{Modify, 0666, "shebang-tabs", "#!\t/bin/env\tsh\n foo"},
+	{Modify, 0666, "ext.sh", " foo"},
+	{Modify, 0666, "ext.bash", " foo"},
+	{Modify, 0666, "ext-shebang.sh", "#!/bin/sh\n foo"},
+	{Modify, 0666, filepath.Join("dir", "ext.sh"), " foo"},
+	{None, 0666, ".hidden", " foo long enough"},
+	{None, 0666, ".hidden-shebang", "#!/bin/sh\n foo"},
+	{None, 0666, "..hidden-shebang", "#!/bin/sh\n foo"},
+	{None, 0666, "noext-empty", " foo"},
+	{None, 0666, "noext-noshebang", " foo long enough"},
+	{None, 0666, "ext.other", " foo"},
+	{None, 0666, "ext-shebang.other", "#!/bin/sh\n foo"},
+	{None, 0666, "shebang-nospace", "#!/bin/envsh\n foo"},
+	{None, 0666, filepath.Join(".git", "ext.sh"), " foo"},
+	{None, 0666, filepath.Join(".svn", "ext.sh"), " foo"},
+	{None, 0666, filepath.Join(".hg", "ext.sh"), " foo"},
+	{Error, 0666, "parse-error.sh", " foo("},
+	{Error, 0111, "open-error.sh", " foo"},
 }
+
+var errPathMentioned = regexp.MustCompile(`([^ :]+):`)
 
 func TestWalk(t *testing.T) {
 	dir, err := ioutil.TempDir("", "shfmt-walk")
@@ -64,7 +69,8 @@ func TestWalk(t *testing.T) {
 			dir = dir[:len(dir)-1]
 			os.Mkdir(dir, 0777)
 		}
-		if err := ioutil.WriteFile(wt.path, []byte(wt.body), 0666); err != nil {
+		err := ioutil.WriteFile(wt.path, []byte(wt.body), wt.mode)
+		if err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -76,8 +82,8 @@ func TestWalk(t *testing.T) {
 	onError := func(err error) {
 		gotError = true
 		line := err.Error()
-		if i := strings.IndexByte(line, ':'); i >= 0 {
-			errored[line[:i]] = true
+		if sub := errPathMentioned.FindStringSubmatch(line); sub != nil {
+			errored[sub[1]] = true
 		}
 	}
 	doWalk := func(path string) {
