@@ -29,7 +29,7 @@ var (
 
 	copyBuf = make([]byte, 32*1024)
 
-	out io.Writer
+	out io.Writer = os.Stdout
 
 	version = "v0.6.0"
 )
@@ -42,7 +42,6 @@ func main() {
 		return
 	}
 
-	out = os.Stdout
 	printConfig.Spaces = *indent
 	parseMode |= syntax.ParseComments
 	if *posix {
