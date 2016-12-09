@@ -9,35 +9,44 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
+type action uint
+
+const (
+	None action = iota
+	Modify
+	Error
+)
+
 var walkTests = []struct {
-	run        bool
+	want       action
 	path, body string
 }{
-	{true, "shebang-1", "#!/bin/sh\n foo"},
-	{true, "shebang-2", "#!/bin/bash\n foo"},
-	{true, "shebang-3", "#!/usr/bin/sh\n foo"},
-	{true, "shebang-4", "#!/usr/bin/env bash\n foo"},
-	{true, "shebang-5", "#!/bin/env sh\n foo"},
-	{true, "shebang-space", "#! /bin/sh\n foo"},
-	{true, "shebang-tabs", "#!\t/bin/env\tsh\n foo"},
-	{true, "ext.sh", " foo"},
-	{true, "ext.bash", " foo"},
-	{true, "ext-shebang.sh", "#!/bin/sh\n foo"},
-	{false, ".hidden", " foo long enough"},
-	{false, ".hidden-shebang", "#!/bin/sh\n foo"},
-	{false, "..hidden-shebang", "#!/bin/sh\n foo"},
-	{false, "noext-empty", " foo"},
-	{false, "noext-noshebang", " foo long enough"},
-	{false, "ext.other", " foo"},
-	{false, "ext-shebang.other", "#!/bin/sh\n foo"},
-	{false, "shebang-nospace", "#!/bin/envsh\n foo"},
-	{false, filepath.Join(".git", "ext.sh"), " foo"},
-	{false, filepath.Join(".svn", "ext.sh"), " foo"},
-	{false, filepath.Join(".hg", "ext.sh"), " foo"},
-	{false, "ext-error.sh", " foo("},
+	{Modify, "shebang-1", "#!/bin/sh\n foo"},
+	{Modify, "shebang-2", "#!/bin/bash\n foo"},
+	{Modify, "shebang-3", "#!/usr/bin/sh\n foo"},
+	{Modify, "shebang-4", "#!/usr/bin/env bash\n foo"},
+	{Modify, "shebang-5", "#!/bin/env sh\n foo"},
+	{Modify, "shebang-space", "#! /bin/sh\n foo"},
+	{Modify, "shebang-tabs", "#!\t/bin/env\tsh\n foo"},
+	{Modify, "ext.sh", " foo"},
+	{Modify, "ext.bash", " foo"},
+	{Modify, "ext-shebang.sh", "#!/bin/sh\n foo"},
+	{None, ".hidden", " foo long enough"},
+	{None, ".hidden-shebang", "#!/bin/sh\n foo"},
+	{None, "..hidden-shebang", "#!/bin/sh\n foo"},
+	{None, "noext-empty", " foo"},
+	{None, "noext-noshebang", " foo long enough"},
+	{None, "ext.other", " foo"},
+	{None, "ext-shebang.other", "#!/bin/sh\n foo"},
+	{None, "shebang-nospace", "#!/bin/envsh\n foo"},
+	{None, filepath.Join(".git", "ext.sh"), " foo"},
+	{None, filepath.Join(".svn", "ext.sh"), " foo"},
+	{None, filepath.Join(".hg", "ext.sh"), " foo"},
+	{Error, "parse-error.sh", " foo("},
 }
 
 func TestWalk(t *testing.T) {
@@ -59,45 +68,54 @@ func TestWalk(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	var buf bytes.Buffer
-	out = &buf
+	var outBuf bytes.Buffer
+	out = &outBuf
 	*list, *write = true, true
 	gotError := false
+	errored := map[string]bool{}
 	onError := func(err error) {
 		gotError = true
+		line := err.Error()
+		if i := strings.IndexByte(line, ':'); i >= 0 {
+			errored[line[:i]] = true
+		}
 	}
 	doWalk := func(path string) {
 		gotError = false
-		buf.Reset()
+		outBuf.Reset()
 		walk(path, onError)
 	}
 	doWalk(".")
-	modified := make(map[string]bool, 0)
-	scanner := bufio.NewScanner(&buf)
-	for scanner.Scan() {
-		path := scanner.Text()
+	modified := map[string]bool{}
+	outScan := bufio.NewScanner(&outBuf)
+	for outScan.Scan() {
+		path := outScan.Text()
 		modified[path] = true
 	}
 	for _, wt := range walkTests {
 		t.Run(wt.path, func(t *testing.T) {
-			if modified[wt.path] == wt.run {
-				return
-			}
-			if wt.run {
-				t.Fatalf("walk had to run on %s but didn't", wt.path)
-			} else {
+			mod := modified[wt.path]
+			if mod && wt.want != Modify {
 				t.Fatalf("walk had to not run on %s but did", wt.path)
+			} else if !mod && wt.want == Modify {
+				t.Fatalf("walk had to run on %s but didn't", wt.path)
+			}
+			err := errored[wt.path]
+			if err && wt.want != Error {
+				t.Fatalf("walk had to not err on %s but did", wt.path)
+			} else if !err && wt.want == Error {
+				t.Fatalf("walk had to err on %s but didn't", wt.path)
 			}
 		})
 	}
-	if doWalk("."); buf.Len() > 0 {
+	if doWalk("."); outBuf.Len() > 0 {
 		t.Fatal("shfmt -l -w printed paths on a duplicate run")
 	}
 	*list, *write = false, false
-	if doWalk("."); buf.Len() == 0 {
+	if doWalk("."); outBuf.Len() == 0 {
 		t.Fatal("shfmt without -l nor -w did not print anything")
 	}
-	if doWalk(".hidden"); buf.Len() == 0 {
+	if doWalk(".hidden"); outBuf.Len() == 0 {
 		t.Fatal("`shfmt .hidden` did not print anything")
 	}
 	if doWalk("nonexistent"); !gotError {

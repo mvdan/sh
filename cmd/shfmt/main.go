@@ -55,12 +55,11 @@ func main() {
 		return
 	}
 	anyErr := false
-	onError := func(err error) {
-		anyErr = true
-		fmt.Fprintln(os.Stderr, err)
-	}
 	for _, path := range flag.Args() {
-		walk(path, onError)
+		walk(path, func(err error) {
+			anyErr = true
+			fmt.Fprintln(os.Stderr, err)
+		})
 	}
 	if anyErr {
 		os.Exit(1)
