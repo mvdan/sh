@@ -796,9 +796,6 @@ loop:
 			}
 		case '=':
 			p.asPos = len(p.litBs) - 1
-			if p.bash() && p.asPos > 0 && p.litBs[len(p.litBs)-2] == '+' {
-				p.asPos-- // a+=r
-			}
 		}
 	}
 	p.tok, p.val = tok, p.endLit()

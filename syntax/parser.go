@@ -1013,6 +1013,7 @@ func (p *parser) validIdent() bool {
 		case c == '_':
 		case i > 0 && '0' <= c && c <= '9':
 		case i > 0 && (c == '[' || c == ']') && p.bash():
+		case c == '+' && i == p.asPos-1 && p.bash():
 		default:
 			return false
 		}
@@ -1021,13 +1022,16 @@ func (p *parser) validIdent() bool {
 }
 
 func (p *parser) getAssign() *Assign {
-	as := &Assign{Name: p.lit(p.pos, p.val[:p.asPos])}
-	// since we're not using the entire p.val
-	as.Name.ValueEnd = as.Name.ValuePos + Pos(p.asPos)
-	if p.val[p.asPos] == '+' {
+	as := &Assign{}
+	nameEnd := p.asPos
+	if p.bash() && p.val[p.asPos-1] == '+' {
+		// a+=b
 		as.Append = true
-		p.asPos++
+		nameEnd--
 	}
+	as.Name = p.lit(p.pos, p.val[:nameEnd])
+	// since we're not using the entire p.val
+	as.Name.ValueEnd = as.Name.ValuePos + Pos(nameEnd)
 	start := p.lit(p.pos+1, p.val[p.asPos+1:])
 	if start.Value != "" {
 		start.ValuePos += Pos(p.asPos)
