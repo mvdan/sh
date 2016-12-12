@@ -471,7 +471,6 @@ type badWriter struct{}
 func (b badWriter) Write(p []byte) (int, error) { return 0, errBadWriter }
 
 func TestWriteErr(t *testing.T) {
-	var out badWriter
 	f := &File{Stmts: []*Stmt{
 		{
 			Redirs: []*Redirect{{
@@ -481,7 +480,7 @@ func TestWriteErr(t *testing.T) {
 			Cmd: &Subshell{},
 		},
 	}}
-	err := Fprint(out, f)
+	err := Fprint(badWriter{}, f)
 	if err == nil {
 		t.Fatalf("Expected error with bad writer")
 	}

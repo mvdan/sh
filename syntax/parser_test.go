@@ -260,6 +260,10 @@ var shellTests = []errorCase{
 		`1:6: invalid UTF-8 encoding`,
 	},
 	{
+		"\necho \x80 #INVBASH bash uses bytes",
+		`2:6: invalid UTF-8 encoding`,
+	},
+	{
 		"echo foo\x80bar #INVBASH bash uses bytes",
 		`1:9: invalid UTF-8 encoding`,
 	},
@@ -1140,8 +1144,7 @@ type badReader struct{}
 func (b badReader) Read(p []byte) (int, error) { return 0, errBadReader }
 
 func TestReadErr(t *testing.T) {
-	var in badReader
-	_, err := Parse(in, "", 0)
+	_, err := Parse(badReader{}, "", 0)
 	if err == nil {
 		t.Fatalf("Expected error with bad reader")
 	}
