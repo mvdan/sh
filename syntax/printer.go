@@ -131,12 +131,12 @@ func (p *printer) bslashNewl() {
 	p.incLine()
 }
 
-func (p *printer) spacedString(s string, spaceAfter bool) {
+func (p *printer) spacedString(s string) {
 	if p.wantSpace {
 		p.WriteByte(' ')
 	}
 	p.WriteString(s)
-	p.wantSpace = spaceAfter
+	p.wantSpace = true
 }
 
 func (p *printer) semiOrNewl(s string, pos Pos) {
@@ -376,7 +376,7 @@ func (p *printer) loop(loop Loop) {
 	case *WordIter:
 		p.WriteString(x.Name.Value)
 		if len(x.List) > 0 {
-			p.spacedString(" in", true)
+			p.spacedString(" in")
 			p.wordJoin(x.List, true)
 		}
 	case *CStyleLoop:
@@ -506,7 +506,7 @@ func (p *printer) wordJoin(ws []*Word, backslash bool) {
 
 func (p *printer) stmt(s *Stmt) {
 	if s.Negated {
-		p.spacedString("!", true)
+		p.spacedString("!")
 	}
 	p.assigns(s.Assigns)
 	var startRedirs int
@@ -585,7 +585,7 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		p.nestedStmts(x.Stmts, x.Rbrace)
 		p.semiRsrv("}", x.Rbrace, true)
 	case *IfClause:
-		p.spacedString("if", true)
+		p.spacedString("if")
 		p.nestedStmts(x.CondStmts, 0)
 		p.semiOrNewl("then", x.Then)
 		p.nestedStmts(x.ThenStmts, 0)
@@ -608,13 +608,13 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		p.nestedStmts(x.Stmts, x.Rparen)
 		p.sepTok(")", x.Rparen)
 	case *WhileClause:
-		p.spacedString("while", true)
+		p.spacedString("while")
 		p.nestedStmts(x.CondStmts, 0)
 		p.semiOrNewl("do", x.Do)
 		p.nestedStmts(x.DoStmts, 0)
 		p.semiRsrv("done", x.Done, true)
 	case *ForClause:
-		p.spacedString("for ", false)
+		p.WriteString("for ")
 		p.loop(x.Loop)
 		p.semiOrNewl("do", x.Do)
 		p.nestedStmts(x.DoStmts, 0)
@@ -651,7 +651,7 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			p.bslashNewl()
 			p.indent()
 		}
-		p.spacedString(x.Op.String(), true)
+		p.spacedString(x.Op.String())
 		p.incLines(x.Y.Pos())
 		p.stmt(x.Y)
 		if indent {
@@ -667,7 +667,7 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		p.incLines(x.Body.Pos())
 		p.stmt(x.Body)
 	case *CaseClause:
-		p.spacedString("case ", false)
+		p.WriteString("case ")
 		p.word(x.Word)
 		p.WriteString(" in")
 		p.incLevel()
@@ -675,7 +675,7 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			p.commentsAndSeparate(pl.Patterns[0].Pos())
 			for i, w := range pl.Patterns {
 				if i > 0 {
-					p.spacedString("|", true)
+					p.spacedString("|")
 				}
 				if p.wantSpace {
 					p.WriteByte(' ')
@@ -691,7 +691,7 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 				p.commentsUpTo(pl.OpPos)
 				p.newlines(pl.OpPos)
 			}
-			p.spacedString(pl.Op.String(), true)
+			p.spacedString(pl.Op.String())
 			p.incLines(pl.OpPos)
 			p.level--
 			if sep || pl.OpPos == x.Esac {
@@ -701,7 +701,7 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		p.decLevel()
 		p.semiRsrv("esac", x.Esac, len(x.List) == 0)
 	case *UntilClause:
-		p.spacedString("until", true)
+		p.spacedString("until")
 		p.nestedStmts(x.CondStmts, 0)
 		p.semiOrNewl("do", x.Do)
 		p.nestedStmts(x.DoStmts, 0)
@@ -711,34 +711,34 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		p.arithmExpr(x.X, false)
 		p.WriteString("))")
 	case *TestClause:
-		p.spacedString("[[ ", false)
+		p.WriteString("[[ ")
 		p.testExpr(x.X)
-		p.spacedString("]]", true)
+		p.spacedString("]]")
 	case *DeclClause:
 		name := x.Variant
 		if name == "" {
 			name = "declare"
 		}
-		p.spacedString(name, true)
+		p.spacedString(name)
 		for _, w := range x.Opts {
 			p.WriteByte(' ')
 			p.word(w)
 		}
 		p.assigns(x.Assigns)
 	case *EvalClause:
-		p.spacedString("eval", true)
+		p.spacedString("eval")
 		if x.Stmt != nil {
 			p.stmt(x.Stmt)
 		}
 	case *CoprocClause:
-		p.spacedString("coproc", true)
+		p.spacedString("coproc")
 		if x.Name != nil {
 			p.WriteByte(' ')
 			p.WriteString(x.Name.Value)
 		}
 		p.stmt(x.Stmt)
 	case *LetClause:
-		p.spacedString("let", true)
+		p.spacedString("let")
 		for _, n := range x.Exprs {
 			p.WriteByte(' ')
 			p.arithmExpr(n, true)
