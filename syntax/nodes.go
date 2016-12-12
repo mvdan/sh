@@ -25,6 +25,8 @@ type File struct {
 // file.
 type Pos uint32
 
+// IsValid reports whether the position is valid. All positions in nodes
+// returned by Parse are valid.
 func (p Pos) IsValid() bool { return p > 0 }
 
 const maxPos = Pos(^uint32(0))
@@ -37,6 +39,8 @@ type Position struct {
 	Column int // column number, starting at 1 (in bytes)
 }
 
+// IsValid reports whether the position is valid. All positions in nodes
+// returned by Parse are valid.
 func (p Position) IsValid() bool { return p.Line > 0 }
 
 func (f *File) Pos() Pos {
