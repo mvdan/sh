@@ -788,6 +788,10 @@ var shellTests = []errorCase{
 		`1:4: expansions not allowed in heredoc words`,
 	},
 	{
+		"<<$ <<0\n$(<<$<<",
+		`2:6: << must be followed by a word`,
+	},
+	{
 		`""()`,
 		`1:1: invalid func name`,
 	},

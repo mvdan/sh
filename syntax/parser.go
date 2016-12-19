@@ -280,6 +280,9 @@ func (p *parser) doHeredocs() {
 	hdocs := p.heredocs[p.buriedHdocs:]
 	p.heredocs = p.heredocs[:p.buriedHdocs]
 	for i, r := range hdocs {
+		if p.err != nil {
+			break
+		}
 		if r.Op == DashHdoc {
 			p.quote = hdocBodyTabs
 		} else {

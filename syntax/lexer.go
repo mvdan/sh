@@ -200,7 +200,7 @@ skipSpace:
 			}
 			p.spaced, p.newLine = true, true
 			r = p.rune()
-			if len(p.heredocs) > p.buriedHdocs && p.err == nil {
+			if len(p.heredocs) > p.buriedHdocs {
 				if p.doHeredocs(); p.tok == _EOF {
 					return
 				}
