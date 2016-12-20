@@ -821,6 +821,7 @@ loop:
 }
 
 func (p *parser) advanceLitHdoc(r rune) {
+	p.tok = _Lit
 	p.newLit(r)
 	if p.quote == hdocBodyTabs {
 		for r == '\t' {
@@ -839,9 +840,9 @@ loop:
 			}
 		case '\n':
 			if bytes.Equal(p.litBs[endOff:len(p.litBs)-1], p.hdocStop) {
-				p.discardLit(len(p.hdocStop))
+				p.val = p.endLit()[:endOff]
 				p.hdocStop = nil
-				break loop
+				return
 			}
 			r = p.rune()
 			if p.quote == hdocBodyTabs {
@@ -853,17 +854,22 @@ loop:
 		}
 	}
 	if bytes.Equal(p.litBs[endOff:], p.hdocStop) {
-		p.discardLit(len(p.hdocStop))
+		p.val = p.endLit()[:endOff]
 		p.hdocStop = nil
+	} else {
+		p.val = p.endLit()
 	}
-	p.tok, p.val = _Lit, p.endLit()
 }
 
 func (p *parser) hdocLitWord() *Word {
 	r := p.r
 	p.newLit(r)
-	pos := p.getPos()
-	for r != utf8.RuneSelf {
+	pos, val := p.getPos(), ""
+	for {
+		if r == utf8.RuneSelf {
+			val = p.endLit()
+			break
+		}
 		if p.quote == hdocBodyTabs {
 			for r == '\t' {
 				r = p.rune()
@@ -874,16 +880,16 @@ func (p *parser) hdocLitWord() *Word {
 			r = p.rune()
 		}
 		if r == utf8.RuneSelf && bytes.Equal(p.litBs[endOff:], p.hdocStop) {
-			p.discardLit(len(p.hdocStop))
+			val = p.endLit()[:endOff]
 			break
 		}
 		if bytes.Equal(p.litBs[endOff:len(p.litBs)-1], p.hdocStop) {
-			p.discardLit(len(p.hdocStop))
+			val = p.endLit()[:endOff]
 			break
 		}
 		r = p.rune()
 	}
-	l := p.lit(pos, p.endLit())
+	l := p.lit(pos, val)
 	return p.word(p.singleWps(l))
 }
 
