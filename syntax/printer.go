@@ -156,7 +156,7 @@ func (p *printer) semiOrNewl(s string, pos Pos) {
 
 func (p *printer) incLevel() {
 	inc := false
-	if p.level <= p.lastLevel {
+	if p.level <= p.lastLevel || len(p.levelIncs) == 0 {
 		p.level++
 		inc = true
 	} else if last := &p.levelIncs[len(p.levelIncs)-1]; *last {

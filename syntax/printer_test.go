@@ -409,6 +409,28 @@ func TestFprintMultiline(t *testing.T) {
 	}
 }
 
+// these are not programs that make any sense or have any good canonical
+// format, but we still want to avoid them crashing our code. Most found
+// via fuzzing.
+func TestFuzzCrashers(t *testing.T) {
+	t.Parallel()
+	var strs = [...]string{
+		"<<$<`\n#\n`\n``",
+	}
+	for i, in := range strs {
+		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
+			prog, err := Parse(newStrictReader(in), "", ParseComments)
+			if err != nil {
+				t.Fatalf("Unexpected error in %q: %v", in, err)
+			}
+			checkNewlines(t, in, prog.lines)
+			if _, err := strFprint(prog, 0); err != nil {
+				t.Fatalf("Unexpected error in %q: %v", in, err)
+			}
+		})
+	}
+}
+
 func BenchmarkFprint(b *testing.B) {
 	prog := parsePath(b, canonicalPath)
 	for i := 0; i < b.N; i++ {
