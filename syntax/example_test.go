@@ -11,7 +11,7 @@ import (
 )
 
 func Example() {
-	in := strings.NewReader("{ foo;bar; }")
+	in := strings.NewReader("{ foo; bar; }")
 	f, err := syntax.Parse(in, "", 0)
 	if err != nil {
 		return
