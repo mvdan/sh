@@ -1831,6 +1831,13 @@ var fileTests = []testCase{
 		},
 	},
 	{
+		Strs: []string{`${!foo}`},
+		common: &ParamExp{
+			Excl:  true,
+			Param: lit("foo"),
+		},
+	},
+	{
 		Strs: []string{`${#?}`},
 		common: call(
 			word(&ParamExp{Length: true, Param: lit("?")}),

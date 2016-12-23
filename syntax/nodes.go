@@ -399,7 +399,8 @@ func (c *CmdSubst) End() Pos { return c.Right + 1 }
 // ParamExp represents a parameter expansion.
 type ParamExp struct {
 	Dollar, Rbrace Pos
-	Short, Length  bool
+	Short          bool
+	Length, Excl   bool
 	Param          *Lit
 	Ind            *Index
 	Slice          *Slice

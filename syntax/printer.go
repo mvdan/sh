@@ -309,8 +309,11 @@ func (p *printer) wordPart(wp WordPart) {
 			break
 		}
 		p.WriteString("${")
-		if x.Length {
+		switch {
+		case x.Length:
 			p.WriteByte('#')
+		case x.Excl:
+			p.WriteByte('!')
 		}
 		if x.Param != nil {
 			p.WriteString(x.Param.Value)

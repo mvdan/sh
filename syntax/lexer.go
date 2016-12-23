@@ -21,7 +21,8 @@ func regOps(r rune) bool {
 // tokenize these inside parameter expansions
 func paramOps(r rune) bool {
 	switch r {
-	case '}', '#', ':', '-', '+', '=', '?', '%', '[', ']', '/', '^', ',', '@':
+	case '}', '#', '!', ':', '-', '+', '=', '?', '%', '[', ']', '/', '^',
+		',', '@':
 		return true
 	}
 	return false
@@ -506,6 +507,9 @@ func (p *parser) paramToken(r rune) token {
 			return dblHash
 		}
 		return hash
+	case '!':
+		p.rune()
+		return exclMark
 	case '[':
 		p.rune()
 		return leftBrack

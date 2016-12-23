@@ -881,12 +881,17 @@ func (p *parser) paramExp() *ParamExp {
 			pe.Length = true
 			p.next()
 		}
+	case exclMark:
+		if p.r != '}' {
+			pe.Excl = true
+			p.next()
+		}
 	}
 	switch p.tok {
 	case _Lit, _LitWord:
 		pe.Param = p.lit(p.pos, p.val)
 		p.next()
-	case dollar, quest, hash, minus:
+	case dollar, quest, hash, minus, exclMark:
 		pe.Param = p.lit(p.pos, p.tok.String())
 		p.next()
 	default:
