@@ -2748,7 +2748,10 @@ var fileTests = []testCase{
 		}},
 	},
 	{
-		Strs: []string{"[[ a == b && c != d ]]"},
+		Strs: []string{
+			"[[ a == b && c != d ]]",
+			"[[ a = b && c != d ]]",
+		},
 		bash: &TestClause{X: &BinaryTest{
 			Op: AndTest,
 			X: &BinaryTest{
@@ -2780,19 +2783,11 @@ var fileTests = []testCase{
 		}},
 	},
 	{
-		Strs: []string{"[[ a = b && c -ge d ]]"},
+		Strs: []string{"[[ c -ge d ]]"},
 		bash: &TestClause{X: &BinaryTest{
-			Op: AndTest,
-			X: &BinaryTest{
-				Op: TsAssgn,
-				X:  litWord("a"),
-				Y:  litWord("b"),
-			},
-			Y: &BinaryTest{
-				Op: TsGeq,
-				X:  litWord("c"),
-				Y:  litWord("d"),
-			},
+			Op: TsGeq,
+			X:  litWord("c"),
+			Y:  litWord("d"),
 		}},
 	},
 	{
@@ -3535,7 +3530,12 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 		recurse(x.X)
 		recurse(x.Y)
 	case *BinaryTest:
-		setPos(&x.OpPos, x.Op.String())
+		strs := []string{x.Op.String()}
+		switch x.Op {
+		case TsEqual:
+			strs = append(strs, "=")
+		}
+		setPos(&x.OpPos, strs...)
 		recurse(x.X)
 		recurse(x.Y)
 	case *ParenArithm:

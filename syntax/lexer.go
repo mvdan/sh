@@ -968,9 +968,7 @@ func testUnaryOp(val string) token {
 
 func testBinaryOp(val string) token {
 	switch val {
-	case "=":
-		return assgn
-	case "==":
+	case "==", "=":
 		return equal
 	case "!=":
 		return nequal

@@ -310,7 +310,7 @@ const (
 	TsGtr
 	AndTest  = BinTestOperator(andAnd)
 	OrTest   = BinTestOperator(orOr)
-	TsAssgn  = BinTestOperator(assgn)
+	TsAssgn  = BinTestOperator(assgn) // TODO: remove in 2.0 (deprecated)
 	TsEqual  = BinTestOperator(equal)
 	TsNequal = BinTestOperator(nequal)
 	TsBefore = BinTestOperator(rdrIn)
