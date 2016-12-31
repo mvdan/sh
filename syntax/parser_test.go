@@ -1094,6 +1094,10 @@ var posixTests = []errorCase{
 		`1:6: ;; can only be used in a case clause`,
 	},
 	{
+		"for ((i=0; i<5; i++)); do echo; done #INVBASH --posix is wrong",
+		`1:1: "for" must be followed by a literal`,
+	},
+	{
 		"echo !(a) #INVBASH --posix is wrong",
 		`1:6: extended globs are a bash feature`,
 	},
