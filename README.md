@@ -42,8 +42,8 @@ drawbacks explained below.
   whether `array` was defined via `declare -A`.
 
 ```
- $ echo '${array[string keys]}' | shfmt
-1:16: not a valid arithmetic operator: keys
+ $ echo '${array[spaced string]}' | shfmt
+1:16: not a valid arithmetic operator: string
 ```
 
 * `$((` and `((` ambiguity. This means backtracking, which would greatly
