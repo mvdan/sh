@@ -160,10 +160,10 @@ type Assign struct {
 }
 
 func (a *Assign) Pos() Pos {
-	if a.Name == nil {
-		return a.Value.Pos()
+	if a.Name != nil {
+		return a.Name.Pos()
 	}
-	return a.Name.Pos()
+	return a.Value.Pos()
 }
 
 func (a *Assign) End() Pos {
@@ -661,10 +661,10 @@ type EvalClause struct {
 
 func (e *EvalClause) Pos() Pos { return e.Eval }
 func (e *EvalClause) End() Pos {
-	if e.Stmt == nil {
-		return e.Eval + 4
+	if e.Stmt != nil {
+		return e.Stmt.End()
 	}
-	return e.Stmt.End()
+	return e.Eval + 4
 }
 
 // CoprocClause represents a Bash coproc clause.
