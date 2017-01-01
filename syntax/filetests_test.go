@@ -2676,6 +2676,22 @@ var fileTests = []testCase{
 		}},
 	},
 	{
+		Strs: []string{"[[ -k a && -N b ]]"},
+		bash: &TestClause{X: &BinaryTest{
+			Op: AndTest,
+			X:  &UnaryTest{Op: TsSticky, X: litWord("a")},
+			Y:  &UnaryTest{Op: TsModif, X: litWord("b")},
+		}},
+	},
+	{
+		Strs: []string{"[[ -G a && -O b ]]"},
+		bash: &TestClause{X: &BinaryTest{
+			Op: AndTest,
+			X:  &UnaryTest{Op: TsGrpOwn, X: litWord("a")},
+			Y:  &UnaryTest{Op: TsUsrOwn, X: litWord("b")},
+		}},
+	},
+	{
 		Strs: []string{"[[ -d a && -c b ]]"},
 		bash: &TestClause{X: &BinaryTest{
 			Op: AndTest,

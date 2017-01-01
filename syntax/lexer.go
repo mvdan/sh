@@ -937,10 +937,18 @@ func testUnaryOp(val string) token {
 		return tsSocket
 	case "-L", "-h":
 		return tsSmbLink
+	case "-k":
+		return tsSticky
 	case "-g":
 		return tsGIDSet
 	case "-u":
 		return tsUIDSet
+	case "-G":
+		return tsGrpOwn
+	case "-O":
+		return tsUsrOwn
+	case "-N":
+		return tsModif
 	case "-r":
 		return tsRead
 	case "-w":

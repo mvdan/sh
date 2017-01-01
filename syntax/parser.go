@@ -1506,9 +1506,9 @@ func (p *parser) testExprBase(ftok token, fpos Pos) TestExpr {
 		u.X = p.testExpr(token(u.Op), u.OpPos, 0)
 		return u
 	case tsExists, tsRegFile, tsDirect, tsCharSp, tsBlckSp, tsNmPipe,
-		tsSocket, tsSmbLink, tsGIDSet, tsUIDSet, tsRead, tsWrite,
-		tsExec, tsNoEmpty, tsFdTerm, tsEmpStr, tsNempStr, tsOptSet,
-		tsVarSet, tsRefVar:
+		tsSocket, tsSmbLink, tsSticky, tsGIDSet, tsUIDSet, tsGrpOwn,
+		tsUsrOwn, tsModif, tsRead, tsWrite, tsExec, tsNoEmpty,
+		tsFdTerm, tsEmpStr, tsNempStr, tsOptSet, tsVarSet, tsRefVar:
 		u := &UnaryTest{OpPos: p.pos, Op: UnTestOperator(p.tok)}
 		p.next()
 		u.X = p.followWordTok(ftok, fpos)

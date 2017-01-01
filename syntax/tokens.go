@@ -115,8 +115,12 @@ const (
 	tsNmPipe  // -p
 	tsSocket  // -S
 	tsSmbLink // -L
+	tsSticky  // -k
 	tsGIDSet  // -g
 	tsUIDSet  // -u
+	tsGrpOwn  // -G
+	tsUsrOwn  // -O
+	tsModif   // -N
 	tsRead    // -r
 	tsWrite   // -w
 	tsExec    // -x
@@ -280,8 +284,12 @@ const (
 	TsNmPipe
 	TsSocket
 	TsSmbLink
+	TsSticky
 	TsGIDSet
 	TsUIDSet
+	TsGrpOwn
+	TsUsrOwn
+	TsModif
 	TsRead
 	TsWrite
 	TsExec
