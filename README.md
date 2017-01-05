@@ -25,6 +25,9 @@ operate on files with no extension and a shell shebang.
 
 Use `-i N` to indent with a number of spaces instead of tabs.
 
+Packages are available for [Arch][], [Homebrew][], [NixOS][] and
+[Void][].
+
 ### Fuzzing
 
 This project makes use of [go-fuzz][] to find crashes and hangs in both
@@ -62,6 +65,10 @@ drawbacks explained below.
 [posix-spec]: http://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html
 [bash-site]: https://www.gnu.org/software/bash/
 [examples]: https://godoc.org/github.com/mvdan/sh/syntax#pkg-examples
+[arch]: https://aur.archlinux.org/packages/shfmt/
+[homebrew]: https://github.com/focusaurus/homebrew-shfmt
+[nixos]: https://github.com/NixOS/nixpkgs/blob/HEAD/pkgs/tools/text/shfmt/default.nix
+[void]: https://github.com/voidlinux/void-packages/blob/HEAD/srcpkgs/shfmt/template
 [go-fuzz]: https://github.com/dvyukov/go-fuzz
 [posix-ambiguity]: http://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_06_03
 [format-shell]: https://atom.io/packages/format-shell
