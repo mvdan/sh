@@ -6,7 +6,7 @@
 A shell parser and formatter. Supports [POSIX Shell][posix-spec] and
 [Bash][bash-site].
 
-For a quick overview, see the [examples][]. Requires Go 1.6 or later.
+For a quick overview, see the [examples]. Requires Go 1.6 or later.
 
 ### shfmt
 
@@ -25,12 +25,11 @@ operate on files with no extension and a shell shebang.
 
 Use `-i N` to indent with a number of spaces instead of tabs.
 
-Packages are available for [Arch][], [Homebrew][], [NixOS][] and
-[Void][].
+Packages are available for [Arch], [Homebrew], [NixOS] and [Void].
 
 ### Fuzzing
 
-This project makes use of [go-fuzz][] to find crashes and hangs in both
+This project makes use of [go-fuzz] to find crashes and hangs in both
 the parser and the printer. To get started, run:
 
 	git checkout fuzz
@@ -60,7 +59,7 @@ drawbacks explained below.
 
 ### Related projects
 
-* [format-shell][] - Atom plugin for `shfmt`
+* [format-shell] - Atom plugin for `shfmt`
 
 [posix-spec]: http://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html
 [bash-site]: https://www.gnu.org/software/bash/
