@@ -2,6 +2,7 @@ language: go
 
 go:
   - 1.7.x
+  - 1.8beta2
 
 script:
   - bash --version
