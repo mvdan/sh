@@ -4,8 +4,12 @@ go:
   - 1.7.x
   - 1.8beta2
 
+before_install:
+  - go get github.com/mattn/goveralls
+
 script:
   - bash --version
   - go test ./...
   - go test -short -race ./...
   - shfmt -version
+  - goveralls -service=travis-ci
