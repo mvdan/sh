@@ -3,8 +3,7 @@
 [![GoDoc](https://godoc.org/github.com/mvdan/sh?status.svg)](https://godoc.org/github.com/mvdan/sh)
 [![Build Status](https://travis-ci.org/mvdan/sh.svg?branch=master)](https://travis-ci.org/mvdan/sh)
 
-A shell parser and formatter. Supports [POSIX Shell][posix-spec] and
-[Bash][bash-site].
+A shell parser and formatter. Supports [POSIX Shell] and [Bash].
 
 For a quick overview, see the [examples]. Requires Go 1.6 or later.
 
@@ -61,8 +60,8 @@ drawbacks explained below.
 
 * [format-shell] - Atom plugin for `shfmt`
 
-[posix-spec]: http://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html
-[bash-site]: https://www.gnu.org/software/bash/
+[posix shell]: http://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html
+[bash]: https://www.gnu.org/software/bash/
 [examples]: https://godoc.org/github.com/mvdan/sh/syntax#pkg-examples
 [arch]: https://aur.archlinux.org/packages/shfmt/
 [homebrew]: https://github.com/focusaurus/homebrew-shfmt
