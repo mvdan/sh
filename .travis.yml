@@ -2,7 +2,7 @@ language: go
 
 go:
   - 1.7.x
-  - 1.8beta2
+  - 1.8rc3
 
 before_install:
   - go get github.com/mattn/goveralls
