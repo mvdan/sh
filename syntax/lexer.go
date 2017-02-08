@@ -698,10 +698,7 @@ loop:
 		case utf8.RuneSelf:
 			break loop
 		case '\\': // escaped byte follows
-			if r = p.rune(); r == utf8.RuneSelf {
-				break loop
-			}
-			if r == '\n' {
+			if r = p.rune(); r == '\n' {
 				p.discardLit(2)
 			}
 		case '\n':
@@ -772,10 +769,7 @@ loop:
 		case utf8.RuneSelf, ' ', '\t', '\n', '\r', '&', '|', ';', '(', ')':
 			break loop
 		case '\\': // escaped byte follows
-			if r = p.rune(); r == utf8.RuneSelf {
-				break loop
-			}
-			if r == '\n' {
+			if r = p.rune(); r == '\n' {
 				p.discardLit(2)
 			}
 		case '>', '<':
@@ -813,9 +807,7 @@ loop:
 		case utf8.RuneSelf, '"':
 			break loop
 		case '\\': // escaped byte follows
-			if r = p.rune(); r == utf8.RuneSelf {
-				break loop
-			}
+			r = p.rune()
 		case '`', '$':
 			tok = _Lit
 			break loop
@@ -839,9 +831,7 @@ loop:
 		case utf8.RuneSelf, '`', '$':
 			break loop
 		case '\\': // escaped byte follows
-			if r = p.rune(); r == utf8.RuneSelf {
-				break loop
-			}
+			r = p.rune()
 		case '\n':
 			if bytes.Equal(p.litBs[endOff:len(p.litBs)-1], p.hdocStop) {
 				p.val = p.endLit()[:endOff]
@@ -905,9 +895,7 @@ loop:
 		case utf8.RuneSelf:
 			break loop
 		case '\\':
-			if r = p.rune(); r == utf8.RuneSelf {
-				break loop
-			}
+			r = p.rune()
 		case '(':
 			lparens++
 		case ')':
