@@ -1461,6 +1461,8 @@ func (p *parser) testExpr(ftok token, fpos Pos, level int) TestExpr {
 		newLevel = 1
 	case _EOF, rightParen:
 		return left
+	case _Lit:
+		p.curErr("not a valid test operator: %s", p.val)
 	default:
 		p.curErr("not a valid test operator: %v", p.tok)
 	}
