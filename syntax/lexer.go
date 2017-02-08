@@ -904,6 +904,10 @@ loop:
 		switch r {
 		case utf8.RuneSelf:
 			break loop
+		case '\\':
+			if r = p.rune(); r == utf8.RuneSelf {
+				break loop
+			}
 		case '(':
 			lparens++
 		case ')':

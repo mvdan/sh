@@ -2618,6 +2618,14 @@ var fileTests = []testCase{
 		}},
 	},
 	{
+		Strs: []string{`[[ a =~ b\ c ]]`},
+		bash: &TestClause{X: &BinaryTest{
+			Op: TsReMatch,
+			X:  litWord("a"),
+			Y:  litWord(`b\ c`),
+		}},
+	},
+	{
 		Strs: []string{"[[ -n $a ]]"},
 		bash: &TestClause{
 			X: &UnaryTest{Op: TsNempStr, X: word(litParamExp("a"))},
