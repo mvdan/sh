@@ -807,7 +807,7 @@ loop:
 		case utf8.RuneSelf, '"':
 			break loop
 		case '\\': // escaped byte follows
-			r = p.rune()
+			p.rune()
 		case '`', '$':
 			tok = _Lit
 			break loop
@@ -831,7 +831,7 @@ loop:
 		case utf8.RuneSelf, '`', '$':
 			break loop
 		case '\\': // escaped byte follows
-			r = p.rune()
+			p.rune()
 		case '\n':
 			if bytes.Equal(p.litBs[endOff:len(p.litBs)-1], p.hdocStop) {
 				p.val = p.endLit()[:endOff]
@@ -895,7 +895,7 @@ loop:
 		case utf8.RuneSelf:
 			break loop
 		case '\\':
-			r = p.rune()
+			p.rune()
 		case '(':
 			lparens++
 		case ')':
