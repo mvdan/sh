@@ -143,7 +143,7 @@ func empty(f *os.File) error {
 	if err := f.Truncate(0); err != nil {
 		return err
 	}
-	_, err := f.Seek(0, 0)
+	_, err := f.Seek(0, io.SeekStart)
 	return err
 }
 
