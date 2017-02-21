@@ -11,8 +11,8 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"strings"
 
+	"github.com/mvdan/sh/fileutil"
 	"github.com/mvdan/sh/syntax"
 )
 
@@ -77,35 +77,7 @@ func formatStdin() error {
 	return printConfig.Fprint(out, prog)
 }
 
-var (
-	shellFile    = regexp.MustCompile(`\.(sh|bash)$`)
-	validShebang = regexp.MustCompile(`^#!\s?/(usr/)?bin/(env\s+)?(sh|bash)`)
-	vcsDir       = regexp.MustCompile(`^\.(git|svn|hg)$`)
-)
-
-type shellConfidence int
-
-const (
-	notShellFile shellConfidence = iota
-	ifValidShebang
-	isShellFile
-)
-
-func getConfidence(info os.FileInfo) shellConfidence {
-	name := info.Name()
-	switch {
-	case info.IsDir(), name[0] == '.', !info.Mode().IsRegular():
-		return notShellFile
-	case shellFile.MatchString(name):
-		return isShellFile
-	case strings.Contains(name, "."):
-		return notShellFile // different extension
-	case info.Size() < 8:
-		return notShellFile // cannot possibly hold valid shebang
-	default:
-		return ifValidShebang
-	}
-}
+var vcsDir = regexp.MustCompile(`^\.(git|svn|hg)$`)
 
 func walk(path string, onError func(error)) {
 	info, err := os.Stat(path)
@@ -127,11 +99,11 @@ func walk(path string, onError func(error)) {
 			onError(err)
 			return nil
 		}
-		conf := getConfidence(info)
-		if conf == notShellFile {
+		conf := fileutil.CouldBeShellFile(info)
+		if conf == fileutil.ConfNotShellFile {
 			return nil
 		}
-		err = formatPath(path, conf == ifValidShebang)
+		err = formatPath(path, conf == fileutil.ConfIfHasShebang)
 		if err != nil && !os.IsNotExist(err) {
 			onError(err)
 		}
@@ -163,7 +135,7 @@ func formatPath(path string, checkShebang bool) error {
 		if err != nil {
 			return err
 		}
-		if !validShebang.Match(copyBuf[:n]) {
+		if !fileutil.HasShellShebang(copyBuf[:n]) {
 			return nil
 		}
 		readBuf.Write(copyBuf[:n])
