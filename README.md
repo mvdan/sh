@@ -40,8 +40,8 @@ the parser and the printer. To get started, run:
 Supporting some of these could be possible, but they would involve major
 drawbacks explained below.
 
-* Associative arrays. Cannot be parsed statically as that depends on
-  whether `array` was defined via `declare -A`.
+* Bash associative arrays. Cannot be parsed statically as that depends
+  on whether `array` was defined via `declare -A`.
 
 ```
  $ echo '${array[spaced string]}' | shfmt
