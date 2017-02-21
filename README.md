@@ -27,6 +27,22 @@ Use `-i N` to indent with a number of spaces instead of tabs.
 
 Packages are available for [Arch], [Homebrew], [NixOS] and [Void].
 
+### Advantages over `bash -n`
+
+`bash -n` can be useful to check for syntax errors in shell scripts.
+However, `shfmt >/dev/null` can do a better job as it checks for invalid
+UTF-8 and does all parsing statically, including checking POSIX Shell
+validity:
+
+```
+ $ echo '${foo:1 2}' | bash -n
+ $ echo '${foo:1 2}' | shfmt
+1:9: not a valid arithmetic operator: 2
+ $ echo 'foo=(1 2)' | bash --posix -n
+ $ echo 'foo=(1 2)' | shfmt -p
+1:5: arrays are a bash feature
+```
+
 ### Fuzzing
 
 This project makes use of [go-fuzz] to find crashes and hangs in both
