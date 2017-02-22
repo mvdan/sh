@@ -16,10 +16,15 @@ var (
 	extRe     = regexp.MustCompile(`\.(sh|bash)$`)
 )
 
+// HasShebang reports whether bs begins with a valid sh or bash shebang.
+// It supports variations with /usr and env.
 func HasShebang(bs []byte) bool {
 	return shebangRe.Match(bs)
 }
 
+// ScriptConfidence defines how likely a file is to be a shell script,
+// from complete certainty that it is not one to complete certainty that
+// it is one.
 type ScriptConfidence int
 
 const (
@@ -28,6 +33,7 @@ const (
 	ConfIsScript
 )
 
+// CouldBeScript reports how likely a file is to be a shell script.
 func CouldBeScript(info os.FileInfo) ScriptConfidence {
 	name := info.Name()
 	switch {
