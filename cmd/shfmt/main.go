@@ -99,11 +99,11 @@ func walk(path string, onError func(error)) {
 			onError(err)
 			return nil
 		}
-		conf := fileutil.CouldBeShellFile(info)
-		if conf == fileutil.ConfNotShellFile {
+		conf := fileutil.CouldBeScript(info)
+		if conf == fileutil.ConfNotScript {
 			return nil
 		}
-		err = formatPath(path, conf == fileutil.ConfIfHasShebang)
+		err = formatPath(path, conf == fileutil.ConfIfShebang)
 		if err != nil && !os.IsNotExist(err) {
 			onError(err)
 		}
@@ -135,7 +135,7 @@ func formatPath(path string, checkShebang bool) error {
 		if err != nil {
 			return err
 		}
-		if !fileutil.HasShellShebang(copyBuf[:n]) {
+		if !fileutil.HasShebang(copyBuf[:n]) {
 			return nil
 		}
 		readBuf.Write(copyBuf[:n])

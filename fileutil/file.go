@@ -10,34 +10,34 @@ import (
 )
 
 var (
-	validShebang = regexp.MustCompile(`^#!\s?/(usr/)?bin/(env\s+)?(sh|bash)`)
-	shellFile    = regexp.MustCompile(`\.(sh|bash)$`)
+	shebangRe = regexp.MustCompile(`^#!\s?/(usr/)?bin/(env\s+)?(sh|bash)`)
+	extRe     = regexp.MustCompile(`\.(sh|bash)$`)
 )
 
-func HasShellShebang(bs []byte) bool {
-	return validShebang.Match(bs)
+func HasShebang(bs []byte) bool {
+	return shebangRe.Match(bs)
 }
 
-type ShellFileConfidence int
+type ScriptConfidence int
 
 const (
-	ConfNotShellFile ShellFileConfidence = iota
-	ConfIfHasShebang
-	ConfIsShellFile
+	ConfNotScript ScriptConfidence = iota
+	ConfIfShebang
+	ConfIsScript
 )
 
-func CouldBeShellFile(info os.FileInfo) ShellFileConfidence {
+func CouldBeScript(info os.FileInfo) ScriptConfidence {
 	name := info.Name()
 	switch {
 	case info.IsDir(), name[0] == '.', !info.Mode().IsRegular():
-		return ConfNotShellFile
-	case shellFile.MatchString(name):
-		return ConfIsShellFile
+		return ConfNotScript
+	case extRe.MatchString(name):
+		return ConfIsScript
 	case strings.Contains(name, "."):
-		return ConfNotShellFile // different extension
+		return ConfNotScript // different extension
 	case info.Size() < 8:
-		return ConfNotShellFile // cannot possibly hold valid shebang
+		return ConfNotScript // cannot possibly hold valid shebang
 	default:
-		return ConfIfHasShebang
+		return ConfIfShebang
 	}
 }
