@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	shebangRe = regexp.MustCompile(`^#!\s?/(usr/)?bin/(env\s+)?(sh|bash)`)
+	shebangRe = regexp.MustCompile(`^#!\s?/(usr/)?bin/(env\s+)?(sh|bash)\s`)
 	extRe     = regexp.MustCompile(`\.(sh|bash)$`)
 )
 
@@ -35,7 +35,7 @@ func CouldBeScript(info os.FileInfo) ScriptConfidence {
 		return ConfIsScript
 	case strings.Contains(name, "."):
 		return ConfNotScript // different extension
-	case info.Size() < 8:
+	case info.Size() < int64(len("#/bin/sh\n")):
 		return ConfNotScript // cannot possibly hold valid shebang
 	default:
 		return ConfIfShebang
