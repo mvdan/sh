@@ -33,15 +33,17 @@ const (
 	ConfIsScript
 )
 
-// CouldBeScript reports how likely a file is to be a shell script.
+// CouldBeScript reports how likely a file is to be a shell script. It
+// discards directories, hidden files and files with non-shell
+// extensions.
 func CouldBeScript(info os.FileInfo) ScriptConfidence {
 	name := info.Name()
 	switch {
-	case info.IsDir(), name[0] == '.', !info.Mode().IsRegular():
+	case info.IsDir(), name[0] == '.':
 		return ConfNotScript
 	case extRe.MatchString(name):
 		return ConfIsScript
-	case strings.Contains(name, "."):
+	case strings.IndexByte(name, '.') > 0:
 		return ConfNotScript // different extension
 	case info.Size() < int64(len("#/bin/sh\n")):
 		return ConfNotScript // cannot possibly hold valid shebang
