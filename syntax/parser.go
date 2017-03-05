@@ -765,7 +765,7 @@ func (p *parser) arithmExpr(ftok token, fpos Pos, level int, compact, tern bool)
 	}
 	var left ArithmExpr
 	if level > 11 {
-		left = p.arithmExprBase(ftok, fpos, compact)
+		left = p.arithmExprBase(compact)
 	} else {
 		left = p.arithmExpr(ftok, fpos, level+1, compact, false)
 	}
@@ -807,13 +807,13 @@ func (p *parser) arithmExpr(ftok token, fpos Pos, level int, compact, tern bool)
 	return b
 }
 
-func (p *parser) arithmExprBase(ftok token, fpos Pos, compact bool) ArithmExpr {
+func (p *parser) arithmExprBase(compact bool) ArithmExpr {
 	var x ArithmExpr
 	switch p.tok {
 	case addAdd, subSub, exclMark:
 		ue := &UnaryArithm{OpPos: p.pos, Op: UnAritOperator(p.tok)}
 		p.next()
-		if ue.X = p.arithmExprBase(token(ue.Op), ue.OpPos, compact); ue.X == nil {
+		if ue.X = p.arithmExprBase(compact); ue.X == nil {
 			p.followErrExp(ue.OpPos, ue.Op.String())
 		}
 		return ue
