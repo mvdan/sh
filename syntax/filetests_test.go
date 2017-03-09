@@ -666,6 +666,17 @@ var fileTests = []testCase{
 		},
 	},
 	{
+		Strs: []string{"foo <<EOF\nbar\n\nEOF"},
+		common: &Stmt{
+			Cmd: litCall("foo"),
+			Redirs: []*Redirect{{
+				Op:   Hdoc,
+				Word: litWord("EOF"),
+				Hdoc: litWord("bar\n\n"),
+			}},
+		},
+	},
+	{
 		Strs: []string{"foo <<EOF\n1\n2\n3\nEOF"},
 		common: &Stmt{
 			Cmd: litCall("foo"),

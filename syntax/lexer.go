@@ -836,13 +836,12 @@ loop:
 				p.hdocStop = nil
 				return
 			}
-			r = p.rune()
 			if p.quote == hdocBodyTabs {
-				for r == '\t' {
+				for p.peekByte('\t') {
 					r = p.rune()
 				}
 			}
-			endOff = len(p.litBs) - 1
+			endOff = len(p.litBs)
 		}
 	}
 	if bytes.Equal(p.litBs[endOff:], p.hdocStop) {
