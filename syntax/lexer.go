@@ -822,7 +822,7 @@ func (p *parser) advanceLitHdoc(r rune) {
 			r = p.rune()
 		}
 	}
-	endOff := len(p.litBs) - 1
+	lStart := len(p.litBs) - 1
 loop:
 	for ; r != utf8.RuneSelf; r = p.rune() {
 		switch r {
@@ -831,8 +831,8 @@ loop:
 		case '\\': // escaped byte follows
 			p.rune()
 		case '\n':
-			if bytes.Equal(p.litBs[endOff:len(p.litBs)-1], p.hdocStop) {
-				p.val = p.endLit()[:endOff]
+			if bytes.Equal(p.litBs[lStart:len(p.litBs)-1], p.hdocStop) {
+				p.val = p.endLit()[:lStart]
 				p.hdocStop = nil
 				return
 			}
@@ -841,11 +841,11 @@ loop:
 					r = p.rune()
 				}
 			}
-			endOff = len(p.litBs)
+			lStart = len(p.litBs)
 		}
 	}
-	if bytes.Equal(p.litBs[endOff:], p.hdocStop) {
-		p.val = p.endLit()[:endOff]
+	if bytes.Equal(p.litBs[lStart:], p.hdocStop) {
+		p.val = p.endLit()[:lStart]
 		p.hdocStop = nil
 	} else {
 		p.val = p.endLit()
@@ -866,16 +866,16 @@ func (p *parser) hdocLitWord() *Word {
 				r = p.rune()
 			}
 		}
-		endOff := len(p.litBs) - 1
+		lStart := len(p.litBs) - 1
 		for r != utf8.RuneSelf && r != '\n' {
 			r = p.rune()
 		}
-		if r == utf8.RuneSelf && bytes.Equal(p.litBs[endOff:], p.hdocStop) {
-			val = p.endLit()[:endOff]
-			break
+		lEnd := len(p.litBs)
+		if r != utf8.RuneSelf {
+			lEnd--
 		}
-		if bytes.Equal(p.litBs[endOff:len(p.litBs)-1], p.hdocStop) {
-			val = p.endLit()[:endOff]
+		if bytes.Equal(p.litBs[lStart:lEnd], p.hdocStop) {
+			val = p.endLit()[:lStart]
 			break
 		}
 		r = p.rune()
