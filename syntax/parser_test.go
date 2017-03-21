@@ -927,6 +927,10 @@ var bashTests = []errorCase{
 		`1:11: not a valid test operator: b`,
 	},
 	{
+		"[[ (a) == b ]]",
+		`1:8: expected &&, || or ]] after complex expr`,
+	},
+	{
 		"local (",
 		`1:7: "local" must be followed by words`,
 	},

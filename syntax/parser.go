@@ -1485,10 +1485,13 @@ func (p *parser) testExpr(ftok token, fpos Pos, level int) TestExpr {
 		b.Y = p.testExpr(token(b.Op), b.OpPos, newLevel)
 	case TsReMatch:
 		old := p.preNested(testRegexp)
-		p.next()
-		b.Y = p.followWordTok(token(b.Op), b.OpPos)
-		p.postNested(old)
+		defer p.postNested(old)
+		fallthrough
 	default:
+		if _, ok := b.X.(*Word); !ok {
+			p.posErr(b.OpPos, "expected %s, %s or %s after complex expr",
+				AndTest, OrTest, "]]")
+		}
 		p.next()
 		b.Y = p.followWordTok(token(b.Op), b.OpPos)
 	}
