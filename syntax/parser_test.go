@@ -923,6 +923,10 @@ var bashTests = []errorCase{
 		`1:12: parentheses must enclose an expression`,
 	},
 	{
+		"[[ a == ! b ]]",
+		`1:11: not a valid test operator: b`,
+	},
+	{
 		"local (",
 		`1:7: "local" must be followed by words`,
 	},

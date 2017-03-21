@@ -1479,14 +1479,20 @@ func (p *parser) testExpr(ftok token, fpos Pos, level int) TestExpr {
 		Op:    BinTestOperator(p.tok),
 		X:     left,
 	}
-	if b.Op == TsReMatch {
+	switch b.Op {
+	case AndTest, OrTest:
+		p.next()
+		b.Y = p.testExpr(token(b.Op), b.OpPos, newLevel)
+	case TsReMatch:
 		old := p.preNested(testRegexp)
 		p.next()
+		b.Y = p.followWordTok(token(b.Op), b.OpPos)
 		p.postNested(old)
-	} else {
+	default:
 		p.next()
+		b.Y = p.followWordTok(token(b.Op), b.OpPos)
 	}
-	if b.Y = p.testExpr(token(b.Op), b.OpPos, newLevel); b.Y == nil {
+	if b.Y == nil {
 		p.followErrExp(b.OpPos, b.Op.String())
 	}
 	return b

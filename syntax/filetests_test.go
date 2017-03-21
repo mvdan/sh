@@ -2637,6 +2637,22 @@ var fileTests = []testCase{
 		}},
 	},
 	{
+		Strs: []string{`[[ a == -n ]]`},
+		bash: &TestClause{X: &BinaryTest{
+			Op: TsEqual,
+			X:  litWord("a"),
+			Y:  litWord("-n"),
+		}},
+	},
+	{
+		Strs: []string{`[[ a =~ -n ]]`},
+		bash: &TestClause{X: &BinaryTest{
+			Op: TsReMatch,
+			X:  litWord("a"),
+			Y:  litWord("-n"),
+		}},
+	},
+	{
 		Strs: []string{"[[ -n $a ]]"},
 		bash: &TestClause{
 			X: &UnaryTest{Op: TsNempStr, X: word(litParamExp("a"))},
