@@ -895,7 +895,7 @@ loop:
 			lparens++
 		case ')':
 			lparens--
-		case ' ', '\t', '\r', '\n':
+		case ' ', '\t', '\r', '\n', ';':
 			if lparens == 0 {
 				break loop
 			}

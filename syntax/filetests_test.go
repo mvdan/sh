@@ -2594,7 +2594,7 @@ var fileTests = []testCase{
 		minBash: 43,
 	},
 	{
-		Strs: []string{"[[ a =~ b ]]"},
+		Strs: []string{"[[ a =~ b ]]", "[[ a =~ b ]];"},
 		bash: &TestClause{X: &BinaryTest{
 			Op: TsReMatch,
 			X:  litWord("a"),

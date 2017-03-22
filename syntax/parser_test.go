@@ -931,6 +931,10 @@ var bashTests = []errorCase{
 		`1:8: expected &&, || or ]] after complex expr`,
 	},
 	{
+		"[[ a =~ ; ]]",
+		`1:6: =~ must be followed by a word`,
+	},
+	{
 		"local (",
 		`1:7: "local" must be followed by words`,
 	},
