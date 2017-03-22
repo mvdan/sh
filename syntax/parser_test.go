@@ -895,6 +895,18 @@ var bashTests = []errorCase{
 		`1:1: reached EOF without matching [[ with ]]`,
 	},
 	{
+		"[[ a ||",
+		`1:6: || must be followed by an expression`,
+	},
+	{
+		"[[ a ==",
+		`1:6: == must be followed by a word`,
+	},
+	{
+		"[[ a =~",
+		`1:6: =~ must be followed by a word`,
+	},
+	{
 		"[[ -f a",
 		`1:1: reached EOF without matching [[ with ]]`,
 	},

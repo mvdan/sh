@@ -1482,7 +1482,9 @@ func (p *parser) testExpr(ftok token, fpos Pos, level int) TestExpr {
 	switch b.Op {
 	case AndTest, OrTest:
 		p.next()
-		b.Y = p.testExpr(token(b.Op), b.OpPos, newLevel)
+		if b.Y = p.testExpr(token(b.Op), b.OpPos, newLevel); b.Y == nil {
+			p.followErrExp(b.OpPos, b.Op.String())
+		}
 	case TsReMatch:
 		old := p.preNested(testRegexp)
 		defer p.postNested(old)
@@ -1494,9 +1496,6 @@ func (p *parser) testExpr(ftok token, fpos Pos, level int) TestExpr {
 		}
 		p.next()
 		b.Y = p.followWordTok(token(b.Op), b.OpPos)
-	}
-	if b.Y == nil {
-		p.followErrExp(b.OpPos, b.Op.String())
 	}
 	return b
 }
