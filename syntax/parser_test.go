@@ -708,6 +708,18 @@ var shellTests = []errorCase{
 		`1:6: reached EOF without matching ${ with }`,
 	},
 	{
+		"echo ${$foo}",
+		`1:9: $ cannot be followed by a word`,
+	},
+	{
+		"echo ${?foo}",
+		`1:9: ? cannot be followed by a word`,
+	},
+	{
+		"echo ${-foo}",
+		`1:9: - cannot be followed by a word`,
+	},
+	{
 		"echo foo\n;",
 		`2:1: ; can only immediately follow a statement`,
 	},

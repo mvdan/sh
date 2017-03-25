@@ -891,9 +891,17 @@ func (p *parser) paramExp() *ParamExp {
 	case _Lit, _LitWord:
 		pe.Param = p.lit(p.pos, p.val)
 		p.next()
-	case dollar, quest, hash, minus, exclMark:
+	case hash, exclMark:
 		pe.Param = p.lit(p.pos, p.tok.String())
 		p.next()
+	case dollar, quest, minus:
+		op := p.tok
+		pe.Param = p.lit(p.pos, p.tok.String())
+		p.next()
+		switch p.tok {
+		case _Lit, _LitWord:
+			p.curErr("%s cannot be followed by a word", op)
+		}
 	default:
 		if !pe.Length {
 			p.posErr(pe.Dollar, "parameter expansion requires a literal")
