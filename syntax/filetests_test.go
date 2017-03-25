@@ -3364,7 +3364,7 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 		}
 		var gotErr string
 		for i, want := range strs {
-			got := string([]byte(src[offs:]))
+			got := src[offs:]
 			if i == 0 {
 				gotErr = got
 			}

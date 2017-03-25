@@ -838,7 +838,7 @@ loop:
 			}
 			if p.quote == hdocBodyTabs {
 				for p.peekByte('\t') {
-					r = p.rune()
+					p.rune()
 				}
 			}
 			lStart = len(p.litBs)
