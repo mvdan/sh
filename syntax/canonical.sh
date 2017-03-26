@@ -7,8 +7,8 @@
 foo() { bar; }
 
 {
-	var1="some long value" # var1 comment
-	var2=short             # var2 comment
+	export var1="some long value" # var1 comment
+	export var2=short             # var2 comment
 }
 
 if foo; then bar; fi
@@ -26,7 +26,7 @@ esac
 
 foo | bar
 foo \
-	&& $(bar) \
+	&& (bar) \
 	&& (more)
 
 foo 2>&1
@@ -34,4 +34,4 @@ foo <<EOF
 bar
 EOF
 
-$((3 + 4))
+((3 + 4))
