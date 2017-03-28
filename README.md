@@ -76,6 +76,7 @@ drawbacks explained below.
 ### Related projects
 
 * [format-shell] - Atom plugin for `shfmt`
+* [shell-format] - VS Code plugin for `shfmt`
 
 [posix shell]: http://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html
 [bash]: https://www.gnu.org/software/bash/
@@ -87,3 +88,4 @@ drawbacks explained below.
 [go-fuzz]: https://github.com/dvyukov/go-fuzz
 [posix-ambiguity]: http://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_06_03
 [format-shell]: https://atom.io/packages/format-shell
+[shell-format]: https://marketplace.visualstudio.com/items?itemName=foxundermoon.shell-format
