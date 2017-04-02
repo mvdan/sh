@@ -82,7 +82,7 @@ drawbacks explained below.
 [bash]: https://www.gnu.org/software/bash/
 [examples]: https://godoc.org/github.com/mvdan/sh/syntax#pkg-examples
 [arch]: https://aur.archlinux.org/packages/shfmt/
-[homebrew]: https://github.com/focusaurus/homebrew-shfmt
+[homebrew]: https://github.com/Homebrew/homebrew-core/blob/HEAD/Formula/shfmt.rb
 [nixos]: https://github.com/NixOS/nixpkgs/blob/HEAD/pkgs/tools/text/shfmt/default.nix
 [void]: https://github.com/voidlinux/void-packages/blob/HEAD/srcpkgs/shfmt/template
 [go-fuzz]: https://github.com/dvyukov/go-fuzz
