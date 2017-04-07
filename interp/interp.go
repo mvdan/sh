@@ -155,6 +155,20 @@ func (r *Runner) node(node syntax.Node) {
 			}
 			r.stmts(x.DoStmts)
 		}
+	case *syntax.ForClause:
+		switch y := x.Loop.(type) {
+		case *syntax.WordIter:
+			name := y.Name.Value
+			for _, word := range y.List {
+				r.setVar(name, r.word(word))
+				r.stmts(x.DoStmts)
+				if r.exit != 0 {
+					break
+				}
+			}
+		case *syntax.CStyleLoop:
+			panic(fmt.Sprintf("unhandled loop: %T", y))
+		}
 	default:
 		panic(fmt.Sprintf("unhandled node: %T", x))
 	}
