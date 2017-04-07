@@ -78,7 +78,11 @@ func (r *Runner) node(node syntax.Node) {
 		// TODO: handle background
 		// TODO: assignments
 		// TODO: redirects
-		r.node(x.Cmd)
+		if x.Cmd == nil {
+			r.exit = 0
+		} else {
+			r.node(x.Cmd)
+		}
 		if x.Negated {
 			if r.exit == 0 {
 				r.exit = 1

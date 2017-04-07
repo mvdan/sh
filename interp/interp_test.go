@@ -30,6 +30,7 @@ var fileCases = []struct {
 	{"exit -1", "exit status 255"},
 	{"exit 300", "exit status 44"},
 	{"false", "exit status 1"},
+	{"!", "exit status 1"},
 	{"! false", ""},
 	{"! true", "exit status 1"},
 	{"false; true", ""},
