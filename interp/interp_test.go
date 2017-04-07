@@ -48,6 +48,10 @@ var fileCases = []struct {
 		"",
 	},
 	{
+		"if false; then echo foo; fi",
+		"",
+	},
+	{
 		"if true; then echo foo; else echo bar; fi",
 		"foo\n",
 	},
@@ -74,6 +78,16 @@ var fileCases = []struct {
 	{
 		"if false; then :; elif false; then :; else echo foo; fi",
 		"foo\n",
+	},
+
+	// while
+	{
+		"while false; do echo foo; done",
+		"",
+	},
+	{
+		"while true; do exit 1; done",
+		"exit status 1",
 	},
 
 	// block
