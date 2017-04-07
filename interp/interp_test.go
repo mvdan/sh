@@ -39,8 +39,11 @@ var fileCases = []struct {
 	{"exit a", `1:6: invalid exit code: "a" #JUSTERR`},
 	{"exit 1 2", "1:1: exit cannot take multiple arguments #JUSTERR"},
 
-	// echo
-	{"echo foo", "foo\n"},
+	// words and quotes
+	{"echo  foo ", "foo\n"},
+	{"echo ' foo '", " foo \n"},
+	{`echo " foo "`, " foo \n"},
+	{`echo a'b'c d"e"f`, "abc def\n"},
 
 	// if
 	{

@@ -121,16 +121,24 @@ func (r *Runner) stmts(stmts []*syntax.Stmt) {
 	}
 }
 
-func (r *Runner) word(word *syntax.Word) string {
-	var buf bytes.Buffer
-	for _, wp := range word.Parts {
+func (r *Runner) wordParts(w io.Writer, wps []syntax.WordPart) {
+	for _, wp := range wps {
 		switch x := wp.(type) {
 		case *syntax.Lit:
-			buf.WriteString(x.Value)
+			io.WriteString(w, x.Value)
+		case *syntax.SglQuoted:
+			io.WriteString(w, x.Value)
+		case *syntax.DblQuoted:
+			r.wordParts(w, x.Parts)
 		default:
 			panic(fmt.Sprintf("unhandled word part: %T", x))
 		}
 	}
+}
+
+func (r *Runner) word(w *syntax.Word) string {
+	var buf bytes.Buffer
+	r.wordParts(&buf, w.Parts)
 	return buf.String()
 }
 
@@ -159,7 +167,10 @@ func (r *Runner) call(prog *syntax.Word, args []*syntax.Word) {
 			r.interpErr(prog.Pos(), "exit cannot take multiple arguments")
 		}
 	case "echo":
-		for _, arg := range args {
+		for i, arg := range args {
+			if i > 0 {
+				fmt.Fprint(r.Stdout, " ")
+			}
 			fmt.Fprint(r.Stdout, r.word(arg))
 		}
 		fmt.Fprintln(r.Stdout)
