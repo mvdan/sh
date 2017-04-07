@@ -16,13 +16,54 @@ func TestFile(t *testing.T) {
 	cases := []struct {
 		prog, want string
 	}{
+		// no-op programs
 		{"", ""},
 		{"true", ""},
+
+		// exit codes
 		{"false", "exit code 1"},
 		{"false; true", ""},
+
+		// echo
 		{"echo foo", "foo\n"},
-		{"if true; then echo foo; fi", "foo\n"},
-		{"if false; then echo foo; fi", ""},
+
+		// if
+		{
+			"if true; then echo foo; fi",
+			"foo\n",
+		},
+		{
+			"if false; then echo foo; fi",
+			"",
+		},
+		{
+			"if true; then echo foo; else echo bar; fi",
+			"foo\n",
+		},
+		{
+			"if false; then echo foo; else echo bar; fi",
+			"bar\n",
+		},
+		{
+			"if true; then false; fi",
+			"exit code 1",
+		},
+		{
+			"if false; then true; else false; fi",
+			"exit code 1",
+		},
+		{
+			"if false; then true; elif true; then echo foo; fi",
+			"foo\n",
+		},
+		{
+			"if false; then true; elif false; then true; elif true; then echo foo; fi",
+			"foo\n",
+		},
+		{
+			"if false; then true; elif false; then true; else echo foo; fi",
+			"foo\n",
+		},
 	}
 	for i, c := range cases {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {

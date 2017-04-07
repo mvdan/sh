@@ -58,7 +58,17 @@ func (r *Runner) node(node syntax.Node) {
 		r.stmts(x.CondStmts)
 		if r.exit == 0 {
 			r.stmts(x.ThenStmts)
-		} else {
+			return
+		}
+		for _, el := range x.Elifs {
+			r.stmts(el.CondStmts)
+			if r.exit == 0 {
+				r.stmts(el.ThenStmts)
+				return
+			}
+		}
+		r.stmts(x.ElseStmts)
+		if len(x.Elifs)+len(x.ElseStmts) == 0 {
 			r.exit = 0
 		}
 	default:
