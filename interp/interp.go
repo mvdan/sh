@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"strconv"
 
 	"github.com/mvdan/sh/syntax"
 )
@@ -32,6 +33,24 @@ type ExitCode int
 
 func (e ExitCode) Error() string { return fmt.Sprintf("exit code %d", e) }
 
+type InterpError struct {
+	syntax.Position
+	Text string
+}
+
+func (i InterpError) Error() string {
+	return fmt.Sprintf("%s: %s", i.Position.String(), i.Text)
+}
+
+func (r *Runner) interpErr(pos syntax.Pos, text string) {
+	if r.err == nil {
+		r.err = InterpError{
+			Position: r.File.Position(pos),
+			Text:     text,
+		}
+	}
+}
+
 // Run starts the interpreter and returns any error.
 func (r *Runner) Run() error {
 	r.node(r.File)
@@ -52,8 +71,7 @@ func (r *Runner) node(node syntax.Node) {
 	case *syntax.Stmt:
 		r.node(x.Cmd)
 	case *syntax.CallExpr:
-		prog := r.word(x.Args[0])
-		r.call(prog, x.Args[1:])
+		r.call(x.Args[0], x.Args[1:])
 	case *syntax.IfClause:
 		r.stmts(x.CondStmts)
 		if r.exit == 0 {
@@ -95,17 +113,33 @@ func (r *Runner) word(word *syntax.Word) string {
 	return buf.String()
 }
 
-func (r *Runner) call(prog string, args []*syntax.Word) {
-	switch prog {
+func (r *Runner) call(prog *syntax.Word, args []*syntax.Word) {
+	name := r.word(prog)
+	switch name {
 	case "true", ":":
 	case "false":
 		r.exit = 1
+	case "exit":
+		switch len(args) {
+		case 0:
+			if r.exit != 0 {
+				r.err = ExitCode(r.exit)
+			}
+		case 1:
+			if n, err := strconv.Atoi(r.word(args[0])); err != nil {
+				r.err = err
+			} else if n != 0 {
+				r.err = ExitCode(n)
+			}
+		default:
+			r.interpErr(prog.Pos(), "exit cannot take multiple arguments")
+		}
 	case "echo":
 		for _, arg := range args {
 			fmt.Fprint(r.Stdout, r.word(arg))
 		}
 		fmt.Fprintln(r.Stdout)
 	default:
-		panic(fmt.Sprintf("unhandled builtin: %s", prog))
+		panic(fmt.Sprintf("unhandled builtin: %s", name))
 	}
 }

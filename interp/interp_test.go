@@ -20,8 +20,12 @@ func TestFile(t *testing.T) {
 		{"", ""},
 		{"true", ""},
 		{":", ""},
+		{"exit", ""},
+		{"exit 0", ""},
 
 		// exit codes
+		{"exit 1", "exit code 1"},
+		{"exit 1 2", "1:1: exit cannot take multiple arguments"},
 		{"false", "exit code 1"},
 		{"false; true", ""},
 
