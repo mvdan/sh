@@ -63,6 +63,8 @@ var fileCases = []struct {
 	{"foo=bar; echo ${#foo}", "3\n"},
 	{"foo=世界; echo ${#foo}", "2\n"},
 	{"foo=bar; foo=; echo $foo", "\n"},
+	{"unset foo; echo $foo", "\n"},
+	{"foo=bar; unset foo; echo $foo", "\n"},
 
 	// if
 	{

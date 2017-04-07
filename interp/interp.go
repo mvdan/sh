@@ -21,7 +21,6 @@ type Runner struct {
 	// TODO: syntax.Node instead of *syntax.File?
 	File *syntax.File
 
-	// TODO: unset vars (different from empty vars)
 	vars map[string]string
 
 	err  error // current fatal error
@@ -69,6 +68,11 @@ func (r *Runner) setVar(name, val string) {
 func (r *Runner) getVar(name string) string {
 	// TODO: env vars too
 	return r.vars[name]
+}
+
+func (r *Runner) delVar(name string) {
+	// TODO: env vars too
+	delete(r.vars, name)
 }
 
 // Run starts the interpreter and returns any error.
@@ -203,6 +207,10 @@ func (r *Runner) call(prog *syntax.Word, args []*syntax.Word) {
 			}
 		default:
 			r.interpErr(prog.Pos(), "exit cannot take multiple arguments")
+		}
+	case "unset":
+		for _, arg := range args {
+			r.delVar(r.word(arg))
 		}
 	case "echo":
 		for i, arg := range args {
