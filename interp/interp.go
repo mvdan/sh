@@ -124,12 +124,12 @@ func (r *Runner) word(word *syntax.Word) string {
 }
 
 func (r *Runner) call(prog *syntax.Word, args []*syntax.Word) {
+	exit := 0
 	name := r.word(prog)
 	switch name {
 	case "true", ":":
 	case "false":
-		r.exit = 1
-		return
+		exit = 1
 	case "exit":
 		switch len(args) {
 		case 0:
@@ -154,5 +154,5 @@ func (r *Runner) call(prog *syntax.Word, args []*syntax.Word) {
 	default:
 		panic(fmt.Sprintf("unhandled builtin: %s", name))
 	}
-	r.exit = 0
+	r.exit = exit
 }
