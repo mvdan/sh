@@ -71,6 +71,13 @@ func (r *Runner) node(node syntax.Node) {
 		r.stmts(x.Stmts)
 	case *syntax.Stmt:
 		r.node(x.Cmd)
+		if x.Negated {
+			if r.exit == 0 {
+				r.exit = 1
+			} else {
+				r.exit = 0
+			}
+		}
 	case *syntax.CallExpr:
 		r.call(x.Args[0], x.Args[1:])
 	case *syntax.IfClause:
