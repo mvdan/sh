@@ -20,10 +20,8 @@ type Runner struct {
 	// TODO: syntax.Node instead of *syntax.File?
 	File *syntax.File
 
-	// current fatal error
-	err error
-	// current (last) exit code
-	exit int
+	err  error // current fatal error
+	exit int   // current (last) exit code
 
 	// TODO: stdin, stderr
 	Stdout io.Writer
@@ -31,7 +29,7 @@ type Runner struct {
 
 type ExitCode uint8
 
-func (e ExitCode) Error() string { return fmt.Sprintf("exit code %d", e) }
+func (e ExitCode) Error() string { return fmt.Sprintf("exit status %d", e) }
 
 type InterpError struct {
 	syntax.Position
