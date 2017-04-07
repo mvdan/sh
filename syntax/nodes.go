@@ -3,6 +3,8 @@
 
 package syntax
 
+import "fmt"
+
 // Node represents an AST node.
 type Node interface {
 	// Pos returns the first character of the node
@@ -43,6 +45,16 @@ type Position struct {
 // IsValid reports whether the position is valid. All positions in nodes
 // returned by Parse are valid.
 func (p Position) IsValid() bool { return p.Line > 0 }
+
+// String returns the position in the "file:line:column" form, or
+// "line:column" if there is no filename available.
+func (p Position) String() string {
+	prefix := ""
+	if p.Filename != "" {
+		prefix = p.Filename + ":"
+	}
+	return fmt.Sprintf("%s%d:%d", prefix, p.Line, p.Column)
+}
 
 func (f *File) Pos() Pos {
 	if len(f.Stmts) == 0 {

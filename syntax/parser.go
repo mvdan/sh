@@ -429,11 +429,7 @@ type ParseError struct {
 }
 
 func (e *ParseError) Error() string {
-	prefix := ""
-	if e.Filename != "" {
-		prefix = e.Filename + ":"
-	}
-	return fmt.Sprintf("%s%d:%d: %s", prefix, e.Line, e.Column, e.Text)
+	return fmt.Sprintf("%s: %s", e.Position.String(), e.Text)
 }
 
 func (p *parser) posErr(pos Pos, format string, a ...interface{}) {
