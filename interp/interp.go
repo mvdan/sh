@@ -29,7 +29,7 @@ type Runner struct {
 	Stdout io.Writer
 }
 
-type ExitCode int
+type ExitCode uint8
 
 func (e ExitCode) Error() string { return fmt.Sprintf("exit code %d", e) }
 

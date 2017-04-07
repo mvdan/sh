@@ -25,6 +25,8 @@ func TestFile(t *testing.T) {
 
 		// exit codes
 		{"exit 1", "exit code 1"},
+		{"exit -1", "exit code 255"},
+		{"exit 300", "exit code 44"},
 		{"exit a", `strconv.Atoi: parsing "a": invalid syntax`},
 		{"exit 1 2", "1:1: exit cannot take multiple arguments"},
 		{"false", "exit code 1"},
