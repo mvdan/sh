@@ -14,9 +14,11 @@ import (
 
 func TestFile(t *testing.T) {
 	cases := []struct {
-		prog, out string
+		prog, want string
 	}{
 		{"", ""},
+		{"true", ""},
+		{"false", "exit code 1"},
 		{"echo foo", "foo\n"},
 	}
 	for i, c := range cases {
@@ -31,11 +33,11 @@ func TestFile(t *testing.T) {
 				Stdout: &buf,
 			}
 			if err := r.Run(); err != nil {
-				t.Fatalf("could not run: %v", err)
+				buf.WriteString(err.Error())
 			}
-			if got := buf.String(); got != c.out {
+			if got := buf.String(); got != c.want {
 				t.Fatalf("unexpected output:\nwant: %q\ngot:  %q",
-					c.out, got)
+					c.want, got)
 			}
 		})
 	}

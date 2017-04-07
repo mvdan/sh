@@ -19,12 +19,15 @@ type Runner struct {
 	// TODO: syntax.Node instead of *syntax.File?
 	File *syntax.File
 
-	// TODO: different error types for exit codes and interprer errors
 	err error
 
 	// TODO: stdin, stderr
 	Stdout io.Writer
 }
+
+type ExitCode int
+
+func (e ExitCode) Error() string { return fmt.Sprintf("exit code %d", e) }
 
 // Run starts the interpreter and returns any error.
 func (r *Runner) Run() error {
@@ -66,6 +69,9 @@ func (r *Runner) word(word *syntax.Word) string {
 
 func (r *Runner) call(prog string, args []*syntax.Word) {
 	switch prog {
+	case "true":
+	case "false":
+		r.err = ExitCode(1)
 	case "echo":
 		for _, arg := range args {
 			fmt.Fprint(r.Stdout, r.word(arg))
