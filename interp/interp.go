@@ -53,7 +53,7 @@ func (r *Runner) interpErr(pos syntax.Pos, format string, a ...interface{}) {
 }
 
 func (r *Runner) lastExit() {
-	if r.err == nil && r.exit != 0 {
+	if r.err == nil {
 		r.err = ExitCode(r.exit)
 	}
 }
@@ -79,6 +79,9 @@ func (r *Runner) delVar(name string) {
 func (r *Runner) Run() error {
 	r.node(r.File)
 	r.lastExit()
+	if r.err == ExitCode(0) {
+		r.err = nil
+	}
 	return r.err
 }
 

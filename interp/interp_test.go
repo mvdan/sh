@@ -35,6 +35,7 @@ var fileCases = []struct {
 	{"! true", "exit status 1"},
 	{"false; true", ""},
 	{"false; exit", "exit status 1"},
+	{"exit; echo foo", ""},
 
 	// we don't need to follow bash error strings
 	{"exit a", `1:6: invalid exit code: "a" #JUSTERR`},
@@ -132,6 +133,10 @@ var fileCases = []struct {
 	{
 		"for i in 1 2 3; do echo $i; done",
 		"1\n2\n3\n",
+	},
+	{
+		"for i in 1 2 3; do echo $i; exit; done",
+		"1\n",
 	},
 
 	// block
