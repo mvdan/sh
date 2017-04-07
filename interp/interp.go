@@ -176,6 +176,19 @@ func (r *Runner) call(prog *syntax.Word, args []*syntax.Word) {
 			fmt.Fprint(r.Stdout, r.word(arg))
 		}
 		fmt.Fprintln(r.Stdout)
+	case "printf":
+		if len(args) == 0 {
+			// TODO: stderr
+			fmt.Fprintln(r.Stdout, "usage: printf format [arguments]")
+			exit = 1
+			break
+		}
+		format := r.word(args[0])
+		var a []interface{}
+		for _, arg := range args[1:] {
+			a = append(a, r.word(arg))
+		}
+		fmt.Fprintf(r.Stdout, format, a...)
 	default:
 		// TODO: default should call binary in $PATH
 		panic(fmt.Sprintf("unhandled builtin: %s", name))

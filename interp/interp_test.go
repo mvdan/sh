@@ -38,12 +38,22 @@ var fileCases = []struct {
 	// we don't need to follow bash error strings
 	{"exit a", `1:6: invalid exit code: "a" #JUSTERR`},
 	{"exit 1 2", "1:1: exit cannot take multiple arguments #JUSTERR"},
+	{"printf", "usage: printf format [arguments]\nexit status 1 #JUSTERR"},
+
+	// echo
+	{"echo", "\n"},
+	{"echo a b c", "a b c\n"},
+
+	// printf
+	{"printf foo", "foo"},
+	{"printf ' %s \n' bar", " bar \n"},
+	// {"printf %d 3", "3"}, TODO
 
 	// words and quotes
 	{"echo  foo ", "foo\n"},
 	{"echo ' foo '", " foo \n"},
 	{`echo " foo "`, " foo \n"},
-	{`echo a'b'c d"e"f`, "abc def\n"},
+	{`echo a'b'c"d"e`, "abcde\n"},
 
 	// if
 	{
