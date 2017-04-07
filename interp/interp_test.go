@@ -29,11 +29,13 @@ var fileCases = []struct {
 	{"exit 1", "exit status 1"},
 	{"exit -1", "exit status 255"},
 	{"exit 300", "exit status 44"},
-	{"exit a", `1:6: invalid exit code: "a" #NOCONFIRM`},
-	{"exit 1 2", "1:1: exit cannot take multiple arguments #NOCONFIRM"},
 	{"false", "exit status 1"},
 	{"false; true", ""},
 	{"false; exit", "exit status 1"},
+
+	// we don't need to follow bash error strings
+	{"exit a", `1:6: invalid exit code: "a" #JUSTERR`},
+	{"exit 1 2", "1:1: exit cannot take multiple arguments #JUSTERR"},
 
 	// echo
 	{"echo foo", "foo\n"},
@@ -127,7 +129,7 @@ func TestFile(t *testing.T) {
 				buf.WriteString(err.Error())
 			}
 			want := c.want
-			if i := strings.Index(want, " #NOCONFIRM"); i >= 0 {
+			if i := strings.Index(want, " #JUSTERR"); i >= 0 {
 				want = want[:i]
 			}
 			if got := buf.String(); got != want {
@@ -141,18 +143,21 @@ func TestFile(t *testing.T) {
 func TestFileConfirm(t *testing.T) {
 	for i, c := range fileCases {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
-			if strings.Contains(c.want, " #NOCONFIRM") {
-				return
-			}
 			cmd := exec.Command("bash")
 			cmd.Stdin = strings.NewReader(c.in)
 			out, err := cmd.CombinedOutput()
+			if strings.Contains(c.want, " #JUSTERR") {
+				if err == nil {
+					t.Fatalf("wanted bash to error in %q", c.in)
+				}
+				return
+			}
 			got := string(out)
 			if err != nil {
 				got += err.Error()
 			}
 			if got != c.want {
-				t.Fatalf("wrong output in %q:\nwant: %q\ngot:  %q",
+				t.Fatalf("wrong bash output in %q:\nwant: %q\ngot:  %q",
 					c.in, c.want, got)
 			}
 		})
