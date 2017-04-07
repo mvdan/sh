@@ -22,6 +22,8 @@ var fileCases = []struct {
 	{":", ""},
 	{"exit", ""},
 	{"exit 0", ""},
+	{"{ :; }", ""},
+	{"(:)", ""},
 
 	// exit codes
 	{"exit 1", "exit status 1"},
@@ -72,6 +74,26 @@ var fileCases = []struct {
 	{
 		"if false; then :; elif false; then :; else echo foo; fi",
 		"foo\n",
+	},
+
+	// block
+	{
+		"{ echo foo; }",
+		"foo\n",
+	},
+	{
+		"{ false; }",
+		"exit status 1",
+	},
+
+	// subshell
+	{
+		"(echo foo)",
+		"foo\n",
+	},
+	{
+		"(false)",
+		"exit status 1",
 	},
 }
 

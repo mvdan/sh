@@ -65,6 +65,10 @@ func (r *Runner) node(node syntax.Node) {
 	switch x := node.(type) {
 	case *syntax.File:
 		r.stmts(x.Stmts)
+	case *syntax.Block:
+		r.stmts(x.Stmts)
+	case *syntax.Subshell:
+		r.stmts(x.Stmts)
 	case *syntax.Stmt:
 		r.node(x.Cmd)
 	case *syntax.CallExpr:
