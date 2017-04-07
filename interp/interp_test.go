@@ -118,6 +118,16 @@ var fileCases = []struct {
 		"exit status 1",
 	},
 
+	// until
+	{
+		"until true; do echo foo; done",
+		"",
+	},
+	{
+		"until false; do exit 1; done",
+		"exit status 1",
+	},
+
 	// block
 	{
 		"{ echo foo; }",

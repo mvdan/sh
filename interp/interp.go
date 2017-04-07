@@ -146,6 +146,15 @@ func (r *Runner) node(node syntax.Node) {
 			}
 			r.stmts(x.DoStmts)
 		}
+	case *syntax.UntilClause:
+		for r.err == nil {
+			r.stmts(x.CondStmts)
+			if r.exit == 0 {
+				r.exit = 0
+				break
+			}
+			r.stmts(x.DoStmts)
+		}
 	default:
 		panic(fmt.Sprintf("unhandled node: %T", x))
 	}
