@@ -96,7 +96,11 @@ func (r *Runner) node(node syntax.Node) {
 
 		// TODO: assigns only apply to x.Cmd if x.Cmd != nil
 		for _, as := range x.Assigns {
-			r.setVar(as.Name.Value, r.word(as.Value))
+			name, value := as.Name.Value, ""
+			if as.Value != nil {
+				value = r.word(as.Value)
+			}
+			r.setVar(name, value)
 		}
 		if x.Cmd == nil {
 			r.exit = 0
