@@ -19,6 +19,7 @@ func TestFile(t *testing.T) {
 		{"", ""},
 		{"true", ""},
 		{"false", "exit code 1"},
+		{"false; true", ""},
 		{"echo foo", "foo\n"},
 	}
 	for i, c := range cases {
@@ -36,8 +37,8 @@ func TestFile(t *testing.T) {
 				buf.WriteString(err.Error())
 			}
 			if got := buf.String(); got != c.want {
-				t.Fatalf("unexpected output:\nwant: %q\ngot:  %q",
-					c.want, got)
+				t.Fatalf("wrong output in %q:\nwant: %q\ngot:  %q",
+					c.prog, c.want, got)
 			}
 		})
 	}

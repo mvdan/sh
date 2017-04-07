@@ -19,7 +19,10 @@ type Runner struct {
 	// TODO: syntax.Node instead of *syntax.File?
 	File *syntax.File
 
+	// current fatal error
 	err error
+	// current (last) exit code
+	exit int
 
 	// TODO: stdin, stderr
 	Stdout io.Writer
@@ -32,6 +35,9 @@ func (e ExitCode) Error() string { return fmt.Sprintf("exit code %d", e) }
 // Run starts the interpreter and returns any error.
 func (r *Runner) Run() error {
 	r.node(r.File)
+	if r.err == nil && r.exit != 0 {
+		r.err = ExitCode(r.exit)
+	}
 	return r.err
 }
 
@@ -39,6 +45,7 @@ func (r *Runner) node(node syntax.Node) {
 	if r.err != nil {
 		return
 	}
+	r.exit = 0
 	switch x := node.(type) {
 	case *syntax.File:
 		for _, stmt := range x.Stmts {
@@ -71,7 +78,7 @@ func (r *Runner) call(prog string, args []*syntax.Word) {
 	switch prog {
 	case "true":
 	case "false":
-		r.err = ExitCode(1)
+		r.exit = 1
 	case "echo":
 		for _, arg := range args {
 			fmt.Fprint(r.Stdout, r.word(arg))
