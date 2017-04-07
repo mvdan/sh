@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+	"unicode/utf8"
 
 	"github.com/mvdan/sh/syntax"
 )
@@ -160,7 +161,11 @@ func (r *Runner) wordParts(w io.Writer, wps []syntax.WordPart) {
 		case *syntax.ParamExp:
 			name := x.Param.Value
 			val := r.getVar(name)
-			io.WriteString(w, val)
+			if x.Length {
+				fmt.Fprint(w, utf8.RuneCountInString(val))
+			} else {
+				io.WriteString(w, val)
+			}
 		default:
 			panic(fmt.Sprintf("unhandled word part: %T", x))
 		}
