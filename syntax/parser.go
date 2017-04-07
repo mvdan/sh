@@ -425,7 +425,7 @@ func (p *parser) errPass(err error) {
 // ParseError represents an error found when parsing a source file.
 type ParseError struct {
 	Position
-	Filename, Text string
+	Text string
 }
 
 func (e *ParseError) Error() string {
@@ -439,7 +439,6 @@ func (e *ParseError) Error() string {
 func (p *parser) posErr(pos Pos, format string, a ...interface{}) {
 	p.errPass(&ParseError{
 		Position: p.f.Position(pos),
-		Filename: p.f.Name,
 		Text:     fmt.Sprintf(format, a...),
 	})
 }

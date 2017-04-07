@@ -34,9 +34,10 @@ const maxPos = Pos(^uint32(0))
 // Position describes a position within a source file including the line
 // and column location. A Position is valid if the line number is > 0.
 type Position struct {
-	Offset int // byte offset, starting at 0
-	Line   int // line number, starting at 1
-	Column int // column number, starting at 1 (in bytes)
+	Filename string // if any
+	Offset   int    // byte offset, starting at 0
+	Line     int    // line number, starting at 1
+	Column   int    // column number, starting at 1 (in bytes)
 }
 
 // IsValid reports whether the position is valid. All positions in nodes
@@ -58,6 +59,7 @@ func (f *File) End() Pos {
 }
 
 func (f *File) Position(p Pos) (pos Position) {
+	pos.Filename = f.Name
 	pos.Offset = int(p) - 1
 	if i := searchPos(f.lines, p); i >= 0 {
 		pos.Line, pos.Column = i+1, int(p-f.lines[i])
