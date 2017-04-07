@@ -19,6 +19,7 @@ func TestFile(t *testing.T) {
 		// no-op programs
 		{"", ""},
 		{"true", ""},
+		{":", ""},
 
 		// exit codes
 		{"false", "exit code 1"},
@@ -49,19 +50,19 @@ func TestFile(t *testing.T) {
 			"exit code 1",
 		},
 		{
-			"if false; then true; else false; fi",
+			"if false; then :; else false; fi",
 			"exit code 1",
 		},
 		{
-			"if false; then true; elif true; then echo foo; fi",
+			"if false; then :; elif true; then echo foo; fi",
 			"foo\n",
 		},
 		{
-			"if false; then true; elif false; then true; elif true; then echo foo; fi",
+			"if false; then :; elif false; then :; elif true; then echo foo; fi",
 			"foo\n",
 		},
 		{
-			"if false; then true; elif false; then true; else echo foo; fi",
+			"if false; then :; elif false; then :; else echo foo; fi",
 			"foo\n",
 		},
 	}

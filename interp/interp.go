@@ -97,7 +97,7 @@ func (r *Runner) word(word *syntax.Word) string {
 
 func (r *Runner) call(prog string, args []*syntax.Word) {
 	switch prog {
-	case "true":
+	case "true", ":":
 	case "false":
 		r.exit = 1
 	case "echo":
