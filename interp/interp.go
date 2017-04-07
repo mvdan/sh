@@ -40,11 +40,11 @@ func (i InterpError) Error() string {
 	return fmt.Sprintf("%s: %s", i.Position.String(), i.Text)
 }
 
-func (r *Runner) interpErr(pos syntax.Pos, text string) {
+func (r *Runner) interpErr(pos syntax.Pos, format string, a ...interface{}) {
 	if r.err == nil {
 		r.err = InterpError{
 			Position: r.File.Position(pos),
-			Text:     text,
+			Text:     fmt.Sprintf(format, a...),
 		}
 	}
 }
@@ -124,8 +124,9 @@ func (r *Runner) call(prog *syntax.Word, args []*syntax.Word) {
 				r.err = ExitCode(r.exit)
 			}
 		case 1:
-			if n, err := strconv.Atoi(r.word(args[0])); err != nil {
-				r.err = err
+			str := r.word(args[0])
+			if n, err := strconv.Atoi(str); err != nil {
+				r.interpErr(args[0].Pos(), "invalid exit code: %q", str)
 			} else if n != 0 {
 				r.err = ExitCode(n)
 			}

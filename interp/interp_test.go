@@ -27,7 +27,7 @@ var fileCases = []struct {
 	{"exit 1", "exit status 1"},
 	{"exit -1", "exit status 255"},
 	{"exit 300", "exit status 44"},
-	{"exit a", `strconv.Atoi: parsing "a": invalid syntax #NOCONFIRM`},
+	{"exit a", `1:6: invalid exit code: "a" #NOCONFIRM`},
 	{"exit 1 2", "1:1: exit cannot take multiple arguments #NOCONFIRM"},
 	{"false", "exit status 1"},
 	{"false; true", ""},
