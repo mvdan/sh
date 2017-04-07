@@ -20,6 +20,9 @@ type Runner struct {
 	// TODO: syntax.Node instead of *syntax.File?
 	File *syntax.File
 
+	// TODO: unset vars (different from empty vars)
+	vars map[string]string
+
 	err  error // current fatal error
 	exit int   // current (last) exit code
 
@@ -55,6 +58,18 @@ func (r *Runner) lastExit() {
 	}
 }
 
+func (r *Runner) setVar(name, val string) {
+	if r.vars == nil {
+		r.vars = make(map[string]string, 4)
+	}
+	r.vars[name] = val
+}
+
+func (r *Runner) getVar(name string) string {
+	// TODO: env vars too
+	return r.vars[name]
+}
+
 // Run starts the interpreter and returns any error.
 func (r *Runner) Run() error {
 	r.node(r.File)
@@ -76,8 +91,12 @@ func (r *Runner) node(node syntax.Node) {
 		r.stmts(x.Stmts)
 	case *syntax.Stmt:
 		// TODO: handle background
-		// TODO: assignments
 		// TODO: redirects
+
+		// TODO: assigns only apply to x.Cmd if x.Cmd != nil
+		for _, as := range x.Assigns {
+			r.setVar(as.Name.Value, r.word(as.Value))
+		}
 		if x.Cmd == nil {
 			r.exit = 0
 		} else {
@@ -138,6 +157,10 @@ func (r *Runner) wordParts(w io.Writer, wps []syntax.WordPart) {
 			io.WriteString(w, x.Value)
 		case *syntax.DblQuoted:
 			r.wordParts(w, x.Parts)
+		case *syntax.ParamExp:
+			name := x.Param.Value
+			val := r.getVar(name)
+			io.WriteString(w, val)
 		default:
 			panic(fmt.Sprintf("unhandled word part: %T", x))
 		}

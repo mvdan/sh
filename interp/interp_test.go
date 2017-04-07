@@ -56,6 +56,11 @@ var fileCases = []struct {
 	{`echo " foo "`, " foo \n"},
 	{`echo a'b'c"d"e`, "abcde\n"},
 
+	// vars
+	{"foo=bar; echo $foo", "bar\n"},
+	{"foo=bar foo=etc; echo $foo", "etc\n"},
+	{"foo=bar; foo=etc; echo $foo", "etc\n"},
+
 	// if
 	{
 		"if true; then echo foo; fi",
