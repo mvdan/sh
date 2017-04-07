@@ -68,8 +68,12 @@ func (r *Runner) node(node syntax.Node) {
 	case *syntax.Block:
 		r.stmts(x.Stmts)
 	case *syntax.Subshell:
+		// TODO: child process? encapsulate somehow anyway
 		r.stmts(x.Stmts)
 	case *syntax.Stmt:
+		// TODO: handle background
+		// TODO: assignments
+		// TODO: redirects
 		r.node(x.Cmd)
 		if x.Negated {
 			if r.exit == 0 {
@@ -133,6 +137,7 @@ func (r *Runner) word(word *syntax.Word) string {
 func (r *Runner) call(prog *syntax.Word, args []*syntax.Word) {
 	exit := 0
 	name := r.word(prog)
+	// TODO: builtins can be re-defined as funcs, vars, etc
 	switch name {
 	case "true", ":":
 	case "false":
@@ -159,6 +164,7 @@ func (r *Runner) call(prog *syntax.Word, args []*syntax.Word) {
 		}
 		fmt.Fprintln(r.Stdout)
 	default:
+		// TODO: default should call binary in $PATH
 		panic(fmt.Sprintf("unhandled builtin: %s", name))
 	}
 	r.exit = exit
