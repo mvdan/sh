@@ -48,16 +48,27 @@ func (r *Runner) node(node syntax.Node) {
 	r.exit = 0
 	switch x := node.(type) {
 	case *syntax.File:
-		for _, stmt := range x.Stmts {
-			r.node(stmt)
-		}
+		r.stmts(x.Stmts)
 	case *syntax.Stmt:
 		r.node(x.Cmd)
 	case *syntax.CallExpr:
 		prog := r.word(x.Args[0])
 		r.call(prog, x.Args[1:])
+	case *syntax.IfClause:
+		r.stmts(x.CondStmts)
+		if r.exit == 0 {
+			r.stmts(x.ThenStmts)
+		} else {
+			r.exit = 0
+		}
 	default:
 		panic(fmt.Sprintf("unhandled node: %T", x))
+	}
+}
+
+func (r *Runner) stmts(stmts []*syntax.Stmt) {
+	for _, stmt := range stmts {
+		r.node(stmt)
 	}
 }
 

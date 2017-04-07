@@ -21,6 +21,8 @@ func TestFile(t *testing.T) {
 		{"false", "exit code 1"},
 		{"false; true", ""},
 		{"echo foo", "foo\n"},
+		{"if true; then echo foo; fi", "foo\n"},
+		{"if false; then echo foo; fi", ""},
 	}
 	for i, c := range cases {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
