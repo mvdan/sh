@@ -49,12 +49,16 @@ func (r *Runner) interpErr(pos syntax.Pos, format string, a ...interface{}) {
 	}
 }
 
-// Run starts the interpreter and returns any error.
-func (r *Runner) Run() error {
-	r.node(r.File)
+func (r *Runner) lastExit() {
 	if r.err == nil && r.exit != 0 {
 		r.err = ExitCode(r.exit)
 	}
+}
+
+// Run starts the interpreter and returns any error.
+func (r *Runner) Run() error {
+	r.node(r.File)
+	r.lastExit()
 	return r.err
 }
 
@@ -153,9 +157,7 @@ func (r *Runner) call(prog *syntax.Word, args []*syntax.Word) {
 	case "exit":
 		switch len(args) {
 		case 0:
-			if r.exit != 0 {
-				r.err = ExitCode(r.exit)
-			}
+			r.lastExit()
 		case 1:
 			str := r.word(args[0])
 			if n, err := strconv.Atoi(str); err != nil {
