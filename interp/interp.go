@@ -64,7 +64,6 @@ func (r *Runner) node(node syntax.Node) {
 	if r.err != nil {
 		return
 	}
-	r.exit = 0
 	switch x := node.(type) {
 	case *syntax.File:
 		r.stmts(x.Stmts)
@@ -119,6 +118,7 @@ func (r *Runner) call(prog *syntax.Word, args []*syntax.Word) {
 	case "true", ":":
 	case "false":
 		r.exit = 1
+		return
 	case "exit":
 		switch len(args) {
 		case 0:
@@ -142,4 +142,5 @@ func (r *Runner) call(prog *syntax.Word, args []*syntax.Word) {
 	default:
 		panic(fmt.Sprintf("unhandled builtin: %s", name))
 	}
+	r.exit = 0
 }
