@@ -188,6 +188,10 @@ var fileCases = []struct {
 		"bash -c 'echo foo'",
 		"foo\n",
 	},
+	{
+		"shouldnotexist",
+		"exit status 127 #JUSTERR",
+	},
 }
 
 func TestFile(t *testing.T) {

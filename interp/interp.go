@@ -310,11 +310,17 @@ func (r *Runner) call(prog *syntax.Word, args []*syntax.Word) {
 			break
 		}
 		exit = 1
-		if exErr, ok := err.(*exec.ExitError); ok {
-			if status, ok := exErr.Sys().(syscall.WaitStatus); ok {
+		switch x := err.(type) {
+		case *exec.ExitError:
+			// started, but errored
+			if status, ok := x.Sys().(syscall.WaitStatus); ok {
 				exit = status.ExitStatus()
 			}
-		} else {
+		case *exec.Error:
+			// did not start
+			// TODO: can this be anything other than
+			// "command not found"?
+			exit = 127
 			// TODO: print something?
 		}
 	}
