@@ -28,6 +28,9 @@ type Runner struct {
 	vars  map[string]string
 	funcs map[string]*syntax.Stmt
 
+	// Current parameters, if executing a function
+	params []string
+
 	err  error // current fatal error
 	exit int   // current (last) exit code
 
@@ -223,7 +226,19 @@ func (r *Runner) wordParts(w io.Writer, wps []syntax.WordPart) {
 			r.wordParts(w, x.Parts)
 		case *syntax.ParamExp:
 			name := x.Param.Value
-			val := r.getVar(name)
+			val := ""
+			switch name {
+			case "#":
+				val = strconv.Itoa(len(r.params))
+			default:
+				if n, err := strconv.Atoi(name); err == nil {
+					if i := n-1; i < len(r.params) {
+						val = r.params[i]
+					}
+				} else {
+					val = r.getVar(name)
+				}
+			}
 			if x.Length {
 				fmt.Fprint(w, utf8.RuneCountInString(val))
 			} else {
@@ -244,13 +259,14 @@ func (r *Runner) word(w *syntax.Word) string {
 func (r *Runner) call(prog *syntax.Word, args []*syntax.Word) {
 	name := r.word(prog)
 	if body := r.funcs[name]; body != nil {
-		// TODO: probably need to use some sort of stack to
-		// unset them after and survive nested calls.
+		// stack them to support nested func calls
+		oldParams := r.params
+		r.params = make([]string, len(args))
 		for i, word := range args {
-			paramName := strconv.Itoa(i + 1) // $1, $2, etc
-			r.setVar(paramName, r.word(word))
+			r.params[i] = r.word(word)
 		}
 		r.node(body)
+		r.params = oldParams
 		return
 	}
 	exit := 0

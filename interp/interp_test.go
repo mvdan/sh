@@ -183,6 +183,10 @@ var fileCases = []struct {
 		"foo() { echo $1; }; foo a b",
 		"a\n",
 	},
+	{
+		"foo() { echo $1; bar c d; echo $2; }; bar() { echo $2; }; foo a b",
+		"a\nd\nb\n",
+	},
 
 	// exec
 	{
