@@ -337,9 +337,37 @@ func (r *Runner) call(prog *syntax.Word, args []*syntax.Word) {
 		}
 		fmt.Fprintf(r.Stdout, format, a...)
 	case "break":
-		r.breakEnclosing = 1
+		switch len(args) {
+		case 0:
+			r.breakEnclosing = 1
+		case 1:
+			str := r.word(args[0])
+			if n, err := strconv.Atoi(str); err == nil {
+				r.breakEnclosing = n
+				break
+			}
+			fallthrough
+		default:
+			fmt.Fprintln(r.Stdout, "usage: break [n]")
+			exit = 2
+			break
+		}
 	case "continue":
-		r.contnEnclosing = 1
+		switch len(args) {
+		case 0:
+			r.contnEnclosing = 1
+		case 1:
+			str := r.word(args[0])
+			if n, err := strconv.Atoi(str); err == nil {
+				r.contnEnclosing = n
+				break
+			}
+			fallthrough
+		default:
+			fmt.Fprintln(r.Stdout, "usage: continue [n]")
+			exit = 2
+			break
+		}
 	default:
 		strs := make([]string, len(args))
 		for i, word := range args {

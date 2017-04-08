@@ -126,6 +126,10 @@ var fileCases = []struct {
 		"while true; do break; done",
 		"",
 	},
+	{
+		"while true; do while true; do break 2; done; done",
+		"",
+	},
 
 	// until
 	{
@@ -162,6 +166,12 @@ var fileCases = []struct {
 		"for i in 1 2 3; do echo $i; continue; echo foo; done",
 		"1\n2\n3\n",
 	},
+	/* TODO: make this work
+	{
+		"for i in 1 2; do for j in a b; do echo $i $j; continue 2; done; done",
+		"1 a\n2 a\n",
+	},
+	*/
 
 	// block
 	{
