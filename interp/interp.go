@@ -230,9 +230,11 @@ func (r *Runner) wordParts(w io.Writer, wps []syntax.WordPart) {
 			switch name {
 			case "#":
 				val = strconv.Itoa(len(r.params))
+			case "?":
+				val = strconv.Itoa(r.exit)
 			default:
 				if n, err := strconv.Atoi(name); err == nil {
-					if i := n-1; i < len(r.params) {
+					if i := n - 1; i < len(r.params) {
 						val = r.params[i]
 					}
 				} else {

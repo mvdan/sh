@@ -68,6 +68,9 @@ var fileCases = []struct {
 	{"unset foo; echo $foo", "\n"},
 	{"foo=bar; unset foo; echo $foo", "\n"},
 
+	// special vars
+	{"echo $?; false; echo $?", "0\n1\n"},
+
 	// if
 	{
 		"if true; then echo foo; fi",
@@ -186,6 +189,10 @@ var fileCases = []struct {
 	{
 		"foo() { echo $1; bar c d; echo $2; }; bar() { echo $2; }; foo a b",
 		"a\nd\nb\n",
+	},
+	{
+		"foo() { echo $#; }; foo a b; echo $#",
+		"2\n0\n",
 	},
 
 	// exec
