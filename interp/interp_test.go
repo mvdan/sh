@@ -168,6 +168,12 @@ var fileCases = []struct {
 		"false && echo foo || echo bar",
 		"bar\n",
 	},
+
+	// func
+	{
+		"foo() { echo bar; }; foo",
+		"bar\n",
+	},
 }
 
 func TestFile(t *testing.T) {

@@ -21,7 +21,10 @@ type Runner struct {
 	// TODO: syntax.Node instead of *syntax.File?
 	File *syntax.File
 
-	vars map[string]string
+	// Separate maps, note that bash allows a name to be both a var
+	// and a func simultaneously
+	vars  map[string]string
+	funcs map[string]*syntax.Stmt
 
 	err  error // current fatal error
 	exit int   // current (last) exit code
@@ -73,6 +76,13 @@ func (r *Runner) getVar(name string) string {
 func (r *Runner) delVar(name string) {
 	// TODO: env vars too
 	delete(r.vars, name)
+}
+
+func (r *Runner) setFunc(name string, body *syntax.Stmt) {
+	if r.funcs == nil {
+		r.funcs = make(map[string]*syntax.Stmt, 4)
+	}
+	r.funcs[name] = body
 }
 
 // Run starts the interpreter and returns any error.
@@ -187,6 +197,8 @@ func (r *Runner) node(node syntax.Node) {
 		case *syntax.CStyleLoop:
 			panic(fmt.Sprintf("unhandled loop: %T", y))
 		}
+	case *syntax.FuncDecl:
+		r.setFunc(x.Name.Value, x.Body)
 	default:
 		panic(fmt.Sprintf("unhandled node: %T", x))
 	}
@@ -230,7 +242,10 @@ func (r *Runner) word(w *syntax.Word) string {
 func (r *Runner) call(prog *syntax.Word, args []*syntax.Word) {
 	exit := 0
 	name := r.word(prog)
-	// TODO: builtins can be re-defined as funcs, vars, etc
+	if body := r.funcs[name]; body != nil {
+		r.node(body)
+		return
+	}
 	switch name {
 	case "true", ":":
 	case "false":
