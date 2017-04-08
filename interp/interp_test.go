@@ -142,6 +142,10 @@ var fileCases = []struct {
 		"for i in 1 2 3; do echo $i; exit; done",
 		"1\n",
 	},
+	{
+		"for i in 1 2 3; do echo $i; false; done",
+		"1\n2\n3\nexit status 1",
+	},
 
 	// block
 	{
@@ -199,6 +203,10 @@ var fileCases = []struct {
 	{
 		"bash -c 'echo foo'",
 		"foo\n",
+	},
+	{
+		"bash -c 'exit 1'",
+		"exit status 1",
 	},
 }
 

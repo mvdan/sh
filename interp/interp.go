@@ -195,9 +195,6 @@ func (r *Runner) node(node syntax.Node) {
 			for _, word := range y.List {
 				r.setVar(name, r.word(word))
 				r.stmts(x.DoStmts)
-				if r.exit != 0 {
-					break
-				}
 			}
 		case *syntax.CStyleLoop:
 			panic(fmt.Sprintf("unhandled loop: %T", y))
@@ -329,12 +326,11 @@ func (r *Runner) call(prog *syntax.Word, args []*syntax.Word) {
 		}
 		switch x := err.(type) {
 		case *exec.ExitError:
-			// started, but errored
+			// started, but errored - default to 1 if OS
+			// doesn't have exit statuses
+			exit = 1
 			if status, ok := x.Sys().(syscall.WaitStatus); ok {
 				exit = status.ExitStatus()
-			} else {
-				// OS doesn't have exit statuses, bail
-				exit = 1
 			}
 		case *exec.Error:
 			// did not start
