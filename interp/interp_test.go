@@ -36,11 +36,12 @@ var fileCases = []struct {
 	{"false; true", ""},
 	{"false; exit", "exit status 1"},
 	{"exit; echo foo", ""},
+	{"printf", "usage: printf format [arguments]\nexit status 2 #JUSTERR"},
+	{"shouldnotexist", "exit status 127 #JUSTERR"},
 
 	// we don't need to follow bash error strings
 	{"exit a", `1:6: invalid exit code: "a" #JUSTERR`},
 	{"exit 1 2", "1:1: exit cannot take multiple arguments #JUSTERR"},
-	{"printf", "usage: printf format [arguments]\nexit status 1 #JUSTERR"},
 
 	// echo
 	{"echo", "\n"},
@@ -187,10 +188,6 @@ var fileCases = []struct {
 	{
 		"bash -c 'echo foo'",
 		"foo\n",
-	},
-	{
-		"shouldnotexist",
-		"exit status 127 #JUSTERR",
 	},
 }
 

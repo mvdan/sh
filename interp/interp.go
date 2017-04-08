@@ -288,7 +288,7 @@ func (r *Runner) call(prog *syntax.Word, args []*syntax.Word) {
 		if len(args) == 0 {
 			// TODO: stderr
 			fmt.Fprintln(r.Stdout, "usage: printf format [arguments]")
-			exit = 1
+			exit = 2
 			break
 		}
 		format := r.word(args[0])
@@ -309,12 +309,14 @@ func (r *Runner) call(prog *syntax.Word, args []*syntax.Word) {
 		if err == nil {
 			break
 		}
-		exit = 1
 		switch x := err.(type) {
 		case *exec.ExitError:
 			// started, but errored
 			if status, ok := x.Sys().(syscall.WaitStatus); ok {
 				exit = status.ExitStatus()
+			} else {
+				// OS doesn't have exit statuses, bail
+				exit = 1
 			}
 		case *exec.Error:
 			// did not start
