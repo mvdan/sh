@@ -449,13 +449,29 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"foo && bar1 || bar2"},
 		common: &BinaryCmd{
-			Op: AndStmt,
-			X:  litStmt("foo"),
-			Y: stmt(&BinaryCmd{
-				Op: OrStmt,
-				X:  litStmt("bar1"),
-				Y:  litStmt("bar2"),
+			Op: OrStmt,
+			X: stmt(&BinaryCmd{
+				Op: AndStmt,
+				X:  litStmt("foo"),
+				Y:  litStmt("bar1"),
 			}),
+			Y: litStmt("bar2"),
+		},
+	},
+	{
+		Strs: []string{"a || b || c || d"},
+		common: &BinaryCmd{
+			Op: OrStmt,
+			X: stmt(&BinaryCmd{
+				Op: OrStmt,
+				X: stmt(&BinaryCmd{
+					Op: OrStmt,
+					X:  litStmt("a"),
+					Y:  litStmt("b"),
+				}),
+				Y: litStmt("c"),
+			}),
+			Y: litStmt("d"),
 		},
 	},
 	{

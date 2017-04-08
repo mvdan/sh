@@ -473,7 +473,7 @@ func (p *parser) stmts(stops ...string) (sts []*Stmt) {
 		if p.tok == _EOF {
 			break
 		}
-		if s, end := p.getStmt(true); s == nil {
+		if s, end := p.getStmt(true, false); s == nil {
 			p.invalidStmtStart()
 		} else {
 			if sts == nil {
@@ -1111,7 +1111,7 @@ func (p *parser) doRedirect(s *Stmt) {
 	s.Redirs = append(s.Redirs, r)
 }
 
-func (p *parser) getStmt(readEnd bool) (s *Stmt, gotEnd bool) {
+func (p *parser) getStmt(readEnd, binCmd bool) (s *Stmt, gotEnd bool) {
 	s = p.stmt(p.pos)
 	if p.gotRsrv("!") {
 		s.Negated = true
@@ -1148,13 +1148,25 @@ preLoop:
 	}
 	switch p.tok {
 	case andAnd, orOr:
-		b := &BinaryCmd{OpPos: p.pos, Op: BinCmdOperator(p.tok), X: s}
-		p.next()
-		if b.Y, _ = p.getStmt(false); b.Y == nil {
-			p.followErr(b.OpPos, b.Op.String(), "a statement")
+		// left associativity: in a list of BinaryCmds, the
+		// right recursion should only read a single element.
+		if binCmd {
+			return
 		}
-		s = p.stmt(s.Position)
-		s.Cmd = b
+		// and instead of using recursion, iterate manually
+		for p.tok == andAnd || p.tok == orOr {
+			b := &BinaryCmd{
+				OpPos: p.pos,
+				Op:    BinCmdOperator(p.tok),
+				X:     s,
+			}
+			p.next()
+			if b.Y, _ = p.getStmt(false, true); b.Y == nil {
+				p.followErr(b.OpPos, b.Op.String(), "a statement")
+			}
+			s = p.stmt(s.Position)
+			s.Cmd = b
+		}
 		if readEnd && p.gotSameLine(semicolon) {
 			gotEnd = true
 		}
@@ -1568,7 +1580,7 @@ func (p *parser) declClause() *DeclClause {
 func (p *parser) evalClause() *EvalClause {
 	ec := &EvalClause{Eval: p.pos}
 	p.next()
-	ec.Stmt, _ = p.getStmt(false)
+	ec.Stmt, _ = p.getStmt(false, false)
 	return ec
 }
 
@@ -1593,14 +1605,14 @@ func (p *parser) coprocClause() *CoprocClause {
 	cc := &CoprocClause{Coproc: p.pos}
 	if p.next(); isBashCompoundCommand(p.tok, p.val) {
 		// has no name
-		cc.Stmt, _ = p.getStmt(false)
+		cc.Stmt, _ = p.getStmt(false, false)
 		return cc
 	}
 	if p.newLine {
 		p.posErr(cc.Coproc, "coproc clause requires a command")
 	}
 	cc.Name = p.getLit()
-	cc.Stmt, _ = p.getStmt(false)
+	cc.Stmt, _ = p.getStmt(false, false)
 	if cc.Stmt == nil {
 		if cc.Name == nil {
 			p.posErr(cc.Coproc, "coproc clause requires a command")
@@ -1701,7 +1713,7 @@ func (p *parser) funcDecl(name *Lit, pos Pos) *FuncDecl {
 		BashStyle: pos != name.ValuePos,
 		Name:      name,
 	}
-	if fd.Body, _ = p.getStmt(false); fd.Body == nil {
+	if fd.Body, _ = p.getStmt(false, false); fd.Body == nil {
 		p.followErr(fd.Pos(), "foo()", "a statement")
 	}
 	return fd
