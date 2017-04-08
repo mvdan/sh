@@ -243,6 +243,12 @@ func (r *Runner) call(prog *syntax.Word, args []*syntax.Word) {
 	exit := 0
 	name := r.word(prog)
 	if body := r.funcs[name]; body != nil {
+		// TODO: probably need to use some sort of stack to
+		// unset them after and survive nested calls.
+		for i, word := range args {
+			paramName := strconv.Itoa(i+1) // $1, $2, etc
+			r.setVar(paramName, r.word(word))
+		}
 		r.node(body)
 		return
 	}

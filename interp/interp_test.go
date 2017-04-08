@@ -174,6 +174,14 @@ var fileCases = []struct {
 		"foo() { echo bar; }; foo",
 		"bar\n",
 	},
+	{
+		"foo() { echo $1; }; foo",
+		"\n",
+	},
+	{
+		"foo() { echo $1; }; foo a b",
+		"a\n",
+	},
 }
 
 func TestFile(t *testing.T) {
