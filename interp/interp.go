@@ -31,6 +31,9 @@ type Runner struct {
 	// Current parameters, if executing a function
 	params []string
 
+	// >0 to break or continue out of N enclosing loops
+	breakEnclosing, contnEnclosing int
+
 	err  error // current fatal error
 	exit int   // current (last) exit code
 
@@ -177,7 +180,9 @@ func (r *Runner) node(node syntax.Node) {
 				r.exit = 0
 				break
 			}
-			r.stmts(x.DoStmts)
+			if r.loopStmtsBroken(x.DoStmts) {
+				break
+			}
 		}
 	case *syntax.UntilClause:
 		for r.err == nil {
@@ -186,7 +191,9 @@ func (r *Runner) node(node syntax.Node) {
 				r.exit = 0
 				break
 			}
-			r.stmts(x.DoStmts)
+			if r.loopStmtsBroken(x.DoStmts) {
+				break
+			}
 		}
 	case *syntax.ForClause:
 		switch y := x.Loop.(type) {
@@ -194,7 +201,9 @@ func (r *Runner) node(node syntax.Node) {
 			name := y.Name.Value
 			for _, word := range y.List {
 				r.setVar(name, r.word(word))
-				r.stmts(x.DoStmts)
+				if r.loopStmtsBroken(x.DoStmts) {
+					break
+				}
 			}
 		case *syntax.CStyleLoop:
 			panic(fmt.Sprintf("unhandled loop: %T", y))
@@ -210,6 +219,21 @@ func (r *Runner) stmts(stmts []*syntax.Stmt) {
 	for _, stmt := range stmts {
 		r.node(stmt)
 	}
+}
+
+func (r *Runner) loopStmtsBroken(stmts []*syntax.Stmt) bool {
+	for _, stmt := range stmts {
+		r.node(stmt)
+		if r.contnEnclosing > 0 {
+			r.contnEnclosing--
+			return false
+		}
+		if r.breakEnclosing > 0 {
+			r.breakEnclosing--
+			return true
+		}
+	}
+	return false
 }
 
 func (r *Runner) wordParts(w io.Writer, wps []syntax.WordPart) {
@@ -312,6 +336,10 @@ func (r *Runner) call(prog *syntax.Word, args []*syntax.Word) {
 			a = append(a, r.word(arg))
 		}
 		fmt.Fprintf(r.Stdout, format, a...)
+	case "break":
+		r.breakEnclosing = 1
+	case "continue":
+		r.contnEnclosing = 1
 	default:
 		strs := make([]string, len(args))
 		for i, word := range args {

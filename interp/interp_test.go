@@ -122,6 +122,10 @@ var fileCases = []struct {
 		"while true; do exit 1; done",
 		"exit status 1",
 	},
+	{
+		"while true; do break; done",
+		"",
+	},
 
 	// until
 	{
@@ -131,6 +135,10 @@ var fileCases = []struct {
 	{
 		"until false; do exit 1; done",
 		"exit status 1",
+	},
+	{
+		"until false; do break; done",
+		"",
 	},
 
 	// for
@@ -145,6 +153,14 @@ var fileCases = []struct {
 	{
 		"for i in 1 2 3; do echo $i; false; done",
 		"1\n2\n3\nexit status 1",
+	},
+	{
+		"for i in 1 2 3; do echo $i; break; done",
+		"1\n",
+	},
+	{
+		"for i in 1 2 3; do echo $i; continue; echo foo; done",
+		"1\n2\n3\n",
 	},
 
 	// block
