@@ -7,7 +7,9 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"os/exec"
 	"strconv"
+	"syscall"
 	"unicode/utf8"
 
 	"github.com/mvdan/sh/syntax"
@@ -240,18 +242,18 @@ func (r *Runner) word(w *syntax.Word) string {
 }
 
 func (r *Runner) call(prog *syntax.Word, args []*syntax.Word) {
-	exit := 0
 	name := r.word(prog)
 	if body := r.funcs[name]; body != nil {
 		// TODO: probably need to use some sort of stack to
 		// unset them after and survive nested calls.
 		for i, word := range args {
-			paramName := strconv.Itoa(i+1) // $1, $2, etc
+			paramName := strconv.Itoa(i + 1) // $1, $2, etc
 			r.setVar(paramName, r.word(word))
 		}
 		r.node(body)
 		return
 	}
+	exit := 0
 	switch name {
 	case "true", ":":
 	case "false":
@@ -296,8 +298,25 @@ func (r *Runner) call(prog *syntax.Word, args []*syntax.Word) {
 		}
 		fmt.Fprintf(r.Stdout, format, a...)
 	default:
-		// TODO: default should call binary in $PATH
-		panic(fmt.Sprintf("unhandled builtin: %s", name))
+		strs := make([]string, len(args))
+		for i, word := range args {
+			strs[i] = r.word(word)
+		}
+		cmd := exec.Command(name, strs...)
+		cmd.Stdout = r.Stdout
+		// TODO: stdin/stderr
+		err := cmd.Run()
+		if err == nil {
+			break
+		}
+		exit = 1
+		if exErr, ok := err.(*exec.ExitError); ok {
+			if status, ok := exErr.Sys().(syscall.WaitStatus); ok {
+				exit = status.ExitStatus()
+			}
+		} else {
+			// TODO: print something?
+		}
 	}
 	r.exit = exit
 }

@@ -182,6 +182,12 @@ var fileCases = []struct {
 		"foo() { echo $1; }; foo a b",
 		"a\n",
 	},
+
+	// exec
+	{
+		"bash -c 'echo foo'",
+		"foo\n",
+	},
 }
 
 func TestFile(t *testing.T) {
