@@ -123,6 +123,21 @@ func (r *Runner) node(node syntax.Node) {
 		}
 	case *syntax.CallExpr:
 		r.call(x.Args[0], x.Args[1:])
+	case *syntax.BinaryCmd:
+		switch x.Op {
+		case syntax.AndStmt:
+			r.node(x.X)
+			if r.exit == 0 {
+				r.node(x.Y)
+			}
+		case syntax.OrStmt:
+			r.node(x.X)
+			if r.exit != 0 {
+				r.node(x.Y)
+			}
+		case syntax.Pipe, syntax.PipeAll:
+			panic(fmt.Sprintf("unhandled binary cmd op: %v", x.Op))
+		}
 	case *syntax.IfClause:
 		r.stmts(x.CondStmts)
 		if r.exit == 0 {

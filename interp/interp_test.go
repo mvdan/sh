@@ -158,6 +158,16 @@ var fileCases = []struct {
 		"(false)",
 		"exit status 1",
 	},
+
+	// binary cmd
+	{
+		"true && echo foo || echo bar",
+		"foo\n",
+	},
+	{
+		"false && echo foo || echo bar",
+		"bar\n",
+	},
 }
 
 func TestFile(t *testing.T) {
