@@ -432,12 +432,16 @@ func (r *Runner) arithm(expr syntax.ArithmExpr) int {
 	switch x := expr.(type) {
 	case *syntax.Word:
 		str := strings.Join(r.wordParts(x.Parts), "")
-		// TODO: error
-		// TODO: a means $a
-		n, err := strconv.Atoi(str)
-		if err != nil {
-			n, _ = strconv.Atoi(r.getVar(str))
+		// recursively fetch vars
+		for {
+			val := r.getVar(str)
+			if val == "" {
+				break
+			}
+			str = val
 		}
+		// default to 0
+		n, _ := strconv.Atoi(str)
 		return n
 	case *syntax.ParenArithm:
 		return r.arithm(x.X)

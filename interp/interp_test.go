@@ -278,6 +278,10 @@ var fileCases = []struct {
 		"a=2; echo $(( a + $a + c ))",
 		"4\n",
 	},
+	{
+		"a=b; b=c; c=2; echo $((a))",
+		"2\n",
+	},
 }
 
 func TestFile(t *testing.T) {
