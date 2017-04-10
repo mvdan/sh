@@ -37,7 +37,7 @@ type Runner struct {
 	err  error // current fatal error
 	exit int   // current (last) exit code
 
-	// TODO: stdin
+	Stdin  io.Reader
 	Stdout io.Writer
 	Stderr io.Writer
 }
@@ -382,9 +382,9 @@ func (r *Runner) call(prog *syntax.Word, args []*syntax.Word) {
 			strs[i] = r.word(word)
 		}
 		cmd := exec.Command(name, strs...)
+		cmd.Stdin = r.Stdin
 		cmd.Stdout = r.Stdout
 		cmd.Stderr = r.Stderr
-		// TODO: stdin/stderr
 		err := cmd.Run()
 		if err == nil {
 			break
