@@ -434,11 +434,63 @@ func (r *Runner) arithm(expr syntax.ArithmExpr) int {
 		str := strings.Join(r.wordParts(x.Parts), "")
 		// TODO: error
 		// TODO: a means $a
-		n, _ := strconv.Atoi(str)
+		n, err := strconv.Atoi(str)
+		if err != nil {
+			n, _ = strconv.Atoi(r.getVar(str))
+		}
 		return n
 	case *syntax.ParenArithm:
 		return r.arithm(x.X)
+	case *syntax.BinaryArithm:
+		return binArit(x.Op, r.arithm(x.X), r.arithm(x.Y))
 	default:
 		panic(fmt.Sprintf("unhandled arithm expr: %T", x))
+	}
+}
+
+func boolArit(b bool) int {
+	if b {
+		return 1
+	}
+	return 0
+}
+
+func binArit(op syntax.BinAritOperator, x, y int) int {
+	switch op {
+	case syntax.Add:
+		return x + y
+	case syntax.Sub:
+		return x - y
+	case syntax.Mul:
+		return x * y
+	case syntax.Quo:
+		return x / y
+	case syntax.Rem:
+		return x % y
+	//case syntax.Pow:
+	case syntax.Eql:
+		return boolArit(x == y)
+	case syntax.Gtr:
+		return boolArit(x > y)
+	case syntax.Lss:
+		return boolArit(x < y)
+	case syntax.Neq:
+		return boolArit(x != y)
+	case syntax.Leq:
+		return boolArit(x <= y)
+	case syntax.Geq:
+		return boolArit(x >= y)
+	case syntax.And:
+		return x & y
+	case syntax.Or:
+		return x | y
+	case syntax.Xor:
+		return x ^ y
+	case syntax.Shr:
+		return x >> uint(y)
+	case syntax.Shl:
+		return x << uint(y)
+	default:
+		panic(fmt.Sprintf("unhandled arithm bin op: %v", op))
 	}
 }
