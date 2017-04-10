@@ -27,7 +27,7 @@ Use `-i N` to indent with a number of spaces instead of tabs.
 
 Packages are available for [Arch], [Homebrew], [NixOS] and [Void].
 
-### Advantages over `bash -n`
+#### Advantages over `bash -n`
 
 `bash -n` can be useful to check for syntax errors in shell scripts.
 However, `shfmt >/dev/null` can do a better job as it checks for invalid
@@ -42,6 +42,13 @@ validity:
  $ echo 'foo=(1 2)' | shfmt -p
 1:5: arrays are a bash feature
 ```
+
+### gosh
+
+	go get -u github.com/mvdan/sh/cmd/gosh
+
+Experimental shell executable using `interp`. Work in progress and
+unstable - the name and package path might change in the future too.
 
 ### Fuzzing
 
