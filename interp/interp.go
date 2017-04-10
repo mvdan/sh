@@ -312,6 +312,8 @@ func (r *Runner) wordParts(wps []syntax.WordPart) []string {
 			r.stmts(x.Stmts)
 			splitAdd(outBuf.String())
 			r.Stdout = oldOut
+		case *syntax.ArithmExp:
+			curBuf.WriteString(strconv.Itoa(r.arithm(x.X)))
 		default:
 			panic(fmt.Sprintf("unhandled word part: %T", x))
 		}
@@ -424,4 +426,19 @@ func (r *Runner) call(pos syntax.Pos, name string, args []string) {
 		}
 	}
 	r.exit = exit
+}
+
+func (r *Runner) arithm(expr syntax.ArithmExpr) int {
+	switch x := expr.(type) {
+	case *syntax.Word:
+		str := strings.Join(r.wordParts(x.Parts), "")
+		// TODO: error
+		// TODO: a means $a
+		n, _ := strconv.Atoi(str)
+		return n
+	case *syntax.ParenArithm:
+		return r.arithm(x.X)
+	default:
+		panic(fmt.Sprintf("unhandled arithm expr: %T", x))
+	}
 }
