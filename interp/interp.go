@@ -176,7 +176,24 @@ func (r *Runner) node(node syntax.Node) {
 				r.node(x.Y)
 			}
 		case syntax.Pipe, syntax.PipeAll:
-			panic(fmt.Sprintf("unhandled binary cmd op: %v", x.Op))
+			pr, pw := io.Pipe()
+			r2 := Runner{
+				File:   r.File,
+				Stdin:  r.Stdin,
+				Stdout: pw,
+			}
+			if x.Op == syntax.PipeAll {
+				r2.Stderr = pw
+			} else {
+				r2.Stderr = r.Stderr
+			}
+			r.Stdin = pr
+			go func() {
+				r2.node(x.X)
+				pw.Close()
+			}()
+			r.node(x.Y)
+			pr.Close()
 		}
 	case *syntax.IfClause:
 		r.stmts(x.CondStmts)

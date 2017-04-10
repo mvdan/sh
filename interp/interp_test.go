@@ -269,6 +269,12 @@ var fileCases = []struct {
 		"1\n2\n3\n4\n",
 	},
 
+	// pipe
+	{
+		"echo foo | sed 's/o/a/g'",
+		"faa\n",
+	},
+
 	// arithm exp
 	{
 		"echo $(((1 == +1)))",
