@@ -234,6 +234,12 @@ var fileCases = []struct {
 		"bash -c 'exit 1'",
 		"exit status 1",
 	},
+
+	// cmd substitution
+	{
+		"echo foo $(printf bar)",
+		"foo bar\n",
+	},
 }
 
 func TestFile(t *testing.T) {

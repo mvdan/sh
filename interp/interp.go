@@ -276,6 +276,11 @@ func (r *Runner) wordParts(w io.Writer, wps []syntax.WordPart) {
 			} else {
 				io.WriteString(w, val)
 			}
+		case *syntax.CmdSubst:
+			oldOut := r.Stdout
+			r.Stdout = w
+			r.stmts(x.Stmts)
+			r.Stdout = oldOut
 		default:
 			panic(fmt.Sprintf("unhandled word part: %T", x))
 		}
