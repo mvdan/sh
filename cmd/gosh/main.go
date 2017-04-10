@@ -13,17 +13,12 @@ import (
 )
 
 var (
-	posix = flag.Bool("p", false, "parse POSIX shell code instead of bash")
-
 	parseMode syntax.ParseMode
 )
 
 func main() {
 	flag.Parse()
 
-	if *posix {
-		parseMode |= syntax.PosixConformant
-	}
 	for _, path := range flag.Args() {
 		if err := runPath(path); err != nil {
 			fmt.Fprintln(os.Stderr, err)
