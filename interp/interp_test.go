@@ -247,6 +247,7 @@ func TestFile(t *testing.T) {
 			r := Runner{
 				File:   file,
 				Stdout: &buf,
+				Stderr: &buf,
 			}
 			if err := r.Run(); err != nil {
 				buf.WriteString(err.Error())

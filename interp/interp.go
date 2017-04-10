@@ -37,8 +37,9 @@ type Runner struct {
 	err  error // current fatal error
 	exit int   // current (last) exit code
 
-	// TODO: stdin, stderr
+	// TODO: stdin
 	Stdout io.Writer
+	Stderr io.Writer
 }
 
 type ExitCode uint8
@@ -105,6 +106,10 @@ func (r *Runner) Run() error {
 
 func (r *Runner) outf(format string, a ...interface{}) {
 	fmt.Fprintf(r.Stdout, format, a...)
+}
+
+func (r *Runner) errf(format string, a ...interface{}) {
+	fmt.Fprintf(r.Stderr, format, a...)
 }
 
 func (r *Runner) node(node syntax.Node) {
@@ -329,8 +334,7 @@ func (r *Runner) call(prog *syntax.Word, args []*syntax.Word) {
 		r.outf("\n")
 	case "printf":
 		if len(args) == 0 {
-			// TODO: stderr
-			r.outf("usage: printf format [arguments]\n")
+			r.errf("usage: printf format [arguments]\n")
 			exit = 2
 			break
 		}
@@ -352,8 +356,7 @@ func (r *Runner) call(prog *syntax.Word, args []*syntax.Word) {
 			}
 			fallthrough
 		default:
-			// TODO: stderr
-			r.outf("usage: break [n]\n")
+			r.errf("usage: break [n]\n")
 			exit = 2
 			break
 		}
@@ -369,8 +372,7 @@ func (r *Runner) call(prog *syntax.Word, args []*syntax.Word) {
 			}
 			fallthrough
 		default:
-			// TODO: stderr
-			r.outf("usage: continue [n]")
+			r.errf("usage: continue [n]")
 			exit = 2
 			break
 		}
@@ -381,6 +383,7 @@ func (r *Runner) call(prog *syntax.Word, args []*syntax.Word) {
 		}
 		cmd := exec.Command(name, strs...)
 		cmd.Stdout = r.Stdout
+		cmd.Stderr = r.Stderr
 		// TODO: stdin/stderr
 		err := cmd.Run()
 		if err == nil {
