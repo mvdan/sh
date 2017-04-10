@@ -441,6 +441,8 @@ func (r *Runner) arithm(expr syntax.ArithmExpr) int {
 		return n
 	case *syntax.ParenArithm:
 		return r.arithm(x.X)
+	case *syntax.UnaryArithm:
+		return unArit(x.Op, r.arithm(x.X))
 	case *syntax.BinaryArithm:
 		return binArit(x.Op, r.arithm(x.X), r.arithm(x.Y))
 	default:
@@ -453,6 +455,21 @@ func boolArit(b bool) int {
 		return 1
 	}
 	return 0
+}
+
+func unArit(op syntax.UnAritOperator, x int) int {
+	switch op {
+	case syntax.Not:
+		return boolArit(x == 0)
+	case syntax.Inc:
+		return x + 1
+	case syntax.Dec:
+		return x - 1
+	case syntax.Plus:
+		return x
+	default: // syntax.Minus
+		return -x
+	}
 }
 
 func binArit(op syntax.BinAritOperator, x, y int) int {
