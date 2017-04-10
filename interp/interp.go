@@ -9,6 +9,7 @@ import (
 	"io"
 	"os/exec"
 	"strconv"
+	"strings"
 	"syscall"
 	"unicode/utf8"
 
@@ -115,7 +116,7 @@ func (r *Runner) errf(format string, a ...interface{}) {
 func (r *Runner) fields(words []*syntax.Word) []string {
 	fields := make([]string, 0, len(words))
 	for _, word := range words {
-		fields = append(fields, r.word(word))
+		fields = append(fields, r.wordParts(word.Parts)...)
 	}
 	return fields
 }
@@ -140,7 +141,7 @@ func (r *Runner) node(node syntax.Node) {
 		for _, as := range x.Assigns {
 			name, value := as.Name.Value, ""
 			if as.Value != nil {
-				value = r.word(as.Value)
+				value = strings.Join(r.wordParts(as.Value.Parts), "")
 			}
 			r.setVar(name, value)
 		}
@@ -254,15 +255,35 @@ func (r *Runner) loopStmtsBroken(stmts []*syntax.Stmt) bool {
 	return false
 }
 
-func (r *Runner) wordParts(w io.Writer, wps []syntax.WordPart) {
+func (r *Runner) wordParts(wps []syntax.WordPart) []string {
+	var parts []string
+	var curBuf bytes.Buffer
+	flush := func() {
+		if curBuf.Len() == 0 {
+			return
+		}
+		parts = append(parts, curBuf.String())
+		curBuf.Reset()
+	}
+	splitAdd := func(val string) {
+		// TODO: use IFS
+		for i, field := range strings.Fields(val) {
+			if i > 0 {
+				flush()
+			}
+			curBuf.WriteString(field)
+		}
+	}
 	for _, wp := range wps {
 		switch x := wp.(type) {
 		case *syntax.Lit:
-			io.WriteString(w, x.Value)
+			curBuf.WriteString(x.Value)
 		case *syntax.SglQuoted:
-			io.WriteString(w, x.Value)
+			curBuf.WriteString(x.Value)
 		case *syntax.DblQuoted:
-			r.wordParts(w, x.Parts)
+			for _, str := range r.wordParts(x.Parts) {
+				curBuf.WriteString(str)
+			}
 		case *syntax.ParamExp:
 			name := x.Param.Value
 			val := ""
@@ -281,25 +302,22 @@ func (r *Runner) wordParts(w io.Writer, wps []syntax.WordPart) {
 				}
 			}
 			if x.Length {
-				r.outf("%d", utf8.RuneCountInString(val))
-			} else {
-				io.WriteString(w, val)
+				val = strconv.Itoa(utf8.RuneCountInString(val))
 			}
+			splitAdd(val)
 		case *syntax.CmdSubst:
 			oldOut := r.Stdout
-			r.Stdout = w
+			var outBuf bytes.Buffer
+			r.Stdout = &outBuf
 			r.stmts(x.Stmts)
+			splitAdd(outBuf.String())
 			r.Stdout = oldOut
 		default:
 			panic(fmt.Sprintf("unhandled word part: %T", x))
 		}
 	}
-}
-
-func (r *Runner) word(w *syntax.Word) string {
-	var buf bytes.Buffer
-	r.wordParts(&buf, w.Parts)
-	return buf.String()
+	flush()
+	return parts
 }
 
 func (r *Runner) call(pos syntax.Pos, name string, args []string) {

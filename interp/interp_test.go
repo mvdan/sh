@@ -240,6 +240,18 @@ var fileCases = []struct {
 		"echo foo $(printf bar)",
 		"foo bar\n",
 	},
+	{
+		"echo foo $(echo bar)",
+		"foo bar\n",
+	},
+	{
+		"$(echo echo foo bar)",
+		"foo bar\n",
+	},
+	{
+		"for i in 1 $(echo 2 3) 4; do echo $i; done",
+		"1\n2\n3\n4\n",
+	},
 }
 
 func TestFile(t *testing.T) {
