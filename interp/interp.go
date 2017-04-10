@@ -103,6 +103,10 @@ func (r *Runner) Run() error {
 	return r.err
 }
 
+func (r *Runner) outf(format string, a ...interface{}) {
+	fmt.Fprintf(r.Stdout, format, a...)
+}
+
 func (r *Runner) node(node syntax.Node) {
 	if r.err != nil {
 		return
@@ -263,7 +267,7 @@ func (r *Runner) wordParts(w io.Writer, wps []syntax.WordPart) {
 				}
 			}
 			if x.Length {
-				fmt.Fprint(w, utf8.RuneCountInString(val))
+				r.outf("%d", utf8.RuneCountInString(val))
 			} else {
 				io.WriteString(w, val)
 			}
@@ -318,15 +322,15 @@ func (r *Runner) call(prog *syntax.Word, args []*syntax.Word) {
 	case "echo":
 		for i, arg := range args {
 			if i > 0 {
-				fmt.Fprint(r.Stdout, " ")
+				r.outf(" ")
 			}
-			fmt.Fprint(r.Stdout, r.word(arg))
+			r.outf("%s", r.word(arg))
 		}
-		fmt.Fprintln(r.Stdout)
+		r.outf("\n")
 	case "printf":
 		if len(args) == 0 {
 			// TODO: stderr
-			fmt.Fprintln(r.Stdout, "usage: printf format [arguments]")
+			r.outf("usage: printf format [arguments]\n")
 			exit = 2
 			break
 		}
@@ -335,7 +339,7 @@ func (r *Runner) call(prog *syntax.Word, args []*syntax.Word) {
 		for _, arg := range args[1:] {
 			a = append(a, r.word(arg))
 		}
-		fmt.Fprintf(r.Stdout, format, a...)
+		r.outf(format, a...)
 	case "break":
 		switch len(args) {
 		case 0:
@@ -348,7 +352,8 @@ func (r *Runner) call(prog *syntax.Word, args []*syntax.Word) {
 			}
 			fallthrough
 		default:
-			fmt.Fprintln(r.Stdout, "usage: break [n]")
+			// TODO: stderr
+			r.outf("usage: break [n]\n")
 			exit = 2
 			break
 		}
@@ -364,7 +369,8 @@ func (r *Runner) call(prog *syntax.Word, args []*syntax.Word) {
 			}
 			fallthrough
 		default:
-			fmt.Fprintln(r.Stdout, "usage: continue [n]")
+			// TODO: stderr
+			r.outf("usage: continue [n]")
 			exit = 2
 			break
 		}
