@@ -383,7 +383,6 @@ func (r *Runner) call(pos syntax.Pos, name string, args []string) {
 		default:
 			r.errf("usage: break [n]\n")
 			exit = 2
-			break
 		}
 	case "continue":
 		switch len(args) {
@@ -398,7 +397,6 @@ func (r *Runner) call(pos syntax.Pos, name string, args []string) {
 		default:
 			r.errf("usage: continue [n]")
 			exit = 2
-			break
 		}
 	default:
 		cmd := exec.Command(name, args...)
