@@ -40,7 +40,7 @@ var fileCases = []struct {
 	{"shouldnotexist", "exit status 127 #JUSTERR"},
 
 	// we don't need to follow bash error strings
-	{"exit a", `1:6: invalid exit code: "a" #JUSTERR`},
+	{"exit a", `1:1: invalid exit code: "a" #JUSTERR`},
 	{"exit 1 2", "1:1: exit cannot take multiple arguments #JUSTERR"},
 
 	// echo

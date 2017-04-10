@@ -112,6 +112,14 @@ func (r *Runner) errf(format string, a ...interface{}) {
 	fmt.Fprintf(r.Stderr, format, a...)
 }
 
+func (r *Runner) fields(words []*syntax.Word) []string {
+	fields := make([]string, 0, len(words))
+	for _, word := range words {
+		fields = append(fields, r.word(word))
+	}
+	return fields
+}
+
 func (r *Runner) node(node syntax.Node) {
 	if r.err != nil {
 		return
@@ -149,7 +157,8 @@ func (r *Runner) node(node syntax.Node) {
 			}
 		}
 	case *syntax.CallExpr:
-		r.call(x.Args[0], x.Args[1:])
+		fields := r.fields(x.Args)
+		r.call(x.Args[0].Pos(), fields[0], fields[1:])
 	case *syntax.BinaryCmd:
 		switch x.Op {
 		case syntax.AndStmt:
@@ -208,8 +217,8 @@ func (r *Runner) node(node syntax.Node) {
 		switch y := x.Loop.(type) {
 		case *syntax.WordIter:
 			name := y.Name.Value
-			for _, word := range y.List {
-				r.setVar(name, r.word(word))
+			for _, field := range r.fields(y.List) {
+				r.setVar(name, field)
 				if r.loopStmtsBroken(x.DoStmts) {
 					break
 				}
@@ -293,15 +302,11 @@ func (r *Runner) word(w *syntax.Word) string {
 	return buf.String()
 }
 
-func (r *Runner) call(prog *syntax.Word, args []*syntax.Word) {
-	name := r.word(prog)
+func (r *Runner) call(pos syntax.Pos, name string, args []string) {
 	if body := r.funcs[name]; body != nil {
 		// stack them to support nested func calls
 		oldParams := r.params
-		r.params = make([]string, len(args))
-		for i, word := range args {
-			r.params[i] = r.word(word)
-		}
+		r.params = args
 		r.node(body)
 		r.params = oldParams
 		return
@@ -316,25 +321,24 @@ func (r *Runner) call(prog *syntax.Word, args []*syntax.Word) {
 		case 0:
 			r.lastExit()
 		case 1:
-			str := r.word(args[0])
-			if n, err := strconv.Atoi(str); err != nil {
-				r.interpErr(args[0].Pos(), "invalid exit code: %q", str)
+			if n, err := strconv.Atoi(args[0]); err != nil {
+				r.interpErr(pos, "invalid exit code: %q", args[0])
 			} else if n != 0 {
 				r.err = ExitCode(n)
 			}
 		default:
-			r.interpErr(prog.Pos(), "exit cannot take multiple arguments")
+			r.interpErr(pos, "exit cannot take multiple arguments")
 		}
 	case "unset":
 		for _, arg := range args {
-			r.delVar(r.word(arg))
+			r.delVar(arg)
 		}
 	case "echo":
 		for i, arg := range args {
 			if i > 0 {
 				r.outf(" ")
 			}
-			r.outf("%s", r.word(arg))
+			r.outf("%s", arg)
 		}
 		r.outf("\n")
 	case "printf":
@@ -343,19 +347,17 @@ func (r *Runner) call(prog *syntax.Word, args []*syntax.Word) {
 			exit = 2
 			break
 		}
-		format := r.word(args[0])
 		var a []interface{}
 		for _, arg := range args[1:] {
-			a = append(a, r.word(arg))
+			a = append(a, arg)
 		}
-		r.outf(format, a...)
+		r.outf(args[0], a...)
 	case "break":
 		switch len(args) {
 		case 0:
 			r.breakEnclosing = 1
 		case 1:
-			str := r.word(args[0])
-			if n, err := strconv.Atoi(str); err == nil {
+			if n, err := strconv.Atoi(args[0]); err == nil {
 				r.breakEnclosing = n
 				break
 			}
@@ -370,8 +372,7 @@ func (r *Runner) call(prog *syntax.Word, args []*syntax.Word) {
 		case 0:
 			r.contnEnclosing = 1
 		case 1:
-			str := r.word(args[0])
-			if n, err := strconv.Atoi(str); err == nil {
+			if n, err := strconv.Atoi(args[0]); err == nil {
 				r.contnEnclosing = n
 				break
 			}
@@ -382,11 +383,7 @@ func (r *Runner) call(prog *syntax.Word, args []*syntax.Word) {
 			break
 		}
 	default:
-		strs := make([]string, len(args))
-		for i, word := range args {
-			strs[i] = r.word(word)
-		}
-		cmd := exec.Command(name, strs...)
+		cmd := exec.Command(name, args...)
 		cmd.Stdin = r.Stdin
 		cmd.Stdout = r.Stdout
 		cmd.Stderr = r.Stderr
