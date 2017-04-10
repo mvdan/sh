@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -79,8 +80,10 @@ func (r *Runner) setVar(name, val string) {
 }
 
 func (r *Runner) getVar(name string) string {
-	// TODO: env vars too
-	return r.vars[name]
+	if val, e := r.vars[name]; e {
+		return val
+	}
+	return os.Getenv(name)
 }
 
 func (r *Runner) delVar(name string) {

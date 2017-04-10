@@ -6,12 +6,21 @@ package interp
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 	"testing"
 
 	"github.com/mvdan/sh/syntax"
 )
+
+func TestMain(m *testing.M) {
+	os.Setenv("INTERP_GLOBAL", "value")
+	for _, s := range []string{"a", "b", "c", "foo"} {
+		os.Unsetenv(s)
+	}
+	os.Exit(m.Run())
+}
 
 var fileCases = []struct {
 	in, want string
@@ -67,6 +76,9 @@ var fileCases = []struct {
 	{"foo=bar; foo=; echo $foo", "\n"},
 	{"unset foo; echo $foo", "\n"},
 	{"foo=bar; unset foo; echo $foo", "\n"},
+	{"echo $INTERP_GLOBAL", "value\n"},
+	{"INTERP_GLOBAL=; echo $INTERP_GLOBAL", "\n"},
+	//{"unset INTERP_GLOBAL; echo $INTERP_GLOBAL", "\n"},
 
 	// special vars
 	{"echo $?; false; echo $?", "0\n1\n"},
@@ -228,6 +240,10 @@ var fileCases = []struct {
 	// exec
 	{
 		"bash -c 'echo foo'",
+		"foo\n",
+	},
+	{
+		"bash -c 'echo foo >&2'",
 		"foo\n",
 	},
 	{
