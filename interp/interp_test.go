@@ -187,6 +187,14 @@ var fileCases = []struct {
 		"1 a\n2 a\n",
 	},
 	*/
+	{
+		"for ((i=0; i<3; i++)); do echo $i; done",
+		"0\n1\n2\n",
+	},
+	{
+		"for ((i=5; i>0; i--)); do echo $i; break; done",
+		"5\n",
+	},
 
 	// block
 	{

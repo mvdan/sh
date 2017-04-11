@@ -266,7 +266,13 @@ func (r *Runner) node(node syntax.Node) {
 				}
 			}
 		case *syntax.CStyleLoop:
-			panic(fmt.Sprintf("unhandled loop: %T", y))
+			r.arithm(y.Init)
+			for r.arithm(y.Cond) != 0 {
+				if r.loopStmtsBroken(x.DoStmts) {
+					break
+				}
+				r.arithm(y.Post)
+			}
 		}
 	case *syntax.FuncDecl:
 		r.setFunc(x.Name.Value, x.Body)
