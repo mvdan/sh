@@ -324,7 +324,6 @@ func (r *Runner) redir(rd *syntax.Redirect) io.Closer {
 		return nil
 	case syntax.DplIn:
 		panic(fmt.Sprintf("unhandled redirect op: %v", rd.Op))
-		return nil
 	}
 	mode := os.O_RDONLY
 	switch rd.Op {
@@ -609,6 +608,7 @@ func (r *Runner) arithm(expr syntax.ArithmExpr) int {
 			b2, ok := x.Y.(*syntax.BinaryArithm)
 			if !ok || b2.Op != syntax.Colon {
 				// TODO: error
+				return 0
 			}
 			if cond == 1 {
 				return r.arithm(b2.X)
