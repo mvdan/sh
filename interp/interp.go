@@ -20,6 +20,11 @@ import (
 // A Runner interprets shell programs. It cannot be reused once a
 // program has been interpreted.
 //
+// Note that writes to Stdout and Stderr may not be sequential. If
+// you plan on using an io.Writer implementation that isn't safe for
+// concurrent use, consider a workaround like hiding writes behind a
+// mutex.
+//
 // TODO: add context to kill the runner before it's done
 type Runner struct {
 	// TODO: syntax.Node instead of *syntax.File?
@@ -540,7 +545,7 @@ func (r *Runner) arithm(expr syntax.ArithmExpr) int {
 	case *syntax.BinaryArithm:
 		return binArit(x.Op, r.arithm(x.X), r.arithm(x.Y))
 	default:
-		panic(fmt.Sprintf("unhandled arithm expr: %T", x))
+		panic(fmt.Sprintf("unexpected arithm expr: %T", x))
 	}
 }
 

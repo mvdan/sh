@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/mvdan/sh/syntax"
@@ -355,6 +356,20 @@ var fileCases = []struct {
 	},
 }
 
+// concBuffer wraps a bytes.Buffer in a mutex so that concurrent writes
+// to it don't upset the race detector.
+type concBuffer struct {
+	buf bytes.Buffer
+	sync.Mutex
+}
+
+func (c *concBuffer) Write(p []byte) (int, error) {
+	c.Lock()
+	n, err := c.buf.Write(p)
+	c.Unlock()
+	return n, err
+}
+
 func TestFile(t *testing.T) {
 	for i, c := range fileCases {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
@@ -362,20 +377,20 @@ func TestFile(t *testing.T) {
 			if err != nil {
 				t.Fatalf("could not parse: %v", err)
 			}
-			var buf bytes.Buffer
+			var cb concBuffer
 			r := Runner{
 				File:   file,
-				Stdout: &buf,
-				Stderr: &buf,
+				Stdout: &cb,
+				Stderr: &cb,
 			}
 			if err := r.Run(); err != nil {
-				buf.WriteString(err.Error())
+				cb.buf.WriteString(err.Error())
 			}
 			want := c.want
 			if i := strings.Index(want, " #JUSTERR"); i >= 0 {
 				want = want[:i]
 			}
-			if got := buf.String(); got != want {
+			if got := cb.buf.String(); got != want {
 				t.Fatalf("wrong output in %q:\nwant: %q\ngot:  %q",
 					c.in, want, got)
 			}
