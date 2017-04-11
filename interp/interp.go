@@ -152,8 +152,11 @@ func (r *Runner) node(node syntax.Node) {
 			r.setVar(name, value)
 		}
 		oldIn, oldOut, oldErr := r.Stdin, r.Stdout, r.Stderr
+		var closers []io.Closer
 		for _, rd := range x.Redirs {
-			r.redir(rd)
+			if closer := r.redir(rd); closer != nil {
+				closers = append(closers, closer)
+			}
 		}
 		if x.Cmd == nil {
 			r.exit = 0
@@ -168,6 +171,9 @@ func (r *Runner) node(node syntax.Node) {
 			}
 		}
 		r.Stdin, r.Stdout, r.Stderr = oldIn, oldOut, oldErr
+		for _, closer := range closers {
+			closer.Close()
+		}
 	case *syntax.CallExpr:
 		fields := r.fields(x.Args)
 		r.call(x.Args[0].Pos(), fields[0], fields[1:])
@@ -268,7 +274,7 @@ func (r *Runner) stmts(stmts []*syntax.Stmt) {
 	}
 }
 
-func (r *Runner) redir(rd *syntax.Redirect) {
+func (r *Runner) redir(rd *syntax.Redirect) io.Closer {
 	if rd.Hdoc != nil {
 		panic("unhandled heredoc redirect")
 	}
@@ -279,9 +285,32 @@ func (r *Runner) redir(rd *syntax.Redirect) {
 		case "2":
 			r.Stdout = r.Stderr
 		}
+		return nil
+	case syntax.DplIn:
+		panic(fmt.Sprintf("unhandled redirect op: %v", rd.Op))
+		return nil
+	}
+	mode := os.O_RDONLY
+	switch rd.Op {
+	case syntax.AppOut:
+		mode = os.O_RDWR | os.O_CREATE | os.O_APPEND
+	case syntax.RdrOut:
+		mode = os.O_RDWR | os.O_CREATE | os.O_TRUNC
+	}
+	f, err := os.OpenFile(arg, mode, 0644)
+	if err != nil {
+		// TODO: error
+		return nil
+	}
+	switch rd.Op {
+	case syntax.RdrIn:
+		r.Stdin = f
+	case syntax.RdrOut, syntax.AppOut:
+		r.Stdout = f
 	default:
 		panic(fmt.Sprintf("unhandled redirect op: %v", rd.Op))
 	}
+	return f
 }
 
 func (r *Runner) loopStmtsBroken(stmts []*syntax.Stmt) bool {

@@ -289,6 +289,18 @@ var fileCases = []struct {
 		"{ echo foo >&2; } |& sed 's/o/a/g'",
 		"faa\n",
 	},
+	{
+		"echo foo >/dev/null",
+		"",
+	},
+	{
+		"echo foo >tfile; wc -c <tfile; rm tfile",
+		"4\n",
+	},
+	{
+		"echo foo >>tfile; echo bar >>tfile; wc -c <tfile; rm tfile",
+		"8\n",
+	},
 
 	// arithm exp
 	{
