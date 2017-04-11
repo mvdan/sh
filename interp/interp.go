@@ -543,6 +543,13 @@ func (r *Runner) arithm(expr syntax.ArithmExpr) int {
 	case *syntax.UnaryArithm:
 		return unArit(x.Op, r.arithm(x.X))
 	case *syntax.BinaryArithm:
+		switch x.Op {
+		case syntax.Assgn, syntax.AddAssgn, syntax.SubAssgn,
+			syntax.MulAssgn, syntax.QuoAssgn, syntax.RemAssgn,
+			syntax.AndAssgn, syntax.OrAssgn, syntax.XorAssgn,
+			syntax.ShlAssgn, syntax.ShrAssgn:
+			return r.assgnArit(x)
+		}
 		return binArit(x.Op, r.arithm(x.X), r.arithm(x.Y))
 	default:
 		panic(fmt.Sprintf("unexpected arithm expr: %T", x))
@@ -569,6 +576,43 @@ func unArit(op syntax.UnAritOperator, x int) int {
 	default: // syntax.Minus
 		return -x
 	}
+}
+
+func (r *Runner) assgnArit(b *syntax.BinaryArithm) int {
+	word, ok := b.X.(*syntax.Word)
+	if !ok {
+		// TODO: error?
+		return 0
+	}
+	name := r.loneWord(word)
+	val, _ := strconv.Atoi(r.getVar(name)) // TODO: error?
+	arg := r.arithm(b.Y)
+	switch b.Op {
+	case syntax.Assgn:
+		val = arg
+	case syntax.AddAssgn:
+		val += arg
+	case syntax.SubAssgn:
+		val -= arg
+	case syntax.MulAssgn:
+		val *= arg
+	case syntax.QuoAssgn:
+		val /= arg
+	case syntax.RemAssgn:
+		val %= arg
+	case syntax.AndAssgn:
+		val &= arg
+	case syntax.OrAssgn:
+		val |= arg
+	case syntax.XorAssgn:
+		val ^= arg
+	case syntax.ShlAssgn:
+		val <<= uint(arg)
+	default: // syntax.ShrAssgn
+		val >>= uint(arg)
+	}
+	r.setVar(name, strconv.Itoa(val))
+	return val
 }
 
 func binArit(op syntax.BinAritOperator, x, y int) int {
@@ -606,6 +650,15 @@ func binArit(op syntax.BinAritOperator, x, y int) int {
 		return x >> uint(y)
 	case syntax.Shl:
 		return x << uint(y)
+	case syntax.AndArit:
+		return boolArit(x != 0 && y != 0)
+	case syntax.OrArit:
+		return boolArit(x != 0 || y != 0)
+	case syntax.Comma:
+		// x is executed but its result discarded
+		return y
+	//case syntax.Quest:
+	//case syntax.Colon:
 	default:
 		panic(fmt.Sprintf("unhandled arithm bin op: %v", op))
 	}
