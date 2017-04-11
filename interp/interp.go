@@ -127,13 +127,13 @@ func (r *Runner) errf(format string, a ...interface{}) {
 func (r *Runner) fields(words []*syntax.Word) []string {
 	fields := make([]string, 0, len(words))
 	for _, word := range words {
-		fields = append(fields, r.wordParts(word.Parts)...)
+		fields = append(fields, r.wordParts(word.Parts, false)...)
 	}
 	return fields
 }
 
 func (r *Runner) loneWord(word *syntax.Word) string {
-	return strings.Join(r.wordParts(word.Parts), "")
+	return strings.Join(r.wordParts(word.Parts, false), "")
 }
 
 func (r *Runner) node(node syntax.Node) {
@@ -365,7 +365,7 @@ func (r *Runner) loopStmtsBroken(stmts []*syntax.Stmt) bool {
 	return false
 }
 
-func (r *Runner) wordParts(wps []syntax.WordPart) []string {
+func (r *Runner) wordParts(wps []syntax.WordPart, quoted bool) []string {
 	var parts []string
 	var curBuf bytes.Buffer
 	flush := func() {
@@ -391,7 +391,7 @@ func (r *Runner) wordParts(wps []syntax.WordPart) []string {
 		case *syntax.SglQuoted:
 			curBuf.WriteString(x.Value)
 		case *syntax.DblQuoted:
-			for _, str := range r.wordParts(x.Parts) {
+			for _, str := range r.wordParts(x.Parts, true) {
 				curBuf.WriteString(str)
 			}
 		case *syntax.ParamExp:
@@ -400,6 +400,10 @@ func (r *Runner) wordParts(wps []syntax.WordPart) []string {
 			switch name {
 			case "#":
 				val = strconv.Itoa(len(r.params))
+			case "*":
+				val = strings.Join(r.params, " ")
+			case "@":
+				val = strings.Join(r.params, " ")
 			case "?":
 				val = strconv.Itoa(r.exit)
 			default:
@@ -414,7 +418,11 @@ func (r *Runner) wordParts(wps []syntax.WordPart) []string {
 			if x.Length {
 				val = strconv.Itoa(utf8.RuneCountInString(val))
 			}
-			splitAdd(val)
+			if !quoted {
+				splitAdd(val)
+				continue
+			}
+			curBuf.WriteString(val)
 		case *syntax.CmdSubst:
 			oldOut := r.Stdout
 			var outBuf bytes.Buffer
