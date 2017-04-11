@@ -36,6 +36,8 @@ type Runner struct {
 	// >0 to break or continue out of N enclosing loops
 	breakEnclosing, contnEnclosing int
 
+	inLoop bool
+
 	err  error // current fatal error
 	exit int   // current (last) exit code
 
@@ -319,6 +321,8 @@ func (r *Runner) redir(rd *syntax.Redirect) io.Closer {
 }
 
 func (r *Runner) loopStmtsBroken(stmts []*syntax.Stmt) bool {
+	r.inLoop = true
+	defer func() { r.inLoop = false }()
 	for _, stmt := range stmts {
 		r.node(stmt)
 		if r.contnEnclosing > 0 {
@@ -451,6 +455,10 @@ func (r *Runner) call(pos syntax.Pos, name string, args []string) {
 		}
 		r.outf(args[0], a...)
 	case "break":
+		if !r.inLoop {
+			r.errf("break is only useful in a loop")
+			break
+		}
 		switch len(args) {
 		case 0:
 			r.breakEnclosing = 1
@@ -465,6 +473,10 @@ func (r *Runner) call(pos syntax.Pos, name string, args []string) {
 			exit = 2
 		}
 	case "continue":
+		if !r.inLoop {
+			r.errf("continue is only useful in a loop")
+			break
+		}
 		switch len(args) {
 		case 0:
 			r.contnEnclosing = 1
@@ -475,7 +487,7 @@ func (r *Runner) call(pos syntax.Pos, name string, args []string) {
 			}
 			fallthrough
 		default:
-			r.errf("usage: continue [n]")
+			r.errf("usage: continue [n]\n")
 			exit = 2
 		}
 	default:

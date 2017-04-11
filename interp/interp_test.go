@@ -46,6 +46,8 @@ var fileCases = []struct {
 	{"false; exit", "exit status 1"},
 	{"exit; echo foo", ""},
 	{"printf", "usage: printf format [arguments]\nexit status 2 #JUSTERR"},
+	{"break", "break is only useful in a loop #JUSTERR"},
+	{"continue", "continue is only useful in a loop #JUSTERR"},
 	{"shouldnotexist", "exit status 127 #JUSTERR"},
 
 	// we don't need to follow bash error strings
@@ -290,8 +292,8 @@ var fileCases = []struct {
 		"faa\n",
 	},
 	{
-		"echo foo >/dev/null",
-		"",
+		"echo foo >/dev/null; echo bar",
+		"bar\n",
 	},
 	{
 		"echo foo >tfile; wc -c <tfile; rm tfile",
@@ -388,7 +390,10 @@ func TestFileConfirm(t *testing.T) {
 			cmd.Stdin = strings.NewReader(c.in)
 			out, err := cmd.CombinedOutput()
 			if strings.Contains(c.want, " #JUSTERR") {
-				if err == nil {
+				// bash sometimes exits with code 0 and
+				// stderr "bash: ..." for an error
+				fauxErr := bytes.HasPrefix(out, []byte("bash:"))
+				if err == nil && !fauxErr {
 					t.Fatalf("wanted bash to error in %q", c.in)
 				}
 				return
