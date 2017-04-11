@@ -270,6 +270,10 @@ func (r *Runner) node(node syntax.Node) {
 		}
 	case *syntax.FuncDecl:
 		r.setFunc(x.Name.Value, x.Body)
+	case *syntax.LetClause:
+		for _, expr := range x.Exprs {
+			r.arithm(expr)
+		}
 	default:
 		panic(fmt.Sprintf("unhandled node: %T", x))
 	}
@@ -541,7 +545,36 @@ func (r *Runner) arithm(expr syntax.ArithmExpr) int {
 	case *syntax.ParenArithm:
 		return r.arithm(x.X)
 	case *syntax.UnaryArithm:
-		return unArit(x.Op, r.arithm(x.X))
+		switch x.Op {
+		case syntax.Inc, syntax.Dec:
+			word, ok := x.X.(*syntax.Word)
+			if !ok {
+				// TODO: error?
+				return 0
+			}
+			name := r.loneWord(word)
+			old, _ := strconv.Atoi(r.getVar(name)) // TODO: error?
+			val := old
+			if x.Op == syntax.Inc {
+				val++
+			} else {
+				val--
+			}
+			r.setVar(name, strconv.Itoa(val))
+			if x.Post {
+				return old
+			}
+			return val
+		}
+		val := r.arithm(x.X)
+		switch x.Op {
+		case syntax.Not:
+			return boolArit(val == 0)
+		case syntax.Plus:
+			return val
+		default: // syntax.Minus
+			return -val
+		}
 	case *syntax.BinaryArithm:
 		switch x.Op {
 		case syntax.Assgn, syntax.AddAssgn, syntax.SubAssgn,
@@ -561,21 +594,6 @@ func boolArit(b bool) int {
 		return 1
 	}
 	return 0
-}
-
-func unArit(op syntax.UnAritOperator, x int) int {
-	switch op {
-	case syntax.Not:
-		return boolArit(x == 0)
-	case syntax.Inc:
-		return x + 1
-	case syntax.Dec:
-		return x - 1
-	case syntax.Plus:
-		return x
-	default: // syntax.Minus
-		return -x
-	}
 }
 
 func (r *Runner) assgnArit(b *syntax.BinaryArithm) int {

@@ -382,6 +382,14 @@ var fileCases = []struct {
 		"echo $((a |= 3, a &= 1, a ^= 8, a %= 5, a))",
 		"4\n",
 	},
+	{
+		"echo $((a = 3, ++a, a--))",
+		"4\n",
+	},
+	{
+		"let i=(3+4); let i++; echo $i; let i--; echo $i",
+		"8\n7\n",
+	},
 }
 
 // concBuffer wraps a bytes.Buffer in a mutex so that concurrent writes
