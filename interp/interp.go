@@ -276,7 +276,9 @@ func (r *Runner) stmts(stmts []*syntax.Stmt) {
 
 func (r *Runner) redir(rd *syntax.Redirect) io.Closer {
 	if rd.Hdoc != nil {
-		panic("unhandled heredoc redirect")
+		hdoc := r.loneWord(rd.Hdoc)
+		r.Stdin = strings.NewReader(hdoc)
+		return nil
 	}
 	arg := r.loneWord(rd.Word)
 	switch rd.Op {

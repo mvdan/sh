@@ -301,6 +301,22 @@ var fileCases = []struct {
 		"echo foo >>tfile; echo bar >>tfile; wc -c <tfile; rm tfile",
 		"8\n",
 	},
+	{
+		"sed 's/o/a/g' <<EOF\nfoo$foo\nEOF",
+		"faa\n",
+	},
+	{
+		"sed 's/o/a/g' <<'EOF'\nfoo$foo\nEOF",
+		"faa$faa\n",
+	},
+	{
+		"sed 's/o/a/g' <<EOF\n\tfoo\nEOF",
+		"\tfaa\n",
+	},
+	{
+		"sed 's/o/a/g' <<EOF\nfoo\nEOF",
+		"faa\n",
+	},
 
 	// arithm exp
 	{
