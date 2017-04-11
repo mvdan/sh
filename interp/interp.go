@@ -124,6 +124,10 @@ func (r *Runner) fields(words []*syntax.Word) []string {
 	return fields
 }
 
+func (r *Runner) loneWord(word *syntax.Word) string {
+	return strings.Join(r.wordParts(word.Parts), "")
+}
+
 func (r *Runner) node(node syntax.Node) {
 	if r.err != nil {
 		return
@@ -138,15 +142,18 @@ func (r *Runner) node(node syntax.Node) {
 		r.stmts(x.Stmts)
 	case *syntax.Stmt:
 		// TODO: handle background
-		// TODO: redirects
 
 		// TODO: assigns only apply to x.Cmd if x.Cmd != nil
 		for _, as := range x.Assigns {
 			name, value := as.Name.Value, ""
 			if as.Value != nil {
-				value = strings.Join(r.wordParts(as.Value.Parts), "")
+				value = r.loneWord(as.Value)
 			}
 			r.setVar(name, value)
+		}
+		oldIn, oldOut, oldErr := r.Stdin, r.Stdout, r.Stderr
+		for _, rd := range x.Redirs {
+			r.redir(rd)
 		}
 		if x.Cmd == nil {
 			r.exit = 0
@@ -160,6 +167,7 @@ func (r *Runner) node(node syntax.Node) {
 				r.exit = 0
 			}
 		}
+		r.Stdin, r.Stdout, r.Stderr = oldIn, oldOut, oldErr
 	case *syntax.CallExpr:
 		fields := r.fields(x.Args)
 		r.call(x.Args[0].Pos(), fields[0], fields[1:])
@@ -257,6 +265,22 @@ func (r *Runner) node(node syntax.Node) {
 func (r *Runner) stmts(stmts []*syntax.Stmt) {
 	for _, stmt := range stmts {
 		r.node(stmt)
+	}
+}
+
+func (r *Runner) redir(rd *syntax.Redirect) {
+	if rd.Hdoc != nil {
+		panic("unhandled heredoc redirect")
+	}
+	arg := r.loneWord(rd.Word)
+	switch rd.Op {
+	case syntax.DplOut:
+		switch arg {
+		case "2":
+			r.Stdout = r.Stderr
+		}
+	default:
+		panic(fmt.Sprintf("unhandled redirect op: %v", rd.Op))
 	}
 }
 
@@ -451,7 +475,7 @@ func (r *Runner) call(pos syntax.Pos, name string, args []string) {
 func (r *Runner) arithm(expr syntax.ArithmExpr) int {
 	switch x := expr.(type) {
 	case *syntax.Word:
-		str := strings.Join(r.wordParts(x.Parts), "")
+		str := r.loneWord(x)
 		// recursively fetch vars
 		for {
 			val := r.getVar(str)

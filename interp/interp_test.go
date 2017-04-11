@@ -269,9 +269,24 @@ var fileCases = []struct {
 		"1\n2\n3\n4\n",
 	},
 
-	// pipe
+	// pipes
 	{
 		"echo foo | sed 's/o/a/g'",
+		"faa\n",
+	},
+
+	// redirects
+	{
+		"echo foo >&1 | sed 's/o/a/g'",
+		"faa\n",
+	},
+	{
+		"echo foo >&2 | sed 's/o/a/g'",
+		"foo\n",
+	},
+	{
+		// TODO: why does bash need a block here?
+		"{ echo foo >&2; } |& sed 's/o/a/g'",
 		"faa\n",
 	},
 
