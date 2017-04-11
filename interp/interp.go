@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path"
 	"strconv"
 	"strings"
 	"syscall"
@@ -279,6 +280,19 @@ func (r *Runner) node(node syntax.Node) {
 	case *syntax.LetClause:
 		for _, expr := range x.Exprs {
 			r.arithm(expr)
+		}
+	case *syntax.CaseClause:
+		str := r.loneWord(x.Word)
+		for _, pl := range x.List {
+			for _, word := range pl.Patterns {
+				pat := r.loneWord(word)
+				// TODO: error?
+				matched, _ := path.Match(pat, str)
+				if matched {
+					r.stmts(pl.Stmts)
+					return
+				}
+			}
 		}
 	default:
 		panic(fmt.Sprintf("unhandled node: %T", x))

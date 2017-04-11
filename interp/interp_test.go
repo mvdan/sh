@@ -248,6 +248,28 @@ var fileCases = []struct {
 		"2\n0\n",
 	},
 
+	// case
+	{
+		"case b in x) echo foo ;; a|b) echo bar ;; esac",
+		"bar\n",
+	},
+	{
+		"case b in x) echo foo ;; y|z) echo bar ;; esac",
+		"",
+	},
+	{
+		"case foo in bar) echo foo ;; *) echo bar ;; esac",
+		"bar\n",
+	},
+	{
+		"case foo in *o*) echo bar ;; esac",
+		"bar\n",
+	},
+	{
+		"case foo in f*) echo bar ;; esac",
+		"bar\n",
+	},
+
 	// exec
 	{
 		"bash -c 'echo foo'",
