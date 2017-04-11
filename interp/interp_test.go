@@ -317,6 +317,10 @@ var fileCases = []struct {
 		"sed 's/o/a/g' <<EOF\nfoo\nEOF",
 		"faa\n",
 	},
+	{
+		"sed 's/o/a/g' <<<foo$foo",
+		"faa\n",
+	},
 
 	// arithm exp
 	{

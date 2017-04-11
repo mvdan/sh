@@ -282,6 +282,9 @@ func (r *Runner) redir(rd *syntax.Redirect) io.Closer {
 	}
 	arg := r.loneWord(rd.Word)
 	switch rd.Op {
+	case syntax.WordHdoc:
+		r.Stdin = strings.NewReader(arg + "\n")
+		return nil
 	case syntax.DplOut:
 		switch arg {
 		case "2":
