@@ -582,6 +582,18 @@ func (r *Runner) arithm(expr syntax.ArithmExpr) int {
 			syntax.AndAssgn, syntax.OrAssgn, syntax.XorAssgn,
 			syntax.ShlAssgn, syntax.ShrAssgn:
 			return r.assgnArit(x)
+		case syntax.Colon:
+			// TODO: error
+		case syntax.Quest:
+			cond := r.arithm(x.X)
+			b2, ok := x.Y.(*syntax.BinaryArithm)
+			if !ok || b2.Op != syntax.Colon {
+				// TODO: error
+			}
+			if cond == 1 {
+				return r.arithm(b2.X)
+			}
+			return r.arithm(b2.Y)
 		}
 		return binArit(x.Op, r.arithm(x.X), r.arithm(x.Y))
 	default:
@@ -633,6 +645,18 @@ func (r *Runner) assgnArit(b *syntax.BinaryArithm) int {
 	return val
 }
 
+func intPow(a, b int) int {
+	p := 1
+	for b > 0 {
+		if b&1 != 0 {
+			p *= a
+		}
+		b >>= 1
+		a *= a
+	}
+	return p
+}
+
 func binArit(op syntax.BinAritOperator, x, y int) int {
 	switch op {
 	case syntax.Add:
@@ -645,7 +669,8 @@ func binArit(op syntax.BinAritOperator, x, y int) int {
 		return x / y
 	case syntax.Rem:
 		return x % y
-	//case syntax.Pow:
+	case syntax.Pow:
+		return intPow(x, y)
 	case syntax.Eql:
 		return boolArit(x == y)
 	case syntax.Gtr:
@@ -672,12 +697,8 @@ func binArit(op syntax.BinAritOperator, x, y int) int {
 		return boolArit(x != 0 && y != 0)
 	case syntax.OrArit:
 		return boolArit(x != 0 || y != 0)
-	case syntax.Comma:
+	default: // syntax.Comma
 		// x is executed but its result discarded
 		return y
-	//case syntax.Quest:
-	//case syntax.Colon:
-	default:
-		panic(fmt.Sprintf("unhandled arithm bin op: %v", op))
 	}
 }
