@@ -248,9 +248,9 @@ func (r *Runner) node(node syntax.Node) {
 		for r.err == nil {
 			r.stmts(x.CondStmts)
 			if r.exit == 0 {
-				r.exit = 0
 				break
 			}
+			r.exit = 0
 			if r.loopStmtsBroken(x.DoStmts) {
 				break
 			}
