@@ -288,7 +288,11 @@ var fileCases = []struct {
 		"foo\n",
 	},
 	{
-		"bash -c 'echo foo >&2'",
+		"bash -c 'echo foo >&2' >/dev/null",
+		"foo\n",
+	},
+	{
+		"echo foo | bash -c 'cat >&2' >/dev/null",
 		"foo\n",
 	},
 	{
