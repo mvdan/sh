@@ -25,8 +25,6 @@ import (
 // you plan on using an io.Writer implementation that isn't safe for
 // concurrent use, consider a workaround like hiding writes behind a
 // mutex.
-//
-// TODO: add context to kill the runner before it's done
 type Runner struct {
 	// TODO: syntax.Node instead of *syntax.File?
 	File *syntax.File
@@ -50,6 +48,8 @@ type Runner struct {
 	Stdin  io.Reader
 	Stdout io.Writer
 	Stderr io.Writer
+
+	// TODO: add context to kill the runner before it's done
 }
 
 type ExitCode uint8
