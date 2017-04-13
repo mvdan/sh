@@ -215,6 +215,14 @@ var fileCases = []struct {
 		"(false)",
 		"exit status 1",
 	},
+	{
+		"(foo=bar; echo $foo); echo $foo",
+		"bar\n\n",
+	},
+	{
+		"(echo() { printf 'bar\n'; }; echo); echo",
+		"bar\n\n",
+	},
 
 	// binary cmd
 	{

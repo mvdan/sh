@@ -146,8 +146,9 @@ func (r *Runner) node(node syntax.Node) {
 	case *syntax.Block:
 		r.stmts(x.Stmts)
 	case *syntax.Subshell:
-		// TODO: child process? encapsulate somehow anyway
-		r.stmts(x.Stmts)
+		r2 := *r
+		r2.stmts(x.Stmts)
+		r.exit = r2.exit
 	case *syntax.Stmt:
 		// TODO: handle background
 
