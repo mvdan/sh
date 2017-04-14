@@ -499,6 +499,20 @@ func (c *concBuffer) Write(p []byte) (int, error) {
 	return n, err
 }
 
+func (c *concBuffer) WriteString(s string) (int, error) {
+	c.Lock()
+	n, err := c.buf.WriteString(s)
+	c.Unlock()
+	return n, err
+}
+
+func (c *concBuffer) String() string {
+	c.Lock()
+	s := c.buf.String()
+	c.Unlock()
+	return s
+}
+
 func TestFile(t *testing.T) {
 	for i, c := range fileCases {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
@@ -513,13 +527,13 @@ func TestFile(t *testing.T) {
 				Stderr: &cb,
 			}
 			if err := r.Run(); err != nil {
-				cb.buf.WriteString(err.Error())
+				cb.WriteString(err.Error())
 			}
 			want := c.want
 			if i := strings.Index(want, " #JUSTERR"); i >= 0 {
 				want = want[:i]
 			}
-			if got := cb.buf.String(); got != want {
+			if got := cb.String(); got != want {
 				t.Fatalf("wrong output in %q:\nwant: %q\ngot:  %q",
 					c.in, want, got)
 			}
