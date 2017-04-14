@@ -482,111 +482,34 @@ func (r *Runner) call(pos syntax.Pos, name string, args []string) {
 		r.args = oldArgs
 		return
 	}
-	exit := 0
-	switch name {
-	case "true", ":":
-	case "false":
-		exit = 1
-	case "exit":
-		switch len(args) {
-		case 0:
-			r.lastExit()
-		case 1:
-			if n, err := strconv.Atoi(args[0]); err != nil {
-				r.interpErr(pos, "invalid exit code: %q", args[0])
-			} else if n != 0 {
-				r.err = ExitCode(n)
-			}
-		default:
-			r.interpErr(pos, "exit cannot take multiple arguments")
-		}
-	case "set":
-		r.args = args
-	case "unset":
-		for _, arg := range args {
-			r.delVar(arg)
-		}
-	case "echo":
-		for i, arg := range args {
-			if i > 0 {
-				r.outf(" ")
-			}
-			r.outf("%s", arg)
-		}
-		r.outf("\n")
-	case "printf":
-		if len(args) == 0 {
-			r.errf("usage: printf format [arguments]\n")
-			exit = 2
-			break
-		}
-		var a []interface{}
-		for _, arg := range args[1:] {
-			a = append(a, arg)
-		}
-		r.outf(args[0], a...)
-	case "break":
-		if !r.inLoop {
-			r.errf("break is only useful in a loop")
-			break
-		}
-		switch len(args) {
-		case 0:
-			r.breakEnclosing = 1
-		case 1:
-			if n, err := strconv.Atoi(args[0]); err == nil {
-				r.breakEnclosing = n
-				break
-			}
-			fallthrough
-		default:
-			r.errf("usage: break [n]\n")
-			exit = 2
-		}
-	case "continue":
-		if !r.inLoop {
-			r.errf("continue is only useful in a loop")
-			break
-		}
-		switch len(args) {
-		case 0:
-			r.contnEnclosing = 1
-		case 1:
-			if n, err := strconv.Atoi(args[0]); err == nil {
-				r.contnEnclosing = n
-				break
-			}
-			fallthrough
-		default:
-			r.errf("usage: continue [n]\n")
-			exit = 2
-		}
-	default:
-		cmd := exec.Command(name, args...)
-		cmd.Stdin = r.Stdin
-		cmd.Stdout = r.Stdout
-		cmd.Stderr = r.Stderr
-		err := cmd.Run()
-		if err == nil {
-			break
-		}
-		switch x := err.(type) {
-		case *exec.ExitError:
-			// started, but errored - default to 1 if OS
-			// doesn't have exit statuses
-			exit = 1
-			if status, ok := x.Sys().(syscall.WaitStatus); ok {
-				exit = status.ExitStatus()
-			}
-		case *exec.Error:
-			// did not start
-			// TODO: can this be anything other than
-			// "command not found"?
-			exit = 127
-			// TODO: print something?
-		}
+	if r.builtin(pos, name, args) {
+		return
 	}
-	r.exit = exit
+	cmd := exec.Command(name, args...)
+	cmd.Stdin = r.Stdin
+	cmd.Stdout = r.Stdout
+	cmd.Stderr = r.Stderr
+	err := cmd.Run()
+	if err == nil {
+		r.exit = 0
+		return
+	}
+	switch x := err.(type) {
+	case *exec.ExitError:
+		// started, but errored - default to 1 if OS
+		// doesn't have exit statuses
+		if status, ok := x.Sys().(syscall.WaitStatus); ok {
+			r.exit = status.ExitStatus()
+		} else {
+			r.exit = 1
+		}
+	case *exec.Error:
+		// did not start
+		// TODO: can this be anything other than
+		// "command not found"?
+		r.exit = 127
+		// TODO: print something?
+	}
 }
 
 func (r *Runner) arithm(expr syntax.ArithmExpr) int {
