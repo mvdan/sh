@@ -21,12 +21,12 @@ func (r *Runner) builtin(pos syntax.Pos, name string, args []string) bool {
 			r.lastExit()
 		case 1:
 			if n, err := strconv.Atoi(args[0]); err != nil {
-				r.interpErr(pos, "invalid exit code: %q", args[0])
+				r.runErr(pos, "invalid exit code: %q", args[0])
 			} else if n != 0 {
 				r.err = ExitCode(n)
 			}
 		default:
-			r.interpErr(pos, "exit cannot take multiple arguments")
+			r.runErr(pos, "exit cannot take multiple arguments")
 		}
 	case "set":
 		r.args = args

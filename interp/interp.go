@@ -56,18 +56,18 @@ type ExitCode uint8
 
 func (e ExitCode) Error() string { return fmt.Sprintf("exit status %d", e) }
 
-type InterpError struct {
+type RunError struct {
 	syntax.Position
 	Text string
 }
 
-func (i InterpError) Error() string {
-	return fmt.Sprintf("%s: %s", i.Position.String(), i.Text)
+func (e RunError) Error() string {
+	return fmt.Sprintf("%s: %s", e.Position.String(), e.Text)
 }
 
-func (r *Runner) interpErr(pos syntax.Pos, format string, a ...interface{}) {
+func (r *Runner) runErr(pos syntax.Pos, format string, a ...interface{}) {
 	if r.err == nil {
-		r.err = InterpError{
+		r.err = RunError{
 			Position: r.File.Position(pos),
 			Text:     fmt.Sprintf(format, a...),
 		}
