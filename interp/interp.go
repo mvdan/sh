@@ -292,9 +292,18 @@ func (r *Runner) node(node syntax.Node) {
 		}
 	case *syntax.FuncDecl:
 		r.setFunc(x.Name.Value, x.Body)
+	case *syntax.ArithmCmd:
+		val := r.arithm(x.X)
+		if val == 0 {
+			r.exit = 1
+		}
 	case *syntax.LetClause:
+		var val int
 		for _, expr := range x.Exprs {
-			r.arithm(expr)
+			val = r.arithm(expr)
+		}
+		if val == 0 {
+			r.exit = 1
 		}
 	case *syntax.CaseClause:
 		str := r.loneWord(x.Word)

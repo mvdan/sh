@@ -409,7 +409,7 @@ var fileCases = []struct {
 		"",
 	},
 
-	// arithm exp
+	// arithm
 	{
 		"echo $((1 == +1))",
 		"1\n",
@@ -479,8 +479,20 @@ var fileCases = []struct {
 		"2 3\n",
 	},
 	{
+		"((1))",
+		"",
+	},
+	{
+		"((3 == 4))",
+		"exit status 1",
+	},
+	{
 		"let i=(3+4); let i++; echo $i; let i--; echo $i",
 		"8\n7\n",
+	},
+	{
+		"let 3==4",
+		"exit status 1",
 	},
 
 	// set
