@@ -359,8 +359,12 @@ var fileCases = []struct {
 		"4\n",
 	},
 	{
-		"echo foo >>tfile; echo bar >>tfile; wc -c <tfile; rm tfile",
+		"echo foo >>tfile; echo bar &>>tfile; wc -c <tfile; rm tfile",
 		"8\n",
+	},
+	{
+		"{ echo a; echo b >&2; } &>/dev/null",
+		"",
 	},
 	{
 		"sed 's/o/a/g' <<EOF\nfoo$foo\nEOF",

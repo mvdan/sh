@@ -337,9 +337,9 @@ func (r *Runner) redir(rd *syntax.Redirect) io.Closer {
 	}
 	mode := os.O_RDONLY
 	switch rd.Op {
-	case syntax.AppOut:
+	case syntax.AppOut, syntax.AppAll:
 		mode = os.O_RDWR | os.O_CREATE | os.O_APPEND
-	case syntax.RdrOut:
+	case syntax.RdrOut, syntax.RdrAll:
 		mode = os.O_RDWR | os.O_CREATE | os.O_TRUNC
 	}
 	f, err := os.OpenFile(arg, mode, 0644)
@@ -352,6 +352,9 @@ func (r *Runner) redir(rd *syntax.Redirect) io.Closer {
 		r.Stdin = f
 	case syntax.RdrOut, syntax.AppOut:
 		r.Stdout = f
+	case syntax.RdrAll, syntax.AppAll:
+		r.Stdout = f
+		r.Stderr = f
 	default:
 		panic(fmt.Sprintf("unhandled redirect op: %v", rd.Op))
 	}
