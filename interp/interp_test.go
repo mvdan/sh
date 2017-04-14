@@ -40,8 +40,11 @@ var fileCases = []struct {
 	{"exit -1", "exit status 255"},
 	{"exit 300", "exit status 44"},
 	{"false", "exit status 1"},
+	{"false foo", "exit status 1"},
 	{"!", "exit status 1"},
 	{"! false", ""},
+	{"true foo", ""},
+	{": foo", ""},
 	{"! true", "exit status 1"},
 	{"false; true", ""},
 	{"false; exit", "exit status 1"},
@@ -58,6 +61,8 @@ var fileCases = []struct {
 	// echo
 	{"echo", "\n"},
 	{"echo a b c", "a b c\n"},
+	{"echo -n foo", "foo"},
+	{"echo -e '\a'", "\a\n"},
 
 	// printf
 	{"printf foo", "foo"},

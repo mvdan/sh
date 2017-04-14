@@ -35,13 +35,29 @@ func (r *Runner) builtin(pos syntax.Pos, name string, args []string) bool {
 			r.delVar(arg)
 		}
 	case "echo":
+		newline := true
+	opts:
+		for len(args) > 0 {
+			switch args[0] {
+			case "-n":
+				newline = false
+			case "-e":
+				// TODO: POSIX does this by default, but
+				// not bash. who should we obey?
+			default:
+				break opts
+			}
+			args = args[1:]
+		}
 		for i, arg := range args {
 			if i > 0 {
 				r.outf(" ")
 			}
 			r.outf("%s", arg)
 		}
-		r.outf("\n")
+		if newline {
+			r.outf("\n")
+		}
 	case "printf":
 		if len(args) == 0 {
 			r.errf("usage: printf format [arguments]\n")
