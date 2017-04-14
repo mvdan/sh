@@ -23,8 +23,7 @@ func (r *Runner) arithm(expr syntax.ArithmExpr) int {
 			str = val
 		}
 		// default to 0
-		n, _ := strconv.Atoi(str)
-		return n
+		return atoi(str)
 	case *syntax.ParenArithm:
 		return r.arithm(x.X)
 	case *syntax.UnaryArithm:
@@ -36,7 +35,7 @@ func (r *Runner) arithm(expr syntax.ArithmExpr) int {
 				return 0
 			}
 			name := r.loneWord(word)
-			old, _ := strconv.Atoi(r.getVar(name)) // TODO: error?
+			old := atoi(r.getVar(name))
 			val := old
 			if x.Op == syntax.Inc {
 				val++
@@ -85,6 +84,13 @@ func (r *Runner) arithm(expr syntax.ArithmExpr) int {
 	}
 }
 
+// atoi is just a shorthand for strconv.Atoi that ignores the error,
+// just like shells do.
+func atoi(s string) int {
+	n, _ := strconv.Atoi(s)
+	return n
+}
+
 func boolArit(b bool) int {
 	if b {
 		return 1
@@ -99,7 +105,7 @@ func (r *Runner) assgnArit(b *syntax.BinaryArithm) int {
 		return 0
 	}
 	name := r.loneWord(word)
-	val, _ := strconv.Atoi(r.getVar(name)) // TODO: error?
+	val := atoi(r.getVar(name))
 	arg := r.arithm(b.Y)
 	switch b.Op {
 	case syntax.Assgn:

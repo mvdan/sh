@@ -36,12 +36,18 @@ func (r *Runner) binTest(op syntax.BinTestOperator, x, y string) bool {
 	//case syntax.TsNewer:
 	//case syntax.TsOlder:
 	//case syntax.TsDevIno:
-	//case syntax.TsEql:
-	//case syntax.TsNeq:
-	//case syntax.TsLeq:
-	//case syntax.TsGeq:
-	//case syntax.TsLss:
-	//case syntax.TsGtr:
+	case syntax.TsEql:
+		return atoi(x) == atoi(y)
+	case syntax.TsNeq:
+		return atoi(x) != atoi(y)
+	case syntax.TsLeq:
+		return atoi(x) <= atoi(y)
+	case syntax.TsGeq:
+		return atoi(x) >= atoi(y)
+	case syntax.TsLss:
+		return atoi(x) < atoi(y)
+	case syntax.TsGtr:
+		return atoi(x) > atoi(y)
 	case syntax.AndTest:
 		return x != "" && y != ""
 	case syntax.OrTest:
