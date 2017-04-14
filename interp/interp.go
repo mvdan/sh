@@ -171,15 +171,20 @@ func (r *Runner) node(node syntax.Node) {
 			}
 		}
 		if x.Background {
-			if x.Cmd != nil {
-				go r.node(x.Cmd)
-			}
+			go func() {
+				if x.Cmd != nil {
+					r.node(x.Cmd)
+				}
+				for _, closer := range closers {
+					closer.Close()
+				}
+			}()
+			break
+		}
+		if x.Cmd == nil {
+			r.exit = 0
 		} else {
-			if x.Cmd == nil {
-				r.exit = 0
-			} else {
-				r.node(x.Cmd)
-			}
+			r.node(x.Cmd)
 		}
 		if x.Negated {
 			if r.exit == 0 {
