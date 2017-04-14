@@ -34,8 +34,8 @@ type Runner struct {
 	vars  map[string]string
 	funcs map[string]*syntax.Stmt
 
-	// Current parameters, if executing a function
-	params []string
+	// Current arguments, if executing a function
+	args []string
 
 	// >0 to break or continue out of N enclosing loops
 	breakEnclosing, contnEnclosing int
@@ -407,11 +407,11 @@ func (r *Runner) wordParts(wps []syntax.WordPart, quoted bool) []string {
 			if len(x.Parts) == 1 {
 				pe, ok := x.Parts[0].(*syntax.ParamExp)
 				if ok && pe.Param.Value == "@" {
-					for i, param := range r.params {
+					for i, arg := range r.args {
 						if i > 0 {
 							flush()
 						}
-						curBuf.WriteString(param)
+						curBuf.WriteString(arg)
 					}
 					continue
 				}
@@ -424,17 +424,15 @@ func (r *Runner) wordParts(wps []syntax.WordPart, quoted bool) []string {
 			val := ""
 			switch name {
 			case "#":
-				val = strconv.Itoa(len(r.params))
-			case "*":
-				val = strings.Join(r.params, " ")
-			case "@":
-				val = strings.Join(r.params, " ")
+				val = strconv.Itoa(len(r.args))
+			case "*", "@":
+				val = strings.Join(r.args, " ")
 			case "?":
 				val = strconv.Itoa(r.exit)
 			default:
 				if n, err := strconv.Atoi(name); err == nil {
-					if i := n - 1; i < len(r.params) {
-						val = r.params[i]
+					if i := n - 1; i < len(r.args) {
+						val = r.args[i]
 					}
 				} else {
 					val = r.getVar(name)
@@ -468,10 +466,10 @@ func (r *Runner) wordParts(wps []syntax.WordPart, quoted bool) []string {
 func (r *Runner) call(pos syntax.Pos, name string, args []string) {
 	if body := r.funcs[name]; body != nil {
 		// stack them to support nested func calls
-		oldParams := r.params
-		r.params = args
+		oldArgs := r.args
+		r.args = args
 		r.node(body)
-		r.params = oldParams
+		r.args = oldArgs
 		return
 	}
 	exit := 0
@@ -492,6 +490,8 @@ func (r *Runner) call(pos syntax.Pos, name string, args []string) {
 		default:
 			r.interpErr(pos, "exit cannot take multiple arguments")
 		}
+	case "set":
+		r.args = args
 	case "unset":
 		for _, arg := range args {
 			r.delVar(arg)

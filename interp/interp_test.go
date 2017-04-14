@@ -475,6 +475,12 @@ var fileCases = []struct {
 		"let i=(3+4); let i++; echo $i; let i--; echo $i",
 		"8\n7\n",
 	},
+
+	// set
+	{
+		"echo $#; set foo bar; echo $#",
+		"0\n2\n",
+	},
 }
 
 // concBuffer wraps a bytes.Buffer in a mutex so that concurrent writes
