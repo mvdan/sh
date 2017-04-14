@@ -401,6 +401,18 @@ func (r *Runner) wordParts(wps []syntax.WordPart, quoted bool) []string {
 		case *syntax.SglQuoted:
 			curBuf.WriteString(x.Value)
 		case *syntax.DblQuoted:
+			if len(x.Parts) == 1 {
+				pe, ok := x.Parts[0].(*syntax.ParamExp)
+				if ok && pe.Param.Value == "@" {
+					for i, param := range r.params {
+						if i > 0 {
+							flush()
+						}
+						curBuf.WriteString(param)
+					}
+					continue
+				}
+			}
 			for _, str := range r.wordParts(x.Parts, true) {
 				curBuf.WriteString(str)
 			}

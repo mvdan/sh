@@ -267,6 +267,10 @@ var fileCases = []struct {
 		`foo() { for a in $@; do echo "$a"; done }; foo 'a  1' 'b  2'`,
 		"a\n1\nb\n2\n",
 	},
+	{
+		`foo() { for a in "$@"; do echo "$a"; done }; foo 'a  1' 'b  2'`,
+		"a  1\nb  2\n",
+	},
 
 	// case
 	{
