@@ -528,6 +528,9 @@ func TestFile(t *testing.T) {
 }
 
 func TestFileConfirm(t *testing.T) {
+	if testing.Short() {
+		t.Skip("calling bash is slow.")
+	}
 	for i, c := range fileCases {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
 			cmd := exec.Command("bash")
