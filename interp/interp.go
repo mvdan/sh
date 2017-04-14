@@ -298,8 +298,7 @@ func (r *Runner) cmd(cm syntax.Command) {
 	case *syntax.FuncDecl:
 		r.setFunc(x.Name.Value, x.Body)
 	case *syntax.ArithmCmd:
-		val := r.arithm(x.X)
-		if val == 0 {
+		if r.arithm(x.X) == 0 {
 			r.exit = 1
 		}
 	case *syntax.LetClause:
@@ -322,6 +321,10 @@ func (r *Runner) cmd(cm syntax.Command) {
 					return
 				}
 			}
+		}
+	case *syntax.TestClause:
+		if r.bashTest(x.X) == "" {
+			r.exit = 1
 		}
 	default:
 		panic(fmt.Sprintf("unhandled command node: %T", x))
