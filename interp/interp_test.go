@@ -252,6 +252,10 @@ var fileCases = []struct {
 		"a\nd\nb\n",
 	},
 	{
+		`foo() { echo $#; }; foo; foo 1 2 3; foo "a b"; echo $#`,
+		"0\n3\n1\n0\n",
+	},
+	{
 		`foo() { for a in $*; do echo "$a"; done }; foo 'a  1' 'b  2'`,
 		"a\n1\nb\n2\n",
 	},
