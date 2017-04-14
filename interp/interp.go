@@ -441,18 +441,22 @@ func (r *Runner) wordParts(wps []syntax.WordPart, quoted bool) []string {
 			if x.Length {
 				val = strconv.Itoa(utf8.RuneCountInString(val))
 			}
-			if !quoted {
+			if quoted {
+				curBuf.WriteString(val)
+			} else {
 				splitAdd(val)
-				continue
 			}
-			curBuf.WriteString(val)
 		case *syntax.CmdSubst:
 			oldOut := r.Stdout
 			var outBuf bytes.Buffer
 			r.Stdout = &outBuf
 			r.stmts(x.Stmts)
-			splitAdd(outBuf.String())
 			r.Stdout = oldOut
+			if quoted {
+				curBuf.WriteString(outBuf.String())
+			} else {
+				splitAdd(outBuf.String())
+			}
 		case *syntax.ArithmExp:
 			curBuf.WriteString(strconv.Itoa(r.arithm(x.X)))
 		default:

@@ -69,6 +69,8 @@ var fileCases = []struct {
 	{"echo ' foo '", " foo \n"},
 	{`echo " foo "`, " foo \n"},
 	{`echo a'b'c"d"e`, "abcde\n"},
+	{`a=" b c "; echo "$a"`, " b c \n"},
+	{`echo "$(printf ' b c ')"`, " b c \n"}, // TODO: cmdsubst newline?
 
 	// vars
 	{"foo=bar; echo $foo", "bar\n"},
