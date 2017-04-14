@@ -108,7 +108,7 @@ func (r *Runner) setFunc(name string, body *syntax.Stmt) {
 
 // Run starts the interpreter and returns any error.
 func (r *Runner) Run() error {
-	r.node(r.File)
+	r.stmts(r.File.Stmts)
 	r.lastExit()
 	if r.err == ExitCode(0) {
 		r.err = nil
@@ -136,86 +136,86 @@ func (r *Runner) loneWord(word *syntax.Word) string {
 	return strings.Join(r.wordParts(word.Parts, false), "")
 }
 
-func (r *Runner) node(node syntax.Node) {
+func (r *Runner) stmt(st *syntax.Stmt) {
+	if st.Background {
+		r2 := *r
+		r = &r2
+	}
+
+	// TODO: assigns only apply to st.Cmd if st.Cmd != nil
+	for _, as := range st.Assigns {
+		name, value := as.Name.Value, ""
+		if as.Value != nil {
+			value = r.loneWord(as.Value)
+		}
+		r.setVar(name, value)
+	}
+	oldIn, oldOut, oldErr := r.Stdin, r.Stdout, r.Stderr
+	var closers []io.Closer
+	for _, rd := range st.Redirs {
+		closer, err := r.redir(rd)
+		if err != nil {
+			r.exit = 1
+			return
+		}
+		if closer != nil {
+			closers = append(closers, closer)
+		}
+	}
+	if st.Background {
+		go func() {
+			if st.Cmd != nil {
+				r.cmd(st.Cmd)
+			}
+			for _, closer := range closers {
+				closer.Close()
+			}
+		}()
+		return
+	}
+	if st.Cmd == nil {
+		r.exit = 0
+	} else {
+		r.cmd(st.Cmd)
+	}
+	if st.Negated {
+		if r.exit == 0 {
+			r.exit = 1
+		} else {
+			r.exit = 0
+		}
+	}
+	r.Stdin, r.Stdout, r.Stderr = oldIn, oldOut, oldErr
+	for _, closer := range closers {
+		closer.Close()
+	}
+}
+
+func (r *Runner) cmd(cm syntax.Command) {
 	if r.err != nil {
 		return
 	}
-	switch x := node.(type) {
-	case *syntax.File:
-		r.stmts(x.Stmts)
+	switch x := cm.(type) {
 	case *syntax.Block:
 		r.stmts(x.Stmts)
 	case *syntax.Subshell:
 		r2 := *r
 		r2.stmts(x.Stmts)
 		r.exit = r2.exit
-	case *syntax.Stmt:
-		if x.Background {
-			r2 := *r
-			r = &r2
-		}
-
-		// TODO: assigns only apply to x.Cmd if x.Cmd != nil
-		for _, as := range x.Assigns {
-			name, value := as.Name.Value, ""
-			if as.Value != nil {
-				value = r.loneWord(as.Value)
-			}
-			r.setVar(name, value)
-		}
-		oldIn, oldOut, oldErr := r.Stdin, r.Stdout, r.Stderr
-		var closers []io.Closer
-		for _, rd := range x.Redirs {
-			closer, err := r.redir(rd)
-			if err != nil {
-				r.exit = 1
-				return
-			}
-			if closer != nil {
-				closers = append(closers, closer)
-			}
-		}
-		if x.Background {
-			go func() {
-				if x.Cmd != nil {
-					r.node(x.Cmd)
-				}
-				for _, closer := range closers {
-					closer.Close()
-				}
-			}()
-			break
-		}
-		if x.Cmd == nil {
-			r.exit = 0
-		} else {
-			r.node(x.Cmd)
-		}
-		if x.Negated {
-			if r.exit == 0 {
-				r.exit = 1
-			} else {
-				r.exit = 0
-			}
-		}
-		r.Stdin, r.Stdout, r.Stderr = oldIn, oldOut, oldErr
-		for _, closer := range closers {
-			closer.Close()
-		}
 	case *syntax.CallExpr:
 		fields := r.fields(x.Args)
 		r.call(x.Args[0].Pos(), fields[0], fields[1:])
 	case *syntax.BinaryCmd:
 		switch x.Op {
 		case syntax.AndStmt:
-			r.node(x.X)
+			r.stmt(x.X)
 			if r.exit == 0 {
-				r.node(x.Y)
+				r.stmt(x.Y)
 			}
 		case syntax.OrStmt:
-			r.node(x.X)
+			r.stmt(x.X)
 			if r.exit != 0 {
-				r.node(x.Y)
+				r.stmt(x.Y)
 			}
 		case syntax.Pipe, syntax.PipeAll:
 			pr, pw := io.Pipe()
@@ -231,10 +231,10 @@ func (r *Runner) node(node syntax.Node) {
 			}
 			r.Stdin = pr
 			go func() {
-				r2.node(x.X)
+				r2.stmt(x.X)
 				pw.Close()
 			}()
-			r.node(x.Y)
+			r.stmt(x.Y)
 			pr.Close()
 		}
 	case *syntax.IfClause:
@@ -324,13 +324,13 @@ func (r *Runner) node(node syntax.Node) {
 			}
 		}
 	default:
-		panic(fmt.Sprintf("unhandled node: %T", x))
+		panic(fmt.Sprintf("unhandled command node: %T", x))
 	}
 }
 
 func (r *Runner) stmts(stmts []*syntax.Stmt) {
 	for _, stmt := range stmts {
-		r.node(stmt)
+		r.stmt(stmt)
 	}
 }
 
@@ -384,7 +384,7 @@ func (r *Runner) loopStmtsBroken(stmts []*syntax.Stmt) bool {
 	r.inLoop = true
 	defer func() { r.inLoop = false }()
 	for _, stmt := range stmts {
-		r.node(stmt)
+		r.stmt(stmt)
 		if r.contnEnclosing > 0 {
 			r.contnEnclosing--
 			return false
@@ -492,7 +492,7 @@ func (r *Runner) call(pos syntax.Pos, name string, args []string) {
 		// stack them to support nested func calls
 		oldArgs := r.args
 		r.args = args
-		r.node(body)
+		r.stmt(body)
 		r.args = oldArgs
 		return
 	}
