@@ -452,10 +452,11 @@ func (r *Runner) wordParts(wps []syntax.WordPart, quoted bool) []string {
 			r.Stdout = &outBuf
 			r.stmts(x.Stmts)
 			r.Stdout = oldOut
+			val := strings.TrimRight(outBuf.String(), "\n")
 			if quoted {
-				curBuf.WriteString(outBuf.String())
+				curBuf.WriteString(val)
 			} else {
-				splitAdd(outBuf.String())
+				splitAdd(val)
 			}
 		case *syntax.ArithmExp:
 			curBuf.WriteString(strconv.Itoa(r.arithm(x.X)))
