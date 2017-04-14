@@ -166,7 +166,12 @@ func (r *Runner) node(node syntax.Node) {
 		oldIn, oldOut, oldErr := r.Stdin, r.Stdout, r.Stderr
 		var closers []io.Closer
 		for _, rd := range x.Redirs {
-			if closer := r.redir(rd); closer != nil {
+			closer, err := r.redir(rd)
+			if err != nil {
+				r.exit = 1
+				return
+			}
+			if closer != nil {
 				closers = append(closers, closer)
 			}
 		}
@@ -329,23 +334,23 @@ func (r *Runner) stmts(stmts []*syntax.Stmt) {
 	}
 }
 
-func (r *Runner) redir(rd *syntax.Redirect) io.Closer {
+func (r *Runner) redir(rd *syntax.Redirect) (io.Closer, error) {
 	if rd.Hdoc != nil {
 		hdoc := r.loneWord(rd.Hdoc)
 		r.Stdin = strings.NewReader(hdoc)
-		return nil
+		return nil, nil
 	}
 	arg := r.loneWord(rd.Word)
 	switch rd.Op {
 	case syntax.WordHdoc:
 		r.Stdin = strings.NewReader(arg + "\n")
-		return nil
+		return nil, nil
 	case syntax.DplOut:
 		switch arg {
 		case "2":
 			r.Stdout = r.Stderr
 		}
-		return nil
+		return nil, nil
 	case syntax.DplIn:
 		panic(fmt.Sprintf("unhandled redirect op: %v", rd.Op))
 	}
@@ -358,8 +363,8 @@ func (r *Runner) redir(rd *syntax.Redirect) io.Closer {
 	}
 	f, err := os.OpenFile(arg, mode, 0644)
 	if err != nil {
-		// TODO: error
-		return nil
+		// TODO: print to stderr?
+		return nil, err
 	}
 	switch rd.Op {
 	case syntax.RdrIn:
@@ -372,7 +377,7 @@ func (r *Runner) redir(rd *syntax.Redirect) io.Closer {
 	default:
 		panic(fmt.Sprintf("unhandled redirect op: %v", rd.Op))
 	}
-	return f
+	return f, nil
 }
 
 func (r *Runner) loopStmtsBroken(stmts []*syntax.Stmt) bool {

@@ -397,6 +397,10 @@ var fileCases = []struct {
 		"sed 's/o/a/g' <<<foo$foo",
 		"faa\n",
 	},
+	{
+		"echo foo >/",
+		"exit status 1 #JUSTERR",
+	},
 
 	// background
 	// TODO: can these be done in a less flaky way?
