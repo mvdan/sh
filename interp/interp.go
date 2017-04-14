@@ -150,7 +150,10 @@ func (r *Runner) node(node syntax.Node) {
 		r2.stmts(x.Stmts)
 		r.exit = r2.exit
 	case *syntax.Stmt:
-		// TODO: handle background
+		if x.Background {
+			r2 := *r
+			r = &r2
+		}
 
 		// TODO: assigns only apply to x.Cmd if x.Cmd != nil
 		for _, as := range x.Assigns {
@@ -167,10 +170,16 @@ func (r *Runner) node(node syntax.Node) {
 				closers = append(closers, closer)
 			}
 		}
-		if x.Cmd == nil {
-			r.exit = 0
+		if x.Background {
+			if x.Cmd != nil {
+				go r.node(x.Cmd)
+			}
 		} else {
-			r.node(x.Cmd)
+			if x.Cmd == nil {
+				r.exit = 0
+			} else {
+				r.node(x.Cmd)
+			}
 		}
 		if x.Negated {
 			if r.exit == 0 {

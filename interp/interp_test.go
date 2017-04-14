@@ -379,6 +379,17 @@ var fileCases = []struct {
 		"faa\n",
 	},
 
+	// background
+	// TODO: can these be done in a less flaky way?
+	{
+		"{ sleep 0.01; echo foo; } & echo bar; sleep 0.02",
+		"bar\nfoo\n",
+	},
+	{
+		"{ exit 1; } & sleep 0.02",
+		"",
+	},
+
 	// arithm exp
 	{
 		"echo $((1 == +1))",
