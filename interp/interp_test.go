@@ -617,10 +617,18 @@ var fileCases = []struct {
 		"exit status 1",
 	},
 
-	// set
+	// set/shift
 	{
 		"echo $#; set foo bar; echo $#",
 		"0\n2\n",
+	},
+	{
+		"shift; set a b c; shift; echo $@",
+		"b c\n",
+	},
+	{
+		"shift 2; set a b c; shift 2; echo $@",
+		"c\n",
 	},
 }
 

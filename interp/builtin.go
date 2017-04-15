@@ -30,6 +30,24 @@ func (r *Runner) builtin(pos syntax.Pos, name string, args []string) bool {
 		}
 	case "set":
 		r.args = args
+	case "shift":
+		n := 1
+		switch len(args) {
+		case 0:
+		case 1:
+			if n2, err := strconv.Atoi(args[0]); err == nil {
+				n = n2
+				break
+			}
+			fallthrough
+		default:
+			r.errf("usage: shift [n]\n")
+			exit = 2
+		}
+		if len(r.args) < n {
+			n = len(r.args)
+		}
+		r.args = r.args[n:]
 	case "unset":
 		for _, arg := range args {
 			r.delVar(arg)
