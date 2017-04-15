@@ -5,6 +5,7 @@ package interp
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/mvdan/sh/syntax"
 )
@@ -33,8 +34,20 @@ func (r *Runner) bashTest(expr syntax.TestExpr) string {
 func (r *Runner) binTest(op syntax.BinTestOperator, x, y string) bool {
 	switch op {
 	//case syntax.TsReMatch:
-	//case syntax.TsNewer:
-	//case syntax.TsOlder:
+	case syntax.TsNewer:
+		i1, _ := os.Stat(x)
+		i2, _ := os.Stat(y)
+		if i1 == nil || i2 == nil {
+			return false
+		}
+		return i1.ModTime().After(i2.ModTime())
+	case syntax.TsOlder:
+		i1, _ := os.Stat(x)
+		i2, _ := os.Stat(y)
+		if i1 == nil || i2 == nil {
+			return false
+		}
+		return i1.ModTime().Before(i2.ModTime())
 	//case syntax.TsDevIno:
 	case syntax.TsEql:
 		return atoi(x) == atoi(y)

@@ -486,6 +486,22 @@ var fileCases = []struct {
 		"[[ 3 -gt 3 ]]",
 		"exit status 1",
 	},
+	{
+		"[[ a -nt a || a -ot a ]]",
+		"exit status 1",
+	},
+	{
+		"touch a b; [[ a -nt b || a -ot b ]] && echo foo; rm a b",
+		"",
+	},
+	{
+		"touch -d '2 hours ago' a; touch b; [[ a -nt b ]] && echo foo; rm a b",
+		"",
+	},
+	{
+		"touch -d '2 hours ago' a; touch b; [[ a -ot b ]] && echo foo; rm a b",
+		"foo\n",
+	},
 
 	// arithm
 	{
