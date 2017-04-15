@@ -333,6 +333,9 @@ func (r *Runner) redir(rd *syntax.Redirect) (io.Closer, error) {
 		r.Stdin = strings.NewReader(hdoc)
 		return nil, nil
 	}
+	if rd.N != nil {
+		panic("unhandled redirect N")
+	}
 	arg := r.loneWord(rd.Word)
 	switch rd.Op {
 	case syntax.WordHdoc:
@@ -452,6 +455,18 @@ func (r *Runner) wordParts(wps []syntax.WordPart, quoted bool) []string {
 			}
 			if x.Length {
 				val = strconv.Itoa(utf8.RuneCountInString(val))
+			}
+			if x.Ind != nil {
+				panic("unhandled param exp index")
+			}
+			if x.Slice != nil {
+				panic("unhandled param exp slice")
+			}
+			if x.Repl != nil {
+				panic("unhandled param exp replace")
+			}
+			if x.Exp != nil {
+				panic("unhandled param exp expansion")
 			}
 			if quoted {
 				curBuf.WriteString(val)
