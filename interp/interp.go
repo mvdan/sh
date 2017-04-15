@@ -140,8 +140,13 @@ func (r *Runner) stmt(st *syntax.Stmt) {
 	if st.Background {
 		r2 := *r
 		r = &r2
+		go r.stmtSync(st)
+	} else {
+		r.stmtSync(st)
 	}
+}
 
+func (r *Runner) stmtSync(st *syntax.Stmt) {
 	// TODO: assigns only apply to st.Cmd if st.Cmd != nil
 	for _, as := range st.Assigns {
 		name, value := as.Name.Value, ""
@@ -151,27 +156,15 @@ func (r *Runner) stmt(st *syntax.Stmt) {
 		r.setVar(name, value)
 	}
 	oldIn, oldOut, oldErr := r.Stdin, r.Stdout, r.Stderr
-	var closers []io.Closer
 	for _, rd := range st.Redirs {
-		closer, err := r.redir(rd)
+		cls, err := r.redir(rd)
 		if err != nil {
 			r.exit = 1
 			return
 		}
-		if closer != nil {
-			closers = append(closers, closer)
+		if cls != nil {
+			defer cls.Close()
 		}
-	}
-	if st.Background {
-		go func() {
-			if st.Cmd != nil {
-				r.cmd(st.Cmd)
-			}
-			for _, closer := range closers {
-				closer.Close()
-			}
-		}()
-		return
 	}
 	if st.Cmd == nil {
 		r.exit = 0
@@ -186,9 +179,6 @@ func (r *Runner) stmt(st *syntax.Stmt) {
 		}
 	}
 	r.Stdin, r.Stdout, r.Stderr = oldIn, oldOut, oldErr
-	for _, closer := range closers {
-		closer.Close()
-	}
 }
 
 func (r *Runner) cmd(cm syntax.Command) {
