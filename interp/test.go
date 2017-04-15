@@ -35,15 +35,13 @@ func (r *Runner) binTest(op syntax.BinTestOperator, x, y string) bool {
 	switch op {
 	//case syntax.TsReMatch:
 	case syntax.TsNewer:
-		i1, _ := os.Stat(x)
-		i2, _ := os.Stat(y)
+		i1, i2 := stat(x), stat(y)
 		if i1 == nil || i2 == nil {
 			return false
 		}
 		return i1.ModTime().After(i2.ModTime())
 	case syntax.TsOlder:
-		i1, _ := os.Stat(x)
-		i2, _ := os.Stat(y)
+		i1, i2 := stat(x), stat(y)
 		if i1 == nil || i2 == nil {
 			return false
 		}
@@ -78,29 +76,53 @@ func (r *Runner) binTest(op syntax.BinTestOperator, x, y string) bool {
 	}
 }
 
+func stat(name string) os.FileInfo {
+	info, _ := os.Stat(name)
+	return info
+}
+
+func statMode(name string, mode os.FileMode) bool {
+	info := stat(name)
+	return info != nil && info.Mode()&mode != 0
+}
+
 func (r *Runner) unTest(op syntax.UnTestOperator, x string) bool {
 	switch op {
-	//case syntax.TsExists:
-	//case syntax.TsRegFile:
-	//case syntax.TsDirect:
+	case syntax.TsExists:
+		return stat(x) != nil
+	case syntax.TsRegFile:
+		info := stat(x)
+		return info != nil && info.Mode().IsRegular()
+	case syntax.TsDirect:
+		return statMode(x, os.ModeDir)
 	//case syntax.TsCharSp:
 	//case syntax.TsBlckSp:
-	//case syntax.TsNmPipe:
-	//case syntax.TsSocket:
-	//case syntax.TsSmbLink:
-	//case syntax.TsSticky:
-	//case syntax.TsGIDSet:
-	//case syntax.TsUIDSet:
+	case syntax.TsNmPipe:
+		return statMode(x, os.ModeNamedPipe)
+	case syntax.TsSocket:
+		return statMode(x, os.ModeSocket)
+	case syntax.TsSmbLink:
+		return statMode(x, os.ModeSymlink)
+	case syntax.TsSticky:
+		return statMode(x, os.ModeSticky)
+	case syntax.TsGIDSet:
+		return statMode(x, os.ModeSetuid)
+	case syntax.TsUIDSet:
+		return statMode(x, os.ModeSetgid)
 	//case syntax.TsGrpOwn:
 	//case syntax.TsUsrOwn:
 	//case syntax.TsModif:
 	//case syntax.TsRead:
 	//case syntax.TsWrite:
 	//case syntax.TsExec:
-	//case syntax.TsNoEmpty:
+	case syntax.TsNoEmpty:
+		info := stat(x)
+		return info != nil && info.Size() > 0
 	//case syntax.TsFdTerm:
-	//case syntax.TsEmpStr:
-	//case syntax.TsNempStr:
+	case syntax.TsEmpStr:
+		return x == ""
+	case syntax.TsNempStr:
+		return x != ""
 	//case syntax.TsOptSet:
 	//case syntax.TsVarSet:
 	//case syntax.TsRefVar:

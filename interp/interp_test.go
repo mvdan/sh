@@ -502,6 +502,34 @@ var fileCases = []struct {
 		"touch -d '2 hours ago' a; touch b; [[ a -ot b ]] && echo foo; rm a b",
 		"foo\n",
 	},
+	{
+		"[[ -z 'foo' || -n '' ]]",
+		"exit status 1",
+	},
+	{
+		"[[ -z '' && -n 'foo' ]]",
+		"",
+	},
+	{
+		"[[ -e a ]] && echo foo; touch a; [[ -e a ]] && echo foo; rm a",
+		"foo\n",
+	},
+	{
+		"[[ -f a ]] && echo foo; touch a; [[ -f a ]] && echo foo; rm a",
+		"foo\n",
+	},
+	{
+		"[[ -e a ]] && echo foo; mkdir a; [[ -e a ]] && echo foo; rmdir a",
+		"foo\n",
+	},
+	{
+		"[[ -d a ]] && echo foo; mkdir a; [[ -d a ]] && echo foo; rmdir a",
+		"foo\n",
+	},
+	{
+		"[[ -s a ]] && echo foo; echo body >a; [[ -s a ]] && echo foo; rm a",
+		"foo\n",
+	},
 
 	// arithm
 	{
