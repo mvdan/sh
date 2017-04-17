@@ -147,6 +147,10 @@ var fileCases = []struct {
 		"b\n\nerr3\nexit status 1 #JUSTERR",
 	},
 	{
+		"x=aaabccc; echo ${x#*a}; echo ${x##*a}",
+		"aabccc\nbccc\n",
+	},
+	{
 		"a='àÉñ bAr'; echo ${a^}; echo ${a^^}",
 		"ÀÉñ bAr\nÀÉÑ BAR\n",
 	},
