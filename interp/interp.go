@@ -511,7 +511,13 @@ func (r *Runner) paramExp(pe *syntax.ParamExp) string {
 		}
 	}
 	if pe.Repl != nil {
-		panic("unhandled param exp replace")
+		orig := r.loneWord(pe.Repl.Orig)
+		with := r.loneWord(pe.Repl.With)
+		n := 1
+		if pe.Repl.All {
+			n = -1
+		}
+		val = strings.Replace(val, orig, with, n)
 	}
 	if pe.Exp != nil {
 		panic("unhandled param exp expansion")
