@@ -94,6 +94,13 @@ func (r *Runner) getVar(name string) string {
 	return os.Getenv(name)
 }
 
+func (r *Runner) lookupVar(name string) (string, bool) {
+	if val, e := r.vars[name]; e {
+		return val, true
+	}
+	return os.LookupEnv(name)
+}
+
 func (r *Runner) delVar(name string) {
 	// TODO: env vars too
 	delete(r.vars, name)
@@ -466,6 +473,7 @@ func (r *Runner) wordParts(wps []syntax.WordPart, quoted bool) []string {
 func (r *Runner) paramExp(pe *syntax.ParamExp) string {
 	name := pe.Param.Value
 	val := ""
+	set := false
 	switch name {
 	case "#":
 		val = strconv.Itoa(len(r.args))
@@ -476,10 +484,10 @@ func (r *Runner) paramExp(pe *syntax.ParamExp) string {
 	default:
 		if n, err := strconv.Atoi(name); err == nil {
 			if i := n - 1; i < len(r.args) {
-				val = r.args[i]
+				val, set = r.args[i], true
 			}
 		} else {
-			val = r.getVar(name)
+			val, set = r.lookupVar(name)
 		}
 	}
 	if pe.Length {
@@ -522,24 +530,40 @@ func (r *Runner) paramExp(pe *syntax.ParamExp) string {
 	if pe.Exp != nil {
 		arg := r.loneWord(pe.Exp.Word)
 		switch pe.Exp.Op {
-		//case syntax.SubstPlus:
 		case syntax.SubstColPlus:
-			if val != "" {
+			if val == "" {
+				break
+			}
+			fallthrough
+		case syntax.SubstPlus:
+			if set {
 				val = arg
 			}
-		//case syntax.SubstMinus:
+		case syntax.SubstMinus:
+			if set {
+				break
+			}
+			fallthrough
 		case syntax.SubstColMinus:
 			if val == "" {
 				val = arg
 			}
-		//case syntax.SubstQuest:
+		case syntax.SubstQuest:
+			if set {
+				break
+			}
+			fallthrough
 		case syntax.SubstColQuest:
 			if val == "" {
 				r.errf(arg)
 				r.exit = 1
 				r.lastExit()
 			}
-		//case syntax.SubstAssgn:
+		case syntax.SubstAssgn:
+			if set {
+				break
+			}
+			fallthrough
 		case syntax.SubstColAssgn:
 			if val == "" {
 				r.setVar(name, arg)

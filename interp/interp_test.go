@@ -115,16 +115,32 @@ var fileCases = []struct {
 		"b\n\nb\nc\n",
 	},
 	{
+		"echo ${a-b}; echo $a; a=; echo ${a-b}; a=c; echo ${a-b}",
+		"b\n\n\nc\n",
+	},
+	{
 		"echo ${a:=b}; echo $a; a=; echo ${a:=b}; a=c; echo ${a:=b}",
 		"b\nb\nb\nc\n",
+	},
+	{
+		"echo ${a=b}; echo $a; a=; echo ${a=b}; a=c; echo ${a=b}",
+		"b\nb\n\nc\n",
 	},
 	{
 		"echo ${a:+b}; echo $a; a=; echo ${a:+b}; a=c; echo ${a:+b}",
 		"\n\n\nb\n",
 	},
 	{
+		"echo ${a+b}; echo $a; a=; echo ${a+b}; a=c; echo ${a+b}",
+		"\n\nb\nb\n",
+	},
+	{
 		"a=b; echo ${a:?err1}; a=; echo ${a:?err2}; unset a; echo ${a:?err3}",
 		"b\nerr2\nexit status 1 #JUSTERR",
+	},
+	{
+		"a=b; echo ${a?err1}; a=; echo ${a?err2}; unset a; echo ${a?err3}",
+		"b\n\nerr3\nexit status 1 #JUSTERR",
 	},
 
 	// if
