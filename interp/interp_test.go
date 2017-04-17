@@ -52,7 +52,17 @@ var fileCases = []struct {
 	{"printf", "usage: printf format [arguments]\nexit status 2 #JUSTERR"},
 	{"break", "break is only useful in a loop #JUSTERR"},
 	{"continue", "continue is only useful in a loop #JUSTERR"},
+	{"cd a b", "usage: cd [dir]\nexit status 2 #JUSTERR"},
+	{"shift a", "usage: shift [n]\nexit status 2 #JUSTERR"},
 	{"shouldnotexist", "exit status 127 #JUSTERR"},
+	{
+		"for i in 1; do continue a; done",
+		"usage: continue [n]\nexit status 2 #JUSTERR",
+	},
+	{
+		"for i in 1; do break a; done",
+		"usage: break [n]\nexit status 2 #JUSTERR",
+	},
 
 	// we don't need to follow bash error strings
 	{"exit a", `1:1: invalid exit code: "a" #JUSTERR`},
