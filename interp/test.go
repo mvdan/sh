@@ -106,9 +106,9 @@ func (r *Runner) unTest(op syntax.UnTestOperator, x string) bool {
 		return info != nil && info.Mode()&os.ModeSymlink != 0
 	case syntax.TsSticky:
 		return statMode(x, os.ModeSticky)
-	case syntax.TsGIDSet:
-		return statMode(x, os.ModeSetuid)
 	case syntax.TsUIDSet:
+		return statMode(x, os.ModeSetuid)
+	case syntax.TsGIDSet:
 		return statMode(x, os.ModeSetgid)
 	//case syntax.TsGrpOwn:
 	//case syntax.TsUsrOwn:

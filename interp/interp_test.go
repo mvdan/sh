@@ -607,36 +607,48 @@ var fileCases = []struct {
 		"",
 	},
 	{
-		"[[ -e a ]] && echo foo; touch a; [[ -e a ]] && echo bar; rm a",
-		"bar\n",
+		"[[ -e a ]] && echo x; touch a; [[ -e a ]] && echo y; rm a",
+		"y\n",
 	},
 	{
-		"ln -s b a; [[ -e a ]] && echo foo; touch b; [[ -e a ]] && echo bar; rm a b",
-		"bar\n",
+		"ln -s b a; [[ -e a ]] && echo x; touch b; [[ -e a ]] && echo y; rm a b",
+		"y\n",
 	},
 	{
-		"[[ -f a ]] && echo foo; touch a; [[ -f a ]] && echo bar; rm a",
-		"bar\n",
+		"[[ -f a ]] && echo x; touch a; [[ -f a ]] && echo y; rm a",
+		"y\n",
 	},
 	{
-		"[[ -e a ]] && echo foo; mkdir a; [[ -e a ]] && echo bar; rmdir a",
-		"bar\n",
+		"[[ -e a ]] && echo x; mkdir a; [[ -e a ]] && echo y; rmdir a",
+		"y\n",
 	},
 	{
-		"[[ -d a ]] && echo foo; mkdir a; [[ -d a ]] && echo bar; rmdir a",
-		"bar\n",
+		"[[ -d a ]] && echo x; mkdir a; [[ -d a ]] && echo y; rmdir a",
+		"y\n",
 	},
 	{
-		"[[ -s a ]] && echo foo; echo body >a; [[ -s a ]] && echo bar; rm a",
-		"bar\n",
+		"[[ -s a ]] && echo x; echo body >a; [[ -s a ]] && echo y; rm a",
+		"y\n",
 	},
 	{
-		"[[ -L a ]] && echo foo; ln -s b a; [[ -L a ]] && echo bar; rm a",
-		"bar\n",
+		"[[ -L a ]] && echo x; ln -s b a; [[ -L a ]] && echo y; rm a",
+		"y\n",
 	},
 	{
-		"[[ -p a ]] && echo foo; mknod a p; [[ -p a ]] && echo bar; rm a",
-		"bar\n",
+		"[[ -p a ]] && echo x; mknod a p; [[ -p a ]] && echo y; rm a",
+		"y\n",
+	},
+	{
+		"touch a; [[ -k a ]] && echo x; chmod +t a; [[ -k a ]] && echo y; rm a",
+		"y\n",
+	},
+	{
+		"touch a; [[ -u a ]] && echo x; chmod u+s a; [[ -u a ]] && echo y; rm a",
+		"y\n",
+	},
+	{
+		"touch a; [[ -g a ]] && echo x; chmod g+s a; [[ -g a ]] && echo y; rm a",
+		"y\n",
 	},
 
 	// arithm
