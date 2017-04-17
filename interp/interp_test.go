@@ -151,6 +151,10 @@ var fileCases = []struct {
 		"aabccc\nbccc\n",
 	},
 	{
+		"x=aaabccc; echo ${x%c*}; echo ${x%%c*}",
+		"aaabcc\naaab\n",
+	},
+	{
 		"a='àÉñ bAr'; echo ${a^}; echo ${a^^}",
 		"ÀÉñ bAr\nÀÉÑ BAR\n",
 	},

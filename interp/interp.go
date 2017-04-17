@@ -573,12 +573,14 @@ func (r *Runner) paramExp(pe *syntax.ParamExp) string {
 				r.setVar(name, arg)
 				val = arg
 			}
-		//case syntax.RemSmallSuffix:
-		//case syntax.RemLargeSuffix:
 		case syntax.RemSmallPrefix:
-			val = removePattern(val, arg, false)
+			val = removePattern(val, arg, false, false)
 		case syntax.RemLargePrefix:
-			val = removePattern(val, arg, true)
+			val = removePattern(val, arg, false, true)
+		case syntax.RemSmallSuffix:
+			val = removePattern(val, arg, true, false)
+		case syntax.RemLargeSuffix:
+			val = removePattern(val, arg, true, true)
 		case syntax.UpperFirst:
 			rs := []rune(val)
 			if len(rs) > 0 {
@@ -603,16 +605,36 @@ func (r *Runner) paramExp(pe *syntax.ParamExp) string {
 	return val
 }
 
-func removePattern(val, pattern string, longest bool) string {
+func removePattern(val, pattern string, fromEnd, longest bool) string {
 	// TODO: really slow to not re-implement path.Match.
 	last := val
-	for i := len(val); i > 0; i-- {
-		s := val[:i]
+	s := val
+	i := len(val)
+	if fromEnd {
+		i = 0
+	}
+	for {
 		if m, _ := path.Match(pattern, s); m {
 			last = val[i:]
+			if fromEnd {
+				last = val[:i]
+			}
 			if longest {
 				return last
 			}
+		}
+		if fromEnd {
+			i++
+			if i >= len(val) {
+				break
+			}
+			s = val[i:]
+		} else {
+			i--
+			if i < 1 {
+				break
+			}
+			s = val[:i]
 		}
 	}
 	return last
