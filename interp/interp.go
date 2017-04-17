@@ -459,8 +459,27 @@ func (r *Runner) wordParts(wps []syntax.WordPart, quoted bool) []string {
 			if x.Ind != nil {
 				panic("unhandled param exp index")
 			}
+			slicePos := func(expr syntax.ArithmExpr) int {
+				p := r.arithm(expr)
+				if p < 0 {
+					p = len(val) + p
+					if p < 0 {
+						p = len(val)
+					}
+				} else if p > len(val) {
+					p = len(val)
+				}
+				return p
+			}
 			if x.Slice != nil {
-				panic("unhandled param exp slice")
+				if x.Slice.Offset != nil {
+					offset := slicePos(x.Slice.Offset)
+					val = val[offset:]
+				}
+				if x.Slice.Length != nil {
+					length := slicePos(x.Slice.Length)
+					val = val[:length]
+				}
 			}
 			if x.Repl != nil {
 				panic("unhandled param exp replace")

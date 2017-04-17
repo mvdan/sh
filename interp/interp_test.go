@@ -93,6 +93,20 @@ var fileCases = []struct {
 	// special vars
 	{"echo $?; false; echo $?", "0\n1\n"},
 
+	// var manipulation
+	{
+		"a=foo; echo ${a:1}; echo ${a: -1}; echo ${a: -10}; echo ${a:5}",
+		"oo\no\n\n\n",
+	},
+	{
+		"a=foo; echo ${a::2}; echo ${a::-1}; echo ${a: -10}; echo ${a::5}",
+		"fo\nfo\n\nfoo\n",
+	},
+	{
+		"a=abc; echo ${a:1:1}",
+		"b\n",
+	},
+
 	// if
 	{
 		"if true; then echo foo; fi",
