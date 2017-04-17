@@ -4,6 +4,7 @@
 package interp
 
 import (
+	"fmt"
 	"os"
 	"strconv"
 
@@ -139,6 +140,8 @@ func (r *Runner) builtin(pos syntax.Pos, name string, args []string) bool {
 		if err := os.Chdir(dir); err != nil {
 			exit = 1
 		}
+	case "trap", "type", "wait", "source", "command":
+		panic(fmt.Sprintf("unhandled builtin: %s", name))
 	default:
 		return false
 	}
