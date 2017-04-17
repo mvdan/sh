@@ -60,25 +60,29 @@ the parser and the printer. To get started, run:
 
 ### Caveats
 
-Supporting some of these could be possible, but they would involve major
-drawbacks explained below.
-
-* Bash associative arrays. Cannot be parsed statically as that depends
-  on whether `array` was defined via `declare -A`.
+* Bash index expressions must be an arithmetic expression or a single
+  word. If you must use a string with spaces, quote it. This is because
+  the static parser can't know whether the array is an associative array
+  (string keys) since that depends on having called or not `declare -A`.
 
 ```
  $ echo '${array[spaced string]}' | shfmt
 1:16: not a valid arithmetic operator: string
 ```
 
-* `$((` and `((` ambiguity. This means backtracking, which would greatly
-  complicate the parser. In practice, the POSIX spec recommends to
-  [space the operands][posix-ambiguity] if `$( (` is meant.
+* `$((` and `((` ambiguity is not suported. Backtracking would greatly
+  complicate the parser and make stream support - `io.Reader` -
+  impossible. In practice, the POSIX spec recommends to [space the
+  operands][posix-ambiguity] if `$( (` is meant.
 
 ```
  $ echo '$((foo); (bar))' | shfmt
 1:1: reached ) without matching $(( with ))
 ```
+
+* Some builtins like `export`, `let` and `eval` are parsed as keywords.
+  This is to let the static parser parse them completely and build their
+  AST better than just a slice of arguments.
 
 ### Related projects
 
