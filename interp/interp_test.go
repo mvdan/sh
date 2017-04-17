@@ -634,6 +634,10 @@ var fileCases = []struct {
 		"[[ -L a ]] && echo foo; ln -s b a; [[ -L a ]] && echo bar; rm a",
 		"bar\n",
 	},
+	{
+		"[[ -p a ]] && echo foo; mknod a p; [[ -p a ]] && echo bar; rm a",
+		"bar\n",
+	},
 
 	// arithm
 	{
