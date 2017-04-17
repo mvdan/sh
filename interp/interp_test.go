@@ -587,15 +587,15 @@ var fileCases = []struct {
 		"exit status 1",
 	},
 	{
-		"touch a b; [[ a -nt b || a -ot b ]] && echo foo; rm a b",
+		"touch -d @1 a b; [[ a -nt b || a -ot b ]] && echo foo; rm a b",
 		"",
 	},
 	{
-		"touch -d '2 hours ago' a; touch b; [[ a -nt b ]] && echo foo; rm a b",
+		"touch -d @1 a; touch -d @2 b; [[ a -nt b ]] && echo foo; rm a b",
 		"",
 	},
 	{
-		"touch -d '2 hours ago' a; touch b; [[ a -ot b ]] && echo foo; rm a b",
+		"touch -d @1 a; touch -d @2 b; [[ a -ot b ]] && echo foo; rm a b",
 		"foo\n",
 	},
 	{
