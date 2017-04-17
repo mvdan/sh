@@ -473,6 +473,18 @@ var fileCases = []struct {
 		"echo foo >/",
 		"exit status 1 #JUSTERR",
 	},
+	{
+		"echo foo 1>&1 | sed 's/o/a/g'",
+		"faa\n",
+	},
+	{
+		"echo foo 2>&2 |& sed 's/o/a/g'",
+		"faa\n",
+	},
+	{
+		"printf 2>&1 | sed 's/.*usage.*/foo/'",
+		"foo\n",
+	},
 
 	// background
 	// TODO: can these be done in a less flaky way?

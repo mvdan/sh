@@ -341,8 +341,13 @@ func (r *Runner) redir(rd *syntax.Redirect) (io.Closer, error) {
 		r.Stdin = strings.NewReader(hdoc)
 		return nil, nil
 	}
+	orig := &r.Stdout
 	if rd.N != nil {
-		panic("unhandled redirect N")
+		switch rd.N.Value {
+		case "1":
+		case "2":
+			orig = &r.Stderr
+		}
 	}
 	arg := r.loneWord(rd.Word)
 	switch rd.Op {
@@ -351,8 +356,10 @@ func (r *Runner) redir(rd *syntax.Redirect) (io.Closer, error) {
 		return nil, nil
 	case syntax.DplOut:
 		switch arg {
+		case "1":
+			*orig = r.Stdout
 		case "2":
-			r.Stdout = r.Stderr
+			*orig = r.Stderr
 		}
 		return nil, nil
 	case syntax.DplIn:
@@ -374,7 +381,7 @@ func (r *Runner) redir(rd *syntax.Redirect) (io.Closer, error) {
 	case syntax.RdrIn:
 		r.Stdin = f
 	case syntax.RdrOut, syntax.AppOut:
-		r.Stdout = f
+		*orig = f
 	case syntax.RdrAll, syntax.AppAll:
 		r.Stdout = f
 		r.Stderr = f
