@@ -303,6 +303,16 @@ var fileCases = []struct {
 		"bar\n\n",
 	},
 
+	// cd
+	{
+		`old="$PWD"; cd /; echo "$PWD"; cd "$old"`,
+		"/\n",
+	},
+	{
+		"cd doesnotexist",
+		"exit status 1 #JUSTERR",
+	},
+
 	// binary cmd
 	{
 		"true && echo foo || echo bar",

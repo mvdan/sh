@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"os/user"
 	"path"
 	"strconv"
 	"strings"
@@ -88,18 +89,24 @@ func (r *Runner) setVar(name, val string) {
 	r.vars[name] = val
 }
 
-func (r *Runner) getVar(name string) string {
-	if val, e := r.vars[name]; e {
-		return val
-	}
-	return os.Getenv(name)
-}
-
 func (r *Runner) lookupVar(name string) (string, bool) {
+	switch name {
+	case "PWD":
+		dir, _ := os.Getwd()
+		return dir, true
+	case "HOME":
+		u, _ := user.Current()
+		return u.HomeDir, true
+	}
 	if val, e := r.vars[name]; e {
 		return val, true
 	}
 	return os.LookupEnv(name)
+}
+
+func (r *Runner) getVar(name string) string {
+	val, _ := r.lookupVar(name)
+	return val
 }
 
 func (r *Runner) delVar(name string) {

@@ -4,6 +4,7 @@
 package interp
 
 import (
+	"os"
 	"strconv"
 
 	"github.com/mvdan/sh/syntax"
@@ -122,6 +123,21 @@ func (r *Runner) builtin(pos syntax.Pos, name string, args []string) bool {
 		default:
 			r.errf("usage: continue [n]\n")
 			exit = 2
+		}
+	case "cd":
+		if len(args) > 1 {
+			r.errf("usage: cd [dir]\n")
+			exit = 2
+			break
+		}
+		var dir string
+		if len(args) == 0 {
+			dir = r.getVar("HOME")
+		} else {
+			dir = args[0]
+		}
+		if err := os.Chdir(dir); err != nil {
+			exit = 1
 		}
 	default:
 		return false
