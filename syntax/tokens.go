@@ -323,7 +323,7 @@ const (
 	TsBefore = BinTestOperator(rdrIn)
 	TsAfter  = BinTestOperator(rdrOut)
 	// Deprecated: now parses as TsEqual
-	TsAssgn = BinTestOperator(assgn)
+	TsAssgn = BinTestOperator(assgn) // TODO(mvdan): remove in 2.0
 )
 
 func (o RedirOperator) String() string   { return token(o).String() }
