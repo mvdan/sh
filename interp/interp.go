@@ -520,7 +520,35 @@ func (r *Runner) paramExp(pe *syntax.ParamExp) string {
 		val = strings.Replace(val, orig, with, n)
 	}
 	if pe.Exp != nil {
-		panic("unhandled param exp expansion")
+		arg := r.loneWord(pe.Exp.Word)
+		switch pe.Exp.Op {
+		//case syntax.SubstPlus:
+		//case syntax.SubstColPlus:
+		//case syntax.SubstMinus:
+		case syntax.SubstColMinus:
+			if val == "" {
+				val = arg
+			}
+		//case syntax.SubstQuest:
+		//case syntax.SubstColQuest:
+		//case syntax.SubstAssgn:
+		case syntax.SubstColAssgn:
+			if val == "" {
+				r.setVar(name, arg)
+				val = arg
+			}
+		//case syntax.RemSmallSuffix:
+		//case syntax.RemLargeSuffix:
+		//case syntax.RemSmallPrefix:
+		//case syntax.RemLargePrefix:
+		//case syntax.UpperFirst:
+		//case syntax.UpperAll:
+		//case syntax.LowerFirst:
+		//case syntax.LowerAll:
+		//case syntax.OtherParamOps:
+		default:
+			panic(fmt.Sprintf("unhandled param expansion op: %v", pe.Exp.Op))
+		}
 	}
 	return val
 }
