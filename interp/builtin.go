@@ -61,9 +61,10 @@ func (r *Runner) builtin(pos syntax.Pos, name string, args []string) bool {
 			switch args[0] {
 			case "-n":
 				newline = false
-			case "-e":
-				// TODO: POSIX does this by default, but
-				// not bash. who should we obey?
+			case "-e", "-E":
+				// TODO: what should be our default?
+				// exactly what is the difference in
+				// what we write?
 			default:
 				break opts
 			}
