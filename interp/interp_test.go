@@ -611,6 +611,10 @@ var fileCases = []struct {
 		"bar\n",
 	},
 	{
+		"ln -s b a; [[ -e a ]] && echo foo; touch b; [[ -e a ]] && echo bar; rm a b",
+		"bar\n",
+	},
+	{
 		"[[ -f a ]] && echo foo; touch a; [[ -f a ]] && echo bar; rm a",
 		"bar\n",
 	},
@@ -624,6 +628,10 @@ var fileCases = []struct {
 	},
 	{
 		"[[ -s a ]] && echo foo; echo body >a; [[ -s a ]] && echo bar; rm a",
+		"bar\n",
+	},
+	{
+		"[[ -L a ]] && echo foo; ln -s b a; [[ -L a ]] && echo bar; rm a",
 		"bar\n",
 	},
 

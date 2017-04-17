@@ -102,7 +102,8 @@ func (r *Runner) unTest(op syntax.UnTestOperator, x string) bool {
 	case syntax.TsSocket:
 		return statMode(x, os.ModeSocket)
 	case syntax.TsSmbLink:
-		return statMode(x, os.ModeSymlink)
+		info, _ := os.Lstat(x)
+		return info != nil && info.Mode()&os.ModeSymlink != 0
 	case syntax.TsSticky:
 		return statMode(x, os.ModeSticky)
 	case syntax.TsGIDSet:
