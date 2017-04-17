@@ -523,14 +523,22 @@ func (r *Runner) paramExp(pe *syntax.ParamExp) string {
 		arg := r.loneWord(pe.Exp.Word)
 		switch pe.Exp.Op {
 		//case syntax.SubstPlus:
-		//case syntax.SubstColPlus:
+		case syntax.SubstColPlus:
+			if val != "" {
+				val = arg
+			}
 		//case syntax.SubstMinus:
 		case syntax.SubstColMinus:
 			if val == "" {
 				val = arg
 			}
 		//case syntax.SubstQuest:
-		//case syntax.SubstColQuest:
+		case syntax.SubstColQuest:
+			if val == "" {
+				r.errf(arg)
+				r.exit = 1
+				r.lastExit()
+			}
 		//case syntax.SubstAssgn:
 		case syntax.SubstColAssgn:
 			if val == "" {
