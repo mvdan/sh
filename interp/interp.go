@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"unicode"
 	"unicode/utf8"
 
 	"github.com/mvdan/sh/syntax"
@@ -576,10 +577,22 @@ func (r *Runner) paramExp(pe *syntax.ParamExp) string {
 		//case syntax.RemLargeSuffix:
 		//case syntax.RemSmallPrefix:
 		//case syntax.RemLargePrefix:
-		//case syntax.UpperFirst:
-		//case syntax.UpperAll:
-		//case syntax.LowerFirst:
-		//case syntax.LowerAll:
+		case syntax.UpperFirst:
+			rs := []rune(val)
+			if len(rs) > 0 {
+				rs[0] = unicode.ToUpper(rs[0])
+			}
+			val = string(rs)
+		case syntax.UpperAll:
+			val = strings.ToUpper(val)
+		case syntax.LowerFirst:
+			rs := []rune(val)
+			if len(rs) > 0 {
+				rs[0] = unicode.ToLower(rs[0])
+			}
+			val = string(rs)
+		case syntax.LowerAll:
+			val = strings.ToLower(val)
 		//case syntax.OtherParamOps:
 		default:
 			panic(fmt.Sprintf("unhandled param expansion op: %v", pe.Exp.Op))

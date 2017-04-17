@@ -146,6 +146,14 @@ var fileCases = []struct {
 		"a=b; echo ${a?err1}; a=; echo ${a?err2}; unset a; echo ${a?err3}",
 		"b\n\nerr3\nexit status 1 #JUSTERR",
 	},
+	{
+		"a='àÉñ bAr'; echo ${a^}; echo ${a^^}",
+		"ÀÉñ bAr\nÀÉÑ BAR\n",
+	},
+	{
+		"a='àÉñ bAr'; echo ${a,}; echo ${a,,}",
+		"àÉñ bAr\nàéñ bar\n",
+	},
 
 	// if
 	{
