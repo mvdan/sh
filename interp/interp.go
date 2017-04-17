@@ -435,58 +435,7 @@ func (r *Runner) wordParts(wps []syntax.WordPart, quoted bool) []string {
 				curBuf.WriteString(str)
 			}
 		case *syntax.ParamExp:
-			name := x.Param.Value
-			val := ""
-			switch name {
-			case "#":
-				val = strconv.Itoa(len(r.args))
-			case "*", "@":
-				val = strings.Join(r.args, " ")
-			case "?":
-				val = strconv.Itoa(r.exit)
-			default:
-				if n, err := strconv.Atoi(name); err == nil {
-					if i := n - 1; i < len(r.args) {
-						val = r.args[i]
-					}
-				} else {
-					val = r.getVar(name)
-				}
-			}
-			if x.Length {
-				val = strconv.Itoa(utf8.RuneCountInString(val))
-			}
-			if x.Ind != nil {
-				panic("unhandled param exp index")
-			}
-			slicePos := func(expr syntax.ArithmExpr) int {
-				p := r.arithm(expr)
-				if p < 0 {
-					p = len(val) + p
-					if p < 0 {
-						p = len(val)
-					}
-				} else if p > len(val) {
-					p = len(val)
-				}
-				return p
-			}
-			if x.Slice != nil {
-				if x.Slice.Offset != nil {
-					offset := slicePos(x.Slice.Offset)
-					val = val[offset:]
-				}
-				if x.Slice.Length != nil {
-					length := slicePos(x.Slice.Length)
-					val = val[:length]
-				}
-			}
-			if x.Repl != nil {
-				panic("unhandled param exp replace")
-			}
-			if x.Exp != nil {
-				panic("unhandled param exp expansion")
-			}
+			val := r.paramExp(x)
 			if quoted {
 				curBuf.WriteString(val)
 			} else {
@@ -512,6 +461,62 @@ func (r *Runner) wordParts(wps []syntax.WordPart, quoted bool) []string {
 	}
 	flush()
 	return parts
+}
+
+func (r *Runner) paramExp(pe *syntax.ParamExp) string {
+	name := pe.Param.Value
+	val := ""
+	switch name {
+	case "#":
+		val = strconv.Itoa(len(r.args))
+	case "*", "@":
+		val = strings.Join(r.args, " ")
+	case "?":
+		val = strconv.Itoa(r.exit)
+	default:
+		if n, err := strconv.Atoi(name); err == nil {
+			if i := n - 1; i < len(r.args) {
+				val = r.args[i]
+			}
+		} else {
+			val = r.getVar(name)
+		}
+	}
+	if pe.Length {
+		val = strconv.Itoa(utf8.RuneCountInString(val))
+	}
+	if pe.Ind != nil {
+		panic("unhandled param exp index")
+	}
+	slicePos := func(expr syntax.ArithmExpr) int {
+		p := r.arithm(expr)
+		if p < 0 {
+			p = len(val) + p
+			if p < 0 {
+				p = len(val)
+			}
+		} else if p > len(val) {
+			p = len(val)
+		}
+		return p
+	}
+	if pe.Slice != nil {
+		if pe.Slice.Offset != nil {
+			offset := slicePos(pe.Slice.Offset)
+			val = val[offset:]
+		}
+		if pe.Slice.Length != nil {
+			length := slicePos(pe.Slice.Length)
+			val = val[:length]
+		}
+	}
+	if pe.Repl != nil {
+		panic("unhandled param exp replace")
+	}
+	if pe.Exp != nil {
+		panic("unhandled param exp expansion")
+	}
+	return val
 }
 
 func (r *Runner) call(pos syntax.Pos, name string, args []string) {
