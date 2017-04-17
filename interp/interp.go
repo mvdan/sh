@@ -490,8 +490,11 @@ func (r *Runner) paramExp(pe *syntax.ParamExp) string {
 			val, set = r.lookupVar(name)
 		}
 	}
-	if pe.Length {
+	switch {
+	case pe.Length:
 		val = strconv.Itoa(utf8.RuneCountInString(val))
+	case pe.Excl:
+		val, set = r.lookupVar(val)
 	}
 	if pe.Ind != nil {
 		panic("unhandled param exp index")

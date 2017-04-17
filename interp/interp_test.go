@@ -81,8 +81,6 @@ var fileCases = []struct {
 	{"foo=bar; echo $foo", "bar\n"},
 	{"foo=bar foo=etc; echo $foo", "etc\n"},
 	{"foo=bar; foo=etc; echo $foo", "etc\n"},
-	{"foo=bar; echo ${#foo}", "3\n"},
-	{"foo=世界; echo ${#foo}", "2\n"},
 	{"foo=bar; foo=; echo $foo", "\n"},
 	{"unset foo; echo $foo", "\n"},
 	{"foo=bar; unset foo; echo $foo", "\n"},
@@ -94,6 +92,12 @@ var fileCases = []struct {
 	{"echo $?; false; echo $?", "0\n1\n"},
 
 	// var manipulation
+	{"foo=bar; echo ${#foo}", "3\n"},
+	{"foo=世界; echo ${#foo}", "2\n"},
+	{
+		"echo ${!a}; a=b; echo ${!a}; b=c; echo ${!a}",
+		"\n\nc\n",
+	},
 	{
 		"a=foo; echo ${a:1}; echo ${a: -1}; echo ${a: -10}; echo ${a:5}",
 		"oo\no\n\n\n",
