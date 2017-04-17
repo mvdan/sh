@@ -607,24 +607,24 @@ var fileCases = []struct {
 		"",
 	},
 	{
-		"[[ -e a ]] && echo foo; touch a; [[ -e a ]] && echo foo; rm a",
-		"foo\n",
+		"[[ -e a ]] && echo foo; touch a; [[ -e a ]] && echo bar; rm a",
+		"bar\n",
 	},
 	{
-		"[[ -f a ]] && echo foo; touch a; [[ -f a ]] && echo foo; rm a",
-		"foo\n",
+		"[[ -f a ]] && echo foo; touch a; [[ -f a ]] && echo bar; rm a",
+		"bar\n",
 	},
 	{
-		"[[ -e a ]] && echo foo; mkdir a; [[ -e a ]] && echo foo; rmdir a",
-		"foo\n",
+		"[[ -e a ]] && echo foo; mkdir a; [[ -e a ]] && echo bar; rmdir a",
+		"bar\n",
 	},
 	{
-		"[[ -d a ]] && echo foo; mkdir a; [[ -d a ]] && echo foo; rmdir a",
-		"foo\n",
+		"[[ -d a ]] && echo foo; mkdir a; [[ -d a ]] && echo bar; rmdir a",
+		"bar\n",
 	},
 	{
-		"[[ -s a ]] && echo foo; echo body >a; [[ -s a ]] && echo foo; rm a",
-		"foo\n",
+		"[[ -s a ]] && echo foo; echo body >a; [[ -s a ]] && echo bar; rm a",
+		"bar\n",
 	},
 
 	// arithm
