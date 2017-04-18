@@ -325,6 +325,10 @@ var fileCases = []struct {
 		"/\n",
 	},
 	{
+		`old="$PWD" w="$HOME"; cd; [[ $PWD == $w ]] && echo foo; cd "$old"`,
+		"foo\n",
+	},
+	{
 		"cd doesnotexist",
 		"exit status 1 #JUSTERR",
 	},
