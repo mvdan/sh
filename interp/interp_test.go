@@ -552,7 +552,7 @@ var fileCases = []struct {
 		"foo\nbar\n",
 	},
 	{
-		"{ { echo foo; } & } & wait; echo bar",
+		"{ echo foo & wait; } & wait; echo bar",
 		"foo\nbar\n",
 	},
 
