@@ -318,6 +318,8 @@ const (
 	TsGtr
 	AndTest  = BinTestOperator(andAnd)
 	OrTest   = BinTestOperator(orOr)
+	// TODO(mvdan): == is a pattern match, not a comparison; use a
+	// more appropriate name like TsMatch in 2.0
 	TsEqual  = BinTestOperator(equal)
 	TsNequal = BinTestOperator(nequal)
 	TsBefore = BinTestOperator(rdrIn)
