@@ -670,6 +670,14 @@ var fileCases = []struct {
 		"",
 	},
 	{
+		"[[ abc == *b* ]]",
+		"",
+	},
+	{
+		"[[ abc != *b* ]]",
+		"exit status 1",
+	},
+	{
 		"[[ a =~ b ]]",
 		"exit status 1",
 	},

@@ -6,6 +6,7 @@ package interp
 import (
 	"fmt"
 	"os"
+	"path"
 	"regexp"
 
 	"github.com/mvdan/sh/syntax"
@@ -72,9 +73,11 @@ func (r *Runner) binTest(op syntax.BinTestOperator, x, y string) bool {
 	case syntax.OrTest:
 		return x != "" || y != ""
 	case syntax.TsEqual:
-		return x == y
+		m, _ := path.Match(y, x)
+		return m
 	case syntax.TsNequal:
-		return x != y
+		m, _ := path.Match(y, x)
+		return !m
 	case syntax.TsBefore:
 		return x < y
 	default: // syntax.TsAfter
