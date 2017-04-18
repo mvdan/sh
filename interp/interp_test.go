@@ -840,8 +840,16 @@ var fileCases = []struct {
 
 	// arrays
 	{
-		"a=foo; echo ${a[0]} ${a[@]} ${a[x]}; echo ${a[1]};",
+		"a=foo; echo ${a[0]} ${a[@]} ${a[x]}; echo ${a[1]}",
 		"foo foo foo\n\n",
+	},
+	{
+		"a=(); echo ${a[0]} ${a[@]} ${a[x]} ${a[1]}",
+		"\n",
+	},
+	{
+		"a=(b c); echo $a; echo ${a[0]}; echo ${a[1]}; echo ${a[x]}",
+		"b\nb\nc\nb\n",
 	},
 }
 
