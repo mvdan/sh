@@ -32,11 +32,11 @@ type Runner struct {
 
 	// Separate maps, note that bash allows a name to be both a var
 	// and a func simultaneously
-	vars  map[string]string
+	vars  map[string]varValue
 	funcs map[string]*syntax.Stmt
 
 	// like vars, but local to a cmd i.e. "foo=bar prog args..."
-	cmdVars map[string]string
+	cmdVars map[string]varValue
 
 	// Current arguments, if executing a function
 	args []string
@@ -56,6 +56,23 @@ type Runner struct {
 	bgShells sync.WaitGroup
 
 	// TODO: add context to kill the runner before it's done
+}
+
+// varValue can hold a string, an indexed array ([]string) or an
+// associative array (map[string]string)
+// TODO: implement associative arrays
+type varValue interface{}
+
+func varStr(v varValue) string {
+	switch x := v.(type) {
+	case string:
+		return x
+	case []string:
+		if len(x) > 0 {
+			return x[0]
+		}
+	}
+	return ""
 }
 
 type ExitCode uint8
@@ -88,7 +105,7 @@ func (r *Runner) lastExit() {
 
 func (r *Runner) setVar(name, val string) {
 	if r.vars == nil {
-		r.vars = make(map[string]string, 4)
+		r.vars = make(map[string]varValue, 4)
 	}
 	r.vars[name] = val
 }
@@ -103,10 +120,10 @@ func (r *Runner) lookupVar(name string) (string, bool) {
 		return u.HomeDir, true
 	}
 	if val, e := r.cmdVars[name]; e {
-		return val, true
+		return varStr(val), true
 	}
 	if val, e := r.vars[name]; e {
-		return val, true
+		return varStr(val), true
 	}
 	return os.LookupEnv(name)
 }
@@ -184,7 +201,7 @@ func (r *Runner) stmtSync(st *syntax.Stmt) {
 			continue
 		}
 		if r.cmdVars == nil {
-			r.cmdVars = make(map[string]string, len(st.Assigns))
+			r.cmdVars = make(map[string]varValue, len(st.Assigns))
 		}
 		r.cmdVars[name] = value
 	}
@@ -522,7 +539,7 @@ func (r *Runner) call(pos syntax.Pos, name string, args []string) {
 	cmd := exec.Command(name, args...)
 	cmd.Env = os.Environ()
 	for name, val := range r.cmdVars {
-		cmd.Env = append(cmd.Env, name+"="+val)
+		cmd.Env = append(cmd.Env, name+"="+varStr(val))
 	}
 	cmd.Stdin = r.Stdin
 	cmd.Stdout = r.Stdout
