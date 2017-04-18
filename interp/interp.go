@@ -681,6 +681,10 @@ func (r *Runner) call(pos syntax.Pos, name string, args []string) {
 		return
 	}
 	cmd := exec.Command(name, args...)
+	cmd.Env = os.Environ()
+	for name, val := range r.cmdVars {
+		cmd.Env = append(cmd.Env, name+"="+val)
+	}
 	cmd.Stdin = r.Stdin
 	cmd.Stdout = r.Stdout
 	cmd.Stderr = r.Stderr
