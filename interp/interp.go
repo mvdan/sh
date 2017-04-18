@@ -659,14 +659,12 @@ func removePattern(val, pattern string, fromEnd, longest bool) string {
 			}
 		}
 		if fromEnd {
-			i++
-			if i >= len(val) {
+			if i++; i >= len(val) {
 				break
 			}
 			s = val[i:]
 		} else {
-			i--
-			if i < 1 {
+			if i--; i < 1 {
 				break
 			}
 			s = val[:i]
@@ -696,10 +694,6 @@ func (r *Runner) call(pos syntax.Pos, name string, args []string) {
 	cmd.Stdout = r.Stdout
 	cmd.Stderr = r.Stderr
 	err := cmd.Run()
-	if err == nil {
-		r.exit = 0
-		return
-	}
 	switch x := err.(type) {
 	case *exec.ExitError:
 		// started, but errored - default to 1 if OS
@@ -715,5 +709,7 @@ func (r *Runner) call(pos syntax.Pos, name string, args []string) {
 		// "command not found"?
 		r.exit = 127
 		// TODO: print something?
+	default:
+		r.exit = 0
 	}
 }
