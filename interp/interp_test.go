@@ -532,15 +532,13 @@ var fileCases = []struct {
 		"foo\n",
 	},
 
-	// background
-	// TODO: can these be done in a less flaky way?
+	// background/wait
+	{"wait", ""},
+	{"{ true; } & wait", ""},
+	{"{ exit 1; } & wait", ""},
 	{
-		"{ sleep 0.01; echo foo; } & echo bar; sleep 0.02",
-		"bar\nfoo\n",
-	},
-	{
-		"{ exit 1; } & sleep 0.02",
-		"",
+		"{ echo foo; } & wait; echo bar",
+		"foo\nbar\n",
 	},
 
 	// bash test

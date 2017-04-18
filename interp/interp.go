@@ -13,6 +13,7 @@ import (
 	"path"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"unicode"
 	"unicode/utf8"
@@ -53,6 +54,8 @@ type Runner struct {
 	Stdin  io.Reader
 	Stdout io.Writer
 	Stderr io.Writer
+
+	bgShells sync.WaitGroup
 
 	// TODO: add context to kill the runner before it's done
 }
@@ -160,8 +163,11 @@ func (r *Runner) loneWord(word *syntax.Word) string {
 func (r *Runner) stmt(st *syntax.Stmt) {
 	if st.Background {
 		r2 := *r
-		r = &r2
-		go r.stmtSync(st)
+		r.bgShells.Add(1)
+		go func() {
+			r2.stmtSync(st)
+			r.bgShells.Done()
+		}()
 	} else {
 		r.stmtSync(st)
 	}
