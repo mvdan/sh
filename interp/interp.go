@@ -587,7 +587,7 @@ func (r *Runner) paramExp(pe *syntax.ParamExp) string {
 			fallthrough
 		case syntax.SubstColQuest:
 			if val == "" {
-				r.errf(arg)
+				r.errf("%s", arg)
 				r.exit = 1
 				r.lastExit()
 			}

@@ -127,7 +127,7 @@ func (r *Runner) builtin(pos syntax.Pos, name string, args []string) bool {
 			exit = 2
 		}
 	case "pwd":
-		r.outf(r.getVar("PWD"))
+		r.outf("%s\n", r.getVar("PWD"))
 	case "cd":
 		if len(args) > 1 {
 			r.errf("usage: cd [dir]\n")

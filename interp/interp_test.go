@@ -165,6 +165,10 @@ var fileCases = []struct {
 		"b\n\nerr3\nexit status 1 #JUSTERR",
 	},
 	{
+		"echo ${a:?%s}",
+		"%s\nexit status 1 #JUSTERR",
+	},
+	{
 		"x=aaabccc; echo ${x#*a}; echo ${x##*a}",
 		"aabccc\nbccc\n",
 	},
@@ -337,8 +341,12 @@ var fileCases = []struct {
 
 	// pwd
 	{
-		`[[ $PWD == $(pwd) ]]`,
+		"[[ $PWD == $(pwd) ]]",
 		"",
+	},
+	{
+		"mkdir %s; cd %s; pwd | sed 's@.*/@@'; cd ..; rmdir %s",
+		"%s\n",
 	},
 
 	// binary cmd
