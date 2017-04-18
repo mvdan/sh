@@ -75,6 +75,22 @@ func varStr(v varValue) string {
 	return ""
 }
 
+func (r *Runner) varInd(v varValue, e syntax.ArithmExpr) string {
+	switch x := v.(type) {
+	case string:
+		i := r.arithm(e)
+		if i == 0 {
+			return x
+		}
+	case []string:
+		i := r.arithm(e)
+		if len(x) > 0 {
+			return x[i]
+		}
+	}
+	return ""
+}
+
 type ExitCode uint8
 
 func (e ExitCode) Error() string { return fmt.Sprintf("exit status %d", e) }
