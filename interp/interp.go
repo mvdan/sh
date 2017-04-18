@@ -36,6 +36,9 @@ type Runner struct {
 	vars  map[string]string
 	funcs map[string]*syntax.Stmt
 
+	// like vars, but local to a cmd i.e. "foo=bar prog args..."
+	cmdVars map[string]string
+
 	// Current arguments, if executing a function
 	args []string
 
@@ -97,6 +100,9 @@ func (r *Runner) lookupVar(name string) (string, bool) {
 	case "HOME":
 		u, _ := user.Current()
 		return u.HomeDir, true
+	}
+	if val, e := r.cmdVars[name]; e {
+		return val, true
 	}
 	if val, e := r.vars[name]; e {
 		return val, true
@@ -162,13 +168,20 @@ func (r *Runner) stmt(st *syntax.Stmt) {
 }
 
 func (r *Runner) stmtSync(st *syntax.Stmt) {
-	// TODO: assigns only apply to st.Cmd if st.Cmd != nil
+	oldVars := r.cmdVars
 	for _, as := range st.Assigns {
 		name, value := as.Name.Value, ""
 		if as.Value != nil {
 			value = r.loneWord(as.Value)
 		}
-		r.setVar(name, value)
+		if st.Cmd == nil {
+			r.setVar(name, value)
+			continue
+		}
+		if r.cmdVars == nil {
+			r.cmdVars = make(map[string]string, len(st.Assigns))
+		}
+		r.cmdVars[name] = value
 	}
 	oldIn, oldOut, oldErr := r.Stdin, r.Stdout, r.Stderr
 	for _, rd := range st.Redirs {
@@ -193,6 +206,7 @@ func (r *Runner) stmtSync(st *syntax.Stmt) {
 			r.exit = 0
 		}
 	}
+	r.cmdVars = oldVars
 	r.Stdin, r.Stdout, r.Stderr = oldIn, oldOut, oldErr
 }
 

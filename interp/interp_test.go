@@ -99,6 +99,7 @@ var fileCases = []struct {
 	{"echo $INTERP_GLOBAL", "value\n"},
 	{"INTERP_GLOBAL=; echo $INTERP_GLOBAL", "\n"},
 	//{"unset INTERP_GLOBAL; echo $INTERP_GLOBAL", "\n"},
+	{"foo=bar; foo=x true; echo $foo", "bar\n"},
 
 	// special vars
 	{"echo $?; false; echo $?", "0\n1\n"},
@@ -745,6 +746,10 @@ var fileCases = []struct {
 	{
 		"let 3==4",
 		"exit status 1",
+	},
+	{
+		"a=1 let a++; echo $a",
+		"2\n",
 	},
 
 	// set/shift
