@@ -186,6 +186,15 @@ var fileCases = []struct {
 	//        "a='àÉñ bAr'; echo ${a,}; echo ${a,,}",
 	//        "àÉñ bAr\nàéñ bar\n",
 	//},
+	//{
+	//        // TODO: bash really likes quoting with ', not "
+	//        `a='"\n'; printf "%s %s" "${a}" "${a@Q}"`,
+	//        "\"\\n '\"\\n'",
+	//},
+	//{
+	//        `a='"\n'; printf "%s %s" "${a}" "${a@E}"`,
+	//        "\"\\n \"\n",
+	//},
 
 	// if
 	{

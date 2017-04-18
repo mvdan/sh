@@ -140,9 +140,28 @@ func (r *Runner) paramExp(pe *syntax.ParamExp) string {
 			val = string(rs)
 		case syntax.LowerAll:
 			val = strings.ToLower(val)
-		//case syntax.OtherParamOps:
-		default:
-			panic(fmt.Sprintf("unhandled param expansion op: %v", pe.Exp.Op))
+		default: // syntax.OtherParamOps
+			switch arg {
+			case "Q":
+				val = strconv.Quote(val)
+			case "E":
+				tail := val
+				var rns []rune
+				for tail != "" {
+					var rn rune
+					rn, _, tail, _ = strconv.UnquoteChar(tail, 0)
+					rns = append(rns, rn)
+				}
+				val = string(rns)
+			case "P":
+				panic("unhandled @P param expansion")
+			case "A":
+				panic("unhandled @A param expansion")
+			case "a":
+				panic("unhandled @a param expansion")
+			default:
+				panic(fmt.Sprintf("unexpected @%s param expansion", arg))
+			}
 		}
 	}
 	return val
