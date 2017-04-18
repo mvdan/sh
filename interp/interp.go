@@ -55,7 +55,7 @@ type Runner struct {
 	Stdout io.Writer
 	Stderr io.Writer
 
-	bgShells sync.WaitGroup
+	bgShells *sync.WaitGroup
 
 	// TODO: add context to kill the runner before it's done
 }
@@ -132,6 +132,7 @@ func (r *Runner) setFunc(name string, body *syntax.Stmt) {
 
 // Run starts the interpreter and returns any error.
 func (r *Runner) Run() error {
+	r.bgShells = new(sync.WaitGroup)
 	r.stmts(r.File.Stmts)
 	r.lastExit()
 	if r.err == ExitCode(0) {
@@ -163,10 +164,10 @@ func (r *Runner) loneWord(word *syntax.Word) string {
 func (r *Runner) stmt(st *syntax.Stmt) {
 	if st.Background {
 		r2 := *r
-		r.bgShells.Add(1)
+		r2.bgShells.Add(1)
 		go func() {
 			r2.stmtSync(st)
-			r.bgShells.Done()
+			r2.bgShells.Done()
 		}()
 	} else {
 		r.stmtSync(st)

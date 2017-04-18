@@ -540,6 +540,10 @@ var fileCases = []struct {
 		"{ echo foo; } & wait; echo bar",
 		"foo\nbar\n",
 	},
+	{
+		"{ { echo foo; } & } & wait; echo bar",
+		"foo\nbar\n",
+	},
 
 	// bash test
 	{
