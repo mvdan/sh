@@ -25,6 +25,7 @@ func (r *Runner) builtin(pos syntax.Pos, name string, args []string) bool {
 			if n, err := strconv.Atoi(args[0]); err != nil {
 				r.runErr(pos, "invalid exit code: %q", args[0])
 			} else if n != 0 {
+				exit = n
 				r.err = ExitCode(n)
 			}
 		default:

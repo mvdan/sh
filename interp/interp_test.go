@@ -315,6 +315,10 @@ var fileCases = []struct {
 		"exit status 1",
 	},
 	{
+		"(exit 1)",
+		"exit status 1",
+	},
+	{
 		"(foo=bar; echo $foo); echo $foo",
 		"bar\n\n",
 	},
