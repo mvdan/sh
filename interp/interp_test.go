@@ -633,6 +633,22 @@ var fileCases = []struct {
 		"foo\n",
 	},
 	{
+		"touch a b; [[ a -ef b ]] && echo foo; rm a b",
+		"",
+	},
+	{
+		"touch a; [[ a -ef a ]] && echo foo; rm a",
+		"foo\n",
+	},
+	{
+		"touch a; ln a b; [[ a -ef b ]] && echo foo; rm a b",
+		"foo\n",
+	},
+	{
+		"touch a; ln -s a b; [[ a -ef b ]] && echo foo; rm a b",
+		"foo\n",
+	},
+	{
 		"[[ -z 'foo' || -n '' ]]",
 		"exit status 1",
 	},

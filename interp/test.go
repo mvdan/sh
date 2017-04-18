@@ -52,7 +52,9 @@ func (r *Runner) binTest(op syntax.BinTestOperator, x, y string) bool {
 			return false
 		}
 		return i1.ModTime().Before(i2.ModTime())
-	//case syntax.TsDevIno:
+	case syntax.TsDevIno:
+		i1, i2 := stat(x), stat(y)
+		return os.SameFile(i1, i2)
 	case syntax.TsEql:
 		return atoi(x) == atoi(y)
 	case syntax.TsNeq:
@@ -75,10 +77,8 @@ func (r *Runner) binTest(op syntax.BinTestOperator, x, y string) bool {
 		return x != y
 	case syntax.TsBefore:
 		return x < y
-	case syntax.TsAfter:
+	default: // syntax.TsAfter
 		return x > y
-	default:
-		panic(fmt.Sprintf("unhandled binary test op: %v", op))
 	}
 }
 
