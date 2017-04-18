@@ -103,14 +103,14 @@ func (r *Runner) lastExit() {
 	}
 }
 
-func (r *Runner) setVar(name, val string) {
+func (r *Runner) setVar(name, str string) {
 	if r.vars == nil {
 		r.vars = make(map[string]varValue, 4)
 	}
-	r.vars[name] = val
+	r.vars[name] = str
 }
 
-func (r *Runner) lookupVar(name string) (string, bool) {
+func (r *Runner) lookupVar(name string) (varValue, bool) {
 	switch name {
 	case "PWD":
 		dir, _ := os.Getwd()
@@ -120,17 +120,17 @@ func (r *Runner) lookupVar(name string) (string, bool) {
 		return u.HomeDir, true
 	}
 	if val, e := r.cmdVars[name]; e {
-		return varStr(val), true
+		return val, true
 	}
 	if val, e := r.vars[name]; e {
-		return varStr(val), true
+		return val, true
 	}
 	return os.LookupEnv(name)
 }
 
 func (r *Runner) getVar(name string) string {
 	val, _ := r.lookupVar(name)
-	return val
+	return varStr(val)
 }
 
 func (r *Runner) delVar(name string) {

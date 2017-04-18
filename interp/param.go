@@ -16,7 +16,7 @@ import (
 
 func (r *Runner) paramExp(pe *syntax.ParamExp) string {
 	name := pe.Param.Value
-	val := ""
+	var val varValue
 	set := false
 	switch name {
 	case "#":
@@ -34,35 +34,37 @@ func (r *Runner) paramExp(pe *syntax.ParamExp) string {
 			val, set = r.lookupVar(name)
 		}
 	}
-	switch {
-	case pe.Length:
-		val = strconv.Itoa(utf8.RuneCountInString(val))
-	case pe.Excl:
-		val, set = r.lookupVar(val)
-	}
 	if pe.Ind != nil {
 		panic("unhandled param exp index")
+	}
+	str := varStr(val)
+	switch {
+	case pe.Length:
+		str = strconv.Itoa(utf8.RuneCountInString(str))
+	case pe.Excl:
+		val, set = r.lookupVar(str)
+		str = varStr(val)
 	}
 	slicePos := func(expr syntax.ArithmExpr) int {
 		p := r.arithm(expr)
 		if p < 0 {
-			p = len(val) + p
+			p = len(str) + p
 			if p < 0 {
-				p = len(val)
+				p = len(str)
 			}
-		} else if p > len(val) {
-			p = len(val)
+		} else if p > len(str) {
+			p = len(str)
 		}
 		return p
 	}
 	if pe.Slice != nil {
 		if pe.Slice.Offset != nil {
 			offset := slicePos(pe.Slice.Offset)
-			val = val[offset:]
+			str = str[offset:]
 		}
 		if pe.Slice.Length != nil {
 			length := slicePos(pe.Slice.Length)
-			val = val[:length]
+			str = str[:length]
 		}
 	}
 	if pe.Repl != nil {
@@ -72,19 +74,19 @@ func (r *Runner) paramExp(pe *syntax.ParamExp) string {
 		if pe.Repl.All {
 			n = -1
 		}
-		val = strings.Replace(val, orig, with, n)
+		str = strings.Replace(str, orig, with, n)
 	}
 	if pe.Exp != nil {
 		arg := r.loneWord(pe.Exp.Word)
 		switch pe.Exp.Op {
 		case syntax.SubstColPlus:
-			if val == "" {
+			if str == "" {
 				break
 			}
 			fallthrough
 		case syntax.SubstPlus:
 			if set {
-				val = arg
+				str = arg
 			}
 		case syntax.SubstMinus:
 			if set {
@@ -92,8 +94,8 @@ func (r *Runner) paramExp(pe *syntax.ParamExp) string {
 			}
 			fallthrough
 		case syntax.SubstColMinus:
-			if val == "" {
-				val = arg
+			if str == "" {
+				str = arg
 			}
 		case syntax.SubstQuest:
 			if set {
@@ -101,7 +103,7 @@ func (r *Runner) paramExp(pe *syntax.ParamExp) string {
 			}
 			fallthrough
 		case syntax.SubstColQuest:
-			if val == "" {
+			if str == "" {
 				r.errf("%s", arg)
 				r.exit = 1
 				r.lastExit()
@@ -112,47 +114,47 @@ func (r *Runner) paramExp(pe *syntax.ParamExp) string {
 			}
 			fallthrough
 		case syntax.SubstColAssgn:
-			if val == "" {
+			if str == "" {
 				r.setVar(name, arg)
-				val = arg
+				str = arg
 			}
 		case syntax.RemSmallPrefix:
-			val = removePattern(val, arg, false, false)
+			str = removePattern(str, arg, false, false)
 		case syntax.RemLargePrefix:
-			val = removePattern(val, arg, false, true)
+			str = removePattern(str, arg, false, true)
 		case syntax.RemSmallSuffix:
-			val = removePattern(val, arg, true, false)
+			str = removePattern(str, arg, true, false)
 		case syntax.RemLargeSuffix:
-			val = removePattern(val, arg, true, true)
+			str = removePattern(str, arg, true, true)
 		case syntax.UpperFirst:
-			rs := []rune(val)
+			rs := []rune(str)
 			if len(rs) > 0 {
 				rs[0] = unicode.ToUpper(rs[0])
 			}
-			val = string(rs)
+			str = string(rs)
 		case syntax.UpperAll:
-			val = strings.ToUpper(val)
+			str = strings.ToUpper(str)
 		case syntax.LowerFirst:
-			rs := []rune(val)
+			rs := []rune(str)
 			if len(rs) > 0 {
 				rs[0] = unicode.ToLower(rs[0])
 			}
-			val = string(rs)
+			str = string(rs)
 		case syntax.LowerAll:
-			val = strings.ToLower(val)
+			str = strings.ToLower(str)
 		default: // syntax.OtherParamOps
 			switch arg {
 			case "Q":
-				val = strconv.Quote(val)
+				str = strconv.Quote(str)
 			case "E":
-				tail := val
+				tail := str
 				var rns []rune
 				for tail != "" {
 					var rn rune
 					rn, _, tail, _ = strconv.UnquoteChar(tail, 0)
 					rns = append(rns, rn)
 				}
-				val = string(rns)
+				str = string(rns)
 			case "P":
 				panic("unhandled @P param expansion")
 			case "A":
@@ -164,37 +166,37 @@ func (r *Runner) paramExp(pe *syntax.ParamExp) string {
 			}
 		}
 	}
-	return val
+	return str
 }
 
-func removePattern(val, pattern string, fromEnd, longest bool) string {
+func removePattern(str, pattern string, fromEnd, longest bool) string {
 	// TODO: really slow to not re-implement path.Match.
-	last := val
-	s := val
-	i := len(val)
+	last := str
+	s := str
+	i := len(str)
 	if fromEnd {
 		i = 0
 	}
 	for {
 		if m, _ := path.Match(pattern, s); m {
-			last = val[i:]
+			last = str[i:]
 			if fromEnd {
-				last = val[:i]
+				last = str[:i]
 			}
 			if longest {
 				return last
 			}
 		}
 		if fromEnd {
-			if i++; i >= len(val) {
+			if i++; i >= len(str) {
 				break
 			}
-			s = val[i:]
+			s = str[i:]
 		} else {
 			if i--; i < 1 {
 				break
 			}
-			s = val[:i]
+			s = str[:i]
 		}
 	}
 	return last
