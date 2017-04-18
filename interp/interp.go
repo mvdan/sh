@@ -83,6 +83,15 @@ func (r *Runner) varInd(v varValue, e syntax.ArithmExpr) string {
 			return x
 		}
 	case []string:
+		// TODO: @ between double quotes
+		if w, ok := e.(*syntax.Word); ok {
+			if lit, ok := w.Parts[0].(*syntax.Lit); ok {
+				switch lit.Value {
+				case "@", "*":
+					return strings.Join(x, " ")
+				}
+			}
+		}
 		i := r.arithm(e)
 		if len(x) > 0 {
 			return x[i]
@@ -509,6 +518,7 @@ func (r *Runner) wordParts(wps []syntax.WordPart, quoted bool) []string {
 		case *syntax.SglQuoted:
 			curBuf.WriteString(x.Value)
 		case *syntax.DblQuoted:
+			// TODO: @ between double quotes but not alone
 			if len(x.Parts) == 1 {
 				pe, ok := x.Parts[0].(*syntax.ParamExp)
 				if ok && pe.Param.Value == "@" {

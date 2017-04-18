@@ -851,6 +851,10 @@ var fileCases = []struct {
 		"a=(b c); echo $a; echo ${a[0]}; echo ${a[1]}; echo ${a[x]}",
 		"b\nb\nc\nb\n",
 	},
+	{
+		"a=(b c); echo ${a[@]}; echo ${a[*]}",
+		"b c\nb c\n",
+	},
 }
 
 // concBuffer wraps a bytes.Buffer in a mutex so that concurrent writes
