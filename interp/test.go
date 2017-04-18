@@ -6,6 +6,7 @@ package interp
 import (
 	"fmt"
 	"os"
+	"regexp"
 
 	"github.com/mvdan/sh/syntax"
 )
@@ -33,7 +34,12 @@ func (r *Runner) bashTest(expr syntax.TestExpr) string {
 
 func (r *Runner) binTest(op syntax.BinTestOperator, x, y string) bool {
 	switch op {
-	//case syntax.TsReMatch:
+	case syntax.TsReMatch:
+		re, err := regexp.Compile(y)
+		if err != nil {
+			return false
+		}
+		return re.MatchString(x)
 	case syntax.TsNewer:
 		i1, i2 := stat(x), stat(y)
 		if i1 == nil || i2 == nil {

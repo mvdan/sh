@@ -641,6 +641,18 @@ var fileCases = []struct {
 		"",
 	},
 	{
+		"[[ a =~ b ]]",
+		"exit status 1",
+	},
+	{
+		"[[ foo =~ foo && foo =~ .* && foo =~ f.o ]]",
+		"",
+	},
+	{
+		"[[ foo =~ oo ]] && echo foo; [[ foo =~ ^oo$ ]] && echo bar || true",
+		"foo\n",
+	},
+	{
 		"[[ -e a ]] && echo x; touch a; [[ -e a ]] && echo y; rm a",
 		"y\n",
 	},
