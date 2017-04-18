@@ -335,6 +335,12 @@ var fileCases = []struct {
 		"exit status 1 #JUSTERR",
 	},
 
+	// pwd
+	{
+		`[[ $PWD == $(pwd) ]]`,
+		"",
+	},
+
 	// binary cmd
 	{
 		"true && echo foo || echo bar",
