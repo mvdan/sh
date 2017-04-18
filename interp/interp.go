@@ -426,7 +426,7 @@ func (r *Runner) loopStmtsBroken(stmts []*syntax.Stmt) bool {
 		r.stmt(stmt)
 		if r.contnEnclosing > 0 {
 			r.contnEnclosing--
-			return false
+			return r.contnEnclosing > 0
 		}
 		if r.breakEnclosing > 0 {
 			r.breakEnclosing--

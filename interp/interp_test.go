@@ -282,12 +282,10 @@ var fileCases = []struct {
 		"for i in 1 2 3; do echo $i; continue; echo foo; done",
 		"1\n2\n3\n",
 	},
-	/* TODO: make this work
 	{
 		"for i in 1 2; do for j in a b; do echo $i $j; continue 2; done; done",
 		"1 a\n2 a\n",
 	},
-	*/
 	{
 		"for ((i=0; i<3; i++)); do echo $i; done",
 		"0\n1\n2\n",
