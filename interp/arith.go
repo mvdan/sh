@@ -51,7 +51,7 @@ func (r *Runner) arithm(expr syntax.ArithmExpr) int {
 		val := r.arithm(x.X)
 		switch x.Op {
 		case syntax.Not:
-			return boolArit(val == 0)
+			return oneIf(val == 0)
 		case syntax.Plus:
 			return val
 		default: // syntax.Minus
@@ -89,13 +89,6 @@ func (r *Runner) arithm(expr syntax.ArithmExpr) int {
 func atoi(s string) int {
 	n, _ := strconv.Atoi(s)
 	return n
-}
-
-func boolArit(b bool) int {
-	if b {
-		return 1
-	}
-	return 0
 }
 
 func (r *Runner) assgnArit(b *syntax.BinaryArithm) int {
@@ -162,17 +155,17 @@ func binArit(op syntax.BinAritOperator, x, y int) int {
 	case syntax.Pow:
 		return intPow(x, y)
 	case syntax.Eql:
-		return boolArit(x == y)
+		return oneIf(x == y)
 	case syntax.Gtr:
-		return boolArit(x > y)
+		return oneIf(x > y)
 	case syntax.Lss:
-		return boolArit(x < y)
+		return oneIf(x < y)
 	case syntax.Neq:
-		return boolArit(x != y)
+		return oneIf(x != y)
 	case syntax.Leq:
-		return boolArit(x <= y)
+		return oneIf(x <= y)
 	case syntax.Geq:
-		return boolArit(x >= y)
+		return oneIf(x >= y)
 	case syntax.And:
 		return x & y
 	case syntax.Or:
@@ -184,9 +177,9 @@ func binArit(op syntax.BinAritOperator, x, y int) int {
 	case syntax.Shl:
 		return x << uint(y)
 	case syntax.AndArit:
-		return boolArit(x != 0 && y != 0)
+		return oneIf(x != 0 && y != 0)
 	case syntax.OrArit:
-		return boolArit(x != 0 || y != 0)
+		return oneIf(x != 0 || y != 0)
 	default: // syntax.Comma
 		// x is executed but its result discarded
 		return y

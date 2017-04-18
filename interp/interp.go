@@ -205,14 +205,17 @@ func (r *Runner) stmtSync(st *syntax.Stmt) {
 		r.cmd(st.Cmd)
 	}
 	if st.Negated {
-		if r.exit == 0 {
-			r.exit = 1
-		} else {
-			r.exit = 0
-		}
+		r.exit = oneIf(r.exit == 0)
 	}
 	r.cmdVars = oldVars
 	r.Stdin, r.Stdout, r.Stderr = oldIn, oldOut, oldErr
+}
+
+func oneIf(b bool) int {
+	if b {
+		return 1
+	}
+	return 0
 }
 
 func (r *Runner) cmd(cm syntax.Command) {
