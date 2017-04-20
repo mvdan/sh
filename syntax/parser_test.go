@@ -57,48 +57,25 @@ func TestParsePosix(t *testing.T) {
 	}
 }
 
+var hasBash44 bool
+
 func TestMain(m *testing.M) {
-	bashVersion, bashError = checkBash()
+	hasBash44 = checkBash()
 	os.Exit(m.Run())
 }
 
-var (
-	bashVersion int
-	bashError   error
-)
-
-func checkBash() (int, error) {
+func checkBash() bool {
 	out, err := exec.Command("bash", "-c", "echo -n $BASH_VERSION").Output()
 	if err != nil {
-		return 0, err
+		return false
 	}
-	got := string(out)
-	versions := []string{
-		"4.2",
-		"4.3",
-		"4.4",
-	}
-	vercodes := []int{
-		42,
-		43,
-		44,
-	}
-	for i, ver := range versions {
-		if strings.HasPrefix(got, ver) {
-			return vercodes[i], nil
-		}
-	}
-	return 0, fmt.Errorf("need bash %s, found %s", strings.Join(versions, "/"), got)
+	return strings.HasPrefix(string(out), "4.4")
 }
 
 var extGlobRe = regexp.MustCompile(`[@?*+!]\(`)
 
-func confirmParse(in string, min int, posix, fail bool) func(*testing.T) {
+func confirmParse(in string, posix, fail bool) func(*testing.T) {
 	return func(t *testing.T) {
-		if bashVersion < min {
-			t.Skip("need bash%d, have bash%d", min, bashVersion)
-			return
-		}
 		t.Parallel()
 		var opts []string
 		if posix {
@@ -151,13 +128,13 @@ func TestParseBashConfirm(t *testing.T) {
 	if testing.Short() {
 		t.Skip("calling bash is slow.")
 	}
-	if bashError != nil {
-		t.Skip(bashError)
+	if !hasBash44 {
+		t.Skip("bash 4.4 required to run")
 	}
 	for i, c := range append(fileTests, fileTestsNoPrint...) {
 		for j, in := range c.Strs {
 			t.Run(fmt.Sprintf("%03d-%d", i, j),
-				confirmParse(in, c.minBash, false, false))
+				confirmParse(in, false, false))
 		}
 	}
 }
@@ -166,11 +143,11 @@ func TestParseErrBashConfirm(t *testing.T) {
 	if testing.Short() {
 		t.Skip("calling bash is slow.")
 	}
-	if bashError != nil {
-		t.Skip(bashError)
+	if !hasBash44 {
+		t.Skip("bash 4.4 required to run")
 	}
 	for i, c := range append(shellTests, bashTests...) {
-		t.Run(fmt.Sprintf("%03d", i), confirmParse(c.in, 0, false, true))
+		t.Run(fmt.Sprintf("%03d", i), confirmParse(c.in, false, true))
 	}
 }
 
@@ -178,11 +155,11 @@ func TestParseErrPosixConfirm(t *testing.T) {
 	if testing.Short() {
 		t.Skip("calling bash is slow.")
 	}
-	if bashError != nil {
-		t.Skip(bashError)
+	if !hasBash44 {
+		t.Skip("bash 4.4 required to run")
 	}
 	for i, c := range append(shellTests, posixTests...) {
-		t.Run(fmt.Sprintf("%03d", i), confirmParse(c.in, 0, true, true))
+		t.Run(fmt.Sprintf("%03d", i), confirmParse(c.in, true, true))
 	}
 }
 

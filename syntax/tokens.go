@@ -316,8 +316,8 @@ const (
 	TsGeq
 	TsLss
 	TsGtr
-	AndTest  = BinTestOperator(andAnd)
-	OrTest   = BinTestOperator(orOr)
+	AndTest = BinTestOperator(andAnd)
+	OrTest  = BinTestOperator(orOr)
 	// TODO(mvdan): == and != are pattern matches; use more
 	// appropriate names like TsMatch and TsNoMatch in 2.0
 	TsEqual  = BinTestOperator(equal)

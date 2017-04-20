@@ -15,12 +15,23 @@ import (
 	"github.com/mvdan/sh/syntax"
 )
 
+var hasBash44 bool
+
 func TestMain(m *testing.M) {
+	hasBash44 = checkBash()
 	os.Setenv("INTERP_GLOBAL", "value")
 	for _, s := range []string{"a", "b", "c", "foo"} {
 		os.Unsetenv(s)
 	}
 	os.Exit(m.Run())
+}
+
+func checkBash() bool {
+	out, err := exec.Command("bash", "-c", "echo -n $BASH_VERSION").Output()
+	if err != nil {
+		return false
+	}
+	return strings.HasPrefix(string(out), "4.4")
 }
 
 var fileCases = []struct {
@@ -176,16 +187,14 @@ var fileCases = []struct {
 		"x=aaabccc; echo ${x%c*}; echo ${x%%c*}",
 		"aaabcc\naaab\n",
 	},
-	// TODO: re-enable once we fix for Travis (it has Bash 4.2,
-	// which is buggy on non-ascii case conversions)
-	//{
-	//        "a='àÉñ bAr'; echo ${a^}; echo ${a^^}",
-	//        "ÀÉñ bAr\nÀÉÑ BAR\n",
-	//},
-	//{
-	//        "a='àÉñ bAr'; echo ${a,}; echo ${a,,}",
-	//        "àÉñ bAr\nàéñ bar\n",
-	//},
+	{
+		"a='àÉñ bAr'; echo ${a^}; echo ${a^^}",
+		"ÀÉñ bAr\nÀÉÑ BAR\n",
+	},
+	{
+		"a='àÉñ bAr'; echo ${a,}; echo ${a,,}",
+		"àÉñ bAr\nàéñ bar\n",
+	},
 	//{
 	//        // TODO: bash really likes quoting with ', not "
 	//        `a='"\n'; printf "%s %s" "${a}" "${a@Q}"`,
@@ -916,6 +925,9 @@ func TestFile(t *testing.T) {
 func TestFileConfirm(t *testing.T) {
 	if testing.Short() {
 		t.Skip("calling bash is slow.")
+	}
+	if !hasBash44 {
+		t.Skip("bash 4.4 required to run")
 	}
 	for i, c := range fileCases {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
