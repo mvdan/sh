@@ -29,12 +29,7 @@ func (r *Runner) arithm(expr syntax.ArithmExpr) int {
 	case *syntax.UnaryArithm:
 		switch x.Op {
 		case syntax.Inc, syntax.Dec:
-			word, ok := x.X.(*syntax.Word)
-			if !ok {
-				// TODO: error?
-				return 0
-			}
-			name := r.loneWord(word)
+			name := r.loneWord(x.X.(*syntax.Word))
 			old := atoi(r.getVar(name))
 			val := old
 			if x.Op == syntax.Inc {
