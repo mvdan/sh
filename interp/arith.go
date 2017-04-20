@@ -59,15 +59,9 @@ func (r *Runner) arithm(expr syntax.ArithmExpr) int {
 			syntax.AndAssgn, syntax.OrAssgn, syntax.XorAssgn,
 			syntax.ShlAssgn, syntax.ShrAssgn:
 			return r.assgnArit(x)
-		case syntax.Colon:
-			// TODO: error
-		case syntax.Quest:
+		case syntax.Quest: // Colon can't happen here
 			cond := r.arithm(x.X)
-			b2, ok := x.Y.(*syntax.BinaryArithm)
-			if !ok || b2.Op != syntax.Colon {
-				// TODO: error
-				return 0
-			}
+			b2 := x.Y.(*syntax.BinaryArithm) // must have Op==Colon
 			if cond == 1 {
 				return r.arithm(b2.X)
 			}
