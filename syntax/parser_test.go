@@ -661,6 +661,10 @@ var shellTests = []errorCase{
 		`1:9: ternary operator missing ? before :`,
 	},
 	{
+		"echo $(((a)+=b))",
+		`1:12: += must follow a word`,
+	},
+	{
 		"<<EOF\n$(()a",
 		`2:1: reached ) without matching $(( with ))`,
 	},
@@ -890,6 +894,10 @@ var bashTests = []errorCase{
 	{
 		"let a:b",
 		`1:5: ternary operator missing ? before :`,
+	},
+	{
+		"let a+b=c",
+		`1:8: = must follow a word`,
 	},
 	{
 		"[[",

@@ -792,8 +792,16 @@ func (p *parser) arithmExpr(ftok token, fpos Pos, level int, compact, tern bool)
 		Op:    BinAritOperator(p.tok),
 		X:     left,
 	}
-	if b.Op == Colon && !tern {
-		p.posErr(b.Pos(), "ternary operator missing ? before :")
+	switch b.Op {
+	case Colon:
+		if !tern {
+			p.posErr(b.Pos(), "ternary operator missing ? before :")
+		}
+	case AddAssgn, SubAssgn, MulAssgn, QuoAssgn, RemAssgn, AndAssgn,
+		OrAssgn, XorAssgn, ShlAssgn, ShrAssgn, Assgn:
+		if _, ok := b.X.(*Word); !ok {
+			p.posErr(b.OpPos, "%s must follow a word", b.Op.String())
+		}
 	}
 	if p.next(); compact && p.spaced {
 		p.followErrExp(b.OpPos, b.Op.String())

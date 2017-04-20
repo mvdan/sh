@@ -497,9 +497,11 @@ func (*Word) arithmExprNode()         {}
 // BinaryArithm represents a binary expression between two arithmetic
 // expression.
 //
-// Ternary operators like "a ? b : c" are fit into this structure. If Op
-// is Quest, Y will be a *BinaryArithm with Op == Colon. Op can only be
-// Colon in that scenario.
+// If Op is any assign operator, X will be a *Word.
+//
+// Ternary operators like "a ? b : c" are fit into this structure. Thus,
+// if Op == Quest, Y will be a *BinaryArithm with Op == Colon. Op can
+// only be Colon in that scenario.
 type BinaryArithm struct {
 	OpPos Pos
 	Op    BinAritOperator
