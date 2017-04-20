@@ -792,12 +792,20 @@ func (p *parser) arithmExpr(ftok token, fpos Pos, level int, compact, tern bool)
 		Op:    BinAritOperator(p.tok),
 		X:     left,
 	}
+	if b.Op == Colon && !tern {
+		p.posErr(b.Pos(), "ternary operator missing ? before :")
+	}
 	if p.next(); compact && p.spaced {
 		p.followErrExp(b.OpPos, b.Op.String())
 	}
 	b.Y = p.arithmExpr(token(b.Op), b.OpPos, newLevel, compact, b.Op == Quest)
 	if b.Y == nil {
 		p.followErrExp(b.OpPos, b.Op.String())
+	}
+	if b.Op == Quest {
+		if b2, ok := b.Y.(*BinaryArithm); !ok || b2.Op != Colon {
+			p.posErr(b.Pos(), "ternary operator missing : after ?")
+		}
 	}
 	return b
 }

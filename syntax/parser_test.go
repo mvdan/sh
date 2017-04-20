@@ -653,6 +653,14 @@ var shellTests = []errorCase{
 		`1:9: ++ must be followed by a word`,
 	},
 	{
+		"echo $((a ? b))",
+		`1:9: ternary operator missing : after ?`,
+	},
+	{
+		"echo $((a : b))",
+		`1:9: ternary operator missing ? before :`,
+	},
+	{
 		"<<EOF\n$(()a",
 		`2:1: reached ) without matching $(( with ))`,
 	},
@@ -880,6 +888,10 @@ var bashTests = []errorCase{
 		`2:1: reached EOF without closing quote '`,
 	},
 	{
+		"let a:b",
+		`1:5: ternary operator missing ? before :`,
+	},
+	{
 		"[[",
 		`1:1: test clause requires at least one expression`,
 	},
@@ -1072,12 +1084,12 @@ var bashTests = []errorCase{
 		`1:6: reached EOF without matching ${ with }`,
 	},
 	{
-		`$((echo :); (echo :)) #INVBASH bash does backtrack`,
-		`1:9: : must be followed by an expression`,
+		`$((echo a); (echo b)) #INVBASH bash does backtrack`,
+		`1:9: not a valid arithmetic operator: a`,
 	},
 	{
-		`((echo :); (echo :)) #INVBASH bash does backtrack`,
-		`1:8: : must be followed by an expression`,
+		`((echo a); (echo b)) #INVBASH bash does backtrack`,
+		`1:8: not a valid arithmetic operator: a`,
 	},
 	{
 		"for ((;;0000000",
