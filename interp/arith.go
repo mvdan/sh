@@ -81,12 +81,7 @@ func atoi(s string) int {
 }
 
 func (r *Runner) assgnArit(b *syntax.BinaryArithm) int {
-	word, ok := b.X.(*syntax.Word)
-	if !ok {
-		// TODO: error?
-		return 0
-	}
-	name := r.loneWord(word)
+	name := r.loneWord(b.X.(*syntax.Word))
 	val := atoi(r.getVar(name))
 	arg := r.arithm(b.Y)
 	switch b.Op {
