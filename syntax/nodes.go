@@ -670,6 +670,9 @@ func (s *ProcSubst) End() Pos { return s.Rparen + 1 }
 // EvalClause represents a Bash eval clause.
 //
 // This node will never appear when in PosixConformant mode.
+//
+// TODO(mvdan): EvalClause is actually pointless, as any non-trivial use
+// of eval will involve parsing the program at run-time. Remove in 2.0.
 type EvalClause struct {
 	Eval Pos
 	Stmt *Stmt
