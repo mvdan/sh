@@ -507,6 +507,8 @@ func (b *BinaryArithm) End() Pos { return b.Y.End() }
 
 // UnaryArithm represents an unary expression over a node, either before
 // or after it.
+//
+// If Op is Inc or Dec, X will be a *Word.
 type UnaryArithm struct {
 	OpPos Pos
 	Op    UnAritOperator

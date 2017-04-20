@@ -805,12 +805,17 @@ func (p *parser) arithmExpr(ftok token, fpos Pos, level int, compact, tern bool)
 func (p *parser) arithmExprBase(compact bool) ArithmExpr {
 	var x ArithmExpr
 	switch p.tok {
-	case addAdd, subSub, exclMark:
+	case exclMark:
 		ue := &UnaryArithm{OpPos: p.pos, Op: UnAritOperator(p.tok)}
 		p.next()
 		if ue.X = p.arithmExprBase(compact); ue.X == nil {
 			p.followErrExp(ue.OpPos, ue.Op.String())
 		}
+		return ue
+	case addAdd, subSub:
+		ue := &UnaryArithm{OpPos: p.pos, Op: UnAritOperator(p.tok)}
+		p.next()
+		ue.X = p.followWordTok(token(ue.Op), ue.OpPos)
 		return ue
 	case leftParen:
 		pe := &ParenArithm{Lparen: p.pos}
@@ -847,6 +852,9 @@ func (p *parser) arithmExprBase(compact bool) ArithmExpr {
 		return x
 	}
 	if p.tok == addAdd || p.tok == subSub {
+		if _, ok := x.(*Word); !ok {
+			p.curErr("%s must follow a word", p.tok.String())
+		}
 		u := &UnaryArithm{
 			Post:  true,
 			OpPos: p.pos,

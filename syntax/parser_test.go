@@ -650,7 +650,7 @@ var shellTests = []errorCase{
 	},
 	{
 		"echo $((++))",
-		`1:9: ++ must be followed by an expression`,
+		`1:9: ++ must be followed by a word`,
 	},
 	{
 		"<<EOF\n$(()a",
@@ -853,7 +853,15 @@ var bashTests = []errorCase{
 	},
 	{
 		"let a ++",
-		`1:7: ++ must be followed by an expression`,
+		`1:7: ++ must be followed by a word`,
+	},
+	{
+		"let (a)++",
+		`1:8: ++ must follow a word`,
+	},
+	{
+		"let --(a)",
+		`1:5: -- must be followed by a word`,
 	},
 	{
 		"let a+\n",
