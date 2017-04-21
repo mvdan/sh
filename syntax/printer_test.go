@@ -256,21 +256,25 @@ func TestFprintWeirdFormat(t *testing.T) {
 		},
 		{
 			"foo |\n# misplaced\nbar",
-			"# misplaced\nfoo \\\n\t| bar",
+			"foo \\\n\t|\n\t# misplaced\n\tbar",
 		},
 		samePrint("{\n\tfoo\n\t#a\n\tbar\n} | etc"),
 		{
 			"foo &&\n#a1\n#a2\n$(bar)",
-			"#a1\n#a2\nfoo \\\n\t&& $(bar)",
+			"foo \\\n\t&&\n\t#a1\n\t#a2\n\t$(bar)",
 		},
 		{
 			"{\n\tfoo\n\t#a\n} |\n# misplaced\nbar",
-			"# misplaced\n{\n\tfoo\n\t#a\n} \\\n\t| bar",
+			"{\n\tfoo\n\t#a\n} \\\n\t|\n\t# misplaced\n\tbar",
 		},
 		samePrint("foo | bar\n#after"),
 		{
+			"a |\nb | #c2\nc",
+			"a \\\n\t| b \\\n\t|\n\t#c2\n\tc",
+		},
+		{
 			"{\nfoo &&\n#a1\n#a2\n$(bar)\n}",
-			"{\n\t#a1\n\t#a2\n\tfoo \\\n\t\t&& $(bar)\n}",
+			"{\n\tfoo \\\n\t\t&&\n\t\t#a1\n\t\t#a2\n\t\t$(bar)\n}",
 		},
 		{
 			"foo | while read l; do\nbar\ndone",

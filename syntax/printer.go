@@ -250,6 +250,13 @@ func (p *printer) semiRsrv(s string, pos Pos, fallback bool) {
 	p.wantSpace = true
 }
 
+func (p *printer) anyCommentsBefore(pos Pos) bool {
+	if !pos.IsValid() || len(p.comments) < 1 {
+		return false
+	}
+	return p.comments[0].Hash < pos
+}
+
 func (p *printer) commentsUpTo(pos Pos) {
 	if len(p.comments) < 1 {
 		return
@@ -263,7 +270,7 @@ func (p *printer) commentsUpTo(pos Pos) {
 	case p.nlineIndex == 0:
 	case c.Hash > p.nline:
 		p.newlines(c.Hash)
-	default:
+	case p.wantSpace:
 		p.spaces(p.commentPadding + 1)
 	}
 	p.incLines(c.Hash)
@@ -623,27 +630,6 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		p.nestedStmts(x.DoStmts, 0)
 		p.semiRsrv("done", x.Done, true)
 	case *BinaryCmd:
-		var leftComments []*Comment
-		for _, c := range p.comments {
-			// move comments in between x.X and x.Y before
-			// all of x, since these are confusing and could
-			// break the program
-			if c.Hash > x.Y.Pos() {
-				break
-			}
-			p.comments = p.comments[1:]
-			if c.Hash < x.X.End() {
-				leftComments = append(leftComments, c)
-				continue
-			}
-			p.WriteByte('#')
-			p.WriteString(c.Text)
-			p.WriteByte('\n')
-			p.indent()
-		}
-		if leftComments != nil {
-			p.comments = append(leftComments, p.comments...)
-		}
 		p.stmt(x.X)
 		indent := !p.nestedBinary
 		if indent {
@@ -655,6 +641,15 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			p.indent()
 		}
 		p.spacedString(x.Op.String())
+		if p.anyCommentsBefore(x.Y.Pos()) {
+			p.wantSpace = false
+			p.WriteByte('\n')
+			p.indent()
+			p.incLines(p.comments[0].Pos())
+			p.commentsUpTo(x.Y.Pos())
+			p.WriteByte('\n')
+			p.indent()
+		}
 		p.incLines(x.Y.Pos())
 		p.stmt(x.Y)
 		if indent {
