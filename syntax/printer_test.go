@@ -352,28 +352,31 @@ func TestFprintWeirdFormat(t *testing.T) {
 	}
 
 	for i, tc := range weirdFormats {
+		check := func(t *testing.T, in, want string) {
+			prog, err := Parse(newStrictReader(in), "", ParseComments)
+			if err != nil {
+				t.Fatalf("Unexpected error in %q: %v", in, err)
+			}
+			checkNewlines(t, in, prog.lines)
+			got, err := strFprint(prog, 0)
+			if err != nil {
+				t.Fatalf("Unexpected error in %q: %v", in, err)
+			}
+			if got != want {
+				t.Fatalf("Fprint mismatch:\n"+
+					"in:\n%s\nwant:\n%sgot:\n%s",
+					in, want, got)
+			}
+		}
+		want := tc.want + "\n"
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
-			check := func(in, want string) {
-				prog, err := Parse(newStrictReader(in), "", ParseComments)
-				if err != nil {
-					t.Fatalf("Unexpected error in %q: %v", in, err)
-				}
-				checkNewlines(t, in, prog.lines)
-				got, err := strFprint(prog, 0)
-				if err != nil {
-					t.Fatalf("Unexpected error in %q: %v", in, err)
-				}
-				if got != want {
-					t.Fatalf("Fprint mismatch:\n"+
-						"in:\n%s\nwant:\n%sgot:\n%s",
-						in, want, got)
-				}
-			}
-			want := tc.want + "\n"
-			for _, s := range [...]string{"", "\n"} {
-				check(s+tc.in+s, want)
-			}
-			check(want, want)
+			check(t, tc.in, want)
+		})
+		t.Run(fmt.Sprintf("%03d-nl", i), func(t *testing.T) {
+			check(t, "\n"+tc.in+"\n", want)
+		})
+		t.Run(fmt.Sprintf("%03d-redo", i), func(t *testing.T) {
+			check(t, want, want)
 		})
 	}
 }
