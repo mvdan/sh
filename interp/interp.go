@@ -30,6 +30,13 @@ type Runner struct {
 	// TODO: syntax.Node instead of *syntax.File?
 	File *syntax.File
 
+	// Env specifies the environment of the interpreter.
+	// If Env is nil, Run uses the current process's environment.
+	Env []string
+
+	// envMap is just Env as a map, to simplify and speed up its use
+	envMap map[string]string
+
 	// Separate maps, note that bash allows a name to be both a var
 	// and a func simultaneously
 	vars  map[string]varValue
@@ -150,7 +157,8 @@ func (r *Runner) lookupVar(name string) (varValue, bool) {
 	if val, e := r.vars[name]; e {
 		return val, true
 	}
-	return os.LookupEnv(name)
+	str, e := r.envMap[name]
+	return str, e
 }
 
 func (r *Runner) getVar(name string) string {
@@ -172,6 +180,18 @@ func (r *Runner) setFunc(name string, body *syntax.Stmt) {
 
 // Run starts the interpreter and returns any error.
 func (r *Runner) Run() error {
+	if r.Env == nil {
+		r.Env = os.Environ()
+	}
+	r.envMap = make(map[string]string, len(r.Env))
+	for _, kv := range r.Env {
+		i := strings.IndexByte(kv, '=')
+		if i < 0 {
+			return fmt.Errorf("env not in the form key=value: %q", kv)
+		}
+		name, val := kv[:i], kv[i+1:]
+		r.envMap[name] = val
+	}
 	r.stmts(r.File.Stmts)
 	r.lastExit()
 	if r.err == ExitCode(0) {
