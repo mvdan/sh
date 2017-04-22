@@ -571,11 +571,10 @@ func (r *Runner) wordParts(wps []syntax.WordPart, quoted bool) []string {
 				splitAdd(val)
 			}
 		case *syntax.CmdSubst:
-			oldOut := r.Stdout
+			r2 := *r
 			var outBuf bytes.Buffer
-			r.Stdout = &outBuf
-			r.stmts(x.Stmts)
-			r.Stdout = oldOut
+			r2.Stdout = &outBuf
+			r2.stmts(x.Stmts)
 			val := strings.TrimRight(outBuf.String(), "\n")
 			if quoted {
 				curBuf.WriteString(val)

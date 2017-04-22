@@ -492,6 +492,10 @@ var fileCases = []struct {
 		"for i in 1 $(echo 2 3) 4; do echo $i; done",
 		"1\n2\n3\n4\n",
 	},
+	{
+		"[[ $(cd / && pwd) == $(pwd) ]]",
+		"exit status 1",
+	},
 
 	// pipes
 	{
