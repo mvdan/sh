@@ -171,8 +171,8 @@ func (r *Runner) getVar(name string) string {
 }
 
 func (r *Runner) delVar(name string) {
-	// TODO: env vars too
 	delete(r.vars, name)
+	delete(r.envMap, name)
 }
 
 func (r *Runner) setFunc(name string, body *syntax.Stmt) {
