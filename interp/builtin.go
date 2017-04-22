@@ -156,8 +156,16 @@ func (r *Runner) builtin(pos syntax.Pos, name string, args []string) bool {
 			panic("wait with args not handled yet")
 		}
 		r.bgShells.Wait()
+	case "builtin":
+		if len(args) < 1 {
+			break
+		}
+		// TODO: pos
+		if !r.builtin(0, args[0], args[1:]) {
+			exit = 1
+		}
 	case "trap", "type", "source", "command", "pushd", "popd",
-		"builtin", "umask", "alias", "unalias", "fg", "bg", "getopts":
+		"umask", "alias", "unalias", "fg", "bg", "getopts":
 		panic(fmt.Sprintf("unhandled builtin: %s", name))
 	default:
 		return false

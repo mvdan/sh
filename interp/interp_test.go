@@ -869,6 +869,14 @@ var fileCases = []struct {
 		"c\n",
 	},
 
+	// builtin
+	{"builtin", ""},
+	{"builtin echo foo", "foo\n"},
+	{
+		"echo() { printf 'bar\n'; }; echo foo; builtin echo foo",
+		"bar\nfoo\n",
+	},
+
 	// arrays
 	{
 		"a=foo; echo ${a[0]} ${a[@]} ${a[x]}; echo ${a[1]}",
