@@ -344,19 +344,27 @@ var fileCases = []struct {
 		"(echo() { printf 'bar\n'; }; echo); echo",
 		"bar\n\n",
 	},
+	{
+		`mkdir d; (cd /; echo "$PWD"); rmdir d`,
+		"/\n",
+	},
 
 	// cd
 	{
-		`old="$PWD"; cd /; echo "$PWD"; cd "$old"`,
+		`cd /; echo "$PWD"`,
 		"/\n",
 	},
 	{
-		`old="$PWD" w="$HOME"; cd; [[ $PWD == $w ]] && echo foo; cd "$old"`,
+		`w="$HOME"; cd; [[ $PWD == $w ]] && echo foo`,
 		"foo\n",
 	},
 	{
 		"cd doesnotexist",
 		"exit status 1 #JUSTERR",
+	},
+	{
+		"mkdir -p a/b && cd a && cd b && cd ../.. && rm -rf a",
+		"",
 	},
 
 	// pwd
@@ -367,6 +375,10 @@ var fileCases = []struct {
 	{
 		"mkdir %s; cd %s; pwd | sed 's@.*/@@'; cd ..; rmdir %s",
 		"%s\n",
+	},
+	{
+		"echo ${PWD:0:1}",
+		"/\n",
 	},
 
 	// binary cmd

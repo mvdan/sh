@@ -6,6 +6,7 @@ package interp
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 
 	"github.com/mvdan/sh/syntax"
@@ -141,9 +142,15 @@ func (r *Runner) builtin(pos syntax.Pos, name string, args []string) bool {
 		} else {
 			dir = args[0]
 		}
-		if err := os.Chdir(dir); err != nil {
-			exit = 1
+		if !filepath.IsAbs(dir) {
+			dir = filepath.Join(r.Dir, dir)
 		}
+		_, err := os.Stat(dir)
+		if err != nil {
+			exit = 1
+			break
+		}
+		r.Dir = dir
 	case "wait":
 		if len(args) > 0 {
 			panic("wait with args not handled yet")

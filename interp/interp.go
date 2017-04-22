@@ -37,6 +37,11 @@ type Runner struct {
 	// envMap is just Env as a map, to simplify and speed up its use
 	envMap map[string]string
 
+	// Dir specifies the working directory of the command. If Dir is
+	// the empty string, Run runs the command in the calling
+	// process's current directory.
+	Dir string
+
 	// Separate maps, note that bash allows a name to be both a var
 	// and a func simultaneously
 	vars  map[string]varValue
@@ -145,8 +150,7 @@ func (r *Runner) setVar(name string, val varValue) {
 func (r *Runner) lookupVar(name string) (varValue, bool) {
 	switch name {
 	case "PWD":
-		dir, _ := os.Getwd()
-		return dir, true
+		return r.Dir, true
 	case "HOME":
 		u, _ := user.Current()
 		return u.HomeDir, true
@@ -191,6 +195,13 @@ func (r *Runner) Run() error {
 		}
 		name, val := kv[:i], kv[i+1:]
 		r.envMap[name] = val
+	}
+	if r.Dir == "" {
+		dir, err := os.Getwd()
+		if err != nil {
+			return fmt.Errorf("could not get current dir: %v", err)
+		}
+		r.Dir = dir
 	}
 	r.stmts(r.File.Stmts)
 	r.lastExit()
@@ -321,11 +332,9 @@ func (r *Runner) cmd(cm syntax.Command) {
 			}
 		case syntax.Pipe, syntax.PipeAll:
 			pr, pw := io.Pipe()
-			r2 := Runner{
-				File:   r.File,
-				Stdin:  r.Stdin,
-				Stdout: pw,
-			}
+			r2 := *r
+			r2.Stdin = r.Stdin
+			r2.Stdout = pw
 			if x.Op == syntax.PipeAll {
 				r2.Stderr = pw
 			} else {
@@ -597,6 +606,7 @@ func (r *Runner) call(pos syntax.Pos, name string, args []string) {
 	}
 	cmd := exec.Command(name, args...)
 	cmd.Env = os.Environ()
+	cmd.Dir = r.Dir
 	for name, val := range r.cmdVars {
 		cmd.Env = append(cmd.Env, name+"="+varStr(val))
 	}
