@@ -382,6 +382,10 @@ var fileCases = []struct {
 		`old="$PWD"; mkdir a; cd a; cd ..; rmdir a; [[ $old == $PWD ]]`,
 		"",
 	},
+	{
+		`mkdir a; ln -s a b; [[ $(cd a && pwd) == $(cd b && pwd) ]]; echo $?; rm -r a b`,
+		"1\n",
+	},
 
 	// binary cmd
 	{
