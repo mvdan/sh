@@ -349,7 +349,7 @@ var fileCases = []struct {
 		"/\n",
 	},
 
-	// cd
+	// cd/pwd
 	{
 		`cd /; echo "$PWD"`,
 		"/\n",
@@ -366,8 +366,6 @@ var fileCases = []struct {
 		"mkdir -p a/b && cd a && cd b && cd ../.. && rm -rf a",
 		"",
 	},
-
-	// pwd
 	{
 		"[[ $PWD == $(pwd) ]]",
 		"",
@@ -379,6 +377,10 @@ var fileCases = []struct {
 	{
 		"echo ${PWD:0:1}",
 		"/\n",
+	},
+	{
+		`old="$PWD"; mkdir a; cd a; cd ..; rmdir a; [[ $old == $PWD ]]`,
+		"",
 	},
 
 	// binary cmd
