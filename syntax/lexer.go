@@ -767,8 +767,20 @@ loop:
 		case ' ', '\t', '\n', '\r', '&', '|', ';', '(', ')':
 			break loop
 		case '\\': // escaped byte follows
-			if r = p.rune(); r == '\n' {
+			r = p.rune()
+			switch r {
+			case '\n':
 				p.discardLit(2)
+			case '\\':
+				// TODO: also treat escaped ` and $
+				// differently in backquotes
+				if p.quote == subCmdBckquo {
+					p.discardLit(1)
+					if r = p.rune(); r == '\\' {
+						p.discardLit(1)
+						r = p.rune()
+					}
+				}
 			}
 		case '>', '<':
 			if p.peekByte('(') {

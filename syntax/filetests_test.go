@@ -1290,6 +1290,13 @@ var fileTests = []testCase{
 		),
 	},
 	{
+		Strs: []string{
+			`$(echo \')`,
+			"`" + `echo \\'` + "`",
+		},
+		common: cmdSubst(litStmt("echo", `\'`)),
+	},
+	{
 		Strs: []string{"$( (a) | b)"},
 		common: cmdSubst(
 			stmt(&BinaryCmd{
@@ -3484,9 +3491,13 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 	case *Lit:
 		pos, end := int(x.Pos()), int(x.End())
 		want := pos + len(x.Value)
+		val := x.Value
 		switch {
 		case src == "":
 		case strings.Contains(src, "\\\n"):
+		case strings.Contains(src, "\\\\"):
+			// removed quotes inside backquote cmd substs
+			val = ""
 		case end-1 < len(src) && src[end-1] == '\n':
 			// heredoc literals that end with the
 			// stop word and a newline
@@ -3496,7 +3507,7 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 			tb.Fatalf("Unexpected Lit.End() %d (wanted %d) in %q",
 				end, want, string(src))
 		}
-		setPos(&x.ValuePos, x.Value)
+		setPos(&x.ValuePos, val)
 		setPos(&x.ValueEnd)
 	case *Subshell:
 		setPos(&x.Lparen, "(")
@@ -3654,8 +3665,8 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 		setPos(&x.Right, "))")
 		recurse(x.X)
 	case *CmdSubst:
-		setPos(&x.Left, "$(", "`")
-		setPos(&x.Right, ")", "`")
+		setPos(&x.Left, "$(", "`", "\\`")
+		setPos(&x.Right, ")", "`", "\\`")
 		recurse(x.Stmts)
 	case *CaseClause:
 		setPos(&x.Case, "case")
