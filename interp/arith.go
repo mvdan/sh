@@ -28,7 +28,7 @@ func (r *Runner) arithm(expr syntax.ArithmExpr) int {
 	case *syntax.UnaryArithm:
 		switch x.Op {
 		case syntax.Inc, syntax.Dec:
-			name := r.loneWord(x.X.(*syntax.Word))
+			name := x.X.(*syntax.Word).Parts[0].(*syntax.Lit).Value
 			old := atoi(r.getVar(name))
 			val := old
 			if x.Op == syntax.Inc {
@@ -81,7 +81,7 @@ func atoi(s string) int {
 }
 
 func (r *Runner) assgnArit(b *syntax.BinaryArithm) int {
-	name := r.loneWord(b.X.(*syntax.Word))
+	name := b.X.(*syntax.Word).Parts[0].(*syntax.Lit).Value
 	val := atoi(r.getVar(name))
 	arg := r.arithm(b.Y)
 	switch b.Op {
