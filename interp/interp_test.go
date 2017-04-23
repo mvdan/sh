@@ -116,7 +116,7 @@ var fileCases = []struct {
 	{"foo=bar; env | grep '^foo='", "exit status 1"},
 	{"foo=bar env | grep '^foo='", "foo=bar\n"},
 	{"foo=a foo=b env | grep '^foo='", "foo=b\n"},
-	{"env | grep INTERP_GLOBAL", "INTERP_GLOBAL=value\n"},
+	{"env | grep '^INTERP_GLOBAL='", "INTERP_GLOBAL=value\n"},
 
 	// special vars
 	{"echo $?; false; echo $?", "0\n1\n"},
@@ -980,6 +980,59 @@ func TestFileConfirm(t *testing.T) {
 			}
 			if got != c.want {
 				t.Fatalf("wrong bash output in %q:\nwant: %q\ngot:  %q",
+					c.in, c.want, got)
+			}
+		})
+	}
+}
+
+func TestRunnerOpts(t *testing.T) {
+	cases := []struct {
+		runner   Runner
+		in, want string
+	}{
+		{
+			Runner{},
+			"env | grep '^INTERP_GLOBAL='",
+			"INTERP_GLOBAL=value\n",
+		},
+		{
+			Runner{Env: []string{}},
+			"env | grep '^INTERP_GLOBAL='",
+			"exit status 1",
+		},
+		{
+			Runner{Env: []string{"INTERP_GLOBAL=bar"}},
+			"env | grep '^INTERP_GLOBAL='",
+			"INTERP_GLOBAL=bar\n",
+		},
+		{
+			Runner{Env: []string{"a=b", "a=c"}},
+			"env | grep '^a='",
+			"a=c\n",
+		},
+		{
+			Runner{Env: []string{"foo"}},
+			"",
+			`env not in the form key=value: "foo"`,
+		},
+	}
+	for i, c := range cases {
+		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
+			file, err := syntax.Parse(strings.NewReader(c.in), "", 0)
+			if err != nil {
+				t.Fatalf("could not parse: %v", err)
+			}
+			var cb concBuffer
+			r := c.runner
+			r.File = file
+			r.Stdout = &cb
+			r.Stderr = &cb
+			if err := r.Run(); err != nil {
+				cb.WriteString(err.Error())
+			}
+			if got := cb.String(); got != c.want {
+				t.Fatalf("wrong output in %q:\nwant: %q\ngot:  %q",
 					c.in, c.want, got)
 			}
 		})
