@@ -5,6 +5,7 @@ package interp
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -67,7 +68,8 @@ type Runner struct {
 
 	bgShells sync.WaitGroup
 
-	// TODO: add context to kill the runner before it's done
+	// Context can be used to cancel the interpreter before it finishes
+	Context context.Context
 }
 
 // varValue can hold a string, an indexed array ([]string) or an
@@ -184,6 +186,9 @@ func (r *Runner) setFunc(name string, body *syntax.Stmt) {
 
 // Run starts the interpreter and returns any error.
 func (r *Runner) Run() error {
+	if r.Context == nil {
+		r.Context = context.Background()
+	}
 	if r.Env == nil {
 		r.Env = os.Environ()
 	}
@@ -367,6 +372,10 @@ func (r *Runner) cmd(cm syntax.Command) {
 		}
 	case *syntax.WhileClause:
 		for r.err == nil {
+			if err := r.Context.Err(); err != nil {
+				return
+			}
+
 			r.stmts(x.CondStmts)
 			if r.exit != 0 {
 				r.exit = 0
@@ -378,6 +387,10 @@ func (r *Runner) cmd(cm syntax.Command) {
 		}
 	case *syntax.UntilClause:
 		for r.err == nil {
+			if err := r.Context.Err(); err != nil {
+				return
+			}
+
 			r.stmts(x.CondStmts)
 			if r.exit == 0 {
 				break
@@ -392,6 +405,10 @@ func (r *Runner) cmd(cm syntax.Command) {
 		case *syntax.WordIter:
 			name := y.Name.Value
 			for _, field := range r.fields(y.List) {
+				if err := r.Context.Err(); err != nil {
+					return
+				}
+
 				r.setVar(name, field)
 				if r.loopStmtsBroken(x.DoStmts) {
 					break
@@ -400,6 +417,10 @@ func (r *Runner) cmd(cm syntax.Command) {
 		case *syntax.CStyleLoop:
 			r.arithm(y.Init)
 			for r.arithm(y.Cond) != 0 {
+				if err := r.Context.Err(); err != nil {
+					return
+				}
+
 				if r.loopStmtsBroken(x.DoStmts) {
 					break
 				}
@@ -444,6 +465,10 @@ func (r *Runner) cmd(cm syntax.Command) {
 
 func (r *Runner) stmts(stmts []*syntax.Stmt) {
 	for _, stmt := range stmts {
+		if err := r.Context.Err(); err != nil {
+			return
+		}
+
 		r.stmt(stmt)
 	}
 }
@@ -603,7 +628,7 @@ func (r *Runner) call(pos syntax.Pos, name string, args []string) {
 	if r.builtin(pos, name, args) {
 		return
 	}
-	cmd := exec.Command(name, args...)
+	cmd := exec.CommandContext(r.Context, name, args...)
 	cmd.Env = r.Env
 	for name, val := range r.cmdVars {
 		cmd.Env = append(cmd.Env, name+"="+varStr(val))
