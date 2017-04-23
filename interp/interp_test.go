@@ -1049,29 +1049,36 @@ func TestRunnerOpts(t *testing.T) {
 	}
 }
 
-func TestContext(t *testing.T) {
-	p, err := syntax.Parse(strings.NewReader("while true; do true; done"), "", 0)
-	if err != nil {
-		t.Fatal(err)
+func TestRunnerContext(t *testing.T) {
+	cases := []string{
+		"",
+		"while true; do true; done",
+		"until false; do true; done",
+		"sleep 1000",
 	}
+	for i, in := range cases {
+		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
+			file, err := syntax.Parse(strings.NewReader(in), "", 0)
+			if err != nil {
+				t.Fatalf("could not parse: %v", err)
+			}
+			ctx, cancel := context.WithCancel(context.Background())
+			cancel()
+			r := Runner{
+				File:    file,
+				Context: ctx,
+			}
+			endChan := make(chan struct{})
+			go func() {
+				_ = r.Run()
+				endChan <- struct{}{}
+			}()
 
-	ctx, cancel := context.WithCancel(context.Background())
-	r := Runner{
-		File:    p,
-		Context: ctx,
-	}
-	endChan := make(chan struct{})
-
-	go func() {
-		_ = r.Run()
-		endChan <- struct{}{}
-	}()
-
-	cancel()
-
-	select {
-	case <-time.After(time.Millisecond * 100):
-		t.Error("Program was not killed in 0.15 seconds")
-	case <-endChan:
+			select {
+			case <-endChan:
+			case <-time.After(time.Millisecond * 100):
+				t.Fatal("program was not killed in 0.1s")
+			}
+		})
 	}
 }
