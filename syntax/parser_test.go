@@ -602,11 +602,11 @@ var shellTests = []errorCase{
 	},
 	{
 		`$((& $(`,
-		`1:6: reached EOF without matching ( with )`,
+		`1:4: & must follow an expression`,
 	},
 	{
 		`$((& 0 $(`,
-		`1:8: not a valid arithmetic operator: $(`,
+		`1:4: & must follow an expression`,
 	},
 	{
 		`$((a'`,
@@ -659,6 +659,14 @@ var shellTests = []errorCase{
 	{
 		"echo $((a : b))",
 		`1:9: ternary operator missing ? before :`,
+	},
+	{
+		"echo $((/",
+		`1:9: / must follow an expression`,
+	},
+	{
+		"echo $((:",
+		`1:9: : must follow an expression`,
 	},
 	{
 		"echo $(((a)+=b))",

@@ -787,6 +787,10 @@ func (p *parser) arithmExpr(ftok token, fpos Pos, level int, compact, tern bool)
 	if newLevel < level {
 		return left
 	}
+	if left == nil {
+		p.curErr("%s must follow an expression", p.tok.String())
+		return nil
+	}
 	b := &BinaryArithm{
 		OpPos: p.pos,
 		Op:    BinAritOperator(p.tok),
