@@ -4,7 +4,6 @@
 package interp
 
 import (
-	"fmt"
 	"path"
 	"strconv"
 	"strings"
@@ -155,14 +154,10 @@ func (r *Runner) paramExp(pe *syntax.ParamExp) string {
 					rns = append(rns, rn)
 				}
 				str = string(rns)
-			case "P":
-				panic("unhandled @P param expansion")
-			case "A":
-				panic("unhandled @A param expansion")
-			case "a":
-				panic("unhandled @a param expansion")
+			case "P", "A", "a":
+				r.errf("unhandled @%s param expansion", arg)
 			default:
-				panic(fmt.Sprintf("unexpected @%s param expansion", arg))
+				r.errf("unexpected @%s param expansion", arg)
 			}
 		}
 	}

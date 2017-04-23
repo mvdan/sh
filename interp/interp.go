@@ -438,7 +438,7 @@ func (r *Runner) cmd(cm syntax.Command) {
 			r.exit = 1
 		}
 	default:
-		panic(fmt.Sprintf("unhandled command node: %T", x))
+		r.errf("unhandled command node: %T", x)
 	}
 }
 
@@ -476,7 +476,7 @@ func (r *Runner) redir(rd *syntax.Redirect) (io.Closer, error) {
 		}
 		return nil, nil
 	case syntax.DplIn:
-		panic(fmt.Sprintf("unhandled redirect op: %v", rd.Op))
+		r.errf("unhandled redirect op: %v", rd.Op)
 	}
 	mode := os.O_RDONLY
 	switch rd.Op {
@@ -499,7 +499,7 @@ func (r *Runner) redir(rd *syntax.Redirect) (io.Closer, error) {
 		r.Stdout = f
 		r.Stderr = f
 	default:
-		panic(fmt.Sprintf("unhandled redirect op: %v", rd.Op))
+		r.errf("unhandled redirect op: %v", rd.Op)
 	}
 	return f, nil
 }
@@ -584,7 +584,7 @@ func (r *Runner) wordParts(wps []syntax.WordPart, quoted bool) []string {
 		case *syntax.ArithmExp:
 			curBuf.WriteString(strconv.Itoa(r.arithm(x.X)))
 		default:
-			panic(fmt.Sprintf("unhandled word part: %T", x))
+			r.errf("unhandled word part: %T", x)
 		}
 	}
 	flush()

@@ -4,7 +4,6 @@
 package interp
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -153,7 +152,8 @@ func (r *Runner) builtin(pos syntax.Pos, name string, args []string) bool {
 		r.Dir = dir
 	case "wait":
 		if len(args) > 0 {
-			panic("wait with args not handled yet")
+			r.errf("wait with args not handled yet")
+			break
 		}
 		r.bgShells.Wait()
 	case "builtin":
@@ -166,7 +166,7 @@ func (r *Runner) builtin(pos syntax.Pos, name string, args []string) bool {
 		}
 	case "trap", "type", "source", "command", "pushd", "popd",
 		"umask", "alias", "unalias", "fg", "bg", "getopts":
-		panic(fmt.Sprintf("unhandled builtin: %s", name))
+		r.errf("unhandled builtin: %s", name)
 	default:
 		return false
 	}

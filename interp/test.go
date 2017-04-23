@@ -4,7 +4,6 @@
 package interp
 
 import (
-	"fmt"
 	"os"
 	"path"
 	"regexp"
@@ -139,6 +138,7 @@ func (r *Runner) unTest(op syntax.UnTestOperator, x string) bool {
 	case syntax.TsNot:
 		return x == ""
 	default:
-		panic(fmt.Sprintf("unhandled unary test op: %v", op))
+		r.errf("unhandled unary test op: %v", op)
+		return false
 	}
 }
