@@ -60,6 +60,7 @@ var fileCases = []struct {
 	{"false; true", ""},
 	{"false; exit", "exit status 1"},
 	{"exit; echo foo", ""},
+	{"exit 0; echo foo", ""},
 	{"printf", "usage: printf format [arguments]\nexit status 2 #JUSTERR"},
 	{"break", "break is only useful in a loop #JUSTERR"},
 	{"continue", "continue is only useful in a loop #JUSTERR"},
