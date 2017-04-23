@@ -799,8 +799,8 @@ func (p *parser) arithmExpr(ftok token, fpos Pos, level int, compact, tern bool)
 		}
 	case AddAssgn, SubAssgn, MulAssgn, QuoAssgn, RemAssgn, AndAssgn,
 		OrAssgn, XorAssgn, ShlAssgn, ShrAssgn, Assgn:
-		if _, ok := b.X.(*Word); !ok {
-			p.posErr(b.OpPos, "%s must follow a word", b.Op.String())
+		if w, ok := b.X.(*Word); !ok || !p.wordIdent(w) {
+			p.posErr(b.OpPos, "%s must follow a name", b.Op.String())
 		}
 	}
 	if p.next(); compact && p.spaced {
@@ -816,6 +816,14 @@ func (p *parser) arithmExpr(ftok token, fpos Pos, level int, compact, tern bool)
 		}
 	}
 	return b
+}
+
+func (p *parser) wordIdent(w *Word) bool {
+	if len(w.Parts) != 1 {
+		return false
+	}
+	lit, ok := w.Parts[0].(*Lit)
+	return ok && validIdent(lit.Value, p.bash())
 }
 
 func (p *parser) arithmExprBase(compact bool) ArithmExpr {
@@ -868,8 +876,8 @@ func (p *parser) arithmExprBase(compact bool) ArithmExpr {
 		return x
 	}
 	if p.tok == addAdd || p.tok == subSub {
-		if _, ok := x.(*Word); !ok {
-			p.curErr("%s must follow a word", p.tok.String())
+		if w, ok := x.(*Word); !ok || !p.wordIdent(w) {
+			p.curErr("%s must follow a name", p.tok.String())
 		}
 		u := &UnaryArithm{
 			Post:  true,

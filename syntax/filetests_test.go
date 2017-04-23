@@ -1914,7 +1914,7 @@ var fileTests = []testCase{
 	},
 	{
 		Strs: []string{"$((1 + 3))", "$((1+3))"},
-		bash: arithmExp(&BinaryArithm{
+		common: arithmExp(&BinaryArithm{
 			Op: Add,
 			X:  litWord("1"),
 			Y:  litWord("3"),
@@ -1922,7 +1922,7 @@ var fileTests = []testCase{
 	},
 	{
 		Strs: []string{`"$((foo))"`},
-		bash: dblQuoted(arithmExp(
+		common: dblQuoted(arithmExp(
 			litWord("foo"),
 		)),
 	},
@@ -1934,14 +1934,14 @@ var fileTests = []testCase{
 	},
 	{
 		Strs: []string{`$(($a)) b`},
-		bash: call(
+		common: call(
 			word(arithmExp(word(litParamExp("a")))),
 			litWord("b"),
 		),
 	},
 	{
 		Strs: []string{`$((arr[0]++))`},
-		common: arithmExp(
+		bash: arithmExp(
 			&UnaryArithm{Op: Inc, Post: true, X: litWord("arr[0]")},
 		),
 	},

@@ -662,7 +662,11 @@ var shellTests = []errorCase{
 	},
 	{
 		"echo $(((a)+=b))",
-		`1:12: += must follow a word`,
+		`1:12: += must follow a name`,
+	},
+	{
+		"echo $((1=2))",
+		`1:10: = must follow a name`,
 	},
 	{
 		"<<EOF\n$(()a",
@@ -869,7 +873,11 @@ var bashTests = []errorCase{
 	},
 	{
 		"let (a)++",
-		`1:8: ++ must follow a word`,
+		`1:8: ++ must follow a name`,
+	},
+	{
+		"let 1++",
+		`1:6: ++ must follow a name`,
 	},
 	{
 		"let --(a)",
@@ -897,7 +905,7 @@ var bashTests = []errorCase{
 	},
 	{
 		"let a+b=c",
-		`1:8: = must follow a word`,
+		`1:8: = must follow a name`,
 	},
 	{
 		"[[",
