@@ -1592,7 +1592,12 @@ func (p *parser) testExprBase(ftok token, fpos Pos) TestExpr {
 	case rightParen:
 		return nil
 	default:
-		return p.followWordTok(ftok, fpos)
+		// since we don't have [[ as a token
+		fstr := "[["
+		if ftok != illegalTok {
+			fstr = ftok.String()
+		}
+		return p.followWord(fstr, fpos)
 	}
 }
 

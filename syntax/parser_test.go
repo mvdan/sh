@@ -980,6 +980,10 @@ var bashTests = []errorCase{
 		`1:6: =~ must be followed by a word`,
 	},
 	{
+		"[[ >",
+		`1:1: [[ must be followed by a word`,
+	},
+	{
 		"local (",
 		`1:7: "local" must be followed by words`,
 	},
