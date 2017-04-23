@@ -1040,20 +1040,27 @@ func stopToken(tok token) bool {
 	return false
 }
 
-func (p *parser) validIdent() bool {
-	for i, c := range p.val[:p.asPos] {
+func validIdent(val string, bash bool) bool {
+	for i, c := range val {
 		switch {
 		case 'a' <= c && c <= 'z':
 		case 'A' <= c && c <= 'Z':
 		case c == '_':
 		case i > 0 && '0' <= c && c <= '9':
-		case i > 0 && (c == '[' || c == ']') && p.bash():
-		case c == '+' && i == p.asPos-1 && p.bash():
+		case i > 0 && (c == '[' || c == ']') && bash:
+		case c == '+' && i == len(val)-1 && bash:
 		default:
 			return false
 		}
 	}
 	return true
+}
+
+func (p *parser) hasValidIdent() bool {
+	if p.asPos < 1 {
+		return false
+	}
+	return validIdent(p.val[:p.asPos], p.bash())
 }
 
 func (p *parser) getAssign() *Assign {
@@ -1144,7 +1151,7 @@ preLoop:
 	for {
 		switch p.tok {
 		case _Lit, _LitWord:
-			if p.asPos > 0 && p.validIdent() {
+			if p.hasValidIdent() {
 				s.Assigns = append(s.Assigns, p.getAssign())
 			} else {
 				break preLoop
@@ -1590,7 +1597,7 @@ func (p *parser) declClause() *DeclClause {
 		ds.Opts = append(ds.Opts, p.getWord())
 	}
 	for !p.newLine && !stopToken(p.tok) && !p.peekRedir() {
-		if (p.tok == _Lit || p.tok == _LitWord) && p.asPos > 0 && p.validIdent() {
+		if (p.tok == _Lit || p.tok == _LitWord) && p.hasValidIdent() {
 			ds.Assigns = append(ds.Assigns, p.getAssign())
 		} else if w := p.getWord(); w == nil {
 			p.followErr(p.pos, name, "words")
