@@ -1007,9 +1007,17 @@ func TestRunnerOpts(t *testing.T) {
 			"INTERP_GLOBAL=bar\n",
 		},
 		{
+			Runner{Env: []string{"a=b"}},
+			"env | grep '^a='; echo $a",
+			"a=b\nb\n",
+		},
+		{
+			// TODO(mvdan): remove tail once we only support
+			// Go 1.9 and later, since os/exec doesn't dedup
+			// the env in earlier versions.
 			Runner{Env: []string{"a=b", "a=c"}},
-			"env | grep '^a='",
-			"a=c\n",
+			"env | grep '^a=' | tail -n 1; echo $a",
+			"a=c\nc\n",
 		},
 		{
 			Runner{Env: []string{"foo"}},
