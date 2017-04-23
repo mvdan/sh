@@ -5,12 +5,14 @@ package interp
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/mvdan/sh/syntax"
 )
@@ -1036,5 +1038,32 @@ func TestRunnerOpts(t *testing.T) {
 					c.in, c.want, got)
 			}
 		})
+	}
+}
+
+func TestContext(t *testing.T) {
+	p, err := syntax.Parse(strings.NewReader("while true; do true; done"), "", 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	r := Runner{
+		File:    p,
+		Context: ctx,
+	}
+	endChan := make(chan struct{})
+
+	go func() {
+		_ = r.Run()
+		endChan <- struct{}{}
+	}()
+
+	cancel()
+
+	select {
+	case <-time.After(time.Millisecond * 100):
+		t.Error("Program was not killed in 0.15 seconds")
+	case <-endChan:
 	}
 }
