@@ -12,7 +12,7 @@ import (
 func (r *Runner) arithm(expr syntax.ArithmExpr) int {
 	switch x := expr.(type) {
 	case *syntax.Word:
-		str := r.loneWord(x)
+		str := x.Parts[0].(*syntax.Lit).Value
 		// recursively fetch vars
 		for {
 			val := r.getVar(str)
