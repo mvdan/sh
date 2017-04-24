@@ -60,6 +60,7 @@ func TestParsePosix(t *testing.T) {
 var hasBash44 bool
 
 func TestMain(m *testing.M) {
+	os.Setenv("LANGUAGE", "en_US.UTF8")
 	os.Setenv("LC_ALL", "en_US.UTF8")
 	hasBash44 = checkBash()
 	os.Exit(m.Run())
