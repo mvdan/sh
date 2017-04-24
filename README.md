@@ -4,9 +4,8 @@
 [![Build Status](https://travis-ci.org/mvdan/sh.svg?branch=master)](https://travis-ci.org/mvdan/sh)
 [![Coverage Status](https://coveralls.io/repos/github/mvdan/sh/badge.svg?branch=master)](https://coveralls.io/github/mvdan/sh)
 
-A shell parser and formatter. Supports [POSIX Shell] and [Bash].
-
-For a quick overview, see the [examples]. Requires Go 1.7 or later.
+A shell parser, formatter and interpreter. Supports [POSIX Shell] and
+[Bash]. Requires Go 1.7 or later.
 
 ### shfmt
 
