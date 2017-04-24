@@ -866,12 +866,8 @@ func (p *parser) arithmExprBase(compact bool) ArithmExpr {
 		}
 		x = ue
 	case illegalTok, rightBrack, rightBrace, rightParen:
-	case _LitWord:
-		if w := p.getWord(); w != nil {
-			// we want real nil, not (*Word)(nil) as that
-			// sets the type to non-nil and then x != nil
-			x = w
-		}
+	case _LitWord, dollar, dollBrace:
+		x = p.word(p.singleWps(p.wordPart()))
 	case bckQuote:
 		if p.quote == arithmExprLet {
 			return nil

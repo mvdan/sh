@@ -226,11 +226,11 @@ var fileTests = []testCase{
 		posix: subshell(stmt(subshell(litStmt("a", "==", "2")))),
 	},
 	{
-		Strs: []string{"if ((1 > 2)); then b; fi"},
+		Strs: []string{"if (($# > 2)); then b; fi"},
 		bash: &IfClause{
 			CondStmts: stmts(arithmCmd(&BinaryArithm{
 				Op: Gtr,
-				X:  litWord("1"),
+				X:  word(litParamExp("#")),
 				Y:  litWord("2"),
 			})),
 			ThenStmts: litStmts("b"),
@@ -1936,6 +1936,16 @@ var fileTests = []testCase{
 		bash: arithmExp(
 			&UnaryArithm{Op: Inc, Post: true, X: litWord("arr[0]")},
 		),
+	},
+	{
+		Strs: []string{`$((${a:-1}))`},
+		bash: arithmExp(word(&ParamExp{
+			Param: lit("a"),
+			Exp: &Expansion{
+				Op:   SubstColMinus,
+				Word: litWord("1"),
+			},
+		})),
 	},
 	{
 		Strs: []string{"$((5 * 2 - 1))", "$((5*2-1))"},

@@ -485,7 +485,8 @@ func (a *ArithmCmd) End() Pos { return a.Right + 2 }
 
 // ArithmExpr represents all nodes that form arithmetic expressions.
 //
-// If it contains a *Word, it will contain a single *Lit.
+// If it contains a *Word, it will contain a single *Lit or a single
+// *ParamExp.
 //
 // TODO(mvdan): replace *Word with *Lit in 2.0.
 type ArithmExpr interface {
@@ -507,6 +508,9 @@ func (*Word) arithmExprNode()         {}
 // Ternary operators like "a ? b : c" are fit into this structure. Thus,
 // if Op == Quest, Y will be a *BinaryArithm with Op == Colon. Op can
 // only be Colon in that scenario.
+//
+// TODO(mvdan): we might want to split up assigns in 2.0 (X would be a
+// *Lit) to make the structure easier.
 type BinaryArithm struct {
 	OpPos Pos
 	Op    BinAritOperator

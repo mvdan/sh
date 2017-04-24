@@ -808,8 +808,8 @@ var fileCases = []struct {
 		"-3\n",
 	},
 	{
-		"a=2; echo $(( a + c ))",
-		"2\n",
+		"a=2; echo $(( a + $a + c ))",
+		"4\n",
 	},
 	{
 		"a=b; b=c; c=5; echo $((a % 3))",

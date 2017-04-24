@@ -591,6 +591,10 @@ var shellTests = []errorCase{
 		`1:4: arithmetic expressions must consist of names and numbers`,
 	},
 	{
+		`$(($(a"`,
+		`1:4: arithmetic expressions must consist of names and numbers`,
+	},
+	{
 		`$(($((a"`,
 		`1:4: arithmetic expressions must consist of names and numbers`,
 	},
