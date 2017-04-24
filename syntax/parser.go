@@ -827,8 +827,8 @@ func (p *parser) leftIdent(x ArithmExpr) bool {
 	if !ok {
 		return false
 	}
-	lit := w.Parts[0].(*Lit)
-	return validIdent(lit.Value, p.bash())
+	lit, ok := w.Parts[0].(*Lit)
+	return ok && validIdent(lit.Value, p.bash())
 }
 
 func (p *parser) arithmExprBase(compact bool) ArithmExpr {

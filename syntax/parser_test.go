@@ -671,6 +671,10 @@ var shellTests = []errorCase{
 		`1:10: = must follow a name`,
 	},
 	{
+		"echo $(($0=2)) #INVBASH",
+		`1:11: = must follow a name`,
+	},
+	{
 		"echo $(('1=2'))",
 		`1:9: arithmetic expressions must consist of names and numbers`,
 	},
