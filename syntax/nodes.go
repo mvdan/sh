@@ -144,6 +144,11 @@ func (s *Stmt) End() Pos {
 
 // Command represents all nodes that are simple commands, which are
 // directly placed in a Stmt.
+//
+// These are *CallExpr, *IfClause, *WhileClause, *UntilClause,
+// *ForClause, *CaseClause, *Block, *Subshell, *BinaryCmd, *FuncDecl,
+// *ArithmCmd, *TestClause, *DeclClause, *EvalClause, *LetClause, and
+// *CoprocClause.
 type Command interface {
 	Node
 	commandNode()
@@ -280,7 +285,7 @@ type ForClause struct {
 func (f *ForClause) Pos() Pos { return f.For }
 func (f *ForClause) End() Pos { return f.Done + 4 }
 
-// Loop represents all nodes that can be loops in a for clause.
+// Loop holds either *WordIter or *CStyleLoop.
 type Loop interface {
 	Node
 	loopNode()
@@ -342,6 +347,9 @@ func (w *Word) Pos() Pos { return w.Parts[0].Pos() }
 func (w *Word) End() Pos { return w.Parts[len(w.Parts)-1].End() }
 
 // WordPart represents all nodes that can form a word.
+//
+// These are *Lit, *SglQuoted, *DblQuoted, *ParamExp, *CmdSubst,
+// *ArithmExp, *ProcSubst, *ArrayExpr, and *ExtGlob.
 type WordPart interface {
 	Node
 	wordPartNode()
@@ -485,6 +493,8 @@ func (a *ArithmCmd) End() Pos { return a.Right + 2 }
 
 // ArithmExpr represents all nodes that form arithmetic expressions.
 //
+// These are *BinaryArithm, *UnaryArithm, *ParenArithm, and *Word.
+//
 // If it contains a *Word, it will contain a single *Lit or a single
 // *ParamExp.
 //
@@ -589,6 +599,8 @@ func (t *TestClause) Pos() Pos { return t.Left }
 func (t *TestClause) End() Pos { return t.Right + 2 }
 
 // TestExpr represents all nodes that form arithmetic expressions.
+//
+// These are *BinaryTest, *UnaryTest, *ParenTest, and *Word.
 type TestExpr interface {
 	Node
 	testExprNode()
