@@ -20,6 +20,7 @@ import (
 var hasBash44 bool
 
 func TestMain(m *testing.M) {
+	os.Setenv("LC_ALL", "en_US.UTF8")
 	hasBash44 = checkBash()
 	os.Setenv("INTERP_GLOBAL", "value")
 	for _, s := range []string{"a", "b", "c", "foo"} {
