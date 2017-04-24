@@ -725,6 +725,10 @@ var fileCases = []struct {
 		"foo\n",
 	},
 	{
+		"[[ a =~ [ ]]",
+		"exit status 2",
+	},
+	{
 		"[[ -e a ]] && echo x; touch a; [[ -e a ]] && echo y; rm a",
 		"y\n",
 	},
@@ -875,6 +879,7 @@ var fileCases = []struct {
 
 	// builtin
 	{"builtin", ""},
+	{"builtin doesnotexist", "exit status 1 #JUSTERR"},
 	{"builtin echo foo", "foo\n"},
 	{
 		"echo() { printf 'bar\n'; }; echo foo; builtin echo foo",

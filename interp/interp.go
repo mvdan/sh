@@ -453,7 +453,7 @@ func (r *Runner) cmd(cm syntax.Command) {
 			}
 		}
 	case *syntax.TestClause:
-		if r.bashTest(x.X) == "" {
+		if r.bashTest(x.X) == "" && r.exit == 0 {
 			r.exit = 1
 		}
 	default:

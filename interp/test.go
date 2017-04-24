@@ -37,6 +37,7 @@ func (r *Runner) binTest(op syntax.BinTestOperator, x, y string) bool {
 	case syntax.TsReMatch:
 		re, err := regexp.Compile(y)
 		if err != nil {
+			r.exit = 2
 			return false
 		}
 		return re.MatchString(x)
