@@ -1074,14 +1074,16 @@ func TestRunnerContext(t *testing.T) {
 				File:    file,
 				Context: ctx,
 			}
-			endChan := make(chan struct{})
+			errChan := make(chan error)
 			go func() {
-				_ = r.Run()
-				endChan <- struct{}{}
+				errChan <- r.Run()
 			}()
 
 			select {
-			case <-endChan:
+			case err := <-errChan:
+				if err != nil && err != ctx.Err() {
+					t.Fatal("Runner did not use ctx.Err()")
+				}
 			case <-time.After(time.Millisecond * 100):
 				t.Fatal("program was not killed in 0.1s")
 			}
