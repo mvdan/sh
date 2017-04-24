@@ -757,6 +757,10 @@ var fileCases = []struct {
 		"y\n",
 	},
 	{
+		"[[ -x a ]] && echo x; touch a; chmod +x a; [[ -x a ]] && echo y; rm a",
+		"y\n",
+	},
+	{
 		"[[ -s a ]] && echo x; echo body >a; [[ -s a ]] && echo y; rm a",
 		"y\n",
 	},

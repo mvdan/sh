@@ -5,7 +5,9 @@ package interp
 
 import (
 	"os"
+	"os/exec"
 	"path"
+	"path/filepath"
 	"regexp"
 
 	"github.com/mvdan/sh/syntax"
@@ -134,7 +136,10 @@ func (r *Runner) unTest(op syntax.UnTestOperator, x string) bool {
 			f.Close()
 		}
 		return err == nil
-	//case syntax.TsExec:
+	case syntax.TsExec:
+		// use an absolute path to not use $PATH
+		_, err := exec.LookPath(filepath.Join(r.Dir, x))
+		return err == nil
 	case syntax.TsNoEmpty:
 		info := stat(x)
 		return info != nil && info.Size() > 0
