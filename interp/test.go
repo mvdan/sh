@@ -122,8 +122,18 @@ func (r *Runner) unTest(op syntax.UnTestOperator, x string) bool {
 	//case syntax.TsGrpOwn:
 	//case syntax.TsUsrOwn:
 	//case syntax.TsModif:
-	//case syntax.TsRead:
-	//case syntax.TsWrite:
+	case syntax.TsRead:
+		f, err := os.OpenFile(x, os.O_RDONLY, 0)
+		if err == nil {
+			f.Close()
+		}
+		return err == nil
+	case syntax.TsWrite:
+		f, err := os.OpenFile(x, os.O_WRONLY, 0)
+		if err == nil {
+			f.Close()
+		}
+		return err == nil
 	//case syntax.TsExec:
 	case syntax.TsNoEmpty:
 		info := stat(x)
