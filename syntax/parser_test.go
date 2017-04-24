@@ -588,26 +588,18 @@ var shellTests = []errorCase{
 	},
 	{
 		`$(("`,
-		`1:4: reached EOF without closing quote "`,
-	},
-	{
-		`$((a"`,
-		`1:5: reached EOF without closing quote "`,
+		`1:4: arithmetic expressions must consist of names and numbers`,
 	},
 	{
 		`$(($((a"`,
-		`1:8: reached EOF without closing quote "`,
+		`1:4: arithmetic expressions must consist of names and numbers`,
 	},
 	{
-		`$(('`,
-		`1:4: reached EOF without closing quote '`,
+		"$((`echo 0`",
+		`1:4: arithmetic expressions must consist of names and numbers`,
 	},
 	{
 		`$((& $(`,
-		`1:4: & must follow an expression`,
-	},
-	{
-		`$((& 0 $(`,
 		`1:4: & must follow an expression`,
 	},
 	{
@@ -619,12 +611,8 @@ var shellTests = []errorCase{
 		`1:6: not a valid arithmetic operator: b`,
 	},
 	{
-		`$((a"'`,
-		`1:5: reached EOF without closing quote "`,
-	},
-	{
 		"$((\"`)",
-		`1:6: ) can only be used to close a subshell`,
+		`1:4: arithmetic expressions must consist of names and numbers`,
 	},
 	{
 		"echo $((()))",
@@ -677,6 +665,10 @@ var shellTests = []errorCase{
 	{
 		"echo $((1=2))",
 		`1:10: = must follow a name`,
+	},
+	{
+		"echo $(('1=2'))",
+		`1:9: arithmetic expressions must consist of names and numbers`,
 	},
 	{
 		"<<EOF\n$(()a",
@@ -906,16 +898,20 @@ var bashTests = []errorCase{
 		`1:6: ! must be followed by an expression`,
 	},
 	{
-		"let 'foo'\n'",
-		`2:1: reached EOF without closing quote '`,
-	},
-	{
 		"let a:b",
 		`1:5: ternary operator missing ? before :`,
 	},
 	{
 		"let a+b=c",
 		`1:8: = must follow a name`,
+	},
+	{
+		"let 'foo'",
+		`1:5: arithmetic expressions must consist of names and numbers`,
+	},
+	{
+		`let a"=b+c"`,
+		`1:5: arithmetic expressions must consist of names and numbers`,
 	},
 	{
 		"[[",
@@ -1047,7 +1043,7 @@ var bashTests = []errorCase{
 	},
 	{
 		"$((\"a`b((",
-		`1:8: (( can only be used to open an arithmetic cmd`,
+		`1:4: arithmetic expressions must consist of names and numbers`,
 	},
 	{
 		"coproc",

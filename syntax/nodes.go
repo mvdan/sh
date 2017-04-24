@@ -484,6 +484,10 @@ func (a *ArithmCmd) Pos() Pos { return a.Left }
 func (a *ArithmCmd) End() Pos { return a.Right + 2 }
 
 // ArithmExpr represents all nodes that form arithmetic expressions.
+//
+// If it contains a *Word, it will contain a single *Lit.
+//
+// TODO(mvdan): replace *Word with *Lit in 2.0.
 type ArithmExpr interface {
 	Node
 	arithmExprNode()

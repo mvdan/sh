@@ -1641,12 +1641,10 @@ var fileTests = []testCase{
 		},
 	},
 	{
-		Strs: []string{`${foo[${bar}]}`},
+		Strs: []string{`${foo[bar]}`},
 		bash: &ParamExp{
 			Param: lit("foo"),
-			Ind: &Index{
-				Expr: word(&ParamExp{Param: lit("bar")}),
-			},
+			Ind:   &Index{Expr: litWord("bar")},
 		},
 	},
 	{
@@ -1667,12 +1665,12 @@ var fileTests = []testCase{
 		},
 	},
 	{
-		Strs: []string{`${foo:$a:$b}`},
+		Strs: []string{`${foo:a:b}`},
 		bash: &ParamExp{
 			Param: lit("foo"),
 			Slice: &Slice{
-				Offset: word(litParamExp("a")),
-				Length: word(litParamExp("b")),
+				Offset: litWord("a"),
+				Length: litWord("b"),
 			},
 		},
 	},
@@ -1927,15 +1925,9 @@ var fileTests = []testCase{
 		)),
 	},
 	{
-		Strs: []string{"$(($(echo 1)))", "$((`echo 1`))"},
-		common: arithmExp(word(
-			cmdSubst(litStmt("echo", "1")),
-		)),
-	},
-	{
-		Strs: []string{`$(($a)) b`},
+		Strs: []string{`$((a)) b`},
 		common: call(
-			word(arithmExp(word(litParamExp("a")))),
+			word(arithmExp(litWord("a"))),
 			litWord("b"),
 		),
 	},
@@ -1958,38 +1950,11 @@ var fileTests = []testCase{
 		}),
 	},
 	{
-		Strs: []string{"$(($i | 13))"},
+		Strs: []string{"$((i | 13))"},
 		common: arithmExp(&BinaryArithm{
 			Op: Or,
-			X:  word(litParamExp("i")),
+			X:  litWord("i"),
 			Y:  litWord("13"),
-		}),
-	},
-	{
-		Strs: []string{"$((3 & $((4))))"},
-		common: arithmExp(&BinaryArithm{
-			Op: And,
-			X:  litWord("3"),
-			Y:  word(arithmExp(litWord("4"))),
-		}),
-	},
-	{
-		Strs: []string{"$(($(a) + $((b))))"},
-		common: arithmExp(&BinaryArithm{
-			Op: Add,
-			X:  word(cmdSubst(litStmt("a"))),
-			Y:  word(arithmExp(litWord("b"))),
-		}),
-	},
-	{
-		Strs: []string{
-			"$(($(1) + 2))",
-			"$(($(1)+2))",
-		},
-		common: arithmExp(&BinaryArithm{
-			Op: Add,
-			X:  word(cmdSubst(litStmt("1"))),
-			Y:  litWord("2"),
 		}),
 	},
 	{
@@ -3045,12 +3010,6 @@ var fileTests = []testCase{
 		),
 	},
 	{
-		Strs: []string{`let "--i"`},
-		bash: letClause(
-			word(dblQuoted(lit("--i"))),
-		),
-	},
-	{
 		Strs: []string{`let ++i >/dev/null`},
 		bash: &Stmt{
 			Cmd:    letClause(&UnaryArithm{Op: Inc, X: litWord("i")}),
@@ -3141,10 +3100,6 @@ var fileTests = []testCase{
 				})),
 			}},
 		},
-	},
-	{
-		Strs: []string{"let $?"},
-		bash: letClause(word(litParamExp("?"))),
 	},
 	{
 		Strs: []string{"a=(b c) foo"},

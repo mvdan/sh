@@ -803,7 +803,7 @@ func (p *parser) arithmExpr(ftok token, fpos Pos, level int, compact, tern bool)
 		}
 	case AddAssgn, SubAssgn, MulAssgn, QuoAssgn, RemAssgn, AndAssgn,
 		OrAssgn, XorAssgn, ShlAssgn, ShrAssgn, Assgn:
-		if w, ok := b.X.(*Word); !ok || !p.wordIdent(w) {
+		if !p.leftIdent(b.X) {
 			p.posErr(b.OpPos, "%s must follow a name", b.Op.String())
 		}
 	}
@@ -822,12 +822,13 @@ func (p *parser) arithmExpr(ftok token, fpos Pos, level int, compact, tern bool)
 	return b
 }
 
-func (p *parser) wordIdent(w *Word) bool {
-	if len(w.Parts) != 1 {
+func (p *parser) leftIdent(x ArithmExpr) bool {
+	w, ok := x.(*Word)
+	if !ok {
 		return false
 	}
-	lit, ok := w.Parts[0].(*Lit)
-	return ok && validIdent(lit.Value, p.bash())
+	lit := w.Parts[0].(*Lit)
+	return validIdent(lit.Value, p.bash())
 }
 
 func (p *parser) arithmExprBase(compact bool) ArithmExpr {
@@ -864,23 +865,29 @@ func (p *parser) arithmExprBase(compact bool) ArithmExpr {
 			p.followErrExp(ue.OpPos, ue.Op.String())
 		}
 		x = ue
+	case illegalTok, rightBrack, rightBrace, rightParen:
+	case _LitWord:
+		if w := p.getWord(); w != nil {
+			// we want real nil, not (*Word)(nil) as that
+			// sets the type to non-nil and then x != nil
+			x = w
+		}
 	case bckQuote:
 		if p.quote == arithmExprLet {
 			return nil
 		}
 		fallthrough
 	default:
-		if w := p.getWord(); w != nil {
-			// we want real nil, not (*Word)(nil) as that
-			// sets the type to non-nil and then x != nil
-			x = w
+		if arithmOpLevel(BinAritOperator(p.tok)) >= 0 {
+			break
 		}
+		p.curErr("arithmetic expressions must consist of names and numbers")
 	}
 	if compact && p.spaced {
 		return x
 	}
 	if p.tok == addAdd || p.tok == subSub {
-		if w, ok := x.(*Word); !ok || !p.wordIdent(w) {
+		if !p.leftIdent(x) {
 			p.curErr("%s must follow a name", p.tok.String())
 		}
 		u := &UnaryArithm{
