@@ -1056,6 +1056,11 @@ func TestRunnerContext(t *testing.T) {
 		"while true; do true; done",
 		"until false; do true; done",
 		"sleep 1000",
+		"while true; do true; done & wait",
+		"sleep 1000 & wait",
+		"(while true; do true; done)",
+		"$(while true; do true; done)",
+		"while true; do true; done | while true; do true; done",
 	}
 	for i, in := range cases {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
