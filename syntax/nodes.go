@@ -507,9 +507,6 @@ func (*Word) arithmExprNode()         {}
 // Ternary operators like "a ? b : c" are fit into this structure. Thus,
 // if Op == Quest, Y will be a *BinaryArithm with Op == Colon. Op can
 // only be Colon in that scenario.
-//
-// TODO(mvdan): we probably want to split up assigns in 2.0 (X would be
-// a *Lit) to simplify the rules here. Perhaps reuse the Assign type?
 type BinaryArithm struct {
 	OpPos Pos
 	Op    BinAritOperator
