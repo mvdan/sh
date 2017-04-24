@@ -167,6 +167,10 @@ func (r *Runner) builtin(pos syntax.Pos, name string, args []string) bool {
 	case "trap", "type", "source", "command", "pushd", "popd",
 		"umask", "alias", "unalias", "fg", "bg", "getopts":
 		r.errf("unhandled builtin: %s", name)
+	// TODO(mvdan): we rely on the binary versions of these, we
+	// should eventually implement them as builtins like Bash for
+	// portability
+	// case "[", "test":
 	default:
 		return false
 	}
