@@ -236,7 +236,21 @@ func (r *Runner) loneWord(word *syntax.Word) string {
 	return strings.Join(r.wordParts(word.Parts, false), "")
 }
 
+func (r *Runner) stop() bool {
+	if r.err != nil {
+		return true
+	}
+	if err := r.Context.Err(); err != nil {
+		r.err = err
+		return true
+	}
+	return false
+}
+
 func (r *Runner) stmt(st *syntax.Stmt) {
+	if r.stop() {
+		return
+	}
 	if st.Background {
 		r.bgShells.Add(1)
 		r2 := *r
@@ -310,7 +324,7 @@ func oneIf(b bool) int {
 }
 
 func (r *Runner) cmd(cm syntax.Command) {
-	if r.err != nil {
+	if r.stop() {
 		return
 	}
 	switch x := cm.(type) {
@@ -372,10 +386,6 @@ func (r *Runner) cmd(cm syntax.Command) {
 		}
 	case *syntax.WhileClause:
 		for r.err == nil {
-			if err := r.Context.Err(); err != nil {
-				return
-			}
-
 			r.stmts(x.CondStmts)
 			if r.exit != 0 {
 				r.exit = 0
@@ -387,10 +397,6 @@ func (r *Runner) cmd(cm syntax.Command) {
 		}
 	case *syntax.UntilClause:
 		for r.err == nil {
-			if err := r.Context.Err(); err != nil {
-				return
-			}
-
 			r.stmts(x.CondStmts)
 			if r.exit == 0 {
 				break
@@ -405,10 +411,6 @@ func (r *Runner) cmd(cm syntax.Command) {
 		case *syntax.WordIter:
 			name := y.Name.Value
 			for _, field := range r.fields(y.List) {
-				if err := r.Context.Err(); err != nil {
-					return
-				}
-
 				r.setVar(name, field)
 				if r.loopStmtsBroken(x.DoStmts) {
 					break
@@ -417,10 +419,6 @@ func (r *Runner) cmd(cm syntax.Command) {
 		case *syntax.CStyleLoop:
 			r.arithm(y.Init)
 			for r.arithm(y.Cond) != 0 {
-				if err := r.Context.Err(); err != nil {
-					return
-				}
-
 				if r.loopStmtsBroken(x.DoStmts) {
 					break
 				}
@@ -465,10 +463,6 @@ func (r *Runner) cmd(cm syntax.Command) {
 
 func (r *Runner) stmts(stmts []*syntax.Stmt) {
 	for _, stmt := range stmts {
-		if err := r.Context.Err(); err != nil {
-			return
-		}
-
 		r.stmt(stmt)
 	}
 }
