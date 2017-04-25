@@ -11,7 +11,19 @@ import (
 	"github.com/mvdan/sh/syntax"
 )
 
-func (r *Runner) builtin(pos syntax.Pos, name string, args []string) bool {
+func isBuiltin(name string) bool {
+	switch name {
+	case "true", ":", "false", "exit", "set", "shift", "unset",
+		"echo", "printf", "break", "continue", "pwd", "cd",
+		"wait", "builtin", "trap", "type", "source", "command",
+		"pushd", "popd", "umask", "alias", "unalias", "fg", "bg",
+		"getopts":
+		return true
+	}
+	return false
+}
+
+func (r *Runner) builtin(pos syntax.Pos, name string, args []string) {
 	exit := 0
 	switch name {
 	case "true", ":":
@@ -160,20 +172,15 @@ func (r *Runner) builtin(pos syntax.Pos, name string, args []string) bool {
 		if len(args) < 1 {
 			break
 		}
-		// TODO: pos
-		if !r.builtin(0, args[0], args[1:]) {
+		if !isBuiltin(args[0]) {
 			exit = 1
+			break
 		}
+		// TODO: pos
+		r.builtin(0, args[0], args[1:])
 	case "trap", "type", "source", "command", "pushd", "popd",
 		"umask", "alias", "unalias", "fg", "bg", "getopts":
 		r.errf("unhandled builtin: %s", name)
-	// TODO(mvdan): we rely on the binary versions of these, we
-	// should eventually implement them as builtins like Bash for
-	// portability
-	// case "[", "test":
-	default:
-		return false
 	}
 	r.exit = exit
-	return true
 }

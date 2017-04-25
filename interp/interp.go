@@ -617,7 +617,8 @@ func (r *Runner) call(pos syntax.Pos, name string, args []string) {
 		r.args = oldArgs
 		return
 	}
-	if r.builtin(pos, name, args) {
+	if isBuiltin(name) {
+		r.builtin(pos, name, args)
 		return
 	}
 	cmd := exec.CommandContext(r.Context, name, args...)
