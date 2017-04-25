@@ -360,6 +360,14 @@ var fileCases = []struct {
 		"/\n",
 	},
 	{
+		"[[ fo~ == 'fo~' ]]",
+		"",
+	},
+	{
+		"[[ ~ == $HOME ]] && [[ ~/foo == $HOME/foo ]]",
+		"",
+	},
+	{
 		`w="$HOME"; cd; [[ $PWD == $w ]] && echo foo`,
 		"foo\n",
 	},

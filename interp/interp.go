@@ -557,10 +557,16 @@ func (r *Runner) wordParts(wps []syntax.WordPart, quoted bool) []string {
 			curBuf.WriteString(field)
 		}
 	}
-	for _, wp := range wps {
+	for i, wp := range wps {
 		switch x := wp.(type) {
 		case *syntax.Lit:
-			curBuf.WriteString(x.Value)
+			s := x.Value
+			if i > 0 || len(s) == 0 || s[0] != '~' {
+			} else if len(s) < 2 || s[1] == '/' {
+				// TODO: ~someuser
+				s = r.getVar("HOME") + s[1:]
+			}
+			curBuf.WriteString(s)
 		case *syntax.SglQuoted:
 			curBuf.WriteString(x.Value)
 		case *syntax.DblQuoted:
