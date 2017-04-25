@@ -105,7 +105,7 @@ func (r *Runner) assgnArit(b *syntax.BinaryArithm) int {
 		val ^= arg
 	case syntax.ShlAssgn:
 		val <<= uint(arg)
-	default: // syntax.ShrAssgn
+	case syntax.ShrAssgn:
 		val >>= uint(arg)
 	}
 	r.setVar(name, strconv.Itoa(val))

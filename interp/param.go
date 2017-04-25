@@ -141,7 +141,7 @@ func (r *Runner) paramExp(pe *syntax.ParamExp) string {
 			str = string(rs)
 		case syntax.LowerAll:
 			str = strings.ToLower(str)
-		default: // syntax.OtherParamOps
+		case syntax.OtherParamOps:
 			switch arg {
 			case "Q":
 				str = strconv.Quote(str)
