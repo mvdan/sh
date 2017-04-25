@@ -204,6 +204,7 @@ const (
 	arithmExprBrack
 	testRegexp
 	switchCase
+	paramName
 	paramExpName
 	paramExpInd
 	paramExpOff
@@ -218,7 +219,7 @@ const (
 		arithmExprBrack | allParamArith
 	allRbrack     = arithmExprBrack | paramExpInd
 	allParamArith = paramExpInd | paramExpOff | paramExpLen
-	allParamReg   = paramExpName | allParamArith
+	allParamReg   = paramName | paramExpName | allParamArith
 	allParamExp   = allParamReg | paramExpRepl | paramExpExp
 )
 
@@ -607,11 +608,14 @@ func (p *parser) wordPart() WordPart {
 			p.rune()
 			p.tok, p.val = _LitWord, string(r)
 		default:
+			old := p.quote
+			p.quote = paramName
 			if p.quote&allRegTokens != 0 {
 				p.advanceLitNone(r)
 			} else {
 				p.advanceLitOther(r)
 			}
+			p.quote = old
 		}
 		pe.Param = p.getLit()
 		return pe

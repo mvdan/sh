@@ -732,15 +732,37 @@ loop:
 			if p.quote&allArithmExpr != 0 {
 				break loop
 			}
-		case ':', '=', '%', '?', '^', ',':
+			if p.quote == paramName && p.peekByte('(') {
+				tok = _Lit
+				break loop
+			}
+		case '?':
+			if p.quote == paramName && p.peekByte('(') {
+				tok = _Lit
+				break loop
+			}
+			fallthrough
+		case ':', '=', '%', '^', ',':
 			if p.quote&allArithmExpr != 0 || p.quote&allParamReg != 0 {
 				break loop
 			}
-		case '#', '[', '@':
+		case '@':
+			if p.quote == paramName && p.peekByte('(') {
+				tok = _Lit
+				break loop
+			}
+			fallthrough
+		case '#', '[':
 			if p.quote&allParamReg != 0 {
 				break loop
 			}
-		case '+', '-':
+		case '+':
+			if p.quote == paramName && p.peekByte('(') {
+				tok = _Lit
+				break loop
+			}
+			fallthrough
+		case '-':
 			switch p.quote {
 			case paramExpInd, paramExpLen, paramExpOff,
 				paramExpExp, paramExpRepl, sglQuotes:
