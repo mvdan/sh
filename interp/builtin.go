@@ -58,6 +58,7 @@ func (r *Runner) builtin(pos syntax.Pos, name string, args []string) {
 		default:
 			r.errf("usage: shift [n]\n")
 			exit = 2
+			break
 		}
 		if len(r.args) < n {
 			n = len(r.args)
