@@ -610,11 +610,7 @@ func (p *parser) wordPart() WordPart {
 		default:
 			old := p.quote
 			p.quote = paramName
-			if p.quote&allRegTokens != 0 {
-				p.advanceLitNone(r)
-			} else {
-				p.advanceLitOther(r)
-			}
+			p.advanceLitOther(r)
 			p.quote = old
 		}
 		pe.Param = p.getLit()
