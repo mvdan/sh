@@ -1251,7 +1251,21 @@ func (p *parser) gotStmtPipe(s *Stmt) *Stmt {
 	case _LitWord:
 		switch {
 		case p.val == "}":
-			p.curErr("%s can only be used to close a block", p.val)
+			p.curErr(`%s can only be used to close a block`, p.val)
+		case p.val == "]]":
+			p.curErr(`%s can only be used to close a test`, p.val)
+		case p.val == "then":
+			p.curErr(`%q can only be used in an if`, p.val)
+		case p.val == "elif":
+			p.curErr(`%q can only be used in an if`, p.val)
+		case p.val == "fi":
+			p.curErr(`%q can only be used to end an if`, p.val)
+		case p.val == "do":
+			p.curErr(`%q can only be used in a loop`, p.val)
+		case p.val == "done":
+			p.curErr(`%q can only be used to end a loop`, p.val)
+		case p.val == "esac":
+			p.curErr(`%q can only be used to end a case`, p.val)
 		case p.val == "{":
 			s.Cmd = p.block()
 		case p.val == "if":

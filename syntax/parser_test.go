@@ -287,6 +287,38 @@ var shellTests = []errorCase{
 		`1:4: invalid UTF-8 encoding`,
 	},
 	{
+		"}",
+		`1:1: } can only be used to close a block`,
+	},
+	{
+		"]]",
+		`1:1: ]] can only be used to close a test`,
+	},
+	{
+		"then",
+		`1:1: "then" can only be used in an if`,
+	},
+	{
+		"elif",
+		`1:1: "elif" can only be used in an if`,
+	},
+	{
+		"fi",
+		`1:1: "fi" can only be used to end an if`,
+	},
+	{
+		"do",
+		`1:1: "do" can only be used in a loop`,
+	},
+	{
+		"done",
+		`1:1: "done" can only be used to end a loop`,
+	},
+	{
+		"esac",
+		`1:1: "esac" can only be used to end a case`,
+	},
+	{
 		"'",
 		`1:1: reached EOF without closing quote '`,
 	},
@@ -317,10 +349,6 @@ var shellTests = []errorCase{
 	{
 		"{",
 		`1:1: reached EOF without matching { with }`,
-	},
-	{
-		"}",
-		`1:1: } can only be used to close a block`,
 	},
 	{
 		"{ #}",
