@@ -372,7 +372,7 @@ var fileCases = []struct {
 		"foo\n",
 	},
 	{
-		"cd doesnotexist",
+		"cd noexist",
 		"exit status 1 #JUSTERR",
 	},
 	{
@@ -900,12 +900,18 @@ var fileCases = []struct {
 
 	// builtin
 	{"builtin", ""},
-	{"builtin doesnotexist", "exit status 1 #JUSTERR"},
+	{"builtin noexist", "exit status 1 #JUSTERR"},
 	{"builtin echo foo", "foo\n"},
 	{
 		"echo() { printf 'bar\n'; }; echo foo; builtin echo foo",
 		"bar\nfoo\n",
 	},
+
+	// type
+	{"type", ""},
+	{"type echo", "echo is a shell builtin\n"},
+	{"type bash | sed 's@/.*@/binpath@'", "bash is /binpath\n"},
+	{"type noexist", "type: noexist: not found\nexit status 1 #JUSTERR"},
 
 	// arrays
 	{

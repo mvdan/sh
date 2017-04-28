@@ -5,6 +5,7 @@ package interp
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 
@@ -179,7 +180,20 @@ func (r *Runner) builtin(pos syntax.Pos, name string, args []string) {
 		}
 		// TODO: pos
 		r.builtin(0, args[0], args[1:])
-	case "trap", "type", "source", "command", "pushd", "popd",
+	case "type":
+		for _, arg := range args {
+			if isBuiltin(arg) {
+				r.outf("%s is a shell builtin\n", arg)
+				continue
+			}
+			if path, err := exec.LookPath(arg); err == nil {
+				r.outf("%s is %s\n", arg, path)
+				continue
+			}
+			exit = 1
+			r.errf("type: %s: not found\n", arg)
+		}
+	case "trap", "source", "command", "pushd", "popd",
 		"umask", "alias", "unalias", "fg", "bg", "getopts":
 		r.errf("unhandled builtin: %s", name)
 	}
