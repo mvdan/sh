@@ -255,8 +255,8 @@ var shellTests = []errorCase{
 		`1:5: invalid UTF-8 encoding`,
 	},
 	{
-		"$((foo\x80bar",
-		`1:7: invalid UTF-8 encoding`,
+		"echo $((foo\x80bar",
+		`1:12: invalid UTF-8 encoding`,
 	},
 	{
 		"((foo\x80bar",
@@ -279,8 +279,8 @@ var shellTests = []errorCase{
 		`1:5: invalid UTF-8 encoding`,
 	},
 	{
-		"$((a |\x80",
-		`1:7: invalid UTF-8 encoding`,
+		"echo $((a |\x80",
+		`1:12: invalid UTF-8 encoding`,
 	},
 	{
 		"<<$\xc8 #INVBASH bash uses bytes",
@@ -607,44 +607,44 @@ var shellTests = []errorCase{
 		`1:6: reached EOF without matching $(( with ))`,
 	},
 	{
-		`fo $((o\`,
-		`1:4: reached EOF without matching $(( with ))`,
+		`echo $((o\`,
+		`1:6: reached EOF without matching $(( with ))`,
 	},
 	{
 		`echo $((foo\a`,
 		`1:6: reached EOF without matching $(( with ))`,
 	},
 	{
-		`$(("`,
-		`1:4: arithmetic expressions must consist of names and numbers`,
+		`echo $(("`,
+		`1:9: arithmetic expressions must consist of names and numbers`,
 	},
 	{
-		`$(($(a"`,
-		`1:4: arithmetic expressions must consist of names and numbers`,
+		`echo $(($(a"`,
+		`1:9: arithmetic expressions must consist of names and numbers`,
 	},
 	{
-		`$(($((a"`,
-		`1:4: arithmetic expressions must consist of names and numbers`,
+		`echo $(($((a"`,
+		`1:9: arithmetic expressions must consist of names and numbers`,
 	},
 	{
-		"$((`echo 0`",
-		`1:4: arithmetic expressions must consist of names and numbers`,
+		"echo $((`echo 0`",
+		`1:9: arithmetic expressions must consist of names and numbers`,
 	},
 	{
-		`$((& $(`,
-		`1:4: & must follow an expression`,
+		`echo $((& $(`,
+		`1:9: & must follow an expression`,
 	},
 	{
-		`$((a'`,
-		`1:5: not a valid arithmetic operator: '`,
+		`echo $((a'`,
+		`1:10: not a valid arithmetic operator: '`,
 	},
 	{
-		`$((a b"`,
-		`1:6: not a valid arithmetic operator: b`,
+		`echo $((a b"`,
+		`1:11: not a valid arithmetic operator: b`,
 	},
 	{
-		"$((\"`)",
-		`1:4: arithmetic expressions must consist of names and numbers`,
+		"echo $((\"`)",
+		`1:9: arithmetic expressions must consist of names and numbers`,
 	},
 	{
 		"echo $((()))",
@@ -1078,8 +1078,8 @@ var bashTests = []errorCase{
 		`1:1: reached ( without matching (( with ))`,
 	},
 	{
-		"$((\"a`b((",
-		`1:4: arithmetic expressions must consist of names and numbers`,
+		"echo $((\"a`b((",
+		`1:9: arithmetic expressions must consist of names and numbers`,
 	},
 	{
 		"coproc",
@@ -1146,8 +1146,8 @@ var bashTests = []errorCase{
 		`1:6: reached EOF without matching ${ with }`,
 	},
 	{
-		`$((echo a); (echo b)) #INVBASH bash does backtrack`,
-		`1:9: not a valid arithmetic operator: a`,
+		`echo $((echo a); (echo b)) #INVBASH bash does backtrack`,
+		`1:14: not a valid arithmetic operator: a`,
 	},
 	{
 		`((echo a); (echo b)) #INVBASH bash does backtrack`,
