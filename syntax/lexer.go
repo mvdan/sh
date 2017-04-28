@@ -800,7 +800,7 @@ loop:
 					p.discardLit(1)
 					if r = p.rune(); r == '\\' {
 						p.discardLit(1)
-						r = p.rune()
+						p.rune()
 					}
 				}
 			}
