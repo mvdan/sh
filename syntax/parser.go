@@ -490,11 +490,6 @@ func (p *parser) invalidStmtStart() {
 }
 
 func (p *parser) getWord() *Word {
-	if p.tok == _LitWord {
-		w := p.word(p.wps(p.lit(p.pos, p.val)))
-		p.next()
-		return w
-	}
 	if parts := p.wordParts(); len(parts) > 0 {
 		return p.word(parts)
 	}
@@ -657,12 +652,7 @@ func (p *parser) wordPart() WordPart {
 		old := p.quote
 		p.quote = dblQuotes
 		p.next()
-		if p.tok == _LitWord {
-			q.Parts = p.wps(p.lit(p.pos, p.val))
-			p.next()
-		} else {
-			q.Parts = p.wordParts()
-		}
+		q.Parts = p.wordParts()
 		p.quote = old
 		if !p.got(dblQuote) {
 			p.quoteErr(q.Pos(), dblQuote)
