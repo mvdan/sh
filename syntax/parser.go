@@ -1214,10 +1214,6 @@ preLoop:
 
 func (p *parser) gotStmtPipe(s *Stmt) *Stmt {
 	switch p.tok {
-	case leftParen:
-		s.Cmd = p.subshell()
-	case dblLeftParen:
-		s.Cmd = p.arithmExpCmd()
 	case _LitWord:
 		switch p.val {
 		case "{":
@@ -1293,6 +1289,10 @@ func (p *parser) gotStmtPipe(s *Stmt) *Stmt {
 			p.posErr(w.Pos(), "invalid func name")
 		}
 		s.Cmd = p.callExpr(s, w)
+	case leftParen:
+		s.Cmd = p.subshell()
+	case dblLeftParen:
+		s.Cmd = p.arithmExpCmd()
 	}
 	for !p.newLine && p.peekRedir() {
 		p.doRedirect(s)
