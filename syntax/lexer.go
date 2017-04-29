@@ -915,7 +915,7 @@ func (p *parser) hdocLitWord() *Word {
 		r = p.rune()
 	}
 	l := p.lit(pos, val)
-	return p.word(p.singleWps(l))
+	return p.word(p.wps(l))
 }
 
 func (p *parser) advanceLitRe(r rune) {

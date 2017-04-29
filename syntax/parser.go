@@ -132,22 +132,13 @@ func (p *parser) word(parts []WordPart) *Word {
 	return w
 }
 
-func (p *parser) singleWps(wp WordPart) []WordPart {
+func (p *parser) wps(wp WordPart) []WordPart {
 	if len(p.wpsBatch) == 0 {
 		p.wpsBatch = make([]WordPart, 64)
 	}
 	wps := p.wpsBatch[:1:1]
 	p.wpsBatch = p.wpsBatch[1:]
 	wps[0] = wp
-	return wps
-}
-
-func (p *parser) wps() []WordPart {
-	if len(p.wpsBatch) < 4 {
-		p.wpsBatch = make([]WordPart, 64)
-	}
-	wps := p.wpsBatch[:0:4]
-	p.wpsBatch = p.wpsBatch[4:]
 	return wps
 }
 
@@ -500,7 +491,7 @@ func (p *parser) invalidStmtStart() {
 
 func (p *parser) getWord() *Word {
 	if p.tok == _LitWord {
-		w := p.word(p.singleWps(p.lit(p.pos, p.val)))
+		w := p.word(p.wps(p.lit(p.pos, p.val)))
 		p.next()
 		return w
 	}
@@ -515,7 +506,7 @@ func (p *parser) getWordOrEmpty() *Word {
 	if len(parts) == 0 {
 		l := p.lit(p.pos, "")
 		l.ValueEnd = l.ValuePos // force Lit.Pos() == Lit.End()
-		return p.word(p.singleWps(l))
+		return p.word(p.wps(l))
 	}
 	return p.word(parts)
 }
@@ -537,9 +528,10 @@ func (p *parser) wordParts() (wps []WordPart) {
 			return
 		}
 		if wps == nil {
-			wps = p.wps()
+			wps = p.wps(n)
+		} else {
+			wps = append(wps, n)
 		}
-		wps = append(wps, n)
 		if p.spaced {
 			return
 		}
@@ -666,7 +658,7 @@ func (p *parser) wordPart() WordPart {
 		p.quote = dblQuotes
 		p.next()
 		if p.tok == _LitWord {
-			q.Parts = p.singleWps(p.lit(p.pos, p.val))
+			q.Parts = p.wps(p.lit(p.pos, p.val))
 			p.next()
 		} else {
 			q.Parts = p.wordParts()
@@ -867,7 +859,7 @@ func (p *parser) arithmExprBase(compact bool) ArithmExpr {
 		x = ue
 	case illegalTok, rightBrack, rightBrace, rightParen:
 	case _LitWord, dollar, dollBrace:
-		x = p.word(p.singleWps(p.wordPart()))
+		x = p.word(p.wps(p.wordPart()))
 	case bckQuote:
 		if p.quote == arithmExprLet {
 			return nil
@@ -1092,7 +1084,7 @@ func (p *parser) getAssign() *Assign {
 	start := p.lit(p.pos+1, p.val[p.asPos+1:])
 	if start.Value != "" {
 		start.ValuePos += Pos(p.asPos)
-		as.Value = p.word(p.singleWps(start))
+		as.Value = p.word(p.wps(start))
 	}
 	if p.next(); p.spaced {
 		return as
@@ -1111,7 +1103,7 @@ func (p *parser) getAssign() *Assign {
 			}
 		}
 		ae.Rparen = p.matched(ae.Lparen, leftParen, rightParen)
-		as.Value = p.word(p.singleWps(ae))
+		as.Value = p.word(p.wps(ae))
 	} else if !p.newLine && !stopToken(p.tok) {
 		if w := p.getWord(); w != nil {
 			if as.Value == nil {
@@ -1292,7 +1284,7 @@ func (p *parser) gotStmtPipe(s *Stmt) *Stmt {
 				p.follow(name.ValuePos, "foo(", rightParen)
 				s.Cmd = p.funcDecl(name, name.ValuePos)
 			} else {
-				s.Cmd = p.callExpr(s, p.word(p.singleWps(name)))
+				s.Cmd = p.callExpr(s, p.word(p.wps(name)))
 			}
 		}
 	case bckQuote:
@@ -1683,12 +1675,12 @@ func (p *parser) coprocClause() *CoprocClause {
 		}
 		// name was in fact the stmt
 		cc.Stmt = p.stmt(cc.Name.ValuePos)
-		cc.Stmt.Cmd = p.call(p.word(p.singleWps(cc.Name)))
+		cc.Stmt.Cmd = p.call(p.word(p.wps(cc.Name)))
 		cc.Name = nil
 	} else if cc.Name != nil {
 		if call, ok := cc.Stmt.Cmd.(*CallExpr); ok {
 			// name was in fact the start of a call
-			call.Args = append([]*Word{p.word(p.singleWps(cc.Name))},
+			call.Args = append([]*Word{p.word(p.wps(cc.Name))},
 				call.Args...)
 			cc.Name = nil
 		}
@@ -1741,7 +1733,7 @@ func (p *parser) callExpr(s *Stmt, w *Word) *CallExpr {
 			return ce
 		case _LitWord:
 			ce.Args = append(ce.Args, p.word(
-				p.singleWps(p.lit(p.pos, p.val)),
+				p.wps(p.lit(p.pos, p.val)),
 			))
 			p.next()
 		case bckQuote:
