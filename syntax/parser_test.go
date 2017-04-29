@@ -291,10 +291,6 @@ var shellTests = []errorCase{
 		`1:1: } can only be used to close a block`,
 	},
 	{
-		"]]",
-		`1:1: ]] can only be used to close a test`,
-	},
-	{
 		"then",
 		`1:1: "then" can only be used in an if`,
 	},
@@ -878,6 +874,10 @@ func TestParseErrBash(t *testing.T) {
 
 var bashTests = []errorCase{
 	{
+		"]] )",
+		`1:1: ]] can only be used to close a test`,
+	},
+	{
 		"((foo",
 		`1:1: reached EOF without matching (( with ))`,
 	},
@@ -1160,6 +1160,10 @@ var bashTests = []errorCase{
 }
 
 var posixTests = []errorCase{
+	{
+		"]] )",
+		`1:4: a command can only contain words and redirects`,
+	},
 	{
 		"((foo",
 		`1:2: reached EOF without matching ( with )`,

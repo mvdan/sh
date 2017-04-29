@@ -1235,6 +1235,9 @@ func (p *parser) gotStmtPipe(s *Stmt) *Stmt {
 		case "}":
 			p.curErr(`%s can only be used to close a block`, p.val)
 		case "]]":
+			if !p.bash() {
+				break
+			}
 			p.curErr(`%s can only be used to close a test`, p.val)
 		case "then":
 			p.curErr(`%q can only be used in an if`, p.val)
