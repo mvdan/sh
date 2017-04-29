@@ -1230,14 +1230,6 @@ preLoop:
 	return
 }
 
-func bashDeclareWord(s string) bool {
-	switch s {
-	case "declare", "local", "export", "readonly", "typeset", "nameref":
-		return true
-	}
-	return false
-}
-
 func (p *parser) gotStmtPipe(s *Stmt) *Stmt {
 	switch p.tok {
 	case leftParen:
@@ -1245,48 +1237,56 @@ func (p *parser) gotStmtPipe(s *Stmt) *Stmt {
 	case dblLeftParen:
 		s.Cmd = p.arithmExpCmd()
 	case _LitWord:
-		switch {
-		case p.val == "}":
-			p.curErr(`%s can only be used to close a block`, p.val)
-		case p.val == "]]":
-			p.curErr(`%s can only be used to close a test`, p.val)
-		case p.val == "then":
-			p.curErr(`%q can only be used in an if`, p.val)
-		case p.val == "elif":
-			p.curErr(`%q can only be used in an if`, p.val)
-		case p.val == "fi":
-			p.curErr(`%q can only be used to end an if`, p.val)
-		case p.val == "do":
-			p.curErr(`%q can only be used in a loop`, p.val)
-		case p.val == "done":
-			p.curErr(`%q can only be used to end a loop`, p.val)
-		case p.val == "esac":
-			p.curErr(`%q can only be used to end a case`, p.val)
-		case p.val == "{":
+		switch p.val {
+		case "{":
 			s.Cmd = p.block()
-		case p.val == "if":
+		case "if":
 			s.Cmd = p.ifClause()
-		case p.val == "while":
+		case "while":
 			s.Cmd = p.whileClause()
-		case p.val == "until":
+		case "until":
 			s.Cmd = p.untilClause()
-		case p.val == "for":
+		case "for":
 			s.Cmd = p.forClause()
-		case p.val == "case":
+		case "case":
 			s.Cmd = p.caseClause()
-		case p.bash() && p.val == "[[":
-			s.Cmd = p.testClause()
-		case p.bash() && bashDeclareWord(p.val):
-			s.Cmd = p.declClause()
-		case p.bash() && p.val == "eval":
-			s.Cmd = p.evalClause()
-		case p.bash() && p.val == "coproc":
-			s.Cmd = p.coprocClause()
-		case p.bash() && p.val == "let":
-			s.Cmd = p.letClause()
-		case p.bash() && p.val == "function":
-			s.Cmd = p.bashFuncDecl()
+		case "}":
+			p.curErr(`%s can only be used to close a block`, p.val)
+		case "]]":
+			p.curErr(`%s can only be used to close a test`, p.val)
+		case "then":
+			p.curErr(`%q can only be used in an if`, p.val)
+		case "elif":
+			p.curErr(`%q can only be used in an if`, p.val)
+		case "fi":
+			p.curErr(`%q can only be used to end an if`, p.val)
+		case "do":
+			p.curErr(`%q can only be used in a loop`, p.val)
+		case "done":
+			p.curErr(`%q can only be used to end a loop`, p.val)
+		case "esac":
+			p.curErr(`%q can only be used to end a case`, p.val)
 		default:
+			if !p.bash() {
+				break
+			}
+			switch p.val {
+			case "[[":
+				s.Cmd = p.testClause()
+			case "declare", "local", "export", "readonly",
+				"typeset", "nameref":
+				s.Cmd = p.declClause()
+			case "eval":
+				s.Cmd = p.evalClause()
+			case "coproc":
+				s.Cmd = p.coprocClause()
+			case "let":
+				s.Cmd = p.letClause()
+			case "function":
+				s.Cmd = p.bashFuncDecl()
+			}
+		}
+		if s.Cmd == nil {
 			name := p.lit(p.pos, p.val)
 			if p.next(); p.gotSameLine(leftParen) {
 				p.follow(name.ValuePos, "foo(", rightParen)
@@ -1656,10 +1656,8 @@ func isBashCompoundCommand(tok token, val string) bool {
 	case _LitWord:
 		switch val {
 		case "{", "if", "while", "until", "for", "case", "[[", "eval",
-			"coproc", "let", "function":
-			return true
-		}
-		if bashDeclareWord(val) {
+			"coproc", "let", "function", "declare", "local",
+			"export", "readonly", "typeset", "nameref":
 			return true
 		}
 	}
