@@ -22,7 +22,7 @@ func TestFprintCompact(t *testing.T) {
 				t.Fatalf("Unexpected error in %q: %v", in, err)
 			}
 			want := in
-			got, err := strFprint(prog, 0)
+			got, err := strFprint(prog, PrintConfig{})
 			if err != nil {
 				t.Fatalf("Unexpected error in %q: %v", in, err)
 			}
@@ -37,9 +37,8 @@ func TestFprintCompact(t *testing.T) {
 	}
 }
 
-func strFprint(f *File, spaces int) (string, error) {
+func strFprint(f *File, c PrintConfig) (string, error) {
 	var buf bytes.Buffer
-	c := PrintConfig{Spaces: spaces}
 	err := c.Fprint(&buf, f)
 	return buf.String(), err
 }
@@ -88,10 +87,7 @@ func TestFprintWeirdFormat(t *testing.T) {
 		samePrint("foo <<\\\\\\\\EOF\nbar\n\\\\EOF"),
 		samePrint("foo <<\"\\EOF\"\nbar\n\\EOF"),
 		samePrint("foo <<EOF && bar\nl1\nEOF"),
-		{
-			"foo <<EOF &&\nl1\nEOF\nbar",
-			"foo <<EOF && bar\nl1\nEOF",
-		},
+		samePrint("foo <<EOF &&\nl1\nEOF\n\tbar"),
 		samePrint("foo <<EOF\nl1\nEOF\n\nfoo2"),
 		{
 			"<<EOF",
@@ -212,31 +208,37 @@ func TestFprintWeirdFormat(t *testing.T) {
 			"for a in 1 2; do\n\t# bar\ndone",
 		},
 		samePrint("for a in 1 2; do\n\n\tbar\ndone"),
-		samePrint("a \\\n\t&& b"),
-		samePrint("a \\\n\t&& b\nc"),
+		{
+			"a \\\n\t&& b",
+			"a &&\n\tb",
+		},
+		{
+			"a \\\n\t&& b\nc",
+			"a &&\n\tb\nc",
+		},
 		{
 			"{\n(a \\\n&& b)\nc\n}",
-			"{\n\t(a \\\n\t\t&& b)\n\tc\n}",
+			"{\n\t(a &&\n\t\tb)\n\tc\n}",
 		},
 		{
 			"a && b \\\n&& c",
-			"a && b \\\n\t&& c",
+			"a && b &&\n\tc",
 		},
 		{
 			"a \\\n&& $(b) && c \\\n&& d",
-			"a \\\n\t&& $(b) && c \\\n\t&& d",
+			"a &&\n\t$(b) && c &&\n\td",
 		},
 		{
 			"a \\\n&& b\nc \\\n&& d",
-			"a \\\n\t&& b\nc \\\n\t&& d",
+			"a &&\n\tb\nc &&\n\td",
 		},
 		{
 			"a | {\nb \\\n| c\n}",
-			"a | {\n\tb \\\n\t\t| c\n}",
+			"a | {\n\tb |\n\t\tc\n}",
 		},
 		{
 			"a \\\n\t&& if foo; then\nbar\nfi",
-			"a \\\n\t&& if foo; then\n\t\tbar\n\tfi",
+			"a &&\n\tif foo; then\n\t\tbar\n\tfi",
 		},
 		{
 			"if\nfoo\nthen\nbar\nfi",
@@ -248,33 +250,33 @@ func TestFprintWeirdFormat(t *testing.T) {
 		},
 		{
 			"if foo \\\n&& bar\nthen\nbar\nfi",
-			"if foo \\\n\t&& bar; then\n\tbar\nfi",
+			"if foo &&\n\tbar; then\n\tbar\nfi",
 		},
 		{
 			"a |\nb |\nc",
-			"a \\\n\t| b \\\n\t| c",
+			"a |\n\tb |\n\tc",
 		},
 		{
 			"foo |\n# misplaced\nbar",
-			"foo \\\n\t|\n\t# misplaced\n\tbar",
+			"foo |\n\t# misplaced\n\tbar",
 		},
 		samePrint("{\n\tfoo\n\t#a\n\tbar\n} | etc"),
 		{
 			"foo &&\n#a1\n#a2\n$(bar)",
-			"foo \\\n\t&&\n\t#a1\n\t#a2\n\t$(bar)",
+			"foo &&\n\t#a1\n\t#a2\n\t$(bar)",
 		},
 		{
 			"{\n\tfoo\n\t#a\n} |\n# misplaced\nbar",
-			"{\n\tfoo\n\t#a\n} \\\n\t|\n\t# misplaced\n\tbar",
+			"{\n\tfoo\n\t#a\n} |\n\t# misplaced\n\tbar",
 		},
 		samePrint("foo | bar\n#after"),
 		{
 			"a |\nb | #c2\nc",
-			"a \\\n\t| b \\\n\t|\n\t#c2\n\tc",
+			"a |\n\tb | #c2\n\tc",
 		},
 		{
 			"{\nfoo &&\n#a1\n#a2\n$(bar)\n}",
-			"{\n\tfoo \\\n\t\t&&\n\t\t#a1\n\t\t#a2\n\t\t$(bar)\n}",
+			"{\n\tfoo &&\n\t\t#a1\n\t\t#a2\n\t\t$(bar)\n}",
 		},
 		{
 			"foo | while read l; do\nbar\ndone",
@@ -362,7 +364,7 @@ func TestFprintWeirdFormat(t *testing.T) {
 				t.Fatalf("Unexpected error in %q: %v", in, err)
 			}
 			checkNewlines(t, in, prog.lines)
-			got, err := strFprint(prog, 0)
+			got, err := strFprint(prog, PrintConfig{})
 			if err != nil {
 				t.Fatalf("Unexpected error in %q: %v", in, err)
 			}
@@ -402,7 +404,7 @@ const canonicalPath = "canonical.sh"
 
 func TestFprintMultiline(t *testing.T) {
 	prog := parsePath(t, canonicalPath)
-	got, err := strFprint(prog, 0)
+	got, err := strFprint(prog, PrintConfig{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -431,7 +433,7 @@ func TestFuzzCrashers(t *testing.T) {
 				t.Fatalf("Unexpected error in %q: %v", in, err)
 			}
 			checkNewlines(t, in, prog.lines)
-			if _, err := strFprint(prog, 0); err != nil {
+			if _, err := strFprint(prog, PrintConfig{}); err != nil {
 				t.Fatalf("Unexpected error in %q: %v", in, err)
 			}
 		})
@@ -481,7 +483,7 @@ func TestFprintSpaces(t *testing.T) {
 				t.Fatal(err)
 			}
 			want := tc.want + "\n"
-			got, err := strFprint(prog, tc.spaces)
+			got, err := strFprint(prog, PrintConfig{Spaces: tc.spaces})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -516,5 +518,83 @@ func TestWriteErr(t *testing.T) {
 	if err != errBadWriter {
 		t.Fatalf("Error mismatch with bad writer:\nwant: %v\ngot:  %v",
 			errBadWriter, err)
+	}
+}
+
+func TestFprintBinaryNextLine(t *testing.T) {
+	var tests = [...]printCase{
+		{
+			"foo <<EOF &&\nl1\nEOF\nbar",
+			"foo <<EOF && bar\nl1\nEOF",
+		},
+		samePrint("a \\\n\t&& b"),
+		samePrint("a \\\n\t&& b\nc"),
+		{
+			"{\n(a \\\n&& b)\nc\n}",
+			"{\n\t(a \\\n\t\t&& b)\n\tc\n}",
+		},
+		{
+			"a && b \\\n&& c",
+			"a && b \\\n\t&& c",
+		},
+		{
+			"a \\\n&& $(b) && c \\\n&& d",
+			"a \\\n\t&& $(b) && c \\\n\t&& d",
+		},
+		{
+			"a \\\n&& b\nc \\\n&& d",
+			"a \\\n\t&& b\nc \\\n\t&& d",
+		},
+		{
+			"a | {\nb \\\n| c\n}",
+			"a | {\n\tb \\\n\t\t| c\n}",
+		},
+		{
+			"a \\\n\t&& if foo; then\nbar\nfi",
+			"a \\\n\t&& if foo; then\n\t\tbar\n\tfi",
+		},
+		{
+			"if foo \\\n&& bar\nthen\nbar\nfi",
+			"if foo \\\n\t&& bar; then\n\tbar\nfi",
+		},
+		{
+			"a |\nb |\nc",
+			"a \\\n\t| b \\\n\t| c",
+		},
+		{
+			"foo |\n# misplaced\nbar",
+			"foo \\\n\t|\n\t# misplaced\n\tbar",
+		},
+		samePrint("{\n\tfoo\n\t#a\n\tbar\n} | etc"),
+		{
+			"foo &&\n#a1\n#a2\n$(bar)",
+			"foo \\\n\t&&\n\t#a1\n\t#a2\n\t$(bar)",
+		},
+		{
+			"{\n\tfoo\n\t#a\n} |\n# misplaced\nbar",
+			"{\n\tfoo\n\t#a\n} \\\n\t|\n\t# misplaced\n\tbar",
+		},
+		samePrint("foo | bar\n#after"),
+		{
+			"a |\nb | #c2\nc",
+			"a \\\n\t| b \\\n\t|\n\t#c2\n\tc",
+		},
+	}
+	for i, tc := range tests {
+		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
+			prog, err := Parse(strings.NewReader(tc.in), "", ParseComments)
+			if err != nil {
+				t.Fatal(err)
+			}
+			want := tc.want + "\n"
+			got, err := strFprint(prog, PrintConfig{BinaryNextLine: true})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got != want {
+				t.Fatalf("Fprint mismatch:\nin:\n%s\nwant:\n%sgot:\n%s",
+					tc.in, want, got)
+			}
+		})
 	}
 }

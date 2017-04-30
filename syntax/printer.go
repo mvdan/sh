@@ -11,7 +11,14 @@ import (
 
 // PrintConfig controls how the printing of an AST node will behave.
 type PrintConfig struct {
-	Spaces int // 0 (default) for tabs, >0 for number of spaces
+	// Spaces dictates the indentation style. The default value of 0
+	// uses tabs, and any positive value uses that number of spaces.
+	Spaces int
+	// BinaryNextLine makes binary operators (such as &&, || and |)
+	// be at the start of a line if the statement that follows them
+	// is on a separate line. This means that the operator will come
+	// after an escaped newline.
+	BinaryNextLine bool
 }
 
 var printerFree = sync.Pool{
@@ -642,19 +649,28 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			p.incLevel()
 		}
 		_, p.nestedBinary = x.Y.Cmd.(*BinaryCmd)
-		if len(p.pendingHdocs) == 0 && x.Y.Pos() > p.nline {
-			p.bslashNewl()
-			p.indent()
-		}
-		p.spacedString(x.Op.String())
-		if p.anyCommentsBefore(x.Y.Pos()) {
-			p.wantSpace = false
-			p.WriteByte('\n')
-			p.indent()
-			p.incLines(p.comments[0].Pos())
-			p.commentsUpTo(x.Y.Pos())
-			p.WriteByte('\n')
-			p.indent()
+		if p.BinaryNextLine {
+			if len(p.pendingHdocs) == 0 && x.Y.Pos() > p.nline {
+				p.bslashNewl()
+				p.indent()
+			}
+			p.spacedString(x.Op.String())
+			if p.anyCommentsBefore(x.Y.Pos()) {
+				p.wantSpace = false
+				p.WriteByte('\n')
+				p.indent()
+				p.incLines(p.comments[0].Pos())
+				p.commentsUpTo(x.Y.Pos())
+				p.WriteByte('\n')
+				p.indent()
+			}
+		} else {
+			p.spacedString(x.Op.String())
+			if x.Y.Pos() > p.nline {
+				p.commentsUpTo(x.Y.Pos())
+				p.newline(0)
+				p.indent()
+			}
 		}
 		p.incLines(x.Y.Pos())
 		p.stmt(x.Y)

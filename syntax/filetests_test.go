@@ -413,7 +413,7 @@ var fileTests = []testCase{
 		},
 	},
 	{
-		Strs: []string{"foo \\\n\t&& bar"},
+		Strs: []string{"foo &&\n\tbar"},
 		common: &BinaryCmd{
 			Op: AndStmt,
 			X:  litStmt("foo"),
