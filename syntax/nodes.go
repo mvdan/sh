@@ -147,8 +147,7 @@ func (s *Stmt) End() Pos {
 //
 // These are *CallExpr, *IfClause, *WhileClause, *UntilClause,
 // *ForClause, *CaseClause, *Block, *Subshell, *BinaryCmd, *FuncDecl,
-// *ArithmCmd, *TestClause, *DeclClause, *EvalClause, *LetClause, and
-// *CoprocClause.
+// *ArithmCmd, *TestClause, *DeclClause, *LetClause, and *CoprocClause.
 type Command interface {
 	Node
 	commandNode()
@@ -167,7 +166,6 @@ func (*FuncDecl) commandNode()     {}
 func (*ArithmCmd) commandNode()    {}
 func (*TestClause) commandNode()   {}
 func (*DeclClause) commandNode()   {}
-func (*EvalClause) commandNode()   {}
 func (*LetClause) commandNode()    {}
 func (*CoprocClause) commandNode() {}
 
@@ -697,25 +695,6 @@ type ProcSubst struct {
 
 func (s *ProcSubst) Pos() Pos { return s.OpPos }
 func (s *ProcSubst) End() Pos { return s.Rparen + 1 }
-
-// EvalClause represents a Bash eval clause.
-//
-// This node will never appear when in PosixConformant mode.
-//
-// TODO(mvdan): EvalClause is actually pointless, as any non-trivial use
-// of eval will involve parsing the program at run-time. Remove in 2.0.
-type EvalClause struct {
-	Eval Pos
-	Stmt *Stmt
-}
-
-func (e *EvalClause) Pos() Pos { return e.Eval }
-func (e *EvalClause) End() Pos {
-	if e.Stmt != nil {
-		return e.Stmt.End()
-	}
-	return e.Eval + 4
-}
 
 // CoprocClause represents a Bash coproc clause.
 //

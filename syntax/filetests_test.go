@@ -2973,19 +2973,8 @@ var fileTests = []testCase{
 		},
 	},
 	{
-		Strs:  []string{"eval"},
-		bash:  &EvalClause{},
-		posix: litStmt("eval"),
-	},
-	{
-		Strs: []string{"eval a=b foo"},
-		bash: &EvalClause{Stmt: &Stmt{
-			Cmd: litCall("foo"),
-			Assigns: []*Assign{{
-				Name:  lit("a"),
-				Value: litWord("b"),
-			}},
-		}},
+		Strs:   []string{"eval a=b foo"},
+		common: litStmt("eval", "a=b", "foo"),
 	},
 	{
 		Strs: []string{"coproc a { b; }"},
@@ -3671,11 +3660,6 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 		}
 		recurse(x.Opts)
 		recurse(x.Assigns)
-	case *EvalClause:
-		setPos(&x.Eval, "eval")
-		if x.Stmt != nil {
-			recurse(x.Stmt)
-		}
 	case *CoprocClause:
 		setPos(&x.Coproc, "coproc")
 		if x.Name != nil {

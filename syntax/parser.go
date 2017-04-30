@@ -1257,8 +1257,6 @@ func (p *parser) gotStmtPipe(s *Stmt) *Stmt {
 			case "declare", "local", "export", "readonly",
 				"typeset", "nameref":
 				s.Cmd = p.declClause()
-			case "eval":
-				s.Cmd = p.evalClause()
 			case "coproc":
 				s.Cmd = p.coprocClause()
 			case "let":
@@ -1627,20 +1625,13 @@ func (p *parser) declClause() *DeclClause {
 	return ds
 }
 
-func (p *parser) evalClause() *EvalClause {
-	ec := &EvalClause{Eval: p.pos}
-	p.next()
-	ec.Stmt, _ = p.getStmt(false, false)
-	return ec
-}
-
 func isBashCompoundCommand(tok token, val string) bool {
 	switch tok {
 	case leftParen, dblLeftParen:
 		return true
 	case _LitWord:
 		switch val {
-		case "{", "if", "while", "until", "for", "case", "[[", "eval",
+		case "{", "if", "while", "until", "for", "case", "[[",
 			"coproc", "let", "function", "declare", "local",
 			"export", "readonly", "typeset", "nameref":
 			return true
