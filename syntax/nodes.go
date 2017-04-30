@@ -498,7 +498,7 @@ func (a *ArithmCmd) End() Pos { return a.Right + 2 }
 // If it contains a *Word, it will contain a single *Lit or a single
 // *ParamExp.
 //
-// TODO(mvdan): replace *Word with *Lit in 2.0.
+// TODO(mvdan): replace *Word with *Lit/*ParamExp in 2.0.
 type ArithmExpr interface {
 	Node
 	arithmExprNode()
