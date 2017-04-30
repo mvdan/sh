@@ -491,12 +491,8 @@ func (a *ArithmCmd) End() Pos { return a.Right + 2 }
 
 // ArithmExpr represents all nodes that form arithmetic expressions.
 //
-// These are *BinaryArithm, *UnaryArithm, *ParenArithm, and *Word.
-//
-// If it contains a *Word, it will contain a single *Lit or a single
+// These are *BinaryArithm, *UnaryArithm, *ParenArithm, *Lit, and
 // *ParamExp.
-//
-// TODO(mvdan): replace *Word with *Lit/*ParamExp in 2.0.
 type ArithmExpr interface {
 	Node
 	arithmExprNode()
@@ -505,20 +501,18 @@ type ArithmExpr interface {
 func (*BinaryArithm) arithmExprNode() {}
 func (*UnaryArithm) arithmExprNode()  {}
 func (*ParenArithm) arithmExprNode()  {}
-func (*Word) arithmExprNode()         {}
+func (*Lit) arithmExprNode()          {}
+func (*ParamExp) arithmExprNode()     {}
 
 // BinaryArithm represents a binary expression between two arithmetic
 // expression.
 //
-// If Op is any assign operator, X will be a *Word with a single *Lit
-// whose value is a valid name.
+// If Op is any assign operator, X will be a *Lit whose value is a valid
+// name.
 //
 // Ternary operators like "a ? b : c" are fit into this structure. Thus,
 // if Op == Quest, Y will be a *BinaryArithm with Op == Colon. Op can
 // only be Colon in that scenario.
-//
-// TODO(mvdan): we might want to split up assigns in 2.0 (X would be a
-// *Lit) to make the structure easier.
 type BinaryArithm struct {
 	OpPos Pos
 	Op    BinAritOperator
@@ -531,11 +525,7 @@ func (b *BinaryArithm) End() Pos { return b.Y.End() }
 // UnaryArithm represents an unary expression over a node, either before
 // or after it.
 //
-// If Op is Inc or Dec, X will be a *Word with a single *Lit whose value
-// is a valid name.
-//
-// TODO(mvdan): consider splitting up Inc/Dec like the assigns above in
-// 2.0.
+// If Op is Inc or Dec, X will be a *Lit whose value is a valid name.
 type UnaryArithm struct {
 	OpPos Pos
 	Op    UnAritOperator

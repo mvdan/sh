@@ -98,12 +98,10 @@ func (r *Runner) varInd(v varValue, e syntax.ArithmExpr) string {
 		}
 	case []string:
 		// TODO: @ between double quotes
-		if w, ok := e.(*syntax.Word); ok {
-			if lit, ok := w.Parts[0].(*syntax.Lit); ok {
-				switch lit.Value {
-				case "@", "*":
-					return strings.Join(x, " ")
-				}
+		if lit, ok := e.(*syntax.Lit); ok {
+			switch lit.Value {
+			case "@", "*":
+				return strings.Join(x, " ")
 			}
 		}
 		i := r.arithm(e)

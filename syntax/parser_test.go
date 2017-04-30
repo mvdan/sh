@@ -668,7 +668,7 @@ var shellTests = []errorCase{
 	},
 	{
 		"echo $((++))",
-		`1:9: ++ must be followed by a word`,
+		`1:9: ++ must be followed by a literal`,
 	},
 	{
 		"echo $((a ? b))",
@@ -915,7 +915,7 @@ var bashTests = []errorCase{
 	},
 	{
 		"let a ++",
-		`1:7: ++ must be followed by a word`,
+		`1:7: ++ must be followed by a literal`,
 	},
 	{
 		"let (a)++",
@@ -927,7 +927,11 @@ var bashTests = []errorCase{
 	},
 	{
 		"let --(a)",
-		`1:5: -- must be followed by a word`,
+		`1:5: -- must be followed by a literal`,
+	},
+	{
+		"let --$a",
+		`1:5: -- must be followed by a literal`,
 	},
 	{
 		"let a+\n",

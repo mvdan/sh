@@ -785,7 +785,7 @@ func (p *parser) arithmExpr(ftok token, fpos Pos, level int, compact, tern bool)
 		}
 	case AddAssgn, SubAssgn, MulAssgn, QuoAssgn, RemAssgn, AndAssgn,
 		OrAssgn, XorAssgn, ShlAssgn, ShrAssgn, Assgn:
-		if !p.leftIdent(b.X) {
+		if l, ok := b.X.(*Lit); !ok || !validIdent(l.Value, p.bash()) {
 			p.posErr(b.OpPos, "%s must follow a name", b.Op.String())
 		}
 	}
@@ -804,15 +804,6 @@ func (p *parser) arithmExpr(ftok token, fpos Pos, level int, compact, tern bool)
 	return b
 }
 
-func (p *parser) leftIdent(x ArithmExpr) bool {
-	w, ok := x.(*Word)
-	if !ok {
-		return false
-	}
-	lit, ok := w.Parts[0].(*Lit)
-	return ok && validIdent(lit.Value, p.bash())
-}
-
 func (p *parser) arithmExprBase(compact bool) ArithmExpr {
 	var x ArithmExpr
 	switch p.tok {
@@ -826,7 +817,11 @@ func (p *parser) arithmExprBase(compact bool) ArithmExpr {
 	case addAdd, subSub:
 		ue := &UnaryArithm{OpPos: p.pos, Op: UnAritOperator(p.tok)}
 		p.next()
-		ue.X = p.followWordTok(token(ue.Op), ue.OpPos)
+		if lit := p.getLit(); lit == nil {
+			p.followErr(ue.OpPos, token(ue.Op).String(), "a literal")
+		} else {
+			ue.X = lit
+		}
 		return ue
 	case leftParen:
 		pe := &ParenArithm{Lparen: p.pos}
@@ -848,8 +843,10 @@ func (p *parser) arithmExprBase(compact bool) ArithmExpr {
 		}
 		x = ue
 	case illegalTok, rightBrack, rightBrace, rightParen:
-	case _LitWord, dollar, dollBrace:
-		x = p.word(p.wps(p.wordPart()))
+	case _LitWord:
+		x = p.getLit()
+	case dollar, dollBrace:
+		x = p.wordPart().(*ParamExp)
 	case bckQuote:
 		if p.quote == arithmExprLet {
 			return nil
@@ -865,7 +862,7 @@ func (p *parser) arithmExprBase(compact bool) ArithmExpr {
 		return x
 	}
 	if p.tok == addAdd || p.tok == subSub {
-		if !p.leftIdent(x) {
+		if l, ok := x.(*Lit); !ok || !validIdent(l.Value, p.bash()) {
 			p.curErr("%s must follow a name", p.tok.String())
 		}
 		u := &UnaryArithm{
