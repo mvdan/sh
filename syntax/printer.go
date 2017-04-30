@@ -346,7 +346,7 @@ func (p *printer) paramExp(pe *ParamExp) {
 	switch {
 	case pe.Length:
 		p.WriteByte('#')
-	case pe.Excl:
+	case pe.Indirect:
 		p.WriteByte('!')
 	}
 	if pe.Param != nil {

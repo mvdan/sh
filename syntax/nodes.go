@@ -420,7 +420,8 @@ func (c *CmdSubst) End() Pos { return c.Right + 1 }
 type ParamExp struct {
 	Dollar, Rbrace Pos
 	Short          bool
-	Length, Excl   bool // TODO(mvdan): rename Excl in 2.0 (Indirect, etc)
+	Indirect       bool
+	Length         bool
 	Param          *Lit
 	Ind            *Index
 	Slice          *Slice

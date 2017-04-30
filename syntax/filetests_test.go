@@ -1877,8 +1877,8 @@ var fileTests = []testCase{
 	{
 		Strs: []string{`${!foo}`},
 		common: &ParamExp{
-			Excl:  true,
-			Param: lit("foo"),
+			Indirect: true,
+			Param:    lit("foo"),
 		},
 	},
 	{
