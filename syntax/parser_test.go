@@ -703,6 +703,14 @@ var shellTests = []errorCase{
 		`1:9: arithmetic expressions must consist of names and numbers`,
 	},
 	{
+		"echo $((1'2'))",
+		`1:10: not a valid arithmetic operator: '`,
+	},
+	{
+		"echo $(($1'2'))",
+		`1:11: not a valid arithmetic operator: '`,
+	},
+	{
 		"<<EOF\n$(()a",
 		`2:1: reached ) without matching $(( with ))`,
 	},
