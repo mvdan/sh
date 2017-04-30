@@ -20,6 +20,7 @@ var (
 	write       = flag.Bool("w", false, "write result to file instead of stdout")
 	list        = flag.Bool("l", false, "list files whose formatting differs from shfmt's")
 	indent      = flag.Int("i", 0, "indent: 0 for tabs (default), >0 for number of spaces")
+	binNext     = flag.Bool("bn", false, "binary ops like && and | may start a line")
 	posix       = flag.Bool("p", false, "parse POSIX shell code instead of bash")
 	showVersion = flag.Bool("version", false, "show version and exit")
 
@@ -43,6 +44,7 @@ func main() {
 	}
 
 	printConfig.Spaces = *indent
+	printConfig.BinaryNextLine = *binNext
 	parseMode |= syntax.ParseComments
 	if *posix {
 		parseMode |= syntax.PosixConformant
