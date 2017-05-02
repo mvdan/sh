@@ -913,6 +913,14 @@ var fileCases = []struct {
 	{"type bash | sed 's@/.*@/binpath@'", "bash is /binpath\n"},
 	{"type noexist", "type: noexist: not found\nexit status 1 #JUSTERR"},
 
+	// eval
+	{"eval", ""},
+	{"eval ''", ""},
+	{"eval echo foo", "foo\n"},
+	{"eval 'echo foo'", "foo\n"},
+	{"eval 'exit 1'", "exit status 1"},
+	{"eval '('", "eval: 1:1: reached EOF without matching ( with )\nexit status 1 #JUSTERR"},
+
 	// arrays
 	{
 		"a=foo; echo ${a[0]} ${a[@]} ${a[x]}; echo ${a[1]}",

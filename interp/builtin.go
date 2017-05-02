@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/mvdan/sh/syntax"
 )
@@ -18,7 +19,7 @@ func isBuiltin(name string) bool {
 		"echo", "printf", "break", "continue", "pwd", "cd",
 		"wait", "builtin", "trap", "type", "source", "command",
 		"pushd", "popd", "umask", "alias", "unalias", "fg", "bg",
-		"getopts":
+		"getopts", "eval":
 		return true
 	}
 	return false
@@ -193,6 +194,18 @@ func (r *Runner) builtin(pos syntax.Pos, name string, args []string) {
 			exit = 1
 			r.errf("type: %s: not found\n", arg)
 		}
+	case "eval":
+		src := strings.Join(args, " ")
+		file, err := syntax.Parse(strings.NewReader(src), "", 0)
+		if err != nil {
+			r.errf("eval: %v\n", err)
+			exit = 1
+			break
+		}
+		r2 := *r
+		r2.File = file
+		r2.Run()
+		exit = r2.exit
 	case "trap", "source", "command", "pushd", "popd",
 		"umask", "alias", "unalias", "fg", "bg", "getopts":
 		r.errf("unhandled builtin: %s", name)
