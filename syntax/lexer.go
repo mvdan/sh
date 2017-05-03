@@ -764,8 +764,7 @@ loop:
 			fallthrough
 		case '-':
 			switch p.quote {
-			case paramExpInd, paramExpLen, paramExpOff,
-				paramExpExp, paramExpRepl, sglQuotes:
+			case paramExpExp, paramExpRepl, sglQuotes:
 			default:
 				break loop
 			}
