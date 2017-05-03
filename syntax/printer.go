@@ -6,6 +6,7 @@ package syntax
 import (
 	"bufio"
 	"io"
+	"strings"
 	"sync"
 )
 
@@ -94,7 +95,7 @@ type printer struct {
 	// pendingHdocs is the list of pending heredocs to write.
 	pendingHdocs []*Redirect
 
-	// used in stmtLen to align comments
+	// used in stmtCols to align comments
 	lenPrinter *printer
 	lenCounter byteCounter
 }
@@ -836,10 +837,10 @@ func (p *printer) stmts(stmts []*Stmt) {
 				if j+1 < len(follow) {
 					npos2 = follow[j+1].Pos()
 				}
-				if pos2 > nline2 || !p.hasInline(pos2, npos2, nline2) {
+				if !p.hasInline(pos2, npos2, nline2) {
 					break
 				}
-				if l := p.stmtLen(s2); l > inlineIndent {
+				if l := p.stmtCols(s2); l > inlineIndent {
 					inlineIndent = l
 				}
 				if ind2++; ind2 >= len(p.lines) {
@@ -854,7 +855,9 @@ func (p *printer) stmts(stmts []*Stmt) {
 			}
 		}
 		if inlineIndent > 0 {
-			p.commentPadding = inlineIndent - p.stmtLen(s)
+			if l := p.stmtCols(s); l > 0 {
+				p.commentPadding = inlineIndent - l
+			}
 		}
 	}
 	p.wantNewline = true
@@ -863,17 +866,34 @@ func (p *printer) stmts(stmts []*Stmt) {
 type byteCounter int
 
 func (c *byteCounter) WriteByte(b byte) error {
-	*c++
+	switch {
+	case *c < 0:
+	case b == '\n':
+		*c = -1
+	default:
+		*c++
+	}
 	return nil
 }
 func (c *byteCounter) WriteString(s string) (int, error) {
-	*c += byteCounter(len(s))
+	switch {
+	case *c < 0:
+	case strings.Contains(s, "\n"):
+		*c = -1
+	default:
+		*c += byteCounter(len(s))
+	}
 	return 0, nil
 }
 func (c *byteCounter) Reset(io.Writer) { *c = 0 }
 
-func (p *printer) stmtLen(s *Stmt) int {
-	*p.lenPrinter = printer{bufWriter: &p.lenCounter}
+// stmtCols reports the length that s will take when formatted in a
+// single line. If it will span multiple lines, stmtCols will return -1.
+func (p *printer) stmtCols(s *Stmt) int {
+	*p.lenPrinter = printer{
+		bufWriter: &p.lenCounter,
+		lines:     p.lines,
+	}
 	p.lenPrinter.bufWriter.Reset(nil)
 	p.lenPrinter.incLines(s.Pos())
 	p.lenPrinter.stmt(s)

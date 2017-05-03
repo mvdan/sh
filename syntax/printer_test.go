@@ -199,6 +199,12 @@ func TestFprintWeirdFormat(t *testing.T) {
 			"a #1\nbbb; c #2\nd #3",
 			"a #1\nbbb\nc #2\nd #3",
 		},
+		samePrint("aa #c1\n{ #c2\n\tb\n}"),
+		{
+			"aa #c1\n{ b; c; } #c2",
+			"aa #c1\n{\n\tb\n\tc\n} #c2",
+		},
+		samePrint("a #c1\n'b\ncc' #c2"),
 		{
 			"(\nbar\n# extra\n)",
 			"(\n\tbar\n\t# extra\n)",
