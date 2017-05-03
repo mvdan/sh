@@ -837,7 +837,7 @@ func (p *parser) arithmExprBase(compact bool) ArithmExpr {
 		if p.next(); compact && p.spaced {
 			p.followErrExp(ue.OpPos, ue.Op.String())
 		}
-		ue.X = p.arithmExpr(token(ue.Op), ue.OpPos, 0, compact, false)
+		ue.X = p.arithmExprBase(compact)
 		if ue.X == nil {
 			p.followErrExp(ue.OpPos, ue.Op.String())
 		}
