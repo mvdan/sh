@@ -321,7 +321,7 @@ func (p *printer) wordPart(wp WordPart) {
 		p.paramExp(x)
 	case *ArithmExp:
 		p.WriteString("$((")
-		p.arithmExpr(x.X, false)
+		p.arithmExpr(x.X, false, false)
 		p.WriteString("))")
 	case *ArrayExpr:
 		p.wantSpace = false
@@ -362,21 +362,15 @@ func (p *printer) paramExp(pe *ParamExp) {
 	}
 	if pe.Ind != nil {
 		p.WriteByte('[')
-		p.arithmExpr(pe.Ind.Expr, false)
+		p.arithmExpr(pe.Ind.Expr, false, false)
 		p.WriteByte(']')
 	}
 	if pe.Slice != nil {
 		p.WriteByte(':')
-		if un, ok := pe.Slice.Offset.(*UnaryArithm); ok {
-			if un.Op == Plus || un.Op == Minus {
-				// to avoid :+ and :-
-				p.WriteByte(' ')
-			}
-		}
-		p.arithmExpr(pe.Slice.Offset, true)
+		p.arithmExpr(pe.Slice.Offset, true, true)
 		if pe.Slice.Length != nil {
 			p.WriteByte(':')
-			p.arithmExpr(pe.Slice.Length, true)
+			p.arithmExpr(pe.Slice.Length, true, false)
 		}
 	} else if pe.Repl != nil {
 		if pe.Repl.All {
@@ -406,16 +400,16 @@ func (p *printer) loop(loop Loop) {
 		if x.Init == nil {
 			p.WriteByte(' ')
 		}
-		p.arithmExpr(x.Init, false)
+		p.arithmExpr(x.Init, false, false)
 		p.WriteString("; ")
-		p.arithmExpr(x.Cond, false)
+		p.arithmExpr(x.Cond, false, false)
 		p.WriteString("; ")
-		p.arithmExpr(x.Post, false)
+		p.arithmExpr(x.Post, false, false)
 		p.WriteString("))")
 	}
 }
 
-func (p *printer) arithmExpr(expr ArithmExpr, compact bool) {
+func (p *printer) arithmExpr(expr ArithmExpr, compact, spacePlusMinus bool) {
 	switch x := expr.(type) {
 	case *Lit:
 		p.WriteString(x.Value)
@@ -423,29 +417,35 @@ func (p *printer) arithmExpr(expr ArithmExpr, compact bool) {
 		p.paramExp(x)
 	case *BinaryArithm:
 		if compact {
-			p.arithmExpr(x.X, compact)
+			p.arithmExpr(x.X, compact, spacePlusMinus)
 			p.WriteString(x.Op.String())
-			p.arithmExpr(x.Y, compact)
+			p.arithmExpr(x.Y, compact, false)
 		} else {
-			p.arithmExpr(x.X, compact)
+			p.arithmExpr(x.X, compact, spacePlusMinus)
 			if x.Op != Comma {
 				p.WriteByte(' ')
 			}
 			p.WriteString(x.Op.String())
 			p.WriteByte(' ')
-			p.arithmExpr(x.Y, compact)
+			p.arithmExpr(x.Y, compact, false)
 		}
 	case *UnaryArithm:
 		if x.Post {
-			p.arithmExpr(x.X, compact)
+			p.arithmExpr(x.X, compact, spacePlusMinus)
 			p.WriteString(x.Op.String())
 		} else {
+			if spacePlusMinus {
+				switch x.Op {
+				case Plus, Minus:
+					p.WriteByte(' ')
+				}
+			}
 			p.WriteString(x.Op.String())
-			p.arithmExpr(x.X, compact)
+			p.arithmExpr(x.X, compact, false)
 		}
 	case *ParenArithm:
 		p.WriteByte('(')
-		p.arithmExpr(x.X, false)
+		p.arithmExpr(x.X, false, false)
 		p.WriteByte(')')
 	}
 }
@@ -729,7 +729,7 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		p.semiRsrv("done", x.Done, true)
 	case *ArithmCmd:
 		p.WriteString("((")
-		p.arithmExpr(x.X, false)
+		p.arithmExpr(x.X, false, false)
 		p.WriteString("))")
 	case *TestClause:
 		p.WriteString("[[ ")
@@ -757,7 +757,7 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		p.spacedString("let")
 		for _, n := range x.Exprs {
 			p.WriteByte(' ')
-			p.arithmExpr(n, true)
+			p.arithmExpr(n, true, false)
 		}
 	}
 	return startRedirs

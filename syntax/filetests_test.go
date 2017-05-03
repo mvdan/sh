@@ -1728,6 +1728,19 @@ var fileTests = []testCase{
 		},
 	},
 	{
+		Strs: []string{`${foo: +2+3}`},
+		bash: &ParamExp{
+			Param: lit("foo"),
+			Slice: &Slice{
+				Offset: &BinaryArithm{
+					Op: Add,
+					X:  &UnaryArithm{Op: Plus, X: lit("2")},
+					Y:  lit("3"),
+				},
+			},
+		},
+	},
+	{
 		Strs: []string{`${foo:a?1:2:3}`},
 		bash: &ParamExp{
 			Param: lit("foo"),
