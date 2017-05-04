@@ -155,9 +155,9 @@ func (r *Runner) paramExp(pe *syntax.ParamExp) string {
 				}
 				str = string(rns)
 			case "P", "A", "a":
-				r.errf("unhandled @%s param expansion", arg)
+				r.runErr(pe.Pos(), "unhandled @%s param expansion", arg)
 			default:
-				r.errf("unexpected @%s param expansion", arg)
+				r.runErr(pe.Pos(), "unexpected @%s param expansion", arg)
 			}
 		}
 	}

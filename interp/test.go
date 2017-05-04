@@ -154,7 +154,7 @@ func (r *Runner) unTest(op syntax.UnTestOperator, x string) bool {
 	case syntax.TsNot:
 		return x == ""
 	default:
-		r.errf("unhandled unary test op: %v", op)
+		r.runErr(0, "unhandled unary test op: %v", op)
 		return false
 	}
 }

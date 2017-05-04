@@ -208,7 +208,7 @@ func (r *Runner) builtin(pos syntax.Pos, name string, args []string) {
 		exit = r2.exit
 	case "trap", "source", "command", "pushd", "popd",
 		"umask", "alias", "unalias", "fg", "bg", "getopts":
-		r.errf("unhandled builtin: %s", name)
+		r.runErr(pos, "unhandled builtin: %s", name)
 	}
 	r.exit = exit
 }
