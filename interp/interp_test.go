@@ -200,11 +200,10 @@ var fileCases = []struct {
 		"a='àÉñ bAr'; echo ${a,}; echo ${a,,}",
 		"àÉñ bAr\nàéñ bar\n",
 	},
-	//{
-	//        // TODO: bash really likes quoting with ', not "
-	//        `a='"\n'; printf "%s %s" "${a}" "${a@Q}"`,
-	//        "\"\\n '\"\\n'",
-	//},
+	{
+		`a='b  c'; eval "echo -n ${a} ${a@Q}"`,
+		`b c b  c`,
+	},
 	//{
 	//        `a='"\n'; printf "%s %s" "${a}" "${a@E}"`,
 	//        "\"\\n \"\n",
