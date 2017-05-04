@@ -183,6 +183,10 @@ func (r *Runner) builtin(pos syntax.Pos, name string, args []string) {
 		r.builtin(0, args[0], args[1:])
 	case "type":
 		for _, arg := range args {
+			if _, ok := r.funcs[arg]; ok {
+				r.outf("%s is a function\n", arg)
+				continue
+			}
 			if isBuiltin(arg) {
 				r.outf("%s is a shell builtin\n", arg)
 				continue

@@ -909,6 +909,7 @@ var fileCases = []struct {
 	// type
 	{"type", ""},
 	{"type echo", "echo is a shell builtin\n"},
+	{"echo() { :; }; type echo | sed 1q", "echo is a function\n"},
 	{"type bash | sed 's@/.*@/binpath@'", "bash is /binpath\n"},
 	{"type noexist", "type: noexist: not found\nexit status 1 #JUSTERR"},
 
