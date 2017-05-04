@@ -162,7 +162,7 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 		r.Dir = dir
 	case "wait":
 		if len(args) > 0 {
-			r.errf("wait with args not handled yet")
+			r.runErr(pos, "wait with args not handled yet")
 			break
 		}
 		r.bgShells.Wait()
