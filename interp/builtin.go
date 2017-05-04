@@ -33,17 +33,17 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 	case "exit":
 		switch len(args) {
 		case 0:
-			r.lastExit()
 		case 1:
 			if n, err := strconv.Atoi(args[0]); err != nil {
 				r.runErr(pos, "invalid exit code: %q", args[0])
 			} else {
-				r.err = ExitCode(n)
-				return n
+				r.exit = n
 			}
 		default:
 			r.runErr(pos, "exit cannot take multiple arguments")
 		}
+		r.lastExit()
+		return r.exit
 	case "set":
 		r.args = args
 	case "shift":
