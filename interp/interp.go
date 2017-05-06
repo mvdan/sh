@@ -440,9 +440,7 @@ func (r *Runner) cmd(cm syntax.Command) {
 		for _, pl := range x.List {
 			for _, word := range pl.Patterns {
 				pat := r.loneWord(word)
-				// TODO: error?
-				matched, _ := path.Match(pat, str)
-				if matched {
+				if match(pat, str) {
 					r.stmts(pl.Stmts)
 					return
 				}
@@ -461,6 +459,11 @@ func (r *Runner) stmts(stmts []*syntax.Stmt) {
 	for _, stmt := range stmts {
 		r.stmt(stmt)
 	}
+}
+
+func match(pattern, name string) bool {
+	matched, _ := path.Match(pattern, name)
+	return matched
 }
 
 func (r *Runner) redir(rd *syntax.Redirect) (io.Closer, error) {
@@ -639,10 +642,9 @@ func (r *Runner) call(pos syntax.Pos, name string, args []string) {
 	case *exec.ExitError:
 		// started, but errored - default to 1 if OS
 		// doesn't have exit statuses
+		r.exit = 1
 		if status, ok := x.Sys().(syscall.WaitStatus); ok {
 			r.exit = status.ExitStatus()
-		} else {
-			r.exit = 1
 		}
 	case *exec.Error:
 		// did not start

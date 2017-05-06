@@ -173,8 +173,7 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 		if !isBuiltin(args[0]) {
 			return 1
 		}
-		// TODO: pos
-		return r.builtinCode(0, args[0], args[1:])
+		return r.builtinCode(pos, args[0], args[1:])
 	case "type":
 		anyNotFound := false
 		for _, arg := range args {

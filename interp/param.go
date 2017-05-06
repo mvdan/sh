@@ -4,7 +4,6 @@
 package interp
 
 import (
-	"path"
 	"strconv"
 	"strings"
 	"unicode"
@@ -173,7 +172,7 @@ func removePattern(str, pattern string, fromEnd, longest bool) string {
 		i = 0
 	}
 	for {
-		if m, _ := path.Match(pattern, s); m {
+		if match(pattern, s) {
 			last = str[i:]
 			if fromEnd {
 				last = str[:i]
