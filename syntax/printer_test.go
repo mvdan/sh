@@ -339,6 +339,7 @@ func TestFprintWeirdFormat(t *testing.T) {
 		},
 		samePrint("\"foo\n$(bar)\""),
 		samePrint("\"foo\\\n$(bar)\""),
+		samePrint("((foo++)) || bar"),
 		{
 			"a=b \\\nc=d \\\nfoo",
 			"a=b \\\n\tc=d \\\n\tfoo",
