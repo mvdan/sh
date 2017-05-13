@@ -3184,12 +3184,26 @@ var fileTests = []testCase{
 		}}},
 	},
 	{
-		Strs:  []string{"a[2]=b"},
-		posix: litStmt("a[2]=b"),
-		bash: &Stmt{Assigns: []*Assign{{
-			Name:  lit("a[2]"),
-			Value: litWord("b"),
-		}}},
+		Strs:  []string{"a[2]=b c[-3]="},
+		posix: litStmt("a[2]=b", "c[-3]="),
+		bash: &Stmt{Assigns: []*Assign{
+			{
+				Name:  lit("a"),
+				Ind:   &Index{Expr: lit("2")},
+				Value: litWord("b"),
+			},
+			{
+				Name: lit("c"),
+				Ind: &Index{Expr: &UnaryArithm{
+					Op: Minus,
+					X:  lit("3"),
+				}},
+			},
+		}},
+	},
+	{
+		Strs:   []string{"a]b"},
+		common: litStmt("a]b"),
 	},
 	{
 		Strs: []string{"<<EOF | b\nfoo\nEOF", "<<EOF|b;\nfoo\n"},
@@ -3462,6 +3476,9 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 		for _, a := range x {
 			if a.Name != nil {
 				recurse(a.Name)
+			}
+			if a.Ind != nil {
+				recurse(a.Ind.Expr)
 			}
 			if a.Value != nil {
 				recurse(a.Value)

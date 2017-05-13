@@ -173,6 +173,7 @@ func (*CoprocClause) commandNode() {}
 type Assign struct {
 	Append bool
 	Name   *Lit
+	Ind    *Index
 	Value  *Word
 }
 
@@ -186,6 +187,9 @@ func (a *Assign) Pos() Pos {
 func (a *Assign) End() Pos {
 	if a.Value != nil {
 		return a.Value.End()
+	}
+	if a.Ind != nil {
+		return a.Ind.Expr.End() + 2
 	}
 	return a.Name.End() + 1
 }
@@ -437,7 +441,7 @@ func (p *ParamExp) End() Pos {
 	return p.Param.End()
 }
 
-// Index represents access to an array via an index inside a ParamExp.
+// Index represents access to an array via an index.
 //
 // This node will never appear when in PosixConformant mode.
 type Index struct {

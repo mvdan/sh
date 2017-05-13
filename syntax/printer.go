@@ -926,6 +926,11 @@ func (p *printer) assigns(assigns []*Assign) {
 		}
 		if a.Name != nil {
 			p.WriteString(a.Name.Value)
+			if a.Ind != nil {
+				p.WriteByte('[')
+				p.arithmExpr(a.Ind.Expr, false, false)
+				p.WriteByte(']')
+			}
 			if a.Append {
 				p.WriteByte('+')
 			}

@@ -1051,32 +1051,57 @@ func validIdent(val string, bash bool) bool {
 }
 
 func (p *parser) hasValidIdent() bool {
-	if p.asPos < 1 {
-		return false
+	if p.asPos > 0 && validIdent(p.val[:p.asPos], p.bash()) {
+		return true
 	}
-	return validIdent(p.val[:p.asPos], p.bash())
+	return p.tok == _Lit && p.r == '['
 }
 
 func (p *parser) getAssign() *Assign {
 	as := &Assign{}
-	nameEnd := p.asPos
-	if p.bash() && p.val[p.asPos-1] == '+' {
-		// a+=b
-		as.Append = true
-		nameEnd--
+	if p.asPos > 0 { // foo=bar
+		nameEnd := p.asPos
+		if p.bash() && p.val[p.asPos-1] == '+' {
+			// a+=b
+			as.Append = true
+			nameEnd--
+		}
+		as.Name = p.lit(p.pos, p.val[:nameEnd])
+		// since we're not using the entire p.val
+		as.Name.ValueEnd = as.Name.ValuePos + Pos(nameEnd)
+		left := p.lit(p.pos+1, p.val[p.asPos+1:])
+		if left.Value != "" {
+			left.ValuePos += Pos(p.asPos)
+			as.Value = p.word(p.wps(left))
+		}
+		if p.next(); p.spaced {
+			return as
+		}
+	} else { // foo[i]=bar
+		as.Name = p.lit(p.pos, p.val)
+		p.next()
+		left := p.pos
+		old := p.preNested(arithmExprBrack)
+		p.next()
+		as.Ind = &Index{
+			Expr: p.arithmExpr(leftBrack, left, 0, false, false),
+		}
+		if as.Ind.Expr == nil {
+			p.followErrExp(left, "[")
+		}
+		p.postNested(old)
+		p.matched(left, leftBrack, rightBrack)
+		if p.tok == _EOF || p.val[0] != '=' {
+			p.followErr(as.Pos(), "a[b]", "=")
+			return nil
+		}
+		p.pos++
+		p.val = p.val[1:]
+		if p.val == "" {
+			p.next()
+		}
 	}
-	as.Name = p.lit(p.pos, p.val[:nameEnd])
-	// since we're not using the entire p.val
-	as.Name.ValueEnd = as.Name.ValuePos + Pos(nameEnd)
-	start := p.lit(p.pos+1, p.val[p.asPos+1:])
-	if start.Value != "" {
-		start.ValuePos += Pos(p.asPos)
-		as.Value = p.word(p.wps(start))
-	}
-	if p.next(); p.spaced {
-		return as
-	}
-	if start.Value == "" && p.tok == leftParen {
+	if as.Value == nil && p.tok == leftParen {
 		if !p.bash() {
 			p.curErr("arrays are a bash feature")
 		}

@@ -259,6 +259,13 @@ skipSpace:
 			} else {
 				p.advanceLitNone(r)
 			}
+		case '[':
+			if p.tok == _Lit {
+				p.tok = leftBrack
+				p.rune()
+			} else {
+				p.advanceLitNone(r)
+			}
 		default:
 			p.advanceLitNone(r)
 		}
@@ -825,6 +832,11 @@ loop:
 			}
 		case '=':
 			p.asPos = len(p.litBs) - 1
+		case '[':
+			if p.bash() && len(p.litBs) > 1 && p.litBs[0] != '[' {
+				tok = _Lit
+				break loop
+			}
 		}
 	}
 	p.tok, p.val = tok, p.endLit()

@@ -1066,6 +1066,22 @@ var bashTests = []errorCase{
 		`1:6: <<< must be followed by a word`,
 	},
 	{
+		"a[",
+		`1:2: [ must be followed by an expression`,
+	},
+	{
+		"a[b",
+		`1:2: reached EOF without matching [ with ]`,
+	},
+	{
+		"a[] #INVBASH allows as a cmd",
+		`1:2: [ must be followed by an expression`,
+	},
+	{
+		"a[1] #INVBASH allows as a cmd",
+		`1:1: "a[b]" must be followed by =`,
+	},
+	{
 		"echo $[foo",
 		`1:6: reached EOF without matching $[ with ]`,
 	},
