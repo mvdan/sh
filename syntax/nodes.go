@@ -175,6 +175,7 @@ type Assign struct {
 	Name   *Lit
 	Ind    *Index
 	Value  *Word
+	Array  *ArrayExpr
 }
 
 func (a *Assign) Pos() Pos {
@@ -187,6 +188,9 @@ func (a *Assign) Pos() Pos {
 func (a *Assign) End() Pos {
 	if a.Value != nil {
 		return a.Value.End()
+	}
+	if a.Array != nil {
+		return a.Array.End()
 	}
 	if a.Ind != nil {
 		return a.Ind.Expr.End() + 2
@@ -351,7 +355,7 @@ func (w *Word) End() Pos { return w.Parts[len(w.Parts)-1].End() }
 // WordPart represents all nodes that can form a word.
 //
 // These are *Lit, *SglQuoted, *DblQuoted, *ParamExp, *CmdSubst,
-// *ArithmExp, *ProcSubst, *ArrayExpr, and *ExtGlob.
+// *ArithmExp, *ProcSubst, and *ExtGlob.
 type WordPart interface {
 	Node
 	wordPartNode()
@@ -364,7 +368,6 @@ func (*ParamExp) wordPartNode()  {}
 func (*CmdSubst) wordPartNode()  {}
 func (*ArithmExp) wordPartNode() {}
 func (*ProcSubst) wordPartNode() {}
-func (*ArrayExpr) wordPartNode() {}
 func (*ExtGlob) wordPartNode()   {}
 
 // Lit represents an unquoted string consisting of characters that were

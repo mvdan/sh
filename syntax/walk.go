@@ -46,6 +46,9 @@ func Walk(node Node, f func(Node) bool) {
 		if x.Value != nil {
 			Walk(x.Value, f)
 		}
+		if x.Array != nil {
+			Walk(x.Array, f)
+		}
 	case *Redirect:
 		if x.N != nil {
 			Walk(x.N, f)

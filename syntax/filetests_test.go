@@ -2944,10 +2944,10 @@ var fileTests = []testCase{
 			Opts: litWords("-a"),
 			Assigns: []*Assign{{
 				Name: lit("foo"),
-				Value: word(&ArrayExpr{List: []*Word{
+				Array: &ArrayExpr{List: []*Word{
 					litWord("b1"),
 					word(cmdSubst(litStmt("b2"))),
-				}}),
+				}},
 			}},
 		},
 	},
@@ -2958,7 +2958,7 @@ var fileTests = []testCase{
 			Opts:    litWords("-a"),
 			Assigns: []*Assign{{
 				Name:  lit("foo"),
-				Value: word(&ArrayExpr{List: litWords("b1")}),
+				Array: &ArrayExpr{List: litWords("b1")},
 			}},
 		},
 	},
@@ -2973,9 +2973,9 @@ var fileTests = []testCase{
 				X:  litStmt("a"),
 				Y: &Stmt{Assigns: []*Assign{{
 					Name: lit("b"),
-					Value: word(&ArrayExpr{
+					Array: &ArrayExpr{
 						List: litWords("c"),
-					}),
+					},
 				}}},
 			},
 			litCall("d"),
@@ -3110,14 +3110,10 @@ var fileTests = []testCase{
 				Post: true,
 				X:    lit("i"),
 			})),
-			{
-				Assigns: []*Assign{{
-					Name: lit("foo"),
-					Value: word(
-						&ArrayExpr{List: litWords("bar")},
-					),
-				}},
-			},
+			{Assigns: []*Assign{{
+				Name:  lit("foo"),
+				Array: &ArrayExpr{List: litWords("bar")},
+			}}},
 		},
 	},
 	{
@@ -3142,10 +3138,8 @@ var fileTests = []testCase{
 		Strs: []string{"a=(b c) foo"},
 		bash: &Stmt{
 			Assigns: []*Assign{{
-				Name: lit("a"),
-				Value: word(
-					&ArrayExpr{List: litWords("b", "c")},
-				),
+				Name:  lit("a"),
+				Array: &ArrayExpr{List: litWords("b", "c")},
 			}},
 			Cmd: litCall("foo"),
 		},
@@ -3154,10 +3148,8 @@ var fileTests = []testCase{
 		Strs: []string{"a=(b c) foo", "a=(\nb\nc\n) foo"},
 		bash: &Stmt{
 			Assigns: []*Assign{{
-				Name: lit("a"),
-				Value: word(
-					&ArrayExpr{List: litWords("b", "c")},
-				),
+				Name:  lit("a"),
+				Array: &ArrayExpr{List: litWords("b", "c")},
 			}},
 			Cmd: litCall("foo"),
 		},
@@ -3178,9 +3170,7 @@ var fileTests = []testCase{
 		bash: &Stmt{Assigns: []*Assign{{
 			Append: true,
 			Name:   lit("b"),
-			Value: word(
-				&ArrayExpr{List: litWords("2", "3")},
-			),
+			Array:  &ArrayExpr{List: litWords("2", "3")},
 		}}},
 	},
 	{
@@ -3491,6 +3481,9 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 			}
 			if a.Value != nil {
 				recurse(a.Value)
+			}
+			if a.Array != nil {
+				recurse(a.Array)
 			}
 			checkPos(a)
 		}

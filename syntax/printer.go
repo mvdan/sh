@@ -323,11 +323,6 @@ func (p *printer) wordPart(wp WordPart) {
 		p.WriteString("$((")
 		p.arithmExpr(x.X, false, false)
 		p.WriteString("))")
-	case *ArrayExpr:
-		p.wantSpace = false
-		p.WriteByte('(')
-		p.wordJoin(x.List, false)
-		p.sepTok(")", x.Rparen)
 	case *ExtGlob:
 		p.WriteString(x.Op.String())
 		p.WriteString(x.Pattern.Value)
@@ -938,6 +933,11 @@ func (p *printer) assigns(assigns []*Assign) {
 		}
 		if a.Value != nil {
 			p.word(a.Value)
+		} else if a.Array != nil {
+			p.wantSpace = false
+			p.WriteByte('(')
+			p.wordJoin(a.Array.List, false)
+			p.sepTok(")", a.Array.Rparen)
 		}
 		p.wantSpace = true
 	}

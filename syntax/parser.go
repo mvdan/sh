@@ -1106,17 +1106,16 @@ func (p *parser) getAssign() *Assign {
 		if !p.bash() {
 			p.curErr("arrays are a bash feature")
 		}
-		ae := &ArrayExpr{Lparen: p.pos}
+		as.Array = &ArrayExpr{Lparen: p.pos}
 		p.next()
 		for p.tok != _EOF && p.tok != rightParen {
 			if w := p.getWord(); w == nil {
 				p.curErr("array elements must be words")
 			} else {
-				ae.List = append(ae.List, w)
+				as.Array.List = append(as.Array.List, w)
 			}
 		}
-		ae.Rparen = p.matched(ae.Lparen, leftParen, rightParen)
-		as.Value = p.word(p.wps(ae))
+		as.Array.Rparen = p.matched(as.Array.Lparen, leftParen, rightParen)
 	} else if !p.newLine && !stopToken(p.tok) {
 		if w := p.getWord(); w != nil {
 			if as.Value == nil {
