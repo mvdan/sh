@@ -259,8 +259,6 @@ skipSpace:
 			} else {
 				p.advanceLitNone(r)
 			}
-		case '[':
-			p.advanceLitNone(r)
 		default:
 			p.advanceLitNone(r)
 		}
@@ -756,6 +754,9 @@ loop:
 			fallthrough
 		case '#', '[':
 			if p.quote&allParamReg != 0 {
+				break loop
+			}
+			if r == '[' && p.bash() && p.quote&allArithmExpr != 0 {
 				break loop
 			}
 		case '+':

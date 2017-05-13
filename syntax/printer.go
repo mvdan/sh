@@ -340,11 +340,19 @@ func (p *printer) wordPart(wp WordPart) {
 }
 
 func (p *printer) paramExp(pe *ParamExp) {
-	if pe.Short {
+	if pe.nakedIndex() { // arr[i]
+		p.WriteString(pe.Param.Value)
+		p.WriteByte('[')
+		p.arithmExpr(pe.Ind.Expr, false, false)
+		p.WriteByte(']')
+		return
+	}
+	if pe.Short { // $var
 		p.WriteByte('$')
 		p.WriteString(pe.Param.Value)
 		return
 	}
+	// ${var...}
 	p.WriteString("${")
 	switch {
 	case pe.Length:

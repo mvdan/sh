@@ -1971,9 +1971,14 @@ var fileTests = []testCase{
 	},
 	{
 		Strs: []string{`$((arr[0]++))`},
-		bash: arithmExp(
-			&UnaryArithm{Op: Inc, Post: true, X: lit("arr[0]")},
-		),
+		bash: arithmExp(&UnaryArithm{
+			Op: Inc, Post: true,
+			X: &ParamExp{
+				Short: true,
+				Param: lit("arr"),
+				Ind:   &Index{Expr: lit("0")},
+			},
+		}),
 	},
 	{
 		Strs: []string{`$((${a:-1}))`},
@@ -3638,7 +3643,11 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 		recurse(x.Name)
 		recurse(x.Body)
 	case *ParamExp:
-		setPos(&x.Dollar, "$")
+		doll := "$"
+		if x.nakedIndex() {
+			doll = ""
+		}
+		setPos(&x.Dollar, doll)
 		if !x.Short {
 			setPos(&x.Rbrace, "}")
 		}

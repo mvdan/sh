@@ -844,7 +844,25 @@ func (p *parser) arithmExprBase(compact bool) ArithmExpr {
 		x = ue
 	case illegalTok, rightBrack, rightBrace, rightParen:
 	case _LitWord:
-		x = p.getLit()
+		l := p.getLit()
+		if p.r != '[' {
+			x = l
+			break
+		}
+		pe := &ParamExp{Dollar: l.ValuePos, Short: true, Param: l}
+		p.rune()
+		left := p.pos + 1
+		old := p.preNested(arithmExprBrack)
+		p.next()
+		pe.Ind = &Index{
+			Expr: p.arithmExpr(leftBrack, left, 0, false, false),
+		}
+		if pe.Ind.Expr == nil {
+			p.followErrExp(left, "[")
+		}
+		p.postNested(old)
+		p.matched(left, leftBrack, rightBrack)
+		x = pe
 	case dollar, dollBrace:
 		x = p.wordPart().(*ParamExp)
 	case bckQuote:
@@ -862,7 +880,16 @@ func (p *parser) arithmExprBase(compact bool) ArithmExpr {
 		return x
 	}
 	if p.tok == addAdd || p.tok == subSub {
-		if l, ok := x.(*Lit); !ok || !validIdent(l.Value, p.bash()) {
+		switch y := x.(type) {
+		case *Lit:
+			if !validIdent(y.Value, p.bash()) {
+				p.curErr("%s must follow a name", p.tok.String())
+			}
+		case *ParamExp:
+			if !y.nakedIndex() {
+				p.curErr("%s must follow a name", p.tok.String())
+			}
+		default:
 			p.curErr("%s must follow a name", p.tok.String())
 		}
 		u := &UnaryArithm{

@@ -444,6 +444,8 @@ func (p *ParamExp) End() Pos {
 	return p.Param.End()
 }
 
+func (p *ParamExp) nakedIndex() bool { return p.Short && p.Ind != nil }
+
 // Index represents access to an array via an index.
 //
 // This node will never appear when in PosixConformant mode.

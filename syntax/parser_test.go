@@ -926,6 +926,10 @@ var bashTests = []errorCase{
 		`1:6: ++ must follow a name`,
 	},
 	{
+		"let $0++",
+		`1:7: ++ must follow a name`,
+	},
+	{
 		"let --(a)",
 		`1:5: -- must be followed by a literal`,
 	},
@@ -1076,6 +1080,18 @@ var bashTests = []errorCase{
 	{
 		"a[] #INVBASH allows as a cmd",
 		`1:2: [ must be followed by an expression`,
+	},
+	{
+		"echo $((a[))",
+		`1:11: [ must be followed by an expression`,
+	},
+	{
+		"echo $((a[b))",
+		`1:11: reached ) without matching [ with ]`,
+	},
+	{
+		"echo $((a[]))",
+		`1:11: [ must be followed by an expression`,
 	},
 	{
 		"a[1] #INVBASH allows as a cmd",
