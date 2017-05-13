@@ -588,20 +588,7 @@ func (p *parser) wordPart() WordPart {
 			return l
 		}
 		p.ensureNoNested()
-		pe := &ParamExp{Dollar: p.pos, Short: true}
-		p.pos++
-		switch r {
-		case '@', '*', '#', '$', '?', '!', '0', '-':
-			p.rune()
-			p.tok, p.val = _LitWord, string(r)
-		default:
-			old := p.quote
-			p.quote = paramName
-			p.advanceLitOther(r)
-			p.quote = old
-		}
-		pe.Param = p.getLit()
-		return pe
+		return p.shortParamExp()
 	case cmdIn, cmdOut:
 		p.ensureNoNested()
 		ps := &ProcSubst{Op: ProcOperator(p.tok), OpPos: p.pos}
@@ -863,8 +850,10 @@ func (p *parser) arithmExprBase(compact bool) ArithmExpr {
 		p.postNested(old)
 		p.matched(left, leftBrack, rightBrack)
 		x = pe
-	case dollar, dollBrace:
-		x = p.wordPart().(*ParamExp)
+	case dollar:
+		x = p.shortParamExp()
+	case dollBrace:
+		x = p.paramExp()
 	case bckQuote:
 		if p.quote == arithmExprLet {
 			return nil
@@ -902,6 +891,23 @@ func (p *parser) arithmExprBase(compact bool) ArithmExpr {
 		return u
 	}
 	return x
+}
+
+func (p *parser) shortParamExp() *ParamExp {
+	pe := &ParamExp{Dollar: p.pos, Short: true}
+	p.pos++
+	switch p.r {
+	case '@', '*', '#', '$', '?', '!', '0', '-':
+		p.tok, p.val = _LitWord, string(p.r)
+		p.rune()
+	default:
+		old := p.quote
+		p.quote = paramName
+		p.advanceLitOther(p.r)
+		p.quote = old
+	}
+	pe.Param = p.getLit()
+	return pe
 }
 
 func (p *parser) paramExp() *ParamExp {
