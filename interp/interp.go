@@ -262,26 +262,25 @@ func (r *Runner) stmt(st *syntax.Stmt) {
 	}
 }
 
-func (r *Runner) assignValue(word *syntax.Word) varValue {
-	if word == nil {
-		return nil
+func (r *Runner) assignValue(as *syntax.Assign) varValue {
+	if as.Value != nil {
+		return r.loneWord(as.Value)
 	}
-	ae, ok := word.Parts[0].(*syntax.ArrayExpr)
-	if !ok {
-		return r.loneWord(word)
+	if as.Array != nil {
+		strs := make([]string, len(as.Array.List))
+		for i, w := range as.Array.List {
+			strs[i] = r.loneWord(w)
+		}
+		return strs
 	}
-	strs := make([]string, len(ae.List))
-	for i, w := range ae.List {
-		strs[i] = r.loneWord(w)
-	}
-	return strs
+	return nil
 }
 
 func (r *Runner) stmtSync(st *syntax.Stmt) {
 	oldVars := r.cmdVars
 	for _, as := range st.Assigns {
 		name := as.Name.Value
-		val := r.assignValue(as.Value)
+		val := r.assignValue(as)
 		if st.Cmd == nil {
 			r.setVar(name, val)
 			continue
