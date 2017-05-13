@@ -3206,6 +3206,15 @@ var fileTests = []testCase{
 		common: litStmt("a]b"),
 	},
 	{
+		Strs:  []string{"echo a[b c[de]f"},
+		posix: litStmt("echo", "a[b", "c[de]f"),
+		bash: call(litWord("echo"),
+			// TODO: represent this better in a word?
+			word(lit("a"), lit("[b")),
+			word(lit("c"), lit("[de]f")),
+		),
+	},
+	{
 		Strs: []string{"<<EOF | b\nfoo\nEOF", "<<EOF|b;\nfoo\n"},
 		common: &BinaryCmd{
 			Op: Pipe,

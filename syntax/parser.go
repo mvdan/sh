@@ -1079,8 +1079,9 @@ func (p *parser) getAssign() *Assign {
 		}
 	} else { // foo[i]=bar
 		as.Name = p.lit(p.pos, p.val)
-		p.next()
-		left := p.pos
+		// hasValidIdent already checks p.r is '['
+		p.rune()
+		left := p.pos + 1
 		old := p.preNested(arithmExprBrack)
 		p.next()
 		as.Ind = &Index{

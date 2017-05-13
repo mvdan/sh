@@ -260,12 +260,7 @@ skipSpace:
 				p.advanceLitNone(r)
 			}
 		case '[':
-			if p.tok == _Lit {
-				p.tok = leftBrack
-				p.rune()
-			} else {
-				p.advanceLitNone(r)
-			}
+			p.advanceLitNone(r)
 		default:
 			p.advanceLitNone(r)
 		}
