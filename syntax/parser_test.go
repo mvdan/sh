@@ -863,8 +863,8 @@ var shellTests = []errorCase{
 		`1:3: expansions not allowed in heredoc words`,
 	},
 	{
-		"<<$ <<0\n$(<<$<< #INVBASH",
-		`1:3: expansions not allowed in heredoc words`,
+		"<<a <<0\n$(<<$<< #INVBASH",
+		`2:5: expansions not allowed in heredoc words`,
 	},
 	{
 		`""()`,
@@ -1281,8 +1281,20 @@ var posixTests = []errorCase{
 		`1:1: "for" must be followed by a literal`,
 	},
 	{
+		`$'' #INVBASH`,
+		`1:1: $ must be escaped or followed by a literal`,
+	},
+	{
+		`$"" #INVBASH`,
+		`1:1: $ must be escaped or followed by a literal`,
+	},
+	{
 		`$[foo] #INVBASH`,
 		`1:1: $ must be escaped or followed by a literal`,
+	},
+	{
+		`"$[foo]" #INVBASH`,
+		`1:2: $ must be escaped or followed by a literal`,
 	},
 	{
 		"echo !(a) #INVBASH --posix is wrong",
