@@ -255,6 +255,30 @@ var shellTests = []errorCase{
 		`1:5: invalid UTF-8 encoding`,
 	},
 	{
+		`$ #INVBASH`,
+		`1:1: $ must be escaped or followed by a literal`,
+	},
+	{
+		`$ # #INVBASH`,
+		`1:1: $ must be escaped or followed by a literal`,
+	},
+	{
+		`foo$ #INVBASH`,
+		`1:4: $ must be escaped or followed by a literal`,
+	},
+	{
+		`"$" #INVBASH`,
+		`1:2: $ must be escaped or followed by a literal`,
+	},
+	{
+		`($) #INVBASH`,
+		`1:2: $ must be escaped or followed by a literal`,
+	},
+	{
+		`$(foo$) #INVBASH`,
+		`1:6: $ must be escaped or followed by a literal`,
+	},
+	{
 		"echo $((foo\x80bar",
 		`1:12: invalid UTF-8 encoding`,
 	},
@@ -835,8 +859,12 @@ var shellTests = []errorCase{
 		`1:4: expansions not allowed in heredoc words`,
 	},
 	{
-		"<<$ <<0\n$(<<$<<",
-		`2:6: << must be followed by a word`,
+		"<<$ #INVBASH",
+		`1:3: expansions not allowed in heredoc words`,
+	},
+	{
+		"<<$ <<0\n$(<<$<< #INVBASH",
+		`1:3: expansions not allowed in heredoc words`,
 	},
 	{
 		`""()`,
@@ -1110,6 +1138,10 @@ var bashTests = []errorCase{
 		`1:6: reached EOF without closing quote "`,
 	},
 	{
+		`$"foo$" #INVBASH`,
+		`1:6: $ must be escaped or followed by a literal`,
+	},
+	{
 		"echo @(",
 		`1:6: reached EOF without matching @( with )`,
 	},
@@ -1201,6 +1233,10 @@ var bashTests = []errorCase{
 		"for ((;;0000000",
 		`1:5: reached EOF without matching (( with ))`,
 	},
+	{
+		"a <<EOF\n$''$bar\nEOF #INVBASH",
+		`2:1: $ must be escaped or followed by a literal`,
+	},
 }
 
 var posixTests = []errorCase{
@@ -1243,6 +1279,10 @@ var posixTests = []errorCase{
 	{
 		"for ((i=0; i<5; i++)); do echo; done #INVBASH --posix is wrong",
 		`1:1: "for" must be followed by a literal`,
+	},
+	{
+		`$[foo] #INVBASH`,
+		`1:1: $ must be escaped or followed by a literal`,
 	},
 	{
 		"echo !(a) #INVBASH --posix is wrong",

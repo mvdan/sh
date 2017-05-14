@@ -431,7 +431,7 @@ func TestFprintMultiline(t *testing.T) {
 func TestFuzzCrashers(t *testing.T) {
 	t.Parallel()
 	var strs = [...]string{
-		"<<$<`\n#\n`\n``",
+		"<<EOF <`\n#\n`\n``",
 	}
 	for i, in := range strs {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {

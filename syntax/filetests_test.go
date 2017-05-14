@@ -730,22 +730,6 @@ var fileTests = []testCase{
 		},
 	},
 	{
-		Strs: []string{"a <<EOF\n$''$bar\nEOF"},
-		bash: &Stmt{
-			Cmd: litCall("a"),
-			Redirs: []*Redirect{{
-				Op:   Hdoc,
-				Word: litWord("EOF"),
-				Hdoc: word(
-					lit("$"),
-					lit("''"),
-					litParamExp("bar"),
-					lit("\n"),
-				),
-			}},
-		},
-	},
-	{
 		Strs: []string{
 			"a <<EOF\n$(b)\nc\nEOF",
 			"a <<EOF\n`b`\nc\nEOF",
@@ -1414,10 +1398,6 @@ var fileTests = []testCase{
 			word(litParamExp("0"), lit("a")),
 			word(litParamExp("-"), lit("a")),
 		),
-	},
-	{
-		Strs:   []string{`$`, `$ #`},
-		common: litWord("$"),
 	},
 	{
 		Strs: []string{`${@} ${*} ${#} ${$} ${?} ${!} ${0} ${-}`},
@@ -2259,23 +2239,16 @@ var fileTests = []testCase{
 		}),
 	},
 	{
-		Strs:   []string{"foo$", "foo$\n"},
-		common: word(lit("foo"), lit("$")),
+		Strs: []string{`$''`},
+		bash: sglDQuoted(""),
 	},
 	{
-		Strs:  []string{`$''`},
-		bash:  sglDQuoted(""),
-		posix: word(lit("$"), sglQuoted("")),
+		Strs: []string{`$""`},
+		bash: dblDQuoted(),
 	},
 	{
-		Strs:  []string{`$""`},
-		bash:  dblDQuoted(),
-		posix: word(lit("$"), dblQuoted()),
-	},
-	{
-		Strs:  []string{`$'foo'`},
-		bash:  sglDQuoted("foo"),
-		posix: word(lit("$"), sglQuoted("foo")),
+		Strs: []string{`$'foo'`},
+		bash: sglDQuoted("foo"),
 	},
 	{
 		Strs: []string{`$'f+oo${'`},
@@ -2314,17 +2287,20 @@ var fileTests = []testCase{
 		bash: sglDQuoted("f\\'oo\n"),
 	},
 	{
-		Strs:  []string{`$"foo"`},
-		bash:  dblDQuoted(lit("foo")),
-		posix: word(lit("$"), dblQuoted(lit("foo"))),
-	},
-	{
-		Strs: []string{`$"foo$"`},
-		bash: dblDQuoted(lit("foo"), lit("$")),
+		Strs: []string{`$"foo"`},
+		bash: dblDQuoted(lit("foo")),
 	},
 	{
 		Strs: []string{`$"foo bar"`},
 		bash: dblDQuoted(lit("foo bar")),
+	},
+	{
+		Strs: []string{`$'$'`},
+		bash: sglDQuoted("$"),
+	},
+	{
+		Strs: []string{`$'foo$'`},
+		bash: sglDQuoted("foo$"),
 	},
 	{
 		Strs: []string{`$'f\'oo'`},
@@ -2335,18 +2311,8 @@ var fileTests = []testCase{
 		bash: dblDQuoted(lit(`f\"oo`)),
 	},
 	{
-		Strs:   []string{`"foo$"`},
-		common: dblQuoted(lit("foo"), lit("$")),
-	},
-	{
 		Strs:   []string{`"foo$$"`},
 		common: dblQuoted(lit("foo"), litParamExp("$")),
-	},
-	{
-		Strs: []string{"$(foo$)", "`foo$`"},
-		common: cmdSubst(
-			stmt(call(word(lit("foo"), lit("$")))),
-		),
 	},
 	{
 		Strs:   []string{"foo$bar"},
@@ -3328,14 +3294,6 @@ var fileTestsNoPrint = []testCase{
 			Word: litWord("EOF"),
 			Hdoc: litWord("\\"),
 		}}},
-	},
-	{
-		Strs:  []string{`$[foo]`},
-		posix: word(lit("$"), lit("[foo]")),
-	},
-	{
-		Strs:  []string{`"$[foo]"`},
-		posix: dblQuoted(lit("$"), lit("[foo]")),
 	},
 	{
 		Strs: []string{`"$[1 + 3]"`},

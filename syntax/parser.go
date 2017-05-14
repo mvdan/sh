@@ -581,12 +581,6 @@ func (p *parser) wordPart() WordPart {
 		cs.Right = p.matched(cs.Left, leftParen, rightParen)
 		return cs
 	case dollar:
-		r := p.r
-		if r == utf8.RuneSelf || wordBreak(r) || r == '"' || r == '\'' || r == '`' || r == '[' {
-			l := p.lit(p.pos, "$")
-			p.next()
-			return l
-		}
 		p.ensureNoNested()
 		return p.shortParamExp()
 	case cmdIn, cmdOut:
@@ -905,6 +899,9 @@ func (p *parser) shortParamExp() *ParamExp {
 		p.quote = paramName
 		p.advanceLitOther(p.r)
 		p.quote = old
+		if p.val == "" || p.val == "\x80" {
+			p.posErr(pe.Dollar, "$ must be escaped or followed by a literal")
+		}
 	}
 	pe.Param = p.getLit()
 	return pe
