@@ -239,6 +239,10 @@ func TestFprintWeirdFormat(t *testing.T) {
 			"a &&\n\tb\nc &&\n\td",
 		},
 		{
+			"a \\\n&&\n#c\nb",
+			"a &&\n\t#c\n\tb",
+		},
+		{
 			"a | {\nb \\\n| c\n}",
 			"a | {\n\tb |\n\t\tc\n}",
 		},

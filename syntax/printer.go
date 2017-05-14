@@ -672,6 +672,9 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			p.wantSpace = true
 			p.spacedString(x.Op.String())
 			if x.Y.Pos() > p.nline {
+				if x.OpPos > p.nline {
+					p.incLines(x.OpPos)
+				}
 				p.commentsUpTo(x.Y.Pos())
 				p.newline(0)
 				p.indent()
