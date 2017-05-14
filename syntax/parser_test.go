@@ -1006,8 +1006,8 @@ var bashTests = []errorCase{
 		`1:6: not a valid test operator: b`,
 	},
 	{
-		"[[ a b$ c ]]",
-		`1:6: not a valid test operator: b`,
+		"[[ a b$x c ]]",
+		`1:6: test operator words must consist of a single literal`,
 	},
 	{
 		"[[ a & b ]]",

@@ -1575,7 +1575,7 @@ func (p *parser) testExpr(ftok token, fpos Pos, level int) TestExpr {
 	case _EOF, rightParen:
 		return left
 	case _Lit:
-		p.curErr("not a valid test operator: %s", p.val)
+		p.curErr("test operator words must consist of a single literal")
 	default:
 		p.curErr("not a valid test operator: %v", p.tok)
 	}
