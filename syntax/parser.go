@@ -964,10 +964,8 @@ func (p *parser) paramExp() *ParamExp {
 		p.quote = paramExpInd
 		p.next()
 		switch p.tok {
-		case star:
-			p.tok, p.val = _LitWord, "*"
-		case at:
-			p.tok, p.val = _LitWord, "@"
+		case star, at:
+			p.tok, p.val = _LitWord, p.tok.String()
 		}
 		pe.Ind = &Index{
 			Expr: p.arithmExpr(leftBrack, lpos, 0, false, false),
