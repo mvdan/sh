@@ -3170,7 +3170,6 @@ var fileTests = []testCase{
 		Strs:  []string{"echo a[b c[de]f"},
 		posix: litStmt("echo", "a[b", "c[de]f"),
 		bash: call(litWord("echo"),
-			// TODO: represent this better in a word?
 			word(lit("a"), lit("[b")),
 			word(lit("c"), lit("[de]f")),
 		),
