@@ -231,7 +231,7 @@ skipSpace:
 			for r != utf8.RuneSelf && r != '\n' {
 				r = p.rune()
 			}
-			if p.mode&ParseComments > 0 {
+			if p.keepComments {
 				p.f.Comments = append(p.f.Comments, &Comment{
 					Hash: p.pos,
 					Text: p.endLit(),

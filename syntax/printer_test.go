@@ -14,7 +14,7 @@ import (
 
 func TestPrintCompact(t *testing.T) {
 	t.Parallel()
-	parser := NewParser(0)
+	parser := NewParser()
 	printer := NewPrinter(PrintConfig{})
 	for i, c := range fileTests {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
@@ -370,7 +370,7 @@ func TestPrintWeirdFormat(t *testing.T) {
 		samePrint("#foo\n#\n#bar"),
 	}
 
-	parser := NewParser(ParseComments)
+	parser := NewParser(KeepComments)
 	printer := NewPrinter(PrintConfig{})
 	for i, tc := range weirdFormats {
 		check := func(t *testing.T, in, want string) {
@@ -408,7 +408,7 @@ func parsePath(tb testing.TB, path string) *File {
 		tb.Fatal(err)
 	}
 	defer f.Close()
-	prog, err := NewParser(ParseComments).Parse(f, "")
+	prog, err := NewParser(KeepComments).Parse(f, "")
 	if err != nil {
 		tb.Fatal(err)
 	}
@@ -441,7 +441,7 @@ func TestFuzzCrashers(t *testing.T) {
 	var strs = [...]string{
 		"<<EOF <`\n#\n`\n``",
 	}
-	parser := NewParser(ParseComments)
+	parser := NewParser(KeepComments)
 	printer := NewPrinter(PrintConfig{})
 	for i, in := range strs {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
@@ -494,7 +494,7 @@ func TestPrintSpaces(t *testing.T) {
 		},
 	}
 
-	parser := NewParser(ParseComments)
+	parser := NewParser(KeepComments)
 	for i, tc := range spaceFormats {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
 			printer := NewPrinter(PrintConfig{Spaces: tc.spaces})
@@ -600,7 +600,7 @@ func TestPrintBinaryNextLine(t *testing.T) {
 			"a \\\n\t| b \\\n\t|\n\t#c2\n\tc",
 		},
 	}
-	parser := NewParser(ParseComments)
+	parser := NewParser(KeepComments)
 	printer := NewPrinter(PrintConfig{BinaryNextLine: true})
 	for i, tc := range tests {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {

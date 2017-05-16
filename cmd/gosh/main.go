@@ -16,7 +16,7 @@ var parser *syntax.Parser
 
 func main() {
 	flag.Parse()
-	parser = syntax.NewParser(0)
+	parser = syntax.NewParser()
 
 	for _, path := range flag.Args() {
 		if err := runPath(path); err != nil {

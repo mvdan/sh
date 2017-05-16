@@ -12,7 +12,7 @@ import (
 
 func Example() {
 	in := strings.NewReader("{ foo; bar; }")
-	f, err := syntax.NewParser(0).Parse(in, "")
+	f, err := syntax.NewParser().Parse(in, "")
 	if err != nil {
 		return
 	}

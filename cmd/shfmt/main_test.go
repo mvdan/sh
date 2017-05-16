@@ -59,7 +59,7 @@ var walkTests = []struct {
 var errPathMentioned = regexp.MustCompile(`([^ :]+):`)
 
 func TestWalk(t *testing.T) {
-	parser = syntax.NewParser(syntax.ParseComments)
+	parser = syntax.NewParser(syntax.KeepComments)
 	printer = syntax.NewPrinter(syntax.PrintConfig{})
 	dir, err := ioutil.TempDir("", "shfmt-walk")
 	if err != nil {

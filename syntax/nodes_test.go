@@ -11,7 +11,7 @@ import (
 
 func TestPosition(t *testing.T) {
 	t.Parallel()
-	p := NewParser(0)
+	p := NewParser()
 	for i, c := range fileTests {
 		for j, in := range c.Strs {
 			t.Run(fmt.Sprintf("%03d-%d", i, j), func(t *testing.T) {

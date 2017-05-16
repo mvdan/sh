@@ -43,11 +43,11 @@ func main() {
 		return
 	}
 
-	parseMode := syntax.ParseComments
+	lang := syntax.LangBash
 	if *posix {
-		parseMode |= syntax.PosixConformant
+		lang = syntax.LangPOSIX
 	}
-	parser = syntax.NewParser(parseMode)
+	parser = syntax.NewParser(syntax.KeepComments, syntax.Variant(lang))
 	printer = syntax.NewPrinter(syntax.PrintConfig{
 		Spaces:         *indent,
 		BinaryNextLine: *binNext,

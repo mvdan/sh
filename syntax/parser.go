@@ -11,19 +11,25 @@ import (
 	"unicode/utf8"
 )
 
-// ParseMode controls the parser behaviour via a set of flags.
-type ParseMode uint
+func KeepComments(p *Parser) { p.keepComments = true }
+
+type LangVariant int
 
 const (
-	ParseComments   ParseMode = 1 << iota // add comments to the AST
-	PosixConformant                       // match the POSIX standard where it differs from bash
+	LangBash LangVariant = iota
+	LangPOSIX
 )
 
-func NewParser(mode ParseMode) *Parser {
-	return &Parser{
-		mode:      mode,
-		helperBuf: new(bytes.Buffer),
+func Variant(l LangVariant) func(*Parser) {
+	return func(p *Parser) { p.lang = l }
+}
+
+func NewParser(options ...func(*Parser)) *Parser {
+	p := &Parser{helperBuf: new(bytes.Buffer)}
+	for _, opt := range options {
+		opt(p)
 	}
+	return p
 }
 
 // Parse reads and parses a shell program with an optional name. It
@@ -55,8 +61,7 @@ type Parser struct {
 	bs  []byte // current chunk of read bytes
 	r   rune
 
-	f    *File
-	mode ParseMode
+	f *File
 
 	spaced  bool // whether tok has whitespace on its left
 	newLine bool // whether tok is on a new line
@@ -73,6 +78,9 @@ type Parser struct {
 
 	quote quoteState // current lexer state
 	asPos int        // position of '=' in a literal
+
+	keepComments bool
+	lang         LangVariant
 
 	forbidNested bool
 
@@ -211,7 +219,7 @@ const (
 	allParamExp   = allParamReg | paramExpRepl | paramExpExp
 )
 
-func (p *Parser) bash() bool { return p.mode&PosixConformant == 0 }
+func (p *Parser) bash() bool { return p.lang == LangBash }
 
 type saveState struct {
 	quote       quoteState

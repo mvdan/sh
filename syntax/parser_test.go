@@ -18,7 +18,7 @@ import (
 	"github.com/kr/pretty"
 )
 
-func TestParseComments(t *testing.T) {
+func TestKeepComments(t *testing.T) {
 	in := "# foo\ncmd\n# bar"
 	want := &File{
 		Comments: []*Comment{
@@ -27,12 +27,12 @@ func TestParseComments(t *testing.T) {
 		},
 		Stmts: litStmts("cmd"),
 	}
-	singleParse(NewParser(ParseComments), in, want)(t)
+	singleParse(NewParser(KeepComments), in, want)(t)
 }
 
 func TestParseBash(t *testing.T) {
 	t.Parallel()
-	p := NewParser(0)
+	p := NewParser()
 	for i, c := range append(fileTests, fileTestsNoPrint...) {
 		want := c.Bash
 		if want == nil {
@@ -46,7 +46,7 @@ func TestParseBash(t *testing.T) {
 
 func TestParsePosix(t *testing.T) {
 	t.Parallel()
-	p := NewParser(PosixConformant)
+	p := NewParser(Variant(LangPOSIX))
 	for i, c := range append(fileTests, fileTestsNoPrint...) {
 		want := c.Posix
 		if want == nil {
@@ -219,7 +219,7 @@ func BenchmarkParse(b *testing.B) {
 		},
 	}
 	for _, c := range benchmarks {
-		p := NewParser(ParseComments)
+		p := NewParser(KeepComments)
 		in := strings.NewReader(c.in)
 		b.Run(c.name, func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
@@ -899,7 +899,7 @@ func checkError(p *Parser, in, want string) func(*testing.T) {
 
 func TestParseErrPosix(t *testing.T) {
 	t.Parallel()
-	p := NewParser(PosixConformant)
+	p := NewParser(Variant(LangPOSIX))
 	for i, c := range append(shellTests, posixTests...) {
 		t.Run(fmt.Sprintf("%03d", i), checkError(p, c.in, c.want))
 	}
@@ -907,7 +907,7 @@ func TestParseErrPosix(t *testing.T) {
 
 func TestParseErrBash(t *testing.T) {
 	t.Parallel()
-	p := NewParser(0)
+	p := NewParser()
 	for i, c := range append(shellTests, bashTests...) {
 		t.Run(fmt.Sprintf("%03d", i), checkError(p, c.in, c.want))
 	}
@@ -1338,7 +1338,7 @@ var posixTests = []errorCase{
 func TestInputName(t *testing.T) {
 	in := shellTests[0].in
 	want := "some-file.sh:" + shellTests[0].want
-	p := NewParser(0)
+	p := NewParser()
 	_, err := p.Parse(strings.NewReader(in), "some-file.sh")
 	if err == nil {
 		t.Fatalf("Expected error in %q: %v", in, want)
@@ -1357,7 +1357,7 @@ type badReader struct{}
 func (b badReader) Read(p []byte) (int, error) { return 0, errBadReader }
 
 func TestReadErr(t *testing.T) {
-	p := NewParser(0)
+	p := NewParser()
 	_, err := p.Parse(badReader{}, "")
 	if err == nil {
 		t.Fatalf("Expected error with bad reader")
