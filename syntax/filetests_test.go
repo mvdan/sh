@@ -1605,33 +1605,31 @@ var fileTests = []testCase{
 		},
 		bash: &ParamExp{
 			Param: lit("foo"),
-			Ind:   &Index{Expr: lit("1")},
+			Index: lit("1"),
 		},
 	},
 	{
 		Strs: []string{`${foo[-1]}`},
 		bash: &ParamExp{
 			Param: lit("foo"),
-			Ind: &Index{Expr: &UnaryArithm{
+			Index: &UnaryArithm{
 				Op: Minus,
 				X:  lit("1"),
-			}},
+			},
 		},
 	},
 	{
 		Strs: []string{`${foo[@]}`},
 		bash: &ParamExp{
 			Param: lit("foo"),
-			Ind:   &Index{Expr: lit("@")},
+			Index: lit("@"),
 		},
 	},
 	{
 		Strs: []string{`${foo[*]-etc}`},
 		bash: &ParamExp{
 			Param: lit("foo"),
-			Ind: &Index{
-				Expr: lit("*"),
-			},
+			Index: lit("*"),
 			Exp: &Expansion{
 				Op:   SubstMinus,
 				Word: litWord("etc"),
@@ -1642,14 +1640,14 @@ var fileTests = []testCase{
 		Strs: []string{`${foo[bar]}`},
 		bash: &ParamExp{
 			Param: lit("foo"),
-			Ind:   &Index{Expr: lit("bar")},
+			Index: lit("bar"),
 		},
 	},
 	{
 		Strs: []string{`${foo[$bar]}`},
 		bash: &ParamExp{
 			Param: lit("foo"),
-			Ind:   &Index{Expr: litParamExp("bar")},
+			Index: litParamExp("bar"),
 		},
 	},
 	{
@@ -1956,7 +1954,7 @@ var fileTests = []testCase{
 			X: &ParamExp{
 				Short: true,
 				Param: lit("arr"),
-				Ind:   &Index{Expr: lit("0")},
+				Index: lit("0"),
 			},
 		}),
 	},
@@ -3150,15 +3148,15 @@ var fileTests = []testCase{
 		bash: &Stmt{Assigns: []*Assign{
 			{
 				Name:  lit("a"),
-				Ind:   &Index{Expr: lit("2")},
+				Index: lit("2"),
 				Value: litWord("b"),
 			},
 			{
 				Name: lit("c"),
-				Ind: &Index{Expr: &UnaryArithm{
+				Index: &UnaryArithm{
 					Op: Minus,
 					X:  lit("3"),
-				}},
+				},
 			},
 		}},
 	},
@@ -3438,8 +3436,8 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 			if a.Name != nil {
 				recurse(a.Name)
 			}
-			if a.Ind != nil {
-				recurse(a.Ind.Expr)
+			if a.Index != nil {
+				recurse(a.Index)
 			}
 			if a.Value != nil {
 				recurse(a.Value)
@@ -3611,8 +3609,8 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 		if x.Param != nil {
 			recurse(x.Param)
 		}
-		if x.Ind != nil {
-			recurse(x.Ind.Expr)
+		if x.Index != nil {
+			recurse(x.Index)
 		}
 		if x.Slice != nil {
 			recurse(x.Slice.Offset)

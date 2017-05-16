@@ -343,7 +343,7 @@ func (p *printer) paramExp(pe *ParamExp) {
 	if pe.nakedIndex() { // arr[i]
 		p.WriteString(pe.Param.Value)
 		p.WriteByte('[')
-		p.arithmExpr(pe.Ind.Expr, false, false)
+		p.arithmExpr(pe.Index, false, false)
 		p.WriteByte(']')
 		return
 	}
@@ -363,9 +363,9 @@ func (p *printer) paramExp(pe *ParamExp) {
 	if pe.Param != nil {
 		p.WriteString(pe.Param.Value)
 	}
-	if pe.Ind != nil {
+	if pe.Index != nil {
 		p.WriteByte('[')
-		p.arithmExpr(pe.Ind.Expr, false, false)
+		p.arithmExpr(pe.Index, false, false)
 		p.WriteByte(']')
 	}
 	if pe.Slice != nil {
@@ -932,9 +932,9 @@ func (p *printer) assigns(assigns []*Assign) {
 		}
 		if a.Name != nil {
 			p.WriteString(a.Name.Value)
-			if a.Ind != nil {
+			if a.Index != nil {
 				p.WriteByte('[')
-				p.arithmExpr(a.Ind.Expr, false, false)
+				p.arithmExpr(a.Index, false, false)
 				p.WriteByte(']')
 			}
 			if a.Append {

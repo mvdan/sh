@@ -115,8 +115,8 @@ func Walk(node Node, f func(Node) bool) {
 		if x.Param != nil {
 			Walk(x.Param, f)
 		}
-		if x.Ind != nil {
-			Walk(x.Ind.Expr, f)
+		if x.Index != nil {
+			Walk(x.Index, f)
 		}
 		if x.Repl != nil {
 			Walk(x.Repl.Orig, f)

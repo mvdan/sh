@@ -835,10 +835,8 @@ func (p *parser) arithmExprBase(compact bool) ArithmExpr {
 		left := p.pos + 1
 		old := p.preNested(arithmExprBrack)
 		p.next()
-		pe.Ind = &Index{
-			Expr: p.arithmExpr(leftBrack, left, 0, false, false),
-		}
-		if pe.Ind.Expr == nil {
+		pe.Index = p.arithmExpr(leftBrack, left, 0, false, false)
+		if pe.Index == nil {
 			p.followErrExp(left, "[")
 		}
 		p.postNested(old)
@@ -967,10 +965,8 @@ func (p *parser) paramExp() *ParamExp {
 		case star, at:
 			p.tok, p.val = _LitWord, p.tok.String()
 		}
-		pe.Ind = &Index{
-			Expr: p.arithmExpr(leftBrack, lpos, 0, false, false),
-		}
-		if pe.Ind.Expr == nil {
+		pe.Index = p.arithmExpr(leftBrack, lpos, 0, false, false)
+		if pe.Index == nil {
 			p.followErrExp(lpos, "[")
 		}
 		p.quote = paramExpName
@@ -1112,10 +1108,8 @@ func (p *parser) getAssign() *Assign {
 		left := p.pos + 1
 		old := p.preNested(arithmExprBrack)
 		p.next()
-		as.Ind = &Index{
-			Expr: p.arithmExpr(leftBrack, left, 0, false, false),
-		}
-		if as.Ind.Expr == nil {
+		as.Index = p.arithmExpr(leftBrack, left, 0, false, false)
+		if as.Index == nil {
 			p.followErrExp(left, "[")
 		}
 		p.postNested(old)

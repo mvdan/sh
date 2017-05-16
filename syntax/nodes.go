@@ -173,7 +173,7 @@ func (*CoprocClause) commandNode() {}
 type Assign struct {
 	Append bool
 	Name   *Lit
-	Ind    *Index
+	Index  ArithmExpr
 	Value  *Word
 	Array  *ArrayExpr
 }
@@ -192,8 +192,8 @@ func (a *Assign) End() Pos {
 	if a.Array != nil {
 		return a.Array.End()
 	}
-	if a.Ind != nil {
-		return a.Ind.Expr.End() + 2
+	if a.Index != nil {
+		return a.Index.End() + 2
 	}
 	return a.Name.End() + 1
 }
@@ -430,7 +430,7 @@ type ParamExp struct {
 	Indirect       bool
 	Length         bool
 	Param          *Lit
-	Ind            *Index
+	Index          ArithmExpr
 	Slice          *Slice
 	Repl           *Replace
 	Exp            *Expansion
@@ -444,14 +444,7 @@ func (p *ParamExp) End() Pos {
 	return p.Param.End()
 }
 
-func (p *ParamExp) nakedIndex() bool { return p.Short && p.Ind != nil }
-
-// Index represents access to an array via an index.
-//
-// This node will never appear when in PosixConformant mode.
-type Index struct {
-	Expr ArithmExpr
-}
+func (p *ParamExp) nakedIndex() bool { return p.Short && p.Index != nil }
 
 // Slice represents character slicing inside a ParamExp.
 //
