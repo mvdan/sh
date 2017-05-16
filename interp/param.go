@@ -33,8 +33,8 @@ func (r *Runner) paramExp(pe *syntax.ParamExp) string {
 		}
 	}
 	str := varStr(val)
-	if pe.Ind != nil {
-		str = r.varInd(val, pe.Ind.Expr)
+	if pe.Index != nil {
+		str = r.varInd(val, pe.Index)
 	}
 	switch {
 	case pe.Length:
