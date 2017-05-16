@@ -274,7 +274,8 @@ var fileTests = []testCase{
 	},
 	{
 		Strs: []string{"until a; do b; done", "until a\ndo\nb\ndone"},
-		common: &UntilClause{
+		common: &WhileClause{
+			Until:     true,
 			CondStmts: litStmts("a"),
 			DoStmts:   litStmts("b"),
 		},
@@ -3505,13 +3506,11 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 			recurse(x.ElseStmts)
 		}
 	case *WhileClause:
-		setPos(&x.While, "while")
-		setPos(&x.Do, "do")
-		setPos(&x.Done, "done")
-		recurse(x.CondStmts)
-		recurse(x.DoStmts)
-	case *UntilClause:
-		setPos(&x.Until, "until")
+		rsrv := "while"
+		if x.Until {
+			rsrv = "until"
+		}
+		setPos(&x.While, rsrv)
 		setPos(&x.Do, "do")
 		setPos(&x.Done, "done")
 		recurse(x.CondStmts)

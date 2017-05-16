@@ -145,9 +145,9 @@ func (s *Stmt) End() Pos {
 // Command represents all nodes that are simple commands, which are
 // directly placed in a Stmt.
 //
-// These are *CallExpr, *IfClause, *WhileClause, *UntilClause,
-// *ForClause, *CaseClause, *Block, *Subshell, *BinaryCmd, *FuncDecl,
-// *ArithmCmd, *TestClause, *DeclClause, *LetClause, and *CoprocClause.
+// These are *CallExpr, *IfClause, *WhileClause, *ForClause,
+// *CaseClause, *Block, *Subshell, *BinaryCmd, *FuncDecl, *ArithmCmd,
+// *TestClause, *DeclClause, *LetClause, and *CoprocClause.
 type Command interface {
 	Node
 	commandNode()
@@ -156,7 +156,6 @@ type Command interface {
 func (*CallExpr) commandNode()     {}
 func (*IfClause) commandNode()     {}
 func (*WhileClause) commandNode()  {}
-func (*UntilClause) commandNode()  {}
 func (*ForClause) commandNode()    {}
 func (*CaseClause) commandNode()   {}
 func (*Block) commandNode()        {}
@@ -261,25 +260,16 @@ type Elif struct {
 	ThenStmts  []*Stmt
 }
 
-// WhileClause represents a while clause.
+// WhileClause represents a while or an until clause.
 type WhileClause struct {
 	While, Do, Done Pos
+	Until           bool
 	CondStmts       []*Stmt
 	DoStmts         []*Stmt
 }
 
 func (w *WhileClause) Pos() Pos { return w.While }
 func (w *WhileClause) End() Pos { return w.Done + 4 }
-
-// UntilClause represents an until clause.
-type UntilClause struct {
-	Until, Do, Done Pos
-	CondStmts       []*Stmt
-	DoStmts         []*Stmt
-}
-
-func (u *UntilClause) Pos() Pos { return u.Until }
-func (u *UntilClause) End() Pos { return u.Done + 4 }
 
 // ForClause represents a for clause.
 type ForClause struct {

@@ -1264,10 +1264,8 @@ func (p *parser) gotStmtPipe(s *Stmt) *Stmt {
 			s.Cmd = p.block()
 		case "if":
 			s.Cmd = p.ifClause()
-		case "while":
-			s.Cmd = p.whileClause()
-		case "until":
-			s.Cmd = p.untilClause()
+		case "while", "until":
+			s.Cmd = p.whileClause(p.val == "until")
 		case "for":
 			s.Cmd = p.forClause()
 		case "case":
@@ -1406,24 +1404,20 @@ func (p *parser) ifClause() *IfClause {
 	return ic
 }
 
-func (p *parser) whileClause() *WhileClause {
-	wc := &WhileClause{While: p.pos}
+func (p *parser) whileClause(until bool) *WhileClause {
+	wc := &WhileClause{While: p.pos, Until: until}
+	rsrv := "while"
+	rsrvCond := "while <cond>"
+	if wc.Until {
+		rsrv = "until"
+		rsrvCond = "until <cond>"
+	}
 	p.next()
-	wc.CondStmts = p.followStmts("while", wc.While, "do")
-	wc.Do = p.followRsrv(wc.While, "while <cond>", "do")
+	wc.CondStmts = p.followStmts(rsrv, wc.While, "do")
+	wc.Do = p.followRsrv(wc.While, rsrvCond, "do")
 	wc.DoStmts = p.followStmts("do", wc.Do, "done")
-	wc.Done = p.stmtEnd(wc, "while", "done")
+	wc.Done = p.stmtEnd(wc, rsrv, "done")
 	return wc
-}
-
-func (p *parser) untilClause() *UntilClause {
-	uc := &UntilClause{Until: p.pos}
-	p.next()
-	uc.CondStmts = p.followStmts("until", uc.Until, "do")
-	uc.Do = p.followRsrv(uc.Until, "until <cond>", "do")
-	uc.DoStmts = p.followStmts("do", uc.Do, "done")
-	uc.Done = p.stmtEnd(uc, "until", "done")
-	return uc
 }
 
 func (p *parser) forClause() *ForClause {

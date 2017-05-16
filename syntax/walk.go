@@ -74,9 +74,6 @@ func Walk(node Node, f func(Node) bool) {
 	case *WhileClause:
 		walkStmts(x.CondStmts, f)
 		walkStmts(x.DoStmts, f)
-	case *UntilClause:
-		walkStmts(x.CondStmts, f)
-		walkStmts(x.DoStmts, f)
 	case *ForClause:
 		Walk(x.Loop, f)
 		walkStmts(x.DoStmts, f)

@@ -635,7 +635,11 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		p.nestedStmts(x.Stmts, x.Rparen)
 		p.sepTok(")", x.Rparen)
 	case *WhileClause:
-		p.spacedString("while")
+		if x.Until {
+			p.spacedString("until")
+		} else {
+			p.spacedString("while")
+		}
 		p.nestedStmts(x.CondStmts, 0)
 		p.semiOrNewl("do", x.Do)
 		p.nestedStmts(x.DoStmts, 0)
@@ -728,12 +732,6 @@ func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		}
 		p.decLevel()
 		p.semiRsrv("esac", x.Esac, len(x.List) == 0)
-	case *UntilClause:
-		p.spacedString("until")
-		p.nestedStmts(x.CondStmts, 0)
-		p.semiOrNewl("do", x.Do)
-		p.nestedStmts(x.DoStmts, 0)
-		p.semiRsrv("done", x.Done, true)
 	case *ArithmCmd:
 		p.WriteString("((")
 		p.arithmExpr(x.X, false, false)
