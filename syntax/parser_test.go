@@ -27,24 +27,26 @@ func TestParseComments(t *testing.T) {
 		},
 		Stmts: litStmts("cmd"),
 	}
-	singleParse(in, want, ParseComments)(t)
+	singleParse(NewParser(ParseComments), in, want)(t)
 }
 
 func TestParseBash(t *testing.T) {
 	t.Parallel()
+	p := NewParser(0)
 	for i, c := range append(fileTests, fileTestsNoPrint...) {
 		want := c.Bash
 		if want == nil {
 			continue
 		}
 		for j, in := range c.Strs {
-			t.Run(fmt.Sprintf("%03d-%d", i, j), singleParse(in, want, 0))
+			t.Run(fmt.Sprintf("%03d-%d", i, j), singleParse(p, in, want))
 		}
 	}
 }
 
 func TestParsePosix(t *testing.T) {
 	t.Parallel()
+	p := NewParser(PosixConformant)
 	for i, c := range append(fileTests, fileTestsNoPrint...) {
 		want := c.Posix
 		if want == nil {
@@ -52,7 +54,7 @@ func TestParsePosix(t *testing.T) {
 		}
 		for j, in := range c.Strs {
 			t.Run(fmt.Sprintf("%03d-%d", i, j),
-				singleParse(in, want, PosixConformant))
+				singleParse(p, in, want))
 		}
 	}
 }
@@ -165,12 +167,12 @@ func TestParseErrPosixConfirm(t *testing.T) {
 	}
 }
 
-func singleParse(in string, want *File, mode ParseMode) func(t *testing.T) {
+func singleParse(p *Parser, in string, want *File) func(t *testing.T) {
 	return func(t *testing.T) {
 		if i := strings.Index(in, " #INVBASH"); i >= 0 {
 			in = in[:i]
 		}
-		got, err := Parse(newStrictReader(in), "", mode)
+		got, err := p.Parse(newStrictReader(in), "")
 		if err != nil {
 			t.Fatalf("Unexpected error in %q: %v", in, err)
 		}
@@ -217,10 +219,11 @@ func BenchmarkParse(b *testing.B) {
 		},
 	}
 	for _, c := range benchmarks {
+		p := NewParser(ParseComments)
 		in := strings.NewReader(c.in)
 		b.Run(c.name, func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
-				if _, err := Parse(in, "", ParseComments); err != nil {
+				if _, err := p.Parse(in, ""); err != nil {
 					b.Fatal(err)
 				}
 				in.Reset(c.in)
@@ -878,12 +881,12 @@ var shellTests = []errorCase{
 	},
 }
 
-func checkError(in, want string, mode ParseMode) func(*testing.T) {
+func checkError(p *Parser, in, want string) func(*testing.T) {
 	return func(t *testing.T) {
 		if i := strings.Index(in, " #INVBASH"); i >= 0 {
 			in = in[:i]
 		}
-		_, err := Parse(newStrictReader(in), "", mode)
+		_, err := p.Parse(newStrictReader(in), "")
 		if err == nil {
 			t.Fatalf("Expected error in %q: %v", in, want)
 		}
@@ -896,15 +899,17 @@ func checkError(in, want string, mode ParseMode) func(*testing.T) {
 
 func TestParseErrPosix(t *testing.T) {
 	t.Parallel()
+	p := NewParser(PosixConformant)
 	for i, c := range append(shellTests, posixTests...) {
-		t.Run(fmt.Sprintf("%03d", i), checkError(c.in, c.want, PosixConformant))
+		t.Run(fmt.Sprintf("%03d", i), checkError(p, c.in, c.want))
 	}
 }
 
 func TestParseErrBash(t *testing.T) {
 	t.Parallel()
+	p := NewParser(0)
 	for i, c := range append(shellTests, bashTests...) {
-		t.Run(fmt.Sprintf("%03d", i), checkError(c.in, c.want, 0))
+		t.Run(fmt.Sprintf("%03d", i), checkError(p, c.in, c.want))
 	}
 }
 
@@ -1333,7 +1338,8 @@ var posixTests = []errorCase{
 func TestInputName(t *testing.T) {
 	in := shellTests[0].in
 	want := "some-file.sh:" + shellTests[0].want
-	_, err := Parse(strings.NewReader(in), "some-file.sh", 0)
+	p := NewParser(0)
+	_, err := p.Parse(strings.NewReader(in), "some-file.sh")
 	if err == nil {
 		t.Fatalf("Expected error in %q: %v", in, want)
 	}
@@ -1351,7 +1357,8 @@ type badReader struct{}
 func (b badReader) Read(p []byte) (int, error) { return 0, errBadReader }
 
 func TestReadErr(t *testing.T) {
-	_, err := Parse(badReader{}, "", 0)
+	p := NewParser(0)
+	_, err := p.Parse(badReader{}, "")
 	if err == nil {
 		t.Fatalf("Expected error with bad reader")
 	}

@@ -197,7 +197,8 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 		}
 	case "eval":
 		src := strings.Join(args, " ")
-		file, err := syntax.Parse(strings.NewReader(src), "", 0)
+		p := syntax.NewParser(0)
+		file, err := p.Parse(strings.NewReader(src), "")
 		if err != nil {
 			r.errf("eval: %v\n", err)
 			return 1

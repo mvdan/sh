@@ -12,7 +12,7 @@ import (
 
 func ExampleWalk() {
 	in := strings.NewReader(`echo $foo "and $bar"`)
-	f, err := syntax.Parse(in, "", 0)
+	f, err := syntax.NewParser(0).Parse(in, "")
 	if err != nil {
 		return
 	}

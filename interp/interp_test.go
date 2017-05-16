@@ -969,9 +969,10 @@ func (c *concBuffer) String() string {
 }
 
 func TestFile(t *testing.T) {
+	p := syntax.NewParser(0)
 	for i, c := range fileCases {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
-			file, err := syntax.Parse(strings.NewReader(c.in), "", 0)
+			file, err := p.Parse(strings.NewReader(c.in), "")
 			if err != nil {
 				t.Fatalf("could not parse: %v", err)
 			}
@@ -1068,9 +1069,10 @@ func TestRunnerOpts(t *testing.T) {
 			`env not in the form key=value: "foo"`,
 		},
 	}
+	p := syntax.NewParser(0)
 	for i, c := range cases {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
-			file, err := syntax.Parse(strings.NewReader(c.in), "", 0)
+			file, err := p.Parse(strings.NewReader(c.in), "")
 			if err != nil {
 				t.Fatalf("could not parse: %v", err)
 			}
@@ -1102,9 +1104,10 @@ func TestRunnerContext(t *testing.T) {
 		"$(while true; do true; done)",
 		"while true; do true; done | while true; do true; done",
 	}
+	p := syntax.NewParser(0)
 	for i, in := range cases {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
-			file, err := syntax.Parse(strings.NewReader(in), "", 0)
+			file, err := p.Parse(strings.NewReader(in), "")
 			if err != nil {
 				t.Fatalf("could not parse: %v", err)
 			}

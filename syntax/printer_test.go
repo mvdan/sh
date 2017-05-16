@@ -14,10 +14,11 @@ import (
 
 func TestFprintCompact(t *testing.T) {
 	t.Parallel()
+	p := NewParser(0)
 	for i, c := range fileTests {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
 			in := c.Strs[0]
-			prog, err := Parse(strings.NewReader(in), "", 0)
+			prog, err := p.Parse(strings.NewReader(in), "")
 			if err != nil {
 				t.Fatalf("Unexpected error in %q: %v", in, err)
 			}
@@ -368,9 +369,10 @@ func TestFprintWeirdFormat(t *testing.T) {
 		samePrint("#foo\n#\n#bar"),
 	}
 
+	p := NewParser(ParseComments)
 	for i, tc := range weirdFormats {
 		check := func(t *testing.T, in, want string) {
-			prog, err := Parse(newStrictReader(in), "", ParseComments)
+			prog, err := p.Parse(newStrictReader(in), "")
 			if err != nil {
 				t.Fatalf("Unexpected error in %q: %v", in, err)
 			}
@@ -404,7 +406,8 @@ func parsePath(tb testing.TB, path string) *File {
 		tb.Fatal(err)
 	}
 	defer f.Close()
-	prog, err := Parse(f, "", ParseComments)
+	p := NewParser(ParseComments)
+	prog, err := p.Parse(f, "")
 	if err != nil {
 		tb.Fatal(err)
 	}
@@ -437,9 +440,10 @@ func TestFuzzCrashers(t *testing.T) {
 	var strs = [...]string{
 		"<<EOF <`\n#\n`\n``",
 	}
+	p := NewParser(ParseComments)
 	for i, in := range strs {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
-			prog, err := Parse(newStrictReader(in), "", ParseComments)
+			prog, err := p.Parse(newStrictReader(in), "")
 			if err != nil {
 				t.Fatalf("Unexpected error in %q: %v", in, err)
 			}
@@ -487,9 +491,10 @@ func TestFprintSpaces(t *testing.T) {
 		},
 	}
 
+	p := NewParser(ParseComments)
 	for i, tc := range spaceFormats {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
-			prog, err := Parse(strings.NewReader(tc.in), "", ParseComments)
+			prog, err := p.Parse(strings.NewReader(tc.in), "")
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -591,9 +596,10 @@ func TestFprintBinaryNextLine(t *testing.T) {
 			"a \\\n\t| b \\\n\t|\n\t#c2\n\tc",
 		},
 	}
+	p := NewParser(ParseComments)
 	for i, tc := range tests {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
-			prog, err := Parse(strings.NewReader(tc.in), "", ParseComments)
+			prog, err := p.Parse(strings.NewReader(tc.in), "")
 			if err != nil {
 				t.Fatal(err)
 			}

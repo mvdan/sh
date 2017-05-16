@@ -11,6 +11,8 @@ import (
 	"path/filepath"
 	"regexp"
 	"testing"
+
+	"github.com/mvdan/sh/syntax"
 )
 
 type action uint
@@ -57,6 +59,7 @@ var walkTests = []struct {
 var errPathMentioned = regexp.MustCompile(`([^ :]+):`)
 
 func TestWalk(t *testing.T) {
+	parser = syntax.NewParser(syntax.ParseComments)
 	dir, err := ioutil.TempDir("", "shfmt-walk")
 	if err != nil {
 		t.Fatal(err)

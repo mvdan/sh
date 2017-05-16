@@ -24,7 +24,7 @@ var (
 	posix       = flag.Bool("p", false, "parse POSIX shell code instead of bash")
 	showVersion = flag.Bool("version", false, "show version and exit")
 
-	parseMode         syntax.ParseMode
+	parser            *syntax.Parser
 	printConfig       syntax.PrintConfig
 	readBuf, writeBuf bytes.Buffer
 
@@ -45,10 +45,11 @@ func main() {
 
 	printConfig.Spaces = *indent
 	printConfig.BinaryNextLine = *binNext
-	parseMode |= syntax.ParseComments
+	parseMode := syntax.ParseComments
 	if *posix {
 		parseMode |= syntax.PosixConformant
 	}
+	parser = syntax.NewParser(parseMode)
 	if flag.NArg() == 0 {
 		if err := formatStdin(); err != nil {
 			fmt.Fprintln(os.Stderr, err)
@@ -72,7 +73,7 @@ func formatStdin() error {
 	if *write || *list {
 		return fmt.Errorf("-w and -l can only be used on files")
 	}
-	prog, err := syntax.Parse(os.Stdin, "", parseMode)
+	prog, err := parser.Parse(os.Stdin, "")
 	if err != nil {
 		return err
 	}
@@ -138,7 +139,7 @@ func formatPath(path string, checkShebang bool) error {
 		return err
 	}
 	src := readBuf.Bytes()
-	prog, err := syntax.Parse(&readBuf, path, parseMode)
+	prog, err := parser.Parse(&readBuf, path)
 	if err != nil {
 		return err
 	}

@@ -12,12 +12,11 @@ import (
 	"github.com/mvdan/sh/syntax"
 )
 
-var (
-	parseMode syntax.ParseMode
-)
+var parser *syntax.Parser
 
 func main() {
 	flag.Parse()
+	parser = syntax.NewParser(0)
 
 	for _, path := range flag.Args() {
 		if err := runPath(path); err != nil {
@@ -33,7 +32,7 @@ func runPath(path string) error {
 		return err
 	}
 	defer f.Close()
-	prog, err := syntax.Parse(f, path, parseMode)
+	prog, err := parser.Parse(f, path)
 	if err != nil {
 		return err
 	}
