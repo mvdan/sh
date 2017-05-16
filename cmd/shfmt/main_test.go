@@ -60,6 +60,7 @@ var errPathMentioned = regexp.MustCompile(`([^ :]+):`)
 
 func TestWalk(t *testing.T) {
 	parser = syntax.NewParser(syntax.ParseComments)
+	printer = syntax.NewPrinter(syntax.PrintConfig{})
 	dir, err := ioutil.TempDir("", "shfmt-walk")
 	if err != nil {
 		t.Fatal(err)

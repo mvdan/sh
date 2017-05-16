@@ -7,7 +7,6 @@ import (
 	"bufio"
 	"io"
 	"strings"
-	"sync"
 )
 
 // PrintConfig controls how the printing of an AST node will behave.
@@ -22,39 +21,28 @@ type PrintConfig struct {
 	BinaryNextLine bool
 }
 
-var printerFree = sync.Pool{
-	New: func() interface{} {
-		return &printer{
-			bufWriter:  bufio.NewWriter(nil),
-			lenPrinter: new(printer),
-		}
-	},
+func NewPrinter(conf PrintConfig) *Printer {
+	return &Printer{
+		PrintConfig: conf,
+		bufWriter:   bufio.NewWriter(nil),
+		lenPrinter:  new(Printer),
+	}
 }
 
-// Fprint "pretty-prints" the given AST file to the given writer.
-func (c PrintConfig) Fprint(w io.Writer, f *File) error {
-	p := printerFree.Get().(*printer)
+// Print "pretty-prints" the given AST file to the given writer.
+func (p *Printer) Print(w io.Writer, f *File) error {
 	p.reset()
-	p.PrintConfig = c
 	p.lines, p.comments = f.lines, f.Comments
 	p.bufWriter.Reset(w)
 	p.stmts(f.Stmts)
 	p.commentsUpTo(0)
 	p.newline(0)
-	var err error
 	if flusher, ok := p.bufWriter.(interface {
 		Flush() error
 	}); ok {
-		err = flusher.Flush()
+		return flusher.Flush()
 	}
-	printerFree.Put(p)
-	return err
-}
-
-// Fprint "pretty-prints" the given AST file to the given writer. It
-// calls PrintConfig.Fprint with its default settings.
-func Fprint(w io.Writer, f *File) error {
-	return PrintConfig{}.Fprint(w, f)
+	return nil
 }
 
 type bufWriter interface {
@@ -63,7 +51,7 @@ type bufWriter interface {
 	Reset(io.Writer)
 }
 
-type printer struct {
+type Printer struct {
 	bufWriter
 
 	PrintConfig
@@ -96,11 +84,11 @@ type printer struct {
 	pendingHdocs []*Redirect
 
 	// used in stmtCols to align comments
-	lenPrinter *printer
+	lenPrinter *Printer
 	lenCounter byteCounter
 }
 
-func (p *printer) reset() {
+func (p *Printer) reset() {
 	p.wantSpace, p.wantNewline = false, false
 	p.commentPadding = 0
 	p.nline, p.nlineIndex = 0, 0
@@ -110,7 +98,7 @@ func (p *printer) reset() {
 	p.pendingHdocs = p.pendingHdocs[:0]
 }
 
-func (p *printer) incLine() {
+func (p *Printer) incLine() {
 	if p.nlineIndex++; p.nlineIndex >= len(p.lines) {
 		p.nline = maxPos
 	} else {
@@ -118,19 +106,19 @@ func (p *printer) incLine() {
 	}
 }
 
-func (p *printer) incLines(pos Pos) {
+func (p *Printer) incLines(pos Pos) {
 	for p.nline < pos {
 		p.incLine()
 	}
 }
 
-func (p *printer) spaces(n int) {
+func (p *Printer) spaces(n int) {
 	for i := 0; i < n; i++ {
 		p.WriteByte(' ')
 	}
 }
 
-func (p *printer) bslashNewl() {
+func (p *Printer) bslashNewl() {
 	if p.wantSpace {
 		p.WriteByte(' ')
 	}
@@ -139,7 +127,7 @@ func (p *printer) bslashNewl() {
 	p.incLine()
 }
 
-func (p *printer) spacedString(s string) {
+func (p *Printer) spacedString(s string) {
 	if p.wantSpace {
 		p.WriteByte(' ')
 	}
@@ -147,7 +135,7 @@ func (p *printer) spacedString(s string) {
 	p.wantSpace = true
 }
 
-func (p *printer) semiOrNewl(s string, pos Pos) {
+func (p *Printer) semiOrNewl(s string, pos Pos) {
 	if p.wantNewline {
 		p.newline(pos)
 		p.indent()
@@ -162,7 +150,7 @@ func (p *printer) semiOrNewl(s string, pos Pos) {
 	p.wantSpace = true
 }
 
-func (p *printer) incLevel() {
+func (p *Printer) incLevel() {
 	inc := false
 	if p.level <= p.lastLevel || len(p.levelIncs) == 0 {
 		p.level++
@@ -174,14 +162,14 @@ func (p *printer) incLevel() {
 	p.levelIncs = append(p.levelIncs, inc)
 }
 
-func (p *printer) decLevel() {
+func (p *Printer) decLevel() {
 	if p.levelIncs[len(p.levelIncs)-1] {
 		p.level--
 	}
 	p.levelIncs = p.levelIncs[:len(p.levelIncs)-1]
 }
 
-func (p *printer) indent() {
+func (p *Printer) indent() {
 	p.lastLevel = p.level
 	switch {
 	case p.level == 0:
@@ -194,7 +182,7 @@ func (p *printer) indent() {
 	}
 }
 
-func (p *printer) newline(pos Pos) {
+func (p *Printer) newline(pos Pos) {
 	p.wantNewline, p.wantSpace = false, false
 	p.WriteByte('\n')
 	if pos > p.nline {
@@ -212,7 +200,7 @@ func (p *printer) newline(pos Pos) {
 	}
 }
 
-func (p *printer) newlines(pos Pos) {
+func (p *Printer) newlines(pos Pos) {
 	p.newline(pos)
 	if pos > p.nline {
 		// preserve single empty lines
@@ -222,14 +210,14 @@ func (p *printer) newlines(pos Pos) {
 	p.indent()
 }
 
-func (p *printer) commentsAndSeparate(pos Pos) {
+func (p *Printer) commentsAndSeparate(pos Pos) {
 	p.commentsUpTo(pos)
 	if p.wantNewline || pos > p.nline {
 		p.newlines(pos)
 	}
 }
 
-func (p *printer) sepTok(s string, pos Pos) {
+func (p *Printer) sepTok(s string, pos Pos) {
 	p.level++
 	p.commentsUpTo(pos)
 	p.level--
@@ -240,7 +228,7 @@ func (p *printer) sepTok(s string, pos Pos) {
 	p.wantSpace = true
 }
 
-func (p *printer) semiRsrv(s string, pos Pos, fallback bool) {
+func (p *Printer) semiRsrv(s string, pos Pos, fallback bool) {
 	p.level++
 	p.commentsUpTo(pos)
 	p.level--
@@ -258,14 +246,14 @@ func (p *printer) semiRsrv(s string, pos Pos, fallback bool) {
 	p.wantSpace = true
 }
 
-func (p *printer) anyCommentsBefore(pos Pos) bool {
+func (p *Printer) anyCommentsBefore(pos Pos) bool {
 	if !pos.IsValid() || len(p.comments) < 1 {
 		return false
 	}
 	return p.comments[0].Hash < pos
 }
 
-func (p *printer) commentsUpTo(pos Pos) {
+func (p *Printer) commentsUpTo(pos Pos) {
 	if len(p.comments) < 1 {
 		return
 	}
@@ -287,7 +275,7 @@ func (p *printer) commentsUpTo(pos Pos) {
 	p.commentsUpTo(pos)
 }
 
-func (p *printer) wordPart(wp WordPart) {
+func (p *Printer) wordPart(wp WordPart) {
 	switch x := wp.(type) {
 	case *Lit:
 		p.WriteString(x.Value)
@@ -339,7 +327,7 @@ func (p *printer) wordPart(wp WordPart) {
 	}
 }
 
-func (p *printer) paramExp(pe *ParamExp) {
+func (p *Printer) paramExp(pe *ParamExp) {
 	if pe.nakedIndex() { // arr[i]
 		p.WriteString(pe.Param.Value)
 		p.WriteByte('[')
@@ -390,7 +378,7 @@ func (p *printer) paramExp(pe *ParamExp) {
 	p.WriteByte('}')
 }
 
-func (p *printer) loop(loop Loop) {
+func (p *Printer) loop(loop Loop) {
 	switch x := loop.(type) {
 	case *WordIter:
 		p.WriteString(x.Name.Value)
@@ -412,7 +400,7 @@ func (p *printer) loop(loop Loop) {
 	}
 }
 
-func (p *printer) arithmExpr(expr ArithmExpr, compact, spacePlusMinus bool) {
+func (p *Printer) arithmExpr(expr ArithmExpr, compact, spacePlusMinus bool) {
 	switch x := expr.(type) {
 	case *Lit:
 		p.WriteString(x.Value)
@@ -453,7 +441,7 @@ func (p *printer) arithmExpr(expr ArithmExpr, compact, spacePlusMinus bool) {
 	}
 }
 
-func (p *printer) testExpr(expr TestExpr) {
+func (p *Printer) testExpr(expr TestExpr) {
 	switch x := expr.(type) {
 	case *Word:
 		p.word(x)
@@ -474,14 +462,14 @@ func (p *printer) testExpr(expr TestExpr) {
 	}
 }
 
-func (p *printer) word(w *Word) {
+func (p *Printer) word(w *Word) {
 	for _, n := range w.Parts {
 		p.wordPart(n)
 	}
 	p.wantSpace = true
 }
 
-func (p *printer) unquotedWord(w *Word) {
+func (p *Printer) unquotedWord(w *Word) {
 	for _, wp := range w.Parts {
 		switch x := wp.(type) {
 		case *SglQuoted:
@@ -504,7 +492,7 @@ func (p *printer) unquotedWord(w *Word) {
 	}
 }
 
-func (p *printer) wordJoin(ws []*Word, backslash bool) {
+func (p *Printer) wordJoin(ws []*Word, backslash bool) {
 	anyNewline := false
 	for _, w := range ws {
 		if pos := w.Pos(); pos > p.nline {
@@ -531,7 +519,7 @@ func (p *printer) wordJoin(ws []*Word, backslash bool) {
 	}
 }
 
-func (p *printer) stmt(s *Stmt) {
+func (p *Printer) stmt(s *Stmt) {
 	if s.Negated {
 		p.spacedString("!")
 	}
@@ -579,7 +567,7 @@ func (p *printer) stmt(s *Stmt) {
 	}
 }
 
-func (p *printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
+func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 	if p.wantSpace {
 		p.WriteByte(' ')
 		p.wantSpace = false
@@ -778,7 +766,7 @@ func startsWithLparen(s *Stmt) bool {
 	return false
 }
 
-func (p *printer) hasInline(pos, npos, nline Pos) bool {
+func (p *Printer) hasInline(pos, npos, nline Pos) bool {
 	for _, c := range p.comments {
 		if c.Hash > nline {
 			return false
@@ -790,7 +778,7 @@ func (p *printer) hasInline(pos, npos, nline Pos) bool {
 	return false
 }
 
-func (p *printer) stmts(stmts []*Stmt) {
+func (p *Printer) stmts(stmts []*Stmt) {
 	switch len(stmts) {
 	case 0:
 		return
@@ -894,8 +882,8 @@ func (c *byteCounter) Reset(io.Writer) { *c = 0 }
 
 // stmtCols reports the length that s will take when formatted in a
 // single line. If it will span multiple lines, stmtCols will return -1.
-func (p *printer) stmtCols(s *Stmt) int {
-	*p.lenPrinter = printer{
+func (p *Printer) stmtCols(s *Stmt) int {
+	*p.lenPrinter = Printer{
 		bufWriter: &p.lenCounter,
 		lines:     p.lines,
 	}
@@ -905,7 +893,7 @@ func (p *printer) stmtCols(s *Stmt) int {
 	return int(p.lenCounter)
 }
 
-func (p *printer) nestedStmts(stmts []*Stmt, closing Pos) {
+func (p *Printer) nestedStmts(stmts []*Stmt, closing Pos) {
 	p.incLevel()
 	if len(stmts) == 1 && closing > p.nline && stmts[0].End() <= p.nline {
 		p.newline(0)
@@ -915,7 +903,7 @@ func (p *printer) nestedStmts(stmts []*Stmt, closing Pos) {
 	p.decLevel()
 }
 
-func (p *printer) assigns(assigns []*Assign) {
+func (p *Printer) assigns(assigns []*Assign) {
 	anyNewline := false
 	for _, a := range assigns {
 		if a.Pos() > p.nline {

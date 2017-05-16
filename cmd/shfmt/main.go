@@ -25,7 +25,7 @@ var (
 	showVersion = flag.Bool("version", false, "show version and exit")
 
 	parser            *syntax.Parser
-	printConfig       syntax.PrintConfig
+	printer           *syntax.Printer
 	readBuf, writeBuf bytes.Buffer
 
 	copyBuf = make([]byte, 32*1024)
@@ -43,13 +43,15 @@ func main() {
 		return
 	}
 
-	printConfig.Spaces = *indent
-	printConfig.BinaryNextLine = *binNext
 	parseMode := syntax.ParseComments
 	if *posix {
 		parseMode |= syntax.PosixConformant
 	}
 	parser = syntax.NewParser(parseMode)
+	printer = syntax.NewPrinter(syntax.PrintConfig{
+		Spaces:         *indent,
+		BinaryNextLine: *binNext,
+	})
 	if flag.NArg() == 0 {
 		if err := formatStdin(); err != nil {
 			fmt.Fprintln(os.Stderr, err)
@@ -77,7 +79,7 @@ func formatStdin() error {
 	if err != nil {
 		return err
 	}
-	return printConfig.Fprint(out, prog)
+	return printer.Print(out, prog)
 }
 
 var vcsDir = regexp.MustCompile(`^\.(git|svn|hg)$`)
@@ -144,7 +146,7 @@ func formatPath(path string, checkShebang bool) error {
 		return err
 	}
 	writeBuf.Reset()
-	printConfig.Fprint(&writeBuf, prog)
+	printer.Print(&writeBuf, prog)
 	res := writeBuf.Bytes()
 	if !bytes.Equal(src, res) {
 		if *list {

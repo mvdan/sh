@@ -23,6 +23,6 @@ func ExampleWalk() {
 		}
 		return true
 	})
-	syntax.Fprint(os.Stdout, f)
+	syntax.NewPrinter(syntax.PrintConfig{}).Print(os.Stdout, f)
 	// Output: echo $FOO "and $BAR"
 }

@@ -12,18 +12,19 @@ import (
 	"testing"
 )
 
-func TestFprintCompact(t *testing.T) {
+func TestPrintCompact(t *testing.T) {
 	t.Parallel()
-	p := NewParser(0)
+	parser := NewParser(0)
+	printer := NewPrinter(PrintConfig{})
 	for i, c := range fileTests {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
 			in := c.Strs[0]
-			prog, err := p.Parse(strings.NewReader(in), "")
+			prog, err := parser.Parse(strings.NewReader(in), "")
 			if err != nil {
 				t.Fatalf("Unexpected error in %q: %v", in, err)
 			}
 			want := in
-			got, err := strFprint(prog, PrintConfig{})
+			got, err := strPrint(printer, prog)
 			if err != nil {
 				t.Fatalf("Unexpected error in %q: %v", in, err)
 			}
@@ -31,16 +32,16 @@ func TestFprintCompact(t *testing.T) {
 				got = got[:len(got)-1]
 			}
 			if got != want {
-				t.Fatalf("Fprint mismatch of %q\nwant: %q\ngot:  %q",
+				t.Fatalf("Print mismatch of %q\nwant: %q\ngot:  %q",
 					in, want, got)
 			}
 		})
 	}
 }
 
-func strFprint(f *File, c PrintConfig) (string, error) {
+func strPrint(p *Printer, f *File) (string, error) {
 	var buf bytes.Buffer
-	err := c.Fprint(&buf, f)
+	err := p.Print(&buf, f)
 	return buf.String(), err
 }
 
@@ -50,7 +51,7 @@ type printCase struct {
 
 func samePrint(s string) printCase { return printCase{in: s, want: s} }
 
-func TestFprintWeirdFormat(t *testing.T) {
+func TestPrintWeirdFormat(t *testing.T) {
 	t.Parallel()
 	var weirdFormats = [...]printCase{
 		samePrint(`fo○ b\år`),
@@ -369,20 +370,21 @@ func TestFprintWeirdFormat(t *testing.T) {
 		samePrint("#foo\n#\n#bar"),
 	}
 
-	p := NewParser(ParseComments)
+	parser := NewParser(ParseComments)
+	printer := NewPrinter(PrintConfig{})
 	for i, tc := range weirdFormats {
 		check := func(t *testing.T, in, want string) {
-			prog, err := p.Parse(newStrictReader(in), "")
+			prog, err := parser.Parse(newStrictReader(in), "")
 			if err != nil {
 				t.Fatalf("Unexpected error in %q: %v", in, err)
 			}
 			checkNewlines(t, in, prog.lines)
-			got, err := strFprint(prog, PrintConfig{})
+			got, err := strPrint(printer, prog)
 			if err != nil {
 				t.Fatalf("Unexpected error in %q: %v", in, err)
 			}
 			if got != want {
-				t.Fatalf("Fprint mismatch:\n"+
+				t.Fatalf("Print mismatch:\n"+
 					"in:\n%s\nwant:\n%sgot:\n%s",
 					in, want, got)
 			}
@@ -406,8 +408,7 @@ func parsePath(tb testing.TB, path string) *File {
 		tb.Fatal(err)
 	}
 	defer f.Close()
-	p := NewParser(ParseComments)
-	prog, err := p.Parse(f, "")
+	prog, err := NewParser(ParseComments).Parse(f, "")
 	if err != nil {
 		tb.Fatal(err)
 	}
@@ -416,9 +417,9 @@ func parsePath(tb testing.TB, path string) *File {
 
 const canonicalPath = "canonical.sh"
 
-func TestFprintMultiline(t *testing.T) {
+func TestPrintMultiline(t *testing.T) {
 	prog := parsePath(t, canonicalPath)
-	got, err := strFprint(prog, PrintConfig{})
+	got, err := strPrint(NewPrinter(PrintConfig{}), prog)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -428,7 +429,7 @@ func TestFprintMultiline(t *testing.T) {
 		t.Fatal(err)
 	}
 	if got != string(want) {
-		t.Fatalf("Fprint mismatch in canonical.sh")
+		t.Fatalf("Print mismatch in canonical.sh")
 	}
 }
 
@@ -440,31 +441,33 @@ func TestFuzzCrashers(t *testing.T) {
 	var strs = [...]string{
 		"<<EOF <`\n#\n`\n``",
 	}
-	p := NewParser(ParseComments)
+	parser := NewParser(ParseComments)
+	printer := NewPrinter(PrintConfig{})
 	for i, in := range strs {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
-			prog, err := p.Parse(newStrictReader(in), "")
+			prog, err := parser.Parse(newStrictReader(in), "")
 			if err != nil {
 				t.Fatalf("Unexpected error in %q: %v", in, err)
 			}
 			checkNewlines(t, in, prog.lines)
-			if _, err := strFprint(prog, PrintConfig{}); err != nil {
+			if _, err := strPrint(printer, prog); err != nil {
 				t.Fatalf("Unexpected error in %q: %v", in, err)
 			}
 		})
 	}
 }
 
-func BenchmarkFprint(b *testing.B) {
+func BenchmarkPrint(b *testing.B) {
 	prog := parsePath(b, canonicalPath)
+	printer := NewPrinter(PrintConfig{})
 	for i := 0; i < b.N; i++ {
-		if err := Fprint(ioutil.Discard, prog); err != nil {
+		if err := printer.Print(ioutil.Discard, prog); err != nil {
 			b.Fatal(err)
 		}
 	}
 }
 
-func TestFprintSpaces(t *testing.T) {
+func TestPrintSpaces(t *testing.T) {
 	var spaceFormats = [...]struct {
 		spaces   int
 		in, want string
@@ -491,20 +494,21 @@ func TestFprintSpaces(t *testing.T) {
 		},
 	}
 
-	p := NewParser(ParseComments)
+	parser := NewParser(ParseComments)
 	for i, tc := range spaceFormats {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
-			prog, err := p.Parse(strings.NewReader(tc.in), "")
+			printer := NewPrinter(PrintConfig{Spaces: tc.spaces})
+			prog, err := parser.Parse(strings.NewReader(tc.in), "")
 			if err != nil {
 				t.Fatal(err)
 			}
 			want := tc.want + "\n"
-			got, err := strFprint(prog, PrintConfig{Spaces: tc.spaces})
+			got, err := strPrint(printer, prog)
 			if err != nil {
 				t.Fatal(err)
 			}
 			if got != want {
-				t.Fatalf("Fprint mismatch:\nin:\n%s\nwant:\n%sgot:\n%s",
+				t.Fatalf("Print mismatch:\nin:\n%s\nwant:\n%sgot:\n%s",
 					tc.in, want, got)
 			}
 		})
@@ -527,7 +531,7 @@ func TestWriteErr(t *testing.T) {
 			Cmd: &Subshell{},
 		},
 	}}
-	err := Fprint(badWriter{}, f)
+	err := NewPrinter(PrintConfig{}).Print(badWriter{}, f)
 	if err == nil {
 		t.Fatalf("Expected error with bad writer")
 	}
@@ -537,7 +541,7 @@ func TestWriteErr(t *testing.T) {
 	}
 }
 
-func TestFprintBinaryNextLine(t *testing.T) {
+func TestPrintBinaryNextLine(t *testing.T) {
 	var tests = [...]printCase{
 		{
 			"foo <<EOF &&\nl1\nEOF\nbar",
@@ -596,20 +600,21 @@ func TestFprintBinaryNextLine(t *testing.T) {
 			"a \\\n\t| b \\\n\t|\n\t#c2\n\tc",
 		},
 	}
-	p := NewParser(ParseComments)
+	parser := NewParser(ParseComments)
+	printer := NewPrinter(PrintConfig{BinaryNextLine: true})
 	for i, tc := range tests {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
-			prog, err := p.Parse(strings.NewReader(tc.in), "")
+			prog, err := parser.Parse(strings.NewReader(tc.in), "")
 			if err != nil {
 				t.Fatal(err)
 			}
 			want := tc.want + "\n"
-			got, err := strFprint(prog, PrintConfig{BinaryNextLine: true})
+			got, err := strPrint(printer, prog)
 			if err != nil {
 				t.Fatal(err)
 			}
 			if got != want {
-				t.Fatalf("Fprint mismatch:\nin:\n%s\nwant:\n%sgot:\n%s",
+				t.Fatalf("Print mismatch:\nin:\n%s\nwant:\n%sgot:\n%s",
 					tc.in, want, got)
 			}
 		})
