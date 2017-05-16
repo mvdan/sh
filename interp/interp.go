@@ -382,12 +382,9 @@ func (r *Runner) cmd(cm syntax.Command) {
 	case *syntax.WhileClause:
 		for r.err == nil {
 			r.stmts(x.CondStmts)
-			if (r.exit == 0) == x.Until {
-				r.exit = 0
-				break
-			}
+			stop := (r.exit == 0) == x.Until
 			r.exit = 0
-			if r.loopStmtsBroken(x.DoStmts) {
+			if stop || r.loopStmtsBroken(x.DoStmts) {
 				break
 			}
 		}
