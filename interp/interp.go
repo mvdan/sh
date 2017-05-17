@@ -263,8 +263,21 @@ func (r *Runner) stmt(st *syntax.Stmt) {
 }
 
 func (r *Runner) assignValue(as *syntax.Assign) varValue {
+	name := as.Name.Value
 	if as.Value != nil {
-		return r.loneWord(as.Value)
+		s := r.loneWord(as.Value)
+		if !as.Append {
+			return s
+		}
+		prev, e := r.lookupVar(name)
+		if !e {
+			return s
+		}
+		switch x := prev.(type) {
+		case string:
+			return x + s
+		}
+		return s
 	}
 	if as.Array != nil {
 		strs := make([]string, len(as.Array.List))

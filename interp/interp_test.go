@@ -121,6 +121,7 @@ var fileCases = []struct {
 	{"foo=bar env | grep '^foo='", "foo=bar\n"},
 	{"foo=a foo=b env | grep '^foo='", "foo=b\n"},
 	{"env | grep '^INTERP_GLOBAL='", "INTERP_GLOBAL=value\n"},
+	{"a=b; a+=c x+=y; echo $a $x", "bc y\n"},
 
 	// special vars
 	{"echo $?; false; echo $?", "0\n1\n"},
