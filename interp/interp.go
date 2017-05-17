@@ -263,14 +263,10 @@ func (r *Runner) stmt(st *syntax.Stmt) {
 }
 
 func (r *Runner) assignValue(as *syntax.Assign) varValue {
-	name := as.Name.Value
+	prev, _ := r.lookupVar(as.Name.Value)
 	if as.Value != nil {
 		s := r.loneWord(as.Value)
-		if !as.Append {
-			return s
-		}
-		prev, e := r.lookupVar(name)
-		if !e {
+		if !as.Append || prev == nil {
 			return s
 		}
 		switch x := prev.(type) {
@@ -290,6 +286,15 @@ func (r *Runner) assignValue(as *syntax.Assign) varValue {
 		for i, w := range as.Array.List {
 			strs[i] = r.loneWord(w)
 		}
+		if !as.Append || prev == nil {
+			return strs
+		}
+		switch x := prev.(type) {
+		case string:
+			return append([]string{x}, strs...)
+		case []string:
+			return append(x, strs...)
+		}
 		return strs
 	}
 	return nil
@@ -298,16 +303,15 @@ func (r *Runner) assignValue(as *syntax.Assign) varValue {
 func (r *Runner) stmtSync(st *syntax.Stmt) {
 	oldVars := r.cmdVars
 	for _, as := range st.Assigns {
-		name := as.Name.Value
 		val := r.assignValue(as)
 		if st.Cmd == nil {
-			r.setVar(name, val)
+			r.setVar(as.Name.Value, val)
 			continue
 		}
 		if r.cmdVars == nil {
 			r.cmdVars = make(map[string]varValue, len(st.Assigns))
 		}
-		r.cmdVars[name] = val
+		r.cmdVars[as.Name.Value] = val
 	}
 	oldIn, oldOut, oldErr := r.Stdin, r.Stdout, r.Stderr
 	for _, rd := range st.Redirs {
