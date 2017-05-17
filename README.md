@@ -46,8 +46,8 @@ validity:
 
 	go get -u github.com/mvdan/sh/cmd/gosh
 
-Experimental shell executable using `interp`. Work in progress and
-unstable - the name and package path might change in the future too.
+Experimental non-interactive shell that uses `interp`. Work in progress,
+so don't expect stability just yet.
 
 ### Fuzzing
 
