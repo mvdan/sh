@@ -205,10 +205,10 @@ var fileCases = []struct {
 		`a='b  c'; eval "echo -n ${a} ${a@Q}"`,
 		`b c b  c`,
 	},
-	//{
-	//        `a='"\n'; printf "%s %s" "${a}" "${a@E}"`,
-	//        "\"\\n \"\n",
-	//},
+	{
+		`a='"\n'; printf "%s %s" "${a}" "${a@E}"`,
+		"\"\\n \"\n",
+	},
 
 	// if
 	{
