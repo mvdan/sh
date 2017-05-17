@@ -9,24 +9,21 @@ import (
 	"strings"
 )
 
-// PrintConfig controls how the printing of an AST node will behave.
-type PrintConfig struct {
-	// Spaces dictates the indentation style. The default value of 0
-	// uses tabs, and any positive value uses that number of spaces.
-	Spaces int
-	// BinaryNextLine makes binary operators (such as &&, || and |)
-	// be at the start of a line if the statement that follows them
-	// is on a separate line. This means that the operator will come
-	// after an escaped newline.
-	BinaryNextLine bool
+func Indent(spaces int) func(*Printer) {
+	return func(p *Printer) { p.indentSpaces = spaces }
 }
 
-func NewPrinter(conf PrintConfig) *Printer {
-	return &Printer{
-		PrintConfig: conf,
-		bufWriter:   bufio.NewWriter(nil),
-		lenPrinter:  new(Printer),
+func BinaryNextLine(p *Printer) { p.binNextLine = true }
+
+func NewPrinter(options ...func(*Printer)) *Printer {
+	p := &Printer{
+		bufWriter:  bufio.NewWriter(nil),
+		lenPrinter: new(Printer),
 	}
+	for _, opt := range options {
+		opt(p)
+	}
+	return p
 }
 
 // Print "pretty-prints" the given AST file to the given writer.
@@ -54,7 +51,9 @@ type bufWriter interface {
 type Printer struct {
 	bufWriter
 
-	PrintConfig
+	indentSpaces int
+	binNextLine  bool
+
 	lines []Pos
 
 	wantSpace   bool
@@ -173,12 +172,12 @@ func (p *Printer) indent() {
 	p.lastLevel = p.level
 	switch {
 	case p.level == 0:
-	case p.Spaces == 0:
+	case p.indentSpaces == 0:
 		for i := 0; i < p.level; i++ {
 			p.WriteByte('\t')
 		}
-	case p.Spaces > 0:
-		p.spaces(p.Spaces * p.level)
+	case p.indentSpaces > 0:
+		p.spaces(p.indentSpaces * p.level)
 	}
 }
 
@@ -645,7 +644,7 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			p.incLevel()
 		}
 		_, p.nestedBinary = x.Y.Cmd.(*BinaryCmd)
-		if p.BinaryNextLine {
+		if p.binNextLine {
 			if len(p.pendingHdocs) == 0 && x.Y.Pos() > p.nline {
 				p.bslashNewl()
 				p.indent()

@@ -16,7 +16,7 @@ func Example() {
 	if err != nil {
 		return
 	}
-	syntax.NewPrinter(syntax.PrintConfig{}).Print(os.Stdout, f)
+	syntax.NewPrinter().Print(os.Stdout, f)
 	// Output:
 	// {
 	//	foo

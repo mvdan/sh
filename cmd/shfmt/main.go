@@ -48,9 +48,11 @@ func main() {
 		lang = syntax.LangPOSIX
 	}
 	parser = syntax.NewParser(syntax.KeepComments, syntax.Variant(lang))
-	printer = syntax.NewPrinter(syntax.PrintConfig{
-		Spaces:         *indent,
-		BinaryNextLine: *binNext,
+	printer = syntax.NewPrinter(func(p *syntax.Printer) {
+		syntax.Indent(*indent)(p)
+		if *binNext {
+			syntax.BinaryNextLine(p)
+		}
 	})
 	if flag.NArg() == 0 {
 		if err := formatStdin(); err != nil {

@@ -15,7 +15,7 @@ import (
 func TestPrintCompact(t *testing.T) {
 	t.Parallel()
 	parser := NewParser()
-	printer := NewPrinter(PrintConfig{})
+	printer := NewPrinter()
 	for i, c := range fileTests {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
 			in := c.Strs[0]
@@ -371,7 +371,7 @@ func TestPrintWeirdFormat(t *testing.T) {
 	}
 
 	parser := NewParser(KeepComments)
-	printer := NewPrinter(PrintConfig{})
+	printer := NewPrinter()
 	for i, tc := range weirdFormats {
 		check := func(t *testing.T, in, want string) {
 			prog, err := parser.Parse(newStrictReader(in), "")
@@ -419,7 +419,7 @@ const canonicalPath = "canonical.sh"
 
 func TestPrintMultiline(t *testing.T) {
 	prog := parsePath(t, canonicalPath)
-	got, err := strPrint(NewPrinter(PrintConfig{}), prog)
+	got, err := strPrint(NewPrinter(), prog)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -442,7 +442,7 @@ func TestFuzzCrashers(t *testing.T) {
 		"<<EOF <`\n#\n`\n``",
 	}
 	parser := NewParser(KeepComments)
-	printer := NewPrinter(PrintConfig{})
+	printer := NewPrinter()
 	for i, in := range strs {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
 			prog, err := parser.Parse(newStrictReader(in), "")
@@ -459,7 +459,7 @@ func TestFuzzCrashers(t *testing.T) {
 
 func BenchmarkPrint(b *testing.B) {
 	prog := parsePath(b, canonicalPath)
-	printer := NewPrinter(PrintConfig{})
+	printer := NewPrinter()
 	for i := 0; i < b.N; i++ {
 		if err := printer.Print(ioutil.Discard, prog); err != nil {
 			b.Fatal(err)
@@ -497,7 +497,7 @@ func TestPrintSpaces(t *testing.T) {
 	parser := NewParser(KeepComments)
 	for i, tc := range spaceFormats {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
-			printer := NewPrinter(PrintConfig{Spaces: tc.spaces})
+			printer := NewPrinter(Indent(tc.spaces))
 			prog, err := parser.Parse(strings.NewReader(tc.in), "")
 			if err != nil {
 				t.Fatal(err)
@@ -531,7 +531,7 @@ func TestWriteErr(t *testing.T) {
 			Cmd: &Subshell{},
 		},
 	}}
-	err := NewPrinter(PrintConfig{}).Print(badWriter{}, f)
+	err := NewPrinter().Print(badWriter{}, f)
 	if err == nil {
 		t.Fatalf("Expected error with bad writer")
 	}
@@ -601,7 +601,7 @@ func TestPrintBinaryNextLine(t *testing.T) {
 		},
 	}
 	parser := NewParser(KeepComments)
-	printer := NewPrinter(PrintConfig{BinaryNextLine: true})
+	printer := NewPrinter(BinaryNextLine)
 	for i, tc := range tests {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
 			prog, err := parser.Parse(strings.NewReader(tc.in), "")
