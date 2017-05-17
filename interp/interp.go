@@ -276,6 +276,12 @@ func (r *Runner) assignValue(as *syntax.Assign) varValue {
 		switch x := prev.(type) {
 		case string:
 			return x + s
+		case []string:
+			if len(x) == 0 {
+				return []string{s}
+			}
+			x[0] += s
+			return x
 		}
 		return s
 	}
