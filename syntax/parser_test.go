@@ -891,20 +891,24 @@ var shellTests = []errorCase{
 		common: `1:19: ; can only immediately follow a statement`,
 	},
 	{
-		in:   "]] )",
-		bash: `1:1: ]] can only be used to close a test`,
+		in:    "]] )",
+		bash:  `1:1: ]] can only be used to close a test`,
+		posix: `1:4: a command can only contain words and redirects`,
 	},
 	{
-		in:   "((foo",
-		bash: `1:1: reached EOF without matching (( with ))`,
+		in:    "((foo",
+		bash:  `1:1: reached EOF without matching (( with ))`,
+		posix: `1:2: reached EOF without matching ( with )`,
 	},
 	{
-		in:   "echo ((foo",
-		bash: `1:6: (( can only be used to open an arithmetic cmd`,
+		in:    "echo ((foo",
+		bash:  `1:6: (( can only be used to open an arithmetic cmd`,
+		posix: `1:1: "foo(" must be followed by )`,
 	},
 	{
-		in:   "echo |&",
-		bash: `1:6: |& must be followed by a statement`,
+		in:    "echo |&",
+		bash:  `1:6: |& must be followed by a statement`,
+		posix: `1:6: | must be followed by a statement`,
 	},
 	{
 		in:   "|& a",
@@ -1219,18 +1223,6 @@ var shellTests = []errorCase{
 		bash: `2:1: $ must be escaped or followed by a literal`,
 	},
 	{
-		in:    "]] )",
-		posix: `1:4: a command can only contain words and redirects`,
-	},
-	{
-		in:    "((foo",
-		posix: `1:2: reached EOF without matching ( with )`,
-	},
-	{
-		in:    "echo ((foo",
-		posix: `1:1: "foo(" must be followed by )`,
-	},
-	{
 		in:    "function foo() { bar; } #INVBASH --posix is wrong",
 		posix: `1:13: a command can only contain words and redirects`,
 	},
@@ -1241,10 +1233,6 @@ var shellTests = []errorCase{
 	{
 		in:    "echo >(",
 		posix: `1:6: > must be followed by a word`,
-	},
-	{
-		in:    "echo |&",
-		posix: `1:6: | must be followed by a statement`,
 	},
 	{
 		in:    "echo ;&",
