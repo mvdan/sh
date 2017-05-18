@@ -955,6 +955,12 @@ var fileCases = []struct {
 		"a=bbb; a+=(c d); echo ${a[@]}",
 		"bbb c d\n",
 	},
+
+	// declare
+	{
+		"declare a=b c=(1 2); echo $a; echo ${c[@]}",
+		"b\n1 2\n",
+	},
 }
 
 // concBuffer wraps a bytes.Buffer in a mutex so that concurrent writes

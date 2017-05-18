@@ -459,6 +459,13 @@ func (r *Runner) cmd(cm syntax.Command) {
 		if r.bashTest(x.X) == "" && r.exit == 0 {
 			r.exit = 1
 		}
+	case *syntax.DeclClause:
+		if len(x.Opts) > 0 {
+			r.runErr(cm.Pos(), "unhandled declare opts")
+		}
+		for _, as := range x.Assigns {
+			r.setVar(as.Name.Value, r.assignValue(as))
+		}
 	default:
 		r.runErr(cm.Pos(), "unhandled command node: %T", x)
 	}
