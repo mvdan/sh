@@ -959,6 +959,14 @@ var fileCases = []struct {
 		"a=bbb; a+=(c d); echo ${a[@]}",
 		"bbb c d\n",
 	},
+	{
+		`a=('a  1' 'b  2'); for e in ${a[@]}; do echo "$e"; done`,
+		"a\n1\nb\n2\n",
+	},
+	//{ TODO
+	//        `a=('a  1' 'b  2'); for e in "${a[@]}"; do echo "$e"; done`,
+	//        "a  1\nb  2\n",
+	//},
 
 	// declare
 	{
