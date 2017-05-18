@@ -940,6 +940,10 @@ var fileCases = []struct {
 		"b c\nb c\n",
 	},
 	{
+		"a=(1 2 3); echo ${a[2-1]}; echo $((a[1+1]))",
+		"2\n3\n",
+	},
+	{
 		"a=(1 2) x=(); a+=b x+=c; echo ${a[@]}; echo ${x[@]}",
 		"1b 2\nc\n",
 	},
