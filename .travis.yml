@@ -8,7 +8,6 @@ before_install:
   - go get -u github.com/mattn/goveralls
 
 script:
-  - bash --version
   - go test ./...
   - go test -short -race ./...
   - shfmt -version
