@@ -522,6 +522,7 @@ type badWriter struct{}
 func (b badWriter) Write(p []byte) (int, error) { return 0, errBadWriter }
 
 func TestWriteErr(t *testing.T) {
+	_ = (*byteCounter)(nil).Flush()
 	f := &File{Stmts: []*Stmt{
 		{
 			Redirs: []*Redirect{{

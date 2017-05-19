@@ -34,18 +34,14 @@ func (p *Printer) Print(w io.Writer, f *File) error {
 	p.stmts(f.Stmts)
 	p.commentsUpTo(0)
 	p.newline(0)
-	if flusher, ok := p.bufWriter.(interface {
-		Flush() error
-	}); ok {
-		return flusher.Flush()
-	}
-	return nil
+	return p.bufWriter.Flush()
 }
 
 type bufWriter interface {
 	WriteByte(byte) error
 	WriteString(string) (int, error)
 	Reset(io.Writer)
+	Flush() error
 }
 
 type Printer struct {
@@ -878,6 +874,7 @@ func (c *byteCounter) WriteString(s string) (int, error) {
 	return 0, nil
 }
 func (c *byteCounter) Reset(io.Writer) { *c = 0 }
+func (c *byteCounter) Flush() error    { return nil }
 
 // stmtCols reports the length that s will take when formatted in a
 // single line. If it will span multiple lines, stmtCols will return -1.
