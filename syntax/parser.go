@@ -1070,7 +1070,6 @@ func validIdent(val string, bash bool) bool {
 		case 'A' <= c && c <= 'Z':
 		case c == '_':
 		case i > 0 && '0' <= c && c <= '9':
-		case i > 0 && (c == '[' || c == ']') && bash:
 		case c == '+' && i == len(val)-1 && bash:
 		default:
 			return false
