@@ -771,7 +771,7 @@ func (p *Parser) arithmExpr(ftok token, fpos Pos, level int, compact, tern bool)
 		}
 	case AddAssgn, SubAssgn, MulAssgn, QuoAssgn, RemAssgn, AndAssgn,
 		OrAssgn, XorAssgn, ShlAssgn, ShrAssgn, Assgn:
-		if l, ok := b.X.(*Lit); !ok || !validIdent(l.Value, p.bash()) {
+		if l, ok := b.X.(*Lit); !ok || !validIdent(l.Value) {
 			p.posErr(b.OpPos, "%s must follow a name", b.Op.String())
 		}
 	}
@@ -868,7 +868,7 @@ func (p *Parser) arithmExprBase(compact bool) ArithmExpr {
 	if p.tok == addAdd || p.tok == subSub {
 		switch y := x.(type) {
 		case *Lit:
-			if !validIdent(y.Value, p.bash()) {
+			if !validIdent(y.Value) {
 				p.curErr("%s must follow a name", p.tok.String())
 			}
 		case *ParamExp:
@@ -1063,14 +1063,13 @@ func stopToken(tok token) bool {
 	return false
 }
 
-func validIdent(val string, bash bool) bool {
+func validIdent(val string) bool {
 	for i, c := range val {
 		switch {
 		case 'a' <= c && c <= 'z':
 		case 'A' <= c && c <= 'Z':
 		case c == '_':
 		case i > 0 && '0' <= c && c <= '9':
-		case c == '+' && i == len(val)-1 && bash:
 		default:
 			return false
 		}
@@ -1079,8 +1078,13 @@ func validIdent(val string, bash bool) bool {
 }
 
 func (p *Parser) hasValidIdent() bool {
-	if p.asPos > 0 && validIdent(p.val[:p.asPos], p.bash()) {
-		return true
+	if end := p.asPos; end > 0 {
+		if p.val[end-1] == '+' && p.bash() {
+			end--
+		}
+		if validIdent(p.val[:end]) {
+			return true
+		}
 	}
 	return p.tok == _Lit && p.r == '['
 }
@@ -1318,6 +1322,9 @@ func (p *Parser) gotStmtPipe(s *Stmt) *Stmt {
 			name := p.lit(p.pos, p.val)
 			if p.next(); p.gotSameLine(leftParen) {
 				p.follow(name.ValuePos, "foo(", rightParen)
+				if !p.bash() && !validIdent(name.Value) {
+					p.posErr(name.Pos(), "invalid func name")
+				}
 				s.Cmd = p.funcDecl(name, name.ValuePos)
 			} else {
 				s.Cmd = p.callExpr(s, p.word(p.wps(name)))

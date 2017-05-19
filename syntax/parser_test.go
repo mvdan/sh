@@ -514,6 +514,14 @@ var shellTests = []errorCase{
 		common: `1:7: reached EOF without matching { with }`,
 	},
 	{
+		in:    "foo-bar() { x; }",
+		posix: `1:1: invalid func name`,
+	},
+	{
+		in:    "foò() { x; }",
+		posix: `1:1: invalid func name`,
+	},
+	{
 		in:     "echo foo(",
 		common: `1:9: a command can only contain words and redirects`,
 	},
