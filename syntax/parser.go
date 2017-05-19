@@ -903,7 +903,7 @@ func (p *Parser) shortParamExp() *ParamExp {
 		p.advanceLitOther(p.r)
 		p.quote = old
 		if p.val == "" || p.val == "\x80" {
-			p.posErr(pe.Dollar, "$ must be escaped or followed by a literal")
+			p.posErr(pe.Dollar, "$ literal must be escaped or single-quoted")
 		}
 	}
 	pe.Param = p.getLit()

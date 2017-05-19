@@ -307,27 +307,27 @@ var shellTests = []errorCase{
 	},
 	{
 		in:     `$`,
-		common: `1:1: $ must be escaped or followed by a literal #NOERR`,
+		common: `1:1: $ literal must be escaped or single-quoted #NOERR`,
 	},
 	{
 		in:     `$ #`,
-		common: `1:1: $ must be escaped or followed by a literal #NOERR`,
+		common: `1:1: $ literal must be escaped or single-quoted #NOERR`,
 	},
 	{
 		in:     `foo$`,
-		common: `1:4: $ must be escaped or followed by a literal #NOERR`,
+		common: `1:4: $ literal must be escaped or single-quoted #NOERR`,
 	},
 	{
 		in:     `"$"`,
-		common: `1:2: $ must be escaped or followed by a literal #NOERR`,
+		common: `1:2: $ literal must be escaped or single-quoted #NOERR`,
 	},
 	{
 		in:     `($)`,
-		common: `1:2: $ must be escaped or followed by a literal #NOERR`,
+		common: `1:2: $ literal must be escaped or single-quoted #NOERR`,
 	},
 	{
 		in:     `$(foo$)`,
-		common: `1:6: $ must be escaped or followed by a literal #NOERR`,
+		common: `1:6: $ literal must be escaped or single-quoted #NOERR`,
 	},
 	{
 		in:     "echo $((foo\x80bar",
@@ -1167,7 +1167,7 @@ var shellTests = []errorCase{
 	},
 	{
 		in:   `$"foo$"`,
-		bash: `1:6: $ must be escaped or followed by a literal #NOERR`,
+		bash: `1:6: $ literal must be escaped or single-quoted #NOERR`,
 	},
 	{
 		in:   "echo @(",
@@ -1263,7 +1263,7 @@ var shellTests = []errorCase{
 	},
 	{
 		in:   "a <<EOF\n$''$bar\nEOF",
-		bash: `2:1: $ must be escaped or followed by a literal #NOERR`,
+		bash: `2:1: $ literal must be escaped or single-quoted #NOERR`,
 	},
 	{
 		in:    "function foo() { bar; }",
@@ -1291,19 +1291,19 @@ var shellTests = []errorCase{
 	},
 	{
 		in:    `$''`,
-		posix: `1:1: $ must be escaped or followed by a literal #NOERR`,
+		posix: `1:1: $ literal must be escaped or single-quoted #NOERR`,
 	},
 	{
 		in:    `$""`,
-		posix: `1:1: $ must be escaped or followed by a literal #NOERR`,
+		posix: `1:1: $ literal must be escaped or single-quoted #NOERR`,
 	},
 	{
 		in:    `$[foo]`,
-		posix: `1:1: $ must be escaped or followed by a literal #NOERR`,
+		posix: `1:1: $ literal must be escaped or single-quoted #NOERR`,
 	},
 	{
 		in:    `"$[foo]"`,
-		posix: `1:2: $ must be escaped or followed by a literal #NOERR`,
+		posix: `1:2: $ literal must be escaped or single-quoted #NOERR`,
 	},
 	{
 		in:    "echo !(a)",
