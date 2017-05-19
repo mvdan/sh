@@ -1192,6 +1192,9 @@ func (p *Parser) getStmt(readEnd, binCmd bool) (s *Stmt, gotEnd bool) {
 	s = p.stmt(p.pos)
 	if p.gotRsrv("!") {
 		s.Negated = true
+		if p.newLine || stopToken(p.tok) {
+			p.posErr(s.Pos(), `! cannot form a statement alone`)
+		}
 	}
 preLoop:
 	for {

@@ -1216,11 +1216,6 @@ var fileTests = []testCase{
 		),
 	},
 	{
-		Strs: []string{"!"},
-		// note that dash won't accept it
-		bash: &Stmt{Negated: true},
-	},
-	{
 		Strs: []string{"! foo"},
 		common: &Stmt{
 			Negated: true,

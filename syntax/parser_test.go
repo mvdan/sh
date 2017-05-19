@@ -354,6 +354,10 @@ var shellTests = []errorCase{
 		common: `1:12: invalid UTF-8 encoding`,
 	},
 	{
+		in:     "!",
+		common: `1:1: ! cannot form a statement alone`,
+	},
+	{
 		in:     "}",
 		common: `1:1: } can only be used to close a block`,
 	},
