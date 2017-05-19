@@ -59,12 +59,16 @@ func TestParsePosix(t *testing.T) {
 	}
 }
 
-var hasBash44 bool
+var (
+	hasBash44 bool
+	hasDash   bool
+)
 
 func TestMain(m *testing.M) {
 	os.Setenv("LANGUAGE", "en_US.UTF8")
 	os.Setenv("LC_ALL", "en_US.UTF8")
 	hasBash44 = checkBash()
+	hasDash = checkDash()
 	os.Exit(m.Run())
 }
 
@@ -76,25 +80,23 @@ func checkBash() bool {
 	return strings.HasPrefix(string(out), "4.4")
 }
 
+func checkDash() bool {
+	_, err := exec.LookPath("dash")
+	return err == nil
+}
+
 var extGlobRe = regexp.MustCompile(`[@?*+!]\(`)
 
-func confirmParse(in string, posix, fail bool) func(*testing.T) {
+func confirmParse(in, cmd string, wantErr bool) func(*testing.T) {
 	return func(t *testing.T) {
 		t.Parallel()
 		var opts []string
-		if posix {
-			opts = append(opts, "--posix")
-		}
-		if i := strings.Index(in, " #INVBASH"); i >= 0 {
-			fail = !fail
-			in = in[:i]
-		}
-		if extGlobRe.MatchString(in) {
+		if cmd == "bash" && extGlobRe.MatchString(in) {
 			// otherwise bash refuses to parse these
 			// properly. Also avoid -n since that too makes
 			// bash bail.
 			in = "shopt -s extglob\n" + in
-		} else if !fail {
+		} else if !wantErr {
 			// -n makes bash accept invalid inputs like
 			// "let" or "`{`", so only use it in
 			// non-erroring tests. Should be safe to not use
@@ -104,7 +106,7 @@ func confirmParse(in string, posix, fail bool) func(*testing.T) {
 			// as extglob is not actually applied.
 			opts = append(opts, "-n")
 		}
-		cmd := exec.Command("bash", opts...)
+		cmd := exec.Command(cmd, opts...)
 		cmd.Stdin = strings.NewReader(in)
 		var stderr bytes.Buffer
 		cmd.Stderr = &stderr
@@ -120,9 +122,9 @@ func confirmParse(in string, posix, fail bool) func(*testing.T) {
 		if err != nil && strings.Contains(err.Error(), "command not found") {
 			err = nil
 		}
-		if fail && err == nil {
+		if wantErr && err == nil {
 			t.Fatalf("Expected error in `%s` of %q, found none", strings.Join(cmd.Args, " "), in)
-		} else if !fail && err != nil {
+		} else if !wantErr && err != nil {
 			t.Fatalf("Unexpected error in `%s` of %q: %v", strings.Join(cmd.Args, " "), in, err)
 		}
 	}
@@ -138,7 +140,7 @@ func TestParseBashConfirm(t *testing.T) {
 	for i, c := range append(fileTests, fileTestsNoPrint...) {
 		for j, in := range c.Strs {
 			t.Run(fmt.Sprintf("%03d-%d", i, j),
-				confirmParse(in, false, false))
+				confirmParse(in, "bash", false))
 		}
 	}
 }
@@ -152,10 +154,15 @@ func TestParseErrBashConfirm(t *testing.T) {
 	}
 	i := 0
 	for _, c := range shellTests {
-		if c.bash == nil && c.common == nil {
+		want := c.common
+		if c.bash != nil {
+			want = c.bash
+		}
+		if want == nil {
 			continue
 		}
-		t.Run(fmt.Sprintf("%03d", i), confirmParse(c.in, false, true))
+		wantErr := !strings.Contains(want.(string), " #NOERR")
+		t.Run(fmt.Sprintf("%03d", i), confirmParse(c.in, "bash", wantErr))
 		i++
 	}
 }
@@ -164,24 +171,26 @@ func TestParseErrPosixConfirm(t *testing.T) {
 	if testing.Short() {
 		t.Skip("calling bash is slow.")
 	}
-	if !hasBash44 {
-		t.Skip("bash 4.4 required to run")
+	if !hasDash {
+		t.Skip("dash required to run")
 	}
 	i := 0
 	for _, c := range shellTests {
-		if c.posix == nil && c.common == nil {
+		want := c.common
+		if c.posix != nil {
+			want = c.posix
+		}
+		if want == nil {
 			continue
 		}
-		t.Run(fmt.Sprintf("%03d", i), confirmParse(c.in, true, true))
+		wantErr := !strings.Contains(want.(string), " #NOERR")
+		t.Run(fmt.Sprintf("%03d", i), confirmParse(c.in, "dash", wantErr))
 		i++
 	}
 }
 
 func singleParse(p *Parser, in string, want *File) func(t *testing.T) {
 	return func(t *testing.T) {
-		if i := strings.Index(in, " #INVBASH"); i >= 0 {
-			in = in[:i]
-		}
 		got, err := p.Parse(newStrictReader(in), "")
 		if err != nil {
 			t.Fatalf("Unexpected error in %q: %v", in, err)
@@ -249,48 +258,56 @@ type errorCase struct {
 
 var shellTests = []errorCase{
 	{
-		in:     "echo \x80 #INVBASH bash uses bytes",
-		common: `1:6: invalid UTF-8 encoding`,
+		in:     "echo \x80",
+		common: `1:6: invalid UTF-8 encoding #NOERR bash uses bytes`,
 	},
 	{
-		in:     "\necho \x80 #INVBASH bash uses bytes",
-		common: `2:6: invalid UTF-8 encoding`,
+		in:     "\necho \x80",
+		common: `2:6: invalid UTF-8 encoding #NOERR bash uses bytes`,
 	},
 	{
-		in:     "echo foo\x80bar #INVBASH bash uses bytes",
-		common: `1:9: invalid UTF-8 encoding`,
+		in:     "echo foo\x80bar",
+		common: `1:9: invalid UTF-8 encoding #NOERR bash uses bytes`,
 	},
 	{
-		in:     "echo foo\xc3 #INVBASH bash uses bytes",
-		common: `1:9: invalid UTF-8 encoding`,
+		in:     "echo foo\xc3",
+		common: `1:9: invalid UTF-8 encoding #NOERR bash uses bytes`,
 	},
 	{
-		in:     "#foo\xc3 #INVBASH bash uses bytes",
-		common: `1:5: invalid UTF-8 encoding`,
+		in:     "#foo\xc3",
+		common: `1:5: invalid UTF-8 encoding #NOERR bash uses bytes`,
 	},
 	{
-		in:     `$ #INVBASH`,
-		common: `1:1: $ must be escaped or followed by a literal`,
+		in:     "echo a\x80",
+		common: `1:7: invalid UTF-8 encoding #NOERR bash uses bytes`,
 	},
 	{
-		in:     `$ # #INVBASH`,
-		common: `1:1: $ must be escaped or followed by a literal`,
+		in:     "<<$\xc8",
+		common: `1:4: invalid UTF-8 encoding #NOERR bash uses bytes`,
 	},
 	{
-		in:     `foo$ #INVBASH`,
-		common: `1:4: $ must be escaped or followed by a literal`,
+		in:     `$`,
+		common: `1:1: $ must be escaped or followed by a literal #NOERR`,
 	},
 	{
-		in:     `"$" #INVBASH`,
-		common: `1:2: $ must be escaped or followed by a literal`,
+		in:     `$ #`,
+		common: `1:1: $ must be escaped or followed by a literal #NOERR`,
 	},
 	{
-		in:     `($) #INVBASH`,
-		common: `1:2: $ must be escaped or followed by a literal`,
+		in:     `foo$`,
+		common: `1:4: $ must be escaped or followed by a literal #NOERR`,
 	},
 	{
-		in:     `$(foo$) #INVBASH`,
-		common: `1:6: $ must be escaped or followed by a literal`,
+		in:     `"$"`,
+		common: `1:2: $ must be escaped or followed by a literal #NOERR`,
+	},
+	{
+		in:     `($)`,
+		common: `1:2: $ must be escaped or followed by a literal #NOERR`,
+	},
+	{
+		in:     `$(foo$)`,
+		common: `1:6: $ must be escaped or followed by a literal #NOERR`,
 	},
 	{
 		in:     "echo $((foo\x80bar",
@@ -305,10 +322,6 @@ var shellTests = []errorCase{
 		common: `1:2: invalid UTF-8 encoding`,
 	},
 	{
-		in:     "echo a\x80 #INVBASH bash uses bytes",
-		common: `1:7: invalid UTF-8 encoding`,
-	},
-	{
 		in:     "${a\x80",
 		common: `1:4: invalid UTF-8 encoding`,
 	},
@@ -319,10 +332,6 @@ var shellTests = []errorCase{
 	{
 		in:     "echo $((a |\x80",
 		common: `1:12: invalid UTF-8 encoding`,
-	},
-	{
-		in:     "<<$\xc8 #INVBASH bash uses bytes",
-		common: `1:4: invalid UTF-8 encoding`,
 	},
 	{
 		in:     "}",
@@ -733,8 +742,8 @@ var shellTests = []errorCase{
 		common: `1:10: = must follow a name`,
 	},
 	{
-		in:     "echo $(($0=2)) #INVBASH",
-		common: `1:11: = must follow a name`,
+		in:     "echo $(($0=2))",
+		common: `1:11: = must follow a name #NOERR`,
 	},
 	{
 		in:     "echo $(('1=2'))",
@@ -845,39 +854,41 @@ var shellTests = []errorCase{
 		common: "1:2: reached ` without matching { with }",
 	},
 	{
-		in:     "echo \"`)`\"",
-		common: `1:8: ) can only be used to close a subshell`,
+		in:    "echo \"`)`\"",
+		bash:  `1:8: ) can only be used to close a subshell`,
+		posix: `1:8: ) can only be used to close a subshell #NOERR dash bug`,
 	},
 	{
-		in:     "<<$bar #INVBASH bash allows this",
-		common: `1:3: expansions not allowed in heredoc words`,
+		in:     "<<$bar",
+		common: `1:3: expansions not allowed in heredoc words #NOERR`,
 	},
 	{
-		in:     "<<${bar} #INVBASH bash allows this",
-		common: `1:3: expansions not allowed in heredoc words`,
+		in:     "<<${bar}",
+		common: `1:3: expansions not allowed in heredoc words #NOERR`,
 	},
 	{
-		in:     "<<$(bar) #INVBASH bash allows this",
-		common: `1:3: expansions not allowed in heredoc words`,
+		in:    "<<$(bar)",
+		bash:  `1:3: expansions not allowed in heredoc words #NOERR`,
+		posix: `1:3: expansions not allowed in heredoc words`,
 	},
 	{
-		in:     "<<$+ #INVBASH bash allows this",
-		common: `1:3: expansions not allowed in heredoc words`,
+		in:     "<<$+",
+		common: `1:3: expansions not allowed in heredoc words #NOERR`,
 	},
 	{
-		in:     "<<`bar` #INVBASH bash allows this",
-		common: `1:3: expansions not allowed in heredoc words`,
+		in:     "<<`bar`",
+		common: `1:3: expansions not allowed in heredoc words #NOERR`,
 	},
 	{
-		in:     `<<"$bar" #INVBASH bash allows this`,
-		common: `1:4: expansions not allowed in heredoc words`,
+		in:     `<<"$bar"`,
+		common: `1:4: expansions not allowed in heredoc words #NOERR`,
 	},
 	{
-		in:     "<<$ #INVBASH",
-		common: `1:3: expansions not allowed in heredoc words`,
+		in:     "<<$",
+		common: `1:3: expansions not allowed in heredoc words #NOERR`,
 	},
 	{
-		in:     "<<a <<0\n$(<<$<< #INVBASH",
+		in:     "<<a <<0\n$(<<$<<",
 		common: `2:5: expansions not allowed in heredoc words`,
 	},
 	{
@@ -1091,8 +1102,8 @@ var shellTests = []errorCase{
 		bash: `1:2: reached EOF without matching [ with ]`,
 	},
 	{
-		in:   "a[] #INVBASH allows as a cmd",
-		bash: `1:2: [ must be followed by an expression`,
+		in:   "a[]",
+		bash: `1:2: [ must be followed by an expression #NOERR is cmd`,
 	},
 	{
 		in:   "echo $((a[))",
@@ -1107,8 +1118,8 @@ var shellTests = []errorCase{
 		bash: `1:11: [ must be followed by an expression`,
 	},
 	{
-		in:   "a[1] #INVBASH allows as a cmd",
-		bash: `1:1: "a[b]" must be followed by =`,
+		in:   "a[1]",
+		bash: `1:1: "a[b]" must be followed by = #NOERR is cmd`,
 	},
 	{
 		in:   "echo $[foo",
@@ -1123,8 +1134,8 @@ var shellTests = []errorCase{
 		bash: `1:6: reached EOF without closing quote "`,
 	},
 	{
-		in:   `$"foo$" #INVBASH`,
-		bash: `1:6: $ must be escaped or followed by a literal`,
+		in:   `$"foo$"`,
+		bash: `1:6: $ must be escaped or followed by a literal #NOERR`,
 	},
 	{
 		in:   "echo @(",
@@ -1183,8 +1194,8 @@ var shellTests = []errorCase{
 		bash: `1:11: : must be followed by an expression`,
 	},
 	{
-		in:   "echo ${foo:1 2} #INVBASH lazy eval",
-		bash: `1:14: not a valid arithmetic operator: 2`,
+		in:   "echo ${foo:1 2}",
+		bash: `1:14: not a valid arithmetic operator: 2 #NOERR lazy eval`,
 	},
 	{
 		in:   "echo ${foo:1",
@@ -1207,23 +1218,23 @@ var shellTests = []errorCase{
 		bash: `1:6: reached EOF without matching ${ with }`,
 	},
 	{
-		in:   `echo $((echo a); (echo b)) #INVBASH bash does backtrack`,
-		bash: `1:14: not a valid arithmetic operator: a`,
+		in:   `echo $((echo a); (echo b))`,
+		bash: `1:14: not a valid arithmetic operator: a #NOERR backtrack`,
 	},
 	{
-		in:   `((echo a); (echo b)) #INVBASH bash does backtrack`,
-		bash: `1:8: not a valid arithmetic operator: a`,
+		in:   `((echo a); (echo b))`,
+		bash: `1:8: not a valid arithmetic operator: a #NOERR backtrack`,
 	},
 	{
 		in:   "for ((;;0000000",
 		bash: `1:5: reached EOF without matching (( with ))`,
 	},
 	{
-		in:   "a <<EOF\n$''$bar\nEOF #INVBASH",
-		bash: `2:1: $ must be escaped or followed by a literal`,
+		in:   "a <<EOF\n$''$bar\nEOF",
+		bash: `2:1: $ must be escaped or followed by a literal #NOERR`,
 	},
 	{
-		in:    "function foo() { bar; } #INVBASH --posix is wrong",
+		in:    "function foo() { bar; }",
 		posix: `1:13: a command can only contain words and redirects`,
 	},
 	{
@@ -1243,63 +1254,63 @@ var shellTests = []errorCase{
 		posix: `1:6: ;; can only be used in a case clause`,
 	},
 	{
-		in:    "for ((i=0; i<5; i++)); do echo; done #INVBASH --posix is wrong",
+		in:    "for ((i=0; i<5; i++)); do echo; done",
 		posix: `1:1: "for" must be followed by a literal`,
 	},
 	{
-		in:    `$'' #INVBASH`,
-		posix: `1:1: $ must be escaped or followed by a literal`,
+		in:    `$''`,
+		posix: `1:1: $ must be escaped or followed by a literal #NOERR`,
 	},
 	{
-		in:    `$"" #INVBASH`,
-		posix: `1:1: $ must be escaped or followed by a literal`,
+		in:    `$""`,
+		posix: `1:1: $ must be escaped or followed by a literal #NOERR`,
 	},
 	{
-		in:    `$[foo] #INVBASH`,
-		posix: `1:1: $ must be escaped or followed by a literal`,
+		in:    `$[foo]`,
+		posix: `1:1: $ must be escaped or followed by a literal #NOERR`,
 	},
 	{
-		in:    `"$[foo]" #INVBASH`,
-		posix: `1:2: $ must be escaped or followed by a literal`,
+		in:    `"$[foo]"`,
+		posix: `1:2: $ must be escaped or followed by a literal #NOERR`,
 	},
 	{
-		in:    "echo !(a) #INVBASH --posix is wrong",
+		in:    "echo !(a)",
 		posix: `1:6: extended globs are a bash feature`,
 	},
 	{
-		in:    "echo $a@(b) #INVBASH --posix is wrong",
+		in:    "echo $a@(b)",
 		posix: `1:8: extended globs are a bash feature`,
 	},
 	{
-		in:    "foo=(1 2) #INVBASH --posix is wrong",
+		in:    "foo=(1 2)",
 		posix: `1:5: arrays are a bash feature`,
 	},
 	{
-		in:    "echo ${foo[1]} #INVBASH --posix is wrong",
-		posix: `1:11: arrays are a bash feature`,
+		in:    "echo ${foo[1]}",
+		posix: `1:11: arrays are a bash feature #NOERR lazy eval`,
 	},
 	{
-		in:    "echo ${foo/a/b} #INVBASH --posix is wrong",
-		posix: `1:11: search and replace is a bash feature`,
+		in:    "echo ${foo/a/b}",
+		posix: `1:11: search and replace is a bash feature #NOERR lazy eval`,
 	},
 	{
-		in:    "echo ${foo:1} #INVBASH --posix is wrong",
-		posix: `1:11: slicing is a bash feature`,
+		in:    "echo ${foo:1}",
+		posix: `1:11: slicing is a bash feature #NOERR lazy eval`,
 	},
 	{
-		in:    "echo ${foo,bar} #INVBASH --posix is wrong",
-		posix: `1:11: this expansion operator is a bash feature`,
+		in:    "echo ${foo,bar}",
+		posix: `1:11: this expansion operator is a bash feature #NOERR lazy eval`,
 	},
 	{
-		in:    "echo ${foo@bar} #INVBASH --posix is wrong",
-		posix: `1:11: this expansion operator is a bash feature`,
+		in:    "echo ${foo@bar}",
+		posix: `1:11: this expansion operator is a bash feature #NOERR lazy eval`,
 	},
 }
 
 func checkError(p *Parser, in, want string) func(*testing.T) {
 	return func(t *testing.T) {
-		if i := strings.Index(in, " #INVBASH"); i >= 0 {
-			in = in[:i]
+		if i := strings.Index(want, " #NOERR"); i >= 0 {
+			want = want[:i]
 		}
 		_, err := p.Parse(newStrictReader(in), "")
 		if err == nil {
@@ -1347,8 +1358,8 @@ func TestParseErrBash(t *testing.T) {
 }
 
 func TestInputName(t *testing.T) {
-	in := shellTests[0].in
-	want := "some-file.sh:" + shellTests[0].common.(string)
+	in := "("
+	want := "some-file.sh:1:1: reached EOF without matching ( with )"
 	p := NewParser()
 	_, err := p.Parse(strings.NewReader(in), "some-file.sh")
 	if err == nil {
