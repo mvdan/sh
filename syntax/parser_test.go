@@ -145,6 +145,26 @@ func TestParseBashConfirm(t *testing.T) {
 	}
 }
 
+func TestParsePosixConfirm(t *testing.T) {
+	if testing.Short() {
+		t.Skip("calling dash is slow.")
+	}
+	if !hasDash {
+		t.Skip("dash required to run")
+	}
+	i := 0
+	for _, c := range append(fileTests, fileTestsNoPrint...) {
+		if c.Posix == nil {
+			continue
+		}
+		for j, in := range c.Strs {
+			t.Run(fmt.Sprintf("%03d-%d", i, j),
+				confirmParse(in, "dash", false))
+		}
+		i++
+	}
+}
+
 func TestParseErrBashConfirm(t *testing.T) {
 	if testing.Short() {
 		t.Skip("calling bash is slow.")
@@ -169,7 +189,7 @@ func TestParseErrBashConfirm(t *testing.T) {
 
 func TestParseErrPosixConfirm(t *testing.T) {
 	if testing.Short() {
-		t.Skip("calling bash is slow.")
+		t.Skip("calling dash is slow.")
 	}
 	if !hasDash {
 		t.Skip("dash required to run")

@@ -521,8 +521,15 @@ var fileTests = []testCase{
 		},
 	},
 	{
-		Strs: []string{"-foo_.,+-bar() { a; }"},
+		Strs: []string{"foO_123() { a; }"},
 		common: &FuncDecl{
+			Name: lit("foO_123"),
+			Body: stmt(block(litStmt("a"))),
+		},
+	},
+	{
+		Strs: []string{"-foo_.,+-bar() { a; }"},
+		bash: &FuncDecl{
 			Name: lit("-foo_.,+-bar"),
 			Body: stmt(block(litStmt("a"))),
 		},
@@ -829,7 +836,8 @@ var fileTests = []testCase{
 			"$(\n\tfoo\n) <<EOF\nbar\nEOF",
 			"<<EOF $(\n\tfoo\n)\nbar\nEOF",
 		},
-		common: &Stmt{
+		// note that dash won't accept the second one
+		bash: &Stmt{
 			Cmd: call(word(cmdSubst(litStmt("foo")))),
 			Redirs: []*Redirect{{
 				Op:   Hdoc,
@@ -1208,8 +1216,9 @@ var fileTests = []testCase{
 		),
 	},
 	{
-		Strs:   []string{"!"},
-		common: &Stmt{Negated: true},
+		Strs: []string{"!"},
+		// note that dash won't accept it
+		bash: &Stmt{Negated: true},
 	},
 	{
 		Strs: []string{"! foo"},
