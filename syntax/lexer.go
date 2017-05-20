@@ -756,7 +756,7 @@ loop:
 			if p.quote&allParamReg != 0 {
 				break loop
 			}
-			if r == '[' && p.bash() && p.quote&allArithmExpr != 0 {
+			if r == '[' && p.lang != LangPOSIX && p.quote&allArithmExpr != 0 {
 				break loop
 			}
 		case '+':
@@ -829,7 +829,7 @@ loop:
 		case '=':
 			p.asPos = len(p.litBs) - 1
 		case '[':
-			if p.bash() && len(p.litBs) > 1 && p.litBs[0] != '[' {
+			if p.lang != LangPOSIX && len(p.litBs) > 1 && p.litBs[0] != '[' {
 				tok = _Lit
 				break loop
 			}

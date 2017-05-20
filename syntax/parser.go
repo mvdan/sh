@@ -965,7 +965,7 @@ func (p *Parser) paramExp() *ParamExp {
 		return pe
 	}
 	if p.tok == leftBrack {
-		if !p.bash() {
+		if p.lang == LangPOSIX {
 			p.curErr("arrays are a bash feature")
 		}
 		lpos := p.pos
@@ -1138,7 +1138,7 @@ func (p *Parser) getAssign() *Assign {
 		}
 	}
 	if as.Value == nil && p.tok == leftParen {
-		if !p.bash() {
+		if p.lang == LangPOSIX {
 			p.curErr("arrays are a bash feature")
 		}
 		as.Array = &ArrayExpr{Lparen: p.pos}
@@ -1616,6 +1616,9 @@ func (p *Parser) testExpr(ftok token, fpos Pos, level int) TestExpr {
 			p.followErrExp(b.OpPos, b.Op.String())
 		}
 	case TsReMatch:
+		if p.lang != LangBash {
+			p.curErr("regex tests are a bash feature")
+		}
 		old := p.preNested(testRegexp)
 		defer p.postNested(old)
 		fallthrough
@@ -1635,7 +1638,15 @@ func (p *Parser) testExprBase(ftok token, fpos Pos) TestExpr {
 	case _EOF:
 		return nil
 	case _LitWord:
-		if op := testUnaryOp(p.val); op != illegalTok {
+		op := testUnaryOp(p.val)
+		switch op {
+		case illegalTok:
+		case tsRefVar, tsModif:
+			// TODO: check with man mksh
+			if p.lang == LangBash {
+				p.tok = op
+			}
+		default:
 			p.tok = op
 		}
 	}

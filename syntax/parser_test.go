@@ -1154,7 +1154,8 @@ var shellTests = []errorCase{
 	},
 	{
 		in:   "[[ a =~",
-		bsmk: `1:6: =~ must be followed by a word`,
+		bash: `1:6: =~ must be followed by a word`,
+		mksh: `1:6: regex tests are a bash feature`,
 	},
 	{
 		in:   "[[ -f a",
@@ -1166,7 +1167,7 @@ var shellTests = []errorCase{
 	},
 	{
 		in:   "[[ a =~ b",
-		bsmk: `1:1: reached EOF without matching [[ with ]]`,
+		bash: `1:1: reached EOF without matching [[ with ]]`,
 	},
 	{
 		in:   "[[ a b c ]]",
@@ -1194,7 +1195,7 @@ var shellTests = []errorCase{
 	},
 	{
 		in:   "[[ a =~ ; ]]",
-		bsmk: `1:6: =~ must be followed by a word`,
+		bash: `1:6: =~ must be followed by a word`,
 	},
 	{
 		in:   "[[ >",
@@ -1210,7 +1211,7 @@ var shellTests = []errorCase{
 	},
 	{
 		in:   "a=(<)",
-		bash: `1:4: array elements must be words`,
+		bsmk: `1:4: array elements must be words`,
 	},
 	{
 		in:   "function",
@@ -1238,31 +1239,32 @@ var shellTests = []errorCase{
 	},
 	{
 		in:   "a[",
-		bash: `1:2: [ must be followed by an expression`,
+		bsmk: `1:2: [ must be followed by an expression`,
 	},
 	{
 		in:   "a[b",
-		bash: `1:2: reached EOF without matching [ with ]`,
+		bsmk: `1:2: reached EOF without matching [ with ]`,
 	},
 	{
 		in:   "a[]",
-		bash: `1:2: [ must be followed by an expression #NOERR is cmd`,
+		bsmk: `1:2: [ must be followed by an expression #NOERR is cmd`,
 	},
 	{
 		in:   "echo $((a[))",
-		bash: `1:11: [ must be followed by an expression`,
+		bsmk: `1:11: [ must be followed by an expression`,
 	},
 	{
 		in:   "echo $((a[b))",
-		bash: `1:11: reached ) without matching [ with ]`,
+		bsmk: `1:11: reached ) without matching [ with ]`,
 	},
 	{
 		in:   "echo $((a[]))",
 		bash: `1:11: [ must be followed by an expression`,
+		mksh: `1:11: [ must be followed by an expression #NOERR wrong?`,
 	},
 	{
 		in:   "a[1]",
-		bash: `1:1: "a[b]" must be followed by = #NOERR is cmd`,
+		bsmk: `1:1: "a[b]" must be followed by = #NOERR is cmd`,
 	},
 	{
 		in:   "echo $[foo",
@@ -1310,15 +1312,16 @@ var shellTests = []errorCase{
 	},
 	{
 		in:   "echo ${foo[1 2]}",
-		bash: `1:14: not a valid arithmetic operator: 2`,
+		bsmk: `1:14: not a valid arithmetic operator: 2`,
 	},
 	{
 		in:   "echo ${foo[}",
-		bash: `1:11: [ must be followed by an expression`,
+		bsmk: `1:11: [ must be followed by an expression`,
 	},
 	{
 		in:   "echo ${foo[]}",
 		bash: `1:11: [ must be followed by an expression`,
+		mksh: `1:11: [ must be followed by an expression #NOERR wrong?`,
 	},
 	{
 		in:   "echo ${a/\n",
