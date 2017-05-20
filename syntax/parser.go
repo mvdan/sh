@@ -1322,9 +1322,13 @@ func (p *Parser) gotStmtPipe(s *Stmt) *Stmt {
 				break
 			}
 			s.Cmd = p.bashFuncDecl()
-		case "declare", "local", "export", "readonly",
-			"typeset", "nameref":
+		case "declare":
 			if p.lang != LangBash {
+				break
+			}
+			s.Cmd = p.declClause()
+		case "local", "export", "readonly", "typeset", "nameref":
+			if p.lang == LangPOSIX {
 				break
 			}
 			s.Cmd = p.declClause()
@@ -1693,13 +1697,7 @@ func (p *Parser) testExprBase(ftok token, fpos Pos) TestExpr {
 }
 
 func (p *Parser) declClause() *DeclClause {
-	name := p.val
-	ds := &DeclClause{Position: p.pos}
-	switch name {
-	case "declare", "typeset": // typeset is an obsolete synonym
-	default:
-		ds.Variant = name
-	}
+	ds := &DeclClause{Position: p.pos, Variant: p.val}
 	p.next()
 	for p.tok == _LitWord && p.val[0] == '-' {
 		ds.Opts = append(ds.Opts, p.getWord())
@@ -1708,7 +1706,7 @@ func (p *Parser) declClause() *DeclClause {
 		if (p.tok == _Lit || p.tok == _LitWord) && p.hasValidIdent() {
 			ds.Assigns = append(ds.Assigns, p.getAssign())
 		} else if w := p.getWord(); w == nil {
-			p.followErr(p.pos, name, "words")
+			p.followErr(p.pos, ds.Variant, "words")
 		} else {
 			ds.Assigns = append(ds.Assigns, &Assign{Value: w})
 		}

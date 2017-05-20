@@ -1667,14 +1667,14 @@ var fileTests = []testCase{
 	},
 	{
 		Strs: []string{`${foo:1}`, `${foo: 1 }`},
-		bash: &ParamExp{
+		bsmk: &ParamExp{
 			Param: lit("foo"),
 			Slice: &Slice{Offset: lit("1")},
 		},
 	},
 	{
 		Strs: []string{`${foo:1:2}`, `${foo: 1 : 2 }`},
-		bash: &ParamExp{
+		bsmk: &ParamExp{
 			Param: lit("foo"),
 			Slice: &Slice{
 				Offset: lit("1"),
@@ -1684,7 +1684,7 @@ var fileTests = []testCase{
 	},
 	{
 		Strs: []string{`${foo:a:b}`},
-		bash: &ParamExp{
+		bsmk: &ParamExp{
 			Param: lit("foo"),
 			Slice: &Slice{
 				Offset: lit("a"),
@@ -1694,7 +1694,7 @@ var fileTests = []testCase{
 	},
 	{
 		Strs: []string{`${foo:1:-2}`},
-		bash: &ParamExp{
+		bsmk: &ParamExp{
 			Param: lit("foo"),
 			Slice: &Slice{
 				Offset: lit("1"),
@@ -1704,7 +1704,7 @@ var fileTests = []testCase{
 	},
 	{
 		Strs: []string{`${foo::+3}`},
-		bash: &ParamExp{
+		bsmk: &ParamExp{
 			Param: lit("foo"),
 			Slice: &Slice{
 				Length: &UnaryArithm{Op: Plus, X: lit("3")},
@@ -1713,7 +1713,7 @@ var fileTests = []testCase{
 	},
 	{
 		Strs: []string{`${foo: -1}`},
-		bash: &ParamExp{
+		bsmk: &ParamExp{
 			Param: lit("foo"),
 			Slice: &Slice{
 				Offset: &UnaryArithm{Op: Minus, X: lit("1")},
@@ -1722,7 +1722,7 @@ var fileTests = []testCase{
 	},
 	{
 		Strs: []string{`${foo: +2+3}`},
-		bash: &ParamExp{
+		bsmk: &ParamExp{
 			Param: lit("foo"),
 			Slice: &Slice{
 				Offset: &BinaryArithm{
@@ -1735,7 +1735,7 @@ var fileTests = []testCase{
 	},
 	{
 		Strs: []string{`${foo:a?1:2:3}`},
-		bash: &ParamExp{
+		bsmk: &ParamExp{
 			Param: lit("foo"),
 			Slice: &Slice{
 				Offset: &BinaryArithm{
@@ -1975,7 +1975,7 @@ var fileTests = []testCase{
 	},
 	{
 		Strs: []string{`$((${a:-1}))`},
-		bash: arithmExp(&ParamExp{
+		bsmk: arithmExp(&ParamExp{
 			Param: lit("a"),
 			Exp: &Expansion{
 				Op:   SubstColMinus,
@@ -2885,26 +2885,37 @@ var fileTests = []testCase{
 		}},
 	},
 	{
-		Strs: []string{
-			"declare -f func",
-			"typeset -f func",
-		},
+		Strs: []string{"declare -f func"},
 		bash: &DeclClause{
+			Variant: "declare",
+			Opts:    litWords("-f"),
+			Assigns: []*Assign{{Value: litWord("func")}},
+		},
+	},
+	{
+		Strs: []string{"declare -f func"},
+		bash: &DeclClause{
+			Variant: "declare",
 			Opts:    litWords("-f"),
 			Assigns: []*Assign{{Value: litWord("func")}},
 		},
 	},
 	{
 		Strs: []string{"(local bar)"},
-		bash: subshell(stmt(&DeclClause{
+		bsmk: subshell(stmt(&DeclClause{
 			Variant: "local",
 			Assigns: []*Assign{{Value: litWord("bar")}},
 		})),
 		posix: subshell(litStmt("local", "bar")),
 	},
 	{
+		Strs:  []string{"typeset"},
+		bsmk:  &DeclClause{Variant: "typeset"},
+		posix: litStmt("typeset"),
+	},
+	{
 		Strs: []string{"export bar"},
-		bash: &DeclClause{
+		bsmk: &DeclClause{
 			Variant: "export",
 			Assigns: []*Assign{{Value: litWord("bar")}},
 		},
@@ -2912,12 +2923,12 @@ var fileTests = []testCase{
 	},
 	{
 		Strs:  []string{"readonly -n"},
-		bash:  &DeclClause{Variant: "readonly", Opts: litWords("-n")},
+		bsmk:  &DeclClause{Variant: "readonly", Opts: litWords("-n")},
 		posix: litStmt("readonly", "-n"),
 	},
 	{
 		Strs: []string{"nameref bar"},
-		bash: &DeclClause{
+		bsmk: &DeclClause{
 			Variant: "nameref",
 			Assigns: []*Assign{{Value: litWord("bar")}},
 		},
@@ -2926,7 +2937,8 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"declare -a -bc foo=bar"},
 		bash: &DeclClause{
-			Opts: litWords("-a", "-bc"),
+			Variant: "declare",
+			Opts:    litWords("-a", "-bc"),
 			Assigns: []*Assign{
 				{Name: lit("foo"), Value: litWord("bar")},
 			},
@@ -2938,7 +2950,8 @@ var fileTests = []testCase{
 			"declare -a foo=(b1 `b2`)",
 		},
 		bash: &DeclClause{
-			Opts: litWords("-a"),
+			Variant: "declare",
+			Opts:    litWords("-a"),
 			Assigns: []*Assign{{
 				Name: lit("foo"),
 				Array: &ArrayExpr{List: []*Word{
@@ -2982,6 +2995,7 @@ var fileTests = []testCase{
 		Strs: []string{"declare -f func >/dev/null"},
 		bash: &Stmt{
 			Cmd: &DeclClause{
+				Variant: "declare",
 				Opts:    litWords("-f"),
 				Assigns: []*Assign{{Value: litWord("func")}},
 			},
@@ -3677,11 +3691,7 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 		setPos(&x.Right, "]]")
 		recurse(x.X)
 	case *DeclClause:
-		if x.Variant == "" {
-			setPos(&x.Position, "declare", "typeset")
-		} else {
-			setPos(&x.Position, x.Variant)
-		}
+		setPos(&x.Position, x.Variant)
 		recurse(x.Opts)
 		recurse(x.Assigns)
 	case *CoprocClause:

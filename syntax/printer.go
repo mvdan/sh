@@ -727,11 +727,7 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		p.testExpr(x.X)
 		p.spacedString("]]")
 	case *DeclClause:
-		name := x.Variant
-		if name == "" {
-			name = "declare"
-		}
-		p.spacedString(name)
+		p.spacedString(x.Variant)
 		for _, w := range x.Opts {
 			p.WriteByte(' ')
 			p.word(w)
