@@ -1288,11 +1288,6 @@ func (p *Parser) gotStmtPipe(s *Stmt) *Stmt {
 			s.Cmd = p.caseClause()
 		case "}":
 			p.curErr(`%s can only be used to close a block`, p.val)
-		case "]]":
-			if !p.bash() {
-				break
-			}
-			p.curErr(`%s can only be used to close a test`, p.val)
 		case "then":
 			p.curErr(`%q can only be used in an if`, p.val)
 		case "elif":
@@ -1310,6 +1305,11 @@ func (p *Parser) gotStmtPipe(s *Stmt) *Stmt {
 				break
 			}
 			s.Cmd = p.testClause()
+		case "]]":
+			if p.lang == LangPOSIX {
+				break
+			}
+			p.curErr(`%s can only be used to close a test`, p.val)
 		case "let":
 			if p.lang == LangPOSIX {
 				break

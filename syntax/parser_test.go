@@ -212,6 +212,9 @@ func TestParseErrBashConfirm(t *testing.T) {
 	i := 0
 	for _, c := range shellTests {
 		want := c.common
+		if c.bsmk != nil {
+			want = c.bsmk
+		}
 		if c.bash != nil {
 			want = c.bash
 		}
@@ -256,6 +259,9 @@ func TestParseErrMirBSDKornConfirm(t *testing.T) {
 	i := 0
 	for _, c := range shellTests {
 		want := c.common
+		if c.bsmk != nil {
+			want = c.bsmk
+		}
 		if c.mksh != nil {
 			want = c.mksh
 		}
@@ -331,9 +337,10 @@ func BenchmarkParse(b *testing.B) {
 }
 
 type errorCase struct {
-	in                string
-	common            interface{}
-	bash, posix, mksh interface{}
+	in          string
+	common      interface{}
+	bash, posix interface{}
+	bsmk, mksh  interface{}
 }
 
 var shellTests = []errorCase{
@@ -651,7 +658,7 @@ var shellTests = []errorCase{
 	{
 		in:     "<<\\\\EOF",
 		common: `1:1: unclosed here-document '\EOF' #NOERR`,
-		mksh:   `1:1: unclosed here-document 'EOF'`,
+		mksh:   `1:1: unclosed here-document '\EOF'`,
 	},
 	{
 		in:     "<<-EOF",
@@ -986,7 +993,7 @@ var shellTests = []errorCase{
 	},
 	{
 		in:    "echo \"`)`\"",
-		bash:  `1:8: ) can only be used to close a subshell`,
+		bsmk:  `1:8: ) can only be used to close a subshell`,
 		posix: `1:8: ) can only be used to close a subshell #NOERR dash bug`,
 	},
 	{
@@ -998,8 +1005,8 @@ var shellTests = []errorCase{
 		common: `1:3: expansions not allowed in heredoc words #NOERR`,
 	},
 	{
-		in:    "<<$(bar)",
-		bash:  `1:3: expansions not allowed in heredoc words #NOERR`,
+		in:    "<<$(bar)\n$",
+		bsmk:  `1:3: expansions not allowed in heredoc words #NOERR`,
 		posix: `1:3: expansions not allowed in heredoc words`,
 	},
 	{
@@ -1035,17 +1042,17 @@ var shellTests = []errorCase{
 	},
 	{
 		in:    "]] )",
-		bash:  `1:1: ]] can only be used to close a test`,
+		bsmk:  `1:1: ]] can only be used to close a test`,
 		posix: `1:4: a command can only contain words and redirects`,
 	},
 	{
 		in:    "((foo",
-		bash:  `1:1: reached EOF without matching (( with ))`,
+		bsmk:  `1:1: reached EOF without matching (( with ))`,
 		posix: `1:2: reached EOF without matching ( with )`,
 	},
 	{
 		in:    "echo ((foo",
-		bash:  `1:6: (( can only be used to open an arithmetic cmd`,
+		bsmk:  `1:6: (( can only be used to open an arithmetic cmd`,
 		posix: `1:1: "foo(" must be followed by )`,
 	},
 	{
@@ -1059,135 +1066,139 @@ var shellTests = []errorCase{
 	},
 	{
 		in:   "let",
-		bash: `1:1: let clause requires at least one expression`,
+		bsmk: `1:1: let clause requires at least one expression`,
 	},
 	{
 		in:   "let a+ b",
-		bash: `1:6: + must be followed by an expression`,
+		bsmk: `1:6: + must be followed by an expression`,
 	},
 	{
 		in:   "let + a",
-		bash: `1:5: + must be followed by an expression`,
+		bsmk: `1:5: + must be followed by an expression`,
 	},
 	{
 		in:   "let a ++",
-		bash: `1:7: ++ must be followed by a literal`,
+		bsmk: `1:7: ++ must be followed by a literal`,
 	},
 	{
 		in:   "let (a)++",
-		bash: `1:8: ++ must follow a name`,
+		bsmk: `1:8: ++ must follow a name`,
 	},
 	{
 		in:   "let 1++",
-		bash: `1:6: ++ must follow a name`,
+		bsmk: `1:6: ++ must follow a name`,
 	},
 	{
 		in:   "let $0++",
-		bash: `1:7: ++ must follow a name`,
+		bsmk: `1:7: ++ must follow a name`,
 	},
 	{
 		in:   "let --(a)",
-		bash: `1:5: -- must be followed by a literal`,
+		bsmk: `1:5: -- must be followed by a literal`,
 	},
 	{
 		in:   "let --$a",
-		bash: `1:5: -- must be followed by a literal`,
+		bsmk: `1:5: -- must be followed by a literal`,
 	},
 	{
 		in:   "let a+\n",
-		bash: `1:6: + must be followed by an expression`,
+		bsmk: `1:6: + must be followed by an expression`,
 	},
 	{
 		in:   "let ))",
-		bash: `1:1: let clause requires at least one expression`,
+		bsmk: `1:1: let clause requires at least one expression`,
 	},
 	{
 		in:   "`let !`",
-		bash: `1:6: ! must be followed by an expression`,
+		bsmk: `1:6: ! must be followed by an expression`,
 	},
 	{
 		in:   "let a:b",
-		bash: `1:5: ternary operator missing ? before :`,
+		bsmk: `1:5: ternary operator missing ? before :`,
 	},
 	{
 		in:   "let a+b=c",
-		bash: `1:8: = must follow a name`,
+		bsmk: `1:8: = must follow a name`,
 	},
 	{
 		in:   "let 'foo'",
-		bash: `1:5: arithmetic expressions must consist of names and numbers`,
+		bsmk: `1:5: arithmetic expressions must consist of names and numbers`,
 	},
 	{
 		in:   `let a"=b+c"`,
-		bash: `1:5: arithmetic expressions must consist of names and numbers`,
+		bsmk: `1:5: arithmetic expressions must consist of names and numbers`,
+	},
+	{
+		in:   "`let` { foo; }",
+		bsmk: `1:2: let clause requires at least one expression`,
 	},
 	{
 		in:   "[[",
-		bash: `1:1: test clause requires at least one expression`,
+		bsmk: `1:1: test clause requires at least one expression`,
 	},
 	{
 		in:   "[[ ]]",
-		bash: `1:1: test clause requires at least one expression`,
+		bsmk: `1:1: test clause requires at least one expression`,
 	},
 	{
 		in:   "[[ a",
-		bash: `1:1: reached EOF without matching [[ with ]]`,
+		bsmk: `1:1: reached EOF without matching [[ with ]]`,
 	},
 	{
 		in:   "[[ a ||",
-		bash: `1:6: || must be followed by an expression`,
+		bsmk: `1:6: || must be followed by an expression`,
 	},
 	{
 		in:   "[[ a ==",
-		bash: `1:6: == must be followed by a word`,
+		bsmk: `1:6: == must be followed by a word`,
 	},
 	{
 		in:   "[[ a =~",
-		bash: `1:6: =~ must be followed by a word`,
+		bsmk: `1:6: =~ must be followed by a word`,
 	},
 	{
 		in:   "[[ -f a",
-		bash: `1:1: reached EOF without matching [[ with ]]`,
+		bsmk: `1:1: reached EOF without matching [[ with ]]`,
 	},
 	{
 		in:   "[[ a -nt b",
-		bash: `1:1: reached EOF without matching [[ with ]]`,
+		bsmk: `1:1: reached EOF without matching [[ with ]]`,
 	},
 	{
 		in:   "[[ a =~ b",
-		bash: `1:1: reached EOF without matching [[ with ]]`,
+		bsmk: `1:1: reached EOF without matching [[ with ]]`,
 	},
 	{
 		in:   "[[ a b c ]]",
-		bash: `1:6: not a valid test operator: b`,
+		bsmk: `1:6: not a valid test operator: b`,
 	},
 	{
 		in:   "[[ a b$x c ]]",
-		bash: `1:6: test operator words must consist of a single literal`,
+		bsmk: `1:6: test operator words must consist of a single literal`,
 	},
 	{
 		in:   "[[ a & b ]]",
-		bash: `1:6: not a valid test operator: &`,
+		bsmk: `1:6: not a valid test operator: &`,
 	},
 	{
 		in:   "[[ true && () ]]",
-		bash: `1:12: parentheses must enclose an expression`,
+		bsmk: `1:12: parentheses must enclose an expression`,
 	},
 	{
 		in:   "[[ a == ! b ]]",
-		bash: `1:11: not a valid test operator: b`,
+		bsmk: `1:11: not a valid test operator: b`,
 	},
 	{
 		in:   "[[ (a) == b ]]",
-		bash: `1:8: expected &&, || or ]] after complex expr`,
+		bsmk: `1:8: expected &&, || or ]] after complex expr`,
 	},
 	{
 		in:   "[[ a =~ ; ]]",
-		bash: `1:6: =~ must be followed by a word`,
+		bsmk: `1:6: =~ must be followed by a word`,
 	},
 	{
 		in:   "[[ >",
-		bash: `1:1: [[ must be followed by a word`,
+		bsmk: `1:1: [[ must be followed by a word`,
 	},
 	{
 		in:   "local (",
@@ -1203,23 +1214,23 @@ var shellTests = []errorCase{
 	},
 	{
 		in:   "function",
-		bash: `1:1: "function" must be followed by a word`,
+		bsmk: `1:1: "function" must be followed by a word`,
 	},
 	{
 		in:   "function foo(",
-		bash: `1:10: "foo(" must be followed by )`,
+		bsmk: `1:10: "foo(" must be followed by )`,
 	},
 	{
 		in:   "function `function",
-		bash: `1:11: "function" must be followed by a word`,
+		bsmk: `1:11: "function" must be followed by a word`,
 	},
 	{
 		in:   `function "foo"(){}`,
-		bash: `1:10: invalid func name`,
+		bsmk: `1:10: invalid func name`,
 	},
 	{
 		in:   "function foo()",
-		bash: `1:1: "foo()" must be followed by a statement`,
+		bsmk: `1:1: "foo()" must be followed by a statement`,
 	},
 	{
 		in:   "echo <<<",
@@ -1296,10 +1307,6 @@ var shellTests = []errorCase{
 	{
 		in:   "coproc declare (",
 		bash: `1:16: "declare" must be followed by words`,
-	},
-	{
-		in:   "`let` { foo; }",
-		bash: `1:2: let clause requires at least one expression`,
 	},
 	{
 		in:   "echo ${foo[1 2]}",
@@ -1478,8 +1485,31 @@ func TestParseErrBash(t *testing.T) {
 	i := 0
 	for _, c := range shellTests {
 		want := c.common
+		if c.bsmk != nil {
+			want = c.bsmk
+		}
 		if c.bash != nil {
 			want = c.bash
+		}
+		if want == nil {
+			continue
+		}
+		t.Run(fmt.Sprintf("%03d", i), checkError(p, c.in, want.(string)))
+		i++
+	}
+}
+
+func TestParseErrMirBSDKorn(t *testing.T) {
+	t.Parallel()
+	p := NewParser(Variant(LangMirBSDKorn))
+	i := 0
+	for _, c := range shellTests {
+		want := c.common
+		if c.bsmk != nil {
+			want = c.bsmk
+		}
+		if c.mksh != nil {
+			want = c.mksh
 		}
 		if want == nil {
 			continue
