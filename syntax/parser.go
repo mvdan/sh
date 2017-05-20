@@ -1459,6 +1459,12 @@ func (p *Parser) forClause() *ForClause {
 }
 
 func (p *Parser) loop(forPos Pos) Loop {
+	if p.lang != LangBash {
+		switch p.tok {
+		case leftParen, dblLeftParen:
+			p.curErr("c-style fors are a bash feature")
+		}
+	}
 	if p.tok == dblLeftParen {
 		cl := &CStyleLoop{Lparen: p.pos}
 		old := p.preNested(arithmExprCmd)

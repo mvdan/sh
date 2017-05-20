@@ -347,7 +347,7 @@ func (p *Parser) regToken(r rune) token {
 			p.rune()
 			return dollBrace
 		case '[':
-			if !p.bash() {
+			if p.lang != LangBash {
 				break
 			}
 			p.rune()
@@ -391,7 +391,7 @@ func (p *Parser) regToken(r rune) token {
 			if r = p.rune(); r == '-' {
 				p.rune()
 				return dashHdoc
-			} else if r == '<' && p.bash() {
+			} else if r == '<' && p.lang != LangPOSIX {
 				p.rune()
 				return wordHdoc
 			}
@@ -403,7 +403,7 @@ func (p *Parser) regToken(r rune) token {
 			p.rune()
 			return dplIn
 		case '(':
-			if !p.bash() {
+			if p.lang != LangBash {
 				break
 			}
 			p.rune()
@@ -422,7 +422,7 @@ func (p *Parser) regToken(r rune) token {
 			p.rune()
 			return clbOut
 		case '(':
-			if !p.bash() {
+			if p.lang != LangBash {
 				break
 			}
 			p.rune()

@@ -1234,7 +1234,7 @@ var shellTests = []errorCase{
 	},
 	{
 		in:   "echo <<<",
-		bash: `1:6: <<< must be followed by a word`,
+		bsmk: `1:6: <<< must be followed by a word`,
 	},
 	{
 		in:   "a[",
@@ -1379,10 +1379,12 @@ var shellTests = []errorCase{
 	{
 		in:    "echo <(",
 		posix: `1:6: < must be followed by a word`,
+		mksh:  `1:6: < must be followed by a word`,
 	},
 	{
 		in:    "echo >(",
 		posix: `1:6: > must be followed by a word`,
+		mksh:  `1:6: > must be followed by a word`,
 	},
 	{
 		in:    "echo ;&",
@@ -1394,7 +1396,8 @@ var shellTests = []errorCase{
 	},
 	{
 		in:    "for ((i=0; i<5; i++)); do echo; done",
-		posix: `1:1: "for" must be followed by a literal`,
+		posix: `1:5: c-style fors are a bash feature`,
+		mksh:  `1:5: c-style fors are a bash feature`,
 	},
 	{
 		in:    `$''`,

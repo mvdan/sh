@@ -1160,7 +1160,7 @@ var fileTests = []testCase{
 			"foo <<<input",
 			"foo <<< input",
 		},
-		bash: &Stmt{
+		bsmk: &Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*Redirect{{
 				Op:   WordHdoc,
@@ -1173,7 +1173,7 @@ var fileTests = []testCase{
 			`foo <<<"spaced input"`,
 			`foo <<< "spaced input"`,
 		},
-		bash: &Stmt{
+		bsmk: &Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*Redirect{{
 				Op:   WordHdoc,
