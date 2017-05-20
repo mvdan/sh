@@ -1270,15 +1270,15 @@ var shellTests = []errorCase{
 	},
 	{
 		in:   "echo $'",
-		bash: `1:6: reached EOF without closing quote '`,
+		bsmk: `1:6: reached EOF without closing quote '`,
 	},
 	{
 		in:   `echo $"`,
-		bash: `1:6: reached EOF without closing quote "`,
+		bsmk: `1:6: reached EOF without closing quote "`,
 	},
 	{
 		in:   `$"foo$"`,
-		bash: `1:6: $ literal must be escaped or single-quoted #NOERR`,
+		bsmk: `1:6: $ literal must be escaped or single-quoted #NOERR`,
 	},
 	{
 		in:   "echo @(",
@@ -1407,6 +1407,7 @@ var shellTests = []errorCase{
 	{
 		in:    `$[foo]`,
 		posix: `1:1: $ literal must be escaped or single-quoted #NOERR`,
+		mksh:  `1:1: $ literal must be escaped or single-quoted #NOERR`,
 	},
 	{
 		in:    `"$[foo]"`,

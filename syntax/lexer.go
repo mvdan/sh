@@ -332,13 +332,13 @@ func (p *Parser) regToken(r rune) token {
 	case '$':
 		switch p.rune() {
 		case '\'':
-			if !p.bash() {
+			if p.lang == LangPOSIX {
 				break
 			}
 			p.rune()
 			return dollSglQuote
 		case '"':
-			if !p.bash() {
+			if p.lang == LangPOSIX {
 				break
 			}
 			p.rune()

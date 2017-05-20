@@ -1084,7 +1084,7 @@ func validIdent(val string) bool {
 
 func (p *Parser) hasValidIdent() bool {
 	if end := p.asPos; end > 0 {
-		if p.val[end-1] == '+' && p.bash() {
+		if p.val[end-1] == '+' && p.lang != LangPOSIX {
 			end--
 		}
 		if validIdent(p.val[:end]) {
@@ -1098,7 +1098,7 @@ func (p *Parser) getAssign() *Assign {
 	as := &Assign{}
 	if p.asPos > 0 { // foo=bar
 		nameEnd := p.asPos
-		if p.bash() && p.val[p.asPos-1] == '+' {
+		if p.lang != LangPOSIX && p.val[p.asPos-1] == '+' {
 			// a+=b
 			as.Append = true
 			nameEnd--

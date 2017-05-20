@@ -2245,31 +2245,31 @@ var fileTests = []testCase{
 	},
 	{
 		Strs: []string{`$''`},
-		bash: sglDQuoted(""),
+		bsmk: sglDQuoted(""),
 	},
 	{
 		Strs: []string{`$""`},
-		bash: dblDQuoted(),
+		bsmk: dblDQuoted(),
 	},
 	{
 		Strs: []string{`$'foo'`},
-		bash: sglDQuoted("foo"),
+		bsmk: sglDQuoted("foo"),
 	},
 	{
 		Strs: []string{`$'f+oo${'`},
-		bash: sglDQuoted("f+oo${"),
+		bsmk: sglDQuoted("f+oo${"),
 	},
 	{
 		Strs: []string{"$'foo bar`'"},
-		bash: sglDQuoted("foo bar`"),
+		bsmk: sglDQuoted("foo bar`"),
 	},
 	{
 		Strs: []string{"$'a ${b} c'"},
-		bash: sglDQuoted("a ${b} c"),
+		bsmk: sglDQuoted("a ${b} c"),
 	},
 	{
 		Strs: []string{`$"a ${b} c"`},
-		bash: dblDQuoted(
+		bsmk: dblDQuoted(
 			lit("a "),
 			&ParamExp{Param: lit("b")},
 			lit(" c"),
@@ -2281,7 +2281,7 @@ var fileTests = []testCase{
 	},
 	{
 		Strs: []string{`$"a $b c"`},
-		bash: dblDQuoted(
+		bsmk: dblDQuoted(
 			lit("a "),
 			litParamExp("b"),
 			lit(" c"),
@@ -2289,31 +2289,31 @@ var fileTests = []testCase{
 	},
 	{
 		Strs: []string{"$'f\\'oo\n'"},
-		bash: sglDQuoted("f\\'oo\n"),
+		bsmk: sglDQuoted("f\\'oo\n"),
 	},
 	{
 		Strs: []string{`$"foo"`},
-		bash: dblDQuoted(lit("foo")),
+		bsmk: dblDQuoted(lit("foo")),
 	},
 	{
 		Strs: []string{`$"foo bar"`},
-		bash: dblDQuoted(lit("foo bar")),
+		bsmk: dblDQuoted(lit("foo bar")),
 	},
 	{
 		Strs: []string{`$'$'`},
-		bash: sglDQuoted("$"),
+		bsmk: sglDQuoted("$"),
 	},
 	{
 		Strs: []string{`$'foo$'`},
-		bash: sglDQuoted("foo$"),
+		bsmk: sglDQuoted("foo$"),
 	},
 	{
 		Strs: []string{`$'f\'oo'`},
-		bash: sglDQuoted(`f\'oo`),
+		bsmk: sglDQuoted(`f\'oo`),
 	},
 	{
 		Strs: []string{`$"f\"oo"`},
-		bash: dblDQuoted(lit(`f\"oo`)),
+		bsmk: dblDQuoted(lit(`f\"oo`)),
 	},
 	{
 		Strs:   []string{`"foo$$"`},
@@ -3132,7 +3132,7 @@ var fileTests = []testCase{
 	},
 	{
 		Strs: []string{"a+=1"},
-		bash: &Stmt{
+		bsmk: &Stmt{
 			Assigns: []*Assign{{
 				Append: true,
 				Name:   lit("a"),
