@@ -22,11 +22,11 @@ const (
 	dblQuote // "
 	bckQuote // `
 
-	and     // &
-	andAnd  // &&
-	orOr    // ||
-	or      // |
-	pipeAll // |&
+	and    // &
+	andAnd // &&
+	orOr   // ||
+	or     // |
+	orAnd  // |&
 
 	dollar       // $
 	dollSglQuote // $'

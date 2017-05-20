@@ -11,11 +11,16 @@ import (
 
 func TestPosition(t *testing.T) {
 	t.Parallel()
-	p := NewParser()
+	parserBash := NewParser()
+	parserMirBSD := NewParser(Variant(LangMirBSDKorn))
 	for i, c := range fileTests {
 		for j, in := range c.Strs {
 			t.Run(fmt.Sprintf("%03d-%d", i, j), func(t *testing.T) {
-				prog, err := p.Parse(strings.NewReader(in), "")
+				parser := parserBash
+				if c.Bash == nil {
+					parser = parserMirBSD
+				}
+				prog, err := parser.Parse(strings.NewReader(in), "")
 				if err != nil {
 					t.Fatalf("Unexpected error in %q: %v", in, err)
 				}

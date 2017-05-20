@@ -326,7 +326,7 @@ func (p *Parser) regToken(r rune) token {
 				break
 			}
 			p.rune()
-			return pipeAll
+			return orAnd
 		}
 		return or
 	case '$':

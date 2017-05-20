@@ -507,11 +507,19 @@ var fileTests = []testCase{
 		},
 	},
 	{
+		Strs: []string{"foo |&"},
+		mksh: &Stmt{Cmd: litCall("foo"), Coprocess: true},
+	},
+	{
 		Strs: []string{"foo |& bar", "foo|&bar"},
 		bash: &BinaryCmd{
 			Op: PipeAll,
 			X:  litStmt("foo"),
 			Y:  litStmt("bar"),
+		},
+		mksh: []*Stmt{
+			{Cmd: litCall("foo"), Coprocess: true},
+			litStmt("bar"),
 		},
 	},
 	{

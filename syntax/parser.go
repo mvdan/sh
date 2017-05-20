@@ -1057,7 +1057,7 @@ func (p *Parser) arithmEnd(ltok token, lpos Pos, old saveState) Pos {
 
 func stopToken(tok token) bool {
 	switch tok {
-	case _EOF, semicolon, and, or, andAnd, orOr, pipeAll, dblSemicolon,
+	case _EOF, semicolon, and, or, andAnd, orOr, orAnd, dblSemicolon,
 		semiFall, dblSemiFall, rightParen:
 		return true
 	}
@@ -1257,6 +1257,13 @@ preLoop:
 		p.next()
 		s.Background = true
 		gotEnd = true
+	case orAnd:
+		if p.lang != LangMirBSDKorn {
+			break
+		}
+		p.next()
+		s.Coprocess = true
+		gotEnd = true
 	case semicolon:
 		if !p.newLine && readEnd {
 			s.Semicolon = p.pos
@@ -1363,7 +1370,13 @@ func (p *Parser) gotStmtPipe(s *Stmt) *Stmt {
 	if s.Cmd == nil && len(s.Redirs) == 0 && !s.Negated && len(s.Assigns) == 0 {
 		return nil
 	}
-	if p.tok == or || p.tok == pipeAll {
+	switch p.tok {
+	case orAnd:
+		if p.lang == LangMirBSDKorn {
+			break
+		}
+		fallthrough
+	case or:
 		b := &BinaryCmd{OpPos: p.pos, Op: BinCmdOperator(p.tok), X: s}
 		p.next()
 		if b.Y = p.gotStmtPipe(p.stmt(p.pos)); b.Y == nil {
@@ -1790,7 +1803,7 @@ func (p *Parser) callExpr(s *Stmt, w *Word) *CallExpr {
 	ce := p.call(w)
 	for !p.newLine {
 		switch p.tok {
-		case _EOF, semicolon, and, or, andAnd, orOr, pipeAll,
+		case _EOF, semicolon, and, or, andAnd, orOr, orAnd,
 			dblSemicolon, semiFall, dblSemiFall:
 			return ce
 		case _LitWord:

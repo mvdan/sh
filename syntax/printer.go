@@ -547,15 +547,18 @@ func (p *Printer) stmt(s *Stmt) {
 		}
 	}
 	p.wroteSemi = false
-	if s.Semicolon.IsValid() && s.Semicolon > p.nline {
+	switch {
+	case s.Semicolon.IsValid() && s.Semicolon > p.nline:
 		p.incLevel()
 		p.bslashNewl()
 		p.indent()
 		p.decLevel()
 		p.WriteByte(';')
 		p.wroteSemi = true
-	} else if s.Background {
+	case s.Background:
 		p.WriteString(" &")
+	case s.Coprocess:
+		p.WriteString(" |&")
 	}
 	if anyNewline {
 		p.decLevel()

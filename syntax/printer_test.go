@@ -14,11 +14,16 @@ import (
 
 func TestPrintCompact(t *testing.T) {
 	t.Parallel()
-	parser := NewParser()
+	parserBash := NewParser()
+	parserMirBSD := NewParser(Variant(LangMirBSDKorn))
 	printer := NewPrinter()
 	for i, c := range fileTests {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
 			in := c.Strs[0]
+			parser := parserBash
+			if c.Bash == nil {
+				parser = parserMirBSD
+			}
 			prog, err := parser.Parse(strings.NewReader(in), "")
 			if err != nil {
 				t.Fatalf("Unexpected error in %q: %v", in, err)

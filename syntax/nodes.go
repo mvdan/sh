@@ -111,12 +111,15 @@ func (c *Comment) End() Pos { return c.Hash + Pos(len(c.Text)) }
 // Stmt represents a statement, otherwise known as a compound command.
 // It is compromised of a command and other components that may come
 // before or after it.
+
+// The Coprocess field is particular to MirBSDKorn.
 type Stmt struct {
 	Cmd        Command
 	Position   Pos
 	Semicolon  Pos
 	Negated    bool
 	Background bool
+	Coprocess  bool
 	Assigns    []*Assign
 	Redirs     []*Redirect
 }

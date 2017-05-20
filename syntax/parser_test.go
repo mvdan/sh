@@ -154,11 +154,16 @@ func TestParseBashConfirm(t *testing.T) {
 	if !hasBash44 {
 		t.Skip("bash 4.4 required to run")
 	}
-	for i, c := range append(fileTests, fileTestsNoPrint...) {
+	i := 0
+	for _, c := range append(fileTests, fileTestsNoPrint...) {
+		if c.Bash == nil {
+			continue
+		}
 		for j, in := range c.Strs {
 			t.Run(fmt.Sprintf("%03d-%d", i, j),
 				confirmParse(in, "bash", false))
 		}
+		i++
 	}
 }
 
@@ -1062,7 +1067,7 @@ var shellTests = []errorCase{
 	},
 	{
 		in:   "|& a",
-		bash: `1:1: |& is not a valid start for a statement`,
+		bsmk: `1:1: |& is not a valid start for a statement`,
 	},
 	{
 		in:   "let",
