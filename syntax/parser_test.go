@@ -1251,16 +1251,16 @@ var shellTests = []errorCase{
 	},
 	{
 		in:   "echo $((a[))",
-		bsmk: `1:11: [ must be followed by an expression`,
+		bsmk: `1:10: [ must be followed by an expression`,
 	},
 	{
 		in:   "echo $((a[b))",
-		bsmk: `1:11: reached ) without matching [ with ]`,
+		bsmk: `1:10: reached ) without matching [ with ]`,
 	},
 	{
 		in:   "echo $((a[]))",
-		bash: `1:11: [ must be followed by an expression`,
-		mksh: `1:11: [ must be followed by an expression #NOERR wrong?`,
+		bash: `1:10: [ must be followed by an expression`,
+		mksh: `1:10: [ must be followed by an expression #NOERR wrong?`,
 	},
 	{
 		in:   "a[1]",

@@ -840,9 +840,9 @@ func (p *Parser) arithmExprBase(compact bool) ArithmExpr {
 			x = l
 			break
 		}
+		left := Pos(p.npos)
 		pe := &ParamExp{Dollar: l.ValuePos, Short: true, Param: l}
 		p.rune()
-		left := p.pos + 1
 		old := p.preNested(arithmExprBrack)
 		p.next()
 		pe.Index = p.arithmExpr(leftBrack, left, 0, false, false)
