@@ -306,7 +306,7 @@ func (p *Parser) regToken(r rune) token {
 			p.rune()
 			return andAnd
 		case '>':
-			if !p.bash() {
+			if p.lang == LangPOSIX {
 				break
 			}
 			if p.rune() == '>' {
@@ -361,7 +361,7 @@ func (p *Parser) regToken(r rune) token {
 		}
 		return dollar
 	case '(':
-		if p.rune() == '(' && p.bash() {
+		if p.rune() == '(' && p.lang != LangPOSIX {
 			p.rune()
 			return dblLeftParen
 		}

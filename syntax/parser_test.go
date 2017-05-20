@@ -61,7 +61,7 @@ func TestParsePosix(t *testing.T) {
 
 func TestParseMirBSDKorn(t *testing.T) {
 	t.Parallel()
-	p := NewParser(Variant(LangPOSIX))
+	p := NewParser(Variant(LangMirBSDKorn))
 	for i, c := range append(fileTests, fileTestsNoPrint...) {
 		want := c.MirBSDKorn
 		if want == nil {

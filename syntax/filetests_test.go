@@ -13,6 +13,8 @@ func prepareTest(c *testCase) {
 	c.common = fullProg(c.common)
 	c.bash = fullProg(c.bash)
 	c.posix = fullProg(c.posix)
+	c.mksh = fullProg(c.mksh)
+	c.bsmk = fullProg(c.bsmk) // bash AND mksh
 	if f, ok := c.common.(*File); ok && f != nil {
 		c.All = append(c.All, f)
 		c.Bash = f
@@ -29,6 +31,11 @@ func prepareTest(c *testCase) {
 	}
 	if f, ok := c.mksh.(*File); ok && f != nil {
 		c.All = append(c.All, f)
+		c.MirBSDKorn = f
+	}
+	if f, ok := c.bsmk.(*File); ok && f != nil {
+		c.All = append(c.All, f)
+		c.Bash = f
 		c.MirBSDKorn = f
 	}
 }
@@ -98,7 +105,7 @@ type testCase struct {
 	Strs        []string
 	common      interface{}
 	bash, posix interface{}
-	mksh        interface{}
+	bsmk, mksh  interface{}
 	All         []*File
 	Bash, Posix *File
 	MirBSDKorn  *File
@@ -226,7 +233,7 @@ var fileTests = []testCase{
 	},
 	{
 		Strs: []string{`((a == 2))`},
-		bash: stmt(arithmCmd(&BinaryArithm{
+		bsmk: stmt(arithmCmd(&BinaryArithm{
 			Op: Eql,
 			X:  lit("a"),
 			Y:  lit("2"),
@@ -235,7 +242,7 @@ var fileTests = []testCase{
 	},
 	{
 		Strs: []string{"if (($# > 2)); then b; fi"},
-		bash: &IfClause{
+		bsmk: &IfClause{
 			CondStmts: stmts(arithmCmd(&BinaryArithm{
 				Op: Gtr,
 				X:  litParamExp("#"),
@@ -271,7 +278,7 @@ var fileTests = []testCase{
 	},
 	{
 		Strs: []string{"while ((1 > 2)); do b; done"},
-		bash: &WhileClause{
+		bsmk: &WhileClause{
 			CondStmts: stmts(arithmCmd(&BinaryArithm{
 				Op: Gtr,
 				X:  lit("1"),
@@ -537,7 +544,7 @@ var fileTests = []testCase{
 	},
 	{
 		Strs: []string{"-foo_.,+-bar() { a; }"},
-		bash: &FuncDecl{
+		bsmk: &FuncDecl{
 			Name: lit("-foo_.,+-bar"),
 			Body: stmt(block(litStmt("a"))),
 		},
@@ -548,7 +555,7 @@ var fileTests = []testCase{
 			"function foo {\n\ta\n\tb\n}",
 			"function foo() { a; b; }",
 		},
-		bash: &FuncDecl{
+		bsmk: &FuncDecl{
 			BashStyle: true,
 			Name:      lit("foo"),
 			Body:      stmt(block(litStmts("a", "b")...)),
@@ -844,7 +851,7 @@ var fileTests = []testCase{
 			"<<EOF $(\n\tfoo\n)\nbar\nEOF",
 		},
 		// note that dash won't accept the second one
-		bash: &Stmt{
+		bsmk: &Stmt{
 			Cmd: call(word(cmdSubst(litStmt("foo")))),
 			Redirs: []*Redirect{{
 				Op:   Hdoc,
@@ -1100,7 +1107,7 @@ var fileTests = []testCase{
 	},
 	{
 		Strs: []string{"foo &>a &>>b"},
-		bash: &Stmt{
+		bsmk: &Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*Redirect{
 				{Op: RdrAll, Word: litWord("a")},

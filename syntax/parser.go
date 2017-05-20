@@ -1305,29 +1305,38 @@ func (p *Parser) gotStmtPipe(s *Stmt) *Stmt {
 			p.curErr(`%q can only be used to end a loop`, p.val)
 		case "esac":
 			p.curErr(`%q can only be used to end a case`, p.val)
-		default:
-			if !p.bash() {
+		case "[[":
+			if p.lang == LangPOSIX {
 				break
 			}
-			switch p.val {
-			case "[[":
-				s.Cmd = p.testClause()
-			case "declare", "local", "export", "readonly",
-				"typeset", "nameref":
-				s.Cmd = p.declClause()
-			case "coproc":
-				s.Cmd = p.coprocClause()
-			case "let":
-				s.Cmd = p.letClause()
-			case "function":
-				s.Cmd = p.bashFuncDecl()
+			s.Cmd = p.testClause()
+		case "let":
+			if p.lang == LangPOSIX {
+				break
 			}
+			s.Cmd = p.letClause()
+		case "function":
+			if p.lang == LangPOSIX {
+				break
+			}
+			s.Cmd = p.bashFuncDecl()
+		case "declare", "local", "export", "readonly",
+			"typeset", "nameref":
+			if p.lang != LangBash {
+				break
+			}
+			s.Cmd = p.declClause()
+		case "coproc":
+			if p.lang != LangBash {
+				break
+			}
+			s.Cmd = p.coprocClause()
 		}
 		if s.Cmd == nil {
 			name := p.lit(p.pos, p.val)
 			if p.next(); p.gotSameLine(leftParen) {
 				p.follow(name.ValuePos, "foo(", rightParen)
-				if !p.bash() && !validIdent(name.Value) {
+				if p.lang == LangPOSIX && !validIdent(name.Value) {
 					p.posErr(name.Pos(), "invalid func name")
 				}
 				s.Cmd = p.funcDecl(name, name.ValuePos)
