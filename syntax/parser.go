@@ -279,10 +279,9 @@ func (p *Parser) doHeredocs() {
 		if p.err != nil {
 			break
 		}
+		p.quote = hdocBody
 		if r.Op == DashHdoc {
 			p.quote = hdocBodyTabs
-		} else {
-			p.quote = hdocBody
 		}
 		var quoted bool
 		p.hdocStop, quoted = p.unquotedWordBytes(r.Word)
@@ -1046,11 +1045,10 @@ func (p *Parser) peekArithmEnd() bool {
 }
 
 func (p *Parser) arithmEnd(ltok token, lpos Pos, old saveState) Pos {
-	if p.peekArithmEnd() {
-		p.rune()
-	} else {
+	if !p.peekArithmEnd() {
 		p.matchingErr(lpos, ltok, dblRightParen)
 	}
+	p.rune()
 	p.postNested(old)
 	pos := p.pos
 	p.next()
@@ -1206,11 +1204,10 @@ preLoop:
 	for {
 		switch p.tok {
 		case _Lit, _LitWord:
-			if p.hasValidIdent() {
-				s.Assigns = append(s.Assigns, p.getAssign())
-			} else {
+			if !p.hasValidIdent() {
 				break preLoop
 			}
+			s.Assigns = append(s.Assigns, p.getAssign())
 		case rdrOut, appOut, rdrIn, dplIn, dplOut, clbOut, rdrInOut,
 			hdoc, dashHdoc, wordHdoc, rdrAll, appAll, _LitRedir:
 			p.doRedirect(s)
