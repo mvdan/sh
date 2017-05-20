@@ -313,8 +313,8 @@ var fileTests = []testCase{
 		},
 		common: &ForClause{
 			Loop: &WordIter{
-				Name: lit("i"),
-				List: litWords("1", "2", "3"),
+				Name:  lit("i"),
+				Items: litWords("1", "2", "3"),
 			},
 			DoStmts: stmts(call(
 				litWord("echo"),
@@ -2387,7 +2387,7 @@ var fileTests = []testCase{
 		},
 		common: &CaseClause{
 			Word: word(litParamExp("i")),
-			List: []*PatternList{
+			Items: []*CaseItem{
 				{
 					Op:       DblSemicolon,
 					Patterns: litWords("1"),
@@ -2405,7 +2405,7 @@ var fileTests = []testCase{
 		Strs: []string{"case i in 1) a ;& 2) b ;; esac"},
 		bsmk: &CaseClause{
 			Word: litWord("i"),
-			List: []*PatternList{
+			Items: []*CaseItem{
 				{
 					Op:       SemiFall,
 					Patterns: litWords("1"),
@@ -2423,7 +2423,7 @@ var fileTests = []testCase{
 		Strs: []string{"case i in 1) a ;;& 2) b ;; esac"},
 		bash: &CaseClause{
 			Word: litWord("i"),
-			List: []*PatternList{
+			Items: []*CaseItem{
 				{
 					Op:       DblSemiFall,
 					Patterns: litWords("1"),
@@ -2441,7 +2441,7 @@ var fileTests = []testCase{
 		Strs: []string{"case $i in 1) cat <<EOF ;;\nfoo\nEOF\nesac"},
 		common: &CaseClause{
 			Word: word(litParamExp("i")),
-			List: []*PatternList{{
+			Items: []*CaseItem{{
 				Op:       DblSemicolon,
 				Patterns: litWords("1"),
 				Stmts: []*Stmt{{
@@ -2961,7 +2961,7 @@ var fileTests = []testCase{
 			Opts:    litWords("-a"),
 			Assigns: []*Assign{{
 				Name: lit("foo"),
-				Array: &ArrayExpr{List: []*Word{
+				Array: &ArrayExpr{Elems: []*Word{
 					litWord("b1"),
 					word(cmdSubst(litStmt("b2"))),
 				}},
@@ -2975,7 +2975,7 @@ var fileTests = []testCase{
 			Opts:    litWords("-a"),
 			Assigns: []*Assign{{
 				Name:  lit("foo"),
-				Array: &ArrayExpr{List: litWords("b1")},
+				Array: &ArrayExpr{Elems: litWords("b1")},
 			}},
 		},
 	},
@@ -2991,7 +2991,7 @@ var fileTests = []testCase{
 				Y: &Stmt{Assigns: []*Assign{{
 					Name: lit("b"),
 					Array: &ArrayExpr{
-						List: litWords("c"),
+						Elems: litWords("c"),
 					},
 				}}},
 			},
@@ -3155,7 +3155,7 @@ var fileTests = []testCase{
 			})),
 			{Assigns: []*Assign{{
 				Name:  lit("foo"),
-				Array: &ArrayExpr{List: litWords("bar")},
+				Array: &ArrayExpr{Elems: litWords("bar")},
 			}}},
 		},
 	},
@@ -3166,7 +3166,7 @@ var fileTests = []testCase{
 		},
 		bsmk: &CaseClause{
 			Word: word(lit("a")),
-			List: []*PatternList{{
+			Items: []*CaseItem{{
 				Op:       DblSemicolon,
 				Patterns: litWords("b"),
 				Stmts: stmts(letClause(&UnaryArithm{
@@ -3183,7 +3183,7 @@ var fileTests = []testCase{
 		bash: &Stmt{
 			Assigns: []*Assign{{
 				Name:  lit("a"),
-				Array: &ArrayExpr{List: litWords("b", "c")},
+				Array: &ArrayExpr{Elems: litWords("b", "c")},
 			}},
 			Cmd: litCall("foo"),
 		},
@@ -3193,7 +3193,7 @@ var fileTests = []testCase{
 		bash: &Stmt{
 			Assigns: []*Assign{{
 				Name:  lit("a"),
-				Array: &ArrayExpr{List: litWords("b", "c")},
+				Array: &ArrayExpr{Elems: litWords("b", "c")},
 			}},
 			Cmd: litCall("foo"),
 		},
@@ -3214,7 +3214,7 @@ var fileTests = []testCase{
 		bsmk: &Stmt{Assigns: []*Assign{{
 			Append: true,
 			Name:   lit("b"),
-			Array:  &ArrayExpr{List: litWords("2", "3")},
+			Array:  &ArrayExpr{Elems: litWords("2", "3")},
 		}}},
 	},
 	{
@@ -3589,7 +3589,7 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 		recurse(x.DoStmts)
 	case *WordIter:
 		recurse(x.Name)
-		recurse(x.List)
+		recurse(x.Items)
 	case *CStyleLoop:
 		setPos(&x.Lparen, "((")
 		setPos(&x.Rparen, "))")
@@ -3712,10 +3712,10 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 		setPos(&x.Case, "case")
 		setPos(&x.Esac, "esac")
 		recurse(x.Word)
-		for _, pl := range x.List {
-			setPos(&pl.OpPos, pl.Op.String(), "esac")
-			recurse(pl.Patterns)
-			recurse(pl.Stmts)
+		for _, ci := range x.Items {
+			setPos(&ci.OpPos, ci.Op.String(), "esac")
+			recurse(ci.Patterns)
+			recurse(ci.Stmts)
 		}
 	case *TestClause:
 		setPos(&x.Left, "[[")
@@ -3744,7 +3744,7 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 	case *ArrayExpr:
 		setPos(&x.Lparen, "(")
 		setPos(&x.Rparen, ")")
-		recurse(x.List)
+		recurse(x.Elems)
 	case *ExtGlob:
 		setPos(&x.OpPos, x.Op.String())
 		checkSrc(x.Pattern.End(), ")")

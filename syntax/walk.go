@@ -79,7 +79,7 @@ func Walk(node Node, f func(Node) bool) {
 		walkStmts(x.DoStmts, f)
 	case *WordIter:
 		Walk(x.Name, f)
-		walkWords(x.List, f)
+		walkWords(x.Items, f)
 	case *CStyleLoop:
 		if x.Init != nil {
 			Walk(x.Init, f)
@@ -146,9 +146,9 @@ func Walk(node Node, f func(Node) bool) {
 		Walk(x.X, f)
 	case *CaseClause:
 		Walk(x.Word, f)
-		for _, pl := range x.List {
-			walkWords(pl.Patterns, f)
-			walkStmts(pl.Stmts, f)
+		for _, ci := range x.Items {
+			walkWords(ci.Patterns, f)
+			walkStmts(ci.Stmts, f)
 		}
 	case *TestClause:
 		Walk(x.X, f)
@@ -158,7 +158,7 @@ func Walk(node Node, f func(Node) bool) {
 			Walk(a, f)
 		}
 	case *ArrayExpr:
-		walkWords(x.List, f)
+		walkWords(x.Elems, f)
 	case *ExtGlob:
 		Walk(x.Pattern, f)
 	case *ProcSubst:

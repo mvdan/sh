@@ -377,9 +377,9 @@ func (p *Printer) loop(loop Loop) {
 	switch x := loop.(type) {
 	case *WordIter:
 		p.WriteString(x.Name.Value)
-		if len(x.List) > 0 {
+		if len(x.Items) > 0 {
 			p.spacedString(" in")
-			p.wordJoin(x.List, true)
+			p.wordJoin(x.Items, true)
 		}
 	case *CStyleLoop:
 		p.WriteString("((")
@@ -688,9 +688,9 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		p.WriteString("case ")
 		p.word(x.Word)
 		p.WriteString(" in")
-		for _, pl := range x.List {
-			p.commentsAndSeparate(pl.Patterns[0].Pos())
-			for i, w := range pl.Patterns {
+		for _, ci := range x.Items {
+			p.commentsAndSeparate(ci.Patterns[0].Pos())
+			for i, w := range ci.Patterns {
 				if i > 0 {
 					p.spacedString("|")
 				}
@@ -701,21 +701,21 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			}
 			p.WriteByte(')')
 			p.wantSpace = true
-			sep := len(pl.Stmts) > 1 || (len(pl.Stmts) > 0 && pl.Stmts[0].Pos() > p.nline)
-			p.nestedStmts(pl.Stmts, 0)
+			sep := len(ci.Stmts) > 1 || (len(ci.Stmts) > 0 && ci.Stmts[0].Pos() > p.nline)
+			p.nestedStmts(ci.Stmts, 0)
 			p.level++
 			if sep {
-				p.commentsUpTo(pl.OpPos)
-				p.newlines(pl.OpPos)
+				p.commentsUpTo(ci.OpPos)
+				p.newlines(ci.OpPos)
 			}
-			p.spacedString(pl.Op.String())
-			p.incLines(pl.OpPos)
+			p.spacedString(ci.Op.String())
+			p.incLines(ci.OpPos)
 			p.level--
-			if sep || pl.OpPos == x.Esac {
+			if sep || ci.OpPos == x.Esac {
 				p.wantNewline = true
 			}
 		}
-		p.semiRsrv("esac", x.Esac, len(x.List) == 0)
+		p.semiRsrv("esac", x.Esac, len(x.Items) == 0)
 	case *ArithmCmd:
 		p.WriteString("((")
 		p.arithmExpr(x.X, false, false)
@@ -931,7 +931,7 @@ func (p *Printer) assigns(assigns []*Assign) {
 		} else if a.Array != nil {
 			p.wantSpace = false
 			p.WriteByte('(')
-			p.wordJoin(a.Array.List, false)
+			p.wordJoin(a.Array.Elems, false)
 			p.sepTok(")", a.Array.Rparen)
 		}
 		p.wantSpace = true

@@ -297,12 +297,12 @@ func (*CStyleLoop) loopNode() {}
 // WordIter represents the iteration of a variable over a series of
 // words in a for clause.
 type WordIter struct {
-	Name *Lit
-	List []*Word
+	Name  *Lit
+	Items []*Word
 }
 
 func (w *WordIter) Pos() Pos { return w.Name.Pos() }
-func (w *WordIter) End() Pos { return posMax(w.Name.End(), wordLastEnd(w.List)) }
+func (w *WordIter) End() Pos { return posMax(w.Name.End(), wordLastEnd(w.Items)) }
 
 // CStyleLoop represents the behaviour of a for clause similar to the C
 // language.
@@ -558,14 +558,14 @@ func (p *ParenArithm) End() Pos { return p.Rparen + 1 }
 type CaseClause struct {
 	Case, Esac Pos
 	Word       *Word
-	List       []*PatternList
+	Items      []*CaseItem
 }
 
 func (c *CaseClause) Pos() Pos { return c.Case }
 func (c *CaseClause) End() Pos { return c.Esac + 4 }
 
-// PatternList represents a pattern list (case) within a CaseClause.
-type PatternList struct {
+// CaseItem represents a pattern list (case) within a CaseClause.
+type CaseItem struct {
 	Op       CaseOperator
 	OpPos    Pos
 	Patterns []*Word
@@ -651,7 +651,7 @@ func (d *DeclClause) End() Pos {
 // This node will never appear when in PosixConformant mode.
 type ArrayExpr struct {
 	Lparen, Rparen Pos
-	List           []*Word
+	Elems          []*Word
 }
 
 func (a *ArrayExpr) Pos() Pos { return a.Lparen }

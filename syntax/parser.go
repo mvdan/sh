@@ -1143,7 +1143,7 @@ func (p *Parser) getAssign() *Assign {
 			if w := p.getWord(); w == nil {
 				p.curErr("array elements must be words")
 			} else {
-				as.Array.List = append(as.Array.List, w)
+				as.Array.Elems = append(as.Array.Elems, w)
 			}
 		}
 		as.Array.Rparen = p.matched(as.Array.Lparen, leftParen, rightParen)
@@ -1509,7 +1509,7 @@ func (p *Parser) loop(forPos Pos) Loop {
 			if w := p.getWord(); w == nil {
 				p.curErr("word list can only contain words")
 			} else {
-				wi.List = append(wi.List, w)
+				wi.Items = append(wi.Items, w)
 			}
 		}
 		p.gotSameLine(semicolon)
@@ -1524,20 +1524,20 @@ func (p *Parser) caseClause() *CaseClause {
 	p.next()
 	cc.Word = p.followWord("case", cc.Case)
 	p.followRsrv(cc.Case, "case x", "in")
-	cc.List = p.patLists()
+	cc.Items = p.caseItems()
 	cc.Esac = p.stmtEnd(cc, "case", "esac")
 	return cc
 }
 
-func (p *Parser) patLists() (pls []*PatternList) {
+func (p *Parser) caseItems() (items []*CaseItem) {
 	for p.tok != _EOF && !(p.tok == _LitWord && p.val == "esac") {
-		pl := &PatternList{}
+		ci := &CaseItem{}
 		p.got(leftParen)
 		for p.tok != _EOF {
 			if w := p.getWord(); w == nil {
 				p.curErr("case patterns must consist of words")
 			} else {
-				pl.Patterns = append(pl.Patterns, w)
+				ci.Patterns = append(ci.Patterns, w)
 			}
 			if p.tok == rightParen {
 				break
@@ -1548,17 +1548,17 @@ func (p *Parser) patLists() (pls []*PatternList) {
 		}
 		old := p.preNested(switchCase)
 		p.next()
-		pl.Stmts = p.stmts("esac")
+		ci.Stmts = p.stmts("esac")
 		p.postNested(old)
-		pl.OpPos = p.pos
+		ci.OpPos = p.pos
 		if p.tok != dblSemicolon && p.tok != semiFall && p.tok != dblSemiFall {
-			pl.Op = DblSemicolon
-			pls = append(pls, pl)
+			ci.Op = DblSemicolon
+			items = append(items, ci)
 			break
 		}
-		pl.Op = CaseOperator(p.tok)
+		ci.Op = CaseOperator(p.tok)
 		p.next()
-		pls = append(pls, pl)
+		items = append(items, ci)
 	}
 	return
 }

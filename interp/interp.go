@@ -282,8 +282,8 @@ func (r *Runner) assignValue(as *syntax.Assign) varValue {
 		return s
 	}
 	if as.Array != nil {
-		strs := make([]string, len(as.Array.List))
-		for i, w := range as.Array.List {
+		strs := make([]string, len(as.Array.Elems))
+		for i, w := range as.Array.Elems {
 			strs[i] = r.loneWord(w)
 		}
 		if !as.Append || prev == nil {
@@ -415,7 +415,7 @@ func (r *Runner) cmd(cm syntax.Command) {
 		switch y := x.Loop.(type) {
 		case *syntax.WordIter:
 			name := y.Name.Value
-			for _, field := range r.fields(y.List) {
+			for _, field := range r.fields(y.Items) {
 				r.setVar(name, field)
 				if r.loopStmtsBroken(x.DoStmts) {
 					break
@@ -446,11 +446,11 @@ func (r *Runner) cmd(cm syntax.Command) {
 		}
 	case *syntax.CaseClause:
 		str := r.loneWord(x.Word)
-		for _, pl := range x.List {
-			for _, word := range pl.Patterns {
+		for _, ci := range x.Items {
+			for _, word := range ci.Patterns {
 				pat := r.loneWord(word)
 				if match(pat, str) {
-					r.stmts(pl.Stmts)
+					r.stmts(ci.Stmts)
 					return
 				}
 			}
