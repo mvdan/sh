@@ -1409,12 +1409,12 @@ var shellTests = []errorCase{
 	},
 	{
 		in:    `$[foo]`,
-		posix: `1:1: $ literal must be escaped or single-quoted #NOERR`,
+		posix: `1:1: $ literal must be escaped or single-quoted`,
 		mksh:  `1:1: $ literal must be escaped or single-quoted #NOERR`,
 	},
 	{
 		in:    `"$[foo]"`,
-		posix: `1:2: $ literal must be escaped or single-quoted #NOERR`,
+		posix: `1:2: $ literal must be escaped or single-quoted`,
 	},
 	{
 		in:    "echo !(a)",
@@ -1430,23 +1430,23 @@ var shellTests = []errorCase{
 	},
 	{
 		in:    "echo ${foo[1]}",
-		posix: `1:11: arrays are a bash feature #NOERR lazy eval`,
+		posix: `1:11: arrays are a bash feature`,
 	},
 	{
 		in:    "echo ${foo/a/b}",
-		posix: `1:11: search and replace is a bash feature #NOERR lazy eval`,
+		posix: `1:11: search and replace is a bash feature`,
 	},
 	{
 		in:    "echo ${foo:1}",
-		posix: `1:11: slicing is a bash feature #NOERR lazy eval`,
+		posix: `1:11: slicing is a bash feature`,
 	},
 	{
 		in:    "echo ${foo,bar}",
-		posix: `1:11: this expansion operator is a bash feature #NOERR lazy eval`,
+		posix: `1:11: this expansion operator is a bash feature`,
 	},
 	{
 		in:    "echo ${foo@bar}",
-		posix: `1:11: this expansion operator is a bash feature #NOERR lazy eval`,
+		posix: `1:11: this expansion operator is a bash feature`,
 	},
 }
 
