@@ -688,7 +688,6 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		p.WriteString("case ")
 		p.word(x.Word)
 		p.WriteString(" in")
-		p.incLevel()
 		for _, pl := range x.List {
 			p.commentsAndSeparate(pl.Patterns[0].Pos())
 			for i, w := range pl.Patterns {
@@ -716,7 +715,6 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 				p.wantNewline = true
 			}
 		}
-		p.decLevel()
 		p.semiRsrv("esac", x.Esac, len(x.List) == 0)
 	case *ArithmCmd:
 		p.WriteString("((")
