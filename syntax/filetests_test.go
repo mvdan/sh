@@ -661,7 +661,6 @@ var fileTests = []testCase{
 	{
 		Strs: []string{
 			"foo <<EOF\nbar\nEOF",
-			"foo <<EOF\nbar\n",
 			"foo <<EOF \nbar\nEOF",
 			"foo <<EOF\t\nbar\nEOF",
 		},
@@ -929,10 +928,7 @@ var fileTests = []testCase{
 		},
 	},
 	{
-		Strs: []string{
-			"foo <<\"EOF\"\nbar\nEOF",
-			"foo <<\"EOF\"\nbar\n",
-		},
+		Strs: []string{"foo <<\"EOF\"\nbar\nEOF"},
 		common: &Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*Redirect{{
@@ -990,10 +986,7 @@ var fileTests = []testCase{
 		},
 	},
 	{
-		Strs: []string{
-			"foo <<-EOF\n\tEOF",
-			"foo <<-EOF\n\t",
-		},
+		Strs: []string{"foo <<-EOF\n\tEOF"},
 		common: &Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*Redirect{{
@@ -1004,10 +997,7 @@ var fileTests = []testCase{
 		},
 	},
 	{
-		Strs: []string{
-			"foo <<-EOF\n\tbar\n\tEOF",
-			"foo <<-EOF\n\tbar\n\t",
-		},
+		Strs: []string{"foo <<-EOF\n\tbar\n\tEOF"},
 		common: &Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*Redirect{{
@@ -1018,10 +1008,7 @@ var fileTests = []testCase{
 		},
 	},
 	{
-		Strs: []string{
-			"foo <<-'EOF'\n\tbar\n\tEOF",
-			"foo <<-'EOF'\n\tbar\n\t",
-		},
+		Strs: []string{"foo <<-'EOF'\n\tbar\n\tEOF"},
 		common: &Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*Redirect{{
@@ -3178,7 +3165,7 @@ var fileTests = []testCase{
 		),
 	},
 	{
-		Strs: []string{"<<EOF | b\nfoo\nEOF", "<<EOF|b;\nfoo\n"},
+		Strs: []string{"<<EOF | b\nfoo\nEOF"},
 		common: &BinaryCmd{
 			Op: Pipe,
 			X: &Stmt{Redirs: []*Redirect{{
@@ -3289,14 +3276,6 @@ var fileTests = []testCase{
 
 // these don't have a canonical format with the same AST
 var fileTestsNoPrint = []testCase{
-	{
-		Strs: []string{"<<EOF\n\\"},
-		common: &Stmt{Redirs: []*Redirect{{
-			Op:   Hdoc,
-			Word: litWord("EOF"),
-			Hdoc: litWord("\\"),
-		}}},
-	},
 	{
 		Strs: []string{`"$[1 + 3]"`},
 		bash: dblQuoted(arithmExpBr(&BinaryArithm{

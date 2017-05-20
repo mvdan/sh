@@ -916,6 +916,7 @@ func (p *Parser) hdocLitWord() *Word {
 			lEnd--
 		}
 		if bytes.Equal(p.litBs[lStart:lEnd], p.hdocStop) {
+			p.hdocStop = nil
 			val = p.endLit()[:lStart]
 			break
 		}

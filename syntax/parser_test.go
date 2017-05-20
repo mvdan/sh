@@ -558,11 +558,39 @@ var shellTests = []errorCase{
 		common: `2:1: redirect word must be on the same line`,
 	},
 	{
-		in:     "echo <<",
-		common: `1:6: << must be followed by a word`,
+		in:     "<<",
+		common: `1:1: << must be followed by a word`,
 	},
 	{
-		in:     "echo <<\nEOF\nbar\nEOF",
+		in:     "<<EOF",
+		common: `1:1: unclosed here-document 'EOF' #NOERR`,
+	},
+	{
+		in:     "<<EOF\n\\",
+		common: `1:1: unclosed here-document 'EOF' #NOERR`,
+	},
+	{
+		in:     "<<EOF <`\n#\n`\n``",
+		common: `1:1: unclosed here-document 'EOF'`,
+	},
+	{
+		in:     "<<'EOF'",
+		common: `1:1: unclosed here-document 'EOF' #NOERR`,
+	},
+	{
+		in:     "<<\\EOF",
+		common: `1:1: unclosed here-document 'EOF' #NOERR`,
+	},
+	{
+		in:     "<<\\\\EOF",
+		common: `1:1: unclosed here-document '\EOF' #NOERR`,
+	},
+	{
+		in:     "<<-EOF",
+		common: `1:1: unclosed here-document 'EOF' #NOERR`,
+	},
+	{
+		in:     "<<\nEOF\nbar\nEOF",
 		common: `2:1: redirect word must be on the same line`,
 	},
 	{

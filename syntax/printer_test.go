@@ -91,10 +91,7 @@ func TestPrintWeirdFormat(t *testing.T) {
 		samePrint("foo <<EOF && bar\nl1\nEOF"),
 		samePrint("foo <<EOF &&\nl1\nEOF\n\tbar"),
 		samePrint("foo <<EOF\nl1\nEOF\n\nfoo2"),
-		{
-			"<<EOF",
-			"<<EOF\nEOF",
-		},
+		samePrint("<<EOF\nEOF"),
 		samePrint("foo <<EOF\nEOF\n\nbar"),
 		samePrint("foo <<'EOF'\nEOF\n\nbar"),
 		{
@@ -430,30 +427,6 @@ func TestPrintMultiline(t *testing.T) {
 	}
 	if got != string(want) {
 		t.Fatalf("Print mismatch in canonical.sh")
-	}
-}
-
-// these are not programs that make any sense or have any good canonical
-// format, but we still want to avoid them crashing our code. Most found
-// via fuzzing.
-func TestFuzzCrashers(t *testing.T) {
-	t.Parallel()
-	var strs = [...]string{
-		"<<EOF <`\n#\n`\n``",
-	}
-	parser := NewParser(KeepComments)
-	printer := NewPrinter()
-	for i, in := range strs {
-		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
-			prog, err := parser.Parse(newStrictReader(in), "")
-			if err != nil {
-				t.Fatalf("Unexpected error in %q: %v", in, err)
-			}
-			checkNewlines(t, in, prog.lines)
-			if _, err := strPrint(printer, prog); err != nil {
-				t.Fatalf("Unexpected error in %q: %v", in, err)
-			}
-		})
 	}
 }
 

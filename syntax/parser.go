@@ -296,6 +296,10 @@ func (p *Parser) doHeredocs() {
 			p.next()
 			r.Hdoc = p.getWordOrEmpty()
 		}
+		if p.hdocStop != nil {
+			p.posErr(r.Pos(), "unclosed here-document '%s'",
+				string(p.hdocStop))
+		}
 	}
 	p.quote = old
 }
