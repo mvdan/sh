@@ -1282,19 +1282,19 @@ var shellTests = []errorCase{
 	},
 	{
 		in:   "echo @(",
-		bash: `1:6: reached EOF without matching @( with )`,
+		bsmk: `1:6: reached EOF without matching @( with )`,
 	},
 	{
 		in:   "echo @(a",
-		bash: `1:6: reached EOF without matching @( with )`,
+		bsmk: `1:6: reached EOF without matching @( with )`,
 	},
 	{
 		in:   "((@(",
-		bash: `1:1: reached ( without matching (( with ))`,
+		bsmk: `1:1: reached ( without matching (( with ))`,
 	},
 	{
 		in:   "echo $((\"a`b((",
-		bash: `1:9: arithmetic expressions must consist of names and numbers`,
+		bsmk: `1:9: arithmetic expressions must consist of names and numbers`,
 	},
 	{
 		in:   "coproc",

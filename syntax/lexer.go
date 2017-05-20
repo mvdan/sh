@@ -378,7 +378,7 @@ func (p *Parser) regToken(r rune) token {
 			}
 			return dblSemicolon
 		case '&':
-			if !p.bash() {
+			if p.lang == LangPOSIX {
 				break
 			}
 			p.rune()
@@ -446,7 +446,7 @@ func (p *Parser) dqToken(r rune) token {
 			p.rune()
 			return dollBrace
 		case '[':
-			if !p.bash() {
+			if p.lang != LangBash {
 				break
 			}
 			p.rune()

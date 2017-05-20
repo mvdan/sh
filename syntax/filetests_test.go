@@ -2380,9 +2380,27 @@ var fileTests = []testCase{
 		},
 	},
 	{
-		Strs: []string{"case $i in 1) a ;;& 2) b ;& 3) c ;; esac"},
+		Strs: []string{"case i in 1) a ;& 2) b ;; esac"},
+		bsmk: &CaseClause{
+			Word: litWord("i"),
+			List: []*PatternList{
+				{
+					Op:       SemiFall,
+					Patterns: litWords("1"),
+					Stmts:    litStmts("a"),
+				},
+				{
+					Op:       DblSemicolon,
+					Patterns: litWords("2"),
+					Stmts:    litStmts("b"),
+				},
+			},
+		},
+	},
+	{
+		Strs: []string{"case i in 1) a ;;& 2) b ;; esac"},
 		bash: &CaseClause{
-			Word: word(litParamExp("i")),
+			Word: litWord("i"),
 			List: []*PatternList{
 				{
 					Op:       DblSemiFall,
@@ -2390,14 +2408,9 @@ var fileTests = []testCase{
 					Stmts:    litStmts("a"),
 				},
 				{
-					Op:       SemiFall,
+					Op:       DblSemicolon,
 					Patterns: litWords("2"),
 					Stmts:    litStmts("b"),
-				},
-				{
-					Op:       DblSemicolon,
-					Patterns: litWords("3"),
-					Stmts:    litStmts("c"),
 				},
 			},
 		},
@@ -2974,6 +2987,11 @@ var fileTests = []testCase{
 		common: litStmt("eval", "a=b", "foo"),
 	},
 	{
+		Strs:   []string{"coproc a b"},
+		common: litStmt("coproc", "a", "b"),
+		bash:   &CoprocClause{Stmt: litStmt("a", "b")},
+	},
+	{
 		Strs: []string{"coproc a { b; }"},
 		bash: &CoprocClause{
 			Name: lit("a"),
@@ -2983,10 +3001,6 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"coproc a", "coproc a;"},
 		bash: &CoprocClause{Stmt: litStmt("a")},
-	},
-	{
-		Strs: []string{"coproc a b"},
-		bash: &CoprocClause{Stmt: litStmt("a", "b")},
 	},
 	{
 		Strs: []string{"coproc { a; }"},
@@ -3255,7 +3269,7 @@ var fileTests = []testCase{
 	},
 	{
 		Strs: []string{"echo ?(b)*(c)+(d)@(e)!(f)"},
-		bash: stmt(call(litWord("echo"), word(
+		bsmk: stmt(call(litWord("echo"), word(
 			&ExtGlob{Op: GlobQuest, Pattern: lit("b")},
 			&ExtGlob{Op: GlobStar, Pattern: lit("c")},
 			&ExtGlob{Op: GlobPlus, Pattern: lit("d")},
@@ -3265,7 +3279,7 @@ var fileTests = []testCase{
 	},
 	{
 		Strs: []string{"echo foo@(b*(c|d))bar"},
-		bash: stmt(call(litWord("echo"), word(
+		bsmk: stmt(call(litWord("echo"), word(
 			lit("foo"),
 			&ExtGlob{Op: GlobAt, Pattern: lit("b*(c|d)")},
 			lit("bar"),
@@ -3273,7 +3287,7 @@ var fileTests = []testCase{
 	},
 	{
 		Strs: []string{"echo $a@(b)$c?(d)$e*(f)$g+(h)$i!(j)$k"},
-		bash: stmt(call(litWord("echo"), word(
+		bsmk: stmt(call(litWord("echo"), word(
 			litParamExp("a"),
 			&ExtGlob{Op: GlobAt, Pattern: lit("b")},
 			litParamExp("c"),
