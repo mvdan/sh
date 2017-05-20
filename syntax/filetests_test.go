@@ -507,6 +507,20 @@ var fileTests = []testCase{
 		},
 	},
 	{
+		Strs: []string{"foo | a=b bar"},
+		common: &BinaryCmd{
+			Op: Pipe,
+			X:  litStmt("foo"),
+			Y: &Stmt{
+				Assigns: []*Assign{{
+					Name:  lit("a"),
+					Value: litWord("b"),
+				}},
+				Cmd: litCall("bar"),
+			},
+		},
+	},
+	{
 		Strs: []string{"foo |&"},
 		mksh: &Stmt{Cmd: litCall("foo"), Coprocess: true},
 	},

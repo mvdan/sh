@@ -1200,33 +1200,7 @@ func (p *Parser) getStmt(readEnd, binCmd bool) (s *Stmt, gotEnd bool) {
 			p.posErr(s.Pos(), `! cannot form a statement alone`)
 		}
 	}
-preLoop:
-	for {
-		switch p.tok {
-		case _Lit, _LitWord:
-			if !p.hasValidIdent() {
-				break preLoop
-			}
-			s.Assigns = append(s.Assigns, p.getAssign())
-		case rdrOut, appOut, rdrIn, dplIn, dplOut, clbOut, rdrInOut,
-			hdoc, dashHdoc, wordHdoc, rdrAll, appAll, _LitRedir:
-			p.doRedirect(s)
-		default:
-			break preLoop
-		}
-		switch {
-		case p.newLine, p.tok == _EOF:
-			return
-		case p.tok == semicolon:
-			if readEnd {
-				s.Semicolon = p.pos
-				p.next()
-				gotEnd = true
-			}
-			return
-		}
-	}
-	if s = p.gotStmtPipe(s); s == nil {
+	if s = p.gotStmtPipe(s, readEnd); s == nil {
 		return
 	}
 	switch p.tok {
@@ -1250,28 +1224,52 @@ preLoop:
 			s = p.stmt(s.Position)
 			s.Cmd = b
 		}
-		if readEnd && p.gotSameLine(semicolon) {
-			gotEnd = true
+		if p.tok != semicolon {
+			break
 		}
-	case and:
-		p.next()
-		s.Background = true
-		gotEnd = true
-	case orAnd:
-		p.next()
-		s.Coprocess = true
-		gotEnd = true
+		fallthrough
 	case semicolon:
 		if !p.newLine && readEnd {
 			s.Semicolon = p.pos
 			p.next()
-			gotEnd = true
 		}
+	case and:
+		p.next()
+		s.Background = true
+	case orAnd:
+		p.next()
+		s.Coprocess = true
 	}
+	gotEnd = s.Semicolon.IsValid() || s.Background || s.Coprocess
 	return
 }
 
-func (p *Parser) gotStmtPipe(s *Stmt) *Stmt {
+func (p *Parser) gotStmtPipe(s *Stmt, readEnd bool) *Stmt {
+preLoop:
+	for {
+		switch p.tok {
+		case _Lit, _LitWord:
+			if !p.hasValidIdent() {
+				break preLoop
+			}
+			s.Assigns = append(s.Assigns, p.getAssign())
+		case rdrOut, appOut, rdrIn, dplIn, dplOut, clbOut, rdrInOut,
+			hdoc, dashHdoc, wordHdoc, rdrAll, appAll, _LitRedir:
+			p.doRedirect(s)
+		default:
+			break preLoop
+		}
+		switch {
+		case p.newLine, p.tok == _EOF:
+			return s
+		case p.tok == semicolon:
+			if readEnd {
+				s.Semicolon = p.pos
+				p.next()
+			}
+			return s
+		}
+	}
 	switch p.tok {
 	case _LitWord:
 		switch p.val {
@@ -1380,7 +1378,7 @@ func (p *Parser) gotStmtPipe(s *Stmt) *Stmt {
 	case or:
 		b := &BinaryCmd{OpPos: p.pos, Op: BinCmdOperator(p.tok), X: s}
 		p.next()
-		if b.Y = p.gotStmtPipe(p.stmt(p.pos)); b.Y == nil {
+		if b.Y = p.gotStmtPipe(p.stmt(p.pos), readEnd); b.Y == nil {
 			p.followErr(b.OpPos, b.Op.String(), "a statement")
 		}
 		s = p.stmt(s.Position)
