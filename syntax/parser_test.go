@@ -59,16 +59,33 @@ func TestParsePosix(t *testing.T) {
 	}
 }
 
+func TestParseMirBSDKorn(t *testing.T) {
+	t.Parallel()
+	p := NewParser(Variant(LangPOSIX))
+	for i, c := range append(fileTests, fileTestsNoPrint...) {
+		want := c.MirBSDKorn
+		if want == nil {
+			continue
+		}
+		for j, in := range c.Strs {
+			t.Run(fmt.Sprintf("%03d-%d", i, j),
+				singleParse(p, in, want))
+		}
+	}
+}
+
 var (
-	hasBash44 bool
-	hasDash   bool
+	hasBash44     bool
+	hasDash       bool
+	hasMirBSDKorn bool
 )
 
 func TestMain(m *testing.M) {
 	os.Setenv("LANGUAGE", "en_US.UTF8")
 	os.Setenv("LC_ALL", "en_US.UTF8")
 	hasBash44 = checkBash()
-	hasDash = checkDash()
+	hasDash = hasCmd("dash")
+	hasMirBSDKorn = hasCmd("mksh")
 	os.Exit(m.Run())
 }
 
@@ -80,8 +97,8 @@ func checkBash() bool {
 	return strings.HasPrefix(string(out), "4.4")
 }
 
-func checkDash() bool {
-	_, err := exec.LookPath("dash")
+func hasCmd(name string) bool {
+	_, err := exec.LookPath(name)
 	return err == nil
 }
 
@@ -165,6 +182,26 @@ func TestParsePosixConfirm(t *testing.T) {
 	}
 }
 
+func TestParseMirBSDKornConfirm(t *testing.T) {
+	if testing.Short() {
+		t.Skip("calling mksh is slow.")
+	}
+	if !hasMirBSDKorn {
+		t.Skip("mksh required to run")
+	}
+	i := 0
+	for _, c := range append(fileTests, fileTestsNoPrint...) {
+		if c.MirBSDKorn == nil {
+			continue
+		}
+		for j, in := range c.Strs {
+			t.Run(fmt.Sprintf("%03d-%d", i, j),
+				confirmParse(in, "mksh", false))
+		}
+		i++
+	}
+}
+
 func TestParseErrBashConfirm(t *testing.T) {
 	if testing.Short() {
 		t.Skip("calling bash is slow.")
@@ -205,6 +242,28 @@ func TestParseErrPosixConfirm(t *testing.T) {
 		}
 		wantErr := !strings.Contains(want.(string), " #NOERR")
 		t.Run(fmt.Sprintf("%03d", i), confirmParse(c.in, "dash", wantErr))
+		i++
+	}
+}
+
+func TestParseErrMirBSDKornConfirm(t *testing.T) {
+	if testing.Short() {
+		t.Skip("calling mksh is slow.")
+	}
+	if !hasMirBSDKorn {
+		t.Skip("mksh required to run")
+	}
+	i := 0
+	for _, c := range shellTests {
+		want := c.common
+		if c.mksh != nil {
+			want = c.mksh
+		}
+		if want == nil {
+			continue
+		}
+		wantErr := !strings.Contains(want.(string), " #NOERR")
+		t.Run(fmt.Sprintf("%03d", i), confirmParse(c.in, "mksh", wantErr))
 		i++
 	}
 }
@@ -272,8 +331,9 @@ func BenchmarkParse(b *testing.B) {
 }
 
 type errorCase struct {
-	in                  string
-	common, bash, posix interface{}
+	in                string
+	common            interface{}
+	bash, posix, mksh interface{}
 }
 
 var shellTests = []errorCase{
@@ -302,7 +362,7 @@ var shellTests = []errorCase{
 		common: `1:7: invalid UTF-8 encoding #NOERR bash uses bytes`,
 	},
 	{
-		in:     "<<$\xc8",
+		in:     "<<$\xc8\n$\xc8",
 		common: `1:4: invalid UTF-8 encoding #NOERR bash uses bytes`,
 	},
 	{
@@ -408,6 +468,7 @@ var shellTests = []errorCase{
 	{
 		in:     `"foo"(){}`,
 		common: `1:1: invalid func name`,
+		mksh:   `1:1: invalid func name #NOERR`,
 	},
 	{
 		in:     `foo$bar(){}`,
@@ -508,6 +569,7 @@ var shellTests = []errorCase{
 	{
 		in:     "foo()",
 		common: `1:1: "foo()" must be followed by a statement`,
+		mksh:   `1:1: "foo()" must be followed by a statement #NOERR`,
 	},
 	{
 		in:     "foo() {",
@@ -564,30 +626,37 @@ var shellTests = []errorCase{
 	{
 		in:     "<<EOF",
 		common: `1:1: unclosed here-document 'EOF' #NOERR`,
+		mksh:   `1:1: unclosed here-document 'EOF'`,
 	},
 	{
 		in:     "<<EOF\n\\",
 		common: `1:1: unclosed here-document 'EOF' #NOERR`,
+		mksh:   `1:1: unclosed here-document 'EOF'`,
 	},
 	{
 		in:     "<<EOF <`\n#\n`\n``",
 		common: `1:1: unclosed here-document 'EOF'`,
+		mksh:   `1:1: unclosed here-document 'EOF'`,
 	},
 	{
 		in:     "<<'EOF'",
 		common: `1:1: unclosed here-document 'EOF' #NOERR`,
+		mksh:   `1:1: unclosed here-document 'EOF'`,
 	},
 	{
 		in:     "<<\\EOF",
 		common: `1:1: unclosed here-document 'EOF' #NOERR`,
+		mksh:   `1:1: unclosed here-document 'EOF'`,
 	},
 	{
 		in:     "<<\\\\EOF",
 		common: `1:1: unclosed here-document '\EOF' #NOERR`,
+		mksh:   `1:1: unclosed here-document 'EOF'`,
 	},
 	{
 		in:     "<<-EOF",
 		common: `1:1: unclosed here-document 'EOF' #NOERR`,
+		mksh:   `1:1: unclosed here-document 'EOF'`,
 	},
 	{
 		in:     "<<\nEOF\nbar\nEOF",
@@ -796,6 +865,7 @@ var shellTests = []errorCase{
 	{
 		in:     "echo $(((a)+=b))",
 		common: `1:12: += must follow a name`,
+		mksh:   `1:12: += must follow a name #NOERR`,
 	},
 	{
 		in:     "echo $((1=2))",
@@ -816,6 +886,7 @@ var shellTests = []errorCase{
 	{
 		in:     "echo $(($1'2'))",
 		common: `1:11: not a valid arithmetic operator: '`,
+		mksh:   `1:11: not a valid arithmetic operator: ' #NOERR`,
 	},
 	{
 		in:     "<<EOF\n$(()a",
@@ -919,11 +990,11 @@ var shellTests = []errorCase{
 		posix: `1:8: ) can only be used to close a subshell #NOERR dash bug`,
 	},
 	{
-		in:     "<<$bar",
+		in:     "<<$bar\n$bar",
 		common: `1:3: expansions not allowed in heredoc words #NOERR`,
 	},
 	{
-		in:     "<<${bar}",
+		in:     "<<${bar}\n${bar}",
 		common: `1:3: expansions not allowed in heredoc words #NOERR`,
 	},
 	{
@@ -932,19 +1003,19 @@ var shellTests = []errorCase{
 		posix: `1:3: expansions not allowed in heredoc words`,
 	},
 	{
-		in:     "<<$+",
+		in:     "<<$+\n$+",
 		common: `1:3: expansions not allowed in heredoc words #NOERR`,
 	},
 	{
-		in:     "<<`bar`",
+		in:     "<<`bar`\n`bar`",
 		common: `1:3: expansions not allowed in heredoc words #NOERR`,
 	},
 	{
-		in:     `<<"$bar"`,
+		in:     "<<\"$bar\"\n$bar",
 		common: `1:4: expansions not allowed in heredoc words #NOERR`,
 	},
 	{
-		in:     "<<$",
+		in:     "<<$\n$",
 		common: `1:3: expansions not allowed in heredoc words #NOERR`,
 	},
 	{
@@ -954,6 +1025,7 @@ var shellTests = []errorCase{
 	{
 		in:     `""()`,
 		common: `1:1: invalid func name`,
+		mksh:   `1:1: invalid func name #NOERR`,
 	},
 	{
 		// bash errors on the empty condition here, this is to

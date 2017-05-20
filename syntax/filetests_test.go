@@ -17,6 +17,7 @@ func prepareTest(c *testCase) {
 		c.All = append(c.All, f)
 		c.Bash = f
 		c.Posix = f
+		c.MirBSDKorn = f
 	}
 	if f, ok := c.bash.(*File); ok && f != nil {
 		c.All = append(c.All, f)
@@ -25,6 +26,10 @@ func prepareTest(c *testCase) {
 	if f, ok := c.posix.(*File); ok && f != nil {
 		c.All = append(c.All, f)
 		c.Posix = f
+	}
+	if f, ok := c.mksh.(*File); ok && f != nil {
+		c.All = append(c.All, f)
+		c.MirBSDKorn = f
 	}
 }
 
@@ -90,10 +95,13 @@ func letClause(exps ...ArithmExpr) *LetClause {
 }
 
 type testCase struct {
-	Strs                []string
-	common, bash, posix interface{}
-	All                 []*File
-	Bash, Posix         *File
+	Strs        []string
+	common      interface{}
+	bash, posix interface{}
+	mksh        interface{}
+	All         []*File
+	Bash, Posix *File
+	MirBSDKorn  *File
 }
 
 var fileTests = []testCase{

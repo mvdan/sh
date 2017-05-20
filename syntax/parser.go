@@ -18,6 +18,7 @@ type LangVariant int
 const (
 	LangBash LangVariant = iota
 	LangPOSIX
+	LangMirBSDKorn
 )
 
 func Variant(l LangVariant) func(*Parser) {
