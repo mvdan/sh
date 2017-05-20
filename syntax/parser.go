@@ -1200,7 +1200,7 @@ func (p *Parser) getStmt(readEnd, binCmd bool) (s *Stmt, gotEnd bool) {
 			p.posErr(s.Pos(), `! cannot form a statement alone`)
 		}
 	}
-	if s = p.gotStmtPipe(s, readEnd); s == nil {
+	if s = p.gotStmtPipe(s); s == nil {
 		return
 	}
 	switch p.tok {
@@ -1244,7 +1244,7 @@ func (p *Parser) getStmt(readEnd, binCmd bool) (s *Stmt, gotEnd bool) {
 	return
 }
 
-func (p *Parser) gotStmtPipe(s *Stmt, readEnd bool) *Stmt {
+func (p *Parser) gotStmtPipe(s *Stmt) *Stmt {
 preLoop:
 	for {
 		switch p.tok {
@@ -1260,13 +1260,7 @@ preLoop:
 			break preLoop
 		}
 		switch {
-		case p.newLine, p.tok == _EOF:
-			return s
-		case p.tok == semicolon:
-			if readEnd {
-				s.Semicolon = p.pos
-				p.next()
-			}
+		case p.newLine, p.tok == _EOF, p.tok == semicolon:
 			return s
 		}
 	}
@@ -1367,12 +1361,13 @@ preLoop:
 		s.Cmd = p.subshell()
 	case dblLeftParen:
 		s.Cmd = p.arithmExpCmd()
+	default:
+		if len(s.Redirs) == 0 && len(s.Assigns) == 0 {
+			return nil
+		}
 	}
 	for !p.newLine && p.peekRedir() {
 		p.doRedirect(s)
-	}
-	if s.Cmd == nil && len(s.Redirs) == 0 && !s.Negated && len(s.Assigns) == 0 {
-		return nil
 	}
 	switch p.tok {
 	case orAnd:
@@ -1383,7 +1378,7 @@ preLoop:
 	case or:
 		b := &BinaryCmd{OpPos: p.pos, Op: BinCmdOperator(p.tok), X: s}
 		p.next()
-		if b.Y = p.gotStmtPipe(p.stmt(p.pos), readEnd); b.Y == nil {
+		if b.Y = p.gotStmtPipe(p.stmt(p.pos)); b.Y == nil {
 			p.followErr(b.OpPos, b.Op.String(), "a statement")
 		}
 		s = p.stmt(s.Position)
@@ -1733,7 +1728,7 @@ func (p *Parser) timeClause() *TimeClause {
 	tc := &TimeClause{Time: p.pos}
 	p.next()
 	if !p.newLine {
-		tc.Stmt = p.gotStmtPipe(p.stmt(p.pos), false)
+		tc.Stmt = p.gotStmtPipe(p.stmt(p.pos))
 	}
 	return tc
 }
@@ -1742,14 +1737,14 @@ func (p *Parser) coprocClause() *CoprocClause {
 	cc := &CoprocClause{Coproc: p.pos}
 	if p.next(); isBashCompoundCommand(p.tok, p.val) {
 		// has no name
-		cc.Stmt = p.gotStmtPipe(p.stmt(p.pos), false)
+		cc.Stmt = p.gotStmtPipe(p.stmt(p.pos))
 		return cc
 	}
 	if p.newLine {
 		p.posErr(cc.Coproc, "coproc clause requires a command")
 	}
 	cc.Name = p.getLit()
-	cc.Stmt = p.gotStmtPipe(p.stmt(p.pos), false)
+	cc.Stmt = p.gotStmtPipe(p.stmt(p.pos))
 	if cc.Stmt == nil {
 		if cc.Name == nil {
 			p.posErr(cc.Coproc, "coproc clause requires a command")
