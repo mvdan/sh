@@ -1304,6 +1304,10 @@ var shellTests = []errorCase{
 		bsmk: `1:9: arithmetic expressions must consist of names and numbers`,
 	},
 	{
+		in:   "time {",
+		bsmk: `1:6: reached EOF without matching { with }`,
+	},
+	{
 		in:   "coproc",
 		bash: `1:1: coproc clause requires a command`,
 	},

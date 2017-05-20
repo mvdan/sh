@@ -733,6 +733,11 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			p.word(w)
 		}
 		p.assigns(x.Assigns)
+	case *TimeClause:
+		p.spacedString("time")
+		if x.Stmt != nil {
+			p.stmt(x.Stmt)
+		}
 	case *CoprocClause:
 		p.spacedString("coproc")
 		if x.Name != nil {

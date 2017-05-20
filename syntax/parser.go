@@ -1327,6 +1327,11 @@ preLoop:
 				break
 			}
 			s.Cmd = p.declClause()
+		case "time":
+			if p.lang == LangPOSIX {
+				break
+			}
+			s.Cmd = p.timeClause()
 		case "coproc":
 			if p.lang != LangBash {
 				break
@@ -1722,6 +1727,15 @@ func isBashCompoundCommand(tok token, val string) bool {
 		}
 	}
 	return false
+}
+
+func (p *Parser) timeClause() *TimeClause {
+	tc := &TimeClause{Time: p.pos}
+	p.next()
+	if !p.newLine {
+		tc.Stmt = p.gotStmtPipe(p.stmt(p.pos), false)
+	}
+	return tc
 }
 
 func (p *Parser) coprocClause() *CoprocClause {

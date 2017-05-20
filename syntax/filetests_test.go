@@ -3016,6 +3016,19 @@ var fileTests = []testCase{
 		common: litStmt("eval", "a=b", "foo"),
 	},
 	{
+		Strs:  []string{"time", "time\n"},
+		posix: litStmt("time"),
+		bsmk:  &TimeClause{},
+	},
+	{
+		Strs: []string{"time foo"},
+		bsmk: &TimeClause{Stmt: litStmt("foo")},
+	},
+	{
+		Strs: []string{"time { foo; }"},
+		bsmk: &TimeClause{Stmt: stmt(block(litStmt("foo")))},
+	},
+	{
 		Strs:   []string{"coproc foo bar"},
 		common: litStmt("coproc", "foo", "bar"),
 		bash:   &CoprocClause{Stmt: litStmt("foo", "bar")},
@@ -3712,6 +3725,11 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 		setPos(&x.Position, x.Variant)
 		recurse(x.Opts)
 		recurse(x.Assigns)
+	case *TimeClause:
+		setPos(&x.Time, "time")
+		if x.Stmt != nil {
+			recurse(x.Stmt)
+		}
 	case *CoprocClause:
 		setPos(&x.Coproc, "coproc")
 		if x.Name != nil {

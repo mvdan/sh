@@ -150,7 +150,7 @@ func (s *Stmt) End() Pos {
 //
 // These are *CallExpr, *IfClause, *WhileClause, *ForClause,
 // *CaseClause, *Block, *Subshell, *BinaryCmd, *FuncDecl, *ArithmCmd,
-// *TestClause, *DeclClause, *LetClause, and *CoprocClause.
+// *TestClause, *DeclClause, *LetClause, *TimeClause, and *CoprocClause.
 type Command interface {
 	Node
 	commandNode()
@@ -169,6 +169,7 @@ func (*ArithmCmd) commandNode()    {}
 func (*TestClause) commandNode()   {}
 func (*DeclClause) commandNode()   {}
 func (*LetClause) commandNode()    {}
+func (*TimeClause) commandNode()   {}
 func (*CoprocClause) commandNode() {}
 
 // Assign represents an assignment to a variable.
@@ -681,6 +682,22 @@ type ProcSubst struct {
 
 func (s *ProcSubst) Pos() Pos { return s.OpPos }
 func (s *ProcSubst) End() Pos { return s.Rparen + 1 }
+
+// TimeClause represents a Bash time clause.
+//
+// This node will never appear when in PosixConformant mode.
+type TimeClause struct {
+	Time Pos
+	Stmt *Stmt
+}
+
+func (c *TimeClause) Pos() Pos { return c.Time }
+func (c *TimeClause) End() Pos {
+	if c.Stmt == nil {
+		return c.Time + 4
+	}
+	return c.Stmt.End()
+}
 
 // CoprocClause represents a Bash coproc clause.
 //

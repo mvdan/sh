@@ -163,6 +163,10 @@ func Walk(node Node, f func(Node) bool) {
 		Walk(x.Pattern, f)
 	case *ProcSubst:
 		walkStmts(x.Stmts, f)
+	case *TimeClause:
+		if x.Stmt != nil {
+			Walk(x.Stmt, f)
+		}
 	case *CoprocClause:
 		if x.Name != nil {
 			Walk(x.Name, f)
