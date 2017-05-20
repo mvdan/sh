@@ -2885,15 +2885,8 @@ var fileTests = []testCase{
 		}},
 	},
 	{
-		Strs: []string{"declare -f func"},
-		bash: &DeclClause{
-			Variant: "declare",
-			Opts:    litWords("-f"),
-			Assigns: []*Assign{{Value: litWord("func")}},
-		},
-	},
-	{
-		Strs: []string{"declare -f func"},
+		Strs:   []string{"declare -f func"},
+		common: litStmt("declare", "-f", "func"),
 		bash: &DeclClause{
 			Variant: "declare",
 			Opts:    litWords("-f"),

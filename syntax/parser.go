@@ -1258,9 +1258,6 @@ preLoop:
 		s.Background = true
 		gotEnd = true
 	case orAnd:
-		if p.lang != LangMirBSDKorn {
-			break
-		}
 		p.next()
 		s.Coprocess = true
 		gotEnd = true
