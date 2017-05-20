@@ -1325,31 +1325,31 @@ var shellTests = []errorCase{
 	},
 	{
 		in:   "echo ${a/\n",
-		bash: `1:6: reached EOF without matching ${ with }`,
+		bsmk: `1:6: reached EOF without matching ${ with }`,
 	},
 	{
 		in:   "echo ${a-\n",
-		bash: `1:6: reached EOF without matching ${ with }`,
+		bsmk: `1:6: reached EOF without matching ${ with }`,
 	},
 	{
 		in:   "echo ${foo:",
-		bash: `1:11: : must be followed by an expression`,
+		bsmk: `1:11: : must be followed by an expression`,
 	},
 	{
 		in:   "echo ${foo:1 2}",
-		bash: `1:14: not a valid arithmetic operator: 2 #NOERR lazy eval`,
+		bsmk: `1:14: not a valid arithmetic operator: 2 #NOERR lazy eval`,
 	},
 	{
 		in:   "echo ${foo:1",
-		bash: `1:6: reached EOF without matching ${ with }`,
+		bsmk: `1:6: reached EOF without matching ${ with }`,
 	},
 	{
 		in:   "echo ${foo:1:",
-		bash: `1:13: : must be followed by an expression`,
+		bsmk: `1:13: : must be followed by an expression`,
 	},
 	{
 		in:   "echo ${foo:1:2",
-		bash: `1:6: reached EOF without matching ${ with }`,
+		bsmk: `1:6: reached EOF without matching ${ with }`,
 	},
 	{
 		in:   "echo ${foo,",
@@ -1361,11 +1361,11 @@ var shellTests = []errorCase{
 	},
 	{
 		in:   `echo $((echo a); (echo b))`,
-		bash: `1:14: not a valid arithmetic operator: a #NOERR backtrack`,
+		bsmk: `1:14: not a valid arithmetic operator: a #NOERR backtrack`,
 	},
 	{
 		in:   `((echo a); (echo b))`,
-		bash: `1:8: not a valid arithmetic operator: a #NOERR backtrack`,
+		bsmk: `1:8: not a valid arithmetic operator: a #NOERR backtrack`,
 	},
 	{
 		in:   "for ((;;0000000",

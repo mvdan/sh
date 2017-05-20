@@ -989,7 +989,7 @@ func (p *Parser) paramExp() *ParamExp {
 		p.next()
 		return pe
 	case slash, dblSlash:
-		if !p.bash() {
+		if p.lang == LangPOSIX {
 			p.curErr("search and replace is a bash feature")
 		}
 		pe.Repl = &Replace{All: p.tok == dblSlash}
@@ -1006,7 +1006,7 @@ func (p *Parser) paramExp() *ParamExp {
 		}
 		pe.Repl.With = p.getWordOrEmpty()
 	case colon:
-		if !p.bash() {
+		if p.lang == LangPOSIX {
 			p.curErr("slicing is a bash feature")
 		}
 		pe.Slice = &Slice{}
@@ -1027,7 +1027,7 @@ func (p *Parser) paramExp() *ParamExp {
 			}
 		}
 	case caret, dblCaret, comma, dblComma, at:
-		if !p.bash() {
+		if p.lang != LangBash {
 			p.curErr("this expansion operator is a bash feature")
 		}
 		fallthrough

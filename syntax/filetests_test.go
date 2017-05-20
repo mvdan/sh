@@ -1745,28 +1745,28 @@ var fileTests = []testCase{
 	},
 	{
 		Strs: []string{`${foo/a/b}`},
-		bash: &ParamExp{
+		bsmk: &ParamExp{
 			Param: lit("foo"),
 			Repl:  &Replace{Orig: litWord("a"), With: litWord("b")},
 		},
 	},
 	{
 		Strs: []string{"${foo/ /\t}"},
-		bash: &ParamExp{
+		bsmk: &ParamExp{
 			Param: lit("foo"),
 			Repl:  &Replace{Orig: litWord(" "), With: litWord("\t")},
 		},
 	},
 	{
 		Strs: []string{`${foo/[/]-}`},
-		bash: &ParamExp{
+		bsmk: &ParamExp{
 			Param: lit("foo"),
 			Repl:  &Replace{Orig: litWord("["), With: litWord("]-")},
 		},
 	},
 	{
 		Strs: []string{`${foo/bar/b/a/r}`},
-		bash: &ParamExp{
+		bsmk: &ParamExp{
 			Param: lit("foo"),
 			Repl: &Replace{
 				Orig: litWord("bar"),
@@ -1776,7 +1776,7 @@ var fileTests = []testCase{
 	},
 	{
 		Strs: []string{`${foo/$a/$b}`},
-		bash: &ParamExp{
+		bsmk: &ParamExp{
 			Param: lit("foo"),
 			Repl: &Replace{
 				Orig: word(litParamExp("a")),
@@ -1786,7 +1786,7 @@ var fileTests = []testCase{
 	},
 	{
 		Strs: []string{`${foo//b1/b2}`},
-		bash: &ParamExp{
+		bsmk: &ParamExp{
 			Param: lit("foo"),
 			Repl: &Replace{
 				All:  true,
@@ -1797,7 +1797,7 @@ var fileTests = []testCase{
 	},
 	{
 		Strs: []string{`${foo///}`, `${foo//}`},
-		bash: &ParamExp{
+		bsmk: &ParamExp{
 			Param: lit("foo"),
 			Repl: &Replace{
 				All:  true,
@@ -1808,7 +1808,7 @@ var fileTests = []testCase{
 	},
 	{
 		Strs: []string{`${foo/-//}`},
-		bash: &ParamExp{
+		bsmk: &ParamExp{
 			Param: lit("foo"),
 			Repl:  &Replace{Orig: litWord("-"), With: litWord("/")},
 		},
@@ -1818,7 +1818,7 @@ var fileTests = []testCase{
 			`${foo//#/}`,
 			`${foo//#}`,
 		},
-		bash: &ParamExp{
+		bsmk: &ParamExp{
 			Param: lit("foo"),
 			Repl: &Replace{
 				All:  true,
@@ -2956,7 +2956,7 @@ var fileTests = []testCase{
 			"a && b=(c)\nd",
 			"a && b=(c); d",
 		},
-		bash: stmts(
+		bsmk: stmts(
 			&BinaryCmd{
 				Op: AndStmt,
 				X:  litStmt("a"),
@@ -3022,14 +3022,14 @@ var fileTests = []testCase{
 	},
 	{
 		Strs: []string{`let i++`},
-		bash: letClause(
+		bsmk: letClause(
 			&UnaryArithm{Op: Inc, Post: true, X: lit("i")},
 		),
 		posix: litStmt("let", "i++"),
 	},
 	{
 		Strs: []string{`let a++ b++ c +d`},
-		bash: letClause(
+		bsmk: letClause(
 			&UnaryArithm{Op: Inc, Post: true, X: lit("a")},
 			&UnaryArithm{Op: Inc, Post: true, X: lit("b")},
 			lit("c"),
@@ -3038,7 +3038,7 @@ var fileTests = []testCase{
 	},
 	{
 		Strs: []string{`let ++i >/dev/null`},
-		bash: &Stmt{
+		bsmk: &Stmt{
 			Cmd:    letClause(&UnaryArithm{Op: Inc, X: lit("i")}),
 			Redirs: []*Redirect{{Op: RdrOut, Word: litWord("/dev/null")}},
 		},
@@ -3079,7 +3079,7 @@ var fileTests = []testCase{
 			"let i++ \nbar",
 			"let i++; bar",
 		},
-		bash: []*Stmt{
+		bsmk: []*Stmt{
 			stmt(letClause(&UnaryArithm{
 				Op:   Inc,
 				Post: true,
@@ -3094,7 +3094,7 @@ var fileTests = []testCase{
 			"let i++; foo=(bar)",
 			"let i++; foo=(bar)\n",
 		},
-		bash: []*Stmt{
+		bsmk: []*Stmt{
 			stmt(letClause(&UnaryArithm{
 				Op:   Inc,
 				Post: true,
@@ -3111,7 +3111,7 @@ var fileTests = []testCase{
 			"case a in b) let i++ ;; esac",
 			"case a in b) let i++;; esac",
 		},
-		bash: &CaseClause{
+		bsmk: &CaseClause{
 			Word: word(lit("a")),
 			List: []*PatternList{{
 				Op:       DblSemicolon,
@@ -3126,6 +3126,7 @@ var fileTests = []testCase{
 	},
 	{
 		Strs: []string{"a=(b c) foo"},
+		// TODO: why does mksh error on this?
 		bash: &Stmt{
 			Assigns: []*Assign{{
 				Name:  lit("a"),
