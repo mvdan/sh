@@ -1728,14 +1728,14 @@ func (p *Parser) coprocClause() *CoprocClause {
 	cc := &CoprocClause{Coproc: p.pos}
 	if p.next(); isBashCompoundCommand(p.tok, p.val) {
 		// has no name
-		cc.Stmt, _ = p.getStmt(false, false)
+		cc.Stmt = p.gotStmtPipe(p.stmt(p.pos), false)
 		return cc
 	}
 	if p.newLine {
 		p.posErr(cc.Coproc, "coproc clause requires a command")
 	}
 	cc.Name = p.getLit()
-	cc.Stmt, _ = p.getStmt(false, false)
+	cc.Stmt = p.gotStmtPipe(p.stmt(p.pos), false)
 	if cc.Stmt == nil {
 		if cc.Name == nil {
 			p.posErr(cc.Coproc, "coproc clause requires a command")

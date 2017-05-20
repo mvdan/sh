@@ -3016,31 +3016,42 @@ var fileTests = []testCase{
 		common: litStmt("eval", "a=b", "foo"),
 	},
 	{
-		Strs:   []string{"coproc a b"},
-		common: litStmt("coproc", "a", "b"),
-		bash:   &CoprocClause{Stmt: litStmt("a", "b")},
+		Strs:   []string{"coproc foo bar"},
+		common: litStmt("coproc", "foo", "bar"),
+		bash:   &CoprocClause{Stmt: litStmt("foo", "bar")},
 	},
 	{
-		Strs: []string{"coproc a { b; }"},
+		Strs: []string{"coproc name { foo; }"},
 		bash: &CoprocClause{
-			Name: lit("a"),
-			Stmt: stmt(block(litStmt("b"))),
+			Name: lit("name"),
+			Stmt: stmt(block(litStmt("foo"))),
 		},
 	},
 	{
-		Strs: []string{"coproc a", "coproc a;"},
-		bash: &CoprocClause{Stmt: litStmt("a")},
+		Strs: []string{"coproc foo", "coproc foo;"},
+		bash: &CoprocClause{Stmt: litStmt("foo")},
 	},
 	{
-		Strs: []string{"coproc { a; }"},
+		Strs: []string{"coproc { foo; }"},
 		bash: &CoprocClause{
-			Stmt: stmt(block(litStmt("a"))),
+			Stmt: stmt(block(litStmt("foo"))),
 		},
 	},
 	{
-		Strs: []string{"coproc (a)"},
+		Strs: []string{"coproc (foo)"},
 		bash: &CoprocClause{
-			Stmt: stmt(subshell(litStmt("a"))),
+			Stmt: stmt(subshell(litStmt("foo"))),
+		},
+	},
+	{
+		Strs: []string{"coproc name foo | bar"},
+		bash: &CoprocClause{
+			Name: lit("name"),
+			Stmt: stmt(&BinaryCmd{
+				Op: Pipe,
+				X:  litStmt("foo"),
+				Y:  litStmt("bar"),
+			}),
 		},
 	},
 	{
