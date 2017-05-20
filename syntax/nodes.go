@@ -651,11 +651,24 @@ func (d *DeclClause) End() Pos {
 // This node will never appear when in PosixConformant mode.
 type ArrayExpr struct {
 	Lparen, Rparen Pos
-	Elems          []*Word
+	Elems          []*ArrayElem
 }
 
 func (a *ArrayExpr) Pos() Pos { return a.Lparen }
 func (a *ArrayExpr) End() Pos { return a.Rparen + 1 }
+
+type ArrayElem struct {
+	Index ArithmExpr
+	Value *Word
+}
+
+func (a *ArrayElem) Pos() Pos {
+	if a.Index != nil {
+		return a.Index.Pos()
+	}
+	return a.Value.Pos()
+}
+func (a *ArrayElem) End() Pos { return a.Value.End() }
 
 // ExtGlob represents a Bash extended globbing expression. Note that
 // these are parsed independently of whether shopt has been called or

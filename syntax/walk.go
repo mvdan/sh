@@ -158,7 +158,14 @@ func Walk(node Node, f func(Node) bool) {
 			Walk(a, f)
 		}
 	case *ArrayExpr:
-		walkWords(x.Elems, f)
+		for _, el := range x.Elems {
+			Walk(el, f)
+		}
+	case *ArrayElem:
+		if x.Index != nil {
+			Walk(x.Index, f)
+		}
+		Walk(x.Value, f)
 	case *ExtGlob:
 		Walk(x.Pattern, f)
 	case *ProcSubst:

@@ -1143,7 +1143,8 @@ func (p *Parser) getAssign() *Assign {
 			if w := p.getWord(); w == nil {
 				p.curErr("array elements must be words")
 			} else {
-				as.Array.Elems = append(as.Array.Elems, w)
+				as.Array.Elems = append(as.Array.Elems,
+					&ArrayElem{Value: w})
 			}
 		}
 		as.Array.Rparen = p.matched(as.Array.Lparen, leftParen, rightParen)

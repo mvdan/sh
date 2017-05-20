@@ -379,7 +379,7 @@ func (p *Printer) loop(loop Loop) {
 		p.WriteString(x.Name.Value)
 		if len(x.Items) > 0 {
 			p.spacedString(" in")
-			p.wordJoin(x.Items, true)
+			p.wordJoin(x.Items)
 		}
 	case *CStyleLoop:
 		p.WriteString("((")
@@ -487,17 +487,12 @@ func (p *Printer) unquotedWord(w *Word) {
 	}
 }
 
-func (p *Printer) wordJoin(ws []*Word, backslash bool) {
+func (p *Printer) wordJoin(ws []*Word) {
 	anyNewline := false
 	for _, w := range ws {
 		if pos := w.Pos(); pos > p.nline {
 			p.commentsUpTo(pos)
-			if backslash {
-				p.bslashNewl()
-			} else {
-				p.WriteByte('\n')
-				p.incLine()
-			}
+			p.bslashNewl()
 			if !anyNewline {
 				p.incLevel()
 				anyNewline = true
@@ -508,6 +503,29 @@ func (p *Printer) wordJoin(ws []*Word, backslash bool) {
 			p.wantSpace = false
 		}
 		p.word(w)
+	}
+	if anyNewline {
+		p.decLevel()
+	}
+}
+
+func (p *Printer) elemJoin(elems []*ArrayElem) {
+	anyNewline := false
+	for _, el := range elems {
+		if pos := el.Pos(); pos > p.nline {
+			p.commentsUpTo(pos)
+			p.WriteByte('\n')
+			p.incLine()
+			if !anyNewline {
+				p.incLevel()
+				anyNewline = true
+			}
+			p.indent()
+		} else if p.wantSpace {
+			p.WriteByte(' ')
+			p.wantSpace = false
+		}
+		p.word(el.Value)
 	}
 	if anyNewline {
 		p.decLevel()
@@ -573,10 +591,10 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 	switch x := cmd.(type) {
 	case *CallExpr:
 		if len(x.Args) <= 1 {
-			p.wordJoin(x.Args, true)
+			p.wordJoin(x.Args)
 			return 0
 		}
-		p.wordJoin(x.Args[:1], true)
+		p.wordJoin(x.Args[:1])
 		for _, r := range redirs {
 			if r.Pos() > x.Args[1].Pos() || r.Op == Hdoc || r.Op == DashHdoc {
 				break
@@ -591,7 +609,7 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			p.word(r.Word)
 			startRedirs++
 		}
-		p.wordJoin(x.Args[1:], true)
+		p.wordJoin(x.Args[1:])
 	case *Block:
 		p.WriteByte('{')
 		p.wantSpace = true
@@ -931,7 +949,7 @@ func (p *Printer) assigns(assigns []*Assign) {
 		} else if a.Array != nil {
 			p.wantSpace = false
 			p.WriteByte('(')
-			p.wordJoin(a.Array.Elems, false)
+			p.elemJoin(a.Array.Elems)
 			p.sepTok(")", a.Array.Rparen)
 		}
 		p.wantSpace = true

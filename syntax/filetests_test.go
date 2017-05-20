@@ -101,6 +101,14 @@ func letClause(exps ...ArithmExpr) *LetClause {
 	return &LetClause{Exprs: exps}
 }
 
+func arrValues(words ...*Word) *ArrayExpr {
+	ae := &ArrayExpr{}
+	for _, w := range words {
+		ae.Elems = append(ae.Elems, &ArrayElem{Value: w})
+	}
+	return ae
+}
+
 type testCase struct {
 	Strs        []string
 	common      interface{}
@@ -2961,10 +2969,10 @@ var fileTests = []testCase{
 			Opts:    litWords("-a"),
 			Assigns: []*Assign{{
 				Name: lit("foo"),
-				Array: &ArrayExpr{Elems: []*Word{
+				Array: arrValues(
 					litWord("b1"),
 					word(cmdSubst(litStmt("b2"))),
-				}},
+				),
 			}},
 		},
 	},
@@ -2975,7 +2983,7 @@ var fileTests = []testCase{
 			Opts:    litWords("-a"),
 			Assigns: []*Assign{{
 				Name:  lit("foo"),
-				Array: &ArrayExpr{Elems: litWords("b1")},
+				Array: arrValues(litWord("b1")),
 			}},
 		},
 	},
@@ -2989,10 +2997,8 @@ var fileTests = []testCase{
 				Op: AndStmt,
 				X:  litStmt("a"),
 				Y: &Stmt{Assigns: []*Assign{{
-					Name: lit("b"),
-					Array: &ArrayExpr{
-						Elems: litWords("c"),
-					},
+					Name:  lit("b"),
+					Array: arrValues(litWord("c")),
 				}}},
 			},
 			litCall("d"),
@@ -3155,7 +3161,7 @@ var fileTests = []testCase{
 			})),
 			{Assigns: []*Assign{{
 				Name:  lit("foo"),
-				Array: &ArrayExpr{Elems: litWords("bar")},
+				Array: arrValues(litWord("bar")),
 			}}},
 		},
 	},
@@ -3183,7 +3189,7 @@ var fileTests = []testCase{
 		bash: &Stmt{
 			Assigns: []*Assign{{
 				Name:  lit("a"),
-				Array: &ArrayExpr{Elems: litWords("b", "c")},
+				Array: arrValues(litWords("b", "c")...),
 			}},
 			Cmd: litCall("foo"),
 		},
@@ -3193,7 +3199,7 @@ var fileTests = []testCase{
 		bash: &Stmt{
 			Assigns: []*Assign{{
 				Name:  lit("a"),
-				Array: &ArrayExpr{Elems: litWords("b", "c")},
+				Array: arrValues(litWords("b", "c")...),
 			}},
 			Cmd: litCall("foo"),
 		},
@@ -3214,7 +3220,7 @@ var fileTests = []testCase{
 		bsmk: &Stmt{Assigns: []*Assign{{
 			Append: true,
 			Name:   lit("b"),
-			Array:  &ArrayExpr{Elems: litWords("2", "3")},
+			Array:  arrValues(litWords("2", "3")...),
 		}}},
 	},
 	{
@@ -3744,7 +3750,14 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 	case *ArrayExpr:
 		setPos(&x.Lparen, "(")
 		setPos(&x.Rparen, ")")
-		recurse(x.Elems)
+		for _, elem := range x.Elems {
+			recurse(elem)
+		}
+	case *ArrayElem:
+		if x.Index != nil {
+			recurse(x.Index)
+		}
+		recurse(x.Value)
 	case *ExtGlob:
 		setPos(&x.OpPos, x.Op.String())
 		checkSrc(x.Pattern.End(), ")")

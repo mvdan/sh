@@ -283,8 +283,8 @@ func (r *Runner) assignValue(as *syntax.Assign) varValue {
 	}
 	if as.Array != nil {
 		strs := make([]string, len(as.Array.Elems))
-		for i, w := range as.Array.Elems {
-			strs[i] = r.loneWord(w)
+		for i, elem := range as.Array.Elems {
+			strs[i] = r.loneWord(elem.Value)
 		}
 		if !as.Append || prev == nil {
 			return strs
