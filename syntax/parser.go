@@ -220,8 +220,6 @@ const (
 	allParamExp   = allParamReg | paramExpRepl | paramExpExp
 )
 
-func (p *Parser) bash() bool { return p.lang == LangBash }
-
 type saveState struct {
 	quote       quoteState
 	buriedHdocs int

@@ -1392,10 +1392,12 @@ var shellTests = []errorCase{
 	{
 		in:    "echo ;&",
 		posix: `1:7: & can only immediately follow a statement`,
+		bsmk:  `1:6: ;& can only be used in a case clause`,
 	},
 	{
 		in:    "echo ;;&",
 		posix: `1:6: ;; can only be used in a case clause`,
+		mksh:  `1:6: ;; can only be used in a case clause`,
 	},
 	{
 		in:    "for ((i=0; i<5; i++)); do echo; done",

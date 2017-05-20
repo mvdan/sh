@@ -322,7 +322,7 @@ func (p *Parser) regToken(r rune) token {
 			p.rune()
 			return orOr
 		case '&':
-			if !p.bash() {
+			if p.lang == LangPOSIX {
 				break
 			}
 			p.rune()
@@ -372,7 +372,7 @@ func (p *Parser) regToken(r rune) token {
 	case ';':
 		switch p.rune() {
 		case ';':
-			if p.rune() == '&' && p.bash() {
+			if p.rune() == '&' && p.lang == LangBash {
 				p.rune()
 				return dblSemiFall
 			}
