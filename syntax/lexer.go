@@ -896,11 +896,10 @@ loop:
 func (p *Parser) hdocLitWord() *Word {
 	r := p.r
 	p.newLit(r)
-	pos, val := p.getPos(), ""
+	pos := p.getPos()
 	for {
 		if r == utf8.RuneSelf {
-			val = p.endLit()
-			break
+			return nil
 		}
 		if p.quote == hdocBodyTabs {
 			for r == '\t' {
@@ -917,13 +916,11 @@ func (p *Parser) hdocLitWord() *Word {
 		}
 		if bytes.Equal(p.litBs[lStart:lEnd], p.hdocStop) {
 			p.hdocStop = nil
-			val = p.endLit()[:lStart]
-			break
+			l := p.lit(pos, p.endLit()[:lStart])
+			return p.word(p.wps(l))
 		}
 		r = p.rune()
 	}
-	l := p.lit(pos, val)
-	return p.word(p.wps(l))
 }
 
 func (p *Parser) advanceLitRe(r rune) {
