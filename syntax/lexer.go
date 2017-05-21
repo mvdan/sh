@@ -865,20 +865,23 @@ func (p *Parser) advanceLitHdoc(r rune) {
 		}
 	}
 	lStart := len(p.litBs) - 1
-loop:
-	for ; r != utf8.RuneSelf; r = p.rune() {
+	for ; ; r = p.rune() {
 		switch r {
 		case '`', '$':
-			break loop
+			p.val = p.endLit()
+			return
 		case '\\': // escaped byte follows
 			p.rune()
-		case '\n':
-			if bytes.Equal(p.litBs[lStart:len(p.litBs)-1], p.hdocStop) {
+		case '\n', utf8.RuneSelf:
+			if bytes.HasPrefix(p.litBs[lStart:], p.hdocStop) {
 				p.val = p.endLit()[:lStart]
 				if p.val == "" {
 					p.tok = illegalTok
 				}
 				p.hdocStop = nil
+				return
+			}
+			if r == utf8.RuneSelf {
 				return
 			}
 			if p.quote == hdocBodyTabs {
@@ -889,22 +892,13 @@ loop:
 			lStart = len(p.litBs)
 		}
 	}
-	if bytes.Equal(p.litBs[lStart:], p.hdocStop) {
-		p.val = p.endLit()[:lStart]
-		if p.val == "" {
-			p.tok = illegalTok
-		}
-		p.hdocStop = nil
-	} else {
-		p.val = p.endLit()
-	}
 }
 
 func (p *Parser) hdocLitWord() *Word {
 	r := p.r
 	p.newLit(r)
 	pos := p.getPos()
-	for {
+	for ; ; r = p.rune() {
 		if r == utf8.RuneSelf {
 			return nil
 		}
@@ -917,19 +911,14 @@ func (p *Parser) hdocLitWord() *Word {
 		for r != utf8.RuneSelf && r != '\n' {
 			r = p.rune()
 		}
-		lEnd := len(p.litBs)
-		if r != utf8.RuneSelf {
-			lEnd--
-		}
-		if bytes.Equal(p.litBs[lStart:lEnd], p.hdocStop) {
+		if bytes.HasPrefix(p.litBs[lStart:], p.hdocStop) {
 			p.hdocStop = nil
-			l := p.lit(pos, p.endLit()[:lStart])
-			if l.Value == "" {
+			val := p.endLit()[:lStart]
+			if val == "" {
 				return nil
 			}
-			return p.word(p.wps(l))
+			return p.word(p.wps(p.lit(pos, val)))
 		}
-		r = p.rune()
 	}
 }
 
