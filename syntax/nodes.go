@@ -435,6 +435,9 @@ func (p *ParamExp) End() Pos {
 	if !p.Short {
 		return p.Rbrace + 1
 	}
+	if p.Index != nil {
+		return p.Index.End() + 1
+	}
 	return p.Param.End()
 }
 

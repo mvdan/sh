@@ -3676,6 +3676,8 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 		setPos(&x.Dollar, doll)
 		if !x.Short {
 			setPos(&x.Rbrace, "}")
+		} else if x.nakedIndex() {
+			checkSrc(x.End()-1, "]")
 		}
 		if x.Param != nil {
 			recurse(x.Param)
@@ -3760,7 +3762,7 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 		recurse(x.Value)
 	case *ExtGlob:
 		setPos(&x.OpPos, x.Op.String())
-		checkSrc(x.Pattern.End(), ")")
+		checkSrc(x.End()-1, ")")
 		recurse(x.Pattern)
 	case *ProcSubst:
 		setPos(&x.OpPos, x.Op.String())
