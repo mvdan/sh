@@ -292,7 +292,7 @@ func (p *Parser) doHeredocs() {
 			r.Hdoc = p.hdocLitWord()
 		} else {
 			p.next()
-			r.Hdoc = p.getWordOrEmpty()
+			r.Hdoc = p.getWord()
 		}
 		if p.hdocStop != nil {
 			p.posErr(r.Pos(), "unclosed here-document '%s'",
@@ -501,16 +501,6 @@ func (p *Parser) getWord() *Word {
 		return p.word(parts)
 	}
 	return nil
-}
-
-func (p *Parser) getWordOrEmpty() *Word {
-	parts := p.wordParts()
-	if len(parts) == 0 {
-		l := p.lit(p.pos, "")
-		l.ValueEnd = l.ValuePos // force Lit.Pos() == Lit.End()
-		return p.word(p.wps(l))
-	}
-	return p.word(parts)
 }
 
 func (p *Parser) getLit() *Lit {
@@ -990,7 +980,7 @@ func (p *Parser) paramExp() *ParamExp {
 		pe.Repl = &Replace{All: p.tok == dblSlash}
 		p.quote = paramExpRepl
 		p.next()
-		pe.Repl.Orig = p.getWordOrEmpty()
+		pe.Repl.Orig = p.getWord()
 		p.quote = paramExpExp
 		switch p.tok {
 		case dblSlash:
@@ -999,7 +989,7 @@ func (p *Parser) paramExp() *ParamExp {
 		case slash:
 			p.next()
 		}
-		pe.Repl.With = p.getWordOrEmpty()
+		pe.Repl.With = p.getWord()
 	case colon:
 		if p.lang == LangPOSIX {
 			p.curErr("slicing is a bash feature")
@@ -1024,7 +1014,7 @@ func (p *Parser) paramExp() *ParamExp {
 		pe.Exp = &Expansion{Op: ParExpOperator(p.tok)}
 		p.quote = paramExpExp
 		p.next()
-		pe.Exp.Word = p.getWordOrEmpty()
+		pe.Exp.Word = p.getWord()
 	}
 	p.quote = old
 	pe.Rbrace = p.pos

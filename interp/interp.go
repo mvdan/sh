@@ -231,6 +231,9 @@ func (r *Runner) fields(words []*syntax.Word) []string {
 }
 
 func (r *Runner) loneWord(word *syntax.Word) string {
+	if word == nil {
+		return ""
+	}
 	return strings.Join(r.wordParts(word.Parts, false), "")
 }
 

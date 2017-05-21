@@ -116,10 +116,14 @@ func Walk(node Node, f func(Node) bool) {
 			Walk(x.Index, f)
 		}
 		if x.Repl != nil {
-			Walk(x.Repl.Orig, f)
-			Walk(x.Repl.With, f)
+			if x.Repl.Orig != nil {
+				Walk(x.Repl.Orig, f)
+			}
+			if x.Repl.With != nil {
+				Walk(x.Repl.With, f)
+			}
 		}
-		if x.Exp != nil {
+		if x.Exp != nil && x.Exp.Word != nil {
 			Walk(x.Exp.Word, f)
 		}
 	case *ArithmExp:

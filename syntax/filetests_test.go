@@ -774,7 +774,7 @@ var fileTests = []testCase{
 				Op:   Hdoc,
 				Word: litWord("EOF"),
 				Hdoc: word(
-					lit("\""),
+					lit(`"`),
 					litParamExp("bar"),
 					lit("\"\n"),
 				),
@@ -1504,10 +1504,7 @@ var fileTests = []testCase{
 		common: word(
 			&ParamExp{
 				Param: lit("foo"),
-				Exp: &Expansion{
-					Op:   SubstPlus,
-					Word: litWord(""),
-				},
+				Exp:   &Expansion{Op: SubstPlus},
 			},
 			dblQuoted(lit("bar")),
 		),
@@ -1829,11 +1826,7 @@ var fileTests = []testCase{
 		Strs: []string{`${foo///}`, `${foo//}`},
 		bsmk: &ParamExp{
 			Param: lit("foo"),
-			Repl: &Replace{
-				All:  true,
-				Orig: litWord(""),
-				With: litWord(""),
-			},
+			Repl:  &Replace{All: true},
 		},
 	},
 	{
@@ -1850,11 +1843,7 @@ var fileTests = []testCase{
 		},
 		bsmk: &ParamExp{
 			Param: lit("foo"),
-			Repl: &Replace{
-				All:  true,
-				Orig: litWord("#"),
-				With: litWord(""),
-			},
+			Repl:  &Replace{All: true, Orig: litWord("#")},
 		},
 	},
 	{
@@ -3696,10 +3685,14 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 			}
 		}
 		if x.Repl != nil {
-			recurse(x.Repl.Orig)
-			recurse(x.Repl.With)
+			if x.Repl.Orig != nil {
+				recurse(x.Repl.Orig)
+			}
+			if x.Repl.With != nil {
+				recurse(x.Repl.With)
+			}
 		}
-		if x.Exp != nil {
+		if x.Exp != nil && x.Exp.Word != nil {
 			recurse(x.Exp.Word)
 		}
 	case *ArithmExp:

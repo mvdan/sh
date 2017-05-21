@@ -363,12 +363,18 @@ func (p *Printer) paramExp(pe *ParamExp) {
 			p.WriteByte('/')
 		}
 		p.WriteByte('/')
-		p.word(pe.Repl.Orig)
+		if pe.Repl.Orig != nil {
+			p.word(pe.Repl.Orig)
+		}
 		p.WriteByte('/')
-		p.word(pe.Repl.With)
+		if pe.Repl.With != nil {
+			p.word(pe.Repl.With)
+		}
 	} else if pe.Exp != nil {
 		p.WriteString(pe.Exp.Op.String())
-		p.word(pe.Exp.Word)
+		if pe.Exp.Word != nil {
+			p.word(pe.Exp.Word)
+		}
 	}
 	p.WriteByte('}')
 }
