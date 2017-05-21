@@ -923,8 +923,7 @@ func (p *Parser) paramExp() *ParamExp {
 	case at:
 		p.tok, p.val = _LitWord, "@"
 	case dblHash:
-		p.tok = hash
-		p.unrune('#')
+		p.unrune('#', hash)
 		fallthrough
 	case hash:
 		if p.r != '}' {
@@ -992,12 +991,12 @@ func (p *Parser) paramExp() *ParamExp {
 		p.quote = paramExpRepl
 		p.next()
 		pe.Repl.Orig = p.getWordOrEmpty()
+		p.quote = paramExpExp
 		switch p.tok {
 		case dblSlash:
-			p.unrune('/')
-			fallthrough
+			p.unrune('/', slash)
+			p.next()
 		case slash:
-			p.quote = paramExpExp
 			p.next()
 		}
 		pe.Repl.With = p.getWordOrEmpty()
@@ -1467,16 +1466,14 @@ func (p *Parser) loop(forPos Pos) Loop {
 		cl := &CStyleLoop{Lparen: p.pos}
 		old := p.preNested(arithmExprCmd)
 		if p.next(); p.tok == dblSemicolon {
-			p.unrune(';')
-			p.tok = semicolon
+			p.unrune(';', semicolon)
 		}
 		if p.tok != semicolon {
 			cl.Init = p.arithmExpr(dblLeftParen, cl.Lparen, 0, false, false)
 		}
 		scPos := p.pos
 		if p.tok == dblSemicolon {
-			p.unrune(';')
-			p.tok = semicolon
+			p.unrune(';', semicolon)
 		}
 		p.follow(p.pos, "expression", semicolon)
 		if p.tok != semicolon {

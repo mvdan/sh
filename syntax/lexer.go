@@ -86,10 +86,11 @@ retry:
 	return p.r
 }
 
-func (p *Parser) unrune(r rune) {
+func (p *Parser) unrune(r rune, tok token) {
 	if p.r != utf8.RuneSelf {
 		p.npos -= utf8.RuneLen(p.r)
 		p.r = r
+		p.tok = tok
 	}
 }
 
