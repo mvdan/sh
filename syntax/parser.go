@@ -566,10 +566,7 @@ func (p *Parser) wordPart() WordPart {
 			old = p.preNested(arithmExpr)
 		}
 		p.next()
-		ar.X = p.arithmExpr(left, ar.Left, 0, false, false)
-		if ar.X == nil {
-			p.followErrExp(ar.Left, "$((")
-		}
+		ar.X = p.followArithm(left, ar.Left)
 		if ar.Bracket {
 			if p.tok != rightBrack {
 				p.matchingErr(ar.Left, dollBrack, rightBrack)
@@ -727,6 +724,14 @@ func arithmOpLevel(op BinAritOperator) int {
 	return -1
 }
 
+func (p *Parser) followArithm(ftok token, fpos Pos) ArithmExpr {
+	x := p.arithmExpr(ftok, fpos, 0, false, false)
+	if x == nil {
+		p.followErrExp(fpos, ftok.String())
+	}
+	return x
+}
+
 func (p *Parser) arithmExpr(ftok token, fpos Pos, level int, compact, tern bool) ArithmExpr {
 	if p.tok == _EOF || p.peekArithmEnd() {
 		return nil
@@ -817,10 +822,7 @@ func (p *Parser) arithmExprBase(compact bool) ArithmExpr {
 	case leftParen:
 		pe := &ParenArithm{Lparen: p.pos}
 		p.next()
-		pe.X = p.arithmExpr(leftParen, pe.Lparen, 0, false, false)
-		if pe.X == nil {
-			p.followErrExp(pe.Lparen, "(")
-		}
+		pe.X = p.followArithm(leftParen, pe.Lparen)
 		pe.Rparen = p.matched(pe.Lparen, leftParen, rightParen)
 		x = pe
 	case plus, minus:
@@ -845,10 +847,7 @@ func (p *Parser) arithmExprBase(compact bool) ArithmExpr {
 		p.rune()
 		old := p.preNested(arithmExprBrack)
 		p.next()
-		pe.Index = p.arithmExpr(leftBrack, left, 0, false, false)
-		if pe.Index == nil {
-			p.followErrExp(left, "[")
-		}
+		pe.Index = p.followArithm(leftBrack, left)
 		p.postNested(old)
 		p.matched(left, leftBrack, rightBrack)
 		x = pe
@@ -975,10 +974,7 @@ func (p *Parser) paramExp() *ParamExp {
 		case star, at:
 			p.tok, p.val = _LitWord, p.tok.String()
 		}
-		pe.Index = p.arithmExpr(leftBrack, lpos, 0, false, false)
-		if pe.Index == nil {
-			p.followErrExp(lpos, "[")
-		}
+		pe.Index = p.followArithm(leftBrack, lpos)
 		p.quote = paramExpName
 		p.matched(lpos, leftBrack, rightBrack)
 	}
@@ -1013,18 +1009,12 @@ func (p *Parser) paramExp() *ParamExp {
 		colonPos := p.pos
 		p.quote = paramExpOff
 		if p.next(); p.tok != colon {
-			pe.Slice.Offset = p.arithmExpr(colon, colonPos, 0, false, false)
-			if pe.Slice.Offset == nil {
-				p.followErrExp(colonPos, ":")
-			}
+			pe.Slice.Offset = p.followArithm(colon, colonPos)
 		}
 		colonPos = p.pos
 		p.quote = paramExpLen
 		if p.got(colon) {
-			pe.Slice.Length = p.arithmExpr(colon, colonPos, 0, false, false)
-			if pe.Slice.Length == nil {
-				p.followErrExp(colonPos, ":")
-			}
+			pe.Slice.Length = p.followArithm(colon, colonPos)
 		}
 	case caret, dblCaret, comma, dblComma, at:
 		if p.lang != LangBash {
@@ -1120,10 +1110,7 @@ func (p *Parser) getAssign() *Assign {
 		left := p.pos + 1
 		old := p.preNested(arithmExprBrack)
 		p.next()
-		as.Index = p.arithmExpr(leftBrack, left, 0, false, false)
-		if as.Index == nil {
-			p.followErrExp(left, "[")
-		}
+		as.Index = p.followArithm(leftBrack, left)
 		p.postNested(old)
 		p.matched(left, leftBrack, rightBrack)
 		if p.tok == _EOF || p.val[0] != '=' {
@@ -1405,10 +1392,7 @@ func (p *Parser) arithmExpCmd() Command {
 	ar := &ArithmCmd{Left: p.pos}
 	old := p.preNested(arithmExprCmd)
 	p.next()
-	ar.X = p.arithmExpr(dblLeftParen, ar.Left, 0, false, false)
-	if ar.X == nil {
-		p.followErrExp(ar.Left, "((")
-	}
+	ar.X = p.followArithm(dblLeftParen, ar.Left)
 	ar.Right = p.arithmEnd(dblLeftParen, ar.Left, old)
 	return ar
 }
