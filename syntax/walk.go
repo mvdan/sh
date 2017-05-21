@@ -123,13 +123,9 @@ func Walk(node Node, f func(Node) bool) {
 			Walk(x.Exp.Word, f)
 		}
 	case *ArithmExp:
-		if x.X != nil {
-			Walk(x.X, f)
-		}
+		Walk(x.X, f)
 	case *ArithmCmd:
-		if x.X != nil {
-			Walk(x.X, f)
-		}
+		Walk(x.X, f)
 	case *BinaryArithm:
 		Walk(x.X, f)
 		Walk(x.Y, f)

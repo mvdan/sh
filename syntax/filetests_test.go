@@ -1956,10 +1956,6 @@ var fileTests = []testCase{
 		common: sglQuoted("${foo}"),
 	},
 	{
-		Strs:   []string{"$(())"},
-		common: arithmExp(nil),
-	},
-	{
 		Strs:   []string{"$((1))"},
 		common: arithmExp(lit("1")),
 	},
@@ -3715,15 +3711,11 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 			setPos(&x.Left, "$((")
 			setPos(&x.Right, "))")
 		}
-		if x.X != nil {
-			recurse(x.X)
-		}
+		recurse(x.X)
 	case *ArithmCmd:
 		setPos(&x.Left, "((")
 		setPos(&x.Right, "))")
-		if x.X != nil {
-			recurse(x.X)
-		}
+		recurse(x.X)
 	case *CmdSubst:
 		setPos(&x.Left, "$(", "`", "\\`")
 		setPos(&x.Right, ")", "`", "\\`")

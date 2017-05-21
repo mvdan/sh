@@ -567,6 +567,9 @@ func (p *Parser) wordPart() WordPart {
 		}
 		p.next()
 		ar.X = p.arithmExpr(left, ar.Left, 0, false, false)
+		if ar.X == nil {
+			p.followErrExp(ar.Left, "$((")
+		}
 		if ar.Bracket {
 			if p.tok != rightBrack {
 				p.matchingErr(ar.Left, dollBrack, rightBrack)
@@ -1403,6 +1406,9 @@ func (p *Parser) arithmExpCmd() Command {
 	old := p.preNested(arithmExprCmd)
 	p.next()
 	ar.X = p.arithmExpr(dblLeftParen, ar.Left, 0, false, false)
+	if ar.X == nil {
+		p.followErrExp(ar.Left, "((")
+	}
 	ar.Right = p.arithmEnd(dblLeftParen, ar.Left, old)
 	return ar
 }

@@ -831,6 +831,10 @@ var shellTests = []errorCase{
 		common: `1:9: arithmetic expressions must consist of names and numbers`,
 	},
 	{
+		in:     "echo $(())",
+		common: `1:6: $(( must be followed by an expression #NOERR`,
+	},
+	{
 		in:     "echo $((()))",
 		common: `1:9: parentheses must enclose an expression`,
 	},
@@ -902,7 +906,7 @@ var shellTests = []errorCase{
 	},
 	{
 		in:     "<<EOF\n$(()a",
-		common: `2:1: reached ) without matching $(( with ))`,
+		common: `2:1: $(( must be followed by an expression`,
 	},
 	{
 		in:     "<<EOF\n`))",
@@ -1054,6 +1058,10 @@ var shellTests = []errorCase{
 		in:    "((foo",
 		bsmk:  `1:1: reached EOF without matching (( with ))`,
 		posix: `1:2: reached EOF without matching ( with )`,
+	},
+	{
+		in:   "(())",
+		bsmk: `1:1: (( must be followed by an expression`,
 	},
 	{
 		in:    "echo ((foo",
