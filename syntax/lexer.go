@@ -241,6 +241,13 @@ skipSpace:
 				p.litBs = nil
 			}
 			p.next()
+		case '[':
+			if p.quote == arrayElems {
+				p.tok = leftBrack
+				p.rune()
+			} else {
+				p.advanceLitNone(r)
+			}
 		case '?', '*', '+', '@', '!':
 			if p.peekByte('(') {
 				switch r {

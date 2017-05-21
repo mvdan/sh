@@ -533,6 +533,12 @@ func (p *Printer) elemJoin(elems []*ArrayElem) {
 			p.WriteByte(' ')
 			p.wantSpace = false
 		}
+		if el.Index != nil {
+			p.WriteByte('[')
+			p.arithmExpr(el.Index, false, false)
+			p.WriteByte(']')
+			p.WriteByte('=')
+		}
 		p.word(el.Value)
 	}
 	if anyNewline {

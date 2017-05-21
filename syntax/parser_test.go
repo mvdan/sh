@@ -1224,7 +1224,19 @@ var shellTests = []errorCase{
 	},
 	{
 		in:   "a=(<)",
-		bsmk: `1:4: array elements must be words`,
+		bsmk: `1:4: array element values must be words`,
+	},
+	{
+		in:   "a=([)",
+		bash: `1:4: [ must be followed by an expression`,
+	},
+	{
+		in:   "a=([i)",
+		bash: `1:4: reached ) without matching [ with ]`,
+	},
+	{
+		in:   "a=([i])",
+		bash: `1:4: "[index]" must be followed by = #NOERR`,
 	},
 	{
 		in:   "function",

@@ -208,10 +208,12 @@ const (
 	paramExpLen
 	paramExpRepl
 	paramExpExp
+	arrayElems
 
 	allKeepSpaces = paramExpRepl | dblQuotes | hdocBody |
 		hdocBodyTabs | paramExpExp | sglQuotes
-	allRegTokens  = noState | subCmd | subCmdBckquo | hdocWord | switchCase
+	allRegTokens = noState | subCmd | subCmdBckquo | hdocWord |
+		switchCase | arrayElems
 	allArithmExpr = arithmExpr | arithmExprLet | arithmExprCmd |
 		arithmExprBrack | allParamArith
 	allRbrack     = arithmExprBrack | paramExpInd | paramName
@@ -1117,15 +1119,35 @@ func (p *Parser) getAssign() *Assign {
 			p.curErr("arrays are a bash feature")
 		}
 		as.Array = &ArrayExpr{Lparen: p.pos}
+		newQuote := p.quote
+		if p.lang == LangBash {
+			newQuote = arrayElems
+		}
+		old := p.preNested(newQuote)
 		p.next()
 		for p.tok != _EOF && p.tok != rightParen {
-			if w := p.getWord(); w == nil {
-				p.curErr("array elements must be words")
-			} else {
-				as.Array.Elems = append(as.Array.Elems,
-					&ArrayElem{Value: w})
+			ae := &ArrayElem{}
+			if p.tok == leftBrack {
+				left := p.pos
+				p.quote = arithmExprBrack
+				p.next()
+				ae.Index = p.followArithm(leftBrack, left)
+				if p.tok != rightBrack {
+					p.matchingErr(left, leftBrack, rightBrack)
+				}
+				p.quote = arrayElems
+				if p.r != '=' {
+					p.followErr(left, `"[index]"`, "=")
+				}
+				p.rune()
+				p.next()
 			}
+			if ae.Value = p.getWord(); ae.Value == nil {
+				p.curErr("array element values must be words")
+			}
+			as.Array.Elems = append(as.Array.Elems, ae)
 		}
+		p.postNested(old)
 		as.Array.Rparen = p.matched(as.Array.Lparen, leftParen, rightParen)
 	} else if !p.newLine && !stopToken(p.tok) {
 		if w := p.getWord(); w != nil {

@@ -2983,6 +2983,29 @@ var fileTests = []testCase{
 		},
 	},
 	{
+		Strs: []string{"declare -A foo=([a]=b)"},
+		bash: &DeclClause{
+			Variant: "declare",
+			Opts:    litWords("-A"),
+			Assigns: []*Assign{{
+				Name: lit("foo"),
+				Array: &ArrayExpr{Elems: []*ArrayElem{
+					{
+						Index: lit("a"),
+						Value: litWord("b"),
+					},
+				}},
+			}},
+		},
+	},
+	{
+		Strs: []string{"foo=([)"},
+		mksh: &Stmt{Assigns: []*Assign{{
+			Name:  lit("foo"),
+			Array: arrValues(litWord("[")),
+		}}},
+	},
+	{
 		Strs: []string{
 			"a && b=(c)\nd",
 			"a && b=(c); d",
