@@ -19,9 +19,10 @@ import (
 var (
 	write       = flag.Bool("w", false, "write result to file instead of stdout")
 	list        = flag.Bool("l", false, "list files whose formatting differs from shfmt's")
+	posix       = flag.Bool("p", false, "parse POSIX shell code instead of bash")
+	mksh        = flag.Bool("m", false, "parse MirBSD Korn shell code instead of bash")
 	indent      = flag.Int("i", 0, "indent: 0 for tabs (default), >0 for number of spaces")
 	binNext     = flag.Bool("bn", false, "binary ops like && and | may start a line")
-	posix       = flag.Bool("p", false, "parse POSIX shell code instead of bash")
 	showVersion = flag.Bool("version", false, "show version and exit")
 
 	parser            *syntax.Parser
@@ -36,6 +37,10 @@ var (
 )
 
 func main() {
+	flag.Usage = func() {
+		fmt.Fprintln(os.Stderr, "usage: shfmt [flags] [path ...]")
+		flag.PrintDefaults()
+	}
 	flag.Parse()
 
 	if *showVersion {
@@ -44,8 +49,14 @@ func main() {
 	}
 
 	lang := syntax.LangBash
-	if *posix {
+	switch {
+	case *mksh && *posix:
+		fmt.Fprintln(os.Stderr, "cannot mix parser language flags")
+		os.Exit(1)
+	case *posix:
 		lang = syntax.LangPOSIX
+	case *mksh:
+		lang = syntax.LangMirBSDKorn
 	}
 	parser = syntax.NewParser(syntax.KeepComments, syntax.Variant(lang))
 	printer = syntax.NewPrinter(func(p *syntax.Printer) {
