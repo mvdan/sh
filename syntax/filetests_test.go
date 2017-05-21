@@ -3599,9 +3599,15 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 	case *CStyleLoop:
 		setPos(&x.Lparen, "((")
 		setPos(&x.Rparen, "))")
-		recurse(x.Init)
-		recurse(x.Cond)
-		recurse(x.Post)
+		if x.Init != nil {
+			recurse(x.Init)
+		}
+		if x.Cond != nil {
+			recurse(x.Cond)
+		}
+		if x.Post != nil {
+			recurse(x.Post)
+		}
 	case *SglQuoted:
 		checkSrc(x.End()-1, "'")
 		valuePos := x.Position + 1
@@ -3686,7 +3692,9 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 			recurse(x.Index)
 		}
 		if x.Slice != nil {
-			recurse(x.Slice.Offset)
+			if x.Slice.Offset != nil {
+				recurse(x.Slice.Offset)
+			}
 			if x.Slice.Length != nil {
 				recurse(x.Slice.Length)
 			}
@@ -3707,11 +3715,15 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 			setPos(&x.Left, "$((")
 			setPos(&x.Right, "))")
 		}
-		recurse(x.X)
+		if x.X != nil {
+			recurse(x.X)
+		}
 	case *ArithmCmd:
 		setPos(&x.Left, "((")
 		setPos(&x.Right, "))")
-		recurse(x.X)
+		if x.X != nil {
+			recurse(x.X)
+		}
 	case *CmdSubst:
 		setPos(&x.Left, "$(", "`", "\\`")
 		setPos(&x.Right, ")", "`", "\\`")
@@ -3768,7 +3780,6 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 		setPos(&x.OpPos, x.Op.String())
 		setPos(&x.Rparen, ")")
 		recurse(x.Stmts)
-	case nil:
 	default:
 		panic(reflect.TypeOf(v))
 	}
