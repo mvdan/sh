@@ -186,8 +186,10 @@ func (p *Printer) newline(pos Pos) {
 	hdocs := p.pendingHdocs
 	p.pendingHdocs = p.pendingHdocs[:0]
 	for _, r := range hdocs {
-		p.word(r.Hdoc)
-		p.incLines(r.Hdoc.End())
+		if r.Hdoc != nil {
+			p.word(r.Hdoc)
+			p.incLines(r.Hdoc.End())
+		}
 		p.unquotedWord(r.Word)
 		p.WriteByte('\n')
 		p.incLine()

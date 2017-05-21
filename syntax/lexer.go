@@ -875,6 +875,9 @@ loop:
 		case '\n':
 			if bytes.Equal(p.litBs[lStart:len(p.litBs)-1], p.hdocStop) {
 				p.val = p.endLit()[:lStart]
+				if p.val == "" {
+					p.tok = illegalTok
+				}
 				p.hdocStop = nil
 				return
 			}
@@ -888,6 +891,9 @@ loop:
 	}
 	if bytes.Equal(p.litBs[lStart:], p.hdocStop) {
 		p.val = p.endLit()[:lStart]
+		if p.val == "" {
+			p.tok = illegalTok
+		}
 		p.hdocStop = nil
 	} else {
 		p.val = p.endLit()
@@ -918,6 +924,9 @@ func (p *Parser) hdocLitWord() *Word {
 		if bytes.Equal(p.litBs[lStart:lEnd], p.hdocStop) {
 			p.hdocStop = nil
 			l := p.lit(pos, p.endLit()[:lStart])
+			if l.Value == "" {
+				return nil
+			}
 			return p.word(p.wps(l))
 		}
 		r = p.rune()

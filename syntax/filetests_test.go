@@ -995,6 +995,16 @@ var fileTests = []testCase{
 		},
 	},
 	{
+		Strs: []string{"foo <<'EOF'\nEOF"},
+		common: &Stmt{
+			Cmd: litCall("foo"),
+			Redirs: []*Redirect{{
+				Op:   Hdoc,
+				Word: word(sglQuoted("EOF")),
+			}},
+		},
+	},
+	{
 		Strs: []string{"foo <<\"EOF\"2\nbar\nEOF2"},
 		common: &Stmt{
 			Cmd: litCall("foo"),
@@ -3257,16 +3267,8 @@ var fileTests = []testCase{
 			X: stmt(&BinaryCmd{
 				Op: Pipe,
 				X: &Stmt{Redirs: []*Redirect{
-					{
-						Op:   Hdoc,
-						Word: litWord("EOF1"),
-						Hdoc: litWord(""),
-					},
-					{
-						Op:   Hdoc,
-						Word: litWord("EOF2"),
-						Hdoc: litWord(""),
-					},
+					{Op: Hdoc, Word: litWord("EOF1")},
+					{Op: Hdoc, Word: litWord("EOF2")},
 				}},
 				Y: litStmt("c"),
 			}),
