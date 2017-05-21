@@ -836,7 +836,7 @@ var shellTests = []errorCase{
 	},
 	{
 		in:     "echo $((()))",
-		common: `1:9: parentheses must enclose an expression`,
+		common: `1:9: ( must be followed by an expression`,
 	},
 	{
 		in:     "echo $(((3))",
@@ -1079,7 +1079,7 @@ var shellTests = []errorCase{
 	},
 	{
 		in:   "let",
-		bsmk: `1:1: let clause requires at least one expression`,
+		bsmk: `1:1: "let" must be followed by an expression`,
 	},
 	{
 		in:   "let a+ b",
@@ -1119,7 +1119,7 @@ var shellTests = []errorCase{
 	},
 	{
 		in:   "let ))",
-		bsmk: `1:1: let clause requires at least one expression`,
+		bsmk: `1:1: "let" must be followed by an expression`,
 	},
 	{
 		in:   "`let !`",
@@ -1143,7 +1143,7 @@ var shellTests = []errorCase{
 	},
 	{
 		in:   "`let` { foo; }",
-		bsmk: `1:2: let clause requires at least one expression`,
+		bsmk: `1:2: "let" must be followed by an expression`,
 	},
 	{
 		in:   "[[",
@@ -1196,7 +1196,7 @@ var shellTests = []errorCase{
 	},
 	{
 		in:   "[[ true && () ]]",
-		bsmk: `1:12: parentheses must enclose an expression`,
+		bsmk: `1:12: ( must be followed by an expression`,
 	},
 	{
 		in:   "[[ a == ! b ]]",

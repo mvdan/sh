@@ -819,7 +819,7 @@ func (p *Parser) arithmExprBase(compact bool) ArithmExpr {
 		p.next()
 		pe.X = p.arithmExpr(leftParen, pe.Lparen, 0, false, false)
 		if pe.X == nil {
-			p.posErr(pe.Lparen, "parentheses must enclose an expression")
+			p.followErrExp(pe.Lparen, "(")
 		}
 		pe.Rparen = p.matched(pe.Lparen, leftParen, rightParen)
 		x = pe
@@ -1682,7 +1682,7 @@ func (p *Parser) testExprBase(ftok token, fpos Pos) TestExpr {
 		pe := &ParenTest{Lparen: p.pos}
 		p.next()
 		if pe.X = p.testExpr(leftParen, pe.Lparen, 0); pe.X == nil {
-			p.posErr(pe.Lparen, "parentheses must enclose an expression")
+			p.followErrExp(pe.Lparen, "(")
 		}
 		pe.Rparen = p.matched(pe.Lparen, leftParen, rightParen)
 		return pe
@@ -1784,7 +1784,7 @@ func (p *Parser) letClause() *LetClause {
 		lc.Exprs = append(lc.Exprs, x)
 	}
 	if len(lc.Exprs) == 0 {
-		p.posErr(lc.Let, "let clause requires at least one expression")
+		p.followErrExp(lc.Let, "let")
 	}
 	p.postNested(old)
 	if p.tok == illegalTok {
