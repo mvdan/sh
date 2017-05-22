@@ -2184,6 +2184,18 @@ var fileTests = []testCase{
 		}),
 	},
 	{
+		Strs: []string{`((a[i] = 4))`, `((a[i]=4))`},
+		bsmk: arithmCmd(&BinaryArithm{
+			Op: Assgn,
+			X: &ParamExp{
+				Short: true,
+				Param: lit("a"),
+				Index: lit("i"),
+			},
+			Y: lit("4"),
+		}),
+	},
+	{
 		Strs: []string{"$((a += 2, b -= 3))"},
 		common: arithmExp(&BinaryArithm{
 			Op: Comma,
@@ -3055,12 +3067,10 @@ var fileTests = []testCase{
 			Opts:    litWords("-A"),
 			Assigns: []*Assign{{
 				Name: lit("foo"),
-				Array: &ArrayExpr{Elems: []*ArrayElem{
-					{
-						Index: lit("a"),
-						Value: litWord("b"),
-					},
-				}},
+				Array: &ArrayExpr{Elems: []*ArrayElem{{
+					Index: lit("a"),
+					Value: litWord("b"),
+				}}},
 			}},
 		},
 	},

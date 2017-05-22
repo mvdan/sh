@@ -806,7 +806,7 @@ func (p *Parser) arithmExpr(ftok token, fpos Pos, level int, compact, tern bool)
 		}
 	case AddAssgn, SubAssgn, MulAssgn, QuoAssgn, RemAssgn, AndAssgn,
 		OrAssgn, XorAssgn, ShlAssgn, ShrAssgn, Assgn:
-		if l, ok := b.X.(*Lit); !ok || !validIdent(l.Value) {
+		if !isArithName(b.X) {
 			p.posErr(b.OpPos, "%s must follow a name", b.Op.String())
 		}
 	}
@@ -823,6 +823,17 @@ func (p *Parser) arithmExpr(ftok token, fpos Pos, level int, compact, tern bool)
 		}
 	}
 	return b
+}
+
+func isArithName(left ArithmExpr) bool {
+	switch x := left.(type) {
+	case *Lit:
+		return validIdent(x.Value)
+	case *ParamExp:
+		return x.nakedIndex()
+	default:
+		return false
+	}
 }
 
 func (p *Parser) arithmExprBase(compact bool) ArithmExpr {
@@ -895,16 +906,7 @@ func (p *Parser) arithmExprBase(compact bool) ArithmExpr {
 		return x
 	}
 	if p.tok == addAdd || p.tok == subSub {
-		switch y := x.(type) {
-		case *Lit:
-			if !validIdent(y.Value) {
-				p.curErr("%s must follow a name", p.tok.String())
-			}
-		case *ParamExp:
-			if !y.nakedIndex() {
-				p.curErr("%s must follow a name", p.tok.String())
-			}
-		default:
+		if !isArithName(x) {
 			p.curErr("%s must follow a name", p.tok.String())
 		}
 		u := &UnaryArithm{
