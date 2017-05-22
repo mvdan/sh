@@ -1562,14 +1562,22 @@ func (p *Parser) caseClause() *CaseClause {
 	cc := &CaseClause{Case: p.pos}
 	p.next()
 	cc.Word = p.followWord("case", cc.Case)
-	p.followRsrv(cc.Case, "case x", "in")
-	cc.Items = p.caseItems()
-	cc.Esac = p.stmtEnd(cc, "case", "esac")
+	if p.gotRsrv("{") {
+		if p.lang != LangMirBSDKorn {
+			p.posErr(cc.Pos(), `"case i {" is a mksh feature`)
+		}
+		cc.Items = p.caseItems("}")
+		cc.Esac = p.stmtEnd(cc, "case", "}")
+	} else {
+		p.followRsrv(cc.Case, "case x", "in")
+		cc.Items = p.caseItems("esac")
+		cc.Esac = p.stmtEnd(cc, "case", "esac")
+	}
 	return cc
 }
 
-func (p *Parser) caseItems() (items []*CaseItem) {
-	for p.tok != _EOF && !(p.tok == _LitWord && p.val == "esac") {
+func (p *Parser) caseItems(stop string) (items []*CaseItem) {
+	for p.tok != _EOF && !(p.tok == _LitWord && p.val == stop) {
 		ci := &CaseItem{}
 		p.got(leftParen)
 		for p.tok != _EOF {
@@ -1587,7 +1595,7 @@ func (p *Parser) caseItems() (items []*CaseItem) {
 		}
 		old := p.preNested(switchCase)
 		p.next()
-		ci.Stmts = p.stmts("esac")
+		ci.Stmts = p.stmts(stop)
 		p.postNested(old)
 		ci.OpPos = p.pos
 		if p.tok != dblSemicolon && p.tok != semiFall && p.tok != dblSemiFall {

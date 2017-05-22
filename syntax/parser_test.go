@@ -1032,6 +1032,15 @@ var shellTests = []errorCase{
 		common: `1:12: case patterns must consist of words`,
 	},
 	{
+		in:     "case i {",
+		common: `1:1: "case i {" is a mksh feature`,
+		mksh:   `1:1: case statement must end with "}"`,
+	},
+	{
+		in:   "case i { x) y ;;",
+		mksh: `1:1: case statement must end with "}"`,
+	},
+	{
 		in:     "\"`\"",
 		common: `1:3: reached EOF without closing quote "`,
 	},

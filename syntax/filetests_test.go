@@ -2474,6 +2474,21 @@ var fileTests = []testCase{
 		},
 	},
 	{
+		Strs: []string{
+			"case i in 1) a ;; esac",
+			"case i { 1) a ;; }",
+			"case i {\n1) a ;;\n}",
+		},
+		mksh: &CaseClause{
+			Word: litWord("i"),
+			Items: []*CaseItem{{
+				Op:       DblSemicolon,
+				Patterns: litWords("1"),
+				Stmts:    litStmts("a"),
+			}},
+		},
+	},
+	{
 		Strs: []string{"case i in 1) a ;;& 2) b ;; esac"},
 		bash: &CaseClause{
 			Word: litWord("i"),
@@ -3810,7 +3825,7 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 		recurse(x.Stmts)
 	case *CaseClause:
 		setPos(&x.Case, "case")
-		setPos(&x.Esac, "esac")
+		setPos(&x.Esac, "esac", "}")
 		recurse(x.Word)
 		for _, ci := range x.Items {
 			setPos(&ci.OpPos, ci.Op.String(), "esac")
