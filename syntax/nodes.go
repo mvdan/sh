@@ -412,6 +412,11 @@ func (q *DblQuoted) End() Pos {
 type CmdSubst struct {
 	Left, Right Pos
 	Stmts       []*Stmt
+
+	// MirBSDTempFile is true for mksh's ${ foo;}
+	MirBSDTempFile bool
+	// MirBSDReplyvar is true for mksh's ${|foo;}
+	MirBSDReplyVar bool
 }
 
 func (c *CmdSubst) Pos() Pos { return c.Left }

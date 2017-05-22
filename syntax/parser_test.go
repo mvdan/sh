@@ -406,6 +406,40 @@ var shellTests = []errorCase{
 		common: `1:12: invalid UTF-8 encoding`,
 	},
 	{
+		in:    `${ foo;}`,
+		posix: `1:1: "${ stmts;}" is a mksh feature`,
+		bash:  `1:1: "${ stmts;}" is a mksh feature`,
+	},
+	{
+		in:   `${ `,
+		mksh: `1:1: reached EOF without matching ${ with }`,
+	},
+	{
+		in:   `${ foo;`,
+		mksh: `1:1: reached EOF without matching ${ with }`,
+	},
+	{
+		in:   `${ foo }`,
+		mksh: `1:1: reached EOF without matching ${ with }`,
+	},
+	{
+		in:    `${|foo;}`,
+		posix: `1:1: "${|stmts;}" is a mksh feature`,
+		bash:  `1:1: "${|stmts;}" is a mksh feature`,
+	},
+	{
+		in:   `${|`,
+		mksh: `1:1: reached EOF without matching ${ with }`,
+	},
+	{
+		in:   `${|foo;`,
+		mksh: `1:1: reached EOF without matching ${ with }`,
+	},
+	{
+		in:   `${|foo }`,
+		mksh: `1:1: reached EOF without matching ${ with }`,
+	},
+	{
 		in:     "((foo\x80bar",
 		common: `1:6: invalid UTF-8 encoding`,
 	},

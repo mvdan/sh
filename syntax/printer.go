@@ -231,13 +231,13 @@ func (p *Printer) semiRsrv(s string, pos Pos, fallback bool) {
 	p.level--
 	if p.wantNewline || pos > p.nline {
 		p.newlines(pos)
-	} else if fallback {
-		if !p.wroteSemi {
+	} else {
+		if fallback && !p.wroteSemi {
 			p.WriteByte(';')
 		}
-		p.WriteByte(' ')
-	} else if p.wantSpace {
-		p.WriteByte(' ')
+		if p.wantSpace {
+			p.WriteByte(' ')
+		}
 	}
 	p.WriteString(s)
 	p.wantSpace = true
@@ -298,10 +298,24 @@ func (p *Printer) wordPart(wp WordPart) {
 		p.WriteByte('"')
 	case *CmdSubst:
 		p.incLines(x.Pos())
-		p.WriteString("$(")
-		p.wantSpace = len(x.Stmts) > 0 && startsWithLparen(x.Stmts[0])
-		p.nestedStmts(x.Stmts, x.Right)
-		p.sepTok(")", x.Right)
+		switch {
+		case x.MirBSDTempFile:
+			p.WriteString("${")
+			p.wantSpace = true
+			p.nestedStmts(x.Stmts, x.Right)
+			p.wantSpace = false
+			p.semiRsrv("}", x.Right, true)
+		case x.MirBSDReplyVar:
+			p.WriteString("${|")
+			p.nestedStmts(x.Stmts, x.Right)
+			p.wantSpace = false
+			p.semiRsrv("}", x.Right, true)
+		default:
+			p.WriteString("$(")
+			p.wantSpace = len(x.Stmts) > 0 && startsWithLparen(x.Stmts[0])
+			p.nestedStmts(x.Stmts, x.Right)
+			p.sepTok(")", x.Right)
+		}
 	case *ParamExp:
 		p.paramExp(x)
 	case *ArithmExp:

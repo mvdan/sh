@@ -546,7 +546,34 @@ func (p *Parser) wordPart() WordPart {
 		return l
 	case dollBrace:
 		p.ensureNoNested()
-		return p.paramExp()
+		switch p.r {
+		case '|':
+			if p.lang != LangMirBSDKorn {
+				p.curErr(`"${|stmts;}" is a mksh feature`)
+			}
+			fallthrough
+		case ' ', '\t', '\n':
+			if p.lang != LangMirBSDKorn {
+				p.curErr(`"${ stmts;}" is a mksh feature`)
+			}
+			cs := &CmdSubst{
+				Left:           p.pos,
+				MirBSDTempFile: p.r != '|',
+				MirBSDReplyVar: p.r == '|',
+			}
+			old := p.preNested(subCmd)
+			p.rune() // don't tokenize '|'
+			p.next()
+			cs.Stmts = p.stmts("}")
+			p.postNested(old)
+			cs.Right = p.pos
+			if !p.gotRsrv("}") {
+				p.matchingErr(cs.Left, "${", "}")
+			}
+			return cs
+		default:
+			return p.paramExp()
+		}
 	case dollDblParen, dollBrack:
 		p.ensureNoNested()
 		left := p.tok

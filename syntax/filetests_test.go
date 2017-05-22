@@ -1426,6 +1426,35 @@ var fileTests = []testCase{
 		))),
 	},
 	{
+		// TODO: space the }?
+		Strs: []string{"${ foo;}", "${\n\tfoo; }", "${\tfoo;}"},
+		mksh: &CmdSubst{
+			Stmts:          litStmts("foo"),
+			MirBSDTempFile: true,
+		},
+	},
+	{
+		Strs: []string{"${\n\tfoo\n\tbar\n}", "${ foo; bar;}"},
+		mksh: &CmdSubst{
+			Stmts:          litStmts("foo", "bar"),
+			MirBSDTempFile: true,
+		},
+	},
+	{
+		Strs: []string{"${|foo;}", "${| foo; }"},
+		mksh: &CmdSubst{
+			Stmts:          litStmts("foo"),
+			MirBSDReplyVar: true,
+		},
+	},
+	{
+		Strs: []string{"${|\n\tfoo\n\tbar\n}", "${|foo; bar;}"},
+		mksh: &CmdSubst{
+			Stmts:          litStmts("foo", "bar"),
+			MirBSDReplyVar: true,
+		},
+	},
+	{
 		Strs:   []string{`"$foo"`},
 		common: dblQuoted(litParamExp("foo")),
 	},
@@ -3745,8 +3774,17 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 		setPos(&x.Right, "))")
 		recurse(x.X)
 	case *CmdSubst:
-		setPos(&x.Left, "$(", "`", "\\`")
-		setPos(&x.Right, ")", "`", "\\`")
+		switch {
+		case x.MirBSDTempFile:
+			setPos(&x.Left, "${ ", "${\t", "${\n")
+			setPos(&x.Right, "}")
+		case x.MirBSDReplyVar:
+			setPos(&x.Left, "${|")
+			setPos(&x.Right, "}")
+		default:
+			setPos(&x.Left, "$(", "`", "\\`")
+			setPos(&x.Right, ")", "`", "\\`")
+		}
 		recurse(x.Stmts)
 	case *CaseClause:
 		setPos(&x.Case, "case")
