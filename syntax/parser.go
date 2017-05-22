@@ -585,6 +585,12 @@ func (p *Parser) wordPart() WordPart {
 			old = p.preNested(arithmExpr)
 		}
 		p.next()
+		if p.got(hash) {
+			if p.lang != LangMirBSDKorn {
+				p.posErr(ar.Pos(), "unsigned expressions are a mksh feature")
+			}
+			ar.Unsigned = true
+		}
 		ar.X = p.followArithm(left, ar.Left)
 		if ar.Bracket {
 			if p.tok != rightBrack {
@@ -1430,6 +1436,12 @@ func (p *Parser) arithmExpCmd() Command {
 	ar := &ArithmCmd{Left: p.pos}
 	old := p.preNested(arithmExprCmd)
 	p.next()
+	if p.got(hash) {
+		if p.lang != LangMirBSDKorn {
+			p.posErr(ar.Pos(), "unsigned expressions are a mksh feature")
+		}
+		ar.Unsigned = true
+	}
 	ar.X = p.followArithm(dblLeftParen, ar.Left)
 	ar.Right = p.arithmEnd(dblLeftParen, ar.Left, old)
 	return ar

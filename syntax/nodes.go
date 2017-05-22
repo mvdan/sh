@@ -472,6 +472,7 @@ type Expansion struct {
 type ArithmExp struct {
 	Left, Right Pos
 	Bracket     bool
+	Unsigned    bool
 	X           ArithmExpr
 }
 
@@ -488,6 +489,7 @@ func (a *ArithmExp) End() Pos {
 // This node will never appear when in PosixConformant mode.
 type ArithmCmd struct {
 	Left, Right Pos
+	Unsigned    bool
 	X           ArithmExpr
 }
 

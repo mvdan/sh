@@ -406,6 +406,15 @@ var shellTests = []errorCase{
 		common: `1:12: invalid UTF-8 encoding`,
 	},
 	{
+		in:   `((# 1 + 2))`,
+		bash: `1:1: unsigned expressions are a mksh feature`,
+	},
+	{
+		in:    `$((# 1 + 2))`,
+		posix: `1:1: unsigned expressions are a mksh feature`,
+		bash:  `1:1: unsigned expressions are a mksh feature`,
+	},
+	{
 		in:    `${ foo;}`,
 		posix: `1:1: "${ stmts;}" is a mksh feature`,
 		bash:  `1:1: "${ stmts;}" is a mksh feature`,

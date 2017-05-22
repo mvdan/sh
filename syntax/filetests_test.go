@@ -260,6 +260,28 @@ var fileTests = []testCase{
 		},
 	},
 	{
+		Strs: []string{"((# 1 + 2))", "(( # 1 + 2 ))"},
+		mksh: &ArithmCmd{
+			X: &BinaryArithm{
+				Op: Add,
+				X:  lit("1"),
+				Y:  lit("2"),
+			},
+			Unsigned: true,
+		},
+	},
+	{
+		Strs: []string{"$((# 1 + 2))", "$(( # 1 + 2 ))"},
+		mksh: &ArithmExp{
+			X: &BinaryArithm{
+				Op: Add,
+				X:  lit("1"),
+				Y:  lit("2"),
+			},
+			Unsigned: true,
+		},
+	},
+	{
 		Strs: []string{
 			"while a; do b; done",
 			"wh\\\nile a; do b; done",

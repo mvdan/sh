@@ -32,7 +32,7 @@ func paramOps(r rune) bool {
 func arithmOps(r rune) bool {
 	switch r {
 	case '+', '-', '!', '*', '/', '%', '(', ')', '^', '<', '>', ':', '=',
-		',', '?', '|', '&', ']':
+		',', '?', '|', '&', ']', '#':
 		return true
 	}
 	return false
@@ -668,9 +668,12 @@ func (p *Parser) arithmToken(r rune) token {
 	case '?':
 		p.rune()
 		return quest
-	default: // ':'
+	case ':':
 		p.rune()
 		return colon
+	default: // '#'
+		p.rune()
+		return hash
 	}
 }
 

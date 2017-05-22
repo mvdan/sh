@@ -320,6 +320,9 @@ func (p *Printer) wordPart(wp WordPart) {
 		p.paramExp(x)
 	case *ArithmExp:
 		p.WriteString("$((")
+		if x.Unsigned {
+			p.WriteString("# ")
+		}
 		p.arithmExpr(x.X, false, false)
 		p.WriteString("))")
 	case *ExtGlob:
@@ -764,6 +767,9 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		p.semiRsrv("esac", x.Esac, len(x.Items) == 0)
 	case *ArithmCmd:
 		p.WriteString("((")
+		if x.Unsigned {
+			p.WriteString("# ")
+		}
 		p.arithmExpr(x.X, false, false)
 		p.WriteString("))")
 	case *TestClause:
