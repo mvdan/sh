@@ -567,7 +567,7 @@ func (p *Printer) stmt(s *Stmt) {
 	if s.Negated {
 		p.spacedString("!")
 	}
-	p.assigns(s.Assigns)
+	p.assigns(s.Assigns, true)
 	var startRedirs int
 	if s.Cmd != nil {
 		startRedirs = p.command(s.Cmd, s.Redirs)
@@ -782,7 +782,7 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			p.WriteByte(' ')
 			p.word(w)
 		}
-		p.assigns(x.Assigns)
+		p.assigns(x.Assigns, false)
 	case *TimeClause:
 		p.spacedString("time")
 		if x.Stmt != nil {
@@ -953,7 +953,7 @@ func (p *Printer) nestedStmts(stmts []*Stmt, closing Pos) {
 	p.decLevel()
 }
 
-func (p *Printer) assigns(assigns []*Assign) {
+func (p *Printer) assigns(assigns []*Assign, alwaysEqual bool) {
 	anyNewline := false
 	for _, a := range assigns {
 		if a.Pos() > p.nline {
@@ -976,7 +976,9 @@ func (p *Printer) assigns(assigns []*Assign) {
 			if a.Append {
 				p.WriteByte('+')
 			}
-			p.WriteByte('=')
+			if alwaysEqual || a.Value != nil || a.Array != nil {
+				p.WriteByte('=')
+			}
 		}
 		if a.Value != nil {
 			p.word(a.Value)

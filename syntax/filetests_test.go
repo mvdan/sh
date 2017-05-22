@@ -3065,6 +3065,19 @@ var fileTests = []testCase{
 		},
 	},
 	{
+		Strs: []string{
+			"declare foo[a]",
+			"declare foo[a]=",
+		},
+		bash: &DeclClause{
+			Variant: "declare",
+			Assigns: []*Assign{{
+				Name:  lit("foo"),
+				Index: lit("a"),
+			}},
+		},
+	},
+	{
 		Strs: []string{"foo=([)"},
 		mksh: &Stmt{Assigns: []*Assign{{
 			Name:  lit("foo"),

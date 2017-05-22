@@ -1107,7 +1107,7 @@ func (p *Parser) hasValidIdent() bool {
 	return p.tok == _Lit && p.r == '['
 }
 
-func (p *Parser) getAssign() *Assign {
+func (p *Parser) getAssign(needEqual bool) *Assign {
 	as := &Assign{}
 	if p.asPos > 0 { // foo=bar
 		nameEnd := p.asPos
@@ -1135,12 +1135,15 @@ func (p *Parser) getAssign() *Assign {
 		as.Index = p.followArithm(leftBrack, left)
 		p.postNested(old)
 		p.matched(left, leftBrack, rightBrack)
+		if !needEqual && (p.spaced || stopToken(p.tok)) {
+			return as
+		}
 		if p.val[0] == '+' {
 			as.Append = true
 			p.val = p.val[1:]
 			p.pos++
 		}
-		if p.tok == _EOF || p.val[0] != '=' {
+		if p.val[0] != '=' {
 			p.followErr(as.Pos(), "a[b]", "=")
 			return nil
 		}
@@ -1291,7 +1294,7 @@ preLoop:
 			if !p.hasValidIdent() {
 				break preLoop
 			}
-			s.Assigns = append(s.Assigns, p.getAssign())
+			s.Assigns = append(s.Assigns, p.getAssign(true))
 		case rdrOut, appOut, rdrIn, dplIn, dplOut, clbOut, rdrInOut,
 			hdoc, dashHdoc, wordHdoc, rdrAll, appAll, _LitRedir:
 			p.doRedirect(s)
@@ -1750,7 +1753,7 @@ func (p *Parser) declClause() *DeclClause {
 	}
 	for !p.newLine && !stopToken(p.tok) && !p.peekRedir() {
 		if (p.tok == _Lit || p.tok == _LitWord) && p.hasValidIdent() {
-			ds.Assigns = append(ds.Assigns, p.getAssign())
+			ds.Assigns = append(ds.Assigns, p.getAssign(false))
 		} else if w := p.getWord(); w == nil {
 			p.followErr(p.pos, ds.Variant, "words")
 		} else {
