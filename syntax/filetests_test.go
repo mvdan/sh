@@ -3036,6 +3036,16 @@ var fileTests = []testCase{
 		},
 	},
 	{
+		Strs: []string{"declare a\n{ x; }"},
+		bash: stmts(
+			&DeclClause{
+				Variant: "declare",
+				Assigns: []*Assign{{Value: litWord("a")}},
+			},
+			block(litStmt("x")),
+		),
+	},
+	{
 		Strs:   []string{"eval a=b foo"},
 		common: litStmt("eval", "a=b", "foo"),
 	},

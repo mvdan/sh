@@ -1165,7 +1165,7 @@ func (p *Parser) peekRedir() bool {
 	switch p.tok {
 	case rdrOut, appOut, rdrIn, dplIn, dplOut, clbOut, rdrInOut,
 		hdoc, dashHdoc, wordHdoc, rdrAll, appAll, _LitRedir:
-		return !p.newLine
+		return true
 	}
 	return false
 }
@@ -1368,7 +1368,7 @@ preLoop:
 			return nil
 		}
 	}
-	for p.peekRedir() {
+	for !p.newLine && p.peekRedir() {
 		p.doRedirect(s)
 	}
 	switch p.tok {
@@ -1697,7 +1697,7 @@ func (p *Parser) declClause() *DeclClause {
 	for p.tok == _LitWord && p.val[0] == '-' {
 		ds.Opts = append(ds.Opts, p.getWord())
 	}
-	for !stopToken(p.tok) && !p.peekRedir() {
+	for !p.newLine && !stopToken(p.tok) && !p.peekRedir() {
 		if (p.tok == _Lit || p.tok == _LitWord) && p.hasValidIdent() {
 			ds.Assigns = append(ds.Assigns, p.getAssign())
 		} else if w := p.getWord(); w == nil {
@@ -1769,7 +1769,7 @@ func (p *Parser) letClause() *LetClause {
 	lc := &LetClause{Let: p.pos}
 	old := p.preNested(arithmExprLet)
 	p.next()
-	for !stopToken(p.tok) && !p.peekRedir() {
+	for !p.newLine && !stopToken(p.tok) && !p.peekRedir() {
 		x := p.arithmExpr(illegalTok, lc.Let, 0, true, false)
 		if x == nil {
 			break
