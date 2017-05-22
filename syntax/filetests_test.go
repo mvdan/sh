@@ -3318,8 +3318,8 @@ var fileTests = []testCase{
 		}}},
 	},
 	{
-		Strs:  []string{"a[2]=b c[-3]="},
-		posix: litStmt("a[2]=b", "c[-3]="),
+		Strs:  []string{"a[2]=b c[-3]= d[x]+=e"},
+		posix: litStmt("a[2]=b", "c[-3]=", "d[x]+=e"),
 		bsmk: &Stmt{Assigns: []*Assign{
 			{
 				Name:  lit("a"),
@@ -3332,6 +3332,12 @@ var fileTests = []testCase{
 					Op: Minus,
 					X:  lit("3"),
 				},
+			},
+			{
+				Name:   lit("d"),
+				Index:  lit("x"),
+				Append: true,
+				Value:  litWord("e"),
 			},
 		}},
 	},

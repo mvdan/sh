@@ -1124,9 +1124,7 @@ func (p *Parser) getAssign() *Assign {
 			left.ValuePos += Pos(p.asPos)
 			as.Value = p.word(p.wps(left))
 		}
-		if p.next(); p.spaced {
-			return as
-		}
+		p.next()
 	} else { // foo[i]=bar
 		as.Name = p.lit(p.pos, p.val)
 		// hasValidIdent already checks p.r is '['
@@ -1137,6 +1135,11 @@ func (p *Parser) getAssign() *Assign {
 		as.Index = p.followArithm(leftBrack, left)
 		p.postNested(old)
 		p.matched(left, leftBrack, rightBrack)
+		if p.val[0] == '+' {
+			as.Append = true
+			p.val = p.val[1:]
+			p.pos++
+		}
 		if p.tok == _EOF || p.val[0] != '=' {
 			p.followErr(as.Pos(), "a[b]", "=")
 			return nil
@@ -1146,6 +1149,9 @@ func (p *Parser) getAssign() *Assign {
 		if p.val == "" {
 			p.next()
 		}
+	}
+	if p.spaced || stopToken(p.tok) {
+		return as
 	}
 	if as.Value == nil && p.tok == leftParen {
 		if p.lang == LangPOSIX {
@@ -1182,13 +1188,11 @@ func (p *Parser) getAssign() *Assign {
 		}
 		p.postNested(old)
 		as.Array.Rparen = p.matched(as.Array.Lparen, leftParen, rightParen)
-	} else if !p.newLine && !stopToken(p.tok) {
-		if w := p.getWord(); w != nil {
-			if as.Value == nil {
-				as.Value = w
-			} else {
-				as.Value.Parts = append(as.Value.Parts, w.Parts...)
-			}
+	} else if w := p.getWord(); w != nil {
+		if as.Value == nil {
+			as.Value = w
+		} else {
+			as.Value.Parts = append(as.Value.Parts, w.Parts...)
 		}
 	}
 	return as
