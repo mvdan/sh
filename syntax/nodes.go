@@ -428,6 +428,7 @@ type ParamExp struct {
 	Short          bool
 	Indirect       bool
 	Length         bool
+	Width          bool
 	Param          *Lit
 	Index          ArithmExpr
 	Slice          *Slice

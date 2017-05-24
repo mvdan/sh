@@ -992,6 +992,11 @@ var shellTests = []errorCase{
 		common: `1:10: reached EOF without matching ${ with }`,
 	},
 	{
+		in:     "echo ${%",
+		common: `1:6: "${%foo}" is a mksh feature`,
+		mksh:   `1:6: parameter expansion requires a literal`,
+	},
+	{
 		in:     "echo ${##",
 		common: `1:6: reached EOF without matching ${ with }`,
 	},

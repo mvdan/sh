@@ -970,6 +970,14 @@ func (p *Parser) paramExp() *ParamExp {
 			pe.Length = true
 			p.next()
 		}
+	case perc:
+		if p.lang != LangMirBSDKorn {
+			p.posErr(pe.Pos(), `"${%%foo}" is a mksh feature`)
+		}
+		if p.r != '}' {
+			pe.Width = true
+			p.next()
+		}
 	case exclMark:
 		if p.r != '}' {
 			pe.Indirect = true

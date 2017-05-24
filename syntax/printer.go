@@ -359,6 +359,8 @@ func (p *Printer) paramExp(pe *ParamExp) {
 	switch {
 	case pe.Length:
 		p.WriteByte('#')
+	case pe.Width:
+		p.WriteByte('%')
 	case pe.Indirect:
 		p.WriteByte('!')
 	}

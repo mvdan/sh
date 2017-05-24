@@ -1980,6 +1980,13 @@ var fileTests = []testCase{
 		},
 	},
 	{
+		Strs: []string{`${%foo}`},
+		mksh: &ParamExp{
+			Width: true,
+			Param: lit("foo"),
+		},
+	},
+	{
 		Strs: []string{`${!foo}`},
 		common: &ParamExp{
 			Indirect: true,
