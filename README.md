@@ -4,8 +4,8 @@
 [![Build Status](https://travis-ci.org/mvdan/sh.svg?branch=master)](https://travis-ci.org/mvdan/sh)
 [![Coverage Status](https://coveralls.io/repos/github/mvdan/sh/badge.svg?branch=master)](https://coveralls.io/github/mvdan/sh)
 
-A shell parser, formatter and interpreter. Supports [POSIX Shell] and
-[Bash]. Requires Go 1.7 or later.
+A shell parser, formatter and interpreter. Supports [POSIX Shell],
+[Bash] and [mksh]. Requires Go 1.7 or later.
 
 ### shfmt
 
@@ -59,10 +59,10 @@ the parser and the printer. To get started, run:
 
 ### Caveats
 
-* Bash index expressions must be an arithmetic expression or a single
-  word. If you must use a string with spaces, quote it. This is because
-  the static parser can't know whether the array is an associative array
-  (string keys) since that depends on having called or not `declare -A`.
+* Bash index expressions must be an arithmetic expression or a quoted
+  string. This is because the static parser can't know whether the array
+  is an associative array (string keys) since that depends on having
+  called or not `declare -A`.
 
 ```
  $ echo '${array[spaced string]}' | shfmt
@@ -79,9 +79,9 @@ the parser and the printer. To get started, run:
 1:1: reached ) without matching $(( with ))
 ```
 
-* Some builtins like `export`, `let` and `eval` are parsed as keywords.
-  This is to let the static parser parse them completely and build their
-  AST better than just a slice of arguments.
+* Some builtins like `export` and `let` are parsed as keywords. This is
+  to let the static parser parse them completely and build their AST
+  better than just a slice of arguments.
 
 ### Related projects
 
@@ -90,6 +90,7 @@ the parser and the printer. To get started, run:
 
 [posix shell]: http://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html
 [bash]: https://www.gnu.org/software/bash/
+[mksh]: https://www.mirbsd.org/mksh.htm
 [examples]: https://godoc.org/github.com/mvdan/sh/syntax#pkg-examples
 [arch]: https://aur.archlinux.org/packages/shfmt/
 [homebrew]: https://github.com/Homebrew/homebrew-core/blob/HEAD/Formula/shfmt.rb
