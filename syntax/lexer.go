@@ -382,7 +382,7 @@ func (p *Parser) regToken(r rune) token {
 		case ';':
 			if p.rune() == '&' && p.lang == LangBash {
 				p.rune()
-				return dblSemiFall
+				return dblSemiAnd
 			}
 			return dblSemicolon
 		case '&':
@@ -390,7 +390,13 @@ func (p *Parser) regToken(r rune) token {
 				break
 			}
 			p.rune()
-			return semiFall
+			return semiAnd
+		case '|':
+			if p.lang != LangMirBSDKorn {
+				break
+			}
+			p.rune()
+			return semiOr
 		}
 		return semicolon
 	case '<':

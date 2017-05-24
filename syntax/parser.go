@@ -462,7 +462,7 @@ func (p *Parser) stmts(stops ...string) (sts []*Stmt) {
 			if p.quote == subCmdBckquo {
 				return
 			}
-		case dblSemicolon, semiFall, dblSemiFall:
+		case dblSemicolon, semiAnd, dblSemiAnd, semiOr:
 			if p.quote == switchCase {
 				return
 			}
@@ -1114,7 +1114,7 @@ func (p *Parser) arithmEnd(ltok token, lpos Pos, old saveState) Pos {
 func stopToken(tok token) bool {
 	switch tok {
 	case _EOF, semicolon, and, or, andAnd, orOr, orAnd, dblSemicolon,
-		semiFall, dblSemiFall, rightParen:
+		semiAnd, dblSemiAnd, semiOr, rightParen:
 		return true
 	}
 	return false
@@ -1655,10 +1655,12 @@ func (p *Parser) caseItems(stop string) (items []*CaseItem) {
 		ci.Stmts = p.stmts(stop)
 		p.postNested(old)
 		ci.OpPos = p.pos
-		if p.tok != dblSemicolon && p.tok != semiFall && p.tok != dblSemiFall {
+		switch p.tok {
+		case dblSemicolon, semiAnd, dblSemiAnd, semiOr:
+		default:
 			ci.Op = Break
 			items = append(items, ci)
-			break
+			return
 		}
 		ci.Op = CaseOperator(p.tok)
 		p.next()
@@ -1913,7 +1915,7 @@ func (p *Parser) callExpr(s *Stmt, w *Word) *CallExpr {
 	for !p.newLine {
 		switch p.tok {
 		case _EOF, semicolon, and, or, andAnd, orOr, orAnd,
-			dblSemicolon, semiFall, dblSemiFall:
+			dblSemicolon, semiAnd, dblSemiAnd, semiOr:
 			return ce
 		case _LitWord:
 			ce.Args = append(ce.Args, p.word(

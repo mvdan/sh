@@ -2556,6 +2556,24 @@ var fileTests = []testCase{
 		},
 	},
 	{
+		Strs: []string{"case i in 1) a ;| 2) b ;; esac"},
+		mksh: &CaseClause{
+			Word: litWord("i"),
+			Items: []*CaseItem{
+				{
+					Op:       ResumeKorn,
+					Patterns: litWords("1"),
+					Stmts:    litStmts("a"),
+				},
+				{
+					Op:       Break,
+					Patterns: litWords("2"),
+					Stmts:    litStmts("b"),
+				},
+			},
+		},
+	},
+	{
 		Strs: []string{"case $i in 1) cat <<EOF ;;\nfoo\nEOF\nesac"},
 		common: &CaseClause{
 			Word: word(litParamExp("i")),

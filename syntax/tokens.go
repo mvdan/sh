@@ -47,8 +47,9 @@ const (
 	semicolon     // ;
 
 	dblSemicolon // ;;
-	semiFall     // ;&
-	dblSemiFall  // ;;&
+	semiAnd      // ;&
+	dblSemiAnd   // ;;&
+	semiOr       // ;|
 
 	exclMark // !
 	addAdd   // ++
@@ -200,6 +201,7 @@ const (
 	Break = CaseOperator(dblSemicolon) + iota
 	Fallthrough
 	Resume
+	ResumeKorn
 )
 
 type ParExpOperator token
