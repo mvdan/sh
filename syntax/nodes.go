@@ -178,17 +178,12 @@ type Assign struct {
 	Naked  bool
 	Name   *Lit
 	Index  ArithmExpr
+	Key    *DblQuoted
 	Value  *Word
 	Array  *ArrayExpr
 }
 
-func (a *Assign) Pos() Pos {
-	if a.Name != nil {
-		return a.Name.Pos()
-	}
-	return a.Value.Pos()
-}
-
+func (a *Assign) Pos() Pos { return a.Name.Pos() }
 func (a *Assign) End() Pos {
 	if a.Value != nil {
 		return a.Value.End()
@@ -198,6 +193,9 @@ func (a *Assign) End() Pos {
 	}
 	if a.Index != nil {
 		return a.Index.End() + 2
+	}
+	if a.Key != nil {
+		return a.Key.End() + 2
 	}
 	if a.Naked {
 		return a.Name.End()
@@ -435,6 +433,7 @@ type ParamExp struct {
 	Width          bool
 	Param          *Lit
 	Index          ArithmExpr
+	Key            *DblQuoted
 	Slice          *Slice
 	Repl           *Replace
 	Exp            *Expansion
@@ -448,10 +447,15 @@ func (p *ParamExp) End() Pos {
 	if p.Index != nil {
 		return p.Index.End() + 1
 	}
+	if p.Key != nil {
+		return p.Key.End() + 1
+	}
 	return p.Param.End()
 }
 
-func (p *ParamExp) nakedIndex() bool { return p.Short && p.Index != nil }
+func (p *ParamExp) nakedIndex() bool {
+	return p.Short && (p.Index != nil || p.Key != nil)
+}
 
 // Slice represents character slicing inside a ParamExp.
 //
@@ -673,12 +677,16 @@ func (a *ArrayExpr) End() Pos { return a.Rparen + 1 }
 
 type ArrayElem struct {
 	Index ArithmExpr
+	Key   *DblQuoted
 	Value *Word
 }
 
 func (a *ArrayElem) Pos() Pos {
 	if a.Index != nil {
 		return a.Index.Pos()
+	}
+	if a.Key != nil {
+		return a.Key.Pos()
 	}
 	return a.Value.Pos()
 }

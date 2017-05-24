@@ -670,16 +670,7 @@ func (p *Parser) wordPart() WordPart {
 		if p.quote&allArithmExpr != 0 {
 			p.curErr("quotes should not be used in arithmetic expressions")
 		}
-		q := &DblQuoted{Position: p.pos, Dollar: p.tok == dollDblQuote}
-		old := p.quote
-		p.quote = dblQuotes
-		p.next()
-		q.Parts = p.wordParts()
-		p.quote = old
-		if !p.got(dblQuote) {
-			p.quoteErr(q.Pos(), dblQuote)
-		}
-		return q
+		return p.dblQuoted()
 	case bckQuote:
 		if p.quote == subCmdBckquo {
 			return nil
@@ -725,6 +716,19 @@ func (p *Parser) wordPart() WordPart {
 	default:
 		return nil
 	}
+}
+
+func (p *Parser) dblQuoted() *DblQuoted {
+	q := &DblQuoted{Position: p.pos, Dollar: p.tok == dollDblQuote}
+	old := p.quote
+	p.quote = dblQuotes
+	p.next()
+	q.Parts = p.wordParts()
+	p.quote = old
+	if !p.got(dblQuote) {
+		p.quoteErr(q.Pos(), dblQuote)
+	}
+	return q
 }
 
 func arithmOpLevel(op BinAritOperator) int {
@@ -894,7 +898,11 @@ func (p *Parser) arithmExprBase(compact bool) ArithmExpr {
 		p.rune()
 		old := p.preNested(arithmExprBrack)
 		p.next()
-		pe.Index = p.followArithm(leftBrack, left)
+		if p.tok == dblQuote {
+			pe.Key = p.dblQuoted()
+		} else {
+			pe.Index = p.followArithm(leftBrack, left)
+		}
 		p.postNested(old)
 		p.matched(left, leftBrack, rightBrack)
 		x = p.word(p.wps(pe))
@@ -1020,7 +1028,11 @@ func (p *Parser) paramExp() *ParamExp {
 		case star, at:
 			p.tok, p.val = _LitWord, p.tok.String()
 		}
-		pe.Index = p.followArithm(leftBrack, lpos)
+		if p.tok == dblQuote {
+			pe.Key = p.dblQuoted()
+		} else {
+			pe.Index = p.followArithm(leftBrack, lpos)
+		}
 		p.quote = paramExpName
 		p.matched(lpos, leftBrack, rightBrack)
 	}
@@ -1152,7 +1164,7 @@ func (p *Parser) getAssign(needEqual bool) *Assign {
 			as.Value = p.word(p.wps(left))
 		}
 		p.next()
-	} else { // foo[i]=bar
+	} else { // foo[x]=bar
 		as.Name = p.lit(p.pos, p.val)
 		// hasValidIdent already checks p.r is '['
 		p.rune()
@@ -1162,7 +1174,11 @@ func (p *Parser) getAssign(needEqual bool) *Assign {
 		if p.tok == star {
 			p.tok, p.val = _LitWord, p.tok.String()
 		}
-		as.Index = p.followArithm(leftBrack, left)
+		if p.tok == dblQuote {
+			as.Key = p.dblQuoted()
+		} else {
+			as.Index = p.followArithm(leftBrack, left)
+		}
 		p.postNested(old)
 		p.matched(left, leftBrack, rightBrack)
 		if !needEqual && (p.spaced || stopToken(p.tok)) {
@@ -1203,13 +1219,17 @@ func (p *Parser) getAssign(needEqual bool) *Assign {
 				left := p.pos
 				p.quote = arithmExprBrack
 				p.next()
-				ae.Index = p.followArithm(leftBrack, left)
+				if p.tok == dblQuote {
+					ae.Key = p.dblQuoted()
+				} else {
+					ae.Index = p.followArithm(leftBrack, left)
+				}
 				if p.tok != rightBrack {
 					p.matchingErr(left, leftBrack, rightBrack)
 				}
 				p.quote = arrayElems
 				if p.r != '=' {
-					p.followErr(left, `"[index]"`, "=")
+					p.followErr(left, `"[x]"`, "=")
 				}
 				p.rune()
 				p.next()

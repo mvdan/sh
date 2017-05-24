@@ -1309,7 +1309,7 @@ var shellTests = []errorCase{
 	},
 	{
 		in:   "a=([i])",
-		bash: `1:4: "[index]" must be followed by = #NOERR`,
+		bash: `1:4: "[x]" must be followed by = #NOERR`,
 	},
 	{
 		in:   "function",

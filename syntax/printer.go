@@ -285,17 +285,7 @@ func (p *Printer) wordPart(wp WordPart) {
 		p.WriteByte('\'')
 		p.incLines(x.End())
 	case *DblQuoted:
-		if x.Dollar {
-			p.WriteByte('$')
-		}
-		p.WriteByte('"')
-		for i, n := range x.Parts {
-			p.wordPart(n)
-			if i == len(x.Parts)-1 {
-				p.incLines(n.End())
-			}
-		}
-		p.WriteByte('"')
+		p.dblQuoted(x)
 	case *CmdSubst:
 		p.incLines(x.Pos())
 		switch {
@@ -341,12 +331,38 @@ func (p *Printer) wordPart(wp WordPart) {
 	}
 }
 
+func (p *Printer) dblQuoted(dq *DblQuoted) {
+	if dq.Dollar {
+		p.WriteByte('$')
+	}
+	p.WriteByte('"')
+	for i, n := range dq.Parts {
+		p.wordPart(n)
+		if i == len(dq.Parts)-1 {
+			p.incLines(n.End())
+		}
+	}
+	p.WriteByte('"')
+}
+
+func (p *Printer) wroteIndex(index ArithmExpr, key *DblQuoted) bool {
+	if index == nil && key == nil {
+		return false
+	}
+	p.WriteByte('[')
+	if index != nil {
+		p.arithmExpr(index, false, false)
+	} else {
+		p.dblQuoted(key)
+	}
+	p.WriteByte(']')
+	return true
+}
+
 func (p *Printer) paramExp(pe *ParamExp) {
-	if pe.nakedIndex() { // arr[i]
+	if pe.nakedIndex() { // arr[x]
 		p.WriteString(pe.Param.Value)
-		p.WriteByte('[')
-		p.arithmExpr(pe.Index, false, false)
-		p.WriteByte(']')
+		p.wroteIndex(pe.Index, pe.Key)
 		return
 	}
 	if pe.Short { // $var
@@ -367,11 +383,7 @@ func (p *Printer) paramExp(pe *ParamExp) {
 	if pe.Param != nil {
 		p.WriteString(pe.Param.Value)
 	}
-	if pe.Index != nil {
-		p.WriteByte('[')
-		p.arithmExpr(pe.Index, false, false)
-		p.WriteByte(']')
-	}
+	p.wroteIndex(pe.Index, pe.Key)
 	if pe.Slice != nil {
 		p.WriteByte(':')
 		p.arithmExpr(pe.Slice.Offset, true, true)
@@ -550,10 +562,7 @@ func (p *Printer) elemJoin(elems []*ArrayElem) {
 			p.WriteByte(' ')
 			p.wantSpace = false
 		}
-		if el.Index != nil {
-			p.WriteByte('[')
-			p.arithmExpr(el.Index, false, false)
-			p.WriteByte(']')
+		if p.wroteIndex(el.Index, el.Key) {
 			p.WriteByte('=')
 		}
 		p.word(el.Value)
@@ -968,11 +977,7 @@ func (p *Printer) assigns(assigns []*Assign, alwaysEqual bool) {
 		}
 		if a.Name != nil {
 			p.WriteString(a.Name.Value)
-			if a.Index != nil {
-				p.WriteByte('[')
-				p.arithmExpr(a.Index, false, false)
-				p.WriteByte(']')
-			}
+			p.wroteIndex(a.Index, a.Key)
 			if a.Append {
 				p.WriteByte('+')
 			}
