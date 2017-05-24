@@ -3061,10 +3061,13 @@ var fileTests = []testCase{
 		posix: litStmt("nameref", "bar"),
 	},
 	{
-		Strs: []string{"declare -a -bc foo=bar"},
+		Strs: []string{"declare -a -b$o foo=bar"},
 		bash: &DeclClause{
 			Variant: "declare",
-			Opts:    litWords("-a", "-bc"),
+			Opts: []*Word{
+				litWord("-a"),
+				word(lit("-b"), litParamExp("o")),
+			},
 			Assigns: []*Assign{
 				{Name: lit("foo"), Value: litWord("bar")},
 			},
