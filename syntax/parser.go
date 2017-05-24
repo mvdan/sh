@@ -625,6 +625,9 @@ func (p *Parser) wordPart() WordPart {
 		ps.Rparen = p.matched(ps.OpPos, token(ps.Op), rightParen)
 		return ps
 	case sglQuote:
+		if p.quote&allArithmExpr != 0 {
+			p.curErr("quotes should not be used in arithmetic expressions")
+		}
 		sq := &SglQuoted{Position: p.pos}
 		r := p.r
 	loop:
@@ -642,6 +645,9 @@ func (p *Parser) wordPart() WordPart {
 		p.next()
 		return sq
 	case dollSglQuote:
+		if p.quote&allArithmExpr != 0 {
+			p.curErr("quotes should not be used in arithmetic expressions")
+		}
 		sq := &SglQuoted{Position: p.pos, Dollar: true}
 		old := p.quote
 		p.quote = sglQuotes
@@ -661,6 +667,9 @@ func (p *Parser) wordPart() WordPart {
 		}
 		fallthrough
 	case dollDblQuote:
+		if p.quote&allArithmExpr != 0 {
+			p.curErr("quotes should not be used in arithmetic expressions")
+		}
 		q := &DblQuoted{Position: p.pos, Dollar: p.tok == dollDblQuote}
 		old := p.quote
 		p.quote = dblQuotes
@@ -826,7 +835,11 @@ func (p *Parser) arithmExpr(ftok token, fpos Pos, level int, compact, tern bool)
 }
 
 func isArithName(left ArithmExpr) bool {
-	switch x := left.(type) {
+	w, ok := left.(*Word)
+	if !ok || len(w.Parts) != 1 {
+		return false
+	}
+	switch x := w.Parts[0].(type) {
 	case *Lit:
 		return validIdent(x.Value)
 	case *ParamExp:
@@ -852,7 +865,7 @@ func (p *Parser) arithmExprBase(compact bool) ArithmExpr {
 		if lit := p.getLit(); lit == nil {
 			p.followErr(ue.OpPos, token(ue.Op).String(), "a literal")
 		} else {
-			ue.X = lit
+			ue.X = p.word(p.wps(lit))
 		}
 		return ue
 	case leftParen:
@@ -871,11 +884,10 @@ func (p *Parser) arithmExprBase(compact bool) ArithmExpr {
 			p.followErrExp(ue.OpPos, ue.Op.String())
 		}
 		x = ue
-	case illegalTok, rightBrack, rightBrace, rightParen:
 	case _LitWord:
 		l := p.getLit()
 		if p.r != '[' {
-			x = l
+			x = p.word(p.wps(l))
 			break
 		}
 		left := Pos(p.npos)
@@ -886,21 +898,22 @@ func (p *Parser) arithmExprBase(compact bool) ArithmExpr {
 		pe.Index = p.followArithm(leftBrack, left)
 		p.postNested(old)
 		p.matched(left, leftBrack, rightBrack)
-		x = pe
+		x = p.word(p.wps(pe))
 	case dollar:
-		x = p.shortParamExp()
+		x = p.word(p.wps(p.shortParamExp()))
 	case dollBrace:
-		x = p.paramExp()
+		x = p.word(p.wps(p.paramExp()))
 	case bckQuote:
 		if p.quote == arithmExprLet {
 			return nil
 		}
 		fallthrough
 	default:
-		if arithmOpLevel(BinAritOperator(p.tok)) >= 0 {
-			break
+		if w := p.getWord(); w != nil {
+			// we want real nil, not (*Word)(nil) as that
+			// sets the type to non-nil and then x != nil
+			x = w
 		}
-		p.curErr("arithmetic expressions must consist of names and numbers")
 	}
 	if compact && p.spaced {
 		return x

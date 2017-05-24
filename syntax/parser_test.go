@@ -843,19 +843,31 @@ var shellTests = []errorCase{
 	},
 	{
 		in:     `echo $(("`,
-		common: `1:9: arithmetic expressions must consist of names and numbers`,
+		common: `1:9: quotes should not be used in arithmetic expressions`,
+	},
+	{
+		in:     `echo $((a"`,
+		common: `1:10: quotes should not be used in arithmetic expressions`,
+	},
+	{
+		in:   `echo $(($'`,
+		bsmk: `1:9: quotes should not be used in arithmetic expressions`,
+	},
+	{
+		in:     `echo $(('`,
+		common: `1:9: quotes should not be used in arithmetic expressions`,
 	},
 	{
 		in:     `echo $(($(a"`,
-		common: `1:9: arithmetic expressions must consist of names and numbers`,
+		common: `1:12: reached EOF without closing quote "`,
 	},
 	{
 		in:     `echo $(($((a"`,
-		common: `1:9: arithmetic expressions must consist of names and numbers`,
+		common: `1:13: quotes should not be used in arithmetic expressions`,
 	},
 	{
 		in:     "echo $((`echo 0`",
-		common: `1:9: arithmetic expressions must consist of names and numbers`,
+		common: `1:6: reached EOF without matching $(( with ))`,
 	},
 	{
 		in:     `echo $((& $(`,
@@ -871,7 +883,7 @@ var shellTests = []errorCase{
 	},
 	{
 		in:     "echo $((\"`)",
-		common: `1:9: arithmetic expressions must consist of names and numbers`,
+		common: `1:9: quotes should not be used in arithmetic expressions`,
 	},
 	{
 		in:     "echo $(())",
@@ -935,8 +947,12 @@ var shellTests = []errorCase{
 		common: `1:11: = must follow a name #NOERR`,
 	},
 	{
+		in:     "echo $(($(a)=2))",
+		common: `1:13: = must follow a name #NOERR`,
+	},
+	{
 		in:     "echo $(('1=2'))",
-		common: `1:9: arithmetic expressions must consist of names and numbers`,
+		common: `1:9: quotes should not be used in arithmetic expressions`,
 	},
 	{
 		in:     "echo $((1'2'))",
@@ -1187,11 +1203,11 @@ var shellTests = []errorCase{
 	},
 	{
 		in:   "let 'foo'",
-		bsmk: `1:5: arithmetic expressions must consist of names and numbers`,
+		bsmk: `1:5: quotes should not be used in arithmetic expressions`,
 	},
 	{
 		in:   `let a"=b+c"`,
-		bsmk: `1:5: arithmetic expressions must consist of names and numbers`,
+		bsmk: `1:6: quotes should not be used in arithmetic expressions`,
 	},
 	{
 		in:   "`let` { foo; }",
@@ -1373,7 +1389,7 @@ var shellTests = []errorCase{
 	},
 	{
 		in:   "echo $((\"a`b((",
-		bsmk: `1:9: arithmetic expressions must consist of names and numbers`,
+		bsmk: `1:9: quotes should not be used in arithmetic expressions`,
 	},
 	{
 		in:   "time {",

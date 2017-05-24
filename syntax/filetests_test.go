@@ -243,8 +243,8 @@ var fileTests = []testCase{
 		Strs: []string{`((a == 2))`},
 		bsmk: stmt(arithmCmd(&BinaryArithm{
 			Op: Eql,
-			X:  lit("a"),
-			Y:  lit("2"),
+			X:  litWord("a"),
+			Y:  litWord("2"),
 		})),
 		posix: subshell(stmt(subshell(litStmt("a", "==", "2")))),
 	},
@@ -253,19 +253,38 @@ var fileTests = []testCase{
 		bsmk: &IfClause{
 			CondStmts: stmts(arithmCmd(&BinaryArithm{
 				Op: Gtr,
-				X:  litParamExp("#"),
-				Y:  lit("2"),
+				X:  word(litParamExp("#")),
+				Y:  litWord("2"),
 			})),
 			ThenStmts: litStmts("b"),
 		},
+	},
+	{
+		Strs: []string{"(($(date -u) > DATE))"},
+		bsmk: arithmCmd(&BinaryArithm{
+			Op: Gtr,
+			X:  word(cmdSubst(litStmt("date", "-u"))),
+			Y:  litWord("DATE"),
+		}),
+	},
+	{
+		Strs: []string{": $((0x$foo == 10))"},
+		common: call(
+			litWord(":"),
+			word(arithmExp(&BinaryArithm{
+				Op: Eql,
+				X:  word(lit("0x"), litParamExp("foo")),
+				Y:  litWord("10"),
+			})),
+		),
 	},
 	{
 		Strs: []string{"((# 1 + 2))", "(( # 1 + 2 ))"},
 		mksh: &ArithmCmd{
 			X: &BinaryArithm{
 				Op: Add,
-				X:  lit("1"),
-				Y:  lit("2"),
+				X:  litWord("1"),
+				Y:  litWord("2"),
 			},
 			Unsigned: true,
 		},
@@ -275,8 +294,8 @@ var fileTests = []testCase{
 		mksh: &ArithmExp{
 			X: &BinaryArithm{
 				Op: Add,
-				X:  lit("1"),
-				Y:  lit("2"),
+				X:  litWord("1"),
+				Y:  litWord("2"),
 			},
 			Unsigned: true,
 		},
@@ -311,8 +330,8 @@ var fileTests = []testCase{
 		bsmk: &WhileClause{
 			CondStmts: stmts(arithmCmd(&BinaryArithm{
 				Op: Gtr,
-				X:  lit("1"),
-				Y:  lit("2"),
+				X:  litWord("1"),
+				Y:  litWord("2"),
 			})),
 			DoStmts: litStmts("b"),
 		},
@@ -362,18 +381,18 @@ var fileTests = []testCase{
 			Loop: &CStyleLoop{
 				Init: &BinaryArithm{
 					Op: Assgn,
-					X:  lit("i"),
-					Y:  lit("0"),
+					X:  litWord("i"),
+					Y:  litWord("0"),
 				},
 				Cond: &BinaryArithm{
 					Op: Lss,
-					X:  lit("i"),
-					Y:  lit("10"),
+					X:  litWord("i"),
+					Y:  litWord("10"),
 				},
 				Post: &UnaryArithm{
 					Op:   Inc,
 					Post: true,
-					X:    lit("i"),
+					X:    litWord("i"),
 				},
 			},
 			DoStmts: stmts(call(
@@ -401,8 +420,8 @@ var fileTests = []testCase{
 			Loop: &CStyleLoop{
 				Init: &BinaryArithm{
 					Op: Assgn,
-					X:  lit("i"),
-					Y:  lit("0"),
+					X:  litWord("i"),
+					Y:  litWord("0"),
 				},
 			},
 			DoStmts: litStmts("foo"),
@@ -933,7 +952,7 @@ var fileTests = []testCase{
 			"<<EOF $((\n\tfoo\n))\nbar\nEOF",
 		},
 		common: &Stmt{
-			Cmd: call(word(arithmExp(lit("foo")))),
+			Cmd: call(word(arithmExp(litWord("foo")))),
 			Redirs: []*Redirect{{
 				Op:   Hdoc,
 				Word: litWord("EOF"),
@@ -1700,7 +1719,7 @@ var fileTests = []testCase{
 		},
 		bsmk: &ParamExp{
 			Param: lit("foo"),
-			Index: lit("1"),
+			Index: litWord("1"),
 		},
 	},
 	{
@@ -1709,7 +1728,7 @@ var fileTests = []testCase{
 			Param: lit("foo"),
 			Index: &UnaryArithm{
 				Op: Minus,
-				X:  lit("1"),
+				X:  litWord("1"),
 			},
 		},
 	},
@@ -1717,14 +1736,14 @@ var fileTests = []testCase{
 		Strs: []string{`${foo[@]}`},
 		bsmk: &ParamExp{
 			Param: lit("foo"),
-			Index: lit("@"),
+			Index: litWord("@"),
 		},
 	},
 	{
 		Strs: []string{`${foo[*]-etc}`},
 		bsmk: &ParamExp{
 			Param: lit("foo"),
-			Index: lit("*"),
+			Index: litWord("*"),
 			Exp: &Expansion{
 				Op:   SubstMinus,
 				Word: litWord("etc"),
@@ -1735,21 +1754,21 @@ var fileTests = []testCase{
 		Strs: []string{`${foo[bar]}`},
 		bsmk: &ParamExp{
 			Param: lit("foo"),
-			Index: lit("bar"),
+			Index: litWord("bar"),
 		},
 	},
 	{
 		Strs: []string{`${foo[$bar]}`},
 		bsmk: &ParamExp{
 			Param: lit("foo"),
-			Index: litParamExp("bar"),
+			Index: word(litParamExp("bar")),
 		},
 	},
 	{
 		Strs: []string{`${foo:1}`, `${foo: 1 }`},
 		bsmk: &ParamExp{
 			Param: lit("foo"),
-			Slice: &Slice{Offset: lit("1")},
+			Slice: &Slice{Offset: litWord("1")},
 		},
 	},
 	{
@@ -1757,8 +1776,8 @@ var fileTests = []testCase{
 		bsmk: &ParamExp{
 			Param: lit("foo"),
 			Slice: &Slice{
-				Offset: lit("1"),
-				Length: lit("2"),
+				Offset: litWord("1"),
+				Length: litWord("2"),
 			},
 		},
 	},
@@ -1767,8 +1786,8 @@ var fileTests = []testCase{
 		bsmk: &ParamExp{
 			Param: lit("foo"),
 			Slice: &Slice{
-				Offset: lit("a"),
-				Length: lit("b"),
+				Offset: litWord("a"),
+				Length: litWord("b"),
 			},
 		},
 	},
@@ -1777,8 +1796,8 @@ var fileTests = []testCase{
 		bsmk: &ParamExp{
 			Param: lit("foo"),
 			Slice: &Slice{
-				Offset: lit("1"),
-				Length: &UnaryArithm{Op: Minus, X: lit("2")},
+				Offset: litWord("1"),
+				Length: &UnaryArithm{Op: Minus, X: litWord("2")},
 			},
 		},
 	},
@@ -1787,7 +1806,7 @@ var fileTests = []testCase{
 		bsmk: &ParamExp{
 			Param: lit("foo"),
 			Slice: &Slice{
-				Length: &UnaryArithm{Op: Plus, X: lit("3")},
+				Length: &UnaryArithm{Op: Plus, X: litWord("3")},
 			},
 		},
 	},
@@ -1796,7 +1815,7 @@ var fileTests = []testCase{
 		bsmk: &ParamExp{
 			Param: lit("foo"),
 			Slice: &Slice{
-				Offset: &UnaryArithm{Op: Minus, X: lit("1")},
+				Offset: &UnaryArithm{Op: Minus, X: litWord("1")},
 			},
 		},
 	},
@@ -1807,8 +1826,8 @@ var fileTests = []testCase{
 			Slice: &Slice{
 				Offset: &BinaryArithm{
 					Op: Add,
-					X:  &UnaryArithm{Op: Plus, X: lit("2")},
-					Y:  lit("3"),
+					X:  &UnaryArithm{Op: Plus, X: litWord("2")},
+					Y:  litWord("3"),
 				},
 			},
 		},
@@ -1820,14 +1839,14 @@ var fileTests = []testCase{
 			Slice: &Slice{
 				Offset: &BinaryArithm{
 					Op: Quest,
-					X:  lit("a"),
+					X:  litWord("a"),
 					Y: &BinaryArithm{
 						Op: Colon,
-						X:  lit("1"),
-						Y:  lit("2"),
+						X:  litWord("1"),
+						Y:  litWord("2"),
 					},
 				},
-				Length: lit("3"),
+				Length: litWord("3"),
 			},
 		},
 	},
@@ -2007,26 +2026,26 @@ var fileTests = []testCase{
 	},
 	{
 		Strs:   []string{"$((1))"},
-		common: arithmExp(lit("1")),
+		common: arithmExp(litWord("1")),
 	},
 	{
 		Strs: []string{"$((1 + 3))", "$((1+3))"},
 		common: arithmExp(&BinaryArithm{
 			Op: Add,
-			X:  lit("1"),
-			Y:  lit("3"),
+			X:  litWord("1"),
+			Y:  litWord("3"),
 		}),
 	},
 	{
 		Strs: []string{`"$((foo))"`},
 		common: dblQuoted(arithmExp(
-			lit("foo"),
+			litWord("foo"),
 		)),
 	},
 	{
 		Strs: []string{`$((a)) b`},
 		common: call(
-			word(arithmExp(lit("a"))),
+			word(arithmExp(litWord("a"))),
 			litWord("b"),
 		),
 	},
@@ -2034,22 +2053,22 @@ var fileTests = []testCase{
 		Strs: []string{`$((arr[0]++))`},
 		bsmk: arithmExp(&UnaryArithm{
 			Op: Inc, Post: true,
-			X: &ParamExp{
+			X: word(&ParamExp{
 				Short: true,
 				Param: lit("arr"),
-				Index: lit("0"),
-			},
+				Index: litWord("0"),
+			}),
 		}),
 	},
 	{
 		Strs: []string{`$((${a:-1}))`},
-		bsmk: arithmExp(&ParamExp{
+		bsmk: arithmExp(word(&ParamExp{
 			Param: lit("a"),
 			Exp: &Expansion{
 				Op:   SubstColMinus,
 				Word: litWord("1"),
 			},
-		}),
+		})),
 	},
 	{
 		Strs: []string{"$((5 * 2 - 1))", "$((5*2-1))"},
@@ -2057,26 +2076,26 @@ var fileTests = []testCase{
 			Op: Sub,
 			X: &BinaryArithm{
 				Op: Mul,
-				X:  lit("5"),
-				Y:  lit("2"),
+				X:  litWord("5"),
+				Y:  litWord("2"),
 			},
-			Y: lit("1"),
+			Y: litWord("1"),
 		}),
 	},
 	{
 		Strs: []string{"$((i | 13))"},
 		common: arithmExp(&BinaryArithm{
 			Op: Or,
-			X:  lit("i"),
-			Y:  lit("13"),
+			X:  litWord("i"),
+			Y:  litWord("13"),
 		}),
 	},
 	{
 		Strs: []string{"$(((a) + ((b))))"},
 		common: arithmExp(&BinaryArithm{
 			Op: Add,
-			X:  parenArit(lit("a")),
-			Y:  parenArit(parenArit(lit("b"))),
+			X:  parenArit(litWord("a")),
+			Y:  parenArit(parenArit(litWord("b"))),
 		}),
 	},
 	{
@@ -2087,43 +2106,43 @@ var fileTests = []testCase{
 		},
 		common: arithmExp(&BinaryArithm{
 			Op: Rem,
-			X:  lit("3"),
-			Y:  lit("7"),
+			X:  litWord("3"),
+			Y:  litWord("7"),
 		}),
 	},
 	{
 		Strs: []string{`"$((1 / 3))"`},
 		common: dblQuoted(arithmExp(&BinaryArithm{
 			Op: Quo,
-			X:  lit("1"),
-			Y:  lit("3"),
+			X:  litWord("1"),
+			Y:  litWord("3"),
 		})),
 	},
 	{
 		Strs: []string{"$((2 ** 10))"},
 		common: arithmExp(&BinaryArithm{
 			Op: Pow,
-			X:  lit("2"),
-			Y:  lit("10"),
+			X:  litWord("2"),
+			Y:  litWord("10"),
 		}),
 	},
 	{
 		Strs: []string{`$(((1) ^ 3))`},
 		common: arithmExp(&BinaryArithm{
 			Op: Xor,
-			X:  parenArit(lit("1")),
-			Y:  lit("3"),
+			X:  parenArit(litWord("1")),
+			Y:  litWord("3"),
 		}),
 	},
 	{
 		Strs: []string{`$((1 >> (3 << 2)))`},
 		common: arithmExp(&BinaryArithm{
 			Op: Shr,
-			X:  lit("1"),
+			X:  litWord("1"),
 			Y: parenArit(&BinaryArithm{
 				Op: Shl,
-				X:  lit("3"),
-				Y:  lit("2"),
+				X:  litWord("3"),
+				Y:  litWord("2"),
 			}),
 		}),
 	},
@@ -2131,7 +2150,7 @@ var fileTests = []testCase{
 		Strs: []string{`$((-(1)))`},
 		common: arithmExp(&UnaryArithm{
 			Op: Minus,
-			X:  parenArit(lit("1")),
+			X:  parenArit(litWord("1")),
 		}),
 	},
 	{
@@ -2139,16 +2158,16 @@ var fileTests = []testCase{
 		common: arithmExp(&UnaryArithm{
 			Op:   Inc,
 			Post: true,
-			X:    lit("i"),
+			X:    litWord("i"),
 		}),
 	},
 	{
 		Strs:   []string{`$((--i))`},
-		common: arithmExp(&UnaryArithm{Op: Dec, X: lit("i")}),
+		common: arithmExp(&UnaryArithm{Op: Dec, X: litWord("i")}),
 	},
 	{
 		Strs:   []string{`$((!i))`},
-		common: arithmExp(&UnaryArithm{Op: Not, X: lit("i")}),
+		common: arithmExp(&UnaryArithm{Op: Not, X: litWord("i")}),
 	},
 	{
 		Strs: []string{`$((-!+i))`},
@@ -2156,7 +2175,7 @@ var fileTests = []testCase{
 			Op: Minus,
 			X: &UnaryArithm{
 				Op: Not,
-				X:  &UnaryArithm{Op: Plus, X: lit("i")},
+				X:  &UnaryArithm{Op: Plus, X: litWord("i")},
 			},
 		}),
 	},
@@ -2164,35 +2183,35 @@ var fileTests = []testCase{
 		Strs: []string{`$((!!i))`},
 		common: arithmExp(&UnaryArithm{
 			Op: Not,
-			X:  &UnaryArithm{Op: Not, X: lit("i")},
+			X:  &UnaryArithm{Op: Not, X: litWord("i")},
 		}),
 	},
 	{
 		Strs: []string{`$((1 < 3))`},
 		common: arithmExp(&BinaryArithm{
 			Op: Lss,
-			X:  lit("1"),
-			Y:  lit("3"),
+			X:  litWord("1"),
+			Y:  litWord("3"),
 		}),
 	},
 	{
 		Strs: []string{`$((i = 2))`, `$((i=2))`},
 		common: arithmExp(&BinaryArithm{
 			Op: Assgn,
-			X:  lit("i"),
-			Y:  lit("2"),
+			X:  litWord("i"),
+			Y:  litWord("2"),
 		}),
 	},
 	{
 		Strs: []string{`((a[i] = 4))`, `((a[i]=4))`},
 		bsmk: arithmCmd(&BinaryArithm{
 			Op: Assgn,
-			X: &ParamExp{
+			X: word(&ParamExp{
 				Short: true,
 				Param: lit("a"),
-				Index: lit("i"),
-			},
-			Y: lit("4"),
+				Index: litWord("i"),
+			}),
+			Y: litWord("4"),
 		}),
 	},
 	{
@@ -2201,13 +2220,13 @@ var fileTests = []testCase{
 			Op: Comma,
 			X: &BinaryArithm{
 				Op: AddAssgn,
-				X:  lit("a"),
-				Y:  lit("2"),
+				X:  litWord("a"),
+				Y:  litWord("2"),
 			},
 			Y: &BinaryArithm{
 				Op: SubAssgn,
-				X:  lit("b"),
-				Y:  lit("3"),
+				X:  litWord("b"),
+				Y:  litWord("3"),
 			},
 		}),
 	},
@@ -2217,13 +2236,13 @@ var fileTests = []testCase{
 			Op: Comma,
 			X: &BinaryArithm{
 				Op: ShrAssgn,
-				X:  lit("a"),
-				Y:  lit("2"),
+				X:  litWord("a"),
+				Y:  litWord("2"),
 			},
 			Y: &BinaryArithm{
 				Op: ShlAssgn,
-				X:  lit("b"),
-				Y:  lit("3"),
+				X:  litWord("b"),
+				Y:  litWord("3"),
 			},
 		}),
 	},
@@ -2233,13 +2252,13 @@ var fileTests = []testCase{
 			Op: AndArit,
 			X: &BinaryArithm{
 				Op: Eql,
-				X:  lit("a"),
-				Y:  lit("b"),
+				X:  litWord("a"),
+				Y:  litWord("b"),
 			},
 			Y: &BinaryArithm{
 				Op: Gtr,
-				X:  lit("c"),
-				Y:  lit("d"),
+				X:  litWord("c"),
+				Y:  litWord("d"),
 			},
 		}),
 	},
@@ -2247,75 +2266,75 @@ var fileTests = []testCase{
 		Strs: []string{"$((a != b))"},
 		common: arithmExp(&BinaryArithm{
 			Op: Neq,
-			X:  lit("a"),
-			Y:  lit("b"),
+			X:  litWord("a"),
+			Y:  litWord("b"),
 		}),
 	},
 	{
 		Strs: []string{"$((a &= b))"},
 		common: arithmExp(&BinaryArithm{
 			Op: AndAssgn,
-			X:  lit("a"),
-			Y:  lit("b"),
+			X:  litWord("a"),
+			Y:  litWord("b"),
 		}),
 	},
 	{
 		Strs: []string{"$((a |= b))"},
 		common: arithmExp(&BinaryArithm{
 			Op: OrAssgn,
-			X:  lit("a"),
-			Y:  lit("b"),
+			X:  litWord("a"),
+			Y:  litWord("b"),
 		}),
 	},
 	{
 		Strs: []string{"$((a %= b))"},
 		common: arithmExp(&BinaryArithm{
 			Op: RemAssgn,
-			X:  lit("a"),
-			Y:  lit("b"),
+			X:  litWord("a"),
+			Y:  litWord("b"),
 		}),
 	},
 	{
 		Strs: []string{"$((a /= b))"},
 		common: arithmExp(&BinaryArithm{
 			Op: QuoAssgn,
-			X:  lit("a"),
-			Y:  lit("b"),
+			X:  litWord("a"),
+			Y:  litWord("b"),
 		}),
 	},
 	{
 		Strs: []string{"$((a ^= b))"},
 		common: arithmExp(&BinaryArithm{
 			Op: XorAssgn,
-			X:  lit("a"),
-			Y:  lit("b"),
+			X:  litWord("a"),
+			Y:  litWord("b"),
 		}),
 	},
 	{
 		Strs: []string{"$((i *= 3))"},
 		common: arithmExp(&BinaryArithm{
 			Op: MulAssgn,
-			X:  lit("i"),
-			Y:  lit("3"),
+			X:  litWord("i"),
+			Y:  litWord("3"),
 		}),
 	},
 	{
 		Strs: []string{"$((2 >= 10))"},
 		common: arithmExp(&BinaryArithm{
 			Op: Geq,
-			X:  lit("2"),
-			Y:  lit("10"),
+			X:  litWord("2"),
+			Y:  litWord("10"),
 		}),
 	},
 	{
 		Strs: []string{"$((foo ? b1 : b2))"},
 		common: arithmExp(&BinaryArithm{
 			Op: Quest,
-			X:  lit("foo"),
+			X:  litWord("foo"),
 			Y: &BinaryArithm{
 				Op: Colon,
-				X:  lit("b1"),
-				Y:  lit("b2"),
+				X:  litWord("b1"),
+				Y:  litWord("b2"),
 			},
 		}),
 	},
@@ -2323,11 +2342,11 @@ var fileTests = []testCase{
 		Strs: []string{`$((a <= (1 || 2)))`},
 		common: arithmExp(&BinaryArithm{
 			Op: Leq,
-			X:  lit("a"),
+			X:  litWord("a"),
 			Y: parenArit(&BinaryArithm{
 				Op: OrArit,
-				X:  lit("1"),
-				Y:  lit("2"),
+				X:  litWord("1"),
+				Y:  litWord("2"),
 			}),
 		}),
 	},
@@ -3068,7 +3087,7 @@ var fileTests = []testCase{
 			Assigns: []*Assign{{
 				Name: lit("foo"),
 				Array: &ArrayExpr{Elems: []*ArrayElem{{
-					Index: lit("a"),
+					Index: litWord("a"),
 					Value: litWord("b"),
 				}}},
 			}},
@@ -3083,7 +3102,7 @@ var fileTests = []testCase{
 			Variant: "declare",
 			Assigns: []*Assign{{
 				Name:  lit("foo"),
-				Index: lit("a"),
+				Index: litWord("a"),
 			}},
 		},
 	},
@@ -3199,23 +3218,23 @@ var fileTests = []testCase{
 	{
 		Strs: []string{`let i++`},
 		bsmk: letClause(
-			&UnaryArithm{Op: Inc, Post: true, X: lit("i")},
+			&UnaryArithm{Op: Inc, Post: true, X: litWord("i")},
 		),
 		posix: litStmt("let", "i++"),
 	},
 	{
 		Strs: []string{`let a++ b++ c +d`},
 		bsmk: letClause(
-			&UnaryArithm{Op: Inc, Post: true, X: lit("a")},
-			&UnaryArithm{Op: Inc, Post: true, X: lit("b")},
-			lit("c"),
-			&UnaryArithm{Op: Plus, X: lit("d")},
+			&UnaryArithm{Op: Inc, Post: true, X: litWord("a")},
+			&UnaryArithm{Op: Inc, Post: true, X: litWord("b")},
+			litWord("c"),
+			&UnaryArithm{Op: Plus, X: litWord("d")},
 		),
 	},
 	{
 		Strs: []string{`let ++i >/dev/null`},
 		bsmk: &Stmt{
-			Cmd:    letClause(&UnaryArithm{Op: Inc, X: lit("i")}),
+			Cmd:    letClause(&UnaryArithm{Op: Inc, X: litWord("i")}),
 			Redirs: []*Redirect{{Op: RdrOut, Word: litWord("/dev/null")}},
 		},
 	},
@@ -3227,20 +3246,20 @@ var fileTests = []testCase{
 		bash: letClause(
 			&BinaryArithm{
 				Op: Assgn,
-				X:  lit("a"),
+				X:  litWord("a"),
 				Y: parenArit(&BinaryArithm{
 					Op: Add,
-					X:  lit("1"),
-					Y:  lit("2"),
+					X:  litWord("1"),
+					Y:  litWord("2"),
 				}),
 			},
 			&BinaryArithm{
 				Op: Assgn,
-				X:  lit("b"),
+				X:  litWord("b"),
 				Y: &BinaryArithm{
 					Op: Add,
-					X:  lit("3"),
-					Y:  lit("4"),
+					X:  litWord("3"),
+					Y:  litWord("4"),
 				},
 			},
 		),
@@ -3259,7 +3278,7 @@ var fileTests = []testCase{
 			stmt(letClause(&UnaryArithm{
 				Op:   Inc,
 				Post: true,
-				X:    lit("i"),
+				X:    litWord("i"),
 			})),
 			litStmt("bar"),
 		},
@@ -3274,7 +3293,7 @@ var fileTests = []testCase{
 			stmt(letClause(&UnaryArithm{
 				Op:   Inc,
 				Post: true,
-				X:    lit("i"),
+				X:    litWord("i"),
 			})),
 			{Assigns: []*Assign{{
 				Name:  lit("foo"),
@@ -3295,7 +3314,7 @@ var fileTests = []testCase{
 				Stmts: stmts(letClause(&UnaryArithm{
 					Op:   Inc,
 					Post: true,
-					X:    lit("i"),
+					X:    litWord("i"),
 				})),
 			}},
 		},
@@ -3346,19 +3365,19 @@ var fileTests = []testCase{
 		bsmk: &Stmt{Assigns: []*Assign{
 			{
 				Name:  lit("a"),
-				Index: lit("2"),
+				Index: litWord("2"),
 				Value: litWord("b"),
 			},
 			{
 				Name: lit("c"),
 				Index: &UnaryArithm{
 					Op: Minus,
-					X:  lit("3"),
+					X:  litWord("3"),
 				},
 			},
 			{
 				Name:   lit("d"),
-				Index:  lit("x"),
+				Index:  litWord("x"),
 				Append: true,
 				Value:  litWord("e"),
 			},
@@ -3484,8 +3503,8 @@ var fileTestsNoPrint = []testCase{
 		Strs: []string{`"$[1 + 3]"`},
 		bash: dblQuoted(arithmExpBr(&BinaryArithm{
 			Op: Add,
-			X:  lit("1"),
-			Y:  lit("3"),
+			X:  litWord("1"),
+			Y:  litWord("3"),
 		})),
 	},
 }

@@ -422,10 +422,8 @@ func (p *Printer) loop(loop Loop) {
 
 func (p *Printer) arithmExpr(expr ArithmExpr, compact, spacePlusMinus bool) {
 	switch x := expr.(type) {
-	case *Lit:
-		p.WriteString(x.Value)
-	case *ParamExp:
-		p.paramExp(x)
+	case *Word:
+		p.word(x)
 	case *BinaryArithm:
 		if compact {
 			p.arithmExpr(x.X, compact, spacePlusMinus)
