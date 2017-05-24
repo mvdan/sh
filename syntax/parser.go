@@ -862,11 +862,10 @@ func (p *Parser) arithmExprBase(compact bool) ArithmExpr {
 	case addAdd, subSub:
 		ue := &UnaryArithm{OpPos: p.pos, Op: UnAritOperator(p.tok)}
 		p.next()
-		if lit := p.getLit(); lit == nil {
+		if p.tok != _LitWord {
 			p.followErr(ue.OpPos, token(ue.Op).String(), "a literal")
-		} else {
-			ue.X = p.word(p.wps(lit))
 		}
+		ue.X = p.arithmExprBase(compact)
 		return ue
 	case leftParen:
 		pe := &ParenArithm{Lparen: p.pos}

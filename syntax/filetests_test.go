@@ -2068,6 +2068,17 @@ var fileTests = []testCase{
 		}),
 	},
 	{
+		Strs: []string{`$((++arr[0]))`},
+		bsmk: arithmExp(&UnaryArithm{
+			Op: Inc,
+			X: word(&ParamExp{
+				Short: true,
+				Param: lit("arr"),
+				Index: litWord("0"),
+			}),
+		}),
+	},
+	{
 		Strs: []string{`$((${a:-1}))`},
 		bsmk: arithmExp(word(&ParamExp{
 			Param: lit("a"),
