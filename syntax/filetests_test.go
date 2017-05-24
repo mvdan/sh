@@ -301,6 +301,10 @@ var fileTests = []testCase{
 		},
 	},
 	{
+		Strs: []string{"((3#20))"},
+		bsmk: arithmCmd(litWord("3#20")),
+	},
+	{
 		Strs: []string{
 			"while a; do b; done",
 			"wh\\\nile a; do b; done",

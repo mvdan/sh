@@ -1502,6 +1502,11 @@ var shellTests = []errorCase{
 		mksh:  `1:6: ;; can only be used in a case clause`,
 	},
 	{
+		in:    "echo ;|",
+		posix: `1:7: | can only immediately follow a statement`,
+		bash:  `1:7: | can only immediately follow a statement`,
+	},
+	{
 		in:    "for ((i=0; i<5; i++)); do echo; done",
 		posix: `1:5: c-style fors are a bash feature`,
 		mksh:  `1:5: c-style fors are a bash feature`,
