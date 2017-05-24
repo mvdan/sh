@@ -1160,6 +1160,9 @@ func (p *Parser) getAssign(needEqual bool) *Assign {
 		left := p.pos + 1
 		old := p.preNested(arithmExprBrack)
 		p.next()
+		if p.tok == star {
+			p.tok, p.val = _LitWord, p.tok.String()
+		}
 		as.Index = p.followArithm(leftBrack, left)
 		p.postNested(old)
 		p.matched(left, leftBrack, rightBrack)
