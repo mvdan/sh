@@ -1550,6 +1550,7 @@ var shellTests = []errorCase{
 	{
 		in:    "echo ${foo,bar}",
 		posix: `1:11: this expansion operator is a bash feature`,
+		mksh:  `1:11: this expansion operator is a bash feature`,
 	},
 	{
 		in:    "echo ${foo@bar}",

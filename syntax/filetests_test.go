@@ -1957,7 +1957,7 @@ var fileTests = []testCase{
 	},
 	{
 		Strs: []string{`${a@E} ${b@a}`},
-		bash: call(
+		bsmk: call(
 			word(&ParamExp{Param: lit("a"),
 				Exp: &Expansion{
 					Op:   OtherParamOps,

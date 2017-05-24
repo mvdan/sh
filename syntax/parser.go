@@ -1063,8 +1063,13 @@ func (p *Parser) paramExp() *ParamExp {
 		if p.got(colon) {
 			pe.Slice.Length = p.followArithm(colon, colonPos)
 		}
-	case caret, dblCaret, comma, dblComma, at:
+	case caret, dblCaret, comma, dblComma:
 		if p.lang != LangBash {
+			p.curErr("this expansion operator is a bash feature")
+		}
+		fallthrough
+	case at:
+		if p.lang == LangPOSIX {
 			p.curErr("this expansion operator is a bash feature")
 		}
 		fallthrough
