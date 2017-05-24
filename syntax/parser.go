@@ -1782,10 +1782,13 @@ func (p *Parser) declClause() *DeclClause {
 	for !p.newLine && !stopToken(p.tok) && !p.peekRedir() {
 		if (p.tok == _Lit || p.tok == _LitWord) && p.hasValidIdent() {
 			ds.Assigns = append(ds.Assigns, p.getAssign(false))
-		} else if w := p.getWord(); w == nil {
-			p.followErr(p.pos, ds.Variant, "words")
+		} else if p.tok == _LitWord {
+			ds.Assigns = append(ds.Assigns, &Assign{
+				Naked: true,
+				Name:  p.getLit(),
+			})
 		} else {
-			ds.Assigns = append(ds.Assigns, &Assign{Value: w})
+			p.followErr(p.pos, ds.Variant, "names or assignments")
 		}
 	}
 	return ds

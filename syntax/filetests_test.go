@@ -3011,14 +3011,20 @@ var fileTests = []testCase{
 		bash: &DeclClause{
 			Variant: "declare",
 			Opts:    litWords("-f"),
-			Assigns: []*Assign{{Value: litWord("func")}},
+			Assigns: []*Assign{{
+				Naked: true,
+				Name:  lit("func"),
+			}},
 		},
 	},
 	{
 		Strs: []string{"(local bar)"},
 		bsmk: subshell(stmt(&DeclClause{
 			Variant: "local",
-			Assigns: []*Assign{{Value: litWord("bar")}},
+			Assigns: []*Assign{{
+				Naked: true,
+				Name:  lit("bar"),
+			}},
 		})),
 		posix: subshell(litStmt("local", "bar")),
 	},
@@ -3031,7 +3037,10 @@ var fileTests = []testCase{
 		Strs: []string{"export bar"},
 		bsmk: &DeclClause{
 			Variant: "export",
-			Assigns: []*Assign{{Value: litWord("bar")}},
+			Assigns: []*Assign{{
+				Naked: true,
+				Name:  lit("bar"),
+			}},
 		},
 		posix: litStmt("export", "bar"),
 	},
@@ -3044,7 +3053,10 @@ var fileTests = []testCase{
 		Strs: []string{"nameref bar"},
 		bsmk: &DeclClause{
 			Variant: "nameref",
-			Assigns: []*Assign{{Value: litWord("bar")}},
+			Assigns: []*Assign{{
+				Naked: true,
+				Name:  lit("bar"),
+			}},
 		},
 		posix: litStmt("nameref", "bar"),
 	},
@@ -3143,7 +3155,10 @@ var fileTests = []testCase{
 			Cmd: &DeclClause{
 				Variant: "declare",
 				Opts:    litWords("-f"),
-				Assigns: []*Assign{{Value: litWord("func")}},
+				Assigns: []*Assign{{
+					Naked: true,
+					Name:  lit("func"),
+				}},
 			},
 			Redirs: []*Redirect{
 				{Op: RdrOut, Word: litWord("/dev/null")},
@@ -3155,7 +3170,10 @@ var fileTests = []testCase{
 		bash: stmts(
 			&DeclClause{
 				Variant: "declare",
-				Assigns: []*Assign{{Value: litWord("a")}},
+				Assigns: []*Assign{{
+					Naked: true,
+					Name:  lit("a"),
+				}},
 			},
 			block(litStmt("x")),
 		),

@@ -1289,11 +1289,11 @@ var shellTests = []errorCase{
 	},
 	{
 		in:   "local (",
-		bash: `1:7: "local" must be followed by words`,
+		bash: `1:7: "local" must be followed by names or assignments`,
 	},
 	{
 		in:   "declare 0=${o})",
-		bash: `1:15: statements must be separated by &, ; or a newline`,
+		bash: `1:9: "declare" must be followed by names or assignments`,
 	},
 	{
 		in:   "a=(<)",
@@ -1410,7 +1410,7 @@ var shellTests = []errorCase{
 	},
 	{
 		in:   "coproc declare (",
-		bash: `1:16: "declare" must be followed by words`,
+		bash: `1:16: "declare" must be followed by names or assignments`,
 	},
 	{
 		in:   "echo ${foo[1 2]}",

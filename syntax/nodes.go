@@ -175,6 +175,7 @@ func (*CoprocClause) commandNode() {}
 // Assign represents an assignment to a variable.
 type Assign struct {
 	Append bool
+	Naked  bool
 	Name   *Lit
 	Index  ArithmExpr
 	Value  *Word
@@ -197,6 +198,9 @@ func (a *Assign) End() Pos {
 	}
 	if a.Index != nil {
 		return a.Index.End() + 2
+	}
+	if a.Naked {
+		return a.Name.End()
 	}
 	return a.Name.End() + 1
 }
