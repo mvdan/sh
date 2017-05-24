@@ -1656,7 +1656,7 @@ func (p *Parser) caseItems(stop string) (items []*CaseItem) {
 		p.postNested(old)
 		ci.OpPos = p.pos
 		if p.tok != dblSemicolon && p.tok != semiFall && p.tok != dblSemiFall {
-			ci.Op = DblSemicolon
+			ci.Op = Break
 			items = append(items, ci)
 			break
 		}

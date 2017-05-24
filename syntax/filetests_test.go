@@ -2492,12 +2492,12 @@ var fileTests = []testCase{
 			Word: word(litParamExp("i")),
 			Items: []*CaseItem{
 				{
-					Op:       DblSemicolon,
+					Op:       Break,
 					Patterns: litWords("1"),
 					Stmts:    litStmts("foo"),
 				},
 				{
-					Op:       DblSemicolon,
+					Op:       Break,
 					Patterns: litWords("2", "3*"),
 					Stmts:    litStmts("bar"),
 				},
@@ -2510,12 +2510,12 @@ var fileTests = []testCase{
 			Word: litWord("i"),
 			Items: []*CaseItem{
 				{
-					Op:       SemiFall,
+					Op:       Fallthrough,
 					Patterns: litWords("1"),
 					Stmts:    litStmts("a"),
 				},
 				{
-					Op:       DblSemicolon,
+					Op:       Break,
 					Patterns: litWords("2"),
 					Stmts:    litStmts("b"),
 				},
@@ -2531,7 +2531,7 @@ var fileTests = []testCase{
 		mksh: &CaseClause{
 			Word: litWord("i"),
 			Items: []*CaseItem{{
-				Op:       DblSemicolon,
+				Op:       Break,
 				Patterns: litWords("1"),
 				Stmts:    litStmts("a"),
 			}},
@@ -2543,12 +2543,12 @@ var fileTests = []testCase{
 			Word: litWord("i"),
 			Items: []*CaseItem{
 				{
-					Op:       DblSemiFall,
+					Op:       Resume,
 					Patterns: litWords("1"),
 					Stmts:    litStmts("a"),
 				},
 				{
-					Op:       DblSemicolon,
+					Op:       Break,
 					Patterns: litWords("2"),
 					Stmts:    litStmts("b"),
 				},
@@ -2560,7 +2560,7 @@ var fileTests = []testCase{
 		common: &CaseClause{
 			Word: word(litParamExp("i")),
 			Items: []*CaseItem{{
-				Op:       DblSemicolon,
+				Op:       Break,
 				Patterns: litWords("1"),
 				Stmts: []*Stmt{{
 					Cmd: litCall("cat"),
@@ -3368,7 +3368,7 @@ var fileTests = []testCase{
 		bsmk: &CaseClause{
 			Word: word(lit("a")),
 			Items: []*CaseItem{{
-				Op:       DblSemicolon,
+				Op:       Break,
 				Patterns: litWords("b"),
 				Stmts: stmts(letClause(&UnaryArithm{
 					Op:   Inc,

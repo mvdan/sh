@@ -196,9 +196,9 @@ const (
 type CaseOperator token
 
 const (
-	DblSemicolon = CaseOperator(dblSemicolon) + iota
-	SemiFall
-	DblSemiFall
+	Break = CaseOperator(dblSemicolon) + iota
+	Fallthrough
+	Resume
 )
 
 type ParExpOperator token
