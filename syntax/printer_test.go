@@ -306,6 +306,14 @@ func TestPrintWeirdFormat(t *testing.T) {
 			"foo \\\n\tfoo2 \\\n\t>bar",
 		},
 		{
+			"> >(foo)",
+			"> >(foo)",
+		},
+		{
+			"x > >(foo) y",
+			"x > >(foo) y",
+		},
+		{
 			"case $i in\n1)\nfoo\n;;\nesac",
 			"case $i in\n1)\n\tfoo\n\t;;\nesac",
 		},

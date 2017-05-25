@@ -599,6 +599,7 @@ func (p *Printer) stmt(s *Stmt) {
 			p.WriteString(r.N.Value)
 		}
 		p.WriteString(r.Op.String())
+		p.wantSpace = true
 		p.word(r.Word)
 		if r.Op == Hdoc || r.Op == DashHdoc {
 			p.pendingHdocs = append(p.pendingHdocs, r)
@@ -646,6 +647,7 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 				p.WriteString(r.N.Value)
 			}
 			p.WriteString(r.Op.String())
+			p.wantSpace = true
 			p.word(r.Word)
 			startRedirs++
 		}
