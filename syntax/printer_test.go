@@ -270,6 +270,8 @@ func TestPrintWeirdFormat(t *testing.T) {
 			"a |\nb |\nc",
 			"a |\n\tb |\n\tc",
 		},
+		samePrint("a |\n\tb | c |\n\td"),
+		samePrint("a | b |\n\tc |\n\td"),
 		{
 			"foo |\n# misplaced\nbar",
 			"foo |\n\t# misplaced\n\tbar",
@@ -305,14 +307,13 @@ func TestPrintWeirdFormat(t *testing.T) {
 			"foo \\\nfoo2 \\\n>bar",
 			"foo \\\n\tfoo2 \\\n\t>bar",
 		},
-		{
-			"> >(foo)",
-			"> >(foo)",
-		},
-		{
-			"x > >(foo) y",
-			"x > >(foo) y",
-		},
+		samePrint("> >(foo)"),
+		samePrint("x > >(foo) y"),
+		samePrint("a | () |\n\tb"),
+		samePrint("a | (\n\tx\n\ty\n) |\n\tb"),
+		samePrint("a |\n\tif foo; then\n\t\tbar\n\tfi |\n\tb"),
+		samePrint("a | if foo; then\n\tbar\nfi"),
+		samePrint("a | b | if foo; then\n\tbar\nfi"),
 		{
 			"case $i in\n1)\nfoo\n;;\nesac",
 			"case $i in\n1)\n\tfoo\n\t;;\nesac",

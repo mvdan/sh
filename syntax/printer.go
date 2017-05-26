@@ -698,13 +698,18 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		p.semiRsrv("done", x.Done, true)
 	case *BinaryCmd:
 		p.stmt(x.X)
+		if x.Y.Pos() < p.nline {
+			// leave p.nestedBinary untouched
+			p.spacedString(x.Op.String())
+			p.stmt(x.Y)
+			break
+		}
 		indent := !p.nestedBinary
 		if indent {
 			p.incLevel()
 		}
-		_, p.nestedBinary = x.Y.Cmd.(*BinaryCmd)
 		if p.binNextLine {
-			if len(p.pendingHdocs) == 0 && x.Y.Pos() > p.nline {
+			if len(p.pendingHdocs) == 0 {
 				p.bslashNewl()
 				p.indent()
 			}
@@ -721,16 +726,15 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		} else {
 			p.wantSpace = true
 			p.spacedString(x.Op.String())
-			if x.Y.Pos() > p.nline {
-				if x.OpPos > p.nline {
-					p.incLines(x.OpPos)
-				}
-				p.commentsUpTo(x.Y.Pos())
-				p.newline(0)
-				p.indent()
+			if x.OpPos > p.nline {
+				p.incLines(x.OpPos)
 			}
+			p.commentsUpTo(x.Y.Pos())
+			p.newline(0)
+			p.indent()
 		}
 		p.incLines(x.Y.Pos())
+		_, p.nestedBinary = x.Y.Cmd.(*BinaryCmd)
 		p.stmt(x.Y)
 		if indent {
 			p.decLevel()
