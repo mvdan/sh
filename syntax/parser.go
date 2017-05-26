@@ -1189,8 +1189,12 @@ func (p *Parser) getAssign(needEqual bool) *Assign {
 			p.val = p.val[1:]
 			p.pos++
 		}
-		if p.val[0] != '=' {
-			p.followErr(as.Pos(), "a[b]", "=")
+		if len(p.val) < 1 || p.val[0] != '=' {
+			if as.Append {
+				p.followErr(as.Pos(), "a[b]+", "=")
+			} else {
+				p.followErr(as.Pos(), "a[b]", "=")
+			}
 			return nil
 		}
 		p.pos++

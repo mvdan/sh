@@ -1365,6 +1365,10 @@ var shellTests = []errorCase{
 		bsmk: `1:1: "a[b]" must be followed by = #NOERR is cmd`,
 	},
 	{
+		in:   "a[i]+",
+		bsmk: `1:1: "a[b]+" must be followed by = #NOERR is cmd`,
+	},
+	{
 		in:   "echo $[foo",
 		bash: `1:6: reached EOF without matching $[ with ]`,
 	},
