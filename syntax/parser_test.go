@@ -1349,7 +1349,7 @@ var shellTests = []errorCase{
 	},
 	{
 		in:   "a[[",
-		bsmk: `1:2: [ must be followed by an expression #NOERR is cmd`,
+		bsmk: `1:2: [ must be followed by an expression`,
 	},
 	{
 		in:   "echo $((a[))",
