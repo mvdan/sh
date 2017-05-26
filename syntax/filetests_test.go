@@ -3465,6 +3465,18 @@ var fileTests = []testCase{
 		}},
 	},
 	{
+		Strs: []string{
+			"b[i]+=(2 3)",
+			"b[ i ]+=( 2 3 )",
+		},
+		bsmk: &Stmt{Assigns: []*Assign{{
+			Append: true,
+			Name:   lit("b"),
+			Index:  litWord("i"),
+			Array:  arrValues(litWords("2", "3")...),
+		}}},
+	},
+	{
 		Strs: []string{`echo ${a["x y"]}`},
 		bash: call(litWord("echo"), word(&ParamExp{
 			Param: lit("a"),
@@ -3472,7 +3484,10 @@ var fileTests = []testCase{
 		})),
 	},
 	{
-		Strs: []string{`a["x y"]=b`},
+		Strs: []string{
+			`a["x y"]=b`,
+			`a[ "x y" ]=b`,
+		},
 		bash: &Stmt{Assigns: []*Assign{{
 			Name:  lit("a"),
 			Key:   dblQuoted(lit("x y")),
@@ -3492,7 +3507,10 @@ var fileTests = []testCase{
 		}),
 	},
 	{
-		Strs: []string{`a=(["x y"]=b)`},
+		Strs: []string{
+			`a=(["x y"]=b)`,
+			`a=( [ "x y" ]=b)`,
+		},
 		bash: &Stmt{Assigns: []*Assign{{
 			Name: lit("a"),
 			Array: &ArrayExpr{Elems: []*ArrayElem{{
