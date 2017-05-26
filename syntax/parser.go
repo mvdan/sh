@@ -1184,7 +1184,7 @@ func (p *Parser) getAssign(needEqual bool) *Assign {
 		if !needEqual && (p.spaced || stopToken(p.tok)) {
 			return as
 		}
-		if p.val[0] == '+' {
+		if len(p.val) > 0 && p.val[0] == '+' {
 			as.Append = true
 			p.val = p.val[1:]
 			p.pos++
