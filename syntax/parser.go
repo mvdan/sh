@@ -889,13 +889,12 @@ func (p *Parser) arithmExprBase(compact bool) ArithmExpr {
 		x = ue
 	case _LitWord:
 		l := p.getLit()
-		if p.r != '[' {
+		if p.tok != leftBrack {
 			x = p.word(p.wps(l))
 			break
 		}
-		left := Pos(p.npos)
+		left := p.pos
 		pe := &ParamExp{Dollar: l.ValuePos, Short: true, Param: l}
-		p.rune()
 		old := p.preNested(arithmExprBrack)
 		p.next()
 		if p.tok == dblQuote {
