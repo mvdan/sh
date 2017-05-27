@@ -184,6 +184,16 @@ var fileTests = []testCase{
 	},
 	{
 		Strs: []string{
+			"{ if a; then b; fi; }",
+			"{ if a; then b; fi }",
+		},
+		common: block(stmt(&IfClause{
+			CondStmts: litStmts("a"),
+			ThenStmts: litStmts("b"),
+		})),
+	},
+	{
+		Strs: []string{
 			"if a; then b; fi",
 			"if a\nthen\nb\nfi",
 			"if a \nthen\nb\nfi",
