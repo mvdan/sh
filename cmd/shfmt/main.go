@@ -201,19 +201,24 @@ func simplify(f *syntax.File) {
 	syntax.Walk(f, simpleVisit)
 }
 
-func isLitWord(w *syntax.Word, s string) bool {
-	if w == nil || len(w.Parts) != 1 {
-		return false
-	}
-	lit, ok := w.Parts[0].(*syntax.Lit)
-	return ok && lit.Value == s
-}
-
 func simpleVisit(node syntax.Node) bool {
 	switch x := node.(type) {
+	case *syntax.Assign:
+		if x.Index != nil {
+			x.Index = removeParens(x.Index)
+		}
 	case *syntax.ParamExp:
+		if x.Index != nil {
+			x.Index = removeParens(x.Index)
+		}
 		if x.Slice == nil {
 			break
+		}
+		if x.Slice.Offset != nil {
+			x.Slice.Offset = removeParens(x.Slice.Offset)
+		}
+		if x.Slice.Length != nil {
+			x.Slice.Length = removeParens(x.Slice.Length)
 		}
 		w, _ := x.Slice.Offset.(*syntax.Word)
 		if !isLitWord(w, "0") {
@@ -224,6 +229,30 @@ func simpleVisit(node syntax.Node) bool {
 		} else {
 			x.Slice.Offset = nil
 		}
+	case *syntax.ArithmExp:
+		x.X = removeParens(x.X)
+	case *syntax.ArithmCmd:
+		x.X = removeParens(x.X)
+	case *syntax.ParenArithm:
+		x.X = removeParens(x.X)
 	}
 	return true
+}
+
+func isLitWord(w *syntax.Word, s string) bool {
+	if w == nil || len(w.Parts) != 1 {
+		return false
+	}
+	lit, ok := w.Parts[0].(*syntax.Lit)
+	return ok && lit.Value == s
+}
+
+func removeParens(x syntax.ArithmExpr) syntax.ArithmExpr {
+	for {
+		par, _ := x.(*syntax.ParenArithm)
+		if par == nil {
+			return x
+		}
+		x = par.X
+	}
 }

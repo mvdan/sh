@@ -85,6 +85,7 @@ func TestWalk(t *testing.T) {
 	var outBuf bytes.Buffer
 	out = &outBuf
 	*list, *write = true, true
+	*simple = true
 	gotError := false
 	errored := map[string]bool{}
 	onError := func(err error) {
@@ -149,6 +150,13 @@ var simplifyTests = [...]struct {
 }{
 	{"${foo:0}", "${foo}"},
 	{"${foo:0:2}", "${foo::2}"},
+	{"$((a + ((b - c))))", "$((a + (b - c)))"},
+	{"$((a + (((b - c)))))", "$((a + (b - c)))"},
+	{"$(((b - c)))", "$((b - c))"},
+	{"(((b - c)))", "((b - c))"},
+	{"${foo[(1)]}", "${foo[1]}"},
+	{"${foo:(1):(2)}", "${foo:1:2}"},
+	{"a[(1)]=2", "a[1]=2"},
 }
 
 func TestSimplify(t *testing.T) {
