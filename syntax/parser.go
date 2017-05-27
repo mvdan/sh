@@ -792,6 +792,9 @@ func (p *Parser) arithmExpr(ftok token, fpos Pos, level int, compact, tern bool)
 		case _Lit, _LitWord:
 			p.curErr("not a valid arithmetic operator: %s", p.val)
 			return nil
+		case leftBrack:
+			p.curErr("[ must follow a name")
+			return nil
 		case rightParen, _EOF:
 		default:
 			if p.quote == arithmExpr {

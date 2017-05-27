@@ -1349,7 +1349,7 @@ var shellTests = []errorCase{
 	},
 	{
 		in:   "a[[",
-		bsmk: `1:2: [ must be followed by an expression`,
+		bsmk: `1:3: [ must follow a name`,
 	},
 	{
 		in:   "echo $((a[))",
@@ -1365,9 +1365,8 @@ var shellTests = []errorCase{
 		mksh: `1:10: [ must be followed by an expression #NOERR wrong?`,
 	},
 	{
-		// TODO: better message
 		in:   "echo $((x$t[",
-		bsmk: `1:12: not a valid arithmetic operator: [`,
+		bsmk: `1:12: [ must follow a name`,
 	},
 	{
 		in:   "a[1]",
