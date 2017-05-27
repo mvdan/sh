@@ -168,6 +168,7 @@ var simplifyTests = [...]simplifyTest {
 	{"a[(1)]=2", "a[1]=2"},
 	{"$(($a + ${b}))", "$((a + b))"},
 	{"a[$b]=2", "a[b]=2"},
+	noSimple("(($3 == $#))"),
 
 	// stmts
 	{"$( (sts) )", "$(sts)"},

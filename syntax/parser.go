@@ -848,7 +848,7 @@ func isArithName(left ArithmExpr) bool {
 	}
 	switch x := w.Parts[0].(type) {
 	case *Lit:
-		return validIdent(x.Value)
+		return ValidName(x.Value)
 	case *ParamExp:
 		return x.nakedIndex()
 	default:
@@ -1118,7 +1118,8 @@ func stopToken(tok token) bool {
 	return false
 }
 
-func validIdent(val string) bool {
+// ValidName returns whether val is a valid name as per the POSIX spec.
+func ValidName(val string) bool {
 	for i, c := range val {
 		switch {
 		case 'a' <= c && c <= 'z':
@@ -1137,7 +1138,7 @@ func (p *Parser) hasValidIdent() bool {
 		if p.val[end-1] == '+' && p.lang != LangPOSIX {
 			end--
 		}
-		if validIdent(p.val[:end]) {
+		if ValidName(p.val[:end]) {
 			return true
 		}
 	}
@@ -1425,7 +1426,7 @@ preLoop:
 		name := p.lit(p.pos, p.val)
 		if p.next(); p.gotSameLine(leftParen) {
 			p.follow(name.ValuePos, "foo(", rightParen)
-			if p.lang == LangPOSIX && !validIdent(name.Value) {
+			if p.lang == LangPOSIX && !ValidName(name.Value) {
 				p.posErr(name.Pos(), "invalid func name")
 			}
 			s.Cmd = p.funcDecl(name, name.ValuePos)

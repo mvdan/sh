@@ -322,7 +322,7 @@ func inlineSimpleParams(x syntax.ArithmExpr) syntax.ArithmExpr {
 		return x
 	}
 	pe, _ := w.Parts[0].(*syntax.ParamExp)
-	if pe == nil {
+	if pe == nil || !syntax.ValidName(pe.Param.Value) {
 		return x
 	}
 	if pe.Indirect || pe.Length || pe.Width || pe.Index != nil ||
