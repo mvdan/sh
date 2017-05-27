@@ -6,10 +6,12 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"testing"
 
 	"github.com/mvdan/sh/syntax"
@@ -139,5 +141,33 @@ func TestWalk(t *testing.T) {
 	*write = true
 	if doWalk("nowrite"); !gotError {
 		t.Fatal("`shfmt nowrite` did not error")
+	}
+}
+
+var simplifyTests = [...]struct {
+	in, want string
+}{
+	{"${foo:0}", "${foo}"},
+	{"${foo:0:2}", "${foo::2}"},
+}
+
+func TestSimplify(t *testing.T) {
+	parser := syntax.NewParser()
+	printer := syntax.NewPrinter()
+	for i, tc := range simplifyTests {
+		t.Run(fmt.Sprintf("%02d", i), func(t *testing.T) {
+			prog, err := parser.Parse(strings.NewReader(tc.in), "")
+			if err != nil {
+				t.Fatal(err)
+			}
+			simplify(prog)
+			var buf bytes.Buffer
+			printer.Print(&buf, prog)
+			want := tc.want + "\n"
+			if got := buf.String(); got != want {
+				t.Fatalf("Simplify mismatch of %q\nwant: %q\ngot:  %q",
+					tc.in, want, got)
+			}
+		})
 	}
 }

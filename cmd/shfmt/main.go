@@ -19,6 +19,7 @@ import (
 var (
 	write       = flag.Bool("w", false, "write result to file instead of stdout")
 	list        = flag.Bool("l", false, "list files whose formatting differs from shfmt's")
+	simple      = flag.Bool("s", false, "simplify the code")
 	posix       = flag.Bool("p", false, "parse POSIX shell code instead of bash")
 	mksh        = flag.Bool("m", false, "parse MirBSD Korn shell code instead of bash")
 	indent      = flag.Int("i", 0, "indent: 0 for tabs (default), >0 for number of spaces")
@@ -92,6 +93,9 @@ func formatStdin() error {
 	if err != nil {
 		return err
 	}
+	if *simple {
+		simplify(prog)
+	}
 	return printer.Print(out, prog)
 }
 
@@ -158,6 +162,9 @@ func formatPath(path string, checkShebang bool) error {
 	if err != nil {
 		return err
 	}
+	if *simple {
+		simplify(prog)
+	}
 	writeBuf.Reset()
 	printer.Print(&writeBuf, prog)
 	res := writeBuf.Bytes()
@@ -188,4 +195,35 @@ func formatPath(path string, checkShebang bool) error {
 		}
 	}
 	return nil
+}
+
+func simplify(f *syntax.File) {
+	syntax.Walk(f, simpleVisit)
+}
+
+func isLitWord(w *syntax.Word, s string) bool {
+	if w == nil || len(w.Parts) != 1 {
+		return false
+	}
+	lit, ok := w.Parts[0].(*syntax.Lit)
+	return ok && lit.Value == s
+}
+
+func simpleVisit(node syntax.Node) bool {
+	switch x := node.(type) {
+	case *syntax.ParamExp:
+		if x.Slice == nil {
+			break
+		}
+		w, _ := x.Slice.Offset.(*syntax.Word)
+		if !isLitWord(w, "0") {
+			break
+		}
+		if x.Slice.Length == nil {
+			x.Slice = nil
+		} else {
+			x.Slice.Offset = nil
+		}
+	}
+	return true
 }
