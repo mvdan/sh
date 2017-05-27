@@ -153,11 +153,7 @@ func noSimple(in string) simplifyTest {
 	return simplifyTest{in: in, want: in}
 }
 
-var simplifyTests = [...]simplifyTest {
-	// param exps
-	{"${foo:0}", "${foo}"},
-	{"${foo:0:2}", "${foo::2}"},
-
+var simplifyTests = [...]simplifyTest{
 	// arithmetic exprs
 	{"$((a + ((b - c))))", "$((a + (b - c)))"},
 	{"$((a + (((b - c)))))", "$((a + (b - c)))"},

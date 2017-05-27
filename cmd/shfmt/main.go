@@ -224,15 +224,6 @@ func simpleVisit(node syntax.Node) bool {
 			x.Slice.Length = removeParens(x.Slice.Length)
 			x.Slice.Length = inlineSimpleParams(x.Slice.Length)
 		}
-		w, _ := x.Slice.Offset.(*syntax.Word)
-		if !isLitWord(w, "0") {
-			break
-		}
-		if x.Slice.Length == nil {
-			x.Slice = nil
-		} else {
-			x.Slice.Offset = nil
-		}
 	case *syntax.ArithmExp:
 		x.X = removeParens(x.X)
 		x.X = inlineSimpleParams(x.X)
