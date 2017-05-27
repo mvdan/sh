@@ -206,19 +206,23 @@ func simpleVisit(node syntax.Node) bool {
 	case *syntax.Assign:
 		if x.Index != nil {
 			x.Index = removeParens(x.Index)
+			x.Index = inlineSimpleParams(x.Index)
 		}
 	case *syntax.ParamExp:
 		if x.Index != nil {
 			x.Index = removeParens(x.Index)
+			x.Index = inlineSimpleParams(x.Index)
 		}
 		if x.Slice == nil {
 			break
 		}
 		if x.Slice.Offset != nil {
 			x.Slice.Offset = removeParens(x.Slice.Offset)
+			x.Slice.Offset = inlineSimpleParams(x.Slice.Offset)
 		}
 		if x.Slice.Length != nil {
 			x.Slice.Length = removeParens(x.Slice.Length)
+			x.Slice.Length = inlineSimpleParams(x.Slice.Length)
 		}
 		w, _ := x.Slice.Offset.(*syntax.Word)
 		if !isLitWord(w, "0") {
@@ -231,10 +235,16 @@ func simpleVisit(node syntax.Node) bool {
 		}
 	case *syntax.ArithmExp:
 		x.X = removeParens(x.X)
+		x.X = inlineSimpleParams(x.X)
 	case *syntax.ArithmCmd:
 		x.X = removeParens(x.X)
+		x.X = inlineSimpleParams(x.X)
 	case *syntax.ParenArithm:
 		x.X = removeParens(x.X)
+		x.X = inlineSimpleParams(x.X)
+	case *syntax.BinaryArithm:
+		x.X = inlineSimpleParams(x.X)
+		x.Y = inlineSimpleParams(x.Y)
 	}
 	return true
 }
@@ -254,5 +264,29 @@ func removeParens(x syntax.ArithmExpr) syntax.ArithmExpr {
 			return x
 		}
 		x = par.X
+	}
+}
+
+func inlineSimpleParams(x syntax.ArithmExpr) syntax.ArithmExpr {
+	w, _ := x.(*syntax.Word)
+	if w == nil || len(w.Parts) != 1 {
+		return x
+	}
+	pe, _ := w.Parts[0].(*syntax.ParamExp)
+	if pe == nil {
+		return x
+	}
+	basic := syntax.ParamExp{
+		Dollar: pe.Dollar,
+		Rbrace: pe.Rbrace,
+		Short:  pe.Short,
+		Param:  pe.Param,
+	}
+	if *pe != basic {
+		return x
+	}
+	pe.Param.ValueEnd = pe.End()
+	return &syntax.Word{
+		Parts: []syntax.WordPart{pe.Param},
 	}
 }

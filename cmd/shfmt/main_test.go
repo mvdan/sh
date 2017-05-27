@@ -157,6 +157,8 @@ var simplifyTests = [...]struct {
 	{"${foo[(1)]}", "${foo[1]}"},
 	{"${foo:(1):(2)}", "${foo:1:2}"},
 	{"a[(1)]=2", "a[1]=2"},
+	{"$(($a + ${b}))", "$((a + b))"},
+	{"a[$b]=2", "a[b]=2"},
 }
 
 func TestSimplify(t *testing.T) {
