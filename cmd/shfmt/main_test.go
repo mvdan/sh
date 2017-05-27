@@ -145,9 +145,15 @@ func TestWalk(t *testing.T) {
 	}
 }
 
-var simplifyTests = [...]struct {
+type simplifyTest struct {
 	in, want string
-}{
+}
+
+func noSimple(in string) simplifyTest {
+	return simplifyTest{in: in, want: in}
+}
+
+var simplifyTests = [...]simplifyTest {
 	// param exps
 	{"${foo:0}", "${foo}"},
 	{"${foo:0:2}", "${foo::2}"},
@@ -166,6 +172,16 @@ var simplifyTests = [...]struct {
 	// stmts
 	{"$( (sts) )", "$(sts)"},
 	{"( (sts) )", "(sts)"},
+
+	// strings
+	noSimple(`"foo"`),
+	noSimple(`"f'o\\o"`),
+	noSimple(`"fo\'o"`),
+	noSimple(`"fo\\'o"`),
+	noSimple(`"fo\no"`),
+	{`"fo\$o"`, `'fo$o'`},
+	{`"fo\"o"`, `'fo"o'`},
+	{"\"fo\\`o\"", "'fo`o'"},
 }
 
 func TestSimplify(t *testing.T) {

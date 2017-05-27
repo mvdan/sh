@@ -249,6 +249,51 @@ func simpleVisit(node syntax.Node) bool {
 		x.Stmts = inlineSubshell(x.Stmts)
 	case *syntax.Subshell:
 		x.Stmts = inlineSubshell(x.Stmts)
+	case *syntax.Word:
+	parts:
+		for i, wp := range x.Parts {
+			dq, _ := wp.(*syntax.DblQuoted)
+			if dq == nil {
+				continue
+			}
+			if len(dq.Parts) != 1 {
+				continue
+			}
+			lit, _ := dq.Parts[0].(*syntax.Lit)
+			if lit == nil {
+				continue
+			}
+			var buf bytes.Buffer
+			escaped := false
+			for _, r := range lit.Value {
+				switch r {
+				case '\\':
+					escaped = !escaped
+					if escaped {
+						continue
+					}
+				case '\'':
+					continue parts
+				case '$', '"', '`':
+					escaped = false
+				default:
+					if escaped {
+						continue parts
+					}
+					escaped = false
+				}
+				buf.WriteRune(r)
+			}
+			newVal := buf.String()
+			if newVal == lit.Value {
+				continue
+			}
+			x.Parts[i] = &syntax.SglQuoted{
+				Position: dq.Position,
+				Dollar:   dq.Dollar,
+				Value:    newVal,
+			}
+		}
 	}
 	return true
 }
