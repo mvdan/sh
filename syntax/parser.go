@@ -908,10 +908,6 @@ func (p *Parser) arithmExprBase(compact bool) ArithmExpr {
 		p.postNested(old)
 		p.matched(left, leftBrack, rightBrack)
 		x = p.word(p.wps(pe))
-	case dollar:
-		x = p.word(p.wps(p.shortParamExp()))
-	case dollBrace:
-		x = p.word(p.wps(p.paramExp()))
 	case bckQuote:
 		if p.quote == arithmExprLet {
 			return nil

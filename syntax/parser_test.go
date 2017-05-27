@@ -960,8 +960,8 @@ var shellTests = []errorCase{
 	},
 	{
 		in:     "echo $(($1'2'))",
-		common: `1:11: not a valid arithmetic operator: '`,
-		mksh:   `1:11: not a valid arithmetic operator: ' #NOERR`,
+		common: `1:11: quotes should not be used in arithmetic expressions`,
+		mksh:   `1:11: quotes should not be used in arithmetic expressions #NOERR`,
 	},
 	{
 		in:     "<<EOF\n$(()a",
