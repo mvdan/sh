@@ -1386,57 +1386,51 @@ preLoop:
 		case "esac":
 			p.curErr(`%q can only be used to end a case`, p.val)
 		case "[[":
-			if p.lang == LangPOSIX {
-				break
+			if p.lang != LangPOSIX {
+				s.Cmd = p.testClause()
 			}
-			s.Cmd = p.testClause()
 		case "]]":
-			if p.lang == LangPOSIX {
-				break
+			if p.lang != LangPOSIX {
+				p.curErr(`%s can only be used to close a test`,
+					p.val)
 			}
-			p.curErr(`%s can only be used to close a test`, p.val)
 		case "let":
-			if p.lang == LangPOSIX {
-				break
+			if p.lang != LangPOSIX {
+				s.Cmd = p.letClause()
 			}
-			s.Cmd = p.letClause()
 		case "function":
-			if p.lang == LangPOSIX {
-				break
+			if p.lang != LangPOSIX {
+				s.Cmd = p.bashFuncDecl()
 			}
-			s.Cmd = p.bashFuncDecl()
 		case "declare":
-			if p.lang != LangBash {
-				break
+			if p.lang == LangBash {
+				s.Cmd = p.declClause()
 			}
-			s.Cmd = p.declClause()
 		case "local", "export", "readonly", "typeset", "nameref":
-			if p.lang == LangPOSIX {
-				break
+			if p.lang != LangPOSIX {
+				s.Cmd = p.declClause()
 			}
-			s.Cmd = p.declClause()
 		case "time":
-			if p.lang == LangPOSIX {
-				break
+			if p.lang != LangPOSIX {
+				s.Cmd = p.timeClause()
 			}
-			s.Cmd = p.timeClause()
 		case "coproc":
-			if p.lang != LangBash {
-				break
+			if p.lang == LangBash {
+				s.Cmd = p.coprocClause()
 			}
-			s.Cmd = p.coprocClause()
 		}
-		if s.Cmd == nil {
-			name := p.lit(p.pos, p.val)
-			if p.next(); p.gotSameLine(leftParen) {
-				p.follow(name.ValuePos, "foo(", rightParen)
-				if p.lang == LangPOSIX && !validIdent(name.Value) {
-					p.posErr(name.Pos(), "invalid func name")
-				}
-				s.Cmd = p.funcDecl(name, name.ValuePos)
-			} else {
-				s.Cmd = p.callExpr(s, p.word(p.wps(name)))
+		if s.Cmd != nil {
+			break
+		}
+		name := p.lit(p.pos, p.val)
+		if p.next(); p.gotSameLine(leftParen) {
+			p.follow(name.ValuePos, "foo(", rightParen)
+			if p.lang == LangPOSIX && !validIdent(name.Value) {
+				p.posErr(name.Pos(), "invalid func name")
 			}
+			s.Cmd = p.funcDecl(name, name.ValuePos)
+		} else {
+			s.Cmd = p.callExpr(s, p.word(p.wps(name)))
 		}
 	case bckQuote:
 		if p.quote == subCmdBckquo {
