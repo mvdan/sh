@@ -148,8 +148,11 @@ func TestWalk(t *testing.T) {
 var simplifyTests = [...]struct {
 	in, want string
 }{
+	// param exps
 	{"${foo:0}", "${foo}"},
 	{"${foo:0:2}", "${foo::2}"},
+
+	// arithmetic exprs
 	{"$((a + ((b - c))))", "$((a + (b - c)))"},
 	{"$((a + (((b - c)))))", "$((a + (b - c)))"},
 	{"$(((b - c)))", "$((b - c))"},
@@ -159,13 +162,17 @@ var simplifyTests = [...]struct {
 	{"a[(1)]=2", "a[1]=2"},
 	{"$(($a + ${b}))", "$((a + b))"},
 	{"a[$b]=2", "a[b]=2"},
+
+	// stmts
+	{"$( (sts) )", "$(sts)"},
+	{"( (sts) )", "(sts)"},
 }
 
 func TestSimplify(t *testing.T) {
 	parser := syntax.NewParser()
 	printer := syntax.NewPrinter()
 	for i, tc := range simplifyTests {
-		t.Run(fmt.Sprintf("%02d", i), func(t *testing.T) {
+		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
 			prog, err := parser.Parse(strings.NewReader(tc.in), "")
 			if err != nil {
 				t.Fatal(err)

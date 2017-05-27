@@ -245,6 +245,10 @@ func simpleVisit(node syntax.Node) bool {
 	case *syntax.BinaryArithm:
 		x.X = inlineSimpleParams(x.X)
 		x.Y = inlineSimpleParams(x.Y)
+	case *syntax.CmdSubst:
+		x.Stmts = inlineSubshell(x.Stmts)
+	case *syntax.Subshell:
+		x.Stmts = inlineSubshell(x.Stmts)
 	}
 	return true
 }
@@ -276,17 +280,28 @@ func inlineSimpleParams(x syntax.ArithmExpr) syntax.ArithmExpr {
 	if pe == nil {
 		return x
 	}
-	basic := syntax.ParamExp{
-		Dollar: pe.Dollar,
-		Rbrace: pe.Rbrace,
-		Short:  pe.Short,
-		Param:  pe.Param,
-	}
-	if *pe != basic {
+	if pe.Indirect || pe.Length || pe.Width || pe.Index != nil ||
+		pe.Key != nil || pe.Slice != nil || pe.Repl != nil ||
+		pe.Exp != nil {
 		return x
 	}
-	pe.Param.ValueEnd = pe.End()
 	return &syntax.Word{
 		Parts: []syntax.WordPart{pe.Param},
 	}
+}
+
+func inlineSubshell(stmts []*syntax.Stmt) []*syntax.Stmt {
+	if len(stmts) != 1 {
+		return stmts
+	}
+	s := stmts[0]
+	sub, _ := s.Cmd.(*syntax.Subshell)
+	if sub == nil {
+		return stmts
+	}
+	if s.Negated || s.Background || s.Coprocess ||
+		len(s.Assigns) > 0 || len(s.Redirs) > 0 {
+		return stmts
+	}
+	return sub.Stmts
 }
