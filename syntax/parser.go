@@ -1757,8 +1757,7 @@ func (p *Parser) testExprBase(ftok token, fpos Pos) TestExpr {
 		op := testUnaryOp(p.val)
 		switch op {
 		case illegalTok:
-		case tsRefVar, tsModif:
-			// TODO: check with man mksh
+		case tsRefVar, tsModif: // not available in mksh
 			if p.lang == LangBash {
 				p.tok = op
 			}
