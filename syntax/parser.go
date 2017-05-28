@@ -130,7 +130,7 @@ func (p *Parser) lit(pos Pos, val string) *Lit {
 
 func (p *Parser) word(parts []WordPart) *Word {
 	if len(p.wordBatch) == 0 {
-		p.wordBatch = make([]Word, 32)
+		p.wordBatch = make([]Word, 64)
 	}
 	w := &p.wordBatch[0]
 	p.wordBatch = p.wordBatch[1:]

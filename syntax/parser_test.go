@@ -327,9 +327,9 @@ func BenchmarkParse(b *testing.B) {
 		},
 	}
 	for _, c := range benchmarks {
-		p := NewParser(KeepComments)
-		in := strings.NewReader(c.in)
 		b.Run(c.name, func(b *testing.B) {
+			p := NewParser(KeepComments)
+			in := strings.NewReader(c.in)
 			for i := 0; i < b.N; i++ {
 				if _, err := p.Parse(in, ""); err != nil {
 					b.Fatal(err)
