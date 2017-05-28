@@ -380,9 +380,7 @@ func (p *Printer) paramExp(pe *ParamExp) {
 	case pe.Indirect:
 		p.WriteByte('!')
 	}
-	if pe.Param != nil {
-		p.WriteString(pe.Param.Value)
-	}
+	p.WriteString(pe.Param.Value)
 	p.wroteIndex(pe.Index, pe.Key)
 	if pe.Slice != nil {
 		p.WriteByte(':')

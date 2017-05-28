@@ -969,9 +969,10 @@ func (p *Parser) paramExp() *ParamExp {
 		p.tok, p.val = _LitWord, "@"
 	case dblHash:
 		p.unrune('#', hash)
-		fallthrough
+		pe.Length = true
+		p.next()
 	case hash:
-		if p.r != '}' {
+		if !paramOps(p.r) || p.r == '?' {
 			pe.Length = true
 			p.next()
 		}

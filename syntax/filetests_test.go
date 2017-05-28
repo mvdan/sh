@@ -1548,7 +1548,7 @@ var fileTests = []testCase{
 		common: call(
 			word(&ParamExp{Length: true, Param: lit("$")}),
 			word(&ParamExp{Length: true, Param: lit("#")}),
-			word(&ParamExp{Length: true, Exp: &Expansion{
+			word(&ParamExp{Param: lit("#"), Exp: &Expansion{
 				Op:   SubstColMinus,
 				Word: litWord("a"),
 			}}),
@@ -3791,8 +3791,7 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 			}
 			if a.Index != nil {
 				recurse(a.Index)
-			}
-			if a.Key != nil {
+			} else if a.Key != nil {
 				recurse(a.Key)
 			}
 			if a.Value != nil {
@@ -3968,13 +3967,10 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 		} else if x.nakedIndex() {
 			checkSrc(x.End()-1, "]")
 		}
-		if x.Param != nil {
-			recurse(x.Param)
-		}
+		recurse(x.Param)
 		if x.Index != nil {
 			recurse(x.Index)
-		}
-		if x.Key != nil {
+		} else if x.Key != nil {
 			recurse(x.Key)
 		}
 		if x.Slice != nil {
@@ -4065,8 +4061,7 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 	case *ArrayElem:
 		if x.Index != nil {
 			recurse(x.Index)
-		}
-		if x.Key != nil {
+		} else if x.Key != nil {
 			recurse(x.Key)
 		}
 		recurse(x.Value)

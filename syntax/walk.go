@@ -109,9 +109,7 @@ func Walk(node Node, f func(Node) bool) {
 	case *CmdSubst:
 		walkStmts(x.Stmts, f)
 	case *ParamExp:
-		if x.Param != nil {
-			Walk(x.Param, f)
-		}
+		Walk(x.Param, f)
 		if x.Index != nil {
 			Walk(x.Index, f)
 		}

@@ -193,8 +193,7 @@ func (a *Assign) End() Pos {
 	}
 	if a.Index != nil {
 		return a.Index.End() + 2
-	}
-	if a.Key != nil {
+	} else if a.Key != nil {
 		return a.Key.End() + 2
 	}
 	if a.Naked {
@@ -446,8 +445,7 @@ func (p *ParamExp) End() Pos {
 	}
 	if p.Index != nil {
 		return p.Index.End() + 1
-	}
-	if p.Key != nil {
+	} else if p.Key != nil {
 		return p.Key.End() + 1
 	}
 	return p.Param.End()
@@ -684,8 +682,7 @@ type ArrayElem struct {
 func (a *ArrayElem) Pos() Pos {
 	if a.Index != nil {
 		return a.Index.Pos()
-	}
-	if a.Key != nil {
+	} else if a.Key != nil {
 		return a.Key.Pos()
 	}
 	return a.Value.Pos()
