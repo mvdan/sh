@@ -184,7 +184,7 @@ func (p *Parser) call(w *Word) *CallExpr {
 	return ce
 }
 
-type quoteState uint
+type quoteState uint32
 
 const (
 	noState quoteState = 1 << iota
