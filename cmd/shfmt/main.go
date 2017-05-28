@@ -244,14 +244,20 @@ func simpleVisit(node syntax.Node) bool {
 		x.Parts = simplifyWord(x.Parts)
 	case *syntax.TestClause:
 		x.X = removeParensTest(x.X)
+		x.X = removeNegateTest(x.X)
+	case *syntax.ParenTest:
+		x.X = removeParensTest(x.X)
+		x.X = removeNegateTest(x.X)
 	case *syntax.BinaryTest:
 		x.X = unquoteParams(x.X)
+		x.X = removeNegateTest(x.X)
 		switch x.Op {
 		case syntax.TsMatch, syntax.TsNoMatch:
 			// unquoting enables globbing
 		default:
 			x.Y = unquoteParams(x.Y)
 		}
+		x.Y = removeNegateTest(x.Y)
 	case *syntax.UnaryTest:
 		x.X = unquoteParams(x.X)
 	}
@@ -375,4 +381,34 @@ func removeParensTest(x syntax.TestExpr) syntax.TestExpr {
 		}
 		x = par.X
 	}
+}
+
+func removeNegateTest(x syntax.TestExpr) syntax.TestExpr {
+	u, _ := x.(*syntax.UnaryTest)
+	if u == nil || u.Op != syntax.TsNot {
+		return x
+	}
+	switch y := u.X.(type) {
+	case *syntax.UnaryTest:
+		switch y.Op {
+		case syntax.TsEmpStr:
+			y.Op = syntax.TsNempStr
+			return y
+		case syntax.TsNempStr:
+			y.Op = syntax.TsEmpStr
+			return y
+		case syntax.TsNot:
+			return y.X
+		}
+	case *syntax.BinaryTest:
+		switch y.Op {
+		case syntax.TsMatch:
+			y.Op = syntax.TsNoMatch
+			return y
+		case syntax.TsNoMatch:
+			y.Op = syntax.TsMatch
+			return y
+		}
+	}
+	return x
 }

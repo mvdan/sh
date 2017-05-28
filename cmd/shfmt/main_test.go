@@ -172,6 +172,9 @@ var simplifyTests = [...]simplifyTest{
 	{`[[ "$foo" == "bar" ]]`, `[[ $foo == "bar" ]]`},
 	{`[[ (-z "$foo") ]]`, `[[ -z $foo ]]`},
 	{`[[ "a b" > "$c" ]]`, `[[ "a b" > $c ]]`},
+	{`[[ ! -n $foo ]]`, `[[ -z $foo ]]`},
+	{`[[ ! ! -e a && ! -z $b ]]`, `[[ -e a && -n $b ]]`},
+	{`[[ (! a == b) || (! c != d) ]]`, `[[ (a != b) || (c == d) ]]`},
 	noSimple(`[[ -n a$b && -n $c ]]`),
 
 	// stmts
