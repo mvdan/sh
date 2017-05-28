@@ -75,31 +75,30 @@ func TestParseMirBSDKorn(t *testing.T) {
 }
 
 var (
-	hasBash44     bool
-	hasDash       bool
-	hasMirBSDKorn bool
+	hasBash44  bool
+	hasDash059 bool
+	hasMksh55  bool
 )
 
 func TestMain(m *testing.M) {
 	os.Setenv("LANGUAGE", "en_US.UTF8")
 	os.Setenv("LC_ALL", "en_US.UTF8")
-	hasBash44 = checkBash()
-	hasDash = hasCmd("dash")
-	hasMirBSDKorn = hasCmd("mksh")
+	hasBash44 = cmdContains("version 4.4", "bash", "--version")
+	// dash provides no way to check its version, so we have to
+	// check if it's new enough as to not have the bug that breaks
+	// our integration tests. Blergh.
+	hasDash059 = cmdContains("Bad subst", "dash", "-c", "echo ${#<}")
+	hasMksh55 = cmdContains(" R55 ", "mksh", "-c", "echo $KSH_VERSION")
 	os.Exit(m.Run())
 }
 
-func checkBash() bool {
-	out, err := exec.Command("bash", "-c", "echo -n $BASH_VERSION").Output()
+func cmdContains(substr string, cmd string, args ...string) bool {
+	out, err := exec.Command(cmd, args...).CombinedOutput()
+	got := string(out)
 	if err != nil {
-		return false
+		got += "\n" + err.Error()
 	}
-	return strings.HasPrefix(string(out), "4.4")
-}
-
-func hasCmd(name string) bool {
-	_, err := exec.LookPath(name)
-	return err == nil
+	return strings.Contains(got, substr)
 }
 
 var extGlobRe = regexp.MustCompile(`[@?*+!]\(`)
@@ -171,7 +170,7 @@ func TestParsePosixConfirm(t *testing.T) {
 	if testing.Short() {
 		t.Skip("calling dash is slow.")
 	}
-	if !hasDash {
+	if !hasDash059 {
 		t.Skip("dash required to run")
 	}
 	i := 0
@@ -191,7 +190,7 @@ func TestParseMirBSDKornConfirm(t *testing.T) {
 	if testing.Short() {
 		t.Skip("calling mksh is slow.")
 	}
-	if !hasMirBSDKorn {
+	if !hasMksh55 {
 		t.Skip("mksh required to run")
 	}
 	i := 0
@@ -236,7 +235,7 @@ func TestParseErrPosixConfirm(t *testing.T) {
 	if testing.Short() {
 		t.Skip("calling dash is slow.")
 	}
-	if !hasDash {
+	if !hasDash059 {
 		t.Skip("dash required to run")
 	}
 	i := 0
@@ -258,7 +257,7 @@ func TestParseErrMirBSDKornConfirm(t *testing.T) {
 	if testing.Short() {
 		t.Skip("calling mksh is slow.")
 	}
-	if !hasMirBSDKorn {
+	if !hasMksh55 {
 		t.Skip("mksh required to run")
 	}
 	i := 0
