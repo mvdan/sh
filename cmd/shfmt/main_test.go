@@ -163,15 +163,20 @@ var simplifyTests = [...]simplifyTest{
 	{"${foo:(1):(2)}", "${foo:1:2}"},
 	{"a[(1)]=2", "a[1]=2"},
 	{"$(($a + ${b}))", "$((a + b))"},
+	noSimple("$((${!a} + ${#b}))"),
 	{"a[$b]=2", "a[b]=2"},
 	noSimple("(($3 == $#))"),
 
 	// stmts
-	{"$( (sts) )", "$(sts)"},
-	{"( (sts) )", "(sts)"},
+	{"$( (sts))", "$(sts)"},
+	{"( (sts))", "(sts)"},
+	noSimple("( (sts) >f)"),
+	noSimple("(\n\tx\n\t(sts)\n)"),
 
 	// strings
 	noSimple(`"foo"`),
+	noSimple(`"foo$bar"`),
+	noSimple(`"$bar"`),
 	noSimple(`"f'o\\o"`),
 	noSimple(`"fo\'o"`),
 	noSimple(`"fo\\'o"`),

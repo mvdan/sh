@@ -289,14 +289,6 @@ func simpleVisit(node syntax.Node) bool {
 	return true
 }
 
-func isLitWord(w *syntax.Word, s string) bool {
-	if w == nil || len(w.Parts) != 1 {
-		return false
-	}
-	lit, ok := w.Parts[0].(*syntax.Lit)
-	return ok && lit.Value == s
-}
-
 func removeParens(x syntax.ArithmExpr) syntax.ArithmExpr {
 	for {
 		par, _ := x.(*syntax.ParenArithm)
