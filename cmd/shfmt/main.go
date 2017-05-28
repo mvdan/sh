@@ -320,10 +320,13 @@ func inlineSimpleParams(x syntax.ArithmExpr) syntax.ArithmExpr {
 	if pe == nil || !syntax.ValidName(pe.Param.Value) {
 		return x
 	}
-	if pe.Indirect || pe.Length || pe.Width || pe.Index != nil ||
-		pe.Key != nil || pe.Slice != nil || pe.Repl != nil ||
-		pe.Exp != nil {
+	if pe.Indirect || pe.Length || pe.Width || pe.Key != nil ||
+		pe.Slice != nil || pe.Repl != nil || pe.Exp != nil {
 		return x
+	}
+	if pe.Index != nil {
+		pe.Short = true
+		return w
 	}
 	return &syntax.Word{
 		Parts: []syntax.WordPart{pe.Param},
