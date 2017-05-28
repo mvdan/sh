@@ -28,6 +28,15 @@ func paramOps(r rune) bool {
 	return false
 }
 
+// these start a parameter expansion name
+func paramNameOp(r rune) bool {
+	switch r {
+	case '}', ':', '+', '=', '%', '[', ']', '/', '^', ',', '@':
+		return false
+	}
+	return true
+}
+
 // tokenize these inside arithmetic expansions
 func arithmOps(r rune) bool {
 	switch r {
@@ -84,14 +93,6 @@ retry:
 		}
 	}
 	return p.r
-}
-
-func (p *Parser) unrune(r rune, tok token) {
-	if p.r != utf8.RuneSelf {
-		p.npos -= utf8.RuneLen(p.r)
-		p.r = r
-		p.tok = tok
-	}
 }
 
 // fill reads more bytes from the input src into readBuf. Any bytes that

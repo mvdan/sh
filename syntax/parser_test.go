@@ -977,7 +977,7 @@ var shellTests = []errorCase{
 	},
 	{
 		in:     "echo $foo ${}",
-		common: `1:11: parameter expansion requires a literal`,
+		common: `1:13: parameter expansion requires a literal`,
 	},
 	{
 		in:     "echo ${foo-bar",
@@ -994,11 +994,23 @@ var shellTests = []errorCase{
 	{
 		in:     "echo ${%",
 		common: `1:6: "${%foo}" is a mksh feature`,
-		mksh:   `1:6: parameter expansion requires a literal`,
+		mksh:   `1:8: parameter expansion requires a literal`,
 	},
 	{
 		in:     "echo ${##",
 		common: `1:6: reached EOF without matching ${ with }`,
+	},
+	{
+		in:     "echo ${#<}",
+		common: `1:9: parameter expansion requires a literal`,
+	},
+	{
+		in:   "echo ${%<}",
+		mksh: `1:9: parameter expansion requires a literal`,
+	},
+	{
+		in:     "echo ${!<}",
+		common: `1:9: parameter expansion requires a literal`,
 	},
 	{
 		in:     "echo ${$foo}",

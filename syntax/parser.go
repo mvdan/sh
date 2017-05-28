@@ -963,16 +963,18 @@ func (p *Parser) paramExp() *ParamExp {
 	pe := &ParamExp{Dollar: p.pos}
 	old := p.quote
 	p.quote = paramExpName
-	p.next()
+	if p.r == '#' {
+		p.tok = hash
+		p.pos = p.getPos()
+		p.rune()
+	} else {
+		p.next()
+	}
 	switch p.tok {
 	case at:
 		p.tok, p.val = _LitWord, "@"
-	case dblHash:
-		p.unrune('#', hash)
-		pe.Length = true
-		p.next()
 	case hash:
-		if !paramOps(p.r) || p.r == '?' {
+		if paramNameOp(p.r) {
 			pe.Length = true
 			p.next()
 		}
@@ -980,12 +982,12 @@ func (p *Parser) paramExp() *ParamExp {
 		if p.lang != LangMirBSDKorn {
 			p.posErr(pe.Pos(), `"${%%foo}" is a mksh feature`)
 		}
-		if p.r != '}' {
+		if paramNameOp(p.r) {
 			pe.Width = true
 			p.next()
 		}
 	case exclMark:
-		if p.r != '}' {
+		if paramNameOp(p.r) {
 			pe.Indirect = true
 			p.next()
 		}
@@ -1006,9 +1008,7 @@ func (p *Parser) paramExp() *ParamExp {
 			p.curErr("%s cannot be followed by a word", op)
 		}
 	default:
-		if !pe.Length {
-			p.posErr(pe.Dollar, "parameter expansion requires a literal")
-		}
+		p.curErr("parameter expansion requires a literal")
 	}
 	if p.tok == rightBrace {
 		pe.Rbrace = p.pos
