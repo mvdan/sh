@@ -176,7 +176,7 @@ var simplifyTests = [...]simplifyTest{
 
 	// stmts
 	{"$( (sts))", "$(sts)"},
-	{"( (sts))", "(sts)"},
+	{"( ( (sts)))", "(sts)"},
 	noSimple("( (sts) >f)"),
 	noSimple("(\n\tx\n\t(sts)\n)"),
 

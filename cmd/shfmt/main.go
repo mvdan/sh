@@ -336,19 +336,19 @@ func inlineSimpleParams(x syntax.ArithmExpr) syntax.ArithmExpr {
 }
 
 func inlineSubshell(stmts []*syntax.Stmt) []*syntax.Stmt {
-	if len(stmts) != 1 {
-		return stmts
+	for len(stmts) == 1 {
+		s := stmts[0]
+		if s.Negated || s.Background || s.Coprocess ||
+			len(s.Assigns) > 0 || len(s.Redirs) > 0 {
+			break
+		}
+		sub, _ := s.Cmd.(*syntax.Subshell)
+		if sub == nil {
+			break
+		}
+		stmts = sub.Stmts
 	}
-	s := stmts[0]
-	sub, _ := s.Cmd.(*syntax.Subshell)
-	if sub == nil {
-		return stmts
-	}
-	if s.Negated || s.Background || s.Coprocess ||
-		len(s.Assigns) > 0 || len(s.Redirs) > 0 {
-		return stmts
-	}
-	return sub.Stmts
+	return stmts
 }
 
 func unquoteParams(x syntax.TestExpr) syntax.TestExpr {
