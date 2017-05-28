@@ -528,7 +528,7 @@ func (p *Parser) paramToken(r rune) token {
 		p.rune()
 		return leftBrack
 	case '/':
-		if p.rune() == '/' {
+		if p.rune() == '/' && p.quote != paramExpRepl {
 			p.rune()
 			return dblSlash
 		}

@@ -1050,14 +1050,9 @@ func (p *Parser) paramExp() *ParamExp {
 		p.next()
 		pe.Repl.Orig = p.getWord()
 		p.quote = paramExpExp
-		switch p.tok {
-		case dblSlash:
-			p.unrune('/', slash)
-			p.next()
-		case slash:
-			p.next()
+		if p.got(slash) {
+			pe.Repl.With = p.getWord()
 		}
-		pe.Repl.With = p.getWord()
 	case colon:
 		if p.lang == LangPOSIX {
 			p.curErr("slicing is a bash feature")
