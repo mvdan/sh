@@ -46,6 +46,11 @@ func Walk(node Node, f func(Node) bool) {
 		if x.Value != nil {
 			Walk(x.Value, f)
 		}
+		if x.Index != nil {
+			Walk(x.Index, f)
+		} else if x.Key != nil {
+			Walk(x.Key, f)
+		}
 		if x.Array != nil {
 			Walk(x.Array, f)
 		}
@@ -112,6 +117,8 @@ func Walk(node Node, f func(Node) bool) {
 		Walk(x.Param, f)
 		if x.Index != nil {
 			Walk(x.Index, f)
+		} else if x.Key != nil {
+			Walk(x.Key, f)
 		}
 		if x.Repl != nil {
 			if x.Repl.Orig != nil {
@@ -162,6 +169,8 @@ func Walk(node Node, f func(Node) bool) {
 	case *ArrayElem:
 		if x.Index != nil {
 			Walk(x.Index, f)
+		} else if x.Key != nil {
+			Walk(x.Key, f)
 		}
 		Walk(x.Value, f)
 	case *ExtGlob:
