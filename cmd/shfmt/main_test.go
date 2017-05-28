@@ -176,6 +176,7 @@ var simplifyTests = [...]simplifyTest{
 	{`[[ ! ! -e a && ! -z $b ]]`, `[[ -e a && -n $b ]]`},
 	{`[[ (! a == b) || (! c != d) ]]`, `[[ (a != b) || (c == d) ]]`},
 	noSimple(`[[ -n a$b && -n $c ]]`),
+	noSimple(`[[ ! -e foo ]]`),
 
 	// stmts
 	{"$( (sts))", "$(sts)"},
