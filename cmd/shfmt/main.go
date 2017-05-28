@@ -241,50 +241,7 @@ func simpleVisit(node syntax.Node) bool {
 	case *syntax.Subshell:
 		x.Stmts = inlineSubshell(x.Stmts)
 	case *syntax.Word:
-	parts:
-		for i, wp := range x.Parts {
-			dq, _ := wp.(*syntax.DblQuoted)
-			if dq == nil {
-				continue
-			}
-			if len(dq.Parts) != 1 {
-				continue
-			}
-			lit, _ := dq.Parts[0].(*syntax.Lit)
-			if lit == nil {
-				continue
-			}
-			var buf bytes.Buffer
-			escaped := false
-			for _, r := range lit.Value {
-				switch r {
-				case '\\':
-					escaped = !escaped
-					if escaped {
-						continue
-					}
-				case '\'':
-					continue parts
-				case '$', '"', '`':
-					escaped = false
-				default:
-					if escaped {
-						continue parts
-					}
-					escaped = false
-				}
-				buf.WriteRune(r)
-			}
-			newVal := buf.String()
-			if newVal == lit.Value {
-				continue
-			}
-			x.Parts[i] = &syntax.SglQuoted{
-				Position: dq.Position,
-				Dollar:   dq.Dollar,
-				Value:    newVal,
-			}
-		}
+		x.Parts = simplifyWord(x.Parts)
 	case *syntax.TestClause:
 		x.X = removeParensTest(x.X)
 	case *syntax.BinaryTest:
@@ -299,6 +256,51 @@ func simpleVisit(node syntax.Node) bool {
 		x.X = unquoteParams(x.X)
 	}
 	return true
+}
+
+func simplifyWord(wps []syntax.WordPart) []syntax.WordPart {
+parts:
+	for i, wp := range wps {
+		dq, _ := wp.(*syntax.DblQuoted)
+		if dq == nil || len(dq.Parts) != 1 {
+			break
+		}
+		lit, _ := dq.Parts[0].(*syntax.Lit)
+		if lit == nil {
+			break
+		}
+		var buf bytes.Buffer
+		escaped := false
+		for _, r := range lit.Value {
+			switch r {
+			case '\\':
+				escaped = !escaped
+				if escaped {
+					continue
+				}
+			case '\'':
+				continue parts
+			case '$', '"', '`':
+				escaped = false
+			default:
+				if escaped {
+					continue parts
+				}
+				escaped = false
+			}
+			buf.WriteRune(r)
+		}
+		newVal := buf.String()
+		if newVal == lit.Value {
+			break
+		}
+		wps[i] = &syntax.SglQuoted{
+			Position: dq.Position,
+			Dollar:   dq.Dollar,
+			Value:    newVal,
+		}
+	}
+	return wps
 }
 
 func removeParensArithm(x syntax.ArithmExpr) syntax.ArithmExpr {

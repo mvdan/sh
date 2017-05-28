@@ -191,6 +191,8 @@ var simplifyTests = [...]simplifyTest{
 	{`"fo\$o"`, `'fo$o'`},
 	{`"fo\"o"`, `'fo"o'`},
 	{"\"fo\\`o\"", "'fo`o'"},
+	noSimple(`fo"o"bar`),
+	noSimple(`foo""bar`),
 }
 
 func TestSimplify(t *testing.T) {
