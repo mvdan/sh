@@ -1482,6 +1482,10 @@ var shellTests = []errorCase{
 		bsmk: `1:8: not a valid arithmetic operator: a #NOERR backtrack`,
 	},
 	{
+		in:   "for ((;;",
+		bash: `1:5: reached EOF without matching (( with ))`,
+	},
+	{
 		in:   "for ((;;0000000",
 		bash: `1:5: reached EOF without matching (( with ))`,
 	},

@@ -1571,25 +1571,16 @@ func (p *Parser) loop(forPos Pos) Loop {
 	if p.tok == dblLeftParen {
 		cl := &CStyleLoop{Lparen: p.pos}
 		old := p.preNested(arithmExprCmd)
-		if p.next(); p.tok == dblSemicolon {
-			p.unrune(';', semicolon)
-		}
-		if p.tok != semicolon {
-			cl.Init = p.arithmExpr(dblLeftParen, cl.Lparen, 0, false, false)
-		}
+		p.next()
+		cl.Init = p.arithmExpr(dblLeftParen, cl.Lparen, 0, false, false)
 		scPos := p.pos
-		if p.tok == dblSemicolon {
-			p.unrune(';', semicolon)
-		}
-		p.follow(p.pos, "expression", semicolon)
-		if p.tok != semicolon {
+		if !p.got(dblSemicolon) {
+			p.follow(p.pos, "expr", semicolon)
 			cl.Cond = p.arithmExpr(semicolon, scPos, 0, false, false)
+			scPos = p.pos
+			p.follow(p.pos, "expr", semicolon)
 		}
-		scPos = p.pos
-		p.follow(p.pos, "expression", semicolon)
-		if p.tok != semicolon {
-			cl.Post = p.arithmExpr(semicolon, scPos, 0, false, false)
-		}
+		cl.Post = p.arithmExpr(semicolon, scPos, 0, false, false)
 		cl.Rparen = p.arithmEnd(dblLeftParen, cl.Lparen, old)
 		p.gotSameLine(semicolon)
 		return cl
