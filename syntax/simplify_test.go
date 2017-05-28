@@ -73,13 +73,18 @@ func TestSimplify(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			Simplify(prog)
+			simplified := Simplify(prog)
 			var buf bytes.Buffer
 			printer.Print(&buf, prog)
 			want := tc.want + "\n"
 			if got := buf.String(); got != want {
 				t.Fatalf("Simplify mismatch of %q\nwant: %q\ngot:  %q",
 					tc.in, want, got)
+			}
+			if simplified && tc.in == tc.want {
+				t.Fatalf("returned true but did not simplify")
+			} else if !simplified && tc.in != tc.want {
+				t.Fatalf("returned false but did simplify")
 			}
 		})
 	}

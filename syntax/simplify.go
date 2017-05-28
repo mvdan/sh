@@ -5,78 +5,85 @@ package syntax
 
 import "bytes"
 
-// Simplify simplifies a given program.
+// Simplify simplifies a given program and returns whether any changes
+// were made.
 //
 // This function is EXPERIMENTAL; it may change or disappear at any
 // point until this notice is removed.
-func Simplify(f *File) {
-	Walk(f, simpleVisit)
+func Simplify(f *File) bool {
+	s := simplifier{}
+	Walk(f, s.visit)
+	return s.modified
 }
 
-func simpleVisit(node Node) bool {
+type simplifier struct {
+	modified bool
+}
+
+func (s *simplifier) visit(node Node) bool {
 	switch x := node.(type) {
 	case *Assign:
 		if x.Index != nil {
-			x.Index = removeParensArithm(x.Index)
-			x.Index = inlineSimpleParams(x.Index)
+			x.Index = s.removeParensArithm(x.Index)
+			x.Index = s.inlineSimpleParams(x.Index)
 		}
 	case *ParamExp:
 		if x.Index != nil {
-			x.Index = removeParensArithm(x.Index)
-			x.Index = inlineSimpleParams(x.Index)
+			x.Index = s.removeParensArithm(x.Index)
+			x.Index = s.inlineSimpleParams(x.Index)
 		}
 		if x.Slice == nil {
 			break
 		}
 		if x.Slice.Offset != nil {
-			x.Slice.Offset = removeParensArithm(x.Slice.Offset)
-			x.Slice.Offset = inlineSimpleParams(x.Slice.Offset)
+			x.Slice.Offset = s.removeParensArithm(x.Slice.Offset)
+			x.Slice.Offset = s.inlineSimpleParams(x.Slice.Offset)
 		}
 		if x.Slice.Length != nil {
-			x.Slice.Length = removeParensArithm(x.Slice.Length)
-			x.Slice.Length = inlineSimpleParams(x.Slice.Length)
+			x.Slice.Length = s.removeParensArithm(x.Slice.Length)
+			x.Slice.Length = s.inlineSimpleParams(x.Slice.Length)
 		}
 	case *ArithmExp:
-		x.X = removeParensArithm(x.X)
-		x.X = inlineSimpleParams(x.X)
+		x.X = s.removeParensArithm(x.X)
+		x.X = s.inlineSimpleParams(x.X)
 	case *ArithmCmd:
-		x.X = removeParensArithm(x.X)
-		x.X = inlineSimpleParams(x.X)
+		x.X = s.removeParensArithm(x.X)
+		x.X = s.inlineSimpleParams(x.X)
 	case *ParenArithm:
-		x.X = removeParensArithm(x.X)
-		x.X = inlineSimpleParams(x.X)
+		x.X = s.removeParensArithm(x.X)
+		x.X = s.inlineSimpleParams(x.X)
 	case *BinaryArithm:
-		x.X = inlineSimpleParams(x.X)
-		x.Y = inlineSimpleParams(x.Y)
+		x.X = s.inlineSimpleParams(x.X)
+		x.Y = s.inlineSimpleParams(x.Y)
 	case *CmdSubst:
-		x.Stmts = inlineSubshell(x.Stmts)
+		x.Stmts = s.inlineSubshell(x.Stmts)
 	case *Subshell:
-		x.Stmts = inlineSubshell(x.Stmts)
+		x.Stmts = s.inlineSubshell(x.Stmts)
 	case *Word:
-		x.Parts = simplifyWord(x.Parts)
+		x.Parts = s.simplifyWord(x.Parts)
 	case *TestClause:
-		x.X = removeParensTest(x.X)
-		x.X = removeNegateTest(x.X)
+		x.X = s.removeParensTest(x.X)
+		x.X = s.removeNegateTest(x.X)
 	case *ParenTest:
-		x.X = removeParensTest(x.X)
-		x.X = removeNegateTest(x.X)
+		x.X = s.removeParensTest(x.X)
+		x.X = s.removeNegateTest(x.X)
 	case *BinaryTest:
-		x.X = unquoteParams(x.X)
-		x.X = removeNegateTest(x.X)
+		x.X = s.unquoteParams(x.X)
+		x.X = s.removeNegateTest(x.X)
 		switch x.Op {
 		case TsMatch, TsNoMatch:
 			// unquoting enables globbing
 		default:
-			x.Y = unquoteParams(x.Y)
+			x.Y = s.unquoteParams(x.Y)
 		}
-		x.Y = removeNegateTest(x.Y)
+		x.Y = s.removeNegateTest(x.Y)
 	case *UnaryTest:
-		x.X = unquoteParams(x.X)
+		x.X = s.unquoteParams(x.X)
 	}
 	return true
 }
 
-func simplifyWord(wps []WordPart) []WordPart {
+func (s *simplifier) simplifyWord(wps []WordPart) []WordPart {
 parts:
 	for i, wp := range wps {
 		dq, _ := wp.(*DblQuoted)
@@ -112,6 +119,7 @@ parts:
 		if newVal == lit.Value {
 			break
 		}
+		s.modified = true
 		wps[i] = &SglQuoted{
 			Position: dq.Position,
 			Dollar:   dq.Dollar,
@@ -121,17 +129,18 @@ parts:
 	return wps
 }
 
-func removeParensArithm(x ArithmExpr) ArithmExpr {
+func (s *simplifier) removeParensArithm(x ArithmExpr) ArithmExpr {
 	for {
 		par, _ := x.(*ParenArithm)
 		if par == nil {
 			return x
 		}
+		s.modified = true
 		x = par.X
 	}
 }
 
-func inlineSimpleParams(x ArithmExpr) ArithmExpr {
+func (s *simplifier) inlineSimpleParams(x ArithmExpr) ArithmExpr {
 	w, _ := x.(*Word)
 	if w == nil || len(w.Parts) != 1 {
 		return x
@@ -145,29 +154,32 @@ func inlineSimpleParams(x ArithmExpr) ArithmExpr {
 		return x
 	}
 	if pe.Index != nil {
+		s.modified = true
 		pe.Short = true
 		return w
 	}
+	s.modified = true
 	return &Word{Parts: []WordPart{pe.Param}}
 }
 
-func inlineSubshell(stmts []*Stmt) []*Stmt {
+func (s *simplifier) inlineSubshell(stmts []*Stmt) []*Stmt {
 	for len(stmts) == 1 {
-		s := stmts[0]
-		if s.Negated || s.Background || s.Coprocess ||
-			len(s.Assigns) > 0 || len(s.Redirs) > 0 {
+		st := stmts[0]
+		if st.Negated || st.Background || st.Coprocess ||
+			len(st.Assigns) > 0 || len(st.Redirs) > 0 {
 			break
 		}
-		sub, _ := s.Cmd.(*Subshell)
+		sub, _ := st.Cmd.(*Subshell)
 		if sub == nil {
 			break
 		}
+		s.modified = true
 		stmts = sub.Stmts
 	}
 	return stmts
 }
 
-func unquoteParams(x TestExpr) TestExpr {
+func (s *simplifier) unquoteParams(x TestExpr) TestExpr {
 	w, _ := x.(*Word)
 	if w == nil || len(w.Parts) != 1 {
 		return x
@@ -179,21 +191,23 @@ func unquoteParams(x TestExpr) TestExpr {
 	if _, ok := dq.Parts[0].(*ParamExp); !ok {
 		return x
 	}
+	s.modified = true
 	w.Parts = dq.Parts
 	return w
 }
 
-func removeParensTest(x TestExpr) TestExpr {
+func (s *simplifier) removeParensTest(x TestExpr) TestExpr {
 	for {
 		par, _ := x.(*ParenTest)
 		if par == nil {
 			return x
 		}
+		s.modified = true
 		x = par.X
 	}
 }
 
-func removeNegateTest(x TestExpr) TestExpr {
+func (s *simplifier) removeNegateTest(x TestExpr) TestExpr {
 	u, _ := x.(*UnaryTest)
 	if u == nil || u.Op != TsNot {
 		return x
@@ -203,20 +217,25 @@ func removeNegateTest(x TestExpr) TestExpr {
 		switch y.Op {
 		case TsEmpStr:
 			y.Op = TsNempStr
+			s.modified = true
 			return y
 		case TsNempStr:
 			y.Op = TsEmpStr
+			s.modified = true
 			return y
 		case TsNot:
+			s.modified = true
 			return y.X
 		}
 	case *BinaryTest:
 		switch y.Op {
 		case TsMatch:
 			y.Op = TsNoMatch
+			s.modified = true
 			return y
 		case TsNoMatch:
 			y.Op = TsMatch
+			s.modified = true
 			return y
 		}
 	}
