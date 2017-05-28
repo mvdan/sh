@@ -167,6 +167,12 @@ var simplifyTests = [...]simplifyTest{
 	{"a[$b]=2", "a[b]=2"},
 	noSimple("(($3 == $#))"),
 
+	// test exprs
+	{`[[ "$foo" == "bar" ]]`, `[[ $foo == "bar" ]]`},
+	{`[[ (-z "$foo") ]]`, `[[ -z $foo ]]`},
+	{`[[ "a b" > "$c" ]]`, `[[ "a b" > $c ]]`},
+	noSimple(`[[ -n a$b && -n $c ]]`),
+
 	// stmts
 	{"$( (sts))", "$(sts)"},
 	{"( (sts))", "(sts)"},

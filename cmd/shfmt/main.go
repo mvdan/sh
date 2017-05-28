@@ -205,33 +205,33 @@ func simpleVisit(node syntax.Node) bool {
 	switch x := node.(type) {
 	case *syntax.Assign:
 		if x.Index != nil {
-			x.Index = removeParens(x.Index)
+			x.Index = removeParensArithm(x.Index)
 			x.Index = inlineSimpleParams(x.Index)
 		}
 	case *syntax.ParamExp:
 		if x.Index != nil {
-			x.Index = removeParens(x.Index)
+			x.Index = removeParensArithm(x.Index)
 			x.Index = inlineSimpleParams(x.Index)
 		}
 		if x.Slice == nil {
 			break
 		}
 		if x.Slice.Offset != nil {
-			x.Slice.Offset = removeParens(x.Slice.Offset)
+			x.Slice.Offset = removeParensArithm(x.Slice.Offset)
 			x.Slice.Offset = inlineSimpleParams(x.Slice.Offset)
 		}
 		if x.Slice.Length != nil {
-			x.Slice.Length = removeParens(x.Slice.Length)
+			x.Slice.Length = removeParensArithm(x.Slice.Length)
 			x.Slice.Length = inlineSimpleParams(x.Slice.Length)
 		}
 	case *syntax.ArithmExp:
-		x.X = removeParens(x.X)
+		x.X = removeParensArithm(x.X)
 		x.X = inlineSimpleParams(x.X)
 	case *syntax.ArithmCmd:
-		x.X = removeParens(x.X)
+		x.X = removeParensArithm(x.X)
 		x.X = inlineSimpleParams(x.X)
 	case *syntax.ParenArithm:
-		x.X = removeParens(x.X)
+		x.X = removeParensArithm(x.X)
 		x.X = inlineSimpleParams(x.X)
 	case *syntax.BinaryArithm:
 		x.X = inlineSimpleParams(x.X)
@@ -285,11 +285,23 @@ func simpleVisit(node syntax.Node) bool {
 				Value:    newVal,
 			}
 		}
+	case *syntax.TestClause:
+		x.X = removeParensTest(x.X)
+	case *syntax.BinaryTest:
+		x.X = unquoteParams(x.X)
+		switch x.Op {
+		case syntax.TsMatch, syntax.TsNoMatch:
+			// unquoting enables globbing
+		default:
+			x.Y = unquoteParams(x.Y)
+		}
+	case *syntax.UnaryTest:
+		x.X = unquoteParams(x.X)
 	}
 	return true
 }
 
-func removeParens(x syntax.ArithmExpr) syntax.ArithmExpr {
+func removeParensArithm(x syntax.ArithmExpr) syntax.ArithmExpr {
 	for {
 		par, _ := x.(*syntax.ParenArithm)
 		if par == nil {
@@ -332,4 +344,30 @@ func inlineSubshell(stmts []*syntax.Stmt) []*syntax.Stmt {
 		return stmts
 	}
 	return sub.Stmts
+}
+
+func unquoteParams(x syntax.TestExpr) syntax.TestExpr {
+	w, _ := x.(*syntax.Word)
+	if w == nil || len(w.Parts) != 1 {
+		return x
+	}
+	dq, _ := w.Parts[0].(*syntax.DblQuoted)
+	if dq == nil || len(dq.Parts) != 1 {
+		return x
+	}
+	if _, ok := dq.Parts[0].(*syntax.ParamExp); !ok {
+		return x
+	}
+	w.Parts = dq.Parts
+	return w
+}
+
+func removeParensTest(x syntax.TestExpr) syntax.TestExpr {
+	for {
+		par, _ := x.(*syntax.ParenTest)
+		if par == nil {
+			return x
+		}
+		x = par.X
+	}
 }
