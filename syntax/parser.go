@@ -557,9 +557,9 @@ func (p *Parser) wordPart() WordPart {
 				p.curErr(`"${ stmts;}" is a mksh feature`)
 			}
 			cs := &CmdSubst{
-				Left:           p.pos,
-				MirBSDTempFile: p.r != '|',
-				MirBSDReplyVar: p.r == '|',
+				Left:     p.pos,
+				TempFile: p.r != '|',
+				ReplyVar: p.r == '|',
 			}
 			old := p.preNested(subCmd)
 			p.rune() // don't tokenize '|'
@@ -1933,9 +1933,9 @@ func (p *Parser) callExpr(s *Stmt, w *Word) *CallExpr {
 
 func (p *Parser) funcDecl(name *Lit, pos Pos) *FuncDecl {
 	fd := &FuncDecl{
-		Position:  pos,
-		BashStyle: pos != name.ValuePos,
-		Name:      name,
+		Position: pos,
+		RsrvWord: pos != name.ValuePos,
+		Name:     name,
 	}
 	if fd.Body, _ = p.getStmt(false, false); fd.Body == nil {
 		p.followErr(fd.Pos(), "foo()", "a statement")

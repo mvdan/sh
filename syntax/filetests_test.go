@@ -641,17 +641,17 @@ var fileTests = []testCase{
 			"function foo() { a; b; }",
 		},
 		bsmk: &FuncDecl{
-			BashStyle: true,
-			Name:      lit("foo"),
-			Body:      stmt(block(litStmts("a", "b")...)),
+			RsrvWord: true,
+			Name:     lit("foo"),
+			Body:     stmt(block(litStmts("a", "b")...)),
 		},
 	},
 	{
 		Strs: []string{"function foo() (a)"},
 		bash: &FuncDecl{
-			BashStyle: true,
-			Name:      lit("foo"),
-			Body:      stmt(subshell(litStmt("a"))),
+			RsrvWord: true,
+			Name:     lit("foo"),
+			Body:     stmt(subshell(litStmt("a"))),
 		},
 	},
 	{
@@ -1484,29 +1484,29 @@ var fileTests = []testCase{
 		// TODO: space the }?
 		Strs: []string{"${ foo;}", "${\n\tfoo; }", "${\tfoo;}"},
 		mksh: &CmdSubst{
-			Stmts:          litStmts("foo"),
-			MirBSDTempFile: true,
+			Stmts:    litStmts("foo"),
+			TempFile: true,
 		},
 	},
 	{
 		Strs: []string{"${\n\tfoo\n\tbar\n}", "${ foo; bar;}"},
 		mksh: &CmdSubst{
-			Stmts:          litStmts("foo", "bar"),
-			MirBSDTempFile: true,
+			Stmts:    litStmts("foo", "bar"),
+			TempFile: true,
 		},
 	},
 	{
 		Strs: []string{"${|foo;}", "${| foo; }"},
 		mksh: &CmdSubst{
-			Stmts:          litStmts("foo"),
-			MirBSDReplyVar: true,
+			Stmts:    litStmts("foo"),
+			ReplyVar: true,
 		},
 	},
 	{
 		Strs: []string{"${|\n\tfoo\n\tbar\n}", "${|foo; bar;}"},
 		mksh: &CmdSubst{
-			Stmts:          litStmts("foo", "bar"),
-			MirBSDReplyVar: true,
+			Stmts:    litStmts("foo", "bar"),
+			ReplyVar: true,
 		},
 	},
 	{
@@ -3949,7 +3949,7 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 		setPos(&x.Rparen, ")")
 		recurse(x.X)
 	case *FuncDecl:
-		if x.BashStyle {
+		if x.RsrvWord {
 			setPos(&x.Position, "function")
 		} else {
 			setPos(&x.Position)
@@ -4008,10 +4008,10 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 		recurse(x.X)
 	case *CmdSubst:
 		switch {
-		case x.MirBSDTempFile:
+		case x.TempFile:
 			setPos(&x.Left, "${ ", "${\t", "${\n")
 			setPos(&x.Right, "}")
-		case x.MirBSDReplyVar:
+		case x.ReplyVar:
 			setPos(&x.Left, "${|")
 			setPos(&x.Right, "}")
 		default:
