@@ -118,7 +118,7 @@ func (p *Parser) getPos() Pos { return Pos(p.offs + p.npos) }
 
 func (p *Parser) lit(pos Pos, val string) *Lit {
 	if len(p.litBatch) == 0 {
-		p.litBatch = make([]Lit, 64)
+		p.litBatch = make([]Lit, 128)
 	}
 	l := &p.litBatch[0]
 	p.litBatch = p.litBatch[1:]
@@ -150,7 +150,7 @@ func (p *Parser) wps(wp WordPart) []WordPart {
 
 func (p *Parser) stmt(pos Pos) *Stmt {
 	if len(p.stmtBatch) == 0 {
-		p.stmtBatch = make([]Stmt, 16)
+		p.stmtBatch = make([]Stmt, 64)
 	}
 	s := &p.stmtBatch[0]
 	p.stmtBatch = p.stmtBatch[1:]
@@ -160,7 +160,7 @@ func (p *Parser) stmt(pos Pos) *Stmt {
 
 func (p *Parser) stList() []*Stmt {
 	if len(p.stListBatch) == 0 {
-		p.stListBatch = make([]*Stmt, 128)
+		p.stListBatch = make([]*Stmt, 256)
 	}
 	stmts := p.stListBatch[:0:4]
 	p.stListBatch = p.stListBatch[4:]
