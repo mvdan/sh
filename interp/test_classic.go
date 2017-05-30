@@ -30,10 +30,11 @@ func (p *testParser) followWord(fval string) *syntax.Word {
 	if p.eof {
 		p.err("%s must be followed by a word", fval)
 	}
-	p.next()
-	return &syntax.Word{Parts: []syntax.WordPart{
+	w := &syntax.Word{Parts: []syntax.WordPart{
 		&syntax.Lit{Value: p.val},
 	}}
+	p.next()
+	return w
 }
 
 func (p *testParser) classicTest(fval string, level int) syntax.TestExpr {
@@ -63,14 +64,13 @@ func (p *testParser) classicTest(fval string, level int) syntax.TestExpr {
 		Op: op,
 		X:  left,
 	}
+	p.next()
 	switch b.Op {
 	case syntax.AndTest, syntax.OrTest:
-		p.next()
 		if b.Y = p.classicTest(opStr, newLevel); b.Y == nil {
 			p.err("%s must be followed by an expression", opStr)
 		}
 	default:
-		p.next()
 		b.Y = p.followWord(opStr)
 	}
 	return b

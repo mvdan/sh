@@ -834,11 +834,10 @@ var fileCases = []struct {
 		"[ a -a 0 -gt 1 ]",
 		"exit status 1",
 	},
-	// TODO: precedence?
-	//{
-	//        "[ 0 -gt 1 -o 1 -gt 0 ]",
-	//        "",
-	//},
+	{
+		"[ 0 -gt 1 -o 1 -gt 0 ]",
+		"",
+	},
 	{
 		"[ 3 -gt 4 ]",
 		"exit status 1",
