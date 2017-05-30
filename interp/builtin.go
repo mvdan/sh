@@ -222,7 +222,7 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 			},
 		}
 		p.next()
-		expr := p.classicTest("[", 0)
+		expr := p.classicTest("[", false)
 		return oneIf(r.bashTest(expr) == "")
 	case "trap", "source", "command", "pushd", "popd",
 		"umask", "alias", "unalias", "fg", "bg", "getopts":

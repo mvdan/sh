@@ -37,28 +37,20 @@ func (p *testParser) followWord(fval string) *syntax.Word {
 	return w
 }
 
-func (p *testParser) classicTest(fval string, level int) syntax.TestExpr {
+func (p *testParser) classicTest(fval string, pastAndOr bool) syntax.TestExpr {
 	var left syntax.TestExpr
-	if level > 1 {
+	if pastAndOr {
 		left = p.testExprBase(fval)
 	} else {
-		left = p.classicTest(fval, level+1)
+		left = p.classicTest(fval, true)
 	}
 	if left == nil || p.eof {
 		return left
 	}
 	opStr := p.val
 	op := testBinaryOp(p.val)
-	var newLevel int
-	switch op {
-	case illegalTok:
+	if op == illegalTok {
 		p.err("not a valid test operator: %s", p.val)
-	case syntax.AndTest, syntax.OrTest:
-	default:
-		newLevel = 1
-	}
-	if newLevel < level {
-		return left
 	}
 	b := &syntax.BinaryTest{
 		Op: op,
@@ -67,7 +59,7 @@ func (p *testParser) classicTest(fval string, level int) syntax.TestExpr {
 	p.next()
 	switch b.Op {
 	case syntax.AndTest, syntax.OrTest:
-		if b.Y = p.classicTest(opStr, newLevel); b.Y == nil {
+		if b.Y = p.classicTest(opStr, false); b.Y == nil {
 			p.err("%s must be followed by an expression", opStr)
 		}
 	default:
@@ -85,7 +77,7 @@ func (p *testParser) testExprBase(fval string) syntax.TestExpr {
 	case syntax.TsNot:
 		u := &syntax.UnaryTest{Op: op}
 		p.next()
-		u.X = p.classicTest(op.String(), 0)
+		u.X = p.classicTest(op.String(), false)
 		return u
 	case illegalTok:
 		return p.followWord(fval)
