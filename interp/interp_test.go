@@ -797,6 +797,52 @@ var fileCases = []struct {
 		"y\n",
 	},
 
+	// classic test
+	{
+		"[ a",
+		"1:1: [: missing matching ] #JUSTERR",
+	},
+	{
+		"[ a ]",
+		"",
+	},
+	{
+		"[ a != b ]",
+		"",
+	},
+	{
+		"[ ! a != b ]",
+		"exit status 1",
+	},
+	{
+		"[ a -a '' ]",
+		"exit status 1",
+	},
+	{
+		"[ a -o '' ]",
+		"",
+	},
+	{
+		"[ 3 -gt 4 ]",
+		"exit status 1",
+	},
+	{
+		"[ 3 -lt 4 ]",
+		"",
+	},
+	{
+		"[ -e a ] && echo x; touch a; [ -e a ] && echo y; rm a",
+		"y\n",
+	},
+	{
+		"test 3 -gt 4",
+		"exit status 1",
+	},
+	{
+		"test 3 -lt 4",
+		"",
+	},
+
 	// arithm
 	{
 		"echo $((1 == +1))",
