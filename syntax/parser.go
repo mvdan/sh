@@ -1697,7 +1697,7 @@ func (p *Parser) testExpr(ftok token, fpos Pos, level int) TestExpr {
 		return left
 	}
 	if p.tok == _LitWord {
-		if p.tok = testBinaryOp(p.val); p.tok == illegalTok {
+		if p.tok = token(testBinaryOp(p.val)); p.tok == illegalTok {
 			p.curErr("not a valid test operator: %s", p.val)
 		}
 	}
@@ -1735,7 +1735,7 @@ func (p *Parser) testExprBase(ftok token, fpos Pos) TestExpr {
 	case _EOF:
 		return nil
 	case _LitWord:
-		op := testUnaryOp(p.val)
+		op := token(testUnaryOp(p.val))
 		switch op {
 		case illegalTok:
 		case tsRefVar, tsModif: // not available in mksh
