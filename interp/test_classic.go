@@ -46,6 +46,7 @@ func (p *testParser) classicTest(fval string, level int) syntax.TestExpr {
 	if left == nil || p.eof {
 		return left
 	}
+	opStr := p.val
 	op := testBinaryOp(p.val)
 	var newLevel int
 	switch op {
@@ -65,12 +66,12 @@ func (p *testParser) classicTest(fval string, level int) syntax.TestExpr {
 	switch b.Op {
 	case syntax.AndTest, syntax.OrTest:
 		p.next()
-		if b.Y = p.classicTest(b.Op.String(), newLevel); b.Y == nil {
-			//p.followErrExp(b.OpPos, b.Op.String())
+		if b.Y = p.classicTest(opStr, newLevel); b.Y == nil {
+			p.err("%s must be followed by an expression", opStr)
 		}
 	default:
 		p.next()
-		b.Y = p.followWord(b.Op.String())
+		b.Y = p.followWord(opStr)
 	}
 	return b
 }
@@ -91,7 +92,7 @@ func (p *testParser) testExprBase(fval string) syntax.TestExpr {
 	default:
 		u := &syntax.UnaryTest{Op: op}
 		p.next()
-		u.X = p.followWord(fval)
+		u.X = p.followWord(op.String())
 		return u
 	}
 }

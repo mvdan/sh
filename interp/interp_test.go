@@ -799,8 +799,24 @@ var fileCases = []struct {
 
 	// classic test
 	{
+		"[",
+		"1:1: [: missing matching ] #JUSTERR",
+	},
+	{
 		"[ a",
 		"1:1: [: missing matching ] #JUSTERR",
+	},
+	{
+		"[ a b c ]",
+		"1:1: not a valid test operator: b #JUSTERR",
+	},
+	{
+		"[ -e ]",
+		"1:1: -e must be followed by a word #IGNORE bash is buggy",
+	},
+	{
+		"[ a -a ]",
+		"1:1: -a must be followed by an expression #JUSTERR",
 	},
 	{
 		"[ a ]",
@@ -815,13 +831,14 @@ var fileCases = []struct {
 		"exit status 1",
 	},
 	{
-		"[ a -a '' ]",
+		"[ a -a 0 -gt 1 ]",
 		"exit status 1",
 	},
-	{
-		"[ a -o '' ]",
-		"",
-	},
+	// TODO: precedence?
+	//{
+	//        "[ 0 -gt 1 -o 1 -gt 0 ]",
+	//        "",
+	//},
 	{
 		"[ 3 -gt 4 ]",
 		"exit status 1",
@@ -1069,6 +1086,9 @@ func TestFile(t *testing.T) {
 			if i := strings.Index(want, " #JUSTERR"); i >= 0 {
 				want = want[:i]
 			}
+			if i := strings.Index(want, " #IGNORE"); i >= 0 {
+				want = want[:i]
+			}
 			if got := cb.String(); got != want {
 				t.Fatalf("wrong output in %q:\nwant: %q\ngot:  %q",
 					c.in, want, got)
@@ -1089,6 +1109,9 @@ func TestFileConfirm(t *testing.T) {
 			cmd := exec.Command("bash")
 			cmd.Stdin = strings.NewReader(c.in)
 			out, err := cmd.CombinedOutput()
+			if strings.Contains(c.want, " #IGNORE") {
+				return
+			}
 			if strings.Contains(c.want, " #JUSTERR") {
 				// bash sometimes exits with code 0 and
 				// stderr "bash: ..." for an error

@@ -208,8 +208,9 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 		r2.Run()
 		return r2.exit
 	case "[":
-		if args[len(args)-1] != "]" {
+		if len(args) == 0 || args[len(args)-1] != "]" {
 			r.runErr(pos, "[: missing matching ]")
+			break
 		}
 		args = args[:len(args)-1]
 		fallthrough
