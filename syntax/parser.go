@@ -1658,7 +1658,7 @@ func (p *Parser) testClause() *TestClause {
 	if p.next(); p.tok == _EOF || p.gotRsrv("]]") {
 		p.posErr(tc.Left, "test clause requires at least one expression")
 	}
-	tc.X = p.testExpr(illegalTok, tc.Left, 0)
+	tc.X = p.testExpr(illegalTok, tc.Left, false)
 	tc.Right = p.pos
 	if !p.gotRsrv("]]") {
 		p.matchingErr(tc.Left, "[[", "]]")
@@ -1666,35 +1666,29 @@ func (p *Parser) testClause() *TestClause {
 	return tc
 }
 
-func (p *Parser) testExpr(ftok token, fpos Pos, level int) TestExpr {
+func (p *Parser) testExpr(ftok token, fpos Pos, pastAndOr bool) TestExpr {
 	var left TestExpr
-	if level > 1 {
+	if pastAndOr {
 		left = p.testExprBase(ftok, fpos)
 	} else {
-		left = p.testExpr(ftok, fpos, level+1)
+		left = p.testExpr(ftok, fpos, true)
 	}
 	if left == nil {
 		return left
 	}
-	var newLevel int
 	switch p.tok {
 	case andAnd, orOr:
 	case _LitWord:
 		if p.val == "]]" {
 			return left
 		}
-		fallthrough
 	case rdrIn, rdrOut:
-		newLevel = 1
 	case _EOF, rightParen:
 		return left
 	case _Lit:
 		p.curErr("test operator words must consist of a single literal")
 	default:
 		p.curErr("not a valid test operator: %v", p.tok)
-	}
-	if newLevel < level {
-		return left
 	}
 	if p.tok == _LitWord {
 		if p.tok = token(testBinaryOp(p.val)); p.tok == illegalTok {
@@ -1709,7 +1703,7 @@ func (p *Parser) testExpr(ftok token, fpos Pos, level int) TestExpr {
 	switch b.Op {
 	case AndTest, OrTest:
 		p.next()
-		if b.Y = p.testExpr(token(b.Op), b.OpPos, newLevel); b.Y == nil {
+		if b.Y = p.testExpr(token(b.Op), b.OpPos, false); b.Y == nil {
 			p.followErrExp(b.OpPos, b.Op.String())
 		}
 	case TsReMatch:
@@ -1750,7 +1744,7 @@ func (p *Parser) testExprBase(ftok token, fpos Pos) TestExpr {
 	case exclMark:
 		u := &UnaryTest{OpPos: p.pos, Op: TsNot}
 		p.next()
-		u.X = p.testExpr(token(u.Op), u.OpPos, 0)
+		u.X = p.testExpr(token(u.Op), u.OpPos, false)
 		return u
 	case tsExists, tsRegFile, tsDirect, tsCharSp, tsBlckSp, tsNmPipe,
 		tsSocket, tsSmbLink, tsSticky, tsGIDSet, tsUIDSet, tsGrpOwn,
@@ -1763,7 +1757,7 @@ func (p *Parser) testExprBase(ftok token, fpos Pos) TestExpr {
 	case leftParen:
 		pe := &ParenTest{Lparen: p.pos}
 		p.next()
-		if pe.X = p.testExpr(leftParen, pe.Lparen, 0); pe.X == nil {
+		if pe.X = p.testExpr(leftParen, pe.Lparen, false); pe.X == nil {
 			p.followErrExp(pe.Lparen, "(")
 		}
 		pe.Rparen = p.matched(pe.Lparen, leftParen, rightParen)
