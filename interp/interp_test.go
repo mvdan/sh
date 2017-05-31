@@ -962,6 +962,10 @@ var fileCases = []struct {
 		"shift 2; set a b c; shift 2; echo $@",
 		"c\n",
 	},
+	{
+		`echo $#; set '' ""; echo $#`,
+		"0\n2\n",
+	},
 
 	// builtin
 	{"builtin", ""},
