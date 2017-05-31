@@ -595,15 +595,14 @@ func (r *Runner) wordParts(wps []syntax.WordPart, quoted bool) []string {
 			curBuf.WriteString(x.Value)
 		case *syntax.DblQuoted:
 			allowEmpty = true
-			// TODO: @ between double quotes but not alone
 			if len(x.Parts) == 1 {
-				pe, ok := x.Parts[0].(*syntax.ParamExp)
-				if ok && pe.Param.Value == "@" {
-					for i, arg := range r.args {
+				pe, _ := x.Parts[0].(*syntax.ParamExp)
+				if elems := r.quotedElems(pe); elems != nil {
+					for i, elem := range elems {
 						if i > 0 {
 							flush()
 						}
-						curBuf.WriteString(arg)
+						curBuf.WriteString(elem)
 					}
 					continue
 				}
