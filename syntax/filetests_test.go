@@ -3186,8 +3186,8 @@ var fileTests = []testCase{
 		bash: &DeclClause{
 			Variant: "declare",
 			Assigns: []*Assign{{
-				Name: lit("foo"),
-				Key:  dblQuoted(lit("x y")),
+				Name:  lit("foo"),
+				Index: word(dblQuoted(lit("x y"))),
 			}},
 		},
 	},
@@ -3490,7 +3490,7 @@ var fileTests = []testCase{
 		Strs: []string{`echo ${a["x y"]}`},
 		bash: call(litWord("echo"), word(&ParamExp{
 			Param: lit("a"),
-			Key:   dblQuoted(lit("x y")),
+			Index: word(dblQuoted(lit("x y"))),
 		})),
 	},
 	{
@@ -3500,7 +3500,7 @@ var fileTests = []testCase{
 		},
 		bash: &Stmt{Assigns: []*Assign{{
 			Name:  lit("a"),
-			Key:   dblQuoted(lit("x y")),
+			Index: word(dblQuoted(lit("x y"))),
 			Value: litWord("b"),
 		}}},
 	},
@@ -3511,7 +3511,7 @@ var fileTests = []testCase{
 			X: word(&ParamExp{
 				Short: true,
 				Param: lit("a"),
-				Key:   dblQuoted(lit("x y")),
+				Index: word(dblQuoted(lit("x y"))),
 			}),
 			Y: litWord("b"),
 		}),
@@ -3524,7 +3524,7 @@ var fileTests = []testCase{
 		bash: &Stmt{Assigns: []*Assign{{
 			Name: lit("a"),
 			Array: &ArrayExpr{Elems: []*ArrayElem{{
-				Key:   dblQuoted(lit("x y")),
+				Index: word(dblQuoted(lit("x y"))),
 				Value: litWord("b"),
 			}}},
 		}}},
@@ -3791,8 +3791,6 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 			}
 			if a.Index != nil {
 				recurse(a.Index)
-			} else if a.Key != nil {
-				recurse(a.Key)
 			}
 			if a.Value != nil {
 				recurse(a.Value)
@@ -3970,8 +3968,6 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 		recurse(x.Param)
 		if x.Index != nil {
 			recurse(x.Index)
-		} else if x.Key != nil {
-			recurse(x.Key)
 		}
 		if x.Slice != nil {
 			if x.Slice.Offset != nil {
@@ -4061,8 +4057,6 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 	case *ArrayElem:
 		if x.Index != nil {
 			recurse(x.Index)
-		} else if x.Key != nil {
-			recurse(x.Key)
 		}
 		recurse(x.Value)
 	case *ExtGlob:
