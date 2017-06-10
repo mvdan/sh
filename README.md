@@ -8,8 +8,10 @@ A shell parser, formatter and interpreter. Supports [POSIX Shell],
 [Bash] and [mksh]. Requires Go 1.7 or later.
 
 ### shfmt
-
+#### Go
 	go get -u github.com/mvdan/sh/cmd/shfmt
+#### Docker
+	docker pull jamesmstone/shfmt
 
 `shfmt` formats shell programs. It can use tabs or any number of spaces
 to indent. See [canonical.sh](syntax/canonical.sh) for a quick look at
@@ -21,6 +23,10 @@ and `.bash` files and ignore files starting with a period. It will also
 operate on files with no extension and a shell shebang.
 
 	shfmt -l -w script.sh
+
+*or*
+
+	docker run -it --rm -v "$(pwd)":/sh -w /sh jamesmstone/shfmt -l -w script.sh
 
 Use `-i N` to indent with a number of spaces instead of tabs.
 
@@ -87,6 +93,7 @@ the parser and the printer. To get started, run:
 
 * [format-shell] - Atom plugin for `shfmt`
 * [shell-format] - VS Code plugin for `shfmt`
+* [dockerised-shfmt] - A docker image of `shfmt` **Example:** `docker run -it --rm -v "$(pwd)":/sh -w /sh jamesmstone/shfmt -l -w script.sh`
 
 [posix shell]: http://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html
 [bash]: https://www.gnu.org/software/bash/
@@ -100,3 +107,4 @@ the parser and the printer. To get started, run:
 [posix-ambiguity]: http://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_06_03
 [format-shell]: https://atom.io/packages/format-shell
 [shell-format]: https://marketplace.visualstudio.com/items?itemName=foxundermoon.shell-format
+[dockerised-shfmt]: https://hub.docker.com/r/jamesmstone/shfmt/
