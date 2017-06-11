@@ -8,10 +8,8 @@ A shell parser, formatter and interpreter. Supports [POSIX Shell],
 [Bash] and [mksh]. Requires Go 1.7 or later.
 
 ### shfmt
-#### Go
+
 	go get -u github.com/mvdan/sh/cmd/shfmt
-#### Docker
-	docker pull jamesmstone/shfmt
 
 `shfmt` formats shell programs. It can use tabs or any number of spaces
 to indent. See [canonical.sh](syntax/canonical.sh) for a quick look at
@@ -23,10 +21,6 @@ and `.bash` files and ignore files starting with a period. It will also
 operate on files with no extension and a shell shebang.
 
 	shfmt -l -w script.sh
-
-*or*
-
-	docker run -it --rm -v "$(pwd)":/sh -w /sh jamesmstone/shfmt -l -w script.sh
 
 Use `-i N` to indent with a number of spaces instead of tabs.
 
