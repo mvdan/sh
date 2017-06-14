@@ -97,7 +97,6 @@ func (r *Runner) varInd(v varValue, e syntax.ArithmExpr) string {
 			return x
 		}
 	case []string:
-		// TODO: @ between double quotes
 		if w, ok := e.(*syntax.Word); ok {
 			if lit, ok := w.Parts[0].(*syntax.Lit); ok {
 				switch lit.Value {
