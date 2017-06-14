@@ -1052,10 +1052,10 @@ var fileCases = []struct {
 		"touch a.x b.x c.x; echo *.x; rm a.x b.x c.x",
 		"a.x b.x c.x\n",
 	},
-	//{
-	//        `touch a.x; echo '*.x' "*.x"; rm a.x`,
-	//        "*.x *.x\n",
-	//},
+	{
+		`touch a.x; echo '*.x' "*.x"; rm a.x`,
+		"*.x *.x\n",
+	},
 	{
 		"echo *.x; echo foo *.y bar",
 		"*.x\nfoo *.y bar\n",
