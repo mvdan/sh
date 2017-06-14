@@ -12,6 +12,7 @@ import (
 	"os/exec"
 	"os/user"
 	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -226,7 +227,15 @@ func (r *Runner) errf(format string, a ...interface{}) {
 func (r *Runner) fields(words []*syntax.Word) []string {
 	fields := make([]string, 0, len(words))
 	for _, word := range words {
-		fields = append(fields, r.wordParts(word.Parts, false)...)
+		parts := r.wordParts(word.Parts, false)
+		if len(parts) == 1 {
+			matches, _ := filepath.Glob(parts[0])
+			if len(matches) > 0 {
+				fields = append(fields, matches...)
+				continue
+			}
+		}
+		fields = append(fields, parts...)
 	}
 	return fields
 }

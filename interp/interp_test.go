@@ -1046,6 +1046,16 @@ var fileCases = []struct {
 		"declare a=b c=(1 2); echo $a; echo ${c[@]}",
 		"b\n1 2\n",
 	},
+
+	// glob
+	{
+		"touch a.x b.x c.x; echo *.x; rm a.x b.x c.x",
+		"a.x b.x c.x\n",
+	},
+	{
+		"echo *.x; echo foo *.y bar",
+		"*.x\nfoo *.y bar\n",
+	},
 }
 
 // concBuffer wraps a bytes.Buffer in a mutex so that concurrent writes
