@@ -232,20 +232,34 @@ func fieldJoin(parts []fieldPart) string {
 	return buf.String()
 }
 
+func escapeQuotedParts(parts []fieldPart) string {
+	var buf bytes.Buffer
+	for _, part := range parts {
+		if !part.quoted {
+			buf.WriteString(part.val)
+			continue
+		}
+		for _, r := range part.val {
+			switch r {
+			case '*', '?', '\\', '[':
+				buf.WriteByte('\\')
+			}
+			buf.WriteRune(r)
+		}
+	}
+	return buf.String()
+}
+
 func (r *Runner) fields(words []*syntax.Word) []string {
 	fields := make([]string, 0, len(words))
 	for _, word := range words {
-		wfields := r.wordFields(word.Parts, false)
-		if len(wfields) == 1 {
-			matches, _ := filepath.Glob(fieldJoin(wfields[0]))
-			if len(matches) > 0 && !wfields[0][0].quoted {
-				// TODO: hacky, do properly
+		for _, field := range r.wordFields(word.Parts, false) {
+			matches, _ := filepath.Glob(escapeQuotedParts(field))
+			if len(matches) > 0 {
 				fields = append(fields, matches...)
-				continue
+			} else {
+				fields = append(fields, fieldJoin(field))
 			}
-		}
-		for _, part := range wfields {
-			fields = append(fields, fieldJoin(part))
 		}
 	}
 	return fields
