@@ -24,10 +24,14 @@ func TestMain(m *testing.M) {
 	os.Setenv("LC_ALL", "en_US.UTF8")
 	hasBash44 = checkBash()
 	os.Setenv("INTERP_GLOBAL", "value")
-	for _, s := range []string{"a", "b", "c", "foo"} {
+	os.Exit(m.Run())
+}
+
+func cleanEnv() {
+	for _, s := range []string{"a", "b", "c", "d", "foo", "bar"} {
+		os.RemoveAll(s)
 		os.Unsetenv(s)
 	}
-	os.Exit(m.Run())
 }
 
 func checkBash() bool {
@@ -349,7 +353,7 @@ var fileCases = []struct {
 		"bar\n\n",
 	},
 	{
-		`mkdir d; (cd /; echo "$PWD"); rmdir d`,
+		`mkdir d; (cd /; echo "$PWD")`,
 		"/\n",
 	},
 
@@ -367,15 +371,15 @@ var fileCases = []struct {
 		"",
 	},
 	{
-		`w="$HOME"; cd; [[ $PWD == $w ]] && echo foo`,
-		"foo\n",
+		`w="$HOME"; cd; [[ $PWD == $w ]]`,
+		"",
 	},
 	{
 		"cd noexist",
 		"exit status 1 #JUSTERR",
 	},
 	{
-		"mkdir -p a/b && cd a && cd b && cd ../.. && rm -rf a",
+		"mkdir -p a/b && cd a && cd b && cd ../..",
 		"",
 	},
 	{
@@ -391,11 +395,11 @@ var fileCases = []struct {
 		"/\n",
 	},
 	{
-		`old="$PWD"; mkdir a; cd a; cd ..; rmdir a; [[ $old == $PWD ]]`,
+		`old="$PWD"; mkdir a; cd a; cd ..; [[ $old == $PWD ]]`,
 		"",
 	},
 	{
-		`mkdir a; ln -s a b; [[ $(cd a && pwd) == $(cd b && pwd) ]]; echo $?; rm -r a b`,
+		`mkdir a; ln -s a b; [[ $(cd a && pwd) == $(cd b && pwd) ]]; echo $?`,
 		"1\n",
 	},
 
@@ -538,11 +542,11 @@ var fileCases = []struct {
 		"bar\n",
 	},
 	{
-		"echo foo >tfile; wc -c <tfile; rm tfile",
+		"echo foo >a; wc -c <a",
 		"4\n",
 	},
 	{
-		"echo foo >>tfile; echo bar &>>tfile; wc -c <tfile; rm tfile",
+		"echo foo >>a; echo bar &>>a; wc -c <a",
 		"8\n",
 	},
 	{
@@ -677,32 +681,32 @@ var fileCases = []struct {
 		"exit status 1",
 	},
 	{
-		"touch -d @1 a b; [[ a -nt b || a -ot b ]] && echo foo; rm a b",
+		"touch -d @1 a b; [[ a -nt b || a -ot b ]]",
+		"exit status 1",
+	},
+	{
+		"touch -d @1 a; touch -d @2 b; [[ a -nt b ]]",
+		"exit status 1",
+	},
+	{
+		"touch -d @1 a; touch -d @2 b; [[ a -ot b ]]",
 		"",
 	},
 	{
-		"touch -d @1 a; touch -d @2 b; [[ a -nt b ]] && echo foo; rm a b",
+		"touch a b; [[ a -ef b ]]",
+		"exit status 1",
+	},
+	{
+		"touch a; [[ a -ef a ]]",
 		"",
 	},
 	{
-		"touch -d @1 a; touch -d @2 b; [[ a -ot b ]] && echo foo; rm a b",
-		"foo\n",
-	},
-	{
-		"touch a b; [[ a -ef b ]] && echo foo; rm a b",
+		"touch a; ln a b; [[ a -ef b ]]",
 		"",
 	},
 	{
-		"touch a; [[ a -ef a ]] && echo foo; rm a",
-		"foo\n",
-	},
-	{
-		"touch a; ln a b; [[ a -ef b ]] && echo foo; rm a b",
-		"foo\n",
-	},
-	{
-		"touch a; ln -s a b; [[ a -ef b ]] && echo foo; rm a b",
-		"foo\n",
+		"touch a; ln -s a b; [[ a -ef b ]]",
+		"",
 	},
 	{
 		"[[ -z 'foo' || -n '' ]]",
@@ -741,59 +745,59 @@ var fileCases = []struct {
 		"exit status 2",
 	},
 	{
-		"[[ -e a ]] && echo x; touch a; [[ -e a ]] && echo y; rm a",
+		"[[ -e a ]] && echo x; touch a; [[ -e a ]] && echo y",
 		"y\n",
 	},
 	{
-		"ln -s b a; [[ -e a ]] && echo x; touch b; [[ -e a ]] && echo y; rm a b",
+		"ln -s b a; [[ -e a ]] && echo x; touch b; [[ -e a ]] && echo y",
 		"y\n",
 	},
 	{
-		"[[ -f a ]] && echo x; touch a; [[ -f a ]] && echo y; rm a",
+		"[[ -f a ]] && echo x; touch a; [[ -f a ]] && echo y",
 		"y\n",
 	},
 	{
-		"[[ -e a ]] && echo x; mkdir a; [[ -e a ]] && echo y; rmdir a",
+		"[[ -e a ]] && echo x; mkdir a; [[ -e a ]] && echo y",
 		"y\n",
 	},
 	{
-		"[[ -d a ]] && echo x; mkdir a; [[ -d a ]] && echo y; rmdir a",
+		"[[ -d a ]] && echo x; mkdir a; [[ -d a ]] && echo y",
 		"y\n",
 	},
 	{
-		"[[ -r a ]] && echo x; touch a; [[ -r a ]] && echo y; rm a",
+		"[[ -r a ]] && echo x; touch a; [[ -r a ]] && echo y",
 		"y\n",
 	},
 	{
-		"[[ -w a ]] && echo x; touch a; [[ -w a ]] && echo y; rm a",
+		"[[ -w a ]] && echo x; touch a; [[ -w a ]] && echo y",
 		"y\n",
 	},
 	{
-		"[[ -x a ]] && echo x; touch a; chmod +x a; [[ -x a ]] && echo y; rm a",
+		"[[ -x a ]] && echo x; touch a; chmod +x a; [[ -x a ]] && echo y",
 		"y\n",
 	},
 	{
-		"[[ -s a ]] && echo x; echo body >a; [[ -s a ]] && echo y; rm a",
+		"[[ -s a ]] && echo x; echo body >a; [[ -s a ]] && echo y",
 		"y\n",
 	},
 	{
-		"[[ -L a ]] && echo x; ln -s b a; [[ -L a ]] && echo y; rm a",
+		"[[ -L a ]] && echo x; ln -s b a; [[ -L a ]] && echo y;",
 		"y\n",
 	},
 	{
-		"[[ -p a ]] && echo x; mknod a p; [[ -p a ]] && echo y; rm a",
+		"[[ -p a ]] && echo x; mknod a p; [[ -p a ]] && echo y",
 		"y\n",
 	},
 	{
-		"touch a; [[ -k a ]] && echo x; chmod +t a; [[ -k a ]] && echo y; rm a",
+		"touch a; [[ -k a ]] && echo x; chmod +t a; [[ -k a ]] && echo y",
 		"y\n",
 	},
 	{
-		"touch a; [[ -u a ]] && echo x; chmod u+s a; [[ -u a ]] && echo y; rm a",
+		"touch a; [[ -u a ]] && echo x; chmod u+s a; [[ -u a ]] && echo y",
 		"y\n",
 	},
 	{
-		"touch a; [[ -g a ]] && echo x; chmod g+s a; [[ -g a ]] && echo y; rm a",
+		"touch a; [[ -g a ]] && echo x; chmod g+s a; [[ -g a ]] && echo y",
 		"y\n",
 	},
 
@@ -847,7 +851,7 @@ var fileCases = []struct {
 		"",
 	},
 	{
-		"[ -e a ] && echo x; touch a; [ -e a ] && echo y; rm a",
+		"[ -e a ] && echo x; touch a; [ -e a ] && echo y",
 		"y\n",
 	},
 	{
@@ -1080,6 +1084,7 @@ func TestFile(t *testing.T) {
 			if err != nil {
 				t.Fatalf("could not parse: %v", err)
 			}
+			cleanEnv()
 			var cb concBuffer
 			r := Runner{
 				File:   file,
@@ -1113,6 +1118,7 @@ func TestFileConfirm(t *testing.T) {
 	}
 	for i, c := range fileCases {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
+			cleanEnv()
 			cmd := exec.Command("bash")
 			cmd.Stdin = strings.NewReader(c.in)
 			out, err := cmd.CombinedOutput()
