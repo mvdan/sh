@@ -473,8 +473,8 @@ var fileCases = []struct {
 		"bar\n",
 	},
 	{
-		"case foo in f*) echo bar ;; esac",
-		"bar\n",
+		"case foo in '*') echo x ;; f*) echo y ;; esac",
+		"y\n",
 	},
 
 	// exec

@@ -492,8 +492,11 @@ func (r *Runner) cmd(cm syntax.Command) {
 		str := r.loneWord(x.Word)
 		for _, ci := range x.Items {
 			for _, word := range ci.Patterns {
-				pat := r.loneWord(word)
-				if match(pat, str) {
+				var buf bytes.Buffer
+				for _, field := range r.wordFields(word.Parts, false) {
+					buf.WriteString(escapeQuotedParts(field))
+				}
+				if match(buf.String(), str) {
 					r.stmts(ci.Stmts)
 					return
 				}
