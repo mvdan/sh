@@ -24,7 +24,9 @@ func TestMain(m *testing.M) {
 	os.Setenv("LC_ALL", "en_US.UTF8")
 	hasBash44 = checkBash()
 	os.Setenv("INTERP_GLOBAL", "value")
-	os.Exit(m.Run())
+	exit := m.Run()
+	cleanEnv()
+	os.Exit(exit)
 }
 
 func cleanEnv() {
@@ -107,6 +109,7 @@ var fileCases = []struct {
 	{`echo a'b'c"d"e`, "abcde\n"},
 	{`a=" b c "; echo "$a"`, " b c \n"},
 	{`echo "$(echo ' b c ')"`, " b c \n"},
+	{"echo ''", "\n"},
 
 	// vars
 	{"foo=bar; echo $foo", "bar\n"},
@@ -1056,6 +1059,9 @@ var fileCases = []struct {
 	},
 
 	// glob
+	{"echo .", ".\n"},
+	{"echo ..", "..\n"},
+	{"echo ./.", "./.\n"},
 	{
 		"touch a.x b.x c.x; echo *.x; rm a.x b.x c.x",
 		"a.x b.x c.x\n",
@@ -1071,6 +1077,10 @@ var fileCases = []struct {
 	{
 		"echo *.x; echo foo *.y bar",
 		"*.x\nfoo *.y bar\n",
+	},
+	{
+		"mkdir a; touch a/b.x; echo */*.x; cd a; echo *.x",
+		"a/b.x\nb.x\n",
 	},
 }
 
