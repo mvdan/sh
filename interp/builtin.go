@@ -17,7 +17,7 @@ func isBuiltin(name string) bool {
 	switch name {
 	case "true", ":", "false", "exit", "set", "shift", "unset",
 		"echo", "printf", "break", "continue", "pwd", "cd",
-		"wait", "builtin", "trap", "type", "source", "command",
+		"wait", "builtin", "trap", "type", "source", ".", "command",
 		"pushd", "popd", "umask", "alias", "unalias", "fg", "bg",
 		"getopts", "eval", "test", "[":
 		return true
@@ -206,6 +206,27 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 		r2.File = file
 		r2.Run()
 		return r2.exit
+	case "source", ".":
+		if len(args) < 1 {
+			r.runErr(pos, "source: need filename")
+		}
+		f, err := os.Open(args[0])
+		if err != nil {
+			r.errf("eval: %v\n", err)
+			return 1
+		}
+		defer f.Close()
+		p := syntax.NewParser()
+		file, err := p.Parse(f, args[0])
+		if err != nil {
+			r.errf("eval: %v\n", err)
+			return 1
+		}
+		r2 := *r
+		r2.args = args[1:]
+		r2.File = file
+		r2.Run()
+		return r2.exit
 	case "[":
 		if len(args) == 0 || args[len(args)-1] != "]" {
 			r.runErr(pos, "[: missing matching ]")
@@ -223,7 +244,7 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 		p.next()
 		expr := p.classicTest("[", false)
 		return oneIf(r.bashTest(expr) == "")
-	case "trap", "source", "command", "pushd", "popd",
+	case "trap", "command", "pushd", "popd",
 		"umask", "alias", "unalias", "fg", "bg", "getopts":
 		r.runErr(pos, "unhandled builtin: %s", name)
 	}

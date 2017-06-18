@@ -1006,6 +1006,16 @@ var fileCases = []struct {
 	{"eval 'exit 1'", "exit status 1"},
 	{"eval '('", "eval: 1:1: reached EOF without matching ( with )\nexit status 1 #JUSTERR"},
 
+	// source
+	{
+		"echo 'echo foo' >a; source a; . a",
+		"foo\nfoo\n",
+	},
+	{
+		"echo 'echo $@' >a; source a; source a b c",
+		"\nb c\n",
+	},
+
 	// arrays
 	{
 		"a=foo; echo ${a[0]} ${a[@]} ${a[x]}; echo ${a[1]}",
