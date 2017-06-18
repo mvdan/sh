@@ -1005,6 +1005,7 @@ var fileCases = []struct {
 	{"eval 'echo foo'", "foo\n"},
 	{"eval 'exit 1'", "exit status 1"},
 	{"eval '('", "eval: 1:1: reached EOF without matching ( with )\nexit status 1 #JUSTERR"},
+	{"set a b; eval 'echo $@'", "a b\n"},
 
 	// source
 	{
