@@ -96,6 +96,7 @@ var fileCases = []struct {
 	{"echo -e '\a'", "\a\n"},
 	{"echo -E '\n'", "\n\n"},
 	{"echo -x foo", "-x foo\n"},
+	{"echo -e -x -e foo", "-x -e foo\n"},
 
 	// printf
 	{"printf foo", "foo"},
@@ -980,6 +981,18 @@ var fileCases = []struct {
 	{
 		`echo $#; set '' ""; echo $#`,
 		"0\n2\n",
+	},
+	{
+		`set -- a b; echo $#`,
+		"2\n",
+	},
+	{
+		`set -e; false; echo foo`,
+		"exit status 1",
+	},
+	{
+		`set -e; set +e; false; echo foo`,
+		"foo\n",
 	},
 
 	// builtin

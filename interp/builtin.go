@@ -45,6 +45,20 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 		r.lastExit()
 		return r.exit
 	case "set":
+	setOpts:
+		for len(args) > 0 {
+			opt := args[0]
+			switch opt {
+			case "--":
+				args = args[1:]
+				break setOpts
+			case "-e", "+e":
+				r.stopOnCmdErr = opt == "-e"
+			default:
+				break setOpts
+			}
+			args = args[1:]
+		}
 		r.args = args
 	case "shift":
 		n := 1
@@ -70,7 +84,7 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 		}
 	case "echo":
 		newline := true
-	opts:
+	echoOpts:
 		for len(args) > 0 {
 			switch args[0] {
 			case "-n":
@@ -80,7 +94,7 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 				// exactly what is the difference in
 				// what we write?
 			default:
-				break opts
+				break echoOpts
 			}
 			args = args[1:]
 		}

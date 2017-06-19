@@ -71,6 +71,8 @@ type Runner struct {
 
 	// Context can be used to cancel the interpreter before it finishes
 	Context context.Context
+
+	stopOnCmdErr bool // set -e
 }
 
 // varValue can hold a string, an indexed array ([]string) or an
@@ -530,6 +532,9 @@ func (r *Runner) cmd(cm syntax.Command) {
 		}
 	default:
 		r.runErr(cm.Pos(), "unhandled command node: %T", x)
+	}
+	if r.exit != 0 && r.stopOnCmdErr {
+		r.lastExit()
 	}
 }
 
