@@ -45,21 +45,12 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 		r.lastExit()
 		return r.exit
 	case "set":
-	setOpts:
-		for len(args) > 0 {
-			opt := args[0]
-			switch opt {
-			case "--":
-				args = args[1:]
-				break setOpts
-			case "-e", "+e":
-				r.stopOnCmdErr = opt == "-e"
-			default:
-				break setOpts
-			}
-			args = args[1:]
+		rest, err := r.FromArgs(args...)
+		if err != nil {
+			r.errf("set: %v", err)
+			return 2
 		}
-		r.args = args
+		r.Params = rest
 	case "shift":
 		n := 1
 		switch len(args) {
@@ -74,10 +65,11 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 			r.errf("usage: shift [n]\n")
 			return 2
 		}
-		if len(r.args) < n {
-			n = len(r.args)
+		if n >= len(r.Params) {
+			r.Params = nil
+		} else {
+			r.Params = r.Params[n:]
 		}
-		r.args = r.args[n:]
 	case "unset":
 		for _, arg := range args {
 			r.delVar(arg)
@@ -237,7 +229,7 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 			return 1
 		}
 		r2 := *r
-		r2.args = args[1:]
+		r2.Params = args[1:]
 		r2.File = file
 		r2.Run()
 		return r2.exit

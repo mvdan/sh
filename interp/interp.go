@@ -44,6 +44,11 @@ type Runner struct {
 	// process's current directory.
 	Dir string
 
+	// Params are the current parameters, e.g. from running a shell
+	// file or calling a function. Accessible via the $@/$* family
+	// of vars.
+	Params []string
+
 	// Separate maps, note that bash allows a name to be both a var
 	// and a func simultaneously
 	vars  map[string]varValue
@@ -51,9 +56,6 @@ type Runner struct {
 
 	// like vars, but local to a cmd i.e. "foo=bar prog args..."
 	cmdVars map[string]varValue
-
-	// Current arguments, if executing a function
-	args []string
 
 	// >0 to break or continue out of N enclosing loops
 	breakEnclosing, contnEnclosing int
@@ -184,6 +186,33 @@ func (r *Runner) setFunc(name string, body *syntax.Stmt) {
 		r.funcs = make(map[string]*syntax.Stmt, 4)
 	}
 	r.funcs[name] = body
+}
+
+// FromArgs populates the shell options and returns the remaining
+// arguments. For example, running FromArgs("-e", "--", "foo") will set
+// the "-e" option and return []string{"foo"}.
+//
+// This is similar to what the interpreter's "set" builtin does.
+func (r *Runner) FromArgs(args ...string) ([]string, error) {
+opts:
+	for len(args) > 0 {
+		opt := args[0]
+		if opt == "" || (opt[0] != '-' && opt[0] != '+') {
+			break
+		}
+		enable := opt[0] == '-'
+		switch opt[1:] {
+		case "-":
+			args = args[1:]
+			break opts
+		case "e":
+			r.stopOnCmdErr = enable
+		default:
+			return nil, fmt.Errorf("invalid option: %q", opt)
+		}
+		args = args[1:]
+	}
+	return args, nil
 }
 
 // Run starts the interpreter and returns any error.
@@ -724,10 +753,10 @@ func (r *Runner) wordFields(wps []syntax.WordPart, quoted bool) [][]fieldPart {
 func (r *Runner) call(pos syntax.Pos, name string, args []string) {
 	if body := r.funcs[name]; body != nil {
 		// stack them to support nested func calls
-		oldArgs := r.args
-		r.args = args
+		oldParams := r.Params
+		r.Params = args
 		r.stmt(body)
-		r.args = oldArgs
+		r.Params = oldParams
 		return
 	}
 	if isBuiltin(name) {
