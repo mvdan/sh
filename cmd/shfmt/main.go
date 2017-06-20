@@ -24,6 +24,7 @@ var (
 	mksh        = flag.Bool("m", false, "parse MirBSD Korn shell code instead of bash")
 	indent      = flag.Int("i", 0, "indent: 0 for tabs (default), >0 for number of spaces")
 	binNext     = flag.Bool("bn", false, "binary ops like && and | may start a line")
+	toJSON      = flag.Bool("exp.tojson", false, "print AST to stdout as a typed JSON")
 	showVersion = flag.Bool("version", false, "show version and exit")
 
 	parser            *syntax.Parser
@@ -73,6 +74,10 @@ func main() {
 		}
 		return
 	}
+	if *toJSON {
+		fmt.Fprintln(os.Stderr, "-tojson can only be used with stdin/out")
+		os.Exit(1)
+	}
 	anyErr := false
 	for _, path := range flag.Args() {
 		walk(path, func(err error) {
@@ -95,6 +100,9 @@ func formatStdin() error {
 	}
 	if *simple {
 		syntax.Simplify(prog)
+	}
+	if *toJSON {
+		return writeJSON(out, prog, true)
 	}
 	return printer.Print(out, prog)
 }
