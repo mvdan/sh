@@ -594,7 +594,7 @@ var fileCases = []struct {
 		"foo\n",
 	},
 	{
-		"mkdir a && cd a && echo foo > b && cd .. && cat a/b && rm -r a",
+		"mkdir a && cd a && echo foo >b && cd .. && cat a/b",
 		"foo\n",
 	},
 
