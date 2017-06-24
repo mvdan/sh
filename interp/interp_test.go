@@ -593,6 +593,10 @@ var fileCases = []struct {
 		"printf 2>&1 | sed 's/.*usage.*/foo/'",
 		"foo\n",
 	},
+	{
+		"mkdir a && cd a && echo foo > b && cd .. && cat a/b && rm -r a",
+		"foo\n",
+	},
 
 	// background/wait
 	{"wait", ""},
