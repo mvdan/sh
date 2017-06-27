@@ -3052,7 +3052,7 @@ var fileTests = []testCase{
 		Strs:   []string{"declare -f func"},
 		common: litStmt("declare", "-f", "func"),
 		bash: &DeclClause{
-			Variant: "declare",
+			Variant: lit("declare"),
 			Opts:    litWords("-f"),
 			Assigns: []*Assign{{
 				Naked: true,
@@ -3063,7 +3063,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"(local bar)"},
 		bsmk: subshell(stmt(&DeclClause{
-			Variant: "local",
+			Variant: lit("local"),
 			Assigns: []*Assign{{
 				Naked: true,
 				Name:  lit("bar"),
@@ -3073,13 +3073,13 @@ var fileTests = []testCase{
 	},
 	{
 		Strs:  []string{"typeset"},
-		bsmk:  &DeclClause{Variant: "typeset"},
+		bsmk:  &DeclClause{Variant: lit("typeset")},
 		posix: litStmt("typeset"),
 	},
 	{
 		Strs: []string{"export bar"},
 		bsmk: &DeclClause{
-			Variant: "export",
+			Variant: lit("export"),
 			Assigns: []*Assign{{
 				Naked: true,
 				Name:  lit("bar"),
@@ -3089,13 +3089,13 @@ var fileTests = []testCase{
 	},
 	{
 		Strs:  []string{"readonly -n"},
-		bsmk:  &DeclClause{Variant: "readonly", Opts: litWords("-n")},
+		bsmk:  &DeclClause{Variant: lit("readonly"), Opts: litWords("-n")},
 		posix: litStmt("readonly", "-n"),
 	},
 	{
 		Strs: []string{"nameref bar"},
 		bsmk: &DeclClause{
-			Variant: "nameref",
+			Variant: lit("nameref"),
 			Assigns: []*Assign{{
 				Naked: true,
 				Name:  lit("bar"),
@@ -3106,7 +3106,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"declare -a -b$o foo=bar"},
 		bash: &DeclClause{
-			Variant: "declare",
+			Variant: lit("declare"),
 			Opts: []*Word{
 				litWord("-a"),
 				word(lit("-b"), litParamExp("o")),
@@ -3122,7 +3122,7 @@ var fileTests = []testCase{
 			"declare -a foo=(b1 `b2`)",
 		},
 		bash: &DeclClause{
-			Variant: "declare",
+			Variant: lit("declare"),
 			Opts:    litWords("-a"),
 			Assigns: []*Assign{{
 				Name: lit("foo"),
@@ -3136,7 +3136,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"local -a foo=(b1)"},
 		bash: &DeclClause{
-			Variant: "local",
+			Variant: lit("local"),
 			Opts:    litWords("-a"),
 			Assigns: []*Assign{{
 				Name:  lit("foo"),
@@ -3147,7 +3147,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"declare -A foo=([a]=b)"},
 		bash: &DeclClause{
-			Variant: "declare",
+			Variant: lit("declare"),
 			Opts:    litWords("-A"),
 			Assigns: []*Assign{{
 				Name: lit("foo"),
@@ -3164,7 +3164,7 @@ var fileTests = []testCase{
 			"declare foo[a]=",
 		},
 		bash: &DeclClause{
-			Variant: "declare",
+			Variant: lit("declare"),
 			Assigns: []*Assign{{
 				Name:  lit("foo"),
 				Index: litWord("a"),
@@ -3174,7 +3174,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"declare foo[*]"},
 		bash: &DeclClause{
-			Variant: "declare",
+			Variant: lit("declare"),
 			Assigns: []*Assign{{
 				Name:  lit("foo"),
 				Index: litWord("*"),
@@ -3184,7 +3184,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{`declare foo["x y"]`},
 		bash: &DeclClause{
-			Variant: "declare",
+			Variant: lit("declare"),
 			Assigns: []*Assign{{
 				Name:  lit("foo"),
 				Index: word(dblQuoted(lit("x y"))),
@@ -3219,7 +3219,7 @@ var fileTests = []testCase{
 		Strs: []string{"declare -f func >/dev/null"},
 		bash: &Stmt{
 			Cmd: &DeclClause{
-				Variant: "declare",
+				Variant: lit("declare"),
 				Opts:    litWords("-f"),
 				Assigns: []*Assign{{
 					Naked: true,
@@ -3235,7 +3235,7 @@ var fileTests = []testCase{
 		Strs: []string{"declare a\n{ x; }"},
 		bash: stmts(
 			&DeclClause{
-				Variant: "declare",
+				Variant: lit("declare"),
 				Assigns: []*Assign{{
 					Naked: true,
 					Name:  lit("a"),
@@ -3682,14 +3682,14 @@ func fullProg(v interface{}) *File {
 	return nil
 }
 
-func clearPosRecurse(tb testing.TB, src string, v interface{}, f *File) {
-	const zeroPos = 0
+func clearPosRecurse(tb testing.TB, src string, v interface{}) {
+	zeroPos := Pos{}
 	checkSrc := func(pos Pos, strs ...string) {
 		if src == "" {
 			return
 		}
-		offs := int(pos - 1)
-		if offs < 0 || offs > len(src) {
+		offs := pos.Offset()
+		if offs < 0 || offs > uint(len(src)) {
 			tb.Fatalf("Pos %d in %T is out of bounds in %q",
 				pos, v, string(src))
 			return
@@ -3729,19 +3729,18 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}, f *File) {
 			tb.Fatalf("Found unexpected Pos() in %T: want %d, got %d",
 				n, zeroPos, n.Pos())
 		}
-		if n.Pos() > n.End() {
+		if n.Pos().After(n.End()) {
 			tb.Fatalf("Found End() before Pos() in %T", n)
 		}
 	}
 	recurse := func(v interface{}) {
-		clearPosRecurse(tb, src, v, f)
+		clearPosRecurse(tb, src, v)
 		if n, ok := v.(Node); ok {
 			checkPos(n)
 		}
 	}
 	switch x := v.(type) {
 	case *File:
-		f = x
 		for _, c := range x.Comments {
 			recurse(c)
 		}
@@ -3754,7 +3753,7 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}, f *File) {
 			recurse(s)
 		}
 	case *Stmt:
-		endOff := int(x.End() - 1)
+		endOff := int(x.End().Offset())
 		switch {
 		case src == "":
 		case endOff >= len(src):
@@ -3814,11 +3813,11 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}, f *File) {
 			recurse(wp)
 		}
 	case *Lit:
-		pos, end := int(x.Pos()), int(x.End())
+		pos, end := int(x.Pos().Offset()), int(x.End().Offset())
 		want := pos + len(x.Value)
 		val := x.Value
-		posLine := f.Position(x.Pos()).Line
-		endLine := f.Position(x.End()).Line
+		posLine := x.Pos().Line()
+		endLine := x.End().Line()
 		switch {
 		case src == "":
 		case strings.Contains(src, "\\\n"):
@@ -3828,10 +3827,10 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}, f *File) {
 		case strings.Contains(src, "\\\\"):
 			// removed quotes inside backquote cmd substs
 			val = ""
-		case end-1 < len(src) && src[end-1] == '\n':
+		case end < len(src) && src[end] == '\n':
 			// heredoc literals that end with the
 			// stop word and a newline
-		case end-1 == len(src):
+		case end == len(src):
 			// same as above, but with word and EOF
 		case end != want:
 			tb.Fatalf("Unexpected Lit.End() %d (wanted %d) in %q",
@@ -3895,19 +3894,19 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}, f *File) {
 			recurse(x.Post)
 		}
 	case *SglQuoted:
-		checkSrc(x.End()-1, "'")
-		valuePos := x.Position + 1
+		valuePos := posAddCol(x.Left, 1)
 		if x.Dollar {
-			valuePos++
+			valuePos = posAddCol(valuePos, 1)
 		}
 		checkSrc(valuePos, x.Value)
 		if x.Dollar {
-			setPos(&x.Position, "$'")
+			setPos(&x.Left, "$'")
 		} else {
-			setPos(&x.Position, "'")
+			setPos(&x.Left, "'")
 		}
+		setPos(&x.Right, "'")
 	case *DblQuoted:
-		checkSrc(x.End()-1, `"`)
+		checkSrc(posAddCol(x.End(), -1), `"`)
 		if x.Dollar {
 			setPos(&x.Position, `$"`)
 		} else {
@@ -3969,7 +3968,7 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}, f *File) {
 		if !x.Short {
 			setPos(&x.Rbrace, "}")
 		} else if x.nakedIndex() {
-			checkSrc(x.End()-1, "]")
+			checkSrc(posAddCol(x.End(), -1), "]")
 		}
 		recurse(x.Param)
 		if x.Index != nil {
@@ -4035,7 +4034,7 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}, f *File) {
 		setPos(&x.Right, "]]")
 		recurse(x.X)
 	case *DeclClause:
-		setPos(&x.Position, x.Variant)
+		recurse(x.Variant)
 		recurse(x.Opts)
 		recurse(x.Assigns)
 	case *TimeClause:
@@ -4067,7 +4066,7 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}, f *File) {
 		recurse(x.Value)
 	case *ExtGlob:
 		setPos(&x.OpPos, x.Op.String())
-		checkSrc(x.End()-1, ")")
+		checkSrc(posAddCol(x.End(), -1), ")")
 		recurse(x.Pattern)
 	case *ProcSubst:
 		setPos(&x.OpPos, x.Op.String())
@@ -4075,18 +4074,5 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}, f *File) {
 		recurse(x.Stmts)
 	default:
 		panic(reflect.TypeOf(v))
-	}
-}
-
-func checkNewlines(tb testing.TB, src string, got []Pos) {
-	want := []Pos{0}
-	for i, b := range src {
-		if b == '\n' {
-			want = append(want, Pos(i+1))
-		}
-	}
-	if !reflect.DeepEqual(got, want) {
-		tb.Fatalf("Unexpected newline offsets at %q:\ngot:  %v\nwant: %v",
-			src, got, want)
 	}
 }

@@ -139,6 +139,7 @@ func TestPrintWeirdFormat(t *testing.T) {
 		samePrint("a=1 \\\n\tb=2 \\\n\tc=3 \\\n\t;"),
 		samePrint("if a \\\n\t; then b; fi"),
 		samePrint("a 'b\nb' c"),
+		samePrint("a $'b\nb' c"),
 		{
 			"(foo; bar)",
 			"(\n\tfoo\n\tbar\n)",
@@ -169,8 +170,8 @@ func TestPrintWeirdFormat(t *testing.T) {
 			"foo  # 1\nfooo # 2\nfo   # 3",
 		},
 		{
-			"fooooo\nfoo # 1\nfooo # 2\nfo # 3\nfooooo",
-			"fooooo\nfoo  # 1\nfooo # 2\nfo   # 3\nfooooo",
+			"foooooa\nfoo # 1\nfooo # 2\nfo # 3\nfooooo",
+			"foooooa\nfoo  # 1\nfooo # 2\nfo   # 3\nfooooo",
 		},
 		{
 			"foo\nbar\nfoo # 1\nfooo # 2",
@@ -389,7 +390,6 @@ func TestPrintWeirdFormat(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Unexpected error in %q: %v", in, err)
 			}
-			checkNewlines(t, in, prog.lines)
 			got, err := strPrint(printer, prog)
 			if err != nil {
 				t.Fatalf("Unexpected error in %q: %v", in, err)

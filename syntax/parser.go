@@ -38,13 +38,7 @@ func NewParser(options ...func(*Parser)) *Parser {
 // an error is returned.
 func (p *Parser) Parse(src io.Reader, name string) (*File, error) {
 	p.reset()
-	alloc := &struct {
-		f File
-		l [32]Pos
-	}{}
-	p.f = &alloc.f
-	p.f.Name = name
-	p.f.lines = alloc.l[:1]
+	p.f = &File{Name: name}
 	p.src = src
 	p.rune()
 	p.next()
@@ -60,6 +54,7 @@ func (p *Parser) Parse(src io.Reader, name string) (*File, error) {
 type Parser struct {
 	src io.Reader
 	bs  []byte // current chunk of read bytes
+	bsp int    // pos within chunk for the next rune
 	r   rune
 
 	f *File
@@ -73,9 +68,9 @@ type Parser struct {
 	tok token  // current token
 	val string // current value (valid if tok is _Lit*)
 
+	offs int
 	pos  Pos // position of tok
-	offs int // chunk offset
-	npos int // pos within chunk for the next rune
+	npos Pos // next position
 
 	quote quoteState // current lexer state
 	asPos int        // position of '=' in a literal
@@ -107,14 +102,18 @@ type Parser struct {
 const bufSize = 1 << 10
 
 func (p *Parser) reset() {
-	p.bs = nil
-	p.offs, p.npos = 0, 0
+	p.bs, p.bsp = nil, 0
+	p.offs = 0
+	p.npos = Pos{line: 1}
 	p.r, p.err, p.readErr = 0, nil, nil
 	p.quote, p.forbidNested = noState, false
 	p.heredocs, p.buriedHdocs = p.heredocs[:0], 0
 }
 
-func (p *Parser) getPos() Pos { return Pos(p.offs + p.npos) }
+func (p *Parser) getPos() Pos {
+	p.npos.offs = uint16(p.offs + p.bsp - 1)
+	return p.npos
+}
 
 func (p *Parser) lit(pos Pos, val string) *Lit {
 	if len(p.litBatch) == 0 {
@@ -417,7 +416,7 @@ func (p *Parser) matched(lpos Pos, left, right token) Pos {
 func (p *Parser) errPass(err error) {
 	if p.err == nil {
 		p.err = err
-		p.npos = len(p.bs) + 1
+		p.bsp = len(p.bs) + 1
 		p.r = utf8.RuneSelf
 		p.tok = _EOF
 	}
@@ -425,17 +424,27 @@ func (p *Parser) errPass(err error) {
 
 // ParseError represents an error found when parsing a source file.
 type ParseError struct {
-	Position
+	Filename string
+	Pos
 	Text string
 }
 
 func (e *ParseError) Error() string {
-	return fmt.Sprintf("%s: %s", e.Position.String(), e.Text)
+	var buf bytes.Buffer
+	if e.Filename != "" {
+		fmt.Fprintf(&buf, "%s:", e.Filename)
+	}
+	if e.Pos.IsValid() {
+		fmt.Fprintf(&buf, "%d:%d:", e.Pos.Line(), e.Pos.Col())
+	}
+	fmt.Fprintf(&buf, " %s", e.Text)
+	return buf.String()
 }
 
 func (p *Parser) posErr(pos Pos, format string, a ...interface{}) {
 	p.errPass(&ParseError{
-		Position: p.f.Position(pos),
+		Filename: p.f.Name,
+		Pos:      pos,
 		Text:     fmt.Sprintf(format, a...),
 	})
 }
@@ -628,12 +637,13 @@ func (p *Parser) wordPart() WordPart {
 		if p.quote&allArithmExpr != 0 {
 			p.curErr("quotes should not be used in arithmetic expressions")
 		}
-		sq := &SglQuoted{Position: p.pos}
+		sq := &SglQuoted{Left: p.pos}
 		r := p.r
 	loop:
 		for p.newLit(r); ; r = p.rune() {
 			switch r {
 			case utf8.RuneSelf, '\'':
+				sq.Right = p.getPos()
 				sq.Value = p.endLit()
 				p.rune()
 				break loop
@@ -648,7 +658,7 @@ func (p *Parser) wordPart() WordPart {
 		if p.quote&allArithmExpr != 0 {
 			p.curErr("quotes should not be used in arithmetic expressions")
 		}
-		sq := &SglQuoted{Position: p.pos, Dollar: true}
+		sq := &SglQuoted{Left: p.pos, Dollar: true}
 		old := p.quote
 		p.quote = sglQuotes
 		p.next()
@@ -657,6 +667,7 @@ func (p *Parser) wordPart() WordPart {
 			sq.Value = p.val
 			p.next()
 		}
+		sq.Right = p.pos
 		if !p.got(sglQuote) {
 			p.quoteErr(sq.Pos(), sglQuote)
 		}
@@ -706,7 +717,7 @@ func (p *Parser) wordPart() WordPart {
 				}
 			}
 		}
-		eg.Pattern = p.lit(eg.OpPos+2, p.endLit())
+		eg.Pattern = p.lit(posAddCol(eg.OpPos, 2), p.endLit())
 		p.rune()
 		p.next()
 		if lparens != -1 {
@@ -941,7 +952,7 @@ func (p *Parser) arithmExprBase(compact bool) ArithmExpr {
 
 func (p *Parser) shortParamExp() *ParamExp {
 	pe := &ParamExp{Dollar: p.pos, Short: true}
-	p.pos++
+	p.pos = posAddCol(p.pos, 1)
 	switch p.r {
 	case '@', '*', '#', '$', '?', '!', '0', '-':
 		p.tok, p.val = _LitWord, string(p.r)
@@ -1152,10 +1163,10 @@ func (p *Parser) getAssign(needEqual bool) *Assign {
 		}
 		as.Name = p.lit(p.pos, p.val[:nameEnd])
 		// since we're not using the entire p.val
-		as.Name.ValueEnd = as.Name.ValuePos + Pos(nameEnd)
-		left := p.lit(p.pos+1, p.val[p.asPos+1:])
+		as.Name.ValueEnd = posAddCol(as.Name.ValuePos, nameEnd)
+		left := p.lit(posAddCol(p.pos, 1), p.val[p.asPos+1:])
 		if left.Value != "" {
-			left.ValuePos += Pos(p.asPos)
+			left.ValuePos = posAddCol(left.ValuePos, p.asPos)
 			as.Value = p.word(p.wps(left))
 		}
 		p.next()
@@ -1163,7 +1174,7 @@ func (p *Parser) getAssign(needEqual bool) *Assign {
 		as.Name = p.lit(p.pos, p.val)
 		// hasValidIdent already checks p.r is '['
 		p.rune()
-		left := p.pos + 1
+		left := posAddCol(p.pos, 1)
 		old := p.preNested(arithmExprBrack)
 		p.next()
 		if p.tok == star {
@@ -1182,7 +1193,7 @@ func (p *Parser) getAssign(needEqual bool) *Assign {
 		if len(p.val) > 0 && p.val[0] == '+' {
 			as.Append = true
 			p.val = p.val[1:]
-			p.pos++
+			p.pos = posAddCol(p.pos, 1)
 		}
 		if len(p.val) < 1 || p.val[0] != '=' {
 			if as.Append {
@@ -1192,7 +1203,7 @@ func (p *Parser) getAssign(needEqual bool) *Assign {
 			}
 			return nil
 		}
-		p.pos++
+		p.pos = posAddCol(p.pos, 1)
 		p.val = p.val[1:]
 		if p.val == "" {
 			p.next()
@@ -1775,7 +1786,7 @@ func (p *Parser) testExprBase(ftok token, fpos Pos) TestExpr {
 }
 
 func (p *Parser) declClause() *DeclClause {
-	ds := &DeclClause{Position: p.pos, Variant: p.val}
+	ds := &DeclClause{Variant: p.lit(p.pos, p.val)}
 	p.next()
 	for (p.tok == _LitWord || p.tok == _Lit) && p.val[0] == '-' {
 		ds.Opts = append(ds.Opts, p.getWord())
@@ -1789,7 +1800,7 @@ func (p *Parser) declClause() *DeclClause {
 				Name:  p.getLit(),
 			})
 		} else {
-			p.followErr(p.pos, ds.Variant, "names or assignments")
+			p.followErr(p.pos, ds.Variant.Value, "names or assignments")
 		}
 	}
 	return ds

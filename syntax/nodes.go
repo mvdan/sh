@@ -3,8 +3,6 @@
 
 package syntax
 
-import "fmt"
-
 // Node represents an AST node.
 type Node interface {
 	// Pos returns the position of the first character of the node.
@@ -21,90 +19,60 @@ type File struct {
 
 	Stmts    []*Stmt
 	Comments []*Comment
-
-	lines []Pos
 }
 
-// Pos is the internal representation of a position within a source
-// file.
-type Pos uint32
+// Pos is a position within a source file.
+type Pos struct {
+	offs, line, col uint16
+}
+
+// Offset returns the byte offset of the position in the original
+// source file. Byte offsets start at 0.
+func (p Pos) Offset() uint {
+	return uint(p.offs)
+}
+
+// Line returns the line number of the position, starting at 1.
+func (p Pos) Line() uint {
+	return uint(p.line)
+}
+
+// Col returns the column number of the position, starting at 0. It
+// counts in bytes.
+func (p Pos) Col() uint {
+	return uint(p.col)
+}
 
 // IsValid reports whether the position is valid. All positions in nodes
 // returned by Parse are valid.
-func (p Pos) IsValid() bool { return p > 0 }
+func (p Pos) IsValid() bool { return p.line > 0 }
 
-const maxPos = Pos(^uint32(0))
+func (p Pos) After(p2 Pos) bool { return p.offs > p2.offs }
 
-// Position describes a position within a source file including the line
-// and column location. A Position is valid if the line number is > 0.
-type Position struct {
-	Filename string // if any
-	Offset   int    // byte offset, starting at 0
-	Line     int    // line number, starting at 1
-	Column   int    // column number, starting at 1 (in bytes)
-}
-
-// IsValid reports whether the position is valid. All positions in nodes
-// returned by Parse are valid.
-func (p Position) IsValid() bool { return p.Line > 0 }
-
-// String returns the position in the "file:line:column" form, or
-// "line:column" if there is no filename available.
-func (p Position) String() string {
-	prefix := ""
-	if p.Filename != "" {
-		prefix = p.Filename + ":"
-	}
-	return fmt.Sprintf("%s%d:%d", prefix, p.Line, p.Column)
-}
+const maxLine = ^uint16(0)
 
 func (f *File) Pos() Pos {
 	if len(f.Stmts) == 0 {
-		return 0
+		return Pos{}
 	}
 	return f.Stmts[0].Pos()
 }
 
 func (f *File) End() Pos {
 	if len(f.Stmts) == 0 {
-		return 0
+		return Pos{}
 	}
 	return f.Stmts[len(f.Stmts)-1].End()
 }
 
-func (f *File) Position(p Pos) (pos Position) {
-	pos.Filename = f.Name
-	pos.Offset = int(p) - 1
-	if i := searchPos(f.lines, p); i >= 0 {
-		pos.Line, pos.Column = i+1, int(p-f.lines[i])
-		if pos.Line > 1 && pos.Column == 0 {
-			// newlines should be 1:end+1, not 2:0
-			pos.Line--
-			if i > 0 {
-				pos.Column = int(p - f.lines[i-1])
-			} else {
-				pos.Column = 1
-			}
-		}
-	}
-	return
-}
-
-func searchPos(a []Pos, x Pos) int {
-	i, j := 0, len(a)
-	for i < j {
-		h := i + (j-i)/2
-		if a[h] <= x {
-			i = h + 1
-		} else {
-			j = h
-		}
-	}
-	return i - 1
+func posAddCol(p Pos, n int) Pos {
+	p.col += uint16(n)
+	p.offs += uint16(n)
+	return p
 }
 
 func posMax(p1, p2 Pos) Pos {
-	if p2 > p1 {
+	if p2.After(p1) {
 		return p2
 	}
 	return p1
@@ -117,7 +85,7 @@ type Comment struct {
 }
 
 func (c *Comment) Pos() Pos { return c.Hash }
-func (c *Comment) End() Pos { return c.Hash + Pos(len(c.Text)) }
+func (c *Comment) End() Pos { return posAddCol(c.Hash, len(c.Text)) }
 
 // Stmt represents a statement, otherwise known as a compound command.
 // It is compromised of a command and other components that may come
@@ -137,11 +105,11 @@ type Stmt struct {
 func (s *Stmt) Pos() Pos { return s.Position }
 func (s *Stmt) End() Pos {
 	if s.Semicolon.IsValid() {
-		return s.Semicolon + 1
+		return posAddCol(s.Semicolon, 1)
 	}
 	end := s.Position
 	if s.Negated {
-		end++
+		end = posAddCol(end, 1)
 	}
 	if s.Cmd != nil {
 		end = s.Cmd.End()
@@ -206,12 +174,12 @@ func (a *Assign) End() Pos {
 		return a.Array.End()
 	}
 	if a.Index != nil {
-		return a.Index.End() + 2
+		return posAddCol(a.Index.End(), 2)
 	}
 	if a.Naked {
 		return a.Name.End()
 	}
-	return a.Name.End() + 1
+	return posAddCol(a.Name.End(), 1)
 }
 
 // Redirect represents an input/output redirection.
@@ -247,7 +215,7 @@ type Subshell struct {
 }
 
 func (s *Subshell) Pos() Pos { return s.Lparen }
-func (s *Subshell) End() Pos { return s.Rparen + 1 }
+func (s *Subshell) End() Pos { return posAddCol(s.Rparen, 1) }
 
 // Block represents a series of commands that should be executed in a
 // nested scope.
@@ -257,7 +225,7 @@ type Block struct {
 }
 
 func (b *Block) Pos() Pos { return b.Rbrace }
-func (b *Block) End() Pos { return b.Rbrace + 1 }
+func (b *Block) End() Pos { return posAddCol(b.Rbrace, 1) }
 
 // IfClause represents an if statement.
 type IfClause struct {
@@ -269,7 +237,7 @@ type IfClause struct {
 }
 
 func (c *IfClause) Pos() Pos { return c.If }
-func (c *IfClause) End() Pos { return c.Fi + 2 }
+func (c *IfClause) End() Pos { return posAddCol(c.Fi, 2) }
 
 // Elif represents an "else if" case in an if clause.
 type Elif struct {
@@ -287,7 +255,7 @@ type WhileClause struct {
 }
 
 func (w *WhileClause) Pos() Pos { return w.While }
-func (w *WhileClause) End() Pos { return w.Done + 4 }
+func (w *WhileClause) End() Pos { return posAddCol(w.Done, 4) }
 
 // ForClause represents a for clause.
 type ForClause struct {
@@ -297,7 +265,7 @@ type ForClause struct {
 }
 
 func (f *ForClause) Pos() Pos { return f.For }
-func (f *ForClause) End() Pos { return f.Done + 4 }
+func (f *ForClause) End() Pos { return posAddCol(f.Done, 4) }
 
 // Loop holds either *WordIter or *CStyleLoop.
 type Loop interface {
@@ -328,7 +296,7 @@ type CStyleLoop struct {
 }
 
 func (c *CStyleLoop) Pos() Pos { return c.Lparen }
-func (c *CStyleLoop) End() Pos { return c.Rparen + 2 }
+func (c *CStyleLoop) End() Pos { return posAddCol(c.Rparen, 2) }
 
 // BinaryCmd represents a binary expression between two statements.
 type BinaryCmd struct {
@@ -390,19 +358,13 @@ func (l *Lit) End() Pos { return l.ValueEnd }
 
 // SglQuoted represents a string within single quotes.
 type SglQuoted struct {
-	Position Pos
-	Dollar   bool // $''
-	Value    string
+	Left, Right Pos
+	Dollar      bool // $''
+	Value       string
 }
 
-func (q *SglQuoted) Pos() Pos { return q.Position }
-func (q *SglQuoted) End() Pos {
-	end := q.Position + 2 + Pos(len(q.Value))
-	if q.Dollar {
-		end++
-	}
-	return end
-}
+func (q *SglQuoted) Pos() Pos { return q.Left }
+func (q *SglQuoted) End() Pos { return q.Right }
 
 // DblQuoted represents a list of nodes within double quotes.
 type DblQuoted struct {
@@ -415,11 +377,11 @@ func (q *DblQuoted) Pos() Pos { return q.Position }
 func (q *DblQuoted) End() Pos {
 	if len(q.Parts) == 0 {
 		if q.Dollar {
-			return q.Position + 3
+			return posAddCol(q.Position, 3)
 		}
-		return q.Position + 2
+		return posAddCol(q.Position, 2)
 	}
-	return q.Parts[len(q.Parts)-1].End() + 1
+	return posAddCol(q.Parts[len(q.Parts)-1].End(), 1)
 }
 
 // CmdSubst represents a command substitution.
@@ -432,7 +394,7 @@ type CmdSubst struct {
 }
 
 func (c *CmdSubst) Pos() Pos { return c.Left }
-func (c *CmdSubst) End() Pos { return c.Right + 1 }
+func (c *CmdSubst) End() Pos { return posAddCol(c.Right, 1) }
 
 // ParamExp represents a parameter expansion.
 type ParamExp struct {
@@ -451,10 +413,10 @@ type ParamExp struct {
 func (p *ParamExp) Pos() Pos { return p.Dollar }
 func (p *ParamExp) End() Pos {
 	if !p.Short {
-		return p.Rbrace + 1
+		return posAddCol(p.Rbrace, 1)
 	}
 	if p.Index != nil {
-		return p.Index.End() + 1
+		return posAddCol(p.Index.End(), 1)
 	}
 	return p.Param.End()
 }
@@ -494,9 +456,9 @@ type ArithmExp struct {
 func (a *ArithmExp) Pos() Pos { return a.Left }
 func (a *ArithmExp) End() Pos {
 	if a.Bracket {
-		return a.Right + 1
+		return posAddCol(a.Right, 1)
 	}
-	return a.Right + 2
+	return posAddCol(a.Right, 2)
 }
 
 // ArithmCmd represents an arithmetic command.
@@ -509,7 +471,7 @@ type ArithmCmd struct {
 }
 
 func (a *ArithmCmd) Pos() Pos { return a.Left }
-func (a *ArithmCmd) End() Pos { return a.Right + 2 }
+func (a *ArithmCmd) End() Pos { return posAddCol(a.Right, 2) }
 
 // ArithmExpr represents all nodes that form arithmetic expressions.
 //
@@ -563,7 +525,7 @@ func (u *UnaryArithm) Pos() Pos {
 
 func (u *UnaryArithm) End() Pos {
 	if u.Post {
-		return u.OpPos + 2
+		return posAddCol(u.OpPos, 2)
 	}
 	return u.X.End()
 }
@@ -576,7 +538,7 @@ type ParenArithm struct {
 }
 
 func (p *ParenArithm) Pos() Pos { return p.Lparen }
-func (p *ParenArithm) End() Pos { return p.Rparen + 1 }
+func (p *ParenArithm) End() Pos { return posAddCol(p.Rparen, 1) }
 
 // CaseClause represents a case (switch) clause.
 type CaseClause struct {
@@ -586,7 +548,7 @@ type CaseClause struct {
 }
 
 func (c *CaseClause) Pos() Pos { return c.Case }
-func (c *CaseClause) End() Pos { return c.Esac + 4 }
+func (c *CaseClause) End() Pos { return posAddCol(c.Esac, 4) }
 
 // CaseItem represents a pattern list (case) within a CaseClause.
 type CaseItem struct {
@@ -605,7 +567,7 @@ type TestClause struct {
 }
 
 func (t *TestClause) Pos() Pos { return t.Left }
-func (t *TestClause) End() Pos { return t.Right + 2 }
+func (t *TestClause) End() Pos { return posAddCol(t.Right, 2) }
 
 // TestExpr represents all nodes that form arithmetic expressions.
 //
@@ -650,24 +612,26 @@ type ParenTest struct {
 }
 
 func (p *ParenTest) Pos() Pos { return p.Lparen }
-func (p *ParenTest) End() Pos { return p.Rparen + 1 }
+func (p *ParenTest) End() Pos { return posAddCol(p.Rparen, 1) }
 
 // DeclClause represents a Bash declare clause.
 //
 // This node will never appear when in PosixConformant mode.
 type DeclClause struct {
-	Position Pos
-	Variant  string // "declare", "local", etc
-	Opts     []*Word
-	Assigns  []*Assign
+	Variant *Lit // "declare", "local", etc
+	Opts    []*Word
+	Assigns []*Assign
 }
 
-func (d *DeclClause) Pos() Pos { return d.Position }
+func (d *DeclClause) Pos() Pos { return d.Variant.Pos() }
 func (d *DeclClause) End() Pos {
 	if len(d.Assigns) > 0 {
 		return d.Assigns[len(d.Assigns)-1].End()
 	}
-	return wordLastEnd(d.Opts)
+	if len(d.Opts) > 0 {
+		return wordLastEnd(d.Opts)
+	}
+	return d.Variant.End()
 }
 
 // ArrayExpr represents a Bash array expression.
@@ -679,7 +643,7 @@ type ArrayExpr struct {
 }
 
 func (a *ArrayExpr) Pos() Pos { return a.Lparen }
-func (a *ArrayExpr) End() Pos { return a.Rparen + 1 }
+func (a *ArrayExpr) End() Pos { return posAddCol(a.Rparen, 1) }
 
 type ArrayElem struct {
 	Index ArithmExpr
@@ -706,7 +670,7 @@ type ExtGlob struct {
 }
 
 func (e *ExtGlob) Pos() Pos { return e.OpPos }
-func (e *ExtGlob) End() Pos { return e.Pattern.End() + 1 }
+func (e *ExtGlob) End() Pos { return posAddCol(e.Pattern.End(), 1) }
 
 // ProcSubst represents a Bash process substitution.
 //
@@ -718,7 +682,7 @@ type ProcSubst struct {
 }
 
 func (s *ProcSubst) Pos() Pos { return s.OpPos }
-func (s *ProcSubst) End() Pos { return s.Rparen + 1 }
+func (s *ProcSubst) End() Pos { return posAddCol(s.Rparen, 1) }
 
 // TimeClause represents a Bash time clause.
 //
@@ -731,7 +695,7 @@ type TimeClause struct {
 func (c *TimeClause) Pos() Pos { return c.Time }
 func (c *TimeClause) End() Pos {
 	if c.Stmt == nil {
-		return c.Time + 4
+		return posAddCol(c.Time, 4)
 	}
 	return c.Stmt.End()
 }
@@ -761,7 +725,7 @@ func (l *LetClause) End() Pos { return l.Exprs[len(l.Exprs)-1].End() }
 
 func wordLastEnd(ws []*Word) Pos {
 	if len(ws) == 0 {
-		return 0
+		return Pos{}
 	}
 	return ws[len(ws)-1].End()
 }

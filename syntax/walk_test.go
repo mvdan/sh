@@ -24,8 +24,8 @@ func TestWalk(t *testing.T) {
 
 type newNode struct{}
 
-func (newNode) Pos() Pos { return 0 }
-func (newNode) End() Pos { return 0 }
+func (newNode) Pos() Pos { return Pos{} }
+func (newNode) End() Pos { return Pos{} }
 
 func TestWalkUnexpectedType(t *testing.T) {
 	defer func() {

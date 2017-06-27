@@ -49,21 +49,6 @@ func (v *posWalker) Visit(n Node) bool {
 	if !p.IsValid() && len(v.f.Stmts) > 0 {
 		v.t.Fatalf("Invalid Pos")
 	}
-	pos := v.f.Position(p)
-	if !pos.IsValid() && len(v.f.Stmts) > 0 {
-		v.t.Fatalf("Invalid Position")
-	}
-	offs := 0
-	for l := 0; l < pos.Line-1; l++ {
-		// since lines here are missing the trailing newline
-		offs += len(v.lines[l]) + 1
-	}
-	// column is 1-indexed, offset is 0-indexed
-	offs += pos.Column - 1
-	if offs != pos.Offset {
-		v.t.Fatalf("Inconsistent Position: line %d, col %d; wanted offset %d, got %d ",
-			pos.Line, pos.Column, pos.Offset, offs)
-	}
 	return true
 }
 
