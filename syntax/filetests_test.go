@@ -3682,7 +3682,7 @@ func fullProg(v interface{}) *File {
 	return nil
 }
 
-func clearPosRecurse(tb testing.TB, src string, v interface{}) {
+func clearPosRecurse(tb testing.TB, src string, v interface{}, f *File) {
 	const zeroPos = 0
 	checkSrc := func(pos Pos, strs ...string) {
 		if src == "" {
@@ -3734,13 +3734,14 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 		}
 	}
 	recurse := func(v interface{}) {
-		clearPosRecurse(tb, src, v)
+		clearPosRecurse(tb, src, v, f)
 		if n, ok := v.(Node); ok {
 			checkPos(n)
 		}
 	}
 	switch x := v.(type) {
 	case *File:
+		f = x
 		for _, c := range x.Comments {
 			recurse(c)
 		}
@@ -3816,9 +3817,14 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 		pos, end := int(x.Pos()), int(x.End())
 		want := pos + len(x.Value)
 		val := x.Value
+		posLine := f.Position(x.Pos()).Line
+		endLine := f.Position(x.End()).Line
 		switch {
 		case src == "":
 		case strings.Contains(src, "\\\n"):
+		case !strings.Contains(x.Value, "\n") && posLine != endLine:
+			tb.Fatalf("Lit without newlines has Pos/End lines %d and %d",
+				posLine, endLine)
 		case strings.Contains(src, "\\\\"):
 			// removed quotes inside backquote cmd substs
 			val = ""

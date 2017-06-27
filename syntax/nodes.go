@@ -7,9 +7,11 @@ import "fmt"
 
 // Node represents an AST node.
 type Node interface {
-	// Pos returns the first character of the node
+	// Pos returns the position of the first character of the node.
 	Pos() Pos
-	// End returns the character immediately after the node
+	// End returns the position of the character immediately after
+	// the node. If the character is a newline, the line number
+	// won't cross into the next line.
 	End() Pos
 }
 
@@ -75,6 +77,15 @@ func (f *File) Position(p Pos) (pos Position) {
 	pos.Offset = int(p) - 1
 	if i := searchPos(f.lines, p); i >= 0 {
 		pos.Line, pos.Column = i+1, int(p-f.lines[i])
+		if pos.Line > 1 && pos.Column == 0 {
+			// newlines should be 1:end+1, not 2:0
+			pos.Line--
+			if i > 0 {
+				pos.Column = int(p - f.lines[i-1])
+			} else {
+				pos.Column = 1
+			}
+		}
 	}
 	return
 }

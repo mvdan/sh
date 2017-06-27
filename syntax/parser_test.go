@@ -284,9 +284,9 @@ func singleParse(p *Parser, in string, want *File) func(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Unexpected error in %q: %v", in, err)
 		}
+		clearPosRecurse(t, in, got, nil)
 		checkNewlines(t, in, got.lines)
 		got.lines = nil
-		clearPosRecurse(t, in, got)
 		if !reflect.DeepEqual(got, want) {
 			t.Fatalf("AST mismatch in %q\ndiff:\n%s", in,
 				strings.Join(pretty.Diff(want, got), "\n"),
