@@ -3689,7 +3689,7 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 			return
 		}
 		offs := pos.Offset()
-		if offs < 0 || offs > uint(len(src)) {
+		if offs > uint(len(src)) {
 			tb.Fatalf("Pos %d in %T is out of bounds in %q",
 				pos, v, string(src))
 			return
