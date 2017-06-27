@@ -243,7 +243,7 @@ func (r *Runner) Run() error {
 		}
 		r.Dir = dir
 	}
-	r.stmts(r.File.Stmts)
+	r.stmts(r.File.StmtList)
 	r.lastExit()
 	if r.err == ExitCode(0) {
 		r.err = nil
@@ -442,10 +442,10 @@ func (r *Runner) cmd(cm syntax.Command) {
 	}
 	switch x := cm.(type) {
 	case *syntax.Block:
-		r.stmts(x.Stmts)
+		r.stmts(x.StmtList)
 	case *syntax.Subshell:
 		r2 := *r
-		r2.stmts(x.Stmts)
+		r2.stmts(x.StmtList)
 		r.exit = r2.exit
 	case *syntax.CallExpr:
 		fields := r.fields(x.Args)
@@ -481,26 +481,26 @@ func (r *Runner) cmd(cm syntax.Command) {
 			pr.Close()
 		}
 	case *syntax.IfClause:
-		r.stmts(x.CondStmts)
+		r.stmts(x.Cond)
 		if r.exit == 0 {
-			r.stmts(x.ThenStmts)
+			r.stmts(x.Then)
 			return
 		}
 		r.exit = 0
 		for _, el := range x.Elifs {
-			r.stmts(el.CondStmts)
+			r.stmts(el.Cond)
 			if r.exit == 0 {
-				r.stmts(el.ThenStmts)
+				r.stmts(el.Then)
 				return
 			}
 		}
-		r.stmts(x.ElseStmts)
+		r.stmts(x.Else)
 	case *syntax.WhileClause:
 		for r.err == nil {
-			r.stmts(x.CondStmts)
+			r.stmts(x.Cond)
 			stop := (r.exit == 0) == x.Until
 			r.exit = 0
-			if stop || r.loopStmtsBroken(x.DoStmts) {
+			if stop || r.loopStmtsBroken(x.Do) {
 				break
 			}
 		}
@@ -510,14 +510,14 @@ func (r *Runner) cmd(cm syntax.Command) {
 			name := y.Name.Value
 			for _, field := range r.fields(y.Items) {
 				r.setVar(name, field)
-				if r.loopStmtsBroken(x.DoStmts) {
+				if r.loopStmtsBroken(x.Do) {
 					break
 				}
 			}
 		case *syntax.CStyleLoop:
 			r.arithm(y.Init)
 			for r.arithm(y.Cond) != 0 {
-				if r.loopStmtsBroken(x.DoStmts) {
+				if r.loopStmtsBroken(x.Do) {
 					break
 				}
 				r.arithm(y.Post)
@@ -547,7 +547,7 @@ func (r *Runner) cmd(cm syntax.Command) {
 					buf.WriteString(escaped)
 				}
 				if match(buf.String(), str) {
-					r.stmts(ci.Stmts)
+					r.stmts(ci.StmtList)
 					return
 				}
 			}
@@ -571,8 +571,8 @@ func (r *Runner) cmd(cm syntax.Command) {
 	}
 }
 
-func (r *Runner) stmts(stmts []*syntax.Stmt) {
-	for _, stmt := range stmts {
+func (r *Runner) stmts(sl syntax.StmtList) {
+	for _, stmt := range sl.Stmts {
 		r.stmt(stmt)
 	}
 }
@@ -642,10 +642,10 @@ func (r *Runner) redir(rd *syntax.Redirect) (io.Closer, error) {
 	return f, nil
 }
 
-func (r *Runner) loopStmtsBroken(stmts []*syntax.Stmt) bool {
+func (r *Runner) loopStmtsBroken(sl syntax.StmtList) bool {
 	r.inLoop = true
 	defer func() { r.inLoop = false }()
-	for _, stmt := range stmts {
+	for _, stmt := range sl.Stmts {
 		r.stmt(stmt)
 		if r.contnEnclosing > 0 {
 			r.contnEnclosing--
@@ -736,7 +736,7 @@ func (r *Runner) wordFields(wps []syntax.WordPart, quoted bool) [][]fieldPart {
 			r2 := *r
 			var buf bytes.Buffer
 			r2.Stdout = &buf
-			r2.stmts(x.Stmts)
+			r2.stmts(x.StmtList)
 			val := strings.TrimRight(buf.String(), "\n")
 			if quoted {
 				curField = append(curField, fieldPart{val: val})
