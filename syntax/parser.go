@@ -1732,7 +1732,7 @@ func (p *Parser) testExpr(ftok token, fpos Pos, pastAndOr bool) TestExpr {
 
 func (p *Parser) testExprBase(ftok token, fpos Pos) TestExpr {
 	switch p.tok {
-	case _EOF:
+	case _EOF, rightParen:
 		return nil
 	case _LitWord:
 		op := token(testUnaryOp(p.val))
@@ -1768,8 +1768,6 @@ func (p *Parser) testExprBase(ftok token, fpos Pos) TestExpr {
 		}
 		pe.Rparen = p.matched(pe.Lparen, leftParen, rightParen)
 		return pe
-	case rightParen:
-		return nil
 	default:
 		// since we don't have [[ as a token
 		fstr := "[["
