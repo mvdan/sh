@@ -3,6 +3,8 @@
 
 package syntax
 
+import "fmt"
+
 // Node represents an AST node.
 type Node interface {
 	// Pos returns the position of the first character of the node.
@@ -42,6 +44,10 @@ func (p Pos) Line() uint {
 // counts in bytes.
 func (p Pos) Col() uint {
 	return uint(p.col)
+}
+
+func (p Pos) String() string {
+	return fmt.Sprintf("%d:%d", p.Line(), p.Col())
 }
 
 // IsValid reports whether the position is valid. All positions in nodes

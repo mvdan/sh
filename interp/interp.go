@@ -123,19 +123,23 @@ type ExitCode uint8
 func (e ExitCode) Error() string { return fmt.Sprintf("exit status %d", e) }
 
 type RunError struct {
-	syntax.Position
+	Filename string
+	syntax.Pos
 	Text string
 }
 
 func (e RunError) Error() string {
-	return fmt.Sprintf("%s: %s", e.Position.String(), e.Text)
+	if e.Filename == "" {
+		return fmt.Sprintf("%s: %s", e.Pos.String(), e.Text)
+	}
+	return fmt.Sprintf("%s:%s: %s", e.Filename, e.Pos.String(), e.Text)
 }
 
 func (r *Runner) runErr(pos syntax.Pos, format string, a ...interface{}) {
 	if r.err == nil {
 		r.err = RunError{
-			Position: r.File.Position(pos),
-			Text:     fmt.Sprintf(format, a...),
+			Pos:  pos,
+			Text: fmt.Sprintf(format, a...),
 		}
 	}
 }

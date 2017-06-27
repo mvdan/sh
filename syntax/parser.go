@@ -430,15 +430,10 @@ type ParseError struct {
 }
 
 func (e *ParseError) Error() string {
-	var buf bytes.Buffer
-	if e.Filename != "" {
-		fmt.Fprintf(&buf, "%s:", e.Filename)
+	if e.Filename == "" {
+		return fmt.Sprintf("%s: %s", e.Pos.String(), e.Text)
 	}
-	if e.Pos.IsValid() {
-		fmt.Fprintf(&buf, "%d:%d:", e.Pos.Line(), e.Pos.Col())
-	}
-	fmt.Fprintf(&buf, " %s", e.Text)
-	return buf.String()
+	return fmt.Sprintf("%s:%s: %s", e.Filename, e.Pos.String(), e.Text)
 }
 
 func (p *Parser) posErr(pos Pos, format string, a ...interface{}) {
