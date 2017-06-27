@@ -23,7 +23,8 @@ type File struct {
 
 // Pos is a position within a source file.
 type Pos struct {
-	offs, line, col uint16
+	offs      uint32
+	line, col uint16
 }
 
 // Offset returns the byte offset of the position in the original
@@ -49,8 +50,6 @@ func (p Pos) IsValid() bool { return p.line > 0 }
 
 func (p Pos) After(p2 Pos) bool { return p.offs > p2.offs }
 
-const maxLine = ^uint16(0)
-
 func (f *File) Pos() Pos {
 	if len(f.Stmts) == 0 {
 		return Pos{}
@@ -67,7 +66,7 @@ func (f *File) End() Pos {
 
 func posAddCol(p Pos, n int) Pos {
 	p.col += uint16(n)
-	p.offs += uint16(n)
+	p.offs += uint32(n)
 	return p
 }
 

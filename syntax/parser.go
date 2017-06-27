@@ -111,7 +111,7 @@ func (p *Parser) reset() {
 }
 
 func (p *Parser) getPos() Pos {
-	p.npos.offs = uint16(p.offs + p.bsp - 1)
+	p.npos.offs = uint32(p.offs + p.bsp - 1)
 	return p.npos
 }
 
