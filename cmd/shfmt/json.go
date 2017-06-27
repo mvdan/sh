@@ -45,7 +45,24 @@ func recurse(val reflect.Value) (interface{}, string) {
 			if !ast.IsExported(tfield.Name) {
 				continue
 			}
-			m[tfield.Name], _ = recurse(val.Field(i))
+			v, _ := recurse(val.Field(i))
+			switch x := v.(type) {
+			case bool:
+				if !x {
+					continue
+				}
+			case string:
+				if x == "" {
+					continue
+				}
+			case []interface{}:
+				if len(x) == 0 {
+					continue
+				}
+			case nil:
+				continue
+			}
+			m[tfield.Name] = v
 		}
 		return m, typ.Name()
 	case reflect.Slice:

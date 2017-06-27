@@ -13,7 +13,7 @@ import (
 
 func TestWriteJSON(t *testing.T) {
 	in := `cmd arg1 "arg2"`
-	want := `{"Comments":[],"Name":"","StmtList":{"Stmts":[{"Assigns":[],"Background":false,"Cmd":{"Args":[{"Parts":[{"Type":"Lit","Value":"cmd"}]},{"Parts":[{"Type":"Lit","Value":"arg1"}]},{"Parts":[{"Dollar":false,"Parts":[{"Type":"Lit","Value":"arg2"}],"Type":"DblQuoted"}]}],"Type":"CallExpr"},"Coprocess":false,"Negated":false,"Redirs":[]}]}}`
+	want := `{"StmtList":{"Stmts":[{"Cmd":{"Args":[{"Parts":[{"Type":"Lit","Value":"cmd"}]},{"Parts":[{"Type":"Lit","Value":"arg1"}]},{"Parts":[{"Parts":[{"Type":"Lit","Value":"arg2"}],"Type":"DblQuoted"}]}],"Type":"CallExpr"}}]}}`
 	parser := syntax.NewParser(syntax.KeepComments)
 	prog, err := parser.Parse(strings.NewReader(in), "")
 	if err != nil {
