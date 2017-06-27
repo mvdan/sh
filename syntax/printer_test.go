@@ -510,7 +510,7 @@ func (b badWriter) Write(p []byte) (int, error) { return 0, errBadWriter }
 
 func TestWriteErr(t *testing.T) {
 	_ = (*byteCounter)(nil).Flush()
-	f := &File{Stmts: []*Stmt{
+	f := &File{StmtList: StmtList{Stmts: []*Stmt{
 		{
 			Redirs: []*Redirect{{
 				Op:   RdrOut,
@@ -518,7 +518,7 @@ func TestWriteErr(t *testing.T) {
 			}},
 			Cmd: &Subshell{},
 		},
-	}}
+	}}}
 	err := NewPrinter().Print(badWriter{}, f)
 	if err == nil {
 		t.Fatalf("Expected error with bad writer")

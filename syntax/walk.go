@@ -5,8 +5,8 @@ package syntax
 
 import "fmt"
 
-func walkStmts(stmts []*Stmt, f func(Node) bool) {
-	for _, s := range stmts {
+func walkStmts(sl StmtList, f func(Node) bool) {
+	for _, s := range sl.Stmts {
 		Walk(s, f)
 	}
 }
@@ -28,7 +28,7 @@ func Walk(node Node, f func(Node) bool) {
 
 	switch x := node.(type) {
 	case *File:
-		walkStmts(x.Stmts, f)
+		walkStmts(x.StmtList, f)
 	case *Stmt:
 		if x.Cmd != nil {
 			Walk(x.Cmd, f)
@@ -63,23 +63,23 @@ func Walk(node Node, f func(Node) bool) {
 	case *CallExpr:
 		walkWords(x.Args, f)
 	case *Subshell:
-		walkStmts(x.Stmts, f)
+		walkStmts(x.StmtList, f)
 	case *Block:
-		walkStmts(x.Stmts, f)
+		walkStmts(x.StmtList, f)
 	case *IfClause:
-		walkStmts(x.CondStmts, f)
-		walkStmts(x.ThenStmts, f)
+		walkStmts(x.Cond, f)
+		walkStmts(x.Then, f)
 		for _, elif := range x.Elifs {
-			walkStmts(elif.CondStmts, f)
-			walkStmts(elif.ThenStmts, f)
+			walkStmts(elif.Cond, f)
+			walkStmts(elif.Then, f)
 		}
-		walkStmts(x.ElseStmts, f)
+		walkStmts(x.Else, f)
 	case *WhileClause:
-		walkStmts(x.CondStmts, f)
-		walkStmts(x.DoStmts, f)
+		walkStmts(x.Cond, f)
+		walkStmts(x.Do, f)
 	case *ForClause:
 		Walk(x.Loop, f)
-		walkStmts(x.DoStmts, f)
+		walkStmts(x.Do, f)
 	case *WordIter:
 		Walk(x.Name, f)
 		walkWords(x.Items, f)
@@ -110,7 +110,7 @@ func Walk(node Node, f func(Node) bool) {
 			Walk(wp, f)
 		}
 	case *CmdSubst:
-		walkStmts(x.Stmts, f)
+		walkStmts(x.StmtList, f)
 	case *ParamExp:
 		Walk(x.Param, f)
 		if x.Index != nil {
@@ -149,7 +149,7 @@ func Walk(node Node, f func(Node) bool) {
 		Walk(x.Word, f)
 		for _, ci := range x.Items {
 			walkWords(ci.Patterns, f)
-			walkStmts(ci.Stmts, f)
+			walkStmts(ci.StmtList, f)
 		}
 	case *TestClause:
 		Walk(x.X, f)
@@ -170,7 +170,7 @@ func Walk(node Node, f func(Node) bool) {
 	case *ExtGlob:
 		Walk(x.Pattern, f)
 	case *ProcSubst:
-		walkStmts(x.Stmts, f)
+		walkStmts(x.StmtList, f)
 	case *TimeClause:
 		if x.Stmt != nil {
 			Walk(x.Stmt, f)

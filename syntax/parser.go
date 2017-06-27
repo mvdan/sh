@@ -42,7 +42,7 @@ func (p *Parser) Parse(src io.Reader, name string) (*File, error) {
 	p.src = src
 	p.rune()
 	p.next()
-	p.f.Stmts = p.stmts()
+	p.f.StmtList = p.stmts()
 	if p.err == nil {
 		// EOF immediately after heredoc word so no newline to
 		// trigger it
@@ -360,15 +360,15 @@ func (p *Parser) followRsrv(lpos Pos, left, val string) Pos {
 	return pos
 }
 
-func (p *Parser) followStmts(left string, lpos Pos, stops ...string) []*Stmt {
+func (p *Parser) followStmts(left string, lpos Pos, stops ...string) StmtList {
 	if p.gotSameLine(semicolon) {
-		return nil
+		return StmtList{}
 	}
-	sts := p.stmts(stops...)
-	if len(sts) < 1 && !p.newLine {
+	sl := p.stmts(stops...)
+	if len(sl.Stmts) < 1 && !p.newLine {
 		p.followErr(lpos, left, "a statement list")
 	}
-	return sts
+	return sl
 }
 
 func (p *Parser) followWordTok(tok token, pos Pos) *Word {
@@ -448,7 +448,7 @@ func (p *Parser) curErr(format string, a ...interface{}) {
 	p.posErr(p.pos, format, a...)
 }
 
-func (p *Parser) stmts(stops ...string) (sts []*Stmt) {
+func (p *Parser) stmts(stops ...string) (sl StmtList) {
 	gotEnd := true
 	for p.tok != _EOF {
 		switch p.tok {
@@ -481,10 +481,10 @@ func (p *Parser) stmts(stops ...string) (sts []*Stmt) {
 		if s, end := p.getStmt(true, false); s == nil {
 			p.invalidStmtStart()
 		} else {
-			if sts == nil {
-				sts = p.stList()
+			if sl.Stmts == nil {
+				sl.Stmts = p.stList()
 			}
-			sts = append(sts, s)
+			sl.Stmts = append(sl.Stmts, s)
 			gotEnd = end
 		}
 	}
@@ -568,7 +568,7 @@ func (p *Parser) wordPart() WordPart {
 			old := p.preNested(subCmd)
 			p.rune() // don't tokenize '|'
 			p.next()
-			cs.Stmts = p.stmts("}")
+			cs.StmtList = p.stmts("}")
 			p.postNested(old)
 			cs.Right = p.pos
 			if !p.gotRsrv("}") {
@@ -612,7 +612,7 @@ func (p *Parser) wordPart() WordPart {
 		cs := &CmdSubst{Left: p.pos}
 		old := p.preNested(subCmd)
 		p.next()
-		cs.Stmts = p.stmts()
+		cs.StmtList = p.stmts()
 		p.postNested(old)
 		cs.Right = p.matched(cs.Left, leftParen, rightParen)
 		return cs
@@ -624,7 +624,7 @@ func (p *Parser) wordPart() WordPart {
 		ps := &ProcSubst{Op: ProcOperator(p.tok), OpPos: p.pos}
 		old := p.preNested(subCmd)
 		p.next()
-		ps.Stmts = p.stmts()
+		ps.StmtList = p.stmts()
 		p.postNested(old)
 		ps.Rparen = p.matched(ps.OpPos, token(ps.Op), rightParen)
 		return ps
@@ -685,7 +685,7 @@ func (p *Parser) wordPart() WordPart {
 		cs := &CmdSubst{Left: p.pos}
 		old := p.preNested(subCmdBckquo)
 		p.next()
-		cs.Stmts = p.stmts()
+		cs.StmtList = p.stmts()
 		p.postNested(old)
 		cs.Right = p.pos
 		if !p.got(bckQuote) {
@@ -1482,7 +1482,7 @@ func (p *Parser) subshell() *Subshell {
 	s := &Subshell{Lparen: p.pos}
 	old := p.preNested(subCmd)
 	p.next()
-	s.Stmts = p.stmts()
+	s.StmtList = p.stmts()
 	p.postNested(old)
 	s.Rparen = p.matched(s.Lparen, leftParen, rightParen)
 	return s
@@ -1506,7 +1506,7 @@ func (p *Parser) arithmExpCmd() Command {
 func (p *Parser) block() *Block {
 	b := &Block{Lbrace: p.pos}
 	p.next()
-	b.Stmts = p.stmts("}")
+	b.StmtList = p.stmts("}")
 	b.Rbrace = p.pos
 	if !p.gotRsrv("}") {
 		p.matchingErr(b.Lbrace, "{", "}")
@@ -1515,29 +1515,29 @@ func (p *Parser) block() *Block {
 }
 
 func (p *Parser) ifClause() *IfClause {
-	ic := &IfClause{If: p.pos}
+	ic := &IfClause{IfPos: p.pos}
 	p.next()
-	ic.CondStmts = p.followStmts("if", ic.If, "then")
-	ic.Then = p.followRsrv(ic.If, "if <cond>", "then")
-	ic.ThenStmts = p.followStmts("then", ic.Then, "fi", "elif", "else")
+	ic.Cond = p.followStmts("if", ic.IfPos, "then")
+	ic.ThenPos = p.followRsrv(ic.IfPos, "if <cond>", "then")
+	ic.Then = p.followStmts("then", ic.ThenPos, "fi", "elif", "else")
 	for p.tok == _LitWord && p.val == "elif" {
-		elf := &Elif{Elif: p.pos}
+		elf := &Elif{ElifPos: p.pos}
 		p.next()
-		elf.CondStmts = p.followStmts("elif", elf.Elif, "then")
-		elf.Then = p.followRsrv(elf.Elif, "elif <cond>", "then")
-		elf.ThenStmts = p.followStmts("then", elf.Then, "fi", "elif", "else")
+		elf.Cond = p.followStmts("elif", elf.ElifPos, "then")
+		elf.ThenPos = p.followRsrv(elf.ElifPos, "elif <cond>", "then")
+		elf.Then = p.followStmts("then", elf.ThenPos, "fi", "elif", "else")
 		ic.Elifs = append(ic.Elifs, elf)
 	}
 	if elsePos := p.pos; p.gotRsrv("else") {
-		ic.Else = elsePos
-		ic.ElseStmts = p.followStmts("else", ic.Else, "fi")
+		ic.ElsePos = elsePos
+		ic.Else = p.followStmts("else", ic.ElsePos, "fi")
 	}
-	ic.Fi = p.stmtEnd(ic, "if", "fi")
+	ic.FiPos = p.stmtEnd(ic, "if", "fi")
 	return ic
 }
 
 func (p *Parser) whileClause(until bool) *WhileClause {
-	wc := &WhileClause{While: p.pos, Until: until}
+	wc := &WhileClause{WhilePos: p.pos, Until: until}
 	rsrv := "while"
 	rsrvCond := "while <cond>"
 	if wc.Until {
@@ -1545,20 +1545,20 @@ func (p *Parser) whileClause(until bool) *WhileClause {
 		rsrvCond = "until <cond>"
 	}
 	p.next()
-	wc.CondStmts = p.followStmts(rsrv, wc.While, "do")
-	wc.Do = p.followRsrv(wc.While, rsrvCond, "do")
-	wc.DoStmts = p.followStmts("do", wc.Do, "done")
-	wc.Done = p.stmtEnd(wc, rsrv, "done")
+	wc.Cond = p.followStmts(rsrv, wc.WhilePos, "do")
+	wc.DoPos = p.followRsrv(wc.WhilePos, rsrvCond, "do")
+	wc.Do = p.followStmts("do", wc.DoPos, "done")
+	wc.DonePos = p.stmtEnd(wc, rsrv, "done")
 	return wc
 }
 
 func (p *Parser) forClause() *ForClause {
-	fc := &ForClause{For: p.pos}
+	fc := &ForClause{ForPos: p.pos}
 	p.next()
-	fc.Loop = p.loop(fc.For)
-	fc.Do = p.followRsrv(fc.For, "for foo [in words]", "do")
-	fc.DoStmts = p.followStmts("do", fc.Do, "done")
-	fc.Done = p.stmtEnd(fc, "for", "done")
+	fc.Loop = p.loop(fc.ForPos)
+	fc.DoPos = p.followRsrv(fc.ForPos, "for foo [in words]", "do")
+	fc.Do = p.followStmts("do", fc.DoPos, "done")
+	fc.DonePos = p.stmtEnd(fc, "for", "done")
 	return fc
 }
 
@@ -1642,7 +1642,7 @@ func (p *Parser) caseItems(stop string) (items []*CaseItem) {
 		}
 		old := p.preNested(switchCase)
 		p.next()
-		ci.Stmts = p.stmts(stop)
+		ci.StmtList = p.stmts(stop)
 		p.postNested(old)
 		ci.OpPos = p.pos
 		switch p.tok {

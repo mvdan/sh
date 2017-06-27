@@ -25,7 +25,9 @@ func TestKeepComments(t *testing.T) {
 			{Text: " foo"},
 			{Text: " bar"},
 		},
-		Stmts: litStmts("cmd"),
+		StmtList: StmtList{
+			Stmts: []*Stmt{litStmt("cmd")},
+		},
 	}
 	singleParse(NewParser(KeepComments), in, want)(t)
 }

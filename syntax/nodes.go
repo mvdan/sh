@@ -19,8 +19,16 @@ type Node interface {
 type File struct {
 	Name string
 
-	Stmts    []*Stmt
+	StmtList
 	Comments []*Comment
+}
+
+type StmtList struct {
+	Stmts []*Stmt
+}
+
+func (s StmtList) empty() bool {
+	return len(s.Stmts) == 0
 }
 
 // Pos is a position within a source file.
@@ -216,7 +224,7 @@ func (c *CallExpr) End() Pos { return c.Args[len(c.Args)-1].End() }
 // nested shell environment.
 type Subshell struct {
 	Lparen, Rparen Pos
-	Stmts          []*Stmt
+	StmtList
 }
 
 func (s *Subshell) Pos() Pos { return s.Lparen }
@@ -226,7 +234,7 @@ func (s *Subshell) End() Pos { return posAddCol(s.Rparen, 1) }
 // nested scope.
 type Block struct {
 	Lbrace, Rbrace Pos
-	Stmts          []*Stmt
+	StmtList
 }
 
 func (b *Block) Pos() Pos { return b.Rbrace }
@@ -234,43 +242,44 @@ func (b *Block) End() Pos { return posAddCol(b.Rbrace, 1) }
 
 // IfClause represents an if statement.
 type IfClause struct {
-	If, Then, Else, Fi Pos
-	CondStmts          []*Stmt
-	ThenStmts          []*Stmt
-	Elifs              []*Elif
-	ElseStmts          []*Stmt
+	IfPos, ThenPos Pos
+	ElsePos, FiPos Pos
+	Cond           StmtList
+	Then           StmtList
+	Elifs          []*Elif
+	Else           StmtList
 }
 
-func (c *IfClause) Pos() Pos { return c.If }
-func (c *IfClause) End() Pos { return posAddCol(c.Fi, 2) }
+func (c *IfClause) Pos() Pos { return c.IfPos }
+func (c *IfClause) End() Pos { return posAddCol(c.FiPos, 2) }
 
 // Elif represents an "else if" case in an if clause.
 type Elif struct {
-	Elif, Then Pos
-	CondStmts  []*Stmt
-	ThenStmts  []*Stmt
+	ElifPos, ThenPos Pos
+	Cond             StmtList
+	Then             StmtList
 }
 
 // WhileClause represents a while or an until clause.
 type WhileClause struct {
-	While, Do, Done Pos
-	Until           bool
-	CondStmts       []*Stmt
-	DoStmts         []*Stmt
+	WhilePos, DoPos, DonePos Pos
+	Until                    bool
+	Cond                     StmtList
+	Do                       StmtList
 }
 
-func (w *WhileClause) Pos() Pos { return w.While }
-func (w *WhileClause) End() Pos { return posAddCol(w.Done, 4) }
+func (w *WhileClause) Pos() Pos { return w.WhilePos }
+func (w *WhileClause) End() Pos { return posAddCol(w.DonePos, 4) }
 
 // ForClause represents a for clause.
 type ForClause struct {
-	For, Do, Done Pos
-	Loop          Loop
-	DoStmts       []*Stmt
+	ForPos, DoPos, DonePos Pos
+	Loop                   Loop
+	Do                     StmtList
 }
 
-func (f *ForClause) Pos() Pos { return f.For }
-func (f *ForClause) End() Pos { return posAddCol(f.Done, 4) }
+func (f *ForClause) Pos() Pos { return f.ForPos }
+func (f *ForClause) End() Pos { return posAddCol(f.DonePos, 4) }
 
 // Loop holds either *WordIter or *CStyleLoop.
 type Loop interface {
@@ -392,7 +401,7 @@ func (q *DblQuoted) End() Pos {
 // CmdSubst represents a command substitution.
 type CmdSubst struct {
 	Left, Right Pos
-	Stmts       []*Stmt
+	StmtList
 
 	TempFile bool // mksh's ${ foo;}
 	ReplyVar bool // mksh's ${|foo;}
@@ -560,7 +569,7 @@ type CaseItem struct {
 	Op       CaseOperator
 	OpPos    Pos
 	Patterns []*Word
-	Stmts    []*Stmt
+	StmtList
 }
 
 // TestClause represents a Bash extended test clause.
@@ -683,7 +692,7 @@ func (e *ExtGlob) End() Pos { return posAddCol(e.Pattern.End(), 1) }
 type ProcSubst struct {
 	OpPos, Rparen Pos
 	Op            ProcOperator
-	Stmts         []*Stmt
+	StmtList
 }
 
 func (s *ProcSubst) Pos() Pos { return s.OpPos }

@@ -31,7 +31,7 @@ func (p *Printer) Print(w io.Writer, f *File) error {
 	p.reset()
 	p.comments = f.Comments
 	p.bufWriter.Reset(w)
-	p.stmts(f.Stmts)
+	p.stmts(f.StmtList)
 	p.commentsUpTo(Pos{})
 	p.newline(Pos{})
 	return p.bufWriter.Flush()
@@ -281,18 +281,18 @@ func (p *Printer) wordPart(wp WordPart) {
 		case x.TempFile:
 			p.WriteString("${")
 			p.wantSpace = true
-			p.nestedStmts(x.Stmts, x.Right)
+			p.nestedStmts(x.StmtList, x.Right)
 			p.wantSpace = false
 			p.semiRsrv("}", x.Right, true)
 		case x.ReplyVar:
 			p.WriteString("${|")
-			p.nestedStmts(x.Stmts, x.Right)
+			p.nestedStmts(x.StmtList, x.Right)
 			p.wantSpace = false
 			p.semiRsrv("}", x.Right, true)
 		default:
 			p.WriteString("$(")
 			p.wantSpace = len(x.Stmts) > 0 && startsWithLparen(x.Stmts[0])
-			p.nestedStmts(x.Stmts, x.Right)
+			p.nestedStmts(x.StmtList, x.Right)
 			p.sepTok(")", x.Right)
 		}
 	case *ParamExp:
@@ -315,7 +315,7 @@ func (p *Printer) wordPart(wp WordPart) {
 			p.wantSpace = false
 		}
 		p.WriteString(x.Op.String())
-		p.nestedStmts(x.Stmts, Pos{})
+		p.nestedStmts(x.StmtList, Pos{})
 		p.WriteByte(')')
 	}
 }
@@ -638,30 +638,30 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 	case *Block:
 		p.WriteByte('{')
 		p.wantSpace = true
-		p.nestedStmts(x.Stmts, x.Rbrace)
+		p.nestedStmts(x.StmtList, x.Rbrace)
 		p.semiRsrv("}", x.Rbrace, true)
 	case *IfClause:
 		p.spacedString("if")
-		p.nestedStmts(x.CondStmts, Pos{})
-		p.semiOrNewl("then", x.Then)
-		p.nestedStmts(x.ThenStmts, Pos{})
+		p.nestedStmts(x.Cond, Pos{})
+		p.semiOrNewl("then", x.ThenPos)
+		p.nestedStmts(x.Then, Pos{})
 		for _, el := range x.Elifs {
-			p.semiRsrv("elif", el.Elif, true)
-			p.nestedStmts(el.CondStmts, Pos{})
-			p.semiOrNewl("then", el.Then)
-			p.nestedStmts(el.ThenStmts, Pos{})
+			p.semiRsrv("elif", el.ElifPos, true)
+			p.nestedStmts(el.Cond, Pos{})
+			p.semiOrNewl("then", el.ThenPos)
+			p.nestedStmts(el.Then, Pos{})
 		}
-		if len(x.ElseStmts) > 0 {
-			p.semiRsrv("else", x.Else, true)
-			p.nestedStmts(x.ElseStmts, Pos{})
-		} else if x.Else.IsValid() {
-			p.incLines(x.Else)
+		if !x.Else.empty() {
+			p.semiRsrv("else", x.ElsePos, true)
+			p.nestedStmts(x.Else, Pos{})
+		} else if x.ElsePos.IsValid() {
+			p.incLines(x.ElsePos)
 		}
-		p.semiRsrv("fi", x.Fi, true)
+		p.semiRsrv("fi", x.FiPos, true)
 	case *Subshell:
 		p.WriteByte('(')
 		p.wantSpace = len(x.Stmts) > 0 && startsWithLparen(x.Stmts[0])
-		p.nestedStmts(x.Stmts, x.Rparen)
+		p.nestedStmts(x.StmtList, x.Rparen)
 		p.sepTok(")", x.Rparen)
 	case *WhileClause:
 		if x.Until {
@@ -669,16 +669,16 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		} else {
 			p.spacedString("while")
 		}
-		p.nestedStmts(x.CondStmts, Pos{})
-		p.semiOrNewl("do", x.Do)
-		p.nestedStmts(x.DoStmts, Pos{})
-		p.semiRsrv("done", x.Done, true)
+		p.nestedStmts(x.Cond, Pos{})
+		p.semiOrNewl("do", x.DoPos)
+		p.nestedStmts(x.Do, Pos{})
+		p.semiRsrv("done", x.DonePos, true)
 	case *ForClause:
 		p.WriteString("for ")
 		p.loop(x.Loop)
-		p.semiOrNewl("do", x.Do)
-		p.nestedStmts(x.DoStmts, Pos{})
-		p.semiRsrv("done", x.Done, true)
+		p.semiOrNewl("do", x.DoPos)
+		p.nestedStmts(x.Do, Pos{})
+		p.semiRsrv("done", x.DonePos, true)
 	case *BinaryCmd:
 		p.stmt(x.X)
 		if x.Y.Pos().Line() <= p.line {
@@ -749,7 +749,7 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			p.WriteByte(')')
 			p.wantSpace = true
 			sep := len(ci.Stmts) > 1 || (len(ci.Stmts) > 0 && ci.Stmts[0].Pos().Line() > p.line)
-			p.nestedStmts(ci.Stmts, Pos{})
+			p.nestedStmts(ci.StmtList, Pos{})
 			p.level++
 			if sep {
 				p.commentsUpTo(ci.OpPos)
@@ -824,12 +824,12 @@ func (p *Printer) hasInline(s, next Node) bool {
 	return false
 }
 
-func (p *Printer) stmts(stmts []*Stmt) {
-	switch len(stmts) {
+func (p *Printer) stmts(sl StmtList) {
+	switch len(sl.Stmts) {
 	case 0:
 		return
 	case 1:
-		s := stmts[0]
+		s := sl.Stmts[0]
 		pos := s.Pos()
 		p.commentsUpTo(pos)
 		if pos.Line() <= p.line {
@@ -846,7 +846,7 @@ func (p *Printer) stmts(stmts []*Stmt) {
 	}
 	inlineIndent := 0
 	lastIndentedLine := uint(0)
-	for i, s := range stmts {
+	for i, s := range sl.Stmts {
 		pos := s.Pos()
 		p.commentsUpTo(pos)
 		if p.line > 0 {
@@ -855,8 +855,8 @@ func (p *Printer) stmts(stmts []*Stmt) {
 		p.incLines(pos)
 		p.stmt(s)
 		var next Node
-		if i+1 < len(stmts) {
-			next = stmts[i+1]
+		if i+1 < len(sl.Stmts) {
+			next = sl.Stmts[i+1]
 		}
 		if !p.hasInline(s, next) {
 			inlineIndent = 0
@@ -867,7 +867,7 @@ func (p *Printer) stmts(stmts []*Stmt) {
 			inlineIndent = 0
 		}
 		if inlineIndent == 0 {
-			follow := stmts[i:]
+			follow := sl.Stmts[i:]
 			for j, s2 := range follow {
 				var next Node
 				if j+1 < len(follow) {
@@ -928,13 +928,13 @@ func (p *Printer) stmtCols(s *Stmt) int {
 	return int(p.lenCounter)
 }
 
-func (p *Printer) nestedStmts(stmts []*Stmt, closing Pos) {
+func (p *Printer) nestedStmts(sl StmtList, closing Pos) {
 	p.incLevel()
-	if len(stmts) == 1 && closing.Line() > p.line && stmts[0].End().Line() <= p.line {
+	if len(sl.Stmts) == 1 && closing.Line() > p.line && sl.Stmts[0].End().Line() <= p.line {
 		p.newline(Pos{})
 		p.indent()
 	}
-	p.stmts(stmts)
+	p.stmts(sl)
 	p.decLevel()
 }
 
