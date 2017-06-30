@@ -830,10 +830,10 @@ func (p *Printer) stmts(sl StmtList) {
 			p.stmt(s)
 			p.wantNewline = true
 		}
-		p.comments(sl.Last)
 		if inlineCom != nil {
 			p.comment(*inlineCom)
 		}
+		p.comments(sl.Last)
 		return
 	}
 	inlineIndent := 0

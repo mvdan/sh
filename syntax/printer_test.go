@@ -84,6 +84,7 @@ func TestPrintWeirdFormat(t *testing.T) {
 		{"# foo\n # bar", "# foo\n# bar"},
 		samePrint("a=b # inline\nbar"),
 		samePrint("a=$(b) # inline"),
+		samePrint("foo # inline\n# after"),
 		samePrint("$(a) $(b)"),
 		{"if a\nthen\n\tb\nfi", "if a; then\n\tb\nfi"},
 		{"if a; then\nb\nelse\nfi", "if a; then\n\tb\nfi"},
