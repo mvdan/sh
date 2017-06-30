@@ -1651,10 +1651,12 @@ func (p *Parser) caseClause() *CaseClause {
 			p.posErr(cc.Pos(), `"case i {" is a mksh feature`)
 		}
 		cc.Items = p.caseItems("}")
+		cc.Last, p.accComs = p.accComs, nil
 		cc.Esac = p.stmtEnd(cc, "case", "}")
 	} else {
 		p.followRsrv(cc.Case, "case x", "in")
 		cc.Items = p.caseItems("esac")
+		cc.Last, p.accComs = p.accComs, nil
 		cc.Esac = p.stmtEnd(cc, "case", "esac")
 	}
 	return cc
@@ -1663,6 +1665,7 @@ func (p *Parser) caseClause() *CaseClause {
 func (p *Parser) caseItems(stop string) (items []*CaseItem) {
 	for p.tok != _EOF && !(p.tok == _LitWord && p.val == stop) {
 		ci := &CaseItem{}
+		ci.Comments, p.accComs = p.accComs, nil
 		p.got(leftParen)
 		for p.tok != _EOF {
 			if w := p.getWord(); w == nil {
@@ -1689,8 +1692,17 @@ func (p *Parser) caseItems(stop string) (items []*CaseItem) {
 			items = append(items, ci)
 			return
 		}
+		ci.Last = append(ci.Last, p.accComs...)
+		p.accComs = nil
 		ci.Op = CaseOperator(p.tok)
 		p.next()
+		if len(p.accComs) > 0 {
+			c := p.accComs[0]
+			if c.Pos().Line() == ci.OpPos.Line() {
+				ci.Comments = append(ci.Comments, c)
+				p.accComs = p.accComs[1:]
+			}
+		}
 		items = append(items, ci)
 	}
 	return

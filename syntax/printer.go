@@ -720,6 +720,14 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		p.word(x.Word)
 		p.WriteString(" in")
 		for _, ci := range x.Items {
+			var inlineCom *Comment
+			for _, c := range ci.Comments {
+				if c.Pos().After(ci.Patterns[0].Pos()) {
+					inlineCom = &c
+					break
+				}
+				p.comment(c)
+			}
 			if pos := ci.Patterns[0].Pos(); pos.Line() > p.line {
 				p.newlines(pos)
 			}
@@ -735,15 +743,20 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			p.WriteByte(')')
 			p.wantSpace = true
 			sep := len(ci.Stmts) > 1 || ci.StmtList.pos().Line() > p.line
-			p.nestedStmts(ci.StmtList, Pos{})
+			sl := ci.StmtList
+			p.nestedStmts(sl, Pos{})
 			p.level++
 			if sep {
 				p.newlines(ci.OpPos)
 			}
 			p.spacedString(ci.Op.String())
+			if inlineCom != nil {
+				p.comment(*inlineCom)
+			}
 			p.level--
 			p.wantNewline = sep || ci.OpPos == x.Esac
 		}
+		p.comments(x.Last)
 		p.semiRsrv("esac", x.Esac, len(x.Items) == 0)
 	case *ArithmCmd:
 		p.WriteString("((")

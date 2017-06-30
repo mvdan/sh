@@ -570,6 +570,7 @@ type CaseClause struct {
 	Case, Esac Pos
 	Word       *Word
 	Items      []*CaseItem
+	Last       []Comment
 }
 
 func (c *CaseClause) Pos() Pos { return c.Case }
@@ -579,6 +580,7 @@ func (c *CaseClause) End() Pos { return posAddCol(c.Esac, 4) }
 type CaseItem struct {
 	Op       CaseOperator
 	OpPos    Pos
+	Comments []Comment
 	Patterns []*Word
 	StmtList
 }

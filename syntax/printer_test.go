@@ -346,6 +346,12 @@ func TestPrintWeirdFormat(t *testing.T) {
 		},
 		samePrint("case $i in\n1)\n\ta\n\t#b\n\t;;\nesac"),
 		samePrint("case $i in\n1) foo() { bar; } ;;\nesac"),
+		samePrint("case $i in\n1) ;; #foo\nesac"),
+		samePrint("case $i in\n#foo\nesac"),
+		samePrint("case $i in\n#before\n1) ;;\nesac"),
+		samePrint("case $i in\n#bef\n1) ;; #inl\nesac"),
+		samePrint("case $i in\n1) ;; #inl1\n2) ;; #inl2\nesac"),
+		samePrint("case $i in\n#bef\n1) #inl\n\tfoo\n\t;;\nesac"),
 		{
 			"a=(\nb\nc\n) foo",
 			"a=(\n\tb\n\tc\n) foo",
