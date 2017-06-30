@@ -1646,19 +1646,18 @@ func (p *Parser) caseClause() *CaseClause {
 	cc := &CaseClause{Case: p.pos}
 	p.next()
 	cc.Word = p.followWord("case", cc.Case)
+	end := "esac"
 	if p.gotRsrv("{") {
 		if p.lang != LangMirBSDKorn {
 			p.posErr(cc.Pos(), `"case i {" is a mksh feature`)
 		}
-		cc.Items = p.caseItems("}")
-		cc.Last, p.accComs = p.accComs, nil
-		cc.Esac = p.stmtEnd(cc, "case", "}")
+		end = "}"
 	} else {
 		p.followRsrv(cc.Case, "case x", "in")
-		cc.Items = p.caseItems("esac")
-		cc.Last, p.accComs = p.accComs, nil
-		cc.Esac = p.stmtEnd(cc, "case", "esac")
 	}
+	cc.Items = p.caseItems(end)
+	cc.Last, p.accComs = p.accComs, nil
+	cc.Esac = p.stmtEnd(cc, "case", end)
 	return cc
 }
 
