@@ -20,15 +20,25 @@ type File struct {
 	Name string
 
 	StmtList
-	Comments []*Comment
 }
 
 type StmtList struct {
 	Stmts []*Stmt
+	Last  []Comment
+}
+
+func (s StmtList) pos() Pos {
+	if len(s.Stmts) > 0 {
+		return s.Stmts[0].Pos()
+	}
+	if len(s.Last) > 0 {
+		return s.Last[0].Pos()
+	}
+	return Pos{}
 }
 
 func (s StmtList) empty() bool {
-	return len(s.Stmts) == 0
+	return len(s.Stmts) == 0 && len(s.Last) == 0
 }
 
 // Pos is a position within a source file.
@@ -104,6 +114,7 @@ func (c *Comment) End() Pos { return posAddCol(c.Hash, len(c.Text)) }
 // It is compromised of a command and other components that may come
 // before or after it.
 type Stmt struct {
+	Comments   []Comment
 	Cmd        Command
 	Position   Pos
 	Semicolon  Pos
@@ -654,14 +665,16 @@ func (d *DeclClause) End() Pos {
 type ArrayExpr struct {
 	Lparen, Rparen Pos
 	Elems          []*ArrayElem
+	Last           []Comment
 }
 
 func (a *ArrayExpr) Pos() Pos { return a.Lparen }
 func (a *ArrayExpr) End() Pos { return posAddCol(a.Rparen, 1) }
 
 type ArrayElem struct {
-	Index ArithmExpr
-	Value *Word
+	Index    ArithmExpr
+	Value    *Word
+	Comments []Comment
 }
 
 func (a *ArrayElem) Pos() Pos {

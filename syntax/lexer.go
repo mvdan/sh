@@ -240,7 +240,7 @@ skipSpace:
 				r = p.rune()
 			}
 			if p.keepComments {
-				p.f.Comments = append(p.f.Comments, &Comment{
+				*p.curComs = append(*p.curComs, Comment{
 					Hash: p.pos,
 					Text: p.endLit(),
 				})

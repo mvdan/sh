@@ -218,6 +218,10 @@ func TestPrintWeirdFormat(t *testing.T) {
 			"for a in 1 2\ndo\n\t# bar\ndone",
 			"for a in 1 2; do\n\t# bar\ndone",
 		},
+		samePrint("#before\nfoo | bar"),
+		samePrint("#before\nfoo && bar"),
+		samePrint("foo | bar # inline"),
+		samePrint("foo && bar # inline"),
 		samePrint("for a in 1 2; do\n\n\tbar\ndone"),
 		{
 			"a \\\n\t&& b",
@@ -337,7 +341,7 @@ func TestPrintWeirdFormat(t *testing.T) {
 		},
 		{
 			"case $i in\n1)\n#foo\n;;\nesac",
-			"case $i in\n1) ;; #foo\nesac",
+			"case $i in\n1)\n\t#foo\n\t;;\nesac",
 		},
 		samePrint("case $i in\n1)\n\ta\n\t#b\n\t;;\nesac"),
 		samePrint("case $i in\n1) foo() { bar; } ;;\nesac"),
@@ -345,7 +349,9 @@ func TestPrintWeirdFormat(t *testing.T) {
 			"a=(\nb\nc\n) foo",
 			"a=(\n\tb\n\tc\n) foo",
 		},
+		samePrint("a=(\n\t#before\n\tb #inline\n)"),
 		samePrint("a=(\n\tb #foo\n\tc #bar\n)"),
+		samePrint("a=(\n\t#lone\n)"),
 		samePrint("foo <<EOF | $(bar)\n3\nEOF"),
 		{
 			"a <<EOF\n$(\n\tb\n\tc)\nEOF",

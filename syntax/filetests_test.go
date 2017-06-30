@@ -2520,7 +2520,7 @@ var fileTests = []testCase{
 		},
 	},
 	{
-		Strs: []string{"case i in 1) a ;& 2) b ;; esac"},
+		Strs: []string{"case i in 1) a ;& 2) ;; esac"},
 		bsmk: &CaseClause{
 			Word: litWord("i"),
 			Items: []*CaseItem{
@@ -2529,11 +2529,7 @@ var fileTests = []testCase{
 					Patterns: litWords("1"),
 					StmtList: litStmts("a"),
 				},
-				{
-					Op:       Break,
-					Patterns: litWords("2"),
-					StmtList: litStmts("b"),
-				},
+				{Op: Break, Patterns: litWords("2")},
 			},
 		},
 	},
@@ -3747,17 +3743,19 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 	}
 	switch x := v.(type) {
 	case *File:
-		for _, c := range x.Comments {
-			recurse(c)
-		}
 		recurse(x.StmtList)
 		checkPos(x)
+	case []Comment:
+		for i := range x {
+			recurse(&x[i])
+		}
 	case *Comment:
 		setPos(&x.Hash, "#"+x.Text)
 	case StmtList:
 		for _, s := range x.Stmts {
 			recurse(s)
 		}
+		recurse(x.Last)
 	case *Stmt:
 		endOff := int(x.End().Offset())
 		switch {
@@ -3772,6 +3770,7 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 			tb.Fatalf("Unexpected Stmt.End() %d %q in %q",
 				endOff, src[endOff], string(src))
 		}
+		recurse(x.Comments)
 		setPos(&x.Position)
 		if x.Semicolon.IsValid() {
 			setPos(&x.Semicolon, ";")

@@ -20,15 +20,13 @@ import (
 
 func TestKeepComments(t *testing.T) {
 	in := "# foo\ncmd\n# bar"
-	want := &File{
-		Comments: []*Comment{
-			{Text: " foo"},
-			{Text: " bar"},
-		},
-		StmtList: StmtList{
-			Stmts: []*Stmt{litStmt("cmd")},
-		},
-	}
+	want := &File{StmtList: StmtList{
+		Stmts: []*Stmt{{
+			Comments: []Comment{{Text: " foo"}},
+			Cmd:      litCall("cmd"),
+		}},
+		Last: []Comment{{Text: " bar"}},
+	}}
 	singleParse(NewParser(KeepComments), in, want)(t)
 }
 

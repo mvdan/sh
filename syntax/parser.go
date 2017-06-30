@@ -85,6 +85,9 @@ type Parser struct {
 	heredocs    []*Redirect
 	hdocStop    []byte
 
+	accComs []Comment
+	curComs *[]Comment
+
 	helperBuf *bytes.Buffer
 
 	litBatch    []Lit
@@ -108,6 +111,7 @@ func (p *Parser) reset() {
 	p.r, p.err, p.readErr = 0, nil, nil
 	p.quote, p.forbidNested = noState, false
 	p.heredocs, p.buriedHdocs = p.heredocs[:0], 0
+	p.accComs, p.curComs = nil, &p.accComs
 }
 
 func (p *Parser) getPos() Pos {
@@ -450,25 +454,26 @@ func (p *Parser) curErr(format string, a ...interface{}) {
 
 func (p *Parser) stmts(stops ...string) (sl StmtList) {
 	gotEnd := true
+loop:
 	for p.tok != _EOF {
 		switch p.tok {
 		case _LitWord:
 			for _, stop := range stops {
 				if p.val == stop {
-					return
+					break loop
 				}
 			}
 		case rightParen:
 			if p.quote == subCmd {
-				return
+				break loop
 			}
 		case bckQuote:
 			if p.quote == subCmdBckquo {
-				return
+				break loop
 			}
 		case dblSemicolon, semiAnd, dblSemiAnd, semiOr:
 			if p.quote == switchCase {
-				return
+				break loop
 			}
 			p.curErr("%s can only be used in a case clause", p.tok)
 		}
@@ -488,6 +493,7 @@ func (p *Parser) stmts(stops ...string) (sl StmtList) {
 			gotEnd = end
 		}
 	}
+	sl.Last, p.accComs = p.accComs, nil
 	return
 }
 
@@ -1220,6 +1226,7 @@ func (p *Parser) getAssign(needEqual bool) *Assign {
 		p.next()
 		for p.tok != _EOF && p.tok != rightParen {
 			ae := &ArrayElem{}
+			ae.Comments, p.accComs = p.accComs, nil
 			if p.tok == leftBrack {
 				left := p.pos
 				p.quote = arithmExprBrack
@@ -1242,8 +1249,16 @@ func (p *Parser) getAssign(needEqual bool) *Assign {
 			if ae.Value = p.getWord(); ae.Value == nil {
 				p.curErr("array element values must be words")
 			}
+			if len(p.accComs) > 0 {
+				c := p.accComs[0]
+				if c.Pos().Line() == ae.End().Line() {
+					ae.Comments = append(ae.Comments, c)
+					p.accComs = p.accComs[1:]
+				}
+			}
 			as.Array.Elems = append(as.Array.Elems, ae)
 		}
+		as.Array.Last, p.accComs = p.accComs, nil
 		p.postNested(old)
 		as.Array.Rparen = p.matched(as.Array.Lparen, leftParen, rightParen)
 	} else if w := p.getWord(); w != nil {
@@ -1291,6 +1306,7 @@ func (p *Parser) doRedirect(s *Stmt) {
 
 func (p *Parser) getStmt(readEnd, binCmd bool) (s *Stmt, gotEnd bool) {
 	s = p.stmt(p.pos)
+	s.Comments, p.accComs = p.accComs, nil
 	if p.gotRsrv("!") {
 		s.Negated = true
 		if p.newLine || stopToken(p.tok) {
@@ -1320,6 +1336,7 @@ func (p *Parser) getStmt(readEnd, binCmd bool) (s *Stmt, gotEnd bool) {
 			}
 			s = p.stmt(s.Position)
 			s.Cmd = b
+			s.Comments, b.X.Comments = b.X.Comments, nil
 		}
 		if p.tok != semicolon {
 			break
@@ -1338,6 +1355,13 @@ func (p *Parser) getStmt(readEnd, binCmd bool) (s *Stmt, gotEnd bool) {
 		s.Coprocess = true
 	}
 	gotEnd = s.Semicolon.IsValid() || s.Background || s.Coprocess
+	if len(p.accComs) > 0 && !binCmd {
+		c := p.accComs[0]
+		if c.Pos().Line() == s.End().Line() {
+			s.Comments = append(s.Comments, c)
+			p.accComs = p.accComs[1:]
+		}
+	}
 	return
 }
 
@@ -1474,6 +1498,19 @@ preLoop:
 		}
 		s = p.stmt(s.Position)
 		s.Cmd = b
+		s.Comments, b.X.Comments = b.X.Comments, nil
+		move := 0
+		for _, c := range p.accComs {
+			// inline comment belongs in the parent
+			if c.Hash.Line() >= b.Y.End().Line() {
+				break
+			}
+			move++
+		}
+		if move > 0 {
+			b.Y.Comments = p.accComs[:move]
+			p.accComs = p.accComs[move:]
+		}
 	}
 	return s
 }

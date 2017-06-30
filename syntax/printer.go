@@ -29,10 +29,8 @@ func NewPrinter(options ...func(*Printer)) *Printer {
 // Print "pretty-prints" the given AST file to the given writer.
 func (p *Printer) Print(w io.Writer, f *File) error {
 	p.reset()
-	p.comments = f.Comments
 	p.bufWriter.Reset(w)
 	p.stmts(f.StmtList)
-	p.commentsUpTo(Pos{})
 	p.newline(Pos{})
 	return p.bufWriter.Flush()
 }
@@ -69,9 +67,6 @@ type Printer struct {
 
 	nestedBinary bool
 
-	// comments is the list of pending comments to write.
-	comments []*Comment
-
 	// pendingHdocs is the list of pending heredocs to write.
 	pendingHdocs []*Redirect
 
@@ -90,12 +85,6 @@ func (p *Printer) reset() {
 	p.pendingHdocs = p.pendingHdocs[:0]
 }
 
-func (p *Printer) incLines(pos Pos) {
-	for p.line < pos.Line() {
-		p.line++
-	}
-}
-
 func (p *Printer) spaces(n int) {
 	for i := 0; i < n; i++ {
 		p.WriteByte(' ')
@@ -109,6 +98,7 @@ func (p *Printer) bslashNewl() {
 	p.WriteString("\\\n")
 	p.wantSpace = false
 	p.line++
+	p.indent()
 }
 
 func (p *Printer) spacedString(s string) {
@@ -128,7 +118,7 @@ func (p *Printer) semiOrNewl(s string, pos Pos) {
 			p.WriteByte(';')
 		}
 		p.WriteByte(' ')
-		p.incLines(pos)
+		p.line = pos.Line()
 	}
 	p.WriteString(s)
 	p.wantSpace = true
@@ -169,7 +159,7 @@ func (p *Printer) indent() {
 func (p *Printer) newline(pos Pos) {
 	p.wantNewline, p.wantSpace = false, false
 	p.WriteByte('\n')
-	if pos.Line() > p.line {
+	if p.line < pos.Line() {
 		p.line++
 	}
 	hdocs := p.pendingHdocs
@@ -177,7 +167,7 @@ func (p *Printer) newline(pos Pos) {
 	for _, r := range hdocs {
 		if r.Hdoc != nil {
 			p.word(r.Hdoc)
-			p.incLines(r.Hdoc.End())
+			p.line = r.Hdoc.End().Line()
 		}
 		p.unquotedWord(r.Word)
 		p.line++
@@ -196,17 +186,7 @@ func (p *Printer) newlines(pos Pos) {
 	p.indent()
 }
 
-func (p *Printer) commentsAndSeparate(pos Pos) {
-	p.commentsUpTo(pos)
-	if p.wantNewline || pos.Line() > p.line {
-		p.newlines(pos)
-	}
-}
-
 func (p *Printer) sepTok(s string, pos Pos) {
-	p.level++
-	p.commentsUpTo(pos)
-	p.level--
 	if p.wantNewline || pos.Line() > p.line {
 		p.newlines(pos)
 	}
@@ -215,9 +195,6 @@ func (p *Printer) sepTok(s string, pos Pos) {
 }
 
 func (p *Printer) semiRsrv(s string, pos Pos, fallback bool) {
-	p.level++
-	p.commentsUpTo(pos)
-	p.level--
 	if p.wantNewline || pos.Line() > p.line {
 		p.newlines(pos)
 	} else {
@@ -232,22 +209,7 @@ func (p *Printer) semiRsrv(s string, pos Pos, fallback bool) {
 	p.wantSpace = true
 }
 
-func (p *Printer) anyCommentsBefore(pos Pos) bool {
-	if !pos.IsValid() || len(p.comments) < 1 {
-		return false
-	}
-	return pos.After(p.comments[0].Hash)
-}
-
-func (p *Printer) commentsUpTo(pos Pos) {
-	if len(p.comments) < 1 {
-		return
-	}
-	c := p.comments[0]
-	if pos.IsValid() && c.Hash.After(pos) {
-		return
-	}
-	p.comments = p.comments[1:]
+func (p *Printer) comment(c Comment) {
 	switch {
 	case p.line == 0:
 	case c.Hash.Line() > p.line:
@@ -255,10 +217,15 @@ func (p *Printer) commentsUpTo(pos Pos) {
 	case p.wantSpace:
 		p.spaces(p.commentPadding + 1)
 	}
-	p.incLines(c.Hash)
+	p.line = c.Hash.Line()
 	p.WriteByte('#')
 	p.WriteString(c.Text)
-	p.commentsUpTo(pos)
+}
+
+func (p *Printer) comments(cs []Comment) {
+	for _, c := range cs {
+		p.comment(c)
+	}
 }
 
 func (p *Printer) wordPart(wp WordPart) {
@@ -272,11 +239,11 @@ func (p *Printer) wordPart(wp WordPart) {
 		p.WriteByte('\'')
 		p.WriteString(x.Value)
 		p.WriteByte('\'')
-		p.incLines(x.End())
+		p.line = x.End().Line()
 	case *DblQuoted:
 		p.dblQuoted(x)
 	case *CmdSubst:
-		p.incLines(x.Pos())
+		p.line = x.Pos().Line()
 		switch {
 		case x.TempFile:
 			p.WriteString("${")
@@ -328,7 +295,7 @@ func (p *Printer) dblQuoted(dq *DblQuoted) {
 	for i, n := range dq.Parts {
 		p.wordPart(n)
 		if i == len(dq.Parts)-1 {
-			p.incLines(n.End())
+			p.line = n.End().Line()
 		}
 	}
 	p.WriteByte('"')
@@ -511,13 +478,11 @@ func (p *Printer) wordJoin(ws []*Word) {
 	anyNewline := false
 	for _, w := range ws {
 		if pos := w.Pos(); pos.Line() > p.line {
-			p.commentsUpTo(pos)
-			p.bslashNewl()
 			if !anyNewline {
 				p.incLevel()
 				anyNewline = true
 			}
-			p.indent()
+			p.bslashNewl()
 		} else if p.wantSpace {
 			p.WriteByte(' ')
 			p.wantSpace = false
@@ -529,26 +494,52 @@ func (p *Printer) wordJoin(ws []*Word) {
 	}
 }
 
-func (p *Printer) elemJoin(elems []*ArrayElem) {
+func (p *Printer) elemJoin(elems []*ArrayElem, last []Comment) {
 	anyNewline := false
 	for _, el := range elems {
-		if pos := el.Pos(); pos.Line() > p.line {
-			p.commentsUpTo(pos)
-			p.WriteByte('\n')
-			p.line++
+		pos := el.Pos()
+		if len(el.Comments) > 0 {
+			if cpos := el.Comments[0].Pos(); pos.After(cpos) {
+				pos = cpos
+			}
+		}
+		if pos.Line() > p.line {
 			if !anyNewline {
 				p.incLevel()
 				anyNewline = true
 			}
+			p.newline(pos)
+			p.indent()
+		}
+		var left *Comment
+		for _, c := range el.Comments {
+			if c.Pos().After(el.Pos()) {
+				left = &c
+				break
+			}
+			p.comment(c)
+			p.wantNewline = true
+		}
+		if p.wantNewline {
+			p.newline(el.Pos())
 			p.indent()
 		} else if p.wantSpace {
 			p.WriteByte(' ')
-			p.wantSpace = false
 		}
 		if p.wroteIndex(el.Index) {
 			p.WriteByte('=')
 		}
 		p.word(el.Value)
+		if left != nil {
+			p.comment(*left)
+		}
+	}
+	if len(last) > 0 {
+		if !anyNewline {
+			p.incLevel()
+			anyNewline = true
+		}
+		p.comments(last)
 	}
 	if anyNewline {
 		p.decLevel()
@@ -567,14 +558,12 @@ func (p *Printer) stmt(s *Stmt) {
 	anyNewline := false
 	for _, r := range s.Redirs[startRedirs:] {
 		if r.OpPos.Line() > p.line {
-			p.bslashNewl()
 			if !anyNewline {
 				p.incLevel()
 				anyNewline = true
 			}
-			p.indent()
+			p.bslashNewl()
 		}
-		p.commentsAndSeparate(r.OpPos)
 		if p.wantSpace {
 			p.WriteByte(' ')
 		}
@@ -593,7 +582,6 @@ func (p *Printer) stmt(s *Stmt) {
 	case s.Semicolon.IsValid() && s.Semicolon.Line() > p.line:
 		p.incLevel()
 		p.bslashNewl()
-		p.indent()
 		p.decLevel()
 		p.WriteByte(';')
 		p.wroteSemi = true
@@ -655,7 +643,7 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			p.semiRsrv("else", x.ElsePos, true)
 			p.nestedStmts(x.Else, Pos{})
 		} else if x.ElsePos.IsValid() {
-			p.incLines(x.ElsePos)
+			p.line = x.ElsePos.Line()
 		}
 		p.semiRsrv("fi", x.FiPos, true)
 	case *Subshell:
@@ -694,29 +682,25 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		if p.binNextLine {
 			if len(p.pendingHdocs) == 0 {
 				p.bslashNewl()
-				p.indent()
 			}
 			p.spacedString(x.Op.String())
-			if p.anyCommentsBefore(x.Y.Pos()) {
+			if len(x.Y.Comments) > 0 {
 				p.wantSpace = false
 				p.WriteByte('\n')
 				p.indent()
-				p.incLines(p.comments[0].Pos())
-				p.commentsUpTo(x.Y.Pos())
+				p.comments(x.Y.Comments)
 				p.WriteByte('\n')
 				p.indent()
 			}
 		} else {
 			p.wantSpace = true
 			p.spacedString(x.Op.String())
-			if x.OpPos.Line() > p.line {
-				p.incLines(x.OpPos)
-			}
-			p.commentsUpTo(x.Y.Pos())
+			p.line = x.OpPos.Line()
+			p.comments(x.Y.Comments)
 			p.newline(Pos{})
 			p.indent()
 		}
-		p.incLines(x.Y.Pos())
+		p.line = x.Y.Pos().Line()
 		_, p.nestedBinary = x.Y.Cmd.(*BinaryCmd)
 		p.stmt(x.Y)
 		if indent {
@@ -729,14 +713,16 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		}
 		p.WriteString(x.Name.Value)
 		p.WriteString("() ")
-		p.incLines(x.Body.Pos())
+		p.line = x.Body.Pos().Line()
 		p.stmt(x.Body)
 	case *CaseClause:
 		p.WriteString("case ")
 		p.word(x.Word)
 		p.WriteString(" in")
 		for _, ci := range x.Items {
-			p.commentsAndSeparate(ci.Patterns[0].Pos())
+			if pos := ci.Patterns[0].Pos(); pos.Line() > p.line {
+				p.newlines(pos)
+			}
 			for i, w := range ci.Patterns {
 				if i > 0 {
 					p.spacedString("|")
@@ -748,19 +734,15 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			}
 			p.WriteByte(')')
 			p.wantSpace = true
-			sep := len(ci.Stmts) > 1 || (len(ci.Stmts) > 0 && ci.Stmts[0].Pos().Line() > p.line)
+			sep := len(ci.Stmts) > 1 || ci.StmtList.pos().Line() > p.line
 			p.nestedStmts(ci.StmtList, Pos{})
 			p.level++
 			if sep {
-				p.commentsUpTo(ci.OpPos)
 				p.newlines(ci.OpPos)
 			}
 			p.spacedString(ci.Op.String())
-			p.incLines(ci.OpPos)
 			p.level--
-			if sep || ci.OpPos == x.Esac {
-				p.wantNewline = true
-			}
+			p.wantNewline = sep || ci.OpPos == x.Esac
 		}
 		p.semiRsrv("esac", x.Esac, len(x.Items) == 0)
 	case *ArithmCmd:
@@ -813,13 +795,11 @@ func startsWithLparen(s *Stmt) bool {
 	return false
 }
 
-func (p *Printer) hasInline(s, next Node) bool {
-	// TODO: next is unnecessary once we attach comments to nodes
-	for _, c := range p.comments {
-		if c.Hash.Line() < s.End().Line() {
-			continue
+func (p *Printer) hasInline(s *Stmt) bool {
+	for _, c := range s.Comments {
+		if c.Pos().Line() == s.End().Line() {
+			return true
 		}
-		return c.Hash.Line() == s.End().Line() && (next == nil || next.End().After(c.Hash))
 	}
 	return false
 }
@@ -827,20 +807,32 @@ func (p *Printer) hasInline(s, next Node) bool {
 func (p *Printer) stmts(sl StmtList) {
 	switch len(sl.Stmts) {
 	case 0:
+		p.comments(sl.Last)
 		return
 	case 1:
 		s := sl.Stmts[0]
 		pos := s.Pos()
-		p.commentsUpTo(pos)
+		var inlineCom *Comment
+		for _, c := range s.Comments {
+			if c.Pos().After(s.Pos()) {
+				inlineCom = &c
+				break
+			}
+			p.comment(c)
+		}
 		if pos.Line() <= p.line {
 			p.stmt(s)
 		} else {
 			if p.line > 0 {
 				p.newlines(pos)
 			}
-			p.incLines(pos)
+			p.line = pos.Line()
 			p.stmt(s)
 			p.wantNewline = true
+		}
+		p.comments(sl.Last)
+		if inlineCom != nil {
+			p.comment(*inlineCom)
 		}
 		return
 	}
@@ -848,17 +840,20 @@ func (p *Printer) stmts(sl StmtList) {
 	lastIndentedLine := uint(0)
 	for i, s := range sl.Stmts {
 		pos := s.Pos()
-		p.commentsUpTo(pos)
+		var inlineCom *Comment
+		for _, c := range s.Comments {
+			if c.Pos().After(s.Pos()) {
+				inlineCom = &c
+				break
+			}
+			p.comment(c)
+		}
 		if p.line > 0 {
 			p.newlines(pos)
 		}
-		p.incLines(pos)
+		p.line = pos.Line()
 		p.stmt(s)
-		var next Node
-		if i+1 < len(sl.Stmts) {
-			next = sl.Stmts[i+1]
-		}
-		if !p.hasInline(s, next) {
+		if !p.hasInline(s) {
 			inlineIndent = 0
 			p.commentPadding = 0
 			continue
@@ -867,13 +862,8 @@ func (p *Printer) stmts(sl StmtList) {
 			inlineIndent = 0
 		}
 		if inlineIndent == 0 {
-			follow := sl.Stmts[i:]
-			for j, s2 := range follow {
-				var next Node
-				if j+1 < len(follow) {
-					next = follow[j+1]
-				}
-				if !p.hasInline(s2, next) {
+			for _, s2 := range sl.Stmts[i:] {
+				if !p.hasInline(s2) {
 					break
 				}
 				if l := p.stmtCols(s2); l > inlineIndent {
@@ -887,8 +877,12 @@ func (p *Printer) stmts(sl StmtList) {
 			}
 			lastIndentedLine = p.line
 		}
+		if inlineCom != nil {
+			p.comment(*inlineCom)
+		}
 	}
 	p.wantNewline = true
+	p.comments(sl.Last)
 }
 
 type byteCounter int
@@ -923,7 +917,7 @@ func (p *Printer) stmtCols(s *Stmt) int {
 		bufWriter: &p.lenCounter,
 	}
 	p.lenPrinter.bufWriter.Reset(nil)
-	p.lenPrinter.incLines(s.Pos())
+	p.lenPrinter.line = s.Pos().Line()
 	p.lenPrinter.stmt(s)
 	return int(p.lenCounter)
 }
@@ -942,12 +936,11 @@ func (p *Printer) assigns(assigns []*Assign, alwaysEqual bool) {
 	anyNewline := false
 	for _, a := range assigns {
 		if a.Pos().Line() > p.line {
-			p.bslashNewl()
 			if !anyNewline {
 				p.incLevel()
 				anyNewline = true
 			}
-			p.indent()
+			p.bslashNewl()
 		} else if p.wantSpace {
 			p.WriteByte(' ')
 		}
@@ -966,7 +959,7 @@ func (p *Printer) assigns(assigns []*Assign, alwaysEqual bool) {
 		} else if a.Array != nil {
 			p.wantSpace = false
 			p.WriteByte('(')
-			p.elemJoin(a.Array.Elems)
+			p.elemJoin(a.Array.Elems, a.Array.Last)
 			p.sepTok(")", a.Array.Rparen)
 		}
 		p.wantSpace = true
