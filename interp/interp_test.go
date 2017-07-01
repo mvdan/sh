@@ -816,6 +816,10 @@ var fileCases = []struct {
 		"touch a; [[ -g a ]] && echo x; chmod g+s a; [[ -g a ]] && echo y",
 		"y\n",
 	},
+	{
+		"mkdir a; cd a; test -f b && echo x; touch b; test -f b && echo y",
+		"y\n",
+	},
 
 	// classic test
 	{
