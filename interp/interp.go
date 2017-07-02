@@ -619,11 +619,7 @@ func (r *Runner) redir(rd *syntax.Redirect) (io.Closer, error) {
 	case syntax.RdrOut, syntax.RdrAll:
 		mode = os.O_RDWR | os.O_CREATE | os.O_TRUNC
 	}
-	path := arg
-	if !filepath.IsAbs(path) {
-		path = filepath.Join(r.Dir, path)
-	}
-	f, err := os.OpenFile(path, mode, 0644)
+	f, err := os.OpenFile(r.relPath(arg), mode, 0644)
 	if err != nil {
 		// TODO: print to stderr?
 		return nil, err
