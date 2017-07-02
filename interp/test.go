@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"regexp"
 
 	"github.com/mvdan/sh/syntax"
@@ -96,10 +95,7 @@ func (r *Runner) binTest(op syntax.BinTestOperator, x, y string) bool {
 }
 
 func (r *Runner) stat(name string) os.FileInfo {
-	if !filepath.IsAbs(name) {
-		name = filepath.Join(r.Dir, name)
-	}
-	info, _ := os.Stat(name)
+	info, _ := os.Stat(r.relPath(name))
 	return info
 }
 
@@ -124,7 +120,7 @@ func (r *Runner) unTest(op syntax.UnTestOperator, x string) bool {
 	case syntax.TsSocket:
 		return r.statMode(x, os.ModeSocket)
 	case syntax.TsSmbLink:
-		info, _ := os.Lstat(x)
+		info, _ := os.Lstat(r.relPath(x))
 		return info != nil && info.Mode()&os.ModeSymlink != 0
 	case syntax.TsSticky:
 		return r.statMode(x, os.ModeSticky)
@@ -136,20 +132,19 @@ func (r *Runner) unTest(op syntax.UnTestOperator, x string) bool {
 	//case syntax.TsUsrOwn:
 	//case syntax.TsModif:
 	case syntax.TsRead:
-		f, err := os.OpenFile(x, os.O_RDONLY, 0)
+		f, err := os.OpenFile(r.relPath(x), os.O_RDONLY, 0)
 		if err == nil {
 			f.Close()
 		}
 		return err == nil
 	case syntax.TsWrite:
-		f, err := os.OpenFile(x, os.O_WRONLY, 0)
+		f, err := os.OpenFile(r.relPath(x), os.O_WRONLY, 0)
 		if err == nil {
 			f.Close()
 		}
 		return err == nil
 	case syntax.TsExec:
-		// use an absolute path to not use $PATH
-		_, err := exec.LookPath(filepath.Join(r.Dir, x))
+		_, err := exec.LookPath(r.relPath(x))
 		return err == nil
 	case syntax.TsNoEmpty:
 		info := r.stat(x)
