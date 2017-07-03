@@ -1313,7 +1313,7 @@ func (p *Parser) getStmt(readEnd, binCmd bool) (s *Stmt, gotEnd bool) {
 			p.posErr(s.Pos(), `! cannot form a statement alone`)
 		}
 	}
-	if s = p.gotStmtPipe(s); s == nil {
+	if s = p.gotStmtPipe(s); s == nil || p.err != nil {
 		return
 	}
 	switch p.tok {
