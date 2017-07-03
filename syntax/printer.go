@@ -495,22 +495,8 @@ func (p *Printer) wordJoin(ws []*Word) {
 }
 
 func (p *Printer) elemJoin(elems []*ArrayElem, last []Comment) {
-	anyNewline := false
+	p.incLevel()
 	for _, el := range elems {
-		pos := el.Pos()
-		if len(el.Comments) > 0 {
-			if cpos := el.Comments[0].Pos(); pos.After(cpos) {
-				pos = cpos
-			}
-		}
-		if pos.Line() > p.line {
-			if !anyNewline {
-				p.incLevel()
-				anyNewline = true
-			}
-			p.newline(pos)
-			p.indent()
-		}
 		var left *Comment
 		for _, c := range el.Comments {
 			if c.Pos().After(el.Pos()) {
@@ -519,6 +505,11 @@ func (p *Printer) elemJoin(elems []*ArrayElem, last []Comment) {
 			}
 			p.comment(c)
 			p.wantNewline = true
+		}
+		pos := el.Pos()
+		if pos.Line() > p.line {
+			p.newline(pos)
+			p.indent()
 		}
 		if p.wantNewline {
 			p.newline(el.Pos())
@@ -535,15 +526,9 @@ func (p *Printer) elemJoin(elems []*ArrayElem, last []Comment) {
 		}
 	}
 	if len(last) > 0 {
-		if !anyNewline {
-			p.incLevel()
-			anyNewline = true
-		}
 		p.comments(last)
 	}
-	if anyNewline {
-		p.decLevel()
-	}
+	p.decLevel()
 }
 
 func (p *Printer) stmt(s *Stmt) {

@@ -358,7 +358,10 @@ func TestPrintWeirdFormat(t *testing.T) {
 		},
 		samePrint("a=(\n\t#before\n\tb #inline\n)"),
 		samePrint("a=(\n\tb #foo\n\tc #bar\n)"),
+		samePrint("a=(\n\tb\n\n\t#foo\n\t#bar\n\tc\n)"),
+		samePrint("a=(\n\t#foo\n\t#bar\n\tc\n)"),
 		samePrint("a=(\n\t#lone\n)"),
+		samePrint("a=(\n\n)"),
 		samePrint("foo <<EOF | $(bar)\n3\nEOF"),
 		{
 			"a <<EOF\n$(\n\tb\n\tc)\nEOF",
