@@ -680,6 +680,10 @@ var shellTests = []errorCase{
 		common: `2:1: redirect word must be on the same line`,
 	},
 	{
+		in:     "echo | < #bar",
+		common: `1:8: < must be followed by a word`,
+	},
+	{
 		in:     "<<",
 		common: `1:1: << must be followed by a word`,
 	},

@@ -1494,7 +1494,7 @@ preLoop:
 	case or:
 		b := &BinaryCmd{OpPos: p.pos, Op: BinCmdOperator(p.tok), X: s}
 		p.next()
-		if b.Y = p.gotStmtPipe(p.stmt(p.pos)); b.Y == nil {
+		if b.Y = p.gotStmtPipe(p.stmt(p.pos)); b.Y == nil || p.err != nil {
 			p.followErr(b.OpPos, b.Op.String(), "a statement")
 			break
 		}
