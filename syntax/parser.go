@@ -1495,6 +1495,7 @@ preLoop:
 		p.next()
 		if b.Y = p.gotStmtPipe(p.stmt(p.pos)); b.Y == nil {
 			p.followErr(b.OpPos, b.Op.String(), "a statement")
+			break
 		}
 		s = p.stmt(s.Position)
 		s.Cmd = b

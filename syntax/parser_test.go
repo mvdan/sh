@@ -652,6 +652,14 @@ var shellTests = []errorCase{
 		common: `1:6: || must be followed by a statement`,
 	},
 	{
+		in:     "echo | #bar",
+		common: `1:6: | must be followed by a statement`,
+	},
+	{
+		in:     "echo && #bar",
+		common: `1:6: && must be followed by a statement`,
+	},
+	{
 		in:     "echo >",
 		common: `1:6: > must be followed by a word`,
 	},
@@ -1606,7 +1614,7 @@ func checkError(p *Parser, in, want string) func(*testing.T) {
 
 func TestParseErrPosix(t *testing.T) {
 	t.Parallel()
-	p := NewParser(Variant(LangPOSIX))
+	p := NewParser(KeepComments, Variant(LangPOSIX))
 	i := 0
 	for _, c := range shellTests {
 		want := c.common
@@ -1623,7 +1631,7 @@ func TestParseErrPosix(t *testing.T) {
 
 func TestParseErrBash(t *testing.T) {
 	t.Parallel()
-	p := NewParser()
+	p := NewParser(KeepComments)
 	i := 0
 	for _, c := range shellTests {
 		want := c.common
@@ -1643,7 +1651,7 @@ func TestParseErrBash(t *testing.T) {
 
 func TestParseErrMirBSDKorn(t *testing.T) {
 	t.Parallel()
-	p := NewParser(Variant(LangMirBSDKorn))
+	p := NewParser(KeepComments, Variant(LangMirBSDKorn))
 	i := 0
 	for _, c := range shellTests {
 		want := c.common
