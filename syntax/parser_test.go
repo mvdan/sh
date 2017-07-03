@@ -1309,8 +1309,8 @@ var shellTests = []errorCase{
 		bash: `1:7: "local" must be followed by names or assignments`,
 	},
 	{
-		in:   "declare 0=${o})",
-		bash: `1:9: "declare" must be followed by names or assignments`,
+		in:   "declare 0=${o})", // TODO: better error
+		bash: `1:15: statements must be separated by &, ; or a newline`,
 	},
 	{
 		in:   "a=(<)",

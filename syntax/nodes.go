@@ -180,6 +180,10 @@ func (*CoprocClause) commandNode() {}
 // an associative array. In the former, it's just an arithmetic
 // expression. In the latter, it will be a word with a single DblQuoted
 // part.
+//
+// If Naked is true, it's part of a DeclClause and doesn't contain a
+// value. In that context, if the name wasn't a literal, it will be in
+// Value instead of Name.
 type Assign struct {
 	Append bool // +=
 	Naked  bool // without '='
@@ -189,7 +193,13 @@ type Assign struct {
 	Array  *ArrayExpr // =(arr)
 }
 
-func (a *Assign) Pos() Pos { return a.Name.Pos() }
+func (a *Assign) Pos() Pos {
+	if a.Name == nil {
+		return a.Value.Pos()
+	}
+	return a.Name.Pos()
+}
+
 func (a *Assign) End() Pos {
 	if a.Value != nil {
 		return a.Value.End()

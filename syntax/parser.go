@@ -1842,6 +1842,11 @@ func (p *Parser) declClause() *DeclClause {
 				Naked: true,
 				Name:  p.getLit(),
 			})
+		} else if w := p.getWord(); w != nil {
+			ds.Assigns = append(ds.Assigns, &Assign{
+				Naked: true,
+				Value: w,
+			})
 		} else {
 			p.followErr(p.pos, ds.Variant.Value, "names or assignments")
 		}

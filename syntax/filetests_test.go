@@ -3213,14 +3213,14 @@ var fileTests = []testCase{
 		),
 	},
 	{
-		Strs: []string{"declare -f func >/dev/null"},
+		Strs: []string{"declare -f $func >/dev/null"},
 		bash: &Stmt{
 			Cmd: &DeclClause{
 				Variant: lit("declare"),
 				Opts:    litWords("-f"),
 				Assigns: []*Assign{{
 					Naked: true,
-					Name:  lit("func"),
+					Value: word(litParamExp("func")),
 				}},
 			},
 			Redirs: []*Redirect{
