@@ -475,13 +475,9 @@ func (p *Printer) unquotedWord(w *Word) {
 }
 
 func (p *Printer) wordJoin(ws []*Word) {
-	anyNewline := false
+	p.incLevel()
 	for _, w := range ws {
 		if pos := w.Pos(); pos.Line() > p.line {
-			if !anyNewline {
-				p.incLevel()
-				anyNewline = true
-			}
 			p.bslashNewl()
 		} else if p.wantSpace {
 			p.WriteByte(' ')
@@ -489,9 +485,7 @@ func (p *Printer) wordJoin(ws []*Word) {
 		}
 		p.word(w)
 	}
-	if anyNewline {
-		p.decLevel()
-	}
+	p.decLevel()
 }
 
 func (p *Printer) elemJoin(elems []*ArrayElem, last []Comment) {
@@ -540,13 +534,9 @@ func (p *Printer) stmt(s *Stmt) {
 	if s.Cmd != nil {
 		startRedirs = p.command(s.Cmd, s.Redirs)
 	}
-	anyNewline := false
+	p.incLevel()
 	for _, r := range s.Redirs[startRedirs:] {
 		if r.OpPos.Line() > p.line {
-			if !anyNewline {
-				p.incLevel()
-				anyNewline = true
-			}
 			p.bslashNewl()
 		}
 		if p.wantSpace {
@@ -565,9 +555,7 @@ func (p *Printer) stmt(s *Stmt) {
 	p.wroteSemi = false
 	switch {
 	case s.Semicolon.IsValid() && s.Semicolon.Line() > p.line:
-		p.incLevel()
 		p.bslashNewl()
-		p.decLevel()
 		p.WriteByte(';')
 		p.wroteSemi = true
 	case s.Background:
@@ -575,9 +563,7 @@ func (p *Printer) stmt(s *Stmt) {
 	case s.Coprocess:
 		p.WriteString(" |&")
 	}
-	if anyNewline {
-		p.decLevel()
-	}
+	p.decLevel()
 }
 
 func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
@@ -934,13 +920,9 @@ func (p *Printer) nestedStmts(sl StmtList, closing Pos) {
 }
 
 func (p *Printer) assigns(assigns []*Assign, alwaysEqual bool) {
-	anyNewline := false
+	p.incLevel()
 	for _, a := range assigns {
 		if a.Pos().Line() > p.line {
-			if !anyNewline {
-				p.incLevel()
-				anyNewline = true
-			}
 			p.bslashNewl()
 		} else if p.wantSpace {
 			p.WriteByte(' ')
@@ -965,7 +947,5 @@ func (p *Printer) assigns(assigns []*Assign, alwaysEqual bool) {
 		}
 		p.wantSpace = true
 	}
-	if anyNewline {
-		p.decLevel()
-	}
+	p.decLevel()
 }
