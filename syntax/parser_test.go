@@ -1329,6 +1329,10 @@ var shellTests = []errorCase{
 		bash: `1:4: "[x]" must be followed by = #NOERR`,
 	},
 	{
+		in:   "o=([0]=#",
+		bash: `1:8: array element values must be words`,
+	},
+	{
 		in:   "function",
 		bsmk: `1:1: "function" must be followed by a word`,
 	},

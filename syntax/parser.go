@@ -1248,6 +1248,7 @@ func (p *Parser) getAssign(needEqual bool) *Assign {
 			}
 			if ae.Value = p.getWord(); ae.Value == nil {
 				p.curErr("array element values must be words")
+				break
 			}
 			if len(p.accComs) > 0 {
 				c := p.accComs[0]
