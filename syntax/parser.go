@@ -1332,8 +1332,9 @@ func (p *Parser) getStmt(readEnd, binCmd bool) (s *Stmt, gotEnd bool) {
 				X:     s,
 			}
 			p.next()
-			if b.Y, _ = p.getStmt(false, true); b.Y == nil {
+			if b.Y, _ = p.getStmt(false, true); b.Y == nil || p.err != nil {
 				p.followErr(b.OpPos, b.Op.String(), "a statement")
+				return
 			}
 			s = p.stmt(s.Position)
 			s.Cmd = b

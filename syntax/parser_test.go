@@ -684,6 +684,10 @@ var shellTests = []errorCase{
 		common: `1:8: < must be followed by a word`,
 	},
 	{
+		in:     "echo && > #",
+		common: `1:9: > must be followed by a word`,
+	},
+	{
 		in:     "<<",
 		common: `1:1: << must be followed by a word`,
 	},
