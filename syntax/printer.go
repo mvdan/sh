@@ -498,14 +498,8 @@ func (p *Printer) elemJoin(elems []*ArrayElem, last []Comment) {
 				break
 			}
 			p.comment(c)
-			p.wantNewline = true
 		}
-		pos := el.Pos()
-		if pos.Line() > p.line {
-			p.newline(pos)
-			p.indent()
-		}
-		if p.wantNewline {
+		if el.Pos().Line() > p.line {
 			p.newline(el.Pos())
 			p.indent()
 		} else if p.wantSpace {
@@ -719,13 +713,13 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			p.level++
 			if sep {
 				p.newlines(ci.OpPos)
+				p.wantNewline = true
 			}
 			p.spacedString(ci.Op.String())
 			if inlineCom != nil {
 				p.comment(*inlineCom)
 			}
 			p.level--
-			p.wantNewline = sep || ci.OpPos == x.Esac
 		}
 		p.comments(x.Last)
 		p.semiRsrv("esac", x.Esac, len(x.Items) == 0)
