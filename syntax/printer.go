@@ -926,6 +926,9 @@ func (c *byteCounter) Flush() error    { return nil }
 // stmtCols reports the length that s will take when formatted in a
 // single line. If it will span multiple lines, stmtCols will return -1.
 func (p *Printer) stmtCols(s *Stmt) int {
+	if p.lenPrinter == nil {
+		return -1 // stmtCols call within stmtCols, bail
+	}
 	*p.lenPrinter = Printer{
 		bufWriter: &p.lenCounter,
 	}

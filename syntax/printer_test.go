@@ -393,6 +393,10 @@ func TestPrintWeirdFormat(t *testing.T) {
 			"# foo\n\nbar",
 		},
 		samePrint("#foo\n#\n#bar"),
+		{
+			"(0 #\n0)#\n0",
+			"(\n\t0 #\n\t0\n) #\n0",
+		},
 	}
 
 	parser := NewParser(KeepComments)
