@@ -8,10 +8,11 @@ import "fmt"
 // Node represents an AST node.
 type Node interface {
 	// Pos returns the position of the first character of the node.
+	// Comments are ignored.
 	Pos() Pos
 	// End returns the position of the character immediately after
 	// the node. If the character is a newline, the line number
-	// won't cross into the next line.
+	// won't cross into the next line. Comments are ignored.
 	End() Pos
 }
 
@@ -22,6 +23,8 @@ type File struct {
 	StmtList
 }
 
+// StmtList is a list of statements with any number of trailing
+// comments. Both lists can be empty.
 type StmtList struct {
 	Stmts []*Stmt
 	Last  []Comment
@@ -347,7 +350,7 @@ func (b *BinaryCmd) End() Pos { return b.Y.End() }
 // FuncDecl represents the declaration of a function.
 type FuncDecl struct {
 	Position Pos
-	RsrvWord bool // non-posix "function " style
+	RsrvWord bool // non-posix "function f()" style
 	Name     *Lit
 	Body     *Stmt
 }
@@ -684,8 +687,9 @@ type ArrayExpr struct {
 func (a *ArrayExpr) Pos() Pos { return a.Lparen }
 func (a *ArrayExpr) End() Pos { return posAddCol(a.Rparen, 1) }
 
+// ArrayElem represents a Bash array element.
 type ArrayElem struct {
-	Index    ArithmExpr
+	Index    ArithmExpr // [i]=, ["k"]=
 	Value    *Word
 	Comments []Comment
 }
