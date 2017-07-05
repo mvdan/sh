@@ -4068,10 +4068,12 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 		setPos(&x.Esac, "esac", "}")
 		recurse(x.Word)
 		for _, ci := range x.Items {
-			setPos(&ci.OpPos, ci.Op.String(), "esac")
-			recurse(ci.Patterns)
-			recurse(ci.StmtList)
+			recurse(ci)
 		}
+	case *CaseItem:
+		setPos(&x.OpPos, x.Op.String(), "esac")
+		recurse(x.Patterns)
+		recurse(x.StmtList)
 	case *TestClause:
 		setPos(&x.Left, "[[")
 		setPos(&x.Right, "]]")

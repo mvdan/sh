@@ -151,9 +151,11 @@ func Walk(node Node, f func(Node) bool) {
 	case *CaseClause:
 		Walk(x.Word, f)
 		for _, ci := range x.Items {
-			walkWords(ci.Patterns, f)
-			walkStmts(ci.StmtList, f)
+			Walk(ci, f)
 		}
+	case *CaseItem:
+		walkWords(x.Patterns, f)
+		walkStmts(x.StmtList, f)
 	case *TestClause:
 		Walk(x.X, f)
 	case *DeclClause:

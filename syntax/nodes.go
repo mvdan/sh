@@ -599,6 +599,9 @@ type CaseItem struct {
 	StmtList
 }
 
+func (c *CaseItem) Pos() Pos { return c.Patterns[0].Pos() }
+func (c *CaseItem) End() Pos { return posAddCol(c.OpPos, len(c.Op.String())) }
+
 // TestClause represents a Bash extended test clause.
 //
 // This node will never appear when in PosixConformant mode.
