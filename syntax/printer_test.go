@@ -385,6 +385,7 @@ func TestPrintWeirdFormat(t *testing.T) {
 			"a=b \\\nc=d \\\nfoo \\\nbar",
 			"a=b \\\n\tc=d \\\n\tfoo \\\n\tbar",
 		},
+		samePrint("a $(x) \\\n\tb"),
 		samePrint("\"foo\nbar\"\netc"),
 		samePrint("\"foo\nbar\nbar2\"\netc"),
 		samePrint("a=\"$b\n\"\nd=e"),

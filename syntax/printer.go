@@ -475,9 +475,13 @@ func (p *Printer) unquotedWord(w *Word) {
 }
 
 func (p *Printer) wordJoin(ws []*Word) {
-	p.incLevel()
+	anyNewline := false
 	for _, w := range ws {
 		if pos := w.Pos(); pos.Line() > p.line {
+			if !anyNewline {
+				p.incLevel()
+				anyNewline = true
+			}
 			p.bslashNewl()
 		} else if p.wantSpace {
 			p.WriteByte(' ')
@@ -485,7 +489,9 @@ func (p *Printer) wordJoin(ws []*Word) {
 		}
 		p.word(w)
 	}
-	p.decLevel()
+	if anyNewline {
+		p.decLevel()
+	}
 }
 
 func (p *Printer) elemJoin(elems []*ArrayElem, last []Comment) {
