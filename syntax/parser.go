@@ -1447,6 +1447,10 @@ preLoop:
 			if p.lang == LangBash {
 				s.Cmd = p.coprocClause()
 			}
+		case "select":
+			if p.lang != LangPOSIX {
+				s.Cmd = p.selectClause()
+			}
 		}
 		if s.Cmd != nil {
 			break
@@ -1602,7 +1606,7 @@ func (p *Parser) forClause() *ForClause {
 	return fc
 }
 
-func (p *Parser) loop(forPos Pos) Loop {
+func (p *Parser) loop(fpos Pos) Loop {
 	if p.lang != LangBash {
 		switch p.tok {
 		case leftParen, dblLeftParen:
@@ -1626,9 +1630,14 @@ func (p *Parser) loop(forPos Pos) Loop {
 		p.gotSameLine(semicolon)
 		return cl
 	}
-	wi := &WordIter{}
+	wi := p.wordIter("for", fpos)
+	return &wi
+}
+
+func (p *Parser) wordIter(ftok string, fpos Pos) WordIter {
+	wi := WordIter{}
 	if wi.Name = p.getLit(); wi.Name == nil {
-		p.followErr(forPos, "for", "a literal")
+		p.followErr(fpos, ftok, "a literal")
 	}
 	if p.gotRsrv("in") {
 		for !p.newLine && p.tok != _EOF && p.tok != semicolon {
@@ -1640,9 +1649,19 @@ func (p *Parser) loop(forPos Pos) Loop {
 		}
 		p.gotSameLine(semicolon)
 	} else if !p.newLine && !p.got(semicolon) {
-		p.followErr(forPos, "for foo", `"in", ; or a newline`)
+		p.followErr(fpos, ftok+" foo", `"in", ; or a newline`)
 	}
 	return wi
+}
+
+func (p *Parser) selectClause() *SelectClause {
+	fc := &SelectClause{SelectPos: p.pos}
+	p.next()
+	fc.Loop = p.wordIter("select", fc.SelectPos)
+	fc.DoPos = p.followRsrv(fc.SelectPos, "select foo [in words]", "do")
+	fc.Do = p.followStmts("do", fc.DoPos, "done")
+	fc.DonePos = p.stmtEnd(fc, "select", "done")
+	return fc
 }
 
 func (p *Parser) caseClause() *CaseClause {

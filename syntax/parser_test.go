@@ -831,6 +831,38 @@ var shellTests = []errorCase{
 		common: `1:1: "for foo" must be followed by "in", ; or a newline`,
 	},
 	{
+		in:   "select",
+		bsmk: `1:1: "select" must be followed by a literal`,
+	},
+	{
+		in:   "select i",
+		bsmk: `1:1: "select foo" must be followed by "in", ; or a newline`,
+	},
+	{
+		in:   "select i in;",
+		bsmk: `1:1: "select foo [in words]" must be followed by "do"`,
+	},
+	{
+		in:   "select i in 1 2 3;",
+		bsmk: `1:1: "select foo [in words]" must be followed by "do"`,
+	},
+	{
+		in:   "select i in 1 2 3; do echo $i;",
+		bsmk: `1:1: select statement must end with "done"`,
+	},
+	{
+		in:   "select i in 1 2 3; echo $i;",
+		bsmk: `1:1: "select foo [in words]" must be followed by "do"`,
+	},
+	{
+		in:   "select 'i' in 1 2 3; do echo $i; done",
+		bsmk: `1:1: "select" must be followed by a literal`,
+	},
+	{
+		in:   "select in 1 2 3; do echo $i; done",
+		bsmk: `1:1: "select foo" must be followed by "in", ; or a newline`,
+	},
+	{
 		in:     "echo foo &\n;",
 		common: `2:1: ; can only immediately follow a statement`,
 	},

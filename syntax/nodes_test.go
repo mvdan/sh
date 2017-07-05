@@ -12,12 +12,15 @@ import (
 func TestPosition(t *testing.T) {
 	t.Parallel()
 	parserBash := NewParser()
+	parserPosix := NewParser(Variant(LangPOSIX))
 	parserMirBSD := NewParser(Variant(LangMirBSDKorn))
 	for i, c := range fileTests {
 		for j, in := range c.Strs {
 			t.Run(fmt.Sprintf("%03d-%d", i, j), func(t *testing.T) {
-				parser := parserBash
-				if c.Bash == nil {
+				parser := parserPosix
+				if c.Bash != nil {
+					parser = parserBash
+				} else if c.MirBSDKorn != nil {
 					parser = parserMirBSD
 				}
 				prog, err := parser.Parse(strings.NewReader(in), "")

@@ -443,6 +443,38 @@ var fileTests = []testCase{
 		},
 	},
 	{
+		Strs: []string{
+			"select i; do foo; done",
+			// TODO: bash won't allow this - bug?
+			//"select i in; do foo; done",
+		},
+		bsmk: &SelectClause{
+			Loop: WordIter{Name: lit("i")},
+			Do:   litStmts("foo"),
+		},
+	},
+	{
+		Strs: []string{
+			"select i in 1 2 3; do echo $i; done",
+			"select i in 1 2 3\ndo echo $i\ndone",
+			"select i in 1 2 3 #foo\ndo echo $i\ndone",
+		},
+		bsmk: &SelectClause{
+			Loop: WordIter{
+				Name:  lit("i"),
+				Items: litWords("1", "2", "3"),
+			},
+			Do: stmts(call(
+				litWord("echo"),
+				word(litParamExp("i")),
+			)),
+		},
+	},
+	{
+		Strs:  []string{"select foo bar"},
+		posix: litStmt("select", "foo", "bar"),
+	},
+	{
 		Strs: []string{`' ' "foo bar"`},
 		common: call(
 			word(sglQuoted(" ")),
@@ -3882,6 +3914,12 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 		setPos(&x.DoPos, "do")
 		setPos(&x.DonePos, "done")
 		recurse(x.Loop)
+		recurse(x.Do)
+	case *SelectClause:
+		setPos(&x.SelectPos, "select")
+		setPos(&x.DoPos, "do")
+		setPos(&x.DonePos, "done")
+		recurse(&x.Loop)
 		recurse(x.Do)
 	case *WordIter:
 		recurse(x.Name)

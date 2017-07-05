@@ -173,6 +173,7 @@ func (*DeclClause) commandNode()   {}
 func (*LetClause) commandNode()    {}
 func (*TimeClause) commandNode()   {}
 func (*CoprocClause) commandNode() {}
+func (*SelectClause) commandNode() {}
 
 // Assign represents an assignment to a variable.
 //
@@ -761,6 +762,16 @@ type LetClause struct {
 
 func (l *LetClause) Pos() Pos { return l.Let }
 func (l *LetClause) End() Pos { return l.Exprs[len(l.Exprs)-1].End() }
+
+// SelectClause represents a Bash select clause.
+type SelectClause struct {
+	SelectPos, DoPos, DonePos Pos
+	Loop                      WordIter
+	Do                        StmtList
+}
+
+func (f *SelectClause) Pos() Pos { return f.SelectPos }
+func (f *SelectClause) End() Pos { return posAddCol(f.DonePos, 4) }
 
 func wordLastEnd(ws []*Word) Pos {
 	if len(ws) == 0 {

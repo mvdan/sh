@@ -632,6 +632,12 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		p.semiOrNewl("do", x.DoPos)
 		p.nestedStmts(x.Do, Pos{})
 		p.semiRsrv("done", x.DonePos, true)
+	case *SelectClause:
+		p.WriteString("select ")
+		p.loop(&x.Loop)
+		p.semiOrNewl("do", x.DoPos)
+		p.nestedStmts(x.Do, Pos{})
+		p.semiRsrv("done", x.DonePos, true)
 	case *BinaryCmd:
 		p.stmt(x.X)
 		if x.Y.Pos().Line() <= p.line {

@@ -15,13 +15,16 @@ import (
 func TestPrintCompact(t *testing.T) {
 	t.Parallel()
 	parserBash := NewParser()
+	parserPosix := NewParser(Variant(LangPOSIX))
 	parserMirBSD := NewParser(Variant(LangMirBSDKorn))
 	printer := NewPrinter()
 	for i, c := range fileTests {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
 			in := c.Strs[0]
-			parser := parserBash
-			if c.Bash == nil {
+			parser := parserPosix
+			if c.Bash != nil {
+				parser = parserBash
+			} else if c.MirBSDKorn != nil {
 				parser = parserMirBSD
 			}
 			prog, err := parser.Parse(strings.NewReader(in), "")
