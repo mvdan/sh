@@ -487,13 +487,6 @@ func (r *Runner) cmd(cm syntax.Command) {
 			return
 		}
 		r.exit = 0
-		for _, el := range x.Elifs {
-			r.stmts(el.Cond)
-			if r.exit == 0 {
-				r.stmts(el.Then)
-				return
-			}
-		}
 		r.stmts(x.Else)
 	case *syntax.WhileClause:
 		for r.err == nil {

@@ -267,22 +267,33 @@ func (b *Block) End() Pos { return posAddCol(b.Rbrace, 1) }
 
 // IfClause represents an if statement.
 type IfClause struct {
-	IfPos, ThenPos Pos
-	ElsePos, FiPos Pos
-	Cond           StmtList
-	Then           StmtList
-	Elifs          []*Elif
-	Else           StmtList
+	Elif    bool
+	IfPos   Pos // pos of "elif" if Elif == true
+	ThenPos Pos
+	ElsePos Pos // pos of "elif" if FollowedByElif() == true
+	FiPos   Pos // empty if Elif == true
+	Cond    StmtList
+	Then    StmtList
+	Else    StmtList
 }
 
 func (c *IfClause) Pos() Pos { return c.IfPos }
-func (c *IfClause) End() Pos { return posAddCol(c.FiPos, 2) }
+func (c *IfClause) End() Pos {
+	if !c.FiPos.IsValid() {
+		return posAddCol(c.ElsePos, 4)
+	}
+	return posAddCol(c.FiPos, 2)
+}
 
-// Elif represents an "else if" case in an if clause.
-type Elif struct {
-	ElifPos, ThenPos Pos
-	Cond             StmtList
-	Then             StmtList
+// FollowedByElif reports whether this IfClause is followed by an "elif"
+// IfClause in its Else branch. This is true if Else.Stmts has exactly
+// one statement with an IfClause whose Elif field is true.
+func (c *IfClause) FollowedByElif() bool {
+	if len(c.Else.Stmts) != 1 {
+		return false
+	}
+	ic, _ := c.Else.Stmts[0].Cmd.(*IfClause)
+	return ic != nil && ic.Elif
 }
 
 // WhileClause represents a while or an until clause.

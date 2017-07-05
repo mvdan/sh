@@ -1559,25 +1559,31 @@ func (p *Parser) block() *Block {
 }
 
 func (p *Parser) ifClause() *IfClause {
-	ic := &IfClause{IfPos: p.pos}
+	rif := &IfClause{IfPos: p.pos}
 	p.next()
-	ic.Cond = p.followStmts("if", ic.IfPos, "then")
-	ic.ThenPos = p.followRsrv(ic.IfPos, "if <cond>", "then")
-	ic.Then = p.followStmts("then", ic.ThenPos, "fi", "elif", "else")
+	rif.Cond = p.followStmts("if", rif.IfPos, "then")
+	rif.ThenPos = p.followRsrv(rif.IfPos, "if <cond>", "then")
+	rif.Then = p.followStmts("then", rif.ThenPos, "fi", "elif", "else")
+	curIf := rif
 	for p.tok == _LitWord && p.val == "elif" {
-		elf := &Elif{ElifPos: p.pos}
+		elf := &IfClause{IfPos: p.pos, Elif: true}
 		p.next()
-		elf.Cond = p.followStmts("elif", elf.ElifPos, "then")
-		elf.ThenPos = p.followRsrv(elf.ElifPos, "elif <cond>", "then")
+		elf.Cond = p.followStmts("elif", elf.IfPos, "then")
+		elf.ThenPos = p.followRsrv(elf.IfPos, "elif <cond>", "then")
 		elf.Then = p.followStmts("then", elf.ThenPos, "fi", "elif", "else")
-		ic.Elifs = append(ic.Elifs, elf)
+		s := p.stmt(elf.IfPos)
+		s.Cmd = elf
+		curIf.ElsePos = elf.IfPos
+		curIf.Else.Stmts = []*Stmt{s}
+		curIf = elf
 	}
 	if elsePos := p.pos; p.gotRsrv("else") {
-		ic.ElsePos = elsePos
-		ic.Else = p.followStmts("else", ic.ElsePos, "fi")
+		curIf.ElsePos = elsePos
+		curIf.Else = p.followStmts("else", curIf.ElsePos, "fi")
 	}
-	ic.FiPos = p.stmtEnd(ic, "if", "fi")
-	return ic
+	rif.FiPos = p.stmtEnd(rif, "if", "fi")
+	curIf.FiPos = rif.FiPos
+	return rif
 }
 
 func (p *Parser) whileClause(until bool) *WhileClause {

@@ -69,10 +69,6 @@ func Walk(node Node, f func(Node) bool) {
 	case *IfClause:
 		walkStmts(x.Cond, f)
 		walkStmts(x.Then, f)
-		for _, elif := range x.Elifs {
-			walkStmts(elif.Cond, f)
-			walkStmts(elif.Then, f)
-		}
 		walkStmts(x.Else, f)
 	case *WhileClause:
 		walkStmts(x.Cond, f)

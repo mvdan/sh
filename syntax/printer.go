@@ -594,23 +594,7 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		p.nestedStmts(x.StmtList, x.Rbrace)
 		p.semiRsrv("}", x.Rbrace, true)
 	case *IfClause:
-		p.spacedString("if")
-		p.nestedStmts(x.Cond, Pos{})
-		p.semiOrNewl("then", x.ThenPos)
-		p.nestedStmts(x.Then, Pos{})
-		for _, el := range x.Elifs {
-			p.semiRsrv("elif", el.ElifPos, true)
-			p.nestedStmts(el.Cond, Pos{})
-			p.semiOrNewl("then", el.ThenPos)
-			p.nestedStmts(el.Then, Pos{})
-		}
-		if !x.Else.empty() {
-			p.semiRsrv("else", x.ElsePos, true)
-			p.nestedStmts(x.Else, Pos{})
-		} else if x.ElsePos.IsValid() {
-			p.line = x.ElsePos.Line()
-		}
-		p.semiRsrv("fi", x.FiPos, true)
+		p.ifClause(x, false)
 	case *Subshell:
 		p.WriteByte('(')
 		p.wantSpace = len(x.Stmts) > 0 && startsWithLparen(x.Stmts[0])
@@ -767,6 +751,27 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		}
 	}
 	return startRedirs
+}
+
+func (p *Printer) ifClause(ic *IfClause, elif bool) {
+	if !elif {
+		p.spacedString("if")
+	}
+	p.nestedStmts(ic.Cond, Pos{})
+	p.semiOrNewl("then", ic.ThenPos)
+	p.nestedStmts(ic.Then, Pos{})
+	if ic.FollowedByElif() {
+		p.semiRsrv("elif", ic.ElsePos, true)
+		p.ifClause(ic.Else.Stmts[0].Cmd.(*IfClause), true)
+		return
+	}
+	if !ic.Else.empty() {
+		p.semiRsrv("else", ic.ElsePos, true)
+		p.nestedStmts(ic.Else, Pos{})
+	} else if ic.ElsePos.IsValid() {
+		p.line = ic.ElsePos.Line()
+	}
+	p.semiRsrv("fi", ic.FiPos, true)
 }
 
 func startsWithLparen(s *Stmt) bool {
