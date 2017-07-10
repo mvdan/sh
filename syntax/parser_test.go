@@ -375,30 +375,6 @@ var shellTests = []errorCase{
 		common: `1:4: invalid UTF-8 encoding #NOERR bash uses bytes`,
 	},
 	{
-		in:     `$`,
-		common: `1:1: $ literal must be escaped or single-quoted #NOERR`,
-	},
-	{
-		in:     `$ #`,
-		common: `1:1: $ literal must be escaped or single-quoted #NOERR`,
-	},
-	{
-		in:     `foo$`,
-		common: `1:4: $ literal must be escaped or single-quoted #NOERR`,
-	},
-	{
-		in:     `"$"`,
-		common: `1:2: $ literal must be escaped or single-quoted #NOERR`,
-	},
-	{
-		in:     `($)`,
-		common: `1:2: $ literal must be escaped or single-quoted #NOERR`,
-	},
-	{
-		in:     `$(foo$)`,
-		common: `1:6: $ literal must be escaped or single-quoted #NOERR`,
-	},
-	{
 		in:     "echo $((foo\x80bar",
 		common: `1:12: invalid UTF-8 encoding`,
 	},
@@ -1074,6 +1050,10 @@ var shellTests = []errorCase{
 		common: `2:1: ; can only immediately follow a statement`,
 	},
 	{
+		in:   "<<$ <<0\n$(<<$<<",
+		bsmk: `2:6: << must be followed by a word`,
+	},
+	{
 		in:     "(foo) bar",
 		common: `1:7: statements must be separated by &, ; or a newline`,
 	},
@@ -1161,12 +1141,8 @@ var shellTests = []errorCase{
 		common: `1:4: expansions not allowed in heredoc words #NOERR`,
 	},
 	{
-		in:     "<<$\n$",
-		common: `1:3: expansions not allowed in heredoc words #NOERR`,
-	},
-	{
 		in:     "<<a <<0\n$(<<$<<",
-		common: `2:5: expansions not allowed in heredoc words`,
+		common: `2:6: << must be followed by a word`,
 	},
 	{
 		in:     `""()`,
@@ -1454,10 +1430,6 @@ var shellTests = []errorCase{
 		bsmk: `1:6: reached EOF without closing quote "`,
 	},
 	{
-		in:   `$"foo$"`,
-		bsmk: `1:6: $ literal must be escaped or single-quoted #NOERR`,
-	},
-	{
 		in:   "echo @(",
 		bsmk: `1:6: reached EOF without matching @( with )`,
 	},
@@ -1555,10 +1527,6 @@ var shellTests = []errorCase{
 		bash: `1:5: reached EOF without matching (( with ))`,
 	},
 	{
-		in:   "a <<EOF\n$''$bar\nEOF",
-		bash: `2:1: $ literal must be escaped or single-quoted #NOERR`,
-	},
-	{
 		in:    "function foo() { bar; }",
 		posix: `1:13: a command can only contain words and redirects`,
 	},
@@ -1591,23 +1559,6 @@ var shellTests = []errorCase{
 		in:    "for ((i=0; i<5; i++)); do echo; done",
 		posix: `1:5: c-style fors are a bash feature`,
 		mksh:  `1:5: c-style fors are a bash feature`,
-	},
-	{
-		in:    `$''`,
-		posix: `1:1: $ literal must be escaped or single-quoted #NOERR`,
-	},
-	{
-		in:    `$""`,
-		posix: `1:1: $ literal must be escaped or single-quoted #NOERR`,
-	},
-	{
-		in:    `$[foo]`,
-		posix: `1:1: $ literal must be escaped or single-quoted`,
-		mksh:  `1:1: $ literal must be escaped or single-quoted #NOERR`,
-	},
-	{
-		in:    `"$[foo]"`,
-		posix: `1:2: $ literal must be escaped or single-quoted`,
 	},
 	{
 		in:    "echo !(a)",
