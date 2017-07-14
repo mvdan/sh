@@ -88,6 +88,7 @@ the parser and the printer. To get started, run:
 * [format-shell] - Atom plugin for `shfmt`
 * [shell-format] - VS Code plugin for `shfmt`
 * [dockerised-shfmt] - A docker image of `shfmt`
+* [vim-shfmt] - Vim plugin for `shfmt`
 
 [posix shell]: http://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html
 [bash]: https://www.gnu.org/software/bash/
@@ -102,3 +103,4 @@ the parser and the printer. To get started, run:
 [format-shell]: https://atom.io/packages/format-shell
 [shell-format]: https://marketplace.visualstudio.com/items?itemName=foxundermoon.shell-format
 [dockerised-shfmt]: https://hub.docker.com/r/jamesmstone/shfmt/
+[vim-shfmt]: https://github.com/z0mbix/vim-shfmt
