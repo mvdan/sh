@@ -30,6 +30,9 @@ func recurse(val reflect.Value) (interface{}, string) {
 		}
 		return recurse(elem)
 	case reflect.Interface:
+		if val.IsNil() {
+			return nil, ""
+		}
 		v, tname := recurse(val.Elem())
 		m := v.(map[string]interface{})
 		m["Type"] = tname
