@@ -704,6 +704,9 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			p.WriteByte(')')
 			p.wantSpace = true
 			sep := len(ci.Stmts) > 1 || ci.StmtList.pos().Line() > p.line
+			if ci.OpPos != x.Esac && ci.OpPos.Line() > p.line {
+				sep = true
+			}
 			sl := ci.StmtList
 			p.nestedStmts(sl, Pos{})
 			p.level++
