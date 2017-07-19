@@ -29,8 +29,7 @@ import (
 // concurrent use, consider a workaround like hiding writes behind a
 // mutex.
 type Runner struct {
-	// TODO: syntax.Node instead of *syntax.File?
-	File *syntax.File
+	Node syntax.Node
 
 	// Env specifies the environment of the interpreter.
 	// If Env is nil, Run uses the current process's environment.
@@ -243,7 +242,16 @@ func (r *Runner) Run() error {
 		}
 		r.Dir = dir
 	}
-	r.stmts(r.File.StmtList)
+	switch x := r.Node.(type) {
+	case *syntax.File:
+		r.stmts(x.StmtList)
+	case *syntax.Stmt:
+		r.stmt(x)
+	case syntax.Command:
+		r.cmd(x)
+	default:
+		return fmt.Errorf("Node can only be File, Stmt, or Command: %T", x)
+	}
 	r.lastExit()
 	if r.err == ExitCode(0) {
 		r.err = nil

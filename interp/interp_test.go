@@ -1168,7 +1168,7 @@ func TestFile(t *testing.T) {
 			cleanEnv()
 			var cb concBuffer
 			r := Runner{
-				File:   file,
+				Node:   file,
 				Stdout: &cb,
 				Stderr: &cb,
 			}
@@ -1275,7 +1275,7 @@ func TestRunnerOpts(t *testing.T) {
 			}
 			var cb concBuffer
 			r := c.runner
-			r.File = file
+			r.Node = file
 			r.Stdout = &cb
 			r.Stderr = &cb
 			if err := r.Run(); err != nil {
@@ -1311,7 +1311,7 @@ func TestRunnerContext(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			cancel()
 			r := Runner{
-				File:    file,
+				Node:    file,
 				Context: ctx,
 			}
 			errChan := make(chan error)
@@ -1328,5 +1328,31 @@ func TestRunnerContext(t *testing.T) {
 				t.Fatal("program was not killed in 0.1s")
 			}
 		})
+	}
+}
+
+func TestRunnerAltNodes(t *testing.T) {
+	in := "echo foo"
+	want := "foo\n"
+	file, err := syntax.NewParser().Parse(strings.NewReader(in), "")
+	if err != nil {
+		t.Fatalf("could not parse: %v", err)
+	}
+	cases := []Runner{
+		{Node: file},
+		{Node: file.Stmts[0]},
+		{Node: file.Stmts[0].Cmd},
+	}
+	for _, r := range cases {
+		var cb concBuffer
+		r.Stdout = &cb
+		r.Stderr = &cb
+		if err := r.Run(); err != nil {
+			cb.WriteString(err.Error())
+		}
+		if got := cb.String(); got != want {
+			t.Fatalf("wrong output in %q:\nwant: %q\ngot:  %q",
+				in, want, got)
+		}
 	}
 }
