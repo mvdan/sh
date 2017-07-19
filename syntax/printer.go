@@ -7,6 +7,7 @@ import (
 	"bufio"
 	"io"
 	"strings"
+	"unicode"
 )
 
 func Indent(spaces int) func(*Printer) {
@@ -219,7 +220,7 @@ func (p *Printer) comment(c Comment) {
 	}
 	p.line = c.Hash.Line()
 	p.WriteByte('#')
-	p.WriteString(c.Text)
+	p.WriteString(strings.TrimRightFunc(c.Text, unicode.IsSpace))
 }
 
 func (p *Printer) comments(cs []Comment) {

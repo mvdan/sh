@@ -84,7 +84,7 @@ func TestPrintWeirdFormat(t *testing.T) {
 		{"foo\n\n\nbar", "foo\n\nbar"},
 		{"foo\n\n", "foo"},
 		{"\n\nfoo", "foo"},
-		{"# foo\n # bar", "# foo\n# bar"},
+		{"# foo \n # bar\t", "# foo\n# bar"},
 		samePrint("a=b # inline\nbar"),
 		samePrint("a=$(b) # inline"),
 		samePrint("foo # inline\n# after"),
@@ -344,7 +344,7 @@ func TestPrintWeirdFormat(t *testing.T) {
 			"case $i in\n1)\n\tfoo\n\tbar\n\t;;\nesac",
 		},
 		{
-			"case $i in\n1)\n#foo\n;;\nesac",
+			"case $i in\n1)\n#foo \t\n;;\nesac",
 			"case $i in\n1)\n\t#foo\n\t;;\nesac",
 		},
 		samePrint("case $i in\n1)\n\ta\n\t#b\n\t;;\nesac"),
