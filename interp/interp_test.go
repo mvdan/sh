@@ -396,6 +396,10 @@ var fileCases = []struct {
 		"",
 	},
 	{
+		"touch a && cd a",
+		"exit status 1 #JUSTERR",
+	},
+	{
 		"[[ $PWD == $(pwd) ]]",
 		"",
 	},

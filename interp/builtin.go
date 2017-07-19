@@ -155,7 +155,8 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 			return 2
 		}
 		dir = r.relPath(dir)
-		if _, err := os.Stat(dir); err != nil {
+		info, err := os.Stat(dir)
+		if err != nil || !info.IsDir() {
 			return 1
 		}
 		r.Dir = dir
