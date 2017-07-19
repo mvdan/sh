@@ -93,8 +93,8 @@ var fileCases = []struct {
 	{"echo", "\n"},
 	{"echo a b c", "a b c\n"},
 	{"echo -n foo", "foo"},
-	{"echo -e '\a'", "\a\n"},
-	{"echo -E '\n'", "\n\n"},
+	{`echo -e '\t'`, "\t\n"},
+	{`echo -E '\t'`, "\\t\n"},
 	{"echo -x foo", "-x foo\n"},
 	{"echo -e -x -e foo", "-x -e foo\n"},
 

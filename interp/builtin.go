@@ -75,16 +75,15 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 			r.delVar(arg)
 		}
 	case "echo":
-		newline := true
+		newline, expand := true, false
 	echoOpts:
 		for len(args) > 0 {
 			switch args[0] {
 			case "-n":
 				newline = false
-			case "-e", "-E":
-				// TODO: what should be our default?
-				// exactly what is the difference in
-				// what we write?
+			case "-e":
+				expand = true
+			case "-E": // default
 			default:
 				break echoOpts
 			}
@@ -93,6 +92,9 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 		for i, arg := range args {
 			if i > 0 {
 				r.outf(" ")
+			}
+			if expand {
+				arg = r.expand(arg, true)
 			}
 			r.outf("%s", arg)
 		}
