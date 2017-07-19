@@ -112,6 +112,11 @@ var fileCases = []struct {
 	{`echo "$(echo ' b c ')"`, " b c \n"},
 	{"echo ''", "\n"},
 
+	// dollar quotes
+	{`echo $'foo\nbar'`, "foo\nbar\n"},
+	{`echo $'\r\t\\'`, "\r\t\\\n"},
+	{`echo $"foo\nbar"`, "foo\\nbar\n"}, // not $"
+
 	// vars
 	{"foo=bar; echo $foo", "bar\n"},
 	{"foo=bar foo=etc; echo $foo", "etc\n"},

@@ -259,6 +259,37 @@ func (r *Runner) errf(format string, a ...interface{}) {
 	fmt.Fprintf(r.Stderr, format, a...)
 }
 
+func expandSequences(s string) string {
+	// TODO: reuse this for printf?
+	var buf bytes.Buffer
+	esc := false
+	for _, r := range s {
+		if !esc {
+			if r == '\\' {
+				esc = true
+			} else {
+				buf.WriteRune(r)
+			}
+			continue
+		}
+		esc = false
+		switch r {
+		case 'n':
+			buf.WriteRune('\n')
+		case 'r':
+			buf.WriteRune('\r')
+		case 't':
+			buf.WriteRune('\t')
+		case '\\':
+			buf.WriteRune('\\')
+		default:
+			buf.WriteRune('\\')
+			buf.WriteRune(r)
+		}
+	}
+	return buf.String()
+}
+
 func fieldJoin(parts []fieldPart) string {
 	var buf bytes.Buffer
 	for _, part := range parts {
@@ -685,10 +716,11 @@ func (r *Runner) wordFields(wps []syntax.WordPart, quoted bool) [][]fieldPart {
 			curField = append(curField, fieldPart{val: s})
 		case *syntax.SglQuoted:
 			allowEmpty = true
-			curField = append(curField, fieldPart{
-				quoted: true,
-				val:    x.Value,
-			})
+			fp := fieldPart{quoted: true, val: x.Value}
+			if x.Dollar {
+				fp.val = expandSequences(fp.val)
+			}
+			curField = append(curField, fp)
 		case *syntax.DblQuoted:
 			allowEmpty = true
 			if len(x.Parts) == 1 {
