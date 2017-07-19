@@ -101,7 +101,11 @@ var fileCases = []struct {
 	// printf
 	{"printf foo", "foo"},
 	{"printf ' %s \n' bar", " bar \n"},
-	// {"printf %d 3", "3"}, TODO
+	{"printf %s foo", "foo"},
+	{"printf %s", ""},
+	{"printf %d 3", "3"},
+	{"printf %d", "0"},
+	{"printf %B foo", "0:0: unhandled format char: B #JUSTERR"},
 
 	// words and quotes
 	{"echo  foo ", "foo\n"},

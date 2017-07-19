@@ -259,32 +259,51 @@ func (r *Runner) errf(format string, a ...interface{}) {
 	fmt.Fprintf(r.Stderr, format, a...)
 }
 
-func expandSequences(s string) string {
-	// TODO: reuse this for printf?
+func (r *Runner) expand(format string, onlyChars bool, args ...string) string {
 	var buf bytes.Buffer
-	esc := false
-	for _, r := range s {
-		if !esc {
-			if r == '\\' {
-				esc = true
-			} else {
-				buf.WriteRune(r)
+	esc, fmt := false, false
+	for _, c := range format {
+		if esc {
+			esc = false
+			switch c {
+			case 'n':
+				buf.WriteRune('\n')
+			case 'r':
+				buf.WriteRune('\r')
+			case 't':
+				buf.WriteRune('\t')
+			case '\\':
+				buf.WriteRune('\\')
+			default:
+				buf.WriteRune('\\')
+				buf.WriteRune(c)
 			}
 			continue
 		}
-		esc = false
-		switch r {
-		case 'n':
-			buf.WriteRune('\n')
-		case 'r':
-			buf.WriteRune('\r')
-		case 't':
-			buf.WriteRune('\t')
-		case '\\':
-			buf.WriteRune('\\')
-		default:
-			buf.WriteRune('\\')
-			buf.WriteRune(r)
+		if fmt {
+			fmt = false
+			arg := ""
+			if len(args) > 0 {
+				arg, args = args[0], args[1:]
+			}
+			switch c {
+			case 's':
+				buf.WriteString(arg)
+			case 'd':
+				// round-trip to convert invalid to 0
+				n, _ := strconv.Atoi(arg)
+				buf.WriteString(strconv.Itoa(n))
+			default:
+				r.runErr(syntax.Pos{}, "unhandled format char: %c", c)
+			}
+			continue
+		}
+		if c == '\\' {
+			esc = true
+		} else if !onlyChars && c == '%' {
+			fmt = true
+		} else {
+			buf.WriteRune(c)
 		}
 	}
 	return buf.String()
@@ -718,7 +737,7 @@ func (r *Runner) wordFields(wps []syntax.WordPart, quoted bool) [][]fieldPart {
 			allowEmpty = true
 			fp := fieldPart{quoted: true, val: x.Value}
 			if x.Dollar {
-				fp.val = expandSequences(fp.val)
+				fp.val = r.expand(fp.val, true)
 			}
 			curField = append(curField, fp)
 		case *syntax.DblQuoted:

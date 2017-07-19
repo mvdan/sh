@@ -104,11 +104,7 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 			r.errf("usage: printf format [arguments]\n")
 			return 2
 		}
-		var a []interface{}
-		for _, arg := range args[1:] {
-			a = append(a, arg)
-		}
-		r.outf(args[0], a...)
+		r.outf("%s", r.expand(args[0], false, args[1:]...))
 	case "break":
 		if !r.inLoop {
 			r.errf("break is only useful in a loop")
