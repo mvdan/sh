@@ -55,7 +55,7 @@ func run(reader io.Reader, name string) error {
 		return err
 	}
 	r := interp.Runner{
-		File:   prog,
+		Node:   prog,
 		Stdin:  os.Stdin,
 		Stdout: os.Stdout,
 		Stderr: os.Stderr,
