@@ -20,8 +20,8 @@ var (
 	write       = flag.Bool("w", false, "write result to file instead of stdout")
 	list        = flag.Bool("l", false, "list files whose formatting differs from shfmt's")
 	simple      = flag.Bool("s", false, "simplify the code")
-	posix       = flag.Bool("p", false, "parse POSIX shell code instead of bash")
-	mksh        = flag.Bool("m", false, "parse MirBSD Korn shell code instead of bash")
+	langStr     = flag.String("ln", "bash", "language variant to parse (bash/posix/mksh)")
+	posix       = flag.Bool("p", false, "shorthand for -ln=posix")
 	indent      = flag.Int("i", 0, "indent: 0 for tabs (default), >0 for number of spaces")
 	binNext     = flag.Bool("bn", false, "binary ops like && and | may start a line")
 	toJSON      = flag.Bool("exp.tojson", false, "print AST to stdout as a typed JSON")
@@ -51,14 +51,15 @@ func main() {
 	}
 
 	lang := syntax.LangBash
-	switch {
-	case *mksh && *posix:
-		fmt.Fprintln(os.Stderr, "cannot mix parser language flags")
-		os.Exit(1)
-	case *posix:
+	switch *langStr {
+	case "bash", "":
+	case "posix":
 		lang = syntax.LangPOSIX
-	case *mksh:
+	case "mksh":
 		lang = syntax.LangMirBSDKorn
+	default:
+		fmt.Fprintf(os.Stderr, "unknown shell language: %s\n", *langStr)
+		os.Exit(1)
 	}
 	parser = syntax.NewParser(syntax.KeepComments, syntax.Variant(lang))
 	printer = syntax.NewPrinter(func(p *syntax.Printer) {
