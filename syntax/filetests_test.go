@@ -1545,7 +1545,6 @@ var fileTests = []testCase{
 		))),
 	},
 	{
-		// TODO: space the }?
 		Strs: []string{"${ foo;}", "${\n\tfoo; }", "${\tfoo;}"},
 		mksh: &CmdSubst{
 			StmtList: litStmts("foo"),
@@ -3723,14 +3722,6 @@ var fileTests = []testCase{
 
 // these don't have a canonical format with the same AST
 var fileTestsNoPrint = []testCase{
-	//{ TODO: unclosed heredocs?
-	//        Strs: []string{"<<EOF\n\\"},
-	//        common: &Stmt{Redirs: []*Redirect{{
-	//                Op:   Hdoc,
-	//                Word: litWord("EOF"),
-	//                Hdoc: litWord("\\"),
-	//        }}},
-	//},
 	{
 		Strs:  []string{`$[foo]`},
 		posix: word(lit("$"), lit("[foo]")),
