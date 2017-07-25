@@ -1866,6 +1866,8 @@ func (p *Parser) declClause() *DeclClause {
 	for !p.newLine && !stopToken(p.tok) && !p.peekRedir() {
 		if (p.tok == _Lit || p.tok == _LitWord) && p.hasValidIdent() {
 			ds.Assigns = append(ds.Assigns, p.getAssign(false))
+		} else if p.eqlOffs > 0 {
+			p.curErr("invalid var name")
 		} else if p.tok == _LitWord {
 			ds.Assigns = append(ds.Assigns, &Assign{
 				Naked: true,
