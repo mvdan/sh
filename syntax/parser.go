@@ -72,8 +72,8 @@ type Parser struct {
 	pos  Pos // position of tok
 	npos Pos // next position
 
-	quote quoteState // current lexer state
-	asPos int        // position of '=' in a literal
+	quote   quoteState // current lexer state
+	eqlOffs int        // position of '=' in val (a literal)
 
 	keepComments bool
 	lang         LangVariant
@@ -1145,7 +1145,7 @@ func ValidName(val string) bool {
 }
 
 func (p *Parser) hasValidIdent() bool {
-	if end := p.asPos; end > 0 {
+	if end := p.eqlOffs; end > 0 {
 		if p.val[end-1] == '+' && p.lang != LangPOSIX {
 			end--
 		}
@@ -1158,9 +1158,9 @@ func (p *Parser) hasValidIdent() bool {
 
 func (p *Parser) getAssign(needEqual bool) *Assign {
 	as := &Assign{}
-	if p.asPos > 0 { // foo=bar
-		nameEnd := p.asPos
-		if p.lang != LangPOSIX && p.val[p.asPos-1] == '+' {
+	if p.eqlOffs > 0 { // foo=bar
+		nameEnd := p.eqlOffs
+		if p.lang != LangPOSIX && p.val[p.eqlOffs-1] == '+' {
 			// a+=b
 			as.Append = true
 			nameEnd--
@@ -1168,9 +1168,9 @@ func (p *Parser) getAssign(needEqual bool) *Assign {
 		as.Name = p.lit(p.pos, p.val[:nameEnd])
 		// since we're not using the entire p.val
 		as.Name.ValueEnd = posAddCol(as.Name.ValuePos, nameEnd)
-		left := p.lit(posAddCol(p.pos, 1), p.val[p.asPos+1:])
+		left := p.lit(posAddCol(p.pos, 1), p.val[p.eqlOffs+1:])
 		if left.Value != "" {
-			left.ValuePos = posAddCol(left.ValuePos, p.asPos)
+			left.ValuePos = posAddCol(left.ValuePos, p.eqlOffs)
 			as.Value = p.word(p.wps(left))
 		}
 		p.next()
