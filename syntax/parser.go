@@ -54,8 +54,9 @@ func (p *Parser) Parse(src io.Reader, name string) (*File, error) {
 type Parser struct {
 	src io.Reader
 	bs  []byte // current chunk of read bytes
-	bsp int    // pos within chunk for the next rune
-	r   rune
+	bsp int    // pos within chunk for the rune after r
+	r   rune   // next rune
+	w   uint16 // width of r
 
 	f *File
 
@@ -70,7 +71,7 @@ type Parser struct {
 
 	offs int
 	pos  Pos // position of tok
-	npos Pos // next position
+	npos Pos // next position (of r)
 
 	quote   quoteState // current lexer state
 	eqlOffs int        // position of '=' in val (a literal)
@@ -107,15 +108,16 @@ const bufSize = 1 << 10
 func (p *Parser) reset() {
 	p.bs, p.bsp = nil, 0
 	p.offs = 0
-	p.npos = Pos{line: 1}
-	p.r, p.err, p.readErr = 0, nil, nil
+	p.npos = Pos{line: 1, col: 1}
+	p.r, p.w = 0, 0
+	p.err, p.readErr = nil, nil
 	p.quote, p.forbidNested = noState, false
 	p.heredocs, p.buriedHdocs = p.heredocs[:0], 0
 	p.accComs, p.curComs = nil, &p.accComs
 }
 
 func (p *Parser) getPos() Pos {
-	p.npos.offs = uint32(p.offs + p.bsp - 1)
+	p.npos.offs = uint32(p.offs + p.bsp - int(p.w))
 	return p.npos
 }
 
