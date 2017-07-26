@@ -135,8 +135,7 @@ type Stmt struct {
 	Background bool // stmt &
 	Coprocess  bool // mksh's |&
 
-	Assigns []*Assign   // a=x b=y stmt
-	Redirs  []*Redirect // stmt >a <b
+	Redirs []*Redirect // stmt >a <b
 }
 
 func (s *Stmt) Pos() Pos { return s.Position }
@@ -150,9 +149,6 @@ func (s *Stmt) End() Pos {
 	}
 	if s.Cmd != nil {
 		end = s.Cmd.End()
-	}
-	if len(s.Assigns) > 0 {
-		end = posMax(end, s.Assigns[len(s.Assigns)-1].End())
 	}
 	if len(s.Redirs) > 0 {
 		end = posMax(end, s.Redirs[len(s.Redirs)-1].End())
@@ -249,11 +245,23 @@ func (r *Redirect) End() Pos { return r.Word.End() }
 
 // CallExpr represents a command execution or function call.
 type CallExpr struct {
-	Args []*Word
+	Assigns []*Assign // a=x b=y args
+	Args    []*Word
 }
 
-func (c *CallExpr) Pos() Pos { return c.Args[0].Pos() }
-func (c *CallExpr) End() Pos { return c.Args[len(c.Args)-1].End() }
+func (c *CallExpr) Pos() Pos {
+	if len(c.Assigns) > 0 {
+		return c.Assigns[0].Pos()
+	}
+	return c.Args[0].Pos()
+}
+
+func (c *CallExpr) End() Pos {
+	if len(c.Args) == 0 {
+		return c.Assigns[len(c.Assigns)-1].End()
+	}
+	return c.Args[len(c.Args)-1].End()
+}
 
 // Subshell represents a series of commands that should be executed in a
 // nested shell environment.

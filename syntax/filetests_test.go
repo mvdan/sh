@@ -622,13 +622,13 @@ var fileTests = []testCase{
 		common: &BinaryCmd{
 			Op: Pipe,
 			X:  litStmt("foo"),
-			Y: &Stmt{
+			Y: stmt(&CallExpr{
 				Assigns: []*Assign{{
 					Name:  lit("a"),
 					Value: litWord("b"),
 				}},
-				Cmd: litCall("bar"),
-			},
+				Args: litWords("bar"),
+			}),
 		},
 	},
 	{
@@ -704,7 +704,7 @@ var fileTests = []testCase{
 	},
 	{
 		Strs: []string{"a=b foo=$bar foo=start$bar"},
-		common: &Stmt{
+		common: &CallExpr{
 			Assigns: []*Assign{
 				{Name: lit("a"), Value: litWord("b")},
 				{Name: lit("foo"), Value: word(litParamExp("bar"))},
@@ -717,7 +717,7 @@ var fileTests = []testCase{
 	},
 	{
 		Strs: []string{"a=\"\nbar\""},
-		common: &Stmt{
+		common: &CallExpr{
 			Assigns: []*Assign{{
 				Name:  lit("a"),
 				Value: word(dblQuoted(lit("\nbar"))),
@@ -726,9 +726,9 @@ var fileTests = []testCase{
 	},
 	{
 		Strs: []string{"A_3a= foo"},
-		common: &Stmt{
-			Cmd:     litCall("foo"),
+		common: &CallExpr{
 			Assigns: []*Assign{{Name: lit("A_3a")}},
+			Args:    litWords("foo"),
 		},
 	},
 	{
@@ -2722,11 +2722,11 @@ var fileTests = []testCase{
 		Strs: []string{"if a; then b=; fi", "if a; then b=\nfi"},
 		common: &IfClause{
 			Cond: litStmts("a"),
-			Then: stmtList(&Stmt{
+			Then: stmtList(stmt(&CallExpr{
 				Assigns: []*Assign{
 					{Name: lit("b")},
 				},
-			}),
+			})),
 		},
 	},
 	{
@@ -2749,11 +2749,11 @@ var fileTests = []testCase{
 	},
 	{
 		Strs: []string{"a=b\nc=d", "a=b; c=d"},
-		common: []*Stmt{
-			{Assigns: []*Assign{
+		common: []Command{
+			&CallExpr{Assigns: []*Assign{
 				{Name: lit("a"), Value: litWord("b")},
 			}},
-			{Assigns: []*Assign{
+			&CallExpr{Assigns: []*Assign{
 				{Name: lit("c"), Value: litWord("d")},
 			}},
 		},
@@ -3270,7 +3270,7 @@ var fileTests = []testCase{
 	},
 	{
 		Strs: []string{"foo=([)"},
-		mksh: &Stmt{Assigns: []*Assign{{
+		mksh: &CallExpr{Assigns: []*Assign{{
 			Name:  lit("foo"),
 			Array: arrValues(litWord("[")),
 		}}},
@@ -3284,10 +3284,10 @@ var fileTests = []testCase{
 			&BinaryCmd{
 				Op: AndStmt,
 				X:  litStmt("a"),
-				Y: &Stmt{Assigns: []*Assign{{
+				Y: stmt(&CallExpr{Assigns: []*Assign{{
 					Name:  lit("b"),
 					Array: arrValues(litWord("c")),
-				}}},
+				}}}),
 			},
 			litCall("d"),
 		),
@@ -3463,10 +3463,10 @@ var fileTests = []testCase{
 				Post: true,
 				X:    litWord("i"),
 			})),
-			{Assigns: []*Assign{{
+			stmt(&CallExpr{Assigns: []*Assign{{
 				Name:  lit("foo"),
 				Array: arrValues(litWord("bar")),
-			}}},
+			}}}),
 		},
 	},
 	{
@@ -3488,29 +3488,19 @@ var fileTests = []testCase{
 		},
 	},
 	{
-		Strs: []string{"a=(b c) foo"},
-		// TODO: why does mksh error on this?
-		bash: &Stmt{
-			Assigns: []*Assign{{
-				Name:  lit("a"),
-				Array: arrValues(litWords("b", "c")...),
-			}},
-			Cmd: litCall("foo"),
-		},
-	},
-	{
 		Strs: []string{"a=(b c) foo", "a=(\nb\nc\n) foo"},
-		bash: &Stmt{
+		// TODO: why does mksh error on this?
+		bash: &CallExpr{
 			Assigns: []*Assign{{
 				Name:  lit("a"),
 				Array: arrValues(litWords("b", "c")...),
 			}},
-			Cmd: litCall("foo"),
+			Args: litWords("foo"),
 		},
 	},
 	{
 		Strs: []string{"a+=1"},
-		bsmk: &Stmt{
+		bsmk: &CallExpr{
 			Assigns: []*Assign{{
 				Append: true,
 				Name:   lit("a"),
@@ -3521,7 +3511,7 @@ var fileTests = []testCase{
 	},
 	{
 		Strs: []string{"b+=(2 3)"},
-		bsmk: &Stmt{Assigns: []*Assign{{
+		bsmk: &CallExpr{Assigns: []*Assign{{
 			Append: true,
 			Name:   lit("b"),
 			Array:  arrValues(litWords("2", "3")...),
@@ -3530,7 +3520,7 @@ var fileTests = []testCase{
 	{
 		Strs:  []string{"a[2]=b c[-3]= d[x]+=e"},
 		posix: litStmt("a[2]=b", "c[-3]=", "d[x]+=e"),
-		bsmk: &Stmt{Assigns: []*Assign{
+		bsmk: &CallExpr{Assigns: []*Assign{
 			{
 				Name:  lit("a"),
 				Index: litWord("2"),
@@ -3556,7 +3546,7 @@ var fileTests = []testCase{
 			"b[i]+=(2 3)",
 			"b[ i ]+=( 2 3 )",
 		},
-		bsmk: &Stmt{Assigns: []*Assign{{
+		bsmk: &CallExpr{Assigns: []*Assign{{
 			Append: true,
 			Name:   lit("b"),
 			Index:  litWord("i"),
@@ -3575,7 +3565,7 @@ var fileTests = []testCase{
 			`a["x y"]=b`,
 			`a[ "x y" ]=b`,
 		},
-		bash: &Stmt{Assigns: []*Assign{{
+		bash: &CallExpr{Assigns: []*Assign{{
 			Name:  lit("a"),
 			Index: word(dblQuoted(lit("x y"))),
 			Value: litWord("b"),
@@ -3598,7 +3588,7 @@ var fileTests = []testCase{
 			`a=(["x y"]=b)`,
 			`a=( [ "x y" ]=b)`,
 		},
-		bash: &Stmt{Assigns: []*Assign{{
+		bash: &CallExpr{Assigns: []*Assign{{
 			Name: lit("a"),
 			Array: &ArrayExpr{Elems: []*ArrayElem{{
 				Index: word(dblQuoted(lit("x y"))),
@@ -3866,7 +3856,6 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 		if x.Cmd != nil {
 			recurse(x.Cmd)
 		}
-		recurse(x.Assigns)
 		for _, r := range x.Redirs {
 			setPos(&r.OpPos, r.Op.String())
 			if r.N != nil {
@@ -3894,6 +3883,7 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 			checkPos(a)
 		}
 	case *CallExpr:
+		recurse(x.Assigns)
 		recurse(x.Args)
 	case []*Word:
 		for _, w := range x {

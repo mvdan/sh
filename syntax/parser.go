@@ -106,6 +106,8 @@ type Parser struct {
 const bufSize = 1 << 10
 
 func (p *Parser) reset() {
+	p.tok, p.val = illegalTok, ""
+	p.eqlOffs = 0
 	p.bs, p.bsp = nil, 0
 	p.offs = 0
 	p.npos = Pos{line: 1, col: 1}
@@ -1376,11 +1378,6 @@ func (p *Parser) gotStmtPipe(s *Stmt) *Stmt {
 preLoop:
 	for {
 		switch p.tok {
-		case _Lit, _LitWord:
-			if !p.hasValidIdent() {
-				break preLoop
-			}
-			s.Assigns = append(s.Assigns, p.getAssign(true))
 		case rdrOut, appOut, rdrIn, dplIn, dplOut, clbOut, rdrInOut,
 			hdoc, dashHdoc, wordHdoc, rdrAll, appAll, _LitRedir:
 			p.doRedirect(s)
@@ -1460,6 +1457,10 @@ preLoop:
 		if s.Cmd != nil {
 			break
 		}
+		if p.hasValidIdent() {
+			s.Cmd = p.callExpr(s, nil)
+			break
+		}
 		name := p.lit(p.pos, p.val)
 		if p.next(); p.gotSameLine(leftParen) {
 			p.follow(name.ValuePos, "foo(", rightParen)
@@ -1478,6 +1479,10 @@ preLoop:
 	case _Lit, dollBrace, dollDblParen, dollParen, dollar, cmdIn, cmdOut,
 		sglQuote, dollSglQuote, dblQuote, dollDblQuote, dollBrack,
 		globQuest, globStar, globPlus, globAt, globExcl:
+		if p.hasValidIdent() {
+			s.Cmd = p.callExpr(s, nil)
+			break
+		}
 		w := p.word(p.wordParts())
 		if p.gotSameLine(leftParen) && p.err == nil {
 			p.posErr(w.Pos(), "invalid func name")
@@ -1488,7 +1493,7 @@ preLoop:
 	case dblLeftParen:
 		s.Cmd = p.arithmExpCmd()
 	default:
-		if len(s.Redirs) == 0 && len(s.Assigns) == 0 {
+		if len(s.Redirs) == 0 {
 			return nil
 		}
 	}
@@ -1981,10 +1986,23 @@ func (p *Parser) bashFuncDecl() *FuncDecl {
 
 func (p *Parser) callExpr(s *Stmt, w *Word) *CallExpr {
 	ce := p.call(w)
+	if w == nil {
+		ce.Args = ce.Args[:0]
+		for {
+			ce.Assigns = append(ce.Assigns, p.getAssign(true))
+			if p.newLine || (p.tok != _Lit && p.tok != _LitWord) ||
+				!p.hasValidIdent() {
+				break
+			}
+		}
+	}
 	for !p.newLine {
 		switch p.tok {
 		case _EOF, semicolon, and, or, andAnd, orOr, orAnd,
 			dblSemicolon, semiAnd, dblSemiAnd, semiOr:
+			if len(ce.Args) == 0 {
+				ce.Args = nil
+			}
 			return ce
 		case _LitWord:
 			ce.Args = append(ce.Args, p.word(
@@ -2013,6 +2031,9 @@ func (p *Parser) callExpr(s *Stmt, w *Word) *CallExpr {
 		default:
 			p.curErr("a command can only contain words and redirects")
 		}
+	}
+	if len(ce.Args) == 0 {
+		ce.Args = nil
 	}
 	return ce
 }

@@ -530,7 +530,6 @@ func (p *Printer) stmt(s *Stmt) {
 	if s.Negated {
 		p.spacedString("!")
 	}
-	p.assigns(s.Assigns, true)
 	var startRedirs int
 	if s.Cmd != nil {
 		startRedirs = p.command(s.Cmd, s.Redirs)
@@ -574,6 +573,7 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 	}
 	switch x := cmd.(type) {
 	case *CallExpr:
+		p.assigns(x.Assigns, true)
 		if len(x.Args) <= 1 {
 			p.wordJoin(x.Args)
 			return 0
