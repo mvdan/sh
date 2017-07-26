@@ -56,7 +56,6 @@ func wordBreak(r rune) bool {
 }
 
 func (p *Parser) rune() rune {
-retry:
 	if p.r == '\n' {
 		// p.r instead of b so that newline
 		// character positions don't have col 0.
@@ -65,6 +64,7 @@ retry:
 	} else {
 		p.npos.col += p.w
 	}
+retry:
 	if p.bsp < len(p.bs) {
 		if b := p.bs[p.bsp]; b < utf8.RuneSelf {
 			p.bsp++

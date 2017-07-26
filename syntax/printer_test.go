@@ -80,6 +80,8 @@ func TestPrintWeirdFormat(t *testing.T) {
 		{strings.Repeat(" ", bufSize-10) + "${a/b//○}", "${a/b//○}"},
 		// multiple p.fill calls
 		{"a" + strings.Repeat(" ", bufSize*4) + "b", "a b"},
+		// newline at the beginning of second chunk
+		{"a" + strings.Repeat(" ", bufSize-2) + "\nb", "a\nb"},
 		{"foo; bar", "foo\nbar"},
 		{"foo\n\n\nbar", "foo\n\nbar"},
 		{"foo\n\n", "foo"},
