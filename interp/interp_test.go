@@ -982,7 +982,7 @@ var fileCases = []struct {
 		"exit status 1",
 	},
 	{
-		"a=1 let a++; echo $a",
+		"a=1; let a++; echo $a",
 		"2\n",
 	},
 

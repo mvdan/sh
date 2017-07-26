@@ -452,18 +452,6 @@ func (r *Runner) assignValue(as *syntax.Assign) varValue {
 }
 
 func (r *Runner) stmtSync(st *syntax.Stmt) {
-	oldVars := r.cmdVars
-	for _, as := range st.Assigns {
-		val := r.assignValue(as)
-		if st.Cmd == nil {
-			r.setVar(as.Name.Value, val)
-			continue
-		}
-		if r.cmdVars == nil {
-			r.cmdVars = make(map[string]varValue, len(st.Assigns))
-		}
-		r.cmdVars[as.Name.Value] = val
-	}
 	oldIn, oldOut, oldErr := r.Stdin, r.Stdout, r.Stderr
 	for _, rd := range st.Redirs {
 		cls, err := r.redir(rd)
@@ -483,7 +471,6 @@ func (r *Runner) stmtSync(st *syntax.Stmt) {
 	if st.Negated {
 		r.exit = oneIf(r.exit == 0)
 	}
-	r.cmdVars = oldVars
 	r.Stdin, r.Stdout, r.Stderr = oldIn, oldOut, oldErr
 }
 
@@ -506,8 +493,22 @@ func (r *Runner) cmd(cm syntax.Command) {
 		r2.stmts(x.StmtList)
 		r.exit = r2.exit
 	case *syntax.CallExpr:
+		if len(x.Args) == 0 {
+			for _, as := range x.Assigns {
+				r.setVar(as.Name.Value, r.assignValue(as))
+			}
+			break
+		}
+		oldVars := r.cmdVars
+		if r.cmdVars == nil {
+			r.cmdVars = make(map[string]varValue, len(x.Assigns))
+		}
+		for _, as := range x.Assigns {
+			r.cmdVars[as.Name.Value] = r.assignValue(as)
+		}
 		fields := r.fields(x.Args)
 		r.call(x.Args[0].Pos(), fields[0], fields[1:])
+		r.cmdVars = oldVars
 	case *syntax.BinaryCmd:
 		switch x.Op {
 		case syntax.AndStmt:
