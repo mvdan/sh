@@ -705,7 +705,8 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			p.WriteByte(')')
 			p.wantSpace = true
 			sep := len(ci.Stmts) > 1 || ci.StmtList.pos().Line() > p.line
-			if ci.OpPos != x.Esac && ci.OpPos.Line() > p.line {
+			if ci.OpPos != x.Esac && !ci.StmtList.empty() &&
+				ci.OpPos.Line() > ci.StmtList.end().Line() {
 				sep = true
 			}
 			sl := ci.StmtList

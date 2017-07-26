@@ -40,6 +40,16 @@ func (s StmtList) pos() Pos {
 	return Pos{}
 }
 
+func (s StmtList) end() Pos {
+	if len(s.Last) > 0 {
+		return s.Last[len(s.Last)-1].End()
+	}
+	if len(s.Stmts) > 0 {
+		return s.Stmts[len(s.Stmts)-1].End()
+	}
+	return Pos{}
+}
+
 func (s StmtList) empty() bool {
 	return len(s.Stmts) == 0 && len(s.Last) == 0
 }
