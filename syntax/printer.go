@@ -12,7 +12,7 @@ import (
 
 // Indent sets the number of spaces used for indentation. If set to 0,
 // tabs will be used instead.
-func Indent(spaces int) func(*Printer) {
+func Indent(spaces uint) func(*Printer) {
 	return func(p *Printer) { p.indentSpaces = spaces }
 }
 
@@ -55,22 +55,22 @@ type bufWriter interface {
 type Printer struct {
 	bufWriter
 
-	indentSpaces int
+	indentSpaces uint
 	binNextLine  bool
 
 	wantSpace   bool
 	wantNewline bool
 	wroteSemi   bool
 
-	commentPadding int
+	commentPadding uint
 
 	// line is the current line number
 	line uint
 
 	// lastLevel is the last level of indentation that was used.
-	lastLevel int
+	lastLevel uint
 	// level is the current level of indentation.
-	level int
+	level uint
 	// levelIncs records which indentation level increments actually
 	// took place, to revert them once their section ends.
 	levelIncs []bool
@@ -95,8 +95,8 @@ func (p *Printer) reset() {
 	p.pendingHdocs = p.pendingHdocs[:0]
 }
 
-func (p *Printer) spaces(n int) {
-	for i := 0; i < n; i++ {
+func (p *Printer) spaces(n uint) {
+	for i := uint(0); i < n; i++ {
 		p.WriteByte(' ')
 	}
 }
@@ -158,10 +158,10 @@ func (p *Printer) indent() {
 	switch {
 	case p.level == 0:
 	case p.indentSpaces == 0:
-		for i := 0; i < p.level; i++ {
+		for i := uint(0); i < p.level; i++ {
 			p.WriteByte('\t')
 		}
-	case p.indentSpaces > 0:
+	default:
 		p.spaces(p.indentSpaces * p.level)
 	}
 }
@@ -882,7 +882,7 @@ func (p *Printer) stmts(sl StmtList) {
 		}
 		if inlineIndent > 0 {
 			if l := p.stmtCols(s); l > 0 {
-				p.commentPadding = inlineIndent - l
+				p.commentPadding = uint(inlineIndent - l)
 			}
 			lastIndentedLine = p.line
 		}

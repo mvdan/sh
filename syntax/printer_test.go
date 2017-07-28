@@ -484,18 +484,13 @@ func BenchmarkPrint(b *testing.B) {
 
 func TestPrintSpaces(t *testing.T) {
 	var spaceFormats = [...]struct {
-		spaces   int
+		spaces   uint
 		in, want string
 	}{
 		{
 			0,
 			"{\nfoo \\\nbar\n}",
 			"{\n\tfoo \\\n\t\tbar\n}",
-		},
-		{
-			-1,
-			"{\nfoo \\\nbar\n}",
-			"{\nfoo \\\nbar\n}",
 		},
 		{
 			2,
