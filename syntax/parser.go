@@ -1984,13 +1984,7 @@ func (p *Parser) callExpr(s *Stmt, w *Word, assign bool) Command {
 		ce.Args = ce.Args[:0]
 	}
 	if assign {
-		for {
-			ce.Assigns = append(ce.Assigns, p.getAssign(true))
-			if p.newLine || (p.tok != _Lit && p.tok != _LitWord) ||
-				!p.hasValidIdent() {
-				break
-			}
-		}
+		ce.Assigns = append(ce.Assigns, p.getAssign(true))
 	}
 loop:
 	for !p.newLine {
@@ -1999,16 +1993,26 @@ loop:
 			dblSemicolon, semiAnd, dblSemiAnd, semiOr:
 			break loop
 		case _LitWord:
+			if len(ce.Args) == 0 && p.hasValidIdent() {
+				ce.Assigns = append(ce.Assigns, p.getAssign(true))
+				break
+			}
 			ce.Args = append(ce.Args, p.word(
 				p.wps(p.lit(p.pos, p.val)),
 			))
 			p.next()
+		case _Lit:
+			if len(ce.Args) == 0 && p.hasValidIdent() {
+				ce.Assigns = append(ce.Assigns, p.getAssign(true))
+				break
+			}
+			ce.Args = append(ce.Args, p.word(p.wordParts()))
 		case bckQuote:
 			if p.quote == subCmdBckquo {
 				break loop
 			}
 			fallthrough
-		case _Lit, dollBrace, dollDblParen, dollParen, dollar, cmdIn, cmdOut,
+		case dollBrace, dollDblParen, dollParen, dollar, cmdIn, cmdOut,
 			sglQuote, dollSglQuote, dblQuote, dollDblQuote, dollBrack,
 			globQuest, globStar, globPlus, globAt, globExcl:
 			ce.Args = append(ce.Args, p.word(p.wordParts()))

@@ -808,6 +808,28 @@ var fileTests = []testCase{
 	},
 	{
 		Strs: []string{
+			"a=b c=d foo >x <y",
+			"a=b c=d >x <y foo",
+			">x a=b c=d <y foo",
+			">x <y a=b c=d foo",
+			"a=b >x c=d foo <y",
+		},
+		common: &Stmt{
+			Cmd: &CallExpr{
+				Assigns: []*Assign{
+					{Name: lit("a"), Value: litWord("b")},
+					{Name: lit("c"), Value: litWord("d")},
+				},
+				Args: litWords("foo"),
+			},
+			Redirs: []*Redirect{
+				{Op: RdrOut, Word: litWord("x")},
+				{Op: RdrIn, Word: litWord("y")},
+			},
+		},
+	},
+	{
+		Strs: []string{
 			"foo <<EOF\nbar\nEOF",
 			"foo <<EOF \nbar\nEOF",
 			"foo <<EOF\t\nbar\nEOF",
