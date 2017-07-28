@@ -1597,6 +1597,10 @@ var shellTests = []errorCase{
 		posix: `1:5: arrays are a bash feature`,
 	},
 	{
+		in:     "a=$c\n'",
+		common: `2:1: reached EOF without closing quote '`,
+	},
+	{
 		in:    "echo ${foo[1]}",
 		posix: `1:11: arrays are a bash feature`,
 	},

@@ -1473,7 +1473,7 @@ func (p *Parser) gotStmtPipe(s *Stmt) *Stmt {
 	case _Lit, dollBrace, dollDblParen, dollParen, dollar, cmdIn, cmdOut,
 		sglQuote, dollSglQuote, dblQuote, dollDblQuote, dollBrack,
 		globQuest, globStar, globPlus, globAt, globExcl:
-		if p.hasValidIdent() {
+		if p.tok == _Lit && p.hasValidIdent() {
 			s.Cmd = p.callExpr(s, nil, true)
 			break
 		}
