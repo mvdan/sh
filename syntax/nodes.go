@@ -117,9 +117,8 @@ type Comment struct {
 func (c *Comment) Pos() Pos { return c.Hash }
 func (c *Comment) End() Pos { return posAddCol(c.Hash, len(c.Text)) }
 
-// Stmt represents a statement, otherwise known as a compound command.
-// It is compromised of a command and other components that may come
-// before or after it.
+// Stmt represents a statement. It is compromised of a command and other
+// components that may come before or after it.
 type Stmt struct {
 	Comments   []Comment
 	Cmd        Command
@@ -150,8 +149,8 @@ func (s *Stmt) End() Pos {
 	return end
 }
 
-// Command represents all nodes that are simple commands, which are
-// directly placed in a Stmt.
+// Command represents all nodes that are simple or compound commands,
+// including function declarations.
 //
 // These are *CallExpr, *IfClause, *WhileClause, *ForClause,
 // *CaseClause, *Block, *Subshell, *BinaryCmd, *FuncDecl, *ArithmCmd,
@@ -237,7 +236,11 @@ func (r *Redirect) Pos() Pos {
 }
 func (r *Redirect) End() Pos { return r.Word.End() }
 
-// CallExpr represents a command execution or function call.
+// CallExpr represents a command execution or function call, otherwise
+// known as a simple command.
+//
+// If Args is empty, Assigns apply to the shell environment. Otherwise,
+// they only apply to the call.
 type CallExpr struct {
 	Assigns []*Assign // a=x b=y args
 	Args    []*Word
