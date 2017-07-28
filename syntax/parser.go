@@ -1840,7 +1840,9 @@ func (p *Parser) testExprBase(ftok token, fpos Pos) TestExpr {
 	case exclMark:
 		u := &UnaryTest{OpPos: p.pos, Op: TsNot}
 		p.next()
-		u.X = p.testExpr(token(u.Op), u.OpPos, false)
+		if u.X = p.testExpr(token(u.Op), u.OpPos, false); u.X == nil {
+			p.followErrExp(u.OpPos, u.Op.String())
+		}
 		return u
 	case tsExists, tsRegFile, tsDirect, tsCharSp, tsBlckSp, tsNmPipe,
 		tsSocket, tsSmbLink, tsSticky, tsGIDSet, tsUIDSet, tsGrpOwn,
@@ -1848,7 +1850,7 @@ func (p *Parser) testExprBase(ftok token, fpos Pos) TestExpr {
 		tsFdTerm, tsEmpStr, tsNempStr, tsOptSet, tsVarSet, tsRefVar:
 		u := &UnaryTest{OpPos: p.pos, Op: UnTestOperator(p.tok)}
 		p.next()
-		u.X = p.followWordTok(ftok, fpos)
+		u.X = p.followWordTok(token(u.Op), u.OpPos)
 		return u
 	case leftParen:
 		pe := &ParenTest{Lparen: p.pos}

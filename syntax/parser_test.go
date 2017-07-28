@@ -1333,6 +1333,14 @@ var shellTests = []errorCase{
 		bsmk: `1:11: not a valid test operator: b`,
 	},
 	{
+		in:   "[[ (! ) ]]",
+		bsmk: `1:5: ! must be followed by an expression`,
+	},
+	{
+		in:   "[[ (-e ) ]]",
+		bsmk: `1:5: -e must be followed by a word`,
+	},
+	{
 		in:   "[[ (a) == b ]]",
 		bsmk: `1:8: expected &&, || or ]] after complex expr`,
 	},
