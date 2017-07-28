@@ -10,12 +10,18 @@ import (
 	"unicode"
 )
 
+// Indent sets the number of spaces used for indentation. If set to 0,
+// tabs will be used instead.
 func Indent(spaces int) func(*Printer) {
 	return func(p *Printer) { p.indentSpaces = spaces }
 }
 
+// BinaryNextLine will make binary operators appear on the next line
+// when a binary command, such as a pipe, spans multiple lines. A
+// backslash will be used.
 func BinaryNextLine(p *Printer) { p.binNextLine = true }
 
+// NewPrinter allocates a new Printer and applies any number of options.
 func NewPrinter(options ...func(*Printer)) *Printer {
 	p := &Printer{
 		bufWriter:  bufio.NewWriter(nil),
@@ -27,7 +33,8 @@ func NewPrinter(options ...func(*Printer)) *Printer {
 	return p
 }
 
-// Print "pretty-prints" the given AST file to the given writer.
+// Print "pretty-prints" the given AST file to the given writer. Writes
+// to w are buffered.
 func (p *Printer) Print(w io.Writer, f *File) error {
 	p.reset()
 	p.bufWriter.Reset(w)
@@ -43,6 +50,8 @@ type bufWriter interface {
 	Flush() error
 }
 
+// Printer holds the internal state of the printing mechanism of a
+// program.
 type Printer struct {
 	bufWriter
 

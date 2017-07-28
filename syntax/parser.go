@@ -11,6 +11,8 @@ import (
 	"unicode/utf8"
 )
 
+// KeepComments makes the parser parse comments and attach them to
+// nodes, as opposed to discarding them.
 func KeepComments(p *Parser) { p.keepComments = true }
 
 type LangVariant int
@@ -21,10 +23,13 @@ const (
 	LangMirBSDKorn
 )
 
+// Variant changes the shell language variant that the parser will
+// accept.
 func Variant(l LangVariant) func(*Parser) {
 	return func(p *Parser) { p.lang = l }
 }
 
+// NewParser allocates a new Parser and applies any number of options.
 func NewParser(options ...func(*Parser)) *Parser {
 	p := &Parser{helperBuf: new(bytes.Buffer)}
 	for _, opt := range options {
@@ -35,11 +40,14 @@ func NewParser(options ...func(*Parser)) *Parser {
 
 // Parse reads and parses a shell program with an optional name. It
 // returns the parsed program if no issues were encountered. Otherwise,
-// an error is returned.
-func (p *Parser) Parse(src io.Reader, name string) (*File, error) {
+// an error is returned. Reads from r are buffered.
+//
+// Parse can be called more than once, but not concurrently. That is, a
+// Parser can be reused once it is done working.
+func (p *Parser) Parse(r io.Reader, name string) (*File, error) {
 	p.reset()
 	p.f = &File{Name: name}
-	p.src = src
+	p.src = r
 	p.rune()
 	p.next()
 	p.f.StmtList = p.stmts()
@@ -51,6 +59,8 @@ func (p *Parser) Parse(src io.Reader, name string) (*File, error) {
 	return p.f, p.err
 }
 
+// Parser holds the internal state of the parsing mechanism of a
+// program.
 type Parser struct {
 	src io.Reader
 	bs  []byte // current chunk of read bytes
