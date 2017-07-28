@@ -486,6 +486,18 @@ var shellTests = []errorCase{
 		common: `1:13: "then" can only be used in an if`,
 	},
 	{
+		in:     ">f { foo; }",
+		common: `1:11: } can only be used to close a block`,
+	},
+	{
+		in:     ">f foo() { bar; }",
+		common: `1:7: a command can only contain words and redirects`,
+	},
+	{
+		in:     ">f if foo; then bar; fi",
+		common: `1:12: "then" can only be used in an if`,
+	},
+	{
 		in:     "'",
 		common: `1:1: reached EOF without closing quote '`,
 	},

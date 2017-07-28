@@ -1375,20 +1375,6 @@ func (p *Parser) getStmt(readEnd, binCmd bool) (s *Stmt, gotEnd bool) {
 }
 
 func (p *Parser) gotStmtPipe(s *Stmt) *Stmt {
-preLoop:
-	for {
-		switch p.tok {
-		case rdrOut, appOut, rdrIn, dplIn, dplOut, clbOut, rdrInOut,
-			hdoc, dashHdoc, wordHdoc, rdrAll, appAll, _LitRedir:
-			p.doRedirect(s)
-		default:
-			break preLoop
-		}
-		switch {
-		case p.newLine, p.tok == _EOF, p.tok == semicolon:
-			return s
-		}
-	}
 	switch p.tok {
 	case _LitWord:
 		switch p.val {
@@ -1458,7 +1444,7 @@ preLoop:
 			break
 		}
 		if p.hasValidIdent() {
-			s.Cmd = p.callExpr(s, nil)
+			s.Cmd = p.callExpr(s, nil, true)
 			break
 		}
 		name := p.lit(p.pos, p.val)
@@ -1469,8 +1455,16 @@ preLoop:
 			}
 			s.Cmd = p.funcDecl(name, name.ValuePos)
 		} else {
-			s.Cmd = p.callExpr(s, p.word(p.wps(name)))
+			s.Cmd = p.callExpr(s, p.word(p.wps(name)), false)
 		}
+	case rdrOut, appOut, rdrIn, dplIn, dplOut, clbOut, rdrInOut,
+		hdoc, dashHdoc, wordHdoc, rdrAll, appAll, _LitRedir:
+		p.doRedirect(s)
+		switch {
+		case p.newLine, p.tok == _EOF, p.tok == semicolon:
+			return s
+		}
+		s.Cmd = p.callExpr(s, nil, false)
 	case bckQuote:
 		if p.quote == subCmdBckquo {
 			return s
@@ -1480,14 +1474,14 @@ preLoop:
 		sglQuote, dollSglQuote, dblQuote, dollDblQuote, dollBrack,
 		globQuest, globStar, globPlus, globAt, globExcl:
 		if p.hasValidIdent() {
-			s.Cmd = p.callExpr(s, nil)
+			s.Cmd = p.callExpr(s, nil, true)
 			break
 		}
 		w := p.word(p.wordParts())
 		if p.gotSameLine(leftParen) && p.err == nil {
 			p.posErr(w.Pos(), "invalid func name")
 		}
-		s.Cmd = p.callExpr(s, w)
+		s.Cmd = p.callExpr(s, w, false)
 	case leftParen:
 		s.Cmd = p.subshell()
 	case dblLeftParen:
@@ -1984,10 +1978,12 @@ func (p *Parser) bashFuncDecl() *FuncDecl {
 	return p.funcDecl(name, fpos)
 }
 
-func (p *Parser) callExpr(s *Stmt, w *Word) *CallExpr {
+func (p *Parser) callExpr(s *Stmt, w *Word, assign bool) Command {
 	ce := p.call(w)
 	if w == nil {
 		ce.Args = ce.Args[:0]
+	}
+	if assign {
 		for {
 			ce.Assigns = append(ce.Assigns, p.getAssign(true))
 			if p.newLine || (p.tok != _Lit && p.tok != _LitWord) ||
@@ -1996,14 +1992,12 @@ func (p *Parser) callExpr(s *Stmt, w *Word) *CallExpr {
 			}
 		}
 	}
+loop:
 	for !p.newLine {
 		switch p.tok {
 		case _EOF, semicolon, and, or, andAnd, orOr, orAnd,
 			dblSemicolon, semiAnd, dblSemiAnd, semiOr:
-			if len(ce.Args) == 0 {
-				ce.Args = nil
-			}
-			return ce
+			break loop
 		case _LitWord:
 			ce.Args = append(ce.Args, p.word(
 				p.wps(p.lit(p.pos, p.val)),
@@ -2011,7 +2005,7 @@ func (p *Parser) callExpr(s *Stmt, w *Word) *CallExpr {
 			p.next()
 		case bckQuote:
 			if p.quote == subCmdBckquo {
-				return ce
+				break loop
 			}
 			fallthrough
 		case _Lit, dollBrace, dollDblParen, dollParen, dollar, cmdIn, cmdOut,
@@ -2025,12 +2019,15 @@ func (p *Parser) callExpr(s *Stmt, w *Word) *CallExpr {
 			p.curErr("%s can only be used to open an arithmetic cmd", p.tok)
 		case rightParen:
 			if p.quote == subCmd {
-				return ce
+				break loop
 			}
 			fallthrough
 		default:
 			p.curErr("a command can only contain words and redirects")
 		}
+	}
+	if len(ce.Assigns) == 0 && len(ce.Args) == 0 {
+		return nil
 	}
 	if len(ce.Args) == 0 {
 		ce.Args = nil
