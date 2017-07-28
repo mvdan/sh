@@ -62,20 +62,14 @@ type Pos struct {
 
 // Offset returns the byte offset of the position in the original
 // source file. Byte offsets start at 0.
-func (p Pos) Offset() uint {
-	return uint(p.offs)
-}
+func (p Pos) Offset() uint { return uint(p.offs) }
 
 // Line returns the line number of the position, starting at 1.
-func (p Pos) Line() uint {
-	return uint(p.line)
-}
+func (p Pos) Line() uint { return uint(p.line) }
 
-// Col returns the column number of the position, starting at 0. It
+// Col returns the column number of the position, starting at 1. It
 // counts in bytes.
-func (p Pos) Col() uint {
-	return uint(p.col)
-}
+func (p Pos) Col() uint { return uint(p.col) }
 
 func (p Pos) String() string {
 	return fmt.Sprintf("%d:%d", p.Line(), p.Col())
