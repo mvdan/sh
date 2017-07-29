@@ -1127,6 +1127,10 @@ var fileCases = []struct {
 		"mkdir a; touch a/b.x; echo */*.x; cd a; echo *.x",
 		"a/b.x\nb.x\n",
 	},
+
+	// /dev/null
+	{"echo foo >/dev/null", ""},
+	{"cat </dev/null", ""},
 }
 
 // concBuffer wraps a bytes.Buffer in a mutex so that concurrent writes
