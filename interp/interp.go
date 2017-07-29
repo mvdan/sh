@@ -671,10 +671,17 @@ func (r *Runner) redir(rd *syntax.Redirect) (io.Closer, error) {
 	case syntax.RdrOut, syntax.RdrAll:
 		mode = os.O_RDWR | os.O_CREATE | os.O_TRUNC
 	}
-	f, err := os.OpenFile(r.relPath(arg), mode, 0644)
-	if err != nil {
-		// TODO: print to stderr?
-		return nil, err
+	var f io.ReadWriteCloser
+	switch arg {
+	case "/dev/null":
+		f = devNull{}
+	default:
+		var err error
+		f, err = os.OpenFile(r.relPath(arg), mode, 0644)
+		if err != nil {
+			// TODO: print to stderr?
+			return nil, err
+		}
 	}
 	switch rd.Op {
 	case syntax.RdrIn:
