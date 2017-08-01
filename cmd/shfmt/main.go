@@ -20,7 +20,7 @@ var (
 	write       = flag.Bool("w", false, "write result to file instead of stdout")
 	list        = flag.Bool("l", false, "list files whose formatting differs from shfmt's")
 	simple      = flag.Bool("s", false, "simplify the code")
-	langStr     = flag.String("ln", "bash", "language variant to parse (bash/posix/mksh)")
+	langStr     = flag.String("ln", "", `language variant to parse (bash/posix/mksh) (default "bash")`)
 	posix       = flag.Bool("p", false, "shorthand for -ln=posix")
 	indent      = flag.Uint("i", 0, "indent: 0 for tabs (default), >0 for number of spaces")
 	binNext     = flag.Bool("bn", false, "binary ops like && and | may start a line")
@@ -49,7 +49,10 @@ func main() {
 		fmt.Println(version)
 		return
 	}
-
+	if *posix && *langStr != "" {
+		fmt.Fprintf(os.Stderr, "-p and -ln=lang cannot coexist\n")
+		os.Exit(1)
+	}
 	lang := syntax.LangBash
 	switch *langStr {
 	case "bash", "":
@@ -60,6 +63,9 @@ func main() {
 	default:
 		fmt.Fprintf(os.Stderr, "unknown shell language: %s\n", *langStr)
 		os.Exit(1)
+	}
+	if *posix {
+		lang = syntax.LangPOSIX
 	}
 	parser = syntax.NewParser(syntax.KeepComments, syntax.Variant(lang))
 	printer = syntax.NewPrinter(func(p *syntax.Printer) {
