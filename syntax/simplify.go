@@ -10,9 +10,9 @@ import "bytes"
 //
 // This function is EXPERIMENTAL; it may change or disappear at any
 // point until this notice is removed.
-func Simplify(f *File) bool {
+func Simplify(n Node) bool {
 	s := simplifier{}
-	Walk(f, s.visit)
+	Walk(n, s.visit)
 	return s.modified
 }
 
