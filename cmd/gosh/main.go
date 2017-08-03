@@ -22,22 +22,26 @@ var (
 
 func main() {
 	flag.Parse()
-	parser = syntax.NewParser()
-
-	if *command != "" {
-		if err := run(strings.NewReader(*command), ""); err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
-		}
-		return
+	if err := runAll(); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
 	}
+}
 
+func runAll() error {
+	parser = syntax.NewParser()
+	if *command != "" {
+		return run(strings.NewReader(*command), "")
+	}
+	if flag.NArg() == 0 {
+		return run(os.Stdin, "")
+	}
 	for _, path := range flag.Args() {
 		if err := runPath(path); err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
+			return err
 		}
 	}
+	return nil
 }
 
 func runPath(path string) error {
