@@ -48,6 +48,8 @@ type Runner struct {
 	// of vars.
 	Params []string
 
+	filename string // only if Node was a File
+
 	// Separate maps, note that bash allows a name to be both a var
 	// and a func simultaneously
 	vars  map[string]varValue
@@ -137,8 +139,9 @@ func (e RunError) Error() string {
 func (r *Runner) runErr(pos syntax.Pos, format string, a ...interface{}) {
 	if r.err == nil {
 		r.err = RunError{
-			Pos:  pos,
-			Text: fmt.Sprintf(format, a...),
+			Filename: r.filename,
+			Pos:      pos,
+			Text:     fmt.Sprintf(format, a...),
 		}
 	}
 }
@@ -242,8 +245,10 @@ func (r *Runner) Run() error {
 		}
 		r.Dir = dir
 	}
+	r.filename = ""
 	switch x := r.Node.(type) {
 	case *syntax.File:
+		r.filename = x.Name
 		r.stmts(x.StmtList)
 	case *syntax.Stmt:
 		r.stmt(x)
