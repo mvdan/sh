@@ -100,12 +100,17 @@ var fileCases = []struct {
 
 	// printf
 	{"printf foo", "foo"},
+	{"printf %B foo", "0:0: unhandled format char: B #JUSTERR"},
 	{"printf ' %s \n' bar", " bar \n"},
 	{"printf %s foo", "foo"},
 	{"printf %s", ""},
-	{"printf %d 3", "3"},
+	{"printf %d,%i 3 4", "3,4"},
 	{"printf %d", "0"},
-	{"printf %B foo", "0:0: unhandled format char: B #JUSTERR"},
+	{"printf %d,%d 010 0x10", "8,16"},
+	{"printf %i,%u -3 -3", "-3,18446744073709551613"},
+	{"printf %o -3", "1777777777777777777775"},
+	{"printf %x -3", "fffffffffffffffd"},
+	{"printf %c,%c,%c foo àa", "f,\xc3,\x00"}, // TODO: use a rune?
 
 	// words and quotes
 	{"echo  foo ", "foo\n"},

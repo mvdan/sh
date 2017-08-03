@@ -291,16 +291,29 @@ func (r *Runner) expand(format string, onlyChars bool, args ...string) string {
 		if fmt {
 			fmt = false
 			arg := ""
+			n := 0
 			if len(args) > 0 {
 				arg, args = args[0], args[1:]
+				i, _ := strconv.ParseInt(arg, 0, 0)
+				n = int(i)
 			}
 			switch c {
 			case 's':
 				buf.WriteString(arg)
-			case 'd':
-				// round-trip to convert invalid to 0
-				n, _ := strconv.Atoi(arg)
+			case 'c':
+				var b byte
+				if len(arg) > 0 {
+					b = arg[0]
+				}
+				buf.WriteByte(b)
+			case 'd', 'i':
 				buf.WriteString(strconv.Itoa(n))
+			case 'u':
+				buf.WriteString(strconv.FormatUint(uint64(n), 10))
+			case 'o':
+				buf.WriteString(strconv.FormatUint(uint64(n), 8))
+			case 'x':
+				buf.WriteString(strconv.FormatUint(uint64(n), 16))
 			default:
 				r.runErr(syntax.Pos{}, "unhandled format char: %c", c)
 			}
