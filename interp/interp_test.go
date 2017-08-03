@@ -1177,11 +1177,11 @@ func TestFile(t *testing.T) {
 			cleanEnv()
 			var cb concBuffer
 			r := Runner{
-				Node:   file,
 				Stdout: &cb,
 				Stderr: &cb,
 			}
-			if err := r.Run(); err != nil {
+			r.Reset()
+			if err := r.Run(file); err != nil {
 				cb.WriteString(err.Error())
 			}
 			want := c.want
@@ -1284,10 +1284,12 @@ func TestRunnerOpts(t *testing.T) {
 			}
 			var cb concBuffer
 			r := c.runner
-			r.Node = file
 			r.Stdout = &cb
 			r.Stderr = &cb
-			if err := r.Run(); err != nil {
+			if err := r.Reset(); err != nil {
+				cb.WriteString(err.Error())
+			}
+			if err := r.Run(file); err != nil {
 				cb.WriteString(err.Error())
 			}
 			if got := cb.String(); got != c.want {
@@ -1319,13 +1321,10 @@ func TestRunnerContext(t *testing.T) {
 			}
 			ctx, cancel := context.WithCancel(context.Background())
 			cancel()
-			r := Runner{
-				Node:    file,
-				Context: ctx,
-			}
+			r := Runner{Context: ctx}
 			errChan := make(chan error)
 			go func() {
-				errChan <- r.Run()
+				errChan <- r.Run(file)
 			}()
 
 			select {
@@ -1347,16 +1346,19 @@ func TestRunnerAltNodes(t *testing.T) {
 	if err != nil {
 		t.Fatalf("could not parse: %v", err)
 	}
-	cases := []Runner{
-		{Node: file},
-		{Node: file.Stmts[0]},
-		{Node: file.Stmts[0].Cmd},
+	nodes := []syntax.Node{
+		file,
+		file.Stmts[0],
+		file.Stmts[0].Cmd,
 	}
-	for _, r := range cases {
+	for _, node := range nodes {
 		var cb concBuffer
-		r.Stdout = &cb
-		r.Stderr = &cb
-		if err := r.Run(); err != nil {
+		r := Runner{
+			Stdout: &cb,
+			Stderr: &cb,
+		}
+		r.Reset()
+		if err := r.Run(node); err != nil {
 			cb.WriteString(err.Error())
 		}
 		if got := cb.String(); got != want {

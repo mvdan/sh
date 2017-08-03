@@ -18,6 +18,12 @@ var (
 	command = flag.String("c", "", "command to be executed")
 
 	parser *syntax.Parser
+
+	runner = interp.Runner{
+		Stdin:  os.Stdin,
+		Stdout: os.Stdout,
+		Stderr: os.Stderr,
+	}
 )
 
 func main() {
@@ -58,11 +64,6 @@ func run(reader io.Reader, name string) error {
 	if err != nil {
 		return err
 	}
-	r := interp.Runner{
-		Node:   prog,
-		Stdin:  os.Stdin,
-		Stdout: os.Stdout,
-		Stderr: os.Stderr,
-	}
-	return r.Run()
+	runner.Reset()
+	return runner.Run(prog)
 }

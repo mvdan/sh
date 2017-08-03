@@ -29,8 +29,6 @@ import (
 // concurrent use, consider a workaround like hiding writes behind a
 // mutex.
 type Runner struct {
-	Node syntax.Node
-
 	// Env specifies the environment of the interpreter.
 	// If Env is nil, Run uses the current process's environment.
 	Env []string
@@ -221,8 +219,17 @@ opts:
 	return args, nil
 }
 
-// Run starts the interpreter and returns any error.
-func (r *Runner) Run() error {
+func (r *Runner) Reset() error {
+	// reset the internal state
+	*r = Runner{
+		Env:     r.Env,
+		Dir:     r.Dir,
+		Params:  r.Params,
+		Context: r.Context,
+		Stdin:   r.Stdin,
+		Stdout:  r.Stdout,
+		Stderr:  r.Stderr,
+	}
 	if r.Context == nil {
 		r.Context = context.Background()
 	}
@@ -245,8 +252,13 @@ func (r *Runner) Run() error {
 		}
 		r.Dir = dir
 	}
+	return nil
+}
+
+// Run starts the interpreter and returns any error.
+func (r *Runner) Run(node syntax.Node) error {
 	r.filename = ""
-	switch x := r.Node.(type) {
+	switch x := node.(type) {
 	case *syntax.File:
 		r.filename = x.Name
 		r.stmts(x.StmtList)
