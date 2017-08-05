@@ -1527,18 +1527,6 @@ func (p *Parser) gotStmtPipe(s *Stmt) *Stmt {
 		s = p.stmt(s.Position)
 		s.Cmd = b
 		s.Comments, b.X.Comments = b.X.Comments, nil
-		move := 0
-		for _, c := range p.accComs {
-			// inline comment belongs in the parent
-			if c.Hash.Line() >= b.Y.End().Line() {
-				break
-			}
-			move++
-		}
-		if move > 0 {
-			b.Y.Comments = p.accComs[:move]
-			p.accComs = p.accComs[move:]
-		}
 	}
 	return s
 }
