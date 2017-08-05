@@ -1414,6 +1414,11 @@ func (p *Parser) gotStmtPipe(s *Stmt) *Stmt {
 			p.curErr(`%q can only be used to end a loop`, p.val)
 		case "esac":
 			p.curErr(`%q can only be used to end a case`, p.val)
+		case "!":
+			if !s.Negated {
+				p.curErr(`"!" can only be used in full statements`)
+				break
+			}
 		case "[[":
 			if p.lang != LangPOSIX {
 				s.Cmd = p.testClause()

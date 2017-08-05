@@ -668,6 +668,10 @@ var shellTests = []errorCase{
 		common: `1:7: | must be followed by a statement`,
 	},
 	{
+		in:     "echo | ! bar",
+		common: `1:8: "!" can only be used in full statements`,
+	},
+	{
 		in:     "echo >",
 		common: `1:6: > must be followed by a word`,
 	},
@@ -1488,6 +1492,11 @@ var shellTests = []errorCase{
 	{
 		in:   "time {",
 		bsmk: `1:6: reached EOF without matching { with }`,
+	},
+	{
+		in:   "time ! foo",
+		bash: `1:6: "!" can only be used in full statements #NOERR wrong`,
+		mksh: `1:6: "!" can only be used in full statements`,
 	},
 	{
 		in:   "coproc",

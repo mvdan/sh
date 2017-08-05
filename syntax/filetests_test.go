@@ -1406,6 +1406,15 @@ var fileTests = []testCase{
 		},
 	},
 	{
+		Strs: []string{"! !"},
+		// not common, as dash and mksh reject this (breaking
+		// with POSIX)
+		bash: &Stmt{
+			Negated: true,
+			Cmd:     litCall("!"),
+		},
+	},
+	{
 		Strs: []string{"foo &\nbar", "foo & bar", "foo&bar"},
 		common: []*Stmt{
 			{Cmd: litCall("foo"), Background: true},
