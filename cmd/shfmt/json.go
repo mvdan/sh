@@ -40,7 +40,7 @@ func recurse(val reflect.Value) (interface{}, string) {
 	case reflect.Struct:
 		m := make(map[string]interface{}, val.NumField()+1)
 		typ := val.Type()
-		for i := 0; i < val.NumField(); i += 1 {
+		for i := 0; i < val.NumField(); i++ {
 			tfield := typ.Field(i)
 			if tfield.Type.Name() == "Pos" {
 				continue
@@ -70,7 +70,7 @@ func recurse(val reflect.Value) (interface{}, string) {
 		return m, typ.Name()
 	case reflect.Slice:
 		l := make([]interface{}, val.Len())
-		for i := 0; i < val.Len(); i += 1 {
+		for i := 0; i < val.Len(); i++ {
 			l[i], _ = recurse(val.Index(i))
 		}
 		return l, ""
