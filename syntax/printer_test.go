@@ -408,6 +408,10 @@ func TestPrintWeirdFormat(t *testing.T) {
 			"(0 #\n0)#\n0",
 			"(\n\t0 #\n\t0\n) #\n0",
 		},
+		samePrint("a | #c1\n\t(\n\t\tb\n\t)"),
+		samePrint("a | #c1\n\t{\n\t\tb\n\t}"),
+		samePrint("a | #c1\n\tif b; then\n\t\tc\n\tfi"),
+		samePrint("a && #c1\n\t(\n\t\tb\n\t)"),
 	}
 
 	parser := NewParser(KeepComments)
