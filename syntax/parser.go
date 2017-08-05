@@ -1479,7 +1479,7 @@ func (p *Parser) gotStmtPipe(s *Stmt) *Stmt {
 		s.Cmd = p.callExpr(s, nil, false)
 	case bckQuote:
 		if p.quote == subCmdBckquo {
-			return s
+			return nil
 		}
 		fallthrough
 	case _Lit, dollBrace, dollDblParen, dollParen, dollar, cmdIn, cmdOut,

@@ -660,6 +660,14 @@ var shellTests = []errorCase{
 		common: `1:6: && must be followed by a statement`,
 	},
 	{
+		in:     "`echo &&`",
+		common: `1:7: && must be followed by a statement`,
+	},
+	{
+		in:     "`echo |`",
+		common: `1:7: | must be followed by a statement`,
+	},
+	{
 		in:     "echo >",
 		common: `1:6: > must be followed by a word`,
 	},

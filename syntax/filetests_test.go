@@ -1528,6 +1528,19 @@ var fileTests = []testCase{
 		),
 	},
 	{
+		Strs: []string{"$(foo | >f)", "`foo | >f`"},
+		common: cmdSubst(
+			stmt(&BinaryCmd{
+				Op: Pipe,
+				X:  litStmt("foo"),
+				Y: &Stmt{Redirs: []*Redirect{{
+					Op:   RdrOut,
+					Word: litWord("f"),
+				}}},
+			}),
+		),
+	},
+	{
 		Strs: []string{"$(foo $(b1 b2))"},
 		common: cmdSubst(stmt(call(
 			litWord("foo"),
