@@ -1017,7 +1017,7 @@ func (p *Parser) paramExp() *ParamExp {
 		}
 	case exclMark:
 		if paramNameOp(p.r) {
-			pe.Indirect = true
+			pe.Excl = true
 			p.next()
 		}
 	}

@@ -339,7 +339,7 @@ func (p *Printer) paramExp(pe *ParamExp) {
 		p.WriteByte('#')
 	case pe.Width:
 		p.WriteByte('%')
-	case pe.Indirect:
+	case pe.Excl:
 		p.WriteByte('!')
 	}
 	p.WriteString(pe.Param.Value)

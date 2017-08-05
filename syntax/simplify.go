@@ -150,7 +150,7 @@ func (s *simplifier) inlineSimpleParams(x ArithmExpr) ArithmExpr {
 	if pe == nil || !ValidName(pe.Param.Value) {
 		return x
 	}
-	if pe.Indirect || pe.Length || pe.Width || pe.Slice != nil ||
+	if pe.Excl || pe.Length || pe.Width || pe.Slice != nil ||
 		pe.Repl != nil || pe.Exp != nil {
 		return x
 	}
