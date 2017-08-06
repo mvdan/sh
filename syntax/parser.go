@@ -1324,7 +1324,6 @@ func (p *Parser) doRedirect(s *Stmt) {
 
 func (p *Parser) getStmt(readEnd, binCmd bool) (s *Stmt, gotEnd bool) {
 	s = p.stmt(p.pos)
-	s.Comments, p.accComs = p.accComs, nil
 	if p.gotRsrv("!") {
 		s.Negated = true
 		if p.newLine || stopToken(p.tok) {
@@ -1385,8 +1384,7 @@ func (p *Parser) getStmt(readEnd, binCmd bool) (s *Stmt, gotEnd bool) {
 }
 
 func (p *Parser) gotStmtPipe(s *Stmt) *Stmt {
-	s.Comments = append(s.Comments, p.accComs...)
-	p.accComs = nil
+	s.Comments, p.accComs = p.accComs, nil
 	switch p.tok {
 	case _LitWord:
 		switch p.val {
