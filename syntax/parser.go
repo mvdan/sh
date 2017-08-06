@@ -1641,12 +1641,11 @@ func (p *Parser) loop(fpos Pos) Loop {
 		p.gotSameLine(semicolon)
 		return cl
 	}
-	wi := p.wordIter("for", fpos)
-	return &wi
+	return p.wordIter("for", fpos)
 }
 
-func (p *Parser) wordIter(ftok string, fpos Pos) WordIter {
-	wi := WordIter{}
+func (p *Parser) wordIter(ftok string, fpos Pos) *WordIter {
+	wi := &WordIter{}
 	if wi.Name = p.getLit(); wi.Name == nil {
 		p.followErr(fpos, ftok, "a literal")
 	}
@@ -1665,11 +1664,11 @@ func (p *Parser) wordIter(ftok string, fpos Pos) WordIter {
 	return wi
 }
 
-func (p *Parser) selectClause() *SelectClause {
-	fc := &SelectClause{SelectPos: p.pos}
+func (p *Parser) selectClause() *ForClause {
+	fc := &ForClause{ForPos: p.pos, Select: true}
 	p.next()
-	fc.Loop = p.wordIter("select", fc.SelectPos)
-	fc.DoPos = p.followRsrv(fc.SelectPos, "select foo [in words]", "do")
+	fc.Loop = p.wordIter("select", fc.ForPos)
+	fc.DoPos = p.followRsrv(fc.ForPos, "select foo [in words]", "do")
 	fc.Do = p.followStmts("do", fc.DoPos, "done")
 	fc.DonePos = p.stmtEnd(fc, "select", "done")
 	return fc

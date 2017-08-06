@@ -627,14 +627,12 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		p.nestedStmts(x.Do, Pos{})
 		p.semiRsrv("done", x.DonePos, true)
 	case *ForClause:
-		p.WriteString("for ")
+		if x.Select {
+			p.WriteString("select ")
+		} else {
+			p.WriteString("for ")
+		}
 		p.loop(x.Loop)
-		p.semiOrNewl("do", x.DoPos)
-		p.nestedStmts(x.Do, Pos{})
-		p.semiRsrv("done", x.DonePos, true)
-	case *SelectClause:
-		p.WriteString("select ")
-		p.loop(&x.Loop)
 		p.semiOrNewl("do", x.DoPos)
 		p.nestedStmts(x.Do, Pos{})
 		p.semiRsrv("done", x.DonePos, true)
