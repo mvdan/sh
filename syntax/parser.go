@@ -1328,7 +1328,7 @@ func (p *Parser) getStmt(readEnd, binCmd bool) (s *Stmt, gotEnd bool) {
 	if p.gotRsrv("!") {
 		s.Negated = true
 		if p.newLine || stopToken(p.tok) {
-			p.posErr(s.Pos(), `! cannot form a statement alone`)
+			p.posErr(s.Pos(), `"!" cannot form a statement alone`)
 		}
 	}
 	if s = p.gotStmtPipe(s); s == nil || p.err != nil {
@@ -1401,7 +1401,7 @@ func (p *Parser) gotStmtPipe(s *Stmt) *Stmt {
 		case "case":
 			s.Cmd = p.caseClause()
 		case "}":
-			p.curErr(`%s can only be used to close a block`, p.val)
+			p.curErr(`%q can only be used to close a block`, p.val)
 		case "then":
 			p.curErr(`%q can only be used in an if`, p.val)
 		case "elif":
@@ -1425,7 +1425,7 @@ func (p *Parser) gotStmtPipe(s *Stmt) *Stmt {
 			}
 		case "]]":
 			if p.lang != LangPOSIX {
-				p.curErr(`%s can only be used to close a test`,
+				p.curErr(`%q can only be used to close a test`,
 					p.val)
 			}
 		case "let":

@@ -443,11 +443,11 @@ var shellTests = []errorCase{
 	},
 	{
 		in:     "!",
-		common: `1:1: ! cannot form a statement alone`,
+		common: `1:1: "!" cannot form a statement alone`,
 	},
 	{
 		in:     "}",
-		common: `1:1: } can only be used to close a block`,
+		common: `1:1: "}" can only be used to close a block`,
 	},
 	{
 		in:     "then",
@@ -475,7 +475,7 @@ var shellTests = []errorCase{
 	},
 	{
 		in:     "a=b { foo; }",
-		common: `1:12: } can only be used to close a block`,
+		common: `1:12: "}" can only be used to close a block`,
 	},
 	{
 		in:     "a=b foo() { bar; }",
@@ -487,7 +487,7 @@ var shellTests = []errorCase{
 	},
 	{
 		in:     ">f { foo; }",
-		common: `1:11: } can only be used to close a block`,
+		common: `1:11: "}" can only be used to close a block`,
 	},
 	{
 		in:     ">f foo() { bar; }",
@@ -1193,7 +1193,7 @@ var shellTests = []errorCase{
 	},
 	{
 		in:    "]] )",
-		bsmk:  `1:1: ]] can only be used to close a test`,
+		bsmk:  `1:1: "]]" can only be used to close a test`,
 		posix: `1:4: a command can only contain words and redirects`,
 	},
 	{
