@@ -6,9 +6,11 @@ package interp
 import (
 	"os"
 	"os/exec"
+	"os/user"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"syscall"
 
 	"github.com/mvdan/sh/syntax"
 )
@@ -160,6 +162,33 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 		info, err := os.Stat(dir)
 		if err != nil || !info.IsDir() {
 			return 1
+		}
+		if st, _ := info.Sys().(*syscall.Stat_t); st != nil {
+			perm := info.Mode().Perm()
+			user, err := user.Current() // TODO: do this at start-up
+			if err != nil {
+				return 1
+			}
+			uid, _ := strconv.Atoi(user.Uid)
+			gid, _ := strconv.Atoi(user.Gid)
+			allowed := false
+			// user (u)
+			if perm&0100 != 0 && st.Uid == uint32(uid) {
+				allowed = true
+			}
+			// other users in group (g)
+			if perm&0010 != 0 && st.Uid != uint32(uid) &&
+				st.Gid == uint32(gid) {
+				allowed = true
+			}
+			// remaining users (o)
+			if perm&0001 != 0 && st.Uid != uint32(uid) &&
+				st.Gid != uint32(gid) {
+				allowed = true
+			}
+			if !allowed {
+				return 1
+			}
 		}
 		r.Dir = dir
 	case "wait":
