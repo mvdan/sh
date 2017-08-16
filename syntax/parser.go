@@ -362,12 +362,10 @@ func (p *Parser) followErrExp(pos Pos, left string) {
 	p.followErr(pos, left, "an expression")
 }
 
-func (p *Parser) follow(lpos Pos, left string, tok token) Pos {
-	pos := p.pos
+func (p *Parser) follow(lpos Pos, left string, tok token) {
 	if !p.got(tok) {
 		p.followErr(lpos, left, tok.String())
 	}
-	return pos
 }
 
 func (p *Parser) followRsrv(lpos Pos, left, val string) Pos {
