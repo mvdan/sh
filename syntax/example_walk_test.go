@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/mvdan/sh/syntax"
+	"mvdan.cc/sh/syntax"
 )
 
 func ExampleWalk() {

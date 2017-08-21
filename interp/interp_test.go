@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mvdan/sh/syntax"
+	"mvdan.cc/sh/syntax"
 )
 
 var hasBash44 bool
