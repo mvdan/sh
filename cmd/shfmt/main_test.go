@@ -26,34 +26,38 @@ const (
 var walkTests = []struct {
 	want       action
 	mode       os.FileMode
+	symlink    bool
 	path, body string
 }{
-	{Modify, 0666, "shebang-1", "#!/bin/sh\n foo"},
-	{Modify, 0666, "shebang-2", "#!/bin/bash\n foo"},
-	{Modify, 0666, "shebang-3", "#!/usr/bin/sh\n foo"},
-	{Modify, 0666, "shebang-4", "#!/usr/bin/env bash\n foo"},
-	{Modify, 0666, "shebang-5", "#!/bin/env sh\n foo"},
-	{Modify, 0666, "shebang-space", "#! /bin/sh\n foo"},
-	{Modify, 0666, "shebang-tabs", "#!\t/bin/env\tsh\n foo"},
-	{Modify, 0666, "shebang-args", "#!/bin/bash -e -x\nfoo"},
-	{Modify, 0666, "ext.sh", " foo"},
-	{Modify, 0666, "ext.bash", " foo"},
-	{Modify, 0666, "ext-shebang.sh", "#!/bin/sh\n foo"},
-	{Modify, 0666, filepath.Join("dir", "ext.sh"), " foo"},
-	{None, 0666, ".hidden", " foo long enough"},
-	{None, 0666, ".hidden-shebang", "#!/bin/sh\n foo"},
-	{None, 0666, "..hidden-shebang", "#!/bin/sh\n foo"},
-	{None, 0666, "noext-empty", " foo"},
-	{None, 0666, "noext-noshebang", " foo long enough"},
-	{None, 0666, "shebang-nonewline", "#!/bin/shfoo"},
-	{None, 0666, "ext.other", " foo"},
-	{None, 0666, "ext-shebang.other", "#!/bin/sh\n foo"},
-	{None, 0666, "shebang-nospace", "#!/bin/envsh\n foo"},
-	{None, 0666, filepath.Join(".git", "ext.sh"), " foo"},
-	{None, 0666, filepath.Join(".svn", "ext.sh"), " foo"},
-	{None, 0666, filepath.Join(".hg", "ext.sh"), " foo"},
-	{Error, 0666, "parse-error.sh", " foo("},
-	{Error, 0111, "open-error.sh", " foo"},
+	{Modify, 0666, false, "shebang-1", "#!/bin/sh\n foo"},
+	{Modify, 0666, false, "shebang-2", "#!/bin/bash\n foo"},
+	{Modify, 0666, false, "shebang-3", "#!/usr/bin/sh\n foo"},
+	{Modify, 0666, false, "shebang-4", "#!/usr/bin/env bash\n foo"},
+	{Modify, 0666, false, "shebang-5", "#!/bin/env sh\n foo"},
+	{Modify, 0666, false, "shebang-space", "#! /bin/sh\n foo"},
+	{Modify, 0666, false, "shebang-tabs", "#!\t/bin/env\tsh\n foo"},
+	{Modify, 0666, false, "shebang-args", "#!/bin/bash -e -x\nfoo"},
+	{Modify, 0666, false, "ext.sh", " foo"},
+	{Modify, 0666, false, "ext.bash", " foo"},
+	{Modify, 0666, false, "ext-shebang.sh", "#!/bin/sh\n foo"},
+	{Modify, 0666, false, filepath.Join("dir", "ext.sh"), " foo"},
+	{None, 0666, false, ".hidden", " foo long enough"},
+	{None, 0666, false, ".hidden-shebang", "#!/bin/sh\n foo"},
+	{None, 0666, false, "..hidden-shebang", "#!/bin/sh\n foo"},
+	{None, 0666, false, "noext-empty", " foo"},
+	{None, 0666, false, "noext-noshebang", " foo long enough"},
+	{None, 0666, false, "shebang-nonewline", "#!/bin/shfoo"},
+	{None, 0666, false, "ext.other", " foo"},
+	{None, 0666, false, "ext-shebang.other", "#!/bin/sh\n foo"},
+	{None, 0666, false, "shebang-nospace", "#!/bin/envsh\n foo"},
+	{None, 0666, false, filepath.Join(".git", "ext.sh"), " foo"},
+	{None, 0666, false, filepath.Join(".svn", "ext.sh"), " foo"},
+	{None, 0666, false, filepath.Join(".hg", "ext.sh"), " foo"},
+	{Error, 0666, false, "parse-error.sh", " foo("},
+	{Error, 0111, false, "open-error.sh", " foo"},
+	{None, 0666, true, "reallylongdir/symlink-file", "ext-shebang.sh"},
+	{None, 0666, true, "symlink-dir", "reallylongdir"},
+	{None, 0666, true, "symlink-none", "reallylongdir/nonexistent"},
 }
 
 var errPathMentioned = regexp.MustCompile(`([^ :]+):`)
@@ -74,6 +78,12 @@ func TestWalk(t *testing.T) {
 		if dir, _ := filepath.Split(wt.path); dir != "" {
 			dir = dir[:len(dir)-1]
 			os.Mkdir(dir, 0777)
+		}
+		if wt.symlink {
+			if err := os.Symlink(wt.body, wt.path); err != nil {
+				t.Fatal(err)
+			}
+			continue
 		}
 		err := ioutil.WriteFile(wt.path, []byte(wt.body), wt.mode)
 		if err != nil {

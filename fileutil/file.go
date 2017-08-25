@@ -41,7 +41,7 @@ func CouldBeScript(info os.FileInfo) ScriptConfidence {
 	switch {
 	case info.IsDir(), name[0] == '.':
 		return ConfNotScript
-	case info.Mode()&os.ModeSymlink == os.ModeSymlink:
+	case info.Mode()&os.ModeSymlink != 0:
 		return ConfNotScript
 	case extRe.MatchString(name):
 		return ConfIsScript
