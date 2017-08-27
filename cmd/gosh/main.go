@@ -1,7 +1,7 @@
 // Copyright (c) 2017, Daniel Martí <mvdan@mvdan.cc>
 // See LICENSE for licensing information
 
-package main
+package main // import "mvdan.cc/sh/cmd/gosh"
 
 import (
 	"flag"
