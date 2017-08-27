@@ -5,7 +5,7 @@
 [![Coverage Status](https://coveralls.io/repos/github/mvdan/sh/badge.svg?branch=master)](https://coveralls.io/github/mvdan/sh)
 
 A shell parser, formatter and interpreter. Supports [POSIX Shell],
-[Bash] and [mksh]. Requires Go 1.7 or later.
+[Bash] and [mksh]. Requires Go 1.8 or later.
 
 **Please note that the import paths have been moved from
 `github.com/mvdan/sh/...` to `mvdan.cc/sh/...` for 2.0.** This will help
