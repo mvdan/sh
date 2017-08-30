@@ -34,7 +34,7 @@ const (
 )
 
 // CouldBeScript reports how likely a file is to be a shell script. It
-// discards directories, hidden files and files with non-shell
+// discards directories, symlinks, hidden files and files with non-shell
 // extensions.
 func CouldBeScript(info os.FileInfo) ScriptConfidence {
 	name := info.Name()
