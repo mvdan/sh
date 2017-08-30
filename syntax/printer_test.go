@@ -636,3 +636,36 @@ func TestPrintBinaryNextLine(t *testing.T) {
 		})
 	}
 }
+
+func TestPrintSwitchCaseIndent(t *testing.T) {
+	var tests = [...]printCase{
+		{
+			"case $i in\n1)\nfoo\n;;\nesac",
+			"case $i in\n\t1)\n\t\tfoo\n\t\t;;\nesac",
+		},
+		{
+			"case $i in\n1)\na\n;;\n2)\nb\n;;\nesac",
+			"case $i in\n\t1)\n\t\ta\n\t\t;;\n\t2)\n\t\tb\n\t\t;;\nesac",
+		},
+		samePrint("case $i in\n\t#foo\nesac"),
+	}
+	parser := NewParser(KeepComments)
+	printer := NewPrinter(SwitchCaseIndent)
+	for i, tc := range tests {
+		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
+			prog, err := parser.Parse(strings.NewReader(tc.in), "")
+			if err != nil {
+				t.Fatal(err)
+			}
+			want := tc.want + "\n"
+			got, err := strPrint(printer, prog)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got != want {
+				t.Fatalf("Print mismatch:\nin:\n%s\nwant:\n%sgot:\n%s",
+					tc.in, want, got)
+			}
+		})
+	}
+}
