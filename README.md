@@ -17,7 +17,7 @@ future-proof the project by making it depend less on GitHub.
 
 `shfmt` formats shell programs. It can use tabs or any number of spaces
 to indent. See [canonical.sh](syntax/canonical.sh) for a quick look at
-its style.
+its default style.
 
 You can feed it standard input, any number of files or any number of
 directories to recurse into. When recursing, it will operate on `.sh`
@@ -26,7 +26,8 @@ operate on files with no extension and a shell shebang.
 
 	shfmt -l -w script.sh
 
-Use `-i N` to indent with a number of spaces instead of tabs.
+Use `-i N` to indent with a number of spaces instead of tabs. There are
+other formatting options - see `shfmt -h`.
 
 Packages are available for [Arch], [Homebrew], [NixOS] and [Void].
 
