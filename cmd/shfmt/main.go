@@ -24,6 +24,7 @@ var (
 	posix       = flag.Bool("p", false, "shorthand for -ln=posix")
 	indent      = flag.Uint("i", 0, "indent: 0 for tabs (default), >0 for number of spaces")
 	binNext     = flag.Bool("bn", false, "binary ops like && and | may start a line")
+	caseIndent  = flag.Bool("ci", false, "switch cases will be indented")
 	toJSON      = flag.Bool("exp.tojson", false, "print AST to stdout as a typed JSON")
 	showVersion = flag.Bool("version", false, "show version and exit")
 
@@ -72,6 +73,9 @@ func main() {
 		syntax.Indent(*indent)(p)
 		if *binNext {
 			syntax.BinaryNextLine(p)
+		}
+		if *caseIndent {
+			syntax.SwitchCaseIndent(p)
 		}
 	})
 	if flag.NArg() == 0 {
