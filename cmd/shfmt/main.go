@@ -36,7 +36,7 @@ var (
 
 	out io.Writer = os.Stdout
 
-	version = "v2.0-beta1"
+	version = "v2.0.0"
 )
 
 func main() {
