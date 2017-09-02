@@ -1773,3 +1773,19 @@ func (r *strictStringReader) Read(p []byte) (int, error) {
 	}
 	return n, err
 }
+
+func TestParseStmts(t *testing.T) {
+	in := "foo; if a; then b; fi"
+	p := NewParser()
+	got := 0
+	err := p.Stmts(strings.NewReader(in), func(s *Stmt) {
+		got++
+	})
+	if err != nil {
+		t.Fatalf("Expected no error in %q: %v", in, err)
+	}
+	if want := 2; got != want {
+		t.Fatalf("Statement mismatch in %q\nwant: %d\ngot:  %d",
+			in, want, got)
+	}
+}

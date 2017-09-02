@@ -50,13 +50,28 @@ func (p *Parser) Parse(r io.Reader, name string) (*File, error) {
 	p.src = r
 	p.rune()
 	p.next()
-	p.f.StmtList = p.stmts()
+	p.f.StmtList = p.stmtList()
 	if p.err == nil {
 		// EOF immediately after heredoc word so no newline to
 		// trigger it
 		p.doHeredocs()
 	}
 	return p.f, p.err
+}
+
+func (p *Parser) Stmts(r io.Reader, fn func(*Stmt)) error {
+	p.reset()
+	p.f = &File{}
+	p.src = r
+	p.rune()
+	p.next()
+	p.stmts(fn)
+	if p.err == nil {
+		// EOF immediately after heredoc word so no newline to
+		// trigger it
+		p.doHeredocs()
+	}
+	return p.err
 }
 
 // Parser holds the internal state of the parsing mechanism of a
@@ -380,7 +395,7 @@ func (p *Parser) followStmts(left string, lpos Pos, stops ...string) StmtList {
 	if p.gotSameLine(semicolon) {
 		return StmtList{}
 	}
-	sl := p.stmts(stops...)
+	sl := p.stmtList(stops...)
 	if len(sl.Stmts) < 1 && !p.newLine {
 		p.followErr(lpos, left, "a statement list")
 	}
@@ -464,7 +479,7 @@ func (p *Parser) curErr(format string, a ...interface{}) {
 	p.posErr(p.pos, format, a...)
 }
 
-func (p *Parser) stmts(stops ...string) (sl StmtList) {
+func (p *Parser) stmts(fn func(*Stmt), stops ...string) {
 	gotEnd := true
 loop:
 	for p.tok != _EOF {
@@ -498,13 +513,20 @@ loop:
 		if s, end := p.getStmt(true, false); s == nil {
 			p.invalidStmtStart()
 		} else {
-			if sl.Stmts == nil {
-				sl.Stmts = p.stList()
-			}
-			sl.Stmts = append(sl.Stmts, s)
+			fn(s)
 			gotEnd = end
 		}
 	}
+}
+
+func (p *Parser) stmtList(stops ...string) (sl StmtList) {
+	fn := func(s *Stmt) {
+		if sl.Stmts == nil {
+			sl.Stmts = p.stList()
+		}
+		sl.Stmts = append(sl.Stmts, s)
+	}
+	p.stmts(fn, stops...)
 	sl.Last, p.accComs = p.accComs, nil
 	return
 }
@@ -586,7 +608,7 @@ func (p *Parser) wordPart() WordPart {
 			old := p.preNested(subCmd)
 			p.rune() // don't tokenize '|'
 			p.next()
-			cs.StmtList = p.stmts("}")
+			cs.StmtList = p.stmtList("}")
 			p.postNested(old)
 			cs.Right = p.pos
 			if !p.gotRsrv("}") {
@@ -630,7 +652,7 @@ func (p *Parser) wordPart() WordPart {
 		cs := &CmdSubst{Left: p.pos}
 		old := p.preNested(subCmd)
 		p.next()
-		cs.StmtList = p.stmts()
+		cs.StmtList = p.stmtList()
 		p.postNested(old)
 		cs.Right = p.matched(cs.Left, leftParen, rightParen)
 		return cs
@@ -648,7 +670,7 @@ func (p *Parser) wordPart() WordPart {
 		ps := &ProcSubst{Op: ProcOperator(p.tok), OpPos: p.pos}
 		old := p.preNested(subCmd)
 		p.next()
-		ps.StmtList = p.stmts()
+		ps.StmtList = p.stmtList()
 		p.postNested(old)
 		ps.Rparen = p.matched(ps.OpPos, token(ps.Op), rightParen)
 		return ps
@@ -709,7 +731,7 @@ func (p *Parser) wordPart() WordPart {
 		cs := &CmdSubst{Left: p.pos}
 		old := p.preNested(subCmdBckquo)
 		p.next()
-		cs.StmtList = p.stmts()
+		cs.StmtList = p.stmtList()
 		p.postNested(old)
 		cs.Right = p.pos
 		if !p.got(bckQuote) {
@@ -1531,7 +1553,7 @@ func (p *Parser) subshell() *Subshell {
 	s := &Subshell{Lparen: p.pos}
 	old := p.preNested(subCmd)
 	p.next()
-	s.StmtList = p.stmts()
+	s.StmtList = p.stmtList()
 	p.postNested(old)
 	s.Rparen = p.matched(s.Lparen, leftParen, rightParen)
 	return s
@@ -1555,7 +1577,7 @@ func (p *Parser) arithmExpCmd() Command {
 func (p *Parser) block() *Block {
 	b := &Block{Lbrace: p.pos}
 	p.next()
-	b.StmtList = p.stmts("}")
+	b.StmtList = p.stmtList("}")
 	b.Rbrace = p.pos
 	if !p.gotRsrv("}") {
 		p.matchingErr(b.Lbrace, "{", "}")
@@ -1711,7 +1733,7 @@ func (p *Parser) caseItems(stop string) (items []*CaseItem) {
 		}
 		old := p.preNested(switchCase)
 		p.next()
-		ci.StmtList = p.stmts(stop)
+		ci.StmtList = p.stmtList(stop)
 		p.postNested(old)
 		ci.OpPos = p.pos
 		switch p.tok {
