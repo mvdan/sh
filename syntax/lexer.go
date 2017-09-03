@@ -186,7 +186,7 @@ func (p *Parser) next() {
 		p.tok = _EOF
 		return
 	}
-	p.spaced, p.newLine = false, false
+	p.spaced = false
 	if p.quote&allKeepSpaces != 0 {
 		p.nextKeepSpaces()
 		return
@@ -202,18 +202,16 @@ skipSpace:
 			p.spaced = true
 			r = p.rune()
 		case '\n':
-			if p.quote == arithmExprLet || p.quote == hdocWord {
-				p.tok = _Newl
-				return
+			if p.tok == _Newl {
+				r = p.rune()
+				continue
 			}
-			p.spaced, p.newLine = true, true
-			r = p.rune()
-			if len(p.heredocs) > p.buriedHdocs {
-				if p.doHeredocs(); p.tok == _EOF {
-					return
-				}
-				r = p.r
+			p.spaced = true
+			p.tok = _Newl
+			if p.quote != hdocWord && len(p.heredocs) > p.buriedHdocs {
+				p.doHeredocs()
 			}
+			return
 		case '\\':
 			if !p.peekByte('\n') {
 				break skipSpace

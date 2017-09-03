@@ -689,7 +689,7 @@ var shellTests = []errorCase{
 	},
 	{
 		in:     "echo <\nbar",
-		common: `2:1: redirect word must be on the same line`,
+		common: `1:6: redirect word must be on the same line`,
 	},
 	{
 		in:     "echo | < #bar",
@@ -740,7 +740,7 @@ var shellTests = []errorCase{
 	},
 	{
 		in:     "<<\nEOF\nbar\nEOF",
-		common: `2:1: redirect word must be on the same line`,
+		common: `1:1: redirect word must be on the same line`,
 	},
 	{
 		in:     "if",
@@ -1774,18 +1774,41 @@ func (r *strictStringReader) Read(p []byte) (int, error) {
 	return n, err
 }
 
-func TestParseStmts(t *testing.T) {
-	in := "foo; if a; then b; fi"
-	p := NewParser()
-	got := 0
-	err := p.Stmts(strings.NewReader(in), func(s *Stmt) {
-		got++
-	})
-	if err != nil {
-		t.Fatalf("Expected no error in %q: %v", in, err)
+type chunkedReader struct {
+	rem  []string
+	cont chan bool
+}
+
+func (c *chunkedReader) Read(p []byte) (n int, err error) {
+	if len(c.rem) < 1 {
+		return 0, io.EOF
 	}
-	if want := 2; got != want {
-		t.Fatalf("Statement mismatch in %q\nwant: %d\ngot:  %d",
-			in, want, got)
+	<-c.cont
+	src := []byte(c.rem[0])
+	c.rem = c.rem[1:]
+	if len(p) < len(src) {
+		panic("TODO: small byte buffers")
+	}
+	return copy(p, src), nil
+}
+
+func TestParseStmts(t *testing.T) {
+	in := []string{"foo\n", "bar; baz"}
+	p := NewParser()
+	cr := &chunkedReader{in, make(chan bool, 10)}
+	recv := make(chan bool, 10)
+	errc := make(chan error)
+	go func() {
+		errc <- p.Stmts(cr, func(s *Stmt) {
+			recv <- true
+		})
+	}()
+	cr.cont <- true
+	<-recv
+	cr.cont <- true
+	<-recv
+	<-recv
+	if err := <-errc; err != nil {
+		t.Fatalf("Expected no error in %q: %v", in, err)
 	}
 }
