@@ -157,7 +157,7 @@ func (p *Parser) nextKeepSpaces() {
 		if r == '`' || r == '$' {
 			p.tok = p.dqToken(r)
 		} else if p.hdocStop == nil {
-			p.tok = illegalTok
+			p.tok = _Newl
 		} else {
 			p.advanceLitHdoc(r)
 		}
@@ -203,7 +203,7 @@ skipSpace:
 			r = p.rune()
 		case '\n':
 			if p.quote == arithmExprLet || p.quote == hdocWord {
-				p.tok = illegalTok
+				p.tok = _Newl
 				return
 			}
 			p.spaced, p.newLine = true, true
@@ -899,7 +899,7 @@ func (p *Parser) advanceLitHdoc(r rune) {
 			if bytes.HasPrefix(p.litBs[lStart:], p.hdocStop) {
 				p.val = p.endLit()[:lStart]
 				if p.val == "" {
-					p.tok = illegalTok
+					p.tok = _Newl
 				}
 				p.hdocStop = nil
 				return

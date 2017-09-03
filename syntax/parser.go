@@ -1333,7 +1333,7 @@ func (p *Parser) doRedirect(s *Stmt) {
 		p.heredocs = append(p.heredocs, r)
 		r.Word = p.followWordTok(token(r.Op), r.OpPos)
 		p.quote, p.forbidNested = old, false
-		if p.tok == illegalTok {
+		if p.tok == _Newl {
 			p.next()
 		}
 	default:
@@ -1979,7 +1979,7 @@ func (p *Parser) letClause() *LetClause {
 		p.followErrExp(lc.Let, "let")
 	}
 	p.postNested(old)
-	if p.tok == illegalTok {
+	if p.tok == _Newl {
 		p.next()
 	}
 	return lc
