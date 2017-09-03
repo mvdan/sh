@@ -10,6 +10,8 @@ import (
 	"os"
 	"strings"
 
+	"golang.org/x/crypto/ssh/terminal"
+
 	"mvdan.cc/sh/interp"
 	"mvdan.cc/sh/syntax"
 )
@@ -40,6 +42,9 @@ func runAll() error {
 		return run(strings.NewReader(*command), "")
 	}
 	if flag.NArg() == 0 {
+		if terminal.IsTerminal(int(os.Stdin.Fd())) {
+			return interactive(os.Stdin)
+		}
 		return run(os.Stdin, "")
 	}
 	for _, path := range flag.Args() {
@@ -66,4 +71,16 @@ func run(reader io.Reader, name string) error {
 	}
 	runner.Reset()
 	return runner.Run(prog)
+}
+
+func interactive(reader io.Reader) error {
+	runner.Reset()
+	fn := func(s *syntax.Stmt) {
+		if err := runner.Run(s); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+		}
+		fmt.Printf("$ ")
+	}
+	fmt.Printf("$ ")
+	return parser.Stmts(reader, fn)
 }
