@@ -41,8 +41,22 @@ var (
 
 func main() {
 	flag.Usage = func() {
-		fmt.Fprintln(os.Stderr, "usage: shfmt [flags] [path ...]")
-		flag.PrintDefaults()
+		fmt.Fprint(os.Stderr, `usage: shfmt [flags] [path ...]
+
+  -l        list files whose formatting differs from shfmt's
+  -w        write result to file instead of stdout
+  -s        simplify the code
+  -version  show version and exit
+
+  -ln str   language variant to parse (bash/posix/mksh, default "bash")
+  -p        shorthand for -ln=posix
+
+  -i uint   indent: 0 for tabs (default), >0 for number of spaces
+  -bn       binary ops like && and | may start a line
+  -ci       switch cases will be indented
+
+  -exp.tojson  print AST to stdout as a typed JSON
+`)
 	}
 	flag.Parse()
 
