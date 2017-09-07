@@ -1136,6 +1136,9 @@ var fileCases = []struct {
 	// /dev/null
 	{"echo foo >/dev/null", ""},
 	{"cat </dev/null", ""},
+
+	// time (tricky because we want it fast and non-flaky)
+	{"{ time; } |& wc", "      4       6      42\n"},
 }
 
 // concBuffer wraps a bytes.Buffer in a mutex so that concurrent writes
