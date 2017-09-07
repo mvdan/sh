@@ -43,7 +43,7 @@ func runAll() error {
 	}
 	if flag.NArg() == 0 {
 		if terminal.IsTerminal(int(os.Stdin.Fd())) {
-			return interactive(os.Stdin)
+			return interactive()
 		}
 		return run(os.Stdin, "")
 	}
@@ -73,7 +73,23 @@ func run(reader io.Reader, name string) error {
 	return runner.Run(prog)
 }
 
-func interactive(r io.Reader) error {
+type promptReader struct {
+	io.Reader
+	first bool
+}
+
+func (pr *promptReader) Read(p []byte) (int, error) {
+	if pr.first {
+		fmt.Printf("$ ")
+		pr.first = false
+	} else {
+		fmt.Printf("> ")
+	}
+	return pr.Reader.Read(p)
+}
+
+func interactive() error {
+	r := &promptReader{os.Stdin, true}
 	runner.Reset()
 	fn := func(s *syntax.Stmt) {
 		if err := runner.Stmt(s); err != nil {
@@ -84,8 +100,7 @@ func interactive(r io.Reader) error {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
-		fmt.Printf("$ ")
+		r.first = true
 	}
-	fmt.Printf("$ ")
 	return parser.Stmts(r, fn)
 }
