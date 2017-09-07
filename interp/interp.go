@@ -278,6 +278,11 @@ func (r *Runner) Run(node syntax.Node) error {
 	return r.err
 }
 
+func (r *Runner) Stmt(stmt *syntax.Stmt) error {
+	r.stmt(stmt)
+	return r.err
+}
+
 func (r *Runner) outf(format string, a ...interface{}) {
 	fmt.Fprintf(r.Stdout, format, a...)
 }

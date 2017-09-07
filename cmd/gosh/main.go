@@ -73,14 +73,19 @@ func run(reader io.Reader, name string) error {
 	return runner.Run(prog)
 }
 
-func interactive(reader io.Reader) error {
+func interactive(r io.Reader) error {
 	runner.Reset()
 	fn := func(s *syntax.Stmt) {
-		if err := runner.Run(s); err != nil {
+		if err := runner.Stmt(s); err != nil {
+			code, ok := err.(interp.ExitCode)
+			if ok {
+				os.Exit(int(code))
+			}
 			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
 		}
 		fmt.Printf("$ ")
 	}
 	fmt.Printf("$ ")
-	return parser.Stmts(reader, fn)
+	return parser.Stmts(r, fn)
 }
