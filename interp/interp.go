@@ -657,11 +657,9 @@ func (r *Runner) cmd(cm syntax.Command) {
 		if x.Stmt != nil {
 			r.stmt(x.Stmt)
 		}
-		elapsed := time.Since(start)
+		real := time.Since(start)
 		r.outf("\n")
-		min := int(elapsed.Minutes())
-		sec := math.Remainder(elapsed.Seconds(), 60.0)
-		r.outf("real\t%dm%.3fs\n", min, sec)
+		r.outf("real\t%s\n", elapsedString(real))
 		// TODO: can we do these?
 		r.outf("user\t0m0.000s\n")
 		r.outf("sys\t0m0.000s\n")
@@ -671,6 +669,12 @@ func (r *Runner) cmd(cm syntax.Command) {
 	if r.exit != 0 && r.stopOnCmdErr {
 		r.lastExit()
 	}
+}
+
+func elapsedString(d time.Duration) string {
+	min := int(d.Minutes())
+	sec := math.Remainder(d.Seconds(), 60.0)
+	return fmt.Sprintf("%dm%.3fs", min, sec)
 }
 
 func (r *Runner) stmts(sl syntax.StmtList) {

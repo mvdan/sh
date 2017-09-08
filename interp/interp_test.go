@@ -1137,7 +1137,7 @@ var fileCases = []struct {
 	{"echo foo >/dev/null", ""},
 	{"cat </dev/null", ""},
 
-	// time (tricky because we want it fast and non-flaky)
+	// time - real would be slow and flaky; see TestElapsedString
 	{"{ time; } |& wc", "      4       6      42\n"},
 }
 
@@ -1368,5 +1368,28 @@ func TestRunnerAltNodes(t *testing.T) {
 			t.Fatalf("wrong output in %q:\nwant: %q\ngot:  %q",
 				in, want, got)
 		}
+	}
+}
+
+func TestElapsedString(t *testing.T) {
+	tests := []struct {
+		in   time.Duration
+		want string
+	}{
+		{time.Nanosecond, "0m0.000s"},
+		{time.Millisecond, "0m0.001s"},
+		{2500 * time.Millisecond, "0m2.500s"},
+		{
+			10*time.Minute + 10*time.Second,
+			"10m10.000s",
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.in.String(), func(t *testing.T) {
+			got := elapsedString(tc.in)
+			if got != tc.want {
+				t.Fatalf("wanted %q, got %q", tc.want, got)
+			}
+		})
 	}
 }
