@@ -163,9 +163,6 @@ func (r *Runner) lookupVar(name string) (varValue, bool) {
 	switch name {
 	case "PWD":
 		return r.Dir, true
-	case "HOME":
-		u, _ := user.Current()
-		return u.HomeDir, true
 	}
 	if val, e := r.cmdVars[name]; e {
 		return val, true
@@ -246,6 +243,10 @@ func (r *Runner) Reset() error {
 		}
 		name, val := kv[:i], kv[i+1:]
 		r.envMap[name] = val
+	}
+	if _, ok := r.envMap["HOME"]; !ok {
+		u, _ := user.Current()
+		r.envMap["HOME"] = u.HomeDir
 	}
 	if r.Dir == "" {
 		dir, err := os.Getwd()

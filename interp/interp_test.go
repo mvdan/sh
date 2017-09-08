@@ -393,6 +393,10 @@ var fileCases = []struct {
 		"",
 	},
 	{
+		`HOME=/foo; echo $HOME`,
+		"/foo\n",
+	},
+	{
 		"cd noexist",
 		"exit status 1 #JUSTERR",
 	},
@@ -1276,6 +1280,11 @@ func TestRunnerOpts(t *testing.T) {
 			Runner{Env: []string{"foo"}},
 			"",
 			`env not in the form key=value: "foo"`,
+		},
+		{
+			Runner{Env: []string{"HOME="}},
+			"echo $HOME",
+			"\n",
 		},
 	}
 	p := syntax.NewParser()
