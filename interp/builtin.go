@@ -161,6 +161,9 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 		if err != nil || !info.IsDir() {
 			return 1
 		}
+		if !hasPermissionToDir(info) {
+			return 1
+		}
 		r.Dir = dir
 	case "wait":
 		if len(args) > 0 {
