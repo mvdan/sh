@@ -428,6 +428,30 @@ var fileCases = []struct {
 		`mkdir a; ln -s a b; [[ $(cd a && pwd) == $(cd b && pwd) ]]; echo $?`,
 		"1\n",
 	},
+	{
+		`mkdir a; chmod 0000 a; cd a`,
+		"exit status 1 #JUSTERR",
+	},
+	{
+		`mkdir a; chmod 0222 a; cd a`,
+		"exit status 1 #JUSTERR",
+	},
+	{
+		`mkdir a; chmod 0444 a; cd a`,
+		"exit status 1 #JUSTERR",
+	},
+	{
+		`mkdir a; chmod 0100 a; cd a`,
+		"",
+	},
+	{
+		`mkdir a; chmod 0010 a; cd a`,
+		"exit status 1 #JUSTERR",
+	},
+	{
+		`mkdir a; chmod 0001 a; cd a`,
+		"exit status 1 #JUSTERR",
+	},
 
 	// binary cmd
 	{
