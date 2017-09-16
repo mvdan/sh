@@ -160,11 +160,9 @@ func (r *Runner) setVar(name string, index syntax.ArithmExpr, val varValue) {
 		r.vars[name] = val
 		return
 	}
-	valStr, ok := val.(string)
-	if !ok { // cannot assign list to array member
-		r.exit = 1
-		return
-	}
+	// from the syntax package, we know that val must be a string if
+	// index is non-nil; nested arrays are forbidden.
+	valStr := val.(string)
 	var list []string
 	switch x := r.vars[name].(type) {
 	case string:

@@ -1275,6 +1275,9 @@ func (p *Parser) getAssign(needEqual bool) *Assign {
 		if p.lang == LangPOSIX {
 			p.curErr("arrays are a bash feature")
 		}
+		if as.Index != nil {
+			p.curErr("arrays cannot be nested")
+		}
 		as.Array = &ArrayExpr{Lparen: p.pos}
 		newQuote := p.quote
 		if p.lang == LangBash {
@@ -1308,6 +1311,9 @@ func (p *Parser) getAssign(needEqual bool) *Assign {
 				p.next()
 			}
 			if ae.Value = p.getWord(); ae.Value == nil {
+				if p.tok == leftParen {
+					p.curErr("arrays cannot be nested")
+				}
 				p.curErr("array element values must be words")
 				break
 			}

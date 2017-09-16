@@ -1389,6 +1389,14 @@ var shellTests = []errorCase{
 		bash: `1:4: "[x]" must be followed by = #NOERR`,
 	},
 	{
+		in:   "a[i]=(y)",
+		bash: `1:6: arrays cannot be nested`,
+	},
+	{
+		in:   "a=([i]=(y))",
+		bash: `1:8: arrays cannot be nested`,
+	},
+	{
 		in:   "o=([0]=#",
 		bash: `1:8: array element values must be words`,
 	},

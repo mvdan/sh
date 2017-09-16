@@ -3589,14 +3589,14 @@ var fileTests = []testCase{
 	},
 	{
 		Strs: []string{
-			"b[i]+=(2 3)",
-			"b[ i ]+=( 2 3 )",
+			"b[i]+=2",
+			"b[ i ]+=2",
 		},
 		bsmk: &CallExpr{Assigns: []*Assign{{
 			Append: true,
 			Name:   lit("b"),
 			Index:  litWord("i"),
-			Array:  arrValues(litWords("2", "3")...),
+			Value:  litWord("2"),
 		}}},
 	},
 	{
