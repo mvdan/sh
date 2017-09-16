@@ -1129,6 +1129,10 @@ var fileCases = []struct {
 		`a=('a  1' 'b  2'); for e in "${a[@]}"; do echo "$e"; done`,
 		"a  1\nb  2\n",
 	},
+	{
+		`a=([1]=y [0]=x); echo ${a[0]}`,
+		"x\n",
+	},
 
 	// declare
 	{

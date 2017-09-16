@@ -471,9 +471,22 @@ func (r *Runner) assignValue(as *syntax.Assign) varValue {
 		return s
 	}
 	if as.Array != nil {
-		strs := make([]string, len(as.Array.Elems))
+		maxIndex := len(as.Array.Elems) - 1
+		indexes := make([]int, len(as.Array.Elems))
 		for i, elem := range as.Array.Elems {
-			strs[i] = r.loneWord(elem.Value)
+			if elem.Index == nil {
+				indexes[i] = i
+				continue
+			}
+			k := r.arithm(elem.Index)
+			indexes[i] = k
+			if k > maxIndex {
+				maxIndex = k
+			}
+		}
+		strs := make([]string, maxIndex+1)
+		for i, elem := range as.Array.Elems {
+			strs[indexes[i]] = r.loneWord(elem.Value)
 		}
 		if !as.Append || prev == nil {
 			return strs
