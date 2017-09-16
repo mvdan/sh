@@ -1133,6 +1133,14 @@ var fileCases = []struct {
 		`a=([1]=y [0]=x); echo ${a[0]}`,
 		"x\n",
 	},
+	{
+		`a=(y); a[2]=x; echo ${a[2]}`,
+		"x\n",
+	},
+	{
+		`a="y"; a[2]=x; echo ${a[2]}`,
+		"x\n",
+	},
 
 	// declare
 	{

@@ -152,11 +152,32 @@ func (r *Runner) lastExit() {
 	}
 }
 
-func (r *Runner) setVar(name string, val varValue) {
+func (r *Runner) setVar(name string, index syntax.ArithmExpr, val varValue) {
 	if r.vars == nil {
 		r.vars = make(map[string]varValue, 4)
 	}
-	r.vars[name] = val
+	if index == nil {
+		r.vars[name] = val
+		return
+	}
+	valStr, ok := val.(string)
+	if !ok { // cannot assign list to array member
+		r.exit = 1
+		return
+	}
+	var list []string
+	switch x := r.vars[name].(type) {
+	case string:
+		list = []string{x}
+	case []string:
+		list = x
+	}
+	k := r.arithm(index)
+	for len(list) < k+1 {
+		list = append(list, "")
+	}
+	list[k] = valStr
+	r.vars[name] = list
 }
 
 func (r *Runner) lookupVar(name string) (varValue, bool) {
@@ -546,7 +567,7 @@ func (r *Runner) cmd(cm syntax.Command) {
 	case *syntax.CallExpr:
 		if len(x.Args) == 0 {
 			for _, as := range x.Assigns {
-				r.setVar(as.Name.Value, r.assignValue(as))
+				r.setVar(as.Name.Value, as.Index, r.assignValue(as))
 			}
 			break
 		}
@@ -612,7 +633,7 @@ func (r *Runner) cmd(cm syntax.Command) {
 		case *syntax.WordIter:
 			name := y.Name.Value
 			for _, field := range r.fields(y.Items) {
-				r.setVar(name, field)
+				r.setVar(name, nil, field)
 				if r.loopStmtsBroken(x.Do) {
 					break
 				}
@@ -664,7 +685,7 @@ func (r *Runner) cmd(cm syntax.Command) {
 			r.runErr(cm.Pos(), "unhandled declare opts")
 		}
 		for _, as := range x.Assigns {
-			r.setVar(as.Name.Value, r.assignValue(as))
+			r.setVar(as.Name.Value, as.Index, r.assignValue(as))
 		}
 	case *syntax.TimeClause:
 		start := time.Now()
