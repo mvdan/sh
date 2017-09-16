@@ -882,6 +882,10 @@ func (r *Runner) call(pos syntax.Pos, name string, args []string) {
 		r.exit = r.builtinCode(pos, name, args)
 		return
 	}
+	r.runCommand(name, args)
+}
+
+func (r *Runner) runCommand(name string, args []string) {
 	cmd := exec.CommandContext(r.Context, name, args...)
 	cmd.Env = r.Env
 	for name, val := range r.cmdVars {

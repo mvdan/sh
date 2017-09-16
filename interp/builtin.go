@@ -19,7 +19,7 @@ func isBuiltin(name string) bool {
 		"echo", "printf", "break", "continue", "pwd", "cd",
 		"wait", "builtin", "trap", "type", "source", ".", "command",
 		"pushd", "popd", "umask", "alias", "unalias", "fg", "bg",
-		"getopts", "eval", "test", "[":
+		"getopts", "eval", "test", "[", "exec":
 		return true
 	}
 	return false
@@ -250,6 +250,18 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 		p.next()
 		expr := p.classicTest("[", false)
 		return oneIf(r.bashTest(expr) == "")
+	case "exec":
+		// TODO: Consider syscall.Exec, i.e. actually replacing
+		// the process. It's in theory what a shell should do,
+		// but in practice it would kill the entire Go process
+		// and it's not available on Windows.
+		if len(args) == 0 {
+			// TODO: different behavior, apparently
+			return 0
+		}
+		r.runCommand(args[0], args[1:])
+		r.lastExit()
+		return r.exit
 	case "trap", "command", "pushd", "popd",
 		"umask", "alias", "unalias", "fg", "bg", "getopts":
 		r.runErr(pos, "unhandled builtin: %s", name)

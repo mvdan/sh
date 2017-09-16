@@ -1167,6 +1167,17 @@ var fileCases = []struct {
 
 	// time - real would be slow and flaky; see TestElapsedString
 	{"{ time; } |& wc", "      4       6      42\n"},
+
+	// exec
+	{"exec", ""},
+	{
+		"exec builtin echo foo",
+		"exit status 127 #JUSTERR",
+	},
+	{
+		"exec echo foo; echo bar",
+		"foo\n",
+	},
 }
 
 // concBuffer wraps a bytes.Buffer in a mutex so that concurrent writes
