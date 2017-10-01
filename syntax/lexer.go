@@ -799,6 +799,10 @@ loop:
 			default:
 				break loop
 			}
+		case '.':
+			if p.quote == paramName {
+				break loop
+			}
 		}
 	}
 	p.tok, p.val = tok, p.endLit()

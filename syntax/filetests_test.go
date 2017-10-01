@@ -1686,13 +1686,14 @@ var fileTests = []testCase{
 		),
 	},
 	{
-		Strs: []string{`$a/b $a-b $a:b $a}b $a]b $a_b`},
+		Strs: []string{`$a/b $a-b $a:b $a}b $a]b $a.b $a_b`},
 		common: call(
 			word(litParamExp("a"), lit("/b")),
 			word(litParamExp("a"), lit("-b")),
 			word(litParamExp("a"), lit(":b")),
 			word(litParamExp("a"), lit("}b")),
 			word(litParamExp("a"), lit("]b")),
+			word(litParamExp("a"), lit(".b")),
 			word(litParamExp("a_b")),
 		),
 	},
