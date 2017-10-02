@@ -712,14 +712,21 @@ func (p *Parser) endLit() (s string) {
 	return
 }
 
-func (p *Parser) advanceName(r rune) {
+func (p *Parser) advanceNameCont(r rune) {
+	// we know that r is a letter or underscore
+loop:
 	for p.newLit(r); r != utf8.RuneSelf; r = p.rune() {
-		if r == '\\' { // escaped byte follows
+		switch {
+		case r == '\\':
 			if r = p.rune(); r == '\n' {
 				p.discardLit(2)
 			}
-		} else if !validNameRune(r, len(p.litBs)) {
-			break
+		case 'a' <= r && r <= 'z':
+		case 'A' <= r && r <= 'Z':
+		case r == '_':
+		case '0' <= r && r <= '9':
+		default:
+			break loop
 		}
 	}
 	p.tok, p.val = _LitWord, p.endLit()

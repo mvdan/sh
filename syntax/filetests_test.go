@@ -1627,7 +1627,7 @@ var fileTests = []testCase{
 		common: dblQuoted(lit("#foo")),
 	},
 	{
-		Strs: []string{`$@a $*a $#a $$a $?a $!a $0a $-a`},
+		Strs: []string{`$@a $*a $#a $$a $?a $!a $-a $0a $30a $_a`},
 		common: call(
 			word(litParamExp("@"), lit("a")),
 			word(litParamExp("*"), lit("a")),
@@ -1635,8 +1635,10 @@ var fileTests = []testCase{
 			word(litParamExp("$"), lit("a")),
 			word(litParamExp("?"), lit("a")),
 			word(litParamExp("!"), lit("a")),
-			word(litParamExp("0"), lit("a")),
 			word(litParamExp("-"), lit("a")),
+			word(litParamExp("0"), lit("a")),
+			word(litParamExp("3"), lit("0a")),
+			word(litParamExp("_a")),
 		),
 	},
 	{
@@ -1686,7 +1688,7 @@ var fileTests = []testCase{
 		),
 	},
 	{
-		Strs: []string{`$a/b $a-b $a:b $a}b $a]b $a.b $a,b $a*b $a_b`},
+		Strs: []string{`$a/b $a-b $a:b $a}b $a]b $a.b $a,b $a*b $a_b $a2b`},
 		common: call(
 			word(litParamExp("a"), lit("/b")),
 			word(litParamExp("a"), lit("-b")),
@@ -1697,6 +1699,7 @@ var fileTests = []testCase{
 			word(litParamExp("a"), lit(",b")),
 			word(litParamExp("a"), lit("*b")),
 			word(litParamExp("a_b")),
+			word(litParamExp("a2b")),
 		),
 	},
 	{

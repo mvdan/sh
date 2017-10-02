@@ -1015,11 +1015,12 @@ func (p *Parser) shortParamExp() *ParamExp {
 	pe := &ParamExp{Dollar: p.pos, Short: true}
 	p.pos = posAddCol(p.pos, 1)
 	switch p.r {
-	case '@', '*', '#', '$', '?', '!', '0', '-':
+	case '@', '*', '#', '$', '?', '!', '-',
+		'0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
 		p.tok, p.val = _LitWord, string(p.r)
 		p.rune()
 	default:
-		p.advanceName(p.r)
+		p.advanceNameCont(p.r)
 	}
 	pe.Param = p.getLit()
 	return pe
@@ -1183,21 +1184,14 @@ func stopToken(tok token) bool {
 // ValidName returns whether val is a valid name as per the POSIX spec.
 func ValidName(val string) bool {
 	for i, r := range val {
-		if !validNameRune(r, i) {
+		switch {
+		case 'a' <= r && r <= 'z':
+		case 'A' <= r && r <= 'Z':
+		case r == '_':
+		case i > 0 && '0' <= r && r <= '9':
+		default:
 			return false
 		}
-	}
-	return true
-}
-
-func validNameRune(r rune, i int) bool {
-	switch {
-	case 'a' <= r && r <= 'z':
-	case 'A' <= r && r <= 'Z':
-	case r == '_':
-	case i > 0 && '0' <= r && r <= '9':
-	default:
-		return false
 	}
 	return true
 }
