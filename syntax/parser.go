@@ -232,7 +232,6 @@ const (
 	arithmExprBrack
 	testRegexp
 	switchCase
-	paramName
 	paramExpName
 	paramExpInd
 	paramExpOff
@@ -247,9 +246,9 @@ const (
 		switchCase | arrayElems
 	allArithmExpr = arithmExpr | arithmExprLet | arithmExprCmd |
 		arithmExprBrack | allParamArith
-	allRbrack     = arithmExprBrack | paramExpInd | paramName
+	allRbrack     = arithmExprBrack | paramExpInd
 	allParamArith = paramExpInd | paramExpOff | paramExpLen
-	allParamReg   = paramName | paramExpName | allParamArith
+	allParamReg   = paramExpName | allParamArith
 	allParamExp   = allParamReg | paramExpRepl | paramExpExp
 )
 
@@ -1020,10 +1019,7 @@ func (p *Parser) shortParamExp() *ParamExp {
 		p.tok, p.val = _LitWord, string(p.r)
 		p.rune()
 	default:
-		old := p.quote
-		p.quote = paramName
-		p.advanceLitOther(p.r)
-		p.quote = old
+		p.advanceName(p.r)
 	}
 	pe.Param = p.getLit()
 	return pe
@@ -1186,15 +1182,22 @@ func stopToken(tok token) bool {
 
 // ValidName returns whether val is a valid name as per the POSIX spec.
 func ValidName(val string) bool {
-	for i, c := range val {
-		switch {
-		case 'a' <= c && c <= 'z':
-		case 'A' <= c && c <= 'Z':
-		case c == '_':
-		case i > 0 && '0' <= c && c <= '9':
-		default:
+	for i, r := range val {
+		if !validNameRune(r, i) {
 			return false
 		}
+	}
+	return true
+}
+
+func validNameRune(r rune, i int) bool {
+	switch {
+	case 'a' <= r && r <= 'z':
+	case 'A' <= r && r <= 'Z':
+	case r == '_':
+	case i > 0 && '0' <= r && r <= '9':
+	default:
+		return false
 	}
 	return true
 }
