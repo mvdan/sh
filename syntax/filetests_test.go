@@ -1703,9 +1703,11 @@ var fileTests = []testCase{
 		),
 	},
 	{
-		Strs: []string{`$aàb`},
+		Strs: []string{`$aàb $àb $,b`},
 		common: call(
 			word(litParamExp("a"), lit("àb")),
+			word(lit("$"), lit("àb")),
+			word(lit("$"), lit(",b")),
 		),
 	},
 	{

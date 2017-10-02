@@ -1165,7 +1165,7 @@ var shellTests = []errorCase{
 		posix: `1:3: expansions not allowed in heredoc words`,
 	},
 	{
-		in:     "<<$+\n$+",
+		in:     "<<$-\n$-",
 		common: `1:3: expansions not allowed in heredoc words #NOERR`,
 	},
 	{

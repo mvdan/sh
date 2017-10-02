@@ -675,13 +675,23 @@ func (p *Parser) wordPart() WordPart {
 		return cs
 	case dollar:
 		r := p.r
-		if r == utf8.RuneSelf || wordBreak(r) || r == '"' || r == '\'' || r == '`' || r == '[' {
+		switch {
+		case singleRuneParam(r):
+			p.tok, p.val = _LitWord, string(r)
+			p.rune()
+		case 'a' <= r && r <= 'z', 'A' <= r && r <= 'Z',
+			'0' <= r && r <= '9', r == '_', r == '\\':
+			p.advanceNameCont(r)
+		default:
 			l := p.lit(p.pos, "$")
 			p.next()
 			return l
 		}
 		p.ensureNoNested()
-		return p.shortParamExp()
+		pe := &ParamExp{Dollar: p.pos, Short: true}
+		p.pos = posAddCol(p.pos, 1)
+		pe.Param = p.getLit()
+		return pe
 	case cmdIn, cmdOut:
 		p.ensureNoNested()
 		ps := &ProcSubst{Op: ProcOperator(p.tok), OpPos: p.pos}
@@ -1011,19 +1021,13 @@ func (p *Parser) arithmExprBase(compact bool) ArithmExpr {
 	return x
 }
 
-func (p *Parser) shortParamExp() *ParamExp {
-	pe := &ParamExp{Dollar: p.pos, Short: true}
-	p.pos = posAddCol(p.pos, 1)
-	switch p.r {
+func singleRuneParam(r rune) bool {
+	switch r {
 	case '@', '*', '#', '$', '?', '!', '-',
 		'0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
-		p.tok, p.val = _LitWord, string(p.r)
-		p.rune()
-	default:
-		p.advanceNameCont(p.r)
+		return true
 	}
-	pe.Param = p.getLit()
-	return pe
+	return false
 }
 
 func (p *Parser) paramExp() *ParamExp {
