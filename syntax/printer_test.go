@@ -59,365 +59,366 @@ type printCase struct {
 
 func samePrint(s string) printCase { return printCase{in: s, want: s} }
 
+var printTests = []printCase{
+	samePrint(`fo○ b\år`),
+	samePrint(`"fo○ b\år"`),
+	samePrint(`'fo○ b\år'`),
+	samePrint(`${a#fo○ b\år}`),
+	samePrint(`#fo○ b\år`),
+	samePrint("<<EOF\nfo○ b\\år\nEOF"),
+	samePrint(`$'○ b\år'`),
+	samePrint("${a/b//○}"),
+	// rune split by the chunking
+	{strings.Repeat(" ", bufSize-1) + "○", "○"},
+	// peekByte that would (but cannot) go to the next chunk
+	{strings.Repeat(" ", bufSize-2) + ">(a)", ">(a)"},
+	// escaped newline at end of chunk
+	{"a" + strings.Repeat(" ", bufSize-2) + "\\\nb", "a \\\n\tb"},
+	// panics if padding is only 4 (utf8.UTFMax)
+	{strings.Repeat(" ", bufSize-10) + "${a/b//○}", "${a/b//○}"},
+	// multiple p.fill calls
+	{"a" + strings.Repeat(" ", bufSize*4) + "b", "a b"},
+	// newline at the beginning of second chunk
+	{"a" + strings.Repeat(" ", bufSize-2) + "\nb", "a\nb"},
+	{"foo; bar", "foo\nbar"},
+	{"foo\n\n\nbar", "foo\n\nbar"},
+	{"foo\n\n", "foo"},
+	{"\n\nfoo", "foo"},
+	{"# foo \n # bar\t", "# foo\n# bar"},
+	samePrint("a=b # inline\nbar"),
+	samePrint("a=$(b) # inline"),
+	samePrint("foo # inline\n# after"),
+	samePrint("$(a) $(b)"),
+	{"if a\nthen\n\tb\nfi", "if a; then\n\tb\nfi"},
+	{"if a; then\nb\nelse\nfi", "if a; then\n\tb\nfi"},
+	samePrint("foo >&2 <f bar"),
+	samePrint("foo >&2 bar <f"),
+	{"foo >&2 bar <f bar2", "foo >&2 bar bar2 <f"},
+	{"foo <<EOF bar\nl1\nEOF", "foo bar <<EOF\nl1\nEOF"},
+	samePrint("foo <<\\\\\\\\EOF\nbar\n\\\\EOF"),
+	samePrint("foo <<\"\\EOF\"\nbar\n\\EOF"),
+	samePrint("foo <<EOF && bar\nl1\nEOF"),
+	samePrint("foo <<EOF &&\nl1\nEOF\n\tbar"),
+	samePrint("foo <<EOF\nl1\nEOF\n\nfoo2"),
+	samePrint("<<EOF\nEOF"),
+	samePrint("foo <<EOF\nEOF\n\nbar"),
+	samePrint("foo <<'EOF'\nEOF\n\nbar"),
+	{
+		"{ foo; bar; }",
+		"{\n\tfoo\n\tbar\n}",
+	},
+	{
+		"{ foo; bar; }\n#etc",
+		"{\n\tfoo\n\tbar\n}\n#etc",
+	},
+	{
+		"{\n\tfoo; }",
+		"{\n\tfoo\n}",
+	},
+	{
+		"{ foo\n}",
+		"{\n\tfoo\n}",
+	},
+	{
+		"(foo\n)",
+		"(\n\tfoo\n)",
+	},
+	{
+		"$(foo\n)",
+		"$(\n\tfoo\n)",
+	},
+	{
+		"a\n\n\n# etc\nb",
+		"a\n\n# etc\nb",
+	},
+	{
+		"a b\\\nc d",
+		"a bc \\\n\td",
+	},
+	{
+		"a bb\\\ncc d",
+		"a bbcc \\\n\td",
+	},
+	samePrint("a \\\n\tb \\\n\tc \\\n\t;"),
+	samePrint("a=1 \\\n\tb=2 \\\n\tc=3 \\\n\t;"),
+	samePrint("if a \\\n\t; then b; fi"),
+	samePrint("a 'b\nb' c"),
+	samePrint("a $'b\nb' c"),
+	{
+		"(foo; bar)",
+		"(\n\tfoo\n\tbar\n)",
+	},
+	{
+		"{\nfoo\nbar; }",
+		"{\n\tfoo\n\tbar\n}",
+	},
+	samePrint("\"$foo\"\n{\n\tbar\n}"),
+	{
+		"{\nbar\n# extra\n}",
+		"{\n\tbar\n\t# extra\n}",
+	},
+	{
+		"foo\nbar  # extra",
+		"foo\nbar # extra",
+	},
+	{
+		"foo # 1\nfooo # 2\nfo # 3",
+		"foo  # 1\nfooo # 2\nfo   # 3",
+	},
+	{
+		" foo # 1\n fooo # 2\n fo # 3",
+		"foo  # 1\nfooo # 2\nfo   # 3",
+	},
+	{
+		"foo   # 1\nfooo  # 2\nfo    # 3",
+		"foo  # 1\nfooo # 2\nfo   # 3",
+	},
+	{
+		"foooooa\nfoo # 1\nfooo # 2\nfo # 3\nfooooo",
+		"foooooa\nfoo  # 1\nfooo # 2\nfo   # 3\nfooooo",
+	},
+	{
+		"foo\nbar\nfoo # 1\nfooo # 2",
+		"foo\nbar\nfoo  # 1\nfooo # 2",
+	},
+	samePrint("foobar # 1\nfoo\nfoo # 2"),
+	samePrint("foobar # 1\n#foo\nfoo # 2"),
+	samePrint("foobar # 1\n\nfoo # 2"),
+	{
+		"foo # 2\nfoo2 bar # 1",
+		"foo      # 2\nfoo2 bar # 1",
+	},
+	{
+		"foo bar # 1\n! foo # 2",
+		"foo bar # 1\n! foo   # 2",
+	},
+	{
+		"aa #b\nc  #d\ne\nf #g",
+		"aa #b\nc  #d\ne\nf #g",
+	},
+	{
+		"foo; foooo # 1",
+		"foo\nfoooo # 1",
+	},
+	{
+		"aaa; b #1\nc #2",
+		"aaa\nb #1\nc #2",
+	},
+	{
+		"a #1\nbbb; c #2\nd #3",
+		"a #1\nbbb\nc #2\nd #3",
+	},
+	samePrint("aa #c1\n{ #c2\n\tb\n}"),
+	{
+		"aa #c1\n{ b; c; } #c2",
+		"aa #c1\n{\n\tb\n\tc\n} #c2",
+	},
+	samePrint("a #c1\n'b\ncc' #c2"),
+	{
+		"(\nbar\n# extra\n)",
+		"(\n\tbar\n\t# extra\n)",
+	},
+	{
+		"for a in 1 2\ndo\n\t# bar\ndone",
+		"for a in 1 2; do\n\t# bar\ndone",
+	},
+	samePrint("#before\nfoo | bar"),
+	samePrint("#before\nfoo && bar"),
+	samePrint("foo | bar # inline"),
+	samePrint("foo && bar # inline"),
+	samePrint("for a in 1 2; do\n\n\tbar\ndone"),
+	{
+		"a \\\n\t&& b",
+		"a &&\n\tb",
+	},
+	{
+		"a \\\n\t&& b\nc",
+		"a &&\n\tb\nc",
+	},
+	{
+		"{\n(a \\\n&& b)\nc\n}",
+		"{\n\t(a &&\n\t\tb)\n\tc\n}",
+	},
+	{
+		"a && b \\\n&& c",
+		"a && b &&\n\tc",
+	},
+	{
+		"a \\\n&& $(b) && c \\\n&& d",
+		"a &&\n\t$(b) && c &&\n\td",
+	},
+	{
+		"a \\\n&& b\nc \\\n&& d",
+		"a &&\n\tb\nc &&\n\td",
+	},
+	{
+		"a \\\n&&\n#c\nb",
+		"a &&\n\t#c\n\tb",
+	},
+	{
+		"a | {\nb \\\n| c\n}",
+		"a | {\n\tb |\n\t\tc\n}",
+	},
+	{
+		"a \\\n\t&& if foo; then\nbar\nfi",
+		"a &&\n\tif foo; then\n\t\tbar\n\tfi",
+	},
+	{
+		"if\nfoo\nthen\nbar\nfi",
+		"if\n\tfoo\nthen\n\tbar\nfi",
+	},
+	{
+		"if foo \\\nbar\nthen\nbar\nfi",
+		"if foo \\\n\tbar; then\n\tbar\nfi",
+	},
+	{
+		"if foo \\\n&& bar\nthen\nbar\nfi",
+		"if foo &&\n\tbar; then\n\tbar\nfi",
+	},
+	{
+		"a |\nb |\nc",
+		"a |\n\tb |\n\tc",
+	},
+	samePrint("a |\n\tb | c |\n\td"),
+	samePrint("a | b |\n\tc |\n\td"),
+	{
+		"foo |\n# misplaced\nbar",
+		"foo |\n\t# misplaced\n\tbar",
+	},
+	samePrint("{\n\tfoo\n\t#a\n\tbar\n} | etc"),
+	{
+		"foo &&\n#a1\n#a2\n$(bar)",
+		"foo &&\n\t#a1\n\t#a2\n\t$(bar)",
+	},
+	{
+		"{\n\tfoo\n\t#a\n} |\n# misplaced\nbar",
+		"{\n\tfoo\n\t#a\n} |\n\t# misplaced\n\tbar",
+	},
+	samePrint("foo | bar\n#after"),
+	{
+		"a |\nb | #c2\nc",
+		"a |\n\tb | #c2\n\tc",
+	},
+	{
+		"{\nfoo &&\n#a1\n#a2\n$(bar)\n}",
+		"{\n\tfoo &&\n\t\t#a1\n\t\t#a2\n\t\t$(bar)\n}",
+	},
+	{
+		"foo | while read l; do\nbar\ndone",
+		"foo | while read l; do\n\tbar\ndone",
+	},
+	samePrint("\"\\\nfoo\\\n  bar\""),
+	{
+		"foo \\\n>bar\netc",
+		"foo \\\n\t>bar\netc",
+	},
+	{
+		"foo \\\nfoo2 \\\n>bar",
+		"foo \\\n\tfoo2 \\\n\t>bar",
+	},
+	samePrint("> >(foo)"),
+	samePrint("x > >(foo) y"),
+	samePrint("a | () |\n\tb"),
+	samePrint("a | (\n\tx\n\ty\n) |\n\tb"),
+	samePrint("a |\n\tif foo; then\n\t\tbar\n\tfi |\n\tb"),
+	samePrint("a | if foo; then\n\tbar\nfi"),
+	samePrint("a | b | if foo; then\n\tbar\nfi"),
+	{
+		"case $i in\n1)\nfoo\n;;\nesac",
+		"case $i in\n1)\n\tfoo\n\t;;\nesac",
+	},
+	{
+		"case $i in\n1)\nfoo\nesac",
+		"case $i in\n1)\n\tfoo\n\t;;\nesac",
+	},
+	{
+		"case $i in\n1) foo\nesac",
+		"case $i in\n1) foo ;;\nesac",
+	},
+	{
+		"case $i in\n1) foo; bar\nesac",
+		"case $i in\n1)\n\tfoo\n\tbar\n\t;;\nesac",
+	},
+	{
+		"case $i in\n1) foo; bar;;\nesac",
+		"case $i in\n1)\n\tfoo\n\tbar\n\t;;\nesac",
+	},
+	{
+		"case $i in\n1)\n#foo \t\n;;\nesac",
+		"case $i in\n1)\n\t#foo\n\t;;\nesac",
+	},
+	samePrint("case $i in\n1)\n\ta\n\t#b\n\t;;\nesac"),
+	samePrint("case $i in\n1) foo() { bar; } ;;\nesac"),
+	samePrint("case $i in\n1) ;; #foo\nesac"),
+	samePrint("case $i in\n#foo\nesac"),
+	samePrint("case $i in\n#before\n1) ;;\nesac"),
+	samePrint("case $i in\n#bef\n1) ;; #inl\nesac"),
+	samePrint("case $i in\n1) ;; #inl1\n2) ;; #inl2\nesac"),
+	samePrint("case $i in\n#bef\n1) #inl\n\tfoo\n\t;;\nesac"),
+	samePrint("case $i in\n1) #inl\n\t;;\nesac"),
+	samePrint("case $i in\n1) a \\\n\tb ;;\nesac"),
+	{
+		"a=(\nb\nc\n) foo",
+		"a=(\n\tb\n\tc\n) foo",
+	},
+	samePrint("a=(\n\t#before\n\tb #inline\n)"),
+	samePrint("a=(\n\tb #foo\n\tc #bar\n)"),
+	samePrint("a=(\n\tb\n\n\t#foo\n\t#bar\n\tc\n)"),
+	samePrint("a=(\n\t#foo\n\t#bar\n\tc\n)"),
+	samePrint("a=(\n\t#lone\n)"),
+	samePrint("a=(\n\n)"),
+	samePrint("foo <<EOF | $(bar)\n3\nEOF"),
+	{
+		"a <<EOF\n$(\n\tb\n\tc)\nEOF",
+		"a <<EOF\n$(\n\tb\n\tc\n)\nEOF",
+	},
+	{
+		"( (foo) )\n$( (foo) )\n<( (foo) )",
+		"( (foo))\n$( (foo))\n<((foo))",
+	},
+	samePrint("\"foo\n$(bar)\""),
+	samePrint("\"foo\\\n$(bar)\""),
+	samePrint("((foo++)) || bar"),
+	{
+		"a=b \\\nc=d \\\nfoo",
+		"a=b \\\n\tc=d \\\n\tfoo",
+	},
+	{
+		"a=b \\\nc=d \\\nfoo \\\nbar",
+		"a=b \\\n\tc=d \\\n\tfoo \\\n\tbar",
+	},
+	samePrint("a $(x) \\\n\tb"),
+	samePrint("\"foo\nbar\"\netc"),
+	samePrint("\"foo\nbar\nbar2\"\netc"),
+	samePrint("a=\"$b\n\"\nd=e"),
+	samePrint("\"\n\"\n\nfoo"),
+	samePrint("$\"\n\"\n\nfoo"),
+	samePrint("'\n'\n\nfoo"),
+	samePrint("$'\n'\n\nfoo"),
+	samePrint("foo <<EOF\na\nb\nc\nd\nEOF\n{\n\tbar\n}"),
+	samePrint("foo bar # one\nif a; then\n\tb\nfi # two"),
+	{
+		"# foo\n\n\nbar",
+		"# foo\n\nbar",
+	},
+	samePrint("#foo\n#\n#bar"),
+	{
+		"(0 #\n0)#\n0",
+		"(\n\t0 #\n\t0\n) #\n0",
+	},
+	samePrint("a | #c1\n\t(\n\t\tb\n\t)"),
+	samePrint("a | #c1\n\t{\n\t\tb\n\t}"),
+	samePrint("a | #c1\n\tif b; then\n\t\tc\n\tfi"),
+	samePrint("a | #c1\n\t#c2\n\t#c3\n\tb"),
+	samePrint("a && #c1\n\t(\n\t\tb\n\t)"),
+}
+
 func TestPrintWeirdFormat(t *testing.T) {
 	t.Parallel()
-	var weirdFormats = [...]printCase{
-		samePrint(`fo○ b\år`),
-		samePrint(`"fo○ b\år"`),
-		samePrint(`'fo○ b\år'`),
-		samePrint(`${a#fo○ b\år}`),
-		samePrint(`#fo○ b\år`),
-		samePrint("<<EOF\nfo○ b\\år\nEOF"),
-		samePrint(`$'○ b\år'`),
-		samePrint("${a/b//○}"),
-		// rune split by the chunking
-		{strings.Repeat(" ", bufSize-1) + "○", "○"},
-		// peekByte that would (but cannot) go to the next chunk
-		{strings.Repeat(" ", bufSize-2) + ">(a)", ">(a)"},
-		// escaped newline at end of chunk
-		{"a" + strings.Repeat(" ", bufSize-2) + "\\\nb", "a \\\n\tb"},
-		// panics if padding is only 4 (utf8.UTFMax)
-		{strings.Repeat(" ", bufSize-10) + "${a/b//○}", "${a/b//○}"},
-		// multiple p.fill calls
-		{"a" + strings.Repeat(" ", bufSize*4) + "b", "a b"},
-		// newline at the beginning of second chunk
-		{"a" + strings.Repeat(" ", bufSize-2) + "\nb", "a\nb"},
-		{"foo; bar", "foo\nbar"},
-		{"foo\n\n\nbar", "foo\n\nbar"},
-		{"foo\n\n", "foo"},
-		{"\n\nfoo", "foo"},
-		{"# foo \n # bar\t", "# foo\n# bar"},
-		samePrint("a=b # inline\nbar"),
-		samePrint("a=$(b) # inline"),
-		samePrint("foo # inline\n# after"),
-		samePrint("$(a) $(b)"),
-		{"if a\nthen\n\tb\nfi", "if a; then\n\tb\nfi"},
-		{"if a; then\nb\nelse\nfi", "if a; then\n\tb\nfi"},
-		samePrint("foo >&2 <f bar"),
-		samePrint("foo >&2 bar <f"),
-		{"foo >&2 bar <f bar2", "foo >&2 bar bar2 <f"},
-		{"foo <<EOF bar\nl1\nEOF", "foo bar <<EOF\nl1\nEOF"},
-		samePrint("foo <<\\\\\\\\EOF\nbar\n\\\\EOF"),
-		samePrint("foo <<\"\\EOF\"\nbar\n\\EOF"),
-		samePrint("foo <<EOF && bar\nl1\nEOF"),
-		samePrint("foo <<EOF &&\nl1\nEOF\n\tbar"),
-		samePrint("foo <<EOF\nl1\nEOF\n\nfoo2"),
-		samePrint("<<EOF\nEOF"),
-		samePrint("foo <<EOF\nEOF\n\nbar"),
-		samePrint("foo <<'EOF'\nEOF\n\nbar"),
-		{
-			"{ foo; bar; }",
-			"{\n\tfoo\n\tbar\n}",
-		},
-		{
-			"{ foo; bar; }\n#etc",
-			"{\n\tfoo\n\tbar\n}\n#etc",
-		},
-		{
-			"{\n\tfoo; }",
-			"{\n\tfoo\n}",
-		},
-		{
-			"{ foo\n}",
-			"{\n\tfoo\n}",
-		},
-		{
-			"(foo\n)",
-			"(\n\tfoo\n)",
-		},
-		{
-			"$(foo\n)",
-			"$(\n\tfoo\n)",
-		},
-		{
-			"a\n\n\n# etc\nb",
-			"a\n\n# etc\nb",
-		},
-		{
-			"a b\\\nc d",
-			"a bc \\\n\td",
-		},
-		{
-			"a bb\\\ncc d",
-			"a bbcc \\\n\td",
-		},
-		samePrint("a \\\n\tb \\\n\tc \\\n\t;"),
-		samePrint("a=1 \\\n\tb=2 \\\n\tc=3 \\\n\t;"),
-		samePrint("if a \\\n\t; then b; fi"),
-		samePrint("a 'b\nb' c"),
-		samePrint("a $'b\nb' c"),
-		{
-			"(foo; bar)",
-			"(\n\tfoo\n\tbar\n)",
-		},
-		{
-			"{\nfoo\nbar; }",
-			"{\n\tfoo\n\tbar\n}",
-		},
-		samePrint("\"$foo\"\n{\n\tbar\n}"),
-		{
-			"{\nbar\n# extra\n}",
-			"{\n\tbar\n\t# extra\n}",
-		},
-		{
-			"foo\nbar  # extra",
-			"foo\nbar # extra",
-		},
-		{
-			"foo # 1\nfooo # 2\nfo # 3",
-			"foo  # 1\nfooo # 2\nfo   # 3",
-		},
-		{
-			" foo # 1\n fooo # 2\n fo # 3",
-			"foo  # 1\nfooo # 2\nfo   # 3",
-		},
-		{
-			"foo   # 1\nfooo  # 2\nfo    # 3",
-			"foo  # 1\nfooo # 2\nfo   # 3",
-		},
-		{
-			"foooooa\nfoo # 1\nfooo # 2\nfo # 3\nfooooo",
-			"foooooa\nfoo  # 1\nfooo # 2\nfo   # 3\nfooooo",
-		},
-		{
-			"foo\nbar\nfoo # 1\nfooo # 2",
-			"foo\nbar\nfoo  # 1\nfooo # 2",
-		},
-		samePrint("foobar # 1\nfoo\nfoo # 2"),
-		samePrint("foobar # 1\n#foo\nfoo # 2"),
-		samePrint("foobar # 1\n\nfoo # 2"),
-		{
-			"foo # 2\nfoo2 bar # 1",
-			"foo      # 2\nfoo2 bar # 1",
-		},
-		{
-			"foo bar # 1\n! foo # 2",
-			"foo bar # 1\n! foo   # 2",
-		},
-		{
-			"aa #b\nc  #d\ne\nf #g",
-			"aa #b\nc  #d\ne\nf #g",
-		},
-		{
-			"foo; foooo # 1",
-			"foo\nfoooo # 1",
-		},
-		{
-			"aaa; b #1\nc #2",
-			"aaa\nb #1\nc #2",
-		},
-		{
-			"a #1\nbbb; c #2\nd #3",
-			"a #1\nbbb\nc #2\nd #3",
-		},
-		samePrint("aa #c1\n{ #c2\n\tb\n}"),
-		{
-			"aa #c1\n{ b; c; } #c2",
-			"aa #c1\n{\n\tb\n\tc\n} #c2",
-		},
-		samePrint("a #c1\n'b\ncc' #c2"),
-		{
-			"(\nbar\n# extra\n)",
-			"(\n\tbar\n\t# extra\n)",
-		},
-		{
-			"for a in 1 2\ndo\n\t# bar\ndone",
-			"for a in 1 2; do\n\t# bar\ndone",
-		},
-		samePrint("#before\nfoo | bar"),
-		samePrint("#before\nfoo && bar"),
-		samePrint("foo | bar # inline"),
-		samePrint("foo && bar # inline"),
-		samePrint("for a in 1 2; do\n\n\tbar\ndone"),
-		{
-			"a \\\n\t&& b",
-			"a &&\n\tb",
-		},
-		{
-			"a \\\n\t&& b\nc",
-			"a &&\n\tb\nc",
-		},
-		{
-			"{\n(a \\\n&& b)\nc\n}",
-			"{\n\t(a &&\n\t\tb)\n\tc\n}",
-		},
-		{
-			"a && b \\\n&& c",
-			"a && b &&\n\tc",
-		},
-		{
-			"a \\\n&& $(b) && c \\\n&& d",
-			"a &&\n\t$(b) && c &&\n\td",
-		},
-		{
-			"a \\\n&& b\nc \\\n&& d",
-			"a &&\n\tb\nc &&\n\td",
-		},
-		{
-			"a \\\n&&\n#c\nb",
-			"a &&\n\t#c\n\tb",
-		},
-		{
-			"a | {\nb \\\n| c\n}",
-			"a | {\n\tb |\n\t\tc\n}",
-		},
-		{
-			"a \\\n\t&& if foo; then\nbar\nfi",
-			"a &&\n\tif foo; then\n\t\tbar\n\tfi",
-		},
-		{
-			"if\nfoo\nthen\nbar\nfi",
-			"if\n\tfoo\nthen\n\tbar\nfi",
-		},
-		{
-			"if foo \\\nbar\nthen\nbar\nfi",
-			"if foo \\\n\tbar; then\n\tbar\nfi",
-		},
-		{
-			"if foo \\\n&& bar\nthen\nbar\nfi",
-			"if foo &&\n\tbar; then\n\tbar\nfi",
-		},
-		{
-			"a |\nb |\nc",
-			"a |\n\tb |\n\tc",
-		},
-		samePrint("a |\n\tb | c |\n\td"),
-		samePrint("a | b |\n\tc |\n\td"),
-		{
-			"foo |\n# misplaced\nbar",
-			"foo |\n\t# misplaced\n\tbar",
-		},
-		samePrint("{\n\tfoo\n\t#a\n\tbar\n} | etc"),
-		{
-			"foo &&\n#a1\n#a2\n$(bar)",
-			"foo &&\n\t#a1\n\t#a2\n\t$(bar)",
-		},
-		{
-			"{\n\tfoo\n\t#a\n} |\n# misplaced\nbar",
-			"{\n\tfoo\n\t#a\n} |\n\t# misplaced\n\tbar",
-		},
-		samePrint("foo | bar\n#after"),
-		{
-			"a |\nb | #c2\nc",
-			"a |\n\tb | #c2\n\tc",
-		},
-		{
-			"{\nfoo &&\n#a1\n#a2\n$(bar)\n}",
-			"{\n\tfoo &&\n\t\t#a1\n\t\t#a2\n\t\t$(bar)\n}",
-		},
-		{
-			"foo | while read l; do\nbar\ndone",
-			"foo | while read l; do\n\tbar\ndone",
-		},
-		samePrint("\"\\\nfoo\\\n  bar\""),
-		{
-			"foo \\\n>bar\netc",
-			"foo \\\n\t>bar\netc",
-		},
-		{
-			"foo \\\nfoo2 \\\n>bar",
-			"foo \\\n\tfoo2 \\\n\t>bar",
-		},
-		samePrint("> >(foo)"),
-		samePrint("x > >(foo) y"),
-		samePrint("a | () |\n\tb"),
-		samePrint("a | (\n\tx\n\ty\n) |\n\tb"),
-		samePrint("a |\n\tif foo; then\n\t\tbar\n\tfi |\n\tb"),
-		samePrint("a | if foo; then\n\tbar\nfi"),
-		samePrint("a | b | if foo; then\n\tbar\nfi"),
-		{
-			"case $i in\n1)\nfoo\n;;\nesac",
-			"case $i in\n1)\n\tfoo\n\t;;\nesac",
-		},
-		{
-			"case $i in\n1)\nfoo\nesac",
-			"case $i in\n1)\n\tfoo\n\t;;\nesac",
-		},
-		{
-			"case $i in\n1) foo\nesac",
-			"case $i in\n1) foo ;;\nesac",
-		},
-		{
-			"case $i in\n1) foo; bar\nesac",
-			"case $i in\n1)\n\tfoo\n\tbar\n\t;;\nesac",
-		},
-		{
-			"case $i in\n1) foo; bar;;\nesac",
-			"case $i in\n1)\n\tfoo\n\tbar\n\t;;\nesac",
-		},
-		{
-			"case $i in\n1)\n#foo \t\n;;\nesac",
-			"case $i in\n1)\n\t#foo\n\t;;\nesac",
-		},
-		samePrint("case $i in\n1)\n\ta\n\t#b\n\t;;\nesac"),
-		samePrint("case $i in\n1) foo() { bar; } ;;\nesac"),
-		samePrint("case $i in\n1) ;; #foo\nesac"),
-		samePrint("case $i in\n#foo\nesac"),
-		samePrint("case $i in\n#before\n1) ;;\nesac"),
-		samePrint("case $i in\n#bef\n1) ;; #inl\nesac"),
-		samePrint("case $i in\n1) ;; #inl1\n2) ;; #inl2\nesac"),
-		samePrint("case $i in\n#bef\n1) #inl\n\tfoo\n\t;;\nesac"),
-		samePrint("case $i in\n1) #inl\n\t;;\nesac"),
-		samePrint("case $i in\n1) a \\\n\tb ;;\nesac"),
-		{
-			"a=(\nb\nc\n) foo",
-			"a=(\n\tb\n\tc\n) foo",
-		},
-		samePrint("a=(\n\t#before\n\tb #inline\n)"),
-		samePrint("a=(\n\tb #foo\n\tc #bar\n)"),
-		samePrint("a=(\n\tb\n\n\t#foo\n\t#bar\n\tc\n)"),
-		samePrint("a=(\n\t#foo\n\t#bar\n\tc\n)"),
-		samePrint("a=(\n\t#lone\n)"),
-		samePrint("a=(\n\n)"),
-		samePrint("foo <<EOF | $(bar)\n3\nEOF"),
-		{
-			"a <<EOF\n$(\n\tb\n\tc)\nEOF",
-			"a <<EOF\n$(\n\tb\n\tc\n)\nEOF",
-		},
-		{
-			"( (foo) )\n$( (foo) )\n<( (foo) )",
-			"( (foo))\n$( (foo))\n<((foo))",
-		},
-		samePrint("\"foo\n$(bar)\""),
-		samePrint("\"foo\\\n$(bar)\""),
-		samePrint("((foo++)) || bar"),
-		{
-			"a=b \\\nc=d \\\nfoo",
-			"a=b \\\n\tc=d \\\n\tfoo",
-		},
-		{
-			"a=b \\\nc=d \\\nfoo \\\nbar",
-			"a=b \\\n\tc=d \\\n\tfoo \\\n\tbar",
-		},
-		samePrint("a $(x) \\\n\tb"),
-		samePrint("\"foo\nbar\"\netc"),
-		samePrint("\"foo\nbar\nbar2\"\netc"),
-		samePrint("a=\"$b\n\"\nd=e"),
-		samePrint("\"\n\"\n\nfoo"),
-		samePrint("$\"\n\"\n\nfoo"),
-		samePrint("'\n'\n\nfoo"),
-		samePrint("$'\n'\n\nfoo"),
-		samePrint("foo <<EOF\na\nb\nc\nd\nEOF\n{\n\tbar\n}"),
-		samePrint("foo bar # one\nif a; then\n\tb\nfi # two"),
-		{
-			"# foo\n\n\nbar",
-			"# foo\n\nbar",
-		},
-		samePrint("#foo\n#\n#bar"),
-		{
-			"(0 #\n0)#\n0",
-			"(\n\t0 #\n\t0\n) #\n0",
-		},
-		samePrint("a | #c1\n\t(\n\t\tb\n\t)"),
-		samePrint("a | #c1\n\t{\n\t\tb\n\t}"),
-		samePrint("a | #c1\n\tif b; then\n\t\tc\n\tfi"),
-		samePrint("a | #c1\n\t#c2\n\t#c3\n\tb"),
-		samePrint("a && #c1\n\t(\n\t\tb\n\t)"),
-	}
 
 	parser := NewParser(KeepComments)
 	printer := NewPrinter()
-	for i, tc := range weirdFormats {
+	for i, tc := range printTests {
 		check := func(t *testing.T, in, want string) {
 			prog, err := parser.Parse(newStrictReader(in), "")
 			if err != nil {
