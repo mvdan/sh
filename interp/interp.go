@@ -10,14 +10,12 @@ import (
 	"io"
 	"math"
 	"os"
-	"os/exec"
 	"os/user"
 	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
 
 	"mvdan.cc/sh/syntax"
@@ -49,6 +47,7 @@ type Runner struct {
 	Params []string
 
 	Exec ModuleExec
+	Open ModuleOpen
 
 	filename string // only if Node was a File
 
@@ -268,6 +267,8 @@ func (r *Runner) Reset() error {
 		Stdin:   r.Stdin,
 		Stdout:  r.Stdout,
 		Stderr:  r.Stderr,
+		Exec:    r.Exec,
+		Open:    r.Open,
 	}
 	if r.Context == nil {
 		r.Context = context.Background()
@@ -297,6 +298,9 @@ func (r *Runner) Reset() error {
 	}
 	if r.Exec == nil {
 		r.Exec = DefaultExec
+	}
+	if r.Open == nil {
+		r.Open = DefaultOpen
 	}
 	return nil
 }
@@ -782,17 +786,9 @@ func (r *Runner) redir(rd *syntax.Redirect) (io.Closer, error) {
 	case syntax.RdrOut, syntax.RdrAll:
 		mode = os.O_RDWR | os.O_CREATE | os.O_TRUNC
 	}
-	var f io.ReadWriteCloser
-	switch arg {
-	case "/dev/null":
-		f = devNull{}
-	default:
-		var err error
-		f, err = os.OpenFile(r.relPath(arg), mode, 0644)
-		if err != nil {
-			// TODO: print to stderr?
-			return nil, err
-		}
+	f, err := r.open(r.relPath(arg), mode, 0644, true)
+	if err != nil {
+		return nil, err
 	}
 	switch rd.Op {
 	case syntax.RdrIn:
@@ -953,29 +949,16 @@ func (r *Runner) exec(name string, args []string) {
 	}
 }
 
-func DefaultExec(ctx Ctxt, name string, args []string) error {
-	cmd := exec.CommandContext(ctx.Context, name, args...)
-	cmd.Env = ctx.Env
-	cmd.Dir = ctx.Dir
-	cmd.Stdin = ctx.Stdin
-	cmd.Stdout = ctx.Stdout
-	cmd.Stderr = ctx.Stderr
-	err := cmd.Run()
-	switch x := err.(type) {
-	case *exec.ExitError:
-		// started, but errored - default to 1 if OS
-		// doesn't have exit statuses
-		if status, ok := x.Sys().(syscall.WaitStatus); ok {
-			return ExitCode(status.ExitStatus())
+func (r *Runner) open(path string, flags int, mode os.FileMode, print bool) (io.ReadWriteCloser, error) {
+	f, err := r.Open(r.ctx(), path, flags, mode)
+	switch err.(type) {
+	case nil:
+	case *os.PathError:
+		if print {
+			r.errf("%v\n", err)
 		}
-		return ExitCode(1)
-	case *exec.Error:
-		// did not start
-		// TODO: can this be anything other than
-		// "command not found"?
-		return ExitCode(127)
-		// TODO: print something?
 	default:
-		return nil
+		r.setErr(err)
 	}
+	return f, err
 }

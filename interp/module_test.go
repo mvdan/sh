@@ -5,6 +5,8 @@ package interp
 
 import (
 	"fmt"
+	"io"
+	"os"
 	"strings"
 	"testing"
 
@@ -13,22 +15,46 @@ import (
 
 var modCases = []struct {
 	name string
-	mods func(r *Runner)
+	exec ModuleExec
+	open ModuleOpen
 	src  string
 	want string
 }{
 	{
-		"ExecBlacklist",
-		func(r *Runner) {
-			r.Exec = func(ctx Ctxt, name string, args []string) error {
-				if name == "sleep" {
-					return fmt.Errorf("blacklisted: %s", name)
-				}
-				return DefaultExec(ctx, name, args)
+		name: "ExecBlacklist",
+		exec: func(ctx Ctxt, name string, args []string) error {
+			if name == "sleep" {
+				return fmt.Errorf("blacklisted: %s", name)
 			}
+			return DefaultExec(ctx, name, args)
 		},
-		"echo foo; /bin/echo foo; sleep 1",
-		"foo\nfoo\nblacklisted: sleep",
+		src:  "echo foo; /bin/echo foo; sleep 1",
+		want: "foo\nfoo\nblacklisted: sleep",
+	},
+	{
+		name: "ExecWhitelist",
+		exec: func(ctx Ctxt, name string, args []string) error {
+			switch name {
+			case "sed", "grep":
+			default:
+				return fmt.Errorf("blacklisted: %s", name)
+			}
+			return DefaultExec(ctx, name, args)
+		},
+		src:  "a=$(echo foo | sed 's/o/a/g'); echo $a; $a args",
+		want: "faa\nblacklisted: faa",
+	},
+	{
+		name: "OpenForbidNonDev",
+		open: func(ctx Ctxt, path string, flags int, mode os.FileMode) (io.ReadWriteCloser, error) {
+			// won't pass on windows, but ok for now
+			if !strings.HasPrefix(path, "/dev/") {
+				return nil, fmt.Errorf("non-dev: %s", path)
+			}
+			return DefaultOpen(ctx, path, flags, mode)
+		},
+		src:  "echo foo >/dev/null; echo bar >/tmp/x",
+		want: "non-dev: /tmp/x",
 	},
 }
 
@@ -44,9 +70,10 @@ func TestRunnerModules(t *testing.T) {
 			r := Runner{
 				Stdout: &cb,
 				Stderr: &cb,
+				Exec:   tc.exec,
+				Open:   tc.open,
 			}
 			r.Reset()
-			tc.mods(&r)
 			if err := r.Run(file); err != nil {
 				cb.WriteString(err.Error())
 			}

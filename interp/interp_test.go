@@ -625,7 +625,7 @@ var fileCases = []struct {
 	},
 	{
 		"echo foo >/",
-		"exit status 1 #JUSTERR",
+		"open /: is a directory\nexit status 1 #JUSTERR",
 	},
 	{
 		"echo foo 1>&1 | sed 's/o/a/g'",

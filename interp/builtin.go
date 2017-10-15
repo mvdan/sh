@@ -216,7 +216,7 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 		if len(args) < 1 {
 			r.runErr(pos, "source: need filename")
 		}
-		f, err := os.Open(r.relPath(args[0]))
+		f, err := r.open(r.relPath(args[0]), os.O_RDONLY, 0, false)
 		if err != nil {
 			r.errf("eval: %v\n", err)
 			return 1
@@ -270,8 +270,8 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 }
 
 func (r *Runner) relPath(path string) string {
-	if filepath.IsAbs(path) {
-		return path
+	if !filepath.IsAbs(path) {
+		path = filepath.Join(r.Dir, path)
 	}
-	return filepath.Join(r.Dir, path)
+	return filepath.Clean(path)
 }
