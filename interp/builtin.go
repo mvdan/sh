@@ -259,7 +259,7 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 			// TODO: different behavior, apparently
 			return 0
 		}
-		r.runCommand(args[0], args[1:])
+		r.exec(args[0], args[1:])
 		r.lastExit()
 		return r.exit
 	case "trap", "command", "pushd", "popd",

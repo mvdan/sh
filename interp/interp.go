@@ -48,6 +48,8 @@ type Runner struct {
 	// of vars.
 	Params []string
 
+	Exec ModuleExec
+
 	filename string // only if Node was a File
 
 	// Separate maps, note that bash allows a name to be both a var
@@ -76,6 +78,21 @@ type Runner struct {
 	Context context.Context
 
 	stopOnCmdErr bool // set -e
+}
+
+func (r *Runner) ctx() Ctxt {
+	c := Ctxt{
+		Context: r.Context,
+		Env:     r.Env,
+		Dir:     r.Dir,
+		Stdin:   r.Stdin,
+		Stdout:  r.Stdout,
+		Stderr:  r.Stderr,
+	}
+	for name, val := range r.cmdVars {
+		c.Env = append(c.Env, name+"="+varStr(val))
+	}
+	return c
 }
 
 // varValue can hold a string, an indexed array ([]string) or an
@@ -136,14 +153,18 @@ func (e RunError) Error() string {
 	return fmt.Sprintf("%s:%s: %s", e.Filename, e.Pos.String(), e.Text)
 }
 
-func (r *Runner) runErr(pos syntax.Pos, format string, a ...interface{}) {
+func (r *Runner) setErr(err error) {
 	if r.err == nil {
-		r.err = RunError{
-			Filename: r.filename,
-			Pos:      pos,
-			Text:     fmt.Sprintf(format, a...),
-		}
+		r.err = err
 	}
+}
+
+func (r *Runner) runErr(pos syntax.Pos, format string, a ...interface{}) {
+	r.setErr(RunError{
+		Filename: r.filename,
+		Pos:      pos,
+		Text:     fmt.Sprintf(format, a...),
+	})
 }
 
 func (r *Runner) lastExit() {
@@ -273,6 +294,9 @@ func (r *Runner) Reset() error {
 			return fmt.Errorf("could not get current dir: %v", err)
 		}
 		r.Dir = dir
+	}
+	if r.Exec == nil {
+		r.Exec = DefaultExec
 	}
 	return nil
 }
@@ -914,35 +938,44 @@ func (r *Runner) call(pos syntax.Pos, name string, args []string) {
 		r.exit = r.builtinCode(pos, name, args)
 		return
 	}
-	r.runCommand(name, args)
+	r.exec(name, args)
 }
 
-func (r *Runner) runCommand(name string, args []string) {
-	cmd := exec.CommandContext(r.Context, name, args...)
-	cmd.Env = r.Env
-	for name, val := range r.cmdVars {
-		cmd.Env = append(cmd.Env, name+"="+varStr(val))
+func (r *Runner) exec(name string, args []string) {
+	err := r.Exec(r.ctx(), name, args)
+	switch x := err.(type) {
+	case nil:
+		r.exit = 0
+	case ExitCode:
+		r.exit = int(x)
+	default:
+		r.setErr(err)
 	}
-	cmd.Dir = r.Dir
-	cmd.Stdin = r.Stdin
-	cmd.Stdout = r.Stdout
-	cmd.Stderr = r.Stderr
+}
+
+func DefaultExec(ctx Ctxt, name string, args []string) error {
+	cmd := exec.CommandContext(ctx.Context, name, args...)
+	cmd.Env = ctx.Env
+	cmd.Dir = ctx.Dir
+	cmd.Stdin = ctx.Stdin
+	cmd.Stdout = ctx.Stdout
+	cmd.Stderr = ctx.Stderr
 	err := cmd.Run()
 	switch x := err.(type) {
 	case *exec.ExitError:
 		// started, but errored - default to 1 if OS
 		// doesn't have exit statuses
-		r.exit = 1
 		if status, ok := x.Sys().(syscall.WaitStatus); ok {
-			r.exit = status.ExitStatus()
+			return ExitCode(status.ExitStatus())
 		}
+		return ExitCode(1)
 	case *exec.Error:
 		// did not start
 		// TODO: can this be anything other than
 		// "command not found"?
-		r.exit = 127
+		return ExitCode(127)
 		// TODO: print something?
 	default:
-		r.exit = 0
+		return nil
 	}
 }
