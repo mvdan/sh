@@ -400,7 +400,7 @@ func escapedGlob(parts []fieldPart) (escaped string, glob bool) {
 	return buf.String(), glob
 }
 
-func (r *Runner) fields(words []*syntax.Word) []string {
+func (r *Runner) Fields(words []*syntax.Word) []string {
 	fields := make([]string, 0, len(words))
 	baseDir, _ := escapedGlob([]fieldPart{{val: r.Dir}})
 	for _, word := range words {
@@ -576,7 +576,7 @@ func (r *Runner) cmd(cm syntax.Command) {
 		for _, as := range x.Assigns {
 			r.cmdVars[as.Name.Value] = r.assignValue(as)
 		}
-		fields := r.fields(x.Args)
+		fields := r.Fields(x.Args)
 		r.call(x.Args[0].Pos(), fields[0], fields[1:])
 		r.cmdVars = oldVars
 	case *syntax.BinaryCmd:
@@ -630,7 +630,7 @@ func (r *Runner) cmd(cm syntax.Command) {
 		switch y := x.Loop.(type) {
 		case *syntax.WordIter:
 			name := y.Name.Value
-			for _, field := range r.fields(y.Items) {
+			for _, field := range r.Fields(y.Items) {
 				r.setVar(name, nil, field)
 				if r.loopStmtsBroken(x.Do) {
 					break
