@@ -597,6 +597,7 @@ func (r *Runner) cmd(cm syntax.Command) {
 		r2 := *r
 		r2.stmts(x.StmtList)
 		r.exit = r2.exit
+		r.setErr(r2.err)
 	case *syntax.CallExpr:
 		if len(x.Args) == 0 {
 			for _, as := range x.Assigns {
@@ -637,12 +638,17 @@ func (r *Runner) cmd(cm syntax.Command) {
 				r2.Stderr = r.Stderr
 			}
 			r.Stdin = pr
+			var wg sync.WaitGroup
+			wg.Add(1)
 			go func() {
 				r2.stmt(x.X)
 				pw.Close()
+				wg.Done()
 			}()
 			r.stmt(x.Y)
 			pr.Close()
+			wg.Wait()
+			r.setErr(r2.err)
 		}
 	case *syntax.IfClause:
 		r.stmts(x.Cond)
@@ -913,6 +919,7 @@ func (r *Runner) wordFields(wps []syntax.WordPart, quoted bool) [][]fieldPart {
 			} else {
 				splitAdd(val)
 			}
+			r.setErr(r2.err)
 		case *syntax.ArithmExp:
 			curField = append(curField, fieldPart{
 				val: strconv.Itoa(r.arithm(x.X)),

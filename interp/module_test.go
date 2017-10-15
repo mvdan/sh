@@ -45,6 +45,39 @@ var modCases = []struct {
 		want: "faa\nblacklisted: faa",
 	},
 	{
+		name: "ExecSubshell",
+		exec: func(ctx Ctxt, name string, args []string) error {
+			return fmt.Errorf("blacklisted: %s", name)
+		},
+		src:  "(malicious)",
+		want: "blacklisted: malicious",
+	},
+	{
+		name: "ExecPipe",
+		exec: func(ctx Ctxt, name string, args []string) error {
+			return fmt.Errorf("blacklisted: %s", name)
+		},
+		src:  "malicious | echo foo",
+		want: "foo\nblacklisted: malicious",
+	},
+	{
+		name: "ExecCmdSubst",
+		exec: func(ctx Ctxt, name string, args []string) error {
+			return fmt.Errorf("blacklisted: %s", name)
+		},
+		src:  "a=$(malicious)",
+		want: "blacklisted: malicious",
+	},
+	{
+		name: "ExecBackground",
+		exec: func(ctx Ctxt, name string, args []string) error {
+			return fmt.Errorf("blacklisted: %s", name)
+		},
+		// TODO: find a way to bubble up the error, perhaps
+		src:  "{ malicious; echo foo; } & wait",
+		want: "",
+	},
+	{
 		name: "OpenForbidNonDev",
 		open: func(ctx Ctxt, path string, flags int, mode os.FileMode) (io.ReadWriteCloser, error) {
 			// won't pass on windows, but ok for now
