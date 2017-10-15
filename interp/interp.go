@@ -79,6 +79,61 @@ type Runner struct {
 	stopOnCmdErr bool // set -e
 }
 
+// Reset will set the unexported fields back to zero, fill any exported
+// fields with their default values if not set, and prepare the runner
+// to interpret a program.
+//
+// This function should be called once before running any node. It can
+// be skipped before any following runs to keep internal state, such as
+// declared variables.
+func (r *Runner) Reset() error {
+	// reset the internal state
+	*r = Runner{
+		Env:     r.Env,
+		Dir:     r.Dir,
+		Params:  r.Params,
+		Context: r.Context,
+		Stdin:   r.Stdin,
+		Stdout:  r.Stdout,
+		Stderr:  r.Stderr,
+		Exec:    r.Exec,
+		Open:    r.Open,
+	}
+	if r.Context == nil {
+		r.Context = context.Background()
+	}
+	if r.Env == nil {
+		r.Env = os.Environ()
+	}
+	r.envMap = make(map[string]string, len(r.Env))
+	for _, kv := range r.Env {
+		i := strings.IndexByte(kv, '=')
+		if i < 0 {
+			return fmt.Errorf("env not in the form key=value: %q", kv)
+		}
+		name, val := kv[:i], kv[i+1:]
+		r.envMap[name] = val
+	}
+	if _, ok := r.envMap["HOME"]; !ok {
+		u, _ := user.Current()
+		r.envMap["HOME"] = u.HomeDir
+	}
+	if r.Dir == "" {
+		dir, err := os.Getwd()
+		if err != nil {
+			return fmt.Errorf("could not get current dir: %v", err)
+		}
+		r.Dir = dir
+	}
+	if r.Exec == nil {
+		r.Exec = DefaultExec
+	}
+	if r.Open == nil {
+		r.Open = DefaultOpen
+	}
+	return nil
+}
+
 func (r *Runner) ctx() Ctxt {
 	c := Ctxt{
 		Context: r.Context,
@@ -255,54 +310,6 @@ opts:
 		args = args[1:]
 	}
 	return args, nil
-}
-
-func (r *Runner) Reset() error {
-	// reset the internal state
-	*r = Runner{
-		Env:     r.Env,
-		Dir:     r.Dir,
-		Params:  r.Params,
-		Context: r.Context,
-		Stdin:   r.Stdin,
-		Stdout:  r.Stdout,
-		Stderr:  r.Stderr,
-		Exec:    r.Exec,
-		Open:    r.Open,
-	}
-	if r.Context == nil {
-		r.Context = context.Background()
-	}
-	if r.Env == nil {
-		r.Env = os.Environ()
-	}
-	r.envMap = make(map[string]string, len(r.Env))
-	for _, kv := range r.Env {
-		i := strings.IndexByte(kv, '=')
-		if i < 0 {
-			return fmt.Errorf("env not in the form key=value: %q", kv)
-		}
-		name, val := kv[:i], kv[i+1:]
-		r.envMap[name] = val
-	}
-	if _, ok := r.envMap["HOME"]; !ok {
-		u, _ := user.Current()
-		r.envMap["HOME"] = u.HomeDir
-	}
-	if r.Dir == "" {
-		dir, err := os.Getwd()
-		if err != nil {
-			return fmt.Errorf("could not get current dir: %v", err)
-		}
-		r.Dir = dir
-	}
-	if r.Exec == nil {
-		r.Exec = DefaultExec
-	}
-	if r.Open == nil {
-		r.Open = DefaultOpen
-	}
-	return nil
 }
 
 // Run starts the interpreter and returns any error.
