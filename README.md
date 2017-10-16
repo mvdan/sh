@@ -99,9 +99,11 @@ the parser and the printer. To get started, run:
 [homebrew]: https://github.com/Homebrew/homebrew-core/blob/HEAD/Formula/shfmt.rb
 [nixos]: https://github.com/NixOS/nixpkgs/blob/HEAD/pkgs/tools/text/shfmt/default.nix
 [void]: https://github.com/voidlinux/void-packages/blob/HEAD/srcpkgs/shfmt/template
+[crux]: https://github.com/6c37/crux-ports-git/tree/3.3/shfmt
 [go-fuzz]: https://github.com/dvyukov/go-fuzz
 [posix-ambiguity]: http://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_06_03
 [format-shell]: https://atom.io/packages/format-shell
 [shell-format]: https://marketplace.visualstudio.com/items?itemName=foxundermoon.shell-format
 [dockerised-shfmt]: https://hub.docker.com/r/jamesmstone/shfmt/
 [vim-shfmt]: https://github.com/z0mbix/vim-shfmt
+[micro]: https://micro-editor.github.io/
