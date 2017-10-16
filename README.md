@@ -25,7 +25,7 @@ operate on files with no extension and a shell shebang.
 Use `-i N` to indent with a number of spaces instead of tabs. There are
 other formatting options - see `shfmt -h`.
 
-Packages are available for [Arch], [Homebrew], [NixOS] and [Void].
+Packages are available for [Arch], [CRUX], [Homebrew], [NixOS] and [Void].
 
 #### Advantages over `bash -n`
 
@@ -107,3 +107,4 @@ the parser and the printer. To get started, run:
 [posix-ambiguity]: http://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_06_03
 [shell-format]: https://marketplace.visualstudio.com/items?itemName=foxundermoon.shell-format
 [vim-shfmt]: https://github.com/z0mbix/vim-shfmt
+[void]: https://github.com/voidlinux/void-packages/blob/HEAD/srcpkgs/shfmt/template
