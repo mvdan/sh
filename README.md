@@ -88,7 +88,7 @@ the parser and the printer. To get started, run:
 
 * [dockerised-shfmt] - A docker image of `shfmt`
 * [format-shell] - Atom plugin for `shfmt`
-* [micro] - Editor with build-in plugin for `shfmt`
+* [micro] - Editor with a built-in plugin for `shfmt`
 * [shell-format] - VS Code plugin for `shfmt`
 * [vim-shfmt] - Vim plugin for `shfmt`
 
