@@ -80,6 +80,19 @@ type Runner struct {
 	stopOnCmdErr bool // set -e
 
 	dirStack []string
+
+	// KillTimeout holds how much time the interpreter will wait for a
+	// program to stop after being sent an interrupt signal, after
+	// which a kill signal will be sent. This process will happen when the
+	// interpreter's context is cancelled.
+	//
+	// The zero value will default to 2 seconds.
+	//
+	// A negative value means that a kill signal will be sent immediately.
+	//
+	// On Windows, the kill signal is always sent immediately,
+	// because Go doesn't currently support sending Interrupt on Windows.
+	KillTimeout time.Duration
 }
 
 // Reset will set the unexported fields back to zero, fill any exported
@@ -92,15 +105,16 @@ type Runner struct {
 func (r *Runner) Reset() error {
 	// reset the internal state
 	*r = Runner{
-		Env:     r.Env,
-		Dir:     r.Dir,
-		Params:  r.Params,
-		Context: r.Context,
-		Stdin:   r.Stdin,
-		Stdout:  r.Stdout,
-		Stderr:  r.Stderr,
-		Exec:    r.Exec,
-		Open:    r.Open,
+		Env:         r.Env,
+		Dir:         r.Dir,
+		Params:      r.Params,
+		Context:     r.Context,
+		Stdin:       r.Stdin,
+		Stdout:      r.Stdout,
+		Stderr:      r.Stderr,
+		Exec:        r.Exec,
+		Open:        r.Open,
+		KillTimeout: r.KillTimeout,
 	}
 	if r.Context == nil {
 		r.Context = context.Background()
@@ -137,17 +151,21 @@ func (r *Runner) Reset() error {
 	if r.Open == nil {
 		r.Open = DefaultOpen
 	}
+	if r.KillTimeout == 0 {
+		r.KillTimeout = 2 * time.Second
+	}
 	return nil
 }
 
 func (r *Runner) ctx() Ctxt {
 	c := Ctxt{
-		Context: r.Context,
-		Env:     r.Env,
-		Dir:     r.Dir,
-		Stdin:   r.Stdin,
-		Stdout:  r.Stdout,
-		Stderr:  r.Stderr,
+		Context:     r.Context,
+		Env:         r.Env,
+		Dir:         r.Dir,
+		Stdin:       r.Stdin,
+		Stdout:      r.Stdout,
+		Stderr:      r.Stderr,
+		KillTimeout: r.KillTimeout,
 	}
 	for name, val := range r.cmdVars {
 		c.Env = append(c.Env, name+"="+r.varStr(val, 0))

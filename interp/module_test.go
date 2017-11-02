@@ -4,11 +4,14 @@
 package interp
 
 import (
+	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"mvdan.cc/sh/syntax"
 )
@@ -113,6 +116,80 @@ func TestRunnerModules(t *testing.T) {
 			got := cb.String()
 			if got != tc.want {
 				t.Fatalf("want:\n%s\ngot:\n%s", tc.want, got)
+			}
+		})
+	}
+}
+
+func TestSignalSending(t *testing.T) {
+	tests := []struct {
+		src            string
+		want           string
+		contextTimeout time.Duration
+		killTimeout    time.Duration
+		forcedKill     bool
+	}{
+		{
+			`bash -c "trap 'echo trap' INT; sleep 5"`,
+			"",
+			4 * time.Second,
+			-1,
+			true,
+		},
+		{
+			`bash -c "trap 'while true; do sleep 1; done' INT; sleep 5"`,
+			"",
+			4 * time.Second,
+			-1,
+			true,
+		},
+		{
+			`bash -c "trap 'echo trap' INT; sleep 5"`,
+			"trap\n",
+			1 * time.Second,
+			5 * time.Second,
+			false,
+		},
+		{
+			`bash -c "trap 'echo trap; while true; do sleep 1; done' INT; sleep 5"`,
+			"trap\n",
+			1 * time.Second,
+			5 * time.Second,
+			true,
+		},
+	}
+
+	p := syntax.NewParser()
+	for i, test := range tests {
+		t.Run(fmt.Sprintf("TestSignalSending%d", i+1), func(t *testing.T) {
+			file, err := p.Parse(strings.NewReader(test.src), "")
+			if err != nil {
+				t.Errorf("could not parse: %v", err)
+			}
+			var buff bytes.Buffer
+			ctx, _ := context.WithTimeout(context.Background(), test.contextTimeout)
+			r := Runner{
+				Context:     ctx,
+				Stdout:      &buff,
+				Stderr:      &buff,
+				KillTimeout: test.killTimeout,
+			}
+			if err = r.Reset(); err != nil {
+				t.Errorf("could not reset: %v", err)
+			}
+			err = r.Run(file)
+			if test.forcedKill {
+				if _, ok := err.(ExitCode); !ok {
+					t.Error("command was not force-killed")
+				}
+			} else {
+				if err != nil && err != context.Canceled && err != context.DeadlineExceeded {
+					t.Errorf("execution errored: %v", err)
+				}
+			}
+			got := buff.String()
+			if got != test.want {
+				t.Fatalf("want:\n%s\ngot:\n%s", test.want, got)
 			}
 		})
 	}
