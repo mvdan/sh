@@ -526,7 +526,7 @@ loop:
 		if p.tok == _EOF {
 			break
 		}
-		if s, end := p.getStmt(true, false); s == nil {
+		if s, end := p.getStmt(true, false, false); s == nil {
 			p.invalidStmtStart()
 		} else {
 			fn(s)
@@ -1376,7 +1376,7 @@ func (p *Parser) doRedirect(s *Stmt) {
 	s.Redirs = append(s.Redirs, r)
 }
 
-func (p *Parser) getStmt(readEnd, binCmd bool) (s *Stmt, gotEnd bool) {
+func (p *Parser) getStmt(readEnd, binCmd, fnBody bool) (s *Stmt, gotEnd bool) {
 	pos, ok := p.gotRsrv("!")
 	s = p.stmt(pos)
 	if ok {
@@ -1403,7 +1403,8 @@ func (p *Parser) getStmt(readEnd, binCmd bool) (s *Stmt, gotEnd bool) {
 				X:     s,
 			}
 			p.next()
-			if b.Y, _ = p.getStmt(false, true); b.Y == nil || p.err != nil {
+			b.Y, _ = p.getStmt(false, true, false)
+			if b.Y == nil || p.err != nil {
 				p.followErr(b.OpPos, b.Op.String(), "a statement")
 				return
 			}
@@ -1428,7 +1429,7 @@ func (p *Parser) getStmt(readEnd, binCmd bool) (s *Stmt, gotEnd bool) {
 		s.Coprocess = true
 	}
 	gotEnd = s.Semicolon.IsValid() || s.Background || s.Coprocess
-	if len(p.accComs) > 0 && !binCmd {
+	if len(p.accComs) > 0 && !binCmd && !fnBody {
 		c := p.accComs[0]
 		if c.Pos().Line() == s.End().Line() {
 			s.Comments = append(s.Comments, c)
@@ -2111,7 +2112,7 @@ func (p *Parser) funcDecl(name *Lit, pos Pos) *FuncDecl {
 		RsrvWord: pos != name.ValuePos,
 		Name:     name,
 	}
-	if fd.Body, _ = p.getStmt(false, false); fd.Body == nil {
+	if fd.Body, _ = p.getStmt(false, false, true); fd.Body == nil {
 		p.followErr(fd.Pos(), "foo()", "a statement")
 	}
 	return fd
