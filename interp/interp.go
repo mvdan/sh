@@ -599,7 +599,8 @@ func (r *Runner) cmd(cm syntax.Command) {
 		r.exit = r2.exit
 		r.setErr(r2.err)
 	case *syntax.CallExpr:
-		if len(x.Args) == 0 {
+		fields := r.Fields(x.Args)
+		if len(fields) == 0 {
 			for _, as := range x.Assigns {
 				r.setVar(as.Name.Value, as.Index, r.assignValue(as))
 			}
@@ -612,7 +613,6 @@ func (r *Runner) cmd(cm syntax.Command) {
 		for _, as := range x.Assigns {
 			r.cmdVars[as.Name.Value] = r.assignValue(as)
 		}
-		fields := r.Fields(x.Args)
 		r.call(x.Args[0].Pos(), fields[0], fields[1:])
 		r.cmdVars = oldVars
 	case *syntax.BinaryCmd:
