@@ -870,12 +870,13 @@ func (p *Printer) stmts(sl StmtList) {
 			p.newlines(pos)
 		}
 		p.line = pos.Line()
-		p.stmt(s)
 		if !p.hasInline(s) {
 			inlineIndent = 0
 			p.commentPadding = 0
+			p.stmt(s)
 			continue
 		}
+		p.stmt(s)
 		if s.Pos().Line() > lastIndentedLine+1 {
 			inlineIndent = 0
 		}

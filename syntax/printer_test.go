@@ -197,6 +197,10 @@ var printTests = []printCase{
 		"aa #b\nc  #d\ne\nf #g",
 	},
 	{
+		"{ a; } #x\nbbb #y\n{ #z\n}",
+		"{ a; } #x\nbbb    #y\n{ #z\n}",
+	},
+	{
 		"foo; foooo # 1",
 		"foo\nfoooo # 1",
 	},
