@@ -665,6 +665,7 @@ var fileCases = []struct {
 		"{ echo foo & wait; } & wait; echo bar",
 		"foo\nbar\n",
 	},
+	{"old=$PWD; cd / & wait; [[ $old == $PWD ]]", ""},
 
 	// bash test
 	{

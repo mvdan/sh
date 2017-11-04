@@ -489,8 +489,7 @@ func (r *Runner) stmt(st *syntax.Stmt) {
 	}
 	if st.Background {
 		r.bgShells.Add(1)
-		r2 := *r
-		r2.bgShells = sync.WaitGroup{}
+		r2 := r.sub()
 		go func() {
 			r2.stmtSync(st)
 			r.bgShells.Done()
@@ -583,6 +582,7 @@ func oneIf(b bool) int {
 
 func (r *Runner) sub() *Runner {
 	r2 := *r
+	r2.bgShells = sync.WaitGroup{}
 	// TODO: perhaps we could do a lazy copy here, or some sort of
 	// overlay to avoid copying all the time
 	r2.vars = make(map[string]varValue, len(r.vars))
@@ -636,7 +636,6 @@ func (r *Runner) cmd(cm syntax.Command) {
 		case syntax.Pipe, syntax.PipeAll:
 			pr, pw := io.Pipe()
 			r2 := r.sub()
-			r2.Stdin = r.Stdin
 			r2.Stdout = pw
 			if x.Op == syntax.PipeAll {
 				r2.Stderr = pw
