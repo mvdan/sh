@@ -114,9 +114,10 @@ func (r *Runner) Reset() error {
 		name, val := kv[:i], kv[i+1:]
 		r.envMap[name] = val
 	}
+	r.vars = make(map[string]varValue, 4)
 	if _, ok := r.envMap["HOME"]; !ok {
 		u, _ := user.Current()
-		r.envMap["HOME"] = u.HomeDir
+		r.vars["HOME"] = u.HomeDir
 	}
 	if r.Dir == "" {
 		dir, err := os.Getwd()
@@ -125,6 +126,7 @@ func (r *Runner) Reset() error {
 		}
 		r.Dir = dir
 	}
+	r.vars["PWD"] = r.Dir
 	if r.Exec == nil {
 		r.Exec = DefaultExec
 	}
@@ -228,9 +230,6 @@ func (r *Runner) lastExit() {
 }
 
 func (r *Runner) setVar(name string, index syntax.ArithmExpr, val varValue) {
-	if r.vars == nil {
-		r.vars = make(map[string]varValue, 4)
-	}
 	if index == nil {
 		r.vars[name] = val
 		return
@@ -254,10 +253,6 @@ func (r *Runner) setVar(name string, index syntax.ArithmExpr, val varValue) {
 }
 
 func (r *Runner) lookupVar(name string) (varValue, bool) {
-	switch name {
-	case "PWD":
-		return r.Dir, true
-	}
 	if val, e := r.cmdVars[name]; e {
 		return val, true
 	}
@@ -586,6 +581,17 @@ func oneIf(b bool) int {
 	return 0
 }
 
+func (r *Runner) sub() *Runner {
+	r2 := *r
+	// TODO: perhaps we could do a lazy copy here, or some sort of
+	// overlay to avoid copying all the time
+	r2.vars = make(map[string]varValue, len(r.vars))
+	for k, v := range r.vars {
+		r2.vars[k] = v
+	}
+	return &r2
+}
+
 func (r *Runner) cmd(cm syntax.Command) {
 	if r.stop() {
 		return
@@ -594,7 +600,7 @@ func (r *Runner) cmd(cm syntax.Command) {
 	case *syntax.Block:
 		r.stmts(x.StmtList)
 	case *syntax.Subshell:
-		r2 := *r
+		r2 := r.sub()
 		r2.stmts(x.StmtList)
 		r.exit = r2.exit
 		r.setErr(r2.err)
@@ -629,7 +635,7 @@ func (r *Runner) cmd(cm syntax.Command) {
 			}
 		case syntax.Pipe, syntax.PipeAll:
 			pr, pw := io.Pipe()
-			r2 := *r
+			r2 := r.sub()
 			r2.Stdin = r.Stdin
 			r2.Stdout = pw
 			if x.Op == syntax.PipeAll {
@@ -909,7 +915,7 @@ func (r *Runner) wordFields(wps []syntax.WordPart, quoted bool) [][]fieldPart {
 				splitAdd(val)
 			}
 		case *syntax.CmdSubst:
-			r2 := *r
+			r2 := r.sub()
 			var buf bytes.Buffer
 			r2.Stdout = &buf
 			r2.stmts(x.StmtList)

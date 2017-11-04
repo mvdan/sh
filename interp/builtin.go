@@ -165,6 +165,7 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 			return 1
 		}
 		r.Dir = dir
+		r.vars["PWD"] = dir
 	case "wait":
 		if len(args) > 0 {
 			r.runErr(pos, "wait with args not handled yet")

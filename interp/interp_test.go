@@ -414,6 +414,14 @@ var fileCases = []struct {
 		"",
 	},
 	{
+		"PWD=changed; [[ $PWD == changed ]]",
+		"",
+	},
+	{
+		"PWD=changed; mkdir a; cd a; [[ $PWD == changed ]]",
+		"exit status 1",
+	},
+	{
 		"mkdir %s; cd %s; pwd | sed 's@.*/@@'; cd ..; rmdir %s",
 		"%s\n",
 	},
@@ -1333,6 +1341,11 @@ func TestRunnerOpts(t *testing.T) {
 			Runner{Env: []string{"HOME="}},
 			"echo $HOME",
 			"\n",
+		},
+		{
+			Runner{Env: []string{"PWD=foo"}},
+			"[[ $PWD == foo ]]",
+			"exit status 1",
 		},
 	}
 	p := syntax.NewParser()
