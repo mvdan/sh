@@ -113,8 +113,12 @@ func (r *Runner) unTest(op syntax.UnTestOperator, x string) bool {
 		return info != nil && info.Mode().IsRegular()
 	case syntax.TsDirect:
 		return r.statMode(x, os.ModeDir)
-	//case syntax.TsCharSp:
-	//case syntax.TsBlckSp:
+	case syntax.TsCharSp:
+		return r.statMode(x, os.ModeCharDevice)
+	case syntax.TsBlckSp:
+		info := r.stat(x)
+		return info != nil && info.Mode()&os.ModeDevice != 0 &&
+			info.Mode()&os.ModeCharDevice == 0
 	case syntax.TsNmPipe:
 		return r.statMode(x, os.ModeNamedPipe)
 	case syntax.TsSocket:

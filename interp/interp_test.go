@@ -880,6 +880,18 @@ var fileCases = []struct {
 		"mkdir a; cd a; test -f b && echo x; touch b; test -f b && echo y",
 		"y\n",
 	},
+	{
+		"touch a; [[ -b a ]] && echo block; [[ -c a ]] && echo char; true",
+		"",
+	},
+	{
+		"[[ -b /dev/sda ]] && echo block; [[ -c /dev/sda ]] && echo char; true",
+		"block\n",
+	},
+	{
+		"[[ -b /dev/tty ]] && echo block; [[ -c /dev/tty ]] && echo char; true",
+		"char\n",
+	},
 
 	// classic test
 	{
