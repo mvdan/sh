@@ -9,6 +9,8 @@ import (
 	"os/exec"
 	"regexp"
 
+	"golang.org/x/crypto/ssh/terminal"
+
 	"mvdan.cc/sh/syntax"
 )
 
@@ -153,7 +155,8 @@ func (r *Runner) unTest(op syntax.UnTestOperator, x string) bool {
 	case syntax.TsNoEmpty:
 		info := r.stat(x)
 		return info != nil && info.Size() > 0
-	//case syntax.TsFdTerm:
+	case syntax.TsFdTerm:
+		return terminal.IsTerminal(atoi(x))
 	case syntax.TsEmpStr:
 		return x == ""
 	case syntax.TsNempStr:

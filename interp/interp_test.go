@@ -892,6 +892,7 @@ var fileCases = []struct {
 		"[[ -e /dev/tty ]] || { echo char; exit; }; [[ -b /dev/tty ]] && echo block; [[ -c /dev/tty ]] && echo char; true",
 		"char\n",
 	},
+	{"[[ -t 1234 ]]", "exit status 1"}, // TODO: reliable way to test a positive?
 
 	// classic test
 	{
