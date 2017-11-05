@@ -885,11 +885,11 @@ var fileCases = []struct {
 		"",
 	},
 	{
-		"[[ -b /dev/sda ]] && echo block; [[ -c /dev/sda ]] && echo char; true",
+		"[[ -e /dev/sda ]] || { echo block; exit; }; [[ -b /dev/sda ]] && echo block; [[ -c /dev/sda ]] && echo char; true",
 		"block\n",
 	},
 	{
-		"[[ -b /dev/tty ]] && echo block; [[ -c /dev/tty ]] && echo char; true",
+		"[[ -e /dev/tty ]] || { echo char; exit; }; [[ -b /dev/tty ]] && echo block; [[ -c /dev/tty ]] && echo char; true",
 		"char\n",
 	},
 
