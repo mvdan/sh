@@ -554,6 +554,19 @@ var fileCases = []struct {
 		"exit status 1",
 	},
 
+	// command
+	{"command", ""},
+	{"command -o echo", "command: invalid option -o\nexit status 2 #IGNORE"},
+	{"echo() { :; }; echo foo", ""},
+	{"echo() { :; }; command echo foo", "foo\n"},
+	{"bash() { :; }; bash -c 'echo foo'", ""},
+	{"bash() { :; }; command bash -c 'echo foo'", "foo\n"},
+	{"command -v does-not-exist", "exit status 1"},
+	{"foo() { :; }; command -v foo", "foo\n"},
+	{"foo() { :; }; command -v does-not-exist foo", "foo\n"},
+	{"command -v echo", "echo\n"},
+	{"[[ $(command -v bash) == bash ]]", "exit status 1"},
+
 	// cmd substitution
 	{
 		"echo foo $(printf bar)",

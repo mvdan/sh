@@ -219,14 +219,14 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 		}
 		f, err := r.open(r.relPath(args[0]), os.O_RDONLY, 0, false)
 		if err != nil {
-			r.errf("eval: %v\n", err)
+			r.errf("source: %v\n", err)
 			return 1
 		}
 		defer f.Close()
 		p := syntax.NewParser()
 		file, err := p.Parse(f, args[0])
 		if err != nil {
-			r.errf("eval: %v\n", err)
+			r.errf("source: %v\n", err)
 			return 1
 		}
 		r2 := *r
@@ -263,9 +263,43 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 		r.exec(args[0], args[1:])
 		r.lastExit()
 		return r.exit
+	case "command":
+		show := false
+		for len(args) > 0 && strings.HasPrefix(args[0], "-") {
+			switch args[0] {
+			case "-v":
+				show = true
+			default:
+				r.errf("command: invalid option %s\n", args[0])
+				return 2
+			}
+			args = args[1:]
+		}
+		if len(args) == 0 {
+			break
+		}
+		if !show {
+			if isBuiltin(args[0]) {
+				return r.builtinCode(pos, args[0], args[1:])
+			}
+			r.exec(args[0], args[1:])
+			return r.exit
+		}
+		last := 0
+		for _, arg := range args {
+			last = 0
+			if r.funcs[arg] != nil || isBuiltin(arg) {
+				r.outf("%s\n", arg)
+			} else if path, err := exec.LookPath(arg); err == nil {
+				r.outf("%s\n", path)
+			} else {
+				last = 1
+			}
+		}
+		return last
 	default:
-		// "trap", "command", "pushd", "popd", "umask", "alias",
-		// "unalias", "fg", "bg", "getopts"
+		// "trap", "pushd", "popd", "umask", "alias", "unalias",
+		// "fg", "bg", "getopts"
 		r.runErr(pos, "unhandled builtin: %s", name)
 	}
 	return 0
