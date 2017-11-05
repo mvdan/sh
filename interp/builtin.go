@@ -258,13 +258,14 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 		// and it's not available on Windows.
 		if len(args) == 0 {
 			// TODO: different behavior, apparently
-			return 0
+			break
 		}
 		r.exec(args[0], args[1:])
 		r.lastExit()
 		return r.exit
-	case "trap", "command", "pushd", "popd",
-		"umask", "alias", "unalias", "fg", "bg", "getopts":
+	default:
+		// "trap", "command", "pushd", "popd", "umask", "alias",
+		// "unalias", "fg", "bg", "getopts"
 		r.runErr(pos, "unhandled builtin: %s", name)
 	}
 	return 0

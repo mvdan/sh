@@ -836,7 +836,11 @@ func (r *Runner) redir(rd *syntax.Redirect) (io.Closer, error) {
 			*orig = r.Stderr
 		}
 		return nil, nil
-	case syntax.DplIn:
+	case syntax.RdrIn, syntax.RdrOut, syntax.AppOut,
+		syntax.RdrAll, syntax.AppAll:
+		// done further below
+	// case syntax.DplIn:
+	default:
 		r.runErr(rd.Pos(), "unhandled redirect op: %v", rd.Op)
 	}
 	mode := os.O_RDONLY
