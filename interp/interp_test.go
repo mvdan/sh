@@ -494,6 +494,23 @@ var fileCases = []struct {
 		"old=$(dirs); mkdir a; pushd -n a >/dev/null; pushd >/dev/null; set -- $(dirs); [[ $1 == $old ]]",
 		"exit status 1",
 	},
+	{"popd", "popd: directory stack empty\nexit status 1 #JUSTERR"},
+	{"popd -n", "popd: directory stack empty\nexit status 1 #JUSTERR"},
+	{"popd foo", "popd: invdalid argument\nexit status 2 #JUSTERR"},
+	{"old=$(dirs); mkdir a; pushd a >/dev/null; set -- $(popd); echo $#", "1\n"},
+	{
+		"old=$(dirs); mkdir a; pushd a >/dev/null; popd >/dev/null; [[ $(dirs) == $old ]]",
+		"",
+	},
+	{"old=$(dirs); mkdir a; pushd a >/dev/null; set -- $(popd -n); echo $#", "1\n"},
+	{
+		"old=$(dirs); mkdir a; pushd a >/dev/null; popd -n >/dev/null; [[ $(dirs) == $old ]]",
+		"exit status 1",
+	},
+	{
+		"mkdir a; pushd a >/dev/null; pushd >/dev/null; rmdir a; popd",
+		"exit status 1 #JUSTERR",
+	},
 
 	// binary cmd
 	{

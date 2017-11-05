@@ -338,7 +338,33 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 			r.errf("pushd: too many arguments\n")
 			return 2
 		}
-	//case "popd":
+	case "popd":
+		change := true
+		if len(args) > 0 && args[0] == "-n" {
+			change = false
+			args = args[1:]
+		}
+		switch len(args) {
+		case 0:
+			if len(r.dirStack) < 2 {
+				r.errf("popd: directory stack empty\n")
+				return 1
+			}
+			oldtop := r.dirStack[len(r.dirStack)-1]
+			r.dirStack = r.dirStack[:len(r.dirStack)-1]
+			if change {
+				newtop := r.dirStack[len(r.dirStack)-1]
+				if code := r.changeDir(newtop); code != 0 {
+					return code
+				}
+			} else {
+				r.dirStack[len(r.dirStack)-1] = oldtop
+			}
+			r.builtinCode(syntax.Pos{}, "dirs", nil)
+		default:
+			r.errf("popd: invdalid argument\n")
+			return 2
+		}
 	default:
 		// "trap", "umask", "alias", "unalias", "fg", "bg",
 		// "getopts"
