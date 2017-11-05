@@ -161,7 +161,13 @@ func (r *Runner) unTest(op syntax.UnTestOperator, x string) bool {
 		return x == ""
 	case syntax.TsNempStr:
 		return x != ""
-	//case syntax.TsOptSet:
+	case syntax.TsOptSet:
+		switch x {
+		case "errexit":
+			return r.stopOnCmdErr
+		default:
+			return false
+		}
 	case syntax.TsVarSet:
 		_, e := r.lookupVar(x)
 		return e

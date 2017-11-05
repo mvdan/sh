@@ -893,6 +893,9 @@ var fileCases = []struct {
 		"char\n",
 	},
 	{"[[ -t 1234 ]]", "exit status 1"}, // TODO: reliable way to test a positive?
+	{"[[ -o wrong ]]", "exit status 1"},
+	{"[[ -o errexit ]]", "exit status 1"},
+	{"set -e; [[ -o errexit ]]", ""},
 
 	// classic test
 	{
