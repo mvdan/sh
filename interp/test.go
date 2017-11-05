@@ -162,7 +162,10 @@ func (r *Runner) unTest(op syntax.UnTestOperator, x string) bool {
 	case syntax.TsVarSet:
 		_, e := r.lookupVar(x)
 		return e
-	//case syntax.TsRefVar:
+	case syntax.TsRefVar:
+		v, _ := r.lookupVar(x)
+		_, ok := v.(nameRef)
+		return ok
 	case syntax.TsNot:
 		return x == ""
 	default:

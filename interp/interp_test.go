@@ -1174,6 +1174,30 @@ var fileCases = []struct {
 		"b\n1 2\n",
 	},
 
+	// name references
+	{"declare -n foo=bar; bar=etc; [[ -R foo ]]", ""},
+	{"declare foo=bar; bar=etc; [[ -R foo ]]", "exit status 1"},
+	{
+		"declare -n foo=bar; bar=etc; echo $foo; bar=zzz; echo $foo",
+		"etc\nzzz\n",
+	},
+	{
+		"declare -n foo=bar; bar=(x y); echo ${foo[1]}; bar=(a b); echo ${foo[1]}",
+		"y\nb\n",
+	},
+	{
+		"declare -n foo=bar; bar=etc; echo $foo; unset bar; echo $foo",
+		"etc\n\n",
+	},
+	{
+		"declare -n a1=a2 a2=a3 a3=a4; a4=x; echo $a1 $a3",
+		"x x\n",
+	},
+	{
+		"declare -n foo=bar bar=foo; echo $foo",
+		"\n #IGNORE",
+	},
+
 	// glob
 	{"echo .", ".\n"},
 	{"echo ..", "..\n"},

@@ -146,17 +146,27 @@ func (r *Runner) ctx() Ctxt {
 		Stderr:  r.Stderr,
 	}
 	for name, val := range r.cmdVars {
-		c.Env = append(c.Env, name+"="+varStr(val))
+		c.Env = append(c.Env, name+"="+r.varStr(val, 0))
 	}
 	return c
 }
 
-// varValue can hold a string, an indexed array ([]string) or an
-// associative array (map[string]string)
-// TODO: implement associative arrays
+// varValue can hold any of:
+//
+//     string (normal variable)
+//     []string (indexed array)
+//     map[string]string (associative array) (TODO)
+//     nameRef (name reference)
 type varValue interface{}
 
-func varStr(v varValue) string {
+type nameRef string
+
+// maxNameRefDepth defines the maximum number of times to follow
+// references when expanding a variable. Otherwise, simple name
+// reference loops could crash the interpreter quite easily.
+const maxNameRefDepth = 100
+
+func (r *Runner) varStr(v varValue, depth int) string {
 	switch x := v.(type) {
 	case string:
 		return x
@@ -164,11 +174,17 @@ func varStr(v varValue) string {
 		if len(x) > 0 {
 			return x[0]
 		}
+	case nameRef:
+		if depth > maxNameRefDepth {
+			return ""
+		}
+		val, _ := r.lookupVar(string(x))
+		return r.varStr(val, depth+1)
 	}
 	return ""
 }
 
-func (r *Runner) varInd(v varValue, e syntax.ArithmExpr) string {
+func (r *Runner) varInd(v varValue, e syntax.ArithmExpr, depth int) string {
 	switch x := v.(type) {
 	case string:
 		i := r.arithm(e)
@@ -188,6 +204,12 @@ func (r *Runner) varInd(v varValue, e syntax.ArithmExpr) string {
 		if len(x) > 0 {
 			return x[i]
 		}
+	case nameRef:
+		if depth > maxNameRefDepth {
+			return ""
+		}
+		v, _ = r.lookupVar(string(x))
+		return r.varInd(v, e, depth+1)
 	}
 	return ""
 }
@@ -265,7 +287,7 @@ func (r *Runner) lookupVar(name string) (varValue, bool) {
 
 func (r *Runner) getVar(name string) string {
 	val, _ := r.lookupVar(name)
-	return varStr(val)
+	return r.varStr(val, 0)
 }
 
 func (r *Runner) delVar(name string) {
@@ -731,11 +753,25 @@ func (r *Runner) cmd(cm syntax.Command) {
 			r.exit = 0
 		}
 	case *syntax.DeclClause:
-		if len(x.Opts) > 0 {
-			r.runErr(cm.Pos(), "unhandled declare opts")
+		mode := ""
+		for _, opt := range x.Opts {
+			_ = opt
+			switch s := r.loneWord(opt); s {
+			case "-n":
+				mode = s
+			default:
+				r.runErr(cm.Pos(), "unhandled declare opts")
+			}
 		}
 		for _, as := range x.Assigns {
-			r.setVar(as.Name.Value, as.Index, r.assignValue(as))
+			val := r.assignValue(as)
+			switch mode {
+			case "-n": // name reference
+				if name, ok := val.(string); ok {
+					val = nameRef(name)
+				}
+			}
+			r.setVar(as.Name.Value, as.Index, val)
 		}
 	case *syntax.TimeClause:
 		start := time.Now()
