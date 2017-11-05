@@ -462,6 +462,39 @@ var fileCases = []struct {
 		"exit status 1 #JUSTERR",
 	},
 
+	// dirs/pushd/popd
+	{"set -- $(dirs); echo $#", "1\n"},
+	{"pushd", "pushd: no other directory\nexit status 1 #JUSTERR"},
+	{"pushd -n", ""},
+	{"pushd foo bar", "pushd: too many arguments\nexit status 2 #JUSTERR"},
+	{"pushd does-not-exist; set -- $(dirs); echo $#", "1\n #IGNORE"},
+	{"mkdir a; pushd a >/dev/null; set -- $(dirs); echo $#", "2\n"},
+	{"mkdir a; set -- $(pushd a); echo $#", "2\n"},
+	{
+		"mkdir a; pushd a >/dev/null; set -- $(dirs); [[ $1 == $HOME ]]",
+		"exit status 1",
+	},
+	{
+		"old=$(dirs); mkdir a; pushd a >/dev/null; pushd >/dev/null; set -- $(dirs); [[ $1 == $old ]]",
+		"",
+	},
+	{
+		"old=$(dirs); mkdir a; pushd a >/dev/null; pushd -n >/dev/null; set -- $(dirs); [[ $1 == $old ]]",
+		"exit status 1",
+	},
+	{
+		"mkdir a; pushd a >/dev/null; pushd >/dev/null; rmdir a; pushd",
+		"exit status 1 #JUSTERR",
+	},
+	{
+		"old=$(dirs); mkdir a; pushd -n a >/dev/null; set -- $(dirs); [[ $1 == $old ]]",
+		"",
+	},
+	{
+		"old=$(dirs); mkdir a; pushd -n a >/dev/null; pushd >/dev/null; set -- $(dirs); [[ $1 == $old ]]",
+		"exit status 1",
+	},
+
 	// binary cmd
 	{
 		"true && echo foo || echo bar",
@@ -556,7 +589,7 @@ var fileCases = []struct {
 
 	// command
 	{"command", ""},
-	{"command -o echo", "command: invalid option -o\nexit status 2 #IGNORE"},
+	{"command -o echo", "command: invalid option -o\nexit status 2 #JUSTERR"},
 	{"echo() { :; }; echo foo", ""},
 	{"echo() { :; }; command echo foo", "foo\n"},
 	{"bash() { :; }; bash -c 'echo foo'", ""},

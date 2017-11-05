@@ -77,6 +77,8 @@ type Runner struct {
 	Context context.Context
 
 	stopOnCmdErr bool // set -e
+
+	dirStack []string
 }
 
 // Reset will set the unexported fields back to zero, fill any exported
@@ -127,6 +129,7 @@ func (r *Runner) Reset() error {
 		r.Dir = dir
 	}
 	r.vars["PWD"] = r.Dir
+	r.dirStack = []string{r.Dir}
 	if r.Exec == nil {
 		r.Exec = DefaultExec
 	}
