@@ -721,8 +721,14 @@ func (r *Runner) cmd(cm syntax.Command) {
 			}
 		}
 	case *syntax.TestClause:
-		if r.bashTest(x.X) == "" && r.exit == 0 {
-			r.exit = 1
+		if r.bashTest(x.X) == "" {
+			if r.exit == 0 {
+				// to preserve exit code 2 for regex
+				// errors, etc
+				r.exit = 1
+			}
+		} else {
+			r.exit = 0
 		}
 	case *syntax.DeclClause:
 		if len(x.Opts) > 0 {

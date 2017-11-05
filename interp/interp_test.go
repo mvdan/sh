@@ -677,6 +677,10 @@ var fileCases = []struct {
 		"exit status 1",
 	},
 	{
+		"[[ '' ]]; [[ a ]]",
+		"",
+	},
+	{
 		"[[ ! (a == b) ]]",
 		"",
 	},
