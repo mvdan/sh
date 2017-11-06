@@ -159,9 +159,14 @@ func (r *Runner) ctx() Ctxt {
 //
 //     string (normal variable)
 //     []string (indexed array)
-//     map[string]string (associative array) (TODO)
+//     arrayMap (associative array)
 //     nameRef (name reference)
 type varValue interface{}
+
+type arrayMap struct {
+	keys []string
+	vals map[string]string
+}
 
 type nameRef string
 
@@ -178,6 +183,8 @@ func (r *Runner) varStr(v varValue, depth int) string {
 		if len(x) > 0 {
 			return x[0]
 		}
+	case arrayMap:
+		// nothing to do
 	case nameRef:
 		if depth > maxNameRefDepth {
 			return ""
@@ -208,6 +215,20 @@ func (r *Runner) varInd(v varValue, e syntax.ArithmExpr, depth int) string {
 		if len(x) > 0 {
 			return x[i]
 		}
+	case arrayMap:
+		if w, ok := e.(*syntax.Word); ok {
+			if lit, ok := w.Parts[0].(*syntax.Lit); ok {
+				switch lit.Value {
+				case "@", "*":
+					var strs []string
+					for _, k := range x.keys {
+						strs = append(strs, x.vals[k])
+					}
+					return strings.Join(strs, " ")
+				}
+			}
+		}
+		return x.vals[r.loneWord(e.(*syntax.Word))]
 	case nameRef:
 		if depth > maxNameRefDepth {
 			return ""
@@ -525,7 +546,21 @@ func (r *Runner) stmt(st *syntax.Stmt) {
 	}
 }
 
-func (r *Runner) assignValue(as *syntax.Assign) varValue {
+func defaultArrayMode(elems []*syntax.ArrayElem) string {
+	if len(elems) == 0 {
+		return "-a"
+	}
+	w, ok := elems[0].Index.(*syntax.Word)
+	if !ok || len(w.Parts) != 1 {
+		return "-a"
+	}
+	if _, ok := w.Parts[0].(*syntax.DblQuoted); !ok {
+		return "-a"
+	}
+	return "-A" // associative, not indexed
+}
+
+func (r *Runner) assignValue(as *syntax.Assign, mode string) varValue {
 	prev, _ := r.lookupVar(as.Name.Value)
 	if as.Value != nil {
 		s := r.loneWord(as.Value)
@@ -541,39 +576,67 @@ func (r *Runner) assignValue(as *syntax.Assign) varValue {
 			}
 			x[0] += s
 			return x
+		case arrayMap:
+			// TODO
 		}
 		return s
 	}
-	if as.Array != nil {
-		maxIndex := len(as.Array.Elems) - 1
-		indexes := make([]int, len(as.Array.Elems))
-		for i, elem := range as.Array.Elems {
-			if elem.Index == nil {
-				indexes[i] = i
+	if as.Array == nil {
+		return nil
+	}
+	if mode == "" {
+		mode = defaultArrayMode(as.Array.Elems)
+	}
+	if mode == "-A" {
+		// associative array
+		amap := arrayMap{
+			keys: make([]string, 0, len(as.Array.Elems)),
+			vals: make(map[string]string, len(as.Array.Elems)),
+		}
+		for _, elem := range as.Array.Elems {
+			k := r.loneWord(elem.Index.(*syntax.Word))
+			if _, ok := amap.vals[k]; ok {
 				continue
 			}
-			k := r.arithm(elem.Index)
-			indexes[i] = k
-			if k > maxIndex {
-				maxIndex = k
-			}
-		}
-		strs := make([]string, maxIndex+1)
-		for i, elem := range as.Array.Elems {
-			strs[indexes[i]] = r.loneWord(elem.Value)
+			amap.keys = append(amap.keys, k)
+			amap.vals[k] = r.loneWord(elem.Value)
 		}
 		if !as.Append || prev == nil {
-			return strs
+			return amap
 		}
-		switch x := prev.(type) {
-		case string:
-			return append([]string{x}, strs...)
-		case []string:
-			return append(x, strs...)
+		// TODO
+		return amap
+	}
+	// indexed array
+	maxIndex := len(as.Array.Elems) - 1
+	indexes := make([]int, len(as.Array.Elems))
+	for i, elem := range as.Array.Elems {
+		if elem.Index == nil {
+			indexes[i] = i
+			continue
 		}
+		k := r.arithm(elem.Index)
+		indexes[i] = k
+		if k > maxIndex {
+			maxIndex = k
+		}
+	}
+	strs := make([]string, maxIndex+1)
+	for i, elem := range as.Array.Elems {
+		strs[indexes[i]] = r.loneWord(elem.Value)
+	}
+	if !as.Append || prev == nil {
 		return strs
 	}
-	return nil
+	switch x := prev.(type) {
+	case string:
+		return append([]string{x}, strs...)
+	case []string:
+		return append(x, strs...)
+	case arrayMap:
+		// TODO
+	}
+	return strs
 }
 
 func (r *Runner) stmtSync(st *syntax.Stmt) {
@@ -634,7 +697,7 @@ func (r *Runner) cmd(cm syntax.Command) {
 		fields := r.Fields(x.Args)
 		if len(fields) == 0 {
 			for _, as := range x.Assigns {
-				r.setVar(as.Name.Value, as.Index, r.assignValue(as))
+				r.setVar(as.Name.Value, as.Index, r.assignValue(as, ""))
 			}
 			break
 		}
@@ -643,7 +706,7 @@ func (r *Runner) cmd(cm syntax.Command) {
 			r.cmdVars = make(map[string]varValue, len(x.Assigns))
 		}
 		for _, as := range x.Assigns {
-			r.cmdVars[as.Name.Value] = r.assignValue(as)
+			r.cmdVars[as.Name.Value] = r.assignValue(as, "")
 		}
 		r.call(x.Args[0].Pos(), fields[0], fields[1:])
 		r.cmdVars = oldVars
@@ -761,19 +824,21 @@ func (r *Runner) cmd(cm syntax.Command) {
 		for _, opt := range x.Opts {
 			_ = opt
 			switch s := r.loneWord(opt); s {
-			case "-n":
+			case "-n", "-A":
 				mode = s
 			default:
 				r.runErr(cm.Pos(), "unhandled declare opts")
 			}
 		}
 		for _, as := range x.Assigns {
-			val := r.assignValue(as)
+			val := r.assignValue(as, mode)
 			switch mode {
 			case "-n": // name reference
 				if name, ok := val.(string); ok {
 					val = nameRef(name)
 				}
+			case "-A":
+				// nothing to do
 			}
 			r.setVar(as.Name.Value, as.Index, val)
 		}

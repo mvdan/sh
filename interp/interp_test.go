@@ -1186,7 +1186,7 @@ var fileCases = []struct {
 		"\nb c\n",
 	},
 
-	// arrays
+	// indexed arrays
 	{
 		"a=foo; echo ${a[0]} ${a[@]} ${a[x]}; echo ${a[1]}",
 		"foo foo foo\n\n",
@@ -1242,6 +1242,24 @@ var fileCases = []struct {
 	{
 		`a="y"; a[2]=x; echo ${a[2]}`,
 		"x\n",
+	},
+
+	// associative arrays
+	{
+		`a=foo; echo ${a[""]} ${a["x"]}`,
+		"foo foo\n",
+	},
+	{
+		`declare -A a=(); echo ${a[0]} ${a[@]} ${a[1]} ${a["x"]}`,
+		"\n",
+	},
+	{
+		`declare -A a=([x]=b [y]=c); echo $a; echo ${a[0]}; echo ${a["x"]}; echo ${a["_"]}`,
+		"\n\nb\n\n",
+	},
+	{
+		`declare -A a=([x]=b [y]=c); echo ${a[@]}; echo ${a[*]}`,
+		"b c\nb c\n",
 	},
 
 	// declare
