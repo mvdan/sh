@@ -19,7 +19,8 @@ func isBuiltin(name string) bool {
 		"echo", "printf", "break", "continue", "pwd", "cd",
 		"wait", "builtin", "trap", "type", "source", ".", "command",
 		"dirs", "pushd", "popd", "umask", "alias", "unalias",
-		"fg", "bg", "getopts", "eval", "test", "[", "exec":
+		"fg", "bg", "getopts", "eval", "test", "[", "exec",
+		"return":
 		return true
 	}
 	return false
@@ -223,7 +224,11 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 		r2 := *r
 		r2.Params = args[1:]
 		r2.Reset()
+		r2.canReturn = true
 		r2.Run(file)
+		if code, ok := r2.err.(returnCode); ok {
+			r2.exit = int(code)
+		}
 		return r2.exit
 	case "[":
 		if len(args) == 0 || args[len(args)-1] != "]" {
@@ -365,6 +370,21 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 			r.errf("popd: invdalid argument\n")
 			return 2
 		}
+	case "return":
+		if !r.canReturn {
+			r.errf("return: can only be done from a func or sourced script\n")
+			return 1
+		}
+		code := 0
+		switch len(args) {
+		case 0:
+		case 1:
+			code = atoi(args[0])
+		default:
+			r.errf("return: too many arguments\n")
+			return 2
+		}
+		r.setErr(returnCode(code))
 	default:
 		// "trap", "umask", "alias", "unalias", "fg", "bg",
 		// "getopts"

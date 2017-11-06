@@ -62,7 +62,8 @@ type Runner struct {
 	// >0 to break or continue out of N enclosing loops
 	breakEnclosing, contnEnclosing int
 
-	inLoop bool
+	inLoop    bool
+	canReturn bool
 
 	err  error // current fatal error
 	exit int   // current (last) exit code
@@ -989,13 +990,23 @@ func (r *Runner) wordFields(wps []syntax.WordPart, quoted bool) [][]fieldPart {
 	return fields
 }
 
+type returnCode uint8
+
+func (returnCode) Error() string { return "returned" }
+
 func (r *Runner) call(pos syntax.Pos, name string, args []string) {
 	if body := r.funcs[name]; body != nil {
 		// stack them to support nested func calls
 		oldParams := r.Params
 		r.Params = args
+		r.canReturn = true
 		r.stmt(body)
 		r.Params = oldParams
+		r.canReturn = false
+		if code, ok := r.err.(returnCode); ok {
+			r.err = nil
+			r.exit = int(code)
+		}
 		return
 	}
 	if isBuiltin(name) {

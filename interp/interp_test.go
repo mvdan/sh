@@ -604,6 +604,15 @@ var fileCases = []struct {
 		"exit status 1",
 	},
 
+	// return
+	{"return", "return: can only be done from a func or sourced script\nexit status 1 #JUSTERR"},
+	{"f() { return; }; f", ""},
+	{"f() { return 2; }; f", "exit status 2"},
+	{"f() { echo foo; return; echo bar; }; f", "foo\n"},
+	{"echo 'return' >a; source a", ""},
+	{"echo 'return 2' >a; source a", "exit status 2"},
+	{"echo 'echo foo; return; echo bar' >a; source a", "foo\n"},
+
 	// command
 	{"command", ""},
 	{"command -o echo", "command: invalid option -o\nexit status 2 #JUSTERR"},
