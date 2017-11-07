@@ -284,12 +284,36 @@ func (r *Runner) setVar(name string, index syntax.ArithmExpr, val varValue) {
 	// from the syntax package, we know that val must be a string if
 	// index is non-nil; nested arrays are forbidden.
 	valStr := val.(string)
+	// if the existing variable is already an arrayMap, try our best
+	// to convert the key to a string
+	_, isArrayMap := r.vars[name].(arrayMap)
+	if stringIndex(index) || isArrayMap {
+		var amap arrayMap
+		switch x := r.vars[name].(type) {
+		case string, []string:
+			return // TODO
+		case arrayMap:
+			amap = x
+		}
+		w, ok := index.(*syntax.Word)
+		if !ok {
+			return
+		}
+		k := r.loneWord(w)
+		if _, ok := amap.vals[k]; !ok {
+			amap.keys = append(amap.keys, k)
+		}
+		amap.vals[k] = valStr
+		r.vars[name] = amap
+		return
+	}
 	var list []string
 	switch x := r.vars[name].(type) {
 	case string:
 		list = []string{x}
 	case []string:
 		list = x
+	case arrayMap: // done above
 	}
 	k := r.arithm(index)
 	for len(list) < k+1 {
@@ -546,18 +570,13 @@ func (r *Runner) stmt(st *syntax.Stmt) {
 	}
 }
 
-func defaultArrayMode(elems []*syntax.ArrayElem) string {
-	if len(elems) == 0 {
-		return "-a"
-	}
-	w, ok := elems[0].Index.(*syntax.Word)
+func stringIndex(index syntax.ArithmExpr) bool {
+	w, ok := index.(*syntax.Word)
 	if !ok || len(w.Parts) != 1 {
-		return "-a"
+		return false
 	}
-	if _, ok := w.Parts[0].(*syntax.DblQuoted); !ok {
-		return "-a"
-	}
-	return "-A" // associative, not indexed
+	_, ok = w.Parts[0].(*syntax.DblQuoted)
+	return ok
 }
 
 func (r *Runner) assignValue(as *syntax.Assign, mode string) varValue {
@@ -584,16 +603,21 @@ func (r *Runner) assignValue(as *syntax.Assign, mode string) varValue {
 	if as.Array == nil {
 		return nil
 	}
+	elems := as.Array.Elems
 	if mode == "" {
-		mode = defaultArrayMode(as.Array.Elems)
+		if len(elems) == 0 || !stringIndex(elems[0].Index) {
+			mode = "-a" // indexed
+		} else {
+			mode = "-A" // associative
+		}
 	}
 	if mode == "-A" {
 		// associative array
 		amap := arrayMap{
-			keys: make([]string, 0, len(as.Array.Elems)),
-			vals: make(map[string]string, len(as.Array.Elems)),
+			keys: make([]string, 0, len(elems)),
+			vals: make(map[string]string, len(elems)),
 		}
-		for _, elem := range as.Array.Elems {
+		for _, elem := range elems {
 			k := r.loneWord(elem.Index.(*syntax.Word))
 			if _, ok := amap.vals[k]; ok {
 				continue
@@ -608,9 +632,9 @@ func (r *Runner) assignValue(as *syntax.Assign, mode string) varValue {
 		return amap
 	}
 	// indexed array
-	maxIndex := len(as.Array.Elems) - 1
-	indexes := make([]int, len(as.Array.Elems))
-	for i, elem := range as.Array.Elems {
+	maxIndex := len(elems) - 1
+	indexes := make([]int, len(elems))
+	for i, elem := range elems {
 		if elem.Index == nil {
 			indexes[i] = i
 			continue
@@ -622,7 +646,7 @@ func (r *Runner) assignValue(as *syntax.Assign, mode string) varValue {
 		}
 	}
 	strs := make([]string, maxIndex+1)
-	for i, elem := range as.Array.Elems {
+	for i, elem := range elems {
 		strs[indexes[i]] = r.loneWord(elem.Value)
 	}
 	if !as.Append || prev == nil {

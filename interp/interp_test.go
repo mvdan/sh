@@ -1261,6 +1261,14 @@ var fileCases = []struct {
 		`declare -A a=([x]=b [y]=c); echo ${a[@]}; echo ${a[*]}`,
 		"b c\nb c\n",
 	},
+	{
+		`declare -A a=([x]=a); a["y"]=d; a["x"]=c; echo ${a[@]}`,
+		"c d\n",
+	},
+	{
+		`declare -A a=([x]=a); a[y]=d; a[x]=c; echo ${a[@]}`,
+		"c d\n",
+	},
 
 	// declare
 	{
