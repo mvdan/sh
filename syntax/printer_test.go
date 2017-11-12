@@ -311,7 +311,10 @@ var printTests = []printCase{
 		"foo | while read l; do\nbar\ndone",
 		"foo | while read l; do\n\tbar\ndone",
 	},
-	samePrint("\"\\\nfoo\\\n  bar\""),
+	samePrint("\"\\\nfoo\""),
+	samePrint("'\\\nfoo'"),
+	samePrint("\"foo\\\n  bar\""),
+	samePrint("'foo\\\n  bar'"),
 	{
 		"foo \\\n>bar\netc",
 		"foo \\\n\t>bar\netc",
