@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"testing"
 
 	"mvdan.cc/sh/syntax"
@@ -147,6 +148,13 @@ func TestWalk(t *testing.T) {
 	if err := ioutil.WriteFile("nowrite", []byte(" foo"), 0444); err != nil {
 		t.Fatal(err)
 	}
+	*find = true
+	doWalk(".")
+	numFound := strings.Count(outBuf.String(), "\n")
+	if want := 13; numFound != want {
+		t.Fatalf("shfmt -f printed %d paths, but wanted %d", numFound, want)
+	}
+	*find = false
 	*write = true
 	if doWalk("nowrite"); !gotError {
 		t.Fatal("`shfmt nowrite` did not error")

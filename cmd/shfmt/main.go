@@ -17,10 +17,12 @@ import (
 )
 
 var (
-	list        = flag.Bool("l", false, "")
-	write       = flag.Bool("w", false, "")
-	simple      = flag.Bool("s", false, "")
 	showVersion = flag.Bool("version", false, "")
+
+	list   = flag.Bool("l", false, "")
+	write  = flag.Bool("w", false, "")
+	simple = flag.Bool("s", false, "")
+	find   = flag.Bool("f", false, "")
 
 	langStr = flag.String("ln", "", "")
 	posix   = flag.Bool("p", false, "")
@@ -47,13 +49,23 @@ func main() {
 	flag.Usage = func() {
 		fmt.Fprint(os.Stderr, `usage: shfmt [flags] [path ...]
 
+If no arguments are given, standard input will be used. If a given path
+is a directory, it will be recursively searched for shell files - both
+by filename extension and by shebang.
+
+  -version  show version and exit
+
   -l        list files whose formatting differs from shfmt's
   -w        write result to file instead of stdout
   -s        simplify the code
-  -version  show version and exit
+  -f        recursively find all shell files and print the paths
+
+Parser options:
 
   -ln str   language variant to parse (bash/posix/mksh, default "bash")
   -p        shorthand for -ln=posix
+
+Printer options:
 
   -i uint   indent: 0 for tabs (default), >0 for number of spaces
   -bn       binary ops like && and | may start a line
@@ -194,6 +206,10 @@ func formatPath(path string, checkShebang bool) error {
 			return nil
 		}
 		readBuf.Write(copyBuf[:n])
+	}
+	if *find {
+		fmt.Fprintln(out, path)
+		return nil
 	}
 	if _, err := io.CopyBuffer(&readBuf, f, copyBuf); err != nil {
 		return err
