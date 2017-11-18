@@ -17,17 +17,20 @@ import (
 )
 
 var (
-	write       = flag.Bool("w", false, "write result to file instead of stdout")
-	list        = flag.Bool("l", false, "list files whose formatting differs from shfmt's")
-	simple      = flag.Bool("s", false, "simplify the code")
-	langStr     = flag.String("ln", "", `language variant to parse (bash/posix/mksh) (default "bash")`)
-	posix       = flag.Bool("p", false, "shorthand for -ln=posix")
-	indent      = flag.Uint("i", 0, "indent: 0 for tabs (default), >0 for number of spaces")
-	binNext     = flag.Bool("bn", false, "binary ops like && and | may start a line")
-	caseIndent  = flag.Bool("ci", false, "switch cases will be indented")
-	keepPadding = flag.Bool("kp", false, "keep column alignment paddings")
-	toJSON      = flag.Bool("exp.tojson", false, "print AST to stdout as a typed JSON")
-	showVersion = flag.Bool("version", false, "show version and exit")
+	list        = flag.Bool("l", false, "")
+	write       = flag.Bool("w", false, "")
+	simple      = flag.Bool("s", false, "")
+	showVersion = flag.Bool("version", false, "")
+
+	langStr = flag.String("ln", "", "")
+	posix   = flag.Bool("p", false, "")
+
+	indent      = flag.Uint("i", 0, "")
+	binNext     = flag.Bool("bn", false, "")
+	caseIndent  = flag.Bool("ci", false, "")
+	keepPadding = flag.Bool("kp", false, "")
+
+	toJSON = flag.Bool("exp.tojson", false, "")
 
 	parser            *syntax.Parser
 	printer           *syntax.Printer
