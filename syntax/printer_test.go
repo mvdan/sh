@@ -694,6 +694,7 @@ func TestPrintKeepPadding(t *testing.T) {
 		samePrint("{ { a; }; }"),
 		samePrint("{  a;  }"),
 		samePrint("(  a   )"),
+		samePrint("'foo\nbar'   # x"),
 	}
 	parser := NewParser(KeepComments)
 	printer := NewPrinter(KeepPadding)
