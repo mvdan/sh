@@ -25,6 +25,7 @@ var (
 	indent      = flag.Uint("i", 0, "indent: 0 for tabs (default), >0 for number of spaces")
 	binNext     = flag.Bool("bn", false, "binary ops like && and | may start a line")
 	caseIndent  = flag.Bool("ci", false, "switch cases will be indented")
+	keepPadding = flag.Bool("kp", false, "keep column alignment paddings")
 	toJSON      = flag.Bool("exp.tojson", false, "print AST to stdout as a typed JSON")
 	showVersion = flag.Bool("version", false, "show version and exit")
 
@@ -54,6 +55,7 @@ func main() {
   -i uint   indent: 0 for tabs (default), >0 for number of spaces
   -bn       binary ops like && and | may start a line
   -ci       switch cases will be indented
+  -kp       keep column alignment paddings
 
   -exp.tojson  print AST to stdout as a typed JSON
 `)
@@ -90,6 +92,9 @@ func main() {
 		}
 		if *caseIndent {
 			syntax.SwitchCaseIndent(p)
+		}
+		if *keepPadding {
+			syntax.KeepPadding(p)
 		}
 	})
 	if flag.NArg() == 0 {

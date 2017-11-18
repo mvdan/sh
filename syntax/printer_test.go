@@ -678,3 +678,40 @@ func TestPrintSwitchCaseIndent(t *testing.T) {
 		})
 	}
 }
+
+func TestPrintKeepPadding(t *testing.T) {
+	var tests = [...]printCase{
+		samePrint("echo foo bar"),
+		samePrint("echo  foo   bar"),
+		samePrint("a=b  c=d   bar"),
+		samePrint("{ foo;  }"),
+		samePrint("a()   { foo; }"),
+		samePrint("a   && b"),
+		samePrint("a   | b"),
+		samePrint("a |  b"),
+		samePrint("{  a b c; }"),
+		samePrint("foo    # x\nbaaar  # y"),
+		samePrint("{ { a; }; }"),
+		samePrint("{  a;  }"),
+		samePrint("(  a   )"),
+	}
+	parser := NewParser(KeepComments)
+	printer := NewPrinter(KeepPadding)
+	for i, tc := range tests {
+		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
+			prog, err := parser.Parse(strings.NewReader(tc.in), "")
+			if err != nil {
+				t.Fatal(err)
+			}
+			want := tc.want + "\n"
+			got, err := strPrint(printer, prog)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got != want {
+				t.Fatalf("Print mismatch:\nin:\n%s\nwant:\n%sgot:\n%s",
+					tc.in, want, got)
+			}
+		})
+	}
+}
