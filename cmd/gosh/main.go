@@ -91,7 +91,7 @@ func (pr *promptReader) Read(p []byte) (int, error) {
 func interactive() error {
 	r := &promptReader{os.Stdin, true}
 	runner.Reset()
-	fn := func(s *syntax.Stmt) {
+	fn := func(s *syntax.Stmt) bool {
 		if err := runner.Stmt(s); err != nil {
 			code, ok := err.(interp.ExitCode)
 			if ok {
@@ -101,6 +101,7 @@ func interactive() error {
 			os.Exit(1)
 		}
 		r.first = true
+		return true
 	}
 	return parser.Stmts(r, fn)
 }

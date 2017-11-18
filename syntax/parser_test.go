@@ -1807,8 +1807,9 @@ func TestParseStmts(t *testing.T) {
 	recv := make(chan bool, 10)
 	errc := make(chan error)
 	go func() {
-		errc <- p.Stmts(cr, func(s *Stmt) {
+		errc <- p.Stmts(cr, func(s *Stmt) bool {
 			recv <- true
+			return true
 		})
 	}()
 	cr.cont <- true
@@ -1816,6 +1817,28 @@ func TestParseStmts(t *testing.T) {
 	cr.cont <- true
 	<-recv
 	<-recv
+	if err := <-errc; err != nil {
+		t.Fatalf("Expected no error in %q: %v", in, err)
+	}
+}
+
+func TestParseStmtsStopEarly(t *testing.T) {
+	in := []string{"a\n", "b &\n", "c\n"}
+	p := NewParser()
+	cr := &chunkedReader{in, make(chan bool, 10)}
+	recv := make(chan bool, 10)
+	errc := make(chan error)
+	go func() {
+		errc <- p.Stmts(cr, func(s *Stmt) bool {
+			recv <- true
+			return !s.Background
+		})
+	}()
+	cr.cont <- true
+	<-recv
+	cr.cont <- true
+	<-recv
+	cr.cont <- true
 	if err := <-errc; err != nil {
 		t.Fatalf("Expected no error in %q: %v", in, err)
 	}

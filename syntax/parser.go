@@ -59,7 +59,7 @@ func (p *Parser) Parse(r io.Reader, name string) (*File, error) {
 	return p.f, p.err
 }
 
-func (p *Parser) Stmts(r io.Reader, fn func(*Stmt)) error {
+func (p *Parser) Stmts(r io.Reader, fn func(*Stmt) bool) error {
 	p.reset()
 	p.f = &File{}
 	p.src = r
@@ -490,7 +490,7 @@ func (p *Parser) curErr(format string, a ...interface{}) {
 	p.posErr(p.pos, format, a...)
 }
 
-func (p *Parser) stmts(fn func(*Stmt), stops ...string) {
+func (p *Parser) stmts(fn func(*Stmt) bool, stops ...string) {
 	gotEnd := true
 loop:
 	for p.tok != _EOF {
@@ -526,21 +526,25 @@ loop:
 		if p.tok == _EOF {
 			break
 		}
-		if s, end := p.getStmt(true, false, false); s == nil {
+		s, end := p.getStmt(true, false, false)
+		if s == nil {
 			p.invalidStmtStart()
-		} else {
-			fn(s)
-			gotEnd = end
+			break
+		}
+		gotEnd = end
+		if !fn(s) {
+			break
 		}
 	}
 }
 
 func (p *Parser) stmtList(stops ...string) (sl StmtList) {
-	fn := func(s *Stmt) {
+	fn := func(s *Stmt) bool {
 		if sl.Stmts == nil {
 			sl.Stmts = p.stList()
 		}
 		sl.Stmts = append(sl.Stmts, s)
+		return true
 	}
 	p.stmts(fn, stops...)
 	sl.Last, p.accComs = p.accComs, nil
