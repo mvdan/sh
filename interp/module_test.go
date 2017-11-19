@@ -158,9 +158,10 @@ func TestSignalSending(t *testing.T) {
 		},
 	}
 
-	p := syntax.NewParser()
 	for i, test := range tests {
 		t.Run(fmt.Sprintf("TestSignalSending%d", i+1), func(t *testing.T) {
+			t.Parallel()
+			p := syntax.NewParser()
 			file, err := p.Parse(strings.NewReader(test.src), "")
 			if err != nil {
 				t.Errorf("could not parse: %v", err)
