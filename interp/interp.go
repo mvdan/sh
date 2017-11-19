@@ -179,6 +179,7 @@ func (r *Runner) ctx() Ctxt {
 //     []string (indexed array)
 //     arrayMap (associative array)
 //     nameRef (name reference)
+//     readOnly
 type varValue interface{}
 
 type arrayMap struct {
@@ -188,12 +189,19 @@ type arrayMap struct {
 
 type nameRef string
 
+type readOnly struct {
+	V varValue
+}
+
 // maxNameRefDepth defines the maximum number of times to follow
 // references when expanding a variable. Otherwise, simple name
 // reference loops could crash the interpreter quite easily.
 const maxNameRefDepth = 100
 
 func (r *Runner) varStr(v varValue, depth int) string {
+	if depth > maxNameRefDepth {
+		return ""
+	}
 	switch x := v.(type) {
 	case string:
 		return x
@@ -204,16 +212,18 @@ func (r *Runner) varStr(v varValue, depth int) string {
 	case arrayMap:
 		// nothing to do
 	case nameRef:
-		if depth > maxNameRefDepth {
-			return ""
-		}
 		val, _ := r.lookupVar(string(x))
 		return r.varStr(val, depth+1)
+	case readOnly:
+		return r.varStr(x.V, depth+1)
 	}
 	return ""
 }
 
 func (r *Runner) varInd(v varValue, e syntax.ArithmExpr, depth int) string {
+	if depth > maxNameRefDepth {
+		return ""
+	}
 	switch x := v.(type) {
 	case string:
 		i := r.arithm(e)
@@ -248,11 +258,10 @@ func (r *Runner) varInd(v varValue, e syntax.ArithmExpr, depth int) string {
 		}
 		return x.vals[r.loneWord(e.(*syntax.Word))]
 	case nameRef:
-		if depth > maxNameRefDepth {
-			return ""
-		}
 		v, _ = r.lookupVar(string(x))
 		return r.varInd(v, e, depth+1)
+	case readOnly:
+		return r.varInd(x.V, e, depth+1)
 	}
 	return ""
 }
@@ -295,6 +304,13 @@ func (r *Runner) lastExit() {
 }
 
 func (r *Runner) setVar(name string, index syntax.ArithmExpr, val varValue) {
+	cur, _ := r.lookupVar(name)
+	if _, ok := cur.(readOnly); ok {
+		r.errf("%s: readonly variable\n", name)
+		r.exit = 1
+		r.lastExit()
+		return
+	}
 	if index == nil {
 		r.vars[name] = val
 		return
@@ -304,10 +320,10 @@ func (r *Runner) setVar(name string, index syntax.ArithmExpr, val varValue) {
 	valStr := val.(string)
 	// if the existing variable is already an arrayMap, try our best
 	// to convert the key to a string
-	_, isArrayMap := r.vars[name].(arrayMap)
+	_, isArrayMap := cur.(arrayMap)
 	if stringIndex(index) || isArrayMap {
 		var amap arrayMap
-		switch x := r.vars[name].(type) {
+		switch x := cur.(type) {
 		case string, []string:
 			return // TODO
 		case arrayMap:
@@ -326,7 +342,7 @@ func (r *Runner) setVar(name string, index syntax.ArithmExpr, val varValue) {
 		return
 	}
 	var list []string
-	switch x := r.vars[name].(type) {
+	switch x := cur.(type) {
 	case string:
 		list = []string{x}
 	case []string:
@@ -863,10 +879,18 @@ func (r *Runner) cmd(cm syntax.Command) {
 		}
 	case *syntax.DeclClause:
 		mode := ""
+		switch x.Variant.Value {
+		case "local":
+			// as per default
+		case "nameref":
+			mode = "-n"
+		case "readonly":
+			mode = "-r"
+		}
 		for _, opt := range x.Opts {
 			_ = opt
 			switch s := r.loneWord(opt); s {
-			case "-n", "-A":
+			case "-n", "-A", "-r":
 				mode = s
 			default:
 				r.runErr(cm.Pos(), "unhandled declare opts")
@@ -879,6 +903,8 @@ func (r *Runner) cmd(cm syntax.Command) {
 				if name, ok := val.(string); ok {
 					val = nameRef(name)
 				}
+			case "-r":
+				val = readOnly{val}
 			case "-A":
 				// nothing to do
 			}

@@ -692,7 +692,9 @@ func (p *ParenTest) End() Pos { return posAddCol(p.Rparen, 1) }
 //
 // This node will only appear with LangBash.
 type DeclClause struct {
-	Variant *Lit // "declare", "local", etc
+	// Variant is one of "declare", "local", "export", "readonly",
+	// "typeset", or "nameref".
+	Variant *Lit
 	Opts    []*Word
 	Assigns []*Assign
 }

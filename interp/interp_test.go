@@ -1278,6 +1278,7 @@ var fileCases = []struct {
 
 	// name references
 	{"declare -n foo=bar; bar=etc; [[ -R foo ]]", ""},
+	{"nameref foo=bar; bar=etc; [[ -R foo ]]", " #IGNORE"},
 	{"declare foo=bar; bar=etc; [[ -R foo ]]", "exit status 1"},
 	{
 		"declare -n foo=bar; bar=etc; echo $foo; bar=zzz; echo $foo",
@@ -1298,6 +1299,18 @@ var fileCases = []struct {
 	{
 		"declare -n foo=bar bar=foo; echo $foo",
 		"\n #IGNORE",
+	},
+
+	// read-only vars
+	{"declare -r foo=bar; echo $foo", "bar\n"},
+	{"readonly foo=bar; echo $foo", "bar\n"},
+	{
+		"declare -r foo=bar; foo=etc",
+		"foo: readonly variable\nexit status 1 #JUSTERR",
+	},
+	{
+		"readonly foo=bar; foo=etc",
+		"foo: readonly variable\nexit status 1 #JUSTERR",
 	},
 
 	// glob
