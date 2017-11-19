@@ -122,6 +122,9 @@ func TestRunnerModules(t *testing.T) {
 }
 
 func TestSignalSending(t *testing.T) {
+	if testing.Short() {
+		t.Skip("sleeps and timeouts are slow")
+	}
 	tests := []struct {
 		src            string
 		want           string
@@ -129,32 +132,28 @@ func TestSignalSending(t *testing.T) {
 		killTimeout    time.Duration
 		forcedKill     bool
 	}{
+		// killed immediately
 		{
-			`bash -c "trap 'echo trap' INT; sleep 5"`,
+			`bash -c "trap 'echo trap' INT; sleep 0.1"`,
 			"",
-			4 * time.Second,
+			50 * time.Millisecond,
 			-1,
 			true,
 		},
+		// interrupted first, and stops itself in time
 		{
-			`bash -c "trap 'while true; do sleep 1; done' INT; sleep 5"`,
-			"",
-			4 * time.Second,
-			-1,
-			true,
-		},
-		{
-			`bash -c "trap 'echo trap' INT; sleep 5"`,
-			"trap\n",
-			1 * time.Second,
-			5 * time.Second,
+			`bash -c "trap 'echo trapped' INT; sleep 0.1"`,
+			"trapped\n",
+			50 * time.Millisecond,
+			time.Second,
 			false,
 		},
+		// interrupted first, but does not stop itself in time
 		{
-			`bash -c "trap 'echo trap; while true; do sleep 1; done' INT; sleep 5"`,
-			"trap\n",
-			1 * time.Second,
-			5 * time.Second,
+			`bash -c "trap 'echo trapped; while true; do sleep 0.01; done' INT; sleep 0.1"`,
+			"trapped\n",
+			50 * time.Millisecond,
+			100 * time.Millisecond,
 			true,
 		},
 	}
