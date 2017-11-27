@@ -792,32 +792,54 @@ func stringIndex(index syntax.ArithmExpr) bool {
 	return ok
 }
 
-func (r *Runner) assignValue(as *syntax.Assign, mode string) varValue {
+func (r *Runner) prepareAssign(as *syntax.Assign) *syntax.Assign {
+	// convert "declare $x" into "declare value"
+	// TODO: perhaps use the syntax package again, as otherwise we
+	// have to re-implement all the logic here (indices, arrays, etc)
+	if as.Name != nil {
+		return as // nothing to do
+	}
+	as2 := *as
+	as = &as2
+	src := r.loneWord(as.Value)
+	parts := strings.SplitN(src, "=", 2)
+	as.Name = &syntax.Lit{Value: parts[0]}
+	if len(parts) > 1 {
+		as.Naked = false
+		as.Value = &syntax.Word{Parts: []syntax.WordPart{
+			&syntax.Lit{Value: parts[1]},
+		}}
+	}
+	return as
+}
+
+func (r *Runner) assignNameValue(as *syntax.Assign, mode string) (string, varValue) {
+	as = r.prepareAssign(as)
 	prev, _ := r.lookupVar(as.Name.Value)
 	if as.Naked {
-		return prev
+		return as.Name.Value, prev
 	}
 	if as.Value != nil {
 		s := r.loneWord(as.Value)
 		if !as.Append || prev == nil {
-			return s
+			return as.Name.Value, s
 		}
 		switch x := prev.(type) {
 		case string:
-			return x + s
+			return as.Name.Value, x + s
 		case []string:
 			if len(x) == 0 {
-				return []string{s}
+				return as.Name.Value, []string{s}
 			}
 			x[0] += s
-			return x
+			return as.Name.Value, x
 		case arrayMap:
 			// TODO
 		}
-		return s
+		return as.Name.Value, s
 	}
 	if as.Array == nil {
-		return nil
+		return as.Name.Value, nil
 	}
 	elems := as.Array.Elems
 	if mode == "" {
@@ -842,10 +864,10 @@ func (r *Runner) assignValue(as *syntax.Assign, mode string) varValue {
 			amap.vals[k] = r.loneWord(elem.Value)
 		}
 		if !as.Append || prev == nil {
-			return amap
+			return as.Name.Value, amap
 		}
 		// TODO
-		return amap
+		return as.Name.Value, amap
 	}
 	// indexed array
 	maxIndex := len(elems) - 1
@@ -866,17 +888,17 @@ func (r *Runner) assignValue(as *syntax.Assign, mode string) varValue {
 		strs[indexes[i]] = r.loneWord(elem.Value)
 	}
 	if !as.Append || prev == nil {
-		return strs
+		return as.Name.Value, strs
 	}
 	switch x := prev.(type) {
 	case string:
-		return append([]string{x}, strs...)
+		return as.Name.Value, append([]string{x}, strs...)
 	case []string:
-		return append(x, strs...)
+		return as.Name.Value, append(x, strs...)
 	case arrayMap:
 		// TODO
 	}
-	return strs
+	return as.Name.Value, strs
 }
 
 func (r *Runner) stmtSync(st *syntax.Stmt) {
@@ -937,7 +959,8 @@ func (r *Runner) cmd(cm syntax.Command) {
 		fields := r.Fields(x.Args)
 		if len(fields) == 0 {
 			for _, as := range x.Assigns {
-				r.setVar(as.Name.Value, as.Index, r.assignValue(as, ""))
+				name, val := r.assignNameValue(as, "")
+				r.setVar(name, as.Index, val)
 			}
 			break
 		}
@@ -946,7 +969,8 @@ func (r *Runner) cmd(cm syntax.Command) {
 			r.cmdVars = make(map[string]varValue, len(x.Assigns))
 		}
 		for _, as := range x.Assigns {
-			r.cmdVars[as.Name.Value] = r.assignValue(as, "")
+			name, val := r.assignNameValue(as, "")
+			r.cmdVars[name] = val
 		}
 		r.call(x.Args[0].Pos(), fields[0], fields[1:])
 		r.cmdVars = oldVars
@@ -1079,7 +1103,7 @@ func (r *Runner) cmd(cm syntax.Command) {
 			}
 		}
 		for _, as := range x.Assigns {
-			val := r.assignValue(as, mode)
+			name, val := r.assignNameValue(as, mode)
 			switch mode {
 			case "-n": // name reference
 				if name, ok := val.(string); ok {
@@ -1090,7 +1114,7 @@ func (r *Runner) cmd(cm syntax.Command) {
 			case "-A":
 				// nothing to do
 			}
-			r.setVar(as.Name.Value, as.Index, val)
+			r.setVar(name, as.Index, val)
 		}
 	case *syntax.TimeClause:
 		start := time.Now()

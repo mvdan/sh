@@ -1286,6 +1286,7 @@ var fileCases = []struct {
 		"declare a=b c=(1 2); echo $a; echo ${c[@]}",
 		"b\n1 2\n",
 	},
+	{"a=x=y; declare $a; echo $a $x", "x=y y\n"},
 
 	// name references
 	{"declare -n foo=bar; bar=etc; [[ -R foo ]]", ""},
