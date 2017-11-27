@@ -523,7 +523,7 @@ func escapedGlob(parts []fieldPart) (escaped string, glob bool) {
 		for _, r := range part.val {
 			switch r {
 			case '*', '?', '\\', '[':
-				if part.quoted {
+				if part.quote > quoteNone {
 					buf.WriteByte('\\')
 				} else {
 					glob = true
@@ -717,7 +717,7 @@ func (r *Runner) Fields(words []*syntax.Word) []string {
 	baseDir, _ := escapedGlob([]fieldPart{{val: r.Dir}})
 	for _, word := range words {
 		for _, expWord := range expandBraces(word) {
-			for _, field := range r.wordFields(expWord.Parts, false) {
+			for _, field := range r.wordFields(expWord.Parts, quoteNone) {
 				path, glob := escapedGlob(field)
 				var matches []string
 				abs := filepath.IsAbs(path)
@@ -748,7 +748,7 @@ func (r *Runner) loneWord(word *syntax.Word) string {
 		return ""
 	}
 	var buf bytes.Buffer
-	for _, field := range r.wordFields(word.Parts, false) {
+	for _, field := range r.wordFields(word.Parts, quoteNone) {
 		for _, part := range field {
 			buf.WriteString(part.val)
 		}
@@ -1039,7 +1039,7 @@ func (r *Runner) cmd(cm syntax.Command) {
 		for _, ci := range x.Items {
 			for _, word := range ci.Patterns {
 				var buf bytes.Buffer
-				for _, field := range r.wordFields(word.Parts, false) {
+				for _, field := range r.wordFields(word.Parts, quoteNone) {
 					escaped, _ := escapedGlob(field)
 					buf.WriteString(escaped)
 				}
@@ -1205,11 +1205,19 @@ func (r *Runner) loopStmtsBroken(sl syntax.StmtList) bool {
 }
 
 type fieldPart struct {
-	val    string
-	quoted bool
+	val   string
+	quote quoteLevel
 }
 
-func (r *Runner) wordFields(wps []syntax.WordPart, quoted bool) [][]fieldPart {
+type quoteLevel uint
+
+const (
+	quoteNone quoteLevel = iota
+	quoteDouble
+	quoteSingle
+)
+
+func (r *Runner) wordFields(wps []syntax.WordPart, ql quoteLevel) [][]fieldPart {
 	var fields [][]fieldPart
 	var curField []fieldPart
 	allowEmpty := false
@@ -1238,10 +1246,32 @@ func (r *Runner) wordFields(wps []syntax.WordPart, quoted bool) [][]fieldPart {
 				// TODO: ~someuser
 				s = r.getVar("HOME") + s[1:]
 			}
+			var buf bytes.Buffer
+			for i := 0; i < len(s); i++ {
+				b := s[i]
+				switch {
+				case ql == quoteSingle:
+					// never does anything
+				case b != '\\':
+					// we want a backslash
+				case ql == quoteDouble:
+					// double quotes just remove \\\n
+					if s[i+1] == '\n' {
+						i++
+						continue
+					}
+				default:
+					buf.WriteByte(s[i+1])
+					i++
+					continue
+				}
+				buf.WriteByte(b)
+			}
+			s = buf.String()
 			curField = append(curField, fieldPart{val: s})
 		case *syntax.SglQuoted:
 			allowEmpty = true
-			fp := fieldPart{quoted: true, val: x.Value}
+			fp := fieldPart{quote: quoteSingle, val: x.Value}
 			if x.Dollar {
 				fp.val = r.expand(fp.val, true)
 			}
@@ -1256,24 +1286,24 @@ func (r *Runner) wordFields(wps []syntax.WordPart, quoted bool) [][]fieldPart {
 							flush()
 						}
 						curField = append(curField, fieldPart{
-							quoted: true,
-							val:    elem,
+							quote: quoteDouble,
+							val:   elem,
 						})
 					}
 					continue
 				}
 			}
-			for _, field := range r.wordFields(x.Parts, true) {
+			for _, field := range r.wordFields(x.Parts, quoteDouble) {
 				for _, part := range field {
 					curField = append(curField, fieldPart{
-						quoted: true,
-						val:    part.val,
+						quote: quoteDouble,
+						val:   part.val,
 					})
 				}
 			}
 		case *syntax.ParamExp:
 			val := r.paramExp(x)
-			if quoted {
+			if ql > quoteNone {
 				curField = append(curField, fieldPart{val: val})
 			} else {
 				splitAdd(val)
@@ -1284,7 +1314,7 @@ func (r *Runner) wordFields(wps []syntax.WordPart, quoted bool) [][]fieldPart {
 			r2.Stdout = &buf
 			r2.stmts(x.StmtList)
 			val := strings.TrimRight(buf.String(), "\n")
-			if quoted {
+			if ql > quoteNone {
 				curField = append(curField, fieldPart{val: val})
 			} else {
 				splitAdd(val)

@@ -27,7 +27,7 @@ func (r *Runner) bashTest(expr syntax.TestExpr) string {
 			str := r.loneWord(x.X.(*syntax.Word))
 			var buf bytes.Buffer
 			yw := x.Y.(*syntax.Word)
-			for _, field := range r.wordFields(yw.Parts, false) {
+			for _, field := range r.wordFields(yw.Parts, quoteNone) {
 				escaped, _ := escapedGlob(field)
 				buf.WriteString(escaped)
 			}

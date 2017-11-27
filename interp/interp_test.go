@@ -127,6 +127,15 @@ var fileCases = []struct {
 	{`echo $'\r\t\\'`, "\r\t\\\n"},
 	{`echo $"foo\nbar"`, "foo\\nbar\n"}, // not $"
 
+	// escaped chars
+	{"echo a\\b", "ab\n"},
+	{"echo a\\ b", "a b\n"},
+	{"echo \\$a", "$a\n"},
+	{"echo \"a\\b\"", "a\\b\n"},
+	{"echo 'a\\b'", "a\\b\n"},
+	{"echo \"a\\\nb\"", "ab\n"},
+	{"echo 'a\\\nb'", "a\\\nb\n"},
+
 	// vars
 	{"foo=bar; echo $foo", "bar\n"},
 	{"foo=bar foo=etc; echo $foo", "etc\n"},
