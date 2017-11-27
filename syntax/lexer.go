@@ -846,7 +846,9 @@ loop:
 				break loop
 			}
 		case '=':
-			p.eqlOffs = len(p.litBs) - 1
+			if p.eqlOffs == 0 {
+				p.eqlOffs = len(p.litBs) - 1
+			}
 		case '[':
 			if p.lang != LangPOSIX && len(p.litBs) > 1 && p.litBs[0] != '[' {
 				tok = _Lit

@@ -734,6 +734,12 @@ var fileTests = []testCase{
 		},
 	},
 	{
+		Strs: []string{"a=b=c"},
+		common: &CallExpr{
+			Assigns: []*Assign{{Name: lit("a"), Value: litWord("b=c")}},
+		},
+	},
+	{
 		Strs:   []string{"à=b foo"},
 		common: litStmt("à=b", "foo"),
 	},
