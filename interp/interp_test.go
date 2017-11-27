@@ -1271,6 +1271,8 @@ var fileCases = []struct {
 	},
 
 	// declare
+	{"a=b; declare a; echo $a; declare a=; echo $a", "b\n\n"},
+	{"a=b; declare a; echo $a", "b\n"},
 	{
 		"declare a=b c=(1 2); echo $a; echo ${c[@]}",
 		"b\n1 2\n",
@@ -1304,6 +1306,10 @@ var fileCases = []struct {
 	// read-only vars
 	{"declare -r foo=bar; echo $foo", "bar\n"},
 	{"readonly foo=bar; echo $foo", "bar\n"},
+	{
+		"a=b; a=c; echo $a; readonly a; a=d",
+		"c\na: readonly variable\nexit status 1 #JUSTERR",
+	},
 	{
 		"declare -r foo=bar; foo=etc",
 		"foo: readonly variable\nexit status 1 #JUSTERR",

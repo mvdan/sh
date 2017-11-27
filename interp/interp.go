@@ -615,6 +615,9 @@ func stringIndex(index syntax.ArithmExpr) bool {
 
 func (r *Runner) assignValue(as *syntax.Assign, mode string) varValue {
 	prev, _ := r.lookupVar(as.Name.Value)
+	if as.Naked {
+		return prev
+	}
 	if as.Value != nil {
 		s := r.loneWord(as.Value)
 		if !as.Append || prev == nil {
