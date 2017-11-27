@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io"
 	"math"
-	"math/bits"
 	"os"
 	"os/user"
 	"path"
@@ -668,6 +667,32 @@ func selectBraces(acc *syntax.Word, bw *braceWord, sel int) *syntax.Word {
 	return acc
 }
 
+// TODO: replace all this with math/bits once Go 1.10 is out and we drop
+// support for 1.8
+
+const uintSize = 32 << (^uint(0) >> 32 & 1) // 32 or 64
+
+func lenBits(x uint) int {
+	count := 0
+	for i := 0; i < uintSize-1; i++ {
+		if x%2 != 0 {
+			count = i + 1
+		}
+		x >>= 1
+	}
+	return count
+}
+
+func reverseBits(x uint) uint {
+	var rev uint
+	for i := 0; i < uintSize-1; i++ {
+		rev |= x % 2
+		x >>= 1
+		rev <<= 1
+	}
+	return rev
+}
+
 func expandBraces(word *syntax.Word) []*syntax.Word {
 	// TODO: be a no-op when not in bash mode
 	topBrace := splitBraces(word)
@@ -677,11 +702,11 @@ func expandBraces(word *syntax.Word) []*syntax.Word {
 	// Since we want the rotations to happen to the leftmost brace
 	// first, we need the bit increments to happen on the left too.
 	// We need to rotate the bits within the
-	numBits := bits.Len(uint(total - 1))
-	shiftBits := bits.UintSize - uint(numBits)
+	numBits := lenBits(uint(total - 1))
+	shiftBits := uintSize - uint(numBits)
 
 	for i := 0; i < total; i++ {
-		sel := bits.Reverse(uint(i)) >> shiftBits
+		sel := reverseBits(uint(i)) >> shiftBits
 		result[i] = selectBraces(&syntax.Word{}, topBrace, int(sel))
 	}
 	return result
