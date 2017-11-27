@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"math/bits"
 	"os"
 	"os/user"
 	"path"
@@ -535,29 +536,182 @@ func escapedGlob(parts []fieldPart) (escaped string, glob bool) {
 	return buf.String(), glob
 }
 
+// TODO: consider making brace a special syntax Node
+
+type brace struct {
+	elems []*braceWord
+}
+
+// braceWord is like syntax.Word, but with braceWordPart.
+type braceWord struct {
+	parts []braceWordPart
+}
+
+// braceWordPart contains either syntax.WordPart or brace.
+type braceWordPart interface{}
+
+func splitBraces(word *syntax.Word) *braceWord {
+	top := &braceWord{}
+	acc := top
+	var cur *brace
+	open := []*brace{}
+
+	pop := func() *brace {
+		old := cur
+		open = open[:len(open)-1]
+		if len(open) == 0 {
+			cur = nil
+			acc = top
+		} else {
+			cur = open[len(open)-1]
+			acc = cur.elems[len(cur.elems)-1]
+		}
+		return old
+	}
+	leftBrace := &syntax.Lit{Value: "{"}
+	comma := &syntax.Lit{Value: ","}
+	rightBrace := &syntax.Lit{Value: "}"}
+
+	for _, wp := range word.Parts {
+		lit, ok := wp.(*syntax.Lit)
+		if !ok {
+			acc.parts = append(acc.parts, wp)
+			continue
+		}
+		last := 0
+		for j, r := range lit.Value {
+			addlit := func() {
+				if last == j {
+					return // empty lit
+				}
+				l2 := *lit
+				l2.Value = l2.Value[last:j]
+				acc.parts = append(acc.parts, &l2)
+			}
+			switch r {
+			case '{':
+				addlit()
+				acc = &braceWord{}
+				cur = &brace{elems: []*braceWord{acc}}
+				open = append(open, cur)
+			case ',':
+				if cur == nil {
+					continue
+				}
+				addlit()
+				acc = &braceWord{}
+				cur.elems = append(cur.elems, acc)
+			case '}':
+				if cur == nil {
+					continue
+				}
+				addlit()
+				ended := pop()
+				if len(ended.elems) > 1 {
+					acc.parts = append(acc.parts, ended)
+					break
+				}
+				// return {x} to a non-brace
+				acc.parts = append(acc.parts, leftBrace)
+				acc.parts = append(acc.parts, ended.elems[0].parts...)
+				acc.parts = append(acc.parts, rightBrace)
+			default:
+				continue
+			}
+			last = j + 1
+		}
+		left := *lit
+		left.Value = left.Value[last:]
+		acc.parts = append(acc.parts, &left)
+	}
+	// open braces that were never closed fall back to non-braces
+	for acc != top {
+		ended := pop()
+		acc.parts = append(acc.parts, leftBrace)
+		for i, elem := range ended.elems {
+			if i > 0 {
+				acc.parts = append(acc.parts, comma)
+			}
+			acc.parts = append(acc.parts, elem.parts...)
+		}
+	}
+	return top
+}
+
+func countExplode(acc int, bw *braceWord) int {
+	for _, wp := range bw.parts {
+		br, ok := wp.(*brace)
+		if !ok {
+			continue
+		}
+		seq := 0
+		// TODO: check for overflow in the two operations below
+		for _, elem := range br.elems {
+			seq += countExplode(1, elem)
+		}
+		acc *= seq
+	}
+	return acc
+}
+
+func selectBraces(acc *syntax.Word, bw *braceWord, sel int) *syntax.Word {
+	for _, wp := range bw.parts {
+		br, ok := wp.(*brace)
+		if !ok {
+			acc.Parts = append(acc.Parts, wp.(syntax.WordPart))
+			continue
+		}
+		elem := sel % len(br.elems)
+		sel /= len(br.elems)
+		acc = selectBraces(acc, br.elems[elem], sel)
+	}
+	return acc
+}
+
+func expandBraces(word *syntax.Word) []*syntax.Word {
+	// TODO: be a no-op when not in bash mode
+	topBrace := splitBraces(word)
+	total := countExplode(1, topBrace)
+	result := make([]*syntax.Word, total)
+
+	// Since we want the rotations to happen to the leftmost brace
+	// first, we need the bit increments to happen on the left too.
+	// We need to rotate the bits within the
+	numBits := bits.Len(uint(total - 1))
+	shiftBits := bits.UintSize - uint(numBits)
+
+	for i := 0; i < total; i++ {
+		sel := bits.Reverse(uint(i)) >> shiftBits
+		result[i] = selectBraces(&syntax.Word{}, topBrace, int(sel))
+	}
+	return result
+}
+
 func (r *Runner) Fields(words []*syntax.Word) []string {
 	fields := make([]string, 0, len(words))
 	baseDir, _ := escapedGlob([]fieldPart{{val: r.Dir}})
 	for _, word := range words {
-		for _, field := range r.wordFields(word.Parts, false) {
-			path, glob := escapedGlob(field)
-			var matches []string
-			abs := filepath.IsAbs(path)
-			if glob {
-				if !abs {
-					path = filepath.Join(baseDir, path)
+		for _, expWord := range expandBraces(word) {
+			for _, field := range r.wordFields(expWord.Parts, false) {
+				path, glob := escapedGlob(field)
+				var matches []string
+				abs := filepath.IsAbs(path)
+				if glob {
+					if !abs {
+						path = filepath.Join(baseDir, path)
+					}
+					matches, _ = filepath.Glob(path)
 				}
-				matches, _ = filepath.Glob(path)
-			}
-			if len(matches) == 0 {
-				fields = append(fields, fieldJoin(field))
-				continue
-			}
-			for _, match := range matches {
-				if !abs {
-					match, _ = filepath.Rel(baseDir, match)
+				if len(matches) == 0 {
+					fields = append(fields, fieldJoin(field))
+					continue
 				}
-				fields = append(fields, match)
+				for _, match := range matches {
+					if !abs {
+						match, _ = filepath.Rel(baseDir, match)
+					}
+					fields = append(fields, match)
+				}
 			}
 		}
 	}

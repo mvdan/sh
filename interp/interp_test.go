@@ -1343,6 +1343,16 @@ var fileCases = []struct {
 		"mkdir a; touch a/b.x; echo */*.x; cd a; echo *.x",
 		"a/b.x\nb.x\n",
 	},
+	// brace expansion
+	{"echo a{b", "a{b\n"},
+	{"echo a}b", "a}b\n"},
+	{"echo {a,b{c,d}", "{a,bc {a,bd\n"},
+	{"echo {a{b", "{a{b\n"},
+	{"echo a{}", "a{}\n"},
+	{"echo a{b}", "a{b}\n"},
+	{"echo a{b,c}", "ab ac\n"},
+	{"echo a{b,c}d{e,f}g", "abdeg abdfg acdeg acdfg\n"},
+	{"echo a{b{x,y},c}d", "abxd abyd acd\n"},
 
 	// /dev/null
 	{"echo foo >/dev/null", ""},
