@@ -175,7 +175,7 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 	case "type":
 		anyNotFound := false
 		for _, arg := range args {
-			if _, ok := r.funcs[arg]; ok {
+			if _, ok := r.Funcs[arg]; ok {
 				r.outf("%s is a function\n", arg)
 				continue
 			}
@@ -282,7 +282,7 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 		last := 0
 		for _, arg := range args {
 			last = 0
-			if r.funcs[arg] != nil || isBuiltin(arg) {
+			if r.Funcs[arg] != nil || isBuiltin(arg) {
 				r.outf("%s\n", arg)
 			} else if path, err := exec.LookPath(arg); err == nil {
 				r.outf("%s\n", path)
@@ -401,7 +401,7 @@ func (r *Runner) changeDir(path string) int {
 		return 1
 	}
 	r.Dir = path
-	r.vars["PWD"] = path
+	r.Vars["PWD"] = StringVar(path)
 	return 0
 }
 

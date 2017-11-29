@@ -30,7 +30,7 @@ func (r *Runner) quotedElems(pe *syntax.ParamExp) []string {
 	}
 	val, _ := r.lookupVar(pe.Param.Value)
 	switch x := val.(type) {
-	case []string:
+	case IndexArray:
 		return x
 	}
 	return nil
@@ -42,15 +42,15 @@ func (r *Runner) paramExp(pe *syntax.ParamExp) string {
 	set := false
 	switch name {
 	case "#":
-		val = strconv.Itoa(len(r.Params))
+		val = StringVar(strconv.Itoa(len(r.Params)))
 	case "*", "@":
-		val = strings.Join(r.Params, " ")
+		val = StringVar(strings.Join(r.Params, " "))
 	case "?":
-		val = strconv.Itoa(r.exit)
+		val = StringVar(strconv.Itoa(r.exit))
 	default:
 		if n, err := strconv.Atoi(name); err == nil {
 			if i := n - 1; i < len(r.Params) {
-				val, set = r.Params[i], true
+				val, set = StringVar(r.Params[i]), true
 			}
 		} else {
 			val, set = r.lookupVar(name)
@@ -146,7 +146,7 @@ func (r *Runner) paramExp(pe *syntax.ParamExp) string {
 			fallthrough
 		case syntax.SubstColAssgn:
 			if str == "" {
-				r.setVar(name, nil, arg)
+				r.setVar(name, nil, StringVar(arg))
 				str = arg
 			}
 		case syntax.RemSmallPrefix:

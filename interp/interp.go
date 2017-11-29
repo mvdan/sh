@@ -52,10 +52,10 @@ type Runner struct {
 
 	// Separate maps, note that bash allows a name to be both a var
 	// and a func simultaneously
-	vars  map[string]VarValue
-	funcs map[string]*syntax.Stmt
+	Vars  map[string]VarValue
+	Funcs map[string]*syntax.Stmt
 
-	// like vars, but local to a cmd i.e. "foo=bar prog args..."
+	// like Vars, but local to a cmd i.e. "foo=bar prog args..."
 	cmdVars map[string]VarValue
 
 	// >0 to break or continue out of N enclosing loops
@@ -130,10 +130,10 @@ func (r *Runner) Reset() error {
 		name, val := kv[:i], kv[i+1:]
 		r.envMap[name] = val
 	}
-	r.vars = make(map[string]VarValue, 4)
+	r.Vars = make(map[string]VarValue, 4)
 	if _, ok := r.envMap["HOME"]; !ok {
 		u, _ := user.Current()
-		r.vars["HOME"] = u.HomeDir
+		r.Vars["HOME"] = StringVar(u.HomeDir)
 	}
 	if r.Dir == "" {
 		dir, err := os.Getwd()
@@ -142,7 +142,7 @@ func (r *Runner) Reset() error {
 		}
 		r.Dir = dir
 	}
-	r.vars["PWD"] = r.Dir
+	r.Vars["PWD"] = StringVar(r.Dir)
 	r.dirStack = []string{r.Dir}
 	if r.Exec == nil {
 		r.Exec = DefaultExec
@@ -172,18 +172,22 @@ func (r *Runner) ctx() Ctxt {
 	return c
 }
 
-// VarValue can hold any of:
+// VarValue is one of:
 //
-//     string (normal variable)
-//     []string (indexed array)
-//     ArrayMap (associative array)
-//     NameRef (name reference)
+//     StringVar
+//     IndexArray
+//     AssocArray
+//     NameRef
 //     ReadOnly
 type VarValue interface{}
 
-// ArrayMap is an associative array. It is an ordered map, where the
+type StringVar string
+
+type IndexArray []string
+
+// AssocArray is an associative array. It is an ordered map, where the
 // keys are kept in order of insertion.
-type ArrayMap struct {
+type AssocArray struct {
 	Keys []string
 	Vals map[string]string
 }
@@ -206,13 +210,13 @@ func (r *Runner) varStr(v VarValue, depth int) string {
 		return ""
 	}
 	switch x := v.(type) {
-	case string:
-		return x
-	case []string:
+	case StringVar:
+		return string(x)
+	case IndexArray:
 		if len(x) > 0 {
 			return x[0]
 		}
-	case ArrayMap:
+	case AssocArray:
 		// nothing to do
 	case NameRef:
 		val, _ := r.lookupVar(string(x))
@@ -228,12 +232,11 @@ func (r *Runner) varInd(v VarValue, e syntax.ArithmExpr, depth int) string {
 		return ""
 	}
 	switch x := v.(type) {
-	case string:
-		i := r.arithm(e)
-		if i == 0 {
-			return x
+	case StringVar:
+		if r.arithm(e) == 0 {
+			return string(x)
 		}
-	case []string:
+	case IndexArray:
 		if w, ok := e.(*syntax.Word); ok {
 			if lit, ok := w.Parts[0].(*syntax.Lit); ok {
 				switch lit.Value {
@@ -246,12 +249,12 @@ func (r *Runner) varInd(v VarValue, e syntax.ArithmExpr, depth int) string {
 		if len(x) > 0 {
 			return x[i]
 		}
-	case ArrayMap:
+	case AssocArray:
 		if w, ok := e.(*syntax.Word); ok {
 			if lit, ok := w.Parts[0].(*syntax.Lit); ok {
 				switch lit.Value {
 				case "@", "*":
-					var strs []string
+					var strs IndexArray
 					for _, k := range x.Keys {
 						strs = append(strs, x.Vals[k])
 					}
@@ -315,21 +318,21 @@ func (r *Runner) setVar(name string, index syntax.ArithmExpr, val VarValue) {
 		return
 	}
 	if index == nil {
-		r.vars[name] = val
+		r.Vars[name] = val
 		return
 	}
 	// from the syntax package, we know that val must be a string if
 	// index is non-nil; nested arrays are forbidden.
-	valStr := val.(string)
-	// if the existing variable is already an ArrayMap, try our best
+	valStr := string(val.(StringVar))
+	// if the existing variable is already an AssocArray, try our best
 	// to convert the key to a string
-	_, isArrayMap := cur.(ArrayMap)
-	if stringIndex(index) || isArrayMap {
-		var amap ArrayMap
+	_, isAssocArray := cur.(AssocArray)
+	if stringIndex(index) || isAssocArray {
+		var amap AssocArray
 		switch x := cur.(type) {
-		case string, []string:
+		case StringVar, IndexArray:
 			return // TODO
-		case ArrayMap:
+		case AssocArray:
 			amap = x
 		}
 		w, ok := index.(*syntax.Word)
@@ -341,34 +344,34 @@ func (r *Runner) setVar(name string, index syntax.ArithmExpr, val VarValue) {
 			amap.Keys = append(amap.Keys, k)
 		}
 		amap.Vals[k] = valStr
-		r.vars[name] = amap
+		r.Vars[name] = amap
 		return
 	}
-	var list []string
+	var list IndexArray
 	switch x := cur.(type) {
-	case string:
-		list = []string{x}
-	case []string:
+	case StringVar:
+		list = append(list, string(x))
+	case IndexArray:
 		list = x
-	case ArrayMap: // done above
+	case AssocArray: // done above
 	}
 	k := r.arithm(index)
 	for len(list) < k+1 {
 		list = append(list, "")
 	}
 	list[k] = valStr
-	r.vars[name] = list
+	r.Vars[name] = list
 }
 
 func (r *Runner) lookupVar(name string) (VarValue, bool) {
 	if val, e := r.cmdVars[name]; e {
 		return val, true
 	}
-	if val, e := r.vars[name]; e {
+	if val, e := r.Vars[name]; e {
 		return val, true
 	}
 	str, e := r.envMap[name]
-	return str, e
+	return StringVar(str), e
 }
 
 func (r *Runner) getVar(name string) string {
@@ -377,15 +380,15 @@ func (r *Runner) getVar(name string) string {
 }
 
 func (r *Runner) delVar(name string) {
-	delete(r.vars, name)
+	delete(r.Vars, name)
 	delete(r.envMap, name)
 }
 
 func (r *Runner) setFunc(name string, body *syntax.Stmt) {
-	if r.funcs == nil {
-		r.funcs = make(map[string]*syntax.Stmt, 4)
+	if r.Funcs == nil {
+		r.Funcs = make(map[string]*syntax.Stmt, 4)
 	}
-	r.funcs[name] = body
+	r.Funcs[name] = body
 }
 
 // FromArgs populates the shell options and returns the remaining
@@ -820,21 +823,21 @@ func (r *Runner) assignNameValue(as *syntax.Assign, mode string) (string, VarVal
 	if as.Value != nil {
 		s := r.loneWord(as.Value)
 		if !as.Append || prev == nil {
-			return as.Name.Value, s
+			return as.Name.Value, StringVar(s)
 		}
 		switch x := prev.(type) {
-		case string:
-			return as.Name.Value, x + s
-		case []string:
+		case StringVar:
+			return as.Name.Value, x + StringVar(s)
+		case IndexArray:
 			if len(x) == 0 {
-				return as.Name.Value, []string{s}
+				x = append(x, "")
 			}
 			x[0] += s
 			return as.Name.Value, x
-		case ArrayMap:
+		case AssocArray:
 			// TODO
 		}
-		return as.Name.Value, s
+		return as.Name.Value, StringVar(s)
 	}
 	if as.Array == nil {
 		return as.Name.Value, nil
@@ -849,7 +852,7 @@ func (r *Runner) assignNameValue(as *syntax.Assign, mode string) (string, VarVal
 	}
 	if mode == "-A" {
 		// associative array
-		amap := ArrayMap{
+		amap := AssocArray{
 			Keys: make([]string, 0, len(elems)),
 			Vals: make(map[string]string, len(elems)),
 		}
@@ -886,17 +889,18 @@ func (r *Runner) assignNameValue(as *syntax.Assign, mode string) (string, VarVal
 		strs[indexes[i]] = r.loneWord(elem.Value)
 	}
 	if !as.Append || prev == nil {
-		return as.Name.Value, strs
+		return as.Name.Value, IndexArray(strs)
 	}
 	switch x := prev.(type) {
-	case string:
-		return as.Name.Value, append([]string{x}, strs...)
-	case []string:
+	case StringVar:
+		prevList := IndexArray([]string{string(x)})
+		return as.Name.Value, append(prevList, strs...)
+	case IndexArray:
 		return as.Name.Value, append(x, strs...)
-	case ArrayMap:
+	case AssocArray:
 		// TODO
 	}
-	return as.Name.Value, strs
+	return as.Name.Value, IndexArray(strs)
 }
 
 func (r *Runner) stmtSync(st *syntax.Stmt) {
@@ -934,9 +938,9 @@ func (r *Runner) sub() *Runner {
 	r2.bgShells = sync.WaitGroup{}
 	// TODO: perhaps we could do a lazy copy here, or some sort of
 	// overlay to avoid copying all the time
-	r2.vars = make(map[string]VarValue, len(r.vars))
-	for k, v := range r.vars {
-		r2.vars[k] = v
+	r2.Vars = make(map[string]VarValue, len(r.Vars))
+	for k, v := range r.Vars {
+		r2.Vars[k] = v
 	}
 	return &r2
 }
@@ -1028,7 +1032,7 @@ func (r *Runner) cmd(cm syntax.Command) {
 		case *syntax.WordIter:
 			name := y.Name.Value
 			for _, field := range r.Fields(y.Items) {
-				r.setVar(name, nil, field)
+				r.setVar(name, nil, StringVar(field))
 				if r.loopStmtsBroken(x.Do) {
 					break
 				}
@@ -1100,7 +1104,7 @@ func (r *Runner) cmd(cm syntax.Command) {
 			name, val := r.assignNameValue(as, mode)
 			switch mode {
 			case "-n": // name reference
-				if name, ok := val.(string); ok {
+				if name, ok := val.(StringVar); ok {
 					val = NameRef(name)
 				}
 			case "-r":
@@ -1353,7 +1357,7 @@ type returnCode uint8
 func (returnCode) Error() string { return "returned" }
 
 func (r *Runner) call(pos syntax.Pos, name string, args []string) {
-	if body := r.funcs[name]; body != nil {
+	if body := r.Funcs[name]; body != nil {
 		// stack them to support nested func calls
 		oldParams := r.Params
 		r.Params = args
