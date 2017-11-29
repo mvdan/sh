@@ -507,6 +507,9 @@ func (r *Runner) expand(format string, onlyChars bool, args ...string) string {
 			buf.WriteRune(c)
 		}
 	}
+	if fmt {
+		r.runErr(syntax.Pos{}, "missing format char")
+	}
 	return buf.String()
 }
 

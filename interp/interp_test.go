@@ -102,6 +102,7 @@ var fileCases = []struct {
 	// printf
 	{"printf foo", "foo"},
 	{"printf %%", "%"},
+	{"printf %", "0:0: missing format char #JUSTERR"},
 	{"printf %B foo", "0:0: unhandled format char: B #JUSTERR"},
 	{"printf ' %s \n' bar", " bar \n"},
 	{"printf %s foo", "foo"},
