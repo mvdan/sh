@@ -157,7 +157,8 @@ var fileCases = []struct {
 	{"foo=a foo=b env | grep '^foo='", "foo=b\n"},
 	{"env | grep '^INTERP_GLOBAL='", "INTERP_GLOBAL=value\n"},
 	{"a=b; a+=c x+=y; echo $a $x", "bc y\n"},
-	{`a=" x y"; b=$a c="$a"; echo $b; echo $c`, "x y\nx y\n"},
+	{`a=" x  y"; b=$a c="$a"; echo $b; echo $c`, "x y\nx y\n"},
+	{`a=" x  y"; b=$a c="$a"; echo "$b"; echo "$c"`, " x  y\n x  y\n"},
 
 	// special vars
 	{"echo $?; false; echo $?", "0\n1\n"},

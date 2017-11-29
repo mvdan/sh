@@ -709,13 +709,12 @@ func (r *Runner) loneWord(word *syntax.Word) string {
 		return ""
 	}
 	var buf bytes.Buffer
-	for i, field := range r.wordFields(word.Parts, quoteNone) {
-		if i > 0 {
-			buf.WriteByte(' ')
-		}
-		for _, part := range field {
-			buf.WriteString(part.val)
-		}
+	fields := r.wordFields(word.Parts, quoteDouble)
+	if len(fields) != 1 {
+		panic("expected exactly one field for a lone word")
+	}
+	for _, part := range fields[0] {
+		buf.WriteString(part.val)
 	}
 	return buf.String()
 }
