@@ -193,6 +193,10 @@ var fileCases = []struct {
 	{"a=]abc]; echo ${a//[]b]}", "ac\n"},
 	{"a=-abc-; echo ${a//[-b]}", "ac\n"},
 	{`a='x\y'; echo ${a//\\}`, "xy\n"},
+	{"a=']'; echo ${a//[}", "]\n"},
+	{"a=']'; echo ${a//[]}", "]\n"},
+	{"a=']'; echo ${a//[]]}", "\n"},
+	{"a=']'; echo ${a//[xy}", "]\n"},
 	{
 		"echo ${a:-b}; echo $a; a=; echo ${a:-b}; a=c; echo ${a:-b}",
 		"b\n\nb\nc\n",

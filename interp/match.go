@@ -30,6 +30,7 @@ func translatePattern(pattern string) string {
 	// TODO: slashes need to be explicit
 	// TODO: char classes
 	var buf bytes.Buffer
+loop:
 	for i := 0; i < len(pattern); i++ {
 		switch c := pattern[i]; c {
 		case '*':
@@ -42,19 +43,23 @@ func translatePattern(pattern string) string {
 			buf.WriteByte(pattern[i])
 		case '[':
 			buf.WriteByte(c)
-			i++
+			if i++; i >= len(pattern) {
+				break loop
+			}
 			c = pattern[i]
 			if c == '!' {
 				c = '^'
 			}
 			buf.WriteByte(c)
-			i++
-			c = pattern[i]
-			buf.WriteByte(c)
-			for c != ']' {
-				i++
+			for {
+				if i++; i >= len(pattern) {
+					break loop
+				}
 				c = pattern[i]
 				buf.WriteByte(c)
+				if c == ']' {
+					break
+				}
 			}
 		default:
 			buf.WriteString(regexp.QuoteMeta(string(c)))
