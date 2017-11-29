@@ -4,6 +4,7 @@
 package interp
 
 import (
+	"bytes"
 	"strconv"
 	"strings"
 	"unicode"
@@ -95,7 +96,16 @@ func (r *Runner) paramExp(pe *syntax.ParamExp) string {
 		if pe.Repl.All {
 			n = -1
 		}
-		str = strings.Replace(str, orig, with, n)
+		locs := findAllIndex(orig, str, n)
+		var buf bytes.Buffer
+		last := 0
+		for _, loc := range locs {
+			buf.WriteString(str[last:loc[0]])
+			buf.WriteString(with)
+			last = loc[1]
+		}
+		buf.WriteString(str[last:])
+		str = buf.String()
 	}
 	if pe.Exp != nil {
 		arg := r.loneWord(pe.Exp.Word)

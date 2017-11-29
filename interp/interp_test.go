@@ -178,8 +178,12 @@ var fileCases = []struct {
 		"b\n",
 	},
 	{
-		"a=foo; echo ${a/no/x}; echo ${a/o/i}; echo ${a//o/i}; echo ${a/fo/}",
-		"foo\nfio\nfii\no\n",
+		"a=foo; echo ${a/no/x} ${a/o/i} ${a//o/i} ${a/fo/}",
+		"foo fio fii o\n",
+	},
+	{
+		"a=foo; echo ${a/*/xx} ${a//?/na} ${a/o*}",
+		"xx nanana f\n",
 	},
 	{
 		"echo ${a:-b}; echo $a; a=; echo ${a:-b}; a=c; echo ${a:-b}",

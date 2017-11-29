@@ -17,6 +17,15 @@ func match(pattern, name string) bool {
 	return rx.MatchString(name)
 }
 
+func findAllIndex(pattern, name string, n int) [][]int {
+	expr := translatePattern(pattern)
+	rx, err := regexp.Compile(expr)
+	if err != nil {
+		return nil
+	}
+	return rx.FindAllStringIndex(name, n)
+}
+
 func translatePattern(pattern string) string {
 	// TODO: slashes need to be explicit
 	// TODO: char ranges
