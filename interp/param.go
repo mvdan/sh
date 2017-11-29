@@ -90,7 +90,7 @@ func (r *Runner) paramExp(pe *syntax.ParamExp) string {
 		}
 	}
 	if pe.Repl != nil {
-		orig := r.loneWord(pe.Repl.Orig)
+		orig := r.lonePattern(pe.Repl.Orig)
 		with := r.loneWord(pe.Repl.With)
 		n := 1
 		if pe.Repl.All {

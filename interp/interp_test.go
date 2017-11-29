@@ -189,6 +189,10 @@ var fileCases = []struct {
 		"a=12345; echo ${a//[42]} ${a//[^42]} ${a//[!42]}",
 		"135 24 24\n",
 	},
+	{"a=0123456789; echo ${a//[1-35-8]}", "049\n"},
+	{"a=]abc]; echo ${a//[]b]}", "ac\n"},
+	{"a=-abc-; echo ${a//[-b]}", "ac\n"},
+	{`a='x\y'; echo ${a//\\}`, "xy\n"},
 	{
 		"echo ${a:-b}; echo $a; a=; echo ${a:-b}; a=c; echo ${a:-b}",
 		"b\n\nb\nc\n",
@@ -399,10 +403,8 @@ var fileCases = []struct {
 		`cd /; echo "$PWD"`,
 		"/\n",
 	},
-	{
-		"[[ fo~ == 'fo~' ]]",
-		"",
-	},
+	{"[[ fo~ == 'fo~' ]]", ""},
+	{`[[ 'ab\c' == *\\* ]]`, ""},
 	{
 		"[[ ~ == $HOME ]] && [[ ~/foo == $HOME/foo ]]",
 		"",

@@ -4,7 +4,6 @@
 package interp
 
 import (
-	"bytes"
 	"os"
 	"os/exec"
 	"regexp"
@@ -25,13 +24,9 @@ func (r *Runner) bashTest(expr syntax.TestExpr) string {
 		switch x.Op {
 		case syntax.TsMatch, syntax.TsNoMatch:
 			str := r.loneWord(x.X.(*syntax.Word))
-			var buf bytes.Buffer
 			yw := x.Y.(*syntax.Word)
-			for _, field := range r.wordFields(yw.Parts, quoteNone) {
-				escaped, _ := escapedGlob(field)
-				buf.WriteString(escaped)
-			}
-			if match(buf.String(), str) == (x.Op == syntax.TsMatch) {
+			pat := r.lonePattern(yw)
+			if match(pat, str) == (x.Op == syntax.TsMatch) {
 				return "1"
 			}
 			return ""

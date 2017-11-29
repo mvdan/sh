@@ -710,6 +710,35 @@ func (r *Runner) loneWord(word *syntax.Word) string {
 	return buf.String()
 }
 
+func (r *Runner) lonePattern(word *syntax.Word) string {
+	if word == nil {
+		return ""
+	}
+	var buf bytes.Buffer
+	for _, field := range r.wordFields(word.Parts, quoteNone) {
+		for _, part := range field {
+			if part.quote == quoteNone {
+				for _, r := range part.val {
+					if r == '\\' {
+						buf.WriteString(`\\`)
+					} else {
+						buf.WriteRune(r)
+					}
+				}
+				continue
+			}
+			for _, r := range part.val {
+				switch r {
+				case '*', '?', '[':
+					buf.WriteByte('\\')
+				}
+				buf.WriteRune(r)
+			}
+		}
+	}
+	return buf.String()
+}
+
 func (r *Runner) stop() bool {
 	if r.err != nil {
 		return true
@@ -1016,12 +1045,8 @@ func (r *Runner) cmd(cm syntax.Command) {
 		str := r.loneWord(x.Word)
 		for _, ci := range x.Items {
 			for _, word := range ci.Patterns {
-				var buf bytes.Buffer
-				for _, field := range r.wordFields(word.Parts, quoteNone) {
-					escaped, _ := escapedGlob(field)
-					buf.WriteString(escaped)
-				}
-				if match(buf.String(), str) {
+				pat := r.lonePattern(word)
+				if match(pat, str) {
 					r.stmts(ci.StmtList)
 					return
 				}
