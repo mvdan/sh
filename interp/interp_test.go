@@ -1364,6 +1364,7 @@ var fileCases = []struct {
 	{"echo a{b,c}", "ab ac\n"},
 	{"echo a{b,c}d{e,f}g", "abdeg abdfg acdeg acdfg\n"},
 	{"echo a{b{x,y},c}d", "abxd abyd acd\n"},
+	{"echo a{1,2,3,4,5}", "a1 a2 a3 a4 a5\n"},
 
 	// /dev/null
 	{"echo foo >/dev/null", ""},

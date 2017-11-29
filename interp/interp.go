@@ -637,79 +637,34 @@ func splitBraces(word *syntax.Word) *braceWord {
 	return top
 }
 
-func countExplode(acc int, bw *braceWord) int {
-	for _, wp := range bw.parts {
+func expandRec(bw *braceWord) []*syntax.Word {
+	var all []*syntax.Word
+	var left []syntax.WordPart
+	for i, wp := range bw.parts {
 		br, ok := wp.(*brace)
 		if !ok {
+			left = append(left, wp.(syntax.WordPart))
 			continue
 		}
-		seq := 0
-		// TODO: check for overflow in the two operations below
 		for _, elem := range br.elems {
-			seq += countExplode(1, elem)
+			next := *bw
+			next.parts = next.parts[i+1:]
+			next.parts = append(elem.parts, next.parts...)
+			exp := expandRec(&next)
+			for _, w := range exp {
+				w.Parts = append(left, w.Parts...)
+			}
+			all = append(all, exp...)
 		}
-		acc *= seq
+		return all
 	}
-	return acc
-}
-
-func selectBraces(acc *syntax.Word, bw *braceWord, sel int) *syntax.Word {
-	for _, wp := range bw.parts {
-		br, ok := wp.(*brace)
-		if !ok {
-			acc.Parts = append(acc.Parts, wp.(syntax.WordPart))
-			continue
-		}
-		elem := sel % len(br.elems)
-		sel /= len(br.elems)
-		acc = selectBraces(acc, br.elems[elem], sel)
-	}
-	return acc
-}
-
-// TODO: replace all this with math/bits once Go 1.10 is out and we drop
-// support for 1.8
-
-const uintSize = 32 << (^uint(0) >> 32 & 1) // 32 or 64
-
-func lenBits(x uint) int {
-	count := 0
-	for i := 0; i < uintSize-1; i++ {
-		if x%2 != 0 {
-			count = i + 1
-		}
-		x >>= 1
-	}
-	return count
-}
-
-func reverseBits(x uint) uint {
-	var rev uint
-	for i := 0; i < uintSize-1; i++ {
-		rev |= x % 2
-		x >>= 1
-		rev <<= 1
-	}
-	return rev
+	return []*syntax.Word{{Parts: left}}
 }
 
 func expandBraces(word *syntax.Word) []*syntax.Word {
 	// TODO: be a no-op when not in bash mode
 	topBrace := splitBraces(word)
-	total := countExplode(1, topBrace)
-	result := make([]*syntax.Word, total)
-
-	// Since we want the rotations to happen to the leftmost brace
-	// first, we need the bit increments to happen on the left too.
-	// We need to rotate the bits within the
-	numBits := lenBits(uint(total - 1))
-	shiftBits := uintSize - uint(numBits)
-
-	for i := 0; i < total; i++ {
-		sel := reverseBits(uint(i)) >> shiftBits
-		result[i] = selectBraces(&syntax.Word{}, topBrace, int(sel))
-	}
-	return result
+	return expandRec(topBrace)
 }
 
 func (r *Runner) Fields(words []*syntax.Word) []string {
