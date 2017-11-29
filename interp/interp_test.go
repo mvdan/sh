@@ -186,6 +186,10 @@ var fileCases = []struct {
 		"xx nanana f\n",
 	},
 	{
+		"a=12345; echo ${a//[42]} ${a//[^42]} ${a//[!42]}",
+		"135 24 24\n",
+	},
+	{
 		"echo ${a:-b}; echo $a; a=; echo ${a:-b}; a=c; echo ${a:-b}",
 		"b\n\nb\nc\n",
 	},

@@ -28,7 +28,6 @@ func findAllIndex(pattern, name string, n int) [][]int {
 
 func translatePattern(pattern string) string {
 	// TODO: slashes need to be explicit
-	// TODO: char ranges
 	// TODO: char classes
 	var buf bytes.Buffer
 	for i := 0; i < len(pattern); i++ {
@@ -41,6 +40,22 @@ func translatePattern(pattern string) string {
 			buf.WriteByte(c)
 			i++
 			buf.WriteByte(pattern[i])
+		case '[':
+			buf.WriteByte(c)
+			i++
+			c = pattern[i]
+			if c == '!' {
+				c = '^'
+			}
+			buf.WriteByte(c)
+			i++
+			c = pattern[i]
+			buf.WriteByte(c)
+			for c != ']' {
+				i++
+				c = pattern[i]
+				buf.WriteByte(c)
+			}
 		default:
 			buf.WriteString(regexp.QuoteMeta(string(c)))
 		}
