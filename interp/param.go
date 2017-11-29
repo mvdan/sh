@@ -187,7 +187,7 @@ func (r *Runner) paramExp(pe *syntax.ParamExp) string {
 }
 
 func removePattern(str, pattern string, fromEnd, longest bool) string {
-	// TODO: really slow to not re-implement path.Match.
+	// TODO: really slow to not re-implement match.
 	last := str
 	s := str
 	i := len(str)

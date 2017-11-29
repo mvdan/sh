@@ -11,7 +11,6 @@ import (
 	"math"
 	"os"
 	"os/user"
-	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -1100,11 +1099,6 @@ func (r *Runner) stmts(sl syntax.StmtList) {
 	for _, stmt := range sl.Stmts {
 		r.stmt(stmt)
 	}
-}
-
-func match(pattern, name string) bool {
-	matched, _ := path.Match(pattern, name)
-	return matched
 }
 
 func (r *Runner) redir(rd *syntax.Redirect) (io.Closer, error) {
