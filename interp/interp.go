@@ -496,6 +496,7 @@ func (r *Runner) expand(format string, onlyChars bool, args ...string) string {
 				buf.WriteString(strconv.FormatUint(uint64(n), 16))
 			default:
 				r.runErr(syntax.Pos{}, "unhandled format char: %c", c)
+				return ""
 			}
 			continue
 		}
@@ -509,6 +510,7 @@ func (r *Runner) expand(format string, onlyChars bool, args ...string) string {
 	}
 	if fmt {
 		r.runErr(syntax.Pos{}, "missing format char")
+		return ""
 	}
 	return buf.String()
 }
