@@ -201,10 +201,8 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 			r.errf("eval: %v\n", err)
 			return 1
 		}
-		r2 := *r
-		r2.Reset()
-		r2.Run(file)
-		return r2.exit
+		r.stmts(file.StmtList)
+		return r.exit
 	case "source", ".":
 		if len(args) < 1 {
 			r.runErr(pos, "source: need filename")
