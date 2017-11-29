@@ -22,6 +22,7 @@ var hasBash44 bool
 func TestMain(m *testing.M) {
 	os.Setenv("LANGUAGE", "en_US.UTF8")
 	os.Setenv("LC_ALL", "en_US.UTF8")
+	os.Unsetenv("CDPATH")
 	hasBash44 = checkBash()
 	os.Setenv("INTERP_GLOBAL", "value")
 	exit := m.Run()
