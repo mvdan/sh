@@ -20,6 +20,7 @@ type testParser struct {
 func (p *testParser) next() {
 	if p.eof || len(p.rem) == 0 {
 		p.eof = true
+		p.val = ""
 		return
 	}
 	p.val = p.rem[0]
@@ -84,6 +85,13 @@ func (p *testParser) testExprBase(fval string) syntax.TestExpr {
 	default:
 		u := &syntax.UnaryTest{Op: op}
 		p.next()
+		if p.eof {
+			// make [ -e ] fall back to [ -n -e ], i.e. use
+			// the operator as an argument
+			return &syntax.Word{Parts: []syntax.WordPart{
+				&syntax.Lit{Value: op.String()},
+			}}
+		}
 		u.X = p.followWord(op.String())
 		return u
 	}

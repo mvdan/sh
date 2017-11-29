@@ -1007,23 +1007,20 @@ var fileCases = []struct {
 		"1:1: not a valid test operator: b #JUSTERR",
 	},
 	{
-		"[ -e ]",
-		"1:1: -e must be followed by a word #IGNORE bash is buggy",
-	},
-	{
 		"[ a -a ]",
 		"1:1: -a must be followed by an expression #JUSTERR",
 	},
-	{
-		"[ a ]",
-		"",
-	},
+	{"[ a ]", ""},
+	{"[ -n ]", ""},
+	{"[ '-n' ]", ""},
+	{"[ -z ]", ""},
+	{"[ ! ]", ""},
 	{
 		"[ a != b ]",
 		"",
 	},
 	{
-		"[ ! a != b ]",
+		"[ ! a '==' a ]",
 		"exit status 1",
 	},
 	{
