@@ -118,6 +118,7 @@ var fileCases = []struct {
 	{"echo ' foo '", " foo \n"},
 	{`echo " foo "`, " foo \n"},
 	{`echo a'b'c"d"e`, "abcde\n"},
+	{`a=" b c "; echo $a`, "b c\n"},
 	{`a=" b c "; echo "$a"`, " b c \n"},
 	{`echo "$(echo ' b c ')"`, " b c \n"},
 	{"echo ''", "\n"},
@@ -154,6 +155,7 @@ var fileCases = []struct {
 	{"foo=a foo=b env | grep '^foo='", "foo=b\n"},
 	{"env | grep '^INTERP_GLOBAL='", "INTERP_GLOBAL=value\n"},
 	{"a=b; a+=c x+=y; echo $a $x", "bc y\n"},
+	{`a=" x y"; b=$a c="$a"; echo $b; echo $c`, "x y\nx y\n"},
 
 	// special vars
 	{"echo $?; false; echo $?", "0\n1\n"},
@@ -197,6 +199,7 @@ var fileCases = []struct {
 	{"a=']'; echo ${a//[]}", "]\n"},
 	{"a=']'; echo ${a//[]]}", "\n"},
 	{"a=']'; echo ${a//[xy}", "]\n"},
+	{`a=xyz; echo "${a/y/a  b}"`, "xa  bz\n"},
 	{
 		"echo ${a:-b}; echo $a; a=; echo ${a:-b}; a=c; echo ${a:-b}",
 		"b\n\nb\nc\n",

@@ -702,7 +702,10 @@ func (r *Runner) loneWord(word *syntax.Word) string {
 		return ""
 	}
 	var buf bytes.Buffer
-	for _, field := range r.wordFields(word.Parts, quoteNone) {
+	for i, field := range r.wordFields(word.Parts, quoteNone) {
+		if i > 0 {
+			buf.WriteByte(' ')
+		}
 		for _, part := range field {
 			buf.WriteString(part.val)
 		}
@@ -715,25 +718,27 @@ func (r *Runner) lonePattern(word *syntax.Word) string {
 		return ""
 	}
 	var buf bytes.Buffer
-	for _, field := range r.wordFields(word.Parts, quoteNone) {
-		for _, part := range field {
-			if part.quote == quoteNone {
-				for _, r := range part.val {
-					if r == '\\' {
-						buf.WriteString(`\\`)
-					} else {
-						buf.WriteRune(r)
-					}
-				}
-				continue
-			}
+	fields := r.wordFields(word.Parts, quoteNone)
+	if len(fields) != 1 {
+		panic("expected exactly one field for a pattern")
+	}
+	for _, part := range fields[0] {
+		if part.quote == quoteNone {
 			for _, r := range part.val {
-				switch r {
-				case '*', '?', '[':
-					buf.WriteByte('\\')
+				if r == '\\' {
+					buf.WriteString(`\\`)
+				} else {
+					buf.WriteRune(r)
 				}
-				buf.WriteRune(r)
 			}
+			continue
+		}
+		for _, r := range part.val {
+			switch r {
+			case '*', '?', '[':
+				buf.WriteByte('\\')
+			}
+			buf.WriteRune(r)
 		}
 	}
 	return buf.String()
