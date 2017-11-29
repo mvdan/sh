@@ -476,6 +476,8 @@ func (r *Runner) expand(format string, onlyChars bool, args ...string) string {
 				n = int(i)
 			}
 			switch c {
+			case '%':
+				buf.WriteByte('%')
 			case 's':
 				buf.WriteString(arg)
 			case 'c':
