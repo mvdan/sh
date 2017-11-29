@@ -52,11 +52,11 @@ type Runner struct {
 
 	// Separate maps, note that bash allows a name to be both a var
 	// and a func simultaneously
-	vars  map[string]varValue
+	vars  map[string]VarValue
 	funcs map[string]*syntax.Stmt
 
 	// like vars, but local to a cmd i.e. "foo=bar prog args..."
-	cmdVars map[string]varValue
+	cmdVars map[string]VarValue
 
 	// >0 to break or continue out of N enclosing loops
 	breakEnclosing, contnEnclosing int
@@ -130,7 +130,7 @@ func (r *Runner) Reset() error {
 		name, val := kv[:i], kv[i+1:]
 		r.envMap[name] = val
 	}
-	r.vars = make(map[string]varValue, 4)
+	r.vars = make(map[string]VarValue, 4)
 	if _, ok := r.envMap["HOME"]; !ok {
 		u, _ := user.Current()
 		r.vars["HOME"] = u.HomeDir
@@ -172,24 +172,28 @@ func (r *Runner) ctx() Ctxt {
 	return c
 }
 
-// varValue can hold any of:
+// VarValue can hold any of:
 //
 //     string (normal variable)
 //     []string (indexed array)
-//     arrayMap (associative array)
-//     nameRef (name reference)
-//     readOnly
-type varValue interface{}
+//     ArrayMap (associative array)
+//     NameRef (name reference)
+//     ReadOnly
+type VarValue interface{}
 
-type arrayMap struct {
-	keys []string
-	vals map[string]string
+// ArrayMap is an associative array. It is an ordered map, where the
+// keys are kept in order of insertion.
+type ArrayMap struct {
+	Keys []string
+	Vals map[string]string
 }
 
-type nameRef string
+// NameRef is a name reference variable.
+type NameRef string
 
-type readOnly struct {
-	V varValue
+// ReadOnly encapsulates a variable that is read-only.
+type ReadOnly struct {
+	V VarValue
 }
 
 // maxNameRefDepth defines the maximum number of times to follow
@@ -197,7 +201,7 @@ type readOnly struct {
 // reference loops could crash the interpreter quite easily.
 const maxNameRefDepth = 100
 
-func (r *Runner) varStr(v varValue, depth int) string {
+func (r *Runner) varStr(v VarValue, depth int) string {
 	if depth > maxNameRefDepth {
 		return ""
 	}
@@ -208,18 +212,18 @@ func (r *Runner) varStr(v varValue, depth int) string {
 		if len(x) > 0 {
 			return x[0]
 		}
-	case arrayMap:
+	case ArrayMap:
 		// nothing to do
-	case nameRef:
+	case NameRef:
 		val, _ := r.lookupVar(string(x))
 		return r.varStr(val, depth+1)
-	case readOnly:
+	case ReadOnly:
 		return r.varStr(x.V, depth+1)
 	}
 	return ""
 }
 
-func (r *Runner) varInd(v varValue, e syntax.ArithmExpr, depth int) string {
+func (r *Runner) varInd(v VarValue, e syntax.ArithmExpr, depth int) string {
 	if depth > maxNameRefDepth {
 		return ""
 	}
@@ -242,24 +246,24 @@ func (r *Runner) varInd(v varValue, e syntax.ArithmExpr, depth int) string {
 		if len(x) > 0 {
 			return x[i]
 		}
-	case arrayMap:
+	case ArrayMap:
 		if w, ok := e.(*syntax.Word); ok {
 			if lit, ok := w.Parts[0].(*syntax.Lit); ok {
 				switch lit.Value {
 				case "@", "*":
 					var strs []string
-					for _, k := range x.keys {
-						strs = append(strs, x.vals[k])
+					for _, k := range x.Keys {
+						strs = append(strs, x.Vals[k])
 					}
 					return strings.Join(strs, " ")
 				}
 			}
 		}
-		return x.vals[r.loneWord(e.(*syntax.Word))]
-	case nameRef:
+		return x.Vals[r.loneWord(e.(*syntax.Word))]
+	case NameRef:
 		v, _ = r.lookupVar(string(x))
 		return r.varInd(v, e, depth+1)
-	case readOnly:
+	case ReadOnly:
 		return r.varInd(x.V, e, depth+1)
 	}
 	return ""
@@ -302,9 +306,9 @@ func (r *Runner) lastExit() {
 	}
 }
 
-func (r *Runner) setVar(name string, index syntax.ArithmExpr, val varValue) {
+func (r *Runner) setVar(name string, index syntax.ArithmExpr, val VarValue) {
 	cur, _ := r.lookupVar(name)
-	if _, ok := cur.(readOnly); ok {
+	if _, ok := cur.(ReadOnly); ok {
 		r.errf("%s: readonly variable\n", name)
 		r.exit = 1
 		r.lastExit()
@@ -317,15 +321,15 @@ func (r *Runner) setVar(name string, index syntax.ArithmExpr, val varValue) {
 	// from the syntax package, we know that val must be a string if
 	// index is non-nil; nested arrays are forbidden.
 	valStr := val.(string)
-	// if the existing variable is already an arrayMap, try our best
+	// if the existing variable is already an ArrayMap, try our best
 	// to convert the key to a string
-	_, isArrayMap := cur.(arrayMap)
+	_, isArrayMap := cur.(ArrayMap)
 	if stringIndex(index) || isArrayMap {
-		var amap arrayMap
+		var amap ArrayMap
 		switch x := cur.(type) {
 		case string, []string:
 			return // TODO
-		case arrayMap:
+		case ArrayMap:
 			amap = x
 		}
 		w, ok := index.(*syntax.Word)
@@ -333,10 +337,10 @@ func (r *Runner) setVar(name string, index syntax.ArithmExpr, val varValue) {
 			return
 		}
 		k := r.loneWord(w)
-		if _, ok := amap.vals[k]; !ok {
-			amap.keys = append(amap.keys, k)
+		if _, ok := amap.Vals[k]; !ok {
+			amap.Keys = append(amap.Keys, k)
 		}
-		amap.vals[k] = valStr
+		amap.Vals[k] = valStr
 		r.vars[name] = amap
 		return
 	}
@@ -346,7 +350,7 @@ func (r *Runner) setVar(name string, index syntax.ArithmExpr, val varValue) {
 		list = []string{x}
 	case []string:
 		list = x
-	case arrayMap: // done above
+	case ArrayMap: // done above
 	}
 	k := r.arithm(index)
 	for len(list) < k+1 {
@@ -356,7 +360,7 @@ func (r *Runner) setVar(name string, index syntax.ArithmExpr, val varValue) {
 	r.vars[name] = list
 }
 
-func (r *Runner) lookupVar(name string) (varValue, bool) {
+func (r *Runner) lookupVar(name string) (VarValue, bool) {
 	if val, e := r.cmdVars[name]; e {
 		return val, true
 	}
@@ -807,7 +811,7 @@ func (r *Runner) prepareAssign(as *syntax.Assign) *syntax.Assign {
 	return as
 }
 
-func (r *Runner) assignNameValue(as *syntax.Assign, mode string) (string, varValue) {
+func (r *Runner) assignNameValue(as *syntax.Assign, mode string) (string, VarValue) {
 	as = r.prepareAssign(as)
 	prev, _ := r.lookupVar(as.Name.Value)
 	if as.Naked {
@@ -827,7 +831,7 @@ func (r *Runner) assignNameValue(as *syntax.Assign, mode string) (string, varVal
 			}
 			x[0] += s
 			return as.Name.Value, x
-		case arrayMap:
+		case ArrayMap:
 			// TODO
 		}
 		return as.Name.Value, s
@@ -845,17 +849,17 @@ func (r *Runner) assignNameValue(as *syntax.Assign, mode string) (string, varVal
 	}
 	if mode == "-A" {
 		// associative array
-		amap := arrayMap{
-			keys: make([]string, 0, len(elems)),
-			vals: make(map[string]string, len(elems)),
+		amap := ArrayMap{
+			Keys: make([]string, 0, len(elems)),
+			Vals: make(map[string]string, len(elems)),
 		}
 		for _, elem := range elems {
 			k := r.loneWord(elem.Index.(*syntax.Word))
-			if _, ok := amap.vals[k]; ok {
+			if _, ok := amap.Vals[k]; ok {
 				continue
 			}
-			amap.keys = append(amap.keys, k)
-			amap.vals[k] = r.loneWord(elem.Value)
+			amap.Keys = append(amap.Keys, k)
+			amap.Vals[k] = r.loneWord(elem.Value)
 		}
 		if !as.Append || prev == nil {
 			return as.Name.Value, amap
@@ -889,7 +893,7 @@ func (r *Runner) assignNameValue(as *syntax.Assign, mode string) (string, varVal
 		return as.Name.Value, append([]string{x}, strs...)
 	case []string:
 		return as.Name.Value, append(x, strs...)
-	case arrayMap:
+	case ArrayMap:
 		// TODO
 	}
 	return as.Name.Value, strs
@@ -930,7 +934,7 @@ func (r *Runner) sub() *Runner {
 	r2.bgShells = sync.WaitGroup{}
 	// TODO: perhaps we could do a lazy copy here, or some sort of
 	// overlay to avoid copying all the time
-	r2.vars = make(map[string]varValue, len(r.vars))
+	r2.vars = make(map[string]VarValue, len(r.vars))
 	for k, v := range r.vars {
 		r2.vars[k] = v
 	}
@@ -960,7 +964,7 @@ func (r *Runner) cmd(cm syntax.Command) {
 		}
 		oldVars := r.cmdVars
 		if r.cmdVars == nil {
-			r.cmdVars = make(map[string]varValue, len(x.Assigns))
+			r.cmdVars = make(map[string]VarValue, len(x.Assigns))
 		}
 		for _, as := range x.Assigns {
 			name, val := r.assignNameValue(as, "")
@@ -1097,10 +1101,10 @@ func (r *Runner) cmd(cm syntax.Command) {
 			switch mode {
 			case "-n": // name reference
 				if name, ok := val.(string); ok {
-					val = nameRef(name)
+					val = NameRef(name)
 				}
 			case "-r":
-				val = readOnly{val}
+				val = ReadOnly{val}
 			case "-A":
 				// nothing to do
 			}

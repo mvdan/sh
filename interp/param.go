@@ -38,7 +38,7 @@ func (r *Runner) quotedElems(pe *syntax.ParamExp) []string {
 
 func (r *Runner) paramExp(pe *syntax.ParamExp) string {
 	name := pe.Param.Value
-	var val varValue
+	var val VarValue
 	set := false
 	switch name {
 	case "#":
