@@ -492,6 +492,8 @@ func (r *Runner) expand(format string, onlyChars bool, args ...string) string {
 				}
 				buf.WriteByte(b)
 				fmts = nil
+			case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
+				fmts = append(fmts, c)
 			case 's', 'd', 'i', 'u', 'o', 'x':
 				var farg interface{}
 				arg := ""
