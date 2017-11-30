@@ -9,7 +9,7 @@ import (
 )
 
 func match(pattern, name string) bool {
-	expr := translatePattern(pattern)
+	expr := translatePattern(pattern, true)
 	rx, err := regexp.Compile("^" + expr + "$")
 	if err != nil {
 		return false
@@ -18,7 +18,7 @@ func match(pattern, name string) bool {
 }
 
 func findAllIndex(pattern, name string, n int) [][]int {
-	expr := translatePattern(pattern)
+	expr := translatePattern(pattern, true)
 	rx, err := regexp.Compile(expr)
 	if err != nil {
 		return nil
@@ -26,7 +26,7 @@ func findAllIndex(pattern, name string, n int) [][]int {
 	return rx.FindAllStringIndex(name, n)
 }
 
-func translatePattern(pattern string) string {
+func translatePattern(pattern string, greedy bool) string {
 	// TODO: slashes need to be explicit
 	// TODO: char classes
 	var buf bytes.Buffer
@@ -35,6 +35,9 @@ loop:
 		switch c := pattern[i]; c {
 		case '*':
 			buf.WriteString(".*")
+			if !greedy {
+				buf.WriteByte('?')
+			}
 		case '?':
 			buf.WriteString(".")
 		case '\\':

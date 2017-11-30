@@ -5,6 +5,7 @@ package interp
 
 import (
 	"bytes"
+	"regexp"
 	"strconv"
 	"strings"
 	"unicode"
@@ -196,35 +197,26 @@ func (r *Runner) paramExp(pe *syntax.ParamExp) string {
 	return str
 }
 
-func removePattern(str, pattern string, fromEnd, longest bool) string {
-	// TODO: really slow to not re-implement match.
-	last := str
-	s := str
-	i := len(str)
-	if fromEnd {
-		i = 0
+func removePattern(str, pattern string, fromEnd, greedy bool) string {
+	expr := translatePattern(pattern, greedy)
+	switch {
+	case fromEnd && !greedy:
+		// use .* to get the right-most (shortest) match
+		expr = ".*(" + expr + ")$"
+	case fromEnd:
+		// simple suffix
+		expr = "(" + expr + ")$"
+	default:
+		// simple prefix
+		expr = "^(" + expr + ")"
 	}
-	for {
-		if match(pattern, s) {
-			last = str[i:]
-			if fromEnd {
-				last = str[:i]
-			}
-			if longest {
-				return last
-			}
-		}
-		if fromEnd {
-			if i++; i >= len(str) {
-				break
-			}
-			s = str[i:]
-		} else {
-			if i--; i < 1 {
-				break
-			}
-			s = str[:i]
-		}
+	rx, err := regexp.Compile(expr)
+	if err != nil {
+		return str
 	}
-	return last
+	if loc := rx.FindStringSubmatchIndex(str); loc != nil {
+		// remove the original pattern (the submatch)
+		str = str[:loc[2]] + str[loc[3]:]
+	}
+	return str
 }
