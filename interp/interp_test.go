@@ -212,6 +212,7 @@ var fileCases = []struct {
 	{"a=']'; echo ${a//[]]}", "\n"},
 	{"a=']'; echo ${a//[xy}", "]\n"},
 	{`a=xyz; echo "${a/y/a  b}"`, "xa  bz\n"},
+	{"a='foo/bar'; echo ${a//o*a/}", "fr\n"},
 	{
 		"echo ${a:-b}; echo $a; a=; echo ${a:-b}; a=c; echo ${a:-b}",
 		"b\n\nb\nc\n",
@@ -424,6 +425,7 @@ var fileCases = []struct {
 	},
 	{"[[ fo~ == 'fo~' ]]", ""},
 	{`[[ 'ab\c' == *\\* ]]`, ""},
+	{`[[ foo/bar == foo* ]]`, ""},
 	{
 		"[[ ~ == $HOME ]] && [[ ~/foo == $HOME/foo ]]",
 		"",
@@ -1387,6 +1389,11 @@ var fileCases = []struct {
 		"mkdir a; touch a/b.x; echo */*.x; cd a; echo *.x",
 		"a/b.x\nb.x\n",
 	},
+	{
+		"mkdir -p a/b/c; echo a/*",
+		"a/b\n",
+	},
+
 	// brace expansion
 	{"echo a{b", "a{b\n"},
 	{"echo a}b", "a}b\n"},

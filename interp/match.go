@@ -27,7 +27,6 @@ func findAllIndex(pattern, name string, n int) [][]int {
 }
 
 func translatePattern(pattern string, greedy bool) string {
-	// TODO: slashes need to be explicit
 	// TODO: char classes
 	var buf bytes.Buffer
 loop:
