@@ -124,7 +124,6 @@ var fileCases = []struct {
 	{"printf %02x 1", "01"},
 	{"printf 'a% 5s' a", "a    a"},
 
-
 	// words and quotes
 	{"echo  foo ", "foo\n"},
 	{"echo ' foo '", " foo \n"},
@@ -1316,6 +1315,12 @@ var fileCases = []struct {
 		"b\n1 2\n",
 	},
 	{"a=x=y; declare $a; echo $a $x", "x=y y\n"},
+
+	// export
+	{"declare foo=bar; env | grep '^foo='", "exit status 1"},
+	{"declare -x foo=bar; env | grep '^foo='", "foo=bar\n"},
+	{"export foo=bar; env | grep '^foo='", "foo=bar\n"},
+	{"foo=bar; export foo; env | grep '^foo='", "foo=bar\n"},
 
 	// name references
 	{"declare -n foo=bar; bar=etc; [[ -R foo ]]", ""},

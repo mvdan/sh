@@ -166,6 +166,13 @@ func (r *Runner) ctx() Ctxt {
 		Stderr:      r.Stderr,
 		KillTimeout: r.KillTimeout,
 	}
+	for name, val := range r.Vars {
+		val, export, _ := underVar(val)
+		if !export {
+			continue
+		}
+		c.Env = append(c.Env, name+"="+r.varStr(val, 0))
+	}
 	for name, val := range r.cmdVars {
 		c.Env = append(c.Env, name+"="+r.varStr(val, 0))
 	}
@@ -178,6 +185,7 @@ func (r *Runner) ctx() Ctxt {
 //     IndexArray
 //     AssocArray
 //     NameRef
+//     Export
 //     ReadOnly
 type VarValue interface{}
 
@@ -195,6 +203,11 @@ type AssocArray struct {
 // NameRef is a name reference variable.
 type NameRef string
 
+// Export encapsulates a variable that is exported.
+type Export struct {
+	V VarValue
+}
+
 // ReadOnly encapsulates a variable that is read-only.
 type ReadOnly struct {
 	V VarValue
@@ -209,7 +222,8 @@ func (r *Runner) varStr(v VarValue, depth int) string {
 	if depth > maxNameRefDepth {
 		return ""
 	}
-	switch x := v.(type) {
+	u, _, _ := underVar(v)
+	switch x := u.(type) {
 	case StringVar:
 		return string(x)
 	case IndexArray:
@@ -221,8 +235,6 @@ func (r *Runner) varStr(v VarValue, depth int) string {
 	case NameRef:
 		val, _ := r.lookupVar(string(x))
 		return r.varStr(val, depth+1)
-	case ReadOnly:
-		return r.varStr(x.V, depth+1)
 	}
 	return ""
 }
@@ -231,7 +243,8 @@ func (r *Runner) varInd(v VarValue, e syntax.ArithmExpr, depth int) string {
 	if depth > maxNameRefDepth {
 		return ""
 	}
-	switch x := v.(type) {
+	u, _, _ := underVar(v)
+	switch x := u.(type) {
 	case StringVar:
 		if r.arithm(e) == 0 {
 			return string(x)
@@ -266,8 +279,6 @@ func (r *Runner) varInd(v VarValue, e syntax.ArithmExpr, depth int) string {
 	case NameRef:
 		v, _ = r.lookupVar(string(x))
 		return r.varInd(v, e, depth+1)
-	case ReadOnly:
-		return r.varInd(x.V, e, depth+1)
 	}
 	return ""
 }
@@ -311,7 +322,8 @@ func (r *Runner) lastExit() {
 
 func (r *Runner) setVar(name string, index syntax.ArithmExpr, val VarValue) {
 	cur, _ := r.lookupVar(name)
-	if _, ok := cur.(ReadOnly); ok {
+	cur, _, readonly := underVar(cur)
+	if readonly {
 		r.errf("%s: readonly variable\n", name)
 		r.exit = 1
 		r.lastExit()
@@ -372,6 +384,21 @@ func (r *Runner) lookupVar(name string) (VarValue, bool) {
 	}
 	str, e := r.envMap[name]
 	return StringVar(str), e
+}
+
+func underVar(v VarValue) (u VarValue, export, readonly bool) {
+	for {
+		switch x := v.(type) {
+		case Export:
+			export = true
+			v = x.V
+		case ReadOnly:
+			readonly = true
+			v = x.V
+		default:
+			return v, export, readonly
+		}
+	}
 }
 
 func (r *Runner) getVar(name string) string {
@@ -1110,15 +1137,17 @@ func (r *Runner) cmd(cm syntax.Command) {
 		switch x.Variant.Value {
 		case "local":
 			// as per default
-		case "nameref":
-			mode = "-n"
+		case "export":
+			mode = "-x"
 		case "readonly":
 			mode = "-r"
+		case "nameref":
+			mode = "-n"
 		}
 		for _, opt := range x.Opts {
 			_ = opt
 			switch s := r.loneWord(opt); s {
-			case "-n", "-A", "-r":
+			case "-x", "-r", "-n", "-A":
 				mode = s
 			default:
 				r.runErr(cm.Pos(), "unhandled declare opts")
@@ -1127,12 +1156,14 @@ func (r *Runner) cmd(cm syntax.Command) {
 		for _, as := range x.Assigns {
 			name, val := r.assignNameValue(as, mode)
 			switch mode {
+			case "-x":
+				val = Export{val}
+			case "-r":
+				val = ReadOnly{val}
 			case "-n": // name reference
 				if name, ok := val.(StringVar); ok {
 					val = NameRef(name)
 				}
-			case "-r":
-				val = ReadOnly{val}
 			case "-A":
 				// nothing to do
 			}
