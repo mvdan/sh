@@ -454,7 +454,9 @@ func (r *Runner) errf(format string, a ...interface{}) {
 
 func (r *Runner) expand(format string, onlyChars bool, args ...string) string {
 	var buf bytes.Buffer
-	esc, fmt := false, false
+	esc := false
+	var fmts []rune
+
 	for _, c := range format {
 		if esc {
 			esc = false
@@ -473,49 +475,63 @@ func (r *Runner) expand(format string, onlyChars bool, args ...string) string {
 			}
 			continue
 		}
-		if fmt {
-			fmt = false
-			arg := ""
-			n := 0
-			if len(args) > 0 {
-				arg, args = args[0], args[1:]
-				i, _ := strconv.ParseInt(arg, 0, 0)
-				n = int(i)
-			}
+		if len(fmts) > 0 {
+
 			switch c {
 			case '%':
 				buf.WriteByte('%')
-			case 's':
-				buf.WriteString(arg)
+				fmts = nil
 			case 'c':
 				var b byte
-				if len(arg) > 0 {
-					b = arg[0]
+				if len(args) > 0 {
+					arg := ""
+					arg, args = args[0], args[1:]
+					if len(arg) > 0 {
+						b = arg[0]
+					}
 				}
 				buf.WriteByte(b)
-			case 'd', 'i':
-				buf.WriteString(strconv.Itoa(n))
-			case 'u':
-				buf.WriteString(strconv.FormatUint(uint64(n), 10))
-			case 'o':
-				buf.WriteString(strconv.FormatUint(uint64(n), 8))
-			case 'x':
-				buf.WriteString(strconv.FormatUint(uint64(n), 16))
+				fmts = nil
+			case 's', 'd', 'i', 'u', 'o', 'x':
+				var farg interface{}
+				arg := ""
+				fmts = append(fmts, c)
+				if len(args) > 0 {
+					arg, args = args[0], args[1:]
+				}
+				switch c {
+				case 's':
+					farg = arg
+				case 'd', 'i', 'u', 'o', 'x':
+					n, _ := strconv.ParseInt(arg, 0, 0)
+					if c == 'i' || c == 'u' {
+						fmts[len(fmts)-1] = 'd'
+					}
+					if c == 'i' || c == 'd' {
+						farg = int(n)
+					} else {
+						farg = uint(n)
+					}
+				}
+
+				fmt.Fprintf(&buf, string(fmts), farg)
+				fmts = nil
 			default:
 				r.runErr(syntax.Pos{}, "unhandled format char: %c", c)
 				return ""
 			}
+
 			continue
 		}
 		if c == '\\' {
 			esc = true
 		} else if !onlyChars && c == '%' {
-			fmt = true
+			fmts = []rune{c}
 		} else {
 			buf.WriteRune(c)
 		}
 	}
-	if fmt {
+	if len(fmts) > 0 {
 		r.runErr(syntax.Pos{}, "missing format char")
 		return ""
 	}
