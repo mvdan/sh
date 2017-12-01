@@ -77,6 +77,7 @@ type Runner struct {
 	Context context.Context
 
 	stopOnCmdErr bool // set -e
+	noGlob       bool // set -f
 
 	dirStack []string
 
@@ -437,6 +438,8 @@ opts:
 			break opts
 		case "e":
 			r.stopOnCmdErr = enable
+		case "f":
+			r.noGlob = enable
 		default:
 			return nil, fmt.Errorf("invalid option: %q", opt)
 		}
@@ -740,7 +743,7 @@ func (r *Runner) Fields(words []*syntax.Word) []string {
 				path, glob := escapedGlob(field)
 				var matches []string
 				abs := filepath.IsAbs(path)
-				if glob {
+				if glob && !r.noGlob {
 					if !abs {
 						path = filepath.Join(baseDir, path)
 					}

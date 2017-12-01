@@ -160,6 +160,8 @@ func (r *Runner) unTest(op syntax.UnTestOperator, x string) bool {
 		switch x {
 		case "errexit":
 			return r.stopOnCmdErr
+		case "noglob":
+			return r.noGlob
 		default:
 			return false
 		}

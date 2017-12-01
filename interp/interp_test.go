@@ -1013,6 +1013,8 @@ var fileCases = []struct {
 	{"[[ -o wrong ]]", "exit status 1"},
 	{"[[ -o errexit ]]", "exit status 1"},
 	{"set -e; [[ -o errexit ]]", ""},
+	{"[[ -o noglob ]]", "exit status 1"},
+	{"set -f; [[ -o noglob ]]", ""},
 
 	// classic test
 	{
@@ -1191,6 +1193,14 @@ var fileCases = []struct {
 	{
 		`set -e; set +e; false; echo foo`,
 		"foo\n",
+	},
+	{
+		`set -f; touch a.x; echo *.x;`,
+		"*.x\n",
+	},
+	{
+		`set -f; set +f; touch a.x; echo *.x;`,
+		"a.x\n",
 	},
 
 	// builtin
