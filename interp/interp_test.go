@@ -210,7 +210,11 @@ var fileCases = []struct {
 	{"a=']'; echo ${a//[}", "]\n"},
 	{"a=']'; echo ${a//[]}", "]\n"},
 	{"a=']'; echo ${a//[]]}", "\n"},
+	{"a='['; echo ${a//[[]}", "\n"},
 	{"a=']'; echo ${a//[xy}", "]\n"},
+	{"a='abc123'; echo ${a//[[:digit:]]}", "abc\n"},
+	{"a='[[:wrong:]]'; echo ${a//[[:wrong:]]}", "[[:wrong:]]\n"},
+	{"a='abcx1y'; echo ${a//x[[:digit:]]y}", "abc\n"},
 	{`a=xyz; echo "${a/y/a  b}"`, "xa  bz\n"},
 	{"a='foo/bar'; echo ${a//o*a/}", "fr\n"},
 	{

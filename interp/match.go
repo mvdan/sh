@@ -6,6 +6,7 @@ package interp
 import (
 	"bytes"
 	"regexp"
+	"strings"
 )
 
 func match(pattern, name string) bool {
@@ -26,8 +27,26 @@ func findAllIndex(pattern, name string, n int) [][]int {
 	return rx.FindAllStringIndex(name, n)
 }
 
+func charClass(s string) string {
+	if !strings.HasPrefix(s, "[[:") {
+		return ""
+	}
+	name := s[3:]
+	end := strings.Index(name, ":]]")
+	if end < 0 {
+		return ""
+	}
+	name = name[:end]
+	switch name {
+	case "alnum", "alpha", "ascii", "blank", "cntrl", "digit", "graph",
+		"lower", "print", "punct", "space", "upper", "word", "xdigit":
+	default:
+		return ""
+	}
+	return s[:len(name)+6]
+}
+
 func translatePattern(pattern string, greedy bool) string {
-	// TODO: char classes
 	var buf bytes.Buffer
 loop:
 	for i := 0; i < len(pattern); i++ {
@@ -44,6 +63,11 @@ loop:
 			i++
 			buf.WriteByte(pattern[i])
 		case '[':
+			if s := charClass(pattern[i:]); s != "" {
+				buf.WriteString(s)
+				i += len(s) - 1
+				break
+			}
 			buf.WriteByte(c)
 			if i++; i >= len(pattern) {
 				break loop
