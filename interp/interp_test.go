@@ -1337,6 +1337,8 @@ var fileCases = []struct {
 	{"declare -x foo=bar; env | grep '^foo='", "foo=bar\n"},
 	{"export foo=bar; env | grep '^foo='", "foo=bar\n"},
 	{"foo=bar; export foo; env | grep '^foo='", "foo=bar\n"},
+	{"export foo=bar; foo=baz; env | grep '^foo='", "foo=baz\n"},
+	{"export foo=bar; readonly foo=baz; env | grep '^foo='", "foo=baz\n"},
 
 	// name references
 	{"declare -n foo=bar; bar=etc; [[ -R foo ]]", ""},

@@ -170,8 +170,7 @@ func (r *Runner) unTest(op syntax.UnTestOperator, x string) bool {
 		return e
 	case syntax.TsRefVar:
 		v, _ := r.lookupVar(x)
-		_, ok := v.(NameRef)
-		return ok
+		return v.NameRef
 	case syntax.TsNot:
 		return x == ""
 	default:

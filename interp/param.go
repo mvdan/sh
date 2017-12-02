@@ -30,7 +30,7 @@ func (r *Runner) quotedElems(pe *syntax.ParamExp) []string {
 		return nil
 	}
 	val, _ := r.lookupVar(pe.Param.Value)
-	switch x := val.(type) {
+	switch x := val.Value.(type) {
 	case IndexArray:
 		return x
 	}
@@ -39,34 +39,34 @@ func (r *Runner) quotedElems(pe *syntax.ParamExp) []string {
 
 func (r *Runner) paramExp(pe *syntax.ParamExp) string {
 	name := pe.Param.Value
-	var val VarValue
+	var vr Variable
 	set := false
 	switch name {
 	case "#":
-		val = StringVar(strconv.Itoa(len(r.Params)))
+		vr.Value = StringVal(strconv.Itoa(len(r.Params)))
 	case "*", "@":
-		val = StringVar(strings.Join(r.Params, " "))
+		vr.Value = StringVal(strings.Join(r.Params, " "))
 	case "?":
-		val = StringVar(strconv.Itoa(r.exit))
+		vr.Value = StringVal(strconv.Itoa(r.exit))
 	default:
 		if n, err := strconv.Atoi(name); err == nil {
 			if i := n - 1; i < len(r.Params) {
-				val, set = StringVar(r.Params[i]), true
+				vr.Value, set = StringVal(r.Params[i]), true
 			}
 		} else {
-			val, set = r.lookupVar(name)
+			vr, set = r.lookupVar(name)
 		}
 	}
-	str := r.varStr(val, 0)
+	str := r.varStr(vr, 0)
 	if pe.Index != nil {
-		str = r.varInd(val, pe.Index, 0)
+		str = r.varInd(vr, pe.Index, 0)
 	}
 	switch {
 	case pe.Length:
 		str = strconv.Itoa(utf8.RuneCountInString(str))
 	case pe.Excl:
-		val, set = r.lookupVar(str)
-		str = r.varStr(val, 0)
+		vr, set = r.lookupVar(str)
+		str = r.varStr(vr, 0)
 	}
 	slicePos := func(expr syntax.ArithmExpr) int {
 		p := r.arithm(expr)
@@ -147,7 +147,7 @@ func (r *Runner) paramExp(pe *syntax.ParamExp) string {
 			fallthrough
 		case syntax.SubstColAssgn:
 			if str == "" {
-				r.setVar(name, nil, StringVar(arg))
+				r.setVarString(name, arg)
 				str = arg
 			}
 		case syntax.RemSmallPrefix:

@@ -401,7 +401,7 @@ func (r *Runner) changeDir(path string) int {
 		return 1
 	}
 	r.Dir = path
-	r.Vars["PWD"] = StringVar(path)
+	r.Vars["PWD"] = Variable{Value: StringVal(path)}
 	return 0
 }
 

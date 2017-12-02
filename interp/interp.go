@@ -52,7 +52,7 @@ type Runner struct {
 
 	// Separate maps, note that bash allows a name to be both a var
 	// and a func simultaneously
-	Vars  map[string]VarValue
+	Vars  map[string]Variable
 	Funcs map[string]*syntax.Stmt
 
 	// like Vars, but local to a cmd i.e. "foo=bar prog args..."
@@ -131,10 +131,10 @@ func (r *Runner) Reset() error {
 		name, val := kv[:i], kv[i+1:]
 		r.envMap[name] = val
 	}
-	r.Vars = make(map[string]VarValue, 4)
+	r.Vars = make(map[string]Variable, 4)
 	if _, ok := r.envMap["HOME"]; !ok {
 		u, _ := user.Current()
-		r.Vars["HOME"] = StringVar(u.HomeDir)
+		r.Vars["HOME"] = Variable{Value: StringVal(u.HomeDir)}
 	}
 	if r.Dir == "" {
 		dir, err := os.Getwd()
@@ -143,7 +143,7 @@ func (r *Runner) Reset() error {
 		}
 		r.Dir = dir
 	}
-	r.Vars["PWD"] = StringVar(r.Dir)
+	r.Vars["PWD"] = Variable{Value: StringVal(r.Dir)}
 	r.dirStack = []string{r.Dir}
 	if r.Exec == nil {
 		r.Exec = DefaultExec
@@ -167,30 +167,34 @@ func (r *Runner) ctx() Ctxt {
 		Stderr:      r.Stderr,
 		KillTimeout: r.KillTimeout,
 	}
-	for name, val := range r.Vars {
-		val, export, _ := underVar(val)
-		if !export {
+	for name, vr := range r.Vars {
+		if !vr.Exported {
 			continue
 		}
-		c.Env = append(c.Env, name+"="+r.varStr(val, 0))
+		c.Env = append(c.Env, name+"="+r.varStr(vr, 0))
 	}
 	for name, val := range r.cmdVars {
-		c.Env = append(c.Env, name+"="+r.varStr(val, 0))
+		vr := Variable{Value: val}
+		c.Env = append(c.Env, name+"="+r.varStr(vr, 0))
 	}
 	return c
 }
 
+type Variable struct {
+	Exported bool
+	ReadOnly bool
+	NameRef  bool
+	Value    VarValue
+}
+
 // VarValue is one of:
 //
-//     StringVar
+//     StringVal
 //     IndexArray
 //     AssocArray
-//     NameRef
-//     Export
-//     ReadOnly
 type VarValue interface{}
 
-type StringVar string
+type StringVal string
 
 type IndexArray []string
 
@@ -201,31 +205,21 @@ type AssocArray struct {
 	Vals map[string]string
 }
 
-// NameRef is a name reference variable.
-type NameRef string
-
-// Export encapsulates a variable that is exported.
-type Export struct {
-	V VarValue
-}
-
-// ReadOnly encapsulates a variable that is read-only.
-type ReadOnly struct {
-	V VarValue
-}
-
 // maxNameRefDepth defines the maximum number of times to follow
 // references when expanding a variable. Otherwise, simple name
 // reference loops could crash the interpreter quite easily.
 const maxNameRefDepth = 100
 
-func (r *Runner) varStr(v VarValue, depth int) string {
+func (r *Runner) varStr(vr Variable, depth int) string {
 	if depth > maxNameRefDepth {
 		return ""
 	}
-	u, _, _ := underVar(v)
-	switch x := u.(type) {
-	case StringVar:
+	switch x := vr.Value.(type) {
+	case StringVal:
+		if vr.NameRef {
+			vr, _ = r.lookupVar(string(x))
+			return r.varStr(vr, depth+1)
+		}
 		return string(x)
 	case IndexArray:
 		if len(x) > 0 {
@@ -233,20 +227,20 @@ func (r *Runner) varStr(v VarValue, depth int) string {
 		}
 	case AssocArray:
 		// nothing to do
-	case NameRef:
-		val, _ := r.lookupVar(string(x))
-		return r.varStr(val, depth+1)
 	}
 	return ""
 }
 
-func (r *Runner) varInd(v VarValue, e syntax.ArithmExpr, depth int) string {
+func (r *Runner) varInd(vr Variable, e syntax.ArithmExpr, depth int) string {
 	if depth > maxNameRefDepth {
 		return ""
 	}
-	u, _, _ := underVar(v)
-	switch x := u.(type) {
-	case StringVar:
+	switch x := vr.Value.(type) {
+	case StringVal:
+		if vr.NameRef {
+			vr, _ = r.lookupVar(string(x))
+			return r.varInd(vr, e, depth+1)
+		}
 		if r.arithm(e) == 0 {
 			return string(x)
 		}
@@ -277,9 +271,6 @@ func (r *Runner) varInd(v VarValue, e syntax.ArithmExpr, depth int) string {
 			}
 		}
 		return x.Vals[r.loneWord(e.(*syntax.Word))]
-	case NameRef:
-		v, _ = r.lookupVar(string(x))
-		return r.varInd(v, e, depth+1)
 	}
 	return ""
 }
@@ -321,29 +312,32 @@ func (r *Runner) lastExit() {
 	}
 }
 
-func (r *Runner) setVar(name string, index syntax.ArithmExpr, val VarValue) {
+func (r *Runner) setVarString(name, val string) {
+	r.setVar(name, nil, Variable{Value: StringVal(val)})
+}
+
+func (r *Runner) setVar(name string, index syntax.ArithmExpr, vr Variable) {
 	cur, _ := r.lookupVar(name)
-	cur, _, readonly := underVar(cur)
-	if readonly {
+	if cur.ReadOnly {
 		r.errf("%s: readonly variable\n", name)
 		r.exit = 1
 		r.lastExit()
 		return
 	}
 	if index == nil {
-		r.Vars[name] = val
+		r.Vars[name] = vr
 		return
 	}
 	// from the syntax package, we know that val must be a string if
 	// index is non-nil; nested arrays are forbidden.
-	valStr := string(val.(StringVar))
+	valStr := string(vr.Value.(StringVal))
 	// if the existing variable is already an AssocArray, try our best
 	// to convert the key to a string
-	_, isAssocArray := cur.(AssocArray)
+	_, isAssocArray := cur.Value.(AssocArray)
 	if stringIndex(index) || isAssocArray {
 		var amap AssocArray
-		switch x := cur.(type) {
-		case StringVar, IndexArray:
+		switch x := cur.Value.(type) {
+		case StringVal, IndexArray:
 			return // TODO
 		case AssocArray:
 			amap = x
@@ -357,12 +351,13 @@ func (r *Runner) setVar(name string, index syntax.ArithmExpr, val VarValue) {
 			amap.Keys = append(amap.Keys, k)
 		}
 		amap.Vals[k] = valStr
-		r.Vars[name] = amap
+		cur.Value = amap
+		r.Vars[name] = cur
 		return
 	}
 	var list IndexArray
-	switch x := cur.(type) {
-	case StringVar:
+	switch x := cur.Value.(type) {
+	case StringVal:
 		list = append(list, string(x))
 	case IndexArray:
 		list = x
@@ -373,33 +368,19 @@ func (r *Runner) setVar(name string, index syntax.ArithmExpr, val VarValue) {
 		list = append(list, "")
 	}
 	list[k] = valStr
-	r.Vars[name] = list
+	cur.Value = list
+	r.Vars[name] = cur
 }
 
-func (r *Runner) lookupVar(name string) (VarValue, bool) {
+func (r *Runner) lookupVar(name string) (Variable, bool) {
 	if val, e := r.cmdVars[name]; e {
-		return val, true
+		return Variable{Value: val}, true
 	}
-	if val, e := r.Vars[name]; e {
-		return val, true
+	if vr, e := r.Vars[name]; e {
+		return vr, true
 	}
 	str, e := r.envMap[name]
-	return StringVar(str), e
-}
-
-func underVar(v VarValue) (u VarValue, export, readonly bool) {
-	for {
-		switch x := v.(type) {
-		case Export:
-			export = true
-			v = x.V
-		case ReadOnly:
-			readonly = true
-			v = x.V
-		default:
-			return v, export, readonly
-		}
-	}
+	return Variable{Value: StringVal(str)}, e
 }
 
 func (r *Runner) getVar(name string) string {
@@ -786,6 +767,9 @@ func (r *Runner) lonePattern(word *syntax.Word) string {
 	}
 	var buf bytes.Buffer
 	fields := r.wordFields(word.Parts, quoteNone)
+	if len(fields) == 0 {
+		return ""
+	}
 	if len(fields) != 1 {
 		panic("expected exactly one field for a pattern")
 	}
@@ -868,33 +852,37 @@ func (r *Runner) prepareAssign(as *syntax.Assign) *syntax.Assign {
 	return as
 }
 
-func (r *Runner) assignNameValue(as *syntax.Assign, mode string) (string, VarValue) {
+func (r *Runner) assignNameVar(as *syntax.Assign, mode string) (string, Variable) {
 	as = r.prepareAssign(as)
-	prev, _ := r.lookupVar(as.Name.Value)
+	prev, prevOk := r.lookupVar(as.Name.Value)
 	if as.Naked {
 		return as.Name.Value, prev
 	}
 	if as.Value != nil {
 		s := r.loneWord(as.Value)
-		if !as.Append || prev == nil {
-			return as.Name.Value, StringVar(s)
+		if !as.Append || !prevOk {
+			prev.Value = StringVal(s)
+			return as.Name.Value, prev
 		}
-		switch x := prev.(type) {
-		case StringVar:
-			return as.Name.Value, x + StringVar(s)
+		switch x := prev.Value.(type) {
+		case StringVal:
+			prev.Value = x + StringVal(s)
+			return as.Name.Value, prev
 		case IndexArray:
 			if len(x) == 0 {
 				x = append(x, "")
 			}
 			x[0] += s
-			return as.Name.Value, x
+			prev.Value = x
+			return as.Name.Value, prev
 		case AssocArray:
 			// TODO
 		}
-		return as.Name.Value, StringVar(s)
+		prev.Value = StringVal(s)
+		return as.Name.Value, prev
 	}
 	if as.Array == nil {
-		return as.Name.Value, nil
+		return as.Name.Value, Variable{}
 	}
 	elems := as.Array.Elems
 	if mode == "" {
@@ -918,11 +906,11 @@ func (r *Runner) assignNameValue(as *syntax.Assign, mode string) (string, VarVal
 			amap.Keys = append(amap.Keys, k)
 			amap.Vals[k] = r.loneWord(elem.Value)
 		}
-		if !as.Append || prev == nil {
-			return as.Name.Value, amap
+		if !as.Append || !prevOk {
+			return as.Name.Value, Variable{Value: amap}
 		}
 		// TODO
-		return as.Name.Value, amap
+		return as.Name.Value, Variable{Value: amap}
 	}
 	// indexed array
 	maxIndex := len(elems) - 1
@@ -942,19 +930,22 @@ func (r *Runner) assignNameValue(as *syntax.Assign, mode string) (string, VarVal
 	for i, elem := range elems {
 		strs[indexes[i]] = r.loneWord(elem.Value)
 	}
-	if !as.Append || prev == nil {
-		return as.Name.Value, IndexArray(strs)
+	if !as.Append || !prevOk {
+		return as.Name.Value, Variable{Value: IndexArray(strs)}
 	}
-	switch x := prev.(type) {
-	case StringVar:
+	switch x := prev.Value.(type) {
+	case StringVal:
 		prevList := IndexArray([]string{string(x)})
-		return as.Name.Value, append(prevList, strs...)
+		prevList = append(prevList, strs...)
+		prev.Value = prevList
+		return as.Name.Value, prev
 	case IndexArray:
-		return as.Name.Value, append(x, strs...)
+		prev.Value = append(x, strs...)
+		return as.Name.Value, prev
 	case AssocArray:
 		// TODO
 	}
-	return as.Name.Value, IndexArray(strs)
+	return as.Name.Value, Variable{Value: IndexArray(strs)}
 }
 
 func (r *Runner) stmtSync(st *syntax.Stmt) {
@@ -992,7 +983,7 @@ func (r *Runner) sub() *Runner {
 	r2.bgShells = sync.WaitGroup{}
 	// TODO: perhaps we could do a lazy copy here, or some sort of
 	// overlay to avoid copying all the time
-	r2.Vars = make(map[string]VarValue, len(r.Vars))
+	r2.Vars = make(map[string]Variable, len(r.Vars))
 	for k, v := range r.Vars {
 		r2.Vars[k] = v
 	}
@@ -1015,8 +1006,8 @@ func (r *Runner) cmd(cm syntax.Command) {
 		fields := r.Fields(x.Args)
 		if len(fields) == 0 {
 			for _, as := range x.Assigns {
-				name, val := r.assignNameValue(as, "")
-				r.setVar(name, as.Index, val)
+				name, vr := r.assignNameVar(as, "")
+				r.setVar(name, as.Index, vr)
 			}
 			break
 		}
@@ -1025,8 +1016,8 @@ func (r *Runner) cmd(cm syntax.Command) {
 			r.cmdVars = make(map[string]VarValue, len(x.Assigns))
 		}
 		for _, as := range x.Assigns {
-			name, val := r.assignNameValue(as, "")
-			r.cmdVars[name] = val
+			name, vr := r.assignNameVar(as, "")
+			r.cmdVars[name] = vr.Value
 		}
 		r.call(x.Args[0].Pos(), fields[0], fields[1:])
 		r.cmdVars = oldVars
@@ -1086,7 +1077,7 @@ func (r *Runner) cmd(cm syntax.Command) {
 		case *syntax.WordIter:
 			name := y.Name.Value
 			for _, field := range r.Fields(y.Items) {
-				r.setVar(name, nil, StringVar(field))
+				r.setVarString(name, field)
 				if r.loopStmtsBroken(x.Do) {
 					break
 				}
@@ -1157,20 +1148,18 @@ func (r *Runner) cmd(cm syntax.Command) {
 			}
 		}
 		for _, as := range x.Assigns {
-			name, val := r.assignNameValue(as, mode)
+			name, vr := r.assignNameVar(as, mode)
 			switch mode {
 			case "-x":
-				val = Export{val}
+				vr.Exported = true
 			case "-r":
-				val = ReadOnly{val}
-			case "-n": // name reference
-				if name, ok := val.(StringVar); ok {
-					val = NameRef(name)
-				}
+				vr.ReadOnly = true
+			case "-n":
+				vr.NameRef = true
 			case "-A":
 				// nothing to do
 			}
-			r.setVar(name, as.Index, val)
+			r.setVar(name, as.Index, vr)
 		}
 	case *syntax.TimeClause:
 		start := time.Now()
