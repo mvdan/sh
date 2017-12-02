@@ -1015,6 +1015,8 @@ var fileCases = []struct {
 	{"set -e; [[ -o errexit ]]", ""},
 	{"[[ -o noglob ]]", "exit status 1"},
 	{"set -f; [[ -o noglob ]]", ""},
+	{"[[ -o allexport ]]", "exit status 1"},
+	{"set -a; [[ -o allexport ]]", ""},
 
 	// classic test
 	{
@@ -1202,6 +1204,18 @@ var fileCases = []struct {
 		`set -f; set +f; touch a.x; echo *.x;`,
 		"a.x\n",
 	},
+	{
+		`set -a; foo=bar; env | grep ^foo=`,
+		"foo=bar\n",
+	},
+	{
+		`set -a; foo=(b a r); env | grep ^foo=`,
+		"exit status 1",
+	},
+	{
+		`foo=bar; set -a; env | grep ^foo=`,
+		"exit status 1",
+	},
 
 	// builtin
 	{"builtin", ""},
@@ -1339,6 +1353,8 @@ var fileCases = []struct {
 	{"foo=bar; export foo; env | grep '^foo='", "foo=bar\n"},
 	{"export foo=bar; foo=baz; env | grep '^foo='", "foo=baz\n"},
 	{"export foo=bar; readonly foo=baz; env | grep '^foo='", "foo=baz\n"},
+	{"export foo=(1 2); env | grep '^foo='", "exit status 1"},
+	{"declare -A foo=([a]=b); export foo; env | grep '^foo='", "exit status 1"},
 
 	// name references
 	{"declare -n foo=bar; bar=etc; [[ -R foo ]]", ""},

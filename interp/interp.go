@@ -78,6 +78,7 @@ type Runner struct {
 
 	stopOnCmdErr bool // set -e
 	noGlob       bool // set -f
+	allExport    bool // set -a
 
 	dirStack []string
 
@@ -325,6 +326,13 @@ func (r *Runner) setVar(name string, index syntax.ArithmExpr, vr Variable) {
 		return
 	}
 	if index == nil {
+		if _, ok := vr.Value.(StringVal); ok {
+			if r.allExport {
+				vr.Exported = true
+			}
+		} else {
+			vr.Exported = false
+		}
 		r.Vars[name] = vr
 		return
 	}
@@ -351,6 +359,7 @@ func (r *Runner) setVar(name string, index syntax.ArithmExpr, vr Variable) {
 			amap.Keys = append(amap.Keys, k)
 		}
 		amap.Vals[k] = valStr
+		cur.Exported = false
 		cur.Value = amap
 		r.Vars[name] = cur
 		return
@@ -368,6 +377,7 @@ func (r *Runner) setVar(name string, index syntax.ArithmExpr, vr Variable) {
 		list = append(list, "")
 	}
 	list[k] = valStr
+	cur.Exported = false
 	cur.Value = list
 	r.Vars[name] = cur
 }
@@ -421,6 +431,8 @@ opts:
 			r.stopOnCmdErr = enable
 		case "f":
 			r.noGlob = enable
+		case "a":
+			r.allExport = enable
 		default:
 			return nil, fmt.Errorf("invalid option: %q", opt)
 		}

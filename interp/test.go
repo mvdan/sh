@@ -162,6 +162,8 @@ func (r *Runner) unTest(op syntax.UnTestOperator, x string) bool {
 			return r.stopOnCmdErr
 		case "noglob":
 			return r.noGlob
+		case "allexport":
+			return r.allExport
 		default:
 			return false
 		}
