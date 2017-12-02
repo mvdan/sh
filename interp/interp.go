@@ -852,37 +852,32 @@ func (r *Runner) prepareAssign(as *syntax.Assign) *syntax.Assign {
 	return as
 }
 
-func (r *Runner) assignNameVar(as *syntax.Assign, mode string) (string, Variable) {
-	as = r.prepareAssign(as)
+func (r *Runner) assignVal(as *syntax.Assign, mode string) VarValue {
 	prev, prevOk := r.lookupVar(as.Name.Value)
 	if as.Naked {
-		return as.Name.Value, prev
+		return prev.Value
 	}
 	if as.Value != nil {
 		s := r.loneWord(as.Value)
 		if !as.Append || !prevOk {
-			prev.Value = StringVal(s)
-			return as.Name.Value, prev
+			return StringVal(s)
 		}
 		switch x := prev.Value.(type) {
 		case StringVal:
-			prev.Value = x + StringVal(s)
-			return as.Name.Value, prev
+			return x + StringVal(s)
 		case IndexArray:
 			if len(x) == 0 {
 				x = append(x, "")
 			}
 			x[0] += s
-			prev.Value = x
-			return as.Name.Value, prev
+			return x
 		case AssocArray:
 			// TODO
 		}
-		prev.Value = StringVal(s)
-		return as.Name.Value, prev
+		return StringVal(s)
 	}
 	if as.Array == nil {
-		return as.Name.Value, Variable{}
+		return nil
 	}
 	elems := as.Array.Elems
 	if mode == "" {
@@ -907,10 +902,10 @@ func (r *Runner) assignNameVar(as *syntax.Assign, mode string) (string, Variable
 			amap.Vals[k] = r.loneWord(elem.Value)
 		}
 		if !as.Append || !prevOk {
-			return as.Name.Value, Variable{Value: amap}
+			return amap
 		}
 		// TODO
-		return as.Name.Value, Variable{Value: amap}
+		return amap
 	}
 	// indexed array
 	maxIndex := len(elems) - 1
@@ -931,21 +926,18 @@ func (r *Runner) assignNameVar(as *syntax.Assign, mode string) (string, Variable
 		strs[indexes[i]] = r.loneWord(elem.Value)
 	}
 	if !as.Append || !prevOk {
-		return as.Name.Value, Variable{Value: IndexArray(strs)}
+		return IndexArray(strs)
 	}
 	switch x := prev.Value.(type) {
 	case StringVal:
 		prevList := IndexArray([]string{string(x)})
-		prevList = append(prevList, strs...)
-		prev.Value = prevList
-		return as.Name.Value, prev
+		return append(prevList, strs...)
 	case IndexArray:
-		prev.Value = append(x, strs...)
-		return as.Name.Value, prev
+		return append(x, strs...)
 	case AssocArray:
 		// TODO
 	}
-	return as.Name.Value, Variable{Value: IndexArray(strs)}
+	return IndexArray(strs)
 }
 
 func (r *Runner) stmtSync(st *syntax.Stmt) {
@@ -1006,8 +998,9 @@ func (r *Runner) cmd(cm syntax.Command) {
 		fields := r.Fields(x.Args)
 		if len(fields) == 0 {
 			for _, as := range x.Assigns {
-				name, vr := r.assignNameVar(as, "")
-				r.setVar(name, as.Index, vr)
+				vr, _ := r.lookupVar(as.Name.Value)
+				vr.Value = r.assignVal(as, "")
+				r.setVar(as.Name.Value, as.Index, vr)
 			}
 			break
 		}
@@ -1016,8 +1009,8 @@ func (r *Runner) cmd(cm syntax.Command) {
 			r.cmdVars = make(map[string]VarValue, len(x.Assigns))
 		}
 		for _, as := range x.Assigns {
-			name, vr := r.assignNameVar(as, "")
-			r.cmdVars[name] = vr.Value
+			val := r.assignVal(as, "")
+			r.cmdVars[as.Name.Value] = val
 		}
 		r.call(x.Args[0].Pos(), fields[0], fields[1:])
 		r.cmdVars = oldVars
@@ -1148,7 +1141,10 @@ func (r *Runner) cmd(cm syntax.Command) {
 			}
 		}
 		for _, as := range x.Assigns {
-			name, vr := r.assignNameVar(as, mode)
+			as = r.prepareAssign(as)
+			name := as.Name.Value
+			vr, _ := r.lookupVar(as.Name.Value)
+			vr.Value = r.assignVal(as, mode)
 			switch mode {
 			case "-x":
 				vr.Exported = true
