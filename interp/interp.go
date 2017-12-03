@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -199,12 +200,7 @@ type StringVal string
 
 type IndexArray []string
 
-// AssocArray is an associative array. It is an ordered map, where the
-// keys are kept in order of insertion.
-type AssocArray struct {
-	Keys []string
-	Vals map[string]string
-}
+type AssocArray map[string]string
 
 // maxNameRefDepth defines the maximum number of times to follow
 // references when expanding a variable. Otherwise, simple name
@@ -264,14 +260,19 @@ func (r *Runner) varInd(vr Variable, e syntax.ArithmExpr, depth int) string {
 				switch lit.Value {
 				case "@", "*":
 					var strs IndexArray
-					for _, k := range x.Keys {
-						strs = append(strs, x.Vals[k])
+					keys := make([]string, 0, len(x))
+					for k := range x {
+						keys = append(keys, k)
+					}
+					sort.Strings(keys)
+					for _, k := range keys {
+						strs = append(strs, x[k])
 					}
 					return strings.Join(strs, " ")
 				}
 			}
 		}
-		return x.Vals[r.loneWord(e.(*syntax.Word))]
+		return x[r.loneWord(e.(*syntax.Word))]
 	}
 	return ""
 }
@@ -325,6 +326,22 @@ func (r *Runner) setVar(name string, index syntax.ArithmExpr, vr Variable) {
 		r.lastExit()
 		return
 	}
+	_, isIndexArray := cur.Value.(IndexArray)
+	_, isAssocArray := cur.Value.(AssocArray)
+
+	if _, ok := vr.Value.(StringVal); ok && index == nil {
+		// When assigning a string to an array, fall back to the
+		// zero value for the index.
+		if isIndexArray {
+			index = &syntax.Word{Parts: []syntax.WordPart{
+				&syntax.Lit{Value: "0"},
+			}}
+		} else if isAssocArray {
+			index = &syntax.Word{Parts: []syntax.WordPart{
+				&syntax.DblQuoted{},
+			}}
+		}
+	}
 	if index == nil {
 		if _, ok := vr.Value.(StringVal); ok {
 			if r.allExport {
@@ -336,12 +353,13 @@ func (r *Runner) setVar(name string, index syntax.ArithmExpr, vr Variable) {
 		r.Vars[name] = vr
 		return
 	}
+
 	// from the syntax package, we know that val must be a string if
 	// index is non-nil; nested arrays are forbidden.
 	valStr := string(vr.Value.(StringVal))
+
 	// if the existing variable is already an AssocArray, try our best
 	// to convert the key to a string
-	_, isAssocArray := cur.Value.(AssocArray)
 	if stringIndex(index) || isAssocArray {
 		var amap AssocArray
 		switch x := cur.Value.(type) {
@@ -355,10 +373,7 @@ func (r *Runner) setVar(name string, index syntax.ArithmExpr, vr Variable) {
 			return
 		}
 		k := r.loneWord(w)
-		if _, ok := amap.Vals[k]; !ok {
-			amap.Keys = append(amap.Keys, k)
-		}
-		amap.Vals[k] = valStr
+		amap[k] = valStr
 		cur.Exported = false
 		cur.Value = amap
 		r.Vars[name] = cur
@@ -519,7 +534,7 @@ func (r *Runner) expand(format string, onlyChars bool, args ...string) (int, str
 			case '+', '-', ' ':
 				if len(fmts) > 1 {
 					r.runErr(syntax.Pos{}, "invalid format char: %c", c)
-					return 0,""
+					return 0, ""
 				}
 				fmts = append(fmts, c)
 			case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
@@ -567,7 +582,7 @@ func (r *Runner) expand(format string, onlyChars bool, args ...string) (int, str
 		r.runErr(syntax.Pos{}, "missing format char")
 		return 0, ""
 	}
-	return n-len(args), buf.String()
+	return n - len(args), buf.String()
 }
 
 func fieldJoin(parts []fieldPart) string {
@@ -902,17 +917,10 @@ func (r *Runner) assignVal(as *syntax.Assign, mode string) VarValue {
 	}
 	if mode == "-A" {
 		// associative array
-		amap := AssocArray{
-			Keys: make([]string, 0, len(elems)),
-			Vals: make(map[string]string, len(elems)),
-		}
+		amap := AssocArray(make(map[string]string, len(elems)))
 		for _, elem := range elems {
 			k := r.loneWord(elem.Index.(*syntax.Word))
-			if _, ok := amap.Vals[k]; ok {
-				continue
-			}
-			amap.Keys = append(amap.Keys, k)
-			amap.Vals[k] = r.loneWord(elem.Value)
+			amap[k] = r.loneWord(elem.Value)
 		}
 		if !as.Append || !prevOk {
 			return amap

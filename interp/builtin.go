@@ -112,7 +112,7 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 			n, s := r.expand(format, false, args...)
 			r.outf("%s", s)
 			args = args[n:]
-			if n == 0 || len(args) == 0{
+			if n == 0 || len(args) == 0 {
 				break
 			}
 		}

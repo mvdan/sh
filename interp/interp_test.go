@@ -1332,6 +1332,10 @@ var fileCases = []struct {
 		"b c\nb c\n",
 	},
 	{
+		`declare -A a=([y]=b [x]=c); echo ${a[@]}; echo ${a[*]}`,
+		"c b\nc b\n",
+	},
+	{
 		`declare -A a=([x]=a); a["y"]=d; a["x"]=c; echo ${a[@]}`,
 		"c d\n",
 	},
@@ -1339,6 +1343,11 @@ var fileCases = []struct {
 		`declare -A a=([x]=a); a[y]=d; a[x]=c; echo ${a[@]}`,
 		"c d\n",
 	},
+
+	// weird assignments
+	{"a=b; a=(c d); echo ${a[@]}", "c d\n"},
+	{"a=(b c); a=d; echo ${a[@]}", "d c\n"},
+	{"declare -A a=([x]=b [y]=c); a=d; echo ${a[@]}", "d b c\n"},
 
 	// declare
 	{"a=b; declare a; echo $a; declare a=; echo $a", "b\n\n"},
