@@ -62,6 +62,9 @@ func (r *Runner) paramExp(pe *syntax.ParamExp) string {
 		vr.Value = StringVal(strings.Join(r.Params, r.ifsJoin))
 	case "?":
 		vr.Value = StringVal(strconv.Itoa(r.exit))
+	case "LINENO":
+		line := uint64(pe.Pos().Line())
+		vr.Value = StringVal(strconv.FormatUint(line, 10))
 	default:
 		if n, err := strconv.Atoi(name); err == nil {
 			if i := n - 1; i < len(r.Params) {

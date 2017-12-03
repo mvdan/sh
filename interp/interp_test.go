@@ -174,6 +174,7 @@ var fileCases = []struct {
 
 	// special vars
 	{"echo $?; false; echo $?", "0\n1\n"},
+	{"for i in 1 2; do\necho $LINENO\necho $LINENO\ndone", "2\n3\n2\n3\n"},
 
 	// var manipulation
 	{"foo=bar; echo ${#foo}", "3\n"},
@@ -479,6 +480,14 @@ var fileCases = []struct {
 	},
 	{
 		`old="$PWD"; mkdir a; cd a; cd ..; [[ $old == $PWD ]]`,
+		"",
+	},
+	{
+		`[[ $PWD == $OLDPWD ]]`,
+		"exit status 1",
+	},
+	{
+		`old="$PWD"; mkdir a; cd a; [[ $old == $OLDPWD ]]`,
 		"",
 	},
 	{

@@ -409,6 +409,7 @@ func (r *Runner) changeDir(path string) int {
 		return 1
 	}
 	r.Dir = path
+	r.Vars["OLDPWD"] = r.Vars["PWD"]
 	r.Vars["PWD"] = Variable{Value: StringVal(path)}
 	return 0
 }
