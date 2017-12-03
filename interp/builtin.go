@@ -95,7 +95,7 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 				r.outf(" ")
 			}
 			if expand {
-				arg = r.expand(arg, true)
+				_, arg = r.expand(arg, true)
 			}
 			r.outf("%s", arg)
 		}
@@ -107,7 +107,15 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 			r.errf("usage: printf format [arguments]\n")
 			return 2
 		}
-		r.outf("%s", r.expand(args[0], false, args[1:]...))
+		format, args := args[0], args[1:]
+		for {
+			n, s := r.expand(format, false, args...)
+			r.outf("%s", s)
+			args = args[n:]
+			if n == 0 || len(args) == 0{
+				break
+			}
+		}
 	case "break":
 		if !r.inLoop {
 			r.errf("break is only useful in a loop")

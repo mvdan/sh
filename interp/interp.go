@@ -475,10 +475,11 @@ func (r *Runner) errf(format string, a ...interface{}) {
 	fmt.Fprintf(r.Stderr, format, a...)
 }
 
-func (r *Runner) expand(format string, onlyChars bool, args ...string) string {
+func (r *Runner) expand(format string, onlyChars bool, args ...string) (int, string) {
 	var buf bytes.Buffer
 	esc := false
 	var fmts []rune
+	n := len(args)
 
 	for _, c := range format {
 		if esc {
@@ -518,7 +519,7 @@ func (r *Runner) expand(format string, onlyChars bool, args ...string) string {
 			case '+', '-', ' ':
 				if len(fmts) > 1 {
 					r.runErr(syntax.Pos{}, "invalid format char: %c", c)
-					return ""
+					return 0,""
 				}
 				fmts = append(fmts, c)
 			case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
@@ -549,7 +550,7 @@ func (r *Runner) expand(format string, onlyChars bool, args ...string) string {
 				fmts = nil
 			default:
 				r.runErr(syntax.Pos{}, "unhandled format char: %c", c)
-				return ""
+				return 0, ""
 			}
 
 			continue
@@ -564,9 +565,9 @@ func (r *Runner) expand(format string, onlyChars bool, args ...string) string {
 	}
 	if len(fmts) > 0 {
 		r.runErr(syntax.Pos{}, "missing format char")
-		return ""
+		return 0, ""
 	}
-	return buf.String()
+	return n-len(args), buf.String()
 }
 
 func fieldJoin(parts []fieldPart) string {
@@ -1345,7 +1346,7 @@ func (r *Runner) wordFields(wps []syntax.WordPart, ql quoteLevel) [][]fieldPart 
 			allowEmpty = true
 			fp := fieldPart{quote: quoteSingle, val: x.Value}
 			if x.Dollar {
-				fp.val = r.expand(fp.val, true)
+				_, fp.val = r.expand(fp.val, true)
 			}
 			curField = append(curField, fp)
 		case *syntax.DblQuoted:
