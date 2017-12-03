@@ -242,35 +242,25 @@ func (r *Runner) varInd(vr Variable, e syntax.ArithmExpr, depth int) string {
 			return string(x)
 		}
 	case IndexArray:
-		if w, ok := e.(*syntax.Word); ok {
-			if lit, ok := w.Parts[0].(*syntax.Lit); ok {
-				switch lit.Value {
-				case "@", "*":
-					return strings.Join(x, " ")
-				}
-			}
+		if isLitWord(e, "@", "*") {
+			return strings.Join(x, " ")
 		}
 		i := r.arithm(e)
 		if len(x) > 0 {
 			return x[i]
 		}
 	case AssocArray:
-		if w, ok := e.(*syntax.Word); ok {
-			if lit, ok := w.Parts[0].(*syntax.Lit); ok {
-				switch lit.Value {
-				case "@", "*":
-					var strs IndexArray
-					keys := make([]string, 0, len(x))
-					for k := range x {
-						keys = append(keys, k)
-					}
-					sort.Strings(keys)
-					for _, k := range keys {
-						strs = append(strs, x[k])
-					}
-					return strings.Join(strs, " ")
-				}
+		if isLitWord(e, "@", "*") {
+			var strs IndexArray
+			keys := make([]string, 0, len(x))
+			for k := range x {
+				keys = append(keys, k)
 			}
+			sort.Strings(keys)
+			for _, k := range keys {
+				strs = append(strs, x[k])
+			}
+			return strings.Join(strs, " ")
 		}
 		return x[r.loneWord(e.(*syntax.Word))]
 	}

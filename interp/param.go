@@ -14,6 +14,23 @@ import (
 	"mvdan.cc/sh/syntax"
 )
 
+func isLitWord(v interface{}, vals ...string) bool {
+	word, _ := v.(*syntax.Word)
+	if word == nil || len(word.Parts) != 1 {
+		return false
+	}
+	lit, ok := word.Parts[0].(*syntax.Lit)
+	if !ok {
+		return false
+	}
+	for _, val := range vals {
+		if lit.Value == val {
+			return true
+		}
+	}
+	return false
+}
+
 func (r *Runner) quotedElems(pe *syntax.ParamExp) []string {
 	if pe == nil {
 		return nil
@@ -21,12 +38,7 @@ func (r *Runner) quotedElems(pe *syntax.ParamExp) []string {
 	if pe.Param.Value == "@" {
 		return r.Params
 	}
-	w, _ := pe.Index.(*syntax.Word)
-	if w == nil || len(w.Parts) != 1 {
-		return nil
-	}
-	l, _ := w.Parts[0].(*syntax.Lit)
-	if l == nil || l.Value != "@" {
+	if !isLitWord(pe.Index, "@") {
 		return nil
 	}
 	val, _ := r.lookupVar(pe.Param.Value)
