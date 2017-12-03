@@ -1039,6 +1039,10 @@ func (r *Runner) cmd(cm syntax.Command) {
 		for _, as := range x.Assigns {
 			val := r.assignVal(as, "")
 			r.cmdVars[as.Name.Value] = val
+			if as.Name.Value == "IFS" {
+				r.ifsUpdated()
+				defer r.ifsUpdated()
+			}
 		}
 		r.call(x.Args[0].Pos(), fields[0], fields[1:])
 		r.cmdVars = oldVars

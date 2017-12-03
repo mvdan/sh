@@ -398,27 +398,24 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 		}
 		r.setErr(returnCode(code))
 	case "read":
-		r.ifsUpdated() // FIXME: why is this necessary?
-
 		raw := false
 		for len(args) > 0 && strings.HasPrefix(args[0], "-") {
 			switch args[0] {
 			case "-r":
 				raw = true
-				args = args[1:]
 			default:
 				r.errf("invalid option %q\n", args[0])
 				return 2
 			}
+			args = args[1:]
 		}
 
 		line, err := r.readLine(raw)
 		if err != nil {
 			return 1
 		}
-		vars := args
-		if len(vars) == 0 {
-			vars = append(vars, "REPLY")
+		if len(args) == 0 {
+			args = append(args, "REPLY")
 		}
 		runes := []rune(string(line))
 
@@ -435,64 +432,64 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 			return false, r[0], r[1:]
 		}
 
-		if len(vars) == 1 {
+		if len(args) == 1 {
 			var val string
 			if raw {
 				val = string(runes)
 			} else {
 				var buf bytes.Buffer
-				for len(runes) != 0 {
+				for len(runes) > 0 {
 					_, nr, rest := nextRune(runes)
 					buf.WriteRune(nr)
 					runes = rest
 				}
 				val = buf.String()
 			}
-			r.setVar(vars[0], nil, Variable{Value: StringVal(val)})
-		} else {
-			nextField := func(runes []rune) (string, []rune) {
-				var buf bytes.Buffer
-				for len(runes) != 0 {
-					var esc bool
-					var nr rune
-					esc, nr, runes = nextRune(runes)
-					if r.ifsRune(nr) && !esc {
-						break
-					}
-					buf.WriteRune(nr)
-				}
-				return buf.String(), runes
-			}
-
-			// strip trailing non-escaped IFSs
-			tail := -1
-			for t := runes; len(t) > 0; {
-				esc, nr, rest := nextRune(t)
-				if !esc && r.ifsRune(nr) {
-					if tail == -1 {
-						tail = len(t)
-					}
-				} else {
-					tail = -1
-				}
-				t = rest
-			}
-			if tail != -1 {
-				runes = runes[:len(runes)-tail]
-			}
-
-			for i, name := range vars {
-				for len(runes) > 0 && r.ifsRune(runes[0]) {
-					runes = runes[1:]
-				}
-				if i+1 == len(vars) {
-					r.setVar(name, nil, Variable{Value: StringVal(runes)})
+			r.setVar(args[0], nil, Variable{Value: StringVal(val)})
+			return 0
+		}
+		nextField := func(runes []rune) (string, []rune) {
+			var buf bytes.Buffer
+			for len(runes) > 0 {
+				var esc bool
+				var nr rune
+				esc, nr, runes = nextRune(runes)
+				if r.ifsRune(nr) && !esc {
 					break
 				}
-				var field string
-				field, runes = nextField(runes)
-				r.setVar(name, nil, Variable{Value: StringVal(field)})
+				buf.WriteRune(nr)
 			}
+			return buf.String(), runes
+		}
+
+		// strip trailing non-escaped IFSs
+		tail := -1
+		for t := runes; len(t) > 0; {
+			esc, nr, rest := nextRune(t)
+			if !esc && r.ifsRune(nr) {
+				if tail == -1 {
+					tail = len(t)
+				}
+			} else {
+				tail = -1
+			}
+			t = rest
+		}
+		if tail != -1 {
+			runes = runes[:len(runes)-tail]
+		}
+
+		for i, name := range args {
+			for len(runes) > 0 && r.ifsRune(runes[0]) {
+				runes = runes[1:]
+			}
+			if i+1 == len(args) {
+				r.setVar(name, nil, Variable{Value: StringVal(runes)})
+				break
+			}
+			var field string
+			field, runes = nextField(runes)
+			r.setVar(name, nil, Variable{Value: StringVal(field)})
 		}
 		return 0
 
@@ -517,11 +514,7 @@ func (r *Runner) readLine(raw bool) ([]byte, error) {
 			switch {
 			case !raw && b == '\\':
 				line = append(line, b)
-				if esc {
-					esc = false
-				} else {
-					esc = true
-				}
+				esc = !esc
 			case !raw && b == '\n' && esc:
 				// line continuation
 				line = line[len(line)-1:]
