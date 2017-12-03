@@ -1379,6 +1379,8 @@ var fileCases = []struct {
 		"b\n1 2\n",
 	},
 	{"a=x=y; declare $a; echo $a $x", "x=y y\n"},
+	{"a='x=(y)'; declare $a; echo $a $x", "x=(y) (y)\n"},
+	{"a='x=b y=c'; declare $a; echo $x $y", "b c\n"},
 
 	// export
 	{"declare foo=bar; env | grep '^foo='", "exit status 1"},

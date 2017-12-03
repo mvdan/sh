@@ -747,7 +747,7 @@ func expandBraces(word *syntax.Word) []*syntax.Word {
 	return expandRec(topBrace)
 }
 
-func (r *Runner) Fields(words []*syntax.Word) []string {
+func (r *Runner) Fields(words ...*syntax.Word) []string {
 	fields := make([]string, 0, len(words))
 	baseDir, _ := escapedGlob([]fieldPart{{val: r.Dir}})
 	for _, word := range words {
@@ -863,25 +863,28 @@ func stringIndex(index syntax.ArithmExpr) bool {
 	return ok
 }
 
-func (r *Runner) prepareAssign(as *syntax.Assign) *syntax.Assign {
-	// convert "declare $x" into "declare value"
-	// TODO: perhaps use the syntax package again, as otherwise we
-	// have to re-implement all the logic here (indices, arrays, etc)
+func (r *Runner) expandAssigns(as *syntax.Assign) []*syntax.Assign {
+	// Convert "declare $x" into "declare value".
+	// Don't use syntax.Parser here, as we only want the basic
+	// splitting by '='.
 	if as.Name != nil {
-		return as // nothing to do
+		return []*syntax.Assign{as} // nothing to do
 	}
-	as2 := *as
-	as = &as2
-	src := r.loneWord(as.Value)
-	parts := strings.SplitN(src, "=", 2)
-	as.Name = &syntax.Lit{Value: parts[0]}
-	if len(parts) > 1 {
-		as.Naked = false
-		as.Value = &syntax.Word{Parts: []syntax.WordPart{
-			&syntax.Lit{Value: parts[1]},
-		}}
+	var asgns []*syntax.Assign
+	for _, field := range r.Fields(as.Value) {
+		as := &syntax.Assign{}
+		parts := strings.SplitN(field, "=", 2)
+		as.Name = &syntax.Lit{Value: parts[0]}
+		if len(parts) == 1 {
+			as.Naked = true
+		} else {
+			as.Value = &syntax.Word{Parts: []syntax.WordPart{
+				&syntax.Lit{Value: parts[1]},
+			}}
+		}
+		asgns = append(asgns, as)
 	}
-	return as
+	return asgns
 }
 
 func (r *Runner) assignVal(as *syntax.Assign, mode string) VarValue {
@@ -1020,7 +1023,7 @@ func (r *Runner) cmd(cm syntax.Command) {
 		r.exit = r2.exit
 		r.setErr(r2.err)
 	case *syntax.CallExpr:
-		fields := r.Fields(x.Args)
+		fields := r.Fields(x.Args...)
 		if len(fields) == 0 {
 			for _, as := range x.Assigns {
 				vr, _ := r.lookupVar(as.Name.Value)
@@ -1094,7 +1097,7 @@ func (r *Runner) cmd(cm syntax.Command) {
 		switch y := x.Loop.(type) {
 		case *syntax.WordIter:
 			name := y.Name.Value
-			for _, field := range r.Fields(y.Items) {
+			for _, field := range r.Fields(y.Items...) {
 				r.setVarString(name, field)
 				if r.loopStmtsBroken(x.Do) {
 					break
@@ -1166,21 +1169,22 @@ func (r *Runner) cmd(cm syntax.Command) {
 			}
 		}
 		for _, as := range x.Assigns {
-			as = r.prepareAssign(as)
-			name := as.Name.Value
-			vr, _ := r.lookupVar(as.Name.Value)
-			vr.Value = r.assignVal(as, mode)
-			switch mode {
-			case "-x":
-				vr.Exported = true
-			case "-r":
-				vr.ReadOnly = true
-			case "-n":
-				vr.NameRef = true
-			case "-A":
-				// nothing to do
+			for _, as := range r.expandAssigns(as) {
+				name := as.Name.Value
+				vr, _ := r.lookupVar(as.Name.Value)
+				vr.Value = r.assignVal(as, mode)
+				switch mode {
+				case "-x":
+					vr.Exported = true
+				case "-r":
+					vr.ReadOnly = true
+				case "-n":
+					vr.NameRef = true
+				case "-A":
+					// nothing to do
+				}
+				r.setVar(name, as.Index, vr)
 			}
-			r.setVar(name, as.Index, vr)
 		}
 	case *syntax.TimeClause:
 		start := time.Now()
