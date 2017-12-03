@@ -667,6 +667,7 @@ var fileCases = []struct {
 	{"f() { return 2; }; f", "exit status 2"},
 	{"f() { echo foo; return; echo bar; }; f", "foo\n"},
 	{"echo 'return' >a; source a", ""},
+	{"echo 'return' >a; source a; return", "return: can only be done from a func or sourced script\nexit status 1 #JUSTERR"},
 	{"echo 'return 2' >a; source a", "exit status 2"},
 	{"echo 'echo foo; return; echo bar' >a; source a", "foo\n"},
 
@@ -1269,8 +1270,12 @@ var fileCases = []struct {
 		"foo\nfoo\n",
 	},
 	{
-		"echo 'echo $@' >a; source a; source a b c",
-		"\nb c\n",
+		"echo 'echo $@' >a; source a; source a b c; echo $@",
+		"\nb c\n\n",
+	},
+	{
+		"echo 'foo=bar' >a; source a; echo $foo",
+		"bar\n",
 	},
 
 	// indexed arrays

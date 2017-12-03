@@ -227,15 +227,19 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 			r.errf("source: %v\n", err)
 			return 1
 		}
-		r2 := *r
-		r2.Params = args[1:]
-		r2.Reset()
-		r2.canReturn = true
-		r2.Run(file)
-		if code, ok := r2.err.(returnCode); ok {
-			r2.exit = int(code)
+		oldParams := r.Params
+		r.Params = args[1:]
+		oldCanReturn := r.canReturn
+		r.canReturn = true
+		r.stmts(file.StmtList)
+
+		r.Params = oldParams
+		r.canReturn = oldCanReturn
+		if code, ok := r.err.(returnCode); ok {
+			r.err = nil
+			r.exit = int(code)
 		}
-		return r2.exit
+		return r.exit
 	case "[":
 		if len(args) == 0 || args[len(args)-1] != "]" {
 			r.runErr(pos, "[: missing matching ]")
