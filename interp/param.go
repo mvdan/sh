@@ -14,21 +14,21 @@ import (
 	"mvdan.cc/sh/syntax"
 )
 
-func isLitWord(v interface{}, vals ...string) bool {
+func anyOfLit(v interface{}, vals ...string) string {
 	word, _ := v.(*syntax.Word)
 	if word == nil || len(word.Parts) != 1 {
-		return false
+		return ""
 	}
 	lit, ok := word.Parts[0].(*syntax.Lit)
 	if !ok {
-		return false
+		return ""
 	}
 	for _, val := range vals {
 		if lit.Value == val {
-			return true
+			return val
 		}
 	}
-	return false
+	return ""
 }
 
 func (r *Runner) quotedElems(pe *syntax.ParamExp) []string {
@@ -38,7 +38,7 @@ func (r *Runner) quotedElems(pe *syntax.ParamExp) []string {
 	if pe.Param.Value == "@" {
 		return r.Params
 	}
-	if !isLitWord(pe.Index, "@") {
+	if anyOfLit(pe.Index, "@") == "" {
 		return nil
 	}
 	val, _ := r.lookupVar(pe.Param.Value)
@@ -56,8 +56,10 @@ func (r *Runner) paramExp(pe *syntax.ParamExp) string {
 	switch name {
 	case "#":
 		vr.Value = StringVal(strconv.Itoa(len(r.Params)))
-	case "*", "@":
+	case "@":
 		vr.Value = StringVal(strings.Join(r.Params, " "))
+	case "*":
+		vr.Value = StringVal(strings.Join(r.Params, r.ifsJoin))
 	case "?":
 		vr.Value = StringVal(strconv.Itoa(r.exit))
 	default:

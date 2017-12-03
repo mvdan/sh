@@ -83,6 +83,9 @@ type Runner struct {
 
 	dirStack []string
 
+	ifsJoin string
+	ifsRune func(rune) bool
+
 	// KillTimeout holds how much time the interpreter will wait for a
 	// program to stop after being sent an interrupt signal, after
 	// which a kill signal will be sent. This process will happen when the
@@ -146,6 +149,8 @@ func (r *Runner) Reset() error {
 		r.Dir = dir
 	}
 	r.Vars["PWD"] = Variable{Value: StringVal(r.Dir)}
+	r.Vars["IFS"] = Variable{Value: StringVal(" \t\n")}
+	r.ifsUpdated()
 	r.dirStack = []string{r.Dir}
 	if r.Exec == nil {
 		r.Exec = DefaultExec
@@ -242,15 +247,18 @@ func (r *Runner) varInd(vr Variable, e syntax.ArithmExpr, depth int) string {
 			return string(x)
 		}
 	case IndexArray:
-		if isLitWord(e, "@", "*") {
+		switch anyOfLit(e, "@", "*") {
+		case "@":
 			return strings.Join(x, " ")
+		case "*":
+			return strings.Join(x, r.ifsJoin)
 		}
 		i := r.arithm(e)
 		if len(x) > 0 {
 			return x[i]
 		}
 	case AssocArray:
-		if isLitWord(e, "@", "*") {
+		if lit := anyOfLit(e, "@", "*"); lit != "" {
 			var strs IndexArray
 			keys := make([]string, 0, len(x))
 			for k := range x {
@@ -259,6 +267,9 @@ func (r *Runner) varInd(vr Variable, e syntax.ArithmExpr, depth int) string {
 			sort.Strings(keys)
 			for _, k := range keys {
 				strs = append(strs, x[k])
+			}
+			if lit == "*" {
+				return strings.Join(strs, r.ifsJoin)
 			}
 			return strings.Join(strs, " ")
 		}
@@ -341,6 +352,9 @@ func (r *Runner) setVar(name string, index syntax.ArithmExpr, vr Variable) {
 			vr.Exported = false
 		}
 		r.Vars[name] = vr
+		if name == "IFS" {
+			r.ifsUpdated()
+		}
 		return
 	}
 
@@ -1275,6 +1289,22 @@ func (r *Runner) loopStmtsBroken(sl syntax.StmtList) bool {
 	return false
 }
 
+func (r *Runner) ifsUpdated() {
+	runes := r.getVar("IFS")
+	r.ifsJoin = ""
+	if len(runes) > 0 {
+		r.ifsJoin = runes[:1]
+	}
+	r.ifsRune = func(r rune) bool {
+		for _, r2 := range runes {
+			if r == r2 {
+				return true
+			}
+		}
+		return false
+	}
+}
+
 type fieldPart struct {
 	val   string
 	quote quoteLevel
@@ -1300,8 +1330,7 @@ func (r *Runner) wordFields(wps []syntax.WordPart, ql quoteLevel) [][]fieldPart 
 		curField = nil
 	}
 	splitAdd := func(val string) {
-		// TODO: use IFS
-		for i, field := range strings.Fields(val) {
+		for i, field := range strings.FieldsFunc(val, r.ifsRune) {
 			if i > 0 {
 				flush()
 			}

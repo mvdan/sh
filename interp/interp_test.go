@@ -1220,6 +1220,14 @@ var fileCases = []struct {
 		"exit status 1",
 	},
 
+	// IFS
+	{`echo -n "$IFS"`, " \t\n"},
+	{`a="x:y:z"; IFS=:; echo $a`, "x y z\n"},
+	{`a=(x y z); IFS=-; echo "${a[*]}"`, "x-y-z\n"},
+	{`a=(x y z); IFS=-; echo "${a[@]}"`, "x y z\n"},
+	{`a="  x y z"; IFS=; echo $a`, "  x y z\n"},
+	{`a=(x y z); IFS=; echo "${a[*]}"`, "xyz\n"},
+
 	// builtin
 	{"builtin", ""},
 	{"builtin noexist", "exit status 1 #JUSTERR"},
