@@ -123,6 +123,9 @@ var fileCases = []struct {
 	{"printf %-5x 10", "a    "},
 	{"printf %02x 1", "01"},
 	{"printf 'a% 5s' a", "a    a"},
+	{"printf 'nofmt' 1 2 3", "nofmt"},
+	{"printf '%d_' 1 2 3", "1_2_3_"},
+	{"printf '%02d %02d\n' 1 2 3", "01 02\n03 00\n"},
 
 	// words and quotes
 	{"echo  foo ", "foo\n"},
