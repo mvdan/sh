@@ -1492,6 +1492,76 @@ var fileCases = []struct {
 		"exec echo foo; echo bar",
 		"foo\n",
 	},
+
+	// read
+	{
+		"read </dev/null",
+		"exit status 1",
+	},
+	{
+		"read -X",
+		"invalid option \"-X\"\nexit status 2 #JUSTERR",
+	},
+	{
+		"read <<< foo; echo $REPLY",
+		"foo\n",
+	},
+	{
+		"read <<<'  a  b  c  '; echo \"$REPLY\"",
+		"  a  b  c  \n",
+	},
+	{
+		"read <<< 'y\nn\n'; echo $REPLY",
+		"y\n",
+	},
+	{
+		"read a <<< foo; echo $a",
+		"foo\n",
+	},
+	{
+		"read a b <<< 'foo  bar  baz  '; echo \"$a\"; echo \"$b\"",
+		"foo\nbar  baz\n",
+	},
+	{
+		"while read a; do echo $a; done <<< 'a\nb\nc'",
+		"a\nb\nc\n",
+	},
+	{
+		"while read a b; do echo -e \"$a\n$b\"; done <<< '1 2\n3'",
+		"1\n2\n3\n\n",
+	},
+	{
+		"read a <<< '\\\\'; echo $a",
+		"\\\n",
+	},
+	{
+		"read a <<< '\\a\\b\\c'; echo $a",
+		"abc\n",
+	},
+	{
+		"read -r a b <<< '1\\\t2'; echo $a; echo $b;",
+		"1\\\n2\n",
+	},
+	{
+		"echo line\\\ncontinuation | while read a; do echo $a; done",
+		"linecontinuation\n",
+	},
+	{
+		"read -r a <<< '\\\\'; echo $a",
+		"\\\\\n",
+	},
+	{
+		"read -r a <<< '\\a\\b\\c'; echo $a",
+		"\\a\\b\\c\n",
+	},
+	{
+		"IFS=: read a b c <<< '1:2:3'; echo $a; echo $b; echo $c",
+		"1\n2\n3\n",
+	},
+	{
+		"IFS=: read a b c <<< '1\\:2:3'; echo \"$a\"; echo $b; echo $c",
+		"1:2\n3\n\n",
+	},
 }
 
 // concBuffer wraps a bytes.Buffer in a mutex so that concurrent writes

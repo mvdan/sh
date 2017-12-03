@@ -4,6 +4,8 @@
 package interp
 
 import (
+	"bytes"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -20,7 +22,7 @@ func isBuiltin(name string) bool {
 		"wait", "builtin", "trap", "type", "source", ".", "command",
 		"dirs", "pushd", "popd", "umask", "alias", "unalias",
 		"fg", "bg", "getopts", "eval", "test", "[", "exec",
-		"return":
+		"return", "read":
 		return true
 	}
 	return false
@@ -395,12 +397,152 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 			return 2
 		}
 		r.setErr(returnCode(code))
+	case "read":
+		r.ifsUpdated() // FIXME: why is this necessary?
+
+		raw := false
+		for len(args) > 0 && strings.HasPrefix(args[0], "-") {
+			switch args[0] {
+			case "-r":
+				raw = true
+				args = args[1:]
+			default:
+				r.errf("invalid option %q\n", args[0])
+				return 2
+			}
+		}
+
+		line, err := r.readLine(raw)
+		if err != nil {
+			return 1
+		}
+		vars := args
+		if len(vars) == 0 {
+			vars = append(vars, "REPLY")
+		}
+		runes := []rune(string(line))
+
+		nextRune := func(r []rune) (bool, rune, []rune) {
+			switch len(r) {
+			case 0:
+				return false, 0, nil
+			case 1:
+				return false, r[0], nil
+			}
+			if r[0] == '\\' && !raw {
+				return true, r[1], r[2:]
+			}
+			return false, r[0], r[1:]
+		}
+
+		if len(vars) == 1 {
+			var val string
+			if raw {
+				val = string(runes)
+			} else {
+				var buf bytes.Buffer
+				for len(runes) != 0 {
+					_, nr, rest := nextRune(runes)
+					buf.WriteRune(nr)
+					runes = rest
+				}
+				val = buf.String()
+			}
+			r.setVar(vars[0], nil, Variable{Value: StringVal(val)})
+		} else {
+			nextField := func(runes []rune) (string, []rune) {
+				var buf bytes.Buffer
+				for len(runes) != 0 {
+					var esc bool
+					var nr rune
+					esc, nr, runes = nextRune(runes)
+					if r.ifsRune(nr) && !esc {
+						break
+					}
+					buf.WriteRune(nr)
+				}
+				return buf.String(), runes
+			}
+
+			// strip trailing non-escaped IFSs
+			tail := -1
+			for t := runes; len(t) > 0; {
+				esc, nr, rest := nextRune(t)
+				if !esc && r.ifsRune(nr) {
+					if tail == -1 {
+						tail = len(t)
+					}
+				} else {
+					tail = -1
+				}
+				t = rest
+			}
+			if tail != -1 {
+				runes = runes[:len(runes)-tail]
+			}
+
+			for i, name := range vars {
+				for len(runes) > 0 && r.ifsRune(runes[0]) {
+					runes = runes[1:]
+				}
+				if i+1 == len(vars) {
+					r.setVar(name, nil, Variable{Value: StringVal(runes)})
+					break
+				}
+				var field string
+				field, runes = nextField(runes)
+				r.setVar(name, nil, Variable{Value: StringVal(field)})
+			}
+		}
+		return 0
+
 	default:
 		// "trap", "umask", "alias", "unalias", "fg", "bg",
 		// "getopts"
 		r.runErr(pos, "unhandled builtin: %s", name)
 	}
 	return 0
+}
+
+func (r *Runner) readLine(raw bool) ([]byte, error) {
+	var line []byte
+	done := false
+	esc := false
+
+	for !done {
+		var buf [1]byte
+		n, err := r.Stdin.Read(buf[:])
+		if n != 0 {
+			b := buf[0]
+			switch {
+			case !raw && b == '\\':
+				line = append(line, b)
+				if esc {
+					esc = false
+				} else {
+					esc = true
+				}
+			case !raw && b == '\n' && esc:
+				// line continuation
+				line = line[len(line)-1:]
+				esc = false
+			case b == '\n':
+				done = true
+			default:
+				line = append(line, b)
+				esc = false
+			}
+		}
+		if err != nil {
+			if err == io.EOF && len(line) != 0 {
+				done = true
+			} else {
+				return nil, err
+			}
+		}
+	}
+
+	return line, nil
 }
 
 func (r *Runner) changeDir(path string) int {
