@@ -1349,10 +1349,8 @@ func (r *Runner) wordFields(wps []syntax.WordPart, ql quoteLevel) [][]fieldPart 
 		switch x := wp.(type) {
 		case *syntax.Lit:
 			s := x.Value
-			if i > 0 || len(s) == 0 || s[0] != '~' {
-			} else if len(s) < 2 || s[1] == '/' {
-				// TODO: ~someuser
-				s = r.getVar("HOME") + s[1:]
+			if i == 0 {
+				s = r.expandUser(s)
 			}
 			var buf bytes.Buffer
 			for i := 0; i < len(s); i++ {
@@ -1441,6 +1439,26 @@ func (r *Runner) wordFields(wps []syntax.WordPart, ql quoteLevel) [][]fieldPart 
 		fields = append(fields, []fieldPart{{}})
 	}
 	return fields
+}
+
+func (r *Runner) expandUser(field string) string {
+	if len(field) == 0 || field[0] != '~' {
+		return field
+	}
+	name := field[1:]
+	rest := ""
+	if i := strings.Index(name, "/"); i >= 0 {
+		rest = name[i:]
+		name = name[:i]
+	}
+	if name == "" {
+		return r.getVar("HOME") + rest
+	}
+	u, err := user.Lookup(name)
+	if err != nil {
+		return field
+	}
+	return u.HomeDir + rest
 }
 
 type returnCode uint8

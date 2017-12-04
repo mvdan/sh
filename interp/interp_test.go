@@ -439,6 +439,14 @@ var fileCases = []struct {
 		"",
 	},
 	{
+		"[[ ~noexist == '~noexist' ]]",
+		"",
+	},
+	{
+		"[[ ~root == '~root' ]]",
+		"exit status 1",
+	},
+	{
 		`w="$HOME"; cd; [[ $PWD == $w ]]`,
 		"",
 	},
