@@ -218,6 +218,7 @@ var fileCases = []struct {
 	{"a=']'; echo ${a//[xy}", "]\n"},
 	{"a='abc123'; echo ${a//[[:digit:]]}", "abc\n"},
 	{"a='[[:wrong:]]'; echo ${a//[[:wrong:]]}", "[[:wrong:]]\n"},
+	{"a='[[:wrong:]]'; echo ${a//[[:}", "[[:wrong:]]\n"},
 	{"a='abcx1y'; echo ${a//x[[:digit:]]y}", "abc\n"},
 	{`a=xyz; echo "${a/y/a  b}"`, "xa  bz\n"},
 	{"a='foo/bar'; echo ${a//o*a/}", "fr\n"},
@@ -264,6 +265,10 @@ var fileCases = []struct {
 	{
 		"x=aaabccc; echo ${x%c*}; echo ${x%%c*}",
 		"aaabcc\naaab\n",
+	},
+	{
+		"x=aaabccc; echo ${x%%[bc}",
+		"aaabccc\n",
 	},
 	{
 		"a='àÉñ bAr'; echo ${a^}; echo ${a^^}",
@@ -434,6 +439,7 @@ var fileCases = []struct {
 	{"[[ fo~ == 'fo~' ]]", ""},
 	{`[[ 'ab\c' == *\\* ]]`, ""},
 	{`[[ foo/bar == foo* ]]`, ""},
+	{"[[ a == [ab ]]", "exit status 1"},
 	{
 		"[[ ~ == $HOME ]] && [[ ~/foo == $HOME/foo ]]",
 		"",
@@ -737,6 +743,10 @@ var fileCases = []struct {
 	{
 		"echo foo >/dev/null; echo bar",
 		"bar\n",
+	},
+	{
+		">a; wc -c <a",
+		"0\n",
 	},
 	{
 		"echo foo >a; wc -c <a",
@@ -1489,6 +1499,7 @@ var fileCases = []struct {
 
 	// time - real would be slow and flaky; see TestElapsedString
 	{"{ time; } |& wc", "      4       6      42\n"},
+	{"{ time echo -n; } |& wc", "      4       6      42\n"},
 
 	// exec
 	{"exec", ""},
