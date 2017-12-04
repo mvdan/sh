@@ -493,13 +493,12 @@ func (r *Runner) ifsFields(s string, n int, raw bool) []string {
 
 func (r *Runner) readLine(raw bool) ([]byte, error) {
 	var line []byte
-	done := false
 	esc := false
 
-	for !done {
+	for {
 		var buf [1]byte
 		n, err := r.Stdin.Read(buf[:])
-		if n != 0 {
+		if n > 0 {
 			b := buf[0]
 			switch {
 			case !raw && b == '\\':
@@ -510,22 +509,19 @@ func (r *Runner) readLine(raw bool) ([]byte, error) {
 				line = line[len(line)-1:]
 				esc = false
 			case b == '\n':
-				done = true
+				return line, nil
 			default:
 				line = append(line, b)
 				esc = false
 			}
 		}
+		if err == io.EOF && len(line) > 0 {
+			return line, nil
+		}
 		if err != nil {
-			if err == io.EOF && len(line) != 0 {
-				done = true
-			} else {
-				return nil, err
-			}
+			return nil, err
 		}
 	}
-
-	return line, nil
 }
 
 func (r *Runner) changeDir(path string) int {
