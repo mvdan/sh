@@ -4,7 +4,6 @@
 package interp
 
 import (
-	"bytes"
 	"io"
 	"os"
 	"os/exec"
@@ -417,80 +416,16 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 		if len(args) == 0 {
 			args = append(args, "REPLY")
 		}
-		runes := []rune(string(line))
 
-		nextRune := func(r []rune) (bool, rune, []rune) {
-			switch len(r) {
-			case 0:
-				return false, 0, nil
-			case 1:
-				return false, r[0], nil
-			}
-			if r[0] == '\\' && !raw {
-				return true, r[1], r[2:]
-			}
-			return false, r[0], r[1:]
-		}
-
-		if len(args) == 1 {
-			var val string
-			if raw {
-				val = string(runes)
-			} else {
-				var buf bytes.Buffer
-				for len(runes) > 0 {
-					_, nr, rest := nextRune(runes)
-					buf.WriteRune(nr)
-					runes = rest
-				}
-				val = buf.String()
-			}
-			r.setVar(args[0], nil, Variable{Value: StringVal(val)})
-			return 0
-		}
-		nextField := func(runes []rune) (string, []rune) {
-			var buf bytes.Buffer
-			for len(runes) > 0 {
-				var esc bool
-				var nr rune
-				esc, nr, runes = nextRune(runes)
-				if r.ifsRune(nr) && !esc {
-					break
-				}
-				buf.WriteRune(nr)
-			}
-			return buf.String(), runes
-		}
-
-		// strip trailing non-escaped IFSs
-		tail := -1
-		for t := runes; len(t) > 0; {
-			esc, nr, rest := nextRune(t)
-			if !esc && r.ifsRune(nr) {
-				if tail == -1 {
-					tail = len(t)
-				}
-			} else {
-				tail = -1
-			}
-			t = rest
-		}
-		if tail != -1 {
-			runes = runes[:len(runes)-tail]
-		}
-
+		values := r.ifsFields(string(line), len(args), raw)
 		for i, name := range args {
-			for len(runes) > 0 && r.ifsRune(runes[0]) {
-				runes = runes[1:]
+			val := ""
+			if i < len(values) {
+				val = values[i]
 			}
-			if i+1 == len(args) {
-				r.setVar(name, nil, Variable{Value: StringVal(runes)})
-				break
-			}
-			var field string
-			field, runes = nextField(runes)
-			r.setVar(name, nil, Variable{Value: StringVal(field)})
+			r.setVar(name, nil, Variable{Value: StringVal(val)})
 		}
+
 		return 0
 
 	default:
@@ -499,6 +434,61 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 		r.runErr(pos, "unhandled builtin: %s", name)
 	}
 	return 0
+}
+
+func (r *Runner) ifsFields(s string, n int, raw bool) []string {
+	type pos struct {
+		start, end int
+	}
+	var fpos []pos
+
+	runes := make([]rune, 0, len(s))
+	infield := false
+	esc := false
+	for _, c := range s {
+		if infield {
+			if r.ifsRune(c) && (raw || !esc) {
+				fpos[len(fpos)-1].end = len(runes)
+				infield = false
+			}
+		} else {
+			if !r.ifsRune(c) && (raw || !esc) {
+				fpos = append(fpos, pos{start: len(runes), end: -1})
+				infield = true
+			}
+		}
+		if c == '\\' {
+			if raw || esc {
+				runes = append(runes, c)
+			}
+			esc = !esc
+			continue
+		}
+		runes = append(runes, c)
+		esc = false
+	}
+	if len(fpos) == 0 {
+		return nil
+	}
+	if infield {
+		fpos[len(fpos)-1].end = len(runes)
+	}
+
+	switch {
+	case n == 1:
+		// include heading/trailing IFSs
+		fpos[0].start, fpos[0].end = 0, len(runes)
+	case n != -1 && n < len(fpos):
+		// combine to max n fields
+		fpos[n-1].end = fpos[len(fpos)-1].end
+		fpos = fpos[:n]
+	}
+
+	var fields = make([]string, len(fpos))
+	for i, p := range fpos {
+		fields[i] = string(runes[p.start:p.end])
+	}
+	return fields
 }
 
 func (r *Runner) readLine(raw bool) ([]byte, error) {
