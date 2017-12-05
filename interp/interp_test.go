@@ -1107,6 +1107,10 @@ var fileCases = []struct {
 		"test 3 -lt 4",
 		"",
 	},
+	{
+		"test 3 -lt",
+		"1:1: -lt must be followed by a word #JUSTERR",
+	},
 
 	// arithm
 	{
@@ -1383,6 +1387,11 @@ var fileCases = []struct {
 		`declare -A a=([x]=a); a[y]=d; a[x]=c; echo ${a[@]}`,
 		"c d\n",
 	},
+	{
+		// cheating a little; bash just did a=c
+		`a=(["x"]=b ["y"]=c); echo ${a["y"]}`,
+		"c\n",
+	},
 
 	// weird assignments
 	{"a=b; a=(c d); echo ${a[@]}", "c d\n"},
@@ -1396,6 +1405,7 @@ var fileCases = []struct {
 		"declare a=b c=(1 2); echo $a; echo ${c[@]}",
 		"b\n1 2\n",
 	},
+	{"a=x; declare $a; echo $a $x", "x\n"},
 	{"a=x=y; declare $a; echo $a $x", "x=y y\n"},
 	{"a='x=(y)'; declare $a; echo $a $x", "x=(y) (y)\n"},
 	{"a='x=b y=c'; declare $a; echo $x $y", "b c\n"},
