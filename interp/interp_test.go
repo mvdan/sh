@@ -1298,6 +1298,10 @@ var fileCases = []struct {
 	{"eval '('", "eval: 1:1: reached EOF without matching ( with )\nexit status 1 #JUSTERR"},
 	{"set a b; eval 'echo $@'", "a b\n"},
 	{"eval 'a=foo'; echo $a", "foo\n"},
+	{`a=b eval "echo $a"`, "\n"},
+	{`a=b eval 'echo $a'`, "b\n"},
+	// TODO: figure out why we don't support this
+	//{`a=b eval 'x=y eval "echo \$a \$x"'`, "b y\n"},
 
 	// source
 	{
