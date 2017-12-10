@@ -409,6 +409,13 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 			args = args[1:]
 		}
 
+		for _, name := range args {
+			if !syntax.ValidName(name) {
+				r.errf("invalid identifier %q\n", name)
+				return 2
+			}
+		}
+
 		line, err := r.readLine(raw)
 		if err != nil {
 			return 1
@@ -478,6 +485,7 @@ func (r *Runner) ifsFields(s string, n int, raw bool) []string {
 	case n == 1:
 		// include heading/trailing IFSs
 		fpos[0].start, fpos[0].end = 0, len(runes)
+		fpos = fpos[:1]
 	case n != -1 && n < len(fpos):
 		// combine to max n fields
 		fpos[n-1].end = fpos[len(fpos)-1].end

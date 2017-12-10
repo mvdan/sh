@@ -1553,6 +1553,10 @@ var fileCases = []struct {
 		"invalid option \"-X\"\nexit status 2 #JUSTERR",
 	},
 	{
+		"read 0ab",
+		"invalid identifier \"0ab\"\nexit status 2 #JUSTERR",
+	},
+	{
 		"read <<< foo; echo $REPLY",
 		"foo\n",
 	},
@@ -1565,7 +1569,7 @@ var fileCases = []struct {
 		"y\n",
 	},
 	{
-		"read a <<< foo; echo $a",
+		"read a_0 <<< foo; echo $a_0",
 		"foo\n",
 	},
 	{
