@@ -5,6 +5,7 @@ package interp
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -30,16 +31,16 @@ type Ctxt struct {
 // executed for all CallExpr nodes where the name is neither a declared
 // function nor a builtin.
 //
+// Note that the executable path is received as well as the name. The
+// path was found using the interpreter's $PATH.
+//
 // Use a return error of type ExitCode to set the exit code. A nil error
 // has the same effect as ExitCode(0). If the error is of any other
 // type, the interpreter will come to a stop.
-//
-// TODO: replace name with path, to avoid the common "path :=
-// exec.LookPath(name)"?
-type ModuleExec func(ctx Ctxt, name string, args []string) error
+type ModuleExec func(ctx Ctxt, path, name string, args []string) error
 
-func DefaultExec(ctx Ctxt, name string, args []string) error {
-	cmd := exec.Command(name, args...)
+func DefaultExec(ctx Ctxt, path, name string, args []string) error {
+	cmd := exec.Command(path, args...)
 	cmd.Env = ctx.Env
 	cmd.Dir = ctx.Dir
 	cmd.Stdin = ctx.Stdin
@@ -76,10 +77,8 @@ func DefaultExec(ctx Ctxt, name string, args []string) error {
 		return ExitCode(1)
 	case *exec.Error:
 		// did not start
-		// TODO: can this be anything other than
-		// "command not found"?
+		fmt.Fprintf(ctx.Stderr, "%v\n", err)
 		return ExitCode(127)
-		// TODO: print something?
 	default:
 		return err
 	}

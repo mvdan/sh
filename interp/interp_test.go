@@ -76,7 +76,10 @@ var fileCases = []struct {
 	{"continue", "continue is only useful in a loop #JUSTERR"},
 	{"cd a b", "usage: cd [dir]\nexit status 2 #JUSTERR"},
 	{"shift a", "usage: shift [n]\nexit status 2 #JUSTERR"},
-	{"shouldnotexist", "exit status 127 #JUSTERR"},
+	{
+		"shouldnotexist",
+		"\"shouldnotexist\": executable file not found in $PATH\nexit status 127 #JUSTERR",
+	},
 	{
 		"for i in 1; do continue a; done",
 		"usage: continue [n]\nexit status 2 #JUSTERR",
@@ -673,6 +676,16 @@ var fileCases = []struct {
 	{
 		"bash -c 'exit 1'",
 		"exit status 1",
+	},
+
+	// PATH
+	{
+		"PATH=; bash -c 'echo foo'",
+		"\"bash\": executable file not found in $PATH\nexit status 127 #JUSTERR",
+	},
+	{
+		"echo '#!/bin/sh\necho b' >a; chmod a+x a; PATH=; a",
+		"b\n",
 	},
 
 	// return
@@ -1515,7 +1528,7 @@ var fileCases = []struct {
 	{"exec", ""},
 	{
 		"exec builtin echo foo",
-		"exit status 127 #JUSTERR",
+		"\"builtin\": executable file not found in $PATH\nexit status 127 #JUSTERR",
 	},
 	{
 		"exec echo foo; echo bar",
@@ -1692,6 +1705,10 @@ func TestFileConfirm(t *testing.T) {
 }
 
 func TestRunnerOpts(t *testing.T) {
+	withPath := func(strs ...string) []string {
+		env := []string{"PATH=" + os.Getenv("PATH")}
+		return append(env, strs...)
+	}
 	cases := []struct {
 		runner   Runner
 		in, want string
@@ -1702,17 +1719,17 @@ func TestRunnerOpts(t *testing.T) {
 			"INTERP_GLOBAL=value\n",
 		},
 		{
-			Runner{Env: []string{}},
+			Runner{Env: withPath()},
 			"env | grep '^INTERP_GLOBAL='",
 			"exit status 1",
 		},
 		{
-			Runner{Env: []string{"INTERP_GLOBAL=bar"}},
+			Runner{Env: withPath("INTERP_GLOBAL=bar")},
 			"env | grep '^INTERP_GLOBAL='",
 			"INTERP_GLOBAL=bar\n",
 		},
 		{
-			Runner{Env: []string{"a=b"}},
+			Runner{Env: withPath("a=b")},
 			"env | grep '^a='; echo $a",
 			"a=b\nb\n",
 		},
@@ -1720,22 +1737,22 @@ func TestRunnerOpts(t *testing.T) {
 			// TODO(mvdan): remove tail once we only support
 			// Go 1.9 and later, since os/exec doesn't dedup
 			// the env in earlier versions.
-			Runner{Env: []string{"a=b", "a=c"}},
+			Runner{Env: withPath("a=b", "a=c")},
 			"env | grep '^a=' | tail -n 1; echo $a",
 			"a=c\nc\n",
 		},
 		{
-			Runner{Env: []string{"foo"}},
+			Runner{Env: withPath("foo")},
 			"",
 			`env not in the form key=value: "foo"`,
 		},
 		{
-			Runner{Env: []string{"HOME="}},
+			Runner{Env: withPath("HOME=")},
 			"echo $HOME",
 			"\n",
 		},
 		{
-			Runner{Env: []string{"PWD=foo"}},
+			Runner{Env: withPath("PWD=foo")},
 			"[[ $PWD == foo ]]",
 			"exit status 1",
 		},

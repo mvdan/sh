@@ -25,59 +25,59 @@ var modCases = []struct {
 }{
 	{
 		name: "ExecBlacklist",
-		exec: func(ctx Ctxt, name string, args []string) error {
+		exec: func(ctx Ctxt, path, name string, args []string) error {
 			if name == "sleep" {
 				return fmt.Errorf("blacklisted: %s", name)
 			}
-			return DefaultExec(ctx, name, args)
+			return DefaultExec(ctx, path, name, args)
 		},
 		src:  "echo foo; /bin/echo foo; sleep 1",
 		want: "foo\nfoo\nblacklisted: sleep",
 	},
 	{
 		name: "ExecWhitelist",
-		exec: func(ctx Ctxt, name string, args []string) error {
+		exec: func(ctx Ctxt, path, name string, args []string) error {
 			switch name {
 			case "sed", "grep":
 			default:
 				return fmt.Errorf("blacklisted: %s", name)
 			}
-			return DefaultExec(ctx, name, args)
+			return DefaultExec(ctx, path, name, args)
 		},
-		src:  "a=$(echo foo | sed 's/o/a/g'); echo $a; $a args",
-		want: "faa\nblacklisted: faa",
+		src:  "a=$(echo la | sed 's/a/s/g'); echo $a; $a args",
+		want: "ls\nblacklisted: ls",
 	},
 	{
 		name: "ExecSubshell",
-		exec: func(ctx Ctxt, name string, args []string) error {
+		exec: func(ctx Ctxt, path, name string, args []string) error {
 			return fmt.Errorf("blacklisted: %s", name)
 		},
-		src:  "(malicious)",
-		want: "blacklisted: malicious",
+		src:  "(ls)",
+		want: "blacklisted: ls",
 	},
 	{
 		name: "ExecPipe",
-		exec: func(ctx Ctxt, name string, args []string) error {
+		exec: func(ctx Ctxt, path, name string, args []string) error {
 			return fmt.Errorf("blacklisted: %s", name)
 		},
-		src:  "malicious | echo foo",
-		want: "foo\nblacklisted: malicious",
+		src:  "ls | echo foo",
+		want: "foo\nblacklisted: ls",
 	},
 	{
 		name: "ExecCmdSubst",
-		exec: func(ctx Ctxt, name string, args []string) error {
+		exec: func(ctx Ctxt, path, name string, args []string) error {
 			return fmt.Errorf("blacklisted: %s", name)
 		},
-		src:  "a=$(malicious)",
-		want: "blacklisted: malicious",
+		src:  "a=$(ls)",
+		want: "blacklisted: ls",
 	},
 	{
 		name: "ExecBackground",
-		exec: func(ctx Ctxt, name string, args []string) error {
+		exec: func(ctx Ctxt, path, name string, args []string) error {
 			return fmt.Errorf("blacklisted: %s", name)
 		},
 		// TODO: find a way to bubble up the error, perhaps
-		src:  "{ malicious; echo foo; } & wait",
+		src:  "{ ls; echo foo; } & wait",
 		want: "",
 	},
 	{

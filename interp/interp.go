@@ -151,6 +151,12 @@ func (r *Runner) Reset() error {
 	r.Vars["PWD"] = Variable{Value: StringVal(r.Dir)}
 	r.Vars["IFS"] = Variable{Value: StringVal(" \t\n")}
 	r.ifsUpdated()
+
+	// convert $PATH to a unix path list
+	path := r.envMap["PATH"]
+	path = strings.Join(filepath.SplitList(path), ":")
+	r.Vars["PATH"] = Variable{Value: StringVal(path)}
+
 	r.dirStack = []string{r.Dir}
 	if r.Exec == nil {
 		r.Exec = DefaultExec
@@ -1488,7 +1494,13 @@ func (r *Runner) call(pos syntax.Pos, name string, args []string) {
 }
 
 func (r *Runner) exec(name string, args []string) {
-	err := r.Exec(r.ctx(), name, args)
+	path, err := r.lookPath(name)
+	if err != nil {
+		r.errf("%v\n", err)
+		r.exit = 127
+		return
+	}
+	err = r.Exec(r.ctx(), path, name, args)
 	switch x := err.(type) {
 	case nil:
 		r.exit = 0
@@ -1511,4 +1523,45 @@ func (r *Runner) open(path string, flags int, mode os.FileMode, print bool) (io.
 		r.setErr(err)
 	}
 	return f, err
+}
+
+func findExecutable(file string) error {
+	d, err := os.Stat(file)
+	if err != nil {
+		return err
+	}
+	if m := d.Mode(); !m.IsDir() && m&0111 != 0 {
+		return nil
+	}
+	return os.ErrPermission
+}
+
+// splitList is like filepath.SplitList, but always using the unix path
+// list separator ':'.
+func splitList(path string) []string {
+	if path == "" {
+		return []string{""}
+	}
+	return strings.Split(path, ":")
+}
+
+func (r *Runner) lookPath(file string) (string, error) {
+	if strings.Contains(file, "/") {
+		err := findExecutable(file)
+		if err == nil {
+			return file, nil
+		}
+		return "", fmt.Errorf("%q: executable file not found in $PATH", file)
+	}
+	path := r.getVar("PATH")
+	for _, dir := range splitList(path) {
+		if dir == "" {
+			dir = r.Dir
+		}
+		path := filepath.Join(dir, file)
+		if err := findExecutable(path); err == nil {
+			return path, nil
+		}
+	}
+	return "", fmt.Errorf("%q: executable file not found in $PATH", file)
 }
