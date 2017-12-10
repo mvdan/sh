@@ -1494,13 +1494,8 @@ func (r *Runner) call(pos syntax.Pos, name string, args []string) {
 }
 
 func (r *Runner) exec(name string, args []string) {
-	path, err := r.lookPath(name)
-	if err != nil {
-		r.errf("%v\n", err)
-		r.exit = 127
-		return
-	}
-	err = r.Exec(r.ctx(), path, name, args)
+	path := r.lookPath(name)
+	err := r.Exec(r.ctx(), name, path, args)
 	switch x := err.(type) {
 	case nil:
 		r.exit = 0
@@ -1545,23 +1540,26 @@ func splitList(path string) []string {
 	return strings.Split(path, ":")
 }
 
-func (r *Runner) lookPath(file string) (string, error) {
+func (r *Runner) lookPath(file string) string {
 	if strings.Contains(file, "/") {
-		err := findExecutable(file)
-		if err == nil {
-			return file, nil
+		if err := findExecutable(file); err == nil {
+			return file
 		}
-		return "", fmt.Errorf("%q: executable file not found in $PATH", file)
+		return ""
 	}
 	path := r.getVar("PATH")
 	for _, dir := range splitList(path) {
-		if dir == "" {
-			dir = r.Dir
+		var path string
+		switch dir {
+		case "", ".":
+			// otherwise "foo" won't be "./foo"
+			path = "." + string(filepath.Separator) + file
+		default:
+			path = filepath.Join(dir, file)
 		}
-		path := filepath.Join(dir, file)
 		if err := findExecutable(path); err == nil {
-			return path, nil
+			return path
 		}
 	}
-	return "", fmt.Errorf("%q: executable file not found in $PATH", file)
+	return ""
 }

@@ -31,15 +31,20 @@ type Ctxt struct {
 // executed for all CallExpr nodes where the name is neither a declared
 // function nor a builtin.
 //
-// Note that the executable path is received as well as the name. The
-// path was found using the interpreter's $PATH.
+// Note that the executable path is received as well as the name. If
+// path is an empty string, it means that the executable did not exist
+// or was not found in $PATH.
 //
 // Use a return error of type ExitCode to set the exit code. A nil error
 // has the same effect as ExitCode(0). If the error is of any other
 // type, the interpreter will come to a stop.
-type ModuleExec func(ctx Ctxt, path, name string, args []string) error
+type ModuleExec func(ctx Ctxt, name, path string, args []string) error
 
-func DefaultExec(ctx Ctxt, path, name string, args []string) error {
+func DefaultExec(ctx Ctxt, name, path string, args []string) error {
+	if path == "" {
+		fmt.Fprintf(ctx.Stderr, "%q: executable file not found in $PATH\n", name)
+		return ExitCode(127)
+	}
 	cmd := exec.Command(path, args...)
 	cmd.Env = ctx.Env
 	cmd.Dir = ctx.Dir
