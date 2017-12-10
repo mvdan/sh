@@ -526,7 +526,7 @@ func (r *Runner) readLine(raw bool) ([]byte, error) {
 
 func (r *Runner) changeDir(path string) int {
 	path = r.relPath(path)
-	info, err := os.Stat(path)
+	info, err := r.stat(path)
 	if err != nil || !info.IsDir() {
 		return 1
 	}

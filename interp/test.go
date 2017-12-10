@@ -54,20 +54,26 @@ func (r *Runner) binTest(op syntax.BinTestOperator, x, y string) bool {
 		}
 		return re.MatchString(x)
 	case syntax.TsNewer:
-		i1, i2 := r.stat(x), r.stat(y)
-		if i1 == nil || i2 == nil {
+		info1, err1 := r.stat(x)
+		info2, err2 := r.stat(y)
+		if err1 != nil || err2 != nil {
 			return false
 		}
-		return i1.ModTime().After(i2.ModTime())
+		return info1.ModTime().After(info2.ModTime())
 	case syntax.TsOlder:
-		i1, i2 := r.stat(x), r.stat(y)
-		if i1 == nil || i2 == nil {
+		info1, err1 := r.stat(x)
+		info2, err2 := r.stat(y)
+		if err1 != nil || err2 != nil {
 			return false
 		}
-		return i1.ModTime().Before(i2.ModTime())
+		return info1.ModTime().Before(info2.ModTime())
 	case syntax.TsDevIno:
-		i1, i2 := r.stat(x), r.stat(y)
-		return os.SameFile(i1, i2)
+		info1, err1 := r.stat(x)
+		info2, err2 := r.stat(y)
+		if err1 != nil || err2 != nil {
+			return false
+		}
+		return os.SameFile(info1, info2)
 	case syntax.TsEql:
 		return atoi(x) == atoi(y)
 	case syntax.TsNeq:
@@ -91,38 +97,34 @@ func (r *Runner) binTest(op syntax.BinTestOperator, x, y string) bool {
 	}
 }
 
-func (r *Runner) stat(name string) os.FileInfo {
-	info, _ := os.Stat(r.relPath(name))
-	return info
-}
-
 func (r *Runner) statMode(name string, mode os.FileMode) bool {
-	info := r.stat(name)
-	return info != nil && info.Mode()&mode != 0
+	info, err := r.stat(name)
+	return err == nil && info.Mode()&mode != 0
 }
 
 func (r *Runner) unTest(op syntax.UnTestOperator, x string) bool {
 	switch op {
 	case syntax.TsExists:
-		return r.stat(x) != nil
+		_, err := r.stat(x)
+		return err == nil
 	case syntax.TsRegFile:
-		info := r.stat(x)
-		return info != nil && info.Mode().IsRegular()
+		info, err := r.stat(x)
+		return err == nil && info.Mode().IsRegular()
 	case syntax.TsDirect:
 		return r.statMode(x, os.ModeDir)
 	case syntax.TsCharSp:
 		return r.statMode(x, os.ModeCharDevice)
 	case syntax.TsBlckSp:
-		info := r.stat(x)
-		return info != nil && info.Mode()&os.ModeDevice != 0 &&
+		info, err := r.stat(x)
+		return err == nil && info.Mode()&os.ModeDevice != 0 &&
 			info.Mode()&os.ModeCharDevice == 0
 	case syntax.TsNmPipe:
 		return r.statMode(x, os.ModeNamedPipe)
 	case syntax.TsSocket:
 		return r.statMode(x, os.ModeSocket)
 	case syntax.TsSmbLink:
-		info, _ := os.Lstat(r.relPath(x))
-		return info != nil && info.Mode()&os.ModeSymlink != 0
+		info, err := os.Lstat(r.relPath(x))
+		return err == nil && info.Mode()&os.ModeSymlink != 0
 	case syntax.TsSticky:
 		return r.statMode(x, os.ModeSticky)
 	case syntax.TsUIDSet:
@@ -148,8 +150,8 @@ func (r *Runner) unTest(op syntax.UnTestOperator, x string) bool {
 		_, err := exec.LookPath(r.relPath(x))
 		return err == nil
 	case syntax.TsNoEmpty:
-		info := r.stat(x)
-		return info != nil && info.Size() > 0
+		info, err := r.stat(x)
+		return err == nil && info.Size() > 0
 	case syntax.TsFdTerm:
 		return terminal.IsTerminal(atoi(x))
 	case syntax.TsEmpStr:

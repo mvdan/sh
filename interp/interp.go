@@ -1520,8 +1520,12 @@ func (r *Runner) open(path string, flags int, mode os.FileMode, print bool) (io.
 	return f, err
 }
 
-func findExecutable(file string) error {
-	d, err := os.Stat(file)
+func (r *Runner) stat(name string) (os.FileInfo, error) {
+	return os.Stat(r.relPath(name))
+}
+
+func (r *Runner) findExecutable(file string) error {
+	d, err := r.stat(file)
 	if err != nil {
 		return err
 	}
@@ -1542,7 +1546,7 @@ func splitList(path string) []string {
 
 func (r *Runner) lookPath(file string) string {
 	if strings.Contains(file, "/") {
-		if err := findExecutable(file); err == nil {
+		if err := r.findExecutable(file); err == nil {
 			return file
 		}
 		return ""
@@ -1557,7 +1561,7 @@ func (r *Runner) lookPath(file string) string {
 		default:
 			path = filepath.Join(dir, file)
 		}
-		if err := findExecutable(path); err == nil {
+		if err := r.findExecutable(path); err == nil {
 			return path
 		}
 	}
