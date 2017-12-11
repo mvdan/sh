@@ -73,8 +73,29 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 			r.Params = r.Params[n:]
 		}
 	case "unset":
+		vars := true
+		funcs := true
+	unsetOpts:
+		for i, arg := range args {
+			switch arg {
+			case "-v":
+				funcs = false
+			case "-f":
+				vars = false
+			default:
+				args = args[i:]
+				break unsetOpts
+			}
+		}
+
 		for _, arg := range args {
-			r.delVar(arg)
+			if _, ok := r.lookupVar(arg); ok && vars {
+				r.delVar(arg)
+				continue
+			}
+			if _, ok := r.Funcs[arg]; ok && funcs {
+				delete(r.Funcs, arg)
+			}
 		}
 	case "echo":
 		newline, expand := true, false
