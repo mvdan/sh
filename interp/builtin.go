@@ -461,9 +461,48 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 
 		return 0
 
+	case "getopts":
+		if len(args) < 2 {
+			r.errf("getopts: usage: getopts optstring name [arg]\n")
+			return 2
+		}
+		optind, _ := strconv.Atoi(r.getVar("OPTIND"))
+		if optind-1 != r.optState.argidx {
+			if optind < 1 {
+				optind = 1
+			}
+			r.optState = getopts{argidx: optind - 1}
+		}
+		optstr := args[0]
+		name := args[1]
+		args = args[2:]
+		if len(args) == 0 {
+			args = r.Params
+		}
+		diagnostics := !strings.HasPrefix(optstr, ":")
+
+		opt, optarg, done := r.optState.Next(optstr, args)
+
+		r.setVarString(name, string(opt))
+		r.delVar("OPTARG")
+		switch {
+		case opt == '?' && diagnostics && !done:
+			r.errf("getopts: illegal option -- %q\n", optarg)
+		case opt == ':' && diagnostics:
+			r.errf("getopts: option requires an argument -- %q\n", optarg)
+		default:
+			if optarg != "" {
+				r.setVarString("OPTARG", optarg)
+			}
+		}
+		if optind-1 != r.optState.argidx {
+			r.setVarString("OPTIND", strconv.FormatInt(int64(r.optState.argidx+1), 10))
+		}
+
+		return oneIf(done)
+
 	default:
 		// "trap", "umask", "alias", "unalias", "fg", "bg",
-		// "getopts"
 		r.runErr(pos, "unhandled builtin: %s", name)
 	}
 	return 0
@@ -578,4 +617,46 @@ func (r *Runner) relPath(path string) string {
 		path = filepath.Join(r.Dir, path)
 	}
 	return filepath.Clean(path)
+}
+
+type getopts struct {
+	argidx  int
+	runeidx int
+}
+
+func (g *getopts) Next(optstr string, args []string) (opt rune, optarg string, done bool) {
+	if len(args) == 0 || g.argidx >= len(args) {
+		return '?', "", true
+	}
+	arg := []rune(args[g.argidx])
+	if len(arg) < 2 || arg[0] != '-' || arg[1] == '-' {
+		return '?', "", true
+	}
+
+	opts := arg[1:]
+	opt = opts[g.runeidx]
+	if g.runeidx+1 < len(opts) {
+		g.runeidx += 1
+	} else {
+		g.argidx += 1
+		g.runeidx = 0
+	}
+
+	i := strings.IndexRune(optstr, opt)
+	if i < 0 {
+		// invalid option
+		return '?', string(opt), false
+	}
+
+	if i+1 < len(optstr) && optstr[i+1] == ':' {
+		if g.argidx >= len(args) {
+			// missing argument
+			return ':', string(opt), false
+		}
+		optarg = args[g.argidx]
+		g.argidx += 1
+		g.runeidx = 0
+	}
+
+	return opt, optarg, false
 }

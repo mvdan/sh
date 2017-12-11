@@ -85,6 +85,8 @@ type Runner struct {
 
 	dirStack []string
 
+	optState getopts
+
 	ifsJoin string
 	ifsRune func(rune) bool
 
@@ -153,6 +155,7 @@ func (r *Runner) Reset() error {
 	r.Vars["PWD"] = Variable{Value: StringVal(r.Dir)}
 	r.Vars["IFS"] = Variable{Value: StringVal(" \t\n")}
 	r.ifsUpdated()
+	r.Vars["OPTIND"] = Variable{Value: StringVal("1")}
 
 	// convert $PATH to a unix path list
 	path := r.envMap["PATH"]
