@@ -80,6 +80,7 @@ type Runner struct {
 	stopOnCmdErr bool // set -e
 	noGlob       bool // set -f
 	allExport    bool // set -a
+	noUnset      bool // set -u
 
 	dirStack []string
 
@@ -414,8 +415,15 @@ func (r *Runner) lookupVar(name string) (Variable, bool) {
 	if vr, e := r.Vars[name]; e {
 		return vr, true
 	}
-	str, e := r.envMap[name]
-	return Variable{Value: StringVal(str)}, e
+	if str, e := r.envMap[name]; e {
+		return Variable{Value: StringVal(str)}, true
+	}
+	if r.noUnset {
+		r.errf("%s: unbound variable\n", name)
+		r.exit = 1
+		r.lastExit()
+	}
+	return Variable{}, false
 }
 
 func (r *Runner) getVar(name string) string {
@@ -458,6 +466,8 @@ opts:
 			r.noGlob = enable
 		case "a":
 			r.allExport = enable
+		case "u":
+			r.noUnset = enable
 		default:
 			return nil, fmt.Errorf("invalid option: %q", opt)
 		}
@@ -1472,6 +1482,9 @@ type returnCode uint8
 func (returnCode) Error() string { return "returned" }
 
 func (r *Runner) call(pos syntax.Pos, name string, args []string) {
+	if r.stop() {
+		return
+	}
 	if body := r.Funcs[name]; body != nil {
 		// stack them to support nested func calls
 		oldParams := r.Params

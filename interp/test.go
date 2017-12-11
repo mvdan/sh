@@ -166,6 +166,8 @@ func (r *Runner) unTest(op syntax.UnTestOperator, x string) bool {
 			return r.noGlob
 		case "allexport":
 			return r.allExport
+		case "nounset":
+			return r.noUnset
 		default:
 			return false
 		}

@@ -1077,6 +1077,8 @@ var fileCases = []struct {
 	{"set -f; [[ -o noglob ]]", ""},
 	{"[[ -o allexport ]]", "exit status 1"},
 	{"set -a; [[ -o allexport ]]", ""},
+	{"[[ -o nounset ]]", "exit status 1"},
+	{"set -u; [[ -o nounset ]]", ""},
 
 	// classic test
 	{
@@ -1331,6 +1333,14 @@ var fileCases = []struct {
 	{
 		"foo=bar; set -a; env | grep ^foo=",
 		"exit status 1",
+	},
+	{
+		"a=b; echo $a; set -u; echo $a",
+		"b\nb\n",
+	},
+	{
+		"echo $a; set -u; echo $a",
+		"\na: unbound variable\nexit status 1 #JUSTERR",
 	},
 
 	// unset
