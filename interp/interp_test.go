@@ -1079,6 +1079,8 @@ var fileCases = []struct {
 	{"set -a; [[ -o allexport ]]", ""},
 	{"[[ -o nounset ]]", "exit status 1"},
 	{"set -u; [[ -o nounset ]]", ""},
+	{"[[ -o noexec ]]", "exit status 1"},
+	{"set -n; [[ -o noexec ]]", ""}, // actually does nothing, but oh well
 
 	// classic test
 	{
@@ -1342,6 +1344,9 @@ var fileCases = []struct {
 		"echo $a; set -u; echo $a",
 		"\na: unbound variable\nexit status 1 #JUSTERR",
 	},
+	{"set -n; echo foo", ""},
+	{"set -n; [ wrong", ""},
+	{"set -n; set +n; echo foo", ""},
 
 	// unset
 	{

@@ -168,6 +168,8 @@ func (r *Runner) unTest(op syntax.UnTestOperator, x string) bool {
 			return r.allExport
 		case "nounset":
 			return r.noUnset
+		case "noexec":
+			return r.noExec
 		default:
 			return false
 		}

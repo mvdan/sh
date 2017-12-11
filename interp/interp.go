@@ -81,6 +81,7 @@ type Runner struct {
 	noGlob       bool // set -f
 	allExport    bool // set -a
 	noUnset      bool // set -u
+	noExec       bool // set -n
 
 	dirStack []string
 
@@ -468,6 +469,8 @@ opts:
 			r.allExport = enable
 		case "u":
 			r.noUnset = enable
+		case "n":
+			r.noExec = enable
 		default:
 			return nil, fmt.Errorf("invalid option: %q", opt)
 		}
@@ -849,6 +852,9 @@ func (r *Runner) stop() bool {
 	}
 	if err := r.Context.Err(); err != nil {
 		r.err = err
+		return true
+	}
+	if r.noExec {
 		return true
 	}
 	return false
