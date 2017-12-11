@@ -1616,6 +1616,64 @@ var fileCases = []struct {
 		"IFS=: read a b c <<< '1\\:2:3'; echo \"$a\"; echo $b; echo $c",
 		"1:2\n3\n\n",
 	},
+
+	// getopts
+	{
+		"getopts",
+		"getopts: usage: getopts optstring name [arg]\nexit status 2",
+	},
+	{
+		"getopts abc opt -a; echo $opt; $optarg",
+		"a\n",
+	},
+	{
+		"getopts abc opt -z",
+		"getopts: illegal option -- \"z\"\n #IGNORE",
+	},
+	{
+		"getopts a: opt -a",
+		"getopts: option requires an argument -- \"a\"\n #IGNORE",
+	},
+	{
+		"getopts :abc opt -z; echo $opt; echo $OPTARG",
+		"?\nz\n",
+	},
+	{
+		"getopts :a: opt -a; echo $opt; echo $OPTARG",
+		":\na\n",
+	},
+	{
+		"getopts abc opt foo -a; echo $opt; echo $OPTIND",
+		"?\n1\n",
+	},
+	{
+		"getopts abc opt -a foo; echo $opt; echo $OPTIND",
+		"a\n2\n",
+	},
+	{
+		"OPTIND=3; getopts abc opt -a -b -c; echo $opt;",
+		"c\n",
+	},
+	{
+		"OPTIND=100; getopts abc opt -a -b -c; echo $opt;",
+		"?\n",
+	},
+	{
+		"OPTIND=foo; getopts abc opt -a -b -c; echo $opt;",
+		"a\n",
+	},
+	{
+		"while getopts ab:c opt -c -b arg -a foo; do echo $opt $OPTARG $OPTIND; done",
+		"c 2\nb arg 4\na 5\n",
+	},
+	{
+		"while getopts abc opt -ba -c foo; do echo $opt $OPTARG $OPTIND; done",
+		"b 1\na 2\nc 3\n",
+	},
+	{
+		"a() { while getopts abc: opt; do echo $opt $OPTARG; done }; a -a -b -c arg",
+		"a\nb\nc arg\n",
+	},
 }
 
 // concBuffer wraps a bytes.Buffer in a mutex so that concurrent writes
