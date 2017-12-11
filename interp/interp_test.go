@@ -1269,6 +1269,28 @@ var fileCases = []struct {
 		"exit status 1",
 	},
 
+	// unset
+	{
+		"a=1; echo $a; unset a; echo $a",
+		"1\n\n",
+	},
+	{
+		"a() { echo func; }; a; unset -f a; a",
+		"func\n\"a\": executable file not found in $PATH\nexit status 127 #JUSTERR",
+	},
+	{
+		"a=1; a() { echo func; }; unset -f a; echo $a",
+		"1\n",
+	},
+	{
+		"a=1; a() { echo func; }; unset -v a; a; echo $a",
+		"func\n\n",
+	},
+	{
+		"a=1; a() { echo func; }; a; echo $a; unset a; a; echo $a; unset a; a",
+		"func\n1\nfunc\n\n\"a\": executable file not found in $PATH\nexit status 127 #JUSTERR",
+	},
+
 	// IFS
 	{`echo -n "$IFS"`, " \t\n"},
 	{`a="x:y:z"; IFS=:; echo $a`, "x y z\n"},
