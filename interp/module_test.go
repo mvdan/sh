@@ -158,7 +158,8 @@ func TestSignalSending(t *testing.T) {
 		},
 	}
 
-	for i, test := range tests {
+	for i := range tests {
+		test := tests[i]
 		t.Run(fmt.Sprintf("TestSignalSending%d", i+1), func(t *testing.T) {
 			t.Parallel()
 			p := syntax.NewParser()
