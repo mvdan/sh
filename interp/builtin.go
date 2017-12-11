@@ -264,20 +264,25 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 		return r.exit
 	case "[":
 		if len(args) == 0 || args[len(args)-1] != "]" {
-			r.runErr(pos, "[: missing matching ]")
-			break
+			r.errf("%v: [: missing matching ]\n", pos)
+			return 2
 		}
 		args = args[:len(args)-1]
 		fallthrough
 	case "test":
+		parseErr := false
 		p := testParser{
 			rem: args,
-			err: func(format string, a ...interface{}) {
-				r.runErr(pos, format, a...)
+			err: func(err error) {
+				r.errf("%v: %v\n", pos, err)
+				parseErr = true
 			},
 		}
 		p.next()
 		expr := p.classicTest("[", false)
+		if parseErr {
+			return 2
+		}
 		return oneIf(r.bashTest(expr) == "")
 	case "exec":
 		// TODO: Consider syscall.Exec, i.e. actually replacing

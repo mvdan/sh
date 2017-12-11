@@ -1081,19 +1081,19 @@ var fileCases = []struct {
 	// classic test
 	{
 		"[",
-		"1:1: [: missing matching ] #JUSTERR",
+		"1:1: [: missing matching ]\nexit status 2 #JUSTERR",
 	},
 	{
 		"[ a",
-		"1:1: [: missing matching ] #JUSTERR",
+		"1:1: [: missing matching ]\nexit status 2 #JUSTERR",
 	},
 	{
 		"[ a b c ]",
-		"1:1: not a valid test operator: b #JUSTERR",
+		"1:1: not a valid test operator: b\nexit status 2 #JUSTERR",
 	},
 	{
 		"[ a -a ]",
-		"1:1: -a must be followed by an expression #JUSTERR",
+		"1:1: -a must be followed by an expression\nexit status 2 #JUSTERR",
 	},
 	{"[ a ]", ""},
 	{"[ -n ]", ""},
@@ -1120,7 +1120,7 @@ var fileCases = []struct {
 	},
 	{
 		"test 3 -lt",
-		"1:1: -lt must be followed by a word #JUSTERR",
+		"1:1: -lt must be followed by a word\nexit status 2 #JUSTERR",
 	},
 	{
 		"touch -d @1 a; touch -d @2 b; [ a -nt b ]",

@@ -4,6 +4,8 @@
 package interp
 
 import (
+	"fmt"
+
 	"mvdan.cc/sh/syntax"
 )
 
@@ -14,7 +16,11 @@ type testParser struct {
 	val string
 	rem []string
 
-	err func(format string, a ...interface{})
+	err func(err error)
+}
+
+func (p *testParser) errf(format string, a ...interface{}) {
+	p.err(fmt.Errorf(format, a...))
 }
 
 func (p *testParser) next() {
@@ -29,7 +35,7 @@ func (p *testParser) next() {
 
 func (p *testParser) followWord(fval string) *syntax.Word {
 	if p.eof {
-		p.err("%s must be followed by a word", fval)
+		p.errf("%s must be followed by a word", fval)
 	}
 	w := &syntax.Word{Parts: []syntax.WordPart{
 		&syntax.Lit{Value: p.val},
@@ -51,7 +57,7 @@ func (p *testParser) classicTest(fval string, pastAndOr bool) syntax.TestExpr {
 	opStr := p.val
 	op := testBinaryOp(p.val)
 	if op == illegalTok {
-		p.err("not a valid test operator: %s", p.val)
+		p.errf("not a valid test operator: %s", p.val)
 	}
 	b := &syntax.BinaryTest{
 		Op: op,
@@ -61,7 +67,7 @@ func (p *testParser) classicTest(fval string, pastAndOr bool) syntax.TestExpr {
 	switch b.Op {
 	case syntax.AndTest, syntax.OrTest:
 		if b.Y = p.classicTest(opStr, false); b.Y == nil {
-			p.err("%s must be followed by an expression", opStr)
+			p.errf("%s must be followed by an expression", opStr)
 		}
 	default:
 		b.Y = p.followWord(opStr)
