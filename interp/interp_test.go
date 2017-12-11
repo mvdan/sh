@@ -926,6 +926,10 @@ var fileCases = []struct {
 		"",
 	},
 	{
+		"[[ a -ef b ]]",
+		"exit status 1",
+	},
+	{
 		"touch a b; [[ a -ef b ]]",
 		"exit status 1",
 	},
@@ -1088,30 +1092,12 @@ var fileCases = []struct {
 	{"[ '-n' ]", ""},
 	{"[ -z ]", ""},
 	{"[ ! ]", ""},
-	{
-		"[ a != b ]",
-		"",
-	},
-	{
-		"[ ! a '==' a ]",
-		"exit status 1",
-	},
-	{
-		"[ a -a 0 -gt 1 ]",
-		"exit status 1",
-	},
-	{
-		"[ 0 -gt 1 -o 1 -gt 0 ]",
-		"",
-	},
-	{
-		"[ 3 -gt 4 ]",
-		"exit status 1",
-	},
-	{
-		"[ 3 -lt 4 ]",
-		"",
-	},
+	{"[ a != b ]", ""},
+	{"[ ! a '==' a ]", "exit status 1"},
+	{"[ a -a 0 -gt 1 ]", "exit status 1"},
+	{"[ 0 -gt 1 -o 1 -gt 0 ]", ""},
+	{"[ 3 -gt 4 ]", "exit status 1"},
+	{"[ 3 -lt 4 ]", ""},
 	{
 		"[ -e a ] && echo x; touch a; [ -e a ] && echo y",
 		"y\n",
@@ -1128,6 +1114,72 @@ var fileCases = []struct {
 		"test 3 -lt",
 		"1:1: -lt must be followed by a word #JUSTERR",
 	},
+	{
+		"touch -d @1 a; touch -d @2 b; [ a -nt b ]",
+		"exit status 1",
+	},
+	{
+		"touch -d @1 a; touch -d @2 b; [ a -ot b ]",
+		"",
+	},
+	{
+		"touch a; [ a -ef a ]",
+		"",
+	},
+	{"[ 3 -eq 04 ]", "exit status 1"},
+	{"[ 3 -eq 03 ]", ""},
+	{"[ 3 -ne 03 ]", "exit status 1"},
+	{"[ 3 -le 4 ]", ""},
+	{"[ 3 -ge 4 ]", "exit status 1"},
+	{
+		"[ -d a ] && echo x; mkdir a; [ -d a ] && echo y",
+		"y\n",
+	},
+	{
+		"[ -r a ] && echo x; touch a; [ -r a ] && echo y",
+		"y\n",
+	},
+	{
+		"[ -w a ] && echo x; touch a; [ -w a ] && echo y",
+		"y\n",
+	},
+	{
+		"[ -x a ] && echo x; touch a; chmod +x a; [ -x a ] && echo y",
+		"y\n",
+	},
+	{
+		"[ -s a ] && echo x; echo body >a; [ -s a ] && echo y",
+		"y\n",
+	},
+	{
+		"[ -L a ] && echo x; ln -s b a; [ -L a ] && echo y;",
+		"y\n",
+	},
+	{
+		"[ -p a ] && echo x; mknod a p; [ -p a ] && echo y",
+		"y\n",
+	},
+	{
+		"touch a; [ -k a ] && echo x; chmod +t a; [ -k a ] && echo y",
+		"y\n",
+	},
+	{
+		"touch a; [ -u a ] && echo x; chmod u+s a; [ -u a ] && echo y",
+		"y\n",
+	},
+	{
+		"touch a; [ -g a ] && echo x; chmod g+s a; [ -g a ] && echo y",
+		"y\n",
+	},
+	{
+		"touch a; [ -b a ] && echo block; [ -c a ] && echo char; true",
+		"",
+	},
+	{"[ -t 1234 ]", "exit status 1"}, // TODO: reliable way to test a positive?
+	{"[ -o wrong ]", "exit status 1"},
+	{"[ -o errexit ]", "exit status 1"},
+	{"set -e; [ -o errexit ]", ""},
+	{"a=x b=''; [ -v a -a -v b -a ! -v c ]", ""},
 
 	// arithm
 	{
@@ -1237,35 +1289,39 @@ var fileCases = []struct {
 		"0\n2\n",
 	},
 	{
-		`set -- a b; echo $#`,
+		"set -- a b; echo $#",
 		"2\n",
 	},
 	{
-		`set -e; false; echo foo`,
+		"set -U",
+		"set: invalid option: \"-U\"\nexit status 2 #JUSTERR",
+	},
+	{
+		"set -e; false; echo foo",
 		"exit status 1",
 	},
 	{
-		`set -e; set +e; false; echo foo`,
+		"set -e; set +e; false; echo foo",
 		"foo\n",
 	},
 	{
-		`set -f; touch a.x; echo *.x;`,
+		"set -f; touch a.x; echo *.x;",
 		"*.x\n",
 	},
 	{
-		`set -f; set +f; touch a.x; echo *.x;`,
+		"set -f; set +f; touch a.x; echo *.x;",
 		"a.x\n",
 	},
 	{
-		`set -a; foo=bar; env | grep ^foo=`,
+		"set -a; foo=bar; env | grep ^foo=",
 		"foo=bar\n",
 	},
 	{
-		`set -a; foo=(b a r); env | grep ^foo=`,
+		"set -a; foo=(b a r); env | grep ^foo=",
 		"exit status 1",
 	},
 	{
-		`foo=bar; set -a; env | grep ^foo=`,
+		"foo=bar; set -a; env | grep ^foo=",
 		"exit status 1",
 	},
 
@@ -1466,6 +1522,7 @@ var fileCases = []struct {
 
 	// name references
 	{"declare -n foo=bar; bar=etc; [[ -R foo ]]", ""},
+	{"declare -n foo=bar; bar=etc; [ -R foo ]", ""},
 	{"nameref foo=bar; bar=etc; [[ -R foo ]]", " #IGNORE"},
 	{"declare foo=bar; bar=etc; [[ -R foo ]]", "exit status 1"},
 	{

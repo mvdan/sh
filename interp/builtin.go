@@ -49,7 +49,7 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 	case "set":
 		rest, err := r.FromArgs(args...)
 		if err != nil {
-			r.errf("set: %v", err)
+			r.errf("set: %v\n", err)
 			return 2
 		}
 		r.Params = rest
