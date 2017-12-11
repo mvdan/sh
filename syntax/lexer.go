@@ -717,8 +717,11 @@ loop:
 	for p.newLit(r); r != utf8.RuneSelf; r = p.rune() {
 		switch {
 		case r == '\\':
-			if r = p.rune(); r == '\n' {
+			if p.peekByte('\n') {
+				p.rune()
 				p.discardLit(2)
+			} else {
+				break loop
 			}
 		case 'a' <= r && r <= 'z':
 		case 'A' <= r && r <= 'Z':

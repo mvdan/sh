@@ -1723,6 +1723,21 @@ var fileTests = []testCase{
 		),
 	},
 	{
+		Strs: []string{"$foo\\bar"},
+		common: call(
+			word(litParamExp("foo"), lit("\\bar")),
+		),
+	},
+	{
+		Strs: []string{`echo -e "$foo\nbar"`},
+		common: call(
+			litWord("echo"), litWord("-e"),
+			word(dblQuoted(
+				litParamExp("foo"), lit(`\nbar`),
+			)),
+		),
+	},
+	{
 		Strs: []string{`${foo-bar}`},
 		common: &ParamExp{
 			Param: lit("foo"),
