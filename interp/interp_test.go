@@ -691,6 +691,14 @@ var fileCases = []struct {
 		"mkdir c; cd c; echo '#!/bin/sh\necho b' >a; chmod a+x a; PATH=; a",
 		"b\n",
 	},
+	{
+		"c/a",
+		"\"c/a\": executable file not found in $PATH\nexit status 127 #JUSTERR",
+	},
+	{
+		"mkdir c; echo '#!/bin/sh\necho b' >c/a; chmod a+x c/a; c/a",
+		"b\n",
+	},
 
 	// return
 	{"return", "return: can only be done from a func or sourced script\nexit status 1 #JUSTERR"},
