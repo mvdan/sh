@@ -570,7 +570,7 @@ var fileCases = []struct {
 	},
 	{"popd", "popd: directory stack empty\nexit status 1 #JUSTERR"},
 	{"popd -n", "popd: directory stack empty\nexit status 1 #JUSTERR"},
-	{"popd foo", "popd: invdalid argument\nexit status 2 #JUSTERR"},
+	{"popd foo", "popd: invalid argument\nexit status 2 #JUSTERR"},
 	{"old=$(dirs); mkdir a; pushd a >/dev/null; set -- $(popd); echo $#", "1\n"},
 	{
 		"old=$(dirs); mkdir a; pushd a >/dev/null; popd >/dev/null; [[ $(dirs) == $old ]]",
