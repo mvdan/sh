@@ -404,7 +404,7 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 			}
 			r.builtinCode(syntax.Pos{}, "dirs", nil)
 		default:
-			r.errf("popd: invdalid argument\n")
+			r.errf("popd: invalid argument\n")
 			return 2
 		}
 	case "return":
