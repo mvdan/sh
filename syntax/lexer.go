@@ -693,7 +693,7 @@ func (p *Parser) newLit(r rune) {
 	if r <= utf8.RuneSelf {
 		p.litBs = p.litBuf[:1]
 		p.litBs[0] = byte(r)
-	} else if p.bsp <= len(p.bs) {
+	} else {
 		w := utf8.RuneLen(r)
 		p.litBs = append(p.litBuf[:0], p.bs[p.bsp-w:p.bsp]...)
 	}
@@ -704,7 +704,7 @@ func (p *Parser) discardLit(n int) { p.litBs = p.litBs[:len(p.litBs)-n] }
 func (p *Parser) endLit() (s string) {
 	if p.r == utf8.RuneSelf {
 		s = string(p.litBs)
-	} else if len(p.litBs) > 0 {
+	} else {
 		s = string(p.litBs[:len(p.litBs)-int(p.w)])
 	}
 	p.litBs = nil
