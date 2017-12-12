@@ -475,6 +475,10 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 		}
 		optstr := args[0]
 		name := args[1]
+		if !syntax.ValidName(name) {
+			r.errf("getopts: invalid identifier: %q\n", name)
+			return 2
+		}
 		args = args[2:]
 		if len(args) == 0 {
 			args = r.Params

@@ -1725,6 +1725,10 @@ var fileCases = []struct {
 		"getopts: usage: getopts optstring name [arg]\nexit status 2",
 	},
 	{
+		"getopts a a:b",
+		"getopts: invalid identifier: \"a:b\"\nexit status 2 #JUSTERR",
+	},
+	{
 		"getopts abc opt -a; echo $opt; $optarg",
 		"a\n",
 	},
