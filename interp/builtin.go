@@ -429,7 +429,7 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 			case "-r":
 				raw = true
 			default:
-				r.errf("invalid option %q\n", args[0])
+				r.errf("read: invalid option %q\n", args[0])
 				return 2
 			}
 			args = args[1:]
@@ -437,7 +437,7 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 
 		for _, name := range args {
 			if !syntax.ValidName(name) {
-				r.errf("invalid identifier %q\n", name)
+				r.errf("read: invalid identifier %q\n", name)
 				return 2
 			}
 		}
