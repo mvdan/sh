@@ -1083,6 +1083,8 @@ var fileCases = []struct {
 	{"set -u; [[ -o nounset ]]", ""},
 	{"[[ -o noexec ]]", "exit status 1"},
 	{"set -n; [[ -o noexec ]]", ""}, // actually does nothing, but oh well
+	{"[[ -o pipefail ]]", "exit status 1"},
+	{"set -o pipefail; [[ -o pipefail ]]", ""},
 
 	// classic test
 	{
@@ -1319,6 +1321,22 @@ var fileCases = []struct {
 		"foo\n",
 	},
 	{
+		"false | :",
+		"",
+	},
+	{
+		"set -o pipefail; false | :",
+		"exit status 1",
+	},
+	{
+		"set -o pipefail; true | false | true | :",
+		"exit status 1",
+	},
+	{
+		"set -o pipefail; set -M 2>/dev/null | false",
+		"exit status 1",
+	},
+	{
 		"set -f; touch a.x; echo *.x;",
 		"*.x\n",
 	},
@@ -1362,6 +1380,7 @@ errexit:	on
 noexec:	off
 noglob:	off
 nounset:	off
+pipefail:	off
  #IGNORE`,
 	},
 	{
@@ -1371,6 +1390,7 @@ set +o errexit
 set +o noexec
 set +o noglob
 set +o nounset
+set +o pipefail
  #IGNORE`,
 	},
 

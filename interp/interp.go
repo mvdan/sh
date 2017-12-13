@@ -122,12 +122,14 @@ func (r *Runner) optByName(name string) *bool {
 var shellOptsTable = [...]struct {
 	flag, name string
 }{
-	// sorted alphabetically by name
+	// sorted alphabetically by name; use a space for the options
+	// that have no flag form
 	{"a", "allexport"},
 	{"e", "errexit"},
 	{"n", "noexec"},
 	{"f", "noglob"},
 	{"u", "nounset"},
+	{" ", "pipefail"},
 }
 
 // To access the shell options arrays without a linear search when we
@@ -138,6 +140,7 @@ const (
 	optNoExec
 	optNoGlob
 	optNoUnset
+	optPipeFail
 )
 
 // Reset will set the unexported fields back to zero, fill any exported
@@ -805,6 +808,9 @@ func (r *Runner) cmd(cm syntax.Command) {
 			r.stmt(x.Y)
 			pr.Close()
 			wg.Wait()
+			if r.shellOpts[optPipeFail] && r2.exit > 0 && r.exit == 0 {
+				r.exit = r2.exit
+			}
 			r.setErr(r2.err)
 		}
 	case *syntax.IfClause:
