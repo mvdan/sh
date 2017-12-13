@@ -705,6 +705,7 @@ var fileCases = []struct {
 	{"f() { return; }; f", ""},
 	{"f() { return 2; }; f", "exit status 2"},
 	{"f() { echo foo; return; echo bar; }; f", "foo\n"},
+	{"f1() { :; }; f2() { f1; return; }; f2", ""},
 	{"echo 'return' >a; source a", ""},
 	{"echo 'return' >a; source a; return", "return: can only be done from a func or sourced script\nexit status 1 #JUSTERR"},
 	{"echo 'return 2' >a; source a", "exit status 2"},

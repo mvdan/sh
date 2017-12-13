@@ -987,10 +987,13 @@ func (r *Runner) call(pos syntax.Pos, name string, args []string) {
 		// stack them to support nested func calls
 		oldParams := r.Params
 		r.Params = args
+		oldCanReturn := r.canReturn
 		r.canReturn = true
+
 		r.stmt(body)
+
 		r.Params = oldParams
-		r.canReturn = false
+		r.canReturn = oldCanReturn
 		if code, ok := r.err.(returnCode); ok {
 			r.err = nil
 			r.exit = int(code)
