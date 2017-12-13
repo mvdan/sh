@@ -278,7 +278,7 @@ func (r *Runner) Fields(words ...*syntax.Word) []string {
 				path, glob := escapedGlob(field)
 				var matches []string
 				abs := filepath.IsAbs(path)
-				if glob && !r.noGlob {
+				if glob && !r.shellOpts[optNoGlob] {
 					if !abs {
 						path = filepath.Join(baseDir, path)
 					}

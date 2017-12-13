@@ -78,11 +78,7 @@ type Runner struct {
 	// Context can be used to cancel the interpreter before it finishes
 	Context context.Context
 
-	stopOnCmdErr bool // set -e
-	noGlob       bool // set -f
-	allExport    bool // set -a
-	noUnset      bool // set -u
-	noExec       bool // set -n
+	shellOpts [len(shellOptsTable)]bool
 
 	dirStack []string
 
@@ -104,6 +100,45 @@ type Runner struct {
 	// because Go doesn't currently support sending Interrupt on Windows.
 	KillTimeout time.Duration
 }
+
+func (r *Runner) optByFlag(flag string) *bool {
+	for i, opt := range shellOptsTable {
+		if opt.flag == flag {
+			return &r.shellOpts[i]
+		}
+	}
+	return nil
+}
+
+func (r *Runner) optByName(name string) *bool {
+	for i, opt := range shellOptsTable {
+		if opt.name == name {
+			return &r.shellOpts[i]
+		}
+	}
+	return nil
+}
+
+var shellOptsTable = [...]struct {
+	flag, name string
+}{
+	// sorted alphabetically by name
+	{"a", "allexport"},
+	{"e", "errexit"},
+	{"n", "noexec"},
+	{"f", "noglob"},
+	{"u", "nounset"},
+}
+
+// To access the shell options arrays without a linear search when we
+// know which option we're after at compile time.
+const (
+	optAllExport = iota
+	optErrExit
+	optNoExec
+	optNoGlob
+	optNoUnset
+)
 
 // Reset will set the unexported fields back to zero, fill any exported
 // fields with their default values if not set, and prepare the runner
@@ -334,7 +369,7 @@ func (r *Runner) setVarString(name, val string) {
 
 func (r *Runner) setVarInternal(name string, vr Variable) {
 	if _, ok := vr.Value.(StringVal); ok {
-		if r.allExport {
+		if r.shellOpts[optAllExport] {
 			vr.Exported = true
 		}
 	} else {
@@ -436,7 +471,7 @@ func (r *Runner) lookupVar(name string) (Variable, bool) {
 	if str, e := r.envMap[name]; e {
 		return Variable{Value: StringVal(str)}, true
 	}
-	if r.noUnset {
+	if r.shellOpts[optNoUnset] {
 		r.errf("%s: unbound variable\n", name)
 		r.exit = 1
 		r.lastExit()
@@ -469,28 +504,19 @@ func (r *Runner) setFunc(name string, body *syntax.Stmt) {
 func (r *Runner) FromArgs(args ...string) ([]string, error) {
 opts:
 	for len(args) > 0 {
-		opt := args[0]
-		if opt == "" || (opt[0] != '-' && opt[0] != '+') {
+		arg := args[0]
+		if arg == "" || (arg[0] != '-' && arg[0] != '+') {
 			break
 		}
-		enable := opt[0] == '-'
-		switch opt[1:] {
-		case "-":
+		if arg == "--" {
 			args = args[1:]
 			break opts
-		case "e":
-			r.stopOnCmdErr = enable
-		case "f":
-			r.noGlob = enable
-		case "a":
-			r.allExport = enable
-		case "u":
-			r.noUnset = enable
-		case "n":
-			r.noExec = enable
-		default:
-			return nil, fmt.Errorf("invalid option: %q", opt)
 		}
+		opt := r.optByFlag(arg[1:])
+		if opt == nil {
+			return nil, fmt.Errorf("invalid option: %q", arg)
+		}
+		*opt = arg[0] == '-'
 		args = args[1:]
 	}
 	return args, nil
@@ -538,7 +564,7 @@ func (r *Runner) stop() bool {
 		r.err = err
 		return true
 	}
-	if r.noExec {
+	if r.shellOpts[optNoExec] {
 		return true
 	}
 	return false
@@ -884,7 +910,7 @@ func (r *Runner) cmd(cm syntax.Command) {
 	default:
 		r.runErr(cm.Pos(), "unhandled command node: %T", x)
 	}
-	if r.exit != 0 && r.stopOnCmdErr {
+	if r.exit != 0 && r.shellOpts[optErrExit] {
 		r.lastExit()
 	}
 }

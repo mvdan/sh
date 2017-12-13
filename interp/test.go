@@ -159,20 +159,10 @@ func (r *Runner) unTest(op syntax.UnTestOperator, x string) bool {
 	case syntax.TsNempStr:
 		return x != ""
 	case syntax.TsOptSet:
-		switch x {
-		case "errexit":
-			return r.stopOnCmdErr
-		case "noglob":
-			return r.noGlob
-		case "allexport":
-			return r.allExport
-		case "nounset":
-			return r.noUnset
-		case "noexec":
-			return r.noExec
-		default:
-			return false
+		if opt := r.optByName(x); opt != nil {
+			return *opt
 		}
+		return false
 	case syntax.TsVarSet:
 		_, e := r.lookupVar(x)
 		return e
