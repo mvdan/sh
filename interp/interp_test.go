@@ -1349,6 +1349,30 @@ var fileCases = []struct {
 	{"set -n; echo foo", ""},
 	{"set -n; [ wrong", ""},
 	{"set -n; set +n; echo foo", ""},
+	{
+		"set -o foobar",
+		"set: invalid option: \"-o\"\nexit status 2 #JUSTERR",
+	},
+	{"set -o noexec; echo foo", ""},
+	{"set +o noexec; echo foo", "foo\n"},
+	{
+		"set -e; set -o",
+		`allexport:	off
+errexit:	on
+noexec:	off
+noglob:	off
+nounset:	off
+ #IGNORE`,
+	},
+	{
+		"set -a; set +o",
+		`set -o allexport
+set +o errexit
+set +o noexec
+set +o noglob
+set +o nounset
+ #IGNORE`,
+	},
 
 	// unset
 	{

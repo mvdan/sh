@@ -502,7 +502,6 @@ func (r *Runner) setFunc(name string, body *syntax.Stmt) {
 //
 // This is similar to what the interpreter's "set" builtin does.
 func (r *Runner) FromArgs(args ...string) ([]string, error) {
-opts:
 	for len(args) > 0 {
 		arg := args[0]
 		if arg == "" || (arg[0] != '-' && arg[0] != '+') {
@@ -510,13 +509,40 @@ opts:
 		}
 		if arg == "--" {
 			args = args[1:]
-			break opts
+			break
 		}
-		opt := r.optByFlag(arg[1:])
+		enable := arg[0] == '-'
+		var opt *bool
+		if flag := arg[1:]; flag == "o" {
+			args = args[1:]
+			if len(args) == 0 && enable {
+				for i, opt := range shellOptsTable {
+					status := "off"
+					if r.shellOpts[i] {
+						status = "on"
+					}
+					r.outf("%s:\t%s\n", opt.name, status)
+				}
+				break
+			}
+			if len(args) == 0 && !enable {
+				for i, opt := range shellOptsTable {
+					setFlag := "+o"
+					if r.shellOpts[i] {
+						setFlag = "-o"
+					}
+					r.outf("set %s %s\n", setFlag, opt.name)
+				}
+				break
+			}
+			opt = r.optByName(args[0])
+		} else {
+			opt = r.optByFlag(arg[1:])
+		}
 		if opt == nil {
 			return nil, fmt.Errorf("invalid option: %q", arg)
 		}
-		*opt = arg[0] == '-'
+		*opt = enable
 		args = args[1:]
 	}
 	return args, nil
