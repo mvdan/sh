@@ -553,7 +553,7 @@ func stringIndex(index syntax.ArithmExpr) bool {
 	return ok
 }
 
-func (r *Runner) assignVal(as *syntax.Assign, mode string) VarValue {
+func (r *Runner) assignVal(as *syntax.Assign, valType string) VarValue {
 	prev, prevOk := r.lookupVar(as.Name.Value)
 	if as.Naked {
 		return prev.Value
@@ -581,14 +581,14 @@ func (r *Runner) assignVal(as *syntax.Assign, mode string) VarValue {
 		return nil
 	}
 	elems := as.Array.Elems
-	if mode == "" {
+	if valType == "" {
 		if len(elems) == 0 || !stringIndex(elems[0].Index) {
-			mode = "-a" // indexed
+			valType = "-a" // indexed
 		} else {
-			mode = "-A" // associative
+			valType = "-A" // associative
 		}
 	}
-	if mode == "-A" {
+	if valType == "-A" {
 		// associative array
 		amap := AssocArray(make(map[string]string, len(elems)))
 		for _, elem := range elems {
@@ -811,22 +811,25 @@ func (r *Runner) cmd(cm syntax.Command) {
 			r.exit = 0
 		}
 	case *syntax.DeclClause:
-		mode := ""
+		var modes []string
+		valType := ""
 		switch x.Variant.Value {
 		case "local":
 			// as per default
 		case "export":
-			mode = "-x"
+			modes = append(modes, "-x")
 		case "readonly":
-			mode = "-r"
+			modes = append(modes, "-r")
 		case "nameref":
-			mode = "-n"
+			modes = append(modes, "-n")
 		}
 		for _, opt := range x.Opts {
 			_ = opt
 			switch s := r.loneWord(opt); s {
-			case "-x", "-r", "-n", "-A":
-				mode = s
+			case "-x", "-r", "-n":
+				modes = append(modes, s)
+			case "-a", "-A":
+				valType = s
 			default:
 				r.runErr(cm.Pos(), "unhandled declare opts")
 			}
@@ -835,16 +838,16 @@ func (r *Runner) cmd(cm syntax.Command) {
 			for _, as := range r.expandAssigns(as) {
 				name := as.Name.Value
 				vr, _ := r.lookupVar(as.Name.Value)
-				vr.Value = r.assignVal(as, mode)
-				switch mode {
-				case "-x":
-					vr.Exported = true
-				case "-r":
-					vr.ReadOnly = true
-				case "-n":
-					vr.NameRef = true
-				case "-A":
-					// nothing to do
+				vr.Value = r.assignVal(as, valType)
+				for _, mode := range modes {
+					switch mode {
+					case "-x":
+						vr.Exported = true
+					case "-r":
+						vr.ReadOnly = true
+					case "-n":
+						vr.NameRef = true
+					}
 				}
 				r.setVar(name, as.Index, vr)
 			}

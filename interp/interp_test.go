@@ -1479,6 +1479,10 @@ var fileCases = []struct {
 		`a="y"; a[2]=x; echo ${a[2]}`,
 		"x\n",
 	},
+	{
+		`declare -a a=(x y); echo ${a[1]}`,
+		"y\n",
+	},
 
 	// associative arrays
 	{
@@ -1582,6 +1586,16 @@ var fileCases = []struct {
 	},
 	{
 		"readonly foo=bar; foo=etc",
+		"foo: readonly variable\nexit status 1 #JUSTERR",
+	},
+
+	// multiple var modes at once
+	{
+		"declare -r -x foo=bar; env | grep '^foo='",
+		"foo=bar\n",
+	},
+	{
+		"declare -r -x foo=bar; foo=x",
 		"foo: readonly variable\nexit status 1 #JUSTERR",
 	},
 
