@@ -73,6 +73,13 @@ func (r *Runner) arithm(expr syntax.ArithmExpr) int {
 	}
 }
 
+func oneIf(b bool) int {
+	if b {
+		return 1
+	}
+	return 0
+}
+
 // atoi is just a shorthand for strconv.Atoi that ignores the error,
 // just like shells do.
 func atoi(s string) int {
