@@ -1548,6 +1548,24 @@ var fileCases = []struct {
 	{"declare -A foo=([a]=b); export foo; env | grep '^foo='", "exit status 1"},
 	{"export foo=(b c); foo=x; env | grep '^foo='", "exit status 1"},
 
+	// local
+	{
+		"f() { local a=b; }; f; echo $a",
+		"\n",
+	},
+	{
+		"a=x; f() { local a=b; }; f; echo $a",
+		"x\n",
+	},
+	{
+		"a=x; f() { echo $a; local a=b; echo $a; }; f",
+		"x\nb\n",
+	},
+	{
+		"f1() { local a=b; }; f2() { f1; echo $a; }; f2",
+		"\n",
+	},
+
 	// name references
 	{"declare -n foo=bar; bar=etc; [[ -R foo ]]", ""},
 	{"declare -n foo=bar; bar=etc; [ -R foo ]", ""},

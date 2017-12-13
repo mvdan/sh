@@ -54,6 +54,9 @@ type Runner struct {
 	Vars  map[string]Variable
 	Funcs map[string]*syntax.Stmt
 
+	// like Vars, but local to a func i.e. "local foo=bar"
+	funcVars map[string]Variable
+
 	// like Vars, but local to a cmd i.e. "foo=bar prog args..."
 	cmdVars map[string]VarValue
 
@@ -197,6 +200,7 @@ func (r *Runner) ctx() Ctxt {
 }
 
 type Variable struct {
+	Local    bool
 	Exported bool
 	ReadOnly bool
 	NameRef  bool
@@ -328,6 +332,27 @@ func (r *Runner) setVarString(name, val string) {
 	r.setVar(name, nil, Variable{Value: StringVal(val)})
 }
 
+func (r *Runner) setVarInternal(name string, vr Variable) {
+	if _, ok := vr.Value.(StringVal); ok {
+		if r.allExport {
+			vr.Exported = true
+		}
+	} else {
+		vr.Exported = false
+	}
+	if vr.Local {
+		if r.funcVars == nil {
+			r.funcVars = make(map[string]Variable)
+		}
+		r.funcVars[name] = vr
+	} else {
+		r.Vars[name] = vr
+	}
+	if name == "IFS" {
+		r.ifsUpdated()
+	}
+}
+
 func (r *Runner) setVar(name string, index syntax.ArithmExpr, vr Variable) {
 	cur, _ := r.lookupVar(name)
 	if cur.ReadOnly {
@@ -353,17 +378,7 @@ func (r *Runner) setVar(name string, index syntax.ArithmExpr, vr Variable) {
 		}
 	}
 	if index == nil {
-		if _, ok := vr.Value.(StringVal); ok {
-			if r.allExport {
-				vr.Exported = true
-			}
-		} else {
-			vr.Exported = false
-		}
-		r.Vars[name] = vr
-		if name == "IFS" {
-			r.ifsUpdated()
-		}
+		r.setVarInternal(name, vr)
 		return
 	}
 
@@ -387,9 +402,8 @@ func (r *Runner) setVar(name string, index syntax.ArithmExpr, vr Variable) {
 		}
 		k := r.loneWord(w)
 		amap[k] = valStr
-		cur.Exported = false
 		cur.Value = amap
-		r.Vars[name] = cur
+		r.setVarInternal(name, cur)
 		return
 	}
 	var list IndexArray
@@ -405,14 +419,16 @@ func (r *Runner) setVar(name string, index syntax.ArithmExpr, vr Variable) {
 		list = append(list, "")
 	}
 	list[k] = valStr
-	cur.Exported = false
 	cur.Value = list
-	r.Vars[name] = cur
+	r.setVarInternal(name, cur)
 }
 
 func (r *Runner) lookupVar(name string) (Variable, bool) {
 	if val, e := r.cmdVars[name]; e {
 		return Variable{Value: val}, true
+	}
+	if vr, e := r.funcVars[name]; e {
+		return vr, true
 	}
 	if vr, e := r.Vars[name]; e {
 		return vr, true
@@ -815,7 +831,7 @@ func (r *Runner) cmd(cm syntax.Command) {
 		valType := ""
 		switch x.Variant.Value {
 		case "local":
-			// as per default
+			modes = append(modes, "l")
 		case "export":
 			modes = append(modes, "-x")
 		case "readonly":
@@ -826,7 +842,7 @@ func (r *Runner) cmd(cm syntax.Command) {
 		for _, opt := range x.Opts {
 			_ = opt
 			switch s := r.loneWord(opt); s {
-			case "-x", "-r", "-n":
+			case "l", "-x", "-r", "-n":
 				modes = append(modes, s)
 			case "-a", "-A":
 				valType = s
@@ -841,6 +857,8 @@ func (r *Runner) cmd(cm syntax.Command) {
 				vr.Value = r.assignVal(as, valType)
 				for _, mode := range modes {
 					switch mode {
+					case "l":
+						vr.Local = true
 					case "-x":
 						vr.Exported = true
 					case "-r":
@@ -988,11 +1006,14 @@ func (r *Runner) call(pos syntax.Pos, name string, args []string) {
 		oldParams := r.Params
 		r.Params = args
 		oldCanReturn := r.canReturn
+		oldFuncVars := r.funcVars
+		r.funcVars = nil
 		r.canReturn = true
 
 		r.stmt(body)
 
 		r.Params = oldParams
+		r.funcVars = oldFuncVars
 		r.canReturn = oldCanReturn
 		if code, ok := r.err.(returnCode); ok {
 			r.err = nil
