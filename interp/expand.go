@@ -14,7 +14,7 @@ import (
 	"mvdan.cc/sh/syntax"
 )
 
-func (r *Runner) expand(format string, onlyChars bool, args ...string) (int, string) {
+func (r *Runner) expandFormat(format string, args []string) (int, string) {
 	var buf bytes.Buffer
 	esc := false
 	var fmts []rune
@@ -96,7 +96,9 @@ func (r *Runner) expand(format string, onlyChars bool, args ...string) (int, str
 		}
 		if c == '\\' {
 			esc = true
-		} else if !onlyChars && c == '%' {
+		} else if args != nil && c == '%' {
+			// if args == nil, we are not doing format
+			// arguments
 			fmts = []rune{c}
 		} else {
 			buf.WriteRune(c)
@@ -437,7 +439,7 @@ func (r *Runner) wordFields(wps []syntax.WordPart, ql quoteLevel) [][]fieldPart 
 			allowEmpty = true
 			fp := fieldPart{quote: quoteSingle, val: x.Value}
 			if x.Dollar {
-				_, fp.val = r.expand(fp.val, true)
+				_, fp.val = r.expandFormat(fp.val, nil)
 			}
 			curField = append(curField, fp)
 		case *syntax.DblQuoted:
