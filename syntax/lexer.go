@@ -167,6 +167,9 @@ func (p *Parser) nextKeepSpaces() {
 			p.tok = rightBrace
 		case '`', '"', '$':
 			p.tok = p.dqToken(r)
+		case '\'':
+			p.rune()
+			p.tok = sglQuote
 		default:
 			p.advanceLitOther(r)
 		}

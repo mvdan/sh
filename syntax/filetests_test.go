@@ -1833,6 +1833,26 @@ var fileTests = []testCase{
 		),
 	},
 	{
+		Strs: []string{`${a:-'$x'}`},
+		common: &ParamExp{
+			Param: lit("a"),
+			Exp: &Expansion{
+				Op:   SubstColMinus,
+				Word: word(sglQuoted("$x")),
+			},
+		},
+	},
+	{
+		Strs: []string{`${a:-$x}`},
+		common: &ParamExp{
+			Param: lit("a"),
+			Exp: &Expansion{
+				Op:   SubstColMinus,
+				Word: word(litParamExp("x")),
+			},
+		},
+	},
+	{
 		Strs: []string{`${foo%bar}${foo%%bar*}`},
 		common: word(
 			&ParamExp{

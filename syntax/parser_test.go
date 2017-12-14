@@ -1576,6 +1576,10 @@ var shellTests = []errorCase{
 		bash: `1:12: invalid @ expansion operator #NOERR at runtime`,
 	},
 	{
+		in:   "echo ${foo@'Q'}",
+		bash: `1:12: @ expansion operator requires a literal #NOERR at runtime`,
+	},
+	{
 		in:   `echo $((echo a); (echo b))`,
 		bsmk: `1:14: not a valid arithmetic operator: a #NOERR backtrack`,
 	},
