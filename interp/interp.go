@@ -179,7 +179,7 @@ func (r *Runner) Reset() error {
 		name, val := kv[:i], kv[i+1:]
 		r.envMap[name] = val
 	}
-	r.Vars = make(map[string]Variable, 4)
+	r.Vars = make(map[string]Variable)
 	if _, ok := r.envMap["HOME"]; !ok {
 		u, _ := user.Current()
 		r.Vars["HOME"] = Variable{Value: StringVal(u.HomeDir)}
@@ -467,7 +467,15 @@ func (r *Runner) getVar(name string) string {
 }
 
 func (r *Runner) delVar(name string) {
+	val, _ := r.lookupVar(name)
+	if val.ReadOnly {
+		r.errf("%s: readonly variable\n", name)
+		r.exit = 1
+		return
+	}
 	delete(r.Vars, name)
+	delete(r.funcVars, name)
+	delete(r.cmdVars, name)
 	delete(r.envMap, name)
 }
 
@@ -1074,7 +1082,7 @@ func (r *Runner) exec(name string, args []string) {
 		r.exit = 0
 	case ExitCode:
 		r.exit = int(x)
-	default:
+	default: // module's custom fatal error
 		r.setErr(err)
 	}
 }
@@ -1087,7 +1095,7 @@ func (r *Runner) open(path string, flags int, mode os.FileMode, print bool) (io.
 		if print {
 			r.errf("%v\n", err)
 		}
-	default:
+	default: // module's custom fatal error
 		r.setErr(err)
 	}
 	return f, err

@@ -1416,6 +1416,22 @@ set +o pipefail
 		"a=1; a() { echo func; }; a; echo $a; unset a; a; echo $a; unset a; a",
 		"func\n1\nfunc\n\n\"a\": executable file not found in $PATH\nexit status 127 #JUSTERR",
 	},
+	{
+		"unset PATH; [[ $PATH == '' ]]",
+		"",
+	},
+	{
+		"readonly a=1; echo $a; unset a; echo $a",
+		"1\na: readonly variable\n1\n #IGNORE",
+	},
+	{
+		"f() { local a=1; echo $a; unset a; echo $a; }; f",
+		"1\n\n",
+	},
+	{
+		`a=b eval 'echo $a; unset a; echo $a'`,
+		"b\n\n",
+	},
 
 	// IFS
 	{`echo -n "$IFS"`, " \t\n"},
