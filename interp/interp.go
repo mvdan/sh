@@ -333,31 +333,10 @@ type ExitCode uint8
 
 func (e ExitCode) Error() string { return fmt.Sprintf("exit status %d", e) }
 
-type RunError struct {
-	Filename string
-	syntax.Pos
-	Text string
-}
-
-func (e RunError) Error() string {
-	if e.Filename == "" {
-		return fmt.Sprintf("%s: %s", e.Pos.String(), e.Text)
-	}
-	return fmt.Sprintf("%s:%s: %s", e.Filename, e.Pos.String(), e.Text)
-}
-
 func (r *Runner) setErr(err error) {
 	if r.err == nil {
 		r.err = err
 	}
-}
-
-func (r *Runner) runErr(pos syntax.Pos, format string, a ...interface{}) {
-	r.setErr(RunError{
-		Filename: r.filename,
-		Pos:      pos,
-		Text:     fmt.Sprintf(format, a...),
-	})
 }
 
 func (r *Runner) lastExit() {
@@ -898,14 +877,15 @@ func (r *Runner) cmd(cm syntax.Command) {
 			modes = append(modes, "-n")
 		}
 		for _, opt := range x.Opts {
-			_ = opt
 			switch s := r.loneWord(opt); s {
 			case "l", "-x", "-r", "-n":
 				modes = append(modes, s)
 			case "-a", "-A":
 				valType = s
 			default:
-				r.runErr(cm.Pos(), "unhandled declare opts")
+				r.errf("declare: invalid option %q\n", s)
+				r.exit = 2
+				return
 			}
 		}
 		for _, as := range x.Assigns {
@@ -940,7 +920,7 @@ func (r *Runner) cmd(cm syntax.Command) {
 		r.outf("user\t0m0.000s\n")
 		r.outf("sys\t0m0.000s\n")
 	default:
-		r.runErr(cm.Pos(), "unhandled command node: %T", x)
+		panic(fmt.Sprintf("unhandled command node: %T", x))
 	}
 	if r.exit != 0 && r.shellOpts[optErrExit] {
 		r.lastExit()
@@ -991,7 +971,7 @@ func (r *Runner) redir(rd *syntax.Redirect) (io.Closer, error) {
 		// done further below
 	// case syntax.DplIn:
 	default:
-		r.runErr(rd.Pos(), "unhandled redirect op: %v", rd.Op)
+		panic(fmt.Sprintf("unhandled redirect op: %v", rd.Op))
 	}
 	mode := os.O_RDONLY
 	switch rd.Op {
@@ -1013,7 +993,7 @@ func (r *Runner) redir(rd *syntax.Redirect) (io.Closer, error) {
 		r.Stdout = f
 		r.Stderr = f
 	default:
-		r.runErr(rd.Pos(), "unhandled redirect op: %v", rd.Op)
+		panic(fmt.Sprintf("unhandled redirect op: %v", rd.Op))
 	}
 	return f, nil
 }

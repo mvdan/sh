@@ -488,7 +488,7 @@ func (r *Runner) wordFields(wps []syntax.WordPart, ql quoteLevel) [][]fieldPart 
 				val: strconv.Itoa(r.arithm(x.X)),
 			})
 		default:
-			r.runErr(wp.Pos(), "unhandled word part: %T", x)
+			panic(fmt.Sprintf("unhandled word part: %T", x))
 		}
 	}
 	flush()

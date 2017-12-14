@@ -90,8 +90,8 @@ var fileCases = []struct {
 	},
 
 	// we don't need to follow bash error strings
-	{"exit a", `1:1: invalid exit code: "a" #JUSTERR`},
-	{"exit 1 2", "1:1: exit cannot take multiple arguments #JUSTERR"},
+	{"exit a", "invalid exit code: \"a\"\nexit status 2 #JUSTERR"},
+	{"exit 1 2", "exit cannot take multiple arguments\nexit status 1 #JUSTERR"},
 
 	// echo
 	{"echo", "\n"},
@@ -1457,6 +1457,10 @@ set +o pipefail
 
 	// source
 	{
+		"source",
+		"1:1: source: need filename\nexit status 2 #JUSTERR",
+	},
+	{
 		"echo 'echo foo' >a; source a; . a",
 		"foo\nfoo\n",
 	},
@@ -1572,6 +1576,7 @@ set +o pipefail
 	{"declare -A a=([x]=b [y]=c); a=d; echo ${a[@]}", "d b c\n"},
 
 	// declare
+	{"declare -B foo", "declare: invalid option \"-B\"\nexit status 2 #JUSTERR"},
 	{"a=b; declare a; echo $a; declare a=; echo $a", "b\n\n"},
 	{"a=b; declare a; echo $a", "b\n"},
 	{

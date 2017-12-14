@@ -4,6 +4,7 @@
 package interp
 
 import (
+	"fmt"
 	"strconv"
 
 	"mvdan.cc/sh/syntax"
@@ -68,8 +69,7 @@ func (r *Runner) arithm(expr syntax.ArithmExpr) int {
 		}
 		return binArit(x.Op, r.arithm(x.X), r.arithm(x.Y))
 	default:
-		r.runErr(expr.Pos(), "unexpected arithm expr: %T", x)
-		return 0
+		panic(fmt.Sprintf("unexpected arithm expr: %T", x))
 	}
 }
 

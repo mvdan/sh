@@ -4,6 +4,7 @@
 package interp
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -37,12 +38,14 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 		case 0:
 		case 1:
 			if n, err := strconv.Atoi(args[0]); err != nil {
-				r.runErr(pos, "invalid exit code: %q", args[0])
+				r.errf("invalid exit code: %q\n", args[0])
+				r.exit = 2
 			} else {
 				r.exit = n
 			}
 		default:
-			r.runErr(pos, "exit cannot take multiple arguments")
+			r.errf("exit cannot take multiple arguments\n")
+			r.exit = 1
 		}
 		r.lastExit()
 		return r.exit
@@ -194,8 +197,7 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 		return r.changeDir(path)
 	case "wait":
 		if len(args) > 0 {
-			r.runErr(pos, "wait with args not handled yet")
-			break
+			panic("wait with args not handled yet")
 		}
 		r.bgShells.Wait()
 	case "builtin":
@@ -239,7 +241,8 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 		return r.exit
 	case "source", ".":
 		if len(args) < 1 {
-			r.runErr(pos, "source: need filename")
+			r.errf("%v: source: need filename\n", pos)
+			return 2
 		}
 		f, err := r.open(r.relPath(args[0]), os.O_RDONLY, 0, false)
 		if err != nil {
@@ -511,7 +514,7 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 
 	default:
 		// "trap", "umask", "alias", "unalias", "fg", "bg",
-		r.runErr(pos, "unhandled builtin: %s", name)
+		panic(fmt.Sprintf("unhandled builtin: %s", name))
 	}
 	return 0
 }

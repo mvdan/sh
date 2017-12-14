@@ -5,6 +5,7 @@ package interp
 
 import (
 	"bytes"
+	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
@@ -205,9 +206,9 @@ func (r *Runner) paramExp(pe *syntax.ParamExp) string {
 				}
 				str = string(rns)
 			case "P", "A", "a":
-				r.runErr(pe.Pos(), "unhandled @%s param expansion", arg)
+				panic(fmt.Sprintf("unhandled @%s param expansion", arg))
 			default:
-				r.runErr(pe.Pos(), "unexpected @%s param expansion", arg)
+				panic(fmt.Sprintf("unexpected @%s param expansion", arg))
 			}
 		}
 	}
