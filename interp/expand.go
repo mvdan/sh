@@ -14,7 +14,7 @@ import (
 	"mvdan.cc/sh/syntax"
 )
 
-func (r *Runner) expandFormat(format string, args []string) (int, string) {
+func (r *Runner) expandFormat(format string, args []string) (int, string, error) {
 	var buf bytes.Buffer
 	esc := false
 	var fmts []rune
@@ -57,8 +57,7 @@ func (r *Runner) expandFormat(format string, args []string) (int, string) {
 				fmts = nil
 			case '+', '-', ' ':
 				if len(fmts) > 1 {
-					r.runErr(syntax.Pos{}, "invalid format char: %c", c)
-					return 0, ""
+					return 0, "", fmt.Errorf("invalid format char: %c", c)
 				}
 				fmts = append(fmts, c)
 			case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
@@ -88,8 +87,7 @@ func (r *Runner) expandFormat(format string, args []string) (int, string) {
 				fmt.Fprintf(&buf, string(fmts), farg)
 				fmts = nil
 			default:
-				r.runErr(syntax.Pos{}, "unhandled format char: %c", c)
-				return 0, ""
+				return 0, "", fmt.Errorf("invalid format char: %c", c)
 			}
 
 			continue
@@ -105,10 +103,9 @@ func (r *Runner) expandFormat(format string, args []string) (int, string) {
 		}
 	}
 	if len(fmts) > 0 {
-		r.runErr(syntax.Pos{}, "missing format char")
-		return 0, ""
+		return 0, "", fmt.Errorf("missing format char")
 	}
-	return n - len(args), buf.String()
+	return n - len(args), buf.String(), nil
 }
 
 func fieldJoin(parts []fieldPart) string {
@@ -439,7 +436,7 @@ func (r *Runner) wordFields(wps []syntax.WordPart, ql quoteLevel) [][]fieldPart 
 			allowEmpty = true
 			fp := fieldPart{quote: quoteSingle, val: x.Value}
 			if x.Dollar {
-				_, fp.val = r.expandFormat(fp.val, nil)
+				_, fp.val, _ = r.expandFormat(fp.val, nil)
 			}
 			curField = append(curField, fp)
 		case *syntax.DblQuoted:

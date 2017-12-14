@@ -117,7 +117,7 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 				r.outf(" ")
 			}
 			if expand {
-				_, arg = r.expandFormat(arg, nil)
+				_, arg, _ = r.expandFormat(arg, nil)
 			}
 			r.outf("%s", arg)
 		}
@@ -131,7 +131,11 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 		}
 		format, args := args[0], args[1:]
 		for {
-			n, s := r.expandFormat(format, args)
+			n, s, err := r.expandFormat(format, args)
+			if err != nil {
+				r.errf("%v\n", err)
+				return 1
+			}
 			r.outf("%s", s)
 			args = args[n:]
 			if n == 0 || len(args) == 0 {
