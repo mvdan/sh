@@ -1565,7 +1565,15 @@ var shellTests = []errorCase{
 	},
 	{
 		in:   "echo ${foo@",
+		bash: `1:11: @ expansion operator requires a literal`,
+	},
+	{
+		in:   "echo ${foo@Q",
 		bash: `1:6: reached EOF without matching ${ with }`,
+	},
+	{
+		in:   "echo ${foo@bar}",
+		bash: `1:12: invalid @ expansion operator #NOERR at runtime`,
 	},
 	{
 		in:   `echo $((echo a); (echo b))`,
@@ -1651,7 +1659,7 @@ var shellTests = []errorCase{
 		mksh:  `1:11: this expansion operator is a bash feature`,
 	},
 	{
-		in:    "echo ${foo@bar}",
+		in:    "echo ${foo@Q}",
 		posix: `1:11: this expansion operator is a bash feature`,
 	},
 }

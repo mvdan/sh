@@ -1157,6 +1157,18 @@ func (p *Parser) paramExp() *ParamExp {
 		pe.Exp = &Expansion{Op: ParExpOperator(p.tok)}
 		p.quote = paramExpExp
 		p.next()
+		if pe.Exp.Op == OtherParamOps {
+			switch p.tok {
+			case _Lit, _LitWord:
+			default:
+				p.curErr("@ expansion operator requires a literal")
+			}
+			switch p.val {
+			case "Q", "E", "P", "A", "a":
+			default:
+				p.curErr("invalid @ expansion operator")
+			}
+		}
 		pe.Exp.Word = p.getWord()
 	}
 	p.quote = old
