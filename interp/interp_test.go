@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
@@ -26,15 +27,10 @@ func TestMain(m *testing.M) {
 	hasBash44 = checkBash()
 	os.Setenv("INTERP_GLOBAL", "value")
 	exit := m.Run()
-	cleanEnv()
-	os.Exit(exit)
-}
-
-func cleanEnv() {
 	for _, s := range []string{"a", "b", "c", "d", "foo", "bar"} {
-		os.RemoveAll(s)
 		os.Unsetenv(s)
 	}
+	os.Exit(exit)
 }
 
 func checkBash() bool {
@@ -1954,15 +1950,22 @@ func (c *concBuffer) String() string {
 
 func TestFile(t *testing.T) {
 	p := syntax.NewParser()
-	for i, c := range fileCases {
+	for i := range fileCases {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
+			c := fileCases[i]
 			file, err := p.Parse(strings.NewReader(c.in), "")
 			if err != nil {
 				t.Fatalf("could not parse: %v", err)
 			}
-			cleanEnv()
+			t.Parallel()
+			dir, err := ioutil.TempDir("", "interp-test")
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer os.RemoveAll(dir)
 			var cb concBuffer
 			r := Runner{
+				Dir:    dir,
 				Stdout: &cb,
 				Stderr: &cb,
 			}
@@ -1992,15 +1995,22 @@ func TestFileConfirm(t *testing.T) {
 	if !hasBash44 {
 		t.Skip("bash 4.4 required to run")
 	}
-	for i, c := range fileCases {
+	for i := range fileCases {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
-			cleanEnv()
-			cmd := exec.Command("bash")
-			cmd.Stdin = strings.NewReader(c.in)
-			out, err := cmd.CombinedOutput()
+			c := fileCases[i]
 			if strings.Contains(c.want, " #IGNORE") {
 				return
 			}
+			t.Parallel()
+			dir, err := ioutil.TempDir("", "interp-test")
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer os.RemoveAll(dir)
+			cmd := exec.Command("bash")
+			cmd.Dir = dir
+			cmd.Stdin = strings.NewReader(c.in)
+			out, err := cmd.CombinedOutput()
 			if strings.Contains(c.want, " #JUSTERR") {
 				// bash sometimes exits with code 0 and
 				// stderr "bash: ..." for an error
