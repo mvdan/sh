@@ -4,7 +4,6 @@
 package interp
 
 import (
-	"bytes"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -116,7 +115,7 @@ func (r *Runner) paramExp(pe *syntax.ParamExp) string {
 			n = -1
 		}
 		locs := findAllIndex(orig, str, n)
-		var buf bytes.Buffer
+		buf := r.strBuilder()
 		last := 0
 		for _, loc := range locs {
 			buf.WriteString(str[last:loc[0]])

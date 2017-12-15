@@ -4,6 +4,7 @@
 package interp
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -100,6 +101,17 @@ type Runner struct {
 	// On Windows, the kill signal is always sent immediately,
 	// because Go doesn't currently support sending Interrupt on Windows.
 	KillTimeout time.Duration
+
+	bufferAlloc     bytes.Buffer
+	oneWord         [1]*syntax.Word
+	braceAlloc      braceWord
+	bracePartsAlloc [4]braceWordPart
+}
+
+func (r *Runner) strBuilder() *bytes.Buffer {
+	b := &r.bufferAlloc
+	b.Reset()
+	return b
 }
 
 func (r *Runner) optByFlag(flag string) *bool {

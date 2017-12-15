@@ -4,7 +4,6 @@
 package interp
 
 import (
-	"bytes"
 	"fmt"
 	"os/user"
 	"path/filepath"
@@ -15,7 +14,7 @@ import (
 )
 
 func (r *Runner) expandFormat(format string, args []string) (int, string, error) {
-	var buf bytes.Buffer
+	buf := r.strBuilder()
 	esc := false
 	var fmts []rune
 	n := len(args)
@@ -84,7 +83,7 @@ func (r *Runner) expandFormat(format string, args []string) (int, string, error)
 					}
 				}
 
-				fmt.Fprintf(&buf, string(fmts), farg)
+				fmt.Fprintf(buf, string(fmts), farg)
 				fmts = nil
 			default:
 				return 0, "", fmt.Errorf("invalid format char: %c", c)
@@ -108,16 +107,16 @@ func (r *Runner) expandFormat(format string, args []string) (int, string, error)
 	return n - len(args), buf.String(), nil
 }
 
-func fieldJoin(parts []fieldPart) string {
-	var buf bytes.Buffer
+func (r *Runner) fieldJoin(parts []fieldPart) string {
+	buf := r.strBuilder()
 	for _, part := range parts {
 		buf.WriteString(part.val)
 	}
 	return buf.String()
 }
 
-func escapedGlob(parts []fieldPart) (escaped string, glob bool) {
-	var buf bytes.Buffer
+func (r *Runner) escapedGlob(parts []fieldPart) (escaped string, glob bool) {
+	buf := r.strBuilder()
 	for _, part := range parts {
 		for _, r := range part.val {
 			switch r {
@@ -154,9 +153,10 @@ var (
 	litRightBrace = &syntax.Lit{Value: "}"}
 )
 
-func splitBraces(word *syntax.Word) (*braceWord, bool) {
+func (r *Runner) splitBraces(word *syntax.Word) (*braceWord, bool) {
 	any := false
-	top := &braceWord{}
+	top := &r.braceAlloc
+	*top = braceWord{parts: r.bracePartsAlloc[:0]}
 	acc := top
 	var cur *brace
 	open := []*brace{}
@@ -269,22 +269,23 @@ func expandRec(bw *braceWord) []*syntax.Word {
 	return []*syntax.Word{{Parts: left}}
 }
 
-func expandBraces(word *syntax.Word) []*syntax.Word {
+func (r *Runner) expandBraces(word *syntax.Word) []*syntax.Word {
 	// TODO: be a no-op when not in bash mode
-	topBrace, any := splitBraces(word)
+	topBrace, any := r.splitBraces(word)
 	if !any {
-		return []*syntax.Word{word}
+		r.oneWord[0] = word
+		return r.oneWord[:]
 	}
 	return expandRec(topBrace)
 }
 
 func (r *Runner) Fields(words ...*syntax.Word) []string {
 	fields := make([]string, 0, len(words))
-	baseDir, _ := escapedGlob([]fieldPart{{val: r.Dir}})
+	baseDir, _ := r.escapedGlob([]fieldPart{{val: r.Dir}})
 	for _, word := range words {
-		for _, expWord := range expandBraces(word) {
+		for _, expWord := range r.expandBraces(word) {
 			for _, field := range r.wordFields(expWord.Parts, quoteNone) {
-				path, glob := escapedGlob(field)
+				path, glob := r.escapedGlob(field)
 				var matches []string
 				abs := filepath.IsAbs(path)
 				if glob && !r.shellOpts[optNoGlob] {
@@ -294,7 +295,7 @@ func (r *Runner) Fields(words ...*syntax.Word) []string {
 					matches, _ = filepath.Glob(path)
 				}
 				if len(matches) == 0 {
-					fields = append(fields, fieldJoin(field))
+					fields = append(fields, r.fieldJoin(field))
 					continue
 				}
 				for _, match := range matches {
@@ -313,11 +314,11 @@ func (r *Runner) loneWord(word *syntax.Word) string {
 	if word == nil {
 		return ""
 	}
-	var buf bytes.Buffer
 	fields := r.wordFields(word.Parts, quoteDouble)
 	if len(fields) != 1 {
 		panic("expected exactly one field for a lone word")
 	}
+	buf := r.strBuilder()
 	for _, part := range fields[0] {
 		buf.WriteString(part.val)
 	}
@@ -328,7 +329,6 @@ func (r *Runner) lonePattern(word *syntax.Word) string {
 	if word == nil {
 		return ""
 	}
-	var buf bytes.Buffer
 	fields := r.wordFields(word.Parts, quoteNone)
 	if len(fields) == 0 {
 		return ""
@@ -336,6 +336,7 @@ func (r *Runner) lonePattern(word *syntax.Word) string {
 	if len(fields) != 1 {
 		panic("expected exactly one field for a pattern")
 	}
+	buf := r.strBuilder()
 	for _, part := range fields[0] {
 		if part.quote == quoteNone {
 			for _, r := range part.val {
@@ -421,7 +422,7 @@ func (r *Runner) wordFields(wps []syntax.WordPart, ql quoteLevel) [][]fieldPart 
 			if i == 0 {
 				s = r.expandUser(s)
 			}
-			var buf bytes.Buffer
+			buf := r.strBuilder()
 			for i := 0; i < len(s); i++ {
 				b := s[i]
 				switch {
@@ -493,8 +494,8 @@ func (r *Runner) wordFields(wps []syntax.WordPart, ql quoteLevel) [][]fieldPart 
 			}
 		case *syntax.CmdSubst:
 			r2 := r.sub()
-			var buf bytes.Buffer
-			r2.Stdout = &buf
+			buf := r.strBuilder()
+			r2.Stdout = buf
 			r2.stmts(x.StmtList)
 			val := strings.TrimRight(buf.String(), "\n")
 			if ql > quoteNone {
