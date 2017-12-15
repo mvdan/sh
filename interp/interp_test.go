@@ -405,6 +405,14 @@ var fileCases = []struct {
 		"for i in 1 2; do for j in a b; do echo $i $j; done; break; done",
 		"1 a\n1 b\n",
 	},
+	{
+		"for i in 1 2 3; do :; done; echo $i",
+		"3\n",
+	},
+	{
+		"for ((i=0; i<3; i++)); do :; done; echo $i",
+		"3\n",
+	},
 
 	// block
 	{
@@ -1326,6 +1334,14 @@ var fileCases = []struct {
 	{
 		"set -e; set +e; false; echo foo",
 		"foo\n",
+	},
+	{
+		"set -e; ! false; echo foo",
+		"foo\n",
+	},
+	{
+		"set -e; local; echo foo",
+		"local: can only be used in a function\nexit status 1 #JUSTERR",
 	},
 	{
 		"false | :",

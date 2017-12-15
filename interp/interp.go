@@ -713,6 +713,9 @@ func (r *Runner) stmtSync(st *syntax.Stmt) {
 	if st.Negated {
 		r.exit = oneIf(r.exit == 0)
 	}
+	if r.exit != 0 && r.shellOpts[optErrExit] {
+		r.lastExit()
+	}
 	r.Stdin, r.Stdout, r.Stderr = oldIn, oldOut, oldErr
 }
 
@@ -805,7 +808,7 @@ func (r *Runner) cmd(cm syntax.Command) {
 		r.stmts(x.Cond)
 		if r.exit == 0 {
 			r.stmts(x.Then)
-			return
+			break
 		}
 		r.exit = 0
 		r.stmts(x.Else)
@@ -885,7 +888,7 @@ func (r *Runner) cmd(cm syntax.Command) {
 		}
 		for _, opt := range x.Opts {
 			switch s := r.loneWord(opt); s {
-			case "l", "-x", "-r", "-n":
+			case "-x", "-r", "-n":
 				modes = append(modes, s)
 			case "-a", "-A":
 				valType = s
@@ -928,10 +931,6 @@ func (r *Runner) cmd(cm syntax.Command) {
 		r.outf("sys\t0m0.000s\n")
 	default:
 		panic(fmt.Sprintf("unhandled command node: %T", x))
-	}
-	// TODO: likely buggy due to the returns above
-	if r.exit != 0 && r.shellOpts[optErrExit] {
-		r.lastExit()
 	}
 }
 
