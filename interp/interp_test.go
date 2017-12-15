@@ -18,6 +18,34 @@ import (
 	"mvdan.cc/sh/syntax"
 )
 
+func BenchmarkRun(b *testing.B) {
+	src := `
+echo a b c d
+foo="bar"
+echo ./$foo/etc
+fn() {
+	for i in 1 2 3; do
+		echo $i | cat
+	done
+}
+(fn && exit)
+`
+	file, err := syntax.NewParser().Parse(strings.NewReader(src), "")
+	if err != nil {
+		b.Fatal(err)
+	}
+	for i := 0; i < b.N; i++ {
+		r := Runner{
+			Stdout: ioutil.Discard,
+			Stderr: ioutil.Discard,
+		}
+		r.Reset()
+		if err := r.Run(file); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
 var hasBash44 bool
 
 func TestMain(m *testing.M) {
