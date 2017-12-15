@@ -1000,8 +1000,9 @@ func (r *Runner) redir(rd *syntax.Redirect) (io.Closer, error) {
 }
 
 func (r *Runner) loopStmtsBroken(sl syntax.StmtList) bool {
+	oldInLoop := r.inLoop
 	r.inLoop = true
-	defer func() { r.inLoop = false }()
+	defer func() { r.inLoop = oldInLoop }()
 	for _, stmt := range sl.Stmts {
 		r.stmt(stmt)
 		if r.contnEnclosing > 0 {

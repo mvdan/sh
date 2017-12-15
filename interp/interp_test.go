@@ -401,6 +401,10 @@ var fileCases = []struct {
 		"for ((i=5; i>0; i--)); do echo $i; break; done",
 		"5\n",
 	},
+	{
+		"for i in 1 2; do for j in a b; do echo $i $j; done; break; done",
+		"1 a\n1 b\n",
+	},
 
 	// block
 	{
