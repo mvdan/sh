@@ -34,11 +34,11 @@ fn() {
 	if err != nil {
 		b.Fatal(err)
 	}
+	r := Runner{
+		Stdout: ioutil.Discard,
+		Stderr: ioutil.Discard,
+	}
 	for i := 0; i < b.N; i++ {
-		r := Runner{
-			Stdout: ioutil.Discard,
-			Stderr: ioutil.Discard,
-		}
 		r.Reset()
 		if err := r.Run(file); err != nil {
 			b.Fatal(err)
