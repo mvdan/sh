@@ -1779,6 +1779,10 @@ set +o pipefail
 		"mkdir -p a/b/c; echo a/*",
 		"a/b\n",
 	},
+	{
+		"mkdir -p '*/a.z' 'b/a.z'; cd '*'; echo *.z",
+		"a.z\n",
+	},
 
 	// brace expansion
 	{"echo a{b", "a{b\n"},

@@ -115,7 +115,19 @@ func (r *Runner) fieldJoin(parts []fieldPart) string {
 	return buf.String()
 }
 
-func (r *Runner) escapedGlob(parts []fieldPart) (escaped string, glob bool) {
+func (r *Runner) escapedGlobStr(val string) string {
+	buf := r.strBuilder()
+	for _, r := range val {
+		switch r {
+		case '*', '?', '\\', '[':
+			buf.WriteByte('\\')
+		}
+		buf.WriteRune(r)
+	}
+	return buf.String()
+}
+
+func (r *Runner) escapedGlobField(parts []fieldPart) (escaped string, glob bool) {
 	buf := r.strBuilder()
 	for _, part := range parts {
 		for _, r := range part.val {
@@ -130,7 +142,10 @@ func (r *Runner) escapedGlob(parts []fieldPart) (escaped string, glob bool) {
 			buf.WriteRune(r)
 		}
 	}
-	return buf.String(), glob
+	if glob {
+		escaped = buf.String()
+	}
+	return escaped, glob
 }
 
 // TODO: consider making brace a special syntax Node
@@ -281,11 +296,11 @@ func (r *Runner) expandBraces(word *syntax.Word) []*syntax.Word {
 
 func (r *Runner) Fields(words ...*syntax.Word) []string {
 	fields := make([]string, 0, len(words))
-	baseDir, _ := r.escapedGlob([]fieldPart{{val: r.Dir}})
+	baseDir := r.escapedGlobStr(r.Dir)
 	for _, word := range words {
 		for _, expWord := range r.expandBraces(word) {
 			for _, field := range r.wordFields(expWord.Parts, quoteNone) {
-				path, glob := r.escapedGlob(field)
+				path, glob := r.escapedGlobField(field)
 				var matches []string
 				abs := filepath.IsAbs(path)
 				if glob && !r.shellOpts[optNoGlob] {
@@ -300,7 +315,7 @@ func (r *Runner) Fields(words ...*syntax.Word) []string {
 				}
 				for _, match := range matches {
 					if !abs {
-						match, _ = filepath.Rel(baseDir, match)
+						match, _ = filepath.Rel(r.Dir, match)
 					}
 					fields = append(fields, match)
 				}
