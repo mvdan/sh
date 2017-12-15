@@ -300,7 +300,7 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 			// TODO: different behavior, apparently
 			break
 		}
-		r.exec(args[0], args[1:])
+		r.exec(args)
 		r.lastExit()
 		return r.exit
 	case "command":
@@ -322,7 +322,7 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 			if isBuiltin(args[0]) {
 				return r.builtinCode(pos, args[0], args[1:])
 			}
-			r.exec(args[0], args[1:])
+			r.exec(args)
 			return r.exit
 		}
 		last := 0

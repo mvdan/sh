@@ -28,29 +28,32 @@ type Ctxt struct {
 }
 
 // ModuleExec is the module responsible for executing a program. It is
-// executed for all CallExpr nodes where the name is neither a declared
-// function nor a builtin.
+// executed for all CallExpr nodes where the first argument is neither a
+// declared function nor a builtin.
 //
-// Note that the executable path is received as well as the name. If
-// path is an empty string, it means that the executable did not exist
-// or was not found in $PATH.
+// Note that the name is included as the first argument. If path is an
+// empty string, it means that the executable did not exist or was not
+// found in $PATH.
 //
 // Use a return error of type ExitCode to set the exit code. A nil error
 // has the same effect as ExitCode(0). If the error is of any other
 // type, the interpreter will come to a stop.
-type ModuleExec func(ctx Ctxt, name, path string, args []string) error
+type ModuleExec func(ctx Ctxt, path string, args []string) error
 
-func DefaultExec(ctx Ctxt, name, path string, args []string) error {
+func DefaultExec(ctx Ctxt, path string, args []string) error {
 	if path == "" {
-		fmt.Fprintf(ctx.Stderr, "%q: executable file not found in $PATH\n", name)
+		fmt.Fprintf(ctx.Stderr, "%q: executable file not found in $PATH\n", args[0])
 		return ExitCode(127)
 	}
-	cmd := exec.Command(path, args...)
-	cmd.Env = ctx.Env
-	cmd.Dir = ctx.Dir
-	cmd.Stdin = ctx.Stdin
-	cmd.Stdout = ctx.Stdout
-	cmd.Stderr = ctx.Stderr
+	cmd := exec.Cmd{
+		Path:   path,
+		Args:   args,
+		Env:    ctx.Env,
+		Dir:    ctx.Dir,
+		Stdin:  ctx.Stdin,
+		Stdout: ctx.Stdout,
+		Stderr: ctx.Stderr,
+	}
 
 	err := cmd.Start()
 	if err == nil {

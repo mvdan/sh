@@ -779,7 +779,7 @@ func (r *Runner) cmd(cm syntax.Command) {
 				defer r.ifsUpdated()
 			}
 		}
-		r.call(x.Args[0].Pos(), fields[0], fields[1:])
+		r.call(x.Args[0].Pos(), fields)
 		r.cmdVars = oldVars
 	case *syntax.BinaryCmd:
 		switch x.Op {
@@ -1057,14 +1057,15 @@ type returnCode uint8
 
 func (returnCode) Error() string { return "returned" }
 
-func (r *Runner) call(pos syntax.Pos, name string, args []string) {
+func (r *Runner) call(pos syntax.Pos, args []string) {
 	if r.stop() {
 		return
 	}
+	name := args[0]
 	if body := r.Funcs[name]; body != nil {
 		// stack them to support nested func calls
 		oldParams := r.Params
-		r.Params = args
+		r.Params = args[1:]
 		oldInFunc := r.inFunc
 		oldFuncVars := r.funcVars
 		r.funcVars = nil
@@ -1082,15 +1083,15 @@ func (r *Runner) call(pos syntax.Pos, name string, args []string) {
 		return
 	}
 	if isBuiltin(name) {
-		r.exit = r.builtinCode(pos, name, args)
+		r.exit = r.builtinCode(pos, name, args[1:])
 		return
 	}
-	r.exec(name, args)
+	r.exec(args)
 }
 
-func (r *Runner) exec(name string, args []string) {
-	path := r.lookPath(name)
-	err := r.Exec(r.ctx(), name, path, args)
+func (r *Runner) exec(args []string) {
+	path := r.lookPath(args[0])
+	err := r.Exec(r.ctx(), path, args)
 	switch x := err.(type) {
 	case nil:
 		r.exit = 0
