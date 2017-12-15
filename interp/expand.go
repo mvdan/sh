@@ -148,7 +148,14 @@ type braceWord struct {
 // braceWordPart contains either syntax.WordPart or brace.
 type braceWordPart interface{}
 
-func splitBraces(word *syntax.Word) *braceWord {
+var (
+	litLeftBrace  = &syntax.Lit{Value: "{"}
+	litComma      = &syntax.Lit{Value: ","}
+	litRightBrace = &syntax.Lit{Value: "}"}
+)
+
+func splitBraces(word *syntax.Word) (*braceWord, bool) {
+	any := false
 	top := &braceWord{}
 	acc := top
 	var cur *brace
@@ -166,9 +173,6 @@ func splitBraces(word *syntax.Word) *braceWord {
 		}
 		return old
 	}
-	leftBrace := &syntax.Lit{Value: "{"}
-	comma := &syntax.Lit{Value: ","}
-	rightBrace := &syntax.Lit{Value: "}"}
 
 	for _, wp := range word.Parts {
 		lit, ok := wp.(*syntax.Lit)
@@ -203,6 +207,7 @@ func splitBraces(word *syntax.Word) *braceWord {
 				if cur == nil {
 					continue
 				}
+				any = true
 				addlit()
 				ended := pop()
 				if len(ended.elems) > 1 {
@@ -210,30 +215,34 @@ func splitBraces(word *syntax.Word) *braceWord {
 					break
 				}
 				// return {x} to a non-brace
-				acc.parts = append(acc.parts, leftBrace)
+				acc.parts = append(acc.parts, litLeftBrace)
 				acc.parts = append(acc.parts, ended.elems[0].parts...)
-				acc.parts = append(acc.parts, rightBrace)
+				acc.parts = append(acc.parts, litRightBrace)
 			default:
 				continue
 			}
 			last = j + 1
 		}
-		left := *lit
-		left.Value = left.Value[last:]
-		acc.parts = append(acc.parts, &left)
+		if last == 0 {
+			acc.parts = append(acc.parts, lit)
+		} else {
+			left := *lit
+			left.Value = left.Value[last:]
+			acc.parts = append(acc.parts, &left)
+		}
 	}
 	// open braces that were never closed fall back to non-braces
 	for acc != top {
 		ended := pop()
-		acc.parts = append(acc.parts, leftBrace)
+		acc.parts = append(acc.parts, litLeftBrace)
 		for i, elem := range ended.elems {
 			if i > 0 {
-				acc.parts = append(acc.parts, comma)
+				acc.parts = append(acc.parts, litComma)
 			}
 			acc.parts = append(acc.parts, elem.parts...)
 		}
 	}
-	return top
+	return top, any
 }
 
 func expandRec(bw *braceWord) []*syntax.Word {
@@ -262,7 +271,10 @@ func expandRec(bw *braceWord) []*syntax.Word {
 
 func expandBraces(word *syntax.Word) []*syntax.Word {
 	// TODO: be a no-op when not in bash mode
-	topBrace := splitBraces(word)
+	topBrace, any := splitBraces(word)
+	if !any {
+		return []*syntax.Word{word}
+	}
 	return expandRec(topBrace)
 }
 
