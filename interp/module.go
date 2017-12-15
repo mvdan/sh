@@ -57,20 +57,22 @@ func DefaultExec(ctx Ctxt, path string, args []string) error {
 
 	err := cmd.Start()
 	if err == nil {
-		go func() {
-			<-ctx.Context.Done()
-
-			if ctx.KillTimeout <= 0 || runtime.GOOS == "windows" {
-				_ = cmd.Process.Signal(os.Kill)
-				return
-			}
-
+		if done := ctx.Context.Done(); done != nil {
 			go func() {
-				time.Sleep(ctx.KillTimeout)
-				_ = cmd.Process.Signal(os.Kill)
+				<-done
+
+				if ctx.KillTimeout <= 0 || runtime.GOOS == "windows" {
+					_ = cmd.Process.Signal(os.Kill)
+					return
+				}
+
+				go func() {
+					time.Sleep(ctx.KillTimeout)
+					_ = cmd.Process.Signal(os.Kill)
+				}()
+				_ = cmd.Process.Signal(os.Interrupt)
 			}()
-			_ = cmd.Process.Signal(os.Interrupt)
-		}()
+		}
 
 		err = cmd.Wait()
 	}
