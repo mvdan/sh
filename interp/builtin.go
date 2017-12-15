@@ -647,9 +647,9 @@ func (g *getopts) Next(optstr string, args []string) (opt rune, optarg string, d
 	opts := arg[1:]
 	opt = opts[g.runeidx]
 	if g.runeidx+1 < len(opts) {
-		g.runeidx += 1
+		g.runeidx++
 	} else {
-		g.argidx += 1
+		g.argidx++
 		g.runeidx = 0
 	}
 
@@ -665,7 +665,7 @@ func (g *getopts) Next(optstr string, args []string) (opt rune, optarg string, d
 			return ':', string(opt), false
 		}
 		optarg = args[g.argidx]
-		g.argidx += 1
+		g.argidx++
 		g.runeidx = 0
 	}
 

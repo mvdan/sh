@@ -809,7 +809,7 @@ func (r *Runner) cmd(cm syntax.Command) {
 		r.exit = 0
 		r.stmts(x.Else)
 	case *syntax.WhileClause:
-		for r.err == nil {
+		for !r.stop() {
 			r.stmts(x.Cond)
 			stop := (r.exit == 0) == x.Until
 			r.exit = 0
@@ -839,17 +839,13 @@ func (r *Runner) cmd(cm syntax.Command) {
 	case *syntax.FuncDecl:
 		r.setFunc(x.Name.Value, x.Body)
 	case *syntax.ArithmCmd:
-		if r.arithm(x.X) == 0 {
-			r.exit = 1
-		}
+		r.exit = oneIf(r.arithm(x.X) == 0)
 	case *syntax.LetClause:
 		var val int
 		for _, expr := range x.Exprs {
 			val = r.arithm(expr)
 		}
-		if val == 0 {
-			r.exit = 1
-		}
+		r.exit = oneIf(val == 0)
 	case *syntax.CaseClause:
 		str := r.loneWord(x.Word)
 		for _, ci := range x.Items {
@@ -862,14 +858,11 @@ func (r *Runner) cmd(cm syntax.Command) {
 			}
 		}
 	case *syntax.TestClause:
-		if r.bashTest(x.X) == "" {
-			if r.exit == 0 {
-				// to preserve exit code 2 for regex
-				// errors, etc
-				r.exit = 1
-			}
-		} else {
-			r.exit = 0
+		r.exit = 0
+		if r.bashTest(x.X) == "" && r.exit == 0 {
+			// to preserve exit code 2 for regex
+			// errors, etc
+			r.exit = 1
 		}
 	case *syntax.DeclClause:
 		var modes []string
