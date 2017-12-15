@@ -108,6 +108,12 @@ func (r *Runner) expandFormat(format string, args []string) (int, string, error)
 }
 
 func (r *Runner) fieldJoin(parts []fieldPart) string {
+	switch len(parts) {
+	case 0:
+		return ""
+	case 1:
+		return parts[0].val
+	}
 	buf := r.strBuilder()
 	for _, part := range parts {
 		buf.WriteString(part.val)
@@ -351,11 +357,7 @@ func (r *Runner) loneWord(word *syntax.Word) string {
 	if len(fields) != 1 {
 		panic("expected exactly one field for a lone word")
 	}
-	buf := r.strBuilder()
-	for _, part := range fields[0] {
-		buf.WriteString(part.val)
-	}
-	return buf.String()
+	return r.fieldJoin(fields[0])
 }
 
 func (r *Runner) lonePattern(word *syntax.Word) string {
