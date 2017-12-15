@@ -735,6 +735,7 @@ func (r *Runner) stmtSync(st *syntax.Stmt) {
 func (r *Runner) sub() *Runner {
 	r2 := *r
 	r2.bgShells = sync.WaitGroup{}
+	r2.bufferAlloc = bytes.Buffer{}
 	// TODO: perhaps we could do a lazy copy here, or some sort of
 	// overlay to avoid copying all the time
 	r2.Vars = make(map[string]Variable, len(r.Vars))
