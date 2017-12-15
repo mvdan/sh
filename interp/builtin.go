@@ -258,12 +258,12 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 		}
 		oldParams := r.Params
 		r.Params = args[1:]
-		oldCanReturn := r.canReturn
-		r.canReturn = true
+		oldInSource := r.inSource
+		r.inSource = true
 		r.stmts(file.StmtList)
 
 		r.Params = oldParams
-		r.canReturn = oldCanReturn
+		r.inSource = oldInSource
 		if code, ok := r.err.(returnCode); ok {
 			r.err = nil
 			r.exit = int(code)
@@ -415,7 +415,7 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 			return 2
 		}
 	case "return":
-		if !r.canReturn {
+		if !r.inFunc && !r.inSource {
 			r.errf("return: can only be done from a func or sourced script\n")
 			return 1
 		}

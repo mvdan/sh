@@ -63,8 +63,9 @@ type Runner struct {
 	// >0 to break or continue out of N enclosing loops
 	breakEnclosing, contnEnclosing int
 
-	inLoop    bool
-	canReturn bool
+	inLoop   bool
+	inFunc   bool
+	inSource bool
 
 	err  error // current fatal error
 	exit int   // current (last) exit code
@@ -527,7 +528,7 @@ func (r *Runner) FromArgs(args ...string) ([]string, error) {
 			}
 			opt = r.optByName(args[0])
 		} else {
-			opt = r.optByFlag(arg[1:])
+			opt = r.optByFlag(flag)
 		}
 		if opt == nil {
 			return nil, fmt.Errorf("invalid option: %q", arg)
@@ -869,6 +870,11 @@ func (r *Runner) cmd(cm syntax.Command) {
 		valType := ""
 		switch x.Variant.Value {
 		case "local":
+			if !r.inFunc {
+				r.errf("local: can only be used in a function\n")
+				r.exit = 1
+				return
+			}
 			modes = append(modes, "l")
 		case "export":
 			modes = append(modes, "-x")
@@ -923,6 +929,7 @@ func (r *Runner) cmd(cm syntax.Command) {
 	default:
 		panic(fmt.Sprintf("unhandled command node: %T", x))
 	}
+	// TODO: likely buggy due to the returns above
 	if r.exit != 0 && r.shellOpts[optErrExit] {
 		r.lastExit()
 	}
@@ -1045,16 +1052,16 @@ func (r *Runner) call(pos syntax.Pos, name string, args []string) {
 		// stack them to support nested func calls
 		oldParams := r.Params
 		r.Params = args
-		oldCanReturn := r.canReturn
+		oldInFunc := r.inFunc
 		oldFuncVars := r.funcVars
 		r.funcVars = nil
-		r.canReturn = true
+		r.inFunc = true
 
 		r.stmt(body)
 
 		r.Params = oldParams
 		r.funcVars = oldFuncVars
-		r.canReturn = oldCanReturn
+		r.inFunc = oldInFunc
 		if code, ok := r.err.(returnCode); ok {
 			r.err = nil
 			r.exit = int(code)

@@ -1623,6 +1623,26 @@ set +o pipefail
 
 	// local
 	{
+		"local a=b",
+		"local: can only be used in a function\nexit status 1 #JUSTERR",
+	},
+	{
+		"local a=b 2>/dev/null; echo $a",
+		"\n",
+	},
+	{
+		"{ local a=b; }",
+		"local: can only be used in a function\nexit status 1 #JUSTERR",
+	},
+	{
+		"echo 'local a=b' >a; source a",
+		"local: can only be used in a function\nexit status 1 #JUSTERR",
+	},
+	{
+		"echo 'local a=b' >a; f() { source a; }; f; echo $a",
+		"\n",
+	},
+	{
 		"f() { local a=b; }; f; echo $a",
 		"\n",
 	},
