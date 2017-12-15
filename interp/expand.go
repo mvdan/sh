@@ -115,11 +115,30 @@ func (r *Runner) fieldJoin(parts []fieldPart) string {
 	return buf.String()
 }
 
+var patternBytes = [128]bool{
+	'*':  true,
+	'?':  true,
+	'\\': true,
+	'[':  true,
+}
+
+func patternRune(r rune) bool {
+	return r < 128 && patternBytes[byte(r)]
+}
+
 func (r *Runner) escapedGlobStr(val string) string {
+	any := false
+	for _, r := range val {
+		if any = patternRune(r); any {
+			break
+		}
+	}
+	if !any { // short-cut without a string copy
+		return val
+	}
 	buf := r.strBuilder()
 	for _, r := range val {
-		switch r {
-		case '*', '?', '\\', '[':
+		if patternRune(r) {
 			buf.WriteByte('\\')
 		}
 		buf.WriteRune(r)
@@ -131,8 +150,7 @@ func (r *Runner) escapedGlobField(parts []fieldPart) (escaped string, glob bool)
 	buf := r.strBuilder()
 	for _, part := range parts {
 		for _, r := range part.val {
-			switch r {
-			case '*', '?', '\\', '[':
+			if patternRune(r) {
 				if part.quote > quoteNone {
 					buf.WriteByte('\\')
 				} else {
@@ -142,7 +160,7 @@ func (r *Runner) escapedGlobField(parts []fieldPart) (escaped string, glob bool)
 			buf.WriteRune(r)
 		}
 	}
-	if glob {
+	if glob { // only copy the string if it will be used
 		escaped = buf.String()
 	}
 	return escaped, glob
@@ -287,7 +305,7 @@ func expandRec(bw *braceWord) []*syntax.Word {
 func (r *Runner) expandBraces(word *syntax.Word) []*syntax.Word {
 	// TODO: be a no-op when not in bash mode
 	topBrace, any := r.splitBraces(word)
-	if !any {
+	if !any { // short-cut without further work
 		r.oneWord[0] = word
 		return r.oneWord[:]
 	}
@@ -353,19 +371,12 @@ func (r *Runner) lonePattern(word *syntax.Word) string {
 	}
 	buf := r.strBuilder()
 	for _, part := range fields[0] {
-		if part.quote == quoteNone {
-			for _, r := range part.val {
-				if r == '\\' {
-					buf.WriteString(`\\`)
-				} else {
-					buf.WriteRune(r)
-				}
-			}
-			continue
-		}
 		for _, r := range part.val {
-			switch r {
-			case '*', '?', '[':
+			if part.quote == quoteNone {
+				if r == '\\' {
+					buf.WriteByte('\\')
+				}
+			} else if patternRune(r) {
 				buf.WriteByte('\\')
 			}
 			buf.WriteRune(r)
