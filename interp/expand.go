@@ -397,7 +397,7 @@ const (
 )
 
 func (r *Runner) wordFields(wps []syntax.WordPart, ql quoteLevel) [][]fieldPart {
-	var fields [][]fieldPart
+	fields := r.fieldsAlloc[:0]
 	var curField []fieldPart
 	allowEmpty := false
 	flush := func() {
