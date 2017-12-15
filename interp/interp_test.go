@@ -141,6 +141,8 @@ var fileCases = []struct {
 	{`echo "$(echo ' b c ')"`, " b c \n"},
 	{"echo ''", "\n"},
 	{`$(echo)`, ""},
+	{`echo -n '\\'`, `\\`},
+	{`echo -n "\\"`, `\`},
 
 	// dollar quotes
 	{`echo $'foo\nbar'`, "foo\nbar\n"},
@@ -1468,8 +1470,8 @@ set +o pipefail
 	{"eval 'a=foo'; echo $a", "foo\n"},
 	{`a=b eval "echo $a"`, "\n"},
 	{`a=b eval 'echo $a'`, "b\n"},
-	// TODO: figure out why we don't support this
-	//{`a=b eval 'x=y eval "echo \$a \$x"'`, "b y\n"},
+	{`eval 'echo "\$a"'`, "$a\n"},
+	{`a=b eval 'x=y eval "echo \$a \$x"'`, "b y\n"},
 
 	// source
 	{

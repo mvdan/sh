@@ -418,15 +418,19 @@ func (r *Runner) wordFields(wps []syntax.WordPart, ql quoteLevel) [][]fieldPart 
 				case b != '\\':
 					// we want a backslash
 				case ql == quoteDouble:
-					// double quotes just remove \\\n
-					if s[i+1] == '\n' {
+					if i+1 >= len(s) {
+						break
+					}
+					switch s[i+1] {
+					case '\n': // remove \\\n
 						i++
+						continue
+					case '\\', '$', '`': // escaped special chars
 						continue
 					}
 				default:
-					buf.WriteByte(s[i+1])
 					i++
-					continue
+					b = s[i]
 				}
 				buf.WriteByte(b)
 			}
@@ -440,6 +444,10 @@ func (r *Runner) wordFields(wps []syntax.WordPart, ql quoteLevel) [][]fieldPart 
 			}
 			curField = append(curField, fp)
 		case *syntax.DblQuoted:
+			quote := quoteDouble
+			if x.Dollar {
+				quote = quoteSingle
+			}
 			allowEmpty = true
 			if len(x.Parts) == 1 {
 				pe, _ := x.Parts[0].(*syntax.ParamExp)
@@ -449,17 +457,17 @@ func (r *Runner) wordFields(wps []syntax.WordPart, ql quoteLevel) [][]fieldPart 
 							flush()
 						}
 						curField = append(curField, fieldPart{
-							quote: quoteDouble,
+							quote: quote,
 							val:   elem,
 						})
 					}
 					continue
 				}
 			}
-			for _, field := range r.wordFields(x.Parts, quoteDouble) {
+			for _, field := range r.wordFields(x.Parts, quote) {
 				for _, part := range field {
 					curField = append(curField, fieldPart{
-						quote: quoteDouble,
+						quote: quote,
 						val:   part.val,
 					})
 				}
