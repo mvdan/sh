@@ -111,7 +111,7 @@ func (r *Runner) fieldJoin(parts []fieldPart) string {
 	switch len(parts) {
 	case 0:
 		return ""
-	case 1:
+	case 1: // short-cut without a string copy
 		return parts[0].val
 	}
 	buf := r.strBuilder()
@@ -403,21 +403,24 @@ func (r *Runner) wordField(wps []syntax.WordPart, ql quoteLevel) []fieldPart {
 			if i == 0 {
 				s = r.expandUser(s)
 			}
-			buf := r.strBuilder()
-			for i := 0; i < len(s); i++ {
-				b := s[i]
-				if ql == quoteDouble && b == '\\' && i+1 < len(s) {
-					switch s[i+1] {
-					case '\n': // remove \\\n
-						i++
-						continue
-					case '\\', '$', '`': // escaped special chars
-						continue
+			if ql == quoteDouble && strings.Contains(s, "\\") {
+				buf := r.strBuilder()
+				for i := 0; i < len(s); i++ {
+					b := s[i]
+					if b == '\\' && i+1 < len(s) {
+						switch s[i+1] {
+						case '\n': // remove \\\n
+							i++
+							continue
+						case '\\', '$', '`': // special chars
+							continue
+						}
 					}
+					buf.WriteByte(b)
 				}
-				buf.WriteByte(b)
+				s = buf.String()
 			}
-			field = append(field, fieldPart{val: buf.String()})
+			field = append(field, fieldPart{val: s})
 		case *syntax.SglQuoted:
 			fp := fieldPart{quote: quoteSingle, val: x.Value}
 			if x.Dollar {
@@ -476,16 +479,19 @@ func (r *Runner) wordFields(wps []syntax.WordPart) [][]fieldPart {
 			if i == 0 {
 				s = r.expandUser(s)
 			}
-			buf := r.strBuilder()
-			for i := 0; i < len(s); i++ {
-				b := s[i]
-				if b == '\\' {
-					i++
-					b = s[i]
+			if strings.Contains(s, "\\") {
+				buf := r.strBuilder()
+				for i := 0; i < len(s); i++ {
+					b := s[i]
+					if b == '\\' {
+						i++
+						b = s[i]
+					}
+					buf.WriteByte(b)
 				}
-				buf.WriteByte(b)
+				s = buf.String()
 			}
-			curField = append(curField, fieldPart{val: buf.String()})
+			curField = append(curField, fieldPart{val: s})
 		case *syntax.SglQuoted:
 			allowEmpty = true
 			fp := fieldPart{quote: quoteSingle, val: x.Value}
