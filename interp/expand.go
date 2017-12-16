@@ -361,15 +361,11 @@ func (r *Runner) lonePattern(word *syntax.Word) string {
 	if word == nil {
 		return ""
 	}
-	field := r.wordField(word.Parts, quoteDouble)
+	field := r.wordField(word.Parts, quoteSingle)
 	buf := r.strBuilder()
 	for _, part := range field {
 		for _, r := range part.val {
-			if part.quote == quoteNone {
-				if r == '\\' {
-					buf.WriteByte('\\')
-				}
-			} else if patternRune(r) {
+			if part.quote > quoteNone && patternRune(r) {
 				buf.WriteByte('\\')
 			}
 			buf.WriteRune(r)
