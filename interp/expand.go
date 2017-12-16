@@ -364,10 +364,7 @@ func (r *Runner) lonePattern(word *syntax.Word) string {
 	if word == nil {
 		return ""
 	}
-	fields := r.wordFields(word.Parts, quoteNone)
-	if len(fields) == 0 {
-		return ""
-	}
+	fields := r.wordFields(word.Parts, quoteDouble)
 	if len(fields) != 1 {
 		panic("expected exactly one field for a pattern")
 	}
