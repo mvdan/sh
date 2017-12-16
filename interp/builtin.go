@@ -117,15 +117,15 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 		}
 		for i, arg := range args {
 			if i > 0 {
-				r.outf(" ")
+				r.out(" ")
 			}
 			if expand {
 				_, arg, _ = r.expandFormat(arg, nil)
 			}
-			r.outf("%s", arg)
+			r.out(arg)
 		}
 		if newline {
-			r.outf("\n")
+			r.out("\n")
 		}
 	case "printf":
 		if len(args) == 0 {
@@ -139,7 +139,7 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 				r.errf("%v\n", err)
 				return 1
 			}
-			r.outf("%s", s)
+			r.out(s)
 			args = args[n:]
 			if n == 0 || len(args) == 0 {
 				break
@@ -341,10 +341,10 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 		for i := len(r.dirStack) - 1; i >= 0; i-- {
 			r.outf("%s", r.dirStack[i])
 			if i > 0 {
-				r.outf(" ")
+				r.out(" ")
 			}
 		}
-		r.outf("\n")
+		r.out("\n")
 	case "pushd":
 		change := true
 		if len(args) > 0 && args[0] == "-n" {

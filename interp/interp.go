@@ -604,6 +604,10 @@ func (r *Runner) Stmt(stmt *syntax.Stmt) error {
 	return r.err
 }
 
+func (r *Runner) out(s string) {
+	io.WriteString(r.Stdout, s)
+}
+
 func (r *Runner) outf(format string, a ...interface{}) {
 	fmt.Fprintf(r.Stdout, format, a...)
 }
