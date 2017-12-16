@@ -182,6 +182,7 @@ func (r *Runner) Reset() error {
 		// emptied below, to reuse the space
 		envMap:   r.envMap,
 		Vars:     r.Vars,
+		cmdVars:  r.cmdVars,
 		dirStack: r.dirStack[:0],
 	}
 	if r.envMap == nil {
@@ -196,6 +197,13 @@ func (r *Runner) Reset() error {
 	} else {
 		for k := range r.Vars {
 			delete(r.Vars, k)
+		}
+	}
+	if r.cmdVars == nil {
+		r.cmdVars = make(map[string]VarValue)
+	} else {
+		for k := range r.cmdVars {
+			delete(r.cmdVars, k)
 		}
 	}
 	if r.Context == nil {
@@ -785,10 +793,6 @@ func (r *Runner) cmd(cm syntax.Command) {
 			}
 			break
 		}
-		oldVars := r.cmdVars
-		if r.cmdVars == nil {
-			r.cmdVars = make(map[string]VarValue, len(x.Assigns))
-		}
 		for _, as := range x.Assigns {
 			val := r.assignVal(as, "")
 			r.cmdVars[as.Name.Value] = val
@@ -798,7 +802,12 @@ func (r *Runner) cmd(cm syntax.Command) {
 			}
 		}
 		r.call(x.Args[0].Pos(), fields)
-		r.cmdVars = oldVars
+		// cmdVars can be nuked here, as they are never useful
+		// again once we nest into further levels of inline
+		// vars.
+		for k := range r.cmdVars {
+			delete(r.cmdVars, k)
+		}
 	case *syntax.BinaryCmd:
 		switch x.Op {
 		case syntax.AndStmt:

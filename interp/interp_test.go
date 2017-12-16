@@ -1523,6 +1523,7 @@ set +o pipefail
 	{`a=b eval 'echo $a'`, "b\n"},
 	{`eval 'echo "\$a"'`, "$a\n"},
 	{`a=b eval 'x=y eval "echo \$a \$x"'`, "b y\n"},
+	{`a=b eval 'a=y eval "echo $a \$a"'`, "b y\n"},
 
 	// source
 	{
