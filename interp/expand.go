@@ -446,15 +446,8 @@ func (r *Runner) wordField(wps []syntax.WordPart, ql quoteLevel) []fieldPart {
 			}
 			field = append(field, fp)
 		case *syntax.DblQuoted:
-			quote := quoteDouble
-			if x.Dollar {
-				quote = quoteSingle
-			}
-			for _, part := range r.wordField(x.Parts, quote) {
-				field = append(field, fieldPart{
-					quote: quote,
-					val:   part.val,
-				})
+			for _, part := range r.wordField(x.Parts, quoteDouble) {
+				field = append(field, part)
 			}
 		case *syntax.ParamExp:
 			val := r.paramExp(x)
@@ -526,10 +519,6 @@ func (r *Runner) wordFields(wps []syntax.WordPart) [][]fieldPart {
 			}
 			curField = append(curField, fp)
 		case *syntax.DblQuoted:
-			quote := quoteDouble
-			if x.Dollar {
-				quote = quoteSingle
-			}
 			allowEmpty = true
 			if len(x.Parts) == 1 {
 				pe, _ := x.Parts[0].(*syntax.ParamExp)
@@ -539,16 +528,16 @@ func (r *Runner) wordFields(wps []syntax.WordPart) [][]fieldPart {
 							flush()
 						}
 						curField = append(curField, fieldPart{
-							quote: quote,
+							quote: quoteDouble,
 							val:   elem,
 						})
 					}
 					continue
 				}
 			}
-			for _, part := range r.wordField(x.Parts, quote) {
+			for _, part := range r.wordField(x.Parts, quoteDouble) {
 				curField = append(curField, fieldPart{
-					quote: quote,
+					quote: quoteDouble,
 					val:   part.val,
 				})
 			}
