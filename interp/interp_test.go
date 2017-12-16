@@ -172,8 +172,10 @@ var fileCases = []struct {
 	// dollar quotes
 	{`echo $'foo\nbar'`, "foo\nbar\n"},
 	{`echo $'\r\t\\'`, "\r\t\\\n"},
-	{`echo $"foo\nbar"`, "foo\\nbar\n"}, // not $"
+	{`echo $"foo\nbar"`, "foo\\nbar\n"},
 	{`echo $'%s'`, "%s\n"},
+	{`a=$'\r\t\\'; echo "$a"`, "\r\t\\\n"},
+	{`a=$"foo\nbar"; echo "$a"`, "foo\\nbar\n"},
 
 	// escaped chars
 	{"echo a\\b", "ab\n"},
@@ -1325,6 +1327,10 @@ var fileCases = []struct {
 	{
 		"a=1; let a++; echo $a",
 		"2\n",
+	},
+	{
+		"a=$((1 + 2)); echo $a",
+		"3\n",
 	},
 
 	// set/shift

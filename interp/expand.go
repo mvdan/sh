@@ -450,11 +450,9 @@ func (r *Runner) wordField(wps []syntax.WordPart, ql quoteLevel) []fieldPart {
 				field = append(field, part)
 			}
 		case *syntax.ParamExp:
-			val := r.paramExp(x)
-			field = append(field, fieldPart{val: val})
+			field = append(field, fieldPart{val: r.paramExp(x)})
 		case *syntax.CmdSubst:
-			val := r.cmdSubst(x)
-			field = append(field, fieldPart{val: val})
+			field = append(field, fieldPart{val: r.cmdSubst(x)})
 		case *syntax.ArithmExp:
 			field = append(field, fieldPart{
 				val: strconv.Itoa(r.arithm(x.X)),
@@ -542,11 +540,9 @@ func (r *Runner) wordFields(wps []syntax.WordPart) [][]fieldPart {
 				})
 			}
 		case *syntax.ParamExp:
-			val := r.paramExp(x)
-			splitAdd(val)
+			splitAdd(r.paramExp(x))
 		case *syntax.CmdSubst:
-			val := r.cmdSubst(x)
-			splitAdd(val)
+			splitAdd(r.cmdSubst(x))
 		case *syntax.ArithmExp:
 			curField = append(curField, fieldPart{
 				val: strconv.Itoa(r.arithm(x.X)),
