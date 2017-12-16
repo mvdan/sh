@@ -121,25 +121,8 @@ func (r *Runner) fieldJoin(parts []fieldPart) string {
 	return buf.String()
 }
 
-var patternBytes = [128]bool{
-	'*':  true,
-	'?':  true,
-	'\\': true,
-	'[':  true,
-}
-
-func patternRune(r rune) bool {
-	return r < 128 && patternBytes[byte(r)]
-}
-
 func (r *Runner) escapedGlobStr(val string) string {
-	any := false
-	for _, r := range val {
-		if any = patternRune(r); any {
-			break
-		}
-	}
-	if !any { // short-cut without a string copy
+	if !anyPatternChar(val) { // short-cut without a string copy
 		return val
 	}
 	buf := r.strBuilder()

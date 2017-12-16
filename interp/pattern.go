@@ -9,6 +9,26 @@ import (
 	"strings"
 )
 
+var patternBytes = [128]bool{
+	'*':  true,
+	'?':  true,
+	'\\': true,
+	'[':  true,
+}
+
+func patternRune(r rune) bool {
+	return r < 128 && patternBytes[byte(r)]
+}
+
+func anyPatternChar(s string) bool {
+	for _, r := range s {
+		if patternRune(r) {
+			return true
+		}
+	}
+	return false
+}
+
 func match(pattern, name string) bool {
 	expr := translatePattern(pattern, true)
 	rx, err := regexp.Compile("^" + expr + "$")
@@ -47,6 +67,9 @@ func charClass(s string) string {
 }
 
 func translatePattern(pattern string, greedy bool) string {
+	if !anyPatternChar(pattern) { // short-cut without a string copy
+		return pattern
+	}
 	var buf bytes.Buffer
 loop:
 	for i := 0; i < len(pattern); i++ {
