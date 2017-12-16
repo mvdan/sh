@@ -446,9 +446,7 @@ func (r *Runner) wordField(wps []syntax.WordPart, ql quoteLevel) []fieldPart {
 			}
 			field = append(field, fp)
 		case *syntax.DblQuoted:
-			for _, part := range r.wordField(x.Parts, quoteDouble) {
-				field = append(field, part)
-			}
+			field = append(field, r.wordField(x.Parts, quoteDouble)...)
 		case *syntax.ParamExp:
 			field = append(field, fieldPart{val: r.paramExp(x)})
 		case *syntax.CmdSubst:
@@ -534,10 +532,8 @@ func (r *Runner) wordFields(wps []syntax.WordPart) [][]fieldPart {
 				}
 			}
 			for _, part := range r.wordField(x.Parts, quoteDouble) {
-				curField = append(curField, fieldPart{
-					quote: quoteDouble,
-					val:   part.val,
-				})
+				part.quote = quoteDouble
+				curField = append(curField, part)
 			}
 		case *syntax.ParamExp:
 			splitAdd(r.paramExp(x))
@@ -553,7 +549,7 @@ func (r *Runner) wordFields(wps []syntax.WordPart) [][]fieldPart {
 	}
 	flush()
 	if allowEmpty && len(fields) == 0 {
-		fields = append(fields, []fieldPart{{}})
+		fields = append(fields, curField)
 	}
 	return fields
 }
