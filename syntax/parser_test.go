@@ -1401,6 +1401,14 @@ var shellTests = []errorCase{
 		bash: `1:8: array element values must be words`,
 	},
 	{
+		in:   "a=(x y) foo",
+		bash: `1:1: inline variables cannot be arrays #NOERR stringifies `,
+	},
+	{
+		in:   "a[2]=x foo",
+		bash: `1:1: inline variables cannot be arrays #NOERR stringifies`,
+	},
+	{
 		in:   "function",
 		bsmk: `1:1: "function" must be followed by a word`,
 	},

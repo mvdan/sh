@@ -3595,17 +3595,6 @@ var fileTests = []testCase{
 		},
 	},
 	{
-		Strs: []string{"a=(b c) foo", "a=(\nb\nc\n) foo"},
-		// TODO: why does mksh error on this?
-		bash: &CallExpr{
-			Assigns: []*Assign{{
-				Name:  lit("a"),
-				Array: arrValues(litWords("b", "c")...),
-			}},
-			Args: litWords("foo"),
-		},
-	},
-	{
 		Strs: []string{"a+=1"},
 		bsmk: &CallExpr{
 			Assigns: []*Assign{{

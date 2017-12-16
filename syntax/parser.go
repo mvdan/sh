@@ -2118,6 +2118,12 @@ loop:
 	}
 	if len(ce.Args) == 0 {
 		ce.Args = nil
+	} else {
+		for _, asgn := range ce.Assigns {
+			if asgn.Index != nil || asgn.Array != nil {
+				p.posErr(asgn.Pos(), "inline variables cannot be arrays")
+			}
+		}
 	}
 	return ce
 }

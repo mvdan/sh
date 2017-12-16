@@ -365,8 +365,8 @@ var printTests = []printCase{
 	samePrint("case $i in\n1) #inl\n\t;;\nesac"),
 	samePrint("case $i in\n1) a \\\n\tb ;;\nesac"),
 	{
-		"a=(\nb\nc\n) foo",
-		"a=(\n\tb\n\tc\n) foo",
+		"a=(\nb\nc\n) b=c",
+		"a=(\n\tb\n\tc\n) b=c",
 	},
 	samePrint("a=(\n\t#before\n\tb #inline\n)"),
 	samePrint("a=(\n\tb #foo\n\tc #bar\n)"),

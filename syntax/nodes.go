@@ -242,7 +242,8 @@ func (r *Redirect) End() Pos { return r.Word.End() }
 // known as a simple command.
 //
 // If Args is empty, Assigns apply to the shell environment. Otherwise,
-// they only apply to the call.
+// they are variables that cannot be arrays and which only apply to the
+// call.
 type CallExpr struct {
 	Assigns []*Assign // a=x b=y args
 	Args    []*Word
