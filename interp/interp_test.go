@@ -21,14 +21,18 @@ import (
 func BenchmarkRun(b *testing.B) {
 	src := `
 echo a b c d
+echo ./$foo/etc $(echo foo bar)
 foo="bar"
-echo ./$foo/etc
+x=y :
 fn() {
+	local a=b
 	for i in 1 2 3; do
 		echo $i | cat
 	done
 }
-(fn && exit)
+[[ $foo == bar ]] && fn
+echo a{b,c}d *.go
+let i=(2 + 3)
 `
 	file, err := syntax.NewParser().Parse(strings.NewReader(src), "")
 	if err != nil {
