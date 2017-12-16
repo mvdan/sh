@@ -323,7 +323,7 @@ func (r *Runner) Fields(words ...*syntax.Word) []string {
 	baseDir := r.escapedGlobStr(r.Dir)
 	for _, word := range words {
 		for _, expWord := range r.expandBraces(word) {
-			for _, field := range r.wordFields(expWord.Parts, quoteNone) {
+			for _, field := range r.wordFields(expWord.Parts) {
 				path, glob := r.escapedGlobField(field)
 				var matches []string
 				abs := filepath.IsAbs(path)
@@ -353,23 +353,17 @@ func (r *Runner) loneWord(word *syntax.Word) string {
 	if word == nil {
 		return ""
 	}
-	fields := r.wordFields(word.Parts, quoteDouble)
-	if len(fields) != 1 {
-		panic("expected exactly one field for a lone word")
-	}
-	return r.fieldJoin(fields[0])
+	field := r.wordField(word.Parts, quoteDouble)
+	return r.fieldJoin(field)
 }
 
 func (r *Runner) lonePattern(word *syntax.Word) string {
 	if word == nil {
 		return ""
 	}
-	fields := r.wordFields(word.Parts, quoteDouble)
-	if len(fields) != 1 {
-		panic("expected exactly one field for a pattern")
-	}
+	field := r.wordField(word.Parts, quoteDouble)
 	buf := r.strBuilder()
-	for _, part := range fields[0] {
+	for _, part := range field {
 		for _, r := range part.val {
 			if part.quote == quoteNone {
 				if r == '\\' {
@@ -421,9 +415,76 @@ const (
 	quoteSingle
 )
 
-func (r *Runner) wordFields(wps []syntax.WordPart, ql quoteLevel) [][]fieldPart {
+func (r *Runner) wordField(wps []syntax.WordPart, ql quoteLevel) []fieldPart {
+	var field []fieldPart
+	for i, wp := range wps {
+		switch x := wp.(type) {
+		case *syntax.Lit:
+			s := x.Value
+			if i == 0 {
+				s = r.expandUser(s)
+			}
+			buf := r.strBuilder()
+			for i := 0; i < len(s); i++ {
+				b := s[i]
+				if ql == quoteDouble && b == '\\' && i+1 < len(s) {
+					switch s[i+1] {
+					case '\n': // remove \\\n
+						i++
+						continue
+					case '\\', '$', '`': // escaped special chars
+						continue
+					}
+				}
+				buf.WriteByte(b)
+			}
+			field = append(field, fieldPart{val: buf.String()})
+		case *syntax.SglQuoted:
+			fp := fieldPart{quote: quoteSingle, val: x.Value}
+			if x.Dollar {
+				_, fp.val, _ = r.expandFormat(fp.val, nil)
+			}
+			field = append(field, fp)
+		case *syntax.DblQuoted:
+			quote := quoteDouble
+			if x.Dollar {
+				quote = quoteSingle
+			}
+			for _, part := range r.wordField(x.Parts, quote) {
+				field = append(field, fieldPart{
+					quote: quote,
+					val:   part.val,
+				})
+			}
+		case *syntax.ParamExp:
+			val := r.paramExp(x)
+			field = append(field, fieldPart{val: val})
+		case *syntax.CmdSubst:
+			val := r.cmdSubst(x)
+			field = append(field, fieldPart{val: val})
+		case *syntax.ArithmExp:
+			field = append(field, fieldPart{
+				val: strconv.Itoa(r.arithm(x.X)),
+			})
+		default:
+			panic(fmt.Sprintf("unhandled word part: %T", x))
+		}
+	}
+	return field
+}
+
+func (r *Runner) cmdSubst(cs *syntax.CmdSubst) string {
+	r2 := r.sub()
+	buf := r.strBuilder()
+	r2.Stdout = buf
+	r2.stmts(cs.StmtList)
+	r.setErr(r2.err)
+	return strings.TrimRight(buf.String(), "\n")
+}
+
+func (r *Runner) wordFields(wps []syntax.WordPart) [][]fieldPart {
 	fields := r.fieldsAlloc[:0]
-	var curField []fieldPart
+	curField := r.fieldAlloc[:0]
 	allowEmpty := false
 	flush := func() {
 		if len(curField) == 0 {
@@ -450,30 +511,13 @@ func (r *Runner) wordFields(wps []syntax.WordPart, ql quoteLevel) [][]fieldPart 
 			buf := r.strBuilder()
 			for i := 0; i < len(s); i++ {
 				b := s[i]
-				switch {
-				case ql == quoteSingle:
-					// never does anything
-				case b != '\\':
-					// we want a backslash
-				case ql == quoteDouble:
-					if i+1 >= len(s) {
-						break
-					}
-					switch s[i+1] {
-					case '\n': // remove \\\n
-						i++
-						continue
-					case '\\', '$', '`': // escaped special chars
-						continue
-					}
-				default:
+				if b == '\\' {
 					i++
 					b = s[i]
 				}
 				buf.WriteByte(b)
 			}
-			s = buf.String()
-			curField = append(curField, fieldPart{val: s})
+			curField = append(curField, fieldPart{val: buf.String()})
 		case *syntax.SglQuoted:
 			allowEmpty = true
 			fp := fieldPart{quote: quoteSingle, val: x.Value}
@@ -487,7 +531,7 @@ func (r *Runner) wordFields(wps []syntax.WordPart, ql quoteLevel) [][]fieldPart 
 				quote = quoteSingle
 			}
 			allowEmpty = true
-			if len(x.Parts) == 1 && ql == quoteNone {
+			if len(x.Parts) == 1 {
 				pe, _ := x.Parts[0].(*syntax.ParamExp)
 				if elems := r.quotedElems(pe); elems != nil {
 					for i, elem := range elems {
@@ -502,33 +546,18 @@ func (r *Runner) wordFields(wps []syntax.WordPart, ql quoteLevel) [][]fieldPart 
 					continue
 				}
 			}
-			for _, field := range r.wordFields(x.Parts, quote) {
-				for _, part := range field {
-					curField = append(curField, fieldPart{
-						quote: quote,
-						val:   part.val,
-					})
-				}
+			for _, part := range r.wordField(x.Parts, quote) {
+				curField = append(curField, fieldPart{
+					quote: quote,
+					val:   part.val,
+				})
 			}
 		case *syntax.ParamExp:
 			val := r.paramExp(x)
-			if ql > quoteNone {
-				curField = append(curField, fieldPart{val: val})
-			} else {
-				splitAdd(val)
-			}
+			splitAdd(val)
 		case *syntax.CmdSubst:
-			r2 := r.sub()
-			buf := r.strBuilder()
-			r2.Stdout = buf
-			r2.stmts(x.StmtList)
-			val := strings.TrimRight(buf.String(), "\n")
-			if ql > quoteNone {
-				curField = append(curField, fieldPart{val: val})
-			} else {
-				splitAdd(val)
-			}
-			r.setErr(r2.err)
+			val := r.cmdSubst(x)
+			splitAdd(val)
 		case *syntax.ArithmExp:
 			curField = append(curField, fieldPart{
 				val: strconv.Itoa(r.arithm(x.X)),

@@ -102,6 +102,7 @@ type Runner struct {
 	// because Go doesn't currently support sending Interrupt on Windows.
 	KillTimeout time.Duration
 
+	fieldAlloc      [4]fieldPart
 	fieldsAlloc     [4][]fieldPart
 	bufferAlloc     bytes.Buffer
 	oneWord         [1]*syntax.Word
