@@ -177,6 +177,25 @@ func (r *Runner) Reset() error {
 		Exec:        r.Exec,
 		Open:        r.Open,
 		KillTimeout: r.KillTimeout,
+
+		// emptied below, to reuse the space
+		envMap:   r.envMap,
+		Vars:     r.Vars,
+		dirStack: r.dirStack[:0],
+	}
+	if r.envMap == nil {
+		r.envMap = make(map[string]string)
+	} else {
+		for k := range r.envMap {
+			delete(r.envMap, k)
+		}
+	}
+	if r.Vars == nil {
+		r.Vars = make(map[string]Variable)
+	} else {
+		for k := range r.Vars {
+			delete(r.Vars, k)
+		}
 	}
 	if r.Context == nil {
 		r.Context = context.Background()
@@ -184,7 +203,6 @@ func (r *Runner) Reset() error {
 	if r.Env == nil {
 		r.Env = os.Environ()
 	}
-	r.envMap = make(map[string]string, len(r.Env))
 	for _, kv := range r.Env {
 		i := strings.IndexByte(kv, '=')
 		if i < 0 {
@@ -193,7 +211,6 @@ func (r *Runner) Reset() error {
 		name, val := kv[:i], kv[i+1:]
 		r.envMap[name] = val
 	}
-	r.Vars = make(map[string]Variable)
 	if _, ok := r.envMap["HOME"]; !ok {
 		u, _ := user.Current()
 		r.Vars["HOME"] = Variable{Value: StringVal(u.HomeDir)}
@@ -215,7 +232,7 @@ func (r *Runner) Reset() error {
 	path = strings.Join(filepath.SplitList(path), ":")
 	r.Vars["PATH"] = Variable{Value: StringVal(path)}
 
-	r.dirStack = []string{r.Dir}
+	r.dirStack = append(r.dirStack, r.Dir)
 	if r.Exec == nil {
 		r.Exec = DefaultExec
 	}
