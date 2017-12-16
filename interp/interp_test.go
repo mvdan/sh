@@ -476,6 +476,14 @@ var fileCases = []struct {
 		`mkdir d; (cd /; echo "$PWD")`,
 		"/\n",
 	},
+	{
+		"unset INTERP_GLOBAL & echo $INTERP_GLOBAL",
+		"value\n",
+	},
+	{
+		"(fn() { :; }) & pwd >/dev/null",
+		"",
+	},
 
 	// cd/pwd
 	{

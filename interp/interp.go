@@ -764,9 +764,17 @@ func (r *Runner) sub() *Runner {
 	r2.bufferAlloc = bytes.Buffer{}
 	// TODO: perhaps we could do a lazy copy here, or some sort of
 	// overlay to avoid copying all the time
+	r2.envMap = make(map[string]string, len(r.envMap))
+	for k, v := range r.envMap {
+		r2.envMap[k] = v
+	}
 	r2.Vars = make(map[string]Variable, len(r.Vars))
 	for k, v := range r.Vars {
 		r2.Vars[k] = v
+	}
+	r2.cmdVars = make(map[string]VarValue, len(r.cmdVars))
+	for k, v := range r.cmdVars {
+		r2.cmdVars[k] = v
 	}
 	return &r2
 }
