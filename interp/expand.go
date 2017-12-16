@@ -487,7 +487,7 @@ func (r *Runner) wordFields(wps []syntax.WordPart, ql quoteLevel) [][]fieldPart 
 				quote = quoteSingle
 			}
 			allowEmpty = true
-			if len(x.Parts) == 1 {
+			if len(x.Parts) == 1 && ql == quoteNone {
 				pe, _ := x.Parts[0].(*syntax.ParamExp)
 				if elems := r.quotedElems(pe); elems != nil {
 					for i, elem := range elems {

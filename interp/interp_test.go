@@ -167,6 +167,7 @@ var fileCases = []struct {
 	{`$(echo)`, ""},
 	{`echo -n '\\'`, `\\`},
 	{`echo -n "\\"`, `\`},
+	{`set -- a b c; x="$@"; echo "$x"`, "a b c\n"},
 
 	// dollar quotes
 	{`echo $'foo\nbar'`, "foo\nbar\n"},
