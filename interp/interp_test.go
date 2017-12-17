@@ -806,6 +806,10 @@ var fileCases = []struct {
 		"echo foo | sed 's/o/a/g'",
 		"faa\n",
 	},
+	{
+		"echo foo | false | true",
+		"",
+	},
 
 	// redirects
 	{

@@ -102,7 +102,6 @@ type Runner struct {
 	// because Go doesn't currently support sending Interrupt on Windows.
 	KillTimeout time.Duration
 
-	pipeWaitGroup   sync.WaitGroup
 	fieldAlloc      [4]fieldPart
 	fieldsAlloc     [4][]fieldPart
 	bufferAlloc     bytes.Buffer
@@ -765,7 +764,6 @@ func (r *Runner) stmtSync(st *syntax.Stmt) {
 
 func (r *Runner) sub() *Runner {
 	r2 := *r
-	r2.pipeWaitGroup = sync.WaitGroup{}
 	r2.bgShells = sync.WaitGroup{}
 	r2.bufferAlloc = bytes.Buffer{}
 	// TODO: perhaps we could do a lazy copy here, or some sort of
@@ -844,15 +842,16 @@ func (r *Runner) cmd(cm syntax.Command) {
 				r2.Stderr = r.Stderr
 			}
 			r.Stdin = pr
-			r.pipeWaitGroup.Add(1)
+			var wg sync.WaitGroup
+			wg.Add(1)
 			go func() {
 				r2.stmt(x.X)
 				pw.Close()
-				r.pipeWaitGroup.Done()
+				wg.Done()
 			}()
 			r.stmt(x.Y)
 			pr.Close()
-			r.pipeWaitGroup.Wait()
+			wg.Wait()
 			if r.shellOpts[optPipeFail] && r2.exit > 0 && r.exit == 0 {
 				r.exit = r2.exit
 			}
