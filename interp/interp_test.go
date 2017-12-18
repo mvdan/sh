@@ -732,6 +732,10 @@ var fileCases = []struct {
 		"bash -c 'exit 1'",
 		"exit status 1",
 	},
+	{
+		"exec >/dev/null; echo foo",
+		"",
+	},
 
 	// PATH
 	{

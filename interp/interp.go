@@ -89,6 +89,10 @@ type Runner struct {
 	ifsJoin string
 	ifsRune func(rune) bool
 
+	// keepRedirs is used so that "exec" can make any redirections
+	// apply to the current shell, and not just the command.
+	keepRedirs bool
+
 	// KillTimeout holds how much time the interpreter will wait for a
 	// program to stop after being sent an interrupt signal, after
 	// which a kill signal will be sent. This process will happen when the
@@ -758,7 +762,9 @@ func (r *Runner) stmtSync(st *syntax.Stmt) {
 	if r.exit != 0 && r.shellOpts[optErrExit] {
 		r.lastExit()
 	}
-	r.Stdin, r.Stdout, r.Stderr = oldIn, oldOut, oldErr
+	if !r.keepRedirs {
+		r.Stdin, r.Stdout, r.Stderr = oldIn, oldOut, oldErr
+	}
 }
 
 func (r *Runner) sub() *Runner {

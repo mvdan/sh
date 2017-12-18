@@ -297,7 +297,7 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 		// but in practice it would kill the entire Go process
 		// and it's not available on Windows.
 		if len(args) == 0 {
-			// TODO: different behavior, apparently
+			r.keepRedirs = true
 			break
 		}
 		r.exec(args)
