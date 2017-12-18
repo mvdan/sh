@@ -213,6 +213,9 @@ var fileCases = []struct {
 	// special vars
 	{"echo $?; false; echo $?", "0\n1\n"},
 	{"for i in 1 2; do\necho $LINENO\necho $LINENO\ndone", "2\n3\n2\n3\n"},
+	{"[[ -n $$ && $$ -gt 0 ]]", ""},
+	{"[[ -n $PPID && $PPID -gt 0 ]]", ""},
+	{"[[ $$ -eq $PPID ]]", "exit status 1"},
 
 	// var manipulation
 	{"foo=bar; echo ${#foo}", "3\n"},

@@ -5,6 +5,7 @@ package interp
 
 import (
 	"fmt"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -62,6 +63,10 @@ func (r *Runner) paramExp(pe *syntax.ParamExp) string {
 		vr.Value = StringVal(strings.Join(r.Params, r.ifsJoin))
 	case "?":
 		vr.Value = StringVal(strconv.Itoa(r.exit))
+	case "$":
+		vr.Value = StringVal(strconv.Itoa(os.Getpid()))
+	case "PPID":
+		vr.Value = StringVal(strconv.Itoa(os.Getppid()))
 	case "LINENO":
 		line := uint64(pe.Pos().Line())
 		vr.Value = StringVal(strconv.FormatUint(line, 10))
