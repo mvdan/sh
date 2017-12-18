@@ -59,7 +59,7 @@ type Runner struct {
 	funcVars map[string]Variable
 
 	// like Vars, but local to a cmd i.e. "foo=bar prog args..."
-	cmdVars map[string]VarValue
+	cmdVars map[string]string
 
 	// >0 to break or continue out of N enclosing loops
 	breakEnclosing, contnEnclosing int
@@ -200,7 +200,7 @@ func (r *Runner) Reset() error {
 		}
 	}
 	if r.cmdVars == nil {
-		r.cmdVars = make(map[string]VarValue)
+		r.cmdVars = make(map[string]string)
 	} else {
 		for k := range r.cmdVars {
 			delete(r.cmdVars, k)
@@ -271,8 +271,7 @@ func (r *Runner) ctx() Ctxt {
 		c.Env = append(c.Env, name+"="+r.varStr(vr, 0))
 	}
 	for name, val := range r.cmdVars {
-		vr := Variable{Value: val}
-		c.Env = append(c.Env, name+"="+r.varStr(vr, 0))
+		c.Env = append(c.Env, name+"="+val)
 	}
 	return c
 }
@@ -482,7 +481,7 @@ func (r *Runner) setVar(name string, index syntax.ArithmExpr, vr Variable) {
 
 func (r *Runner) lookupVar(name string) (Variable, bool) {
 	if val, e := r.cmdVars[name]; e {
-		return Variable{Value: val}, true
+		return Variable{Value: StringVal(val)}, true
 	}
 	if vr, e := r.funcVars[name]; e {
 		return vr, true
@@ -776,7 +775,7 @@ func (r *Runner) sub() *Runner {
 	for k, v := range r.Vars {
 		r2.Vars[k] = v
 	}
-	r2.cmdVars = make(map[string]VarValue, len(r.cmdVars))
+	r2.cmdVars = make(map[string]string, len(r.cmdVars))
 	for k, v := range r.cmdVars {
 		r2.cmdVars[k] = v
 	}
@@ -807,7 +806,8 @@ func (r *Runner) cmd(cm syntax.Command) {
 		}
 		for _, as := range x.Assigns {
 			val := r.assignVal(as, "")
-			r.cmdVars[as.Name.Value] = val
+			// we know that inline vars must be strings
+			r.cmdVars[as.Name.Value] = string(val.(StringVal))
 			if as.Name.Value == "IFS" {
 				r.ifsUpdated()
 				defer r.ifsUpdated()
