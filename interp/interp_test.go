@@ -172,6 +172,7 @@ var fileCases = []struct {
 	{`echo -n '\\'`, `\\`},
 	{`echo -n "\\"`, `\`},
 	{`set -- a b c; x="$@"; echo "$x"`, "a b c\n"},
+	{`set -- b c; echo a"$@"d`, "ab cd\n"},
 
 	// dollar quotes
 	{`echo $'foo\nbar'`, "foo\nbar\n"},
@@ -802,6 +803,10 @@ var fileCases = []struct {
 	{
 		"for i in 1 $(echo 2 3) 4; do echo $i; done",
 		"1\n2\n3\n4\n",
+	},
+	{
+		"echo 1$(echo 2 3)4",
+		"12 34\n",
 	},
 	{
 		"[[ $(cd / && pwd) == $(pwd) ]]",
