@@ -341,9 +341,6 @@ func (r *Runner) loneWord(word *syntax.Word) string {
 }
 
 func (r *Runner) lonePattern(word *syntax.Word) string {
-	if word == nil {
-		return ""
-	}
 	field := r.wordField(word.Parts, quoteSingle)
 	buf := r.strBuilder()
 	for _, part := range field {

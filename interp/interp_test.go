@@ -140,6 +140,7 @@ var fileCases = []struct {
 	{"printf %B foo", "invalid format char: B\nexit status 1 #JUSTERR"},
 	{"printf %12-s foo", "invalid format char: -\nexit status 1 #JUSTERR"},
 	{"printf ' %s \n' bar", " bar \n"},
+	{"printf '\\A'", "\\A"},
 	{"printf %s foo", "foo"},
 	{"printf %s", ""},
 	{"printf %d,%i 3 4", "3,4"},
@@ -1552,6 +1553,7 @@ set +o pipefail
 	{`eval 'echo "\$a"'`, "$a\n"},
 	{`a=b eval 'x=y eval "echo \$a \$x"'`, "b y\n"},
 	{`a=b eval 'a=y eval "echo $a \$a"'`, "b y\n"},
+	{"a=b eval '(echo $a)'", "b\n"},
 
 	// source
 	{
@@ -1631,6 +1633,10 @@ set +o pipefail
 	{
 		`declare -a a=(x y); echo ${a[1]}`,
 		"y\n",
+	},
+	{
+		`a=b; echo "${a[@]}"`,
+		"b\n",
 	},
 
 	// associative arrays
