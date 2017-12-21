@@ -928,16 +928,21 @@ func (r *Runner) cmd(cm syntax.Command) {
 			r.exit = 1
 		}
 	case *syntax.DeclClause:
+		local := false
 		var modes []string
 		valType := ""
 		switch x.Variant.Value {
+		case "declare":
+			// When used in a function, "declare" acts as
+			// "local" unless the "-g" option is used.
+			local = r.inFunc
 		case "local":
 			if !r.inFunc {
 				r.errf("local: can only be used in a function\n")
 				r.exit = 1
 				return
 			}
-			modes = append(modes, "l")
+			local = true
 		case "export":
 			modes = append(modes, "-x")
 		case "readonly":
@@ -951,6 +956,8 @@ func (r *Runner) cmd(cm syntax.Command) {
 				modes = append(modes, s)
 			case "-a", "-A":
 				valType = s
+			case "-g":
+				local = false
 			default:
 				r.errf("declare: invalid option %q\n", s)
 				r.exit = 2
@@ -962,10 +969,9 @@ func (r *Runner) cmd(cm syntax.Command) {
 				name := as.Name.Value
 				vr, _ := r.lookupVar(as.Name.Value)
 				vr.Value = r.assignVal(as, valType)
+				vr.Local = local
 				for _, mode := range modes {
 					switch mode {
-					case "l":
-						vr.Local = true
 					case "-x":
 						vr.Exported = true
 					case "-r":

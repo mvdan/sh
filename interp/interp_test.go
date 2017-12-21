@@ -1740,6 +1740,10 @@ set +o pipefail
 		"f1() { local a=b; }; f2() { f1; echo $a; }; f2",
 		"\n",
 	},
+	{
+		"f() { a=1; declare b=2; export c=3; readonly d=4; declare -g e=5; }; f; echo $a $b $c $d $e",
+		"1 3 4 5\n",
+	},
 
 	// name references
 	{"declare -n foo=bar; bar=etc; [[ -R foo ]]", ""},
