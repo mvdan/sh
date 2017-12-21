@@ -1217,6 +1217,9 @@ func ValidName(val string) bool {
 }
 
 func (p *Parser) hasValidIdent() bool {
+	if p.tok != _Lit && p.tok != _LitWord {
+		return false
+	}
 	if end := p.eqlOffs; end > 0 {
 		if p.val[end-1] == '+' && p.lang != LangPOSIX {
 			end--
@@ -1225,7 +1228,7 @@ func (p *Parser) hasValidIdent() bool {
 			return true
 		}
 	}
-	return p.tok == _Lit && p.r == '['
+	return p.r == '['
 }
 
 func (p *Parser) getAssign(needEqual bool) *Assign {
@@ -1564,7 +1567,7 @@ func (p *Parser) gotStmtPipe(s *Stmt) *Stmt {
 	case _Lit, dollBrace, dollDblParen, dollParen, dollar, cmdIn, cmdOut,
 		sglQuote, dollSglQuote, dblQuote, dollDblQuote, dollBrack,
 		globQuest, globStar, globPlus, globAt, globExcl:
-		if p.tok == _Lit && p.hasValidIdent() {
+		if p.hasValidIdent() {
 			s.Cmd = p.callExpr(s, nil, true)
 			break
 		}
@@ -1952,7 +1955,7 @@ func (p *Parser) declClause() *DeclClause {
 		ds.Opts = append(ds.Opts, p.getWord())
 	}
 	for !stopToken(p.tok) && !p.peekRedir() {
-		if (p.tok == _Lit || p.tok == _LitWord) && p.hasValidIdent() {
+		if p.hasValidIdent() {
 			ds.Assigns = append(ds.Assigns, p.getAssign(false))
 		} else if p.eqlOffs > 0 {
 			p.curErr("invalid var name")
