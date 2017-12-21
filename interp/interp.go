@@ -982,18 +982,26 @@ func (r *Runner) cmd(cm syntax.Command) {
 		if x.Stmt != nil {
 			r.stmt(x.Stmt)
 		}
+		format := "%s\t%s\n"
+		if x.PosixFormat {
+			format = "%s %s\n"
+		} else {
+			r.outf("\n")
+		}
 		real := time.Since(start)
-		r.outf("\n")
-		r.outf("real\t%s\n", elapsedString(real))
+		r.outf(format, "real", elapsedString(real, x.PosixFormat))
 		// TODO: can we do these?
-		r.outf("user\t0m0.000s\n")
-		r.outf("sys\t0m0.000s\n")
+		r.outf(format, "user", elapsedString(0, x.PosixFormat))
+		r.outf(format, "sys", elapsedString(0, x.PosixFormat))
 	default:
 		panic(fmt.Sprintf("unhandled command node: %T", x))
 	}
 }
 
-func elapsedString(d time.Duration) string {
+func elapsedString(d time.Duration, posix bool) string {
+	if posix {
+		return fmt.Sprintf("%.2f", d.Seconds())
+	}
 	min := int(d.Minutes())
 	sec := math.Remainder(d.Seconds(), 60.0)
 	return fmt.Sprintf("%dm%.3fs", min, sec)

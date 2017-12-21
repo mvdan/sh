@@ -1845,6 +1845,8 @@ set +o pipefail
 	// time - real would be slow and flaky; see TestElapsedString
 	{"{ time; } |& wc", "      4       6      42\n"},
 	{"{ time echo -n; } |& wc", "      4       6      42\n"},
+	{"{ time -p; } |& wc", "      3       6      29\n"},
+	{"{ time -p echo -n; } |& wc", "      3       6      29\n"},
 
 	// exec
 	{"exec", ""},
@@ -2254,20 +2256,29 @@ func TestRunnerAltNodes(t *testing.T) {
 
 func TestElapsedString(t *testing.T) {
 	tests := []struct {
-		in   time.Duration
-		want string
+		in    time.Duration
+		posix bool
+		want  string
 	}{
-		{time.Nanosecond, "0m0.000s"},
-		{time.Millisecond, "0m0.001s"},
-		{2500 * time.Millisecond, "0m2.500s"},
+		{time.Nanosecond, false, "0m0.000s"},
+		{time.Millisecond, false, "0m0.001s"},
+		{time.Millisecond, true, "0.00"},
+		{2500 * time.Millisecond, false, "0m2.500s"},
+		{2500 * time.Millisecond, true, "2.50"},
 		{
 			10*time.Minute + 10*time.Second,
+			false,
 			"10m10.000s",
+		},
+		{
+			10*time.Minute + 10*time.Second,
+			true,
+			"610.00",
 		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.in.String(), func(t *testing.T) {
-			got := elapsedString(tc.in)
+			got := elapsedString(tc.in, tc.posix)
 			if got != tc.want {
 				t.Fatalf("wanted %q, got %q", tc.want, got)
 			}
