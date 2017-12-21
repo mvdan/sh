@@ -1947,7 +1947,8 @@ func (p *Parser) testExprBase(ftok token, fpos Pos) TestExpr {
 func (p *Parser) declClause() *DeclClause {
 	ds := &DeclClause{Variant: p.lit(p.pos, p.val)}
 	p.next()
-	for (p.tok == _LitWord || p.tok == _Lit) && p.val[0] == '-' {
+	for (p.tok == _LitWord || p.tok == _Lit) &&
+		(p.val[0] == '-' || p.val[0] == '+') {
 		ds.Opts = append(ds.Opts, p.getWord())
 	}
 	for !stopToken(p.tok) && !p.peekRedir() {

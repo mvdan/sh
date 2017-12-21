@@ -3288,11 +3288,12 @@ var fileTests = []testCase{
 		posix: litStmt("nameref", "bar"),
 	},
 	{
-		Strs: []string{"declare -a -b$o foo=bar"},
+		Strs: []string{"declare -a +n -b$o foo=bar"},
 		bash: &DeclClause{
 			Variant: lit("declare"),
 			Opts: []*Word{
 				litWord("-a"),
+				litWord("+n"),
 				word(lit("-b"), litParamExp("o")),
 			},
 			Assigns: []*Assign{
