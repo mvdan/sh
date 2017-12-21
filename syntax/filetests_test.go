@@ -3947,17 +3947,19 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 		recurse(x.Last)
 	case *Stmt:
 		endOff := int(x.End().Offset())
-		switch {
-		case src == "":
-		case endOff >= len(src):
-			// ended by EOF
-		case wordBreak(rune(src[endOff])), regOps(rune(src[endOff])):
-			// ended by end character
-		case endOff > 0 && src[endOff-1] == ';':
-			// ended by semicolon
-		default:
-			tb.Fatalf("Unexpected Stmt.End() %d %q in %q",
-				endOff, src[endOff], string(src))
+		if endOff < len(src) {
+			end := src[endOff]
+			switch {
+			case end == ' ', end == '\n', end == '\t', end == '\r':
+				// ended by whitespace
+			case regOps(rune(end)):
+				// ended by end character
+			case endOff > 0 && src[endOff-1] == ';':
+				// ended by semicolon
+			default:
+				tb.Fatalf("Unexpected Stmt.End() %d %q in %q",
+					endOff, end, string(src))
+			}
 		}
 		recurse(x.Comments)
 		setPos(&x.Position)

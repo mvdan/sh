@@ -47,14 +47,6 @@ func arithmOps(r rune) bool {
 	return false
 }
 
-func wordBreak(r rune) bool {
-	switch r {
-	case ' ', '\t', '\n', ';', '&', '>', '<', '|', '(', ')', '\r':
-		return true
-	}
-	return false
-}
-
 func (p *Parser) rune() rune {
 	if p.r == '\n' {
 		// p.r instead of b so that newline
