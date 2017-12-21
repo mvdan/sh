@@ -1990,6 +1990,10 @@ func isBashCompoundCommand(tok token, val string) bool {
 func (p *Parser) timeClause() *TimeClause {
 	tc := &TimeClause{Time: p.pos}
 	p.next()
+	if p.tok == _LitWord && p.val == "-p" {
+		tc.PosixFormat = true
+		p.next()
+	}
 	if p.tok != _Newl {
 		tc.Stmt = p.gotStmtPipe(p.stmt(p.pos))
 	}

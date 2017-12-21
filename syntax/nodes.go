@@ -764,12 +764,14 @@ type ProcSubst struct {
 func (s *ProcSubst) Pos() Pos { return s.OpPos }
 func (s *ProcSubst) End() Pos { return posAddCol(s.Rparen, 1) }
 
-// TimeClause represents a Bash time clause.
+// TimeClause represents a Bash time clause. PosixFormat corresponds to
+// the -p flag.
 //
 // This node will only appear in LangBash and LangMirBSDKorn.
 type TimeClause struct {
-	Time Pos
-	Stmt *Stmt
+	Time        Pos
+	PosixFormat bool
+	Stmt        *Stmt
 }
 
 func (c *TimeClause) Pos() Pos { return c.Time }

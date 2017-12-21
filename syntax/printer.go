@@ -820,6 +820,9 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		p.assigns(x.Assigns, false)
 	case *TimeClause:
 		p.spacedString("time", x.Pos())
+		if x.PosixFormat {
+			p.spacedString("-p", x.Pos())
+		}
 		if x.Stmt != nil {
 			p.stmt(x.Stmt)
 		}

@@ -3438,6 +3438,21 @@ var fileTests = []testCase{
 		bsmk:  &TimeClause{},
 	},
 	{
+		Strs:  []string{"time -p"},
+		posix: litStmt("time", "-p"),
+		bsmk:  &TimeClause{PosixFormat: true},
+	},
+	{
+		Strs:  []string{"time -a"},
+		posix: litStmt("time", "-a"),
+		bsmk:  &TimeClause{Stmt: litStmt("-a")},
+	},
+	{
+		Strs:  []string{"time --"},
+		posix: litStmt("time", "--"),
+		bsmk:  &TimeClause{Stmt: litStmt("--")},
+	},
+	{
 		Strs: []string{"time foo"},
 		bsmk: &TimeClause{Stmt: litStmt("foo")},
 	},
