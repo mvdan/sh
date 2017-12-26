@@ -3,12 +3,9 @@
 
 package syntax
 
-type token uint32
+//go:generate stringer -type token -linecomment
 
-// Modified version of golang.org/x/tools/cmd/stringer that gets the
-// string value from the inline comment of each constant, if there is
-// one. Also removes leading '_'.
-//go:generate stringer -type token -linecoms
+type token uint32
 
 // The list of all possible tokens.
 const (
