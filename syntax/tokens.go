@@ -3,7 +3,7 @@
 
 package syntax
 
-//go:generate stringer -type token -linecomment
+//go:generate stringer -type token -linecomment -trimprefix _
 
 type token uint32
 
@@ -11,11 +11,11 @@ type token uint32
 const (
 	illegalTok token = iota
 
-	_EOF      // EOF
-	_Newl     // Newline
-	_Lit      // Lit
-	_LitWord  // LitWord
-	_LitRedir // LitRedir
+	_EOF
+	_Newl
+	_Lit
+	_LitWord
+	_LitRedir
 
 	sglQuote // '
 	dblQuote // "
