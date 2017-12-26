@@ -17,10 +17,11 @@ func (r *Runner) expandFormat(format string, args []string) (int, string, error)
 	buf := r.strBuilder()
 	esc := false
 	var fmts []rune
-	n := len(args)
+	initialArgs := len(args)
 
 	for _, c := range format {
-		if esc {
+		switch {
+		case esc:
 			esc = false
 			switch c {
 			case 'n':
@@ -35,10 +36,8 @@ func (r *Runner) expandFormat(format string, args []string) (int, string, error)
 				buf.WriteRune('\\')
 				buf.WriteRune(c)
 			}
-			continue
-		}
-		if len(fmts) > 0 {
 
+		case len(fmts) > 0:
 			switch c {
 			case '%':
 				buf.WriteByte('%')
@@ -62,49 +61,42 @@ func (r *Runner) expandFormat(format string, args []string) (int, string, error)
 			case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
 				fmts = append(fmts, c)
 			case 's', 'd', 'i', 'u', 'o', 'x':
-				var farg interface{}
 				arg := ""
-				fmts = append(fmts, c)
 				if len(args) > 0 {
 					arg, args = args[0], args[1:]
 				}
-				switch c {
-				case 's':
-					farg = arg
-				case 'd', 'i', 'u', 'o', 'x':
+				var farg interface{} = arg
+				if c != 's' {
 					n, _ := strconv.ParseInt(arg, 0, 0)
-					if c == 'i' || c == 'u' {
-						fmts[len(fmts)-1] = 'd'
-					}
 					if c == 'i' || c == 'd' {
 						farg = int(n)
 					} else {
 						farg = uint(n)
 					}
+					if c == 'i' || c == 'u' {
+						c = 'd'
+					}
 				}
-
+				fmts = append(fmts, c)
 				fmt.Fprintf(buf, string(fmts), farg)
 				fmts = nil
 			default:
 				return 0, "", fmt.Errorf("invalid format char: %c", c)
 			}
-
-			continue
-		}
-		if c == '\\' {
+		case c == '\\':
 			esc = true
-		} else if args != nil && c == '%' {
+		case args != nil && c == '%':
 			// if args == nil, we are not doing format
 			// arguments
 			fmts = []rune{c}
-		} else {
+		default:
 			buf.WriteRune(c)
 		}
 	}
 	if len(fmts) > 0 {
 		return 0, "", fmt.Errorf("missing format char")
 	}
-	return n - len(args), buf.String(), nil
+	return initialArgs - len(args), buf.String(), nil
 }
 
 func (r *Runner) fieldJoin(parts []fieldPart) string {
