@@ -10,6 +10,8 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"regexp"
+	"runtime"
 	"strings"
 	"sync"
 	"testing"
@@ -1111,7 +1113,7 @@ var fileCases = []struct {
 		"y\n",
 	},
 	{
-		"[[ -p a ]] && echo x; mknod a p; [[ -p a ]] && echo y",
+		"[[ -p a ]] && echo x; mkfifo a; [[ -p a ]] && echo y",
 		"y\n",
 	},
 	{
@@ -1243,7 +1245,7 @@ var fileCases = []struct {
 		"y\n",
 	},
 	{
-		"[ -p a ] && echo x; mknod a p; [ -p a ] && echo y",
+		"[ -p a ] && echo x; mkfifo a; [ -p a ] && echo y",
 		"y\n",
 	},
 	{
@@ -2028,11 +2030,18 @@ func (c *concBuffer) String() string {
 	return s
 }
 
+// wc: leading whitespace padding on mac
+// touch -d @: no way to set unix timestamps on mac
+var linuxOnly = regexp.MustCompile(`\bwc\b|touch -d @`)
+
 func TestFile(t *testing.T) {
 	p := syntax.NewParser()
 	for i := range fileCases {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
 			c := fileCases[i]
+			if runtime.GOOS != "linux" && linuxOnly.MatchString(c.in) {
+				t.Skip("skipping linux-only test on non-linux")
+			}
 			file, err := p.Parse(strings.NewReader(c.in), "")
 			if err != nil {
 				t.Fatalf("could not parse: %v", err)
