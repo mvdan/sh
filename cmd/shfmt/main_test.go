@@ -26,39 +26,37 @@ const (
 
 var walkTests = []struct {
 	want       action
-	mode       os.FileMode
 	symlink    bool
 	path, body string
 }{
-	{Modify, 0666, false, "shebang-1", "#!/bin/sh\n foo"},
-	{Modify, 0666, false, "shebang-2", "#!/bin/bash\n foo"},
-	{Modify, 0666, false, "shebang-3", "#!/usr/bin/sh\n foo"},
-	{Modify, 0666, false, "shebang-4", "#!/usr/bin/env bash\n foo"},
-	{Modify, 0666, false, "shebang-5", "#!/bin/env sh\n foo"},
-	{Modify, 0666, false, "shebang-space", "#! /bin/sh\n foo"},
-	{Modify, 0666, false, "shebang-tabs", "#!\t/bin/env\tsh\n foo"},
-	{Modify, 0666, false, "shebang-args", "#!/bin/bash -e -x\nfoo"},
-	{Modify, 0666, false, "ext.sh", " foo"},
-	{Modify, 0666, false, "ext.bash", " foo"},
-	{Modify, 0666, false, "ext-shebang.sh", "#!/bin/sh\n foo"},
-	{Modify, 0666, false, filepath.Join("dir", "ext.sh"), " foo"},
-	{None, 0666, false, ".hidden", " foo long enough"},
-	{None, 0666, false, ".hidden-shebang", "#!/bin/sh\n foo"},
-	{None, 0666, false, "..hidden-shebang", "#!/bin/sh\n foo"},
-	{None, 0666, false, "noext-empty", " foo"},
-	{None, 0666, false, "noext-noshebang", " foo long enough"},
-	{None, 0666, false, "shebang-nonewline", "#!/bin/shfoo"},
-	{None, 0666, false, "ext.other", " foo"},
-	{None, 0666, false, "ext-shebang.other", "#!/bin/sh\n foo"},
-	{None, 0666, false, "shebang-nospace", "#!/bin/envsh\n foo"},
-	{None, 0666, false, filepath.Join(".git", "ext.sh"), " foo"},
-	{None, 0666, false, filepath.Join(".svn", "ext.sh"), " foo"},
-	{None, 0666, false, filepath.Join(".hg", "ext.sh"), " foo"},
-	{Error, 0666, false, "parse-error.sh", " foo("},
-	{Error, 0111, false, "open-error.sh", " foo"},
-	{None, 0666, true, "reallylongdir/symlink-file", "ext-shebang.sh"},
-	{None, 0666, true, "symlink-dir", "reallylongdir"},
-	{None, 0666, true, "symlink-none", "reallylongdir/nonexistent"},
+	{Modify, false, "shebang-1", "#!/bin/sh\n foo"},
+	{Modify, false, "shebang-2", "#!/bin/bash\n foo"},
+	{Modify, false, "shebang-3", "#!/usr/bin/sh\n foo"},
+	{Modify, false, "shebang-4", "#!/usr/bin/env bash\n foo"},
+	{Modify, false, "shebang-5", "#!/bin/env sh\n foo"},
+	{Modify, false, "shebang-space", "#! /bin/sh\n foo"},
+	{Modify, false, "shebang-tabs", "#!\t/bin/env\tsh\n foo"},
+	{Modify, false, "shebang-args", "#!/bin/bash -e -x\nfoo"},
+	{Modify, false, "ext.sh", " foo"},
+	{Modify, false, "ext.bash", " foo"},
+	{Modify, false, "ext-shebang.sh", "#!/bin/sh\n foo"},
+	{Modify, false, filepath.Join("dir", "ext.sh"), " foo"},
+	{None, false, ".hidden", " foo long enough"},
+	{None, false, ".hidden-shebang", "#!/bin/sh\n foo"},
+	{None, false, "..hidden-shebang", "#!/bin/sh\n foo"},
+	{None, false, "noext-empty", " foo"},
+	{None, false, "noext-noshebang", " foo long enough"},
+	{None, false, "shebang-nonewline", "#!/bin/shfoo"},
+	{None, false, "ext.other", " foo"},
+	{None, false, "ext-shebang.other", "#!/bin/sh\n foo"},
+	{None, false, "shebang-nospace", "#!/bin/envsh\n foo"},
+	{None, false, filepath.Join(".git", "ext.sh"), " foo"},
+	{None, false, filepath.Join(".svn", "ext.sh"), " foo"},
+	{None, false, filepath.Join(".hg", "ext.sh"), " foo"},
+	{Error, false, "parse-error.sh", " foo("},
+	{None, true, "reallylongdir/symlink-file", "ext-shebang.sh"},
+	{None, true, "symlink-dir", "reallylongdir"},
+	{None, true, "symlink-none", "reallylongdir/nonexistent"},
 }
 
 var errPathMentioned = regexp.MustCompile(`([^ :]+):`)
@@ -86,7 +84,7 @@ func TestWalk(t *testing.T) {
 			}
 			continue
 		}
-		err := ioutil.WriteFile(wt.path, []byte(wt.body), wt.mode)
+		err := ioutil.WriteFile(wt.path, []byte(wt.body), 0666)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -145,9 +143,6 @@ func TestWalk(t *testing.T) {
 	if doWalk("nonexistent"); !gotError {
 		t.Fatal("`shfmt nonexistent` did not error")
 	}
-	if err := ioutil.WriteFile("nowrite", []byte(" foo"), 0444); err != nil {
-		t.Fatal(err)
-	}
 	*find = true
 	doWalk(".")
 	numFound := strings.Count(outBuf.String(), "\n")
@@ -156,7 +151,4 @@ func TestWalk(t *testing.T) {
 	}
 	*find = false
 	*write = true
-	if doWalk("nowrite"); !gotError {
-		t.Fatal("`shfmt nowrite` did not error")
-	}
 }

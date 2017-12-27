@@ -10,8 +10,10 @@ import (
 	"io"
 	"math"
 	"os"
+	"os/exec"
 	"os/user"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -860,6 +862,11 @@ func splitList(path string) []string {
 }
 
 func (r *Runner) lookPath(file string) string {
+	if runtime.GOOS == "windows" {
+		// TODO: fix and remove workaround
+		path, _ := exec.LookPath(file)
+		return path
+	}
 	if strings.Contains(file, "/") {
 		if err := r.findExecutable(file); err == nil {
 			return file

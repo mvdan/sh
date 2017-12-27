@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"strings"
 	"syscall"
 	"time"
 )
@@ -25,6 +26,16 @@ type Ctxt struct {
 	Stdout      io.Writer
 	Stderr      io.Writer
 	KillTimeout time.Duration
+}
+
+// UnixPath fixes absolute unix paths on Windows, for example converting
+// "C:\\CurDir\\dev\\null" to "/dev/null".
+func (c *Ctxt) UnixPath(path string) string {
+	if runtime.GOOS != "windows" {
+		return path
+	}
+	path = strings.TrimPrefix(path, c.Dir)
+	return strings.Replace(path, `\`, `/`, -1)
 }
 
 // ModuleExec is the module responsible for executing a program. It is
@@ -115,7 +126,7 @@ func DefaultOpen(ctx Ctxt, path string, flag int, perm os.FileMode) (io.ReadWrit
 
 func OpenDevImpls(next ModuleOpen) ModuleOpen {
 	return func(ctx Ctxt, path string, flag int, perm os.FileMode) (io.ReadWriteCloser, error) {
-		switch path {
+		switch ctx.UnixPath(path) {
 		case "/dev/null":
 			return devNull{}, nil
 		}

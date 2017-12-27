@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -31,8 +32,8 @@ var modCases = []struct {
 			}
 			return DefaultExec(ctx, path, args)
 		},
-		src:  "echo foo; /bin/echo foo; sleep 1",
-		want: "foo\nfoo\nblacklisted: sleep",
+		src:  "echo foo; sleep 1",
+		want: "foo\nblacklisted: sleep",
 	},
 	{
 		name: "ExecWhitelist",
@@ -82,13 +83,9 @@ var modCases = []struct {
 	},
 	{
 		name: "OpenForbidNonDev",
-		open: func(ctx Ctxt, path string, flags int, mode os.FileMode) (io.ReadWriteCloser, error) {
-			// won't pass on windows, but ok for now
-			if !strings.HasPrefix(path, "/dev/") {
-				return nil, fmt.Errorf("non-dev: %s", path)
-			}
-			return DefaultOpen(ctx, path, flags, mode)
-		},
+		open: OpenDevImpls(func(ctx Ctxt, path string, flags int, mode os.FileMode) (io.ReadWriteCloser, error) {
+			return nil, fmt.Errorf("non-dev: %s", ctx.UnixPath(path))
+		}),
 		src:  "echo foo >/dev/null; echo bar >/tmp/x",
 		want: "non-dev: /tmp/x",
 	},
@@ -124,6 +121,9 @@ func TestRunnerModules(t *testing.T) {
 func TestSignalSending(t *testing.T) {
 	if testing.Short() {
 		t.Skip("sleeps and timeouts are slow")
+	}
+	if runtime.GOOS == "windows" {
+		t.Skip("skipping trap tests on windows")
 	}
 	tests := []struct {
 		src            string

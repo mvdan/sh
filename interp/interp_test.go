@@ -2030,17 +2030,38 @@ func (c *concBuffer) String() string {
 	return s
 }
 
-// wc: leading whitespace padding on mac
-// touch -d @: no way to set unix timestamps on mac
-var linuxOnly = regexp.MustCompile(`\bwc\b|touch -d @`)
+// wc: leading whitespace padding
+// touch -d @: no way to set unix timestamps
+var skipOnDarwin = regexp.MustCompile(`\bwc\b|touch -d @`)
+
+// chmod: very different by design
+// mkfifo: very different by design
+// ln -s: requires linked path to exist, stat does not work well
+// \\\\: TODO
+// /: TODO
+// PATH=: TODO
+// PWD: TODO
+// ${!: TODO
+// ~: TODO
+var skipOnWindows = regexp.MustCompile(`\b(chmod|mkfifo|ln -s)\b|\\\\|/|PATH=|PWD|\${!|~`)
+
+func skipFileReason(src string) string {
+	if runtime.GOOS == "darwin" && skipOnDarwin.MatchString(src) {
+		return "skipping linux-only test on darwin"
+	}
+	if runtime.GOOS == "windows" && skipOnWindows.MatchString(src) {
+		return "skipping unix-only test on windows"
+	}
+	return ""
+}
 
 func TestFile(t *testing.T) {
 	p := syntax.NewParser()
 	for i := range fileCases {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
 			c := fileCases[i]
-			if runtime.GOOS != "linux" && linuxOnly.MatchString(c.in) {
-				t.Skip("skipping linux-only test on non-linux")
+			if reason := skipFileReason(c.in); reason != "" {
+				t.Skip(reason)
 			}
 			file, err := p.Parse(strings.NewReader(c.in), "")
 			if err != nil {
@@ -2058,6 +2079,7 @@ func TestFile(t *testing.T) {
 				Stdout: &cb,
 				Stderr: &cb,
 			}
+			r.Open = OpenDevImpls(DefaultOpen)
 			r.Reset()
 			if err := r.Run(file); err != nil {
 				cb.WriteString(err.Error())
@@ -2089,6 +2111,9 @@ func TestFileConfirm(t *testing.T) {
 			c := fileCases[i]
 			if strings.Contains(c.want, " #IGNORE") {
 				return
+			}
+			if reason := skipFileReason(c.in); reason != "" {
+				t.Skip(reason)
 			}
 			t.Parallel()
 			dir, err := ioutil.TempDir("", "interp-test")
