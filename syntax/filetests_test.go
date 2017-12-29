@@ -3055,6 +3055,18 @@ var fileTests = []testCase{
 		}},
 	},
 	{
+		Strs: []string{
+			"[[ a && b ]]",
+			"[[\na &&\nb ]]",
+			"[[\n\na &&\n\nb ]]",
+		},
+		bsmk: &TestClause{X: &BinaryTest{
+			Op: AndTest,
+			X:  litWord("a"),
+			Y:  litWord("b"),
+		}},
+	},
+	{
 		Strs: []string{"[[ (a && b) ]]"},
 		bsmk: &TestClause{X: parenTest(&BinaryTest{
 			Op: AndTest,

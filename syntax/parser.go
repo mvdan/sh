@@ -1943,6 +1943,9 @@ func (p *Parser) testExprBase(ftok token, fpos Pos) TestExpr {
 		if ftok != illegalTok {
 			fstr = ftok.String()
 		}
+		if p.tok == _Newl {
+			p.next()
+		}
 		return p.followWord(fstr, fpos)
 	}
 }
