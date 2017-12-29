@@ -4,6 +4,7 @@
 package interp
 
 import (
+	"runtime"
 	"sort"
 	"strings"
 
@@ -43,6 +44,12 @@ func (r *Runner) lookupVar(name string) (Variable, bool) {
 	}
 	if str, e := r.envMap[name]; e {
 		return Variable{Value: StringVal(str)}, true
+	}
+	if runtime.GOOS == "windows" {
+		upper := strings.ToUpper(name)
+		if str, e := r.envMap[upper]; e {
+			return Variable{Value: StringVal(str)}, true
+		}
 	}
 	if r.shellOpts[optNoUnset] {
 		r.errf("%s: unbound variable\n", name)

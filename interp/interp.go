@@ -10,7 +10,6 @@ import (
 	"io"
 	"math"
 	"os"
-	"os/exec"
 	"os/user"
 	"path/filepath"
 	"runtime"
@@ -223,6 +222,9 @@ func (r *Runner) Reset() error {
 			return fmt.Errorf("env not in the form key=value: %q", kv)
 		}
 		name, val := kv[:i], kv[i+1:]
+		if runtime.GOOS == "windows" {
+			name = strings.ToUpper(name)
+		}
 		r.envMap[name] = val
 	}
 	if _, ok := r.envMap["HOME"]; !ok {
@@ -841,40 +843,90 @@ func (r *Runner) stat(name string) (os.FileInfo, error) {
 	return os.Stat(r.relPath(name))
 }
 
-func (r *Runner) findExecutable(file string) error {
+func (r *Runner) checkStat(file string) string {
 	d, err := r.stat(file)
 	if err != nil {
-		return err
+		return ""
 	}
-	if m := d.Mode(); !m.IsDir() && m&0111 != 0 {
-		return nil
+	m := d.Mode()
+	if m.IsDir() {
+		return ""
 	}
-	return os.ErrPermission
+	if runtime.GOOS != "windows" && m&0111 == 0 {
+		return ""
+	}
+	return file
+}
+
+func winHasExt(file string) bool {
+	i := strings.LastIndex(file, ".")
+	if i < 0 {
+		return false
+	}
+	return strings.LastIndexAny(file, `:\/`) < i
+}
+
+func (r *Runner) findExecutable(file string, exts []string) string {
+	if len(exts) == 0 {
+		// non-windows
+		return r.checkStat(file)
+	}
+	if winHasExt(file) && r.checkStat(file) != "" {
+		return file
+	}
+	for _, e := range exts {
+		if f := file + e; r.checkStat(f) != "" {
+			return f
+		}
+	}
+	return ""
 }
 
 // splitList is like filepath.SplitList, but always using the unix path
-// list separator ':'.
+// list separator ':'. On Windows, it also makes sure not to split
+// [A-Z]:[/\].
 func splitList(path string) []string {
 	if path == "" {
 		return []string{""}
 	}
-	return strings.Split(path, ":")
+	list := strings.Split(path, ":")
+	if runtime.GOOS != "windows" {
+		return list
+	}
+	// join "C", "/foo" into "C:/foo"
+	var fixed []string
+	for i := 0; i < len(list); i++ {
+		s := list[i]
+		switch {
+		case len(s) != 1, s[0] < 'A', s[0] > 'Z':
+			// not a disk name
+		case i+1 >= len(list):
+			// last element
+		case strings.IndexAny(list[i+1], `/\`) != 0:
+			// next element doesn't start with / or \
+		default:
+			fixed = append(fixed, s+":"+list[i+1])
+			i++
+			continue
+		}
+		fixed = append(fixed, s)
+	}
+	return fixed
 }
 
 func (r *Runner) lookPath(file string) string {
+	pathList := splitList(r.getVar("PATH"))
+	chars := `/`
 	if runtime.GOOS == "windows" {
-		// TODO: fix and remove workaround
-		path, _ := exec.LookPath(file)
-		return path
+		chars = `:\/`
+		// so that "foo" always tries "./foo"
+		pathList = append([]string{"."}, pathList...)
 	}
-	if strings.Contains(file, "/") {
-		if err := r.findExecutable(file); err == nil {
-			return file
-		}
-		return ""
+	exts := r.pathExts()
+	if strings.ContainsAny(file, chars) {
+		return r.findExecutable(file, exts)
 	}
-	path := r.getVar("PATH")
-	for _, dir := range splitList(path) {
+	for _, dir := range pathList {
 		var path string
 		switch dir {
 		case "", ".":
@@ -883,9 +935,30 @@ func (r *Runner) lookPath(file string) string {
 		default:
 			path = filepath.Join(dir, file)
 		}
-		if err := r.findExecutable(path); err == nil {
-			return path
+		if f := r.findExecutable(path, exts); f != "" {
+			return f
 		}
 	}
 	return ""
+}
+
+func (r *Runner) pathExts() []string {
+	if runtime.GOOS != "windows" {
+		return nil
+	}
+	pathext := r.getVar("PATHEXT")
+	if pathext == "" {
+		return []string{".com", ".exe", ".bat", ".cmd"}
+	}
+	var exts []string
+	for _, e := range strings.Split(strings.ToLower(pathext), `;`) {
+		if e == "" {
+			continue
+		}
+		if e[0] != '.' {
+			e = "." + e
+		}
+		exts = append(exts, e)
+	}
+	return exts
 }
