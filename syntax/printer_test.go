@@ -729,6 +729,15 @@ func TestPrintMinify(t *testing.T) {
 			"foo\nbar",
 		},
 		{
+			"foo &",
+			"foo&",
+		},
+		{
+			"foo >bar",
+			"foo>bar",
+		},
+		samePrint("foo 2>bar"),
+		{
 			"{\n\tfoo\n}",
 			"{\nfoo\n}",
 		},
@@ -747,6 +756,18 @@ func TestPrintMinify(t *testing.T) {
 		{
 			"((1 + 2))",
 			"((1+2))",
+		},
+		{
+			"case $a in\nx) c ;;\ny | z)\n\td\n\t;;\nesac",
+			"case $a in\nx)c;;\ny|z)d\nesac",
+		},
+		{
+			"a && b | c",
+			"a&&b|c",
+		},
+		{
+			"a &&\n\tb |\n\tc",
+			"a&&b|c",
 		},
 	}
 	parser := NewParser(KeepComments)
