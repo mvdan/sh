@@ -192,7 +192,9 @@ func (p *Printer) semiOrNewl(s string, pos Pos) {
 		if !p.wroteSemi {
 			p.WriteByte(';')
 		}
-		p.space()
+		if !p.minify {
+			p.space()
+		}
 		p.line = pos.Line()
 	}
 	p.WriteString(s)
@@ -267,7 +269,8 @@ func (p *Printer) newlines(pos Pos) {
 }
 
 func (p *Printer) rightParen(pos Pos) {
-	if p.wantNewline || pos.Line() > p.line {
+	if p.minify {
+	} else if p.wantNewline || pos.Line() > p.line {
 		p.newlines(pos)
 	}
 	p.WriteByte(')')
@@ -281,7 +284,9 @@ func (p *Printer) semiRsrv(s string, pos Pos, fallback bool) {
 		if fallback && !p.wroteSemi {
 			p.WriteByte(';')
 		}
-		p.spacePad(pos)
+		if !p.minify {
+			p.spacePad(pos)
+		}
 	}
 	p.WriteString(s)
 	p.wantSpace = true
@@ -469,6 +474,9 @@ func (p *Printer) loop(loop Loop) {
 }
 
 func (p *Printer) arithmExpr(expr ArithmExpr, compact, spacePlusMinus bool) {
+	if p.minify {
+		compact = true
+	}
 	switch x := expr.(type) {
 	case *Word:
 		p.word(x)
@@ -754,8 +762,10 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			p.WriteString("function ")
 		}
 		p.WriteString(x.Name.Value)
-		p.WriteString("() ")
-		p.spacePad(x.Body.Pos())
+		p.WriteString("()")
+		if !p.minify {
+			p.space()
+		}
 		p.line = x.Body.Pos().Line()
 		p.stmt(x.Body)
 	case *CaseClause:
@@ -911,7 +921,8 @@ func (p *Printer) stmts(sl StmtList) {
 			}
 			p.comment(c)
 		}
-		if pos.Line() <= p.line {
+		if pos.Line() <= p.line || (p.minify && !p.wantSpace) {
+			p.line = pos.Line()
 			p.stmt(s)
 		} else {
 			if p.line > 0 {
@@ -939,7 +950,8 @@ func (p *Printer) stmts(sl StmtList) {
 			}
 			p.comment(c)
 		}
-		if p.line > 0 {
+		if p.minify && i == 0 && !p.wantSpace {
+		} else if p.line > 0 {
 			p.newlines(pos)
 		}
 		p.line = pos.Line()

@@ -719,8 +719,7 @@ func TestPrintKeepPadding(t *testing.T) {
 
 func TestPrintMinify(t *testing.T) {
 	var tests = [...]printCase{
-		samePrint("echo foo bar"),
-		samePrint("f() { ${a} $(b); }"),
+		samePrint("echo foo bar $a $(b)"),
 		{
 			"foo #comment",
 			"foo",
@@ -732,6 +731,22 @@ func TestPrintMinify(t *testing.T) {
 		{
 			"{\n\tfoo\n}",
 			"{\nfoo\n}",
+		},
+		{
+			"(\n\ta\n)\n(\n\tb\n\tc\n)",
+			"(a)\n(b\nc)",
+		},
+		{
+			"$(\n\ta\n)\n$(\n\tb\n\tc\n)",
+			"$(a)\n$(b\nc)",
+		},
+		{
+			"f() { x; }",
+			"f(){ x;}",
+		},
+		{
+			"((1 + 2))",
+			"((1+2))",
 		},
 	}
 	parser := NewParser(KeepComments)
