@@ -329,7 +329,17 @@ func (p *Printer) comments(cs []Comment) {
 	}
 }
 
-func (p *Printer) wordPart(wp WordPart) {
+func (p *Printer) wordParts(wps []WordPart) {
+	for i, n := range wps {
+		var next WordPart
+		if i+1 < len(wps) {
+			next = wps[i+1]
+		}
+		p.wordPart(n, next)
+	}
+}
+
+func (p *Printer) wordPart(wp, next WordPart) {
 	switch x := wp.(type) {
 	case *Lit:
 		p.WriteString(x.Value)
@@ -364,6 +374,19 @@ func (p *Printer) wordPart(wp WordPart) {
 			p.rightParen(x.Right)
 		}
 	case *ParamExp:
+		nextLit, ok := next.(*Lit)
+		litCont := ";"
+		if ok {
+			litCont = nextLit.Value[:1]
+		}
+		if p.minify && !x.Excl && !x.Length && !x.Width &&
+			x.Index == nil && x.Slice == nil && x.Repl == nil &&
+			x.Exp == nil && !ValidName(x.Param.Value+litCont) {
+			x2 := *x
+			x2.Short = true
+			p.paramExp(&x2)
+			return
+		}
 		p.paramExp(x)
 	case *ArithmExp:
 		p.WriteString("$((")
@@ -392,11 +415,9 @@ func (p *Printer) dblQuoted(dq *DblQuoted) {
 		p.WriteByte('$')
 	}
 	p.WriteByte('"')
-	for i, n := range dq.Parts {
-		p.wordPart(n)
-		if i == len(dq.Parts)-1 {
-			p.line = n.End().Line()
-		}
+	if len(dq.Parts) > 0 {
+		p.wordParts(dq.Parts)
+		p.line = dq.Parts[len(dq.Parts)-1].End().Line()
 	}
 	p.WriteByte('"')
 }
@@ -548,9 +569,7 @@ func (p *Printer) testExpr(expr TestExpr) {
 }
 
 func (p *Printer) word(w *Word) {
-	for _, n := range w.Parts {
-		p.wordPart(n)
-	}
+	p.wordParts(w.Parts)
 	p.wantSpace = true
 }
 
@@ -560,9 +579,7 @@ func (p *Printer) unquotedWord(w *Word) {
 		case *SglQuoted:
 			p.WriteString(x.Value)
 		case *DblQuoted:
-			for _, qp := range x.Parts {
-				p.wordPart(qp)
-			}
+			p.wordParts(x.Parts)
 		case *Lit:
 			for i := 0; i < len(x.Value); i++ {
 				if b := x.Value[i]; b == '\\' {

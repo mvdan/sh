@@ -758,6 +758,10 @@ func TestPrintMinify(t *testing.T) {
 			"((1+2))",
 		},
 		{
+			"echo $a ${b} ${c}-d ${e}f ${g}_h",
+			"echo $a $b $c-d ${e}f ${g}_h",
+		},
+		{
 			"case $a in\nx) c ;;\ny | z)\n\td\n\t;;\nesac",
 			"case $a in\nx)c;;\ny|z)d\nesac",
 		},
