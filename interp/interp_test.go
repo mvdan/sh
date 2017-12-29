@@ -1776,6 +1776,10 @@ set +o pipefail
 		"declare -n foo=bar bar=foo; echo $foo",
 		"\n #IGNORE",
 	},
+	{
+		"declare -n foo=bar; echo $foo",
+		"\n",
+	},
 
 	// read-only vars
 	{"declare -r foo=bar; echo $foo", "bar\n"},
@@ -2044,8 +2048,7 @@ var skipOnDarwin = regexp.MustCompile(`\bwc\b|touch -d @`)
 // ~root: username does not exist
 // \\\\: TODO
 // /: TODO
-// ${!: TODO
-var skipOnWindows = regexp.MustCompile(`chmod|mkfifo|ln -s|~root|\\\\|/|\${!`)
+var skipOnWindows = regexp.MustCompile(`chmod|mkfifo|ln -s|~root|\\\\|/`)
 
 func skipFileReason(src string) string {
 	if runtime.GOOS == "darwin" && skipOnDarwin.MatchString(src) {

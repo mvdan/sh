@@ -15,7 +15,7 @@ func (r *Runner) arithm(expr syntax.ArithmExpr) int {
 	case *syntax.Word:
 		str := r.loneWord(x)
 		// recursively fetch vars
-		for {
+		for str != "" {
 			val := r.getVar(str)
 			if val == "" {
 				break

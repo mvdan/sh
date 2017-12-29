@@ -33,6 +33,9 @@ type IndexArray []string
 type AssocArray map[string]string
 
 func (r *Runner) lookupVar(name string) (Variable, bool) {
+	if name == "" {
+		panic("variable name must not be empty")
+	}
 	if val, e := r.cmdVars[name]; e {
 		return Variable{Value: StringVal(val)}, true
 	}

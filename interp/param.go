@@ -87,8 +87,10 @@ func (r *Runner) paramExp(pe *syntax.ParamExp) string {
 	case pe.Length:
 		str = strconv.Itoa(utf8.RuneCountInString(str))
 	case pe.Excl:
-		vr, set = r.lookupVar(str)
-		str = r.varStr(vr, 0)
+		if str != "" {
+			vr, set = r.lookupVar(str)
+			str = r.varStr(vr, 0)
+		}
 	}
 	slicePos := func(expr syntax.ArithmExpr) int {
 		p := r.arithm(expr)
