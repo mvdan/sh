@@ -72,7 +72,7 @@ Printer options:
   -bn       binary ops like && and | may start a line
   -ci       switch cases will be indented
   -kp       keep column alignment paddings
-  -mn       minify program to reduce its size
+  -mn       minify program to reduce its size (implies -s)
 
   -exp.tojson  print AST to stdout as a typed JSON
 `)
@@ -100,6 +100,9 @@ Printer options:
 	}
 	if *posix {
 		lang = syntax.LangPOSIX
+	}
+	if *minify {
+		*simple = true
 	}
 	parser = syntax.NewParser(syntax.KeepComments, syntax.Variant(lang))
 	printer = syntax.NewPrinter(func(p *syntax.Printer) {
