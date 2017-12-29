@@ -243,10 +243,12 @@ func (r *Runner) Reset() error {
 	r.ifsUpdated()
 	r.Vars["OPTIND"] = Variable{Value: StringVal("1")}
 
-	// convert $PATH to a unix path list
-	path := r.envMap["PATH"]
-	path = strings.Join(filepath.SplitList(path), ":")
-	r.Vars["PATH"] = Variable{Value: StringVal(path)}
+	if runtime.GOOS == "windows" {
+		// convert $PATH to a unix path list
+		path := r.envMap["PATH"]
+		path = strings.Join(filepath.SplitList(path), ":")
+		r.Vars["PATH"] = Variable{Value: StringVal(path)}
+	}
 
 	r.dirStack = append(r.dirStack, r.Dir)
 	if r.Exec == nil {

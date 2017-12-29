@@ -506,7 +506,7 @@ var fileCases = []struct {
 	{`[[ foo/bar == foo* ]]`, ""},
 	{"[[ a == [ab ]]", "exit status 1"},
 	{
-		"[[ ~ == $HOME ]] && [[ ~/foo == $HOME/foo ]]",
+		`[[ ~ == "$HOME" ]] && [[ ~/foo == "$HOME/foo" ]]`,
 		"",
 	},
 	{
@@ -518,7 +518,7 @@ var fileCases = []struct {
 		"exit status 1",
 	},
 	{
-		`w="$HOME"; cd; [[ $PWD == $w ]]`,
+		`w="$HOME"; cd; [[ $PWD == "$w" ]]`,
 		"",
 	},
 	{
@@ -538,7 +538,7 @@ var fileCases = []struct {
 		"exit status 1 #JUSTERR",
 	},
 	{
-		"[[ $PWD == $(pwd) ]]",
+		`[[ $PWD == "$(pwd)" ]]`,
 		"",
 	},
 	{
@@ -554,23 +554,19 @@ var fileCases = []struct {
 		"%s\n",
 	},
 	{
-		"echo ${PWD:0:1}",
-		"/\n",
-	},
-	{
-		`old="$PWD"; mkdir a; cd a; cd ..; [[ $old == $PWD ]]`,
+		`old="$PWD"; mkdir a; cd a; cd ..; [[ $old == "$PWD" ]]`,
 		"",
 	},
 	{
-		`[[ $PWD == $OLDPWD ]]`,
+		`[[ $PWD == "$OLDPWD" ]]`,
 		"exit status 1",
 	},
 	{
-		`old="$PWD"; mkdir a; cd a; [[ $old == $OLDPWD ]]`,
+		`old="$PWD"; mkdir a; cd a; [[ $old == "$OLDPWD" ]]`,
 		"",
 	},
 	{
-		`mkdir a; ln -s a b; [[ $(cd a && pwd) == $(cd b && pwd) ]]; echo $?`,
+		`mkdir a; ln -s a b; [[ $(cd a && pwd) == "$(cd b && pwd)" ]]; echo $?`,
 		"1\n",
 	},
 	{
@@ -607,15 +603,15 @@ var fileCases = []struct {
 	{"mkdir a; pushd a >/dev/null; set -- $(dirs); echo $#", "2\n"},
 	{"mkdir a; set -- $(pushd a); echo $#", "2\n"},
 	{
-		"mkdir a; pushd a >/dev/null; set -- $(dirs); [[ $1 == $HOME ]]",
+		`mkdir a; pushd a >/dev/null; set -- $(dirs); [[ $1 == "$HOME" ]]`,
 		"exit status 1",
 	},
 	{
-		"old=$(dirs); mkdir a; pushd a >/dev/null; pushd >/dev/null; set -- $(dirs); [[ $1 == $old ]]",
+		`old=$(dirs); mkdir a; pushd a >/dev/null; pushd >/dev/null; set -- $(dirs); [[ $1 == "$old" ]]`,
 		"",
 	},
 	{
-		"old=$(dirs); mkdir a; pushd a >/dev/null; pushd -n >/dev/null; set -- $(dirs); [[ $1 == $old ]]",
+		`old=$(dirs); mkdir a; pushd a >/dev/null; pushd -n >/dev/null; set -- $(dirs); [[ $1 == "$old" ]]`,
 		"exit status 1",
 	},
 	{
@@ -623,11 +619,11 @@ var fileCases = []struct {
 		"exit status 1 #JUSTERR",
 	},
 	{
-		"old=$(dirs); mkdir a; pushd -n a >/dev/null; set -- $(dirs); [[ $1 == $old ]]",
+		`old=$(dirs); mkdir a; pushd -n a >/dev/null; set -- $(dirs); [[ $1 == "$old" ]]`,
 		"",
 	},
 	{
-		"old=$(dirs); mkdir a; pushd -n a >/dev/null; pushd >/dev/null; set -- $(dirs); [[ $1 == $old ]]",
+		`old=$(dirs); mkdir a; pushd -n a >/dev/null; pushd >/dev/null; set -- $(dirs); [[ $1 == "$old" ]]`,
 		"exit status 1",
 	},
 	{"popd", "popd: directory stack empty\nexit status 1 #JUSTERR"},
@@ -635,7 +631,7 @@ var fileCases = []struct {
 	{"popd foo", "popd: invalid argument\nexit status 2 #JUSTERR"},
 	{"old=$(dirs); mkdir a; pushd a >/dev/null; set -- $(popd); echo $#", "1\n"},
 	{
-		"old=$(dirs); mkdir a; pushd a >/dev/null; popd >/dev/null; [[ $(dirs) == $old ]]",
+		`old=$(dirs); mkdir a; pushd a >/dev/null; popd >/dev/null; [[ $(dirs) == "$old" ]]`,
 		"",
 	},
 	{"old=$(dirs); mkdir a; pushd a >/dev/null; set -- $(popd -n); echo $#", "1\n"},
@@ -2045,13 +2041,11 @@ var skipOnDarwin = regexp.MustCompile(`\bwc\b|touch -d @`)
 // chmod: very different by design
 // mkfifo: very different by design
 // ln -s: requires linked path to exist, stat does not work well
+// ~root: username does not exist
 // \\\\: TODO
 // /: TODO
-// PATH=: TODO
-// PWD: TODO
 // ${!: TODO
-// ~: TODO
-var skipOnWindows = regexp.MustCompile(`\b(chmod|mkfifo|ln -s)\b|\\\\|/|PATH=|PWD|\${!|~`)
+var skipOnWindows = regexp.MustCompile(`chmod|mkfifo|ln -s|~root|\\\\|/|\${!`)
 
 func skipFileReason(src string) string {
 	if runtime.GOOS == "darwin" && skipOnDarwin.MatchString(src) {
