@@ -484,10 +484,6 @@ var fileCases = []struct {
 		"bar\n\n",
 	},
 	{
-		`mkdir d; (cd /; echo "$PWD")`,
-		"/\n",
-	},
-	{
 		"unset INTERP_GLOBAL & echo $INTERP_GLOBAL",
 		"value\n",
 	},
@@ -497,10 +493,6 @@ var fileCases = []struct {
 	},
 
 	// cd/pwd
-	{
-		`cd /; echo "$PWD"`,
-		"/\n",
-	},
 	{"[[ fo~ == 'fo~' ]]", ""},
 	{`[[ 'ab\c' == *\\* ]]`, ""},
 	{`[[ foo/bar == foo* ]]`, ""},
@@ -550,8 +542,8 @@ var fileCases = []struct {
 		"exit status 1",
 	},
 	{
-		"mkdir %s; cd %s; pwd | sed 's@.*/@@'; cd ..; rmdir %s",
-		"%s\n",
+		`mkdir %s; old="$PWD"; cd %s; [[ $old == "$PWD" ]]`,
+		"exit status 1",
 	},
 	{
 		`old="$PWD"; mkdir a; cd a; cd ..; [[ $old == "$PWD" ]]`,
@@ -636,7 +628,7 @@ var fileCases = []struct {
 	},
 	{"old=$(dirs); mkdir a; pushd a >/dev/null; set -- $(popd -n); echo $#", "1\n"},
 	{
-		"old=$(dirs); mkdir a; pushd a >/dev/null; popd -n >/dev/null; [[ $(dirs) == $old ]]",
+		`old=$(dirs); mkdir a; pushd a >/dev/null; popd -n >/dev/null; [[ $(dirs) == "$old" ]]`,
 		"exit status 1",
 	},
 	{
@@ -808,7 +800,7 @@ var fileCases = []struct {
 		"12 34\n",
 	},
 	{
-		"[[ $(cd / && pwd) == $(pwd) ]]",
+		`mkdir d; [[ $(cd d && pwd) == "$(pwd)" ]]`,
 		"exit status 1",
 	},
 
@@ -877,8 +869,8 @@ var fileCases = []struct {
 		"faa\n",
 	},
 	{
-		"echo foo >/",
-		"open /: is a directory\nexit status 1 #JUSTERR",
+		"mkdir a; echo foo >a |& grep -q 'is a directory'",
+		" #IGNORE",
 	},
 	{
 		"echo foo 1>&1 | sed 's/o/a/g'",
@@ -909,7 +901,7 @@ var fileCases = []struct {
 		"{ echo foo & wait; } & wait; echo bar",
 		"foo\nbar\n",
 	},
-	{"old=$PWD; cd / & wait; [[ $old == $PWD ]]", ""},
+	{`mkdir d; old=$PWD; cd d & wait; [[ $old == "$PWD" ]]`, ""},
 
 	// bash test
 	{
@@ -1542,7 +1534,7 @@ set +o pipefail
 	{"type", ""},
 	{"type echo", "echo is a shell builtin\n"},
 	{"echo() { :; }; type echo | sed 1q", "echo is a function\n"},
-	{"type bash | sed 's@/.*@/binpath@'", "bash is /binpath\n"},
+	{"type bash | grep -q -E 'bash is (/|[A-Z]:).*'", ""},
 	{"type noexist", "type: noexist: not found\nexit status 1 #JUSTERR"},
 
 	// eval
@@ -1828,16 +1820,16 @@ set +o pipefail
 		"*.x\nfoo *.y bar\n",
 	},
 	{
-		"mkdir a; touch a/b.x; echo */*.x; cd a; echo *.x",
+		"mkdir a; touch a/b.x; echo */*.x | sed 's@\\\\@/@'; cd a; echo *.x",
 		"a/b.x\nb.x\n",
 	},
 	{
-		"mkdir -p a/b/c; echo a/*",
+		"mkdir -p a/b/c; echo a/* | sed 's@\\\\@/@'",
 		"a/b\n",
 	},
 	{
-		"mkdir -p '*/a.z' 'b/a.z'; cd '*'; echo *.z",
-		"a.z\n",
+		"mkdir -p '*/a.z' 'b/a.z'; cd '*'; set -- *.z; echo $#",
+		"1\n",
 	},
 
 	// brace expansion
@@ -1915,7 +1907,7 @@ set +o pipefail
 		"1\n2\n3\n\n",
 	},
 	{
-		"read a <<< '\\\\'; echo $a",
+		`read a <<< '\\'; echo "$a"`,
 		"\\\n",
 	},
 	{
@@ -1931,7 +1923,7 @@ set +o pipefail
 		"linecontinuation\n",
 	},
 	{
-		"read -r a <<< '\\\\'; echo $a",
+		`read -r a <<< '\\'; echo "$a"`,
 		"\\\\\n",
 	},
 	{
@@ -2046,9 +2038,7 @@ var skipOnDarwin = regexp.MustCompile(`\bwc\b|touch -d @`)
 // mkfifo: very different by design
 // ln -s: requires linked path to exist, stat does not work well
 // ~root: username does not exist
-// \\\\: TODO
-// /: TODO
-var skipOnWindows = regexp.MustCompile(`chmod|mkfifo|ln -s|~root|\\\\|/`)
+var skipOnWindows = regexp.MustCompile(`chmod|mkfifo|ln -s|~root`)
 
 func skipFileReason(src string) string {
 	if runtime.GOOS == "darwin" && skipOnDarwin.MatchString(src) {
