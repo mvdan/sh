@@ -38,6 +38,8 @@ func KeepPadding(p *Printer) {
 	p.bufWriter = &p.cols
 }
 
+func Minify(p *Printer) { p.minify = true }
+
 // NewPrinter allocates a new Printer and applies any number of options.
 func NewPrinter(options ...func(*Printer)) *Printer {
 	p := &Printer{
@@ -107,6 +109,7 @@ type Printer struct {
 	binNextLine   bool
 	swtCaseIndent bool
 	keepPadding   bool
+	minify        bool
 
 	wantSpace   bool
 	wantNewline bool
@@ -216,6 +219,9 @@ func (p *Printer) decLevel() {
 }
 
 func (p *Printer) indent() {
+	if p.minify {
+		return
+	}
 	p.lastLevel = p.level
 	switch {
 	case p.level == 0:
@@ -251,8 +257,10 @@ func (p *Printer) newline(pos Pos) {
 func (p *Printer) newlines(pos Pos) {
 	p.newline(pos)
 	if pos.Line() > p.line {
-		// preserve single empty lines
-		p.WriteByte('\n')
+		if !p.minify {
+			// preserve single empty lines
+			p.WriteByte('\n')
+		}
 		p.line++
 	}
 	p.indent()
@@ -280,6 +288,9 @@ func (p *Printer) semiRsrv(s string, pos Pos, fallback bool) {
 }
 
 func (p *Printer) comment(c Comment) {
+	if p.minify {
+		return
+	}
 	switch {
 	case p.line == 0:
 	case c.Hash.Line() > p.line:

@@ -716,3 +716,45 @@ func TestPrintKeepPadding(t *testing.T) {
 		})
 	}
 }
+
+func TestPrintMinify(t *testing.T) {
+	var tests = [...]printCase{
+		samePrint("echo foo bar"),
+		samePrint("f() { ${a} $(b); }"),
+		{
+			"foo #comment",
+			"foo",
+		},
+		{
+			"foo\n\nbar",
+			"foo\nbar",
+		},
+		{
+			"{\n\tfoo\n}",
+			"{\nfoo\n}",
+		},
+	}
+	parser := NewParser(KeepComments)
+	printer := NewPrinter(Minify)
+	for i, tc := range tests {
+		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
+			prog, err := parser.Parse(strings.NewReader(tc.in), "")
+			if err != nil {
+				t.Fatal(err)
+			}
+			want := tc.want + "\n"
+			got, err := strPrint(printer, prog)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got != want {
+				t.Fatalf("Print mismatch:\nin:\n%s\nwant:\n%sgot:\n%s",
+					tc.in, want, got)
+			}
+			_, err = parser.Parse(strings.NewReader(tc.want), "")
+			if err != nil {
+				t.Fatalf("Result is not valid shell:\n%s", tc.want)
+			}
+		})
+	}
+}

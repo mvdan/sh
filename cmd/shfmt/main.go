@@ -31,6 +31,7 @@ var (
 	binNext     = flag.Bool("bn", false, "")
 	caseIndent  = flag.Bool("ci", false, "")
 	keepPadding = flag.Bool("kp", false, "")
+	minify      = flag.Bool("mn", false, "")
 
 	toJSON = flag.Bool("exp.tojson", false, "")
 
@@ -71,6 +72,7 @@ Printer options:
   -bn       binary ops like && and | may start a line
   -ci       switch cases will be indented
   -kp       keep column alignment paddings
+  -mn       minify program to reduce its size
 
   -exp.tojson  print AST to stdout as a typed JSON
 `)
@@ -110,6 +112,9 @@ Printer options:
 		}
 		if *keepPadding {
 			syntax.KeepPadding(p)
+		}
+		if *minify {
+			syntax.Minify(p)
 		}
 	})
 	if flag.NArg() == 0 {
