@@ -71,6 +71,8 @@ func SourceNode(node syntax.Node) (map[string]Variable, error) {
 	// delete the internal shell vars that the user is not
 	// interested in
 	delete(r.Vars, "PWD")
+	delete(r.Vars, "HOME")
+	delete(r.Vars, "PATH")
 	delete(r.Vars, "IFS")
 	delete(r.Vars, "OPTIND")
 	return r.Vars, nil
