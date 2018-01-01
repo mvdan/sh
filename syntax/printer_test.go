@@ -27,22 +27,7 @@ func TestPrintCompact(t *testing.T) {
 			} else if c.MirBSDKorn != nil {
 				parser = parserMirBSD
 			}
-			prog, err := parser.Parse(strings.NewReader(in), "")
-			if err != nil {
-				t.Fatalf("Unexpected error in %q: %v", in, err)
-			}
-			want := in
-			got, err := strPrint(printer, prog)
-			if err != nil {
-				t.Fatalf("Unexpected error in %q: %v", in, err)
-			}
-			if len(got) > 0 {
-				got = got[:len(got)-1]
-			}
-			if got != want {
-				t.Fatalf("Print mismatch of %q\nwant: %q\ngot:  %q",
-					in, want, got)
-			}
+			printTest(t, parser, printer, in, in)
 		})
 	}
 }
@@ -427,30 +412,14 @@ func TestPrintWeirdFormat(t *testing.T) {
 	parser := NewParser(KeepComments)
 	printer := NewPrinter()
 	for i, tc := range printTests {
-		check := func(t *testing.T, in, want string) {
-			prog, err := parser.Parse(newStrictReader(in), "")
-			if err != nil {
-				t.Fatalf("Unexpected error in %q: %v", in, err)
-			}
-			got, err := strPrint(printer, prog)
-			if err != nil {
-				t.Fatalf("Unexpected error in %q: %v", in, err)
-			}
-			if got != want {
-				t.Fatalf("Print mismatch:\n"+
-					"in:\n%s\nwant:\n%sgot:\n%s",
-					in, want, got)
-			}
-		}
-		want := tc.want + "\n"
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
-			check(t, tc.in, want)
+			printTest(t, parser, printer, tc.in, tc.want)
 		})
 		t.Run(fmt.Sprintf("%03d-nl", i), func(t *testing.T) {
-			check(t, "\n"+tc.in+"\n", want)
+			printTest(t, parser, printer, "\n"+tc.in+"\n", tc.want)
 		})
 		t.Run(fmt.Sprintf("%03d-redo", i), func(t *testing.T) {
-			check(t, want, want)
+			printTest(t, parser, printer, tc.want, tc.want)
 		})
 	}
 }
@@ -522,19 +491,7 @@ func TestPrintSpaces(t *testing.T) {
 	for i, tc := range spaceFormats {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
 			printer := NewPrinter(Indent(tc.spaces))
-			prog, err := parser.Parse(strings.NewReader(tc.in), "")
-			if err != nil {
-				t.Fatal(err)
-			}
-			want := tc.want + "\n"
-			got, err := strPrint(printer, prog)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if got != want {
-				t.Fatalf("Print mismatch:\nin:\n%s\nwant:\n%sgot:\n%s",
-					tc.in, want, got)
-			}
+			printTest(t, parser, printer, tc.in, tc.want)
 		})
 	}
 }
@@ -629,19 +586,7 @@ func TestPrintBinaryNextLine(t *testing.T) {
 	printer := NewPrinter(BinaryNextLine)
 	for i, tc := range tests {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
-			prog, err := parser.Parse(strings.NewReader(tc.in), "")
-			if err != nil {
-				t.Fatal(err)
-			}
-			want := tc.want + "\n"
-			got, err := strPrint(printer, prog)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if got != want {
-				t.Fatalf("Print mismatch:\nin:\n%s\nwant:\n%sgot:\n%s",
-					tc.in, want, got)
-			}
+			printTest(t, parser, printer, tc.in, tc.want)
 		})
 	}
 }
@@ -662,19 +607,7 @@ func TestPrintSwitchCaseIndent(t *testing.T) {
 	printer := NewPrinter(SwitchCaseIndent)
 	for i, tc := range tests {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
-			prog, err := parser.Parse(strings.NewReader(tc.in), "")
-			if err != nil {
-				t.Fatal(err)
-			}
-			want := tc.want + "\n"
-			got, err := strPrint(printer, prog)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if got != want {
-				t.Fatalf("Print mismatch:\nin:\n%s\nwant:\n%sgot:\n%s",
-					tc.in, want, got)
-			}
+			printTest(t, parser, printer, tc.in, tc.want)
 		})
 	}
 }
@@ -700,19 +633,7 @@ func TestPrintKeepPadding(t *testing.T) {
 	printer := NewPrinter(KeepPadding)
 	for i, tc := range tests {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
-			prog, err := parser.Parse(strings.NewReader(tc.in), "")
-			if err != nil {
-				t.Fatal(err)
-			}
-			want := tc.want + "\n"
-			got, err := strPrint(printer, prog)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if got != want {
-				t.Fatalf("Print mismatch:\nin:\n%s\nwant:\n%sgot:\n%s",
-					tc.in, want, got)
-			}
+			printTest(t, parser, printer, tc.in, tc.want)
 		})
 	}
 }
@@ -778,23 +699,27 @@ func TestPrintMinify(t *testing.T) {
 	printer := NewPrinter(Minify)
 	for i, tc := range tests {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
-			prog, err := parser.Parse(strings.NewReader(tc.in), "")
-			if err != nil {
-				t.Fatal(err)
-			}
-			want := tc.want + "\n"
-			got, err := strPrint(printer, prog)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if got != want {
-				t.Fatalf("Print mismatch:\nin:\n%s\nwant:\n%sgot:\n%s",
-					tc.in, want, got)
-			}
-			_, err = parser.Parse(strings.NewReader(tc.want), "")
-			if err != nil {
-				t.Fatalf("Result is not valid shell:\n%s", tc.want)
-			}
+			printTest(t, parser, printer, tc.in, tc.want)
 		})
+	}
+}
+
+func printTest(t *testing.T, parser *Parser, printer *Printer, in, want string) {
+	prog, err := parser.Parse(strings.NewReader(in), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	wantNewl := want + "\n"
+	got, err := strPrint(printer, prog)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != wantNewl {
+		t.Fatalf("Print mismatch:\nin:\n%s\nwant:\n%sgot:\n%s",
+			in, wantNewl, got)
+	}
+	_, err = parser.Parse(strings.NewReader(want), "")
+	if err != nil {
+		t.Fatalf("Result is not valid shell:\n%s", want)
 	}
 }
