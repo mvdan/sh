@@ -93,6 +93,9 @@ func DefaultExec(ctx Ctxt, path string, args []string) error {
 		// started, but errored - default to 1 if OS
 		// doesn't have exit statuses
 		if status, ok := x.Sys().(syscall.WaitStatus); ok {
+			if status.Signaled() && ctx.Context.Err() != nil {
+				return ctx.Context.Err()
+			}
 			return ExitCode(status.ExitStatus())
 		}
 		return ExitCode(1)

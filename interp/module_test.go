@@ -180,7 +180,7 @@ func TestSignalSending(t *testing.T) {
 			}
 			err = r.Run(file)
 			if test.forcedKill {
-				if _, ok := err.(ExitCode); !ok {
+				if _, ok := err.(ExitCode); ok || err == nil {
 					t.Error("command was not force-killed")
 				}
 			} else {
