@@ -222,7 +222,10 @@ func (r *Runner) paramExp(pe *syntax.ParamExp) string {
 }
 
 func removePattern(str, pattern string, fromEnd, greedy bool) string {
-	expr := translatePattern(pattern, greedy)
+	expr, err := syntax.TranslatePattern(pattern, greedy)
+	if err != nil {
+		return str
+	}
 	switch {
 	case fromEnd && !greedy:
 		// use .* to get the right-most (shortest) match
@@ -234,10 +237,8 @@ func removePattern(str, pattern string, fromEnd, greedy bool) string {
 		// simple prefix
 		expr = "^(" + expr + ")"
 	}
-	rx, err := regexp.Compile(expr)
-	if err != nil {
-		return str
-	}
+	// no need to check error as TranslatePattern returns one
+	rx := regexp.MustCompile(expr)
 	if loc := rx.FindStringSubmatchIndex(str); loc != nil {
 		// remove the original pattern (the submatch)
 		str = str[:loc[2]] + str[loc[3]:]

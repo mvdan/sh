@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os/user"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -113,13 +114,22 @@ func (r *Runner) fieldJoin(parts []fieldPart) string {
 	return buf.String()
 }
 
+func anyPatternRune(s string) bool {
+	for _, r := range s {
+		if syntax.PatternRune(r) {
+			return true
+		}
+	}
+	return false
+}
+
 func (r *Runner) escapedGlobStr(val string) string {
-	if !anyPatternChar(val) { // short-cut without a string copy
+	if !anyPatternRune(val) { // short-cut without a string copy
 		return val
 	}
 	buf := r.strBuilder()
 	for _, r := range val {
-		if patternRune(r) {
+		if syntax.PatternRune(r) {
 			buf.WriteByte('\\')
 		}
 		buf.WriteRune(r)
@@ -131,7 +141,7 @@ func (r *Runner) escapedGlobField(parts []fieldPart) (escaped string, glob bool)
 	buf := r.strBuilder()
 	for _, part := range parts {
 		for _, r := range part.val {
-			if patternRune(r) {
+			if syntax.PatternRune(r) {
 				if part.quote > quoteNone {
 					buf.WriteByte('\\')
 				} else {
@@ -337,7 +347,7 @@ func (r *Runner) lonePattern(word *syntax.Word) string {
 	buf := r.strBuilder()
 	for _, part := range field {
 		for _, r := range part.val {
-			if part.quote > quoteNone && patternRune(r) {
+			if part.quote > quoteNone && syntax.PatternRune(r) {
 				buf.WriteByte('\\')
 			}
 			buf.WriteRune(r)
@@ -549,4 +559,22 @@ func (r *Runner) expandUser(field string) string {
 		return field
 	}
 	return u.HomeDir + rest
+}
+
+func match(pattern, name string) bool {
+	expr, err := syntax.TranslatePattern(pattern, true)
+	if err != nil {
+		return false
+	}
+	rx := regexp.MustCompile("^" + expr + "$")
+	return rx.MatchString(name)
+}
+
+func findAllIndex(pattern, name string, n int) [][]int {
+	expr, err := syntax.TranslatePattern(pattern, true)
+	if err != nil {
+		return nil
+	}
+	rx := regexp.MustCompile(expr)
+	return rx.FindAllStringIndex(name, n)
 }
