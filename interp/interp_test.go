@@ -1041,6 +1041,10 @@ var fileCases = []struct {
 		"",
 	},
 	{
+		"[[ ab == a. ]]",
+		"exit status 1",
+	},
+	{
 		`x='*b*'; [[ abc == $x ]]`,
 		"",
 	},

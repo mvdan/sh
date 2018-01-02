@@ -114,41 +114,17 @@ func (r *Runner) fieldJoin(parts []fieldPart) string {
 	return buf.String()
 }
 
-func anyPatternRune(s string) bool {
-	for _, r := range s {
-		if syntax.PatternRune(r) {
-			return true
-		}
-	}
-	return false
-}
-
-func (r *Runner) escapedGlobStr(val string) string {
-	if !anyPatternRune(val) { // short-cut without a string copy
-		return val
-	}
-	buf := r.strBuilder()
-	for _, r := range val {
-		if syntax.PatternRune(r) {
-			buf.WriteByte('\\')
-		}
-		buf.WriteRune(r)
-	}
-	return buf.String()
-}
-
 func (r *Runner) escapedGlobField(parts []fieldPart) (escaped string, glob bool) {
 	buf := r.strBuilder()
 	for _, part := range parts {
-		for _, r := range part.val {
-			if syntax.PatternRune(r) {
-				if part.quote > quoteNone {
-					buf.WriteByte('\\')
-				} else {
-					glob = true
-				}
+		quoted := syntax.QuotePattern(part.val)
+		if quoted != part.val {
+			if part.quote > quoteNone {
+				buf.WriteString(quoted)
+			} else {
+				buf.WriteString(part.val)
+				glob = true
 			}
-			buf.WriteRune(r)
 		}
 	}
 	if glob { // only copy the string if it will be used
@@ -305,7 +281,7 @@ func (r *Runner) expandBraces(word *syntax.Word) []*syntax.Word {
 
 func (r *Runner) Fields(words ...*syntax.Word) []string {
 	fields := make([]string, 0, len(words))
-	baseDir := r.escapedGlobStr(r.Dir)
+	baseDir := syntax.QuotePattern(r.Dir)
 	for _, word := range words {
 		for _, expWord := range r.expandBraces(word) {
 			for _, field := range r.wordFields(expWord.Parts) {
@@ -346,11 +322,10 @@ func (r *Runner) lonePattern(word *syntax.Word) string {
 	field := r.wordField(word.Parts, quoteSingle)
 	buf := r.strBuilder()
 	for _, part := range field {
-		for _, r := range part.val {
-			if part.quote > quoteNone && syntax.PatternRune(r) {
-				buf.WriteByte('\\')
-			}
-			buf.WriteRune(r)
+		if part.quote > quoteNone {
+			buf.WriteString(syntax.QuotePattern(part.val))
+		} else {
+			buf.WriteString(part.val)
 		}
 	}
 	return buf.String()

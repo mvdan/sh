@@ -13,6 +13,7 @@ var translateTests = []struct {
 }{
 	{``, false, ``, false},
 	{`foo`, false, `foo`, false},
+	{`.`, false, `\.`, false},
 	{`foo*`, false, `foo.*?`, false},
 	{`foo*`, true, `foo.*`, false},
 	{`\*`, false, `\*`, false},
@@ -43,6 +44,28 @@ func TestTranslatePattern(t *testing.T) {
 		if got != tc.want {
 			t.Errorf("TranslatePattern(%q, %v) got %q, wanted %q",
 				tc.pattern, tc.greedy, got, tc.want)
+		}
+	}
+}
+
+var quoteTests = []struct {
+	pattern string
+	want    string
+}{
+	{``, ``},
+	{`foo`, `foo`},
+	{`.`, `.`},
+	{`*`, `\*`},
+	{`foo?`, `foo\?`},
+	{`\[`, `\\\[`},
+}
+
+func TestQuotePattern(t *testing.T) {
+	for _, tc := range quoteTests {
+		got := QuotePattern(tc.pattern)
+		if got != tc.want {
+			t.Errorf("QuotePattern(%q) got %q, wanted %q",
+				tc.pattern, got, tc.want)
 		}
 	}
 }

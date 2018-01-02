@@ -29,27 +29,26 @@ func charClass(s string) (string, error) {
 	return s[:len(name)+6], nil
 }
 
-// PatternRune returns whether a rune has special meaning in a pattern
-// expression. The ones that do are '*', '?', '[' and '\\'.
-func PatternRune(r rune) bool {
-	return r == '*' || r == '?' || r == '[' || r == '\\'
-}
-
-func anyPatternRune(s string) bool {
-	for _, r := range s {
-		if PatternRune(r) {
-			return true
-		}
-	}
-	return false
-}
-
 // TranslatePattern turns a shell pattern expression into a regular
 // expression that can be used with regexp.Compile. It will return an
 // error if the input pattern was incorrect. Otherwise, the returned
 // expression is ensured to be valid syntax.
+//
+// For example, TranslatePattern(`foo*bar?`, true) returns `foo.*bar.`.
 func TranslatePattern(pattern string, greedy bool) (string, error) {
-	if !anyPatternRune(pattern) { // short-cut without a string copy
+	any := false
+loop:
+	for _, r := range pattern {
+		switch r {
+		// including those that need escaping since they are
+		// special chars in regexes
+		case '*', '?', '[', '\\', '.', '+', '(', ')', '|',
+			']', '{', '}', '^', '$':
+			any = true
+			break loop
+		}
+	}
+	if !any { // short-cut without a string copy
 		return pattern, nil
 	}
 	var buf bytes.Buffer
@@ -100,4 +99,33 @@ func TranslatePattern(pattern string, greedy bool) (string, error) {
 		}
 	}
 	return buf.String(), nil
+}
+
+// QuotePattern returns a string that quotes all special characters in
+// the given pattern. The returned string is a pattern that matches the
+// literal string.
+//
+// For example, QuotePattern(`foo*bar?`) returns `foo\*bar\?`.
+func QuotePattern(pattern string) string {
+	any := false
+loop:
+	for _, r := range pattern {
+		switch r {
+		case '*', '?', '[', '\\':
+			any = true
+			break loop
+		}
+	}
+	if !any { // short-cut without a string copy
+		return pattern
+	}
+	var buf bytes.Buffer
+	for _, r := range pattern {
+		switch r {
+		case '*', '?', '[', '\\':
+			buf.WriteByte('\\')
+		}
+		buf.WriteRune(r)
+	}
+	return buf.String()
 }
