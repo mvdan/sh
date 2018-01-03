@@ -2183,11 +2183,33 @@ var fileTests = []testCase{
 		},
 	},
 	{
-		Strs: []string{`${!foo}`},
-		bsmk: &ParamExp{
-			Excl:  true,
-			Param: lit("foo"),
-		},
+		Strs: []string{`${!foo} ${!bar[@]}`},
+		bsmk: call(
+			word(&ParamExp{
+				Excl:  true,
+				Param: lit("foo"),
+			}),
+			word(&ParamExp{
+				Excl:  true,
+				Param: lit("bar"),
+				Index: litWord("@"),
+			}),
+		),
+	},
+	{
+		Strs: []string{`${!foo*} ${!bar@}`},
+		bsmk: call(
+			word(&ParamExp{
+				Excl:  true,
+				Param: lit("foo"),
+				Names: NamesPrefix,
+			}),
+			word(&ParamExp{
+				Excl:  true,
+				Param: lit("bar"),
+				Names: NamesPrefixWords,
+			}),
+		),
 	},
 	{
 		Strs: []string{`${#?}`},

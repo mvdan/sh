@@ -1046,7 +1046,7 @@ var shellTests = []errorCase{
 	},
 	{
 		in:     `echo "foo${bar"`,
-		common: `1:10: reached EOF without matching ${ with }`,
+		common: `1:15: not a valid parameter expansion operator: "`,
 	},
 	{
 		in:     "echo ${%",
@@ -1104,6 +1104,18 @@ var shellTests = []errorCase{
 	{
 		in:   "echo ${2[@]}",
 		bsmk: `1:9: cannot index a special parameter name`,
+	},
+	{
+		in:   "echo ${foo*}",
+		bsmk: `1:11: not a valid parameter expansion operator: *`,
+	},
+	{
+		in:   "echo ${foo;}",
+		bsmk: `1:11: not a valid parameter expansion operator: ;`,
+	},
+	{
+		in:   "echo ${foo!}",
+		bsmk: `1:11: not a valid parameter expansion operator: !`,
 	},
 	{
 		in:     "echo foo\n;",
@@ -1598,6 +1610,10 @@ var shellTests = []errorCase{
 	{
 		in:   "echo ${foo@",
 		bash: `1:11: @ expansion operator requires a literal`,
+	},
+	{
+		in:   "echo ${foo@}",
+		bash: `1:12: @ expansion operator requires a literal #NOERR empty string fallback`,
 	},
 	{
 		in:   "echo ${foo@Q",

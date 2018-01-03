@@ -22,7 +22,7 @@ func regOps(r rune) bool {
 func paramOps(r rune) bool {
 	switch r {
 	case '}', '#', '!', ':', '-', '+', '=', '?', '%', '[', ']', '/', '^',
-		',', '@', '$':
+		',', '@', '$', '*':
 		return true
 	}
 	return false
@@ -544,6 +544,9 @@ func (p *Parser) paramToken(r rune) token {
 	case '@':
 		p.rune()
 		return at
+	case '*':
+		p.rune()
+		return star
 	default: // '$'
 		// to not let ${$[@]} tokenise as $[
 		p.rune()
@@ -771,11 +774,7 @@ loop:
 			if p.quote&allRbrack != 0 {
 				break loop
 			}
-		case '!', '*':
-			if p.quote&allArithmExpr != 0 {
-				break loop
-			}
-		case ':', '=', '%', '^', ',', '?':
+		case ':', '=', '%', '^', ',', '?', '!', '*':
 			if p.quote&allArithmExpr != 0 || p.quote == paramExpName {
 				break loop
 			}

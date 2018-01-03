@@ -474,10 +474,11 @@ type ParamExp struct {
 	Length         bool // ${#a}
 	Width          bool // ${%a}
 	Param          *Lit
-	Index          ArithmExpr // ${a[i]}, ${a["k"]}
-	Slice          *Slice     // ${a:x:y}
-	Repl           *Replace   // ${a/x/y}
-	Exp            *Expansion // ${a:-b}, ${a#b}, etc
+	Index          ArithmExpr       // ${a[i]}, ${a["k"]}
+	Slice          *Slice           // ${a:x:y}
+	Repl           *Replace         // ${a/x/y}
+	Names          ParNamesOperator // ${!prefix*} or ${!prefix@}
+	Exp            *Expansion       // ${a:-b}, ${a#b}, etc
 }
 
 func (p *ParamExp) Pos() Pos { return p.Dollar }

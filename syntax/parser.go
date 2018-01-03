@@ -1072,7 +1072,7 @@ func (p *Parser) paramExp() *ParamExp {
 	case _Lit, _LitWord:
 		pe.Param = p.lit(p.pos, p.val)
 		p.next()
-	case at, hash, exclMark:
+	case at, star, hash, exclMark:
 		pe.Param = p.lit(p.pos, p.tok.String())
 		p.next()
 	case dollar, quest, minus:
@@ -1157,7 +1157,16 @@ func (p *Parser) paramExp() *ParamExp {
 			p.curErr("this expansion operator is a bash feature")
 		}
 		fallthrough
-	default:
+	case plus, colPlus, minus, colMinus, quest, colQuest, assgn, colAssgn,
+		perc, dblPerc, hash, dblHash, star:
+		if p.tok == star && !pe.Excl {
+			p.curErr("not a valid parameter expansion operator: %v", p.tok)
+		}
+		if pe.Excl && (p.tok == star || p.tok == at) {
+			pe.Names = ParNamesOperator(p.tok)
+			p.next()
+			break
+		}
 		pe.Exp = &Expansion{Op: ParExpOperator(p.tok)}
 		p.quote = paramExpExp
 		p.next()
@@ -1174,6 +1183,9 @@ func (p *Parser) paramExp() *ParamExp {
 			}
 		}
 		pe.Exp.Word = p.getWord()
+	case _EOF:
+	default:
+		p.curErr("not a valid parameter expansion operator: %v", p.tok)
 	}
 	p.quote = old
 	pe.Rbrace = p.pos
