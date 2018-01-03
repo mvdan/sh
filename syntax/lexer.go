@@ -31,7 +31,7 @@ func paramOps(r rune) bool {
 // these start a parameter expansion name
 func paramNameOp(r rune) bool {
 	switch r {
-	case '}', ':', '+', '=', '%', '[', ']', '/', '^', ',', '@':
+	case '}', ':', '+', '=', '%', '[', ']', '/', '^', ',':
 		return false
 	}
 	return true

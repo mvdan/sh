@@ -1046,8 +1046,6 @@ func (p *Parser) paramExp() *ParamExp {
 		p.next()
 	}
 	switch p.tok {
-	case at:
-		p.tok, p.val = _LitWord, "@"
 	case hash:
 		if paramNameOp(p.r) {
 			pe.Length = true
@@ -1071,7 +1069,7 @@ func (p *Parser) paramExp() *ParamExp {
 	case _Lit, _LitWord:
 		pe.Param = p.lit(p.pos, p.val)
 		p.next()
-	case hash, exclMark:
+	case at, hash, exclMark:
 		pe.Param = p.lit(p.pos, p.tok.String())
 		p.next()
 	case dollar, quest, minus:

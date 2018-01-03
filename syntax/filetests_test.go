@@ -1665,9 +1665,11 @@ var fileTests = []testCase{
 		),
 	},
 	{
-		Strs: []string{`${#$} ${##} ${#:-a} ${?+b}`},
+		Strs: []string{`${#$} ${#@} ${#*} ${##} ${#:-a} ${?+b}`},
 		common: call(
 			word(&ParamExp{Length: true, Param: lit("$")}),
+			word(&ParamExp{Length: true, Param: lit("@")}),
+			word(&ParamExp{Length: true, Param: lit("*")}),
 			word(&ParamExp{Length: true, Param: lit("#")}),
 			word(&ParamExp{Param: lit("#"), Exp: &Expansion{
 				Op:   SubstColMinus,
@@ -2144,7 +2146,7 @@ var fileTests = []testCase{
 		),
 	},
 	{
-		Strs: []string{`${a@E} ${b@a}`},
+		Strs: []string{`${a@E} ${b@a} ${@@Q}`},
 		bsmk: call(
 			word(&ParamExp{Param: lit("a"),
 				Exp: &Expansion{
@@ -2156,6 +2158,12 @@ var fileTests = []testCase{
 				Exp: &Expansion{
 					Op:   OtherParamOps,
 					Word: litWord("a"),
+				},
+			}),
+			word(&ParamExp{Param: lit("@"),
+				Exp: &Expansion{
+					Op:   OtherParamOps,
+					Word: litWord("Q"),
 				},
 			}),
 		),
