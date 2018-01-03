@@ -326,6 +326,14 @@ var fileCases = []struct {
 		"àÉñ bAr\nàéñ bar\n",
 	},
 	{
+		"INTERP_X_1=a INTERP_X_2=b; echo ${!INTERP_X_*}",
+		"INTERP_X_1 INTERP_X_2\n",
+	},
+	{
+		"INTERP_X_2=b INTERP_X_1=a; echo ${!INTERP_*}",
+		"INTERP_GLOBAL INTERP_X_1 INTERP_X_2\n",
+	},
+	{
 		`a='b  c'; eval "echo -n ${a} ${a@Q}"`,
 		`b c b  c`,
 	},

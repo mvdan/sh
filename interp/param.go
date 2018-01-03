@@ -101,7 +101,9 @@ func (r *Runner) paramExp(pe *syntax.ParamExp) string {
 	}
 	switch {
 	case pe.Excl:
-		if str != "" {
+		if pe.Names != 0 {
+			str = strings.Join(r.namesByPrefix(pe.Param.Value), " ")
+		} else if str != "" {
 			vr, set = r.lookupVar(str)
 			str = r.varStr(vr, 0)
 		}

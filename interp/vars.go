@@ -358,3 +358,19 @@ func (r *Runner) ifsUpdated() {
 		return false
 	}
 }
+
+func (r *Runner) namesByPrefix(prefix string) []string {
+	var names []string
+	for name := range r.envMap {
+		if strings.HasPrefix(name, prefix) {
+			names = append(names, name)
+		}
+	}
+	for name := range r.Vars {
+		if strings.HasPrefix(name, prefix) {
+			names = append(names, name)
+		}
+	}
+	sort.Strings(names)
+	return names
+}
