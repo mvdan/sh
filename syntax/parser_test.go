@@ -1066,8 +1066,8 @@ var shellTests = []errorCase{
 		mksh: `1:9: parameter expansion requires a literal`,
 	},
 	{
-		in:     "echo ${!<}",
-		common: `1:9: parameter expansion requires a literal`,
+		in:   "echo ${!<}",
+		bsmk: `1:9: parameter expansion requires a literal`,
 	},
 	{
 		in:     "echo ${$foo}",
@@ -1676,6 +1676,10 @@ var shellTests = []errorCase{
 	{
 		in:     "a=$c\n'",
 		common: `2:1: reached EOF without closing quote '`,
+	},
+	{
+		in:    "echo ${!foo}",
+		posix: `1:8: ${!foo} is a bash feature`,
 	},
 	{
 		in:    "echo ${foo[1]}",

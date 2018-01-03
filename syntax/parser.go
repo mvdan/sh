@@ -1061,6 +1061,9 @@ func (p *Parser) paramExp() *ParamExp {
 		}
 	case exclMark:
 		if paramNameOp(p.r) {
+			if p.lang == LangPOSIX {
+				p.curErr("${!foo} is a bash feature")
+			}
 			pe.Excl = true
 			p.next()
 		}
