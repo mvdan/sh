@@ -222,8 +222,10 @@ var fileCases = []struct {
 	{"[[ $$ -eq $PPID ]]", "exit status 1"},
 
 	// var manipulation
-	{"foo=bar; echo ${#foo}", "3\n"},
-	{"foo=世界; echo ${#foo}", "2\n"},
+	{"a=bar; echo ${#a} ${#a[@]}", "3 1\n"},
+	{"a=世界; echo ${#a}", "2\n"},
+	{"a=(a bcd); echo ${#a} ${#a[@]} ${#a[*]} ${#a[1]}", "1 2 2 3\n"},
+	{"set -- a bc; echo ${#@} ${#*} $#", "2 2 2\n"},
 	{
 		"echo ${!a}; a=b; echo ${!a}; b=c; echo ${!a}",
 		"\n\nc\n",

@@ -54,13 +54,15 @@ func (r *Runner) paramExp(pe *syntax.ParamExp) string {
 	name := pe.Param.Value
 	var vr Variable
 	set := false
+	index := pe.Index
 	switch name {
 	case "#":
 		vr.Value = StringVal(strconv.Itoa(len(r.Params)))
-	case "@":
-		vr.Value = StringVal(strings.Join(r.Params, " "))
-	case "*":
-		vr.Value = StringVal(strings.Join(r.Params, r.ifsJoin))
+	case "@", "*":
+		vr.Value = IndexArray(r.Params)
+		index = &syntax.Word{Parts: []syntax.WordPart{
+			&syntax.Lit{Value: name},
+		}}
 	case "?":
 		vr.Value = StringVal(strconv.Itoa(r.exit))
 	case "$":
@@ -80,12 +82,24 @@ func (r *Runner) paramExp(pe *syntax.ParamExp) string {
 		}
 	}
 	str := r.varStr(vr, 0)
-	if pe.Index != nil {
-		str = r.varInd(vr, pe.Index, 0)
+	if index != nil {
+		str = r.varInd(vr, index, 0)
+	}
+	if pe.Length {
+		n := 1
+		if anyOfLit(index, "@", "*") != "" {
+			switch x := vr.Value.(type) {
+			case IndexArray:
+				n = len(x)
+			case AssocArray:
+				n = len(x)
+			}
+		} else {
+			n = utf8.RuneCountInString(str)
+		}
+		str = strconv.Itoa(n)
 	}
 	switch {
-	case pe.Length:
-		str = strconv.Itoa(utf8.RuneCountInString(str))
 	case pe.Excl:
 		if str != "" {
 			vr, set = r.lookupVar(str)
