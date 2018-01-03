@@ -1114,12 +1114,16 @@ func (p *Parser) paramExp() *ParamExp {
 		p.quote = paramExpName
 		p.matched(lpos, leftBrack, rightBrack)
 	}
-	switch p.tok {
-	case rightBrace:
+	if p.tok == rightBrace {
 		pe.Rbrace = p.pos
 		p.quote = old
 		p.next()
 		return pe
+	}
+	if p.tok != _EOF && (pe.Length || pe.Width) {
+		p.curErr("cannot combine multiple parameter expansion operators")
+	}
+	switch p.tok {
 	case slash, dblSlash:
 		if p.lang == LangPOSIX {
 			p.curErr("search and replace is a bash feature")

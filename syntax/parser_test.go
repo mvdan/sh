@@ -1118,6 +1118,18 @@ var shellTests = []errorCase{
 		bsmk: `1:11: not a valid parameter expansion operator: !`,
 	},
 	{
+		in:   "echo ${#foo:-bar}",
+		bsmk: `1:12: cannot combine multiple parameter expansion operators`,
+	},
+	{
+		in:   "echo ${%foo:1:3}",
+		mksh: `1:12: cannot combine multiple parameter expansion operators`,
+	},
+	{
+		in:   "echo ${#foo%x}",
+		mksh: `1:12: cannot combine multiple parameter expansion operators`,
+	},
+	{
 		in:     "echo foo\n;",
 		common: `2:1: ; can only immediately follow a statement`,
 	},
