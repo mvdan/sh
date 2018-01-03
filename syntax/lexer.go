@@ -745,12 +745,6 @@ loop:
 			if r = p.rune(); r == '\n' {
 				p.discardLit(2)
 			}
-		case '\n':
-			switch p.quote {
-			case sglQuotes, paramExpRepl, paramExpExp:
-			default:
-				break loop
-			}
 		case '\'':
 			switch p.quote {
 			case paramExpExp, paramExpRepl:
@@ -785,13 +779,7 @@ loop:
 			if r == '[' && p.lang != LangPOSIX && p.quote&allArithmExpr != 0 {
 				break loop
 			}
-		case '+', '-':
-			switch p.quote {
-			case paramExpExp, paramExpRepl, sglQuotes:
-			default:
-				break loop
-			}
-		case ' ', '\t', ';', '&', '>', '<', '|', '(', ')', '\r':
+		case '+', '-', ' ', '\t', ';', '&', '>', '<', '|', '(', ')', '\n', '\r':
 			switch p.quote {
 			case paramExpExp, paramExpRepl, sglQuotes:
 			default:
