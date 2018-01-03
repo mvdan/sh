@@ -1786,6 +1786,14 @@ set +o pipefail
 		"declare -n foo=bar; echo $foo",
 		"\n",
 	},
+	{
+		"declare -n foo=bar; echo ${!foo}",
+		"bar\n",
+	},
+	{
+		"declare -n foo=bar; bar=etc; echo $foo; echo ${!foo}",
+		"etc\nbar\n",
+	},
 
 	// read-only vars
 	{"declare -r foo=bar; echo $foo", "bar\n"},
