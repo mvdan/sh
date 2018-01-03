@@ -22,7 +22,7 @@ func regOps(r rune) bool {
 func paramOps(r rune) bool {
 	switch r {
 	case '}', '#', '!', ':', '-', '+', '=', '?', '%', '[', ']', '/', '^',
-		',', '@':
+		',', '@', '$':
 		return true
 	}
 	return false
@@ -541,9 +541,13 @@ func (p *Parser) paramToken(r rune) token {
 			return dblComma
 		}
 		return comma
-	default: // '@'
+	case '@':
 		p.rune()
 		return at
+	default: // '$'
+		// to not let ${$[@]} tokenise as $[
+		p.rune()
+		return dollar
 	}
 }
 

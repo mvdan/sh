@@ -1093,6 +1093,9 @@ func (p *Parser) paramExp() *ParamExp {
 		if p.lang == LangPOSIX {
 			p.curErr("arrays are a bash feature")
 		}
+		if !ValidName(pe.Param.Value) {
+			p.curErr("cannot index a special parameter name")
+		}
 		lpos := p.pos
 		p.quote = paramExpInd
 		p.next()

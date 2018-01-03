@@ -1082,6 +1082,30 @@ var shellTests = []errorCase{
 		common: `1:9: - cannot be followed by a word`,
 	},
 	{
+		in:   "echo ${@[@]} ${@[*]}",
+		bsmk: `1:9: cannot index a special parameter name`,
+	},
+	{
+		in:   "echo ${*[@]} ${*[*]}",
+		bsmk: `1:9: cannot index a special parameter name`,
+	},
+	{
+		in:   "echo ${#[x]}",
+		bsmk: `1:9: cannot index a special parameter name`,
+	},
+	{
+		in:   "echo ${$[0]}",
+		bsmk: `1:9: cannot index a special parameter name`,
+	},
+	{
+		in:   "echo ${?[@]}",
+		bsmk: `1:9: cannot index a special parameter name`,
+	},
+	{
+		in:   "echo ${2[@]}",
+		bsmk: `1:9: cannot index a special parameter name`,
+	},
+	{
 		in:     "echo foo\n;",
 		common: `2:1: ; can only immediately follow a statement`,
 	},
