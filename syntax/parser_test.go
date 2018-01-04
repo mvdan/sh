@@ -1919,3 +1919,51 @@ func TestParseStmtsStopEarly(t *testing.T) {
 		t.Fatalf("Expected no error in %q: %v", in, err)
 	}
 }
+
+var stopAtTests = []struct {
+	in   string
+	stop string
+	want interface{}
+}{
+	{
+		"foo bar", "$$",
+		litCall("foo", "bar"),
+	},
+	{
+		"$foo $", "$$",
+		call(word(litParamExp("foo")), litWord("$")),
+	},
+	{
+		"echo foo $$", "$$",
+		litCall("echo", "foo"),
+	},
+	{
+		"echo foo\n$$\n", "$$",
+		litCall("echo", "foo"),
+	},
+	{
+		"echo foo; $$", "$$",
+		litCall("echo", "foo"),
+	},
+	{
+		"echo foo; $$", "$$",
+		litCall("echo", "foo"),
+	},
+	{
+		"echo foo;$$", "$$",
+		litCall("echo", "foo"),
+	},
+	{
+		"echo '$$'", "$$",
+		call(litWord("echo"), word(sglQuoted("$$"))),
+	},
+}
+
+func TestParseStmtsStopAt(t *testing.T) {
+	t.Parallel()
+	for i, c := range stopAtTests {
+		p := NewParser(StopAt(c.stop))
+		want := fullProg(c.want)
+		t.Run(fmt.Sprintf("%02d", i), singleParse(p, c.in, want))
+	}
+}

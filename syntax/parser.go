@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+	"strings"
 	"unicode/utf8"
 )
 
@@ -27,6 +28,29 @@ const (
 // accept.
 func Variant(l LangVariant) func(*Parser) {
 	return func(p *Parser) { p.lang = l }
+}
+
+// StopAt configures the lexer to stop at an arbitrary word, treating it
+// as if it were the end of the input. It can contain any characters
+// except whitespace, and cannot be over four bytes in size.
+//
+// This can be useful to embed shell code within another language, as
+// one can use a special word to mark the delimiters between the two.
+//
+// As a word, it will only apply when following whitespace or a
+// separating token. For example, StopAt("$$") will act on the inputs
+// "foo $$" and "foo;$$", but not on "foo '$$'".
+//
+// The match is done by prefix, so the example above will also act on
+// "foo $$bar".
+func StopAt(word string) func(*Parser) {
+	if len(word) > 4 {
+		panic("stop word can't be over four bytes in size")
+	}
+	if strings.ContainsAny(word, " \t\n\r") {
+		panic("stop word can't contain whitespace characters")
+	}
+	return func(p *Parser) { p.stopAt = []byte(word) }
 }
 
 // NewParser allocates a new Parser and applies any number of options.
@@ -102,6 +126,8 @@ type Parser struct {
 
 	keepComments bool
 	lang         LangVariant
+
+	stopAt []byte
 
 	forbidNested bool
 

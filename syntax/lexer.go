@@ -216,6 +216,14 @@ skipSpace:
 			break skipSpace
 		}
 	}
+	if p.stopAt != nil && (p.spaced || stopToken(p.tok)) {
+		w := utf8.RuneLen(r)
+		if bytes.HasPrefix(p.bs[p.bsp-w:], p.stopAt) {
+			p.r = utf8.RuneSelf
+			p.tok = _EOF
+			return
+		}
+	}
 	p.pos = p.getPos()
 	switch {
 	case p.quote&allRegTokens != 0:
