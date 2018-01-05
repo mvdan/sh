@@ -3840,25 +3840,25 @@ var fileTests = []testCase{
 	},
 	{
 		Strs: []string{"echo ?(b)*(c)+(d)@(e)!(f)"},
-		bsmk: stmt(call(litWord("echo"), word(
+		bsmk: call(litWord("echo"), word(
 			&ExtGlob{Op: GlobQuest, Pattern: lit("b")},
 			&ExtGlob{Op: GlobStar, Pattern: lit("c")},
 			&ExtGlob{Op: GlobPlus, Pattern: lit("d")},
 			&ExtGlob{Op: GlobAt, Pattern: lit("e")},
 			&ExtGlob{Op: GlobExcl, Pattern: lit("f")},
-		))),
+		)),
 	},
 	{
 		Strs: []string{"echo foo@(b*(c|d))bar"},
-		bsmk: stmt(call(litWord("echo"), word(
+		bsmk: call(litWord("echo"), word(
 			lit("foo"),
 			&ExtGlob{Op: GlobAt, Pattern: lit("b*(c|d)")},
 			lit("bar"),
-		))),
+		)),
 	},
 	{
 		Strs: []string{"echo $a@(b)$c?(d)$e*(f)$g+(h)$i!(j)$k"},
-		bsmk: stmt(call(litWord("echo"), word(
+		bsmk: call(litWord("echo"), word(
 			litParamExp("a"),
 			&ExtGlob{Op: GlobAt, Pattern: lit("b")},
 			litParamExp("c"),
@@ -3870,7 +3870,7 @@ var fileTests = []testCase{
 			litParamExp("i"),
 			&ExtGlob{Op: GlobExcl, Pattern: lit("j")},
 			litParamExp("k"),
-		))),
+		)),
 	},
 }
 
