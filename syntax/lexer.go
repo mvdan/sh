@@ -22,7 +22,7 @@ func regOps(r rune) bool {
 func paramOps(r rune) bool {
 	switch r {
 	case '}', '#', '!', ':', '-', '+', '=', '?', '%', '[', ']', '/', '^',
-		',', '@', '$', '*':
+		',', '@', '*':
 		return true
 	}
 	return false
@@ -359,7 +359,8 @@ func (p *Parser) regToken(r rune) token {
 			p.rune()
 			return dollBrace
 		case '[':
-			if p.lang != LangBash {
+			if p.lang != LangBash || p.quote == paramExpName {
+				// latter to not tokenise ${$[@]} as $[
 				break
 			}
 			p.rune()
@@ -552,13 +553,9 @@ func (p *Parser) paramToken(r rune) token {
 	case '@':
 		p.rune()
 		return at
-	case '*':
+	default: // '*'
 		p.rune()
 		return star
-	default: // '$'
-		// to not let ${$[@]} tokenise as $[
-		p.rune()
-		return dollar
 	}
 }
 

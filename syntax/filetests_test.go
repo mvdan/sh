@@ -1955,6 +1955,13 @@ var fileTests = []testCase{
 		},
 	},
 	{
+		Strs: []string{`${foo[${bar}]}`},
+		bsmk: &ParamExp{
+			Param: lit("foo"),
+			Index: word(&ParamExp{Param: lit("bar")}),
+		},
+	},
+	{
 		Strs: []string{`${foo:1}`, `${foo: 1 }`},
 		bsmk: &ParamExp{
 			Param: lit("foo"),
