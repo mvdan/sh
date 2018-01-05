@@ -2334,7 +2334,10 @@ var fileTests = []testCase{
 		}),
 	},
 	{
-		Strs: []string{"$(((a) + ((b))))"},
+		Strs: []string{
+			"$(((a) + ((b))))",
+			"$((\n(a) + \n(\n(b)\n)\n))",
+		},
 		common: arithmExp(&BinaryArithm{
 			Op: Add,
 			X:  parenArit(litWord("a")),

@@ -969,6 +969,9 @@ func isArithName(left ArithmExpr) bool {
 }
 
 func (p *Parser) arithmExprBase(compact bool) ArithmExpr {
+	if p.tok == _Newl {
+		p.next()
+	}
 	var x ArithmExpr
 	switch p.tok {
 	case exclMark:
