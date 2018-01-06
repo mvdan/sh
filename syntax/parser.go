@@ -359,10 +359,16 @@ func (p *Parser) doHeredocs() {
 	p.quote = old
 }
 
-func (p *Parser) got(tok token) bool {
+func (p *Parser) newLine() bool {
 	if p.tok == _Newl {
 		p.next()
+		return true
 	}
+	return false
+}
+
+func (p *Parser) got(tok token) bool {
+	p.newLine()
 	if p.tok == tok {
 		p.next()
 		return true
@@ -371,9 +377,7 @@ func (p *Parser) got(tok token) bool {
 }
 
 func (p *Parser) gotRsrv(val string) (Pos, bool) {
-	if p.tok == _Newl {
-		p.next()
-	}
+	p.newLine()
 	pos := p.pos
 	if p.tok == _LitWord && p.val == val {
 		p.next()
@@ -425,11 +429,7 @@ func (p *Parser) followStmts(left string, lpos Pos, stops ...string) StmtList {
 	if p.gotSameLine(semicolon) {
 		return StmtList{}
 	}
-	newLine := false
-	if p.tok == _Newl {
-		p.next()
-		newLine = true
-	}
+	newLine := p.newLine()
 	sl := p.stmtList(stops...)
 	if len(sl.Stmts) < 1 && !newLine {
 		p.followErr(lpos, left, "a statement list")
@@ -518,11 +518,7 @@ func (p *Parser) stmts(fn func(*Stmt) bool, stops ...string) {
 	gotEnd := true
 loop:
 	for p.tok != _EOF {
-		newLine := false
-		if p.tok == _Newl {
-			newLine = true
-			p.next()
-		}
+		newLine := p.newLine()
 		switch p.tok {
 		case _LitWord:
 			for _, stop := range stops {
@@ -890,9 +886,7 @@ func (p *Parser) arithmExpr(level int, compact, tern bool) ArithmExpr {
 	if compact && p.spaced {
 		return left
 	}
-	if p.tok == _Newl {
-		p.next()
-	}
+	p.newLine()
 	newLevel := arithmOpLevel(BinAritOperator(p.tok))
 	if !tern && p.tok == colon && p.quote&allParamArith != 0 {
 		newLevel = -1
@@ -967,9 +961,7 @@ func isArithName(left ArithmExpr) bool {
 }
 
 func (p *Parser) arithmExprBase(compact bool) ArithmExpr {
-	if p.tok == _Newl {
-		p.next()
-	}
+	p.newLine()
 	var x ArithmExpr
 	switch p.tok {
 	case exclMark:
@@ -1339,9 +1331,7 @@ func (p *Parser) getAssign(needEqual bool) *Assign {
 		}
 		old := p.preNested(newQuote)
 		p.next()
-		if p.tok == _Newl {
-			p.next()
-		}
+		p.newLine()
 		for p.tok != _EOF && p.tok != rightParen {
 			ae := &ArrayElem{}
 			ae.Comments, p.accComs = p.accComs, nil
@@ -1365,9 +1355,7 @@ func (p *Parser) getAssign(needEqual bool) *Assign {
 				}
 			}
 			as.Array.Elems = append(as.Array.Elems, ae)
-			if p.tok == _Newl {
-				p.next()
-			}
+			p.newLine()
 		}
 		as.Array.Last, p.accComs = p.accComs, nil
 		p.postNested(old)
@@ -1479,8 +1467,7 @@ func (p *Parser) getStmt(readEnd, binCmd, fnBody bool) (s *Stmt, gotEnd bool) {
 }
 
 func (p *Parser) gotStmtPipe(s *Stmt) *Stmt {
-	if p.tok == _Newl {
-		p.next()
+	if p.newLine() {
 		s.Position = p.pos
 	}
 	s.Comments, p.accComs = p.accComs, nil
@@ -1758,7 +1745,7 @@ func (p *Parser) wordIter(ftok string, fpos Pos) *WordIter {
 			}
 		}
 		p.gotSameLine(semicolon)
-	} else if p.tok != _Newl && !p.got(semicolon) {
+	} else if p.tok != _Newl && !p.gotSameLine(semicolon) {
 		p.followErr(fpos, ftok+" foo", `"in", ; or a newline`)
 	}
 	return wi
@@ -1794,9 +1781,7 @@ func (p *Parser) caseClause() *CaseClause {
 }
 
 func (p *Parser) caseItems(stop string) (items []*CaseItem) {
-	if p.tok == _Newl {
-		p.next()
-	}
+	p.newLine()
 	for p.tok != _EOF && !(p.tok == _LitWord && p.val == stop) {
 		ci := &CaseItem{}
 		ci.Comments, p.accComs = p.accComs, nil
@@ -1838,9 +1823,7 @@ func (p *Parser) caseItems(stop string) (items []*CaseItem) {
 			}
 		}
 		items = append(items, ci)
-		if p.tok == _Newl {
-			p.next()
-		}
+		p.newLine()
 	}
 	return
 }
@@ -1963,9 +1946,7 @@ func (p *Parser) testExprBase(ftok token, fpos Pos) TestExpr {
 		if ftok != illegalTok {
 			fstr = ftok.String()
 		}
-		if p.tok == _Newl {
-			p.next()
-		}
+		p.newLine()
 		return p.followWord(fstr, fpos)
 	}
 }
@@ -2079,8 +2060,7 @@ func (p *Parser) letClause() *LetClause {
 
 func (p *Parser) bashFuncDecl() *FuncDecl {
 	fpos := p.pos
-	p.next()
-	if p.tok != _LitWord {
+	if p.next(); p.tok != _LitWord {
 		if w := p.followWord("function", fpos); p.err == nil {
 			p.posErr(w.Pos(), "invalid func name")
 		}
