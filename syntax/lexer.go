@@ -245,10 +245,9 @@ skipSpace:
 				p.litBs = nil
 			}
 			p.next()
-		case '[':
+		case '[', '=':
 			if p.quote == arrayElems {
-				p.tok = leftBrack
-				p.rune()
+				p.tok = p.paramToken(r)
 			} else {
 				p.advanceLitNone(r)
 			}

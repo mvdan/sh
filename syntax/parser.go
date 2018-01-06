@@ -1348,11 +1348,7 @@ func (p *Parser) getAssign(needEqual bool) *Assign {
 			if p.tok == leftBrack {
 				left := p.pos
 				ae.Index = p.eitherIndex()
-				if len(p.val) < 1 || p.val[0] != '=' {
-					p.followErr(left, `"[x]"`, "=")
-				}
-				p.pos = posAddCol(p.pos, 1)
-				p.val = p.val[1:]
+				p.follow(left, `"[x]"`, assgn)
 			}
 			if ae.Value = p.getWord(); ae.Value == nil {
 				if p.tok == leftParen {
