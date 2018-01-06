@@ -770,7 +770,7 @@ loop:
 				break loop
 			}
 		case ']':
-			if p.quote&allRbrack != 0 {
+			if p.quote == arithmExprBrack {
 				break loop
 			}
 		case ':', '=', '%', '^', ',', '?', '!', '*':

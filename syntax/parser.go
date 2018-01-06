@@ -259,7 +259,6 @@ const (
 	testRegexp
 	switchCase
 	paramExpName
-	paramExpInd
 	paramExpOff
 	paramExpLen
 	paramExpRepl
@@ -272,10 +271,9 @@ const (
 		switchCase | arrayElems
 	allArithmExpr = arithmExpr | arithmExprLet | arithmExprCmd |
 		arithmExprBrack | allParamArith
-	allRbrack     = arithmExprBrack | paramExpInd
-	allParamArith = paramExpInd | paramExpOff | paramExpLen
+	allParamArith = paramExpOff | paramExpLen
 	allParamReg   = paramExpName | allParamArith
-	allParamExp   = allParamReg | paramExpRepl | paramExpExp
+	allParamExp   = allParamReg | paramExpRepl | paramExpExp | arithmExprBrack
 )
 
 type saveState struct {
@@ -1011,17 +1009,8 @@ func (p *Parser) arithmExprBase(compact bool) ArithmExpr {
 			x = p.word(p.wps(l))
 			break
 		}
-		left := p.pos
 		pe := &ParamExp{Dollar: l.ValuePos, Short: true, Param: l}
-		old := p.preNested(arithmExprBrack)
-		p.next()
-		if p.tok == dblQuote {
-			pe.Index = p.word(p.wps(p.dblQuoted()))
-		} else {
-			pe.Index = p.followArithm(leftBrack, left)
-		}
-		p.postNested(old)
-		p.matched(left, leftBrack, rightBrack)
+		pe.Index = p.eitherIndex()
 		x = p.word(p.wps(pe))
 	case bckQuote:
 		if p.quote == arithmExprLet {
@@ -1128,20 +1117,7 @@ func (p *Parser) paramExp() *ParamExp {
 		if !ValidName(pe.Param.Value) {
 			p.curErr("cannot index a special parameter name")
 		}
-		lpos := p.pos
-		p.quote = paramExpInd
-		p.next()
-		switch p.tok {
-		case star, at:
-			p.tok, p.val = _LitWord, p.tok.String()
-		}
-		if p.tok == dblQuote {
-			pe.Index = p.word(p.wps(p.dblQuoted()))
-		} else {
-			pe.Index = p.followArithm(leftBrack, lpos)
-		}
-		p.quote = paramExpName
-		p.matched(lpos, leftBrack, rightBrack)
+		pe.Index = p.eitherIndex()
 	}
 	if p.tok == rightBrace {
 		pe.Rbrace = p.pos
@@ -1226,6 +1202,26 @@ func (p *Parser) paramExp() *ParamExp {
 	return pe
 }
 
+func (p *Parser) eitherIndex() ArithmExpr {
+	old := p.quote
+	lpos := p.pos
+	p.quote = arithmExprBrack
+	p.next()
+	var expr ArithmExpr
+	switch p.tok {
+	case dblQuote:
+		expr = p.word(p.wps(p.dblQuoted()))
+	case star, at:
+		p.tok, p.val = _LitWord, p.tok.String()
+		fallthrough
+	default:
+		expr = p.followArithm(leftBrack, lpos)
+	}
+	p.quote = old
+	p.matched(lpos, leftBrack, rightBrack)
+	return expr
+}
+
 func (p *Parser) peekArithmEnd() bool {
 	return p.tok == rightParen && p.r == ')'
 }
@@ -1302,19 +1298,8 @@ func (p *Parser) getAssign(needEqual bool) *Assign {
 		as.Name = p.lit(p.pos, p.val)
 		// hasValidIdent already checks p.r is '['
 		p.rune()
-		left := posAddCol(p.pos, 1)
-		old := p.preNested(arithmExprBrack)
-		p.next()
-		if p.tok == star {
-			p.tok, p.val = _LitWord, p.tok.String()
-		}
-		if p.tok == dblQuote {
-			as.Index = p.word(p.wps(p.dblQuoted()))
-		} else {
-			as.Index = p.followArithm(leftBrack, left)
-		}
-		p.postNested(old)
-		p.matched(left, leftBrack, rightBrack)
+		p.pos = posAddCol(p.pos, 1)
+		as.Index = p.eitherIndex()
 		if !needEqual && (p.spaced || stopToken(p.tok)) {
 			return as
 		}
@@ -1362,22 +1347,12 @@ func (p *Parser) getAssign(needEqual bool) *Assign {
 			ae.Comments, p.accComs = p.accComs, nil
 			if p.tok == leftBrack {
 				left := p.pos
-				p.quote = arithmExprBrack
-				p.next()
-				if p.tok == dblQuote {
-					ae.Index = p.word(p.wps(p.dblQuoted()))
-				} else {
-					ae.Index = p.followArithm(leftBrack, left)
-				}
-				if p.tok != rightBrack {
-					p.matchingErr(left, leftBrack, rightBrack)
-				}
-				p.quote = arrayElems
-				if p.r != '=' {
+				ae.Index = p.eitherIndex()
+				if len(p.val) < 1 || p.val[0] != '=' {
 					p.followErr(left, `"[x]"`, "=")
 				}
-				p.rune()
-				p.next()
+				p.pos = posAddCol(p.pos, 1)
+				p.val = p.val[1:]
 			}
 			if ae.Value = p.getWord(); ae.Value == nil {
 				if p.tok == leftParen {
