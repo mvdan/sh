@@ -1,7 +1,7 @@
 // Copyright (c) 2018, Daniel Martí <mvdan@mvdan.cc>
 // See LICENSE for licensing information
 
-package interp
+package shell
 
 import (
 	"fmt"
@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"mvdan.cc/sh/interp"
 	"mvdan.cc/sh/syntax"
 
 	"github.com/kr/pretty"
@@ -16,26 +17,26 @@ import (
 
 var mapTests = []struct {
 	in   string
-	want map[string]Variable
+	want map[string]interp.Variable
 }{
 	{
 		"a=x; b=y",
-		map[string]Variable{
-			"a": {Value: StringVal("x")},
-			"b": {Value: StringVal("y")},
+		map[string]interp.Variable{
+			"a": {Value: interp.StringVal("x")},
+			"b": {Value: interp.StringVal("y")},
 		},
 	},
 	{
 		"a=x; a=y; X=(a b c)",
-		map[string]Variable{
-			"a": {Value: StringVal("y")},
-			"X": {Value: IndexArray{"a", "b", "c"}},
+		map[string]interp.Variable{
+			"a": {Value: interp.StringVal("y")},
+			"X": {Value: interp.IndexArray{"a", "b", "c"}},
 		},
 	},
 	{
 		"a=$(echo foo | sed 's/o/a/g')",
-		map[string]Variable{
-			"a": {Value: StringVal("faa")},
+		map[string]interp.Variable{
+			"a": {Value: interp.StringVal("faa")},
 		},
 	},
 }

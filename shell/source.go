@@ -1,13 +1,14 @@
 // Copyright (c) 2018, Daniel Martí <mvdan@mvdan.cc>
 // See LICENSE for licensing information
 
-package interp
+package shell
 
 import (
 	"fmt"
 	"io"
 	"os"
 
+	"mvdan.cc/sh/interp"
 	"mvdan.cc/sh/syntax"
 )
 
@@ -16,7 +17,7 @@ import (
 //
 // A default parser is used; to set custom options, use SourceNode
 // instead.
-func SourceFile(path string) (map[string]Variable, error) {
+func SourceFile(path string) (map[string]interp.Variable, error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, fmt.Errorf("could not open: %v", err)
@@ -49,19 +50,19 @@ var purePrograms = []string{
 // Any side effects or modifications to the system are forbidden when
 // interpreting the program. This is enforced via whitelists when
 // executing programs and opening paths.
-func SourceNode(node syntax.Node) (map[string]Variable, error) {
-	r := Runner{}
+func SourceNode(node syntax.Node) (map[string]interp.Variable, error) {
+	r := interp.Runner{}
 	// forbid executing programs that might cause trouble
-	r.Exec = func(ctx Ctxt, path string, args []string) error {
+	r.Exec = func(ctx interp.Ctxt, path string, args []string) error {
 		for _, name := range purePrograms {
 			if args[0] == name {
-				return DefaultExec(ctx, path, args)
+				return interp.DefaultExec(ctx, path, args)
 			}
 		}
 		return fmt.Errorf("program not in whitelist: %s", args[0])
 	}
 	// forbid opening any real files
-	r.Open = OpenDevImpls(func(ctx Ctxt, path string, flags int, mode os.FileMode) (io.ReadWriteCloser, error) {
+	r.Open = interp.OpenDevImpls(func(ctx interp.Ctxt, path string, flags int, mode os.FileMode) (io.ReadWriteCloser, error) {
 		return nil, fmt.Errorf("cannot open path: %s", ctx.UnixPath(path))
 	})
 	r.Reset()
