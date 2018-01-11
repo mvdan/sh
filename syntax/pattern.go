@@ -35,6 +35,11 @@ func charClass(s string) (string, error) {
 // expression is ensured to be valid syntax.
 //
 // For example, TranslatePattern(`foo*bar?`, true) returns `foo.*bar.`.
+//
+// Note that this function (and QuotePattern) should not be directly
+// used with file paths if Windows is supported, as the path separator
+// on that platform is the same character as the escaping character for
+// shell patterns.
 func TranslatePattern(pattern string, greedy bool) (string, error) {
 	any := false
 loop:
@@ -64,6 +69,9 @@ loop:
 		case '\\':
 			buf.WriteByte(c)
 			i++
+			if i >= len(pattern) {
+				return "", fmt.Errorf(`\ at end of pattern`)
+			}
 			buf.WriteByte(pattern[i])
 		case '[':
 			name, err := charClass(pattern[i:])

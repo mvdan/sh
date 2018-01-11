@@ -17,6 +17,7 @@ var translateTests = []struct {
 	{`foo*`, false, `foo.*?`, false},
 	{`foo*`, true, `foo.*`, false},
 	{`\*`, false, `\*`, false},
+	{`\`, false, "", true},
 	{`?`, false, `.`, false},
 	{`[abc]`, false, `[abc]`, false},
 	{`[^bc]`, false, `[^bc]`, false},
