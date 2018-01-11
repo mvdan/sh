@@ -5,9 +5,12 @@ package interp
 
 import (
 	"fmt"
+	"os"
 	"os/user"
 	"path/filepath"
 	"regexp"
+	"runtime"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -285,14 +288,14 @@ func (r *Runner) Fields(words ...*syntax.Word) []string {
 	for _, word := range words {
 		for _, expWord := range r.expandBraces(word) {
 			for _, field := range r.wordFields(expWord.Parts) {
-				path, glob := r.escapedGlobField(field)
+				path, doGlob := r.escapedGlobField(field)
 				var matches []string
 				abs := filepath.IsAbs(path)
-				if glob && !r.shellOpts[optNoGlob] {
+				if doGlob && !r.shellOpts[optNoGlob] {
 					if !abs {
 						path = filepath.Join(baseDir, path)
 					}
-					matches, _ = filepath.Glob(path)
+					matches = glob(path)
 				}
 				if len(matches) == 0 {
 					fields = append(fields, r.fieldJoin(field))
@@ -552,4 +555,68 @@ func findAllIndex(pattern, name string, n int) [][]int {
 	}
 	rx := regexp.MustCompile(expr)
 	return rx.FindAllStringIndex(name, n)
+}
+
+func glob(pattern string) []string {
+	dir, file := filepath.Split(pattern)
+	// TODO: special case for windows, like in filepath.Glob?
+	dir = cleanGlobPath(dir)
+
+	if !hasGlob(dir) {
+		return globDir(dir, file, nil)
+	}
+
+	var matches []string
+	for _, d := range glob(dir) {
+		matches = globDir(d, file, matches)
+	}
+	return matches
+}
+
+func cleanGlobPath(path string) string {
+	switch path {
+	case "":
+		return "."
+	case string(filepath.Separator):
+		return path
+	default:
+		return path[:len(path)-1]
+	}
+}
+
+func globDir(dir, pattern string, matches []string) []string {
+	expr, err := syntax.TranslatePattern(pattern, true)
+	if err != nil {
+		return nil
+	}
+	rx, err := regexp.Compile("^" + expr + "$")
+	if err != nil {
+		return nil
+	}
+	d, err := os.Open(dir)
+	if err != nil {
+		return nil
+	}
+	defer d.Close()
+
+	names, _ := d.Readdirnames(-1)
+	sort.Strings(names)
+
+	for _, name := range names {
+		if pattern[0] != '.' && name[0] == '.' {
+			continue
+		}
+		if rx.MatchString(name) {
+			matches = append(matches, filepath.Join(dir, name))
+		}
+	}
+	return matches
+}
+
+func hasGlob(path string) bool {
+	magicChars := `*?[`
+	if runtime.GOOS != "windows" {
+		magicChars = `*?[\`
+	}
+	return strings.ContainsAny(path, magicChars)
 }

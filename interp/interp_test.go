@@ -1853,6 +1853,14 @@ set +o pipefail
 		"mkdir -p '*/a.z' 'b/a.z'; cd '*'; set -- *.z; echo $#",
 		"1\n",
 	},
+	{
+		"touch .hidden a; echo *; echo .h*; rm .hidden a",
+		"a\n.hidden\n",
+	},
+	{
+		`mkdir d; touch d/.hidden d/a; set -- "$(echo d/*)" "$(echo d/.h*)"; echo ${#1} ${#2}; rm -r d`,
+		"3 9\n",
+	},
 
 	// brace expansion
 	{"echo a{b", "a{b\n"},
@@ -1933,7 +1941,7 @@ set +o pipefail
 		"\\\n",
 	},
 	{
-		"read a <<< '\\a\\b\\c'; echo $a",
+		`read a <<< '\a\b\c'; echo "$a"`,
 		"abc\n",
 	},
 	{
