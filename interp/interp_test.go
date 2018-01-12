@@ -1880,12 +1880,18 @@ set +o pipefail
 	{"echo a{1,2,3,4,5}", "a1 a2 a3 a4 a5\n"},
 	{"echo a{1..", "a{1..\n"},
 	{"echo a{1..4", "a{1..4\n"},
+	{"echo a{1.4}", "a{1.4}\n"},
 	{"echo {a,b}{1..4", "a{1..4 b{1..4\n"},
 	{"echo a{1..4}", "a1 a2 a3 a4\n"},
 	{"echo a{1..2}b{4..5}c", "a1b4c a1b5c a2b4c a2b5c\n"},
+	{"echo a{1..f}", "a{1..f}\n"},
 	{"echo a{c..f}", "ac ad ae af\n"},
+	{"echo a{-..f}", "a{-..f}\n"},
+	{"echo a{3..-}", "a{3..-}\n"},
 	{"echo a{1..10..3}", "a1 a4 a7 a10\n"},
+	{"echo a{1..4..0}", "a1 a2 a3 a4\n"},
 	{"echo a{d..k..3}", "ad ag aj\n"},
+	{"echo a{d..k..n}", "a{d..k..n}\n"},
 
 	// /dev/null
 	{"echo foo >/dev/null", ""},

@@ -188,14 +188,13 @@ func (r *Runner) splitBraces(word *syntax.Word) (*braceWord, bool) {
 		}
 		last := 0
 		for j := 0; j < len(lit.Value); j++ {
-			addlit := func() string {
+			addlit := func() {
 				if last == j {
-					return "" // empty lit
+					return // empty lit
 				}
 				l2 := *lit
 				l2.Value = l2.Value[last:j]
 				acc.parts = append(acc.parts, &l2)
-				return l2.Value
 			}
 			switch lit.Value[j] {
 			case '{':
@@ -217,15 +216,8 @@ func (r *Runner) splitBraces(word *syntax.Word) (*braceWord, bool) {
 				if j+1 >= len(lit.Value) || lit.Value[j+1] != '.' {
 					continue
 				}
-				val := addlit()
-				c := val[0]
+				addlit()
 				cur.seq = true
-				if _, err := strconv.Atoi(val); err == nil {
-				} else if len(val) == 1 && 'a' <= c && c <= 'z' {
-					cur.chars = true
-				} else {
-					// TODO: fallback
-				}
 				acc = &braceWord{}
 				cur.elems = append(cur.elems, acc)
 				j++
@@ -235,14 +227,55 @@ func (r *Runner) splitBraces(word *syntax.Word) (*braceWord, bool) {
 				}
 				any = true
 				addlit()
-				ended := pop()
-				if len(ended.elems) > 1 {
-					acc.parts = append(acc.parts, ended)
+				br := pop()
+				if len(br.elems) == 1 {
+					// return {x} to a non-brace
+					acc.parts = append(acc.parts, litLeftBrace)
+					acc.parts = append(acc.parts, br.elems[0].parts...)
+					acc.parts = append(acc.parts, litRightBrace)
 					break
 				}
-				// return {x} to a non-brace
+				if !br.seq {
+					acc.parts = append(acc.parts, br)
+					break
+				}
+				var chars [2]bool
+				broken := false
+				for i, elem := range br.elems[:2] {
+					val := braceWordLit(elem)
+					if _, err := strconv.Atoi(val); err == nil {
+					} else if len(val) == 1 &&
+						'a' <= val[0] && val[0] <= 'z' {
+						chars[i] = true
+					} else {
+						broken = true
+					}
+				}
+				if len(br.elems) == 3 {
+					// increment must be a number
+					val := braceWordLit(br.elems[2])
+					if _, err := strconv.Atoi(val); err != nil {
+						broken = true
+					}
+				}
+				// are start and end both chars or
+				// non-chars?
+				if chars[0] != chars[1] {
+					broken = true
+				}
+				if !broken {
+					br.chars = chars[0]
+					acc.parts = append(acc.parts, br)
+					break
+				}
+				// return broken {x..y[..incr]} to a non-brace
 				acc.parts = append(acc.parts, litLeftBrace)
-				acc.parts = append(acc.parts, ended.elems[0].parts...)
+				for i, elem := range br.elems {
+					if i > 0 {
+						acc.parts = append(acc.parts, litDots)
+					}
+					acc.parts = append(acc.parts, elem.parts...)
+				}
 				acc.parts = append(acc.parts, litRightBrace)
 			default:
 				continue
@@ -259,11 +292,11 @@ func (r *Runner) splitBraces(word *syntax.Word) (*braceWord, bool) {
 	}
 	// open braces that were never closed fall back to non-braces
 	for acc != top {
-		ended := pop()
+		br := pop()
 		acc.parts = append(acc.parts, litLeftBrace)
-		for i, elem := range ended.elems {
+		for i, elem := range br.elems {
 			if i > 0 {
-				if ended.seq {
+				if br.seq {
 					acc.parts = append(acc.parts, litDots)
 				} else {
 					acc.parts = append(acc.parts, litComma)
