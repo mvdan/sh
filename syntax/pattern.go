@@ -31,8 +31,8 @@ func charClass(s string) (string, error) {
 
 // TranslatePattern turns a shell pattern expression into a regular
 // expression that can be used with regexp.Compile. It will return an
-// error if the input pattern was incorrect. If the returned error is
-// nil, regexp.Compile may still error on the returned expression.
+// error if the input pattern was incorrect. Otherwise, the returned
+// expression can be passed to regexp.MustCompile.
 //
 // For example, TranslatePattern(`foo*bar?`, true) returns `foo.*bar.`.
 //
@@ -86,8 +86,11 @@ loop:
 				return "", fmt.Errorf("[ was not matched with a closing ]")
 			}
 			c = pattern[i]
-			if c == '!' {
-				c = '^'
+			switch c {
+			case '!', '^':
+				buf.WriteByte('^')
+				i++
+				c = pattern[i]
 			}
 			buf.WriteByte(c)
 			for {

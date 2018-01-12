@@ -3,7 +3,11 @@
 
 package syntax
 
-import "testing"
+import (
+	"fmt"
+	rsyntax "regexp/syntax"
+	"testing"
+)
 
 var translateTests = []struct {
 	pattern string
@@ -21,13 +25,20 @@ var translateTests = []struct {
 	{`?`, false, `.`, false},
 	{`\a`, false, `a`, false},
 	{`(`, false, `\(`, false},
+	{`a|b`, false, `a\|b`, false},
+	{`x{3}`, false, `x\{3\}`, false},
+	{`[a]`, false, `[a]`, false},
 	{`[abc]`, false, `[abc]`, false},
 	{`[^bc]`, false, `[^bc]`, false},
 	{`[!bc]`, false, `[^bc]`, false},
 	{`[[]`, false, `[[]`, false},
 	{`[]]`, false, `[]]`, false},
 	{`[`, false, "", true},
+	{`[]`, false, "", true},
+	{`[^]`, false, "", true},
 	{`[ab`, false, "", true},
+	{`[a-]`, false, `[a-]`, false},
+	{`[0-4A-Z]`, false, `[0-4A-Z]`, false},
 	{`[[:digit:]]`, false, `[[:digit:]]`, false},
 	{`[[:`, false, "", true},
 	{`[[:digit`, false, "", true},
@@ -35,19 +46,27 @@ var translateTests = []struct {
 }
 
 func TestTranslatePattern(t *testing.T) {
-	for _, tc := range translateTests {
-		got, gotErr := TranslatePattern(tc.pattern, tc.greedy)
-		if tc.wantErr && gotErr == nil {
-			t.Errorf("TranslatePattern(%q, %v) did not error",
-				tc.pattern, tc.greedy)
-		} else if !tc.wantErr && gotErr != nil {
-			t.Errorf("TranslatePattern(%q, %v) errored with %q",
-				tc.pattern, tc.greedy, gotErr)
-		}
-		if got != tc.want {
-			t.Errorf("TranslatePattern(%q, %v) got %q, wanted %q",
-				tc.pattern, tc.greedy, got, tc.want)
-		}
+	for i, tc := range translateTests {
+		t.Run(fmt.Sprintf("%02d", i), func(t *testing.T) {
+			got, gotErr := TranslatePattern(tc.pattern, tc.greedy)
+			if tc.wantErr && gotErr == nil {
+				t.Fatalf("(%q, %v) did not error",
+					tc.pattern, tc.greedy)
+			}
+			if !tc.wantErr && gotErr != nil {
+				t.Fatalf("(%q, %v) errored with %q",
+					tc.pattern, tc.greedy, gotErr)
+			}
+			if got != tc.want {
+				t.Fatalf("(%q, %v) got %q, wanted %q",
+					tc.pattern, tc.greedy, got, tc.want)
+			}
+			_, rxErr := rsyntax.Parse(got, rsyntax.Perl)
+			if gotErr == nil && rxErr != nil {
+				t.Fatalf("regexp/syntax.Parse(%q) failed with %q",
+					got, rxErr)
+			}
+		})
 	}
 }
 
