@@ -136,9 +136,11 @@ func (r *Runner) escapedGlobField(parts []fieldPart) (escaped string, glob bool)
 	return escaped, glob
 }
 
-// TODO: consider making brace a special syntax Node
+// TODO: consider making these special syntax nodes
 
 type brace struct {
+	seq   bool // {x..y[..incr]} instead of {x,y[,...]}
+	chars bool // sequence is of chars, not numbers
 	elems []*braceWord
 }
 
@@ -147,12 +149,13 @@ type braceWord struct {
 	parts []braceWordPart
 }
 
-// braceWordPart contains either syntax.WordPart or brace.
+// braceWordPart contains any syntax.WordPart or a brace.
 type braceWordPart interface{}
 
 var (
 	litLeftBrace  = &syntax.Lit{Value: "{"}
 	litComma      = &syntax.Lit{Value: ","}
+	litDots       = &syntax.Lit{Value: ".."}
 	litRightBrace = &syntax.Lit{Value: "}"}
 )
 
@@ -184,16 +187,17 @@ func (r *Runner) splitBraces(word *syntax.Word) (*braceWord, bool) {
 			continue
 		}
 		last := 0
-		for j, r := range lit.Value {
-			addlit := func() {
+		for j := 0; j < len(lit.Value); j++ {
+			addlit := func() string {
 				if last == j {
-					return // empty lit
+					return "" // empty lit
 				}
 				l2 := *lit
 				l2.Value = l2.Value[last:j]
 				acc.parts = append(acc.parts, &l2)
+				return l2.Value
 			}
-			switch r {
+			switch lit.Value[j] {
 			case '{':
 				addlit()
 				acc = &braceWord{}
@@ -206,6 +210,25 @@ func (r *Runner) splitBraces(word *syntax.Word) (*braceWord, bool) {
 				addlit()
 				acc = &braceWord{}
 				cur.elems = append(cur.elems, acc)
+			case '.':
+				if cur == nil {
+					continue
+				}
+				if j+1 >= len(lit.Value) || lit.Value[j+1] != '.' {
+					continue
+				}
+				val := addlit()
+				c := val[0]
+				cur.seq = true
+				if _, err := strconv.Atoi(val); err == nil {
+				} else if len(val) == 1 && 'a' <= c && c <= 'z' {
+					cur.chars = true
+				} else {
+					// TODO: fallback
+				}
+				acc = &braceWord{}
+				cur.elems = append(cur.elems, acc)
+				j++
 			case '}':
 				if cur == nil {
 					continue
@@ -240,12 +263,28 @@ func (r *Runner) splitBraces(word *syntax.Word) (*braceWord, bool) {
 		acc.parts = append(acc.parts, litLeftBrace)
 		for i, elem := range ended.elems {
 			if i > 0 {
-				acc.parts = append(acc.parts, litComma)
+				if ended.seq {
+					acc.parts = append(acc.parts, litDots)
+				} else {
+					acc.parts = append(acc.parts, litComma)
+				}
 			}
 			acc.parts = append(acc.parts, elem.parts...)
 		}
 	}
 	return top, any
+}
+
+func braceWordLit(v interface{}) string {
+	word, _ := v.(*braceWord)
+	if word == nil || len(word.parts) != 1 {
+		return ""
+	}
+	lit, ok := word.parts[0].(*syntax.Lit)
+	if !ok {
+		return ""
+	}
+	return lit.Value
 }
 
 func expandRec(bw *braceWord) []*syntax.Word {
@@ -256,6 +295,40 @@ func expandRec(bw *braceWord) []*syntax.Word {
 		if !ok {
 			left = append(left, wp.(syntax.WordPart))
 			continue
+		}
+		if br.seq {
+			incr := 1
+			if len(br.elems) > 2 {
+				val := braceWordLit(br.elems[2])
+				if n := atoi(val); n != 0 {
+					incr = n
+				}
+			}
+			var from, to int
+			if br.chars {
+				from = int(braceWordLit(br.elems[0])[0])
+				to = int(braceWordLit(br.elems[1])[0])
+			} else {
+				from = atoi(braceWordLit(br.elems[0]))
+				to = atoi(braceWordLit(br.elems[1]))
+			}
+			for n := from; n <= to; n += incr {
+				next := *bw
+				next.parts = next.parts[i+1:]
+				lit := &syntax.Lit{}
+				if br.chars {
+					lit.Value = string(n)
+				} else {
+					lit.Value = strconv.Itoa(n)
+				}
+				next.parts = append([]braceWordPart{lit}, next.parts...)
+				exp := expandRec(&next)
+				for _, w := range exp {
+					w.Parts = append(left, w.Parts...)
+				}
+				all = append(all, exp...)
+			}
+			return all
 		}
 		for _, elem := range br.elems {
 			next := *bw
