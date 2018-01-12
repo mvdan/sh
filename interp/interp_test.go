@@ -1063,6 +1063,10 @@ var fileCases = []struct {
 		"exit status 1",
 	},
 	{
+		`[[ abc == \a\bc ]]`,
+		"",
+	},
+	{
 		"[[ abc != *b'*' ]]",
 		"",
 	},

@@ -67,12 +67,10 @@ loop:
 		case '?':
 			buf.WriteString(".")
 		case '\\':
-			buf.WriteByte(c)
-			i++
-			if i >= len(pattern) {
+			if i++; i >= len(pattern) {
 				return "", fmt.Errorf(`\ at end of pattern`)
 			}
-			buf.WriteByte(pattern[i])
+			buf.WriteString(regexp.QuoteMeta(string(pattern[i])))
 		case '[':
 			name, err := charClass(pattern[i:])
 			if err != nil {
