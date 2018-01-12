@@ -330,13 +330,6 @@ func expandRec(bw *braceWord) []*syntax.Word {
 			continue
 		}
 		if br.seq {
-			incr := 1
-			if len(br.elems) > 2 {
-				val := braceWordLit(br.elems[2])
-				if n := atoi(val); n != 0 {
-					incr = n
-				}
-			}
 			var from, to int
 			if br.chars {
 				from = int(braceWordLit(br.elems[0])[0])
@@ -345,7 +338,25 @@ func expandRec(bw *braceWord) []*syntax.Word {
 				from = atoi(braceWordLit(br.elems[0]))
 				to = atoi(braceWordLit(br.elems[1]))
 			}
-			for n := from; n <= to; n += incr {
+			upward := from <= to
+			incr := 1
+			if !upward {
+				incr = -1
+			}
+			if len(br.elems) > 2 {
+				val := braceWordLit(br.elems[2])
+				if n := atoi(val); n != 0 && n > 0 == upward {
+					incr = n
+				}
+			}
+			n := from
+			for {
+				if upward && n > to {
+					break
+				}
+				if !upward && n < to {
+					break
+				}
 				next := *bw
 				next.parts = next.parts[i+1:]
 				lit := &syntax.Lit{}
@@ -360,6 +371,7 @@ func expandRec(bw *braceWord) []*syntax.Word {
 					w.Parts = append(left, w.Parts...)
 				}
 				all = append(all, exp...)
+				n += incr
 			}
 			return all
 		}
