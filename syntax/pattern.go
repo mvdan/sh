@@ -11,6 +11,9 @@ import (
 )
 
 func charClass(s string) (string, error) {
+	if strings.HasPrefix(s, "[[.") || strings.HasPrefix(s, "[[=") {
+		return "", fmt.Errorf("collating features not available")
+	}
 	if !strings.HasPrefix(s, "[[:") {
 		return "", nil
 	}
@@ -85,22 +88,31 @@ loop:
 			if i++; i >= len(pattern) {
 				return "", fmt.Errorf("[ was not matched with a closing ]")
 			}
-			c = pattern[i]
-			switch c {
+			switch c = pattern[i]; c {
 			case '!', '^':
 				buf.WriteByte('^')
 				i++
 				c = pattern[i]
 			}
 			buf.WriteByte(c)
+			last := c
+			rangeStart := byte(0)
 			for {
 				if i++; i >= len(pattern) {
 					return "", fmt.Errorf("[ was not matched with a closing ]")
 				}
-				c = pattern[i]
+				last, c = c, pattern[i]
 				buf.WriteByte(c)
 				if c == ']' {
 					break
+				}
+				if rangeStart != 0 && rangeStart > c {
+					return "", fmt.Errorf("invalid range: %c-%c", rangeStart, c)
+				}
+				if c == '-' {
+					rangeStart = last
+				} else {
+					rangeStart = 0
 				}
 			}
 		default:

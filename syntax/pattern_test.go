@@ -38,11 +38,16 @@ var translateTests = []struct {
 	{`[^]`, false, "", true},
 	{`[ab`, false, "", true},
 	{`[a-]`, false, `[a-]`, false},
+	{`[z-a]`, false, "", true},
+	{`[a-a]`, false, "[a-a]", false},
+	{`[aa]`, false, `[aa]`, false},
 	{`[0-4A-Z]`, false, `[0-4A-Z]`, false},
 	{`[[:digit:]]`, false, `[[:digit:]]`, false},
 	{`[[:`, false, "", true},
 	{`[[:digit`, false, "", true},
 	{`[[:wrong:]]`, false, "", true},
+	{`[[=x=]]`, false, "", true},
+	{`[[.x.]]`, false, "", true},
 }
 
 func TestTranslatePattern(t *testing.T) {
