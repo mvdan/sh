@@ -562,13 +562,21 @@ func glob(pattern string) []string {
 	// TODO: special case for windows, like in filepath.Glob?
 	dir = cleanGlobPath(dir)
 
+	expr, err := syntax.TranslatePattern(file, true)
+	if err != nil {
+		return nil
+	}
+	rx, err := regexp.Compile("^" + expr + "$")
+	if err != nil {
+		return nil
+	}
 	if !hasGlob(dir) {
-		return globDir(dir, file, nil)
+		return globDir(dir, rx, nil)
 	}
 
 	var matches []string
 	for _, d := range glob(dir) {
-		matches = globDir(d, file, matches)
+		matches = globDir(d, rx, matches)
 	}
 	return matches
 }
@@ -584,15 +592,7 @@ func cleanGlobPath(path string) string {
 	}
 }
 
-func globDir(dir, pattern string, matches []string) []string {
-	expr, err := syntax.TranslatePattern(pattern, true)
-	if err != nil {
-		return nil
-	}
-	rx, err := regexp.Compile("^" + expr + "$")
-	if err != nil {
-		return nil
-	}
+func globDir(dir string, rx *regexp.Regexp, matches []string) []string {
 	d, err := os.Open(dir)
 	if err != nil {
 		return nil
@@ -603,7 +603,7 @@ func globDir(dir, pattern string, matches []string) []string {
 	sort.Strings(names)
 
 	for _, name := range names {
-		if pattern[0] != '.' && name[0] == '.' {
+		if !strings.HasPrefix(rx.String(), `^\.`) && name[0] == '.' {
 			continue
 		}
 		if rx.MatchString(name) {
