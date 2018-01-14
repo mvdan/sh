@@ -446,6 +446,17 @@ var shellTests = []errorCase{
 		common: `1:1: "!" cannot form a statement alone`,
 	},
 	{
+		// bash and mksh chain them, dash and us don't
+		in:     "! !",
+		common: `1:1: cannot negate a command multiple times #NOERR`,
+		posix:  `1:1: cannot negate a command multiple times`,
+	},
+	{
+		in:     "! ! foo",
+		common: `1:1: cannot negate a command multiple times #NOERR`,
+		posix:  `1:1: cannot negate a command multiple times`,
+	},
+	{
 		in:     "}",
 		common: `1:1: "}" can only be used to close a block`,
 	},
@@ -496,6 +507,10 @@ var shellTests = []errorCase{
 	{
 		in:     ">f if foo; then bar; fi",
 		common: `1:12: "then" can only be used in an if`,
+	},
+	{
+		in:     "if done; then b; fi",
+		common: `1:4: "done" can only be used to end a loop`,
 	},
 	{
 		in:     "'",

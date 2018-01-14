@@ -1411,6 +1411,9 @@ func (p *Parser) getStmt(readEnd, binCmd, fnBody bool) (s *Stmt, gotEnd bool) {
 		if stopToken(p.tok) {
 			p.posErr(s.Pos(), `"!" cannot form a statement alone`)
 		}
+		if _, ok := p.gotRsrv("!"); ok {
+			p.posErr(s.Pos(), `cannot negate a command multiple times`)
+		}
 	}
 	if s = p.gotStmtPipe(s); s == nil || p.err != nil {
 		return
