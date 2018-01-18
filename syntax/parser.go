@@ -1152,38 +1152,22 @@ func (p *Parser) paramExp() *ParamExp {
 		if p.lang != LangBash {
 			p.curErr("this expansion operator is a bash feature")
 		}
-		fallthrough
-	case at:
-		if p.lang == LangPOSIX {
+		pe.Exp = p.paramExpExp()
+	case at, star:
+		switch {
+		case p.tok == at && p.lang == LangPOSIX:
 			p.curErr("this expansion operator is a bash feature")
-		}
-		fallthrough
-	case plus, colPlus, minus, colMinus, quest, colQuest, assgn, colAssgn,
-		perc, dblPerc, hash, dblHash, star:
-		if p.tok == star && !pe.Excl {
+		case p.tok == star && !pe.Excl:
 			p.curErr("not a valid parameter expansion operator: %v", p.tok)
-		}
-		if pe.Excl && (p.tok == star || p.tok == at) {
+		case pe.Excl:
 			pe.Names = ParNamesOperator(p.tok)
 			p.next()
-			break
+		default:
+			pe.Exp = p.paramExpExp()
 		}
-		pe.Exp = &Expansion{Op: ParExpOperator(p.tok)}
-		p.quote = paramExpExp
-		p.next()
-		if pe.Exp.Op == OtherParamOps {
-			switch p.tok {
-			case _Lit, _LitWord:
-			default:
-				p.curErr("@ expansion operator requires a literal")
-			}
-			switch p.val {
-			case "Q", "E", "P", "A", "a":
-			default:
-				p.curErr("invalid @ expansion operator")
-			}
-		}
-		pe.Exp.Word = p.getWord()
+	case plus, colPlus, minus, colMinus, quest, colQuest, assgn, colAssgn,
+		perc, dblPerc, hash, dblHash:
+		pe.Exp = p.paramExpExp()
 	case _EOF:
 	default:
 		p.curErr("not a valid parameter expansion operator: %v", p.tok)
@@ -1192,6 +1176,25 @@ func (p *Parser) paramExp() *ParamExp {
 	pe.Rbrace = p.pos
 	p.matched(pe.Dollar, dollBrace, rightBrace)
 	return pe
+}
+
+func (p *Parser) paramExpExp() *Expansion {
+	op := ParExpOperator(p.tok)
+	p.quote = paramExpExp
+	p.next()
+	if op == OtherParamOps {
+		switch p.tok {
+		case _Lit, _LitWord:
+		default:
+			p.curErr("@ expansion operator requires a literal")
+		}
+		switch p.val {
+		case "Q", "E", "P", "A", "a":
+		default:
+			p.curErr("invalid @ expansion operator")
+		}
+	}
+	return &Expansion{Op: op, Word: p.getWord()}
 }
 
 func (p *Parser) eitherIndex() ArithmExpr {
