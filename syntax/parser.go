@@ -1122,6 +1122,7 @@ func (p *Parser) paramExp() *ParamExp {
 	}
 	switch p.tok {
 	case slash, dblSlash:
+		// pattern search and replace
 		if p.lang == LangPOSIX {
 			p.curErr("search and replace is a bash feature")
 		}
@@ -1134,6 +1135,7 @@ func (p *Parser) paramExp() *ParamExp {
 			pe.Repl.With = p.getWord()
 		}
 	case colon:
+		// slicing
 		if p.lang == LangPOSIX {
 			p.curErr("slicing is a bash feature")
 		}
@@ -1149,6 +1151,7 @@ func (p *Parser) paramExp() *ParamExp {
 			pe.Slice.Length = p.followArithm(colon, colonPos)
 		}
 	case caret, dblCaret, comma, dblComma:
+		// upper/lower case
 		if p.lang != LangBash {
 			p.curErr("this expansion operator is a bash feature")
 		}
@@ -1165,8 +1168,14 @@ func (p *Parser) paramExp() *ParamExp {
 		default:
 			pe.Exp = p.paramExpExp()
 		}
-	case plus, colPlus, minus, colMinus, quest, colQuest, assgn, colAssgn,
-		perc, dblPerc, hash, dblHash:
+	case plus, colPlus, minus, colMinus, quest, colQuest, assgn, colAssgn:
+		// if unset/null actions
+		if !ValidName(pe.Param.Value) {
+			p.curErr("a special parameter name can never be unset or null")
+		}
+		pe.Exp = p.paramExpExp()
+	case perc, dblPerc, hash, dblHash:
+		// pattern string manipulation
 		pe.Exp = p.paramExpExp()
 	case _EOF:
 	default:

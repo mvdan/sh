@@ -1656,23 +1656,12 @@ var fileTests = []testCase{
 		),
 	},
 	{
-		Strs: []string{`${#$} ${#@} ${#*} ${##} ${#:-a} ${?+b}`},
+		Strs: []string{`${#$} ${#@} ${#*} ${##}`},
 		common: call(
 			word(&ParamExp{Length: true, Param: lit("$")}),
 			word(&ParamExp{Length: true, Param: lit("@")}),
 			word(&ParamExp{Length: true, Param: lit("*")}),
 			word(&ParamExp{Length: true, Param: lit("#")}),
-			word(&ParamExp{Param: lit("#"), Exp: &Expansion{
-				Op:   SubstColMinus,
-				Word: litWord("a"),
-			}}),
-			word(&ParamExp{
-				Param: lit("?"),
-				Exp: &Expansion{
-					Op:   SubstPlus,
-					Word: litWord("b"),
-				},
-			}),
 		),
 	},
 	{
@@ -1865,17 +1854,17 @@ var fileTests = []testCase{
 		),
 	},
 	{
-		Strs: []string{`${foo#bar}${foo##bar*}`},
+		Strs: []string{`${3#bar}${-##bar*}`},
 		common: word(
 			&ParamExp{
-				Param: lit("foo"),
+				Param: lit("3"),
 				Exp: &Expansion{
 					Op:   RemSmallPrefix,
 					Word: litWord("bar"),
 				},
 			},
 			&ParamExp{
-				Param: lit("foo"),
+				Param: lit("-"),
 				Exp: &Expansion{
 					Op:   RemLargePrefix,
 					Word: litWord("bar*"),
