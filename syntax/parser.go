@@ -1085,7 +1085,15 @@ func (p *Parser) paramExp() *ParamExp {
 	case at, star, hash, exclMark:
 		pe.Param = p.lit(p.pos, p.tok.String())
 		p.next()
-	case dollar, quest, minus:
+	case quest, minus:
+		if pe.Length && p.r != '}' {
+			// actually ${#-default}, not ${#-}; error below
+			pe.Length = false
+			pe.Param = p.lit(p.pos, "#")
+			break
+		}
+		fallthrough
+	case dollar:
 		op := p.tok
 		pe.Param = p.lit(p.pos, p.tok.String())
 		p.next()
