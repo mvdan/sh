@@ -1435,6 +1435,23 @@ var fileTests = []testCase{
 		},
 	},
 	{
+		Strs: []string{
+			"a && b &\nc",
+			"a && b & c",
+		},
+		common: []*Stmt{
+			{
+				Cmd: &BinaryCmd{
+					Op: AndStmt,
+					X:  litStmt("a"),
+					Y:  litStmt("b"),
+				},
+				Background: true,
+			},
+			litStmt("c"),
+		},
+	},
+	{
 		Strs:   []string{"foo#bar"},
 		common: litWord("foo#bar"),
 	},

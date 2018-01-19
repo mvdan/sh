@@ -546,12 +546,12 @@ loop:
 		if p.tok == _EOF {
 			break
 		}
-		s, end := p.getStmt(true, false, false)
+		s := p.getStmt(true, false, false)
 		if s == nil {
 			p.invalidStmtStart()
 			break
 		}
-		gotEnd = end
+		gotEnd = s.Semicolon.IsValid() || s.Background || s.Coprocess
 		if !fn(s) {
 			break
 		}
@@ -1426,9 +1426,9 @@ func (p *Parser) doRedirect(s *Stmt) {
 	s.Redirs = append(s.Redirs, r)
 }
 
-func (p *Parser) getStmt(readEnd, binCmd, fnBody bool) (s *Stmt, gotEnd bool) {
+func (p *Parser) getStmt(readEnd, binCmd, fnBody bool) *Stmt {
 	pos, ok := p.gotRsrv("!")
-	s = p.stmt(pos)
+	s := p.stmt(pos)
 	if ok {
 		s.Negated = true
 		if stopToken(p.tok) {
@@ -1439,51 +1439,44 @@ func (p *Parser) getStmt(readEnd, binCmd, fnBody bool) (s *Stmt, gotEnd bool) {
 		}
 	}
 	if s = p.gotStmtPipe(s); s == nil || p.err != nil {
-		return
+		return nil
 	}
-	switch p.tok {
-	case andAnd, orOr:
+	// instead of using recursion, iterate manually
+	for p.tok == andAnd || p.tok == orOr {
 		// left associativity: in a list of BinaryCmds, the
-		// right recursion should only read a single element.
+		// right recursion should only read a single element
 		if binCmd {
-			return
+			return s
 		}
-		// and instead of using recursion, iterate manually
-		for p.tok == andAnd || p.tok == orOr {
-			b := &BinaryCmd{
-				OpPos: p.pos,
-				Op:    BinCmdOperator(p.tok),
-				X:     s,
-			}
-			p.next()
-			b.Y, _ = p.getStmt(false, true, false)
-			if b.Y == nil || p.err != nil {
-				p.followErr(b.OpPos, b.Op.String(), "a statement")
-				return
-			}
-			s = p.stmt(s.Position)
-			s.Cmd = b
-			s.Comments, b.X.Comments = b.X.Comments, nil
+		b := &BinaryCmd{
+			OpPos: p.pos,
+			Op:    BinCmdOperator(p.tok),
+			X:     s,
 		}
-		if p.tok != semicolon {
-			break
+		p.next()
+		b.Y = p.getStmt(false, true, false)
+		if b.Y == nil || p.err != nil {
+			p.followErr(b.OpPos, b.Op.String(), "a statement")
+			return nil
 		}
-		fallthrough
-	case semicolon:
-		if readEnd {
+		s = p.stmt(s.Position)
+		s.Cmd = b
+		s.Comments, b.X.Comments = b.X.Comments, nil
+	}
+	if readEnd {
+		switch p.tok {
+		case semicolon:
 			s.Semicolon = p.pos
 			p.next()
+		case and:
+			s.Semicolon = p.pos
+			p.next()
+			s.Background = true
+		case orAnd:
+			p.next()
+			s.Coprocess = true
 		}
-	case and:
-		s.Semicolon = p.pos
-		p.next()
-		s.Background = true
-	case orAnd:
-		s.Semicolon = p.pos
-		p.next()
-		s.Coprocess = true
 	}
-	gotEnd = s.Semicolon.IsValid() || s.Background || s.Coprocess
 	if len(p.accComs) > 0 && !binCmd && !fnBody {
 		c := p.accComs[0]
 		if c.Pos().Line() == s.End().Line() {
@@ -1491,7 +1484,7 @@ func (p *Parser) getStmt(readEnd, binCmd, fnBody bool) (s *Stmt, gotEnd bool) {
 			p.accComs = p.accComs[1:]
 		}
 	}
-	return
+	return s
 }
 
 func (p *Parser) gotStmtPipe(s *Stmt) *Stmt {
@@ -2173,7 +2166,7 @@ func (p *Parser) funcDecl(name *Lit, pos Pos) *FuncDecl {
 		RsrvWord: pos != name.ValuePos,
 		Name:     name,
 	}
-	if fd.Body, _ = p.getStmt(false, false, true); fd.Body == nil {
+	if fd.Body = p.getStmt(false, false, true); fd.Body == nil {
 		p.followErr(fd.Pos(), "foo()", "a statement")
 	}
 	return fd
