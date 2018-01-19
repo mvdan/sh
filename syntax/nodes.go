@@ -123,7 +123,7 @@ type Stmt struct {
 	Comments   []Comment
 	Cmd        Command
 	Position   Pos
-	Semicolon  Pos
+	Semicolon  Pos  // position of ';', '&', or '|&', if any
 	Negated    bool // ! stmt
 	Background bool // stmt &
 	Coprocess  bool // mksh's |&
@@ -134,7 +134,11 @@ type Stmt struct {
 func (s *Stmt) Pos() Pos { return s.Position }
 func (s *Stmt) End() Pos {
 	if s.Semicolon.IsValid() {
-		return posAddCol(s.Semicolon, 1)
+		end := posAddCol(s.Semicolon, 1) // ';' or '&'
+		if s.Coprocess {
+			end = posAddCol(end, 1) // '|&'
+		}
+		return end
 	}
 	end := s.Position
 	if s.Negated {

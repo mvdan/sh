@@ -4001,6 +4001,8 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 				// ended by end character
 			case endOff > 0 && src[endOff-1] == ';':
 				// ended by semicolon
+			case endOff > 0 && src[endOff-1] == '&':
+				// ended by & or |&
 			default:
 				tb.Fatalf("Unexpected Stmt.End() %d %q in %q",
 					endOff, end, string(src))
@@ -4009,7 +4011,7 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 		recurse(x.Comments)
 		setPos(&x.Position)
 		if x.Semicolon.IsValid() {
-			setPos(&x.Semicolon, ";")
+			setPos(&x.Semicolon, ";", "&", "|&")
 		}
 		if x.Cmd != nil {
 			recurse(x.Cmd)

@@ -1475,9 +1475,11 @@ func (p *Parser) getStmt(readEnd, binCmd, fnBody bool) (s *Stmt, gotEnd bool) {
 			p.next()
 		}
 	case and:
+		s.Semicolon = p.pos
 		p.next()
 		s.Background = true
 	case orAnd:
+		s.Semicolon = p.pos
 		p.next()
 		s.Coprocess = true
 	}
