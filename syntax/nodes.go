@@ -438,7 +438,7 @@ type SglQuoted struct {
 }
 
 func (q *SglQuoted) Pos() Pos { return q.Left }
-func (q *SglQuoted) End() Pos { return q.Right }
+func (q *SglQuoted) End() Pos { return posAddCol(q.Right, 1) }
 
 // DblQuoted represents a list of nodes within double quotes.
 type DblQuoted struct {

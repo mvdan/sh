@@ -4154,6 +4154,7 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 			recurse(x.Post)
 		}
 	case *SglQuoted:
+		checkSrc(posAddCol(x.End(), -1), "'")
 		valuePos := posAddCol(x.Left, 1)
 		if x.Dollar {
 			valuePos = posAddCol(valuePos, 1)
