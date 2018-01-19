@@ -3409,6 +3409,16 @@ var fileTests = []testCase{
 		},
 	},
 	{
+		Strs: []string{`declare foo['x y']`},
+		bash: &DeclClause{
+			Variant: lit("declare"),
+			Assigns: []*Assign{{
+				Name:  lit("foo"),
+				Index: word(sglQuoted("x y")),
+			}},
+		},
+	},
+	{
 		Strs: []string{"foo=([)"},
 		mksh: &CallExpr{Assigns: []*Assign{{
 			Name:  lit("foo"),
@@ -3706,12 +3716,14 @@ var fileTests = []testCase{
 	},
 	{
 		Strs: []string{
-			`a["x y"]=b`,
-			`a[ "x y" ]=b`,
+			`a[$"x y"]=b`,
+			`a[ $"x y" ]=b`,
 		},
 		bash: &CallExpr{Assigns: []*Assign{{
-			Name:  lit("a"),
-			Index: word(dblQuoted(lit("x y"))),
+			Name: lit("a"),
+			Index: word(&DblQuoted{Dollar: true, Parts: []WordPart{
+				lit("x y"),
+			}}),
 			Value: litWord("b"),
 		}}},
 	},

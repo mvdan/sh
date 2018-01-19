@@ -181,7 +181,7 @@ func (*CoprocClause) commandNode() {}
 // Here and elsewhere, Index can either mean an index into an indexed or
 // an associative array. In the former, it's just an arithmetic
 // expression. In the latter, it will be a word with a single DblQuoted
-// part.
+// or SglQuoted part.
 //
 // If Index is non-nil, the value will be a word and not an array as
 // nested arrays are not allowed.

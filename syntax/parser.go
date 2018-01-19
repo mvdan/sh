@@ -764,12 +764,11 @@ func (p *Parser) wordPart() WordPart {
 			p.quoteErr(sq.Pos(), sglQuote)
 		}
 		return sq
-	case dblQuote:
+	case dblQuote, dollDblQuote:
 		if p.quote == dblQuotes {
+			// p.tok == dblQuote, as "foo$" puts $ in the lit
 			return nil
 		}
-		fallthrough
-	case dollDblQuote:
 		if p.quote&allArithmExpr != 0 {
 			p.curErr("quotes should not be used in arithmetic expressions")
 		}
@@ -1221,8 +1220,12 @@ func (p *Parser) eitherIndex() ArithmExpr {
 	p.next()
 	var expr ArithmExpr
 	switch p.tok {
-	case dblQuote:
-		expr = p.word(p.wps(p.dblQuoted()))
+	case sglQuote, dollSglQuote, dblQuote, dollDblQuote:
+		// We can't use an arithm quote, as that will trigger
+		// the "quotes should not be used in arithmetic
+		// expressions" error. paramExpName is the closest.
+		p.quote = paramExpName
+		expr = p.word(p.wps(p.wordPart()))
 	case star, at:
 		p.tok, p.val = _LitWord, p.tok.String()
 		fallthrough

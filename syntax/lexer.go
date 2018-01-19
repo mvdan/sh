@@ -531,6 +531,9 @@ func (p *Parser) paramToken(r rune) token {
 	case '[':
 		p.rune()
 		return leftBrack
+	case ']':
+		p.rune()
+		return rightBrack
 	case '/':
 		if p.rune() == '/' && p.quote != paramExpRepl {
 			p.rune()

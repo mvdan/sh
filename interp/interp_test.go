@@ -1689,6 +1689,14 @@ set +o pipefail
 		`a=(["x"]=b ["y"]=c); echo ${a["y"]}`,
 		"c\n",
 	},
+	{
+		`declare -A a=(['x']=b); echo ${a['x']} ${a[$'x']} ${a[$"x"]}`,
+		"b b b\n",
+	},
+	{
+		`a=(['x']=b); echo ${a['y']}`,
+		"\n #IGNORE bash requires -A",
+	},
 
 	// weird assignments
 	{"a=b; a=(c d); echo ${a[@]}", "c d\n"},

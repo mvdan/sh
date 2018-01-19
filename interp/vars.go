@@ -258,8 +258,11 @@ func stringIndex(index syntax.ArithmExpr) bool {
 	if !ok || len(w.Parts) != 1 {
 		return false
 	}
-	_, ok = w.Parts[0].(*syntax.DblQuoted)
-	return ok
+	switch w.Parts[0].(type) {
+	case *syntax.DblQuoted, *syntax.SglQuoted:
+		return true
+	}
+	return false
 }
 
 func (r *Runner) assignVal(as *syntax.Assign, valType string) VarValue {
