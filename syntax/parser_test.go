@@ -1969,6 +1969,10 @@ var stopAtTests = []struct {
 		litCall("echo", "foo"),
 	},
 	{
+		"$$", "$$",
+		&File{},
+	},
+	{
 		"echo foo\n$$\n", "$$",
 		litCall("echo", "foo"),
 	},

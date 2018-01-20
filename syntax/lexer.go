@@ -216,7 +216,7 @@ skipSpace:
 			break skipSpace
 		}
 	}
-	if p.stopAt != nil && (p.spaced || stopToken(p.tok)) {
+	if p.stopAt != nil && (p.spaced || p.tok == illegalTok || stopToken(p.tok)) {
 		w := utf8.RuneLen(r)
 		if bytes.HasPrefix(p.bs[p.bsp-w:], p.stopAt) {
 			p.r = utf8.RuneSelf
