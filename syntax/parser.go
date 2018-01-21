@@ -551,7 +551,7 @@ loop:
 			p.invalidStmtStart()
 			break
 		}
-		gotEnd = s.Semicolon.IsValid() || s.Background || s.Coprocess
+		gotEnd = s.Semicolon.IsValid()
 		if !fn(s) {
 			break
 		}
@@ -1473,6 +1473,7 @@ func (p *Parser) getStmt(readEnd, binCmd, fnBody bool) *Stmt {
 			p.next()
 			s.Background = true
 		case orAnd:
+			s.Semicolon = p.pos
 			p.next()
 			s.Coprocess = true
 		}
@@ -1582,10 +1583,6 @@ func (p *Parser) gotStmtPipe(s *Stmt) *Stmt {
 	case rdrOut, appOut, rdrIn, dplIn, dplOut, clbOut, rdrInOut,
 		hdoc, dashHdoc, wordHdoc, rdrAll, appAll, _LitRedir:
 		p.doRedirect(s)
-		switch {
-		case p.tok == _EOF, p.tok == semicolon, p.tok == _Newl:
-			return s
-		}
 		s.Cmd = p.callExpr(s, nil, false)
 	case bckQuote:
 		if p.quote == subCmdBckquo {
