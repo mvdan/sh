@@ -247,7 +247,6 @@ const (
 	noState quoteState = 1 << iota
 	subCmd
 	subCmdBckquo
-	sglQuotes
 	dblQuotes
 	hdocWord
 	hdocBody
@@ -266,7 +265,7 @@ const (
 	arrayElems
 
 	allKeepSpaces = paramExpRepl | dblQuotes | hdocBody |
-		hdocBodyTabs | paramExpExp | sglQuotes
+		hdocBodyTabs | paramExpExp
 	allRegTokens = noState | subCmd | subCmdBckquo | hdocWord |
 		switchCase | arrayElems
 	allArithmExpr = arithmExpr | arithmExprLet | arithmExprCmd |
@@ -725,45 +724,29 @@ func (p *Parser) wordPart() WordPart {
 		p.postNested(old)
 		ps.Rparen = p.matched(ps.OpPos, token(ps.Op), rightParen)
 		return ps
-	case sglQuote:
+	case sglQuote, dollSglQuote:
 		if p.quote&allArithmExpr != 0 {
 			p.curErr("quotes should not be used in arithmetic expressions")
 		}
-		sq := &SglQuoted{Left: p.pos}
+		sq := &SglQuoted{Left: p.pos, Dollar: p.tok == dollSglQuote}
 		r := p.r
-	loop:
 		for p.newLit(r); ; r = p.rune() {
 			switch r {
-			case utf8.RuneSelf, '\'':
+			case '\\':
+				if sq.Dollar {
+					p.rune()
+				}
+			case '\'':
 				sq.Right = p.getPos()
 				sq.Value = p.endLit()
 				p.rune()
-				break loop
+				p.next()
+				return sq
+			case utf8.RuneSelf:
+				p.posErr(sq.Pos(), "reached EOF without closing quote %s", sglQuote)
+				return nil
 			}
 		}
-		if r != '\'' {
-			p.posErr(sq.Pos(), "reached EOF without closing quote %s", sglQuote)
-		}
-		p.next()
-		return sq
-	case dollSglQuote:
-		if p.quote&allArithmExpr != 0 {
-			p.curErr("quotes should not be used in arithmetic expressions")
-		}
-		sq := &SglQuoted{Left: p.pos, Dollar: true}
-		old := p.quote
-		p.quote = sglQuotes
-		p.next()
-		p.quote = old
-		if p.tok != sglQuote {
-			sq.Value = p.val
-			p.next()
-		}
-		sq.Right = p.pos
-		if !p.got(sglQuote) {
-			p.quoteErr(sq.Pos(), sglQuote)
-		}
-		return sq
 	case dblQuote, dollDblQuote:
 		if p.quote == dblQuotes {
 			// p.tok == dblQuote, as "foo$" puts $ in the lit

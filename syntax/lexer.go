@@ -149,7 +149,7 @@ func (p *Parser) nextKeepSpaces() {
 		} else {
 			p.advanceLitHdoc(r)
 		}
-	case paramExpExp:
+	default: // paramExpExp:
 		switch r {
 		case '}':
 			p.rune()
@@ -160,13 +160,6 @@ func (p *Parser) nextKeepSpaces() {
 			p.rune()
 			p.tok = sglQuote
 		default:
-			p.advanceLitOther(r)
-		}
-	default: // sglQuotes
-		if r == '\'' {
-			p.rune()
-			p.tok = sglQuote
-		} else {
 			p.advanceLitOther(r)
 		}
 	}
@@ -761,17 +754,9 @@ loop:
 			if r = p.rune(); r == '\n' {
 				p.discardLit(2)
 			}
-		case '\'':
-			switch p.quote {
-			case paramExpExp, paramExpRepl:
-			default:
-				break loop
-			}
 		case '"', '`', '$':
-			if p.quote != sglQuotes {
-				tok = _Lit
-				break loop
-			}
+			tok = _Lit
+			break loop
 		case '}':
 			if p.quote&allParamExp != 0 {
 				break loop
@@ -795,10 +780,8 @@ loop:
 			if r == '[' && p.lang != LangPOSIX && p.quote&allArithmExpr != 0 {
 				break loop
 			}
-		case '+', '-', ' ', '\t', ';', '&', '>', '<', '|', '(', ')', '\n', '\r':
-			switch p.quote {
-			case paramExpExp, paramExpRepl, sglQuotes:
-			default:
+		case '\'', '+', '-', ' ', '\t', ';', '&', '>', '<', '|', '(', ')', '\n', '\r':
+			if p.quote&allKeepSpaces == 0 {
 				break loop
 			}
 		}
