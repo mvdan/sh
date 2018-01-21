@@ -1058,12 +1058,10 @@ func (p *Parser) paramExp() *ParamExp {
 			p.next()
 		}
 	}
+	op := p.tok
 	switch p.tok {
 	case _Lit, _LitWord:
 		pe.Param = p.lit(p.pos, p.val)
-		p.next()
-	case at, star, hash, exclMark:
-		pe.Param = p.lit(p.pos, p.tok.String())
 		p.next()
 	case quest, minus:
 		if pe.Length && p.r != '}' {
@@ -1073,24 +1071,21 @@ func (p *Parser) paramExp() *ParamExp {
 			break
 		}
 		fallthrough
-	case dollar:
-		op := p.tok
+	case at, star, hash, exclMark, dollar:
 		pe.Param = p.lit(p.pos, p.tok.String())
 		p.next()
-		switch p.tok {
-		case _Lit, _LitWord:
-			p.curErr("%s cannot be followed by a word", op)
-		}
 	default:
 		p.curErr("parameter expansion requires a literal")
 	}
-	if p.tok == rightBrace {
+	switch p.tok {
+	case _Lit, _LitWord:
+		p.curErr("%s cannot be followed by a word", op)
+	case rightBrace:
 		pe.Rbrace = p.pos
 		p.quote = old
 		p.next()
 		return pe
-	}
-	if p.tok == leftBrack {
+	case leftBrack:
 		if p.lang == LangPOSIX {
 			p.curErr("arrays are a bash feature")
 		}

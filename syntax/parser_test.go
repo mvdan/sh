@@ -1089,6 +1089,10 @@ var shellTests = []errorCase{
 		bsmk: `1:9: parameter expansion requires a literal`,
 	},
 	{
+		in:     "echo ${@foo}",
+		common: `1:9: @ cannot be followed by a word`,
+	},
+	{
 		in:     "echo ${$foo}",
 		common: `1:9: $ cannot be followed by a word`,
 	},
