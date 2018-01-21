@@ -1538,6 +1538,7 @@ set +o pipefail
 	{`a=(x y z); IFS=-; echo "${a[@]}"`, "x y z\n"},
 	{`a="  x y z"; IFS=; echo $a`, "  x y z\n"},
 	{`a=(x y z); IFS=; echo "${a[*]}"`, "xyz\n"},
+	{`a=(x y z); IFS=-; echo "${!a[@]}"`, "0 1 2\n"},
 
 	// builtin
 	{"builtin", ""},
@@ -1702,6 +1703,9 @@ set +o pipefail
 	{"a=b; a=(c d); echo ${a[@]}", "c d\n"},
 	{"a=(b c); a=d; echo ${a[@]}", "d c\n"},
 	{"declare -A a=([x]=b [y]=c); a=d; echo ${a[@]}", "d b c\n"},
+	{"i=3; a=b; a[i]=x; echo ${a[@]}", "b x\n"},
+	{"i=3; declare a=(b); a[i]=x; echo ${!a[@]}", "0 3\n"},
+	{"i=3; declare -A a=(['x']=b); a[i]=x; echo ${!a[@]}", "i x\n"},
 
 	// declare
 	{"declare -B foo", "declare: invalid option \"-B\"\nexit status 2 #JUSTERR"},

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"unicode"
@@ -32,8 +33,9 @@ func anyOfLit(v interface{}, vals ...string) string {
 	return ""
 }
 
+// quotedElems checks if a parameter expansion is exactly ${@} or ${foo[@]}
 func (r *Runner) quotedElems(pe *syntax.ParamExp) []string {
-	if pe == nil {
+	if pe == nil || pe.Excl || pe.Length || pe.Width {
 		return nil
 	}
 	if pe.Param.Value == "@" {
@@ -112,14 +114,27 @@ func (r *Runner) paramExp(pe *syntax.ParamExp) string {
 		}
 		str = strconv.Itoa(n)
 	case pe.Excl:
+		var strs []string
 		if pe.Names != 0 {
-			str = strings.Join(r.namesByPrefix(pe.Param.Value), " ")
+			strs = r.namesByPrefix(pe.Param.Value)
 		} else if vr.NameRef {
-			str = string(vr.Value.(StringVal))
+			strs = append(strs, string(vr.Value.(StringVal)))
+		} else if x, ok := vr.Value.(IndexArray); ok {
+			for i, e := range x {
+				if e != "" {
+					strs = append(strs, strconv.Itoa(i))
+				}
+			}
+		} else if x, ok := vr.Value.(AssocArray); ok {
+			for k := range x {
+				strs = append(strs, k)
+			}
 		} else if str != "" {
 			vr, _ = r.lookupVar(str)
-			str = r.varStr(vr, 0)
+			strs = append(strs, r.varStr(vr, 0))
 		}
+		sort.Strings(strs)
+		str = strings.Join(strs, " ")
 	case pe.Slice != nil:
 		if pe.Slice.Offset != nil {
 			offset := slicePos(pe.Slice.Offset)
