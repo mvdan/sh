@@ -1878,9 +1878,9 @@ var fileTests = []testCase{
 		),
 	},
 	{
-		Strs: []string{`${a:-'$x'}`},
+		Strs: []string{`${3:-'$x'}`},
 		common: &ParamExp{
-			Param: lit("a"),
+			Param: lit("3"),
 			Exp: &Expansion{
 				Op:   SubstColMinus,
 				Word: word(sglQuoted("$x")),
@@ -1888,9 +1888,9 @@ var fileTests = []testCase{
 		},
 	},
 	{
-		Strs: []string{`${a:-$x}`},
+		Strs: []string{`${@:-$x}`},
 		common: &ParamExp{
-			Param: lit("a"),
+			Param: lit("@"),
 			Exp: &Expansion{
 				Op:   SubstColMinus,
 				Word: word(litParamExp("x")),

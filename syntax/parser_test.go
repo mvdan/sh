@@ -1129,20 +1129,12 @@ var shellTests = []errorCase{
 		bsmk: `1:9: cannot index a special parameter name`,
 	},
 	{
-		in:   "echo ${3:-4}",
-		bsmk: `1:9: a special parameter name can never be unset or null #NOERR bash is not strict`,
-	},
-	{
-		in:   "echo ${3?4}",
-		bsmk: `1:9: a special parameter name can never be unset or null #NOERR bash is not strict`,
-	},
-	{
 		in:   "echo ${#-4}",
-		bsmk: `1:9: a special parameter name can never be unset or null #NOERR bash is not strict`,
+		bsmk: `1:9: $# can never be unset or null #NOERR bash is not strict`,
 	},
 	{
-		in:   "echo ${#?4}",
-		bsmk: `1:9: a special parameter name can never be unset or null #NOERR bash is not strict`,
+		in:   "echo ${??4}",
+		bsmk: `1:9: $? can never be unset or null #NOERR bash is not strict`,
 	},
 	{
 		in:   "echo ${foo*}",

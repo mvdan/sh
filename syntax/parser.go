@@ -1152,8 +1152,9 @@ func (p *Parser) paramExp() *ParamExp {
 		}
 	case plus, colPlus, minus, colMinus, quest, colQuest, assgn, colAssgn:
 		// if unset/null actions
-		if !ValidName(pe.Param.Value) {
-			p.curErr("a special parameter name can never be unset or null")
+		switch pe.Param.Value {
+		case "#", "$", "?", "!":
+			p.curErr("$%s can never be unset or null", pe.Param.Value)
 		}
 		pe.Exp = p.paramExpExp()
 	case perc, dblPerc, hash, dblHash:
