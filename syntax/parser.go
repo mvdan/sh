@@ -258,8 +258,7 @@ const (
 	testRegexp
 	switchCase
 	paramExpName
-	paramExpOff
-	paramExpLen
+	paramExpSlice
 	paramExpRepl
 	paramExpExp
 	arrayElems
@@ -269,10 +268,9 @@ const (
 	allRegTokens = noState | subCmd | subCmdBckquo | hdocWord |
 		switchCase | arrayElems
 	allArithmExpr = arithmExpr | arithmExprLet | arithmExprCmd |
-		arithmExprBrack | allParamArith
-	allParamArith = paramExpOff | paramExpLen
-	allParamReg   = paramExpName | allParamArith
-	allParamExp   = allParamReg | paramExpRepl | paramExpExp | arithmExprBrack
+		arithmExprBrack | paramExpSlice
+	allParamReg = paramExpName | paramExpSlice
+	allParamExp = allParamReg | paramExpRepl | paramExpExp | arithmExprBrack
 )
 
 type saveState struct {
@@ -870,7 +868,7 @@ func (p *Parser) arithmExpr(level int, compact, tern bool) ArithmExpr {
 	}
 	p.newLine()
 	newLevel := arithmOpLevel(BinAritOperator(p.tok))
-	if !tern && p.tok == colon && p.quote&allParamArith != 0 {
+	if !tern && p.tok == colon && p.quote == paramExpSlice {
 		newLevel = -1
 	}
 	if newLevel < 0 {
@@ -1131,12 +1129,11 @@ func (p *Parser) paramExp() *ParamExp {
 		}
 		pe.Slice = &Slice{}
 		colonPos := p.pos
-		p.quote = paramExpOff
+		p.quote = paramExpSlice
 		if p.next(); p.tok != colon {
 			pe.Slice.Offset = p.followArithm(colon, colonPos)
 		}
 		colonPos = p.pos
-		p.quote = paramExpLen
 		if p.got(colon) {
 			pe.Slice.Length = p.followArithm(colon, colonPos)
 		}
