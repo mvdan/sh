@@ -82,8 +82,8 @@ the parser and the printer. To get started, run:
 ```
 
 * Some builtins like `export` and `let` are parsed as keywords. This is
-  to let the static parser parse them completely and build their AST
-  better than just a slice of arguments.
+  to allow statically parsing them and building their AST, as opposed to
+  just keeping the arguments as a slice of arguments.
 
 ### Related projects
 
