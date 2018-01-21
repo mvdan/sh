@@ -130,7 +130,7 @@ func (p *Parser) nextKeepSpaces() {
 		case '}', '/':
 			p.tok = p.paramToken(r)
 		case '`', '"', '$':
-			p.tok = p.dqToken(r)
+			p.tok = p.regToken(r)
 		default:
 			p.advanceLitOther(r)
 		}
@@ -152,13 +152,9 @@ func (p *Parser) nextKeepSpaces() {
 	default: // paramExpExp:
 		switch r {
 		case '}':
-			p.rune()
-			p.tok = rightBrace
-		case '`', '"', '$':
-			p.tok = p.dqToken(r)
-		case '\'':
-			p.rune()
-			p.tok = sglQuote
+			p.tok = p.paramToken(r)
+		case '`', '"', '$', '\'':
+			p.tok = p.regToken(r)
 		default:
 			p.advanceLitOther(r)
 		}

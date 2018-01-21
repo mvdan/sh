@@ -2122,12 +2122,12 @@ var fileTests = []testCase{
 		},
 	},
 	{
-		Strs: []string{`${foo/$a/$b}`},
+		Strs: []string{`${foo/$a/$'\''}`},
 		bsmk: &ParamExp{
 			Param: lit("foo"),
 			Repl: &Replace{
 				Orig: word(litParamExp("a")),
-				With: word(litParamExp("b")),
+				With: word(sglDQuoted(`\'`)),
 			},
 		},
 	},
