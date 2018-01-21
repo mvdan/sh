@@ -1435,6 +1435,28 @@ var fileTests = []testCase{
 		},
 	},
 	{
+		Strs: []string{"! foo && bar"},
+		common: &BinaryCmd{
+			Op: AndStmt,
+			X: &Stmt{
+				Cmd:     litCall("foo"),
+				Negated: true,
+			},
+			Y: litStmt("bar"),
+		},
+	},
+	{
+		Strs: []string{"! foo | bar"},
+		common: &Stmt{
+			Cmd: &BinaryCmd{
+				Op: Pipe,
+				X:  litStmt("foo"),
+				Y:  litStmt("bar"),
+			},
+			Negated: true,
+		},
+	},
+	{
 		Strs: []string{
 			"a && b &\nc",
 			"a && b & c",
@@ -1449,6 +1471,17 @@ var fileTests = []testCase{
 				Background: true,
 			},
 			litStmt("c"),
+		},
+	},
+	{
+		Strs: []string{"a | b &"},
+		common: &Stmt{
+			Cmd: &BinaryCmd{
+				Op: Pipe,
+				X:  litStmt("a"),
+				Y:  litStmt("b"),
+			},
+			Background: true,
 		},
 	},
 	{

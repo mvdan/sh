@@ -1632,6 +1632,9 @@ func (p *Parser) gotStmtPipe(s *Stmt) *Stmt {
 		s = p.stmt(s.Position)
 		s.Cmd = b
 		s.Comments, b.X.Comments = b.X.Comments, nil
+		// in "! x | y", the bang applies to the entire pipeline
+		s.Negated = b.X.Negated
+		b.X.Negated = false
 	}
 	return s
 }
