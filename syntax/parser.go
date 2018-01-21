@@ -1830,7 +1830,7 @@ func (p *Parser) testClause() *TestClause {
 	if _, ok := p.gotRsrv("]]"); ok || p.tok == _EOF {
 		p.posErr(tc.Left, "test clause requires at least one expression")
 	}
-	tc.X = p.testExpr(illegalTok, tc.Left, false)
+	tc.X = p.testExpr(dblLeftBrack, tc.Left, false)
 	tc.Right = p.pos
 	if _, ok := p.gotRsrv("]]"); !ok {
 		p.matchingErr(tc.Left, "[[", "]]")
@@ -1937,13 +1937,8 @@ func (p *Parser) testExprBase(ftok token, fpos Pos) TestExpr {
 		pe.Rparen = p.matched(pe.Lparen, leftParen, rightParen)
 		return pe
 	default:
-		// since we don't have [[ as a token
-		fstr := "[["
-		if ftok != illegalTok {
-			fstr = ftok.String()
-		}
 		p.newLine()
-		return p.followWord(fstr, fpos)
+		return p.followWordTok(ftok, fpos)
 	}
 }
 
