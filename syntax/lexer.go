@@ -100,13 +100,10 @@ func (p *Parser) fill() {
 	p.offs += p.bsp
 	left := len(p.bs) - p.bsp
 	copy(p.readBuf[:left], p.readBuf[p.bsp:])
-	var n int
-	var err error
-	if p.readErr == nil {
+	n, err := 0, p.readErr
+	if err == nil {
 		n, err = p.src.Read(p.readBuf[left:])
 		p.readErr = err
-	} else {
-		n, err = 0, p.readErr
 	}
 	if n == 0 {
 		// don't use p.errPass as we don't want to overwrite p.tok

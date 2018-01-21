@@ -982,6 +982,10 @@ var shellTests = []errorCase{
 		common: `1:11: not a valid arithmetic operator: ;`,
 	},
 	{
+		in:   "echo $((foo) )",
+		bsmk: `1:6: reached ) without matching $(( with )) #NOERR`,
+	},
+	{
 		in:     "echo $((a *))",
 		common: `1:11: * must be followed by an expression`,
 	},
