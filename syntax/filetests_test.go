@@ -1283,14 +1283,27 @@ var fileTests = []testCase{
 		},
 	},
 	{
-		Strs: []string{"foo >&2 <&0 2>file <>f2"},
+		Strs: []string{"foo >&2 <&0 2>file 345>file <>f2"},
 		common: &Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*Redirect{
 				{Op: DplOut, Word: litWord("2")},
 				{Op: DplIn, Word: litWord("0")},
 				{Op: RdrOut, N: lit("2"), Word: litWord("file")},
+				{Op: RdrOut, N: lit("345"), Word: litWord("file")},
 				{Op: RdrInOut, Word: litWord("f2")},
+			},
+		},
+	},
+	{
+		Strs: []string{
+			"foo bar >file",
+			"foo bar>file",
+		},
+		common: &Stmt{
+			Cmd: litCall("foo", "bar"),
+			Redirs: []*Redirect{
+				{Op: RdrOut, Word: litWord("file")},
 			},
 		},
 	},

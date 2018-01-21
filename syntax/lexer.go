@@ -720,6 +720,18 @@ func (p *Parser) endLit() (s string) {
 	return
 }
 
+func (p *Parser) numLit() bool {
+	for _, b := range p.litBs {
+		switch b {
+		case '>', '<':
+		case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
+		default:
+			return false
+		}
+	}
+	return true
+}
+
 func (p *Parser) advanceNameCont(r rune) {
 	// we know that r is a letter or underscore
 loop:
@@ -822,7 +834,7 @@ loop:
 				}
 			}
 		case '>', '<':
-			if p.peekByte('(') {
+			if p.peekByte('(') || !p.numLit() {
 				tok = _Lit
 			} else {
 				tok = _LitRedir
@@ -940,8 +952,7 @@ func (p *Parser) hdocLitWord() *Word {
 
 func (p *Parser) advanceLitRe(r rune) {
 	lparens := 0
-loop:
-	for p.newLit(r); r != utf8.RuneSelf; r = p.rune() {
+	for p.newLit(r); ; r = p.rune() {
 		switch r {
 		case '\\':
 			p.rune()
@@ -949,13 +960,13 @@ loop:
 			lparens++
 		case ')':
 			lparens--
-		case ' ', '\t', '\r', '\n', ';':
+		case utf8.RuneSelf, ' ', '\t', '\r', '\n', ';':
 			if lparens == 0 {
-				break loop
+				p.tok, p.val = _LitWord, p.endLit()
+				return
 			}
 		}
 	}
-	p.tok, p.val = _LitWord, p.endLit()
 }
 
 func testUnaryOp(val string) UnTestOperator {
