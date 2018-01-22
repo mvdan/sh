@@ -34,12 +34,14 @@ func (s *simplifier) visit(node Node) bool {
 	case *Assign:
 		if x.Index != nil {
 			x.Index = s.removeParensArithm(x.Index)
-			x.Index = s.inlineSimpleParams(x.Index)
+			// Don't inline params, as x[i] and x[$i] mean
+			// different things when x is an associative
+			// array; the first means "i", the second "$i".
 		}
 	case *ParamExp:
 		if x.Index != nil {
 			x.Index = s.removeParensArithm(x.Index)
-			x.Index = s.inlineSimpleParams(x.Index)
+			// don't inline params - same as above.
 		}
 		if x.Slice == nil {
 			break

@@ -30,7 +30,8 @@ var simplifyTests = [...]simplifyTest{
 	{"$(($a + ${b}))", "$((a + b))"},
 	{"$((${a[0]}))", "$((a[0]))"},
 	noSimple("$((${!a} + ${#b}))"),
-	{"a[$b]=2", "a[b]=2"},
+	noSimple("a[$b]=2"),
+	noSimple("${a[$b]}"),
 	noSimple("(($3 == $#))"),
 
 	// test exprs
