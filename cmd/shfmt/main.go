@@ -195,11 +195,7 @@ func walk(path string, onError func(error)) {
 }
 
 func formatPath(path string, checkShebang bool) error {
-	openMode := os.O_RDONLY
-	if *write {
-		openMode = os.O_RDWR
-	}
-	f, err := os.OpenFile(path, openMode, 0)
+	f, err := os.Open(path)
 	if err != nil {
 		return err
 	}
@@ -240,10 +236,11 @@ func formatPath(path string, checkShebang bool) error {
 			}
 		}
 		if *write {
-			if err := f.Truncate(0); err != nil {
+			if err := f.Close(); err != nil {
 				return err
 			}
-			if _, err := f.Seek(0, io.SeekStart); err != nil {
+			f, err = os.OpenFile(path, os.O_WRONLY|os.O_TRUNC, 0)
+			if err != nil {
 				return err
 			}
 			if _, err := f.Write(res); err != nil {
