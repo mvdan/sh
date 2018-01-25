@@ -3098,6 +3098,14 @@ var fileTests = []testCase{
 		}},
 	},
 	{
+		Strs: []string{`[[ a =~ ($foo) ]]`},
+		bash: &TestClause{X: &BinaryTest{
+			Op: TsReMatch,
+			X:  litWord("a"),
+			Y:  word(lit("("), litParamExp("foo"), lit(")")),
+		}},
+	},
+	{
 		Strs: []string{`[[ a =~ b\ c|d ]]`},
 		bash: &TestClause{X: &BinaryTest{
 			Op: TsReMatch,

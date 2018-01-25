@@ -268,8 +268,15 @@ skipSpace:
 		p.tok = p.paramToken(r)
 	case p.quote == testRegexp:
 		switch r {
-		case ';', '"', '\'', '$', '&', '>', '<', '`', ')':
+		case ';', '"', '\'', '$', '&', '>', '<', '`':
 			p.tok = p.regToken(r)
+		case ')':
+			if p.reOpenParens > 0 {
+				// continuation of open paren
+				p.advanceLitRe(r)
+			} else {
+				p.tok = rightParen
+			}
 		default: // including '(', '|'
 			p.advanceLitRe(r)
 		}
@@ -931,20 +938,19 @@ func (p *Parser) hdocLitWord() *Word {
 }
 
 func (p *Parser) advanceLitRe(r rune) {
-	lparens := 0
 	for p.newLit(r); ; r = p.rune() {
 		switch r {
 		case '\\':
 			p.rune()
 		case '(':
-			lparens++
+			p.reOpenParens++
 		case ')':
-			if lparens--; lparens < 0 {
+			if p.reOpenParens--; p.reOpenParens < 0 {
 				p.tok, p.val = _LitWord, p.endLit()
 				return
 			}
 		case ' ', '\t', '\r', '\n':
-			if lparens <= 0 {
+			if p.reOpenParens <= 0 {
 				p.tok, p.val = _LitWord, p.endLit()
 				return
 			}

@@ -136,6 +136,8 @@ type Parser struct {
 	heredocs    []*Redirect
 	hdocStop    []byte
 
+	reOpenParens int
+
 	accComs []Comment
 	curComs *[]Comment
 
@@ -165,6 +167,7 @@ func (p *Parser) reset() {
 	p.err, p.readErr = nil, nil
 	p.quote, p.forbidNested = noState, false
 	p.heredocs, p.buriedHdocs = p.heredocs[:0], 0
+	p.reOpenParens = 0
 	p.accComs, p.curComs = nil, &p.accComs
 }
 
@@ -1883,8 +1886,12 @@ func (p *Parser) testExpr(ftok token, fpos Pos, pastAndOr bool) TestExpr {
 		if p.lang != LangBash {
 			p.curErr("regex tests are a bash feature")
 		}
+		oldReOpenParens := p.reOpenParens
 		old := p.preNested(testRegexp)
-		defer p.postNested(old)
+		defer func() {
+			p.postNested(old)
+			p.reOpenParens = oldReOpenParens
+		}()
 		fallthrough
 	default:
 		if _, ok := b.X.(*Word); !ok {
