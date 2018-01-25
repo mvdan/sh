@@ -159,6 +159,9 @@ func (p *Parser) nextKeepSpaces() {
 			p.advanceLitOther(r)
 		}
 	}
+	if p.err != nil && p.tok != _EOF {
+		p.tok = _EOF
+	}
 }
 
 func (p *Parser) next() {

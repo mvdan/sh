@@ -438,6 +438,10 @@ var shellTests = []errorCase{
 		common: `1:5: invalid UTF-8 encoding`,
 	},
 	{
+		in:     "${a-'\x80",
+		common: `1:6: invalid UTF-8 encoding`,
+	},
+	{
 		in:     "echo $((a |\x80",
 		common: `1:12: invalid UTF-8 encoding`,
 	},
