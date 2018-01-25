@@ -935,7 +935,11 @@ func (p *Parser) advanceLitRe(r rune) {
 		case '(':
 			lparens++
 		case ')':
-			lparens--
+			if lparens--; lparens == 0 {
+				p.rune()
+				p.tok, p.val = _LitWord, p.endLit()
+				return
+			}
 		case utf8.RuneSelf, ' ', '\t', '\r', '\n', ';':
 			if lparens == 0 {
 				p.tok, p.val = _LitWord, p.endLit()
