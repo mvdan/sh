@@ -1444,6 +1444,10 @@ var shellTests = []errorCase{
 		bash: `1:6: =~ must be followed by a word`,
 	},
 	{
+		in:   "[[ a =~ )",
+		bash: `1:6: =~ must be followed by a word`,
+	},
+	{
 		in:   "[[ a =~ ())",
 		bash: `1:1: reached ) without matching [[ with ]]`,
 	},

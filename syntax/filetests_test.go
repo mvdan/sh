@@ -3071,6 +3071,17 @@ var fileTests = []testCase{
 		}},
 	},
 	{
+		Strs: []string{`[[ a =~ foo"bar" ]]`},
+		bash: &TestClause{X: &BinaryTest{
+			Op: TsReMatch,
+			X:  litWord("a"),
+			Y: word(
+				lit("foo"),
+				dblQuoted(lit("bar")),
+			),
+		}},
+	},
+	{
 		Strs: []string{`[[ a =~ [ab](c |d) ]]`},
 		bash: &TestClause{X: &BinaryTest{
 			Op: TsReMatch,
@@ -3087,11 +3098,11 @@ var fileTests = []testCase{
 		}},
 	},
 	{
-		Strs: []string{`[[ a =~ b\ c ]]`},
+		Strs: []string{`[[ a =~ b\ c|d ]]`},
 		bash: &TestClause{X: &BinaryTest{
 			Op: TsReMatch,
 			X:  litWord("a"),
-			Y:  litWord(`b\ c`),
+			Y:  litWord(`b\ c|d`),
 		}},
 	},
 	{

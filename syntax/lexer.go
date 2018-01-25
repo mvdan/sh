@@ -267,9 +267,10 @@ skipSpace:
 	case p.quote&allParamExp != 0 && paramOps(r):
 		p.tok = p.paramToken(r)
 	case p.quote == testRegexp:
-		if regOps(r) && r != '(' {
+		switch r {
+		case ';', '"', '\'', '$', '&', '>', '<', '`', ')':
 			p.tok = p.regToken(r)
-		} else {
+		default: // including '(', '|'
 			p.advanceLitRe(r)
 		}
 	case regOps(r):
@@ -938,16 +939,18 @@ func (p *Parser) advanceLitRe(r rune) {
 		case '(':
 			lparens++
 		case ')':
-			if lparens--; lparens == 0 {
-				p.rune()
+			if lparens--; lparens < 0 {
 				p.tok, p.val = _LitWord, p.endLit()
 				return
 			}
-		case utf8.RuneSelf, ' ', '\t', '\r', '\n', ';':
-			if lparens == 0 {
+		case ' ', '\t', '\r', '\n':
+			if lparens <= 0 {
 				p.tok, p.val = _LitWord, p.endLit()
 				return
 			}
+		case utf8.RuneSelf, ';', '"', '\'', '$', '&', '>', '<', '`':
+			p.tok, p.val = _LitWord, p.endLit()
+			return
 		}
 	}
 }
