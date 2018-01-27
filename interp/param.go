@@ -101,9 +101,11 @@ func (r *Runner) paramExp(pe *syntax.ParamExp) string {
 	}
 	switch {
 	case pe.Length:
-		n := 1
+		n := 0
 		if anyOfLit(index, "@", "*") != "" {
 			switch x := vr.Value.(type) {
+			case StringVal:
+				n = 1
 			case IndexArray:
 				n = len(x)
 			case AssocArray:
