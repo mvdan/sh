@@ -74,6 +74,8 @@ func (r *Runner) paramExp(pe *syntax.ParamExp) string {
 	case "LINENO":
 		line := uint64(pe.Pos().Line())
 		vr.Value = StringVal(strconv.FormatUint(line, 10))
+	case "DIRSTACK":
+		vr.Value = IndexArray(r.dirStack)
 	default:
 		if n, err := strconv.Atoi(name); err == nil {
 			if i := n - 1; i < len(r.Params) {

@@ -598,7 +598,7 @@ var fileCases = []struct {
 	},
 
 	// dirs/pushd/popd
-	{"set -- $(dirs); echo $#", "1\n"},
+	{"set -- $(dirs); echo $# ${#DIRSTACK[@]}", "1 1\n"},
 	{"pushd", "pushd: no other directory\nexit status 1 #JUSTERR"},
 	{"pushd -n", ""},
 	{"pushd foo bar", "pushd: too many arguments\nexit status 2 #JUSTERR"},
@@ -607,6 +607,10 @@ var fileCases = []struct {
 	{"mkdir a; set -- $(pushd a); echo $#", "2\n"},
 	{
 		`mkdir a; pushd a >/dev/null; set -- $(dirs); [[ $1 == "$HOME" ]]`,
+		"exit status 1",
+	},
+	{
+		`mkdir a; pushd a >/dev/null; [[ ${DIRSTACK[0]} == "$HOME" ]]`,
 		"exit status 1",
 	},
 	{
