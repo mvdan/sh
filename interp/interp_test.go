@@ -335,6 +335,18 @@ var fileCases = []struct {
 		"àÉñ bAr\nàéñ bar\n",
 	},
 	{
+		"a='àÉñ bAr'; echo ${a^?}; echo ${a^^[br]}",
+		"ÀÉñ bAr\nàÉñ BAR\n",
+	},
+	{
+		"a='àÉñ bAr'; echo ${a,?}; echo ${a,,[br]}",
+		"àÉñ bAr\nàÉñ bAr\n",
+	},
+	{
+		"a=(àÉñ bAr); echo ${a[@]^}; echo ${a[*],,}",
+		"ÀÉñ BAr\nàéñ bar\n",
+	},
+	{
 		"INTERP_X_1=a INTERP_X_2=b; echo ${!INTERP_X_*}",
 		"INTERP_X_1 INTERP_X_2\n",
 	},

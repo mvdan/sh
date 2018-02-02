@@ -213,26 +213,39 @@ func (r *Runner) paramExp(pe *syntax.ParamExp) string {
 				op == syntax.RemLargeSuffix
 			large := op == syntax.RemLargePrefix ||
 				op == syntax.RemLargeSuffix
-			for i, s := range elems {
-				elems[i] = removePattern(s, arg, suffix, large)
+			for i, elem := range elems {
+				elems[i] = removePattern(elem, arg, suffix, large)
 			}
 			str = strings.Join(elems, " ")
-		case syntax.UpperFirst:
-			rs := []rune(str)
-			if len(rs) > 0 {
-				rs[0] = unicode.ToUpper(rs[0])
+		case syntax.UpperFirst, syntax.UpperAll,
+			syntax.LowerFirst, syntax.LowerAll:
+
+			caseFunc := unicode.ToLower
+			if op == syntax.UpperFirst || op == syntax.UpperAll {
+				caseFunc = unicode.ToUpper
 			}
-			str = string(rs)
-		case syntax.UpperAll:
-			str = strings.ToUpper(str)
-		case syntax.LowerFirst:
-			rs := []rune(str)
-			if len(rs) > 0 {
-				rs[0] = unicode.ToLower(rs[0])
+			all := op == syntax.UpperAll || op == syntax.LowerAll
+
+			// empty string means '?'; nothing to do there
+			expr, err := syntax.TranslatePattern(arg, false)
+			if err != nil {
+				return str
 			}
-			str = string(rs)
-		case syntax.LowerAll:
-			str = strings.ToLower(str)
+			rx := regexp.MustCompile(expr)
+
+			for i, elem := range elems {
+				rs := []rune(elem)
+				for ri, r := range rs {
+					if rx.MatchString(string(r)) {
+						rs[ri] = caseFunc(r)
+						if !all {
+							break
+						}
+					}
+				}
+				elems[i] = string(rs)
+			}
+			str = strings.Join(elems, " ")
 		case syntax.OtherParamOps:
 			switch arg {
 			case "Q":
