@@ -35,25 +35,49 @@ func TestMain(m *testing.M) {
 func TestStdin(t *testing.T) {
 	var buf bytes.Buffer
 	out = &buf
-	in = strings.NewReader(" foo")
-	buf.Reset()
-	if err := formatStdin(); err != nil {
-		t.Fatal(err)
-	}
-	if got, want := buf.String(), "foo\n"; got != want {
-		t.Fatalf("got=%q want=%q", got, want)
-	}
+	t.Run("Regular", func(t *testing.T) {
+		in = strings.NewReader(" foo")
+		buf.Reset()
+		if err := formatStdin(); err != nil {
+			t.Fatal(err)
+		}
+		if got, want := buf.String(), "foo\n"; got != want {
+			t.Fatalf("got=%q want=%q", got, want)
+		}
+	})
 
-	*list = true
-	in = strings.NewReader(" foo")
-	buf.Reset()
-	if err := formatStdin(); err != nil {
-		t.Fatal(err)
-	}
-	if got, want := buf.String(), "<standard input>\n"; got != want {
-		t.Fatalf("got=%q want=%q", got, want)
-	}
-	*list = false
+	t.Run("List", func(t *testing.T) {
+		*list = true
+		defer func() { *list = false }()
+		in = strings.NewReader(" foo")
+		buf.Reset()
+		if err := formatStdin(); err != nil {
+			t.Fatal(err)
+		}
+		if got, want := buf.String(), "<standard input>\n"; got != want {
+			t.Fatalf("got=%q want=%q", got, want)
+		}
+	})
+
+	t.Run("Diff", func(t *testing.T) {
+		*diff = true
+		defer func() { *diff = false }()
+		in = strings.NewReader(" foo\nbar\n\n")
+		buf.Reset()
+		if err := formatStdin(); err != nil {
+			t.Fatal(err)
+		}
+		want := `diff -u <standard input>.orig <standard input>
+@@ -1,3 +1,2 @@
+- foo
++foo
+ bar
+-
+`
+		if got := buf.String(); got != want {
+			t.Fatalf("got:\n%swant:\n%s", got, want)
+		}
+	})
 }
 
 type action uint

@@ -10,6 +10,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 
@@ -24,6 +25,7 @@ var (
 	write  = flag.Bool("w", false, "")
 	simple = flag.Bool("s", false, "")
 	find   = flag.Bool("f", false, "")
+	diff   = flag.Bool("d", false, "")
 
 	langStr = flag.String("ln", "", "")
 	posix   = flag.Bool("p", false, "")
@@ -60,6 +62,7 @@ by filename extension and by shebang.
 
   -l        list files whose formatting differs from shfmt's
   -w        write result to file instead of stdout
+  -d        display diffs when formatting differs
   -s        simplify the code
   -f        recursively find all shell files and print the paths
 
@@ -247,11 +250,70 @@ func formatBytes(src []byte, path string) error {
 				return err
 			}
 		}
+		if *diff {
+			data, err := diffBytes(src, res, path)
+			if err != nil {
+				return fmt.Errorf("computing diff: %s", err)
+			}
+			out.Write(data)
+		}
 	}
-	if !*list && !*write {
+	if !*list && !*write && !*diff {
 		if _, err := out.Write(res); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func writeTempFile(dir, prefix string, data []byte) (string, error) {
+	file, err := ioutil.TempFile(dir, prefix)
+	if err != nil {
+		return "", err
+	}
+	_, err = file.Write(data)
+	if err1 := file.Close(); err == nil {
+		err = err1
+	}
+	if err != nil {
+		os.Remove(file.Name())
+		return "", err
+	}
+	return file.Name(), nil
+}
+
+func diffBytes(b1, b2 []byte, path string) ([]byte, error) {
+	fmt.Fprintf(out, "diff -u %s %s\n",
+		filepath.ToSlash(path+".orig"),
+		filepath.ToSlash(path))
+	f1, err := writeTempFile("", "shfmt", b1)
+	if err != nil {
+		return nil, err
+	}
+	defer os.Remove(f1)
+
+	f2, err := writeTempFile("", "shfmt", b2)
+	if err != nil {
+		return nil, err
+	}
+	defer os.Remove(f2)
+
+	data, err := exec.Command("diff", "-u", f1, f2).Output()
+	if len(data) == 0 {
+		// No diff, or something went wrong; don't check for err
+		// as diff will return non-zero if the files differ.
+		return nil, err
+	}
+	// We already print the filename, so remove the
+	// temporary filenames printed by diff.
+	lines := bytes.Split(data, []byte("\n"))
+	for i, line := range lines {
+		switch {
+		case bytes.HasPrefix(line, []byte("---")):
+		case bytes.HasPrefix(line, []byte("+++")):
+		default:
+			return bytes.Join(lines[i:], []byte("\n")), nil
+		}
+	}
+	return data, nil
 }
