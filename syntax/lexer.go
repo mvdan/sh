@@ -186,6 +186,7 @@ skipSpace:
 			r = p.rune()
 		case '\n':
 			if p.tok == _Newl {
+				// merge consecutive newline tokens
 				r = p.rune()
 				continue
 			}
@@ -291,7 +292,7 @@ skipSpace:
 }
 
 func (p *Parser) peekByte(b byte) bool {
-	if p.bsp == len(p.bs) && p.readErr == nil {
+	if p.bsp == len(p.bs) {
 		p.fill()
 	}
 	return p.bsp < len(p.bs) && p.bs[p.bsp] == b

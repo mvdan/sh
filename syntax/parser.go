@@ -83,6 +83,9 @@ func (p *Parser) Parse(r io.Reader, name string) (*File, error) {
 	return p.f, p.err
 }
 
+// Stmts reads and parses statements one at a time, calling a function
+// each time one is parsed. If the function returns false, parsing is
+// stopped and the function is not called again.
 func (p *Parser) Stmts(r io.Reader, fn func(*Stmt) bool) error {
 	p.reset()
 	p.f = &File{}
@@ -777,7 +780,7 @@ func (p *Parser) wordPart() WordPart {
 			p.curErr("extended globs are a bash feature")
 		}
 		eg := &ExtGlob{Op: GlobOperator(p.tok), OpPos: p.pos}
-		lparens := 0
+		lparens := 1
 		r := p.r
 	globLoop:
 		for p.newLit(r); ; r = p.rune() {
@@ -787,7 +790,7 @@ func (p *Parser) wordPart() WordPart {
 			case '(':
 				lparens++
 			case ')':
-				if lparens--; lparens < 0 {
+				if lparens--; lparens == 0 {
 					break globLoop
 				}
 			}
@@ -795,7 +798,7 @@ func (p *Parser) wordPart() WordPart {
 		eg.Pattern = p.lit(posAddCol(eg.OpPos, 2), p.endLit())
 		p.rune()
 		p.next()
-		if lparens != -1 {
+		if lparens != 0 {
 			p.matchingErr(eg.OpPos, eg.Op, rightParen)
 		}
 		return eg
