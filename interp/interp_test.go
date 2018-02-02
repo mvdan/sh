@@ -311,6 +311,14 @@ var fileCases = []struct {
 		"aabccc\nbccc\n",
 	},
 	{
+		"x=(__a _b c_); echo ${x[@]#_}",
+		"_a b c_\n",
+	},
+	{
+		"x=(a__ b_ _c); echo ${x[@]%%_}",
+		"a_ b _c\n",
+	},
+	{
 		"x=aaabccc; echo ${x%c*}; echo ${x%%c*}",
 		"aaabcc\naaab\n",
 	},

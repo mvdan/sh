@@ -101,19 +101,19 @@ func (r *Runner) paramExp(pe *syntax.ParamExp) string {
 		}
 		return p
 	}
+	elems := []string{str}
+	if anyOfLit(index, "@", "*") != "" {
+		switch x := vr.Value.(type) {
+		case nil:
+			elems = nil
+		case IndexArray:
+			elems = x
+		}
+	}
 	switch {
 	case pe.Length:
-		n := 0
-		if anyOfLit(index, "@", "*") != "" {
-			switch x := vr.Value.(type) {
-			case StringVal:
-				n = 1
-			case IndexArray:
-				n = len(x)
-			case AssocArray:
-				n = len(x)
-			}
-		} else {
+		n := len(elems)
+		if anyOfLit(index, "@", "*") == "" {
 			n = utf8.RuneCountInString(str)
 		}
 		str = strconv.Itoa(n)
@@ -167,7 +167,7 @@ func (r *Runner) paramExp(pe *syntax.ParamExp) string {
 		str = buf.String()
 	case pe.Exp != nil:
 		arg := r.loneWord(pe.Exp.Word)
-		switch pe.Exp.Op {
+		switch op := pe.Exp.Op; op {
 		case syntax.SubstColPlus:
 			if str == "" {
 				break
@@ -207,14 +207,16 @@ func (r *Runner) paramExp(pe *syntax.ParamExp) string {
 				r.setVarString(name, arg)
 				str = arg
 			}
-		case syntax.RemSmallPrefix:
-			str = removePattern(str, arg, false, false)
-		case syntax.RemLargePrefix:
-			str = removePattern(str, arg, false, true)
-		case syntax.RemSmallSuffix:
-			str = removePattern(str, arg, true, false)
-		case syntax.RemLargeSuffix:
-			str = removePattern(str, arg, true, true)
+		case syntax.RemSmallPrefix, syntax.RemLargePrefix,
+			syntax.RemSmallSuffix, syntax.RemLargeSuffix:
+			suffix := op == syntax.RemSmallSuffix ||
+				op == syntax.RemLargeSuffix
+			large := op == syntax.RemLargePrefix ||
+				op == syntax.RemLargeSuffix
+			for i, s := range elems {
+				elems[i] = removePattern(s, arg, suffix, large)
+			}
+			str = strings.Join(elems, " ")
 		case syntax.UpperFirst:
 			rs := []rune(str)
 			if len(rs) > 0 {
