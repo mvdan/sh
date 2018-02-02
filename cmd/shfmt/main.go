@@ -8,6 +8,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -41,6 +42,7 @@ var (
 
 	copyBuf = make([]byte, 32*1024)
 
+	in  io.Reader = os.Stdin
 	out io.Writer = os.Stdout
 
 	version = "v2.2.1"
@@ -144,20 +146,14 @@ Printer options:
 }
 
 func formatStdin() error {
-	if *write || *list {
-		return fmt.Errorf("-w and -l can only be used on files")
+	if *write {
+		return fmt.Errorf("-w cannot be used on standard input")
 	}
-	prog, err := parser.Parse(os.Stdin, "")
+	src, err := ioutil.ReadAll(in)
 	if err != nil {
 		return err
 	}
-	if *simple {
-		syntax.Simplify(prog)
-	}
-	if *toJSON {
-		return writeJSON(out, prog, true)
-	}
-	return printer.Print(out, prog)
+	return formatBytes(src, "<standard input>")
 }
 
 var vcsDir = regexp.MustCompile(`^\.(git|svn|hg)$`)
@@ -218,8 +214,12 @@ func formatPath(path string, checkShebang bool) error {
 	if _, err := io.CopyBuffer(&readBuf, f, copyBuf); err != nil {
 		return err
 	}
-	src := readBuf.Bytes()
-	prog, err := parser.Parse(&readBuf, path)
+	f.Close()
+	return formatBytes(readBuf.Bytes(), path)
+}
+
+func formatBytes(src []byte, path string) error {
+	prog, err := parser.Parse(bytes.NewReader(src), path)
 	if err != nil {
 		return err
 	}
@@ -236,10 +236,7 @@ func formatPath(path string, checkShebang bool) error {
 			}
 		}
 		if *write {
-			if err := f.Close(); err != nil {
-				return err
-			}
-			f, err = os.OpenFile(path, os.O_WRONLY|os.O_TRUNC, 0)
+			f, err := os.OpenFile(path, os.O_WRONLY|os.O_TRUNC, 0)
 			if err != nil {
 				return err
 			}

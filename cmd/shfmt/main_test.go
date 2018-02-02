@@ -16,6 +16,46 @@ import (
 	"mvdan.cc/sh/syntax"
 )
 
+func TestMain(m *testing.M) {
+	dir, err := ioutil.TempDir("", "shfmt-walk")
+	if err != nil {
+		panic(err)
+	}
+	if err := os.Chdir(dir); err != nil {
+		panic(err)
+	}
+	parser = syntax.NewParser(syntax.KeepComments)
+	printer = syntax.NewPrinter()
+
+	exit := m.Run()
+	os.RemoveAll(dir)
+	os.Exit(exit)
+}
+
+func TestStdin(t *testing.T) {
+	var buf bytes.Buffer
+	out = &buf
+	in = strings.NewReader(" foo")
+	buf.Reset()
+	if err := formatStdin(); err != nil {
+		t.Fatal(err)
+	}
+	if got, want := buf.String(), "foo\n"; got != want {
+		t.Fatalf("got=%q want=%q", got, want)
+	}
+
+	*list = true
+	in = strings.NewReader(" foo")
+	buf.Reset()
+	if err := formatStdin(); err != nil {
+		t.Fatal(err)
+	}
+	if got, want := buf.String(), "<standard input>\n"; got != want {
+		t.Fatalf("got=%q want=%q", got, want)
+	}
+	*list = false
+}
+
 type action uint
 
 const (
@@ -62,17 +102,6 @@ var walkTests = []struct {
 var errPathMentioned = regexp.MustCompile(`([^ :]+):`)
 
 func TestWalk(t *testing.T) {
-	parser = syntax.NewParser(syntax.KeepComments)
-	printer = syntax.NewPrinter()
-	dir, err := ioutil.TempDir("", "shfmt-walk")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(dir)
-
-	if err := os.Chdir(dir); err != nil {
-		t.Fatal(err)
-	}
 	for _, wt := range walkTests {
 		if dir, _ := filepath.Split(wt.path); dir != "" {
 			dir = dir[:len(dir)-1]
@@ -150,5 +179,4 @@ func TestWalk(t *testing.T) {
 		t.Fatalf("shfmt -f printed %d paths, but wanted %d", numFound, want)
 	}
 	*find = false
-	*write = true
 }
