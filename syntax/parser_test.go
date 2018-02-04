@@ -708,7 +708,7 @@ var shellTests = []errorCase{
 	},
 	{
 		in:     "echo <\nbar",
-		common: `1:6: redirect word must be on the same line`,
+		common: `1:6: < must be followed by a word`,
 	},
 	{
 		in:     "echo | < #bar",
@@ -759,7 +759,7 @@ var shellTests = []errorCase{
 	},
 	{
 		in:     "<<\nEOF\nbar\nEOF",
-		common: `1:1: redirect word must be on the same line`,
+		common: `1:1: << must be followed by a word`,
 	},
 	{
 		in:     "if",

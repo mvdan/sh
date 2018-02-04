@@ -363,14 +363,6 @@ func (p *Parser) doHeredocs() {
 	p.quote = old
 }
 
-func (p *Parser) newLine() bool {
-	if p.tok == _Newl {
-		p.next()
-		return true
-	}
-	return false
-}
-
 func (p *Parser) got(tok token) bool {
 	if p.tok == tok {
 		p.next()
@@ -386,14 +378,6 @@ func (p *Parser) gotRsrv(val string) (Pos, bool) {
 		return pos, true
 	}
 	return pos, false
-}
-
-func (p *Parser) gotSameLine(tok token) bool {
-	if p.tok == tok {
-		p.next()
-		return true
-	}
-	return false
 }
 
 func readableStr(s string) string {
@@ -428,10 +412,10 @@ func (p *Parser) followRsrv(lpos Pos, left, val string) Pos {
 }
 
 func (p *Parser) followStmts(left string, lpos Pos, stops ...string) StmtList {
-	if p.gotSameLine(semicolon) {
+	if p.got(semicolon) {
 		return StmtList{}
 	}
-	newLine := p.newLine()
+	newLine := p.got(_Newl)
 	sl := p.stmtList(stops...)
 	if len(sl.Stmts) < 1 && !newLine {
 		p.followErr(lpos, left, "a statement list")
@@ -520,7 +504,7 @@ func (p *Parser) stmts(fn func(*Stmt) bool, stops ...string) {
 	gotEnd := true
 loop:
 	for p.tok != _EOF {
-		newLine := p.newLine()
+		newLine := p.got(_Newl)
 		switch p.tok {
 		case _LitWord:
 			for _, stop := range stops {
@@ -873,7 +857,7 @@ func (p *Parser) arithmExpr(level int, compact, tern bool) ArithmExpr {
 	if compact && p.spaced {
 		return left
 	}
-	p.newLine()
+	p.got(_Newl)
 	newLevel := arithmOpLevel(BinAritOperator(p.tok))
 	if !tern && p.tok == colon && p.quote == paramExpSlice {
 		newLevel = -1
@@ -948,7 +932,7 @@ func isArithName(left ArithmExpr) bool {
 }
 
 func (p *Parser) arithmExprBase(compact bool) ArithmExpr {
-	p.newLine()
+	p.got(_Newl)
 	var x ArithmExpr
 	switch p.tok {
 	case exclMark:
@@ -1337,7 +1321,7 @@ func (p *Parser) getAssign(needEqual bool) *Assign {
 		}
 		old := p.preNested(newQuote)
 		p.next()
-		p.newLine()
+		p.got(_Newl)
 		for p.tok != _EOF && p.tok != rightParen {
 			ae := &ArrayElem{}
 			ae.Comments, p.accComs = p.accComs, nil
@@ -1361,7 +1345,7 @@ func (p *Parser) getAssign(needEqual bool) *Assign {
 				}
 			}
 			as.Array.Elems = append(as.Array.Elems, ae)
-			p.newLine()
+			p.got(_Newl)
 		}
 		as.Array.Last, p.accComs = p.accComs, nil
 		p.postNested(old)
@@ -1390,9 +1374,6 @@ func (p *Parser) doRedirect(s *Stmt) {
 	r.N = p.getLit()
 	r.Op, r.OpPos = RedirOperator(p.tok), p.pos
 	p.next()
-	if p.tok == _Newl {
-		p.curErr("redirect word must be on the same line")
-	}
 	switch r.Op {
 	case Hdoc, DashHdoc:
 		old := p.quote
@@ -1437,6 +1418,7 @@ func (p *Parser) getStmt(readEnd, binCmd, fnBody bool) *Stmt {
 			X:     s,
 		}
 		p.next()
+		p.got(_Newl)
 		b.Y = p.getStmt(false, true, false)
 		if b.Y == nil || p.err != nil {
 			p.followErr(b.OpPos, b.Op.String(), "a statement")
@@ -1472,9 +1454,6 @@ func (p *Parser) getStmt(readEnd, binCmd, fnBody bool) *Stmt {
 }
 
 func (p *Parser) gotStmtPipe(s *Stmt) *Stmt {
-	if p.newLine() {
-		s.Position = p.pos
-	}
 	s.Comments, p.accComs = p.accComs, nil
 	switch p.tok {
 	case _LitWord:
@@ -1554,7 +1533,7 @@ func (p *Parser) gotStmtPipe(s *Stmt) *Stmt {
 			break
 		}
 		name := p.lit(p.pos, p.val)
-		if p.next(); p.gotSameLine(leftParen) {
+		if p.next(); p.got(leftParen) {
 			p.follow(name.ValuePos, "foo(", rightParen)
 			if p.lang == LangPOSIX && !ValidName(name.Value) {
 				p.posErr(name.Pos(), "invalid func name")
@@ -1580,7 +1559,7 @@ func (p *Parser) gotStmtPipe(s *Stmt) *Stmt {
 			break
 		}
 		w := p.word(p.wordParts())
-		if p.gotSameLine(leftParen) && p.err == nil {
+		if p.got(leftParen) && p.err == nil {
 			p.posErr(w.Pos(), "invalid func name")
 		}
 		s.Cmd = p.callExpr(s, w, false)
@@ -1605,6 +1584,7 @@ func (p *Parser) gotStmtPipe(s *Stmt) *Stmt {
 	case or:
 		b := &BinaryCmd{OpPos: p.pos, Op: BinCmdOperator(p.tok), X: s}
 		p.next()
+		p.got(_Newl)
 		if b.Y = p.gotStmtPipe(p.stmt(p.pos)); b.Y == nil || p.err != nil {
 			p.followErr(b.OpPos, b.Op.String(), "a statement")
 			break
@@ -1729,8 +1709,8 @@ func (p *Parser) loop(fpos Pos) Loop {
 		}
 		cl.Post = p.arithmExpr(0, false, false)
 		cl.Rparen = p.arithmEnd(dblLeftParen, cl.Lparen, old)
-		if !p.newLine() {
-			p.gotSameLine(semicolon)
+		if !p.got(_Newl) {
+			p.got(semicolon)
 		}
 		return cl
 	}
@@ -1742,18 +1722,18 @@ func (p *Parser) wordIter(ftok string, fpos Pos) *WordIter {
 	if wi.Name = p.getLit(); wi.Name == nil {
 		p.followErr(fpos, ftok, "a literal")
 	}
-	if p.newLine() {
+	if p.got(_Newl) {
 		// same as if we saw a semicolon
 	} else if _, ok := p.gotRsrv("in"); ok {
-		for !p.newLine() && p.tok != _EOF && p.tok != semicolon {
+		for !p.got(_Newl) && p.tok != _EOF && p.tok != semicolon {
 			if w := p.getWord(); w == nil {
 				p.curErr("word list can only contain words")
 			} else {
 				wi.Items = append(wi.Items, w)
 			}
 		}
-		p.gotSameLine(semicolon)
-	} else if !p.gotSameLine(semicolon) {
+		p.got(semicolon)
+	} else if !p.got(semicolon) {
 		p.followErr(fpos, ftok+" foo", `"in", ; or a newline`)
 	}
 	return wi
@@ -1774,7 +1754,7 @@ func (p *Parser) caseClause() *CaseClause {
 	p.next()
 	cc.Word = p.followWord("case", cc.Case)
 	end := "esac"
-	p.newLine()
+	p.got(_Newl)
 	if _, ok := p.gotRsrv("{"); ok {
 		if p.lang != LangMirBSDKorn {
 			p.posErr(cc.Pos(), `"case i {" is a mksh feature`)
@@ -1790,7 +1770,7 @@ func (p *Parser) caseClause() *CaseClause {
 }
 
 func (p *Parser) caseItems(stop string) (items []*CaseItem) {
-	p.newLine()
+	p.got(_Newl)
 	for p.tok != _EOF && !(p.tok == _LitWord && p.val == stop) {
 		ci := &CaseItem{}
 		ci.Comments, p.accComs = p.accComs, nil
@@ -1832,7 +1812,7 @@ func (p *Parser) caseItems(stop string) (items []*CaseItem) {
 			}
 		}
 		items = append(items, ci)
-		p.newLine()
+		p.got(_Newl)
 	}
 	return
 }
@@ -1954,7 +1934,7 @@ func (p *Parser) testExprBase(ftok token, fpos Pos) TestExpr {
 		pe.Rparen = p.matched(pe.Lparen, leftParen, rightParen)
 		return pe
 	default:
-		p.newLine()
+		p.got(_Newl)
 		return p.followWordTok(ftok, fpos)
 	}
 }
@@ -2010,9 +1990,7 @@ func (p *Parser) timeClause() *TimeClause {
 		tc.PosixFormat = true
 		p.next()
 	}
-	if p.tok != _Newl {
-		tc.Stmt = p.gotStmtPipe(p.stmt(p.pos))
-	}
+	tc.Stmt = p.gotStmtPipe(p.stmt(p.pos))
 	return tc
 }
 
@@ -2022,9 +2000,6 @@ func (p *Parser) coprocClause() *CoprocClause {
 		// has no name
 		cc.Stmt = p.gotStmtPipe(p.stmt(p.pos))
 		return cc
-	}
-	if p.tok == _Newl {
-		p.posErr(cc.Coproc, "coproc clause requires a command")
 	}
 	cc.Name = p.getLit()
 	cc.Stmt = p.gotStmtPipe(p.stmt(p.pos))
@@ -2074,7 +2049,7 @@ func (p *Parser) bashFuncDecl() *FuncDecl {
 		}
 	}
 	name := p.lit(p.pos, p.val)
-	if p.next(); p.gotSameLine(leftParen) {
+	if p.next(); p.got(leftParen) {
 		p.follow(name.ValuePos, "foo(", rightParen)
 	}
 	return p.funcDecl(name, fpos)

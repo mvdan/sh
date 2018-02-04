@@ -3602,6 +3602,13 @@ var fileTests = []testCase{
 		bsmk: &TimeClause{Stmt: stmt(block(litStmt("foo")))},
 	},
 	{
+		Strs: []string{"time\nfoo"},
+		bsmk: []*Stmt{
+			stmt(&TimeClause{}),
+			litStmt("foo"),
+		},
+	},
+	{
 		Strs:   []string{"coproc foo bar"},
 		common: litStmt("coproc", "foo", "bar"),
 		bash:   &CoprocClause{Stmt: litStmt("foo", "bar")},
