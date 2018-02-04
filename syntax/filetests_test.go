@@ -1522,6 +1522,14 @@ var fileTests = []testCase{
 		)),
 	},
 	{
+		Strs:   []string{"$()"},
+		common: cmdSubst(),
+	},
+	{
+		Strs: []string{"()"},
+		mksh: subshell(), // not common, as dash/bash wrongly error
+	},
+	{
 		Strs: []string{
 			"$(\n\t(a)\n\tb\n)",
 			"$( (a); b)",
