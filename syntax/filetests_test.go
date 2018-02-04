@@ -197,6 +197,7 @@ var fileTests = []testCase{
 		Strs: []string{
 			"if a; then b; fi",
 			"if a\nthen\nb\nfi",
+			"if a;\nthen\nb\nfi",
 			"if a \nthen\nb\nfi",
 		},
 		common: &IfClause{
@@ -335,6 +336,7 @@ var fileTests = []testCase{
 			"while a; do b; done",
 			"wh\\\nile a; do b; done",
 			"while a\ndo\nb\ndone",
+			"while a;\ndo\nb\ndone",
 		},
 		common: &WhileClause{
 			Cond: litStmts("a"),
@@ -378,6 +380,7 @@ var fileTests = []testCase{
 		Strs: []string{
 			"for i; do foo; done",
 			"for i\ndo foo\ndone",
+			"for i;\ndo foo\ndone",
 			"for i in; do foo; done",
 		},
 		common: &ForClause{
@@ -389,6 +392,7 @@ var fileTests = []testCase{
 		Strs: []string{
 			"for i in 1 2 3; do echo $i; done",
 			"for i in 1 2 3\ndo echo $i\ndone",
+			"for i in 1 2 3;\ndo echo $i\ndone",
 			"for i in 1 2 3 #foo\ndo echo $i\ndone",
 		},
 		common: &ForClause{
@@ -407,6 +411,7 @@ var fileTests = []testCase{
 			"for ((i = 0; i < 10; i++)); do echo $i; done",
 			"for ((i=0;i<10;i++)) do echo $i; done",
 			"for (( i = 0 ; i < 10 ; i++ ))\ndo echo $i\ndone",
+			"for (( i = 0 ; i < 10 ; i++ ));\ndo echo $i\ndone",
 		},
 		bash: &ForClause{
 			Loop: &CStyleLoop{

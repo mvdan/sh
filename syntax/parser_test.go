@@ -843,6 +843,10 @@ var shellTests = []errorCase{
 	},
 	{
 		in:     "for i in 1 2 &",
+		common: `1:1: "for foo [in words]" must be followed by "do"`,
+	},
+	{
+		in:     "for i in 1 2 (",
 		common: `1:14: word list can only contain words`,
 	},
 	{
