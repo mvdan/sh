@@ -56,10 +56,20 @@ func (p *Parser) rune() rune {
 	} else {
 		p.npos.col += p.w
 	}
+	bquotes := 0
 retry:
 	if p.bsp < len(p.bs) {
 		if b := p.bs[p.bsp]; b < utf8.RuneSelf {
 			p.bsp++
+			if b == '\\' && p.openBquotes > 0 {
+				// don't do it for newlines, as we want
+				// the newlines to be eaten in p.next
+				if bquotes < p.openBquotes && p.bs[p.bsp] != '\n' {
+					bquotes++
+					goto retry
+				}
+				bquotes = 0
+			}
 			if p.litBs != nil {
 				p.litBs = append(p.litBs, b)
 			}
@@ -806,20 +816,8 @@ loop:
 		case ' ', '\t', '\n', '\r', '&', '|', ';', '(', ')':
 			break loop
 		case '\\': // escaped byte follows
-			r = p.rune()
-			switch r {
-			case '\n':
+			if r = p.rune(); r == '\n' {
 				p.discardLit(2)
-			case '\\':
-				// TODO: also treat escaped ` and $
-				// differently in backquotes
-				if p.quote == subCmdBckquo {
-					p.discardLit(1)
-					if r = p.rune(); r == '\\' {
-						p.discardLit(1)
-						p.rune()
-					}
-				}
 			}
 		case '>', '<':
 			if p.peekByte('(') || !p.numLit() {

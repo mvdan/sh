@@ -138,6 +138,7 @@ type Parser struct {
 	buriedHdocs int
 	heredocs    []*Redirect
 	hdocStop    []byte
+	openBquotes int
 
 	reOpenParens int
 
@@ -767,9 +768,11 @@ func (p *Parser) wordPart() WordPart {
 		p.ensureNoNested()
 		cs := &CmdSubst{Left: p.pos}
 		old := p.preNested(subCmdBckquo)
+		p.openBquotes++
 		p.next()
 		cs.StmtList = p.stmtList()
 		p.postNested(old)
+		p.openBquotes--
 		cs.Right = p.pos
 		if !p.got(bckQuote) {
 			p.quoteErr(cs.Pos(), bckQuote)

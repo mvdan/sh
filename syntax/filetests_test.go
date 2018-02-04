@@ -1651,6 +1651,13 @@ var fileTests = []testCase{
 		))),
 	},
 	{
+		Strs: []string{`"$(foo "bar")"`, "\"`foo \\\"bar\\\"`\""},
+		common: dblQuoted(cmdSubst(stmt(call(
+			litWord("foo"),
+			word(dblQuoted(lit("bar"))),
+		)))),
+	},
+	{
 		Strs: []string{"${ foo;}", "${\n\tfoo; }", "${\tfoo;}"},
 		mksh: &CmdSubst{
 			StmtList: litStmts("foo"),
@@ -4149,7 +4156,7 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 		case !strings.Contains(x.Value, "\n") && posLine != endLine:
 			tb.Fatalf("Lit without newlines has Pos/End lines %d and %d",
 				posLine, endLine)
-		case strings.Contains(src, "\\\\"):
+		case strings.Contains(src, "`") && strings.Contains(src, "\\"):
 			// removed quotes inside backquote cmd substs
 			val = ""
 		case end < len(src) && src[end] == '\n':
