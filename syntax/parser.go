@@ -372,7 +372,6 @@ func (p *Parser) newLine() bool {
 }
 
 func (p *Parser) got(tok token) bool {
-	p.newLine()
 	if p.tok == tok {
 		p.next()
 		return true
@@ -381,7 +380,6 @@ func (p *Parser) got(tok token) bool {
 }
 
 func (p *Parser) gotRsrv(val string) (Pos, bool) {
-	p.newLine()
 	pos := p.pos
 	if p.tok == _LitWord && p.val == val {
 		p.next()
@@ -1731,7 +1729,9 @@ func (p *Parser) loop(fpos Pos) Loop {
 		}
 		cl.Post = p.arithmExpr(0, false, false)
 		cl.Rparen = p.arithmEnd(dblLeftParen, cl.Lparen, old)
-		p.gotSameLine(semicolon)
+		if !p.newLine() {
+			p.gotSameLine(semicolon)
+		}
 		return cl
 	}
 	return p.wordIter("for", fpos)
@@ -1742,8 +1742,10 @@ func (p *Parser) wordIter(ftok string, fpos Pos) *WordIter {
 	if wi.Name = p.getLit(); wi.Name == nil {
 		p.followErr(fpos, ftok, "a literal")
 	}
-	if _, ok := p.gotRsrv("in"); ok {
-		for p.tok != _Newl && p.tok != _EOF && p.tok != semicolon {
+	if p.newLine() {
+		// same as if we saw a semicolon
+	} else if _, ok := p.gotRsrv("in"); ok {
+		for !p.newLine() && p.tok != _EOF && p.tok != semicolon {
 			if w := p.getWord(); w == nil {
 				p.curErr("word list can only contain words")
 			} else {
@@ -1751,7 +1753,7 @@ func (p *Parser) wordIter(ftok string, fpos Pos) *WordIter {
 			}
 		}
 		p.gotSameLine(semicolon)
-	} else if p.tok != _Newl && !p.gotSameLine(semicolon) {
+	} else if !p.gotSameLine(semicolon) {
 		p.followErr(fpos, ftok+" foo", `"in", ; or a newline`)
 	}
 	return wi
@@ -1772,6 +1774,7 @@ func (p *Parser) caseClause() *CaseClause {
 	p.next()
 	cc.Word = p.followWord("case", cc.Case)
 	end := "esac"
+	p.newLine()
 	if _, ok := p.gotRsrv("{"); ok {
 		if p.lang != LangMirBSDKorn {
 			p.posErr(cc.Pos(), `"case i {" is a mksh feature`)
