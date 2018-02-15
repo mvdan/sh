@@ -311,6 +311,11 @@ func (p *Parser) peekByte(b byte) bool {
 func (p *Parser) regToken(r rune) token {
 	switch r {
 	case '\'':
+		if p.openBquotes > 0 {
+			// bury openBquotes
+			p.buriedBquotes = p.openBquotes
+			p.openBquotes = 0
+		}
 		p.rune()
 		return sglQuote
 	case '"':

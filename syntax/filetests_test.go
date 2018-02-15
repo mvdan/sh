@@ -1561,6 +1561,18 @@ var fileTests = []testCase{
 		common: cmdSubst(litStmt("echo", `\\`)),
 	},
 	{
+		Strs: []string{
+			`$(echo '\' 'a\b' "\\")`,
+			"`" + `echo '\' 'a\b' "\\\\"` + "`",
+		},
+		common: cmdSubst(stmt(call(
+			litWord("echo"),
+			word(sglQuoted(`\`)),
+			word(sglQuoted(`a\b`)),
+			word(dblQuoted(lit(`\\`))),
+		))),
+	},
+	{
 		Strs: []string{"$( (a) | b)"},
 		common: cmdSubst(
 			stmt(&BinaryCmd{

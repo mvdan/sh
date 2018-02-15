@@ -138,7 +138,9 @@ type Parser struct {
 	buriedHdocs int
 	heredocs    []*Redirect
 	hdocStop    []byte
-	openBquotes int
+
+	openBquotes   int
+	buriedBquotes int // break them when we enter single quotes
 
 	reOpenParens int
 
@@ -726,6 +728,11 @@ func (p *Parser) wordPart() WordPart {
 			case '\'':
 				sq.Right = p.getPos()
 				sq.Value = p.endLit()
+
+				// restore openBquotes
+				p.openBquotes = p.buriedBquotes
+				p.buriedBquotes = 0
+
 				p.rune()
 				p.next()
 				return sq
