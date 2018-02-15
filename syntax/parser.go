@@ -173,6 +173,7 @@ func (p *Parser) reset() {
 	p.err, p.readErr = nil, nil
 	p.quote, p.forbidNested = noState, false
 	p.heredocs, p.buriedHdocs = p.heredocs[:0], 0
+	p.openBquotes, p.buriedBquotes = 0, 0
 	p.reOpenParens = 0
 	p.accComs, p.curComs = nil, &p.accComs
 }

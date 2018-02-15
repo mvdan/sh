@@ -1562,14 +1562,15 @@ var fileTests = []testCase{
 	},
 	{
 		Strs: []string{
-			`$(echo '\' 'a\b' "\\")`,
-			"`" + `echo '\' 'a\b' "\\\\"` + "`",
+			`$(echo '\' 'a\b' "\\" "a\a")`,
+			"`" + `echo '\' 'a\b' "\\\\" "a\a"` + "`",
 		},
 		common: cmdSubst(stmt(call(
 			litWord("echo"),
 			word(sglQuoted(`\`)),
 			word(sglQuoted(`a\b`)),
 			word(dblQuoted(lit(`\\`))),
+			word(dblQuoted(lit(`a\a`))),
 		))),
 	},
 	{
@@ -1677,7 +1678,7 @@ var fileTests = []testCase{
 		))),
 	},
 	{
-		Strs: []string{`"$(foo "bar")"`, "\"`foo \\\"bar\\\"`\""},
+		Strs: []string{`"$(foo "bar")"`, "\"`foo \"bar\"`\""},
 		common: dblQuoted(cmdSubst(stmt(call(
 			litWord("foo"),
 			word(dblQuoted(lit("bar"))),
