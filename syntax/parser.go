@@ -2138,6 +2138,7 @@ func (p *Parser) funcDecl(name *Lit, pos Pos) *FuncDecl {
 		RsrvWord: pos != name.ValuePos,
 		Name:     name,
 	}
+	p.got(_Newl)
 	if fd.Body = p.getStmt(false, false, true); fd.Body == nil {
 		p.followErr(fd.Pos(), "foo()", "a statement")
 	}

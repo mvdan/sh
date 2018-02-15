@@ -660,6 +660,7 @@ var fileTests = []testCase{
 			"foo() {\n\ta\n\tb\n}",
 			"foo() { a; b; }",
 			"foo ( ) {\na\nb\n}",
+			"foo()\n{\na\nb\n}",
 		},
 		common: &FuncDecl{
 			Name: lit("foo"),
