@@ -110,8 +110,6 @@ type Runner struct {
 	fieldsAlloc     [4][]fieldPart
 	bufferAlloc     bytes.Buffer
 	oneWord         [1]*syntax.Word
-	braceAlloc      braceWord
-	bracePartsAlloc [4]braceWordPart
 }
 
 func (r *Runner) strBuilder() *bytes.Buffer {
