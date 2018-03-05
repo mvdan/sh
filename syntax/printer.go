@@ -618,6 +618,28 @@ func (p *Printer) wordJoin(ws []*Word) {
 	}
 }
 
+func (p *Printer) casePatternJoin(pats []*Word) {
+	anyNewline := false
+	for i, w := range pats {
+		if i > 0 {
+			p.spacedToken("|", Pos{})
+		}
+		if pos := w.Pos(); pos.Line() > p.line {
+			if !anyNewline {
+				p.incLevel()
+				anyNewline = true
+			}
+			p.bslashNewl()
+		} else {
+			p.spacePad(w.Pos())
+		}
+		p.word(w)
+	}
+	if anyNewline {
+		p.decLevel()
+	}
+}
+
 func (p *Printer) elemJoin(elems []*ArrayElem, last []Comment) {
 	p.incLevel()
 	for _, el := range elems {
@@ -828,15 +850,7 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			if pos := ci.Patterns[0].Pos(); pos.Line() > p.line {
 				p.newlines(pos)
 			}
-			for i, w := range ci.Patterns {
-				if i > 0 {
-					p.spacedToken("|", Pos{})
-				}
-				if p.wantSpace {
-					p.space()
-				}
-				p.word(w)
-			}
+			p.casePatternJoin(ci.Patterns)
 			p.WriteByte(')')
 			p.wantSpace = !p.minify
 			sep := len(ci.Stmts) > 1 || ci.StmtList.pos().Line() > p.line
