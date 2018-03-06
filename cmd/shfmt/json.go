@@ -39,33 +39,46 @@ func recurse(val reflect.Value) (interface{}, string) {
 		return m, ""
 	case reflect.Struct:
 		m := make(map[string]interface{}, val.NumField()+1)
-		typ := val.Type()
-		for i := 0; i < val.NumField(); i++ {
-			tfield := typ.Field(i)
-			if tfield.Type.Name() == "Pos" {
-				continue
-			}
-			if !ast.IsExported(tfield.Name) {
-				continue
-			}
-			v, _ := recurse(val.Field(i))
+		addField := func(name string, v interface{}) {
 			switch x := v.(type) {
 			case bool:
 				if !x {
-					continue
+					return
 				}
 			case string:
 				if x == "" {
-					continue
+					return
 				}
 			case []interface{}:
 				if len(x) == 0 {
-					continue
+					return
 				}
 			case nil:
+				return
+			}
+			m[name] = v
+		}
+		typ := val.Type()
+		for i := 0; i < val.NumField(); i++ {
+			ftyp := typ.Field(i)
+			if ftyp.Type.Name() == "Pos" {
 				continue
 			}
-			m[tfield.Name] = v
+			if !ast.IsExported(ftyp.Name) {
+				continue
+			}
+			fval := val.Field(i)
+			v, _ := recurse(fval)
+			switch ftyp.Name {
+			case "StmtList":
+				// inline their fields
+				m := v.(map[string]interface{})
+				for name, v := range m {
+					addField(name, v)
+				}
+			default:
+				addField(ftyp.Name, v)
+			}
 		}
 		return m, typ.Name()
 	case reflect.Slice:

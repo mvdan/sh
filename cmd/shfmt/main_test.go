@@ -126,6 +126,7 @@ var walkTests = []struct {
 var errPathMentioned = regexp.MustCompile(`([^ :]+):`)
 
 func TestWalk(t *testing.T) {
+	t.Parallel()
 	for _, wt := range walkTests {
 		if dir, _ := filepath.Split(wt.path); dir != "" {
 			dir = dir[:len(dir)-1]

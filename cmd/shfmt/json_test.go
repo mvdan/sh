@@ -5,24 +5,39 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"strings"
 	"testing"
 
 	"mvdan.cc/sh/syntax"
 )
 
+var jsonTests = []struct {
+	in   string
+	want string
+}{
+	{"", `{}`},
+	{"foo", `{"Stmts":[{"Cmd":{"Args":[{"Parts":[{"Type":"Lit","Value":"foo"}]}],"Type":"CallExpr"}}]}`},
+	{"((2))", `{"Stmts":[{"Cmd":{"Type":"ArithmCmd","X":{"Parts":[{"Type":"Lit","Value":"2"}],"Type":"Word"}}}]}`},
+}
+
 func TestWriteJSON(t *testing.T) {
-	in := `cmd arg1 "arg2"`
-	want := `{"StmtList":{"Stmts":[{"Cmd":{"Args":[{"Parts":[{"Type":"Lit","Value":"cmd"}]},{"Parts":[{"Type":"Lit","Value":"arg1"}]},{"Parts":[{"Parts":[{"Type":"Lit","Value":"arg2"}],"Type":"DblQuoted"}]}],"Type":"CallExpr"}}]}}`
+	t.Parallel()
 	parser := syntax.NewParser(syntax.KeepComments)
-	prog, err := parser.Parse(strings.NewReader(in), "")
-	if err != nil {
-		t.Fatal(err)
-	}
-	var buf bytes.Buffer
-	writeJSON(&buf, prog, false)
-	got := buf.String()
-	if got != want+"\n" {
-		t.Fatalf("wrong output for %q\nwant: %s\ngot:  %s", in, want, got)
+
+	for i, tc := range jsonTests {
+		t.Run(fmt.Sprintf("%02d", i), func(t *testing.T) {
+			prog, err := parser.Parse(strings.NewReader(tc.in), "")
+			if err != nil {
+				t.Fatal(err)
+			}
+			var buf bytes.Buffer
+			writeJSON(&buf, prog, false)
+			got := buf.String()
+			if got != tc.want+"\n" {
+				t.Fatalf("mismatch on %q\nwant:\n%s\ngot:\n%s",
+					tc.in, tc.want, got)
+			}
+		})
 	}
 }
