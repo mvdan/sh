@@ -28,7 +28,8 @@ var (
 	litRightBrace = &Lit{Value: "}"}
 )
 
-func splitBraces(word *Word) *braceWord {
+func splitBraces(word *Word) (*braceWord, bool) {
+	any := false
 	top := &braceWord{}
 	acc := top
 	var cur *brace
@@ -46,26 +47,32 @@ func splitBraces(word *Word) *braceWord {
 		}
 		return old
 	}
+	addLit := func(lit *Lit) {
+		acc.parts = append(acc.parts, lit)
+	}
+	addParts := func(parts ...braceWordPart) {
+		acc.parts = append(acc.parts, parts...)
+	}
 
 	for _, wp := range word.Parts {
 		lit, ok := wp.(*Lit)
 		if !ok {
-			acc.parts = append(acc.parts, wp)
+			addParts(wp)
 			continue
 		}
 		last := 0
 		for j := 0; j < len(lit.Value); j++ {
-			addlit := func() {
+			addlitidx := func() {
 				if last == j {
 					return // empty lit
 				}
 				l2 := *lit
 				l2.Value = l2.Value[last:j]
-				acc.parts = append(acc.parts, &l2)
+				addLit(&l2)
 			}
 			switch lit.Value[j] {
 			case '{':
-				addlit()
+				addlitidx()
 				acc = &braceWord{}
 				cur = &brace{elems: []*braceWord{acc}}
 				open = append(open, cur)
@@ -73,7 +80,7 @@ func splitBraces(word *Word) *braceWord {
 				if cur == nil {
 					continue
 				}
-				addlit()
+				addlitidx()
 				acc = &braceWord{}
 				cur.elems = append(cur.elems, acc)
 			case '.':
@@ -83,7 +90,7 @@ func splitBraces(word *Word) *braceWord {
 				if j+1 >= len(lit.Value) || lit.Value[j+1] != '.' {
 					continue
 				}
-				addlit()
+				addlitidx()
 				cur.seq = true
 				acc = &braceWord{}
 				cur.elems = append(cur.elems, acc)
@@ -92,17 +99,18 @@ func splitBraces(word *Word) *braceWord {
 				if cur == nil {
 					continue
 				}
-				addlit()
+				any = true
+				addlitidx()
 				br := pop()
 				if len(br.elems) == 1 {
 					// return {x} to a non-brace
-					acc.parts = append(acc.parts, litLeftBrace)
-					acc.parts = append(acc.parts, br.elems[0].parts...)
-					acc.parts = append(acc.parts, litRightBrace)
+					addLit(litLeftBrace)
+					addParts(br.elems[0].parts...)
+					addLit(litRightBrace)
 					break
 				}
 				if !br.seq {
-					acc.parts = append(acc.parts, br)
+					addParts(br)
 					break
 				}
 				var chars [2]bool
@@ -131,47 +139,47 @@ func splitBraces(word *Word) *braceWord {
 				}
 				if !broken {
 					br.chars = chars[0]
-					acc.parts = append(acc.parts, br)
+					addParts(br)
 					break
 				}
 				// return broken {x..y[..incr]} to a non-brace
-				acc.parts = append(acc.parts, litLeftBrace)
+				addLit(litLeftBrace)
 				for i, elem := range br.elems {
 					if i > 0 {
-						acc.parts = append(acc.parts, litDots)
+						addLit(litDots)
 					}
-					acc.parts = append(acc.parts, elem.parts...)
+					addParts(elem.parts...)
 				}
-				acc.parts = append(acc.parts, litRightBrace)
+				addLit(litRightBrace)
 			default:
 				continue
 			}
 			last = j + 1
 		}
 		if last == 0 {
-			acc.parts = append(acc.parts, lit)
+			addLit(lit)
 		} else {
 			left := *lit
 			left.Value = left.Value[last:]
-			acc.parts = append(acc.parts, &left)
+			addLit(&left)
 		}
 	}
 	// open braces that were never closed fall back to non-braces
 	for acc != top {
 		br := pop()
-		acc.parts = append(acc.parts, litLeftBrace)
+		addLit(litLeftBrace)
 		for i, elem := range br.elems {
 			if i > 0 {
 				if br.seq {
-					acc.parts = append(acc.parts, litDots)
+					addLit(litDots)
 				} else {
-					acc.parts = append(acc.parts, litComma)
+					addLit(litComma)
 				}
 			}
-			acc.parts = append(acc.parts, elem.parts...)
+			addParts(elem.parts...)
 		}
 	}
-	return top
+	return top, any
 }
 
 func braceWordLit(v interface{}) string {
@@ -264,7 +272,14 @@ func expandRec(bw *braceWord) []*Word {
 // It does not return an error; malformed brace expansions are simply
 // skipped. For example, "a{b{c,d}" results in the words "a{bc" and
 // "a{bd".
+//
+// Note that the resulting words may have more word parts than
+// necessary, such as contiguous *Lit nodes, and that these parts may be
+// shared between words.
 func ExpandBraces(word *Word) []*Word {
-	topBrace := splitBraces(word)
+	topBrace, any := splitBraces(word)
+	if !any {
+		return []*Word{word}
+	}
 	return expandRec(topBrace)
 }
