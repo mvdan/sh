@@ -229,6 +229,10 @@ func formatBytes(src []byte, path string) error {
 	if *simple {
 		syntax.Simplify(prog)
 	}
+	if *toJSON {
+		// must be standard input; fine to return
+		return writeJSON(out, prog, true)
+	}
 	writeBuf.Reset()
 	printer.Print(&writeBuf, prog)
 	res := writeBuf.Bytes()
