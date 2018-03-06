@@ -16,9 +16,9 @@ var jsonTests = []struct {
 	in   string
 	want string
 }{
-	{"", `{}`},
-	{"foo", `{"Stmts":[{"Cmd":{"Args":[{"Parts":[{"Type":"Lit","Value":"foo"}]}],"Type":"CallExpr"}}]}`},
-	{"((2))", `{"Stmts":[{"Cmd":{"Type":"ArithmCmd","X":{"Parts":[{"Type":"Lit","Value":"2"}],"Type":"Word"}}}]}`},
+	{"", `{"End":{"Col":0,"Line":0,"Offset":0},"Pos":{"Col":0,"Line":0,"Offset":0}}`},
+	{"foo", `{"End":{"Col":4,"Line":1,"Offset":3},"Pos":{"Col":1,"Line":1,"Offset":0},"Stmts":[{"Cmd":{"Args":[{"End":{"Col":4,"Line":1,"Offset":3},"Parts":[{"End":{"Col":4,"Line":1,"Offset":3},"Pos":{"Col":1,"Line":1,"Offset":0},"Type":"Lit","Value":"foo"}],"Pos":{"Col":1,"Line":1,"Offset":0}}],"End":{"Col":4,"Line":1,"Offset":3},"Pos":{"Col":1,"Line":1,"Offset":0},"Type":"CallExpr"},"End":{"Col":4,"Line":1,"Offset":3},"Pos":{"Col":1,"Line":1,"Offset":0}}]}`},
+	{"((2))", `{"End":{"Col":6,"Line":1,"Offset":5},"Pos":{"Col":1,"Line":1,"Offset":0},"Stmts":[{"Cmd":{"End":{"Col":6,"Line":1,"Offset":5},"Pos":{"Col":1,"Line":1,"Offset":0},"Type":"ArithmCmd","X":{"End":{"Col":4,"Line":1,"Offset":3},"Parts":[{"End":{"Col":4,"Line":1,"Offset":3},"Pos":{"Col":3,"Line":1,"Offset":2},"Type":"Lit","Value":"2"}],"Pos":{"Col":3,"Line":1,"Offset":2},"Type":"Word"}},"End":{"Col":6,"Line":1,"Offset":5},"Pos":{"Col":1,"Line":1,"Offset":0}}]}`},
 }
 
 func TestWriteJSON(t *testing.T) {

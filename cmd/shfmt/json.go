@@ -13,7 +13,8 @@ import (
 )
 
 func writeJSON(w io.Writer, f *syntax.File, pretty bool) error {
-	v, _ := recurse(reflect.ValueOf(f))
+	val := reflect.ValueOf(f)
+	v, _ := recurse(val, val)
 	enc := json.NewEncoder(w)
 	if pretty {
 		enc.SetIndent("", "\t")
@@ -21,19 +22,19 @@ func writeJSON(w io.Writer, f *syntax.File, pretty bool) error {
 	return enc.Encode(v)
 }
 
-func recurse(val reflect.Value) (interface{}, string) {
+func recurse(val, parent reflect.Value) (interface{}, string) {
 	switch val.Kind() {
 	case reflect.Ptr:
 		elem := val.Elem()
 		if !elem.IsValid() {
 			return nil, ""
 		}
-		return recurse(elem)
+		return recurse(elem, val)
 	case reflect.Interface:
 		if val.IsNil() {
 			return nil, ""
 		}
-		v, tname := recurse(val.Elem())
+		v, tname := recurse(val.Elem(), val)
 		m := v.(map[string]interface{})
 		m["Type"] = tname
 		return m, ""
@@ -68,7 +69,7 @@ func recurse(val reflect.Value) (interface{}, string) {
 				continue
 			}
 			fval := val.Field(i)
-			v, _ := recurse(fval)
+			v, _ := recurse(fval, fval)
 			switch ftyp.Name {
 			case "StmtList":
 				// inline their fields
@@ -80,14 +81,31 @@ func recurse(val reflect.Value) (interface{}, string) {
 				addField(ftyp.Name, v)
 			}
 		}
+		// use the parent to find the method, as methods are
+		// defined on the pointer values.
+		if posMethod := parent.MethodByName("Pos"); posMethod.IsValid() {
+			m["Pos"] = translatePos(posMethod.Call(nil)[0])
+		}
+		if posMethod := parent.MethodByName("End"); posMethod.IsValid() {
+			m["End"] = translatePos(posMethod.Call(nil)[0])
+		}
 		return m, typ.Name()
 	case reflect.Slice:
 		l := make([]interface{}, val.Len())
 		for i := 0; i < val.Len(); i++ {
-			l[i], _ = recurse(val.Index(i))
+			elem := val.Index(i)
+			l[i], _ = recurse(elem, elem)
 		}
 		return l, ""
 	default:
 		return val.Interface(), ""
+	}
+}
+
+func translatePos(val reflect.Value) map[string]interface{} {
+	return map[string]interface{}{
+		"Offset": val.MethodByName("Offset").Call(nil)[0].Uint(),
+		"Line":   val.MethodByName("Line").Call(nil)[0].Uint(),
+		"Col":    val.MethodByName("Col").Call(nil)[0].Uint(),
 	}
 }
