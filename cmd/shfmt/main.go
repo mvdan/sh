@@ -36,7 +36,7 @@ var (
 	keepPadding = flag.Bool("kp", false, "")
 	minify      = flag.Bool("mn", false, "")
 
-	toJSON = flag.Bool("exp.tojson", false, "")
+	toJSON = flag.Bool("tojson", false, "")
 
 	parser            *syntax.Parser
 	printer           *syntax.Printer
@@ -64,7 +64,6 @@ by filename extension and by shebang.
   -w        write result to file instead of stdout
   -d        display diffs when formatting differs
   -s        simplify the code
-  -f        recursively find all shell files and print the paths
 
 Parser options:
 
@@ -79,7 +78,10 @@ Printer options:
   -kp       keep column alignment paddings
   -mn       minify program to reduce its size (implies -s)
 
-  -exp.tojson  print AST to stdout as a typed JSON
+Utilities:
+
+  -f        recursively find all shell files and print the paths
+  -tojson   print AST to stdout as a typed JSON
 `)
 	}
 	flag.Parse()
