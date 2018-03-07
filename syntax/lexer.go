@@ -72,7 +72,8 @@ retry:
 			if b == '\\' && p.openBquotes > 0 {
 				// don't do it for newlines, as we want
 				// the newlines to be eaten in p.next
-				if bquotes < p.openBquotes && bquoteEscaped(p.bs[p.bsp]) {
+				if bquotes < p.openBquotes && p.bsp < len(p.bs) &&
+					bquoteEscaped(p.bs[p.bsp]) {
 					bquotes++
 					goto retry
 				}

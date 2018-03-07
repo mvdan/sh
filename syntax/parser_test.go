@@ -1777,6 +1777,10 @@ var shellTests = []errorCase{
 		in:    "echo ${foo@Q}",
 		posix: `1:11: this expansion operator is a bash feature`,
 	},
+	{
+		in:     "`\"`\\",
+		common: "1:3: reached EOF without closing quote `",
+	},
 }
 
 func checkError(p *Parser, in, want string) func(*testing.T) {
