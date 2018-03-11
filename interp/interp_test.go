@@ -2213,9 +2213,11 @@ func TestFileConfirm(t *testing.T) {
 }
 
 func TestRunnerOpts(t *testing.T) {
-	withPath := func(strs ...string) []string {
-		env := []string{"PATH=" + os.Getenv("PATH")}
-		return append(env, strs...)
+	withPath := func(strs ...string) Environ {
+		list := []string{"PATH=" + os.Getenv("PATH")}
+		list = append(list, strs...)
+		env, _ := EnvFromList(list)
+		return env
 	}
 	cases := []struct {
 		runner   Runner
@@ -2248,11 +2250,6 @@ func TestRunnerOpts(t *testing.T) {
 			Runner{Env: withPath("a=b", "a=c")},
 			"env | grep '^a=' | tail -n 1; echo $a",
 			"a=c\nc\n",
-		},
-		{
-			Runner{Env: withPath("foo")},
-			"",
-			`env not in the form key=value: "foo"`,
 		},
 		{
 			Runner{Env: withPath("HOME=")},

@@ -30,10 +30,7 @@ import (
 type Runner struct {
 	// Env specifies the environment of the interpreter.
 	// If Env is nil, Run uses the current process's environment.
-	Env []string
-
-	// envMap is just Env as a map, to simplify and speed up its use
-	envMap map[string]string
+	Env Environ
 
 	// Dir specifies the working directory of the command. If Dir is
 	// the empty string, Run runs the command in the calling
@@ -106,10 +103,10 @@ type Runner struct {
 	// because Go doesn't currently support sending Interrupt on Windows.
 	KillTimeout time.Duration
 
-	fieldAlloc      [4]fieldPart
-	fieldsAlloc     [4][]fieldPart
-	bufferAlloc     bytes.Buffer
-	oneWord         [1]*syntax.Word
+	fieldAlloc  [4]fieldPart
+	fieldsAlloc [4][]fieldPart
+	bufferAlloc bytes.Buffer
+	oneWord     [1]*syntax.Word
 }
 
 func (r *Runner) strBuilder() *bytes.Buffer {
@@ -182,17 +179,9 @@ func (r *Runner) Reset() error {
 		KillTimeout: r.KillTimeout,
 
 		// emptied below, to reuse the space
-		envMap:   r.envMap,
 		Vars:     r.Vars,
 		cmdVars:  r.cmdVars,
 		dirStack: r.dirStack[:0],
-	}
-	if r.envMap == nil {
-		r.envMap = make(map[string]string)
-	} else {
-		for k := range r.envMap {
-			delete(r.envMap, k)
-		}
 	}
 	if r.Vars == nil {
 		r.Vars = make(map[string]Variable)
@@ -212,20 +201,9 @@ func (r *Runner) Reset() error {
 		r.Context = context.Background()
 	}
 	if r.Env == nil {
-		r.Env = os.Environ()
+		r.Env, _ = EnvFromList(os.Environ())
 	}
-	for _, kv := range r.Env {
-		i := strings.IndexByte(kv, '=')
-		if i < 0 {
-			return fmt.Errorf("env not in the form key=value: %q", kv)
-		}
-		name, val := kv[:i], kv[i+1:]
-		if runtime.GOOS == "windows" {
-			name = strings.ToUpper(name)
-		}
-		r.envMap[name] = val
-	}
-	if _, ok := r.envMap["HOME"]; !ok {
+	if _, ok := r.Env.Get("HOME"); !ok {
 		u, _ := user.Current()
 		r.Vars["HOME"] = Variable{Value: StringVal(u.HomeDir)}
 	}
@@ -243,7 +221,7 @@ func (r *Runner) Reset() error {
 
 	if runtime.GOOS == "windows" {
 		// convert $PATH to a unix path list
-		path := r.envMap["PATH"]
+		path, _ := r.Env.Get("PATH")
 		path = strings.Join(filepath.SplitList(path), ":")
 		r.Vars["PATH"] = Variable{Value: StringVal(path)}
 	}
@@ -271,14 +249,15 @@ func (r *Runner) ctx() Ctxt {
 		Stderr:      r.Stderr,
 		KillTimeout: r.KillTimeout,
 	}
+	c.Env = r.Env.Copy()
 	for name, vr := range r.Vars {
 		if !vr.Exported {
 			continue
 		}
-		c.Env = append(c.Env, name+"="+r.varStr(vr, 0))
+		c.Env.Set(name, r.varStr(vr, 0))
 	}
 	for name, val := range r.cmdVars {
-		c.Env = append(c.Env, name+"="+val)
+		c.Env.Set(name, val)
 	}
 	return c
 }
@@ -453,10 +432,7 @@ func (r *Runner) sub() *Runner {
 	r2.bufferAlloc = bytes.Buffer{}
 	// TODO: perhaps we could do a lazy copy here, or some sort of
 	// overlay to avoid copying all the time
-	r2.envMap = make(map[string]string, len(r.envMap))
-	for k, v := range r.envMap {
-		r2.envMap[k] = v
-	}
+	r2.Env = r.Env.Copy()
 	r2.Vars = make(map[string]Variable, len(r.Vars))
 	for k, v := range r.Vars {
 		r2.Vars[k] = v
