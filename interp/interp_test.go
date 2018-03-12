@@ -2249,11 +2249,8 @@ func TestRunnerOpts(t *testing.T) {
 			"A=b\nb\n",
 		},
 		{
-			// TODO(mvdan): remove tail once we only support
-			// Go 1.9 and later, since os/exec doesn't dedup
-			// the env in earlier versions.
 			Runner{Env: withPath("A=b", "A=c")},
-			"env | grep '^A=' | tail -n 1; echo $A",
+			"env | grep '^A='; echo $A",
 			"A=c\nc\n",
 		},
 		{
