@@ -139,8 +139,15 @@ type Parser struct {
 	heredocs    []*Redirect
 	hdocStop    []byte
 
-	openBquotes   int
-	buriedBquotes int // break them when we enter single quotes
+	// openBquotes is how many levels of backquotes are open at the
+	// moment
+	openBquotes int
+	// lastBquoteEsc is how many times the last backquote token was
+	// escaped
+	lastBquoteEsc int
+	// buriedBquotes is like openBquotes, but saved for when the
+	// parser comes out of single quotes
+	buriedBquotes int
 
 	reOpenParens int
 
@@ -520,7 +527,7 @@ loop:
 				break loop
 			}
 		case bckQuote:
-			if p.quote == subCmdBckquo {
+			if p.backquoteEnd() {
 				break loop
 			}
 		case dblSemicolon, semiAnd, dblSemiAnd, semiOr:
@@ -752,7 +759,7 @@ func (p *Parser) wordPart() WordPart {
 		}
 		return p.dblQuoted()
 	case bckQuote:
-		if p.quote == subCmdBckquo {
+		if p.backquoteEnd() {
 			return nil
 		}
 		p.ensureNoNested()
@@ -1236,6 +1243,10 @@ func stopToken(tok token) bool {
 	return false
 }
 
+func (p *Parser) backquoteEnd() bool {
+	return p.quote == subCmdBckquo && p.lastBquoteEsc < p.openBquotes
+}
+
 // ValidName returns whether val is a valid name as per the POSIX spec.
 func ValidName(val string) bool {
 	for i, r := range val {
@@ -1555,7 +1566,7 @@ func (p *Parser) gotStmtPipe(s *Stmt) *Stmt {
 		p.doRedirect(s)
 		s.Cmd = p.callExpr(s, nil, false)
 	case bckQuote:
-		if p.quote == subCmdBckquo {
+		if p.backquoteEnd() {
 			return nil
 		}
 		fallthrough
@@ -2095,7 +2106,7 @@ loop:
 			}
 			ce.Args = append(ce.Args, p.word(p.wordParts()))
 		case bckQuote:
-			if p.quote == subCmdBckquo {
+			if p.backquoteEnd() {
 				break loop
 			}
 			fallthrough

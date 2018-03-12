@@ -77,7 +77,9 @@ retry:
 					bquotes++
 					goto retry
 				}
-				bquotes = 0
+			}
+			if b == '`' {
+				p.lastBquoteEsc = bquotes
 			}
 			if p.litBs != nil {
 				p.litBs = append(p.litBs, b)
