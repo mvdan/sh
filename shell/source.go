@@ -44,14 +44,8 @@ var purePrograms = []string{
 	"env", "sleep", "uniq", "sort",
 }
 
-// SourceNode sources a shell program from a node and returns the
-// variables declared in it.
-//
-// Any side effects or modifications to the system are forbidden when
-// interpreting the program. This is enforced via whitelists when
-// executing programs and opening paths.
-func SourceNode(node syntax.Node) (map[string]interp.Variable, error) {
-	r := interp.Runner{}
+func pureRunner() *interp.Runner {
+	r := &interp.Runner{}
 	// forbid executing programs that might cause trouble
 	r.Exec = func(ctx interp.Ctxt, path string, args []string) error {
 		for _, name := range purePrograms {
@@ -65,6 +59,17 @@ func SourceNode(node syntax.Node) (map[string]interp.Variable, error) {
 	r.Open = interp.OpenDevImpls(func(ctx interp.Ctxt, path string, flags int, mode os.FileMode) (io.ReadWriteCloser, error) {
 		return nil, fmt.Errorf("cannot open path: %s", ctx.UnixPath(path))
 	})
+	return r
+}
+
+// SourceNode sources a shell program from a node and returns the
+// variables declared in it.
+//
+// Any side effects or modifications to the system are forbidden when
+// interpreting the program. This is enforced via whitelists when
+// executing programs and opening paths.
+func SourceNode(node syntax.Node) (map[string]interp.Variable, error) {
+	r := pureRunner()
 	r.Reset()
 	if err := r.Run(node); err != nil {
 		return nil, fmt.Errorf("could not run: %v", err)

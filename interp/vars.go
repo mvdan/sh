@@ -101,6 +101,18 @@ func EnvFromList(list []string) (Environ, error) {
 	return &m, nil
 }
 
+type FuncEnviron func(string) string
+
+func (f FuncEnviron) Get(name string) (string, bool) {
+	val := f(name)
+	return val, val != ""
+}
+
+func (f FuncEnviron) Set(name, value string) {}
+func (f FuncEnviron) Delete(name string)     {}
+func (f FuncEnviron) Names() []string { return nil }
+func (f FuncEnviron) Copy() Environ { return f }
+
 type Variable struct {
 	Local    bool
 	Exported bool
