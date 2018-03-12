@@ -1889,6 +1889,7 @@ func (p *Parser) testExpr(ftok token, fpos Pos, pastAndOr bool) TestExpr {
 	switch b.Op {
 	case AndTest, OrTest:
 		p.next()
+		p.got(_Newl)
 		if b.Y = p.testExpr(token(b.Op), b.OpPos, false); b.Y == nil {
 			p.followErrExp(b.OpPos, b.Op.String())
 		}
@@ -1949,6 +1950,7 @@ func (p *Parser) testExprBase(ftok token, fpos Pos) TestExpr {
 	case leftParen:
 		pe := &ParenTest{Lparen: p.pos}
 		p.next()
+		p.got(_Newl)
 		if pe.X = p.testExpr(leftParen, pe.Lparen, false); pe.X == nil {
 			p.followErrExp(pe.Lparen, "(")
 		}

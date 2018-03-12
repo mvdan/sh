@@ -3222,6 +3222,17 @@ var fileTests = []testCase{
 		})},
 	},
 	{
+		Strs: []string{
+			"[[ a && (b) ]]",
+			"[[ a &&\n(\nb) ]]",
+		},
+		bsmk: &TestClause{X: &BinaryTest{
+			Op: AndTest,
+			X:  litWord("a"),
+			Y:  parenTest(litWord("b")),
+		}},
+	},
+	{
 		Strs: []string{"[[ (a && b) || -f c ]]"},
 		bsmk: &TestClause{X: &BinaryTest{
 			Op: OrTest,
