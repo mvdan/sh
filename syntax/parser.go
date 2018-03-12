@@ -1754,8 +1754,9 @@ func (p *Parser) wordIter(ftok string, fpos Pos) *WordIter {
 		p.got(_Newl)
 	} else if p.got(semicolon) {
 		p.got(_Newl)
+	} else if p.tok == _LitWord && p.val == "do" {
 	} else {
-		p.followErr(fpos, ftok+" foo", `"in", ; or a newline`)
+		p.followErr(fpos, ftok+" foo", `"in", "do", ;, or a newline`)
 	}
 	return wi
 }

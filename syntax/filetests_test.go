@@ -379,6 +379,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{
 			"for i; do foo; done",
+			"for i do foo; done",
 			"for i\ndo foo\ndone",
 			"for i;\ndo foo\ndone",
 			"for i in; do foo; done",

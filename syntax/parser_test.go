@@ -831,7 +831,7 @@ var shellTests = []errorCase{
 	},
 	{
 		in:     "for i",
-		common: `1:1: "for foo" must be followed by "in", ; or a newline`,
+		common: `1:1: "for foo" must be followed by "in", "do", ;, or a newline`,
 	},
 	{
 		in:     "for i in;",
@@ -863,7 +863,7 @@ var shellTests = []errorCase{
 	},
 	{
 		in:     "for in 1 2 3; do echo $i; done",
-		common: `1:1: "for foo" must be followed by "in", ; or a newline`,
+		common: `1:1: "for foo" must be followed by "in", "do", ;, or a newline`,
 	},
 	{
 		in:   "select",
@@ -871,7 +871,7 @@ var shellTests = []errorCase{
 	},
 	{
 		in:   "select i",
-		bsmk: `1:1: "select foo" must be followed by "in", ; or a newline`,
+		bsmk: `1:1: "select foo" must be followed by "in", "do", ;, or a newline`,
 	},
 	{
 		in:   "select i in;",
@@ -895,7 +895,7 @@ var shellTests = []errorCase{
 	},
 	{
 		in:   "select in 1 2 3; do echo $i; done",
-		bsmk: `1:1: "select foo" must be followed by "in", ; or a newline`,
+		bsmk: `1:1: "select foo" must be followed by "in", "do", ;, or a newline`,
 	},
 	{
 		in:     "echo foo &\n;",
