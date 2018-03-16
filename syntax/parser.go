@@ -991,7 +991,7 @@ func (p *Parser) arithmExprBase(compact bool) ArithmExpr {
 		pe.Index = p.eitherIndex()
 		x = p.word(p.wps(pe))
 	case bckQuote:
-		if p.quote == arithmExprLet {
+		if p.quote == arithmExprLet && p.openBquotes > 0 {
 			return nil
 		}
 		fallthrough

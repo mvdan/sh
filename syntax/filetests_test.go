@@ -287,7 +287,10 @@ var fileTests = []testCase{
 		},
 	},
 	{
-		Strs: []string{"(($(date -u) > DATE))"},
+		Strs: []string{
+			"(($(date -u) > DATE))",
+			"((`date -u` > DATE))",
+		},
 		bsmk: arithmCmd(&BinaryArithm{
 			Op: Gtr,
 			X:  word(cmdSubst(litStmt("date", "-u"))),
@@ -3740,6 +3743,19 @@ var fileTests = []testCase{
 					X:  litWord("3"),
 					Y:  litWord("4"),
 				},
+			},
+		),
+	},
+	{
+		Strs: []string{
+			`let a=$(echo 3)`,
+			"let a=`echo 3`",
+		},
+		bash: letClause(
+			&BinaryArithm{
+				Op: Assgn,
+				X:  litWord("a"),
+				Y:  word(cmdSubst(litStmt("echo", "3"))),
 			},
 		),
 	},
