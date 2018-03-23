@@ -2151,10 +2151,7 @@ func TestFile(t *testing.T) {
 				cb.WriteString(err.Error())
 			}
 			want := c.want
-			if i := strings.Index(want, " #JUSTERR"); i >= 0 {
-				want = want[:i]
-			}
-			if i := strings.Index(want, " #IGNORE"); i >= 0 {
+			if i := strings.Index(want, " #"); i >= 0 {
 				want = want[:i]
 			}
 			if got := cb.String(); got != want {

@@ -61,9 +61,7 @@ func (m *mapEnviron) Copy() Environ {
 		names:  make([]string, len(m.names)),
 		values: make(map[string]string, len(m.values)),
 	}
-	for i, name := range m.names {
-		m2.names[i] = name
-	}
+	copy(m2.names, m.names)
 	for name, val := range m.values {
 		m2.values[name] = val
 	}
