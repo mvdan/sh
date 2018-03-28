@@ -619,6 +619,8 @@ func TestPrintKeepPadding(t *testing.T) {
 		samePrint("echo foo bar"),
 		samePrint("echo  foo   bar"),
 		samePrint("a=b  c=d   bar"),
+		samePrint("echo foo    >bar"),
+		samePrint("echo foo    2>bar"),
 		samePrint("{ foo;  }"),
 		samePrint("a()   { foo; }"),
 		samePrint("a   && b"),

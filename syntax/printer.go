@@ -686,7 +686,7 @@ func (p *Printer) stmt(s *Stmt) {
 		}
 		if p.minify && r.N == nil {
 		} else if p.wantSpace {
-			p.space()
+			p.spacePad(r.Pos())
 		}
 		if r.N != nil {
 			p.WriteString(r.N.Value)
@@ -734,7 +734,7 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			}
 			if p.minify && r.N == nil {
 			} else if p.wantSpace {
-				p.space()
+				p.spacePad(r.Pos())
 			}
 			if r.N != nil {
 				p.WriteString(r.N.Value)
