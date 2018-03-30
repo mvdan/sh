@@ -922,28 +922,8 @@ var shellTests = []errorCase{
 		common: `1:6: reached EOF without matching $(( with ))`,
 	},
 	{
-		in:     `echo $(("`,
-		common: `1:9: quotes should not be used in arithmetic expressions`,
-	},
-	{
-		in:     `echo $((a"`,
-		common: `1:10: quotes should not be used in arithmetic expressions`,
-	},
-	{
-		in:   `echo $(($'`,
-		bsmk: `1:9: quotes should not be used in arithmetic expressions`,
-	},
-	{
-		in:     `echo $(('`,
-		common: `1:9: quotes should not be used in arithmetic expressions`,
-	},
-	{
 		in:     `echo $(($(a"`,
 		common: `1:12: reached EOF without closing quote "`,
-	},
-	{
-		in:     `echo $(($((a"`,
-		common: `1:13: quotes should not be used in arithmetic expressions`,
 	},
 	{
 		in:     "echo $((`echo 0`",
@@ -960,10 +940,6 @@ var shellTests = []errorCase{
 	{
 		in:     `echo $((a b"`,
 		common: `1:11: not a valid arithmetic operator: b`,
-	},
-	{
-		in:     "echo $((\"`)",
-		common: `1:9: quotes should not be used in arithmetic expressions`,
 	},
 	{
 		in:     "echo $(())",
@@ -1035,17 +1011,8 @@ var shellTests = []errorCase{
 		common: `1:13: = must follow a name #NOERR`,
 	},
 	{
-		in:     "echo $(('1=2'))",
-		common: `1:9: quotes should not be used in arithmetic expressions`,
-	},
-	{
 		in:     "echo $((1'2'))",
 		common: `1:10: not a valid arithmetic operator: '`,
-	},
-	{
-		in:     "echo $(($1'2'))",
-		common: `1:11: quotes should not be used in arithmetic expressions`,
-		mksh:   `1:11: quotes should not be used in arithmetic expressions #NOERR`,
 	},
 	{
 		in:     "<<EOF\n$(()a",
@@ -1363,14 +1330,6 @@ var shellTests = []errorCase{
 		bsmk: `1:8: = must follow a name`,
 	},
 	{
-		in:   "let 'foo'",
-		bsmk: `1:5: quotes should not be used in arithmetic expressions`,
-	},
-	{
-		in:   `let a"=b+c"`,
-		bsmk: `1:6: quotes should not be used in arithmetic expressions`,
-	},
-	{
 		in:   "`let` { foo; }",
 		bsmk: `1:2: "let" must be followed by an expression`,
 	},
@@ -1595,10 +1554,6 @@ var shellTests = []errorCase{
 	{
 		in:   "((@(",
 		bsmk: `1:1: reached ( without matching (( with ))`,
-	},
-	{
-		in:   "echo $((\"a`b((",
-		bsmk: `1:9: quotes should not be used in arithmetic expressions`,
 	},
 	{
 		in:   "time {",

@@ -3870,6 +3870,21 @@ var fileTests = []testCase{
 		}}},
 	},
 	{
+		Strs: []string{`$((a + "b + $c"))`},
+		common: arithmExp(&BinaryArithm{
+			Op: Add,
+			X:  litWord("a"),
+			Y: word(dblQuoted(
+				lit("b + "),
+				litParamExp("c"),
+			)),
+		}),
+	},
+	{
+		Strs: []string{`let 'i++'`},
+		bsmk: letClause(word(sglQuoted("i++"))),
+	},
+	{
 		Strs: []string{`echo ${a["x y"]}`},
 		bash: call(litWord("echo"), word(&ParamExp{
 			Param: lit("a"),

@@ -184,10 +184,8 @@ func (*CoprocClause) commandNode() {}
 
 // Assign represents an assignment to a variable.
 //
-// Here and elsewhere, Index can either mean an index into an indexed or
-// an associative array. In the former, it's just an arithmetic
-// expression. In the latter, it will be a word with a single DblQuoted
-// or SglQuoted part.
+// Here and elsewhere, Index can mean either an index expression into an
+// indexed array, or a string key into an associative array.
 //
 // If Index is non-nil, the value will be a word and not an array as
 // nested arrays are not allowed.

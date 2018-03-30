@@ -722,9 +722,6 @@ func (p *Parser) wordPart() WordPart {
 		ps.Rparen = p.matched(ps.OpPos, token(ps.Op), rightParen)
 		return ps
 	case sglQuote, dollSglQuote:
-		if p.quote&allArithmExpr != 0 {
-			p.curErr("quotes should not be used in arithmetic expressions")
-		}
 		sq := &SglQuoted{Left: p.pos, Dollar: p.tok == dollSglQuote}
 		r := p.r
 		for p.newLit(r); ; r = p.rune() {
@@ -753,9 +750,6 @@ func (p *Parser) wordPart() WordPart {
 		if p.quote == dblQuotes {
 			// p.tok == dblQuote, as "foo$" puts $ in the lit
 			return nil
-		}
-		if p.quote&allArithmExpr != 0 {
-			p.curErr("quotes should not be used in arithmetic expressions")
 		}
 		return p.dblQuoted()
 	case bckQuote:
@@ -1200,20 +1194,10 @@ func (p *Parser) eitherIndex() ArithmExpr {
 	lpos := p.pos
 	p.quote = arithmExprBrack
 	p.next()
-	var expr ArithmExpr
-	switch p.tok {
-	case sglQuote, dollSglQuote, dblQuote, dollDblQuote:
-		// We can't use an arithm quote, as that will trigger
-		// the "quotes should not be used in arithmetic
-		// expressions" error. paramExpName is the closest.
-		p.quote = paramExpName
-		expr = p.word(p.wps(p.wordPart()))
-	case star, at:
+	if p.tok == star || p.tok == at {
 		p.tok, p.val = _LitWord, p.tok.String()
-		fallthrough
-	default:
-		expr = p.followArithm(leftBrack, lpos)
 	}
+	expr := p.followArithm(leftBrack, lpos)
 	p.quote = old
 	p.matched(lpos, leftBrack, rightBrack)
 	return expr
