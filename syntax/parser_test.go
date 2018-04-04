@@ -294,47 +294,28 @@ func singleParse(p *Parser, in string, want *File) func(t *testing.T) {
 }
 
 func BenchmarkParse(b *testing.B) {
-	type benchmark struct {
-		name, in string
-	}
-	benchmarks := []benchmark{
-		{
-			"LongStrs",
-			strings.Repeat("\n\n\t\t        \n", 10) +
-				"# " + strings.Repeat("foo bar ", 10) + "\n" +
-				strings.Repeat("longlit_", 10) + "\n" +
-				"'" + strings.Repeat("foo bar ", 20) + "'\n" +
-				`"` + strings.Repeat("foo bar ", 20) + `"`,
-		},
-		{
-			"Cmds+Nested",
-			strings.Repeat("a b c d; ", 8) +
-				"a() { (b); { c; }; }; $(d; `e`)",
-		},
-		{
-			"Vars+Clauses",
-			"foo=bar; a=b; c=d$foo${bar}e $simple ${complex:-default}; " +
-				"if a; then while b; do for c in d e; do f; done; done; fi",
-		},
-		{
-			"Binary+Redirs",
-			"a | b && c || d | e && g || f | h; " +
-				"foo >a <b <<<c 2>&1 <<EOF\n" +
-				strings.Repeat("somewhat long heredoc line\n", 10) +
-				"EOF",
-		},
-	}
-	for _, c := range benchmarks {
-		b.Run(c.name, func(b *testing.B) {
-			p := NewParser(KeepComments)
-			in := strings.NewReader(c.in)
-			for i := 0; i < b.N; i++ {
-				if _, err := p.Parse(in, ""); err != nil {
-					b.Fatal(err)
-				}
-				in.Reset(c.in)
-			}
-		})
+	src := "" +
+		strings.Repeat("\n\n\t\t        \n", 10) +
+		"# " + strings.Repeat("foo bar ", 10) + "\n" +
+		strings.Repeat("longlit_", 10) + "\n" +
+		"'" + strings.Repeat("foo bar ", 10) + "'\n" +
+		`"` + strings.Repeat("foo bar ", 10) + `"` + "\n" +
+		strings.Repeat("aa bb cc dd; ", 6) +
+		"a() { (b); { c; }; }; $(d; `e`)\n" +
+		"foo=bar; a=b; c=d$foo${bar}e $simple ${complex:-default}\n" +
+		"if a; then while b; do for c in d e; do f; done; done; fi\n" +
+		"a | b && c || d | e && g || f\n" +
+		"foo >a <b <<<c 2>&1 <<EOF\n" +
+		strings.Repeat("somewhat long heredoc line\n", 10) +
+		"EOF" +
+		""
+	p := NewParser(KeepComments)
+	in := strings.NewReader(src)
+	for i := 0; i < b.N; i++ {
+		if _, err := p.Parse(in, ""); err != nil {
+			b.Fatal(err)
+		}
+		in.Reset(src)
 	}
 }
 
