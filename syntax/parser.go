@@ -1373,7 +1373,19 @@ func (p *Parser) peekRedir() bool {
 }
 
 func (p *Parser) doRedirect(s *Stmt) {
-	r := &Redirect{}
+	var r *Redirect
+	if s.Redirs == nil {
+		var alloc struct {
+			redirs [4]*Redirect
+			redir  Redirect
+		}
+		s.Redirs = alloc.redirs[:0]
+		r = &alloc.redir
+		s.Redirs = append(s.Redirs, r)
+	} else {
+		r = &Redirect{}
+		s.Redirs = append(s.Redirs, r)
+	}
 	r.N = p.getLit()
 	r.Op, r.OpPos = RedirOperator(p.tok), p.pos
 	p.next()
@@ -1390,7 +1402,6 @@ func (p *Parser) doRedirect(s *Stmt) {
 	default:
 		r.Word = p.followWordTok(token(r.Op), r.OpPos)
 	}
-	s.Redirs = append(s.Redirs, r)
 }
 
 func (p *Parser) getStmt(readEnd, binCmd, fnBody bool) *Stmt {
