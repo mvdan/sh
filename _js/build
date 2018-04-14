@@ -1,0 +1,5 @@
+#!/bin/sh
+
+gopherjs build -o index.js
+
+node testmain.js
