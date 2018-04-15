@@ -18,3 +18,25 @@ var p = syntax.NewParser()
 	assert.strictEqual(args[0].Parts.length, 1)
 	assert.strictEqual(args[0].Parts[0].Value, "echo")
 }
+
+{
+	// accessing fields or methods creates separate objects
+	var src = "echo 'foo'"
+	var f = p.Parse(src, "src")
+
+	assert.strictEqual(f.StmtList.Stmts == f.StmtList.Stmts, false)
+	assert.strictEqual(f.StmtList.Stmts === f.StmtList.Stmts, false)
+	var stmts = f.StmtList.Stmts
+	assert.strictEqual(stmts == stmts, true)
+	assert.strictEqual(stmts === stmts, true)
+}
+
+{
+	// parse errors
+	var src = "echo ${"
+	try {
+		var f = p.Parse(src, "src")
+		assert.fail("did not error")
+	} catch (err) {
+	}
+}

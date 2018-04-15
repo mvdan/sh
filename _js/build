@@ -1,5 +1,5 @@
 #!/bin/sh
 
-gopherjs build -o index.js
+gopherjs build -o index.js || exit 1
 
-node testmain.js
+node testmain.js || exit 1
