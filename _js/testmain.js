@@ -40,3 +40,13 @@ var p = syntax.NewParser()
 	} catch (err) {
 	}
 }
+
+{
+	// getting the types of nodes
+	var src = "echo 'foo'"
+	var f = p.Parse(src, "src")
+
+	var cmd = f.StmtList.Stmts[0].Cmd
+	assert.strictEqual(syntax.NodeType(cmd), "CallExpr")
+	assert.strictEqual(syntax.NodeType(cmd.Args[0].Parts[0]), "Lit")
+}
