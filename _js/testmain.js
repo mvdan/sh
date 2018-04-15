@@ -50,3 +50,27 @@ var p = syntax.NewParser()
 	assert.strictEqual(syntax.NodeType(cmd), "CallExpr")
 	assert.strictEqual(syntax.NodeType(cmd.Args[0].Parts[0]), "Lit")
 }
+
+{
+	// running Walk
+	var src = "foo bar"
+	var f = p.Parse(src, "src")
+
+	var nilCount = 0
+	var nonNilCount = 0
+	var seenBar = false
+	syntax.Walk(f, function(node) {
+		if (node == null) {
+			nilCount++
+		} else {
+			nonNilCount++
+			if (node.Value == "bar") {
+				seenBar = true
+			}
+		}
+		return true
+	})
+	assert.strictEqual(nonNilCount, 7)
+	assert.strictEqual(nilCount, 7)
+	assert.strictEqual(seenBar, true)
+}

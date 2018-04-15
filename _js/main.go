@@ -26,6 +26,7 @@ func main() {
 		p := syntax.NewParser()
 		return js.MakeWrapper(jsParser{p})
 	})
+	stx.Set("Walk", syntax.Walk)
 }
 
 func throw(v interface{}) {
