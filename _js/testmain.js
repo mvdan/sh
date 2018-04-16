@@ -3,12 +3,13 @@ const assert = require('assert').strict
 const sh = require('./index')
 
 var syntax = sh.syntax
-var p = syntax.NewParser()
+var parser = syntax.NewParser()
+var printer = syntax.NewPrinter()
 
 {
 	// parsing a simple program
 	var src = "echo 'foo'"
-	var f = p.Parse(src, "src")
+	var f = parser.Parse(src, "src")
 
 	var stmts = f.StmtList.Stmts
 	assert.strictEqual(stmts.length, 1)
@@ -22,7 +23,7 @@ var p = syntax.NewParser()
 {
 	// accessing fields or methods creates separate objects
 	var src = "echo 'foo'"
-	var f = p.Parse(src, "src")
+	var f = parser.Parse(src, "src")
 
 	assert.strictEqual(f.StmtList.Stmts == f.StmtList.Stmts, false)
 	assert.strictEqual(f.StmtList.Stmts === f.StmtList.Stmts, false)
@@ -35,7 +36,7 @@ var p = syntax.NewParser()
 	// parse errors
 	var src = "echo ${"
 	try {
-		var f = p.Parse(src, "src")
+		var f = parser.Parse(src, "src")
 		assert.fail("did not error")
 	} catch (err) {
 	}
@@ -44,7 +45,7 @@ var p = syntax.NewParser()
 {
 	// getting the types of nodes
 	var src = "echo 'foo'"
-	var f = p.Parse(src, "src")
+	var f = parser.Parse(src, "src")
 
 	var cmd = f.StmtList.Stmts[0].Cmd
 	assert.strictEqual(syntax.NodeType(cmd), "CallExpr")
@@ -54,7 +55,7 @@ var p = syntax.NewParser()
 {
 	// running Walk
 	var src = "foo bar"
-	var f = p.Parse(src, "src")
+	var f = parser.Parse(src, "src")
 
 	var nilCount = 0
 	var nonNilCount = 0
@@ -73,4 +74,13 @@ var p = syntax.NewParser()
 	assert.strictEqual(nonNilCount, 7)
 	assert.strictEqual(nilCount, 7)
 	assert.strictEqual(seenBar, true)
+}
+
+{
+	// printing
+	var src = "echo      'foo'"
+	var f = parser.Parse(src, "src")
+
+	var out = printer.Print(f)
+	assert.strictEqual(out, "echo 'foo'\n")
 }

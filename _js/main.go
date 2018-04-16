@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/gopherjs/gopherjs/js"
@@ -22,11 +24,21 @@ func main() {
 		}
 		return typ
 	})
+
 	stx.Set("NewParser", func() *js.Object {
 		p := syntax.NewParser()
 		return js.MakeWrapper(jsParser{p})
 	})
+
 	stx.Set("Walk", syntax.Walk)
+	stx.Set("DebugPrint", func(node syntax.Node) {
+		syntax.DebugPrint(os.Stdout, node)
+	})
+
+	stx.Set("NewPrinter", func() *js.Object {
+		p := syntax.NewPrinter()
+		return js.MakeWrapper(jsPrinter{p})
+	})
 }
 
 func throw(v interface{}) {
@@ -43,4 +55,16 @@ func (p jsParser) Parse(src, name string) *js.Object {
 		throw(err)
 	}
 	return js.MakeWrapper(f)
+}
+
+type jsPrinter struct {
+	*syntax.Printer
+}
+
+func (p jsPrinter) Print(file *syntax.File) string {
+	var buf bytes.Buffer
+	if err := p.Printer.Print(&buf, file); err != nil {
+		throw(err)
+	}
+	return buf.String()
 }
