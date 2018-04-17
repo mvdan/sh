@@ -12,12 +12,19 @@ Here is a simple usage example:
 const sh = require('mvdan-sh')
 const syntax = sh.syntax
 
-var p = syntax.NewParser()
+var parser = syntax.NewParser()
+var printer = syntax.NewPrinter()
 
 var src = "echo 'foo'"
-var f = p.Parse(src, "src.js")
+var f = parser.Parse(src, "src.js")
 
+// what kind of command did we parse?
 var stmt = f.StmtList.Stmts[0]
-var args = stmt.Cmd.Args
-console.log(args[0])
+console.log(syntax.NodeType(stmt.Cmd)) // CallExpr
+
+// change 'foo' to 'bar'
+stmt.Cmd.Args[1].Parts[0].Value = "bar"
+
+// print the code back out
+console.log(printer.Print(f)) // echo 'bar'
 ```
