@@ -30,8 +30,8 @@ foo &&
 	(more)
 
 foo 2>&1
-foo <<EOF
-bar
+foo <<-EOF
+	bar
 EOF
 
 $((3 + 4))

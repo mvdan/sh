@@ -46,8 +46,9 @@ func Minify(p *Printer) { p.minify = true }
 // NewPrinter allocates a new Printer and applies any number of options.
 func NewPrinter(options ...func(*Printer)) *Printer {
 	p := &Printer{
-		bufWriter:  bufio.NewWriter(nil),
-		lenPrinter: new(Printer),
+		bufWriter:   bufio.NewWriter(nil),
+		lenPrinter:  new(Printer),
+		tabsPrinter: new(Printer),
 	}
 	for _, opt := range options {
 		opt(p)
@@ -139,6 +140,9 @@ type Printer struct {
 	// used in stmtCols to align comments
 	lenPrinter *Printer
 	lenCounter byteCounter
+
+	// used when printing <<- heredocs with tab indentation
+	tabsPrinter *Printer
 }
 
 func (p *Printer) reset() {
@@ -260,7 +264,32 @@ func (p *Printer) newline(pos Pos) {
 	p.pendingHdocs = p.pendingHdocs[:0]
 	for _, r := range hdocs {
 		if r.Hdoc != nil {
-			p.word(r.Hdoc)
+			if r.Op == DashHdoc && p.indentSpaces == 0 &&
+				!p.minify && p.tabsPrinter != nil {
+
+				// Reuse the last indentation level, as
+				// indentation levels are usually changed before
+				// newlines are printed along with their
+				// subsequent indentation characters.
+				newLevel := p.level
+				p.level = p.lastLevel
+
+				extra := extraIndenter{
+					bufWriter: p.bufWriter,
+					afterNewl: true,
+					level:     p.level + 1,
+				}
+				*p.tabsPrinter = Printer{
+					bufWriter: &extra,
+				}
+				p.tabsPrinter.line = r.Hdoc.Pos().Line()
+				p.tabsPrinter.word(r.Hdoc)
+				p.indent()
+
+				p.level = newLevel
+			} else {
+				p.word(r.Hdoc)
+			}
 			p.line = r.Hdoc.End().Line()
 		}
 		p.unquotedWord(r.Word)
@@ -1071,6 +1100,30 @@ func (c *byteCounter) WriteString(s string) (int, error) {
 func (c *byteCounter) Reset(io.Writer) { *c = 0 }
 func (c *byteCounter) Flush() error    { return nil }
 
+type extraIndenter struct {
+	bufWriter
+	afterNewl bool
+	level     uint
+}
+
+func (e *extraIndenter) WriteByte(b byte) error {
+	if e.afterNewl {
+		for i := uint(0); i < e.level; i++ {
+			e.bufWriter.WriteByte('\t')
+		}
+	}
+	e.bufWriter.WriteByte(b)
+	e.afterNewl = b == '\n'
+	return nil
+}
+
+func (e *extraIndenter) WriteString(s string) (int, error) {
+	for i := 0; i < len(s); i++ {
+		e.WriteByte(s[i])
+	}
+	return len(s), nil
+}
+
 // stmtCols reports the length that s will take when formatted in a
 // single line. If it will span multiple lines, stmtCols will return -1.
 func (p *Printer) stmtCols(s *Stmt) int {
@@ -1079,9 +1132,9 @@ func (p *Printer) stmtCols(s *Stmt) int {
 	}
 	*p.lenPrinter = Printer{
 		bufWriter: &p.lenCounter,
+		line:      s.Pos().Line(),
 	}
 	p.lenPrinter.bufWriter.Reset(nil)
-	p.lenPrinter.line = s.Pos().Line()
 	p.lenPrinter.stmt(s)
 	return int(p.lenCounter)
 }

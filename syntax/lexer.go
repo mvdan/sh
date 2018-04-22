@@ -891,6 +891,7 @@ func (p *Parser) advanceLitHdoc(r rune) {
 	p.newLit(r)
 	if p.quote == hdocBodyTabs {
 		for r == '\t' {
+			p.discardLit(1)
 			r = p.rune()
 		}
 	}
@@ -917,6 +918,7 @@ func (p *Parser) advanceLitHdoc(r rune) {
 			if p.quote == hdocBodyTabs {
 				for p.peekByte('\t') {
 					p.rune()
+					p.discardLit(1)
 				}
 			}
 			lStart = len(p.litBs)
@@ -934,6 +936,7 @@ func (p *Parser) hdocLitWord() *Word {
 		}
 		if p.quote == hdocBodyTabs {
 			for r == '\t' {
+				p.discardLit(1)
 				r = p.rune()
 			}
 		}

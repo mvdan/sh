@@ -1080,7 +1080,7 @@ var fileTests = []testCase{
 		},
 	},
 	{
-		Strs: []string{"if true; then foo <<-EOF\n\tbar\n\tEOF\nfi"},
+		Strs: []string{"if true; then foo <<-EOF\n\tbar\nEOF\nfi"},
 		common: &IfClause{
 			Cond: litStmts("true"),
 			Then: stmtList(&Stmt{
@@ -1088,13 +1088,13 @@ var fileTests = []testCase{
 				Redirs: []*Redirect{{
 					Op:   DashHdoc,
 					Word: litWord("EOF"),
-					Hdoc: litWord("\tbar\n\t"),
+					Hdoc: litWord("bar\n"),
 				}},
 			}),
 		},
 	},
 	{
-		Strs: []string{"if true; then foo <<-EOF\n\tEOF\nfi"},
+		Strs: []string{"if true; then foo <<-EOF\nEOF\nfi"},
 		common: &IfClause{
 			Cond: litStmts("true"),
 			Then: stmtList(&Stmt{
@@ -1102,7 +1102,6 @@ var fileTests = []testCase{
 				Redirs: []*Redirect{{
 					Op:   DashHdoc,
 					Word: litWord("EOF"),
-					Hdoc: litWord("\t"),
 				}},
 			}),
 		},
@@ -1188,7 +1187,7 @@ var fileTests = []testCase{
 	},
 	{
 		Strs: []string{
-			"foo <<-EOF\nbar\nEOF",
+			"foo <<-EOF\n\tbar\nEOF",
 			"foo <<- EOF\nbar\nEOF",
 		},
 		common: &Stmt{
@@ -1201,35 +1200,44 @@ var fileTests = []testCase{
 		},
 	},
 	{
-		Strs: []string{"foo <<-EOF\n\tEOF"},
+		Strs: []string{"foo <<EOF\nEOF"},
+		common: &Stmt{
+			Cmd: litCall("foo"),
+			Redirs: []*Redirect{{
+				Op:   Hdoc,
+				Word: litWord("EOF"),
+			}},
+		},
+	},
+	{
+		Strs: []string{"foo <<-EOF\nEOF"},
 		common: &Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*Redirect{{
 				Op:   DashHdoc,
 				Word: litWord("EOF"),
-				Hdoc: litWord("\t"),
 			}},
 		},
 	},
 	{
-		Strs: []string{"foo <<-EOF\n\tbar\n\tEOF"},
+		Strs: []string{"foo <<-EOF\n\tbar\nEOF"},
 		common: &Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*Redirect{{
 				Op:   DashHdoc,
 				Word: litWord("EOF"),
-				Hdoc: litWord("\tbar\n\t"),
+				Hdoc: litWord("bar\n"),
 			}},
 		},
 	},
 	{
-		Strs: []string{"foo <<-'EOF'\n\tbar\n\tEOF"},
+		Strs: []string{"foo <<-'EOF'\n\tbar\nEOF"},
 		common: &Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*Redirect{{
 				Op:   DashHdoc,
 				Word: word(sglQuoted("EOF")),
-				Hdoc: litWord("\tbar\n\t"),
+				Hdoc: litWord("bar\n"),
 			}},
 		},
 	},
@@ -4108,6 +4116,11 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 			return
 		}
 		if strs == nil {
+			return
+		}
+		if strings.Contains(src, "<<-") {
+			// since the tab indentation in <<- heredoc bodies
+			// aren't part of the final literals
 			return
 		}
 		var gotErr string
