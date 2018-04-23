@@ -121,6 +121,13 @@ type Printer struct {
 
 	commentPadding uint
 
+	// pendingComment is any comment in the current line that we have yet to
+	// print. This is useful because that way, we can ensure that all
+	// comments are written immediately before a newline. Otherwise, in some
+	// edge cases we might wrongly place words after a comment in the same
+	// line, breaking programs.
+	pendingComment *Comment
+
 	// line is the current line number
 	line uint
 
@@ -255,6 +262,7 @@ func (p *Printer) indent() {
 }
 
 func (p *Printer) newline(pos Pos) {
+	p.flushComment()
 	p.wantNewline, p.wantSpace = false, false
 	p.WriteByte('\n')
 	if p.line < pos.Line() {
@@ -339,6 +347,18 @@ func (p *Printer) comment(c Comment) {
 	if p.minify {
 		return
 	}
+	if p.pendingComment != nil {
+		p.flushComment()
+	}
+	p.pendingComment = &c
+}
+
+func (p *Printer) flushComment() {
+	if p.pendingComment == nil {
+		return
+	}
+	c := *p.pendingComment
+	p.pendingComment = nil
 	switch {
 	case p.line == 0:
 	case c.Hash.Line() > p.line:
@@ -350,7 +370,10 @@ func (p *Printer) comment(c Comment) {
 			p.spaces(p.commentPadding + 1)
 		}
 	}
-	p.line = c.Hash.Line()
+	// don't go back one line, which may happen in some edge cases
+	if l := c.Hash.Line(); p.line < l {
+		p.line = l
+	}
 	p.WriteByte('#')
 	p.WriteString(strings.TrimRightFunc(c.Text, unicode.IsSpace))
 }
@@ -696,6 +719,7 @@ func (p *Printer) elemJoin(elems []*ArrayElem, last []Comment) {
 	}
 	if len(last) > 0 {
 		p.comments(last)
+		p.flushComment()
 	}
 	p.decLevel()
 }
@@ -807,7 +831,7 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		}
 		p.loop(x.Loop)
 		p.semiOrNewl("do", x.DoPos)
-		p.nestedStmts(x.Do, Pos{})
+		p.nestedStmts(x.Do, x.DonePos)
 		p.semiRsrv("done", x.DonePos, true)
 	case *BinaryCmd:
 		p.stmt(x.X)
@@ -829,10 +853,10 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			p.spacedToken(x.Op.String(), x.OpPos)
 			if len(x.Y.Comments) > 0 {
 				p.wantSpace = false
-				p.WriteByte('\n')
+				p.newline(Pos{})
 				p.indent()
 				p.comments(x.Y.Comments)
-				p.WriteByte('\n')
+				p.newline(Pos{})
 				p.indent()
 			}
 		} else {
@@ -904,6 +928,7 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		}
 		p.comments(x.Last)
 		if p.swtCaseIndent {
+			p.flushComment()
 			p.decLevel()
 		}
 		p.semiRsrv("esac", x.Esac, len(x.Items) == 0)
@@ -1011,7 +1036,7 @@ func (p *Printer) stmts(sl StmtList) {
 			p.line = pos.Line()
 			p.stmt(s)
 		} else {
-			if p.line > 0 {
+			if p.line > 0 || p.pendingComment != nil {
 				p.newlines(pos)
 			}
 			p.line = pos.Line()
@@ -1037,7 +1062,7 @@ func (p *Printer) stmts(sl StmtList) {
 			p.comment(c)
 		}
 		if p.minify && i == 0 && !p.wantSpace {
-		} else if p.line > 0 {
+		} else if p.line > 0 || p.pendingComment != nil {
 			p.newlines(pos)
 		}
 		p.line = pos.Line()
@@ -1146,6 +1171,9 @@ func (p *Printer) nestedStmts(sl StmtList, closing Pos) {
 		p.indent()
 	}
 	p.stmts(sl)
+	if closing.IsValid() {
+		p.flushComment()
+	}
 	p.decLevel()
 }
 

@@ -395,6 +395,10 @@ var printTests = []printCase{
 		"# foo\n\n\nbar",
 		"# foo\n\nbar",
 	},
+	{
+		"# foo\n\n\nbar\nbaz",
+		"# foo\n\nbar\nbaz",
+	},
 	samePrint("#foo\n#\n#bar"),
 	{
 		"(0 #\n0)#\n0",
@@ -408,6 +412,14 @@ var printTests = []printCase{
 	samePrint("f() body # comment"),
 	samePrint("{\n\tf <<-EOF\n\t\tbody\n\tEOF\n}"),
 	samePrint("{\n\tf <<-EOF\n\t\tbody\n\tEOF\n\tf2\n}"),
+	{
+		"if foo # inline\nthen\n\tbar\nfi",
+		"if foo; then # inline\n\tbar\nfi",
+	},
+	{
+		"for foo in a b # inline\ndo\n\tbar\ndone",
+		"for foo in a b; do # inline\n\tbar\ndone",
+	},
 }
 
 func TestPrintWeirdFormat(t *testing.T) {
