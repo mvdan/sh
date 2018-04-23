@@ -5,37 +5,35 @@
 [![Windows build](https://ci.appveyor.com/api/projects/status/rxxs08v65aj2fqof?svg=true)](https://ci.appveyor.com/project/mvdan/sh)
 [![Coverage Status](https://coveralls.io/repos/github/mvdan/sh/badge.svg?branch=master)](https://coveralls.io/github/mvdan/sh)
 
-A shell parser, formatter and interpreter. Supports [POSIX Shell],
-[Bash] and [mksh]. Requires Go 1.9 or later.
+A shell parser, formatter and interpreter. Supports [POSIX Shell], [Bash] and
+[mksh]. Requires Go 1.9 or later.
 
 ### shfmt
 
 	go get -u mvdan.cc/sh/cmd/shfmt
 
-`shfmt` formats shell programs. It can use tabs or any number of spaces
-to indent. See [canonical.sh](syntax/canonical.sh) for a quick look at
-its default style.
+`shfmt` formats shell programs. It can use tabs or any number of spaces to
+indent. See [canonical.sh](syntax/canonical.sh) for a quick look at its default
+style.
 
-You can feed it standard input, any number of files or any number of
-directories to recurse into. When recursing, it will operate on `.sh`
-and `.bash` files and ignore files starting with a period. It will also
-operate on files with no extension and a shell shebang.
+You can feed it standard input, any number of files or any number of directories
+to recurse into. When recursing, it will operate on `.sh` and `.bash` files and
+ignore files starting with a period. It will also operate on files with no
+extension and a shell shebang.
 
 	shfmt -l -w script.sh
 
-Use `-i N` to indent with a number of spaces instead of tabs. There are
-other formatting options - see `shfmt -h`. For example, to get the
-formatting appropriate for [Google's Style][google-style] guide, use
-`shfmt -i 2 -ci`.
+Use `-i N` to indent with a number of spaces instead of tabs. There are other
+formatting options - see `shfmt -h`. For example, to get the formatting
+appropriate for [Google's Style][google-style] guide, use `shfmt -i 2 -ci`.
 
 Packages are available for [Arch], [CRUX], [Homebrew], [NixOS] and [Void].
 
 #### Advantages over `bash -n`
 
-`bash -n` can be useful to check for syntax errors in shell scripts.
-However, `shfmt >/dev/null` can do a better job as it checks for invalid
-UTF-8 and does all parsing statically, including checking POSIX Shell
-validity:
+`bash -n` can be useful to check for syntax errors in shell scripts. However,
+`shfmt >/dev/null` can do a better job as it checks for invalid UTF-8 and does
+all parsing statically, including checking POSIX Shell validity:
 
 ```
  $ echo '${foo:1 2}' | bash -n
@@ -55,37 +53,36 @@ stability just yet.
 
 ### Fuzzing
 
-This project makes use of [go-fuzz] to find crashes and hangs in both
-the parser and the printer. To get started, run:
+This project makes use of [go-fuzz] to find crashes and hangs in both the parser
+and the printer. To get started, run:
 
 	git checkout fuzz
 	./fuzz
 
 ### Caveats
 
-* Bash index expressions must be an arithmetic expression or a quoted
-  string. This is because the static parser can't know whether the array
-  is an associative array (string keys) since that depends on having
-  called or not `declare -A`.
+* When indexing Bash associative arrays, always use quotes. The static parser
+  will otherwise have to assume that the index is an arithmetic expression.
 
 ```
- $ echo '${array[spaced string]}' | shfmt
+$ echo '${array[spaced string]}' | shfmt
 1:16: not a valid arithmetic operator: string
+$ echo '${array[dash-string]}' | shfmt
+${array[dash - string]}
 ```
 
-* `$((` and `((` ambiguity is not suported. Backtracking would greatly
-  complicate the parser and make stream support - `io.Reader` -
-  impossible. In practice, the POSIX spec recommends to [space the
-  operands][posix-ambiguity] if `$( (` is meant.
+* `$((` and `((` ambiguity is not suported. Backtracking would complicate the
+  parser and make streaming support via `io.Reader` impossible. The POSIX spec
+  recommends to [space the operands][posix-ambiguity] if `$( (` is meant.
 
 ```
- $ echo '$((foo); (bar))' | shfmt
+$ echo '$((foo); (bar))' | shfmt
 1:1: reached ) without matching $(( with ))
 ```
 
-* Some builtins like `export` and `let` are parsed as keywords. This is
-  to allow statically parsing them and building their AST, as opposed to
-  just keeping the arguments as a slice of arguments.
+* Some builtins like `export` and `let` are parsed as keywords. This is to allow
+  statically parsing them and building their AST, as opposed to just keeping the
+  arguments as a slice of arguments.
 
 ### Related projects
 
