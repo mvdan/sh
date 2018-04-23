@@ -420,6 +420,11 @@ var printTests = []printCase{
 		"for foo in a b # inline\ndo\n\tbar\ndone",
 		"for foo in a b; do # inline\n\tbar\ndone",
 	},
+
+	{
+		"foo() # inline\n{\n\tbar\n}",
+		"foo() { # inline\n\tbar\n}",
+	},
 }
 
 func TestPrintWeirdFormat(t *testing.T) {

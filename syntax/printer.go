@@ -883,6 +883,7 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			p.space()
 		}
 		p.line = x.Body.Pos().Line()
+		p.comments(x.Body.Comments)
 		p.stmt(x.Body)
 	case *CaseClause:
 		p.WriteString("case ")
