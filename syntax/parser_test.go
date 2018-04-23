@@ -1566,6 +1566,10 @@ var shellTests = []errorCase{
 		bsmk: `1:11: [ must be followed by an expression`,
 	},
 	{
+		in:   "echo ${foo]}",
+		bsmk: `1:11: not a valid parameter expansion operator: ]`,
+	},
+	{
 		in:   "echo ${foo[]}",
 		bash: `1:11: [ must be followed by an expression`,
 		mksh: `1:11: [ must be followed by an expression #NOERR wrong?`,

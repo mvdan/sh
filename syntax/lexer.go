@@ -795,12 +795,8 @@ loop:
 			if p.quote&allParamExp != 0 {
 				break loop
 			}
-		case '/':
+		case '/', ']':
 			if p.quote&allParamExp != 0 && p.quote != paramExpExp {
-				break loop
-			}
-		case ']':
-			if p.quote == arithmExprBrack {
 				break loop
 			}
 		case ':', '=', '%', '^', ',', '?', '!', '*':
