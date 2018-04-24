@@ -795,7 +795,7 @@ loop:
 			if p.quote&allParamExp != 0 {
 				break loop
 			}
-		case '/', ']':
+		case '/':
 			if p.quote&allParamExp != 0 && p.quote != paramExpExp {
 				break loop
 			}
@@ -803,11 +803,13 @@ loop:
 			if p.quote&allArithmExpr != 0 || p.quote == paramExpName {
 				break loop
 			}
-		case '#', '[', '@':
-			if p.quote&allParamReg != 0 {
+		case '[', ']':
+			if p.lang != LangPOSIX && p.quote&allArithmExpr != 0 {
 				break loop
 			}
-			if r == '[' && p.lang != LangPOSIX && p.quote&allArithmExpr != 0 {
+			fallthrough
+		case '#', '@':
+			if p.quote&allParamReg != 0 {
 				break loop
 			}
 		case '\'', '+', '-', ' ', '\t', ';', '&', '>', '<', '|', '(', ')', '\n', '\r':

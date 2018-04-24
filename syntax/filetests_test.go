@@ -2214,13 +2214,17 @@ var fileTests = []testCase{
 		},
 	},
 	{
-		Strs: []string{
-			`${foo//#/}`,
-			`${foo//#}`,
-		},
+		Strs: []string{`${foo//#/}`, `${foo//#}`},
 		bsmk: &ParamExp{
 			Param: lit("foo"),
 			Repl:  &Replace{All: true, Orig: litWord("#")},
+		},
+	},
+	{
+		Strs: []string{`${foo//[42]/}`},
+		bsmk: &ParamExp{
+			Param: lit("foo"),
+			Repl:  &Replace{All: true, Orig: litWord("[42]")},
 		},
 	},
 	{
