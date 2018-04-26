@@ -270,18 +270,18 @@ func (p *Printer) newline(pos Pos) {
 	}
 	hdocs := p.pendingHdocs
 	p.pendingHdocs = p.pendingHdocs[:0]
+
+	// Reuse the last indentation level, as
+	// indentation levels are usually changed before
+	// newlines are printed along with their
+	// subsequent indentation characters.
+	newLevel := p.level
+	p.level = p.lastLevel
+
 	for _, r := range hdocs {
-		if r.Hdoc != nil {
-			if r.Op == DashHdoc && p.indentSpaces == 0 &&
-				!p.minify && p.tabsPrinter != nil {
-
-				// Reuse the last indentation level, as
-				// indentation levels are usually changed before
-				// newlines are printed along with their
-				// subsequent indentation characters.
-				newLevel := p.level
-				p.level = p.lastLevel
-
+		if r.Op == DashHdoc && p.indentSpaces == 0 &&
+			!p.minify && p.tabsPrinter != nil {
+			if r.Hdoc != nil {
 				extra := extraIndenter{
 					bufWriter: p.bufWriter,
 					afterNewl: true,
@@ -293,11 +293,12 @@ func (p *Printer) newline(pos Pos) {
 				p.tabsPrinter.line = r.Hdoc.Pos().Line()
 				p.tabsPrinter.word(r.Hdoc)
 				p.indent()
-
-				p.level = newLevel
+				p.line = r.Hdoc.End().Line()
 			} else {
-				p.word(r.Hdoc)
+				p.indent()
 			}
+		} else if r.Hdoc != nil {
+			p.word(r.Hdoc)
 			p.line = r.Hdoc.End().Line()
 		}
 		p.unquotedWord(r.Word)
@@ -305,6 +306,7 @@ func (p *Printer) newline(pos Pos) {
 		p.WriteByte('\n')
 		p.wantSpace = false
 	}
+	p.level = newLevel
 }
 
 func (p *Printer) newlines(pos Pos) {
@@ -983,7 +985,7 @@ func (p *Printer) ifClause(ic *IfClause, elif bool) {
 	}
 	p.nestedStmts(ic.Cond, Pos{})
 	p.semiOrNewl("then", ic.ThenPos)
-	p.nestedStmts(ic.Then, Pos{})
+	p.nestedStmts(ic.Then, ic.bodyEndPos())
 	if ic.FollowedByElif() {
 		p.semiRsrv("elif", ic.ElsePos, true)
 		p.ifClause(ic.Else.Stmts[0].Cmd.(*IfClause), true)
@@ -991,7 +993,7 @@ func (p *Printer) ifClause(ic *IfClause, elif bool) {
 	}
 	if !ic.Else.empty() {
 		p.semiRsrv("else", ic.ElsePos, true)
-		p.nestedStmts(ic.Else, Pos{})
+		p.nestedStmts(ic.Else, ic.FiPos)
 	} else if ic.ElsePos.IsValid() {
 		p.line = ic.ElsePos.Line()
 	}

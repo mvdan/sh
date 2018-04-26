@@ -1080,7 +1080,7 @@ var fileTests = []testCase{
 		},
 	},
 	{
-		Strs: []string{"if true; then foo <<-EOF\n\tbar\nEOF\nfi"},
+		Strs: []string{"if true; then\n\tfoo <<-EOF\n\t\tbar\n\tEOF\nfi"},
 		common: &IfClause{
 			Cond: litStmts("true"),
 			Then: stmtList(&Stmt{
@@ -1094,7 +1094,7 @@ var fileTests = []testCase{
 		},
 	},
 	{
-		Strs: []string{"if true; then foo <<-EOF\nEOF\nfi"},
+		Strs: []string{"if true; then\n\tfoo <<-EOF\n\tEOF\nfi"},
 		common: &IfClause{
 			Cond: litStmts("true"),
 			Then: stmtList(&Stmt{

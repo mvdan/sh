@@ -318,6 +318,13 @@ func (c *IfClause) FollowedByElif() bool {
 	return ic != nil && ic.Elif
 }
 
+func (c *IfClause) bodyEndPos() Pos {
+	if c.ElsePos.IsValid() {
+		return c.ElsePos
+	}
+	return c.FiPos
+}
+
 // WhileClause represents a while or an until clause.
 type WhileClause struct {
 	WhilePos, DoPos, DonePos Pos
