@@ -18,12 +18,17 @@ var printer = syntax.NewPrinter()
 var src = "echo 'foo'"
 var f = parser.Parse(src, "src.js")
 
-// what kind of command did we parse?
-var stmt = f.StmtList.Stmts[0]
-console.log(syntax.NodeType(stmt.Cmd)) // CallExpr
+// print out the syntax tree
+syntax.DebugPrint(f)
+console.log()
 
-// change 'foo' to 'bar'
-stmt.Cmd.Args[1].Parts[0].Value = "bar"
+// replace all single quoted string values
+syntax.Walk(f, function(node) {
+        if (syntax.NodeType(node) == "SglQuoted") {
+                node.Value = "bar"
+        }
+        return true
+})
 
 // print the code back out
 console.log(printer.Print(f)) // echo 'bar'

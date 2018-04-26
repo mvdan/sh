@@ -17,8 +17,15 @@ func main() {
 	exps.Set("syntax", map[string]interface{}{})
 
 	stx := exps.Get("syntax")
-	stx.Set("NodeType", func(node syntax.Node) string {
-		typ := fmt.Sprintf("%T", node)
+	stx.Set("NodeType", func(v interface{}) (typ string) {
+		if v == nil {
+			return "nil"
+		}
+		node, ok := v.(syntax.Node)
+		if !ok {
+			throw("NodeType requires a Node argument")
+		}
+		typ = fmt.Sprintf("%T", node)
 		if i := strings.LastIndexAny(typ, "*.]"); i >= 0 {
 			typ = typ[i+1:]
 		}
@@ -30,7 +37,16 @@ func main() {
 		return js.MakeWrapper(jsParser{p})
 	})
 
-	stx.Set("Walk", syntax.Walk)
+	stx.Set("Walk", func(node syntax.Node, jsFn func(*js.Object) bool) {
+		f := func(node syntax.Node) bool {
+			if node == nil {
+				return jsFn(nil)
+			}
+			return jsFn(js.MakeWrapper(node))
+		}
+		syntax.Walk(node, f)
+
+	})
 	stx.Set("DebugPrint", func(node syntax.Node) {
 		syntax.DebugPrint(os.Stdout, node)
 	})
