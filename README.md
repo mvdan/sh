@@ -81,8 +81,8 @@ $ echo '$((foo); (bar))' | shfmt
 ```
 
 * Some builtins like `export` and `let` are parsed as keywords. This is to allow
-  statically parsing them and building their AST, as opposed to just keeping the
-  arguments as a slice of arguments.
+  statically parsing them and building their syntax tree, as opposed to just
+  keeping the arguments as a slice of arguments.
 
 ### Related projects
 

@@ -4055,7 +4055,7 @@ var fileTests = []testCase{
 	},
 }
 
-// these don't have a canonical format with the same AST
+// these don't have a canonical format with the same syntax tree
 var fileTestsNoPrint = []testCase{
 	{
 		Strs:  []string{`$[foo]`},

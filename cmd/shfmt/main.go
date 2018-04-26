@@ -81,7 +81,7 @@ Printer options:
 Utilities:
 
   -f        recursively find all shell files and print the paths
-  -tojson   print AST to stdout as a typed JSON
+  -tojson   print syntax tree to stdout as a typed JSON
 `)
 	}
 	flag.Parse()

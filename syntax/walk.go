@@ -24,7 +24,7 @@ func walkWords(words []*Word, f func(Node) bool) {
 	}
 }
 
-// Walk traverses an AST in depth-first order: It starts by calling
+// Walk traverses a syntax tree in depth-first order: It starts by calling
 // f(node); node must not be nil. If f returns true, Walk invokes f
 // recursively for each of the non-nil children of node, followed by
 // f(nil).
@@ -225,7 +225,7 @@ func Walk(node Node, f func(Node) bool) {
 }
 
 // DebugPrint prints the provided syntax tree, spanning multiple lines and with
-// indentation. Can be useful to investigate the content of an AST.
+// indentation. Can be useful to investigate the content of a syntax tree.
 func DebugPrint(w io.Writer, node Node) error {
 	p := debugPrinter{out: w}
 	p.print(reflect.ValueOf(node))

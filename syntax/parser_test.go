@@ -286,7 +286,7 @@ func singleParse(p *Parser, in string, want *File) func(t *testing.T) {
 		}
 		clearPosRecurse(t, in, got)
 		if !reflect.DeepEqual(got, want) {
-			t.Fatalf("AST mismatch in %q\ndiff:\n%s", in,
+			t.Fatalf("syntax tree mismatch in %q\ndiff:\n%s", in,
 				strings.Join(pretty.Diff(want, got), "\n"),
 			)
 		}

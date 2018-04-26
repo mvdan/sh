@@ -56,7 +56,7 @@ func NewPrinter(options ...func(*Printer)) *Printer {
 	return p
 }
 
-// Print "pretty-prints" the given AST file to the given writer. Writes
+// Print "pretty-prints" the given syntax tree file to the given writer. Writes
 // to w are buffered.
 func (p *Printer) Print(w io.Writer, f *File) error {
 	p.reset()

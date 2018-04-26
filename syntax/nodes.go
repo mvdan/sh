@@ -5,7 +5,7 @@ package syntax
 
 import "fmt"
 
-// Node represents an AST node.
+// Node represents a syntax tree node.
 type Node interface {
 	// Pos returns the position of the first character of the node.
 	// Comments are ignored.
