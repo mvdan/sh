@@ -32,9 +32,9 @@ func TestPrintCompact(t *testing.T) {
 	}
 }
 
-func strPrint(p *Printer, f *File) (string, error) {
+func strPrint(p *Printer, node Node) (string, error) {
 	var buf bytes.Buffer
-	err := p.Print(&buf, f)
+	err := p.Print(&buf, node)
 	return buf.String(), err
 }
 
@@ -750,5 +750,42 @@ func printTest(t *testing.T, parser *Parser, printer *Printer, in, want string) 
 	_, err = parser.Parse(strings.NewReader(want), "")
 	if err != nil {
 		t.Fatalf("Result is not valid shell:\n%s", want)
+	}
+}
+
+func TestPrintNodeTypes(t *testing.T) {
+	var tests = [...]struct {
+		in   Node
+		want string
+	}{
+		{
+			&File{StmtList: litStmts("foo")},
+			"foo\n",
+		},
+		{
+			litStmt("foo", "bar"),
+			"foo bar",
+		},
+		{
+			litCall("foo", "bar"),
+			"foo bar",
+		},
+		{
+			litWord("foo"),
+			"foo",
+		},
+	}
+	printer := NewPrinter()
+	for i, tc := range tests {
+		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
+			got, err := strPrint(printer, tc.in)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got != tc.want {
+				t.Fatalf("Print mismatch:\nwant:\n%s\ngot:\n%s",
+					tc.want, got)
+			}
+		})
 	}
 }

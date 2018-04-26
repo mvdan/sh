@@ -56,13 +56,25 @@ func NewPrinter(options ...func(*Printer)) *Printer {
 	return p
 }
 
-// Print "pretty-prints" the given syntax tree file to the given writer. Writes
+// Print "pretty-prints" the given syntax tree node to the given writer. Writes
 // to w are buffered.
-func (p *Printer) Print(w io.Writer, f *File) error {
+//
+// The node types supported at the moment are *File, *Stmt, *Word, and any
+// Command node. A trailing newline will only be printed when a *File is used.
+func (p *Printer) Print(w io.Writer, node Node) error {
 	p.reset()
 	p.bufWriter.Reset(w)
-	p.stmts(f.StmtList)
-	p.newline(Pos{})
+	switch x := node.(type) {
+	case *File:
+		p.stmts(x.StmtList)
+		p.newline(Pos{})
+	case *Stmt:
+		p.stmt(x)
+	case *Word:
+		p.word(x)
+	case Command:
+		p.command(x, nil)
+	}
 	return p.bufWriter.Flush()
 }
 
