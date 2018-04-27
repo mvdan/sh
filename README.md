@@ -84,6 +84,11 @@ $ echo '$((foo); (bar))' | shfmt
   statically parsing them and building their syntax tree, as opposed to just
   keeping the arguments as a slice of arguments.
 
+### JavaScript
+
+A subset of the Go packages are available as an npm package called [mvdan-sh].
+See the [_js](_js) directory for more information.
+
 ### Related projects
 
 * [dockerised-shfmt] - A docker image of `shfmt`
@@ -103,6 +108,7 @@ $ echo '$((foo); (bar))' | shfmt
 [homebrew]: https://github.com/Homebrew/homebrew-core/blob/HEAD/Formula/shfmt.rb
 [micro]: https://micro-editor.github.io/
 [mksh]: https://www.mirbsd.org/mksh.htm
+[mvdan-sh]: https://www.npmjs.com/package/mvdan-sh
 [nixos]: https://github.com/NixOS/nixpkgs/blob/HEAD/pkgs/tools/text/shfmt/default.nix
 [posix shell]: http://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html
 [posix-ambiguity]: http://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_06_03
