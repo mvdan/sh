@@ -162,6 +162,8 @@ type Printer struct {
 
 	// used when printing <<- heredocs with tab indentation
 	tabsPrinter *Printer
+
+	firstStmt bool
 }
 
 func (p *Printer) reset() {
@@ -172,6 +174,7 @@ func (p *Printer) reset() {
 	p.levelIncs = p.levelIncs[:0]
 	p.nestedBinary = false
 	p.pendingHdocs = p.pendingHdocs[:0]
+	p.firstStmt = true
 }
 
 func (p *Printer) spaces(n uint) {
@@ -739,6 +742,7 @@ func (p *Printer) elemJoin(elems []*ArrayElem, last []Comment) {
 }
 
 func (p *Printer) stmt(s *Stmt) {
+	p.firstStmt = false
 	if s.Negated {
 		p.spacedString("!", s.Pos())
 	}
@@ -1051,7 +1055,7 @@ func (p *Printer) stmts(sl StmtList) {
 			p.line = pos.Line()
 			p.stmt(s)
 		} else {
-			if p.line > 0 || p.pendingComment != nil {
+			if !p.firstStmt || p.pendingComment != nil {
 				p.newlines(pos)
 			}
 			p.line = pos.Line()
@@ -1077,7 +1081,7 @@ func (p *Printer) stmts(sl StmtList) {
 			p.comment(c)
 		}
 		if p.minify && i == 0 && !p.wantSpace {
-		} else if p.line > 0 || p.pendingComment != nil {
+		} else if !p.firstStmt || p.pendingComment != nil {
 			p.newlines(pos)
 		}
 		p.line = pos.Line()

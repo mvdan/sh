@@ -763,6 +763,10 @@ func TestPrintNodeTypes(t *testing.T) {
 			"foo\n",
 		},
 		{
+			&File{StmtList: litStmts("foo", "bar")},
+			"foo\nbar\n",
+		},
+		{
 			litStmt("foo", "bar"),
 			"foo bar",
 		},
