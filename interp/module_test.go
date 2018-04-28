@@ -11,6 +11,7 @@ import (
 	"os"
 	"runtime"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -118,7 +119,20 @@ func TestRunnerModules(t *testing.T) {
 	}
 }
 
-func TestSignalSending(t *testing.T) {
+type readyBuffer struct {
+	buf       bytes.Buffer
+	seenReady sync.WaitGroup
+}
+
+func (b *readyBuffer) Write(p []byte) (n int, err error) {
+	if string(p) == "ready\n" {
+		b.seenReady.Done()
+		return len(p), nil
+	}
+	return b.buf.Write(p)
+}
+
+func TestKillTimeout(t *testing.T) {
 	if testing.Short() {
 		t.Skip("sleeps and timeouts are slow")
 	}
@@ -126,71 +140,81 @@ func TestSignalSending(t *testing.T) {
 		t.Skip("skipping trap tests on windows")
 	}
 	tests := []struct {
-		src            string
-		want           string
-		contextTimeout time.Duration
-		killTimeout    time.Duration
-		forcedKill     bool
+		src         string
+		want        string
+		killTimeout time.Duration
+		forcedKill  bool
 	}{
 		// killed immediately
 		{
-			`bash -c "trap 'echo trap' INT; sleep 0.1"`,
+			`bash -c "trap 'echo trapped; exit 0' INT; echo ready; for i in {1..100}; do sleep 0.01; done"`,
 			"",
-			50 * time.Millisecond,
 			-1,
 			true,
 		},
 		// interrupted first, and stops itself in time
 		{
-			`bash -c "trap 'echo trapped' INT; sleep 0.1"`,
+			`bash -c "trap 'echo trapped; exit 0' INT; echo ready; for i in {1..100}; do sleep 0.01; done"`,
 			"trapped\n",
-			50 * time.Millisecond,
 			time.Second,
 			false,
 		},
 		// interrupted first, but does not stop itself in time
 		{
-			`bash -c "trap 'echo trapped; while true; do sleep 0.01; done' INT; sleep 0.1"`,
+			`bash -c "trap 'echo trapped; for i in {1..100}; do sleep 0.01; done' INT; echo ready; for i in {1..100}; do sleep 0.01; done"`,
 			"trapped\n",
-			50 * time.Millisecond,
-			100 * time.Millisecond,
+			20 * time.Millisecond,
 			true,
 		},
 	}
 
 	for i := range tests {
 		test := tests[i]
-		t.Run(fmt.Sprintf("TestSignalSending%d", i+1), func(t *testing.T) {
+		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
 			t.Parallel()
 			p := syntax.NewParser()
 			file, err := p.Parse(strings.NewReader(test.src), "")
 			if err != nil {
 				t.Errorf("could not parse: %v", err)
 			}
-			var buff bytes.Buffer
-			ctx, _ := context.WithTimeout(context.Background(), test.contextTimeout)
-			r := Runner{
-				Context:     ctx,
-				Stdout:      &buff,
-				Stderr:      &buff,
-				KillTimeout: test.killTimeout,
-			}
-			if err = r.Reset(); err != nil {
-				t.Errorf("could not reset: %v", err)
-			}
-			err = r.Run(file)
-			if test.forcedKill {
-				if _, ok := err.(ExitCode); ok || err == nil {
-					t.Error("command was not force-killed")
+			attempt := 0
+			for {
+				var rbuf readyBuffer
+				rbuf.seenReady.Add(1)
+				ctx, cancel := context.WithCancel(context.Background())
+				r := Runner{
+					Context:     ctx,
+					Stdout:      &rbuf,
+					Stderr:      &rbuf,
+					KillTimeout: test.killTimeout,
 				}
-			} else {
-				if err != nil && err != context.Canceled && err != context.DeadlineExceeded {
-					t.Errorf("execution errored: %v", err)
+				if err = r.Reset(); err != nil {
+					t.Errorf("could not reset: %v", err)
 				}
-			}
-			got := buff.String()
-			if got != test.want {
-				t.Fatalf("want:\n%s\ngot:\n%s", test.want, got)
+				go func() {
+					rbuf.seenReady.Wait()
+					cancel()
+				}()
+				err = r.Run(file)
+				if test.forcedKill {
+					if _, ok := err.(ExitCode); ok || err == nil {
+						t.Error("command was not force-killed")
+					}
+				} else {
+					if err != nil && err != context.Canceled && err != context.DeadlineExceeded {
+						t.Errorf("execution errored: %v", err)
+					}
+				}
+				got := rbuf.buf.String()
+				if got != test.want {
+					if attempt < 3 && got == "" && test.killTimeout > 0 {
+						attempt++
+						test.killTimeout *= 2
+						continue
+					}
+					t.Fatalf("want:\n%s\ngot:\n%s", test.want, got)
+				}
+				break
 			}
 		})
 	}

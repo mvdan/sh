@@ -77,6 +77,9 @@ func DefaultExec(ctx Ctxt, path string, args []string) error {
 					return
 				}
 
+				// TODO: don't temporarily leak this goroutine
+				// if the program stops itself with the
+				// interrupt.
 				go func() {
 					time.Sleep(ctx.KillTimeout)
 					_ = cmd.Process.Signal(os.Kill)

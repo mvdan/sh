@@ -108,8 +108,8 @@ func (f FuncEnviron) Get(name string) (string, bool) {
 
 func (f FuncEnviron) Set(name, value string) {}
 func (f FuncEnviron) Delete(name string)     {}
-func (f FuncEnviron) Names() []string { return nil }
-func (f FuncEnviron) Copy() Environ { return f }
+func (f FuncEnviron) Names() []string        { return nil }
+func (f FuncEnviron) Copy() Environ          { return f }
 
 type Variable struct {
 	Local    bool
