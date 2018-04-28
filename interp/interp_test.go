@@ -1497,16 +1497,8 @@ var fileCases = []struct {
 	},
 	{"set -o noexec; echo foo", ""},
 	{"set +o noexec; echo foo", "foo\n"},
-	{
-		"set -e; set -o",
-		`allexport:	off
-errexit:	on
-noexec:	off
-noglob:	off
-nounset:	off
-pipefail:	off
- #IGNORE`,
-	},
+	{"set -e; set -o | grep -E 'errexit|noexec' | wc -l", "2\n"},
+	{"set -e; set -o | grep -E 'errexit|noexec' | grep 'on$' | wc -l", "1\n"},
 	{
 		"set -a; set +o",
 		`set -o allexport
@@ -1555,6 +1547,14 @@ set +o pipefail
 		`a=b eval 'echo $a; unset a; echo $a'`,
 		"b\n\n",
 	},
+
+	// shopt
+	{"set -e; shopt -o | grep -E 'errexit|noexec' | wc -l", "2\n"},
+	{"set -e; shopt -o | grep -E 'errexit|noexec' | grep 'on$' | wc -l", "1\n"},
+	{"shopt -s -o noexec; echo foo", ""},
+	{"shopt -u -o noexec; echo foo", "foo\n"},
+	{"shopt -u globstar; shopt globstar | grep 'off$' | wc -l", "1\n"},
+	{"shopt -s globstar; shopt globstar | grep 'off$' | wc -l", "0\n"},
 
 	// IFS
 	{`echo -n "$IFS"`, " \t\n"},

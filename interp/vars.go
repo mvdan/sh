@@ -154,7 +154,7 @@ func (r *Runner) lookupVar(name string) (Variable, bool) {
 			return Variable{Value: StringVal(str)}, true
 		}
 	}
-	if r.shellOpts[optNoUnset] {
+	if r.opts[optNoUnset] {
 		r.errf("%s: unbound variable\n", name)
 		r.exit = 1
 		r.lastExit()
@@ -257,7 +257,7 @@ func (r *Runner) setVarString(name, val string) {
 
 func (r *Runner) setVarInternal(name string, vr Variable) {
 	if _, ok := vr.Value.(StringVal); ok {
-		if r.shellOpts[optAllExport] {
+		if r.opts[optAllExport] {
 			vr.Exported = true
 		}
 	} else {

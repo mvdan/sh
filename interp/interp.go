@@ -77,7 +77,7 @@ type Runner struct {
 	// Context can be used to cancel the interpreter before it finishes
 	Context context.Context
 
-	shellOpts [len(shellOptsTable)]bool
+	opts [len(shellOptsTable) + len(bashOptsTable)]bool
 
 	dirStack []string
 
@@ -118,16 +118,23 @@ func (r *Runner) strBuilder() *bytes.Buffer {
 func (r *Runner) optByFlag(flag string) *bool {
 	for i, opt := range shellOptsTable {
 		if opt.flag == flag {
-			return &r.shellOpts[i]
+			return &r.opts[i]
 		}
 	}
 	return nil
 }
 
-func (r *Runner) optByName(name string) *bool {
+func (r *Runner) optByName(name string, bash bool) *bool {
+	if bash {
+		for i, optName := range bashOptsTable {
+			if optName == name {
+				return &r.opts[len(shellOptsTable)+i]
+			}
+		}
+	}
 	for i, opt := range shellOptsTable {
 		if opt.name == name {
-			return &r.shellOpts[i]
+			return &r.opts[i]
 		}
 	}
 	return nil
@@ -146,8 +153,14 @@ var shellOptsTable = [...]struct {
 	{" ", "pipefail"},
 }
 
+var bashOptsTable = [...]string{
+	// sorted alphabetically by name
+	"globstar",
+}
+
 // To access the shell options arrays without a linear search when we
-// know which option we're after at compile time.
+// know which option we're after at compile time. First come the shell options,
+// then the bash options.
 const (
 	optAllExport = iota
 	optErrExit
@@ -155,6 +168,8 @@ const (
 	optNoGlob
 	optNoUnset
 	optPipeFail
+
+	optGlobStar
 )
 
 // Reset will set the unexported fields back to zero, fill any exported
@@ -299,25 +314,21 @@ func (r *Runner) FromArgs(args ...string) ([]string, error) {
 			args = args[1:]
 			if len(args) == 0 && enable {
 				for i, opt := range shellOptsTable {
-					status := "off"
-					if r.shellOpts[i] {
-						status = "on"
-					}
-					r.outf("%s:\t%s\n", opt.name, status)
+					r.printOptLine(opt.name, r.opts[i])
 				}
 				break
 			}
 			if len(args) == 0 && !enable {
 				for i, opt := range shellOptsTable {
 					setFlag := "+o"
-					if r.shellOpts[i] {
+					if r.opts[i] {
 						setFlag = "-o"
 					}
 					r.outf("set %s %s\n", setFlag, opt.name)
 				}
 				break
 			}
-			opt = r.optByName(args[0])
+			opt = r.optByName(args[0], false)
 		} else {
 			opt = r.optByFlag(flag)
 		}
@@ -376,7 +387,7 @@ func (r *Runner) stop() bool {
 		r.err = err
 		return true
 	}
-	if r.shellOpts[optNoExec] {
+	if r.opts[optNoExec] {
 		return true
 	}
 	return false
@@ -418,7 +429,7 @@ func (r *Runner) stmtSync(st *syntax.Stmt) {
 	if st.Negated {
 		r.exit = oneIf(r.exit == 0)
 	}
-	if r.exit != 0 && r.shellOpts[optErrExit] {
+	if r.exit != 0 && r.opts[optErrExit] {
 		r.lastExit()
 	}
 	if !r.keepRedirs {
@@ -514,7 +525,7 @@ func (r *Runner) cmd(cm syntax.Command) {
 			r.stmt(x.Y)
 			pr.Close()
 			wg.Wait()
-			if r.shellOpts[optPipeFail] && r2.exit > 0 && r.exit == 0 {
+			if r.opts[optPipeFail] && r2.exit > 0 && r.exit == 0 {
 				r.exit = r2.exit
 			}
 			r.setErr(r2.err)
