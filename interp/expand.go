@@ -411,36 +411,34 @@ func findAllIndex(pattern, name string, n int) [][]int {
 	return rx.FindAllStringIndex(name, n)
 }
 
-func glob(pattern string) []string {
-	dir, file := filepath.Split(pattern)
-	// TODO: special case for windows, like in filepath.Glob?
-	dir = cleanGlobPath(dir)
-
-	expr, err := syntax.TranslatePattern(file, true)
-	if err != nil {
-		return nil
+func hasGlob(path string) bool {
+	magicChars := `*?[`
+	if runtime.GOOS != "windows" {
+		magicChars = `*?[\`
 	}
-	rx := regexp.MustCompile("^" + expr + "$")
-	if !hasGlob(dir) {
-		return globDir(dir, rx, nil)
-	}
-
-	var matches []string
-	for _, d := range glob(dir) {
-		matches = globDir(d, rx, matches)
-	}
-	return matches
+	return strings.ContainsAny(path, magicChars)
 }
 
-func cleanGlobPath(path string) string {
-	switch path {
-	case "":
-		return "."
-	case string(filepath.Separator):
-		return path
-	default:
-		return path[:len(path)-1]
+func glob(pattern string) []string {
+	parts := strings.Split(pattern, string(filepath.Separator))
+	matches := []string{"."}
+	if parts[0] == "" {
+		parts = parts[1:]
+		matches[0] = string(filepath.Separator)
 	}
+	for _, part := range parts {
+		expr, err := syntax.TranslatePattern(part, true)
+		if err != nil {
+			return nil
+		}
+		rx := regexp.MustCompile("^" + expr + "$")
+		var newMatches []string
+		for _, dir := range matches {
+			newMatches = globDir(dir, rx, newMatches)
+		}
+		matches = newMatches
+	}
+	return matches
 }
 
 func globDir(dir string, rx *regexp.Regexp, matches []string) []string {
@@ -462,12 +460,4 @@ func globDir(dir string, rx *regexp.Regexp, matches []string) []string {
 		}
 	}
 	return matches
-}
-
-func hasGlob(path string) bool {
-	magicChars := `*?[`
-	if runtime.GOOS != "windows" {
-		magicChars = `*?[\`
-	}
-	return strings.ContainsAny(path, magicChars)
 }
