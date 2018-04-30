@@ -1902,6 +1902,18 @@ set +o pipefail
 		`mkdir d; touch d/.hidden d/a; set -- "$(echo d/*)" "$(echo d/.h*)"; echo ${#1} ${#2}; rm -r d`,
 		"3 9\n",
 	},
+	{
+		"mkdir -p a/b/c; echo a/** | sed 's@\\\\@/@'",
+		"a/b\n",
+	},
+	{
+		"shopt -s globstar; mkdir -p a/b/c; echo a/** | sed 's@\\\\@/@'",
+		"a/ a/b a/b/c\n",
+	},
+	{
+		"shopt -s globstar; mkdir -p a/b/c; echo **/c | sed 's@\\\\@/@'",
+		"a/b/c\n",
+	},
 
 	// brace expansion; more exhaustive tests in the syntax package
 	{"echo a}b", "a}b\n"},

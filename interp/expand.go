@@ -149,7 +149,7 @@ func (r *Runner) Fields(words ...*syntax.Word) []string {
 					if !abs {
 						path = filepath.Join(baseDir, path)
 					}
-					matches = glob(path)
+					matches = glob(path, r.opts[optGlobStar])
 				}
 				if len(matches) == 0 {
 					fields = append(fields, r.fieldJoin(field))
@@ -157,7 +157,11 @@ func (r *Runner) Fields(words ...*syntax.Word) []string {
 				}
 				for _, match := range matches {
 					if !abs {
+						endSeparator := strings.HasSuffix(match, string(filepath.Separator))
 						match, _ = filepath.Rel(r.Dir, match)
+						if endSeparator {
+							match += string(filepath.Separator)
+						}
 					}
 					fields = append(fields, match)
 				}
@@ -419,7 +423,9 @@ func hasGlob(path string) bool {
 	return strings.ContainsAny(path, magicChars)
 }
 
-func glob(pattern string) []string {
+var rxGlobStar = regexp.MustCompile(".*")
+
+func glob(pattern string, globStar bool) []string {
 	parts := strings.Split(pattern, string(filepath.Separator))
 	matches := []string{"."}
 	if parts[0] == "" {
@@ -427,6 +433,30 @@ func glob(pattern string) []string {
 		matches[0] = string(filepath.Separator)
 	}
 	for _, part := range parts {
+		if part == "**" && globStar {
+			for i := range matches {
+				// "a/**" should match "a/ a/b a/b/c ..."; note
+				// how the zero-match case has a trailing
+				// separator.
+				matches[i] += string(filepath.Separator)
+			}
+			// expand all the possible levels of **
+			latest := matches
+			for {
+				var newMatches []string
+				for _, dir := range latest {
+					newMatches = globDir(dir, rxGlobStar, newMatches)
+				}
+				if len(newMatches) == 0 {
+					// not another level of directories to
+					// try; stop
+					break
+				}
+				matches = append(matches, newMatches...)
+				latest = newMatches
+			}
+			continue
+		}
 		expr, err := syntax.TranslatePattern(part, true)
 		if err != nil {
 			return nil
