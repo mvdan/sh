@@ -4,7 +4,7 @@ clone_folder: c:\gopath\src\mvdan.cc\sh
 
 environment:
   GOPATH: c:\gopath
-  GOVERSION: 1.10
+  GOVERSION: 1.10.2
 
 install:
   - rmdir c:\go /s /q
