@@ -1883,11 +1883,11 @@ set +o pipefail
 		"*.x\nfoo *.y bar\n",
 	},
 	{
-		"mkdir a; touch a/b.x; echo */*.x | sed 's@\\\\@/@'; cd a; echo *.x",
+		"mkdir a; touch a/b.x; echo */*.x | sed 's@\\\\@/@g'; cd a; echo *.x",
 		"a/b.x\nb.x\n",
 	},
 	{
-		"mkdir -p a/b/c; echo a/* | sed 's@\\\\@/@'",
+		"mkdir -p a/b/c; echo a/* | sed 's@\\\\@/@g'",
 		"a/b\n",
 	},
 	{
@@ -1903,15 +1903,15 @@ set +o pipefail
 		"3 9\n",
 	},
 	{
-		"mkdir -p a/b/c; echo a/** | sed 's@\\\\@/@'",
+		"mkdir -p a/b/c; echo a/** | sed 's@\\\\@/@g'",
 		"a/b\n",
 	},
 	{
-		"shopt -s globstar; mkdir -p a/b/c; echo a/** | sed 's@\\\\@/@'",
+		"shopt -s globstar; mkdir -p a/b/c; echo a/** | sed 's@\\\\@/@g'",
 		"a/ a/b a/b/c\n",
 	},
 	{
-		"shopt -s globstar; mkdir -p a/b/c; echo **/c | sed 's@\\\\@/@'",
+		"shopt -s globstar; mkdir -p a/b/c; echo **/c | sed 's@\\\\@/@g'",
 		"a/b/c\n",
 	},
 

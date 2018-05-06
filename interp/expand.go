@@ -428,9 +428,16 @@ var rxGlobStar = regexp.MustCompile(".*")
 func glob(pattern string, globStar bool) []string {
 	parts := strings.Split(pattern, string(filepath.Separator))
 	matches := []string{"."}
-	if parts[0] == "" {
+	if filepath.IsAbs(pattern) {
+		if parts[0] == "" {
+			// unix-like
+			matches[0] = string(filepath.Separator)
+		} else {
+			// windows (for some reason it won't work without the
+			// trailing separator)
+			matches[0] = parts[0] + string(filepath.Separator)
+		}
 		parts = parts[1:]
-		matches[0] = string(filepath.Separator)
 	}
 	for _, part := range parts {
 		if part == "**" && globStar {
