@@ -1735,9 +1735,12 @@ func (p *Parser) wordIter(ftok string, fpos Pos) *WordIter {
 	if wi.Name = p.getLit(); wi.Name == nil {
 		p.followErr(fpos, ftok, "a literal")
 	}
-	if p.got(_Newl) {
-		// same as if we saw a semicolon
-	} else if _, ok := p.gotRsrv("in"); ok {
+	if p.got(semicolon) {
+		p.got(_Newl)
+		return wi
+	}
+	p.got(_Newl)
+	if _, ok := p.gotRsrv("in"); ok {
 		for !stopToken(p.tok) {
 			if w := p.getWord(); w == nil {
 				p.curErr("word list can only contain words")
@@ -1746,8 +1749,6 @@ func (p *Parser) wordIter(ftok string, fpos Pos) *WordIter {
 			}
 		}
 		p.got(semicolon)
-		p.got(_Newl)
-	} else if p.got(semicolon) {
 		p.got(_Newl)
 	} else if p.tok == _LitWord && p.val == "do" {
 	} else {
@@ -2005,9 +2006,8 @@ func isBashCompoundCommand(tok token, val string) bool {
 func (p *Parser) timeClause() *TimeClause {
 	tc := &TimeClause{Time: p.pos}
 	p.next()
-	if p.tok == _LitWord && p.val == "-p" {
+	if _, ok := p.gotRsrv("-p"); ok {
 		tc.PosixFormat = true
-		p.next()
 	}
 	tc.Stmt = p.gotStmtPipe(p.stmt(p.pos))
 	return tc

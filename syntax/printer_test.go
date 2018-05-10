@@ -14,9 +14,9 @@ import (
 
 func TestPrintCompact(t *testing.T) {
 	t.Parallel()
-	parserBash := NewParser()
-	parserPosix := NewParser(Variant(LangPOSIX))
-	parserMirBSD := NewParser(Variant(LangMirBSDKorn))
+	parserBash := NewParser(KeepComments)
+	parserPosix := NewParser(KeepComments, Variant(LangPOSIX))
+	parserMirBSD := NewParser(KeepComments, Variant(LangMirBSDKorn))
 	printer := NewPrinter()
 	for i, c := range fileTests {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {

@@ -412,6 +412,22 @@ var fileTests = []testCase{
 	},
 	{
 		Strs: []string{
+			"for i in \\\n\t1 2 3; do #foo\n\techo $i\ndone",
+			"for i #foo\n\tin 1 2 3; do\n\techo $i\ndone",
+		},
+		common: &ForClause{
+			Loop: &WordIter{
+				Name:  lit("i"),
+				Items: litWords("1", "2", "3"),
+			},
+			Do: stmts(call(
+				litWord("echo"),
+				word(litParamExp("i")),
+			)),
+		},
+	},
+	{
+		Strs: []string{
 			"for ((i = 0; i < 10; i++)); do echo $i; done",
 			"for ((i=0;i<10;i++)) do echo $i; done",
 			"for (( i = 0 ; i < 10 ; i++ ))\ndo echo $i\ndone",
