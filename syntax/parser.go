@@ -711,6 +711,12 @@ func (p *Parser) wordPart() WordPart {
 		pe := &ParamExp{Dollar: p.pos, Short: true}
 		p.pos = posAddCol(p.pos, 1)
 		pe.Param = p.getLit()
+		if pe.Param != nil && pe.Param.Value == "" {
+			// e.g. "$\\\n", which we can't detect above
+			l := p.lit(pe.Dollar, "$")
+			p.next()
+			return l
+		}
 		return pe
 	case cmdIn, cmdOut:
 		p.ensureNoNested()

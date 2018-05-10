@@ -2721,6 +2721,10 @@ var fileTests = []testCase{
 		common: word(lit("foo"), lit("$")),
 	},
 	{
+		Strs:   []string{"foo$", "foo$\\\n"},
+		common: word(lit("foo"), lit("$")),
+	},
+	{
 		Strs:  []string{`$''`},
 		bsmk:  sglDQuoted(""),
 		posix: word(lit("$"), sglQuoted("")),
