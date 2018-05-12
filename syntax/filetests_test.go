@@ -4223,6 +4223,9 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 			}
 		}
 		recurse(x.Comments)
+		if src[x.Position.Offset()] == '#' {
+			tb.Fatalf("Stmt.Pos() should not be a comment")
+		}
 		setPos(&x.Position)
 		if x.Semicolon.IsValid() {
 			setPos(&x.Semicolon, ";", "&", "|&")

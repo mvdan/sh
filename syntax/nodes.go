@@ -8,11 +8,11 @@ import "fmt"
 // Node represents a syntax tree node.
 type Node interface {
 	// Pos returns the position of the first character of the node. Comments
-	// are ignored.
+	// are ignored, except if the node is a *File.
 	Pos() Pos
 	// End returns the position of the character immediately after the node.
 	// If the character is a newline, the line number won't cross into the
-	// next line. Comments are ignored.
+	// next line. Comments are ignored, except if the node is a *File.
 	End() Pos
 }
 
@@ -32,7 +32,14 @@ type StmtList struct {
 
 func (s StmtList) pos() Pos {
 	if len(s.Stmts) > 0 {
-		return s.Stmts[0].Pos()
+		s := s.Stmts[0]
+		sPos := s.Pos()
+		if len(s.Comments) > 0 {
+			if cPos := s.Comments[0].Pos(); sPos.After(cPos) {
+				return cPos
+			}
+		}
+		return sPos
 	}
 	if len(s.Last) > 0 {
 		return s.Last[0].Pos()
@@ -45,7 +52,14 @@ func (s StmtList) end() Pos {
 		return s.Last[len(s.Last)-1].End()
 	}
 	if len(s.Stmts) > 0 {
-		return s.Stmts[len(s.Stmts)-1].End()
+		s := s.Stmts[len(s.Stmts)-1]
+		sEnd := s.End()
+		if len(s.Comments) > 0 {
+			if cEnd := s.Comments[0].End(); cEnd.After(sEnd) {
+				return cEnd
+			}
+		}
+		return sEnd
 	}
 	return Pos{}
 }
@@ -83,19 +97,8 @@ func (p Pos) IsValid() bool { return p.line > 0 }
 // version of p.Offset() > p2.Offset().
 func (p Pos) After(p2 Pos) bool { return p.offs > p2.offs }
 
-func (f *File) Pos() Pos {
-	if len(f.Stmts) == 0 {
-		return Pos{}
-	}
-	return f.Stmts[0].Pos()
-}
-
-func (f *File) End() Pos {
-	if len(f.Stmts) == 0 {
-		return Pos{}
-	}
-	return f.Stmts[len(f.Stmts)-1].End()
-}
+func (f *File) Pos() Pos { return f.StmtList.pos() }
+func (f *File) End() Pos { return f.StmtList.end() }
 
 func posAddCol(p Pos, n int) Pos {
 	p.col += uint16(n)

@@ -11,9 +11,9 @@ import (
 
 func TestPosition(t *testing.T) {
 	t.Parallel()
-	parserBash := NewParser()
-	parserPosix := NewParser(Variant(LangPOSIX))
-	parserMirBSD := NewParser(Variant(LangMirBSDKorn))
+	parserBash := NewParser(KeepComments)
+	parserPosix := NewParser(KeepComments, Variant(LangPOSIX))
+	parserMirBSD := NewParser(KeepComments, Variant(LangMirBSDKorn))
 	for i, c := range fileTests {
 		for j, in := range c.Strs {
 			t.Run(fmt.Sprintf("%03d-%d", i, j), func(t *testing.T) {
@@ -51,6 +51,14 @@ func (v *posWalker) Visit(n Node) bool {
 	p := n.Pos()
 	if !p.IsValid() && len(v.f.Stmts) > 0 {
 		v.t.Fatalf("Invalid Pos")
+	}
+	if c, ok := n.(*Comment); ok {
+		if v.f.Pos().After(c.Pos()) {
+			v.t.Fatalf("A Comment is before its File")
+		}
+		if c.End().After(v.f.End()) {
+			v.t.Fatalf("A Comment is after its File")
+		}
 	}
 	return true
 }
