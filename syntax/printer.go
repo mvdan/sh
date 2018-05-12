@@ -838,9 +838,9 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		} else {
 			p.spacedString("while", x.Pos())
 		}
-		p.nestedStmts(x.Cond, Pos{})
+		p.nestedStmts(x.Cond, x.DoPos)
 		p.semiOrNewl("do", x.DoPos)
-		p.nestedStmts(x.Do, Pos{})
+		p.nestedStmts(x.Do, x.DonePos)
 		p.semiRsrv("done", x.DonePos, true)
 	case *ForClause:
 		if x.Select {
@@ -1182,17 +1182,16 @@ func (p *Printer) stmtCols(s *Stmt) int {
 
 func (p *Printer) nestedStmts(sl StmtList, closing Pos) {
 	p.incLevel()
-	// TODO: can likely move this logic to p.stmts
-	switch len(sl.Stmts) {
-	case 0:
-	case 1:
-		s := sl.Stmts[0]
-		if closing.Line() > p.line && s.End().Line() <= p.line {
-			p.newline(s.Pos())
-			p.indent()
-		}
-	default:
+	if len(sl.Stmts) > 1 {
+		// Force a newline if we find:
+		//     { stmt; stmt; }
 		p.wantNewline = true
+	} else if closing.Line() > p.line && sl.end().Line() <= p.line {
+		// Force a newline if we find:
+		//     { stmt
+		//     }
+		p.newline(sl.pos())
+		p.indent()
 	}
 	p.stmts(sl)
 	if closing.IsValid() {
