@@ -1479,15 +1479,15 @@ func (p *Parser) gotStmtPipe(s *Stmt) *Stmt {
 	case _LitWord:
 		switch p.val {
 		case "{":
-			s.Cmd = p.block()
+			p.block(s)
 		case "if":
-			s.Cmd = p.ifClause()
+			p.ifClause(s)
 		case "while", "until":
-			s.Cmd = p.whileClause(p.val == "until")
+			p.whileClause(s, p.val == "until")
 		case "for":
-			s.Cmd = p.forClause()
+			p.forClause(s)
 		case "case":
-			s.Cmd = p.caseClause()
+			p.caseClause(s)
 		case "}":
 			p.curErr(`%q can only be used to close a block`, p.val)
 		case "then":
@@ -1509,7 +1509,7 @@ func (p *Parser) gotStmtPipe(s *Stmt) *Stmt {
 			}
 		case "[[":
 			if p.lang != LangPOSIX {
-				s.Cmd = p.testClause()
+				p.testClause(s)
 			}
 		case "]]":
 			if p.lang != LangPOSIX {
@@ -1518,38 +1518,38 @@ func (p *Parser) gotStmtPipe(s *Stmt) *Stmt {
 			}
 		case "let":
 			if p.lang != LangPOSIX {
-				s.Cmd = p.letClause()
+				p.letClause(s)
 			}
 		case "function":
 			if p.lang != LangPOSIX {
-				s.Cmd = p.bashFuncDecl()
+				p.bashFuncDecl(s)
 			}
 		case "declare":
 			if p.lang == LangBash {
-				s.Cmd = p.declClause()
+				p.declClause(s)
 			}
 		case "local", "export", "readonly", "typeset", "nameref":
 			if p.lang != LangPOSIX {
-				s.Cmd = p.declClause()
+				p.declClause(s)
 			}
 		case "time":
 			if p.lang != LangPOSIX {
-				s.Cmd = p.timeClause()
+				p.timeClause(s)
 			}
 		case "coproc":
 			if p.lang == LangBash {
-				s.Cmd = p.coprocClause()
+				p.coprocClause(s)
 			}
 		case "select":
 			if p.lang != LangPOSIX {
-				s.Cmd = p.selectClause()
+				p.selectClause(s)
 			}
 		}
 		if s.Cmd != nil {
 			break
 		}
 		if p.hasValidIdent() {
-			s.Cmd = p.callExpr(s, nil, true)
+			p.callExpr(s, nil, true)
 			break
 		}
 		name := p.lit(p.pos, p.val)
@@ -1558,14 +1558,14 @@ func (p *Parser) gotStmtPipe(s *Stmt) *Stmt {
 			if p.lang == LangPOSIX && !ValidName(name.Value) {
 				p.posErr(name.Pos(), "invalid func name")
 			}
-			s.Cmd = p.funcDecl(name, name.ValuePos)
+			p.funcDecl(s, name, name.ValuePos)
 		} else {
-			s.Cmd = p.callExpr(s, p.word(p.wps(name)), false)
+			p.callExpr(s, p.word(p.wps(name)), false)
 		}
 	case rdrOut, appOut, rdrIn, dplIn, dplOut, clbOut, rdrInOut,
 		hdoc, dashHdoc, wordHdoc, rdrAll, appAll, _LitRedir:
 		p.doRedirect(s)
-		s.Cmd = p.callExpr(s, nil, false)
+		p.callExpr(s, nil, false)
 	case bckQuote:
 		if p.backquoteEnd() {
 			return nil
@@ -1575,18 +1575,18 @@ func (p *Parser) gotStmtPipe(s *Stmt) *Stmt {
 		sglQuote, dollSglQuote, dblQuote, dollDblQuote, dollBrack,
 		globQuest, globStar, globPlus, globAt, globExcl:
 		if p.hasValidIdent() {
-			s.Cmd = p.callExpr(s, nil, true)
+			p.callExpr(s, nil, true)
 			break
 		}
 		w := p.word(p.wordParts())
 		if p.got(leftParen) && p.err == nil {
 			p.posErr(w.Pos(), "invalid func name")
 		}
-		s.Cmd = p.callExpr(s, w, false)
+		p.callExpr(s, w, false)
 	case leftParen:
-		s.Cmd = p.subshell()
+		p.subshell(s)
 	case dblLeftParen:
-		s.Cmd = p.arithmExpCmd()
+		p.arithmExpCmd(s)
 	default:
 		if len(s.Redirs) == 0 {
 			return nil
@@ -1619,17 +1619,17 @@ func (p *Parser) gotStmtPipe(s *Stmt) *Stmt {
 	return s
 }
 
-func (p *Parser) subshell() *Subshell {
-	s := &Subshell{Lparen: p.pos}
+func (p *Parser) subshell(s *Stmt) {
+	sub := &Subshell{Lparen: p.pos}
 	old := p.preNested(subCmd)
 	p.next()
-	s.StmtList = p.stmtList()
+	sub.StmtList = p.stmtList()
 	p.postNested(old)
-	s.Rparen = p.matched(s.Lparen, leftParen, rightParen)
-	return s
+	sub.Rparen = p.matched(sub.Lparen, leftParen, rightParen)
+	s.Cmd = sub
 }
 
-func (p *Parser) arithmExpCmd() Command {
+func (p *Parser) arithmExpCmd(s *Stmt) {
 	ar := &ArithmCmd{Left: p.pos}
 	old := p.preNested(arithmExprCmd)
 	p.next()
@@ -1641,10 +1641,10 @@ func (p *Parser) arithmExpCmd() Command {
 	}
 	ar.X = p.followArithm(dblLeftParen, ar.Left)
 	ar.Right = p.arithmEnd(dblLeftParen, ar.Left, old)
-	return ar
+	s.Cmd = ar
 }
 
-func (p *Parser) block() *Block {
+func (p *Parser) block(s *Stmt) {
 	b := &Block{Lbrace: p.pos}
 	p.next()
 	b.StmtList = p.stmtList("}")
@@ -1653,10 +1653,10 @@ func (p *Parser) block() *Block {
 	if !ok {
 		p.matchingErr(b.Lbrace, "{", "}")
 	}
-	return b
+	s.Cmd = b
 }
 
-func (p *Parser) ifClause() *IfClause {
+func (p *Parser) ifClause(s *Stmt) {
 	rif := &IfClause{IfPos: p.pos}
 	p.next()
 	rif.Cond = p.followStmts("if", rif.IfPos, "then")
@@ -1681,10 +1681,10 @@ func (p *Parser) ifClause() *IfClause {
 	}
 	rif.FiPos = p.stmtEnd(rif, "if", "fi")
 	curIf.FiPos = rif.FiPos
-	return rif
+	s.Cmd = rif
 }
 
-func (p *Parser) whileClause(until bool) *WhileClause {
+func (p *Parser) whileClause(s *Stmt, until bool) {
 	wc := &WhileClause{WhilePos: p.pos, Until: until}
 	rsrv := "while"
 	rsrvCond := "while <cond>"
@@ -1697,17 +1697,17 @@ func (p *Parser) whileClause(until bool) *WhileClause {
 	wc.DoPos = p.followRsrv(wc.WhilePos, rsrvCond, "do")
 	wc.Do = p.followStmts("do", wc.DoPos, "done")
 	wc.DonePos = p.stmtEnd(wc, rsrv, "done")
-	return wc
+	s.Cmd = wc
 }
 
-func (p *Parser) forClause() *ForClause {
+func (p *Parser) forClause(s *Stmt) {
 	fc := &ForClause{ForPos: p.pos}
 	p.next()
 	fc.Loop = p.loop(fc.ForPos)
 	fc.DoPos = p.followRsrv(fc.ForPos, "for foo [in words]", "do")
 	fc.Do = p.followStmts("do", fc.DoPos, "done")
 	fc.DonePos = p.stmtEnd(fc, "for", "done")
-	return fc
+	s.Cmd = fc
 }
 
 func (p *Parser) loop(fpos Pos) Loop {
@@ -1763,17 +1763,17 @@ func (p *Parser) wordIter(ftok string, fpos Pos) *WordIter {
 	return wi
 }
 
-func (p *Parser) selectClause() *ForClause {
+func (p *Parser) selectClause(s *Stmt) {
 	fc := &ForClause{ForPos: p.pos, Select: true}
 	p.next()
 	fc.Loop = p.wordIter("select", fc.ForPos)
 	fc.DoPos = p.followRsrv(fc.ForPos, "select foo [in words]", "do")
 	fc.Do = p.followStmts("do", fc.DoPos, "done")
 	fc.DonePos = p.stmtEnd(fc, "select", "done")
-	return fc
+	s.Cmd = fc
 }
 
-func (p *Parser) caseClause() *CaseClause {
+func (p *Parser) caseClause(s *Stmt) {
 	cc := &CaseClause{Case: p.pos}
 	p.next()
 	cc.Word = p.followWord("case", cc.Case)
@@ -1790,7 +1790,7 @@ func (p *Parser) caseClause() *CaseClause {
 	cc.Items = p.caseItems(end)
 	cc.Last, p.accComs = p.accComs, nil
 	cc.Esac = p.stmtEnd(cc, "case", end)
-	return cc
+	s.Cmd = cc
 }
 
 func (p *Parser) caseItems(stop string) (items []*CaseItem) {
@@ -1841,7 +1841,7 @@ func (p *Parser) caseItems(stop string) (items []*CaseItem) {
 	return
 }
 
-func (p *Parser) testClause() *TestClause {
+func (p *Parser) testClause(s *Stmt) {
 	tc := &TestClause{Left: p.pos}
 	p.next()
 	if _, ok := p.gotRsrv("]]"); ok || p.tok == _EOF {
@@ -1852,7 +1852,7 @@ func (p *Parser) testClause() *TestClause {
 	if _, ok := p.gotRsrv("]]"); !ok {
 		p.matchingErr(tc.Left, "[[", "]]")
 	}
-	return tc
+	s.Cmd = tc
 }
 
 func (p *Parser) testExpr(ftok token, fpos Pos, pastAndOr bool) TestExpr {
@@ -1965,7 +1965,7 @@ func (p *Parser) testExprBase(ftok token, fpos Pos) TestExpr {
 	}
 }
 
-func (p *Parser) declClause() *DeclClause {
+func (p *Parser) declClause(s *Stmt) {
 	ds := &DeclClause{Variant: p.lit(p.pos, p.val)}
 	p.next()
 	for (p.tok == _LitWord || p.tok == _Lit) &&
@@ -1991,7 +1991,7 @@ func (p *Parser) declClause() *DeclClause {
 			p.followErr(p.pos, ds.Variant.Value, "names or assignments")
 		}
 	}
-	return ds
+	s.Cmd = ds
 }
 
 func isBashCompoundCommand(tok token, val string) bool {
@@ -2009,29 +2009,30 @@ func isBashCompoundCommand(tok token, val string) bool {
 	return false
 }
 
-func (p *Parser) timeClause() *TimeClause {
+func (p *Parser) timeClause(s *Stmt) {
 	tc := &TimeClause{Time: p.pos}
 	p.next()
 	if _, ok := p.gotRsrv("-p"); ok {
 		tc.PosixFormat = true
 	}
 	tc.Stmt = p.gotStmtPipe(p.stmt(p.pos))
-	return tc
+	s.Cmd = tc
 }
 
-func (p *Parser) coprocClause() *CoprocClause {
+func (p *Parser) coprocClause(s *Stmt) {
 	cc := &CoprocClause{Coproc: p.pos}
 	if p.next(); isBashCompoundCommand(p.tok, p.val) {
 		// has no name
 		cc.Stmt = p.gotStmtPipe(p.stmt(p.pos))
-		return cc
+		s.Cmd = cc
+		return
 	}
 	cc.Name = p.getLit()
 	cc.Stmt = p.gotStmtPipe(p.stmt(p.pos))
 	if cc.Stmt == nil {
 		if cc.Name == nil {
 			p.posErr(cc.Coproc, "coproc clause requires a command")
-			return nil
+			return
 		}
 		// name was in fact the stmt
 		cc.Stmt = p.stmt(cc.Name.ValuePos)
@@ -2045,10 +2046,10 @@ func (p *Parser) coprocClause() *CoprocClause {
 			cc.Name = nil
 		}
 	}
-	return cc
+	s.Cmd = cc
 }
 
-func (p *Parser) letClause() *LetClause {
+func (p *Parser) letClause(s *Stmt) {
 	lc := &LetClause{Let: p.pos}
 	old := p.preNested(arithmExprLet)
 	p.next()
@@ -2063,10 +2064,10 @@ func (p *Parser) letClause() *LetClause {
 		p.followErrExp(lc.Let, "let")
 	}
 	p.postNested(old)
-	return lc
+	s.Cmd = lc
 }
 
-func (p *Parser) bashFuncDecl() *FuncDecl {
+func (p *Parser) bashFuncDecl(s *Stmt) {
 	fpos := p.pos
 	if p.next(); p.tok != _LitWord {
 		if w := p.followWord("function", fpos); p.err == nil {
@@ -2077,10 +2078,10 @@ func (p *Parser) bashFuncDecl() *FuncDecl {
 	if p.next(); p.got(leftParen) {
 		p.follow(name.ValuePos, "foo(", rightParen)
 	}
-	return p.funcDecl(name, fpos)
+	p.funcDecl(s, name, fpos)
 }
 
-func (p *Parser) callExpr(s *Stmt, w *Word, assign bool) Command {
+func (p *Parser) callExpr(s *Stmt, w *Word, assign bool) {
 	ce := p.call(w)
 	if w == nil {
 		ce.Args = ce.Args[:0]
@@ -2133,7 +2134,7 @@ loop:
 		}
 	}
 	if len(ce.Assigns) == 0 && len(ce.Args) == 0 {
-		return nil
+		return
 	}
 	if len(ce.Args) == 0 {
 		ce.Args = nil
@@ -2144,10 +2145,10 @@ loop:
 			}
 		}
 	}
-	return ce
+	s.Cmd = ce
 }
 
-func (p *Parser) funcDecl(name *Lit, pos Pos) *FuncDecl {
+func (p *Parser) funcDecl(s *Stmt, name *Lit, pos Pos) {
 	fd := &FuncDecl{
 		Position: pos,
 		RsrvWord: pos != name.ValuePos,
@@ -2157,5 +2158,5 @@ func (p *Parser) funcDecl(name *Lit, pos Pos) *FuncDecl {
 	if fd.Body = p.getStmt(false, false, true); fd.Body == nil {
 		p.followErr(fd.Pos(), "foo()", "a statement")
 	}
-	return fd
+	s.Cmd = fd
 }
