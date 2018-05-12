@@ -914,23 +914,19 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		for i, ci := range x.Items {
 			var inlineCom *Comment
 			for _, c := range ci.Comments {
-				if c.Pos().After(ci.Patterns[0].Pos()) {
+				if c.Pos().After(ci.Pos()) {
 					inlineCom = &c
 					break
 				}
 				p.comment(c)
 			}
-			p.newlines(ci.Patterns[0].Pos())
+			p.newlines(ci.Pos())
 			p.casePatternJoin(ci.Patterns)
 			p.WriteByte(')')
 			p.wantSpace = !p.minify
-			sep := len(ci.Stmts) > 1 || ci.StmtList.pos().Line() > p.line
-			if ci.OpPos != x.Esac && !ci.StmtList.empty() &&
-				ci.OpPos.Line() > ci.StmtList.end().Line() {
-				sep = true
-			}
-			sl := ci.StmtList
-			p.nestedStmts(sl, Pos{})
+			sep := len(ci.Stmts) > 1 || ci.StmtList.pos().Line() > p.line ||
+				(!ci.StmtList.empty() && ci.OpPos.Line() > ci.StmtList.end().Line())
+			p.nestedStmts(ci.StmtList, ci.OpPos)
 			if !p.minify || i != len(x.Items)-1 {
 				p.level++
 				if sep {
