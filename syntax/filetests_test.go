@@ -4489,7 +4489,9 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 			recurse(ci)
 		}
 	case *CaseItem:
-		setPos(&x.OpPos, x.Op.String(), "esac")
+		if x.OpPos.IsValid() {
+			setPos(&x.OpPos, x.Op.String(), "esac")
+		}
 		recurse(x.Patterns)
 		recurse(x.StmtList)
 	case *TestClause:

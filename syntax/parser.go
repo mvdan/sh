@@ -1816,7 +1816,6 @@ func (p *Parser) caseItems(stop string) (items []*CaseItem) {
 		p.next()
 		ci.StmtList = p.stmtList(stop)
 		p.postNested(old)
-		ci.OpPos = p.pos
 		switch p.tok {
 		case dblSemicolon, semiAnd, dblSemiAnd, semiOr:
 		default:
@@ -1826,6 +1825,7 @@ func (p *Parser) caseItems(stop string) (items []*CaseItem) {
 		}
 		ci.Last = append(ci.Last, p.accComs...)
 		p.accComs = nil
+		ci.OpPos = p.pos
 		ci.Op = CaseOperator(p.tok)
 		p.next()
 		if len(p.accComs) > 0 {

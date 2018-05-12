@@ -641,14 +641,19 @@ func (c *CaseClause) End() Pos { return posAddCol(c.Esac, 4) }
 // CaseItem represents a pattern list (case) within a CaseClause.
 type CaseItem struct {
 	Op       CaseOperator
-	OpPos    Pos
+	OpPos    Pos // unset if it was finished by "esac"
 	Comments []Comment
 	Patterns []*Word
 	StmtList
 }
 
 func (c *CaseItem) Pos() Pos { return c.Patterns[0].Pos() }
-func (c *CaseItem) End() Pos { return posAddCol(c.OpPos, len(c.Op.String())) }
+func (c *CaseItem) End() Pos {
+	if c.OpPos.IsValid() {
+		return posAddCol(c.OpPos, len(c.Op.String()))
+	}
+	return c.StmtList.end()
+}
 
 // TestClause represents a Bash extended test clause.
 //
