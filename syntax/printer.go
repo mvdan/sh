@@ -794,7 +794,7 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 	p.spacePad(cmd.Pos())
 	switch x := cmd.(type) {
 	case *CallExpr:
-		p.assigns(x.Assigns, true)
+		p.assigns(x.Assigns)
 		if len(x.Args) <= 1 {
 			p.wordJoin(x.Args)
 			return 0
@@ -963,7 +963,7 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			p.space()
 			p.word(w)
 		}
-		p.assigns(x.Assigns, false)
+		p.assigns(x.Assigns)
 	case *TimeClause:
 		p.spacedString("time", x.Pos())
 		if x.PosixFormat {
@@ -1196,7 +1196,7 @@ func (p *Printer) nestedStmts(sl StmtList, closing Pos) {
 	p.decLevel()
 }
 
-func (p *Printer) assigns(assigns []*Assign, alwaysEqual bool) {
+func (p *Printer) assigns(assigns []*Assign) {
 	p.incLevel()
 	for _, a := range assigns {
 		if a.Pos().Line() > p.line {
@@ -1210,7 +1210,7 @@ func (p *Printer) assigns(assigns []*Assign, alwaysEqual bool) {
 			if a.Append {
 				p.WriteByte('+')
 			}
-			if alwaysEqual || a.Value != nil || a.Array != nil {
+			if !a.Naked {
 				p.WriteByte('=')
 			}
 		}

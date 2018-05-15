@@ -3483,15 +3483,14 @@ var fileTests = []testCase{
 		posix: litStmt("readonly", "-n"),
 	},
 	{
-		Strs: []string{"nameref bar"},
+		Strs: []string{"nameref bar="},
 		bsmk: &DeclClause{
 			Variant: lit("nameref"),
 			Assigns: []*Assign{{
-				Naked: true,
-				Value: litWord("bar"),
+				Name: lit("bar"),
 			}},
 		},
-		posix: litStmt("nameref", "bar"),
+		posix: litStmt("nameref", "bar="),
 	},
 	{
 		Strs: []string{"declare -a +n -b$o foo=bar"},
@@ -3550,10 +3549,7 @@ var fileTests = []testCase{
 		},
 	},
 	{
-		Strs: []string{
-			"declare foo[a]",
-			"declare foo[a]=",
-		},
+		Strs: []string{"declare foo[a]="},
 		bash: &DeclClause{
 			Variant: lit("declare"),
 			Assigns: []*Assign{{
@@ -3569,6 +3565,7 @@ var fileTests = []testCase{
 			Assigns: []*Assign{{
 				Name:  lit("foo"),
 				Index: litWord("*"),
+				Naked: true,
 			}},
 		},
 	},
@@ -3579,6 +3576,7 @@ var fileTests = []testCase{
 			Assigns: []*Assign{{
 				Name:  lit("foo"),
 				Index: word(dblQuoted(lit("x y"))),
+				Naked: true,
 			}},
 		},
 	},
@@ -3589,6 +3587,7 @@ var fileTests = []testCase{
 			Assigns: []*Assign{{
 				Name:  lit("foo"),
 				Index: word(sglQuoted("x y")),
+				Naked: true,
 			}},
 		},
 	},

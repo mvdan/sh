@@ -1292,6 +1292,7 @@ func (p *Parser) getAssign(needEqual bool) *Assign {
 		p.pos = posAddCol(p.pos, 1)
 		as.Index = p.eitherIndex()
 		if !needEqual && (p.spaced || stopToken(p.tok)) {
+			as.Naked = true
 			return as
 		}
 		if len(p.val) > 0 && p.val[0] == '+' {
