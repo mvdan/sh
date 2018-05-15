@@ -3446,7 +3446,7 @@ var fileTests = []testCase{
 			Opts:    litWords("-f"),
 			Assigns: []*Assign{{
 				Naked: true,
-				Name:  lit("func"),
+				Value: litWord("func"),
 			}},
 		},
 	},
@@ -3456,7 +3456,7 @@ var fileTests = []testCase{
 			Variant: lit("local"),
 			Assigns: []*Assign{{
 				Naked: true,
-				Name:  lit("bar"),
+				Value: litWord("bar"),
 			}},
 		})),
 		posix: subshell(litStmt("local", "bar")),
@@ -3472,7 +3472,7 @@ var fileTests = []testCase{
 			Variant: lit("export"),
 			Assigns: []*Assign{{
 				Naked: true,
-				Name:  lit("bar"),
+				Value: litWord("bar"),
 			}},
 		},
 		posix: litStmt("export", "bar"),
@@ -3488,7 +3488,7 @@ var fileTests = []testCase{
 			Variant: lit("nameref"),
 			Assigns: []*Assign{{
 				Naked: true,
-				Name:  lit("bar"),
+				Value: litWord("bar"),
 			}},
 		},
 		posix: litStmt("nameref", "bar"),
@@ -3639,7 +3639,7 @@ var fileTests = []testCase{
 				Variant: lit("declare"),
 				Assigns: []*Assign{{
 					Naked: true,
-					Name:  lit("a"),
+					Value: litWord("a"),
 				}},
 			},
 			block(litStmt("x")),

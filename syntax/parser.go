@@ -1977,11 +1977,6 @@ func (p *Parser) declClause(s *Stmt) {
 			ds.Assigns = append(ds.Assigns, p.getAssign(false))
 		} else if p.eqlOffs > 0 {
 			p.curErr("invalid var name")
-		} else if p.tok == _LitWord {
-			ds.Assigns = append(ds.Assigns, &Assign{
-				Naked: true,
-				Name:  p.getLit(),
-			})
 		} else if w := p.getWord(); w != nil {
 			ds.Assigns = append(ds.Assigns, &Assign{
 				Naked: true,
