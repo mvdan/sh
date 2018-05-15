@@ -64,8 +64,8 @@ func TestStdin(t *testing.T) {
 		defer func() { *diff = false }()
 		in = strings.NewReader(" foo\nbar\n\n")
 		buf.Reset()
-		if err := formatStdin(); err != nil {
-			t.Fatal(err)
+		if err := formatStdin(); err != errChangedWithDiff {
+			t.Fatalf("got=%q want=%q", err, errChangedWithDiff)
 		}
 		want := `diff -u <standard input>.orig <standard input>
 @@ -1,3 +1,2 @@
