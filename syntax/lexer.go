@@ -894,6 +894,9 @@ func (p *Parser) advanceLitHdoc(r rune) {
 		}
 	}
 	lStart := len(p.litBs) - 1
+	if lStart < 0 {
+		return
+	}
 	for ; ; r = p.rune() {
 		switch r {
 		case '`', '$':

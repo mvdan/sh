@@ -739,6 +739,11 @@ var shellTests = []errorCase{
 		mksh:   `1:1: unclosed here-document 'EOF'`,
 	},
 	{
+		in:     "<<-EOF\n\t",
+		common: `1:1: unclosed here-document 'EOF' #NOERR`,
+		mksh:   `1:1: unclosed here-document 'EOF'`,
+	},
+	{
 		in:     "<<\nEOF\nbar\nEOF",
 		common: `1:1: << must be followed by a word`,
 	},
