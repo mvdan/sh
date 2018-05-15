@@ -438,6 +438,10 @@ var printTests = []printCase{
 		"for i in a b; do # inline\n\tbar\ndone",
 	},
 	{
+		"for i #a\n\tin 1; do #b\ndone",
+		"for i in \\\n\t1; do #a\n\t#b\ndone",
+	},
+	{
 		"foo() # inline\n{\n\tbar\n}",
 		"foo() { # inline\n\tbar\n}",
 	},

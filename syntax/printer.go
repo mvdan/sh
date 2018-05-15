@@ -133,12 +133,12 @@ type Printer struct {
 
 	commentPadding uint
 
-	// pendingComment is any comment in the current line that we have yet to
-	// print. This is useful because that way, we can ensure that all
-	// comments are written immediately before a newline. Otherwise, in some
-	// edge cases we might wrongly place words after a comment in the same
-	// line, breaking programs.
-	pendingComment *Comment
+	// pendingComments are any comments in the current line or statement
+	// that we have yet to print. This is useful because that way, we can
+	// ensure that all comments are written immediately before a newline.
+	// Otherwise, in some edge cases we might wrongly place words after a
+	// comment in the same line, breaking programs.
+	pendingComments []Comment
 
 	// line is the current line number
 	line uint
@@ -167,7 +167,7 @@ type Printer struct {
 func (p *Printer) reset() {
 	p.wantSpace, p.wantNewline = false, false
 	p.commentPadding = 0
-	p.pendingComment = nil
+	p.pendingComments = p.pendingComments[:0]
 	p.line = 0
 	p.lastLevel, p.level = 0, 0
 	p.levelIncs = p.levelIncs[:0]
@@ -323,7 +323,7 @@ func (p *Printer) newline(pos Pos) {
 }
 
 func (p *Printer) newlines(pos Pos) {
-	if !p.wantNewline && p.line == 0 && p.pendingComment == nil {
+	if !p.wantNewline && p.line == 0 && len(p.pendingComments) == 0 {
 		return // no empty lines at the top
 	}
 	if !p.wantNewline && pos.Line() <= p.line {
@@ -367,41 +367,39 @@ func (p *Printer) comment(c Comment) {
 	if p.minify {
 		return
 	}
-	if p.pendingComment != nil {
-		p.flushComment()
-	}
-	p.pendingComment = &c
+	p.pendingComments = append(p.pendingComments, c)
 }
 
 func (p *Printer) flushComment() {
-	if p.pendingComment == nil {
-		return
-	}
-	c := *p.pendingComment
-	p.pendingComment = nil
-	switch {
-	case c.Hash.Line() > p.line:
-		p.newlines(c.Hash)
-	case p.wantSpace:
-		if p.keepPadding {
-			p.spacePad(c.Pos())
-		} else {
-			p.spaces(p.commentPadding + 1)
+	for i, c := range p.pendingComments {
+		cline := c.Hash.Line()
+		switch {
+		case i > 0, cline > p.line && p.line > 0:
+			p.WriteByte('\n')
+			if cline > p.line+1 {
+				p.WriteByte('\n')
+			}
+			p.indent()
+		case p.wantSpace:
+			if p.keepPadding {
+				p.spacePad(c.Pos())
+			} else {
+				p.spaces(p.commentPadding + 1)
+			}
 		}
+		// don't go back one line, which may happen in some edge cases
+		if p.line < cline {
+			p.line = cline
+		}
+		p.WriteByte('#')
+		p.WriteString(strings.TrimRightFunc(c.Text, unicode.IsSpace))
+		p.wantNewline = true
 	}
-	// don't go back one line, which may happen in some edge cases
-	if l := c.Hash.Line(); p.line < l {
-		p.line = l
-	}
-	p.WriteByte('#')
-	p.WriteString(strings.TrimRightFunc(c.Text, unicode.IsSpace))
-	p.wantNewline = true
+	p.pendingComments = nil
 }
 
 func (p *Printer) comments(cs []Comment) {
-	for _, c := range cs {
-		p.comment(c)
-	}
+	p.pendingComments = append(p.pendingComments, cs...)
 }
 
 func (p *Printer) wordParts(wps []WordPart) {
@@ -1039,30 +1037,27 @@ func (p *Printer) stmts(sl StmtList) {
 	case 1:
 		s := sl.Stmts[0]
 		pos := s.Pos()
-		var midCom, endCom *Comment
+		var endCom *Comment
+		var midComs []Comment
 		for _, c := range s.Comments {
 			if c.End().After(s.End()) {
 				endCom = &c
 				break
 			}
 			if c.Pos().After(s.Pos()) {
-				midCom = &c
-				break
+				midComs = append(midComs, c)
+				continue
 			}
 			p.comment(c)
 		}
 		if pos.Line() <= p.line || (p.minify && !p.wantSpace) {
 			p.line = pos.Line()
-			if midCom != nil {
-				p.comment(*midCom)
-			}
+			p.comments(midComs)
 			p.stmt(s)
 		} else {
 			p.newlines(pos)
 			p.line = pos.Line()
-			if midCom != nil {
-				p.comment(*midCom)
-			}
+			p.comments(midComs)
 			p.stmt(s)
 			p.wantNewline = true
 		}
@@ -1076,15 +1071,16 @@ func (p *Printer) stmts(sl StmtList) {
 	lastIndentedLine := uint(0)
 	for i, s := range sl.Stmts {
 		pos := s.Pos()
-		var midCom, endCom *Comment
+		var endCom *Comment
+		var midComs []Comment
 		for _, c := range s.Comments {
 			if c.End().After(s.End()) {
 				endCom = &c
 				break
 			}
 			if c.Pos().After(s.Pos()) {
-				midCom = &c
-				break
+				midComs = append(midComs, c)
+				continue
 			}
 			p.comment(c)
 		}
@@ -1095,16 +1091,12 @@ func (p *Printer) stmts(sl StmtList) {
 		if !p.hasInline(s) {
 			inlineIndent = 0
 			p.commentPadding = 0
-			if midCom != nil {
-				p.comment(*midCom)
-			}
+			p.comments(midComs)
 			p.stmt(s)
 			p.wantNewline = true
 			continue
 		}
-		if midCom != nil {
-			p.comment(*midCom)
-		}
+		p.comments(midComs)
 		p.stmt(s)
 		if s.Pos().Line() > lastIndentedLine+1 {
 			inlineIndent = 0
@@ -1203,13 +1195,17 @@ func (p *Printer) nestedStmts(sl StmtList, closing Pos) {
 		// Force a newline if we find:
 		//     { stmt; stmt; }
 		p.wantNewline = true
-	} else if closing.Line() > p.line && sl.end().Line() <= p.line {
+	} else if closing.Line() > p.line && len(sl.Stmts) > 0 &&
+		sl.end().Line() <= p.line {
 		// Force a newline if we find:
 		//     { stmt
 		//     }
 		p.newline(sl.pos())
 		p.indent()
-	} else if p.pendingComment != nil {
+	} else if len(p.pendingComments) > 0 && len(sl.Stmts) > 0 {
+		// Force a newline if we find:
+		//     for i in a b # stmt
+		//     do foo; done
 		p.newline(sl.pos())
 		p.indent()
 		p.wantNewline = true
