@@ -942,6 +942,9 @@ func (p *Parser) hdocLitWord() *Word {
 			}
 		}
 		lStart := len(p.litBs) - 1
+		if lStart < 0 {
+			return nil
+		}
 		for r != utf8.RuneSelf && r != '\n' {
 			r = p.rune()
 		}
