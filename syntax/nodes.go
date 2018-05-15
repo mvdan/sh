@@ -194,8 +194,8 @@ func (*CoprocClause) commandNode() {}
 // If Index is non-nil, the value will be a word and not an array as nested
 // arrays are not allowed.
 //
-// If Naked is true, it's part of a DeclClause and the assignment expression (in
-// the Value field) will be evaluated at run-time.
+// If Naked is true and Name is nil, the assignment is part of a DeclClause and
+// the assignment expression (in the Value field) will be evaluated at run-time.
 type Assign struct {
 	Append bool // +=
 	Naked  bool // without '='
