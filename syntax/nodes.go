@@ -120,7 +120,7 @@ type Comment struct {
 }
 
 func (c *Comment) Pos() Pos { return c.Hash }
-func (c *Comment) End() Pos { return posAddCol(c.Hash, len(c.Text)) }
+func (c *Comment) End() Pos { return posAddCol(c.Hash, 1+len(c.Text)) }
 
 // Stmt represents a statement, also known as a "complete command". It is
 // compromised of a command and other components that may come before or after

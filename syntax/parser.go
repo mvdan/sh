@@ -1706,6 +1706,9 @@ func (p *Parser) forClause(s *Stmt) {
 	p.next()
 	fc.Loop = p.loop(fc.ForPos)
 	fc.DoPos = p.followRsrv(fc.ForPos, "for foo [in words]", "do")
+
+	s.Comments = append(s.Comments, p.accComs...)
+	p.accComs = nil
 	fc.Do = p.followStmts("do", fc.DoPos, "done")
 	fc.DonePos = p.stmtEnd(fc, "for", "done")
 	s.Cmd = fc

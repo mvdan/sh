@@ -430,6 +430,14 @@ var printTests = []printCase{
 		"for foo in a b; do # inline\n\tbar\ndone",
 	},
 	{
+		"if x # inline\nthen bar; fi",
+		"if x; then # inline\n\tbar\nfi",
+	},
+	{
+		"for i in a b # inline\ndo bar; done",
+		"for i in a b; do # inline\n\tbar\ndone",
+	},
+	{
 		"foo() # inline\n{\n\tbar\n}",
 		"foo() { # inline\n\tbar\n}",
 	},

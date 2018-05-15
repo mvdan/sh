@@ -395,6 +395,7 @@ func (p *Printer) flushComment() {
 	}
 	p.WriteByte('#')
 	p.WriteString(strings.TrimRightFunc(c.Text, unicode.IsSpace))
+	p.wantNewline = true
 }
 
 func (p *Printer) comments(cs []Comment) {
@@ -1038,25 +1039,35 @@ func (p *Printer) stmts(sl StmtList) {
 	case 1:
 		s := sl.Stmts[0]
 		pos := s.Pos()
-		var inlineCom *Comment
+		var midCom, endCom *Comment
 		for _, c := range s.Comments {
+			if c.End().After(s.End()) {
+				endCom = &c
+				break
+			}
 			if c.Pos().After(s.Pos()) {
-				inlineCom = &c
+				midCom = &c
 				break
 			}
 			p.comment(c)
 		}
 		if pos.Line() <= p.line || (p.minify && !p.wantSpace) {
 			p.line = pos.Line()
+			if midCom != nil {
+				p.comment(*midCom)
+			}
 			p.stmt(s)
 		} else {
 			p.newlines(pos)
 			p.line = pos.Line()
+			if midCom != nil {
+				p.comment(*midCom)
+			}
 			p.stmt(s)
 			p.wantNewline = true
 		}
-		if inlineCom != nil {
-			p.comment(*inlineCom)
+		if endCom != nil {
+			p.comment(*endCom)
 		}
 		p.comments(sl.Last)
 		return
@@ -1065,10 +1076,14 @@ func (p *Printer) stmts(sl StmtList) {
 	lastIndentedLine := uint(0)
 	for i, s := range sl.Stmts {
 		pos := s.Pos()
-		var inlineCom *Comment
+		var midCom, endCom *Comment
 		for _, c := range s.Comments {
+			if c.End().After(s.End()) {
+				endCom = &c
+				break
+			}
 			if c.Pos().After(s.Pos()) {
-				inlineCom = &c
+				midCom = &c
 				break
 			}
 			p.comment(c)
@@ -1080,9 +1095,15 @@ func (p *Printer) stmts(sl StmtList) {
 		if !p.hasInline(s) {
 			inlineIndent = 0
 			p.commentPadding = 0
+			if midCom != nil {
+				p.comment(*midCom)
+			}
 			p.stmt(s)
 			p.wantNewline = true
 			continue
+		}
+		if midCom != nil {
+			p.comment(*midCom)
 		}
 		p.stmt(s)
 		if s.Pos().Line() > lastIndentedLine+1 {
@@ -1104,8 +1125,8 @@ func (p *Printer) stmts(sl StmtList) {
 			}
 			lastIndentedLine = p.line
 		}
-		if inlineCom != nil {
-			p.comment(*inlineCom)
+		if endCom != nil {
+			p.comment(*endCom)
 		}
 		p.wantNewline = true
 	}
@@ -1188,6 +1209,10 @@ func (p *Printer) nestedStmts(sl StmtList, closing Pos) {
 		//     }
 		p.newline(sl.pos())
 		p.indent()
+	} else if p.pendingComment != nil {
+		p.newline(sl.pos())
+		p.indent()
+		p.wantNewline = true
 	}
 	p.stmts(sl)
 	if closing.IsValid() {
