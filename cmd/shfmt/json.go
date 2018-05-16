@@ -22,7 +22,7 @@ func writeJSON(w io.Writer, f *syntax.File, pretty bool) error {
 	return enc.Encode(v)
 }
 
-func recurse(val, parent reflect.Value) (interface{}, string) {
+func recurse(val, valPtr reflect.Value) (interface{}, string) {
 	switch val.Kind() {
 	case reflect.Ptr:
 		elem := val.Elem()
@@ -61,12 +61,12 @@ func recurse(val, parent reflect.Value) (interface{}, string) {
 				m[ftyp.Name] = v
 			}
 		}
-		// use the parent to find the method, as methods are
-		// defined on the pointer values.
-		if posMethod := parent.MethodByName("Pos"); posMethod.IsValid() {
+		// use valPtr to find the method, as methods are defined on the
+		// pointer values.
+		if posMethod := valPtr.MethodByName("Pos"); posMethod.IsValid() {
 			m["Pos"] = translatePos(posMethod.Call(nil)[0])
 		}
-		if posMethod := parent.MethodByName("End"); posMethod.IsValid() {
+		if posMethod := valPtr.MethodByName("End"); posMethod.IsValid() {
 			m["End"] = translatePos(posMethod.Call(nil)[0])
 		}
 		return m, typ.Name()
@@ -74,7 +74,7 @@ func recurse(val, parent reflect.Value) (interface{}, string) {
 		l := make([]interface{}, val.Len())
 		for i := 0; i < val.Len(); i++ {
 			elem := val.Index(i)
-			l[i], _ = recurse(elem, elem)
+			l[i], _ = recurse(elem.Addr(), elem)
 		}
 		return l, ""
 	default:
