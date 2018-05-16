@@ -40,25 +40,6 @@ func recurse(val, parent reflect.Value) (interface{}, string) {
 		return m, ""
 	case reflect.Struct:
 		m := make(map[string]interface{}, val.NumField()+1)
-		addField := func(name string, v interface{}) {
-			switch x := v.(type) {
-			case bool:
-				if !x {
-					return
-				}
-			case string:
-				if x == "" {
-					return
-				}
-			case []interface{}:
-				if len(x) == 0 {
-					return
-				}
-			case nil:
-				return
-			}
-			m[name] = v
-		}
 		typ := val.Type()
 		for i := 0; i < val.NumField(); i++ {
 			ftyp := typ.Field(i)
@@ -73,12 +54,11 @@ func recurse(val, parent reflect.Value) (interface{}, string) {
 			switch ftyp.Name {
 			case "StmtList":
 				// inline their fields
-				m := v.(map[string]interface{})
-				for name, v := range m {
-					addField(name, v)
+				for name, v := range v.(map[string]interface{}) {
+					m[name] = v
 				}
 			default:
-				addField(ftyp.Name, v)
+				m[ftyp.Name] = v
 			}
 		}
 		// use the parent to find the method, as methods are

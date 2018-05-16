@@ -16,9 +16,10 @@ var jsonTests = []struct {
 	in   string
 	want string
 }{
-	{"", `{"End":{"Col":0,"Line":0,"Offset":0},"Pos":{"Col":0,"Line":0,"Offset":0}}`},
-	{"foo", `{"End":{"Col":4,"Line":1,"Offset":3},"Pos":{"Col":1,"Line":1,"Offset":0},"Stmts":[{"Cmd":{"Args":[{"End":{"Col":4,"Line":1,"Offset":3},"Parts":[{"End":{"Col":4,"Line":1,"Offset":3},"Pos":{"Col":1,"Line":1,"Offset":0},"Type":"Lit","Value":"foo"}],"Pos":{"Col":1,"Line":1,"Offset":0}}],"End":{"Col":4,"Line":1,"Offset":3},"Pos":{"Col":1,"Line":1,"Offset":0},"Type":"CallExpr"},"End":{"Col":4,"Line":1,"Offset":3},"Pos":{"Col":1,"Line":1,"Offset":0}}]}`},
-	{"((2))", `{"End":{"Col":6,"Line":1,"Offset":5},"Pos":{"Col":1,"Line":1,"Offset":0},"Stmts":[{"Cmd":{"End":{"Col":6,"Line":1,"Offset":5},"Pos":{"Col":1,"Line":1,"Offset":0},"Type":"ArithmCmd","X":{"End":{"Col":4,"Line":1,"Offset":3},"Parts":[{"End":{"Col":4,"Line":1,"Offset":3},"Pos":{"Col":3,"Line":1,"Offset":2},"Type":"Lit","Value":"2"}],"Pos":{"Col":3,"Line":1,"Offset":2},"Type":"Word"}},"End":{"Col":6,"Line":1,"Offset":5},"Pos":{"Col":1,"Line":1,"Offset":0}}]}`},
+	{"", `{"End":{"Col":0,"Line":0,"Offset":0},"Last":[],"Name":"","Pos":{"Col":0,"Line":0,"Offset":0},"Stmts":[]}`},
+	{"foo", `{"End":{"Col":4,"Line":1,"Offset":3},"Last":[],"Name":"","Pos":{"Col":1,"Line":1,"Offset":0},"Stmts":[{"Background":false,"Cmd":{"Args":[{"End":{"Col":4,"Line":1,"Offset":3},"Parts":[{"End":{"Col":4,"Line":1,"Offset":3},"Pos":{"Col":1,"Line":1,"Offset":0},"Type":"Lit","Value":"foo"}],"Pos":{"Col":1,"Line":1,"Offset":0}}],"Assigns":[],"End":{"Col":4,"Line":1,"Offset":3},"Pos":{"Col":1,"Line":1,"Offset":0},"Type":"CallExpr"},"Comments":[],"Coprocess":false,"End":{"Col":4,"Line":1,"Offset":3},"Negated":false,"Pos":{"Col":1,"Line":1,"Offset":0},"Redirs":[]}]}`},
+	{"((2))", `{"End":{"Col":6,"Line":1,"Offset":5},"Last":[],"Name":"","Pos":{"Col":1,"Line":1,"Offset":0},"Stmts":[{"Background":false,"Cmd":{"End":{"Col":6,"Line":1,"Offset":5},"Pos":{"Col":1,"Line":1,"Offset":0},"Type":"ArithmCmd","Unsigned":false,"X":{"End":{"Col":4,"Line":1,"Offset":3},"Parts":[{"End":{"Col":4,"Line":1,"Offset":3},"Pos":{"Col":3,"Line":1,"Offset":2},"Type":"Lit","Value":"2"}],"Pos":{"Col":3,"Line":1,"Offset":2},"Type":"Word"}},"Comments":[],"Coprocess":false,"End":{"Col":6,"Line":1,"Offset":5},"Negated":false,"Pos":{"Col":1,"Line":1,"Offset":0},"Redirs":[]}]}`},
+	{"#", `{"End":{"Col":2,"Line":1,"Offset":1},"Last":[{"Text":""}],"Name":"","Pos":{"Col":1,"Line":1,"Offset":0},"Stmts":[]}`},
 }
 
 func TestWriteJSON(t *testing.T) {
