@@ -277,6 +277,8 @@ func (p *Printer) indent() {
 func (p *Printer) newline(pos Pos) {
 	hdocs := p.pendingHdocs
 	p.pendingHdocs = p.pendingHdocs[:0]
+	coms := p.pendingComments
+	p.pendingComments = nil
 
 	// Reuse the last indentation level, as
 	// indentation levels are usually changed before
@@ -316,7 +318,8 @@ func (p *Printer) newline(pos Pos) {
 	}
 	p.level = newLevel
 
-	p.flushComment()
+	p.pendingComments = coms
+	p.flushComments()
 	p.WriteByte('\n')
 	p.wantNewline, p.wantSpace = false, false
 	if p.line < pos.Line() {
@@ -372,7 +375,7 @@ func (p *Printer) comment(c Comment) {
 	p.pendingComments = append(p.pendingComments, c)
 }
 
-func (p *Printer) flushComment() {
+func (p *Printer) flushComments() {
 	for i, c := range p.pendingComments {
 		cline := c.Hash.Line()
 		switch {
@@ -739,7 +742,7 @@ func (p *Printer) elemJoin(elems []*ArrayElem, last []Comment) {
 	}
 	if len(last) > 0 {
 		p.comments(last)
-		p.flushComment()
+		p.flushComments()
 	}
 	p.decLevel()
 }
@@ -943,7 +946,7 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		}
 		p.comments(x.Last)
 		if p.swtCaseIndent {
-			p.flushComment()
+			p.flushComments()
 			p.decLevel()
 		}
 		p.semiRsrv("esac", x.Esac, len(x.Items) == 0)
@@ -1214,7 +1217,7 @@ func (p *Printer) nestedStmts(sl StmtList, closing Pos) {
 	}
 	p.stmts(sl)
 	if closing.IsValid() {
-		p.flushComment()
+		p.flushComments()
 	}
 	p.decLevel()
 }
