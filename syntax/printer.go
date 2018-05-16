@@ -275,10 +275,31 @@ func (p *Printer) indent() {
 }
 
 func (p *Printer) newline(pos Pos) {
+	p.flushHeredocs()
+	p.flushComments()
+	p.WriteByte('\n')
+	p.wantNewline, p.wantSpace = false, false
+	if p.line < pos.Line() {
+		p.line++
+	}
+}
+
+func (p *Printer) flushHeredocs() {
+	if len(p.pendingHdocs) == 0 {
+		return
+	}
 	hdocs := p.pendingHdocs
 	p.pendingHdocs = p.pendingHdocs[:0]
 	coms := p.pendingComments
 	p.pendingComments = nil
+	if len(coms) > 0 {
+		c := coms[0]
+		if c.Pos().Line() == p.line {
+			p.pendingComments = append(p.pendingComments, c)
+			p.flushComments()
+			coms = coms[1:]
+		}
+	}
 
 	// Reuse the last indentation level, as
 	// indentation levels are usually changed before
@@ -317,14 +338,7 @@ func (p *Printer) newline(pos Pos) {
 		p.wantSpace = false
 	}
 	p.level = newLevel
-
 	p.pendingComments = coms
-	p.flushComments()
-	p.WriteByte('\n')
-	p.wantNewline, p.wantSpace = false, false
-	if p.line < pos.Line() {
-		p.line++
-	}
 }
 
 func (p *Printer) newlines(pos Pos) {

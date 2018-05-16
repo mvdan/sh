@@ -1404,6 +1404,13 @@ func (p *Parser) doRedirect(s *Stmt) {
 		r.Word = p.followWordTok(token(r.Op), r.OpPos)
 		p.quote, p.forbidNested = old, false
 		if p.tok == _Newl {
+			if len(p.accComs) > 0 {
+				c := p.accComs[0]
+				if c.Pos().Line() == s.End().Line() {
+					s.Comments = append(s.Comments, c)
+					p.accComs = p.accComs[1:]
+				}
+			}
 			p.doHeredocs()
 		}
 	default:
