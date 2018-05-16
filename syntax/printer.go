@@ -275,12 +275,6 @@ func (p *Printer) indent() {
 }
 
 func (p *Printer) newline(pos Pos) {
-	p.flushComment()
-	p.wantNewline, p.wantSpace = false, false
-	p.WriteByte('\n')
-	if p.line < pos.Line() {
-		p.line++
-	}
 	hdocs := p.pendingHdocs
 	p.pendingHdocs = p.pendingHdocs[:0]
 
@@ -292,6 +286,9 @@ func (p *Printer) newline(pos Pos) {
 	p.level = p.lastLevel
 
 	for _, r := range hdocs {
+		p.line++
+		p.WriteByte('\n')
+		p.wantNewline, p.wantSpace = false, false
 		if r.Op == DashHdoc && p.indentSpaces == 0 &&
 			!p.minify && p.tabsPrinter != nil {
 			if r.Hdoc != nil {
@@ -315,11 +312,16 @@ func (p *Printer) newline(pos Pos) {
 			p.line = r.Hdoc.End().Line()
 		}
 		p.unquotedWord(r.Word)
-		p.line++
-		p.WriteByte('\n')
 		p.wantSpace = false
 	}
 	p.level = newLevel
+
+	p.flushComment()
+	p.WriteByte('\n')
+	p.wantNewline, p.wantSpace = false, false
+	if p.line < pos.Line() {
+		p.line++
+	}
 }
 
 func (p *Printer) newlines(pos Pos) {
