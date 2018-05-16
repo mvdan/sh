@@ -70,6 +70,7 @@ var printTests = []printCase{
 	{"foo\n\n", "foo"},
 	{"\n\nfoo", "foo"},
 	{"# foo \n # bar\t", "# foo\n# bar"},
+	{"#", "#"},
 	samePrint("a=b # inline\nbar"),
 	samePrint("a=$(b) # inline"),
 	samePrint("foo # inline\n# after"),
