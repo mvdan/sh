@@ -856,7 +856,7 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		} else {
 			p.spacedString("while", x.Pos())
 		}
-		p.nestedStmts(x.Cond, x.DoPos)
+		p.nestedStmts(x.Cond, Pos{})
 		p.semiOrNewl("do", x.DoPos)
 		p.nestedStmts(x.Do, x.DonePos)
 		p.semiRsrv("done", x.DonePos, true)

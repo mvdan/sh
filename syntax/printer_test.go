@@ -300,6 +300,10 @@ var printTests = []printCase{
 		"foo | while read l; do\n\tbar\ndone",
 	},
 	samePrint("while x; do\n\t#comment\ndone"),
+	{
+		"while x\ndo\n\ty\ndone",
+		"while x; do\n\ty\ndone",
+	},
 	samePrint("\"\\\nfoo\""),
 	samePrint("'\\\nfoo'"),
 	samePrint("\"foo\\\n  bar\""),
