@@ -64,17 +64,21 @@ func NewPrinter(options ...func(*Printer)) *Printer {
 func (p *Printer) Print(w io.Writer, node Node) error {
 	p.reset()
 	p.bufWriter.Reset(w)
+	p.line = node.Pos().Line()
 	switch x := node.(type) {
 	case *File:
 		p.stmts(x.StmtList)
 		p.newline(x.End())
 	case *Stmt:
 		p.stmt(x)
+		p.comments(x.Comments)
 	case *Word:
 		p.word(x)
 	case Command:
 		p.command(x, nil)
 	}
+	p.flushHeredocs()
+	p.flushComments()
 	return p.bufWriter.Flush()
 }
 

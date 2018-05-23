@@ -817,3 +817,35 @@ func TestPrintNodeTypes(t *testing.T) {
 		})
 	}
 }
+
+func TestPrintManyStmts(t *testing.T) {
+	var tests = [...]struct {
+		in, want string
+	}{
+		{"foo; bar", "foo\nbar\n"},
+		{"foo\nbar", "foo\nbar\n"},
+		{"\n\nfoo\nbar\n\n", "foo\nbar\n"},
+		{"foo\nbar <<EOF\nbody\nEOF\n", "foo\nbar <<EOF\nbody\nEOF\n"},
+		{"foo\nbar # inline", "foo\nbar # inline\n"},
+	}
+	parser := NewParser(KeepComments)
+	printer := NewPrinter()
+	for i, tc := range tests {
+		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
+			f, err := parser.Parse(strings.NewReader(tc.in), "")
+			if err != nil {
+				t.Fatal(err)
+			}
+			var buf bytes.Buffer
+			for _, stmt := range f.Stmts {
+				printer.Print(&buf, stmt)
+				buf.WriteByte('\n')
+			}
+			got := buf.String()
+			if got != tc.want {
+				t.Fatalf("Print mismatch:\nwant:\n%s\ngot:\n%s",
+					tc.want, got)
+			}
+		})
+	}
+}
