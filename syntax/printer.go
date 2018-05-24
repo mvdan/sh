@@ -1053,43 +1053,8 @@ func (p *Printer) hasInline(s *Stmt) bool {
 }
 
 func (p *Printer) stmts(sl StmtList) {
-	switch len(sl.Stmts) {
-	case 0:
-		p.comments(sl.Last)
-		return
-	case 1:
-		s := sl.Stmts[0]
-		pos := s.Pos()
-		var endCom *Comment
-		var midComs []Comment
-		for _, c := range s.Comments {
-			if c.End().After(s.End()) {
-				endCom = &c
-				break
-			}
-			if c.Pos().After(s.Pos()) {
-				midComs = append(midComs, c)
-				continue
-			}
-			p.comment(c)
-		}
-		if pos.Line() <= p.line || (p.minify && !p.wantSpace) {
-			p.line = pos.Line()
-			p.comments(midComs)
-			p.stmt(s)
-		} else {
-			p.newlines(pos)
-			p.line = pos.Line()
-			p.comments(midComs)
-			p.stmt(s)
-			p.wantNewline = true
-		}
-		if endCom != nil {
-			p.comment(*endCom)
-		}
-		p.comments(sl.Last)
-		return
-	}
+	sep := p.wantNewline ||
+		(len(sl.Stmts) > 0 && sl.Stmts[0].Pos().Line() > p.line)
 	inlineIndent := 0
 	lastIndentedLine := uint(0)
 	for i, s := range sl.Stmts {
@@ -1144,6 +1109,9 @@ func (p *Printer) stmts(sl StmtList) {
 			p.comment(*endCom)
 		}
 		p.wantNewline = true
+	}
+	if len(sl.Stmts) == 1 && !sep {
+		p.wantNewline = false
 	}
 	p.comments(sl.Last)
 }
@@ -1214,23 +1182,21 @@ func (p *Printer) stmtCols(s *Stmt) int {
 
 func (p *Printer) nestedStmts(sl StmtList, closing Pos) {
 	p.incLevel()
-	if len(sl.Stmts) > 1 {
+	switch {
+	case len(sl.Stmts) > 1:
 		// Force a newline if we find:
 		//     { stmt; stmt; }
 		p.wantNewline = true
-	} else if closing.Line() > p.line && len(sl.Stmts) > 0 &&
-		sl.end().Line() <= p.line {
+	case closing.Line() > p.line && len(sl.Stmts) > 0 &&
+		sl.end().Line() <= p.line:
 		// Force a newline if we find:
 		//     { stmt
 		//     }
-		p.newline(sl.pos())
-		p.indent()
-	} else if len(p.pendingComments) > 0 && len(sl.Stmts) > 0 {
+		p.wantNewline = true
+	case len(p.pendingComments) > 0 && len(sl.Stmts) > 0:
 		// Force a newline if we find:
 		//     for i in a b # stmt
 		//     do foo; done
-		p.newline(sl.pos())
-		p.indent()
 		p.wantNewline = true
 	}
 	p.stmts(sl)
