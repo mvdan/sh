@@ -70,8 +70,11 @@ func (p *Printer) Print(w io.Writer, node Node) error {
 		p.stmts(x.StmtList)
 		p.newline(x.End())
 	case *Stmt:
-		p.stmt(x)
-		p.comments(x.Comments)
+		sl := StmtList{Stmts: []*Stmt{x}}
+		// StmtList.pos is better than Stmt.Pos, since it also takes
+		// comments into account.
+		p.line = sl.pos().Line()
+		p.stmts(sl)
 	case *Word:
 		p.word(x)
 	case Command:

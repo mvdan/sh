@@ -827,6 +827,7 @@ func TestPrintManyStmts(t *testing.T) {
 		{"\n\nfoo\nbar\n\n", "foo\nbar\n"},
 		{"foo\nbar <<EOF\nbody\nEOF\n", "foo\nbar <<EOF\nbody\nEOF\n"},
 		{"foo\nbar # inline", "foo\nbar # inline\n"},
+		{"# comment before\nfoo bar", "# comment before\nfoo bar\n"},
 	}
 	parser := NewParser(KeepComments)
 	printer := NewPrinter()
