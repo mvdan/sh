@@ -663,6 +663,26 @@ func TestPrintSwitchCaseIndent(t *testing.T) {
 	}
 }
 
+func TestPrintSpaceRedirects(t *testing.T) {
+	var tests = [...]printCase{
+		samePrint("echo foo bar > f"),
+		samePrint("echo > f foo bar"),
+		samePrint("echo >(cmd)"),
+		samePrint("echo > >(cmd)"),
+		samePrint("<< EOF\nfoo\nEOF"),
+		samePrint("echo 2> f"),
+		samePrint("echo foo bar >&1"),
+		samePrint("echo 2<&1 foo bar"),
+	}
+	parser := NewParser(KeepComments)
+	printer := NewPrinter(SpaceRedirects)
+	for i, tc := range tests {
+		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
+			printTest(t, parser, printer, tc.in, tc.want)
+		})
+	}
+}
+
 func TestPrintKeepPadding(t *testing.T) {
 	var tests = [...]printCase{
 		samePrint("echo foo bar"),

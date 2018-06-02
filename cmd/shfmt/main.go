@@ -33,6 +33,7 @@ var (
 	indent      = flag.Uint("i", 0, "")
 	binNext     = flag.Bool("bn", false, "")
 	caseIndent  = flag.Bool("ci", false, "")
+	spaceRedirs = flag.Bool("sr", false, "")
 	keepPadding = flag.Bool("kp", false, "")
 	minify      = flag.Bool("mn", false, "")
 
@@ -75,6 +76,7 @@ Printer options:
   -i uint   indent: 0 for tabs (default), >0 for number of spaces
   -bn       binary ops like && and | may start a line
   -ci       switch cases will be indented
+  -sr       redirect operators will be followed by a space
   -kp       keep column alignment paddings
   -mn       minify program to reduce its size (implies -s)
 
@@ -119,6 +121,9 @@ Utilities:
 		}
 		if *caseIndent {
 			syntax.SwitchCaseIndent(p)
+		}
+		if *spaceRedirs {
+			syntax.SpaceRedirects(p)
 		}
 		if *keepPadding {
 			syntax.KeepPadding(p)

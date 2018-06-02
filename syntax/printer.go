@@ -25,6 +25,10 @@ func BinaryNextLine(p *Printer) { p.binNextLine = true }
 // case bodies will be two levels deeper than the switch itself.
 func SwitchCaseIndent(p *Printer) { p.swtCaseIndent = true }
 
+// SpaceRedirects will put a space after most redirection operators. The
+// exceptions are '>&', '<&', '>(', and '<('.
+func SpaceRedirects(p *Printer) { p.spaceRedirects = true }
+
 // KeepPadding will keep most nodes and tokens in the same column that
 // they were in the original source. This allows the user to decide how
 // to align and pad their code with spaces.
@@ -128,11 +132,12 @@ type Printer struct {
 	bufWriter
 	cols colCounter
 
-	indentSpaces  uint
-	binNextLine   bool
-	swtCaseIndent bool
-	keepPadding   bool
-	minify        bool
+	indentSpaces   uint
+	binNextLine    bool
+	swtCaseIndent  bool
+	spaceRedirects bool
+	keepPadding    bool
+	minify         bool
 
 	wantSpace   bool
 	wantNewline bool
@@ -789,7 +794,11 @@ func (p *Printer) stmt(s *Stmt) {
 			p.WriteString(r.N.Value)
 		}
 		p.WriteString(r.Op.String())
-		p.wantSpace = true
+		if p.spaceRedirects && (r.Op != DplIn && r.Op != DplOut) {
+			p.space()
+		} else {
+			p.wantSpace = true
+		}
 		p.word(r.Word)
 		if r.Op == Hdoc || r.Op == DashHdoc {
 			p.pendingHdocs = append(p.pendingHdocs, r)
@@ -837,7 +846,11 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 				p.WriteString(r.N.Value)
 			}
 			p.WriteString(r.Op.String())
-			p.wantSpace = true
+			if p.spaceRedirects && (r.Op != DplIn && r.Op != DplOut) {
+				p.space()
+			} else {
+				p.wantSpace = true
+			}
 			p.word(r.Word)
 			startRedirs++
 		}
