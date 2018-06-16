@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"runtime"
 	"strings"
@@ -2395,5 +2396,32 @@ func TestElapsedString(t *testing.T) {
 				t.Fatalf("wanted %q, got %q", tc.want, got)
 			}
 		})
+	}
+}
+
+func TestPwdIsAbs(t *testing.T) {
+	_ = os.Mkdir("a", 0755)
+	defer os.Remove("a")
+
+	p, err := syntax.NewParser().Parse(strings.NewReader("pwd"), "")
+	if err != nil {
+		t.Fatalf("could not parse: %v", err)
+	}
+
+	var b bytes.Buffer
+	r := Runner{
+		Dir:    "a",
+		Stdout: &b,
+		Stderr: &b,
+	}
+	if err = r.Reset(); err != nil {
+		t.Errorf("could not reset: %v", err)
+	}
+	if err = r.Run(p); err != nil {
+		b.WriteString(err.Error())
+	}
+	pwd := b.String()
+	if !filepath.IsAbs(pwd) {
+		t.Errorf("pwd is not absolute")
 	}
 }

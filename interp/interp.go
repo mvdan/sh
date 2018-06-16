@@ -228,10 +228,21 @@ func (r *Runner) Reset() error {
 			return fmt.Errorf("could not get current dir: %v", err)
 		}
 		r.Dir = dir
+	} else if !filepath.IsAbs(r.Dir) {
+		abs, err := filepath.Abs(r.Dir)
+		if err != nil {
+			return fmt.Errorf("could not get absolute dir: %v", err)
+		}
+		info, err := os.Stat(abs)
+		if err != nil {
+			return fmt.Errorf("could not stat: %v", err)
+		}
+		if !info.IsDir() {
+			return fmt.Errorf("%s is not a directory", abs)
+		}
+		r.Dir = abs
 	}
-	if e := r.changeDir(r.Dir); e > 0 {
-		return ExitCode(e)
-	}
+	r.Vars["PWD"] = Variable{Value: StringVal(r.Dir)}
 	r.Vars["IFS"] = Variable{Value: StringVal(" \t\n")}
 	r.ifsUpdated()
 	r.Vars["OPTIND"] = Variable{Value: StringVal("1")}
