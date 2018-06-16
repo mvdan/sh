@@ -15,6 +15,8 @@ import (
 // ${#var}, but also to arithmetic expansions like $((var + 3)), and
 // command substitutions like $(echo foo).
 //
+// If env is nil, the current environment variables are used.
+//
 // Any side effects or modifications to the system are forbidden when
 // interpreting the program. This is enforced via whitelists when
 // executing programs and opening paths.
