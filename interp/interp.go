@@ -229,7 +229,9 @@ func (r *Runner) Reset() error {
 		}
 		r.Dir = dir
 	}
-	r.Vars["PWD"] = Variable{Value: StringVal(r.Dir)}
+	if e := r.changeDir(r.Dir); e > 0 {
+		return ExitCode(e)
+	}
 	r.Vars["IFS"] = Variable{Value: StringVal(" \t\n")}
 	r.ifsUpdated()
 	r.Vars["OPTIND"] = Variable{Value: StringVal("1")}

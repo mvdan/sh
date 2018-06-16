@@ -660,7 +660,12 @@ func (r *Runner) readLine(raw bool) ([]byte, error) {
 }
 
 func (r *Runner) changeDir(path string) int {
+	var err error
 	path = r.relPath(path)
+	path, err = filepath.Abs(path)
+	if err != nil {
+		return 1
+	}
 	info, err := r.stat(path)
 	if err != nil || !info.IsDir() {
 		return 1
