@@ -2399,29 +2399,51 @@ func TestElapsedString(t *testing.T) {
 	}
 }
 
-func TestPwdIsAbs(t *testing.T) {
-	_ = os.Mkdir("a", 0755)
-	defer os.Remove("a")
-
-	p, err := syntax.NewParser().Parse(strings.NewReader("pwd"), "")
+func TestRunnerDir(t *testing.T) {
+	dir, err := ioutil.TempDir("", "interp")
 	if err != nil {
-		t.Fatalf("could not parse: %v", err)
+		t.Fatal(err)
+	}
+	defer os.Remove(dir)
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	rel, err := filepath.Rel(wd, dir)
+	if err != nil {
+		t.Fatal(err)
 	}
 
-	var b bytes.Buffer
-	r := Runner{
-		Dir:    "a",
-		Stdout: &b,
-		Stderr: &b,
-	}
-	if err = r.Reset(); err != nil {
-		t.Errorf("could not reset: %v", err)
-	}
-	if err = r.Run(p); err != nil {
-		b.WriteString(err.Error())
-	}
-	pwd := b.String()
-	if !filepath.IsAbs(pwd) {
-		t.Errorf("pwd is not absolute")
-	}
+	t.Run("Missing", func(t *testing.T) {
+		r := Runner{Dir: "missing"}
+		if err := r.Reset(); err == nil {
+			t.Fatal("expected Runner to error when Dir is missing")
+		}
+	})
+	t.Run("NoDir", func(t *testing.T) {
+		r := Runner{Dir: "interp_test.go"}
+		if err := r.Reset(); err == nil {
+			t.Fatal("expected Runner to error when Dir is not a dir")
+		}
+	})
+	t.Run("NoDirAbs", func(t *testing.T) {
+		r := Runner{Dir: filepath.Join(wd, "interp_test.go")}
+		if err := r.Reset(); err == nil {
+			t.Fatal("expected Runner to error when Dir is not a dir")
+		}
+	})
+	t.Run("Relative", func(t *testing.T) {
+		var b bytes.Buffer
+		r := Runner{
+			Dir:    rel,
+			Stdout: &b,
+			Stderr: &b,
+		}
+		if err := r.Reset(); err != nil {
+			t.Error(err)
+		}
+		if !filepath.IsAbs(r.Dir) {
+			t.Errorf("Runner.Dir is not absolute")
+		}
+	})
 }
