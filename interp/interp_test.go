@@ -2223,6 +2223,7 @@ func TestFileConfirm(t *testing.T) {
 }
 
 func TestRunnerOpts(t *testing.T) {
+	t.Parallel()
 	withPath := func(strs ...string) Environ {
 		list := []string{"PATH=" + os.Getenv("PATH")}
 		list = append(list, strs...)
@@ -2300,6 +2301,7 @@ func TestRunnerOpts(t *testing.T) {
 }
 
 func TestRunnerContext(t *testing.T) {
+	t.Parallel()
 	cases := []string{
 		"",
 		"while true; do true; done",
@@ -2339,6 +2341,7 @@ func TestRunnerContext(t *testing.T) {
 }
 
 func TestRunnerAltNodes(t *testing.T) {
+	t.Parallel()
 	in := "echo foo"
 	want := "foo\n"
 	file, err := syntax.NewParser().Parse(strings.NewReader(in), "")
@@ -2368,6 +2371,7 @@ func TestRunnerAltNodes(t *testing.T) {
 }
 
 func TestElapsedString(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		in    time.Duration
 		posix bool
@@ -2400,6 +2404,7 @@ func TestElapsedString(t *testing.T) {
 }
 
 func TestRunnerDir(t *testing.T) {
+	t.Parallel()
 	dir, err := ioutil.TempDir("", "interp")
 	if err != nil {
 		t.Fatal(err)
