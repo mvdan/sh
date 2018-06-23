@@ -163,11 +163,12 @@ func (p *Parser) nextKeepSpaces() {
 			p.advanceLitDquote(r)
 		}
 	case hdocBody, hdocBodyTabs:
-		if r == '`' || r == '$' {
+		switch {
+		case r == '`' || r == '$':
 			p.tok = p.dqToken(r)
-		} else if p.hdocStop == nil {
+		case p.hdocStop == nil:
 			p.tok = _Newl
-		} else {
+		default:
 			p.advanceLitHdoc(r)
 		}
 	default: // paramExpExp:
@@ -721,13 +722,14 @@ func (p *Parser) arithmToken(r rune) token {
 }
 
 func (p *Parser) newLit(r rune) {
-	if r < utf8.RuneSelf {
+	switch {
+	case r < utf8.RuneSelf:
 		p.litBs = p.litBuf[:1]
 		p.litBs[0] = byte(r)
-	} else if r > utf8.RuneSelf {
+	case r > utf8.RuneSelf:
 		w := utf8.RuneLen(r)
 		p.litBs = append(p.litBuf[:0], p.bs[p.bsp-w:p.bsp]...)
-	} else {
+	default:
 		// don't let r == utf8.RuneSelf go to the second case as RuneLen
 		// would return -1
 		p.litBs = p.litBuf[:0]

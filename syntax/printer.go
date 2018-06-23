@@ -559,14 +559,15 @@ func (p *Printer) paramExp(pe *ParamExp) {
 	}
 	p.WriteString(pe.Param.Value)
 	p.wroteIndex(pe.Index)
-	if pe.Slice != nil {
+	switch {
+	case pe.Slice != nil:
 		p.WriteByte(':')
 		p.arithmExpr(pe.Slice.Offset, true, true)
 		if pe.Slice.Length != nil {
 			p.WriteByte(':')
 			p.arithmExpr(pe.Slice.Length, true, false)
 		}
-	} else if pe.Repl != nil {
+	case pe.Repl != nil:
 		if pe.Repl.All {
 			p.WriteByte('/')
 		}
@@ -578,9 +579,9 @@ func (p *Printer) paramExp(pe *ParamExp) {
 		if pe.Repl.With != nil {
 			p.word(pe.Repl.With)
 		}
-	} else if pe.Names != 0 {
+	case pe.Names != 0:
 		p.WriteString(pe.Names.String())
-	} else if pe.Exp != nil {
+	case pe.Exp != nil:
 		p.WriteString(pe.Exp.Op.String())
 		if pe.Exp.Word != nil {
 			p.word(pe.Exp.Word)
