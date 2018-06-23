@@ -132,7 +132,8 @@ func DefaultOpen(ctx Ctxt, path string, flag int, perm os.FileMode) (io.ReadWrit
 
 func OpenDevImpls(next ModuleOpen) ModuleOpen {
 	return func(ctx Ctxt, path string, flag int, perm os.FileMode) (io.ReadWriteCloser, error) {
-		if ctx.UnixPath(path) == "/dev/null" {
+		switch ctx.UnixPath(path) {
+		case "/dev/null":
 			return devNull{}, nil
 		}
 		return next(ctx, path, flag, perm)
