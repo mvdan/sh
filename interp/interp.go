@@ -116,7 +116,7 @@ func (r *Runner) strBuilder() *bytes.Buffer {
 }
 
 func (r *Runner) optByFlag(flag string) *bool {
-	for i, opt := range shellOptsTable {
+	for i, opt := range &shellOptsTable {
 		if opt.flag == flag {
 			return &r.opts[i]
 		}
@@ -132,7 +132,7 @@ func (r *Runner) optByName(name string, bash bool) *bool {
 			}
 		}
 	}
-	for i, opt := range shellOptsTable {
+	for i, opt := range &shellOptsTable {
 		if opt.name == name {
 			return &r.opts[i]
 		}
@@ -326,13 +326,13 @@ func (r *Runner) FromArgs(args ...string) ([]string, error) {
 		if flag := arg[1:]; flag == "o" {
 			args = args[1:]
 			if len(args) == 0 && enable {
-				for i, opt := range shellOptsTable {
+				for i, opt := range &shellOptsTable {
 					r.printOptLine(opt.name, r.opts[i])
 				}
 				break
 			}
 			if len(args) == 0 && !enable {
-				for i, opt := range shellOptsTable {
+				for i, opt := range &shellOptsTable {
 					setFlag := "+o"
 					if r.opts[i] {
 						setFlag = "-o"
