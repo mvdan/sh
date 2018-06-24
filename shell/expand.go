@@ -22,12 +22,15 @@ import (
 // executing programs and opening paths.
 func Expand(s string, env func(string) string) (string, error) {
 	p := syntax.NewParser()
-	src := "<<EOF\n" + s + "\nEOF"
+	src := "<<EXPAND_EOF\n" + s + "\nEXPAND_EOF"
 	f, err := p.Parse(strings.NewReader(src), "")
 	if err != nil {
 		return "", err
 	}
 	word := f.Stmts[0].Redirs[0].Hdoc
+	last := word.Parts[len(word.Parts)-1].(*syntax.Lit)
+	// since the heredoc implies a trailing newline
+	last.Value = strings.TrimSuffix(last.Value, "\n")
 	r := pureRunner()
 	if env != nil {
 		r.Env = interp.FuncEnviron(env)
@@ -35,7 +38,5 @@ func Expand(s string, env func(string) string) (string, error) {
 	r.Reset()
 	fields := r.Fields(word)
 	// TODO: runner error
-	join := strings.Join(fields, "")
-	// since the heredoc implies a trailing newline
-	return strings.TrimSuffix(join, "\n"), nil
+	return strings.Join(fields, ""), nil
 }

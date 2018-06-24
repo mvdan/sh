@@ -20,13 +20,21 @@ var expandTests = []struct {
 	{"a-$b-c", func(string) string { return "" }, "a--c"},
 	{
 		"a-$b-c",
-		func(name string) string {
-			return name + "_val"
-		},
+		func(name string) string { return name + "_val" },
 		"a-b_val-c",
 	},
 	{"${x//o/a}", func(string) string { return "foo" }, "faa"},
 	{"${INTERP_GLOBAL:+hasOsEnv}", nil, "hasOsEnv"},
+	{
+		"~",
+		func(name string) string { return name + "_val" },
+		"HOME_val",
+	},
+	{
+		"~/foo/bar",
+		func(name string) string { return name + "_val" },
+		"HOME_val/foo/bar",
+	},
 }
 
 func TestExpand(t *testing.T) {
