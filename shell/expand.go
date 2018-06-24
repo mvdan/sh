@@ -4,6 +4,7 @@
 package shell
 
 import (
+	"context"
 	"strings"
 
 	"mvdan.cc/sh/interp"
@@ -19,7 +20,8 @@ import (
 //
 // Any side effects or modifications to the system are forbidden when
 // interpreting the program. This is enforced via whitelists when
-// executing programs and opening paths.
+// executing programs and opening paths. The interpreter also has a timeout of
+// two seconds.
 func Expand(s string, env func(string) string) (string, error) {
 	p := syntax.NewParser()
 	src := "<<EXPAND_EOF\n" + s + "\nEXPAND_EOF"
@@ -36,6 +38,9 @@ func Expand(s string, env func(string) string) (string, error) {
 		r.Env = interp.FuncEnviron(env)
 	}
 	r.Reset()
+	ctx, cancel := context.WithTimeout(context.Background(), pureRunnerTimeout)
+	defer cancel()
+	r.Context = ctx
 	fields := r.Fields(word)
 	// TODO: runner error
 	return strings.Join(fields, ""), nil
