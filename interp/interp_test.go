@@ -61,10 +61,10 @@ func TestMain(m *testing.M) {
 	os.Unsetenv("CDPATH")
 	hasBash44 = checkBash()
 	os.Setenv("INTERP_GLOBAL", "value")
-	exit := m.Run()
 	for _, s := range []string{"a", "b", "c", "d", "foo", "bar"} {
 		os.Unsetenv(s)
 	}
+	exit := m.Run()
 	os.Exit(exit)
 }
 
