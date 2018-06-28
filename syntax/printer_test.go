@@ -376,6 +376,10 @@ var printTests = []printCase{
 		"a <<EOF\n$(\n\tb\n\tc\n)\nEOF",
 	},
 	{
+		"<(<<EOF\nbody\nEOF\n)",
+		"<(\n\t<<EOF\nbody\nEOF\n)",
+	},
+	{
 		"( (foo) )\n$( (foo) )\n<( (foo) )",
 		"( (foo))\n$( (foo))\n<((foo))",
 	},

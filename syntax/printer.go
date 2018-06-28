@@ -510,7 +510,7 @@ func (p *Printer) wordPart(wp, next WordPart) {
 		}
 		p.WriteString(x.Op.String())
 		p.nestedStmts(x.StmtList, x.Rparen)
-		p.WriteByte(')')
+		p.rightParen(x.Rparen)
 	}
 }
 
