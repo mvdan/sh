@@ -77,7 +77,7 @@ func TestParseMirBSDKorn(t *testing.T) {
 var (
 	hasBash44  bool
 	hasDash059 bool
-	hasMksh55  bool
+	hasMksh56  bool
 )
 
 func TestMain(m *testing.M) {
@@ -88,7 +88,7 @@ func TestMain(m *testing.M) {
 	// check if it's new enough as to not have the bug that breaks
 	// our integration tests. Blergh.
 	hasDash059 = cmdContains("Bad subst", "dash", "-c", "echo ${#<}")
-	hasMksh55 = cmdContains(" R55 ", "mksh", "-c", "echo $KSH_VERSION")
+	hasMksh56 = cmdContains(" R56 ", "mksh", "-c", "echo $KSH_VERSION")
 	os.Exit(m.Run())
 }
 
@@ -171,7 +171,7 @@ func TestParsePosixConfirm(t *testing.T) {
 		t.Skip("calling dash is slow.")
 	}
 	if !hasDash059 {
-		t.Skip("dash required to run")
+		t.Skip("dash 0.5.9 or newer required to run")
 	}
 	i := 0
 	for _, c := range append(fileTests, fileTestsNoPrint...) {
@@ -190,8 +190,8 @@ func TestParseMirBSDKornConfirm(t *testing.T) {
 	if testing.Short() {
 		t.Skip("calling mksh is slow.")
 	}
-	if !hasMksh55 {
-		t.Skip("mksh required to run")
+	if !hasMksh56 {
+		t.Skip("mksh 56 required to run")
 	}
 	i := 0
 	for _, c := range append(fileTests, fileTestsNoPrint...) {
@@ -236,7 +236,7 @@ func TestParseErrPosixConfirm(t *testing.T) {
 		t.Skip("calling dash is slow.")
 	}
 	if !hasDash059 {
-		t.Skip("dash required to run")
+		t.Skip("dash 0.5.9 or newer required to run")
 	}
 	i := 0
 	for _, c := range shellTests {
@@ -257,8 +257,8 @@ func TestParseErrMirBSDKornConfirm(t *testing.T) {
 	if testing.Short() {
 		t.Skip("calling mksh is slow.")
 	}
-	if !hasMksh55 {
-		t.Skip("mksh required to run")
+	if !hasMksh56 {
+		t.Skip("mksh 56 required to run")
 	}
 	i := 0
 	for _, c := range shellTests {
@@ -329,31 +329,32 @@ type errorCase struct {
 var shellTests = []errorCase{
 	{
 		in:     "echo \x80",
-		common: `1:6: invalid UTF-8 encoding #NOERR bash uses bytes`,
+		common: `1:6: invalid UTF-8 encoding #NOERR common shells use bytes`,
 	},
 	{
 		in:     "\necho \x80",
-		common: `2:6: invalid UTF-8 encoding #NOERR bash uses bytes`,
+		common: `2:6: invalid UTF-8 encoding #NOERR common shells use bytes`,
 	},
 	{
 		in:     "echo foo\x80bar",
-		common: `1:9: invalid UTF-8 encoding #NOERR bash uses bytes`,
+		common: `1:9: invalid UTF-8 encoding #NOERR common shells use bytes`,
 	},
 	{
 		in:     "echo foo\xc3",
-		common: `1:9: invalid UTF-8 encoding #NOERR bash uses bytes`,
+		common: `1:9: invalid UTF-8 encoding #NOERR common shells use bytes`,
 	},
 	{
 		in:     "#foo\xc3",
-		common: `1:5: invalid UTF-8 encoding #NOERR bash uses bytes`,
+		common: `1:5: invalid UTF-8 encoding #NOERR common shells use bytes`,
 	},
 	{
 		in:     "echo a\x80",
-		common: `1:7: invalid UTF-8 encoding #NOERR bash uses bytes`,
+		common: `1:7: invalid UTF-8 encoding #NOERR common shells use bytes`,
 	},
 	{
 		in:     "<<$\xc8\n$\xc8",
-		common: `1:4: invalid UTF-8 encoding #NOERR bash uses bytes`,
+		common: `1:4: invalid UTF-8 encoding #NOERR common shells use bytes`,
+		mksh:   `1:4: invalid UTF-8 encoding`, // mksh says heredoc unclosed now?
 	},
 	{
 		in:     "echo $((foo\x80bar",
@@ -431,10 +432,10 @@ var shellTests = []errorCase{
 		common: `1:1: "!" cannot form a statement alone`,
 	},
 	{
-		// bash and mksh chain them, dash and us don't
+		// bash allows lone '!', unlike dash, mksh, and us.
 		in:     "! !",
-		common: `1:1: cannot negate a command multiple times #NOERR`,
-		posix:  `1:1: cannot negate a command multiple times`,
+		common: `1:1: cannot negate a command multiple times`,
+		bash:   `1:1: cannot negate a command multiple times #NOERR`,
 	},
 	{
 		in:     "! ! foo",
@@ -518,12 +519,12 @@ var shellTests = []errorCase{
 		common: `1:3: ; can only immediately follow a statement`,
 	},
 	{
-		in:     `"foo"(){}`,
+		in:     `"foo"(){ :; }`,
 		common: `1:1: invalid func name`,
 		mksh:   `1:1: invalid func name #NOERR`,
 	},
 	{
-		in:     `foo$bar(){}`,
+		in:     `foo$bar(){ :; }`,
 		common: `1:1: invalid func name`,
 	},
 	{
