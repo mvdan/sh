@@ -1455,6 +1455,15 @@ var fileTests = []testCase{
 		),
 	},
 	{
+		Strs: []string{"foo {fd}<f"},
+		bash: &Stmt{
+			Cmd: litCall("foo"),
+			Redirs: []*Redirect{
+				{Op: RdrIn, N: lit("{fd}"), Word: litWord("f")},
+			},
+		},
+	},
+	{
 		Strs: []string{"! foo"},
 		common: &Stmt{
 			Negated: true,

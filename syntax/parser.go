@@ -1394,6 +1394,9 @@ func (p *Parser) doRedirect(s *Stmt) {
 		s.Redirs = append(s.Redirs, r)
 	}
 	r.N = p.getLit()
+	if p.lang != LangBash && r.N != nil && r.N.Value[0] == '{' {
+		p.posErr(r.N.Pos(), "{varname} redirects are a bash feature")
+	}
 	r.Op, r.OpPos = RedirOperator(p.tok), p.pos
 	p.next()
 	switch r.Op {

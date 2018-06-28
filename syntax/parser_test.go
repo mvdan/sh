@@ -1668,6 +1668,14 @@ var shellTests = []errorCase{
 		mksh:  `1:6: > must be followed by a word`,
 	},
 	{
+		// shells treat {var} as an argument, but we are a bit stricter
+		// so that users won't think this will work like they expect in
+		// POSIX shell.
+		in:    "echo {var}>foo",
+		posix: `1:6: {varname} redirects are a bash feature #NOERR`,
+		mksh:  `1:6: {varname} redirects are a bash feature #NOERR`,
+	},
+	{
 		in:    "echo ;&",
 		posix: `1:7: & can only immediately follow a statement`,
 		bsmk:  `1:6: ;& can only be used in a case clause`,
