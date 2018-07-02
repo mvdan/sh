@@ -1067,6 +1067,9 @@ func (p *Parser) paramExp() *ParamExp {
 	op := p.tok
 	switch p.tok {
 	case _Lit, _LitWord:
+		if !numberLiteral(p.val) && !ValidName(p.val) {
+			p.curErr("invalid parameter name")
+		}
 		pe.Param = p.lit(p.pos, p.val)
 		p.next()
 	case quest, minus:
@@ -1246,6 +1249,15 @@ func ValidName(val string) bool {
 		case r == '_':
 		case i > 0 && '0' <= r && r <= '9':
 		default:
+			return false
+		}
+	}
+	return true
+}
+
+func numberLiteral(val string) bool {
+	for _, r := range val {
+		if '0' > r || r > '9' {
 			return false
 		}
 	}

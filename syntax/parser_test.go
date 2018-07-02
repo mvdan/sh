@@ -1023,6 +1023,14 @@ var shellTests = []errorCase{
 		common: `1:13: parameter expansion requires a literal`,
 	},
 	{
+		in:     "echo ${à}",
+		common: `1:8: invalid parameter name`,
+	},
+	{
+		in:     "echo ${1a}",
+		common: `1:8: invalid parameter name`,
+	},
+	{
 		in:     "echo ${foo-bar",
 		common: `1:6: reached EOF without matching ${ with }`,
 	},

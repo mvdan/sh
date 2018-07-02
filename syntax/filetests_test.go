@@ -1788,7 +1788,7 @@ var fileTests = []testCase{
 		common: litWord("$"),
 	},
 	{
-		Strs: []string{`${@} ${*} ${#} ${$} ${?} ${!} ${0} ${-}`},
+		Strs: []string{`${@} ${*} ${#} ${$} ${?} ${!} ${0} ${29} ${-}`},
 		common: call(
 			word(&ParamExp{Param: lit("@")}),
 			word(&ParamExp{Param: lit("*")}),
@@ -1797,6 +1797,7 @@ var fileTests = []testCase{
 			word(&ParamExp{Param: lit("?")}),
 			word(&ParamExp{Param: lit("!")}),
 			word(&ParamExp{Param: lit("0")}),
+			word(&ParamExp{Param: lit("29")}),
 			word(&ParamExp{Param: lit("-")}),
 		),
 	},
