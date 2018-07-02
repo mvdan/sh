@@ -478,14 +478,19 @@ func (p *Printer) wordPart(wp, next WordPart) {
 			p.rightParen(x.Right)
 		}
 	case *ParamExp:
-		nextLit, ok := next.(*Lit)
 		litCont := ";"
-		if ok {
+		if nextLit, ok := next.(*Lit); ok {
 			litCont = nextLit.Value[:1]
 		}
-		if p.minify && !x.Excl && !x.Length && !x.Width &&
-			x.Index == nil && x.Slice == nil && x.Repl == nil &&
-			x.Exp == nil && !ValidName(x.Param.Value+litCont) {
+		name := x.Param.Value
+		switch {
+		case !p.minify:
+		case x.Excl, x.Length, x.Width:
+		case x.Index != nil, x.Slice != nil:
+		case x.Repl != nil, x.Exp != nil:
+		case len(name) > 1 && !ValidName(name): // ${10}
+		case ValidName(name + litCont): // ${var}cont
+		default:
 			x2 := *x
 			x2.Short = true
 			p.paramExp(&x2)
