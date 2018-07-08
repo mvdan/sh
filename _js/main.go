@@ -34,7 +34,7 @@ func main() {
 
 	stx.Set("NewParser", func() *js.Object {
 		p := syntax.NewParser()
-		return js.MakeWrapper(jsParser{p})
+		return js.MakeFullWrapper(jsParser{p})
 	})
 
 	stx.Set("Walk", func(node syntax.Node, jsFn func(*js.Object) bool) {
@@ -42,7 +42,7 @@ func main() {
 			if node == nil {
 				return jsFn(nil)
 			}
-			return jsFn(js.MakeWrapper(node))
+			return jsFn(js.MakeFullWrapper(node))
 		}
 		syntax.Walk(node, f)
 
@@ -53,7 +53,7 @@ func main() {
 
 	stx.Set("NewPrinter", func() *js.Object {
 		p := syntax.NewPrinter()
-		return js.MakeWrapper(jsPrinter{p})
+		return js.MakeFullWrapper(jsPrinter{p})
 	})
 }
 
@@ -70,7 +70,7 @@ func (p jsParser) Parse(src, name string) *js.Object {
 	if err != nil {
 		throw(err)
 	}
-	return js.MakeWrapper(f)
+	return js.MakeFullWrapper(f)
 }
 
 type jsPrinter struct {
