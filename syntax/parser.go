@@ -712,9 +712,16 @@ func (p *Parser) wordPart() WordPart {
 		p.pos = posAddCol(p.pos, 1)
 		pe.Param = p.getLit()
 		if pe.Param != nil && pe.Param.Value == "" {
-			// e.g. "$\\\n", which we can't detect above
 			l := p.lit(pe.Dollar, "$")
-			p.next()
+			if p.val == "" {
+				// e.g. "$\\\n" followed by a closing double
+				// quote, so we need the next token.
+				p.next()
+			} else {
+				// e.g. "$\\\"" within double quotes, so we must
+				// keep the rest of the literal characters.
+				l.ValueEnd = posAddCol(l.ValuePos, 1)
+			}
 			return l
 		}
 		return pe

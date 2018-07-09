@@ -2815,6 +2815,10 @@ var fileTests = []testCase{
 		common: dblQuoted(lit("foo"), litParamExp("$")),
 	},
 	{
+		Strs:   []string{`"a $\"b\" c"`},
+		common: dblQuoted(lit(`a `), lit(`$`), lit(`\"b\" c`)),
+	},
+	{
 		Strs: []string{"$(foo$)", "`foo$`"},
 		common: cmdSubst(
 			stmt(call(word(lit("foo"), lit("$")))),
@@ -4302,8 +4306,8 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 		case end == len(src):
 			// same as above, but with word and EOF
 		case end != want:
-			tb.Fatalf("Unexpected Lit.End() %d (wanted %d) in %q",
-				end, want, string(src))
+			tb.Fatalf("Unexpected Lit %q End() %d (wanted %d) in %q",
+				val, end, want, string(src))
 		}
 		setPos(&x.ValuePos, val)
 		setPos(&x.ValueEnd)
