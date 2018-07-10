@@ -68,17 +68,12 @@ func NewPrinter(options ...func(*Printer)) *Printer {
 func (p *Printer) Print(w io.Writer, node Node) error {
 	p.reset()
 	p.bufWriter.Reset(w)
-	p.line = node.Pos().Line()
 	switch x := node.(type) {
 	case *File:
 		p.stmts(x.StmtList)
 		p.newline(x.End())
 	case *Stmt:
-		sl := StmtList{Stmts: []*Stmt{x}}
-		// StmtList.pos is better than Stmt.Pos, since it also takes
-		// comments into account.
-		p.line = sl.pos().Line()
-		p.stmts(sl)
+		p.stmts(StmtList{Stmts: []*Stmt{x}})
 	case *Word:
 		p.word(x)
 	case Command:
