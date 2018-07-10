@@ -70,10 +70,10 @@ func (p *Printer) Print(w io.Writer, node Node) error {
 	p.bufWriter.Reset(w)
 	switch x := node.(type) {
 	case *File:
-		p.stmts(x.StmtList)
+		p.stmtList(x.StmtList)
 		p.newline(x.End())
 	case *Stmt:
-		p.stmts(StmtList{Stmts: []*Stmt{x}})
+		p.stmtList(StmtList{Stmts: []*Stmt{x}})
 	case *Word:
 		p.word(x)
 	case Command:
@@ -147,6 +147,8 @@ type Printer struct {
 	// comment in the same line, breaking programs.
 	pendingComments []Comment
 
+	// firstLine means we are still writing the first line
+	firstLine bool
 	// line is the current line number
 	line uint
 
@@ -175,7 +177,11 @@ func (p *Printer) reset() {
 	p.wantSpace, p.wantNewline = false, false
 	p.commentPadding = 0
 	p.pendingComments = p.pendingComments[:0]
+
+	// minification uses its own newline logic
+	p.firstLine = !p.minify
 	p.line = 0
+
 	p.lastLevel, p.level = 0, 0
 	p.levelIncs = p.levelIncs[:0]
 	p.nestedBinary = false
@@ -349,7 +355,8 @@ func (p *Printer) flushHeredocs() {
 }
 
 func (p *Printer) newlines(pos Pos) {
-	if !p.wantNewline && p.line == 0 && len(p.pendingComments) == 0 {
+	if p.firstLine && len(p.pendingComments) == 0 {
+		p.firstLine = false
 		return // no empty lines at the top
 	}
 	if !p.wantNewline && pos.Line() <= p.line {
@@ -398,6 +405,9 @@ func (p *Printer) comment(c Comment) {
 
 func (p *Printer) flushComments() {
 	for i, c := range p.pendingComments {
+		p.firstLine = false
+		// We can't call any of the newline methods, as they call this
+		// function and we'd recurse forever.
 		cline := c.Hash.Line()
 		switch {
 		case i > 0, cline > p.line && p.line > 0:
@@ -1069,7 +1079,7 @@ func (p *Printer) hasInline(s *Stmt) bool {
 	return false
 }
 
-func (p *Printer) stmts(sl StmtList) {
+func (p *Printer) stmtList(sl StmtList) {
 	sep := p.wantNewline ||
 		(len(sl.Stmts) > 0 && sl.Stmts[0].Pos().Line() > p.line)
 	inlineIndent := 0
@@ -1216,7 +1226,7 @@ func (p *Printer) nestedStmts(sl StmtList, closing Pos) {
 		//     do foo; done
 		p.wantNewline = true
 	}
-	p.stmts(sl)
+	p.stmtList(sl)
 	if closing.IsValid() {
 		p.flushComments()
 	}
