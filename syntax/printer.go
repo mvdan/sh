@@ -435,6 +435,9 @@ func (p *Printer) flushComments() {
 }
 
 func (p *Printer) comments(cs []Comment) {
+	if p.minify {
+		return
+	}
 	p.pendingComments = append(p.pendingComments, cs...)
 }
 

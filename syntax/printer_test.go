@@ -787,7 +787,7 @@ func TestPrintMinifyNotBroken(t *testing.T) {
 	parserMirBSD := NewParser(KeepComments, Variant(LangMirBSDKorn))
 	printer := NewPrinter(Minify)
 	for i, tc := range fileTests {
-		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
+		t.Run(fmt.Sprintf("File%03d", i), func(t *testing.T) {
 			parser := parserPosix
 			if tc.Bash != nil {
 				parser = parserBash
@@ -804,6 +804,22 @@ func TestPrintMinifyNotBroken(t *testing.T) {
 				t.Fatal(err)
 			}
 			_, err = parser.Parse(strings.NewReader(got), "")
+			if err != nil {
+				t.Fatalf("minified program was broken: %v\n%s", err, got)
+			}
+		})
+	}
+	for i, tc := range printTests {
+		t.Run(fmt.Sprintf("Print%03d", i), func(t *testing.T) {
+			prog, err := parserBash.Parse(strings.NewReader(tc.in), "")
+			if err != nil {
+				t.Fatal(err)
+			}
+			got, err := strPrint(printer, prog)
+			if err != nil {
+				t.Fatal(err)
+			}
+			_, err = parserBash.Parse(strings.NewReader(got), "")
 			if err != nil {
 				t.Fatalf("minified program was broken: %v\n%s", err, got)
 			}
