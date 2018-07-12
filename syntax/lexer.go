@@ -803,7 +803,7 @@ loop:
 				break loop
 			}
 		case '/':
-			if p.quote&allParamExp != 0 && p.quote != paramExpExp {
+			if p.quote != paramExpExp {
 				break loop
 			}
 		case ':', '=', '%', '^', ',', '?', '!', '*':
