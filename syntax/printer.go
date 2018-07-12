@@ -797,8 +797,7 @@ func (p *Printer) stmt(s *Stmt) {
 		if r.OpPos.Line() > p.line {
 			p.bslashNewl()
 		}
-		if p.minify && r.N == nil {
-		} else if p.wantSpace {
+		if p.wantSpace {
 			p.spacePad(r.Pos())
 		}
 		if r.N != nil {
@@ -849,8 +848,7 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			if r.Pos().After(x.Args[1].Pos()) || r.Op == Hdoc || r.Op == DashHdoc {
 				break
 			}
-			if p.minify && r.N == nil {
-			} else if p.wantSpace {
+			if p.wantSpace {
 				p.spacePad(r.Pos())
 			}
 			if r.N != nil {

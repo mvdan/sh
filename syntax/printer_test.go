@@ -730,11 +730,7 @@ func TestPrintMinify(t *testing.T) {
 			"foo &",
 			"foo&",
 		},
-		{
-			"foo >bar",
-			"foo>bar",
-		},
-		samePrint("foo 2>bar"),
+		samePrint("foo >bar 2>baz <etc"),
 		{
 			"{\n\tfoo\n}",
 			"{\nfoo\n}",
