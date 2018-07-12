@@ -381,11 +381,11 @@ func (p *Printer) rightParen(pos Pos) {
 	p.wantSpace = true
 }
 
-func (p *Printer) semiRsrv(s string, pos Pos, fallback bool) {
+func (p *Printer) semiRsrv(s string, pos Pos) {
 	if p.wantNewline || pos.Line() > p.line {
 		p.newlines(pos)
 	} else {
-		if fallback && !p.wroteSemi {
+		if !p.wroteSemi {
 			p.WriteByte(';')
 		}
 		if !p.minify {
@@ -470,12 +470,12 @@ func (p *Printer) wordPart(wp, next WordPart) {
 			p.wantSpace = true
 			p.nestedStmts(x.StmtList, x.Right)
 			p.wantSpace = false
-			p.semiRsrv("}", x.Right, true)
+			p.semiRsrv("}", x.Right)
 		case x.ReplyVar:
 			p.WriteString("${|")
 			p.nestedStmts(x.StmtList, x.Right)
 			p.wantSpace = false
-			p.semiRsrv("}", x.Right, true)
+			p.semiRsrv("}", x.Right)
 		default:
 			p.WriteString("$(")
 			p.wantSpace = len(x.Stmts) > 0 && startsWithLparen(x.Stmts[0])
@@ -868,7 +868,7 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		p.WriteByte('{')
 		p.wantSpace = true
 		p.nestedStmts(x.StmtList, x.Rbrace)
-		p.semiRsrv("}", x.Rbrace, true)
+		p.semiRsrv("}", x.Rbrace)
 	case *IfClause:
 		p.ifClause(x, false)
 	case *Subshell:
@@ -888,7 +888,7 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		p.nestedStmts(x.Cond, Pos{})
 		p.semiOrNewl("do", x.DoPos)
 		p.nestedStmts(x.Do, x.DonePos)
-		p.semiRsrv("done", x.DonePos, true)
+		p.semiRsrv("done", x.DonePos)
 	case *ForClause:
 		if x.Select {
 			p.WriteString("select ")
@@ -898,7 +898,7 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		p.loop(x.Loop)
 		p.semiOrNewl("do", x.DoPos)
 		p.nestedStmts(x.Do, x.DonePos)
-		p.semiRsrv("done", x.DonePos, true)
+		p.semiRsrv("done", x.DonePos)
 	case *BinaryCmd:
 		p.stmt(x.X)
 		if p.minify || x.Y.Pos().Line() <= p.line {
@@ -981,6 +981,8 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 					p.wantNewline = true
 				}
 				p.spacedToken(ci.Op.String(), ci.OpPos)
+				// avoid ; directly after tokens like ;;
+				p.wroteSemi = true
 				if inlineCom != nil {
 					p.comment(*inlineCom)
 				}
@@ -992,7 +994,7 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			p.flushComments()
 			p.decLevel()
 		}
-		p.semiRsrv("esac", x.Esac, len(x.Items) == 0)
+		p.semiRsrv("esac", x.Esac)
 	case *ArithmCmd:
 		p.WriteString("((")
 		if x.Unsigned {
@@ -1045,17 +1047,17 @@ func (p *Printer) ifClause(ic *IfClause, elif bool) {
 	p.semiOrNewl("then", ic.ThenPos)
 	p.nestedStmts(ic.Then, ic.bodyEndPos())
 	if ic.FollowedByElif() {
-		p.semiRsrv("elif", ic.ElsePos, true)
+		p.semiRsrv("elif", ic.ElsePos)
 		p.ifClause(ic.Else.Stmts[0].Cmd.(*IfClause), true)
 		return
 	}
 	if !ic.Else.empty() {
-		p.semiRsrv("else", ic.ElsePos, true)
+		p.semiRsrv("else", ic.ElsePos)
 		p.nestedStmts(ic.Else, ic.FiPos)
 	} else if ic.ElsePos.IsValid() {
 		p.line = ic.ElsePos.Line()
 	}
-	p.semiRsrv("fi", ic.FiPos, true)
+	p.semiRsrv("fi", ic.FiPos)
 }
 
 func startsWithLparen(s *Stmt) bool {
