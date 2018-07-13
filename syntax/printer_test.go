@@ -719,6 +719,10 @@ func TestPrintMinify(t *testing.T) {
 	var tests = [...]printCase{
 		samePrint("echo foo bar $a $(b)"),
 		{
+			"#comment",
+			"",
+		},
+		{
 			"foo #comment",
 			"foo",
 		},

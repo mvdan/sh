@@ -2671,7 +2671,7 @@ var fileTests = []testCase{
 		}),
 	},
 	{
-		Strs: []string{"$((a /= b))"},
+		Strs: []string{"$((a /= b))", "$((a/=b))"},
 		common: arithmExp(&BinaryArithm{
 			Op: QuoAssgn,
 			X:  litWord("a"),
