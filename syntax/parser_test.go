@@ -1706,15 +1706,15 @@ var shellTests = []errorCase{
 	},
 	{
 		in:    "echo !(a)",
-		posix: `1:6: extended globs are a bash feature`,
+		posix: `1:6: extended globs are a bash/mksh feature`,
 	},
 	{
 		in:    "echo $a@(b)",
-		posix: `1:8: extended globs are a bash feature`,
+		posix: `1:8: extended globs are a bash/mksh feature`,
 	},
 	{
 		in:    "foo=(1 2)",
-		posix: `1:5: arrays are a bash feature`,
+		posix: `1:5: arrays are a bash/mksh feature`,
 	},
 	{
 		in:     "a=$c\n'",
@@ -1722,19 +1722,19 @@ var shellTests = []errorCase{
 	},
 	{
 		in:    "echo ${!foo}",
-		posix: `1:8: ${!foo} is a bash feature`,
+		posix: `1:8: ${!foo} is a bash/mksh feature`,
 	},
 	{
 		in:    "echo ${foo[1]}",
-		posix: `1:11: arrays are a bash feature`,
+		posix: `1:11: arrays are a bash/mksh feature`,
 	},
 	{
 		in:    "echo ${foo/a/b}",
-		posix: `1:11: search and replace is a bash feature`,
+		posix: `1:11: search and replace is a bash/mksh feature`,
 	},
 	{
 		in:    "echo ${foo:1}",
-		posix: `1:11: slicing is a bash feature`,
+		posix: `1:11: slicing is a bash/mksh feature`,
 	},
 	{
 		in:    "echo ${foo,bar}",
@@ -1743,7 +1743,7 @@ var shellTests = []errorCase{
 	},
 	{
 		in:    "echo ${foo@Q}",
-		posix: `1:11: this expansion operator is a bash feature`,
+		posix: `1:11: this expansion operator is a bash/mksh feature`,
 	},
 	{
 		in:     "`\"`\\",
