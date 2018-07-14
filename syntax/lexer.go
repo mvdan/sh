@@ -107,6 +107,7 @@ retry:
 		} else if p.fill(); p.bs == nil {
 			p.bsp++
 			p.r = utf8.RuneSelf
+			p.w = 1
 		} else {
 			goto retry
 		}
@@ -232,6 +233,7 @@ skipSpace:
 		w := utf8.RuneLen(r)
 		if bytes.HasPrefix(p.bs[p.bsp-w:], p.stopAt) {
 			p.r = utf8.RuneSelf
+			p.w = 1
 			p.tok = _EOF
 			return
 		}

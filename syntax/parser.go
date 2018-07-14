@@ -480,6 +480,7 @@ func (p *Parser) errPass(err error) {
 		p.err = err
 		p.bsp = len(p.bs) + 1
 		p.r = utf8.RuneSelf
+		p.w = 1
 		p.tok = _EOF
 	}
 }

@@ -1845,6 +1845,10 @@ var fileTests = []testCase{
 		),
 	},
 	{
+		Strs:   []string{"$à", "$\\\nà"},
+		common: word(lit("$"), lit("à")),
+	},
+	{
 		Strs: []string{"$foobar", "$foo\\\nbar"},
 		common: call(
 			word(litParamExp("foobar")),
