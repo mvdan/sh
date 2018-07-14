@@ -93,6 +93,7 @@ var modCases = []struct {
 }
 
 func TestRunnerModules(t *testing.T) {
+	t.Parallel()
 	p := syntax.NewParser()
 	for _, tc := range modCases {
 		t.Run(tc.name, func(t *testing.T) {

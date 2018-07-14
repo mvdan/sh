@@ -55,6 +55,7 @@ var translateTests = []struct {
 }
 
 func TestTranslatePattern(t *testing.T) {
+	t.Parallel()
 	for i, tc := range translateTests {
 		t.Run(fmt.Sprintf("%02d", i), func(t *testing.T) {
 			got, gotErr := TranslatePattern(tc.pattern, tc.greedy)
@@ -92,6 +93,7 @@ var quoteTests = []struct {
 }
 
 func TestQuotePattern(t *testing.T) {
+	t.Parallel()
 	for _, tc := range quoteTests {
 		got := QuotePattern(tc.pattern)
 		if got != tc.want {

@@ -463,7 +463,6 @@ var printTests = []printCase{
 
 func TestPrintWeirdFormat(t *testing.T) {
 	t.Parallel()
-
 	parser := NewParser(KeepComments)
 	printer := NewPrinter()
 	for i, tc := range printTests {
@@ -495,6 +494,7 @@ func parsePath(tb testing.TB, path string) *File {
 const canonicalPath = "canonical.sh"
 
 func TestPrintMultiline(t *testing.T) {
+	t.Parallel()
 	prog := parsePath(t, canonicalPath)
 	got, err := strPrint(NewPrinter(), prog)
 	if err != nil {
@@ -521,6 +521,7 @@ func BenchmarkPrint(b *testing.B) {
 }
 
 func TestPrintSpaces(t *testing.T) {
+	t.Parallel()
 	var spaceFormats = [...]struct {
 		spaces   uint
 		in, want string
@@ -558,6 +559,7 @@ type badWriter struct{}
 func (b badWriter) Write(p []byte) (int, error) { return 0, errBadWriter }
 
 func TestWriteErr(t *testing.T) {
+	t.Parallel()
 	_ = (*byteCounter)(nil).Flush()
 	f := &File{StmtList: StmtList{Stmts: []*Stmt{
 		{
@@ -579,6 +581,7 @@ func TestWriteErr(t *testing.T) {
 }
 
 func TestPrintBinaryNextLine(t *testing.T) {
+	t.Parallel()
 	var tests = [...]printCase{
 		{
 			"foo <<EOF &&\nl1\nEOF\nbar",
@@ -647,6 +650,7 @@ func TestPrintBinaryNextLine(t *testing.T) {
 }
 
 func TestPrintSwitchCaseIndent(t *testing.T) {
+	t.Parallel()
 	var tests = [...]printCase{
 		{
 			"case $i in\n1)\nfoo\n;;\nesac",
@@ -668,6 +672,7 @@ func TestPrintSwitchCaseIndent(t *testing.T) {
 }
 
 func TestPrintSpaceRedirects(t *testing.T) {
+	t.Parallel()
 	var tests = [...]printCase{
 		samePrint("echo foo bar > f"),
 		samePrint("echo > f foo bar"),
@@ -688,6 +693,7 @@ func TestPrintSpaceRedirects(t *testing.T) {
 }
 
 func TestPrintKeepPadding(t *testing.T) {
+	t.Parallel()
 	var tests = [...]printCase{
 		samePrint("echo foo bar"),
 		samePrint("echo  foo   bar"),
@@ -716,6 +722,7 @@ func TestPrintKeepPadding(t *testing.T) {
 }
 
 func TestPrintMinify(t *testing.T) {
+	t.Parallel()
 	var tests = [...]printCase{
 		samePrint("echo foo bar $a $(b)"),
 		{
@@ -786,6 +793,7 @@ func TestPrintMinify(t *testing.T) {
 }
 
 func TestPrintMinifyNotBroken(t *testing.T) {
+	t.Parallel()
 	parserBash := NewParser(KeepComments)
 	parserPosix := NewParser(KeepComments, Variant(LangPOSIX))
 	parserMirBSD := NewParser(KeepComments, Variant(LangMirBSDKorn))
@@ -852,6 +860,7 @@ func printTest(t *testing.T, parser *Parser, printer *Printer, in, want string) 
 }
 
 func TestPrintNodeTypes(t *testing.T) {
+	t.Parallel()
 	var tests = [...]struct {
 		in   Node
 		want string
@@ -893,6 +902,7 @@ func TestPrintNodeTypes(t *testing.T) {
 }
 
 func TestPrintManyStmts(t *testing.T) {
+	t.Parallel()
 	var tests = [...]struct {
 		in, want string
 	}{

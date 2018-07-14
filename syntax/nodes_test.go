@@ -64,6 +64,7 @@ func (v *posWalker) Visit(n Node) bool {
 }
 
 func TestWeirdOperatorString(t *testing.T) {
+	t.Parallel()
 	op := RedirOperator(1000)
 	want := "token(1000)"
 	if got := op.String(); got != want {

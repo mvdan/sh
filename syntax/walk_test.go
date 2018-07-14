@@ -113,6 +113,7 @@ func (newNode) Pos() Pos { return Pos{} }
 func (newNode) End() Pos { return Pos{} }
 
 func TestWalkUnexpectedType(t *testing.T) {
+	t.Parallel()
 	defer func() {
 		if r := recover(); r == nil {
 			t.Errorf("did not panic")

@@ -66,6 +66,7 @@ var simplifyTests = [...]simplifyTest{
 }
 
 func TestSimplify(t *testing.T) {
+	t.Parallel()
 	parser := NewParser()
 	printer := NewPrinter()
 	for i, tc := range simplifyTests {

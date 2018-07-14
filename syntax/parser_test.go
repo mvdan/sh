@@ -19,6 +19,7 @@ import (
 )
 
 func TestKeepComments(t *testing.T) {
+	t.Parallel()
 	in := "# foo\ncmd\n# bar"
 	want := &File{StmtList: StmtList{
 		Stmts: []*Stmt{{
@@ -1824,6 +1825,7 @@ func TestParseErrMirBSDKorn(t *testing.T) {
 }
 
 func TestInputName(t *testing.T) {
+	t.Parallel()
 	in := "("
 	want := "some-file.sh:1:1: reached EOF without matching ( with )"
 	p := NewParser()
@@ -1845,6 +1847,7 @@ type badReader struct{}
 func (b badReader) Read(p []byte) (int, error) { return 0, errBadReader }
 
 func TestReadErr(t *testing.T) {
+	t.Parallel()
 	p := NewParser()
 	_, err := p.Parse(badReader{}, "")
 	if err == nil {
@@ -1895,6 +1898,7 @@ func (c *chunkedReader) Read(p []byte) (n int, err error) {
 }
 
 func TestParseStmts(t *testing.T) {
+	t.Parallel()
 	in := []string{"foo\n", "bar; baz"}
 	p := NewParser()
 	cr := &chunkedReader{in, make(chan bool, 10)}
@@ -1917,6 +1921,7 @@ func TestParseStmts(t *testing.T) {
 }
 
 func TestParseStmtsStopEarly(t *testing.T) {
+	t.Parallel()
 	in := []string{"a\n", "b &\n", "c\n"}
 	p := NewParser()
 	cr := &chunkedReader{in, make(chan bool, 10)}
