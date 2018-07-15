@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"mvdan.cc/sh/interp"
-	"mvdan.cc/sh/syntax"
+	"mvdan.cc/sh/v2/interp"
+	"mvdan.cc/sh/v2/syntax"
 
 	"github.com/kr/pretty"
 )

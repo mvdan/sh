@@ -1,7 +1,7 @@
 // Copyright (c) 2016, Daniel Martí <mvdan@mvdan.cc>
 // See LICENSE for licensing information
 
-package main // import "mvdan.cc/sh/cmd/shfmt"
+package main // import "mvdan.cc/sh/v2/cmd/shfmt"
 
 import (
 	"bytes"
@@ -14,8 +14,8 @@ import (
 	"path/filepath"
 	"regexp"
 
-	"mvdan.cc/sh/fileutil"
-	"mvdan.cc/sh/syntax"
+	"mvdan.cc/sh/v2/fileutil"
+	"mvdan.cc/sh/v2/syntax"
 )
 
 var (

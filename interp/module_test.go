@@ -15,7 +15,7 @@ import (
 	"testing"
 	"time"
 
-	"mvdan.cc/sh/syntax"
+	"mvdan.cc/sh/v2/syntax"
 )
 
 var modCases = []struct {

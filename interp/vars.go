@@ -9,7 +9,7 @@ import (
 	"sort"
 	"strings"
 
-	"mvdan.cc/sh/syntax"
+	"mvdan.cc/sh/v2/syntax"
 )
 
 type Environ interface {

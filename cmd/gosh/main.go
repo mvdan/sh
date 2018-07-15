@@ -1,7 +1,7 @@
 // Copyright (c) 2017, Daniel Martí <mvdan@mvdan.cc>
 // See LICENSE for licensing information
 
-package main // import "mvdan.cc/sh/cmd/gosh"
+package main // import "mvdan.cc/sh/v2/cmd/gosh"
 
 import (
 	"flag"
@@ -12,8 +12,8 @@ import (
 
 	"golang.org/x/crypto/ssh/terminal"
 
-	"mvdan.cc/sh/interp"
-	"mvdan.cc/sh/syntax"
+	"mvdan.cc/sh/v2/interp"
+	"mvdan.cc/sh/v2/syntax"
 )
 
 var (

@@ -14,7 +14,7 @@ import (
 	"strconv"
 	"strings"
 
-	"mvdan.cc/sh/syntax"
+	"mvdan.cc/sh/v2/syntax"
 )
 
 func (r *Runner) expandFormat(format string, args []string) (int, string, error) {

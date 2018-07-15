@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"mvdan.cc/sh/syntax"
+	"mvdan.cc/sh/v2/syntax"
 )
 
 var jsonTests = []struct {

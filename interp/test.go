@@ -11,7 +11,7 @@ import (
 
 	"golang.org/x/crypto/ssh/terminal"
 
-	"mvdan.cc/sh/syntax"
+	"mvdan.cc/sh/v2/syntax"
 )
 
 // non-empty string is true, empty string is false

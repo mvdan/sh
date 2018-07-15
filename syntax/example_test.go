@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"mvdan.cc/sh/syntax"
+	"mvdan.cc/sh/v2/syntax"
 )
 
 func Example() {
