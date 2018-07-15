@@ -4,7 +4,7 @@ clone_folder: c:\gopath\src\mvdan.cc\sh
 
 environment:
   GOPATH: c:\gopath
-  GOVERSION: 1.10.2
+  GOVERSION: 1.10.3
 
 install:
   - rmdir c:\go /s /q
@@ -17,5 +17,6 @@ deploy: false
 
 test_script:
   - go get -d -t ./...
-  - go install -v ./...
+  - go install ./...
   - go test ./...
+  - go test -short -race ./...
