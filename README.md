@@ -10,7 +10,7 @@ A shell parser, formatter and interpreter. Supports [POSIX Shell], [Bash] and
 
 ### shfmt
 
-	go get -u mvdan.cc/sh/v2/cmd/shfmt
+	go get -u mvdan.cc/sh/cmd/shfmt
 
 `shfmt` formats shell programs. It can use tabs or any number of spaces to
 indent. See [canonical.sh](syntax/canonical.sh) for a quick look at its default
@@ -46,7 +46,7 @@ all parsing statically, including checking POSIX Shell validity:
 
 ### gosh
 
-	go get -u mvdan.cc/sh/v2/cmd/gosh
+	go get -u mvdan.cc/sh/cmd/gosh
 
 Experimental shell that uses `interp`. Work in progress, so don't expect
 stability just yet.
@@ -101,7 +101,7 @@ See the [_js](_js) directory for more information.
 [bash]: https://www.gnu.org/software/bash/
 [crux]: https://github.com/6c37/crux-ports-git/tree/3.3/shfmt
 [dockerised-shfmt]: https://hub.docker.com/r/jamesmstone/shfmt/
-[examples]: https://godoc.org/mvdan.cc/sh/v2/syntax#pkg-examples
+[examples]: https://godoc.org/mvdan.cc/sh/syntax#pkg-examples
 [format-shell]: https://atom.io/packages/format-shell
 [go-fuzz]: https://github.com/dvyukov/go-fuzz
 [google-style]: https://google.github.io/styleguide/shell.xml
