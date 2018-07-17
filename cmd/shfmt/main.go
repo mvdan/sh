@@ -1,7 +1,7 @@
 // Copyright (c) 2016, Daniel Martí <mvdan@mvdan.cc>
 // See LICENSE for licensing information
 
-package main // import "mvdan.cc/sh/v2/cmd/shfmt"
+package main
 
 import (
 	"bytes"
