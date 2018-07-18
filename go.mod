@@ -1,4 +1,4 @@
-module mvdan.cc/sh/v2
+module mvdan.cc/sh
 
 require (
 	github.com/kr/pretty v0.1.0

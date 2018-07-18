@@ -17,7 +17,7 @@ import (
 	"sync"
 	"time"
 
-	"mvdan.cc/sh/v2/syntax"
+	"mvdan.cc/sh/syntax"
 )
 
 // A Runner interprets shell programs. It cannot be reused once a

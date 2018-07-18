@@ -7,8 +7,8 @@ import (
 	"context"
 	"strings"
 
-	"mvdan.cc/sh/v2/interp"
-	"mvdan.cc/sh/v2/syntax"
+	"mvdan.cc/sh/interp"
+	"mvdan.cc/sh/syntax"
 )
 
 // Expand performs shell expansion on s, using env to resolve variables.
