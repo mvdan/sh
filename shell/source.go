@@ -10,8 +10,8 @@ import (
 	"os"
 	"time"
 
-	"mvdan.cc/sh/v2/interp"
-	"mvdan.cc/sh/v2/syntax"
+	"mvdan.cc/sh/interp"
+	"mvdan.cc/sh/syntax"
 )
 
 // SourceFile sources a shell file from disk and returns the variables

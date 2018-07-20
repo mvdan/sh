@@ -12,8 +12,8 @@ import (
 
 	"golang.org/x/crypto/ssh/terminal"
 
-	"mvdan.cc/sh/v2/interp"
-	"mvdan.cc/sh/v2/syntax"
+	"mvdan.cc/sh/interp"
+	"mvdan.cc/sh/syntax"
 )
 
 var (

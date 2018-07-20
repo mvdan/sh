@@ -6,9 +6,8 @@
 [![Coverage Status](https://coveralls.io/repos/github/mvdan/sh/badge.svg?branch=master)](https://coveralls.io/github/mvdan/sh)
 
 A shell parser, formatter and interpreter. Supports [POSIX Shell], [Bash] and
-[mksh]. Requires Go 1.9 or later with [minimal support for Go
-modules](https://github.com/golang/go/issues/25069), such as Go 1.9.7 or Go
-1.10.3.
+[mksh]. Requires Go 1.9 or later. A Go module is available via the `module`
+branch.
 
 ### shfmt
 

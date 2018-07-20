@@ -13,7 +13,7 @@ import (
 	"strings"
 	"testing"
 
-	"mvdan.cc/sh/v2/syntax"
+	"mvdan.cc/sh/syntax"
 )
 
 func TestMain(m *testing.M) {

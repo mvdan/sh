@@ -13,7 +13,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"mvdan.cc/sh/v2/syntax"
+	"mvdan.cc/sh/syntax"
 )
 
 func anyOfLit(v interface{}, vals ...string) string {
