@@ -1310,6 +1310,10 @@ var fileCases = []struct {
 	{"[ -o errexit ]", "exit status 1"},
 	{"set -e; [ -o errexit ]", ""},
 	{"a=x b=''; [ -v a -a -v b -a ! -v c ]", ""},
+	{"[ a = a ]", ""},
+	{"[ a != a ]", "exit status 1"},
+	{"[ abc = ab* ]", "exit status 1"},
+	{"[ abc != ab* ]", ""},
 
 	// arithm
 	{
