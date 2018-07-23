@@ -30,18 +30,18 @@ appropriate for [Google's Style][google-style] guide, use `shfmt -i 2 -ci`.
 
 Packages are available for [Arch], [CRUX], [Homebrew], [NixOS] and [Void].
 
-#### Advantages over `bash -n`
+#### Replacing `bash -n`
 
 `bash -n` can be useful to check for syntax errors in shell scripts. However,
 `shfmt >/dev/null` can do a better job as it checks for invalid UTF-8 and does
 all parsing statically, including checking POSIX Shell validity:
 
 ```sh
- $ echo '${foo:1 2}' | bash -n
- $ echo '${foo:1 2}' | shfmt
+$ echo '${foo:1 2}' | bash -n
+$ echo '${foo:1 2}' | shfmt
 1:9: not a valid arithmetic operator: 2
- $ echo 'foo=(1 2)' | bash --posix -n
- $ echo 'foo=(1 2)' | shfmt -p
+$ echo 'foo=(1 2)' | bash --posix -n
+$ echo 'foo=(1 2)' | shfmt -p
 1:5: arrays are a bash feature
 ```
 
