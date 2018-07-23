@@ -36,7 +36,7 @@ Packages are available for [Arch], [CRUX], [Homebrew], [NixOS] and [Void].
 `shfmt >/dev/null` can do a better job as it checks for invalid UTF-8 and does
 all parsing statically, including checking POSIX Shell validity:
 
-```
+```sh
  $ echo '${foo:1 2}' | bash -n
  $ echo '${foo:1 2}' | shfmt
 1:9: not a valid arithmetic operator: 2
@@ -65,7 +65,7 @@ and the printer. To get started, run:
 * When indexing Bash associative arrays, always use quotes. The static parser
   will otherwise have to assume that the index is an arithmetic expression.
 
-```
+```sh
 $ echo '${array[spaced string]}' | shfmt
 1:16: not a valid arithmetic operator: string
 $ echo '${array[dash-string]}' | shfmt
@@ -76,7 +76,7 @@ ${array[dash - string]}
   parser and make streaming support via `io.Reader` impossible. The POSIX spec
   recommends to [space the operands][posix-ambiguity] if `$( (` is meant.
 
-```
+```sh
 $ echo '$((foo); (bar))' | shfmt
 1:1: reached ) without matching $(( with ))
 ```
