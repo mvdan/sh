@@ -92,7 +92,7 @@ See the [_js](_js) directory for more information.
 
 ### Related projects
 
-* [dockerised-shfmt] - A docker image of `shfmt`
+* Docker images - by [jamesmstone][dockerized-jamesmstone], [PeterDaveHello][dockerized-peterdavehello]
 * [format-shell] - Atom plugin for `shfmt`
 * [micro] - Editor with a built-in plugin for `shfmt`
 * [shell-format] - VS Code plugin for `shfmt`
@@ -101,7 +101,8 @@ See the [_js](_js) directory for more information.
 [arch]: https://aur.archlinux.org/packages/shfmt/
 [bash]: https://www.gnu.org/software/bash/
 [crux]: https://github.com/6c37/crux-ports-git/tree/3.3/shfmt
-[dockerised-shfmt]: https://hub.docker.com/r/jamesmstone/shfmt/
+[dockerized-jamesmstone]: https://hub.docker.com/r/jamesmstone/shfmt/
+[dockerized-peterdavehello]: https://github.com/PeterDaveHello/dockerized-shfmt
 [examples]: https://godoc.org/mvdan.cc/sh/syntax#pkg-examples
 [format-shell]: https://atom.io/packages/format-shell
 [go-fuzz]: https://github.com/dvyukov/go-fuzz
