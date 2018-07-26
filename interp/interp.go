@@ -267,9 +267,8 @@ func (r *Runner) Reset() error {
 	return nil
 }
 
-func (r *Runner) ctx() Ctxt {
-	c := Ctxt{
-		Context:     r.Context,
+func (r *Runner) modCtx() context.Context {
+	mc := ModuleCtx{
 		Env:         r.Env,
 		Dir:         r.Dir,
 		Stdin:       r.Stdin,
@@ -277,17 +276,17 @@ func (r *Runner) ctx() Ctxt {
 		Stderr:      r.Stderr,
 		KillTimeout: r.KillTimeout,
 	}
-	c.Env = r.Env.Copy()
+	mc.Env = r.Env.Copy()
 	for name, vr := range r.Vars {
 		if !vr.Exported {
 			continue
 		}
-		c.Env.Set(name, r.varStr(vr, 0))
+		mc.Env.Set(name, r.varStr(vr, 0))
 	}
 	for name, val := range r.cmdVars {
-		c.Env.Set(name, val)
+		mc.Env.Set(name, val)
 	}
-	return c
+	return context.WithValue(r.Context, moduleCtxKey{}, mc)
 }
 
 type ExitCode uint8
@@ -814,7 +813,7 @@ func (r *Runner) call(pos syntax.Pos, args []string) {
 
 func (r *Runner) exec(args []string) {
 	path := r.lookPath(args[0])
-	err := r.Exec(r.ctx(), path, args)
+	err := r.Exec(r.modCtx(), path, args)
 	switch x := err.(type) {
 	case nil:
 		r.exit = 0
@@ -826,7 +825,7 @@ func (r *Runner) exec(args []string) {
 }
 
 func (r *Runner) open(path string, flags int, mode os.FileMode, print bool) (io.ReadWriteCloser, error) {
-	f, err := r.Open(r.ctx(), path, flags, mode)
+	f, err := r.Open(r.modCtx(), path, flags, mode)
 	switch err.(type) {
 	case nil:
 	case *os.PathError:

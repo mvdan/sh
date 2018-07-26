@@ -27,7 +27,7 @@ var modCases = []struct {
 }{
 	{
 		name: "ExecBlacklist",
-		exec: func(ctx Ctxt, path string, args []string) error {
+		exec: func(ctx context.Context, path string, args []string) error {
 			if args[0] == "sleep" {
 				return fmt.Errorf("blacklisted: %s", args[0])
 			}
@@ -38,7 +38,7 @@ var modCases = []struct {
 	},
 	{
 		name: "ExecWhitelist",
-		exec: func(ctx Ctxt, path string, args []string) error {
+		exec: func(ctx context.Context, path string, args []string) error {
 			switch args[0] {
 			case "sed", "grep":
 			default:
@@ -51,7 +51,7 @@ var modCases = []struct {
 	},
 	{
 		name: "ExecSubshell",
-		exec: func(ctx Ctxt, path string, args []string) error {
+		exec: func(ctx context.Context, path string, args []string) error {
 			return fmt.Errorf("blacklisted: %s", args[0])
 		},
 		src:  "(malicious)",
@@ -59,7 +59,7 @@ var modCases = []struct {
 	},
 	{
 		name: "ExecPipe",
-		exec: func(ctx Ctxt, path string, args []string) error {
+		exec: func(ctx context.Context, path string, args []string) error {
 			return fmt.Errorf("blacklisted: %s", args[0])
 		},
 		src:  "malicious | echo foo",
@@ -67,7 +67,7 @@ var modCases = []struct {
 	},
 	{
 		name: "ExecCmdSubst",
-		exec: func(ctx Ctxt, path string, args []string) error {
+		exec: func(ctx context.Context, path string, args []string) error {
 			return fmt.Errorf("blacklisted: %s", args[0])
 		},
 		src:  "a=$(malicious)",
@@ -75,7 +75,7 @@ var modCases = []struct {
 	},
 	{
 		name: "ExecBackground",
-		exec: func(ctx Ctxt, path string, args []string) error {
+		exec: func(ctx context.Context, path string, args []string) error {
 			return fmt.Errorf("blacklisted: %s", args[0])
 		},
 		// TODO: find a way to bubble up the error, perhaps
@@ -84,8 +84,9 @@ var modCases = []struct {
 	},
 	{
 		name: "OpenForbidNonDev",
-		open: OpenDevImpls(func(ctx Ctxt, path string, flags int, mode os.FileMode) (io.ReadWriteCloser, error) {
-			return nil, fmt.Errorf("non-dev: %s", ctx.UnixPath(path))
+		open: OpenDevImpls(func(ctx context.Context, path string, flags int, mode os.FileMode) (io.ReadWriteCloser, error) {
+			mc, _ := FromModuleContext(ctx)
+			return nil, fmt.Errorf("non-dev: %s", mc.UnixPath(path))
 		}),
 		src:  "echo foo >/dev/null; echo bar >/tmp/x",
 		want: "non-dev: /tmp/x",
