@@ -45,9 +45,10 @@ let i=(2 + 3)
 		Stdout: ioutil.Discard,
 		Stderr: ioutil.Discard,
 	}
+	ctx := context.Background()
 	for i := 0; i < b.N; i++ {
 		r.Reset()
-		if err := r.Run(file); err != nil {
+		if err := r.Run(ctx, file); err != nil {
 			b.Fatal(err)
 		}
 	}
@@ -2165,7 +2166,8 @@ func TestFile(t *testing.T) {
 			}
 			r.Open = OpenDevImpls(DefaultOpen)
 			r.Reset()
-			if err := r.Run(file); err != nil {
+			ctx := context.Background()
+			if err := r.Run(ctx, file); err != nil {
 				cb.WriteString(err.Error())
 			}
 			want := c.want
@@ -2294,7 +2296,8 @@ func TestRunnerOpts(t *testing.T) {
 			if err := r.Reset(); err != nil {
 				cb.WriteString(err.Error())
 			}
-			if err := r.Run(file); err != nil {
+			ctx := context.Background()
+			if err := r.Run(ctx, file); err != nil {
 				cb.WriteString(err.Error())
 			}
 			if got := cb.String(); got != c.want {
@@ -2327,10 +2330,10 @@ func TestRunnerContext(t *testing.T) {
 			}
 			ctx, cancel := context.WithCancel(context.Background())
 			cancel()
-			r := Runner{Context: ctx}
+			r := Runner{}
 			errChan := make(chan error)
 			go func() {
-				errChan <- r.Run(file)
+				errChan <- r.Run(ctx, file)
 			}()
 
 			select {
@@ -2365,7 +2368,8 @@ func TestRunnerAltNodes(t *testing.T) {
 			Stderr: &cb,
 		}
 		r.Reset()
-		if err := r.Run(node); err != nil {
+		ctx := context.Background()
+		if err := r.Run(ctx, node); err != nil {
 			cb.WriteString(err.Error())
 		}
 		if got := cb.String(); got != want {

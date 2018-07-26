@@ -4,6 +4,7 @@
 package interp
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -28,7 +29,7 @@ func isBuiltin(name string) bool {
 	return false
 }
 
-func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
+func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, args []string) int {
 	switch name {
 	case "true", ":":
 	case "false":
@@ -207,7 +208,7 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 		if !isBuiltin(args[0]) {
 			return 1
 		}
-		return r.builtinCode(pos, args[0], args[1:])
+		return r.builtinCode(ctx, pos, args[0], args[1:])
 	case "type":
 		anyNotFound := false
 		for _, arg := range args {
@@ -237,14 +238,14 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 			r.errf("eval: %v\n", err)
 			return 1
 		}
-		r.stmts(file.StmtList)
+		r.stmts(ctx, file.StmtList)
 		return r.exit
 	case "source", ".":
 		if len(args) < 1 {
 			r.errf("%v: source: need filename\n", pos)
 			return 2
 		}
-		f, err := r.open(r.relPath(args[0]), os.O_RDONLY, 0, false)
+		f, err := r.open(ctx, r.relPath(args[0]), os.O_RDONLY, 0, false)
 		if err != nil {
 			r.errf("source: %v\n", err)
 			return 1
@@ -260,7 +261,7 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 		r.Params = args[1:]
 		oldInSource := r.inSource
 		r.inSource = true
-		r.stmts(file.StmtList)
+		r.stmts(ctx, file.StmtList)
 
 		r.Params = oldParams
 		r.inSource = oldInSource
@@ -290,7 +291,7 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 		if parseErr {
 			return 2
 		}
-		return oneIf(r.bashTest(expr, true) == "")
+		return oneIf(r.bashTest(ctx, expr, true) == "")
 	case "exec":
 		// TODO: Consider syscall.Exec, i.e. actually replacing
 		// the process. It's in theory what a shell should do,
@@ -300,7 +301,7 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 			r.keepRedirs = true
 			break
 		}
-		r.exec(args)
+		r.exec(ctx, args)
 		r.lastExit()
 		return r.exit
 	case "command":
@@ -320,9 +321,9 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 		}
 		if !show {
 			if isBuiltin(args[0]) {
-				return r.builtinCode(pos, args[0], args[1:])
+				return r.builtinCode(ctx, pos, args[0], args[1:])
 			}
-			r.exec(args)
+			r.exec(ctx, args)
 			return r.exit
 		}
 		last := 0
@@ -371,7 +372,7 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 			if code := r.changeDir(newtop); code != 0 {
 				return code
 			}
-			r.builtinCode(syntax.Pos{}, "dirs", nil)
+			r.builtinCode(ctx, syntax.Pos{}, "dirs", nil)
 		case 1:
 			if change {
 				if code := r.changeDir(args[0]); code != 0 {
@@ -382,7 +383,7 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 				r.dirStack = append(r.dirStack, args[0])
 				swap()
 			}
-			r.builtinCode(syntax.Pos{}, "dirs", nil)
+			r.builtinCode(ctx, syntax.Pos{}, "dirs", nil)
 		default:
 			r.errf("pushd: too many arguments\n")
 			return 2
@@ -409,7 +410,7 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 			} else {
 				r.dirStack[len(r.dirStack)-1] = oldtop
 			}
-			r.builtinCode(syntax.Pos{}, "dirs", nil)
+			r.builtinCode(ctx, syntax.Pos{}, "dirs", nil)
 		default:
 			r.errf("popd: invalid argument\n")
 			return 2
@@ -463,7 +464,7 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 			if i < len(values) {
 				val = values[i]
 			}
-			r.setVar(name, nil, Variable{Value: StringVal(val)})
+			r.setVar(ctx, name, nil, Variable{Value: StringVal(val)})
 		}
 
 		return 0
@@ -494,7 +495,7 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 
 		opt, optarg, done := r.optState.Next(optstr, args)
 
-		r.setVarString(name, string(opt))
+		r.setVarString(ctx, name, string(opt))
 		r.delVar("OPTARG")
 		switch {
 		case opt == '?' && diagnostics && !done:
@@ -503,11 +504,11 @@ func (r *Runner) builtinCode(pos syntax.Pos, name string, args []string) int {
 			r.errf("getopts: option requires an argument -- %q\n", optarg)
 		default:
 			if optarg != "" {
-				r.setVarString("OPTARG", optarg)
+				r.setVarString(ctx, "OPTARG", optarg)
 			}
 		}
 		if optind-1 != r.optState.argidx {
-			r.setVarString("OPTIND", strconv.FormatInt(int64(r.optState.argidx+1), 10))
+			r.setVarString(ctx, "OPTIND", strconv.FormatInt(int64(r.optState.argidx+1), 10))
 		}
 
 		return oneIf(done)

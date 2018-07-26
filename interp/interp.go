@@ -74,9 +74,6 @@ type Runner struct {
 
 	bgShells sync.WaitGroup
 
-	// Context can be used to cancel the interpreter before it finishes
-	Context context.Context
-
 	opts [len(shellOptsTable) + len(bashOptsTable)]bool
 
 	dirStack []string
@@ -185,7 +182,6 @@ func (r *Runner) Reset() error {
 		Env:         r.Env,
 		Dir:         r.Dir,
 		Params:      r.Params,
-		Context:     r.Context,
 		Stdin:       r.Stdin,
 		Stdout:      r.Stdout,
 		Stderr:      r.Stderr,
@@ -211,9 +207,6 @@ func (r *Runner) Reset() error {
 		for k := range r.cmdVars {
 			delete(r.cmdVars, k)
 		}
-	}
-	if r.Context == nil {
-		r.Context = context.Background()
 	}
 	if r.Env == nil {
 		r.Env, _ = EnvFromList(os.Environ())
@@ -267,7 +260,7 @@ func (r *Runner) Reset() error {
 	return nil
 }
 
-func (r *Runner) modCtx() context.Context {
+func (r *Runner) modCtx(ctx context.Context) context.Context {
 	mc := ModuleCtx{
 		Env:         r.Env,
 		Dir:         r.Dir,
@@ -286,7 +279,7 @@ func (r *Runner) modCtx() context.Context {
 	for name, val := range r.cmdVars {
 		mc.Env.Set(name, val)
 	}
-	return context.WithValue(r.Context, moduleCtxKey{}, mc)
+	return context.WithValue(ctx, moduleCtxKey{}, mc)
 }
 
 type ExitCode uint8
@@ -354,16 +347,16 @@ func (r *Runner) FromArgs(args ...string) ([]string, error) {
 }
 
 // Run starts the interpreter and returns any error.
-func (r *Runner) Run(node syntax.Node) error {
+func (r *Runner) Run(ctx context.Context, node syntax.Node) error {
 	r.filename = ""
 	switch x := node.(type) {
 	case *syntax.File:
 		r.filename = x.Name
-		r.stmts(x.StmtList)
+		r.stmts(ctx, x.StmtList)
 	case *syntax.Stmt:
-		r.stmt(x)
+		r.stmt(ctx, x)
 	case syntax.Command:
-		r.cmd(x)
+		r.cmd(ctx, x)
 	default:
 		return fmt.Errorf("Node can only be File, Stmt, or Command: %T", x)
 	}
@@ -374,8 +367,8 @@ func (r *Runner) Run(node syntax.Node) error {
 	return r.err
 }
 
-func (r *Runner) Stmt(stmt *syntax.Stmt) error {
-	r.stmt(stmt)
+func (r *Runner) Stmt(ctx context.Context, stmt *syntax.Stmt) error {
+	r.stmt(ctx, stmt)
 	return r.err
 }
 
@@ -391,11 +384,11 @@ func (r *Runner) errf(format string, a ...interface{}) {
 	fmt.Fprintf(r.Stderr, format, a...)
 }
 
-func (r *Runner) stop() bool {
+func (r *Runner) stop(ctx context.Context) bool {
 	if r.err != nil {
 		return true
 	}
-	if err := r.Context.Err(); err != nil {
+	if err := ctx.Err(); err != nil {
 		r.err = err
 		return true
 	}
@@ -405,26 +398,26 @@ func (r *Runner) stop() bool {
 	return false
 }
 
-func (r *Runner) stmt(st *syntax.Stmt) {
-	if r.stop() {
+func (r *Runner) stmt(ctx context.Context, st *syntax.Stmt) {
+	if r.stop(ctx) {
 		return
 	}
 	if st.Background {
 		r.bgShells.Add(1)
 		r2 := r.sub()
 		go func() {
-			r2.stmtSync(st)
+			r2.stmtSync(ctx, st)
 			r.bgShells.Done()
 		}()
 	} else {
-		r.stmtSync(st)
+		r.stmtSync(ctx, st)
 	}
 }
 
-func (r *Runner) stmtSync(st *syntax.Stmt) {
+func (r *Runner) stmtSync(ctx context.Context, st *syntax.Stmt) {
 	oldIn, oldOut, oldErr := r.Stdin, r.Stdout, r.Stderr
 	for _, rd := range st.Redirs {
-		cls, err := r.redir(rd)
+		cls, err := r.redir(ctx, rd)
 		if err != nil {
 			r.exit = 1
 			return
@@ -436,7 +429,7 @@ func (r *Runner) stmtSync(st *syntax.Stmt) {
 	if st.Cmd == nil {
 		r.exit = 0
 	} else {
-		r.cmd(st.Cmd)
+		r.cmd(ctx, st.Cmd)
 	}
 	if st.Negated {
 		r.exit = oneIf(r.exit == 0)
@@ -467,30 +460,30 @@ func (r *Runner) sub() *Runner {
 	return &r2
 }
 
-func (r *Runner) cmd(cm syntax.Command) {
-	if r.stop() {
+func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
+	if r.stop(ctx) {
 		return
 	}
 	switch x := cm.(type) {
 	case *syntax.Block:
-		r.stmts(x.StmtList)
+		r.stmts(ctx, x.StmtList)
 	case *syntax.Subshell:
 		r2 := r.sub()
-		r2.stmts(x.StmtList)
+		r2.stmts(ctx, x.StmtList)
 		r.exit = r2.exit
 		r.setErr(r2.err)
 	case *syntax.CallExpr:
-		fields := r.Fields(x.Args...)
+		fields := r.Fields(ctx, x.Args...)
 		if len(fields) == 0 {
 			for _, as := range x.Assigns {
 				vr, _ := r.lookupVar(as.Name.Value)
-				vr.Value = r.assignVal(as, "")
-				r.setVar(as.Name.Value, as.Index, vr)
+				vr.Value = r.assignVal(ctx, as, "")
+				r.setVar(ctx, as.Name.Value, as.Index, vr)
 			}
 			break
 		}
 		for _, as := range x.Assigns {
-			val := r.assignVal(as, "")
+			val := r.assignVal(ctx, as, "")
 			// we know that inline vars must be strings
 			r.cmdVars[as.Name.Value] = string(val.(StringVal))
 			if as.Name.Value == "IFS" {
@@ -498,7 +491,7 @@ func (r *Runner) cmd(cm syntax.Command) {
 				defer r.ifsUpdated()
 			}
 		}
-		r.call(x.Args[0].Pos(), fields)
+		r.call(ctx, x.Args[0].Pos(), fields)
 		// cmdVars can be nuked here, as they are never useful
 		// again once we nest into further levels of inline
 		// vars.
@@ -508,14 +501,14 @@ func (r *Runner) cmd(cm syntax.Command) {
 	case *syntax.BinaryCmd:
 		switch x.Op {
 		case syntax.AndStmt:
-			r.stmt(x.X)
+			r.stmt(ctx, x.X)
 			if r.exit == 0 {
-				r.stmt(x.Y)
+				r.stmt(ctx, x.Y)
 			}
 		case syntax.OrStmt:
-			r.stmt(x.X)
+			r.stmt(ctx, x.X)
 			if r.exit != 0 {
-				r.stmt(x.Y)
+				r.stmt(ctx, x.Y)
 			}
 		case syntax.Pipe, syntax.PipeAll:
 			pr, pw := io.Pipe()
@@ -530,11 +523,11 @@ func (r *Runner) cmd(cm syntax.Command) {
 			var wg sync.WaitGroup
 			wg.Add(1)
 			go func() {
-				r2.stmt(x.X)
+				r2.stmt(ctx, x.X)
 				pw.Close()
 				wg.Done()
 			}()
-			r.stmt(x.Y)
+			r.stmt(ctx, x.Y)
 			pr.Close()
 			wg.Wait()
 			if r.opts[optPipeFail] && r2.exit > 0 && r.exit == 0 {
@@ -543,19 +536,19 @@ func (r *Runner) cmd(cm syntax.Command) {
 			r.setErr(r2.err)
 		}
 	case *syntax.IfClause:
-		r.stmts(x.Cond)
+		r.stmts(ctx, x.Cond)
 		if r.exit == 0 {
-			r.stmts(x.Then)
+			r.stmts(ctx, x.Then)
 			break
 		}
 		r.exit = 0
-		r.stmts(x.Else)
+		r.stmts(ctx, x.Else)
 	case *syntax.WhileClause:
-		for !r.stop() {
-			r.stmts(x.Cond)
+		for !r.stop(ctx) {
+			r.stmts(ctx, x.Cond)
 			stop := (r.exit == 0) == x.Until
 			r.exit = 0
-			if stop || r.loopStmtsBroken(x.Do) {
+			if stop || r.loopStmtsBroken(ctx, x.Do) {
 				break
 			}
 		}
@@ -563,45 +556,45 @@ func (r *Runner) cmd(cm syntax.Command) {
 		switch y := x.Loop.(type) {
 		case *syntax.WordIter:
 			name := y.Name.Value
-			for _, field := range r.Fields(y.Items...) {
-				r.setVarString(name, field)
-				if r.loopStmtsBroken(x.Do) {
+			for _, field := range r.Fields(ctx, y.Items...) {
+				r.setVarString(ctx, name, field)
+				if r.loopStmtsBroken(ctx, x.Do) {
 					break
 				}
 			}
 		case *syntax.CStyleLoop:
-			r.arithm(y.Init)
-			for r.arithm(y.Cond) != 0 {
-				if r.loopStmtsBroken(x.Do) {
+			r.arithm(ctx, y.Init)
+			for r.arithm(ctx, y.Cond) != 0 {
+				if r.loopStmtsBroken(ctx, x.Do) {
 					break
 				}
-				r.arithm(y.Post)
+				r.arithm(ctx, y.Post)
 			}
 		}
 	case *syntax.FuncDecl:
 		r.setFunc(x.Name.Value, x.Body)
 	case *syntax.ArithmCmd:
-		r.exit = oneIf(r.arithm(x.X) == 0)
+		r.exit = oneIf(r.arithm(ctx, x.X) == 0)
 	case *syntax.LetClause:
 		var val int
 		for _, expr := range x.Exprs {
-			val = r.arithm(expr)
+			val = r.arithm(ctx, expr)
 		}
 		r.exit = oneIf(val == 0)
 	case *syntax.CaseClause:
-		str := r.loneWord(x.Word)
+		str := r.loneWord(ctx, x.Word)
 		for _, ci := range x.Items {
 			for _, word := range ci.Patterns {
-				pat := r.lonePattern(word)
+				pat := r.lonePattern(ctx, word)
 				if match(pat, str) {
-					r.stmts(ci.StmtList)
+					r.stmts(ctx, ci.StmtList)
 					return
 				}
 			}
 		}
 	case *syntax.TestClause:
 		r.exit = 0
-		if r.bashTest(x.X, false) == "" && r.exit == 0 {
+		if r.bashTest(ctx, x.X, false) == "" && r.exit == 0 {
 			// to preserve exit code 2 for regex
 			// errors, etc
 			r.exit = 1
@@ -630,7 +623,7 @@ func (r *Runner) cmd(cm syntax.Command) {
 			modes = append(modes, "-n")
 		}
 		for _, opt := range x.Opts {
-			switch s := r.loneWord(opt); s {
+			switch s := r.loneWord(ctx, opt); s {
 			case "-x", "-r", "-n":
 				modes = append(modes, s)
 			case "-a", "-A":
@@ -644,10 +637,10 @@ func (r *Runner) cmd(cm syntax.Command) {
 			}
 		}
 		for _, as := range x.Assigns {
-			for _, as := range r.expandAssigns(as) {
+			for _, as := range r.expandAssigns(ctx, as) {
 				name := as.Name.Value
 				vr, _ := r.lookupVar(as.Name.Value)
-				vr.Value = r.assignVal(as, valType)
+				vr.Value = r.assignVal(ctx, as, valType)
 				vr.Local = local
 				for _, mode := range modes {
 					switch mode {
@@ -659,13 +652,13 @@ func (r *Runner) cmd(cm syntax.Command) {
 						vr.NameRef = true
 					}
 				}
-				r.setVar(name, as.Index, vr)
+				r.setVar(ctx, name, as.Index, vr)
 			}
 		}
 	case *syntax.TimeClause:
 		start := time.Now()
 		if x.Stmt != nil {
-			r.stmt(x.Stmt)
+			r.stmt(ctx, x.Stmt)
 		}
 		format := "%s\t%s\n"
 		if x.PosixFormat {
@@ -692,15 +685,15 @@ func elapsedString(d time.Duration, posix bool) string {
 	return fmt.Sprintf("%dm%.3fs", min, sec)
 }
 
-func (r *Runner) stmts(sl syntax.StmtList) {
+func (r *Runner) stmts(ctx context.Context, sl syntax.StmtList) {
 	for _, stmt := range sl.Stmts {
-		r.stmt(stmt)
+		r.stmt(ctx, stmt)
 	}
 }
 
-func (r *Runner) redir(rd *syntax.Redirect) (io.Closer, error) {
+func (r *Runner) redir(ctx context.Context, rd *syntax.Redirect) (io.Closer, error) {
 	if rd.Hdoc != nil {
-		hdoc := r.loneWord(rd.Hdoc)
+		hdoc := r.loneWord(ctx, rd.Hdoc)
 		r.Stdin = strings.NewReader(hdoc)
 		return nil, nil
 	}
@@ -712,7 +705,7 @@ func (r *Runner) redir(rd *syntax.Redirect) (io.Closer, error) {
 			orig = &r.Stderr
 		}
 	}
-	arg := r.loneWord(rd.Word)
+	arg := r.loneWord(ctx, rd.Word)
 	switch rd.Op {
 	case syntax.WordHdoc:
 		r.Stdin = strings.NewReader(arg + "\n")
@@ -739,7 +732,7 @@ func (r *Runner) redir(rd *syntax.Redirect) (io.Closer, error) {
 	case syntax.RdrOut, syntax.RdrAll:
 		mode = os.O_RDWR | os.O_CREATE | os.O_TRUNC
 	}
-	f, err := r.open(r.relPath(arg), mode, 0644, true)
+	f, err := r.open(ctx, r.relPath(arg), mode, 0644, true)
 	if err != nil {
 		return nil, err
 	}
@@ -757,12 +750,12 @@ func (r *Runner) redir(rd *syntax.Redirect) (io.Closer, error) {
 	return f, nil
 }
 
-func (r *Runner) loopStmtsBroken(sl syntax.StmtList) bool {
+func (r *Runner) loopStmtsBroken(ctx context.Context, sl syntax.StmtList) bool {
 	oldInLoop := r.inLoop
 	r.inLoop = true
 	defer func() { r.inLoop = oldInLoop }()
 	for _, stmt := range sl.Stmts {
-		r.stmt(stmt)
+		r.stmt(ctx, stmt)
 		if r.contnEnclosing > 0 {
 			r.contnEnclosing--
 			return r.contnEnclosing > 0
@@ -779,8 +772,8 @@ type returnCode uint8
 
 func (returnCode) Error() string { return "returned" }
 
-func (r *Runner) call(pos syntax.Pos, args []string) {
-	if r.stop() {
+func (r *Runner) call(ctx context.Context, pos syntax.Pos, args []string) {
+	if r.stop(ctx) {
 		return
 	}
 	name := args[0]
@@ -793,7 +786,7 @@ func (r *Runner) call(pos syntax.Pos, args []string) {
 		r.funcVars = nil
 		r.inFunc = true
 
-		r.stmt(body)
+		r.stmt(ctx, body)
 
 		r.Params = oldParams
 		r.funcVars = oldFuncVars
@@ -805,15 +798,15 @@ func (r *Runner) call(pos syntax.Pos, args []string) {
 		return
 	}
 	if isBuiltin(name) {
-		r.exit = r.builtinCode(pos, name, args[1:])
+		r.exit = r.builtinCode(ctx, pos, name, args[1:])
 		return
 	}
-	r.exec(args)
+	r.exec(ctx, args)
 }
 
-func (r *Runner) exec(args []string) {
+func (r *Runner) exec(ctx context.Context, args []string) {
 	path := r.lookPath(args[0])
-	err := r.Exec(r.modCtx(), path, args)
+	err := r.Exec(r.modCtx(ctx), path, args)
 	switch x := err.(type) {
 	case nil:
 		r.exit = 0
@@ -824,8 +817,8 @@ func (r *Runner) exec(args []string) {
 	}
 }
 
-func (r *Runner) open(path string, flags int, mode os.FileMode, print bool) (io.ReadWriteCloser, error) {
-	f, err := r.Open(r.modCtx(), path, flags, mode)
+func (r *Runner) open(ctx context.Context, path string, flags int, mode os.FileMode, print bool) (io.ReadWriteCloser, error) {
+	f, err := r.Open(r.modCtx(ctx), path, flags, mode)
 	switch err.(type) {
 	case nil:
 	case *os.PathError:

@@ -110,7 +110,8 @@ func TestRunnerModules(t *testing.T) {
 				Open:   tc.open,
 			}
 			r.Reset()
-			if err := r.Run(file); err != nil {
+			ctx := context.Background()
+			if err := r.Run(ctx, file); err != nil {
 				cb.WriteString(err.Error())
 			}
 			got := cb.String()
@@ -185,7 +186,6 @@ func TestKillTimeout(t *testing.T) {
 				rbuf.seenReady.Add(1)
 				ctx, cancel := context.WithCancel(context.Background())
 				r := Runner{
-					Context:     ctx,
 					Stdout:      &rbuf,
 					Stderr:      &rbuf,
 					KillTimeout: test.killTimeout,
@@ -197,7 +197,7 @@ func TestKillTimeout(t *testing.T) {
 					rbuf.seenReady.Wait()
 					cancel()
 				}()
-				err = r.Run(file)
+				err = r.Run(ctx, file)
 				if test.forcedKill {
 					if _, ok := err.(ExitCode); ok || err == nil {
 						t.Error("command was not force-killed")
