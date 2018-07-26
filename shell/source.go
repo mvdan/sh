@@ -51,7 +51,7 @@ var pureRunnerTimeout = 2 * time.Second
 func pureRunner() *interp.Runner {
 	r := &interp.Runner{}
 	// forbid executing programs that might cause trouble
-	r.Exec = func(ctx interp.Ctxt, path string, args []string) error {
+	r.Exec = func(ctx context.Context, path string, args []string) error {
 		for _, name := range purePrograms {
 			if args[0] == name {
 				return interp.DefaultExec(ctx, path, args)
@@ -60,8 +60,9 @@ func pureRunner() *interp.Runner {
 		return fmt.Errorf("program not in whitelist: %s", args[0])
 	}
 	// forbid opening any real files
-	r.Open = interp.OpenDevImpls(func(ctx interp.Ctxt, path string, flags int, mode os.FileMode) (io.ReadWriteCloser, error) {
-		return nil, fmt.Errorf("cannot open path: %s", ctx.UnixPath(path))
+	r.Open = interp.OpenDevImpls(func(ctx context.Context, path string, flags int, mode os.FileMode) (io.ReadWriteCloser, error) {
+		mc, _ := interp.FromModuleContext(ctx)
+		return nil, fmt.Errorf("cannot open path: %s", mc.UnixPath(path))
 	})
 	return r
 }
@@ -75,11 +76,9 @@ func pureRunner() *interp.Runner {
 // two seconds.
 func SourceNode(node syntax.Node) (map[string]interp.Variable, error) {
 	r := pureRunner()
-	r.Reset()
 	ctx, cancel := context.WithTimeout(context.Background(), pureRunnerTimeout)
 	defer cancel()
-	r.Context = ctx
-	if err := r.Run(node); err != nil {
+	if err := r.Run(ctx, node); err != nil {
 		return nil, fmt.Errorf("could not run: %v", err)
 	}
 	// delete the internal shell vars that the user is not

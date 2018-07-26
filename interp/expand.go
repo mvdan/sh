@@ -137,7 +137,16 @@ func (r *Runner) escapedGlobField(parts []fieldPart) (escaped string, glob bool)
 	return escaped, glob
 }
 
-func (r *Runner) Fields(ctx context.Context, words ...*syntax.Word) []string {
+func (r *Runner) Fields(ctx context.Context, words ...*syntax.Word) ([]string, error) {
+	if !r.didReset {
+		if err := r.Reset(); err != nil {
+			return nil, err
+		}
+	}
+	return r.fields(ctx, words...), r.err
+}
+
+func (r *Runner) fields(ctx context.Context, words ...*syntax.Word) []string {
 	fields := make([]string, 0, len(words))
 	baseDir := syntax.QuotePattern(r.Dir)
 	for _, word := range words {
@@ -201,7 +210,7 @@ func (r *Runner) expandAssigns(ctx context.Context, as *syntax.Assign) []*syntax
 		return []*syntax.Assign{as} // nothing to do
 	}
 	var asgns []*syntax.Assign
-	for _, field := range r.Fields(ctx, as.Value) {
+	for _, field := range r.fields(ctx, as.Value) {
 		as := &syntax.Assign{}
 		parts := strings.SplitN(field, "=", 2)
 		as.Name = &syntax.Lit{Value: parts[0]}

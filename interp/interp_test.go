@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"runtime"
 	"strings"
@@ -2165,7 +2166,6 @@ func TestFile(t *testing.T) {
 				Stderr: &cb,
 			}
 			r.Open = OpenDevImpls(DefaultOpen)
-			r.Reset()
 			ctx := context.Background()
 			if err := r.Run(ctx, file); err != nil {
 				cb.WriteString(err.Error())
@@ -2367,7 +2367,6 @@ func TestRunnerAltNodes(t *testing.T) {
 			Stdout: &cb,
 			Stderr: &cb,
 		}
-		r.Reset()
 		ctx := context.Background()
 		if err := r.Run(ctx, node); err != nil {
 			cb.WriteString(err.Error())
@@ -2427,22 +2426,27 @@ func TestRunnerDir(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	ctx := context.Background()
+	noop, err := syntax.NewParser().Parse(strings.NewReader(":"), "")
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	t.Run("Missing", func(t *testing.T) {
 		r := Runner{Dir: "missing"}
-		if err := r.Reset(); err == nil {
+		if err := r.Run(ctx, noop); err == nil {
 			t.Fatal("expected Runner to error when Dir is missing")
 		}
 	})
 	t.Run("NoDir", func(t *testing.T) {
 		r := Runner{Dir: "interp_test.go"}
-		if err := r.Reset(); err == nil {
+		if err := r.Run(ctx, noop); err == nil {
 			t.Fatal("expected Runner to error when Dir is not a dir")
 		}
 	})
 	t.Run("NoDirAbs", func(t *testing.T) {
 		r := Runner{Dir: filepath.Join(wd, "interp_test.go")}
-		if err := r.Reset(); err == nil {
+		if err := r.Run(ctx, noop); err == nil {
 			t.Fatal("expected Runner to error when Dir is not a dir")
 		}
 	})
@@ -2453,11 +2457,30 @@ func TestRunnerDir(t *testing.T) {
 			Stdout: &b,
 			Stderr: &b,
 		}
-		if err := r.Reset(); err != nil {
+		if err := r.Run(ctx, noop); err != nil {
 			t.Error(err)
 		}
 		if !filepath.IsAbs(r.Dir) {
 			t.Errorf("Runner.Dir is not absolute")
 		}
 	})
+}
+
+func TestFields(t *testing.T) {
+	t.Parallel()
+	file, err := syntax.NewParser().Parse(strings.NewReader("foo-$bar"), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"foo-"}
+	words := file.Stmts[0].Cmd.(*syntax.CallExpr).Args
+	ctx := context.Background()
+	r := Runner{}
+	got, err := r.Fields(ctx, words...)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !reflect.DeepEqual(want, got) {
+		t.Fatalf("want=%v got=%v", want, got)
+	}
 }

@@ -4,6 +4,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"io"
@@ -70,7 +71,8 @@ func run(reader io.Reader, name string) error {
 		return err
 	}
 	runner.Reset()
-	return runner.Run(prog)
+	ctx := context.Background()
+	return runner.Run(ctx, prog)
 }
 
 type promptReader struct {
@@ -90,9 +92,9 @@ func (pr *promptReader) Read(p []byte) (int, error) {
 
 func interactive() error {
 	r := &promptReader{os.Stdin, true}
-	runner.Reset()
+	ctx := context.Background()
 	fn := func(s *syntax.Stmt) bool {
-		if err := runner.Stmt(s); err != nil {
+		if err := runner.Stmt(ctx, s); err != nil {
 			code, ok := err.(interp.ExitCode)
 			if ok {
 				os.Exit(int(code))

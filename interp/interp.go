@@ -45,6 +45,11 @@ type Runner struct {
 	Exec ModuleExec
 	Open ModuleOpen
 
+	// didReset remembers whether the runner has ever been reset. This is
+	// used so that Reset is automatically called when running any program
+	// or node for the first time on a Runner.
+	didReset bool
+
 	filename string // only if Node was a File
 
 	// Separate maps, note that bash allows a name to be both a var
@@ -169,14 +174,16 @@ const (
 	optGlobStar
 )
 
-// Reset will set the unexported fields back to zero, fill any exported
-// fields with their default values if not set, and prepare the runner
-// to interpret a program.
+// Reset empties the runner state and sets any exported fields with zero values
+// to their default values.
 //
-// This function should be called once before running any node. It can
-// be skipped before any following runs to keep internal state, such as
-// declared variables.
+// Typically, this function only needs to be called if a runner is re-used to
+// run multiple programs non-incrementally. Not calling Reset between each run
+// will mean that the shell state will be kept, including variables and options.
 func (r *Runner) Reset() error {
+	// TODO: remove the error return; for the real use-case of reusing a
+	// runner, an error should never happen.
+
 	// reset the internal state
 	*r = Runner{
 		Env:         r.Env,
@@ -257,6 +264,7 @@ func (r *Runner) Reset() error {
 	if r.KillTimeout == 0 {
 		r.KillTimeout = 2 * time.Second
 	}
+	r.didReset = true
 	return nil
 }
 
@@ -348,6 +356,11 @@ func (r *Runner) FromArgs(args ...string) ([]string, error) {
 
 // Run starts the interpreter and returns any error.
 func (r *Runner) Run(ctx context.Context, node syntax.Node) error {
+	if !r.didReset {
+		if err := r.Reset(); err != nil {
+			return err
+		}
+	}
 	r.filename = ""
 	switch x := node.(type) {
 	case *syntax.File:
@@ -368,6 +381,11 @@ func (r *Runner) Run(ctx context.Context, node syntax.Node) error {
 }
 
 func (r *Runner) Stmt(ctx context.Context, stmt *syntax.Stmt) error {
+	if !r.didReset {
+		if err := r.Reset(); err != nil {
+			return err
+		}
+	}
 	r.stmt(ctx, stmt)
 	return r.err
 }
@@ -473,7 +491,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		r.exit = r2.exit
 		r.setErr(r2.err)
 	case *syntax.CallExpr:
-		fields := r.Fields(ctx, x.Args...)
+		fields := r.fields(ctx, x.Args...)
 		if len(fields) == 0 {
 			for _, as := range x.Assigns {
 				vr, _ := r.lookupVar(as.Name.Value)
@@ -556,7 +574,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		switch y := x.Loop.(type) {
 		case *syntax.WordIter:
 			name := y.Name.Value
-			for _, field := range r.Fields(ctx, y.Items...) {
+			for _, field := range r.fields(ctx, y.Items...) {
 				r.setVarString(ctx, name, field)
 				if r.loopStmtsBroken(ctx, x.Do) {
 					break

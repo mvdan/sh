@@ -109,7 +109,6 @@ func TestRunnerModules(t *testing.T) {
 				Exec:   tc.exec,
 				Open:   tc.open,
 			}
-			r.Reset()
 			ctx := context.Background()
 			if err := r.Run(ctx, file); err != nil {
 				cb.WriteString(err.Error())
@@ -189,9 +188,6 @@ func TestKillTimeout(t *testing.T) {
 					Stdout:      &rbuf,
 					Stderr:      &rbuf,
 					KillTimeout: test.killTimeout,
-				}
-				if err = r.Reset(); err != nil {
-					t.Errorf("could not reset: %v", err)
 				}
 				go func() {
 					rbuf.seenReady.Wait()
