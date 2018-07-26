@@ -1622,6 +1622,15 @@ var fileTests = []testCase{
 		))),
 	},
 	{
+		Strs: []string{
+			"$($(foo bar))",
+			"`\\`foo bar\\``",
+		},
+		common: cmdSubst(stmt(call(
+			word(cmdSubst(litStmt("foo", "bar"))),
+		))),
+	},
+	{
 		Strs: []string{"$( (a) | b)"},
 		common: cmdSubst(
 			stmt(&BinaryCmd{

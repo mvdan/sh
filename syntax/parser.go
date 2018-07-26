@@ -828,11 +828,19 @@ func (p *Parser) wordPart() WordPart {
 		cs := &CmdSubst{Left: p.pos}
 		old := p.preNested(subCmdBckquo)
 		p.openBquotes++
+
+		// The lexer didn't call p.rune for us, so that it could have
+		// the right p.openBquotes to properly handle backslashes.
+		p.rune()
+
 		p.next()
 		cs.StmtList = p.stmtList()
 		p.postNested(old)
 		p.openBquotes--
 		cs.Right = p.pos
+
+		// Like above, the lexer didn't call p.rune for us.
+		p.rune()
 		if !p.got(bckQuote) {
 			p.quoteErr(cs.Pos(), bckQuote)
 		}
