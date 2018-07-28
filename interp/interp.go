@@ -71,7 +71,7 @@ type Runner struct {
 	inSource bool
 
 	err  error // current fatal error
-	exit int   // current (last) exit code
+	exit int   // current (last) exit status code
 
 	Stdin  io.Reader
 	Stdout io.Writer
@@ -290,9 +290,9 @@ func (r *Runner) modCtx(ctx context.Context) context.Context {
 	return context.WithValue(ctx, moduleCtxKey{}, mc)
 }
 
-type ExitCode uint8
+type ExitStatus uint8
 
-func (e ExitCode) Error() string { return fmt.Sprintf("exit status %d", e) }
+func (e ExitStatus) Error() string { return fmt.Sprintf("exit status %d", e) }
 
 func (r *Runner) setErr(err error) {
 	if r.err == nil {
@@ -302,7 +302,7 @@ func (r *Runner) setErr(err error) {
 
 func (r *Runner) lastExit() {
 	if r.err == nil {
-		r.err = ExitCode(r.exit)
+		r.err = ExitStatus(r.exit)
 	}
 }
 
@@ -374,7 +374,7 @@ func (r *Runner) Run(ctx context.Context, node syntax.Node) error {
 		return fmt.Errorf("Node can only be File, Stmt, or Command: %T", x)
 	}
 	r.lastExit()
-	if r.err == ExitCode(0) {
+	if r.err == ExitStatus(0) {
 		r.err = nil
 	}
 	return r.err
@@ -613,8 +613,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 	case *syntax.TestClause:
 		r.exit = 0
 		if r.bashTest(ctx, x.X, false) == "" && r.exit == 0 {
-			// to preserve exit code 2 for regex
-			// errors, etc
+			// to preserve exit status code 2 for regex errors, etc
 			r.exit = 1
 		}
 	case *syntax.DeclClause:
@@ -786,9 +785,9 @@ func (r *Runner) loopStmtsBroken(ctx context.Context, sl syntax.StmtList) bool {
 	return false
 }
 
-type returnCode uint8
+type returnStatus uint8
 
-func (returnCode) Error() string { return "returned" }
+func (r returnStatus) Error() string { return fmt.Sprintf("return status %d", r) }
 
 func (r *Runner) call(ctx context.Context, pos syntax.Pos, args []string) {
 	if r.stop(ctx) {
@@ -809,7 +808,7 @@ func (r *Runner) call(ctx context.Context, pos syntax.Pos, args []string) {
 		r.Params = oldParams
 		r.funcVars = oldFuncVars
 		r.inFunc = oldInFunc
-		if code, ok := r.err.(returnCode); ok {
+		if code, ok := r.err.(returnStatus); ok {
 			r.err = nil
 			r.exit = int(code)
 		}
@@ -828,7 +827,7 @@ func (r *Runner) exec(ctx context.Context, args []string) {
 	switch x := err.(type) {
 	case nil:
 		r.exit = 0
-	case ExitCode:
+	case ExitStatus:
 		r.exit = int(x)
 	default: // module's custom fatal error
 		r.setErr(err)

@@ -90,7 +90,7 @@ var fileCases = []struct {
 	{"{ :; }", ""},
 	{"(:)", ""},
 
-	// exit codes
+	// exit status codes
 	{"exit 1", "exit status 1"},
 	{"exit -1", "exit status 255"},
 	{"exit 300", "exit status 44"},
@@ -123,7 +123,7 @@ var fileCases = []struct {
 	},
 
 	// we don't need to follow bash error strings
-	{"exit a", "invalid exit code: \"a\"\nexit status 2 #JUSTERR"},
+	{"exit a", "invalid exit status code: \"a\"\nexit status 2 #JUSTERR"},
 	{"exit 1 2", "exit cannot take multiple arguments\nexit status 1 #JUSTERR"},
 
 	// echo
@@ -2209,7 +2209,7 @@ func TestFileConfirm(t *testing.T) {
 			cmd.Stdin = strings.NewReader(c.in)
 			out, err := cmd.CombinedOutput()
 			if strings.Contains(c.want, " #JUSTERR") {
-				// bash sometimes exits with code 0 and
+				// bash sometimes exits with status code 0 and
 				// stderr "bash: ..." for an error
 				fauxErr := bytes.HasPrefix(out, []byte("bash:"))
 				if err == nil && !fauxErr {

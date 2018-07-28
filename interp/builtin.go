@@ -39,7 +39,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		case 0:
 		case 1:
 			if n, err := strconv.Atoi(args[0]); err != nil {
-				r.errf("invalid exit code: %q\n", args[0])
+				r.errf("invalid exit status code: %q\n", args[0])
 				r.exit = 2
 			} else {
 				r.exit = n
@@ -265,7 +265,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 
 		r.Params = oldParams
 		r.inSource = oldInSource
-		if code, ok := r.err.(returnCode); ok {
+		if code, ok := r.err.(returnStatus); ok {
 			r.err = nil
 			r.exit = int(code)
 		}
@@ -429,7 +429,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			r.errf("return: too many arguments\n")
 			return 2
 		}
-		r.setErr(returnCode(code))
+		r.setErr(returnStatus(code))
 	case "read":
 		raw := false
 		for len(args) > 0 && strings.HasPrefix(args[0], "-") {

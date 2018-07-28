@@ -53,16 +53,16 @@ func (mc ModuleCtx) UnixPath(path string) string {
 // empty string, it means that the executable did not exist or was not
 // found in $PATH.
 //
-// Use a return error of type ExitCode to set the exit code. A nil error
-// has the same effect as ExitCode(0). If the error is of any other
-// type, the interpreter will come to a stop.
+// Use a return error of type ExitStatus to set the exit status. A nil error has
+// the same effect as ExitStatus(0). If the error is of any other type, the
+// interpreter will come to a stop.
 type ModuleExec func(ctx context.Context, path string, args []string) error
 
 func DefaultExec(ctx context.Context, path string, args []string) error {
 	mc, _ := FromModuleContext(ctx)
 	if path == "" {
 		fmt.Fprintf(mc.Stderr, "%q: executable file not found in $PATH\n", args[0])
-		return ExitCode(127)
+		return ExitStatus(127)
 	}
 	cmd := exec.Cmd{
 		Path:   path,
@@ -107,13 +107,13 @@ func DefaultExec(ctx context.Context, path string, args []string) error {
 			if status.Signaled() && ctx.Err() != nil {
 				return ctx.Err()
 			}
-			return ExitCode(status.ExitStatus())
+			return ExitStatus(status.ExitStatus())
 		}
-		return ExitCode(1)
+		return ExitStatus(1)
 	case *exec.Error:
 		// did not start
 		fmt.Fprintf(mc.Stderr, "%v\n", err)
-		return ExitCode(127)
+		return ExitStatus(127)
 	default:
 		return err
 	}
@@ -126,8 +126,8 @@ func DefaultExec(ctx context.Context, path string, args []string) error {
 // The path parameter is absolute and has been cleaned.
 //
 // Use a return error of type *os.PathError to have the error printed to
-// stderr and the exit code set to 1. If the error is of any other type,
-// the interpreter will come to a stop.
+// stderr and the exit status set to 1. If the error is of any other type, the
+// interpreter will come to a stop.
 //
 // TODO: What about stat calls? They are used heavily in the builtin
 // test expressions, and also when doing a cd. Should they have a

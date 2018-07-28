@@ -95,7 +95,7 @@ func interactive() error {
 	ctx := context.Background()
 	fn := func(s *syntax.Stmt) bool {
 		if err := runner.Stmt(ctx, s); err != nil {
-			code, ok := err.(interp.ExitCode)
+			code, ok := err.(interp.ExitStatus)
 			if ok {
 				os.Exit(int(code))
 			}
