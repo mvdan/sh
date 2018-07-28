@@ -177,9 +177,9 @@ const (
 // Reset empties the runner state and sets any exported fields with zero values
 // to their default values.
 //
-// Typically, this function only needs to be called if a runner is re-used to
-// run multiple programs non-incrementally. Not calling Reset between each run
-// will mean that the shell state will be kept, including variables and options.
+// Typically, this function only needs to be called if a runner is reused to run
+// multiple programs non-incrementally. Not calling Reset between each run will
+// mean that the shell state will be kept, including variables and options.
 func (r *Runner) Reset() error {
 	// TODO: remove the error return; for the real use-case of reusing a
 	// runner, an error should never happen.
@@ -290,9 +290,15 @@ func (r *Runner) modCtx(ctx context.Context) context.Context {
 	return context.WithValue(ctx, moduleCtxKey{}, mc)
 }
 
+// ShellExitStatus exits the shell with a status code.
+type ShellExitStatus uint8
+
+func (s ShellExitStatus) Error() string { return fmt.Sprintf("exit status %d", s) }
+
+// ExitStatus is a non-zero status code resulting from running a shell node.
 type ExitStatus uint8
 
-func (e ExitStatus) Error() string { return fmt.Sprintf("exit status %d", e) }
+func (s ExitStatus) Error() string { return fmt.Sprintf("exit status %d", s) }
 
 func (r *Runner) setErr(err error) {
 	if r.err == nil {
@@ -354,13 +360,20 @@ func (r *Runner) FromArgs(args ...string) ([]string, error) {
 	return args, nil
 }
 
-// Run starts the interpreter and returns any error.
+// Run interprets a node, which can be a *File, *Stmt, or Command. If a non-nil
+// error is returned, it will typically be of type ExitStatus or
+// ShellExitStatus.
+//
+// Run can be called multiple times synchronously to interpret programs
+// incrementally. To reuse a Runner without keeping the internal shell state,
+// call Reset.
 func (r *Runner) Run(ctx context.Context, node syntax.Node) error {
 	if !r.didReset {
 		if err := r.Reset(); err != nil {
 			return err
 		}
 	}
+	r.err = nil
 	r.filename = ""
 	switch x := node.(type) {
 	case *syntax.File:
@@ -373,20 +386,9 @@ func (r *Runner) Run(ctx context.Context, node syntax.Node) error {
 	default:
 		return fmt.Errorf("Node can only be File, Stmt, or Command: %T", x)
 	}
-	r.lastExit()
-	if r.err == ExitStatus(0) {
-		r.err = nil
+	if r.exit > 0 {
+		r.setErr(ExitStatus(r.exit))
 	}
-	return r.err
-}
-
-func (r *Runner) Stmt(ctx context.Context, stmt *syntax.Stmt) error {
-	if !r.didReset {
-		if err := r.Reset(); err != nil {
-			return err
-		}
-	}
-	r.stmt(ctx, stmt)
 	return r.err
 }
 
@@ -453,7 +455,7 @@ func (r *Runner) stmtSync(ctx context.Context, st *syntax.Stmt) {
 		r.exit = oneIf(r.exit == 0)
 	}
 	if r.exit != 0 && r.opts[optErrExit] {
-		r.lastExit()
+		r.setErr(ShellExitStatus(r.exit))
 	}
 	if !r.keepRedirs {
 		r.Stdin, r.Stdout, r.Stderr = oldIn, oldOut, oldErr
@@ -787,7 +789,7 @@ func (r *Runner) loopStmtsBroken(ctx context.Context, sl syntax.StmtList) bool {
 
 type returnStatus uint8
 
-func (r returnStatus) Error() string { return fmt.Sprintf("return status %d", r) }
+func (s returnStatus) Error() string { return fmt.Sprintf("return status %d", s) }
 
 func (r *Runner) call(ctx context.Context, pos syntax.Pos, args []string) {
 	if r.stop(ctx) {

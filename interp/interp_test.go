@@ -2167,7 +2167,7 @@ func TestFile(t *testing.T) {
 			}
 			r.Open = OpenDevImpls(DefaultOpen)
 			ctx := context.Background()
-			if err := r.Run(ctx, file); err != nil {
+			if err := r.Run(ctx, file); err != nil && err != ShellExitStatus(0) {
 				cb.WriteString(err.Error())
 			}
 			want := c.want
@@ -2297,7 +2297,7 @@ func TestRunnerOpts(t *testing.T) {
 				cb.WriteString(err.Error())
 			}
 			ctx := context.Background()
-			if err := r.Run(ctx, file); err != nil {
+			if err := r.Run(ctx, file); err != nil && err != ShellExitStatus(0) {
 				cb.WriteString(err.Error())
 			}
 			if got := cb.String(); got != c.want {
@@ -2368,7 +2368,7 @@ func TestRunnerAltNodes(t *testing.T) {
 			Stderr: &cb,
 		}
 		ctx := context.Background()
-		if err := r.Run(ctx, node); err != nil {
+		if err := r.Run(ctx, node); err != nil && err != ShellExitStatus(0) {
 			cb.WriteString(err.Error())
 		}
 		if got := cb.String(); got != want {
@@ -2482,5 +2482,33 @@ func TestFields(t *testing.T) {
 	}
 	if !reflect.DeepEqual(want, got) {
 		t.Fatalf("want=%v got=%v", want, got)
+	}
+}
+
+func TestRunnerIncremental(t *testing.T) {
+	t.Parallel()
+	in := "echo foo; false; echo bar; exit 0; echo baz"
+	want := "foo\nbar\n"
+	file, err := syntax.NewParser().Parse(strings.NewReader(in), "")
+	if err != nil {
+		t.Fatalf("could not parse: %v", err)
+	}
+	var b bytes.Buffer
+	r := Runner{Stdout: &b, Stderr: &b}
+	ctx := context.Background()
+StmtLoop:
+	for _, stmt := range file.Stmts {
+		err := r.Run(ctx, stmt)
+		switch err.(type) {
+		case nil:
+		case ExitStatus:
+		case ShellExitStatus:
+			break StmtLoop
+		default:
+			b.WriteString(err.Error())
+		}
+	}
+	if got := b.String(); got != want {
+		t.Fatalf("\nwant: %q\ngot:  %q", want, got)
 	}
 }

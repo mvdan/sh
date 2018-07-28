@@ -48,8 +48,8 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			r.errf("exit cannot take multiple arguments\n")
 			r.exit = 1
 		}
-		r.lastExit()
-		return r.exit
+		r.setErr(ShellExitStatus(r.exit))
+		return 0 // the command's exit status does not matter
 	case "set":
 		rest, err := r.FromArgs(args...)
 		if err != nil {
@@ -302,8 +302,8 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			break
 		}
 		r.exec(ctx, args)
-		r.lastExit()
-		return r.exit
+		r.setErr(ShellExitStatus(r.exit))
+		return r.exit // TODO?
 	case "command":
 		show := false
 		for len(args) > 0 && strings.HasPrefix(args[0], "-") {

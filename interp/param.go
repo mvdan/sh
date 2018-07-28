@@ -195,7 +195,7 @@ func (r *Runner) paramExp(ctx context.Context, pe *syntax.ParamExp) string {
 			if str == "" {
 				r.errf("%s\n", arg)
 				r.exit = 1
-				r.lastExit()
+				r.setErr(ShellExitStatus(r.exit))
 			}
 		case syntax.SubstAssgn:
 			if set {

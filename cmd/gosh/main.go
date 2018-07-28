@@ -94,13 +94,15 @@ func interactive() error {
 	r := &promptReader{os.Stdin, true}
 	ctx := context.Background()
 	fn := func(s *syntax.Stmt) bool {
-		if err := runner.Stmt(ctx, s); err != nil {
-			code, ok := err.(interp.ExitStatus)
-			if ok {
-				os.Exit(int(code))
+		if err := runner.Run(ctx, s); err != nil {
+			switch x := err.(type) {
+			case interp.ShellExitStatus:
+				os.Exit(int(x))
+			case interp.ExitStatus:
+			default:
+				fmt.Fprintln(os.Stderr, err)
+				os.Exit(1)
 			}
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
 		}
 		r.first = true
 		return true

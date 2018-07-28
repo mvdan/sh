@@ -157,8 +157,7 @@ func (r *Runner) lookupVar(name string) (Variable, bool) {
 	}
 	if r.opts[optNoUnset] {
 		r.errf("%s: unbound variable\n", name)
-		r.exit = 1
-		r.lastExit()
+		r.setErr(ExitStatus(1))
 	}
 	return Variable{}, false
 }
@@ -281,8 +280,7 @@ func (r *Runner) setVar(ctx context.Context, name string, index syntax.ArithmExp
 	cur, _ := r.lookupVar(name)
 	if cur.ReadOnly {
 		r.errf("%s: readonly variable\n", name)
-		r.exit = 1
-		r.lastExit()
+		r.setErr(ExitStatus(1))
 		return
 	}
 	_, isIndexArray := cur.Value.(IndexArray)
