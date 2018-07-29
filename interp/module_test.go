@@ -78,9 +78,8 @@ var modCases = []struct {
 		exec: func(ctx context.Context, path string, args []string) error {
 			return fmt.Errorf("blacklisted: %s", args[0])
 		},
-		// TODO: find a way to bubble up the error, perhaps
-		src:  "{ malicious; echo foo; } & wait",
-		want: "",
+		src:  "{ malicious; true; } & { malicious; true; } & wait",
+		want: "blacklisted: malicious",
 	},
 	{
 		name: "OpenForbidNonDev",

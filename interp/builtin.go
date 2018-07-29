@@ -198,7 +198,13 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		if len(args) > 0 {
 			panic("wait with args not handled yet")
 		}
-		r.bgShells.Wait()
+		switch err := r.bgShells.Wait().(type) {
+		case nil:
+		case ExitStatus:
+		case ShellExitStatus:
+		default:
+			r.setErr(err)
+		}
 	case "builtin":
 		if len(args) < 1 {
 			break
@@ -301,7 +307,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		}
 		r.exec(ctx, args)
 		r.setErr(ShellExitStatus(r.exit))
-		return r.exit // TODO?
+		return 0
 	case "command":
 		show := false
 		for len(args) > 0 && strings.HasPrefix(args[0], "-") {

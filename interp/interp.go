@@ -18,6 +18,8 @@ import (
 	"sync"
 	"time"
 
+	"golang.org/x/sync/errgroup"
+
 	"mvdan.cc/sh/syntax"
 )
 
@@ -241,10 +243,10 @@ type Runner struct {
 	inFunc   bool
 	inSource bool
 
-	err  error // current fatal error
+	err  error // current shell exit code or fatal error
 	exit int   // current (last) exit status code
 
-	bgShells sync.WaitGroup
+	bgShells errgroup.Group
 
 	opts [len(shellOptsTable) + len(bashOptsTable)]bool
 
@@ -507,12 +509,12 @@ func (r *Runner) stmt(ctx context.Context, st *syntax.Stmt) {
 		return
 	}
 	if st.Background {
-		r.bgShells.Add(1)
 		r2 := r.sub()
-		go func() {
-			r2.stmtSync(ctx, st)
-			r.bgShells.Done()
-		}()
+		st2 := *st
+		st2.Background = false
+		r.bgShells.Go(func() error {
+			return r2.Run(ctx, &st2)
+		})
 	} else {
 		r.stmtSync(ctx, st)
 	}
@@ -548,7 +550,7 @@ func (r *Runner) stmtSync(ctx context.Context, st *syntax.Stmt) {
 
 func (r *Runner) sub() *Runner {
 	r2 := *r
-	r2.bgShells = sync.WaitGroup{}
+	r2.bgShells = errgroup.Group{}
 	r2.bufferAlloc = bytes.Buffer{}
 	// TODO: perhaps we could do a lazy copy here, or some sort of
 	// overlay to avoid copying all the time
