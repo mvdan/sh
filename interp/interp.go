@@ -549,9 +549,21 @@ func (r *Runner) stmtSync(ctx context.Context, st *syntax.Stmt) {
 }
 
 func (r *Runner) sub() *Runner {
-	r2 := *r
-	r2.bgShells = errgroup.Group{}
-	r2.bufferAlloc = bytes.Buffer{}
+	// Keep in sync with the Runner type. Manually copy fields, to not copy
+	// sensitive ones like errgroup.Group, and to do deep copies of slices.
+	r2 := &Runner{
+		Dir:         r.Dir,
+		Params:      r.Params,
+		Exec:        r.Exec,
+		Open:        r.Open,
+		Stdin:       r.Stdin,
+		Stdout:      r.Stdout,
+		Stderr:      r.Stderr,
+		Funcs:       r.Funcs,
+		KillTimeout: r.KillTimeout,
+		filename:    r.filename,
+		opts:        r.opts,
+	}
 	// TODO: perhaps we could do a lazy copy here, or some sort of
 	// overlay to avoid copying all the time
 	r2.Env = r.Env.Copy()
@@ -563,7 +575,10 @@ func (r *Runner) sub() *Runner {
 	for k, v := range r.cmdVars {
 		r2.cmdVars[k] = v
 	}
-	return &r2
+	r2.dirStack = append([]string(nil), r.dirStack...)
+	r2.ifsUpdated()
+	r2.didReset = true
+	return r2
 }
 
 func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
