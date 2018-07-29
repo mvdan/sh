@@ -1493,7 +1493,7 @@ var fileCases = []struct {
 		"b\nb\n",
 	},
 	{
-		"echo $a; set -u; echo $a",
+		"echo $a; set -u; echo $a; echo extra",
 		"\na: unbound variable\nexit status 1 #JUSTERR",
 	},
 	{"set -n; echo foo", ""},
