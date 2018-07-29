@@ -24,6 +24,11 @@ extension and a shell shebang.
 
 	shfmt -l -w script.sh
 
+Typically, CI builds should use the command below, to error if any shell scripts
+in a project don't adhere to the format:
+
+	shfmt -d .
+
 Use `-i N` to indent with a number of spaces instead of tabs. There are other
 formatting options - see `shfmt -h`. For example, to get the formatting
 appropriate for [Google's Style][google-style] guide, use `shfmt -i 2 -ci`.

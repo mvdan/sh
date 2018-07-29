@@ -63,7 +63,7 @@ by filename extension and by shebang.
 
   -l        list files whose formatting differs from shfmt's
   -w        write result to file instead of stdout
-  -d        display diffs when formatting differs
+  -d        error with a diff when the formatting differs
   -s        simplify the code
 
 Parser options:
