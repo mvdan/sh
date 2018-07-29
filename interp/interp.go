@@ -446,12 +446,6 @@ func (r *Runner) setErr(err error) {
 	}
 }
 
-func (r *Runner) lastExit() {
-	if r.err == nil {
-		r.err = ExitStatus(r.exit)
-	}
-}
-
 // Run interprets a node, which can be a *File, *Stmt, or Command. If a non-nil
 // error is returned, it will typically be of type ExitStatus or
 // ShellExitStatus.
