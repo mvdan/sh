@@ -51,12 +51,10 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		r.setErr(ShellExitStatus(r.exit))
 		return 0 // the command's exit status does not matter
 	case "set":
-		rest, err := r.FromArgs(args...)
-		if err != nil {
+		if err := Params(args...)(r); err != nil {
 			r.errf("set: %v\n", err)
 			return 2
 		}
-		r.Params = rest
 	case "shift":
 		n := 1
 		switch len(args) {

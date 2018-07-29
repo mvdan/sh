@@ -22,11 +22,7 @@ var (
 
 	parser *syntax.Parser
 
-	runner = interp.Runner{
-		Stdin:  os.Stdin,
-		Stdout: os.Stdout,
-		Stderr: os.Stderr,
-	}
+	runner, _ = interp.New(interp.StdIO(os.Stdin, os.Stdout, os.Stderr))
 )
 
 func main() {

@@ -49,21 +49,24 @@ var purePrograms = []string{
 var pureRunnerTimeout = 2 * time.Second
 
 func pureRunner() *interp.Runner {
-	r := &interp.Runner{}
 	// forbid executing programs that might cause trouble
-	r.Exec = func(ctx context.Context, path string, args []string) error {
+	exec := interp.ModuleExec(func(ctx context.Context, path string, args []string) error {
 		for _, name := range purePrograms {
 			if args[0] == name {
 				return interp.DefaultExec(ctx, path, args)
 			}
 		}
 		return fmt.Errorf("program not in whitelist: %s", args[0])
-	}
+	})
 	// forbid opening any real files
-	r.Open = interp.OpenDevImpls(func(ctx context.Context, path string, flags int, mode os.FileMode) (io.ReadWriteCloser, error) {
+	open := interp.OpenDevImpls(func(ctx context.Context, path string, flags int, mode os.FileMode) (io.ReadWriteCloser, error) {
 		mc, _ := interp.FromModuleContext(ctx)
 		return nil, fmt.Errorf("cannot open path: %s", mc.UnixPath(path))
 	})
+	r, err := interp.New(interp.Module(exec), interp.Module(open))
+	if err != nil {
+		panic(err)
+	}
 	return r
 }
 

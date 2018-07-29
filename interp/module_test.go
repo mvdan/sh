@@ -103,11 +103,10 @@ func TestRunnerModules(t *testing.T) {
 				t.Fatalf("could not parse: %v", err)
 			}
 			var cb concBuffer
-			r := Runner{
-				Stdout: &cb,
-				Stderr: &cb,
-				Exec:   tc.exec,
-				Open:   tc.open,
+			r, err := New(StdIO(nil, &cb, &cb),
+				Module(tc.exec), Module(tc.open))
+			if err != nil {
+				t.Fatal(err)
 			}
 			ctx := context.Background()
 			if err := r.Run(ctx, file); err != nil {
@@ -184,11 +183,11 @@ func TestKillTimeout(t *testing.T) {
 				var rbuf readyBuffer
 				rbuf.seenReady.Add(1)
 				ctx, cancel := context.WithCancel(context.Background())
-				r := Runner{
-					Stdout:      &rbuf,
-					Stderr:      &rbuf,
-					KillTimeout: test.killTimeout,
+				r, err := New(StdIO(nil, &rbuf, &rbuf))
+				if err != nil {
+					t.Fatal(err)
 				}
+				r.KillTimeout = test.killTimeout
 				go func() {
 					rbuf.seenReady.Wait()
 					cancel()

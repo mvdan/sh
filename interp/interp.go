@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"math"
 	"os"
 	"os/user"
@@ -20,30 +21,205 @@ import (
 	"mvdan.cc/sh/syntax"
 )
 
-// A Runner interprets shell programs. It cannot be reused once a
-// program has been interpreted.
+// New creates a new Runner, applying a number of options. If applying any of
+// the options results in an error, it is returned.
 //
-// Note that writes to Stdout and Stderr may not be sequential. If
-// you plan on using an io.Writer implementation that isn't safe for
-// concurrent use, consider a workaround like hiding writes behind a
-// mutex.
+// Any unset options fall back to their defaults. For example, not supplying the
+// environment falls back to the process's environment, and not supplying the
+// standard output writer means that the output will be discarded.
+func New(opts ...func(*Runner) error) (*Runner, error) {
+	r := &Runner{}
+	for _, opt := range opts {
+		if err := opt(r); err != nil {
+			return nil, err
+		}
+	}
+	// Set the default fallbacks, if necessary.
+	if r.Env == nil {
+		Env(nil)(r)
+	}
+	if r.Dir == "" {
+		if err := Dir("")(r); err != nil {
+			return nil, err
+		}
+	}
+	if r.Exec == nil {
+		Module(nil)(r)
+	}
+	if r.Open == nil {
+		Module(nil)(r)
+	}
+	if r.Stdout == nil || r.Stderr == nil {
+		StdIO(r.Stdin, r.Stdout, r.Stderr)(r)
+	}
+	return r, nil
+}
+
+// Env sets the interpreter's environment. If nil, the current process's
+// environment is used.
+func Env(env Environ) func(*Runner) error {
+	return func(r *Runner) error {
+		if env == nil {
+			env, _ = EnvFromList(os.Environ())
+		}
+		r.Env = env
+		return nil
+	}
+}
+
+// Dir sets the interpreter's working directory. If empty, the process's current
+// directory is used.
+func Dir(path string) func(*Runner) error {
+	return func(r *Runner) error {
+		if path == "" {
+			path, err := os.Getwd()
+			if err != nil {
+				return fmt.Errorf("could not get current dir: %v", err)
+			}
+			r.Dir = path
+			return nil
+		}
+		path, err := filepath.Abs(path)
+		if err != nil {
+			return fmt.Errorf("could not get absolute dir: %v", err)
+		}
+		info, err := os.Stat(path)
+		if err != nil {
+			return fmt.Errorf("could not stat: %v", err)
+		}
+		if !info.IsDir() {
+			return fmt.Errorf("%s is not a directory", path)
+		}
+		r.Dir = path
+		return nil
+	}
+}
+
+// Params populates the shell options and parameters. For example, Params("-e",
+// "--", "foo") will set the "-e" option and the parameters ["foo"].
+//
+// This is similar to what the interpreter's "set" builtin does.
+func Params(args ...string) func(*Runner) error {
+	return func(r *Runner) error {
+		for len(args) > 0 {
+			arg := args[0]
+			if arg == "" || (arg[0] != '-' && arg[0] != '+') {
+				break
+			}
+			if arg == "--" {
+				args = args[1:]
+				break
+			}
+			enable := arg[0] == '-'
+			var opt *bool
+			if flag := arg[1:]; flag == "o" {
+				args = args[1:]
+				if len(args) == 0 && enable {
+					for i, opt := range &shellOptsTable {
+						r.printOptLine(opt.name, r.opts[i])
+					}
+					break
+				}
+				if len(args) == 0 && !enable {
+					for i, opt := range &shellOptsTable {
+						setFlag := "+o"
+						if r.opts[i] {
+							setFlag = "-o"
+						}
+						r.outf("set %s %s\n", setFlag, opt.name)
+					}
+					break
+				}
+				opt = r.optByName(args[0], false)
+			} else {
+				opt = r.optByFlag(flag)
+			}
+			if opt == nil {
+				return fmt.Errorf("invalid option: %q", arg)
+			}
+			*opt = enable
+			args = args[1:]
+		}
+		r.Params = args
+		return nil
+	}
+}
+
+// Module sets an interpreter module, which can be ModuleExec or ModuleOpen. If
+// the value is nil, the default module implementation is used.
+func Module(mod interface{}) func(*Runner) error {
+	return func(r *Runner) error {
+		switch mod := mod.(type) {
+		case ModuleExec:
+			if mod == nil {
+				mod = DefaultExec
+			}
+			r.Exec = mod
+		case ModuleOpen:
+			if mod == nil {
+				mod = DefaultOpen
+			}
+			r.Open = mod
+		default:
+			return fmt.Errorf("unknown module type: %T", mod)
+		}
+		return nil
+	}
+}
+
+// StdIO configures an interpreter's standard input, standard output, and
+// standard error. If out or err are nil, they default to a writer that discards
+// the output.
+func StdIO(in io.Reader, out, err io.Writer) func(*Runner) error {
+	return func(r *Runner) error {
+		r.Stdin = in
+		if out == nil {
+			out = ioutil.Discard
+		}
+		r.Stdout = out
+		if err == nil {
+			err = ioutil.Discard
+		}
+		r.Stderr = err
+		return nil
+	}
+}
+
+// A Runner interprets shell programs. It can be reused, but it is not safe for
+// concurrent use. You should typically use New to build a new Runner.
+//
+// Note that writes to Stdout and Stderr may be concurrent if background
+// commands are used. If you plan on using an io.Writer implementation that
+// isn't safe for concurrent use, consider a workaround like hiding writes
+// behind a mutex.
 type Runner struct {
-	// Env specifies the environment of the interpreter.
-	// If Env is nil, Run uses the current process's environment.
+	// Env specifies the environment of the interpreter, which must be
+	// non-nil.
 	Env Environ
 
-	// Dir specifies the working directory of the command. If Dir is
-	// the empty string, Run runs the command in the calling
-	// process's current directory.
+	// Dir specifies the working directory of the command, which must be an
+	// absolute path.
 	Dir string
 
-	// Params are the current parameters, e.g. from running a shell
-	// file or calling a function. Accessible via the $@/$* family
-	// of vars.
+	// Params are the current shell parameters, e.g. from running a shell
+	// file or calling a function. Accessible via the $@/$* family of vars.
 	Params []string
 
+	// Exec is the module responsible for executing programs. It must be
+	// non-nil.
 	Exec ModuleExec
+	// Open is the module responsible for opening files. It must be non-nil.
 	Open ModuleOpen
+
+	Stdin  io.Reader
+	Stdout io.Writer
+	Stderr io.Writer
+
+	// Separate maps, note that bash allows a name to be both a var
+	// and a func simultaneously
+	// TODO: merge into Env?
+	Vars  map[string]Variable
+	Funcs map[string]*syntax.Stmt
 
 	// didReset remembers whether the runner has ever been reset. This is
 	// used so that Reset is automatically called when running any program
@@ -51,11 +227,6 @@ type Runner struct {
 	didReset bool
 
 	filename string // only if Node was a File
-
-	// Separate maps, note that bash allows a name to be both a var
-	// and a func simultaneously
-	Vars  map[string]Variable
-	Funcs map[string]*syntax.Stmt
 
 	// like Vars, but local to a func i.e. "local foo=bar"
 	funcVars map[string]Variable
@@ -72,10 +243,6 @@ type Runner struct {
 
 	err  error // current fatal error
 	exit int   // current (last) exit status code
-
-	Stdin  io.Reader
-	Stdout io.Writer
-	Stderr io.Writer
 
 	bgShells sync.WaitGroup
 
@@ -180,10 +347,7 @@ const (
 // Typically, this function only needs to be called if a runner is reused to run
 // multiple programs non-incrementally. Not calling Reset between each run will
 // mean that the shell state will be kept, including variables and options.
-func (r *Runner) Reset() error {
-	// TODO: remove the error return; for the real use-case of reusing a
-	// runner, an error should never happen.
-
+func (r *Runner) Reset() {
 	// reset the internal state
 	*r = Runner{
 		Env:         r.Env,
@@ -215,32 +379,9 @@ func (r *Runner) Reset() error {
 			delete(r.cmdVars, k)
 		}
 	}
-	if r.Env == nil {
-		r.Env, _ = EnvFromList(os.Environ())
-	}
 	if _, ok := r.Env.Get("HOME"); !ok {
 		u, _ := user.Current()
 		r.Vars["HOME"] = Variable{Value: StringVal(u.HomeDir)}
-	}
-	if r.Dir == "" {
-		dir, err := os.Getwd()
-		if err != nil {
-			return fmt.Errorf("could not get current dir: %v", err)
-		}
-		r.Dir = dir
-	} else {
-		abs, err := filepath.Abs(r.Dir)
-		if err != nil {
-			return fmt.Errorf("could not get absolute dir: %v", err)
-		}
-		info, err := os.Stat(abs)
-		if err != nil {
-			return fmt.Errorf("could not stat: %v", err)
-		}
-		if !info.IsDir() {
-			return fmt.Errorf("%s is not a directory", abs)
-		}
-		r.Dir = abs
 	}
 	r.Vars["PWD"] = Variable{Value: StringVal(r.Dir)}
 	r.Vars["IFS"] = Variable{Value: StringVal(" \t\n")}
@@ -265,7 +406,6 @@ func (r *Runner) Reset() error {
 		r.KillTimeout = 2 * time.Second
 	}
 	r.didReset = true
-	return nil
 }
 
 func (r *Runner) modCtx(ctx context.Context) context.Context {
@@ -312,54 +452,6 @@ func (r *Runner) lastExit() {
 	}
 }
 
-// FromArgs populates the shell options and returns the remaining
-// arguments. For example, running FromArgs("-e", "--", "foo") will set
-// the "-e" option and return []string{"foo"}.
-//
-// This is similar to what the interpreter's "set" builtin does.
-func (r *Runner) FromArgs(args ...string) ([]string, error) {
-	for len(args) > 0 {
-		arg := args[0]
-		if arg == "" || (arg[0] != '-' && arg[0] != '+') {
-			break
-		}
-		if arg == "--" {
-			args = args[1:]
-			break
-		}
-		enable := arg[0] == '-'
-		var opt *bool
-		if flag := arg[1:]; flag == "o" {
-			args = args[1:]
-			if len(args) == 0 && enable {
-				for i, opt := range &shellOptsTable {
-					r.printOptLine(opt.name, r.opts[i])
-				}
-				break
-			}
-			if len(args) == 0 && !enable {
-				for i, opt := range &shellOptsTable {
-					setFlag := "+o"
-					if r.opts[i] {
-						setFlag = "-o"
-					}
-					r.outf("set %s %s\n", setFlag, opt.name)
-				}
-				break
-			}
-			opt = r.optByName(args[0], false)
-		} else {
-			opt = r.optByFlag(flag)
-		}
-		if opt == nil {
-			return nil, fmt.Errorf("invalid option: %q", arg)
-		}
-		*opt = enable
-		args = args[1:]
-	}
-	return args, nil
-}
-
 // Run interprets a node, which can be a *File, *Stmt, or Command. If a non-nil
 // error is returned, it will typically be of type ExitStatus or
 // ShellExitStatus.
@@ -369,9 +461,7 @@ func (r *Runner) FromArgs(args ...string) ([]string, error) {
 // call Reset.
 func (r *Runner) Run(ctx context.Context, node syntax.Node) error {
 	if !r.didReset {
-		if err := r.Reset(); err != nil {
-			return err
-		}
+		r.Reset()
 	}
 	r.err = nil
 	r.filename = ""

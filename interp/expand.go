@@ -139,9 +139,7 @@ func (r *Runner) escapedGlobField(parts []fieldPart) (escaped string, glob bool)
 
 func (r *Runner) Fields(ctx context.Context, words ...*syntax.Word) ([]string, error) {
 	if !r.didReset {
-		if err := r.Reset(); err != nil {
-			return nil, err
-		}
+		r.Reset()
 	}
 	return r.fields(ctx, words...), r.err
 }

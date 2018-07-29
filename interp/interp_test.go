@@ -42,10 +42,7 @@ let i=(2 + 3)
 	if err != nil {
 		b.Fatal(err)
 	}
-	r := Runner{
-		Stdout: ioutil.Discard,
-		Stderr: ioutil.Discard,
-	}
+	r, _ := New()
 	ctx := context.Background()
 	for i := 0; i < b.N; i++ {
 		r.Reset()
@@ -2160,12 +2157,11 @@ func TestFile(t *testing.T) {
 			}
 			defer os.RemoveAll(dir)
 			var cb concBuffer
-			r := Runner{
-				Dir:    dir,
-				Stdout: &cb,
-				Stderr: &cb,
+			r, err := New(Dir(dir), StdIO(nil, &cb, &cb),
+				Module(OpenDevImpls(DefaultOpen)))
+			if err != nil {
+				t.Fatal(err)
 			}
-			r.Open = OpenDevImpls(DefaultOpen)
 			ctx := context.Background()
 			if err := r.Run(ctx, file); err != nil && err != ShellExitStatus(0) {
 				cb.WriteString(err.Error())
@@ -2231,53 +2227,56 @@ func TestFileConfirm(t *testing.T) {
 
 func TestRunnerOpts(t *testing.T) {
 	t.Parallel()
-	withPath := func(strs ...string) Environ {
+	withPath := func(strs ...string) func(*Runner) error {
 		list := []string{"PATH=" + os.Getenv("PATH")}
 		list = append(list, strs...)
 		env, _ := EnvFromList(list)
-		return env
+		return Env(env)
+	}
+	opts := func(list ...func(*Runner) error) []func(*Runner) error {
+		return list
 	}
 	cases := []struct {
-		runner   Runner
+		opts     []func(*Runner) error
 		in, want string
 	}{
 		{
-			Runner{},
+			nil,
 			"env | grep '^INTERP_GLOBAL='",
 			"INTERP_GLOBAL=value\n",
 		},
 		{
-			Runner{Env: withPath()},
+			opts(withPath()),
 			"env | grep '^INTERP_GLOBAL='",
 			"exit status 1",
 		},
 		{
-			Runner{Env: withPath("INTERP_GLOBAL=bar")},
+			opts(withPath("INTERP_GLOBAL=bar")),
 			"env | grep '^INTERP_GLOBAL='",
 			"INTERP_GLOBAL=bar\n",
 		},
 		{
-			Runner{Env: withPath("a=b")},
+			opts(withPath("a=b")),
 			"echo $a",
 			"b\n",
 		},
 		{
-			Runner{Env: withPath("A=b")},
+			opts(withPath("A=b")),
 			"env | grep '^A='; echo $A",
 			"A=b\nb\n",
 		},
 		{
-			Runner{Env: withPath("A=b", "A=c")},
+			opts(withPath("A=b", "A=c")),
 			"env | grep '^A='; echo $A",
 			"A=c\nc\n",
 		},
 		{
-			Runner{Env: withPath("HOME=")},
+			opts(withPath("HOME=")),
 			"echo $HOME",
 			"\n",
 		},
 		{
-			Runner{Env: withPath("PWD=foo")},
+			opts(withPath("PWD=foo")),
 			"[[ $PWD == foo ]]",
 			"exit status 1",
 		},
@@ -2290,11 +2289,9 @@ func TestRunnerOpts(t *testing.T) {
 				t.Fatalf("could not parse: %v", err)
 			}
 			var cb concBuffer
-			r := c.runner
-			r.Stdout = &cb
-			r.Stderr = &cb
-			if err := r.Reset(); err != nil {
-				cb.WriteString(err.Error())
+			r, err := New(append(c.opts, StdIO(nil, &cb, &cb))...)
+			if err != nil {
+				t.Fatal(err)
 			}
 			ctx := context.Background()
 			if err := r.Run(ctx, file); err != nil && err != ShellExitStatus(0) {
@@ -2330,7 +2327,7 @@ func TestRunnerContext(t *testing.T) {
 			}
 			ctx, cancel := context.WithCancel(context.Background())
 			cancel()
-			r := Runner{}
+			r, _ := New()
 			errChan := make(chan error)
 			go func() {
 				errChan <- r.Run(ctx, file)
@@ -2363,10 +2360,7 @@ func TestRunnerAltNodes(t *testing.T) {
 	}
 	for _, node := range nodes {
 		var cb concBuffer
-		r := Runner{
-			Stdout: &cb,
-			Stderr: &cb,
-		}
+		r, _ := New(StdIO(nil, &cb, &cb))
 		ctx := context.Background()
 		if err := r.Run(ctx, node); err != nil && err != ShellExitStatus(0) {
 			cb.WriteString(err.Error())
@@ -2422,43 +2416,32 @@ func TestRunnerDir(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	rel, err := filepath.Rel(wd, dir)
-	if err != nil {
-		t.Fatal(err)
-	}
-	ctx := context.Background()
-	noop, err := syntax.NewParser().Parse(strings.NewReader(":"), "")
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	t.Run("Missing", func(t *testing.T) {
-		r := Runner{Dir: "missing"}
-		if err := r.Run(ctx, noop); err == nil {
-			t.Fatal("expected Runner to error when Dir is missing")
+		_, err := New(Dir("missing"))
+		if err == nil {
+			t.Fatal("expected New to error when Dir is missing")
 		}
 	})
 	t.Run("NoDir", func(t *testing.T) {
-		r := Runner{Dir: "interp_test.go"}
-		if err := r.Run(ctx, noop); err == nil {
-			t.Fatal("expected Runner to error when Dir is not a dir")
+		_, err := New(Dir("interp_test.go"))
+		if err == nil {
+			t.Fatal("expected New to error when Dir is not a dir")
 		}
 	})
 	t.Run("NoDirAbs", func(t *testing.T) {
-		r := Runner{Dir: filepath.Join(wd, "interp_test.go")}
-		if err := r.Run(ctx, noop); err == nil {
-			t.Fatal("expected Runner to error when Dir is not a dir")
+		_, err := New(Dir(filepath.Join(wd, "interp_test.go")))
+		if err == nil {
+			t.Fatal("expected New to error when Dir is not a dir")
 		}
 	})
 	t.Run("Relative", func(t *testing.T) {
-		var b bytes.Buffer
-		r := Runner{
-			Dir:    rel,
-			Stdout: &b,
-			Stderr: &b,
+		rel, err := filepath.Rel(wd, dir)
+		if err != nil {
+			t.Fatal(err)
 		}
-		if err := r.Run(ctx, noop); err != nil {
-			t.Error(err)
+		r, err := New(Dir(rel))
+		if err != nil {
+			t.Fatal(err)
 		}
 		if !filepath.IsAbs(r.Dir) {
 			t.Errorf("Runner.Dir is not absolute")
@@ -2475,7 +2458,7 @@ func TestFields(t *testing.T) {
 	want := []string{"foo-"}
 	words := file.Stmts[0].Cmd.(*syntax.CallExpr).Args
 	ctx := context.Background()
-	r := Runner{}
+	r, _ := New()
 	got, err := r.Fields(ctx, words...)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -2494,7 +2477,7 @@ func TestRunnerIncremental(t *testing.T) {
 		t.Fatalf("could not parse: %v", err)
 	}
 	var b bytes.Buffer
-	r := Runner{Stdout: &b, Stderr: &b}
+	r, _ := New(StdIO(nil, &b, &b))
 	ctx := context.Background()
 StmtLoop:
 	for _, stmt := range file.Stmts {
