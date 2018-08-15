@@ -183,11 +183,10 @@ var printTests = []printCase{
 		"aa #b\nc  #d\ne\nf #g",
 		"aa #b\nc  #d\ne\nf #g",
 	},
-	// TODO: reenable once we improve comment handling
-	//{
-	//	"{ a; } #x\nbbb #y\n{ #z\n}",
-	//	"{ a; } #x\nbbb    #y\n{ #z\n}",
-	//},
+	{
+		"{ a; } #x\nbbb #y\n{ #z\n}",
+		"{ a; } #x\nbbb    #y\n{ #z\n}",
+	},
 	{
 		"foo; foooo # 1",
 		"foo\nfoooo # 1",
@@ -355,8 +354,7 @@ var printTests = []printCase{
 	samePrint("case $i in\n#bef\n1) ;; #inl\nesac"),
 	samePrint("case $i in\n1) ;; #inl1\n2) ;; #inl2\nesac"),
 	samePrint("case $i in\n#bef\n1) #inl\n\tfoo\n\t;;\nesac"),
-	// TODO: reenable once we improve comment handling
-	//samePrint("case $i in\n1) #inl\n\t;;\nesac"),
+	samePrint("case $i in\n1) #inl\n\t;;\nesac"),
 	samePrint("case $i in\n1) a \\\n\tb ;;\nesac"),
 	samePrint("case $i in\n1 | 2 | \\\n\t3 | 4) a b ;;\nesac"),
 	samePrint("case $i in\n1 | 2 | \\\n\t3 | 4)\n\ta b\n\t;;\nesac"),
