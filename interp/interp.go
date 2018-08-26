@@ -373,6 +373,7 @@ func (r *Runner) Reset() {
 		Vars:     r.Vars,
 		cmdVars:  r.cmdVars,
 		dirStack: r.dirStack[:0],
+		usedNew:  r.usedNew,
 	}
 	if r.Vars == nil {
 		r.Vars = make(map[string]Variable)

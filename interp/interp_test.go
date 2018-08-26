@@ -2495,3 +2495,11 @@ StmtLoop:
 		t.Fatalf("\nwant: %q\ngot:  %q", want, got)
 	}
 }
+
+func TestRunnerManyResets(t *testing.T) {
+	t.Parallel()
+	r, _ := New()
+	for i := 0; i < 5; i++ {
+		r.Reset()
+	}
+}
