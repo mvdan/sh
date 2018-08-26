@@ -30,7 +30,7 @@ import (
 // environment falls back to the process's environment, and not supplying the
 // standard output writer means that the output will be discarded.
 func New(opts ...func(*Runner) error) (*Runner, error) {
-	r := &Runner{}
+	r := &Runner{usedNew: true}
 	for _, opt := range opts {
 		if err := opt(r); err != nil {
 			return nil, err
@@ -194,6 +194,8 @@ func StdIO(in io.Reader, out, err io.Writer) func(*Runner) error {
 // commands are used. If you plan on using an io.Writer implementation that
 // isn't safe for concurrent use, consider a workaround like hiding writes
 // behind a mutex.
+//
+// To create a Runner, use New.
 type Runner struct {
 	// Env specifies the environment of the interpreter, which must be
 	// non-nil.
@@ -227,6 +229,8 @@ type Runner struct {
 	// used so that Reset is automatically called when running any program
 	// or node for the first time on a Runner.
 	didReset bool
+
+	usedNew bool
 
 	filename string // only if Node was a File
 
@@ -350,6 +354,9 @@ const (
 // multiple programs non-incrementally. Not calling Reset between each run will
 // mean that the shell state will be kept, including variables and options.
 func (r *Runner) Reset() {
+	if !r.usedNew {
+		panic("use interp.New to construct a Runner")
+	}
 	// reset the internal state
 	*r = Runner{
 		Env:         r.Env,
