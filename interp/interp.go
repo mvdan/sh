@@ -147,9 +147,13 @@ func Params(args ...string) func(*Runner) error {
 	}
 }
 
+type ModuleFunc interface {
+	isModule()
+}
+
 // Module sets an interpreter module, which can be ModuleExec or ModuleOpen. If
 // the value is nil, the default module implementation is used.
-func Module(mod interface{}) func(*Runner) error {
+func Module(mod ModuleFunc) func(*Runner) error {
 	return func(r *Runner) error {
 		switch mod := mod.(type) {
 		case ModuleExec:

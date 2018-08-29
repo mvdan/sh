@@ -58,7 +58,9 @@ func (mc ModuleCtx) UnixPath(path string) string {
 // interpreter will come to a stop.
 type ModuleExec func(ctx context.Context, path string, args []string) error
 
-func DefaultExec(ctx context.Context, path string, args []string) error {
+func (ModuleExec) isModule() {}
+
+var DefaultExec = ModuleExec(func(ctx context.Context, path string, args []string) error {
 	mc, _ := FromModuleContext(ctx)
 	if path == "" {
 		fmt.Fprintf(mc.Stderr, "%q: executable file not found in $PATH\n", args[0])
@@ -117,7 +119,7 @@ func DefaultExec(ctx context.Context, path string, args []string) error {
 	default:
 		return err
 	}
-}
+})
 
 // ModuleOpen is the module responsible for opening a file. It is
 // executed for all files that are opened directly by the shell, such as
@@ -134,9 +136,11 @@ func DefaultExec(ctx context.Context, path string, args []string) error {
 // separate module?
 type ModuleOpen func(ctx context.Context, path string, flag int, perm os.FileMode) (io.ReadWriteCloser, error)
 
-func DefaultOpen(ctx context.Context, path string, flag int, perm os.FileMode) (io.ReadWriteCloser, error) {
+func (ModuleOpen) isModule() {}
+
+var DefaultOpen = ModuleOpen(func(ctx context.Context, path string, flag int, perm os.FileMode) (io.ReadWriteCloser, error) {
 	return os.OpenFile(path, flag, perm)
-}
+})
 
 func OpenDevImpls(next ModuleOpen) ModuleOpen {
 	return func(ctx context.Context, path string, flag int, perm os.FileMode) (io.ReadWriteCloser, error) {

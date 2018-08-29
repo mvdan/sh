@@ -119,6 +119,14 @@ func TestRunnerModules(t *testing.T) {
 	}
 }
 
+func TestRunnerDefaultModules(t *testing.T) {
+	t.Parallel()
+	_, err := New(Module(DefaultOpen), Module(DefaultExec))
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 type readyBuffer struct {
 	buf       bytes.Buffer
 	seenReady sync.WaitGroup
