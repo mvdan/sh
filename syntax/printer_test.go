@@ -458,6 +458,20 @@ var printTests = []printCase{
 	},
 	samePrint("if foo; then\n\tbar\n\t# comment\nfi"),
 	samePrint("if foo; then\n\tx\nelse\n\tbar\n\t# comment\nfi"),
+	samePrint("if foo; then\n\tx\n#comment\nelse\n\ty\nfi"),
+	samePrint("if foo; then\n\tx\n\t#comment\nelse\n\ty\nfi"),
+	{
+		"if foo; then\n\tx\n#a\n\t#b\n\t#c\nelse\n\ty\nfi",
+		"if foo; then\n\tx\n\t#a\n\t#b\n\t#c\nelse\n\ty\nfi",
+	},
+	samePrint("if foo; then\n\tx\n#comment\nelif bar; then\n\ty\nfi"),
+	samePrint("if foo; then\n\tx\n\t#comment\nelif bar; then\n\ty\nfi"),
+	samePrint("case i in\nx)\n\ta\n\t;;\n#comment\ny) ;;\nesac"),
+	samePrint("case i in\nx)\n\ta\n\t;;\n\t#comment\ny) ;;\nesac"),
+	{
+		"case i in\nx)\n\ta\n\t;;\n\t#a\n#b\n\t#c\ny) ;;\nesac",
+		"case i in\nx)\n\ta\n\t;;\n\t#a\n\t#b\n\t#c\ny) ;;\nesac",
+	},
 }
 
 func TestPrintWeirdFormat(t *testing.T) {
