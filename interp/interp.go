@@ -860,9 +860,9 @@ func (r *Runner) redir(ctx context.Context, rd *syntax.Redirect) (io.Closer, err
 	mode := os.O_RDONLY
 	switch rd.Op {
 	case syntax.AppOut, syntax.AppAll:
-		mode = os.O_RDWR | os.O_CREATE | os.O_APPEND
+		mode = os.O_WRONLY | os.O_CREATE | os.O_APPEND
 	case syntax.RdrOut, syntax.RdrAll:
-		mode = os.O_RDWR | os.O_CREATE | os.O_TRUNC
+		mode = os.O_WRONLY | os.O_CREATE | os.O_TRUNC
 	}
 	f, err := r.open(ctx, r.relPath(arg), mode, 0644, true)
 	if err != nil {

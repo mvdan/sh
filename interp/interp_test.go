@@ -871,8 +871,8 @@ var fileCases = []struct {
 		"bar\n",
 	},
 	{
-		">a; wc -c <a",
-		"0\n",
+		">a; echo foo >>b; wc -c <a >>b; cat b",
+		"foo\n0\n",
 	},
 	{
 		"echo foo >a; wc -c <a",
