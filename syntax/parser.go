@@ -2028,12 +2028,9 @@ func (p *Parser) testExpr(ftok token, fpos Pos, pastAndOr bool) TestExpr {
 		if p.lang != LangBash {
 			p.langErr(p.pos, "regex tests", LangBash)
 		}
-		oldReOpenParens := p.reOpenParens
+		p.reOpenParens = 0
 		old := p.preNested(testRegexp)
-		defer func() {
-			p.postNested(old)
-			p.reOpenParens = oldReOpenParens
-		}()
+		defer p.postNested(old)
 		fallthrough
 	default:
 		if _, ok := b.X.(*Word); !ok {
