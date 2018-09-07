@@ -632,7 +632,7 @@ func (p *Parser) stmtList(stops ...string) (sl StmtList) {
 		//     fi
 		// TODO(mvdan): look into deduplicating this with similar logic
 		// in caseItems.
-		for i := len(p.accComs)-1; i >= 0; i-- {
+		for i := len(p.accComs) - 1; i >= 0; i-- {
 			c := p.accComs[i]
 			if c.Pos().Col() != p.pos.Col() {
 				break
@@ -1954,7 +1954,7 @@ func (p *Parser) caseItems(stop string) (items []*CaseItem) {
 		p.got(_Newl)
 		split := len(p.accComs)
 		if p.tok == _LitWord && p.val != stop {
-			for i := len(p.accComs)-1; i >= 0; i-- {
+			for i := len(p.accComs) - 1; i >= 0; i-- {
 				c := p.accComs[i]
 				if c.Pos().Col() != p.pos.Col() {
 					break
