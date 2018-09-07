@@ -82,14 +82,13 @@ func (r *Runner) paramExp(ctx context.Context, pe *syntax.ParamExp) string {
 		} else {
 			vr.Value = StringVal("gosh")
 		}
-	default:
-		if n, err := strconv.Atoi(name); err == nil {
-			if i := n - 1; i < len(r.Params) {
-				vr.Value, set = StringVal(r.Params[i]), true
-			}
-		} else {
-			vr, set = r.lookupVar(name)
+	case "1", "2", "3", "4", "5", "6", "7", "8", "9":
+		i := int(name[0] - '1')
+		if i < len(r.Params) {
+			vr.Value, set = StringVal(r.Params[i]), true
 		}
+	default:
+		vr, set = r.lookupVar(name)
 	}
 	str := r.varStr(vr, 0)
 	if index != nil {
