@@ -176,6 +176,8 @@ var fileCases = []struct {
 	{`echo -n "\\"`, `\`},
 	{`set -- a b c; x="$@"; echo "$x"`, "a b c\n"},
 	{`set -- b c; echo a"$@"d`, "ab cd\n"},
+	{`echo $1 $3; set -- a b c; echo $1 $3`, "\na c\n"},
+	{`[[ $0 == "bash" || $0 == "gosh" ]]`, ""},
 
 	// dollar quotes
 	{`echo $'foo\nbar'`, "foo\nbar\n"},
@@ -2501,5 +2503,24 @@ func TestRunnerManyResets(t *testing.T) {
 	r, _ := New()
 	for i := 0; i < 5; i++ {
 		r.Reset()
+	}
+}
+
+func TestRunnerFilename(t *testing.T) {
+	t.Parallel()
+	in := "echo $0"
+	want := "f.sh\n"
+	file, err := syntax.NewParser().Parse(strings.NewReader(in), "f.sh")
+	if err != nil {
+		t.Fatalf("could not parse: %v", err)
+	}
+	var b bytes.Buffer
+	r, _ := New(StdIO(nil, &b, &b))
+	ctx := context.Background()
+	if err := r.Run(ctx, file); err != nil {
+		t.Fatal(err)
+	}
+	if got := b.String(); got != want {
+		t.Fatalf("\nwant: %q\ngot:  %q", want, got)
 	}
 }

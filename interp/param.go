@@ -76,6 +76,12 @@ func (r *Runner) paramExp(ctx context.Context, pe *syntax.ParamExp) string {
 		vr.Value = StringVal(strconv.FormatUint(line, 10))
 	case "DIRSTACK":
 		vr.Value = IndexArray(r.dirStack)
+	case "0":
+		if r.filename != "" {
+			vr.Value = StringVal(r.filename)
+		} else {
+			vr.Value = StringVal("gosh")
+		}
 	default:
 		if n, err := strconv.Atoi(name); err == nil {
 			if i := n - 1; i < len(r.Params) {
