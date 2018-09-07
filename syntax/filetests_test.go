@@ -3238,6 +3238,22 @@ var fileTests = []testCase{
 		}},
 	},
 	{
+		Strs: []string{"[[ a =~ b$ || c =~ d$ ]]"},
+		bash: &TestClause{X: &BinaryTest{
+			Op: OrTest,
+			X: &BinaryTest{
+				Op: TsReMatch,
+				X:  litWord("a"),
+				Y:  word(lit("b"), lit("$")),
+			},
+			Y: &BinaryTest{
+				Op: TsReMatch,
+				X:  litWord("c"),
+				Y:  word(lit("d"), lit("$")),
+			},
+		}},
+	},
+	{
 		Strs: []string{"[[ -n $a ]]"},
 		bsmk: &TestClause{
 			X: &UnaryTest{Op: TsNempStr, X: word(litParamExp("a"))},

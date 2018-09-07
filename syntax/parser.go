@@ -161,7 +161,8 @@ type Parser struct {
 	// parser comes out of single quotes
 	buriedBquotes int
 
-	reOpenParens int
+	rxOpenParens int
+	rxFirstPart  bool
 
 	accComs []Comment
 	curComs *[]Comment
@@ -193,7 +194,6 @@ func (p *Parser) reset() {
 	p.quote, p.forbidNested = noState, false
 	p.heredocs, p.buriedHdocs = p.heredocs[:0], 0
 	p.openBquotes, p.buriedBquotes = 0, 0
-	p.reOpenParens = 0
 	p.accComs, p.curComs = nil, &p.accComs
 }
 
@@ -2028,9 +2028,12 @@ func (p *Parser) testExpr(ftok token, fpos Pos, pastAndOr bool) TestExpr {
 		if p.lang != LangBash {
 			p.langErr(p.pos, "regex tests", LangBash)
 		}
-		p.reOpenParens = 0
-		old := p.preNested(testRegexp)
-		defer p.postNested(old)
+		p.rxOpenParens = 0
+		p.rxFirstPart = true
+		// TODO(mvdan): Using nested states within a regex will break in
+		// all sorts of ways. The better fix is likely to use a stop
+		// token, like we do with heredocs.
+		p.quote = testRegexp
 		fallthrough
 	default:
 		if _, ok := b.X.(*Word); !ok {

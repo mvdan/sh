@@ -238,6 +238,7 @@ skipSpace:
 			return
 		}
 	}
+changedState:
 	p.pos = p.getPos()
 	switch {
 	case p.quote&allRegTokens != 0:
@@ -292,15 +293,22 @@ skipSpace:
 	case p.quote&allParamExp != 0 && paramOps(r):
 		p.tok = p.paramToken(r)
 	case p.quote == testRegexp:
+		if !p.rxFirstPart && p.spaced {
+			p.quote = noState
+			goto changedState
+			return
+		}
+		p.rxFirstPart = false
 		switch r {
 		case ';', '"', '\'', '$', '&', '>', '<', '`':
 			p.tok = p.regToken(r)
 		case ')':
-			if p.reOpenParens > 0 {
+			if p.rxOpenParens > 0 {
 				// continuation of open paren
 				p.advanceLitRe(r)
 			} else {
 				p.tok = rightParen
+				p.quote = noState
 			}
 		default: // including '(', '|'
 			p.advanceLitRe(r)
@@ -976,19 +984,25 @@ func (p *Parser) advanceLitRe(r rune) {
 		case '\\':
 			p.rune()
 		case '(':
-			p.reOpenParens++
+			p.rxOpenParens++
 		case ')':
-			if p.reOpenParens--; p.reOpenParens < 0 {
+			if p.rxOpenParens--; p.rxOpenParens < 0 {
 				p.tok, p.val = _LitWord, p.endLit()
+				p.quote = noState
 				return
 			}
 		case ' ', '\t', '\r', '\n':
-			if p.reOpenParens <= 0 {
+			if p.rxOpenParens <= 0 {
 				p.tok, p.val = _LitWord, p.endLit()
+				p.quote = noState
 				return
 			}
-		case utf8.RuneSelf, ';', '"', '\'', '$', '&', '>', '<', '`':
+		case '"', '\'', '$', '`':
+			p.tok, p.val = _Lit, p.endLit()
+			return
+		case utf8.RuneSelf, ';', '&', '>', '<':
 			p.tok, p.val = _LitWord, p.endLit()
+			p.quote = noState
 			return
 		}
 	}
