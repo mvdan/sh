@@ -93,31 +93,37 @@ type bufWriter interface {
 
 type colCounter struct {
 	*bufio.Writer
-	column int
+	column    int
+	lineStart bool
 }
 
 func (c *colCounter) WriteByte(b byte) error {
-	if b == '\n' {
-		c.column = 1
-	} else {
-		c.column++
+	switch b {
+	case '\n':
+		c.column = 0
+		c.lineStart = true
+	case '\t', ' ':
+	default:
+		c.lineStart = false
 	}
+	c.column++
 	return c.Writer.WriteByte(b)
 }
 
 func (c *colCounter) WriteString(s string) (int, error) {
+	c.lineStart = false
 	for _, r := range s {
 		if r == '\n' {
-			c.column = 1
-		} else {
-			c.column++
+			c.column = 0
 		}
+		c.column++
 	}
 	return c.Writer.WriteString(s)
 }
 
 func (c *colCounter) Reset(w io.Writer) {
 	c.column = 1
+	c.lineStart = true
 	c.Writer.Reset(w)
 }
 
@@ -204,7 +210,12 @@ func (p *Printer) spacePad(pos Pos) {
 		p.WriteByte(' ')
 		p.wantSpace = false
 	}
-	for p.cols.column > 0 && p.cols.column < int(pos.col) {
+	if p.cols.lineStart {
+		// Never add padding at the start of a line, since this may
+		// result in broken indentation or mixing of spaces and tabs.
+		return
+	}
+	for !p.cols.lineStart && p.cols.column > 0 && p.cols.column < int(pos.col) {
 		p.WriteByte(' ')
 	}
 }

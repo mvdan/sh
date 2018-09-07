@@ -724,11 +724,16 @@ func TestPrintKeepPadding(t *testing.T) {
 		samePrint("{  a;  }"),
 		samePrint("(  a   )"),
 		samePrint("'foo\nbar'   # x"),
+		{"\tfoo", "foo"},
+		{"  if foo; then bar; fi", "if   foo; then bar; fi"},
 	}
 	parser := NewParser(KeepComments)
 	printer := NewPrinter(KeepPadding)
 	for i, tc := range tests {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
+			// ensure that Reset does properly reset colCounter
+			printer.WriteByte('x')
+			printer.Reset(nil)
 			printTest(t, parser, printer, tc.in, tc.want)
 		})
 	}
