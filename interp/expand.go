@@ -122,11 +122,11 @@ func (r *Runner) escapedGlobField(parts []fieldPart) (escaped string, glob bool)
 	buf := r.strBuilder()
 	for _, part := range parts {
 		quoted := syntax.QuotePattern(part.val)
-		if quoted != part.val {
-			if part.quote > quoteNone {
-				buf.WriteString(quoted)
-			} else {
-				buf.WriteString(part.val)
+		if part.quote > quoteNone {
+			buf.WriteString(quoted)
+		} else {
+			buf.WriteString(part.val)
+			if quoted != part.val {
 				glob = true
 			}
 		}

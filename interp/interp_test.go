@@ -1869,7 +1869,7 @@ set +o pipefail
 		"foo: readonly variable\nexit status 1 #JUSTERR",
 	},
 
-	// glob
+	// globbing
 	{"echo .", ".\n"},
 	{"echo ..", "..\n"},
 	{"echo ./.", "./.\n"},
@@ -1880,6 +1880,10 @@ set +o pipefail
 	{
 		`touch a.x; echo '*.x' "*.x"; rm a.x`,
 		"*.x *.x\n",
+	},
+	{
+		`touch a.x b.y; echo *'.'x; rm a.x`,
+		"a.x\n",
 	},
 	{
 		`touch a.x; echo *'.x' "a."* '*'.x; rm a.x`,
