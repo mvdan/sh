@@ -121,14 +121,13 @@ func (r *Runner) fieldJoin(parts []fieldPart) string {
 func (r *Runner) escapedGlobField(parts []fieldPart) (escaped string, glob bool) {
 	buf := r.strBuilder()
 	for _, part := range parts {
-		quoted := syntax.QuotePattern(part.val)
 		if part.quote > quoteNone {
-			buf.WriteString(quoted)
-		} else {
-			buf.WriteString(part.val)
-			if quoted != part.val {
-				glob = true
-			}
+			buf.WriteString(syntax.QuotePattern(part.val))
+			continue
+		}
+		buf.WriteString(part.val)
+		if syntax.HasPattern(part.val) {
+			glob = true
 		}
 	}
 	if glob { // only copy the string if it will be used
