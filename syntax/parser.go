@@ -145,6 +145,26 @@ func (p *Parser) Words(r io.Reader, fn func(*Word) bool) error {
 	}
 }
 
+// Document parses a single here-document word. That is, it parses the input as
+// if they were lines following a <<EOF redirection.
+//
+// In practice, this is the same as parsing the input as if it were within
+// double quotes, but without having to escape all double quote characters.
+// Similarly, the here-document word parsed here cannot be ended by any
+// delimiter other than reaching the end of the input.
+func (p *Parser) Document(r io.Reader) (*Word, error) {
+	p.reset()
+	p.f = &File{}
+	p.src = r
+	p.rune()
+	p.quote = hdocBody
+	p.hdocStop = []byte("MVDAN_CC_SH_SYNTAX_EOF")
+	p.parsingDoc = true
+	p.next()
+	w := p.getWord()
+	return w, p.err
+}
+
 // Parser holds the internal state of the parsing mechanism of a
 // program.
 type Parser struct {
@@ -182,6 +202,7 @@ type Parser struct {
 	buriedHdocs int
 	heredocs    []*Redirect
 	hdocStop    []byte
+	parsingDoc  bool
 
 	// openBquotes is how many levels of backquotes are open at the
 	// moment
@@ -225,6 +246,7 @@ func (p *Parser) reset() {
 	p.err, p.readErr = nil, nil
 	p.quote, p.forbidNested = noState, false
 	p.heredocs, p.buriedHdocs = p.heredocs[:0], 0
+	p.parsingDoc = false
 	p.openBquotes, p.buriedBquotes = 0, 0
 	p.accComs, p.curComs = nil, &p.accComs
 }

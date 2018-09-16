@@ -24,15 +24,10 @@ import (
 // two seconds.
 func Expand(s string, env func(string) string) (string, error) {
 	p := syntax.NewParser()
-	src := "<<EXPAND_EOF\n" + s + "\nEXPAND_EOF"
-	f, err := p.Parse(strings.NewReader(src), "")
+	word, err := p.Document(strings.NewReader(s))
 	if err != nil {
 		return "", err
 	}
-	word := f.Stmts[0].Redirs[0].Hdoc
-	last := word.Parts[len(word.Parts)-1].(*syntax.Lit)
-	// since the heredoc implies a trailing newline
-	last.Value = strings.TrimSuffix(last.Value, "\n")
 	r := pureRunner()
 	if env != nil {
 		r.Env = interp.FuncEnviron(env)

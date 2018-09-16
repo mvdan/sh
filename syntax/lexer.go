@@ -924,7 +924,12 @@ func (p *Parser) advanceLitHdoc(r rune) {
 		case '\\': // escaped byte follows
 			p.rune()
 		case '\n', utf8.RuneSelf:
-			if bytes.HasPrefix(p.litBs[lStart:], p.hdocStop) {
+			if p.parsingDoc {
+				if r == utf8.RuneSelf {
+					p.val = p.endLit()
+					return
+				}
+			} else if bytes.HasPrefix(p.litBs[lStart:], p.hdocStop) {
 				p.val = p.endLit()[:lStart]
 				if p.val == "" {
 					p.tok = _Newl

@@ -288,8 +288,7 @@ func singleParse(p *Parser, in string, want *File) func(t *testing.T) {
 		clearPosRecurse(t, in, got)
 		if !reflect.DeepEqual(got, want) {
 			t.Fatalf("syntax tree mismatch in %q\ndiff:\n%s", in,
-				strings.Join(pretty.Diff(want, got), "\n"),
-			)
+				strings.Join(pretty.Diff(want, got), "\n"))
 		}
 	}
 }
@@ -2027,6 +2026,62 @@ func TestParseWordsError(t *testing.T) {
 	<-recv
 	want := "1:5: ) is not a valid word"
 	got := fmt.Sprintf("%v", <-errc)
+	if got != want {
+		t.Fatalf("Expected %q as an error, but got %q", want, got)
+	}
+}
+
+var documentTests = []struct {
+	in   string
+	want []WordPart
+}{
+	{
+		"foo",
+		[]WordPart{lit("foo")},
+	},
+	{
+		" foo  $bar",
+		[]WordPart{
+			lit(" foo  "),
+			litParamExp("bar"),
+		},
+	},
+	{
+		"$bar\n\n",
+		[]WordPart{
+			litParamExp("bar"),
+			lit("\n\n"),
+		},
+	},
+}
+
+func TestParseDocument(t *testing.T) {
+	t.Parallel()
+	p := NewParser()
+
+	for i, tc := range documentTests {
+		t.Run(fmt.Sprintf("%02d", i), func(t *testing.T) {
+			got, err := p.Document(strings.NewReader(tc.in))
+			if err != nil {
+				t.Fatal(err)
+			}
+			clearPosRecurse(t, "", got)
+			want := &Word{Parts: tc.want}
+			if !reflect.DeepEqual(got, want) {
+				t.Fatalf("syntax tree mismatch in %q\ndiff:\n%s", tc.in,
+					strings.Join(pretty.Diff(want, got), "\n"))
+			}
+		})
+	}
+}
+
+func TestParseDocumentError(t *testing.T) {
+	t.Parallel()
+	in := "foo $("
+	p := NewParser()
+	_, err := p.Document(strings.NewReader(in))
+	want := "1:5: reached EOF without matching ( with )"
+	got := fmt.Sprintf("%v", err)
 	if got != want {
 		t.Fatalf("Expected %q as an error, but got %q", want, got)
 	}
