@@ -4,12 +4,10 @@ clone_folder: c:\gopath\src\mvdan.cc\sh
 
 environment:
   GOPATH: c:\gopath
-  GOVERSION: 1.10.3
+
+stack: go 1.10
 
 install:
-  - rmdir c:\go /s /q
-  - appveyor DownloadFile https://storage.googleapis.com/golang/go%GOVERSION%.windows-amd64.msi
-  - msiexec /i go%GOVERSION%.windows-amd64.msi /q
   - go version
 
 build: false
