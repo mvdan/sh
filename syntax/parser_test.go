@@ -1952,12 +1952,83 @@ func TestParseStmtsError(t *testing.T) {
 	go func() {
 		errc <- p.Stmts(strings.NewReader(in), func(s *Stmt) bool {
 			recv <- true
-			return !s.Background
+			return true
 		})
 	}()
 	<-recv
 	if err := <-errc; err == nil {
 		t.Fatalf("Expected an error in %q, but got nil", in)
+	}
+}
+
+func TestParseWords(t *testing.T) {
+	t.Parallel()
+	in := []string{"foo ", "bar\n", "baz etc"}
+	p := NewParser()
+	cr := &chunkedReader{in, make(chan bool, 10)}
+	recv := make(chan bool, 10)
+	errc := make(chan error)
+	go func() {
+		errc <- p.Words(cr, func(w *Word) bool {
+			recv <- true
+			return true
+		})
+	}()
+	// TODO: Allow a single space to end parsing a word. At the moment, the
+	// parser must read the next non-space token (the next literal or
+	// newline, in this case) to finish parsing a word.
+	cr.cont <- true
+	cr.cont <- true
+	<-recv
+	cr.cont <- true
+	<-recv
+	<-recv
+	<-recv
+	if err := <-errc; err != nil {
+		t.Fatalf("Expected no error in %q: %v", in, err)
+	}
+}
+
+func TestParseWordsStopEarly(t *testing.T) {
+	t.Parallel()
+	in := []string{"a\n", "b\n", "c\n"}
+	p := NewParser()
+	cr := &chunkedReader{in, make(chan bool, 10)}
+	recv := make(chan bool, 10)
+	errc := make(chan error)
+	go func() {
+		errc <- p.Words(cr, func(w *Word) bool {
+			recv <- true
+			return w.Parts[0].(*Lit).Value != "b"
+		})
+	}()
+	cr.cont <- true
+	<-recv
+	cr.cont <- true
+	<-recv
+	cr.cont <- true
+	if err := <-errc; err != nil {
+		t.Fatalf("Expected no error in %q: %v", in, err)
+	}
+}
+
+func TestParseWordsError(t *testing.T) {
+	t.Parallel()
+	in := "foo )"
+	p := NewParser()
+	recv := make(chan bool, 10)
+	errc := make(chan error)
+	go func() {
+		errc <- p.Words(strings.NewReader(in), func(w *Word) bool {
+			recv <- true
+			return true
+		})
+	}()
+	<-recv
+	want := "1:5: ) is not a valid word"
+	got := fmt.Sprintf("%v", <-errc)
+	if got != want {
+		t.Fatalf("Expected %q as an error, but got %q", want, got)
 	}
 }
 

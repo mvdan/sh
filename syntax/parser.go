@@ -113,6 +113,38 @@ func (p *Parser) Stmts(r io.Reader, fn func(*Stmt) bool) error {
 	return p.err
 }
 
+// Words reads and parses words one at a time, calling a function each time one
+// is parsed. If the function returns false, parsing is stopped and the function
+// is not called again.
+//
+// Newlines are skipped, meaning that multi-line input will work fine. If the
+// parser encounters a token that isn't a word, such as a semicolon, an error
+// will be returned.
+//
+// Note that the lexer doesn't currently tokenize spaces, so it may need to read
+// a non-space byte such as a newline or a letter before finishing the parsing
+// of a word. This will be fixed in the future.
+func (p *Parser) Words(r io.Reader, fn func(*Word) bool) error {
+	p.reset()
+	p.f = &File{}
+	p.src = r
+	p.rune()
+	p.next()
+	for {
+		p.got(_Newl)
+		w := p.getWord()
+		if w == nil {
+			if p.tok != _EOF {
+				p.curErr("%s is not a valid word", p.tok)
+			}
+			return p.err
+		}
+		if !fn(w) {
+			return nil
+		}
+	}
+}
+
 // Parser holds the internal state of the parsing mechanism of a
 // program.
 type Parser struct {
