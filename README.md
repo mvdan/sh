@@ -3,7 +3,6 @@
 [![GoDoc](https://godoc.org/mvdan.cc/sh?status.svg)](https://godoc.org/mvdan.cc/sh)
 [![Linux & OSX build](https://travis-ci.org/mvdan/sh.svg?branch=master)](https://travis-ci.org/mvdan/sh)
 [![Windows build](https://ci.appveyor.com/api/projects/status/rxxs08v65aj2fqof?svg=true)](https://ci.appveyor.com/project/mvdan/sh)
-[![Coverage Status](https://coveralls.io/repos/github/mvdan/sh/badge.svg?branch=master)](https://coveralls.io/github/mvdan/sh)
 
 A shell parser, formatter and interpreter. Supports [POSIX Shell], [Bash] and
 [mksh]. Requires Go 1.9 or later. A Go module is available via the `module`
