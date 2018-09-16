@@ -15,6 +15,7 @@ import (
 	"strconv"
 	"strings"
 
+	"mvdan.cc/sh/expand"
 	"mvdan.cc/sh/syntax"
 )
 
@@ -147,7 +148,7 @@ func (r *Runner) fields(ctx context.Context, words ...*syntax.Word) []string {
 	fields := make([]string, 0, len(words))
 	baseDir := syntax.QuotePattern(r.Dir)
 	for _, word := range words {
-		for _, expWord := range syntax.ExpandBraces(word) {
+		for _, expWord := range expand.Braces(word) {
 			for _, field := range r.wordFields(ctx, expWord.Parts) {
 				path, doGlob := r.escapedGlobField(field)
 				var matches []string

@@ -6,5 +6,5 @@
 // yet. It also supports some Bash features.
 //
 // This package is a work in progress and EXPERIMENTAL; its API is not
-// subject to the 1.x backwards compatibility guarantee.
+// subject to the 2.x backwards compatibility guarantee.
 package interp
