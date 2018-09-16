@@ -1943,6 +1943,24 @@ func TestParseStmtsStopEarly(t *testing.T) {
 	}
 }
 
+func TestParseStmtsError(t *testing.T) {
+	t.Parallel()
+	in := "foo; )"
+	p := NewParser()
+	recv := make(chan bool, 10)
+	errc := make(chan error)
+	go func() {
+		errc <- p.Stmts(strings.NewReader(in), func(s *Stmt) bool {
+			recv <- true
+			return !s.Background
+		})
+	}()
+	<-recv
+	if err := <-errc; err == nil {
+		t.Fatalf("Expected an error in %q, but got nil", in)
+	}
+}
+
 var stopAtTests = []struct {
 	in   string
 	stop string
