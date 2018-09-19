@@ -17,12 +17,11 @@ type Environ interface {
 	Get(name string) (value string, exists bool)
 	Set(name, value string)
 	Delete(name string)
-	Names() []string
+	Each(func(name, value string) bool)
 	Copy() Environ
 }
 
 type mapEnviron struct {
-	names  []string
 	values map[string]string
 }
 
@@ -32,37 +31,25 @@ func (m *mapEnviron) Get(name string) (string, bool) {
 }
 
 func (m *mapEnviron) Set(name, value string) {
-	_, ok := m.values[name]
-	if !ok {
-		m.names = append(m.names, name)
-		sort.Strings(m.names)
-	}
 	m.values[name] = value
 }
 
 func (m *mapEnviron) Delete(name string) {
-	if _, ok := m.values[name]; !ok {
-		return
-	}
 	delete(m.values, name)
-	for i, iname := range m.names {
-		if iname == name {
-			m.names = append(m.names[:i], m.names[i+1:]...)
-			return
+}
+
+func (m *mapEnviron) Each(f func(name, value string) bool) {
+	for name, value := range m.values {
+		if !f(name, value) {
+			break
 		}
 	}
 }
 
-func (m *mapEnviron) Names() []string {
-	return m.names
-}
-
 func (m *mapEnviron) Copy() Environ {
 	m2 := &mapEnviron{
-		names:  make([]string, len(m.names)),
 		values: make(map[string]string, len(m.values)),
 	}
-	copy(m2.names, m.names)
 	for name, val := range m.values {
 		m2.values[name] = val
 	}
@@ -70,18 +57,16 @@ func (m *mapEnviron) Copy() Environ {
 }
 
 func execEnv(env Environ) []string {
-	names := env.Names()
-	list := make([]string, len(names))
-	for i, name := range names {
-		val, _ := env.Get(name)
-		list[i] = name + "=" + val
-	}
+	list := make([]string, 32)
+	env.Each(func(name, value string) bool {
+		list = append(list, name+"="+value)
+		return true
+	})
 	return list
 }
 
 func EnvFromList(list []string) (Environ, error) {
 	m := mapEnviron{
-		names:  make([]string, 0, len(list)),
 		values: make(map[string]string, len(list)),
 	}
 	for _, kv := range list {
@@ -93,10 +78,8 @@ func EnvFromList(list []string) (Environ, error) {
 		if runtime.GOOS == "windows" {
 			name = strings.ToUpper(name)
 		}
-		m.names = append(m.names, name)
 		m.values[name] = val
 	}
-	sort.Strings(m.names)
 	return &m, nil
 }
 
@@ -107,10 +90,10 @@ func (f FuncEnviron) Get(name string) (string, bool) {
 	return val, val != ""
 }
 
-func (f FuncEnviron) Set(name, value string) {}
-func (f FuncEnviron) Delete(name string)     {}
-func (f FuncEnviron) Names() []string        { return nil }
-func (f FuncEnviron) Copy() Environ          { return f }
+func (f FuncEnviron) Set(name, value string)             {}
+func (f FuncEnviron) Delete(name string)                 {}
+func (f FuncEnviron) Each(func(name, value string) bool) {}
+func (f FuncEnviron) Copy() Environ                      { return f }
 
 type Variable struct {
 	Local    bool
@@ -457,11 +440,12 @@ func (r *Runner) ifsUpdated() {
 
 func (r *Runner) namesByPrefix(prefix string) []string {
 	var names []string
-	for _, name := range r.Env.Names() {
+	r.Env.Each(func(name, value string) bool {
 		if strings.HasPrefix(name, prefix) {
 			names = append(names, name)
 		}
-	}
+		return true
+	})
 	for name := range r.Vars {
 		if strings.HasPrefix(name, prefix) {
 			names = append(names, name)
