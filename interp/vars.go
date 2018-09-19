@@ -14,33 +14,32 @@ import (
 )
 
 type Environ interface {
-	Get(name string) (value string, exists bool)
-	Set(name, value string)
+	Get(name string) Variable
+	Set(name string, vr Variable)
 	Delete(name string)
-	Each(func(name, value string) bool)
+	Each(func(name string, vr Variable) bool)
 	Copy() Environ
 }
 
 type mapEnviron struct {
-	values map[string]string
+	values map[string]Variable
 }
 
-func (m *mapEnviron) Get(name string) (string, bool) {
-	val, ok := m.values[name]
-	return val, ok
+func (m *mapEnviron) Get(name string) Variable {
+	return m.values[name]
 }
 
-func (m *mapEnviron) Set(name, value string) {
-	m.values[name] = value
+func (m *mapEnviron) Set(name string, vr Variable) {
+	m.values[name] = vr
 }
 
 func (m *mapEnviron) Delete(name string) {
 	delete(m.values, name)
 }
 
-func (m *mapEnviron) Each(f func(name, value string) bool) {
-	for name, value := range m.values {
-		if !f(name, value) {
+func (m *mapEnviron) Each(f func(name string, vr Variable) bool) {
+	for name, vr := range m.values {
+		if !f(name, vr) {
 			break
 		}
 	}
@@ -48,18 +47,18 @@ func (m *mapEnviron) Each(f func(name, value string) bool) {
 
 func (m *mapEnviron) Copy() Environ {
 	m2 := &mapEnviron{
-		values: make(map[string]string, len(m.values)),
+		values: make(map[string]Variable, len(m.values)),
 	}
-	for name, val := range m.values {
-		m2.values[name] = val
+	for name, value := range m.values {
+		m2.values[name] = value
 	}
 	return m2
 }
 
 func execEnv(env Environ) []string {
 	list := make([]string, 32)
-	env.Each(func(name, value string) bool {
-		list = append(list, name+"="+value)
+	env.Each(func(name string, vr Variable) bool {
+		list = append(list, name+"="+vr.Value.String())
 		return true
 	})
 	return list
@@ -67,33 +66,36 @@ func execEnv(env Environ) []string {
 
 func EnvFromList(list []string) (Environ, error) {
 	m := mapEnviron{
-		values: make(map[string]string, len(list)),
+		values: make(map[string]Variable, len(list)),
 	}
 	for _, kv := range list {
 		i := strings.IndexByte(kv, '=')
 		if i < 0 {
 			return nil, fmt.Errorf("env not in the form key=value: %q", kv)
 		}
-		name, val := kv[:i], kv[i+1:]
+		name, value := kv[:i], kv[i+1:]
 		if runtime.GOOS == "windows" {
 			name = strings.ToUpper(name)
 		}
-		m.values[name] = val
+		m.values[name] = Variable{Value: StringVal(value)}
 	}
 	return &m, nil
 }
 
 type FuncEnviron func(string) string
 
-func (f FuncEnviron) Get(name string) (string, bool) {
-	val := f(name)
-	return val, val != ""
+func (f FuncEnviron) Get(name string) Variable {
+	value := f(name)
+	if value == "" {
+		return Variable{}
+	}
+	return Variable{Value: StringVal(name)}
 }
 
-func (f FuncEnviron) Set(name, value string)             {}
-func (f FuncEnviron) Delete(name string)                 {}
-func (f FuncEnviron) Each(func(name, value string) bool) {}
-func (f FuncEnviron) Copy() Environ                      { return f }
+func (f FuncEnviron) Set(name string, vr Variable)             { panic("FuncEnviron is read-only") }
+func (f FuncEnviron) Delete(name string)                       { panic("FuncEnviron is read-only") }
+func (f FuncEnviron) Each(func(name string, vr Variable) bool) {}
+func (f FuncEnviron) Copy() Environ                            { return f }
 
 type Variable struct {
 	Local    bool
@@ -105,23 +107,42 @@ type Variable struct {
 
 // VarValue is one of:
 //
+//     nil (unset variable)
 //     StringVal
 //     IndexArray
 //     AssocArray
-type VarValue interface{}
+type VarValue interface {
+	String() string
+}
 
 type StringVal string
 
+func (s StringVal) String() string {
+	return string(s)
+}
+
 type IndexArray []string
 
+func (i IndexArray) String() string {
+	if len(i) == 0 {
+		return ""
+	}
+	return i[0]
+}
+
 type AssocArray map[string]string
+
+func (a AssocArray) String() string {
+	// nothing to do
+	return ""
+}
 
 func (r *Runner) lookupVar(name string) (Variable, bool) {
 	if name == "" {
 		panic("variable name must not be empty")
 	}
-	if val, e := r.cmdVars[name]; e {
-		return Variable{Value: StringVal(val)}, true
+	if value, e := r.cmdVars[name]; e {
+		return Variable{Value: StringVal(value)}, true
 	}
 	if vr, e := r.funcVars[name]; e {
 		return vr, true
@@ -129,13 +150,13 @@ func (r *Runner) lookupVar(name string) (Variable, bool) {
 	if vr, e := r.Vars[name]; e {
 		return vr, true
 	}
-	if str, e := r.Env.Get(name); e {
-		return Variable{Value: StringVal(str)}, true
+	if vr := r.Env.Get(name); vr != (Variable{}) {
+		return vr, true
 	}
 	if runtime.GOOS == "windows" {
 		upper := strings.ToUpper(name)
-		if str, e := r.Env.Get(upper); e {
-			return Variable{Value: StringVal(str)}, true
+		if vr := r.Env.Get(upper); vr != (Variable{}) {
+			return vr, true
 		}
 	}
 	if r.opts[optNoUnset] {
@@ -146,13 +167,13 @@ func (r *Runner) lookupVar(name string) (Variable, bool) {
 }
 
 func (r *Runner) getVar(name string) string {
-	val, _ := r.lookupVar(name)
-	return r.varStr(val, 0)
+	value, _ := r.lookupVar(name)
+	return r.varStr(value, 0)
 }
 
 func (r *Runner) delVar(name string) {
-	val, _ := r.lookupVar(name)
-	if val.ReadOnly {
+	value, _ := r.lookupVar(name)
+	if value.ReadOnly {
 		r.errf("%s: readonly variable\n", name)
 		r.exit = 1
 		return
@@ -169,24 +190,14 @@ func (r *Runner) delVar(name string) {
 const maxNameRefDepth = 100
 
 func (r *Runner) varStr(vr Variable, depth int) string {
-	if depth > maxNameRefDepth {
+	if vr.Value == nil || depth > maxNameRefDepth {
 		return ""
 	}
-	switch x := vr.Value.(type) {
-	case StringVal:
-		if vr.NameRef {
-			vr, _ = r.lookupVar(string(x))
-			return r.varStr(vr, depth+1)
-		}
-		return string(x)
-	case IndexArray:
-		if len(x) > 0 {
-			return x[0]
-		}
-	case AssocArray:
-		// nothing to do
+	if vr.NameRef {
+		vr, _ = r.lookupVar(string(vr.Value.(StringVal)))
+		return r.varStr(vr, depth+1)
 	}
-	return ""
+	return vr.Value.String()
 }
 
 func (r *Runner) varInd(ctx context.Context, vr Variable, e syntax.ArithmExpr, depth int) string {
@@ -234,8 +245,8 @@ func (r *Runner) varInd(ctx context.Context, vr Variable, e syntax.ArithmExpr, d
 	return ""
 }
 
-func (r *Runner) setVarString(ctx context.Context, name, val string) {
-	r.setVar(ctx, name, nil, Variable{Value: StringVal(val)})
+func (r *Runner) setVarString(ctx context.Context, name, value string) {
+	r.setVar(ctx, name, nil, Variable{Value: StringVal(value)})
 }
 
 func (r *Runner) setVarInternal(name string, vr Variable) {
@@ -287,8 +298,8 @@ func (r *Runner) setVar(ctx context.Context, name string, index syntax.ArithmExp
 		return
 	}
 
-	// from the syntax package, we know that val must be a string if
-	// index is non-nil; nested arrays are forbidden.
+	// from the syntax package, we know that value must be a string if index
+	// is non-nil; nested arrays are forbidden.
 	valStr := string(vr.Value.(StringVal))
 
 	// if the existing variable is already an AssocArray, try our best
@@ -440,7 +451,7 @@ func (r *Runner) ifsUpdated() {
 
 func (r *Runner) namesByPrefix(prefix string) []string {
 	var names []string
-	r.Env.Each(func(name, value string) bool {
+	r.Env.Each(func(name string, vr Variable) bool {
 		if strings.HasPrefix(name, prefix) {
 			names = append(names, name)
 		}

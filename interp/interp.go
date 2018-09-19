@@ -393,7 +393,7 @@ func (r *Runner) Reset() {
 			delete(r.cmdVars, k)
 		}
 	}
-	if _, ok := r.Env.Get("HOME"); !ok {
+	if vr := r.Env.Get("HOME"); vr == (Variable{}) {
 		u, _ := user.Current()
 		r.Vars["HOME"] = Variable{Value: StringVal(u.HomeDir)}
 	}
@@ -404,7 +404,7 @@ func (r *Runner) Reset() {
 
 	if runtime.GOOS == "windows" {
 		// convert $PATH to a unix path list
-		path, _ := r.Env.Get("PATH")
+		path := r.Env.Get("PATH").Value.String()
 		path = strings.Join(filepath.SplitList(path), ":")
 		r.Vars["PATH"] = Variable{Value: StringVal(path)}
 	}
@@ -436,10 +436,10 @@ func (r *Runner) modCtx(ctx context.Context) context.Context {
 		if !vr.Exported {
 			continue
 		}
-		mc.Env.Set(name, r.varStr(vr, 0))
+		mc.Env.Set(name, vr)
 	}
-	for name, val := range r.cmdVars {
-		mc.Env.Set(name, val)
+	for name, value := range r.cmdVars {
+		mc.Env.Set(name, Variable{Value: StringVal(value)})
 	}
 	return context.WithValue(ctx, moduleCtxKey{}, mc)
 }
