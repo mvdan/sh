@@ -137,42 +137,42 @@ func (a AssocArray) String() string {
 	return ""
 }
 
-func (r *Runner) lookupVar(name string) (Variable, bool) {
+func (r *Runner) lookupVar(name string) Variable {
 	if name == "" {
 		panic("variable name must not be empty")
 	}
 	if value, e := r.cmdVars[name]; e {
-		return Variable{Value: StringVal(value)}, true
+		return Variable{Value: StringVal(value)}
 	}
 	if vr, e := r.funcVars[name]; e {
-		return vr, true
+		return vr
 	}
 	if vr, e := r.Vars[name]; e {
-		return vr, true
+		return vr
 	}
 	if vr := r.Env.Get(name); vr != (Variable{}) {
-		return vr, true
+		return vr
 	}
 	if runtime.GOOS == "windows" {
 		upper := strings.ToUpper(name)
 		if vr := r.Env.Get(upper); vr != (Variable{}) {
-			return vr, true
+			return vr
 		}
 	}
 	if r.opts[optNoUnset] {
 		r.errf("%s: unbound variable\n", name)
 		r.setErr(ShellExitStatus(1))
 	}
-	return Variable{}, false
+	return Variable{}
 }
 
 func (r *Runner) getVar(name string) string {
-	value, _ := r.lookupVar(name)
+	value := r.lookupVar(name)
 	return r.varStr(value, 0)
 }
 
 func (r *Runner) delVar(name string) {
-	value, _ := r.lookupVar(name)
+	value := r.lookupVar(name)
 	if value.ReadOnly {
 		r.errf("%s: readonly variable\n", name)
 		r.exit = 1
@@ -194,7 +194,7 @@ func (r *Runner) varStr(vr Variable, depth int) string {
 		return ""
 	}
 	if vr.NameRef {
-		vr, _ = r.lookupVar(string(vr.Value.(StringVal)))
+		vr = r.lookupVar(string(vr.Value.(StringVal)))
 		return r.varStr(vr, depth+1)
 	}
 	return vr.Value.String()
@@ -207,7 +207,7 @@ func (r *Runner) varInd(ctx context.Context, vr Variable, e syntax.ArithmExpr, d
 	switch x := vr.Value.(type) {
 	case StringVal:
 		if vr.NameRef {
-			vr, _ = r.lookupVar(string(x))
+			vr = r.lookupVar(string(x))
 			return r.varInd(ctx, vr, e, depth+1)
 		}
 		if r.arithm(ctx, e) == 0 {
@@ -271,7 +271,7 @@ func (r *Runner) setVarInternal(name string, vr Variable) {
 }
 
 func (r *Runner) setVar(ctx context.Context, name string, index syntax.ArithmExpr, vr Variable) {
-	cur, _ := r.lookupVar(name)
+	cur := r.lookupVar(name)
 	if cur.ReadOnly {
 		r.errf("%s: readonly variable\n", name)
 		r.exit = 1
@@ -353,13 +353,13 @@ func stringIndex(index syntax.ArithmExpr) bool {
 }
 
 func (r *Runner) assignVal(ctx context.Context, as *syntax.Assign, valType string) VarValue {
-	prev, prevOk := r.lookupVar(as.Name.Value)
+	prev := r.lookupVar(as.Name.Value)
 	if as.Naked {
 		return prev.Value
 	}
 	if as.Value != nil {
 		s := r.loneWord(ctx, as.Value)
-		if !as.Append || !prevOk {
+		if !as.Append || prev == (Variable{}) {
 			return StringVal(s)
 		}
 		switch x := prev.Value.(type) {
@@ -377,7 +377,8 @@ func (r *Runner) assignVal(ctx context.Context, as *syntax.Assign, valType strin
 		return StringVal(s)
 	}
 	if as.Array == nil {
-		return nil
+		// don't return nil, as that's an unset variable
+		return StringVal("")
 	}
 	elems := as.Array.Elems
 	if valType == "" {
@@ -394,7 +395,7 @@ func (r *Runner) assignVal(ctx context.Context, as *syntax.Assign, valType strin
 			k := r.loneWord(ctx, elem.Index.(*syntax.Word))
 			amap[k] = r.loneWord(ctx, elem.Value)
 		}
-		if !as.Append || !prevOk {
+		if !as.Append || prev == (Variable{}) {
 			return amap
 		}
 		// TODO
@@ -418,7 +419,7 @@ func (r *Runner) assignVal(ctx context.Context, as *syntax.Assign, valType strin
 	for i, elem := range elems {
 		strs[indexes[i]] = r.loneWord(ctx, elem.Value)
 	}
-	if !as.Append || !prevOk {
+	if !as.Append || prev == (Variable{}) {
 		return IndexArray(strs)
 	}
 	switch x := prev.Value.(type) {

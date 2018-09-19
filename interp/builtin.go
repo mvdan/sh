@@ -91,7 +91,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		}
 
 		for _, arg := range args {
-			if _, ok := r.lookupVar(arg); ok && vars {
+			if vr := r.lookupVar(arg); vr != (Variable{}) && vars {
 				r.delVar(arg)
 				continue
 			}

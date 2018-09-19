@@ -173,10 +173,10 @@ func (r *Runner) unTest(ctx context.Context, op syntax.UnTestOperator, x string)
 		}
 		return false
 	case syntax.TsVarSet:
-		_, e := r.lookupVar(x)
-		return e
+		vr := r.lookupVar(x)
+		return vr != Variable{}
 	case syntax.TsRefVar:
-		v, _ := r.lookupVar(x)
+		v := r.lookupVar(x)
 		return v.NameRef
 	case syntax.TsNot:
 		return x == ""

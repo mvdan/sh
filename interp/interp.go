@@ -609,7 +609,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		fields := r.fields(ctx, x.Args...)
 		if len(fields) == 0 {
 			for _, as := range x.Assigns {
-				vr, _ := r.lookupVar(as.Name.Value)
+				vr := r.lookupVar(as.Name.Value)
 				vr.Value = r.assignVal(ctx, as, "")
 				r.setVar(ctx, as.Name.Value, as.Index, vr)
 			}
@@ -771,7 +771,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		for _, as := range x.Assigns {
 			for _, as := range r.expandAssigns(ctx, as) {
 				name := as.Name.Value
-				vr, _ := r.lookupVar(as.Name.Value)
+				vr := r.lookupVar(as.Name.Value)
 				vr.Value = r.assignVal(ctx, as, valType)
 				vr.Local = local
 				for _, mode := range modes {

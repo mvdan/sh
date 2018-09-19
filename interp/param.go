@@ -45,7 +45,7 @@ func (r *Runner) quotedElems(pe *syntax.ParamExp) []string {
 	if anyOfLit(pe.Index, "@") == "" {
 		return nil
 	}
-	val, _ := r.lookupVar(pe.Param.Value)
+	val := r.lookupVar(pe.Param.Value)
 	if x, ok := val.Value.(IndexArray); ok {
 		return x
 	}
@@ -88,7 +88,8 @@ func (r *Runner) paramExp(ctx context.Context, pe *syntax.ParamExp) string {
 			vr.Value, set = StringVal(r.Params[i]), true
 		}
 	default:
-		vr, set = r.lookupVar(name)
+		vr = r.lookupVar(name)
+		set = vr != Variable{}
 	}
 	str := r.varStr(vr, 0)
 	if index != nil {
@@ -139,7 +140,7 @@ func (r *Runner) paramExp(ctx context.Context, pe *syntax.ParamExp) string {
 				strs = append(strs, k)
 			}
 		} else if str != "" {
-			vr, _ = r.lookupVar(str)
+			vr = r.lookupVar(str)
 			strs = append(strs, r.varStr(vr, 0))
 		}
 		sort.Strings(strs)
