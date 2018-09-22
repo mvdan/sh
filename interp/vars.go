@@ -18,41 +18,50 @@ type Environ interface {
 	Set(name string, vr Variable)
 	Delete(name string)
 	Each(func(name string, vr Variable) bool)
-	Copy() Environ
+	Sub() Environ
 }
 
 type mapEnviron struct {
+	parent Environ
 	values map[string]Variable
 }
 
 func (m *mapEnviron) Get(name string) Variable {
-	return m.values[name]
+	if vr, ok := m.values[name]; ok {
+		return vr
+	}
+	if m.parent == nil {
+		return Variable{}
+	}
+	return m.parent.Get(name)
 }
 
 func (m *mapEnviron) Set(name string, vr Variable) {
+	if m.values == nil {
+		m.values = make(map[string]Variable)
+	}
 	m.values[name] = vr
+	// TODO: parent too?
 }
 
 func (m *mapEnviron) Delete(name string) {
 	delete(m.values, name)
+	// TODO: parent too?
 }
 
 func (m *mapEnviron) Each(f func(name string, vr Variable) bool) {
 	for name, vr := range m.values {
 		if !f(name, vr) {
-			break
+			return
 		}
+	}
+	if m.parent != nil {
+		m.parent.Each(f)
 	}
 }
 
-func (m *mapEnviron) Copy() Environ {
-	m2 := &mapEnviron{
-		values: make(map[string]Variable, len(m.values)),
-	}
-	for name, value := range m.values {
-		m2.values[name] = value
-	}
-	return m2
+func (m *mapEnviron) Sub() Environ {
+	return &mapEnviron{parent: m}
 }
 
 func execEnv(env Environ) []string {
@@ -95,7 +104,7 @@ func (f FuncEnviron) Get(name string) Variable {
 func (f FuncEnviron) Set(name string, vr Variable)             { panic("FuncEnviron is read-only") }
 func (f FuncEnviron) Delete(name string)                       { panic("FuncEnviron is read-only") }
 func (f FuncEnviron) Each(func(name string, vr Variable) bool) {}
-func (f FuncEnviron) Copy() Environ                            { return f }
+func (f FuncEnviron) Sub() Environ                             { return f }
 
 type Variable struct {
 	Local    bool

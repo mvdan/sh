@@ -424,14 +424,13 @@ func (r *Runner) Reset() {
 
 func (r *Runner) modCtx(ctx context.Context) context.Context {
 	mc := ModuleCtx{
-		Env:         r.Env,
 		Dir:         r.Dir,
 		Stdin:       r.Stdin,
 		Stdout:      r.Stdout,
 		Stderr:      r.Stderr,
 		KillTimeout: r.KillTimeout,
 	}
-	mc.Env = r.Env.Copy()
+	mc.Env = r.Env.Sub()
 	for name, vr := range r.Vars {
 		if !vr.Exported {
 			continue
@@ -576,9 +575,7 @@ func (r *Runner) sub() *Runner {
 		filename:    r.filename,
 		opts:        r.opts,
 	}
-	// TODO: perhaps we could do a lazy copy here, or some sort of
-	// overlay to avoid copying all the time
-	r2.Env = r.Env.Copy()
+	r2.Env = r.Env.Sub()
 	r2.Vars = make(map[string]Variable, len(r.Vars))
 	for k, v := range r.Vars {
 		r2.Vars[k] = v
