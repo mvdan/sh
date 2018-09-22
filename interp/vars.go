@@ -89,7 +89,7 @@ func (f FuncEnviron) Get(name string) Variable {
 	if value == "" {
 		return Variable{}
 	}
-	return Variable{Value: StringVal(name)}
+	return Variable{Value: StringVal(value)}
 }
 
 func (f FuncEnviron) Set(name string, vr Variable)             { panic("FuncEnviron is read-only") }
