@@ -5,7 +5,7 @@
 [![Windows build](https://ci.appveyor.com/api/projects/status/rxxs08v65aj2fqof?svg=true)](https://ci.appveyor.com/project/mvdan/sh)
 
 A shell parser, formatter and interpreter. Supports [POSIX Shell], [Bash] and
-[mksh]. Requires Go 1.9 or later. A Go module is available via the `module`
+[mksh]. Requires Go 1.10 or later. A Go module is available via the `module`
 branch.
 
 ### shfmt
