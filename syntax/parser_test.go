@@ -16,6 +16,7 @@ import (
 	"testing"
 
 	"github.com/kr/pretty"
+	"mvdan.cc/sh/internal"
 )
 
 func TestKeepComments(t *testing.T) {
@@ -1878,67 +1879,49 @@ func (r *strictStringReader) Read(p []byte) (int, error) {
 	return n, err
 }
 
-type chunkedReader struct {
-	rem  []string
-	cont chan bool
-}
-
-func (c *chunkedReader) Read(p []byte) (n int, err error) {
-	if len(c.rem) < 1 {
-		return 0, io.EOF
-	}
-	<-c.cont
-	src := []byte(c.rem[0])
-	c.rem = c.rem[1:]
-	if len(p) < len(src) {
-		panic("TODO: small byte buffers")
-	}
-	return copy(p, src), nil
-}
-
 func TestParseStmts(t *testing.T) {
 	t.Parallel()
-	in := []string{"foo\n", "bar; baz"}
 	p := NewParser()
-	cr := &chunkedReader{in, make(chan bool, 10)}
+	input := internal.ChunkedReader(make(chan string, 8))
 	recv := make(chan bool, 10)
 	errc := make(chan error)
 	go func() {
-		errc <- p.Stmts(cr, func(s *Stmt) bool {
+		errc <- p.Stmts(input, func(s *Stmt) bool {
 			recv <- true
 			return true
 		})
 	}()
-	cr.cont <- true
+	input <- "foo\n"
 	<-recv
-	cr.cont <- true
+	input <- "bar; baz"
+	close(input)
 	<-recv
 	<-recv
 	if err := <-errc; err != nil {
-		t.Fatalf("Expected no error in %q: %v", in, err)
+		t.Fatalf("Expected no error: %v", err)
 	}
 }
 
 func TestParseStmtsStopEarly(t *testing.T) {
 	t.Parallel()
-	in := []string{"a\n", "b &\n", "c\n"}
 	p := NewParser()
-	cr := &chunkedReader{in, make(chan bool, 10)}
+	input := internal.ChunkedReader(make(chan string, 8))
 	recv := make(chan bool, 10)
 	errc := make(chan error)
 	go func() {
-		errc <- p.Stmts(cr, func(s *Stmt) bool {
+		errc <- p.Stmts(input, func(s *Stmt) bool {
 			recv <- true
 			return !s.Background
 		})
 	}()
-	cr.cont <- true
+	input <- "a\n"
 	<-recv
-	cr.cont <- true
+	input <- "b &\n"
 	<-recv
-	cr.cont <- true
+	input <- "c\n"
+	close(input)
 	if err := <-errc; err != nil {
-		t.Fatalf("Expected no error in %q: %v", in, err)
+		t.Fatalf("Expected no error: %v", err)
 	}
 }
 
@@ -1962,13 +1945,12 @@ func TestParseStmtsError(t *testing.T) {
 
 func TestParseWords(t *testing.T) {
 	t.Parallel()
-	in := []string{"foo ", "bar\n", "baz etc"}
 	p := NewParser()
-	cr := &chunkedReader{in, make(chan bool, 10)}
+	input := internal.ChunkedReader(make(chan string, 8))
 	recv := make(chan bool, 10)
 	errc := make(chan error)
 	go func() {
-		errc <- p.Words(cr, func(w *Word) bool {
+		errc <- p.Words(input, func(w *Word) bool {
 			recv <- true
 			return true
 		})
@@ -1976,38 +1958,39 @@ func TestParseWords(t *testing.T) {
 	// TODO: Allow a single space to end parsing a word. At the moment, the
 	// parser must read the next non-space token (the next literal or
 	// newline, in this case) to finish parsing a word.
-	cr.cont <- true
-	cr.cont <- true
+	input <- "foo "
+	input <- "bar\n"
 	<-recv
-	cr.cont <- true
+	input <- "baz etc"
+	close(input)
 	<-recv
 	<-recv
 	<-recv
 	if err := <-errc; err != nil {
-		t.Fatalf("Expected no error in %q: %v", in, err)
+		t.Fatalf("Expected no error: %v", err)
 	}
 }
 
 func TestParseWordsStopEarly(t *testing.T) {
 	t.Parallel()
-	in := []string{"a\n", "b\n", "c\n"}
 	p := NewParser()
-	cr := &chunkedReader{in, make(chan bool, 10)}
+	input := internal.ChunkedReader(make(chan string, 8))
 	recv := make(chan bool, 10)
 	errc := make(chan error)
 	go func() {
-		errc <- p.Words(cr, func(w *Word) bool {
+		errc <- p.Words(input, func(w *Word) bool {
 			recv <- true
 			return w.Parts[0].(*Lit).Value != "b"
 		})
 	}()
-	cr.cont <- true
+	input <- "a\n"
 	<-recv
-	cr.cont <- true
+	input <- "b\n"
 	<-recv
-	cr.cont <- true
+	input <- "c\n"
+	close(input)
 	if err := <-errc; err != nil {
-		t.Fatalf("Expected no error in %q: %v", in, err)
+		t.Fatalf("Expected no error: %v", err)
 	}
 }
 

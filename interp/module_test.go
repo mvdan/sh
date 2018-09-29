@@ -15,6 +15,7 @@ import (
 	"testing"
 	"time"
 
+	"mvdan.cc/sh/internal"
 	"mvdan.cc/sh/syntax"
 )
 
@@ -101,7 +102,7 @@ func TestRunnerModules(t *testing.T) {
 			if err != nil {
 				t.Fatalf("could not parse: %v", err)
 			}
-			var cb concBuffer
+			var cb internal.ConcBuffer
 			r, err := New(StdIO(nil, &cb, &cb),
 				Module(tc.exec), Module(tc.open))
 			if err != nil {
