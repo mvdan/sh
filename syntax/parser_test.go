@@ -1882,7 +1882,7 @@ func (r *strictStringReader) Read(p []byte) (int, error) {
 func TestParseStmts(t *testing.T) {
 	t.Parallel()
 	p := NewParser()
-	input := internal.ChunkedReader(make(chan string, 8))
+	input := internal.ChanPipe(make(chan []byte, 8))
 	recv := make(chan bool, 10)
 	errc := make(chan error)
 	go func() {
@@ -1891,9 +1891,9 @@ func TestParseStmts(t *testing.T) {
 			return true
 		})
 	}()
-	input <- "foo\n"
+	input.WriteString("foo\n")
 	<-recv
-	input <- "bar; baz"
+	input.WriteString("bar; baz")
 	close(input)
 	<-recv
 	<-recv
@@ -1905,7 +1905,7 @@ func TestParseStmts(t *testing.T) {
 func TestParseStmtsStopEarly(t *testing.T) {
 	t.Parallel()
 	p := NewParser()
-	input := internal.ChunkedReader(make(chan string, 8))
+	input := internal.ChanPipe(make(chan []byte, 8))
 	recv := make(chan bool, 10)
 	errc := make(chan error)
 	go func() {
@@ -1914,11 +1914,11 @@ func TestParseStmtsStopEarly(t *testing.T) {
 			return !s.Background
 		})
 	}()
-	input <- "a\n"
+	input.WriteString("a\n")
 	<-recv
-	input <- "b &\n"
+	input.WriteString("b &\n")
 	<-recv
-	input <- "c\n"
+	input.WriteString("c\n")
 	close(input)
 	if err := <-errc; err != nil {
 		t.Fatalf("Expected no error: %v", err)
@@ -1946,7 +1946,7 @@ func TestParseStmtsError(t *testing.T) {
 func TestParseWords(t *testing.T) {
 	t.Parallel()
 	p := NewParser()
-	input := internal.ChunkedReader(make(chan string, 8))
+	input := internal.ChanPipe(make(chan []byte, 8))
 	recv := make(chan bool, 10)
 	errc := make(chan error)
 	go func() {
@@ -1958,10 +1958,10 @@ func TestParseWords(t *testing.T) {
 	// TODO: Allow a single space to end parsing a word. At the moment, the
 	// parser must read the next non-space token (the next literal or
 	// newline, in this case) to finish parsing a word.
-	input <- "foo "
-	input <- "bar\n"
+	input.WriteString("foo ")
+	input.WriteString("bar\n")
 	<-recv
-	input <- "baz etc"
+	input.WriteString("baz etc")
 	close(input)
 	<-recv
 	<-recv
@@ -1974,7 +1974,7 @@ func TestParseWords(t *testing.T) {
 func TestParseWordsStopEarly(t *testing.T) {
 	t.Parallel()
 	p := NewParser()
-	input := internal.ChunkedReader(make(chan string, 8))
+	input := internal.ChanPipe(make(chan []byte, 8))
 	recv := make(chan bool, 10)
 	errc := make(chan error)
 	go func() {
@@ -1983,11 +1983,11 @@ func TestParseWordsStopEarly(t *testing.T) {
 			return w.Parts[0].(*Lit).Value != "b"
 		})
 	}()
-	input <- "a\n"
+	input.WriteString("a\n")
 	<-recv
-	input <- "b\n"
+	input.WriteString("b\n")
 	<-recv
-	input <- "c\n"
+	input.WriteString("c\n")
 	close(input)
 	if err := <-errc; err != nil {
 		t.Fatalf("Expected no error: %v", err)

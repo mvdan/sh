@@ -20,9 +20,9 @@ import (
 var (
 	command = flag.String("c", "", "command to be executed")
 
-	parser *syntax.Parser
+	parser = syntax.NewParser()
 
-	runner, _ = interp.New(interp.StdIO(os.Stdin, os.Stdout, os.Stderr))
+	mainRunner, _ = interp.New(interp.StdIO(os.Stdin, os.Stdout, os.Stderr))
 )
 
 func main() {
@@ -34,13 +34,12 @@ func main() {
 }
 
 func runAll() error {
-	parser = syntax.NewParser()
 	if *command != "" {
 		return run(strings.NewReader(*command), "")
 	}
 	if flag.NArg() == 0 {
 		if terminal.IsTerminal(int(os.Stdin.Fd())) {
-			return interactive()
+			return interactive(mainRunner)
 		}
 		return run(os.Stdin, "")
 	}
@@ -66,28 +65,29 @@ func run(reader io.Reader, name string) error {
 	if err != nil {
 		return err
 	}
-	runner.Reset()
+	mainRunner.Reset()
 	ctx := context.Background()
-	return runner.Run(ctx, prog)
+	return mainRunner.Run(ctx, prog)
 }
 
 type promptReader struct {
 	io.Reader
+	io.Writer
 	first bool
 }
 
 func (pr *promptReader) Read(p []byte) (int, error) {
 	if pr.first {
-		fmt.Printf("$ ")
+		fmt.Fprintf(pr.Writer, "$ ")
 		pr.first = false
 	} else {
-		fmt.Printf("> ")
+		fmt.Fprintf(pr.Writer, "> ")
 	}
 	return pr.Reader.Read(p)
 }
 
-func interactive() error {
-	r := &promptReader{os.Stdin, true}
+func interactive(runner *interp.Runner) error {
+	pr := &promptReader{runner.Stdin, runner.Stdout, true}
 	ctx := context.Background()
 	fn := func(s *syntax.Stmt) bool {
 		if err := runner.Run(ctx, s); err != nil {
@@ -96,12 +96,12 @@ func interactive() error {
 				os.Exit(int(x))
 			case interp.ExitStatus:
 			default:
-				fmt.Fprintln(os.Stderr, err)
+				fmt.Fprintln(runner.Stderr, err)
 				os.Exit(1)
 			}
 		}
-		r.first = true
+		pr.first = true
 		return true
 	}
-	return parser.Stmts(r, fn)
+	return parser.Stmts(pr, fn)
 }
