@@ -1,0 +1,79 @@
+# This is an example goreleaser.yaml file with some sane defaults.
+# Make sure to check the documentation at http://goreleaser.com
+builds:
+  -
+    binary: shfmt
+    main: ./cmd/shfmt
+    ldflags:
+      - -s -w -X main.version={{.Version}}
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - 'darwin'
+      - 'freebsd'
+      - 'linux'
+      - 'netbsd'
+      - 'openbsd'
+      - 'windows'
+    goarch:
+      - '386'
+      - 'amd64'
+      - 'arm'
+      - 'mips'
+      - 'mips64'
+      - 'mips64le'
+      - 'mipsle'
+      - 's390x'
+    goarm:
+      - 6
+      - 7
+    ignore:
+      -
+        goos: darwin
+        goarch: 386
+      -
+        goos: linux
+        goarch: arm
+        goarm: 7
+archive:
+  format: 'binary'
+# GitHub release
+release:
+  github:
+    owner: mvdan
+    name: sh
+# Homebrew release
+brew:
+  name: shfmt
+  github:
+    owner: mvdan
+    name: homebrew-tap
+  homepage: https://github.com/mvdan/sh
+  description: "Format shell programs."
+  test: |
+    system "#{bin}/shfmt --version"
+  install: |
+    bin.install "shfmt"
+# Docker Hub images
+dockers:
+  -
+    image: mvdan/shfmt
+    goos: linux
+    goarch: amd64
+    tag_templates:
+      - "{{ .Tag }}"
+      - "v{{ .Major }}"
+      - "v{{ .Major }}.{{ .Minor }}"
+      - latest
+checksum:
+  name_template: 'checksums.txt'
+snapshot:
+  name_template: "{{ .Tag }}-next"
+changelog:
+  sort: asc
+  filters:
+    exclude:
+    - '(?i)^readme:'
+    - '(?i)^ci:'
+    - '^docs:'
+    - '^test:'
