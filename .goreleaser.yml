@@ -42,18 +42,6 @@ release:
   github:
     owner: mvdan
     name: sh
-# Homebrew release
-brew:
-  name: shfmt
-  github:
-    owner: mvdan
-    name: homebrew-tap
-  homepage: https://github.com/mvdan/sh
-  description: "Format shell programs."
-  test: |
-    system "#{bin}/shfmt --version"
-  install: |
-    bin.install "shfmt"
 # Docker Hub images
 dockers:
   -
