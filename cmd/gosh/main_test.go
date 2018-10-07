@@ -80,12 +80,16 @@ func TestInteractive(t *testing.T) {
 				tc = tc[2:]
 			}
 
+			// Close the input channel, so that the shell prompt can
+			// reach an EOF read and finish.
 			close(input)
-			close(output)
-
 			if err := <-errc; err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
+
+			// Close the output channel once the shell prompt has
+			// finished.
+			close(output)
 		})
 	}
 }
