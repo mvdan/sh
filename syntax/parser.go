@@ -191,8 +191,6 @@ type Parser struct {
 	quote   quoteState // current lexer state
 	eqlOffs int        // position of '=' in val (a literal)
 
-	midClause bool
-
 	keepComments bool
 	lang         LangVariant
 
@@ -206,9 +204,14 @@ type Parser struct {
 	hdocStop    []byte
 	parsingDoc  bool
 
+	// openClauses is how many levels of syntax clauses are open at the
+	// moment. A non-zero number means that we require certain tokens or
+	// words before reaching EOF.
+	openClauses int
 	// openBquotes is how many levels of backquotes are open at the
-	// moment
+	// moment.
 	openBquotes int
+
 	// lastBquoteEsc is how many times the last backquote token was
 	// escaped
 	lastBquoteEsc int
@@ -237,7 +240,7 @@ type Parser struct {
 }
 
 func (p *Parser) Incomplete() bool {
-	return p.quote != noState || p.midClause
+	return p.quote != noState || p.openClauses > 0
 }
 
 const bufSize = 1 << 10
@@ -251,17 +254,11 @@ func (p *Parser) reset() {
 	p.r, p.w = 0, 0
 	p.err, p.readErr = nil, nil
 	p.quote, p.forbidNested = noState, false
-	p.midClause = false
+	p.openClauses = 0
 	p.heredocs, p.buriedHdocs = p.heredocs[:0], 0
 	p.parsingDoc = false
 	p.openBquotes, p.buriedBquotes = 0, 0
 	p.accComs, p.curComs = nil, &p.accComs
-}
-
-func (p *Parser) inClause() func() {
-	old := p.midClause
-	p.midClause = true
-	return func() { p.midClause = old }
 }
 
 func (p *Parser) getPos() Pos {
@@ -881,7 +878,7 @@ func (p *Parser) wordPart() WordPart {
 		return ps
 	case sglQuote, dollSglQuote:
 		sq := &SglQuoted{Left: p.pos, Dollar: p.tok == dollSglQuote}
-		defer p.inClause()()
+		p.openClauses++
 		r := p.r
 		for p.newLit(r); ; r = p.rune() {
 			switch r {
@@ -899,6 +896,7 @@ func (p *Parser) wordPart() WordPart {
 
 				p.rune()
 				p.next()
+				p.openClauses--
 				return sq
 			case utf8.RuneSelf:
 				p.posErr(sq.Pos(), "reached EOF without closing quote %s", sglQuote)
@@ -1661,21 +1659,17 @@ func (p *Parser) gotStmtPipe(s *Stmt) *Stmt {
 	s.Comments, p.accComs = p.accComs, nil
 	switch p.tok {
 	case _LitWord:
+		p.openClauses++
 		switch p.val {
 		case "{":
-			defer p.inClause()()
 			p.block(s)
 		case "if":
-			defer p.inClause()()
 			p.ifClause(s)
 		case "while", "until":
-			defer p.inClause()()
 			p.whileClause(s, p.val == "until")
 		case "for":
-			defer p.inClause()()
 			p.forClause(s)
 		case "case":
-			defer p.inClause()()
 			p.caseClause(s)
 		case "}":
 			p.curErr(`%q can only be used to close a block`, p.val)
@@ -1734,6 +1728,7 @@ func (p *Parser) gotStmtPipe(s *Stmt) *Stmt {
 				p.selectClause(s)
 			}
 		}
+		p.openClauses--
 		if s.Cmd != nil {
 			break
 		}
