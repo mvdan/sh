@@ -70,38 +70,42 @@ func run(reader io.Reader, name string) error {
 	return mainRunner.Run(ctx, prog)
 }
 
-type promptReader struct {
-	io.Reader
-	io.Writer
-	first bool
+type promptShell struct {
+	*interp.Runner
+	incomplete  func() bool
+	accumulated []*syntax.Stmt
 }
 
-func (pr *promptReader) Read(p []byte) (int, error) {
-	if pr.first {
-		fmt.Fprintf(pr.Writer, "$ ")
-		pr.first = false
-	} else {
-		fmt.Fprintf(pr.Writer, "> ")
+func (ps *promptShell) Read(p []byte) (int, error) {
+	if ps.incomplete() {
+		fmt.Fprintf(ps.Stdout, "> ")
+		return ps.Stdin.Read(p)
 	}
-	return pr.Reader.Read(p)
-}
-
-func interactive(runner *interp.Runner) error {
-	pr := &promptReader{runner.Stdin, runner.Stdout, true}
 	ctx := context.Background()
-	fn := func(s *syntax.Stmt) bool {
-		if err := runner.Run(ctx, s); err != nil {
+	for _, stmt := range ps.accumulated {
+		if err := ps.Run(ctx, stmt); err != nil {
 			switch x := err.(type) {
 			case interp.ShellExitStatus:
 				os.Exit(int(x))
 			case interp.ExitStatus:
 			default:
-				fmt.Fprintln(runner.Stderr, err)
+				fmt.Fprintln(ps.Stderr, err)
 				os.Exit(1)
 			}
 		}
-		pr.first = true
+	}
+	fmt.Fprintf(ps.Stdout, "$ ")
+	return ps.Stdin.Read(p)
+}
+
+func interactive(runner *interp.Runner) error {
+	ps := &promptShell{
+		Runner:     runner,
+		incomplete: parser.Incomplete,
+	}
+	fn := func(s *syntax.Stmt) bool {
+		ps.accumulated = append(ps.accumulated, s)
 		return true
 	}
-	return parser.Stmts(pr, fn)
+	return parser.Stmts(ps, fn)
 }

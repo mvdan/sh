@@ -32,6 +32,22 @@ var interactiveTests = [][]string{
 		"then echo bar; fi\n",
 		"bar\n",
 	},
+	{
+		"echo 'foo\n",
+		"> ",
+		"bar'\n",
+		"foo\nbar\n",
+	},
+	{
+		"echo foo; echo bar\n",
+		"foo\nbar\n",
+	},
+	{
+		"echo foo; echo 'bar\n",
+		"> ",
+		"baz'\n",
+		"foo\nbar\nbaz\n",
+	},
 }
 
 func TestInteractive(t *testing.T) {
@@ -65,6 +81,7 @@ func TestInteractive(t *testing.T) {
 			}
 
 			close(input)
+			close(output)
 
 			if err := <-errc; err != nil {
 				t.Fatalf("unexpected error: %v", err)

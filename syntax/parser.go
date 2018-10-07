@@ -191,6 +191,8 @@ type Parser struct {
 	quote   quoteState // current lexer state
 	eqlOffs int        // position of '=' in val (a literal)
 
+	midClause bool
+
 	keepComments bool
 	lang         LangVariant
 
@@ -234,6 +236,10 @@ type Parser struct {
 	litBs   []byte
 }
 
+func (p *Parser) Incomplete() bool {
+	return p.quote != noState || p.midClause
+}
+
 const bufSize = 1 << 10
 
 func (p *Parser) reset() {
@@ -245,10 +251,17 @@ func (p *Parser) reset() {
 	p.r, p.w = 0, 0
 	p.err, p.readErr = nil, nil
 	p.quote, p.forbidNested = noState, false
+	p.midClause = false
 	p.heredocs, p.buriedHdocs = p.heredocs[:0], 0
 	p.parsingDoc = false
 	p.openBquotes, p.buriedBquotes = 0, 0
 	p.accComs, p.curComs = nil, &p.accComs
+}
+
+func (p *Parser) inClause() func() {
+	old := p.midClause
+	p.midClause = true
+	return func() { p.midClause = old }
 }
 
 func (p *Parser) getPos() Pos {
@@ -868,6 +881,7 @@ func (p *Parser) wordPart() WordPart {
 		return ps
 	case sglQuote, dollSglQuote:
 		sq := &SglQuoted{Left: p.pos, Dollar: p.tok == dollSglQuote}
+		defer p.inClause()()
 		r := p.r
 		for p.newLit(r); ; r = p.rune() {
 			switch r {
@@ -1649,14 +1663,19 @@ func (p *Parser) gotStmtPipe(s *Stmt) *Stmt {
 	case _LitWord:
 		switch p.val {
 		case "{":
+			defer p.inClause()()
 			p.block(s)
 		case "if":
+			defer p.inClause()()
 			p.ifClause(s)
 		case "while", "until":
+			defer p.inClause()()
 			p.whileClause(s, p.val == "until")
 		case "for":
+			defer p.inClause()()
 			p.forClause(s)
 		case "case":
+			defer p.inClause()()
 			p.caseClause(s)
 		case "}":
 			p.curErr(`%q can only be used to close a block`, p.val)
