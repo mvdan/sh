@@ -17,14 +17,22 @@ import (
 // an error is encountered.
 //
 // In other words, each first string is what the user types, and each following
-// string is what the shell will print back. Note that dollar signs are skipped,
-// to make the test cases more readable.
+// string is what the shell will print back. Note that the first "$ " output is
+// implicit.
 
 var interactiveTests = [][]string{
 	{},
 	{
 		"echo foo\n",
 		"foo\n",
+	},
+	{
+		"echo foo\n",
+		"foo\n",
+		"",
+		"$ ",
+		"echo bar\n",
+		"bar\n",
 	},
 	{
 		"if true\n",

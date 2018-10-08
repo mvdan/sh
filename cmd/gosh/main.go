@@ -94,6 +94,7 @@ func (ps *promptShell) Read(p []byte) (int, error) {
 			}
 		}
 	}
+	ps.accumulated = ps.accumulated[:0]
 	fmt.Fprintf(ps.Stdout, "$ ")
 	return ps.Stdin.Read(p)
 }
