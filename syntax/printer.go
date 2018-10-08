@@ -498,7 +498,7 @@ func (p *Printer) wordPart(wp, next WordPart) {
 		}
 	case *ParamExp:
 		litCont := ";"
-		if nextLit, ok := next.(*Lit); ok {
+		if nextLit, ok := next.(*Lit); ok && nextLit.Value != "" {
 			litCont = nextLit.Value[:1]
 		}
 		name := x.Param.Value

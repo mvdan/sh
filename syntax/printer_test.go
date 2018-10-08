@@ -800,6 +800,10 @@ func TestPrintMinify(t *testing.T) {
 			"a &&\n\tb |\n\tc",
 			"a&&b|c",
 		},
+		{
+			"${0/${a}\\\n}",
+			"${0/$a}",
+		},
 	}
 	parser := NewParser(KeepComments)
 	printer := NewPrinter(Minify)
