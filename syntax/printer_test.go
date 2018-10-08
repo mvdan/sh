@@ -802,7 +802,7 @@ func TestPrintMinify(t *testing.T) {
 		},
 		{
 			"${0/${a}\\\n}",
-			"${0/$a}",
+			"${0/$a/}",
 		},
 	}
 	parser := NewParser(KeepComments)
