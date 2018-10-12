@@ -113,6 +113,83 @@ func (p *Parser) Stmts(r io.Reader, fn func(*Stmt) bool) error {
 	return p.err
 }
 
+type wrappedReader struct {
+	*Parser
+	io.Reader
+
+	lastLine    uint16
+	accumulated []*Stmt
+	fn          func([]*Stmt) bool
+}
+
+func (w *wrappedReader) Read(p []byte) (n int, err error) {
+	// If we lexed a newline for the first time, we just finished a line, so
+	// we may need to give a callback for the edge cases below not covered
+	// by Parser.Stmts.
+	if w.r == '\n' && w.npos.line > w.lastLine {
+		if w.Incomplete() {
+			// Incomplete statement; call back to print "> ".
+			if !w.fn(w.accumulated) {
+				return 0, io.EOF
+			}
+		} else if len(w.accumulated) == 0 {
+			// Nothing was parsed; call back to print another "$ ".
+			if !w.fn(nil) {
+				return 0, io.EOF
+			}
+		}
+		w.lastLine = w.npos.line
+	}
+	return w.Reader.Read(p)
+}
+
+// Interactive implements what is necessary to parse statements in an
+// interactive shell. The parser will call the given function under two
+// circumstances outlined below.
+//
+// If a line containing any number of statements is parsed, the function will be
+// called with said statements.
+//
+// If a line ending in an incomplete statement is parsed, the function will be
+// called with any fully parsed statents, and Parser.Incomplete will return
+// true.
+//
+// One can imagine a simple interactive shell implementation as follows:
+//
+//         fmt.Fprintf(os.Stdout, "$ ")
+//         parser.Interactive(os.Stdin, func(stmts []*syntax.Stmt) bool {
+//                 if parser.Incomplete() {
+//                         fmt.Fprintf(os.Stdout, "> ")
+//                         return true
+//                 }
+//                 run(stmts)
+//                 fmt.Fprintf(os.Stdout, "$ ")
+//                 return true
+//         }
+//
+// If the callback function returns false, parsing is stopped and the function
+// is not called again.
+func (p *Parser) Interactive(r io.Reader, fn func([]*Stmt) bool) error {
+	w := wrappedReader{Parser: p, Reader: r, fn: fn}
+	return p.Stmts(&w, func(stmt *Stmt) bool {
+		w.accumulated = append(w.accumulated, stmt)
+		// We finished parsing a statement and we're at a newline token,
+		// so we finished fully parsing a number of statements. Call
+		// back to run the statements and print "$ ".
+		if p.tok == _Newl {
+			if !fn(w.accumulated) {
+				return false
+			}
+			w.accumulated = w.accumulated[:0]
+			// The callback above would already print "$ ", so we
+			// don't want the subsequent wrappedReader.Read to cause
+			// another "$ " print thinking that nothing was parsed.
+			w.lastLine = w.npos.line + 1
+		}
+		return true
+	})
+}
+
 // Words reads and parses words one at a time, calling a function each time one
 // is parsed. If the function returns false, parsing is stopped and the function
 // is not called again.

@@ -122,14 +122,18 @@ func (p *Parser) fill() {
 	p.offs += p.bsp
 	left := len(p.bs) - p.bsp
 	copy(p.readBuf[:left], p.readBuf[p.bsp:])
+readAgain:
 	n, err := 0, p.readErr
 	if err == nil {
 		n, err = p.src.Read(p.readBuf[left:])
 		p.readErr = err
 	}
 	if n == 0 {
+		if err == nil {
+			goto readAgain
+		}
 		// don't use p.errPass as we don't want to overwrite p.tok
-		if err != nil && err != io.EOF {
+		if err != io.EOF {
 			p.err = err
 		}
 		if left > 0 {

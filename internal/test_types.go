@@ -81,9 +81,7 @@ func (c ChanPipe) ReadString(s string) error {
 }
 
 func (c ChanPipe) Write(p []byte) (n int, err error) {
-	if len(p) > 0 {
-		c <- p
-	}
+	c <- p
 	return len(p), nil
 }
 

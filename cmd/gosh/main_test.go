@@ -23,14 +23,18 @@ import (
 var interactiveTests = [][]string{
 	{},
 	{
+		"\n",
+		"$ ",
+		"\n",
+		"$ ",
+	},
+	{
 		"echo foo\n",
 		"foo\n",
 	},
 	{
 		"echo foo\n",
-		"foo\n",
-		"",
-		"$ ",
+		"foo\n$ ",
 		"echo bar\n",
 		"bar\n",
 	},
@@ -67,6 +71,12 @@ var interactiveTests = [][]string{
 		"> ",
 		"true ]]\n",
 		"$ ",
+	},
+	{
+		"echo foo",
+		"",
+		" bar\n",
+		"foo bar\n",
 	},
 }
 

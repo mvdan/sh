@@ -70,43 +70,28 @@ func run(reader io.Reader, name string) error {
 	return mainRunner.Run(ctx, prog)
 }
 
-type promptShell struct {
-	*interp.Runner
-	incomplete  func() bool
-	accumulated []*syntax.Stmt
-}
-
-func (ps *promptShell) Read(p []byte) (int, error) {
-	if ps.incomplete() {
-		fmt.Fprintf(ps.Stdout, "> ")
-		return ps.Stdin.Read(p)
-	}
-	ctx := context.Background()
-	for _, stmt := range ps.accumulated {
-		if err := ps.Run(ctx, stmt); err != nil {
-			switch x := err.(type) {
-			case interp.ShellExitStatus:
-				os.Exit(int(x))
-			case interp.ExitStatus:
-			default:
-				fmt.Fprintln(ps.Stderr, err)
-				os.Exit(1)
+func interactive(runner *interp.Runner) error {
+	fmt.Fprintf(runner.Stdout, "$ ")
+	fn := func(stmts []*syntax.Stmt) bool {
+		if parser.Incomplete() {
+			fmt.Fprintf(runner.Stdout, "> ")
+			return true
+		}
+		ctx := context.Background()
+		for _, stmt := range stmts {
+			if err := runner.Run(ctx, stmt); err != nil {
+				switch x := err.(type) {
+				case interp.ShellExitStatus:
+					os.Exit(int(x))
+				case interp.ExitStatus:
+				default:
+					fmt.Fprintln(runner.Stderr, err)
+					os.Exit(1)
+				}
 			}
 		}
-	}
-	ps.accumulated = ps.accumulated[:0]
-	fmt.Fprintf(ps.Stdout, "$ ")
-	return ps.Stdin.Read(p)
-}
-
-func interactive(runner *interp.Runner) error {
-	ps := &promptShell{
-		Runner:     runner,
-		incomplete: parser.Incomplete,
-	}
-	fn := func(s *syntax.Stmt) bool {
-		ps.accumulated = append(ps.accumulated, s)
+		fmt.Fprintf(runner.Stdout, "$ ")
 		return true
 	}
-	return parser.Stmts(ps, fn)
+	return parser.Interactive(runner.Stdin, fn)
 }
