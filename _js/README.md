@@ -34,6 +34,9 @@ syntax.Walk(f, function(node) {
 console.log(printer.Print(f)) // echo 'bar'
 ```
 
+You can find more samples in
+[testmain.js](https://github.com/mvdan/sh/blob/master/_js/testmain.js).
+
 ### Available APIs
 
 The APIs listed below are wrapped to be usable in JavaScript, such as replacing
@@ -57,4 +60,6 @@ example above shows. Some of the most common node types include:
 * [syntax.Word](https://godoc.org/mvdan.cc/sh/syntax#Word)
 * [syntax.Lit](https://godoc.org/mvdan.cc/sh/syntax#Lit)
 
-The five above will show up in your syntax tree if you parse a `echo foo` command, which you can see if you use `syntax.DebugPrint` to inspect the syntax tree.
+The five above will show up in your syntax tree if you parse a `echo foo`
+command, which you can see if you use `syntax.DebugPrint` to inspect the syntax
+tree.

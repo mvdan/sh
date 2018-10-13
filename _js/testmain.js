@@ -1,6 +1,6 @@
 const assert = require('assert').strict
 
-const sh = require('./index')
+const sh = require('./index.js')
 
 var syntax = sh.syntax
 var parser = syntax.NewParser()
