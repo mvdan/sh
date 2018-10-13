@@ -43,13 +43,21 @@ var printer = syntax.NewPrinter()
 }
 
 {
-	// getting the types of nodes
-	var src = "echo 'foo'"
+	// node types, operators, and positions
+	var src = "foo || bar"
 	var f = parser.Parse(src, "src")
 
 	var cmd = f.StmtList.Stmts[0].Cmd
-	assert.equal(syntax.NodeType(cmd), "CallExpr")
-	assert.equal(syntax.NodeType(cmd.Args[0].Parts[0]), "Lit")
+	assert.equal(syntax.NodeType(cmd), "BinaryCmd")
+
+	// TODO: see https://github.com/myitcv/gopherjs/issues/26
+	// assert.equal(syntax.String(cmd.Op), "||")
+
+	assert.equal(cmd.Pos().String(), "1:1")
+	assert.equal(cmd.OpPos.String(), "1:5")
+	assert.equal(cmd.OpPos.Line(), 1)
+	assert.equal(cmd.OpPos.Col(), 5)
+	assert.equal(cmd.OpPos.Offset(), 4)
 }
 
 {

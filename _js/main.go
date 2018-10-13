@@ -17,7 +17,9 @@ func main() {
 	exps.Set("syntax", map[string]interface{}{})
 
 	stx := exps.Get("syntax")
-	stx.Set("NodeType", func(v interface{}) (typ string) {
+
+	// Type helpers just for JS
+	stx.Set("NodeType", func(v interface{}) string {
 		if v == nil {
 			return "nil"
 		}
@@ -25,18 +27,26 @@ func main() {
 		if !ok {
 			throw("NodeType requires a Node argument")
 		}
-		typ = fmt.Sprintf("%T", node)
+		typ := fmt.Sprintf("%T", node)
 		if i := strings.LastIndexAny(typ, "*.]"); i >= 0 {
 			typ = typ[i+1:]
 		}
 		return typ
 	})
 
+	// Parser
 	stx.Set("NewParser", func() *js.Object {
 		p := syntax.NewParser()
 		return js.MakeFullWrapper(jsParser{p})
 	})
 
+	// Printer
+	stx.Set("NewPrinter", func() *js.Object {
+		p := syntax.NewPrinter()
+		return js.MakeFullWrapper(jsPrinter{p})
+	})
+
+	// Syntax utilities
 	stx.Set("Walk", func(node syntax.Node, jsFn func(*js.Object) bool) {
 		f := func(node syntax.Node) bool {
 			if node == nil {
@@ -49,11 +59,6 @@ func main() {
 	})
 	stx.Set("DebugPrint", func(node syntax.Node) {
 		syntax.DebugPrint(os.Stdout, node)
-	})
-
-	stx.Set("NewPrinter", func() *js.Object {
-		p := syntax.NewPrinter()
-		return js.MakeFullWrapper(jsPrinter{p})
 	})
 }
 
