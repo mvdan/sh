@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"math"
 	"os"
 	"strings"
 
@@ -35,9 +36,35 @@ func main() {
 	})
 
 	// Parser
-	stx.Set("NewParser", func() *js.Object {
+	stx.Set("NewParser", func(options ...func(interface{})) *js.Object {
 		p := syntax.NewParser()
-		return js.MakeFullWrapper(jsParser{p})
+		jp := js.MakeFullWrapper(jsParser{p})
+		// Apply the options after we've wrapped the parser, as
+		// otherwise we cannot internalise the value.
+		for _, opt := range options {
+			opt(jp)
+		}
+		return jp
+	})
+
+	stx.Set("KeepComments", func(v interface{}) {
+		syntax.KeepComments(v.(jsParser).Parser)
+	})
+	stx.Set("Variant", func(l syntax.LangVariant) func(interface{}) {
+		if math.IsNaN(float64(l)) {
+			throw("Variant requires a LangVariant argument")
+		}
+		return func(v interface{}) {
+			syntax.Variant(l)(v.(jsParser).Parser)
+		}
+	})
+	stx.Set("LangBash", syntax.LangBash)
+	stx.Set("LangPOSIX", syntax.LangPOSIX)
+	stx.Set("LangMirBSDKorn", syntax.LangMirBSDKorn)
+	stx.Set("StopAt", func(word string) func(interface{}) {
+		return func(v interface{}) {
+			syntax.StopAt(word)(v.(jsParser).Parser)
+		}
 	})
 
 	// Printer

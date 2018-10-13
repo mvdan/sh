@@ -1,6 +1,6 @@
 const assert = require('assert').strict
 
-const sh = require('./index.js')
+const sh = require('./index')
 
 var syntax = sh.syntax
 var parser = syntax.NewParser()
@@ -99,4 +99,18 @@ var printer = syntax.NewPrinter()
 
 	var out = printer.Print(f)
 	assert.equal(out, "echo 'foo'\n")
+}
+
+{
+	// parser options
+	var parser2 = syntax.NewParser(
+		syntax.KeepComments,
+		syntax.Variant(syntax.LangMirBSDKorn),
+		syntax.StopAt("$$")
+	)
+	var src = "echo ${|stmts;} # bar\n$$"
+	var f = parser2.Parse(src, "src")
+
+	var out = printer.Print(f)
+	assert.equal(out, "echo ${|stmts;} # bar\n")
 }

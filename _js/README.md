@@ -50,6 +50,10 @@ documentation.
 * [syntax.NewPrinter](https://godoc.org/mvdan.cc/sh/syntax#NewPrinter)
   - [Printer.Print](https://godoc.org/mvdan.cc/sh/syntax#Printer.Print)
 
+Constructor options like
+[syntax.KeepComments](https://godoc.org/mvdan.cc/sh/syntax#KeepComments) are
+also available.
+
 The nodes you will find in the syntax tree are all equivalent to the nodes you
 will see on the Go API. To get the type of a node, use `syntax.NodeType` as the
 example above shows. Some of the most common node types include:
