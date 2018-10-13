@@ -103,13 +103,13 @@ var printer = syntax.NewPrinter()
 
 {
 	// parser options
-	var parser2 = syntax.NewParser(
+	var parser = syntax.NewParser(
 		syntax.KeepComments,
 		syntax.Variant(syntax.LangMirBSDKorn),
 		syntax.StopAt("$$")
 	)
 	var src = "echo ${|stmts;} # bar\n$$"
-	var f = parser2.Parse(src, "src")
+	var f = parser.Parse(src, "src")
 
 	var out = printer.Print(f)
 	assert.equal(out, "echo ${|stmts;} # bar\n")
