@@ -3,13 +3,13 @@ const stream = require('stream')
 
 const sh = require('./index')
 
-var syntax = sh.syntax
-var parser = syntax.NewParser()
-var printer = syntax.NewPrinter()
+const syntax = sh.syntax
+const parser = syntax.NewParser()
+const printer = syntax.NewPrinter()
 
 {
 	// parsing a simple program
-	var src = "echo 'foo'"
+	const src = "echo 'foo'"
 	var f = parser.Parse(src, "src")
 
 	var stmts = f.StmtList.Stmts
@@ -23,7 +23,7 @@ var printer = syntax.NewPrinter()
 
 {
 	// accessing fields or methods creates separate objects
-	var src = "echo 'foo'"
+	const src = "echo 'foo'"
 	var f = parser.Parse(src, "src")
 
 	assert.equal(f.StmtList.Stmts == f.StmtList.Stmts, false)
@@ -35,9 +35,9 @@ var printer = syntax.NewPrinter()
 
 {
 	// parse errors
-	var src = "echo ${"
+	const src = "echo ${"
 	try {
-		var f = parser.Parse(src, "src")
+		parser.Parse(src, "src")
 		assert.fail("did not error")
 	} catch (err) {
 	}
@@ -45,7 +45,7 @@ var printer = syntax.NewPrinter()
 
 {
 	// node types, operators, and positions
-	var src = "foo || bar"
+	const src = "foo || bar"
 	var f = parser.Parse(src, "src")
 
 	var cmd = f.StmtList.Stmts[0].Cmd
@@ -63,7 +63,7 @@ var printer = syntax.NewPrinter()
 
 {
 	// running Walk
-	var src = "foo bar"
+	const src = "foo bar"
 	var f = parser.Parse(src, "src")
 
 	var nilCount = 0
@@ -95,7 +95,7 @@ var printer = syntax.NewPrinter()
 
 {
 	// printing
-	var src = "echo      'foo'"
+	const src = "echo      'foo'"
 	var f = parser.Parse(src, "src")
 
 	var out = printer.Print(f)
@@ -104,12 +104,12 @@ var printer = syntax.NewPrinter()
 
 {
 	// parser options
-	var parser = syntax.NewParser(
+	const parser = syntax.NewParser(
 		syntax.KeepComments,
 		syntax.Variant(syntax.LangMirBSDKorn),
 		syntax.StopAt("$$")
 	)
-	var src = "echo ${|stmts;} # bar\n$$"
+	const src = "echo ${|stmts;} # bar\n$$"
 	var f = parser.Parse(src, "src")
 
 	var out = printer.Print(f)
@@ -118,7 +118,7 @@ var printer = syntax.NewPrinter()
 
 {
 	// parsing a readable stream
-	var src = new stream.Readable
+	const src = new stream.Readable
 	src.push("echo foo")
 	src.push(null)
 
@@ -130,14 +130,14 @@ var printer = syntax.NewPrinter()
 
 {
 	// using the parser interactively
-	var inputs = [
+	const inputs = [
 		"foo\n",
 		"bar; baz\n",
 		"\n",
 		"'incom\n",
 		"plete'\n",
 	]
-	var wantCallbacks = [
+	const wantCallbacks = [
 		{"count": 1, "incomplete": false},
 		{"count": 2, "incomplete": false},
 		{"count": 0, "incomplete": false},
@@ -146,7 +146,7 @@ var printer = syntax.NewPrinter()
 	]
 	var gotCallbacks = []
 
-	var src = {"read": function(size) {
+	const src = {"read": function(size) {
 		if (inputs.length == 0) {
 			if (gotCallbacks.length == 0) {
 				throw "did not see any callbacks before EOF"
