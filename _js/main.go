@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"math"
 	"os"
 	"strings"
@@ -93,12 +94,35 @@ func throw(v interface{}) {
 	js.Global.Call("$throwRuntimeError", fmt.Sprint(v))
 }
 
+// streamReader is an io.Readder wrapper for Node's stream.Readable. See
+// https://nodejs.org/api/stream.html#stream_class_stream_readable
+// TODO: support https://streams.spec.whatwg.org/#rs-class too?
+type streamReader struct {
+	stream *js.Object
+}
+
+func (r streamReader) Read(p []byte) (n int, err error) {
+	obj := r.stream.Call("read", len(p))
+	if obj == nil {
+		return 0, io.EOF
+	}
+	bs := []byte(obj.String())
+	return copy(p, bs), nil
+}
+
 type jsParser struct {
 	*syntax.Parser
 }
 
-func (p jsParser) Parse(src, name string) *js.Object {
-	f, err := p.Parser.Parse(strings.NewReader(src), name)
+func adaptReader(src *js.Object) io.Reader {
+	if src.Get("read") != js.Undefined {
+		return streamReader{stream: src}
+	}
+	return strings.NewReader(src.String())
+}
+
+func (p jsParser) Parse(src *js.Object, name string) *js.Object {
+	f, err := p.Parser.Parse(adaptReader(src), name)
 	if err != nil {
 		throw(err)
 	}

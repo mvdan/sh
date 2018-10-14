@@ -1,4 +1,5 @@
 const assert = require('assert').strict
+const stream = require('stream')
 
 const sh = require('./index')
 
@@ -113,4 +114,16 @@ var printer = syntax.NewPrinter()
 
 	var out = printer.Print(f)
 	assert.equal(out, "echo ${|stmts;} # bar\n")
+}
+
+{
+	// parsing a readable stream
+	var src = new stream.Readable
+	src.push("echo foo")
+	src.push(null)
+
+	var f = parser.Parse(src, "src")
+
+	var cmd = f.StmtList.Stmts[0].Cmd
+	assert.equal(cmd.Args.length, 2)
 }
