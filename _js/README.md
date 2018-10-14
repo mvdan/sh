@@ -44,6 +44,8 @@ to read their documentation.
 
 * [syntax.NewParser](https://godoc.org/mvdan.cc/sh/syntax#NewParser)
   - [Parser.Parse](https://godoc.org/mvdan.cc/sh/syntax#Parser.Parse)
+  - [Parser.Interactive](https://godoc.org/mvdan.cc/sh/syntax#Parser.Interactive)
+  - [Parser.Incomplete](https://godoc.org/mvdan.cc/sh/syntax#Parser.Incomplete)
 * [syntax.DebugPrint](https://godoc.org/mvdan.cc/sh/syntax#DebugPrint)
 * [syntax.Walk](https://godoc.org/mvdan.cc/sh/syntax#Walk)
 * [syntax.NewPrinter](https://godoc.org/mvdan.cc/sh/syntax#NewPrinter)

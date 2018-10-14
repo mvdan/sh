@@ -129,6 +129,17 @@ func (p jsParser) Parse(src *js.Object, name string) *js.Object {
 	return js.MakeFullWrapper(f)
 }
 
+func (p jsParser) Incomplete() bool {
+	return p.Parser.Incomplete()
+}
+
+func (p jsParser) Interactive(src *js.Object, fn func([]*syntax.Stmt) bool) {
+	err := p.Parser.Interactive(adaptReader(src), fn)
+	if err != nil {
+		throw(err)
+	}
+}
+
 type jsPrinter struct {
 	*syntax.Printer
 }

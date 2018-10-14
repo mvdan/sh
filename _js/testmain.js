@@ -127,3 +127,43 @@ var printer = syntax.NewPrinter()
 	var cmd = f.StmtList.Stmts[0].Cmd
 	assert.equal(cmd.Args.length, 2)
 }
+
+{
+	// using the parser interactively
+	var inputs = [
+		"foo\n",
+		"bar; baz\n",
+		"\n",
+		"'incom\n",
+		"plete'\n",
+	]
+	var wantCallbacks = [
+		{"count": 1, "incomplete": false},
+		{"count": 2, "incomplete": false},
+		{"count": 0, "incomplete": false},
+		{"count": 0, "incomplete": true},
+		{"count": 1, "incomplete": false},
+	]
+	var gotCallbacks = []
+
+	var src = {"read": function(size) {
+		if (inputs.length == 0) {
+			if (gotCallbacks.length == 0) {
+				throw "did not see any callbacks before EOF"
+			}
+			return null // EOF
+		}
+		s = inputs[0]
+		inputs.shift()
+		return s
+	}}
+
+	parser.Interactive(src, function(stmts) {
+		gotCallbacks.push({
+			"count":      stmts.length,
+			"incomplete": parser.Incomplete(),
+		})
+		return true
+	})
+	assert.deepEqual(gotCallbacks, wantCallbacks)
+}
