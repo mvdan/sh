@@ -1691,6 +1691,7 @@ func (p *Parser) getStmt(readEnd, binCmd, fnBody bool) *Stmt {
 		if binCmd {
 			return s
 		}
+		p.openClauses++
 		b := &BinaryCmd{
 			OpPos: p.pos,
 			Op:    BinCmdOperator(p.tok),
@@ -1706,6 +1707,7 @@ func (p *Parser) getStmt(readEnd, binCmd, fnBody bool) *Stmt {
 		s = p.stmt(s.Position)
 		s.Cmd = b
 		s.Comments, b.X.Comments = b.X.Comments, nil
+		p.openClauses--
 	}
 	if readEnd {
 		switch p.tok {
@@ -1863,6 +1865,7 @@ func (p *Parser) gotStmtPipe(s *Stmt) *Stmt {
 		}
 		fallthrough
 	case or:
+		p.openClauses++
 		b := &BinaryCmd{OpPos: p.pos, Op: BinCmdOperator(p.tok), X: s}
 		p.next()
 		p.got(_Newl)
@@ -1876,6 +1879,7 @@ func (p *Parser) gotStmtPipe(s *Stmt) *Stmt {
 		// in "! x | y", the bang applies to the entire pipeline
 		s.Negated = b.X.Negated
 		b.X.Negated = false
+		p.openClauses--
 	}
 	return s
 }

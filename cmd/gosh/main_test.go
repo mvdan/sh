@@ -73,6 +73,18 @@ var interactiveTests = [][]string{
 		"$ ",
 	},
 	{
+		"echo foo ||\n",
+		"> ",
+		"echo bar\n",
+		"foo\n",
+	},
+	{
+		"echo foo |\n",
+		"> ",
+		"cat\n",
+		"foo\n",
+	},
+	{
 		"echo foo",
 		"",
 		" bar\n",
