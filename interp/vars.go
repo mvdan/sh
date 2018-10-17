@@ -6,8 +6,10 @@ package interp
 import (
 	"context"
 	"fmt"
+	"os"
 	"runtime"
 	"sort"
+	"strconv"
 	"strings"
 
 	"mvdan.cc/sh/syntax"
@@ -150,9 +152,39 @@ func (r *Runner) lookupVar(name string) Variable {
 	if name == "" {
 		panic("variable name must not be empty")
 	}
-	if name == "@" {
-		// TODO: clean up with expandContext
-		return Variable{Value: IndexArray(r.Params)}
+	var value VarValue
+	switch name {
+	case "#":
+		value = StringVal(strconv.Itoa(len(r.Params)))
+	case "@", "*":
+		value = IndexArray(r.Params)
+	case "?":
+		value = StringVal(strconv.Itoa(r.exit))
+	case "$":
+		value = StringVal(strconv.Itoa(os.Getpid()))
+	case "PPID":
+		value = StringVal(strconv.Itoa(os.Getppid()))
+	case "LINENO":
+		line := uint64(r.curParam.Pos().Line())
+		value = StringVal(strconv.FormatUint(line, 10))
+	case "DIRSTACK":
+		value = IndexArray(r.dirStack)
+	case "0":
+		if r.filename != "" {
+			value = StringVal(r.filename)
+		} else {
+			value = StringVal("gosh")
+		}
+	case "1", "2", "3", "4", "5", "6", "7", "8", "9":
+		i := int(name[0] - '1')
+		if i < len(r.Params) {
+			value = StringVal(r.Params[i])
+		} else {
+			value = StringVal("")
+		}
+	}
+	if value != nil {
+		return Variable{Value: value}
 	}
 	if value, e := r.cmdVars[name]; e {
 		return Variable{Value: StringVal(value)}

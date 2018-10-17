@@ -306,6 +306,10 @@ type Runner struct {
 	// apply to the current shell, and not just the command.
 	keepRedirs bool
 
+	// A pointer to a parameter expansion node, if we're inside one.
+	// Necessary for ${LINENO}.
+	curParam *syntax.ParamExp
+
 	// KillTimeout holds how much time the interpreter will wait for a
 	// program to stop after being sent an interrupt signal, after
 	// which a kill signal will be sent. This process will happen when the

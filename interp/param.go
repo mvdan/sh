@@ -6,7 +6,6 @@ package interp
 import (
 	"context"
 	"fmt"
-	"os"
 	"regexp"
 	"sort"
 	"strconv"
@@ -35,44 +34,20 @@ func anyOfLit(v interface{}, vals ...string) string {
 }
 
 func (r *Runner) paramExp(ctx context.Context, pe *syntax.ParamExp) string {
+	oldParam := r.curParam
+	r.curParam = pe
+	defer func() { r.curParam = oldParam }()
+
 	name := pe.Param.Value
-	var vr Variable
-	set := false
 	index := pe.Index
 	switch name {
-	case "#":
-		vr.Value = StringVal(strconv.Itoa(len(r.Params)))
 	case "@", "*":
-		vr.Value = IndexArray(r.Params)
 		index = &syntax.Word{Parts: []syntax.WordPart{
 			&syntax.Lit{Value: name},
 		}}
-	case "?":
-		vr.Value = StringVal(strconv.Itoa(r.exit))
-	case "$":
-		vr.Value = StringVal(strconv.Itoa(os.Getpid()))
-	case "PPID":
-		vr.Value = StringVal(strconv.Itoa(os.Getppid()))
-	case "LINENO":
-		line := uint64(pe.Pos().Line())
-		vr.Value = StringVal(strconv.FormatUint(line, 10))
-	case "DIRSTACK":
-		vr.Value = IndexArray(r.dirStack)
-	case "0":
-		if r.filename != "" {
-			vr.Value = StringVal(r.filename)
-		} else {
-			vr.Value = StringVal("gosh")
-		}
-	case "1", "2", "3", "4", "5", "6", "7", "8", "9":
-		i := int(name[0] - '1')
-		if i < len(r.Params) {
-			vr.Value, set = StringVal(r.Params[i]), true
-		}
-	default:
-		vr = r.lookupVar(name)
-		set = vr != Variable{}
 	}
+	vr := r.lookupVar(name)
+	set := vr != Variable{}
 	str := r.varStr(vr, 0)
 	if index != nil {
 		str = r.varInd(ctx, vr, index, 0)
