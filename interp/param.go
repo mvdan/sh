@@ -33,10 +33,19 @@ func anyOfLit(v interface{}, vals ...string) string {
 	return ""
 }
 
-func (r *Runner) paramExp(ctx context.Context, pe *syntax.ParamExp) string {
-	oldParam := r.curParam
-	r.curParam = pe
-	defer func() { r.curParam = oldParam }()
+type UnsetParameterError struct {
+	Expr    *syntax.ParamExp
+	Message string
+}
+
+func (u UnsetParameterError) Error() string {
+	return u.Message
+}
+
+func (e *expandContext) paramExp(ctx context.Context, pe *syntax.ParamExp) string {
+	oldParam := e.curParam
+	e.curParam = pe
+	defer func() { e.curParam = oldParam }()
 
 	name := pe.Param.Value
 	index := pe.Index
@@ -46,14 +55,14 @@ func (r *Runner) paramExp(ctx context.Context, pe *syntax.ParamExp) string {
 			&syntax.Lit{Value: name},
 		}}
 	}
-	vr := r.lookupVar(name)
+	vr := e.env.Get(name)
 	set := vr != Variable{}
-	str := r.varStr(vr, 0)
+	str := e.varStr(vr, 0)
 	if index != nil {
-		str = r.varInd(ctx, vr, index, 0)
+		str = e.varInd(ctx, vr, index, 0)
 	}
 	slicePos := func(expr syntax.ArithmExpr) int {
-		p := r.arithm(ctx, expr)
+		p := e.arithm(ctx, expr)
 		if p < 0 {
 			p = len(str) + p
 			if p < 0 {
@@ -83,7 +92,7 @@ func (r *Runner) paramExp(ctx context.Context, pe *syntax.ParamExp) string {
 	case pe.Excl:
 		var strs []string
 		if pe.Names != 0 {
-			strs = r.namesByPrefix(pe.Param.Value)
+			strs = e.namesByPrefix(pe.Param.Value)
 		} else if vr.NameRef {
 			strs = append(strs, string(vr.Value.(StringVal)))
 		} else if x, ok := vr.Value.(IndexArray); ok {
@@ -97,8 +106,8 @@ func (r *Runner) paramExp(ctx context.Context, pe *syntax.ParamExp) string {
 				strs = append(strs, k)
 			}
 		} else if str != "" {
-			vr = r.lookupVar(str)
-			strs = append(strs, r.varStr(vr, 0))
+			vr = e.env.Get(str)
+			strs = append(strs, e.varStr(vr, 0))
 		}
 		sort.Strings(strs)
 		str = strings.Join(strs, " ")
@@ -112,14 +121,14 @@ func (r *Runner) paramExp(ctx context.Context, pe *syntax.ParamExp) string {
 			str = str[:length]
 		}
 	case pe.Repl != nil:
-		orig := r.lonePattern(ctx, pe.Repl.Orig)
-		with := r.loneWord(ctx, pe.Repl.With)
+		orig := e.lonePattern(ctx, pe.Repl.Orig)
+		with := e.loneWord(ctx, pe.Repl.With)
 		n := 1
 		if pe.Repl.All {
 			n = -1
 		}
 		locs := findAllIndex(orig, str, n)
-		buf := r.strBuilder()
+		buf := e.strBuilder()
 		last := 0
 		for _, loc := range locs {
 			buf.WriteString(str[last:loc[0]])
@@ -129,7 +138,7 @@ func (r *Runner) paramExp(ctx context.Context, pe *syntax.ParamExp) string {
 		buf.WriteString(str[last:])
 		str = buf.String()
 	case pe.Exp != nil:
-		arg := r.loneWord(ctx, pe.Exp.Word)
+		arg := e.loneWord(ctx, pe.Exp.Word)
 		switch op := pe.Exp.Op; op {
 		case syntax.SubstColPlus:
 			if str == "" {
@@ -156,9 +165,10 @@ func (r *Runner) paramExp(ctx context.Context, pe *syntax.ParamExp) string {
 			fallthrough
 		case syntax.SubstColQuest:
 			if str == "" {
-				r.errf("%s\n", arg)
-				r.exit = 1
-				r.setErr(ShellExitStatus(r.exit))
+				e.err(UnsetParameterError{
+					Expr:    pe,
+					Message: arg,
+				})
 			}
 		case syntax.SubstAssgn:
 			if set {
@@ -167,7 +177,7 @@ func (r *Runner) paramExp(ctx context.Context, pe *syntax.ParamExp) string {
 			fallthrough
 		case syntax.SubstColAssgn:
 			if str == "" {
-				r.setVarString(ctx, name, arg)
+				e.envSet(name, arg)
 				str = arg
 			}
 		case syntax.RemSmallPrefix, syntax.RemLargePrefix,

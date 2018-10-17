@@ -234,43 +234,43 @@ func (r *Runner) delVar(name string) {
 // reference loops could crash the interpreter quite easily.
 const maxNameRefDepth = 100
 
-func (r *Runner) varStr(vr Variable, depth int) string {
+func (e *expandContext) varStr(vr Variable, depth int) string {
 	if vr.Value == nil || depth > maxNameRefDepth {
 		return ""
 	}
 	if vr.NameRef {
-		vr = r.lookupVar(string(vr.Value.(StringVal)))
-		return r.varStr(vr, depth+1)
+		vr = e.env.Get(string(vr.Value.(StringVal)))
+		return e.varStr(vr, depth+1)
 	}
 	return vr.Value.String()
 }
 
-func (r *Runner) varInd(ctx context.Context, vr Variable, e syntax.ArithmExpr, depth int) string {
+func (e *expandContext) varInd(ctx context.Context, vr Variable, idx syntax.ArithmExpr, depth int) string {
 	if depth > maxNameRefDepth {
 		return ""
 	}
 	switch x := vr.Value.(type) {
 	case StringVal:
 		if vr.NameRef {
-			vr = r.lookupVar(string(x))
-			return r.varInd(ctx, vr, e, depth+1)
+			vr = e.env.Get(string(x))
+			return e.varInd(ctx, vr, idx, depth+1)
 		}
-		if r.arithm(ctx, e) == 0 {
+		if e.arithm(ctx, idx) == 0 {
 			return string(x)
 		}
 	case IndexArray:
-		switch anyOfLit(e, "@", "*") {
+		switch anyOfLit(idx, "@", "*") {
 		case "@":
 			return strings.Join(x, " ")
 		case "*":
-			return strings.Join(x, r.ifsJoin)
+			return strings.Join(x, e.ifsJoin)
 		}
-		i := r.arithm(ctx, e)
+		i := e.arithm(ctx, idx)
 		if len(x) > 0 {
 			return x[i]
 		}
 	case AssocArray:
-		if lit := anyOfLit(e, "@", "*"); lit != "" {
+		if lit := anyOfLit(idx, "@", "*"); lit != "" {
 			var strs IndexArray
 			keys := make([]string, 0, len(x))
 			for k := range x {
@@ -281,11 +281,11 @@ func (r *Runner) varInd(ctx context.Context, vr Variable, e syntax.ArithmExpr, d
 				strs = append(strs, x[k])
 			}
 			if lit == "*" {
-				return strings.Join(strs, r.ifsJoin)
+				return strings.Join(strs, e.ifsJoin)
 			}
 			return strings.Join(strs, " ")
 		}
-		return x[r.loneWord(ctx, e.(*syntax.Word))]
+		return x[e.loneWord(ctx, idx.(*syntax.Word))]
 	}
 	return ""
 }
@@ -495,18 +495,13 @@ func (r *Runner) ifsUpdated() {
 	}
 }
 
-func (r *Runner) namesByPrefix(prefix string) []string {
+func (e *expandContext) namesByPrefix(prefix string) []string {
 	var names []string
-	r.Env.Each(func(name string, vr Variable) bool {
+	e.env.Each(func(name string, vr Variable) bool {
 		if strings.HasPrefix(name, prefix) {
 			names = append(names, name)
 		}
 		return true
 	})
-	for name := range r.Vars {
-		if strings.HasPrefix(name, prefix) {
-			names = append(names, name)
-		}
-	}
 	return names
 }

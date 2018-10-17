@@ -24,6 +24,10 @@ type expandContext struct {
 	env       Environ
 	optByName func(string) bool
 
+	// if nil, errors cause a panic.
+	onError func(error)
+
+	ifsJoin string
 	ifsRune func(rune) bool
 
 	bufferAlloc bytes.Buffer
@@ -31,8 +35,18 @@ type expandContext struct {
 	fieldsAlloc [4][]fieldPart
 
 	// TODO: port these too
-	sub      func(context.Context, syntax.StmtList) string
-	paramExp func(context.Context, *syntax.ParamExp) string
+	sub func(context.Context, syntax.StmtList) string
+
+	// A pointer to a parameter expansion node, if we're inside one.
+	// Necessary for ${LINENO}.
+	curParam *syntax.ParamExp
+}
+
+func (e *expandContext) err(err error) {
+	if e.onError == nil {
+		panic(err)
+	}
+	e.onError(err)
 }
 
 func (e *expandContext) strBuilder() *bytes.Buffer {

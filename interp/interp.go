@@ -59,10 +59,26 @@ func New(opts ...func(*Runner) error) (*Runner, error) {
 
 func (r *Runner) fillExpandContext() {
 	r.expandContext = expandContext{
+		env: expandEnv{r},
+		optByName: func(name string) bool {
+			return *r.optByName(name, true)
+		},
+
+		onError: func(err error) {
+			switch err := err.(type) {
+			case UnsetParameterError:
+				r.errf("%s\n", err.Message)
+				r.exit = 1
+				r.setErr(ShellExitStatus(r.exit))
+			default:
+				r.setErr(err)
+				r.exit = 1
+			}
+		},
+
+		ifsJoin: r.expandContext.ifsJoin,
 		ifsRune: r.expandContext.ifsRune,
 
-		env:      expandEnv{r},
-		paramExp: r.paramExp,
 		sub: func(ctx context.Context, sl syntax.StmtList) string {
 			r2 := r.sub()
 			buf := r.strBuilder()
@@ -70,9 +86,6 @@ func (r *Runner) fillExpandContext() {
 			r2.stmts(ctx, sl)
 			r.setErr(r2.err)
 			return buf.String()
-		},
-		optByName: func(name string) bool {
-			return *r.optByName(name, true)
 		},
 	}
 }
@@ -90,8 +103,15 @@ func (e expandEnv) Set(name string, vr Variable) {
 func (e expandEnv) Delete(name string) {
 	e.r.delVar(name)
 }
-func (e expandEnv) Each(func(name string, vr Variable) bool) {}
-func (e expandEnv) Sub() Environ                             { return e }
+func (e expandEnv) Each(fn func(name string, vr Variable) bool) {
+	e.r.Env.Each(fn)
+	for name, vr := range e.r.Vars {
+		if !fn(name, vr) {
+			return
+		}
+	}
+}
+func (e expandEnv) Sub() Environ { return e }
 
 // Env sets the interpreter's environment. If nil, the current process's
 // environment is used.
@@ -300,15 +320,9 @@ type Runner struct {
 
 	optState getopts
 
-	ifsJoin string
-
 	// keepRedirs is used so that "exec" can make any redirections
 	// apply to the current shell, and not just the command.
 	keepRedirs bool
-
-	// A pointer to a parameter expansion node, if we're inside one.
-	// Necessary for ${LINENO}.
-	curParam *syntax.ParamExp
 
 	// KillTimeout holds how much time the interpreter will wait for a
 	// program to stop after being sent an interrupt signal, after
