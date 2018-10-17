@@ -62,7 +62,6 @@ func (r *Runner) fillExpandContext() {
 		ifsRune: r.expandContext.ifsRune,
 
 		env:      expandEnv{r},
-		arithm:   r.arithm,
 		paramExp: r.paramExp,
 		sub: func(ctx context.Context, sl syntax.StmtList) string {
 			r2 := r.sub()
@@ -1113,14 +1112,6 @@ func (r *Runner) pathExts() []string {
 		exts = append(exts, e)
 	}
 	return exts
-}
-
-func (r *Runner) loneWord(ctx context.Context, word *syntax.Word) string {
-	if word == nil {
-		return ""
-	}
-	field := r.wordField(ctx, word.Parts, quoteDouble)
-	return r.fieldJoin(field)
 }
 
 func (r *Runner) Fields(ctx context.Context, words ...*syntax.Word) ([]string, error) {

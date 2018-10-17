@@ -32,7 +32,6 @@ type expandContext struct {
 
 	// TODO: port these too
 	sub      func(context.Context, syntax.StmtList) string
-	arithm   func(context.Context, syntax.ArithmExpr) int
 	paramExp func(context.Context, *syntax.ParamExp) string
 }
 
@@ -40,6 +39,26 @@ func (e *expandContext) strBuilder() *bytes.Buffer {
 	b := &e.bufferAlloc
 	b.Reset()
 	return b
+}
+
+func (e *expandContext) envGet(name string) string {
+	val := e.env.Get(name).Value
+	if val == nil {
+		return ""
+	}
+	return val.String()
+}
+
+func (e *expandContext) envSet(name, value string) {
+	e.env.Set(name, Variable{Value: StringVal(value)})
+}
+
+func (e *expandContext) loneWord(ctx context.Context, word *syntax.Word) string {
+	if word == nil {
+		return ""
+	}
+	field := e.wordField(ctx, word.Parts, quoteDouble)
+	return e.fieldJoin(field)
 }
 
 func (e *expandContext) expandFormat(format string, args []string) (int, string, error) {
@@ -162,7 +181,7 @@ func (e *expandContext) escapedGlobField(parts []fieldPart) (escaped string, glo
 
 func (e *expandContext) fields(ctx context.Context, words ...*syntax.Word) []string {
 	fields := make([]string, 0, len(words))
-	dir := e.env.Get("PWD").Value.String()
+	dir := e.envGet("PWD")
 	baseDir := syntax.QuotePattern(dir)
 	for _, word := range words {
 		for _, expWord := range expand.Braces(word) {
