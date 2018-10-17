@@ -479,6 +479,8 @@ func findAllIndex(pattern, name string, n int) [][]int {
 	return rx.FindAllStringIndex(name, n)
 }
 
+// TODO: use this again to optimize globbing; see
+// https://github.com/mvdan/sh/issues/213
 func hasGlob(path string) bool {
 	magicChars := `*?[`
 	if runtime.GOOS != "windows" {
