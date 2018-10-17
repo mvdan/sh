@@ -559,6 +559,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 				r.printOptLine(arg, *opt)
 			}
 		}
+		r.updateExpandOpts()
 
 	default:
 		// "trap", "umask", "alias", "unalias", "fg", "bg",

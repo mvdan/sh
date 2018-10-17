@@ -20,12 +20,14 @@ import (
 	"mvdan.cc/sh/syntax"
 )
 
-type expandContext struct {
-	env       Environ
-	optByName func(string) bool
+type ExpandContext struct {
+	Env Environ
+
+	NoGlob   bool
+	GlobStar bool
 
 	// if nil, errors cause a panic.
-	onError func(error)
+	OnError func(error)
 
 	ifsJoin string
 	ifsRune func(rune) bool
@@ -42,32 +44,32 @@ type expandContext struct {
 	curParam *syntax.ParamExp
 }
 
-func (e *expandContext) err(err error) {
-	if e.onError == nil {
+func (e *ExpandContext) err(err error) {
+	if e.OnError == nil {
 		panic(err)
 	}
-	e.onError(err)
+	e.OnError(err)
 }
 
-func (e *expandContext) strBuilder() *bytes.Buffer {
+func (e *ExpandContext) strBuilder() *bytes.Buffer {
 	b := &e.bufferAlloc
 	b.Reset()
 	return b
 }
 
-func (e *expandContext) envGet(name string) string {
-	val := e.env.Get(name).Value
+func (e *ExpandContext) envGet(name string) string {
+	val := e.Env.Get(name).Value
 	if val == nil {
 		return ""
 	}
 	return val.String()
 }
 
-func (e *expandContext) envSet(name, value string) {
-	e.env.Set(name, Variable{Value: StringVal(value)})
+func (e *ExpandContext) envSet(name, value string) {
+	e.Env.Set(name, Variable{Value: StringVal(value)})
 }
 
-func (e *expandContext) loneWord(ctx context.Context, word *syntax.Word) string {
+func (e *ExpandContext) loneWord(ctx context.Context, word *syntax.Word) string {
 	if word == nil {
 		return ""
 	}
@@ -75,7 +77,7 @@ func (e *expandContext) loneWord(ctx context.Context, word *syntax.Word) string 
 	return e.fieldJoin(field)
 }
 
-func (e *expandContext) expandFormat(format string, args []string) (int, string, error) {
+func (e *ExpandContext) expandFormat(format string, args []string) (int, string, error) {
 	buf := e.strBuilder()
 	esc := false
 	var fmts []rune
@@ -161,7 +163,7 @@ func (e *expandContext) expandFormat(format string, args []string) (int, string,
 	return initialArgs - len(args), buf.String(), nil
 }
 
-func (e *expandContext) fieldJoin(parts []fieldPart) string {
+func (e *ExpandContext) fieldJoin(parts []fieldPart) string {
 	switch len(parts) {
 	case 0:
 		return ""
@@ -175,7 +177,7 @@ func (e *expandContext) fieldJoin(parts []fieldPart) string {
 	return buf.String()
 }
 
-func (e *expandContext) escapedGlobField(parts []fieldPart) (escaped string, glob bool) {
+func (e *ExpandContext) escapedGlobField(parts []fieldPart) (escaped string, glob bool) {
 	buf := e.strBuilder()
 	for _, part := range parts {
 		if part.quote > quoteNone {
@@ -193,7 +195,7 @@ func (e *expandContext) escapedGlobField(parts []fieldPart) (escaped string, glo
 	return escaped, glob
 }
 
-func (e *expandContext) fields(ctx context.Context, words ...*syntax.Word) []string {
+func (e *ExpandContext) Fields(ctx context.Context, words ...*syntax.Word) []string {
 	fields := make([]string, 0, len(words))
 	dir := e.envGet("PWD")
 	baseDir := syntax.QuotePattern(dir)
@@ -203,11 +205,11 @@ func (e *expandContext) fields(ctx context.Context, words ...*syntax.Word) []str
 				path, doGlob := e.escapedGlobField(field)
 				var matches []string
 				abs := filepath.IsAbs(path)
-				if doGlob && !e.optByName("noglob") {
+				if doGlob && !e.NoGlob {
 					if !abs {
 						path = filepath.Join(baseDir, path)
 					}
-					matches = glob(path, e.optByName("globstar"))
+					matches = glob(path, e.GlobStar)
 				}
 				if len(matches) == 0 {
 					fields = append(fields, e.fieldJoin(field))
@@ -229,7 +231,7 @@ func (e *expandContext) fields(ctx context.Context, words ...*syntax.Word) []str
 	return fields
 }
 
-func (e *expandContext) lonePattern(ctx context.Context, word *syntax.Word) string {
+func (e *ExpandContext) lonePattern(ctx context.Context, word *syntax.Word) string {
 	field := e.wordField(ctx, word.Parts, quoteSingle)
 	buf := e.strBuilder()
 	for _, part := range field {
@@ -242,7 +244,7 @@ func (e *expandContext) lonePattern(ctx context.Context, word *syntax.Word) stri
 	return buf.String()
 }
 
-func (e *expandContext) expandAssigns(ctx context.Context, as *syntax.Assign) []*syntax.Assign {
+func (e *ExpandContext) expandAssigns(ctx context.Context, as *syntax.Assign) []*syntax.Assign {
 	// Convert "declare $x" into "declare value".
 	// Don't use syntax.Parser here, as we only want the basic
 	// splitting by '='.
@@ -250,7 +252,7 @@ func (e *expandContext) expandAssigns(ctx context.Context, as *syntax.Assign) []
 		return []*syntax.Assign{as} // nothing to do
 	}
 	var asgns []*syntax.Assign
-	for _, field := range e.fields(ctx, as.Value) {
+	for _, field := range e.Fields(ctx, as.Value) {
 		as := &syntax.Assign{}
 		parts := strings.SplitN(field, "=", 2)
 		as.Name = &syntax.Lit{Value: parts[0]}
@@ -279,7 +281,7 @@ const (
 	quoteSingle
 )
 
-func (e *expandContext) wordField(ctx context.Context, wps []syntax.WordPart, ql quoteLevel) []fieldPart {
+func (e *ExpandContext) wordField(ctx context.Context, wps []syntax.WordPart, ql quoteLevel) []fieldPart {
 	var field []fieldPart
 	for i, wp := range wps {
 		switch x := wp.(type) {
@@ -332,12 +334,12 @@ func (e *expandContext) wordField(ctx context.Context, wps []syntax.WordPart, ql
 	return field
 }
 
-func (e *expandContext) cmdSubst(ctx context.Context, cs *syntax.CmdSubst) string {
+func (e *ExpandContext) cmdSubst(ctx context.Context, cs *syntax.CmdSubst) string {
 	out := e.sub(ctx, cs.StmtList)
 	return strings.TrimRight(out, "\n")
 }
 
-func (e *expandContext) wordFields(ctx context.Context, wps []syntax.WordPart) [][]fieldPart {
+func (e *ExpandContext) wordFields(ctx context.Context, wps []syntax.WordPart) [][]fieldPart {
 	fields := e.fieldsAlloc[:0]
 	curField := e.fieldAlloc[:0]
 	allowEmpty := false
@@ -424,24 +426,24 @@ func (e *expandContext) wordFields(ctx context.Context, wps []syntax.WordPart) [
 }
 
 // quotedElems checks if a parameter expansion is exactly ${@} or ${foo[@]}
-func (e *expandContext) quotedElems(pe *syntax.ParamExp) []string {
+func (e *ExpandContext) quotedElems(pe *syntax.ParamExp) []string {
 	if pe == nil || pe.Excl || pe.Length || pe.Width {
 		return nil
 	}
 	if pe.Param.Value == "@" {
-		return e.env.Get("@").Value.(IndexArray)
+		return e.Env.Get("@").Value.(IndexArray)
 	}
 	if anyOfLit(pe.Index, "@") == "" {
 		return nil
 	}
-	val := e.env.Get(pe.Param.Value).Value
+	val := e.Env.Get(pe.Param.Value).Value
 	if x, ok := val.(IndexArray); ok {
 		return x
 	}
 	return nil
 }
 
-func (e *expandContext) expandUser(field string) string {
+func (e *ExpandContext) expandUser(field string) string {
 	if len(field) == 0 || field[0] != '~' {
 		return field
 	}
@@ -452,7 +454,7 @@ func (e *expandContext) expandUser(field string) string {
 		name = name[:i]
 	}
 	if name == "" {
-		return e.env.Get("HOME").Value.String() + rest
+		return e.Env.Get("HOME").Value.String() + rest
 	}
 	u, err := user.Lookup(name)
 	if err != nil {

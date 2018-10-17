@@ -42,7 +42,7 @@ func (u UnsetParameterError) Error() string {
 	return u.Message
 }
 
-func (e *expandContext) paramExp(ctx context.Context, pe *syntax.ParamExp) string {
+func (e *ExpandContext) paramExp(ctx context.Context, pe *syntax.ParamExp) string {
 	oldParam := e.curParam
 	e.curParam = pe
 	defer func() { e.curParam = oldParam }()
@@ -55,7 +55,7 @@ func (e *expandContext) paramExp(ctx context.Context, pe *syntax.ParamExp) strin
 			&syntax.Lit{Value: name},
 		}}
 	}
-	vr := e.env.Get(name)
+	vr := e.Env.Get(name)
 	set := vr != Variable{}
 	str := e.varStr(vr, 0)
 	if index != nil {
@@ -106,7 +106,7 @@ func (e *expandContext) paramExp(ctx context.Context, pe *syntax.ParamExp) strin
 				strs = append(strs, k)
 			}
 		} else if str != "" {
-			vr = e.env.Get(str)
+			vr = e.Env.Get(str)
 			strs = append(strs, e.varStr(vr, 0))
 		}
 		sort.Strings(strs)

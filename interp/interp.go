@@ -58,13 +58,10 @@ func New(opts ...func(*Runner) error) (*Runner, error) {
 }
 
 func (r *Runner) fillExpandContext() {
-	r.expandContext = expandContext{
-		env: expandEnv{r},
-		optByName: func(name string) bool {
-			return *r.optByName(name, true)
-		},
+	r.ExpandContext = ExpandContext{
+		Env: expandEnv{r},
 
-		onError: func(err error) {
+		OnError: func(err error) {
 			switch err := err.(type) {
 			case UnsetParameterError:
 				r.errf("%s\n", err.Message)
@@ -76,8 +73,8 @@ func (r *Runner) fillExpandContext() {
 			}
 		},
 
-		ifsJoin: r.expandContext.ifsJoin,
-		ifsRune: r.expandContext.ifsRune,
+		ifsJoin: r.ExpandContext.ifsJoin,
+		ifsRune: r.ExpandContext.ifsRune,
 
 		sub: func(ctx context.Context, sl syntax.StmtList) string {
 			r2 := r.sub()
@@ -88,6 +85,12 @@ func (r *Runner) fillExpandContext() {
 			return buf.String()
 		},
 	}
+	r.updateExpandOpts()
+}
+
+func (r *Runner) updateExpandOpts() {
+	r.ExpandContext.NoGlob = r.opts[optNoGlob]
+	r.ExpandContext.GlobStar = r.opts[optGlobStar]
 }
 
 type expandEnv struct {
@@ -199,6 +202,7 @@ func Params(args ...string) func(*Runner) error {
 			args = args[1:]
 		}
 		r.Params = args
+		r.updateExpandOpts()
 		return nil
 	}
 }
@@ -285,7 +289,7 @@ type Runner struct {
 	Vars  map[string]Variable
 	Funcs map[string]*syntax.Stmt
 
-	expandContext
+	ExpandContext
 
 	// didReset remembers whether the runner has ever been reset. This is
 	// used so that Reset is automatically called when running any program
@@ -651,7 +655,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		r.exit = r2.exit
 		r.setErr(r2.err)
 	case *syntax.CallExpr:
-		fields := r.fields(ctx, x.Args...)
+		fields := r.ExpandContext.Fields(ctx, x.Args...)
 		if len(fields) == 0 {
 			for _, as := range x.Assigns {
 				vr := r.lookupVar(as.Name.Value)
@@ -734,7 +738,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		switch y := x.Loop.(type) {
 		case *syntax.WordIter:
 			name := y.Name.Value
-			for _, field := range r.fields(ctx, y.Items...) {
+			for _, field := range r.ExpandContext.Fields(ctx, y.Items...) {
 				r.setVarString(ctx, name, field)
 				if r.loopStmtsBroken(ctx, x.Do) {
 					break
@@ -1136,5 +1140,5 @@ func (r *Runner) Fields(ctx context.Context, words ...*syntax.Word) ([]string, e
 	if !r.didReset {
 		r.Reset()
 	}
-	return r.fields(ctx, words...), r.err
+	return r.ExpandContext.Fields(ctx, words...), r.err
 }

@@ -11,7 +11,7 @@ import (
 	"mvdan.cc/sh/syntax"
 )
 
-func (e *expandContext) arithm(ctx context.Context, expr syntax.ArithmExpr) int {
+func (e *ExpandContext) arithm(ctx context.Context, expr syntax.ArithmExpr) int {
 	switch x := expr.(type) {
 	case *syntax.Word:
 		str := e.loneWord(ctx, x)
@@ -88,7 +88,7 @@ func atoi(s string) int {
 	return n
 }
 
-func (e *expandContext) assgnArit(ctx context.Context, b *syntax.BinaryArithm) int {
+func (e *ExpandContext) assgnArit(ctx context.Context, b *syntax.BinaryArithm) int {
 	name := b.X.(*syntax.Word).Parts[0].(*syntax.Lit).Value
 	val := atoi(e.envGet(name))
 	arg := e.arithm(ctx, b.Y)

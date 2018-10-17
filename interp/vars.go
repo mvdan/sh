@@ -234,25 +234,25 @@ func (r *Runner) delVar(name string) {
 // reference loops could crash the interpreter quite easily.
 const maxNameRefDepth = 100
 
-func (e *expandContext) varStr(vr Variable, depth int) string {
+func (e *ExpandContext) varStr(vr Variable, depth int) string {
 	if vr.Value == nil || depth > maxNameRefDepth {
 		return ""
 	}
 	if vr.NameRef {
-		vr = e.env.Get(string(vr.Value.(StringVal)))
+		vr = e.Env.Get(string(vr.Value.(StringVal)))
 		return e.varStr(vr, depth+1)
 	}
 	return vr.Value.String()
 }
 
-func (e *expandContext) varInd(ctx context.Context, vr Variable, idx syntax.ArithmExpr, depth int) string {
+func (e *ExpandContext) varInd(ctx context.Context, vr Variable, idx syntax.ArithmExpr, depth int) string {
 	if depth > maxNameRefDepth {
 		return ""
 	}
 	switch x := vr.Value.(type) {
 	case StringVal:
 		if vr.NameRef {
-			vr = e.env.Get(string(x))
+			vr = e.Env.Get(string(x))
 			return e.varInd(ctx, vr, idx, depth+1)
 		}
 		if e.arithm(ctx, idx) == 0 {
@@ -495,9 +495,9 @@ func (r *Runner) ifsUpdated() {
 	}
 }
 
-func (e *expandContext) namesByPrefix(prefix string) []string {
+func (e *ExpandContext) namesByPrefix(prefix string) []string {
 	var names []string
-	e.env.Each(func(name string, vr Variable) bool {
+	e.Env.Each(func(name string, vr Variable) bool {
 		if strings.HasPrefix(name, prefix) {
 			names = append(names, name)
 		}
