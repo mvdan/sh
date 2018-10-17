@@ -4,6 +4,7 @@
 package interp
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -19,8 +20,30 @@ import (
 	"mvdan.cc/sh/syntax"
 )
 
-func (r *Runner) expandFormat(format string, args []string) (int, string, error) {
-	buf := r.strBuilder()
+type expandContext struct {
+	env       Environ
+	optByName func(string) bool
+
+	ifsRune func(rune) bool
+
+	bufferAlloc bytes.Buffer
+	fieldAlloc  [4]fieldPart
+	fieldsAlloc [4][]fieldPart
+
+	// TODO: port these too
+	sub      func(context.Context, syntax.StmtList) string
+	arithm   func(context.Context, syntax.ArithmExpr) int
+	paramExp func(context.Context, *syntax.ParamExp) string
+}
+
+func (e *expandContext) strBuilder() *bytes.Buffer {
+	b := &e.bufferAlloc
+	b.Reset()
+	return b
+}
+
+func (e *expandContext) expandFormat(format string, args []string) (int, string, error) {
+	buf := e.strBuilder()
 	esc := false
 	var fmts []rune
 	initialArgs := len(args)
@@ -105,22 +128,22 @@ func (r *Runner) expandFormat(format string, args []string) (int, string, error)
 	return initialArgs - len(args), buf.String(), nil
 }
 
-func (r *Runner) fieldJoin(parts []fieldPart) string {
+func (e *expandContext) fieldJoin(parts []fieldPart) string {
 	switch len(parts) {
 	case 0:
 		return ""
 	case 1: // short-cut without a string copy
 		return parts[0].val
 	}
-	buf := r.strBuilder()
+	buf := e.strBuilder()
 	for _, part := range parts {
 		buf.WriteString(part.val)
 	}
 	return buf.String()
 }
 
-func (r *Runner) escapedGlobField(parts []fieldPart) (escaped string, glob bool) {
-	buf := r.strBuilder()
+func (e *expandContext) escapedGlobField(parts []fieldPart) (escaped string, glob bool) {
+	buf := e.strBuilder()
 	for _, part := range parts {
 		if part.quote > quoteNone {
 			buf.WriteString(syntax.QuotePattern(part.val))
@@ -137,36 +160,30 @@ func (r *Runner) escapedGlobField(parts []fieldPart) (escaped string, glob bool)
 	return escaped, glob
 }
 
-func (r *Runner) Fields(ctx context.Context, words ...*syntax.Word) ([]string, error) {
-	if !r.didReset {
-		r.Reset()
-	}
-	return r.fields(ctx, words...), r.err
-}
-
-func (r *Runner) fields(ctx context.Context, words ...*syntax.Word) []string {
+func (e *expandContext) fields(ctx context.Context, words ...*syntax.Word) []string {
 	fields := make([]string, 0, len(words))
-	baseDir := syntax.QuotePattern(r.Dir)
+	dir := e.env.Get("PWD").Value.String()
+	baseDir := syntax.QuotePattern(dir)
 	for _, word := range words {
 		for _, expWord := range expand.Braces(word) {
-			for _, field := range r.wordFields(ctx, expWord.Parts) {
-				path, doGlob := r.escapedGlobField(field)
+			for _, field := range e.wordFields(ctx, expWord.Parts) {
+				path, doGlob := e.escapedGlobField(field)
 				var matches []string
 				abs := filepath.IsAbs(path)
-				if doGlob && !r.opts[optNoGlob] {
+				if doGlob && !e.optByName("noglob") {
 					if !abs {
 						path = filepath.Join(baseDir, path)
 					}
-					matches = glob(path, r.opts[optGlobStar])
+					matches = glob(path, e.optByName("globstar"))
 				}
 				if len(matches) == 0 {
-					fields = append(fields, r.fieldJoin(field))
+					fields = append(fields, e.fieldJoin(field))
 					continue
 				}
 				for _, match := range matches {
 					if !abs {
 						endSeparator := strings.HasSuffix(match, string(filepath.Separator))
-						match, _ = filepath.Rel(r.Dir, match)
+						match, _ = filepath.Rel(dir, match)
 						if endSeparator {
 							match += string(filepath.Separator)
 						}
@@ -179,17 +196,9 @@ func (r *Runner) fields(ctx context.Context, words ...*syntax.Word) []string {
 	return fields
 }
 
-func (r *Runner) loneWord(ctx context.Context, word *syntax.Word) string {
-	if word == nil {
-		return ""
-	}
-	field := r.wordField(ctx, word.Parts, quoteDouble)
-	return r.fieldJoin(field)
-}
-
-func (r *Runner) lonePattern(ctx context.Context, word *syntax.Word) string {
-	field := r.wordField(ctx, word.Parts, quoteSingle)
-	buf := r.strBuilder()
+func (e *expandContext) lonePattern(ctx context.Context, word *syntax.Word) string {
+	field := e.wordField(ctx, word.Parts, quoteSingle)
+	buf := e.strBuilder()
 	for _, part := range field {
 		if part.quote > quoteNone {
 			buf.WriteString(syntax.QuotePattern(part.val))
@@ -200,7 +209,7 @@ func (r *Runner) lonePattern(ctx context.Context, word *syntax.Word) string {
 	return buf.String()
 }
 
-func (r *Runner) expandAssigns(ctx context.Context, as *syntax.Assign) []*syntax.Assign {
+func (e *expandContext) expandAssigns(ctx context.Context, as *syntax.Assign) []*syntax.Assign {
 	// Convert "declare $x" into "declare value".
 	// Don't use syntax.Parser here, as we only want the basic
 	// splitting by '='.
@@ -208,7 +217,7 @@ func (r *Runner) expandAssigns(ctx context.Context, as *syntax.Assign) []*syntax
 		return []*syntax.Assign{as} // nothing to do
 	}
 	var asgns []*syntax.Assign
-	for _, field := range r.fields(ctx, as.Value) {
+	for _, field := range e.fields(ctx, as.Value) {
 		as := &syntax.Assign{}
 		parts := strings.SplitN(field, "=", 2)
 		as.Name = &syntax.Lit{Value: parts[0]}
@@ -237,17 +246,17 @@ const (
 	quoteSingle
 )
 
-func (r *Runner) wordField(ctx context.Context, wps []syntax.WordPart, ql quoteLevel) []fieldPart {
+func (e *expandContext) wordField(ctx context.Context, wps []syntax.WordPart, ql quoteLevel) []fieldPart {
 	var field []fieldPart
 	for i, wp := range wps {
 		switch x := wp.(type) {
 		case *syntax.Lit:
 			s := x.Value
 			if i == 0 {
-				s = r.expandUser(s)
+				s = e.expandUser(s)
 			}
 			if ql == quoteDouble && strings.Contains(s, "\\") {
-				buf := r.strBuilder()
+				buf := e.strBuilder()
 				for i := 0; i < len(s); i++ {
 					b := s[i]
 					if b == '\\' && i+1 < len(s) {
@@ -267,21 +276,21 @@ func (r *Runner) wordField(ctx context.Context, wps []syntax.WordPart, ql quoteL
 		case *syntax.SglQuoted:
 			fp := fieldPart{quote: quoteSingle, val: x.Value}
 			if x.Dollar {
-				_, fp.val, _ = r.expandFormat(fp.val, nil)
+				_, fp.val, _ = e.expandFormat(fp.val, nil)
 			}
 			field = append(field, fp)
 		case *syntax.DblQuoted:
-			for _, part := range r.wordField(ctx, x.Parts, quoteDouble) {
+			for _, part := range e.wordField(ctx, x.Parts, quoteDouble) {
 				part.quote = quoteDouble
 				field = append(field, part)
 			}
 		case *syntax.ParamExp:
-			field = append(field, fieldPart{val: r.paramExp(ctx, x)})
+			field = append(field, fieldPart{val: e.paramExp(ctx, x)})
 		case *syntax.CmdSubst:
-			field = append(field, fieldPart{val: r.cmdSubst(ctx, x)})
+			field = append(field, fieldPart{val: e.cmdSubst(ctx, x)})
 		case *syntax.ArithmExp:
 			field = append(field, fieldPart{
-				val: strconv.Itoa(r.arithm(ctx, x.X)),
+				val: strconv.Itoa(e.arithm(ctx, x.X)),
 			})
 		default:
 			panic(fmt.Sprintf("unhandled word part: %T", x))
@@ -290,18 +299,14 @@ func (r *Runner) wordField(ctx context.Context, wps []syntax.WordPart, ql quoteL
 	return field
 }
 
-func (r *Runner) cmdSubst(ctx context.Context, cs *syntax.CmdSubst) string {
-	r2 := r.sub()
-	buf := r.strBuilder()
-	r2.Stdout = buf
-	r2.stmts(ctx, cs.StmtList)
-	r.setErr(r2.err)
-	return strings.TrimRight(buf.String(), "\n")
+func (e *expandContext) cmdSubst(ctx context.Context, cs *syntax.CmdSubst) string {
+	out := e.sub(ctx, cs.StmtList)
+	return strings.TrimRight(out, "\n")
 }
 
-func (r *Runner) wordFields(ctx context.Context, wps []syntax.WordPart) [][]fieldPart {
-	fields := r.fieldsAlloc[:0]
-	curField := r.fieldAlloc[:0]
+func (e *expandContext) wordFields(ctx context.Context, wps []syntax.WordPart) [][]fieldPart {
+	fields := e.fieldsAlloc[:0]
+	curField := e.fieldAlloc[:0]
 	allowEmpty := false
 	flush := func() {
 		if len(curField) == 0 {
@@ -311,7 +316,7 @@ func (r *Runner) wordFields(ctx context.Context, wps []syntax.WordPart) [][]fiel
 		curField = nil
 	}
 	splitAdd := func(val string) {
-		for i, field := range strings.FieldsFunc(val, r.ifsRune) {
+		for i, field := range strings.FieldsFunc(val, e.ifsRune) {
 			if i > 0 {
 				flush()
 			}
@@ -323,10 +328,10 @@ func (r *Runner) wordFields(ctx context.Context, wps []syntax.WordPart) [][]fiel
 		case *syntax.Lit:
 			s := x.Value
 			if i == 0 {
-				s = r.expandUser(s)
+				s = e.expandUser(s)
 			}
 			if strings.Contains(s, "\\") {
-				buf := r.strBuilder()
+				buf := e.strBuilder()
 				for i := 0; i < len(s); i++ {
 					b := s[i]
 					if b == '\\' {
@@ -342,14 +347,14 @@ func (r *Runner) wordFields(ctx context.Context, wps []syntax.WordPart) [][]fiel
 			allowEmpty = true
 			fp := fieldPart{quote: quoteSingle, val: x.Value}
 			if x.Dollar {
-				_, fp.val, _ = r.expandFormat(fp.val, nil)
+				_, fp.val, _ = e.expandFormat(fp.val, nil)
 			}
 			curField = append(curField, fp)
 		case *syntax.DblQuoted:
 			allowEmpty = true
 			if len(x.Parts) == 1 {
 				pe, _ := x.Parts[0].(*syntax.ParamExp)
-				if elems := r.quotedElems(pe); elems != nil {
+				if elems := e.quotedElems(pe); elems != nil {
 					for i, elem := range elems {
 						if i > 0 {
 							flush()
@@ -362,17 +367,17 @@ func (r *Runner) wordFields(ctx context.Context, wps []syntax.WordPart) [][]fiel
 					continue
 				}
 			}
-			for _, part := range r.wordField(ctx, x.Parts, quoteDouble) {
+			for _, part := range e.wordField(ctx, x.Parts, quoteDouble) {
 				part.quote = quoteDouble
 				curField = append(curField, part)
 			}
 		case *syntax.ParamExp:
-			splitAdd(r.paramExp(ctx, x))
+			splitAdd(e.paramExp(ctx, x))
 		case *syntax.CmdSubst:
-			splitAdd(r.cmdSubst(ctx, x))
+			splitAdd(e.cmdSubst(ctx, x))
 		case *syntax.ArithmExp:
 			curField = append(curField, fieldPart{
-				val: strconv.Itoa(r.arithm(ctx, x.X)),
+				val: strconv.Itoa(e.arithm(ctx, x.X)),
 			})
 		default:
 			panic(fmt.Sprintf("unhandled word part: %T", x))
@@ -385,7 +390,25 @@ func (r *Runner) wordFields(ctx context.Context, wps []syntax.WordPart) [][]fiel
 	return fields
 }
 
-func (r *Runner) expandUser(field string) string {
+// quotedElems checks if a parameter expansion is exactly ${@} or ${foo[@]}
+func (e *expandContext) quotedElems(pe *syntax.ParamExp) []string {
+	if pe == nil || pe.Excl || pe.Length || pe.Width {
+		return nil
+	}
+	if pe.Param.Value == "@" {
+		return e.env.Get("@").Value.(IndexArray)
+	}
+	if anyOfLit(pe.Index, "@") == "" {
+		return nil
+	}
+	val := e.env.Get(pe.Param.Value).Value
+	if x, ok := val.(IndexArray); ok {
+		return x
+	}
+	return nil
+}
+
+func (e *expandContext) expandUser(field string) string {
 	if len(field) == 0 || field[0] != '~' {
 		return field
 	}
@@ -396,7 +419,7 @@ func (r *Runner) expandUser(field string) string {
 		name = name[:i]
 	}
 	if name == "" {
-		return r.getVar("HOME") + rest
+		return e.env.Get("HOME").Value.String() + rest
 	}
 	u, err := user.Lookup(name)
 	if err != nil {

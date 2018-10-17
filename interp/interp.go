@@ -4,7 +4,6 @@
 package interp
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -54,8 +53,46 @@ func New(opts ...func(*Runner) error) (*Runner, error) {
 	if r.Stdout == nil || r.Stderr == nil {
 		StdIO(r.Stdin, r.Stdout, r.Stderr)(r)
 	}
+	r.fillExpandContext()
 	return r, nil
 }
+
+func (r *Runner) fillExpandContext() {
+	r.expandContext = expandContext{
+		ifsRune: r.expandContext.ifsRune,
+
+		env:      expandEnv{r},
+		arithm:   r.arithm,
+		paramExp: r.paramExp,
+		sub: func(ctx context.Context, sl syntax.StmtList) string {
+			r2 := r.sub()
+			buf := r.strBuilder()
+			r2.Stdout = buf
+			r2.stmts(ctx, sl)
+			r.setErr(r2.err)
+			return buf.String()
+		},
+		optByName: func(name string) bool {
+			return *r.optByName(name, true)
+		},
+	}
+}
+
+type expandEnv struct {
+	r *Runner
+}
+
+func (e expandEnv) Get(name string) Variable {
+	return e.r.lookupVar(name)
+}
+func (e expandEnv) Set(name string, vr Variable) {
+	e.r.setVarInternal(name, vr)
+}
+func (e expandEnv) Delete(name string) {
+	e.r.delVar(name)
+}
+func (e expandEnv) Each(func(name string, vr Variable) bool) {}
+func (e expandEnv) Sub() Environ                             { return e }
 
 // Env sets the interpreter's environment. If nil, the current process's
 // environment is used.
@@ -229,6 +266,8 @@ type Runner struct {
 	Vars  map[string]Variable
 	Funcs map[string]*syntax.Stmt
 
+	expandContext
+
 	// didReset remembers whether the runner has ever been reset. This is
 	// used so that Reset is automatically called when running any program
 	// or node for the first time on a Runner.
@@ -263,7 +302,6 @@ type Runner struct {
 	optState getopts
 
 	ifsJoin string
-	ifsRune func(rune) bool
 
 	// keepRedirs is used so that "exec" can make any redirections
 	// apply to the current shell, and not just the command.
@@ -282,16 +320,7 @@ type Runner struct {
 	// because Go doesn't currently support sending Interrupt on Windows.
 	KillTimeout time.Duration
 
-	fieldAlloc  [4]fieldPart
-	fieldsAlloc [4][]fieldPart
-	bufferAlloc bytes.Buffer
-	oneWord     [1]*syntax.Word
-}
-
-func (r *Runner) strBuilder() *bytes.Buffer {
-	b := &r.bufferAlloc
-	b.Reset()
-	return b
+	oneWord [1]*syntax.Word
 }
 
 func (r *Runner) optByFlag(flag string) *bool {
@@ -419,6 +448,7 @@ func (r *Runner) Reset() {
 	if r.KillTimeout == 0 {
 		r.KillTimeout = 2 * time.Second
 	}
+	r.fillExpandContext()
 	r.didReset = true
 }
 
@@ -586,6 +616,7 @@ func (r *Runner) sub() *Runner {
 	}
 	r2.dirStack = append([]string(nil), r.dirStack...)
 	r2.ifsUpdated()
+	r2.fillExpandContext()
 	r2.didReset = true
 	return r2
 }
@@ -1082,4 +1113,19 @@ func (r *Runner) pathExts() []string {
 		exts = append(exts, e)
 	}
 	return exts
+}
+
+func (r *Runner) loneWord(ctx context.Context, word *syntax.Word) string {
+	if word == nil {
+		return ""
+	}
+	field := r.wordField(ctx, word.Parts, quoteDouble)
+	return r.fieldJoin(field)
+}
+
+func (r *Runner) Fields(ctx context.Context, words ...*syntax.Word) ([]string, error) {
+	if !r.didReset {
+		r.Reset()
+	}
+	return r.fields(ctx, words...), r.err
 }

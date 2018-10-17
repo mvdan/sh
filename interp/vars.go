@@ -150,6 +150,10 @@ func (r *Runner) lookupVar(name string) Variable {
 	if name == "" {
 		panic("variable name must not be empty")
 	}
+	if name == "@" {
+		// TODO: clean up with expandContext
+		return Variable{Value: IndexArray(r.Params)}
+	}
 	if value, e := r.cmdVars[name]; e {
 		return Variable{Value: StringVal(value)}
 	}

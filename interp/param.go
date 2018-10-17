@@ -34,24 +34,6 @@ func anyOfLit(v interface{}, vals ...string) string {
 	return ""
 }
 
-// quotedElems checks if a parameter expansion is exactly ${@} or ${foo[@]}
-func (r *Runner) quotedElems(pe *syntax.ParamExp) []string {
-	if pe == nil || pe.Excl || pe.Length || pe.Width {
-		return nil
-	}
-	if pe.Param.Value == "@" {
-		return r.Params
-	}
-	if anyOfLit(pe.Index, "@") == "" {
-		return nil
-	}
-	val := r.lookupVar(pe.Param.Value)
-	if x, ok := val.Value.(IndexArray); ok {
-		return x
-	}
-	return nil
-}
-
 func (r *Runner) paramExp(ctx context.Context, pe *syntax.ParamExp) string {
 	name := pe.Param.Value
 	var vr Variable
