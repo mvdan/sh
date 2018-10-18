@@ -20,21 +20,21 @@ import (
 func (r *Runner) bashTest(ctx context.Context, expr syntax.TestExpr, classic bool) string {
 	switch x := expr.(type) {
 	case *syntax.Word:
-		return r.Literal(ctx, x)
+		return r.ExpandLiteral(ctx, x)
 	case *syntax.ParenTest:
 		return r.bashTest(ctx, x.X, classic)
 	case *syntax.BinaryTest:
 		switch x.Op {
 		case syntax.TsMatch, syntax.TsNoMatch:
-			str := r.Literal(ctx, x.X.(*syntax.Word))
+			str := r.ExpandLiteral(ctx, x.X.(*syntax.Word))
 			yw := x.Y.(*syntax.Word)
 			if classic { // test, [
-				lit := r.Literal(ctx, yw)
+				lit := r.ExpandLiteral(ctx, yw)
 				if (str == lit) == (x.Op == syntax.TsMatch) {
 					return "1"
 				}
 			} else { // [[
-				pat := r.Pattern(ctx, yw)
+				pat := r.ExpandPattern(ctx, yw)
 				if match(pat, str) == (x.Op == syntax.TsMatch) {
 					return "1"
 				}

@@ -238,7 +238,7 @@ func (r *Runner) setVar(ctx context.Context, name string, index syntax.ArithmExp
 		if !ok {
 			return
 		}
-		k := r.Literal(ctx, w)
+		k := r.ExpandLiteral(ctx, w)
 		amap[k] = valStr
 		cur.Value = amap
 		r.setVarInternal(name, cur)
@@ -252,7 +252,7 @@ func (r *Runner) setVar(ctx context.Context, name string, index syntax.ArithmExp
 		list = x
 	case expand.AssocArray: // done above
 	}
-	k := r.Arithm(ctx, index)
+	k := r.ExpandArithm(ctx, index)
 	for len(list) < k+1 {
 		list = append(list, "")
 	}
@@ -286,7 +286,7 @@ func (r *Runner) assignVal(ctx context.Context, as *syntax.Assign, valType strin
 		return prev.Value
 	}
 	if as.Value != nil {
-		s := r.Literal(ctx, as.Value)
+		s := r.ExpandLiteral(ctx, as.Value)
 		if !as.Append || prev == (expand.Variable{}) {
 			return expand.StringVal(s)
 		}
@@ -320,8 +320,8 @@ func (r *Runner) assignVal(ctx context.Context, as *syntax.Assign, valType strin
 		// associative array
 		amap := expand.AssocArray(make(map[string]string, len(elems)))
 		for _, elem := range elems {
-			k := r.Literal(ctx, elem.Index.(*syntax.Word))
-			amap[k] = r.Literal(ctx, elem.Value)
+			k := r.ExpandLiteral(ctx, elem.Index.(*syntax.Word))
+			amap[k] = r.ExpandLiteral(ctx, elem.Value)
 		}
 		if !as.Append || prev == (expand.Variable{}) {
 			return amap
@@ -337,7 +337,7 @@ func (r *Runner) assignVal(ctx context.Context, as *syntax.Assign, valType strin
 			indexes[i] = i
 			continue
 		}
-		k := r.Arithm(ctx, elem.Index)
+		k := r.ExpandArithm(ctx, elem.Index)
 		indexes[i] = k
 		if k > maxIndex {
 			maxIndex = k
@@ -345,7 +345,7 @@ func (r *Runner) assignVal(ctx context.Context, as *syntax.Assign, valType strin
 	}
 	strs := make([]string, maxIndex+1)
 	for i, elem := range elems {
-		strs[indexes[i]] = r.Literal(ctx, elem.Value)
+		strs[indexes[i]] = r.ExpandLiteral(ctx, elem.Value)
 	}
 	if !as.Append || prev == (expand.Variable{}) {
 		return expand.IndexArray(strs)

@@ -55,12 +55,12 @@ func New(opts ...func(*Runner) error) (*Runner, error) {
 	if r.Stdout == nil || r.Stderr == nil {
 		StdIO(r.Stdin, r.Stdout, r.Stderr)(r)
 	}
-	r.fillExpandContext()
+	r.fillContext()
 	return r, nil
 }
 
-func (r *Runner) fillExpandContext() {
-	r.ExpandContext = expand.ExpandContext{
+func (r *Runner) fillContext() {
+	r.Context = expand.Context{
 		Env: expandEnv{r},
 
 		OnError: func(err error) {
@@ -86,8 +86,8 @@ func (r *Runner) fillExpandContext() {
 }
 
 func (r *Runner) updateExpandOpts() {
-	r.ExpandContext.NoGlob = r.opts[optNoGlob]
-	r.ExpandContext.GlobStar = r.opts[optGlobStar]
+	r.Context.NoGlob = r.opts[optNoGlob]
+	r.Context.GlobStar = r.opts[optGlobStar]
 }
 
 type expandEnv struct {
@@ -286,7 +286,7 @@ type Runner struct {
 	Vars  map[string]expand.Variable
 	Funcs map[string]*syntax.Stmt
 
-	expand.ExpandContext
+	expand.Context
 
 	// didReset remembers whether the runner has ever been reset. This is
 	// used so that Reset is automatically called when running any program
@@ -465,7 +465,7 @@ func (r *Runner) Reset() {
 	if r.KillTimeout == 0 {
 		r.KillTimeout = 2 * time.Second
 	}
-	r.fillExpandContext()
+	r.fillContext()
 	r.didReset = true
 }
 
@@ -632,7 +632,7 @@ func (r *Runner) sub() *Runner {
 		r2.cmdVars[k] = v
 	}
 	r2.dirStack = append([]string(nil), r.dirStack...)
-	r2.fillExpandContext()
+	r2.fillContext()
 	r2.didReset = true
 	return r2
 }
@@ -650,7 +650,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		r.exit = r2.exit
 		r.setErr(r2.err)
 	case *syntax.CallExpr:
-		fields := r.ExpandContext.Fields(ctx, x.Args...)
+		fields := r.Context.ExpandFields(ctx, x.Args...)
 		if len(fields) == 0 {
 			for _, as := range x.Assigns {
 				vr := r.lookupVar(as.Name.Value)
@@ -729,36 +729,36 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		switch y := x.Loop.(type) {
 		case *syntax.WordIter:
 			name := y.Name.Value
-			for _, field := range r.ExpandContext.Fields(ctx, y.Items...) {
+			for _, field := range r.Context.ExpandFields(ctx, y.Items...) {
 				r.setVarString(ctx, name, field)
 				if r.loopStmtsBroken(ctx, x.Do) {
 					break
 				}
 			}
 		case *syntax.CStyleLoop:
-			r.Arithm(ctx, y.Init)
-			for r.Arithm(ctx, y.Cond) != 0 {
+			r.ExpandArithm(ctx, y.Init)
+			for r.ExpandArithm(ctx, y.Cond) != 0 {
 				if r.loopStmtsBroken(ctx, x.Do) {
 					break
 				}
-				r.Arithm(ctx, y.Post)
+				r.ExpandArithm(ctx, y.Post)
 			}
 		}
 	case *syntax.FuncDecl:
 		r.setFunc(x.Name.Value, x.Body)
 	case *syntax.ArithmCmd:
-		r.exit = oneIf(r.Arithm(ctx, x.X) == 0)
+		r.exit = oneIf(r.ExpandArithm(ctx, x.X) == 0)
 	case *syntax.LetClause:
 		var val int
 		for _, expr := range x.Exprs {
-			val = r.Arithm(ctx, expr)
+			val = r.ExpandArithm(ctx, expr)
 		}
 		r.exit = oneIf(val == 0)
 	case *syntax.CaseClause:
-		str := r.Literal(ctx, x.Word)
+		str := r.ExpandLiteral(ctx, x.Word)
 		for _, ci := range x.Items {
 			for _, word := range ci.Patterns {
-				pat := r.Pattern(ctx, word)
+				pat := r.ExpandPattern(ctx, word)
 				if match(pat, str) {
 					r.stmts(ctx, ci.StmtList)
 					return
@@ -795,7 +795,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			modes = append(modes, "-n")
 		}
 		for _, opt := range x.Opts {
-			switch s := r.Literal(ctx, opt); s {
+			switch s := r.ExpandLiteral(ctx, opt); s {
 			case "-x", "-r", "-n":
 				modes = append(modes, s)
 			case "-a", "-A":
@@ -856,7 +856,7 @@ func (r *Runner) flattenAssign(ctx context.Context, as *syntax.Assign) []*syntax
 		return []*syntax.Assign{as} // nothing to do
 	}
 	var asgns []*syntax.Assign
-	for _, field := range r.Fields(ctx, as.Value) {
+	for _, field := range r.ExpandFields(ctx, as.Value) {
 		as := &syntax.Assign{}
 		parts := strings.SplitN(field, "=", 2)
 		as.Name = &syntax.Lit{Value: parts[0]}
@@ -898,7 +898,7 @@ func (r *Runner) stmts(ctx context.Context, sl syntax.StmtList) {
 
 func (r *Runner) redir(ctx context.Context, rd *syntax.Redirect) (io.Closer, error) {
 	if rd.Hdoc != nil {
-		hdoc := r.Literal(ctx, rd.Hdoc)
+		hdoc := r.ExpandLiteral(ctx, rd.Hdoc)
 		r.Stdin = strings.NewReader(hdoc)
 		return nil, nil
 	}
@@ -910,7 +910,7 @@ func (r *Runner) redir(ctx context.Context, rd *syntax.Redirect) (io.Closer, err
 			orig = &r.Stderr
 		}
 	}
-	arg := r.Literal(ctx, rd.Word)
+	arg := r.ExpandLiteral(ctx, rd.Word)
 	switch rd.Op {
 	case syntax.WordHdoc:
 		r.Stdin = strings.NewReader(arg + "\n")
