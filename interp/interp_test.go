@@ -1847,6 +1847,19 @@ set +o pipefail
 		"declare -n foo=bar; bar=etc; echo $foo; echo ${!foo}",
 		"etc\nbar\n",
 	},
+	{
+		"declare -n foo=bar; bar=etc; foo=xxx; echo $foo $bar",
+		"xxx xxx\n",
+	},
+	{
+		"declare -n foo=bar; foo=xxx; echo $foo $bar",
+		"xxx xxx\n",
+	},
+	// TODO: figure this one out
+	//{
+	//        "declare -n foo=bar bar=baz; foo=xxx; echo $foo $bar; echo $baz",
+	//        "xxx xxx\nxxx\n",
+	//},
 
 	// read-only vars
 	{"declare -r foo=bar; echo $foo", "bar\n"},

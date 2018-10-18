@@ -19,6 +19,8 @@ type Variable struct {
 	Value    interface{} // string, []string, or map[string]string
 }
 
+// String returns the variable's value as a string. In general, this only makes
+// sense if the variable has a string value or no value at all.
 func (v Variable) String() string {
 	switch x := v.Value.(type) {
 	case string:
@@ -38,12 +40,16 @@ func (v Variable) String() string {
 // program quite easily.
 const maxNameRefDepth = 100
 
-func (v Variable) Resolve(env Environ) Variable {
+// Resolve follows a number of nameref variables, returning the last reference
+// name that was followed and the variable that it points to.
+func (v Variable) Resolve(env Environ) (string, Variable) {
+	name := ""
 	for i := 0; i < maxNameRefDepth; i++ {
 		if !v.NameRef {
-			return v
+			return name, v
 		}
-		v = env.Get(v.Value.(string))
+		name = v.Value.(string)
+		v = env.Get(name)
 	}
-	return Variable{}
+	return name, Variable{}
 }

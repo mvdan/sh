@@ -205,6 +205,12 @@ func (r *Runner) setVar(ctx context.Context, name string, index syntax.ArithmExp
 		r.exit = 1
 		return
 	}
+	if name2, var2 := cur.Resolve(r.Env); name2 != "" {
+		name = name2
+		cur = var2
+		vr.NameRef = false
+		cur.NameRef = false
+	}
 	_, isIndexArray := cur.Value.([]string)
 	_, isAssocArray := cur.Value.(map[string]string)
 

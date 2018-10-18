@@ -66,11 +66,11 @@ func (c *Context) paramExp(ctx context.Context, pe *syntax.ParamExp) string {
 		vr = c.Env.Get(name)
 	}
 	orig := vr
-	vr = vr.Resolve(c.Env)
+	_, vr = vr.Resolve(c.Env)
 	set := vr != Variable{}
 	str := vr.String()
 	if index != nil {
-		str = c.varInd(ctx, vr.Resolve(c.Env), index)
+		str = c.varInd(ctx, vr, index)
 	}
 	slicePos := func(expr syntax.ArithmExpr) int {
 		p := c.ExpandArithm(ctx, expr)
