@@ -34,6 +34,6 @@ func Expand(s string, env func(string) string) (string, error) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), pureRunnerTimeout)
 	defer cancel()
-	fields, err := r.Fields(ctx, word)
-	return strings.Join(fields, ""), err
+	fields := r.Fields(ctx, word)
+	return strings.Join(fields, ""), nil
 }

@@ -10,6 +10,7 @@ import (
 	"os"
 	"time"
 
+	"mvdan.cc/sh/expand"
 	"mvdan.cc/sh/interp"
 	"mvdan.cc/sh/syntax"
 )
@@ -19,7 +20,7 @@ import (
 //
 // A default parser is used; to set custom options, use SourceNode
 // instead.
-func SourceFile(path string) (map[string]interp.Variable, error) {
+func SourceFile(path string) (map[string]expand.Variable, error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, fmt.Errorf("could not open: %v", err)
@@ -77,7 +78,7 @@ func pureRunner() *interp.Runner {
 // interpreting the program. This is enforced via whitelists when
 // executing programs and opening paths. The interpreter also has a timeout of
 // two seconds.
-func SourceNode(node syntax.Node) (map[string]interp.Variable, error) {
+func SourceNode(node syntax.Node) (map[string]expand.Variable, error) {
 	r := pureRunner()
 	ctx, cancel := context.WithTimeout(context.Background(), pureRunnerTimeout)
 	defer cancel()
