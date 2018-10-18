@@ -4178,7 +4178,7 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 		offs := pos.Offset()
 		if offs > uint(len(src)) {
 			tb.Fatalf("Pos %d in %T is out of bounds in %q",
-				pos, v, string(src))
+				pos, v, src)
 			return
 		}
 		if strs == nil {
@@ -4261,7 +4261,7 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 				// ended by & or |&
 			default:
 				tb.Fatalf("Unexpected Stmt.End() %d %q in %q",
-					endOff, end, string(src))
+					endOff, end, src)
 			}
 		}
 		recurse(x.Comments)
@@ -4336,7 +4336,7 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 			// same as above, but with word and EOF
 		case end != want:
 			tb.Fatalf("Unexpected Lit %q End() %d (wanted %d) in %q",
-				val, end, want, string(src))
+				val, end, want, src)
 		}
 		setPos(&x.ValuePos, val)
 		setPos(&x.ValueEnd)
