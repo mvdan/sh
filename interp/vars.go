@@ -171,10 +171,9 @@ func (r *Runner) delVar(name string) {
 		r.exit = 1
 		return
 	}
-	delete(r.Vars, name)
+	r.Vars[name] = expand.Variable{} // to not query r.Env
 	delete(r.funcVars, name)
 	delete(r.cmdVars, name)
-	r.Env.Delete(name)
 }
 
 func (r *Runner) setVarString(ctx context.Context, name, value string) {

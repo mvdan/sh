@@ -1555,6 +1555,10 @@ set +o pipefail
 		`a=b eval 'echo $a; unset a; echo $a'`,
 		"b\n\n",
 	},
+	{
+		`$(unset INTERP_GLOBAL); echo $INTERP_GLOBAL; unset INTERP_GLOBAL; echo $INTERP_GLOBAL`,
+		"value\n\n",
+	},
 
 	// shopt
 	{"set -e; shopt -o | grep -E 'errexit|noexec' | wc -l", "2\n"},
@@ -2478,6 +2482,32 @@ func TestRunnerFilename(t *testing.T) {
 	if err := r.Run(ctx, file); err != nil {
 		t.Fatal(err)
 	}
+	if got := b.String(); got != want {
+		t.Fatalf("\nwant: %q\ngot:  %q", want, got)
+	}
+}
+
+func TestRunnerEnvNoModify(t *testing.T) {
+	t.Parallel()
+	env, _ := EnvFromList([]string{"one=1", "two=2"})
+	in := `echo -n "$one $two; "; one=x; unset two`
+	file, err := syntax.NewParser().Parse(strings.NewReader(in), "")
+	if err != nil {
+		t.Fatalf("could not parse: %v", err)
+	}
+
+	var b bytes.Buffer
+	r, _ := New(Env(env), StdIO(nil, &b, &b))
+	ctx := context.Background()
+	for i := 0; i < 3; i++ {
+		r.Reset()
+		err := r.Run(ctx, file)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	want := "1 2; 1 2; 1 2; "
 	if got := b.String(); got != want {
 		t.Fatalf("\nwant: %q\ngot:  %q", want, got)
 	}
