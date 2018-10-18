@@ -8,6 +8,7 @@ matrix:
       go: 1.10.x
     - os: linux
       go: 1.11.x
+      env: CHECK_GOFMT=1
     - os: osx
       go: 1.11.x
 
@@ -20,4 +21,5 @@ script:
   - go install ./...
   - go test ./...
   - go test -short -race ./...
+  - if [ -n "$CHECK_GOFMT" ]; then diff <(echo -n) <(gofmt -d .); fi
   - shfmt -version
