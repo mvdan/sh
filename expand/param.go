@@ -1,7 +1,7 @@
 // Copyright (c) 2017, Daniel Martí <mvdan@mvdan.cc>
 // See LICENSE for licensing information
 
-package interp
+package expand
 
 import (
 	"context"
@@ -15,6 +15,54 @@ import (
 
 	"mvdan.cc/sh/syntax"
 )
+
+type Environ interface {
+	Get(name string) Variable
+	Set(name string, vr Variable)
+	Delete(name string)
+	Each(func(name string, vr Variable) bool)
+	Sub() Environ
+}
+
+type Variable struct {
+	Local    bool
+	Exported bool
+	ReadOnly bool
+	NameRef  bool
+	Value    VarValue
+}
+
+// VarValue is one of:
+//
+//     nil (unset variable)
+//     StringVal
+//     IndexArray
+//     AssocArray
+type VarValue interface {
+	String() string
+}
+
+type StringVal string
+
+func (s StringVal) String() string {
+	return string(s)
+}
+
+type IndexArray []string
+
+func (i IndexArray) String() string {
+	if len(i) == 0 {
+		return ""
+	}
+	return i[0]
+}
+
+type AssocArray map[string]string
+
+func (a AssocArray) String() string {
+	// nothing to do
+	return ""
+}
 
 func anyOfLit(v interface{}, vals ...string) string {
 	word, _ := v.(*syntax.Word)
@@ -55,14 +103,23 @@ func (e *ExpandContext) paramExp(ctx context.Context, pe *syntax.ParamExp) strin
 			&syntax.Lit{Value: name},
 		}}
 	}
-	vr := e.Env.Get(name)
+	var vr Variable
+	switch name {
+	case "LINENO":
+		// This is the only parameter expansion that the environment
+		// interface cannot satisfy.
+		line := uint64(e.curParam.Pos().Line())
+		vr.Value = StringVal(strconv.FormatUint(line, 10))
+	default:
+		vr = e.Env.Get(name)
+	}
 	set := vr != Variable{}
 	str := e.varStr(vr, 0)
 	if index != nil {
 		str = e.varInd(ctx, vr, index, 0)
 	}
 	slicePos := func(expr syntax.ArithmExpr) int {
-		p := e.arithm(ctx, expr)
+		p := e.Arithm(ctx, expr)
 		if p < 0 {
 			p = len(str) + p
 			if p < 0 {
@@ -121,8 +178,8 @@ func (e *ExpandContext) paramExp(ctx context.Context, pe *syntax.ParamExp) strin
 			str = str[:length]
 		}
 	case pe.Repl != nil:
-		orig := e.lonePattern(ctx, pe.Repl.Orig)
-		with := e.loneWord(ctx, pe.Repl.With)
+		orig := e.Pattern(ctx, pe.Repl.Orig)
+		with := e.Literal(ctx, pe.Repl.With)
 		n := 1
 		if pe.Repl.All {
 			n = -1
@@ -138,7 +195,7 @@ func (e *ExpandContext) paramExp(ctx context.Context, pe *syntax.ParamExp) strin
 		buf.WriteString(str[last:])
 		str = buf.String()
 	case pe.Exp != nil:
-		arg := e.loneWord(ctx, pe.Exp.Word)
+		arg := e.Literal(ctx, pe.Exp.Word)
 		switch op := pe.Exp.Op; op {
 		case syntax.SubstColPlus:
 			if str == "" {
@@ -265,4 +322,76 @@ func removePattern(str, pattern string, fromEnd, greedy bool) string {
 		str = str[:loc[2]] + str[loc[3]:]
 	}
 	return str
+}
+
+func (e *ExpandContext) varStr(vr Variable, depth int) string {
+	if vr.Value == nil || depth > maxNameRefDepth {
+		return ""
+	}
+	if vr.NameRef {
+		vr = e.Env.Get(string(vr.Value.(StringVal)))
+		return e.varStr(vr, depth+1)
+	}
+	return vr.Value.String()
+}
+
+// maxNameRefDepth defines the maximum number of times to follow
+// references when expanding a variable. Otherwise, simple name
+// reference loops could crash the interpreter quite easily.
+const maxNameRefDepth = 100
+
+func (e *ExpandContext) varInd(ctx context.Context, vr Variable, idx syntax.ArithmExpr, depth int) string {
+	if depth > maxNameRefDepth {
+		return ""
+	}
+	switch x := vr.Value.(type) {
+	case StringVal:
+		if vr.NameRef {
+			vr = e.Env.Get(string(x))
+			return e.varInd(ctx, vr, idx, depth+1)
+		}
+		if e.Arithm(ctx, idx) == 0 {
+			return string(x)
+		}
+	case IndexArray:
+		switch anyOfLit(idx, "@", "*") {
+		case "@":
+			return strings.Join(x, " ")
+		case "*":
+			return e.ifsJoin([]string(x))
+		}
+		i := e.Arithm(ctx, idx)
+		if len(x) > 0 {
+			return x[i]
+		}
+	case AssocArray:
+		if lit := anyOfLit(idx, "@", "*"); lit != "" {
+			var strs []string
+			keys := make([]string, 0, len(x))
+			for k := range x {
+				keys = append(keys, k)
+			}
+			sort.Strings(keys)
+			for _, k := range keys {
+				strs = append(strs, x[k])
+			}
+			if lit == "*" {
+				return e.ifsJoin(strs)
+			}
+			return strings.Join(strs, " ")
+		}
+		return x[e.Literal(ctx, idx.(*syntax.Word))]
+	}
+	return ""
+}
+
+func (e *ExpandContext) namesByPrefix(prefix string) []string {
+	var names []string
+	e.Env.Each(func(name string, vr Variable) bool {
+		if strings.HasPrefix(name, prefix) {
+			names = append(names, name)
+		}
+		return true
+	})
+	return names
 }

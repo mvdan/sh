@@ -1,7 +1,7 @@
 // Copyright (c) 2017, Daniel Martí <mvdan@mvdan.cc>
 // See LICENSE for licensing information
 
-package interp
+package expand
 
 import (
 	"context"
@@ -11,10 +11,10 @@ import (
 	"mvdan.cc/sh/syntax"
 )
 
-func (e *ExpandContext) arithm(ctx context.Context, expr syntax.ArithmExpr) int {
+func (e *ExpandContext) Arithm(ctx context.Context, expr syntax.ArithmExpr) int {
 	switch x := expr.(type) {
 	case *syntax.Word:
-		str := e.loneWord(ctx, x)
+		str := e.Literal(ctx, x)
 		// recursively fetch vars
 		for str != "" {
 			val := e.envGet(str)
@@ -26,7 +26,7 @@ func (e *ExpandContext) arithm(ctx context.Context, expr syntax.ArithmExpr) int 
 		// default to 0
 		return atoi(str)
 	case *syntax.ParenArithm:
-		return e.arithm(ctx, x.X)
+		return e.Arithm(ctx, x.X)
 	case *syntax.UnaryArithm:
 		switch x.Op {
 		case syntax.Inc, syntax.Dec:
@@ -44,7 +44,7 @@ func (e *ExpandContext) arithm(ctx context.Context, expr syntax.ArithmExpr) int 
 			}
 			return val
 		}
-		val := e.arithm(ctx, x.X)
+		val := e.Arithm(ctx, x.X)
 		switch x.Op {
 		case syntax.Not:
 			return oneIf(val == 0)
@@ -61,14 +61,14 @@ func (e *ExpandContext) arithm(ctx context.Context, expr syntax.ArithmExpr) int 
 			syntax.ShlAssgn, syntax.ShrAssgn:
 			return e.assgnArit(ctx, x)
 		case syntax.Quest: // Colon can't happen here
-			cond := e.arithm(ctx, x.X)
+			cond := e.Arithm(ctx, x.X)
 			b2 := x.Y.(*syntax.BinaryArithm) // must have Op==Colon
 			if cond == 1 {
-				return e.arithm(ctx, b2.X)
+				return e.Arithm(ctx, b2.X)
 			}
-			return e.arithm(ctx, b2.Y)
+			return e.Arithm(ctx, b2.Y)
 		}
-		return binArit(x.Op, e.arithm(ctx, x.X), e.arithm(ctx, x.Y))
+		return binArit(x.Op, e.Arithm(ctx, x.X), e.Arithm(ctx, x.Y))
 	default:
 		panic(fmt.Sprintf("unexpected arithm expr: %T", x))
 	}
@@ -91,7 +91,7 @@ func atoi(s string) int {
 func (e *ExpandContext) assgnArit(ctx context.Context, b *syntax.BinaryArithm) int {
 	name := b.X.(*syntax.Word).Parts[0].(*syntax.Lit).Value
 	val := atoi(e.envGet(name))
-	arg := e.arithm(ctx, b.Y)
+	arg := e.Arithm(ctx, b.Y)
 	switch b.Op {
 	case syntax.Assgn:
 		val = arg

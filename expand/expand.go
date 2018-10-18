@@ -1,12 +1,13 @@
 // Copyright (c) 2017, Daniel Martí <mvdan@mvdan.cc>
 // See LICENSE for licensing information
 
-package interp
+package expand
 
 import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -16,7 +17,6 @@ import (
 	"strconv"
 	"strings"
 
-	"mvdan.cc/sh/expand"
 	"mvdan.cc/sh/syntax"
 )
 
@@ -26,15 +26,14 @@ type ExpandContext struct {
 	NoGlob   bool
 	GlobStar bool
 
+	Subshell func(context.Context, io.Writer, syntax.StmtList)
+
 	// if nil, errors cause a panic.
 	OnError func(error)
 
 	bufferAlloc bytes.Buffer
 	fieldAlloc  [4]fieldPart
 	fieldsAlloc [4][]fieldPart
-
-	// TODO: port these too
-	sub func(context.Context, syntax.StmtList) string
 
 	ifs string
 	// A pointer to a parameter expansion node, if we're inside one.
@@ -84,7 +83,7 @@ func (e *ExpandContext) envSet(name, value string) {
 	e.Env.Set(name, Variable{Value: StringVal(value)})
 }
 
-func (e *ExpandContext) loneWord(ctx context.Context, word *syntax.Word) string {
+func (e *ExpandContext) Literal(ctx context.Context, word *syntax.Word) string {
 	if word == nil {
 		return ""
 	}
@@ -92,7 +91,7 @@ func (e *ExpandContext) loneWord(ctx context.Context, word *syntax.Word) string 
 	return e.fieldJoin(field)
 }
 
-func (e *ExpandContext) expandFormat(format string, args []string) (int, string, error) {
+func (e *ExpandContext) ExpandFormat(format string, args []string) (int, string, error) {
 	buf := e.strBuilder()
 	esc := false
 	var fmts []rune
@@ -217,7 +216,7 @@ func (e *ExpandContext) Fields(ctx context.Context, words ...*syntax.Word) []str
 	dir := e.envGet("PWD")
 	baseDir := syntax.QuotePattern(dir)
 	for _, word := range words {
-		for _, expWord := range expand.Braces(word) {
+		for _, expWord := range Braces(word) {
 			for _, field := range e.wordFields(ctx, expWord.Parts) {
 				path, doGlob := e.escapedGlobField(field)
 				var matches []string
@@ -248,7 +247,7 @@ func (e *ExpandContext) Fields(ctx context.Context, words ...*syntax.Word) []str
 	return fields
 }
 
-func (e *ExpandContext) lonePattern(ctx context.Context, word *syntax.Word) string {
+func (e *ExpandContext) Pattern(ctx context.Context, word *syntax.Word) string {
 	field := e.wordField(ctx, word.Parts, quoteSingle)
 	buf := e.strBuilder()
 	for _, part := range field {
@@ -259,30 +258,6 @@ func (e *ExpandContext) lonePattern(ctx context.Context, word *syntax.Word) stri
 		}
 	}
 	return buf.String()
-}
-
-func (e *ExpandContext) expandAssigns(ctx context.Context, as *syntax.Assign) []*syntax.Assign {
-	// Convert "declare $x" into "declare value".
-	// Don't use syntax.Parser here, as we only want the basic
-	// splitting by '='.
-	if as.Name != nil {
-		return []*syntax.Assign{as} // nothing to do
-	}
-	var asgns []*syntax.Assign
-	for _, field := range e.Fields(ctx, as.Value) {
-		as := &syntax.Assign{}
-		parts := strings.SplitN(field, "=", 2)
-		as.Name = &syntax.Lit{Value: parts[0]}
-		if len(parts) == 1 {
-			as.Naked = true
-		} else {
-			as.Value = &syntax.Word{Parts: []syntax.WordPart{
-				&syntax.Lit{Value: parts[1]},
-			}}
-		}
-		asgns = append(asgns, as)
-	}
-	return asgns
 }
 
 type fieldPart struct {
@@ -328,7 +303,7 @@ func (e *ExpandContext) wordField(ctx context.Context, wps []syntax.WordPart, ql
 		case *syntax.SglQuoted:
 			fp := fieldPart{quote: quoteSingle, val: x.Value}
 			if x.Dollar {
-				_, fp.val, _ = e.expandFormat(fp.val, nil)
+				_, fp.val, _ = e.ExpandFormat(fp.val, nil)
 			}
 			field = append(field, fp)
 		case *syntax.DblQuoted:
@@ -342,7 +317,7 @@ func (e *ExpandContext) wordField(ctx context.Context, wps []syntax.WordPart, ql
 			field = append(field, fieldPart{val: e.cmdSubst(ctx, x)})
 		case *syntax.ArithmExp:
 			field = append(field, fieldPart{
-				val: strconv.Itoa(e.arithm(ctx, x.X)),
+				val: strconv.Itoa(e.Arithm(ctx, x.X)),
 			})
 		default:
 			panic(fmt.Sprintf("unhandled word part: %T", x))
@@ -352,8 +327,9 @@ func (e *ExpandContext) wordField(ctx context.Context, wps []syntax.WordPart, ql
 }
 
 func (e *ExpandContext) cmdSubst(ctx context.Context, cs *syntax.CmdSubst) string {
-	out := e.sub(ctx, cs.StmtList)
-	return strings.TrimRight(out, "\n")
+	buf := e.strBuilder()
+	e.Subshell(ctx, buf, cs.StmtList)
+	return strings.TrimRight(buf.String(), "\n")
 }
 
 func (e *ExpandContext) wordFields(ctx context.Context, wps []syntax.WordPart) [][]fieldPart {
@@ -399,7 +375,7 @@ func (e *ExpandContext) wordFields(ctx context.Context, wps []syntax.WordPart) [
 			allowEmpty = true
 			fp := fieldPart{quote: quoteSingle, val: x.Value}
 			if x.Dollar {
-				_, fp.val, _ = e.expandFormat(fp.val, nil)
+				_, fp.val, _ = e.ExpandFormat(fp.val, nil)
 			}
 			curField = append(curField, fp)
 		case *syntax.DblQuoted:
@@ -429,7 +405,7 @@ func (e *ExpandContext) wordFields(ctx context.Context, wps []syntax.WordPart) [
 			splitAdd(e.cmdSubst(ctx, x))
 		case *syntax.ArithmExp:
 			curField = append(curField, fieldPart{
-				val: strconv.Itoa(e.arithm(ctx, x.X)),
+				val: strconv.Itoa(e.Arithm(ctx, x.X)),
 			})
 		default:
 			panic(fmt.Sprintf("unhandled word part: %T", x))
@@ -479,15 +455,6 @@ func (e *ExpandContext) expandUser(field string) string {
 		return field
 	}
 	return u.HomeDir + rest
-}
-
-func match(pattern, name string) bool {
-	expr, err := syntax.TranslatePattern(pattern, true)
-	if err != nil {
-		return false
-	}
-	rx := regexp.MustCompile("^" + expr + "$")
-	return rx.MatchString(name)
 }
 
 func findAllIndex(pattern, name string, n int) [][]int {
@@ -585,7 +552,7 @@ func globDir(dir string, rx *regexp.Regexp, matches []string) []string {
 	return matches
 }
 
-func (e *ExpandContext) ifsFields(s string, n int, raw bool) []string {
+func (e *ExpandContext) ReadFields(s string, n int, raw bool) []string {
 	e.ifs = e.envGet("IFS")
 	type pos struct {
 		start, end int

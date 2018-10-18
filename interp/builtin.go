@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 
+	"mvdan.cc/sh/expand"
 	"mvdan.cc/sh/syntax"
 )
 
@@ -27,6 +28,20 @@ func isBuiltin(name string) bool {
 		return true
 	}
 	return false
+}
+
+func oneIf(b bool) int {
+	if b {
+		return 1
+	}
+	return 0
+}
+
+// atoi is just a shorthand for strconv.Atoi that ignores the error,
+// just like shells do.
+func atoi(s string) int {
+	n, _ := strconv.Atoi(s)
+	return n
 }
 
 func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, args []string) int {
@@ -91,7 +106,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		}
 
 		for _, arg := range args {
-			if vr := r.lookupVar(arg); vr != (Variable{}) && vars {
+			if vr := r.lookupVar(arg); vr != (expand.Variable{}) && vars {
 				r.delVar(arg)
 				continue
 			}
@@ -119,7 +134,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 				r.out(" ")
 			}
 			if expand {
-				_, arg, _ = r.expandFormat(arg, nil)
+				_, arg, _ = r.ExpandFormat(arg, nil)
 			}
 			r.out(arg)
 		}
@@ -133,7 +148,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		}
 		format, args := args[0], args[1:]
 		for {
-			n, s, err := r.expandFormat(format, args)
+			n, s, err := r.ExpandFormat(format, args)
 			if err != nil {
 				r.errf("%v\n", err)
 				return 1
@@ -181,12 +196,12 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			return 2
 		}
 	case "pwd":
-		r.outf("%s\n", r.getVar("PWD"))
+		r.outf("%s\n", r.envGet("PWD"))
 	case "cd":
 		var path string
 		switch len(args) {
 		case 0:
-			path = r.getVar("HOME")
+			path = r.envGet("HOME")
 		case 1:
 			path = args[0]
 		default:
@@ -462,13 +477,13 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			args = append(args, "REPLY")
 		}
 
-		values := r.ifsFields(string(line), len(args), raw)
+		values := r.ReadFields(string(line), len(args), raw)
 		for i, name := range args {
 			val := ""
 			if i < len(values) {
 				val = values[i]
 			}
-			r.setVar(ctx, name, nil, Variable{Value: StringVal(val)})
+			r.setVar(ctx, name, nil, expand.Variable{Value: expand.StringVal(val)})
 		}
 
 		return 0
@@ -478,7 +493,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			r.errf("getopts: usage: getopts optstring name [arg]\n")
 			return 2
 		}
-		optind, _ := strconv.Atoi(r.getVar("OPTIND"))
+		optind, _ := strconv.Atoi(r.envGet("OPTIND"))
 		if optind-1 != r.optState.argidx {
 			if optind < 1 {
 				optind = 1
@@ -620,7 +635,7 @@ func (r *Runner) changeDir(path string) int {
 	}
 	r.Dir = path
 	r.Vars["OLDPWD"] = r.Vars["PWD"]
-	r.Vars["PWD"] = Variable{Value: StringVal(path)}
+	r.Vars["PWD"] = expand.Variable{Value: expand.StringVal(path)}
 	return 0
 }
 

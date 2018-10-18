@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 	"sync"
@@ -19,6 +20,7 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
+	"mvdan.cc/sh/expand"
 	"mvdan.cc/sh/syntax"
 )
 
@@ -58,12 +60,12 @@ func New(opts ...func(*Runner) error) (*Runner, error) {
 }
 
 func (r *Runner) fillExpandContext() {
-	r.ExpandContext = ExpandContext{
+	r.ExpandContext = expand.ExpandContext{
 		Env: expandEnv{r},
 
 		OnError: func(err error) {
 			switch err := err.(type) {
-			case UnsetParameterError:
+			case expand.UnsetParameterError:
 				r.errf("%s\n", err.Message)
 				r.exit = 1
 				r.setErr(ShellExitStatus(r.exit))
@@ -73,13 +75,11 @@ func (r *Runner) fillExpandContext() {
 			}
 		},
 
-		sub: func(ctx context.Context, sl syntax.StmtList) string {
+		Subshell: func(ctx context.Context, w io.Writer, sl syntax.StmtList) {
 			r2 := r.sub()
-			buf := r.strBuilder()
-			r2.Stdout = buf
+			r2.Stdout = w
 			r2.stmts(ctx, sl)
 			r.setErr(r2.err)
-			return buf.String()
 		},
 	}
 	r.updateExpandOpts()
@@ -94,16 +94,16 @@ type expandEnv struct {
 	r *Runner
 }
 
-func (e expandEnv) Get(name string) Variable {
+func (e expandEnv) Get(name string) expand.Variable {
 	return e.r.lookupVar(name)
 }
-func (e expandEnv) Set(name string, vr Variable) {
+func (e expandEnv) Set(name string, vr expand.Variable) {
 	e.r.setVarInternal(name, vr)
 }
 func (e expandEnv) Delete(name string) {
 	e.r.delVar(name)
 }
-func (e expandEnv) Each(fn func(name string, vr Variable) bool) {
+func (e expandEnv) Each(fn func(name string, vr expand.Variable) bool) {
 	e.r.Env.Each(fn)
 	for name, vr := range e.r.Vars {
 		if !fn(name, vr) {
@@ -111,11 +111,11 @@ func (e expandEnv) Each(fn func(name string, vr Variable) bool) {
 		}
 	}
 }
-func (e expandEnv) Sub() Environ { return e }
+func (e expandEnv) Sub() expand.Environ { return e }
 
 // Env sets the interpreter's environment. If nil, the current process's
 // environment is used.
-func Env(env Environ) func(*Runner) error {
+func Env(env expand.Environ) func(*Runner) error {
 	return func(r *Runner) error {
 		if env == nil {
 			env, _ = EnvFromList(os.Environ())
@@ -260,7 +260,7 @@ func StdIO(in io.Reader, out, err io.Writer) func(*Runner) error {
 type Runner struct {
 	// Env specifies the environment of the interpreter, which must be
 	// non-nil.
-	Env Environ
+	Env expand.Environ
 
 	// Dir specifies the working directory of the command, which must be an
 	// absolute path.
@@ -283,10 +283,10 @@ type Runner struct {
 	// Separate maps, note that bash allows a name to be both a var
 	// and a func simultaneously
 	// TODO: merge into Env?
-	Vars  map[string]Variable
+	Vars  map[string]expand.Variable
 	Funcs map[string]*syntax.Stmt
 
-	ExpandContext
+	expand.ExpandContext
 
 	// didReset remembers whether the runner has ever been reset. This is
 	// used so that Reset is automatically called when running any program
@@ -298,7 +298,7 @@ type Runner struct {
 	filename string // only if Node was a File
 
 	// like Vars, but local to a func i.e. "local foo=bar"
-	funcVars map[string]Variable
+	funcVars map[string]expand.Variable
 
 	// like Vars, but local to a cmd i.e. "foo=bar prog args..."
 	cmdVars map[string]string
@@ -427,7 +427,7 @@ func (r *Runner) Reset() {
 		usedNew:  r.usedNew,
 	}
 	if r.Vars == nil {
-		r.Vars = make(map[string]Variable)
+		r.Vars = make(map[string]expand.Variable)
 	} else {
 		for k := range r.Vars {
 			delete(r.Vars, k)
@@ -440,19 +440,19 @@ func (r *Runner) Reset() {
 			delete(r.cmdVars, k)
 		}
 	}
-	if vr := r.Env.Get("HOME"); vr == (Variable{}) {
+	if vr := r.Env.Get("HOME"); vr == (expand.Variable{}) {
 		u, _ := user.Current()
-		r.Vars["HOME"] = Variable{Value: StringVal(u.HomeDir)}
+		r.Vars["HOME"] = expand.Variable{Value: expand.StringVal(u.HomeDir)}
 	}
-	r.Vars["PWD"] = Variable{Value: StringVal(r.Dir)}
-	r.Vars["IFS"] = Variable{Value: StringVal(" \t\n")}
-	r.Vars["OPTIND"] = Variable{Value: StringVal("1")}
+	r.Vars["PWD"] = expand.Variable{Value: expand.StringVal(r.Dir)}
+	r.Vars["IFS"] = expand.Variable{Value: expand.StringVal(" \t\n")}
+	r.Vars["OPTIND"] = expand.Variable{Value: expand.StringVal("1")}
 
 	if runtime.GOOS == "windows" {
 		// convert $PATH to a unix path list
 		path := r.Env.Get("PATH").Value.String()
 		path = strings.Join(filepath.SplitList(path), ":")
-		r.Vars["PATH"] = Variable{Value: StringVal(path)}
+		r.Vars["PATH"] = expand.Variable{Value: expand.StringVal(path)}
 	}
 
 	r.dirStack = append(r.dirStack, r.Dir)
@@ -485,7 +485,7 @@ func (r *Runner) modCtx(ctx context.Context) context.Context {
 		mc.Env.Set(name, vr)
 	}
 	for name, value := range r.cmdVars {
-		mc.Env.Set(name, Variable{Value: StringVal(value)})
+		mc.Env.Set(name, expand.Variable{Value: expand.StringVal(value)})
 	}
 	return context.WithValue(ctx, moduleCtxKey{}, mc)
 }
@@ -623,7 +623,7 @@ func (r *Runner) sub() *Runner {
 		opts:        r.opts,
 	}
 	r2.Env = r.Env.Sub()
-	r2.Vars = make(map[string]Variable, len(r.Vars))
+	r2.Vars = make(map[string]expand.Variable, len(r.Vars))
 	for k, v := range r.Vars {
 		r2.Vars[k] = v
 	}
@@ -662,7 +662,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		for _, as := range x.Assigns {
 			val := r.assignVal(ctx, as, "")
 			// we know that inline vars must be strings
-			r.cmdVars[as.Name.Value] = string(val.(StringVal))
+			r.cmdVars[as.Name.Value] = string(val.(expand.StringVal))
 		}
 		r.call(ctx, x.Args[0].Pos(), fields)
 		// cmdVars can be nuked here, as they are never useful
@@ -736,29 +736,29 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 				}
 			}
 		case *syntax.CStyleLoop:
-			r.arithm(ctx, y.Init)
-			for r.arithm(ctx, y.Cond) != 0 {
+			r.Arithm(ctx, y.Init)
+			for r.Arithm(ctx, y.Cond) != 0 {
 				if r.loopStmtsBroken(ctx, x.Do) {
 					break
 				}
-				r.arithm(ctx, y.Post)
+				r.Arithm(ctx, y.Post)
 			}
 		}
 	case *syntax.FuncDecl:
 		r.setFunc(x.Name.Value, x.Body)
 	case *syntax.ArithmCmd:
-		r.exit = oneIf(r.arithm(ctx, x.X) == 0)
+		r.exit = oneIf(r.Arithm(ctx, x.X) == 0)
 	case *syntax.LetClause:
 		var val int
 		for _, expr := range x.Exprs {
-			val = r.arithm(ctx, expr)
+			val = r.Arithm(ctx, expr)
 		}
 		r.exit = oneIf(val == 0)
 	case *syntax.CaseClause:
-		str := r.loneWord(ctx, x.Word)
+		str := r.Literal(ctx, x.Word)
 		for _, ci := range x.Items {
 			for _, word := range ci.Patterns {
-				pat := r.lonePattern(ctx, word)
+				pat := r.Pattern(ctx, word)
 				if match(pat, str) {
 					r.stmts(ctx, ci.StmtList)
 					return
@@ -795,7 +795,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			modes = append(modes, "-n")
 		}
 		for _, opt := range x.Opts {
-			switch s := r.loneWord(ctx, opt); s {
+			switch s := r.Literal(ctx, opt); s {
 			case "-x", "-r", "-n":
 				modes = append(modes, s)
 			case "-a", "-A":
@@ -809,7 +809,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			}
 		}
 		for _, as := range x.Assigns {
-			for _, as := range r.expandAssigns(ctx, as) {
+			for _, as := range r.flattenAssign(ctx, as) {
 				name := as.Name.Value
 				vr := r.lookupVar(as.Name.Value)
 				vr.Value = r.assignVal(ctx, as, valType)
@@ -848,6 +848,39 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 	}
 }
 
+func (r *Runner) flattenAssign(ctx context.Context, as *syntax.Assign) []*syntax.Assign {
+	// Convert "declare $x" into "declare value".
+	// Don't use syntax.Parser here, as we only want the basic
+	// splitting by '='.
+	if as.Name != nil {
+		return []*syntax.Assign{as} // nothing to do
+	}
+	var asgns []*syntax.Assign
+	for _, field := range r.Fields(ctx, as.Value) {
+		as := &syntax.Assign{}
+		parts := strings.SplitN(field, "=", 2)
+		as.Name = &syntax.Lit{Value: parts[0]}
+		if len(parts) == 1 {
+			as.Naked = true
+		} else {
+			as.Value = &syntax.Word{Parts: []syntax.WordPart{
+				&syntax.Lit{Value: parts[1]},
+			}}
+		}
+		asgns = append(asgns, as)
+	}
+	return asgns
+}
+
+func match(pattern, name string) bool {
+	expr, err := syntax.TranslatePattern(pattern, true)
+	if err != nil {
+		return false
+	}
+	rx := regexp.MustCompile("^" + expr + "$")
+	return rx.MatchString(name)
+}
+
 func elapsedString(d time.Duration, posix bool) string {
 	if posix {
 		return fmt.Sprintf("%.2f", d.Seconds())
@@ -865,7 +898,7 @@ func (r *Runner) stmts(ctx context.Context, sl syntax.StmtList) {
 
 func (r *Runner) redir(ctx context.Context, rd *syntax.Redirect) (io.Closer, error) {
 	if rd.Hdoc != nil {
-		hdoc := r.loneWord(ctx, rd.Hdoc)
+		hdoc := r.Literal(ctx, rd.Hdoc)
 		r.Stdin = strings.NewReader(hdoc)
 		return nil, nil
 	}
@@ -877,7 +910,7 @@ func (r *Runner) redir(ctx context.Context, rd *syntax.Redirect) (io.Closer, err
 			orig = &r.Stderr
 		}
 	}
-	arg := r.loneWord(ctx, rd.Word)
+	arg := r.Literal(ctx, rd.Word)
 	switch rd.Op {
 	case syntax.WordHdoc:
 		r.Stdin = strings.NewReader(arg + "\n")
@@ -1079,7 +1112,7 @@ func splitList(path string) []string {
 }
 
 func (r *Runner) lookPath(file string) string {
-	pathList := splitList(r.getVar("PATH"))
+	pathList := splitList(r.envGet("PATH"))
 	chars := `/`
 	if runtime.GOOS == "windows" {
 		chars = `:\/`
@@ -1110,7 +1143,7 @@ func (r *Runner) pathExts() []string {
 	if runtime.GOOS != "windows" {
 		return nil
 	}
-	pathext := r.getVar("PATHEXT")
+	pathext := r.envGet("PATHEXT")
 	if pathext == "" {
 		return []string{".com", ".exe", ".bat", ".cmd"}
 	}
@@ -1125,11 +1158,4 @@ func (r *Runner) pathExts() []string {
 		exts = append(exts, e)
 	}
 	return exts
-}
-
-func (r *Runner) Fields(ctx context.Context, words ...*syntax.Word) ([]string, error) {
-	if !r.didReset {
-		r.Reset()
-	}
-	return r.ExpandContext.Fields(ctx, words...), r.err
 }

@@ -11,7 +11,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"reflect"
 	"regexp"
 	"runtime"
 	"strings"
@@ -2427,25 +2426,6 @@ func TestRunnerDir(t *testing.T) {
 			t.Errorf("Runner.Dir is not absolute")
 		}
 	})
-}
-
-func TestFields(t *testing.T) {
-	t.Parallel()
-	file, err := syntax.NewParser().Parse(strings.NewReader("foo-$bar"), "")
-	if err != nil {
-		t.Fatal(err)
-	}
-	want := []string{"foo-"}
-	words := file.Stmts[0].Cmd.(*syntax.CallExpr).Args
-	ctx := context.Background()
-	r, _ := New()
-	got, err := r.Fields(ctx, words...)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if !reflect.DeepEqual(want, got) {
-		t.Fatalf("want=%v got=%v", want, got)
-	}
 }
 
 func TestRunnerIncremental(t *testing.T) {
