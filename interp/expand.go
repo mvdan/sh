@@ -29,9 +29,6 @@ type ExpandContext struct {
 	// if nil, errors cause a panic.
 	OnError func(error)
 
-	ifsJoin string
-	ifsRune func(rune) bool
-
 	bufferAlloc bytes.Buffer
 	fieldAlloc  [4]fieldPart
 	fieldsAlloc [4][]fieldPart
@@ -39,9 +36,27 @@ type ExpandContext struct {
 	// TODO: port these too
 	sub func(context.Context, syntax.StmtList) string
 
+	ifs string
 	// A pointer to a parameter expansion node, if we're inside one.
 	// Necessary for ${LINENO}.
 	curParam *syntax.ParamExp
+}
+
+func (e *ExpandContext) ifsRune(r rune) bool {
+	for _, r2 := range e.ifs {
+		if r == r2 {
+			return true
+		}
+	}
+	return false
+}
+
+func (e *ExpandContext) ifsJoin(strs []string) string {
+	sep := ""
+	if e.ifs != "" {
+		sep = e.ifs[:1]
+	}
+	return strings.Join(strs, sep)
 }
 
 func (e *ExpandContext) err(err error) {
@@ -196,6 +211,8 @@ func (e *ExpandContext) escapedGlobField(parts []fieldPart) (escaped string, glo
 }
 
 func (e *ExpandContext) Fields(ctx context.Context, words ...*syntax.Word) []string {
+	e.ifs = e.envGet("IFS")
+
 	fields := make([]string, 0, len(words))
 	dir := e.envGet("PWD")
 	baseDir := syntax.QuotePattern(dir)
@@ -456,6 +473,7 @@ func (e *ExpandContext) expandUser(field string) string {
 	if name == "" {
 		return e.Env.Get("HOME").Value.String() + rest
 	}
+	// TODO: don't hard-code os/user into the expansion package
 	u, err := user.Lookup(name)
 	if err != nil {
 		return field
@@ -565,4 +583,61 @@ func globDir(dir string, rx *regexp.Regexp, matches []string) []string {
 		}
 	}
 	return matches
+}
+
+func (e *ExpandContext) ifsFields(s string, n int, raw bool) []string {
+	e.ifs = e.envGet("IFS")
+	type pos struct {
+		start, end int
+	}
+	var fpos []pos
+
+	runes := make([]rune, 0, len(s))
+	infield := false
+	esc := false
+	for _, c := range s {
+		if infield {
+			if e.ifsRune(c) && (raw || !esc) {
+				fpos[len(fpos)-1].end = len(runes)
+				infield = false
+			}
+		} else {
+			if !e.ifsRune(c) && (raw || !esc) {
+				fpos = append(fpos, pos{start: len(runes), end: -1})
+				infield = true
+			}
+		}
+		if c == '\\' {
+			if raw || esc {
+				runes = append(runes, c)
+			}
+			esc = !esc
+			continue
+		}
+		runes = append(runes, c)
+		esc = false
+	}
+	if len(fpos) == 0 {
+		return nil
+	}
+	if infield {
+		fpos[len(fpos)-1].end = len(runes)
+	}
+
+	switch {
+	case n == 1:
+		// include heading/trailing IFSs
+		fpos[0].start, fpos[0].end = 0, len(runes)
+		fpos = fpos[:1]
+	case n != -1 && n < len(fpos):
+		// combine to max n fields
+		fpos[n-1].end = fpos[len(fpos)-1].end
+		fpos = fpos[:n]
+	}
+
+	var fields = make([]string, len(fpos))
+	for i, p := range fpos {
+		fields[i] = string(runes[p.start:p.end])
+	}
+	return fields
 }

@@ -576,62 +576,6 @@ func (r *Runner) printOptLine(name string, enabled bool) {
 	r.outf("%s\t%s\n", name, status)
 }
 
-func (r *Runner) ifsFields(s string, n int, raw bool) []string {
-	type pos struct {
-		start, end int
-	}
-	var fpos []pos
-
-	runes := make([]rune, 0, len(s))
-	infield := false
-	esc := false
-	for _, c := range s {
-		if infield {
-			if r.ifsRune(c) && (raw || !esc) {
-				fpos[len(fpos)-1].end = len(runes)
-				infield = false
-			}
-		} else {
-			if !r.ifsRune(c) && (raw || !esc) {
-				fpos = append(fpos, pos{start: len(runes), end: -1})
-				infield = true
-			}
-		}
-		if c == '\\' {
-			if raw || esc {
-				runes = append(runes, c)
-			}
-			esc = !esc
-			continue
-		}
-		runes = append(runes, c)
-		esc = false
-	}
-	if len(fpos) == 0 {
-		return nil
-	}
-	if infield {
-		fpos[len(fpos)-1].end = len(runes)
-	}
-
-	switch {
-	case n == 1:
-		// include heading/trailing IFSs
-		fpos[0].start, fpos[0].end = 0, len(runes)
-		fpos = fpos[:1]
-	case n != -1 && n < len(fpos):
-		// combine to max n fields
-		fpos[n-1].end = fpos[len(fpos)-1].end
-		fpos = fpos[:n]
-	}
-
-	var fields = make([]string, len(fpos))
-	for i, p := range fpos {
-		fields[i] = string(runes[p.start:p.end])
-	}
-	return fields
-}
-
 func (r *Runner) readLine(raw bool) ([]byte, error) {
 	var line []byte
 	esc := false

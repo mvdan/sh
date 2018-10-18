@@ -73,9 +73,6 @@ func (r *Runner) fillExpandContext() {
 			}
 		},
 
-		ifsJoin: r.ExpandContext.ifsJoin,
-		ifsRune: r.ExpandContext.ifsRune,
-
 		sub: func(ctx context.Context, sl syntax.StmtList) string {
 			r2 := r.sub()
 			buf := r.strBuilder()
@@ -449,7 +446,6 @@ func (r *Runner) Reset() {
 	}
 	r.Vars["PWD"] = Variable{Value: StringVal(r.Dir)}
 	r.Vars["IFS"] = Variable{Value: StringVal(" \t\n")}
-	r.ifsUpdated()
 	r.Vars["OPTIND"] = Variable{Value: StringVal("1")}
 
 	if runtime.GOOS == "windows" {
@@ -636,7 +632,6 @@ func (r *Runner) sub() *Runner {
 		r2.cmdVars[k] = v
 	}
 	r2.dirStack = append([]string(nil), r.dirStack...)
-	r2.ifsUpdated()
 	r2.fillExpandContext()
 	r2.didReset = true
 	return r2
@@ -668,10 +663,6 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			val := r.assignVal(ctx, as, "")
 			// we know that inline vars must be strings
 			r.cmdVars[as.Name.Value] = string(val.(StringVal))
-			if as.Name.Value == "IFS" {
-				r.ifsUpdated()
-				defer r.ifsUpdated()
-			}
 		}
 		r.call(ctx, x.Args[0].Pos(), fields)
 		// cmdVars can be nuked here, as they are never useful

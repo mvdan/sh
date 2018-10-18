@@ -263,7 +263,7 @@ func (e *ExpandContext) varInd(ctx context.Context, vr Variable, idx syntax.Arit
 		case "@":
 			return strings.Join(x, " ")
 		case "*":
-			return strings.Join(x, e.ifsJoin)
+			return e.ifsJoin([]string(x))
 		}
 		i := e.arithm(ctx, idx)
 		if len(x) > 0 {
@@ -271,7 +271,7 @@ func (e *ExpandContext) varInd(ctx context.Context, vr Variable, idx syntax.Arit
 		}
 	case AssocArray:
 		if lit := anyOfLit(idx, "@", "*"); lit != "" {
-			var strs IndexArray
+			var strs []string
 			keys := make([]string, 0, len(x))
 			for k := range x {
 				keys = append(keys, k)
@@ -281,7 +281,7 @@ func (e *ExpandContext) varInd(ctx context.Context, vr Variable, idx syntax.Arit
 				strs = append(strs, x[k])
 			}
 			if lit == "*" {
-				return strings.Join(strs, e.ifsJoin)
+				return e.ifsJoin(strs)
 			}
 			return strings.Join(strs, " ")
 		}
@@ -309,9 +309,6 @@ func (r *Runner) setVarInternal(name string, vr Variable) {
 		r.funcVars[name] = vr
 	} else {
 		r.Vars[name] = vr
-	}
-	if name == "IFS" {
-		r.ifsUpdated()
 	}
 }
 
@@ -477,22 +474,6 @@ func (r *Runner) assignVal(ctx context.Context, as *syntax.Assign, valType strin
 		// TODO
 	}
 	return IndexArray(strs)
-}
-
-func (r *Runner) ifsUpdated() {
-	runes := r.getVar("IFS")
-	r.ifsJoin = ""
-	if len(runes) > 0 {
-		r.ifsJoin = runes[:1]
-	}
-	r.ifsRune = func(r rune) bool {
-		for _, r2 := range runes {
-			if r == r2 {
-				return true
-			}
-		}
-		return false
-	}
 }
 
 func (e *ExpandContext) namesByPrefix(prefix string) []string {
