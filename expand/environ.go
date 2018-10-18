@@ -32,3 +32,18 @@ func (v Variable) String() string {
 	}
 	return ""
 }
+
+// maxNameRefDepth defines the maximum number of times to follow references when
+// resolving a variable. Otherwise, simple name reference loops could crash a
+// program quite easily.
+const maxNameRefDepth = 100
+
+func (v Variable) Resolve(env Environ) Variable {
+	for i := 0; i < maxNameRefDepth; i++ {
+		if !v.NameRef {
+			return v
+		}
+		v = env.Get(v.Value.(string))
+	}
+	return Variable{}
+}

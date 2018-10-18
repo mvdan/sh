@@ -65,10 +65,12 @@ func (c *Context) paramExp(ctx context.Context, pe *syntax.ParamExp) string {
 	default:
 		vr = c.Env.Get(name)
 	}
+	orig := vr
+	vr = vr.Resolve(c.Env)
 	set := vr != Variable{}
-	str := c.varStr(vr, 0)
+	str := vr.String()
 	if index != nil {
-		str = c.varInd(ctx, vr, index, 0)
+		str = c.varInd(ctx, vr.Resolve(c.Env), index)
 	}
 	slicePos := func(expr syntax.ArithmExpr) int {
 		p := c.ExpandArithm(ctx, expr)
@@ -102,8 +104,8 @@ func (c *Context) paramExp(ctx context.Context, pe *syntax.ParamExp) string {
 		var strs []string
 		if pe.Names != 0 {
 			strs = c.namesByPrefix(pe.Param.Value)
-		} else if vr.NameRef {
-			strs = append(strs, vr.Value.(string))
+		} else if orig.NameRef {
+			strs = append(strs, orig.Value.(string))
 		} else if x, ok := vr.Value.([]string); ok {
 			for i, e := range x {
 				if e != "" {
@@ -116,7 +118,7 @@ func (c *Context) paramExp(ctx context.Context, pe *syntax.ParamExp) string {
 			}
 		} else if str != "" {
 			vr = c.Env.Get(str)
-			strs = append(strs, c.varStr(vr, 0))
+			strs = append(strs, vr.String())
 		}
 		sort.Strings(strs)
 		str = strings.Join(strs, " ")
@@ -276,32 +278,9 @@ func removePattern(str, pattern string, fromEnd, greedy bool) string {
 	return str
 }
 
-func (c *Context) varStr(vr Variable, depth int) string {
-	if vr.Value == nil || depth > maxNameRefDepth {
-		return ""
-	}
-	if vr.NameRef {
-		vr = c.Env.Get(vr.Value.(string))
-		return c.varStr(vr, depth+1)
-	}
-	return vr.String()
-}
-
-// maxNameRefDepth defines the maximum number of times to follow
-// references when expanding a variable. Otherwise, simple name
-// reference loops could crash the interpreter quite easily.
-const maxNameRefDepth = 100
-
-func (c *Context) varInd(ctx context.Context, vr Variable, idx syntax.ArithmExpr, depth int) string {
-	if depth > maxNameRefDepth {
-		return ""
-	}
+func (c *Context) varInd(ctx context.Context, vr Variable, idx syntax.ArithmExpr) string {
 	switch x := vr.Value.(type) {
 	case string:
-		if vr.NameRef {
-			vr = c.Env.Get(x)
-			return c.varInd(ctx, vr, idx, depth+1)
-		}
 		if c.ExpandArithm(ctx, idx) == 0 {
 			return x
 		}
