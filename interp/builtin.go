@@ -134,7 +134,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 				r.out(" ")
 			}
 			if expand {
-				_, arg, _ = r.ExpandFormat(arg, nil)
+				arg, _, _ = r.ExpandFormat(arg, nil)
 			}
 			r.out(arg)
 		}
@@ -148,7 +148,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		}
 		format, args := args[0], args[1:]
 		for {
-			n, s, err := r.ExpandFormat(format, args)
+			s, n, err := r.ExpandFormat(format, args)
 			if err != nil {
 				r.errf("%v\n", err)
 				return 1

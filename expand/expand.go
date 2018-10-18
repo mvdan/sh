@@ -91,7 +91,7 @@ func (c *Context) ExpandLiteral(ctx context.Context, word *syntax.Word) string {
 	return c.fieldJoin(field)
 }
 
-func (c *Context) ExpandFormat(format string, args []string) (int, string, error) {
+func (c *Context) ExpandFormat(format string, args []string) (string, int, error) {
 	buf := c.strBuilder()
 	esc := false
 	var fmts []rune
@@ -133,7 +133,7 @@ func (c *Context) ExpandFormat(format string, args []string) (int, string, error
 				fmts = nil
 			case '+', '-', ' ':
 				if len(fmts) > 1 {
-					return 0, "", fmt.Errorf("invalid format char: %c", c)
+					return "", 0, fmt.Errorf("invalid format char: %c", c)
 				}
 				fmts = append(fmts, c)
 			case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
@@ -159,7 +159,7 @@ func (c *Context) ExpandFormat(format string, args []string) (int, string, error
 				fmt.Fprintf(buf, string(fmts), farg)
 				fmts = nil
 			default:
-				return 0, "", fmt.Errorf("invalid format char: %c", c)
+				return "", 0, fmt.Errorf("invalid format char: %c", c)
 			}
 		case c == '\\':
 			esc = true
@@ -172,9 +172,9 @@ func (c *Context) ExpandFormat(format string, args []string) (int, string, error
 		}
 	}
 	if len(fmts) > 0 {
-		return 0, "", fmt.Errorf("missing format char")
+		return "", 0, fmt.Errorf("missing format char")
 	}
-	return initialArgs - len(args), buf.String(), nil
+	return buf.String(), initialArgs - len(args), nil
 }
 
 func (c *Context) fieldJoin(parts []fieldPart) string {
@@ -215,32 +215,30 @@ func (c *Context) ExpandFields(ctx context.Context, words ...*syntax.Word) []str
 	fields := make([]string, 0, len(words))
 	dir := c.envGet("PWD")
 	baseDir := syntax.QuotePattern(dir)
-	for _, word := range words {
-		for _, expWord := range Braces(word) {
-			for _, field := range c.wordFields(ctx, expWord.Parts) {
-				path, doGlob := c.escapedGlobField(field)
-				var matches []string
-				abs := filepath.IsAbs(path)
-				if doGlob && !c.NoGlob {
-					if !abs {
-						path = filepath.Join(baseDir, path)
+	for _, expWord := range Braces(words...) {
+		for _, field := range c.wordFields(ctx, expWord.Parts) {
+			path, doGlob := c.escapedGlobField(field)
+			var matches []string
+			abs := filepath.IsAbs(path)
+			if doGlob && !c.NoGlob {
+				if !abs {
+					path = filepath.Join(baseDir, path)
+				}
+				matches = glob(path, c.GlobStar)
+			}
+			if len(matches) == 0 {
+				fields = append(fields, c.fieldJoin(field))
+				continue
+			}
+			for _, match := range matches {
+				if !abs {
+					endSeparator := strings.HasSuffix(match, string(filepath.Separator))
+					match, _ = filepath.Rel(dir, match)
+					if endSeparator {
+						match += string(filepath.Separator)
 					}
-					matches = glob(path, c.GlobStar)
 				}
-				if len(matches) == 0 {
-					fields = append(fields, c.fieldJoin(field))
-					continue
-				}
-				for _, match := range matches {
-					if !abs {
-						endSeparator := strings.HasSuffix(match, string(filepath.Separator))
-						match, _ = filepath.Rel(dir, match)
-						if endSeparator {
-							match += string(filepath.Separator)
-						}
-					}
-					fields = append(fields, match)
-				}
+				fields = append(fields, match)
 			}
 		}
 	}
@@ -303,7 +301,7 @@ func (c *Context) wordField(ctx context.Context, wps []syntax.WordPart, ql quote
 		case *syntax.SglQuoted:
 			fp := fieldPart{quote: quoteSingle, val: x.Value}
 			if x.Dollar {
-				_, fp.val, _ = c.ExpandFormat(fp.val, nil)
+				fp.val, _, _ = c.ExpandFormat(fp.val, nil)
 			}
 			field = append(field, fp)
 		case *syntax.DblQuoted:
@@ -375,7 +373,7 @@ func (c *Context) wordFields(ctx context.Context, wps []syntax.WordPart) [][]fie
 			allowEmpty = true
 			fp := fieldPart{quote: quoteSingle, val: x.Value}
 			if x.Dollar {
-				_, fp.val, _ = c.ExpandFormat(fp.val, nil)
+				fp.val, _, _ = c.ExpandFormat(fp.val, nil)
 			}
 			curField = append(curField, fp)
 		case *syntax.DblQuoted:
