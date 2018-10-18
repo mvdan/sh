@@ -61,7 +61,7 @@ func (m *mapEnviron) Sub() expand.Environ {
 func execEnv(env expand.Environ) []string {
 	list := make([]string, 32)
 	env.Each(func(name string, vr expand.Variable) bool {
-		list = append(list, name+"="+vr.Value.String())
+		list = append(list, name+"="+vr.String())
 		return true
 	})
 	return list
@@ -80,7 +80,7 @@ func EnvFromList(list []string) (expand.Environ, error) {
 		if runtime.GOOS == "windows" {
 			name = strings.ToUpper(name)
 		}
-		m.values[name] = expand.Variable{Value: expand.StringVal(value)}
+		m.values[name] = expand.Variable{Value: value}
 	}
 	return &m, nil
 }
@@ -92,7 +92,7 @@ func (f FuncEnviron) Get(name string) expand.Variable {
 	if value == "" {
 		return expand.Variable{}
 	}
-	return expand.Variable{Value: expand.StringVal(value)}
+	return expand.Variable{Value: value}
 }
 
 func (f FuncEnviron) Set(name string, vr expand.Variable)             { panic("FuncEnviron is read-only") }
@@ -104,39 +104,39 @@ func (r *Runner) lookupVar(name string) expand.Variable {
 	if name == "" {
 		panic("variable name must not be empty")
 	}
-	var value expand.VarValue
+	var value interface{}
 	switch name {
 	case "#":
-		value = expand.StringVal(strconv.Itoa(len(r.Params)))
+		value = strconv.Itoa(len(r.Params))
 	case "@", "*":
-		value = expand.IndexArray(r.Params)
+		value = r.Params
 	case "?":
-		value = expand.StringVal(strconv.Itoa(r.exit))
+		value = strconv.Itoa(r.exit)
 	case "$":
-		value = expand.StringVal(strconv.Itoa(os.Getpid()))
+		value = strconv.Itoa(os.Getpid())
 	case "PPID":
-		value = expand.StringVal(strconv.Itoa(os.Getppid()))
+		value = strconv.Itoa(os.Getppid())
 	case "DIRSTACK":
-		value = expand.IndexArray(r.dirStack)
+		value = r.dirStack
 	case "0":
 		if r.filename != "" {
-			value = expand.StringVal(r.filename)
+			value = r.filename
 		} else {
-			value = expand.StringVal("gosh")
+			value = "gosh"
 		}
 	case "1", "2", "3", "4", "5", "6", "7", "8", "9":
 		i := int(name[0] - '1')
 		if i < len(r.Params) {
-			value = expand.StringVal(r.Params[i])
+			value = r.Params[i]
 		} else {
-			value = expand.StringVal("")
+			value = ""
 		}
 	}
 	if value != nil {
 		return expand.Variable{Value: value}
 	}
 	if value, e := r.cmdVars[name]; e {
-		return expand.Variable{Value: expand.StringVal(value)}
+		return expand.Variable{Value: value}
 	}
 	if vr, e := r.funcVars[name]; e {
 		return vr
@@ -161,7 +161,7 @@ func (r *Runner) lookupVar(name string) expand.Variable {
 }
 
 func (r *Runner) envGet(name string) string {
-	return r.lookupVar(name).Value.String()
+	return r.lookupVar(name).String()
 }
 
 func (r *Runner) delVar(name string) {
@@ -177,11 +177,11 @@ func (r *Runner) delVar(name string) {
 }
 
 func (r *Runner) setVarString(ctx context.Context, name, value string) {
-	r.setVar(ctx, name, nil, expand.Variable{Value: expand.StringVal(value)})
+	r.setVar(ctx, name, nil, expand.Variable{Value: value})
 }
 
 func (r *Runner) setVarInternal(name string, vr expand.Variable) {
-	if _, ok := vr.Value.(expand.StringVal); ok {
+	if _, ok := vr.Value.(string); ok {
 		if r.opts[optAllExport] {
 			vr.Exported = true
 		}
@@ -205,10 +205,10 @@ func (r *Runner) setVar(ctx context.Context, name string, index syntax.ArithmExp
 		r.exit = 1
 		return
 	}
-	_, isIndexArray := cur.Value.(expand.IndexArray)
-	_, isAssocArray := cur.Value.(expand.AssocArray)
+	_, isIndexArray := cur.Value.([]string)
+	_, isAssocArray := cur.Value.(map[string]string)
 
-	if _, ok := vr.Value.(expand.StringVal); ok && index == nil {
+	if _, ok := vr.Value.(string); ok && index == nil {
 		// When assigning a string to an array, fall back to the
 		// zero value for the index.
 		if isIndexArray {
@@ -228,12 +228,12 @@ func (r *Runner) setVar(ctx context.Context, name string, index syntax.ArithmExp
 
 	// from the syntax package, we know that value must be a string if index
 	// is non-nil; nested arrays are forbidden.
-	valStr := string(vr.Value.(expand.StringVal))
+	valStr := vr.Value.(string)
 
 	// if the existing variable is already an AssocArray, try our best
 	// to convert the key to a string
 	if isAssocArray {
-		amap := cur.Value.(expand.AssocArray)
+		amap := cur.Value.(map[string]string)
 		w, ok := index.(*syntax.Word)
 		if !ok {
 			return
@@ -244,13 +244,13 @@ func (r *Runner) setVar(ctx context.Context, name string, index syntax.ArithmExp
 		r.setVarInternal(name, cur)
 		return
 	}
-	var list expand.IndexArray
+	var list []string
 	switch x := cur.Value.(type) {
-	case expand.StringVal:
-		list = append(list, string(x))
-	case expand.IndexArray:
+	case string:
+		list = append(list, x)
+	case []string:
 		list = x
-	case expand.AssocArray: // done above
+	case map[string]string: // done above
 	}
 	k := r.ExpandArithm(ctx, index)
 	for len(list) < k+1 {
@@ -280,7 +280,7 @@ func stringIndex(index syntax.ArithmExpr) bool {
 	return false
 }
 
-func (r *Runner) assignVal(ctx context.Context, as *syntax.Assign, valType string) expand.VarValue {
+func (r *Runner) assignVal(ctx context.Context, as *syntax.Assign, valType string) interface{} {
 	prev := r.lookupVar(as.Name.Value)
 	if as.Naked {
 		return prev.Value
@@ -288,25 +288,25 @@ func (r *Runner) assignVal(ctx context.Context, as *syntax.Assign, valType strin
 	if as.Value != nil {
 		s := r.ExpandLiteral(ctx, as.Value)
 		if !as.Append || prev == (expand.Variable{}) {
-			return expand.StringVal(s)
+			return s
 		}
 		switch x := prev.Value.(type) {
-		case expand.StringVal:
-			return x + expand.StringVal(s)
-		case expand.IndexArray:
+		case string:
+			return x + s
+		case []string:
 			if len(x) == 0 {
 				x = append(x, "")
 			}
 			x[0] += s
 			return x
-		case expand.AssocArray:
+		case map[string]string:
 			// TODO
 		}
-		return expand.StringVal(s)
+		return s
 	}
 	if as.Array == nil {
 		// don't return nil, as that's an unset variable
-		return expand.StringVal("")
+		return ""
 	}
 	elems := as.Array.Elems
 	if valType == "" {
@@ -318,7 +318,7 @@ func (r *Runner) assignVal(ctx context.Context, as *syntax.Assign, valType strin
 	}
 	if valType == "-A" {
 		// associative array
-		amap := expand.AssocArray(make(map[string]string, len(elems)))
+		amap := make(map[string]string, len(elems))
 		for _, elem := range elems {
 			k := r.ExpandLiteral(ctx, elem.Index.(*syntax.Word))
 			amap[k] = r.ExpandLiteral(ctx, elem.Value)
@@ -348,16 +348,15 @@ func (r *Runner) assignVal(ctx context.Context, as *syntax.Assign, valType strin
 		strs[indexes[i]] = r.ExpandLiteral(ctx, elem.Value)
 	}
 	if !as.Append || prev == (expand.Variable{}) {
-		return expand.IndexArray(strs)
+		return strs
 	}
 	switch x := prev.Value.(type) {
-	case expand.StringVal:
-		prevList := expand.IndexArray([]string{string(x)})
-		return append(prevList, strs...)
-	case expand.IndexArray:
+	case string:
+		return append([]string{x}, strs...)
+	case []string:
 		return append(x, strs...)
-	case expand.AssocArray:
+	case map[string]string:
 		// TODO
 	}
-	return expand.IndexArray(strs)
+	return strs
 }

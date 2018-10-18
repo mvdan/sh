@@ -442,17 +442,17 @@ func (r *Runner) Reset() {
 	}
 	if vr := r.Env.Get("HOME"); vr == (expand.Variable{}) {
 		u, _ := user.Current()
-		r.Vars["HOME"] = expand.Variable{Value: expand.StringVal(u.HomeDir)}
+		r.Vars["HOME"] = expand.Variable{Value: u.HomeDir}
 	}
-	r.Vars["PWD"] = expand.Variable{Value: expand.StringVal(r.Dir)}
-	r.Vars["IFS"] = expand.Variable{Value: expand.StringVal(" \t\n")}
-	r.Vars["OPTIND"] = expand.Variable{Value: expand.StringVal("1")}
+	r.Vars["PWD"] = expand.Variable{Value: r.Dir}
+	r.Vars["IFS"] = expand.Variable{Value: " \t\n"}
+	r.Vars["OPTIND"] = expand.Variable{Value: "1"}
 
 	if runtime.GOOS == "windows" {
 		// convert $PATH to a unix path list
-		path := r.Env.Get("PATH").Value.String()
+		path := r.Env.Get("PATH").String()
 		path = strings.Join(filepath.SplitList(path), ":")
-		r.Vars["PATH"] = expand.Variable{Value: expand.StringVal(path)}
+		r.Vars["PATH"] = expand.Variable{Value: path}
 	}
 
 	r.dirStack = append(r.dirStack, r.Dir)
@@ -485,7 +485,7 @@ func (r *Runner) modCtx(ctx context.Context) context.Context {
 		mc.Env.Set(name, vr)
 	}
 	for name, value := range r.cmdVars {
-		mc.Env.Set(name, expand.Variable{Value: expand.StringVal(value)})
+		mc.Env.Set(name, expand.Variable{Value: value})
 	}
 	return context.WithValue(ctx, moduleCtxKey{}, mc)
 }
@@ -662,7 +662,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		for _, as := range x.Assigns {
 			val := r.assignVal(ctx, as, "")
 			// we know that inline vars must be strings
-			r.cmdVars[as.Name.Value] = string(val.(expand.StringVal))
+			r.cmdVars[as.Name.Value] = val.(string)
 		}
 		r.call(ctx, x.Args[0].Pos(), fields)
 		// cmdVars can be nuked here, as they are never useful

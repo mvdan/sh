@@ -16,54 +16,6 @@ import (
 	"mvdan.cc/sh/syntax"
 )
 
-type Environ interface {
-	Get(name string) Variable
-	Set(name string, vr Variable)
-	Delete(name string)
-	Each(func(name string, vr Variable) bool)
-	Sub() Environ
-}
-
-type Variable struct {
-	Local    bool
-	Exported bool
-	ReadOnly bool
-	NameRef  bool
-	Value    VarValue
-}
-
-// VarValue is one of:
-//
-//     nil (unset variable)
-//     StringVal
-//     IndexArray
-//     AssocArray
-type VarValue interface {
-	String() string
-}
-
-type StringVal string
-
-func (s StringVal) String() string {
-	return string(s)
-}
-
-type IndexArray []string
-
-func (i IndexArray) String() string {
-	if len(i) == 0 {
-		return ""
-	}
-	return i[0]
-}
-
-type AssocArray map[string]string
-
-func (a AssocArray) String() string {
-	// nothing to do
-	return ""
-}
-
 func anyOfLit(v interface{}, vals ...string) string {
 	word, _ := v.(*syntax.Word)
 	if word == nil || len(word.Parts) != 1 {
@@ -109,7 +61,7 @@ func (c *Context) paramExp(ctx context.Context, pe *syntax.ParamExp) string {
 		// This is the only parameter expansion that the environment
 		// interface cannot satisfy.
 		line := uint64(c.curParam.Pos().Line())
-		vr.Value = StringVal(strconv.FormatUint(line, 10))
+		vr.Value = strconv.FormatUint(line, 10)
 	default:
 		vr = c.Env.Get(name)
 	}
@@ -135,7 +87,7 @@ func (c *Context) paramExp(ctx context.Context, pe *syntax.ParamExp) string {
 		switch x := vr.Value.(type) {
 		case nil:
 			elems = nil
-		case IndexArray:
+		case []string:
 			elems = x
 		}
 	}
@@ -151,14 +103,14 @@ func (c *Context) paramExp(ctx context.Context, pe *syntax.ParamExp) string {
 		if pe.Names != 0 {
 			strs = c.namesByPrefix(pe.Param.Value)
 		} else if vr.NameRef {
-			strs = append(strs, string(vr.Value.(StringVal)))
-		} else if x, ok := vr.Value.(IndexArray); ok {
+			strs = append(strs, vr.Value.(string))
+		} else if x, ok := vr.Value.([]string); ok {
 			for i, e := range x {
 				if e != "" {
 					strs = append(strs, strconv.Itoa(i))
 				}
 			}
-		} else if x, ok := vr.Value.(AssocArray); ok {
+		} else if x, ok := vr.Value.(map[string]string); ok {
 			for k := range x {
 				strs = append(strs, k)
 			}
@@ -329,10 +281,10 @@ func (c *Context) varStr(vr Variable, depth int) string {
 		return ""
 	}
 	if vr.NameRef {
-		vr = c.Env.Get(string(vr.Value.(StringVal)))
+		vr = c.Env.Get(vr.Value.(string))
 		return c.varStr(vr, depth+1)
 	}
-	return vr.Value.String()
+	return vr.String()
 }
 
 // maxNameRefDepth defines the maximum number of times to follow
@@ -345,26 +297,26 @@ func (c *Context) varInd(ctx context.Context, vr Variable, idx syntax.ArithmExpr
 		return ""
 	}
 	switch x := vr.Value.(type) {
-	case StringVal:
+	case string:
 		if vr.NameRef {
-			vr = c.Env.Get(string(x))
+			vr = c.Env.Get(x)
 			return c.varInd(ctx, vr, idx, depth+1)
 		}
 		if c.ExpandArithm(ctx, idx) == 0 {
-			return string(x)
+			return x
 		}
-	case IndexArray:
+	case []string:
 		switch anyOfLit(idx, "@", "*") {
 		case "@":
 			return strings.Join(x, " ")
 		case "*":
-			return c.ifsJoin([]string(x))
+			return c.ifsJoin(x)
 		}
 		i := c.ExpandArithm(ctx, idx)
 		if len(x) > 0 {
 			return x[i]
 		}
-	case AssocArray:
+	case map[string]string:
 		if lit := anyOfLit(idx, "@", "*"); lit != "" {
 			var strs []string
 			keys := make([]string, 0, len(x))

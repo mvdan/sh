@@ -72,15 +72,11 @@ func (c *Context) strBuilder() *bytes.Buffer {
 }
 
 func (c *Context) envGet(name string) string {
-	val := c.Env.Get(name).Value
-	if val == nil {
-		return ""
-	}
-	return val.String()
+	return c.Env.Get(name).String()
 }
 
 func (c *Context) envSet(name, value string) {
-	c.Env.Set(name, Variable{Value: StringVal(value)})
+	c.Env.Set(name, Variable{Value: value})
 }
 
 func (c *Context) ExpandLiteral(ctx context.Context, word *syntax.Word) string {
@@ -422,13 +418,13 @@ func (c *Context) quotedElems(pe *syntax.ParamExp) []string {
 		return nil
 	}
 	if pe.Param.Value == "@" {
-		return c.Env.Get("@").Value.(IndexArray)
+		return c.Env.Get("@").Value.([]string)
 	}
 	if anyOfLit(pe.Index, "@") == "" {
 		return nil
 	}
 	val := c.Env.Get(pe.Param.Value).Value
-	if x, ok := val.(IndexArray); ok {
+	if x, ok := val.([]string); ok {
 		return x
 	}
 	return nil
@@ -445,7 +441,7 @@ func (c *Context) expandUser(field string) string {
 		name = name[:i]
 	}
 	if name == "" {
-		return c.Env.Get("HOME").Value.String() + rest
+		return c.Env.Get("HOME").String() + rest
 	}
 	// TODO: don't hard-code os/user into the expansion package
 	u, err := user.Lookup(name)
