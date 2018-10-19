@@ -53,3 +53,18 @@ func (v Variable) Resolve(env Environ) (string, Variable) {
 	}
 	return name, Variable{}
 }
+
+type FuncEnviron func(string) string
+
+func (f FuncEnviron) Get(name string) Variable {
+	value := f(name)
+	if value == "" {
+		return Variable{}
+	}
+	return Variable{Value: value}
+}
+
+func (f FuncEnviron) Set(name string, vr Variable)             { panic("FuncEnviron is read-only") }
+func (f FuncEnviron) Delete(name string)                       { panic("FuncEnviron is read-only") }
+func (f FuncEnviron) Each(func(name string, vr Variable) bool) {}
+func (f FuncEnviron) Sub() Environ                             { return f }

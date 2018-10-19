@@ -85,21 +85,6 @@ func EnvFromList(list []string) (expand.Environ, error) {
 	return &m, nil
 }
 
-type FuncEnviron func(string) string
-
-func (f FuncEnviron) Get(name string) expand.Variable {
-	value := f(name)
-	if value == "" {
-		return expand.Variable{}
-	}
-	return expand.Variable{Value: value}
-}
-
-func (f FuncEnviron) Set(name string, vr expand.Variable)             { panic("FuncEnviron is read-only") }
-func (f FuncEnviron) Delete(name string)                              { panic("FuncEnviron is read-only") }
-func (f FuncEnviron) Each(func(name string, vr expand.Variable) bool) {}
-func (f FuncEnviron) Sub() expand.Environ                             { return f }
-
 func (r *Runner) lookupVar(name string) expand.Variable {
 	if name == "" {
 		panic("variable name must not be empty")

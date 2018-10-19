@@ -6,39 +6,39 @@ package shell
 import (
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 )
 
+func listEnviron(pairs ...string) func(string) string {
+	return func(name string) string {
+		prefix := name + "="
+		for _, pair := range pairs {
+			if val := strings.TrimPrefix(pair, prefix); val != pair {
+				return val
+			}
+		}
+		return ""
+	}
+}
+
 var expandTests = []struct {
 	in   string
-	env  func(string) string
+	env  func(name string) string
 	want string
 }{
 	{"foo", nil, "foo"},
 	{"\nfoo\n", nil, "\nfoo\n"},
 	{"a-$b-c", nil, "a--c"},
-	{"a-$b-c", func(string) string { return "" }, "a--c"},
-	{
-		"a-$b-c",
-		func(name string) string { return name + "_val" },
-		"a-b_val-c",
-	},
-	{"${x//o/a}", func(string) string { return "foo" }, "faa"},
 	{"${INTERP_GLOBAL:+hasOsEnv}", nil, "hasOsEnv"},
-	{
-		"~",
-		func(name string) string { return name + "_val" },
-		"HOME_val",
-	},
-	{
-		"~/foo/bar",
-		func(name string) string { return name + "_val" },
-		"HOME_val/foo/bar",
-	},
+	{"a-$b-c", listEnviron(), "a--c"},
+	{"a-$b-c", listEnviron("b=b_val"), "a-b_val-c"},
+	{"${x//o/a}", listEnviron("x=foo"), "faa"},
+	{"~", listEnviron("HOME=/my/home"), "/my/home"},
+	{"~/foo/bar", listEnviron("HOME=/my/home"), "/my/home/foo/bar"},
 }
 
 func TestExpand(t *testing.T) {
-	t.Skip("TODO: reenable once we redesign shell.Expand")
 	os.Setenv("INTERP_GLOBAL", "value")
 	for i := range expandTests {
 		t.Run(fmt.Sprintf("%02d", i), func(t *testing.T) {
