@@ -5,7 +5,6 @@ package interp
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"runtime"
 	"strconv"
@@ -15,47 +14,45 @@ import (
 	"mvdan.cc/sh/syntax"
 )
 
-type mapEnviron struct {
+type overlayEnviron struct {
+	// TODO: drop the pointer from the receivers
 	parent expand.Environ
 	values map[string]expand.Variable
 }
 
-func (m *mapEnviron) Get(name string) expand.Variable {
-	if vr, ok := m.values[name]; ok {
+func (o *overlayEnviron) Get(name string) expand.Variable {
+	if vr, ok := o.values[name]; ok {
 		return vr
 	}
-	if m.parent == nil {
+	if o.parent == nil {
 		return expand.Variable{}
 	}
-	return m.parent.Get(name)
+	return o.parent.Get(name)
 }
 
-func (m *mapEnviron) Set(name string, vr expand.Variable) {
-	if m.values == nil {
-		m.values = make(map[string]expand.Variable)
+func (o *overlayEnviron) Set(name string, vr expand.Variable) {
+	if o.values == nil {
+		o.values = make(map[string]expand.Variable)
 	}
-	m.values[name] = vr
+	o.values[name] = vr
 	// TODO: parent too?
 }
 
-func (m *mapEnviron) Delete(name string) {
-	delete(m.values, name)
+func (o *overlayEnviron) Delete(name string) {
+	delete(o.values, name)
 	// TODO: parent too?
 }
 
-func (m *mapEnviron) Each(f func(name string, vr expand.Variable) bool) {
-	for name, vr := range m.values {
+func (o *overlayEnviron) Each(f func(name string, vr expand.Variable) bool) {
+	for name, vr := range o.values {
 		if !f(name, vr) {
 			return
 		}
 	}
-	if m.parent != nil {
-		m.parent.Each(f)
-	}
-}
+	if o.parent != nil {
 
-func (m *mapEnviron) Sub() expand.Environ {
-	return &mapEnviron{parent: m}
+		o.parent.Each(f)
+	}
 }
 
 func execEnv(env expand.Environ) []string {
@@ -65,24 +62,6 @@ func execEnv(env expand.Environ) []string {
 		return true
 	})
 	return list
-}
-
-func EnvFromList(list []string) (expand.Environ, error) {
-	m := mapEnviron{
-		values: make(map[string]expand.Variable, len(list)),
-	}
-	for _, kv := range list {
-		i := strings.IndexByte(kv, '=')
-		if i < 0 {
-			return nil, fmt.Errorf("env not in the form key=value: %q", kv)
-		}
-		name, value := kv[:i], kv[i+1:]
-		if runtime.GOOS == "windows" {
-			name = strings.ToUpper(name)
-		}
-		m.values[name] = expand.Variable{Value: value}
-	}
-	return &m, nil
 }
 
 func (r *Runner) lookupVar(name string) expand.Variable {

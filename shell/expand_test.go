@@ -10,7 +10,7 @@ import (
 	"testing"
 )
 
-func listEnviron(pairs ...string) func(string) string {
+func strEnviron(pairs ...string) func(string) string {
 	return func(name string) string {
 		prefix := name + "="
 		for _, pair := range pairs {
@@ -31,11 +31,11 @@ var expandTests = []struct {
 	{"\nfoo\n", nil, "\nfoo\n"},
 	{"a-$b-c", nil, "a--c"},
 	{"${INTERP_GLOBAL:+hasOsEnv}", nil, "hasOsEnv"},
-	{"a-$b-c", listEnviron(), "a--c"},
-	{"a-$b-c", listEnviron("b=b_val"), "a-b_val-c"},
-	{"${x//o/a}", listEnviron("x=foo"), "faa"},
-	{"~", listEnviron("HOME=/my/home"), "/my/home"},
-	{"~/foo/bar", listEnviron("HOME=/my/home"), "/my/home/foo/bar"},
+	{"a-$b-c", strEnviron(), "a--c"},
+	{"a-$b-c", strEnviron("b=b_val"), "a-b_val-c"},
+	{"${x//o/a}", strEnviron("x=foo"), "faa"},
+	{"~", strEnviron("HOME=/my/home"), "/my/home"},
+	{"~/foo/bar", strEnviron("HOME=/my/home"), "/my/home/foo/bar"},
 }
 
 func TestExpand(t *testing.T) {

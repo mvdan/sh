@@ -3,12 +3,16 @@
 
 package expand
 
+import (
+	"sort"
+	"strings"
+)
+
 type Environ interface {
 	Get(name string) Variable
 	Set(name string, vr Variable)
 	Delete(name string)
 	Each(func(name string, vr Variable) bool)
-	Sub() Environ
 }
 
 type Variable struct {
@@ -54,9 +58,13 @@ func (v Variable) Resolve(env Environ) (string, Variable) {
 	return name, Variable{}
 }
 
-type FuncEnviron func(string) string
+func FuncEnviron(fn func(string) string) Environ {
+	return funcEnviron(fn)
+}
 
-func (f FuncEnviron) Get(name string) Variable {
+type funcEnviron func(string) string
+
+func (f funcEnviron) Get(name string) Variable {
 	value := f(name)
 	if value == "" {
 		return Variable{}
@@ -64,7 +72,57 @@ func (f FuncEnviron) Get(name string) Variable {
 	return Variable{Value: value}
 }
 
-func (f FuncEnviron) Set(name string, vr Variable)             { panic("FuncEnviron is read-only") }
-func (f FuncEnviron) Delete(name string)                       { panic("FuncEnviron is read-only") }
-func (f FuncEnviron) Each(func(name string, vr Variable) bool) {}
-func (f FuncEnviron) Sub() Environ                             { return f }
+func (f funcEnviron) Set(name string, vr Variable)             { panic("FuncEnviron is read-only") }
+func (f funcEnviron) Delete(name string)                       { panic("FuncEnviron is read-only") }
+func (f funcEnviron) Each(func(name string, vr Variable) bool) {}
+
+func ListEnviron(pairs ...string) Environ {
+	list := append([]string{}, pairs...)
+	sort.Strings(list)
+	last := ""
+	for i := 0; i < len(list); i++ {
+		s := list[i]
+		sep := strings.IndexByte(s, '=')
+		if sep < 0 {
+			// invalid element; remove it
+			list = append(list[:i], list[i+1:]...)
+			continue
+		}
+		name := s[:sep]
+		if last == name {
+			// duplicate; the last one wins
+			list = append(list[:i-1], list[i:]...)
+			continue
+		}
+		last = name
+	}
+	return listEnviron(list)
+}
+
+type listEnviron []string
+
+func (l listEnviron) Get(name string) Variable {
+	prefix := name + "="
+	for _, pair := range l {
+		if val := strings.TrimPrefix(pair, prefix); val != pair {
+			return Variable{Value: val}
+		}
+	}
+	return Variable{}
+}
+
+func (l listEnviron) Set(name string, vr Variable) { panic("ListEnviron is read-only") }
+func (l listEnviron) Delete(name string)           { panic("ListEnviron is read-only") }
+func (l listEnviron) Each(fn func(name string, vr Variable) bool) {
+	for _, pair := range l {
+		i := strings.IndexByte(pair, '=')
+		if i < 0 {
+			// can't happen; see above
+			panic("expand.listEnviron: did not expect malformed name-value pair: " + pair)
+		}
+		name, value := pair[:i], pair[i+1:]
+		if !fn(name, Variable{Value: value}) {
+			return
+		}
+	}
+}

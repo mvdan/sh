@@ -111,14 +111,16 @@ func (e expandEnv) Each(fn func(name string, vr expand.Variable) bool) {
 		}
 	}
 }
-func (e expandEnv) Sub() expand.Environ { return e }
 
 // Env sets the interpreter's environment. If nil, the current process's
 // environment is used.
 func Env(env expand.Environ) func(*Runner) error {
 	return func(r *Runner) error {
 		if env == nil {
-			env, _ = EnvFromList(os.Environ())
+			// TODO: use something fancier that combines os.Getenv
+			// and os.Environ, to support live changes to the
+			// system's environment as well as enumerating.
+			env = expand.ListEnviron(os.Environ()...)
 		}
 		r.Env = env
 		return nil
@@ -477,7 +479,7 @@ func (r *Runner) modCtx(ctx context.Context) context.Context {
 		Stderr:      r.Stderr,
 		KillTimeout: r.KillTimeout,
 	}
-	mc.Env = r.Env.Sub()
+	mc.Env = &overlayEnviron{parent: r.Env}
 	for name, vr := range r.Vars {
 		if !vr.Exported {
 			continue
@@ -610,6 +612,7 @@ func (r *Runner) sub() *Runner {
 	// Keep in sync with the Runner type. Manually copy fields, to not copy
 	// sensitive ones like errgroup.Group, and to do deep copies of slices.
 	r2 := &Runner{
+		Env:         r.Env,
 		Dir:         r.Dir,
 		Params:      r.Params,
 		Exec:        r.Exec,
@@ -622,7 +625,6 @@ func (r *Runner) sub() *Runner {
 		filename:    r.filename,
 		opts:        r.opts,
 	}
-	r2.Env = r.Env.Sub()
 	r2.Vars = make(map[string]expand.Variable, len(r.Vars))
 	for k, v := range r.Vars {
 		r2.Vars[k] = v

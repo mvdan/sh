@@ -17,6 +17,7 @@ import (
 	"testing"
 	"time"
 
+	"mvdan.cc/sh/expand"
 	"mvdan.cc/sh/internal"
 	"mvdan.cc/sh/syntax"
 )
@@ -2224,10 +2225,8 @@ func TestFileConfirm(t *testing.T) {
 func TestRunnerOpts(t *testing.T) {
 	t.Parallel()
 	withPath := func(strs ...string) func(*Runner) error {
-		list := []string{"PATH=" + os.Getenv("PATH")}
-		list = append(list, strs...)
-		env, _ := EnvFromList(list)
-		return Env(env)
+		prefix := []string{"PATH=" + os.Getenv("PATH")}
+		return Env(expand.ListEnviron(append(prefix, strs...)...))
 	}
 	opts := func(list ...func(*Runner) error) []func(*Runner) error {
 		return list
@@ -2502,7 +2501,7 @@ func TestRunnerFilename(t *testing.T) {
 
 func TestRunnerEnvNoModify(t *testing.T) {
 	t.Parallel()
-	env, _ := EnvFromList([]string{"one=1", "two=2"})
+	env := expand.ListEnviron("one=1", "two=2")
 	in := `echo -n "$one $two; "; one=x; unset two`
 	file, err := syntax.NewParser().Parse(strings.NewReader(in), "")
 	if err != nil {
