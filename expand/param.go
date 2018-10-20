@@ -34,7 +34,7 @@ func anyOfLit(v interface{}, vals ...string) string {
 }
 
 type UnsetParameterError struct {
-	Expr    *syntax.ParamExp
+	Node    *syntax.ParamExp
 	Message string
 }
 
@@ -177,7 +177,7 @@ func (c *Context) paramExp(ctx context.Context, pe *syntax.ParamExp) string {
 		case syntax.SubstColQuest:
 			if str == "" {
 				c.err(UnsetParameterError{
-					Expr:    pe,
+					Node:    pe,
 					Message: arg,
 				})
 			}

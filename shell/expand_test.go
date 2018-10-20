@@ -56,6 +56,26 @@ func TestExpand(t *testing.T) {
 	}
 }
 
+func TestUnexpectedSubshell(t *testing.T) {
+	t.Parallel()
+	want := "unexpected command substitution at 1:6"
+	for _, fn := range []func() error{
+		func() error {
+			_, err := Expand("echo $(uname -a)", nil)
+			return err
+		},
+		func() error {
+			_, err := Fields("echo $(uname -a)", nil)
+			return err
+		},
+	} {
+		got := fmt.Sprint(fn())
+		if !strings.Contains(got, want) {
+			t.Fatalf("wanted error %q, got: %s", want, got)
+		}
+	}
+}
+
 var fieldsTests = []struct {
 	in   string
 	env  func(name string) string

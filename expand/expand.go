@@ -41,6 +41,16 @@ type Context struct {
 	curParam *syntax.ParamExp
 }
 
+// UnexpectedCommandError is returned if a command substitution is encountered
+// when Context.Subshell is nil.
+type UnexpectedCommandError struct {
+	Node *syntax.CmdSubst
+}
+
+func (u UnexpectedCommandError) Error() string {
+	return fmt.Sprintf("unexpected command substitution at %s", u.Node.Pos())
+}
+
 func (c *Context) prepareIFS() {
 	vr := c.Env.Get("IFS")
 	if vr == (Variable{}) {
@@ -330,6 +340,10 @@ func (c *Context) wordField(ctx context.Context, wps []syntax.WordPart, ql quote
 }
 
 func (c *Context) cmdSubst(ctx context.Context, cs *syntax.CmdSubst) string {
+	if c.Subshell == nil {
+		c.err(UnexpectedCommandError{Node: cs})
+		return ""
+	}
 	buf := c.strBuilder()
 	c.Subshell(ctx, buf, cs.StmtList)
 	return strings.TrimRight(buf.String(), "\n")

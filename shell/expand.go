@@ -34,10 +34,17 @@ func Expand(s string, env func(string) string) (string, error) {
 	if env == nil {
 		env = os.Getenv
 	}
-	ectx := expand.Context{Env: expand.FuncEnviron(env)}
+	ectx := expand.Context{
+		Env: expand.FuncEnviron(env),
+		OnError: func(e error) {
+			if err == nil {
+				err = e
+			}
+		},
+	}
 	ctx := context.Background()
 	fields := ectx.ExpandFields(ctx, word)
-	return strings.Join(fields, ""), nil
+	return strings.Join(fields, ""), err
 }
 
 // Fields performs shell expansion on s, using env to resolve variables, and
@@ -63,7 +70,14 @@ func Fields(s string, env func(string) string) ([]string, error) {
 	if env == nil {
 		env = os.Getenv
 	}
-	ectx := expand.Context{Env: expand.FuncEnviron(env)}
+	ectx := expand.Context{
+		Env: expand.FuncEnviron(env),
+		OnError: func(e error) {
+			if err == nil {
+				err = e
+			}
+		},
+	}
 	ctx := context.Background()
-	return ectx.ExpandFields(ctx, words...), nil
+	return ectx.ExpandFields(ctx, words...), err
 }
