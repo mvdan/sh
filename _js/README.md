@@ -72,3 +72,15 @@ example above shows. Some of the most common node types include:
 The five above will show up in your syntax tree if you parse a `echo foo`
 command, which you can see if you use `syntax.DebugPrint` to inspect the syntax
 tree.
+
+### Building
+
+You will need:
+
+* Latest Go 1.11.x
+* Latest `gopherjs` from @myitcv's fork: https://github.com/myitcv/gopherjs/tree/go1.11
+* NodeJS, to run the `testmain.js` test suite
+
+Then, simply run `./build`. The result will be `index.js`, which isn't minified.
+At the time of writing, `index.js` weighs 1.7MiB in plaintext, and 220KiB when
+minified and gzipped.
