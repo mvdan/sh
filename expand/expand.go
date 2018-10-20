@@ -26,7 +26,7 @@ type Context struct {
 	NoGlob   bool
 	GlobStar bool
 
-	Subshell func(context.Context, io.Writer, syntax.StmtList)
+	CmdSubst func(context.Context, io.Writer, *syntax.CmdSubst)
 
 	// if nil, errors cause a panic.
 	OnError func(error)
@@ -42,7 +42,7 @@ type Context struct {
 }
 
 // UnexpectedCommandError is returned if a command substitution is encountered
-// when Context.Subshell is nil.
+// when Context.CmdSubst is nil.
 type UnexpectedCommandError struct {
 	Node *syntax.CmdSubst
 }
@@ -340,12 +340,12 @@ func (c *Context) wordField(ctx context.Context, wps []syntax.WordPart, ql quote
 }
 
 func (c *Context) cmdSubst(ctx context.Context, cs *syntax.CmdSubst) string {
-	if c.Subshell == nil {
+	if c.CmdSubst == nil {
 		c.err(UnexpectedCommandError{Node: cs})
 		return ""
 	}
 	buf := c.strBuilder()
-	c.Subshell(ctx, buf, cs.StmtList)
+	c.CmdSubst(ctx, buf, cs)
 	return strings.TrimRight(buf.String(), "\n")
 }
 

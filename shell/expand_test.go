@@ -56,7 +56,7 @@ func TestExpand(t *testing.T) {
 	}
 }
 
-func TestUnexpectedSubshell(t *testing.T) {
+func TestUnexpectedCmdSubst(t *testing.T) {
 	t.Parallel()
 	want := "unexpected command substitution at 1:6"
 	for _, fn := range []func() error{

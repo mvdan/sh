@@ -62,7 +62,6 @@ func New(opts ...func(*Runner) error) (*Runner, error) {
 func (r *Runner) fillContext() {
 	r.Context = expand.Context{
 		Env: expandEnv{r},
-
 		OnError: func(err error) {
 			switch err := err.(type) {
 			case expand.UnsetParameterError:
@@ -74,11 +73,10 @@ func (r *Runner) fillContext() {
 				r.exit = 1
 			}
 		},
-
-		Subshell: func(ctx context.Context, w io.Writer, sl syntax.StmtList) {
+		CmdSubst: func(ctx context.Context, w io.Writer, cs *syntax.CmdSubst) {
 			r2 := r.sub()
 			r2.Stdout = w
-			r2.stmts(ctx, sl)
+			r2.stmts(ctx, cs.StmtList)
 			r.setErr(r2.err)
 		},
 	}

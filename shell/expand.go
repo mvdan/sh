@@ -21,8 +21,8 @@ import (
 // are treated as unset; to support variables which are set but empty, use
 // expand.Context directly.
 //
-// Subshells like $(echo foo) aren't supported to avoid running arbitrary code.
-// To support those, use an interpreter with expand.Context.
+// Command subsitutions like $(echo foo) aren't supported to avoid running
+// arbitrary code. To support those, use an interpreter with expand.Context.
 //
 // An error will be reported if the input string had invalid syntax.
 func Expand(s string, env func(string) string) (string, error) {
