@@ -41,6 +41,15 @@ type Context struct {
 	curParam *syntax.ParamExp
 }
 
+func (c *Context) prepareIFS() {
+	vr := c.Env.Get("IFS")
+	if vr == (Variable{}) {
+		c.ifs = " \t\n"
+	} else {
+		c.ifs = vr.String()
+	}
+}
+
 func (c *Context) ifsRune(r rune) bool {
 	for _, r2 := range c.ifs {
 		if r == r2 {
@@ -206,7 +215,7 @@ func (c *Context) escapedGlobField(parts []fieldPart) (escaped string, glob bool
 }
 
 func (c *Context) ExpandFields(ctx context.Context, words ...*syntax.Word) []string {
-	c.ifs = c.envGet("IFS")
+	c.prepareIFS()
 
 	fields := make([]string, 0, len(words))
 	dir := c.envGet("PWD")
@@ -547,7 +556,7 @@ func globDir(dir string, rx *regexp.Regexp, matches []string) []string {
 }
 
 func (c *Context) ReadFields(s string, n int, raw bool) []string {
-	c.ifs = c.envGet("IFS")
+	c.prepareIFS()
 	type pos struct {
 		start, end int
 	}

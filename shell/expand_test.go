@@ -6,6 +6,7 @@ package shell
 import (
 	"fmt"
 	"os"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -49,6 +50,36 @@ func TestExpand(t *testing.T) {
 				t.Fatal(err)
 			}
 			if got != tc.want {
+				t.Fatalf("\nwant: %q\ngot:  %q", tc.want, got)
+			}
+		})
+	}
+}
+
+var fieldsTests = []struct {
+	in   string
+	env  func(name string) string
+	want []string
+}{
+	{"foo", nil, []string{"foo"}},
+	{"\nfoo\n", nil, []string{"foo"}},
+	{"foo bar", nil, []string{"foo", "bar"}},
+	{"foo 'bar baz'", nil, []string{"foo", "bar baz"}},
+	{"$x", strEnviron("x=foo bar"), []string{"foo", "bar"}},
+	{`"$x"`, strEnviron("x=foo bar"), []string{"foo bar"}},
+}
+
+func TestFields(t *testing.T) {
+	os.Setenv("INTERP_GLOBAL", "value")
+	for i := range fieldsTests {
+		t.Run(fmt.Sprintf("%02d", i), func(t *testing.T) {
+			tc := fieldsTests[i]
+			t.Parallel()
+			got, err := Fields(tc.in, tc.env)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !reflect.DeepEqual(got, tc.want) {
 				t.Fatalf("\nwant: %q\ngot:  %q", tc.want, got)
 			}
 		})

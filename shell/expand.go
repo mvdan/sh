@@ -39,3 +39,31 @@ func Expand(s string, env func(string) string) (string, error) {
 	fields := ectx.ExpandFields(ctx, word)
 	return strings.Join(fields, ""), nil
 }
+
+// Fields performs shell expansion on s, using env to resolve variables, and
+// returns the separate fields that result from the expansion. It is similar to
+// Expand, but word splitting is performed, and the resulting fields are not
+// joined.
+//
+// If env is nil, the current environment variables are used. Empty variables
+// are treated as unset; to support variables which are set but empty, use
+// expand.Context directly.
+//
+// An error will be reported if the input string had invalid syntax.
+func Fields(s string, env func(string) string) ([]string, error) {
+	p := syntax.NewParser()
+	var words []*syntax.Word
+	err := p.Words(strings.NewReader(s), func(w *syntax.Word) bool {
+		words = append(words, w)
+		return true
+	})
+	if err != nil {
+		return nil, err
+	}
+	if env == nil {
+		env = os.Getenv
+	}
+	ectx := expand.Context{Env: expand.FuncEnviron(env)}
+	ctx := context.Background()
+	return ectx.ExpandFields(ctx, words...), nil
+}
