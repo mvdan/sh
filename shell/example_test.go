@@ -69,10 +69,11 @@ func ExampleSourceFile() {
 	if err != nil {
 		return
 	}
-	for name, value := range vars {
-		fmt.Println(name, value)
-	}
+	fmt.Println(len(vars))
+	fmt.Println("foo", vars["foo"])
+	fmt.Println("bar", vars["bar"])
 	// Output:
+	// 2
 	// foo abc012
 	// bar example_test.go
 }
