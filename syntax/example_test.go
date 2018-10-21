@@ -4,15 +4,17 @@
 package syntax_test
 
 import (
+	"fmt"
 	"os"
+	"regexp"
 	"strings"
 
 	"mvdan.cc/sh/syntax"
 )
 
 func Example() {
-	in := strings.NewReader("{ foo; bar; }")
-	f, err := syntax.NewParser().Parse(in, "")
+	r := strings.NewReader("{ foo; bar; }")
+	f, err := syntax.NewParser().Parse(r, "")
 	if err != nil {
 		return
 	}
@@ -21,5 +23,138 @@ func Example() {
 	// {
 	//	foo
 	//	bar
+	// }
+}
+
+func ExampleOptions() {
+	src := "for ((i = 0; i < 5; i++)); do echo $i >f; done"
+
+	// LangBash is the default
+	r := strings.NewReader(src)
+	f, err := syntax.NewParser().Parse(r, "")
+	fmt.Println(err)
+
+	// Parser errors with LangPOSIX
+	r = strings.NewReader(src)
+	_, err = syntax.NewParser(syntax.Variant(syntax.LangPOSIX)).Parse(r, "")
+	fmt.Println(err)
+
+	syntax.NewPrinter().Print(os.Stdout, f)
+	syntax.NewPrinter(syntax.SpaceRedirects).Print(os.Stdout, f)
+
+	// Output:
+	// <nil>
+	// 1:5: c-style fors are a bash feature
+	// for ((i = 0; i < 5; i++)); do echo $i >f; done
+	// for ((i = 0; i < 5; i++)); do echo $i > f; done
+}
+
+func ExampleTranslatePattern() {
+	wildcard := "foo?bar*"
+	fmt.Println(wildcard)
+
+	expr, err := syntax.TranslatePattern(wildcard, true)
+	if err != nil {
+		return
+	}
+	fmt.Println(expr)
+
+	rx := regexp.MustCompile(expr)
+	fmt.Println(rx.MatchString("foo bar baz"))
+	fmt.Println(rx.MatchString("foobarbaz"))
+	// Output:
+	// foo?bar*
+	// foo.bar.*
+	// true
+	// false
+}
+
+func ExampleQuotePattern() {
+	wildcard := "foo?bar*"
+	fmt.Println(wildcard)
+
+	quoted := syntax.QuotePattern(wildcard)
+	fmt.Println(quoted)
+
+	expr, err := syntax.TranslatePattern(quoted, true)
+	if err != nil {
+		return
+	}
+
+	rx := regexp.MustCompile(expr)
+	fmt.Println(rx.MatchString("foo bar baz"))
+	fmt.Println(rx.MatchString("foo?bar*"))
+	// Output:
+	// foo?bar*
+	// foo\?bar\*
+	// false
+	// true
+}
+
+func ExampleWalk() {
+	in := strings.NewReader(`echo $foo "and $bar"`)
+	f, err := syntax.NewParser().Parse(in, "")
+	if err != nil {
+		return
+	}
+	syntax.Walk(f, func(node syntax.Node) bool {
+		switch x := node.(type) {
+		case *syntax.ParamExp:
+			x.Param.Value = strings.ToUpper(x.Param.Value)
+		}
+		return true
+	})
+	syntax.NewPrinter().Print(os.Stdout, f)
+	// Output: echo $FOO "and $BAR"
+}
+
+func ExampleDebugPrint() {
+	in := strings.NewReader(`echo 'foo'`)
+	f, err := syntax.NewParser().Parse(in, "")
+	if err != nil {
+		return
+	}
+	syntax.DebugPrint(os.Stdout, f)
+	// Output:
+	// *syntax.File {
+	// .  Name: ""
+	// .  StmtList: syntax.StmtList {
+	// .  .  Stmts: []*syntax.Stmt (len = 1) {
+	// .  .  .  0: *syntax.Stmt {
+	// .  .  .  .  Comments: []syntax.Comment (len = 0) {}
+	// .  .  .  .  Cmd: *syntax.CallExpr {
+	// .  .  .  .  .  Assigns: []*syntax.Assign (len = 0) {}
+	// .  .  .  .  .  Args: []*syntax.Word (len = 2) {
+	// .  .  .  .  .  .  0: *syntax.Word {
+	// .  .  .  .  .  .  .  Parts: []syntax.WordPart (len = 1) {
+	// .  .  .  .  .  .  .  .  0: *syntax.Lit {
+	// .  .  .  .  .  .  .  .  .  ValuePos: 1:1
+	// .  .  .  .  .  .  .  .  .  ValueEnd: 1:5
+	// .  .  .  .  .  .  .  .  .  Value: "echo"
+	// .  .  .  .  .  .  .  .  }
+	// .  .  .  .  .  .  .  }
+	// .  .  .  .  .  .  }
+	// .  .  .  .  .  .  1: *syntax.Word {
+	// .  .  .  .  .  .  .  Parts: []syntax.WordPart (len = 1) {
+	// .  .  .  .  .  .  .  .  0: *syntax.SglQuoted {
+	// .  .  .  .  .  .  .  .  .  Left: 1:6
+	// .  .  .  .  .  .  .  .  .  Right: 1:10
+	// .  .  .  .  .  .  .  .  .  Dollar: false
+	// .  .  .  .  .  .  .  .  .  Value: "foo"
+	// .  .  .  .  .  .  .  .  }
+	// .  .  .  .  .  .  .  }
+	// .  .  .  .  .  .  }
+	// .  .  .  .  .  }
+	// .  .  .  .  }
+	// .  .  .  .  Position: 1:1
+	// .  .  .  .  Semicolon: 0:0
+	// .  .  .  .  Negated: false
+	// .  .  .  .  Background: false
+	// .  .  .  .  Coprocess: false
+	// .  .  .  .  Redirs: []*syntax.Redirect (len = 0) {}
+	// .  .  .  }
+	// .  .  }
+	// .  .  Last: []syntax.Comment (len = 0) {}
+	// .  }
 	// }
 }
