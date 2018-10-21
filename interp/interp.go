@@ -110,14 +110,11 @@ func (e expandEnv) Each(fn func(name string, vr expand.Variable) bool) {
 	}
 }
 
-// Env sets the interpreter's environment. If nil, the current process's
-// environment is used.
+// Env sets the interpreter's environment. If nil, a copy of the current
+// process's environment is used.
 func Env(env expand.Environ) func(*Runner) error {
 	return func(r *Runner) error {
 		if env == nil {
-			// TODO: use something fancier that combines os.Getenv
-			// and os.Environ, to support live changes to the
-			// system's environment as well as enumerating.
 			env = expand.ListEnviron(os.Environ()...)
 		}
 		r.Env = env
