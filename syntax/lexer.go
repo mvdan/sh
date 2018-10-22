@@ -69,6 +69,7 @@ retry:
 						p.npos.line++
 						p.npos.col = 1
 						p.bsp++
+						p.r = '\n'
 						goto retry
 					}
 				case '$', '`', '\\':
