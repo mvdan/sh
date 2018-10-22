@@ -21,6 +21,15 @@ import (
 )
 
 type Context struct {
+	// Env is used to get and set environment variables when performing
+	// shell expansions. Some special parameters are also expanded via this
+	// interface, such as:
+	//
+	//   * "#", "@", "*", "0"-"9" for the shell's parameters
+	//   * "?", "$", "PPID" for the shell's status and process
+	//   * "HOME foo" to retrieve user foo's home directory
+	//
+	// If "HOME foo" is returned as unset, os/user.Lookup will be used.
 	Env Environ
 
 	NoGlob   bool
@@ -472,7 +481,10 @@ func (c *Context) expandUser(field string) string {
 	if name == "" {
 		return c.Env.Get("HOME").String() + rest
 	}
-	// TODO: don't hard-code os/user into the expansion package
+	if vr := c.Env.Get("HOME " + name); vr != (Variable{}) {
+		return vr.String() + rest
+	}
+
 	u, err := user.Lookup(name)
 	if err != nil {
 		return field
