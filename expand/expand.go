@@ -28,7 +28,13 @@ type Context struct {
 
 	CmdSubst func(context.Context, io.Writer, *syntax.CmdSubst)
 
-	// if nil, errors cause a panic.
+	// Readdirnames is used for file path globbing. If nil, globbing is
+	// disabled. Use Context.SystemReaddirnames to use the filesystem
+	// directly.
+	Readdirnames func(string) []string
+
+	// OnError is called when an error is encountered. If nil, errors cause
+	// a panic.
 	OnError func(error)
 
 	bufferAlloc bytes.Buffer
@@ -239,7 +245,7 @@ func (c *Context) ExpandFields(ctx context.Context, words ...*syntax.Word) []str
 				if !abs {
 					path = filepath.Join(baseDir, path)
 				}
-				matches = glob(path, c.GlobStar)
+				matches = c.glob(path)
 			}
 			if len(matches) == 0 {
 				fields = append(fields, c.fieldJoin(field))
@@ -495,7 +501,7 @@ func hasGlob(path string) bool {
 
 var rxGlobStar = regexp.MustCompile(".*")
 
-func glob(pattern string, globStar bool) []string {
+func (c *Context) glob(pattern string) []string {
 	parts := strings.Split(pattern, string(filepath.Separator))
 	matches := []string{"."}
 	if filepath.IsAbs(pattern) {
@@ -510,7 +516,7 @@ func glob(pattern string, globStar bool) []string {
 		parts = parts[1:]
 	}
 	for _, part := range parts {
-		if part == "**" && globStar {
+		if part == "**" && c.GlobStar {
 			for i := range matches {
 				// "a/**" should match "a/ a/b a/b/c ..."; note
 				// how the zero-match case has a trailing
@@ -522,7 +528,7 @@ func glob(pattern string, globStar bool) []string {
 			for {
 				var newMatches []string
 				for _, dir := range latest {
-					newMatches = globDir(dir, rxGlobStar, newMatches)
+					newMatches = c.globDir(dir, rxGlobStar, newMatches)
 				}
 				if len(newMatches) == 0 {
 					// not another level of directories to
@@ -541,23 +547,38 @@ func glob(pattern string, globStar bool) []string {
 		rx := regexp.MustCompile("^" + expr + "$")
 		var newMatches []string
 		for _, dir := range matches {
-			newMatches = globDir(dir, rx, newMatches)
+			newMatches = c.globDir(dir, rx, newMatches)
 		}
 		matches = newMatches
 	}
 	return matches
 }
 
-func globDir(dir string, rx *regexp.Regexp, matches []string) []string {
+// SystemReaddirnames uses os.Open and File.Readdirnames to retrieve the names
+// of the files within a directoy on the system's filesystem. Any error is
+// reported via Context.OnError.
+func (c *Context) SystemReaddirnames(dir string) []string {
 	d, err := os.Open(dir)
 	if err != nil {
+		c.err(err)
 		return nil
 	}
 	defer d.Close()
 
-	names, _ := d.Readdirnames(-1)
+	names, err := d.Readdirnames(-1)
+	if err != nil {
+		c.err(err)
+		return nil
+	}
 	sort.Strings(names)
+	return names
+}
 
+func (c *Context) globDir(dir string, rx *regexp.Regexp, matches []string) []string {
+	if c.Readdirnames == nil {
+		return nil
+	}
+	names := c.Readdirnames(dir)
 	for _, name := range names {
 		if !strings.HasPrefix(rx.String(), `^\.`) && name[0] == '.' {
 			continue

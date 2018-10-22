@@ -80,6 +80,7 @@ func (r *Runner) fillContext() {
 			r.setErr(r2.err)
 		},
 	}
+	r.Context.Readdirnames = r.SystemReaddirnames
 	r.updateExpandOpts()
 }
 

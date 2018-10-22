@@ -37,6 +37,7 @@ var expandTests = []struct {
 	{"${x//o/a}", strEnviron("x=foo"), "faa"},
 	{"~", strEnviron("HOME=/my/home"), "/my/home"},
 	{"~/foo/bar", strEnviron("HOME=/my/home"), "/my/home/foo/bar"},
+	{"*.go", nil, "*.go"},
 }
 
 func TestExpand(t *testing.T) {
