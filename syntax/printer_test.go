@@ -457,6 +457,7 @@ var printTests = []printCase{
 		"foo() { # inline\n\tbar\n}",
 	},
 	samePrint("if foo; then\n\tbar\n\t# comment\nfi"),
+	samePrint("if foo; then\n\tbar\n# else commented out\nfi"),
 	samePrint("if foo; then\n\tx\nelse\n\tbar\n\t# comment\nfi"),
 	samePrint("if foo; then\n\tx\n#comment\nelse\n\ty\nfi"),
 	samePrint("if foo; then\n\tx\n\t#comment\nelse\n\ty\nfi"),

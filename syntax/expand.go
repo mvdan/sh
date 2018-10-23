@@ -265,6 +265,8 @@ func expandRec(bw *braceWord) []*Word {
 	return []*Word{{Parts: left}}
 }
 
+// TODO(v3): remove
+
 // ExpandBraces performs Bash brace expansion on a word. For example,
 // passing it a single-literal word "foo{bar,baz}" will return two
 // single-literal words, "foobar" and "foobaz".

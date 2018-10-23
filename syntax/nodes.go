@@ -289,6 +289,10 @@ type Block struct {
 func (b *Block) Pos() Pos { return b.Lbrace }
 func (b *Block) End() Pos { return posAddCol(b.Rbrace, 1) }
 
+// TODO(v3): Refactor and simplify elif/else. For example, we could likely make
+// Else an *IfClause, remove ElsePos, make IfPos also do opening "else"
+// positions, and join the comment slices as Last []Comment.
+
 // IfClause represents an if statement.
 type IfClause struct {
 	Elif    bool // whether this IfClause begins with "elif"
@@ -302,6 +306,7 @@ type IfClause struct {
 	Else StmtList
 
 	ElseComments []Comment // comments on the "else"
+	FiComments   []Comment // comments on the "fi"
 }
 
 func (c *IfClause) Pos() Pos { return c.IfPos }

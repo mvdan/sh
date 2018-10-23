@@ -765,7 +765,7 @@ func (p *Parser) stmtList(stops ...string) (sl StmtList) {
 	}
 	p.stmts(fn, stops...)
 	split := len(p.accComs)
-	if p.tok == _LitWord && (p.val == "elif" || p.val == "else") {
+	if p.tok == _LitWord && (p.val == "elif" || p.val == "else" || p.val == "fi") {
 		// Split the comments, so that any aligned with an opening token
 		// get attached to it. For example:
 		//
@@ -1946,6 +1946,8 @@ func (p *Parser) ifClause(s *Stmt) {
 		curIf.ElsePos = elsePos
 		curIf.Else = p.followStmts("else", curIf.ElsePos, "fi")
 	}
+	curIf.FiComments = p.accComs
+	p.accComs = nil
 	rif.FiPos = p.stmtEnd(rif, "if", "fi")
 	curIf.FiPos = rif.FiPos
 	s.Cmd = rif

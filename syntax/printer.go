@@ -1073,6 +1073,7 @@ func (p *Printer) ifClause(ic *IfClause, elif bool) {
 	} else if ic.ElsePos.IsValid() {
 		p.line = ic.ElsePos.Line()
 	}
+	p.comments(ic.FiComments)
 	p.semiRsrv("fi", ic.FiPos)
 }
 
