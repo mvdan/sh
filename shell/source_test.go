@@ -4,7 +4,10 @@
 package shell
 
 import (
+	"context"
 	"fmt"
+	"io/ioutil"
+	"os"
 	"reflect"
 	"strings"
 	"testing"
@@ -55,7 +58,7 @@ var errTests = []struct {
 	},
 }
 
-func TestSource(t *testing.T) {
+func TestSourceNode(t *testing.T) {
 	for i := range mapTests {
 		t.Run(fmt.Sprintf("%02d", i), func(t *testing.T) {
 			tc := mapTests[i]
@@ -65,7 +68,7 @@ func TestSource(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			got, err := SourceNode(file)
+			got, err := SourceNode(context.Background(), file)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -76,7 +79,7 @@ func TestSource(t *testing.T) {
 	}
 }
 
-func TestSourceErr(t *testing.T) {
+func TestSourceNodeErr(t *testing.T) {
 	for i := range errTests {
 		t.Run(fmt.Sprintf("%02d", i), func(t *testing.T) {
 			tc := errTests[i]
@@ -86,7 +89,7 @@ func TestSourceErr(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			_, err = SourceNode(file)
+			_, err = SourceNode(context.Background(), file)
 			if err == nil {
 				t.Fatal("wanted non-nil error")
 			}
@@ -94,5 +97,34 @@ func TestSourceErr(t *testing.T) {
 				t.Fatalf("error %q does not match %q", err, tc.want)
 			}
 		})
+	}
+}
+
+func TestSourceFileContext(t *testing.T) {
+	t.Parallel()
+	tf, err := ioutil.TempFile("", "sh-shell")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(tf.Name())
+	const src = "cat" // block forever
+	if _, err := tf.WriteString(src); err != nil {
+		t.Fatal(err)
+	}
+	if err := tf.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	errc := make(chan error, 1)
+	go func() {
+		_, err := SourceFile(ctx, tf.Name())
+		errc <- err
+	}()
+	cancel()
+	err = <-errc
+	want := "context canceled"
+	if !strings.Contains(err.Error(), want) {
+		t.Fatalf("error %q does not match %q", err, want)
 	}
 }

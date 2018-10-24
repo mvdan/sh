@@ -4,6 +4,7 @@
 package shell_test
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -65,7 +66,7 @@ func ExampleSourceFile() {
 	`
 	ioutil.WriteFile("f.sh", []byte(src), 0666)
 	defer os.Remove("f.sh")
-	vars, err := shell.SourceFile("f.sh")
+	vars, err := shell.SourceFile(context.TODO(), "f.sh")
 	if err != nil {
 		return
 	}

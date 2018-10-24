@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"time"
 
 	"mvdan.cc/sh/expand"
 	"mvdan.cc/sh/interp"
@@ -16,11 +15,9 @@ import (
 )
 
 // SourceFile sources a shell file from disk and returns the variables
-// declared in it.
-//
-// A default parser is used; to set custom options, use SourceNode
-// instead.
-func SourceFile(path string) (map[string]expand.Variable, error) {
+// declared in it. It is a convenience function that uses a default shell
+// parser, parses a file from disk, and calls SourceNode.
+func SourceFile(ctx context.Context, path string) (map[string]expand.Variable, error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, fmt.Errorf("could not open: %v", err)
@@ -31,7 +28,7 @@ func SourceFile(path string) (map[string]expand.Variable, error) {
 	if err != nil {
 		return nil, fmt.Errorf("could not parse: %v", err)
 	}
-	return SourceNode(file)
+	return SourceNode(ctx, file)
 }
 
 // purePrograms holds a list of common programs that do not have side
@@ -46,8 +43,6 @@ var purePrograms = []string{
 	// others
 	"env", "sleep", "uniq", "sort",
 }
-
-var pureRunnerTimeout = 2 * time.Second
 
 func pureRunner() *interp.Runner {
 	// forbid executing programs that might cause trouble
@@ -72,16 +67,14 @@ func pureRunner() *interp.Runner {
 }
 
 // SourceNode sources a shell program from a node and returns the
-// variables declared in it.
+// variables declared in it. It accepts the same set of node types that
+// interp/Runner.Run does.
 //
 // Any side effects or modifications to the system are forbidden when
 // interpreting the program. This is enforced via whitelists when
-// executing programs and opening paths. The interpreter also has a timeout of
-// two seconds.
-func SourceNode(node syntax.Node) (map[string]expand.Variable, error) {
+// executing programs and opening files.
+func SourceNode(ctx context.Context, node syntax.Node) (map[string]expand.Variable, error) {
 	r := pureRunner()
-	ctx, cancel := context.WithTimeout(context.Background(), pureRunnerTimeout)
-	defer cancel()
 	if err := r.Run(ctx, node); err != nil {
 		return nil, fmt.Errorf("could not run: %v", err)
 	}
