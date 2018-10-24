@@ -8,18 +8,45 @@ import (
 	"strings"
 )
 
+// Environ is the base interface for a shell's environment, allowing it to fetch
+// variables by name and to iterate over all the currently set variables.
 type Environ interface {
+	// Get retrieves a variable by its name. To check if the variable is
+	// set, use Variable.IsSet.
 	Get(name string) Variable
-	Set(name string, vr Variable)
-	Delete(name string)
+
+	// Each iterates over all the currently set variables, calling the
+	// supplied function on each variable. Iteration is stopped if the
+	// function returns false.
+	//
+	// The names used in the calls aren't required to be unique or sorted.
+	// If a variable name appears twice, the latest occurrence takes
+	// priority.
+	//
+	// Each is required to forward exported variables when executing
+	// programs.
 	Each(func(name string, vr Variable) bool)
 }
 
+// WriteEnviron is an extension on Environ that supports modifying and deleting
+// variables.
+type WriteEnviron interface {
+	Environ
+	Set(name string, vr Variable)
+	Delete(name string) // TODO: use Set(name, Variable{})?
+}
+
+// Variable describes a shell variable, which can have a number of attributes
+// and a value.
+//
+// Its Value field will be nil if the variable is unset, a []string if it is an
+// indexed array, a map[string]string if it's an associative array, or a string
+// otherwise.
 type Variable struct {
 	Local    bool
 	Exported bool
 	ReadOnly bool
-	NameRef  bool
+	NameRef  bool        // if true, Value must be string
 	Value    interface{} // string, []string, or map[string]string
 }
 
@@ -64,6 +91,11 @@ func (v Variable) Resolve(env Environ) (string, Variable) {
 	return name, Variable{}
 }
 
+// FuncEnviron wraps a function mapping variable names to their string values,
+// and implements Environ. Empty strings returned by the function will be
+// treated as unset variables.
+//
+// Note that the returned Environ's Each method will be a no-op.
 func FuncEnviron(fn func(string) string) Environ {
 	return funcEnviron(fn)
 }
@@ -78,10 +110,10 @@ func (f funcEnviron) Get(name string) Variable {
 	return Variable{Value: value}
 }
 
-func (f funcEnviron) Set(name string, vr Variable)             { panic("FuncEnviron is read-only") }
-func (f funcEnviron) Delete(name string)                       { panic("FuncEnviron is read-only") }
 func (f funcEnviron) Each(func(name string, vr Variable) bool) {}
 
+// ListEnviron returns an Environ with the supplied variables, in the form
+// "key=value".
 func ListEnviron(pairs ...string) Environ {
 	list := append([]string{}, pairs...)
 	sort.Strings(list)
@@ -108,6 +140,7 @@ func ListEnviron(pairs ...string) Environ {
 type listEnviron []string
 
 func (l listEnviron) Get(name string) Variable {
+	// TODO: binary search
 	prefix := name + "="
 	for _, pair := range l {
 		if val := strings.TrimPrefix(pair, prefix); val != pair {
@@ -117,8 +150,6 @@ func (l listEnviron) Get(name string) Variable {
 	return Variable{}
 }
 
-func (l listEnviron) Set(name string, vr Variable) { panic("ListEnviron is read-only") }
-func (l listEnviron) Delete(name string)           { panic("ListEnviron is read-only") }
 func (l listEnviron) Each(fn func(name string, vr Variable) bool) {
 	for _, pair := range l {
 		i := strings.IndexByte(pair, '=')

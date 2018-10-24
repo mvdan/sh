@@ -44,14 +44,11 @@ func (o *overlayEnviron) Delete(name string) {
 }
 
 func (o *overlayEnviron) Each(f func(name string, vr expand.Variable) bool) {
+	o.parent.Each(f)
 	for name, vr := range o.values {
 		if !f(name, vr) {
 			return
 		}
-	}
-	if o.parent != nil {
-
-		o.parent.Each(f)
 	}
 }
 

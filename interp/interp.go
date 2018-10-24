@@ -476,16 +476,17 @@ func (r *Runner) modCtx(ctx context.Context) context.Context {
 		Stderr:      r.Stderr,
 		KillTimeout: r.KillTimeout,
 	}
-	mc.Env = &overlayEnviron{parent: r.Env}
+	oenv := &overlayEnviron{parent: r.Env}
 	for name, vr := range r.Vars {
 		if !vr.Exported {
 			continue
 		}
-		mc.Env.Set(name, vr)
+		oenv.Set(name, vr)
 	}
 	for name, value := range r.cmdVars {
-		mc.Env.Set(name, expand.Variable{Value: value})
+		oenv.Set(name, expand.Variable{Value: value})
 	}
+	mc.Env = oenv
 	return context.WithValue(ctx, moduleCtxKey{}, mc)
 }
 

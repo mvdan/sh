@@ -110,7 +110,12 @@ func (c *Context) envGet(name string) string {
 }
 
 func (c *Context) envSet(name, value string) {
-	c.Env.Set(name, Variable{Value: value})
+	wenv, ok := c.Env.(WriteEnviron)
+	if !ok {
+		// TODO: we should probably error here
+		return
+	}
+	wenv.Set(name, Variable{Value: value})
 }
 
 func (c *Context) ExpandLiteral(ctx context.Context, word *syntax.Word) string {
