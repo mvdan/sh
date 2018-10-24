@@ -1193,6 +1193,9 @@ type extraIndenter struct {
 
 func (e *extraIndenter) WriteByte(b byte) error {
 	if e.afterNewl {
+		if b == '\t' {
+			return nil
+		}
 		for i := uint(0); i < e.level; i++ {
 			e.bufWriter.WriteByte('\t')
 		}

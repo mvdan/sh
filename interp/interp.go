@@ -4,6 +4,7 @@
 package interp
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -894,10 +895,42 @@ func (r *Runner) stmts(ctx context.Context, sl syntax.StmtList) {
 	}
 }
 
+func (r *Runner) hdocReader(ctx context.Context, rd *syntax.Redirect) io.Reader {
+	if rd.Op != syntax.DashHdoc {
+		hdoc := r.ExpandLiteral(ctx, rd.Hdoc)
+		return strings.NewReader(hdoc)
+	}
+	var buf bytes.Buffer
+	var cur []syntax.WordPart
+	flushLine := func() {
+		if buf.Len() > 0 {
+			buf.WriteByte('\n')
+		}
+		buf.WriteString(r.ExpandLiteral(ctx, &syntax.Word{Parts: cur}))
+		cur = cur[:0]
+	}
+	for _, wp := range rd.Hdoc.Parts {
+		lit, ok := wp.(*syntax.Lit)
+		if !ok {
+			cur = append(cur, wp)
+			continue
+		}
+		for i, part := range strings.Split(lit.Value, "\n") {
+			if i > 0 {
+				flushLine()
+				cur = cur[:0]
+			}
+			part = strings.TrimLeft(part, "\t")
+			cur = append(cur, &syntax.Lit{Value: part})
+		}
+	}
+	flushLine()
+	return &buf
+}
+
 func (r *Runner) redir(ctx context.Context, rd *syntax.Redirect) (io.Closer, error) {
 	if rd.Hdoc != nil {
-		hdoc := r.ExpandLiteral(ctx, rd.Hdoc)
-		r.Stdin = strings.NewReader(hdoc)
+		r.Stdin = r.hdocReader(ctx, rd)
 		return nil, nil
 	}
 	orig := &r.Stdout

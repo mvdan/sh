@@ -909,6 +909,14 @@ var fileCases = []struct {
 		"faa\n",
 	},
 	{
+		"cat <<-EOF\n\tfoo\nEOF",
+		"foo\n",
+	},
+	{
+		"cat <<-EOF\n\tfoo\n\nEOF",
+		"foo\n\n",
+	},
+	{
 		"mkdir a; echo foo >a |& grep -q 'is a directory'",
 		" #IGNORE",
 	},

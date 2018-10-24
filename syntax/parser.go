@@ -516,7 +516,7 @@ func (p *Parser) doHeredocs() {
 			p.rune()
 		}
 		if quoted {
-			r.Hdoc = p.hdocLitWord()
+			r.Hdoc = p.quotedHdocWord()
 		} else {
 			p.next()
 			r.Hdoc = p.getWord()

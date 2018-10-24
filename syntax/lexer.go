@@ -754,8 +754,6 @@ func (p *Parser) newLit(r rune) {
 	}
 }
 
-func (p *Parser) discardLit(n int) { p.litBs = p.litBs[:len(p.litBs)-n] }
-
 func (p *Parser) endLit() (s string) {
 	if p.r == utf8.RuneSelf {
 		s = string(p.litBs)
@@ -912,7 +910,6 @@ func (p *Parser) advanceLitHdoc(r rune) {
 	p.newLit(r)
 	if p.quote == hdocBodyTabs {
 		for r == '\t' {
-			p.discardLit(1)
 			r = p.rune()
 		}
 	}
@@ -947,7 +944,6 @@ func (p *Parser) advanceLitHdoc(r rune) {
 			if p.quote == hdocBodyTabs {
 				for p.peekByte('\t') {
 					p.rune()
-					p.discardLit(1)
 				}
 			}
 			lStart = len(p.litBs)
@@ -955,7 +951,7 @@ func (p *Parser) advanceLitHdoc(r rune) {
 	}
 }
 
-func (p *Parser) hdocLitWord() *Word {
+func (p *Parser) quotedHdocWord() *Word {
 	r := p.r
 	p.newLit(r)
 	pos := p.getPos()
@@ -965,7 +961,6 @@ func (p *Parser) hdocLitWord() *Word {
 		}
 		if p.quote == hdocBodyTabs {
 			for r == '\t' {
-				p.discardLit(1)
 				r = p.rune()
 			}
 		}
