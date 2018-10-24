@@ -76,7 +76,7 @@ $ echo '${array[dash-string]}' | shfmt
 ${array[dash - string]}
 ```
 
-* `$((` and `((` ambiguity is not suported. Backtracking would complicate the
+* `$((` and `((` ambiguity is not supported. Backtracking would complicate the
   parser and make streaming support via `io.Reader` impossible. The POSIX spec
   recommends to [space the operands][posix-ambiguity] if `$( (` is meant.
 
