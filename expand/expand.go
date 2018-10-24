@@ -68,7 +68,7 @@ func (u UnexpectedCommandError) Error() string {
 
 func (c *Context) prepareIFS() {
 	vr := c.Env.Get("IFS")
-	if vr == (Variable{}) {
+	if !vr.IsSet() {
 		c.ifs = " \t\n"
 	} else {
 		c.ifs = vr.String()
@@ -481,7 +481,7 @@ func (c *Context) expandUser(field string) string {
 	if name == "" {
 		return c.Env.Get("HOME").String() + rest
 	}
-	if vr := c.Env.Get("HOME " + name); vr != (Variable{}) {
+	if vr := c.Env.Get("HOME " + name); vr.IsSet() {
 		return vr.String() + rest
 	}
 

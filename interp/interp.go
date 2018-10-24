@@ -439,7 +439,7 @@ func (r *Runner) Reset() {
 			delete(r.cmdVars, k)
 		}
 	}
-	if vr := r.Env.Get("HOME"); vr == (expand.Variable{}) {
+	if vr := r.Env.Get("HOME"); !vr.IsSet() {
 		u, _ := user.Current()
 		r.Vars["HOME"] = expand.Variable{Value: u.HomeDir}
 	}

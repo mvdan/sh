@@ -23,6 +23,12 @@ type Variable struct {
 	Value    interface{} // string, []string, or map[string]string
 }
 
+// IsSet returns whether the variable is set. An empty variable is set, but an
+// undeclared variable is not.
+func (v Variable) IsSet() bool {
+	return v != Variable{}
+}
+
 // String returns the variable's value as a string. In general, this only makes
 // sense if the variable has a string value or no value at all.
 func (v Variable) String() string {

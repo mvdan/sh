@@ -12,7 +12,6 @@ import (
 
 	"golang.org/x/crypto/ssh/terminal"
 
-	"mvdan.cc/sh/expand"
 	"mvdan.cc/sh/syntax"
 )
 
@@ -174,11 +173,9 @@ func (r *Runner) unTest(ctx context.Context, op syntax.UnTestOperator, x string)
 		}
 		return false
 	case syntax.TsVarSet:
-		vr := r.lookupVar(x)
-		return vr != expand.Variable{}
+		return r.lookupVar(x).IsSet()
 	case syntax.TsRefVar:
-		v := r.lookupVar(x)
-		return v.NameRef
+		return r.lookupVar(x).NameRef
 	case syntax.TsNot:
 		return x == ""
 	default:

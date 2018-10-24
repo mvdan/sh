@@ -108,12 +108,12 @@ func (r *Runner) lookupVar(name string) expand.Variable {
 	if vr, e := r.Vars[name]; e {
 		return vr
 	}
-	if vr := r.Env.Get(name); vr != (expand.Variable{}) {
+	if vr := r.Env.Get(name); vr.IsSet() {
 		return vr
 	}
 	if runtime.GOOS == "windows" {
 		upper := strings.ToUpper(name)
-		if vr := r.Env.Get(upper); vr != (expand.Variable{}) {
+		if vr := r.Env.Get(upper); vr.IsSet() {
 			return vr
 		}
 	}
@@ -257,7 +257,7 @@ func (r *Runner) assignVal(ctx context.Context, as *syntax.Assign, valType strin
 	}
 	if as.Value != nil {
 		s := r.ExpandLiteral(ctx, as.Value)
-		if !as.Append || prev == (expand.Variable{}) {
+		if !as.Append || !prev.IsSet() {
 			return s
 		}
 		switch x := prev.Value.(type) {
@@ -293,7 +293,7 @@ func (r *Runner) assignVal(ctx context.Context, as *syntax.Assign, valType strin
 			k := r.ExpandLiteral(ctx, elem.Index.(*syntax.Word))
 			amap[k] = r.ExpandLiteral(ctx, elem.Value)
 		}
-		if !as.Append || prev == (expand.Variable{}) {
+		if !as.Append || !prev.IsSet() {
 			return amap
 		}
 		// TODO
@@ -317,7 +317,7 @@ func (r *Runner) assignVal(ctx context.Context, as *syntax.Assign, valType strin
 	for i, elem := range elems {
 		strs[indexes[i]] = r.ExpandLiteral(ctx, elem.Value)
 	}
-	if !as.Append || prev == (expand.Variable{}) {
+	if !as.Append || !prev.IsSet() {
 		return strs
 	}
 	switch x := prev.Value.(type) {

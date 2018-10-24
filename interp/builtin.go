@@ -106,7 +106,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		}
 
 		for _, arg := range args {
-			if vr := r.lookupVar(arg); vr != (expand.Variable{}) && vars {
+			if vr := r.lookupVar(arg); vr.IsSet() && vars {
 				r.delVar(arg)
 				continue
 			}

@@ -67,7 +67,6 @@ func (c *Context) paramExp(ctx context.Context, pe *syntax.ParamExp) string {
 	}
 	orig := vr
 	_, vr = vr.Resolve(c.Env)
-	set := vr != Variable{}
 	str := vr.String()
 	if index != nil {
 		str = c.varInd(ctx, vr, index)
@@ -157,11 +156,11 @@ func (c *Context) paramExp(ctx context.Context, pe *syntax.ParamExp) string {
 			}
 			fallthrough
 		case syntax.SubstPlus:
-			if set {
+			if vr.IsSet() {
 				str = arg
 			}
 		case syntax.SubstMinus:
-			if set {
+			if vr.IsSet() {
 				break
 			}
 			fallthrough
@@ -170,7 +169,7 @@ func (c *Context) paramExp(ctx context.Context, pe *syntax.ParamExp) string {
 				str = arg
 			}
 		case syntax.SubstQuest:
-			if set {
+			if vr.IsSet() {
 				break
 			}
 			fallthrough
@@ -182,7 +181,7 @@ func (c *Context) paramExp(ctx context.Context, pe *syntax.ParamExp) string {
 				})
 			}
 		case syntax.SubstAssgn:
-			if set {
+			if vr.IsSet() {
 				break
 			}
 			fallthrough
