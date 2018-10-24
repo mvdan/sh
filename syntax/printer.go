@@ -5,6 +5,7 @@ package syntax
 
 import (
 	"bufio"
+	"bytes"
 	"io"
 	"strings"
 	"unicode"
@@ -85,8 +86,9 @@ func (p *Printer) Print(w io.Writer, node Node) error {
 }
 
 type bufWriter interface {
-	WriteByte(byte) error
+	Write([]byte) (int, error)
 	WriteString(string) (int, error)
+	WriteByte(byte) error
 	Reset(io.Writer)
 	Flush() error
 }
@@ -340,9 +342,9 @@ func (p *Printer) flushHeredocs() {
 			!p.minify && p.tabsPrinter != nil {
 			if r.Hdoc != nil {
 				extra := extraIndenter{
-					bufWriter: p.bufWriter,
-					afterNewl: true,
-					level:     p.level + 1,
+					bufWriter:   p.bufWriter,
+					baseIndent:  int(p.level + 1),
+					firstIndent: -1,
 				}
 				*p.tabsPrinter = Printer{
 					bufWriter: &extra,
@@ -1172,6 +1174,9 @@ func (c *byteCounter) WriteByte(b byte) error {
 	}
 	return nil
 }
+func (c *byteCounter) Write(p []byte) (int, error) {
+	return c.WriteString(string(p))
+}
 func (c *byteCounter) WriteString(s string) (int, error) {
 	switch {
 	case *c < 0:
@@ -1185,23 +1190,41 @@ func (c *byteCounter) WriteString(s string) (int, error) {
 func (c *byteCounter) Reset(io.Writer) { *c = 0 }
 func (c *byteCounter) Flush() error    { return nil }
 
+// extraIndenter ensures that all lines in a '<<-' heredoc body have at least
+// baseIndent leading tabs. Those that had more tab indentation than the first
+// heredoc line will keep that relative indentation.
 type extraIndenter struct {
 	bufWriter
-	afterNewl bool
-	level     uint
+	baseIndent int
+
+	firstIndent int
+	firstChange int
+	curLine     []byte
 }
 
 func (e *extraIndenter) WriteByte(b byte) error {
-	if e.afterNewl {
-		if b == '\t' {
-			return nil
-		}
-		for i := uint(0); i < e.level; i++ {
-			e.bufWriter.WriteByte('\t')
+	e.curLine = append(e.curLine, b)
+	if b != '\n' {
+		return nil
+	}
+	trimmed := bytes.TrimLeft(e.curLine, "\t")
+	lineIndent := len(e.curLine) - len(trimmed)
+	if e.firstIndent < 0 {
+		e.firstIndent = lineIndent
+		e.firstChange = e.baseIndent - lineIndent
+		lineIndent = e.baseIndent
+	} else {
+		if lineIndent < e.firstIndent {
+			lineIndent = e.firstIndent
+		} else {
+			lineIndent += e.firstChange
 		}
 	}
-	e.bufWriter.WriteByte(b)
-	e.afterNewl = b == '\n'
+	for i := 0; i < lineIndent; i++ {
+		e.bufWriter.WriteByte('\t')
+	}
+	e.bufWriter.Write(trimmed)
+	e.curLine = e.curLine[:0]
 	return nil
 }
 

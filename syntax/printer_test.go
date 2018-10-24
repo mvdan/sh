@@ -433,6 +433,20 @@ var printTests = []printCase{
 	samePrint("{\n\tf <<EOF\nEOF\n}"),
 	samePrint("{\n\tf <<-EOF\n\t\tbody\n\tEOF\n}"),
 	samePrint("{\n\tf <<-EOF\n\t\tbody\n\tEOF\n\tf2\n}"),
+	samePrint("f <<-EOF\n\t{\n\t\tnicely indented\n\t}\nEOF"),
+	samePrint("f <<-EOF\n\t{\n\t\tnicely indented\n\t}\nEOF"),
+	{
+		"f <<-EOF\n\t{\nbadly indented\n\t}\nEOF",
+		"f <<-EOF\n\t{\n\tbadly indented\n\t}\nEOF",
+	},
+	{
+		"f <<-EOF\n\t\t{\n\t\t\ttoo indented\n\t\t}\nEOF",
+		"f <<-EOF\n\t{\n\t\ttoo indented\n\t}\nEOF",
+	},
+	{
+		"f <<-EOF\n{\n\ttoo little indented\n}\nEOF",
+		"f <<-EOF\n\t{\n\t\ttoo little indented\n\t}\nEOF",
+	},
 	samePrint("f <<EOF\nEOF\n# comment"),
 	samePrint("f <<EOF\nEOF\n# comment\nbar"),
 	samePrint("f <<EOF # inline\n$(\n\t# inside\n)\nEOF\n# outside\nbar"),
