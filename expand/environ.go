@@ -93,7 +93,7 @@ func (v Variable) Resolve(env Environ) (string, Variable) {
 
 // FuncEnviron wraps a function mapping variable names to their string values,
 // and implements Environ. Empty strings returned by the function will be
-// treated as unset variables.
+// treated as unset variables. All variables will be exported.
 //
 // Note that the returned Environ's Each method will be a no-op.
 func FuncEnviron(fn func(string) string) Environ {
@@ -107,13 +107,13 @@ func (f funcEnviron) Get(name string) Variable {
 	if value == "" {
 		return Variable{}
 	}
-	return Variable{Value: value}
+	return Variable{Exported: true, Value: value}
 }
 
 func (f funcEnviron) Each(func(name string, vr Variable) bool) {}
 
 // ListEnviron returns an Environ with the supplied variables, in the form
-// "key=value".
+// "key=value". All variables will be exported.
 func ListEnviron(pairs ...string) Environ {
 	list := append([]string{}, pairs...)
 	sort.Strings(list)
@@ -144,7 +144,7 @@ func (l listEnviron) Get(name string) Variable {
 	prefix := name + "="
 	for _, pair := range l {
 		if val := strings.TrimPrefix(pair, prefix); val != pair {
-			return Variable{Value: val}
+			return Variable{Exported: true, Value: val}
 		}
 	}
 	return Variable{}
@@ -158,7 +158,7 @@ func (l listEnviron) Each(fn func(name string, vr Variable) bool) {
 			panic("expand.listEnviron: did not expect malformed name-value pair: " + pair)
 		}
 		name, value := pair[:i], pair[i+1:]
-		if !fn(name, Variable{Value: value}) {
+		if !fn(name, Variable{Exported: true, Value: value}) {
 			return
 		}
 	}

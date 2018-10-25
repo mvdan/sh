@@ -478,13 +478,10 @@ func (r *Runner) modCtx(ctx context.Context) context.Context {
 	}
 	oenv := &overlayEnviron{parent: r.Env}
 	for name, vr := range r.Vars {
-		if !vr.Exported {
-			continue
-		}
 		oenv.Set(name, vr)
 	}
 	for name, value := range r.cmdVars {
-		oenv.Set(name, expand.Variable{Value: value})
+		oenv.Set(name, expand.Variable{Exported: true, Value: value})
 	}
 	mc.Env = oenv
 	return context.WithValue(ctx, moduleCtxKey{}, mc)
