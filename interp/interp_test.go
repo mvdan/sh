@@ -278,6 +278,10 @@ var fileCases = []struct {
 		"b\n\nb\nc\n",
 	},
 	{
+		"echo ${#:-never} ${?:-never} ${LINENO:-never}",
+		"0 0 1\n",
+	},
+	{
 		"echo ${a-b}; echo $a; a=; echo ${a-b}; a=c; echo ${a-b}",
 		"b\n\n\nc\n",
 	},

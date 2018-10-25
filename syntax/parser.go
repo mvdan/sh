@@ -1399,15 +1399,8 @@ func (p *Parser) paramExp() *ParamExp {
 		default:
 			pe.Exp = p.paramExpExp()
 		}
-	case plus, colPlus, minus, colMinus, quest, colQuest, assgn, colAssgn:
-		// if unset/null actions
-		switch pe.Param.Value {
-		case "#", "$", "?", "!":
-			p.curErr("$%s can never be unset or null", pe.Param.Value)
-		}
-		pe.Exp = p.paramExpExp()
-	case perc, dblPerc, hash, dblHash:
-		// pattern string manipulation
+	case plus, colPlus, minus, colMinus, quest, colQuest, assgn, colAssgn,
+		perc, dblPerc, hash, dblHash:
 		pe.Exp = p.paramExpExp()
 	case _EOF:
 	default:
