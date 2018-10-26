@@ -902,6 +902,14 @@ func printTest(t *testing.T, parser *Parser, printer *Printer, in, want string) 
 
 func TestPrintNodeTypes(t *testing.T) {
 	t.Parallel()
+
+	multiline, err := NewParser().Parse(strings.NewReader(`
+		echo foo
+	`), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	var tests = [...]struct {
 		in      Node
 		want    string
@@ -938,6 +946,22 @@ func TestPrintNodeTypes(t *testing.T) {
 		{
 			in:      &Comment{},
 			wantErr: true,
+		},
+		{
+			in:   multiline.Stmts[0],
+			want: "echo foo",
+		},
+		{
+			in:   multiline.Stmts[0].Cmd,
+			want: "echo foo",
+		},
+		{
+			in:   multiline.Stmts[0].Cmd.(*CallExpr).Args[0],
+			want: "echo",
+		},
+		{
+			in:   multiline.Stmts[0].Cmd.(*CallExpr).Args[0].Parts[0],
+			want: "echo",
 		},
 	}
 	printer := NewPrinter()

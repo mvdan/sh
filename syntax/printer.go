@@ -77,10 +77,11 @@ func (p *Printer) Print(w io.Writer, node Node) error {
 		p.newline(x.End())
 	case *Stmt:
 		p.stmtList(StmtList{Stmts: []*Stmt{x}})
+	case Command:
+		p.line = x.Pos().Line()
+		p.command(x, nil)
 	case *Word:
 		p.word(x)
-	case Command:
-		p.command(x, nil)
 	case WordPart:
 		p.wordPart(x, nil)
 	default:
