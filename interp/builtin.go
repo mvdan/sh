@@ -159,40 +159,26 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 				break
 			}
 		}
-	case "break":
+	case "break", "continue":
 		if !r.inLoop {
-			r.errf("break is only useful in a loop")
+			r.errf("%s is only useful in a loop", name)
 			break
+		}
+		enclosing := &r.breakEnclosing
+		if name == "continue" {
+			enclosing = &r.contnEnclosing
 		}
 		switch len(args) {
 		case 0:
-			r.breakEnclosing = 1
+			*enclosing = 1
 		case 1:
 			if n, err := strconv.Atoi(args[0]); err == nil {
-				r.breakEnclosing = n
+				*enclosing = n
 				break
 			}
 			fallthrough
 		default:
-			r.errf("usage: break [n]\n")
-			return 2
-		}
-	case "continue":
-		if !r.inLoop {
-			r.errf("continue is only useful in a loop")
-			break
-		}
-		switch len(args) {
-		case 0:
-			r.contnEnclosing = 1
-		case 1:
-			if n, err := strconv.Atoi(args[0]); err == nil {
-				r.contnEnclosing = n
-				break
-			}
-			fallthrough
-		default:
-			r.errf("usage: continue [n]\n")
+			r.errf("usage: %s [n]\n", name)
 			return 2
 		}
 	case "pwd":
