@@ -903,36 +903,43 @@ func printTest(t *testing.T, parser *Parser, printer *Printer, in, want string) 
 func TestPrintNodeTypes(t *testing.T) {
 	t.Parallel()
 	var tests = [...]struct {
-		in   Node
-		want string
+		in      Node
+		want    string
+		wantErr bool
 	}{
 		{
-			&File{StmtList: litStmts("foo")},
-			"foo\n",
+			in:   &File{StmtList: litStmts("foo")},
+			want: "foo\n",
 		},
 		{
-			&File{StmtList: litStmts("foo", "bar")},
-			"foo\nbar\n",
+			in:   &File{StmtList: litStmts("foo", "bar")},
+			want: "foo\nbar\n",
 		},
 		{
-			litStmt("foo", "bar"),
-			"foo bar",
+			in:   litStmt("foo", "bar"),
+			want: "foo bar",
 		},
 		{
-			litCall("foo", "bar"),
-			"foo bar",
+			in:   litCall("foo", "bar"),
+			want: "foo bar",
 		},
 		{
-			litWord("foo"),
-			"foo",
+			in:   litWord("foo"),
+			want: "foo",
+		},
+		{
+			in:      &Comment{},
+			wantErr: true,
 		},
 	}
 	printer := NewPrinter()
 	for i, tc := range tests {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
 			got, err := strPrint(printer, tc.in)
-			if err != nil {
-				t.Fatal(err)
+			if err == nil && tc.wantErr {
+				t.Fatalf("wanted an error but found none")
+			} else if err != nil && !tc.wantErr {
+				t.Fatalf("didn't want an error but got %v", err)
 			}
 			if got != tc.want {
 				t.Fatalf("Print mismatch:\nwant:\n%s\ngot:\n%s",

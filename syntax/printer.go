@@ -6,6 +6,7 @@ package syntax
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"io"
 	"strings"
 	"unicode"
@@ -79,6 +80,8 @@ func (p *Printer) Print(w io.Writer, node Node) error {
 		p.word(x)
 	case Command:
 		p.command(x, nil)
+	default:
+		return fmt.Errorf("unsupported node type: %T", x)
 	}
 	p.flushHeredocs()
 	p.flushComments()
