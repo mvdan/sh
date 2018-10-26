@@ -32,15 +32,24 @@ type Environ interface {
 // variables.
 type WriteEnviron interface {
 	Environ
+	// Set sets a variable by name. If !vr.IsSet(), the variable is being
+	// unset; otherwise, the variable is being replaced.
+	//
+	// It is the implementation's responsibility to handle variable
+	// attributes correctly. For example, changing an exported variable's
+	// value does not unexport it, and overwriting a name reference variable
+	// should modify its target.
 	Set(name string, vr Variable)
-	Delete(name string) // TODO: use Set(name, Variable{})?
 }
 
 // Variable describes a shell variable, which can have a number of attributes
 // and a value.
 //
-// Its Value field will be nil if the variable is unset, a []string if it is an
-// indexed array, a map[string]string if it's an associative array, or a string
+// The zero value of a Variable is an unset variable, which can be checked via
+// Variable.IsSet.
+//
+// If a variable is set, its Value field will be a []string if it is an indexed
+// array, a map[string]string if it's an associative array, or a string
 // otherwise.
 type Variable struct {
 	Local    bool

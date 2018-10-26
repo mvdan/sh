@@ -37,6 +37,8 @@ type Context struct {
 
 	CmdSubst func(context.Context, io.Writer, *syntax.CmdSubst)
 
+	// TODO: rethink this interface
+
 	// Readdirnames is used for file path globbing. If nil, globbing is
 	// disabled. Use Context.SystemReaddirnames to use the filesystem
 	// directly.

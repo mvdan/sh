@@ -100,9 +100,6 @@ func (e expandEnv) Get(name string) expand.Variable {
 func (e expandEnv) Set(name string, vr expand.Variable) {
 	e.r.setVarInternal(name, vr)
 }
-func (e expandEnv) Delete(name string) {
-	e.r.delVar(name)
-}
 func (e expandEnv) Each(fn func(name string, vr expand.Variable) bool) {
 	e.r.Env.Each(fn)
 	for name, vr := range e.r.Vars {

@@ -38,11 +38,6 @@ func (o *overlayEnviron) Set(name string, vr expand.Variable) {
 	// TODO: parent too?
 }
 
-func (o *overlayEnviron) Delete(name string) {
-	delete(o.values, name)
-	// TODO: parent too?
-}
-
 func (o *overlayEnviron) Each(f func(name string, vr expand.Variable) bool) {
 	o.parent.Each(f)
 	for name, vr := range o.values {
