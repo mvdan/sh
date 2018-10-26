@@ -928,6 +928,14 @@ func TestPrintNodeTypes(t *testing.T) {
 			want: "foo",
 		},
 		{
+			in:   lit("foo"),
+			want: "foo",
+		},
+		{
+			in:   sglQuoted("foo"),
+			want: "'foo'",
+		},
+		{
 			in:      &Comment{},
 			wantErr: true,
 		},
