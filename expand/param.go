@@ -16,19 +16,9 @@ import (
 	"mvdan.cc/sh/syntax"
 )
 
-func anyOfLit(v interface{}, vals ...string) string {
-	word, _ := v.(*syntax.Word)
-	if word == nil || len(word.Parts) != 1 {
-		return ""
-	}
-	lit, ok := word.Parts[0].(*syntax.Lit)
-	if !ok {
-		return ""
-	}
-	for _, val := range vals {
-		if lit.Value == val {
-			return val
-		}
+func nodeLit(node syntax.Node) string {
+	if word, ok := node.(*syntax.Word); ok {
+		return word.Lit()
 	}
 	return ""
 }
@@ -84,7 +74,8 @@ func (c *Context) paramExp(ctx context.Context, pe *syntax.ParamExp) string {
 		return p
 	}
 	elems := []string{str}
-	if anyOfLit(index, "@", "*") != "" {
+	switch nodeLit(index) {
+	case "@", "*":
 		switch x := vr.Value.(type) {
 		case nil:
 			elems = nil
@@ -95,7 +86,9 @@ func (c *Context) paramExp(ctx context.Context, pe *syntax.ParamExp) string {
 	switch {
 	case pe.Length:
 		n := len(elems)
-		if anyOfLit(index, "@", "*") == "" {
+		switch nodeLit(index) {
+		case "@", "*":
+		default:
 			n = utf8.RuneCountInString(str)
 		}
 		str = strconv.Itoa(n)
@@ -284,7 +277,7 @@ func (c *Context) varInd(ctx context.Context, vr Variable, idx syntax.ArithmExpr
 			return x
 		}
 	case []string:
-		switch anyOfLit(idx, "@", "*") {
+		switch nodeLit(idx) {
 		case "@":
 			return strings.Join(x, " ")
 		case "*":
@@ -295,7 +288,8 @@ func (c *Context) varInd(ctx context.Context, vr Variable, idx syntax.ArithmExpr
 			return x[i]
 		}
 	case map[string]string:
-		if lit := anyOfLit(idx, "@", "*"); lit != "" {
+		switch lit := nodeLit(idx); lit {
+		case "@", "*":
 			var strs []string
 			keys := make([]string, 0, len(x))
 			for k := range x {

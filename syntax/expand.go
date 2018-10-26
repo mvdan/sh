@@ -5,7 +5,8 @@ package syntax
 
 import "strconv"
 
-// TODO: consider making these special syntax nodes
+// TODO: Consider making these special syntax nodes.
+// Among other things, we can make use of Word.Lit.
 
 type brace struct {
 	seq   bool // {x..y[..incr]} instead of {x,y[,...]}

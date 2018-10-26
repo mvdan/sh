@@ -463,7 +463,7 @@ func (c *Context) quotedElems(pe *syntax.ParamExp) []string {
 	if pe.Param.Value == "@" {
 		return c.Env.Get("@").Value.([]string)
 	}
-	if anyOfLit(pe.Index, "@") == "" {
+	if nodeLit(pe.Index) != "@" {
 		return nil
 	}
 	val := c.Env.Get(pe.Param.Value).Value

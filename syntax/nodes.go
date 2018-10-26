@@ -3,7 +3,10 @@
 
 package syntax
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 // Node represents a syntax tree node.
 type Node interface {
@@ -419,6 +422,28 @@ type Word struct {
 
 func (w *Word) Pos() Pos { return w.Parts[0].Pos() }
 func (w *Word) End() Pos { return w.Parts[len(w.Parts)-1].End() }
+
+// Lit returns the word as a literal value, if consists of *syntax.Lit nodes
+// only. An empty string is returned otherwise. Words with multiple literals are
+// handled properly, which can appear in some edge cases.
+//
+// For example, the word "foo" will return "foo", but the word "foo${bar}" will
+// return "".
+func (w *Word) Lit() string {
+	// In the usual case, we'll have either a single part that's a literal,
+	// or one of the parts being a non-literal. Using strings.Join instead
+	// of a strings.Builder avoids extra work in these cases, since a single
+	// part is a shortcut, and many parts don't incur string copies.
+	lits := make([]string, 0, 1)
+	for _, part := range w.Parts {
+		lit, ok := part.(*Lit)
+		if !ok {
+			return ""
+		}
+		lits = append(lits, lit.Value)
+	}
+	return strings.Join(lits, "")
+}
 
 // WordPart represents all nodes that can form part of a word.
 //

@@ -1972,7 +1972,7 @@ func TestParseWordsStopEarly(t *testing.T) {
 	go func() {
 		errc <- p.Words(input, func(w *Word) bool {
 			recv <- true
-			return w.Parts[0].(*Lit).Value != "b"
+			return w.Lit() != "b"
 		})
 	}()
 	input.WriteString("a\n")

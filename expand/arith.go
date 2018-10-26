@@ -30,7 +30,7 @@ func (c *Context) ExpandArithm(ctx context.Context, expr syntax.ArithmExpr) int 
 	case *syntax.UnaryArithm:
 		switch x.Op {
 		case syntax.Inc, syntax.Dec:
-			name := x.X.(*syntax.Word).Parts[0].(*syntax.Lit).Value
+			name := x.X.(*syntax.Word).Lit()
 			old := atoi(c.envGet(name))
 			val := old
 			if x.Op == syntax.Inc {
@@ -89,7 +89,7 @@ func atoi(s string) int {
 }
 
 func (c *Context) assgnArit(ctx context.Context, b *syntax.BinaryArithm) int {
-	name := b.X.(*syntax.Word).Parts[0].(*syntax.Lit).Value
+	name := b.X.(*syntax.Word).Lit()
 	val := atoi(c.envGet(name))
 	arg := c.ExpandArithm(ctx, b.Y)
 	switch b.Op {
