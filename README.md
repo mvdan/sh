@@ -5,8 +5,15 @@
 [![Windows build](https://ci.appveyor.com/api/projects/status/rxxs08v65aj2fqof?svg=true)](https://ci.appveyor.com/project/mvdan/sh)
 
 A shell parser, formatter and interpreter. Supports [POSIX Shell], [Bash] and
-[mksh]. Requires Go 1.10 or later. A Go module is available via the `module`
-branch.
+[mksh]. Requires Go 1.10 or later.
+
+### Quick start
+
+To parse shell scripts, inspect them, and print them out, see the [syntax
+examples](https://godoc.org/mvdan.cc/sh/syntax#pkg-examples).
+
+For high-level operations like performing shell expansions on strings, see the
+[shell examples](https://godoc.org/mvdan.cc/sh/shell#pkg-examples).
 
 ### shfmt
 
