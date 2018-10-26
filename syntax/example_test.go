@@ -26,6 +26,55 @@ func Example() {
 	// }
 }
 
+func ExampleWord() {
+	r := strings.NewReader("echo foo${bar}'baz'")
+	f, err := syntax.NewParser().Parse(r, "")
+	if err != nil {
+		return
+	}
+
+	printer := syntax.NewPrinter()
+	args := f.Stmts[0].Cmd.(*syntax.CallExpr).Args
+	for i, word := range args {
+		fmt.Printf("Word number %d:\n", i)
+		for _, part := range word.Parts {
+			fmt.Printf("%-20T - ", part)
+			printer.Print(os.Stdout, part)
+			fmt.Println()
+		}
+		fmt.Println()
+	}
+
+	// Output:
+	// Word number 0:
+	// *syntax.Lit          - echo
+	//
+	// Word number 1:
+	// *syntax.Lit          - foo
+	// *syntax.ParamExp     - ${bar}
+	// *syntax.SglQuoted    - 'baz'
+}
+
+func ExampleCommand() {
+	r := strings.NewReader("echo foo; if x; then y; fi; foo | bar")
+	f, err := syntax.NewParser().Parse(r, "")
+	if err != nil {
+		return
+	}
+
+	printer := syntax.NewPrinter()
+	for i, stmt := range f.Stmts {
+		fmt.Printf("Cmd %d: %-20T - ", i, stmt.Cmd)
+		printer.Print(os.Stdout, stmt.Cmd)
+		fmt.Println()
+	}
+
+	// Output:
+	// Cmd 0: *syntax.CallExpr     - echo foo
+	// Cmd 1: *syntax.IfClause     - if x; then y; fi
+	// Cmd 2: *syntax.BinaryCmd    - foo | bar
+}
+
 func ExampleOptions() {
 	src := "for ((i = 0; i < 5; i++)); do echo $i >f; done"
 
