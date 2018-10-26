@@ -27,14 +27,21 @@ type Context struct {
 	//
 	//   * "#", "@", "*", "0"-"9" for the shell's parameters
 	//   * "?", "$", "PPID" for the shell's status and process
-	//   * "HOME foo" to retrieve user foo's home directory
-	//
-	// If "HOME foo" is returned as unset, os/user.Lookup will be used.
+	//   * "HOME foo" to retrieve user foo's home directory (if unset,
+	//     os/user.Lookup will be used)
 	Env Environ
 
-	NoGlob   bool
+	// NoGlob corresponds to the shell option that disables globbing.
+	NoGlob bool
+	// GlobStar corresponds to the shell option that allows globbing with
+	// "**".
 	GlobStar bool
 
+	// CmdSubst is used to expand command substitutions. Output should be
+	// written to the provided io.Writer.
+	//
+	// If nil, expanding a syntax.CmdSubst node will result in an
+	// UnexpectedCommandError error.
 	CmdSubst func(context.Context, io.Writer, *syntax.CmdSubst)
 
 	// TODO: rethink this interface
