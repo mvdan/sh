@@ -11,6 +11,8 @@ matrix:
       env: CHECK_GOFMT=1
     - os: osx
       go: 1.11.x
+    - os: linux-ppc64le
+      go: 1.11.x
 
 go_import_path: mvdan.cc/sh
 
