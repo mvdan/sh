@@ -49,12 +49,8 @@ var errTests = []struct {
 	want string
 }{
 	{
-		"rm -rf /",
-		"not in whitelist: rm",
-	},
-	{
-		"cat secret >some-file",
-		"cannot open path",
+		"a=b; exit 1",
+		"exit status 1",
 	},
 }
 
