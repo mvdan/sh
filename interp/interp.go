@@ -48,10 +48,10 @@ func New(opts ...func(*Runner) error) (*Runner, error) {
 		}
 	}
 	if r.Exec == nil {
-		Module(nil)(r)
+		Module(ModuleExec(nil))(r)
 	}
 	if r.Open == nil {
-		Module(nil)(r)
+		Module(ModuleOpen(nil))(r)
 	}
 	if r.Stdout == nil || r.Stderr == nil {
 		StdIO(r.Stdin, r.Stdout, r.Stderr)(r)
@@ -452,12 +452,6 @@ func (r *Runner) Reset() {
 	}
 
 	r.dirStack = append(r.dirStack, r.Dir)
-	if r.Exec == nil {
-		r.Exec = DefaultExec
-	}
-	if r.Open == nil {
-		r.Open = DefaultOpen
-	}
 	if r.KillTimeout == 0 {
 		r.KillTimeout = 2 * time.Second
 	}
