@@ -4,7 +4,6 @@
 package expand
 
 import (
-	"context"
 	"fmt"
 	"regexp"
 	"sort"
@@ -32,10 +31,10 @@ func (u UnsetParameterError) Error() string {
 	return u.Message
 }
 
-func (c *Context) paramExp(ctx context.Context, pe *syntax.ParamExp) string {
-	oldParam := c.curParam
-	c.curParam = pe
-	defer func() { c.curParam = oldParam }()
+func (cfg *Config) paramExp(pe *syntax.ParamExp) string {
+	oldParam := cfg.curParam
+	cfg.curParam = pe
+	defer func() { cfg.curParam = oldParam }()
 
 	name := pe.Param.Value
 	index := pe.Index
@@ -50,19 +49,19 @@ func (c *Context) paramExp(ctx context.Context, pe *syntax.ParamExp) string {
 	case "LINENO":
 		// This is the only parameter expansion that the environment
 		// interface cannot satisfy.
-		line := uint64(c.curParam.Pos().Line())
+		line := uint64(cfg.curParam.Pos().Line())
 		vr.Value = strconv.FormatUint(line, 10)
 	default:
-		vr = c.Env.Get(name)
+		vr = cfg.Env.Get(name)
 	}
 	orig := vr
-	_, vr = vr.Resolve(c.Env)
+	_, vr = vr.Resolve(cfg.Env)
 	str := vr.String()
 	if index != nil {
-		str = c.varInd(ctx, vr, index)
+		str = cfg.varInd(vr, index)
 	}
 	slicePos := func(expr syntax.ArithmExpr) int {
-		p := c.ExpandArithm(ctx, expr)
+		p := Arithm(cfg, expr)
 		if p < 0 {
 			p = len(str) + p
 			if p < 0 {
@@ -95,7 +94,7 @@ func (c *Context) paramExp(ctx context.Context, pe *syntax.ParamExp) string {
 	case pe.Excl:
 		var strs []string
 		if pe.Names != 0 {
-			strs = c.namesByPrefix(pe.Param.Value)
+			strs = cfg.namesByPrefix(pe.Param.Value)
 		} else if orig.NameRef {
 			strs = append(strs, orig.Value.(string))
 		} else if x, ok := vr.Value.([]string); ok {
@@ -109,7 +108,7 @@ func (c *Context) paramExp(ctx context.Context, pe *syntax.ParamExp) string {
 				strs = append(strs, k)
 			}
 		} else if str != "" {
-			vr = c.Env.Get(str)
+			vr = cfg.Env.Get(str)
 			strs = append(strs, vr.String())
 		}
 		sort.Strings(strs)
@@ -124,14 +123,14 @@ func (c *Context) paramExp(ctx context.Context, pe *syntax.ParamExp) string {
 			str = str[:length]
 		}
 	case pe.Repl != nil:
-		orig := c.ExpandPattern(ctx, pe.Repl.Orig)
-		with := c.ExpandLiteral(ctx, pe.Repl.With)
+		orig := Pattern(cfg, pe.Repl.Orig)
+		with := Literal(cfg, pe.Repl.With)
 		n := 1
 		if pe.Repl.All {
 			n = -1
 		}
 		locs := findAllIndex(orig, str, n)
-		buf := c.strBuilder()
+		buf := cfg.strBuilder()
 		last := 0
 		for _, loc := range locs {
 			buf.WriteString(str[last:loc[0]])
@@ -141,7 +140,7 @@ func (c *Context) paramExp(ctx context.Context, pe *syntax.ParamExp) string {
 		buf.WriteString(str[last:])
 		str = buf.String()
 	case pe.Exp != nil:
-		arg := c.ExpandLiteral(ctx, pe.Exp.Word)
+		arg := Literal(cfg, pe.Exp.Word)
 		switch op := pe.Exp.Op; op {
 		case syntax.SubstColPlus:
 			if str == "" {
@@ -168,7 +167,7 @@ func (c *Context) paramExp(ctx context.Context, pe *syntax.ParamExp) string {
 			fallthrough
 		case syntax.SubstColQuest:
 			if str == "" {
-				c.err(UnsetParameterError{
+				cfg.err(UnsetParameterError{
 					Node:    pe,
 					Message: arg,
 				})
@@ -180,7 +179,7 @@ func (c *Context) paramExp(ctx context.Context, pe *syntax.ParamExp) string {
 			fallthrough
 		case syntax.SubstColAssgn:
 			if str == "" {
-				c.envSet(name, arg)
+				cfg.envSet(name, arg)
 				str = arg
 			}
 		case syntax.RemSmallPrefix, syntax.RemLargePrefix,
@@ -270,10 +269,10 @@ func removePattern(str, pattern string, fromEnd, greedy bool) string {
 	return str
 }
 
-func (c *Context) varInd(ctx context.Context, vr Variable, idx syntax.ArithmExpr) string {
+func (cfg *Config) varInd(vr Variable, idx syntax.ArithmExpr) string {
 	switch x := vr.Value.(type) {
 	case string:
-		if c.ExpandArithm(ctx, idx) == 0 {
+		if Arithm(cfg, idx) == 0 {
 			return x
 		}
 	case []string:
@@ -281,9 +280,9 @@ func (c *Context) varInd(ctx context.Context, vr Variable, idx syntax.ArithmExpr
 		case "@":
 			return strings.Join(x, " ")
 		case "*":
-			return c.ifsJoin(x)
+			return cfg.ifsJoin(x)
 		}
-		i := c.ExpandArithm(ctx, idx)
+		i := Arithm(cfg, idx)
 		if len(x) > 0 {
 			return x[i]
 		}
@@ -300,18 +299,18 @@ func (c *Context) varInd(ctx context.Context, vr Variable, idx syntax.ArithmExpr
 				strs = append(strs, x[k])
 			}
 			if lit == "*" {
-				return c.ifsJoin(strs)
+				return cfg.ifsJoin(strs)
 			}
 			return strings.Join(strs, " ")
 		}
-		return x[c.ExpandLiteral(ctx, idx.(*syntax.Word))]
+		return x[Literal(cfg, idx.(*syntax.Word))]
 	}
 	return ""
 }
 
-func (c *Context) namesByPrefix(prefix string) []string {
+func (cfg *Config) namesByPrefix(prefix string) []string {
 	var names []string
-	c.Env.Each(func(name string, vr Variable) bool {
+	cfg.Env.Each(func(name string, vr Variable) bool {
 		if strings.HasPrefix(name, prefix) {
 			names = append(names, name)
 		}

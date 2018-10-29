@@ -4,7 +4,6 @@
 package shell
 
 import (
-	"context"
 	"os"
 	"strings"
 
@@ -34,7 +33,7 @@ func Expand(s string, env func(string) string) (string, error) {
 	if env == nil {
 		env = os.Getenv
 	}
-	ectx := expand.Context{
+	cfg := &expand.Config{
 		Env: expand.FuncEnviron(env),
 		OnError: func(e error) {
 			if err == nil {
@@ -42,8 +41,7 @@ func Expand(s string, env func(string) string) (string, error) {
 			}
 		},
 	}
-	ctx := context.Background()
-	fields := ectx.ExpandFields(ctx, word)
+	fields := expand.Fields(cfg, word)
 	return strings.Join(fields, ""), err
 }
 
@@ -70,7 +68,7 @@ func Fields(s string, env func(string) string) ([]string, error) {
 	if env == nil {
 		env = os.Getenv
 	}
-	ectx := expand.Context{
+	cfg := &expand.Config{
 		Env: expand.FuncEnviron(env),
 		OnError: func(e error) {
 			if err == nil {
@@ -78,6 +76,5 @@ func Fields(s string, env func(string) string) ([]string, error) {
 			}
 		},
 	}
-	ctx := context.Background()
-	return ectx.ExpandFields(ctx, words...), err
+	return expand.Fields(cfg, words...), err
 }

@@ -4,20 +4,19 @@
 package expand
 
 import (
-	"context"
 	"fmt"
 	"strconv"
 
 	"mvdan.cc/sh/syntax"
 )
 
-func (c *Context) ExpandArithm(ctx context.Context, expr syntax.ArithmExpr) int {
+func Arithm(cfg *Config, expr syntax.ArithmExpr) int {
 	switch x := expr.(type) {
 	case *syntax.Word:
-		str := c.ExpandLiteral(ctx, x)
+		str := Literal(cfg, x)
 		// recursively fetch vars
 		for str != "" {
-			val := c.envGet(str)
+			val := cfg.envGet(str)
 			if val == "" {
 				break
 			}
@@ -26,25 +25,25 @@ func (c *Context) ExpandArithm(ctx context.Context, expr syntax.ArithmExpr) int 
 		// default to 0
 		return atoi(str)
 	case *syntax.ParenArithm:
-		return c.ExpandArithm(ctx, x.X)
+		return Arithm(cfg, x.X)
 	case *syntax.UnaryArithm:
 		switch x.Op {
 		case syntax.Inc, syntax.Dec:
 			name := x.X.(*syntax.Word).Lit()
-			old := atoi(c.envGet(name))
+			old := atoi(cfg.envGet(name))
 			val := old
 			if x.Op == syntax.Inc {
 				val++
 			} else {
 				val--
 			}
-			c.envSet(name, strconv.Itoa(val))
+			cfg.envSet(name, strconv.Itoa(val))
 			if x.Post {
 				return old
 			}
 			return val
 		}
-		val := c.ExpandArithm(ctx, x.X)
+		val := Arithm(cfg, x.X)
 		switch x.Op {
 		case syntax.Not:
 			return oneIf(val == 0)
@@ -59,16 +58,16 @@ func (c *Context) ExpandArithm(ctx context.Context, expr syntax.ArithmExpr) int 
 			syntax.MulAssgn, syntax.QuoAssgn, syntax.RemAssgn,
 			syntax.AndAssgn, syntax.OrAssgn, syntax.XorAssgn,
 			syntax.ShlAssgn, syntax.ShrAssgn:
-			return c.assgnArit(ctx, x)
+			return cfg.assgnArit(x)
 		case syntax.Quest: // Colon can't happen here
-			cond := c.ExpandArithm(ctx, x.X)
+			cond := Arithm(cfg, x.X)
 			b2 := x.Y.(*syntax.BinaryArithm) // must have Op==Colon
 			if cond == 1 {
-				return c.ExpandArithm(ctx, b2.X)
+				return Arithm(cfg, b2.X)
 			}
-			return c.ExpandArithm(ctx, b2.Y)
+			return Arithm(cfg, b2.Y)
 		}
-		return binArit(x.Op, c.ExpandArithm(ctx, x.X), c.ExpandArithm(ctx, x.Y))
+		return binArit(x.Op, Arithm(cfg, x.X), Arithm(cfg, x.Y))
 	default:
 		panic(fmt.Sprintf("unexpected arithm expr: %T", x))
 	}
@@ -88,10 +87,10 @@ func atoi(s string) int {
 	return n
 }
 
-func (c *Context) assgnArit(ctx context.Context, b *syntax.BinaryArithm) int {
+func (cfg *Config) assgnArit(b *syntax.BinaryArithm) int {
 	name := b.X.(*syntax.Word).Lit()
-	val := atoi(c.envGet(name))
-	arg := c.ExpandArithm(ctx, b.Y)
+	val := atoi(cfg.envGet(name))
+	arg := Arithm(cfg, b.Y)
 	switch b.Op {
 	case syntax.Assgn:
 		val = arg
@@ -116,7 +115,7 @@ func (c *Context) assgnArit(ctx context.Context, b *syntax.BinaryArithm) int {
 	case syntax.ShrAssgn:
 		val >>= uint(arg)
 	}
-	c.envSet(name, strconv.Itoa(val))
+	cfg.envSet(name, strconv.Itoa(val))
 	return val
 }
 

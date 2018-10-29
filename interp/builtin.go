@@ -115,14 +115,14 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			}
 		}
 	case "echo":
-		newline, expand := true, false
+		newline, doExpand := true, false
 	echoOpts:
 		for len(args) > 0 {
 			switch args[0] {
 			case "-n":
 				newline = false
 			case "-e":
-				expand = true
+				doExpand = true
 			case "-E": // default
 			default:
 				break echoOpts
@@ -133,8 +133,8 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			if i > 0 {
 				r.out(" ")
 			}
-			if expand {
-				arg, _, _ = r.ExpandFormat(arg, nil)
+			if doExpand {
+				arg, _, _ = expand.Format(r.ecfg, arg, nil)
 			}
 			r.out(arg)
 		}
@@ -148,7 +148,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		}
 		format, args := args[0], args[1:]
 		for {
-			s, n, err := r.ExpandFormat(format, args)
+			s, n, err := expand.Format(r.ecfg, format, args)
 			if err != nil {
 				r.errf("%v\n", err)
 				return 1
@@ -463,7 +463,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			args = append(args, "REPLY")
 		}
 
-		values := r.ReadFields(string(line), len(args), raw)
+		values := expand.ReadFields(r.ecfg, string(line), len(args), raw)
 		for i, name := range args {
 			val := ""
 			if i < len(values) {

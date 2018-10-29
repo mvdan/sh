@@ -12,6 +12,7 @@ import (
 
 	"golang.org/x/crypto/ssh/terminal"
 
+	"mvdan.cc/sh/expand"
 	"mvdan.cc/sh/syntax"
 )
 
@@ -19,21 +20,21 @@ import (
 func (r *Runner) bashTest(ctx context.Context, expr syntax.TestExpr, classic bool) string {
 	switch x := expr.(type) {
 	case *syntax.Word:
-		return r.ExpandLiteral(ctx, x)
+		return expand.Literal(r.ecfg, x)
 	case *syntax.ParenTest:
 		return r.bashTest(ctx, x.X, classic)
 	case *syntax.BinaryTest:
 		switch x.Op {
 		case syntax.TsMatch, syntax.TsNoMatch:
-			str := r.ExpandLiteral(ctx, x.X.(*syntax.Word))
+			str := expand.Literal(r.ecfg, x.X.(*syntax.Word))
 			yw := x.Y.(*syntax.Word)
 			if classic { // test, [
-				lit := r.ExpandLiteral(ctx, yw)
+				lit := expand.Literal(r.ecfg, yw)
 				if (str == lit) == (x.Op == syntax.TsMatch) {
 					return "1"
 				}
 			} else { // [[
-				pat := r.ExpandPattern(ctx, yw)
+				pat := expand.Pattern(r.ecfg, yw)
 				if match(pat, str) == (x.Op == syntax.TsMatch) {
 					return "1"
 				}
