@@ -486,6 +486,7 @@ var printTests = []printCase{
 		"if foo; then\n\tx\n#a\n\t#b\n\t#c\nelse\n\ty\nfi",
 		"if foo; then\n\tx\n\t#a\n\t#b\n\t#c\nelse\n\ty\nfi",
 	},
+	samePrint("if foo; then\n\tx\nelse #comment\n\ty\nfi"),
 	samePrint("if foo; then\n\tx\n#comment\nelif bar; then\n\ty\nfi"),
 	samePrint("if foo; then\n\tx\n\t#comment\nelif bar; then\n\ty\nfi"),
 	samePrint("case i in\nx)\n\ta\n\t;;\n#comment\ny) ;;\nesac"),

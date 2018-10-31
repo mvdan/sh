@@ -1068,7 +1068,15 @@ func (p *Printer) ifClause(ic *IfClause, elif bool) {
 	p.nestedStmts(ic.Cond, Pos{})
 	p.semiOrNewl("then", ic.ThenPos)
 	p.nestedStmts(ic.Then, ic.bodyEndPos())
-	p.comments(ic.ElseComments)
+
+	var left *Comment
+	for _, c := range ic.ElseComments {
+		if c.Pos().After(ic.ElsePos) {
+			left = &c
+			break
+		}
+		p.comment(c)
+	}
 	if ic.FollowedByElif() {
 		s := ic.Else.Stmts[0]
 		p.comments(s.Comments)
@@ -1078,6 +1086,9 @@ func (p *Printer) ifClause(ic *IfClause, elif bool) {
 	}
 	if !ic.Else.empty() {
 		p.semiRsrv("else", ic.ElsePos)
+		if left != nil {
+			p.comment(*left)
+		}
 		p.nestedStmts(ic.Else, ic.FiPos)
 	} else if ic.ElsePos.IsValid() {
 		p.line = ic.ElsePos.Line()
