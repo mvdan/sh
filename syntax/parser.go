@@ -281,19 +281,17 @@ type Parser struct {
 	hdocStop    []byte
 	parsingDoc  bool
 
-	// openClauses is how many levels of syntax clauses are open at the
-	// moment. A non-zero number means that we require certain tokens or
-	// words before reaching EOF.
-	openClauses int
-	// openBquotes is how many levels of backquotes are open at the
-	// moment.
+	// openStmts is how many entire statements we're currently parsing. A
+	// non-zero number means that we require certain tokens or words before
+	// reaching EOF.
+	openStmts int
+	// openBquotes is how many levels of backquotes are open at the moment.
 	openBquotes int
 
-	// lastBquoteEsc is how many times the last backquote token was
-	// escaped
+	// lastBquoteEsc is how many times the last backquote token was escaped
 	lastBquoteEsc int
-	// buriedBquotes is like openBquotes, but saved for when the
-	// parser comes out of single quotes
+	// buriedBquotes is like openBquotes, but saved for when the parser
+	// comes out of single quotes
 	buriedBquotes int
 
 	rxOpenParens int
@@ -317,7 +315,7 @@ type Parser struct {
 }
 
 func (p *Parser) Incomplete() bool {
-	return p.quote != noState || p.openClauses > 0
+	return p.quote != noState || p.openStmts > 0
 }
 
 const bufSize = 1 << 10
@@ -331,7 +329,7 @@ func (p *Parser) reset() {
 	p.r, p.w = 0, 0
 	p.err, p.readErr = nil, nil
 	p.quote, p.forbidNested = noState, false
-	p.openClauses = 0
+	p.openStmts = 0
 	p.heredocs, p.buriedHdocs = p.heredocs[:0], 0
 	p.parsingDoc = false
 	p.openBquotes, p.buriedBquotes = 0, 0
@@ -740,9 +738,9 @@ loop:
 		if p.tok == _EOF {
 			break
 		}
-		p.openClauses++
+		p.openStmts++
 		s := p.getStmt(true, false, false)
-		p.openClauses--
+		p.openStmts--
 		if s == nil {
 			p.invalidStmtStart()
 			break
@@ -957,7 +955,6 @@ func (p *Parser) wordPart() WordPart {
 		return ps
 	case sglQuote, dollSglQuote:
 		sq := &SglQuoted{Left: p.pos, Dollar: p.tok == dollSglQuote}
-		p.openClauses++
 		r := p.r
 		for p.newLit(r); ; r = p.rune() {
 			switch r {
@@ -975,7 +972,6 @@ func (p *Parser) wordPart() WordPart {
 
 				p.rune()
 				p.next()
-				p.openClauses--
 				return sq
 			case utf8.RuneSelf:
 				p.posErr(sq.Pos(), "reached EOF without closing quote %s", sglQuote)
