@@ -911,6 +911,10 @@ var fileCases = []struct {
 		"faa\n",
 	},
 	{
+		"cat <<EOF\n~/foo\nEOF",
+		"~/foo\n",
+	},
+	{
 		"sed 's/o/a/g' <<<foo$foo",
 		"faa\n",
 	},
@@ -1958,6 +1962,14 @@ set +o pipefail
 		"shopt -s globstar; mkdir -p a/b/c; echo **/c | sed 's@\\\\@/@g'",
 		"a/b/c\n",
 	},
+	{
+		"cat <<EOF\n{foo,bar}\nEOF",
+		"{foo,bar}\n",
+	},
+	{
+		"cat <<EOF\n*.go\nEOF",
+		"*.go\n",
+	},
 
 	// brace expansion; more exhaustive tests in the syntax package
 	{"echo a}b", "a}b\n"},
@@ -1970,6 +1982,24 @@ set +o pipefail
 	{"echo a{1..2}b{4..5}c", "a1b4c a1b5c a2b4c a2b5c\n"},
 	{"echo a{c..f}", "ac ad ae af\n"},
 	{"echo a{4..1..1}", "a4 a3 a2 a1\n"},
+
+	// tilde expansion
+	{
+		"[[ '~/foo' == ~/foo ]] || [[ ~/foo == '~/foo' ]]",
+		"exit status 1",
+	},
+	{
+		"case '~/foo' in ~/foo) echo match ;; esac",
+		"",
+	},
+	{
+		"a=~/foo; [[ $a == '~/foo' ]]",
+		"exit status 1",
+	},
+	{
+		`a=$(echo "~/foo"); [[ $a == '~/foo' ]]`,
+		"",
+	},
 
 	// /dev/null
 	{"echo foo >/dev/null", ""},

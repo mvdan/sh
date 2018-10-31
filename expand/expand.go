@@ -130,13 +130,42 @@ func (cfg *Config) envSet(name, value string) {
 	wenv.Set(name, Variable{Value: value})
 }
 
+// Literal expands a single shell word. It is similar to Fields, but the result
+// is a single string. This is the behavior when a word is used as the value in
+// a shell variable assignment, for example.
 func Literal(cfg *Config, word *syntax.Word) string {
+	if word == nil {
+		return ""
+	}
+	cfg = prepareConfig(cfg)
+	field := cfg.wordField(word.Parts, quoteNone)
+	return cfg.fieldJoin(field)
+}
+
+// Document expands a single shell word as if it were within double quotes. It
+// is simlar to Literal, but without brace expansion, tilde expansion, and
+// globbing.
+func Document(cfg *Config, word *syntax.Word) string {
 	if word == nil {
 		return ""
 	}
 	cfg = prepareConfig(cfg)
 	field := cfg.wordField(word.Parts, quoteDouble)
 	return cfg.fieldJoin(field)
+}
+
+func Pattern(cfg *Config, word *syntax.Word) string {
+	cfg = prepareConfig(cfg)
+	field := cfg.wordField(word.Parts, quoteNone)
+	buf := cfg.strBuilder()
+	for _, part := range field {
+		if part.quote > quoteNone {
+			buf.WriteString(syntax.QuotePattern(part.val))
+		} else {
+			buf.WriteString(part.val)
+		}
+	}
+	return buf.String()
 }
 
 func Format(cfg *Config, format string, args []string) (string, int, error) {
@@ -258,6 +287,9 @@ func (cfg *Config) escapedGlobField(parts []fieldPart) (escaped string, glob boo
 	return escaped, glob
 }
 
+// Fields expands a number of words as if they were arguments in a shell
+// command. This includes brace expansion, tilde expansion, parameter expansion,
+// command substitution, arithmetic expansion, and quote removal.
 func Fields(cfg *Config, words ...*syntax.Word) []string {
 	cfg = prepareConfig(cfg)
 	fields := make([]string, 0, len(words))
@@ -293,20 +325,6 @@ func Fields(cfg *Config, words ...*syntax.Word) []string {
 	return fields
 }
 
-func Pattern(cfg *Config, word *syntax.Word) string {
-	cfg = prepareConfig(cfg)
-	field := cfg.wordField(word.Parts, quoteSingle)
-	buf := cfg.strBuilder()
-	for _, part := range field {
-		if part.quote > quoteNone {
-			buf.WriteString(syntax.QuotePattern(part.val))
-		} else {
-			buf.WriteString(part.val)
-		}
-	}
-	return buf.String()
-}
-
 type fieldPart struct {
 	val   string
 	quote quoteLevel
@@ -326,7 +344,7 @@ func (cfg *Config) wordField(wps []syntax.WordPart, ql quoteLevel) []fieldPart {
 		switch x := wp.(type) {
 		case *syntax.Lit:
 			s := x.Value
-			if i == 0 {
+			if i == 0 && ql == quoteNone {
 				s = cfg.expandUser(s)
 			}
 			if ql == quoteDouble && strings.Contains(s, "\\") {

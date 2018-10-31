@@ -886,7 +886,7 @@ func (r *Runner) stmts(ctx context.Context, sl syntax.StmtList) {
 
 func (r *Runner) hdocReader(ctx context.Context, rd *syntax.Redirect) io.Reader {
 	if rd.Op != syntax.DashHdoc {
-		hdoc := expand.Literal(r.ecfg, rd.Hdoc)
+		hdoc := expand.Document(r.ecfg, rd.Hdoc)
 		return strings.NewReader(hdoc)
 	}
 	var buf bytes.Buffer
@@ -895,7 +895,7 @@ func (r *Runner) hdocReader(ctx context.Context, rd *syntax.Redirect) io.Reader 
 		if buf.Len() > 0 {
 			buf.WriteByte('\n')
 		}
-		buf.WriteString(expand.Literal(r.ecfg, &syntax.Word{Parts: cur}))
+		buf.WriteString(expand.Document(r.ecfg, &syntax.Word{Parts: cur}))
 		cur = cur[:0]
 	}
 	for _, wp := range rd.Hdoc.Parts {

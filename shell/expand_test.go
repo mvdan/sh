@@ -35,10 +35,8 @@ var expandTests = []struct {
 	{"a-$b-c", strEnviron(), "a--c"},
 	{"a-$b-c", strEnviron("b=b_val"), "a-b_val-c"},
 	{"${x//o/a}", strEnviron("x=foo"), "faa"},
-	{"~", strEnviron("HOME=/my/home"), "/my/home"},
-	{"~/foo/bar", strEnviron("HOME=/my/home"), "/my/home/foo/bar"},
 	{"*.go", nil, "*.go"},
-	{"~foo/file", strEnviron("HOME foo=/bar"), "/bar/file"},
+	{"~", nil, "~"},
 }
 
 func TestExpand(t *testing.T) {
@@ -89,6 +87,10 @@ var fieldsTests = []struct {
 	{"foo 'bar baz'", nil, []string{"foo", "bar baz"}},
 	{"$x", strEnviron("x=foo bar"), []string{"foo", "bar"}},
 	{`"$x"`, strEnviron("x=foo bar"), []string{"foo bar"}},
+	{"~", strEnviron("HOME=/my/home"), []string{"/my/home"}},
+	{"~/foo/bar", strEnviron("HOME=/my/home"), []string{"/my/home/foo/bar"}},
+	{"~foo/file", strEnviron("HOME foo=/bar"), []string{"/bar/file"}},
+	{"*.go", nil, []string{"*.go"}},
 }
 
 func TestFields(t *testing.T) {

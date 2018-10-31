@@ -11,10 +11,9 @@ import (
 	"mvdan.cc/sh/syntax"
 )
 
-// Expand performs shell expansion on s, using env to resolve variables.
-// The expansion will apply to parameter expansions like $var and
-// ${#var}, but also to arithmetic expansions like $((var + 3)), and brace
-// expressions like foo{1,2,3}.
+// Expand performs shell expansion on s as if it were within double quotes,
+// using env to resolve variables. This includes parameter expansion, arithmetic
+// expansion, and quote removal.
 //
 // If env is nil, the current environment variables are used. Empty variables
 // are treated as unset; to support variables which are set but empty, use
@@ -41,14 +40,13 @@ func Expand(s string, env func(string) string) (string, error) {
 			}
 		},
 	}
-	fields := expand.Fields(cfg, word)
-	return strings.Join(fields, ""), err
+	out := expand.Document(cfg, word)
+	return out, err
 }
 
-// Fields performs shell expansion on s, using env to resolve variables, and
-// returns the separate fields that result from the expansion. It is similar to
-// Expand, but word splitting is performed, and the resulting fields are not
-// joined.
+// Fields performs shell expansion on s as if it were a command's arguments,
+// using env to resolve variables. It is similar to Expand, but includes brace
+// expansion, tilde expansion, and globbing.
 //
 // If env is nil, the current environment variables are used. Empty variables
 // are treated as unset; to support variables which are set but empty, use
