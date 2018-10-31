@@ -419,7 +419,6 @@ const (
 	noState quoteState = 1 << iota
 	subCmd
 	subCmdBckquo
-	sglQuotes
 	dblQuotes
 	hdocWord
 	hdocBody
@@ -436,7 +435,7 @@ const (
 	paramExpExp
 	arrayElems
 
-	allKeepSpaces = paramExpRepl | sglQuotes | dblQuotes | hdocBody |
+	allKeepSpaces = paramExpRepl | dblQuotes | hdocBody |
 		hdocBodyTabs | paramExpExp
 	allRegTokens = noState | subCmd | subCmdBckquo | hdocWord |
 		switchCase | arrayElems
@@ -935,9 +934,15 @@ func (p *Parser) wordPart() WordPart {
 		pe.Param = p.getLit()
 		if pe.Param != nil && pe.Param.Value == "" {
 			l := p.lit(pe.Dollar, "$")
-			// e.g. "$\\\"" within double quotes, so we must
-			// keep the rest of the literal characters.
-			l.ValueEnd = posAddCol(l.ValuePos, 1)
+			if p.val == "" {
+				// e.g. "$\\\n" followed by a closing double
+				// quote, so we need the next token.
+				p.next()
+			} else {
+				// e.g. "$\\\"" within double quotes, so we must
+				// keep the rest of the literal characters.
+				l.ValueEnd = posAddCol(l.ValuePos, 1)
+			}
 			return l
 		}
 		return pe
@@ -952,16 +957,9 @@ func (p *Parser) wordPart() WordPart {
 		return ps
 	case sglQuote, dollSglQuote:
 		sq := &SglQuoted{Left: p.pos, Dollar: p.tok == dollSglQuote}
-		old := p.quote
-		p.quote = sglQuotes
+		p.openClauses++
 		r := p.r
-		p.newLit(r)
-		// If we skipped any "\\\n" right after the opening quote,
-		// re-add them.
-		if skipped := int(p.npos.line - p.pos.line); skipped > 0 {
-			p.readdEscapedNewlines(skipped)
-		}
-		for ; ; r = p.rune() {
+		for p.newLit(r); ; r = p.rune() {
 			switch r {
 			case '\\':
 				if sq.Dollar {
@@ -975,9 +973,9 @@ func (p *Parser) wordPart() WordPart {
 				p.openBquotes = p.buriedBquotes
 				p.buriedBquotes = 0
 
-				p.quote = old
 				p.rune()
 				p.next()
+				p.openClauses--
 				return sq
 			case utf8.RuneSelf:
 				p.posErr(sq.Pos(), "reached EOF without closing quote %s", sglQuote)

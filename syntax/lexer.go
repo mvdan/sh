@@ -47,6 +47,14 @@ func arithmOps(r rune) bool {
 	return false
 }
 
+func bquoteEscaped(b byte) bool {
+	switch b {
+	case '$', '`', '\\':
+		return true
+	}
+	return false
+}
+
 func (p *Parser) rune() rune {
 	if p.r == '\n' {
 		// p.r instead of b so that newline
@@ -61,23 +69,13 @@ retry:
 	if p.bsp < len(p.bs) {
 		if b := p.bs[p.bsp]; b < utf8.RuneSelf {
 			p.bsp++
-			if b == '\\' && p.bsp < len(p.bs) {
-				switch p.bs[p.bsp] {
-				case '\n':
-					// escaped newline
-					if p.quote&allKeepSpaces == 0 {
-						p.npos.line++
-						p.npos.col = 1
-						p.bsp++
-						p.r = '\n'
-						goto retry
-					}
-				case '$', '`', '\\':
-					// nested expansions within backquotes
-					if bquotes < p.openBquotes {
-						bquotes++
-						goto retry
-					}
+			if b == '\\' && p.openBquotes > 0 {
+				// don't do it for newlines, as we want
+				// the newlines to be eaten in p.next
+				if bquotes < p.openBquotes && p.bsp < len(p.bs) &&
+					bquoteEscaped(p.bs[p.bsp]) {
+					bquotes++
+					goto retry
 				}
 			}
 			if b == '`' {
@@ -151,7 +149,6 @@ readAgain:
 
 func (p *Parser) nextKeepSpaces() {
 	r := p.r
-	skippedNewlines := int(p.npos.line - p.pos.line)
 	p.pos = p.getPos()
 	switch p.quote {
 	case paramExpRepl:
@@ -168,7 +165,7 @@ func (p *Parser) nextKeepSpaces() {
 		case '`', '"', '$':
 			p.tok = p.dqToken(r)
 		default:
-			p.advanceLitDquote(r, skippedNewlines)
+			p.advanceLitDquote(r)
 		}
 	case hdocBody, hdocBodyTabs:
 		switch {
@@ -303,6 +300,7 @@ changedState:
 		if !p.rxFirstPart && p.spaced {
 			p.quote = noState
 			goto changedState
+			return
 		}
 		p.rxFirstPart = false
 		switch r {
@@ -754,6 +752,8 @@ func (p *Parser) newLit(r rune) {
 	}
 }
 
+func (p *Parser) discardLit(n int) { p.litBs = p.litBs[:len(p.litBs)-n] }
+
 func (p *Parser) endLit() (s string) {
 	if p.r == utf8.RuneSelf {
 		s = string(p.litBs)
@@ -784,6 +784,13 @@ func (p *Parser) advanceNameCont(r rune) {
 loop:
 	for p.newLit(r); r != utf8.RuneSelf; r = p.rune() {
 		switch {
+		case r == '\\':
+			if p.peekByte('\n') {
+				p.rune()
+				p.discardLit(2)
+			} else {
+				break loop
+			}
 		case 'a' <= r && r <= 'z':
 		case 'A' <= r && r <= 'Z':
 		case r == '_':
@@ -801,7 +808,9 @@ loop:
 	for p.newLit(r); r != utf8.RuneSelf; r = p.rune() {
 		switch r {
 		case '\\': // escaped byte follows
-			p.rune()
+			if r = p.rune(); r == '\n' {
+				p.discardLit(2)
+			}
 		case '"', '`', '$':
 			tok = _Lit
 			break loop
@@ -844,7 +853,9 @@ loop:
 		case ' ', '\t', '\n', '\r', '&', '|', ';', '(', ')':
 			break loop
 		case '\\': // escaped byte follows
-			p.rune()
+			if r = p.rune(); r == '\n' {
+				p.discardLit(2)
+			}
 		case '>', '<':
 			if p.peekByte('(') || !p.isLitRedir() {
 				tok = _Lit
@@ -879,19 +890,10 @@ loop:
 	p.tok, p.val = tok, p.endLit()
 }
 
-func (p *Parser) readdEscapedNewlines(number int) {
-	p.litBs = append(bytes.Repeat([]byte("\\\n"), number), p.litBs...)
-}
-
-func (p *Parser) advanceLitDquote(r rune, skippedNewlines int) {
+func (p *Parser) advanceLitDquote(r rune) {
 	tok := _LitWord
-	p.newLit(r)
-	// If we skipped any "\\\n" right after the opening quote, re-add them.
-	if skippedNewlines > 0 {
-		p.readdEscapedNewlines(skippedNewlines)
-	}
 loop:
-	for ; r != utf8.RuneSelf; r = p.rune() {
+	for p.newLit(r); r != utf8.RuneSelf; r = p.rune() {
 		switch r {
 		case '"':
 			break loop
