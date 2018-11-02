@@ -127,10 +127,10 @@ func ListEnviron(pairs ...string) Environ {
 	list := append([]string{}, pairs...)
 	sort.Strings(list)
 	last := ""
-	for i := 0; i < len(list); i++ {
+	for i := 0; i < len(list); {
 		s := list[i]
 		sep := strings.IndexByte(s, '=')
-		if sep < 0 {
+		if sep <= 0 {
 			// invalid element; remove it
 			list = append(list[:i], list[i+1:]...)
 			continue
@@ -142,6 +142,7 @@ func ListEnviron(pairs ...string) Environ {
 			continue
 		}
 		last = name
+		i++
 	}
 	return listEnviron(list)
 }
