@@ -537,11 +537,16 @@ func TestPrintMultiline(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	want, err := ioutil.ReadFile(canonicalPath)
+	wantBs, err := ioutil.ReadFile(canonicalPath)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got != string(want) {
+
+	// If we're on Windows and it was set up to automatically replace LF
+	// with CRLF, that might make this test fail. Just ignore \r characters.
+	want := strings.Replace(string(wantBs), "\r", "", -1)
+	got = strings.Replace(got, "\r", "", -1)
+	if got != want {
 		t.Fatalf("Print mismatch in canonical.sh")
 	}
 }

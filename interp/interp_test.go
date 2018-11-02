@@ -2167,16 +2167,16 @@ var skipOnDarwin = regexp.MustCompile(`\bwc\b|touch -d @`)
 // mkfifo: very different by design
 // ln -s: requires linked path to exist, stat does not work well
 // ~root: username does not exist
-var skipOnWindows = regexp.MustCompile(`chmod|mkfifo|ln -s|~root`)
+// env: missing on Travis? TODO: investigate
+var skipOnWindows = regexp.MustCompile(`chmod|mkfifo|ln -s|~root|env`)
 
-func skipFileReason(src string) string {
-	if runtime.GOOS == "darwin" && skipOnDarwin.MatchString(src) {
-		return "skipping linux-only test on darwin"
+func skipIfUnsupported(tb testing.TB, src string) {
+	switch {
+	case runtime.GOOS == "darwin" && skipOnDarwin.MatchString(src):
+		tb.Skipf("skipping non-portable test on darwin")
+	case runtime.GOOS == "windows" && skipOnWindows.MatchString(src):
+		tb.Skipf("skipping non-portable test on windows")
 	}
-	if runtime.GOOS == "windows" && skipOnWindows.MatchString(src) {
-		return "skipping unix-only test on windows"
-	}
-	return ""
 }
 
 func TestFile(t *testing.T) {
@@ -2184,9 +2184,7 @@ func TestFile(t *testing.T) {
 	for i := range fileCases {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
 			c := fileCases[i]
-			if reason := skipFileReason(c.in); reason != "" {
-				t.Skip(reason)
-			}
+			skipIfUnsupported(t, c.in)
 			file, err := p.Parse(strings.NewReader(c.in), "")
 			if err != nil {
 				t.Fatalf("could not parse: %v", err)
@@ -2232,9 +2230,7 @@ func TestFileConfirm(t *testing.T) {
 			if strings.Contains(c.want, " #IGNORE") {
 				return
 			}
-			if reason := skipFileReason(c.in); reason != "" {
-				t.Skip(reason)
-			}
+			skipIfUnsupported(t, c.in)
 			t.Parallel()
 			dir, err := ioutil.TempDir("", "interp-test")
 			if err != nil {
@@ -2323,6 +2319,7 @@ func TestRunnerOpts(t *testing.T) {
 	p := syntax.NewParser()
 	for i, c := range cases {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
+			skipIfUnsupported(t, c.in)
 			file, err := p.Parse(strings.NewReader(c.in), "")
 			if err != nil {
 				t.Fatalf("could not parse: %v", err)

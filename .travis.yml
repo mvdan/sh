@@ -11,6 +11,8 @@ matrix:
       env: CHECK_GOFMT=1
     - os: osx
       go: 1.11.x
+    - os: windows
+      go: 1.11.x
 
 go_import_path: mvdan.cc/sh
 
@@ -20,6 +22,7 @@ script:
   - go get -d -t ./...
   - go install ./...
   - go test ./...
-  - go test -short -race ./...
-  - if [ -n "$CHECK_GOFMT" ]; then diff <(echo -n) <(gofmt -d .); fi
+    # TODO: reenable test -race on windows once TestInteractive stops failing
+  - if [[ $TRAVIS_OS_NAME != "windows" ]]; then go test -short -race ./...; fi
+  - if [[ -n $CHECK_GOFMT ]]; then diff <(echo -n) <(gofmt -d .); fi
   - shfmt -version
