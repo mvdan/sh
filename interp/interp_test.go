@@ -196,6 +196,8 @@ var fileCases = []struct {
 	{"echo \"a\\\nb\"", "ab\n"},
 	{"echo 'a\\\nb'", "a\\\nb\n"},
 	{`echo "\""`, "\"\n"},
+	{`echo \\`, "\\\n"},
+	{`echo \\\\`, "\\\\\n"},
 
 	// vars
 	{"foo=bar; echo $foo", "bar\n"},
