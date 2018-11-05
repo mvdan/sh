@@ -3,8 +3,8 @@
 This package is a JavaScript version of a shell package written in Go, available
 at https://github.com/mvdan/sh.
 
-It is transpiled from Go to JS using GopherJS, available at
-https://github.com/gopherjs/gopherjs
+It is transpiled from Go to JS using a GopherJS fork, available at
+https://github.com/myitcv/gopherjs/tree/go1.11
 
 ### Sample usage
 
