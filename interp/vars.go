@@ -4,7 +4,6 @@
 package interp
 
 import (
-	"context"
 	"os"
 	"runtime"
 	"strconv"
@@ -134,8 +133,8 @@ func (r *Runner) delVar(name string) {
 	delete(r.cmdVars, name)
 }
 
-func (r *Runner) setVarString(ctx context.Context, name, value string) {
-	r.setVar(ctx, name, nil, expand.Variable{Value: value})
+func (r *Runner) setVarString(name, value string) {
+	r.setVar(name, nil, expand.Variable{Value: value})
 }
 
 func (r *Runner) setVarInternal(name string, vr expand.Variable) {
@@ -156,7 +155,7 @@ func (r *Runner) setVarInternal(name string, vr expand.Variable) {
 	}
 }
 
-func (r *Runner) setVar(ctx context.Context, name string, index syntax.ArithmExpr, vr expand.Variable) {
+func (r *Runner) setVar(name string, index syntax.ArithmExpr, vr expand.Variable) {
 	cur := r.lookupVar(name)
 	if cur.ReadOnly {
 		r.errf("%s: readonly variable\n", name)
@@ -244,7 +243,7 @@ func stringIndex(index syntax.ArithmExpr) bool {
 	return false
 }
 
-func (r *Runner) assignVal(ctx context.Context, as *syntax.Assign, valType string) interface{} {
+func (r *Runner) assignVal(as *syntax.Assign, valType string) interface{} {
 	prev := r.lookupVar(as.Name.Value)
 	if as.Naked {
 		return prev.Value

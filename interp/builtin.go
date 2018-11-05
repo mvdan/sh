@@ -469,7 +469,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			if i < len(values) {
 				val = values[i]
 			}
-			r.setVar(ctx, name, nil, expand.Variable{Value: val})
+			r.setVar(name, nil, expand.Variable{Value: val})
 		}
 
 		return 0
@@ -500,7 +500,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 
 		opt, optarg, done := r.optState.Next(optstr, args)
 
-		r.setVarString(ctx, name, string(opt))
+		r.setVarString(name, string(opt))
 		r.delVar("OPTARG")
 		switch {
 		case opt == '?' && diagnostics && !done:
@@ -509,11 +509,11 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			r.errf("getopts: option requires an argument -- %q\n", optarg)
 		default:
 			if optarg != "" {
-				r.setVarString(ctx, "OPTARG", optarg)
+				r.setVarString("OPTARG", optarg)
 			}
 		}
 		if optind-1 != r.optState.argidx {
-			r.setVarString(ctx, "OPTIND", strconv.FormatInt(int64(r.optState.argidx+1), 10))
+			r.setVarString("OPTIND", strconv.FormatInt(int64(r.optState.argidx+1), 10))
 		}
 
 		return oneIf(done)

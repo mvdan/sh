@@ -333,8 +333,6 @@ type Runner struct {
 	// On Windows, the kill signal is always sent immediately,
 	// because Go doesn't currently support sending Interrupt on Windows.
 	KillTimeout time.Duration
-
-	oneWord [1]*syntax.Word
 }
 
 func (r *Runner) optByFlag(flag string) *bool {
@@ -516,7 +514,7 @@ func (r *Runner) Run(ctx context.Context, node syntax.Node) error {
 	case syntax.Command:
 		r.cmd(ctx, x)
 	default:
-		return fmt.Errorf("Node can only be File, Stmt, or Command: %T", x)
+		return fmt.Errorf("node can only be File, Stmt, or Command: %T", x)
 	}
 	if r.exit > 0 {
 		r.setErr(ExitStatus(r.exit))
@@ -642,13 +640,13 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		if len(fields) == 0 {
 			for _, as := range x.Assigns {
 				vr := r.lookupVar(as.Name.Value)
-				vr.Value = r.assignVal(ctx, as, "")
-				r.setVar(ctx, as.Name.Value, as.Index, vr)
+				vr.Value = r.assignVal(as, "")
+				r.setVar(as.Name.Value, as.Index, vr)
 			}
 			break
 		}
 		for _, as := range x.Assigns {
-			val := r.assignVal(ctx, as, "")
+			val := r.assignVal(as, "")
 			// we know that inline vars must be strings
 			r.cmdVars[as.Name.Value] = val.(string)
 		}
@@ -718,7 +716,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		case *syntax.WordIter:
 			name := y.Name.Value
 			for _, field := range expand.Fields(r.ecfg, y.Items...) {
-				r.setVarString(ctx, name, field)
+				r.setVarString(name, field)
 				if r.loopStmtsBroken(ctx, x.Do) {
 					break
 				}
@@ -797,10 +795,10 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			}
 		}
 		for _, as := range x.Assigns {
-			for _, as := range r.flattenAssign(ctx, as) {
+			for _, as := range r.flattenAssign(as) {
 				name := as.Name.Value
 				vr := r.lookupVar(as.Name.Value)
-				vr.Value = r.assignVal(ctx, as, valType)
+				vr.Value = r.assignVal(as, valType)
 				vr.Local = local
 				for _, mode := range modes {
 					switch mode {
@@ -812,7 +810,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 						vr.NameRef = true
 					}
 				}
-				r.setVar(ctx, name, as.Index, vr)
+				r.setVar(name, as.Index, vr)
 			}
 		}
 	case *syntax.TimeClause:
@@ -836,7 +834,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 	}
 }
 
-func (r *Runner) flattenAssign(ctx context.Context, as *syntax.Assign) []*syntax.Assign {
+func (r *Runner) flattenAssign(as *syntax.Assign) []*syntax.Assign {
 	// Convert "declare $x" into "declare value".
 	// Don't use syntax.Parser here, as we only want the basic
 	// splitting by '='.
@@ -884,7 +882,7 @@ func (r *Runner) stmts(ctx context.Context, sl syntax.StmtList) {
 	}
 }
 
-func (r *Runner) hdocReader(ctx context.Context, rd *syntax.Redirect) io.Reader {
+func (r *Runner) hdocReader(rd *syntax.Redirect) io.Reader {
 	if rd.Op != syntax.DashHdoc {
 		hdoc := expand.Document(r.ecfg, rd.Hdoc)
 		return strings.NewReader(hdoc)
@@ -919,7 +917,7 @@ func (r *Runner) hdocReader(ctx context.Context, rd *syntax.Redirect) io.Reader 
 
 func (r *Runner) redir(ctx context.Context, rd *syntax.Redirect) (io.Closer, error) {
 	if rd.Hdoc != nil {
-		r.Stdin = r.hdocReader(ctx, rd)
+		r.Stdin = r.hdocReader(rd)
 		return nil, nil
 	}
 	orig := &r.Stdout
