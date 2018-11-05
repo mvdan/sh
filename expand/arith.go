@@ -15,9 +15,13 @@ func Arithm(cfg *Config, expr syntax.ArithmExpr) int {
 	case *syntax.Word:
 		str := Literal(cfg, x)
 		// recursively fetch vars
-		for str != "" {
+		i := 0
+		for str != "" && syntax.ValidName(str) {
 			val := cfg.envGet(str)
 			if val == "" {
+				break
+			}
+			if i++; i >= maxNameRefDepth {
 				break
 			}
 			str = val

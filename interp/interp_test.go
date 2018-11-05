@@ -1431,6 +1431,18 @@ var fileCases = []struct {
 		"a=$((1 + 2)); echo $a",
 		"3\n",
 	},
+	{
+		"x=3; echo $(($x)) $((x))",
+		"3 3\n",
+	},
+	{
+		"set -- 1; echo $(($@))",
+		"1\n",
+	},
+	{
+		"a=b b=a; echo $(($a))",
+		"0\n #IGNORE",
+	},
 
 	// set/shift
 	{
