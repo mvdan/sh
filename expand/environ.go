@@ -45,8 +45,9 @@ type WriteEnviron interface {
 // Variable describes a shell variable, which can have a number of attributes
 // and a value.
 //
-// The zero value of a Variable is an unset variable, which can be checked via
-// Variable.IsSet.
+// A Variable is unset if its Value field is untyped nil, which can be checked
+// via Variable.IsSet. The zero value of a Variable is thus a valid unset
+// variable.
 //
 // If a variable is set, its Value field will be a []string if it is an indexed
 // array, a map[string]string if it's an associative array, or a string
@@ -62,7 +63,7 @@ type Variable struct {
 // IsSet returns whether the variable is set. An empty variable is set, but an
 // undeclared variable is not.
 func (v Variable) IsSet() bool {
-	return v != Variable{}
+	return v.Value != nil
 }
 
 // String returns the variable's value as a string. In general, this only makes

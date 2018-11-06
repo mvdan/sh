@@ -96,6 +96,7 @@ func (r *Runner) lookupVar(name string) expand.Variable {
 		return expand.Variable{Value: value}
 	}
 	if vr, e := r.funcVars[name]; e {
+		vr.Local = true
 		return vr
 	}
 	if vr, e := r.Vars[name]; e {
@@ -122,15 +123,18 @@ func (r *Runner) envGet(name string) string {
 }
 
 func (r *Runner) delVar(name string) {
-	value := r.lookupVar(name)
-	if value.ReadOnly {
+	vr := r.lookupVar(name)
+	if vr.ReadOnly {
 		r.errf("%s: readonly variable\n", name)
 		r.exit = 1
 		return
 	}
-	r.Vars[name] = expand.Variable{} // to not query r.Env
-	delete(r.funcVars, name)
-	delete(r.cmdVars, name)
+	if vr.Local {
+		// don't overwrite a non-local var with the same name
+		r.funcVars[name] = expand.Variable{}
+	} else {
+		r.Vars[name] = expand.Variable{} // to not query r.Env
+	}
 }
 
 func (r *Runner) setVarString(name, value string) {

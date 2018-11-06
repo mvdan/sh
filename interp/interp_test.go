@@ -1592,6 +1592,14 @@ set +o pipefail
 		`$(unset INTERP_GLOBAL); echo $INTERP_GLOBAL; unset INTERP_GLOBAL; echo $INTERP_GLOBAL`,
 		"value\n\n",
 	},
+	{
+		`x=orig; f() { local x=local; unset x; x=still_local; }; f; echo $x`,
+		"orig\n",
+	},
+	{
+		`x=orig; f() { local x=local; unset x; [[ -v x ]] && echo set || echo unset; }; f`,
+		"unset\n",
+	},
 
 	// shopt
 	{"set -e; shopt -o | grep -E 'errexit|noexec' | wc -l", "2\n"},
@@ -1841,6 +1849,14 @@ set +o pipefail
 	{
 		"f() { a=1; declare b=2; export c=3; readonly d=4; declare -g e=5; }; f; echo $a $b $c $d $e",
 		"1 3 4 5\n",
+	},
+	{
+		`f() { local x; [[ -v x ]] && echo set || echo unset; }; f`,
+		"unset\n",
+	},
+	{
+		`f() { local x=; [[ -v x ]] && echo set || echo unset; }; f`,
+		"set\n",
 	},
 
 	// name references
