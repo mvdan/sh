@@ -468,6 +468,9 @@ func (r *Runner) modCtx(ctx context.Context) context.Context {
 	for name, vr := range r.Vars {
 		oenv.Set(name, vr)
 	}
+	for name, vr := range r.funcVars {
+		oenv.Set(name, vr)
+	}
 	for name, value := range r.cmdVars {
 		oenv.Set(name, expand.Variable{Exported: true, Value: value})
 	}
@@ -608,14 +611,15 @@ func (r *Runner) sub() *Runner {
 		KillTimeout: r.KillTimeout,
 		filename:    r.filename,
 		opts:        r.opts,
+		cmdVars:     r.cmdVars, // r2 won't modify it
 	}
 	r2.Vars = make(map[string]expand.Variable, len(r.Vars))
 	for k, v := range r.Vars {
 		r2.Vars[k] = v
 	}
-	r2.cmdVars = make(map[string]string, len(r.cmdVars))
-	for k, v := range r.cmdVars {
-		r2.cmdVars[k] = v
+	r2.funcVars = make(map[string]expand.Variable, len(r.funcVars))
+	for k, v := range r.funcVars {
+		r2.funcVars[k] = v
 	}
 	r2.dirStack = append([]string(nil), r.dirStack...)
 	r2.fillExpandConfig(r.ectx)
@@ -758,13 +762,13 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			r.exit = 1
 		}
 	case *syntax.DeclClause:
-		local := false
+		local, global := false, false
 		var modes []string
 		valType := ""
 		switch x.Variant.Value {
 		case "declare":
-			// When used in a function, "declare" acts as
-			// "local" unless the "-g" option is used.
+			// When used in a function, "declare" acts as "local"
+			// unless the "-g" option is used.
 			local = r.inFunc
 		case "local":
 			if !r.inFunc {
@@ -787,7 +791,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			case "-a", "-A":
 				valType = s
 			case "-g":
-				local = false
+				global = true
 			default:
 				r.errf("declare: invalid option %q\n", s)
 				r.exit = 2
@@ -799,7 +803,11 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 				name := as.Name.Value
 				vr := r.lookupVar(as.Name.Value)
 				vr.Value = r.assignVal(as, valType)
-				vr.Local = local
+				if global {
+					vr.Local = false
+				} else if local {
+					vr.Local = true
+				}
 				for _, mode := range modes {
 					switch mode {
 					case "-x":

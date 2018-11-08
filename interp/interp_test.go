@@ -1858,6 +1858,10 @@ set +o pipefail
 		`f() { local x=; [[ -v x ]] && echo set || echo unset; }; f`,
 		"set\n",
 	},
+	{
+		`export x=before; f() { local x; export x=after; env | grep '^x='; }; f; echo $x`,
+		"x=after\nbefore\n",
+	},
 
 	// name references
 	{"declare -n foo=bar; bar=etc; [[ -R foo ]]", ""},
