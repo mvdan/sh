@@ -612,7 +612,6 @@ func (r *Runner) sub() *Runner {
 		KillTimeout: r.KillTimeout,
 		filename:    r.filename,
 		opts:        r.opts,
-		cmdVars:     r.cmdVars, // r2 won't modify it
 	}
 	r2.Vars = make(map[string]expand.Variable, len(r.Vars))
 	for k, v := range r.Vars {
@@ -621,6 +620,10 @@ func (r *Runner) sub() *Runner {
 	r2.funcVars = make(map[string]expand.Variable, len(r.funcVars))
 	for k, v := range r.funcVars {
 		r2.funcVars[k] = v
+	}
+	r2.cmdVars = make(map[string]string, len(r.cmdVars))
+	for k, v := range r.cmdVars {
+		r2.cmdVars[k] = v
 	}
 	r2.dirStack = append([]string(nil), r.dirStack...)
 	r2.fillExpandConfig(r.ectx)

@@ -849,6 +849,10 @@ var fileCases = []struct {
 		`mkdir d; [[ $(cd d && pwd) == "$(pwd)" ]]`,
 		"exit status 1",
 	},
+	{
+		"a=sub true & { a=main env | grep '^a='; }",
+		"a=main\n",
+	},
 
 	// pipes
 	{
