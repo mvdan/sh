@@ -60,10 +60,9 @@ func (p *Parser) rune() rune {
 		// p.r instead of b so that newline
 		// character positions don't have col 0.
 		p.npos.line++
-		p.npos.col = 1
-	} else {
-		p.npos.col += p.w
+		p.npos.col = 0
 	}
+	p.npos.col += p.w
 	bquotes := 0
 retry:
 	if p.bsp < len(p.bs) {
