@@ -60,6 +60,7 @@ func New(opts ...func(*Runner) error) (*Runner, error) {
 }
 
 func (r *Runner) fillExpandConfig(ctx context.Context) {
+	r.ectx = ctx
 	r.ecfg = &expand.Config{
 		Env: expandEnv{r},
 		OnError: func(err error) {

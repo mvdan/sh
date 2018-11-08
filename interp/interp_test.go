@@ -859,6 +859,10 @@ var fileCases = []struct {
 		"echo foo | false | true",
 		"",
 	},
+	{
+		"true $(true) | true", // used to panic
+		"",
+	},
 
 	// redirects
 	{
