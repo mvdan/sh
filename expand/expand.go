@@ -41,18 +41,14 @@ type Config struct {
 	//
 	// If nil, expanding a syntax.CmdSubst node will result in an
 	// UnexpectedCommandError error.
-	CmdSubst func(io.Writer, *syntax.CmdSubst)
+	CmdSubst func(io.Writer, *syntax.CmdSubst) error
 
 	// TODO: rethink this interface
 
 	// Readdirnames is used for file path globbing. If nil, globbing is
 	// disabled. Use Config.SystemReaddirnames to use the filesystem
 	// directly.
-	Readdirnames func(string) []string
-
-	// OnError is called when an error is encountered. If nil, errors cause
-	// a panic.
-	OnError func(error)
+	Readdirnames func(string) ([]string, error)
 
 	bufferAlloc bytes.Buffer
 	fieldAlloc  [4]fieldPart
@@ -104,13 +100,6 @@ func (cfg *Config) ifsJoin(strs []string) string {
 	return strings.Join(strs, sep)
 }
 
-func (cfg *Config) err(err error) {
-	if cfg.OnError == nil {
-		panic(err)
-	}
-	cfg.OnError(err)
-}
-
 func (cfg *Config) strBuilder() *bytes.Buffer {
 	b := &cfg.bufferAlloc
 	b.Reset()
@@ -133,30 +122,39 @@ func (cfg *Config) envSet(name, value string) {
 // Literal expands a single shell word. It is similar to Fields, but the result
 // is a single string. This is the behavior when a word is used as the value in
 // a shell variable assignment, for example.
-func Literal(cfg *Config, word *syntax.Word) string {
+func Literal(cfg *Config, word *syntax.Word) (string, error) {
 	if word == nil {
-		return ""
+		return "", nil
 	}
 	cfg = prepareConfig(cfg)
-	field := cfg.wordField(word.Parts, quoteNone)
-	return cfg.fieldJoin(field)
+	field, err := cfg.wordField(word.Parts, quoteNone)
+	if err != nil {
+		return "", err
+	}
+	return cfg.fieldJoin(field), nil
 }
 
 // Document expands a single shell word as if it were within double quotes. It
 // is simlar to Literal, but without brace expansion, tilde expansion, and
 // globbing.
-func Document(cfg *Config, word *syntax.Word) string {
+func Document(cfg *Config, word *syntax.Word) (string, error) {
 	if word == nil {
-		return ""
+		return "", nil
 	}
 	cfg = prepareConfig(cfg)
-	field := cfg.wordField(word.Parts, quoteDouble)
-	return cfg.fieldJoin(field)
+	field, err := cfg.wordField(word.Parts, quoteDouble)
+	if err != nil {
+		return "", err
+	}
+	return cfg.fieldJoin(field), nil
 }
 
-func Pattern(cfg *Config, word *syntax.Word) string {
+func Pattern(cfg *Config, word *syntax.Word) (string, error) {
 	cfg = prepareConfig(cfg)
-	field := cfg.wordField(word.Parts, quoteNone)
+	field, err := cfg.wordField(word.Parts, quoteNone)
+	if err != nil {
+		return "", err
+	}
 	buf := cfg.strBuilder()
 	for _, part := range field {
 		if part.quote > quoteNone {
@@ -165,7 +163,7 @@ func Pattern(cfg *Config, word *syntax.Word) string {
 			buf.WriteString(part.val)
 		}
 	}
-	return buf.String()
+	return buf.String(), nil
 }
 
 func Format(cfg *Config, format string, args []string) (string, int, error) {
@@ -290,13 +288,17 @@ func (cfg *Config) escapedGlobField(parts []fieldPart) (escaped string, glob boo
 // Fields expands a number of words as if they were arguments in a shell
 // command. This includes brace expansion, tilde expansion, parameter expansion,
 // command substitution, arithmetic expansion, and quote removal.
-func Fields(cfg *Config, words ...*syntax.Word) []string {
+func Fields(cfg *Config, words ...*syntax.Word) ([]string, error) {
 	cfg = prepareConfig(cfg)
 	fields := make([]string, 0, len(words))
 	dir := cfg.envGet("PWD")
 	baseDir := syntax.QuotePattern(dir)
 	for _, expWord := range Braces(words...) {
-		for _, field := range cfg.wordFields(expWord.Parts) {
+		wfields, err := cfg.wordFields(expWord.Parts)
+		if err != nil {
+			return nil, err
+		}
+		for _, field := range wfields {
 			path, doGlob := cfg.escapedGlobField(field)
 			var matches []string
 			abs := filepath.IsAbs(path)
@@ -304,7 +306,10 @@ func Fields(cfg *Config, words ...*syntax.Word) []string {
 				if !abs {
 					path = filepath.Join(baseDir, path)
 				}
-				matches = cfg.glob(path)
+				matches, err = cfg.glob(path)
+				if err != nil {
+					return nil, err
+				}
 			}
 			if len(matches) == 0 {
 				fields = append(fields, cfg.fieldJoin(field))
@@ -322,7 +327,7 @@ func Fields(cfg *Config, words ...*syntax.Word) []string {
 			}
 		}
 	}
-	return fields
+	return fields, nil
 }
 
 type fieldPart struct {
@@ -338,7 +343,7 @@ const (
 	quoteSingle
 )
 
-func (cfg *Config) wordField(wps []syntax.WordPart, ql quoteLevel) []fieldPart {
+func (cfg *Config) wordField(wps []syntax.WordPart, ql quoteLevel) ([]fieldPart, error) {
 	var field []fieldPart
 	for i, wp := range wps {
 		switch x := wp.(type) {
@@ -372,36 +377,51 @@ func (cfg *Config) wordField(wps []syntax.WordPart, ql quoteLevel) []fieldPart {
 			}
 			field = append(field, fp)
 		case *syntax.DblQuoted:
-			for _, part := range cfg.wordField(x.Parts, quoteDouble) {
+			wfield, err := cfg.wordField(x.Parts, quoteDouble)
+			if err != nil {
+				return nil, err
+			}
+			for _, part := range wfield {
 				part.quote = quoteDouble
 				field = append(field, part)
 			}
 		case *syntax.ParamExp:
-			field = append(field, fieldPart{val: cfg.paramExp(x)})
+			val, err := cfg.paramExp(x)
+			if err != nil {
+				return nil, err
+			}
+			field = append(field, fieldPart{val: val})
 		case *syntax.CmdSubst:
-			field = append(field, fieldPart{val: cfg.cmdSubst(x)})
+			val, err := cfg.cmdSubst(x)
+			if err != nil {
+				return nil, err
+			}
+			field = append(field, fieldPart{val: val})
 		case *syntax.ArithmExp:
-			field = append(field, fieldPart{
-				val: strconv.Itoa(Arithm(cfg, x.X)),
-			})
+			n, err := Arithm(cfg, x.X)
+			if err != nil {
+				return nil, err
+			}
+			field = append(field, fieldPart{val: strconv.Itoa(n)})
 		default:
 			panic(fmt.Sprintf("unhandled word part: %T", x))
 		}
 	}
-	return field
+	return field, nil
 }
 
-func (cfg *Config) cmdSubst(cs *syntax.CmdSubst) string {
+func (cfg *Config) cmdSubst(cs *syntax.CmdSubst) (string, error) {
 	if cfg.CmdSubst == nil {
-		cfg.err(UnexpectedCommandError{Node: cs})
-		return ""
+		return "", UnexpectedCommandError{Node: cs}
 	}
 	buf := cfg.strBuilder()
-	cfg.CmdSubst(buf, cs)
-	return strings.TrimRight(buf.String(), "\n")
+	if err := cfg.CmdSubst(buf, cs); err != nil {
+		return "", err
+	}
+	return strings.TrimRight(buf.String(), "\n"), nil
 }
 
-func (cfg *Config) wordFields(wps []syntax.WordPart) [][]fieldPart {
+func (cfg *Config) wordFields(wps []syntax.WordPart) ([][]fieldPart, error) {
 	fields := cfg.fieldsAlloc[:0]
 	curField := cfg.fieldAlloc[:0]
 	allowEmpty := false
@@ -464,18 +484,32 @@ func (cfg *Config) wordFields(wps []syntax.WordPart) [][]fieldPart {
 					continue
 				}
 			}
-			for _, part := range cfg.wordField(x.Parts, quoteDouble) {
+			wfield, err := cfg.wordField(x.Parts, quoteDouble)
+			if err != nil {
+				return nil, err
+			}
+			for _, part := range wfield {
 				part.quote = quoteDouble
 				curField = append(curField, part)
 			}
 		case *syntax.ParamExp:
-			splitAdd(cfg.paramExp(x))
+			val, err := cfg.paramExp(x)
+			if err != nil {
+				return nil, err
+			}
+			splitAdd(val)
 		case *syntax.CmdSubst:
-			splitAdd(cfg.cmdSubst(x))
+			val, err := cfg.cmdSubst(x)
+			if err != nil {
+				return nil, err
+			}
+			splitAdd(val)
 		case *syntax.ArithmExp:
-			curField = append(curField, fieldPart{
-				val: strconv.Itoa(Arithm(cfg, x.X)),
-			})
+			n, err := Arithm(cfg, x.X)
+			if err != nil {
+				return nil, err
+			}
+			curField = append(curField, fieldPart{val: strconv.Itoa(n)})
 		default:
 			panic(fmt.Sprintf("unhandled word part: %T", x))
 		}
@@ -484,7 +518,7 @@ func (cfg *Config) wordFields(wps []syntax.WordPart) [][]fieldPart {
 	if allowEmpty && len(fields) == 0 {
 		fields = append(fields, curField)
 	}
-	return fields
+	return fields, nil
 }
 
 // quotedElems checks if a parameter expansion is exactly ${@} or ${foo[@]}
@@ -550,7 +584,7 @@ func hasGlob(path string) bool {
 
 var rxGlobStar = regexp.MustCompile(".*")
 
-func (cfg *Config) glob(pattern string) []string {
+func (cfg *Config) glob(pattern string) ([]string, error) {
 	parts := strings.Split(pattern, string(filepath.Separator))
 	matches := []string{"."}
 	if filepath.IsAbs(pattern) {
@@ -577,7 +611,11 @@ func (cfg *Config) glob(pattern string) []string {
 			for {
 				var newMatches []string
 				for _, dir := range latest {
-					newMatches = cfg.globDir(dir, rxGlobStar, newMatches)
+					var err error
+					newMatches, err = cfg.globDir(dir, rxGlobStar, newMatches)
+					if err != nil {
+						return nil, err
+					}
 				}
 				if len(newMatches) == 0 {
 					// not another level of directories to
@@ -591,43 +629,47 @@ func (cfg *Config) glob(pattern string) []string {
 		}
 		expr, err := syntax.TranslatePattern(part, true)
 		if err != nil {
-			return nil
+			// If any glob part is not a valid pattern, don't glob.
+			return nil, nil
 		}
 		rx := regexp.MustCompile("^" + expr + "$")
 		var newMatches []string
 		for _, dir := range matches {
-			newMatches = cfg.globDir(dir, rx, newMatches)
+			newMatches, err = cfg.globDir(dir, rx, newMatches)
+			if err != nil {
+				return nil, err
+			}
 		}
 		matches = newMatches
 	}
-	return matches
+	return matches, nil
 }
 
 // SystemReaddirnames uses os.Open and File.Readdirnames to retrieve the names
-// of the files within a directoy on the system's filesystem. Any error is
-// reported via Config.OnError.
-func (cfg *Config) SystemReaddirnames(dir string) []string {
+// of the files within a directoy on the system's filesystem.
+func (cfg *Config) SystemReaddirnames(dir string) ([]string, error) {
 	d, err := os.Open(dir)
 	if err != nil {
-		cfg.err(err)
-		return nil
+		return nil, err
 	}
 	defer d.Close()
 
 	names, err := d.Readdirnames(-1)
 	if err != nil {
-		cfg.err(err)
-		return nil
+		return nil, err
 	}
 	sort.Strings(names)
-	return names
+	return names, nil
 }
 
-func (cfg *Config) globDir(dir string, rx *regexp.Regexp, matches []string) []string {
+func (cfg *Config) globDir(dir string, rx *regexp.Regexp, matches []string) ([]string, error) {
 	if cfg.Readdirnames == nil {
-		return nil
+		return nil, nil
 	}
-	names := cfg.Readdirnames(dir)
+	names, err := cfg.Readdirnames(dir)
+	if err != nil {
+		return nil, err
+	}
 	for _, name := range names {
 		if !strings.HasPrefix(rx.String(), `^\.`) && name[0] == '.' {
 			continue
@@ -636,7 +678,7 @@ func (cfg *Config) globDir(dir string, rx *regexp.Regexp, matches []string) []st
 			matches = append(matches, filepath.Join(dir, name))
 		}
 	}
-	return matches
+	return matches, nil
 }
 
 func ReadFields(cfg *Config, s string, n int, raw bool) []string {

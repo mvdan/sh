@@ -32,16 +32,8 @@ func Expand(s string, env func(string) string) (string, error) {
 	if env == nil {
 		env = os.Getenv
 	}
-	cfg := &expand.Config{
-		Env: expand.FuncEnviron(env),
-		OnError: func(e error) {
-			if err == nil {
-				err = e
-			}
-		},
-	}
-	out := expand.Document(cfg, word)
-	return out, err
+	cfg := &expand.Config{Env: expand.FuncEnviron(env)}
+	return expand.Document(cfg, word)
 }
 
 // Fields performs shell expansion on s as if it were a command's arguments,
@@ -66,13 +58,6 @@ func Fields(s string, env func(string) string) ([]string, error) {
 	if env == nil {
 		env = os.Getenv
 	}
-	cfg := &expand.Config{
-		Env: expand.FuncEnviron(env),
-		OnError: func(e error) {
-			if err == nil {
-				err = e
-			}
-		},
-	}
-	return expand.Fields(cfg, words...), err
+	cfg := &expand.Config{Env: expand.FuncEnviron(env)}
+	return expand.Fields(cfg, words...)
 }

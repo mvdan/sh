@@ -63,22 +63,11 @@ func (r *Runner) fillExpandConfig(ctx context.Context) {
 	r.ectx = ctx
 	r.ecfg = &expand.Config{
 		Env: expandEnv{r},
-		OnError: func(err error) {
-			switch err := err.(type) {
-			case expand.UnsetParameterError:
-				r.errf("%s\n", err.Message)
-				r.exit = 1
-				r.setErr(ShellExitStatus(r.exit))
-			default:
-				r.setErr(err)
-				r.exit = 1
-			}
-		},
-		CmdSubst: func(w io.Writer, cs *syntax.CmdSubst) {
+		CmdSubst: func(w io.Writer, cs *syntax.CmdSubst) error {
 			r2 := r.sub()
 			r2.Stdout = w
 			r2.stmts(ctx, cs.StmtList)
-			r.setErr(r2.err)
+			return r2.err
 		},
 	}
 	r.ecfg.Readdirnames = r.ecfg.SystemReaddirnames
@@ -90,6 +79,50 @@ func (r *Runner) updateExpandOpts() {
 	r.ecfg.GlobStar = r.opts[optGlobStar]
 }
 
+func (r *Runner) expandErr(err error) {
+	switch err := err.(type) {
+	case nil:
+	case expand.UnsetParameterError:
+		r.errf("%s\n", err.Message)
+		r.exit = 1
+		r.setErr(ShellExitStatus(r.exit))
+	default:
+		r.setErr(err)
+		r.exit = 1
+	}
+}
+
+func (r *Runner) arithm(expr syntax.ArithmExpr) int {
+	n, err := expand.Arithm(r.ecfg, expr)
+	r.expandErr(err)
+	return n
+}
+
+func (r *Runner) fields(words ...*syntax.Word) []string {
+	strs, err := expand.Fields(r.ecfg, words...)
+	r.expandErr(err)
+	return strs
+}
+
+func (r *Runner) literal(word *syntax.Word) string {
+	str, err := expand.Literal(r.ecfg, word)
+	r.expandErr(err)
+	return str
+}
+
+func (r *Runner) document(word *syntax.Word) string {
+	str, err := expand.Document(r.ecfg, word)
+	r.expandErr(err)
+	return str
+}
+
+func (r *Runner) pattern(word *syntax.Word) string {
+	str, err := expand.Pattern(r.ecfg, word)
+	r.expandErr(err)
+	return str
+}
+
+// expandEnv exposes Runner's variables to the expand package.
 type expandEnv struct {
 	r *Runner
 }
@@ -644,7 +677,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		r.exit = r2.exit
 		r.setErr(r2.err)
 	case *syntax.CallExpr:
-		fields := expand.Fields(r.ecfg, x.Args...)
+		fields := r.fields(x.Args...)
 		if len(fields) == 0 {
 			for _, as := range x.Assigns {
 				vr := r.lookupVar(as.Name.Value)
@@ -723,37 +756,37 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		switch y := x.Loop.(type) {
 		case *syntax.WordIter:
 			name := y.Name.Value
-			for _, field := range expand.Fields(r.ecfg, y.Items...) {
+			for _, field := range r.fields(y.Items...) {
 				r.setVarString(name, field)
 				if r.loopStmtsBroken(ctx, x.Do) {
 					break
 				}
 			}
 		case *syntax.CStyleLoop:
-			expand.Arithm(r.ecfg, y.Init)
-			for expand.Arithm(r.ecfg, y.Cond) != 0 {
+			r.arithm(y.Init)
+			for r.arithm(y.Cond) != 0 {
 				if r.loopStmtsBroken(ctx, x.Do) {
 					break
 				}
-				expand.Arithm(r.ecfg, y.Post)
+				r.arithm(y.Post)
 			}
 		}
 	case *syntax.FuncDecl:
 		r.setFunc(x.Name.Value, x.Body)
 	case *syntax.ArithmCmd:
-		r.exit = oneIf(expand.Arithm(r.ecfg, x.X) == 0)
+		r.exit = oneIf(r.arithm(x.X) == 0)
 	case *syntax.LetClause:
 		var val int
 		for _, expr := range x.Exprs {
-			val = expand.Arithm(r.ecfg, expr)
+			val = r.arithm(expr)
 		}
 		r.exit = oneIf(val == 0)
 	case *syntax.CaseClause:
-		str := expand.Literal(r.ecfg, x.Word)
+		str := r.literal(x.Word)
 		for _, ci := range x.Items {
 			for _, word := range ci.Patterns {
-				pat := expand.Pattern(r.ecfg, word)
-				if match(pat, str) {
+				pattern := r.pattern(word)
+				if match(pattern, str) {
 					r.stmts(ctx, ci.StmtList)
 					return
 				}
@@ -789,7 +822,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			modes = append(modes, "-n")
 		}
 		for _, opt := range x.Opts {
-			switch s := expand.Literal(r.ecfg, opt); s {
+			switch s := r.literal(opt); s {
 			case "-x", "-r", "-n":
 				modes = append(modes, s)
 			case "-a", "-A":
@@ -854,7 +887,7 @@ func (r *Runner) flattenAssign(as *syntax.Assign) []*syntax.Assign {
 		return []*syntax.Assign{as} // nothing to do
 	}
 	var asgns []*syntax.Assign
-	for _, field := range expand.Fields(r.ecfg, as.Value) {
+	for _, field := range r.fields(as.Value) {
 		as := &syntax.Assign{}
 		parts := strings.SplitN(field, "=", 2)
 		as.Name = &syntax.Lit{Value: parts[0]}
@@ -896,7 +929,7 @@ func (r *Runner) stmts(ctx context.Context, sl syntax.StmtList) {
 
 func (r *Runner) hdocReader(rd *syntax.Redirect) io.Reader {
 	if rd.Op != syntax.DashHdoc {
-		hdoc := expand.Document(r.ecfg, rd.Hdoc)
+		hdoc := r.document(rd.Hdoc)
 		return strings.NewReader(hdoc)
 	}
 	var buf bytes.Buffer
@@ -905,7 +938,7 @@ func (r *Runner) hdocReader(rd *syntax.Redirect) io.Reader {
 		if buf.Len() > 0 {
 			buf.WriteByte('\n')
 		}
-		buf.WriteString(expand.Document(r.ecfg, &syntax.Word{Parts: cur}))
+		buf.WriteString(r.document(&syntax.Word{Parts: cur}))
 		cur = cur[:0]
 	}
 	for _, wp := range rd.Hdoc.Parts {
@@ -940,7 +973,7 @@ func (r *Runner) redir(ctx context.Context, rd *syntax.Redirect) (io.Closer, err
 			orig = &r.Stderr
 		}
 	}
-	arg := expand.Literal(r.ecfg, rd.Word)
+	arg := r.literal(rd.Word)
 	switch rd.Op {
 	case syntax.WordHdoc:
 		r.Stdin = strings.NewReader(arg + "\n")

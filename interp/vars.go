@@ -205,7 +205,7 @@ func (r *Runner) setVar(name string, index syntax.ArithmExpr, vr expand.Variable
 		if !ok {
 			return
 		}
-		k := expand.Literal(r.ecfg, w)
+		k := r.literal(w)
 		amap[k] = valStr
 		cur.Value = amap
 		r.setVarInternal(name, cur)
@@ -219,7 +219,7 @@ func (r *Runner) setVar(name string, index syntax.ArithmExpr, vr expand.Variable
 		list = x
 	case map[string]string: // done above
 	}
-	k := expand.Arithm(r.ecfg, index)
+	k := r.arithm(index)
 	for len(list) < k+1 {
 		list = append(list, "")
 	}
@@ -253,7 +253,7 @@ func (r *Runner) assignVal(as *syntax.Assign, valType string) interface{} {
 		return prev.Value
 	}
 	if as.Value != nil {
-		s := expand.Literal(r.ecfg, as.Value)
+		s := r.literal(as.Value)
 		if !as.Append || !prev.IsSet() {
 			return s
 		}
@@ -287,8 +287,8 @@ func (r *Runner) assignVal(as *syntax.Assign, valType string) interface{} {
 		// associative array
 		amap := make(map[string]string, len(elems))
 		for _, elem := range elems {
-			k := expand.Literal(r.ecfg, elem.Index.(*syntax.Word))
-			amap[k] = expand.Literal(r.ecfg, elem.Value)
+			k := r.literal(elem.Index.(*syntax.Word))
+			amap[k] = r.literal(elem.Value)
 		}
 		if !as.Append || !prev.IsSet() {
 			return amap
@@ -304,7 +304,7 @@ func (r *Runner) assignVal(as *syntax.Assign, valType string) interface{} {
 			indexes[i] = i
 			continue
 		}
-		k := expand.Arithm(r.ecfg, elem.Index)
+		k := r.arithm(elem.Index)
 		indexes[i] = k
 		if k > maxIndex {
 			maxIndex = k
@@ -312,7 +312,7 @@ func (r *Runner) assignVal(as *syntax.Assign, valType string) interface{} {
 	}
 	strs := make([]string, maxIndex+1)
 	for i, elem := range elems {
-		strs[indexes[i]] = expand.Literal(r.ecfg, elem.Value)
+		strs[indexes[i]] = r.literal(elem.Value)
 	}
 	if !as.Append || !prev.IsSet() {
 		return strs

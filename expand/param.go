@@ -31,7 +31,7 @@ func (u UnsetParameterError) Error() string {
 	return u.Message
 }
 
-func (cfg *Config) paramExp(pe *syntax.ParamExp) string {
+func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 	oldParam := cfg.curParam
 	cfg.curParam = pe
 	defer func() { cfg.curParam = oldParam }()
@@ -56,21 +56,20 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) string {
 	}
 	orig := vr
 	_, vr = vr.Resolve(cfg.Env)
-	str := vr.String()
-	if index != nil {
-		str = cfg.varInd(vr, index)
+	str, err := cfg.varInd(vr, index)
+	if err != nil {
+		return "", err
 	}
-	slicePos := func(expr syntax.ArithmExpr) int {
-		p := Arithm(cfg, expr)
-		if p < 0 {
-			p = len(str) + p
-			if p < 0 {
-				p = len(str)
+	slicePos := func(n int) int {
+		if n < 0 {
+			n = len(str) + n
+			if n < 0 {
+				n = len(str)
 			}
-		} else if p > len(str) {
-			p = len(str)
+		} else if n > len(str) {
+			n = len(str)
 		}
-		return p
+		return n
 	}
 	elems := []string{str}
 	switch nodeLit(index) {
@@ -115,16 +114,28 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) string {
 		str = strings.Join(strs, " ")
 	case pe.Slice != nil:
 		if pe.Slice.Offset != nil {
-			offset := slicePos(pe.Slice.Offset)
-			str = str[offset:]
+			n, err := Arithm(cfg, pe.Slice.Offset)
+			if err != nil {
+				return "", err
+			}
+			str = str[slicePos(n):]
 		}
 		if pe.Slice.Length != nil {
-			length := slicePos(pe.Slice.Length)
-			str = str[:length]
+			n, err := Arithm(cfg, pe.Slice.Length)
+			if err != nil {
+				return "", err
+			}
+			str = str[:slicePos(n)]
 		}
 	case pe.Repl != nil:
-		orig := Pattern(cfg, pe.Repl.Orig)
-		with := Literal(cfg, pe.Repl.With)
+		orig, err := Pattern(cfg, pe.Repl.Orig)
+		if err != nil {
+			return "", err
+		}
+		with, err := Literal(cfg, pe.Repl.With)
+		if err != nil {
+			return "", err
+		}
 		n := 1
 		if pe.Repl.All {
 			n = -1
@@ -140,7 +151,10 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) string {
 		buf.WriteString(str[last:])
 		str = buf.String()
 	case pe.Exp != nil:
-		arg := Literal(cfg, pe.Exp.Word)
+		arg, err := Literal(cfg, pe.Exp.Word)
+		if err != nil {
+			return "", err
+		}
 		switch op := pe.Exp.Op; op {
 		case syntax.SubstColPlus:
 			if str == "" {
@@ -167,10 +181,10 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) string {
 			fallthrough
 		case syntax.SubstColQuest:
 			if str == "" {
-				cfg.err(UnsetParameterError{
+				return "", UnsetParameterError{
 					Node:    pe,
 					Message: arg,
-				})
+				}
 			}
 		case syntax.SubstAssgn:
 			if vr.IsSet() {
@@ -204,7 +218,7 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) string {
 			// empty string means '?'; nothing to do there
 			expr, err := syntax.TranslatePattern(arg, false)
 			if err != nil {
-				return str
+				return str, nil
 			}
 			rx := regexp.MustCompile(expr)
 
@@ -241,7 +255,7 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) string {
 			}
 		}
 	}
-	return str
+	return str, nil
 }
 
 func removePattern(str, pattern string, fromEnd, greedy bool) string {
@@ -269,22 +283,32 @@ func removePattern(str, pattern string, fromEnd, greedy bool) string {
 	return str
 }
 
-func (cfg *Config) varInd(vr Variable, idx syntax.ArithmExpr) string {
+func (cfg *Config) varInd(vr Variable, idx syntax.ArithmExpr) (string, error) {
+	if idx == nil {
+		return vr.String(), nil
+	}
 	switch x := vr.Value.(type) {
 	case string:
-		if Arithm(cfg, idx) == 0 {
-			return x
+		n, err := Arithm(cfg, idx)
+		if err != nil {
+			return "", err
+		}
+		if n == 0 {
+			return x, nil
 		}
 	case []string:
 		switch nodeLit(idx) {
 		case "@":
-			return strings.Join(x, " ")
+			return strings.Join(x, " "), nil
 		case "*":
-			return cfg.ifsJoin(x)
+			return cfg.ifsJoin(x), nil
 		}
-		i := Arithm(cfg, idx)
+		i, err := Arithm(cfg, idx)
+		if err != nil {
+			return "", err
+		}
 		if len(x) > 0 {
-			return x[i]
+			return x[i], nil
 		}
 	case map[string]string:
 		switch lit := nodeLit(idx); lit {
@@ -299,13 +323,17 @@ func (cfg *Config) varInd(vr Variable, idx syntax.ArithmExpr) string {
 				strs = append(strs, x[k])
 			}
 			if lit == "*" {
-				return cfg.ifsJoin(strs)
+				return cfg.ifsJoin(strs), nil
 			}
-			return strings.Join(strs, " ")
+			return strings.Join(strs, " "), nil
 		}
-		return x[Literal(cfg, idx.(*syntax.Word))]
+		val, err := Literal(cfg, idx.(*syntax.Word))
+		if err != nil {
+			return "", err
+		}
+		return x[val], nil
 	}
-	return ""
+	return "", nil
 }
 
 func (cfg *Config) namesByPrefix(prefix string) []string {

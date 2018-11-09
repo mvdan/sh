@@ -10,10 +10,13 @@ import (
 	"mvdan.cc/sh/syntax"
 )
 
-func Arithm(cfg *Config, expr syntax.ArithmExpr) int {
+func Arithm(cfg *Config, expr syntax.ArithmExpr) (int, error) {
 	switch x := expr.(type) {
 	case *syntax.Word:
-		str := Literal(cfg, x)
+		str, err := Literal(cfg, x)
+		if err != nil {
+			return 0, err
+		}
 		// recursively fetch vars
 		i := 0
 		for str != "" && syntax.ValidName(str) {
@@ -27,7 +30,7 @@ func Arithm(cfg *Config, expr syntax.ArithmExpr) int {
 			str = val
 		}
 		// default to 0
-		return atoi(str)
+		return atoi(str), nil
 	case *syntax.ParenArithm:
 		return Arithm(cfg, x.X)
 	case *syntax.UnaryArithm:
@@ -43,18 +46,21 @@ func Arithm(cfg *Config, expr syntax.ArithmExpr) int {
 			}
 			cfg.envSet(name, strconv.Itoa(val))
 			if x.Post {
-				return old
+				return old, nil
 			}
-			return val
+			return val, nil
 		}
-		val := Arithm(cfg, x.X)
+		val, err := Arithm(cfg, x.X)
+		if err != nil {
+			return 0, err
+		}
 		switch x.Op {
 		case syntax.Not:
-			return oneIf(val == 0)
+			return oneIf(val == 0), nil
 		case syntax.Plus:
-			return val
+			return val, nil
 		default: // syntax.Minus
-			return -val
+			return -val, nil
 		}
 	case *syntax.BinaryArithm:
 		switch x.Op {
@@ -64,14 +70,25 @@ func Arithm(cfg *Config, expr syntax.ArithmExpr) int {
 			syntax.ShlAssgn, syntax.ShrAssgn:
 			return cfg.assgnArit(x)
 		case syntax.Quest: // Colon can't happen here
-			cond := Arithm(cfg, x.X)
+			cond, err := Arithm(cfg, x.X)
+			if err != nil {
+				return 0, err
+			}
 			b2 := x.Y.(*syntax.BinaryArithm) // must have Op==Colon
 			if cond == 1 {
 				return Arithm(cfg, b2.X)
 			}
 			return Arithm(cfg, b2.Y)
 		}
-		return binArit(x.Op, Arithm(cfg, x.X), Arithm(cfg, x.Y))
+		left, err := Arithm(cfg, x.X)
+		if err != nil {
+			return 0, err
+		}
+		right, err := Arithm(cfg, x.Y)
+		if err != nil {
+			return 0, err
+		}
+		return binArit(x.Op, left, right), nil
 	default:
 		panic(fmt.Sprintf("unexpected arithm expr: %T", x))
 	}
@@ -91,10 +108,13 @@ func atoi(s string) int {
 	return n
 }
 
-func (cfg *Config) assgnArit(b *syntax.BinaryArithm) int {
+func (cfg *Config) assgnArit(b *syntax.BinaryArithm) (int, error) {
 	name := b.X.(*syntax.Word).Lit()
 	val := atoi(cfg.envGet(name))
-	arg := Arithm(cfg, b.Y)
+	arg, err := Arithm(cfg, b.Y)
+	if err != nil {
+		return 0, err
+	}
 	switch b.Op {
 	case syntax.Assgn:
 		val = arg
@@ -120,7 +140,7 @@ func (cfg *Config) assgnArit(b *syntax.BinaryArithm) int {
 		val >>= uint(arg)
 	}
 	cfg.envSet(name, strconv.Itoa(val))
-	return val
+	return val, nil
 }
 
 func intPow(a, b int) int {
