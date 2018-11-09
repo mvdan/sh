@@ -18,6 +18,8 @@ import (
 	"mvdan.cc/sh/syntax"
 )
 
+// A Config specifies details about how shell expansion should be performed. The
+// zero value is a valid configuration.
 type Config struct {
 	// Env is used to get and set environment variables when performing
 	// shell expansions. Some special parameters are also expanded via this
@@ -35,11 +37,11 @@ type Config struct {
 	// "**".
 	GlobStar bool
 
-	// CmdSubst is used to expand command substitutions. Output should be
-	// written to the provided io.Writer.
+	// CmdSubst expands a command substitution node, writing its standard
+	// output to the provided io.Writer.
 	//
-	// If nil, expanding a syntax.CmdSubst node will result in an
-	// UnexpectedCommandError error.
+	// If nil, encountering a command substitution will result in an
+	// UnexpectedCommandError.
 	CmdSubst func(io.Writer, *syntax.CmdSubst) error
 
 	// ReadDir is used for file path globbing. If nil, globbing is disabled.
