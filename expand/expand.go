@@ -29,6 +29,10 @@ type Config struct {
 	//   * "?", "$", "PPID" for the shell's status and process
 	//   * "HOME foo" to retrieve user foo's home directory (if unset,
 	//     os/user.Lookup will be used)
+	//
+	// If nil, there are no environment variables set. Use
+	// ListEnviron(os.Environ()...) to use the system's environment
+	// variables.
 	Env Environ
 
 	// NoGlob corresponds to the shell option that disables globbing.
@@ -68,14 +72,18 @@ func (u UnexpectedCommandError) Error() string {
 	return fmt.Sprintf("unexpected command substitution at %s", u.Node.Pos())
 }
 
+var zeroConfig = &Config{}
+
 func prepareConfig(cfg *Config) *Config {
 	if cfg == nil {
-		panic("TODO: allow nil expand.Config")
+		cfg = zeroConfig
 	}
-	vr := cfg.Env.Get("IFS")
-	if !vr.IsSet() {
-		cfg.ifs = " \t\n"
-	} else {
+	if cfg.Env == nil {
+		cfg.Env = FuncEnviron(func(string) string { return "" })
+	}
+
+	cfg.ifs = " \t\n"
+	if vr := cfg.Env.Get("IFS"); vr.IsSet() {
 		cfg.ifs = vr.String()
 	}
 	return cfg
@@ -120,6 +128,9 @@ func (cfg *Config) envSet(name, value string) {
 // Literal expands a single shell word. It is similar to Fields, but the result
 // is a single string. This is the behavior when a word is used as the value in
 // a shell variable assignment, for example.
+//
+// The config specifies shell expansion options; nil behaves the same as an
+// empty config.
 func Literal(cfg *Config, word *syntax.Word) (string, error) {
 	if word == nil {
 		return "", nil
@@ -135,6 +146,9 @@ func Literal(cfg *Config, word *syntax.Word) (string, error) {
 // Document expands a single shell word as if it were within double quotes. It
 // is simlar to Literal, but without brace expansion, tilde expansion, and
 // globbing.
+//
+// The config specifies shell expansion options; nil behaves the same as an
+// empty config.
 func Document(cfg *Config, word *syntax.Word) (string, error) {
 	if word == nil {
 		return "", nil
@@ -147,6 +161,12 @@ func Document(cfg *Config, word *syntax.Word) (string, error) {
 	return cfg.fieldJoin(field), nil
 }
 
+// Pattern expands a single shell word as a pattern, using syntax.QuotePattern
+// on any non-quoted parts of the input word. The result can be used on
+// syntax.TranslatePattern directly.
+//
+// The config specifies shell expansion options; nil behaves the same as an
+// empty config.
 func Pattern(cfg *Config, word *syntax.Word) (string, error) {
 	cfg = prepareConfig(cfg)
 	field, err := cfg.wordField(word.Parts, quoteNone)
@@ -164,6 +184,13 @@ func Pattern(cfg *Config, word *syntax.Word) (string, error) {
 	return buf.String(), nil
 }
 
+// Format expands a format string with a number of arguments, following the
+// shell's format specifications. These include printf(1), among others.
+//
+// The resulting string is returned, along with the number of arguments used.
+//
+// The config specifies shell expansion options; nil behaves the same as an
+// empty config.
 func Format(cfg *Config, format string, args []string) (string, int, error) {
 	cfg = prepareConfig(cfg)
 	buf := cfg.strBuilder()
@@ -663,6 +690,9 @@ func (cfg *Config) globDir(dir string, rx *regexp.Regexp, matches []string) ([]s
 	return matches, nil
 }
 
+//
+// The config specifies shell expansion options; nil behaves the same as an
+// empty config.
 func ReadFields(cfg *Config, s string, n int, raw bool) []string {
 	cfg = prepareConfig(cfg)
 	type pos struct {
