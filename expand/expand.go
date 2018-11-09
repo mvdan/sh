@@ -12,7 +12,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
-	"sort"
 	"strconv"
 	"strings"
 
@@ -43,12 +42,9 @@ type Config struct {
 	// UnexpectedCommandError error.
 	CmdSubst func(io.Writer, *syntax.CmdSubst) error
 
-	// TODO: rethink this interface
-
-	// Readdirnames is used for file path globbing. If nil, globbing is
-	// disabled. Use Config.SystemReaddirnames to use the filesystem
-	// directly.
-	Readdirnames func(string) ([]string, error)
+	// ReadDir is used for file path globbing. If nil, globbing is disabled.
+	// Use ioutil.ReadDir to use the filesystem directly.
+	ReadDir func(string) ([]os.FileInfo, error)
 
 	bufferAlloc bytes.Buffer
 	fieldAlloc  [4]fieldPart
@@ -645,32 +641,16 @@ func (cfg *Config) glob(pattern string) ([]string, error) {
 	return matches, nil
 }
 
-// SystemReaddirnames uses os.Open and File.Readdirnames to retrieve the names
-// of the files within a directoy on the system's filesystem.
-func (cfg *Config) SystemReaddirnames(dir string) ([]string, error) {
-	d, err := os.Open(dir)
-	if err != nil {
-		return nil, err
-	}
-	defer d.Close()
-
-	names, err := d.Readdirnames(-1)
-	if err != nil {
-		return nil, err
-	}
-	sort.Strings(names)
-	return names, nil
-}
-
 func (cfg *Config) globDir(dir string, rx *regexp.Regexp, matches []string) ([]string, error) {
-	if cfg.Readdirnames == nil {
+	if cfg.ReadDir == nil {
 		return nil, nil
 	}
-	names, err := cfg.Readdirnames(dir)
+	infos, err := cfg.ReadDir(dir)
 	if err != nil {
 		return nil, err
 	}
-	for _, name := range names {
+	for _, info := range infos {
+		name := info.Name()
 		if !strings.HasPrefix(rx.String(), `^\.`) && name[0] == '.' {
 			continue
 		}

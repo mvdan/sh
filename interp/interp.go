@@ -69,8 +69,8 @@ func (r *Runner) fillExpandConfig(ctx context.Context) {
 			r2.stmts(ctx, cs.StmtList)
 			return r2.err
 		},
+		ReadDir: ioutil.ReadDir,
 	}
-	r.ecfg.Readdirnames = r.ecfg.SystemReaddirnames
 	r.updateExpandOpts()
 }
 
