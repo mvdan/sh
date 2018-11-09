@@ -309,9 +309,9 @@ type Runner struct {
 	Stdout io.Writer
 	Stderr io.Writer
 
-	// Separate maps, note that bash allows a name to be both a var
-	// and a func simultaneously
-	// TODO: merge into Env?
+	// Separate maps - note that bash allows a name to be both a var and a
+	// func simultaneously
+
 	Vars  map[string]expand.Variable
 	Funcs map[string]*syntax.Stmt
 
