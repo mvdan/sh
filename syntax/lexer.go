@@ -299,7 +299,6 @@ changedState:
 		if !p.rxFirstPart && p.spaced {
 			p.quote = noState
 			goto changedState
-			return
 		}
 		p.rxFirstPart = false
 		switch r {

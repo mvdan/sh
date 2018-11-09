@@ -75,7 +75,7 @@ func ExampleCommand() {
 	// Cmd 2: *syntax.BinaryCmd    - foo | bar
 }
 
-func ExampleOptions() {
+func ExampleNewParser_options() {
 	src := "for ((i = 0; i < 5; i++)); do echo $i >f; done"
 
 	// LangBash is the default
