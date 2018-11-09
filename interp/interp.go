@@ -498,7 +498,10 @@ func (r *Runner) modCtx(ctx context.Context) context.Context {
 		Stderr:      r.Stderr,
 		KillTimeout: r.KillTimeout,
 	}
-	oenv := &overlayEnviron{parent: r.Env}
+	oenv := overlayEnviron{
+		parent: r.Env,
+		values: make(map[string]expand.Variable),
+	}
 	for name, vr := range r.Vars {
 		oenv.Set(name, vr)
 	}

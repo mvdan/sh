@@ -14,30 +14,22 @@ import (
 )
 
 type overlayEnviron struct {
-	// TODO: drop the pointer from the receivers
 	parent expand.Environ
 	values map[string]expand.Variable
 }
 
-func (o *overlayEnviron) Get(name string) expand.Variable {
+func (o overlayEnviron) Get(name string) expand.Variable {
 	if vr, ok := o.values[name]; ok {
 		return vr
-	}
-	if o.parent == nil {
-		return expand.Variable{}
 	}
 	return o.parent.Get(name)
 }
 
-func (o *overlayEnviron) Set(name string, vr expand.Variable) {
-	if o.values == nil {
-		o.values = make(map[string]expand.Variable)
-	}
+func (o overlayEnviron) Set(name string, vr expand.Variable) {
 	o.values[name] = vr
-	// TODO: parent too?
 }
 
-func (o *overlayEnviron) Each(f func(name string, vr expand.Variable) bool) {
+func (o overlayEnviron) Each(f func(name string, vr expand.Variable) bool) {
 	o.parent.Each(f)
 	for name, vr := range o.values {
 		if !f(name, vr) {
