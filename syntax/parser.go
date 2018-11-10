@@ -315,7 +315,11 @@ type Parser struct {
 }
 
 func (p *Parser) Incomplete() bool {
-	return p.quote != noState || p.openStmts > 0
+	// If we're in a quote state other than noState, we're parsing a node
+	// such as a double-quoted string.
+	// If there are any open statements, we need to finish them.
+	// If we're constructing a literal, we need to finish it.
+	return p.quote != noState || p.openStmts > 0 || p.litBs != nil
 }
 
 const bufSize = 1 << 10

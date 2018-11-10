@@ -91,6 +91,12 @@ var interactiveTests = [][]string{
 		"foo bar\n",
 	},
 	{
+		"echo\\\n",
+		"> ",
+		" foo\n",
+		"foo\n",
+	},
+	{
 		"echo foo\\\n",
 		"> ",
 		"bar\n",
