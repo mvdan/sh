@@ -1,11 +1,11 @@
 language: go
 
+env:
+  global:
+    - GO111MODULE=on
+
 matrix:
   include:
-    - os: linux
-      go: "1.10"
-    - os: linux
-      go: 1.10.x
     - os: linux
       go: 1.11.x
       env: CHECK_GOFMT=1
@@ -14,12 +14,9 @@ matrix:
     - os: windows
       go: 1.11.x
 
-go_import_path: mvdan.cc/sh
-
 install: true
 
 script:
-  - go get -d -t ./...
   - go install ./...
   - go test ./...
     # TODO: reenable test -race on windows once TestInteractive stops failing

@@ -4,7 +4,7 @@
 [![Build](https://travis-ci.org/mvdan/sh.svg?branch=master)](https://travis-ci.org/mvdan/sh)
 
 A shell parser, formatter and interpreter. Supports [POSIX Shell], [Bash] and
-[mksh]. Requires Go 1.10 or later.
+[mksh]. Requires Go 1.11 or later.
 
 ### Quick start
 
