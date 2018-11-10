@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"mvdan.cc/sh/syntax"
+	"mvdan.cc/sh/v3/syntax"
 )
 
 func Arithm(cfg *Config, expr syntax.ArithmExpr) (int, error) {

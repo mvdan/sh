@@ -9,7 +9,7 @@ import (
 	"io/ioutil"
 	"os"
 
-	"mvdan.cc/sh/shell"
+	"mvdan.cc/sh/v3/shell"
 )
 
 func ExampleExpand() {

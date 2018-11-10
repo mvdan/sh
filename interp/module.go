@@ -14,7 +14,7 @@ import (
 	"syscall"
 	"time"
 
-	"mvdan.cc/sh/expand"
+	"mvdan.cc/sh/v3/expand"
 )
 
 // FromModuleContext returns the ModuleCtx value stored in ctx, if any.

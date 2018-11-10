@@ -16,7 +16,7 @@ For high-level operations like performing shell expansions on strings, see the
 
 ### shfmt
 
-	go get -u mvdan.cc/sh/cmd/shfmt
+	go get -u mvdan.cc/sh/v3/cmd/shfmt
 
 `shfmt` formats shell programs. It can use tabs or any number of spaces to
 indent. See [canonical.sh](syntax/canonical.sh) for a quick look at its default
@@ -57,7 +57,7 @@ $ echo 'foo=(1 2)' | shfmt -p
 
 ### gosh
 
-	go get -u mvdan.cc/sh/cmd/gosh
+	go get -u mvdan.cc/sh/v3/cmd/gosh
 
 Experimental shell that uses `interp`. Work in progress, so don't expect
 stability just yet.

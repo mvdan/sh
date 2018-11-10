@@ -8,9 +8,9 @@ import (
 	"os"
 	"strings"
 
-	"mvdan.cc/sh/expand"
-	"mvdan.cc/sh/interp"
-	"mvdan.cc/sh/syntax"
+	"mvdan.cc/sh/v3/expand"
+	"mvdan.cc/sh/v3/interp"
+	"mvdan.cc/sh/v3/syntax"
 )
 
 func Example() {

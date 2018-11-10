@@ -14,8 +14,8 @@ import (
 	"path/filepath"
 	"regexp"
 
-	"mvdan.cc/sh/fileutil"
-	"mvdan.cc/sh/syntax"
+	"mvdan.cc/sh/v3/fileutil"
+	"mvdan.cc/sh/v3/syntax"
 )
 
 var (

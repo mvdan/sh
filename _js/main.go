@@ -10,7 +10,7 @@ import (
 
 	"github.com/gopherjs/gopherjs/js"
 
-	"mvdan.cc/sh/syntax"
+	"mvdan.cc/sh/v3/syntax"
 )
 
 func main() {

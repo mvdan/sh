@@ -17,9 +17,9 @@ import (
 	"testing"
 	"time"
 
-	"mvdan.cc/sh/expand"
-	"mvdan.cc/sh/internal"
-	"mvdan.cc/sh/syntax"
+	"mvdan.cc/sh/v3/expand"
+	"mvdan.cc/sh/v3/internal"
+	"mvdan.cc/sh/v3/syntax"
 )
 
 func BenchmarkRun(b *testing.B) {

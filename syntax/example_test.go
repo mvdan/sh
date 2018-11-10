@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"strings"
 
-	"mvdan.cc/sh/syntax"
+	"mvdan.cc/sh/v3/syntax"
 )
 
 func Example() {

@@ -13,8 +13,8 @@ import (
 	"strconv"
 	"strings"
 
-	"mvdan.cc/sh/expand"
-	"mvdan.cc/sh/syntax"
+	"mvdan.cc/sh/v3/expand"
+	"mvdan.cc/sh/v3/syntax"
 )
 
 func isBuiltin(name string) bool {

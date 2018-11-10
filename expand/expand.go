@@ -15,7 +15,7 @@ import (
 	"strconv"
 	"strings"
 
-	"mvdan.cc/sh/syntax"
+	"mvdan.cc/sh/v3/syntax"
 )
 
 // A Config specifies details about how shell expansion should be performed. The

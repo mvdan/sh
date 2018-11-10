@@ -16,7 +16,7 @@ import (
 	"testing"
 
 	"github.com/kr/pretty"
-	"mvdan.cc/sh/internal"
+	"mvdan.cc/sh/v3/internal"
 )
 
 func TestKeepComments(t *testing.T) {

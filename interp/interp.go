@@ -21,8 +21,8 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
-	"mvdan.cc/sh/expand"
-	"mvdan.cc/sh/syntax"
+	"mvdan.cc/sh/v3/expand"
+	"mvdan.cc/sh/v3/syntax"
 )
 
 // New creates a new Runner, applying a number of options. If applying any of

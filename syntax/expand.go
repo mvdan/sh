@@ -272,7 +272,7 @@ func expandRec(bw *braceWord) []*Word {
 // passing it a single-literal word "foo{bar,baz}" will return two
 // single-literal words, "foobar" and "foobaz".
 //
-// Deprecated: use mvdan.cc/sh/expand.Braces instead.
+// Deprecated: use mvdan.cc/sh/v3/expand.Braces instead.
 func ExpandBraces(word *Word) []*Word {
 	topBrace, any := splitBraces(word)
 	if !any {

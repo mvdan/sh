@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"testing"
 
-	"mvdan.cc/sh/internal"
-	"mvdan.cc/sh/interp"
+	"mvdan.cc/sh/v3/internal"
+	"mvdan.cc/sh/v3/interp"
 )
 
 // Each test has an even number of strings, which form input-output pairs for

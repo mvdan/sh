@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"os"
 
-	"mvdan.cc/sh/expand"
-	"mvdan.cc/sh/interp"
-	"mvdan.cc/sh/syntax"
+	"mvdan.cc/sh/v3/expand"
+	"mvdan.cc/sh/v3/interp"
+	"mvdan.cc/sh/v3/syntax"
 )
 
 // SourceFile sources a shell file from disk and returns the variables

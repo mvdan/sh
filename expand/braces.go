@@ -3,7 +3,7 @@
 
 package expand
 
-import "mvdan.cc/sh/syntax"
+import "mvdan.cc/sh/v3/syntax"
 
 // Braces performs Bash brace expansion on words. For example, passing it a
 // literal word "foo{bar,baz}" will return two literal words, "foobar" and

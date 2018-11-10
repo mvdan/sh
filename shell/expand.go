@@ -7,8 +7,8 @@ import (
 	"os"
 	"strings"
 
-	"mvdan.cc/sh/expand"
-	"mvdan.cc/sh/syntax"
+	"mvdan.cc/sh/v3/expand"
+	"mvdan.cc/sh/v3/syntax"
 )
 
 // Expand performs shell expansion on s as if it were within double quotes,
