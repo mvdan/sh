@@ -6,6 +6,10 @@
 A shell parser, formatter and interpreter. Supports [POSIX Shell], [Bash] and
 [mksh]. Requires Go 1.10 or later.
 
+**Note**: `v2` is in a feature freeze, and will only receive bugfixes.
+Development continues on the `mvdan.cc/sh/v3` Go module on the
+[`master.v3`](https://github.com/mvdan/sh/tree/master.v3) branch.
+
 ### Quick start
 
 To parse shell scripts, inspect them, and print them out, see the [syntax
