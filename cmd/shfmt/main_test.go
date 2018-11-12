@@ -112,7 +112,10 @@ var walkTests = []struct {
 	{None, true, "symlink-none", "reallylongdir/nonexistent"},
 }
 
-var errPathMentioned = regexp.MustCompile(`([^ :]+):`)
+// errPathMentioned extracts filenames from error lines. We can't rely on
+// Windows paths not containing colon characters, so we must find the end of the
+// path based on the ":line:col: " suffix.
+var errPathMentioned = regexp.MustCompile(`^(.+):\d+:\d+: `)
 
 func TestWalk(t *testing.T) {
 	t.Parallel()
@@ -171,9 +174,9 @@ func TestWalk(t *testing.T) {
 			}
 			err := errored[filepath.Join(tdir, wt.path)]
 			if err && wt.want != Error {
-				t.Fatalf("walk had to not err on %s but did", wt.path)
+				t.Fatalf("walk had to not error on %s but did", wt.path)
 			} else if !err && wt.want == Error {
-				t.Fatalf("walk had to err on %s but didn't", wt.path)
+				t.Fatalf("walk had to error on %s but didn't", wt.path)
 			}
 		})
 	}
