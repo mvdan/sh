@@ -108,9 +108,9 @@ See the [_js](_js) directory for more information.
 * [shell-format] - VS Code plugin for `shfmt`
 * [vim-shfmt] - Vim plugin for `shfmt`
 
-[arch]: https://aur.archlinux.org/packages/shfmt/
+[arch]: https://www.archlinux.org/packages/community/x86_64/shfmt/
 [bash]: https://www.gnu.org/software/bash/
-[crux]: https://github.com/6c37/crux-ports-git/tree/3.3/shfmt
+[crux]: https://github.com/6c37/crux-ports-git/tree/HEAD/shfmt
 [dockerized-jamesmstone]: https://hub.docker.com/r/jamesmstone/shfmt/
 [dockerized-peterdavehello]: https://github.com/PeterDaveHello/dockerized-shfmt
 [examples]: https://godoc.org/mvdan.cc/sh/syntax#pkg-examples
