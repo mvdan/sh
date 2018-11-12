@@ -14,11 +14,11 @@ import (
 	"regexp"
 	"runtime"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
 	"mvdan.cc/sh/expand"
-	"mvdan.cc/sh/internal"
 	"mvdan.cc/sh/syntax"
 )
 
@@ -73,6 +73,40 @@ func checkBash() bool {
 		return false
 	}
 	return strings.HasPrefix(string(out), "4.4")
+}
+
+// concBuffer wraps a bytes.Buffer in a mutex so that concurrent writes
+// to it don't upset the race detector.
+type concBuffer struct {
+	buf bytes.Buffer
+	sync.Mutex
+}
+
+func (c *concBuffer) Write(p []byte) (int, error) {
+	c.Lock()
+	n, err := c.buf.Write(p)
+	c.Unlock()
+	return n, err
+}
+
+func (c *concBuffer) WriteString(s string) (int, error) {
+	c.Lock()
+	n, err := c.buf.WriteString(s)
+	c.Unlock()
+	return n, err
+}
+
+func (c *concBuffer) String() string {
+	c.Lock()
+	s := c.buf.String()
+	c.Unlock()
+	return s
+}
+
+func (c *concBuffer) Reset() {
+	c.Lock()
+	c.buf.Reset()
+	c.Unlock()
 }
 
 var fileCases = []struct {
@@ -2237,7 +2271,7 @@ func TestFile(t *testing.T) {
 				t.Fatal(err)
 			}
 			defer os.RemoveAll(dir)
-			var cb internal.ConcBuffer
+			var cb concBuffer
 			r, err := New(Dir(dir), StdIO(nil, &cb, &cb),
 				Module(OpenDevImpls(DefaultOpen)))
 			if err != nil {
@@ -2366,7 +2400,7 @@ func TestRunnerOpts(t *testing.T) {
 			if err != nil {
 				t.Fatalf("could not parse: %v", err)
 			}
-			var cb internal.ConcBuffer
+			var cb concBuffer
 			r, err := New(append(c.opts, StdIO(nil, &cb, &cb))...)
 			if err != nil {
 				t.Fatal(err)
@@ -2437,7 +2471,7 @@ func TestRunnerAltNodes(t *testing.T) {
 		file.Stmts[0].Cmd,
 	}
 	for _, node := range nodes {
-		var cb internal.ConcBuffer
+		var cb concBuffer
 		r, _ := New(StdIO(nil, &cb, &cb))
 		ctx := context.Background()
 		if err := r.Run(ctx, node); err != nil && err != ShellExitStatus(0) {

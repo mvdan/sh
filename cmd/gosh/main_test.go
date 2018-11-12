@@ -8,7 +8,6 @@ import (
 	"io"
 	"testing"
 
-	"mvdan.cc/sh/internal"
 	"mvdan.cc/sh/interp"
 )
 
@@ -120,7 +119,7 @@ func TestInteractive(t *testing.T) {
 				errc <- interactive(runner)
 			}()
 
-			if err := internal.ReadString(outReader, "$ "); err != nil {
+			if err := readString(outReader, "$ "); err != nil {
 				t.Fatal(err)
 			}
 
@@ -129,7 +128,7 @@ func TestInteractive(t *testing.T) {
 				if _, err := io.WriteString(inWriter, tc[0]); err != nil {
 					t.Fatal(err)
 				}
-				if err := internal.ReadString(outReader, tc[1]); err != nil {
+				if err := readString(outReader, tc[1]); err != nil {
 					t.Fatal(err)
 				}
 
@@ -149,4 +148,19 @@ func TestInteractive(t *testing.T) {
 			}
 		})
 	}
+}
+
+// readString will keep reading from a reader until all bytes from the supplied
+// string are read.
+func readString(r io.Reader, want string) error {
+	p := make([]byte, len(want))
+	_, err := io.ReadFull(r, p)
+	if err != nil {
+		return err
+	}
+	got := string(p)
+	if got != want {
+		return fmt.Errorf("ReadString: read %q, wanted %q", got, want)
+	}
+	return nil
 }
