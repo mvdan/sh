@@ -5,6 +5,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"testing"
 
 	"mvdan.cc/sh/v3/internal"
@@ -109,9 +110,9 @@ func TestInteractive(t *testing.T) {
 	runner, _ := interp.New()
 	for i, tc := range interactiveTests {
 		t.Run(fmt.Sprintf("%02d", i), func(t *testing.T) {
-			input := internal.ChanPipe(make(chan []byte, 8))
-			output := internal.ChanPipe(make(chan []byte, 8))
-			interp.StdIO(&input, &output, &output)(runner)
+			inReader, inWriter := io.Pipe()
+			outReader, outWriter := io.Pipe()
+			interp.StdIO(inReader, outWriter, outWriter)(runner)
 			runner.Reset()
 
 			errc := make(chan error)
@@ -119,14 +120,16 @@ func TestInteractive(t *testing.T) {
 				errc <- interactive(runner)
 			}()
 
-			if err := output.ReadString("$ "); err != nil {
+			if err := internal.ReadString(outReader, "$ "); err != nil {
 				t.Fatal(err)
 			}
 
 			line := 1
 			for len(tc) > 0 {
-				input.WriteString(tc[0])
-				if err := output.ReadString(tc[1]); err != nil {
+				if _, err := io.WriteString(inWriter, tc[0]); err != nil {
+					t.Fatal(err)
+				}
+				if err := internal.ReadString(outReader, tc[1]); err != nil {
 					t.Fatal(err)
 				}
 
@@ -134,16 +137,16 @@ func TestInteractive(t *testing.T) {
 				tc = tc[2:]
 			}
 
-			// Close the input channel, so that the shell prompt can
-			// reach an EOF read and finish.
-			close(input)
+			// Close the input pipe, so that the parser can stop.
+			inWriter.Close()
+
+			// Once the input pipe is closed, close the output pipe
+			// so that any remaining prompt writes get discarded.
+			outReader.Close()
+
 			if err := <-errc; err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
-
-			// Close the output channel once the shell prompt has
-			// finished.
-			close(output)
 		})
 	}
 }
