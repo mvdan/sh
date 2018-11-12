@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"strings"
 	"sync"
 )
 
@@ -45,46 +44,17 @@ func (c *ConcBuffer) Reset() {
 	c.Unlock()
 }
 
-// TODO: just wrap over io.Pipe? is ours simpler, or just buggier?
-
-// ChanPipe is a very simple pipe that uses a single channel to move bytes
-// around.
-type ChanPipe chan []byte
-
-func (c ChanPipe) Read(p []byte) (n int, err error) {
-	bs, ok := <-c
-	if !ok { // closed channel
-		return 0, io.EOF
+// ReadString will keep reading from a reader until all bytes from the supplied
+// string are read.
+func ReadString(r io.Reader, want string) error {
+	p := make([]byte, len(want))
+	_, err := io.ReadFull(r, p)
+	if err != nil {
+		return err
 	}
-	if len(bs) > len(p) {
-		panic("TODO: small byte buffers")
-	}
-	return copy(p, bs), nil
-}
-
-// ReadString is an utility function that will keep reading from the pipe until
-// the bytes from the supplied string are read.
-func (c ChanPipe) ReadString(s string) error {
-	for len(s) > 0 {
-		bs, ok := <-c
-		if !ok { // closed channel
-			return fmt.Errorf("ReadString: reached EOF")
-		}
-		read := string(bs)
-		// TODO: support writes with extra bytes?
-		if !strings.HasPrefix(s, read) {
-			return fmt.Errorf("ReadString: read %q, wanted %q", read, s)
-		}
-		s = s[len(read):]
+	got := string(p)
+	if got != want {
+		return fmt.Errorf("ReadString: read %q, wanted %q", got, want)
 	}
 	return nil
-}
-
-func (c ChanPipe) Write(p []byte) (n int, err error) {
-	c <- p
-	return len(p), nil
-}
-
-func (c ChanPipe) WriteString(s string) (n int, err error) {
-	return c.Write([]byte(s))
 }
