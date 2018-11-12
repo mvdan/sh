@@ -16,20 +16,9 @@ import (
 	"mvdan.cc/sh/v3/syntax"
 )
 
-func TestMain(m *testing.M) {
-	dir, err := ioutil.TempDir("", "shfmt-walk")
-	if err != nil {
-		panic(err)
-	}
-	if err := os.Chdir(dir); err != nil {
-		panic(err)
-	}
+func init() {
 	parser = syntax.NewParser(syntax.KeepComments)
 	printer = syntax.NewPrinter()
-
-	exit := m.Run()
-	os.RemoveAll(dir)
-	os.Exit(exit)
 }
 
 func TestStdin(t *testing.T) {
@@ -127,18 +116,22 @@ var errPathMentioned = regexp.MustCompile(`([^ :]+):`)
 
 func TestWalk(t *testing.T) {
 	t.Parallel()
+	tdir, err := ioutil.TempDir("", "shfmt-walk")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tdir)
 	for _, wt := range walkTests {
-		if dir, _ := filepath.Split(wt.path); dir != "" {
-			dir = dir[:len(dir)-1]
-			os.Mkdir(dir, 0777)
-		}
+		path := filepath.Join(tdir, wt.path)
+		dir, _ := filepath.Split(path)
+		os.MkdirAll(dir, 0777)
 		if wt.symlink {
-			if err := os.Symlink(wt.body, wt.path); err != nil {
+			if err := os.Symlink(wt.body, path); err != nil {
 				t.Fatal(err)
 			}
 			continue
 		}
-		err := ioutil.WriteFile(wt.path, []byte(wt.body), 0666)
+		err := ioutil.WriteFile(path, []byte(wt.body), 0666)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -161,7 +154,7 @@ func TestWalk(t *testing.T) {
 		outBuf.Reset()
 		walk(path, onError)
 	}
-	doWalk(".")
+	doWalk(tdir)
 	modified := map[string]bool{}
 	outScan := bufio.NewScanner(&outBuf)
 	for outScan.Scan() {
@@ -170,13 +163,13 @@ func TestWalk(t *testing.T) {
 	}
 	for _, wt := range walkTests {
 		t.Run(wt.path, func(t *testing.T) {
-			mod := modified[wt.path]
+			mod := modified[filepath.Join(tdir, wt.path)]
 			if mod && wt.want != Modify {
 				t.Fatalf("walk had to not run on %s but did", wt.path)
 			} else if !mod && wt.want == Modify {
 				t.Fatalf("walk had to run on %s but didn't", wt.path)
 			}
-			err := errored[wt.path]
+			err := errored[filepath.Join(tdir, wt.path)]
 			if err && wt.want != Error {
 				t.Fatalf("walk had to not err on %s but did", wt.path)
 			} else if !err && wt.want == Error {
@@ -184,21 +177,21 @@ func TestWalk(t *testing.T) {
 			}
 		})
 	}
-	if doWalk("."); outBuf.Len() > 0 {
+	if doWalk(tdir); outBuf.Len() > 0 {
 		t.Fatal("shfmt -l -w printed paths on a duplicate run")
 	}
 	*list, *write = false, false
-	if doWalk("."); outBuf.Len() == 0 {
+	if doWalk(tdir); outBuf.Len() == 0 {
 		t.Fatal("shfmt without -l nor -w did not print anything")
 	}
-	if doWalk(".hidden"); outBuf.Len() == 0 {
+	if doWalk(filepath.Join(tdir, ".hidden")); outBuf.Len() == 0 {
 		t.Fatal("`shfmt .hidden` did not print anything")
 	}
-	if doWalk("nonexistent"); !gotError {
+	if doWalk(filepath.Join(tdir, "nonexistent")); !gotError {
 		t.Fatal("`shfmt nonexistent` did not error")
 	}
 	*find = true
-	doWalk(".")
+	doWalk(tdir)
 	numFound := strings.Count(outBuf.String(), "\n")
 	if want := 13; numFound != want {
 		t.Fatalf("shfmt -f printed %d paths, but wanted %d", numFound, want)
