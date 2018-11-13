@@ -5,23 +5,6 @@ package syntax
 
 import "strconv"
 
-// TODO(v3): Consider making these special syntax nodes.
-// Among other things, we can make use of Word.Lit.
-
-type brace struct {
-	seq   bool // {x..y[..incr]} instead of {x,y[,...]}
-	chars bool // sequence is of chars, not numbers
-	elems []*braceWord
-}
-
-// braceWord is like Word, but with braceWordPart.
-type braceWord struct {
-	parts []braceWordPart
-}
-
-// braceWordPart contains any WordPart or a brace.
-type braceWordPart interface{}
-
 var (
 	litLeftBrace  = &Lit{Value: "{"}
 	litComma      = &Lit{Value: ","}
@@ -29,14 +12,14 @@ var (
 	litRightBrace = &Lit{Value: "}"}
 )
 
-func splitBraces(word *Word) (*braceWord, bool) {
+func splitBraces(word *Word) (*Word, bool) {
 	any := false
-	top := &braceWord{}
+	top := &Word{}
 	acc := top
-	var cur *brace
-	open := []*brace{}
+	var cur *BraceExp
+	open := []*BraceExp{}
 
-	pop := func() *brace {
+	pop := func() *BraceExp {
 		old := cur
 		open = open[:len(open)-1]
 		if len(open) == 0 {
@@ -44,15 +27,15 @@ func splitBraces(word *Word) (*braceWord, bool) {
 			acc = top
 		} else {
 			cur = open[len(open)-1]
-			acc = cur.elems[len(cur.elems)-1]
+			acc = cur.Elems[len(cur.Elems)-1]
 		}
 		return old
 	}
 	addLit := func(lit *Lit) {
-		acc.parts = append(acc.parts, lit)
+		acc.Parts = append(acc.Parts, lit)
 	}
-	addParts := func(parts ...braceWordPart) {
-		acc.parts = append(acc.parts, parts...)
+	addParts := func(parts ...WordPart) {
+		acc.Parts = append(acc.Parts, parts...)
 	}
 
 	for _, wp := range word.Parts {
@@ -74,16 +57,16 @@ func splitBraces(word *Word) (*braceWord, bool) {
 			switch lit.Value[j] {
 			case '{':
 				addlitidx()
-				acc = &braceWord{}
-				cur = &brace{elems: []*braceWord{acc}}
+				acc = &Word{}
+				cur = &BraceExp{Elems: []*Word{acc}}
 				open = append(open, cur)
 			case ',':
 				if cur == nil {
 					continue
 				}
 				addlitidx()
-				acc = &braceWord{}
-				cur.elems = append(cur.elems, acc)
+				acc = &Word{}
+				cur.Elems = append(cur.Elems, acc)
 			case '.':
 				if cur == nil {
 					continue
@@ -92,9 +75,9 @@ func splitBraces(word *Word) (*braceWord, bool) {
 					continue
 				}
 				addlitidx()
-				cur.seq = true
-				acc = &braceWord{}
-				cur.elems = append(cur.elems, acc)
+				cur.Sequence = true
+				acc = &Word{}
+				cur.Elems = append(cur.Elems, acc)
 				j++
 			case '}':
 				if cur == nil {
@@ -103,21 +86,21 @@ func splitBraces(word *Word) (*braceWord, bool) {
 				any = true
 				addlitidx()
 				br := pop()
-				if len(br.elems) == 1 {
+				if len(br.Elems) == 1 {
 					// return {x} to a non-brace
 					addLit(litLeftBrace)
-					addParts(br.elems[0].parts...)
+					addParts(br.Elems[0].Parts...)
 					addLit(litRightBrace)
 					break
 				}
-				if !br.seq {
+				if !br.Sequence {
 					addParts(br)
 					break
 				}
 				var chars [2]bool
 				broken := false
-				for i, elem := range br.elems[:2] {
-					val := braceWordLit(elem)
+				for i, elem := range br.Elems[:2] {
+					val := elem.Lit()
 					if _, err := strconv.Atoi(val); err == nil {
 					} else if len(val) == 1 &&
 						'a' <= val[0] && val[0] <= 'z' {
@@ -126,9 +109,9 @@ func splitBraces(word *Word) (*braceWord, bool) {
 						broken = true
 					}
 				}
-				if len(br.elems) == 3 {
+				if len(br.Elems) == 3 {
 					// increment must be a number
-					val := braceWordLit(br.elems[2])
+					val := br.Elems[2].Lit()
 					if _, err := strconv.Atoi(val); err != nil {
 						broken = true
 					}
@@ -139,17 +122,17 @@ func splitBraces(word *Word) (*braceWord, bool) {
 					broken = true
 				}
 				if !broken {
-					br.chars = chars[0]
+					br.Chars = chars[0]
 					addParts(br)
 					break
 				}
 				// return broken {x..y[..incr]} to a non-brace
 				addLit(litLeftBrace)
-				for i, elem := range br.elems {
+				for i, elem := range br.Elems {
 					if i > 0 {
 						addLit(litDots)
 					}
-					addParts(elem.parts...)
+					addParts(elem.Parts...)
 				}
 				addLit(litRightBrace)
 			default:
@@ -169,58 +152,49 @@ func splitBraces(word *Word) (*braceWord, bool) {
 	for acc != top {
 		br := pop()
 		addLit(litLeftBrace)
-		for i, elem := range br.elems {
+		for i, elem := range br.Elems {
 			if i > 0 {
-				if br.seq {
+				if br.Sequence {
 					addLit(litDots)
 				} else {
 					addLit(litComma)
 				}
 			}
-			addParts(elem.parts...)
+			addParts(elem.Parts...)
 		}
 	}
 	return top, any
 }
 
-func braceWordLit(v interface{}) string {
-	word, _ := v.(*braceWord)
-	if word == nil || len(word.parts) != 1 {
-		return ""
-	}
-	lit, ok := word.parts[0].(*Lit)
-	if !ok {
-		return ""
-	}
-	return lit.Value
+func braceWordLit(word *Word) string {
+	return word.Lit()
 }
 
-func expandRec(bw *braceWord) []*Word {
+func expandRec(word *Word) []*Word {
 	var all []*Word
 	var left []WordPart
-	for i, wp := range bw.parts {
-		br, ok := wp.(*brace)
+	for i, wp := range word.Parts {
+		br, ok := wp.(*BraceExp)
 		if !ok {
 			left = append(left, wp.(WordPart))
 			continue
 		}
-		if br.seq {
+		if br.Sequence {
 			var from, to int
-			if br.chars {
-				from = int(braceWordLit(br.elems[0])[0])
-				to = int(braceWordLit(br.elems[1])[0])
+			if br.Chars {
+				from = int(br.Elems[0].Lit()[0])
+				to = int(br.Elems[1].Lit()[0])
 			} else {
-				from, _ = strconv.Atoi(braceWordLit(br.elems[0]))
-				to, _ = strconv.Atoi(braceWordLit(br.elems[1]))
+				from, _ = strconv.Atoi(br.Elems[0].Lit())
+				to, _ = strconv.Atoi(br.Elems[1].Lit())
 			}
 			upward := from <= to
 			incr := 1
 			if !upward {
 				incr = -1
 			}
-			if len(br.elems) > 2 {
-				val := braceWordLit(br.elems[2])
-				n, _ := strconv.Atoi(val)
+			if len(br.Elems) > 2 {
+				n, _ := strconv.Atoi(br.Elems[2].Lit())
 				if n != 0 && n > 0 == upward {
 					incr = n
 				}
@@ -233,15 +207,15 @@ func expandRec(bw *braceWord) []*Word {
 				if !upward && n < to {
 					break
 				}
-				next := *bw
-				next.parts = next.parts[i+1:]
+				next := *word
+				next.Parts = next.Parts[i+1:]
 				lit := &Lit{}
-				if br.chars {
+				if br.Chars {
 					lit.Value = string(n)
 				} else {
 					lit.Value = strconv.Itoa(n)
 				}
-				next.parts = append([]braceWordPart{lit}, next.parts...)
+				next.Parts = append([]WordPart{lit}, next.Parts...)
 				exp := expandRec(&next)
 				for _, w := range exp {
 					w.Parts = append(left, w.Parts...)
@@ -251,10 +225,10 @@ func expandRec(bw *braceWord) []*Word {
 			}
 			return all
 		}
-		for _, elem := range br.elems {
-			next := *bw
-			next.parts = next.parts[i+1:]
-			next.parts = append(elem.parts, next.parts...)
+		for _, elem := range br.Elems {
+			next := *word
+			next.Parts = next.Parts[i+1:]
+			next.Parts = append(elem.Parts, next.Parts...)
 			exp := expandRec(&next)
 			for _, w := range exp {
 				w.Parts = append(left, w.Parts...)
