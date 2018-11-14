@@ -3887,23 +3887,6 @@ var fileTests = []testCase{
 		},
 	},
 	{
-		Strs: []string{"case a in b) [[ x =~ y ]] ;; esac"},
-		bash: &CaseClause{
-			Word: word(lit("a")),
-			Items: []*CaseItem{{
-				Op:       Break,
-				Patterns: litWords("b"),
-				StmtList: stmtList(stmt(
-					&TestClause{X: &BinaryTest{
-						Op: TsReMatch,
-						X:  litWord("x"),
-						Y:  litWord("y"),
-					}},
-				)),
-			}},
-		},
-	},
-	{
 		Strs: []string{"a+=1"},
 		bsmk: &CallExpr{
 			Assigns: []*Assign{{

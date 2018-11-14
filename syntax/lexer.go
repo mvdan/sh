@@ -241,7 +241,6 @@ skipSpace:
 			return
 		}
 	}
-changedState:
 	p.pos = p.getPos()
 	switch {
 	case p.quote&allRegTokens != 0:
@@ -298,7 +297,7 @@ changedState:
 	case p.quote == testRegexp:
 		if !p.rxFirstPart && p.spaced {
 			p.quote = noState
-			goto changedState
+			goto skipSpace
 		}
 		p.rxFirstPart = false
 		switch r {
