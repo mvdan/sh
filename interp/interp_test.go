@@ -887,6 +887,14 @@ var fileCases = []struct {
 		"a=sub true & { a=main env | grep '^a='; }",
 		"a=main\n",
 	},
+	{
+		"echo foo >f; echo $(cat f); echo $(<f)",
+		"foo\nfoo\n",
+	},
+	{
+		"echo foo >f; echo $(<f; echo bar)",
+		"bar\n",
+	},
 
 	// pipes
 	{
@@ -926,6 +934,10 @@ var fileCases = []struct {
 	// 	">a; echo foo >>b; wc -c <a >>b; cat b",
 	// 	"foo\n0\n",
 	// },
+	{
+		"echo foo >a; <a",
+		"",
+	},
 	{
 		"echo foo >a; wc -c <a",
 		"4\n",

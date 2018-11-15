@@ -64,6 +64,22 @@ func (r *Runner) fillExpandConfig(ctx context.Context) {
 	r.ecfg = &expand.Config{
 		Env: expandEnv{r},
 		CmdSubst: func(w io.Writer, cs *syntax.CmdSubst) error {
+			switch len(cs.Stmts) {
+			case 0: // nothing to do
+				return nil
+			case 1: // $(<file)
+				word := catShortcutArg(cs.Stmts[0])
+				if word == nil {
+					break
+				}
+				path := r.literal(word)
+				f, err := r.open(ctx, r.relPath(path), os.O_RDONLY, 0, true)
+				if err != nil {
+					return err
+				}
+				_, err = io.Copy(w, f)
+				return err
+			}
 			r2 := r.sub()
 			r2.Stdout = w
 			r2.stmts(ctx, cs.StmtList)
@@ -72,6 +88,22 @@ func (r *Runner) fillExpandConfig(ctx context.Context) {
 		ReadDir: ioutil.ReadDir,
 	}
 	r.updateExpandOpts()
+}
+
+// catShortcutArg checks if a statement is of the form "$(<file)". The redirect
+// word is returned if there's a match, and nil otherwise.
+func catShortcutArg(stmt *syntax.Stmt) *syntax.Word {
+	if stmt.Cmd != nil || stmt.Negated || stmt.Background || stmt.Coprocess {
+		return nil
+	}
+	if len(stmt.Redirs) != 1 {
+		return nil
+	}
+	redir := stmt.Redirs[0]
+	if redir.Op != syntax.RdrIn {
+		return nil
+	}
+	return redir.Word
 }
 
 func (r *Runner) updateExpandOpts() {
