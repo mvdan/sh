@@ -1,17 +1,30 @@
 // Copyright (c) 2018, Daniel Martí <mvdan@mvdan.cc>
 // See LICENSE for licensing information
 
-package syntax
+package expand
 
 import (
 	"bytes"
 	"fmt"
 	"testing"
+
+	"mvdan.cc/sh/v3/syntax"
 )
 
+func lit(s string) *syntax.Lit                { return &syntax.Lit{Value: s} }
+func word(ps ...syntax.WordPart) *syntax.Word { return &syntax.Word{Parts: ps} }
+func litWord(s string) *syntax.Word           { return word(lit(s)) }
+func litWords(strs ...string) []*syntax.Word {
+	l := make([]*syntax.Word, 0, len(strs))
+	for _, s := range strs {
+		l = append(l, litWord(s))
+	}
+	return l
+}
+
 var braceTests = []struct {
-	in   *Word
-	want []*Word
+	in   *syntax.Word
+	want []*syntax.Word
 }{
 	{
 		litWord("a{b"),
@@ -129,16 +142,25 @@ var braceTests = []struct {
 		litWord("a{k..d..-2}"),
 		litWords("ak", "ai", "ag", "ae"),
 	},
+	{
+		litWord("{1..1}"),
+		litWords("1"),
+	},
 }
 
-func TestExpandBraces(t *testing.T) {
+func TestBraces(t *testing.T) {
 	t.Parallel()
 	for i, tc := range braceTests {
 		t.Run(fmt.Sprintf("%02d", i), func(t *testing.T) {
 			inStr := printWords(tc.in)
-			got := ExpandBraces(tc.in)
-			gotStr := printWords(got...)
 			wantStr := printWords(tc.want...)
+			wantBraceExpParts(t, tc.in, false)
+
+			inBraces, _ := syntax.SplitBraces(tc.in)
+			wantBraceExpParts(t, inBraces, inStr != wantStr)
+
+			got := Braces(inBraces)
+			gotStr := printWords(got...)
 			if gotStr != wantStr {
 				t.Fatalf("mismatch in %q\nwant:\n%s\ngot: %s",
 					inStr, wantStr, gotStr)
@@ -148,11 +170,24 @@ func TestExpandBraces(t *testing.T) {
 	}
 }
 
-func printWords(words ...*Word) string {
-	p := NewPrinter()
+func wantBraceExpParts(t *testing.T, word *syntax.Word, want bool) {
+	any := false
+	for _, part := range word.Parts {
+		if _, any = part.(*syntax.BraceExp); any {
+			break
+		}
+	}
+	if any && !want {
+		t.Fatalf("didn't want any BraceExp node, but found one")
+	} else if !any && want {
+		t.Fatalf("wanted a BraceExp node, but found none")
+	}
+}
+
+func printWords(words ...*syntax.Word) string {
+	p := syntax.NewPrinter()
 	var buf bytes.Buffer
-	var f File
-	f.Stmts = append(f.Stmts, stmt(call(words...)))
-	p.Print(&buf, &f)
+	call := &syntax.CallExpr{Args: words}
+	p.Print(&buf, call)
 	return buf.String()
 }

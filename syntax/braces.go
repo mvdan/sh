@@ -12,7 +12,16 @@ var (
 	litRightBrace = &Lit{Value: "}"}
 )
 
-func splitBraces(word *Word) (*Word, bool) {
+// TODO: remove bool return parameter, make it equivalent to input != output.
+
+// Braces may introduce a number of BraceExp parts to a word, which can be used
+// to perform brace expansion with expand.Braces. For example, passing it a
+// literal word "foo{bar,baz}" will result in a word containing the literal
+// "foo", and a brace expansion with the elements "bar" and "baz".
+//
+// It does not return an error; malformed brace expansions are simply skipped.
+// For example, the literal word "a{b" is returned unchanged.
+func SplitBraces(word *Word) (*Word, bool) {
 	any := false
 	top := &Word{}
 	acc := top
@@ -164,93 +173,4 @@ func splitBraces(word *Word) (*Word, bool) {
 		}
 	}
 	return top, any
-}
-
-func braceWordLit(word *Word) string {
-	return word.Lit()
-}
-
-func expandRec(word *Word) []*Word {
-	var all []*Word
-	var left []WordPart
-	for i, wp := range word.Parts {
-		br, ok := wp.(*BraceExp)
-		if !ok {
-			left = append(left, wp.(WordPart))
-			continue
-		}
-		if br.Sequence {
-			var from, to int
-			if br.Chars {
-				from = int(br.Elems[0].Lit()[0])
-				to = int(br.Elems[1].Lit()[0])
-			} else {
-				from, _ = strconv.Atoi(br.Elems[0].Lit())
-				to, _ = strconv.Atoi(br.Elems[1].Lit())
-			}
-			upward := from <= to
-			incr := 1
-			if !upward {
-				incr = -1
-			}
-			if len(br.Elems) > 2 {
-				n, _ := strconv.Atoi(br.Elems[2].Lit())
-				if n != 0 && n > 0 == upward {
-					incr = n
-				}
-			}
-			n := from
-			for {
-				if upward && n > to {
-					break
-				}
-				if !upward && n < to {
-					break
-				}
-				next := *word
-				next.Parts = next.Parts[i+1:]
-				lit := &Lit{}
-				if br.Chars {
-					lit.Value = string(n)
-				} else {
-					lit.Value = strconv.Itoa(n)
-				}
-				next.Parts = append([]WordPart{lit}, next.Parts...)
-				exp := expandRec(&next)
-				for _, w := range exp {
-					w.Parts = append(left, w.Parts...)
-				}
-				all = append(all, exp...)
-				n += incr
-			}
-			return all
-		}
-		for _, elem := range br.Elems {
-			next := *word
-			next.Parts = next.Parts[i+1:]
-			next.Parts = append(elem.Parts, next.Parts...)
-			exp := expandRec(&next)
-			for _, w := range exp {
-				w.Parts = append(left, w.Parts...)
-			}
-			all = append(all, exp...)
-		}
-		return all
-	}
-	return []*Word{{Parts: left}}
-}
-
-// TODO(v3): remove
-
-// ExpandBraces performs Bash brace expansion on a word. For example,
-// passing it a single-literal word "foo{bar,baz}" will return two
-// single-literal words, "foobar" and "foobaz".
-//
-// Deprecated: use mvdan.cc/sh/v3/expand.Braces instead.
-func ExpandBraces(word *Word) []*Word {
-	topBrace, any := splitBraces(word)
-	if !any {
-		return []*Word{word}
-	}
-	return expandRec(topBrace)
 }

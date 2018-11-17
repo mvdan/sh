@@ -318,37 +318,40 @@ func Fields(cfg *Config, words ...*syntax.Word) ([]string, error) {
 	fields := make([]string, 0, len(words))
 	dir := cfg.envGet("PWD")
 	baseDir := syntax.QuotePattern(dir)
-	for _, expWord := range Braces(words...) {
-		wfields, err := cfg.wordFields(expWord.Parts)
-		if err != nil {
-			return nil, err
-		}
-		for _, field := range wfields {
-			path, doGlob := cfg.escapedGlobField(field)
-			var matches []string
-			abs := filepath.IsAbs(path)
-			if doGlob && !cfg.NoGlob {
-				if !abs {
-					path = filepath.Join(baseDir, path)
-				}
-				matches, err = cfg.glob(path)
-				if err != nil {
-					return nil, err
-				}
+	for _, word := range words {
+		expWord, _ := syntax.SplitBraces(word)
+		for _, word2 := range Braces(expWord) {
+			wfields, err := cfg.wordFields(word2.Parts)
+			if err != nil {
+				return nil, err
 			}
-			if len(matches) == 0 {
-				fields = append(fields, cfg.fieldJoin(field))
-				continue
-			}
-			for _, match := range matches {
-				if !abs {
-					endSeparator := strings.HasSuffix(match, string(filepath.Separator))
-					match, _ = filepath.Rel(dir, match)
-					if endSeparator {
-						match += string(filepath.Separator)
+			for _, field := range wfields {
+				path, doGlob := cfg.escapedGlobField(field)
+				var matches []string
+				abs := filepath.IsAbs(path)
+				if doGlob && !cfg.NoGlob {
+					if !abs {
+						path = filepath.Join(baseDir, path)
+					}
+					matches, err = cfg.glob(path)
+					if err != nil {
+						return nil, err
 					}
 				}
-				fields = append(fields, match)
+				if len(matches) == 0 {
+					fields = append(fields, cfg.fieldJoin(field))
+					continue
+				}
+				for _, match := range matches {
+					if !abs {
+						endSeparator := strings.HasSuffix(match, string(filepath.Separator))
+						match, _ = filepath.Rel(dir, match)
+						if endSeparator {
+							match += string(filepath.Separator)
+						}
+					}
+					fields = append(fields, match)
+				}
 			}
 		}
 	}

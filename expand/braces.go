@@ -3,22 +3,83 @@
 
 package expand
 
-import "mvdan.cc/sh/v3/syntax"
+import (
+	"strconv"
 
-// Braces performs Bash brace expansion on words. For example, passing it a
-// literal word "foo{bar,baz}" will return two literal words, "foobar" and
-// "foobaz".
+	"mvdan.cc/sh/v3/syntax"
+)
+
+// Braces performs brace expansion on a word, given that it contains any
+// syntax.BraceExp parts. For example, the word with a brace expansion
+// "foo{bar,baz}" will return two literal words, "foobar" and "foobaz".
 //
-// It does not return an error; malformed brace expansions are simply skipped.
-// For example, "a{b{c,d}" results in the words "a{bc" and "a{bd".
-//
-// Note that the resulting words may have more word parts than necessary, such
-// as contiguous *syntax.Lit nodes, and that these parts may be shared between
-// words.
-func Braces(words ...*syntax.Word) []*syntax.Word {
-	var res []*syntax.Word
-	for _, word := range words {
-		res = append(res, syntax.ExpandBraces(word)...)
+// Note that the resulting words may share word parts.
+func Braces(word *syntax.Word) []*syntax.Word {
+	var all []*syntax.Word
+	var left []syntax.WordPart
+	for i, wp := range word.Parts {
+		br, ok := wp.(*syntax.BraceExp)
+		if !ok {
+			left = append(left, wp.(syntax.WordPart))
+			continue
+		}
+		if br.Sequence {
+			var from, to int
+			if br.Chars {
+				from = int(br.Elems[0].Lit()[0])
+				to = int(br.Elems[1].Lit()[0])
+			} else {
+				from, _ = strconv.Atoi(br.Elems[0].Lit())
+				to, _ = strconv.Atoi(br.Elems[1].Lit())
+			}
+			upward := from <= to
+			incr := 1
+			if !upward {
+				incr = -1
+			}
+			if len(br.Elems) > 2 {
+				n, _ := strconv.Atoi(br.Elems[2].Lit())
+				if n != 0 && n > 0 == upward {
+					incr = n
+				}
+			}
+			n := from
+			for {
+				if upward && n > to {
+					break
+				}
+				if !upward && n < to {
+					break
+				}
+				next := *word
+				next.Parts = next.Parts[i+1:]
+				lit := &syntax.Lit{}
+				if br.Chars {
+					lit.Value = string(n)
+				} else {
+					lit.Value = strconv.Itoa(n)
+				}
+				next.Parts = append([]syntax.WordPart{lit}, next.Parts...)
+				exp := Braces(&next)
+				for _, w := range exp {
+					w.Parts = append(left, w.Parts...)
+				}
+				all = append(all, exp...)
+				n += incr
+			}
+			return all
+		}
+		for _, elem := range br.Elems {
+			next := *word
+			next.Parts = next.Parts[i+1:]
+			next.Parts = append(elem.Parts, next.Parts...)
+			exp := Braces(&next)
+			for _, w := range exp {
+				w.Parts = append(left, w.Parts...)
+			}
+			all = append(all, exp...)
+		}
+		return all
 	}
-	return res
+	return []*syntax.Word{{Parts: left}}
 }
