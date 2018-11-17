@@ -23,6 +23,7 @@ import (
 )
 
 func BenchmarkRun(b *testing.B) {
+	b.StopTimer()
 	src := `
 echo a b c d
 echo ./$foo/etc $(echo foo bar)
@@ -44,6 +45,7 @@ let i=(2 + 3)
 	}
 	r, _ := New()
 	ctx := context.Background()
+	b.StartTimer()
 	for i := 0; i < b.N; i++ {
 		r.Reset()
 		if err := r.Run(ctx, file); err != nil {
