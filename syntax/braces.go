@@ -14,8 +14,8 @@ var (
 
 // TODO: remove bool return parameter, make it equivalent to input != output.
 
-// Braces may introduce a number of BraceExp parts to a word, which can be used
-// to perform brace expansion with expand.Braces. For example, passing it a
+// SplitBraces may introduce a number of BraceExp parts to a word, which can be
+// used to perform brace expansion with expand.Braces. For example, passing it a
 // literal word "foo{bar,baz}" will result in a word containing the literal
 // "foo", and a brace expansion with the elements "bar" and "baz".
 //
@@ -43,14 +43,11 @@ func SplitBraces(word *Word) (*Word, bool) {
 	addLit := func(lit *Lit) {
 		acc.Parts = append(acc.Parts, lit)
 	}
-	addParts := func(parts ...WordPart) {
-		acc.Parts = append(acc.Parts, parts...)
-	}
 
 	for _, wp := range word.Parts {
 		lit, ok := wp.(*Lit)
 		if !ok {
-			addParts(wp)
+			acc.Parts = append(acc.Parts, wp)
 			continue
 		}
 		last := 0
@@ -98,12 +95,12 @@ func SplitBraces(word *Word) (*Word, bool) {
 				if len(br.Elems) == 1 {
 					// return {x} to a non-brace
 					addLit(litLeftBrace)
-					addParts(br.Elems[0].Parts...)
+					acc.Parts = append(acc.Parts, br.Elems[0].Parts...)
 					addLit(litRightBrace)
 					break
 				}
 				if !br.Sequence {
-					addParts(br)
+					acc.Parts = append(acc.Parts, br)
 					break
 				}
 				var chars [2]bool
@@ -132,7 +129,7 @@ func SplitBraces(word *Word) (*Word, bool) {
 				}
 				if !broken {
 					br.Chars = chars[0]
-					addParts(br)
+					acc.Parts = append(acc.Parts, br)
 					break
 				}
 				// return broken {x..y[..incr]} to a non-brace
@@ -141,7 +138,7 @@ func SplitBraces(word *Word) (*Word, bool) {
 					if i > 0 {
 						addLit(litDots)
 					}
-					addParts(elem.Parts...)
+					acc.Parts = append(acc.Parts, elem.Parts...)
 				}
 				addLit(litRightBrace)
 			default:
@@ -169,7 +166,7 @@ func SplitBraces(word *Word) (*Word, bool) {
 					addLit(litComma)
 				}
 			}
-			addParts(elem.Parts...)
+			acc.Parts = append(acc.Parts, elem.Parts...)
 		}
 	}
 	return top, any

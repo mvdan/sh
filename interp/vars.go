@@ -269,9 +269,8 @@ func (r *Runner) assignVal(as *syntax.Assign, valType string) interface{} {
 	}
 	elems := as.Array.Elems
 	if valType == "" {
-		if len(elems) == 0 || !stringIndex(elems[0].Index) {
-			valType = "-a" // indexed
-		} else {
+		valType = "-a" // indexed
+		if len(elems) > 0 && stringIndex(elems[0].Index) {
 			valType = "-A" // associative
 		}
 	}
