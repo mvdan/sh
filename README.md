@@ -42,7 +42,8 @@ Use `-i N` to indent with a number of spaces instead of tabs. There are other
 formatting options - see `shfmt -h`. For example, to get the formatting
 appropriate for [Google's Style][google-style] guide, use `shfmt -i 2 -ci`.
 
-Packages are available for [Arch], [CRUX], [Homebrew], [NixOS] and [Void].
+Packages are available for [Arch], [CRUX], [FreeBSD], [Homebrew], [NixOS] and
+[Void].
 
 #### Replacing `bash -n`
 
@@ -119,6 +120,7 @@ See the [_js](_js) directory for more information.
 [dockerized-peterdavehello]: https://github.com/PeterDaveHello/dockerized-shfmt
 [examples]: https://godoc.org/mvdan.cc/sh/syntax#pkg-examples
 [format-shell]: https://atom.io/packages/format-shell
+[freebsd]: https://github.com/freebsd/freebsd-ports/tree/HEAD/devel/shfmt
 [go-fuzz]: https://github.com/dvyukov/go-fuzz
 [google-style]: https://google.github.io/styleguide/shell.xml
 [homebrew]: https://github.com/Homebrew/homebrew-core/blob/HEAD/Formula/shfmt.rb
