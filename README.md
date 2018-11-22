@@ -42,8 +42,8 @@ Use `-i N` to indent with a number of spaces instead of tabs. There are other
 formatting options - see `shfmt -h`. For example, to get the formatting
 appropriate for [Google's Style][google-style] guide, use `shfmt -i 2 -ci`.
 
-Packages are available for [Arch], [CRUX], [FreeBSD], [Homebrew], [NixOS] and
-[Void].
+Packages are available on [Arch], [CRUX], [Docker], [FreeBSD], [Homebrew],
+[NixOS] and [Void].
 
 #### Replacing `bash -n`
 
@@ -107,7 +107,7 @@ See the [_js](_js) directory for more information.
 
 ### Related projects
 
-* Docker images - by [jamesmstone][dockerized-jamesmstone], [PeterDaveHello][dockerized-peterdavehello]
+* Alternative docker images - by [jamesmstone][dockerized-jamesmstone], [PeterDaveHello][dockerized-peterdavehello]
 * [format-shell] - Atom plugin for `shfmt`
 * [micro] - Editor with a built-in plugin for `shfmt`
 * [shell-format] - VS Code plugin for `shfmt`
@@ -116,8 +116,9 @@ See the [_js](_js) directory for more information.
 [arch]: https://www.archlinux.org/packages/community/x86_64/shfmt/
 [bash]: https://www.gnu.org/software/bash/
 [crux]: https://github.com/6c37/crux-ports-git/tree/HEAD/shfmt
+[docker]: https://hub.docker.com/r/mvdan/shfmt/
 [dockerized-jamesmstone]: https://hub.docker.com/r/jamesmstone/shfmt/
-[dockerized-peterdavehello]: https://github.com/PeterDaveHello/dockerized-shfmt
+[dockerized-peterdavehello]: https://github.com/PeterDaveHello/dockerized-shfmt/
 [examples]: https://godoc.org/mvdan.cc/sh/syntax#pkg-examples
 [format-shell]: https://atom.io/packages/format-shell
 [freebsd]: https://github.com/freebsd/freebsd-ports/tree/HEAD/devel/shfmt
