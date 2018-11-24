@@ -62,7 +62,15 @@ func TestMain(m *testing.M) {
 	os.Unsetenv("CDPATH")
 	hasBash44 = checkBash()
 	os.Setenv("INTERP_GLOBAL", "value")
-	os.Setenv("INTERP_GLOBAL_MULTILINE", "\nwith\nnewlines\n\n")
+	os.Setenv("MULTILINE_INTERP_GLOBAL", "\nwith\nnewlines\n\n")
+
+	// Double check that env vars on Windows are case insensitive.
+	if runtime.GOOS == "windows" {
+		os.Setenv("mixedCase_INTERP_GLOBAL", "value")
+	} else {
+		os.Setenv("MIXEDCASE_INTERP_GLOBAL", "value")
+	}
+
 	for _, s := range []string{"a", "b", "c", "d", "foo", "bar"} {
 		os.Unsetenv(s)
 	}
@@ -246,6 +254,7 @@ var fileCases = []struct {
 	{"echo $INTERP_GLOBAL", "value\n"},
 	{"INTERP_GLOBAL=; echo $INTERP_GLOBAL", "\n"},
 	{"unset INTERP_GLOBAL; echo $INTERP_GLOBAL", "\n"},
+	{"echo $MIXEDCASE_INTERP_GLOBAL", "value\n"},
 	{"foo=bar; foo=x true; echo $foo", "bar\n"},
 	{"foo=bar; foo=x true; echo $foo", "bar\n"},
 	{"foo=bar; env | grep '^foo='", "exit status 1"},
@@ -401,7 +410,7 @@ var fileCases = []struct {
 	},
 	{
 		"INTERP_X_2=b INTERP_X_1=a; echo ${!INTERP_*}",
-		"INTERP_GLOBAL INTERP_GLOBAL_MULTILINE INTERP_X_1 INTERP_X_2\n",
+		"INTERP_GLOBAL INTERP_X_1 INTERP_X_2\n",
 	},
 	{
 		`a='b  c'; eval "echo -n ${a} ${a@Q}"`,
@@ -2311,10 +2320,15 @@ func TestFile(t *testing.T) {
 
 func TestFileConfirm(t *testing.T) {
 	if testing.Short() {
-		t.Skip("calling bash is slow.")
+		t.Skip("calling bash is slow")
 	}
 	if !hasBash44 {
 		t.Skip("bash 4.4 required to run")
+	}
+	if runtime.GOOS == "windows" {
+		// For example, it seems to treat environment variables as
+		// case-sensitive, which isn't how Windows works.
+		t.Skip("bash on Windows emulates Unix-y behavior")
 	}
 	for i := range fileCases {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
