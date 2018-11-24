@@ -4,6 +4,7 @@
 package expand
 
 import (
+	"runtime"
 	"sort"
 	"strings"
 )
@@ -124,8 +125,26 @@ func (f funcEnviron) Each(func(name string, vr Variable) bool) {}
 
 // ListEnviron returns an Environ with the supplied variables, in the form
 // "key=value". All variables will be exported.
+//
+// On Windows, where environment variable names are case-insensitive, the
+// resulting variable names will all be uppercase.
 func ListEnviron(pairs ...string) Environ {
+	return listEnvironWithUpper(runtime.GOOS == "windows", pairs...)
+}
+
+// listEnvironWithUpper implements ListEnviron, but letting the tests specify
+// whether to uppercase all names or not.
+func listEnvironWithUpper(upper bool, pairs ...string) Environ {
 	list := append([]string{}, pairs...)
+	if upper {
+		// Uppercase before sorting, so that we can remove duplicates
+		// without the need for linear search nor a map.
+		for i, s := range list {
+			if sep := strings.IndexByte(s, '='); sep > 0 {
+				list[i] = strings.ToUpper(s[:sep]) + s[sep:]
+			}
+		}
+	}
 	sort.Strings(list)
 	last := ""
 	for i := 0; i < len(list); {

@@ -10,44 +10,60 @@ import (
 
 func TestListEnviron(t *testing.T) {
 	tests := []struct {
-		name string
-		in   []string
-		want []string
+		name  string
+		upper bool
+		pairs []string
+		want  []string
 	}{
-		{"Empty", nil, []string{}},
 		{
-			"Simple",
-			[]string{"A=b", "c="},
-			[]string{"A=b", "c="},
+			name:  "Empty",
+			pairs: nil,
+			want:  []string{},
 		},
 		{
-			"MissingEqual",
-			[]string{"A=b", "invalid", "c="},
-			[]string{"A=b", "c="},
+			name:  "Simple",
+			pairs: []string{"A=b", "c="},
+			want:  []string{"A=b", "c="},
 		},
 		{
-			"DuplicateNames",
-			[]string{"A=b", "A=x", "c=", "c=y"},
-			[]string{"A=x", "c=y"},
+			name:  "MissingEqual",
+			pairs: []string{"A=b", "invalid", "c="},
+			want:  []string{"A=b", "c="},
 		},
 		{
-			"NoName",
-			[]string{"=b", "=c"},
-			[]string{},
+			name:  "DuplicateNames",
+			pairs: []string{"A=b", "A=x", "c=", "c=y"},
+			want:  []string{"A=x", "c=y"},
 		},
 		{
-			"EmptyElements",
-			[]string{"A=b", "", "", "c="},
-			[]string{"A=b", "c="},
+			name:  "NoName",
+			pairs: []string{"=b", "=c"},
+			want:  []string{},
+		},
+		{
+			name:  "EmptyElements",
+			pairs: []string{"A=b", "", "", "c="},
+			want:  []string{"A=b", "c="},
+		},
+		{
+			name:  "MixedCaseNoUpper",
+			pairs: []string{"A=b1", "Path=foo", "a=b2"},
+			want:  []string{"A=b1", "Path=foo", "a=b2"},
+		},
+		{
+			name:  "MixedCaseUpper",
+			upper: true,
+			pairs: []string{"A=b1", "Path=foo", "a=b2"},
+			want:  []string{"A=b2", "PATH=foo"},
 		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			gotEnv := ListEnviron(tc.in...)
+			gotEnv := listEnvironWithUpper(tc.upper, tc.pairs...)
 			got := []string(gotEnv.(listEnviron))
 			if !reflect.DeepEqual(got, tc.want) {
-				t.Fatalf("ListEnviron(%q) wanted %q, got %q",
-					tc.in, tc.want, got)
+				t.Fatalf("ListEnviron(%t, %q) wanted %q, got %q",
+					tc.upper, tc.pairs, tc.want, got)
 			}
 		})
 	}
