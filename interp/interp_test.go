@@ -62,6 +62,7 @@ func TestMain(m *testing.M) {
 	os.Unsetenv("CDPATH")
 	hasBash44 = checkBash()
 	os.Setenv("INTERP_GLOBAL", "value")
+	os.Setenv("INTERP_GLOBAL_MULTILINE", "\nwith\nnewlines\n\n")
 	for _, s := range []string{"a", "b", "c", "d", "foo", "bar"} {
 		os.Unsetenv(s)
 	}
@@ -253,10 +254,10 @@ var fileCases = []struct {
 	{"env | grep '^INTERP_GLOBAL='", "INTERP_GLOBAL=value\n"},
 	{"INTERP_GLOBAL=new; env | grep '^INTERP_GLOBAL='", "INTERP_GLOBAL=new\n"},
 	{"INTERP_GLOBAL=; env | grep '^INTERP_GLOBAL='", "INTERP_GLOBAL=\n"},
-	{"env | grep '^$' | wc -l", "0\n"},
 	{"a=b; a+=c x+=y; echo $a $x", "bc y\n"},
 	{`a=" x  y"; b=$a c="$a"; echo $b; echo $c`, "x y\nx y\n"},
 	{`a=" x  y"; b=$a c="$a"; echo "$b"; echo "$c"`, " x  y\n x  y\n"},
+	{"env | sed -n '1 s/^$/empty/p'", ""}, // never begin with an empty element
 
 	// special vars
 	{"echo $?; false; echo $?", "0\n1\n"},
@@ -400,7 +401,7 @@ var fileCases = []struct {
 	},
 	{
 		"INTERP_X_2=b INTERP_X_1=a; echo ${!INTERP_*}",
-		"INTERP_GLOBAL INTERP_X_1 INTERP_X_2\n",
+		"INTERP_GLOBAL INTERP_GLOBAL_MULTILINE INTERP_X_1 INTERP_X_2\n",
 	},
 	{
 		`a='b  c'; eval "echo -n ${a} ${a@Q}"`,

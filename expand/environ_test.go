@@ -35,6 +35,11 @@ func TestListEnviron(t *testing.T) {
 			[]string{"=b", "=c"},
 			[]string{},
 		},
+		{
+			"EmptyElements",
+			[]string{"A=b", "", "", "c="},
+			[]string{"A=b", "c="},
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
