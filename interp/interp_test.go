@@ -251,6 +251,7 @@ var fileCases = []struct {
 	{"env | grep '^INTERP_GLOBAL='", "INTERP_GLOBAL=value\n"},
 	{"INTERP_GLOBAL=new; env | grep '^INTERP_GLOBAL='", "INTERP_GLOBAL=new\n"},
 	{"INTERP_GLOBAL=; env | grep '^INTERP_GLOBAL='", "INTERP_GLOBAL=\n"},
+	{"env | grep '^$' | wc -l", "0\n"},
 	{"a=b; a+=c x+=y; echo $a $x", "bc y\n"},
 	{`a=" x  y"; b=$a c="$a"; echo $b; echo $c`, "x y\nx y\n"},
 	{`a=" x  y"; b=$a c="$a"; echo "$b"; echo "$c"`, " x  y\n x  y\n"},
