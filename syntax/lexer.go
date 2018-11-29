@@ -86,9 +86,8 @@ retry:
 			p.w, p.r = 1, rune(b)
 			return p.r
 		}
-		if p.bsp+utf8.UTFMax >= len(p.bs) {
-			// we might need up to 4 bytes to read a full
-			// non-ascii rune
+		if !utf8.FullRune(p.bs[p.bsp:]) {
+			// we need more bytes to read a full non-ascii rune
 			p.fill()
 		}
 		var w int
