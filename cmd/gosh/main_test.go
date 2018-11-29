@@ -102,6 +102,10 @@ var interactiveTests = [][]string{
 		"bar\n",
 		"foobar\n",
 	},
+	{
+		"echo 你好\n",
+		"你好\n$ ",
+	},
 }
 
 func TestInteractive(t *testing.T) {

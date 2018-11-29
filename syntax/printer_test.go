@@ -53,8 +53,10 @@ var printTests = []printCase{
 	samePrint("<<EOF\nfo○ b\\år\nEOF"),
 	samePrint(`$'○ b\år'`),
 	samePrint("${a/b//○}"),
-	// rune split by the chunking
-	{strings.Repeat(" ", bufSize-1) + "○", "○"},
+	{strings.Repeat(" ", bufSize-3) + "○", "○"}, // at the end of a chunk
+	{strings.Repeat(" ", bufSize-0) + "○", "○"}, // at the start of a chunk
+	{strings.Repeat(" ", bufSize-2) + "○", "○"}, // split after 1st byte
+	{strings.Repeat(" ", bufSize-1) + "○", "○"}, // split after 2nd byte
 	// peekByte that would (but cannot) go to the next chunk
 	{strings.Repeat(" ", bufSize-2) + ">(a)", ">(a)"},
 	// escaped newline at end of chunk
