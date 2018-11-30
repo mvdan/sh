@@ -1355,6 +1355,10 @@ var shellTests = []errorCase{
 		bsmk: `1:1: reached EOF without matching [[ with ]]`,
 	},
 	{
+		in:   "[[ -n\na ]]",
+		bsmk: `1:4: -n must be followed by a word`,
+	},
+	{
 		in:   "[[ a -nt b",
 		bsmk: `1:1: reached EOF without matching [[ with ]]`,
 	},

@@ -2124,6 +2124,7 @@ func (p *Parser) testClause(s *Stmt) {
 }
 
 func (p *Parser) testExpr(ftok token, fpos Pos, pastAndOr bool) TestExpr {
+	p.got(_Newl)
 	var left TestExpr
 	if pastAndOr {
 		left = p.testExprBase(ftok, fpos)
@@ -2133,6 +2134,7 @@ func (p *Parser) testExpr(ftok token, fpos Pos, pastAndOr bool) TestExpr {
 	if left == nil {
 		return left
 	}
+	p.got(_Newl)
 	switch p.tok {
 	case andAnd, orOr:
 	case _LitWord:
@@ -2163,7 +2165,6 @@ func (p *Parser) testExpr(ftok token, fpos Pos, pastAndOr bool) TestExpr {
 	switch b.Op {
 	case AndTest, OrTest:
 		p.next()
-		p.got(_Newl)
 		if b.Y = p.testExpr(token(b.Op), b.OpPos, false); b.Y == nil {
 			p.followErrExp(b.OpPos, b.Op.String())
 		}
@@ -2225,14 +2226,12 @@ func (p *Parser) testExprBase(ftok token, fpos Pos) TestExpr {
 	case leftParen:
 		pe := &ParenTest{Lparen: p.pos}
 		p.next()
-		p.got(_Newl)
 		if pe.X = p.testExpr(leftParen, pe.Lparen, false); pe.X == nil {
 			p.followErrExp(pe.Lparen, "(")
 		}
 		pe.Rparen = p.matched(pe.Lparen, leftParen, rightParen)
 		return pe
 	default:
-		p.got(_Newl)
 		return p.followWordTok(ftok, fpos)
 	}
 }
