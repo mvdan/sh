@@ -3151,7 +3151,10 @@ var fileTests = []testCase{
 		}},
 	},
 	{
-		Strs: []string{"[[ -R a ]]"},
+		Strs: []string{
+			"[[ -R a ]]",
+			"[[\n-R a\n]]",
+		},
 		bash: &TestClause{X: &UnaryTest{
 			Op: TsRefVar,
 			X:  litWord("a"),
@@ -3272,6 +3275,7 @@ var fileTests = []testCase{
 		Strs: []string{
 			"[[ ! -e $a ]]",
 			"[[ ! -a $a ]]",
+			"[[\n!\n-a $a\n]]",
 		},
 		bsmk: &TestClause{X: &UnaryTest{
 			Op: TsNot,
