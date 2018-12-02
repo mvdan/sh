@@ -93,8 +93,7 @@ func TestWalk(t *testing.T) {
 				if offs >= lastOffs {
 					lastOffs = offs
 				} else {
-					// TODO: revisit; breaks with heredocs
-					//t.Errorf("comment offset goes back")
+					t.Errorf("comment offset goes back")
 				}
 				return true
 			})

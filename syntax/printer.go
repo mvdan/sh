@@ -1262,7 +1262,7 @@ func (p *Printer) nestedStmts(sl StmtList, closing Pos) {
 		//     { stmt; stmt; }
 		p.wantNewline = true
 	case closing.Line() > p.line && len(sl.Stmts) > 0 &&
-		sl.end().Line() <= p.line:
+		sl.end().Line() < closing.Line():
 		// Force a newline if we find:
 		//     { stmt
 		//     }
