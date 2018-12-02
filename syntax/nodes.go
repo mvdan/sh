@@ -246,7 +246,12 @@ func (r *Redirect) Pos() Pos {
 	}
 	return r.OpPos
 }
-func (r *Redirect) End() Pos { return r.Word.End() }
+func (r *Redirect) End() Pos {
+	if r.Hdoc != nil {
+		return r.Hdoc.End()
+	}
+	return r.Word.End()
+}
 
 // CallExpr represents a command execution or function call, otherwise known as
 // a "simple command".
