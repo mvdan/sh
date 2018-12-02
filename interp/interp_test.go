@@ -524,6 +524,11 @@ var fileCases = []struct {
 		"for ((i=0; i<3; i++)); do echo $i; done",
 		"0\n1\n2\n",
 	},
+	// TODO: uncomment once expandEnv.Set starts returning errors
+	// {
+	// 	"readonly i; for ((i=0; i<3; i++)); do echo $i; done",
+	// 	"0\n1\n2\n",
+	// },
 	{
 		"for ((i=5; i>0; i--)); do echo $i; break; done",
 		"5\n",

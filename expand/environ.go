@@ -40,7 +40,10 @@ type WriteEnviron interface {
 	// attributes correctly. For example, changing an exported variable's
 	// value does not unexport it, and overwriting a name reference variable
 	// should modify its target.
-	Set(name string, vr Variable)
+	//
+	// An error may be returned if the operation is invalid, such as if the
+	// name is empty or if we're trying to overwrite a read-only variable.
+	Set(name string, vr Variable) error
 }
 
 // Variable describes a shell variable, which can have a number of attributes

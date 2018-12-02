@@ -116,13 +116,12 @@ func (cfg *Config) envGet(name string) string {
 	return cfg.Env.Get(name).String()
 }
 
-func (cfg *Config) envSet(name, value string) {
+func (cfg *Config) envSet(name, value string) error {
 	wenv, ok := cfg.Env.(WriteEnviron)
 	if !ok {
-		// TODO: we should probably error here
-		return
+		return fmt.Errorf("environment is read-only")
 	}
-	wenv.Set(name, Variable{Value: value})
+	return wenv.Set(name, Variable{Value: value})
 }
 
 // Literal expands a single shell word. It is similar to Fields, but the result

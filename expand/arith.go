@@ -44,7 +44,9 @@ func Arithm(cfg *Config, expr syntax.ArithmExpr) (int, error) {
 			} else {
 				val--
 			}
-			cfg.envSet(name, strconv.Itoa(val))
+			if err := cfg.envSet(name, strconv.Itoa(val)); err != nil {
+				return 0, err
+			}
 			if x.Post {
 				return old, nil
 			}
@@ -139,7 +141,9 @@ func (cfg *Config) assgnArit(b *syntax.BinaryArithm) (int, error) {
 	case syntax.ShrAssgn:
 		val >>= uint(arg)
 	}
-	cfg.envSet(name, strconv.Itoa(val))
+	if err := cfg.envSet(name, strconv.Itoa(val)); err != nil {
+		return 0, err
+	}
 	return val, nil
 }
 

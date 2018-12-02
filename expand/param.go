@@ -193,7 +193,9 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 			fallthrough
 		case syntax.SubstColAssgn:
 			if str == "" {
-				cfg.envSet(name, arg)
+				if err := cfg.envSet(name, arg); err != nil {
+					return "", err
+				}
 				str = arg
 			}
 		case syntax.RemSmallPrefix, syntax.RemLargePrefix,

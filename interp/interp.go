@@ -159,11 +159,14 @@ type expandEnv struct {
 	r *Runner
 }
 
+var _ expand.WriteEnviron = expandEnv{}
+
 func (e expandEnv) Get(name string) expand.Variable {
 	return e.r.lookupVar(name)
 }
-func (e expandEnv) Set(name string, vr expand.Variable) {
+func (e expandEnv) Set(name string, vr expand.Variable) error {
 	e.r.setVarInternal(name, vr)
+	return nil // TODO: return any errors
 }
 func (e expandEnv) Each(fn func(name string, vr expand.Variable) bool) {
 	e.r.Env.Each(fn)
@@ -800,7 +803,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		case *syntax.CStyleLoop:
 			r.arithm(y.Init)
 			for r.arithm(y.Cond) != 0 {
-				if r.loopStmtsBroken(ctx, x.Do) {
+				if r.exit != 0 || r.loopStmtsBroken(ctx, x.Do) {
 					break
 				}
 				r.arithm(y.Post)
