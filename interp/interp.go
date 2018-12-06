@@ -876,6 +876,11 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		for _, as := range x.Assigns {
 			for _, as := range r.flattenAssign(as) {
 				name := as.Name.Value
+				if !syntax.ValidName(name) {
+					r.errf("declare: invalid name %q\n", name)
+					r.exit = 1
+					return
+				}
 				vr := r.lookupVar(as.Name.Value)
 				vr.Value = r.assignVal(as, valType)
 				if global {
