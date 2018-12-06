@@ -2110,3 +2110,28 @@ func TestParseStmtsStopAt(t *testing.T) {
 		t.Run(fmt.Sprintf("%02d", i), singleParse(p, c.in, want))
 	}
 }
+
+func TestValidName(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name string
+		in   string
+		want bool
+	}{
+		{"Empty", "", false},
+		{"Simple", "foo", true},
+		{"MixedCase", "Foo", true},
+		{"Underscore", "_foo", true},
+		{"NumberPrefix", "3foo", false},
+		{"NumberSuffix", "foo3", true},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := ValidName(tc.in)
+			if got != tc.want {
+				t.Fatalf("ValidName(%q) got %t, wanted %t",
+					tc.in, got, tc.want)
+			}
+		})
+	}
+}

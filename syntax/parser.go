@@ -1473,6 +1473,9 @@ func (p *Parser) backquoteEnd() bool {
 
 // ValidName returns whether val is a valid name as per the POSIX spec.
 func ValidName(val string) bool {
+	if val == "" {
+		return false
+	}
 	for i, r := range val {
 		switch {
 		case 'a' <= r && r <= 'z':
