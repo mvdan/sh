@@ -1,5 +1,8 @@
 language: go
 
+services:
+  - docker
+
 matrix:
   include:
     - os: linux
@@ -8,7 +11,7 @@ matrix:
       go: 1.10.x
     - os: linux
       go: 1.11.x
-      env: CHECK_GOFMT=1
+      env: LATEST_GO=1
     - os: osx
       go: 1.11.x
     - os: windows
@@ -24,5 +27,6 @@ script:
   - go test ./...
     # TODO: reenable test -race on windows once TestInteractive stops failing
   - if [[ $TRAVIS_OS_NAME != "windows" ]]; then go test -short -race ./...; fi
-  - if [[ -n $CHECK_GOFMT ]]; then diff <(echo -n) <(gofmt -d .); fi
   - shfmt -version
+  - if [[ -n $LATEST_GO ]]; then diff <(echo -n) <(gofmt -d .); fi
+  - if [[ -n $LATEST_GO && $TRAVIS_EVENT_TYPE == push && $TRAVIS_BRANCH == master ]]; then ./release-docker.sh; fi
