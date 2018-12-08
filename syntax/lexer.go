@@ -912,9 +912,6 @@ func (p *Parser) advanceLitHdoc(r rune) {
 		}
 	}
 	lStart := len(p.litBs) - 1
-	if lStart < 0 {
-		return
-	}
 	for ; ; r = p.rune() {
 		switch r {
 		case '`', '$':
@@ -963,9 +960,6 @@ func (p *Parser) quotedHdocWord() *Word {
 			}
 		}
 		lStart := len(p.litBs) - 1
-		if lStart < 0 {
-			return nil
-		}
 		for r != utf8.RuneSelf && r != '\n' {
 			r = p.rune()
 		}
