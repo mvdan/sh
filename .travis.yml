@@ -29,4 +29,5 @@ script:
   - if [[ $TRAVIS_OS_NAME != "windows" ]]; then go test -short -race ./...; fi
   - shfmt -version
   - if [[ -n $LATEST_GO ]]; then diff <(echo -n) <(gofmt -d .); fi
-  - if [[ -n $LATEST_GO && $TRAVIS_EVENT_TYPE == push && $TRAVIS_BRANCH == master ]]; then ./release-docker.sh; fi
+    # TODO: reenable once Travis secrets stop breaking Windows builds
+    # - if [[ -n $LATEST_GO && $TRAVIS_EVENT_TYPE == push && $TRAVIS_BRANCH == master ]]; then ./release-docker.sh; fi
