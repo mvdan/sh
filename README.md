@@ -105,6 +105,12 @@ $ echo '$((foo); (bar))' | shfmt
 A subset of the Go packages are available as an npm package called [mvdan-sh].
 See the [_js](_js) directory for more information.
 
+### Docker
+
+To build a Docker image, checkout a specific version of the repository and run:
+
+	docker build -t my:tag -f cmd/shfmt/Dockerfile .
+
 ### Related projects
 
 * Alternative docker images - by [jamesmstone][dockerized-jamesmstone], [PeterDaveHello][dockerized-peterdavehello]
