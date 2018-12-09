@@ -23,7 +23,7 @@ type Node interface {
 type File struct {
 	Name string
 
-	StmtList
+	StmtList // exposing its Pos and End methods
 }
 
 // StmtList is a list of statements with any number of trailing comments. Both
@@ -33,7 +33,7 @@ type StmtList struct {
 	Last  []Comment
 }
 
-func (s StmtList) pos() Pos {
+func (s StmtList) Pos() Pos {
 	if len(s.Stmts) > 0 {
 		s := s.Stmts[0]
 		sPos := s.Pos()
@@ -50,7 +50,7 @@ func (s StmtList) pos() Pos {
 	return Pos{}
 }
 
-func (s StmtList) end() Pos {
+func (s StmtList) End() Pos {
 	if len(s.Last) > 0 {
 		return s.Last[len(s.Last)-1].End()
 	}
@@ -99,9 +99,6 @@ func (p Pos) IsValid() bool { return p.line > 0 }
 // After reports whether the position p is after p2. It is a more expressive
 // version of p.Offset() > p2.Offset().
 func (p Pos) After(p2 Pos) bool { return p.offs > p2.offs }
-
-func (f *File) Pos() Pos { return f.StmtList.pos() }
-func (f *File) End() Pos { return f.StmtList.end() }
 
 func posAddCol(p Pos, n int) Pos {
 	p.col += uint16(n)
@@ -288,7 +285,7 @@ func (s *Subshell) Pos() Pos { return s.Lparen }
 func (s *Subshell) End() Pos { return posAddCol(s.Rparen, 1) }
 
 // Block represents a series of commands that should be executed in a nested
-// scope.
+// scope. It is essentially a StmtList within curly braces.
 type Block struct {
 	Lbrace, Rbrace Pos
 	StmtList
@@ -690,7 +687,7 @@ func (c *CaseItem) End() Pos {
 	if c.OpPos.IsValid() {
 		return posAddCol(c.OpPos, len(c.Op.String()))
 	}
-	return c.StmtList.end()
+	return c.StmtList.End()
 }
 
 // TestClause represents a Bash extended test clause.

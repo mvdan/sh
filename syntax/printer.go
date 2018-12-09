@@ -888,7 +888,7 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 	case *Subshell:
 		p.WriteByte('(')
 		p.wantSpace = len(x.Stmts) > 0 && startsWithLparen(x.Stmts[0])
-		p.spacePad(x.StmtList.pos())
+		p.spacePad(x.StmtList.Pos())
 		p.nestedStmts(x.StmtList, x.Rparen)
 		p.wantSpace = false
 		p.spacePad(x.Rparen)
@@ -985,8 +985,8 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			p.casePatternJoin(ci.Patterns)
 			p.WriteByte(')')
 			p.wantSpace = !p.minify
-			sep := len(ci.Stmts) > 1 || ci.StmtList.pos().Line() > p.line ||
-				(!ci.StmtList.empty() && ci.OpPos.Line() > ci.StmtList.end().Line())
+			sep := len(ci.Stmts) > 1 || ci.StmtList.Pos().Line() > p.line ||
+				(!ci.StmtList.empty() && ci.OpPos.Line() > ci.StmtList.End().Line())
 			p.nestedStmts(ci.StmtList, ci.OpPos)
 			p.level++
 			if !p.minify || i != len(x.Items)-1 {
@@ -1262,7 +1262,7 @@ func (p *Printer) nestedStmts(sl StmtList, closing Pos) {
 		//     { stmt; stmt; }
 		p.wantNewline = true
 	case closing.Line() > p.line && len(sl.Stmts) > 0 &&
-		sl.end().Line() < closing.Line():
+		sl.End().Line() < closing.Line():
 		// Force a newline if we find:
 		//     { stmt
 		//     }
