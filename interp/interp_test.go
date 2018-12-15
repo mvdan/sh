@@ -2078,6 +2078,14 @@ set +o pipefail
 		"cat <<EOF\n*.go\nEOF",
 		"*.go\n",
 	},
+	{
+		"mkdir -p a/b a/c; echo ./a/* | sed 's@\\\\@/@g'",
+		"./a/b ./a/c\n",
+	},
+	{
+		"mkdir -p a/b a/c d; cd d; echo ../a/* | sed 's@\\\\@/@g'",
+		"../a/b ../a/c\n",
+	},
 
 	// brace expansion; more exhaustive tests in the syntax package
 	{"echo a}b", "a}b\n"},
