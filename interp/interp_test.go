@@ -2079,6 +2079,18 @@ set +o pipefail
 		"mkdir -p a/b a/c d; cd d; echo ../a/* | sed 's@\\\\@/@g'",
 		"../a/b ../a/c\n",
 	},
+	{
+		"mkdir x-d1 x-d2; touch x-f; echo x-*/ | sed -e 's@\\\\@/@g'",
+		"x-d1/ x-d2/\n",
+	},
+	{
+		"mkdir x-d1 x-d2; touch x-f; echo ././x-*/// | sed -e 's@\\\\@/@g'",
+		"././x-d1/ ././x-d2/\n",
+	},
+	{
+		"mkdir x-d; touch x-f; test -d $PWD/x-*/",
+		"",
+	},
 
 	// brace expansion; more exhaustive tests in the syntax package
 	{"echo a}b", "a}b\n"},
