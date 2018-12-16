@@ -621,8 +621,11 @@ func pathJoin2(elem1, elem2 string) string {
 	return elem1 + string(filepath.Separator) + elem2
 }
 
-// pathSplit is the opposite of pathJoin.
+// pathSplit splits a file path into its elements, retaining empty ones. Before
+// splitting, slashes are replaced with filepath.Separator, so that splitting
+// Unix paths on Windows works as well.
 func pathSplit(path string) []string {
+	path = filepath.FromSlash(path)
 	return strings.Split(path, string(filepath.Separator))
 }
 
