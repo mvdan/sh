@@ -328,27 +328,17 @@ func Fields(cfg *Config, words ...*syntax.Word) ([]string, error) {
 			for _, field := range wfields {
 				path, doGlob := cfg.escapedGlobField(field)
 				var matches []string
-				abs := filepath.IsAbs(path)
 				if doGlob && !cfg.NoGlob {
-					base := ""
-					if !abs {
-						base = dir
-					}
-					matches, err = cfg.glob(base, path)
+					matches, err = cfg.glob(dir, path)
 					if err != nil {
 						return nil, err
 					}
-				}
-				if len(matches) == 0 {
-					fields = append(fields, cfg.fieldJoin(field))
-					continue
-				}
-				for _, match := range matches {
-					if !abs {
-						match = strings.TrimPrefix(match, dir)
+					if len(matches) > 0 {
+						fields = append(fields, matches...)
+						continue
 					}
-					fields = append(fields, match)
 				}
+				fields = append(fields, cfg.fieldJoin(field))
 			}
 		}
 	}
@@ -701,7 +691,11 @@ func (cfg *Config) globDir(base, dir string, rx *regexp.Regexp, matches []string
 		// TODO(mvdan): check this at the beginning of a glob?
 		return nil, nil
 	}
-	infos, err := cfg.ReadDir(filepath.Join(base, dir))
+	fullDir := dir
+	if !filepath.IsAbs(dir) {
+		fullDir = filepath.Join(base, dir)
+	}
+	infos, err := cfg.ReadDir(fullDir)
 	if err != nil {
 		return nil, err
 	}
