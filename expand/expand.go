@@ -635,10 +635,23 @@ func (cfg *Config) glob(base, pattern string) ([]string, error) {
 	}
 	for _, part := range parts {
 		switch {
-		case part == ".", part == "..":
-			for i, dir := range matches {
-				matches[i] = pathJoin2(dir, part)
+		case part == "", part == ".", part == "..":
+			var newMatches []string
+			for _, dir := range matches {
+				// TODO(mvdan): reuse the previous ReadDir call
+				if cfg.ReadDir == nil {
+					continue // no globbing
+				}
+				fullDir := dir
+				if !filepath.IsAbs(dir) {
+					fullDir = filepath.Join(base, dir)
+				}
+				if _, err := cfg.ReadDir(fullDir); err != nil {
+					continue // not actually a dir
+				}
+				newMatches = append(newMatches, pathJoin2(dir, part))
 			}
+			matches = newMatches
 			continue
 		case part == "**" && cfg.GlobStar:
 			for i, match := range matches {
