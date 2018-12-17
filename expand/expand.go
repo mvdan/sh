@@ -633,25 +633,13 @@ func (cfg *Config) glob(base, pattern string) ([]string, error) {
 		}
 		parts = parts[1:]
 	}
-	for _, part := range parts {
+	for i, part := range parts {
+		wantDir := i < len(parts)-1
 		switch {
 		case part == "", part == ".", part == "..":
-			var newMatches []string
-			for _, dir := range matches {
-				// TODO(mvdan): reuse the previous ReadDir call
-				if cfg.ReadDir == nil {
-					continue // no globbing
-				}
-				fullDir := dir
-				if !filepath.IsAbs(dir) {
-					fullDir = filepath.Join(base, dir)
-				}
-				if _, err := cfg.ReadDir(fullDir); err != nil {
-					continue // not actually a dir
-				}
-				newMatches = append(newMatches, pathJoin2(dir, part))
+			for i, dir := range matches {
+				matches[i] = pathJoin2(dir, part)
 			}
-			matches = newMatches
 			continue
 		case part == "**" && cfg.GlobStar:
 			for i, match := range matches {
@@ -666,7 +654,7 @@ func (cfg *Config) glob(base, pattern string) ([]string, error) {
 				var newMatches []string
 				for _, dir := range latest {
 					var err error
-					newMatches, err = cfg.globDir(base, dir, rxGlobStar, newMatches)
+					newMatches, err = cfg.globDir(base, dir, rxGlobStar, wantDir, newMatches)
 					if err != nil {
 						return nil, err
 					}
@@ -689,7 +677,7 @@ func (cfg *Config) glob(base, pattern string) ([]string, error) {
 		rx := regexp.MustCompile("^" + expr + "$")
 		var newMatches []string
 		for _, dir := range matches {
-			newMatches, err = cfg.globDir(base, dir, rx, newMatches)
+			newMatches, err = cfg.globDir(base, dir, rx, wantDir, newMatches)
 			if err != nil {
 				return nil, err
 			}
@@ -699,7 +687,7 @@ func (cfg *Config) glob(base, pattern string) ([]string, error) {
 	return matches, nil
 }
 
-func (cfg *Config) globDir(base, dir string, rx *regexp.Regexp, matches []string) ([]string, error) {
+func (cfg *Config) globDir(base, dir string, rx *regexp.Regexp, wantDir bool, matches []string) ([]string, error) {
 	if cfg.ReadDir == nil {
 		// TODO(mvdan): check this at the beginning of a glob?
 		return nil, nil
@@ -713,6 +701,9 @@ func (cfg *Config) globDir(base, dir string, rx *regexp.Regexp, matches []string
 		return nil, err
 	}
 	for _, info := range infos {
+		if wantDir && !info.IsDir() {
+			continue
+		}
 		name := info.Name()
 		if !strings.HasPrefix(rx.String(), `^\.`) && name[0] == '.' {
 			continue
