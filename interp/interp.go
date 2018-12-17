@@ -85,7 +85,6 @@ func (r *Runner) fillExpandConfig(ctx context.Context) {
 			r2.stmts(ctx, cs.StmtList)
 			return r2.err
 		},
-		ReadDir: ioutil.ReadDir,
 	}
 	r.updateExpandOpts()
 }
@@ -107,7 +106,11 @@ func catShortcutArg(stmt *syntax.Stmt) *syntax.Word {
 }
 
 func (r *Runner) updateExpandOpts() {
-	r.ecfg.NoGlob = r.opts[optNoGlob]
+	if r.opts[optNoGlob] {
+		r.ecfg.ReadDir = nil
+	} else {
+		r.ecfg.ReadDir = ioutil.ReadDir
+	}
 	r.ecfg.GlobStar = r.opts[optGlobStar]
 }
 

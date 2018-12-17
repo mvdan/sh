@@ -35,14 +35,6 @@ type Config struct {
 	// variables.
 	Env Environ
 
-	// TODO(mvdan): consider replacing NoGlob==true with ReadDir==nil.
-
-	// NoGlob corresponds to the shell option that disables globbing.
-	NoGlob bool
-	// GlobStar corresponds to the shell option that allows globbing with
-	// "**".
-	GlobStar bool
-
 	// CmdSubst expands a command substitution node, writing its standard
 	// output to the provided io.Writer.
 	//
@@ -53,6 +45,10 @@ type Config struct {
 	// ReadDir is used for file path globbing. If nil, globbing is disabled.
 	// Use ioutil.ReadDir to use the filesystem directly.
 	ReadDir func(string) ([]os.FileInfo, error)
+
+	// GlobStar corresponds to the shell option that allows globbing with
+	// "**".
+	GlobStar bool
 
 	bufferAlloc bytes.Buffer
 	fieldAlloc  [4]fieldPart
@@ -328,7 +324,7 @@ func Fields(cfg *Config, words ...*syntax.Word) ([]string, error) {
 			for _, field := range wfields {
 				path, doGlob := cfg.escapedGlobField(field)
 				var matches []string
-				if doGlob && !cfg.NoGlob {
+				if doGlob && cfg.ReadDir != nil {
 					matches, err = cfg.glob(dir, path)
 					if err != nil {
 						return nil, err
@@ -688,10 +684,6 @@ func (cfg *Config) glob(base, pattern string) ([]string, error) {
 }
 
 func (cfg *Config) globDir(base, dir string, rx *regexp.Regexp, wantDir bool, matches []string) ([]string, error) {
-	if cfg.ReadDir == nil {
-		// TODO(mvdan): check this at the beginning of a glob?
-		return nil, nil
-	}
 	fullDir := dir
 	if !filepath.IsAbs(dir) {
 		fullDir = filepath.Join(base, dir)
