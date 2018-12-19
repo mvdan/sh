@@ -170,15 +170,14 @@ func listEnvironWithUpper(upper bool, pairs ...string) Environ {
 	return listEnviron(list)
 }
 
+// listEnviron is a sorted list of "name=value" strings.
 type listEnviron []string
 
 func (l listEnviron) Get(name string) Variable {
-	// TODO: binary search
 	prefix := name + "="
-	for _, pair := range l {
-		if val := strings.TrimPrefix(pair, prefix); val != pair {
-			return Variable{Exported: true, Value: val}
-		}
+	i := sort.SearchStrings(l, prefix)
+	if i < len(l) && strings.HasPrefix(l[i], prefix) {
+		return Variable{Exported: true, Value: strings.TrimPrefix(l[i], prefix)}
 	}
 	return Variable{}
 }
@@ -187,7 +186,7 @@ func (l listEnviron) Each(fn func(name string, vr Variable) bool) {
 	for _, pair := range l {
 		i := strings.IndexByte(pair, '=')
 		if i < 0 {
-			// can't happen; see above
+			// should never happen; see listEnvironWithUpper
 			panic("expand.listEnviron: did not expect malformed name-value pair: " + pair)
 		}
 		name, value := pair[:i], pair[i+1:]

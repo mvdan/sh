@@ -11,7 +11,6 @@ import (
 	"os/user"
 	"path/filepath"
 	"regexp"
-	"runtime"
 	"strconv"
 	"strings"
 
@@ -581,16 +580,6 @@ func findAllIndex(pattern, name string, n int) [][]int {
 	}
 	rx := regexp.MustCompile(expr)
 	return rx.FindAllStringIndex(name, n)
-}
-
-// TODO: use this again to optimize globbing; see
-// https://github.com/mvdan/sh/issues/213
-func hasGlob(path string) bool {
-	magicChars := `*?[`
-	if runtime.GOOS != "windows" {
-		magicChars = `*?[\`
-	}
-	return strings.ContainsAny(path, magicChars)
 }
 
 var rxGlobStar = regexp.MustCompile(".*")
