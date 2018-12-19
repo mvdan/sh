@@ -33,6 +33,7 @@ import (
 // standard output writer means that the output will be discarded.
 func New(opts ...func(*Runner) error) (*Runner, error) {
 	r := &Runner{usedNew: true}
+	r.dirStack = r.dirBootstrap[:0]
 	for _, opt := range opts {
 		if err := opt(r); err != nil {
 			return nil, err
@@ -385,7 +386,10 @@ type Runner struct {
 
 	opts [len(shellOptsTable) + len(bashOptsTable)]bool
 
-	dirStack []string
+	// Most scripts don't use pushd/popd, so make space for the initial PWD
+	// without requiring an extra allocation.
+	dirStack     []string
+	dirBootstrap [1]string
 
 	optState getopts
 
@@ -699,7 +703,7 @@ func (r *Runner) sub() *Runner {
 	for k, v := range r.cmdVars {
 		r2.cmdVars[k] = v
 	}
-	r2.dirStack = append([]string(nil), r.dirStack...)
+	r2.dirStack = append(r2.dirBootstrap[:0], r.dirStack...)
 	r2.fillExpandConfig(r.ectx)
 	r2.didReset = true
 	return r2
