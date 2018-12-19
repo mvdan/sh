@@ -39,7 +39,7 @@ func (o overlayEnviron) Each(f func(name string, vr expand.Variable) bool) {
 }
 
 func execEnv(env expand.Environ) []string {
-	list := make([]string, 0, 32)
+	list := make([]string, 0, 64)
 	env.Each(func(name string, vr expand.Variable) bool {
 		if vr.Exported {
 			list = append(list, name+"="+vr.String())
