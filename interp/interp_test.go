@@ -2098,6 +2098,14 @@ set +o pipefail
 		"mkdir x-d; touch x-f; test -d $PWD/x-*/",
 		"",
 	},
+	{
+		"mkdir -p foo/bar; ln -s foo sym; echo sy*/; echo sym/b*",
+		"sym/\nsym/bar\n",
+	},
+	{
+		"touch foo; ln -s foo sym; echo sy*; echo sy*/",
+		"sym\nsy*/\n",
+	},
 
 	// brace expansion; more exhaustive tests in the syntax package
 	{"echo a}b", "a}b\n"},

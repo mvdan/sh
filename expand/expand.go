@@ -685,10 +685,20 @@ func (cfg *Config) globDir(base, dir string, rx *regexp.Regexp, wantDir bool, ma
 		return nil, err
 	}
 	for _, info := range infos {
-		if wantDir && !info.IsDir() {
+		name := info.Name()
+		if !wantDir {
+			// no filtering
+		} else if mode := info.Mode(); mode&os.ModeSymlink != 0 {
+			// TODO: is there a way to do this without the
+			// extra syscall?
+			if _, err := cfg.ReadDir(filepath.Join(fullDir, name)); err != nil {
+				// symlink pointing to non-directory
+				continue
+			}
+		} else if !mode.IsDir() {
+			// definitely not a directory
 			continue
 		}
-		name := info.Name()
 		if !strings.HasPrefix(rx.String(), `^\.`) && name[0] == '.' {
 			continue
 		}
