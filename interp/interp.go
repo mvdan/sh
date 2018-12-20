@@ -409,6 +409,23 @@ type Runner struct {
 	// On Windows, the kill signal is always sent immediately,
 	// because Go doesn't currently support sending Interrupt on Windows.
 	KillTimeout time.Duration
+
+	// So that we can get io.Copy to reuse the same buffer within a runner.
+	// For example, this saves an allocation for every shell pipe, since
+	// io.PipeReader does not implement io.WriterTo.
+	bufCopier bufCopier
+}
+
+type bufCopier struct {
+	io.Reader
+	buf []byte
+}
+
+func (r *bufCopier) WriteTo(w io.Writer) (n int64, err error) {
+	if r.buf == nil {
+		r.buf = make([]byte, 32*1024)
+	}
+	return io.CopyBuffer(w, r.Reader, r.buf)
 }
 
 func (r *Runner) optByFlag(flag string) *bool {
@@ -491,10 +508,11 @@ func (r *Runner) Reset() {
 		KillTimeout: r.KillTimeout,
 
 		// emptied below, to reuse the space
-		Vars:     r.Vars,
-		cmdVars:  r.cmdVars,
-		dirStack: r.dirStack[:0],
-		usedNew:  r.usedNew,
+		Vars:      r.Vars,
+		cmdVars:   r.cmdVars,
+		dirStack:  r.dirStack[:0],
+		usedNew:   r.usedNew,
+		bufCopier: r.bufCopier,
 	}
 	if r.Vars == nil {
 		r.Vars = make(map[string]expand.Variable)
@@ -530,6 +548,7 @@ func (r *Runner) Reset() {
 		r.KillTimeout = 2 * time.Second
 	}
 	r.didReset = true
+	r.bufCopier.Reader = nil
 }
 
 func (r *Runner) modCtx(ctx context.Context) context.Context {
@@ -764,7 +783,8 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			} else {
 				r2.Stderr = r.Stderr
 			}
-			r.Stdin = pr
+			r.bufCopier.Reader = pr
+			r.Stdin = &r.bufCopier
 			var wg sync.WaitGroup
 			wg.Add(1)
 			go func() {
