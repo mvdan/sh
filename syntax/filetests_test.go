@@ -637,12 +637,12 @@ var fileTests = []testCase{
 		Strs: []string{"foo | bar | extra"},
 		common: &BinaryCmd{
 			Op: Pipe,
-			X:  litStmt("foo"),
-			Y: stmt(&BinaryCmd{
+			X: stmt(&BinaryCmd{
 				Op: Pipe,
-				X:  litStmt("bar"),
-				Y:  litStmt("extra"),
+				X:  litStmt("foo"),
+				Y:  litStmt("bar"),
 			}),
+			Y: litStmt("extra"),
 		},
 	},
 	{

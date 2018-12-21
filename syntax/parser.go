@@ -1679,14 +1679,14 @@ func (p *Parser) getStmt(readEnd, binCmd, fnBody bool) *Stmt {
 			p.posErr(s.Pos(), `cannot negate a command multiple times`)
 		}
 	}
-	if s = p.gotStmtPipe(s); s == nil || p.err != nil {
+	if s = p.gotStmtPipe(s, false); s == nil || p.err != nil {
 		return nil
 	}
 	// instead of using recursion, iterate manually
 	for p.tok == andAnd || p.tok == orOr {
-		// left associativity: in a list of BinaryCmds, the
-		// right recursion should only read a single element
 		if binCmd {
+			// left associativity: in a list of BinaryCmds, the
+			// right recursion should only read a single element
 			return s
 		}
 		b := &BinaryCmd{
@@ -1730,7 +1730,7 @@ func (p *Parser) getStmt(readEnd, binCmd, fnBody bool) *Stmt {
 	return s
 }
 
-func (p *Parser) gotStmtPipe(s *Stmt) *Stmt {
+func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 	s.Comments, p.accComs = p.accComs, nil
 	switch p.tok {
 	case _LitWord:
@@ -1852,19 +1852,22 @@ func (p *Parser) gotStmtPipe(s *Stmt) *Stmt {
 	for p.peekRedir() {
 		p.doRedirect(s)
 	}
-	switch p.tok {
-	case orAnd:
-		if p.lang == LangMirBSDKorn {
+	// instead of using recursion, iterate manually
+	for p.tok == or || p.tok == orAnd {
+		if binCmd {
+			// left associativity: in a list of BinaryCmds, the
+			// right recursion should only read a single element
+			return s
+		}
+		if p.tok == orAnd && p.lang == LangMirBSDKorn {
 			// No need to check for LangPOSIX, as on that language
 			// we parse |& as two tokens.
 			break
 		}
-		fallthrough
-	case or:
 		b := &BinaryCmd{OpPos: p.pos, Op: BinCmdOperator(p.tok), X: s}
 		p.next()
 		p.got(_Newl)
-		if b.Y = p.gotStmtPipe(p.stmt(p.pos)); b.Y == nil || p.err != nil {
+		if b.Y = p.gotStmtPipe(p.stmt(p.pos), true); b.Y == nil || p.err != nil {
 			p.followErr(b.OpPos, b.Op.String(), "a statement")
 			break
 		}
@@ -2291,7 +2294,7 @@ func (p *Parser) timeClause(s *Stmt) {
 	if _, ok := p.gotRsrv("-p"); ok {
 		tc.PosixFormat = true
 	}
-	tc.Stmt = p.gotStmtPipe(p.stmt(p.pos))
+	tc.Stmt = p.gotStmtPipe(p.stmt(p.pos), false)
 	s.Cmd = tc
 }
 
@@ -2299,12 +2302,12 @@ func (p *Parser) coprocClause(s *Stmt) {
 	cc := &CoprocClause{Coproc: p.pos}
 	if p.next(); isBashCompoundCommand(p.tok, p.val) {
 		// has no name
-		cc.Stmt = p.gotStmtPipe(p.stmt(p.pos))
+		cc.Stmt = p.gotStmtPipe(p.stmt(p.pos), false)
 		s.Cmd = cc
 		return
 	}
 	cc.Name = p.getLit()
-	cc.Stmt = p.gotStmtPipe(p.stmt(p.pos))
+	cc.Stmt = p.gotStmtPipe(p.stmt(p.pos), false)
 	if cc.Stmt == nil {
 		if cc.Name == nil {
 			p.posErr(cc.Coproc, "coproc clause requires a command")
