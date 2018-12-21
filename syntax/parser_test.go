@@ -1266,6 +1266,10 @@ var shellTests = []errorCase{
 		bsmk: `1:1: |& is not a valid start for a statement`,
 	},
 	{
+		in:    "foo |& bar",
+		posix: `1:5: | must be followed by a statement`,
+	},
+	{
 		in:   "let",
 		bsmk: `1:1: "let" must be followed by an expression`,
 	},

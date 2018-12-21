@@ -1855,6 +1855,8 @@ func (p *Parser) gotStmtPipe(s *Stmt) *Stmt {
 	switch p.tok {
 	case orAnd:
 		if p.lang == LangMirBSDKorn {
+			// No need to check for LangPOSIX, as on that language
+			// we parse |& as two tokens.
 			break
 		}
 		fallthrough
