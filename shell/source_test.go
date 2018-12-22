@@ -25,21 +25,21 @@ var mapTests = []struct {
 	{
 		"a=x; b=y",
 		map[string]expand.Variable{
-			"a": {Value: "x"},
-			"b": {Value: "y"},
+			"a": {Kind: expand.String, Str: "x"},
+			"b": {Kind: expand.String, Str: "y"},
 		},
 	},
 	{
 		"a=x; a=y; X=(a b c)",
 		map[string]expand.Variable{
-			"a": {Value: "y"},
-			"X": {Value: []string{"a", "b", "c"}},
+			"a": {Kind: expand.String, Str: "y"},
+			"X": {Kind: expand.Indexed, List: []string{"a", "b", "c"}},
 		},
 	},
 	{
 		"a=$(echo foo | sed 's/o/a/g')",
 		map[string]expand.Variable{
-			"a": {Value: "faa"},
+			"a": {Kind: expand.String, Str: "faa"},
 		},
 	},
 }

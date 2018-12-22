@@ -530,17 +530,17 @@ func (r *Runner) Reset() {
 	}
 	if vr := r.Env.Get("HOME"); !vr.IsSet() {
 		u, _ := user.Current()
-		r.Vars["HOME"] = expand.Variable{Value: u.HomeDir}
+		r.Vars["HOME"] = expand.Variable{Kind: expand.String, Str: u.HomeDir}
 	}
-	r.Vars["PWD"] = expand.Variable{Value: r.Dir}
-	r.Vars["IFS"] = expand.Variable{Value: " \t\n"}
-	r.Vars["OPTIND"] = expand.Variable{Value: "1"}
+	r.Vars["PWD"] = expand.Variable{Kind: expand.String, Str: r.Dir}
+	r.Vars["IFS"] = expand.Variable{Kind: expand.String, Str: " \t\n"}
+	r.Vars["OPTIND"] = expand.Variable{Kind: expand.String, Str: "1"}
 
 	if runtime.GOOS == "windows" {
 		// convert $PATH to a unix path list
 		path := r.Env.Get("PATH").String()
 		path = strings.Join(filepath.SplitList(path), ":")
-		r.Vars["PATH"] = expand.Variable{Value: path}
+		r.Vars["PATH"] = expand.Variable{Kind: expand.String, Str: path}
 	}
 
 	r.dirStack = append(r.dirStack, r.Dir)
@@ -570,7 +570,7 @@ func (r *Runner) modCtx(ctx context.Context) context.Context {
 		oenv.Set(name, vr)
 	}
 	for name, value := range r.cmdVars {
-		oenv.Set(name, expand.Variable{Exported: true, Value: value})
+		oenv.Set(name, expand.Variable{Exported: true, Kind: expand.String, Str: value})
 	}
 	mc.Env = oenv
 	return context.WithValue(ctx, moduleCtxKey{}, mc)
@@ -744,16 +744,15 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		fields := r.fields(x.Args...)
 		if len(fields) == 0 {
 			for _, as := range x.Assigns {
-				vr := r.lookupVar(as.Name.Value)
-				vr.Value = r.assignVal(as, "")
+				vr := r.assignVal(as, "")
 				r.setVar(as.Name.Value, as.Index, vr)
 			}
 			break
 		}
 		for _, as := range x.Assigns {
-			val := r.assignVal(as, "")
+			vr := r.assignVal(as, "")
 			// we know that inline vars must be strings
-			r.cmdVars[as.Name.Value] = val.(string)
+			r.cmdVars[as.Name.Value] = vr.Str
 		}
 		r.call(ctx, x.Args[0].Pos(), fields)
 		// cmdVars can be nuked here, as they are never useful
@@ -908,8 +907,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 					r.exit = 1
 					return
 				}
-				vr := r.lookupVar(as.Name.Value)
-				vr.Value = r.assignVal(as, valType)
+				vr := r.assignVal(as, valType)
 				if global {
 					vr.Local = false
 				} else if local {

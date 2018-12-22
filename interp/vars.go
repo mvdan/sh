@@ -53,39 +53,41 @@ func (r *Runner) lookupVar(name string) expand.Variable {
 	if name == "" {
 		panic("variable name must not be empty")
 	}
-	var value interface{}
+	var vr expand.Variable
 	switch name {
 	case "#":
-		value = strconv.Itoa(len(r.Params))
+		vr.Kind, vr.Str = expand.String, strconv.Itoa(len(r.Params))
 	case "@", "*":
-		value = r.Params
+		vr.Kind, vr.List = expand.Indexed, r.Params
 	case "?":
-		value = strconv.Itoa(r.exit)
+		vr.Kind, vr.Str = expand.String, strconv.Itoa(r.exit)
 	case "$":
-		value = strconv.Itoa(os.Getpid())
+		vr.Kind, vr.Str = expand.String, strconv.Itoa(os.Getpid())
 	case "PPID":
-		value = strconv.Itoa(os.Getppid())
+		vr.Kind, vr.Str = expand.String, strconv.Itoa(os.Getppid())
 	case "DIRSTACK":
-		value = r.dirStack
+		vr.Kind, vr.List = expand.Indexed, r.dirStack
 	case "0":
+		vr.Kind = expand.String
 		if r.filename != "" {
-			value = r.filename
+			vr.Str = r.filename
 		} else {
-			value = "gosh"
+			vr.Str = "gosh"
 		}
 	case "1", "2", "3", "4", "5", "6", "7", "8", "9":
+		vr.Kind = expand.String
 		i := int(name[0] - '1')
 		if i < len(r.Params) {
-			value = r.Params[i]
+			vr.Str = r.Params[i]
 		} else {
-			value = ""
+			vr.Str = ""
 		}
 	}
-	if value != nil {
-		return expand.Variable{Value: value}
+	if vr.IsSet() {
+		return vr
 	}
 	if value, e := r.cmdVars[name]; e {
-		return expand.Variable{Value: value}
+		return expand.Variable{Kind: expand.String, Str: value}
 	}
 	if vr, e := r.funcVars[name]; e {
 		vr.Local = true
@@ -130,11 +132,11 @@ func (r *Runner) delVar(name string) {
 }
 
 func (r *Runner) setVarString(name, value string) {
-	r.setVar(name, nil, expand.Variable{Value: value})
+	r.setVar(name, nil, expand.Variable{Kind: expand.String, Str: value})
 }
 
 func (r *Runner) setVarInternal(name string, vr expand.Variable) {
-	if _, ok := vr.Value.(string); ok {
+	if vr.Kind == expand.String {
 		if r.opts[optAllExport] {
 			vr.Exported = true
 		}
@@ -164,17 +166,16 @@ func (r *Runner) setVar(name string, index syntax.ArithmExpr, vr expand.Variable
 		vr.NameRef = false
 		cur.NameRef = false
 	}
-	_, isIndexArray := cur.Value.([]string)
-	_, isAssocArray := cur.Value.(map[string]string)
 
-	if _, ok := vr.Value.(string); ok && index == nil {
+	if vr.Kind == expand.String && index == nil {
 		// When assigning a string to an array, fall back to the
 		// zero value for the index.
-		if isIndexArray {
+		switch cur.Kind {
+		case expand.Indexed:
 			index = &syntax.Word{Parts: []syntax.WordPart{
 				&syntax.Lit{Value: "0"},
 			}}
-		} else if isAssocArray {
+		case expand.Associative:
 			index = &syntax.Word{Parts: []syntax.WordPart{
 				&syntax.DblQuoted{},
 			}}
@@ -187,36 +188,33 @@ func (r *Runner) setVar(name string, index syntax.ArithmExpr, vr expand.Variable
 
 	// from the syntax package, we know that value must be a string if index
 	// is non-nil; nested arrays are forbidden.
-	valStr := vr.Value.(string)
+	valStr := vr.Str
 
-	// if the existing variable is already an AssocArray, try our best
-	// to convert the key to a string
-	if isAssocArray {
-		amap := cur.Value.(map[string]string)
+	var list []string
+	switch cur.Kind {
+	case expand.String:
+		list = append(list, cur.Str)
+	case expand.Indexed:
+		list = cur.List
+	case expand.Associative:
+		// if the existing variable is already an AssocArray, try our
+		// best to convert the key to a string
 		w, ok := index.(*syntax.Word)
 		if !ok {
 			return
 		}
 		k := r.literal(w)
-		amap[k] = valStr
-		cur.Value = amap
+		cur.Map[k] = valStr
 		r.setVarInternal(name, cur)
 		return
-	}
-	var list []string
-	switch x := cur.Value.(type) {
-	case string:
-		list = append(list, x)
-	case []string:
-		list = x
-	case map[string]string: // done above
 	}
 	k := r.arithm(index)
 	for len(list) < k+1 {
 		list = append(list, "")
 	}
 	list[k] = valStr
-	cur.Value = list
+	cur.Kind = expand.Indexed
+	cur.List = list
 	r.setVarInternal(name, cur)
 }
 
@@ -239,33 +237,36 @@ func stringIndex(index syntax.ArithmExpr) bool {
 	return false
 }
 
-func (r *Runner) assignVal(as *syntax.Assign, valType string) interface{} {
+func (r *Runner) assignVal(as *syntax.Assign, valType string) expand.Variable {
 	prev := r.lookupVar(as.Name.Value)
 	if as.Naked {
-		return prev.Value
+		return prev
 	}
 	if as.Value != nil {
 		s := r.literal(as.Value)
 		if !as.Append || !prev.IsSet() {
-			return s
+			prev.Kind = expand.String
+			prev.Str = s
+			return prev
 		}
-		switch x := prev.Value.(type) {
-		case string:
-			return x + s
-		case []string:
-			if len(x) == 0 {
-				x = append(x, "")
+		switch prev.Kind {
+		case expand.String:
+			prev.Str += s
+		case expand.Indexed:
+			if len(prev.List) == 0 {
+				prev.List = append(prev.List, "")
 			}
-			x[0] += s
-			return x
-		case map[string]string:
+			prev.List[0] += s
+		case expand.Associative:
 			// TODO
 		}
-		return s
+		return prev
 	}
 	if as.Array == nil {
-		// don't return nil, as that's an unset variable
-		return ""
+		// don't return the zero value, as that's an unset variable
+		prev.Kind = expand.String
+		prev.Str = ""
+		return prev
 	}
 	elems := as.Array.Elems
 	if valType == "" {
@@ -275,19 +276,19 @@ func (r *Runner) assignVal(as *syntax.Assign, valType string) interface{} {
 		}
 	}
 	if valType == "-A" {
-		// associative array
 		amap := make(map[string]string, len(elems))
 		for _, elem := range elems {
 			k := r.literal(elem.Index.(*syntax.Word))
 			amap[k] = r.literal(elem.Value)
 		}
-		if !as.Append || !prev.IsSet() {
-			return amap
+		if !as.Append {
+			prev.Kind = expand.Associative
+			prev.Map = amap
+			return prev
 		}
 		// TODO
-		return amap
+		return prev
 	}
-	// indexed array
 	maxIndex := len(elems) - 1
 	indexes := make([]int, len(elems))
 	for i, elem := range elems {
@@ -305,16 +306,19 @@ func (r *Runner) assignVal(as *syntax.Assign, valType string) interface{} {
 	for i, elem := range elems {
 		strs[indexes[i]] = r.literal(elem.Value)
 	}
-	if !as.Append || !prev.IsSet() {
-		return strs
+	if !as.Append {
+		prev.Kind = expand.Indexed
+		prev.List = strs
+		return prev
 	}
-	switch x := prev.Value.(type) {
-	case string:
-		return append([]string{x}, strs...)
-	case []string:
-		return append(x, strs...)
-	case map[string]string:
+	switch prev.Kind {
+	case expand.String:
+		prev.Kind = expand.Indexed
+		prev.List = append([]string{prev.Str}, strs...)
+	case expand.Indexed:
+		prev.List = append(prev.List, strs...)
+	case expand.Associative:
 		// TODO
 	}
-	return strs
+	return prev
 }

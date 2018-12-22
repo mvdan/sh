@@ -118,7 +118,7 @@ func (cfg *Config) envSet(name, value string) error {
 	if !ok {
 		return fmt.Errorf("environment is read-only")
 	}
-	return wenv.Set(name, Variable{Value: value})
+	return wenv.Set(name, Variable{Kind: String, Str: value})
 }
 
 // Literal expands a single shell word. It is similar to Fields, but the result
@@ -540,14 +540,14 @@ func (cfg *Config) quotedElems(pe *syntax.ParamExp) []string {
 		return nil
 	}
 	if pe.Param.Value == "@" {
-		return cfg.Env.Get("@").Value.([]string)
+		return cfg.Env.Get("@").List
 	}
 	if nodeLit(pe.Index) != "@" {
 		return nil
 	}
-	val := cfg.Env.Get(pe.Param.Value).Value
-	if x, ok := val.([]string); ok {
-		return x
+	vr := cfg.Env.Get(pe.Param.Value)
+	if vr.Kind == Indexed {
+		return vr.List
 	}
 	return nil
 }

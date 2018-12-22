@@ -50,7 +50,7 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 		// This is the only parameter expansion that the environment
 		// interface cannot satisfy.
 		line := uint64(cfg.curParam.Pos().Line())
-		vr.Value = strconv.FormatUint(line, 10)
+		vr = Variable{Kind: String, Str: strconv.FormatUint(line, 10)}
 	default:
 		vr = cfg.Env.Get(name)
 	}
@@ -74,11 +74,11 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 	elems := []string{str}
 	switch nodeLit(index) {
 	case "@", "*":
-		switch x := vr.Value.(type) {
-		case nil:
+		switch vr.Kind {
+		case Unset:
 			elems = nil
-		case []string:
-			elems = x
+		case Indexed:
+			elems = vr.List
 		}
 	}
 	switch {
@@ -95,15 +95,15 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 		if pe.Names != 0 {
 			strs = cfg.namesByPrefix(pe.Param.Value)
 		} else if orig.NameRef {
-			strs = append(strs, orig.Value.(string))
-		} else if x, ok := vr.Value.([]string); ok {
-			for i, e := range x {
+			strs = append(strs, orig.Str)
+		} else if vr.Kind == Indexed {
+			for i, e := range vr.List {
 				if e != "" {
 					strs = append(strs, strconv.Itoa(i))
 				}
 			}
-		} else if x, ok := vr.Value.(map[string]string); ok {
-			for k := range x {
+		} else if vr.Kind == Associative {
+			for k := range vr.Map {
 				strs = append(strs, k)
 			}
 		} else if str != "" {
@@ -289,40 +289,40 @@ func (cfg *Config) varInd(vr Variable, idx syntax.ArithmExpr) (string, error) {
 	if idx == nil {
 		return vr.String(), nil
 	}
-	switch x := vr.Value.(type) {
-	case string:
+	switch vr.Kind {
+	case String:
 		n, err := Arithm(cfg, idx)
 		if err != nil {
 			return "", err
 		}
 		if n == 0 {
-			return x, nil
+			return vr.Str, nil
 		}
-	case []string:
+	case Indexed:
 		switch nodeLit(idx) {
 		case "@":
-			return strings.Join(x, " "), nil
+			return strings.Join(vr.List, " "), nil
 		case "*":
-			return cfg.ifsJoin(x), nil
+			return cfg.ifsJoin(vr.List), nil
 		}
 		i, err := Arithm(cfg, idx)
 		if err != nil {
 			return "", err
 		}
-		if len(x) > 0 {
-			return x[i], nil
+		if len(vr.List) > 0 {
+			return vr.List[i], nil
 		}
-	case map[string]string:
+	case Associative:
 		switch lit := nodeLit(idx); lit {
 		case "@", "*":
 			var strs []string
-			keys := make([]string, 0, len(x))
-			for k := range x {
+			keys := make([]string, 0, len(vr.Map))
+			for k := range vr.Map {
 				keys = append(keys, k)
 			}
 			sort.Strings(keys)
 			for _, k := range keys {
-				strs = append(strs, x[k])
+				strs = append(strs, vr.Map[k])
 			}
 			if lit == "*" {
 				return cfg.ifsJoin(strs), nil
@@ -333,7 +333,7 @@ func (cfg *Config) varInd(vr Variable, idx syntax.ArithmExpr) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		return x[val], nil
+		return vr.Map[val], nil
 	}
 	return "", nil
 }

@@ -469,7 +469,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			if i < len(values) {
 				val = values[i]
 			}
-			r.setVar(name, nil, expand.Variable{Value: val})
+			r.setVar(name, nil, expand.Variable{Kind: expand.String, Str: val})
 		}
 
 		return 0
@@ -621,7 +621,7 @@ func (r *Runner) changeDir(path string) int {
 	}
 	r.Dir = path
 	r.Vars["OLDPWD"] = r.Vars["PWD"]
-	r.Vars["PWD"] = expand.Variable{Value: path}
+	r.Vars["PWD"] = expand.Variable{Kind: expand.String, Str: path}
 	return 0
 }
 
