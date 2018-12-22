@@ -94,7 +94,7 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 		var strs []string
 		if pe.Names != 0 {
 			strs = cfg.namesByPrefix(pe.Param.Value)
-		} else if orig.NameRef {
+		} else if orig.Kind == NameRef {
 			strs = append(strs, orig.Str)
 		} else if vr.Kind == Indexed {
 			for i, e := range vr.List {

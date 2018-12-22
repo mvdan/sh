@@ -46,11 +46,12 @@ type WriteEnviron interface {
 	Set(name string, vr Variable) error
 }
 
-type ValueKind int
+type ValueKind uint8
 
 const (
 	Unset ValueKind = iota
 	String
+	NameRef
 	Indexed
 	Associative
 )
@@ -68,11 +69,10 @@ type Variable struct {
 	Local    bool
 	Exported bool
 	ReadOnly bool
-	NameRef  bool // if true, Value must be string
 
 	Kind ValueKind
 
-	Str  string            // Used when Kind is String.
+	Str  string            // Used when Kind is String or NameRef.
 	List []string          // Used when Kind is Indexed.
 	Map  map[string]string // Used when Kind is Associative.
 }
@@ -109,7 +109,7 @@ const maxNameRefDepth = 100
 func (v Variable) Resolve(env Environ) (string, Variable) {
 	name := ""
 	for i := 0; i < maxNameRefDepth; i++ {
-		if !v.NameRef {
+		if v.Kind != NameRef {
 			return name, v
 		}
 		name = v.Str // keep name for the next iteration

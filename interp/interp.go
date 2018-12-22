@@ -883,13 +883,13 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		case "readonly":
 			modes = append(modes, "-r")
 		case "nameref":
-			modes = append(modes, "-n")
+			valType = "-n"
 		}
 		for _, opt := range x.Opts {
 			switch s := r.literal(opt); s {
-			case "-x", "-r", "-n":
+			case "-x", "-r":
 				modes = append(modes, s)
-			case "-a", "-A":
+			case "-a", "-A", "-n":
 				valType = s
 			case "-g":
 				global = true
@@ -919,8 +919,6 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 						vr.Exported = true
 					case "-r":
 						vr.ReadOnly = true
-					case "-n":
-						vr.NameRef = true
 					}
 				}
 				r.setVar(name, as.Index, vr)

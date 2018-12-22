@@ -163,8 +163,6 @@ func (r *Runner) setVar(name string, index syntax.ArithmExpr, vr expand.Variable
 	if name2, var2 := cur.Resolve(r.Env); name2 != "" {
 		name = name2
 		cur = var2
-		vr.NameRef = false
-		cur.NameRef = false
 	}
 
 	if vr.Kind == expand.String && index == nil {
@@ -246,6 +244,9 @@ func (r *Runner) assignVal(as *syntax.Assign, valType string) expand.Variable {
 		s := r.literal(as.Value)
 		if !as.Append || !prev.IsSet() {
 			prev.Kind = expand.String
+			if valType == "-n" {
+				prev.Kind = expand.NameRef
+			}
 			prev.Str = s
 			return prev
 		}
@@ -265,6 +266,9 @@ func (r *Runner) assignVal(as *syntax.Assign, valType string) expand.Variable {
 	if as.Array == nil {
 		// don't return the zero value, as that's an unset variable
 		prev.Kind = expand.String
+		if valType == "-n" {
+			prev.Kind = expand.NameRef
+		}
 		prev.Str = ""
 		return prev
 	}
