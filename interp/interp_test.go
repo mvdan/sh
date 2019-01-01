@@ -233,6 +233,10 @@ var fileCases = []struct {
 	{`a=$"foo\nbar"; echo "$a"`, "foo\\nbar\n"},
 	{`echo $'\a\b\e\E\f\v'`, "\a\b\x1b\x1b\f\v\n"},
 	{`echo $'\\\'\"\?'`, "\\'\"?\n"},
+	{`echo $'\1\45\12345\777\9'`, "\x01%S45\xff\\9\n"},
+	{`echo $'\x\xf\x09\xAB'`, "\\x\x0f\x09\xab\n"},
+	{`echo $'\u\uf\u09\uABCD\u00051234'`, "\\u\u000f\u0009\uabcd\u00051234\n"},
+	{`echo $'\U\Uf\U09\UABCD\U00051234'`, "\\U\u000f\u0009\uabcd\U00051234\n"},
 
 	// escaped chars
 	{"echo a\\b", "ab\n"},

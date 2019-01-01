@@ -194,6 +194,24 @@ func Format(cfg *Config, format string, args []string) (string, int, error) {
 	initialArgs := len(args)
 
 	for i := 0; i < len(format); i++ {
+		// readDigits reads from 0 to max digits, either octal or
+		// hexadecimal.
+		readDigits := func(max int, hex bool) string {
+			j := 0
+			for ; j < max; j++ {
+				c := format[i+j]
+				if (c >= '0' && c <= '9') ||
+					(hex && c >= 'a' && c <= 'f') ||
+					(hex && c >= 'A' && c <= 'F') {
+					// valid octal or hex char
+				} else {
+					break
+				}
+			}
+			digits := format[i : i+j]
+			i += j - 1 // -1 since the outer loop does i++
+			return digits
+		}
 		c := format[i]
 		switch {
 		case c == '\\': // escaped
@@ -217,6 +235,32 @@ func Format(cfg *Config, format string, args []string) (string, int, error) {
 				buf.WriteByte('\v')
 			case '\\', '\'', '"', '?': // just the character
 				buf.WriteByte(c)
+			case '0', '1', '2', '3', '4', '5', '6', '7':
+				digits := readDigits(3, false)
+				// if digits don't fit in 8 bits, 0xff via strconv
+				n, _ := strconv.ParseUint(digits, 8, 8)
+				buf.WriteByte(byte(n))
+			case 'x', 'u', 'U':
+				i++
+				max := 2
+				if c == 'u' {
+					max = 4
+				} else if c == 'U' {
+					max = 8
+				}
+				digits := readDigits(max, true)
+				if len(digits) > 0 {
+					// can't error
+					n, _ := strconv.ParseUint(digits, 16, 32)
+					if c == 'x' {
+						// always as a single byte
+						buf.WriteByte(byte(n))
+					} else {
+						buf.WriteRune(rune(n))
+					}
+					break
+				}
+				fallthrough
 			default: // no escape sequence
 				buf.WriteByte('\\')
 				buf.WriteByte(c)
