@@ -190,38 +190,37 @@ func Pattern(cfg *Config, word *syntax.Word) (string, error) {
 func Format(cfg *Config, format string, args []string) (string, int, error) {
 	cfg = prepareConfig(cfg)
 	buf := cfg.strBuilder()
-	esc := false
-	var fmts []rune
+	var fmts []byte
 	initialArgs := len(args)
 
-	for _, c := range format {
+	for i := 0; i < len(format); i++ {
+		c := format[i]
 		switch {
-		case esc:
-			esc = false
-			switch c {
+		case c == '\\': // escaped
+			i++
+			switch c = format[i]; c {
 			case 'a': // bell
-				buf.WriteRune('\a')
+				buf.WriteByte('\a')
 			case 'b': // backspace
-				buf.WriteRune('\b')
+				buf.WriteByte('\b')
 			case 'e', 'E': // escape
-				buf.WriteRune('\x1b')
+				buf.WriteByte('\x1b')
 			case 'f': // form feed
-				buf.WriteRune('\f')
+				buf.WriteByte('\f')
 			case 'n': // new line
-				buf.WriteRune('\n')
+				buf.WriteByte('\n')
 			case 'r': // carriage return
-				buf.WriteRune('\r')
+				buf.WriteByte('\r')
 			case 't': // horizontal tab
-				buf.WriteRune('\t')
+				buf.WriteByte('\t')
 			case 'v': // vertical tab
-				buf.WriteRune('\v')
+				buf.WriteByte('\v')
 			case '\\', '\'', '"', '?': // just the character
-				buf.WriteRune(c)
-			default:
-				buf.WriteRune('\\')
-				buf.WriteRune(c)
+				buf.WriteByte(c)
+			default: // no escape sequence
+				buf.WriteByte('\\')
+				buf.WriteByte(c)
 			}
-
 		case len(fmts) > 0:
 			switch c {
 			case '%':
@@ -268,14 +267,12 @@ func Format(cfg *Config, format string, args []string) (string, int, error) {
 			default:
 				return "", 0, fmt.Errorf("invalid format char: %c", c)
 			}
-		case c == '\\':
-			esc = true
 		case args != nil && c == '%':
 			// if args == nil, we are not doing format
 			// arguments
-			fmts = []rune{c}
+			fmts = []byte{c}
 		default:
-			buf.WriteRune(c)
+			buf.WriteByte(c)
 		}
 	}
 	if len(fmts) > 0 {
@@ -719,6 +716,7 @@ func (cfg *Config) globDir(base, dir string, rx *regexp.Regexp, wantDir bool, ma
 	return matches, nil
 }
 
+// ReadFields TODO write doc.
 //
 // The config specifies shell expansion options; nil behaves the same as an
 // empty config.
