@@ -199,14 +199,24 @@ func Format(cfg *Config, format string, args []string) (string, int, error) {
 		case esc:
 			esc = false
 			switch c {
-			case 'n':
+			case 'a': // bell
+				buf.WriteRune('\a')
+			case 'b': // backspace
+				buf.WriteRune('\b')
+			case 'e', 'E': // escape
+				buf.WriteRune('\x1b')
+			case 'f': // form feed
+				buf.WriteRune('\f')
+			case 'n': // new line
 				buf.WriteRune('\n')
-			case 'r':
+			case 'r': // carriage return
 				buf.WriteRune('\r')
-			case 't':
+			case 't': // horizontal tab
 				buf.WriteRune('\t')
-			case '\\':
-				buf.WriteRune('\\')
+			case 'v': // vertical tab
+				buf.WriteRune('\v')
+			case '\\', '\'', '"', '?': // just the character
+				buf.WriteRune(c)
 			default:
 				buf.WriteRune('\\')
 				buf.WriteRune(c)
