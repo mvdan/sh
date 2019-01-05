@@ -462,6 +462,8 @@ var printTests = []printCase{
 		"if foo # inline\nthen\n\tbar\nfi",
 		"if foo; then # inline\n\tbar\nfi",
 	},
+	samePrint("for i; do echo $i; done"),
+	samePrint("for i in; do echo $i; done"),
 	{
 		"for foo in a b # inline\ndo\n\tbar\ndone",
 		"for foo in a b; do # inline\n\tbar\ndone",

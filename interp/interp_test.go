@@ -551,6 +551,14 @@ var fileCases = []struct {
 		"for ((i=0; i<3; i++)); do :; done; echo $i",
 		"3\n",
 	},
+	{
+		"set -- a 'b c'; for i in; do echo $i; done",
+		"",
+	},
+	{
+		"set -- a 'b c'; for i; do echo $i; done",
+		"a\nb c\n",
+	},
 
 	// block
 	{

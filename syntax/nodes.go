@@ -373,14 +373,21 @@ func (*WordIter) loopNode()   {}
 func (*CStyleLoop) loopNode() {}
 
 // WordIter represents the iteration of a variable over a series of words in a
-// for clause.
+// for clause. If InPos is an invalid position, the "in" token was missing, so
+// the iteration is over the shell's positional parameters.
 type WordIter struct {
 	Name  *Lit
+	InPos Pos // position of "in"
 	Items []*Word
 }
 
 func (w *WordIter) Pos() Pos { return w.Name.Pos() }
-func (w *WordIter) End() Pos { return posMax(w.Name.End(), wordLastEnd(w.Items)) }
+func (w *WordIter) End() Pos {
+	if len(w.Items) > 0 {
+		return wordLastEnd(w.Items)
+	}
+	return posMax(w.Name.End(), posAddCol(w.InPos, 2))
+}
 
 // CStyleLoop represents the behaviour of a for clause similar to the C
 // language.

@@ -4384,6 +4384,9 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 		recurse(x.Do)
 	case *WordIter:
 		recurse(x.Name)
+		if x.InPos.IsValid() {
+			setPos(&x.InPos, "in")
+		}
 		recurse(x.Items)
 	case *CStyleLoop:
 		setPos(&x.Lparen, "((")
