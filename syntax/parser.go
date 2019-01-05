@@ -2017,7 +2017,8 @@ func (p *Parser) wordIter(ftok string, fpos Pos) *WordIter {
 		return wi
 	}
 	p.got(_Newl)
-	if _, ok := p.gotRsrv("in"); ok {
+	if pos, ok := p.gotRsrv("in"); ok {
+		wi.InPos = pos
 		for !stopToken(p.tok) {
 			if w := p.getWord(); w == nil {
 				p.curErr("word list can only contain words")

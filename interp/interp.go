@@ -791,7 +791,11 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		switch y := x.Loop.(type) {
 		case *syntax.WordIter:
 			name := y.Name.Value
-			for _, field := range r.fields(y.Items...) {
+			items := r.Params // for i; do ...
+			if y.InPos.IsValid() {
+				items = r.fields(y.Items...) // for i in ...; do ...
+			}
+			for _, field := range items {
 				r.setVarString(name, field)
 				if r.loopStmtsBroken(ctx, x.Do) {
 					break
