@@ -19,7 +19,7 @@ func Arithm(cfg *Config, expr syntax.ArithmExpr) (int, error) {
 		}
 		// recursively fetch vars
 		i := 0
-		for str != "" && syntax.ValidName(str) {
+		for syntax.ValidName(str) {
 			val := cfg.envGet(str)
 			if val == "" {
 				break
