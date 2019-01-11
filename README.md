@@ -43,7 +43,7 @@ formatting options - see `shfmt -h`. For example, to get the formatting
 appropriate for [Google's Style][google-style] guide, use `shfmt -i 2 -ci`.
 
 Packages are available on [Arch], [CRUX], [Docker], [FreeBSD], [Homebrew],
-[NixOS] and [Void].
+[NixOS], [Void] and as a [Snap].
 
 #### Replacing `bash -n`
 
@@ -138,5 +138,6 @@ To build a Docker image, checkout a specific version of the repository and run:
 [posix shell]: http://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html
 [posix-ambiguity]: http://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_06_03
 [shell-format]: https://marketplace.visualstudio.com/items?itemName=foxundermoon.shell-format
+[snap]: https://snapcraft.io/shfmt
 [vim-shfmt]: https://github.com/z0mbix/vim-shfmt
 [void]: https://github.com/voidlinux/void-packages/blob/HEAD/srcpkgs/shfmt/template
