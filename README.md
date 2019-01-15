@@ -43,7 +43,7 @@ formatting options - see `shfmt -h`. For example, to get the formatting
 appropriate for [Google's Style][google-style] guide, use `shfmt -i 2 -ci`.
 
 Packages are available on [Arch], [CRUX], [Docker], [FreeBSD], [Homebrew],
-[NixOS], [Void] and as a [Snap].
+[NixOS], [Void], and as a [Snap].
 
 #### Replacing `bash -n`
 
