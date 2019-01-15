@@ -2109,6 +2109,10 @@ set +o pipefail
 		"././x-d1/ ././x-d2/\n",
 	},
 	{
+		"mkdir -p x-d1/a x-d2/b; touch x-f; echo x-*/* | sed -e 's@\\\\@/@g'",
+		"x-d1/a x-d2/b\n",
+	},
+	{
 		"mkdir x-d; touch x-f; test -d $PWD/x-*/",
 		"",
 	},
