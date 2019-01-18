@@ -54,13 +54,13 @@ let i=(2 + 3)
 	}
 }
 
-var hasBash44 bool
+var hasBash50 bool
 
 func TestMain(m *testing.M) {
 	os.Setenv("LANGUAGE", "en_US.UTF8")
 	os.Setenv("LC_ALL", "en_US.UTF8")
 	os.Unsetenv("CDPATH")
-	hasBash44 = checkBash()
+	hasBash50 = checkBash()
 	os.Setenv("INTERP_GLOBAL", "value")
 	os.Setenv("MULTILINE_INTERP_GLOBAL", "\nwith\nnewlines\n\n")
 
@@ -83,7 +83,7 @@ func checkBash() bool {
 	if err != nil {
 		return false
 	}
-	return strings.HasPrefix(string(out), "4.4")
+	return strings.HasPrefix(string(out), "5.0")
 }
 
 // concBuffer wraps a bytes.Buffer in a mutex so that concurrent writes
@@ -2375,8 +2375,8 @@ func TestFileConfirm(t *testing.T) {
 	if testing.Short() {
 		t.Skip("calling bash is slow")
 	}
-	if !hasBash44 {
-		t.Skip("bash 4.4 required to run")
+	if !hasBash50 {
+		t.Skip("bash 5.0 required to run")
 	}
 	if runtime.GOOS == "windows" {
 		// For example, it seems to treat environment variables as

@@ -76,7 +76,7 @@ func TestParseMirBSDKorn(t *testing.T) {
 }
 
 var (
-	hasBash44  bool
+	hasBash50  bool
 	hasDash059 bool
 	hasMksh56  bool
 )
@@ -84,7 +84,7 @@ var (
 func TestMain(m *testing.M) {
 	os.Setenv("LANGUAGE", "en_US.UTF8")
 	os.Setenv("LC_ALL", "en_US.UTF8")
-	hasBash44 = cmdContains("version 4.4", "bash", "--version")
+	hasBash50 = cmdContains("version 5.0", "bash", "--version")
 	// dash provides no way to check its version, so we have to
 	// check if it's new enough as to not have the bug that breaks
 	// our integration tests. Blergh.
@@ -151,8 +151,8 @@ func TestParseBashConfirm(t *testing.T) {
 	if testing.Short() {
 		t.Skip("calling bash is slow.")
 	}
-	if !hasBash44 {
-		t.Skip("bash 4.4 required to run")
+	if !hasBash50 {
+		t.Skip("bash 5.0 required to run")
 	}
 	i := 0
 	for _, c := range append(fileTests, fileTestsNoPrint...) {
@@ -211,8 +211,8 @@ func TestParseErrBashConfirm(t *testing.T) {
 	if testing.Short() {
 		t.Skip("calling bash is slow.")
 	}
-	if !hasBash44 {
-		t.Skip("bash 4.4 required to run")
+	if !hasBash50 {
+		t.Skip("bash 5.0 required to run")
 	}
 	i := 0
 	for _, c := range shellTests {
