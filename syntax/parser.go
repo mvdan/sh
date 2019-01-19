@@ -1003,6 +1003,11 @@ func (p *Parser) wordPart() WordPart {
 
 		p.next()
 		cs.StmtList = p.stmtList()
+		if p.tok == bckQuote && p.lastBquoteEsc < p.openBquotes-1 {
+			// e.g. found ` before the nested backquote \` was closed.
+			p.tok = _EOF
+			p.quoteErr(cs.Pos(), bckQuote)
+		}
 		p.postNested(old)
 		p.openBquotes--
 		cs.Right = p.pos
