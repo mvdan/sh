@@ -1189,6 +1189,10 @@ var shellTests = []errorCase{
 		common: "1:3: reached EOF without closing quote `",
 	},
 	{
+		in:     "`\\```",
+		common: "1:2: reached EOF without closing quote `",
+	},
+	{
 		in:     "`{\n`",
 		common: "1:2: reached ` without matching { with }",
 	},
