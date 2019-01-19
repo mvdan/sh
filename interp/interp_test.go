@@ -288,8 +288,12 @@ var fileCases = []struct {
 	{"a=(a bcd); echo ${#a} ${#a[@]} ${#a[*]} ${#a[1]}", "1 2 2 3\n"},
 	{"set -- a bc; echo ${#@} ${#*} $#", "2 2 2\n"},
 	{
-		"echo ${!a}; a=b; echo ${!a}; b=c; echo ${!a}",
-		"\n\nc\n",
+		"echo ${!a}; echo more",
+		"invalid indirect expansion\nexit status 1 #JUSTERR",
+	},
+	{
+		"a=b; echo ${!a}; b=c; echo ${!a}",
+		"\nc\n",
 	},
 	{
 		"a=foo; echo ${a:1}; echo ${a: -1}; echo ${a: -10}; echo ${a:5}",
@@ -1834,20 +1838,20 @@ set +o pipefail
 		"\n\nb\n\n",
 	},
 	{
-		`declare -A a=([x]=b [y]=c); echo ${a[@]}; echo ${a[*]}`,
-		"b c\nb c\n",
+		`declare -A a=([x]=b [y]=c); for e in ${a[@]}; do echo $e; done | sort`,
+		"b\nc\n",
 	},
 	{
-		`declare -A a=([y]=b [x]=c); echo ${a[@]}; echo ${a[*]}`,
-		"c b\nc b\n",
+		`declare -A a=([y]=b [x]=c); for e in ${a[*]}; do echo $e; done | sort`,
+		"b\nc\n",
 	},
 	{
-		`declare -A a=([x]=a); a["y"]=d; a["x"]=c; echo ${a[@]}`,
-		"c d\n",
+		`declare -A a=([x]=a); a["y"]=d; a["x"]=c; for e in ${a[@]}; do echo $e; done | sort`,
+		"c\nd\n",
 	},
 	{
-		`declare -A a=([x]=a); a[y]=d; a[x]=c; echo ${a[@]}`,
-		"c d\n",
+		`declare -A a=([x]=a); a[y]=d; a[x]=c; for e in ${a[@]}; do echo $e; done | sort`,
+		"c\nd\n",
 	},
 	{
 		// cheating a little; bash just did a=c
@@ -1866,10 +1870,10 @@ set +o pipefail
 	// weird assignments
 	{"a=b; a=(c d); echo ${a[@]}", "c d\n"},
 	{"a=(b c); a=d; echo ${a[@]}", "d c\n"},
-	{"declare -A a=([x]=b [y]=c); a=d; echo ${a[@]}", "d b c\n"},
+	{"declare -A a=([x]=b [y]=c); a=d; for e in ${a[@]}; do echo $e; done | sort", "b\nc\nd\n"},
 	{"i=3; a=b; a[i]=x; echo ${a[@]}", "b x\n"},
 	{"i=3; declare a=(b); a[i]=x; echo ${!a[@]}", "0 3\n"},
-	{"i=3; declare -A a=(['x']=b); a[i]=x; echo ${!a[@]}", "i x\n"},
+	{"i=3; declare -A a=(['x']=b); a[i]=x; for e in ${!a[@]}; do echo $e; done | sort", "i\nx\n"},
 
 	// declare
 	{"declare -B foo", "declare: invalid option \"-B\"\nexit status 2 #JUSTERR"},

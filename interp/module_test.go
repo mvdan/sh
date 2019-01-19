@@ -71,7 +71,7 @@ var modCases = []struct {
 			return fmt.Errorf("blacklisted: %s", args[0])
 		},
 		src:  "a=$(malicious)",
-		want: "blacklisted: malicious",
+		want: "blacklisted: malicious\nexit status 1",
 	},
 	{
 		name: "ExecBackground",

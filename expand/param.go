@@ -106,7 +106,9 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 			for k := range vr.Map {
 				strs = append(strs, k)
 			}
-		} else if str != "" {
+		} else if !syntax.ValidName(str) {
+			return "", fmt.Errorf("invalid indirect expansion")
+		} else {
 			vr = cfg.Env.Get(str)
 			strs = append(strs, vr.String())
 		}
@@ -315,15 +317,11 @@ func (cfg *Config) varInd(vr Variable, idx syntax.ArithmExpr) (string, error) {
 	case Associative:
 		switch lit := nodeLit(idx); lit {
 		case "@", "*":
-			var strs []string
-			keys := make([]string, 0, len(vr.Map))
-			for k := range vr.Map {
-				keys = append(keys, k)
+			strs := make([]string, 0, len(vr.Map))
+			for _, val := range vr.Map {
+				strs = append(strs, val)
 			}
-			sort.Strings(keys)
-			for _, k := range keys {
-				strs = append(strs, vr.Map[k])
-			}
+			sort.Strings(strs)
 			if lit == "*" {
 				return cfg.ifsJoin(strs), nil
 			}

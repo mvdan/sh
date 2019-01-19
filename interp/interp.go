@@ -116,15 +116,10 @@ func (r *Runner) updateExpandOpts() {
 }
 
 func (r *Runner) expandErr(err error) {
-	switch err := err.(type) {
-	case nil:
-	case expand.UnsetParameterError:
-		r.errf("%s\n", err.Message)
+	if err != nil {
+		r.errf("%v\n", err)
 		r.exit = 1
 		r.setErr(ShellExitStatus(r.exit))
-	default:
-		r.setErr(err)
-		r.exit = 1
 	}
 }
 
