@@ -112,15 +112,15 @@ func TestSourceFileContext(t *testing.T) {
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
 	errc := make(chan error, 1)
 	go func() {
 		_, err := SourceFile(ctx, tf.Name())
 		errc <- err
 	}()
-	cancel()
 	err = <-errc
 	want := "context canceled"
-	if !strings.Contains(err.Error(), want) {
+	if err == nil || !strings.Contains(err.Error(), want) {
 		t.Fatalf("error %q does not match %q", err, want)
 	}
 }
