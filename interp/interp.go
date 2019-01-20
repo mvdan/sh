@@ -801,7 +801,9 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			break
 		}
 		r.exit = 0
-		r.stmts(ctx, x.Else)
+		if x.Else != nil {
+			r.cmd(ctx, x.Else)
+		}
 	case *syntax.WhileClause:
 		for !r.stop(ctx) {
 			r.stmts(ctx, x.Cond)

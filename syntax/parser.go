@@ -1924,37 +1924,39 @@ func (p *Parser) block(s *Stmt) {
 }
 
 func (p *Parser) ifClause(s *Stmt) {
-	rif := &IfClause{IfPos: p.pos}
+	rootIf := &IfClause{Position: p.pos}
 	p.next()
-	rif.Cond = p.followStmts("if", rif.IfPos, "then")
-	rif.ThenPos = p.followRsrv(rif.IfPos, "if <cond>", "then")
-	rif.Then = p.followStmts("then", rif.ThenPos, "fi", "elif", "else")
-	curIf := rif
+	rootIf.Cond = p.followStmts("if", rootIf.Position, "then")
+	rootIf.ThenPos = p.followRsrv(rootIf.Position, "if <cond>", "then")
+	rootIf.Then = p.followStmts("then", rootIf.ThenPos, "fi", "elif", "else")
+	curIf := rootIf
 	for p.tok == _LitWord && p.val == "elif" {
-		elf := &IfClause{IfPos: p.pos, Elif: true}
-		s := p.stmt(elf.IfPos)
-		s.Cmd = elf
-		s.Comments = p.accComs
+		elf := &IfClause{Position: p.pos}
+		curIf.Last = p.accComs
 		p.accComs = nil
 		p.next()
-		elf.Cond = p.followStmts("elif", elf.IfPos, "then")
-		elf.ThenPos = p.followRsrv(elf.IfPos, "elif <cond>", "then")
+		elf.Cond = p.followStmts("elif", elf.Position, "then")
+		elf.ThenPos = p.followRsrv(elf.Position, "elif <cond>", "then")
 		elf.Then = p.followStmts("then", elf.ThenPos, "fi", "elif", "else")
-		curIf.ElsePos = elf.IfPos
-		curIf.Else.Stmts = []*Stmt{s}
+		curIf.Else = elf
 		curIf = elf
 	}
 	if elsePos, ok := p.gotRsrv("else"); ok {
-		curIf.ElseComments = p.accComs
+		curIf.Last = p.accComs
 		p.accComs = nil
-		curIf.ElsePos = elsePos
-		curIf.Else = p.followStmts("else", curIf.ElsePos, "fi")
+		els := &IfClause{Position: elsePos}
+		els.Then = p.followStmts("else", els.Position, "fi")
+		curIf.Else = els
+		curIf = els
 	}
-	curIf.FiComments = p.accComs
+	curIf.Last = p.accComs
 	p.accComs = nil
-	rif.FiPos = p.stmtEnd(rif, "if", "fi")
-	curIf.FiPos = rif.FiPos
-	s.Cmd = rif
+	rootIf.FiPos = p.stmtEnd(rootIf, "if", "fi")
+	for els := rootIf.Else; els != nil; els = els.Else {
+		// All the nested IfClauses share the same FiPos.
+		els.FiPos = rootIf.FiPos
+	}
+	s.Cmd = rootIf
 }
 
 func (p *Parser) whileClause(s *Stmt, until bool) {

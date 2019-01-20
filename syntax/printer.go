@@ -1058,31 +1058,34 @@ func (p *Printer) ifClause(ic *IfClause, elif bool) {
 	}
 	p.nestedStmts(ic.Cond, Pos{})
 	p.semiOrNewl("then", ic.ThenPos)
-	p.nestedStmts(ic.Then, ic.bodyEndPos())
-
-	var left []Comment
-	for _, c := range ic.ElseComments {
-		if c.Pos().After(ic.ElsePos) {
-			left = append(left, c)
-			break
-		}
-		p.comments(c)
+	thenEnd := ic.FiPos
+	if ic.Else != nil {
+		thenEnd = ic.Else.Position
 	}
-	if ic.FollowedByElif() {
-		s := ic.Else.Stmts[0]
-		p.comments(s.Comments...)
-		p.semiRsrv("elif", ic.ElsePos)
-		p.ifClause(s.Cmd.(*IfClause), true)
+	p.nestedStmts(ic.Then, thenEnd)
+
+	if ic.Else != nil && ic.Else.ThenPos.IsValid() {
+		p.comments(ic.Last...)
+		p.semiRsrv("elif", ic.Else.Position)
+		p.ifClause(ic.Else, true)
 		return
 	}
-	if !ic.Else.empty() {
-		p.semiRsrv("else", ic.ElsePos)
+	if ic.Else == nil {
+		p.comments(ic.Last...)
+	} else {
+		var left []Comment
+		for _, c := range ic.Last {
+			if c.Pos().After(ic.Else.Position) {
+				left = append(left, c)
+				break
+			}
+			p.comments(c)
+		}
+		p.semiRsrv("else", ic.Else.Position)
 		p.comments(left...)
-		p.nestedStmts(ic.Else, ic.FiPos)
-	} else if ic.ElsePos.IsValid() {
-		p.line = ic.ElsePos.Line()
+		p.nestedStmts(ic.Else.Then, ic.FiPos)
+		p.comments(ic.Else.Last...)
 	}
-	p.comments(ic.FiComments...)
 	p.semiRsrv("fi", ic.FiPos)
 }
 

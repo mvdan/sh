@@ -5,6 +5,8 @@ package syntax
 
 import "bytes"
 
+// TODO(v3): replace bool with a Node return, like in SplitBraces.
+
 // Simplify simplifies a given program and returns whether any changes
 // were made.
 //

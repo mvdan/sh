@@ -81,7 +81,7 @@ var printTests = []printCase{
 	samePrint("foo # inline\n# after"),
 	samePrint("$(a) $(b)"),
 	{"if a\nthen\n\tb\nfi", "if a; then\n\tb\nfi"},
-	{"if a; then\nb\nelse\nfi", "if a; then\n\tb\nfi"},
+	samePrint("if a; then\n\tb\nelse\nfi"),
 	{"if a; then b\nelse c\nfi", "if a; then\n\tb\nelse\n\tc\nfi"},
 	samePrint("foo >&2 <f bar"),
 	samePrint("foo >&2 bar <f"),

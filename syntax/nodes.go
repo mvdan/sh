@@ -294,51 +294,21 @@ type Block struct {
 func (b *Block) Pos() Pos { return b.Lbrace }
 func (b *Block) End() Pos { return posAddCol(b.Rbrace, 1) }
 
-// TODO(v3): Refactor and simplify elif/else. For example, we could likely make
-// Else an *IfClause, remove ElsePos, make IfPos also do opening "else"
-// positions, and join the comment slices as Last []Comment.
-
 // IfClause represents an if statement.
 type IfClause struct {
-	Elif    bool // whether this IfClause begins with "elif"
-	IfPos   Pos  // position of the starting "if" or "elif" token
-	ThenPos Pos
-	ElsePos Pos // position of a following "else" or "elif", if any
-	FiPos   Pos // position of "fi", empty if Elif == true
+	Position Pos // position of the starting "if", "elif", or "else" token
+	ThenPos  Pos // position of "then", empty if this is an "else"
+	FiPos    Pos // position of "fi", shared with .Else if non-nil
 
 	Cond StmtList
 	Then StmtList
-	Else StmtList
+	Else *IfClause // if non-nil, an "elif" or an "else"
 
-	ElseComments []Comment // comments on the "else"
-	FiComments   []Comment // comments on the "fi"
+	Last []Comment // comments on the first "elif", "else", or "fi"
 }
 
-func (c *IfClause) Pos() Pos { return c.IfPos }
-func (c *IfClause) End() Pos {
-	if !c.FiPos.IsValid() {
-		return posAddCol(c.ElsePos, 4)
-	}
-	return posAddCol(c.FiPos, 2)
-}
-
-// FollowedByElif reports whether this IfClause is followed by an "elif"
-// IfClause in its Else branch. This is true if Else.Stmts has exactly one
-// statement with an IfClause whose Elif field is true.
-func (c *IfClause) FollowedByElif() bool {
-	if len(c.Else.Stmts) != 1 {
-		return false
-	}
-	ic, _ := c.Else.Stmts[0].Cmd.(*IfClause)
-	return ic != nil && ic.Elif
-}
-
-func (c *IfClause) bodyEndPos() Pos {
-	if c.ElsePos.IsValid() {
-		return c.ElsePos
-	}
-	return c.FiPos
-}
+func (c *IfClause) Pos() Pos { return c.Position }
+func (c *IfClause) End() Pos { return posAddCol(c.FiPos, 2) }
 
 // WhileClause represents a while or an until clause.
 type WhileClause struct {

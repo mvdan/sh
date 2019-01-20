@@ -213,7 +213,9 @@ var fileTests = []testCase{
 		common: &IfClause{
 			Cond: litStmts("a"),
 			Then: litStmts("b"),
-			Else: litStmts("c"),
+			Else: &IfClause{
+				Then: litStmts("c"),
+			},
 		},
 	},
 	{
@@ -223,12 +225,13 @@ var fileTests = []testCase{
 		common: &IfClause{
 			Cond: litStmts("a"),
 			Then: litStmts("a"),
-			Else: stmtList(stmt(&IfClause{
-				Elif: true,
+			Else: &IfClause{
 				Cond: litStmts("b"),
 				Then: litStmts("b"),
-				Else: litStmts("c"),
-			})),
+				Else: &IfClause{
+					Then: litStmts("c"),
+				},
+			},
 		},
 	},
 	{
@@ -239,17 +242,17 @@ var fileTests = []testCase{
 		common: &IfClause{
 			Cond: litStmts("a"),
 			Then: litStmts("a"),
-			Else: stmtList(stmt(&IfClause{
-				Elif: true,
+			Else: &IfClause{
 				Cond: litStmts("b"),
 				Then: litStmts("b"),
-				Else: stmtList(stmt(&IfClause{
-					Elif: true,
+				Else: &IfClause{
 					Cond: litStmts("c"),
 					Then: litStmts("c"),
-					Else: litStmts("d"),
-				})),
-			})),
+					Else: &IfClause{
+						Then: litStmts("d"),
+					},
+				},
+			},
 		},
 	},
 	{
@@ -4351,15 +4354,16 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 		setPos(&x.Rbrace, "}")
 		recurse(x.StmtList)
 	case *IfClause:
-		setPos(&x.IfPos, "if", "elif")
-		setPos(&x.ThenPos, "then")
-		if x.FiPos.IsValid() {
-			setPos(&x.FiPos, "fi", "elif")
+		if x.ThenPos.IsValid() {
+			setPos(&x.Position, "if", "elif")
+			setPos(&x.ThenPos, "then")
+		} else {
+			setPos(&x.Position, "else")
 		}
+		setPos(&x.FiPos, "fi")
 		recurse(x.Cond)
 		recurse(x.Then)
-		if !x.Else.empty() {
-			setPos(&x.ElsePos, "else", "elif")
+		if x.Else != nil {
 			recurse(x.Else)
 		}
 	case *WhileClause:

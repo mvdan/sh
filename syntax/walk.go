@@ -84,7 +84,9 @@ func Walk(node Node, f func(Node) bool) {
 	case *IfClause:
 		walkStmts(x.Cond, f)
 		walkStmts(x.Then, f)
-		walkStmts(x.Else, f)
+		if x.Else != nil {
+			Walk(x.Else, f)
+		}
 	case *WhileClause:
 		walkStmts(x.Cond, f)
 		walkStmts(x.Do, f)
