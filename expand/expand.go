@@ -365,11 +365,11 @@ func Fields(cfg *Config, words ...*syntax.Word) ([]string, error) {
 	fields := make([]string, 0, len(words))
 	dir := cfg.envGet("PWD")
 	for _, word := range words {
-		expBraces := []*syntax.Word{word}
-		if expWord, any := syntax.SplitBraces(word); any {
-			expBraces = Braces(expWord)
+		afterBraces := []*syntax.Word{word}
+		if w2 := syntax.SplitBraces(word); w2 != word {
+			afterBraces = Braces(w2)
 		}
-		for _, word2 := range expBraces {
+		for _, word2 := range afterBraces {
 			wfields, err := cfg.wordFields(word2.Parts)
 			if err != nil {
 				return nil, err

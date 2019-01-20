@@ -12,16 +12,16 @@ var (
 	litRightBrace = &Lit{Value: "}"}
 )
 
-// TODO: remove bool return parameter, make it equivalent to input != output.
-
-// SplitBraces may introduce a number of BraceExp parts to a word, which can be
-// used to perform brace expansion with expand.Braces. For example, passing it a
-// literal word "foo{bar,baz}" will result in a word containing the literal
-// "foo", and a brace expansion with the elements "bar" and "baz".
+// SplitBraces will return a new Word with a number of BraceExp parts, if the
+// input word contained brace expansions within its literal parts. Otherwise,
+// the input word is returned intact.
+//
+// For example, a literal word "foo{bar,baz}" will result in a word containing
+// the literal "foo", and a brace expansion with the elements "bar" and "baz".
 //
 // It does not return an error; malformed brace expansions are simply skipped.
 // For example, the literal word "a{b" is returned unchanged.
-func SplitBraces(word *Word) (*Word, bool) {
+func SplitBraces(word *Word) *Word {
 	any := false
 	top := &Word{}
 	acc := top
@@ -169,5 +169,9 @@ func SplitBraces(word *Word) (*Word, bool) {
 			acc.Parts = append(acc.Parts, elem.Parts...)
 		}
 	}
-	return top, any
+	if !any {
+		// TODO: avoid allocations in this case
+		return word
+	}
+	return top
 }

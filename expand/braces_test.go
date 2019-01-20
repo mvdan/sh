@@ -156,7 +156,7 @@ func TestBraces(t *testing.T) {
 			wantStr := printWords(tc.want...)
 			wantBraceExpParts(t, tc.in, false)
 
-			inBraces, _ := syntax.SplitBraces(tc.in)
+			inBraces := syntax.SplitBraces(tc.in)
 			wantBraceExpParts(t, inBraces, inStr != wantStr)
 
 			got := Braces(inBraces)
