@@ -1,5 +1,14 @@
 #!/bin/sh
 
+# If you get weird errors like 'undeclared name: CacheLinePadSize', try being
+# explicit about the Go 1.11.x GOROOT, like:
+#
+#     GOROOT=/usr/lib/go ./build
+
+export GO111MODULE=on # build in module-aware mode
+
 gopherjs build -o index.js || exit 1
 
 node testmain.js || exit 1
+
+go mod tidy # to remove unnecessary gopherjs lines from go.mod

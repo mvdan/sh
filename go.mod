@@ -8,3 +8,5 @@ require (
 	golang.org/x/sync v0.0.0-20181108010431-42b317875d0f
 	golang.org/x/sys v0.0.0-20181107165924-66b7b1311ac8 // indirect
 )
+
+replace github.com/gopherjs/gopherjs => github.com/myitcv/gopherjs v0.0.0-20181206184521-f5b96be2a04c
