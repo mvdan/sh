@@ -8,6 +8,7 @@
 	"license": "BSD-3-Clause",
 	"files": [
 		"README.md",
+		"LICENSE",
 		"index.js"
 	],
 	"keywords": [
