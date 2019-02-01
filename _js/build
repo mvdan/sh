@@ -1,13 +1,13 @@
 #!/bin/sh
 
-# If you get weird errors like 'undeclared name: CacheLinePadSize', try being
-# explicit about the Go 1.11.x GOROOT, like:
-#
-#     GOROOT=/usr/lib/go ./build
+if ! go version | grep go1.11; then
+	echo "Go 1.11.x required to build."
+	exit 1
+fi
 
 export GO111MODULE=on # build in module-aware mode
 
-gopherjs build -o index.js || exit 1
+go run github.com/gopherjs/gopherjs build -o index.js || exit 1
 
 node testmain.js || exit 1
 
