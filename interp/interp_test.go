@@ -2695,3 +2695,35 @@ func TestRunnerEnvNoModify(t *testing.T) {
 		t.Fatalf("\nwant: %q\ngot:  %q", want, got)
 	}
 }
+
+func TestMalformedPathOnWindows(t *testing.T) {
+	if runtime.GOOS != "windows" {
+		t.Skip("Skipping windows test on non-windows GOOS")
+	}
+	dir, err := ioutil.TempDir("", "interp-test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(dir)
+
+	path := filepath.Join(dir, "test.cmd")
+	script := []byte("@echo foo")
+	if err := ioutil.WriteFile(path, script, 0777); err != nil {
+		t.Fatal(err)
+	}
+
+	// set PATH to c:\tmp\dir instead of C:\tmp\dir
+	volume := filepath.VolumeName(dir)
+	pathList := strings.ToLower(volume) + dir[len(volume):]
+
+	file, _ := syntax.NewParser().Parse(strings.NewReader("test.cmd"), "")
+	var cb concBuffer
+	r, _ := New(Env(expand.ListEnviron("PATH="+pathList)), StdIO(nil, &cb, &cb))
+	if err := r.Run(context.Background(), file); err != nil {
+		t.Fatal(err)
+	}
+	want := "foo\r\n"
+	if got := cb.String(); got != want {
+		t.Fatalf("wrong output:\nwant: %q\ngot:  %q", want, got)
+	}
+}
