@@ -1196,7 +1196,7 @@ func splitList(path string) []string {
 	// join "C", "/foo" into "C:/foo"
 	var fixed []string
 	for i := 0; i < len(list); i++ {
-		s := list[i]
+		s := strings.ToUpper(list[i]) //on Windows: useful when %PATH% contains path that starts with lowercase disk name
 		switch {
 		case len(s) != 1, s[0] < 'A', s[0] > 'Z':
 			// not a disk name
