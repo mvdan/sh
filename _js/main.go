@@ -94,7 +94,7 @@ func throw(v interface{}) {
 	js.Global.Call("$throwRuntimeError", fmt.Sprint(v))
 }
 
-// streamReader is an io.Readder wrapper for Node's stream.Readable. See
+// streamReader is an io.Reader wrapper for Node's stream.Readable. See
 // https://nodejs.org/api/stream.html#stream_class_stream_readable
 // TODO: support https://streams.spec.whatwg.org/#rs-class too?
 type streamReader struct {
