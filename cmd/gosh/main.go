@@ -27,7 +27,13 @@ var (
 
 func main() {
 	flag.Parse()
-	if err := runAll(); err != nil {
+	switch err := runAll().(type) {
+	case nil:
+	case interp.ShellExitStatus:
+		os.Exit(int(err))
+	case interp.ExitStatus:
+		os.Exit(int(err))
+	default:
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
@@ -79,15 +85,14 @@ func interactive(runner *interp.Runner) error {
 		}
 		ctx := context.Background()
 		for _, stmt := range stmts {
-			if err := runner.Run(ctx, stmt); err != nil {
-				switch x := err.(type) {
-				case interp.ShellExitStatus:
-					os.Exit(int(x))
-				case interp.ExitStatus:
-				default:
-					fmt.Fprintln(runner.Stderr, err)
-					os.Exit(1)
-				}
+			switch err := runner.Run(ctx, stmt).(type) {
+			case nil:
+			case interp.ShellExitStatus:
+				os.Exit(int(err))
+			case interp.ExitStatus:
+			default:
+				fmt.Fprintln(runner.Stderr, err)
+				os.Exit(1)
 			}
 		}
 		fmt.Fprintf(runner.Stdout, "$ ")
