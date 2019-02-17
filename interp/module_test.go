@@ -31,7 +31,7 @@ var modCases = []struct {
 			if args[0] == "sleep" {
 				return fmt.Errorf("blacklisted: %s", args[0])
 			}
-			return DefaultExec(ctx, path, args)
+			return WithBuiltins(testBuiltins, DefaultExec)(ctx, path, args)
 		},
 		src:  "echo foo; sleep 1",
 		want: "foo\nblacklisted: sleep",
@@ -44,7 +44,7 @@ var modCases = []struct {
 			default:
 				return fmt.Errorf("blacklisted: %s", args[0])
 			}
-			return DefaultExec(ctx, path, args)
+			return WithBuiltins(testBuiltins, DefaultExec)(ctx, path, args)
 		},
 		src:  "a=$(echo foo | sed 's/o/a/g'); echo $a; $a args",
 		want: "faa\nblacklisted: faa",

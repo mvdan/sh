@@ -5,6 +5,7 @@ package interp_test
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"strings"
 
@@ -35,20 +36,14 @@ func Example() {
 }
 
 func ExampleModuleExec() {
-	src := `
-		ls example_test.* || echo "ls failed"
-		rm example_test.* || echo "rm failed"
-	`
+	src := "echo foo; missing-program bar"
 	file, _ := syntax.NewParser().Parse(strings.NewReader(src), "")
 	exec := func(ctx context.Context, path string, args []string) error {
-		switch args[0] {
-		case "ls":
-			// whitelist the "ls" program
-			return interp.DefaultExec(ctx, path, args)
-		default:
-			// refuse to run any other program
+		if path == "" {
+			fmt.Printf("%s is not installed\n", args[0])
 			return interp.ExitStatus(1)
 		}
+		return interp.DefaultExec(ctx, path, args)
 	}
 	runner, _ := interp.New(
 		interp.StdIO(nil, os.Stdout, os.Stdout),
@@ -56,6 +51,6 @@ func ExampleModuleExec() {
 	)
 	runner.Run(context.TODO(), file)
 	// Output:
-	// example_test.go
-	// rm failed
+	// foo
+	// missing-program is not installed
 }
