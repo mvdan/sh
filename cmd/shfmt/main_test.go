@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -49,6 +50,9 @@ func TestStdin(t *testing.T) {
 	})
 
 	t.Run("Diff", func(t *testing.T) {
+		if _, err := exec.LookPath("diff"); err != nil {
+			t.Skip("skipping as the diff tool is not available")
+		}
 		*diff = true
 		defer func() { *diff = false }()
 		in = strings.NewReader(" foo\nbar\n\n")

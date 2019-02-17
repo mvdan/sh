@@ -37,9 +37,9 @@ var mapTests = []struct {
 		},
 	},
 	{
-		"a=$(echo foo | sed 's/o/a/g')",
+		"a=$(echo foo && echo bar)",
 		map[string]expand.Variable{
-			"a": {Kind: expand.String, Str: "faa"},
+			"a": {Kind: expand.String, Str: "foo\nbar"},
 		},
 	},
 }

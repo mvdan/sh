@@ -81,7 +81,7 @@ var interactiveTests = [][]string{
 	{
 		"echo foo |\n",
 		"> ",
-		"cat\n",
+		"read var; echo $var\n",
 		"foo\n",
 	},
 	{
