@@ -1000,12 +1000,10 @@ var runTests = []runTest{
 		"echo foo >/dev/null; echo bar",
 		"bar\n",
 	},
-	// TODO: reenable once we've made a decision on
-	// https://github.com/mvdan/sh/issues/289
-	// {
-	// 	">a; echo foo >>b; wc -c <a >>b; cat b",
-	// 	"foo\n0\n",
-	// },
+	{
+		">a; echo foo >>b; wc -c <a >>b; cat b",
+		"foo\n0\n",
+	},
 	{
 		"echo foo >a; <a",
 		"",
