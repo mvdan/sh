@@ -107,6 +107,13 @@ func TestMain(m *testing.M) {
 		os.Setenv("PATH_PROG", "sh")
 	}
 
+	// To print env vars. Only a builtin on Windows.
+	if runtime.GOOS == "windows" {
+		os.Setenv("ENV_PROG", "cmd /c set")
+	} else {
+		os.Setenv("ENV_PROG", "env")
+	}
+
 	for _, s := range []string{"a", "b", "c", "d", "foo", "bar"} {
 		os.Unsetenv(s)
 	}
@@ -301,17 +308,17 @@ var runTests = []runTest{
 	{"echo $MIXEDCASE_INTERP_GLOBAL", "value\n"},
 	{"foo=bar; foo=x true; echo $foo", "bar\n"},
 	{"foo=bar; foo=x true; echo $foo", "bar\n"},
-	{"foo=bar; env | grep '^foo='", "exit status 1"},
-	{"foo=bar env | grep '^foo='", "foo=bar\n"},
-	{"foo=a foo=b env | grep '^foo='", "foo=b\n"},
-	{"env | grep '^INTERP_GLOBAL='", "INTERP_GLOBAL=value\n"},
-	{"INTERP_GLOBAL=new; env | grep '^INTERP_GLOBAL='", "INTERP_GLOBAL=new\n"},
-	{"INTERP_GLOBAL=; env | grep '^INTERP_GLOBAL='", "INTERP_GLOBAL=\n"},
+	{"foo=bar; $ENV_PROG | grep '^foo='", "exit status 1"},
+	{"foo=bar $ENV_PROG | grep '^foo='", "foo=bar\n"},
+	{"foo=a foo=b $ENV_PROG | grep '^foo='", "foo=b\n"},
+	{"$ENV_PROG | grep '^INTERP_GLOBAL='", "INTERP_GLOBAL=value\n"},
+	{"INTERP_GLOBAL=new; $ENV_PROG | grep '^INTERP_GLOBAL='", "INTERP_GLOBAL=new\n"},
+	{"INTERP_GLOBAL=; $ENV_PROG | grep '^INTERP_GLOBAL='", "INTERP_GLOBAL=\n"},
 	{"a=b; a+=c x+=y; echo $a $x", "bc y\n"},
 	{`a=" x  y"; b=$a c="$a"; echo $b; echo $c`, "x y\nx y\n"},
 	{`a=" x  y"; b=$a c="$a"; echo "$b"; echo "$c"`, " x  y\n x  y\n"},
 	// TODO: reenable once we figure out the broken pipe error
-	//{`env | while read line; do if test -z "$line"; then echo empty; fi; break; done`, ""}, // never begin with an empty element
+	//{`$ENV_PROG | while read line; do if test -z "$line"; then echo empty; fi; break; done`, ""}, // never begin with an empty element
 
 	// special vars
 	{"echo $?; false; echo $?", "0\n1\n"},
@@ -656,10 +663,6 @@ var runTests = []runTest{
 		"",
 	},
 	{
-		"[[ ~root == '~root' ]]",
-		"exit status 1",
-	},
-	{
 		`w="$HOME"; cd; [[ $PWD == "$w" ]]`,
 		"",
 	},
@@ -956,7 +959,7 @@ var runTests = []runTest{
 		"exit status 1",
 	},
 	{
-		"a=sub true & { a=main env | grep '^a='; }",
+		"a=sub true & { a=main $ENV_PROG | grep '^a='; }",
 		"a=main\n",
 	},
 	{
@@ -1301,10 +1304,6 @@ var runTests = []runTest{
 		"y\n",
 	},
 	{
-		"[[ -p a ]] && echo x; mkfifo a; [[ -p a ]] && echo y",
-		"y\n",
-	},
-	{
 		">a; [[ -k a ]] && echo x; chmod +t a; [[ -k a ]] && echo y",
 		"y\n",
 	},
@@ -1430,10 +1429,6 @@ var runTests = []runTest{
 	},
 	{
 		"[ -L a ] && echo x; ln -s b a; [ -L a ] && echo y;",
-		"y\n",
-	},
-	{
-		"[ -p a ] && echo x; mkfifo a; [ -p a ] && echo y",
 		"y\n",
 	},
 	{
@@ -1634,15 +1629,15 @@ var runTests = []runTest{
 		"a.x\n",
 	},
 	{
-		"set -a; foo=bar; env | grep ^foo=",
+		"set -a; foo=bar; $ENV_PROG | grep ^foo=",
 		"foo=bar\n",
 	},
 	{
-		"set -a; foo=(b a r); env | grep ^foo=",
+		"set -a; foo=(b a r); $ENV_PROG | grep ^foo=",
 		"exit status 1",
 	},
 	{
-		"foo=bar; set -a; env | grep ^foo=",
+		"foo=bar; set -a; $ENV_PROG | grep ^foo=",
 		"exit status 1",
 	},
 	{
@@ -1925,15 +1920,15 @@ set +o pipefail
 	{"declare $unset=$unset", "declare: invalid name \"\"\nexit status 1 #JUSTERR"},
 
 	// export
-	{"declare foo=bar; env | grep '^foo='", "exit status 1"},
-	{"declare -x foo=bar; env | grep '^foo='", "foo=bar\n"},
-	{"export foo=bar; env | grep '^foo='", "foo=bar\n"},
-	{"foo=bar; export foo; env | grep '^foo='", "foo=bar\n"},
-	{"export foo=bar; foo=baz; env | grep '^foo='", "foo=baz\n"},
-	{"export foo=bar; readonly foo=baz; env | grep '^foo='", "foo=baz\n"},
-	{"export foo=(1 2); env | grep '^foo='", "exit status 1"},
-	{"declare -A foo=([a]=b); export foo; env | grep '^foo='", "exit status 1"},
-	{"export foo=(b c); foo=x; env | grep '^foo='", "exit status 1"},
+	{"declare foo=bar; $ENV_PROG | grep '^foo='", "exit status 1"},
+	{"declare -x foo=bar; $ENV_PROG | grep '^foo='", "foo=bar\n"},
+	{"export foo=bar; $ENV_PROG | grep '^foo='", "foo=bar\n"},
+	{"foo=bar; export foo; $ENV_PROG | grep '^foo='", "foo=bar\n"},
+	{"export foo=bar; foo=baz; $ENV_PROG | grep '^foo='", "foo=baz\n"},
+	{"export foo=bar; readonly foo=baz; $ENV_PROG | grep '^foo='", "foo=baz\n"},
+	{"export foo=(1 2); $ENV_PROG | grep '^foo='", "exit status 1"},
+	{"declare -A foo=([a]=b); export foo; $ENV_PROG | grep '^foo='", "exit status 1"},
+	{"export foo=(b c); foo=x; $ENV_PROG | grep '^foo='", "exit status 1"},
 
 	// local
 	{
@@ -1985,7 +1980,7 @@ set +o pipefail
 		"set\n",
 	},
 	{
-		`export x=before; f() { local x; export x=after; env | grep '^x='; }; f; echo $x`,
+		`export x=before; f() { local x; export x=after; $ENV_PROG | grep '^x='; }; f; echo $x`,
 		"x=after\nbefore\n",
 	},
 
@@ -2058,7 +2053,7 @@ set +o pipefail
 
 	// multiple var modes at once
 	{
-		"declare -r -x foo=bar; env | grep '^foo='",
+		"declare -r -x foo=bar; $ENV_PROG | grep '^foo='",
 		"foo=bar\n",
 	},
 	{
@@ -2350,9 +2345,22 @@ set +o pipefail
 var runTestsUnix = []runTest{
 	{"[[ -n $PPID && $PPID -gt 0 ]]", ""},
 	{
+		"[[ ~root == '~root' ]]",
+		"exit status 1",
+	},
+	{
 		// windows does not support dirs named '*'
 		"mkdir -p '*/a.z' 'b/a.z'; cd '*'; set -- *.z; echo $#",
 		"1\n",
+	},
+	{
+		// no fifos on windows
+		"[ -p a ] && echo x; mkfifo a; [ -p a ] && echo y",
+		"y\n",
+	},
+	{
+		"[[ -p a ]] && echo x; mkfifo a; [[ -p a ]] && echo y",
+		"y\n",
 	},
 	{"sh() { :; }; sh -c 'echo foo'", ""},
 	{"sh() { :; }; command sh -c 'echo foo'", "foo\n"},
@@ -2372,17 +2380,13 @@ func init() {
 	}
 }
 
-// wc: leading whitespace padding
 // touch -d @: no way to set unix timestamps
-var skipOnDarwin = regexp.MustCompile(`\bwc\b|touch -d @`)
+var skipOnDarwin = regexp.MustCompile(`touch -d @`)
 
+// ln -s: TODO
 // chmod: very different by design
-// mkfifo: very different by design
-// ln -s: requires linked path to exist, stat does not work well
-// ~root: username does not exist
-// env: missing on Travis? TODO: investigate
-// touch -d: TODO
-var skipOnWindows = regexp.MustCompile(`chmod|mkfifo|ln -s|~root|env|touch -d`)
+// touch -d @: no way to set unix timestamps
+var skipOnWindows = regexp.MustCompile(`ln -s|chmod|touch -d`)
 
 func skipIfUnsupported(tb testing.TB, src string) {
 	switch {
@@ -2449,6 +2453,9 @@ func readLines(mc ModuleCtx) ([][]byte, error) {
 	bs, err := ioutil.ReadAll(mc.Stdin)
 	if err != nil {
 		return nil, err
+	}
+	if runtime.GOOS == "windows" {
+		bs = bytes.Replace(bs, []byte("\r\n"), []byte("\n"), -1)
 	}
 	bs = bytes.TrimSuffix(bs, []byte("\n"))
 	return bytes.Split(bs, []byte("\n")), nil
@@ -2523,6 +2530,7 @@ var testBuiltins = map[string]func(ModuleCtx, []string) error{
 		}
 		any := false
 		for _, line := range lines {
+			//fmt.Fprintf(os.Stderr, "%q\n", line)
 			if rx.Match(line) {
 				if quiet {
 					return nil
@@ -2649,7 +2657,10 @@ func TestRunnerRunConfirm(t *testing.T) {
 func TestRunnerOpts(t *testing.T) {
 	t.Parallel()
 	withPath := func(strs ...string) func(*Runner) error {
-		prefix := []string{"PATH=" + os.Getenv("PATH")}
+		prefix := []string{
+			"PATH=" + os.Getenv("PATH"),
+			"ENV_PROG=" + os.Getenv("ENV_PROG"),
+		}
 		return Env(expand.ListEnviron(append(prefix, strs...)...))
 	}
 	opts := func(list ...func(*Runner) error) []func(*Runner) error {
@@ -2661,17 +2672,17 @@ func TestRunnerOpts(t *testing.T) {
 	}{
 		{
 			nil,
-			"env | grep '^INTERP_GLOBAL='",
+			"$ENV_PROG | grep '^INTERP_GLOBAL='",
 			"INTERP_GLOBAL=value\n",
 		},
 		{
 			opts(withPath()),
-			"env | grep '^INTERP_GLOBAL='",
+			"$ENV_PROG | grep '^INTERP_GLOBAL='",
 			"exit status 1",
 		},
 		{
 			opts(withPath("INTERP_GLOBAL=bar")),
-			"env | grep '^INTERP_GLOBAL='",
+			"$ENV_PROG | grep '^INTERP_GLOBAL='",
 			"INTERP_GLOBAL=bar\n",
 		},
 		{
@@ -2681,12 +2692,12 @@ func TestRunnerOpts(t *testing.T) {
 		},
 		{
 			opts(withPath("A=b")),
-			"env | grep '^A='; echo $A",
+			"$ENV_PROG | grep '^A='; echo $A",
 			"A=b\nb\n",
 		},
 		{
 			opts(withPath("A=b", "A=c")),
-			"env | grep '^A='; echo $A",
+			"$ENV_PROG | grep '^A='; echo $A",
 			"A=c\nc\n",
 		},
 		{
@@ -2709,7 +2720,10 @@ func TestRunnerOpts(t *testing.T) {
 				t.Fatalf("could not parse: %v", err)
 			}
 			var cb concBuffer
-			r, err := New(append(c.opts, StdIO(nil, &cb, &cb))...)
+			r, err := New(append(c.opts,
+				StdIO(nil, &cb, &cb),
+				Module(WithBuiltins(testBuiltins, DefaultExec)),
+			)...)
 			if err != nil {
 				t.Fatal(err)
 			}
