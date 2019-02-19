@@ -715,30 +715,6 @@ var runTests = []runTest{
 		`mkdir a; ln -s a b; [[ $(cd a && pwd) == "$(cd b && pwd)" ]]; echo $?`,
 		"1\n",
 	},
-	{
-		`mkdir a; chmod 0000 a; cd a`,
-		"exit status 1 #JUSTERR",
-	},
-	{
-		`mkdir a; chmod 0222 a; cd a`,
-		"exit status 1 #JUSTERR",
-	},
-	{
-		`mkdir a; chmod 0444 a; cd a`,
-		"exit status 1 #JUSTERR",
-	},
-	{
-		`mkdir a; chmod 0100 a; cd a`,
-		"",
-	},
-	{
-		`mkdir a; chmod 0010 a; cd a`,
-		"exit status 1 #JUSTERR",
-	},
-	{
-		`mkdir a; chmod 0001 a; cd a`,
-		"exit status 1 #JUSTERR",
-	},
 
 	// dirs/pushd/popd
 	{"set -- $(dirs); echo $# ${#DIRSTACK[@]}", "1 1\n"},
@@ -888,28 +864,6 @@ var runTests = []runTest{
 	{
 		"exec >/dev/null; echo foo",
 		"",
-	},
-
-	// PATH
-	{
-		"PATH=; bash -c 'echo foo'",
-		"\"bash\": executable file not found in $PATH\nexit status 127 #JUSTERR",
-	},
-	{
-		"echo '#!/bin/sh\necho b' >a; chmod a+x a; PATH=; a",
-		"b\n",
-	},
-	{
-		"mkdir c; cd c; echo '#!/bin/sh\necho b' >a; chmod a+x a; PATH=; a",
-		"b\n",
-	},
-	{
-		"c/a",
-		"\"c/a\": executable file not found in $PATH\nexit status 127 #JUSTERR",
-	},
-	{
-		"mkdir c; echo '#!/bin/sh\necho b' >c/a; chmod a+x c/a; c/a",
-		"b\n",
 	},
 
 	// return
@@ -1293,27 +1247,11 @@ var runTests = []runTest{
 		"y\n",
 	},
 	{
-		"[[ -x a ]] && echo x; >a; chmod +x a; [[ -x a ]] && echo y",
-		"y\n",
-	},
-	{
 		"[[ -s a ]] && echo x; echo body >a; [[ -s a ]] && echo y",
 		"y\n",
 	},
 	{
 		"[[ -L a ]] && echo x; ln -s b a; [[ -L a ]] && echo y;",
-		"y\n",
-	},
-	{
-		">a; [[ -k a ]] && echo x; chmod +t a; [[ -k a ]] && echo y",
-		"y\n",
-	},
-	{
-		">a; [[ -u a ]] && echo x; chmod u+s a; [[ -u a ]] && echo y",
-		"y\n",
-	},
-	{
-		">a; [[ -g a ]] && echo x; chmod g+s a; [[ -g a ]] && echo y",
 		"y\n",
 	},
 	{
@@ -1421,27 +1359,11 @@ var runTests = []runTest{
 		"y\n",
 	},
 	{
-		"[ -x a ] && echo x; >a; chmod +x a; [ -x a ] && echo y",
-		"y\n",
-	},
-	{
 		"[ -s a ] && echo x; echo body >a; [ -s a ] && echo y",
 		"y\n",
 	},
 	{
 		"[ -L a ] && echo x; ln -s b a; [ -L a ] && echo y;",
-		"y\n",
-	},
-	{
-		">a; [ -k a ] && echo x; chmod +t a; [ -k a ] && echo y",
-		"y\n",
-	},
-	{
-		">a; [ -u a ] && echo x; chmod u+s a; [ -u a ] && echo y",
-		"y\n",
-	},
-	{
-		">a; [ -g a ] && echo x; chmod g+s a; [ -g a ] && echo y",
 		"y\n",
 	},
 	{
@@ -2346,6 +2268,7 @@ set +o pipefail
 var runTestsUnix = []runTest{
 	{"[[ -n $PPID && $PPID -gt 0 ]]", ""},
 	{
+		// no root user on windows
 		"[[ ~root == '~root' ]]",
 		"exit status 1",
 	},
@@ -2354,8 +2277,9 @@ var runTestsUnix = []runTest{
 		"mkdir -p '*/a.z' 'b/a.z'; cd '*'; set -- *.z; echo $#",
 		"1\n",
 	},
+
+	// no fifos on windows
 	{
-		// no fifos on windows
 		"[ -p a ] && echo x; mkfifo a; [ -p a ] && echo y",
 		"y\n",
 	},
@@ -2363,8 +2287,89 @@ var runTestsUnix = []runTest{
 		"[[ -p a ]] && echo x; mkfifo a; [[ -p a ]] && echo y",
 		"y\n",
 	},
+
 	{"sh() { :; }; sh -c 'echo foo'", ""},
 	{"sh() { :; }; command sh -c 'echo foo'", "foo\n"},
+
+	// chmod is practically useless on Windows
+	{
+		"[ -x a ] && echo x; >a; chmod 0755 a; [ -x a ] && echo y",
+		"y\n",
+	},
+	{
+		"[[ -x a ]] && echo x; >a; chmod 0755 a; [[ -x a ]] && echo y",
+		"y\n",
+	},
+	{
+		">a; [ -k a ] && echo x; chmod +t a; [ -k a ] && echo y",
+		"y\n",
+	},
+	{
+		">a; [ -u a ] && echo x; chmod u+s a; [ -u a ] && echo y",
+		"y\n",
+	},
+	{
+		">a; [ -g a ] && echo x; chmod g+s a; [ -g a ] && echo y",
+		"y\n",
+	},
+	{
+		">a; [[ -k a ]] && echo x; chmod +t a; [[ -k a ]] && echo y",
+		"y\n",
+	},
+	{
+		">a; [[ -u a ]] && echo x; chmod u+s a; [[ -u a ]] && echo y",
+		"y\n",
+	},
+	{
+		">a; [[ -g a ]] && echo x; chmod g+s a; [[ -g a ]] && echo y",
+		"y\n",
+	},
+	{
+		`mkdir a; chmod 0000 a; cd a`,
+		"exit status 1 #JUSTERR",
+	},
+	{
+		`mkdir a; chmod 0222 a; cd a`,
+		"exit status 1 #JUSTERR",
+	},
+	{
+		`mkdir a; chmod 0444 a; cd a`,
+		"exit status 1 #JUSTERR",
+	},
+	{
+		`mkdir a; chmod 0100 a; cd a`,
+		"",
+	},
+	{
+		`mkdir a; chmod 0010 a; cd a`,
+		"exit status 1 #JUSTERR",
+	},
+	{
+		`mkdir a; chmod 0001 a; cd a`,
+		"exit status 1 #JUSTERR",
+	},
+
+	// Unix-y PATH
+	{
+		"PATH=; bash -c 'echo foo'",
+		"\"bash\": executable file not found in $PATH\nexit status 127 #JUSTERR",
+	},
+	{
+		"c/a",
+		"\"c/a\": executable file not found in $PATH\nexit status 127 #JUSTERR",
+	},
+	{
+		"echo '#!/bin/sh\necho b' >a; chmod 0755 a; PATH=; a",
+		"b\n",
+	},
+	{
+		"mkdir c; cd c; echo '#!/bin/sh\necho b' >a; chmod 0755 a; PATH=; a",
+		"b\n",
+	},
+	{
+		"mkdir c; echo '#!/bin/sh\necho b' >c/a; chmod 0755 c/a; c/a",
+		"b\n",
+	},
 }
 
 var runTestsWindows = []runTest{
@@ -2381,9 +2386,8 @@ func init() {
 	}
 }
 
-// ln -s: TODO
-// chmod: very different by design
-var skipOnWindows = regexp.MustCompile(`ln -s|chmod`)
+// ln -s: wine doesn't implement symlinks; see https://bugs.winehq.org/show_bug.cgi?id=44948
+var skipOnWindows = regexp.MustCompile(`ln -s`)
 
 func skipIfUnsupported(tb testing.TB, src string) {
 	switch {
@@ -2598,7 +2602,7 @@ var testBuiltins = map[string]func(ModuleCtx, []string) error{
 		return os.Link(oldname, newname)
 	},
 	"touch": func(mc ModuleCtx, args []string) error {
-		var newTime time.Time
+		newTime := time.Now()
 		if args[0] == "-d" {
 			if !strings.HasPrefix(args[1], "@") {
 				return nil // unimplemented
