@@ -88,6 +88,10 @@ func main() {
 	stx.Set("DebugPrint", func(node syntax.Node) {
 		syntax.DebugPrint(os.Stdout, node)
 	})
+	stx.Set("SplitBraces", func(w *syntax.Word) *js.Object {
+		w = syntax.SplitBraces(w)
+		return js.MakeFullWrapper(w)
+	})
 }
 
 func throw(v interface{}) {

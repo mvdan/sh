@@ -1,6 +1,6 @@
 #!/bin/sh
 
-if ! go version | grep go1.11; then
+if ! go version | grep -q go1.11; then
 	echo "Go 1.11.x required to build."
 	exit 1
 fi

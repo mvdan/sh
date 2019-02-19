@@ -167,3 +167,22 @@ const printer = syntax.NewPrinter()
 	})
 	assert.deepEqual(gotCallbacks, wantCallbacks)
 }
+
+{
+	// splitting brace expressions
+	const parser = syntax.NewParser()
+	const src = "{foo,bar}"
+	var f = parser.Parse(src, "src")
+
+	var word = f.StmtList.Stmts[0].Cmd.Args[0]
+	assert.equal(word.Parts.length, 1)
+	assert.equal(syntax.NodeType(word.Parts[0]), "Lit")
+
+	word = syntax.SplitBraces(word)
+	// TODO: get rid of the empty lit
+	assert.equal(word.Parts.length, 2)
+	assert.equal(syntax.NodeType(word.Parts[0]), "BraceExp")
+	assert.equal(word.Parts[0].Elems.length, 2)
+	assert.equal(syntax.NodeType(word.Parts[1]), "Lit")
+	assert.equal(word.Parts[1].Value, "")
+}
