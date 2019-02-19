@@ -15,6 +15,7 @@ import (
 	"regexp"
 	"runtime"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -2380,18 +2381,12 @@ func init() {
 	}
 }
 
-// touch -d @: no way to set unix timestamps
-var skipOnDarwin = regexp.MustCompile(`touch -d @`)
-
 // ln -s: TODO
 // chmod: very different by design
-// touch -d @: no way to set unix timestamps
-var skipOnWindows = regexp.MustCompile(`ln -s|chmod|touch -d`)
+var skipOnWindows = regexp.MustCompile(`ln -s|chmod`)
 
 func skipIfUnsupported(tb testing.TB, src string) {
 	switch {
-	case runtime.GOOS == "darwin" && skipOnDarwin.MatchString(src):
-		tb.Skipf("skipping non-portable test on darwin")
 	case runtime.GOOS == "windows" && skipOnWindows.MatchString(src):
 		tb.Skipf("skipping non-portable test on windows")
 	}
@@ -2601,6 +2596,34 @@ var testBuiltins = map[string]func(ModuleCtx, []string) error{
 			return os.Symlink(oldname, newname)
 		}
 		return os.Link(oldname, newname)
+	},
+	"touch": func(mc ModuleCtx, args []string) error {
+		var newTime time.Time
+		if args[0] == "-d" {
+			if !strings.HasPrefix(args[1], "@") {
+				return nil // unimplemented
+			}
+			sec, err := strconv.ParseInt(args[1][1:], 10, 64)
+			if err != nil {
+				return err
+			}
+			newTime = time.Unix(sec, 0)
+			args = args[2:]
+		}
+		for _, arg := range args {
+			path := filepath.Join(mc.Dir, arg)
+			// create the file if it does not exist
+			f, err := os.OpenFile(path, os.O_CREATE, 0666)
+			if err != nil {
+				return err
+			}
+			f.Close()
+			// change the modification and access time
+			if err := os.Chtimes(path, newTime, newTime); err != nil {
+				return err
+			}
+		}
+		return nil
 	},
 }
 
