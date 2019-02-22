@@ -584,6 +584,12 @@ var fileCases = []struct {
 	{`[[ 'ab\c' == *\\* ]]`, ""},
 	{`[[ foo/bar == foo* ]]`, ""},
 	{"[[ a == [ab ]]", "exit status 1"},
+	{`HOME='/*'; echo ~; echo "$HOME"`, "/*\n/*\n"},
+	{`test -d ~`, ""},
+	{`foo=~; test -d $foo`, ""},
+	{`foo=~; test -d "$foo"`, ""},
+	{`foo='~'; test -d $foo`, "exit status 1"},
+	{`foo='~'; [ $foo == '~' ]`, ""},
 	{
 		`[[ ~ == "$HOME" ]] && [[ ~/foo == "$HOME/foo" ]]`,
 		"",
