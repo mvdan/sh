@@ -2143,3 +2143,39 @@ func TestValidName(t *testing.T) {
 		})
 	}
 }
+
+func TestIsIncomplete(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		in   string
+		want bool
+	}{
+		{"foo\n", false},
+		{"foo;", false},
+		{"\n", false},
+		{"'incomp", true},
+		{"foo; 'incomp", true},
+		{" (incomp", true},
+		{"badsyntax)", false},
+	}
+	p := NewParser()
+	for i, tc := range tests {
+		t.Run(fmt.Sprintf("Parse%02d", i), func(t *testing.T) {
+			r := strings.NewReader(tc.in)
+			_, err := p.Parse(r, "")
+			if got := IsIncomplete(err); got != tc.want {
+				t.Fatalf("%q got %t, wanted %t", tc.in, got, tc.want)
+			}
+		})
+		t.Run(fmt.Sprintf("Interactive%02d", i), func(t *testing.T) {
+			r := strings.NewReader(tc.in)
+			err := p.Interactive(r, func([]*Stmt) bool {
+				return false
+			})
+			if got := IsIncomplete(err); got != tc.want {
+				t.Fatalf("%q got %t, wanted %t", tc.in, got, tc.want)
+			}
+		})
+	}
+}

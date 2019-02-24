@@ -314,6 +314,11 @@ type Parser struct {
 	litBs   []byte
 }
 
+// Incomplete reports whether the parser is waiting to read more bytes because
+// it needs to finish properly parsing a statement.
+//
+// It is only safe to call while the parser is blocked on a read. For an example
+// use case, see the documentation for Parser.Interactive.
 func (p *Parser) Incomplete() bool {
 	// If we're in a quote state other than noState, we're parsing a node
 	// such as a double-quoted string.
@@ -642,12 +647,22 @@ func (p *Parser) errPass(err error) {
 	}
 }
 
+// IsIncomplete reports whether a Parser error could have been avoided with
+// extra input bytes. For example, if an io.EOF was encountered while there was
+// an unclosed quote or parenthesis.
+func IsIncomplete(err error) bool {
+	perr, ok := err.(ParseError)
+	return ok && perr.Incomplete
+}
+
 // ParseError represents an error found when parsing a source file, from which
 // the parser cannot recover.
 type ParseError struct {
 	Filename string
 	Pos
 	Text string
+
+	Incomplete bool
 }
 
 func (e ParseError) Error() string {
@@ -691,9 +706,10 @@ func (e LangError) Error() string {
 
 func (p *Parser) posErr(pos Pos, format string, a ...interface{}) {
 	p.errPass(ParseError{
-		Filename: p.f.Name,
-		Pos:      pos,
-		Text:     fmt.Sprintf(format, a...),
+		Filename:   p.f.Name,
+		Pos:        pos,
+		Text:       fmt.Sprintf(format, a...),
+		Incomplete: p.tok == _EOF && p.Incomplete(),
 	})
 }
 
@@ -978,7 +994,8 @@ func (p *Parser) wordPart() WordPart {
 				p.next()
 				return sq
 			case utf8.RuneSelf:
-				p.posErr(sq.Pos(), "reached EOF without closing quote %s", sglQuote)
+				p.tok = _EOF
+				p.quoteErr(sq.Pos(), sglQuote)
 				return nil
 			}
 		}
