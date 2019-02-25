@@ -130,31 +130,31 @@ const printer = syntax.NewPrinter()
 
 {
 	// using the parser interactively
-	const inputs = [
+	const lines = [
 		"foo\n",
 		"bar; baz\n",
 		"\n",
-		"'incom\n",
+		"foo; 'incom\n",
 		"plete'\n",
 	]
 	const wantCallbacks = [
 		{"count": 1, "incomplete": false},
 		{"count": 2, "incomplete": false},
 		{"count": 0, "incomplete": false},
-		{"count": 0, "incomplete": true},
-		{"count": 1, "incomplete": false},
+		{"count": 1, "incomplete": true},
+		{"count": 2, "incomplete": false},
 	]
 	var gotCallbacks = []
 
 	const src = {"read": function(size) {
-		if (inputs.length == 0) {
+		if (lines.length == 0) {
 			if (gotCallbacks.length == 0) {
 				throw "did not see any callbacks before EOF"
 			}
 			return null // EOF
 		}
-		s = inputs[0]
-		inputs.shift()
+		s = lines[0]
+		lines.shift()
 		return s
 	}}
 
