@@ -116,6 +116,9 @@ func (r streamReader) Read(p []byte) (n int, err error) {
 
 type jsParser struct {
 	syntax.Parser
+
+	accumulated []*syntax.Stmt
+	incomplete  bytes.Buffer
 }
 
 func adaptReader(src *js.Object) io.Reader {
@@ -149,6 +152,33 @@ func (p *jsParser) Interactive(src *js.Object, jsFn func([]*js.Object) bool) {
 	if err != nil {
 		throw(err)
 	}
+}
+
+func (p *jsParser) InteractiveStep(line string) []*syntax.Stmt {
+	// pick up previous chunks of the incomplete statement
+	r := strings.NewReader(p.incomplete.String() + line)
+	lastEnd := uint(0)
+	err := p.Parser.Interactive(r, func(stmts []*syntax.Stmt) bool {
+		if len(stmts) > 0 {
+			// don't re-parse finished statements
+			lastEnd = stmts[len(stmts)-1].End().Offset()
+		}
+		p.accumulated = append(p.accumulated, stmts...)
+		return false
+	})
+	if syntax.IsIncomplete(err) {
+		// starting or continuing an incomplete statement
+		p.incomplete.WriteString(line[lastEnd:])
+		return p.accumulated
+	}
+	// complete; empty both fields and return
+	p.incomplete.Reset()
+	if err != nil {
+		throw(err)
+	}
+	acc := p.accumulated
+	p.accumulated = p.accumulated[:0]
+	return acc
 }
 
 type jsPrinter struct {

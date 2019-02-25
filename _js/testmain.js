@@ -175,6 +175,38 @@ const printer = syntax.NewPrinter()
 }
 
 {
+	// using the parser interactively with steps
+	const lines = [
+		"foo\n",
+		"bar; baz\n",
+		"\n",
+		"foo; 'incom\n",
+		" \n",
+		"plete'\n",
+	]
+	const wantResults = [
+		{"count": 1, "incomplete": false},
+		{"count": 2, "incomplete": false},
+		{"count": 0, "incomplete": false},
+		{"count": 1, "incomplete": true},
+		{"count": 1, "incomplete": true},
+		{"count": 2, "incomplete": false},
+	]
+	var gotResults = []
+	for (var i = 0; i < lines.length; i++) {
+		var line = lines[i]
+		var want = wantResults[i]
+
+		var stmts = parser.InteractiveStep(line)
+		gotResults.push({
+			"count":      stmts.length,
+			"incomplete": parser.Incomplete(),
+		})
+	}
+	assert.deepEqual(gotResults, wantResults)
+}
+
+{
 	// splitting brace expressions
 	const parser = syntax.NewParser()
 	const src = "{foo,bar}"
