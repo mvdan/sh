@@ -135,12 +135,14 @@ const printer = syntax.NewPrinter()
 		"bar; baz\n",
 		"\n",
 		"foo; 'incom\n",
+		" \n",
 		"plete'\n",
 	]
 	const wantCallbacks = [
 		{"count": 1, "incomplete": false},
 		{"count": 2, "incomplete": false},
 		{"count": 0, "incomplete": false},
+		{"count": 1, "incomplete": true},
 		{"count": 1, "incomplete": true},
 		{"count": 2, "incomplete": false},
 	]

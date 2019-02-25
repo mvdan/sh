@@ -39,7 +39,7 @@ func main() {
 	// Parser
 	stx.Set("NewParser", func(options ...func(interface{})) *js.Object {
 		p := syntax.NewParser()
-		jp := js.MakeFullWrapper(jsParser{p})
+		jp := js.MakeFullWrapper(&jsParser{Parser: *p})
 		// Apply the options after we've wrapped the parser, as
 		// otherwise we cannot internalise the value.
 		for _, opt := range options {
@@ -49,14 +49,14 @@ func main() {
 	})
 
 	stx.Set("KeepComments", func(v interface{}) {
-		syntax.KeepComments(v.(jsParser).Parser)
+		syntax.KeepComments(&v.(*jsParser).Parser)
 	})
 	stx.Set("Variant", func(l syntax.LangVariant) func(interface{}) {
 		if math.IsNaN(float64(l)) {
 			throw("Variant requires a LangVariant argument")
 		}
 		return func(v interface{}) {
-			syntax.Variant(l)(v.(jsParser).Parser)
+			syntax.Variant(l)(&v.(*jsParser).Parser)
 		}
 	})
 	stx.Set("LangBash", syntax.LangBash)
@@ -64,7 +64,7 @@ func main() {
 	stx.Set("LangMirBSDKorn", syntax.LangMirBSDKorn)
 	stx.Set("StopAt", func(word string) func(interface{}) {
 		return func(v interface{}) {
-			syntax.StopAt(word)(v.(jsParser).Parser)
+			syntax.StopAt(word)(&v.(*jsParser).Parser)
 		}
 	})
 
@@ -115,7 +115,7 @@ func (r streamReader) Read(p []byte) (n int, err error) {
 }
 
 type jsParser struct {
-	*syntax.Parser
+	syntax.Parser
 }
 
 func adaptReader(src *js.Object) io.Reader {
@@ -125,7 +125,7 @@ func adaptReader(src *js.Object) io.Reader {
 	return strings.NewReader(src.String())
 }
 
-func (p jsParser) Parse(src *js.Object, name string) *js.Object {
+func (p *jsParser) Parse(src *js.Object, name string) *js.Object {
 	f, err := p.Parser.Parse(adaptReader(src), name)
 	if err != nil {
 		throw(err)
@@ -133,11 +133,11 @@ func (p jsParser) Parse(src *js.Object, name string) *js.Object {
 	return js.MakeFullWrapper(f)
 }
 
-func (p jsParser) Incomplete() bool {
+func (p *jsParser) Incomplete() bool {
 	return p.Parser.Incomplete()
 }
 
-func (p jsParser) Interactive(src *js.Object, fn func([]*syntax.Stmt) bool) {
+func (p *jsParser) Interactive(src *js.Object, fn func([]*syntax.Stmt) bool) {
 	err := p.Parser.Interactive(adaptReader(src), fn)
 	if err != nil {
 		throw(err)
