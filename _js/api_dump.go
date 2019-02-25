@@ -43,7 +43,7 @@ type DocType struct {
 
 func main() {
 	cfg := &packages.Config{Mode: packages.LoadSyntax}
-	pkgs, err := packages.Load(cfg, ".")
+	pkgs, err := packages.Load(cfg, "mvdan.cc/sh/v3/syntax")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

@@ -8,5 +8,7 @@ replace mvdan.cc/sh/v3 => ../
 
 require (
 	github.com/gopherjs/gopherjs v0.0.0-20181103185306-d547d1d9531e
-	mvdan.cc/sh/v3 v3.0.0-alpha0
+	golang.org/x/sync v0.0.0-20181221193216-37e7f081c4d4 // indirect
+	golang.org/x/tools v0.0.0-20190221204921-83362c3779f5 // indirect
+	mvdan.cc/sh/v3 v3.0.0-00010101000000-000000000000
 )
