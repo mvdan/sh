@@ -10,5 +10,3 @@ export GO111MODULE=on # build in module-aware mode
 go run github.com/gopherjs/gopherjs build -o index.js || exit 1
 
 node testmain.js || exit 1
-
-go mod tidy # to remove unnecessary gopherjs lines from go.mod
