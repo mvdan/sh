@@ -161,6 +161,10 @@ const printer = syntax.NewPrinter()
 	}}
 
 	parser.Interactive(src, function(stmts) {
+		for (var i in stmts) {
+			var stmt = stmts[i]
+			assert.equal(syntax.NodeType(stmt), "Stmt")
+		}
 		gotCallbacks.push({
 			"count":      stmts.length,
 			"incomplete": parser.Incomplete(),

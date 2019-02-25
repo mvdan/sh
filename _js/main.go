@@ -76,13 +76,13 @@ func main() {
 
 	// Syntax utilities
 	stx.Set("Walk", func(node syntax.Node, jsFn func(*js.Object) bool) {
-		f := func(node syntax.Node) bool {
+		fn := func(node syntax.Node) bool {
 			if node == nil {
 				return jsFn(nil)
 			}
 			return jsFn(js.MakeFullWrapper(node))
 		}
-		syntax.Walk(node, f)
+		syntax.Walk(node, fn)
 
 	})
 	stx.Set("DebugPrint", func(node syntax.Node) {
@@ -137,7 +137,14 @@ func (p *jsParser) Incomplete() bool {
 	return p.Parser.Incomplete()
 }
 
-func (p *jsParser) Interactive(src *js.Object, fn func([]*syntax.Stmt) bool) {
+func (p *jsParser) Interactive(src *js.Object, jsFn func([]*js.Object) bool) {
+	fn := func(stmts []*syntax.Stmt) bool {
+		objs := make([]*js.Object, len(stmts))
+		for i, stmt := range stmts {
+			objs[i] = js.MakeFullWrapper(stmt)
+		}
+		return jsFn(objs)
+	}
 	err := p.Parser.Interactive(adaptReader(src), fn)
 	if err != nil {
 		throw(err)
