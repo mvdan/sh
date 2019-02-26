@@ -14,6 +14,8 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"go/ast"
+	"go/token"
 	"go/types"
 	"os"
 	"reflect"
@@ -60,7 +62,41 @@ func main() {
 		Funcs: map[string]DocType{},
 	}
 
+	// from identifier position to its doc
+	docs := make(map[token.Pos]*ast.CommentGroup)
+
 	pkg := pkgs[0]
+	for _, file := range pkg.Syntax {
+		ast.Inspect(file, func(node ast.Node) bool {
+			switch node := node.(type) {
+			case *ast.FuncDecl:
+				docs[node.Name.Pos()] = node.Doc
+			case *ast.GenDecl:
+				if len(node.Specs) != 1 {
+					break
+				}
+				// TypeSpec.Doc is sometimes not passed on
+				switch spec := node.Specs[0].(type) {
+				case *ast.TypeSpec:
+					spec.Doc = node.Doc
+				}
+			case *ast.TypeSpec:
+				docs[node.Name.Pos()] = node.Doc
+			case *ast.Field:
+				if len(node.Names) != 1 {
+					break
+				}
+				docs[node.Names[0].Pos()] = node.Doc
+			case *ast.ValueSpec:
+				if len(node.Names) != 1 {
+					break
+				}
+				docs[node.Names[0].Pos()] = node.Doc
+			}
+			return true
+		})
+	}
+
 	scope := pkg.Types.Scope()
 	var allImpls []*types.Pointer
 	var allConsts []*types.Const
@@ -89,7 +125,8 @@ func main() {
 		}
 		if fn, ok := obj.(*types.Func); ok {
 			dump.Funcs[fn.Name()] = DocType{
-				Type: dumpType(fn.Type()),
+				Doc:  docs[fn.Pos()].Text(),
+				Type: dumpType(docs, fn.Type()),
 			}
 			continue
 		}
@@ -105,7 +142,8 @@ func main() {
 
 		under := named.Underlying()
 		dumpNamed := NamedType{
-			Type:    dumpType(under),
+			Doc:     docs[tname.Pos()].Text(),
+			Type:    dumpType(docs, under),
 			Methods: map[string]DocType{},
 		}
 		switch under := under.(type) {
@@ -131,7 +169,8 @@ func main() {
 				continue
 			}
 			dumpNamed.Methods[fn.Name()] = DocType{
-				Type: dumpType(fn.Type()),
+				Doc:  docs[fn.Pos()].Text(),
+				Type: dumpType(docs, fn.Type()),
 			}
 		}
 		dump.Types[name] = dumpNamed
@@ -143,7 +182,7 @@ func main() {
 	}
 }
 
-func dumpType(typ types.Type) interface{} {
+func dumpType(docs map[token.Pos]*ast.CommentGroup, typ types.Type) interface{} {
 	dump := map[string]interface{}{}
 	switch typ := typ.(type) {
 	case *types.Interface:
@@ -155,7 +194,8 @@ func dumpType(typ types.Type) interface{} {
 				continue
 			}
 			methods[fn.Name()] = DocType{
-				Type: dumpType(fn.Type()),
+				Doc:  docs[fn.Pos()].Text(),
+				Type: dumpType(docs, fn.Type()),
 			}
 		}
 		dump["methods"] = methods
@@ -174,7 +214,8 @@ func dumpType(typ types.Type) interface{} {
 				continue
 			}
 			fields[fd.Name()] = Field{
-				Type:     dumpType(fd.Type()),
+				Doc:      docs[fd.Pos()].Text(),
+				Type:     dumpType(docs, fd.Type()),
 				Embedded: fd.Embedded(),
 			}
 		}
@@ -182,16 +223,16 @@ func dumpType(typ types.Type) interface{} {
 		return dump
 	case *types.Slice:
 		dump["kind"] = "list"
-		dump["elem"] = dumpType(typ.Elem())
+		dump["elem"] = dumpType(docs, typ.Elem())
 		return dump
 	case *types.Pointer:
 		dump["kind"] = "pointer"
-		dump["elem"] = dumpType(typ.Elem())
+		dump["elem"] = dumpType(docs, typ.Elem())
 		return dump
 	case *types.Signature:
 		dump["kind"] = "function"
-		dump["params"] = dumpTuple(typ.Params())
-		dump["results"] = dumpTuple(typ.Results())
+		dump["params"] = dumpTuple(docs, typ.Params())
+		dump["results"] = dumpTuple(docs, typ.Results())
 		return dump
 	case *types.Basic:
 		return typ.String()
@@ -201,13 +242,13 @@ func dumpType(typ types.Type) interface{} {
 	panic("TODO: " + reflect.TypeOf(typ).String())
 }
 
-func dumpTuple(tuple *types.Tuple) []interface{} {
+func dumpTuple(docs map[token.Pos]*ast.CommentGroup, tuple *types.Tuple) []interface{} {
 	typs := make([]interface{}, 0)
 	for i := 0; i < tuple.Len(); i++ {
 		vr := tuple.At(i)
 		typs = append(typs, map[string]interface{}{
 			"name": vr.Name(),
-			"type": dumpType(vr.Type()),
+			"type": dumpType(docs, vr.Type()),
 		})
 	}
 	return typs
