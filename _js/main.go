@@ -27,7 +27,7 @@ func main() {
 		}
 		node, ok := v.(syntax.Node)
 		if !ok {
-			throw("NodeType requires a Node argument")
+			panic("NodeType requires a Node argument")
 		}
 		typ := fmt.Sprintf("%T", node)
 		if i := strings.LastIndexAny(typ, "*.]"); i >= 0 {
@@ -47,13 +47,14 @@ func main() {
 		}
 		return jp
 	})
+	stx.Set("IsIncomplete", syntax.IsIncomplete)
 
 	stx.Set("KeepComments", func(v interface{}) {
 		syntax.KeepComments(&v.(*jsParser).Parser)
 	})
 	stx.Set("Variant", func(l syntax.LangVariant) func(interface{}) {
 		if math.IsNaN(float64(l)) {
-			throw("Variant requires a LangVariant argument")
+			panic("Variant requires a LangVariant argument")
 		}
 		return func(v interface{}) {
 			syntax.Variant(l)(&v.(*jsParser).Parser)
@@ -94,8 +95,8 @@ func main() {
 	})
 }
 
-func throw(v interface{}) {
-	js.Global.Call("$throwRuntimeError", fmt.Sprint(v))
+func throw(err error) {
+	js.Global.Call("$throw", js.MakeFullWrapper(err))
 }
 
 // streamReader is an io.Reader wrapper for Node's stream.Readable. See

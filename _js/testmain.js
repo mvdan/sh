@@ -34,12 +34,37 @@ const printer = syntax.NewPrinter()
 }
 
 {
-	// parse errors
+	// fatal parse error
+	const src = "echo )"
+	try {
+		parser.Parse(src, "src")
+		assert.fail("did not error")
+	} catch (err) {
+		assert.equal(err.Filename, "src")
+		assert.equal(err.Pos.Line(), 1)
+		assert.equal(syntax.IsIncomplete(err), false)
+	}
+}
+
+{
+	// incomplete parse error
 	const src = "echo ${"
 	try {
 		parser.Parse(src, "src")
 		assert.fail("did not error")
 	} catch (err) {
+		assert.equal(syntax.IsIncomplete(err), true)
+	}
+}
+
+{
+	// js error from the wrapper layer
+	var foo = {}
+	try {
+		syntax.NodeType(foo)
+		assert.fail("did not error")
+	} catch (err) {
+		assert.equal(err.message.includes("requires a Node argument"), true)
 	}
 }
 
