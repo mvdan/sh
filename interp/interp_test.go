@@ -2743,6 +2743,16 @@ func TestRunnerOpts(t *testing.T) {
 			"[[ $PWD == foo ]]",
 			"exit status 1",
 		},
+		{
+			opts(Params("foo")),
+			"echo $@",
+			"foo\n",
+		},
+		{
+			opts(Params("-u", "--", "foo")),
+			"echo $@; echo $unset",
+			"foo\nunset: unbound variable\nexit status 1",
+		},
 	}
 	p := syntax.NewParser()
 	for i, c := range cases {
