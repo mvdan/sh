@@ -2315,12 +2315,12 @@ func TestFile(t *testing.T) {
 	for i := range fileCases {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
 			c := fileCases[i]
-			testFile(t, p, c.in, c.want, "")
+			testFile(t, p, c.in, c.want, nil)
 		})
 	}
 }
 
-func testFile(t *testing.T, p *syntax.Parser, in, want, params string) {
+func testFile(t *testing.T, p *syntax.Parser, in, want string, params []string) {
 	skipIfUnsupported(t, in)
 	file, err := p.Parse(strings.NewReader(in), "")
 	if err != nil {
@@ -2334,15 +2334,10 @@ func testFile(t *testing.T, p *syntax.Parser, in, want, params string) {
 	defer os.RemoveAll(dir)
 	var cb concBuffer
 	r, err := New(Dir(dir), StdIO(nil, &cb, &cb),
-		Module(OpenDevImpls(DefaultOpen)))
+		Module(OpenDevImpls(DefaultOpen)),
+		Params(params...))
 	if err != nil {
 		t.Fatal(err)
-	}
-	if params != "" {
-		err := Params(params)(r)
-		if err != nil {
-			t.Fatal(err)
-		}
 	}
 	ctx := context.Background()
 	if err := r.Run(ctx, file); err != nil && err != ShellExitStatus(0) {
@@ -2746,13 +2741,53 @@ func TestMalformedPathOnWindows(t *testing.T) {
 }
 
 func TestRunnerParams(t *testing.T) {
-	testCases := []string{"", "--", "-o", "-o -e", "-- --foo", "-e -- --foo"}
-	for _, params := range testCases {
-		_, err := New(Params(""))
-		if err != nil {
-			t.Fatalf("expected New to succeed with params: %q", params)
-		}
-
+	tests := []struct {
+		params []string
+		in     string
+		want   string
+	}{
+		{
+			nil,
+			"echo hello; echo $@; exit 1; echo bye",
+			"hello\n\nexit status 1",
+		},
+		{
+			[]string{"+e"},
+			"echo hello; function fail() { return 1; }; fail; echo bye",
+			"hello\nbye\n",
+		},
+		{
+			[]string{"-e"},
+			"echo hello; function fail() { return 1; }; fail; echo bye",
+			"hello\nexit status 1",
+		},
+		{
+			[]string{"--"},
+			"echo $@",
+			"\n",
+		},
+		{
+			[]string{"--", "foo", "bar"},
+			"echo $@",
+			"foo bar\n",
+		},
+		{
+			[]string{"--", "bye"},
+			"echo hello; function fail() { return 1; }; fail; echo $@",
+			"hello\nbye\n",
+		},
+		{
+			[]string{"-e", "--", "bye"},
+			"echo hello; function fail() { return 1; }; fail; echo $@",
+			"hello\nexit status 1",
+		},
 	}
 
+	p := syntax.NewParser()
+	for i := range tests {
+		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
+			c := tests[i]
+			testFile(t, p, c.in, c.want, c.params)
+		})
+	}
 }

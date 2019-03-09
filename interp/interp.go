@@ -32,7 +32,11 @@ import (
 // environment falls back to the process's environment, and not supplying the
 // standard output writer means that the output will be discarded.
 func New(opts ...func(*Runner) error) (*Runner, error) {
-	r := &Runner{usedNew: true}
+	r := &Runner{
+		usedNew: true,
+		Vars:    make(map[string]expand.Variable),
+		cmdVars: make(map[string]string),
+	}
 	for _, opt := range opts {
 		if err := opt(r); err != nil {
 			return nil, err
@@ -56,6 +60,10 @@ func New(opts ...func(*Runner) error) (*Runner, error) {
 	if r.Stdout == nil || r.Stderr == nil {
 		StdIO(r.Stdin, r.Stdout, r.Stderr)(r)
 	}
+	// Preserve shell options.
+	shellOpts := r.opts
+	r.Reset()
+	r.opts = shellOpts
 	return r, nil
 }
 
