@@ -4023,6 +4023,19 @@ var fileTests = []testCase{
 		}}},
 	},
 	{
+		Strs: []string{
+			"a=([x]= [y]=)",
+			"a=(\n[x]=\n[y]=\n)",
+		},
+		bash: &CallExpr{Assigns: []*Assign{{
+			Name: lit("a"),
+			Array: &ArrayExpr{Elems: []*ArrayElem{
+				{Index: litWord("x")},
+				{Index: litWord("y")},
+			}},
+		}}},
+	},
+	{
 		Strs:   []string{"a]b"},
 		common: litStmt("a]b"),
 	},
@@ -4589,7 +4602,9 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 		if x.Index != nil {
 			recurse(x.Index)
 		}
-		recurse(x.Value)
+		if x.Value != nil {
+			recurse(x.Value)
+		}
 	case *ExtGlob:
 		setPos(&x.OpPos, x.Op.String())
 		checkSrc(posAddCol(x.End(), -1), ")")

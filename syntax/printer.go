@@ -788,7 +788,9 @@ func (p *Printer) elemJoin(elems []*ArrayElem, last []Comment) {
 		if p.wroteIndex(el.Index) {
 			p.WriteByte('=')
 		}
-		p.word(el.Value)
+		if el.Value != nil {
+			p.word(el.Value)
+		}
 		p.comments(left...)
 	}
 	if len(last) > 0 {

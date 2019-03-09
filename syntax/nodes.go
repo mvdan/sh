@@ -781,8 +781,12 @@ func (a *ArrayExpr) Pos() Pos { return a.Lparen }
 func (a *ArrayExpr) End() Pos { return posAddCol(a.Rparen, 1) }
 
 // ArrayElem represents a Bash array element.
+//
+// Index can be nil; for example, declare -a x=(value).
+// Value can be nil; for example, declare -A x=([index]=).
+// Finally, neither can be nil; for example, declare -A x=([index]=value)
 type ArrayElem struct {
-	Index    ArithmExpr // [i]=, ["k"]=
+	Index    ArithmExpr
 	Value    *Word
 	Comments []Comment
 }
@@ -793,7 +797,12 @@ func (a *ArrayElem) Pos() Pos {
 	}
 	return a.Value.Pos()
 }
-func (a *ArrayElem) End() Pos { return a.Value.End() }
+func (a *ArrayElem) End() Pos {
+	if a.Value != nil {
+		return a.Value.End()
+	}
+	return posAddCol(a.Index.Pos(), 1)
+}
 
 // ExtGlob represents a Bash extended globbing expression. Note that these are
 // parsed independently of whether shopt has been called or not.
