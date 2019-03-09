@@ -66,7 +66,8 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		r.setErr(ShellExitStatus(r.exit))
 		return 0 // the command's exit status does not matter
 	case "set":
-		if err := Params(args...)(r); err != nil {
+
+		if err := r.setParams(args); err != nil {
 			r.errf("set: %v\n", err)
 			return 2
 		}
@@ -630,6 +631,14 @@ func (r *Runner) relPath(path string) string {
 		path = filepath.Join(r.Dir, path)
 	}
 	return filepath.Clean(path)
+}
+
+func (r *Runner) setParams(args []string) error {
+	if err := Params(args...)(r); err != nil {
+		return err
+	}
+	r.updateExpandOpts()
+	return nil
 }
 
 type getopts struct {

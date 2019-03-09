@@ -2315,37 +2315,48 @@ func TestFile(t *testing.T) {
 	for i := range fileCases {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
 			c := fileCases[i]
-			skipIfUnsupported(t, c.in)
-			file, err := p.Parse(strings.NewReader(c.in), "")
-			if err != nil {
-				t.Fatalf("could not parse: %v", err)
-			}
-			t.Parallel()
-			dir, err := ioutil.TempDir("", "interp-test")
-			if err != nil {
-				t.Fatal(err)
-			}
-			defer os.RemoveAll(dir)
-			var cb concBuffer
-			r, err := New(Dir(dir), StdIO(nil, &cb, &cb),
-				Module(OpenDevImpls(DefaultOpen)))
-			if err != nil {
-				t.Fatal(err)
-			}
-			ctx := context.Background()
-			if err := r.Run(ctx, file); err != nil && err != ShellExitStatus(0) {
-				cb.WriteString(err.Error())
-			}
-			want := c.want
-			if i := strings.Index(want, " #"); i >= 0 {
-				want = want[:i]
-			}
-			if got := cb.String(); got != want {
-				t.Fatalf("wrong output in %q:\nwant: %q\ngot:  %q",
-					c.in, want, got)
-			}
+			testFile(t, p, c.in, c.want, "")
 		})
 	}
+}
+
+func testFile(t *testing.T, p *syntax.Parser, in, want, params string) {
+	skipIfUnsupported(t, in)
+	file, err := p.Parse(strings.NewReader(in), "")
+	if err != nil {
+		t.Fatalf("could not parse: %v", err)
+	}
+	t.Parallel()
+	dir, err := ioutil.TempDir("", "interp-test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(dir)
+	var cb concBuffer
+	r, err := New(Dir(dir), StdIO(nil, &cb, &cb),
+		Module(OpenDevImpls(DefaultOpen)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if params != "" {
+		err := Params(params)(r)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	ctx := context.Background()
+	if err := r.Run(ctx, file); err != nil && err != ShellExitStatus(0) {
+		cb.WriteString(err.Error())
+	}
+	w := want
+	if i := strings.Index(want, " #"); i >= 0 {
+		w = w[:i]
+	}
+	if got := cb.String(); got != w {
+		t.Fatalf("wrong output in %q:\nwant: %q\ngot:  %q",
+			in, w, got)
+	}
+
 }
 
 func TestFileConfirm(t *testing.T) {
@@ -2732,4 +2743,16 @@ func TestMalformedPathOnWindows(t *testing.T) {
 	if got := cb.String(); got != want {
 		t.Fatalf("wrong output:\nwant: %q\ngot:  %q", want, got)
 	}
+}
+
+func TestRunnerParams(t *testing.T) {
+	testCases := []string{"", "--", "-o", "-o -e", "-- --foo", "-e -- --foo"}
+	for _, params := range testCases {
+		_, err := New(Params(""))
+		if err != nil {
+			t.Fatalf("expected New to succeed with params: %q", params)
+		}
+
+	}
+
 }

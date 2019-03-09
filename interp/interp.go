@@ -260,7 +260,6 @@ func Params(args ...string) func(*Runner) error {
 			args = args[1:]
 		}
 		r.Params = args
-		r.updateExpandOpts()
 		return nil
 	}
 }
