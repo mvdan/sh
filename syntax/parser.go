@@ -1609,11 +1609,16 @@ func (p *Parser) getAssign(needEqual bool) *Assign {
 				p.follow(left, `"[x]"`, assgn)
 			}
 			if ae.Value = p.getWord(); ae.Value == nil {
-				if p.tok == leftParen {
+				switch p.tok {
+				case leftParen:
 					p.curErr("arrays cannot be nested")
+					return nil
+				case _Newl, rightParen, leftBrack:
+					// TODO: support [index]=[
+				default:
+					p.curErr("array element values must be words")
+					break
 				}
-				p.curErr("array element values must be words")
-				break
 			}
 			if len(p.accComs) > 0 {
 				c := p.accComs[0]
