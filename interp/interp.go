@@ -260,7 +260,6 @@ func Params(args ...string) func(*Runner) error {
 			args = args[1:]
 		}
 		r.Params = args
-		r.updateExpandOpts()
 		return nil
 	}
 }
@@ -479,6 +478,7 @@ func (r *Runner) Reset() {
 		Exec:        r.Exec,
 		Open:        r.Open,
 		KillTimeout: r.KillTimeout,
+		opts:        r.opts,
 
 		// emptied below, to reuse the space
 		Vars:     r.Vars,
