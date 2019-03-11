@@ -55,6 +55,7 @@ func NewPrinter(options ...func(*Printer)) *Printer {
 	p := &Printer{
 		bufWriter:   bufio.NewWriter(nil),
 		tabsPrinter: new(Printer),
+		tabWriter:   new(tabwriter.Writer),
 	}
 	for _, opt := range options {
 		opt(p)
@@ -82,7 +83,8 @@ func (p *Printer) Print(w io.Writer, node Node) error {
 		// indenting with spaces
 		tabwidth = int(p.indentSpaces)
 	}
-	w = tabwriter.NewWriter(w, 0, tabwidth, 1, ' ', twmode)
+	p.tabWriter.Init(w, 0, tabwidth, 1, ' ', twmode)
+	w = p.tabWriter
 
 	p.bufWriter.Reset(w)
 	switch x := node.(type) {
@@ -164,6 +166,7 @@ func (c *colCounter) Reset(w io.Writer) {
 // program.
 type Printer struct {
 	bufWriter
+	tabWriter *tabwriter.Writer
 	cols colCounter
 
 	indentSpaces   uint
