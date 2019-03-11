@@ -190,7 +190,7 @@ var printTests = []printCase{
 	},
 	{
 		"{ a; } #x\nbbb #y\n{ #z\n}",
-		"{ a; } #x\nbbb    #y\n{ #z\n}",
+		"{ a; } #x\nbbb    #y\n{      #z\n}",
 	},
 	{
 		"foo; foooo # 1",
@@ -204,7 +204,7 @@ var printTests = []printCase{
 		"a #1\nbbb; c #2\nd #3",
 		"a #1\nbbb\nc #2\nd #3",
 	},
-	samePrint("aa #c1\n{ #c2\n\tb\n}"),
+	samePrint("aa #c1\n{  #c2\n\tb\n}"),
 	{
 		"aa #c1\n{ b; c; } #c2",
 		"aa #c1\n{\n\tb\n\tc\n} #c2",
@@ -502,6 +502,10 @@ var printTests = []printCase{
 		"case i in\nx)\n\ta\n\t;;\n\t#a\n#b\n\t#c\ny) ;;\nesac",
 		"case i in\nx)\n\ta\n\t;;\n\t#a\n\t#b\n\t#c\ny) ;;\nesac",
 	},
+	samePrint("'foo\tbar'\n'foooo\tbar'"),
+	samePrint("\"foo\tbar\"\n\"foooo\tbar\""),
+	samePrint("foo\\\tbar\nfoooo\\\tbar"),
+	samePrint("#foo\tbar\n#foooo\tbar"),
 }
 
 func TestPrintWeirdFormat(t *testing.T) {
@@ -559,6 +563,7 @@ func TestPrintMultiline(t *testing.T) {
 }
 
 func BenchmarkPrint(b *testing.B) {
+	b.ReportAllocs()
 	prog := parsePath(b, canonicalPath)
 	printer := NewPrinter()
 	for i := 0; i < b.N; i++ {
@@ -589,6 +594,11 @@ func TestPrintSpaces(t *testing.T) {
 			"{\nfoo \\\nbar\n}",
 			"{\n    foo \\\n        bar\n}",
 		},
+		{
+			2,
+			"if foo; then # inline1\nbar # inline2\n# withfi\nfi",
+			"if foo; then # inline1\n  bar        # inline2\n# withfi\nfi",
+		},
 	}
 
 	parser := NewParser(KeepComments)
@@ -608,7 +618,6 @@ func (b badWriter) Write(p []byte) (int, error) { return 0, errBadWriter }
 
 func TestWriteErr(t *testing.T) {
 	t.Parallel()
-	_ = (*byteCounter)(nil).Flush()
 	f := &File{StmtList: StmtList{Stmts: []*Stmt{
 		{
 			Redirs: []*Redirect{{
@@ -907,7 +916,7 @@ func printTest(t *testing.T, parser *Parser, printer *Printer, in, want string) 
 		t.Fatal(err)
 	}
 	if got != wantNewl {
-		t.Fatalf("Print mismatch:\nin:\n%s\nwant:\n%sgot:\n%s",
+		t.Fatalf("Print mismatch:\nin:\n%q\nwant:\n%q\ngot:\n%q",
 			in, wantNewl, got)
 	}
 	_, err = parser.Parse(strings.NewReader(want), "")
