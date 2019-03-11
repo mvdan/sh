@@ -45,8 +45,8 @@ Use `-i N` to indent with a number of spaces instead of tabs. There are other
 formatting options - see `shfmt -h`. For example, to get the formatting
 appropriate for [Google's Style][google-style] guide, use `shfmt -i 2 -ci`.
 
-Packages are available for [Arch], [CRUX], [FreeBSD], [Homebrew], [NixOS] and
-[Void].
+Packages are available on [Arch], [CRUX], [Docker], [FreeBSD], [Homebrew],
+[NixOS], [Scoop], [Snapcraft], and [Void].
 
 #### Replacing `bash -n`
 
@@ -65,7 +65,7 @@ $ echo 'foo=(1 2)' | shfmt -p
 
 ### gosh
 
-	go get -u mvdan.cc/sh/v3/cmd/gosh
+	cd $(mktemp -d); go mod init tmp; go get mvdan.cc/sh/v3/cmd/gosh
 
 Experimental shell that uses `interp`. Work in progress, so don't expect
 stability just yet.
@@ -108,9 +108,15 @@ $ echo '$((foo); (bar))' | shfmt
 A subset of the Go packages are available as an npm package called [mvdan-sh].
 See the [_js](_js) directory for more information.
 
+### Docker
+
+To build a Docker image, checkout a specific version of the repository and run:
+
+	docker build -t my:tag -f cmd/shfmt/Dockerfile .
+
 ### Related projects
 
-* Docker images - by [jamesmstone][dockerized-jamesmstone], [PeterDaveHello][dockerized-peterdavehello]
+* Alternative docker images - by [jamesmstone][dockerized-jamesmstone], [PeterDaveHello][dockerized-peterdavehello]
 * [format-shell] - Atom plugin for `shfmt`
 * [micro] - Editor with a built-in plugin for `shfmt`
 * [shell-format] - VS Code plugin for `shfmt`
@@ -119,8 +125,9 @@ See the [_js](_js) directory for more information.
 [arch]: https://www.archlinux.org/packages/community/x86_64/shfmt/
 [bash]: https://www.gnu.org/software/bash/
 [crux]: https://github.com/6c37/crux-ports-git/tree/HEAD/shfmt
+[docker]: https://hub.docker.com/r/mvdan/shfmt/
 [dockerized-jamesmstone]: https://hub.docker.com/r/jamesmstone/shfmt/
-[dockerized-peterdavehello]: https://github.com/PeterDaveHello/dockerized-shfmt
+[dockerized-peterdavehello]: https://github.com/PeterDaveHello/dockerized-shfmt/
 [examples]: https://godoc.org/mvdan.cc/sh/syntax#pkg-examples
 [format-shell]: https://atom.io/packages/format-shell
 [freebsd]: https://github.com/freebsd/freebsd-ports/tree/HEAD/devel/shfmt
@@ -134,5 +141,7 @@ See the [_js](_js) directory for more information.
 [posix shell]: http://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html
 [posix-ambiguity]: http://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_06_03
 [shell-format]: https://marketplace.visualstudio.com/items?itemName=foxundermoon.shell-format
+[scoop]: https://github.com/lukesampson/scoop/blob/HEAD/bucket/shfmt.json
+[snapcraft]: https://snapcraft.io/shfmt
 [vim-shfmt]: https://github.com/z0mbix/vim-shfmt
 [void]: https://github.com/voidlinux/void-packages/blob/HEAD/srcpkgs/shfmt/template
