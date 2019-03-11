@@ -48,7 +48,7 @@ var (
 	in  io.Reader = os.Stdin
 	out io.Writer = os.Stdout
 
-	version = "v3.0.0-alpha0"
+	version = "v3.0.0-alpha1"
 )
 
 func main() {
