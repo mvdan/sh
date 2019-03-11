@@ -167,7 +167,7 @@ func (c *colCounter) Reset(w io.Writer) {
 type Printer struct {
 	bufWriter
 	tabWriter *tabwriter.Writer
-	cols colCounter
+	cols      colCounter
 
 	indentSpaces   uint
 	binNextLine    bool
@@ -297,16 +297,16 @@ func (p *Printer) writeLit(s string) {
 		p.WriteString(s)
 		return
 	}
+	p.WriteByte('\xff')
 	for i := 0; i < len(s); i++ {
 		b := s[i]
 		if b != '\t' {
 			p.WriteByte(b)
 			continue
 		}
-		p.WriteByte('\xff')
 		p.WriteByte(b)
-		p.WriteByte('\xff')
 	}
+	p.WriteByte('\xff')
 }
 
 func (p *Printer) incLevel() {
@@ -1188,9 +1188,13 @@ func (e *extraIndenter) WriteByte(b byte) error {
 	if b != '\n' {
 		return nil
 	}
-	trimmed := bytes.TrimLeft(e.curLine, "\xff\t")
-	// divided by 3, as each tab is escaped via "\xff\t\xff"
-	lineIndent := (len(e.curLine) - len(trimmed)) / 3
+	line := e.curLine
+	if bytes.HasPrefix(e.curLine, []byte("\xff")) {
+		// beginning a multiline sequence, with the leading escape
+		line = line[1:]
+	}
+	trimmed := bytes.TrimLeft(line, "\t")
+	lineIndent := len(line) - len(trimmed)
 	if e.firstIndent < 0 {
 		e.firstIndent = lineIndent
 		e.firstChange = e.baseIndent - lineIndent
