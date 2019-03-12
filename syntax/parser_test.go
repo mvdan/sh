@@ -294,6 +294,7 @@ func singleParse(p *Parser, in string, want *File) func(t *testing.T) {
 }
 
 func BenchmarkParse(b *testing.B) {
+	b.ReportAllocs()
 	src := "" +
 		strings.Repeat("\n\n\t\t        \n", 10) +
 		"# " + strings.Repeat("foo bar ", 10) + "\n" +

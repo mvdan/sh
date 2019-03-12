@@ -26,6 +26,7 @@ import (
 )
 
 func BenchmarkRun(b *testing.B) {
+	b.ReportAllocs()
 	b.StopTimer()
 	src := `
 echo a b c d
