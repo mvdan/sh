@@ -9,11 +9,11 @@ import (
 	"reflect"
 )
 
-func walkStmts(sl StmtList, f func(Node) bool) {
-	for _, s := range sl.Stmts {
+func walkStmts(stmts []*Stmt, last []Comment, f func(Node) bool) {
+	for _, s := range stmts {
 		Walk(s, f)
 	}
-	for _, c := range sl.Last {
+	for _, c := range last {
 		Walk(&c, f)
 	}
 }
@@ -35,7 +35,7 @@ func Walk(node Node, f func(Node) bool) {
 
 	switch x := node.(type) {
 	case *File:
-		walkStmts(x.StmtList, f)
+		walkStmts(x.Stmts, x.Last, f)
 	case *Comment:
 	case *Stmt:
 		for _, c := range x.Comments {
@@ -78,21 +78,21 @@ func Walk(node Node, f func(Node) bool) {
 		}
 		walkWords(x.Args, f)
 	case *Subshell:
-		walkStmts(x.StmtList, f)
+		walkStmts(x.Stmts, x.Last, f)
 	case *Block:
-		walkStmts(x.StmtList, f)
+		walkStmts(x.Stmts, x.Last, f)
 	case *IfClause:
-		walkStmts(x.Cond, f)
-		walkStmts(x.Then, f)
+		walkStmts(x.Cond, x.CondLast, f)
+		walkStmts(x.Then, x.ThenLast, f)
 		if x.Else != nil {
 			Walk(x.Else, f)
 		}
 	case *WhileClause:
-		walkStmts(x.Cond, f)
-		walkStmts(x.Do, f)
+		walkStmts(x.Cond, x.CondLast, f)
+		walkStmts(x.Do, x.DoLast, f)
 	case *ForClause:
 		Walk(x.Loop, f)
-		walkStmts(x.Do, f)
+		walkStmts(x.Do, x.DoLast, f)
 	case *WordIter:
 		Walk(x.Name, f)
 		walkWords(x.Items, f)
@@ -123,7 +123,7 @@ func Walk(node Node, f func(Node) bool) {
 			Walk(wp, f)
 		}
 	case *CmdSubst:
-		walkStmts(x.StmtList, f)
+		walkStmts(x.Stmts, x.Last, f)
 	case *ParamExp:
 		Walk(x.Param, f)
 		if x.Index != nil {
@@ -175,7 +175,7 @@ func Walk(node Node, f func(Node) bool) {
 			Walk(&c, f)
 		}
 		walkWords(x.Patterns, f)
-		walkStmts(x.StmtList, f)
+		walkStmts(x.Stmts, x.Last, f)
 	case *TestClause:
 		Walk(x.X, f)
 	case *DeclClause:
@@ -207,7 +207,7 @@ func Walk(node Node, f func(Node) bool) {
 	case *ExtGlob:
 		Walk(x.Pattern, f)
 	case *ProcSubst:
-		walkStmts(x.StmtList, f)
+		walkStmts(x.Stmts, x.Last, f)
 	case *TimeClause:
 		if x.Stmt != nil {
 			Walk(x.Stmt, f)

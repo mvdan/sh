@@ -86,7 +86,7 @@ func (p *Parser) Parse(r io.Reader, name string) (*File, error) {
 	p.src = r
 	p.rune()
 	p.next()
-	p.f.StmtList = p.stmtList()
+	p.f.Stmts, p.f.Last = p.stmtList()
 	if p.err == nil {
 		// EOF immediately after heredoc word so no newline to
 		// trigger it
@@ -583,16 +583,16 @@ func (p *Parser) followRsrv(lpos Pos, left, val string) Pos {
 	return pos
 }
 
-func (p *Parser) followStmts(left string, lpos Pos, stops ...string) StmtList {
+func (p *Parser) followStmts(left string, lpos Pos, stops ...string) ([]*Stmt, []Comment) {
 	if p.got(semicolon) {
-		return StmtList{}
+		return nil, nil
 	}
 	newLine := p.got(_Newl)
-	sl := p.stmtList(stops...)
-	if len(sl.Stmts) < 1 && !newLine {
+	stmts, last := p.stmtList(stops...)
+	if len(stmts) < 1 && !newLine {
 		p.followErr(lpos, left, "a statement list")
 	}
-	return sl
+	return stmts, last
 }
 
 func (p *Parser) followWordTok(tok token, pos Pos) *Word {
@@ -772,12 +772,14 @@ loop:
 	}
 }
 
-func (p *Parser) stmtList(stops ...string) (sl StmtList) {
+func (p *Parser) stmtList(stops ...string) ([]*Stmt, []Comment) {
+	var stmts []*Stmt
+	var last []Comment
 	fn := func(s *Stmt) bool {
-		if sl.Stmts == nil {
-			sl.Stmts = p.stList()
+		if stmts == nil {
+			stmts = p.stList()
 		}
-		sl.Stmts = append(sl.Stmts, s)
+		stmts = append(stmts, s)
 		return true
 	}
 	p.stmts(fn, stops...)
@@ -801,9 +803,9 @@ func (p *Parser) stmtList(stops ...string) (sl StmtList) {
 			split = i
 		}
 	}
-	sl.Last = p.accComs[:split]
+	last = p.accComs[:split]
 	p.accComs = p.accComs[split:]
-	return
+	return stmts, last
 }
 
 func (p *Parser) invalidStmtStart() {
@@ -883,7 +885,7 @@ func (p *Parser) wordPart() WordPart {
 			old := p.preNested(subCmd)
 			p.rune() // don't tokenize '|'
 			p.next()
-			cs.StmtList = p.stmtList("}")
+			cs.Stmts, cs.Last = p.stmtList("}")
 			p.postNested(old)
 			pos, ok := p.gotRsrv("}")
 			if !ok {
@@ -928,7 +930,7 @@ func (p *Parser) wordPart() WordPart {
 		cs := &CmdSubst{Left: p.pos}
 		old := p.preNested(subCmd)
 		p.next()
-		cs.StmtList = p.stmtList()
+		cs.Stmts, cs.Last = p.stmtList()
 		p.postNested(old)
 		cs.Right = p.matched(cs.Left, leftParen, rightParen)
 		return cs
@@ -969,7 +971,7 @@ func (p *Parser) wordPart() WordPart {
 		ps := &ProcSubst{Op: ProcOperator(p.tok), OpPos: p.pos}
 		old := p.preNested(subCmd)
 		p.next()
-		ps.StmtList = p.stmtList()
+		ps.Stmts, ps.Last = p.stmtList()
 		p.postNested(old)
 		ps.Rparen = p.matched(ps.OpPos, token(ps.Op), rightParen)
 		return ps
@@ -1019,7 +1021,7 @@ func (p *Parser) wordPart() WordPart {
 		p.rune()
 
 		p.next()
-		cs.StmtList = p.stmtList()
+		cs.Stmts, cs.Last = p.stmtList()
 		if p.tok == bckQuote && p.lastBquoteEsc < p.openBquotes-1 {
 			// e.g. found ` before the nested backquote \` was closed.
 			p.tok = _EOF
@@ -1912,7 +1914,7 @@ func (p *Parser) subshell(s *Stmt) {
 	sub := &Subshell{Lparen: p.pos}
 	old := p.preNested(subCmd)
 	p.next()
-	sub.StmtList = p.stmtList()
+	sub.Stmts, sub.Last = p.stmtList()
 	p.postNested(old)
 	sub.Rparen = p.matched(sub.Lparen, leftParen, rightParen)
 	s.Cmd = sub
@@ -1936,7 +1938,7 @@ func (p *Parser) arithmExpCmd(s *Stmt) {
 func (p *Parser) block(s *Stmt) {
 	b := &Block{Lbrace: p.pos}
 	p.next()
-	b.StmtList = p.stmtList("}")
+	b.Stmts, b.Last = p.stmtList("}")
 	pos, ok := p.gotRsrv("}")
 	b.Rbrace = pos
 	if !ok {
@@ -1948,18 +1950,18 @@ func (p *Parser) block(s *Stmt) {
 func (p *Parser) ifClause(s *Stmt) {
 	rootIf := &IfClause{Position: p.pos}
 	p.next()
-	rootIf.Cond = p.followStmts("if", rootIf.Position, "then")
+	rootIf.Cond, rootIf.CondLast = p.followStmts("if", rootIf.Position, "then")
 	rootIf.ThenPos = p.followRsrv(rootIf.Position, "if <cond>", "then")
-	rootIf.Then = p.followStmts("then", rootIf.ThenPos, "fi", "elif", "else")
+	rootIf.Then, rootIf.ThenLast = p.followStmts("then", rootIf.ThenPos, "fi", "elif", "else")
 	curIf := rootIf
 	for p.tok == _LitWord && p.val == "elif" {
 		elf := &IfClause{Position: p.pos}
 		curIf.Last = p.accComs
 		p.accComs = nil
 		p.next()
-		elf.Cond = p.followStmts("elif", elf.Position, "then")
+		elf.Cond, elf.CondLast = p.followStmts("elif", elf.Position, "then")
 		elf.ThenPos = p.followRsrv(elf.Position, "elif <cond>", "then")
-		elf.Then = p.followStmts("then", elf.ThenPos, "fi", "elif", "else")
+		elf.Then, elf.ThenLast = p.followStmts("then", elf.ThenPos, "fi", "elif", "else")
 		curIf.Else = elf
 		curIf = elf
 	}
@@ -1967,7 +1969,7 @@ func (p *Parser) ifClause(s *Stmt) {
 		curIf.Last = p.accComs
 		p.accComs = nil
 		els := &IfClause{Position: elsePos}
-		els.Then = p.followStmts("else", els.Position, "fi")
+		els.Then, els.ThenLast = p.followStmts("else", els.Position, "fi")
 		curIf.Else = els
 		curIf = els
 	}
@@ -1990,9 +1992,9 @@ func (p *Parser) whileClause(s *Stmt, until bool) {
 		rsrvCond = "until <cond>"
 	}
 	p.next()
-	wc.Cond = p.followStmts(rsrv, wc.WhilePos, "do")
+	wc.Cond, wc.CondLast = p.followStmts(rsrv, wc.WhilePos, "do")
 	wc.DoPos = p.followRsrv(wc.WhilePos, rsrvCond, "do")
-	wc.Do = p.followStmts("do", wc.DoPos, "done")
+	wc.Do, wc.DoLast = p.followStmts("do", wc.DoPos, "done")
 	wc.DonePos = p.stmtEnd(wc, rsrv, "done")
 	s.Cmd = wc
 }
@@ -2005,7 +2007,7 @@ func (p *Parser) forClause(s *Stmt) {
 
 	s.Comments = append(s.Comments, p.accComs...)
 	p.accComs = nil
-	fc.Do = p.followStmts("do", fc.DoPos, "done")
+	fc.Do, fc.DoLast = p.followStmts("do", fc.DoPos, "done")
 	fc.DonePos = p.stmtEnd(fc, "for", "done")
 	s.Cmd = fc
 }
@@ -2069,7 +2071,7 @@ func (p *Parser) selectClause(s *Stmt) {
 	p.next()
 	fc.Loop = p.wordIter("select", fc.ForPos)
 	fc.DoPos = p.followRsrv(fc.ForPos, "select foo [in words]", "do")
-	fc.Do = p.followStmts("do", fc.DoPos, "done")
+	fc.Do, fc.DoLast = p.followStmts("do", fc.DoPos, "done")
 	fc.DonePos = p.stmtEnd(fc, "select", "done")
 	s.Cmd = fc
 }
@@ -2115,7 +2117,7 @@ func (p *Parser) caseItems(stop string) (items []*CaseItem) {
 		}
 		old := p.preNested(switchCase)
 		p.next()
-		ci.StmtList = p.stmtList(stop)
+		ci.Stmts, ci.Last = p.stmtList(stop)
 		p.postNested(old)
 		switch p.tok {
 		case dblSemicolon, semiAnd, dblSemiAnd, semiOr:

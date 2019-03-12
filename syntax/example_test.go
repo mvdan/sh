@@ -167,43 +167,41 @@ func ExampleDebugPrint() {
 	// Output:
 	// *syntax.File {
 	// .  Name: ""
-	// .  StmtList: syntax.StmtList {
-	// .  .  Stmts: []*syntax.Stmt (len = 1) {
-	// .  .  .  0: *syntax.Stmt {
-	// .  .  .  .  Comments: []syntax.Comment (len = 0) {}
-	// .  .  .  .  Cmd: *syntax.CallExpr {
-	// .  .  .  .  .  Assigns: []*syntax.Assign (len = 0) {}
-	// .  .  .  .  .  Args: []*syntax.Word (len = 2) {
-	// .  .  .  .  .  .  0: *syntax.Word {
-	// .  .  .  .  .  .  .  Parts: []syntax.WordPart (len = 1) {
-	// .  .  .  .  .  .  .  .  0: *syntax.Lit {
-	// .  .  .  .  .  .  .  .  .  ValuePos: 1:1
-	// .  .  .  .  .  .  .  .  .  ValueEnd: 1:5
-	// .  .  .  .  .  .  .  .  .  Value: "echo"
-	// .  .  .  .  .  .  .  .  }
+	// .  Stmts: []*syntax.Stmt (len = 1) {
+	// .  .  0: *syntax.Stmt {
+	// .  .  .  Comments: []syntax.Comment (len = 0) {}
+	// .  .  .  Cmd: *syntax.CallExpr {
+	// .  .  .  .  Assigns: []*syntax.Assign (len = 0) {}
+	// .  .  .  .  Args: []*syntax.Word (len = 2) {
+	// .  .  .  .  .  0: *syntax.Word {
+	// .  .  .  .  .  .  Parts: []syntax.WordPart (len = 1) {
+	// .  .  .  .  .  .  .  0: *syntax.Lit {
+	// .  .  .  .  .  .  .  .  ValuePos: 1:1
+	// .  .  .  .  .  .  .  .  ValueEnd: 1:5
+	// .  .  .  .  .  .  .  .  Value: "echo"
 	// .  .  .  .  .  .  .  }
 	// .  .  .  .  .  .  }
-	// .  .  .  .  .  .  1: *syntax.Word {
-	// .  .  .  .  .  .  .  Parts: []syntax.WordPart (len = 1) {
-	// .  .  .  .  .  .  .  .  0: *syntax.SglQuoted {
-	// .  .  .  .  .  .  .  .  .  Left: 1:6
-	// .  .  .  .  .  .  .  .  .  Right: 1:10
-	// .  .  .  .  .  .  .  .  .  Dollar: false
-	// .  .  .  .  .  .  .  .  .  Value: "foo"
-	// .  .  .  .  .  .  .  .  }
+	// .  .  .  .  .  }
+	// .  .  .  .  .  1: *syntax.Word {
+	// .  .  .  .  .  .  Parts: []syntax.WordPart (len = 1) {
+	// .  .  .  .  .  .  .  0: *syntax.SglQuoted {
+	// .  .  .  .  .  .  .  .  Left: 1:6
+	// .  .  .  .  .  .  .  .  Right: 1:10
+	// .  .  .  .  .  .  .  .  Dollar: false
+	// .  .  .  .  .  .  .  .  Value: "foo"
 	// .  .  .  .  .  .  .  }
 	// .  .  .  .  .  .  }
 	// .  .  .  .  .  }
 	// .  .  .  .  }
-	// .  .  .  .  Position: 1:1
-	// .  .  .  .  Semicolon: 0:0
-	// .  .  .  .  Negated: false
-	// .  .  .  .  Background: false
-	// .  .  .  .  Coprocess: false
-	// .  .  .  .  Redirs: []*syntax.Redirect (len = 0) {}
 	// .  .  .  }
+	// .  .  .  Position: 1:1
+	// .  .  .  Semicolon: 0:0
+	// .  .  .  Negated: false
+	// .  .  .  Background: false
+	// .  .  .  Coprocess: false
+	// .  .  .  Redirs: []*syntax.Redirect (len = 0) {}
 	// .  .  }
-	// .  .  Last: []syntax.Comment (len = 0) {}
 	// .  }
+	// .  Last: []syntax.Comment (len = 0) {}
 	// }
 }

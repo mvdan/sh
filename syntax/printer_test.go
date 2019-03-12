@@ -618,7 +618,7 @@ func (b badWriter) Write(p []byte) (int, error) { return 0, errBadWriter }
 
 func TestWriteErr(t *testing.T) {
 	t.Parallel()
-	f := &File{StmtList: StmtList{Stmts: []*Stmt{
+	f := &File{Stmts: []*Stmt{
 		{
 			Redirs: []*Redirect{{
 				Op:   RdrOut,
@@ -626,7 +626,7 @@ func TestWriteErr(t *testing.T) {
 			}},
 			Cmd: &Subshell{},
 		},
-	}}}
+	}}
 	err := NewPrinter().Print(badWriter{}, f)
 	if err == nil {
 		t.Fatalf("Expected error with bad writer")
@@ -941,11 +941,11 @@ func TestPrintNodeTypes(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			in:   &File{StmtList: litStmts("foo")},
+			in:   &File{Stmts: litStmts("foo")},
 			want: "foo\n",
 		},
 		{
-			in:   &File{StmtList: litStmts("foo", "bar")},
+			in:   &File{Stmts: litStmts("foo", "bar")},
 			want: "foo\nbar\n",
 		},
 		{

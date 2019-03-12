@@ -23,19 +23,16 @@ type Node interface {
 type File struct {
 	Name string
 
-	StmtList // exposing its Pos and End methods
-}
-
-// StmtList is a list of statements with any number of trailing comments. Both
-// lists can be empty.
-type StmtList struct {
 	Stmts []*Stmt
 	Last  []Comment
 }
 
-func (s StmtList) Pos() Pos {
-	if len(s.Stmts) > 0 {
-		s := s.Stmts[0]
+func (f *File) Pos() Pos { return stmtsPos(f.Stmts, f.Last) }
+func (f *File) End() Pos { return stmtsEnd(f.Stmts, f.Last) }
+
+func stmtsPos(stmts []*Stmt, last []Comment) Pos {
+	if len(stmts) > 0 {
+		s := stmts[0]
 		sPos := s.Pos()
 		if len(s.Comments) > 0 {
 			if cPos := s.Comments[0].Pos(); sPos.After(cPos) {
@@ -44,18 +41,18 @@ func (s StmtList) Pos() Pos {
 		}
 		return sPos
 	}
-	if len(s.Last) > 0 {
-		return s.Last[0].Pos()
+	if len(last) > 0 {
+		return last[0].Pos()
 	}
 	return Pos{}
 }
 
-func (s StmtList) End() Pos {
-	if len(s.Last) > 0 {
-		return s.Last[len(s.Last)-1].End()
+func stmtsEnd(stmts []*Stmt, last []Comment) Pos {
+	if len(last) > 0 {
+		return last[len(last)-1].End()
 	}
-	if len(s.Stmts) > 0 {
-		s := s.Stmts[len(s.Stmts)-1]
+	if len(stmts) > 0 {
+		s := stmts[len(stmts)-1]
 		sEnd := s.End()
 		if len(s.Comments) > 0 {
 			if cEnd := s.Comments[0].End(); cEnd.After(sEnd) {
@@ -65,10 +62,6 @@ func (s StmtList) End() Pos {
 		return sEnd
 	}
 	return Pos{}
-}
-
-func (s StmtList) empty() bool {
-	return len(s.Stmts) == 0 && len(s.Last) == 0
 }
 
 // Pos is a position within a shell source file.
@@ -278,17 +271,21 @@ func (c *CallExpr) End() Pos {
 // shell environment.
 type Subshell struct {
 	Lparen, Rparen Pos
-	StmtList
+
+	Stmts []*Stmt
+	Last  []Comment
 }
 
 func (s *Subshell) Pos() Pos { return s.Lparen }
 func (s *Subshell) End() Pos { return posAddCol(s.Rparen, 1) }
 
 // Block represents a series of commands that should be executed in a nested
-// scope. It is essentially a StmtList within curly braces.
+// scope. It is essentially a list of statements within curly braces.
 type Block struct {
 	Lbrace, Rbrace Pos
-	StmtList
+
+	Stmts []*Stmt
+	Last  []Comment
 }
 
 func (b *Block) Pos() Pos { return b.Lbrace }
@@ -300,8 +297,11 @@ type IfClause struct {
 	ThenPos  Pos // position of "then", empty if this is an "else"
 	FiPos    Pos // position of "fi", shared with .Else if non-nil
 
-	Cond StmtList
-	Then StmtList
+	Cond     []*Stmt
+	CondLast []Comment
+	Then     []*Stmt
+	ThenLast []Comment
+
 	Else *IfClause // if non-nil, an "elif" or an "else"
 
 	Last []Comment // comments on the first "elif", "else", or "fi"
@@ -314,8 +314,11 @@ func (c *IfClause) End() Pos { return posAddCol(c.FiPos, 2) }
 type WhileClause struct {
 	WhilePos, DoPos, DonePos Pos
 	Until                    bool
-	Cond                     StmtList
-	Do                       StmtList
+
+	Cond     []*Stmt
+	CondLast []Comment
+	Do       []*Stmt
+	DoLast   []Comment
 }
 
 func (w *WhileClause) Pos() Pos { return w.WhilePos }
@@ -327,7 +330,9 @@ type ForClause struct {
 	ForPos, DoPos, DonePos Pos
 	Select                 bool
 	Loop                   Loop
-	Do                     StmtList
+
+	Do     []*Stmt
+	DoLast []Comment
 }
 
 func (f *ForClause) Pos() Pos { return f.ForPos }
@@ -487,7 +492,9 @@ func (q *DblQuoted) End() Pos {
 // CmdSubst represents a command substitution.
 type CmdSubst struct {
 	Left, Right Pos
-	StmtList
+
+	Stmts []*Stmt
+	Last  []Comment
 
 	TempFile bool // mksh's ${ foo;}
 	ReplyVar bool // mksh's ${|foo;}
@@ -499,16 +506,17 @@ func (c *CmdSubst) End() Pos { return posAddCol(c.Right, 1) }
 // ParamExp represents a parameter expansion.
 type ParamExp struct {
 	Dollar, Rbrace Pos
-	Short          bool // $a instead of ${a}
-	Excl           bool // ${!a}
-	Length         bool // ${#a}
-	Width          bool // ${%a}
-	Param          *Lit
-	Index          ArithmExpr       // ${a[i]}, ${a["k"]}
-	Slice          *Slice           // ${a:x:y}
-	Repl           *Replace         // ${a/x/y}
-	Names          ParNamesOperator // ${!prefix*} or ${!prefix@}
-	Exp            *Expansion       // ${a:-b}, ${a#b}, etc
+
+	Short  bool // $a instead of ${a}
+	Excl   bool // ${!a}
+	Length bool // ${#a}
+	Width  bool // ${%a}
+	Param  *Lit
+	Index  ArithmExpr       // ${a[i]}, ${a["k"]}
+	Slice  *Slice           // ${a:x:y}
+	Repl   *Replace         // ${a/x/y}
+	Names  ParNamesOperator // ${!prefix*} or ${!prefix@}
+	Exp    *Expansion       // ${a:-b}, ${a#b}, etc
 }
 
 func (p *ParamExp) Pos() Pos { return p.Dollar }
@@ -551,7 +559,8 @@ type ArithmExp struct {
 	Left, Right Pos
 	Bracket     bool // deprecated $[expr] form
 	Unsigned    bool // mksh's $((# expr))
-	X           ArithmExpr
+
+	X ArithmExpr
 }
 
 func (a *ArithmExp) Pos() Pos { return a.Left }
@@ -568,7 +577,8 @@ func (a *ArithmExp) End() Pos {
 type ArithmCmd struct {
 	Left, Right Pos
 	Unsigned    bool // mksh's ((# expr))
-	X           ArithmExpr
+
+	X ArithmExpr
 }
 
 func (a *ArithmCmd) Pos() Pos { return a.Left }
@@ -633,7 +643,8 @@ func (u *UnaryArithm) End() Pos {
 // ParenArithm represents an arithmetic expression within parentheses.
 type ParenArithm struct {
 	Lparen, Rparen Pos
-	X              ArithmExpr
+
+	X ArithmExpr
 }
 
 func (p *ParenArithm) Pos() Pos { return p.Lparen }
@@ -642,9 +653,10 @@ func (p *ParenArithm) End() Pos { return posAddCol(p.Rparen, 1) }
 // CaseClause represents a case (switch) clause.
 type CaseClause struct {
 	Case, Esac Pos
-	Word       *Word
-	Items      []*CaseItem
-	Last       []Comment
+
+	Word  *Word
+	Items []*CaseItem
+	Last  []Comment
 }
 
 func (c *CaseClause) Pos() Pos { return c.Case }
@@ -656,7 +668,9 @@ type CaseItem struct {
 	OpPos    Pos // unset if it was finished by "esac"
 	Comments []Comment
 	Patterns []*Word
-	StmtList
+
+	Stmts []*Stmt
+	Last  []Comment
 }
 
 func (c *CaseItem) Pos() Pos { return c.Patterns[0].Pos() }
@@ -664,7 +678,7 @@ func (c *CaseItem) End() Pos {
 	if c.OpPos.IsValid() {
 		return posAddCol(c.OpPos, len(c.Op.String()))
 	}
-	return c.StmtList.End()
+	return stmtsEnd(c.Stmts, c.Last)
 }
 
 // TestClause represents a Bash extended test clause.
@@ -672,7 +686,8 @@ func (c *CaseItem) End() Pos {
 // This node will only appear in LangBash and LangMirBSDKorn.
 type TestClause struct {
 	Left, Right Pos
-	X           TestExpr
+
+	X TestExpr
 }
 
 func (t *TestClause) Pos() Pos { return t.Left }
@@ -715,7 +730,8 @@ func (u *UnaryTest) End() Pos { return u.X.End() }
 // ParenTest represents a test expression within parentheses.
 type ParenTest struct {
 	Lparen, Rparen Pos
-	X              TestExpr
+
+	X TestExpr
 }
 
 func (p *ParenTest) Pos() Pos { return p.Lparen }
@@ -748,8 +764,9 @@ func (d *DeclClause) End() Pos {
 // This node will only appear with LangBash.
 type ArrayExpr struct {
 	Lparen, Rparen Pos
-	Elems          []*ArrayElem
-	Last           []Comment
+
+	Elems []*ArrayElem
+	Last  []Comment
 }
 
 func (a *ArrayExpr) Pos() Pos { return a.Lparen }
@@ -798,7 +815,9 @@ func (e *ExtGlob) End() Pos { return posAddCol(e.Pattern.End(), 1) }
 type ProcSubst struct {
 	OpPos, Rparen Pos
 	Op            ProcOperator
-	StmtList
+
+	Stmts []*Stmt
+	Last  []Comment
 }
 
 func (s *ProcSubst) Pos() Pos { return s.OpPos }

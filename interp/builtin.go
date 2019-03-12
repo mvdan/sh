@@ -244,7 +244,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			r.errf("eval: %v\n", err)
 			return 1
 		}
-		r.stmts(ctx, file.StmtList)
+		r.stmts(ctx, file.Stmts)
 		return r.exit
 	case "source", ".":
 		if len(args) < 1 {
@@ -267,7 +267,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		r.Params = args[1:]
 		oldInSource := r.inSource
 		r.inSource = true
-		r.stmts(ctx, file.StmtList)
+		r.stmts(ctx, file.Stmts)
 
 		r.Params = oldParams
 		r.inSource = oldInSource

@@ -12,10 +12,10 @@ const printer = syntax.NewPrinter()
 	const src = "echo 'foo'"
 	var f = parser.Parse(src, "src")
 
-	var stmts = f.StmtList.Stmts
-	assert.equal(stmts.length, 1)
+	var stmts = f.Stmts
+	assert.equal(f.Stmts.length, 1)
 
-	var args = stmts[0].Cmd.Args
+	var args = f.Stmts[0].Cmd.Args
 	assert.equal(args.length, 2)
 	assert.equal(args[0].Parts.length, 1)
 	assert.equal(args[0].Parts[0].Value, "echo")
@@ -26,11 +26,11 @@ const printer = syntax.NewPrinter()
 	const src = "echo 'foo'"
 	var f = parser.Parse(src, "src")
 
-	assert.equal(f.StmtList.Stmts == f.StmtList.Stmts, false)
-	assert.equal(f.StmtList.Stmts === f.StmtList.Stmts, false)
-	var stmts = f.StmtList.Stmts
-	assert.equal(stmts == stmts, true)
-	assert.equal(stmts === stmts, true)
+	assert.equal(f.Stmts == f.Stmts, false)
+	assert.equal(f.Stmts === f.Stmts, false)
+	var stmtsObj = f.Stmts
+	assert.equal(stmtsObj == stmtsObj, true)
+	assert.equal(stmtsObj === stmtsObj, true)
 }
 
 {
@@ -73,7 +73,7 @@ const printer = syntax.NewPrinter()
 	const src = "foo || bar"
 	var f = parser.Parse(src, "src")
 
-	var cmd = f.StmtList.Stmts[0].Cmd
+	var cmd = f.Stmts[0].Cmd
 	assert.equal(syntax.NodeType(cmd), "BinaryCmd")
 
 	// TODO: see https://github.com/myitcv/gopherjs/issues/26
@@ -149,7 +149,7 @@ const printer = syntax.NewPrinter()
 
 	var f = parser.Parse(src, "src")
 
-	var cmd = f.StmtList.Stmts[0].Cmd
+	var cmd = f.Stmts[0].Cmd
 	assert.equal(cmd.Args.length, 2)
 }
 
@@ -237,7 +237,7 @@ const printer = syntax.NewPrinter()
 	const src = "{foo,bar}"
 	var f = parser.Parse(src, "src")
 
-	var word = f.StmtList.Stmts[0].Cmd.Args[0]
+	var word = f.Stmts[0].Cmd.Args[0]
 	assert.equal(word.Parts.length, 1)
 	assert.equal(syntax.NodeType(word.Parts[0]), "Lit")
 

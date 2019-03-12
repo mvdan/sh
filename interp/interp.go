@@ -83,7 +83,7 @@ func (r *Runner) fillExpandConfig(ctx context.Context) {
 			}
 			r2 := r.sub()
 			r2.Stdout = w
-			r2.stmts(ctx, cs.StmtList)
+			r2.stmts(ctx, cs.Stmts)
 			return r2.err
 		},
 	}
@@ -604,7 +604,7 @@ func (r *Runner) Run(ctx context.Context, node syntax.Node) error {
 	switch x := node.(type) {
 	case *syntax.File:
 		r.filename = x.Name
-		r.stmts(ctx, x.StmtList)
+		r.stmts(ctx, x.Stmts)
 	case *syntax.Stmt:
 		r.stmt(ctx, x)
 	case syntax.Command:
@@ -729,10 +729,10 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 	}
 	switch x := cm.(type) {
 	case *syntax.Block:
-		r.stmts(ctx, x.StmtList)
+		r.stmts(ctx, x.Stmts)
 	case *syntax.Subshell:
 		r2 := r.sub()
-		r2.stmts(ctx, x.StmtList)
+		r2.stmts(ctx, x.Stmts)
 		r.exit = r2.exit
 		r.setErr(r2.err)
 	case *syntax.CallExpr:
@@ -852,7 +852,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			for _, word := range ci.Patterns {
 				pattern := r.pattern(word)
 				if match(pattern, str) {
-					r.stmts(ctx, ci.StmtList)
+					r.stmts(ctx, ci.Stmts)
 					return
 				}
 			}
@@ -988,8 +988,8 @@ func elapsedString(d time.Duration, posix bool) string {
 	return fmt.Sprintf("%dm%.3fs", min, sec)
 }
 
-func (r *Runner) stmts(ctx context.Context, sl syntax.StmtList) {
-	for _, stmt := range sl.Stmts {
+func (r *Runner) stmts(ctx context.Context, stmts []*syntax.Stmt) {
+	for _, stmt := range stmts {
 		r.stmt(ctx, stmt)
 	}
 }
@@ -1085,11 +1085,11 @@ func (r *Runner) redir(ctx context.Context, rd *syntax.Redirect) (io.Closer, err
 	return f, nil
 }
 
-func (r *Runner) loopStmtsBroken(ctx context.Context, sl syntax.StmtList) bool {
+func (r *Runner) loopStmtsBroken(ctx context.Context, stmts []*syntax.Stmt) bool {
 	oldInLoop := r.inLoop
 	r.inLoop = true
 	defer func() { r.inLoop = oldInLoop }()
-	for _, stmt := range sl.Stmts {
+	for _, stmt := range stmts {
 		r.stmt(ctx, stmt)
 		if r.contnEnclosing > 0 {
 			r.contnEnclosing--

@@ -63,38 +63,37 @@ func litWords(strs ...string) []*Word {
 func call(words ...*Word) *CallExpr    { return &CallExpr{Args: words} }
 func litCall(strs ...string) *CallExpr { return call(litWords(strs...)...) }
 
-func stmt(cmd Command) *Stmt         { return &Stmt{Cmd: cmd} }
-func stmtList(sts ...*Stmt) StmtList { return StmtList{Stmts: sts} }
-func stmts(cmds ...Command) StmtList {
+func stmt(cmd Command) *Stmt { return &Stmt{Cmd: cmd} }
+func stmts(cmds ...Command) []*Stmt {
 	l := make([]*Stmt, len(cmds))
 	for i, cmd := range cmds {
 		l[i] = stmt(cmd)
 	}
-	return stmtList(l...)
+	return l
 }
 
 func litStmt(strs ...string) *Stmt { return stmt(litCall(strs...)) }
-func litStmts(strs ...string) StmtList {
+func litStmts(strs ...string) []*Stmt {
 	l := make([]*Stmt, len(strs))
 	for i, s := range strs {
 		l[i] = litStmt(s)
 	}
-	return stmtList(l...)
+	return l
 }
 
 func sglQuoted(s string) *SglQuoted        { return &SglQuoted{Value: s} }
 func sglDQuoted(s string) *SglQuoted       { return &SglQuoted{Dollar: true, Value: s} }
 func dblQuoted(ps ...WordPart) *DblQuoted  { return &DblQuoted{Parts: ps} }
 func dblDQuoted(ps ...WordPart) *DblQuoted { return &DblQuoted{Dollar: true, Parts: ps} }
-func block(sts ...*Stmt) *Block            { return &Block{StmtList: stmtList(sts...)} }
-func subshell(sts ...*Stmt) *Subshell      { return &Subshell{StmtList: stmtList(sts...)} }
+func block(sts ...*Stmt) *Block            { return &Block{Stmts: sts} }
+func subshell(sts ...*Stmt) *Subshell      { return &Subshell{Stmts: sts} }
 func arithmExp(e ArithmExpr) *ArithmExp    { return &ArithmExp{X: e} }
 func arithmExpBr(e ArithmExpr) *ArithmExp  { return &ArithmExp{Bracket: true, X: e} }
 func arithmCmd(e ArithmExpr) *ArithmCmd    { return &ArithmCmd{X: e} }
 func parenArit(e ArithmExpr) *ParenArithm  { return &ParenArithm{X: e} }
 func parenTest(e TestExpr) *ParenTest      { return &ParenTest{X: e} }
 
-func cmdSubst(sts ...*Stmt) *CmdSubst { return &CmdSubst{StmtList: stmtList(sts...)} }
+func cmdSubst(sts ...*Stmt) *CmdSubst { return &CmdSubst{Stmts: sts} }
 func litParamExp(s string) *ParamExp {
 	return &ParamExp{Short: true, Param: lit(s)}
 }
@@ -261,21 +260,22 @@ var fileTests = []testCase{
 			"if a1; a2 foo; a3 bar; then b; fi",
 		},
 		common: &IfClause{
-			Cond: stmtList(
+			Cond: []*Stmt{
 				litStmt("a1"),
 				litStmt("a2", "foo"),
 				litStmt("a3", "bar"),
-			),
+			},
+
 			Then: litStmts("b"),
 		},
 	},
 	{
 		Strs: []string{`((a == 2))`},
-		bsmk: stmt(arithmCmd(&BinaryArithm{
+		bsmk: arithmCmd(&BinaryArithm{
 			Op: Eql,
 			X:  litWord("a"),
 			Y:  litWord("2"),
-		})),
+		}),
 		posix: subshell(stmt(subshell(litStmt("a", "==", "2")))),
 	},
 	{
@@ -1102,28 +1102,28 @@ var fileTests = []testCase{
 		Strs: []string{"if true; then\n\tfoo <<-EOF\n\t\tbar\n\tEOF\nfi"},
 		common: &IfClause{
 			Cond: litStmts("true"),
-			Then: stmtList(&Stmt{
+			Then: []*Stmt{{
 				Cmd: litCall("foo"),
 				Redirs: []*Redirect{{
 					Op:   DashHdoc,
 					Word: litWord("EOF"),
 					Hdoc: litWord("\t\tbar\n\t"),
 				}},
-			}),
+			}},
 		},
 	},
 	{
 		Strs: []string{"if true; then\n\tfoo <<-EOF\n\tEOF\nfi"},
 		common: &IfClause{
 			Cond: litStmts("true"),
-			Then: stmtList(&Stmt{
+			Then: []*Stmt{{
 				Cmd: litCall("foo"),
 				Redirs: []*Redirect{{
 					Op:   DashHdoc,
 					Word: litWord("EOF"),
 					Hdoc: litWord("\t"),
 				}},
-			}),
+			}},
 		},
 	},
 	{
@@ -1424,8 +1424,8 @@ var fileTests = []testCase{
 		bash: call(
 			litWord("foo"),
 			word(&ProcSubst{
-				Op:       CmdOut,
-				StmtList: litStmts("foo"),
+				Op:    CmdOut,
+				Stmts: litStmts("foo"),
 			}),
 		),
 	},
@@ -1436,8 +1436,8 @@ var fileTests = []testCase{
 			Redirs: []*Redirect{{
 				Op: RdrIn,
 				Word: word(&ProcSubst{
-					Op:       CmdIn,
-					StmtList: litStmts("foo"),
+					Op:    CmdIn,
+					Stmts: litStmts("foo"),
 				}),
 			}},
 		},
@@ -1446,12 +1446,12 @@ var fileTests = []testCase{
 		Strs: []string{"a<(b) c>(d)"},
 		bash: call(
 			word(lit("a"), &ProcSubst{
-				Op:       CmdIn,
-				StmtList: litStmts("b"),
+				Op:    CmdIn,
+				Stmts: litStmts("b"),
 			}),
 			word(lit("c"), &ProcSubst{
-				Op:       CmdOut,
-				StmtList: litStmts("d"),
+				Op:    CmdOut,
+				Stmts: litStmts("d"),
 			}),
 		),
 	},
@@ -1745,28 +1745,28 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"${ foo;}", "${\n\tfoo; }", "${\tfoo;}"},
 		mksh: &CmdSubst{
-			StmtList: litStmts("foo"),
+			Stmts:    litStmts("foo"),
 			TempFile: true,
 		},
 	},
 	{
 		Strs: []string{"${\n\tfoo\n\tbar\n}", "${ foo; bar;}"},
 		mksh: &CmdSubst{
-			StmtList: litStmts("foo", "bar"),
+			Stmts:    litStmts("foo", "bar"),
 			TempFile: true,
 		},
 	},
 	{
 		Strs: []string{"${|foo;}", "${| foo; }"},
 		mksh: &CmdSubst{
-			StmtList: litStmts("foo"),
+			Stmts:    litStmts("foo"),
 			ReplyVar: true,
 		},
 	},
 	{
 		Strs: []string{"${|\n\tfoo\n\tbar\n}", "${|foo; bar;}"},
 		mksh: &CmdSubst{
-			StmtList: litStmts("foo", "bar"),
+			Stmts:    litStmts("foo", "bar"),
 			ReplyVar: true,
 		},
 	},
@@ -2888,12 +2888,12 @@ var fileTests = []testCase{
 				{
 					Op:       Break,
 					Patterns: litWords("1"),
-					StmtList: litStmts("foo"),
+					Stmts:    litStmts("foo"),
 				},
 				{
 					Op:       Break,
 					Patterns: litWords("2", "3*"),
-					StmtList: litStmts("bar"),
+					Stmts:    litStmts("bar"),
 				},
 			},
 		},
@@ -2906,7 +2906,7 @@ var fileTests = []testCase{
 				{
 					Op:       Fallthrough,
 					Patterns: litWords("1"),
-					StmtList: litStmts("a"),
+					Stmts:    litStmts("a"),
 				},
 				{Op: Break, Patterns: litWords("2")},
 			},
@@ -2923,7 +2923,7 @@ var fileTests = []testCase{
 			Items: []*CaseItem{{
 				Op:       Break,
 				Patterns: litWords("1"),
-				StmtList: litStmts("a"),
+				Stmts:    litStmts("a"),
 			}},
 		},
 	},
@@ -2935,12 +2935,12 @@ var fileTests = []testCase{
 				{
 					Op:       Resume,
 					Patterns: litWords("1"),
-					StmtList: litStmts("a"),
+					Stmts:    litStmts("a"),
 				},
 				{
 					Op:       Break,
 					Patterns: litWords("2"),
-					StmtList: litStmts("b"),
+					Stmts:    litStmts("b"),
 				},
 			},
 		},
@@ -2953,12 +2953,12 @@ var fileTests = []testCase{
 				{
 					Op:       ResumeKorn,
 					Patterns: litWords("1"),
-					StmtList: litStmts("a"),
+					Stmts:    litStmts("a"),
 				},
 				{
 					Op:       Break,
 					Patterns: litWords("2"),
-					StmtList: litStmts("b"),
+					Stmts:    litStmts("b"),
 				},
 			},
 		},
@@ -2970,14 +2970,14 @@ var fileTests = []testCase{
 			Items: []*CaseItem{{
 				Op:       Break,
 				Patterns: litWords("1"),
-				StmtList: stmtList(&Stmt{
+				Stmts: []*Stmt{{
 					Cmd: litCall("cat"),
 					Redirs: []*Redirect{{
 						Op:   Hdoc,
 						Word: litWord("EOF"),
 						Hdoc: litWord("foo\n"),
 					}},
-				}),
+				}},
 			}},
 		},
 	},
@@ -2987,9 +2987,8 @@ var fileTests = []testCase{
 			Op: Pipe,
 			X:  litStmt("foo"),
 			Y: stmt(&WhileClause{
-				Cond: stmtList(
-					litStmt("read", "a"),
-				),
+				Cond: []*Stmt{litStmt("read", "a")},
+
 				Do: litStmts("b"),
 			}),
 		},
@@ -2997,7 +2996,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"while read l; do foo || bar; done"},
 		common: &WhileClause{
-			Cond: stmtList(litStmt("read", "l")),
+			Cond: []*Stmt{litStmt("read", "l")},
 			Do: stmts(&BinaryCmd{
 				Op: OrStmt,
 				X:  litStmt("foo"),
@@ -3021,22 +3020,22 @@ var fileTests = []testCase{
 		Strs: []string{"if a; then b=; fi", "if a; then b=\nfi"},
 		common: &IfClause{
 			Cond: litStmts("a"),
-			Then: stmtList(stmt(&CallExpr{
+			Then: stmts(&CallExpr{
 				Assigns: []*Assign{
 					{Name: lit("b")},
 				},
-			})),
+			}),
 		},
 	},
 	{
 		Strs: []string{"if a; then >f; fi", "if a; then >f\nfi"},
 		common: &IfClause{
 			Cond: litStmts("a"),
-			Then: stmtList(&Stmt{
+			Then: []*Stmt{{
 				Redirs: []*Redirect{
 					{Op: RdrOut, Word: litWord("f")},
 				},
-			}),
+			}},
 		},
 	},
 	{
@@ -3848,14 +3847,14 @@ var fileTests = []testCase{
 			"let i++ \nbar",
 			"let i++; bar",
 		},
-		bsmk: []*Stmt{
-			stmt(letClause(&UnaryArithm{
+		bsmk: stmts(
+			letClause(&UnaryArithm{
 				Op:   Inc,
 				Post: true,
 				X:    litWord("i"),
-			})),
-			litStmt("bar"),
-		},
+			}),
+			litCall("bar"),
+		),
 	},
 	{
 		Strs: []string{
@@ -3863,17 +3862,17 @@ var fileTests = []testCase{
 			"let i++; foo=(bar)",
 			"let i++; foo=(bar)\n",
 		},
-		bsmk: []*Stmt{
-			stmt(letClause(&UnaryArithm{
+		bsmk: stmts(
+			letClause(&UnaryArithm{
 				Op:   Inc,
 				Post: true,
 				X:    litWord("i"),
-			})),
-			stmt(&CallExpr{Assigns: []*Assign{{
+			}),
+			&CallExpr{Assigns: []*Assign{{
 				Name:  lit("foo"),
 				Array: arrValues(litWord("bar")),
-			}}}),
-		},
+			}}},
+		),
 	},
 	{
 		Strs: []string{
@@ -3885,11 +3884,11 @@ var fileTests = []testCase{
 			Items: []*CaseItem{{
 				Op:       Break,
 				Patterns: litWords("b"),
-				StmtList: stmtList(stmt(letClause(&UnaryArithm{
+				Stmts: stmts(letClause(&UnaryArithm{
 					Op:   Inc,
 					Post: true,
 					X:    litWord("i"),
-				}))),
+				})),
 			}},
 		},
 	},
@@ -4160,9 +4159,6 @@ func fullProg(v interface{}) *File {
 	switch x := v.(type) {
 	case *File:
 		return x
-	case StmtList:
-		f.Stmts = x.Stmts
-		return f
 	case []*Stmt:
 		f.Stmts = x
 		return f
@@ -4251,19 +4247,19 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 	}
 	switch x := v.(type) {
 	case *File:
-		recurse(x.StmtList)
+		recurse(x.Stmts)
+		recurse(x.Last)
 		checkPos(x)
+	case []*Stmt:
+		for _, s := range x {
+			recurse(s)
+		}
 	case []Comment:
 		for i := range x {
 			recurse(&x[i])
 		}
 	case *Comment:
 		setPos(&x.Hash, "#"+x.Text)
-	case StmtList:
-		for _, s := range x.Stmts {
-			recurse(s)
-		}
-		recurse(x.Last)
 	case *Stmt:
 		endOff := int(x.End().Offset())
 		if endOff < len(src) {
@@ -4361,11 +4357,13 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 	case *Subshell:
 		setPos(&x.Lparen, "(")
 		setPos(&x.Rparen, ")")
-		recurse(x.StmtList)
+		recurse(x.Stmts)
+		recurse(x.Last)
 	case *Block:
 		setPos(&x.Lbrace, "{")
 		setPos(&x.Rbrace, "}")
-		recurse(x.StmtList)
+		recurse(x.Stmts)
+		recurse(x.Last)
 	case *IfClause:
 		if x.ThenPos.IsValid() {
 			setPos(&x.Position, "if", "elif")
@@ -4375,7 +4373,9 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 		}
 		setPos(&x.FiPos, "fi")
 		recurse(x.Cond)
+		recurse(x.CondLast)
 		recurse(x.Then)
+		recurse(x.ThenLast)
 		if x.Else != nil {
 			recurse(x.Else)
 		}
@@ -4388,7 +4388,9 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 		setPos(&x.DoPos, "do")
 		setPos(&x.DonePos, "done")
 		recurse(x.Cond)
+		recurse(x.CondLast)
 		recurse(x.Do)
+		recurse(x.DoLast)
 	case *ForClause:
 		if x.Select {
 			setPos(&x.ForPos, "select")
@@ -4399,6 +4401,7 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 		setPos(&x.DonePos, "done")
 		recurse(x.Loop)
 		recurse(x.Do)
+		recurse(x.DoLast)
 	case *WordIter:
 		recurse(x.Name)
 		if x.InPos.IsValid() {
@@ -4544,7 +4547,8 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 			setPos(&x.Left, "$(", "`", "\\`")
 			setPos(&x.Right, ")", "`", "\\`")
 		}
-		recurse(x.StmtList)
+		recurse(x.Stmts)
+		recurse(x.Last)
 	case *CaseClause:
 		setPos(&x.Case, "case")
 		setPos(&x.Esac, "esac", "}")
@@ -4557,7 +4561,8 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 			setPos(&x.OpPos, x.Op.String(), "esac")
 		}
 		recurse(x.Patterns)
-		recurse(x.StmtList)
+		recurse(x.Stmts)
+		recurse(x.Last)
 	case *TestClause:
 		setPos(&x.Left, "[[")
 		setPos(&x.Right, "]]")
@@ -4602,7 +4607,8 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 	case *ProcSubst:
 		setPos(&x.OpPos, x.Op.String())
 		setPos(&x.Rparen, ")")
-		recurse(x.StmtList)
+		recurse(x.Stmts)
+		recurse(x.Last)
 	default:
 		panic(reflect.TypeOf(v))
 	}
