@@ -92,23 +92,24 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 		str = strconv.Itoa(n)
 	case pe.Excl:
 		var strs []string
-		if pe.Names != 0 {
+		switch {
+		case pe.Names != 0:
 			strs = cfg.namesByPrefix(pe.Param.Value)
-		} else if orig.Kind == NameRef {
+		case orig.Kind == NameRef:
 			strs = append(strs, orig.Str)
-		} else if vr.Kind == Indexed {
+		case vr.Kind == Indexed:
 			for i, e := range vr.List {
 				if e != "" {
 					strs = append(strs, strconv.Itoa(i))
 				}
 			}
-		} else if vr.Kind == Associative {
+		case vr.Kind == Associative:
 			for k := range vr.Map {
 				strs = append(strs, k)
 			}
-		} else if !syntax.ValidName(str) {
+		case !syntax.ValidName(str):
 			return "", fmt.Errorf("invalid indirect expansion")
-		} else {
+		default:
 			vr = cfg.Env.Get(str)
 			strs = append(strs, vr.String())
 		}
