@@ -10,7 +10,6 @@ import (
 	"io"
 	"os"
 	"runtime"
-	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -97,10 +96,7 @@ func TestRunnerModules(t *testing.T) {
 	p := syntax.NewParser()
 	for _, tc := range modCases {
 		t.Run(tc.name, func(t *testing.T) {
-			file, err := p.Parse(strings.NewReader(tc.src), "")
-			if err != nil {
-				t.Fatalf("could not parse: %v", err)
-			}
+			file := parse(t, p, tc.src)
 			var cb concBuffer
 			r, err := New(StdIO(nil, &cb, &cb),
 				Module(tc.exec), Module(tc.open))
@@ -180,11 +176,7 @@ func TestKillTimeout(t *testing.T) {
 		test := tests[i]
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
 			t.Parallel()
-			p := syntax.NewParser()
-			file, err := p.Parse(strings.NewReader(test.src), "")
-			if err != nil {
-				t.Errorf("could not parse: %v", err)
-			}
+			file := parse(t, nil, test.src)
 			attempt := 0
 			for {
 				var rbuf readyBuffer

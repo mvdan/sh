@@ -25,6 +25,17 @@ import (
 	"mvdan.cc/sh/v3/syntax"
 )
 
+func parse(tb testing.TB, parser *syntax.Parser, src string) *syntax.File {
+	if parser == nil {
+		parser = syntax.NewParser()
+	}
+	file, err := parser.Parse(strings.NewReader(src), "")
+	if err != nil {
+		tb.Fatal(err)
+	}
+	return file
+}
+
 func BenchmarkRun(b *testing.B) {
 	b.ReportAllocs()
 	b.StopTimer()
@@ -43,10 +54,7 @@ fn() {
 echo a{b,c}d *.go
 let i=(2 + 3)
 `
-	file, err := syntax.NewParser().Parse(strings.NewReader(src), "")
-	if err != nil {
-		b.Fatal(err)
-	}
+	file := parse(b, nil, src)
 	r, _ := New()
 	ctx := context.Background()
 	b.StartTimer()
@@ -62,8 +70,8 @@ var hasBash50 bool
 
 func TestMain(m *testing.M) {
 	if os.Getenv("GOSH_PROG") != "" {
-		src := strings.NewReader(os.Args[1])
-		prog, err := syntax.NewParser().Parse(src, "")
+		r := strings.NewReader(os.Args[1])
+		file, err := syntax.NewParser().Parse(r, "")
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
@@ -74,7 +82,7 @@ func TestMain(m *testing.M) {
 			Module(WithBuiltins(testBuiltins, DefaultExec)),
 		)
 		ctx := context.Background()
-		switch err := runner.Run(ctx, prog).(type) {
+		switch err := runner.Run(ctx, file).(type) {
 		case nil:
 		case ShellExitStatus:
 			os.Exit(int(err))
@@ -2409,10 +2417,7 @@ func TestRunnerRun(t *testing.T) {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
 			c := runTests[i]
 			skipIfUnsupported(t, c.in)
-			file, err := p.Parse(strings.NewReader(c.in), "")
-			if err != nil {
-				t.Fatalf("could not parse: %v", err)
-			}
+			file := parse(t, p, c.in)
 			t.Parallel()
 			dir, err := ioutil.TempDir("", "interp-test")
 			if err != nil {
@@ -2759,10 +2764,7 @@ func TestRunnerOpts(t *testing.T) {
 	for i, c := range cases {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
 			skipIfUnsupported(t, c.in)
-			file, err := p.Parse(strings.NewReader(c.in), "")
-			if err != nil {
-				t.Fatalf("could not parse: %v", err)
-			}
+			file := parse(t, p, c.in)
 			var cb concBuffer
 			r, err := New(append(c.opts,
 				StdIO(nil, &cb, &cb),
@@ -2799,10 +2801,7 @@ func TestRunnerContext(t *testing.T) {
 	p := syntax.NewParser()
 	for i, in := range cases {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
-			file, err := p.Parse(strings.NewReader(in), "")
-			if err != nil {
-				t.Fatalf("could not parse: %v", err)
-			}
+			file := parse(t, p, in)
 			ctx, cancel := context.WithCancel(context.Background())
 			cancel()
 			r, _ := New()
@@ -2826,11 +2825,8 @@ func TestRunnerContext(t *testing.T) {
 func TestRunnerAltNodes(t *testing.T) {
 	t.Parallel()
 	in := "echo foo"
+	file := parse(t, nil, in)
 	want := "foo\n"
-	file, err := syntax.NewParser().Parse(strings.NewReader(in), "")
-	if err != nil {
-		t.Fatalf("could not parse: %v", err)
-	}
 	nodes := []syntax.Node{
 		file,
 		file.Stmts[0],
@@ -2924,12 +2920,8 @@ func TestRunnerDir(t *testing.T) {
 
 func TestRunnerIncremental(t *testing.T) {
 	t.Parallel()
-	in := "echo foo; false; echo bar; exit 0; echo baz"
+	file := parse(t, nil, "echo foo; false; echo bar; exit 0; echo baz")
 	want := "foo\nbar\n"
-	file, err := syntax.NewParser().Parse(strings.NewReader(in), "")
-	if err != nil {
-		t.Fatalf("could not parse: %v", err)
-	}
 	var b bytes.Buffer
 	r, _ := New(StdIO(nil, &b, &b))
 	ctx := context.Background()
@@ -2960,12 +2952,8 @@ func TestRunnerManyResets(t *testing.T) {
 
 func TestRunnerFilename(t *testing.T) {
 	t.Parallel()
-	in := "echo $0"
 	want := "f.sh\n"
-	file, err := syntax.NewParser().Parse(strings.NewReader(in), "f.sh")
-	if err != nil {
-		t.Fatalf("could not parse: %v", err)
-	}
+	file, _ := syntax.NewParser().Parse(strings.NewReader("echo $0"), "f.sh")
 	var b bytes.Buffer
 	r, _ := New(StdIO(nil, &b, &b))
 	ctx := context.Background()
@@ -2980,11 +2968,7 @@ func TestRunnerFilename(t *testing.T) {
 func TestRunnerEnvNoModify(t *testing.T) {
 	t.Parallel()
 	env := expand.ListEnviron("one=1", "two=2")
-	in := `echo -n "$one $two; "; one=x; unset two`
-	file, err := syntax.NewParser().Parse(strings.NewReader(in), "")
-	if err != nil {
-		t.Fatalf("could not parse: %v", err)
-	}
+	file := parse(t, nil, `echo -n "$one $two; "; one=x; unset two`)
 
 	var b bytes.Buffer
 	r, _ := New(Env(env), StdIO(nil, &b, &b))
@@ -3023,7 +3007,7 @@ func TestMalformedPathOnWindows(t *testing.T) {
 	volume := filepath.VolumeName(dir)
 	pathList := strings.ToLower(volume) + dir[len(volume):]
 
-	file, _ := syntax.NewParser().Parse(strings.NewReader("test.cmd"), "")
+	file := parse(t, nil, "test.cmd")
 	var cb concBuffer
 	r, _ := New(Env(expand.ListEnviron("PATH="+pathList)), StdIO(nil, &cb, &cb))
 	if err := r.Run(context.Background(), file); err != nil {
