@@ -178,11 +178,11 @@ const (
 type GlobOperator token
 
 const (
-	GlobQuest = GlobOperator(globQuest) + iota // ?(
-	GlobStar                                   // *(
-	GlobPlus                                   // +(
-	GlobAt                                     // @(
-	GlobExcl                                   // !(
+	GlobZeroOrOne  = GlobOperator(globQuest) + iota // ?(
+	GlobZeroOrMore                                  // *(
+	GlobOneOrMore                                   // +(
+	GlobOne                                         // @(
+	GlobExcept                                      // !(
 )
 
 type BinCmdOperator token
