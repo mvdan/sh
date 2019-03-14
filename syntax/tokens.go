@@ -213,23 +213,23 @@ const (
 type ParExpOperator token
 
 const (
-	SubstPlus      = ParExpOperator(plus) + iota // +
-	SubstColPlus                                 // :+
-	SubstMinus                                   // -
-	SubstColMinus                                // :-
-	SubstQuest                                   // ?
-	SubstColQuest                                // :?
-	SubstAssgn                                   // =
-	SubstColAssgn                                // :=
-	RemSmallSuffix                               // %
-	RemLargeSuffix                               // %%
-	RemSmallPrefix                               // #
-	RemLargePrefix                               // ##
-	UpperFirst                                   // ^
-	UpperAll                                     // ^^
-	LowerFirst                                   // ,
-	LowerAll                                     // ,,
-	OtherParamOps                                // @
+	AlternateUnset       = ParExpOperator(plus) + iota // +
+	AlternateUnsetOrNull                               // :+
+	DefaultUnset                                       // -
+	DefaultUnsetOrNull                                 // :-
+	ErrorUnset                                         // ?
+	ErrorUnsetOrNull                                   // :?
+	AssignUnset                                        // =
+	AssignUnsetOrNull                                  // :=
+	RemSmallSuffix                                     // %
+	RemLargeSuffix                                     // %%
+	RemSmallPrefix                                     // #
+	RemLargePrefix                                     // ##
+	UpperFirst                                         // ^
+	UpperAll                                           // ^^
+	LowerFirst                                         // ,
+	LowerAll                                           // ,,
+	OtherParamOps                                      // @
 )
 
 type UnAritOperator token

@@ -1884,7 +1884,7 @@ var fileTests = []testCase{
 		common: &ParamExp{
 			Param: lit("foo"),
 			Exp: &Expansion{
-				Op:   SubstMinus,
+				Op:   DefaultUnset,
 				Word: litWord("bar"),
 			},
 		},
@@ -1894,7 +1894,7 @@ var fileTests = []testCase{
 		common: word(
 			&ParamExp{
 				Param: lit("foo"),
-				Exp:   &Expansion{Op: SubstPlus},
+				Exp:   &Expansion{Op: AlternateUnset},
 			},
 			dblQuoted(lit("bar")),
 		),
@@ -1904,7 +1904,7 @@ var fileTests = []testCase{
 		common: &ParamExp{
 			Param: lit("foo"),
 			Exp: &Expansion{
-				Op:   SubstColAssgn,
+				Op:   AssignUnsetOrNull,
 				Word: word(lit("<"), dblQuoted(lit("bar"))),
 			},
 		},
@@ -1917,7 +1917,7 @@ var fileTests = []testCase{
 		common: &ParamExp{
 			Param: lit("foo"),
 			Exp: &Expansion{
-				Op: SubstColAssgn,
+				Op: AssignUnsetOrNull,
 				Word: word(
 					lit("b"),
 					&ParamExp{Param: lit("c")},
@@ -1931,7 +1931,7 @@ var fileTests = []testCase{
 		common: &ParamExp{
 			Param: lit("foo"),
 			Exp: &Expansion{
-				Op: SubstQuest,
+				Op: ErrorUnset,
 				Word: word(dblQuoted(
 					&ParamExp{Param: lit("bar")},
 				)),
@@ -1943,7 +1943,7 @@ var fileTests = []testCase{
 		common: &ParamExp{
 			Param: lit("foo"),
 			Exp: &Expansion{
-				Op:   SubstColQuest,
+				Op:   ErrorUnsetOrNull,
 				Word: litWord("bar1 bar2"),
 			},
 		},
@@ -1954,21 +1954,21 @@ var fileTests = []testCase{
 			&ParamExp{
 				Param: lit("a"),
 				Exp: &Expansion{
-					Op:   SubstColPlus,
+					Op:   AlternateUnsetOrNull,
 					Word: litWord("b"),
 				},
 			},
 			&ParamExp{
 				Param: lit("a"),
 				Exp: &Expansion{
-					Op:   SubstColMinus,
+					Op:   DefaultUnsetOrNull,
 					Word: litWord("b"),
 				},
 			},
 			&ParamExp{
 				Param: lit("a"),
 				Exp: &Expansion{
-					Op:   SubstAssgn,
+					Op:   AssignUnset,
 					Word: litWord("b"),
 				},
 			},
@@ -1979,7 +1979,7 @@ var fileTests = []testCase{
 		common: &ParamExp{
 			Param: lit("3"),
 			Exp: &Expansion{
-				Op:   SubstColMinus,
+				Op:   DefaultUnsetOrNull,
 				Word: word(sglQuoted("$x")),
 			},
 		},
@@ -1989,7 +1989,7 @@ var fileTests = []testCase{
 		common: &ParamExp{
 			Param: lit("@"),
 			Exp: &Expansion{
-				Op:   SubstColMinus,
+				Op:   DefaultUnsetOrNull,
 				Word: word(litParamExp("x")),
 			},
 		},
@@ -2075,7 +2075,7 @@ var fileTests = []testCase{
 			Param: lit("foo"),
 			Index: litWord("*"),
 			Exp: &Expansion{
-				Op:   SubstMinus,
+				Op:   DefaultUnset,
 				Word: litWord("etc"),
 			},
 		},
@@ -2452,7 +2452,7 @@ var fileTests = []testCase{
 		bsmk: arithmExp(word(&ParamExp{
 			Param: lit("a"),
 			Exp: &Expansion{
-				Op:   SubstColMinus,
+				Op:   DefaultUnsetOrNull,
 				Word: litWord("1"),
 			},
 		})),

@@ -159,42 +159,42 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 			return "", err
 		}
 		switch op := pe.Exp.Op; op {
-		case syntax.SubstColPlus:
+		case syntax.AlternateUnsetOrNull:
 			if str == "" {
 				break
 			}
 			fallthrough
-		case syntax.SubstPlus:
+		case syntax.AlternateUnset:
 			if vr.IsSet() {
 				str = arg
 			}
-		case syntax.SubstMinus:
+		case syntax.DefaultUnset:
 			if vr.IsSet() {
 				break
 			}
 			fallthrough
-		case syntax.SubstColMinus:
+		case syntax.DefaultUnsetOrNull:
 			if str == "" {
 				str = arg
 			}
-		case syntax.SubstQuest:
+		case syntax.ErrorUnset:
 			if vr.IsSet() {
 				break
 			}
 			fallthrough
-		case syntax.SubstColQuest:
+		case syntax.ErrorUnsetOrNull:
 			if str == "" {
 				return "", UnsetParameterError{
 					Node:    pe,
 					Message: arg,
 				}
 			}
-		case syntax.SubstAssgn:
+		case syntax.AssignUnset:
 			if vr.IsSet() {
 				break
 			}
 			fallthrough
-		case syntax.SubstColAssgn:
+		case syntax.AssignUnsetOrNull:
 			if str == "" {
 				if err := cfg.envSet(name, arg); err != nil {
 					return "", err
