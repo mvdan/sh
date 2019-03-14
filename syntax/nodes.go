@@ -603,8 +603,8 @@ func (*Word) arithmExprNode()         {}
 // is a valid name.
 //
 // Ternary operators like "a ? b : c" are fit into this structure. Thus, if
-// Op==Quest, Y will be a *BinaryArithm with Op==Colon. Op can only be Colon in
-// that scenario.
+// Op==TernQuest, Y will be a *BinaryArithm with Op==TernColon. Op can only be
+// TernColon in that scenario.
 type BinaryArithm struct {
 	OpPos Pos
 	Op    BinAritOperator

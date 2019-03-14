@@ -1091,7 +1091,7 @@ func arithmOpLevel(op BinAritOperator) int {
 		return 1
 	case Assgn:
 		return 2
-	case Quest, Colon:
+	case TernQuest, TernColon:
 		return 3
 	case AndArit, OrArit:
 		return 4
@@ -1168,7 +1168,7 @@ func (p *Parser) arithmExpr(level int, compact, tern bool) ArithmExpr {
 		X:     left,
 	}
 	switch b.Op {
-	case Colon:
+	case TernColon:
 		if !tern {
 			p.posErr(b.Pos(), "ternary operator missing ? before :")
 		}
@@ -1181,12 +1181,12 @@ func (p *Parser) arithmExpr(level int, compact, tern bool) ArithmExpr {
 	if p.next(); compact && p.spaced {
 		p.followErrExp(b.OpPos, b.Op.String())
 	}
-	b.Y = p.arithmExpr(newLevel, compact, b.Op == Quest)
+	b.Y = p.arithmExpr(newLevel, compact, b.Op == TernQuest)
 	if b.Y == nil {
 		p.followErrExp(b.OpPos, b.Op.String())
 	}
-	if b.Op == Quest {
-		if b2, ok := b.Y.(*BinaryArithm); !ok || b2.Op != Colon {
+	if b.Op == TernQuest {
+		if b2, ok := b.Y.(*BinaryArithm); !ok || b2.Op != TernColon {
 			p.posErr(b.Pos(), "ternary operator missing : after ?")
 		}
 	}

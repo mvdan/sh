@@ -71,12 +71,12 @@ func Arithm(cfg *Config, expr syntax.ArithmExpr) (int, error) {
 			syntax.AndAssgn, syntax.OrAssgn, syntax.XorAssgn,
 			syntax.ShlAssgn, syntax.ShrAssgn:
 			return cfg.assgnArit(x)
-		case syntax.Quest: // Colon can't happen here
+		case syntax.TernQuest: // TernColon can't happen here
 			cond, err := Arithm(cfg, x.X)
 			if err != nil {
 				return 0, err
 			}
-			b2 := x.Y.(*syntax.BinaryArithm) // must have Op==Colon
+			b2 := x.Y.(*syntax.BinaryArithm) // must have Op==TernColon
 			if cond == 1 {
 				return Arithm(cfg, b2.X)
 			}

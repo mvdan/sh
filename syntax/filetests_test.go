@@ -2175,10 +2175,10 @@ var fileTests = []testCase{
 			Param: lit("foo"),
 			Slice: &Slice{
 				Offset: &BinaryArithm{
-					Op: Quest,
+					Op: TernQuest,
 					X:  litWord("a"),
 					Y: &BinaryArithm{
-						Op: Colon,
+						Op: TernColon,
 						X:  litWord("1"),
 						Y:  litWord("2"),
 					},
@@ -2719,10 +2719,10 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"$((foo ? b1 : b2))"},
 		common: arithmExp(&BinaryArithm{
-			Op: Quest,
+			Op: TernQuest,
 			X:  litWord("foo"),
 			Y: &BinaryArithm{
-				Op: Colon,
+				Op: TernColon,
 				X:  litWord("b1"),
 				Y:  litWord("b2"),
 			},

@@ -263,11 +263,11 @@ const (
 	Shr = BinAritOperator(appOut) // >>
 	Shl = BinAritOperator(hdoc)   // <<
 
-	AndArit = BinAritOperator(andAnd) // &&
-	OrArit  = BinAritOperator(orOr)   // ||
-	Comma   = BinAritOperator(comma)  // ,
-	Quest   = BinAritOperator(quest)  // ?
-	Colon   = BinAritOperator(colon)  // :
+	AndArit   = BinAritOperator(andAnd) // &&
+	OrArit    = BinAritOperator(orOr)   // ||
+	Comma     = BinAritOperator(comma)  // ,
+	TernQuest = BinAritOperator(quest)  // ?
+	TernColon = BinAritOperator(colon)  // :
 
 	Assgn    = BinAritOperator(assgn)    // =
 	AddAssgn = BinAritOperator(addAssgn) // +=
