@@ -1479,7 +1479,10 @@ var fileTests = []testCase{
 		},
 	},
 	{
-		Strs: []string{"! if foo; then bar; fi >/dev/null &"},
+		Strs: []string{
+			"! if foo; then bar; fi >/dev/null &",
+			"! if foo; then bar; fi>/dev/null&",
+		},
 		common: &Stmt{
 			Negated: true,
 			Cmd: &IfClause{

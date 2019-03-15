@@ -853,9 +853,9 @@ loop:
 				p.discardLit(2)
 			}
 		case '>', '<':
-			if p.peekByte('(') || !p.isLitRedir() {
+			if p.peekByte('(') {
 				tok = _Lit
-			} else {
+			} else if p.isLitRedir() {
 				tok = _LitRedir
 			}
 			break loop
