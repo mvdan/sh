@@ -846,7 +846,7 @@ func (c *TimeClause) End() Pos {
 // This node will only appear with LangBash.
 type CoprocClause struct {
 	Coproc Pos
-	Name   *Lit
+	Name   *Word
 	Stmt   *Stmt
 }
 

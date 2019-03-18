@@ -3741,7 +3741,14 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"coproc name { foo; }"},
 		bash: &CoprocClause{
-			Name: lit("name"),
+			Name: litWord("name"),
+			Stmt: stmt(block(litStmt("foo"))),
+		},
+	},
+	{
+		Strs: []string{"coproc $namevar { foo; }"},
+		bash: &CoprocClause{
+			Name: word(litParamExp("namevar")),
 			Stmt: stmt(block(litStmt("foo"))),
 		},
 	},
@@ -3764,7 +3771,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"coproc name foo | bar"},
 		bash: &CoprocClause{
-			Name: lit("name"),
+			Name: litWord("name"),
 			Stmt: stmt(&BinaryCmd{
 				Op: Pipe,
 				X:  litStmt("foo"),

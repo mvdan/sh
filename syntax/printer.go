@@ -1081,7 +1081,7 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		p.spacedString("coproc", x.Pos())
 		if x.Name != nil {
 			p.space()
-			p.writeLit(x.Name.Value)
+			p.word(x.Name)
 		}
 		p.space()
 		p.stmt(x.Stmt)

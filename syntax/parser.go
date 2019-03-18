@@ -2338,7 +2338,7 @@ func (p *Parser) coprocClause(s *Stmt) {
 		s.Cmd = cc
 		return
 	}
-	cc.Name = p.getLit()
+	cc.Name = p.getWord()
 	cc.Stmt = p.gotStmtPipe(p.stmt(p.pos), false)
 	if cc.Stmt == nil {
 		if cc.Name == nil {
@@ -2346,14 +2346,13 @@ func (p *Parser) coprocClause(s *Stmt) {
 			return
 		}
 		// name was in fact the stmt
-		cc.Stmt = p.stmt(cc.Name.ValuePos)
-		cc.Stmt.Cmd = p.call(p.word(p.wps(cc.Name)))
+		cc.Stmt = p.stmt(cc.Name.Pos())
+		cc.Stmt.Cmd = p.call(cc.Name)
 		cc.Name = nil
 	} else if cc.Name != nil {
 		if call, ok := cc.Stmt.Cmd.(*CallExpr); ok {
 			// name was in fact the start of a call
-			call.Args = append([]*Word{p.word(p.wps(cc.Name))},
-				call.Args...)
+			call.Args = append([]*Word{cc.Name}, call.Args...)
 			cc.Name = nil
 		}
 	}
