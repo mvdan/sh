@@ -2958,8 +2958,11 @@ func TestRunnerResetFields(t *testing.T) {
 	r, _ := New(
 		Params("-f", "--", "first", dir, logFile.Name()),
 		Dir(dir),
-		StdIO(nil, logFile, os.Stderr),
 	)
+	// Check that using option funcs and Runner fields directly is still
+	// kept by Reset.
+	StdIO(nil, logFile, os.Stderr)(r)
+	r.Env = expand.ListEnviron(append(os.Environ(), "GLOBAL=foo")...)
 
 	file := parse(t, nil, `
 # Params set 3 arguments
@@ -2977,10 +2980,15 @@ echo line1
 echo line2
 [[ "$(wc -l <$3)" == "2" ]] || exit 14
 
+# $GLOBAL was set directly via the Env field
+[[ "$GLOBAL" == "foo" ]] || exit 15
+
 # Change all of the above within the script. Reset should undo this.
 set +f -- newargs
 cd
 exec >/dev/null 2>/dev/null
+GLOBAL=
+export GLOBAL=
 `)
 	ctx := context.Background()
 	for i := 0; i < 3; i++ {

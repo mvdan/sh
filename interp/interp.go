@@ -57,12 +57,6 @@ func New(opts ...func(*Runner) error) (*Runner, error) {
 	if r.Stdout == nil || r.Stderr == nil {
 		StdIO(r.Stdin, r.Stdout, r.Stderr)(r)
 	}
-	r.origDir = r.Dir
-	r.origParams = r.Params
-	r.origOpts = r.opts
-	r.origStdin = r.Stdin
-	r.origStdout = r.Stdout
-	r.origStderr = r.Stderr
 	return r, nil
 }
 
@@ -494,8 +488,8 @@ const (
 	optGlobStar
 )
 
-// Reset returns a runner to its initial state, before any programs were
-// interpreted via the Run method.
+// Reset returns a runner to its initial state, right before the first call to
+// Run or Reset.
 //
 // Typically, this function only needs to be called if a runner is reused to run
 // multiple programs non-incrementally. Not calling Reset between each run will
@@ -504,6 +498,14 @@ const (
 func (r *Runner) Reset() {
 	if !r.usedNew {
 		panic("use interp.New to construct a Runner")
+	}
+	if !r.didReset {
+		r.origDir = r.Dir
+		r.origParams = r.Params
+		r.origOpts = r.opts
+		r.origStdin = r.Stdin
+		r.origStdout = r.Stdout
+		r.origStderr = r.Stderr
 	}
 	// reset the internal state
 	*r = Runner{
