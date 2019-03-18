@@ -110,14 +110,11 @@ var interactiveTests = [][]string{
 
 func TestInteractive(t *testing.T) {
 	t.Parallel()
-	runner, _ := interp.New()
 	for i, tc := range interactiveTests {
 		t.Run(fmt.Sprintf("%02d", i), func(t *testing.T) {
 			inReader, inWriter := io.Pipe()
 			outReader, outWriter := io.Pipe()
-			interp.StdIO(inReader, outWriter, outWriter)(runner)
-			runner.Reset()
-
+			runner, _ := interp.New(interp.StdIO(inReader, outWriter, outWriter))
 			errc := make(chan error)
 			go func() {
 				errc <- interactive(runner)

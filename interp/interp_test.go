@@ -2944,18 +2944,43 @@ StmtLoop:
 
 func TestRunnerResetFields(t *testing.T) {
 	t.Parallel()
-	r, _ := New(Params("-f", "--", "a", "b", "c"))
+	dir, err := ioutil.TempDir("", "interp")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(dir)
+	logPath := filepath.Join(dir, "log")
+	logFile, err := os.Create(logPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer logFile.Close()
+	r, _ := New(
+		Params("-f", "--", "first", dir, logFile.Name()),
+		Dir(dir),
+		StdIO(nil, logFile, os.Stderr),
+	)
 
 	file := parse(t, nil, `
 # Params set 3 arguments
 [[ $# -eq 3 ]] || exit 10
-[[ $1 == "a" ]] || exit 11
+[[ $1 == "first" ]] || exit 11
 
 # Params set the -f option (noglob)
 [[ -o noglob ]] || exit 12
 
-# Change these settings within the script. Reset should undo this.
+# $PWD was set via Dir, and should be equal to $2
+[[ "$PWD" == "$2" ]] || exit 13
+
+# stdout should go into the log file, which is at $3
+echo line1
+echo line2
+[[ "$(wc -l <$3)" == "2" ]] || exit 14
+
+# Change all of the above within the script. Reset should undo this.
 set +f -- newargs
+cd
+exec >/dev/null 2>/dev/null
 `)
 	ctx := context.Background()
 	for i := 0; i < 3; i++ {
@@ -2963,6 +2988,9 @@ set +f -- newargs
 			t.Fatalf("run number %d: %v", i, err)
 		}
 		r.Reset()
+		// empty the log file too
+		logFile.Truncate(0)
+		logFile.Seek(0, io.SeekStart)
 	}
 }
 

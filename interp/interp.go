@@ -57,8 +57,12 @@ func New(opts ...func(*Runner) error) (*Runner, error) {
 	if r.Stdout == nil || r.Stderr == nil {
 		StdIO(r.Stdin, r.Stdout, r.Stderr)(r)
 	}
+	r.origDir = r.Dir
 	r.origParams = r.Params
 	r.origOpts = r.opts
+	r.origStdin = r.Stdin
+	r.origStdout = r.Stdout
+	r.origStderr = r.Stderr
 	return r, nil
 }
 
@@ -382,8 +386,12 @@ type Runner struct {
 
 	opts runnerOpts
 
+	origDir    string
 	origParams []string
 	origOpts   runnerOpts
+	origStdin  io.Reader
+	origStdout io.Writer
+	origStderr io.Writer
 
 	// Most scripts don't use pushd/popd, so make space for the initial PWD
 	// without requiring an extra allocation.
@@ -500,21 +508,26 @@ func (r *Runner) Reset() {
 	// reset the internal state
 	*r = Runner{
 		Env:         r.Env,
-		Dir:         r.Dir,
-		Stdin:       r.Stdin,
-		Stdout:      r.Stdout,
-		Stderr:      r.Stderr,
 		Exec:        r.Exec,
 		Open:        r.Open,
 		KillTimeout: r.KillTimeout,
 
-		// The Params function can set these in the constructor, but the
-		// set builtin can overwrite them; reset to whatever the
+		// These can be set by functions like Dir or Params, but
+		// builtins can overwrite them; reset the fields to whatever the
 		// constructor set up.
-		Params:     r.origParams,
-		opts:       r.origOpts,
+		Dir:    r.origDir,
+		Params: r.origParams,
+		opts:   r.origOpts,
+		Stdin:  r.origStdin,
+		Stdout: r.origStdout,
+		Stderr: r.origStderr,
+
+		origDir:    r.origDir,
 		origParams: r.origParams,
 		origOpts:   r.origOpts,
+		origStdin:  r.origStdin,
+		origStdout: r.origStdout,
+		origStderr: r.origStderr,
 
 		// emptied below, to reuse the space
 		Vars:      r.Vars,
