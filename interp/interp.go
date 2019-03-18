@@ -57,6 +57,8 @@ func New(opts ...func(*Runner) error) (*Runner, error) {
 	if r.Stdout == nil || r.Stderr == nil {
 		StdIO(r.Stdin, r.Stdout, r.Stderr)(r)
 	}
+	r.origParams = r.Params
+	r.origOpts = r.opts
 	return r, nil
 }
 
@@ -378,7 +380,10 @@ type Runner struct {
 
 	bgShells errgroup.Group
 
-	opts [len(shellOptsTable) + len(bashOptsTable)]bool
+	opts runnerOpts
+
+	origParams []string
+	origOpts   runnerOpts
 
 	// Most scripts don't use pushd/popd, so make space for the initial PWD
 	// without requiring an extra allocation.
@@ -447,6 +452,8 @@ func (r *Runner) optByName(name string, bash bool) *bool {
 	return nil
 }
 
+type runnerOpts [len(shellOptsTable) + len(bashOptsTable)]bool
+
 var shellOptsTable = [...]struct {
 	flag, name string
 }{
@@ -479,12 +486,13 @@ const (
 	optGlobStar
 )
 
-// Reset empties the runner state and sets any exported fields with zero values
-// to their default values.
+// Reset returns a runner to its initial state, before any programs were
+// interpreted via the Run method.
 //
 // Typically, this function only needs to be called if a runner is reused to run
 // multiple programs non-incrementally. Not calling Reset between each run will
-// mean that the shell state will be kept, including variables and options.
+// mean that the shell state will be kept, including variables, options, and the
+// current directory.
 func (r *Runner) Reset() {
 	if !r.usedNew {
 		panic("use interp.New to construct a Runner")
@@ -493,14 +501,20 @@ func (r *Runner) Reset() {
 	*r = Runner{
 		Env:         r.Env,
 		Dir:         r.Dir,
-		Params:      r.Params,
 		Stdin:       r.Stdin,
 		Stdout:      r.Stdout,
 		Stderr:      r.Stderr,
 		Exec:        r.Exec,
 		Open:        r.Open,
 		KillTimeout: r.KillTimeout,
-		opts:        r.opts,
+
+		// The Params function can set these in the constructor, but the
+		// set builtin can overwrite them; reset to whatever the
+		// constructor set up.
+		Params:     r.origParams,
+		opts:       r.origOpts,
+		origParams: r.origParams,
+		origOpts:   r.origOpts,
 
 		// emptied below, to reuse the space
 		Vars:      r.Vars,

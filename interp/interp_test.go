@@ -2942,6 +2942,30 @@ StmtLoop:
 	}
 }
 
+func TestRunnerResetFields(t *testing.T) {
+	t.Parallel()
+	r, _ := New(Params("-f", "--", "a", "b", "c"))
+
+	file := parse(t, nil, `
+# Params set 3 arguments
+[[ $# -eq 3 ]] || exit 10
+[[ $1 == "a" ]] || exit 11
+
+# Params set the -f option (noglob)
+[[ -o noglob ]] || exit 12
+
+# Change these settings within the script. Reset should undo this.
+set +f -- newargs
+`)
+	ctx := context.Background()
+	for i := 0; i < 3; i++ {
+		if err := r.Run(ctx, file); err != nil {
+			t.Fatalf("run number %d: %v", i, err)
+		}
+		r.Reset()
+	}
+}
+
 func TestRunnerManyResets(t *testing.T) {
 	t.Parallel()
 	r, _ := New()
