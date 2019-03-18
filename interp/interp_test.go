@@ -2956,8 +2956,10 @@ func TestRunnerResetFields(t *testing.T) {
 	}
 	defer logFile.Close()
 	r, _ := New(
-		Params("-f", "--", "first", dir, logFile.Name()),
+		Params("-f", "--", "first", dir, logPath),
 		Dir(dir),
+		Module(OpenDevImpls(DefaultOpen)), // for /dev/null
+		Module(WithBuiltins(testBuiltins, DefaultExec)), // for wc
 	)
 	// Check that using option funcs and Runner fields directly is still
 	// kept by Reset.
