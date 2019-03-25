@@ -1194,7 +1194,7 @@ var runTests = []runTest{
 		"exit status 1",
 	},
 	{
-		"[[ *b == '*b' ]]",
+		"[[ *b = '*b' ]]",
 		"",
 	},
 	{

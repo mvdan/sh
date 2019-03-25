@@ -25,17 +25,17 @@ func (r *Runner) bashTest(ctx context.Context, expr syntax.TestExpr, classic boo
 		return r.bashTest(ctx, x.X, classic)
 	case *syntax.BinaryTest:
 		switch x.Op {
-		case syntax.TsMatch, syntax.TsNoMatch:
+		case syntax.TsMatchShort, syntax.TsMatch, syntax.TsNoMatch:
 			str := r.literal(x.X.(*syntax.Word))
 			yw := x.Y.(*syntax.Word)
 			if classic { // test, [
 				lit := r.literal(yw)
-				if (str == lit) == (x.Op == syntax.TsMatch) {
+				if (str == lit) == (x.Op != syntax.TsNoMatch) {
 					return "1"
 				}
 			} else { // [[
 				pattern := r.pattern(yw)
-				if match(pattern, str) == (x.Op == syntax.TsMatch) {
+				if match(pattern, str) == (x.Op != syntax.TsNoMatch) {
 					return "1"
 				}
 			}

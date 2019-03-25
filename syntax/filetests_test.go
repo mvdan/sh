@@ -3430,14 +3430,11 @@ var fileTests = []testCase{
 		}},
 	},
 	{
-		Strs: []string{
-			"[[ a == b && c != d ]]",
-			"[[ a = b && c != d ]]",
-		},
+		Strs: []string{"[[ a = b && c != d ]]"},
 		bsmk: &TestClause{X: &BinaryTest{
 			Op: AndTest,
 			X: &BinaryTest{
-				Op: TsMatch,
+				Op: TsMatchShort,
 				X:  litWord("a"),
 				Y:  litWord("b"),
 			},

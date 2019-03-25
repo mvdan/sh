@@ -43,6 +43,8 @@ var simplifyTests = [...]simplifyTest{
 	{`[[ (! a == b) || (! c != d) ]]`, `[[ (a != b) || (c == d) ]]`},
 	noSimple(`[[ -n a$b && -n $c ]]`),
 	noSimple(`[[ ! -e foo ]]`),
+	noSimple(`[[ foo == bar ]]`),
+	{`[[ foo = bar ]]`, `[[ foo == bar ]]`},
 
 	// stmts
 	{"$( (sts))", "$(sts)"},

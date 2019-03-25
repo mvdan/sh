@@ -73,6 +73,10 @@ func (s *simplifier) visit(node Node) bool {
 	case *BinaryTest:
 		x.X = s.unquoteParams(x.X)
 		x.X = s.removeNegateTest(x.X)
+		if x.Op == TsMatchShort {
+			s.modified = true
+			x.Op = TsMatch
+		}
 		switch x.Op {
 		case TsMatch, TsNoMatch:
 			// unquoting enables globbing

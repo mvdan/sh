@@ -315,22 +315,23 @@ const (
 type BinTestOperator token
 
 const (
-	TsReMatch = BinTestOperator(tsReMatch) + iota // =~
-	TsNewer                                       // -nt
-	TsOlder                                       // -ot
-	TsDevIno                                      // -ef
-	TsEql                                         // -eq
-	TsNeq                                         // -ne
-	TsLeq                                         // -le
-	TsGeq                                         // -ge
-	TsLss                                         // -lt
-	TsGtr                                         // -gt
-	AndTest   = BinTestOperator(andAnd)           // &&
-	OrTest    = BinTestOperator(orOr)             // ||
-	TsMatch   = BinTestOperator(equal)            // ==
-	TsNoMatch = BinTestOperator(nequal)           // !=
-	TsBefore  = BinTestOperator(rdrIn)            // <
-	TsAfter   = BinTestOperator(rdrOut)           // >
+	TsReMatch    = BinTestOperator(tsReMatch) + iota // =~
+	TsNewer                                          // -nt
+	TsOlder                                          // -ot
+	TsDevIno                                         // -ef
+	TsEql                                            // -eq
+	TsNeq                                            // -ne
+	TsLeq                                            // -le
+	TsGeq                                            // -ge
+	TsLss                                            // -lt
+	TsGtr                                            // -gt
+	AndTest      = BinTestOperator(andAnd)           // &&
+	OrTest       = BinTestOperator(orOr)             // ||
+	TsMatchShort = BinTestOperator(assgn)            // =
+	TsMatch      = BinTestOperator(equal)            // ==
+	TsNoMatch    = BinTestOperator(nequal)           // !=
+	TsBefore     = BinTestOperator(rdrIn)            // <
+	TsAfter      = BinTestOperator(rdrOut)           // >
 )
 
 func (o RedirOperator) String() string    { return token(o).String() }

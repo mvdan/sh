@@ -1063,7 +1063,9 @@ func testUnaryOp(val string) UnTestOperator {
 
 func testBinaryOp(val string) BinTestOperator {
 	switch val {
-	case "==", "=":
+	case "=":
+		return TsMatchShort
+	case "==":
 		return TsMatch
 	case "!=":
 		return TsNoMatch
