@@ -4,6 +4,30 @@ package syntax
 
 import "strconv"
 
+func _() {
+	// An "invalid array index" compiler error signifies that the constant values have changed.
+	// Re-run the stringer command to generate them again.
+	var x [1]struct{}
+	_ = x[noState-1]
+	_ = x[subCmd-2]
+	_ = x[subCmdBckquo-4]
+	_ = x[dblQuotes-8]
+	_ = x[hdocWord-16]
+	_ = x[hdocBody-32]
+	_ = x[hdocBodyTabs-64]
+	_ = x[arithmExpr-128]
+	_ = x[arithmExprLet-256]
+	_ = x[arithmExprCmd-512]
+	_ = x[arithmExprBrack-1024]
+	_ = x[testRegexp-2048]
+	_ = x[switchCase-4096]
+	_ = x[paramExpName-8192]
+	_ = x[paramExpSlice-16384]
+	_ = x[paramExpRepl-32768]
+	_ = x[paramExpExp-65536]
+	_ = x[arrayElems-131072]
+}
+
 const _quoteState_name = "noStatesubCmdsubCmdBckquodblQuoteshdocWordhdocBodyhdocBodyTabsarithmExprarithmExprLetarithmExprCmdarithmExprBracktestRegexpswitchCaseparamExpNameparamExpSliceparamExpReplparamExpExparrayElems"
 
 var _quoteState_map = map[quoteState]string{

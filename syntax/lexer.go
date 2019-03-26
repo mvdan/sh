@@ -40,7 +40,7 @@ func paramNameOp(r rune) bool {
 // tokenize these inside arithmetic expansions
 func arithmOps(r rune) bool {
 	switch r {
-	case '+', '-', '!', '*', '/', '%', '(', ')', '^', '<', '>', ':', '=',
+	case '+', '-', '!', '~', '*', '/', '%', '(', ')', '^', '<', '>', ':', '=',
 		',', '?', '|', '&', '[', ']', '#':
 		return true
 	}
@@ -612,6 +612,9 @@ func (p *Parser) arithmToken(r rune) token {
 			return equal
 		}
 		return assgn
+	case '~':
+		p.rune()
+		return tilde
 	case '(':
 		p.rune()
 		return leftParen
@@ -818,7 +821,7 @@ loop:
 			if p.quote != paramExpExp {
 				break loop
 			}
-		case ':', '=', '%', '^', ',', '?', '!', '*':
+		case ':', '=', '%', '^', ',', '?', '!', '~', '*':
 			if p.quote&allArithmExpr != 0 || p.quote == paramExpName {
 				break loop
 			}

@@ -2563,6 +2563,10 @@ var fileTests = []testCase{
 		common: arithmExp(&UnaryArithm{Op: Not, X: litWord("i")}),
 	},
 	{
+		Strs:   []string{`$((~i))`},
+		common: arithmExp(&UnaryArithm{Op: BitNegation, X: litWord("i")}),
+	},
+	{
 		Strs: []string{`$((-!+i))`},
 		common: arithmExp(&UnaryArithm{
 			Op: Minus,
@@ -2577,6 +2581,13 @@ var fileTests = []testCase{
 		common: arithmExp(&UnaryArithm{
 			Op: Not,
 			X:  &UnaryArithm{Op: Not, X: litWord("i")},
+		}),
+	},
+	{
+		Strs: []string{`$((~~i))`},
+		common: arithmExp(&UnaryArithm{
+			Op: BitNegation,
+			X:  &UnaryArithm{Op: BitNegation, X: litWord("i")},
 		}),
 	},
 	{

@@ -51,6 +51,7 @@ const (
 	semiOr       // ;|
 
 	exclMark // !
+	tilde    // ~
 	addAdd   // ++
 	subSub   // --
 	star     // *
@@ -235,11 +236,12 @@ const (
 type UnAritOperator token
 
 const (
-	Not   = UnAritOperator(exclMark) + iota // !
-	Inc                                     // ++
-	Dec                                     // --
-	Plus  = UnAritOperator(plus)            // +
-	Minus = UnAritOperator(minus)           // -
+	Not         = UnAritOperator(exclMark) + iota // !
+	BitNegation                                   // ~
+	Inc                                           // ++
+	Dec                                           // --
+	Plus        = UnAritOperator(plus)            // +
+	Minus       = UnAritOperator(minus)           // -
 )
 
 type BinAritOperator token

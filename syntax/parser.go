@@ -1212,7 +1212,7 @@ func (p *Parser) arithmExprBase(compact bool) ArithmExpr {
 	p.got(_Newl)
 	var x ArithmExpr
 	switch p.tok {
-	case exclMark:
+	case exclMark, tilde:
 		ue := &UnaryArithm{OpPos: p.pos, Op: UnAritOperator(p.tok)}
 		p.next()
 		if ue.X = p.arithmExprBase(compact); ue.X == nil {
