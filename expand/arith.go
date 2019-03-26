@@ -59,6 +59,8 @@ func Arithm(cfg *Config, expr syntax.ArithmExpr) (int, error) {
 		switch x.Op {
 		case syntax.Not:
 			return oneIf(val == 0), nil
+		case syntax.BitNegation:
+			return ^val, nil
 		case syntax.Plus:
 			return val, nil
 		default: // syntax.Minus
