@@ -165,7 +165,6 @@ func TestBraces(t *testing.T) {
 				t.Fatalf("mismatch in %q\nwant:\n%s\ngot: %s",
 					inStr, wantStr, gotStr)
 			}
-
 		})
 	}
 }

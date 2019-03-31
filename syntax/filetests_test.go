@@ -2273,25 +2273,29 @@ var fileTests = []testCase{
 	{
 		Strs: []string{`${a^b} ${a^^b} ${a,b} ${a,,b}`},
 		bash: call(
-			word(&ParamExp{Param: lit("a"),
+			word(&ParamExp{
+				Param: lit("a"),
 				Exp: &Expansion{
 					Op:   UpperFirst,
 					Word: litWord("b"),
 				},
 			}),
-			word(&ParamExp{Param: lit("a"),
+			word(&ParamExp{
+				Param: lit("a"),
 				Exp: &Expansion{
 					Op:   UpperAll,
 					Word: litWord("b"),
 				},
 			}),
-			word(&ParamExp{Param: lit("a"),
+			word(&ParamExp{
+				Param: lit("a"),
 				Exp: &Expansion{
 					Op:   LowerFirst,
 					Word: litWord("b"),
 				},
 			}),
-			word(&ParamExp{Param: lit("a"),
+			word(&ParamExp{
+				Param: lit("a"),
 				Exp: &Expansion{
 					Op:   LowerAll,
 					Word: litWord("b"),
@@ -2302,19 +2306,22 @@ var fileTests = []testCase{
 	{
 		Strs: []string{`${a@E} ${b@a} ${@@Q}`},
 		bsmk: call(
-			word(&ParamExp{Param: lit("a"),
+			word(&ParamExp{
+				Param: lit("a"),
 				Exp: &Expansion{
 					Op:   OtherParamOps,
 					Word: litWord("E"),
 				},
 			}),
-			word(&ParamExp{Param: lit("b"),
+			word(&ParamExp{
+				Param: lit("b"),
 				Exp: &Expansion{
 					Op:   OtherParamOps,
 					Word: litWord("a"),
 				},
 			}),
-			word(&ParamExp{Param: lit("@"),
+			word(&ParamExp{
+				Param: lit("@"),
 				Exp: &Expansion{
 					Op:   OtherParamOps,
 					Word: litWord("Q"),

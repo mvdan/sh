@@ -84,7 +84,6 @@ func main() {
 			return jsFn(js.MakeFullWrapper(node))
 		}
 		syntax.Walk(node, fn)
-
 	})
 	stx.Set("DebugPrint", func(node syntax.Node) {
 		syntax.DebugPrint(os.Stdout, node)
