@@ -25,6 +25,9 @@ module:
 
 	cd $(mktemp -d); go mod init tmp; go get mvdan.cc/sh/v3/cmd/shfmt
 
+Finally, any older release can be built with their respective older Go versions
+by manually cloning, checking out a tag, and running `go build ./cmd/shfmt`.
+
 `shfmt` formats shell programs. It can use tabs or any number of spaces to
 indent. See [canonical.sh](syntax/canonical.sh) for a quick look at its default
 style.
