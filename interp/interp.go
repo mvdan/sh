@@ -215,17 +215,21 @@ func Dir(path string) func(*Runner) error {
 }
 
 // Params populates the shell options and parameters. For example, Params("-e",
-// "--", "foo") will set the "-e" option and the parameters ["foo"].
+// "--", "foo") will set the "-e" option and the parameters ["foo"], and
+// Params("+e") will unset the "-e" option and leave the parameters untouched.
 //
 // This is similar to what the interpreter's "set" builtin does.
 func Params(args ...string) func(*Runner) error {
 	return func(r *Runner) error {
+		onlyFlags := true
 		for len(args) > 0 {
 			arg := args[0]
 			if arg == "" || (arg[0] != '-' && arg[0] != '+') {
+				onlyFlags = false
 				break
 			}
 			if arg == "--" {
+				onlyFlags = false
 				args = args[1:]
 				break
 			}
@@ -259,7 +263,11 @@ func Params(args ...string) func(*Runner) error {
 			*opt = enable
 			args = args[1:]
 		}
-		r.Params = args
+		if !onlyFlags {
+			// If "--" wasn't given and there were zero arguments,
+			// we don't want to override the current parameters.
+			r.Params = args
+		}
 		return nil
 	}
 }
