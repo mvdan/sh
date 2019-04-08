@@ -2767,6 +2767,11 @@ func TestRunnerOpts(t *testing.T) {
 			"echo $@; echo $unset",
 			"foo\nunset: unbound variable\nexit status 1",
 		},
+		{
+			opts(Params("foo")),
+			"set -e; echo $@",
+			"foo\n",
+		},
 	}
 	p := syntax.NewParser()
 	for i, c := range cases {

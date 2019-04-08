@@ -66,7 +66,13 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		r.setErr(ShellExitStatus(r.exit))
 		return 0 // the command's exit status does not matter
 	case "set":
-		if err := Params(args...)(r); err != nil {
+		allArgs := make([]string, 0, len(args)+1+len(r.Params))
+		allArgs = append(allArgs, args...)
+		if len(r.Params) > 0 {
+			allArgs = append(allArgs, "--")
+			allArgs = append(allArgs, r.Params...)
+		}
+		if err := Params(allArgs...)(r); err != nil {
 			r.errf("set: %v\n", err)
 			return 2
 		}
