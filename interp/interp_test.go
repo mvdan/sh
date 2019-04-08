@@ -2767,6 +2767,26 @@ func TestRunnerOpts(t *testing.T) {
 			"echo $@; echo $unset",
 			"foo\nunset: unbound variable\nexit status 1",
 		},
+		{
+			opts(Params("foo")),
+			"set >/dev/null; echo $@",
+			"foo\n",
+		},
+		{
+			opts(Params("foo")),
+			"set -e; echo $@",
+			"foo\n",
+		},
+		{
+			opts(Params("foo")),
+			"set --; echo $@",
+			"\n",
+		},
+		{
+			opts(Params("foo")),
+			"set bar; echo $@",
+			"bar\n",
+		},
 	}
 	p := syntax.NewParser()
 	for i, c := range cases {
@@ -2776,6 +2796,7 @@ func TestRunnerOpts(t *testing.T) {
 			var cb concBuffer
 			r, err := New(append(c.opts,
 				StdIO(nil, &cb, &cb),
+				Module(OpenDevImpls(DefaultOpen)),
 				Module(WithBuiltins(testBuiltins, DefaultExec)),
 			)...)
 			if err != nil {
