@@ -1619,7 +1619,7 @@ func (p *Parser) getAssign(needEqual bool) *Assign {
 					// TODO: support [index]=[
 				default:
 					p.curErr("array element values must be words")
-					break
+					return nil
 				}
 			}
 			if len(p.accComs) > 0 {
