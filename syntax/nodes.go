@@ -236,6 +236,7 @@ func (r *Redirect) Pos() Pos {
 	}
 	return r.OpPos
 }
+
 func (r *Redirect) End() Pos {
 	if r.Hdoc != nil {
 		return r.Hdoc.End()
@@ -789,6 +790,7 @@ func (a *ArrayElem) Pos() Pos {
 	}
 	return a.Value.Pos()
 }
+
 func (a *ArrayElem) End() Pos {
 	if a.Value != nil {
 		return a.Value.End()
@@ -876,6 +878,7 @@ type BraceExp struct {
 func (b *BraceExp) Pos() Pos {
 	return posAddCol(b.Elems[0].Pos(), -1)
 }
+
 func (b *BraceExp) End() Pos {
 	return posAddCol(wordLastEnd(b.Elems), 1)
 }

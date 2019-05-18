@@ -577,7 +577,7 @@ func BenchmarkPrint(b *testing.B) {
 
 func TestPrintSpaces(t *testing.T) {
 	t.Parallel()
-	var spaceFormats = [...]struct {
+	spaceFormats := [...]struct {
 		spaces   uint
 		in, want string
 	}{
@@ -641,7 +641,7 @@ func TestWriteErr(t *testing.T) {
 
 func TestPrintBinaryNextLine(t *testing.T) {
 	t.Parallel()
-	var tests = [...]printCase{
+	tests := [...]printCase{
 		{
 			"foo <<EOF &&\nl1\nEOF\nbar",
 			"foo <<EOF && bar\nl1\nEOF",
@@ -710,7 +710,7 @@ func TestPrintBinaryNextLine(t *testing.T) {
 
 func TestPrintSwitchCaseIndent(t *testing.T) {
 	t.Parallel()
-	var tests = [...]printCase{
+	tests := [...]printCase{
 		{
 			"case $i in\n1)\nfoo\n;;\nesac",
 			"case $i in\n\t1)\n\t\tfoo\n\t\t;;\nesac",
@@ -732,7 +732,7 @@ func TestPrintSwitchCaseIndent(t *testing.T) {
 
 func TestPrintSpaceRedirects(t *testing.T) {
 	t.Parallel()
-	var tests = [...]printCase{
+	tests := [...]printCase{
 		samePrint("echo foo bar > f"),
 		samePrint("echo > f foo bar"),
 		samePrint("echo >(cmd)"),
@@ -753,7 +753,7 @@ func TestPrintSpaceRedirects(t *testing.T) {
 
 func TestPrintKeepPadding(t *testing.T) {
 	t.Parallel()
-	var tests = [...]printCase{
+	tests := [...]printCase{
 		samePrint("echo foo bar"),
 		samePrint("echo  foo   bar"),
 		samePrint("a=b  c=d   bar"),
@@ -787,7 +787,7 @@ func TestPrintKeepPadding(t *testing.T) {
 
 func TestPrintMinify(t *testing.T) {
 	t.Parallel()
-	var tests = [...]printCase{
+	tests := [...]printCase{
 		samePrint("echo foo bar $a $(b)"),
 		{
 			"#comment",
@@ -937,7 +937,7 @@ func TestPrintNodeTypes(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var tests = [...]struct {
+	tests := [...]struct {
 		in      Node
 		want    string
 		wantErr bool
@@ -1010,7 +1010,7 @@ func TestPrintNodeTypes(t *testing.T) {
 
 func TestPrintManyStmts(t *testing.T) {
 	t.Parallel()
-	var tests = [...]struct {
+	tests := [...]struct {
 		in, want string
 	}{
 		{"foo; bar", "foo\nbar\n"},

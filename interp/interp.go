@@ -163,10 +163,12 @@ var _ expand.WriteEnviron = expandEnv{}
 func (e expandEnv) Get(name string) expand.Variable {
 	return e.r.lookupVar(name)
 }
+
 func (e expandEnv) Set(name string, vr expand.Variable) error {
 	e.r.setVarInternal(name, vr)
 	return nil // TODO: return any errors
 }
+
 func (e expandEnv) Each(fn func(name string, vr expand.Variable) bool) {
 	e.r.Env.Each(fn)
 	for name, vr := range e.r.Vars {

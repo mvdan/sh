@@ -822,7 +822,7 @@ func ReadFields(cfg *Config, s string, n int, raw bool) []string {
 		fpos = fpos[:n]
 	}
 
-	var fields = make([]string, len(fpos))
+	fields := make([]string, len(fpos))
 	for i, p := range fpos {
 		fields[i] = string(runes[p.start:p.end])
 	}

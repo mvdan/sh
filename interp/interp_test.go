@@ -2549,7 +2549,6 @@ var testBuiltins = map[string]func(ModuleCtx, []string) error{
 		}
 		any := false
 		for _, line := range lines {
-			//fmt.Fprintf(os.Stderr, "%q\n", line)
 			if rx.Match(line) {
 				if quiet {
 					return nil
