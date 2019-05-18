@@ -1198,6 +1198,13 @@ func (e *extraIndenter) WriteByte(b byte) error {
 		line = line[1:]
 	}
 	trimmed := bytes.TrimLeft(line, "\t")
+	if len(trimmed) == 1 {
+		// no tabs if this is an empty line, i.e. "\n"
+		e.bufWriter.Write(trimmed)
+		e.curLine = e.curLine[:0]
+		return nil
+	}
+
 	lineIndent := len(line) - len(trimmed)
 	if e.firstIndent < 0 {
 		e.firstIndent = lineIndent

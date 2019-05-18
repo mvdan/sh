@@ -438,6 +438,8 @@ var printTests = []printCase{
 		"f <<-EOF\n\tbody\nEOF",
 	},
 	samePrint("f <<-EOF\nEOF"),
+	samePrint("f <<-EOF\n\n\nEOF"),
+	samePrint("f <<-EOF\n\n\tindented\n\nEOF"),
 	samePrint("{\n\tf <<EOF\nEOF\n}"),
 	samePrint("{\n\tf <<-EOF\n\t\tbody\n\tEOF\n}"),
 	samePrint("{\n\tf <<-EOF\n\t\tbody\n\tEOF\n\tf2\n}"),
