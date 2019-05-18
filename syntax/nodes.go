@@ -497,8 +497,9 @@ type CmdSubst struct {
 	Stmts []*Stmt
 	Last  []Comment
 
-	TempFile bool // mksh's ${ foo;}
-	ReplyVar bool // mksh's ${|foo;}
+	Backquotes bool // deprecated `foo`
+	TempFile   bool // mksh's ${ foo;}
+	ReplyVar   bool // mksh's ${|foo;}
 }
 
 func (c *CmdSubst) Pos() Pos { return c.Left }

@@ -4569,9 +4569,15 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 		case x.ReplyVar:
 			setPos(&x.Left, "${|")
 			setPos(&x.Right, "}")
+		case x.Backquotes:
+			setPos(&x.Left, "`", "\\`")
+			setPos(&x.Right, "`", "\\`")
+			// Zero out Backquotes, to not duplicate all the test
+			// cases. The printer ignores the field anyway.
+			x.Backquotes = false
 		default:
-			setPos(&x.Left, "$(", "`", "\\`")
-			setPos(&x.Right, ")", "`", "\\`")
+			setPos(&x.Left, "$(")
+			setPos(&x.Right, ")")
 		}
 		recurse(x.Stmts)
 		recurse(x.Last)

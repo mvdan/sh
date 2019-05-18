@@ -1012,7 +1012,7 @@ func (p *Parser) wordPart() WordPart {
 			return nil
 		}
 		p.ensureNoNested()
-		cs := &CmdSubst{Left: p.pos}
+		cs := &CmdSubst{Left: p.pos, Backquotes: true}
 		old := p.preNested(subCmdBckquo)
 		p.openBquotes++
 
