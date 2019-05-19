@@ -1862,7 +1862,7 @@ set +o pipefail
 	{"a=x=y; declare $a; echo $a $x", "x=y y\n"},
 	{"a='x=(y)'; declare $a; echo $a $x", "x=(y) (y)\n"},
 	{"a='x=b y=c'; declare $a; echo $x $y", "b c\n"},
-	{"declare =bar", "declare: invalid name \"=bar\"\nexit status 1 #JUSTERR"},
+	{"declare =bar", "declare: invalid name \"\"\nexit status 1 #JUSTERR"},
 	{"declare $unset=$unset", "declare: invalid name \"\"\nexit status 1 #JUSTERR"},
 
 	// export

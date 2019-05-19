@@ -925,23 +925,24 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		case "nameref":
 			valType = "-n"
 		}
-		for _, opt := range x.Opts {
-			switch s := r.literal(opt); s {
-			case "-x", "-r":
-				modes = append(modes, s)
-			case "-a", "-A", "-n":
-				valType = s
-			case "-g":
-				global = true
-			default:
-				r.errf("declare: invalid option %q\n", s)
-				r.exit = 2
-				return
-			}
-		}
-		for _, as := range x.Assigns {
+		for _, as := range x.Args {
 			for _, as := range r.flattenAssign(as) {
 				name := as.Name.Value
+				if strings.HasPrefix(name, "-") {
+					switch name {
+					case "-x", "-r":
+						modes = append(modes, name)
+					case "-a", "-A", "-n":
+						valType = name
+					case "-g":
+						global = true
+					default:
+						r.errf("declare: invalid option %q\n", name)
+						r.exit = 2
+						return
+					}
+					continue
+				}
 				if !syntax.ValidName(name) {
 					r.errf("declare: invalid name %q\n", name)
 					r.exit = 1

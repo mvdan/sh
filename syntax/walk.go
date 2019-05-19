@@ -179,8 +179,7 @@ func Walk(node Node, f func(Node) bool) {
 	case *TestClause:
 		Walk(x.X, f)
 	case *DeclClause:
-		walkWords(x.Opts, f)
-		for _, a := range x.Assigns {
+		for _, a := range x.Args {
 			Walk(a, f)
 		}
 	case *ArrayExpr:

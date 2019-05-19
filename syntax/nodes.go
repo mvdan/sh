@@ -188,11 +188,12 @@ func (*CoprocClause) commandNode() {}
 // arrays are not allowed.
 //
 // If Naked is true and Name is nil, the assignment is part of a DeclClause and
-// the assignment expression (in the Value field) will be evaluated at run-time.
+// the argument (in the Value field) will be evaluated at run-time. This
+// includes parameter expansions, which may expand to assignments or options.
 type Assign struct {
-	Append bool // +=
-	Naked  bool // without '='
-	Name   *Lit
+	Append bool       // +=
+	Naked  bool       // without '='
+	Name   *Lit       // must be a valid name
 	Index  ArithmExpr // [i], ["k"]
 	Value  *Word      // =val
 	Array  *ArrayExpr // =(arr)
@@ -741,22 +742,21 @@ func (p *ParenTest) End() Pos { return posAddCol(p.Rparen, 1) }
 
 // DeclClause represents a Bash declare clause.
 //
+// Args can contain a mix of regular and naked assignments. The naked
+// assignments can represent either options or variable names.
+//
 // This node will only appear with LangBash.
 type DeclClause struct {
 	// Variant is one of "declare", "local", "export", "readonly",
 	// "typeset", or "nameref".
 	Variant *Lit
-	Opts    []*Word
-	Assigns []*Assign
+	Args    []*Assign
 }
 
 func (d *DeclClause) Pos() Pos { return d.Variant.Pos() }
 func (d *DeclClause) End() Pos {
-	if len(d.Assigns) > 0 {
-		return d.Assigns[len(d.Assigns)-1].End()
-	}
-	if len(d.Opts) > 0 {
-		return wordLastEnd(d.Opts)
+	if len(d.Args) > 0 {
+		return d.Args[len(d.Args)-1].End()
 	}
 	return d.Variant.End()
 }

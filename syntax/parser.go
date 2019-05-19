@@ -2279,22 +2279,18 @@ func (p *Parser) testExprBase(ftok token, fpos Pos) TestExpr {
 func (p *Parser) declClause(s *Stmt) {
 	ds := &DeclClause{Variant: p.lit(p.pos, p.val)}
 	p.next()
-	for (p.tok == _LitWord || p.tok == _Lit) &&
-		(p.val[0] == '-' || p.val[0] == '+') {
-		ds.Opts = append(ds.Opts, p.getWord())
-	}
 	for !stopToken(p.tok) && !p.peekRedir() {
 		if p.hasValidIdent() {
-			ds.Assigns = append(ds.Assigns, p.getAssign(false))
+			ds.Args = append(ds.Args, p.getAssign(false))
 		} else if p.eqlOffs > 0 {
 			p.curErr("invalid var name")
-		} else if p.tok == _LitWord {
-			ds.Assigns = append(ds.Assigns, &Assign{
+		} else if p.tok == _LitWord && ValidName(p.val) {
+			ds.Args = append(ds.Args, &Assign{
 				Naked: true,
 				Name:  p.getLit(),
 			})
 		} else if w := p.getWord(); w != nil {
-			ds.Assigns = append(ds.Assigns, &Assign{
+			ds.Args = append(ds.Args, &Assign{
 				Naked: true,
 				Value: w,
 			})

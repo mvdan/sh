@@ -3509,18 +3509,17 @@ var fileTests = []testCase{
 		common: litStmt("declare", "-f", "func"),
 		bash: &DeclClause{
 			Variant: lit("declare"),
-			Opts:    litWords("-f"),
-			Assigns: []*Assign{{
-				Naked: true,
-				Name:  lit("func"),
-			}},
+			Args: []*Assign{
+				{Naked: true, Value: litWord("-f")},
+				{Naked: true, Name: lit("func")},
+			},
 		},
 	},
 	{
 		Strs: []string{"(local bar)"},
 		bsmk: subshell(stmt(&DeclClause{
 			Variant: lit("local"),
-			Assigns: []*Assign{{
+			Args: []*Assign{{
 				Naked: true,
 				Name:  lit("bar"),
 			}},
@@ -3536,7 +3535,7 @@ var fileTests = []testCase{
 		Strs: []string{"export bar"},
 		bsmk: &DeclClause{
 			Variant: lit("export"),
-			Assigns: []*Assign{{
+			Args: []*Assign{{
 				Naked: true,
 				Name:  lit("bar"),
 			}},
@@ -3544,15 +3543,18 @@ var fileTests = []testCase{
 		posix: litStmt("export", "bar"),
 	},
 	{
-		Strs:  []string{"readonly -n"},
-		bsmk:  &DeclClause{Variant: lit("readonly"), Opts: litWords("-n")},
+		Strs: []string{"readonly -n"},
+		bsmk: &DeclClause{
+			Variant: lit("readonly"),
+			Args:    []*Assign{{Naked: true, Value: litWord("-n")}},
+		},
 		posix: litStmt("readonly", "-n"),
 	},
 	{
 		Strs: []string{"nameref bar="},
 		bsmk: &DeclClause{
 			Variant: lit("nameref"),
-			Assigns: []*Assign{{
+			Args: []*Assign{{
 				Name: lit("bar"),
 			}},
 		},
@@ -3562,12 +3564,10 @@ var fileTests = []testCase{
 		Strs: []string{"declare -a +n -b$o foo=bar"},
 		bash: &DeclClause{
 			Variant: lit("declare"),
-			Opts: []*Word{
-				litWord("-a"),
-				litWord("+n"),
-				word(lit("-b"), litParamExp("o")),
-			},
-			Assigns: []*Assign{
+			Args: []*Assign{
+				{Naked: true, Value: litWord("-a")},
+				{Naked: true, Value: litWord("+n")},
+				{Naked: true, Value: word(lit("-b"), litParamExp("o"))},
 				{Name: lit("foo"), Value: litWord("bar")},
 			},
 		},
@@ -3579,46 +3579,52 @@ var fileTests = []testCase{
 		},
 		bash: &DeclClause{
 			Variant: lit("declare"),
-			Opts:    litWords("-a"),
-			Assigns: []*Assign{{
-				Name: lit("foo"),
-				Array: arrValues(
-					litWord("b1"),
-					word(cmdSubst(litStmt("b2"))),
-				),
-			}},
+			Args: []*Assign{
+				{Naked: true, Value: litWord("-a")},
+				{
+					Name: lit("foo"),
+					Array: arrValues(
+						litWord("b1"),
+						word(cmdSubst(litStmt("b2"))),
+					),
+				},
+			},
 		},
 	},
 	{
 		Strs: []string{"local -a foo=(b1)"},
 		bash: &DeclClause{
 			Variant: lit("local"),
-			Opts:    litWords("-a"),
-			Assigns: []*Assign{{
-				Name:  lit("foo"),
-				Array: arrValues(litWord("b1")),
-			}},
+			Args: []*Assign{
+				{Naked: true, Value: litWord("-a")},
+				{
+					Name:  lit("foo"),
+					Array: arrValues(litWord("b1")),
+				},
+			},
 		},
 	},
 	{
 		Strs: []string{"declare -A foo=([a]=b)"},
 		bash: &DeclClause{
 			Variant: lit("declare"),
-			Opts:    litWords("-A"),
-			Assigns: []*Assign{{
-				Name: lit("foo"),
-				Array: &ArrayExpr{Elems: []*ArrayElem{{
-					Index: litWord("a"),
-					Value: litWord("b"),
-				}}},
-			}},
+			Args: []*Assign{
+				{Naked: true, Value: litWord("-A")},
+				{
+					Name: lit("foo"),
+					Array: &ArrayExpr{Elems: []*ArrayElem{{
+						Index: litWord("a"),
+						Value: litWord("b"),
+					}}},
+				},
+			},
 		},
 	},
 	{
 		Strs: []string{"declare foo[a]="},
 		bash: &DeclClause{
 			Variant: lit("declare"),
-			Assigns: []*Assign{{
+			Args: []*Assign{{
 				Name:  lit("foo"),
 				Index: litWord("a"),
 			}},
@@ -3628,7 +3634,7 @@ var fileTests = []testCase{
 		Strs: []string{"declare foo[*]"},
 		bash: &DeclClause{
 			Variant: lit("declare"),
-			Assigns: []*Assign{{
+			Args: []*Assign{{
 				Name:  lit("foo"),
 				Index: litWord("*"),
 				Naked: true,
@@ -3639,7 +3645,7 @@ var fileTests = []testCase{
 		Strs: []string{`declare foo["x y"]`},
 		bash: &DeclClause{
 			Variant: lit("declare"),
-			Assigns: []*Assign{{
+			Args: []*Assign{{
 				Name:  lit("foo"),
 				Index: word(dblQuoted(lit("x y"))),
 				Naked: true,
@@ -3650,7 +3656,7 @@ var fileTests = []testCase{
 		Strs: []string{`declare foo['x y']`},
 		bash: &DeclClause{
 			Variant: lit("declare"),
-			Assigns: []*Assign{{
+			Args: []*Assign{{
 				Name:  lit("foo"),
 				Index: word(sglQuoted("x y")),
 				Naked: true,
@@ -3686,11 +3692,13 @@ var fileTests = []testCase{
 		bash: &Stmt{
 			Cmd: &DeclClause{
 				Variant: lit("declare"),
-				Opts:    litWords("-f"),
-				Assigns: []*Assign{{
-					Naked: true,
-					Value: word(litParamExp("func")),
-				}},
+				Args: []*Assign{
+					{Naked: true, Value: litWord("-f")},
+					{
+						Naked: true,
+						Value: word(litParamExp("func")),
+					},
+				},
 			},
 			Redirs: []*Redirect{
 				{Op: RdrOut, Word: litWord("/dev/null")},
@@ -3702,7 +3710,7 @@ var fileTests = []testCase{
 		bash: stmts(
 			&DeclClause{
 				Variant: lit("declare"),
-				Assigns: []*Assign{{
+				Args: []*Assign{{
 					Naked: true,
 					Name:  lit("a"),
 				}},
@@ -4601,8 +4609,7 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 		recurse(x.X)
 	case *DeclClause:
 		recurse(x.Variant)
-		recurse(x.Opts)
-		recurse(x.Assigns)
+		recurse(x.Args)
 	case *TimeClause:
 		setPos(&x.Time, "time")
 		if x.Stmt != nil {

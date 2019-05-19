@@ -1064,11 +1064,7 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		p.spacedString("]]", x.Right)
 	case *DeclClause:
 		p.spacedString(x.Variant.Value, x.Pos())
-		for _, w := range x.Opts {
-			p.space()
-			p.word(w)
-		}
-		p.assigns(x.Assigns)
+		p.assigns(x.Args)
 	case *TimeClause:
 		p.spacedString("time", x.Pos())
 		if x.PosixFormat {
