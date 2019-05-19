@@ -2068,6 +2068,55 @@ func TestParseDocumentError(t *testing.T) {
 	}
 }
 
+var arithmeticTests = []struct {
+	in   string
+	want ArithmExpr
+}{
+	{
+		"foo",
+		litWord("foo"),
+	},
+	{
+		"3 + 4",
+		&BinaryArithm{
+			Op: Add,
+			X:  litWord("3"),
+			Y:  litWord("4"),
+		},
+	},
+}
+
+func TestParseArithmetic(t *testing.T) {
+	t.Parallel()
+	p := NewParser()
+
+	for i, tc := range arithmeticTests {
+		t.Run(fmt.Sprintf("%02d", i), func(t *testing.T) {
+			got, err := p.Arithmetic(strings.NewReader(tc.in))
+			if err != nil {
+				t.Fatal(err)
+			}
+			clearPosRecurse(t, "", got)
+			if !reflect.DeepEqual(got, tc.want) {
+				t.Fatalf("syntax tree mismatch in %q\ndiff:\n%s", tc.in,
+					strings.Join(pretty.Diff(tc.want, got), "\n"))
+			}
+		})
+	}
+}
+
+func TestParseArithmeticError(t *testing.T) {
+	t.Parallel()
+	in := "3 +"
+	p := NewParser()
+	_, err := p.Arithmetic(strings.NewReader(in))
+	want := "1:3: + must be followed by an expression"
+	got := fmt.Sprintf("%v", err)
+	if got != want {
+		t.Fatalf("Expected %q as an error, but got %q", want, got)
+	}
+}
+
 var stopAtTests = []struct {
 	in   string
 	stop string

@@ -242,6 +242,19 @@ func (p *Parser) Document(r io.Reader) (*Word, error) {
 	return w, p.err
 }
 
+// Arithmetic parses a single arithmetic expression. That is, as if the input
+// were within the $(( and )) tokens.
+func (p *Parser) Arithmetic(r io.Reader) (ArithmExpr, error) {
+	p.reset()
+	p.f = &File{}
+	p.src = r
+	p.rune()
+	p.quote = arithmExpr
+	p.next()
+	expr := p.arithmExpr(0, false, false)
+	return expr, p.err
+}
+
 // Parser holds the internal state of the parsing mechanism of a
 // program.
 type Parser struct {
