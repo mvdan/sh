@@ -908,6 +908,7 @@ func TestPrintMinifyNotBroken(t *testing.T) {
 }
 
 func printTest(t *testing.T, parser *Parser, printer *Printer, in, want string) {
+	t.Helper()
 	prog, err := parser.Parse(strings.NewReader(in), "")
 	if err != nil {
 		t.Fatal(err)

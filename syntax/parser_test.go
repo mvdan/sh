@@ -281,6 +281,7 @@ func TestParseErrMirBSDKornConfirm(t *testing.T) {
 
 func singleParse(p *Parser, in string, want *File) func(t *testing.T) {
 	return func(t *testing.T) {
+		t.Helper()
 		got, err := p.Parse(newStrictReader(in), "")
 		if err != nil {
 			t.Fatalf("Unexpected error in %q: %v", in, err)

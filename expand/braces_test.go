@@ -170,6 +170,7 @@ func TestBraces(t *testing.T) {
 }
 
 func wantBraceExpParts(t *testing.T, word *syntax.Word, want bool) {
+	t.Helper()
 	any := false
 	for _, part := range word.Parts {
 		if _, any = part.(*syntax.BraceExp); any {
