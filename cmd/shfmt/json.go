@@ -51,15 +51,7 @@ func recurse(val, valPtr reflect.Value) (interface{}, string) {
 			}
 			fval := val.Field(i)
 			v, _ := recurse(fval, fval)
-			switch ftyp.Name {
-			case "StmtList":
-				// inline their fields
-				for name, v := range v.(map[string]interface{}) {
-					m[name] = v
-				}
-			default:
-				m[ftyp.Name] = v
-			}
+			m[ftyp.Name] = v
 		}
 		// use valPtr to find the method, as methods are defined on the
 		// pointer values.
