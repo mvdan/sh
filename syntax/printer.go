@@ -97,8 +97,10 @@ func (p *Printer) Print(w io.Writer, node Node) error {
 		p.line = x.Pos().Line()
 		p.command(x, nil)
 	case *Word:
+		p.line = x.Pos().Line()
 		p.word(x)
 	case WordPart:
+		p.line = x.Pos().Line()
 		p.wordPart(x, nil)
 	default:
 		return fmt.Errorf("unsupported node type: %T", x)
@@ -493,12 +495,16 @@ func (p *Printer) comments(comments ...Comment) {
 }
 
 func (p *Printer) wordParts(wps []WordPart) {
-	for i, n := range wps {
+	for i, wp := range wps {
 		var next WordPart
 		if i+1 < len(wps) {
 			next = wps[i+1]
 		}
-		p.wordPart(n, next)
+		if pos := wp.Pos(); pos.Line() > p.line {
+			p.bslashNewl()
+		}
+		p.wordPart(wp, next)
+		p.line = wp.End().Line()
 	}
 }
 

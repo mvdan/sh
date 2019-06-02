@@ -4244,10 +4244,7 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 				gotErr = got
 			}
 			got = strings.Replace(got, "\\\n", "", -1)
-			if len(got) > len(want) {
-				got = got[:len(want)]
-			}
-			if got == want {
+			if strings.HasPrefix(got, want) {
 				return
 			}
 		}

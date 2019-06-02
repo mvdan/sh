@@ -55,8 +55,10 @@ func bquoteEscaped(b byte) bool {
 	return false
 }
 
+const escNewl rune = utf8.RuneSelf + 1
+
 func (p *Parser) rune() rune {
-	if p.r == '\n' {
+	if p.r == '\n' || p.r == escNewl {
 		// p.r instead of b so that newline
 		// character positions don't have col 0.
 		p.npos.line++
@@ -68,11 +70,14 @@ retry:
 	if p.bsp < len(p.bs) {
 		if b := p.bs[p.bsp]; b < utf8.RuneSelf {
 			p.bsp++
-			if b == '\\' && p.openBquotes > 0 {
-				// don't do it for newlines, as we want
-				// the newlines to be eaten in p.next
-				if bquotes < p.openBquotes && p.bsp < len(p.bs) &&
-					bquoteEscaped(p.bs[p.bsp]) {
+			if b == '\\' {
+				if p.r != '\\' && p.peekByte('\n') {
+					p.bsp++
+					p.w, p.r = 1, escNewl
+					return escNewl
+				}
+				if p.openBquotes > 0 && bquotes < p.openBquotes &&
+					p.bsp < len(p.bs) && bquoteEscaped(p.bs[p.bsp]) {
 					bquotes++
 					goto retry
 				}
@@ -194,6 +199,9 @@ func (p *Parser) next() {
 		p.tok = _EOF
 		return
 	}
+	for p.r == escNewl {
+		p.rune()
+	}
 	p.spaced = false
 	if p.quote&allKeepSpaces != 0 {
 		p.nextKeepSpaces()
@@ -206,6 +214,8 @@ skipSpace:
 		case utf8.RuneSelf:
 			p.tok = _EOF
 			return
+		case escNewl:
+			r = p.rune()
 		case ' ', '\t', '\r':
 			p.spaced = true
 			r = p.rune()
@@ -221,12 +231,6 @@ skipSpace:
 				p.doHeredocs()
 			}
 			return
-		case '\\':
-			if !p.peekByte('\n') {
-				break skipSpace
-			}
-			p.rune()
-			r = p.rune()
 		default:
 			break skipSpace
 		}
@@ -249,7 +253,10 @@ skipSpace:
 		case '#':
 			r = p.rune()
 			p.newLit(r)
-			for r != utf8.RuneSelf && r != '\n' {
+			for r != '\n' && r != utf8.RuneSelf {
+				if r == escNewl {
+					p.litBs = append(p.litBs, '\\', '\n')
+				}
 				r = p.rune()
 			}
 			if p.keepComments {
@@ -741,7 +748,7 @@ func (p *Parser) newLit(r rune) {
 	case r < utf8.RuneSelf:
 		p.litBs = p.litBuf[:1]
 		p.litBs[0] = byte(r)
-	case r > utf8.RuneSelf:
+	case r > escNewl:
 		w := utf8.RuneLen(r)
 		p.litBs = append(p.litBuf[:0], p.bs[p.bsp-w:p.bsp]...)
 	default:
@@ -751,10 +758,8 @@ func (p *Parser) newLit(r rune) {
 	}
 }
 
-func (p *Parser) discardLit(n int) { p.litBs = p.litBs[:len(p.litBs)-n] }
-
 func (p *Parser) endLit() (s string) {
-	if p.r == utf8.RuneSelf {
+	if p.r == utf8.RuneSelf || p.r == escNewl {
 		s = string(p.litBs)
 	} else {
 		s = string(p.litBs[:len(p.litBs)-int(p.w)])
@@ -783,17 +788,11 @@ func (p *Parser) advanceNameCont(r rune) {
 loop:
 	for p.newLit(r); r != utf8.RuneSelf; r = p.rune() {
 		switch {
-		case r == '\\':
-			if p.peekByte('\n') {
-				p.rune()
-				p.discardLit(2)
-			} else {
-				break loop
-			}
 		case 'a' <= r && r <= 'z':
 		case 'A' <= r && r <= 'Z':
 		case r == '_':
 		case '0' <= r && r <= '9':
+		case r == escNewl:
 		default:
 			break loop
 		}
@@ -807,9 +806,7 @@ loop:
 	for p.newLit(r); r != utf8.RuneSelf; r = p.rune() {
 		switch r {
 		case '\\': // escaped byte follows
-			if r = p.rune(); r == '\n' {
-				p.discardLit(2)
-			}
+			p.rune()
 		case '"', '`', '$':
 			tok = _Lit
 			break loop
@@ -852,9 +849,7 @@ loop:
 		case ' ', '\t', '\n', '\r', '&', '|', ';', '(', ')':
 			break loop
 		case '\\': // escaped byte follows
-			if r = p.rune(); r == '\n' {
-				p.discardLit(2)
-			}
+			p.rune()
 		case '>', '<':
 			if p.peekByte('(') {
 				tok = _Lit
@@ -898,7 +893,7 @@ loop:
 			break loop
 		case '\\': // escaped byte follows
 			p.rune()
-		case '`', '$':
+		case escNewl, '`', '$':
 			tok = _Lit
 			break loop
 		}

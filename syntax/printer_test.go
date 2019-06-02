@@ -125,11 +125,11 @@ var printTests = []printCase{
 	},
 	{
 		"a b\\\nc d",
-		"a bc \\\n\td",
+		"a bc d",
 	},
 	{
 		"a bb\\\ncc d",
-		"a bbcc \\\n\td",
+		"a bbcc d",
 	},
 	samePrint("a \\\n\tb \\\n\tc \\\n\t;"),
 	samePrint("a=1 \\\n\tb=2 \\\n\tc=3 \\\n\t;"),
@@ -392,6 +392,7 @@ var printTests = []printCase{
 	},
 	samePrint("\"foo\n$(bar)\""),
 	samePrint("\"foo\\\n$(bar)\""),
+	samePrint("\"foo\\\nbar\""),
 	samePrint("((foo++)) || bar"),
 	{
 		"a=b \\\nc=d \\\nfoo",

@@ -426,9 +426,6 @@ func (cfg *Config) wordField(wps []syntax.WordPart, ql quoteLevel) ([]fieldPart,
 					b := s[i]
 					if b == '\\' && i+1 < len(s) {
 						switch s[i+1] {
-						case '\n': // remove \\\n
-							i++
-							continue
 						case '"', '\\', '$', '`': // special chars
 							continue
 						}
