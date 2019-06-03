@@ -923,7 +923,7 @@ func (p *Parser) advanceLitHdoc(r rune) {
 					p.val = p.endLit()
 					return
 				}
-			} else if bytes.HasPrefix(p.litBs[lStart:], p.hdocStop) {
+			} else if lStart >= 0 && bytes.HasPrefix(p.litBs[lStart:], p.hdocStop) {
 				p.val = p.endLit()[:lStart]
 				if p.val == "" {
 					p.tok = _Newl
@@ -961,7 +961,7 @@ func (p *Parser) quotedHdocWord() *Word {
 		for r != utf8.RuneSelf && r != '\n' {
 			r = p.rune()
 		}
-		if bytes.HasPrefix(p.litBs[lStart:], p.hdocStop) {
+		if lStart >= 0 && bytes.HasPrefix(p.litBs[lStart:], p.hdocStop) {
 			p.hdocStop = nil
 			val := p.endLit()[:lStart]
 			if val == "" {

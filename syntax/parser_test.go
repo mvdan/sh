@@ -717,6 +717,16 @@ var shellTests = []errorCase{
 		mksh:   `1:1: unclosed here-document 'EOF'`,
 	},
 	{
+		in:     "<<EOF\n\\\n",
+		common: `1:1: unclosed here-document 'EOF' #NOERR`,
+		mksh:   `1:1: unclosed here-document 'EOF'`,
+	},
+	{
+		in:     "<<'EOF'\n\\\n",
+		common: `1:1: unclosed here-document 'EOF' #NOERR`,
+		mksh:   `1:1: unclosed here-document 'EOF'`,
+	},
+	{
 		in:     "<<EOF <`\n#\n`\n``",
 		common: `1:1: unclosed here-document 'EOF'`,
 		mksh:   `1:1: unclosed here-document 'EOF'`,
