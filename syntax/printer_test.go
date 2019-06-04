@@ -1043,3 +1043,23 @@ func TestPrintManyStmts(t *testing.T) {
 		})
 	}
 }
+
+func TestPrintCrash(t *testing.T) {
+	t.Parallel()
+	inputs := []string{
+		"<<-EOF\n`<<-''\n\uffcb\n`\n",
+	}
+	parser := NewParser(KeepComments)
+	printer := NewPrinter()
+	for i, in := range inputs {
+		t.Run(fmt.Sprintf("%02d", i), func(t *testing.T) {
+			prog, err := parser.Parse(strings.NewReader(in), "")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := strPrint(printer, prog); err != nil {
+				t.Fatal(err)
+			}
+		})
+	}
+}

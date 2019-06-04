@@ -53,9 +53,8 @@ func Minify(p *Printer) { p.minify = true }
 // NewPrinter allocates a new Printer and applies any number of options.
 func NewPrinter(options ...func(*Printer)) *Printer {
 	p := &Printer{
-		bufWriter:   bufio.NewWriter(nil),
-		tabsPrinter: new(Printer),
-		tabWriter:   new(tabwriter.Writer),
+		bufWriter: bufio.NewWriter(nil),
+		tabWriter: new(tabwriter.Writer),
 	}
 	for _, opt := range options {
 		opt(p)
@@ -393,10 +392,10 @@ func (p *Printer) flushHeredocs() {
 					baseIndent:  int(p.level + 1),
 					firstIndent: -1,
 				}
-				*p.tabsPrinter = Printer{
+				p.tabsPrinter = &Printer{
 					bufWriter: &extra,
+					line:      r.Hdoc.Pos().Line(),
 				}
-				p.tabsPrinter.line = r.Hdoc.Pos().Line()
 				p.tabsPrinter.word(r.Hdoc)
 				p.indent()
 				p.line = r.Hdoc.End().Line()
