@@ -47,7 +47,7 @@ func (mc ModuleCtx) UnixPath(path string) string {
 	return strings.Replace(path, `\`, `/`, -1)
 }
 
-// ModuleExec is the module responsible for executing a program. It is
+// ExecModule is the module responsible for executing a program. It is
 // executed for all CallExpr nodes where the first argument is neither a
 // declared function nor a builtin.
 //
@@ -58,11 +58,9 @@ func (mc ModuleCtx) UnixPath(path string) string {
 // Use a return error of type ExitStatus to set the exit status. A nil error has
 // the same effect as ExitStatus(0). If the error is of any other type, the
 // interpreter will come to a stop.
-type ModuleExec func(ctx context.Context, path string, args []string) error
+type ExecModule = func(ctx context.Context, path string, args []string) error
 
-func (ModuleExec) isModule() {}
-
-var DefaultExec = ModuleExec(func(ctx context.Context, path string, args []string) error {
+func DefaultExec(ctx context.Context, path string, args []string) error {
 	mc, _ := FromModuleContext(ctx)
 	if path == "" {
 		fmt.Fprintf(mc.Stderr, "%q: executable file not found in $PATH\n", args[0])
@@ -121,9 +119,9 @@ var DefaultExec = ModuleExec(func(ctx context.Context, path string, args []strin
 	default:
 		return err
 	}
-})
+}
 
-// ModuleOpen is the module responsible for opening a file. It is
+// OpenModule is the module responsible for opening a file. It is
 // executed for all files that are opened directly by the shell, such as
 // in redirects. Files opened by executed programs are not included.
 //
@@ -136,15 +134,13 @@ var DefaultExec = ModuleExec(func(ctx context.Context, path string, args []strin
 // TODO: What about stat calls? They are used heavily in the builtin
 // test expressions, and also when doing a cd. Should they have a
 // separate module?
-type ModuleOpen func(ctx context.Context, path string, flag int, perm os.FileMode) (io.ReadWriteCloser, error)
+type OpenModule = func(ctx context.Context, path string, flag int, perm os.FileMode) (io.ReadWriteCloser, error)
 
-func (ModuleOpen) isModule() {}
-
-var DefaultOpen = ModuleOpen(func(ctx context.Context, path string, flag int, perm os.FileMode) (io.ReadWriteCloser, error) {
+func DefaultOpen(ctx context.Context, path string, flag int, perm os.FileMode) (io.ReadWriteCloser, error) {
 	return os.OpenFile(path, flag, perm)
-})
+}
 
-func OpenDevImpls(next ModuleOpen) ModuleOpen {
+func OpenDevImpls(next OpenModule) OpenModule {
 	return func(ctx context.Context, path string, flag int, perm os.FileMode) (io.ReadWriteCloser, error) {
 		mc, _ := FromModuleContext(ctx)
 		switch mc.UnixPath(path) {

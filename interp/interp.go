@@ -32,7 +32,11 @@ import (
 // environment falls back to the process's environment, and not supplying the
 // standard output writer means that the output will be discarded.
 func New(opts ...func(*Runner) error) (*Runner, error) {
-	r := &Runner{usedNew: true}
+	r := &Runner{
+		usedNew: true,
+		Exec:    DefaultExec,
+		Open:    DefaultOpen,
+	}
 	r.dirStack = r.dirBootstrap[:0]
 	for _, opt := range opts {
 		if err := opt(r); err != nil {
@@ -47,12 +51,6 @@ func New(opts ...func(*Runner) error) (*Runner, error) {
 		if err := Dir("")(r); err != nil {
 			return nil, err
 		}
-	}
-	if r.Exec == nil {
-		Module(ModuleExec(nil))(r)
-	}
-	if r.Open == nil {
-		Module(ModuleOpen(nil))(r)
 	}
 	if r.Stdout == nil || r.Stderr == nil {
 		StdIO(r.Stdin, r.Stdout, r.Stderr)(r)
@@ -276,27 +274,33 @@ func Params(args ...string) func(*Runner) error {
 	}
 }
 
-type ModuleFunc interface {
-	isModule()
+// WithExecModule sets up a runner with a chain of ExecModule middlewares. The
+// chain is set up starting at the end, so that the first middleware in the list
+// will be the first one to execute as part of the interpreter.
+//
+// The last or innermost module is always DefaultExec. You can make it
+// unreachable by adding a middleware that never calls its next module.
+func WithExecModules(mods ...func(next ExecModule) ExecModule) func(*Runner) error {
+	return func(r *Runner) error {
+		for i := len(mods) - 1; i >= 0; i-- {
+			mod := mods[i]
+			r.Exec = mod(r.Exec)
+		}
+		return nil
+	}
 }
 
-// Module sets an interpreter module, which can be ModuleExec or ModuleOpen. If
-// the value is nil, the default module implementation is used.
-func Module(mod ModuleFunc) func(*Runner) error {
+// WithOpenModule sets up a runner with a chain of OpenModule middlewares. The
+// chain is set up starting at the end, so that the first middleware in the list
+// will be the first one to execute as part of the interpreter.
+//
+// The last or innermost module is always DefaultOpen. You can make it
+// unreachable by adding a middleware that never calls its next module.
+func WithOpenModules(mods ...func(next OpenModule) OpenModule) func(*Runner) error {
 	return func(r *Runner) error {
-		switch mod := mod.(type) {
-		case ModuleExec:
-			if mod == nil {
-				mod = DefaultExec
-			}
-			r.Exec = mod
-		case ModuleOpen:
-			if mod == nil {
-				mod = DefaultOpen
-			}
-			r.Open = mod
-		default:
-			return fmt.Errorf("unknown module type: %T", mod)
+		for i := len(mods) - 1; i >= 0; i-- {
+			mod := mods[i]
+			r.Open = mod(r.Open)
 		}
 		return nil
 	}
@@ -344,9 +348,9 @@ type Runner struct {
 
 	// Exec is the module responsible for executing programs. It must be
 	// non-nil.
-	Exec ModuleExec
+	Exec ExecModule
 	// Open is the module responsible for opening files. It must be non-nil.
-	Open ModuleOpen
+	Open OpenModule
 
 	Stdin  io.Reader
 	Stdout io.Writer

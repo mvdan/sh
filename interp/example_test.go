@@ -35,19 +35,21 @@ func Example() {
 	// global_value
 }
 
-func ExampleModuleExec() {
+func ExampleExecModule() {
 	src := "echo foo; missing-program bar"
 	file, _ := syntax.NewParser().Parse(strings.NewReader(src), "")
-	exec := func(ctx context.Context, path string, args []string) error {
-		if path == "" {
-			fmt.Printf("%s is not installed\n", args[0])
-			return interp.ExitStatus(1)
+	exec := func(next interp.ExecModule) interp.ExecModule {
+		return func(ctx context.Context, path string, args []string) error {
+			if path == "" {
+				fmt.Printf("%s is not installed\n", args[0])
+				return interp.ExitStatus(1)
+			}
+			return next(ctx, path, args)
 		}
-		return interp.DefaultExec(ctx, path, args)
 	}
 	runner, _ := interp.New(
 		interp.StdIO(nil, os.Stdout, os.Stdout),
-		interp.Module(interp.ModuleExec(exec)),
+		interp.WithExecModules(exec),
 	)
 	runner.Run(context.TODO(), file)
 	// Output:

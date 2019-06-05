@@ -17,75 +17,69 @@ import (
 	"mvdan.cc/sh/v3/syntax"
 )
 
+func blacklistBuiltin(name string) func(ExecModule) ExecModule {
+	return ExecBuiltin(name, func(mc ModuleCtx, args []string) error {
+		return fmt.Errorf("%s: blacklisted builtin", name)
+	})
+}
+
+func blacklistExec(next ExecModule) ExecModule {
+	return func(ctx context.Context, path string, args []string) error {
+		return fmt.Errorf("blacklisted: %s", args[0])
+	}
+}
+
 var modCases = []struct {
 	name string
-	exec ModuleExec
-	open ModuleOpen
+	exec func(ExecModule) ExecModule
+	open func(OpenModule) OpenModule
 	src  string
 	want string
 }{
 	{
 		name: "ExecBlacklist",
-		exec: func(ctx context.Context, path string, args []string) error {
-			if args[0] == "sleep" {
-				return fmt.Errorf("blacklisted: %s", args[0])
-			}
-			return WithBuiltins(testBuiltins, DefaultExec)(ctx, path, args)
-		},
+		exec: blacklistBuiltin("sleep"),
 		src:  "echo foo; sleep 1",
-		want: "foo\nblacklisted: sleep",
+		want: "foo\nsleep: blacklisted builtin",
 	},
 	{
 		name: "ExecWhitelist",
-		exec: func(ctx context.Context, path string, args []string) error {
-			switch args[0] {
-			case "sed", "grep":
-			default:
-				return fmt.Errorf("blacklisted: %s", args[0])
-			}
-			return WithBuiltins(testBuiltins, DefaultExec)(ctx, path, args)
-		},
+		exec: blacklistBuiltin("faa"),
 		src:  "a=$(echo foo | sed 's/o/a/g'); echo $a; $a args",
-		want: "faa\nblacklisted: faa",
+		want: "faa\nfaa: blacklisted builtin",
 	},
 	{
 		name: "ExecSubshell",
-		exec: func(ctx context.Context, path string, args []string) error {
-			return fmt.Errorf("blacklisted: %s", args[0])
-		},
+		exec: blacklistExec,
 		src:  "(malicious)",
 		want: "blacklisted: malicious",
 	},
 	{
 		name: "ExecPipe",
-		exec: func(ctx context.Context, path string, args []string) error {
-			return fmt.Errorf("blacklisted: %s", args[0])
-		},
+		exec: blacklistExec,
 		src:  "malicious | echo foo",
 		want: "foo\nblacklisted: malicious",
 	},
 	{
 		name: "ExecCmdSubst",
-		exec: func(ctx context.Context, path string, args []string) error {
-			return fmt.Errorf("blacklisted: %s", args[0])
-		},
+		exec: blacklistExec,
 		src:  "a=$(malicious)",
 		want: "blacklisted: malicious\nexit status 1",
 	},
 	{
 		name: "ExecBackground",
-		exec: func(ctx context.Context, path string, args []string) error {
-			return fmt.Errorf("blacklisted: %s", args[0])
-		},
+		exec: blacklistExec,
 		src:  "{ malicious; true; } & { malicious; true; } & wait",
 		want: "blacklisted: malicious",
 	},
 	{
 		name: "OpenForbidNonDev",
-		open: OpenDevImpls(func(ctx context.Context, path string, flags int, mode os.FileMode) (io.ReadWriteCloser, error) {
-			mc, _ := FromModuleContext(ctx)
-			return nil, fmt.Errorf("non-dev: %s", mc.UnixPath(path))
-		}),
+		open: func(next OpenModule) OpenModule {
+			return OpenDevImpls(func(ctx context.Context, path string, flags int, mode os.FileMode) (io.ReadWriteCloser, error) {
+				mc, _ := FromModuleContext(ctx)
+				return nil, fmt.Errorf("non-dev: %s", mc.UnixPath(path))
+			})
+		},
 		src:  "echo foo >/dev/null; echo bar >/tmp/x",
 		want: "non-dev: /tmp/x",
 	},
@@ -98,8 +92,13 @@ func TestRunnerModules(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			file := parse(t, p, tc.src)
 			var cb concBuffer
-			r, err := New(StdIO(nil, &cb, &cb),
-				Module(tc.exec), Module(tc.open))
+			r, err := New(StdIO(nil, &cb, &cb))
+			if tc.exec != nil {
+				WithExecModules(tc.exec)(r)
+			}
+			if tc.open != nil {
+				WithOpenModules(tc.open)(r)
+			}
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -112,14 +111,6 @@ func TestRunnerModules(t *testing.T) {
 				t.Fatalf("want:\n%s\ngot:\n%s", tc.want, got)
 			}
 		})
-	}
-}
-
-func TestRunnerDefaultModules(t *testing.T) {
-	t.Parallel()
-	_, err := New(Module(DefaultOpen), Module(DefaultExec))
-	if err != nil {
-		t.Fatal(err)
 	}
 }
 
