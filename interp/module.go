@@ -133,7 +133,6 @@ func ExecBuiltin(name string, fn func(ModuleCtx, []string) error) func(ExecModul
 	}
 }
 
-
 // OpenModule is the module responsible for opening a file. It is
 // executed for all files that are opened directly by the shell, such as
 // in redirects. Files opened by executed programs are not included.
