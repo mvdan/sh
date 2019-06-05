@@ -36,9 +36,9 @@ func Example() {
 }
 
 func ExampleExecModule() {
-	src := "echo foo; missing-program bar"
+	src := "echo foo; join ! foo bar baz; missing-program bar"
 	file, _ := syntax.NewParser().Parse(strings.NewReader(src), "")
-	exec := func(next interp.ExecModule) interp.ExecModule {
+	notInstalled := func(next interp.ExecModule) interp.ExecModule {
 		return func(ctx context.Context, path string, args []string) error {
 			if path == "" {
 				fmt.Printf("%s is not installed\n", args[0])
@@ -49,10 +49,17 @@ func ExampleExecModule() {
 	}
 	runner, _ := interp.New(
 		interp.StdIO(nil, os.Stdout, os.Stdout),
-		interp.WithExecModules(exec),
+		interp.WithExecModules(
+			interp.ExecBuiltin("join", func(mc interp.ModuleCtx, args []string) error {
+				fmt.Fprintln(mc.Stdout, strings.Join(args[1:], args[0]))
+				return nil
+			}),
+			notInstalled,
+		),
 	)
 	runner.Run(context.TODO(), file)
 	// Output:
 	// foo
+	// foo!bar!baz
 	// missing-program is not installed
 }

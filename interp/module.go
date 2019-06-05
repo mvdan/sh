@@ -121,6 +121,19 @@ func DefaultExec(ctx context.Context, path string, args []string) error {
 	}
 }
 
+func ExecBuiltin(name string, fn func(ModuleCtx, []string) error) func(ExecModule) ExecModule {
+	return func(next ExecModule) ExecModule {
+		return func(ctx context.Context, path string, args []string) error {
+			if args[0] == name {
+				mc, _ := FromModuleContext(ctx)
+				return fn(mc, args[1:])
+			}
+			return next(ctx, path, args)
+		}
+	}
+}
+
+
 // OpenModule is the module responsible for opening a file. It is
 // executed for all files that are opened directly by the shell, such as
 // in redirects. Files opened by executed programs are not included.
