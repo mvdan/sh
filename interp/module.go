@@ -142,10 +142,6 @@ func ExecBuiltin(name string, fn func(ModuleCtx, []string) error) func(ExecModul
 // Use a return error of type *os.PathError to have the error printed to
 // stderr and the exit status set to 1. If the error is of any other type, the
 // interpreter will come to a stop.
-//
-// TODO: What about stat calls? They are used heavily in the builtin
-// test expressions, and also when doing a cd. Should they have a
-// separate module?
 type OpenModule = func(ctx context.Context, path string, flag int, perm os.FileMode) (io.ReadWriteCloser, error)
 
 func DefaultOpen(ctx context.Context, path string, flag int, perm os.FileMode) (io.ReadWriteCloser, error) {
