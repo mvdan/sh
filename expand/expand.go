@@ -366,8 +366,8 @@ func Fields(cfg *Config, words ...*syntax.Word) ([]string, error) {
 	dir := cfg.envGet("PWD")
 	for _, word := range words {
 		afterBraces := []*syntax.Word{word}
-		if w2 := syntax.SplitBraces(word); w2 != word {
-			afterBraces = Braces(w2)
+		if syntax.SplitBraces(word) {
+			afterBraces = Braces(word)
 		}
 		for _, word2 := range afterBraces {
 			wfields, err := cfg.wordFields(word2.Parts)

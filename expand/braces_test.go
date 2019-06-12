@@ -156,10 +156,11 @@ func TestBraces(t *testing.T) {
 			wantStr := printWords(tc.want...)
 			wantBraceExpParts(t, tc.in, false)
 
-			inBraces := syntax.SplitBraces(tc.in)
-			wantBraceExpParts(t, inBraces, inStr != wantStr)
+			inBraces := *tc.in
+			syntax.SplitBraces(&inBraces)
+			wantBraceExpParts(t, &inBraces, inStr != wantStr)
 
-			got := Braces(inBraces)
+			got := Braces(&inBraces)
 			gotStr := printWords(got...)
 			if gotStr != wantStr {
 				t.Fatalf("mismatch in %q\nwant:\n%s\ngot: %s",
