@@ -6,6 +6,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -60,13 +61,13 @@ func TestStdin(t *testing.T) {
 		if err := formatStdin(); err != errChangedWithDiff {
 			t.Fatalf("got=%q want=%q", err, errChangedWithDiff)
 		}
-		want := `diff -u <standard input>.orig <standard input>
+		want := fmt.Sprintf(`diff -u <standard input>.orig <standard input>
 @@ -1,3 +1,2 @@
-- foo
-+foo
+%s
+%s
  bar
--
-`
+%s
+`, markDeleted([]byte("- foo")), markAdded([]byte("+foo")), markDeleted([]byte("-")))
 		if got := buf.String(); got != want {
 			t.Fatalf("got:\n%swant:\n%s", got, want)
 		}

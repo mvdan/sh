@@ -48,6 +48,10 @@ var (
 	in  io.Reader = os.Stdin
 	out io.Writer = os.Stdout
 
+	ansiFgRed   = []byte("\u001b[31m")
+	ansiFgGreen = []byte("\u001b[32m")
+	ansiReset   = []byte("\u001b[0m")
+
 	version = "v3.0.0-alpha1"
 )
 
@@ -322,16 +326,34 @@ func diffBytes(b1, b2 []byte, path string) ([]byte, error) {
 		// as diff will return non-zero if the files differ.
 		return nil, err
 	}
+
+	output := make([][]byte, 0)
 	// We already print the filename, so remove the
 	// temporary filenames printed by diff.
 	lines := bytes.Split(data, []byte("\n"))
-	for i, line := range lines {
+	for _, line := range lines {
 		switch {
 		case bytes.HasPrefix(line, []byte("---")):
 		case bytes.HasPrefix(line, []byte("+++")):
+		case bytes.HasPrefix(line, []byte("-")):
+			output = append(output, markDeleted(line))
+		case bytes.HasPrefix(line, []byte("+")):
+			output = append(output, markAdded(line))
 		default:
-			return bytes.Join(lines[i:], []byte("\n")), nil
+			output = append(output, line)
 		}
 	}
-	return data, nil
+	return bytes.Join(output, []byte("\n")), nil
+}
+
+func markDeleted(b []byte) []byte {
+	b = append(ansiFgRed, b...)
+	b = append(b, ansiReset...)
+	return b
+}
+
+func markAdded(b []byte) []byte {
+	b = append(ansiFgGreen, b...)
+	b = append(b, ansiReset...)
+	return b
 }
