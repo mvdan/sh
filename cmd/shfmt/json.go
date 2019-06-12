@@ -12,9 +12,9 @@ import (
 	"mvdan.cc/sh/v3/syntax"
 )
 
-func writeJSON(w io.Writer, f *syntax.File, pretty bool) error {
-	val := reflect.ValueOf(f)
-	v, _ := recurse(val, val)
+func writeJSON(w io.Writer, node syntax.Node, pretty bool) error {
+	val := reflect.ValueOf(node)
+	v, _ := encode(val)
 	enc := json.NewEncoder(w)
 	if pretty {
 		enc.SetIndent("", "\t")
@@ -22,19 +22,19 @@ func writeJSON(w io.Writer, f *syntax.File, pretty bool) error {
 	return enc.Encode(v)
 }
 
-func recurse(val, valPtr reflect.Value) (interface{}, string) {
+func encode(val reflect.Value) (interface{}, string) {
 	switch val.Kind() {
 	case reflect.Ptr:
 		elem := val.Elem()
 		if !elem.IsValid() {
 			return nil, ""
 		}
-		return recurse(elem, val)
+		return encode(elem)
 	case reflect.Interface:
 		if val.IsNil() {
 			return nil, ""
 		}
-		v, tname := recurse(val.Elem(), val)
+		v, tname := encode(val.Elem())
 		m := v.(map[string]interface{})
 		m["Type"] = tname
 		return m, ""
@@ -50,23 +50,21 @@ func recurse(val, valPtr reflect.Value) (interface{}, string) {
 				continue
 			}
 			fval := val.Field(i)
-			v, _ := recurse(fval, fval)
+			v, _ := encode(fval)
 			m[ftyp.Name] = v
 		}
-		// use valPtr to find the method, as methods are defined on the
-		// pointer values.
-		if posMethod := valPtr.MethodByName("Pos"); posMethod.IsValid() {
-			m["Pos"] = translatePos(posMethod.Call(nil)[0])
-		}
-		if posMethod := valPtr.MethodByName("End"); posMethod.IsValid() {
-			m["End"] = translatePos(posMethod.Call(nil)[0])
+		// Pos methods are defined on struct pointer receivers.
+		for _, name := range [...]string{"Pos", "End"} {
+			if fn := val.Addr().MethodByName(name); fn.IsValid() {
+				m[name] = translatePos(fn.Call(nil)[0])
+			}
 		}
 		return m, typ.Name()
 	case reflect.Slice:
 		l := make([]interface{}, val.Len())
 		for i := 0; i < val.Len(); i++ {
 			elem := val.Index(i)
-			l[i], _ = recurse(elem.Addr(), elem)
+			l[i], _ = encode(elem)
 		}
 		return l, ""
 	default:
