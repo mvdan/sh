@@ -72,7 +72,7 @@ func TestStdin(t *testing.T) {
 		}
 	})
 
-	t.Run("DifColored", func(t *testing.T) {
+	t.Run("DiffColored", func(t *testing.T) {
 		if _, err := exec.LookPath("diff"); err != nil {
 			t.Skip("skipping as the diff tool is not available")
 		}
