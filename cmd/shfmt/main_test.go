@@ -6,7 +6,6 @@ package main
 import (
 	"bufio"
 	"bytes"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -61,13 +60,31 @@ func TestStdin(t *testing.T) {
 		if err := formatStdin(); err != errChangedWithDiff {
 			t.Fatalf("got=%q want=%q", err, errChangedWithDiff)
 		}
-		want := fmt.Sprintf(`diff -u <standard input>.orig <standard input>
+		want := `diff -u <standard input>.orig <standard input>
 @@ -1,3 +1,2 @@
-%s
-%s
+- foo
++foo
  bar
-%s
-`, markDeleted([]byte("- foo")), markAdded([]byte("+foo")), markDeleted([]byte("-")))
+-
+`
+		if got := buf.String(); got != want {
+			t.Fatalf("got:\n%swant:\n%s", got, want)
+		}
+	})
+
+	t.Run("DifColored", func(t *testing.T) {
+		if _, err := exec.LookPath("diff"); err != nil {
+			t.Skip("skipping as the diff tool is not available")
+		}
+		*diff = true
+		*color = true
+		defer func() { *diff = false; *color = false }()
+		in = strings.NewReader(" foo\nbar\n\n")
+		buf.Reset()
+		if err := formatStdin(); err != errChangedWithDiff {
+			t.Fatalf("got=%q want=%q", err, errChangedWithDiff)
+		}
+		want := "diff -u <standard input>.orig <standard input>\n@@ -1,3 +1,2 @@\n\x1b[31m- foo\x1b[0m\n\x1b[32m+foo\x1b[0m\n bar\n\x1b[31m-\x1b[0m\n"
 		if got := buf.String(); got != want {
 			t.Fatalf("got:\n%swant:\n%s", got, want)
 		}

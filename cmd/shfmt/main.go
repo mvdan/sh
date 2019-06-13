@@ -26,6 +26,7 @@ var (
 	simple = flag.Bool("s", false, "")
 	find   = flag.Bool("f", false, "")
 	diff   = flag.Bool("d", false, "")
+	color  = flag.Bool("c", false, "")
 
 	langStr = flag.String("ln", "", "")
 	posix   = flag.Bool("p", false, "")
@@ -48,9 +49,9 @@ var (
 	in  io.Reader = os.Stdin
 	out io.Writer = os.Stdout
 
-	ansiFgRed   = []byte("\u001b[31m")
-	ansiFgGreen = []byte("\u001b[32m")
-	ansiReset   = []byte("\u001b[0m")
+	ansiFgRed   = "\u001b[31m"
+	ansiFgGreen = "\u001b[32m"
+	ansiReset   = "\u001b[0m"
 
 	version = "v3.0.0-alpha1"
 )
@@ -78,6 +79,7 @@ Parser options:
 Printer options:
 
   -i uint   indent: 0 for tabs (default), >0 for number of spaces
+  -c        show colored diff
   -bn       binary ops like && and | may start a line
   -ci       switch cases will be indented
   -sr       redirect operators will be followed by a space
@@ -327,33 +329,34 @@ func diffBytes(b1, b2 []byte, path string) ([]byte, error) {
 		return nil, err
 	}
 
-	output := make([][]byte, 0)
+	output := new(bytes.Buffer)
 	// We already print the filename, so remove the
 	// temporary filenames printed by diff.
 	lines := bytes.Split(data, []byte("\n"))
-	for _, line := range lines {
+	count := len(lines)
+	for i, line := range lines {
 		switch {
 		case bytes.HasPrefix(line, []byte("---")):
 		case bytes.HasPrefix(line, []byte("+++")):
 		case bytes.HasPrefix(line, []byte("-")):
-			output = append(output, markDeleted(line))
+			if *color {
+				fmt.Fprintf(output, "%s%s%s\n", ansiFgRed, string(line), ansiReset)
+			} else {
+				fmt.Fprintln(output, string(line))
+			}
 		case bytes.HasPrefix(line, []byte("+")):
-			output = append(output, markAdded(line))
+			if *color {
+				fmt.Fprintf(output, "%s%s%s\n", ansiFgGreen, string(line), ansiReset)
+			} else {
+				fmt.Fprintln(output, string(line))
+			}
 		default:
-			output = append(output, line)
+			if i < count-1 {
+				fmt.Fprintln(output, string(line))
+			} else {
+				fmt.Fprint(output, string(line))
+			}
 		}
 	}
-	return bytes.Join(output, []byte("\n")), nil
-}
-
-func markDeleted(b []byte) []byte {
-	b = append(ansiFgRed, b...)
-	b = append(b, ansiReset...)
-	return b
-}
-
-func markAdded(b []byte) []byte {
-	b = append(ansiFgGreen, b...)
-	b = append(b, ansiReset...)
-	return b
+	return output.Bytes(), nil
 }
