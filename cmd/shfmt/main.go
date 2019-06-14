@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"regexp"
 
+	"golang.org/x/crypto/ssh/terminal"
 	"mvdan.cc/sh/v3/fileutil"
 	"mvdan.cc/sh/v3/syntax"
 )
@@ -48,8 +49,25 @@ var (
 	in  io.Reader = os.Stdin
 	out io.Writer = os.Stdout
 
+	color       bool
+	ansiFgRed   = "\u001b[31m"
+	ansiFgGreen = "\u001b[32m"
+	ansiReset   = "\u001b[0m"
+
 	version = "v3.0.0-alpha1"
 )
+
+func init() {
+	if term, ok := os.LookupEnv("TERM"); ok && term == "dumb" {
+		color = false
+		return
+	}
+	if f, ok := out.(*os.File); ok && terminal.IsTerminal(int(f.Fd())) {
+		color = true
+		return
+	}
+	color = false
+}
 
 func main() {
 	flag.Usage = func() {
@@ -322,16 +340,35 @@ func diffBytes(b1, b2 []byte, path string) ([]byte, error) {
 		// as diff will return non-zero if the files differ.
 		return nil, err
 	}
+
+	output := new(bytes.Buffer)
 	// We already print the filename, so remove the
 	// temporary filenames printed by diff.
 	lines := bytes.Split(data, []byte("\n"))
+	count := len(lines)
 	for i, line := range lines {
 		switch {
 		case bytes.HasPrefix(line, []byte("---")):
 		case bytes.HasPrefix(line, []byte("+++")):
+		case bytes.HasPrefix(line, []byte("-")):
+			if color {
+				fmt.Fprintf(output, "%s%s%s\n", ansiFgRed, string(line), ansiReset)
+			} else {
+				fmt.Fprintln(output, string(line))
+			}
+		case bytes.HasPrefix(line, []byte("+")):
+			if color {
+				fmt.Fprintf(output, "%s%s%s\n", ansiFgGreen, string(line), ansiReset)
+			} else {
+				fmt.Fprintln(output, string(line))
+			}
 		default:
-			return bytes.Join(lines[i:], []byte("\n")), nil
+			if i < count-1 {
+				fmt.Fprintln(output, string(line))
+			} else {
+				fmt.Fprint(output, string(line))
+			}
 		}
 	}
-	return data, nil
+	return output.Bytes(), nil
 }
