@@ -77,8 +77,8 @@ func TestStdin(t *testing.T) {
 			t.Skip("skipping as the diff tool is not available")
 		}
 		*diff = true
-		*color = true
-		defer func() { *diff = false; *color = false }()
+		color = true
+		defer func() { *diff = false; color = false }()
 		in = strings.NewReader(" foo\nbar\n\n")
 		buf.Reset()
 		if err := formatStdin(); err != errChangedWithDiff {
