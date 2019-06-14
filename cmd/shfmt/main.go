@@ -57,18 +57,6 @@ var (
 	version = "v3.0.0-alpha1"
 )
 
-func init() {
-	if term, ok := os.LookupEnv("TERM"); ok && term == "dumb" {
-		color = false
-		return
-	}
-	if f, ok := out.(*os.File); ok && terminal.IsTerminal(int(f.Fd())) {
-		color = true
-		return
-	}
-	color = false
-}
-
 func main() {
 	flag.Usage = func() {
 		fmt.Fprint(os.Stderr, `usage: shfmt [flags] [path ...]
@@ -150,6 +138,10 @@ Utilities:
 			syntax.Minify(p)
 		}
 	})
+	if f, ok := out.(*os.File); ok && terminal.IsTerminal(int(f.Fd())) &&
+		os.Getenv("TERM") != "dumb" {
+		color = true
+	}
 	if flag.NArg() == 0 {
 		if err := formatStdin(); err != nil {
 			if err != errChangedWithDiff {
