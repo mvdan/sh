@@ -141,8 +141,8 @@ To build a Docker image, checkout a specific version of the repository and run:
 [mksh]: https://www.mirbsd.org/mksh.htm
 [mvdan-sh]: https://www.npmjs.com/package/mvdan-sh
 [nixos]: https://github.com/NixOS/nixpkgs/blob/HEAD/pkgs/tools/text/shfmt/default.nix
-[posix shell]: http://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html
-[posix-ambiguity]: http://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_06_03
+[posix shell]: https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html
+[posix-ambiguity]: https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_06_03
 [shell-format]: https://marketplace.visualstudio.com/items?itemName=foxundermoon.shell-format
 [scoop]: https://github.com/lukesampson/scoop/blob/HEAD/bucket/shfmt.json
 [snapcraft]: https://snapcraft.io/shfmt
