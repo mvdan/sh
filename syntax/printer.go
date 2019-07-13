@@ -493,14 +493,20 @@ func (p *Printer) comments(comments ...Comment) {
 	p.pendingComments = append(p.pendingComments, comments...)
 }
 
-func (p *Printer) wordParts(wps []WordPart) {
+func (p *Printer) wordParts(wps []WordPart, quoted bool) {
 	for i, wp := range wps {
 		var next WordPart
 		if i+1 < len(wps) {
 			next = wps[i+1]
 		}
 		if pos := wp.Pos(); pos.Line() > p.line {
-			p.bslashNewl()
+			if quoted {
+				// No extra spacing or indentation if quoted.
+				p.WriteString("\\\n")
+				p.line++
+			} else {
+				p.bslashNewl()
+			}
 		}
 		p.wordPart(wp, next)
 		p.line = wp.End().Line()
@@ -589,7 +595,7 @@ func (p *Printer) dblQuoted(dq *DblQuoted) {
 	}
 	p.WriteByte('"')
 	if len(dq.Parts) > 0 {
-		p.wordParts(dq.Parts)
+		p.wordParts(dq.Parts, true)
 		p.line = dq.Parts[len(dq.Parts)-1].End().Line()
 	}
 	p.WriteByte('"')
@@ -745,7 +751,7 @@ func (p *Printer) testExpr(expr TestExpr) {
 }
 
 func (p *Printer) word(w *Word) {
-	p.wordParts(w.Parts)
+	p.wordParts(w.Parts, false)
 	p.wantSpace = true
 }
 
@@ -755,7 +761,7 @@ func (p *Printer) unquotedWord(w *Word) {
 		case *SglQuoted:
 			p.writeLit(x.Value)
 		case *DblQuoted:
-			p.wordParts(x.Parts)
+			p.wordParts(x.Parts, true)
 		case *Lit:
 			for i := 0; i < len(x.Value); i++ {
 				if b := x.Value[i]; b == '\\' {
