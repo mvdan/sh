@@ -912,7 +912,7 @@ func (p *Parser) advanceLitHdoc(r rune) {
 	lStart := len(p.litBs) - 1
 	for ; ; r = p.rune() {
 		switch r {
-		case '`', '$':
+		case escNewl, '`', '$':
 			p.val = p.endLit()
 			return
 		case '\\': // escaped byte follows
@@ -959,6 +959,9 @@ func (p *Parser) quotedHdocWord() *Word {
 		}
 		lStart := len(p.litBs) - 1
 		for r != utf8.RuneSelf && r != '\n' {
+			if r == escNewl {
+				p.litBs = append(p.litBs, '\\', '\n')
+			}
 			r = p.rune()
 		}
 		if lStart >= 0 && bytes.HasPrefix(p.litBs[lStart:], p.hdocStop) {

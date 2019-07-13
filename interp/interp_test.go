@@ -1026,6 +1026,14 @@ var runTests = []runTest{
 		"foo\n\n",
 	},
 	{
+		"cat <<EOF\nfoo\\\nbar\nEOF",
+		"foobar\n",
+	},
+	{
+		"cat <<'EOF'\nfoo\\\nbar\nEOF",
+		"foo\\\nbar\n",
+	},
+	{
 		"mkdir a; echo foo >a |& grep -q 'is a directory'",
 		" #IGNORE",
 	},
