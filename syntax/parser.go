@@ -1079,12 +1079,13 @@ func (p *Parser) wordPart() WordPart {
 }
 
 func (p *Parser) dblQuoted() *DblQuoted {
-	q := &DblQuoted{Position: p.pos, Dollar: p.tok == dollDblQuote}
+	q := &DblQuoted{Left: p.pos, Dollar: p.tok == dollDblQuote}
 	old := p.quote
 	p.quote = dblQuotes
 	p.next()
 	q.Parts = p.wordParts()
 	p.quote = old
+	q.Right = p.pos
 	if !p.got(dblQuote) {
 		p.quoteErr(q.Pos(), dblQuote)
 	}

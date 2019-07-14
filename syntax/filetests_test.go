@@ -4467,10 +4467,11 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 	case *DblQuoted:
 		checkSrc(posAddCol(x.End(), -1), `"`)
 		if x.Dollar {
-			setPos(&x.Position, `$"`)
+			setPos(&x.Left, `$"`)
 		} else {
-			setPos(&x.Position, `"`)
+			setPos(&x.Left, `"`)
 		}
+		setPos(&x.Right, `"`)
 		recurse(x.Parts)
 	case *UnaryArithm:
 		setPos(&x.OpPos, x.Op.String())

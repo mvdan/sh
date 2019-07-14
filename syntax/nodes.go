@@ -475,21 +475,13 @@ func (q *SglQuoted) End() Pos { return posAddCol(q.Right, 1) }
 
 // DblQuoted represents a list of nodes within double quotes.
 type DblQuoted struct {
-	Position Pos
-	Dollar   bool // $""
-	Parts    []WordPart
+	Left, Right Pos
+	Dollar      bool // $""
+	Parts       []WordPart
 }
 
-func (q *DblQuoted) Pos() Pos { return q.Position }
-func (q *DblQuoted) End() Pos {
-	if len(q.Parts) == 0 {
-		if q.Dollar {
-			return posAddCol(q.Position, 3)
-		}
-		return posAddCol(q.Position, 2)
-	}
-	return posAddCol(q.Parts[len(q.Parts)-1].End(), 1)
-}
+func (q *DblQuoted) Pos() Pos { return q.Left }
+func (q *DblQuoted) End() Pos { return posAddCol(q.Right, 1) }
 
 // CmdSubst represents a command substitution.
 type CmdSubst struct {
