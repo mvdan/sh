@@ -315,6 +315,8 @@ var printTests = []printCase{
 	samePrint("\"foo\\\n  bar\""),
 	samePrint("'foo\\\n  bar'"),
 	samePrint("v=\"\\\nfoo\""),
+	samePrint("\"\\\n\\\nfoo\\\n\\\n\""),
+	samePrint("'\\\n\\\nfoo\\\n\\\n'"),
 	{
 		"foo \\\n>bar\netc",
 		"foo \\\n\t>bar\netc",

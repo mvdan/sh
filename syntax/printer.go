@@ -499,7 +499,7 @@ func (p *Printer) wordParts(wps []WordPart, quoted bool) {
 		if i+1 < len(wps) {
 			next = wps[i+1]
 		}
-		if pos := wp.Pos(); pos.Line() > p.line {
+		for wp.Pos().Line() > p.line {
 			if quoted {
 				// No extra spacing or indentation if quoted.
 				p.WriteString("\\\n")
@@ -596,7 +596,11 @@ func (p *Printer) dblQuoted(dq *DblQuoted) {
 	p.WriteByte('"')
 	if len(dq.Parts) > 0 {
 		p.wordParts(dq.Parts, true)
-		p.line = dq.Parts[len(dq.Parts)-1].End().Line()
+	}
+	// Add any trailing escaped newlines.
+	for p.line < dq.Right.Line() {
+		p.WriteString("\\\n")
+		p.line++
 	}
 	p.WriteByte('"')
 }
