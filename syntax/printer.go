@@ -398,15 +398,18 @@ func (p *Printer) flushHeredocs() {
 				}
 				p.tabsPrinter.word(r.Hdoc)
 				p.indent()
-				p.line = r.Hdoc.End().Line()
 			} else {
 				p.indent()
 			}
 		} else if r.Hdoc != nil {
 			p.word(r.Hdoc)
-			p.line = r.Hdoc.End().Line()
 		}
 		p.unquotedWord(r.Word)
+		if r.Hdoc != nil {
+			// Overwrite p.line, since printing r.Word again can set
+			// p.line to the beginning of the heredoc again.
+			p.line = r.Hdoc.End().Line()
+		}
 		p.wantSpace = false
 	}
 	p.level = newLevel

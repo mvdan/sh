@@ -89,6 +89,7 @@ var printTests = []printCase{
 	{"foo <<EOF bar\nl1\nEOF", "foo bar <<EOF\nl1\nEOF"},
 	samePrint("foo <<\\\\\\\\EOF\nbar\n\\\\EOF"),
 	samePrint("foo <<\"\\EOF\"\nbar\n\\EOF"),
+	samePrint("foo <<\"EOF\"\nbar\nEOF\nbar"),
 	samePrint("foo <<EOF && bar\nl1\nEOF"),
 	samePrint("foo <<EOF &&\nl1\nEOF\n\tbar"),
 	samePrint("foo <<EOF\nl1\nEOF\n\nfoo2"),
