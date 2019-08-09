@@ -1,0 +1,225 @@
+stdin empty.sh
+shfmt -tojson
+cmp stdout empty.sh.json
+! stderr .
+
+stdin simple.sh
+shfmt -tojson
+cmp stdout simple.sh.json
+
+stdin arithmetic.sh
+shfmt -tojson
+cmp stdout arithmetic.sh.json
+
+stdin comment.sh
+shfmt -tojson
+cmp stdout comment.sh.json
+
+-- empty.sh --
+-- empty.sh.json --
+{
+	"End": {
+		"Col": 0,
+		"Line": 0,
+		"Offset": 0
+	},
+	"Last": [],
+	"Name": "\u003cstandard input\u003e",
+	"Pos": {
+		"Col": 0,
+		"Line": 0,
+		"Offset": 0
+	},
+	"Stmts": []
+}
+-- simple.sh --
+foo
+-- simple.sh.json --
+{
+	"End": {
+		"Col": 4,
+		"Line": 1,
+		"Offset": 3
+	},
+	"Last": [],
+	"Name": "\u003cstandard input\u003e",
+	"Pos": {
+		"Col": 1,
+		"Line": 1,
+		"Offset": 0
+	},
+	"Stmts": [
+		{
+			"Background": false,
+			"Cmd": {
+				"Args": [
+					{
+						"End": {
+							"Col": 4,
+							"Line": 1,
+							"Offset": 3
+						},
+						"Parts": [
+							{
+								"End": {
+									"Col": 4,
+									"Line": 1,
+									"Offset": 3
+								},
+								"Pos": {
+									"Col": 1,
+									"Line": 1,
+									"Offset": 0
+								},
+								"Type": "Lit",
+								"Value": "foo"
+							}
+						],
+						"Pos": {
+							"Col": 1,
+							"Line": 1,
+							"Offset": 0
+						}
+					}
+				],
+				"Assigns": [],
+				"End": {
+					"Col": 4,
+					"Line": 1,
+					"Offset": 3
+				},
+				"Pos": {
+					"Col": 1,
+					"Line": 1,
+					"Offset": 0
+				},
+				"Type": "CallExpr"
+			},
+			"Comments": [],
+			"Coprocess": false,
+			"End": {
+				"Col": 4,
+				"Line": 1,
+				"Offset": 3
+			},
+			"Negated": false,
+			"Pos": {
+				"Col": 1,
+				"Line": 1,
+				"Offset": 0
+			},
+			"Redirs": []
+		}
+	]
+}
+-- arithmetic.sh --
+((2))
+-- arithmetic.sh.json --
+{
+	"End": {
+		"Col": 6,
+		"Line": 1,
+		"Offset": 5
+	},
+	"Last": [],
+	"Name": "\u003cstandard input\u003e",
+	"Pos": {
+		"Col": 1,
+		"Line": 1,
+		"Offset": 0
+	},
+	"Stmts": [
+		{
+			"Background": false,
+			"Cmd": {
+				"End": {
+					"Col": 6,
+					"Line": 1,
+					"Offset": 5
+				},
+				"Pos": {
+					"Col": 1,
+					"Line": 1,
+					"Offset": 0
+				},
+				"Type": "ArithmCmd",
+				"Unsigned": false,
+				"X": {
+					"End": {
+						"Col": 4,
+						"Line": 1,
+						"Offset": 3
+					},
+					"Parts": [
+						{
+							"End": {
+								"Col": 4,
+								"Line": 1,
+								"Offset": 3
+							},
+							"Pos": {
+								"Col": 3,
+								"Line": 1,
+								"Offset": 2
+							},
+							"Type": "Lit",
+							"Value": "2"
+						}
+					],
+					"Pos": {
+						"Col": 3,
+						"Line": 1,
+						"Offset": 2
+					},
+					"Type": "Word"
+				}
+			},
+			"Comments": [],
+			"Coprocess": false,
+			"End": {
+				"Col": 6,
+				"Line": 1,
+				"Offset": 5
+			},
+			"Negated": false,
+			"Pos": {
+				"Col": 1,
+				"Line": 1,
+				"Offset": 0
+			},
+			"Redirs": []
+		}
+	]
+}
+-- comment.sh --
+#
+-- comment.sh.json --
+{
+	"End": {
+		"Col": 2,
+		"Line": 1,
+		"Offset": 1
+	},
+	"Last": [
+		{
+			"End": {
+				"Col": 2,
+				"Line": 1,
+				"Offset": 1
+			},
+			"Pos": {
+				"Col": 1,
+				"Line": 1,
+				"Offset": 0
+			},
+			"Text": ""
+		}
+	],
+	"Name": "\u003cstandard input\u003e",
+	"Pos": {
+		"Col": 1,
+		"Line": 1,
+		"Offset": 0
+	},
+	"Stmts": []
+}
