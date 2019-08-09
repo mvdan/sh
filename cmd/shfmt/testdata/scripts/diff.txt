@@ -1,0 +1,42 @@
+[!exec:diff] skip 'no diff tool found'
+
+stdin input.sh
+! shfmt -d
+cmp stdout input.sh.stdindiff
+! stderr .
+
+! shfmt -d input.sh
+cmp stdout input.sh.filediff
+! stderr .
+
+env FORCE_COLOR=true
+stdin input.sh
+! shfmt -d
+stdout '\x1b\[31m- foo\x1b\[0m'
+! stderr .
+
+-- input.sh --
+ foo
+
+
+bar
+-- input.sh.golden --
+foo
+
+bar
+-- input.sh.stdindiff --
+diff -u <standard input>.orig <standard input>
+@@ -1,4 +1,3 @@
+- foo
+-
++foo
+ 
+ bar
+-- input.sh.filediff --
+diff -u input.sh.orig input.sh
+@@ -1,4 +1,3 @@
+- foo
+-
++foo
+ 
+ bar

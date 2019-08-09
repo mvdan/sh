@@ -58,6 +58,10 @@ var (
 )
 
 func main() {
+	os.Exit(main1())
+}
+
+func main1() int {
 	flag.Usage = func() {
 		fmt.Fprint(os.Stderr, `usage: shfmt [flags] [path ...]
 
@@ -96,11 +100,11 @@ Utilities:
 
 	if *showVersion {
 		fmt.Println(version)
-		return
+		return 0
 	}
 	if *posix && *langStr != "" {
 		fmt.Fprintf(os.Stderr, "-p and -ln=lang cannot coexist\n")
-		os.Exit(1)
+		return 1
 	}
 	lang := syntax.LangBash
 	switch *langStr {
@@ -111,7 +115,7 @@ Utilities:
 		lang = syntax.LangMirBSDKorn
 	default:
 		fmt.Fprintf(os.Stderr, "unknown shell language: %s\n", *langStr)
-		os.Exit(1)
+		return 1
 	}
 	if *posix {
 		lang = syntax.LangPOSIX
@@ -138,8 +142,12 @@ Utilities:
 			syntax.Minify(p)
 		}
 	})
-	if f, ok := out.(*os.File); ok && terminal.IsTerminal(int(f.Fd())) &&
-		os.Getenv("TERM") != "dumb" {
+	if os.Getenv("FORCE_COLOR") == "true" {
+		// Undocumented way to force color; used in the tests.
+		color = true
+	} else if os.Getenv("TERM") == "dumb" {
+		// Equivalent to forcing color to be turned off.
+	} else if f, ok := out.(*os.File); ok && terminal.IsTerminal(int(f.Fd())) {
 		color = true
 	}
 	if flag.NArg() == 0 {
@@ -147,26 +155,24 @@ Utilities:
 			if err != errChangedWithDiff {
 				fmt.Fprintln(os.Stderr, err)
 			}
-			os.Exit(1)
+			return 1
 		}
-		return
+		return 0
 	}
 	if *toJSON {
 		fmt.Fprintln(os.Stderr, "-tojson can only be used with stdin/out")
-		os.Exit(1)
+		return 1
 	}
-	anyErr := false
+	status := 0
 	for _, path := range flag.Args() {
 		walk(path, func(err error) {
 			if err != errChangedWithDiff {
 				fmt.Fprintln(os.Stderr, err)
 			}
-			anyErr = true
+			status = 1
 		})
 	}
-	if anyErr {
-		os.Exit(1)
-	}
+	return status
 }
 
 var errChangedWithDiff = fmt.Errorf("")

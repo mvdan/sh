@@ -1,0 +1,27 @@
+cp input.sh input.sh.orig
+
+stdin input.sh
+shfmt
+cmp stdout input.sh.golden
+! stderr .
+
+shfmt input.sh
+cmp stdout input.sh.golden
+! stderr .
+
+shfmt -l input.sh
+stdout 'input\.sh'
+! stdout foo
+! stderr .
+cmp input.sh input.sh.orig
+
+shfmt -l -w input.sh
+stdout 'input\.sh'
+! stdout foo
+! stderr .
+cmp input.sh input.sh.golden
+
+-- input.sh --
+ foo
+-- input.sh.golden --
+foo
