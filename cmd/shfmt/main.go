@@ -54,7 +54,7 @@ var (
 	ansiFgGreen = "\u001b[32m"
 	ansiReset   = "\u001b[0m"
 
-	version = "v3.0.0-alpha1"
+	version = "v3.0.0-alpha2"
 )
 
 func main() {
