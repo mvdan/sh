@@ -95,6 +95,7 @@ func TestRunnerModules(t *testing.T) {
 			r, err := New(StdIO(nil, &cb, &cb))
 			if tc.exec != nil {
 				WithExecModules(tc.exec)(r)
+				WithExecModules(testBuiltins...)(r)
 			}
 			if tc.open != nil {
 				WithOpenModules(tc.open)(r)
