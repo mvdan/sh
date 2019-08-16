@@ -122,6 +122,7 @@ To build a Docker image, checkout a specific version of the repository and run:
 * Alternative docker images - by [jamesmstone][dockerized-jamesmstone], [PeterDaveHello][dockerized-peterdavehello]
 * [format-shell] - Atom plugin for `shfmt`
 * [micro] - Editor with a built-in plugin for `shfmt`
+* [modd] - A developer tool that responds to filesystem changes, using `sh`
 * [shell-format] - VS Code plugin for `shfmt`
 * [vim-shfmt] - Vim plugin for `shfmt`
 
@@ -139,6 +140,7 @@ To build a Docker image, checkout a specific version of the repository and run:
 [homebrew]: https://github.com/Homebrew/homebrew-core/blob/HEAD/Formula/shfmt.rb
 [micro]: https://micro-editor.github.io/
 [mksh]: https://www.mirbsd.org/mksh.htm
+[modd]: https://github.com/cortesi/modd
 [mvdan-sh]: https://www.npmjs.com/package/mvdan-sh
 [nixos]: https://github.com/NixOS/nixpkgs/blob/HEAD/pkgs/tools/text/shfmt/default.nix
 [posix shell]: https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html
