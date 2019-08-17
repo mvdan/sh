@@ -1,5 +1,4 @@
 [!exec:diff] skip 'no diff tool found'
-[windows] skip 'skipping on windows due to CRLF'
 
 stdin input.sh
 ! shfmt -d
