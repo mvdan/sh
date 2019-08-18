@@ -1471,8 +1471,12 @@ var shellTests = []errorCase{
 		bash: `1:8: array element values must be words`,
 	},
 	{
+		in:   "a[b] ==[",
+		bash: `1:8: [ must be followed by an expression #NOERR stringifies`,
+	},
+	{
 		in:   "a=(x y) foo",
-		bash: `1:1: inline variables cannot be arrays #NOERR stringifies `,
+		bash: `1:1: inline variables cannot be arrays #NOERR stringifies`,
 	},
 	{
 		in:   "a[2]=x foo",

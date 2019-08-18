@@ -841,7 +841,7 @@ loop:
 }
 
 func (p *Parser) advanceLitNone(r rune) {
-	p.eqlOffs = 0
+	p.eqlOffs = -1
 	tok := _LitWord
 loop:
 	for p.newLit(r); r != utf8.RuneSelf; r = p.rune() {
@@ -871,7 +871,7 @@ loop:
 				break loop
 			}
 		case '=':
-			if p.eqlOffs == 0 {
+			if p.eqlOffs < 0 {
 				p.eqlOffs = len(p.litBs) - 1
 			}
 		case '[':
