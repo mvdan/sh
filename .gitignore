@@ -1,6 +1,13 @@
-/suppressions/
-/crashers/
-/sh-fuzz.zip
+*.a
+*.zip
+fuzzit-program
+
+# Don't store any of this in the master branch.
+suppressions/
+crashers/
+gopath/
+corpus/
+vendor/
 
 /_js/index.js*
 /_js/_js.js*

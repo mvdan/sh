@@ -2,15 +2,14 @@ language: go
 
 env:
   global:
-    - GO111MODULE=on
+    - GO111MODULE="on"
+    - GOPROXY="https://proxy.golang.org"
 
 matrix:
   include:
     - os: linux
-      go: 1.11.x
-    - os: linux
       go: 1.12.x
-      env: LATEST_GO=1
+      env: MAIN_ENV=1
     - os: osx
       go: 1.12.x
     - os: windows
@@ -21,7 +20,7 @@ install: true
 script:
   - go install ./...
   - go test ./...
-    # TODO: reenable test -race on windows once TestInteractive stops failing
-  - if [[ $TRAVIS_OS_NAME != "windows" ]]; then go test -short -race ./...; fi
-  - shfmt -version
-  - if [[ -n $LATEST_GO ]]; then diff <(echo -n) <(gofmt -d .); fi
+  - if [[ $TRAVIS_OS_NAME != windows ]]; then go test -short -race ./...; fi
+  - if [[ -n $MAIN_ENV ]]; then diff <(echo -n) <(gofmt -d .); fi
+  - if [[ -n $MAIN_ENV ]]; then cd _fuzz/it && ./fuzz-ci local-regression 2>&1 | grep -vE '^Running|^Executed'; fi
+  - if [[ -n $MAIN_ENV && $TRAVIS_EVENT_TYPE == push && $TRAVIS_BRANCH == master ]]; then ./fuzz-ci fuzzing; fi
