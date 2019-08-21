@@ -32,8 +32,8 @@ func TestMain(m *testing.M) {
 
 func TestScripts(t *testing.T) {
 	t.Parallel()
-	if runtime.GOOS == "windows" && os.Getenv("TRAVIS") == "true" {
-		t.Skipf("skipping on Travis under Windows due to CRLF issues")
+	if runtime.GOOS == "windows" && (os.Getenv("TRAVIS") != "" || os.Getenv("GITHUB_WORKFLOW") != "") {
+		t.Skipf("skipping on CI under Windows due to CRLF issues")
 	}
 	testscript.Run(t, testscript.Params{
 		Dir: filepath.Join("testdata", "scripts"),
