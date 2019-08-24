@@ -1555,8 +1555,24 @@ var runTests = []runTest{
 		"foo\n",
 	},
 	{
-		"set -e; local; echo foo",
-		"local: can only be used in a function\nexit status 1 #JUSTERR",
+		"set -e; ! true; echo foo",
+		"foo\n",
+	},
+	{
+		"set -e; if false; then echo foo; fi",
+		"",
+	},
+	{
+		"set -e; while false; do echo foo; done",
+		"",
+	},
+	{
+		"set -e; false || true",
+		"",
+	},
+	{
+		"set -e; false && true; true",
+		"",
 	},
 	{
 		"false | :",

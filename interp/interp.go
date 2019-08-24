@@ -383,9 +383,10 @@ type Runner struct {
 	// >0 to break or continue out of N enclosing loops
 	breakEnclosing, contnEnclosing int
 
-	inLoop   bool
-	inFunc   bool
-	inSource bool
+	inLoop    bool
+	inFunc    bool
+	inSource  bool
+	noErrExit bool
 
 	err  error // current shell exit code or fatal error
 	exit int   // current (last) exit status code
@@ -722,8 +723,14 @@ func (r *Runner) stmtSync(ctx context.Context, st *syntax.Stmt) {
 	}
 	if st.Negated {
 		r.exit = oneIf(r.exit == 0)
-	}
-	if r.exit != 0 && r.opts[optErrExit] {
+	} else if _, ok := st.Cmd.(*syntax.CallExpr); !ok {
+	} else if r.exit != 0 && !r.noErrExit && r.opts[optErrExit] {
+		// If the "errexit" option is set and a simple command failed,
+		// exit the shell. Exceptions:
+		//
+		//   conditions (if <cond>, while <cond>, etc)
+		//   part of && or || lists
+		//   preceded by !
 		r.setErr(ShellExitStatus(r.exit))
 	}
 	if !r.keepRedirs {
@@ -801,14 +808,12 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		}
 	case *syntax.BinaryCmd:
 		switch x.Op {
-		case syntax.AndStmt:
+		case syntax.AndStmt, syntax.OrStmt:
+			oldNoErrExit := r.noErrExit
+			r.noErrExit = true
 			r.stmt(ctx, x.X)
-			if r.exit == 0 {
-				r.stmt(ctx, x.Y)
-			}
-		case syntax.OrStmt:
-			r.stmt(ctx, x.X)
-			if r.exit != 0 {
+			r.noErrExit = oldNoErrExit
+			if (r.exit == 0) == (x.Op == syntax.AndStmt) {
 				r.stmt(ctx, x.Y)
 			}
 		case syntax.Pipe, syntax.PipeAll:
@@ -838,7 +843,11 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			r.setErr(r2.err)
 		}
 	case *syntax.IfClause:
+		oldNoErrExit := r.noErrExit
+		r.noErrExit = true
 		r.stmts(ctx, x.Cond)
+		r.noErrExit = oldNoErrExit
+
 		if r.exit == 0 {
 			r.stmts(ctx, x.Then)
 			break
@@ -849,7 +858,11 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		}
 	case *syntax.WhileClause:
 		for !r.stop(ctx) {
+			oldNoErrExit := r.noErrExit
+			r.noErrExit = true
 			r.stmts(ctx, x.Cond)
+			r.noErrExit = oldNoErrExit
+
 			stop := (r.exit == 0) == x.Until
 			r.exit = 0
 			if stop || r.loopStmtsBroken(ctx, x.Do) {
