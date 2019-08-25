@@ -1472,7 +1472,11 @@ var shellTests = []errorCase{
 	},
 	{
 		in:   "a[b] ==[",
-		bash: `1:8: [ must be followed by an expression #NOERR stringifies`,
+		bash: `1:1: "a[b]" must be followed by = #NOERR stringifies`,
+	},
+	{
+		in:   "a[b] +=c",
+		bash: `1:1: "a[b]" must be followed by = #NOERR stringifies`,
 	},
 	{
 		in:   "a=(x y) foo",

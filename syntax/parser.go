@@ -1571,9 +1571,13 @@ func (p *Parser) getAssign(needEqual bool) *Assign {
 		p.rune()
 		p.pos = posAddCol(p.pos, 1)
 		as.Index = p.eitherIndex()
-		if !needEqual && (p.spaced || stopToken(p.tok)) {
-			as.Naked = true
-			return as
+		if p.spaced || stopToken(p.tok) {
+			if needEqual {
+				p.followErr(as.Pos(), "a[b]", "=")
+			} else {
+				as.Naked = true
+				return as
+			}
 		}
 		if len(p.val) > 0 && p.val[0] == '+' {
 			as.Append = true
