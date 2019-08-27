@@ -1346,9 +1346,10 @@ func (p *Parser) paramExp() *ParamExp {
 		p.next()
 	case quest, minus:
 		if pe.Length && p.r != '}' {
-			// actually ${#-default}, not ${#-}; error below
+			// actually ${#-default}, not ${#-}; fix the ambiguity
 			pe.Length = false
-			pe.Param = p.lit(p.pos, "#")
+			pe.Param = p.lit(posAddCol(p.pos, -1), "#")
+			pe.Param.ValueEnd = p.pos
 			break
 		}
 		fallthrough

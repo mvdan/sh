@@ -2380,6 +2380,25 @@ var fileTests = []testCase{
 		),
 	},
 	{
+		Strs: []string{`${#-foo} ${#?bar}`},
+		common: call(
+			word(&ParamExp{
+				Param: lit("#"),
+				Exp: &Expansion{
+					Op:   DefaultUnset,
+					Word: litWord("foo"),
+				},
+			}),
+			word(&ParamExp{
+				Param: lit("#"),
+				Exp: &Expansion{
+					Op:   ErrorUnset,
+					Word: litWord("bar"),
+				},
+			}),
+		),
+	},
+	{
 		Strs:   []string{`"${foo}"`},
 		common: dblQuoted(&ParamExp{Param: lit("foo")}),
 	},
