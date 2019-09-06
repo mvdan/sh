@@ -8,13 +8,14 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/user"
 	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
 
 	"mvdan.cc/sh/v3/syntax"
+
+	"github.com/mitchellh/go-homedir"
 )
 
 // A Config specifies details about how shell expansion should be performed. The
@@ -618,18 +619,17 @@ func (cfg *Config) expandUser(field string) (prefix, rest string) {
 		rest = name[i:]
 		name = name[:i]
 	}
-	if name == "" {
-		return cfg.Env.Get("HOME").String(), rest
-	}
-	if vr := cfg.Env.Get("HOME " + name); vr.IsSet() {
-		return vr.String(), rest
+	if name != "" {
+		if vr := cfg.Env.Get("HOME " + name); vr.IsSet() {
+			return vr.String(), rest
+		}
 	}
 
-	u, err := user.Lookup(name)
+	home, err := homedir.Dir()
 	if err != nil {
 		return "", field
 	}
-	return u.HomeDir, rest
+	return home, rest
 }
 
 func findAllIndex(pattern, name string, n int) [][]int {
