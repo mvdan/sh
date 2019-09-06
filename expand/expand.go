@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/user"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -624,11 +623,11 @@ func (cfg *Config) expandUser(field string) (prefix, rest string) {
 		}
 	}
 
-	u, err := user.Lookup(name)
+	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", field
 	}
-	return u.HomeDir, rest
+	return home, rest
 }
 
 func findAllIndex(pattern, name string, n int) [][]int {
