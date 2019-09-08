@@ -11,6 +11,7 @@ import (
 	"os/user"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -619,8 +620,26 @@ func (cfg *Config) expandUser(field string) (prefix, rest string) {
 		name = name[:i]
 	}
 	if name == "" {
-		return cfg.Env.Get("HOME").String(), rest
+		// Current user; try via "HOME", otherwise fall back to the
+		// system's appropriate home dir env var. Don't use os/user, as
+		// that's overkill. We can't use os.UserHomeDir, because we want
+		// to use cfg.Env, and we always want to check "HOME" first.
+
+		if vr := cfg.Env.Get("HOME"); vr.IsSet() {
+			return vr.String(), rest
+		}
+
+		if runtime.GOOS == "windows" {
+			if vr := cfg.Env.Get("USERPROFILE"); vr.IsSet() {
+				return vr.String(), rest
+			}
+		}
+		return "", field
 	}
+
+	// Not the current user; try via "HOME <name>", otherwise fall back to
+	// os/user. There isn't a way to lookup user home dirs without cgo.
+
 	if vr := cfg.Env.Get("HOME " + name); vr.IsSet() {
 		return vr.String(), rest
 	}

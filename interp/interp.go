@@ -11,7 +11,6 @@ import (
 	"io/ioutil"
 	"math"
 	"os"
-	"os/user"
 	"path/filepath"
 	"regexp"
 	"runtime"
@@ -568,8 +567,8 @@ func (r *Runner) Reset() {
 		}
 	}
 	if vr := r.Env.Get("HOME"); !vr.IsSet() {
-		u, _ := user.Current()
-		r.Vars["HOME"] = expand.Variable{Kind: expand.String, Str: u.HomeDir}
+		home, _ := os.UserHomeDir()
+		r.Vars["HOME"] = expand.Variable{Kind: expand.String, Str: home}
 	}
 	r.Vars["PWD"] = expand.Variable{Kind: expand.String, Str: r.Dir}
 	r.Vars["IFS"] = expand.Variable{Kind: expand.String, Str: " \t\n"}

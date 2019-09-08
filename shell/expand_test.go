@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -91,6 +92,20 @@ var fieldsTests = []struct {
 	{"~/foo/bar", strEnviron("HOME=/my/home"), []string{"/my/home/foo/bar"}},
 	{"~foo/file", strEnviron("HOME foo=/bar"), []string{"/bar/file"}},
 	{"*.go", nil, []string{"*.go"}},
+
+	{"~", func(name string) string {
+		switch runtime.GOOS {
+		case "windows":
+			if name == "USERPROFILE" {
+				return "/my/home"
+			}
+		default:
+			if name == "HOME" {
+				return "/my/home"
+			}
+		}
+		return ""
+	}, []string{"/my/home"}},
 }
 
 func TestFields(t *testing.T) {
