@@ -2112,10 +2112,6 @@ set +o pipefail
 		"x-d1/a x-d2/b\n",
 	},
 	{
-		"mkdir x-d; >x-f; test -d $PWD/x-*/",
-		"",
-	},
-	{
 		"mkdir -p foo/bar; ln -s foo sym; echo sy*/; echo sym/b*",
 		"sym/\nsym/bar\n",
 	},
@@ -2416,6 +2412,14 @@ var runTestsUnix = []runTest{
 	{
 		"mkdir c; echo '#!/bin/sh\necho b' >c/a; chmod 0755 c/a; c/a",
 		"b\n",
+	},
+
+	// TODO: move back to the main tests list once
+	// https://github.community/t5/GitHub-Actions/TEMP-is-broken-on-Windows/m-p/30432#M427
+	// is fixed.
+	{
+		"mkdir x-d; >x-f; test -d $PWD/x-*/",
+		"",
 	},
 }
 

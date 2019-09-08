@@ -7,12 +7,9 @@ jobs:
     strategy:
       matrix:
         # TODO: use .x once the setup-go action doesn't run into unauthenticated
-        # rate limites. See: https://github.com/actions/setup-go/issues/16
-        go-version: [1.11.9, 1.12.9]
-        # TODO: reenable windows once this issue is fixed:
-        # https://github.community/t5/GitHub-Actions/TEMP-is-broken-on-Windows/m-p/30432
-        # platform: [ubuntu-latest, macos-latest, windows-latest]
-        platform: [ubuntu-latest, macos-latest]
+        # rate limits. See: https://github.com/actions/setup-go/issues/16
+        go-version: [1.12.9, 1.13]
+        platform: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.platform }}
     steps:
     - name: Install Go
@@ -29,3 +26,25 @@ jobs:
       run: go test -count=1 ./...
     - name: Test with -short -race
       run: go test -short -race -count=1 ./...
+
+    - name: gofmt check
+      run: diff <(echo -n) <(gofmt -d .)
+      if: matrix.platform == 'ubuntu-latest'
+
+  fuzz:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Install Go
+      uses: actions/setup-go@v1
+      with:
+        go-version: 1.13
+    - name: Checkout code
+      uses: actions/checkout@v1
+
+    - name: fuzz regression tests
+      run: cd _fuzz/it && ./fuzz-ci local-regression 2>&1 | grep -vE '^Running|^Executed'
+    - name: fuzz continuous job
+      run: export PATH="$PATH:$(go env GOPATH)/bin"; cd _fuzz/it && ./fuzz-ci fuzzing
+      if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+      env:
+        FUZZIT_API_KEY: ${{ secrets.FUZZIT_API_KEY }}
