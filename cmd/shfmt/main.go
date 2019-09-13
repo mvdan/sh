@@ -5,16 +5,18 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
 
+	"github.com/pkg/diff"
 	"golang.org/x/crypto/ssh/terminal"
+
 	"mvdan.cc/sh/v3/fileutil"
 	"mvdan.cc/sh/v3/syntax"
 )
@@ -22,11 +24,11 @@ import (
 var (
 	showVersion = flag.Bool("version", false, "")
 
-	list   = flag.Bool("l", false, "")
-	write  = flag.Bool("w", false, "")
-	simple = flag.Bool("s", false, "")
-	find   = flag.Bool("f", false, "")
-	diff   = flag.Bool("d", false, "")
+	list    = flag.Bool("l", false, "")
+	write   = flag.Bool("w", false, "")
+	simple  = flag.Bool("s", false, "")
+	find    = flag.Bool("f", false, "")
+	diffOut = flag.Bool("d", false, "")
 
 	langStr = flag.String("ln", "", "")
 	posix   = flag.Bool("p", false, "")
@@ -283,16 +285,14 @@ func formatBytes(src []byte, path string) error {
 				return err
 			}
 		}
-		if *diff {
-			data, err := diffBytes(src, res, path)
-			if err != nil {
+		if *diffOut {
+			if err := diffBytes(src, res, path); err != nil {
 				return fmt.Errorf("computing diff: %s", err)
 			}
-			out.Write(data)
 			return errChangedWithDiff
 		}
 	}
-	if !*list && !*write && !*diff {
+	if !*list && !*write && !*diffOut {
 		if _, err := out.Write(res); err != nil {
 			return err
 		}
@@ -300,73 +300,32 @@ func formatBytes(src []byte, path string) error {
 	return nil
 }
 
-func writeTempFile(dir, prefix string, data []byte) (string, error) {
-	file, err := ioutil.TempFile(dir, prefix)
-	if err != nil {
-		return "", err
-	}
-	_, err = file.Write(data)
-	if err1 := file.Close(); err == nil {
-		err = err1
-	}
-	if err != nil {
-		os.Remove(file.Name())
-		return "", err
-	}
-	return file.Name(), nil
-}
-
-func diffBytes(b1, b2 []byte, path string) ([]byte, error) {
-	fmt.Fprintf(out, "diff -u %s %s\n",
-		filepath.ToSlash(path+".orig"),
-		filepath.ToSlash(path))
-	f1, err := writeTempFile("", "shfmt", b1)
-	if err != nil {
-		return nil, err
-	}
-	defer os.Remove(f1)
-
-	f2, err := writeTempFile("", "shfmt", b2)
-	if err != nil {
-		return nil, err
-	}
-	defer os.Remove(f2)
-
-	data, err := exec.Command("diff", "-u", f1, f2).Output()
-	if len(data) == 0 {
-		// No diff, or something went wrong; don't check for err
-		// as diff will return non-zero if the files differ.
-		return nil, err
-	}
-
+func diffBytes(b1, b2 []byte, path string) error {
+	a := bytes.Split(b1, []byte("\n"))
+	b := bytes.Split(b2, []byte("\n"))
+	ab := diff.Bytes(a, b)
+	e := diff.Myers(context.Background(), ab)
 	output := new(bytes.Buffer)
-	// We already print the filename, so remove the
-	// temporary filenames printed by diff.
-	lines := bytes.Split(data, []byte("\n"))
-	count := len(lines)
+	if _, err := e.WriteUnified(output, ab, diff.Names(path+".orig", path)); err != nil {
+		return err
+	}
+
+	lines := bytes.Split(output.Bytes(), []byte("\n"))
 	for i, line := range lines {
-		switch {
-		case bytes.HasPrefix(line, []byte("---")):
-		case bytes.HasPrefix(line, []byte("+++")):
-		case bytes.HasPrefix(line, []byte("-")):
-			if color {
-				fmt.Fprintf(output, "%s%s%s\n", ansiFgRed, string(line), ansiReset)
-			} else {
-				fmt.Fprintln(output, string(line))
-			}
-		case bytes.HasPrefix(line, []byte("+")):
-			if color {
-				fmt.Fprintf(output, "%s%s%s\n", ansiFgGreen, string(line), ansiReset)
-			} else {
-				fmt.Fprintln(output, string(line))
-			}
-		default:
-			if i < count-1 {
-				fmt.Fprintln(output, string(line))
-			} else {
-				fmt.Fprint(output, string(line))
+		if i > 0 {
+			fmt.Fprintln(out)
+		}
+		if color {
+			if bytes.HasPrefix(line, []byte("-")) {
+				fmt.Fprint(out, ansiFgRed)
+			} else if bytes.HasPrefix(line, []byte("+")) {
+				fmt.Fprint(out, ansiFgGreen)
 			}
 		}
+		fmt.Fprintf(out, "%s", line)
+		if color {
+			fmt.Fprint(out, ansiReset)
+		}
 	}
-	return output.Bytes(), nil
+	return nil
 }

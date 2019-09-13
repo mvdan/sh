@@ -4,6 +4,7 @@ go 1.11
 
 require (
 	github.com/kr/pretty v0.1.0
+	github.com/pkg/diff v0.0.0-20190830161910-060157d9c3a5
 	github.com/rogpeppe/go-internal v1.3.2
 	golang.org/x/crypto v0.0.0-20190911031432-227b76d455e7
 	golang.org/x/sync v0.0.0-20190423024810-112230192c58
