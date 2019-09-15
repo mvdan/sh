@@ -10,7 +10,7 @@ cmp stdout input.sh.filediff
 env FORCE_COLOR=true
 stdin input.sh
 ! shfmt -d
-stdout '\x1b\[31m- foo\x1b\[0m'
+stdout '\x1b\[31m- foo'
 ! stderr .
 
 -- input.sh --

@@ -305,27 +305,12 @@ func diffBytes(b1, b2 []byte, path string) error {
 	b := bytes.Split(b2, []byte("\n"))
 	ab := diff.Bytes(a, b)
 	e := diff.Myers(context.Background(), ab)
-	output := new(bytes.Buffer)
-	if _, err := e.WriteUnified(output, ab, diff.Names(path+".orig", path)); err != nil {
-		return err
+	opts := []diff.WriteOpt{diff.Names(path+".orig", path)}
+	if color {
+		opts = append(opts, diff.TerminalColor())
 	}
-
-	lines := bytes.Split(output.Bytes(), []byte("\n"))
-	for i, line := range lines {
-		if i > 0 {
-			fmt.Fprintln(out)
-		}
-		if color {
-			if bytes.HasPrefix(line, []byte("-")) {
-				fmt.Fprint(out, ansiFgRed)
-			} else if bytes.HasPrefix(line, []byte("+")) {
-				fmt.Fprint(out, ansiFgGreen)
-			}
-		}
-		fmt.Fprintf(out, "%s", line)
-		if color {
-			fmt.Fprint(out, ansiReset)
-		}
+	if _, err := e.WriteUnified(out, ab, opts...); err != nil {
+		return err
 	}
 	return nil
 }
