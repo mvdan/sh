@@ -40,22 +40,23 @@ func ExampleExecModule() {
 	file, _ := syntax.NewParser().Parse(strings.NewReader(src), "")
 
 	join := func(next interp.ExecModule) interp.ExecModule {
-		return func(ctx context.Context, path string, args []string) error {
+		return func(ctx context.Context, args []string) error {
 			if args[0] == "join" {
 				mc, _ := interp.FromModuleContext(ctx)
 				fmt.Fprintln(mc.Stdout, strings.Join(args[2:], args[1]))
 				return nil
 			}
-			return next(ctx, path, args)
+			return next(ctx, args)
 		}
 	}
 	notInstalled := func(next interp.ExecModule) interp.ExecModule {
-		return func(ctx context.Context, path string, args []string) error {
-			if path == "" {
+		return func(ctx context.Context, args []string) error {
+			mc, _ := interp.FromModuleContext(ctx)
+			if _, err := interp.LookPath(mc.Env, args[0]); err != nil {
 				fmt.Printf("%s is not installed\n", args[0])
 				return interp.ExitStatus(1)
 			}
-			return next(ctx, path, args)
+			return next(ctx, args)
 		}
 	}
 	runner, _ := interp.New(

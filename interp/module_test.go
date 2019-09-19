@@ -19,17 +19,17 @@ import (
 
 func blacklistBuiltin(name string) func(ExecModule) ExecModule {
 	return func(next ExecModule) ExecModule {
-		return func(ctx context.Context, path string, args []string) error {
+		return func(ctx context.Context, args []string) error {
 			if args[0] == name {
 				return fmt.Errorf("%s: blacklisted builtin", name)
 			}
-			return next(ctx, path, args)
+			return next(ctx, args)
 		}
 	}
 }
 
 func blacklistExec(next ExecModule) ExecModule {
-	return func(ctx context.Context, path string, args []string) error {
+	return func(ctx context.Context, args []string) error {
 		return fmt.Errorf("blacklisted: %s", args[0])
 	}
 }

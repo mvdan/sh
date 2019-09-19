@@ -2398,8 +2398,8 @@ var runTestsUnix = []runTest{
 		"\"bash\": executable file not found in $PATH\nexit status 127 #JUSTERR",
 	},
 	{
-		"c/a",
-		"\"c/a\": executable file not found in $PATH\nexit status 127 #JUSTERR",
+		"cd /; sure/is/missing",
+		"stat /sure/is/missing: no such file or directory\nexit status 127 #JUSTERR",
 	},
 	{
 		"echo '#!/bin/sh\necho b' >a; chmod 0755 a; PATH=; a",
@@ -2667,12 +2667,12 @@ var testBuiltinsMap = map[string]func(ModuleCtx, []string) error{
 }
 
 func testBuiltins(next ExecModule) ExecModule {
-	return func(ctx context.Context, path string, args []string) error {
+	return func(ctx context.Context, args []string) error {
 		if fn := testBuiltinsMap[args[0]]; fn != nil {
 			mc, _ := FromModuleContext(ctx)
 			return fn(mc, args[1:])
 		}
-		return next(ctx, path, args)
+		return next(ctx, args)
 	}
 }
 

@@ -1196,8 +1196,8 @@ func (r *Runner) call(ctx context.Context, pos syntax.Pos, args []string) {
 }
 
 func (r *Runner) exec(ctx context.Context, args []string) {
-	path := r.lookPath(args[0])
-	err := r.Exec(r.modCtx(ctx), path, args)
+	// path := r.lookPath(args[0])
+	err := r.Exec(r.modCtx(ctx), args)
 	switch x := err.(type) {
 	case nil:
 		r.exit = 0
@@ -1224,127 +1224,4 @@ func (r *Runner) open(ctx context.Context, path string, flags int, mode os.FileM
 
 func (r *Runner) stat(name string) (os.FileInfo, error) {
 	return os.Stat(r.relPath(name))
-}
-
-func (r *Runner) checkStat(file string) string {
-	d, err := r.stat(file)
-	if err != nil {
-		return ""
-	}
-	m := d.Mode()
-	if m.IsDir() {
-		return ""
-	}
-	if runtime.GOOS != "windows" && m&0111 == 0 {
-		return ""
-	}
-	return file
-}
-
-func winHasExt(file string) bool {
-	i := strings.LastIndex(file, ".")
-	if i < 0 {
-		return false
-	}
-	return strings.LastIndexAny(file, `:\/`) < i
-}
-
-func (r *Runner) findExecutable(file string, exts []string) string {
-	if len(exts) == 0 {
-		// non-windows
-		return r.checkStat(file)
-	}
-	if winHasExt(file) && r.checkStat(file) != "" {
-		return file
-	}
-	for _, e := range exts {
-		if f := file + e; r.checkStat(f) != "" {
-			return f
-		}
-	}
-	return ""
-}
-
-func driveLetter(c byte) bool {
-	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
-}
-
-// splitList is like filepath.SplitList, but always using the unix path
-// list separator ':'. On Windows, it also makes sure not to split
-// [A-Z]:[/\].
-func splitList(path string) []string {
-	if path == "" {
-		return []string{""}
-	}
-	list := strings.Split(path, ":")
-	if runtime.GOOS != "windows" {
-		return list
-	}
-	// join "C", "/foo" into "C:/foo"
-	var fixed []string
-	for i := 0; i < len(list); i++ {
-		s := list[i]
-		switch {
-		case len(s) != 1, !driveLetter(s[0]):
-		case i+1 >= len(list):
-			// last element
-		case strings.IndexAny(list[i+1], `/\`) != 0:
-			// next element doesn't start with / or \
-		default:
-			fixed = append(fixed, s+":"+list[i+1])
-			i++
-			continue
-		}
-		fixed = append(fixed, s)
-	}
-	return fixed
-}
-
-func (r *Runner) lookPath(file string) string {
-	pathList := splitList(r.envGet("PATH"))
-	chars := `/`
-	if runtime.GOOS == "windows" {
-		chars = `:\/`
-		// so that "foo" always tries "./foo"
-		pathList = append([]string{"."}, pathList...)
-	}
-	exts := r.pathExts()
-	if strings.ContainsAny(file, chars) {
-		return r.findExecutable(file, exts)
-	}
-	for _, dir := range pathList {
-		var path string
-		switch dir {
-		case "", ".":
-			// otherwise "foo" won't be "./foo"
-			path = "." + string(filepath.Separator) + file
-		default:
-			path = filepath.Join(dir, file)
-		}
-		if f := r.findExecutable(path, exts); f != "" {
-			return f
-		}
-	}
-	return ""
-}
-
-func (r *Runner) pathExts() []string {
-	if runtime.GOOS != "windows" {
-		return nil
-	}
-	pathext := r.envGet("PATHEXT")
-	if pathext == "" {
-		return []string{".com", ".exe", ".bat", ".cmd"}
-	}
-	var exts []string
-	for _, e := range strings.Split(strings.ToLower(pathext), `;`) {
-		if e == "" {
-			continue
-		}
-		if e[0] != '.' {
-			e = "." + e
-		}
-		exts = append(exts, e)
-	}
-	return exts
 }
