@@ -79,7 +79,7 @@ func TestMain(m *testing.M) {
 		runner, _ := New(
 			StdIO(os.Stdin, os.Stdout, os.Stderr),
 			WithOpenModules(OpenDevImpls),
-			WithExecModules(testBuiltins...),
+			WithExecModules(testBuiltins),
 		)
 		ctx := context.Background()
 		switch err := runner.Run(ctx, file).(type) {
@@ -2463,7 +2463,7 @@ func TestRunnerRun(t *testing.T) {
 			var cb concBuffer
 			r, err := New(Dir(dir), StdIO(nil, &cb, &cb),
 				WithOpenModules(OpenDevImpls),
-				WithExecModules(testBuiltins...),
+				WithExecModules(testBuiltins),
 			)
 			if err != nil {
 				t.Fatal(err)
@@ -2496,8 +2496,8 @@ func readLines(mc ModuleCtx) ([][]byte, error) {
 	return bytes.Split(bs, []byte("\n")), nil
 }
 
-var testBuiltins = []func(ExecModule) ExecModule{
-	ExecBuiltin("cat", func(mc ModuleCtx, args []string) error {
+var testBuiltinsMap = map[string]func(ModuleCtx, []string) error{
+	"cat": func(mc ModuleCtx, args []string) error {
 		if len(args) == 0 {
 			if mc.Stdin == nil || mc.Stdout == nil {
 				return nil
@@ -2518,8 +2518,8 @@ var testBuiltins = []func(ExecModule) ExecModule{
 			}
 		}
 		return nil
-	}),
-	ExecBuiltin("wc", func(mc ModuleCtx, args []string) error {
+	},
+	"wc": func(mc ModuleCtx, args []string) error {
 		bs, err := ioutil.ReadAll(mc.Stdin)
 		if err != nil {
 			return err
@@ -2534,8 +2534,8 @@ var testBuiltins = []func(ExecModule) ExecModule{
 			fmt.Fprintln(mc.Stdout, bytes.Count(bs, []byte("\n")))
 		}
 		return nil
-	}),
-	ExecBuiltin("sort", func(mc ModuleCtx, args []string) error {
+	},
+	"sort": func(mc ModuleCtx, args []string) error {
 		lines, err := readLines(mc)
 		if err != nil {
 			return err
@@ -2547,8 +2547,8 @@ var testBuiltins = []func(ExecModule) ExecModule{
 			fmt.Fprintf(mc.Stdout, "%s\n", line)
 		}
 		return nil
-	}),
-	ExecBuiltin("grep", func(mc ModuleCtx, args []string) error {
+	},
+	"grep": func(mc ModuleCtx, args []string) error {
 		var rx *regexp.Regexp
 		quiet := false
 		for _, arg := range args {
@@ -2577,8 +2577,8 @@ var testBuiltins = []func(ExecModule) ExecModule{
 			return ExitStatus(1)
 		}
 		return nil
-	}),
-	ExecBuiltin("sed", func(mc ModuleCtx, args []string) error {
+	},
+	"sed": func(mc ModuleCtx, args []string) error {
 		if len(args) != 1 {
 			return nil // unimplemented
 		}
@@ -2599,8 +2599,8 @@ var testBuiltins = []func(ExecModule) ExecModule{
 		bs = rx.ReplaceAllLiteral(bs, []byte(to))
 		_, err = mc.Stdout.Write(bs)
 		return err
-	}),
-	ExecBuiltin("mkdir", func(mc ModuleCtx, args []string) error {
+	},
+	"mkdir": func(mc ModuleCtx, args []string) error {
 		for _, arg := range args {
 			if arg == "-p" {
 				continue
@@ -2611,8 +2611,8 @@ var testBuiltins = []func(ExecModule) ExecModule{
 			}
 		}
 		return nil
-	}),
-	ExecBuiltin("rm", func(mc ModuleCtx, args []string) error {
+	},
+	"rm": func(mc ModuleCtx, args []string) error {
 		for _, arg := range args {
 			if arg == "-r" {
 				continue
@@ -2623,8 +2623,8 @@ var testBuiltins = []func(ExecModule) ExecModule{
 			}
 		}
 		return nil
-	}),
-	ExecBuiltin("ln", func(mc ModuleCtx, args []string) error {
+	},
+	"ln": func(mc ModuleCtx, args []string) error {
 		symbolic := args[0] == "-s"
 		if symbolic {
 			args = args[1:]
@@ -2635,8 +2635,8 @@ var testBuiltins = []func(ExecModule) ExecModule{
 			return os.Symlink(oldname, newname)
 		}
 		return os.Link(oldname, newname)
-	}),
-	ExecBuiltin("touch", func(mc ModuleCtx, args []string) error {
+	},
+	"touch": func(mc ModuleCtx, args []string) error {
 		newTime := time.Now()
 		if args[0] == "-d" {
 			if !strings.HasPrefix(args[1], "@") {
@@ -2663,7 +2663,17 @@ var testBuiltins = []func(ExecModule) ExecModule{
 			}
 		}
 		return nil
-	}),
+	},
+}
+
+func testBuiltins(next ExecModule) ExecModule {
+	return func(ctx context.Context, path string, args []string) error {
+		if fn := testBuiltinsMap[args[0]]; fn != nil {
+			mc, _ := FromModuleContext(ctx)
+			return fn(mc, args[1:])
+		}
+		return next(ctx, path, args)
+	}
 }
 
 func TestRunnerRunConfirm(t *testing.T) {
@@ -2812,7 +2822,7 @@ func TestRunnerOpts(t *testing.T) {
 			r, err := New(append(c.opts,
 				StdIO(nil, &cb, &cb),
 				WithOpenModules(OpenDevImpls),
-				WithExecModules(testBuiltins...),
+				WithExecModules(testBuiltins),
 			)...)
 			if err != nil {
 				t.Fatal(err)
@@ -3003,7 +3013,7 @@ func TestRunnerResetFields(t *testing.T) {
 		Params("-f", "--", "first", dir, logPath),
 		Dir(dir),
 		WithOpenModules(OpenDevImpls),
-		WithExecModules(testBuiltins...),
+		WithExecModules(testBuiltins),
 	)
 	// Check that using option funcs and Runner fields directly is still
 	// kept by Reset.

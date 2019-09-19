@@ -18,9 +18,14 @@ import (
 )
 
 func blacklistBuiltin(name string) func(ExecModule) ExecModule {
-	return ExecBuiltin(name, func(mc ModuleCtx, args []string) error {
-		return fmt.Errorf("%s: blacklisted builtin", name)
-	})
+	return func(next ExecModule) ExecModule {
+		return func(ctx context.Context, path string, args []string) error {
+			if args[0] == name {
+				return fmt.Errorf("%s: blacklisted builtin", name)
+			}
+			return next(ctx, path, args)
+		}
+	}
 }
 
 func blacklistExec(next ExecModule) ExecModule {
@@ -95,7 +100,7 @@ func TestRunnerModules(t *testing.T) {
 			r, err := New(StdIO(nil, &cb, &cb))
 			if tc.exec != nil {
 				WithExecModules(tc.exec)(r)
-				WithExecModules(testBuiltins...)(r)
+				WithExecModules(testBuiltins)(r)
 			}
 			if tc.open != nil {
 				WithOpenModules(tc.open)(r)

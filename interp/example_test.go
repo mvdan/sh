@@ -38,6 +38,17 @@ func Example() {
 func ExampleExecModule() {
 	src := "echo foo; join ! foo bar baz; missing-program bar"
 	file, _ := syntax.NewParser().Parse(strings.NewReader(src), "")
+
+	join := func(next interp.ExecModule) interp.ExecModule {
+		return func(ctx context.Context, path string, args []string) error {
+			if args[0] == "join" {
+				mc, _ := interp.FromModuleContext(ctx)
+				fmt.Fprintln(mc.Stdout, strings.Join(args[2:], args[1]))
+				return nil
+			}
+			return next(ctx, path, args)
+		}
+	}
 	notInstalled := func(next interp.ExecModule) interp.ExecModule {
 		return func(ctx context.Context, path string, args []string) error {
 			if path == "" {
@@ -49,13 +60,7 @@ func ExampleExecModule() {
 	}
 	runner, _ := interp.New(
 		interp.StdIO(nil, os.Stdout, os.Stdout),
-		interp.WithExecModules(
-			interp.ExecBuiltin("join", func(mc interp.ModuleCtx, args []string) error {
-				fmt.Fprintln(mc.Stdout, strings.Join(args[1:], args[0]))
-				return nil
-			}),
-			notInstalled,
-		),
+		interp.WithExecModules(join, notInstalled),
 	)
 	runner.Run(context.TODO(), file)
 	// Output:
