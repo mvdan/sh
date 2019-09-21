@@ -6,9 +6,7 @@ jobs:
   test:
     strategy:
       matrix:
-        # TODO: use .x once the setup-go action doesn't run into unauthenticated
-        # rate limits. See: https://github.com/actions/setup-go/issues/16
-        go-version: [1.12.9, 1.13]
+        go-version: [1.12.x, 1.13.x]
         platform: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.platform }}
     steps:
@@ -31,13 +29,21 @@ jobs:
       run: diff <(echo -n) <(gofmt -d .)
       if: matrix.platform == 'ubuntu-latest'
 
+  test-linux-alpine:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v1
+    - name: Test as root, without cgo, and with busybox
+      run: docker run -v=$PWD:/pwd golang:1.13-alpine3.10 sh -c 'export CGO_ENABLED=0; cd /pwd && go test ./...'
+
   fuzz:
     runs-on: ubuntu-latest
     steps:
     - name: Install Go
       uses: actions/setup-go@v1
       with:
-        go-version: 1.13
+        go-version: 1.13.x
     - name: Checkout code
       uses: actions/checkout@v1
 
