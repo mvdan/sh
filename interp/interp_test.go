@@ -1646,8 +1646,8 @@ set +o pipefail
 		"1\n\n",
 	},
 	{
-		"a() { echo func; }; a; unset -f a; a",
-		"func\n\"a\": executable file not found in $PATH\nexit status 127 #JUSTERR",
+		"notinpath() { echo func; }; notinpath; unset -f notinpath; notinpath",
+		"func\n\"notinpath\": executable file not found in $PATH\nexit status 127 #JUSTERR",
 	},
 	{
 		"a=1; a() { echo func; }; unset -f a; echo $a",
@@ -1658,8 +1658,8 @@ set +o pipefail
 		"func\n\n",
 	},
 	{
-		"a=1; a() { echo func; }; a; echo $a; unset a; a; echo $a; unset a; a",
-		"func\n1\nfunc\n\n\"a\": executable file not found in $PATH\nexit status 127 #JUSTERR",
+		"notinpath=1; notinpath() { echo func; }; notinpath; echo $notinpath; unset notinpath; notinpath; echo $notinpath; unset notinpath; notinpath",
+		"func\n1\nfunc\n\n\"notinpath\": executable file not found in $PATH\nexit status 127 #JUSTERR",
 	},
 	{
 		"unset PATH; [[ $PATH == '' ]]",
