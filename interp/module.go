@@ -38,16 +38,6 @@ type ModuleCtx struct {
 	KillTimeout time.Duration
 }
 
-// UnixPath fixes absolute unix paths on Windows, for example converting
-// "C:\\CurDir\\dev\\null" to "/dev/null".
-func (mc ModuleCtx) UnixPath(path string) string {
-	if runtime.GOOS != "windows" {
-		return path
-	}
-	path = strings.TrimPrefix(path, mc.Dir)
-	return strings.Replace(path, `\`, `/`, -1)
-}
-
 // ExecModule is the module responsible for executing a simple command. It is
 // executed for all CallExpr nodes where the first argument is neither a
 // declared function nor a builtin.
@@ -258,7 +248,8 @@ func pathExts(env expand.Environ) []string {
 // executed for all files that are opened directly by the shell, such as
 // in redirects. Files opened by executed programs are not included.
 //
-// The path parameter is absolute and has been cleaned.
+// The path parameter may be relative to the current directory, which can be
+// fetched via FromModuleContext.
 //
 // Use a return error of type *os.PathError to have the error printed to
 // stderr and the exit status set to 1. If the error is of any other type, the
@@ -266,13 +257,16 @@ func pathExts(env expand.Environ) []string {
 type OpenModule func(ctx context.Context, path string, flag int, perm os.FileMode) (io.ReadWriteCloser, error)
 
 func DefaultOpen(ctx context.Context, path string, flag int, perm os.FileMode) (io.ReadWriteCloser, error) {
+	mc, _ := FromModuleContext(ctx)
+	if !filepath.IsAbs(path) {
+		path = filepath.Join(mc.Dir, path)
+	}
 	return os.OpenFile(path, flag, perm)
 }
 
 func OpenDevImpls(next OpenModule) OpenModule {
 	return func(ctx context.Context, path string, flag int, perm os.FileMode) (io.ReadWriteCloser, error) {
-		mc, _ := FromModuleContext(ctx)
-		switch mc.UnixPath(path) {
+		switch path {
 		case "/dev/null":
 			return devNull{}, nil
 		}

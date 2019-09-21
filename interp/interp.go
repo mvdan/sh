@@ -71,7 +71,7 @@ func (r *Runner) fillExpandConfig(ctx context.Context) {
 					break
 				}
 				path := r.literal(word)
-				f, err := r.open(ctx, r.relPath(path), os.O_RDONLY, 0, true)
+				f, err := r.open(ctx, path, os.O_RDONLY, 0, true)
 				if err != nil {
 					return err
 				}
@@ -1123,7 +1123,7 @@ func (r *Runner) redir(ctx context.Context, rd *syntax.Redirect) (io.Closer, err
 	case syntax.RdrOut, syntax.RdrAll:
 		mode = os.O_WRONLY | os.O_CREATE | os.O_TRUNC
 	}
-	f, err := r.open(ctx, r.relPath(arg), mode, 0644, true)
+	f, err := r.open(ctx, arg, mode, 0644, true)
 	if err != nil {
 		return nil, err
 	}
@@ -1222,5 +1222,5 @@ func (r *Runner) open(ctx context.Context, path string, flags int, mode os.FileM
 }
 
 func (r *Runner) stat(name string) (os.FileInfo, error) {
-	return os.Stat(r.relPath(name))
+	return os.Stat(r.absPath(name))
 }

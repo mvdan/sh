@@ -81,8 +81,7 @@ var modCases = []struct {
 		name: "OpenForbidNonDev",
 		open: func(next OpenModule) OpenModule {
 			return OpenDevImpls(func(ctx context.Context, path string, flags int, mode os.FileMode) (io.ReadWriteCloser, error) {
-				mc, _ := FromModuleContext(ctx)
-				return nil, fmt.Errorf("non-dev: %s", mc.UnixPath(path))
+				return nil, fmt.Errorf("non-dev: %s", path)
 			})
 		},
 		src:  "echo foo >/dev/null; echo bar >/tmp/x",

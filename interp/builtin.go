@@ -251,7 +251,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			r.errf("%v: source: need filename\n", pos)
 			return 2
 		}
-		f, err := r.open(ctx, r.relPath(args[0]), os.O_RDONLY, 0, false)
+		f, err := r.open(ctx, args[0], os.O_RDONLY, 0, false)
 		if err != nil {
 			r.errf("source: %v\n", err)
 			return 1
@@ -612,7 +612,7 @@ func (r *Runner) readLine(raw bool) ([]byte, error) {
 }
 
 func (r *Runner) changeDir(path string) int {
-	path = r.relPath(path)
+	path = r.absPath(path)
 	info, err := r.stat(path)
 	if err != nil || !info.IsDir() {
 		return 1
@@ -626,7 +626,7 @@ func (r *Runner) changeDir(path string) int {
 	return 0
 }
 
-func (r *Runner) relPath(path string) string {
+func (r *Runner) absPath(path string) string {
 	if !filepath.IsAbs(path) {
 		path = filepath.Join(r.Dir, path)
 	}
