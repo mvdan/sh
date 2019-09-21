@@ -331,7 +331,9 @@ func StdIO(in io.Reader, out, err io.Writer) func(*Runner) error {
 // isn't safe for concurrent use, consider a workaround like hiding writes
 // behind a mutex.
 //
-// To create a Runner, use New.
+// To create a Runner, use New. Runner's exported fields are meant to be
+// configured via runner options; once a Runner has been created, the fields
+// should be treated as read-only.
 type Runner struct {
 	// Env specifies the environment of the interpreter, which must be
 	// non-nil.
