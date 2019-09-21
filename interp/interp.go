@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -571,6 +572,11 @@ func (r *Runner) Reset() {
 	if vr := r.Env.Get("HOME"); !vr.IsSet() {
 		home, _ := os.UserHomeDir()
 		r.Vars["HOME"] = expand.Variable{Kind: expand.String, Str: home}
+	}
+	r.Vars["UID"] = expand.Variable{
+		Kind:     expand.String,
+		ReadOnly: true,
+		Str:      strconv.Itoa(os.Getuid()),
 	}
 	r.Vars["PWD"] = expand.Variable{Kind: expand.String, Str: r.Dir}
 	r.Vars["IFS"] = expand.Variable{Kind: expand.String, Str: " \t\n"}
