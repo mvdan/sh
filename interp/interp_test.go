@@ -2734,11 +2734,11 @@ func TestRunnerOpts(t *testing.T) {
 		}
 		return Env(expand.ListEnviron(append(prefix, strs...)...))
 	}
-	opts := func(list ...func(*Runner) error) []func(*Runner) error {
+	opts := func(list ...RunnerOption) []RunnerOption {
 		return list
 	}
 	cases := []struct {
-		opts     []func(*Runner) error
+		opts     []RunnerOption
 		in, want string
 	}{
 		{

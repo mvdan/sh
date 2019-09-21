@@ -89,7 +89,7 @@ func ExampleNewParser_options() {
 	fmt.Println(err)
 
 	syntax.NewPrinter().Print(os.Stdout, f)
-	syntax.NewPrinter(syntax.SpaceRedirects).Print(os.Stdout, f)
+	syntax.NewPrinter(syntax.SpaceRedirects(true)).Print(os.Stdout, f)
 
 	// Output:
 	// <nil>

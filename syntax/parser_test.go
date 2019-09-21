@@ -28,7 +28,7 @@ func TestKeepComments(t *testing.T) {
 		}},
 		Last: []Comment{{Text: " bar"}},
 	}
-	singleParse(NewParser(KeepComments), in, want)(t)
+	singleParse(NewParser(KeepComments(true)), in, want)(t)
 }
 
 func TestParseBash(t *testing.T) {
@@ -311,7 +311,7 @@ func BenchmarkParse(b *testing.B) {
 		strings.Repeat("somewhat long heredoc line\n", 10) +
 		"EOF" +
 		""
-	p := NewParser(KeepComments)
+	p := NewParser(KeepComments(true))
 	in := strings.NewReader(src)
 	for i := 0; i < b.N; i++ {
 		if _, err := p.Parse(in, ""); err != nil {
@@ -1792,7 +1792,7 @@ func checkError(p *Parser, in, want string) func(*testing.T) {
 
 func TestParseErrPosix(t *testing.T) {
 	t.Parallel()
-	p := NewParser(KeepComments, Variant(LangPOSIX))
+	p := NewParser(KeepComments(true), Variant(LangPOSIX))
 	i := 0
 	for _, c := range shellTests {
 		want := c.common
@@ -1809,7 +1809,7 @@ func TestParseErrPosix(t *testing.T) {
 
 func TestParseErrBash(t *testing.T) {
 	t.Parallel()
-	p := NewParser(KeepComments)
+	p := NewParser(KeepComments(true))
 	i := 0
 	for _, c := range shellTests {
 		want := c.common
@@ -1829,7 +1829,7 @@ func TestParseErrBash(t *testing.T) {
 
 func TestParseErrMirBSDKorn(t *testing.T) {
 	t.Parallel()
-	p := NewParser(KeepComments, Variant(LangMirBSDKorn))
+	p := NewParser(KeepComments(true), Variant(LangMirBSDKorn))
 	i := 0
 	for _, c := range shellTests {
 		want := c.common

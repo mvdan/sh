@@ -54,7 +54,7 @@ func TestWalk(t *testing.T) {
 		"*syntax.CoprocClause": false,
 		"*syntax.LetClause":    false,
 	}
-	parser := NewParser(KeepComments)
+	parser := NewParser(KeepComments(true))
 	var allStrs []string
 	for _, c := range fileTests {
 		allStrs = append(allStrs, c.Strs[0])

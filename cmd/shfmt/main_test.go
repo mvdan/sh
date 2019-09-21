@@ -19,7 +19,7 @@ import (
 )
 
 func init() {
-	parser = syntax.NewParser(syntax.KeepComments)
+	parser = syntax.NewParser(syntax.KeepComments(true))
 	printer = syntax.NewPrinter()
 }
 

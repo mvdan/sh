@@ -121,25 +121,23 @@ Utilities:
 	if *minify {
 		*simple = true
 	}
-	parser = syntax.NewParser(syntax.KeepComments, syntax.Variant(lang))
-	printer = syntax.NewPrinter(func(p *syntax.Printer) {
-		syntax.Indent(*indent)(p)
-		if *binNext {
-			syntax.BinaryNextLine(p)
-		}
-		if *caseIndent {
-			syntax.SwitchCaseIndent(p)
-		}
-		if *spaceRedirs {
-			syntax.SpaceRedirects(p)
-		}
-		if *keepPadding {
-			syntax.KeepPadding(p)
-		}
-		if *minify {
-			syntax.Minify(p)
-		}
-	})
+	parser = syntax.NewParser(syntax.KeepComments(true), syntax.Variant(lang))
+	printer = syntax.NewPrinter(syntax.Indent(*indent))
+	if *binNext {
+		syntax.BinaryNextLine(true)(printer)
+	}
+	if *caseIndent {
+		syntax.SwitchCaseIndent(true)(printer)
+	}
+	if *spaceRedirs {
+		syntax.SpaceRedirects(true)(printer)
+	}
+	if *keepPadding {
+		syntax.KeepPadding(true)(printer)
+	}
+	if *minify {
+		syntax.Minify(true)(printer)
+	}
 	if os.Getenv("FORCE_COLOR") == "true" {
 		// Undocumented way to force color; used in the tests.
 		color = true

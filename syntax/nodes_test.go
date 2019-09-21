@@ -11,9 +11,9 @@ import (
 
 func TestPosition(t *testing.T) {
 	t.Parallel()
-	parserBash := NewParser(KeepComments)
-	parserPosix := NewParser(KeepComments, Variant(LangPOSIX))
-	parserMirBSD := NewParser(KeepComments, Variant(LangMirBSDKorn))
+	parserBash := NewParser(KeepComments(true))
+	parserPosix := NewParser(KeepComments(true), Variant(LangPOSIX))
+	parserMirBSD := NewParser(KeepComments(true), Variant(LangMirBSDKorn))
 	for i, c := range fileTests {
 		for j, in := range c.Strs {
 			t.Run(fmt.Sprintf("%03d-%d", i, j), func(t *testing.T) {

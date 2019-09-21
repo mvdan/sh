@@ -14,9 +14,9 @@ import (
 
 func TestPrintCompact(t *testing.T) {
 	t.Parallel()
-	parserBash := NewParser(KeepComments)
-	parserPosix := NewParser(KeepComments, Variant(LangPOSIX))
-	parserMirBSD := NewParser(KeepComments, Variant(LangMirBSDKorn))
+	parserBash := NewParser(KeepComments(true))
+	parserPosix := NewParser(KeepComments(true), Variant(LangPOSIX))
+	parserMirBSD := NewParser(KeepComments(true), Variant(LangMirBSDKorn))
 	printer := NewPrinter()
 	for i, c := range fileTests {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
@@ -519,7 +519,7 @@ var printTests = []printCase{
 
 func TestPrintWeirdFormat(t *testing.T) {
 	t.Parallel()
-	parser := NewParser(KeepComments)
+	parser := NewParser(KeepComments(true))
 	printer := NewPrinter()
 	for i, tc := range printTests {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
@@ -540,7 +540,7 @@ func parsePath(tb testing.TB, path string) *File {
 		tb.Fatal(err)
 	}
 	defer f.Close()
-	prog, err := NewParser(KeepComments).Parse(f, "")
+	prog, err := NewParser(KeepComments(true)).Parse(f, "")
 	if err != nil {
 		tb.Fatal(err)
 	}
@@ -610,7 +610,7 @@ func TestPrintSpaces(t *testing.T) {
 		},
 	}
 
-	parser := NewParser(KeepComments)
+	parser := NewParser(KeepComments(true))
 	for i, tc := range spaceFormats {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
 			printer := NewPrinter(Indent(tc.spaces))
@@ -706,8 +706,8 @@ func TestPrintBinaryNextLine(t *testing.T) {
 			"a \\\n\t| b \\\n\t|\n\t#c2\n\tc",
 		},
 	}
-	parser := NewParser(KeepComments)
-	printer := NewPrinter(BinaryNextLine)
+	parser := NewParser(KeepComments(true))
+	printer := NewPrinter(BinaryNextLine(true))
 	for i, tc := range tests {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
 			printTest(t, parser, printer, tc.in, tc.want)
@@ -728,8 +728,8 @@ func TestPrintSwitchCaseIndent(t *testing.T) {
 		},
 		samePrint("case $i in\n\t#foo\nesac"),
 	}
-	parser := NewParser(KeepComments)
-	printer := NewPrinter(SwitchCaseIndent)
+	parser := NewParser(KeepComments(true))
+	printer := NewPrinter(SwitchCaseIndent(true))
 	for i, tc := range tests {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
 			printTest(t, parser, printer, tc.in, tc.want)
@@ -749,8 +749,8 @@ func TestPrintSpaceRedirects(t *testing.T) {
 		samePrint("echo foo bar >&1"),
 		samePrint("echo 2<&1 foo bar"),
 	}
-	parser := NewParser(KeepComments)
-	printer := NewPrinter(SpaceRedirects)
+	parser := NewParser(KeepComments(true))
+	printer := NewPrinter(SpaceRedirects(true))
 	for i, tc := range tests {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
 			printTest(t, parser, printer, tc.in, tc.want)
@@ -780,8 +780,8 @@ func TestPrintKeepPadding(t *testing.T) {
 		{"\tfoo", "foo"},
 		{"  if foo; then bar; fi", "if   foo; then bar; fi"},
 	}
-	parser := NewParser(KeepComments)
-	printer := NewPrinter(KeepPadding)
+	parser := NewParser(KeepComments(true))
+	printer := NewPrinter(KeepPadding(true))
 	for i, tc := range tests {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
 			// ensure that Reset does properly reset colCounter
@@ -858,8 +858,8 @@ func TestPrintMinify(t *testing.T) {
 			"${0/$a/}",
 		},
 	}
-	parser := NewParser(KeepComments)
-	printer := NewPrinter(Minify)
+	parser := NewParser(KeepComments(true))
+	printer := NewPrinter(Minify(true))
 	for i, tc := range tests {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
 			printTest(t, parser, printer, tc.in, tc.want)
@@ -869,10 +869,10 @@ func TestPrintMinify(t *testing.T) {
 
 func TestPrintMinifyNotBroken(t *testing.T) {
 	t.Parallel()
-	parserBash := NewParser(KeepComments)
-	parserPosix := NewParser(KeepComments, Variant(LangPOSIX))
-	parserMirBSD := NewParser(KeepComments, Variant(LangMirBSDKorn))
-	printer := NewPrinter(Minify)
+	parserBash := NewParser(KeepComments(true))
+	parserPosix := NewParser(KeepComments(true), Variant(LangPOSIX))
+	parserMirBSD := NewParser(KeepComments(true), Variant(LangMirBSDKorn))
+	printer := NewPrinter(Minify(true))
 	for i, tc := range fileTests {
 		t.Run(fmt.Sprintf("File%03d", i), func(t *testing.T) {
 			parser := parserPosix
@@ -1028,7 +1028,7 @@ func TestPrintManyStmts(t *testing.T) {
 		{"foo\nbar # inline", "foo\nbar # inline\n"},
 		{"# comment before\nfoo bar", "# comment before\nfoo bar\n"},
 	}
-	parser := NewParser(KeepComments)
+	parser := NewParser(KeepComments(true))
 	printer := NewPrinter()
 	for i, tc := range tests {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
@@ -1055,7 +1055,7 @@ func TestPrintCrash(t *testing.T) {
 	inputs := []string{
 		"<<-EOF\n`<<-''\n\uffcb\n`\n",
 	}
-	parser := NewParser(KeepComments)
+	parser := NewParser(KeepComments(true))
 	printer := NewPrinter()
 	for i, in := range inputs {
 		t.Run(fmt.Sprintf("%02d", i), func(t *testing.T) {
