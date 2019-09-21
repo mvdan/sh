@@ -48,13 +48,9 @@ var (
 
 	copyBuf = make([]byte, 32*1024)
 
-	in  io.Reader = os.Stdin
-	out io.Writer = os.Stdout
-
-	color       bool
-	ansiFgRed   = "\u001b[31m"
-	ansiFgGreen = "\u001b[32m"
-	ansiReset   = "\u001b[0m"
+	in    io.Reader = os.Stdin
+	out   io.Writer = os.Stdout
+	color bool
 
 	version = "v3.0.0-alpha2"
 )

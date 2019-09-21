@@ -1196,7 +1196,6 @@ func (r *Runner) call(ctx context.Context, pos syntax.Pos, args []string) {
 }
 
 func (r *Runner) exec(ctx context.Context, args []string) {
-	// path := r.lookPath(args[0])
 	err := r.Exec(r.modCtx(ctx), args)
 	switch x := err.(type) {
 	case nil:
