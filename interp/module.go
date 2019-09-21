@@ -55,7 +55,7 @@ func (mc ModuleCtx) UnixPath(path string) string {
 // Use a return error of type ExitStatus to set the exit status. A nil error has
 // the same effect as ExitStatus(0). If the error is of any other type, the
 // interpreter will come to a stop.
-type ExecModule = func(ctx context.Context, args []string) error
+type ExecModule func(ctx context.Context, args []string) error
 
 func DefaultExec(ctx context.Context, args []string) error {
 	mc, _ := FromModuleContext(ctx)
@@ -263,7 +263,7 @@ func pathExts(env expand.Environ) []string {
 // Use a return error of type *os.PathError to have the error printed to
 // stderr and the exit status set to 1. If the error is of any other type, the
 // interpreter will come to a stop.
-type OpenModule = func(ctx context.Context, path string, flag int, perm os.FileMode) (io.ReadWriteCloser, error)
+type OpenModule func(ctx context.Context, path string, flag int, perm os.FileMode) (io.ReadWriteCloser, error)
 
 func DefaultOpen(ctx context.Context, path string, flag int, perm os.FileMode) (io.ReadWriteCloser, error) {
 	return os.OpenFile(path, flag, perm)
