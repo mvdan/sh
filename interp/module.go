@@ -30,11 +30,23 @@ type moduleCtxKey struct{}
 // It contains some of the current state of the Runner, as well as some fields
 // necessary to implement some of the modules.
 type ModuleCtx struct {
-	Env         expand.Environ
-	Dir         string
-	Stdin       io.Reader
-	Stdout      io.Writer
-	Stderr      io.Writer
+	// Env is a read-only version of the interpreter's environment,
+	// including environment variables, global variables, and local function
+	// variables.
+	Env expand.Environ
+
+	// Dir is the interpreter's current directory.
+	Dir string
+
+	// Stdin is the interpreter's current standard input reader.
+	Stdin io.Reader
+	// Stdout is the interpreter's current standard output writer.
+	Stdout io.Writer
+	// Stderr is the interpreter's current standard error writer.
+	Stderr io.Writer
+
+	// KillTimeout is the duration configured by Runner.KillTimeout; refer
+	// to its docs for its purpose. It is needed to implement DefaultExec.
 	KillTimeout time.Duration
 }
 
