@@ -25,13 +25,18 @@ import (
 	"mvdan.cc/sh/v3/syntax"
 )
 
+// RunnerOption is a function which can be passed to New to alter Runner behaviour.
+// To apply option to existing Runner call it directly,
+// for example interp.Params("-e")(runner).
+type RunnerOption func(*Runner) error
+
 // New creates a new Runner, applying a number of options. If applying any of
 // the options results in an error, it is returned.
 //
 // Any unset options fall back to their defaults. For example, not supplying the
 // environment falls back to the process's environment, and not supplying the
 // standard output writer means that the output will be discarded.
-func New(opts ...func(*Runner) error) (*Runner, error) {
+func New(opts ...RunnerOption) (*Runner, error) {
 	r := &Runner{
 		usedNew: true,
 		Exec:    DefaultExec,
@@ -178,7 +183,7 @@ func (e expandEnv) Each(fn func(name string, vr expand.Variable) bool) {
 
 // Env sets the interpreter's environment. If nil, a copy of the current
 // process's environment is used.
-func Env(env expand.Environ) func(*Runner) error {
+func Env(env expand.Environ) RunnerOption {
 	return func(r *Runner) error {
 		if env == nil {
 			env = expand.ListEnviron(os.Environ()...)
@@ -190,7 +195,7 @@ func Env(env expand.Environ) func(*Runner) error {
 
 // Dir sets the interpreter's working directory. If empty, the process's current
 // directory is used.
-func Dir(path string) func(*Runner) error {
+func Dir(path string) RunnerOption {
 	return func(r *Runner) error {
 		if path == "" {
 			path, err := os.Getwd()
@@ -221,7 +226,7 @@ func Dir(path string) func(*Runner) error {
 // Params("+e") will unset the "-e" option and leave the parameters untouched.
 //
 // This is similar to what the interpreter's "set" builtin does.
-func Params(args ...string) func(*Runner) error {
+func Params(args ...string) RunnerOption {
 	return func(r *Runner) error {
 		onlyFlags := true
 		for len(args) > 0 {
@@ -280,7 +285,7 @@ func Params(args ...string) func(*Runner) error {
 //
 // The last or innermost module is always DefaultExec. You can make it
 // unreachable by adding a middleware that never calls its next module.
-func WithExecModules(mods ...func(next ExecModule) ExecModule) func(*Runner) error {
+func WithExecModules(mods ...func(next ExecModule) ExecModule) RunnerOption {
 	return func(r *Runner) error {
 		for i := len(mods) - 1; i >= 0; i-- {
 			mod := mods[i]
@@ -296,7 +301,7 @@ func WithExecModules(mods ...func(next ExecModule) ExecModule) func(*Runner) err
 //
 // The last or innermost module is always DefaultOpen. You can make it
 // unreachable by adding a middleware that never calls its next module.
-func WithOpenModules(mods ...func(next OpenModule) OpenModule) func(*Runner) error {
+func WithOpenModules(mods ...func(next OpenModule) OpenModule) RunnerOption {
 	return func(r *Runner) error {
 		for i := len(mods) - 1; i >= 0; i-- {
 			mod := mods[i]
@@ -309,7 +314,7 @@ func WithOpenModules(mods ...func(next OpenModule) OpenModule) func(*Runner) err
 // StdIO configures an interpreter's standard input, standard output, and
 // standard error. If out or err are nil, they default to a writer that discards
 // the output.
-func StdIO(in io.Reader, out, err io.Writer) func(*Runner) error {
+func StdIO(in io.Reader, out, err io.Writer) RunnerOption {
 	return func(r *Runner) error {
 		r.Stdin = in
 		if out == nil {
