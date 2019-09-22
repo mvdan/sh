@@ -84,8 +84,6 @@ func TestMain(m *testing.M) {
 		ctx := context.Background()
 		switch err := runner.Run(ctx, file).(type) {
 		case nil:
-		case ShellExitStatus:
-			os.Exit(int(err))
 		case ExitStatus:
 			os.Exit(int(err))
 		default:
@@ -2470,7 +2468,7 @@ func TestRunnerRun(t *testing.T) {
 				t.Fatal(err)
 			}
 			ctx := context.Background()
-			if err := r.Run(ctx, file); err != nil && err != ShellExitStatus(0) {
+			if err := r.Run(ctx, file); err != nil {
 				cb.WriteString(err.Error())
 			}
 			want := c.want
@@ -2829,7 +2827,7 @@ func TestRunnerOpts(t *testing.T) {
 				t.Fatal(err)
 			}
 			ctx := context.Background()
-			if err := r.Run(ctx, file); err != nil && err != ShellExitStatus(0) {
+			if err := r.Run(ctx, file); err != nil {
 				cb.WriteString(err.Error())
 			}
 			if got := cb.String(); got != c.want {
@@ -2891,7 +2889,7 @@ func TestRunnerAltNodes(t *testing.T) {
 		var cb concBuffer
 		r, _ := New(StdIO(nil, &cb, &cb))
 		ctx := context.Background()
-		if err := r.Run(ctx, node); err != nil && err != ShellExitStatus(0) {
+		if err := r.Run(ctx, node); err != nil {
 			cb.WriteString(err.Error())
 		}
 		if got := cb.String(); got != want {
@@ -2980,16 +2978,14 @@ func TestRunnerIncremental(t *testing.T) {
 	var b bytes.Buffer
 	r, _ := New(StdIO(nil, &b, &b))
 	ctx := context.Background()
-StmtLoop:
 	for _, stmt := range file.Stmts {
 		err := r.Run(ctx, stmt)
-		switch err.(type) {
-		case nil:
-		case ExitStatus:
-		case ShellExitStatus:
-			break StmtLoop
-		default:
+		if _, ok := err.(ExitStatus); !ok && err != nil {
+			// Keep track of unexpected errors.
 			b.WriteString(err.Error())
+		}
+		if r.Exited() {
+			break
 		}
 	}
 	if got := b.String(); got != want {

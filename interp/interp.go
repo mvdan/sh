@@ -117,7 +117,7 @@ func (r *Runner) expandErr(err error) {
 	if err != nil {
 		r.errf("%v\n", err)
 		r.exit = 1
-		r.setErr(ShellExitStatus(r.exit))
+		r.exitShell = true
 	}
 }
 
@@ -390,8 +390,9 @@ type Runner struct {
 	inSource  bool
 	noErrExit bool
 
-	err  error // current shell exit code or fatal error
-	exit int   // current (last) exit status code
+	err       error // current shell exit code or fatal error
+	exit      int   // current (last) exit status code
+	exitShell bool  // whether the shell needs to exit
 
 	bgShells errgroup.Group
 
@@ -622,11 +623,6 @@ func (r *Runner) modCtx(ctx context.Context) context.Context {
 	return context.WithValue(ctx, moduleCtxKey{}, mc)
 }
 
-// ShellExitStatus exits the shell with a status code.
-type ShellExitStatus uint8
-
-func (s ShellExitStatus) Error() string { return fmt.Sprintf("exit status %d", s) }
-
 // ExitStatus is a non-zero status code resulting from running a shell node.
 type ExitStatus uint8
 
@@ -639,8 +635,7 @@ func (r *Runner) setErr(err error) {
 }
 
 // Run interprets a node, which can be a *File, *Stmt, or Command. If a non-nil
-// error is returned, it will typically be of type ExitStatus or
-// ShellExitStatus.
+// error is returned, it will typically be of type ExitStatus.
 //
 // Run can be called multiple times synchronously to interpret programs
 // incrementally. To reuse a Runner without keeping the internal shell state,
@@ -651,6 +646,7 @@ func (r *Runner) Run(ctx context.Context, node syntax.Node) error {
 	}
 	r.fillExpandConfig(ctx)
 	r.err = nil
+	r.exitShell = false
 	r.filename = ""
 	switch x := node.(type) {
 	case *syntax.File:
@@ -663,10 +659,19 @@ func (r *Runner) Run(ctx context.Context, node syntax.Node) error {
 	default:
 		return fmt.Errorf("node can only be File, Stmt, or Command: %T", x)
 	}
-	if r.exit > 0 {
+	if r.exit != 0 {
 		r.setErr(ExitStatus(r.exit))
 	}
 	return r.err
+}
+
+// Exited reports whether the last Run call should exit an entire shell. This
+// can be triggered by the "exit" built-in command, for example.
+//
+// Note that this state is overwritten at every Run call, so it should be
+// checked immediately after each Run call.
+func (r *Runner) Exited() bool {
+	return r.exitShell
 }
 
 func (r *Runner) out(s string) {
@@ -682,7 +687,7 @@ func (r *Runner) errf(format string, a ...interface{}) {
 }
 
 func (r *Runner) stop(ctx context.Context) bool {
-	if r.err != nil {
+	if r.err != nil || r.exitShell {
 		return true
 	}
 	if err := ctx.Err(); err != nil {
@@ -738,7 +743,7 @@ func (r *Runner) stmtSync(ctx context.Context, st *syntax.Stmt) {
 		//   conditions (if <cond>, while <cond>, etc)
 		//   part of && or || lists
 		//   preceded by !
-		r.setErr(ShellExitStatus(r.exit))
+		r.exitShell = true
 	}
 	if !r.keepRedirs {
 		r.Stdin, r.Stdout, r.Stderr = oldIn, oldOut, oldErr
@@ -844,7 +849,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			r.stmt(ctx, x.Y)
 			pr.Close()
 			wg.Wait()
-			if r.opts[optPipeFail] && r2.exit > 0 && r.exit == 0 {
+			if r.opts[optPipeFail] && r2.exit != 0 && r.exit == 0 {
 				r.exit = r2.exit
 			}
 			r.setErr(r2.err)

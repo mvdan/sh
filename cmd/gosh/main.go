@@ -29,8 +29,6 @@ func main() {
 	flag.Parse()
 	switch err := runAll().(type) {
 	case nil:
-	case interp.ShellExitStatus:
-		os.Exit(int(err))
 	case interp.ExitStatus:
 		os.Exit(int(err))
 	default:
@@ -86,16 +84,8 @@ func interactive(runner *interp.Runner) error {
 		}
 		ctx := context.Background()
 		for _, stmt := range stmts {
-			switch err := runner.Run(ctx, stmt).(type) {
-			case nil:
-			case interp.ExitStatus:
-			case interp.ShellExitStatus:
-				if err != 0 {
-					runErr = err
-				}
-				return false
-			default:
-				runErr = err
+			runErr = runner.Run(ctx, stmt)
+			if runner.Exited() {
 				return false
 			}
 		}
