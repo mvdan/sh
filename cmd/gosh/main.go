@@ -78,6 +78,7 @@ func run(reader io.Reader, name string) error {
 
 func interactive(runner *interp.Runner) error {
 	fmt.Fprintf(runner.Stdout, "$ ")
+	var runErr error
 	fn := func(stmts []*syntax.Stmt) bool {
 		if parser.Incomplete() {
 			fmt.Fprintf(runner.Stdout, "> ")
@@ -87,16 +88,22 @@ func interactive(runner *interp.Runner) error {
 		for _, stmt := range stmts {
 			switch err := runner.Run(ctx, stmt).(type) {
 			case nil:
-			case interp.ShellExitStatus:
-				os.Exit(int(err))
 			case interp.ExitStatus:
+			case interp.ShellExitStatus:
+				if err != 0 {
+					runErr = err
+				}
+				return false
 			default:
-				fmt.Fprintln(runner.Stderr, err)
-				os.Exit(1)
+				runErr = err
+				return false
 			}
 		}
 		fmt.Fprintf(runner.Stdout, "$ ")
 		return true
 	}
-	return parser.Interactive(runner.Stdin, fn)
+	if err := parser.Interactive(runner.Stdin, fn); err != nil {
+		return err
+	}
+	return runErr
 }

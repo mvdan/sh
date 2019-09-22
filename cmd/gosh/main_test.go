@@ -20,91 +20,148 @@ import (
 // string is what the shell will print back. Note that the first "$ " output is
 // implicit.
 
-var interactiveTests = [][]string{
+var interactiveTests = []struct {
+	pairs   []string
+	wantErr string
+}{
 	{},
 	{
-		"\n",
-		"$ ",
-		"\n",
-		"$ ",
+		pairs: []string{
+			"\n",
+			"$ ",
+			"\n",
+			"$ ",
+		},
 	},
 	{
-		"echo foo\n",
-		"foo\n",
+		pairs: []string{
+			"echo foo\n",
+			"foo\n",
+		},
 	},
 	{
-		"echo foo\n",
-		"foo\n$ ",
-		"echo bar\n",
-		"bar\n",
+		pairs: []string{
+			"echo foo\n",
+			"foo\n$ ",
+			"echo bar\n",
+			"bar\n",
+		},
 	},
 	{
-		"if true\n",
-		"> ",
-		"then echo bar; fi\n",
-		"bar\n",
+		pairs: []string{
+			"if true\n",
+			"> ",
+			"then echo bar; fi\n",
+			"bar\n",
+		},
 	},
 	{
-		"echo 'foo\n",
-		"> ",
-		"bar'\n",
-		"foo\nbar\n",
+		pairs: []string{
+			"echo 'foo\n",
+			"> ",
+			"bar'\n",
+			"foo\nbar\n",
+		},
 	},
 	{
-		"echo foo; echo bar\n",
-		"foo\nbar\n",
+		pairs: []string{
+			"echo foo; echo bar\n",
+			"foo\nbar\n",
+		},
 	},
 	{
-		"echo foo; echo 'bar\n",
-		"> ",
-		"baz'\n",
-		"foo\nbar\nbaz\n",
+		pairs: []string{
+			"echo foo; echo 'bar\n",
+			"> ",
+			"baz'\n",
+			"foo\nbar\nbaz\n",
+		},
 	},
 	{
-		"(\n",
-		"> ",
-		"echo foo)\n",
-		"foo\n",
+		pairs: []string{
+			"(\n",
+			"> ",
+			"echo foo)\n",
+			"foo\n",
+		},
 	},
 	{
-		"[[\n",
-		"> ",
-		"true ]]\n",
-		"$ ",
+		pairs: []string{
+			"[[\n",
+			"> ",
+			"true ]]\n",
+			"$ ",
+		},
 	},
 	{
-		"echo foo ||\n",
-		"> ",
-		"echo bar\n",
-		"foo\n",
+		pairs: []string{
+			"echo foo ||\n",
+			"> ",
+			"echo bar\n",
+			"foo\n",
+		},
 	},
 	{
-		"echo foo |\n",
-		"> ",
-		"read var; echo $var\n",
-		"foo\n",
+		pairs: []string{
+			"echo foo |\n",
+			"> ",
+			"read var; echo $var\n",
+			"foo\n",
+		},
 	},
 	{
-		"echo foo",
-		"",
-		" bar\n",
-		"foo bar\n",
+		pairs: []string{
+			"echo foo",
+			"",
+			" bar\n",
+			"foo bar\n",
+		},
 	},
 	{
-		"echo\\\n",
-		"> ",
-		" foo\n",
-		"foo\n",
+		pairs: []string{
+			"echo\\\n",
+			"> ",
+			" foo\n",
+			"foo\n",
+		},
 	},
 	{
-		"echo foo\\\n",
-		"> ",
-		"bar\n",
-		"foobar\n",
+		pairs: []string{
+			"echo foo\\\n",
+			"> ",
+			"bar\n",
+			"foobar\n",
+		},
 	},
 	{
-		"echo 你好\n",
-		"你好\n$ ",
+		pairs: []string{
+			"echo 你好\n",
+			"你好\n$ ",
+		},
+	},
+	{
+		pairs: []string{
+			"echo foo; exit 0; echo bar\n",
+			"foo\n",
+			"echo baz\n",
+			"",
+		},
+	},
+	{
+		pairs: []string{
+			"echo foo; exit 1; echo bar\n",
+			"foo\n",
+			"echo baz\n",
+			"",
+		},
+		wantErr: "exit status 1",
+	},
+	{
+		pairs: []string{
+			"(\n",
+			"> ",
+		},
+		wantErr: "1:1: reached EOF without matching ( with )",
 	},
 }
 
@@ -125,16 +182,16 @@ func TestInteractive(t *testing.T) {
 			}
 
 			line := 1
-			for len(tc) > 0 {
-				if _, err := io.WriteString(inWriter, tc[0]); err != nil {
+			for len(tc.pairs) > 0 {
+				if _, err := io.WriteString(inWriter, tc.pairs[0]); err != nil {
 					t.Fatal(err)
 				}
-				if err := readString(outReader, tc[1]); err != nil {
+				if err := readString(outReader, tc.pairs[1]); err != nil {
 					t.Fatal(err)
 				}
 
 				line++
-				tc = tc[2:]
+				tc.pairs = tc.pairs[2:]
 			}
 
 			// Close the input pipe, so that the parser can stop.
@@ -144,8 +201,11 @@ func TestInteractive(t *testing.T) {
 			// so that any remaining prompt writes get discarded.
 			outReader.Close()
 
-			if err := <-errc; err != nil {
+			err := <-errc
+			if err != nil && tc.wantErr == "" {
 				t.Fatalf("unexpected error: %v", err)
+			} else if tc.wantErr != "" && fmt.Sprint(err) != tc.wantErr {
+				t.Fatalf("want error %q, got: %v", tc.wantErr, err)
 			}
 		})
 	}
