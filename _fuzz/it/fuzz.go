@@ -39,7 +39,7 @@ func Fuzz(data []byte) int {
 	}
 	syntax.Variant(lang)(parser)
 	if opts&0x04 != 0 {
-		syntax.KeepComments(parser)
+		syntax.KeepComments(true)(parser)
 	}
 	prog, err := parser.Parse(bytes.NewReader(src), "")
 	if err != nil {
@@ -53,13 +53,13 @@ func Fuzz(data []byte) int {
 		syntax.Indent(4)(printer)
 	}
 	if opts&0x20 != 0 {
-		syntax.BinaryNextLine(printer)
+		syntax.BinaryNextLine(true)(printer)
 	}
 	if opts&0x40 != 0 {
-		syntax.SwitchCaseIndent(printer)
+		syntax.SwitchCaseIndent(true)(printer)
 	}
 	if opts&0x80 != 0 {
-		syntax.KeepPadding(printer)
+		syntax.KeepPadding(true)(printer)
 	}
 	printer.Print(ioutil.Discard, prog)
 	return 1
