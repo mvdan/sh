@@ -6,6 +6,7 @@ require (
 	github.com/kr/pretty v0.1.0
 	github.com/pkg/diff v0.0.0-20190930165518-531926345625
 	github.com/rogpeppe/go-internal v1.5.0
+	github.com/sabhiram/go-git-ignore v0.0.0-20180611051255-d3107576ba94
 	github.com/stretchr/testify v1.4.0 // indirect
 	golang.org/x/crypto v0.0.0-20191002192127-34f69633bfdc
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e

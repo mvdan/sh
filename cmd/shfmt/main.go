@@ -15,6 +15,7 @@ import (
 	"regexp"
 
 	"github.com/pkg/diff"
+	ignore "github.com/sabhiram/go-git-ignore"
 	"golang.org/x/crypto/ssh/terminal"
 
 	"mvdan.cc/sh/v3/fileutil"
@@ -30,8 +31,9 @@ var (
 	find    = flag.Bool("f", false, "")
 	diffOut = flag.Bool("d", false, "")
 
-	langStr = flag.String("ln", "", "")
-	posix   = flag.Bool("p", false, "")
+	langStr    = flag.String("ln", "", "")
+	posix      = flag.Bool("p", false, "")
+	ignoreFile = flag.String("if", ".shfmtignore", "")
 
 	indent      = flag.Uint("i", 0, "")
 	binNext     = flag.Bool("bn", false, "")
@@ -78,6 +80,7 @@ Parser options:
 
   -ln str   language variant to parse (bash/posix/mksh, default "bash")
   -p        shorthand for -ln=posix
+  -if       specify path of ignore file (default ".shfmtignore")
 
 Printer options:
 
@@ -198,12 +201,19 @@ func walk(path string, onError func(error)) {
 		}
 		return
 	}
+
+	ignoreCompilation, _ := ignore.CompileIgnoreFile(
+		fmt.Sprintf("%s/%s", path, *ignoreFile),
+	)
 	filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
 		if info.IsDir() && vcsDir.MatchString(info.Name()) {
 			return filepath.SkipDir
 		}
 		if err != nil {
 			onError(err)
+			return nil
+		}
+		if nil != ignoreCompilation && ignoreCompilation.MatchesPath(path) {
 			return nil
 		}
 		conf := fileutil.CouldBeScript(info)
