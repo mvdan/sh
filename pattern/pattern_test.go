@@ -60,45 +60,45 @@ func TestRegexp(t *testing.T) {
 		t.Run(fmt.Sprintf("%02d", i), func(t *testing.T) {
 			got, gotErr := Regexp(tc.pattern, tc.greedy)
 			if tc.wantErr && gotErr == nil {
-				t.Fatalf("(%q, %v) did not error",
-					tc.pattern, tc.greedy)
+				t.Fatalf("(%q, %v) did not error", tc.pattern, tc.greedy)
 			}
 			if !tc.wantErr && gotErr != nil {
-				t.Fatalf("(%q, %v) errored with %q",
-					tc.pattern, tc.greedy, gotErr)
+				t.Fatalf("(%q, %v) errored with %q", tc.pattern, tc.greedy, gotErr)
 			}
 			if got != tc.want {
-				t.Fatalf("(%q, %v) got %q, wanted %q",
-					tc.pattern, tc.greedy, got, tc.want)
+				t.Fatalf("(%q, %v) got %q, wanted %q", tc.pattern, tc.greedy, got, tc.want)
 			}
 			_, rxErr := syntax.Parse(got, syntax.Perl)
 			if gotErr == nil && rxErr != nil {
-				t.Fatalf("regexp/syntax.Parse(%q) failed with %q",
-					got, rxErr)
+				t.Fatalf("regexp/syntax.Parse(%q) failed with %q", got, rxErr)
 			}
 		})
 	}
 }
 
-var quoteTests = []struct {
-	pattern string
-	want    string
+var metaTests = []struct {
+	pat       string
+	wantHas   bool
+	wantQuote string
 }{
-	{``, ``},
-	{`foo`, `foo`},
-	{`.`, `.`},
-	{`*`, `\*`},
-	{`foo?`, `foo\?`},
-	{`\[`, `\\\[`},
+	{``, false, ``},
+	{`foo`, false, `foo`},
+	{`.`, false, `.`},
+	{`*`, true, `\*`},
+	{`foo?`, true, `foo\?`},
+	{`\[`, false, `\\\[`},
 }
 
-func TestQuoteMeta(t *testing.T) {
+func TestMeta(t *testing.T) {
 	t.Parallel()
-	for _, tc := range quoteTests {
-		got := QuoteMeta(tc.pattern)
-		if got != tc.want {
-			t.Errorf("(%q) got %q, wanted %q",
-				tc.pattern, got, tc.want)
+	for _, tc := range metaTests {
+		if got := HasMeta(tc.pat); got != tc.wantHas {
+			t.Errorf("HasMeta(%q) got %t, wanted %t",
+				tc.pat, got, tc.wantHas)
+		}
+		if got := QuoteMeta(tc.pat); got != tc.wantQuote {
+			t.Errorf("QuoteMeta(%q) got %q, wanted %q",
+				tc.pat, got, tc.wantQuote)
 		}
 	}
 }
