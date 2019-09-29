@@ -12,6 +12,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
+	"mvdan.cc/sh/v3/pattern"
 	"mvdan.cc/sh/v3/syntax"
 )
 
@@ -221,7 +222,7 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 			all := op == syntax.UpperAll || op == syntax.LowerAll
 
 			// empty string means '?'; nothing to do there
-			expr, err := syntax.TranslatePattern(arg, false)
+			expr, err := pattern.Regexp(arg, false)
 			if err != nil {
 				return str, nil
 			}
@@ -263,8 +264,8 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 	return str, nil
 }
 
-func removePattern(str, pattern string, fromEnd, greedy bool) string {
-	expr, err := syntax.TranslatePattern(pattern, greedy)
+func removePattern(str, pat string, fromEnd, greedy bool) string {
+	expr, err := pattern.Regexp(pat, greedy)
 	if err != nil {
 		return str
 	}
@@ -279,7 +280,7 @@ func removePattern(str, pattern string, fromEnd, greedy bool) string {
 		// simple prefix
 		expr = "^(" + expr + ")"
 	}
-	// no need to check error as TranslatePattern returns one
+	// no need to check error as Translate returns one
 	rx := regexp.MustCompile(expr)
 	if loc := rx.FindStringSubmatchIndex(str); loc != nil {
 		// remove the original pattern (the submatch)

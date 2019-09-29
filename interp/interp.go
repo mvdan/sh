@@ -22,6 +22,7 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"mvdan.cc/sh/v3/expand"
+	"mvdan.cc/sh/v3/pattern"
 	"mvdan.cc/sh/v3/syntax"
 )
 
@@ -1044,8 +1045,8 @@ func (r *Runner) flattenAssign(as *syntax.Assign) []*syntax.Assign {
 	return asgns
 }
 
-func match(pattern, name string) bool {
-	expr, err := syntax.TranslatePattern(pattern, true)
+func match(pat, name string) bool {
+	expr, err := pattern.Regexp(pat, true)
 	if err != nil {
 		return false
 	}

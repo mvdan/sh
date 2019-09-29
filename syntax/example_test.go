@@ -6,7 +6,6 @@ package syntax_test
 import (
 	"fmt"
 	"os"
-	"regexp"
 	"strings"
 
 	"mvdan.cc/sh/v3/syntax"
@@ -96,48 +95,6 @@ func ExampleNewParser_options() {
 	// 1:5: c-style fors are a bash feature
 	// for ((i = 0; i < 5; i++)); do echo $i >f; done
 	// for ((i = 0; i < 5; i++)); do echo $i > f; done
-}
-
-func ExampleTranslatePattern() {
-	wildcard := "foo?bar*"
-	fmt.Println(wildcard)
-
-	expr, err := syntax.TranslatePattern(wildcard, true)
-	if err != nil {
-		return
-	}
-	fmt.Println(expr)
-
-	rx := regexp.MustCompile(expr)
-	fmt.Println(rx.MatchString("foo bar baz"))
-	fmt.Println(rx.MatchString("foobarbaz"))
-	// Output:
-	// foo?bar*
-	// foo.bar.*
-	// true
-	// false
-}
-
-func ExampleQuotePattern() {
-	wildcard := "foo?bar*"
-	fmt.Println(wildcard)
-
-	quoted := syntax.QuotePattern(wildcard)
-	fmt.Println(quoted)
-
-	expr, err := syntax.TranslatePattern(quoted, true)
-	if err != nil {
-		return
-	}
-
-	rx := regexp.MustCompile(expr)
-	fmt.Println(rx.MatchString("foo bar baz"))
-	fmt.Println(rx.MatchString("foo?bar*"))
-	// Output:
-	// foo?bar*
-	// foo\?bar\*
-	// false
-	// true
 }
 
 func ExampleWalk() {

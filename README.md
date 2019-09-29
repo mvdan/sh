@@ -3,7 +3,7 @@
 [![GoDoc](https://godoc.org/mvdan.cc/sh?status.svg)](https://godoc.org/mvdan.cc/sh)
 [![fuzzit](https://app.fuzzit.dev/badge?org_id=mvdan)](https://fuzzit.dev)
 
-A shell parser, formatter and interpreter. Supports [POSIX Shell], [Bash] and
+A shell parser, formatter, and interpreter. Supports [POSIX Shell], [Bash], and
 [mksh]. Requires Go 1.12 or later.
 
 ### Quick start

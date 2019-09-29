@@ -1,11 +1,11 @@
 // Copyright (c) 2017, Daniel Martí <mvdan@mvdan.cc>
 // See LICENSE for licensing information
 
-package syntax
+package pattern
 
 import (
 	"fmt"
-	rsyntax "regexp/syntax"
+	"regexp/syntax"
 	"testing"
 )
 
@@ -54,11 +54,11 @@ var translateTests = []struct {
 	{`[[.x.]]`, false, "", true},
 }
 
-func TestTranslatePattern(t *testing.T) {
+func TestRegexp(t *testing.T) {
 	t.Parallel()
 	for i, tc := range translateTests {
 		t.Run(fmt.Sprintf("%02d", i), func(t *testing.T) {
-			got, gotErr := TranslatePattern(tc.pattern, tc.greedy)
+			got, gotErr := Regexp(tc.pattern, tc.greedy)
 			if tc.wantErr && gotErr == nil {
 				t.Fatalf("(%q, %v) did not error",
 					tc.pattern, tc.greedy)
@@ -71,7 +71,7 @@ func TestTranslatePattern(t *testing.T) {
 				t.Fatalf("(%q, %v) got %q, wanted %q",
 					tc.pattern, tc.greedy, got, tc.want)
 			}
-			_, rxErr := rsyntax.Parse(got, rsyntax.Perl)
+			_, rxErr := syntax.Parse(got, syntax.Perl)
 			if gotErr == nil && rxErr != nil {
 				t.Fatalf("regexp/syntax.Parse(%q) failed with %q",
 					got, rxErr)
@@ -92,12 +92,12 @@ var quoteTests = []struct {
 	{`\[`, `\\\[`},
 }
 
-func TestQuotePattern(t *testing.T) {
+func TestQuoteMeta(t *testing.T) {
 	t.Parallel()
 	for _, tc := range quoteTests {
-		got := QuotePattern(tc.pattern)
+		got := QuoteMeta(tc.pattern)
 		if got != tc.want {
-			t.Errorf("QuotePattern(%q) got %q, wanted %q",
+			t.Errorf("(%q) got %q, wanted %q",
 				tc.pattern, got, tc.want)
 		}
 	}
