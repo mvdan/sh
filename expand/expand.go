@@ -653,7 +653,7 @@ func (cfg *Config) expandUser(field string) (prefix, rest string) {
 }
 
 func findAllIndex(pat, name string, n int) [][]int {
-	expr, err := pattern.Regexp(pat, true)
+	expr, err := pattern.Regexp(pat, 0)
 	if err != nil {
 		return nil
 	}
@@ -733,7 +733,7 @@ func (cfg *Config) glob(base, pat string) ([]string, error) {
 			}
 			continue
 		}
-		expr, err := pattern.Regexp(part, true)
+		expr, err := pattern.Regexp(part, pattern.Filenames)
 		if err != nil {
 			// If any glob part is not a valid pattern, don't glob.
 			return nil, nil

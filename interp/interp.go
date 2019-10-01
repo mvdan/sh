@@ -1046,7 +1046,7 @@ func (r *Runner) flattenAssign(as *syntax.Assign) []*syntax.Assign {
 }
 
 func match(pat, name string) bool {
-	expr, err := pattern.Regexp(pat, true)
+	expr, err := pattern.Regexp(pat, 0)
 	if err != nil {
 		return false
 	}

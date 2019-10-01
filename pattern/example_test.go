@@ -14,7 +14,7 @@ func ExampleTranslate() {
 	pat := "foo?bar*"
 	fmt.Println(pat)
 
-	expr, err := pattern.Regexp(pat, true)
+	expr, err := pattern.Regexp(pat, 0)
 	if err != nil {
 		return
 	}
@@ -37,7 +37,7 @@ func ExampleQuote() {
 	quoted := pattern.QuoteMeta(pat)
 	fmt.Println(quoted)
 
-	expr, err := pattern.Regexp(quoted, true)
+	expr, err := pattern.Regexp(quoted, 0)
 	if err != nil {
 		return
 	}

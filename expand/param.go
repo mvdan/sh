@@ -204,12 +204,10 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 			}
 		case syntax.RemSmallPrefix, syntax.RemLargePrefix,
 			syntax.RemSmallSuffix, syntax.RemLargeSuffix:
-			suffix := op == syntax.RemSmallSuffix ||
-				op == syntax.RemLargeSuffix
-			large := op == syntax.RemLargePrefix ||
-				op == syntax.RemLargeSuffix
+			suffix := op == syntax.RemSmallSuffix || op == syntax.RemLargeSuffix
+			small := op == syntax.RemSmallPrefix || op == syntax.RemSmallSuffix
 			for i, elem := range elems {
-				elems[i] = removePattern(elem, arg, suffix, large)
+				elems[i] = removePattern(elem, arg, suffix, small)
 			}
 			str = strings.Join(elems, " ")
 		case syntax.UpperFirst, syntax.UpperAll,
@@ -222,7 +220,7 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 			all := op == syntax.UpperAll || op == syntax.LowerAll
 
 			// empty string means '?'; nothing to do there
-			expr, err := pattern.Regexp(arg, false)
+			expr, err := pattern.Regexp(arg, 0)
 			if err != nil {
 				return str, nil
 			}
@@ -264,14 +262,18 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 	return str, nil
 }
 
-func removePattern(str, pat string, fromEnd, greedy bool) string {
-	expr, err := pattern.Regexp(pat, greedy)
+func removePattern(str, pat string, fromEnd, shortest bool) string {
+	var mode pattern.Mode
+	if shortest {
+		mode |= pattern.Shortest
+	}
+	expr, err := pattern.Regexp(pat, mode)
 	if err != nil {
 		return str
 	}
 	switch {
-	case fromEnd && !greedy:
-		// use .* to get the right-most (shortest) match
+	case fromEnd && shortest:
+		// use .* to get the right-most shortest match
 		expr = ".*(" + expr + ")$"
 	case fromEnd:
 		// simple suffix
