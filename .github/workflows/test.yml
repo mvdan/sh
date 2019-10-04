@@ -16,10 +16,6 @@ jobs:
         go-version: ${{ matrix.go-version }}
     - name: Checkout code
       uses: actions/checkout@v1
-    - name: Download Go dependencies
-      env:
-        GOPROXY: "https://proxy.golang.org"
-      run: go mod download
     - name: Test
       run: go test -count=1 ./...
     - name: Test with -short -race
