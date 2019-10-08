@@ -583,7 +583,7 @@ func (r *Runner) readLine(raw bool) ([]byte, error) {
 
 	for {
 		var buf [1]byte
-		n, err := r.Stdin.Read(buf[:])
+		n, err := r.stdin.Read(buf[:])
 		if n > 0 {
 			b := buf[0]
 			switch {
