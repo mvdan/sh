@@ -174,7 +174,7 @@ func TestInteractive(t *testing.T) {
 			runner, _ := interp.New(interp.StdIO(inReader, outWriter, outWriter))
 			errc := make(chan error)
 			go func() {
-				errc <- interactive(runner)
+				errc <- runInteractive(runner, inReader, outWriter, outWriter)
 			}()
 
 			if err := readString(outReader, "$ "); err != nil {

@@ -17,82 +17,82 @@ import (
 	"mvdan.cc/sh/v3/syntax"
 )
 
-var (
-	command = flag.String("c", "", "command to be executed")
-
-	parser = syntax.NewParser()
-
-	mainRunner, _ = interp.New(interp.StdIO(os.Stdin, os.Stdout, os.Stderr))
-)
+var command = flag.String("c", "", "command to be executed")
 
 func main() {
 	flag.Parse()
-	switch err := runAll().(type) {
-	case nil:
-	case interp.ExitStatus:
-		os.Exit(int(err))
-	default:
+	err := runAll()
+	if e, ok := err.(interp.ExitStatus); ok {
+		os.Exit(int(e))
+	}
+	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }
 
 func runAll() error {
+	r, err := interp.New(interp.StdIO(os.Stdin, os.Stdout, os.Stderr))
+	if err != nil {
+		return err
+	}
+
 	if *command != "" {
-		return run(strings.NewReader(*command), "")
+		return run(r, strings.NewReader(*command), "")
 	}
 	if flag.NArg() == 0 {
 		if terminal.IsTerminal(int(os.Stdin.Fd())) {
-			return interactive(mainRunner)
+			return runInteractive(r, os.Stdin, os.Stdout, os.Stderr)
 		}
-		return run(os.Stdin, "")
+		return run(r, os.Stdin, "")
 	}
 	for _, path := range flag.Args() {
-		if err := runPath(path); err != nil {
+		if err := runPath(r, path); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func runPath(path string) error {
+func run(r *interp.Runner, reader io.Reader, name string) error {
+	prog, err := syntax.NewParser().Parse(reader, name)
+	if err != nil {
+		return err
+	}
+	r.Reset()
+	ctx := context.Background()
+	return r.Run(ctx, prog)
+}
+
+func runPath(r *interp.Runner, path string) error {
 	f, err := os.Open(path)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
-	return run(f, path)
+	return run(r, f, path)
 }
 
-func run(reader io.Reader, name string) error {
-	prog, err := parser.Parse(reader, name)
-	if err != nil {
-		return err
-	}
-	mainRunner.Reset()
-	ctx := context.Background()
-	return mainRunner.Run(ctx, prog)
-}
-
-func interactive(runner *interp.Runner) error {
-	fmt.Fprintf(runner.Stdout, "$ ")
+func runInteractive(r *interp.Runner, stdin io.Reader, stdout, stderr io.Writer) error {
+	parser := syntax.NewParser()
+	fmt.Fprintf(stdout, "$ ")
 	var runErr error
 	fn := func(stmts []*syntax.Stmt) bool {
 		if parser.Incomplete() {
-			fmt.Fprintf(runner.Stdout, "> ")
+			fmt.Fprintf(stdout, "> ")
 			return true
 		}
 		ctx := context.Background()
 		for _, stmt := range stmts {
-			runErr = runner.Run(ctx, stmt)
-			if runner.Exited() {
+			runErr = r.Run(ctx, stmt)
+			if r.Exited() {
 				return false
 			}
 		}
-		fmt.Fprintf(runner.Stdout, "$ ")
+		fmt.Fprintf(stdout, "$ ")
 		return true
 	}
-	if err := parser.Interactive(runner.Stdin, fn); err != nil {
+	if err := parser.Interactive(stdin, fn); err != nil {
 		return err
 	}
 	return runErr
