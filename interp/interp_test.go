@@ -78,8 +78,8 @@ func TestMain(m *testing.M) {
 		}
 		runner, _ := New(
 			StdIO(os.Stdin, os.Stdout, os.Stderr),
-			WithOpenModules(OpenDevImpls),
-			WithExecModules(testBuiltins),
+			OpenModule(testOpenModule),
+			ExecModule(testExecModule),
 		)
 		ctx := context.Background()
 		switch err := runner.Run(ctx, file).(type) {
@@ -2461,8 +2461,8 @@ func TestRunnerRun(t *testing.T) {
 			defer os.RemoveAll(dir)
 			var cb concBuffer
 			r, err := New(Dir(dir), StdIO(nil, &cb, &cb),
-				WithOpenModules(OpenDevImpls),
-				WithExecModules(testBuiltins),
+				OpenModule(testOpenModule),
+				ExecModule(testExecModule),
 			)
 			if err != nil {
 				t.Fatal(err)
@@ -2665,14 +2665,20 @@ var testBuiltinsMap = map[string]func(ModuleCtx, []string) error{
 	},
 }
 
-func testBuiltins(next ExecModule) ExecModule {
-	return func(ctx context.Context, args []string) error {
-		if fn := testBuiltinsMap[args[0]]; fn != nil {
-			mc, _ := FromModuleContext(ctx)
-			return fn(mc, args[1:])
-		}
-		return next(ctx, args)
+func testExecModule(ctx context.Context, args []string) error {
+	if fn := testBuiltinsMap[args[0]]; fn != nil {
+		mc, _ := FromModuleContext(ctx)
+		return fn(mc, args[1:])
 	}
+	return DefaultExec(ctx, args)
+}
+
+func testOpenModule(ctx context.Context, path string, flag int, perm os.FileMode) (io.ReadWriteCloser, error) {
+	if runtime.GOOS == "windows" && path == "/dev/null" {
+		path = "NUL"
+	}
+
+	return DefaultOpen(ctx, path, flag, perm)
 }
 
 func TestRunnerRunConfirm(t *testing.T) {
@@ -2820,8 +2826,8 @@ func TestRunnerOpts(t *testing.T) {
 			var cb concBuffer
 			r, err := New(append(c.opts,
 				StdIO(nil, &cb, &cb),
-				WithOpenModules(OpenDevImpls),
-				WithExecModules(testBuiltins),
+				OpenModule(testOpenModule),
+				ExecModule(testExecModule),
 			)...)
 			if err != nil {
 				t.Fatal(err)
@@ -3009,8 +3015,8 @@ func TestRunnerResetFields(t *testing.T) {
 	r, _ := New(
 		Params("-f", "--", "first", dir, logPath),
 		Dir(dir),
-		WithOpenModules(OpenDevImpls),
-		WithExecModules(testBuiltins),
+		OpenModule(testOpenModule),
+		ExecModule(testExecModule),
 	)
 	// Check that using option funcs and Runner fields directly is still
 	// kept by Reset.

@@ -50,14 +50,14 @@ type ModuleCtx struct {
 	KillTimeout time.Duration
 }
 
-// ExecModule is the module responsible for executing a simple command. It is
+// ExecModuleFunc is the module responsible for executing a simple command. It is
 // executed for all CallExpr nodes where the first argument is neither a
 // declared function nor a builtin.
 //
 // Use a return error of type ExitStatus to set the exit status. A nil error has
 // the same effect as ExitStatus(0). If the error is of any other type, the
 // interpreter will come to a stop.
-type ExecModule func(ctx context.Context, args []string) error
+type ExecModuleFunc func(ctx context.Context, args []string) error
 
 func DefaultExec(ctx context.Context, args []string) error {
 	mc, _ := FromModuleContext(ctx)
@@ -256,7 +256,7 @@ func pathExts(env expand.Environ) []string {
 	return exts
 }
 
-// OpenModule is the module responsible for opening a file. It is
+// OpenModuleFunc is the module responsible for opening a file. It is
 // executed for all files that are opened directly by the shell, such as
 // in redirects. Files opened by executed programs are not included.
 //
@@ -266,7 +266,7 @@ func pathExts(env expand.Environ) []string {
 // Use a return error of type *os.PathError to have the error printed to
 // stderr and the exit status set to 1. If the error is of any other type, the
 // interpreter will come to a stop.
-type OpenModule func(ctx context.Context, path string, flag int, perm os.FileMode) (io.ReadWriteCloser, error)
+type OpenModuleFunc func(ctx context.Context, path string, flag int, perm os.FileMode) (io.ReadWriteCloser, error)
 
 func DefaultOpen(ctx context.Context, path string, flag int, perm os.FileMode) (io.ReadWriteCloser, error) {
 	mc, _ := FromModuleContext(ctx)
@@ -275,21 +275,3 @@ func DefaultOpen(ctx context.Context, path string, flag int, perm os.FileMode) (
 	}
 	return os.OpenFile(path, flag, perm)
 }
-
-func OpenDevImpls(next OpenModule) OpenModule {
-	return func(ctx context.Context, path string, flag int, perm os.FileMode) (io.ReadWriteCloser, error) {
-		switch path {
-		case "/dev/null":
-			return devNull{}, nil
-		}
-		return next(ctx, path, flag, perm)
-	}
-}
-
-var _ io.ReadWriteCloser = devNull{}
-
-type devNull struct{}
-
-func (devNull) Read(p []byte) (int, error)  { return 0, io.EOF }
-func (devNull) Write(p []byte) (int, error) { return len(p), nil }
-func (devNull) Close() error                { return nil }

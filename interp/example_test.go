@@ -39,29 +39,24 @@ func ExampleExecModule() {
 	src := "echo foo; join ! foo bar baz; missing-program bar"
 	file, _ := syntax.NewParser().Parse(strings.NewReader(src), "")
 
-	join := func(next interp.ExecModule) interp.ExecModule {
-		return func(ctx context.Context, args []string) error {
-			if args[0] == "join" {
-				mc, _ := interp.FromModuleContext(ctx)
-				fmt.Fprintln(mc.Stdout, strings.Join(args[2:], args[1]))
-				return nil
-			}
-			return next(ctx, args)
+	exec := func(ctx context.Context, args []string) error {
+		mc, _ := interp.FromModuleContext(ctx)
+
+		if args[0] == "join" {
+			fmt.Fprintln(mc.Stdout, strings.Join(args[2:], args[1]))
+			return nil
 		}
-	}
-	notInstalled := func(next interp.ExecModule) interp.ExecModule {
-		return func(ctx context.Context, args []string) error {
-			mc, _ := interp.FromModuleContext(ctx)
-			if _, err := interp.LookPath(mc.Env, args[0]); err != nil {
-				fmt.Printf("%s is not installed\n", args[0])
-				return interp.ExitStatus(1)
-			}
-			return next(ctx, args)
+
+		if _, err := interp.LookPath(mc.Env, args[0]); err != nil {
+			fmt.Printf("%s is not installed\n", args[0])
+			return interp.ExitStatus(1)
 		}
+
+		return interp.DefaultExec(ctx, args)
 	}
 	runner, _ := interp.New(
 		interp.StdIO(nil, os.Stdout, os.Stdout),
-		interp.WithExecModules(join, notInstalled),
+		interp.ExecModule(exec),
 	)
 	runner.Run(context.TODO(), file)
 	// Output:
