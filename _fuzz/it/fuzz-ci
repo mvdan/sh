@@ -5,7 +5,7 @@ set -e -x
 go install \
 	github.com/dvyukov/go-fuzz/go-fuzz \
 	github.com/dvyukov/go-fuzz/go-fuzz-build \
-	github.com/fuzzitdev/fuzzit
+	github.com/fuzzitdev/fuzzit/v2
 
 ./fuzz-gopath
 export GOPATH=$PWD/gopath
