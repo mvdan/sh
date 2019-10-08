@@ -118,14 +118,12 @@ writeLoop:
 				if i++; i >= len(pat) {
 					return "", fmt.Errorf("[ was not matched with a closing ]")
 				}
-				c = pat[i]
 			}
-			if c == ']' {
+			if c = pat[i]; c == ']' {
 				buf.WriteByte(']')
 				if i++; i >= len(pat) {
 					return "", fmt.Errorf("[ was not matched with a closing ]")
 				}
-				c = pat[i]
 			}
 			rangeStart := byte(0)
 		loopBracket:

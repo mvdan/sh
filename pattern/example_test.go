@@ -10,7 +10,7 @@ import (
 	"mvdan.cc/sh/v3/pattern"
 )
 
-func ExampleTranslate() {
+func ExampleRegexp() {
 	pat := "foo?bar*"
 	fmt.Println(pat)
 
@@ -30,7 +30,7 @@ func ExampleTranslate() {
 	// false
 }
 
-func ExampleQuote() {
+func ExampleQuoteMeta() {
 	pat := "foo?bar*"
 	fmt.Println(pat)
 
