@@ -280,34 +280,18 @@ func Params(args ...string) RunnerOption {
 	}
 }
 
-// WithExecModule sets up a runner with a chain of ExecModule middlewares. The
-// chain is set up starting at the end, so that the first middleware in the list
-// will be the first one to execute as part of the interpreter.
-//
-// The last or innermost module is always DefaultExec. You can make it
-// unreachable by adding a middleware that never calls its next module.
-func WithExecModules(mods ...func(next ExecModule) ExecModule) RunnerOption {
+// ExecModule sets command execution handler. See ExecModuleFunc for more info.
+func ExecModule(f ExecModuleFunc) RunnerOption {
 	return func(r *Runner) error {
-		for i := len(mods) - 1; i >= 0; i-- {
-			mod := mods[i]
-			r.Exec = mod(r.Exec)
-		}
+		r.Exec = f
 		return nil
 	}
 }
 
-// WithOpenModule sets up a runner with a chain of OpenModule middlewares. The
-// chain is set up starting at the end, so that the first middleware in the list
-// will be the first one to execute as part of the interpreter.
-//
-// The last or innermost module is always DefaultOpen. You can make it
-// unreachable by adding a middleware that never calls its next module.
-func WithOpenModules(mods ...func(next OpenModule) OpenModule) RunnerOption {
+// OpenModule sets file open handler. See OpenModuleFunc for more info.
+func OpenModule(f OpenModuleFunc) RunnerOption {
 	return func(r *Runner) error {
-		for i := len(mods) - 1; i >= 0; i-- {
-			mod := mods[i]
-			r.Open = mod(r.Open)
-		}
+		r.Open = f
 		return nil
 	}
 }
@@ -356,9 +340,9 @@ type Runner struct {
 
 	// Exec is the module responsible for executing programs. It must be
 	// non-nil.
-	Exec ExecModule
+	Exec ExecModuleFunc
 	// Open is the module responsible for opening files. It must be non-nil.
-	Open OpenModule
+	Open OpenModuleFunc
 
 	Stdin  io.Reader
 	Stdout io.Writer
