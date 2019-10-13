@@ -5,7 +5,6 @@ fuzzit-program
 # Don't store any of this in the master branch.
 suppressions/
 crashers/
-gopath/
 corpus/
 vendor/
 

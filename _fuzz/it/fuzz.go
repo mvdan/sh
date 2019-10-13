@@ -10,10 +10,6 @@ import (
 	"io/ioutil"
 
 	"mvdan.cc/sh/v3/syntax"
-
-	// This package is required for go-fuzz-build, so pin it here for
-	// 'go mod vendor' to include it.
-	_ "github.com/dvyukov/go-fuzz/go-fuzz-dep"
 )
 
 func Fuzz(data []byte) int {

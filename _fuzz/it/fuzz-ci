@@ -7,13 +7,10 @@ go install \
 	github.com/dvyukov/go-fuzz/go-fuzz-build \
 	github.com/fuzzitdev/fuzzit/v2
 
-./fuzz-gopath
-export GOPATH=$PWD/gopath
-export GO111MODULES=off
-
+export GOFUZZ111MODULE=on
 go-fuzz-build -libfuzzer -o fuzzit-program.a .
 clang -fsanitize=fuzzer fuzzit-program.a -o fuzzit-program
 
 fuzzit create job --type ${1} mvdan/sh-syntax-parser-printer fuzzit-program
 
-rm -rf gopath/ fuzzit-program.a fuzzit-program
+rm -f fuzzit-program.a fuzzit-program
