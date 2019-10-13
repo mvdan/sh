@@ -2670,7 +2670,7 @@ func testExecModule(ctx context.Context, args []string) error {
 		mc, _ := FromModuleContext(ctx)
 		return fn(mc, args[1:])
 	}
-	return DefaultExec(ctx, args)
+	return DefaultExec(2*time.Second)(ctx, args)
 }
 
 func testOpenModule(ctx context.Context, path string, flag int, perm os.FileMode) (io.ReadWriteCloser, error) {
@@ -2678,7 +2678,7 @@ func testOpenModule(ctx context.Context, path string, flag int, perm os.FileMode
 		path = "NUL"
 	}
 
-	return DefaultOpen(ctx, path, flag, perm)
+	return DefaultOpen()(ctx, path, flag, perm)
 }
 
 func TestRunnerRunConfirm(t *testing.T) {

@@ -40,8 +40,8 @@ type RunnerOption func(*Runner) error
 func New(opts ...RunnerOption) (*Runner, error) {
 	r := &Runner{
 		usedNew:    true,
-		execModule: DefaultExec,
-		openModule: DefaultOpen,
+		execModule: DefaultExec(2 * time.Second),
+		openModule: DefaultOpen(),
 	}
 	r.dirStack = r.dirBootstrap[:0]
 	for _, opt := range opts {
@@ -406,19 +406,6 @@ type Runner struct {
 	// apply to the current shell, and not just the command.
 	keepRedirs bool
 
-	// KillTimeout holds how much time the interpreter will wait for a
-	// program to stop after being sent an interrupt signal, after
-	// which a kill signal will be sent. This process will happen when the
-	// interpreter's context is cancelled.
-	//
-	// The zero value will default to 2 seconds.
-	//
-	// A negative value means that a kill signal will be sent immediately.
-	//
-	// On Windows, the kill signal is always sent immediately,
-	// because Go doesn't currently support sending Interrupt on Windows.
-	KillTimeout time.Duration
-
 	// So that we can get io.Copy to reuse the same buffer within a runner.
 	// For example, this saves an allocation for every shell pipe, since
 	// io.PipeReader does not implement io.WriterTo.
@@ -517,10 +504,9 @@ func (r *Runner) Reset() {
 	}
 	// reset the internal state
 	*r = Runner{
-		Env:         r.Env,
-		execModule:  r.execModule,
-		openModule:  r.openModule,
-		KillTimeout: r.KillTimeout,
+		Env:        r.Env,
+		execModule: r.execModule,
+		openModule: r.openModule,
 
 		// These can be set by functions like Dir or Params, but
 		// builtins can overwrite them; reset the fields to whatever the
@@ -581,20 +567,16 @@ func (r *Runner) Reset() {
 	}
 
 	r.dirStack = append(r.dirStack, r.Dir)
-	if r.KillTimeout == 0 {
-		r.KillTimeout = 2 * time.Second
-	}
 	r.didReset = true
 	r.bufCopier.Reader = nil
 }
 
 func (r *Runner) modCtx(ctx context.Context) context.Context {
 	mc := ModuleCtx{
-		Dir:         r.Dir,
-		Stdin:       r.stdin,
-		Stdout:      r.stdout,
-		Stderr:      r.stderr,
-		KillTimeout: r.KillTimeout,
+		Dir:    r.Dir,
+		Stdin:  r.stdin,
+		Stdout: r.stdout,
+		Stderr: r.stderr,
 	}
 	oenv := overlayEnviron{
 		parent: r.Env,
@@ -744,18 +726,17 @@ func (r *Runner) sub() *Runner {
 	// Keep in sync with the Runner type. Manually copy fields, to not copy
 	// sensitive ones like errgroup.Group, and to do deep copies of slices.
 	r2 := &Runner{
-		Env:         r.Env,
-		Dir:         r.Dir,
-		Params:      r.Params,
-		Funcs:       r.Funcs,
-		execModule:  r.execModule,
-		openModule:  r.openModule,
-		stdin:       r.stdin,
-		stdout:      r.stdout,
-		stderr:      r.stderr,
-		KillTimeout: r.KillTimeout,
-		filename:    r.filename,
-		opts:        r.opts,
+		Env:        r.Env,
+		Dir:        r.Dir,
+		Params:     r.Params,
+		Funcs:      r.Funcs,
+		execModule: r.execModule,
+		openModule: r.openModule,
+		stdin:      r.stdin,
+		stdout:     r.stdout,
+		stderr:     r.stderr,
+		filename:   r.filename,
+		opts:       r.opts,
 	}
 	r2.Vars = make(map[string]expand.Variable, len(r.Vars))
 	for k, v := range r.Vars {
