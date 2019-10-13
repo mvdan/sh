@@ -177,11 +177,13 @@ func TestKillTimeout(t *testing.T) {
 				var rbuf readyBuffer
 				rbuf.seenReady.Add(1)
 				ctx, cancel := context.WithCancel(context.Background())
-				r, err := New(StdIO(nil, &rbuf, &rbuf))
+				r, err := New(
+					StdIO(nil, &rbuf, &rbuf),
+					ExecModule(DefaultExec(test.killTimeout)),
+				)
 				if err != nil {
 					t.Fatal(err)
 				}
-				r.KillTimeout = test.killTimeout
 				go func() {
 					rbuf.seenReady.Wait()
 					cancel()

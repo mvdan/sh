@@ -44,10 +44,6 @@ type ModuleCtx struct {
 	Stdout io.Writer
 	// Stderr is the interpreter's current standard error writer.
 	Stderr io.Writer
-
-	// KillTimeout is the duration configured by Runner.KillTimeout; refer
-	// to its docs for its purpose. It is needed to implement DefaultExec.
-	KillTimeout time.Duration
 }
 
 // ExecModuleFunc is the module responsible for executing a simple command. It is
@@ -59,65 +55,75 @@ type ModuleCtx struct {
 // interpreter will come to a stop.
 type ExecModuleFunc func(ctx context.Context, args []string) error
 
-func DefaultExec(ctx context.Context, args []string) error {
-	mc, _ := FromModuleContext(ctx)
-	path, err := LookPath(mc.Env, args[0])
-	if err != nil {
-		fmt.Fprintln(mc.Stderr, err)
-		return ExitStatus(127)
-	}
-	cmd := exec.Cmd{
-		Path:   path,
-		Args:   args,
-		Env:    execEnv(mc.Env),
-		Dir:    mc.Dir,
-		Stdin:  mc.Stdin,
-		Stdout: mc.Stdout,
-		Stderr: mc.Stderr,
-	}
+// DefaultExec returns an ExecModuleFunc used by default.
+// It finds binaries in PATH and executes them.
+// When context is cancelled, interrupt signal is sent to running processes.
+// KillTimeout is a duration to wait before sending kill signal.
+// A negative value means that a kill signal will be sent immediately.
+// On Windows, the kill signal is always sent immediately,
+// because Go doesn't currently support sending Interrupt on Windows.
+// Runner.New() sets killTimeout to 2 seconds by default.
+func DefaultExec(killTimeout time.Duration) ExecModuleFunc {
+	return func(ctx context.Context, args []string) error {
+		mc, _ := FromModuleContext(ctx)
+		path, err := LookPath(mc.Env, args[0])
+		if err != nil {
+			fmt.Fprintln(mc.Stderr, err)
+			return ExitStatus(127)
+		}
+		cmd := exec.Cmd{
+			Path:   path,
+			Args:   args,
+			Env:    execEnv(mc.Env),
+			Dir:    mc.Dir,
+			Stdin:  mc.Stdin,
+			Stdout: mc.Stdout,
+			Stderr: mc.Stderr,
+		}
 
-	err = cmd.Start()
-	if err == nil {
-		if done := ctx.Done(); done != nil {
-			go func() {
-				<-done
-
-				if mc.KillTimeout <= 0 || runtime.GOOS == "windows" {
-					_ = cmd.Process.Signal(os.Kill)
-					return
-				}
-
-				// TODO: don't temporarily leak this goroutine
-				// if the program stops itself with the
-				// interrupt.
+		err = cmd.Start()
+		if err == nil {
+			if done := ctx.Done(); done != nil {
 				go func() {
-					time.Sleep(mc.KillTimeout)
-					_ = cmd.Process.Signal(os.Kill)
+					<-done
+
+					if killTimeout <= 0 || runtime.GOOS == "windows" {
+						_ = cmd.Process.Signal(os.Kill)
+						return
+					}
+
+					// TODO: don't temporarily leak this goroutine
+					// if the program stops itself with the
+					// interrupt.
+					go func() {
+						time.Sleep(killTimeout)
+						_ = cmd.Process.Signal(os.Kill)
+					}()
+					_ = cmd.Process.Signal(os.Interrupt)
 				}()
-				_ = cmd.Process.Signal(os.Interrupt)
-			}()
-		}
-
-		err = cmd.Wait()
-	}
-
-	switch x := err.(type) {
-	case *exec.ExitError:
-		// started, but errored - default to 1 if OS
-		// doesn't have exit statuses
-		if status, ok := x.Sys().(syscall.WaitStatus); ok {
-			if status.Signaled() && ctx.Err() != nil {
-				return ctx.Err()
 			}
-			return ExitStatus(status.ExitStatus())
+
+			err = cmd.Wait()
 		}
-		return ExitStatus(1)
-	case *exec.Error:
-		// did not start
-		fmt.Fprintf(mc.Stderr, "%v\n", err)
-		return ExitStatus(127)
-	default:
-		return err
+
+		switch x := err.(type) {
+		case *exec.ExitError:
+			// started, but errored - default to 1 if OS
+			// doesn't have exit statuses
+			if status, ok := x.Sys().(syscall.WaitStatus); ok {
+				if status.Signaled() && ctx.Err() != nil {
+					return ctx.Err()
+				}
+				return ExitStatus(status.ExitStatus())
+			}
+			return ExitStatus(1)
+		case *exec.Error:
+			// did not start
+			fmt.Fprintf(mc.Stderr, "%v\n", err)
+			return ExitStatus(127)
+		default:
+			return err
+		}
 	}
 }
 
@@ -268,10 +274,13 @@ func pathExts(env expand.Environ) []string {
 // interpreter will come to a stop.
 type OpenModuleFunc func(ctx context.Context, path string, flag int, perm os.FileMode) (io.ReadWriteCloser, error)
 
-func DefaultOpen(ctx context.Context, path string, flag int, perm os.FileMode) (io.ReadWriteCloser, error) {
-	mc, _ := FromModuleContext(ctx)
-	if !filepath.IsAbs(path) {
-		path = filepath.Join(mc.Dir, path)
+// DefaultOpen returns an OpenModuleFunc used by default. It uses os.OpenFile to open files.
+func DefaultOpen() OpenModuleFunc {
+	return func(ctx context.Context, path string, flag int, perm os.FileMode) (io.ReadWriteCloser, error) {
+		mc, _ := FromModuleContext(ctx)
+		if !filepath.IsAbs(path) {
+			path = filepath.Join(mc.Dir, path)
+		}
+		return os.OpenFile(path, flag, perm)
 	}
-	return os.OpenFile(path, flag, perm)
 }

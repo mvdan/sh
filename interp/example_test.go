@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"mvdan.cc/sh/v3/expand"
 	"mvdan.cc/sh/v3/interp"
@@ -52,7 +53,7 @@ func ExampleExecModule() {
 			return interp.ExitStatus(1)
 		}
 
-		return interp.DefaultExec(ctx, args)
+		return interp.DefaultExec(2*time.Second)(ctx, args)
 	}
 	runner, _ := interp.New(
 		interp.StdIO(nil, os.Stdout, os.Stdout),
