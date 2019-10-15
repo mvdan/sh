@@ -2483,8 +2483,8 @@ func TestRunnerRun(t *testing.T) {
 	}
 }
 
-func readLines(mc ModuleCtx) ([][]byte, error) {
-	bs, err := ioutil.ReadAll(mc.Stdin)
+func readLines(hc HandlerContext) ([][]byte, error) {
+	bs, err := ioutil.ReadAll(hc.Stdin)
 	if err != nil {
 		return nil, err
 	}
@@ -2495,22 +2495,22 @@ func readLines(mc ModuleCtx) ([][]byte, error) {
 	return bytes.Split(bs, []byte("\n")), nil
 }
 
-var testBuiltinsMap = map[string]func(ModuleCtx, []string) error{
-	"cat": func(mc ModuleCtx, args []string) error {
+var testBuiltinsMap = map[string]func(HandlerContext, []string) error{
+	"cat": func(hc HandlerContext, args []string) error {
 		if len(args) == 0 {
-			if mc.Stdin == nil || mc.Stdout == nil {
+			if hc.Stdin == nil || hc.Stdout == nil {
 				return nil
 			}
-			_, err := io.Copy(mc.Stdout, mc.Stdin)
+			_, err := io.Copy(hc.Stdout, hc.Stdin)
 			return err
 		}
 		for _, arg := range args {
-			path := filepath.Join(mc.Dir, arg)
+			path := filepath.Join(hc.Dir, arg)
 			f, err := os.Open(path)
 			if err != nil {
 				return err
 			}
-			_, err = io.Copy(mc.Stdout, f)
+			_, err = io.Copy(hc.Stdout, f)
 			f.Close()
 			if err != nil {
 				return err
@@ -2518,24 +2518,24 @@ var testBuiltinsMap = map[string]func(ModuleCtx, []string) error{
 		}
 		return nil
 	},
-	"wc": func(mc ModuleCtx, args []string) error {
-		bs, err := ioutil.ReadAll(mc.Stdin)
+	"wc": func(hc HandlerContext, args []string) error {
+		bs, err := ioutil.ReadAll(hc.Stdin)
 		if err != nil {
 			return err
 		}
 		if len(args) == 0 {
-			fmt.Fprintf(mc.Stdout, "%7d", bytes.Count(bs, []byte("\n")))
-			fmt.Fprintf(mc.Stdout, "%8d", len(bytes.Fields(bs)))
-			fmt.Fprintf(mc.Stdout, "%8d\n", len(bs))
+			fmt.Fprintf(hc.Stdout, "%7d", bytes.Count(bs, []byte("\n")))
+			fmt.Fprintf(hc.Stdout, "%8d", len(bytes.Fields(bs)))
+			fmt.Fprintf(hc.Stdout, "%8d\n", len(bs))
 		} else if args[0] == "-c" {
-			fmt.Fprintln(mc.Stdout, len(bs))
+			fmt.Fprintln(hc.Stdout, len(bs))
 		} else if args[0] == "-l" {
-			fmt.Fprintln(mc.Stdout, bytes.Count(bs, []byte("\n")))
+			fmt.Fprintln(hc.Stdout, bytes.Count(bs, []byte("\n")))
 		}
 		return nil
 	},
-	"sort": func(mc ModuleCtx, args []string) error {
-		lines, err := readLines(mc)
+	"sort": func(hc HandlerContext, args []string) error {
+		lines, err := readLines(hc)
 		if err != nil {
 			return err
 		}
@@ -2543,11 +2543,11 @@ var testBuiltinsMap = map[string]func(ModuleCtx, []string) error{
 			return bytes.Compare(lines[i], lines[j]) < 0
 		})
 		for _, line := range lines {
-			fmt.Fprintf(mc.Stdout, "%s\n", line)
+			fmt.Fprintf(hc.Stdout, "%s\n", line)
 		}
 		return nil
 	},
-	"grep": func(mc ModuleCtx, args []string) error {
+	"grep": func(hc HandlerContext, args []string) error {
 		var rx *regexp.Regexp
 		quiet := false
 		for _, arg := range args {
@@ -2558,7 +2558,7 @@ var testBuiltinsMap = map[string]func(ModuleCtx, []string) error{
 				rx = regexp.MustCompile(arg)
 			}
 		}
-		lines, err := readLines(mc)
+		lines, err := readLines(hc)
 		if err != nil {
 			return err
 		}
@@ -2569,7 +2569,7 @@ var testBuiltinsMap = map[string]func(ModuleCtx, []string) error{
 					return nil
 				}
 				any = true
-				fmt.Fprintf(mc.Stdout, "%s\n", line)
+				fmt.Fprintf(hc.Stdout, "%s\n", line)
 			}
 		}
 		if !any {
@@ -2577,7 +2577,7 @@ var testBuiltinsMap = map[string]func(ModuleCtx, []string) error{
 		}
 		return nil
 	},
-	"sed": func(mc ModuleCtx, args []string) error {
+	"sed": func(hc HandlerContext, args []string) error {
 		if len(args) != 1 {
 			return nil // unimplemented
 		}
@@ -2590,52 +2590,52 @@ var testBuiltinsMap = map[string]func(ModuleCtx, []string) error{
 		from := expr[:strings.IndexByte(expr, sep)]
 		expr = expr[len(from)+1:]
 		to := expr[:strings.IndexByte(expr, sep)]
-		bs, err := ioutil.ReadAll(mc.Stdin)
+		bs, err := ioutil.ReadAll(hc.Stdin)
 		if err != nil {
 			return err
 		}
 		rx := regexp.MustCompile(from)
 		bs = rx.ReplaceAllLiteral(bs, []byte(to))
-		_, err = mc.Stdout.Write(bs)
+		_, err = hc.Stdout.Write(bs)
 		return err
 	},
-	"mkdir": func(mc ModuleCtx, args []string) error {
+	"mkdir": func(hc HandlerContext, args []string) error {
 		for _, arg := range args {
 			if arg == "-p" {
 				continue
 			}
-			path := filepath.Join(mc.Dir, arg)
+			path := filepath.Join(hc.Dir, arg)
 			if err := os.MkdirAll(path, 0777); err != nil {
 				return err
 			}
 		}
 		return nil
 	},
-	"rm": func(mc ModuleCtx, args []string) error {
+	"rm": func(hc HandlerContext, args []string) error {
 		for _, arg := range args {
 			if arg == "-r" {
 				continue
 			}
-			path := filepath.Join(mc.Dir, arg)
+			path := filepath.Join(hc.Dir, arg)
 			if err := os.RemoveAll(path); err != nil {
 				return err
 			}
 		}
 		return nil
 	},
-	"ln": func(mc ModuleCtx, args []string) error {
+	"ln": func(hc HandlerContext, args []string) error {
 		symbolic := args[0] == "-s"
 		if symbolic {
 			args = args[1:]
 		}
-		oldname := filepath.Join(mc.Dir, args[0])
-		newname := filepath.Join(mc.Dir, args[1])
+		oldname := filepath.Join(hc.Dir, args[0])
+		newname := filepath.Join(hc.Dir, args[1])
 		if symbolic {
 			return os.Symlink(oldname, newname)
 		}
 		return os.Link(oldname, newname)
 	},
-	"touch": func(mc ModuleCtx, args []string) error {
+	"touch": func(hc HandlerContext, args []string) error {
 		newTime := time.Now()
 		if args[0] == "-d" {
 			if !strings.HasPrefix(args[1], "@") {
@@ -2649,7 +2649,7 @@ var testBuiltinsMap = map[string]func(ModuleCtx, []string) error{
 			args = args[2:]
 		}
 		for _, arg := range args {
-			path := filepath.Join(mc.Dir, arg)
+			path := filepath.Join(hc.Dir, arg)
 			// create the file if it does not exist
 			f, err := os.OpenFile(path, os.O_CREATE, 0666)
 			if err != nil {
@@ -2667,8 +2667,7 @@ var testBuiltinsMap = map[string]func(ModuleCtx, []string) error{
 
 func testExecModule(ctx context.Context, args []string) error {
 	if fn := testBuiltinsMap[args[0]]; fn != nil {
-		mc, _ := FromModuleContext(ctx)
-		return fn(mc, args[1:])
+		return fn(HandlerCtx(ctx), args[1:])
 	}
 	return DefaultExec(2*time.Second)(ctx, args)
 }
