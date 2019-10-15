@@ -572,7 +572,7 @@ func (r *Runner) Reset() {
 }
 
 func (r *Runner) modCtx(ctx context.Context) context.Context {
-	mc := ModuleCtx{
+	hc := HandlerContext{
 		Dir:    r.Dir,
 		Stdin:  r.stdin,
 		Stdout: r.stdout,
@@ -591,8 +591,8 @@ func (r *Runner) modCtx(ctx context.Context) context.Context {
 	for name, value := range r.cmdVars {
 		oenv.Set(name, expand.Variable{Exported: true, Kind: expand.String, Str: value})
 	}
-	mc.Env = oenv
-	return context.WithValue(ctx, moduleCtxKey{}, mc)
+	hc.Env = oenv
+	return context.WithValue(ctx, handlerCtxKey{}, hc)
 }
 
 // ExitStatus is a non-zero status code resulting from running a shell node.

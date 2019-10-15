@@ -18,18 +18,21 @@ import (
 	"mvdan.cc/sh/v3/expand"
 )
 
-// FromModuleContext returns the ModuleCtx value stored in ctx, if any.
-func FromModuleContext(ctx context.Context) (ModuleCtx, bool) {
-	mc, ok := ctx.Value(moduleCtxKey{}).(ModuleCtx)
-	return mc, ok
+// HandlerCtx returns HandlerContext value stored in ctx.
+// It panics if ctx has no HandlerContext stored.
+func HandlerCtx(ctx context.Context) HandlerContext {
+	hc, ok := ctx.Value(handlerCtxKey{}).(HandlerContext)
+	if !ok {
+		panic("interp.HandlerCtx: no HandlerContext in ctx")
+	}
+	return hc
 }
 
-type moduleCtxKey struct{}
+type handlerCtxKey struct{}
 
-// ModuleCtx is the data passed to all the module functions via a context value.
-// It contains some of the current state of the Runner, as well as some fields
-// necessary to implement some of the modules.
-type ModuleCtx struct {
+// HandlerContext is the data passed to all the handler functions via a context value.
+// It contains some of the current state of the Runner.
+type HandlerContext struct {
 	// Env is a read-only version of the interpreter's environment,
 	// including environment variables, global variables, and local function
 	// variables.
@@ -65,20 +68,20 @@ type ExecModuleFunc func(ctx context.Context, args []string) error
 // Runner.New() sets killTimeout to 2 seconds by default.
 func DefaultExec(killTimeout time.Duration) ExecModuleFunc {
 	return func(ctx context.Context, args []string) error {
-		mc, _ := FromModuleContext(ctx)
-		path, err := LookPath(mc.Env, args[0])
+		hc := HandlerCtx(ctx)
+		path, err := LookPath(hc.Env, args[0])
 		if err != nil {
-			fmt.Fprintln(mc.Stderr, err)
+			fmt.Fprintln(hc.Stderr, err)
 			return ExitStatus(127)
 		}
 		cmd := exec.Cmd{
 			Path:   path,
 			Args:   args,
-			Env:    execEnv(mc.Env),
-			Dir:    mc.Dir,
-			Stdin:  mc.Stdin,
-			Stdout: mc.Stdout,
-			Stderr: mc.Stderr,
+			Env:    execEnv(hc.Env),
+			Dir:    hc.Dir,
+			Stdin:  hc.Stdin,
+			Stdout: hc.Stdout,
+			Stderr: hc.Stderr,
 		}
 
 		err = cmd.Start()
@@ -119,7 +122,7 @@ func DefaultExec(killTimeout time.Duration) ExecModuleFunc {
 			return ExitStatus(1)
 		case *exec.Error:
 			// did not start
-			fmt.Fprintf(mc.Stderr, "%v\n", err)
+			fmt.Fprintf(hc.Stderr, "%v\n", err)
 			return ExitStatus(127)
 		default:
 			return err
@@ -277,7 +280,7 @@ type OpenModuleFunc func(ctx context.Context, path string, flag int, perm os.Fil
 // DefaultOpen returns an OpenModuleFunc used by default. It uses os.OpenFile to open files.
 func DefaultOpen() OpenModuleFunc {
 	return func(ctx context.Context, path string, flag int, perm os.FileMode) (io.ReadWriteCloser, error) {
-		mc, _ := FromModuleContext(ctx)
+		mc := HandlerCtx(ctx)
 		if !filepath.IsAbs(path) {
 			path = filepath.Join(mc.Dir, path)
 		}

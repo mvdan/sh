@@ -41,14 +41,14 @@ func ExampleExecModule() {
 	file, _ := syntax.NewParser().Parse(strings.NewReader(src), "")
 
 	exec := func(ctx context.Context, args []string) error {
-		mc, _ := interp.FromModuleContext(ctx)
+		hc := interp.HandlerCtx(ctx)
 
 		if args[0] == "join" {
-			fmt.Fprintln(mc.Stdout, strings.Join(args[2:], args[1]))
+			fmt.Fprintln(hc.Stdout, strings.Join(args[2:], args[1]))
 			return nil
 		}
 
-		if _, err := interp.LookPath(mc.Env, args[0]); err != nil {
+		if _, err := interp.LookPath(hc.Env, args[0]); err != nil {
 			fmt.Printf("%s is not installed\n", args[0])
 			return interp.ExitStatus(1)
 		}
