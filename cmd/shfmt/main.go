@@ -122,22 +122,14 @@ Utilities:
 		*simple = true
 	}
 	parser = syntax.NewParser(syntax.KeepComments(true), syntax.Variant(lang))
-	printer = syntax.NewPrinter(syntax.Indent(*indent))
-	if *binNext {
-		syntax.BinaryNextLine(true)(printer)
-	}
-	if *caseIndent {
-		syntax.SwitchCaseIndent(true)(printer)
-	}
-	if *spaceRedirs {
-		syntax.SpaceRedirects(true)(printer)
-	}
-	if *keepPadding {
-		syntax.KeepPadding(true)(printer)
-	}
-	if *minify {
-		syntax.Minify(true)(printer)
-	}
+	printer = syntax.NewPrinter(
+		syntax.Indent(*indent),
+		syntax.BinaryNextLine(*binNext),
+		syntax.SwitchCaseIndent(*caseIndent),
+		syntax.SpaceRedirects(*spaceRedirs),
+		syntax.KeepPadding(*keepPadding),
+		syntax.Minify(*minify),
+	)
 	if os.Getenv("FORCE_COLOR") == "true" {
 		// Undocumented way to force color; used in the tests.
 		color = true
