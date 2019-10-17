@@ -36,7 +36,7 @@ func Example() {
 	// global_value
 }
 
-func ExampleExecModule() {
+func ExampleExecHandler() {
 	src := "echo foo; join ! foo bar baz; missing-program bar"
 	file, _ := syntax.NewParser().Parse(strings.NewReader(src), "")
 
@@ -53,11 +53,11 @@ func ExampleExecModule() {
 			return interp.ExitStatus(1)
 		}
 
-		return interp.DefaultExec(2*time.Second)(ctx, args)
+		return interp.DefaultExecHandler(2*time.Second)(ctx, args)
 	}
 	runner, _ := interp.New(
 		interp.StdIO(nil, os.Stdout, os.Stdout),
-		interp.ExecModule(exec),
+		interp.ExecHandler(exec),
 	)
 	runner.Run(context.TODO(), file)
 	// Output:
