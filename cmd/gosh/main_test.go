@@ -165,6 +165,8 @@ var interactiveTests = []struct {
 	},
 }
 
+// TODO: move to the interp package
+
 func TestInteractive(t *testing.T) {
 	t.Parallel()
 	for i, tc := range interactiveTests {

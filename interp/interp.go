@@ -646,6 +646,43 @@ func (r *Runner) Exited() bool {
 	return r.exitShell
 }
 
+// Interactive starts Runner as a simple interactive shell, using the input and
+// output streams configured via StdIO. The primary and secondary prompts are "$
+// " and "> ", respectively.
+//
+// If no standard input was specified via StdIO, an error is returned.
+//
+// To customize the behavior of the interactive shell, copy and modify this
+// method. The building blocks are all available, and the function itself is
+// barely twenty lines.
+func (r *Runner) Interactive() error {
+	if r.stdin == nil {
+		return fmt.Errorf("Interactive needs a non-nil standard input")
+	}
+	parser := syntax.NewParser()
+	fmt.Fprintf(r.stdout, "$ ")
+	var runErr error
+	fn := func(stmts []*syntax.Stmt) bool {
+		if parser.Incomplete() {
+			fmt.Fprintf(r.stdout, "> ")
+			return true
+		}
+		ctx := context.Background()
+		for _, stmt := range stmts {
+			runErr = r.Run(ctx, stmt)
+			if r.Exited() {
+				return false
+			}
+		}
+		fmt.Fprintf(r.stdout, "$ ")
+		return true
+	}
+	if err := parser.Interactive(r.stdin, fn); err != nil {
+		return err
+	}
+	return runErr
+}
+
 func (r *Runner) out(s string) {
 	io.WriteString(r.stdout, s)
 }

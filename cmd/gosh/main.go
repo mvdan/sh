@@ -42,7 +42,7 @@ func runAll() error {
 	}
 	if flag.NArg() == 0 {
 		if terminal.IsTerminal(int(os.Stdin.Fd())) {
-			return runInteractive(r, os.Stdin, os.Stdout, os.Stderr)
+			return r.Interactive()
 		}
 		return run(r, os.Stdin, "")
 	}
