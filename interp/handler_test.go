@@ -17,12 +17,12 @@ import (
 	"mvdan.cc/sh/v3/syntax"
 )
 
-func blacklistBuiltinExec(name string) ExecModuleFunc {
+func blacklistBuiltinExec(name string) ExecHandlerFunc {
 	return func(ctx context.Context, args []string) error {
 		if args[0] == name {
 			return fmt.Errorf("%s: blacklisted builtin", name)
 		}
-		return testExecModule(ctx, args)
+		return testExecHandler(ctx, args)
 	}
 }
 
@@ -35,13 +35,13 @@ func blacklistNondevOpen(ctx context.Context, path string, flags int, mode os.Fi
 		return nil, fmt.Errorf("non-dev: %s", path)
 	}
 
-	return testOpenModule(ctx, path, flags, mode)
+	return testOpenHandler(ctx, path, flags, mode)
 }
 
 var modCases = []struct {
 	name string
-	exec ExecModuleFunc
-	open OpenModuleFunc
+	exec ExecHandlerFunc
+	open OpenHandlerFunc
 	src  string
 	want string
 }{
@@ -89,7 +89,7 @@ var modCases = []struct {
 	},
 }
 
-func TestRunnerModules(t *testing.T) {
+func TestRunnerHandlers(t *testing.T) {
 	t.Parallel()
 	p := syntax.NewParser()
 	for _, tc := range modCases {
@@ -98,10 +98,10 @@ func TestRunnerModules(t *testing.T) {
 			var cb concBuffer
 			r, err := New(StdIO(nil, &cb, &cb))
 			if tc.exec != nil {
-				ExecModule(tc.exec)(r)
+				ExecHandler(tc.exec)(r)
 			}
 			if tc.open != nil {
-				OpenModule(tc.open)(r)
+				OpenHandler(tc.open)(r)
 			}
 			if err != nil {
 				t.Fatal(err)
@@ -179,7 +179,7 @@ func TestKillTimeout(t *testing.T) {
 				ctx, cancel := context.WithCancel(context.Background())
 				r, err := New(
 					StdIO(nil, &rbuf, &rbuf),
-					ExecModule(DefaultExec(test.killTimeout)),
+					ExecHandler(DefaultExecHandler(test.killTimeout)),
 				)
 				if err != nil {
 					t.Fatal(err)

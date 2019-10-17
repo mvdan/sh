@@ -78,8 +78,8 @@ func TestMain(m *testing.M) {
 		}
 		runner, _ := New(
 			StdIO(os.Stdin, os.Stdout, os.Stderr),
-			OpenModule(testOpenModule),
-			ExecModule(testExecModule),
+			OpenHandler(testOpenHandler),
+			ExecHandler(testExecHandler),
 		)
 		ctx := context.Background()
 		switch err := runner.Run(ctx, file).(type) {
@@ -2461,8 +2461,8 @@ func TestRunnerRun(t *testing.T) {
 			defer os.RemoveAll(dir)
 			var cb concBuffer
 			r, err := New(Dir(dir), StdIO(nil, &cb, &cb),
-				OpenModule(testOpenModule),
-				ExecModule(testExecModule),
+				OpenHandler(testOpenHandler),
+				ExecHandler(testExecHandler),
 			)
 			if err != nil {
 				t.Fatal(err)
@@ -2665,19 +2665,19 @@ var testBuiltinsMap = map[string]func(HandlerContext, []string) error{
 	},
 }
 
-func testExecModule(ctx context.Context, args []string) error {
+func testExecHandler(ctx context.Context, args []string) error {
 	if fn := testBuiltinsMap[args[0]]; fn != nil {
 		return fn(HandlerCtx(ctx), args[1:])
 	}
-	return DefaultExec(2*time.Second)(ctx, args)
+	return DefaultExecHandler(2*time.Second)(ctx, args)
 }
 
-func testOpenModule(ctx context.Context, path string, flag int, perm os.FileMode) (io.ReadWriteCloser, error) {
+func testOpenHandler(ctx context.Context, path string, flag int, perm os.FileMode) (io.ReadWriteCloser, error) {
 	if runtime.GOOS == "windows" && path == "/dev/null" {
 		path = "NUL"
 	}
 
-	return DefaultOpen()(ctx, path, flag, perm)
+	return DefaultOpenHandler()(ctx, path, flag, perm)
 }
 
 func TestRunnerRunConfirm(t *testing.T) {
@@ -2825,8 +2825,8 @@ func TestRunnerOpts(t *testing.T) {
 			var cb concBuffer
 			r, err := New(append(c.opts,
 				StdIO(nil, &cb, &cb),
-				OpenModule(testOpenModule),
-				ExecModule(testExecModule),
+				OpenHandler(testOpenHandler),
+				ExecHandler(testExecHandler),
 			)...)
 			if err != nil {
 				t.Fatal(err)
@@ -3014,8 +3014,8 @@ func TestRunnerResetFields(t *testing.T) {
 	r, _ := New(
 		Params("-f", "--", "first", dir, logPath),
 		Dir(dir),
-		OpenModule(testOpenModule),
-		ExecModule(testExecModule),
+		OpenHandler(testOpenHandler),
+		ExecHandler(testExecHandler),
 	)
 	// Check that using option funcs and Runner fields directly is still
 	// kept by Reset.

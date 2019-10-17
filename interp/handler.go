@@ -49,16 +49,16 @@ type HandlerContext struct {
 	Stderr io.Writer
 }
 
-// ExecModuleFunc is the module responsible for executing a simple command. It is
-// executed for all CallExpr nodes where the first argument is neither a
+// ExecHandlerFunc is a handler which executes simple command. It is
+// called for all CallExpr nodes where the first argument is neither a
 // declared function nor a builtin.
 //
 // Use a return error of type ExitStatus to set the exit status. A nil error has
 // the same effect as ExitStatus(0). If the error is of any other type, the
 // interpreter will come to a stop.
-type ExecModuleFunc func(ctx context.Context, args []string) error
+type ExecHandlerFunc func(ctx context.Context, args []string) error
 
-// DefaultExec returns an ExecModuleFunc used by default.
+// DefaultExecHandler returns an ExecHandlerFunc used by default.
 // It finds binaries in PATH and executes them.
 // When context is cancelled, interrupt signal is sent to running processes.
 // KillTimeout is a duration to wait before sending kill signal.
@@ -66,7 +66,7 @@ type ExecModuleFunc func(ctx context.Context, args []string) error
 // On Windows, the kill signal is always sent immediately,
 // because Go doesn't currently support sending Interrupt on Windows.
 // Runner.New() sets killTimeout to 2 seconds by default.
-func DefaultExec(killTimeout time.Duration) ExecModuleFunc {
+func DefaultExecHandler(killTimeout time.Duration) ExecHandlerFunc {
 	return func(ctx context.Context, args []string) error {
 		hc := HandlerCtx(ctx)
 		path, err := LookPath(hc.Env, args[0])
@@ -265,20 +265,20 @@ func pathExts(env expand.Environ) []string {
 	return exts
 }
 
-// OpenModuleFunc is the module responsible for opening a file. It is
-// executed for all files that are opened directly by the shell, such as
+// OpenHandlerFunc is a handler which opens files. It is
+// called for all files that are opened directly by the shell, such as
 // in redirects. Files opened by executed programs are not included.
 //
 // The path parameter may be relative to the current directory, which can be
-// fetched via FromModuleContext.
+// fetched via HandlerCtx.
 //
 // Use a return error of type *os.PathError to have the error printed to
 // stderr and the exit status set to 1. If the error is of any other type, the
 // interpreter will come to a stop.
-type OpenModuleFunc func(ctx context.Context, path string, flag int, perm os.FileMode) (io.ReadWriteCloser, error)
+type OpenHandlerFunc func(ctx context.Context, path string, flag int, perm os.FileMode) (io.ReadWriteCloser, error)
 
-// DefaultOpen returns an OpenModuleFunc used by default. It uses os.OpenFile to open files.
-func DefaultOpen() OpenModuleFunc {
+// DefaultOpenHandler returns an OpenHandlerFunc used by default. It uses os.OpenFile to open files.
+func DefaultOpenHandler() OpenHandlerFunc {
 	return func(ctx context.Context, path string, flag int, perm os.FileMode) (io.ReadWriteCloser, error) {
 		mc := HandlerCtx(ctx)
 		if !filepath.IsAbs(path) {

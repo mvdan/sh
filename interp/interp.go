@@ -39,9 +39,9 @@ type RunnerOption func(*Runner) error
 // standard output writer means that the output will be discarded.
 func New(opts ...RunnerOption) (*Runner, error) {
 	r := &Runner{
-		usedNew:    true,
-		execModule: DefaultExec(2 * time.Second),
-		openModule: DefaultOpen(),
+		usedNew:     true,
+		execHandler: DefaultExecHandler(2 * time.Second),
+		openHandler: DefaultOpenHandler(),
 	}
 	r.dirStack = r.dirBootstrap[:0]
 	for _, opt := range opts {
@@ -280,18 +280,18 @@ func Params(args ...string) RunnerOption {
 	}
 }
 
-// ExecModule sets command execution handler. See ExecModuleFunc for more info.
-func ExecModule(f ExecModuleFunc) RunnerOption {
+// ExecHandler sets command execution handler. See ExecHandlerFunc for more info.
+func ExecHandler(f ExecHandlerFunc) RunnerOption {
 	return func(r *Runner) error {
-		r.execModule = f
+		r.execHandler = f
 		return nil
 	}
 }
 
-// OpenModule sets file open handler. See OpenModuleFunc for more info.
-func OpenModule(f OpenModuleFunc) RunnerOption {
+// OpenHandler sets file open handler. See OpenHandlerFunc for more info.
+func OpenHandler(f OpenHandlerFunc) RunnerOption {
 	return func(r *Runner) error {
-		r.openModule = f
+		r.openHandler = f
 		return nil
 	}
 }
@@ -344,11 +344,11 @@ type Runner struct {
 	Vars  map[string]expand.Variable
 	Funcs map[string]*syntax.Stmt
 
-	// execModule is the module responsible for executing programs. It must be non-nil.
-	execModule ExecModuleFunc
+	// execHandler is a function responsible for executing programs. It must be non-nil.
+	execHandler ExecHandlerFunc
 
-	// openModule is the module responsible for opening files. It must be non-nil.
-	openModule OpenModuleFunc
+	// openHandler is a function responsible for opening files. It must be non-nil.
+	openHandler OpenHandlerFunc
 
 	stdin  io.Reader
 	stdout io.Writer
@@ -504,9 +504,9 @@ func (r *Runner) Reset() {
 	}
 	// reset the internal state
 	*r = Runner{
-		Env:        r.Env,
-		execModule: r.execModule,
-		openModule: r.openModule,
+		Env:         r.Env,
+		execHandler: r.execHandler,
+		openHandler: r.openHandler,
 
 		// These can be set by functions like Dir or Params, but
 		// builtins can overwrite them; reset the fields to whatever the
@@ -571,7 +571,7 @@ func (r *Runner) Reset() {
 	r.bufCopier.Reader = nil
 }
 
-func (r *Runner) modCtx(ctx context.Context) context.Context {
+func (r *Runner) handlerCtx(ctx context.Context) context.Context {
 	hc := HandlerContext{
 		Dir:    r.Dir,
 		Stdin:  r.stdin,
@@ -726,17 +726,17 @@ func (r *Runner) sub() *Runner {
 	// Keep in sync with the Runner type. Manually copy fields, to not copy
 	// sensitive ones like errgroup.Group, and to do deep copies of slices.
 	r2 := &Runner{
-		Env:        r.Env,
-		Dir:        r.Dir,
-		Params:     r.Params,
-		Funcs:      r.Funcs,
-		execModule: r.execModule,
-		openModule: r.openModule,
-		stdin:      r.stdin,
-		stdout:     r.stdout,
-		stderr:     r.stderr,
-		filename:   r.filename,
-		opts:       r.opts,
+		Env:         r.Env,
+		Dir:         r.Dir,
+		Params:      r.Params,
+		Funcs:       r.Funcs,
+		execHandler: r.execHandler,
+		openHandler: r.openHandler,
+		stdin:       r.stdin,
+		stdout:      r.stdout,
+		stderr:      r.stderr,
+		filename:    r.filename,
+		opts:        r.opts,
 	}
 	r2.Vars = make(map[string]expand.Variable, len(r.Vars))
 	for k, v := range r.Vars {
@@ -1180,26 +1180,26 @@ func (r *Runner) call(ctx context.Context, pos syntax.Pos, args []string) {
 }
 
 func (r *Runner) exec(ctx context.Context, args []string) {
-	err := r.execModule(r.modCtx(ctx), args)
+	err := r.execHandler(r.handlerCtx(ctx), args)
 	switch x := err.(type) {
 	case nil:
 		r.exit = 0
 	case ExitStatus:
 		r.exit = int(x)
-	default: // module's custom fatal error
+	default: // handler's custom fatal error
 		r.setErr(err)
 	}
 }
 
 func (r *Runner) open(ctx context.Context, path string, flags int, mode os.FileMode, print bool) (io.ReadWriteCloser, error) {
-	f, err := r.openModule(r.modCtx(ctx), path, flags, mode)
+	f, err := r.openHandler(r.handlerCtx(ctx), path, flags, mode)
 	switch err.(type) {
 	case nil:
 	case *os.PathError:
 		if print {
 			r.errf("%v\n", err)
 		}
-	default: // module's custom fatal error
+	default: // handler's custom fatal error
 		r.setErr(err)
 	}
 	return f, err
