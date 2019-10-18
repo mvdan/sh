@@ -53,9 +53,8 @@ type HandlerContext struct {
 // called for all CallExpr nodes where the first argument is neither a
 // declared function nor a builtin.
 //
-// Use a return error of type ExitStatus to set the exit status. A nil error has
-// the same effect as ExitStatus(0). If the error is of any other type, the
-// interpreter will come to a stop.
+// Returning nil error sets commands exit status to 0. Other exit statuses
+// can be set with NewExitStatus. Any other error will halt an interpreter.
 type ExecHandlerFunc func(ctx context.Context, args []string) error
 
 // DefaultExecHandler returns an ExecHandlerFunc used by default.
@@ -65,14 +64,14 @@ type ExecHandlerFunc func(ctx context.Context, args []string) error
 // A negative value means that a kill signal will be sent immediately.
 // On Windows, the kill signal is always sent immediately,
 // because Go doesn't currently support sending Interrupt on Windows.
-// Runner.New() sets killTimeout to 2 seconds by default.
+// Runner.New sets killTimeout to 2 seconds by default.
 func DefaultExecHandler(killTimeout time.Duration) ExecHandlerFunc {
 	return func(ctx context.Context, args []string) error {
 		hc := HandlerCtx(ctx)
 		path, err := LookPath(hc.Env, args[0])
 		if err != nil {
 			fmt.Fprintln(hc.Stderr, err)
-			return ExitStatus(127)
+			return NewExitStatus(127)
 		}
 		cmd := exec.Cmd{
 			Path:   path,
@@ -117,13 +116,13 @@ func DefaultExecHandler(killTimeout time.Duration) ExecHandlerFunc {
 				if status.Signaled() && ctx.Err() != nil {
 					return ctx.Err()
 				}
-				return ExitStatus(status.ExitStatus())
+				return NewExitStatus(uint8(status.ExitStatus()))
 			}
-			return ExitStatus(1)
+			return NewExitStatus(1)
 		case *exec.Error:
 			// did not start
 			fmt.Fprintf(hc.Stderr, "%v\n", err)
-			return ExitStatus(127)
+			return NewExitStatus(127)
 		default:
 			return err
 		}

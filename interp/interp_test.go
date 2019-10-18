@@ -82,14 +82,15 @@ func TestMain(m *testing.M) {
 			ExecHandler(testExecHandler),
 		)
 		ctx := context.Background()
-		switch err := runner.Run(ctx, file).(type) {
-		case nil:
-		case ExitStatus:
-			os.Exit(int(err))
-		default:
+		if err := runner.Run(ctx, file); err != nil {
+			if status, ok := IsExitStatus(err); ok {
+				os.Exit(int(status))
+			}
+
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
+
 		os.Exit(0)
 	}
 	os.Setenv("GOSH_PROG", os.Args[0])
@@ -2573,7 +2574,7 @@ var testBuiltinsMap = map[string]func(HandlerContext, []string) error{
 			}
 		}
 		if !any {
-			return ExitStatus(1)
+			return NewExitStatus(1)
 		}
 		return nil
 	},
@@ -2985,7 +2986,7 @@ func TestRunnerIncremental(t *testing.T) {
 	ctx := context.Background()
 	for _, stmt := range file.Stmts {
 		err := r.Run(ctx, stmt)
-		if _, ok := err.(ExitStatus); !ok && err != nil {
+		if _, ok := IsExitStatus(err); !ok && err != nil {
 			// Keep track of unexpected errors.
 			b.WriteString(err.Error())
 		}

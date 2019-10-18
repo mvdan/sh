@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"golang.org/x/sync/errgroup"
+	"golang.org/x/xerrors"
 
 	"mvdan.cc/sh/v3/expand"
 	"mvdan.cc/sh/v3/pattern"
@@ -595,10 +596,24 @@ func (r *Runner) handlerCtx(ctx context.Context) context.Context {
 	return context.WithValue(ctx, handlerCtxKey{}, hc)
 }
 
-// ExitStatus is a non-zero status code resulting from running a shell node.
-type ExitStatus uint8
+// exitStatus is a non-zero status code resulting from running a shell node.
+type exitStatus uint8
 
-func (s ExitStatus) Error() string { return fmt.Sprintf("exit status %d", s) }
+func (s exitStatus) Error() string { return fmt.Sprintf("exit status %d", s) }
+
+// NewExitStatus creates an error which contains the specified exit status code.
+func NewExitStatus(status uint8) error {
+	return exitStatus(status)
+}
+
+// IsExitStatus checks whether error contains an exit status and returns it.
+func IsExitStatus(err error) (status uint8, ok bool) {
+	var s exitStatus
+	if xerrors.As(err, &s) {
+		return uint8(s), true
+	}
+	return 0, false
+}
 
 func (r *Runner) setErr(err error) {
 	if r.err == nil {
@@ -607,7 +622,8 @@ func (r *Runner) setErr(err error) {
 }
 
 // Run interprets a node, which can be a *File, *Stmt, or Command. If a non-nil
-// error is returned, it will typically be of type ExitStatus.
+// error is returned, it will typically contain commands exit status,
+// which can be retrieved with IsExitStatus.
 //
 // Run can be called multiple times synchronously to interpret programs
 // incrementally. To reuse a Runner without keeping the internal shell state,
@@ -632,7 +648,7 @@ func (r *Runner) Run(ctx context.Context, node syntax.Node) error {
 		return fmt.Errorf("node can only be File, Stmt, or Command: %T", x)
 	}
 	if r.exit != 0 {
-		r.setErr(ExitStatus(r.exit))
+		r.setErr(NewExitStatus(uint8(r.exit)))
 	}
 	return r.err
 }
@@ -1181,18 +1197,21 @@ func (r *Runner) call(ctx context.Context, pos syntax.Pos, args []string) {
 
 func (r *Runner) exec(ctx context.Context, args []string) {
 	err := r.execHandler(r.handlerCtx(ctx), args)
-	switch x := err.(type) {
-	case nil:
-		r.exit = 0
-	case ExitStatus:
-		r.exit = int(x)
-	default: // handler's custom fatal error
-		r.setErr(err)
+	if status, ok := IsExitStatus(err); ok {
+		r.exit = int(status)
+		return
 	}
+	if err != nil {
+		// handler's custom fatal error
+		r.setErr(err)
+		return
+	}
+	r.exit = 0
 }
 
 func (r *Runner) open(ctx context.Context, path string, flags int, mode os.FileMode, print bool) (io.ReadWriteCloser, error) {
 	f, err := r.openHandler(r.handlerCtx(ctx), path, flags, mode)
+	// TODO: support wrapped PathError returned from openHandler.
 	switch err.(type) {
 	case nil:
 	case *os.PathError:
