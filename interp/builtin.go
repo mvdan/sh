@@ -200,10 +200,8 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		if len(args) > 0 {
 			panic("wait with args not handled yet")
 		}
-		switch err := r.bgShells.Wait().(type) {
-		case nil:
-		case ExitStatus:
-		default:
+		err := r.bgShells.Wait()
+		if _, ok := IsExitStatus(err); err != nil && !ok {
 			r.setErr(err)
 		}
 	case "builtin":

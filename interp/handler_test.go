@@ -190,7 +190,7 @@ func TestKillTimeout(t *testing.T) {
 				}()
 				err = r.Run(ctx, file)
 				if test.forcedKill {
-					if _, ok := err.(ExitStatus); ok || err == nil {
+					if _, ok := IsExitStatus(err); ok || err == nil {
 						t.Error("command was not force-killed")
 					}
 				} else {

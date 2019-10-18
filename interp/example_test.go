@@ -50,7 +50,7 @@ func ExampleExecHandler() {
 
 		if _, err := interp.LookPath(hc.Env, args[0]); err != nil {
 			fmt.Printf("%s is not installed\n", args[0])
-			return interp.ExitStatus(1)
+			return interp.NewExitStatus(1)
 		}
 
 		return interp.DefaultExecHandler(2*time.Second)(ctx, args)
