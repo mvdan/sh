@@ -178,6 +178,8 @@ func formatStdin() error {
 
 var vcsDir = regexp.MustCompile(`^\.(git|svn|hg)$`)
 
+var buildDir = regexp.MustCompile(`^\.stack-work|node_modules`)
+
 func walk(path string, onError func(error)) {
 	info, err := os.Stat(path)
 	if err != nil {
@@ -191,7 +193,7 @@ func walk(path string, onError func(error)) {
 		return
 	}
 	filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
-		if info.IsDir() && vcsDir.MatchString(info.Name()) {
+		if info.IsDir() && (vcsDir.MatchString(info.Name()) || buildDir.MatchString(info.name())) {
 			return filepath.SkipDir
 		}
 		if err != nil {
