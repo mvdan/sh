@@ -17,3 +17,18 @@ stderr 'unknown shell language'
 
 ! shfmt -tojson file
 stderr 'can only be used with stdin'
+
+# Check all the -ln variations.
+stdin notbash.sh
+! shfmt
+stdin notbash.sh
+shfmt -ln=posix
+stdin notbash.sh
+shfmt -p
+stdin notbash.sh
+! shfmt -ln=mksh
+stdin notbash.sh
+! shfmt -ln=bash
+
+-- notbash.sh --
+let a+

@@ -1,0 +1,109 @@
+cp input.sh input.sh.orig
+
+# Using stdin should ignore the EditorConfig file.
+stdin input.sh
+shfmt
+cmp stdout input.sh.orig
+! stderr .
+
+# Using a file path should use EditorConfig, including with the use of flags
+# like -l.
+shfmt input.sh
+cmp stdout input.sh.golden
+! stderr .
+
+shfmt -l input.sh
+stdout 'input\.sh'
+! stderr .
+
+# Using any formatting option should skip all EditorConfig usage.
+shfmt -p input.sh
+cmp stdout input.sh.orig
+! stderr .
+
+shfmt -l -p input.sh
+! stdout .
+! stderr .
+
+shfmt -sr input.sh
+cmp stdout input.sh.orig
+! stderr .
+
+# Check that EditorConfig files merge properly.
+shfmt morespaces/input.sh
+cmp stdout morespaces/input.sh.golden
+! stderr .
+
+# Check a folder with all other knobs.
+shfmt -l otherknobs
+! stdout .
+! stderr .
+
+-- .editorconfig --
+root = true
+
+[*]
+indent_style = space
+indent_size = 3
+-- input.sh --
+{
+	indented
+}
+-- input.sh.golden --
+{
+   indented
+}
+-- morespaces/.editorconfig --
+[*.sh]
+indent_size = 6
+-- morespaces/input.sh --
+{
+	indented
+}
+-- morespaces/input.sh.golden --
+{
+      indented
+}
+-- otherknobs/.editorconfig --
+root = true
+
+[shell_variant_posix.sh]
+shell_variant = posix
+
+[shell_variant_mksh.sh]
+shell_variant = mksh
+
+[indent.sh]
+# check its default; we tested "space" above.
+
+[binary_next_line.sh]
+binary_next_line = true
+
+[switch_case_indent.sh]
+switch_case_indent = true
+
+[space_redirects.sh]
+space_redirects = true
+
+[keep_padding.sh]
+keep_padding = true
+
+-- otherknobs/shell_variant_posix.sh --
+let badsyntax+
+-- otherknobs/shell_variant_mksh.sh --
+coproess |&
+-- otherknobs/indent.sh --
+{
+	indented
+}
+-- otherknobs/binary_next_line.sh --
+foo \
+	| bar
+-- otherknobs/switch_case_indent.sh --
+case "$1" in
+	A) echo foo ;;
+esac
+-- otherknobs/space_redirects.sh --
+echo foo > bar
+-- otherknobs/keep_padding.sh --
+echo  foo    bar

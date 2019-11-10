@@ -39,3 +39,7 @@ gopkg.in/errgo.v2 v2.1.0 h1:0vLT13EuvQ0hNvakwLuFZ/jYrLp5F3kcWHXdRggjCE8=
 gopkg.in/errgo.v2 v2.1.0/go.mod h1:hNsd1EY+bozCKY1Ytp96fpM3vjJbqLJn88ws8XvfDNI=
 gopkg.in/yaml.v2 v2.2.2 h1:ZCJp+EgiOT7lHqUV2J862kp8Qj64Jo6az82+3Td9dZw=
 gopkg.in/yaml.v2 v2.2.2/go.mod h1:hI93XBmqTisBFMUTm0b8Fm+jr3Dg1NNxqwp+5A1VGuI=
+mvdan.cc/editorconfig v0.1.0 h1:ScBDwl2i6CBDzPFtKUB7dnp/y6lh2aCxmTU5LO3OX4M=
+mvdan.cc/editorconfig v0.1.0/go.mod h1:Ge4atmRUYqueGppvJ7JNrtqpqokoJEFxYbP0Z+WeKS8=
+mvdan.cc/editorconfig v0.1.1-0.20191109213504-890940e3f00e h1:mpgBTmbRe4vLIQIWTPipFCM2P97pEnkFSthekRyxqfY=
+mvdan.cc/editorconfig v0.1.1-0.20191109213504-890940e3f00e/go.mod h1:Ge4atmRUYqueGppvJ7JNrtqpqokoJEFxYbP0Z+WeKS8=

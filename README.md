@@ -48,6 +48,23 @@ Use `-i N` to indent with a number of spaces instead of tabs. There are other
 formatting options - see `shfmt -h`. For example, to get the formatting
 appropriate for [Google's Style][google-style] guide, use `shfmt -i 2 -ci`.
 
+If any [EditorConfig] files are found, they will be used to apply formatting
+options. If any parser or printer flags are given to the tool, or if the tool is
+formatting standard input, no EditorConfig files will be used. An example:
+
+```editorconfig
+[*.sh]
+# like -i=4
+indent_style = space
+indent_size = 4
+
+shell_variant      = posix # like -ln=posix
+binary_next_line   = true  # like -bn
+switch_case_indent = true  # like -ci
+space_redirects    = true  # like -sr
+keep_padding       = true  # like -kp
+```
+
 Packages are available on [Arch], [CRUX], [Docker], [FreeBSD], [Homebrew],
 [NixOS], [Scoop], [Snapcraft], and [Void].
 
@@ -132,6 +149,7 @@ To build a Docker image, checkout a specific version of the repository and run:
 [docker]: https://hub.docker.com/r/mvdan/shfmt/
 [dockerized-jamesmstone]: https://hub.docker.com/r/jamesmstone/shfmt/
 [dockerized-peterdavehello]: https://github.com/PeterDaveHello/dockerized-shfmt/
+[editorconfig]: https://editorconfig.org/
 [examples]: https://godoc.org/mvdan.cc/sh/syntax#pkg-examples
 [format-shell]: https://atom.io/packages/format-shell
 [freebsd]: https://github.com/freebsd/freebsd-ports/tree/HEAD/devel/shfmt

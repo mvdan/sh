@@ -16,6 +16,7 @@ import (
 
 	"github.com/pkg/diff"
 	"golang.org/x/crypto/ssh/terminal"
+	"mvdan.cc/editorconfig"
 
 	"mvdan.cc/sh/v3/fileutil"
 	"mvdan.cc/sh/v3/syntax"
@@ -27,8 +28,12 @@ var (
 	list    = flag.Bool("l", false, "")
 	write   = flag.Bool("w", false, "")
 	simple  = flag.Bool("s", false, "")
+	minify  = flag.Bool("mn", false, "")
 	find    = flag.Bool("f", false, "")
 	diffOut = flag.Bool("d", false, "")
+
+	// useEditorConfig will be false if any parser or printer flags were used.
+	useEditorConfig = true
 
 	langStr = flag.String("ln", "", "")
 	posix   = flag.Bool("p", false, "")
@@ -38,7 +43,6 @@ var (
 	caseIndent  = flag.Bool("ci", false, "")
 	spaceRedirs = flag.Bool("sr", false, "")
 	keepPadding = flag.Bool("kp", false, "")
-	minify      = flag.Bool("mn", false, "")
 
 	toJSON = flag.Bool("tojson", false, "")
 
@@ -73,6 +77,7 @@ by filename extension and by shebang.
   -w        write result to file instead of stdout
   -d        error with a diff when the formatting differs
   -s        simplify the code
+  -mn       minify the code to reduce its size (implies -s)
 
 Parser options:
 
@@ -86,7 +91,6 @@ Printer options:
   -ci       switch cases will be indented
   -sr       redirect operators will be followed by a space
   -kp       keep column alignment paddings
-  -mn       minify program to reduce its size (implies -s)
 
 Utilities:
 
@@ -104,32 +108,45 @@ Utilities:
 		fmt.Fprintf(os.Stderr, "-p and -ln=lang cannot coexist\n")
 		return 1
 	}
-	lang := syntax.LangBash
-	switch *langStr {
-	case "bash", "":
-	case "posix":
-		lang = syntax.LangPOSIX
-	case "mksh":
-		lang = syntax.LangMirBSDKorn
-	default:
-		fmt.Fprintf(os.Stderr, "unknown shell language: %s\n", *langStr)
-		return 1
-	}
-	if *posix {
-		lang = syntax.LangPOSIX
-	}
 	if *minify {
 		*simple = true
 	}
-	parser = syntax.NewParser(syntax.KeepComments(true), syntax.Variant(lang))
-	printer = syntax.NewPrinter(
-		syntax.Indent(*indent),
-		syntax.BinaryNextLine(*binNext),
-		syntax.SwitchCaseIndent(*caseIndent),
-		syntax.SpaceRedirects(*spaceRedirs),
-		syntax.KeepPadding(*keepPadding),
-		syntax.Minify(*minify),
-	)
+	if os.Getenv("SHFMT_NO_EDITORCONFIG") == "true" {
+		useEditorConfig = false
+	}
+	flag.Visit(func(f *flag.Flag) {
+		switch f.Name {
+		case "ln", "p", "i", "bn", "ci", "sr", "kp":
+			useEditorConfig = false
+		}
+	})
+	parser = syntax.NewParser(syntax.KeepComments(true))
+	printer = syntax.NewPrinter(syntax.Minify(*minify))
+
+	lang := syntax.LangBash
+	if !useEditorConfig {
+		switch *langStr {
+		case "bash", "":
+		case "posix":
+			lang = syntax.LangPOSIX
+		case "mksh":
+			lang = syntax.LangMirBSDKorn
+		default:
+			fmt.Fprintf(os.Stderr, "unknown shell language: %s\n", *langStr)
+			return 1
+		}
+		if *posix {
+			lang = syntax.LangPOSIX
+		}
+		syntax.Variant(lang)(parser)
+
+		syntax.Indent(*indent)(printer)
+		syntax.BinaryNextLine(*binNext)(printer)
+		syntax.SwitchCaseIndent(*caseIndent)(printer)
+		syntax.SpaceRedirects(*spaceRedirs)(printer)
+		syntax.KeepPadding(*keepPadding)(printer)
+	}
+
 	if os.Getenv("FORCE_COLOR") == "true" {
 		// Undocumented way to force color; used in the tests.
 		color = true
@@ -210,10 +227,47 @@ func walk(path string, onError func(error)) {
 	})
 }
 
+var query = editorconfig.Query{
+	FileCache:   make(map[string]*editorconfig.File),
+	RegexpCache: make(map[string]*regexp.Regexp),
+}
+
+func propsOptions(props editorconfig.Section) {
+	lang := syntax.LangBash
+	switch props.Get("shell_variant") {
+	case "posix":
+		lang = syntax.LangPOSIX
+	case "mksh":
+		lang = syntax.LangMirBSDKorn
+	}
+	syntax.Variant(lang)(parser)
+
+	size := uint(0)
+	if props.Get("indent_style") == "space" {
+		size = 8
+		if n := props.IndentSize(); n > 0 {
+			size = uint(n)
+		}
+	}
+	syntax.Indent(size)(printer)
+
+	syntax.BinaryNextLine(props.Get("binary_next_line") == "true")(printer)
+	syntax.SwitchCaseIndent(props.Get("switch_case_indent") == "true")(printer)
+	syntax.SpaceRedirects(props.Get("space_redirects") == "true")(printer)
+	syntax.KeepPadding(props.Get("keep_padding") == "true")(printer)
+}
+
 func formatPath(path string, checkShebang bool) error {
 	f, err := os.Open(path)
 	if err != nil {
 		return err
+	}
+	if useEditorConfig {
+		props, err := query.Find(path)
+		if err != nil {
+			return err
+		}
+		propsOptions(props)
 	}
 	defer f.Close()
 	readBuf.Reset()
