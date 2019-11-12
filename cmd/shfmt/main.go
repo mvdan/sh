@@ -56,7 +56,7 @@ var (
 	out   io.Writer = os.Stdout
 	color bool
 
-	version = "v3.0.0-alpha2"
+	version = "v3.0.0-beta1"
 )
 
 func main() {
