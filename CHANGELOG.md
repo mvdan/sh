@@ -2,9 +2,41 @@
 
 ## [Unreleased]
 
-## [2.6.4] - 2019-03-10
+This is the first stable release as a proper module, now under
+`mvdan.cc/sh/v3/...`. Go 1.12 or later is supported.
 
-### Highlights:
+A large number of changes have been done since the last feature release a year
+ago. All users are encouraged to update. Below are the major highlights.
+
+- **cmd/shfmt**
+  - Support for [EditorConfig](https://editorconfig.org/) files
+  - Drop the dependency on `diff` for the `-d` flag, now using pure Go
+- **syntax**
+  - Overhaul escaped newlines, now represented as `WordPart` positions
+  - Improve some operator type names, to consistently convey meaning
+  - Completely remove `StmtList`
+  - Redesign `IfClause`, making its "else" another `IfClause` node
+  - Redesign `DeclClause` to remove its broken `Opts` field
+  - Brace expression parsing is now done with a `BraceExp` word part
+  - Improve comment alignment in `Printer` via a post-process step
+  - Add support for the `~` bitwise negation operator
+  - Record the use of deprecated tokens in the syntax tree
+- **interp**
+  - Improve the module API as "handlers", to reduce confusion with Go modules
+  - Split `LookPath` out of `ExecHandler` to allow custom behavior
+  - `Run` now returns `nil` instead of `ShellExitStatus(0)`
+- **expand**
+  - Redesign `Variable` to reduce allocations
+  - Add support for more escape sequences
+  - Make `Config` a bit more powerful via `func` fields
+  - Rework brace expansion via the new `BraceExp` word part
+- **pattern**
+  - New package for shell pattern matching, extracted from `syntax`
+  - Add support for multiple modes, including filenames and braces
+
+Special thanks to Konstantin Kulikov for his contribution to this release.
+
+## [2.6.4] - 2019-03-10
 
 - **syntax**
   - Support array elements without values, like `declare -A x=([index]=)`
@@ -18,15 +50,11 @@
 
 ## [2.6.3] - 2019-01-19
 
-### Highlights:
-
 - **expand**
   - Support globs with path prefixes and suffixes, like `./foo/*/`
   - Don't error when skipping non-directories in glob walks
 
 ## [2.6.2] - 2018-12-08
-
-### Highlights:
 
 - **syntax**
   - Avoid premature reads in `Parser.Interactive` when parsing Unicode bytes
@@ -45,8 +73,6 @@ shfmt --version` should now be `docker run mvdan/shfmt:v2.6.2 --version`.
 
 ## [2.6.1] - 2018-11-17
 
-### Highlights:
-
 - **syntax**
   - Fix `Parser.Incomplete` with some incomplete literals
   - Fix parsing of Bash regex tests in some edge cases
@@ -60,8 +86,6 @@ interactive shell, and it's easier and safer to perform shell expansions.
 
 This will be the last major v2 version, to allow converting the project to a Go
 module in v3.
-
-### Highlights:
 
 - Go 1.10 or later required to build
 - **syntax**
@@ -88,14 +112,10 @@ module in v3.
 
 ## [2.5.1] - 2018-08-03
 
-### Highlights:
-
 - **syntax**
   - Fix a regression where semicolons would disappear within switch cases
 
 ## [2.5.0] - 2018-07-13
-
-### Highlights:
 
 - **syntax**
   - Add support for Bash's `{varname}<` redirects
@@ -117,8 +137,6 @@ module in v3.
 
 ## [2.4.0] - 2018-05-16
 
-### Highlights:
-
 - Publish as a JS package, [mvdan-sh](https://www.npmjs.com/package/mvdan-sh)
 - **syntax**
   - Add `DebugPrint` to pretty-print a syntax tree
@@ -137,13 +155,11 @@ module in v3.
 
 ## [2.3.0] - 2018-03-07
 
-### Highlights:
-
 - **syntax**
   - Case clause patterns are no longer forced on a single line
   - Add `ExpandBraces`, to perform Bash brace expansion on words
   - Improve the handling of backslashes within backquotes
-  - Improve the parsing of Bash test regexes 
+  - Improve the parsing of Bash test regexes
 - **interp**
   - Support `$DIRSTACK`, `${param[@]#word}`, and `${param,word}`
 - **cmd/shfmt**
@@ -154,8 +170,6 @@ module in v3.
   - Support `-l` on standard input
 
 ## [2.2.1] - 2018-01-25
-
-### Highlights:
 
 - **syntax**
   - Don't error on `${1:-default}`
@@ -172,8 +186,6 @@ module in v3.
   - Don't error if non-bash files can't be written to
 
 ## [2.2.0] - 2018-01-18
-
-### Highlights:
 
 - Tests on Mac and Windows are now ran as part of CI
 - **syntax**
@@ -210,8 +222,6 @@ module in v3.
 
 ## [2.1.0] - 2017-11-25
 
-### Highlights:
-
 - **syntax**
   - Add `Stmts`, to parse one statement at a time
   - Walk no longer ignores comments
@@ -237,8 +247,6 @@ module in v3.
   - Now supports a basic interactive mode
 
 ## [2.0.0] - 2017-08-30
-
-### Highlights:
 
 - The package import paths were moved to `mvdan.cc/sh/...`
 - **syntax**
@@ -268,8 +276,6 @@ module in v3.
 
 ## [1.3.1] - 2017-05-26
 
-### Highlights:
-
 - **syntax**
   - Fix parsing of `${foo[$bar]}`
   - Fix printer regression where `> >(foo)` would be turned into `>>(foo)`
@@ -277,8 +283,6 @@ module in v3.
   - Error on keywords like `fi` and `done` used as commands
 
 ## [1.3.0] - 2017-04-24
-
-### Highlights:
 
 - **syntax**
   - Fix backslashes in backquote command substitutions
@@ -293,8 +297,6 @@ module in v3.
 
 ## [1.2.0] - 2017-02-22
 
-### Highlights:
-
 - **syntax**
   - Add support for escaped characters in bash regular expressions
 - **fileutil**
@@ -303,8 +305,6 @@ module in v3.
   - Require shebangs to end with whitespace to reject `#!/bin/shfoo`
 
 ## [1.1.0] - 2017-01-05
-
-### Highlights:
 
 - **syntax**
   - Parse `[[ a = b ]]` like `[[ a == b ]]`, deprecating `TsAssgn` in favour of `TsEqual`
@@ -316,8 +316,6 @@ module in v3.
 
 ## [1.0.0] - 2016-12-13
 
-### Highlights:
-
 - **syntax**
   - Stable release, API now frozen
   - `Parse` now reads input in chunks of 1KiB
@@ -326,8 +324,6 @@ module in v3.
 
 ## [0.6.0] - 2016-12-05
 
-### Highlights:
-
 - **syntax**
   - `Parse` now takes an `io.Reader` instead of `[]byte`
   - Invalid UTF-8 is now reported as an error
@@ -335,8 +331,6 @@ module in v3.
   - `Walk` now takes a func literal to simplify its use
 
 ## [0.5.0] - 2016-11-24
-
-### Highlights:
 
 - **cmd/shfmt**
   - Remove `-cpuprofile`
@@ -348,8 +342,6 @@ module in v3.
   - Add support for expressions in array indexing and parameter expansion slicing
 
 ## [0.4.0] - 2016-11-08
-
-### Highlights:
 
 - Merge `parser`, `ast`, `token` and `printer` into a single package `syntax`
 - Use separate operator types in nodes rather than `Token`
@@ -365,8 +357,6 @@ module in v3.
   - Add support for bash parameter expansion slicing
 
 ## [0.3.0] - 2016-10-26
-
-### Highlights:
 
 - Add support for bash's `coproc` and extended globbing like `@(foo)`
 - Improve test coverage, adding tests to `cmd/shfmt` and bringing `parser` and `printer` close to 100%
@@ -384,8 +374,6 @@ module in v3.
   - Support for bash's `^`, `^^`, `,` and `,,` operands inside `${}`
 
 ## [0.2.0] - 2016-10-13
-
-### Highlights:
 
 - Optimizations all around, making `shfmt` ~15% faster
 - **cmd/shfmt**
