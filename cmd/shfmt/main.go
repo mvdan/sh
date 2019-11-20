@@ -262,13 +262,6 @@ func formatPath(path string, checkShebang bool) error {
 	if err != nil {
 		return err
 	}
-	if useEditorConfig {
-		props, err := query.Find(path)
-		if err != nil {
-			return err
-		}
-		propsOptions(props)
-	}
 	defer f.Close()
 	readBuf.Reset()
 	if checkShebang {
@@ -293,6 +286,13 @@ func formatPath(path string, checkShebang bool) error {
 }
 
 func formatBytes(src []byte, path string) error {
+	if useEditorConfig {
+		props, err := query.Find(path)
+		if err != nil {
+			return err
+		}
+		propsOptions(props)
+	}
 	prog, err := parser.Parse(bytes.NewReader(src), path)
 	if err != nil {
 		return err

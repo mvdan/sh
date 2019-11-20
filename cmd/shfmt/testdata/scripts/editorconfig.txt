@@ -1,9 +1,9 @@
 cp input.sh input.sh.orig
 
-# Using stdin should ignore the EditorConfig file.
+# Using stdin should use EditorConfig.
 stdin input.sh
 shfmt
-cmp stdout input.sh.orig
+cmp stdout input.sh.golden
 ! stderr .
 
 # Using a file path should use EditorConfig, including with the use of flags

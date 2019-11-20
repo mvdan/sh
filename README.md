@@ -49,8 +49,10 @@ formatting options - see `shfmt -h`. For example, to get the formatting
 appropriate for [Google's Style][google-style] guide, use `shfmt -i 2 -ci`.
 
 If any [EditorConfig] files are found, they will be used to apply formatting
-options. If any parser or printer flags are given to the tool, or if the tool is
-formatting standard input, no EditorConfig files will be used. An example:
+options. If any parser or printer flags are given to the tool, no EditorConfig
+files will be used. A default like `-i=0` can be used for this purpose.
+
+An example of the options available:
 
 ```editorconfig
 [*.sh]
