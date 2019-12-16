@@ -25,6 +25,7 @@ ago. All users are encouraged to update. Below are the major highlights.
   - Improve the module API as "handlers", to reduce confusion with Go modules
   - Split `LookPath` out of `ExecHandler` to allow custom behavior
   - `Run` now returns `nil` instead of `ShellExitStatus(0)`
+  - `OpenDevImpls` is removed; see `ExampleOpenHandler` for an alternative
 - **expand**
   - Redesign `Variable` to reduce allocations
   - Add support for more escape sequences

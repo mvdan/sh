@@ -6,7 +6,9 @@ package interp_test
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
+	"runtime"
 	"strings"
 	"time"
 
@@ -64,4 +66,23 @@ func ExampleExecHandler() {
 	// foo
 	// foo!bar!baz
 	// missing-program is not installed
+}
+
+func ExampleOpenHandler() {
+	src := "echo foo; echo bar >/dev/null"
+	file, _ := syntax.NewParser().Parse(strings.NewReader(src), "")
+
+	open := func(ctx context.Context, path string, flag int, perm os.FileMode) (io.ReadWriteCloser, error) {
+		if runtime.GOOS == "windows" && path == "/dev/null" {
+			path = "NUL"
+		}
+		return interp.DefaultOpenHandler()(ctx, path, flag, perm)
+	}
+	runner, _ := interp.New(
+		interp.StdIO(nil, os.Stdout, os.Stdout),
+		interp.OpenHandler(open),
+	)
+	runner.Run(context.TODO(), file)
+	// Output:
+	// foo
 }
