@@ -15,7 +15,7 @@ import (
 
 // PrinterOption is a function which can be passed to NewPrinter
 // to alter its behaviour. To apply option to existing Printer
-// call it directly, for example syntax.KeepPadding(true)(printer).
+// call it directly, for example KeepPadding(true)(printer).
 type PrinterOption func(*Printer)
 
 // Indent sets the number of spaces used for indentation. If set to 0,

@@ -14,7 +14,7 @@ import (
 
 // ParserOption is a function which can be passed to NewParser
 // to alter its behaviour. To apply option to existing Parser
-// call it directly, for example syntax.KeepComments(true)(parser).
+// call it directly, for example KeepComments(true)(parser).
 type ParserOption func(*Parser)
 
 // KeepComments makes the parser parse comments and attach them to

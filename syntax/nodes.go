@@ -409,9 +409,9 @@ type Word struct {
 func (w *Word) Pos() Pos { return w.Parts[0].Pos() }
 func (w *Word) End() Pos { return w.Parts[len(w.Parts)-1].End() }
 
-// Lit returns the word as a literal value, if the word consists of *syntax.Lit
-// nodes only. An empty string is returned otherwise. Words with multiple
-// literals, which can appear in some edge cases, are handled properly.
+// Lit returns the word as a literal value, if the word consists of *Lit nodes
+// only. An empty string is returned otherwise. Words with multiple literals,
+// which can appear in some edge cases, are handled properly.
 //
 // For example, the word "foo" will return "foo", but the word "foo${bar}" will
 // return "".
