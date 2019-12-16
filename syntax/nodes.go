@@ -859,12 +859,11 @@ type LetClause struct {
 func (l *LetClause) Pos() Pos { return l.Let }
 func (l *LetClause) End() Pos { return l.Exprs[len(l.Exprs)-1].End() }
 
-// BraceExp represents a Bash brace expression, such as "{x,y}" or "{1..10}".
+// BraceExp represents a Bash brace expression, such as "{a,f}" or "{1..10}".
 //
 // This node will only appear as a result of SplitBraces.
 type BraceExp struct {
 	Sequence bool // {x..y[..incr]} instead of {x,y[,...]}
-	Chars    bool // sequence is of chars, not numbers (TODO: remove)
 	Elems    []*Word
 }
 
