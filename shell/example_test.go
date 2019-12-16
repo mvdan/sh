@@ -4,10 +4,7 @@
 package shell_test
 
 import (
-	"context"
 	"fmt"
-	"io/ioutil"
-	"os"
 
 	"mvdan.cc/sh/v3/shell"
 )
@@ -54,27 +51,4 @@ func ExampleFields() {
 	// []string{"many quoted", " strings "}
 	// []string{"unquoted", "bar", "baz"}
 	// []string{"quoted", "bar baz"}
-}
-
-func ExampleSourceFile() {
-	src := `
-		foo=abc
-		foo+=012
-		if true; then
-			bar=$(echo example_*.go)
-		fi
-	`
-	ioutil.WriteFile("f.sh", []byte(src), 0666)
-	defer os.Remove("f.sh")
-	vars, err := shell.SourceFile(context.TODO(), "f.sh")
-	if err != nil {
-		return
-	}
-	fmt.Println(len(vars))
-	fmt.Println("foo", vars["foo"])
-	fmt.Println("bar", vars["bar"])
-	// Output:
-	// 2
-	// foo abc012
-	// bar example_test.go
 }
