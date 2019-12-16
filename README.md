@@ -16,17 +16,7 @@ For high-level operations like performing shell expansions on strings, see the
 
 ### shfmt
 
-Go 1.11 and later can download the latest v2 stable release:
-
-	cd $(mktemp -d); go mod init tmp; go get mvdan.cc/sh/cmd/shfmt
-
-The latest v3 pre-release can be downloaded in a similar manner, using the `/v3`
-module:
-
-	cd $(mktemp -d); go mod init tmp; go get mvdan.cc/sh/v3/cmd/shfmt
-
-Finally, any older release can be built with their respective older Go versions
-by manually cloning, checking out a tag, and running `go build ./cmd/shfmt`.
+	GO111MODULE=on go get mvdan.cc/sh/v3/cmd/shfmt
 
 `shfmt` formats shell programs. It can use tabs or any number of spaces to
 indent. See [canonical.sh](syntax/canonical.sh) for a quick look at its default

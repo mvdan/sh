@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [3.0.0] - 2019-12-16
 
 This is the first stable release as a proper module, now under
 `mvdan.cc/sh/v3/...`. Go 1.12 or later is supported.
