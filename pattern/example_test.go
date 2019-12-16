@@ -32,12 +32,13 @@ func ExampleRegexp() {
 
 func ExampleQuoteMeta() {
 	pat := "foo?bar*"
+	const mode = 0
 	fmt.Println(pat)
 
-	quoted := pattern.QuoteMeta(pat)
+	quoted := pattern.QuoteMeta(pat, mode)
 	fmt.Println(quoted)
 
-	expr, err := pattern.Regexp(quoted, 0)
+	expr, err := pattern.Regexp(quoted, mode)
 	if err != nil {
 		return
 	}

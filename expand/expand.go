@@ -159,6 +159,8 @@ func Document(cfg *Config, word *syntax.Word) (string, error) {
 	return cfg.fieldJoin(field), nil
 }
 
+const patMode = pattern.Filenames | pattern.Braces
+
 // Pattern expands a single shell word as a pattern, using syntax.QuotePattern
 // on any non-quoted parts of the input word. The result can be used on
 // syntax.TranslatePattern directly.
@@ -174,7 +176,7 @@ func Pattern(cfg *Config, word *syntax.Word) (string, error) {
 	buf := cfg.strBuilder()
 	for _, part := range field {
 		if part.quote > quoteNone {
-			buf.WriteString(pattern.QuoteMeta(part.val))
+			buf.WriteString(pattern.QuoteMeta(part.val, patMode))
 		} else {
 			buf.WriteString(part.val)
 		}
@@ -345,11 +347,11 @@ func (cfg *Config) escapedGlobField(parts []fieldPart) (escaped string, glob boo
 	buf := cfg.strBuilder()
 	for _, part := range parts {
 		if part.quote > quoteNone {
-			buf.WriteString(pattern.QuoteMeta(part.val))
+			buf.WriteString(pattern.QuoteMeta(part.val, patMode))
 			continue
 		}
 		buf.WriteString(part.val)
-		if pattern.HasMeta(part.val) {
+		if pattern.HasMeta(part.val, patMode) {
 			glob = true
 		}
 	}
