@@ -256,6 +256,7 @@ skipSpace:
 			for r != '\n' && r != utf8.RuneSelf {
 				if r == escNewl {
 					p.litBs = append(p.litBs, '\\', '\n')
+					break
 				}
 				r = p.rune()
 			}
