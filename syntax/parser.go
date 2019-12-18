@@ -1887,7 +1887,7 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 			break
 		}
 		w := p.word(p.wordParts())
-		if p.got(leftParen) && p.err == nil {
+		if p.got(leftParen) {
 			p.posErr(w.Pos(), "invalid func name")
 		}
 		p.callExpr(s, w, false)
@@ -2398,7 +2398,7 @@ func (p *Parser) letClause(s *Stmt) {
 func (p *Parser) bashFuncDecl(s *Stmt) {
 	fpos := p.pos
 	if p.next(); p.tok != _LitWord {
-		if w := p.followWord("function", fpos); p.err == nil {
+		if w := p.followWord("function", fpos); w != nil {
 			p.posErr(w.Pos(), "invalid func name")
 		}
 	}
