@@ -1492,7 +1492,7 @@ var shellTests = []errorCase{
 	},
 	{
 		in:   "function",
-		bsmk: `1:1: "function" must be followed by a word`,
+		bsmk: `1:1: "function" must be followed by a name`,
 	},
 	{
 		in:   "function foo(",
@@ -1500,11 +1500,11 @@ var shellTests = []errorCase{
 	},
 	{
 		in:   "function `function",
-		bsmk: `1:11: "function" must be followed by a word`,
+		bsmk: `1:1: "function" must be followed by a name`,
 	},
 	{
 		in:   `function "foo"(){}`,
-		bsmk: `1:10: invalid func name`,
+		bsmk: `1:1: "function" must be followed by a name`,
 	},
 	{
 		in:   "function foo()",

@@ -623,14 +623,6 @@ func (p *Parser) followWordTok(tok token, pos Pos) *Word {
 	return w
 }
 
-func (p *Parser) followWord(s string, pos Pos) *Word {
-	w := p.getWord()
-	if w == nil {
-		p.followErr(pos, s, "a word")
-	}
-	return w
-}
-
 func (p *Parser) stmtEnd(n Node, start, end string) Pos {
 	pos, ok := p.gotRsrv(end)
 	if !ok {
@@ -2101,7 +2093,10 @@ func (p *Parser) selectClause(s *Stmt) {
 func (p *Parser) caseClause(s *Stmt) {
 	cc := &CaseClause{Case: p.pos}
 	p.next()
-	cc.Word = p.followWord("case", cc.Case)
+	cc.Word = p.getWord()
+	if cc.Word == nil {
+		p.followErr(cc.Case, "case", "a word")
+	}
 	end := "esac"
 	p.got(_Newl)
 	if _, ok := p.gotRsrv("{"); ok {
@@ -2398,9 +2393,7 @@ func (p *Parser) letClause(s *Stmt) {
 func (p *Parser) bashFuncDecl(s *Stmt) {
 	fpos := p.pos
 	if p.next(); p.tok != _LitWord {
-		if w := p.followWord("function", fpos); w != nil {
-			p.posErr(w.Pos(), "invalid func name")
-		}
+		p.followErr(fpos, "function", "a name")
 	}
 	name := p.lit(p.pos, p.val)
 	if p.next(); p.got(leftParen) {
