@@ -145,6 +145,13 @@ type concBuffer struct {
 	sync.Mutex
 }
 
+func absPath(dir, path string) string {
+	if !filepath.IsAbs(path) {
+		path = filepath.Join(dir, path)
+	}
+	return filepath.Clean(path)
+}
+
 func (c *concBuffer) Write(p []byte) (int, error) {
 	c.Lock()
 	n, err := c.buf.Write(p)
@@ -2506,7 +2513,7 @@ var testBuiltinsMap = map[string]func(HandlerContext, []string) error{
 			return err
 		}
 		for _, arg := range args {
-			path := filepath.Join(hc.Dir, arg)
+			path := absPath(hc.Dir, arg)
 			f, err := os.Open(path)
 			if err != nil {
 				return err
@@ -2605,7 +2612,7 @@ var testBuiltinsMap = map[string]func(HandlerContext, []string) error{
 			if arg == "-p" {
 				continue
 			}
-			path := filepath.Join(hc.Dir, arg)
+			path := absPath(hc.Dir, arg)
 			if err := os.MkdirAll(path, 0777); err != nil {
 				return err
 			}
@@ -2617,7 +2624,7 @@ var testBuiltinsMap = map[string]func(HandlerContext, []string) error{
 			if arg == "-r" {
 				continue
 			}
-			path := filepath.Join(hc.Dir, arg)
+			path := absPath(hc.Dir, arg)
 			if err := os.RemoveAll(path); err != nil {
 				return err
 			}
@@ -2629,8 +2636,8 @@ var testBuiltinsMap = map[string]func(HandlerContext, []string) error{
 		if symbolic {
 			args = args[1:]
 		}
-		oldname := filepath.Join(hc.Dir, args[0])
-		newname := filepath.Join(hc.Dir, args[1])
+		oldname := absPath(hc.Dir, args[0])
+		newname := absPath(hc.Dir, args[1])
 		if symbolic {
 			return os.Symlink(oldname, newname)
 		}
@@ -2650,7 +2657,7 @@ var testBuiltinsMap = map[string]func(HandlerContext, []string) error{
 			args = args[2:]
 		}
 		for _, arg := range args {
-			path := filepath.Join(hc.Dir, arg)
+			path := absPath(hc.Dir, arg)
 			// create the file if it does not exist
 			f, err := os.OpenFile(path, os.O_CREATE, 0666)
 			if err != nil {
