@@ -363,6 +363,10 @@ var shellTests = []errorCase{
 		common: `1:12: invalid UTF-8 encoding`,
 	},
 	{
+		in:   "z=($\\\n#\\\n\\\n$#\x91\\\n",
+		bash: `4:3: invalid UTF-8 encoding`,
+	},
+	{
 		in:   `((# 1 + 2))`,
 		bash: `1:1: unsigned expressions are a mksh feature`,
 	},
