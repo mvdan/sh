@@ -840,7 +840,7 @@ func (p *Parser) invalidStmtStart() {
 }
 
 func (p *Parser) getWord() *Word {
-	if parts := p.wordParts(); len(parts) > 0 {
+	if parts := p.wordParts(); len(parts) > 0 && p.err == nil {
 		return p.word(parts)
 	}
 	return nil
