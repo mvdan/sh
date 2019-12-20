@@ -2586,19 +2586,28 @@ var testBuiltinsMap = map[string]func(HandlerContext, []string) error{
 		return nil
 	},
 	"sed": func(hc HandlerContext, args []string) error {
-		if len(args) != 1 {
-			return nil // unimplemented
+		f := hc.Stdin
+		switch len(args) {
+		case 1:
+		case 2:
+			var err error
+			f, err = os.Open(absPath(hc.Dir, args[1]))
+			if err != nil {
+				return err
+			}
+		default:
+			return fmt.Errorf("usage: sed pattern [file]")
 		}
 		expr := args[0]
 		if expr == "" || expr[0] != 's' {
-			return nil // unimplemented
+			return fmt.Errorf("unimplemented")
 		}
 		sep := expr[1]
 		expr = expr[2:]
 		from := expr[:strings.IndexByte(expr, sep)]
 		expr = expr[len(from)+1:]
 		to := expr[:strings.IndexByte(expr, sep)]
-		bs, err := ioutil.ReadAll(hc.Stdin)
+		bs, err := ioutil.ReadAll(f)
 		if err != nil {
 			return err
 		}
@@ -2647,7 +2656,7 @@ var testBuiltinsMap = map[string]func(HandlerContext, []string) error{
 		newTime := time.Now()
 		if args[0] == "-d" {
 			if !strings.HasPrefix(args[1], "@") {
-				return nil // unimplemented
+				return fmt.Errorf("unimplemented")
 			}
 			sec, err := strconv.ParseInt(args[1][1:], 10, 64)
 			if err != nil {
