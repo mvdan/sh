@@ -478,6 +478,11 @@ func (p *Printer) semiRsrv(s string, pos Pos) {
 
 func (p *Printer) flushComments() {
 	for i, c := range p.pendingComments {
+		if i == 0 {
+			// Flush any pending heredocs first. Otherwise, the
+			// comments would become part of a heredoc body.
+			p.flushHeredocs()
+		}
 		p.firstLine = false
 		// We can't call any of the newline methods, as they call this
 		// function and we'd recurse forever.
