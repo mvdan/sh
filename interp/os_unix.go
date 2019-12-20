@@ -12,6 +12,10 @@ import (
 	"syscall"
 )
 
+func mkfifo(path string, mode uint32) error {
+	return syscall.Mkfifo(path, mode)
+}
+
 // hasPermissionToDir returns if the OS current user has execute permission
 // to the given directory
 func hasPermissionToDir(info os.FileInfo) bool {

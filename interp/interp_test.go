@@ -946,24 +946,6 @@ var runTests = []runTest{
 		"echo foo >f; echo $(<f; echo bar)",
 		"bar\n",
 	},
-	// process substitution
-	{
-		"sed 's/o/e/g' <(echo foo bar)",
-		"fee bar\n",
-	},
-	{
-		"cat <(echo foo) <(echo bar) <(echo baz)",
-		"foo\nbar\nbaz\n",
-	},
-	{
-		"cat <(cat <(cat <(echo nested)))",
-		"nested\n",
-	},
-	// TODO
-	// {
-	// 	"echo foo bar > >(sed 's/o/e/g')",
-	// 	"fee bar\n",
-	// },
 
 	// pipes
 	{
@@ -2446,6 +2428,25 @@ var runTestsUnix = []runTest{
 		"mkdir x-d; >x-f; test -d $PWD/x-*/",
 		"",
 	},
+
+	// process substitution; named pipes (fifos) are a TODO for windows
+	{
+		"sed 's/o/e/g' <(echo foo bar)",
+		"fee bar\n",
+	},
+	{
+		"cat <(echo foo) <(echo bar) <(echo baz)",
+		"foo\nbar\nbaz\n",
+	},
+	{
+		"cat <(cat <(cat <(echo nested)))",
+		"nested\n",
+	},
+	// TODO
+	// {
+	// 	"echo foo bar > >(sed 's/o/e/g')",
+	// 	"fee bar\n",
+	// },
 }
 
 var runTestsWindows = []runTest{

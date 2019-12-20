@@ -18,7 +18,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
 
 	"golang.org/x/sync/errgroup"
@@ -109,7 +108,7 @@ func (r *Runner) fillExpandConfig(ctx context.Context) {
 			}
 			dir := os.TempDir()
 			path := fmt.Sprintf("%s/sh-interp-%d", dir, r.rand.Uint32())
-			if err := syscall.Mkfifo(path, 0666); err != nil {
+			if err := mkfifo(path, 0666); err != nil {
 				return "", err
 			}
 			r2 := r.sub()
