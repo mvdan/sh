@@ -10,6 +10,7 @@ import (
 	"io"
 	"io/ioutil"
 	"math"
+	"math/rand"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -17,6 +18,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"golang.org/x/sync/errgroup"
@@ -90,6 +92,50 @@ func (r *Runner) fillExpandConfig(ctx context.Context) {
 			r2.stdout = w
 			r2.stmts(ctx, cs.Stmts)
 			return r2.err
+		},
+		ProcSubst: func(ps *syntax.ProcSubst) (string, error) {
+			if runtime.GOOS == "windows" {
+				return "", fmt.Errorf("TODO: support process substitution on Windows")
+			}
+			if ps.Op == syntax.CmdOut {
+				return "", fmt.Errorf("TODO: support >( process substitutions")
+			}
+			if len(ps.Stmts) == 0 { // nothing to do
+				return os.DevNull, nil
+			}
+
+			if r.rand == nil {
+				r.rand = rand.New(rand.NewSource(time.Now().UnixNano()))
+			}
+			dir := os.TempDir()
+			path := fmt.Sprintf("%s/sh-interp-%d", dir, r.rand.Uint32())
+			if err := syscall.Mkfifo(path, 0666); err != nil {
+				return "", err
+			}
+			r2 := r.sub()
+			go func() {
+				switch ps.Op {
+				case syntax.CmdIn:
+					f, _ := os.OpenFile(path, os.O_WRONLY, 0)
+					r2.stdout = f
+					defer func() {
+						f.Close()
+						os.Remove(path)
+					}()
+				default: // syntax.CmdOut
+					f, _ := os.OpenFile(path, os.O_RDONLY, 0)
+					r2.stdin = f
+					r2.stdout = r.stdout
+
+					// The main goroutine needs to do this.
+					defer func() {
+						f.Close()
+						os.Remove(path)
+					}()
+				}
+				r2.stmts(ctx, ps.Stmts)
+			}()
+			return path, nil
 		},
 	}
 	r.updateExpandOpts()
@@ -364,6 +410,9 @@ type Runner struct {
 	didReset bool
 
 	usedNew bool
+
+	// rand is used mainly to generate temporary files.
+	rand *rand.Rand
 
 	filename string // only if Node was a File
 

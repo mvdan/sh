@@ -43,6 +43,12 @@ type Config struct {
 	// UnexpectedCommandError.
 	CmdSubst func(io.Writer, *syntax.CmdSubst) error
 
+	// ProcSubst expands a process substitution node.
+	//
+	// Note that this feature is a work in progress, and the signature of
+	// this field might change until #451 is completely fixed.
+	ProcSubst func(*syntax.ProcSubst) (string, error)
+
 	// ReadDir is used for file path globbing. If nil, globbing is disabled.
 	// Use ioutil.ReadDir to use the filesystem directly.
 	ReadDir func(string) ([]os.FileInfo, error)
@@ -472,6 +478,12 @@ func (cfg *Config) wordField(wps []syntax.WordPart, ql quoteLevel) ([]fieldPart,
 				return nil, err
 			}
 			field = append(field, fieldPart{val: strconv.Itoa(n)})
+		case *syntax.ProcSubst:
+			path, err := cfg.ProcSubst(x)
+			if err != nil {
+				return nil, err
+			}
+			field = append(field, fieldPart{val: path})
 		default:
 			panic(fmt.Sprintf("unhandled word part: %T", x))
 		}
@@ -584,6 +596,12 @@ func (cfg *Config) wordFields(wps []syntax.WordPart) ([][]fieldPart, error) {
 				return nil, err
 			}
 			curField = append(curField, fieldPart{val: strconv.Itoa(n)})
+		case *syntax.ProcSubst:
+			path, err := cfg.ProcSubst(x)
+			if err != nil {
+				return nil, err
+			}
+			splitAdd(path)
 		default:
 			panic(fmt.Sprintf("unhandled word part: %T", x))
 		}
