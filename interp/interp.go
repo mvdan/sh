@@ -96,9 +96,6 @@ func (r *Runner) fillExpandConfig(ctx context.Context) {
 			if runtime.GOOS == "windows" {
 				return "", fmt.Errorf("TODO: support process substitution on Windows")
 			}
-			if ps.Op == syntax.CmdOut {
-				return "", fmt.Errorf("TODO: support >( process substitutions")
-			}
 			if len(ps.Stmts) == 0 { // nothing to do
 				return os.DevNull, nil
 			}
@@ -112,7 +109,10 @@ func (r *Runner) fillExpandConfig(ctx context.Context) {
 				return "", err
 			}
 			r2 := r.sub()
+			stdout := r.origStdout
+			r.wgProcSubsts.Add(1)
 			go func() {
+				defer r.wgProcSubsts.Done()
 				switch ps.Op {
 				case syntax.CmdIn:
 					f, _ := os.OpenFile(path, os.O_WRONLY, 0)
@@ -124,9 +124,8 @@ func (r *Runner) fillExpandConfig(ctx context.Context) {
 				default: // syntax.CmdOut
 					f, _ := os.OpenFile(path, os.O_RDONLY, 0)
 					r2.stdin = f
-					r2.stdout = r.stdout
+					r2.stdout = stdout
 
-					// The main goroutine needs to do this.
 					defer func() {
 						f.Close()
 						os.Remove(path)
@@ -412,6 +411,10 @@ type Runner struct {
 
 	// rand is used mainly to generate temporary files.
 	rand *rand.Rand
+
+	// wgProcSubsts allows waiting for any process substitution sub-shells
+	// to finish running.
+	wgProcSubsts sync.WaitGroup
 
 	filename string // only if Node was a File
 
@@ -753,6 +756,7 @@ func (r *Runner) stmt(ctx context.Context, st *syntax.Stmt) {
 }
 
 func (r *Runner) stmtSync(ctx context.Context, st *syntax.Stmt) {
+	defer r.wgProcSubsts.Wait()
 	oldIn, oldOut, oldErr := r.stdin, r.stdout, r.stderr
 	for _, rd := range st.Redirs {
 		cls, err := r.redir(ctx, rd)
@@ -801,6 +805,8 @@ func (r *Runner) sub() *Runner {
 		stderr:      r.stderr,
 		filename:    r.filename,
 		opts:        r.opts,
+
+		origStdout: r.origStdout, // used for process substitutions
 	}
 	r2.Vars = make(map[string]expand.Variable, len(r.Vars))
 	for k, v := range r.Vars {

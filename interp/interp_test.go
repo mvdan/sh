@@ -2439,14 +2439,21 @@ var runTestsUnix = []runTest{
 		"foo\nbar\nbaz\n",
 	},
 	{
-		"cat <(cat <(cat <(echo nested)))",
+		"cat <(cat <(echo nested))",
 		"nested\n",
 	},
-	// TODO
-	// {
-	// 	"echo foo bar > >(sed 's/o/e/g')",
-	// 	"fee bar\n",
-	// },
+	{
+		"echo foo bar > >(sed 's/o/e/g')",
+		"fee bar\n",
+	},
+	{
+		"echo foo bar | tee >(sed 's/o/e/g') >/dev/null",
+		"fee bar\n",
+	},
+	{
+		"echo nested > >(cat > >(cat))",
+		"nested\n",
+	},
 }
 
 var runTestsWindows = []runTest{
