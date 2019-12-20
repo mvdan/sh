@@ -57,8 +57,8 @@ space_redirects    = true  # like -sr
 keep_padding       = true  # like -kp
 ```
 
-Packages are available on [Arch], [CRUX], [Docker], [FreeBSD], [Homebrew],
-[NixOS], [Scoop], [Snapcraft], and [Void].
+Packages are available on [Alpine], [Arch], [Docker], [FreeBSD], [Homebrew],
+[MacPorts], [NixOS], [Scoop], [Snapcraft], and [Void].
 
 #### Replacing `bash -n`
 
@@ -135,19 +135,20 @@ To build a Docker image, checkout a specific version of the repository and run:
 * [shell-format] - VS Code plugin for `shfmt`
 * [vim-shfmt] - Vim plugin for `shfmt`
 
+[alpine]: https://pkgs.alpinelinux.org/packages?name=shfmt
 [arch]: https://www.archlinux.org/packages/community/x86_64/shfmt/
 [bash]: https://www.gnu.org/software/bash/
-[crux]: https://github.com/6c37/crux-ports-git/tree/HEAD/shfmt
 [docker]: https://hub.docker.com/r/mvdan/shfmt/
 [dockerized-jamesmstone]: https://hub.docker.com/r/jamesmstone/shfmt/
 [dockerized-peterdavehello]: https://github.com/PeterDaveHello/dockerized-shfmt/
 [editorconfig]: https://editorconfig.org/
 [examples]: https://godoc.org/mvdan.cc/sh/syntax#pkg-examples
 [format-shell]: https://atom.io/packages/format-shell
-[freebsd]: https://github.com/freebsd/freebsd-ports/tree/HEAD/devel/shfmt
+[freebsd]: https://www.freshports.org/devel/shfmt
 [go-fuzz]: https://github.com/dvyukov/go-fuzz
 [google-style]: https://google.github.io/styleguide/shell.xml
-[homebrew]: https://github.com/Homebrew/homebrew-core/blob/HEAD/Formula/shfmt.rb
+[homebrew]: https://formulae.brew.sh/formula/shfmt
+[macports]: https://ports.macports.org/port/shfmt/summary
 [micro]: https://micro-editor.github.io/
 [mksh]: https://www.mirbsd.org/mksh.htm
 [modd]: https://github.com/cortesi/modd
@@ -155,8 +156,8 @@ To build a Docker image, checkout a specific version of the repository and run:
 [nixos]: https://github.com/NixOS/nixpkgs/blob/HEAD/pkgs/tools/text/shfmt/default.nix
 [posix shell]: https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html
 [posix-ambiguity]: https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_06_03
+[scoop]: https://github.com/ScoopInstaller/Main/blob/HEAD/bucket/shfmt.json
 [shell-format]: https://marketplace.visualstudio.com/items?itemName=foxundermoon.shell-format
-[scoop]: https://github.com/lukesampson/scoop/blob/HEAD/bucket/shfmt.json
 [snapcraft]: https://snapcraft.io/shfmt
 [vim-shfmt]: https://github.com/z0mbix/vim-shfmt
-[void]: https://github.com/voidlinux/void-packages/blob/HEAD/srcpkgs/shfmt/template
+[void]: https://github.com/void-linux/void-packages/blob/HEAD/srcpkgs/shfmt/template
