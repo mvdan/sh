@@ -38,11 +38,12 @@ var (
 	langStr = flag.String("ln", "", "")
 	posix   = flag.Bool("p", false, "")
 
-	indent      = flag.Uint("i", 0, "")
-	binNext     = flag.Bool("bn", false, "")
-	caseIndent  = flag.Bool("ci", false, "")
-	spaceRedirs = flag.Bool("sr", false, "")
-	keepPadding = flag.Bool("kp", false, "")
+	indent          = flag.Uint("i", 0, "")
+	binNext         = flag.Bool("bn", false, "")
+	caseIndent      = flag.Bool("ci", false, "")
+	spaceRedirs     = flag.Bool("sr", false, "")
+	keepPadding     = flag.Bool("kp", false, "")
+	functionNewLine = flag.Bool("fn", false, "")
 
 	toJSON = flag.Bool("tojson", false, "")
 
@@ -91,6 +92,7 @@ Printer options:
   -ci       switch cases will be indented
   -sr       redirect operators will be followed by a space
   -kp       keep column alignment paddings
+  -fn       function opening braces are placed on a separate line
 
 Utilities:
 
@@ -116,7 +118,7 @@ Utilities:
 	}
 	flag.Visit(func(f *flag.Flag) {
 		switch f.Name {
-		case "ln", "p", "i", "bn", "ci", "sr", "kp":
+		case "ln", "p", "i", "bn", "ci", "sr", "kp", "fn":
 			useEditorConfig = false
 		}
 	})
@@ -145,6 +147,7 @@ Utilities:
 		syntax.SwitchCaseIndent(*caseIndent)(printer)
 		syntax.SpaceRedirects(*spaceRedirs)(printer)
 		syntax.KeepPadding(*keepPadding)(printer)
+		syntax.FunctionNewLine(*functionNewLine)(printer)
 	}
 
 	if os.Getenv("FORCE_COLOR") == "true" {
