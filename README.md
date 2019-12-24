@@ -133,6 +133,7 @@ To build a Docker image, checkout a specific version of the repository and run:
 * [micro] - Editor with a built-in plugin for `shfmt`
 * [modd] - A developer tool that responds to filesystem changes, using `sh`
 * [shell-format] - VS Code plugin for `shfmt`
+* [Sublime-Pretty-Shell] - Sublime Text 3 plugin for `shfmt`
 * [vim-shfmt] - Vim plugin for `shfmt`
 
 [alpine]: https://pkgs.alpinelinux.org/packages?name=shfmt
@@ -158,6 +159,7 @@ To build a Docker image, checkout a specific version of the repository and run:
 [posix-ambiguity]: https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_06_03
 [scoop]: https://github.com/ScoopInstaller/Main/blob/HEAD/bucket/shfmt.json
 [shell-format]: https://marketplace.visualstudio.com/items?itemName=foxundermoon.shell-format
+[Sublime-Pretty-Shell]: https://github.com/aerobounce/Sublime-Pretty-Shell
 [snapcraft]: https://snapcraft.io/shfmt
 [vim-shfmt]: https://github.com/z0mbix/vim-shfmt
 [void]: https://github.com/void-linux/void-packages/blob/HEAD/srcpkgs/shfmt/template
