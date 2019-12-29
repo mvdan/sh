@@ -1911,7 +1911,7 @@ func TestParseStmts(t *testing.T) {
 	p := NewParser()
 	inReader, inWriter := io.Pipe()
 	recv := make(chan bool, 10)
-	errc := make(chan error)
+	errc := make(chan error, 1)
 	go func() {
 		errc <- p.Stmts(inReader, func(s *Stmt) bool {
 			recv <- true
@@ -1933,8 +1933,9 @@ func TestParseStmtsStopEarly(t *testing.T) {
 	t.Parallel()
 	p := NewParser()
 	inReader, inWriter := io.Pipe()
+	defer inWriter.Close()
 	recv := make(chan bool, 10)
-	errc := make(chan error)
+	errc := make(chan error, 1)
 	go func() {
 		errc <- p.Stmts(inReader, func(s *Stmt) bool {
 			recv <- true
@@ -1943,10 +1944,8 @@ func TestParseStmtsStopEarly(t *testing.T) {
 	}()
 	io.WriteString(inWriter, "a\n")
 	<-recv
-	io.WriteString(inWriter, "b &\n")
+	io.WriteString(inWriter, "b &\n") // stop here
 	<-recv
-	io.WriteString(inWriter, "c\n")
-	inWriter.Close()
 	if err := <-errc; err != nil {
 		t.Fatalf("Expected no error: %v", err)
 	}
@@ -1957,7 +1956,7 @@ func TestParseStmtsError(t *testing.T) {
 	in := "foo; )"
 	p := NewParser()
 	recv := make(chan bool, 10)
-	errc := make(chan error)
+	errc := make(chan error, 1)
 	go func() {
 		errc <- p.Stmts(strings.NewReader(in), func(s *Stmt) bool {
 			recv <- true
@@ -1975,7 +1974,7 @@ func TestParseWords(t *testing.T) {
 	p := NewParser()
 	inReader, inWriter := io.Pipe()
 	recv := make(chan bool, 10)
-	errc := make(chan error)
+	errc := make(chan error, 1)
 	go func() {
 		errc <- p.Words(inReader, func(w *Word) bool {
 			recv <- true
@@ -2020,7 +2019,7 @@ func TestParseWordsError(t *testing.T) {
 	in := "foo )"
 	p := NewParser()
 	recv := make(chan bool, 10)
-	errc := make(chan error)
+	errc := make(chan error, 1)
 	go func() {
 		errc <- p.Words(strings.NewReader(in), func(w *Word) bool {
 			recv <- true
