@@ -126,6 +126,15 @@ To build a Docker image, checkout a specific version of the repository and run:
 
 	docker build -t my:tag -f cmd/shfmt/Dockerfile .
 
+### Pre-commit
+
+To use shfmt as a [pre-commit] hook, add this to your `.pre-commit-config.yaml`:
+
+    -   repo: https://github.com/mvdan/sh
+        rev: ''  # Use the sha / tag you want to point at
+        hooks:
+        -   id: shfmt
+
 ### Related projects
 
 * Alternative docker images - by [jamesmstone][dockerized-jamesmstone], [PeterDaveHello][dockerized-peterdavehello]
@@ -157,6 +166,7 @@ To build a Docker image, checkout a specific version of the repository and run:
 [nixos]: https://github.com/NixOS/nixpkgs/blob/HEAD/pkgs/tools/text/shfmt/default.nix
 [posix shell]: https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html
 [posix-ambiguity]: https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_06_03
+[pre-commit]: https://pre-commit.com/hooks.html
 [scoop]: https://github.com/ScoopInstaller/Main/blob/HEAD/bucket/shfmt.json
 [shell-format]: https://marketplace.visualstudio.com/items?itemName=foxundermoon.shell-format
 [Sublime-Pretty-Shell]: https://github.com/aerobounce/Sublime-Pretty-Shell

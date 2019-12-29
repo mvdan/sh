@@ -1,0 +1,7 @@
+# See https://pre-commit.com for more information
+-   id: shfmt
+    name: shfmt shell scripts
+    description: Format shell scripts with shfmt running in Docker
+    language: docker_image
+    entry: mvdan/shfmt:v3.0.0
+    types: [shell]

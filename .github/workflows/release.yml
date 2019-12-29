@@ -1,0 +1,30 @@
+on: [create]
+
+name: Check release tag consistency
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v1
+      with:
+        fetch-depth: 1  # no history, just HEAD
+    - name: Check pre-commit hook version tag
+      run: |
+        is_tag="$(echo ${GITHUB_REF} | grep -c '^refs/tags/')" || true
+        if [ "$is_tag" != '0' ]; then
+          # A tag was created - let's check.
+          git_tag="$(echo ${GITHUB_REF} | sed -e 's#^refs/tags/##')"
+          file='.pre-commit-hooks.yaml'
+          precommit_tag="$(awk -F: '/^ *entry:/ {print $NF}' $file)"
+          if [ "$git_tag" != "$precommit_tag" ]; then
+            echo -n "FAIL: Wrong version tag in ${file}: "
+            echo "found $precommit_tag, expected $git_tag"
+            exit 1
+          else
+            echo "PASS: Git and precommit version tags are consistent: $git_tag"
+          fi
+        else
+          # Refs that aren't tags don't need checking.
+          echo 'PASS: Created git ref that is not a tag.'
+        fi
