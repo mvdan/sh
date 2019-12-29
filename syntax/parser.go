@@ -524,9 +524,13 @@ func (p *Parser) unquotedWordPart(buf *bytes.Buffer, wp WordPart, quotes bool) (
 }
 
 func (p *Parser) doHeredocs() {
+	hdocs := p.heredocs[p.buriedHdocs:]
+	if len(hdocs) == 0 {
+		// Nothing do do; don't even issue a read.
+		return
+	}
 	p.rune() // consume '\n', since we know p.tok == _Newl
 	old := p.quote
-	hdocs := p.heredocs[p.buriedHdocs:]
 	p.heredocs = p.heredocs[:p.buriedHdocs]
 	for i, r := range hdocs {
 		if p.err != nil {

@@ -6,6 +6,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
 	"testing"
 
 	"mvdan.cc/sh/v3/interp"
@@ -172,9 +173,11 @@ func TestInteractive(t *testing.T) {
 			inReader, inWriter := io.Pipe()
 			outReader, outWriter := io.Pipe()
 			runner, _ := interp.New(interp.StdIO(inReader, outWriter, outWriter))
-			errc := make(chan error)
+			errc := make(chan error, 1)
 			go func() {
 				errc <- runInteractive(runner, inReader, outWriter, outWriter)
+				// Discard the rest of the input.
+				io.Copy(ioutil.Discard, inReader)
 			}()
 
 			if err := readString(outReader, "$ "); err != nil {
@@ -208,6 +211,17 @@ func TestInteractive(t *testing.T) {
 				t.Fatalf("want error %q, got: %v", tc.wantErr, err)
 			}
 		})
+	}
+}
+
+func TestInteractiveExit(t *testing.T) {
+	inReader, inWriter := io.Pipe()
+	defer inReader.Close()
+	go io.WriteString(inWriter, "exit\n")
+	w := ioutil.Discard
+	runner, _ := interp.New(interp.StdIO(inReader, w, w))
+	if err := runInteractive(runner, inReader, w, w); err != nil {
+		t.Fatal("expected a nil error")
 	}
 }
 
