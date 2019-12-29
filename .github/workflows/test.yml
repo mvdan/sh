@@ -3,6 +3,27 @@ on: [push, pull_request]
 name: Go
 jobs:
 
+  run-pre-commits:
+    name: Run pre-commit checks
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+      with:
+        fetch-depth: 1  # no history, just HEAD
+    - name: Set up Python
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.7
+    - name: set PY
+      run: echo "::set-env name=PY::$(python -VV | sha256sum | cut -d' ' -f1)"
+    - name: Cache pre-commit Repository Store
+      uses: actions/cache@v1
+      with:
+        path: ~/.cache/pre-commit  # default pre-commit cache location
+        key: pre-commit|${{env.PY}}|${{hashFiles('.pre-commit-config.yaml')}}
+    - name: Run pre-commit checks
+      uses: pre-commit/action@v1.0.0
+
   test:
     strategy:
       matrix:
