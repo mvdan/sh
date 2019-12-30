@@ -126,6 +126,18 @@ To build a Docker image, checkout a specific version of the repository and run:
 
 	docker build -t my:tag -f cmd/shfmt/Dockerfile .
 
+Alternatively, if you want an image that includes busybox, run:
+
+	docker build -t my:tag -f cmd/shfmt/Dockerfile --target busybox .
+
+To use the Docker image, run:
+
+	docker run --rm -v $PWD:/mnt -w /mnt my:tag <shfmt arguments>
+
+E.g.:
+
+	docker run --rm -v $PWD:/mnt -w /mnt shfmt:latest -i 2 -l .
+
 ### Related projects
 
 * Alternative docker images - by [jamesmstone][dockerized-jamesmstone], [PeterDaveHello][dockerized-peterdavehello]

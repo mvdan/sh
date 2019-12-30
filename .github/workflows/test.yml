@@ -50,3 +50,49 @@ jobs:
       if: github.event_name == 'push' && github.ref == 'refs/heads/master'
       env:
         FUZZIT_API_KEY: ${{ secrets.FUZZIT_API_KEY }}
+
+  docker:
+    name: Build and deploy Docker images
+    # Only deploy if previous stages pass.
+    needs: [test, test-linux-alpine, fuzz]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v1
+      with:
+        fetch-depth: 1  # no history, just HEAD
+    - name: Set up environment variables
+      env:
+        DOCKER_USERNAME: mvdan
+      run: |
+        # Export environment variables for later stages.
+        echo "::set-env name=DOCKER_CLI_EXPERIMENTAL::enabled"
+        echo "::set-env name=DOCKER_USERNAME::$DOCKER_USERNAME"
+        echo "::set-env name=DOCKER_PASSWORD::${{secrets.DOCKER_PASSWORD}}"
+        echo "::set-env name=DOCKER_BASE::$DOCKER_USERNAME/shfmt"
+        echo "::set-env name=TAGS::latest"
+        # We use all platforms for which FROM images in our Dockerfile are
+        # available.
+        platforms='linux/386'
+        platforms+=',linux/amd64'
+        platforms+=',linux/arm/v6'
+        platforms+=',linux/arm/v7'
+        platforms+=',linux/arm64/v8'
+        platforms+=',linux/ppc64le'
+        platforms+=',linux/s390x'
+        echo "::set-env name=DOCKER_PLATFORMS::$platforms"
+    - name: Install Docker buildx
+      run: |
+        source ./build_multi_arch_docker.sh; set -evx
+        build_multi_arch_docker::install_docker_buildx
+    - name: Build multi-architecture Docker images with buildx
+      run: |
+        source ./build_multi_arch_docker.sh; set -evx
+        build_multi_arch_docker::login_to_docker_hub
+        build_multi_arch_docker::build_and_push_all
+    - name: Test multi-architecture Docker images
+      run: |
+        source ./build_multi_arch_docker.sh; set -evx
+        build_multi_arch_docker::test_all
+
