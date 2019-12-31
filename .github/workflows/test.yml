@@ -31,7 +31,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v1
     - name: Test as root, without cgo, and with busybox
-      run: docker run -v=$PWD:/pwd golang:1.13-alpine3.10 sh -c 'export CGO_ENABLED=0; cd /pwd && go test ./...'
+      run: docker run -v=$PWD:/pwd golang:1.13-alpine3.11 sh -c 'export CGO_ENABLED=0; cd /pwd && go test ./...'
 
   fuzz:
     runs-on: ubuntu-latest
@@ -56,43 +56,111 @@ jobs:
     # Only deploy if previous stages pass.
     needs: [test, test-linux-alpine, fuzz]
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    if: >
+      github.event_name == 'push' && 
+        (github.ref == 'refs/heads/master' ||
+         startsWith(github.ref, 'refs/tags/'))
+    env:
+      # Export environment variables for all stages.
+      DOCKER_CLI_EXPERIMENTAL: enabled  # for 'docker buildx'
+      DOCKER_BASE: mvdan/shfmt
+      DOCKER_PASSWORD: ${{secrets.DOCKER_PASSWORD}}
+      # We use all platforms for which FROM images in our Dockerfile are
+      # available.
+      DOCKER_PLATFORMS: >
+        linux/386
+        linux/amd64
+        linux/arm/v6
+        linux/arm/v7
+        linux/arm64/v8
+        linux/ppc64le
+        linux/s390x
     steps:
     - name: Checkout code
       uses: actions/checkout@v1
       with:
         fetch-depth: 1  # no history, just HEAD
-    - name: Set up environment variables
-      env:
-        DOCKER_USERNAME: mvdan
+    - name: Set up image tags
       run: |
-        # Export environment variables for later stages.
-        echo "::set-env name=DOCKER_CLI_EXPERIMENTAL::enabled"
-        echo "::set-env name=DOCKER_USERNAME::$DOCKER_USERNAME"
-        echo "::set-env name=DOCKER_PASSWORD::${{secrets.DOCKER_PASSWORD}}"
-        echo "::set-env name=DOCKER_BASE::$DOCKER_USERNAME/shfmt"
-        echo "::set-env name=TAGS::latest"
-        # We use all platforms for which FROM images in our Dockerfile are
-        # available.
-        platforms='linux/386'
-        platforms+=',linux/amd64'
-        platforms+=',linux/arm/v6'
-        platforms+=',linux/arm/v7'
-        platforms+=',linux/arm64/v8'
-        platforms+=',linux/ppc64le'
-        platforms+=',linux/s390x'
-        echo "::set-env name=DOCKER_PLATFORMS::$platforms"
+        set -vx
+        # Export environment variable for later stages.
+        if echo "$GITHUB_REF" | grep -q '^refs/heads/'; then
+          # Pushes to (master) branch - deploy 'latest'.
+          echo "::set-env name=TAGS::latest"
+        elif echo "$GITHUB_REF" | grep -q '^refs/tags/'; then
+          # Pushes tag - deploy tag name.
+          echo "::set-env name=TAGS::${GITHUB_REF/refs\/tags\//}"
+        fi
     - name: Install Docker buildx
       run: |
-        source ./build_multi_arch_docker.sh; set -evx
-        build_multi_arch_docker::install_docker_buildx
+        set -vx
+        # Install up-to-date version of docker, with buildx support.
+        docker_apt_repo='https://download.docker.com/linux/ubuntu'
+        curl -fsSL "${docker_apt_repo}/gpg" | sudo apt-key add -
+        os="$(lsb_release -cs)"
+        sudo add-apt-repository "deb [arch=amd64] $docker_apt_repo $os stable"
+        sudo apt-get update
+        sudo apt-get -y -o Dpkg::Options::="--force-confnew" install docker-ce
+
+        # Enable docker daemon experimental support (for 'pull --platform').
+        config='/etc/docker/daemon.json'
+        if [[ -e "$config" ]]; then
+          sudo sed -i -e 's/{/{ "experimental": true, /' "$config"
+        else
+          sudo echo '{ "experimental": true }' | sudo tee "$config"
+        fi
+        sudo systemctl restart docker
+
+        # Install QEMU multi-architecture support for docker buildx.
+        docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+
+        # Instantiate docker buildx builder with multi-architecture support.
+        docker buildx create --name mybuilder
+        docker buildx use mybuilder
+        # Start up buildx and verify that all is OK.
+        docker buildx inspect --bootstrap
     - name: Build multi-architecture Docker images with buildx
       run: |
-        source ./build_multi_arch_docker.sh; set -evx
-        build_multi_arch_docker::login_to_docker_hub
-        build_multi_arch_docker::build_and_push_all
+        set -vx
+        username=${DOCKER_BASE/\/*/}
+        echo "$DOCKER_PASSWORD" | docker login -u="$username" --password-stdin
+
+        function buildx() {
+          docker buildx build \
+            --platform ${DOCKER_PLATFORMS// /,} \
+            --push \
+            -f cmd/shfmt/Dockerfile \
+            "$@" \
+            .
+        }
+
+        for tag in $TAGS; do
+          buildx -t "$DOCKER_BASE:$tag"
+          buildx -t "$DOCKER_BASE-alpine:$tag" --target alpine
+        done
     - name: Test multi-architecture Docker images
       run: |
-        source ./build_multi_arch_docker.sh; set -evx
-        build_multi_arch_docker::test_all
+        printf '%s\n' "#!/bin/sh" "echo 'hello world'" >myscript
 
+        for platform in ${DOCKER_PLATFORMS//,/ }; do
+          for tag in $TAGS; do
+            for ext in '-alpine' ''; do
+              image="${DOCKER_BASE}${ext}:${tag}"
+              msg="Testing docker image $image on platform $platform"
+              line="${msg//?/=}"
+              printf "\n${line}\n${msg}\n${line}\n"
+              docker pull -q --platform "$platform" "$image"
+              if [ -n "$ext" ]; then
+                echo -n "Image architecture: "
+                docker run --entrypoint /bin/sh "$image" -c 'uname -m'
+              fi
+              version=$(docker run "$image" --version)
+              echo "shfmt version: $version"
+              if [ "$tag" != 'latest' -a "$tag" != "$version" ]; then
+                echo "Version mismatch: shfmt $version tagged as $tag"
+                exit 1
+              fi
+              docker run -v "$PWD:/mnt" -w '/mnt' "$image" -d myscript
+            done
+          done
+        done
