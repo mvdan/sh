@@ -74,7 +74,7 @@ func StopAt(word string) ParserOption {
 
 // NewParser allocates a new Parser and applies any number of options.
 func NewParser(options ...ParserOption) *Parser {
-	p := &Parser{helperBuf: new(bytes.Buffer)}
+	p := &Parser{}
 	for _, opt := range options {
 		opt(p)
 	}
@@ -242,7 +242,7 @@ func (p *Parser) Document(r io.Reader) (*Word, error) {
 	p.src = r
 	p.rune()
 	p.quote = hdocBody
-	p.hdocStop = []byte("MVDAN_CC_SH_SYNTAX_EOF")
+	p.hdocStops = [][]byte{[]byte("MVDAN_CC_SH_SYNTAX_EOF")}
 	p.parsingDoc = true
 	p.next()
 	w := p.getWord()
@@ -298,8 +298,10 @@ type Parser struct {
 	// list of pending heredoc bodies
 	buriedHdocs int
 	heredocs    []*Redirect
-	hdocStop    []byte
-	parsingDoc  bool
+
+	hdocStops [][]byte // stack of end words for open heredocs
+
+	parsingDoc bool // true if using Parser.Document
 
 	// openStmts is how many entire statements we're currently parsing. A
 	// non-zero number means that we require certain tokens or words before
@@ -319,8 +321,6 @@ type Parser struct {
 
 	accComs []Comment
 	curComs *[]Comment
-
-	helperBuf *bytes.Buffer
 
 	litBatch    []Lit
 	wordBatch   []Word
@@ -488,14 +488,14 @@ func (p *Parser) postNested(s saveState) {
 }
 
 func (p *Parser) unquotedWordBytes(w *Word) ([]byte, bool) {
-	p.helperBuf.Reset()
+	var buf bytes.Buffer
 	didUnquote := false
 	for _, wp := range w.Parts {
-		if p.unquotedWordPart(p.helperBuf, wp, false) {
+		if p.unquotedWordPart(&buf, wp, false) {
 			didUnquote = true
 		}
 	}
-	return p.helperBuf.Bytes(), didUnquote
+	return buf.Bytes(), didUnquote
 }
 
 func (p *Parser) unquotedWordPart(buf *bytes.Buffer, wp WordPart, quotes bool) (quoted bool) {
@@ -540,8 +540,8 @@ func (p *Parser) doHeredocs() {
 		if r.Op == DashHdoc {
 			p.quote = hdocBodyTabs
 		}
-		var quoted bool
-		p.hdocStop, quoted = p.unquotedWordBytes(r.Word)
+		stop, quoted := p.unquotedWordBytes(r.Word)
+		p.hdocStops = append(p.hdocStops, stop)
 		if i > 0 && p.r == '\n' {
 			p.rune()
 		}
@@ -551,10 +551,10 @@ func (p *Parser) doHeredocs() {
 			p.next()
 			r.Hdoc = p.getWord()
 		}
-		if p.hdocStop != nil {
-			p.posErr(r.Pos(), "unclosed here-document '%s'",
-				string(p.hdocStop))
+		if stop := p.hdocStops[len(p.hdocStops)-1]; stop != nil {
+			p.posErr(r.Pos(), "unclosed here-document '%s'", stop)
 		}
+		p.hdocStops = p.hdocStops[:len(p.hdocStops)-1]
 	}
 	p.quote = old
 }

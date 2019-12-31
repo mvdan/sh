@@ -389,6 +389,7 @@ var printTests = []printCase{
 		"a <<EOF\n$(\n\tb\n\tc)\nEOF",
 		"a <<EOF\n$(\n\tb\n\tc\n)\nEOF",
 	},
+	samePrint("<<EOF1\n$(\n\t<<EOF2\ninner\nEOF2\n)\nEOF1"),
 	{
 		"<(<<EOF\nbody\nEOF\n)",
 		"<(\n\t<<EOF\nbody\nEOF\n)",
@@ -1047,26 +1048,6 @@ func TestPrintManyStmts(t *testing.T) {
 			if got != tc.want {
 				t.Fatalf("Print mismatch:\nwant:\n%s\ngot:\n%s",
 					tc.want, got)
-			}
-		})
-	}
-}
-
-func TestPrintCrash(t *testing.T) {
-	t.Parallel()
-	inputs := []string{
-		"<<-EOF\n`<<-''\n\uffcb\n`\n",
-	}
-	parser := NewParser(KeepComments(true))
-	printer := NewPrinter()
-	for i, in := range inputs {
-		t.Run(fmt.Sprintf("%02d", i), func(t *testing.T) {
-			prog, err := parser.Parse(strings.NewReader(in), "")
-			if err != nil {
-				t.Fatal(err)
-			}
-			if _, err := strPrint(printer, prog); err != nil {
-				t.Fatal(err)
 			}
 		})
 	}
