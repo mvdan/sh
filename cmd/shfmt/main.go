@@ -208,12 +208,12 @@ func walk(path string, onError func(error)) {
 		return
 	}
 	filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
-		if info.IsDir() && vcsDir.MatchString(info.Name()) {
-			return filepath.SkipDir
-		}
 		if err != nil {
 			onError(err)
 			return nil
+		}
+		if info.IsDir() && vcsDir.MatchString(info.Name()) {
+			return filepath.SkipDir
 		}
 		conf := fileutil.CouldBeScript(info)
 		if conf == fileutil.ConfNotScript {
