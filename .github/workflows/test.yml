@@ -107,7 +107,7 @@ jobs:
         if [[ -e "$config" ]]; then
           sudo sed -i -e 's/{/{ "experimental": true, /' "$config"
         else
-          sudo echo '{ "experimental": true }' | sudo tee "$config"
+          echo '{ "experimental": true }' | sudo tee "$config"
         fi
         sudo systemctl restart docker
 
