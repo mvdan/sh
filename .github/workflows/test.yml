@@ -62,7 +62,7 @@ jobs:
          startsWith(github.ref, 'refs/tags/'))
     env:
       # Export environment variables for all stages.
-      DOCKER_CLI_EXPERIMENTAL: enabled  # for 'docker buildx'
+      DOCKER_CLI_EXPERIMENTAL: enabled # for 'docker buildx'
       DOCKER_BASE: mvdan/shfmt
       DOCKER_PASSWORD: ${{secrets.DOCKER_PASSWORD}}
       # We use all platforms for which FROM images in our Dockerfile are
@@ -80,16 +80,16 @@ jobs:
       uses: actions/checkout@v1
       with:
         fetch-depth: 1  # no history, just HEAD
-    - name: Set up image tags
+    - name: Set up image tag
       run: |
         set -vx
         # Export environment variable for later stages.
         if echo "$GITHUB_REF" | grep -q '^refs/heads/'; then
           # Pushes to (master) branch - deploy 'latest'.
-          echo "::set-env name=TAGS::latest"
+          echo "::set-env name=TAG::latest"
         elif echo "$GITHUB_REF" | grep -q '^refs/tags/'; then
           # Pushes tag - deploy tag name.
-          echo "::set-env name=TAGS::${GITHUB_REF/refs\/tags\//}"
+          echo "::set-env name=TAG::${GITHUB_REF/refs\/tags\//}"
         fi
     - name: Install Docker buildx
       run: |
@@ -134,33 +134,29 @@ jobs:
             .
         }
 
-        for tag in $TAGS; do
-          buildx -t "$DOCKER_BASE:$tag"
-          buildx -t "$DOCKER_BASE-alpine:$tag" --target alpine
-        done
+        buildx -t "$DOCKER_BASE:$TAG"
+        buildx -t "$DOCKER_BASE-alpine:$TAG" --target alpine
     - name: Test multi-architecture Docker images
       run: |
         printf '%s\n' "#!/bin/sh" "echo 'hello world'" >myscript
 
         for platform in $DOCKER_PLATFORMS; do
-          for tag in $TAGS; do
-            for ext in '-alpine' ''; do
-              image="${DOCKER_BASE}${ext}:${tag}"
-              msg="Testing docker image $image on platform $platform"
-              line="${msg//?/=}"
-              printf "\n${line}\n${msg}\n${line}\n"
-              docker pull -q --platform "$platform" "$image"
-              if [ -n "$ext" ]; then
-                echo -n "Image architecture: "
-                docker run --rm --entrypoint /bin/sh "$image" -c 'uname -m'
-              fi
-              version=$(docker run --rm "$image" --version)
-              echo "shfmt version: $version"
-              if [ "$tag" != 'latest' -a "$tag" != "$version" ]; then
-                echo "Version mismatch: shfmt $version tagged as $tag"
-                exit 1
-              fi
-              docker run --rm -v "$PWD:/mnt" -w '/mnt' "$image" -d myscript
-            done
+          for ext in '-alpine' ''; do
+            image="${DOCKER_BASE}${ext}:${TAG}"
+            msg="Testing docker image $image on platform $platform"
+            line="${msg//?/=}"
+            printf "\n${line}\n${msg}\n${line}\n"
+            docker pull -q --platform "$platform" "$image"
+            if [ -n "$ext" ]; then
+              echo -n "Image architecture: "
+              docker run --rm --entrypoint /bin/sh "$image" -c 'uname -m'
+            fi
+            version=$(docker run --rm "$image" --version)
+            echo "shfmt version: $version"
+            if [ "$TAG" != 'latest' -a "$TAG" != "$version" ]; then
+              echo "Version mismatch: shfmt $version tagged as $TAG"
+              exit 1
+            fi
+            docker run --rm -v "$PWD:/mnt" -w '/mnt' "$image" -d myscript
           done
         done
