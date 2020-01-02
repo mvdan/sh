@@ -142,7 +142,7 @@ jobs:
       run: |
         printf '%s\n' "#!/bin/sh" "echo 'hello world'" >myscript
 
-        for platform in ${DOCKER_PLATFORMS//,/ }; do
+        for platform in $DOCKER_PLATFORMS; do
           for tag in $TAGS; do
             for ext in '-alpine' ''; do
               image="${DOCKER_BASE}${ext}:${tag}"
@@ -152,15 +152,15 @@ jobs:
               docker pull -q --platform "$platform" "$image"
               if [ -n "$ext" ]; then
                 echo -n "Image architecture: "
-                docker run --entrypoint /bin/sh "$image" -c 'uname -m'
+                docker run --rm --entrypoint /bin/sh "$image" -c 'uname -m'
               fi
-              version=$(docker run "$image" --version)
+              version=$(docker run --rm "$image" --version)
               echo "shfmt version: $version"
               if [ "$tag" != 'latest' -a "$tag" != "$version" ]; then
                 echo "Version mismatch: shfmt $version tagged as $tag"
                 exit 1
               fi
-              docker run -v "$PWD:/mnt" -w '/mnt' "$image" -d myscript
+              docker run --rm -v "$PWD:/mnt" -w '/mnt' "$image" -d myscript
             done
           done
         done
