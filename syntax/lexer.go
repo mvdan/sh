@@ -317,6 +317,7 @@ skipSpace:
 			} else {
 				p.tok = rightParen
 				p.quote = noState
+				p.rune() // we are tokenizing manually
 			}
 		default: // including '(', '|'
 			p.advanceLitRe(r)
