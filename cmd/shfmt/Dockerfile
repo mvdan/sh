@@ -11,3 +11,4 @@ ENTRYPOINT ["/bin/shfmt"]
 FROM scratch
 COPY --from=build /src/shfmt /bin/shfmt
 ENTRYPOINT ["/bin/shfmt"]
+CMD ["-h"]
