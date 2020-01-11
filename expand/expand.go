@@ -554,7 +554,6 @@ func (cfg *Config) wordFields(wps []syntax.WordPart) ([][]fieldPart, error) {
 			}
 			curField = append(curField, fp)
 		case *syntax.DblQuoted:
-			allowEmpty = true
 			if len(x.Parts) == 1 {
 				pe, _ := x.Parts[0].(*syntax.ParamExp)
 				if elems := cfg.quotedElems(pe); elems != nil {
@@ -570,6 +569,7 @@ func (cfg *Config) wordFields(wps []syntax.WordPart) ([][]fieldPart, error) {
 					continue
 				}
 			}
+			allowEmpty = true
 			wfield, err := cfg.wordField(x.Parts, quoteDouble)
 			if err != nil {
 				return nil, err
