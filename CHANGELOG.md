@@ -1,5 +1,17 @@
 # Changelog
 
+## [3.0.1] - 2020-01-11
+
+- **cmd/shfmt**
+  - Fix an edge case where walking directories could panic
+- **syntax**
+  - Only do a trailing read in `Parser.Stmts` if we have open heredocs
+  - Ensure comments are never folded into heredocs
+  - Properly tokenize `)` after a `=~` test regexp
+  - Stop parsing a comment at an escaped newline
+- **expand**
+  - `"$@"` now expands to zero fields when there are zero parameters
+
 ## [3.0.0] - 2019-12-16
 
 This is the first stable release as a proper module, now under
