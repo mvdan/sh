@@ -25,12 +25,13 @@ import (
 var (
 	showVersion = flag.Bool("version", false, "")
 
-	list    = flag.Bool("l", false, "")
-	write   = flag.Bool("w", false, "")
-	simple  = flag.Bool("s", false, "")
-	minify  = flag.Bool("mn", false, "")
-	find    = flag.Bool("f", false, "")
-	diffOut = flag.Bool("d", false, "")
+	list        = flag.Bool("l", false, "")
+	write       = flag.Bool("w", false, "")
+	simple      = flag.Bool("s", false, "")
+	minify      = flag.Bool("mn", false, "")
+	find        = flag.Bool("f", false, "")
+	diffOut     = flag.Bool("d", false, "")
+	skipUnknown = flag.Bool("su", false, "")
 
 	// useEditorConfig will be false if any parser or printer flags were used.
 	useEditorConfig = true
@@ -78,6 +79,7 @@ by filename extension and by shebang.
   -d        error with a diff when the formatting differs
   -s        simplify the code
   -mn       minify the code to reduce its size (implies -s)
+  -su       skip unknown, non-shell files
 
 Parser options:
 
@@ -202,6 +204,12 @@ func walk(path string, onError func(error)) {
 		return
 	}
 	if !info.IsDir() {
+		if *skipUnknown {
+			conf := fileutil.CouldBeScript(info)
+			if conf == fileutil.ConfNotScript {
+				return
+			}
+		}
 		if err := formatPath(path, false); err != nil {
 			onError(err)
 		}
