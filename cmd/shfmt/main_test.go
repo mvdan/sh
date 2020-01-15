@@ -40,6 +40,7 @@ type action uint
 
 const (
 	None action = iota
+	Skip
 	Modify
 	Error
 )
@@ -70,9 +71,9 @@ var walkTests = []struct {
 	{None, false, "ext.other", " foo"},
 	{None, false, "ext-shebang.other", "#!/bin/sh\n foo"},
 	{None, false, "shebang-nospace", "#!/bin/envsh\n foo"},
-	{None, false, filepath.Join(".git", "ext.sh"), " foo"},
-	{None, false, filepath.Join(".svn", "ext.sh"), " foo"},
-	{None, false, filepath.Join(".hg", "ext.sh"), " foo"},
+	{Skip, false, filepath.Join(".git", "ext.sh"), " foo"},
+	{Skip, false, filepath.Join(".svn", "ext.sh"), " foo"},
+	{Skip, false, filepath.Join(".hg", "ext.sh"), " foo"},
 	{Error, false, "parse-error.sh", " foo("},
 	{None, true, "reallylongdir/symlink-file", "ext-shebang.sh"},
 	{None, true, "symlink-dir", "reallylongdir"},
@@ -165,6 +166,16 @@ func TestWalk(t *testing.T) {
 	numFound := strings.Count(outBuf.String(), "\n")
 	if want := 13; numFound != want {
 		t.Fatalf("shfmt -f printed %d paths, but wanted %d", numFound, want)
+	}
+	for _, wt := range walkTests {
+		t.Run(wt.path, func(t *testing.T) {
+			path := filepath.Join(tdir, wt.path)
+			doWalk(path)
+			isShell := outBuf.Len() > 0
+			if isShell && wt.want == None {
+				t.Fatalf("shfmt -f wrongly detected %s as shell script", wt.path)
+			}
+		})
 	}
 	*find = false
 }
