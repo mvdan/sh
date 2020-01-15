@@ -202,7 +202,15 @@ func walk(path string, onError func(error)) {
 		return
 	}
 	if !info.IsDir() {
-		if err := formatPath(path, false); err != nil {
+		checkShebang := false
+		if *find {
+			conf := fileutil.CouldBeScript(info)
+			if conf == fileutil.ConfNotScript {
+				return
+			}
+			checkShebang = conf == fileutil.ConfIfShebang
+		}
+		if err := formatPath(path, checkShebang); err != nil {
 			onError(err)
 		}
 		return
