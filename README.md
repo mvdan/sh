@@ -77,10 +77,10 @@ $ echo 'foo=(1 2)' | shfmt -p
 
 ### gosh
 
-	cd $(mktemp -d); go mod init tmp; go get mvdan.cc/sh/v3/cmd/gosh
+	GO111MODULE=on go get mvdan.cc/sh/v3/cmd/gosh
 
-Experimental shell that uses `interp`. Work in progress, so don't expect
-stability just yet.
+Proof of concept shell that uses `interp`. Note that it's not meant to replace a
+POSIX shell at the moment, and its options are intentionally minimalistic.
 
 ### Fuzzing
 
