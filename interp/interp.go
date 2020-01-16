@@ -389,6 +389,8 @@ type Runner struct {
 	Vars  map[string]expand.Variable
 	Funcs map[string]*syntax.Stmt
 
+	alias map[string]string
+
 	// execHandler is a function responsible for executing programs. It must be non-nil.
 	execHandler ExecHandlerFunc
 
@@ -518,6 +520,7 @@ var shellOptsTable = [...]struct {
 
 var bashOptsTable = [...]string{
 	// sorted alphabetically by name
+	"expand_aliases",
 	"globstar",
 }
 
@@ -532,6 +535,7 @@ const (
 	optNoUnset
 	optPipeFail
 
+	optExpandAliases
 	optGlobStar
 )
 
@@ -839,6 +843,15 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		r.exit = r2.exit
 		r.setErr(r2.err)
 	case *syntax.CallExpr:
+		if len(x.Args) > 0 && r.opts[optExpandAliases] {
+			if value, ok := r.alias[x.Args[0].Lit()]; ok {
+				// TODO: we probably want to parse the alias
+				// value as shell code (words?) instead.
+				x.Args[0].Parts = []syntax.WordPart{
+					&syntax.Lit{Value: value},
+				}
+			}
+		}
 		fields := r.fields(x.Args...)
 		if len(fields) == 0 {
 			for _, as := range x.Assigns {

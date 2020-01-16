@@ -560,8 +560,37 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		}
 		r.updateExpandOpts()
 
+	case "alias":
+		if len(args) == 0 {
+			for name, value := range r.alias {
+				r.outf("alias %s='%s'\n", name, value)
+			}
+		}
+		for _, name := range args {
+			i := strings.IndexByte(name, '=')
+			if i < 1 { // don't save an empty name
+				value, ok := r.alias[name]
+				if !ok {
+					r.errf("alias: %q not found\n", name)
+					continue
+				}
+				r.outf("alias %s='%s'\n", name, value)
+				continue
+			}
+			value := name[i+1:]
+			name = name[:i]
+			if r.alias == nil {
+				r.alias = make(map[string]string)
+			}
+			r.alias[name] = value
+		}
+	case "unalias":
+		for _, name := range args {
+			delete(r.alias, name)
+		}
+
 	default:
-		// "trap", "umask", "alias", "unalias", "fg", "bg",
+		// "trap", "umask", "fg", "bg",
 		panic(fmt.Sprintf("unhandled builtin: %s", name))
 	}
 	return 0

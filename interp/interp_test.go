@@ -847,6 +847,20 @@ var runTests = []runTest{
 		"a  1\nb  2\n",
 	},
 
+	// alias (note the input newlines)
+	{
+		"alias foo; alias foo=echo; alias foo; alias foo=; alias foo",
+		"alias: \"foo\" not found\nalias foo='echo'\nalias foo=''\n #IGNORE",
+	},
+	{
+		"shopt -s expand_aliases; alias foo=echo\nfoo foo; foo bar",
+		"foo\nbar\n",
+	},
+	{
+		"shopt -s expand_aliases; alias true=echo\ntrue foo; unalias true\ntrue bar",
+		"foo\n",
+	},
+
 	// case
 	{
 		"case b in x) echo foo ;; a|b) echo bar ;; esac",
