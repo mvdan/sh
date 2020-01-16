@@ -389,7 +389,7 @@ type Runner struct {
 	Vars  map[string]expand.Variable
 	Funcs map[string]*syntax.Stmt
 
-	alias map[string]string
+	alias map[string]alias
 
 	// execHandler is a function responsible for executing programs. It must be non-nil.
 	execHandler ExecHandlerFunc
@@ -464,6 +464,11 @@ type Runner struct {
 	// For example, this saves an allocation for every shell pipe, since
 	// io.PipeReader does not implement io.WriterTo.
 	bufCopier bufCopier
+}
+
+type alias struct {
+	args  []*syntax.Word
+	blank bool
 }
 
 type bufCopier struct {
@@ -843,16 +848,22 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		r.exit = r2.exit
 		r.setErr(r2.err)
 	case *syntax.CallExpr:
-		if len(x.Args) > 0 && r.opts[optExpandAliases] {
-			if value, ok := r.alias[x.Args[0].Lit()]; ok {
-				// TODO: we probably want to parse the alias
-				// value as shell code (words?) instead.
-				x.Args[0].Parts = []syntax.WordPart{
-					&syntax.Lit{Value: value},
-				}
+		// Use a new slice, to not modify the slice in the alias map.
+		var args []*syntax.Word
+		left := x.Args
+		for len(left) > 0 && r.opts[optExpandAliases] {
+			als, ok := r.alias[left[0].Lit()]
+			if !ok {
+				break
+			}
+			args = append(args, als.args...)
+			left = left[1:]
+			if !als.blank {
+				break
 			}
 		}
-		fields := r.fields(x.Args...)
+		args = append(args, left...)
+		fields := r.fields(args...)
 		if len(fields) == 0 {
 			for _, as := range x.Assigns {
 				vr := r.assignVal(as, "")

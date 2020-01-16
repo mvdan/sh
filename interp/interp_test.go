@@ -860,6 +860,14 @@ var runTests = []runTest{
 		"shopt -s expand_aliases; alias true=echo\ntrue foo; unalias true\ntrue bar",
 		"foo\n",
 	},
+	{
+		"shopt -s expand_aliases; alias echo='echo a'\necho b c",
+		"a b c\n",
+	},
+	{
+		"shopt -s expand_aliases; alias foo='echo '\nfoo foo; foo bar",
+		"echo\nbar\n",
+	},
 
 	// case
 	{

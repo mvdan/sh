@@ -4,6 +4,7 @@
 package interp
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -561,28 +562,57 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		r.updateExpandOpts()
 
 	case "alias":
+		show := func(name string, als alias) {
+			var buf bytes.Buffer
+			if len(als.args) > 0 {
+				printer := syntax.NewPrinter()
+				printer.Print(&buf, &syntax.CallExpr{
+					Args: als.args,
+				})
+			}
+			if als.blank {
+				buf.WriteByte(' ')
+			}
+			r.outf("alias %s='%s'\n", name, &buf)
+		}
+
 		if len(args) == 0 {
-			for name, value := range r.alias {
-				r.outf("alias %s='%s'\n", name, value)
+			for name, als := range r.alias {
+				show(name, als)
 			}
 		}
 		for _, name := range args {
 			i := strings.IndexByte(name, '=')
 			if i < 1 { // don't save an empty name
-				value, ok := r.alias[name]
+				als, ok := r.alias[name]
 				if !ok {
 					r.errf("alias: %q not found\n", name)
 					continue
 				}
-				r.outf("alias %s='%s'\n", name, value)
+				show(name, als)
 				continue
 			}
-			value := name[i+1:]
+
+			// TODO: parse any CallExpr perhaps, or even any Stmt
+			parser := syntax.NewParser()
+			var words []*syntax.Word
+			src := name[i+1:]
+			if err := parser.Words(strings.NewReader(src), func(w *syntax.Word) bool {
+				words = append(words, w)
+				return true
+			}); err != nil {
+				r.errf("alias: could not parse %q: %v", src, err)
+				continue
+			}
+
 			name = name[:i]
 			if r.alias == nil {
-				r.alias = make(map[string]string)
+				r.alias = make(map[string]alias)
 			}
-			r.alias[name] = value
+			r.alias[name] = alias{
+				args:  words,
+				blank: strings.TrimRight(src, " \t") != src,
+			}
 		}
 	case "unalias":
 		for _, name := range args {
