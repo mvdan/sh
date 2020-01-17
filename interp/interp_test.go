@@ -668,6 +668,22 @@ var runTests = []runTest{
 		"(fn() { :; }) & pwd >/dev/null",
 		"",
 	},
+	{
+		"x[0]=x; (echo ${x[0]}; x[0]=y; echo ${x[0]}); echo ${x[0]}",
+		"x\ny\nx\n",
+	},
+	{
+		`x["x"]=x; (x["x"]=y); echo ${x[0]}`,
+		"x\n",
+	},
+	{
+		"shopt -s expand_aliases; alias f='echo x'\nf\n(f\nalias f='echo y'\nf\n)\nf\n",
+		"x\nx\ny\nx\n",
+	},
+	{
+		"set -- a; echo $1; (echo $1; set -- b; echo $1); echo $1",
+		"a\na\nb\na\n",
+	},
 
 	// cd/pwd
 	{"[[ fo~ == 'fo~' ]]", ""},

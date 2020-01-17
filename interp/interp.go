@@ -87,7 +87,7 @@ func (r *Runner) fillExpandConfig(ctx context.Context) {
 				_, err = io.Copy(w, f)
 				return err
 			}
-			r2 := r.sub()
+			r2 := r.Subshell()
 			r2.stdout = w
 			r2.stmts(ctx, cs.Stmts)
 			return r2.err
@@ -108,7 +108,7 @@ func (r *Runner) fillExpandConfig(ctx context.Context) {
 			if err := mkfifo(path, 0666); err != nil {
 				return "", err
 			}
-			r2 := r.sub()
+			r2 := r.Subshell()
 			stdout := r.origStdout
 			r.wgProcSubsts.Add(1)
 			go func() {
@@ -402,7 +402,7 @@ type Runner struct {
 	stderr io.Writer
 
 	ecfg *expand.Config
-	ectx context.Context // just so that Runner.Sub can use it again
+	ectx context.Context // just so that Runner.Subshell can use it again
 
 	// didReset remembers whether the runner has ever been reset. This is
 	// used so that Reset is automatically called when running any program
@@ -753,7 +753,7 @@ func (r *Runner) stmt(ctx context.Context, st *syntax.Stmt) {
 		return
 	}
 	if st.Background {
-		r2 := r.sub()
+		r2 := r.Subshell()
 		st2 := *st
 		st2.Background = false
 		r.bgShells.Go(func() error {
@@ -799,7 +799,17 @@ func (r *Runner) stmtSync(ctx context.Context, st *syntax.Stmt) {
 	}
 }
 
-func (r *Runner) sub() *Runner {
+// Subshell makes a copy of the given Runner, suitable for use concurrently
+// with the original.  The copy will have the same environment, including
+// variables and functions, but they can all be modified without affecting the
+// original.
+//
+// Subshell is not safe to use concurrently with Run.  Orchestrating this is
+// left up to the caller; no locking is performed.
+//
+// To replace e.g. stdin/out/err, do StdIO(r.stdin, r.stdout, r.stderr)(r) on
+// the copy.
+func (r *Runner) Subshell() *Runner {
 	// Keep in sync with the Runner type. Manually copy fields, to not copy
 	// sensitive ones like errgroup.Group, and to do deep copies of slices.
 	r2 := &Runner{
@@ -813,12 +823,23 @@ func (r *Runner) sub() *Runner {
 		stderr:      r.stderr,
 		filename:    r.filename,
 		opts:        r.opts,
+		usedNew:     r.usedNew,
 
 		origStdout: r.origStdout, // used for process substitutions
 	}
 	r2.Vars = make(map[string]expand.Variable, len(r.Vars))
 	for k, v := range r.Vars {
-		r2.Vars[k] = v
+		v2 := v
+		// Make deeper copies of List and Map, but ensure that they remain nil
+		// if they are nil in v.
+		v2.List = append([]string(nil), v.List...)
+		if v.Map != nil {
+			v2.Map = make(map[string]string, len(v.Map))
+			for k, v := range v.Map {
+				v2.Map[k] = v
+			}
+		}
+		r2.Vars[k] = v2
 	}
 	r2.funcVars = make(map[string]expand.Variable, len(r.funcVars))
 	for k, v := range r.funcVars {
@@ -832,6 +853,13 @@ func (r *Runner) sub() *Runner {
 	for k, v := range r.Funcs {
 		r2.Funcs[k] = v
 	}
+	if l := len(r.alias); l > 0 {
+		r2.alias = make(map[string]alias, l)
+		for k, v := range r.alias {
+			r2.alias[k] = v
+		}
+	}
+
 	r2.dirStack = append(r2.dirBootstrap[:0], r.dirStack...)
 	r2.fillExpandConfig(r.ectx)
 	r2.didReset = true
@@ -846,7 +874,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 	case *syntax.Block:
 		r.stmts(ctx, x.Stmts)
 	case *syntax.Subshell:
-		r2 := r.sub()
+		r2 := r.Subshell()
 		r2.stmts(ctx, x.Stmts)
 		r.exit = r2.exit
 		r.setErr(r2.err)
@@ -898,7 +926,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			}
 		case syntax.Pipe, syntax.PipeAll:
 			pr, pw := io.Pipe()
-			r2 := r.sub()
+			r2 := r.Subshell()
 			r2.stdout = pw
 			if x.Op == syntax.PipeAll {
 				r2.stderr = pw
