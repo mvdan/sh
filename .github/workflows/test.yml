@@ -62,7 +62,8 @@ jobs:
     if: >
       github.event_name == 'push' &&
         (github.ref == 'refs/heads/master' ||
-         startsWith(github.ref, 'refs/tags/'))
+         startsWith(github.ref, 'refs/tags/')) &&
+      github.repository == 'mvdan/sh'
     env:
       # Export environment variables for all stages.
       DOCKER_CLI_EXPERIMENTAL: enabled # for 'docker buildx'
