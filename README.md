@@ -126,6 +126,12 @@ To build a Docker image, checkout a specific version of the repository and run:
 
 	docker build -t my:tag -f cmd/shfmt/Dockerfile .
 
+This creates an image that only includes shfmt. Alternatively, if you want an
+image that includes alpine, add `--target alpine`.
+To use the Docker image, run:
+
+	docker run --rm -v $PWD:/mnt -w /mnt my:tag <shfmt arguments>
+
 ### Related projects
 
 * Alternative docker images - by [jamesmstone][dockerized-jamesmstone], [PeterDaveHello][dockerized-peterdavehello]
