@@ -47,7 +47,10 @@ jobs:
       run: export PATH="$PATH:$(go env GOPATH)/bin"; cd _fuzz/it && ./fuzz-ci local-regression
     - name: fuzz continuous job
       run: export PATH="$PATH:$(go env GOPATH)/bin"; cd _fuzz/it && ./fuzz-ci fuzzing
-      if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+      if: >
+        github.event_name == 'push' &&
+        github.ref == 'refs/heads/master' &&
+        github.repository == 'mvdan/sh'
       env:
         FUZZIT_API_KEY: ${{ secrets.FUZZIT_API_KEY }}
 
