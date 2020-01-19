@@ -1099,6 +1099,10 @@ var runTests = []runTest{
 		"foo\nbar\n",
 	},
 	{`mkdir d; old=$PWD; cd d & wait; [[ $old == "$PWD" ]]`, ""},
+	{
+		"f() { echo 1; }; { sleep 0.01s; f; } & f() { echo 2; }; wait",
+		"1\n",
+	},
 
 	// bash test
 	{
@@ -2729,6 +2733,18 @@ var testBuiltinsMap = map[string]func(HandlerContext, []string) error{
 			if err := os.Chtimes(path, newTime, newTime); err != nil {
 				return err
 			}
+		}
+		return nil
+	},
+	"sleep": func(hc HandlerContext, args []string) error {
+		// Note that, unlike GNU sleep, we don't assume a default unit
+		// of seconds.
+		for _, arg := range args {
+			d, err := time.ParseDuration(arg)
+			if err != nil {
+				return err
+			}
+			time.Sleep(d)
 		}
 		return nil
 	},
