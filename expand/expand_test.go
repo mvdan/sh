@@ -5,6 +5,7 @@ package expand
 
 import (
 	"os"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -59,5 +60,33 @@ func TestConfigNils(t *testing.T) {
 				t.Fatalf("wanted %q, got %q", tc.want, got)
 			}
 		})
+	}
+}
+
+func TestFieldsIdempotency(t *testing.T) {
+	tests := []struct {
+		src  string
+		want []string
+	}{
+		{
+			"{1..4}",
+			[]string{"1", "2", "3", "4"},
+		},
+		{
+			"a{1..4}",
+			[]string{"a1", "a2", "a3", "a4"},
+		},
+	}
+	for _, tc := range tests {
+		word := parseWord(t, tc.src)
+		for j := 0; j < 2; j++ {
+			got, err := Fields(nil, word)
+			if err != nil {
+				t.Fatalf("did not want error, got %v", err)
+			}
+			if !reflect.DeepEqual(got, tc.want) {
+				t.Fatalf("wanted %q, got %q", tc.want, got)
+			}
+		}
 	}
 }
