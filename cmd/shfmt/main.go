@@ -215,6 +215,19 @@ func walk(path string, onError func(error)) {
 		if info.IsDir() && vcsDir.MatchString(info.Name()) {
 			return filepath.SkipDir
 		}
+		if useEditorConfig {
+			props, err := ecQuery.Find(path)
+			if err != nil {
+				return err
+			}
+			if props.Get("ignore") == "true" {
+				if info.IsDir() {
+					return filepath.SkipDir
+				} else {
+					return nil
+				}
+			}
+		}
 		conf := fileutil.CouldBeScript(info)
 		if conf == fileutil.ConfNotScript {
 			return nil
@@ -227,7 +240,7 @@ func walk(path string, onError func(error)) {
 	})
 }
 
-var query = editorconfig.Query{
+var ecQuery = editorconfig.Query{
 	FileCache:   make(map[string]*editorconfig.File),
 	RegexpCache: make(map[string]*regexp.Regexp),
 }
@@ -287,7 +300,7 @@ func formatPath(path string, checkShebang bool) error {
 
 func formatBytes(src []byte, path string) error {
 	if useEditorConfig {
-		props, err := query.Find(path)
+		props, err := ecQuery.Find(path)
 		if err != nil {
 			return err
 		}

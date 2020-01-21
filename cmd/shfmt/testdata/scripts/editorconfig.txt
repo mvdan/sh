@@ -39,6 +39,12 @@ shfmt -l otherknobs
 ! stdout .
 ! stderr .
 
+# Ignore directories when walking, if they match ignore=true.
+shfmt -l ignored
+stdout 'regular\.sh'
+! stdout 'ignored\.sh'
+! stderr .
+
 -- .editorconfig --
 root = true
 
@@ -107,3 +113,23 @@ esac
 echo foo > bar
 -- otherknobs/keep_padding.sh --
 echo  foo    bar
+-- ignored/.editorconfig --
+root = true
+
+[third_party/**]
+ignore = true
+
+[1_lone_ignored.sh]
+ignore = true
+
+[2_dir_ignored]
+ignore = true
+
+-- ignored/third_party/ignored.sh --
+bad (syntax
+-- ignored/1_lone_ignored.sh
+echo   foo
+-- ignored/2_dir_ignored/ignored.sh --
+echo   foo
+-- ignored/3_regular/regular.sh --
+echo   foo

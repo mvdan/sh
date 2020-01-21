@@ -55,6 +55,10 @@ binary_next_line   = true  # like -bn
 switch_case_indent = true  # like -ci
 space_redirects    = true  # like -sr
 keep_padding       = true  # like -kp
+
+# Ignore the entire "third_party" directory.
+[third_party/**]
+ignore = true
 ```
 
 Packages are available on [Alpine], [Arch], [Docker], [FreeBSD], [Homebrew],
