@@ -414,13 +414,13 @@ func (p *Printer) flushHeredocs() {
 					bufWriter: &extra,
 					line:      r.Hdoc.Pos().Line(),
 				}
-				p.tabsPrinter.word(r.Hdoc)
+				p.tabsPrinter.wordParts(r.Hdoc.Parts, true)
 				p.indent()
 			} else {
 				p.indent()
 			}
 		} else if r.Hdoc != nil {
-			p.word(r.Hdoc)
+			p.wordParts(r.Hdoc.Parts, true)
 		}
 		p.unquotedWord(r.Word)
 		if r.Hdoc != nil {
