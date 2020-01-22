@@ -1,5 +1,14 @@
 # Changelog
 
+## [3.0.2] - Unreleased
+
+- **syntax**
+  - Don't indent after escaped newlines in heredocs
+- **interp**
+  - Prevent subshells from defining funcs in the parent shells
+- **expand**
+  - Avoid in-place brace expansion with the parameters to `Fields`
+
 ## [3.0.1] - 2020-01-11
 
 - **cmd/shfmt**
