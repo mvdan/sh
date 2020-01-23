@@ -1726,6 +1726,10 @@ var shellTests = []errorCase{
 		bash:  `1:7: | can only immediately follow a statement`,
 	},
 	{
+		in:    "for i in 1 2 3; { echo; }",
+		posix: `1:17: for loops with braces are a bash/mksh feature`,
+	},
+	{
 		in:    "for ((i=0; i<5; i++)); do echo; done",
 		posix: `1:5: c-style fors are a bash feature`,
 		mksh:  `1:5: c-style fors are a bash feature`,

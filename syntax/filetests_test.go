@@ -432,6 +432,32 @@ var fileTests = []testCase{
 	},
 	{
 		Strs: []string{
+			"for i; do foo; done",
+			"for i; { foo; }",
+		},
+		bsmk: &ForClause{
+			Loop: &WordIter{Name: lit("i")},
+			Do:   litStmts("foo"),
+		},
+	},
+	{
+		Strs: []string{
+			"for i in 1 2 3; do echo $i; done",
+			"for i in 1 2 3; { echo $i; }",
+		},
+		bsmk: &ForClause{
+			Loop: &WordIter{
+				Name:  lit("i"),
+				Items: litWords("1", "2", "3"),
+			},
+			Do: stmts(call(
+				litWord("echo"),
+				word(litParamExp("i")),
+			)),
+		},
+	},
+	{
+		Strs: []string{
 			"for ((i = 0; i < 10; i++)); do echo $i; done",
 			"for ((i=0;i<10;i++)) do echo $i; done",
 			"for (( i = 0 ; i < 10 ; i++ ))\ndo echo $i\ndone",
@@ -4447,8 +4473,16 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 		} else {
 			setPos(&x.ForPos, "for")
 		}
-		setPos(&x.DoPos, "do")
-		setPos(&x.DonePos, "done")
+		if x.Braces {
+			setPos(&x.DoPos, "{")
+			setPos(&x.DonePos, "}")
+			// Zero out Braces, to not duplicate all the test cases.
+			// The printer ignores the field anyway.
+			x.Braces = false
+		} else {
+			setPos(&x.DoPos, "do")
+			setPos(&x.DonePos, "done")
+		}
 		recurse(x.Loop)
 		recurse(x.Do)
 		recurse(x.DoLast)

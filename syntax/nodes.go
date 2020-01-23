@@ -331,6 +331,7 @@ func (w *WhileClause) End() Pos { return posAddCol(w.DonePos, 4) }
 type ForClause struct {
 	ForPos, DoPos, DonePos Pos
 	Select                 bool
+	Braces                 bool // deprecated form with { } instead of do/done
 	Loop                   Loop
 
 	Do     []*Stmt

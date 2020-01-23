@@ -2021,12 +2021,23 @@ func (p *Parser) forClause(s *Stmt) {
 	fc := &ForClause{ForPos: p.pos}
 	p.next()
 	fc.Loop = p.loop(fc.ForPos)
-	fc.DoPos = p.followRsrv(fc.ForPos, "for foo [in words]", "do")
+
+	start, end := "do", "done"
+	if pos, ok := p.gotRsrv("{"); ok {
+		if p.lang == LangPOSIX {
+			p.langErr(pos, "for loops with braces", LangBash, LangMirBSDKorn)
+		}
+		fc.DoPos = pos
+		fc.Braces = true
+		start, end = "{", "}"
+	} else {
+		fc.DoPos = p.followRsrv(fc.ForPos, "for foo [in words]", start)
+	}
 
 	s.Comments = append(s.Comments, p.accComs...)
 	p.accComs = nil
-	fc.Do, fc.DoLast = p.followStmts("do", fc.DoPos, "done")
-	fc.DonePos = p.stmtEnd(fc, "for", "done")
+	fc.Do, fc.DoLast = p.followStmts(start, fc.DoPos, end)
+	fc.DonePos = p.stmtEnd(fc, "for", end)
 	s.Cmd = fc
 }
 
