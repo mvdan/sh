@@ -78,7 +78,7 @@ func TestParseMirBSDKorn(t *testing.T) {
 var (
 	hasBash50  bool
 	hasDash059 bool
-	hasMksh56  bool
+	hasMksh57  bool
 )
 
 func TestMain(m *testing.M) {
@@ -89,7 +89,7 @@ func TestMain(m *testing.M) {
 	// check if it's new enough as to not have the bug that breaks
 	// our integration tests. Blergh.
 	hasDash059 = cmdContains("Bad subst", "dash", "-c", "echo ${#<}")
-	hasMksh56 = cmdContains(" R56 ", "mksh", "-c", "echo $KSH_VERSION")
+	hasMksh57 = cmdContains(" R57 ", "mksh", "-c", "echo $KSH_VERSION")
 	os.Exit(m.Run())
 }
 
@@ -191,8 +191,8 @@ func TestParseMirBSDKornConfirm(t *testing.T) {
 	if testing.Short() {
 		t.Skip("calling mksh is slow.")
 	}
-	if !hasMksh56 {
-		t.Skip("mksh 56 required to run")
+	if !hasMksh57 {
+		t.Skip("mksh 57 required to run")
 	}
 	i := 0
 	for _, c := range append(fileTests, fileTestsNoPrint...) {
@@ -258,8 +258,8 @@ func TestParseErrMirBSDKornConfirm(t *testing.T) {
 	if testing.Short() {
 		t.Skip("calling mksh is slow.")
 	}
-	if !hasMksh56 {
-		t.Skip("mksh 56 required to run")
+	if !hasMksh57 {
+		t.Skip("mksh 57 required to run")
 	}
 	i := 0
 	for _, c := range shellTests {
@@ -356,7 +356,6 @@ var shellTests = []errorCase{
 	{
 		in:     "<<$\xc8\n$\xc8",
 		common: `1:4: invalid UTF-8 encoding #NOERR common shells use bytes`,
-		mksh:   `1:4: invalid UTF-8 encoding`, // mksh says heredoc unclosed now?
 	},
 	{
 		in:     "echo $((foo\x80bar",
