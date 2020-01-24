@@ -3989,6 +3989,11 @@ var fileTests = []testCase{
 		}},
 	},
 	{
+		Strs:   []string{"*[i]=x"},
+		posix:  lit("*[i]=x"),
+		common: word(lit("*"), lit("[i]=x")),
+	},
+	{
 		Strs: []string{
 			"b[i]+=2",
 			"b[ i ]+=2",

@@ -1550,13 +1550,15 @@ func (p *Parser) hasValidIdent() bool {
 	}
 	if end := p.eqlOffs; end > 0 {
 		if p.val[end-1] == '+' && p.lang != LangPOSIX {
-			end--
+			end-- // a+=x
 		}
 		if ValidName(p.val[:end]) {
 			return true
 		}
+	} else if !ValidName(p.val) {
+		return false // *[i]=x
 	}
-	return p.r == '['
+	return p.r == '[' // a[i]=x
 }
 
 func (p *Parser) getAssign(needEqual bool) *Assign {
