@@ -5,6 +5,11 @@ shfmt
 cmp stdout input.sh.golden
 ! stderr .
 
+stdin input.sh
+shfmt -
+cmp stdout input.sh.golden
+! stderr .
+
 shfmt input.sh
 cmp stdout input.sh.golden
 ! stderr .
