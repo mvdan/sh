@@ -67,9 +67,9 @@ func main1() int {
 	flag.Usage = func() {
 		fmt.Fprint(os.Stderr, `usage: shfmt [flags] [path ...]
 
-If path is a single dash ('-') or absent, standard input will be used. If a
-given path is a directory, it will be recursively searched for shell files -
-both by filename extension and by shebang.
+If the only argument is a dash ('-') or no arguments are given, standard input
+will be used. If a given path is a directory, it will be recursively searched
+for shell files - both by filename extension and by shebang.
 
   -version  show version and exit
 
@@ -155,31 +155,27 @@ Utilities:
 	} else if f, ok := out.(*os.File); ok && terminal.IsTerminal(int(f.Fd())) {
 		color = true
 	}
-	args := flag.Args()
-	if flag.NArg() == 0 {
-		args = []string{"-"}
+	if flag.NArg() == 0 || (flag.NArg() == 1 && flag.Arg(0) == "-") {
+		if err := formatStdin(); err != nil {
+			if err != errChangedWithDiff {
+				fmt.Fprintln(os.Stderr, err)
+			}
+			return 1
+		}
+		return 0
+	}
+	if *toJSON {
+		fmt.Fprintln(os.Stderr, "-tojson can only be used with stdin/out")
+		return 1
 	}
 	status := 0
-	for _, path := range args {
-		if path == "-" {
-			if err := formatStdin(); err != nil {
-				if err != errChangedWithDiff {
-					fmt.Fprintln(os.Stderr, err)
-				}
-				return 1
+	for _, path := range flag.Args() {
+		walk(path, func(err error) {
+			if err != errChangedWithDiff {
+				fmt.Fprintln(os.Stderr, err)
 			}
-		} else {
-			if *toJSON {
-				fmt.Fprintln(os.Stderr, "-tojson can only be used with stdin/out")
-				return 1
-			}
-			walk(path, func(err error) {
-				if err != errChangedWithDiff {
-					fmt.Fprintln(os.Stderr, err)
-				}
-				status = 1
-			})
-		}
+			status = 1
+		})
 	}
 	return status
 }
