@@ -31,7 +31,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v1
     - name: Test as root, without cgo, and with busybox
-      run: docker run -v=$PWD:/pwd golang:1.13-alpine3.11 sh -c 'export CGO_ENABLED=0; cd /pwd && go test ./...'
+      run: docker run -v="$PWD:/pwd" -w=/pwd -e=CGO_ENABLED=0 golang:1.13.6-alpine3.11 go test ./...
 
   fuzz:
     runs-on: ubuntu-latest
