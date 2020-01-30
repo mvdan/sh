@@ -10,4 +10,4 @@
   - -i  # indentation
   - '2' # 2 spaces
   - -ci  # switch cases will be indented
-  # - -w  # write result to file instead of stdout
+  - -w  # write result to file instead of stdout
