@@ -1,0 +1,13 @@
+- id: shfmt
+  name: shfmt
+  entry: shfmt
+  language: golang
+  types: [shell]
+  description: 'Formats shell programs'
+  args:
+  - -l  # list files whose formatting differs from shfmt's
+  - -d  # error with a diff when the formatting differs
+  - -i  # indentation
+  - '2' # 2 spaces
+  - -ci  # switch cases will be indented
+  # - -w  # write result to file instead of stdout
