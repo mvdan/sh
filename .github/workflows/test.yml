@@ -67,8 +67,9 @@ jobs:
     env:
       # Export environment variables for all stages.
       DOCKER_CLI_EXPERIMENTAL: enabled # for 'docker buildx'
-      DOCKER_BASE: mvdan/shfmt
+      DOCKER_USER: mvdan
       DOCKER_PASSWORD: ${{secrets.DOCKER_PASSWORD}}
+      DOCKER_REPO: shfmt
       # We use all platforms for which FROM images in our Dockerfile are
       # available.
       DOCKER_PLATFORMS: >
@@ -95,6 +96,7 @@ jobs:
           # Pushes tag - deploy tag name.
           echo "::set-env name=TAG::${GITHUB_REF/refs\/tags\//}"
         fi
+        echo "::set-env name=DOCKER_BASE::${DOCKER_USER}/${DOCKER_REPO}"
     - name: Install Docker buildx
       run: |
         set -vx
@@ -126,8 +128,8 @@ jobs:
     - name: Build multi-architecture Docker images with buildx
       run: |
         set -vx
-        username=${DOCKER_BASE/\/*/}
-        echo "$DOCKER_PASSWORD" | docker login -u="$username" --password-stdin
+        echo "$DOCKER_PASSWORD" \
+        | docker login -u="$DOCKER_USER" --password-stdin
 
         function buildx() {
           docker buildx build \
@@ -164,3 +166,30 @@ jobs:
             docker run --rm -v "$PWD:/mnt" -w '/mnt' "$image" -d myscript
           done
         done
+    - name: Install Node.js
+      uses: actions/setup-node@v1
+      with:
+        node-version: 13.x
+    - name: Update DockerHub description
+      run: |
+        set -vx
+        npm install docker-hub-api@0.8.0
+        node -e '
+          const fs = require("fs");
+          let readme = fs.readFileSync("README.md", "utf8");
+          let dockerHubAPI = require("docker-hub-api");
+          dockerHubAPI.login(
+            process.env.DOCKER_USER,
+            process.env.DOCKER_PASSWORD)
+          .then(function () {
+            let url = "https://github.com/" + process.env.GITHUB_REPOSITORY;
+            for (let ext of ["-alpine", ""]) {
+              let repo = process.env.DOCKER_REPO + ext;
+              dockerHubAPI.setRepositoryDescription(
+                process.env.DOCKER_USER,
+                repo,
+                {short: "Official " + repo + " images from " + url,
+                 full: readme});
+            }
+          });
+        '
