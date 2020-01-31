@@ -175,6 +175,10 @@ jobs:
         set -vx
         npm install docker-hub-api@0.8.0
         node -e '
+          function error(reason) {
+            console.log("Error: " + reason.message);
+            process.exit(1);
+          }
           const fs = require("fs");
           let readme = fs.readFileSync("README.md", "utf8");
           let dockerHubAPI = require("docker-hub-api");
@@ -189,7 +193,9 @@ jobs:
                 process.env.DOCKER_USER,
                 repo,
                 {short: "Official " + repo + " images from " + url,
-                 full: readme});
+                 full: readme})
+              .catch(reason => error(reason));
             }
-          });
+          })
+          .catch(reason => error(reason));
         '
