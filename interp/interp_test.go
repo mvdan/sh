@@ -673,11 +673,11 @@ var runTests = []runTest{
 		"x\ny\nx\n",
 	},
 	{
-		`x["x"]=x; (x["x"]=y); echo ${x[0]}`,
+		`x[3]=x; (x[3]=y); echo ${x[3]}`,
 		"x\n",
 	},
 	{
-		"shopt -s expand_aliases; alias f='echo x'\nf\n(f\nalias f='echo y'\nf\n)\nf\n",
+		"shopt -s expand_aliases; alias f='echo x'\nf\n(f\nalias f='echo y'\neval f\n)\nf\n",
 		"x\nx\ny\nx\n",
 	},
 	{
