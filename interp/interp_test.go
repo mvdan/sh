@@ -93,7 +93,11 @@ func TestMain(m *testing.M) {
 
 		os.Exit(0)
 	}
-	os.Setenv("GOSH_PROG", os.Args[0])
+	prog, err := os.Executable()
+	if err != nil {
+		panic(err)
+	}
+	os.Setenv("GOSH_PROG", prog)
 
 	os.Setenv("LANGUAGE", "en_US.UTF8")
 	os.Setenv("LC_ALL", "en_US.UTF8")
