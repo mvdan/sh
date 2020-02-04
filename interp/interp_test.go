@@ -2371,10 +2371,15 @@ var runTestsUnix = []runTest{
 		"[[ ~root == '~root' ]]",
 		"exit status 1",
 	},
+
+	// windows does not support paths with '*'
 	{
-		// windows does not support dirs named '*'
 		"mkdir -p '*/a.z' 'b/a.z'; cd '*'; set -- *.z; echo $#",
 		"1\n",
+	},
+	{
+		"mkdir -p 'a-*/d'; test -d $PWD/a-*/*",
+		"",
 	},
 
 	// no fifos on windows
