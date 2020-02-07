@@ -305,8 +305,8 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			r.keepRedirs = true
 			break
 		}
-		r.exec(ctx, args)
 		r.exitShell = true
+		r.exec(ctx, args)
 		return r.exit
 	case "command":
 		show := false
