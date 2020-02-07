@@ -557,7 +557,7 @@ func (cfg *Config) wordFields(wps []syntax.WordPart) ([][]fieldPart, error) {
 		case *syntax.DblQuoted:
 			if len(x.Parts) == 1 {
 				pe, _ := x.Parts[0].(*syntax.ParamExp)
-				if elems := cfg.quotedElems(pe); elems != nil {
+				if elems := cfg.quotedElemFields(pe); elems != nil {
 					for i, elem := range elems {
 						if i > 0 {
 							flush()
@@ -614,20 +614,28 @@ func (cfg *Config) wordFields(wps []syntax.WordPart) ([][]fieldPart, error) {
 	return fields, nil
 }
 
-// quotedElems checks if a parameter expansion is exactly ${@} or ${foo[@]}
-func (cfg *Config) quotedElems(pe *syntax.ParamExp) []string {
+// quotedElemFields returns the list of elements resulting from a parameter
+// expansion if it was in the form of ${*}, ${@}, ${foo[*], or ${foo[@]}.
+func (cfg *Config) quotedElemFields(pe *syntax.ParamExp) []string {
 	if pe == nil || pe.Excl || pe.Length || pe.Width {
 		return nil
 	}
-	if pe.Param.Value == "@" {
-		return cfg.Env.Get("@").List
+	name := pe.Param.Value
+	switch name {
+	case "*":
+		return []string{cfg.ifsJoin(cfg.Env.Get(name).List)}
+	case "@":
+		return cfg.Env.Get(name).List
 	}
-	if nodeLit(pe.Index) != "@" {
-		return nil
-	}
-	vr := cfg.Env.Get(pe.Param.Value)
-	if vr.Kind == Indexed {
-		return vr.List
+	switch nodeLit(pe.Index) {
+	case "@":
+		if vr := cfg.Env.Get(name); vr.Kind == Indexed {
+			return vr.List
+		}
+	case "*":
+		if vr := cfg.Env.Get(name); vr.Kind == Indexed {
+			return []string{cfg.ifsJoin(vr.List)}
+		}
 	}
 	return nil
 }

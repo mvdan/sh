@@ -1757,11 +1757,17 @@ set +o pipefail
 	// IFS
 	{`echo -n "$IFS"`, " \t\n"},
 	{`a="x:y:z"; IFS=:; echo $a`, "x y z\n"},
+	{`a=(x y z); IFS=-; echo ${a[*]}`, "x y z\n"},
+	{`a=(x y z); IFS=-; echo ${a[@]}`, "x y z\n"},
 	{`a=(x y z); IFS=-; echo "${a[*]}"`, "x-y-z\n"},
 	{`a=(x y z); IFS=-; echo "${a[@]}"`, "x y z\n"},
 	{`a="  x y z"; IFS=; echo $a`, "  x y z\n"},
 	{`a=(x y z); IFS=; echo "${a[*]}"`, "xyz\n"},
 	{`a=(x y z); IFS=-; echo "${!a[@]}"`, "0 1 2\n"},
+	{`set -- x y z; IFS=-; echo $*`, "x y z\n"},
+	{`set -- x y z; IFS=-; echo "$*"`, "x-y-z\n"},
+	{`set -- x y z; IFS=; echo $*`, "x y z\n"},
+	{`set -- x y z; IFS=; echo "$*"`, "xyz\n"},
 
 	// builtin
 	{"builtin", ""},
