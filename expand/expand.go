@@ -614,10 +614,17 @@ func (cfg *Config) wordFields(wps []syntax.WordPart) ([][]fieldPart, error) {
 	return fields, nil
 }
 
-// quotedElemFields returns the list of elements resulting from a parameter
-// expansion if it was in the form of ${*}, ${@}, ${foo[*], or ${foo[@]}.
+// quotedElemFields returns the list of elements resulting from a quoted
+// parameter expansion if it was in the form of ${*}, ${@}, ${foo[*], ${foo[@]},
+// or ${!foo@}.
 func (cfg *Config) quotedElemFields(pe *syntax.ParamExp) []string {
-	if pe == nil || pe.Excl || pe.Length || pe.Width {
+	if pe == nil || pe.Length || pe.Width {
+		return nil
+	}
+	if pe.Excl {
+		if pe.Names == syntax.NamesPrefixWords {
+			return cfg.namesByPrefix(pe.Param.Value)
+		}
 		return nil
 	}
 	name := pe.Param.Value

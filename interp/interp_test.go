@@ -492,6 +492,22 @@ var runTests = []runTest{
 		"INTERP_GLOBAL INTERP_X_1 INTERP_X_2\n",
 	},
 	{
+		`INTERP_X_2=b INTERP_X_1=a; set -- ${!INTERP_*}; echo $#`,
+		"3\n",
+	},
+	{
+		`INTERP_X_2=b INTERP_X_1=a; set -- "${!INTERP_*}"; echo $#`,
+		"1\n",
+	},
+	{
+		`INTERP_X_2=b INTERP_X_1=a; set -- ${!INTERP_@}; echo $#`,
+		"3\n",
+	},
+	{
+		`INTERP_X_2=b INTERP_X_1=a; set -- "${!INTERP_@}"; echo $#`,
+		"3\n",
+	},
+	{
 		`a='b  c'; eval "echo -n ${a} ${a@Q}"`,
 		`b c b  c`,
 	},
