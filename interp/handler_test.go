@@ -38,6 +38,17 @@ func blacklistNondevOpen(ctx context.Context, path string, flags int, mode os.Fi
 	return testOpenHandler(ctx, path, flags, mode)
 }
 
+// runnerCtx allows us to give handler functions access to the Runner, if needed.
+var runnerCtx = new(int)
+
+func execBuiltin(ctx context.Context, args []string) error {
+	runner, ok := ctx.Value(runnerCtx).(*Runner)
+	if ok && runner.Exited() {
+		return fmt.Errorf("exec builtin: %s", args[0])
+	}
+	return nil
+}
+
 var modCases = []struct {
 	name string
 	exec ExecHandlerFunc
@@ -82,6 +93,12 @@ var modCases = []struct {
 		want: "blacklisted: malicious",
 	},
 	{
+		name: "ExecBuiltin",
+		exec: execBuiltin,
+		src:  "exec /bin/sh",
+		want: "exec builtin: /bin/sh",
+	},
+	{
 		name: "OpenForbidNonDev",
 		open: blacklistNondevOpen,
 		src:  "echo foo >/dev/null; echo bar >/tmp/x",
@@ -106,7 +123,7 @@ func TestRunnerHandlers(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			ctx := context.Background()
+			ctx := context.WithValue(context.Background(), runnerCtx, r)
 			if err := r.Run(ctx, file); err != nil {
 				cb.WriteString(err.Error())
 			}
