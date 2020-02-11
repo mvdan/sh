@@ -824,6 +824,7 @@ func (r *Runner) Subshell() *Runner {
 		filename:    r.filename,
 		opts:        r.opts,
 		usedNew:     r.usedNew,
+		exit:        r.exit,
 
 		origStdout: r.origStdout, // used for process substitutions
 	}

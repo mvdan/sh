@@ -704,6 +704,7 @@ var runTests = []runTest{
 		"set -- a; echo $1; (echo $1; set -- b; echo $1); echo $1",
 		"a\na\nb\na\n",
 	},
+	{"false; ( echo $? )", "1\n"},
 
 	// cd/pwd
 	{"[[ fo~ == 'fo~' ]]", ""},
