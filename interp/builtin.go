@@ -224,7 +224,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 				r.outf("%s is a shell builtin\n", arg)
 				continue
 			}
-			if path, err := exec.LookPath(arg); err == nil {
+			if path, err := LookPath(expandEnv{r}, arg); err == nil {
 				r.outf("%s is %s\n", arg, path)
 				continue
 			}
