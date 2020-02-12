@@ -25,6 +25,15 @@ import (
 	"mvdan.cc/sh/v3/syntax"
 )
 
+// Some program which should be in $PATH.  Needs to run before runTests is
+// initialized (so an init function wouldn't work), because runTest uses it.
+var pathProg = func() string {
+	if runtime.GOOS == "windows" {
+		return "cmd"
+	}
+	return "sh"
+}()
+
 func parse(tb testing.TB, parser *syntax.Parser, src string) *syntax.File {
 	if parser == nil {
 		parser = syntax.NewParser()
@@ -99,8 +108,8 @@ func TestMain(m *testing.M) {
 	}
 	os.Setenv("GOSH_PROG", prog)
 
-	os.Setenv("LANGUAGE", "en_US.UTF8")
-	os.Setenv("LC_ALL", "en_US.UTF8")
+	os.Setenv("LANGUAGE", "en_US.UTF-8")
+	os.Setenv("LC_ALL", "en_US.UTF-8")
 	os.Unsetenv("CDPATH")
 	hasBash50 = checkBash()
 	os.Setenv("INTERP_GLOBAL", "value")
@@ -113,12 +122,7 @@ func TestMain(m *testing.M) {
 		os.Setenv("MIXEDCASE_INTERP_GLOBAL", "value")
 	}
 
-	// Some program which should be in $PATH.
-	if runtime.GOOS == "windows" {
-		os.Setenv("PATH_PROG", "cmd")
-	} else {
-		os.Setenv("PATH_PROG", "sh")
-	}
+	os.Setenv("PATH_PROG", pathProg)
 
 	// To print env vars. Only a builtin on Windows.
 	if runtime.GOOS == "windows" {
@@ -1801,6 +1805,7 @@ set +o pipefail
 	{"echo() { :; }; type echo | grep 'is a function'", "echo is a function\n"},
 	{"type $PATH_PROG | grep -q -E ' is (/|[A-Z]:).*'", ""},
 	{"type noexist", "type: noexist: not found\nexit status 1 #JUSTERR"},
+	{"PATH=/ ; type $PATH_PROG", "type: " + pathProg + ": not found\nexit status 1 #JUSTERR"},
 
 	// eval
 	{"eval", ""},
