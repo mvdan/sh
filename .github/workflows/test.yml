@@ -187,15 +187,13 @@ jobs:
             process.env.DOCKER_PASSWORD)
           .then(function () {
             let url = "https://github.com/" + process.env.GITHUB_REPOSITORY;
-            for (let ext of ["-alpine", ""]) {
-              let repo = process.env.DOCKER_REPO + ext;
-              dockerHubAPI.setRepositoryDescription(
-                process.env.DOCKER_USER,
-                repo,
-                {short: "Official " + repo + " images from " + url,
-                 full: readme})
-              .catch(reason => error(reason));
-            }
+            let repo = process.env.DOCKER_REPO;
+            dockerHubAPI.setRepositoryDescription(
+              process.env.DOCKER_USER,
+              repo,
+              {short: "Official " + repo + " images from " + url,
+               full: readme})
+            .catch(reason => error(reason));
           })
           .catch(reason => error(reason));
         '
