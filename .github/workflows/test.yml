@@ -141,7 +141,7 @@ jobs:
         }
 
         buildx -t "$DOCKER_BASE:$TAG"
-        buildx -t "$DOCKER_BASE-alpine:$TAG" --target alpine
+        buildx -t "$DOCKER_BASE:$TAG-alpine" --target alpine
     - name: Test multi-architecture Docker images
       run: |
         printf '%s\n' "#!/bin/sh" "echo 'hello world'" >myscript
