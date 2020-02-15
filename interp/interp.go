@@ -435,9 +435,14 @@ type Runner struct {
 	noErrExit bool
 
 	err       error // current shell exit code or fatal error
-	exit      int   // current exit status code
-	lastExit  int   // last exit status code
 	exitShell bool  // whether the shell needs to exit
+
+	// The current and last exit status code. They can only be different if
+	// the interpreter is in the middle of running a statement. In that
+	// scenario, 'exit' is the status code for the statement being run, and
+	// 'lastExit' corresponds to the previous statement that was run.
+	exit     int
+	lastExit int
 
 	bgShells errgroup.Group
 
