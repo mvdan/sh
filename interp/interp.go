@@ -435,7 +435,8 @@ type Runner struct {
 	noErrExit bool
 
 	err       error // current shell exit code or fatal error
-	exit      int   // current (last) exit status code
+	exit      int   // current exit status code
+	lastExit  int   // last exit status code
 	exitShell bool  // whether the shell needs to exit
 
 	bgShells errgroup.Group
@@ -752,6 +753,7 @@ func (r *Runner) stmt(ctx context.Context, st *syntax.Stmt) {
 	if r.stop(ctx) {
 		return
 	}
+	r.exit = 0
 	if st.Background {
 		r2 := r.Subshell()
 		st2 := *st
@@ -762,6 +764,7 @@ func (r *Runner) stmt(ctx context.Context, st *syntax.Stmt) {
 	} else {
 		r.stmtSync(ctx, st)
 	}
+	r.lastExit = r.exit
 }
 
 func (r *Runner) stmtSync(ctx context.Context, st *syntax.Stmt) {
@@ -777,9 +780,7 @@ func (r *Runner) stmtSync(ctx context.Context, st *syntax.Stmt) {
 			defer cls.Close()
 		}
 	}
-	if st.Cmd == nil {
-		r.exit = 0
-	} else {
+	if st.Cmd != nil {
 		r.cmd(ctx, st.Cmd)
 	}
 	if st.Negated {
@@ -825,6 +826,7 @@ func (r *Runner) Subshell() *Runner {
 		opts:        r.opts,
 		usedNew:     r.usedNew,
 		exit:        r.exit,
+		lastExit:    r.lastExit,
 
 		origStdout: r.origStdout, // used for process substitutions
 	}
@@ -1023,7 +1025,6 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			}
 		}
 	case *syntax.TestClause:
-		r.exit = 0
 		if r.bashTest(ctx, x.X, false) == "" && r.exit == 0 {
 			// to preserve exit status code 2 for regex errors, etc
 			r.exit = 1

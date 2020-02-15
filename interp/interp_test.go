@@ -232,6 +232,8 @@ var runTests = []runTest{
 		"for i in 1; do break a; done",
 		"usage: break [n]\nexit status 2 #JUSTERR",
 	},
+	{"false; a=b", ""},
+	{"false; false &", ""},
 
 	// we don't need to follow bash error strings
 	{"exit a", "invalid exit status code: \"a\"\nexit status 2 #JUSTERR"},

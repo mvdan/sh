@@ -54,7 +54,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		r.exitShell = true
 		switch len(args) {
 		case 0:
-			return r.exit
+			return r.lastExit
 		case 1:
 			n, err := strconv.Atoi(args[0])
 			if err != nil {
