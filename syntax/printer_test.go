@@ -743,7 +743,7 @@ func TestPrintSwitchCaseIndent(t *testing.T) {
 	}
 }
 
-func TestPrintFunctionNewLine(t *testing.T) {
+func TestPrintFunctionNextLine(t *testing.T) {
 	t.Parallel()
 	tests := [...]printCase{
 		{
@@ -764,7 +764,7 @@ func TestPrintFunctionNewLine(t *testing.T) {
 		},
 	}
 	parser := NewParser(KeepComments(true))
-	printer := NewPrinter(FunctionNewLine(true))
+	printer := NewPrinter(FunctionNextLine(true))
 	for i, tc := range tests {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
 			printTest(t, parser, printer, tc.in, tc.want)

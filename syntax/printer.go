@@ -68,9 +68,9 @@ func Minify(enabled bool) PrinterOption {
 	return func(p *Printer) { p.minify = enabled }
 }
 
-// FunctionNewLine will place function braces on a new line.
-func FunctionNewLine(enabled bool) PrinterOption {
-	return func(p *Printer) { p.functionNewLine = enabled }
+// FunctionNextLine will place a function's opening braces on the next line.
+func FunctionNextLine(enabled bool) PrinterOption {
+	return func(p *Printer) { p.funcNextLine = enabled }
 }
 
 // NewPrinter allocates a new Printer and applies any number of options.
@@ -193,13 +193,13 @@ type Printer struct {
 	tabWriter *tabwriter.Writer
 	cols      colCounter
 
-	indentSpaces    uint
-	binNextLine     bool
-	swtCaseIndent   bool
-	spaceRedirects  bool
-	keepPadding     bool
-	minify          bool
-	functionNewLine bool
+	indentSpaces   uint
+	binNextLine    bool
+	swtCaseIndent  bool
+	spaceRedirects bool
+	keepPadding    bool
+	minify         bool
+	funcNextLine   bool
 
 	wantSpace   bool
 	wantNewline bool
@@ -969,7 +969,7 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		p.WriteByte('{')
 		p.wantSpace = true
 		// Forbid "foo()\n{ bar; }"
-		p.wantNewline = p.wantNewline || p.functionNewLine
+		p.wantNewline = p.wantNewline || p.funcNextLine
 		p.nestedStmts(x.Stmts, x.Last, x.Rbrace)
 		p.semiRsrv("}", x.Rbrace)
 	case *IfClause:
@@ -1048,7 +1048,7 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		}
 		p.writeLit(x.Name.Value)
 		p.WriteString("()")
-		if p.functionNewLine {
+		if p.funcNextLine {
 			p.newline(Pos{})
 		} else if !p.minify {
 			p.space()

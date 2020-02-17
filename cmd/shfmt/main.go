@@ -38,12 +38,12 @@ var (
 	langStr = flag.String("ln", "", "")
 	posix   = flag.Bool("p", false, "")
 
-	indent          = flag.Uint("i", 0, "")
-	binNext         = flag.Bool("bn", false, "")
-	caseIndent      = flag.Bool("ci", false, "")
-	spaceRedirs     = flag.Bool("sr", false, "")
-	keepPadding     = flag.Bool("kp", false, "")
-	functionNewLine = flag.Bool("fn", false, "")
+	indent      = flag.Uint("i", 0, "")
+	binNext     = flag.Bool("bn", false, "")
+	caseIndent  = flag.Bool("ci", false, "")
+	spaceRedirs = flag.Bool("sr", false, "")
+	keepPadding = flag.Bool("kp", false, "")
+	funcNext    = flag.Bool("fn", false, "")
 
 	toJSON = flag.Bool("tojson", false, "")
 
@@ -147,7 +147,7 @@ Utilities:
 		syntax.SwitchCaseIndent(*caseIndent)(printer)
 		syntax.SpaceRedirects(*spaceRedirs)(printer)
 		syntax.KeepPadding(*keepPadding)(printer)
-		syntax.FunctionNewLine(*functionNewLine)(printer)
+		syntax.FunctionNextLine(*funcNext)(printer)
 	}
 
 	if os.Getenv("FORCE_COLOR") == "true" {
