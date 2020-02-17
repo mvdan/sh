@@ -261,13 +261,25 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			r.errf("source: %v\n", err)
 			return 1
 		}
+		// pass source parameters if any or current parameters.
 		oldParams := r.Params
-		r.Params = args[1:]
+		sourceParams := len(args[1:]) > 0
+		if sourceParams {
+			r.Params = args[1:]
+		} else {
+			r.Params = oldParams
+		}
+		oldKeepParams := r.keepParams
+		r.keepParams = true
 		oldInSource := r.inSource
 		r.inSource = true
 		r.stmts(ctx, file.Stmts)
-
-		r.Params = oldParams
+		// restore old parameters if source parameters have been passed
+		// and current parameters wasn't modified by a set call.
+		if r.keepParams && sourceParams {
+			r.Params = oldParams
+		}
+		r.keepParams = oldKeepParams
 		r.inSource = oldInSource
 		if code, ok := r.err.(returnStatus); ok {
 			r.err = nil
