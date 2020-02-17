@@ -743,6 +743,35 @@ func TestPrintSwitchCaseIndent(t *testing.T) {
 	}
 }
 
+func TestPrintFunctionNewLine(t *testing.T) {
+	t.Parallel()
+	tests := [...]printCase{
+		{
+			"foo() { bar; }",
+			"foo()\n{\n\tbar\n}",
+		},
+		{
+			"foo()\n{ bar; }",
+			"foo()\n{\n\tbar\n}",
+		},
+		{
+			"foo()\n\n{\n\n\tbar\n}",
+			"foo()\n{\n\n\tbar\n}",
+		},
+		{
+			"function foo {\n\tbar\n}",
+			"function foo()\n{\n\tbar\n}",
+		},
+	}
+	parser := NewParser(KeepComments(true))
+	printer := NewPrinter(FunctionNewLine(true))
+	for i, tc := range tests {
+		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
+			printTest(t, parser, printer, tc.in, tc.want)
+		})
+	}
+}
+
 func TestPrintSpaceRedirects(t *testing.T) {
 	t.Parallel()
 	tests := [...]printCase{
