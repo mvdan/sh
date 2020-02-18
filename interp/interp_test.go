@@ -1843,6 +1843,60 @@ set +o pipefail
 		"bar\n",
 	},
 
+	// source with set and shift
+	{
+		"echo 'set -- d e f' >a; source a; echo $@",
+		"d e f\n",
+	},
+	{
+		"echo 'echo $@' >a; set -- b c; source a; echo $@",
+		"b c\nb c\n",
+	},
+	{
+		"echo 'echo $@' >a; set -- b c; source a d e; echo $@",
+		"d e\nb c\n",
+	},
+	{
+		"echo 'shift; echo $@' >a; set -- b c; source a d e; echo $@",
+		"e\nb c\n",
+	},
+	{
+		"echo 'shift' >a; set -- b c; source a; echo $@",
+		"c\n",
+	},
+	{
+		"echo 'shift; set -- $@' >a; set -- b c; source a d e; echo $@",
+		"e\n",
+	},
+	{
+		"echo 'set -- g f'>b; echo 'set -- d e f; echo $@; source b;' >a; source a; echo $@",
+		"d e f\ng f\n",
+	},
+	{
+		"echo 'set -- g f'>b; echo 'echo $@; set -- d e f; source b;' >a; source a b c; echo $@",
+		"b c\ng f\n",
+	},
+	{
+		"echo 'shift; echo $@' >b; echo 'shift; echo $@; source b' >a; source a b c d; echo $@",
+		"c d\nd\n\n",
+	},
+	{
+		"echo 'set -- b c d' >b; echo 'source b' >a; set -- a; source a; echo $@",
+		"b c d\n",
+	},
+	{
+		"echo 'echo $@' >b; echo 'set -- b c d; source b' >a; set -- a; source a; echo $@",
+		"b c d\nb c d\n",
+	},
+	{
+		"echo 'shift; echo $@' >b; echo 'shift; echo $@; source b c d' >a; set -- a b; source a; echo $@",
+		"b\nd\nb\n",
+	},
+	{
+		"echo 'set -- a b c' >b; echo 'echo $@; source b; echo $@' >a; source a; echo $@",
+		"\na b c\na b c\n",
+	},
+
 	// indexed arrays
 	{
 		"a=foo; echo ${a[0]} ${a[@]} ${a[x]}; echo ${a[1]}",
