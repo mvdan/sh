@@ -316,7 +316,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		}
 		return oneIf(r.bashTest(ctx, expr, true) == "")
 	case "exec":
-		// TODO: Consider syscall.Exec, i.e. actually replacing
+		// TODO: Consider unix.Exec, i.e. actually replacing
 		// the process. It's in theory what a shell should do,
 		// but in practice it would kill the entire Go process
 		// and it's not available on Windows.
