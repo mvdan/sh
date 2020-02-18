@@ -1372,7 +1372,8 @@ var runTests = []runTest{
 		"[[ -e /dev/tty ]] || { echo char; exit; }; [[ -b /dev/tty ]] && echo block; [[ -c /dev/tty ]] && echo char; true",
 		"char\n",
 	},
-	{"[[ -t 1234 ]]", "exit status 1"}, // TODO: reliable way to test a positive?
+	{"[[ -t 1 ]]", "exit status 1"},
+	{"[[ -t 1234 ]]", "exit status 1"},
 	{"[[ -o wrong ]]", "exit status 1"},
 	{"[[ -o errexit ]]", "exit status 1"},
 	{"set -e; [[ -o errexit ]]", ""},
@@ -1472,7 +1473,8 @@ var runTests = []runTest{
 		">a; [ -b a ] && echo block; [ -c a ] && echo char; true",
 		"",
 	},
-	{"[ -t 1234 ]", "exit status 1"}, // TODO: reliable way to test a positive?
+	{"[ -t 1 ]", "exit status 1"},
+	{"[ -t 1234 ]", "exit status 1"},
 	{"[ -o wrong ]", "exit status 1"},
 	{"[ -o errexit ]", "exit status 1"},
 	{"set -e; [ -o errexit ]", ""},
@@ -3328,5 +3330,29 @@ func TestMalformedPathOnWindows(t *testing.T) {
 	want := "foo\r\n"
 	if got := cb.String(); got != want {
 		t.Fatalf("wrong output:\nwant: %q\ngot:  %q", want, got)
+	}
+}
+
+type termBuffer struct {
+	bytes.Buffer
+}
+
+func (*termBuffer) IsTerm() bool { return true }
+
+func TestRunnerTerminalStdIO(t *testing.T) {
+	t.Parallel()
+	file := parse(t, nil, `
+		for n in 0 1 2 3; do if [[ -t $n ]]; then echo $n; fi; done
+	`)
+
+	var b termBuffer
+	r, _ := New(StdIO(&b, &b, nil))
+	if err := r.Run(context.Background(), file); err != nil {
+		t.Fatal(err)
+	}
+
+	want := "0\n1\n"
+	if got := b.String(); got != want {
+		t.Fatalf("\nwant: %q\ngot:  %q", want, got)
 	}
 }
