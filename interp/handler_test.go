@@ -4,13 +4,17 @@
 package interp
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"fmt"
 	"io"
 	"os"
 	"runtime"
+	"strconv"
+	"strings"
 	"sync"
+	"syscall"
 	"testing"
 	"time"
 
@@ -225,6 +229,63 @@ func TestKillTimeout(t *testing.T) {
 					t.Fatalf("want:\n%s\ngot:\n%s", test.want, got)
 				}
 				break
+			}
+		})
+	}
+}
+
+func TestKillSignal(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("skipping signal tests on windows")
+	}
+	tests := []struct {
+		signal os.Signal
+		want   error
+	}{
+		{syscall.SIGINT, NewExitStatus(130)},  // 128 + 2
+		{syscall.SIGKILL, NewExitStatus(137)}, // 128 + 9
+		{syscall.SIGTERM, NewExitStatus(143)}, // 128 + 15
+	}
+
+	// pid_and_hang is implemented in TestMain; we use it to have the
+	// interpreter spawn a process, and easily grab its PID to send it a
+	// signal directly. The program prints its PID and hangs forever.
+	file := parse(t, nil, "GOSH_CMD=pid_and_hang $GOSH_PROG")
+	for i := range tests {
+		test := tests[i]
+		t.Run(fmt.Sprintf("signal-%d", test.signal), func(t *testing.T) {
+			t.Parallel()
+
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+			defer cancel()
+
+			outReader, outWriter := io.Pipe()
+			r, _ := New(StdIO(nil, outWriter, nil))
+			errch := make(chan error, 1)
+			go func() {
+				errch <- r.Run(ctx, file)
+				outWriter.Close()
+			}()
+
+			br := bufio.NewReader(outReader)
+			line, err := br.ReadString('\n')
+			if err != nil {
+				t.Fatal(err)
+			}
+			pid, err := strconv.Atoi(strings.TrimSpace(line))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			proc, err := os.FindProcess(pid)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := proc.Signal(test.signal); err != nil {
+				t.Fatal(err)
+			}
+			if got := <-errch; got != test.want {
+				t.Fatalf("want error %v, got %v", test.want, got)
 			}
 		})
 	}

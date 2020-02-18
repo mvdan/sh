@@ -79,6 +79,11 @@ var hasBash50 bool
 
 func TestMain(m *testing.M) {
 	if os.Getenv("GOSH_PROG") != "" {
+		switch os.Getenv("GOSH_CMD") {
+		case "pid_and_hang":
+			fmt.Println(os.Getpid())
+			select {}
+		}
 		r := strings.NewReader(os.Args[1])
 		file, err := syntax.NewParser().Parse(r, "")
 		if err != nil {
