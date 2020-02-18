@@ -261,26 +261,33 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			r.errf("source: %v\n", err)
 			return 1
 		}
-		// pass source parameters if any or current parameters.
+
+		// Keep the current versions of some fields we might modify.
 		oldParams := r.Params
-		sourceParams := len(args[1:]) > 0
-		if sourceParams {
-			r.Params = args[1:]
-		} else {
-			r.Params = oldParams
-		}
-		oldKeepParams := r.keepParams
-		r.keepParams = true
+		oldSourceSetParams := r.sourceSetParams
 		oldInSource := r.inSource
-		r.inSource = true
+
+		// If we run "source file args...", set said args as parameters.
+		// Otherwise, keep the current parameters.
+		sourceArgs := len(args[1:]) > 0
+		if sourceArgs {
+			r.Params = args[1:]
+			r.sourceSetParams = false
+		}
+		// We want to track if the sourced file explicitly sets the
+		// paramters.
+		r.sourceSetParams = false
+		r.inSource = true // know that we're inside a sourced script.
 		r.stmts(ctx, file.Stmts)
-		// restore old parameters if source parameters have been passed
-		// and current parameters wasn't modified by a set call.
-		if r.keepParams && sourceParams {
+
+		// If we modified the parameters and the sourced file didn't
+		// explicitly set them, we restore the old ones.
+		if sourceArgs && !r.sourceSetParams {
 			r.Params = oldParams
 		}
-		r.keepParams = oldKeepParams
+		r.sourceSetParams = oldSourceSetParams
 		r.inSource = oldInSource
+
 		if code, ok := r.err.(returnStatus); ok {
 			r.err = nil
 			return int(code)

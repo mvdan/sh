@@ -320,9 +320,11 @@ func Params(args ...string) RunnerOption {
 			// If "--" wasn't given and there were zero arguments,
 			// we don't want to override the current parameters.
 			r.Params = args
-			// If parameters are set from a sourced script, don't keep
-			// current parameters to not restore them from source builtin.
-			r.keepParams = !r.inSource
+
+			// Record whether a sourced script sets the parameters.
+			if r.inSource {
+				r.sourceSetParams = true
+			}
 		}
 		return nil
 	}
@@ -437,7 +439,8 @@ type Runner struct {
 	inSource  bool
 	noErrExit bool
 
-	keepParams bool // track parameters changes (set builtin) while sourcing
+	// track if a sourced script set positional parameters
+	sourceSetParams bool
 
 	err       error // current shell exit code or fatal error
 	exitShell bool  // whether the shell needs to exit
