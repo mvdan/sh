@@ -2155,12 +2155,18 @@ set +o pipefail
 	// read-only vars
 	{"declare -r foo=bar; echo $foo", "bar\n"},
 	{"readonly foo=bar; echo $foo", "bar\n"},
+	{"readonly foo=bar; export foo; echo $foo", "bar\n"},
+	{"readonly foo=bar; readonly bar=foo; export foo bar; echo $bar", "foo\n"},
 	{
 		"a=b; a=c; echo $a; readonly a; a=d",
 		"c\na: readonly variable\nexit status 1 #JUSTERR",
 	},
 	{
 		"declare -r foo=bar; foo=etc",
+		"foo: readonly variable\nexit status 1 #JUSTERR",
+	},
+	{
+		"declare -r foo=bar; export foo=",
 		"foo: readonly variable\nexit status 1 #JUSTERR",
 	},
 	{

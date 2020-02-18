@@ -1102,7 +1102,11 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 						vr.ReadOnly = true
 					}
 				}
-				r.setVar(name, as.Index, vr)
+				if as.Naked {
+					r.setVarInternal(name, vr)
+				} else {
+					r.setVar(name, as.Index, vr)
+				}
 			}
 		}
 	case *syntax.TimeClause:
