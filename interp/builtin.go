@@ -216,6 +216,20 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 	case "type":
 		anyNotFound := false
 		for _, arg := range args {
+			if als, ok := r.alias[arg]; ok && r.opts[optExpandAliases] {
+				var buf bytes.Buffer
+				if len(als.args) > 0 {
+					printer := syntax.NewPrinter()
+					printer.Print(&buf, &syntax.CallExpr{
+						Args: als.args,
+					})
+				}
+				if als.blank {
+					buf.WriteByte(' ')
+				}
+				r.outf("%s is aliased to `%s'\n", arg, &buf)
+				continue
+			}
 			if _, ok := r.Funcs[arg]; ok {
 				r.outf("%s is a function\n", arg)
 				continue

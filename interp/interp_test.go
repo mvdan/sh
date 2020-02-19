@@ -1815,6 +1815,8 @@ set +o pipefail
 	{"type $PATH_PROG | grep -q -E ' is (/|[A-Z]:).*'", ""},
 	{"type noexist", "type: noexist: not found\nexit status 1 #JUSTERR"},
 	{"PATH=/ ; type $PATH_PROG", "type: " + pathProg + ": not found\nexit status 1 #JUSTERR"},
+	{"shopt -s expand_aliases; alias foo='bar baz'\ntype foo", "foo is aliased to `bar baz'\n"},
+	{"alias foo='bar baz'\ntype foo", "type: foo: not found\nexit status 1 #JUSTERR"},
 
 	// eval
 	{"eval", ""},
