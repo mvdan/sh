@@ -11,7 +11,7 @@ import (
 	"os"
 	"strings"
 
-	"golang.org/x/crypto/ssh/terminal"
+	"golang.org/x/term"
 
 	"mvdan.cc/sh/v3/interp"
 	"mvdan.cc/sh/v3/syntax"
@@ -41,7 +41,7 @@ func runAll() error {
 		return run(r, strings.NewReader(*command), "")
 	}
 	if flag.NArg() == 0 {
-		if terminal.IsTerminal(int(os.Stdin.Fd())) {
+		if term.IsTerminal(int(os.Stdin.Fd())) {
 			return runInteractive(r, os.Stdin, os.Stdout, os.Stderr)
 		}
 		return run(r, os.Stdin, "")
