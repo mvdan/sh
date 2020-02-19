@@ -3345,27 +3345,3 @@ func TestMalformedPathOnWindows(t *testing.T) {
 		t.Fatalf("wrong output:\nwant: %q\ngot:  %q", want, got)
 	}
 }
-
-type termBuffer struct {
-	bytes.Buffer
-}
-
-func (*termBuffer) IsTerm() bool { return true }
-
-func TestRunnerTerminalStdIO(t *testing.T) {
-	t.Parallel()
-	file := parse(t, nil, `
-		for n in 0 1 2 3; do if [[ -t $n ]]; then echo $n; fi; done
-	`)
-
-	var b termBuffer
-	r, _ := New(StdIO(&b, &b, nil))
-	if err := r.Run(context.Background(), file); err != nil {
-		t.Fatal(err)
-	}
-
-	want := "0\n1\n"
-	if got := b.String(); got != want {
-		t.Fatalf("\nwant: %q\ngot:  %q", want, got)
-	}
-}

@@ -15,7 +15,7 @@ import (
 	"regexp"
 
 	"github.com/pkg/diff"
-	"golang.org/x/crypto/ssh/terminal"
+	"golang.org/x/term"
 	"mvdan.cc/editorconfig"
 
 	"mvdan.cc/sh/v3/fileutil"
@@ -155,7 +155,7 @@ Utilities:
 		color = true
 	} else if os.Getenv("TERM") == "dumb" {
 		// Equivalent to forcing color to be turned off.
-	} else if f, ok := out.(*os.File); ok && terminal.IsTerminal(int(f.Fd())) {
+	} else if f, ok := out.(*os.File); ok && term.IsTerminal(int(f.Fd())) {
 		color = true
 	}
 	if flag.NArg() == 0 || (flag.NArg() == 1 && flag.Arg(0) == "-") {

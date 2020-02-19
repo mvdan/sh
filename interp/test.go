@@ -10,7 +10,7 @@ import (
 	"os/exec"
 	"regexp"
 
-	"golang.org/x/crypto/ssh/terminal"
+	"golang.org/x/term"
 
 	"mvdan.cc/sh/v3/expand"
 	"mvdan.cc/sh/v3/syntax"
@@ -173,19 +173,13 @@ func (r *Runner) unTest(ctx context.Context, op syntax.UnTestOperator, x string)
 		case 2:
 			f = r.stderr
 		}
-		if f, ok := f.(interface{ IsTerm() bool }); ok {
-			// Allow the user to set their own logic entirely.
-			return f.IsTerm()
-		}
 		if f, ok := f.(interface{ Fd() uintptr }); ok {
 			// Support Fd methods such as the one on *os.File.
-			fd = int(f.Fd())
+			return term.IsTerminal(int(f.Fd()))
 		}
-		if fd < 3 {
-			// Don't use the process's 0/1/2 file descriptor.
-			return false
-		}
-		return terminal.IsTerminal(fd)
+		// TODO: allow term.IsTerminal here too if running in the
+		// "single process" mode.
+		return false
 	case syntax.TsEmpStr:
 		return x == ""
 	case syntax.TsNempStr:
