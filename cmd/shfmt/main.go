@@ -13,7 +13,9 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 
+	"github.com/google/renameio"
 	"github.com/pkg/diff"
 	"golang.org/x/term"
 	"mvdan.cc/editorconfig"
@@ -338,14 +340,18 @@ func formatBytes(src []byte, path string) error {
 			}
 		}
 		if *write {
-			f, err := os.OpenFile(path, os.O_WRONLY|os.O_TRUNC, 0)
+			info, err := os.Lstat(path)
 			if err != nil {
 				return err
 			}
-			if _, err := f.Write(res); err != nil {
-				return err
+			perm := info.Mode().Perm()
+			writeFile := renameio.WriteFile
+			// TODO: support atomic writes on Windows once renameio
+			// supports it
+			if runtime.GOOS == "windows" {
+				writeFile = ioutil.WriteFile
 			}
-			if err := f.Close(); err != nil {
+			if err := writeFile(path, res, perm); err != nil {
 				return err
 			}
 		}

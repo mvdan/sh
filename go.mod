@@ -4,6 +4,7 @@ go 1.11
 
 require (
 	github.com/creack/pty v1.1.9
+	github.com/google/renameio v0.1.0
 	github.com/kr/pretty v0.2.0
 	github.com/kr/text v0.2.0 // indirect
 	github.com/pkg/diff v0.0.0-20190930165518-531926345625
