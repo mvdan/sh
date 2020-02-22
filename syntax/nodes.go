@@ -648,7 +648,8 @@ func (p *ParenArithm) End() Pos { return posAddCol(p.Rparen, 1) }
 
 // CaseClause represents a case (switch) clause.
 type CaseClause struct {
-	Case, Esac Pos
+	Case, In, Esac Pos
+	Braces         bool // deprecated mksh form with braces instead of in/esac
 
 	Word  *Word
 	Items []*CaseItem

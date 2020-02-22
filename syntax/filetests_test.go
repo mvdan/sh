@@ -4647,7 +4647,16 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 		recurse(x.Last)
 	case *CaseClause:
 		setPos(&x.Case, "case")
-		setPos(&x.Esac, "esac", "}")
+		if x.Braces {
+			setPos(&x.In, "{")
+			setPos(&x.Esac, "}")
+			// Zero out Braces, to not duplicate all the test cases.
+			// The printer ignores the field anyway.
+			x.Braces = false
+		} else {
+			setPos(&x.In, "in")
+			setPos(&x.Esac, "esac")
+		}
 		recurse(x.Word)
 		for _, ci := range x.Items {
 			recurse(ci)

@@ -2116,13 +2116,15 @@ func (p *Parser) caseClause(s *Stmt) {
 	}
 	end := "esac"
 	p.got(_Newl)
-	if _, ok := p.gotRsrv("{"); ok {
+	if pos, ok := p.gotRsrv("{"); ok {
+		cc.In = pos
+		cc.Braces = true
 		if p.lang != LangMirBSDKorn {
 			p.posErr(cc.Pos(), `"case i {" is a mksh feature`)
 		}
 		end = "}"
 	} else {
-		p.followRsrv(cc.Case, "case x", "in")
+		cc.In = p.followRsrv(cc.Case, "case x", "in")
 	}
 	cc.Items = p.caseItems(end)
 	cc.Last, p.accComs = p.accComs, nil
