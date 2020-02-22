@@ -1,13 +1,34 @@
 # Changelog
 
-## [3.0.2] - Unreleased
+## [3.1.0] - Unreleased
+
+- Redesigned Docker images, including buildx and an Alpine variant
+- **cmd/shfmt**
+  - Replace source files atomically when possible
+  - Support `ignore = true` in an EditorConfig to skip directories
+  - Add `-fn` to place function opening braces on the next line
+  - Improve behavior of `-f` when given non-directories
+- **syntax**
+  - Add support for nested here-documents
+  - Allow parsing for loops with braces, present in mksh and Bash
+- **interp**
+  - Add initial support for Bash process substitutions
+  - Add initial support for aliases
+  - Fix an edge case where the status code would not be reset
+  - The exit status code can now reflect being stopped by a signal
+  - `test -t` now uses the interpreter's stdin/stdout/stderr files
+- **expand**
+  - Improve the interaction of `@` and `*` with quotes and `IFS`
+
+## [3.0.2] - 2020-02-22
 
 - **syntax**
   - Don't indent after escaped newlines in heredocs
+  - Don't parse `*[i]=x` as a valid assignment
 - **interp**
   - Prevent subshells from defining funcs in the parent shells
 - **expand**
-  - Avoid in-place brace expansion with the parameters to `Fields`
+  - Parameters to `Fields` no longer get braces expanded in-place
 
 ## [3.0.1] - 2020-01-11
 
