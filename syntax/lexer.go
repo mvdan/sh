@@ -965,6 +965,7 @@ func (p *Parser) quotedHdocWord() *Word {
 		for r != utf8.RuneSelf && r != '\n' {
 			if r == escNewl {
 				p.litBs = append(p.litBs, '\\', '\n')
+				break
 			}
 			r = p.rune()
 		}
