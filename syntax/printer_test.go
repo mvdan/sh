@@ -403,6 +403,7 @@ var printTests = []printCase{
 		"( (foo) )\n$( (foo) )\n<( (foo) )",
 		"( (foo))\n$( (foo))\n<((foo))",
 	},
+	samePrint("if x; then (\n\ty\n) & fi"),
 	samePrint("\"foo\n$(bar)\""),
 	samePrint("\"foo\\\n$(bar)\""),
 	samePrint("\"foo\\\nbar\""),

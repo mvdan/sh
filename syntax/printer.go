@@ -913,11 +913,11 @@ func (p *Printer) stmt(s *Stmt) {
 			p.pendingHdocs = append(p.pendingHdocs, r)
 		}
 	}
+	p.wroteSemi = true
 	switch {
 	case s.Semicolon.IsValid() && s.Semicolon.Line() > p.line:
 		p.bslashNewl()
 		p.WriteByte(';')
-		p.wroteSemi = true
 	case s.Background:
 		if !p.minify {
 			p.space()
@@ -928,6 +928,11 @@ func (p *Printer) stmt(s *Stmt) {
 			p.space()
 		}
 		p.WriteString("|&")
+	default:
+		p.wroteSemi = false
+	}
+	if p.wroteSemi {
+		p.wantSpace = true
 	}
 	p.decLevel()
 }

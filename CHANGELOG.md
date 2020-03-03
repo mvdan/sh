@@ -12,6 +12,7 @@
   - Add support for nested here-documents
   - Allow parsing for loops with braces, present in mksh and Bash
   - Expand `CaseClause` to describe its `in` token
+  - Allow empty lines in Bash arrays in the printer
 - **interp**
   - Add initial support for Bash process substitutions
   - Add initial support for aliases
