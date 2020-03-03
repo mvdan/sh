@@ -421,10 +421,8 @@ func (p *Printer) flushHeredocs() {
 					line:      r.Hdoc.Pos().Line(),
 				}
 				p.tabsPrinter.wordParts(r.Hdoc.Parts, true)
-				p.indent()
-			} else {
-				p.indent()
 			}
+			p.indent()
 		} else if r.Hdoc != nil {
 			p.wordParts(r.Hdoc.Parts, true)
 		}
@@ -865,8 +863,7 @@ func (p *Printer) elemJoin(elems []*ArrayElem, last []Comment) {
 			p.comments(c)
 		}
 		if el.Pos().Line() > p.line {
-			p.newline(el.Pos())
-			p.indent()
+			p.newlines(el.Pos())
 		} else if p.wantSpace {
 			p.space()
 		}
