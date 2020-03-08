@@ -1,6 +1,6 @@
 module local.tld/fuzz
 
-go 1.13
+go 1.14
 
 replace mvdan.cc/sh/v3 => ./../..
 
