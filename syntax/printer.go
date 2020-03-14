@@ -37,6 +37,9 @@ func SwitchCaseIndent(enabled bool) PrinterOption {
 	return func(p *Printer) { p.swtCaseIndent = enabled }
 }
 
+// TODO(v4): consider turning this into a "space all operators" option, to also
+// allow foo=( bar baz ), (( x + y )), and so on.
+
 // SpaceRedirects will put a space after most redirection operators. The
 // exceptions are '>&', '<&', '>(', and '<('.
 func SpaceRedirects(enabled bool) PrinterOption {
