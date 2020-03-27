@@ -1087,3 +1087,21 @@ func TestPrintManyStmts(t *testing.T) {
 		})
 	}
 }
+
+func TestKeepPaddingRepeated(t *testing.T) {
+	t.Parallel()
+	parser := NewParser()
+	printer := NewPrinter()
+
+	// Enable the KeepPadding option twice. This used to crash, since the
+	// option made an invalid type assertion the second time.
+	KeepPadding(true)(printer)
+	KeepPadding(true)(printer)
+
+	// Ensure the option is enabled.
+	printTest(t, parser, printer, "foo  bar", "foo  bar")
+
+	// Disable the option, and ensure it's disabled.
+	KeepPadding(false)(printer)
+	printTest(t, parser, printer, "foo  bar", "foo bar")
+}

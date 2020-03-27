@@ -55,11 +55,17 @@ func SpaceRedirects(enabled bool) PrinterOption {
 // run.
 func KeepPadding(enabled bool) PrinterOption {
 	return func(p *Printer) {
-		// TODO: support setting this option to false.
-		if enabled {
+		if enabled && !p.keepPadding {
+			// Enable the flag, and set up the writer wrapper.
 			p.keepPadding = true
 			p.cols.Writer = p.bufWriter.(*bufio.Writer)
 			p.bufWriter = &p.cols
+
+		} else if !enabled && p.keepPadding {
+			// Ensure we reset the state to that of NewPrinter.
+			p.keepPadding = false
+			p.bufWriter = p.cols.Writer
+			p.cols = colCounter{}
 		}
 	}
 }
