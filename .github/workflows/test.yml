@@ -15,7 +15,7 @@ jobs:
       with:
         go-version: ${{ matrix.go-version }}
     - name: Checkout code
-      uses: actions/checkout@v1
+      uses: actions/checkout@v2
     - name: Test
       run: go test -count=1 ./...
     - name: Test with -short -race
@@ -29,7 +29,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout code
-      uses: actions/checkout@v1
+      uses: actions/checkout@v2
     - name: Test as root, without cgo, and with busybox
       run: docker run -v="$PWD:/pwd" -w=/pwd -e=CGO_ENABLED=0 golang:1.14-alpine3.11 go test ./...
 
@@ -41,7 +41,7 @@ jobs:
       with:
         go-version: 1.14.x
     - name: Checkout code
-      uses: actions/checkout@v1
+      uses: actions/checkout@v2
 
     - name: fuzz regression tests
       run: export PATH="$PATH:$(go env GOPATH)/bin"; cd _fuzz/it && ./fuzz-ci local-regression
@@ -82,9 +82,7 @@ jobs:
         linux/s390x
     steps:
     - name: Checkout code
-      uses: actions/checkout@v1
-      with:
-        fetch-depth: 1  # no history, just HEAD
+      uses: actions/checkout@v2
     - name: Set up image tag
       run: |
         set -vx
