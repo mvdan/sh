@@ -2,7 +2,8 @@ FROM golang:1.14-alpine3.11 AS build
 
 WORKDIR /src
 COPY . .
-RUN CGO_ENABLED=0 go build -ldflags '-w -s -extldflags "-static"' ./cmd/shfmt
+RUN apk add git
+RUN CGO_ENABLED=0 go build -ldflags "-w -s -extldflags '-static' -X main.version=$(git describe --always --dirty)" ./cmd/shfmt
 
 FROM alpine:3.11 AS alpine
 COPY --from=build /src/shfmt /bin/shfmt
