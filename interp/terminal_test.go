@@ -11,7 +11,6 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"runtime"
 	"strings"
 	"testing"
 
@@ -113,8 +112,8 @@ func TestRunnerTerminalExec(t *testing.T) {
 	for _, test := range tests {
 		test := test
 		t.Run(test.name, func(t *testing.T) {
-			if test.name == "Pseudo" && runtime.GOOS == "darwin" {
-				t.Skipf("too flaky on GitHub's Mac machines; see https://github.com/mvdan/sh/issues/513")
+			if test.name == "Pseudo" {
+				t.Skipf("too flaky on GitHub's machines; see https://github.com/mvdan/sh/issues/513")
 			}
 			t.Parallel()
 
