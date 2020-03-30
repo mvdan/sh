@@ -138,13 +138,14 @@ To use the Docker image, run:
 
 ### Related projects
 
-* Alternative docker images - by [jamesmstone][dockerized-jamesmstone], [PeterDaveHello][dockerized-peterdavehello]
-* [format-shell] - Atom plugin for `shfmt`
-* [micro] - Editor with a built-in plugin for `shfmt`
-* [modd] - A developer tool that responds to filesystem changes, using `sh`
-* [shell-format] - VS Code plugin for `shfmt`
-* [Sublime-Pretty-Shell] - Sublime Text 3 plugin for `shfmt`
-* [vim-shfmt] - Vim plugin for `shfmt`
+- Alternative docker images - by [jamesmstone][dockerized-jamesmstone], [PeterDaveHello][dockerized-peterdavehello]
+- [format-shell] - Atom plugin for `shfmt`
+- [micro] - Editor with a built-in plugin for `shfmt`
+- [modd] - A developer tool that responds to filesystem changes, using `sh`
+- [sh-checker] - A GitHub Action that performs static analysis for shell scripts using shfmt and shellcheck
+- [shell-format] - VS Code plugin for `shfmt`
+- [Sublime-Pretty-Shell] - Sublime Text 3 plugin for `shfmt`
+- [vim-shfmt] - Vim plugin for `shfmt`
 
 [alpine]: https://pkgs.alpinelinux.org/packages?name=shfmt
 [arch]: https://www.archlinux.org/packages/community/x86_64/shfmt/
@@ -168,8 +169,10 @@ To use the Docker image, run:
 [posix shell]: https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html
 [posix-ambiguity]: https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_06_03
 [scoop]: https://github.com/ScoopInstaller/Main/blob/HEAD/bucket/shfmt.json
+[sh-checker]: https://github.com/luizm/action-sh-checker
 [shell-format]: https://marketplace.visualstudio.com/items?itemName=foxundermoon.shell-format
-[Sublime-Pretty-Shell]: https://github.com/aerobounce/Sublime-Pretty-Shell
 [snapcraft]: https://snapcraft.io/shfmt
+[sublime-pretty-shell]: https://github.com/aerobounce/Sublime-Pretty-Shell
 [vim-shfmt]: https://github.com/z0mbix/vim-shfmt
 [void]: https://github.com/void-linux/void-packages/blob/HEAD/srcpkgs/shfmt/template
+
