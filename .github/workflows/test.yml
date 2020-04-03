@@ -79,7 +79,14 @@ jobs:
         linux/arm/v7
         linux/arm64/v8
         linux/ppc64le
-        linux/s390x
+
+      # linux/s390x TODO: reenable when we figure out its weird errors when
+      # fetching dependencies, including:
+      #
+      # zip: checksum error
+      # Get "https://proxy.golang.org/...": local error: tls: bad record MAC
+      # Get "https://proxy.golang.org/...": local error: tls: unexpected message
+      # Get "https://proxy.golang.org/...": x509: certificate signed by unknown authority
     steps:
     - name: Checkout code
       uses: actions/checkout@v2
