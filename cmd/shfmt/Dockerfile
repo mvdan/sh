@@ -1,8 +1,7 @@
-FROM golang:1.14.1-alpine3.11 AS build
+FROM golang:1.14.1 AS build
 
 WORKDIR /src
 COPY . .
-RUN apk add git
 RUN CGO_ENABLED=0 go build -ldflags "-w -s -extldflags '-static' -X main.version=$(git describe --always --dirty)" ./cmd/shfmt
 
 FROM alpine:3.11.5 AS alpine

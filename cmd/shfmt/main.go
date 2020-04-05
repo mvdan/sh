@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"runtime/debug"
 
 	"github.com/google/renameio"
 	"github.com/pkg/diff"
@@ -59,7 +60,7 @@ var (
 	out   io.Writer = os.Stdout
 	color bool
 
-	version = "devel"
+	version = "(devel)" // to match the default from runtime/debug
 )
 
 func main() {
@@ -105,6 +106,14 @@ Utilities:
 	flag.Parse()
 
 	if *showVersion {
+		// don't overwrite the version if it was set by -ldflags=-X
+		if info, ok := debug.ReadBuildInfo(); ok && version == "(devel)" {
+			mod := &info.Main
+			if mod.Replace != nil {
+				mod = mod.Replace
+			}
+			version = mod.Version
+		}
 		fmt.Println(version)
 		return 0
 	}
