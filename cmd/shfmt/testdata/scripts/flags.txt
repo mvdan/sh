@@ -6,7 +6,7 @@ stderr 'Utilities' # definitely includes our help text
 ! stderr '-test\.' # don't show the test binary's usage func
 
 shfmt -version
-stdout '^devel|v3'
+stdout 'devel|v3'
 ! stderr .
 
 ! shfmt -ln=bash -p
