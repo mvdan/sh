@@ -1,6 +1,8 @@
 # Changelog
 
-## [3.1.0] - Unreleased
+## Unreleased
+
+## [3.1.0] - 2020-04-07
 
 - Redesigned Docker images, including buildx and an Alpine variant
 - **cmd/shfmt**
@@ -8,11 +10,14 @@
   - Support `ignore = true` in an EditorConfig to skip directories
   - Add `-fn` to place function opening braces on the next line
   - Improve behavior of `-f` when given non-directories
+  - Docker images and `go get` installs now embed good version information
 - **syntax**
   - Add support for nested here-documents
   - Allow parsing for loops with braces, present in mksh and Bash
   - Expand `CaseClause` to describe its `in` token
   - Allow empty lines in Bash arrays in the printer
+  - Support disabling `KeepPadding`
+  - Avoid mis-printing some programs involving `&`
 - **interp**
   - Add initial support for Bash process substitutions
   - Add initial support for aliases
@@ -435,6 +440,10 @@ module in v3.
 
 Initial release.
 
+[3.1.0]: https://github.com/mvdan/sh/releases/tag/v3.1.0
+[3.0.2]: https://github.com/mvdan/sh/releases/tag/v3.0.2
+[3.0.1]: https://github.com/mvdan/sh/releases/tag/v3.0.1
+[3.0.0]: https://github.com/mvdan/sh/releases/tag/v3.0.0
 [2.6.4]: https://github.com/mvdan/sh/releases/tag/v2.6.4
 [2.6.3]: https://github.com/mvdan/sh/releases/tag/v2.6.3
 [2.6.2]: https://github.com/mvdan/sh/releases/tag/v2.6.2
