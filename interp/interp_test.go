@@ -3077,13 +3077,14 @@ func TestRunnerContext(t *testing.T) {
 				errChan <- r.Run(ctx, file)
 			}()
 
+			timeout := 500 * time.Millisecond
 			select {
 			case err := <-errChan:
 				if err != nil && err != ctx.Err() {
 					t.Fatal("Runner did not use ctx.Err()")
 				}
-			case <-time.After(time.Millisecond * 100):
-				t.Fatal("program was not killed in 0.1s")
+			case <-time.After(timeout):
+				t.Fatalf("program was not killed in %s", timeout)
 			}
 		})
 	}
