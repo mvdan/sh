@@ -31,7 +31,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
     - name: Test as root, without cgo, and with busybox
-      run: docker run -v="$PWD:/pwd" -w=/pwd -e=CGO_ENABLED=0 golang:1.14-alpine3.11 go test ./...
+      run: docker run -v="$PWD:/pwd" -w=/pwd -e=CGO_ENABLED=0 golang:1.14.1-alpine go test ./...
 
   fuzz:
     runs-on: ubuntu-latest
@@ -151,8 +151,8 @@ jobs:
         printf '%s\n' "#!/bin/sh" "echo 'hello world'" >myscript
 
         for platform in $DOCKER_PLATFORMS; do
-          for ext in '-alpine' ''; do
-            image="${DOCKER_BASE}${ext}:${TAG}"
+          for ext in '' '-alpine'; do
+            image="${DOCKER_BASE}:${TAG}${ext}"
             msg="Testing docker image $image on platform $platform"
             line="${msg//?/=}"
             printf "\n${line}\n${msg}\n${line}\n"
