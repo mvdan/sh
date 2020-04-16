@@ -72,9 +72,51 @@ func main() {
 	})
 
 	// Printer
-	stx.Set("NewPrinter", func() *js.Object {
+	stx.Set("NewPrinter", func(options ...func(interface{})) *js.Object {
 		p := syntax.NewPrinter()
-		return js.MakeFullWrapper(jsPrinter{p})
+		jp := js.MakeFullWrapper(&jsPrinter{Printer: *p})
+		// Apply the options after we've wrapped the printer, as
+		// otherwise we cannot internalise the value.
+		for _, opt := range options {
+			opt(jp)
+		}
+		return jp
+	})
+
+	stx.Set("Indent", func(spaces uint) func(interface{}) {
+		return func(v interface{}) {
+			syntax.Indent(spaces)(&v.(*jsPrinter).Printer)
+		}
+	})
+	stx.Set("BinaryNextLine", func(enabled bool) func(interface{}) {
+		return func(v interface{}) {
+			syntax.BinaryNextLine(enabled)(&v.(*jsPrinter).Printer)
+		}
+	})
+	stx.Set("SwitchCaseIndent", func(enabled bool) func(interface{}) {
+		return func(v interface{}) {
+			syntax.SwitchCaseIndent(enabled)(&v.(*jsPrinter).Printer)
+		}
+	})
+	stx.Set("SpaceRedirects", func(enabled bool) func(interface{}) {
+		return func(v interface{}) {
+			syntax.SpaceRedirects(enabled)(&v.(*jsPrinter).Printer)
+		}
+	})
+	stx.Set("KeepPadding", func(enabled bool) func(interface{}) {
+		return func(v interface{}) {
+			syntax.KeepPadding(enabled)(&v.(*jsPrinter).Printer)
+		}
+	})
+	stx.Set("Minify", func(enabled bool) func(interface{}) {
+		return func(v interface{}) {
+			syntax.Minify(enabled)(&v.(*jsPrinter).Printer)
+		}
+	})
+	stx.Set("FunctionNextLine", func(enabled bool) func(interface{}) {
+		return func(v interface{}) {
+			syntax.FunctionNextLine(enabled)(&v.(*jsPrinter).Printer)
+		}
 	})
 
 	// Syntax utilities
@@ -184,7 +226,7 @@ func (p *jsParser) InteractiveStep(line string) []*syntax.Stmt {
 }
 
 type jsPrinter struct {
-	*syntax.Printer
+	syntax.Printer
 }
 
 func (p jsPrinter) Print(file *syntax.File) string {

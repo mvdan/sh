@@ -249,3 +249,13 @@ const printer = syntax.NewPrinter()
 	assert.equal(syntax.NodeType(word.Parts[1]), "Lit")
 	assert.equal(word.Parts[1].Value, "")
 }
+
+{
+	const printer = syntax.NewPrinter(
+		syntax.Indent(2),
+		syntax.BinaryNextLine(true)
+	)
+	const f = parser.Parse("RUN yarn install && \\\n yarn build")
+	const out = printer.Print(f)
+	assert.equal(out, "RUN yarn install \\\n  && yarn build\n")
+}
