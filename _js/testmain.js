@@ -130,7 +130,7 @@ const printer = syntax.NewPrinter()
 {
 	// parser options
 	const parser = syntax.NewParser(
-		syntax.KeepComments,
+		syntax.KeepComments(true),
 		syntax.Variant(syntax.LangMirBSDKorn),
 		syntax.StopAt("$$")
 	)

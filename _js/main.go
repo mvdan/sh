@@ -49,8 +49,10 @@ func main() {
 	})
 	stx.Set("IsIncomplete", syntax.IsIncomplete)
 
-	stx.Set("KeepComments", func(v interface{}) {
-		syntax.KeepComments(&v.(*jsParser).Parser)
+	stx.Set("KeepComments", func(enabled bool) func(interface{}) {
+		return func(v interface{}) {
+			syntax.KeepComments(enabled)(&v.(*jsParser).Parser)
+		}
 	})
 	stx.Set("Variant", func(l syntax.LangVariant) func(interface{}) {
 		if math.IsNaN(float64(l)) {
@@ -89,7 +91,7 @@ func main() {
 		syntax.DebugPrint(os.Stdout, node)
 	})
 	stx.Set("SplitBraces", func(w *syntax.Word) *js.Object {
-		w = syntax.SplitBraces(w)
+		syntax.SplitBraces(w)
 		return js.MakeFullWrapper(w)
 	})
 }
