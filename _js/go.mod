@@ -2,7 +2,7 @@ module shjs
 
 go 1.11
 
-replace github.com/gopherjs/gopherjs => github.com/myitcv/gopherjs v1.12.0
+replace github.com/gopherjs/gopherjs => github.com/myitcv/gopherjs v1.12.80
 
 replace mvdan.cc/sh/v3 => ../
 
