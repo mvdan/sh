@@ -144,9 +144,9 @@ To use the Docker image, run:
 - [modd] - A developer tool that responds to filesystem changes, using `sh`
 - [sh-checker] - A GitHub Action that performs static analysis for shell scripts using shfmt and shellcheck
 - [shell-format] - VS Code plugin for `shfmt`
+- [shfmt.el] - Emacs package for `shfmt`
 - [Sublime-Pretty-Shell] - Sublime Text 3 plugin for `shfmt`
 - [vim-shfmt] - Vim plugin for `shfmt`
-- [shfmt.el] - Emacs package for `shfmt`
 
 [alpine]: https://pkgs.alpinelinux.org/packages?name=shfmt
 [arch]: https://www.archlinux.org/packages/community/x86_64/shfmt/
