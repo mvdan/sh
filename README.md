@@ -146,6 +146,7 @@ To use the Docker image, run:
 - [shell-format] - VS Code plugin for `shfmt`
 - [Sublime-Pretty-Shell] - Sublime Text 3 plugin for `shfmt`
 - [vim-shfmt] - Vim plugin for `shfmt`
+- [prettier-plugin-sh] - [Prettier] plugin using [mvdan-sh]
 
 [alpine]: https://pkgs.alpinelinux.org/packages?name=shfmt
 [arch]: https://www.archlinux.org/packages/community/x86_64/shfmt/
@@ -175,4 +176,5 @@ To use the Docker image, run:
 [sublime-pretty-shell]: https://github.com/aerobounce/Sublime-Pretty-Shell
 [vim-shfmt]: https://github.com/z0mbix/vim-shfmt
 [void]: https://github.com/void-linux/void-packages/blob/HEAD/srcpkgs/shfmt/template
-
+[prettier-plugin-sh]: https://github.com/rx-ts/prettier/tree/master/packages/sh
+[prettier]: https://prettier.io
