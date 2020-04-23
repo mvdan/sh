@@ -142,6 +142,7 @@ To use the Docker image, run:
 - [format-shell] - Atom plugin for `shfmt`
 - [micro] - Editor with a built-in plugin for `shfmt`
 - [modd] - A developer tool that responds to filesystem changes, using `sh`
+- [prettier-plugin-sh] - [Prettier] plugin using [mvdan-sh]
 - [sh-checker] - A GitHub Action that performs static analysis for shell scripts using shfmt and shellcheck
 - [shell-format] - VS Code plugin for `shfmt`
 - [shfmt.el] - Emacs package for `shfmt`
@@ -169,6 +170,8 @@ To use the Docker image, run:
 [nixos]: https://github.com/NixOS/nixpkgs/blob/HEAD/pkgs/tools/text/shfmt/default.nix
 [posix shell]: https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html
 [posix-ambiguity]: https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_06_03
+[prettier]: https://prettier.io
+[prettier-plugin-sh]: https://github.com/rx-ts/prettier/tree/master/packages/sh
 [scoop]: https://github.com/ScoopInstaller/Main/blob/HEAD/bucket/shfmt.json
 [sh-checker]: https://github.com/luizm/action-sh-checker
 [shell-format]: https://marketplace.visualstudio.com/items?itemName=foxundermoon.shell-format
@@ -177,4 +180,3 @@ To use the Docker image, run:
 [sublime-pretty-shell]: https://github.com/aerobounce/Sublime-Pretty-Shell
 [vim-shfmt]: https://github.com/z0mbix/vim-shfmt
 [void]: https://github.com/void-linux/void-packages/blob/HEAD/srcpkgs/shfmt/template
-
