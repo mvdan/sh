@@ -144,6 +144,7 @@ To use the Docker image, run:
 - [modd] - A developer tool that responds to filesystem changes, using `sh`
 - [sh-checker] - A GitHub Action that performs static analysis for shell scripts using shfmt and shellcheck
 - [shell-format] - VS Code plugin for `shfmt`
+- [shfmt.el] - Emacs package for `shfmt`
 - [Sublime-Pretty-Shell] - Sublime Text 3 plugin for `shfmt`
 - [vim-shfmt] - Vim plugin for `shfmt`
 
@@ -171,6 +172,7 @@ To use the Docker image, run:
 [scoop]: https://github.com/ScoopInstaller/Main/blob/HEAD/bucket/shfmt.json
 [sh-checker]: https://github.com/luizm/action-sh-checker
 [shell-format]: https://marketplace.visualstudio.com/items?itemName=foxundermoon.shell-format
+[shfmt.el]: https://github.com/purcell/emacs-shfmt/
 [snapcraft]: https://snapcraft.io/shfmt
 [sublime-pretty-shell]: https://github.com/aerobounce/Sublime-Pretty-Shell
 [vim-shfmt]: https://github.com/z0mbix/vim-shfmt
