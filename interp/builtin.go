@@ -289,7 +289,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			r.sourceSetParams = false
 		}
 		// We want to track if the sourced file explicitly sets the
-		// paramters.
+		// parameters.
 		r.sourceSetParams = false
 		r.inSource = true // know that we're inside a sourced script.
 		r.stmts(ctx, file.Stmts)
