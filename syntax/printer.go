@@ -180,8 +180,8 @@ func (c *colCounter) WriteByte(b byte) error {
 
 func (c *colCounter) WriteString(s string) (int, error) {
 	c.lineStart = false
-	for _, r := range s {
-		if r == '\n' {
+	for _, b := range []byte(s) {
+		if b == '\n' {
 			c.column = 0
 		}
 		c.column++

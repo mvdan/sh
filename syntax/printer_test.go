@@ -817,6 +817,7 @@ func TestPrintKeepPadding(t *testing.T) {
 		samePrint("'foo\nbar'   # x"),
 		{"\tfoo", "foo"},
 		{"  if foo; then bar; fi", "if   foo; then bar; fi"},
+		samePrint("echo '★'  || true"),
 	}
 	parser := NewParser(KeepComments(true))
 	printer := NewPrinter(KeepPadding(true))
