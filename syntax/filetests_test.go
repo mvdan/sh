@@ -3268,11 +3268,11 @@ var fileTests = []testCase{
 		}},
 	},
 	{
-		Strs: []string{`[[ a =~ ( ]]) ]]`},
+		Strs: []string{`[[ a =~ ( ]]<>;&) ]]`},
 		bash: &TestClause{X: &BinaryTest{
 			Op: TsReMatch,
 			X:  litWord("a"),
-			Y:  litWord("( ]])"),
+			Y:  litWord("( ]]<>;&)"),
 		}},
 	},
 	{
