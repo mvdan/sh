@@ -93,7 +93,7 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-func cmdContains(substr string, cmd string, args ...string) bool {
+func cmdContains(substr, cmd string, args ...string) bool {
 	out, err := exec.Command(cmd, args...).CombinedOutput()
 	got := string(out)
 	if err != nil {
