@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+## [3.1.1] - 2020-05-04
+
+- **cmd/shfmt**
+  - Recognise `function_next_line` in EditorConfig files
+- **syntax**
+  - Don't ignore escaped newlines at the end of heredoc bodies
+  - Improve support for parsing regexes in test expressions
+  - Count columns for `KeepPadding` in bytes, to better support unicode
+  - Never let `KeepPadding` add spaces right after indentation
+- **interp**
+  - Hide unset variables when executing programs
+
 ## [3.1.0] - 2020-04-07
 
 - Redesigned Docker images, including buildx and an Alpine variant
@@ -440,6 +452,7 @@ module in v3.
 
 Initial release.
 
+[3.1.1]: https://github.com/mvdan/sh/releases/tag/v3.1.1
 [3.1.0]: https://github.com/mvdan/sh/releases/tag/v3.1.0
 [3.0.2]: https://github.com/mvdan/sh/releases/tag/v3.0.2
 [3.0.1]: https://github.com/mvdan/sh/releases/tag/v3.0.1
