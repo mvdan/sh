@@ -94,6 +94,9 @@ space_redirects = true
 [keep_padding.sh]
 keep_padding = true
 
+[function_next_line.sh]
+function_next_line = true
+
 -- otherknobs/shell_variant_posix.sh --
 let badsyntax+
 -- otherknobs/shell_variant_mksh.sh --
@@ -113,6 +116,11 @@ esac
 echo foo > bar
 -- otherknobs/keep_padding.sh --
 echo  foo    bar
+-- otherknobs/function_next_line.sh --
+foo()
+{
+	echo foo
+}
 -- ignored/.editorconfig --
 root = true
 
