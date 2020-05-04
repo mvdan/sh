@@ -55,6 +55,7 @@ binary_next_line   = true  # like -bn
 switch_case_indent = true  # like -ci
 space_redirects    = true  # like -sr
 keep_padding       = true  # like -kp
+function_next_line = true  # like -fn
 
 # Ignore the entire "third_party" directory.
 [third_party/**]
