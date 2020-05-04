@@ -290,6 +290,7 @@ func propsOptions(props editorconfig.Section) {
 	syntax.SwitchCaseIndent(props.Get("switch_case_indent") == "true")(printer)
 	syntax.SpaceRedirects(props.Get("space_redirects") == "true")(printer)
 	syntax.KeepPadding(props.Get("keep_padding") == "true")(printer)
+	syntax.FunctionNextLine(props.Get("function_next_line") == "true")(printer)
 }
 
 func formatPath(path string, checkShebang bool) error {
