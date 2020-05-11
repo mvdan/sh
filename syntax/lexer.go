@@ -171,11 +171,9 @@ func (p *Parser) nextKeepSpaces() {
 			p.advanceLitDquote(r)
 		}
 	case hdocBody, hdocBodyTabs:
-		switch {
-		case r == '`' || r == '$':
+		switch r {
+		case '`', '$':
 			p.tok = p.dqToken(r)
-		case p.hdocStops[:len(p.hdocStops)-1] == nil:
-			p.tok = _Newl
 		default:
 			p.advanceLitHdoc(r)
 		}
