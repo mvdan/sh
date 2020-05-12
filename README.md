@@ -137,6 +137,24 @@ To use the Docker image, run:
 
 	docker run --rm -v $PWD:/mnt -w /mnt my:tag <shfmt arguments>
 
+### pre-commit
+
+It is possible to use shfmt with [pre-commit][pre-commit] and a `local`
+repo configuration like:
+
+```yaml
+  - repo: local
+    hooks:
+      - id: shfmt
+        name: shfmt
+        minimum_pre_commit_version: 2.4.0
+        language: golang
+        additional_dependencies: [mvdan.cc/sh/v3/cmd/shfmt@v3.1.1]
+        entry: shfmt
+        args: [-w]
+        types: [shell]
+```
+
 ### Related projects
 
 - Alternative docker images - by [jamesmstone][dockerized-jamesmstone], [PeterDaveHello][dockerized-peterdavehello]
@@ -181,3 +199,4 @@ To use the Docker image, run:
 [sublime-pretty-shell]: https://github.com/aerobounce/Sublime-Pretty-Shell
 [vim-shfmt]: https://github.com/z0mbix/vim-shfmt
 [void]: https://github.com/void-linux/void-packages/blob/HEAD/srcpkgs/shfmt/template
+[pre-commit]: https://pre-commit.com
