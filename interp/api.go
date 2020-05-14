@@ -135,28 +135,11 @@ type Runner struct {
 	// keepRedirs is used so that "exec" can make any redirections
 	// apply to the current shell, and not just the command.
 	keepRedirs bool
-
-	// So that we can get io.Copy to reuse the same buffer within a runner.
-	// For example, this saves an allocation for every shell pipe, since
-	// io.PipeReader does not implement io.WriterTo.
-	bufCopier bufCopier
 }
 
 type alias struct {
 	args  []*syntax.Word
 	blank bool
-}
-
-type bufCopier struct {
-	io.Reader
-	buf []byte
-}
-
-func (r *bufCopier) WriteTo(w io.Writer) (n int64, err error) {
-	if r.buf == nil {
-		r.buf = make([]byte, 32*1024)
-	}
-	return io.CopyBuffer(w, r.Reader, r.buf)
 }
 
 func (r *Runner) optByFlag(flag string) *bool {
@@ -438,11 +421,10 @@ func (r *Runner) Reset() {
 		origStderr: r.origStderr,
 
 		// emptied below, to reuse the space
-		Vars:      r.Vars,
-		cmdVars:   r.cmdVars,
-		dirStack:  r.dirStack[:0],
-		usedNew:   r.usedNew,
-		bufCopier: r.bufCopier,
+		Vars:     r.Vars,
+		cmdVars:  r.cmdVars,
+		dirStack: r.dirStack[:0],
+		usedNew:  r.usedNew,
 	}
 	if r.Vars == nil {
 		r.Vars = make(map[string]expand.Variable)
@@ -480,7 +462,6 @@ func (r *Runner) Reset() {
 
 	r.dirStack = append(r.dirStack, r.Dir)
 	r.didReset = true
-	r.bufCopier.Reader = nil
 }
 
 // exitStatus is a non-zero status code resulting from running a shell node.

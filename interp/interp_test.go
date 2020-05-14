@@ -1035,6 +1035,13 @@ var runTests = []runTest{
 		"true $(true) | true", // used to panic
 		"",
 	},
+	{
+		// The first command in the block used to consume stdin, even
+		// though it shouldn't be. We just want to run any arbitrary
+		// non-builtin program that doesn't consume stdin.
+		"echo foo | { $ENV_PROG >/dev/null; cat; }",
+		"foo\n",
+	},
 
 	// redirects
 	{

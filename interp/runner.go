@@ -350,7 +350,11 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 				r.stmt(ctx, x.Y)
 			}
 		case syntax.Pipe, syntax.PipeAll:
-			pr, pw := io.Pipe()
+			pr, pw, err := os.Pipe()
+			if err != nil {
+				r.setErr(err)
+				return
+			}
 			r2 := r.Subshell()
 			r2.stdout = pw
 			if x.Op == syntax.PipeAll {
@@ -358,8 +362,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			} else {
 				r2.stderr = r.stderr
 			}
-			r.bufCopier.Reader = pr
-			r.stdin = &r.bufCopier
+			r.stdin = pr
 			var wg sync.WaitGroup
 			wg.Add(1)
 			go func() {
