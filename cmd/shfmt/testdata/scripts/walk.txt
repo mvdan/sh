@@ -1,0 +1,116 @@
+mkdir symlink/reallylongdir
+[symlink] symlink symlink/reallylongdir/symlink-file -> modify/ext-shebang.sh
+[symlink] symlink symlink/symlink-dir -> symlink/reallylongdir
+[symlink] symlink symlink/symlink-none -> symlink/reallylongdir/nonexistent
+
+shfmt -f .
+cmpenv stdout find.golden
+! stderr .
+
+# try to walk a missing path
+! shfmt nonexistent
+
+# format an entire directory without -l or -w
+! shfmt .
+stdout 'foo'
+stdout 'bin/env'
+stderr 'parse-error\.sh'
+
+# format an entire directory with -l and -w
+! shfmt -l -w .
+cmpenv stdout modify.golden
+stderr 'parse-error\.sh'
+
+-- find.golden --
+error${/}parse-error.sh
+modify${/}dir${/}ext.sh
+modify${/}ext-shebang.sh
+modify${/}ext.bash
+modify${/}ext.sh
+modify${/}shebang-1
+modify${/}shebang-2
+modify${/}shebang-3
+modify${/}shebang-4
+modify${/}shebang-5
+modify${/}shebang-args
+modify${/}shebang-space
+modify${/}shebang-tabs
+-- modify.golden --
+modify${/}dir${/}ext.sh
+modify${/}ext-shebang.sh
+modify${/}ext.bash
+modify${/}ext.sh
+modify${/}shebang-1
+modify${/}shebang-2
+modify${/}shebang-3
+modify${/}shebang-4
+modify${/}shebang-5
+modify${/}shebang-args
+modify${/}shebang-space
+modify${/}shebang-tabs
+-- modify/shebang-1 --
+#!/bin/sh
+ foo
+-- modify/shebang-2 --
+#!/bin/bash
+ foo
+-- modify/shebang-3 --
+#!/usr/bin/sh
+ foo
+-- modify/shebang-4 --
+#!/usr/bin/env bash
+ foo
+-- modify/shebang-5 --
+#!/bin/env sh
+ foo
+-- modify/shebang-space --
+#! /bin/sh
+ foo
+-- modify/shebang-tabs --
+#!	/bin/env	sh
+ foo
+-- modify/shebang-args --
+#!/bin/bash -e -x
+ foo
+-- modify/ext.sh --
+ foo
+-- modify/ext.bash --
+ foo
+-- modify/ext-shebang.sh --
+#!/bin/sh
+ foo
+-- modify/dir/ext.sh --
+foo
+
+-- none/.hidden --
+foo long enough
+-- none/.hidden-shebang --
+#!/bin/sh
+ foo
+-- none/..hidden-shebang --
+#!/bin/sh
+ foo
+-- none/noext-empty --
+foo
+-- none/noext-noshebang --
+foo long enough
+-- none/shebang-nonewline --
+#!/bin/shfoo
+-- none/ext.other --
+foo
+-- none/ext-shebang.other --
+#!/bin/sh
+ foo
+-- none/shebang-nospace --
+#!/bin/envsh
+ foo
+
+-- skip/.git/ext.sh --
+foo
+-- skip/.svn/ext.sh --
+foo
+-- skip/.hg/ext.sh --
+foo
+
+-- error/parse-error.sh --
+foo(
