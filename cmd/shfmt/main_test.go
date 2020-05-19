@@ -31,7 +31,7 @@ func TestScripts(t *testing.T) {
 			if err := os.Mkdir(bindir, 0777); err != nil {
 				return err
 			}
-			binfile := filepath.Join(bindir, "shfmt")
+			binfile := filepath.Join(bindir, "bundled-shfmt")
 			if runtime.GOOS == "windows" {
 				binfile += ".exe"
 			}

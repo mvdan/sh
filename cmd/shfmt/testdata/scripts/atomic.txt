@@ -12,11 +12,11 @@ cmp input.sh input.sh.golden
 
 -- input.sh --
 echo foo
-  shfmt -l -w input.sh
+  bundled-shfmt -l -w input.sh
 echo bar
 -- input.sh.golden --
 echo foo
-shfmt -l -w input.sh
+bundled-shfmt -l -w input.sh
 echo bar
 -- stdout.golden --
 foo
