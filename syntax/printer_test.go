@@ -769,6 +769,10 @@ func TestPrintFunctionNextLine(t *testing.T) {
 			"function foo {\n\tbar\n}",
 			"function foo()\n{\n\tbar\n}",
 		},
+		{
+			"{ foo() { bar; }; }",
+			"{\n\tfoo()\n\t{\n\t\tbar\n\t}\n}",
+		},
 	}
 	parser := NewParser(KeepComments(true))
 	printer := NewPrinter(FunctionNextLine(true))
