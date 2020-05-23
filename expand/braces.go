@@ -55,7 +55,7 @@ func Braces(word *syntax.Word) []*syntax.Word {
 				next.Parts = next.Parts[i+1:]
 				lit := &syntax.Lit{}
 				if chars {
-					lit.Value = string(n)
+					lit.Value = string(rune(n))
 				} else {
 					lit.Value = strconv.Itoa(n)
 				}
