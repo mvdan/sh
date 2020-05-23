@@ -1061,6 +1061,7 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		p.WriteString("()")
 		if p.funcNextLine {
 			p.newline(Pos{})
+			p.indent()
 		} else if !p.minify {
 			p.space()
 		}
