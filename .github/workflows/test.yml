@@ -21,6 +21,9 @@ jobs:
     - name: Test with -short -race
       run: go test -short -race -count=1 ./...
 
+    - name: Test with GOARCH=386
+      run: GOARCH=386 go test -count=1 ./...
+      if: matrix.platform == 'ubuntu-latest'
     - name: gofmt check
       run: diff <(echo -n) <(gofmt -d .)
       if: matrix.platform == 'ubuntu-latest'
@@ -31,7 +34,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
     - name: Test as root, without cgo, and with busybox
-      run: docker run -v="$PWD:/pwd" -w=/pwd -e=CGO_ENABLED=0 golang:1.14.1-alpine go test ./...
+      run: docker run -v="$PWD:/pwd" -w=/pwd -e=CGO_ENABLED=0 golang:1.14.3-alpine go test ./...
 
   fuzz:
     runs-on: ubuntu-latest

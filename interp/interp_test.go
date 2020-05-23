@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math/bits"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -269,9 +270,6 @@ var runTests = []runTest{
 	{"printf %d,%i 3 4", "3,4"},
 	{"printf %d", "0"},
 	{"printf %d,%d 010 0x10", "8,16"},
-	{"printf %i,%u -3 -3", "-3,18446744073709551613"},
-	{"printf %o -3", "1777777777777777777775"},
-	{"printf %x -3", "fffffffffffffffd"},
 	{"printf %c,%c,%c foo àa", "f,\xc3,\x00"}, // TODO: use a rune?
 	{"printf %3s a", "  a"},
 	{"printf %3i 1", "  1"},
@@ -2624,11 +2622,22 @@ var runTestsWindows = []runTest{
 	{"cmd() { :; }; command cmd /c 'echo foo'", "foo\r\n"},
 }
 
+// These tests are specific to 64-bit architectures, and that's fine. We don't
+// need to add explicit versions for 32-bit.
+var runTests64bit = []runTest{
+	{"printf %i,%u -3 -3", "-3,18446744073709551613"},
+	{"printf %o -3", "1777777777777777777775"},
+	{"printf %x -3", "fffffffffffffffd"},
+}
+
 func init() {
 	if runtime.GOOS == "windows" {
 		runTests = append(runTests, runTestsWindows...)
-	} else {
+	} else { // Unix-y
 		runTests = append(runTests, runTestsUnix...)
+	}
+	if bits.UintSize == 64 {
+		runTests = append(runTests, runTests64bit...)
 	}
 }
 
