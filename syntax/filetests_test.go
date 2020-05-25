@@ -2331,7 +2331,7 @@ var fileTests = []testCase{
 		),
 	},
 	{
-		Strs: []string{`${a@E} ${b@a} ${@@Q}`},
+		Strs: []string{`${a@E} ${b@a} ${@@Q} ${!ref@P}`},
 		bsmk: call(
 			word(&ParamExp{
 				Param: lit("a"),
@@ -2352,6 +2352,14 @@ var fileTests = []testCase{
 				Exp: &Expansion{
 					Op:   OtherParamOps,
 					Word: litWord("Q"),
+				},
+			}),
+			word(&ParamExp{
+				Excl:  true,
+				Param: lit("ref"),
+				Exp: &Expansion{
+					Op:   OtherParamOps,
+					Word: litWord("P"),
 				},
 			}),
 		),

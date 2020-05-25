@@ -1443,7 +1443,7 @@ func (p *Parser) paramExp() *ParamExp {
 			p.langErr(p.pos, "this expansion operator", LangBash, LangMirBSDKorn)
 		case p.tok == star && !pe.Excl:
 			p.curErr("not a valid parameter expansion operator: %v", p.tok)
-		case pe.Excl:
+		case pe.Excl && p.r == '}':
 			pe.Names = ParNamesOperator(p.tok)
 			p.next()
 		default:
