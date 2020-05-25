@@ -733,6 +733,8 @@ func (cfg *Config) glob(base, pat string) ([]string, error) {
 		}
 		parts = parts[1:]
 	}
+	// TODO: as an optimization, we could do chunks of the path all at once,
+	// like doing a single stat for "/foo/bar" in "/foo/bar/*".
 	for i, part := range parts {
 		wantDir := i < len(parts)-1
 		switch {
@@ -740,6 +742,25 @@ func (cfg *Config) glob(base, pat string) ([]string, error) {
 			for i, dir := range matches {
 				matches[i] = pathJoin2(dir, part)
 			}
+			continue
+		case !pattern.HasMeta(part, patMode):
+			var newMatches []string
+			for _, dir := range matches {
+				match := dir
+				if !filepath.IsAbs(match) {
+					match = filepath.Join(base, match)
+				}
+				match = pathJoin2(match, part)
+				info, err := os.Stat(match)
+				if err != nil {
+					continue
+				}
+				if wantDir && !info.IsDir() {
+					continue
+				}
+				newMatches = append(newMatches, pathJoin2(dir, part))
+			}
+			matches = newMatches
 			continue
 		case part == "**" && cfg.GlobStar:
 			for i, match := range matches {

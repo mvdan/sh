@@ -134,3 +134,7 @@ func TestRunnerTerminalExec(t *testing.T) {
 		})
 	}
 }
+
+func shortPathName(path string) (string, error) {
+	panic("only works on windows")
+}

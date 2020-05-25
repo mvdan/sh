@@ -2280,6 +2280,14 @@ set +o pipefail
 		">foo; ln -s foo sym; echo sy*; echo sy*/",
 		"sym\nsy*/\n",
 	},
+	{
+		"mkdir x-d; >x-f; test -d $PWD/x-*/",
+		"",
+	},
+	{
+		"mkdir dir; >dir/x-f; ln -s dir sym; cd sym; test -f $PWD/x-*",
+		"",
+	},
 
 	// brace expansion; more exhaustive tests in the syntax package
 	{"echo a}b", "a}b\n"},
@@ -2579,14 +2587,6 @@ var runTestsUnix = []runTest{
 	{
 		"mkdir c; echo '#!/bin/sh\necho b' >c/a; chmod 0755 c/a; c/a",
 		"b\n",
-	},
-
-	// TODO: move back to the main tests list once
-	// https://github.community/t5/GitHub-Actions/TEMP-is-broken-on-Windows/m-p/30432#M427
-	// is fixed.
-	{
-		"mkdir x-d; >x-f; test -d $PWD/x-*/",
-		"",
 	},
 
 	// process substitution; named pipes (fifos) are a TODO for windows
@@ -3176,13 +3176,13 @@ func TestRunnerDir(t *testing.T) {
 			t.Fatal("expected New to error when Dir is missing")
 		}
 	})
-	t.Run("NoDir", func(t *testing.T) {
+	t.Run("NotDir", func(t *testing.T) {
 		_, err := New(Dir("interp_test.go"))
 		if err == nil {
 			t.Fatal("expected New to error when Dir is not a dir")
 		}
 	})
-	t.Run("NoDirAbs", func(t *testing.T) {
+	t.Run("NotDirAbs", func(t *testing.T) {
 		_, err := New(Dir(filepath.Join(wd, "interp_test.go")))
 		if err == nil {
 			t.Fatal("expected New to error when Dir is not a dir")
@@ -3199,6 +3199,63 @@ func TestRunnerDir(t *testing.T) {
 		}
 		if !filepath.IsAbs(r.Dir) {
 			t.Errorf("Runner.Dir is not absolute")
+		}
+	})
+	// Ensure that we treat symlinks and short paths properly, especially
+	// with Dir and globbing.
+	t.Run("SymlinkOrShortPath", func(t *testing.T) {
+		tempDir, err := ioutil.TempDir("", "interp-test")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer os.RemoveAll(tempDir)
+
+		realDir := filepath.Join(tempDir, "real-long-dir-name")
+		realFile := filepath.Join(realDir, "realfile")
+
+		if err := os.Mkdir(realDir, 0777); err != nil {
+			t.Fatal(err)
+		}
+		if err := ioutil.WriteFile(realFile, []byte(""), 0666); err != nil {
+			t.Fatal(err)
+		}
+
+		var altDir string
+		if runtime.GOOS == "windows" {
+			short, err := shortPathName(realDir)
+			if err != nil {
+				t.Fatal(err)
+			}
+			altDir = short
+			// We replace tempDir later, and it might have been
+			// shortened.
+			tempDir = filepath.Dir(altDir)
+		} else {
+			altDir = filepath.Join(tempDir, "symlink")
+			if err := os.Symlink(realDir, altDir); err != nil {
+				t.Fatal(err)
+			}
+		}
+
+		var b bytes.Buffer
+		r, err := New(Dir(altDir), StdIO(nil, &b, &b))
+		if err != nil {
+			t.Fatal(err)
+		}
+		file := parse(t, nil, "echo $PWD $PWD/*")
+		ctx := context.Background()
+		if err := r.Run(ctx, file); err != nil {
+			t.Fatal(err)
+		}
+		got := b.String()
+		got = strings.Replace(got, tempDir, "", -1)
+		got = strings.TrimSpace(got)
+		want := `/symlink /symlink/realfile`
+		if runtime.GOOS == "windows" {
+			want = `\\REAL.{4} \\REAL.{4}\\realfile`
+		}
+		if !regexp.MustCompile(want).MatchString(got) {
+			t.Fatalf("\nwant regexp: %q\ngot: %q", want, got)
 		}
 	})
 }
