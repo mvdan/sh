@@ -260,7 +260,8 @@ func TestKillSignal(t *testing.T) {
 			defer cancel()
 
 			outReader, outWriter := io.Pipe()
-			r, _ := New(StdIO(nil, outWriter, nil))
+			stderr := new(bytes.Buffer)
+			r, _ := New(StdIO(nil, outWriter, stderr))
 			errch := make(chan error, 1)
 			go func() {
 				errch <- r.Run(ctx, file)
@@ -285,7 +286,7 @@ func TestKillSignal(t *testing.T) {
 				t.Fatal(err)
 			}
 			if got := <-errch; got != test.want {
-				t.Fatalf("want error %v, got %v", test.want, got)
+				t.Fatalf("want error %v, got %v. stderr: %s", test.want, got, stderr)
 			}
 		})
 	}

@@ -83,7 +83,7 @@ func TestMain(m *testing.M) {
 		switch os.Getenv("GOSH_CMD") {
 		case "pid_and_hang":
 			fmt.Println(os.Getpid())
-			select {}
+			time.Sleep(time.Hour)
 		}
 		r := strings.NewReader(os.Args[1])
 		file, err := syntax.NewParser().Parse(r, "")
