@@ -926,13 +926,20 @@ func (p *Parser) advanceLitHdoc(r rune) {
 					p.val = p.endLit()
 					return
 				}
-			} else if lStart >= 0 && bytes.HasPrefix(p.litBs[lStart:], stop) {
-				p.val = p.endLit()[:lStart]
-				if p.val == "" {
-					p.tok = _Newl
+			} else if lStart >= 0 {
+				// Compare the current line with the stop word.
+				line := p.litBs[lStart:]
+				if r == '\n' && len(line) > 0 {
+					line = line[:len(line)-1] // minus \n
 				}
-				p.hdocStops[len(p.hdocStops)-1] = nil
-				return
+				if bytes.Equal(line, stop) {
+					p.val = p.endLit()[:lStart]
+					if p.val == "" {
+						p.tok = _Newl
+					}
+					p.hdocStops[len(p.hdocStops)-1] = nil
+					return
+				}
 			}
 			if r == utf8.RuneSelf {
 				return
@@ -969,7 +976,15 @@ func (p *Parser) quotedHdocWord() *Word {
 			}
 			r = p.rune()
 		}
-		if lStart >= 0 && bytes.HasPrefix(p.litBs[lStart:], stop) {
+		if lStart < 0 {
+			continue
+		}
+		// Compare the current line with the stop word.
+		line := p.litBs[lStart:]
+		if r == '\n' && len(line) > 0 {
+			line = line[:len(line)-1] // minus \n
+		}
+		if bytes.Equal(line, stop) {
 			p.hdocStops[len(p.hdocStops)-1] = nil
 			val := p.endLit()[:lStart]
 			if val == "" {
