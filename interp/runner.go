@@ -63,7 +63,7 @@ func (r *Runner) fillExpandConfig(ctx context.Context) {
 			dir := os.TempDir()
 			path := fmt.Sprintf("%s/sh-interp-%d", dir, r.rand.Uint32())
 			if err := mkfifo(path, 0666); err != nil {
-				return "", err
+				return "", fmt.Errorf("cannot create fifo: %v", err)
 			}
 			r2 := r.Subshell()
 			stdout := r.origStdout
@@ -72,14 +72,24 @@ func (r *Runner) fillExpandConfig(ctx context.Context) {
 				defer r.wgProcSubsts.Done()
 				switch ps.Op {
 				case syntax.CmdIn:
-					f, _ := os.OpenFile(path, os.O_WRONLY, 0)
+					f, err := os.OpenFile(path, os.O_WRONLY, 0)
+					if err != nil {
+						r.errf("cannot open fifo for stdout: %v", err)
+						return
+					}
 					r2.stdout = f
 					defer func() {
-						f.Close()
+						if err := f.Close(); err != nil {
+							r.errf("closing stdout fifo: %v", err)
+						}
 						os.Remove(path)
 					}()
 				default: // syntax.CmdOut
-					f, _ := os.OpenFile(path, os.O_RDONLY, 0)
+					f, err := os.OpenFile(path, os.O_RDONLY, 0)
+					if err != nil {
+						r.errf("cannot open fifo for stdin: %v", err)
+						return
+					}
 					r2.stdin = f
 					r2.stdout = stdout
 
