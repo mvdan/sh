@@ -1154,14 +1154,14 @@ var fileTests = []testCase{
 		},
 	},
 	{
-		Strs: []string{"foo <<EOF\nbar\nEOF\nfoo2"},
+		Strs: []string{"foo <<EOF\nEOF_body\nEOF\nfoo2"},
 		common: []*Stmt{
 			{
 				Cmd: litCall("foo"),
 				Redirs: []*Redirect{{
 					Op:   Hdoc,
 					Word: litWord("EOF"),
-					Hdoc: litWord("bar\n"),
+					Hdoc: litWord("EOF_body\n"),
 				}},
 			},
 			litStmt("foo2"),
@@ -1187,6 +1187,20 @@ var fileTests = []testCase{
 				Word: word(dblQuoted(lit("EOF"))),
 				Hdoc: litWord("bar\n"),
 			}},
+		},
+	},
+	{
+		Strs: []string{"foo <<'EOF'\nEOF_body\nEOF\nfoo2"},
+		common: []*Stmt{
+			{
+				Cmd: litCall("foo"),
+				Redirs: []*Redirect{{
+					Op:   Hdoc,
+					Word: word(sglQuoted("EOF")),
+					Hdoc: litWord("EOF_body\n"),
+				}},
+			},
+			litStmt("foo2"),
 		},
 	},
 	{
