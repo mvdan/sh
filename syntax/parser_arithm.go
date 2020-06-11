@@ -14,7 +14,7 @@ func (p *Parser) arithmExprComma(compact bool) ArithmExpr {
 
 func (p *Parser) arithmExprAssign(compact bool) ArithmExpr {
 	// Assign is different from the other binary operators because it's right-associative and needs to check that it's placed after a name
-	value := p.arithmExprCond(compact)
+	value := p.arithmExprTernary(compact)
 	switch BinAritOperator(p.tok) {
 	case AddAssgn, SubAssgn, MulAssgn, QuoAssgn, RemAssgn, AndAssgn,
 		OrAssgn, XorAssgn, ShlAssgn, ShrAssgn, Assgn:
@@ -41,47 +41,44 @@ func (p *Parser) arithmExprAssign(compact bool) ArithmExpr {
 	return value
 }
 
-func (p *Parser) arithmExprCond(compact bool) ArithmExpr {
+func (p *Parser) arithmExprTernary(compact bool) ArithmExpr {
 	value := p.arithmExprLor(compact)
-	if BinAritOperator(p.tok) == TernQuest {
-		if compact && p.spaced {
-			return value
-		}
-		if value == nil {
-			p.curErr("%s must follow an expression", p.tok.String())
-		}
-		questPos := p.pos
-		p.nextArithOp(compact)
-		if BinAritOperator(p.tok) == TernColon {
-			p.followErrExp(questPos, TernQuest.String())
-		}
-		trueExpr := p.arithmExpr(compact)
-		if trueExpr == nil {
-			p.followErrExp(questPos, TernQuest.String())
-		}
-		if BinAritOperator(p.tok) != TernColon {
-			p.posErr(p.pos, "ternary operator missing : after ?")
-		}
-		colonPos := p.pos
-		p.nextArithOp(compact)
-		falseExpr := p.arithmExprCond(compact)
-		if falseExpr == nil {
-			p.followErrExp(colonPos, TernColon.String())
-		}
-		return &BinaryArithm{
-			OpPos: questPos,
-			Op:    BinAritOperator(TernQuest),
-			X:     value,
-			Y: &BinaryArithm{
-				OpPos: colonPos,
-				Op:    BinAritOperator(TernColon),
-				X:     trueExpr,
-				Y:     falseExpr,
-			},
-		}
+	if BinAritOperator(p.tok) != TernQuest || (compact && p.spaced) {
+		return value
 	}
 
-	return value
+	if value == nil {
+		p.curErr("%s must follow an expression", p.tok.String())
+	}
+	questPos := p.pos
+	p.nextArithOp(compact)
+	if BinAritOperator(p.tok) == TernColon {
+		p.followErrExp(questPos, TernQuest.String())
+	}
+	trueExpr := p.arithmExpr(compact)
+	if trueExpr == nil {
+		p.followErrExp(questPos, TernQuest.String())
+	}
+	if BinAritOperator(p.tok) != TernColon {
+		p.posErr(p.pos, "ternary operator missing : after ?")
+	}
+	colonPos := p.pos
+	p.nextArithOp(compact)
+	falseExpr := p.arithmExprTernary(compact)
+	if falseExpr == nil {
+		p.followErrExp(colonPos, TernColon.String())
+	}
+	return &BinaryArithm{
+		OpPos: questPos,
+		Op:    BinAritOperator(TernQuest),
+		X:     value,
+		Y: &BinaryArithm{
+			OpPos: colonPos,
+			Op:    BinAritOperator(TernColon),
+			X:     trueExpr,
+			Y:     falseExpr,
+		},
+	}
 }
 
 func (p *Parser) arithmExprLor(compact bool) ArithmExpr {
@@ -127,29 +124,28 @@ func (p *Parser) arithmExprMultiplication(compact bool) ArithmExpr {
 func (p *Parser) arithmExprPower(compact bool) ArithmExpr {
 	// Power is different from the other binary operators because it's right-associative
 	value := p.arithmExprUnary(compact)
-	if BinAritOperator(p.tok) == Pow {
-		if compact && p.spaced {
-			return value
-		}
-		if value == nil {
-			p.curErr("%s must follow an expression", p.tok.String())
-		}
-		op := p.tok
-		pos := p.pos
-		p.nextArithOp(compact)
-		y := p.arithmExprPower(compact)
-		if y == nil {
-			p.followErrExp(pos, op.String())
-		}
-		return &BinaryArithm{
-			OpPos: pos,
-			Op:    BinAritOperator(op),
-			X:     value,
-			Y:     y,
-		}
+	if BinAritOperator(p.tok) != Pow || (compact && p.spaced) {
+		return value
 	}
 
-	return value
+	if value == nil {
+		p.curErr("%s must follow an expression", p.tok.String())
+	}
+
+	op := p.tok
+	pos := p.pos
+	p.nextArithOp(compact)
+	y := p.arithmExprPower(compact)
+	if y == nil {
+		p.followErrExp(pos, op.String())
+	}
+
+	return &BinaryArithm{
+		OpPos: pos,
+		Op:    BinAritOperator(op),
+		X:     value,
+		Y:     y,
+	}
 }
 
 func (p *Parser) arithmExprUnary(compact bool) ArithmExpr {
@@ -208,10 +204,13 @@ func (p *Parser) arithmExprValue(compact bool) ArithmExpr {
 			return nil
 		}
 	}
+
 	if compact && p.spaced {
 		return x
 	}
-	for !compact && p.got(_Newl) {
+
+	if !compact {
+		p.got(_Newl)
 	}
 
 	// we want real nil, not (*Word)(nil) as that
@@ -240,7 +239,8 @@ func (p *Parser) nextArith(compact bool) bool {
 	if compact && p.spaced {
 		return true
 	}
-	for !compact && p.got(_Newl) {
+	if !compact {
+		p.got(_Newl)
 	}
 	return false
 }
@@ -264,11 +264,8 @@ func (p *Parser) arithmExprBinary(compact bool, nextOp func(bool) ArithmExpr, op
 				break
 			}
 		}
-		if foundOp == 0 {
-			break
-		}
 
-		if compact && p.spaced {
+		if token(foundOp) == illegalTok || (compact && p.spaced) {
 			return value
 		}
 
@@ -290,8 +287,6 @@ func (p *Parser) arithmExprBinary(compact bool, nextOp func(bool) ArithmExpr, op
 			Y:     y,
 		}
 	}
-
-	return value
 }
 
 func isArithName(left ArithmExpr) bool {
