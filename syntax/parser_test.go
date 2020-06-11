@@ -2109,6 +2109,30 @@ var arithmeticTests = []struct {
 			Y:  litWord("4"),
 		},
 	},
+	{
+		"3 + 4 + 5",
+		&BinaryArithm{
+			Op: Add,
+			X: &BinaryArithm{
+				Op: Add,
+				X:  litWord("3"),
+				Y:  litWord("4"),
+			},
+			Y: litWord("5"),
+		},
+	},
+	{
+		"1 ? 0 : 2",
+		&BinaryArithm{
+			Op: TernQuest,
+			X:  litWord("1"),
+			Y: &BinaryArithm{
+				Op: TernColon,
+				X:  litWord("0"),
+				Y:  litWord("2"),
+			},
+		},
+	},
 }
 
 func TestParseArithmetic(t *testing.T) {
@@ -2135,7 +2159,7 @@ func TestParseArithmeticError(t *testing.T) {
 	in := "3 +"
 	p := NewParser()
 	_, err := p.Arithmetic(strings.NewReader(in))
-	want := "1:3: + must be followed by an expression"
+	want := "1:3: expected an arithmetic expression, got: EOF"
 	got := fmt.Sprintf("%v", err)
 	if got != want {
 		t.Fatalf("Expected %q as an error, but got %q", want, got)

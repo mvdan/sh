@@ -258,7 +258,7 @@ func (p *Parser) Arithmetic(r io.Reader) (ArithmExpr, error) {
 	p.rune()
 	p.quote = arithmExpr
 	p.next()
-	expr := p.arithmExpr(0, false, false)
+	expr := p.arithmExpr(false)
 	return expr, p.err
 }
 
@@ -1109,207 +1109,6 @@ func (p *Parser) dblQuoted() *DblQuoted {
 	return q
 }
 
-func arithmOpLevel(op BinAritOperator) int {
-	switch op {
-	case Comma:
-		return 0
-	case AddAssgn, SubAssgn, MulAssgn, QuoAssgn, RemAssgn, AndAssgn,
-		OrAssgn, XorAssgn, ShlAssgn, ShrAssgn:
-		return 1
-	case Assgn:
-		return 2
-	case TernQuest, TernColon:
-		return 3
-	case AndArit, OrArit:
-		return 4
-	case And, Or, Xor:
-		return 5
-	case Eql, Neq:
-		return 6
-	case Lss, Gtr, Leq, Geq:
-		return 7
-	case Shl, Shr:
-		return 8
-	case Add, Sub:
-		return 9
-	case Mul, Quo, Rem:
-		return 10
-	case Pow:
-		return 11
-	}
-	return -1
-}
-
-func (p *Parser) followArithm(ftok token, fpos Pos) ArithmExpr {
-	x := p.arithmExpr(0, false, false)
-	if x == nil {
-		p.followErrExp(fpos, ftok.String())
-	}
-	return x
-}
-
-func (p *Parser) arithmExpr(level int, compact, tern bool) ArithmExpr {
-	if p.tok == _EOF || p.peekArithmEnd() {
-		return nil
-	}
-	var left ArithmExpr
-	if level > 11 {
-		left = p.arithmExprBase(compact)
-	} else {
-		left = p.arithmExpr(level+1, compact, false)
-	}
-	if compact && p.spaced {
-		return left
-	}
-	p.got(_Newl)
-	newLevel := arithmOpLevel(BinAritOperator(p.tok))
-	if !tern && p.tok == colon && p.quote == paramExpSlice {
-		newLevel = -1
-	}
-	if newLevel < 0 {
-		switch p.tok {
-		case _Lit, _LitWord:
-			p.curErr("not a valid arithmetic operator: %s", p.val)
-			return nil
-		case leftBrack:
-			p.curErr("[ must follow a name")
-			return nil
-		case rightParen, _EOF:
-		default:
-			if p.quote == arithmExpr {
-				p.curErr("not a valid arithmetic operator: %v", p.tok)
-				return nil
-			}
-		}
-	}
-	if newLevel < level {
-		return left
-	}
-	if left == nil {
-		p.curErr("%s must follow an expression", p.tok.String())
-		return nil
-	}
-	b := &BinaryArithm{
-		OpPos: p.pos,
-		Op:    BinAritOperator(p.tok),
-		X:     left,
-	}
-	switch b.Op {
-	case TernColon:
-		if !tern {
-			p.posErr(b.Pos(), "ternary operator missing ? before :")
-		}
-	case AddAssgn, SubAssgn, MulAssgn, QuoAssgn, RemAssgn, AndAssgn,
-		OrAssgn, XorAssgn, ShlAssgn, ShrAssgn, Assgn:
-		if !isArithName(b.X) {
-			p.posErr(b.OpPos, "%s must follow a name", b.Op.String())
-		}
-	}
-	if p.next(); compact && p.spaced {
-		p.followErrExp(b.OpPos, b.Op.String())
-	}
-	b.Y = p.arithmExpr(newLevel, compact, b.Op == TernQuest)
-	if b.Y == nil {
-		p.followErrExp(b.OpPos, b.Op.String())
-	}
-	if b.Op == TernQuest {
-		if b2, ok := b.Y.(*BinaryArithm); !ok || b2.Op != TernColon {
-			p.posErr(b.Pos(), "ternary operator missing : after ?")
-		}
-	}
-	return b
-}
-
-func isArithName(left ArithmExpr) bool {
-	w, ok := left.(*Word)
-	if !ok || len(w.Parts) != 1 {
-		return false
-	}
-	switch x := w.Parts[0].(type) {
-	case *Lit:
-		return ValidName(x.Value)
-	case *ParamExp:
-		return x.nakedIndex()
-	default:
-		return false
-	}
-}
-
-func (p *Parser) arithmExprBase(compact bool) ArithmExpr {
-	p.got(_Newl)
-	var x ArithmExpr
-	switch p.tok {
-	case exclMark, tilde:
-		ue := &UnaryArithm{OpPos: p.pos, Op: UnAritOperator(p.tok)}
-		p.next()
-		if ue.X = p.arithmExprBase(compact); ue.X == nil {
-			p.followErrExp(ue.OpPos, ue.Op.String())
-		}
-		return ue
-	case addAdd, subSub:
-		ue := &UnaryArithm{OpPos: p.pos, Op: UnAritOperator(p.tok)}
-		p.next()
-		if p.tok != _LitWord {
-			p.followErr(ue.OpPos, token(ue.Op).String(), "a literal")
-		}
-		ue.X = p.arithmExprBase(compact)
-		return ue
-	case leftParen:
-		pe := &ParenArithm{Lparen: p.pos}
-		p.next()
-		pe.X = p.followArithm(leftParen, pe.Lparen)
-		pe.Rparen = p.matched(pe.Lparen, leftParen, rightParen)
-		x = pe
-	case plus, minus:
-		ue := &UnaryArithm{OpPos: p.pos, Op: UnAritOperator(p.tok)}
-		if p.next(); compact && p.spaced {
-			p.followErrExp(ue.OpPos, ue.Op.String())
-		}
-		ue.X = p.arithmExprBase(compact)
-		if ue.X == nil {
-			p.followErrExp(ue.OpPos, ue.Op.String())
-		}
-		x = ue
-	case _LitWord:
-		l := p.getLit()
-		if p.tok != leftBrack {
-			x = p.word(p.wps(l))
-			break
-		}
-		pe := &ParamExp{Dollar: l.ValuePos, Short: true, Param: l}
-		pe.Index = p.eitherIndex()
-		x = p.word(p.wps(pe))
-	case bckQuote:
-		if p.quote == arithmExprLet && p.openBquotes > 0 {
-			return nil
-		}
-		fallthrough
-	default:
-		if w := p.getWord(); w != nil {
-			// we want real nil, not (*Word)(nil) as that
-			// sets the type to non-nil and then x != nil
-			x = w
-		}
-	}
-	if compact && p.spaced {
-		return x
-	}
-	if p.tok == addAdd || p.tok == subSub {
-		if !isArithName(x) {
-			p.curErr("%s must follow a name", p.tok.String())
-		}
-		u := &UnaryArithm{
-			Post:  true,
-			OpPos: p.pos,
-			Op:    UnAritOperator(p.tok),
-			X:     x,
-		}
-		p.next()
-		return u
-	}
-	return x
-}
-
 func singleRuneParam(r rune) bool {
 	switch r {
 	case '@', '*', '#', '$', '?', '!', '-',
@@ -2068,13 +1867,13 @@ func (p *Parser) loop(fpos Pos) Loop {
 		cl := &CStyleLoop{Lparen: p.pos}
 		old := p.preNested(arithmExprCmd)
 		p.next()
-		cl.Init = p.arithmExpr(0, false, false)
+		cl.Init = p.arithmExpr(false)
 		if !p.got(dblSemicolon) {
 			p.follow(p.pos, "expr", semicolon)
-			cl.Cond = p.arithmExpr(0, false, false)
+			cl.Cond = p.arithmExpr(false)
 			p.follow(p.pos, "expr", semicolon)
 		}
-		cl.Post = p.arithmExpr(0, false, false)
+		cl.Post = p.arithmExpr(false)
 		cl.Rparen = p.arithmEnd(dblLeftParen, cl.Lparen, old)
 		p.got(semicolon)
 		p.got(_Newl)
@@ -2410,7 +2209,7 @@ func (p *Parser) letClause(s *Stmt) {
 	old := p.preNested(arithmExprLet)
 	p.next()
 	for !stopToken(p.tok) && !p.peekRedir() {
-		x := p.arithmExpr(0, true, false)
+		x := p.arithmExpr(true)
 		if x == nil {
 			break
 		}
