@@ -101,32 +101,32 @@ func (p *Parser) arithmExprBxor(compact bool) ArithmExpr {
 }
 
 func (p *Parser) arithmExprBand(compact bool) ArithmExpr {
-	return p.arithmExprBinary(compact, p.arithmExpr5, And)
+	return p.arithmExprBinary(compact, p.arithmExprEquality, And)
 }
 
-func (p *Parser) arithmExpr5(compact bool) ArithmExpr {
-	return p.arithmExprBinary(compact, p.arithmExpr4, Eql, Neq)
+func (p *Parser) arithmExprEquality(compact bool) ArithmExpr {
+	return p.arithmExprBinary(compact, p.arithmExprComparison, Eql, Neq)
 }
 
-func (p *Parser) arithmExpr4(compact bool) ArithmExpr {
+func (p *Parser) arithmExprComparison(compact bool) ArithmExpr {
 	return p.arithmExprBinary(compact, p.arithmExprShift, Lss, Gtr, Leq, Geq)
 }
 
 func (p *Parser) arithmExprShift(compact bool) ArithmExpr {
-	return p.arithmExprBinary(compact, p.arithmExpr3, Shl, Shr)
+	return p.arithmExprBinary(compact, p.arithmExprAddition, Shl, Shr)
 }
 
-func (p *Parser) arithmExpr3(compact bool) ArithmExpr {
-	return p.arithmExprBinary(compact, p.arithmExpr2, Add, Sub)
+func (p *Parser) arithmExprAddition(compact bool) ArithmExpr {
+	return p.arithmExprBinary(compact, p.arithmExprMultiplication, Add, Sub)
 }
 
-func (p *Parser) arithmExpr2(compact bool) ArithmExpr {
+func (p *Parser) arithmExprMultiplication(compact bool) ArithmExpr {
 	return p.arithmExprBinary(compact, p.arithmExprPower, Mul, Quo, Rem)
 }
 
 func (p *Parser) arithmExprPower(compact bool) ArithmExpr {
 	// Power is different from the other binary operators because it's right-associative
-	value := p.arithmExpr1(compact)
+	value := p.arithmExprUnary(compact)
 	if BinAritOperator(p.tok) == Pow {
 		if compact && p.spaced {
 			return value
@@ -152,7 +152,7 @@ func (p *Parser) arithmExprPower(compact bool) ArithmExpr {
 	return value
 }
 
-func (p *Parser) arithmExpr1(compact bool) ArithmExpr {
+func (p *Parser) arithmExprUnary(compact bool) ArithmExpr {
 	if !compact {
 		p.got(_Newl)
 	}
@@ -161,16 +161,16 @@ func (p *Parser) arithmExpr1(compact bool) ArithmExpr {
 	case Not, BitNegation, Plus, Minus:
 		ue := &UnaryArithm{OpPos: p.pos, Op: UnAritOperator(p.tok)}
 		p.nextArithOp(compact)
-		if ue.X = p.arithmExpr1(compact); ue.X == nil {
+		if ue.X = p.arithmExprUnary(compact); ue.X == nil {
 			p.followErrExp(ue.OpPos, ue.Op.String())
 		}
 		return ue
 	}
 
-	return p.arithmExpr0(compact)
+	return p.arithmExprValue(compact)
 }
 
-func (p *Parser) arithmExpr0(compact bool) ArithmExpr {
+func (p *Parser) arithmExprValue(compact bool) ArithmExpr {
 	var x ArithmExpr
 	switch p.tok {
 	case addAdd, subSub:
@@ -179,7 +179,7 @@ func (p *Parser) arithmExpr0(compact bool) ArithmExpr {
 		if p.tok != _LitWord {
 			p.followErr(ue.OpPos, token(ue.Op).String(), "a literal")
 		}
-		ue.X = p.arithmExpr0(compact)
+		ue.X = p.arithmExprValue(compact)
 		return ue
 	case leftParen:
 		pe := &ParenArithm{Lparen: p.pos}
