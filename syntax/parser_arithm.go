@@ -14,6 +14,9 @@ func (p *Parser) arithmExprComma(compact bool) ArithmExpr {
 		if compact && p.spaced {
 			return value
 		}
+		if value == nil {
+			p.curErr("%s must follow an expression", p.tok.String())
+		}
 		pos := p.pos
 		tok := p.tok
 		p.nextArithOp(compact)
@@ -62,6 +65,9 @@ func (p *Parser) arithmExprCond(compact bool) ArithmExpr {
 		if compact && p.spaced {
 			return value
 		}
+		if value == nil {
+			p.curErr("%s must follow an expression", p.tok.String())
+		}
 		questPos := p.pos
 		p.nextArithOp(compact)
 		if BinAritOperator(p.tok) == TernColon {
@@ -102,6 +108,9 @@ func (p *Parser) arithmExprLor(compact bool) ArithmExpr {
 		if compact && p.spaced {
 			return value
 		}
+		if value == nil {
+			p.curErr("%s must follow an expression", p.tok.String())
+		}
 		op := p.tok
 		pos := p.pos
 		p.nextArithOp(compact)
@@ -124,6 +133,9 @@ func (p *Parser) arithmExprLand(compact bool) ArithmExpr {
 	for BinAritOperator(p.tok) == AndArit {
 		if compact && p.spaced {
 			return value
+		}
+		if value == nil {
+			p.curErr("%s must follow an expression", p.tok.String())
 		}
 		op := p.tok
 		pos := p.pos
@@ -148,6 +160,9 @@ func (p *Parser) arithmExprBor(compact bool) ArithmExpr {
 		if compact && p.spaced {
 			return value
 		}
+		if value == nil {
+			p.curErr("%s must follow an expression", p.tok.String())
+		}
 		op := p.tok
 		pos := p.pos
 		p.nextArithOp(compact)
@@ -170,6 +185,9 @@ func (p *Parser) arithmExprBxor(compact bool) ArithmExpr {
 	for BinAritOperator(p.tok) == Xor {
 		if compact && p.spaced {
 			return value
+		}
+		if value == nil {
+			p.curErr("%s must follow an expression", p.tok.String())
 		}
 		op := p.tok
 		pos := p.pos
@@ -194,6 +212,9 @@ func (p *Parser) arithmExprBand(compact bool) ArithmExpr {
 		if compact && p.spaced {
 			return value
 		}
+		if value == nil {
+			p.curErr("%s must follow an expression", p.tok.String())
+		}
 		op := p.tok
 		pos := p.pos
 		p.nextArithOp(compact)
@@ -216,6 +237,9 @@ func (p *Parser) arithmExpr5(compact bool) ArithmExpr {
 	for BinAritOperator(p.tok) == Eql || BinAritOperator(p.tok) == Neq {
 		if compact && p.spaced {
 			return value
+		}
+		if value == nil {
+			p.curErr("%s must follow an expression", p.tok.String())
 		}
 		op := p.tok
 		pos := p.pos
@@ -243,6 +267,9 @@ func (p *Parser) arithmExpr4(compact bool) ArithmExpr {
 		if compact && p.spaced {
 			return value
 		}
+		if value == nil {
+			p.curErr("%s must follow an expression", p.tok.String())
+		}
 		op := p.tok
 		pos := p.pos
 		p.nextArithOp(compact)
@@ -267,6 +294,9 @@ func (p *Parser) arithmExprShift(compact bool) ArithmExpr {
 		if compact && p.spaced {
 			return value
 		}
+		if value == nil {
+			p.curErr("%s must follow an expression", p.tok.String())
+		}
 		op := p.tok
 		pos := p.pos
 		p.nextArithOp(compact)
@@ -290,6 +320,9 @@ func (p *Parser) arithmExpr3(compact bool) ArithmExpr {
 		BinAritOperator(p.tok) == Sub {
 		if compact && p.spaced {
 			return value
+		}
+		if value == nil {
+			p.curErr("%s must follow an expression", p.tok.String())
 		}
 		op := p.tok
 		pos := p.pos
@@ -316,6 +349,9 @@ func (p *Parser) arithmExpr2(compact bool) ArithmExpr {
 		if compact && p.spaced {
 			return value
 		}
+		if value == nil {
+			p.curErr("%s must follow an expression", p.tok.String())
+		}
 		op := p.tok
 		pos := p.pos
 		p.nextArithOp(compact)
@@ -338,6 +374,9 @@ func (p *Parser) arithmExprPower(compact bool) ArithmExpr {
 	if BinAritOperator(p.tok) == Pow {
 		if compact && p.spaced {
 			return value
+		}
+		if value == nil {
+			p.curErr("%s must follow an expression", p.tok.String())
 		}
 		op := p.tok
 		pos := p.pos
@@ -378,7 +417,7 @@ func (p *Parser) arithmExpr0(compact bool) ArithmExpr {
 	switch p.tok {
 	case addAdd, subSub:
 		ue := &UnaryArithm{OpPos: p.pos, Op: UnAritOperator(p.tok)}
-		p.nextArithOp(compact)
+		p.nextArith(compact)
 		if p.tok != _LitWord {
 			p.followErr(ue.OpPos, token(ue.Op).String(), "a literal")
 		}
