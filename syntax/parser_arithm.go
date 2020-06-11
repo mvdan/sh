@@ -60,7 +60,7 @@ func (p *Parser) arithmExprTernary(compact bool) ArithmExpr {
 		p.followErrExp(questPos, TernQuest.String())
 	}
 	if BinAritOperator(p.tok) != TernColon {
-		p.posErr(p.pos, "ternary operator missing : after ?")
+		p.posErr(questPos, "ternary operator missing : after ?")
 	}
 	colonPos := p.pos
 	p.nextArithOp(compact)
@@ -183,6 +183,10 @@ func (p *Parser) arithmExprValue(compact bool) ArithmExpr {
 		pe.X = p.followArithm(leftParen, pe.Lparen)
 		pe.Rparen = p.matched(pe.Lparen, leftParen, rightParen)
 		x = pe
+	case leftBrack:
+		p.curErr("[ must follow a name")
+	case colon:
+		p.curErr("ternary operator missing ? before :")
 	case _LitWord:
 		l := p.getLit()
 		if p.tok != leftBrack {
@@ -310,4 +314,45 @@ func (p *Parser) followArithm(ftok token, fpos Pos) ArithmExpr {
 		p.followErrExp(fpos, ftok.String())
 	}
 	return x
+}
+
+func (p *Parser) peekArithmEnd() bool {
+	return p.tok == rightParen && p.r == ')'
+}
+
+func (p *Parser) arithmMatchingErr(pos Pos, left, right token) {
+	switch p.tok {
+	case _Lit, _LitWord:
+		p.curErr("not a valid arithmetic operator: %s", p.val)
+	case leftBrack:
+		p.curErr("[ must follow a name")
+	case colon:
+		p.curErr("ternary operator missing ? before :")
+	case rightParen, _EOF:
+		p.matchingErr(pos, left, right)
+	default:
+		if p.quote == arithmExpr {
+			p.curErr("not a valid arithmetic operator: %v", p.tok)
+		}
+		p.matchingErr(pos, left, right)
+	}
+}
+
+func (p *Parser) matchedArithm(lpos Pos, left, right token) Pos {
+	pos := p.pos
+	if !p.got(right) {
+		p.arithmMatchingErr(lpos, left, right)
+	}
+	return pos
+}
+
+func (p *Parser) arithmEnd(ltok token, lpos Pos, old saveState) Pos {
+	if !p.peekArithmEnd() {
+		p.arithmMatchingErr(lpos, ltok, dblRightParen)
+	}
+	p.rune()
+	p.postNested(old)
+	pos := p.pos
+	p.next()
+	return pos
 }

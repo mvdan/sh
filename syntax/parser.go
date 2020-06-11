@@ -946,7 +946,7 @@ func (p *Parser) wordPart() WordPart {
 		ar.X = p.followArithm(left, ar.Left)
 		if ar.Bracket {
 			if p.tok != rightBrack {
-				p.matchingErr(ar.Left, dollBrack, rightBrack)
+				p.arithmMatchingErr(ar.Left, dollBrack, rightBrack)
 			}
 			p.postNested(old)
 			ar.Right = p.pos
@@ -1230,6 +1230,12 @@ func (p *Parser) paramExp() *ParamExp {
 		if p.got(colon) {
 			pe.Slice.Length = p.followArithm(colon, colonPos)
 		}
+		// Need to use a different matched style so arithm errors
+		// get reported correctly
+		p.quote = old
+		pe.Rbrace = p.pos
+		p.matchedArithm(pe.Dollar, dollBrace, rightBrace)
+		return pe
 	case caret, dblCaret, comma, dblComma:
 		// upper/lower case
 		if p.lang != LangBash {
@@ -1290,23 +1296,8 @@ func (p *Parser) eitherIndex() ArithmExpr {
 	}
 	expr := p.followArithm(leftBrack, lpos)
 	p.quote = old
-	p.matched(lpos, leftBrack, rightBrack)
+	p.matchedArithm(lpos, leftBrack, rightBrack)
 	return expr
-}
-
-func (p *Parser) peekArithmEnd() bool {
-	return p.tok == rightParen && p.r == ')'
-}
-
-func (p *Parser) arithmEnd(ltok token, lpos Pos, old saveState) Pos {
-	if !p.peekArithmEnd() {
-		p.matchingErr(lpos, ltok, dblRightParen)
-	}
-	p.rune()
-	p.postNested(old)
-	pos := p.pos
-	p.next()
-	return pos
 }
 
 func stopToken(tok token) bool {

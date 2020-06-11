@@ -986,11 +986,11 @@ var shellTests = []errorCase{
 	},
 	{
 		in:     "echo $((a ? b))",
-		common: `1:9: ternary operator missing : after ?`,
+		common: `1:11: ternary operator missing : after ?`,
 	},
 	{
 		in:     "echo $((a : b))",
-		common: `1:9: ternary operator missing ? before :`,
+		common: `1:11: ternary operator missing ? before :`,
 	},
 	{
 		in:     "echo $((/",
@@ -998,7 +998,7 @@ var shellTests = []errorCase{
 	},
 	{
 		in:     "echo $((:",
-		common: `1:9: : must follow an expression`,
+		common: `1:9: ternary operator missing ? before :`,
 	},
 	{
 		in:     "echo $(((a)+=b))",
@@ -1338,7 +1338,7 @@ var shellTests = []errorCase{
 	},
 	{
 		in:   "let a:b",
-		bsmk: `1:5: ternary operator missing ? before :`,
+		bsmk: `1:6: ternary operator missing ? before :`,
 	},
 	{
 		in:   "let a+b=c",
@@ -2182,7 +2182,7 @@ func TestParseArithmeticError(t *testing.T) {
 	in := "3 +"
 	p := NewParser()
 	_, err := p.Arithmetic(strings.NewReader(in))
-	want := "1:3: expected an arithmetic expression, got: EOF"
+	want := "1:3: + must be followed by an expression"
 	got := fmt.Sprintf("%v", err)
 	if got != want {
 		t.Fatalf("Expected %q as an error, but got %q", want, got)
