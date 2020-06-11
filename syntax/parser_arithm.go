@@ -9,36 +9,18 @@ func (p *Parser) arithmExpr(compact bool) ArithmExpr {
 // These function names are inspired by Bash's expr.c
 
 func (p *Parser) arithmExprComma(compact bool) ArithmExpr {
-	value := p.arithmExprAssign(compact)
-	for BinAritOperator(p.tok) == Comma {
-		if compact && p.spaced {
-			return value
-		}
-		if value == nil {
-			p.curErr("%s must follow an expression", p.tok.String())
-		}
-		pos := p.pos
-		tok := p.tok
-		p.nextArithOp(compact)
-		y := p.arithmExprAssign(compact)
-		if y == nil {
-			p.followErrExp(pos, tok.String())
-		}
-		value = &BinaryArithm{
-			OpPos: pos,
-			Op:    BinAritOperator(tok),
-			X:     value,
-			Y:     y,
-		}
-	}
-	return value
+	return p.arithmExprBinary(compact, p.arithmExprAssign, Comma)
 }
 
 func (p *Parser) arithmExprAssign(compact bool) ArithmExpr {
+	// Assign is different from the other binary operators because it's right-associative and needs to check that it's placed after a name
 	value := p.arithmExprCond(compact)
 	switch BinAritOperator(p.tok) {
 	case AddAssgn, SubAssgn, MulAssgn, QuoAssgn, RemAssgn, AndAssgn,
 		OrAssgn, XorAssgn, ShlAssgn, ShrAssgn, Assgn:
+		if compact && p.spaced {
+			return value
+		}
 		if !isArithName(value) {
 			p.posErr(p.pos, "%s must follow a name", p.tok.String())
 		}
@@ -103,273 +85,47 @@ func (p *Parser) arithmExprCond(compact bool) ArithmExpr {
 }
 
 func (p *Parser) arithmExprLor(compact bool) ArithmExpr {
-	value := p.arithmExprLand(compact)
-	for BinAritOperator(p.tok) == OrArit {
-		if compact && p.spaced {
-			return value
-		}
-		if value == nil {
-			p.curErr("%s must follow an expression", p.tok.String())
-		}
-		op := p.tok
-		pos := p.pos
-		p.nextArithOp(compact)
-		y := p.arithmExprLand(compact)
-		if y == nil {
-			p.followErrExp(pos, op.String())
-		}
-		value = &BinaryArithm{
-			OpPos: pos,
-			Op:    BinAritOperator(op),
-			X:     value,
-			Y:     y,
-		}
-	}
-	return value
+	return p.arithmExprBinary(compact, p.arithmExprLand, OrArit)
 }
 
 func (p *Parser) arithmExprLand(compact bool) ArithmExpr {
-	value := p.arithmExprBor(compact)
-	for BinAritOperator(p.tok) == AndArit {
-		if compact && p.spaced {
-			return value
-		}
-		if value == nil {
-			p.curErr("%s must follow an expression", p.tok.String())
-		}
-		op := p.tok
-		pos := p.pos
-		p.nextArithOp(compact)
-		y := p.arithmExprBor(compact)
-		if y == nil {
-			p.followErrExp(pos, op.String())
-		}
-		value = &BinaryArithm{
-			OpPos: pos,
-			Op:    BinAritOperator(op),
-			X:     value,
-			Y:     y,
-		}
-	}
-	return value
+	return p.arithmExprBinary(compact, p.arithmExprBor, AndArit)
 }
 
 func (p *Parser) arithmExprBor(compact bool) ArithmExpr {
-	value := p.arithmExprBxor(compact)
-	for BinAritOperator(p.tok) == Or {
-		if compact && p.spaced {
-			return value
-		}
-		if value == nil {
-			p.curErr("%s must follow an expression", p.tok.String())
-		}
-		op := p.tok
-		pos := p.pos
-		p.nextArithOp(compact)
-		y := p.arithmExprBxor(compact)
-		if y == nil {
-			p.followErrExp(pos, op.String())
-		}
-		value = &BinaryArithm{
-			OpPos: pos,
-			Op:    BinAritOperator(op),
-			X:     value,
-			Y:     y,
-		}
-	}
-	return value
+	return p.arithmExprBinary(compact, p.arithmExprBxor, Or)
 }
 
 func (p *Parser) arithmExprBxor(compact bool) ArithmExpr {
-	value := p.arithmExprBand(compact)
-	for BinAritOperator(p.tok) == Xor {
-		if compact && p.spaced {
-			return value
-		}
-		if value == nil {
-			p.curErr("%s must follow an expression", p.tok.String())
-		}
-		op := p.tok
-		pos := p.pos
-		p.nextArithOp(compact)
-		y := p.arithmExprBand(compact)
-		if y == nil {
-			p.followErrExp(pos, op.String())
-		}
-		value = &BinaryArithm{
-			OpPos: pos,
-			Op:    BinAritOperator(op),
-			X:     value,
-			Y:     y,
-		}
-	}
-	return value
+	return p.arithmExprBinary(compact, p.arithmExprBand, Xor)
 }
 
 func (p *Parser) arithmExprBand(compact bool) ArithmExpr {
-	value := p.arithmExpr5(compact)
-	for BinAritOperator(p.tok) == And {
-		if compact && p.spaced {
-			return value
-		}
-		if value == nil {
-			p.curErr("%s must follow an expression", p.tok.String())
-		}
-		op := p.tok
-		pos := p.pos
-		p.nextArithOp(compact)
-		y := p.arithmExpr5(compact)
-		if y == nil {
-			p.followErrExp(pos, op.String())
-		}
-		value = &BinaryArithm{
-			OpPos: pos,
-			Op:    BinAritOperator(op),
-			X:     value,
-			Y:     y,
-		}
-	}
-	return value
+	return p.arithmExprBinary(compact, p.arithmExpr5, And)
 }
 
 func (p *Parser) arithmExpr5(compact bool) ArithmExpr {
-	value := p.arithmExpr4(compact)
-	for BinAritOperator(p.tok) == Eql || BinAritOperator(p.tok) == Neq {
-		if compact && p.spaced {
-			return value
-		}
-		if value == nil {
-			p.curErr("%s must follow an expression", p.tok.String())
-		}
-		op := p.tok
-		pos := p.pos
-		p.nextArithOp(compact)
-		y := p.arithmExpr4(compact)
-		if y == nil {
-			p.followErrExp(pos, op.String())
-		}
-		value = &BinaryArithm{
-			OpPos: pos,
-			Op:    BinAritOperator(op),
-			X:     value,
-			Y:     y,
-		}
-	}
-	return value
+	return p.arithmExprBinary(compact, p.arithmExpr4, Eql, Neq)
 }
 
 func (p *Parser) arithmExpr4(compact bool) ArithmExpr {
-	value := p.arithmExprShift(compact)
-	for BinAritOperator(p.tok) == Lss ||
-		BinAritOperator(p.tok) == Gtr ||
-		BinAritOperator(p.tok) == Leq ||
-		BinAritOperator(p.tok) == Geq {
-		if compact && p.spaced {
-			return value
-		}
-		if value == nil {
-			p.curErr("%s must follow an expression", p.tok.String())
-		}
-		op := p.tok
-		pos := p.pos
-		p.nextArithOp(compact)
-		y := p.arithmExprShift(compact)
-		if y == nil {
-			p.followErrExp(pos, op.String())
-		}
-		value = &BinaryArithm{
-			OpPos: pos,
-			Op:    BinAritOperator(op),
-			X:     value,
-			Y:     y,
-		}
-	}
-	return value
+	return p.arithmExprBinary(compact, p.arithmExprShift, Lss, Gtr, Leq, Geq)
 }
 
 func (p *Parser) arithmExprShift(compact bool) ArithmExpr {
-	value := p.arithmExpr3(compact)
-	for BinAritOperator(p.tok) == Shl ||
-		BinAritOperator(p.tok) == Shr {
-		if compact && p.spaced {
-			return value
-		}
-		if value == nil {
-			p.curErr("%s must follow an expression", p.tok.String())
-		}
-		op := p.tok
-		pos := p.pos
-		p.nextArithOp(compact)
-		y := p.arithmExpr3(compact)
-		if y == nil {
-			p.followErrExp(pos, op.String())
-		}
-		value = &BinaryArithm{
-			OpPos: pos,
-			Op:    BinAritOperator(op),
-			X:     value,
-			Y:     y,
-		}
-	}
-	return value
+	return p.arithmExprBinary(compact, p.arithmExpr3, Shl, Shr)
 }
 
 func (p *Parser) arithmExpr3(compact bool) ArithmExpr {
-	value := p.arithmExpr2(compact)
-	for BinAritOperator(p.tok) == Add ||
-		BinAritOperator(p.tok) == Sub {
-		if compact && p.spaced {
-			return value
-		}
-		if value == nil {
-			p.curErr("%s must follow an expression", p.tok.String())
-		}
-		op := p.tok
-		pos := p.pos
-		p.nextArithOp(compact)
-		y := p.arithmExpr2(compact)
-		if y == nil {
-			p.followErrExp(pos, op.String())
-		}
-		value = &BinaryArithm{
-			OpPos: pos,
-			Op:    BinAritOperator(op),
-			X:     value,
-			Y:     y,
-		}
-	}
-	return value
+	return p.arithmExprBinary(compact, p.arithmExpr2, Add, Sub)
 }
 
 func (p *Parser) arithmExpr2(compact bool) ArithmExpr {
-	value := p.arithmExprPower(compact)
-	for BinAritOperator(p.tok) == Mul ||
-		BinAritOperator(p.tok) == Quo ||
-		BinAritOperator(p.tok) == Rem {
-		if compact && p.spaced {
-			return value
-		}
-		if value == nil {
-			p.curErr("%s must follow an expression", p.tok.String())
-		}
-		op := p.tok
-		pos := p.pos
-		p.nextArithOp(compact)
-		y := p.arithmExprPower(compact)
-		if y == nil {
-			p.followErrExp(pos, op.String())
-		}
-		value = &BinaryArithm{
-			OpPos: pos,
-			Op:    BinAritOperator(op),
-			X:     value,
-			Y:     y,
-		}
-	}
-	return value
+	return p.arithmExprBinary(compact, p.arithmExprPower, Mul, Quo, Rem)
 }
 
 func (p *Parser) arithmExprPower(compact bool) ArithmExpr {
+	// Power is different from the other binary operators because it's right-associative
 	value := p.arithmExpr1(compact)
 	if BinAritOperator(p.tok) == Pow {
 		if compact && p.spaced {
@@ -428,8 +184,6 @@ func (p *Parser) arithmExpr0(compact bool) ArithmExpr {
 		p.nextArithOp(compact)
 		pe.X = p.followArithm(leftParen, pe.Lparen)
 		pe.Rparen = p.matched(pe.Lparen, leftParen, rightParen)
-		for p.got(_Newl) {
-		}
 		x = pe
 	case _LitWord:
 		l := p.getLit()
@@ -495,6 +249,47 @@ func (p *Parser) nextArithOp(compact bool) {
 	if p.nextArith(compact) {
 		p.followErrExp(pos, tok.String())
 	}
+}
+
+// arithmExprBinary is used for all left-associative binary operators
+func (p *Parser) arithmExprBinary(compact bool, nextOp func(bool) ArithmExpr, operators ...BinAritOperator) ArithmExpr {
+	value := nextOp(compact)
+	for {
+		var foundOp BinAritOperator
+		for _, op := range operators {
+			if p.tok == token(op) {
+				foundOp = op
+				break
+			}
+		}
+		if foundOp == 0 {
+			break
+		}
+
+		if compact && p.spaced {
+			return value
+		}
+
+		if value == nil {
+			p.curErr("%s must follow an expression", p.tok.String())
+		}
+
+		pos := p.pos
+		p.nextArithOp(compact)
+		y := nextOp(compact)
+		if y == nil {
+			p.followErrExp(pos, foundOp.String())
+		}
+
+		value = &BinaryArithm{
+			OpPos: pos,
+			Op:    foundOp,
+			X:     value,
+			Y:     y,
+		}
+	}
+
+	return value
 }
 
 func isArithName(left ArithmExpr) bool {
