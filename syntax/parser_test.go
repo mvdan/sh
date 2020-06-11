@@ -2133,6 +2133,29 @@ var arithmeticTests = []struct {
 			},
 		},
 	},
+	{
+		"a = 3, ++a, a--",
+		&BinaryArithm{
+			Op: Comma,
+			X: &BinaryArithm{
+				Op: Comma,
+				X: &BinaryArithm{
+					Op: Assgn,
+					X:  litWord("a"),
+					Y:  litWord("3"),
+				},
+				Y: &UnaryArithm{
+					Op: Inc,
+					X:  litWord("a"),
+				},
+			},
+			Y: &UnaryArithm{
+				Op:   Dec,
+				Post: true,
+				X:    litWord("a"),
+			},
+		},
+	},
 }
 
 func TestParseArithmetic(t *testing.T) {

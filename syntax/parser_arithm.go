@@ -1,7 +1,5 @@
 package syntax
 
-import ()
-
 // compact specifies whether we allow spaces between expressions.
 // This is true for let
 func (p *Parser) arithmExpr(compact bool) ArithmExpr {
@@ -384,7 +382,7 @@ func (p *Parser) arithmExpr0(compact bool) ArithmExpr {
 		if p.tok != _LitWord {
 			p.followErr(ue.OpPos, token(ue.Op).String(), "a literal")
 		}
-		ue.X = p.arithmExpr(compact)
+		ue.X = p.arithmExpr0(compact)
 		return ue
 	case leftParen:
 		pe := &ParenArithm{Lparen: p.pos}
