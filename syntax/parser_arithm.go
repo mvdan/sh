@@ -153,7 +153,9 @@ func (p *Parser) arithmExprPower(compact bool) ArithmExpr {
 }
 
 func (p *Parser) arithmExpr1(compact bool) ArithmExpr {
-	p.got(_Newl)
+	if !compact {
+		p.got(_Newl)
+	}
 
 	switch UnAritOperator(p.tok) {
 	case Not, BitNegation, Plus, Minus:
@@ -209,7 +211,7 @@ func (p *Parser) arithmExpr0(compact bool) ArithmExpr {
 	if compact && p.spaced {
 		return x
 	}
-	for p.got(_Newl) {
+	for !compact && p.got(_Newl) {
 	}
 
 	// we want real nil, not (*Word)(nil) as that
@@ -238,7 +240,7 @@ func (p *Parser) nextArith(compact bool) bool {
 	if compact && p.spaced {
 		return true
 	}
-	for p.got(_Newl) {
+	for !compact && p.got(_Newl) {
 	}
 	return false
 }
