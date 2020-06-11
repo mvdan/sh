@@ -13,7 +13,8 @@ func (p *Parser) arithmExprComma(compact bool) ArithmExpr {
 }
 
 func (p *Parser) arithmExprAssign(compact bool) ArithmExpr {
-	// Assign is different from the other binary operators because it's right-associative and needs to check that it's placed after a name
+	// Assign is different from the other binary operators because it's
+	// right-associative and needs to check that it's placed after a name
 	value := p.arithmExprTernary(compact)
 	switch BinAritOperator(p.tok) {
 	case AddAssgn, SubAssgn, MulAssgn, QuoAssgn, RemAssgn, AndAssgn,
@@ -139,7 +140,6 @@ func (p *Parser) arithmExprPower(compact bool) ArithmExpr {
 	if y == nil {
 		p.followErrExp(pos, op.String())
 	}
-
 	return &BinaryArithm{
 		OpPos: pos,
 		Op:    BinAritOperator(op),
@@ -162,7 +162,6 @@ func (p *Parser) arithmExprUnary(compact bool) ArithmExpr {
 		}
 		return ue
 	}
-
 	return p.arithmExprValue(compact)
 }
 
@@ -212,7 +211,6 @@ func (p *Parser) arithmExprValue(compact bool) ArithmExpr {
 	if compact && p.spaced {
 		return x
 	}
-
 	if !compact {
 		p.got(_Newl)
 	}
@@ -232,7 +230,6 @@ func (p *Parser) arithmExprValue(compact bool) ArithmExpr {
 		p.nextArith(compact)
 		return u
 	}
-
 	return x
 }
 
@@ -338,12 +335,10 @@ func (p *Parser) arithmMatchingErr(pos Pos, left, right token) {
 	}
 }
 
-func (p *Parser) matchedArithm(lpos Pos, left, right token) Pos {
-	pos := p.pos
+func (p *Parser) matchedArithm(lpos Pos, left, right token) {
 	if !p.got(right) {
 		p.arithmMatchingErr(lpos, left, right)
 	}
-	return pos
 }
 
 func (p *Parser) arithmEnd(ltok token, lpos Pos, old saveState) Pos {
