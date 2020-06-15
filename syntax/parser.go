@@ -2274,7 +2274,7 @@ loop:
 			}
 			fallthrough
 		default:
-			p.curErr("a command can only contain words and redirects. This command stopped at token: '%s'", p.tok)
+			p.curErr("a command can only contain words and redirects; encountered %s", p.tok)
 		}
 	}
 	if len(ce.Assigns) == 0 && len(ce.Args) == 0 {
