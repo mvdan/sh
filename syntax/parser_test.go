@@ -481,7 +481,7 @@ var shellTests = []errorCase{
 	},
 	{
 		in:     "a=b foo() { bar; }",
-		common: `1:8: a command can only contain words and redirects`,
+		common: `1:8: a command can only contain words and redirects; encountered (`,
 	},
 	{
 		in:     "a=b if foo; then bar; fi",
@@ -493,7 +493,7 @@ var shellTests = []errorCase{
 	},
 	{
 		in:     ">f foo() { bar; }",
-		common: `1:7: a command can only contain words and redirects`,
+		common: `1:7: a command can only contain words and redirects; encountered (`,
 	},
 	{
 		in:     ">f if foo; then bar; fi",
@@ -643,7 +643,7 @@ var shellTests = []errorCase{
 	},
 	{
 		in:     "echo foo(",
-		common: `1:9: a command can only contain words and redirects`,
+		common: `1:9: a command can only contain words and redirects; encountered (`,
 	},
 	{
 		in:     "echo &&",
@@ -1176,7 +1176,7 @@ var shellTests = []errorCase{
 	},
 	{
 		in:     "case i in 3) foo; 4) bar; esac",
-		common: `1:20: a command can only contain words and redirects`,
+		common: `1:20: a command can only contain words and redirects; encountered )`,
 	},
 	{
 		in:     "case i in 3&) foo;",
@@ -1259,7 +1259,7 @@ var shellTests = []errorCase{
 	{
 		in:    "]] )",
 		bsmk:  `1:1: "]]" can only be used to close a test`,
-		posix: `1:4: a command can only contain words and redirects`,
+		posix: `1:4: a command can only contain words and redirects; encountered )`,
 	},
 	{
 		in:    "((foo",
@@ -1690,7 +1690,7 @@ var shellTests = []errorCase{
 	},
 	{
 		in:    "function foo() { bar; }",
-		posix: `1:13: a command can only contain words and redirects`,
+		posix: `1:13: a command can only contain words and redirects; encountered (`,
 	},
 	{
 		in:    "echo <(",
