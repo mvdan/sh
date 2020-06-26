@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## [3.1.2] - 2020-06-26
+
+- **syntax**
+  - Fix brace indentation when using `FunctionNextLine`
+  - Support indirect parameter expansions with transformations
+  - Stop heredoc bodies only when the entire line matches
+- **interp**
+  - Make the tests pass on 32-bit platforms
+
 ## [3.1.1] - 2020-05-04
 
 - **cmd/shfmt**
