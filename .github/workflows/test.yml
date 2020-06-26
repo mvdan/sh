@@ -92,6 +92,8 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v2
+      with:
+        fetch-depth: 0 # also fetch tags for 'git describe'
     - name: Set up image tag
       run: |
         set -vx
