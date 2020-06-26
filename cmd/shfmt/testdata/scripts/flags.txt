@@ -16,7 +16,10 @@ stderr 'cannot coexist'
 stderr 'unknown shell language'
 
 ! shfmt -tojson file
-stderr 'can only be used with stdin'
+stderr '-tojson can only be used with stdin'
+
+! shfmt -filename=foo file
+stderr '-filename can only be used with stdin'
 
 # Check all the -ln variations.
 stdin notbash.sh

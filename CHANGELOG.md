@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **cmd/shfmt**
+  - Add `-filename` to give a name to standard input
+- **syntax**
+  - Rewrite arithmetic parsing to fix operator precedence
+
 ## [3.1.1] - 2020-05-04
 
 - **cmd/shfmt**

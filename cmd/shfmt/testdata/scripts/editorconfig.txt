@@ -6,6 +6,14 @@ shfmt
 cmp stdout input.sh.golden
 ! stderr .
 
+# Verify that -filename works well with EditorConfig.
+stdin stdin-filename-bash
+shfmt
+
+stdin stdin-filename-bash
+! shfmt -filename=foo-posix.sh
+stderr '^foo-posix.sh:.* arrays are a bash'
+
 # Using a file path should use EditorConfig, including with the use of flags
 # like -l.
 shfmt input.sh
@@ -51,6 +59,9 @@ root = true
 [*]
 indent_style = space
 indent_size = 3
+
+[*-posix.sh]
+shell_variant = posix
 -- input.sh --
 {
 	indented
@@ -59,6 +70,10 @@ indent_size = 3
 {
    indented
 }
+-- stdin-filename-bash --
+array=(
+	element
+)
 -- morespaces/.editorconfig --
 [*.sh]
 indent_size = 6

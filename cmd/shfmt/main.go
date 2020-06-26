@@ -38,8 +38,9 @@ var (
 	// useEditorConfig will be false if any parser or printer flags were used.
 	useEditorConfig = true
 
-	langStr = flag.String("ln", "", "")
-	posix   = flag.Bool("p", false, "")
+	langStr  = flag.String("ln", "", "")
+	posix    = flag.Bool("p", false, "")
+	filename = flag.String("filename", "", "")
 
 	indent      = flag.Uint("i", 0, "")
 	binNext     = flag.Bool("bn", false, "")
@@ -85,8 +86,9 @@ for shell files - both by filename extension and by shebang.
 
 Parser options:
 
-  -ln str   language variant to parse (bash/posix/mksh, default "bash")
-  -p        shorthand for -ln=posix
+  -ln str        language variant to parse (bash/posix/mksh, default "bash")
+  -p             shorthand for -ln=posix
+  -filename str  provide a name for the standard input file
 
 Printer options:
 
@@ -170,7 +172,11 @@ Utilities:
 		color = true
 	}
 	if flag.NArg() == 0 || (flag.NArg() == 1 && flag.Arg(0) == "-") {
-		if err := formatStdin(); err != nil {
+		name := "<standard input>"
+		if *filename != "" {
+			name = *filename
+		}
+		if err := formatStdin(name); err != nil {
 			if err != errChangedWithDiff {
 				fmt.Fprintln(os.Stderr, err)
 			}
@@ -178,8 +184,12 @@ Utilities:
 		}
 		return 0
 	}
+	if *filename != "" {
+		fmt.Fprintln(os.Stderr, "-filename can only be used with stdin")
+		return 1
+	}
 	if *toJSON {
-		fmt.Fprintln(os.Stderr, "-tojson can only be used with stdin/out")
+		fmt.Fprintln(os.Stderr, "-tojson can only be used with stdin")
 		return 1
 	}
 	status := 0
@@ -196,7 +206,7 @@ Utilities:
 
 var errChangedWithDiff = fmt.Errorf("")
 
-func formatStdin() error {
+func formatStdin(name string) error {
 	if *write {
 		return fmt.Errorf("-w cannot be used on standard input")
 	}
@@ -204,7 +214,7 @@ func formatStdin() error {
 	if err != nil {
 		return err
 	}
-	return formatBytes(src, "<standard input>")
+	return formatBytes(src, name)
 }
 
 var vcsDir = regexp.MustCompile(`^\.(git|svn|hg)$`)
