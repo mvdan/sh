@@ -1,6 +1,5 @@
 *.a
 *.zip
-fuzzit-program
 
 # Don't store any of this in the master branch.
 suppressions/
