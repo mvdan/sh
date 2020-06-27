@@ -2819,7 +2819,7 @@ var testBuiltinsMap = map[string]func(HandlerContext, []string) error{
 				continue
 			}
 			path := absPath(hc.Dir, arg)
-			if err := os.MkdirAll(path, 0777); err != nil {
+			if err := os.MkdirAll(path, 0o777); err != nil {
 				return err
 			}
 		}
@@ -2865,7 +2865,7 @@ var testBuiltinsMap = map[string]func(HandlerContext, []string) error{
 		for _, arg := range args {
 			path := absPath(hc.Dir, arg)
 			// create the file if it does not exist
-			f, err := os.OpenFile(path, os.O_CREATE, 0666)
+			f, err := os.OpenFile(path, os.O_CREATE, 0o666)
 			if err != nil {
 				return err
 			}
@@ -3213,10 +3213,10 @@ func TestRunnerDir(t *testing.T) {
 		realDir := filepath.Join(tempDir, "real-long-dir-name")
 		realFile := filepath.Join(realDir, "realfile")
 
-		if err := os.Mkdir(realDir, 0777); err != nil {
+		if err := os.Mkdir(realDir, 0o777); err != nil {
 			t.Fatal(err)
 		}
-		if err := ioutil.WriteFile(realFile, []byte(""), 0666); err != nil {
+		if err := ioutil.WriteFile(realFile, []byte(""), 0o666); err != nil {
 			t.Fatal(err)
 		}
 
@@ -3401,7 +3401,7 @@ func TestMalformedPathOnWindows(t *testing.T) {
 
 	path := filepath.Join(dir, "test.cmd")
 	script := []byte("@echo foo")
-	if err := ioutil.WriteFile(path, script, 0777); err != nil {
+	if err := ioutil.WriteFile(path, script, 0o777); err != nil {
 		t.Fatal(err)
 	}
 

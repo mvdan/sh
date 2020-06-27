@@ -37,17 +37,17 @@ func hasPermissionToDir(info os.FileInfo) bool {
 	}
 	perm := info.Mode().Perm()
 	// user (u)
-	if perm&0100 != 0 && st.Uid == uint32(uid) {
+	if perm&0o100 != 0 && st.Uid == uint32(uid) {
 		return true
 	}
 
 	gid, _ := strconv.Atoi(user.Gid)
 	// other users in group (g)
-	if perm&0010 != 0 && st.Uid != uint32(uid) && st.Gid == uint32(gid) {
+	if perm&0o010 != 0 && st.Uid != uint32(uid) && st.Gid == uint32(gid) {
 		return true
 	}
 	// remaining users (o)
-	if perm&0001 != 0 && st.Uid != uint32(uid) && st.Gid != uint32(gid) {
+	if perm&0o001 != 0 && st.Uid != uint32(uid) && st.Gid != uint32(gid) {
 		return true
 	}
 

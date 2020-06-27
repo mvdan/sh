@@ -28,7 +28,7 @@ func TestScripts(t *testing.T) {
 		Dir: filepath.Join("testdata", "scripts"),
 		Setup: func(env *testscript.Env) error {
 			bindir := filepath.Join(env.WorkDir, ".bin")
-			if err := os.Mkdir(bindir, 0777); err != nil {
+			if err := os.Mkdir(bindir, 0o777); err != nil {
 				return err
 			}
 			binfile := filepath.Join(bindir, "bundled-shfmt")

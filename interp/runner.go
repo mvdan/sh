@@ -62,7 +62,7 @@ func (r *Runner) fillExpandConfig(ctx context.Context) {
 			}
 			dir := os.TempDir()
 			path := fmt.Sprintf("%s/sh-interp-%d", dir, r.rand.Uint32())
-			if err := mkfifo(path, 0666); err != nil {
+			if err := mkfifo(path, 0o666); err != nil {
 				return "", fmt.Errorf("cannot create fifo: %v", err)
 			}
 			r2 := r.Subshell()
@@ -673,7 +673,7 @@ func (r *Runner) redir(ctx context.Context, rd *syntax.Redirect) (io.Closer, err
 	case syntax.RdrOut, syntax.RdrAll:
 		mode = os.O_WRONLY | os.O_CREATE | os.O_TRUNC
 	}
-	f, err := r.open(ctx, arg, mode, 0644, true)
+	f, err := r.open(ctx, arg, mode, 0o644, true)
 	if err != nil {
 		return nil, err
 	}

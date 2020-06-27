@@ -144,7 +144,7 @@ func checkStat(dir, file string) (string, error) {
 	if m.IsDir() {
 		return "", fmt.Errorf("is a directory")
 	}
-	if runtime.GOOS != "windows" && m&0111 == 0 {
+	if runtime.GOOS != "windows" && m&0o111 == 0 {
 		return "", fmt.Errorf("permission denied")
 	}
 	return file, nil
