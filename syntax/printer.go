@@ -82,6 +82,11 @@ func FunctionNextLine(enabled bool) PrinterOption {
 	return func(p *Printer) { p.funcNextLine = enabled }
 }
 
+// NoSplitting will prevent any additional newlines
+func NoSplitting(enabled bool) PrinterOption {
+	return func(p *Printer) { p.noSplitting = enabled }
+}
+
 // NewPrinter allocates a new Printer and applies any number of options.
 func NewPrinter(opts ...PrinterOption) *Printer {
 	p := &Printer{
@@ -209,6 +214,7 @@ type Printer struct {
 	keepPadding    bool
 	minify         bool
 	funcNextLine   bool
+	noSplitting    bool
 
 	wantSpace   bool
 	wantNewline bool
@@ -1205,7 +1211,9 @@ func startsWithLparen(s *Stmt) bool {
 func (p *Printer) stmtList(stmts []*Stmt, last []Comment) {
 	sep := p.wantNewline ||
 		(len(stmts) > 0 && stmts[0].Pos().Line() > p.line)
+	i := -1
 	for _, s := range stmts {
+		i++
 		pos := s.Pos()
 		var midComs, endComs []Comment
 		for _, c := range s.Comments {
@@ -1226,7 +1234,11 @@ func (p *Printer) stmtList(stmts []*Stmt, last []Comment) {
 		p.comments(midComs...)
 		p.stmt(s)
 		p.comments(endComs...)
-		p.wantNewline = true
+		if !p.noSplitting {
+			p.wantNewline = true
+		} else if !s.Coprocess && !s.Background && len(stmts) > 1 && i < len(stmts)-1 && s.Semicolon.IsValid() {
+			p.WriteByte(';')
+		}
 	}
 	if len(stmts) == 1 && !sep {
 		p.wantNewline = false
@@ -1293,22 +1305,24 @@ func (e *extraIndenter) WriteString(s string) (int, error) {
 
 func (p *Printer) nestedStmts(stmts []*Stmt, last []Comment, closing Pos) {
 	p.incLevel()
-	switch {
-	case len(stmts) > 1:
-		// Force a newline if we find:
-		//     { stmt; stmt; }
-		p.wantNewline = true
-	case closing.Line() > p.line && len(stmts) > 0 &&
-		stmtsEnd(stmts, last).Line() < closing.Line():
-		// Force a newline if we find:
-		//     { stmt
-		//     }
-		p.wantNewline = true
-	case len(p.pendingComments) > 0 && len(stmts) > 0:
-		// Force a newline if we find:
-		//     for i in a b # stmt
-		//     do foo; done
-		p.wantNewline = true
+	if !p.noSplitting {
+		switch {
+		case len(stmts) > 1:
+			// Force a newline if we find:
+			//     { stmt; stmt; }
+			p.wantNewline = true
+		case closing.Line() > p.line && len(stmts) > 0 &&
+			stmtsEnd(stmts, last).Line() < closing.Line():
+			// Force a newline if we find:
+			//     { stmt
+			//     }
+			p.wantNewline = true
+		case len(p.pendingComments) > 0 && len(stmts) > 0:
+			// Force a newline if we find:
+			//     for i in a b # stmt
+			//     do foo; done
+			p.wantNewline = true
+		}
 	}
 	p.stmtList(stmts, last)
 	if closing.IsValid() {
