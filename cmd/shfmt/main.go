@@ -395,6 +395,7 @@ func diffBytes(b1, b2 []byte, path string) error {
 	b := bytes.Split(b2, []byte("\n"))
 	ab := diff.Bytes(a, b)
 	e := diff.Myers(context.Background(), ab)
+	e = e.WithContextSize(3)
 	opts := []diff.WriteOpt{diff.Names(path+".orig", path)}
 	if color {
 		opts = append(opts, diff.TerminalColor())
