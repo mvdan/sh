@@ -299,7 +299,7 @@ skipSpace:
 		p.tok = p.arithmToken(r)
 	case p.quote&allParamExp != 0 && paramOps(r):
 		p.tok = p.paramToken(r)
-	case p.quote == testRegexp:
+	case p.quote == testExprRegexp:
 		if !p.rxFirstPart && p.spaced {
 			p.quote = noState
 			goto skipSpace
@@ -416,7 +416,7 @@ func (p *Parser) regToken(r rune) token {
 		}
 		return dollar
 	case '(':
-		if p.rune() == '(' && p.lang != LangPOSIX {
+		if p.rune() == '(' && p.lang != LangPOSIX && p.quote != testExpr {
 			p.rune()
 			return dblLeftParen
 		}

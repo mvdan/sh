@@ -454,7 +454,8 @@ const (
 	arithmExprLet
 	arithmExprCmd
 	arithmExprBrack
-	testRegexp
+	testExpr
+	testExprRegexp
 	switchCase
 	paramExpName
 	paramExpSlice
@@ -465,7 +466,7 @@ const (
 	allKeepSpaces = paramExpRepl | dblQuotes | hdocBody |
 		hdocBodyTabs | paramExpExp
 	allRegTokens = noState | subCmd | subCmdBckquo | hdocWord |
-		switchCase | arrayElems
+		switchCase | arrayElems | testExpr
 	allArithmExpr = arithmExpr | arithmExprLet | arithmExprCmd |
 		arithmExprBrack | paramExpSlice
 	allParamReg = paramExpName | paramExpSlice
@@ -1991,6 +1992,7 @@ func (p *Parser) caseItems(stop string) (items []*CaseItem) {
 
 func (p *Parser) testClause(s *Stmt) {
 	tc := &TestClause{Left: p.pos}
+	old := p.preNested(testExpr)
 	p.next()
 	if _, ok := p.gotRsrv("]]"); ok || p.tok == _EOF {
 		p.posErr(tc.Left, "test clause requires at least one expression")
@@ -2000,6 +2002,7 @@ func (p *Parser) testClause(s *Stmt) {
 	if _, ok := p.gotRsrv("]]"); !ok {
 		p.matchingErr(tc.Left, "[[", "]]")
 	}
+	p.postNested(old)
 	s.Cmd = tc
 }
 
@@ -2057,7 +2060,7 @@ func (p *Parser) testExpr(ftok token, fpos Pos, pastAndOr bool) TestExpr {
 		// TODO(mvdan): Using nested states within a regex will break in
 		// all sorts of ways. The better fix is likely to use a stop
 		// token, like we do with heredocs.
-		p.quote = testRegexp
+		p.quote = testExprRegexp
 		fallthrough
 	default:
 		if _, ok := b.X.(*Word); !ok {

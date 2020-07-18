@@ -19,16 +19,17 @@ func _() {
 	_ = x[arithmExprLet-256]
 	_ = x[arithmExprCmd-512]
 	_ = x[arithmExprBrack-1024]
-	_ = x[testRegexp-2048]
-	_ = x[switchCase-4096]
-	_ = x[paramExpName-8192]
-	_ = x[paramExpSlice-16384]
-	_ = x[paramExpRepl-32768]
-	_ = x[paramExpExp-65536]
-	_ = x[arrayElems-131072]
+	_ = x[testExpr-2048]
+	_ = x[testExprRegexp-4096]
+	_ = x[switchCase-8192]
+	_ = x[paramExpName-16384]
+	_ = x[paramExpSlice-32768]
+	_ = x[paramExpRepl-65536]
+	_ = x[paramExpExp-131072]
+	_ = x[arrayElems-262144]
 }
 
-const _quoteState_name = "noStatesubCmdsubCmdBckquodblQuoteshdocWordhdocBodyhdocBodyTabsarithmExprarithmExprLetarithmExprCmdarithmExprBracktestRegexpswitchCaseparamExpNameparamExpSliceparamExpReplparamExpExparrayElems"
+const _quoteState_name = "noStatesubCmdsubCmdBckquodblQuoteshdocWordhdocBodyhdocBodyTabsarithmExprarithmExprLetarithmExprCmdarithmExprBracktestExprtestExprRegexpswitchCaseparamExpNameparamExpSliceparamExpReplparamExpExparrayElems"
 
 var _quoteState_map = map[quoteState]string{
 	1:      _quoteState_name[0:7],
@@ -42,13 +43,14 @@ var _quoteState_map = map[quoteState]string{
 	256:    _quoteState_name[72:85],
 	512:    _quoteState_name[85:98],
 	1024:   _quoteState_name[98:113],
-	2048:   _quoteState_name[113:123],
-	4096:   _quoteState_name[123:133],
-	8192:   _quoteState_name[133:145],
-	16384:  _quoteState_name[145:158],
-	32768:  _quoteState_name[158:170],
-	65536:  _quoteState_name[170:181],
-	131072: _quoteState_name[181:191],
+	2048:   _quoteState_name[113:121],
+	4096:   _quoteState_name[121:135],
+	8192:   _quoteState_name[135:145],
+	16384:  _quoteState_name[145:157],
+	32768:  _quoteState_name[157:170],
+	65536:  _quoteState_name[170:182],
+	131072: _quoteState_name[182:193],
+	262144: _quoteState_name[193:203],
 }
 
 func (i quoteState) String() string {
