@@ -1365,6 +1365,14 @@ var shellTests = []errorCase{
 		bsmk: `1:6: || must be followed by an expression`,
 	},
 	{
+		in:   "[[ a && &&",
+		bsmk: `1:6: && must be followed by an expression`,
+	},
+	{
+		in:   "[[ a && ]]",
+		bsmk: `1:6: && must be followed by an expression`,
+	},
+	{
 		in:   "[[ a ==",
 		bsmk: `1:6: == must be followed by a word`,
 	},
@@ -1406,12 +1414,20 @@ var shellTests = []errorCase{
 		bsmk: `1:12: ( must be followed by an expression`,
 	},
 	{
+		in:   "[[ true && (&& ]]",
+		bsmk: `1:12: ( must be followed by an expression`,
+	},
+	{
 		in:   "[[ a == ! b ]]",
 		bsmk: `1:11: not a valid test operator: b`,
 	},
 	{
 		in:   "[[ (! ) ]]",
 		bsmk: `1:5: ! must be followed by an expression`,
+	},
+	{
+		in:   "[[ ! && ]]",
+		bsmk: `1:4: ! must be followed by an expression`,
 	},
 	{
 		in:   "[[ (-e ) ]]",
@@ -1435,7 +1451,7 @@ var shellTests = []errorCase{
 	},
 	{
 		in:   "[[ >",
-		bsmk: `1:1: [[ must be followed by a word`,
+		bsmk: `1:1: [[ must be followed by an expression`,
 	},
 	{
 		in:   "local (",

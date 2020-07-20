@@ -1998,6 +1998,9 @@ func (p *Parser) testClause(s *Stmt) {
 		p.posErr(tc.Left, "test clause requires at least one expression")
 	}
 	tc.X = p.testExpr(dblLeftBrack, tc.Left, false)
+	if tc.X == nil {
+		p.followErrExp(tc.Left, "[[")
+	}
 	tc.Right = p.pos
 	if _, ok := p.gotRsrv("]]"); !ok {
 		p.matchingErr(tc.Left, "[[", "]]")
@@ -2024,6 +2027,9 @@ func (p *Parser) testExpr(ftok token, fpos Pos, pastAndOr bool) TestExpr {
 		if p.val == "]]" {
 			return left
 		}
+		if p.tok = token(testBinaryOp(p.val)); p.tok == illegalTok {
+			p.curErr("not a valid test operator: %s", p.val)
+		}
 	case rdrIn, rdrOut:
 	case _EOF, rightParen:
 		return left
@@ -2031,11 +2037,6 @@ func (p *Parser) testExpr(ftok token, fpos Pos, pastAndOr bool) TestExpr {
 		p.curErr("test operator words must consist of a single literal")
 	default:
 		p.curErr("not a valid test operator: %v", p.tok)
-	}
-	if p.tok == _LitWord {
-		if p.tok = token(testBinaryOp(p.val)); p.tok == illegalTok {
-			p.curErr("not a valid test operator: %s", p.val)
-		}
 	}
 	b := &BinaryTest{
 		OpPos: p.pos,
@@ -2114,8 +2115,17 @@ func (p *Parser) testExprBase(ftok token, fpos Pos) TestExpr {
 		}
 		pe.Rparen = p.matched(pe.Lparen, leftParen, rightParen)
 		return pe
+	case _LitWord:
+		if p.val == "]]" {
+			return nil
+		}
+		fallthrough
 	default:
-		return p.followWordTok(ftok, fpos)
+		if w := p.getWord(); w != nil {
+			return w
+		}
+		// otherwise we'd return a typed nil above
+		return nil
 	}
 }
 
