@@ -269,16 +269,17 @@ func (p *Printer) space() {
 }
 
 func (p *Printer) spacePad(pos Pos) {
-	if p.cols.lineStart {
-		// Never add padding at the start of a line, since this may
+	if p.cols.lineStart && (!p.keepPadding || p.indentSpaces == 0) {
+		// Never add padding at the start of a line unless keepPadding
+		// is set and we are indenting with spaces, since this may
 		// result in broken indentation or mixing of spaces and tabs.
 		return
 	}
-	if p.wantSpace {
+	if p.wantSpace && !p.cols.lineStart {
 		p.WriteByte(' ')
 		p.wantSpace = false
 	}
-	for !p.cols.lineStart && p.cols.column > 0 && p.cols.column < int(pos.col) {
+	for p.cols.column > 0 && p.cols.column < int(pos.col) {
 		p.WriteByte(' ')
 	}
 }
@@ -507,6 +508,8 @@ func (p *Printer) flushComments() {
 				p.WriteByte('\n')
 			}
 			p.indent()
+			p.wantSpace = false
+			p.spacePad(c.Pos())
 		case p.wantSpace:
 			if p.keepPadding {
 				p.spacePad(c.Pos())
@@ -873,6 +876,7 @@ func (p *Printer) elemJoin(elems []*ArrayElem, last []Comment) {
 		}
 		if el.Pos().Line() > p.line {
 			p.newlines(el.Pos())
+			p.spacePad(el.Pos())
 		} else if p.wantSpace {
 			p.space()
 		}

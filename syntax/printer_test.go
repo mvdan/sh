@@ -529,6 +529,10 @@ var printTests = []printCase{
 	samePrint("\"foo\tbar\"\n\"foooo\tbar\""),
 	samePrint("foo\\\tbar\nfoooo\\\tbar"),
 	samePrint("#foo\tbar\n#foooo\tbar"),
+	{
+		"array=('one'\n\t\t# 'two'\n\t\t'three')",
+		"array=('one'\n\t# 'two'\n\t'three')",
+	},
 }
 
 func TestPrintWeirdFormat(t *testing.T) {
@@ -621,6 +625,11 @@ func TestPrintSpaces(t *testing.T) {
 			2,
 			"if foo; then # inline1\nbar # inline2\n# withfi\nfi",
 			"if foo; then # inline1\n  bar        # inline2\n# withfi\nfi",
+		},
+		{
+			2,
+			"array=('one'\n    # 'two'\n    'three')",
+			"array=('one'\n  # 'two'\n  'three')",
 		},
 	}
 
@@ -831,9 +840,31 @@ func TestPrintKeepPadding(t *testing.T) {
 			"1234 || { x; y; }",
 			"1234 || {\n\tx\n\ty\n}",
 		},
+		{
+			"array=('one'\n\t\t# 'two'\n\t\t'three')",
+			"array=('one'\n\t# 'two'\n\t'three')",
+		},
 	}
 	parser := NewParser(KeepComments(true))
 	printer := NewPrinter(KeepPadding(true))
+	for i, tc := range tests {
+		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
+			// ensure that Reset does properly reset colCounter
+			printer.WriteByte('x')
+			printer.Reset(nil)
+			printTest(t, parser, printer, tc.in, tc.want)
+		})
+	}
+}
+
+func TestPrintKeepPaddingSpaces(t *testing.T) {
+	t.Parallel()
+	tests := [...]printCase{
+		samePrint("array=('one'\n        # 'two'\n        'three')"),
+		samePrint("    abc=123"),
+	}
+	parser := NewParser(KeepComments(true))
+	printer := NewPrinter(KeepPadding(true), Indent(2))
 	for i, tc := range tests {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
 			// ensure that Reset does properly reset colCounter
