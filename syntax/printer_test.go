@@ -862,14 +862,14 @@ func TestPrintKeepPaddingSpaces(t *testing.T) {
 	tests := [...]printCase{
 		samePrint("array=('one'\n        # 'two'\n        'three')"),
 		samePrint("    abc=123"),
+		samePrint("foo \\\n  bar \\\n    baz"),
+		samePrint("{\n  foo\n    bar\n}"),
+		samePrint("# foo\n  # bar"),
 	}
 	parser := NewParser(KeepComments(true))
 	printer := NewPrinter(KeepPadding(true), Indent(2))
 	for i, tc := range tests {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
-			// ensure that Reset does properly reset colCounter
-			printer.WriteByte('x')
-			printer.Reset(nil)
 			printTest(t, parser, printer, tc.in, tc.want)
 		})
 	}

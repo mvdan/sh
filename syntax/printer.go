@@ -831,9 +831,8 @@ func (p *Printer) wordJoin(ws []*Word) {
 				anyNewline = true
 			}
 			p.bslashNewl()
-		} else {
-			p.spacePad(w.Pos())
 		}
+		p.spacePad(w.Pos())
 		p.word(w)
 	}
 	if anyNewline {
