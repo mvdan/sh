@@ -269,13 +269,12 @@ func (p *Printer) space() {
 }
 
 func (p *Printer) spacePad(pos Pos) {
-	if p.cols.lineStart && (!p.keepPadding || p.indentSpaces == 0) {
-		// Never add padding at the start of a line unless keepPadding
-		// is set and we are indenting with spaces, since this may
-		// result in broken indentation or mixing of spaces and tabs.
+	if p.cols.lineStart && p.indentSpaces == 0 {
+		// Never add padding at the start of a line unless we are indenting
+		// with spaces, since this may result in mixing of spaces and tabs.
 		return
 	}
-	if p.wantSpace && !p.cols.lineStart {
+	if p.wantSpace {
 		p.WriteByte(' ')
 		p.wantSpace = false
 	}
