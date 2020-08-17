@@ -790,6 +790,7 @@ func (p *Printer) testExpr(expr TestExpr) {
 		p.testExpr(x.X)
 	case *ParenTest:
 		p.WriteByte('(')
+		p.wantSpace = startsWithLparen(x.X)
 		p.testExpr(x.X)
 		p.WriteByte(')')
 	}
@@ -1194,12 +1195,16 @@ func (p *Printer) ifClause(ic *IfClause, elif bool) {
 	p.semiRsrv("fi", ic.FiPos)
 }
 
-func startsWithLparen(s *Stmt) bool {
-	switch x := s.Cmd.(type) {
-	case *Subshell:
-		return true
+func startsWithLparen(node Node) bool {
+	switch node := node.(type) {
+	case *Stmt:
+		return startsWithLparen(node.Cmd)
 	case *BinaryCmd:
-		return startsWithLparen(x.X)
+		return startsWithLparen(node.X)
+	case *Subshell:
+		return true // keep ( (
+	case *ArithmCmd:
+		return true // keep ( ((
 	}
 	return false
 }
