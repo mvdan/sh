@@ -430,12 +430,16 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 				}
 			}
 		case *syntax.CStyleLoop:
-			r.arithm(y.Init)
-			for r.arithm(y.Cond) != 0 {
+			if y.Init != nil {
+				r.arithm(y.Init)
+			}
+			for y.Cond == nil || r.arithm(y.Cond) != 0 {
 				if r.exit != 0 || r.loopStmtsBroken(ctx, x.Do) {
 					break
 				}
-				r.arithm(y.Post)
+				if y.Post != nil {
+					r.arithm(y.Post)
+				}
 			}
 		}
 	case *syntax.FuncDecl:

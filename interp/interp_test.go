@@ -629,6 +629,23 @@ var runTests = []runTest{
 		"for ((i=0; i<3; i++)); do echo $i; done",
 		"0\n1\n2\n",
 	},
+	// for, with missing Init, Cond, Post
+	{
+		"i=0; for ((; i<3; i++)); do echo $i; done",
+		"0\n1\n2\n",
+	},
+	{
+		"for ((i=0;; i++)); do if [ $i -ge 3 ]; then break; fi; echo $i; done",
+		"0\n1\n2\n",
+	},
+	{
+		"for ((i=0; i<3;)); do echo $i; i=$((i+1)); done",
+		"0\n1\n2\n",
+	},
+	{
+		"i=0; for ((;;)); do if [ $i -ge 3 ]; then break; fi; echo $i; i=$((i+1)); done",
+		"0\n1\n2\n",
+	},
 	// TODO: uncomment once expandEnv.Set starts returning errors
 	// {
 	// 	"readonly i; for ((i=0; i<3; i++)); do echo $i; done",
