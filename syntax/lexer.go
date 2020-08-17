@@ -807,7 +807,7 @@ loop:
 		switch r {
 		case '\\': // escaped byte follows
 			p.rune()
-		case '"', '`', '$':
+		case '\'', '"', '`', '$':
 			tok = _Lit
 			break loop
 		case '}':
@@ -831,7 +831,7 @@ loop:
 			if p.quote&allParamReg != 0 {
 				break loop
 			}
-		case '\'', '+', '-', ' ', '\t', ';', '&', '>', '<', '|', '(', ')', '\n', '\r':
+		case '+', '-', ' ', '\t', ';', '&', '>', '<', '|', '(', ')', '\n', '\r':
 			if p.quote&allKeepSpaces == 0 {
 				break loop
 			}

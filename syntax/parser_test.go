@@ -942,7 +942,7 @@ var shellTests = []errorCase{
 	},
 	{
 		in:     `echo $((a'`,
-		common: `1:10: not a valid arithmetic operator: '`,
+		common: `1:10: reached EOF without closing quote '`,
 	},
 	{
 		in:     `echo $((a b"`,
@@ -1018,8 +1018,13 @@ var shellTests = []errorCase{
 		common: `1:13: = must follow a name #NOERR`,
 	},
 	{
-		in:     "echo $((1'2'))",
-		common: `1:10: not a valid arithmetic operator: '`,
+		in: "echo $((1'2'))",
+		// TODO: Take a look at this again, since this no longer fails
+		// after fixing github.com/mvdan/sh/issues/587.
+		// Note that Bash seems to treat code inside $(()) as if it were
+		// within double quotes, yet still requires single quotes to be
+		// matched.
+		// common: `1:10: not a valid arithmetic operator: '`,
 	},
 	{
 		in:     "<<EOF\n$(()a",

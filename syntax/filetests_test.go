@@ -2039,6 +2039,16 @@ var fileTests = []testCase{
 		},
 	},
 	{
+		Strs: []string{`${var#*'="'}`},
+		common: &ParamExp{
+			Param: lit("var"),
+			Exp: &Expansion{
+				Op:   RemSmallPrefix,
+				Word: word(lit("*"), sglQuoted(`="`)),
+			},
+		},
+	},
+	{
 		Strs: []string{`${foo%bar}${foo%%bar*}`},
 		common: word(
 			&ParamExp{
