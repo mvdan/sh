@@ -372,7 +372,8 @@ func (w *WordIter) End() Pos {
 //
 // This node will only appear with LangBash.
 type CStyleLoop struct {
-	Lparen, Rparen   Pos
+	Lparen, Rparen Pos
+	// Init, Cond, Post can each be nil, if the for loop construct omits it.
 	Init, Cond, Post ArithmExpr
 }
 
