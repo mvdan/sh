@@ -72,7 +72,7 @@ func TestWalk(t *testing.T) {
 				return
 			}
 			lastOffs := uint(0)
-			Walk(prog, func(node Node) bool {
+			Walk(prog, func(node Node) bool) {
 				if node == nil {
 					return false
 				}
