@@ -3,7 +3,7 @@
 [![GoDoc](https://godoc.org/mvdan.cc/sh?status.svg)](https://godoc.org/mvdan.cc/sh)
 
 A shell parser, formatter, and interpreter. Supports [POSIX Shell], [Bash], and
-[mksh]. Requires Go 1.13 or later.
+[mksh]. Requires Go 1.14 or later.
 
 ### Quick start
 
