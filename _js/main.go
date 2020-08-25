@@ -14,7 +14,22 @@ import (
 )
 
 func main() {
-	exps := js.Module.Get("exports")
+	var exps *js.Object
+
+	if js.Module != js.Undefined {
+		// node
+		exps = js.Module.Get("exports")
+	} else {
+		// browser, `module.exports` in unavailable
+		exps = js.MakeWrapper(map[string]interface{}{})
+		originalGlobalSh := js.Global.Get("sh")
+		exps.Set("noConflict", func() *js.Object {
+			js.Global.Set("sh", originalGlobalSh)
+			return exps
+		})
+		// make it accessable on `window.sh`
+		js.Global.Set("sh", exps)
+	}
 
 	exps.Set("syntax", map[string]interface{}{})
 

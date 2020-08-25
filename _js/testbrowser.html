@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>mvdan-sh</title>
+  </head>
+  <body>
+    <script>
+      var sh = "mock-sh";
+    </script>
+    <script src="./index.js"></script>
+    <script>
+      const assert = {
+        equal(x, y) {
+          if (x !== y) {
+            throw new Error("assert error");
+          }
+        },
+      };
+
+      assert.equal(!sh, false);
+
+      const syntax = sh.syntax;
+      const parser = syntax.NewParser();
+      const printer = syntax.NewPrinter();
+
+      const src = "echo      'foo'";
+      const f = parser.Parse(src, "src");
+      const out = printer.Print(f);
+      assert.equal(out, "echo 'foo'\n");
+
+      assert.equal(sh, (window.newSh = sh.noConflict()));
+      assert.equal(sh, "mock-sh");
+    </script>
+  </body>
+</html>
