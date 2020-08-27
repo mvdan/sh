@@ -327,7 +327,10 @@ func (p *Printer) semiOrNewl(s string, pos Pos) {
 }
 
 func (p *Printer) writeLit(s string) {
-	if strings.Contains(s, "\t") {
+	// If p.tabWriter is nil, this is the nested printer being used to print
+	// <<- heredoc bodies, so the parent printer will add the escape bytes
+	// later.
+	if p.tabWriter != nil && strings.Contains(s, "\t") {
 		p.WriteByte(tabwriter.Escape)
 		defer p.WriteByte(tabwriter.Escape)
 	}
@@ -1249,12 +1252,7 @@ func (e *extraIndenter) WriteByte(b byte) error {
 	if b != '\n' {
 		return nil
 	}
-	line := e.curLine
-	if bytes.HasPrefix(e.curLine, []byte("\xff")) {
-		// beginning a multiline sequence, with the leading escape
-		line = line[1:]
-	}
-	trimmed := bytes.TrimLeft(line, "\t")
+	trimmed := bytes.TrimLeft(e.curLine, "\t")
 	if len(trimmed) == 1 {
 		// no tabs if this is an empty line, i.e. "\n"
 		e.bufWriter.Write(trimmed)
@@ -1262,21 +1260,29 @@ func (e *extraIndenter) WriteByte(b byte) error {
 		return nil
 	}
 
-	lineIndent := len(line) - len(trimmed)
+	lineIndent := len(e.curLine) - len(trimmed)
 	if e.firstIndent < 0 {
+		// This is the first heredoc line we add extra indentation to.
+		// Keep track of how much we indented.
 		e.firstIndent = lineIndent
 		e.firstChange = e.baseIndent - lineIndent
 		lineIndent = e.baseIndent
+
+	} else if lineIndent < e.firstIndent {
+		// This line did not have enough indentation; simply indent it
+		// like the first line.
+		lineIndent = e.firstIndent
+
 	} else {
-		if lineIndent < e.firstIndent {
-			lineIndent = e.firstIndent
-		} else {
-			lineIndent += e.firstChange
-		}
+		// This line had plenty of indentation. Add the extra
+		// indentation that the first line had, for consistency.
+		lineIndent += e.firstChange
 	}
+	e.bufWriter.WriteByte(tabwriter.Escape)
 	for i := 0; i < lineIndent; i++ {
 		e.bufWriter.WriteByte('\t')
 	}
+	e.bufWriter.WriteByte(tabwriter.Escape)
 	e.bufWriter.Write(trimmed)
 	e.curLine = e.curLine[:0]
 	return nil

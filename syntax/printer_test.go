@@ -481,6 +481,7 @@ var printTests = []printCase{
 		"f <<-EOF\n{\n\ttoo little indented\n}\nEOF",
 		"f <<-EOF\n\t{\n\t\ttoo little indented\n\t}\nEOF",
 	},
+	samePrint("<<-EOF\n\t$foo\nEOF\n\n{\n\tbar\n}"),
 	samePrint("f <<EOF\nEOF\n# comment"),
 	samePrint("f <<EOF\nEOF\n# comment\nbar"),
 	samePrint("f <<EOF # inline\n$(\n\t# inside\n)\nEOF\n# outside\nbar"),
