@@ -421,7 +421,17 @@ func (p *Printer) flushHeredocs() {
 				}
 				p.tabsPrinter = &Printer{
 					bufWriter: &extra,
-					line:      r.Hdoc.Pos().Line(),
+
+					// The options need to persist.
+					indentSpaces:   p.indentSpaces,
+					binNextLine:    p.binNextLine,
+					swtCaseIndent:  p.swtCaseIndent,
+					spaceRedirects: p.spaceRedirects,
+					keepPadding:    p.keepPadding,
+					minify:         p.minify,
+					funcNextLine:   p.funcNextLine,
+
+					line: r.Hdoc.Pos().Line(),
 				}
 				p.tabsPrinter.wordParts(r.Hdoc.Parts, true)
 			}
@@ -1272,7 +1282,6 @@ func (e *extraIndenter) WriteByte(b byte) error {
 		// This line did not have enough indentation; simply indent it
 		// like the first line.
 		lineIndent = e.firstIndent
-
 	} else {
 		// This line had plenty of indentation. Add the extra
 		// indentation that the first line had, for consistency.

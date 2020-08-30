@@ -806,6 +806,7 @@ func TestPrintSpaceRedirects(t *testing.T) {
 		samePrint("echo >(cmd)"),
 		samePrint("echo > >(cmd)"),
 		samePrint("<< EOF\nfoo\nEOF"),
+		samePrint("<<- EOF\n\t$(< foo)\nEOF"),
 		samePrint("echo 2> f"),
 		samePrint("echo foo bar >&1"),
 		samePrint("echo 2<&1 foo bar"),
@@ -945,6 +946,8 @@ func TestPrintMinify(t *testing.T) {
 			"${0/${a}\\\n}",
 			"${0/$a/}",
 		},
+		samePrint("foo >bar 2>baz <etc"),
+		samePrint("<<-EOF\n$(a|b)\nEOF"),
 	}
 	parser := NewParser(KeepComments(true))
 	printer := NewPrinter(Minify(true))
