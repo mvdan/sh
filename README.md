@@ -182,7 +182,7 @@ repo configuration like:
 [homebrew]: https://formulae.brew.sh/formula/shfmt
 [macports]: https://ports.macports.org/port/shfmt/summary
 [micro]: https://micro-editor.github.io/
-[mksh]: https://www.mirbsd.org/mksh.htm
+[mksh]: http://www.mirbsd.org/mksh.htm
 [modd]: https://github.com/cortesi/modd
 [mvdan-sh]: https://www.npmjs.com/package/mvdan-sh
 [nixos]: https://github.com/NixOS/nixpkgs/blob/HEAD/pkgs/tools/text/shfmt/default.nix
