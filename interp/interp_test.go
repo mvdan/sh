@@ -297,6 +297,7 @@ var runTests = []runTest{
 	{`set -- b c; echo a"$@"d`, "ab cd\n"},
 	{`count() { echo $#; }; set --; count "$@"`, "0\n"},
 	{`count() { echo $#; }; set -- ""; count "$@"`, "1\n"},
+	{`count() { echo $#; }; set -- ""; shift; count "$@"`, "0\n"},
 	{`count() { echo $#; }; a=(); count "${a[@]}"`, "0\n"},
 	{`count() { echo $#; }; a=(""); count "${a[@]}"`, "1\n"},
 	{`echo $1 $3; set -- a b c; echo $1 $3`, "\na c\n"},

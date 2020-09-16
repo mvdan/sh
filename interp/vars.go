@@ -70,7 +70,13 @@ func (r *Runner) lookupVar(name string) expand.Variable {
 	case "#":
 		vr.Kind, vr.Str = expand.String, strconv.Itoa(len(r.Params))
 	case "@", "*":
-		vr.Kind, vr.List = expand.Indexed, r.Params
+		vr.Kind = expand.Indexed
+		if r.Params == nil {
+			// r.Params may be nil but positional parameters always exist
+			vr.List = []string{}
+		} else {
+			vr.List = r.Params
+		}
 	case "?":
 		vr.Kind, vr.Str = expand.String, strconv.Itoa(r.lastExit)
 	case "$":
