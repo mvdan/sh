@@ -158,6 +158,7 @@ repo configuration like:
 
 - Alternative docker images - by [jamesmstone][dockerized-jamesmstone], [PeterDaveHello][dockerized-peterdavehello]
 - [format-shell] - Atom plugin for `shfmt`
+- [intellij-shellcript] - Intellij Jetbrains `shell script` plugin includes `shfmt`
 - [micro] - Editor with a built-in plugin for `shfmt`
 - [modd] - A developer tool that responds to filesystem changes, using `sh`
 - [prettier-plugin-sh] - [Prettier] plugin using [mvdan-sh]
@@ -180,6 +181,7 @@ repo configuration like:
 [go-fuzz]: https://github.com/dvyukov/go-fuzz
 [google-style]: https://google.github.io/styleguide/shell.xml
 [homebrew]: https://formulae.brew.sh/formula/shfmt
+[intellij-shellcript]: https://www.jetbrains.com/help/idea/shell-scripts.html
 [macports]: https://ports.macports.org/port/shfmt/summary
 [micro]: https://micro-editor.github.io/
 [mksh]: http://www.mirbsd.org/mksh.htm
