@@ -6,6 +6,7 @@
   - Add `-filename` to give a name to standard input
 - **syntax**
   - Rewrite arithmetic parsing to fix operator precedence
+  - Don't add parentheses to `function f {...}` declarations for ksh support
 
 ## [3.1.2] - 2020-06-26
 

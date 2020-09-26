@@ -1065,11 +1065,13 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			p.WriteString("function ")
 		}
 		p.writeLit(x.Name.Value)
-		p.WriteString("()")
+		if !x.RsrvWord || x.Parens {
+			p.WriteString("()")
+		}
 		if p.funcNextLine {
 			p.newline(Pos{})
 			p.indent()
-		} else if !p.minify {
+		} else if !x.Parens || !p.minify {
 			p.space()
 		}
 		p.line = x.Body.Pos().Line()
