@@ -178,6 +178,7 @@ func (*DeclClause) commandNode()   {}
 func (*LetClause) commandNode()    {}
 func (*TimeClause) commandNode()   {}
 func (*CoprocClause) commandNode() {}
+func (*TestDecl) commandNode()     {}
 
 // Assign represents an assignment to a variable.
 //
@@ -878,6 +879,16 @@ func (b *BraceExp) Pos() Pos {
 func (b *BraceExp) End() Pos {
 	return posAddCol(wordLastEnd(b.Elems), 1)
 }
+
+// TestDecl represents the declaration of a Bats test function.
+type TestDecl struct {
+	Position    Pos
+	Description *Word
+	Body        *Stmt
+}
+
+func (f *TestDecl) Pos() Pos { return f.Position }
+func (f *TestDecl) End() Pos { return f.Body.End() }
 
 func wordLastEnd(ws []*Word) Pos {
 	if len(ws) == 0 {

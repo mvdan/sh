@@ -75,6 +75,21 @@ func TestParseMirBSDKorn(t *testing.T) {
 	}
 }
 
+func TestParseBats(t *testing.T) {
+	t.Parallel()
+	p := NewParser(Variant(LangBats))
+	for i, c := range append(fileTests, fileTestsNoPrint...) {
+		want := c.Bats
+		if want == nil {
+			continue
+		}
+		for j, in := range c.Strs {
+			t.Run(fmt.Sprintf("%03d-%d", i, j),
+				singleParse(p, in, want))
+		}
+	}
+}
+
 var (
 	hasBash50  bool
 	hasDash059 bool

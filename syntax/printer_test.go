@@ -17,12 +17,15 @@ func TestPrintCompact(t *testing.T) {
 	parserBash := NewParser(KeepComments(true))
 	parserPosix := NewParser(KeepComments(true), Variant(LangPOSIX))
 	parserMirBSD := NewParser(KeepComments(true), Variant(LangMirBSDKorn))
+	parserBats := NewParser(KeepComments(true), Variant(LangBats))
 	printer := NewPrinter()
 	for i, c := range fileTests {
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
 			in := c.Strs[0]
 			parser := parserPosix
-			if c.Bash != nil {
+			if c.Bats != nil {
+				parser = parserBats
+			} else if c.Bash != nil {
 				parser = parserBash
 			} else if c.MirBSDKorn != nil {
 				parser = parserMirBSD
@@ -967,11 +970,14 @@ func TestPrintMinifyNotBroken(t *testing.T) {
 	parserBash := NewParser(KeepComments(true))
 	parserPosix := NewParser(KeepComments(true), Variant(LangPOSIX))
 	parserMirBSD := NewParser(KeepComments(true), Variant(LangMirBSDKorn))
+	parserBats := NewParser(KeepComments(true), Variant(LangBats))
 	printer := NewPrinter(Minify(true))
 	for i, tc := range fileTests {
 		t.Run(fmt.Sprintf("File%03d", i), func(t *testing.T) {
 			parser := parserPosix
-			if tc.Bash != nil {
+			if tc.Bats != nil {
+				parser = parserBats
+			} else if tc.Bash != nil {
 				parser = parserBash
 			} else if tc.MirBSDKorn != nil {
 				parser = parserMirBSD

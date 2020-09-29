@@ -23,12 +23,29 @@ func KeepComments(enabled bool) ParserOption {
 	return func(p *Parser) { p.keepComments = enabled }
 }
 
+// LangVariant describes a shell language variant to use when tokenizing and
+// parsing shell code. The zero value is Bash.
 type LangVariant int
 
 const (
+	// LangBash corresponds to the GNU Bash language, as described in its
+	// manual at https://www.gnu.org/software/bash/manual/bash.html.
 	LangBash LangVariant = iota
+
+	// LangPOSIX corresponds to the POSIX Shell language, as described at
+	// https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html.
 	LangPOSIX
+
+	// LangMirBSDKorn corresponds to the MirBSD Korn Shell, also known as
+	// mksh, as described at http://www.mirbsd.org/htman/i386/man1/mksh.htm.
+	// Note that it shares some features with Bash, due to the the shared
+	// ancestry that is ksh.
 	LangMirBSDKorn
+
+	// LangBats corresponds to the Bash Automated Testing System language,
+	// as described at https://github.com/bats-core/bats-core. Note that
+	// it's just a small extension of the Bash language.
+	LangBats
 )
 
 // Variant changes the shell language variant that the parser will
@@ -45,8 +62,14 @@ func (l LangVariant) String() string {
 		return "posix"
 	case LangMirBSDKorn:
 		return "mksh"
+	case LangBats:
+		return "bats"
 	}
 	return "unknown shell language variant"
+}
+
+func (l LangVariant) isBash() bool {
+	return l == LangBash || l == LangBats
 }
 
 // StopAt configures the lexer to stop at an arbitrary word, treating it
@@ -1239,7 +1262,7 @@ func (p *Parser) paramExp() *ParamExp {
 		return pe
 	case caret, dblCaret, comma, dblComma:
 		// upper/lower case
-		if p.lang != LangBash {
+		if !p.lang.isBash() {
 			p.langErr(p.pos, "this expansion operator", LangBash)
 		}
 		pe.Exp = p.paramExpExp()
@@ -1421,7 +1444,7 @@ func (p *Parser) getAssign(needEqual bool) *Assign {
 		}
 		as.Array = &ArrayExpr{Lparen: p.pos}
 		newQuote := p.quote
-		if p.lang == LangBash {
+		if p.lang.isBash() {
 			newQuote = arrayElems
 		}
 		old := p.preNested(newQuote)
@@ -1494,7 +1517,7 @@ func (p *Parser) doRedirect(s *Stmt) {
 		s.Redirs = append(s.Redirs, r)
 	}
 	r.N = p.getLit()
-	if p.lang != LangBash && r.N != nil && r.N.Value[0] == '{' {
+	if !p.lang.isBash() && r.N != nil && r.N.Value[0] == '{' {
 		p.langErr(r.N.Pos(), "{varname} redirects", LangBash)
 	}
 	r.Op, r.OpPos = RedirOperator(p.tok), p.pos
@@ -1636,7 +1659,7 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 				p.bashFuncDecl(s)
 			}
 		case "declare":
-			if p.lang == LangBash {
+			if p.lang.isBash() {
 				p.declClause(s)
 			}
 		case "local", "export", "readonly", "typeset", "nameref":
@@ -1648,12 +1671,16 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 				p.timeClause(s)
 			}
 		case "coproc":
-			if p.lang == LangBash {
+			if p.lang.isBash() {
 				p.coprocClause(s)
 			}
 		case "select":
 			if p.lang != LangPOSIX {
 				p.selectClause(s)
+			}
+		case "@test":
+			if p.lang == LangBats {
+				p.testDecl(s)
 			}
 		}
 		if s.Cmd != nil {
@@ -1849,7 +1876,7 @@ func (p *Parser) forClause(s *Stmt) {
 }
 
 func (p *Parser) loop(fpos Pos) Loop {
-	if p.lang != LangBash {
+	if !p.lang.isBash() {
 		switch p.tok {
 		case leftParen, dblLeftParen:
 			p.langErr(p.pos, "c-style fors", LangBash)
@@ -2053,7 +2080,7 @@ func (p *Parser) testExpr(ftok token, fpos Pos, pastAndOr bool) TestExpr {
 			p.followErrExp(b.OpPos, b.Op.String())
 		}
 	case TsReMatch:
-		if p.lang != LangBash {
+		if !p.lang.isBash() {
 			p.langErr(p.pos, "regex tests", LangBash)
 		}
 		p.rxOpenParens = 0
@@ -2084,7 +2111,7 @@ func (p *Parser) testExprBase(ftok token, fpos Pos) TestExpr {
 		switch op {
 		case illegalTok:
 		case tsRefVar, tsModif: // not available in mksh
-			if p.lang == LangBash {
+			if p.lang.isBash() {
 				p.tok = op
 			}
 		default:
@@ -2238,6 +2265,18 @@ func (p *Parser) bashFuncDecl(s *Stmt) {
 		p.follow(name.ValuePos, "foo(", rightParen)
 	}
 	p.funcDecl(s, name, fpos, hasParens)
+}
+
+func (p *Parser) testDecl(s *Stmt) {
+	td := &TestDecl{Position: p.pos}
+	p.next()
+	if td.Description = p.getWord(); td.Description == nil {
+		p.followErr(td.Position, "@test", "a description word")
+	}
+	if td.Body = p.getStmt(false, false, true); td.Body == nil {
+		p.followErr(td.Position, `@test "desc"`, "a statement")
+	}
+	s.Cmd = td
 }
 
 func (p *Parser) callExpr(s *Stmt, w *Word, assign bool) {

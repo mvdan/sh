@@ -1159,6 +1159,14 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			p.space()
 			p.arithmExpr(n, true, false)
 		}
+	case *TestDecl:
+		p.spacedString("@test", x.Pos())
+		p.space()
+		p.word(x.Description)
+		p.space()
+		p.stmt(x.Body)
+	default:
+		panic(fmt.Sprintf("syntax.Printer: unexpected node type %T", x))
 	}
 	return startRedirs
 }

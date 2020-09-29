@@ -86,7 +86,7 @@ for shell files - both by filename extension and by shebang.
 
 Parser options:
 
-  -ln str        language variant to parse (bash/posix/mksh, default "bash")
+  -ln str        language variant to parse (bash/posix/mksh/bats, default "bash")
   -p             shorthand for -ln=posix
   -filename str  provide a name for the standard input file
 
@@ -146,6 +146,8 @@ Utilities:
 			lang = syntax.LangPOSIX
 		case "mksh":
 			lang = syntax.LangMirBSDKorn
+		case "bats":
+			lang = syntax.LangBats
 		default:
 			fmt.Fprintf(os.Stderr, "unknown shell language: %s\n", *langStr)
 			return 1
@@ -284,6 +286,8 @@ func propsOptions(props editorconfig.Section) {
 		lang = syntax.LangPOSIX
 	case "mksh":
 		lang = syntax.LangMirBSDKorn
+	case "bats":
+		lang = syntax.LangBats
 	}
 	syntax.Variant(lang)(parser)
 

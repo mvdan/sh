@@ -220,6 +220,9 @@ func Walk(node Node, f func(Node) bool) {
 		for _, expr := range x.Exprs {
 			Walk(expr, f)
 		}
+	case *TestDecl:
+		Walk(x.Description, f)
+		Walk(x.Body, f)
 	default:
 		panic(fmt.Sprintf("syntax.Walk: unexpected node type %T", x))
 	}

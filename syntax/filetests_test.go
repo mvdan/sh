@@ -15,15 +15,18 @@ func prepareTest(c *testCase) {
 	c.posix = fullProg(c.posix)
 	c.mksh = fullProg(c.mksh)
 	c.bsmk = fullProg(c.bsmk) // bash AND mksh
+	c.bats = fullProg(c.bats)
 	if f, ok := c.common.(*File); ok && f != nil {
 		c.All = append(c.All, f)
 		c.Bash = f
 		c.Posix = f
 		c.MirBSDKorn = f
+		c.Bats = f
 	}
 	if f, ok := c.bash.(*File); ok && f != nil {
 		c.All = append(c.All, f)
 		c.Bash = f
+		c.Bats = f
 	}
 	if f, ok := c.posix.(*File); ok && f != nil {
 		c.All = append(c.All, f)
@@ -37,6 +40,10 @@ func prepareTest(c *testCase) {
 		c.All = append(c.All, f)
 		c.Bash = f
 		c.MirBSDKorn = f
+	}
+	if f, ok := c.bats.(*File); ok && f != nil {
+		c.All = append(c.All, f)
+		c.Bats = f
 	}
 }
 
@@ -115,9 +122,11 @@ type testCase struct {
 	common      interface{}
 	bash, posix interface{}
 	bsmk, mksh  interface{}
+	bats        interface{}
 	All         []*File
 	Bash, Posix *File
 	MirBSDKorn  *File
+	Bats        *File
 }
 
 var fileTests = []testCase{
@@ -4265,6 +4274,20 @@ var fileTests = []testCase{
 			litParamExp("k"),
 		)),
 	},
+	{
+		Strs: []string{"@test \"desc\" { body; }"},
+		bats: &TestDecl{
+			Description: word(dblQuoted(lit("desc"))),
+			Body:        stmt(block(litStmt("body"))),
+		},
+	},
+	{
+		Strs: []string{"@test 'desc' {\n\tmultiple\n\tstatements\n}"},
+		bats: &TestDecl{
+			Description: word(sglQuoted("desc")),
+			Body:        stmt(block(litStmts("multiple", "statements")...)),
+		},
+	},
 }
 
 // these don't have a canonical format with the same syntax tree
@@ -4740,6 +4763,10 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 		for _, expr := range x.Exprs {
 			recurse(expr)
 		}
+	case *TestDecl:
+		setPos(&x.Position, "@test")
+		recurse(x.Description)
+		recurse(x.Body)
 	case *ArrayExpr:
 		setPos(&x.Lparen, "(")
 		setPos(&x.Rparen, ")")
