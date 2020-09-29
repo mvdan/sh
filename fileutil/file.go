@@ -28,8 +28,17 @@ func HasShebang(bs []byte) bool {
 type ScriptConfidence int
 
 const (
+	// ConfNotScript describes files which are definitely not shell scripts,
+	// such as non-regular files or files with a non-shell extension.
 	ConfNotScript ScriptConfidence = iota
+
+	// ConfIfShebang describes files which might be shell scripts, depending
+	// on the shebang line in the file's contents. Since CouldBeScript only
+	// works on os.FileInfo, the answer in this case can't be final.
 	ConfIfShebang
+
+	// ConfIsScript describes files which are definitely shell scripts,
+	// which are regular files with a valid shell extension.
 	ConfIsScript
 )
 
