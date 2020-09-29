@@ -196,12 +196,26 @@ Utilities:
 	}
 	status := 0
 	for _, path := range flag.Args() {
-		walk(path, func(err error) {
-			if err != errChangedWithDiff {
-				fmt.Fprintln(os.Stderr, err)
+		if err := filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
 			}
-			status = 1
-		})
+			switch err := walkPath(path, info); err {
+			case nil:
+			case filepath.SkipDir:
+				return err
+			case errChangedWithDiff:
+				status = 1
+			default:
+				fmt.Fprintln(os.Stderr, err)
+				status = 1
+			}
+			return nil
+		}); err != nil {
+			// Something went wrong walking the filesystem; stop.
+			fmt.Fprintln(os.Stderr, err)
+			return 1
+		}
 	}
 	return status
 }
@@ -221,57 +235,32 @@ func formatStdin(name string) error {
 
 var vcsDir = regexp.MustCompile(`^\.(git|svn|hg)$`)
 
-func walk(path string, onError func(error)) {
-	info, err := os.Stat(path)
-	if err != nil {
-		onError(err)
-		return
+func walkPath(path string, info os.FileInfo) error {
+	if info.IsDir() && vcsDir.MatchString(info.Name()) {
+		return filepath.SkipDir
 	}
-	if !info.IsDir() {
-		checkShebang := false
-		if *find {
-			conf := fileutil.CouldBeScript(info)
-			if conf == fileutil.ConfNotScript {
-				return
-			}
-			checkShebang = conf == fileutil.ConfIfShebang
-		}
-		if err := formatPath(path, checkShebang); err != nil {
-			onError(err)
-		}
-		return
-	}
-	filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
+	if useEditorConfig {
+		props, err := ecQuery.Find(path)
 		if err != nil {
-			onError(err)
-			return nil
+			return err
 		}
-		if info.IsDir() && vcsDir.MatchString(info.Name()) {
-			return filepath.SkipDir
-		}
-		if useEditorConfig {
-			props, err := ecQuery.Find(path)
-			if err != nil {
-				return err
-			}
-			if props.Get("ignore") == "true" {
-				if info.IsDir() {
-					return filepath.SkipDir
-				} else {
-					return nil
-				}
+		if props.Get("ignore") == "true" {
+			if info.IsDir() {
+				return filepath.SkipDir
+			} else {
+				return nil
 			}
 		}
-		conf := fileutil.CouldBeScript(info)
-		if conf == fileutil.ConfNotScript {
-			return nil
-		}
-		err = formatPath(path, conf == fileutil.ConfIfShebang)
-		if err != nil && !os.IsNotExist(err) {
-			onError(err)
-		}
+	}
+	conf := fileutil.CouldBeScript(info)
+	if conf == fileutil.ConfNotScript {
 		return nil
-	})
+	}
+	err := formatPath(path, conf == fileutil.ConfIfShebang)
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	return nil
 }
 
 var ecQuery = editorconfig.Query{
