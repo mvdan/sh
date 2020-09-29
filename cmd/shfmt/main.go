@@ -25,6 +25,8 @@ import (
 	"mvdan.cc/sh/v3/syntax"
 )
 
+const unsetLang = syntax.LangVariant(-1)
+
 var (
 	showVersion = flag.Bool("version", false, "")
 
@@ -38,7 +40,7 @@ var (
 	// useEditorConfig will be false if any parser or printer flags were used.
 	useEditorConfig = true
 
-	langStr  = flag.String("ln", "", "")
+	lang     = unsetLang
 	posix    = flag.Bool("p", false, "")
 	filename = flag.String("filename", "", "")
 
@@ -63,6 +65,8 @@ var (
 
 	version = "(devel)" // to match the default from runtime/debug
 )
+
+func init() { flag.Var(&lang, "ln", "") }
 
 func main() {
 	os.Exit(main1())
@@ -119,7 +123,7 @@ Utilities:
 		fmt.Println(version)
 		return 0
 	}
-	if *posix && *langStr != "" {
+	if *posix && lang != unsetLang {
 		fmt.Fprintf(os.Stderr, "-p and -ln=lang cannot coexist\n")
 		return 1
 	}
@@ -138,20 +142,7 @@ Utilities:
 	parser = syntax.NewParser(syntax.KeepComments(true))
 	printer = syntax.NewPrinter(syntax.Minify(*minify))
 
-	lang := syntax.LangBash
 	if !useEditorConfig {
-		switch *langStr {
-		case "bash", "":
-		case "posix":
-			lang = syntax.LangPOSIX
-		case "mksh":
-			lang = syntax.LangMirBSDKorn
-		case "bats":
-			lang = syntax.LangBats
-		default:
-			fmt.Fprintf(os.Stderr, "unknown shell language: %s\n", *langStr)
-			return 1
-		}
 		if *posix {
 			lang = syntax.LangPOSIX
 		}

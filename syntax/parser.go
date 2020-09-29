@@ -30,21 +30,29 @@ type LangVariant int
 const (
 	// LangBash corresponds to the GNU Bash language, as described in its
 	// manual at https://www.gnu.org/software/bash/manual/bash.html.
+	//
+	// Its string representation is "bash".
 	LangBash LangVariant = iota
 
 	// LangPOSIX corresponds to the POSIX Shell language, as described at
 	// https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html.
+	//
+	// Its string representation is "posix" or "sh".
 	LangPOSIX
 
 	// LangMirBSDKorn corresponds to the MirBSD Korn Shell, also known as
 	// mksh, as described at http://www.mirbsd.org/htman/i386/man1/mksh.htm.
 	// Note that it shares some features with Bash, due to the the shared
 	// ancestry that is ksh.
+	//
+	// Its string representation is "mksh".
 	LangMirBSDKorn
 
 	// LangBats corresponds to the Bash Automated Testing System language,
 	// as described at https://github.com/bats-core/bats-core. Note that
 	// it's just a small extension of the Bash language.
+	//
+	// Its string representation is "bats".
 	LangBats
 )
 
@@ -66,6 +74,22 @@ func (l LangVariant) String() string {
 		return "bats"
 	}
 	return "unknown shell language variant"
+}
+
+func (l *LangVariant) Set(s string) error {
+	switch s {
+	case "bash":
+		*l = LangBash
+	case "posix", "sh":
+		*l = LangPOSIX
+	case "mksh":
+		*l = LangMirBSDKorn
+	case "bats":
+		*l = LangBats
+	default:
+		return fmt.Errorf("unknown shell language variant: %q", s)
+	}
+	return nil
 }
 
 func (l LangVariant) isBash() bool {
