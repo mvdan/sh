@@ -782,6 +782,10 @@ func TestPrintFunctionNextLine(t *testing.T) {
 		},
 		{
 			"function foo {\n\tbar\n}",
+			"function foo\n{\n\tbar\n}",
+		},
+		{
+			"function foo() {\n\tbar\n}",
 			"function foo()\n{\n\tbar\n}",
 		},
 		{

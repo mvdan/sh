@@ -1669,7 +1669,7 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 			if p.lang == LangPOSIX && !ValidName(name.Value) {
 				p.posErr(name.Pos(), "invalid func name")
 			}
-			p.funcDecl(s, name, name.ValuePos)
+			p.funcDecl(s, name, name.ValuePos, true)
 		} else {
 			p.callExpr(s, p.word(p.wps(name)), false)
 		}
@@ -2232,10 +2232,12 @@ func (p *Parser) bashFuncDecl(s *Stmt) {
 		p.followErr(fpos, "function", "a name")
 	}
 	name := p.lit(p.pos, p.val)
+	hasParens := false
 	if p.next(); p.got(leftParen) {
+		hasParens = true
 		p.follow(name.ValuePos, "foo(", rightParen)
 	}
-	p.funcDecl(s, name, fpos)
+	p.funcDecl(s, name, fpos, hasParens)
 }
 
 func (p *Parser) callExpr(s *Stmt, w *Word, assign bool) {
@@ -2305,10 +2307,11 @@ loop:
 	s.Cmd = ce
 }
 
-func (p *Parser) funcDecl(s *Stmt, name *Lit, pos Pos) {
+func (p *Parser) funcDecl(s *Stmt, name *Lit, pos Pos, withParens bool) {
 	fd := &FuncDecl{
 		Position: pos,
 		RsrvWord: pos != name.ValuePos,
+		Parens:   withParens,
 		Name:     name,
 	}
 	p.got(_Newl)

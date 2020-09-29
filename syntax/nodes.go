@@ -393,7 +393,8 @@ func (b *BinaryCmd) End() Pos { return b.Y.End() }
 // FuncDecl represents the declaration of a function.
 type FuncDecl struct {
 	Position Pos
-	RsrvWord bool // non-posix "function f()" style
+	RsrvWord bool // non-posix "function f" style
+	Parens   bool // with () parentheses, only meaningful with RsrvWord=true
 	Name     *Lit
 	Body     *Stmt
 }

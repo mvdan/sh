@@ -713,16 +713,18 @@ var fileTests = []testCase{
 			"foo()\n{\na\nb\n}",
 		},
 		common: &FuncDecl{
-			Name: lit("foo"),
-			Body: stmt(block(litStmt("a"), litStmt("b"))),
+			Parens: true,
+			Name:   lit("foo"),
+			Body:   stmt(block(litStmt("a"), litStmt("b"))),
 		},
 	},
 	{
 		Strs: []string{"foo() { a; }\nbar", "foo() {\na\n}; bar"},
 		common: []Command{
 			&FuncDecl{
-				Name: lit("foo"),
-				Body: stmt(block(litStmt("a"))),
+				Parens: true,
+				Name:   lit("foo"),
+				Body:   stmt(block(litStmt("a"))),
 			},
 			litCall("bar"),
 		},
@@ -730,22 +732,35 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"foO_123() { a; }"},
 		common: &FuncDecl{
-			Name: lit("foO_123"),
-			Body: stmt(block(litStmt("a"))),
+			Parens: true,
+			Name:   lit("foO_123"),
+			Body:   stmt(block(litStmt("a"))),
 		},
 	},
 	{
 		Strs: []string{"-foo_.,+-bar() { a; }"},
 		bsmk: &FuncDecl{
-			Name: lit("-foo_.,+-bar"),
-			Body: stmt(block(litStmt("a"))),
+			Parens: true,
+			Name:   lit("-foo_.,+-bar"),
+			Body:   stmt(block(litStmt("a"))),
 		},
 	},
 	{
 		Strs: []string{
 			"function foo() {\n\ta\n\tb\n}",
-			"function foo {\n\ta\n\tb\n}",
 			"function foo() { a; b; }",
+		},
+		bsmk: &FuncDecl{
+			RsrvWord: true,
+			Parens:   true,
+			Name:     lit("foo"),
+			Body:     stmt(block(litStmt("a"), litStmt("b"))),
+		},
+	},
+	{
+		Strs: []string{
+			"function foo {\n\ta\n\tb\n}",
+			"function foo { a; b; }",
 		},
 		bsmk: &FuncDecl{
 			RsrvWord: true,
@@ -757,6 +772,7 @@ var fileTests = []testCase{
 		Strs: []string{"function foo() (a)"},
 		bash: &FuncDecl{
 			RsrvWord: true,
+			Parens:   true,
 			Name:     lit("foo"),
 			Body:     stmt(subshell(litStmt("a"))),
 		},
@@ -4193,7 +4209,8 @@ var fileTests = []testCase{
 	{
 		Strs: []string{"foo() {\n\t<<EOF && { bar; }\nhdoc\nEOF\n}"},
 		common: &FuncDecl{
-			Name: lit("foo"),
+			Parens: true,
+			Name:   lit("foo"),
 			Body: stmt(block(stmt(&BinaryCmd{
 				Op: AndStmt,
 				X: &Stmt{Redirs: []*Redirect{{
