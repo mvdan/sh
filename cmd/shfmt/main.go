@@ -5,7 +5,6 @@ package main
 
 import (
 	"bytes"
-	"context"
 	"flag"
 	"fmt"
 	"io"
@@ -18,6 +17,7 @@ import (
 
 	"github.com/google/renameio"
 	"github.com/pkg/diff"
+	diffwrite "github.com/pkg/diff/write"
 	"golang.org/x/term"
 	"mvdan.cc/editorconfig"
 
@@ -360,7 +360,11 @@ func formatBytes(src []byte, path string) error {
 			}
 		}
 		if *diffOut {
-			if err := diffBytes(src, res, path); err != nil {
+			opts := []diffwrite.Option{}
+			if color {
+				opts = append(opts, diffwrite.TerminalColor())
+			}
+			if err := diff.Text(path+".orig", path, src, res, out, opts...); err != nil {
 				return fmt.Errorf("computing diff: %s", err)
 			}
 			return errChangedWithDiff
@@ -370,22 +374,6 @@ func formatBytes(src []byte, path string) error {
 		if _, err := out.Write(res); err != nil {
 			return err
 		}
-	}
-	return nil
-}
-
-func diffBytes(b1, b2 []byte, path string) error {
-	a := bytes.Split(b1, []byte("\n"))
-	b := bytes.Split(b2, []byte("\n"))
-	ab := diff.Bytes(a, b)
-	e := diff.Myers(context.Background(), ab)
-	e = e.WithContextSize(3)
-	opts := []diff.WriteOpt{diff.Names(path+".orig", path)}
-	if color {
-		opts = append(opts, diff.TerminalColor())
-	}
-	if _, err := e.WriteUnified(out, ab, opts...); err != nil {
-		return err
 	}
 	return nil
 }
