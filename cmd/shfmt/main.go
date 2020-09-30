@@ -187,6 +187,18 @@ Utilities:
 	}
 	status := 0
 	for _, path := range flag.Args() {
+		if info, err := os.Stat(path); err == nil && !info.IsDir() && !*find {
+			// When given paths to files directly, always format
+			// them, no matter their extension or shebang.
+			//
+			// The only exception is the -f flag; in that case, we
+			// do want to report whether the file is a shell script.
+			if err := formatPath(path, false); err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				return 1
+			}
+			continue
+		}
 		if err := filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
 			if err != nil {
 				return err

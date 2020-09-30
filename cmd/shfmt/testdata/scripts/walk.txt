@@ -21,6 +21,17 @@ stderr 'parse-error\.sh'
 cmpenv stdout modify.golden
 stderr 'parse-error\.sh'
 
+# format files directly which we would ignore when walking directories
+shfmt none/ext-shebang.other
+stdout 'foo'
+shfmt none/noext-noshebang
+stdout 'foo'
+
+# -f on files should still check extension and shebang
+shfmt -f modify/ext.sh modify/shebang-1 none/ext-shebang.other none/noext-noshebang
+stdout -count=2 '^modify'
+! stdout '^none'
+
 -- find.golden --
 error${/}parse-error.sh
 modify${/}dir${/}ext.sh

@@ -23,16 +23,44 @@ stderr '-tojson can only be used with stdin'
 stderr '-filename can only be used with stdin'
 
 # Check all the -ln variations.
-stdin notbash.sh
+
+stdin input-posix
 ! shfmt
-stdin notbash.sh
+
+stdin input-posix
 shfmt -ln=posix
-stdin notbash.sh
+stdout 'let'
+
+stdin input-posix
 shfmt -p
-stdin notbash.sh
+stdout 'let'
+
+stdin input-posix
 ! shfmt -ln=mksh
-stdin notbash.sh
+
+stdin input-posix
 ! shfmt -ln=bash
 
--- notbash.sh --
+stdin input-mksh
+shfmt -ln=mksh
+stdout 'coprocess'
+
+stdin input-mksh
+! shfmt
+
+# TODO: introduce stdin lang detection
+#stdin -filename=input.mksh input-mksh
+#shfmt
+#stdout 'coprocess'
+#
+#stdin input-mksh-shebang
+#shfmt
+#stdout 'coprocess'
+
+-- input-posix --
 let a+
+-- input-mksh --
+coprocess |&
+-- input-mksh-shebang --
+#!/bin/mksh
+coprocess |&
