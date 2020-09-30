@@ -261,14 +261,7 @@ var ecQuery = editorconfig.Query{
 
 func propsOptions(props editorconfig.Section) {
 	lang := syntax.LangBash
-	switch props.Get("shell_variant") {
-	case "posix":
-		lang = syntax.LangPOSIX
-	case "mksh":
-		lang = syntax.LangMirBSDKorn
-	case "bats":
-		lang = syntax.LangBats
-	}
+	lang.Set(props.Get("shell_variant"))
 	syntax.Variant(lang)(parser)
 
 	size := uint(0)
