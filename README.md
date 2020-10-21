@@ -159,6 +159,7 @@ repo configuration like:
 - Alternative docker images - by [jamesmstone][dockerized-jamesmstone], [PeterDaveHello][dockerized-peterdavehello]
 - [format-shell] - Atom plugin for `shfmt`
 - [intellij-shellcript] - Intellij Jetbrains `shell script` plugin includes `shfmt`
+- [Mega-Linter] - 100% open-source linters aggregator using `shfmt`
 - [micro] - Editor with a built-in plugin for `shfmt`
 - [modd] - A developer tool that responds to filesystem changes, using `sh`
 - [prettier-plugin-sh] - [Prettier] plugin using [mvdan-sh]
@@ -183,6 +184,7 @@ repo configuration like:
 [homebrew]: https://formulae.brew.sh/formula/shfmt
 [intellij-shellcript]: https://www.jetbrains.com/help/idea/shell-scripts.html
 [macports]: https://ports.macports.org/port/shfmt/summary
+[Mega-Linter]: https://github.com/nvuillam/mega-linter
 [micro]: https://micro-editor.github.io/
 [mksh]: http://www.mirbsd.org/mksh.htm
 [modd]: https://github.com/cortesi/modd
