@@ -156,23 +156,27 @@ repo configuration like:
 
 ### Related projects
 
-- Alternative docker images - by [jamesmstone][dockerized-jamesmstone], [PeterDaveHello][dockerized-peterdavehello]
-- [format-shell] - Atom plugin for `shfmt`
-- [intellij-shellcript] - Intellij Jetbrains `shell script` plugin includes `shfmt`
-- [micro] - Editor with a built-in plugin for `shfmt`
-- [modd] - A developer tool that responds to filesystem changes, using `sh`
+The following editor integrations wrap `shfmt`:
+
+- [format-shell] - Atom plugin
+- [intellij-shellcript] - Intellij Jetbrains `shell script` plugin
+- [micro] - Editor with a built-in plugin
+- [shell-format] - VS Code plugin
+- [shfmt.el] - Emacs package
+- [Sublime-Pretty-Shell] - Sublime Text 3 plugin
+- [vim-shfmt] - Vim plugin
+
+Other noteworthy integrations include:
+
+- Alternative docker image by [PeterDaveHello][dockerized-peterdavehello]
+- [modd] - A developer tool that responds to filesystem changes
 - [prettier-plugin-sh] - [Prettier] plugin using [mvdan-sh]
-- [sh-checker] - A GitHub Action that performs static analysis for shell scripts using shfmt and shellcheck
-- [shell-format] - VS Code plugin for `shfmt`
-- [shfmt.el] - Emacs package for `shfmt`
-- [Sublime-Pretty-Shell] - Sublime Text 3 plugin for `shfmt`
-- [vim-shfmt] - Vim plugin for `shfmt`
+- [sh-checker] - A GitHub Action that performs static analysis for shell scripts
 
 [alpine]: https://pkgs.alpinelinux.org/packages?name=shfmt
 [arch]: https://www.archlinux.org/packages/community/x86_64/shfmt/
 [bash]: https://www.gnu.org/software/bash/
 [docker]: https://hub.docker.com/r/mvdan/shfmt/
-[dockerized-jamesmstone]: https://hub.docker.com/r/jamesmstone/shfmt/
 [dockerized-peterdavehello]: https://github.com/PeterDaveHello/dockerized-shfmt/
 [editorconfig]: https://editorconfig.org/
 [examples]: https://godoc.org/mvdan.cc/sh/syntax#pkg-examples
