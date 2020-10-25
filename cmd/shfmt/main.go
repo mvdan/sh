@@ -144,7 +144,11 @@ Utilities:
 
 	if !useEditorConfig {
 		if *posix {
+			// -p equals -ln=posix
 			lang = syntax.LangPOSIX
+		} else if lang == unsetLang {
+			// if unset, default to -ln=bash
+			lang = syntax.LangBash
 		}
 		syntax.Variant(lang)(parser)
 

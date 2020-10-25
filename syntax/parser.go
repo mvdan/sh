@@ -58,7 +58,15 @@ const (
 
 // Variant changes the shell language variant that the parser will
 // accept.
+//
+// The passed language variant must be one of the constant values defined in
+// this package.
 func Variant(l LangVariant) ParserOption {
+	switch l {
+	case LangBash, LangPOSIX, LangMirBSDKorn, LangBats:
+	default:
+		panic(fmt.Sprintf("unknown shell language variant: %d", l))
+	}
 	return func(p *Parser) { p.lang = l }
 }
 

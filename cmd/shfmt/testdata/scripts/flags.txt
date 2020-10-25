@@ -48,6 +48,15 @@ stdout 'coprocess'
 stdin input-mksh
 ! shfmt
 
+# Ensure that the default "bash" language works with and without flags.
+stdin input-bash
+shfmt
+stdout loop
+
+stdin input-bash
+shfmt -i 4
+stdout loop
+
 # TODO: introduce stdin lang detection
 #stdin -filename=input.mksh input-mksh
 #shfmt
@@ -59,6 +68,8 @@ stdin input-mksh
 
 -- input-posix --
 let a+
+-- input-bash --
+for ((;;)); do loop; done
 -- input-mksh --
 coprocess |&
 -- input-mksh-shebang --
