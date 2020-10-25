@@ -28,10 +28,13 @@ var simplifyTests = [...]simplifyTest{
 	{"${foo:(1):(2)}", "${foo:1:2}"},
 	{"a[(1)]=2", "a[1]=2"},
 	{"$(($a + ${b}))", "$((a + b))"},
-	{"$((${a[0]}))", "$((a[0]))"},
 	noSimple("$((${!a} + ${#b}))"),
 	noSimple("a[$b]=2"),
 	noSimple("${a[$b]}"),
+	noSimple("${a[@]}"),
+	noSimple("((${a[@]}))"),
+	noSimple("((${a[*]}))"),
+	noSimple("((${a[0]}))"),
 	noSimple("(($3 == $#))"),
 
 	// test exprs
