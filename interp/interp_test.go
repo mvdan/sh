@@ -2662,10 +2662,15 @@ func init() {
 // ln -s: wine doesn't implement symlinks; see https://bugs.winehq.org/show_bug.cgi?id=44948
 var skipOnWindows = regexp.MustCompile(`ln -s`)
 
+// process substitutions seemflaky on mac; see https://github.com/mvdan/sh/issues/576
+var skipOnMac = regexp.MustCompile(`>\(|<\(`)
+
 func skipIfUnsupported(tb testing.TB, src string) {
 	switch {
 	case runtime.GOOS == "windows" && skipOnWindows.MatchString(src):
 		tb.Skipf("skipping non-portable test on windows")
+	case runtime.GOOS == "darwin" && skipOnMac.MatchString(src):
+		tb.Skipf("skipping non-portable test on mac")
 	}
 }
 
