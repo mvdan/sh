@@ -45,6 +45,60 @@ func TestParseBash(t *testing.T) {
 	}
 }
 
+func TestParsePosOverflow(t *testing.T) {
+	t.Parallel()
+
+	// If line/col numbers gets larger than 16-bit, we should probably use a
+	// custom reader instead.
+	tests := []struct {
+		name, in, want string
+	}{
+		{
+			"LineOverflowIsValid",
+			strings.Repeat("\n", (1<<16)-1) + "foo; bar",
+			"<nil>",
+		},
+		{
+			"LineOverflowPosString",
+			strings.Repeat("\n", (1<<16)-1) + ")",
+			"?:1: ) can only be used to close a subshell",
+		},
+		{
+			"LineOverflowExtraPosString",
+			strings.Repeat("\n", (1<<16)+5) + ")",
+			"?:1: ) can only be used to close a subshell",
+		},
+		{
+			"ColOverflowPosString",
+			strings.Repeat(" ", (1<<16)-1) + ")",
+			"1:?: ) can only be used to close a subshell",
+		},
+		{
+			"ColOverflowExtraPosString",
+			strings.Repeat(" ", (1<<16)+5) + ")",
+			"1:?: ) can only be used to close a subshell",
+		},
+		{
+			"ColOverflowSkippedPosString",
+			strings.Repeat(" ", (1<<16)+5) + "\n)",
+			"2:1: ) can only be used to close a subshell",
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			test := test
+			t.Parallel()
+
+			p := NewParser()
+			_, err := p.Parse(strings.NewReader(test.in), "")
+			got := fmt.Sprint(err)
+			if got != test.want {
+				t.Fatalf("want error %q, got %q", test.want, got)
+			}
+		})
+	}
+}
+
 func TestParsePosix(t *testing.T) {
 	t.Parallel()
 	p := NewParser(Variant(LangPOSIX))

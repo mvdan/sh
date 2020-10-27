@@ -4,7 +4,7 @@
 package syntax
 
 import (
-	"fmt"
+	"strconv"
 	"strings"
 )
 
@@ -75,19 +75,37 @@ type Pos struct {
 func (p Pos) Offset() uint { return uint(p.offs) }
 
 // Line returns the line number of the position, starting at 1.
+//
+// Line is protected against overflows; if an input has too many lines, extra
+// lines will have a line number of 0, rendered as "?".
 func (p Pos) Line() uint { return uint(p.line) }
 
 // Col returns the column number of the position, starting at 1. It counts in
 // bytes.
+//
+// Col is protected against overflows; if an input line has too many columns,
+// extra columns will have a column number of 0, rendered as "?".
 func (p Pos) Col() uint { return uint(p.col) }
 
 func (p Pos) String() string {
-	return fmt.Sprintf("%d:%d", p.Line(), p.Col())
+	var b strings.Builder
+	if line := p.Line(); line > 0 {
+		b.WriteString(strconv.FormatUint(uint64(line), 10))
+	} else {
+		b.WriteByte('?')
+	}
+	b.WriteByte(':')
+	if col := p.Col(); col > 0 {
+		b.WriteString(strconv.FormatUint(uint64(col), 10))
+	} else {
+		b.WriteByte('?')
+	}
+	return b.String()
 }
 
 // IsValid reports whether the position is valid. All positions in nodes
 // returned by Parse are valid.
-func (p Pos) IsValid() bool { return p.line > 0 }
+func (p Pos) IsValid() bool { return p != Pos{} }
 
 // After reports whether the position p is after p2. It is a more expressive
 // version of p.Offset() > p2.Offset().

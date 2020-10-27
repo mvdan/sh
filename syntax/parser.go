@@ -340,6 +340,11 @@ type Parser struct {
 	pos  Pos // position of tok
 	npos Pos // next position (of r)
 
+	// TODO: Guard against offset overflow too. Less likely as it's 32-bit,
+	// whereas line and col are 16-bit.
+	lineOverflow bool
+	colOverflow  bool
+
 	quote   quoteState // current lexer state
 	eqlOffs int        // position of '=' in val (a literal)
 
@@ -421,8 +426,15 @@ func (p *Parser) reset() {
 }
 
 func (p *Parser) getPos() Pos {
-	p.npos.offs = uint32(p.offs + p.bsp - int(p.w))
-	return p.npos
+	pos := p.npos
+	if p.lineOverflow {
+		pos.line = 0
+	}
+	if p.colOverflow {
+		pos.col = 0
+	}
+	pos.offs = uint32(p.offs + p.bsp - int(p.w))
+	return pos
 }
 
 func (p *Parser) lit(pos Pos, val string) *Lit {

@@ -61,10 +61,15 @@ func (p *Parser) rune() rune {
 	if p.r == '\n' || p.r == escNewl {
 		// p.r instead of b so that newline
 		// character positions don't have col 0.
-		p.npos.line++
+		if p.npos.line++; p.npos.line == 0 {
+			p.lineOverflow = true
+		}
 		p.npos.col = 0
+		p.colOverflow = false
 	}
-	p.npos.col += p.w
+	if p.npos.col += p.w; p.npos.col < p.w {
+		p.colOverflow = true
+	}
 	bquotes := 0
 retry:
 	if p.bsp < len(p.bs) {
