@@ -1,9 +1,9 @@
 # Changelog
 
-## Unreleased
+## [3.2.0] - 2020-10-??
 
 - **cmd/shfmt**
-  - Add a man page via `scdoc`; see `cmd/shfmt/shfmt.1.scd`
+  - Add a man page via [scdoc](https://sr.ht/~sircmpwn/scdoc); see [shfmt.1.scd](cmd/shfmt/shfmt.1.scd)
   - Add `-filename` to give a name to standard input
 - **syntax**
   - Add initial support for [Bats](https://github.com/bats-core/bats-core)
@@ -480,6 +480,7 @@ module in v3.
 
 Initial release.
 
+[3.1.2]: https://github.com/mvdan/sh/releases/tag/v3.1.2
 [3.1.1]: https://github.com/mvdan/sh/releases/tag/v3.1.1
 [3.1.0]: https://github.com/mvdan/sh/releases/tag/v3.1.0
 [3.0.2]: https://github.com/mvdan/sh/releases/tag/v3.0.2
