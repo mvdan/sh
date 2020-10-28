@@ -76,9 +76,9 @@ func main1() int {
 	flag.Usage = func() {
 		fmt.Fprint(os.Stderr, `usage: shfmt [flags] [path ...]
 
-If the only argument is a dash ('-') or no arguments are given, standard input
-will be used. If a given path is a directory, it will be recursively searched
-for shell files - both by filename extension and by shebang.
+shfmt formats shell programs. If the only argument is a dash ('-') or no
+arguments are given, standard input will be used. If a given path is a
+directory, all shell scripts found under that directory will be used.
 
   -version  show version and exit
 
@@ -107,6 +107,8 @@ Utilities:
 
   -f        recursively find all shell files and print the paths
   -tojson   print syntax tree to stdout as a typed JSON
+
+For more information, see 'man shfmt' and https://github.com/mvdan/sh.
 `)
 	}
 	flag.Parse()

@@ -17,67 +17,16 @@ For high-level operations like performing shell expansions on strings, see the
 
 	GO111MODULE=on go get mvdan.cc/sh/v3/cmd/shfmt
 
-`shfmt` formats shell programs. It can use tabs or any number of spaces to
-indent. See [canonical.sh](syntax/canonical.sh) for a quick look at its default
-style.
-
-You can feed it standard input, any number of files or any number of directories
-to recurse into. When recursing, it will operate on `.sh` and `.bash` files and
-ignore files starting with a period. It will also operate on files with no
-extension and a shell shebang.
+`shfmt` formats shell programs. See [canonical.sh](syntax/canonical.sh) for a
+quick look at its default style. For example:
 
 	shfmt -l -w script.sh
 
-Typically, CI builds should use the command below, to error if any shell scripts
-in a project don't adhere to the format:
-
-	shfmt -d .
-
-Use `-i N` to indent with a number of spaces instead of tabs. There are other
-formatting options - see `shfmt -h`. For example, to get the formatting
-appropriate for [Google's Style][google-style] guide, use `shfmt -i 2 -ci`.
-
-If any [EditorConfig] files are found, they will be used to apply formatting
-options. If any parser or printer flags are given to the tool, no EditorConfig
-files will be used. A default like `-i=0` can be used for this purpose.
-
-An example of the options available:
-
-```editorconfig
-[*.sh]
-# like -i=4
-indent_style = space
-indent_size = 4
-
-shell_variant      = posix # like -ln=posix
-binary_next_line   = true  # like -bn
-switch_case_indent = true  # like -ci
-space_redirects    = true  # like -sr
-keep_padding       = true  # like -kp
-function_next_line = true  # like -fn
-
-# Ignore the entire "third_party" directory.
-[third_party/**]
-ignore = true
-```
+For more information, see [its manpage](cmd/shfmt/shfmt.1.scd), which can be
+viewed directly as Markdown or rendered with [scdoc].
 
 Packages are available on [Alpine], [Arch], [Docker], [FreeBSD], [Homebrew],
 [MacPorts], [NixOS], [Scoop], [Snapcraft], and [Void].
-
-#### Replacing `bash -n`
-
-`bash -n` can be useful to check for syntax errors in shell scripts. However,
-`shfmt >/dev/null` can do a better job as it checks for invalid UTF-8 and does
-all parsing statically, including checking POSIX Shell validity:
-
-```sh
-$ echo '${foo:1 2}' | bash -n
-$ echo '${foo:1 2}' | shfmt
-1:9: not a valid arithmetic operator: 2
-$ echo 'foo=(1 2)' | bash --posix -n
-$ echo 'foo=(1 2)' | shfmt -p
-1:5: arrays are a bash feature
-```
 
 ### gosh
 
@@ -183,7 +132,6 @@ Other noteworthy integrations include:
 [format-shell]: https://atom.io/packages/format-shell
 [freebsd]: https://www.freshports.org/devel/shfmt
 [go-fuzz]: https://github.com/dvyukov/go-fuzz
-[google-style]: https://google.github.io/styleguide/shell.xml
 [homebrew]: https://formulae.brew.sh/formula/shfmt
 [intellij-shellcript]: https://www.jetbrains.com/help/idea/shell-scripts.html
 [macports]: https://ports.macports.org/port/shfmt/summary
@@ -196,6 +144,7 @@ Other noteworthy integrations include:
 [posix-ambiguity]: https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_06_03
 [prettier]: https://prettier.io
 [prettier-plugin-sh]: https://github.com/rx-ts/prettier/tree/master/packages/sh
+[scdoc]: https://sr.ht/~sircmpwn/scdoc/
 [scoop]: https://github.com/ScoopInstaller/Main/blob/HEAD/bucket/shfmt.json
 [sh-checker]: https://github.com/luizm/action-sh-checker
 [shell-format]: https://marketplace.visualstudio.com/items?itemName=foxundermoon.shell-format
