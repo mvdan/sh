@@ -3,10 +3,23 @@
 ## Unreleased
 
 - **cmd/shfmt**
+  - Add a man page via `scdoc`; see `cmd/shfmt/shfmt.1.scd`
   - Add `-filename` to give a name to standard input
 - **syntax**
+  - Add initial support for [Bats](https://github.com/bats-core/bats-core)
+  - Protect line and column position numbers against overflows
   - Rewrite arithmetic parsing to fix operator precedence
   - Don't add parentheses to `function f {...}` declarations for ksh support
+  - `KeepPadding` now obeys extra indentation when using space indentation
+  - Properly tokenize `((` within test expressions
+  - Properly tokenize single quotes within parameter expansions
+  - Obey print options inside `<<-` heredocs
+  - Don't simplify indexed parameter expansions in arithmetic expressions
+  - Improve parsing errors for missing test expressions
+  - `LangVariant` now implements [flag.Value](https://golang.org/pkg/flag/#Value)
+- **interp**
+  - Avoid panic on C-style loops which omit expressions
+  - `$@` and `$*` always exist, so `"$@"` can expand to zero words
 
 ## [3.1.2] - 2020-06-26
 
