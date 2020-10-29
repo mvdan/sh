@@ -8,6 +8,7 @@ package interp
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -21,7 +22,6 @@ import (
 	"time"
 
 	"golang.org/x/sync/errgroup"
-	"golang.org/x/xerrors"
 	"mvdan.cc/sh/v3/expand"
 	"mvdan.cc/sh/v3/syntax"
 )
@@ -477,7 +477,7 @@ func NewExitStatus(status uint8) error {
 // IsExitStatus checks whether error contains an exit status and returns it.
 func IsExitStatus(err error) (status uint8, ok bool) {
 	var s exitStatus
-	if xerrors.As(err, &s) {
+	if errors.As(err, &s) {
 		return uint8(s), true
 	}
 	return 0, false
