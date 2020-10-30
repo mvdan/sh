@@ -97,7 +97,7 @@ repo configuration like:
         name: shfmt
         minimum_pre_commit_version: 2.4.0
         language: golang
-        additional_dependencies: [mvdan.cc/sh/v3/cmd/shfmt@v3.1.1]
+        additional_dependencies: [mvdan.cc/sh/v3/cmd/shfmt@v3.2.0]
         entry: shfmt
         args: [-w]
         types: [shell]
