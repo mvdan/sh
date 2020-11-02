@@ -147,6 +147,11 @@ var printTests = []printCase{
 	},
 	samePrint("a \\\n\tb \\\n\tc \\\n\t;"),
 	samePrint("a=1 \\\n\tb=2 \\\n\tc=3 \\\n\t;"),
+	{
+		"a=\\\nfoo\nb=\\\n\"bar\"\nc=\\\n'baz'",
+		"a=foo\nb=\"bar\"\nc='baz'",
+	},
+
 	samePrint("if a \\\n\t; then b; fi"),
 	samePrint("a 'b\nb' c"),
 	samePrint("a $'b\nb' c"),
