@@ -499,6 +499,7 @@ var printTests = []printCase{
 	samePrint("f <<EOF\nEOF\n# comment"),
 	samePrint("f <<EOF\nEOF\n# comment\nbar"),
 	samePrint("f <<EOF # inline\n$(\n\t# inside\n)\nEOF\n# outside\nbar"),
+	samePrint("while foo; do\n\tbar\ndone <<-EOF # inline\n\tbaz\nEOF"),
 	samePrint("{\n\tcat <<EOF\nEOF\n\t# comment\n}"),
 	{
 		"if foo # inline\nthen\n\tbar\nfi",
