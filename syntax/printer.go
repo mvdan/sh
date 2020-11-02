@@ -1359,6 +1359,10 @@ func (p *Printer) assigns(assigns []*Assign) {
 			}
 		}
 		if a.Value != nil {
+			// Ensure we don't use an escaped newline after '=',
+			// because that can result in indentation, thus
+			// splitting "foo=bar" into "foo= bar".
+			p.line = a.Value.Pos().Line()
 			p.word(a.Value)
 		} else if a.Array != nil {
 			p.wantSpace = false
