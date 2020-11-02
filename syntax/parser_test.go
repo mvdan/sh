@@ -1715,6 +1715,10 @@ var shellTests = []errorCase{
 		bsmk: `1:6: reached EOF without matching ${ with }`,
 	},
 	{
+		in:   "echo ${a/''",
+		bsmk: `1:6: reached EOF without matching ${ with }`,
+	},
+	{
 		in:   "echo ${a-\n",
 		bsmk: `1:6: reached EOF without matching ${ with }`,
 	},
