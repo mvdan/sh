@@ -38,10 +38,12 @@ POSIX shell at the moment, and its options are intentionally minimalistic.
 ### Fuzzing
 
 This project makes use of [go-fuzz] to find crashes and hangs in both the parser
-and the printer. To get started, run:
+and the printer. Note that this requires Go 1.14.x at the moment, since go-fuzz
+doesn't support 1.15 or later just yet. The `fuzz-corpus` branch contains a
+corpus to get you started. For example:
 
-	git checkout fuzz
-	./fuzz
+	git checkout fuzz-corpus
+	PATH=$HOME/sdk/go1.14.9/bin:$PATH ./fuzz
 
 ### Caveats
 

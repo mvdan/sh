@@ -1,0 +1,15 @@
+#!/bin/bash
+
+set -e -x
+
+export GO111MODULE=on
+
+# Note that this will add go-fuzz as a module dependency in go.mod.
+# This is necessary for go-fuzz to work properly. Don't commit that
+# change into master, to not pollute module releases.
+go get \
+	github.com/dvyukov/go-fuzz/go-fuzz@90825f39c90b713570ea0cc748b0987937ae6288 \
+	github.com/dvyukov/go-fuzz/go-fuzz-build@90825f39c90b713570ea0cc748b0987937ae6288
+
+go-fuzz-build
+go-fuzz -bin=./sh-fuzz.zip
