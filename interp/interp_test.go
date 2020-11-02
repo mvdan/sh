@@ -3046,6 +3046,11 @@ func TestRunnerOpts(t *testing.T) {
 			"foo\nunset: unbound variable\nexit status 1",
 		},
 		{
+			opts(Params("-u", "--", "foo")),
+			"echo $@; echo ${unset:-default}",
+			"foo\ndefault\n",
+		},
+		{
 			opts(Params("foo")),
 			"set >/dev/null; echo $@",
 			"foo\n",
