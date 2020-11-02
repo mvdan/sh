@@ -779,6 +779,13 @@ func (p *Printer) arithmExpr(expr ArithmExpr, compact, spacePlusMinus bool) {
 }
 
 func (p *Printer) testExpr(expr TestExpr) {
+	// Multi-line test expressions don't need to escape newlines.
+	if expr.Pos().Line() > p.line {
+		p.newlines(expr.Pos())
+		p.spacePad(expr.Pos())
+	} else if p.wantSpace {
+		p.space()
+	}
 	switch x := expr.(type) {
 	case *Word:
 		p.word(x)
@@ -786,7 +793,7 @@ func (p *Printer) testExpr(expr TestExpr) {
 		p.testExpr(x.X)
 		p.space()
 		p.WriteString(x.Op.String())
-		p.space()
+		p.wantSpace = true
 		p.testExpr(x.Y)
 	case *UnaryTest:
 		p.WriteString(x.Op.String())
@@ -877,6 +884,7 @@ func (p *Printer) elemJoin(elems []*ArrayElem, last []Comment) {
 			}
 			p.comments(c)
 		}
+		// Multi-line array expressions don't need to escape newlines.
 		if el.Pos().Line() > p.line {
 			p.newlines(el.Pos())
 			p.spacePad(el.Pos())
@@ -1132,6 +1140,7 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		p.WriteString("))")
 	case *TestClause:
 		p.WriteString("[[ ")
+		p.incLevel()
 		p.testExpr(x.X)
 		p.spacedString("]]", x.Right)
 	case *DeclClause:

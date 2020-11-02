@@ -391,6 +391,12 @@ var printTests = []printCase{
 	samePrint("case a in b) [[ a =~ (b) ]] ;; esac"),
 	samePrint("[[ (a =~ b$) ]]"),
 	samePrint("[[ a && ((b || c) && d) ]]"),
+	samePrint("[[ a &&\n\tb ]]"),
+	samePrint("[[ a ||\n\tb ]]"),
+	{
+		"[[ a && \\\nb \\\n && c ]]",
+		"[[ a &&\n\tb &&\n\tc ]]",
+	},
 	{
 		"a=(\nb\nc\n) b=c",
 		"a=(\n\tb\n\tc\n) b=c",
