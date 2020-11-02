@@ -1230,14 +1230,20 @@ func (p *Printer) stmtList(stmts []*Stmt, last []Comment) {
 		pos := s.Pos()
 		var midComs, endComs []Comment
 		for _, c := range s.Comments {
-			if c.End().After(s.End()) {
+			// Comments after the end of this command. Note that
+			// this includes "<<EOF # comment".
+			if c.End().After(s.Cmd.End()) {
 				endComs = append(endComs, c)
 				break
 			}
+			// Comments between the beginning of the statement and
+			// the end of the command.
 			if c.Pos().After(pos) {
 				midComs = append(midComs, c)
 				continue
 			}
+			// The rest of the comments are before the entire
+			// statement.
 			p.comments(c)
 		}
 		if !p.minify || p.wantSpace {
