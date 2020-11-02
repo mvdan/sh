@@ -2074,6 +2074,16 @@ var fileTests = []testCase{
 		},
 	},
 	{
+		Strs: []string{`${var/'a'/b'c'd}`},
+		bsmk: &ParamExp{
+			Param: lit("var"),
+			Repl: &Replace{
+				Orig: word(sglQuoted("a")),
+				With: word(lit("b"), sglQuoted("c"), lit("d")),
+			},
+		},
+	},
+	{
 		Strs: []string{`${foo%bar}${foo%%bar*}`},
 		common: word(
 			&ParamExp{
