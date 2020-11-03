@@ -397,6 +397,7 @@ var printTests = []printCase{
 		"[[ a && \\\nb \\\n && c ]]",
 		"[[ a &&\n\tb &&\n\tc ]]",
 	},
+	samePrint("{\n\t[[ a || b ]]\n}"),
 	{
 		"a=(\nb\nc\n) b=c",
 		"a=(\n\tb\n\tc\n) b=c",

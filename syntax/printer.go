@@ -1142,6 +1142,7 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		p.WriteString("[[ ")
 		p.incLevel()
 		p.testExpr(x.X)
+		p.decLevel()
 		p.spacedString("]]", x.Right)
 	case *DeclClause:
 		p.spacedString(x.Variant.Value, x.Pos())
