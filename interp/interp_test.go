@@ -2003,6 +2003,14 @@ set +o pipefail
 		`a=b; echo "${a[@]}"`,
 		"b\n",
 	},
+	{
+		`a=(b); echo ${a[3]}`,
+		"\n",
+	},
+	{
+		`a=(b); echo ${a[-2]}`,
+		"negative array index\nexit status 1 #JUSTERR",
+	},
 
 	// associative arrays
 	{

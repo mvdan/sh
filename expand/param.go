@@ -313,7 +313,10 @@ func (cfg *Config) varInd(vr Variable, idx syntax.ArithmExpr) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		if len(vr.List) > 0 {
+		if i < 0 {
+			return "", fmt.Errorf("negative array index")
+		}
+		if i < len(vr.List) {
 			return vr.List[i], nil
 		}
 	case Associative:
