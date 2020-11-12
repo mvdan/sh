@@ -77,6 +77,16 @@ func Minify(enabled bool) PrinterOption {
 	return func(p *Printer) { p.minify = enabled }
 }
 
+// SingleLine will attempt to print programs in one line. For example, lists of
+// commands or nested blocks do not use newlines in this mode. Note that some
+// newlines must still appear, such as those following comments or around
+// here-documents.
+//
+// Print's trailing newline when given a *File is not affected by this option.
+func SingleLine(enabled bool) PrinterOption {
+	return func(p *Printer) { p.singleLine = enabled }
+}
+
 // FunctionNextLine will place a function's opening braces on the next line.
 func FunctionNextLine(enabled bool) PrinterOption {
 	return func(p *Printer) { p.funcNextLine = enabled }
@@ -103,6 +113,10 @@ func NewPrinter(opts ...PrinterOption) *Printer {
 func (p *Printer) Print(w io.Writer, node Node) error {
 	p.reset()
 
+	if p.minify && p.singleLine {
+		return fmt.Errorf("Minify and SingleLine together are not supported yet; please file an issue describing your use case: https://github.com/mvdan/sh/issues")
+	}
+
 	// TODO: consider adding a raw mode to skip the tab writer, much like in
 	// go/printer.
 	twmode := tabwriter.DiscardEmptyColumns | tabwriter.StripEscape
@@ -121,7 +135,7 @@ func (p *Printer) Print(w io.Writer, node Node) error {
 	switch x := node.(type) {
 	case *File:
 		p.stmtList(x.Stmts, x.Last)
-		p.newline(x.End())
+		p.newline(Pos{})
 	case *Stmt:
 		p.stmtList([]*Stmt{x}, nil)
 	case Command:
@@ -208,11 +222,13 @@ type Printer struct {
 	spaceRedirects bool
 	keepPadding    bool
 	minify         bool
+	singleLine     bool
 	funcNextLine   bool
 
-	wantSpace   bool
-	wantNewline bool
-	wroteSemi   bool
+	wantSpace   bool // space is wanted or required
+	wantNewline bool // newline is wanted for pretty-printing; ignored by singleLine; ignored by singleLine
+	mustNewline bool // newline is required to keep shell syntax valid
+	wroteSemi   bool // wrote ';' for the current statement
 
 	// pendingComments are any comments in the current line or statement
 	// that we have yet to print. This is useful because that way, we can
@@ -244,7 +260,7 @@ type Printer struct {
 }
 
 func (p *Printer) reset() {
-	p.wantSpace, p.wantNewline = false, false
+	p.wantSpace, p.wantNewline, p.mustNewline = false, false, false
 	p.pendingComments = p.pendingComments[:0]
 
 	// minification uses its own newline logic
@@ -283,6 +299,23 @@ func (p *Printer) spacePad(pos Pos) {
 	}
 }
 
+// wantsNewline reports whether we want to print at least one newline before
+// printing a node at a given position. A zero position can be given to simply
+// tell if we want a newline following what's just been printed.
+func (p *Printer) wantsNewline(pos Pos) bool {
+	if p.mustNewline {
+		// We must have a newline here.
+		return true
+	}
+	if p.singleLine {
+		// The newline is optional, and singleLine turns it off.
+		return false
+	}
+	// THe newline is optional, and we want it via either wantNewline or via
+	// the position's line.
+	return p.wantNewline || pos.Line() > p.line
+}
+
 func (p *Printer) bslashNewl() {
 	if p.wantSpace {
 		p.space()
@@ -310,7 +343,7 @@ func (p *Printer) spacedToken(s string, pos Pos) {
 }
 
 func (p *Printer) semiOrNewl(s string, pos Pos) {
-	if p.wantNewline {
+	if p.wantsNewline(Pos{}) {
 		p.newline(pos)
 		p.indent()
 	} else {
@@ -374,11 +407,13 @@ func (p *Printer) indent() {
 	}
 }
 
+// TODO(mvdan): add an indent call at the end of newline?
+
 func (p *Printer) newline(pos Pos) {
 	p.flushHeredocs()
 	p.flushComments()
 	p.WriteByte('\n')
-	p.wantNewline, p.wantSpace = false, false
+	p.wantNewline, p.mustNewline, p.wantSpace = false, false, false
 	if p.line < pos.Line() {
 		p.line++
 	}
@@ -411,7 +446,7 @@ func (p *Printer) flushHeredocs() {
 	for _, r := range hdocs {
 		p.line++
 		p.WriteByte('\n')
-		p.wantNewline, p.wantSpace = false, false
+		p.wantNewline, p.wantNewline, p.wantSpace = false, false, false
 		if r.Op == DashHdoc && p.indentSpaces == 0 && !p.minify {
 			if r.Hdoc != nil {
 				extra := extraIndenter{
@@ -449,6 +484,7 @@ func (p *Printer) flushHeredocs() {
 	}
 	p.level = newLevel
 	p.pendingComments = coms
+	p.mustNewline = true
 }
 
 func (p *Printer) newlines(pos Pos) {
@@ -456,7 +492,7 @@ func (p *Printer) newlines(pos Pos) {
 		p.firstLine = false
 		return // no empty lines at the top
 	}
-	if !p.wantNewline && pos.Line() <= p.line {
+	if !p.wantsNewline(pos) {
 		return
 	}
 	p.newline(pos)
@@ -479,7 +515,7 @@ func (p *Printer) rightParen(pos Pos) {
 }
 
 func (p *Printer) semiRsrv(s string, pos Pos) {
-	if p.wantNewline || pos.Line() > p.line {
+	if p.wantsNewline(pos) {
 		p.newlines(pos)
 	} else {
 		if !p.wroteSemi {
@@ -505,7 +541,7 @@ func (p *Printer) flushComments() {
 		// function and we'd recurse forever.
 		cline := c.Hash.Line()
 		switch {
-		case i > 0, cline > p.line && p.line > 0:
+		case p.mustNewline, i > 0, cline > p.line && p.line > 0:
 			p.WriteByte('\n')
 			if cline > p.line+1 {
 				p.WriteByte('\n')
@@ -527,6 +563,7 @@ func (p *Printer) flushComments() {
 		p.WriteByte('#')
 		p.writeLit(strings.TrimRightFunc(c.Text, unicode.IsSpace))
 		p.wantNewline = true
+		p.mustNewline = true
 	}
 	p.pendingComments = nil
 }
@@ -544,7 +581,9 @@ func (p *Printer) wordParts(wps []WordPart, quoted bool) {
 		if i+1 < len(wps) {
 			next = wps[i+1]
 		}
-		for wp.Pos().Line() > p.line {
+		// Can't use p.wantsNewline here, since this is only about
+		// escaped newlines.
+		for !p.singleLine && wp.Pos().Line() > p.line {
 			if quoted {
 				// No extra spacing or indentation if quoted.
 				p.WriteString("\\\n")
@@ -836,7 +875,7 @@ func (p *Printer) unquotedWord(w *Word) {
 func (p *Printer) wordJoin(ws []*Word) {
 	anyNewline := false
 	for _, w := range ws {
-		if pos := w.Pos(); pos.Line() > p.line {
+		if pos := w.Pos(); pos.Line() > p.line && !p.singleLine {
 			if !anyNewline {
 				p.incLevel()
 				anyNewline = true
@@ -857,7 +896,7 @@ func (p *Printer) casePatternJoin(pats []*Word) {
 		if i > 0 {
 			p.spacedToken("|", Pos{})
 		}
-		if pos := w.Pos(); pos.Line() > p.line {
+		if p.wantsNewline(w.Pos()) {
 			if !anyNewline {
 				p.incLevel()
 				anyNewline = true
@@ -917,7 +956,7 @@ func (p *Printer) stmt(s *Stmt) {
 	}
 	p.incLevel()
 	for _, r := range s.Redirs[startRedirs:] {
-		if r.OpPos.Line() > p.line {
+		if p.wantsNewline(r.OpPos) {
 			p.bslashNewl()
 		}
 		if p.wantSpace {
@@ -939,7 +978,7 @@ func (p *Printer) stmt(s *Stmt) {
 	}
 	p.wroteSemi = true
 	switch {
-	case s.Semicolon.IsValid() && s.Semicolon.Line() > p.line:
+	case s.Semicolon.IsValid() && s.Semicolon.Line() > p.line && !p.singleLine:
 		p.bslashNewl()
 		p.WriteByte(';')
 	case s.Background:
@@ -1030,7 +1069,7 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		p.semiRsrv("done", x.DonePos)
 	case *BinaryCmd:
 		p.stmt(x.X)
-		if p.minify || x.Y.Pos().Line() <= p.line {
+		if p.minify || p.singleLine || x.Y.Pos().Line() <= p.line {
 			// leave p.nestedBinary untouched
 			p.spacedToken(x.Op.String(), x.OpPos)
 			p.line = x.Y.Pos().Line()
@@ -1089,8 +1128,13 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		p.WriteString("case ")
 		p.word(x.Word)
 		p.WriteString(" in")
+		p.wantSpace = true
 		if p.swtCaseIndent {
 			p.incLevel()
+		}
+		if len(x.Items) == 0 {
+			// Apparently "case x in; esac" is invalid shell.
+			p.mustNewline = true
 		}
 		for i, ci := range x.Items {
 			var last []Comment
@@ -1102,6 +1146,7 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 				p.comments(c)
 			}
 			p.newlines(ci.Pos())
+			p.spacePad(ci.Pos())
 			p.casePatternJoin(ci.Patterns)
 			p.WriteByte(')')
 			p.wantSpace = !p.minify
@@ -1234,9 +1279,14 @@ func startsWithLparen(node Node) bool {
 }
 
 func (p *Printer) stmtList(stmts []*Stmt, last []Comment) {
-	sep := p.wantNewline ||
-		(len(stmts) > 0 && stmts[0].Pos().Line() > p.line)
-	for _, s := range stmts {
+	sep := p.wantNewline || (len(stmts) > 0 && stmts[0].Pos().Line() > p.line)
+	for i, s := range stmts {
+		if i > 0 && p.singleLine && p.wantNewline && !p.wroteSemi {
+			// In singleLine mode, ensure we use semicolons between
+			// statements.
+			p.WriteByte(';')
+			p.wantSpace = true
+		}
 		pos := s.Pos()
 		var midComs, endComs []Comment
 		for _, c := range s.Comments {
@@ -1359,7 +1409,7 @@ func (p *Printer) nestedStmts(stmts []*Stmt, last []Comment, closing Pos) {
 func (p *Printer) assigns(assigns []*Assign) {
 	p.incLevel()
 	for _, a := range assigns {
-		if a.Pos().Line() > p.line {
+		if p.wantsNewline(a.Pos()) {
 			p.bslashNewl()
 		} else {
 			p.spacePad(a.Pos())

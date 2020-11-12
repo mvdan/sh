@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -975,53 +976,136 @@ func TestPrintMinify(t *testing.T) {
 	}
 }
 
-func TestPrintMinifyNotBroken(t *testing.T) {
+func TestPrintSingleLine(t *testing.T) {
+	t.Parallel()
+	tests := [...]printCase{
+		samePrint("echo foo bar $a $(b)"),
+		samePrint("foo #comment"),
+		{
+			"foo\n\nbar",
+			"foo; bar",
+		},
+		samePrint("foo &"),
+		samePrint("foo >bar 2>baz <etc"),
+		{
+			"{\n\tfoo\n}",
+			"{ foo; }",
+		},
+		{
+			"(\n\ta\n)\n(\n\tb\n\tc\n)",
+			"(a); (b; c)",
+		},
+		{
+			"$(\n\ta\n)\n$(\n\tb\n\tc\n)",
+			"$(a); $(b; c)",
+		},
+		samePrint("f() { x; }"),
+		samePrint("((1 + 2))"),
+		samePrint("echo $a ${b} ${c}-d ${e}f ${g}_h"),
+		samePrint("echo ${0} ${3} ${10} ${22}"),
+		{
+			"case $a in\nx)c;;\ny|z)d\nesac",
+			"case $a in x) c ;; y | z) d ;; esac",
+		},
+		samePrint("a && b | c"),
+		{
+			"a &&\n\tb |\n\tc",
+			"a && b | c",
+		},
+		{
+			"if\nfoo\nthen\nbar\nfi",
+			"if foo; then bar; fi",
+		},
+		{
+			"a \\\n >b",
+			"a >b",
+		},
+		samePrint("foo >bar 2>baz <etc"),
+		samePrint("<<-EOF\n\t$(a | b)\nEOF"),
+	}
+	parser := NewParser(KeepComments(true))
+	printer := NewPrinter(SingleLine(true))
+	for i, tc := range tests {
+		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
+			printTest(t, parser, printer, tc.in, tc.want)
+		})
+	}
+}
+
+func TestPrintOptionsNotBroken(t *testing.T) {
 	t.Parallel()
 	parserBash := NewParser(KeepComments(true))
 	parserPosix := NewParser(KeepComments(true), Variant(LangPOSIX))
 	parserMirBSD := NewParser(KeepComments(true), Variant(LangMirBSDKorn))
 	parserBats := NewParser(KeepComments(true), Variant(LangBats))
-	printer := NewPrinter(Minify(true))
-	for i, tc := range fileTests {
-		t.Run(fmt.Sprintf("File%03d", i), func(t *testing.T) {
-			parser := parserPosix
-			if tc.Bats != nil {
-				parser = parserBats
-			} else if tc.Bash != nil {
-				parser = parserBash
-			} else if tc.MirBSDKorn != nil {
-				parser = parserMirBSD
-			}
-			in := tc.Strs[0]
-			prog, err := parser.Parse(strings.NewReader(in), "")
-			if err != nil {
-				t.Fatal(err)
-			}
-			got, err := strPrint(printer, prog)
-			if err != nil {
-				t.Fatal(err)
-			}
-			_, err = parser.Parse(strings.NewReader(got), "")
-			if err != nil {
-				t.Fatalf("minified program was broken: %v\n%s", err, got)
-			}
-		})
+
+	// e.g. comments and heredocs require newlines
+	singleLineException := regexp.MustCompile(`#|<<|'|"`)
+	checkSingleLine := func(t *testing.T, got string) {
+		if singleLineException.MatchString(got) {
+			return
+		}
+		got = strings.TrimSuffix(got, "\n") // trailing newline is expected
+		if strings.Contains(got, "\n") {
+			t.Fatalf("unexpected newline with SingleLine: %q", got)
+		}
 	}
-	for i, tc := range printTests {
-		t.Run(fmt.Sprintf("Print%03d", i), func(t *testing.T) {
-			prog, err := parserBash.Parse(strings.NewReader(tc.in), "")
-			if err != nil {
-				t.Fatal(err)
-			}
-			got, err := strPrint(printer, prog)
-			if err != nil {
-				t.Fatal(err)
-			}
-			_, err = parserBash.Parse(strings.NewReader(got), "")
-			if err != nil {
-				t.Fatalf("minified program was broken: %v\n%s", err, got)
-			}
-		})
+
+	for _, opts := range []struct {
+		name string
+		list []PrinterOption
+	}{
+		{"Minify", []PrinterOption{Minify(true)}},
+		{"SingleLine", []PrinterOption{SingleLine(true)}},
+	} {
+		printer := NewPrinter(opts.list...)
+		for i, tc := range fileTests {
+			t.Run(fmt.Sprintf("File%s%03d", opts.name, i), func(t *testing.T) {
+				parser := parserPosix
+				if tc.Bats != nil {
+					parser = parserBats
+				} else if tc.Bash != nil {
+					parser = parserBash
+				} else if tc.MirBSDKorn != nil {
+					parser = parserMirBSD
+				}
+				in := tc.Strs[0]
+				prog, err := parser.Parse(strings.NewReader(in), "")
+				if err != nil {
+					t.Fatal(err)
+				}
+				got, err := strPrint(printer, prog)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if opts.name == "SingleLine" {
+					checkSingleLine(t, got)
+				}
+				_, err = parser.Parse(strings.NewReader(got), "")
+				if err != nil {
+					t.Fatalf("program was broken: %v\noriginal:\n%s\nfinal:\n%s", err, in, got)
+				}
+			})
+		}
+		for i, tc := range printTests {
+			t.Run(fmt.Sprintf("Print%s%03d", opts.name, i), func(t *testing.T) {
+				prog, err := parserBash.Parse(strings.NewReader(tc.in), "")
+				if err != nil {
+					t.Fatal(err)
+				}
+				got, err := strPrint(printer, prog)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if opts.name == "SingleLine" {
+					checkSingleLine(t, got)
+				}
+				_, err = parserBash.Parse(strings.NewReader(got), "")
+				if err != nil {
+					t.Fatalf("program was broken: %v\noriginal:\n%s\nfinal:\n%s", err, tc.in, got)
+				}
+			})
+		}
 	}
 }
 
@@ -1031,14 +1115,13 @@ func printTest(t *testing.T, parser *Parser, printer *Printer, in, want string) 
 	if err != nil {
 		t.Fatalf("parsing got an error: %s:\n%s", err, in)
 	}
-	wantNewl := want + "\n"
+	want = want + "\n"
 	got, err := strPrint(printer, prog)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got != wantNewl {
-		t.Fatalf("Print mismatch:\nin:\n%q\nwant:\n%q\ngot:\n%q",
-			in, wantNewl, got)
+	if got != want {
+		t.Fatalf("Print mismatch:\nin:\n%q\nwant:\n%q\ngot:\n%q", in, want, got)
 	}
 	_, err = parser.Parse(strings.NewReader(want), "")
 	if err != nil {
