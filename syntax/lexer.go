@@ -157,6 +157,13 @@ readAgain:
 
 func (p *Parser) nextKeepSpaces() {
 	r := p.r
+	if p.quote != hdocBody && p.quote != hdocBodyTabs {
+		// Heredocs handle escaped newlines in a special way, but others
+		// do not.
+		for r == escNewl {
+			r = p.rune()
+		}
+	}
 	p.pos = p.getPos()
 	switch p.quote {
 	case paramExpRepl:
@@ -202,15 +209,15 @@ func (p *Parser) next() {
 		p.tok = _EOF
 		return
 	}
-	for p.r == escNewl {
-		p.rune()
-	}
 	p.spaced = false
 	if p.quote&allKeepSpaces != 0 {
 		p.nextKeepSpaces()
 		return
 	}
 	r := p.r
+	for r == escNewl {
+		r = p.rune()
+	}
 skipSpace:
 	for {
 		switch r {
@@ -907,6 +914,16 @@ loop:
 }
 
 func (p *Parser) advanceLitHdoc(r rune) {
+	// Unlike the rest of nextKeepSpaces quote states, we handle escaped
+	// newlines here. If lastTok==_Lit, then we know we're following an
+	// escaped newline, so the first line can't end the heredoc.
+	lastTok := p.tok
+	for r == escNewl {
+		r = p.rune()
+		lastTok = _Lit
+	}
+	p.pos = p.getPos()
+
 	p.tok = _Lit
 	p.newLit(r)
 	if p.quote == hdocBodyTabs {
@@ -926,9 +943,13 @@ func (p *Parser) advanceLitHdoc(r rune) {
 		case '\n', utf8.RuneSelf:
 			if p.parsingDoc {
 				if r == utf8.RuneSelf {
+					p.tok = _LitWord
 					p.val = p.endLit()
 					return
 				}
+			} else if lStart == 0 && lastTok == _Lit {
+				// This line starts right after an escaped
+				// newline, so it should never end the heredoc.
 			} else if lStart >= 0 {
 				// Compare the current line with the stop word.
 				line := p.litBs[lStart:]
@@ -936,6 +957,7 @@ func (p *Parser) advanceLitHdoc(r rune) {
 					line = line[:len(line)-1] // minus \n
 				}
 				if bytes.Equal(line, stop) {
+					p.tok = _LitWord
 					p.val = p.endLit()[:lStart]
 					if p.val == "" {
 						p.tok = _Newl

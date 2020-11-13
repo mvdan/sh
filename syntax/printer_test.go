@@ -99,10 +99,7 @@ var printTests = []printCase{
 	samePrint("foo <<EOF\nl1\nEOF\n\nfoo2"),
 	samePrint("<<EOF\nfoo\\\nbar\nEOF"),
 	samePrint("<<'EOF'\nfoo\\\nbar\nEOF"),
-	samePrint("<<EOF\n\\\nEOF"),
 	samePrint("<<EOF\n\\\n$foo\nEOF"),
-	samePrint("<<EOF\n\\\n\\\nEOF"),
-	samePrint("<<EOF\nfoo\\\nEOF"),
 	samePrint("<<'EOF'\n\\\nEOF"),
 	samePrint("{\n\t<<EOF\nfoo\\\nbar\nEOF\n}"),
 	samePrint("{\n\t<<'EOF'\nfoo\\\nbar\nEOF\n}"),
@@ -1032,7 +1029,7 @@ func printTest(t *testing.T, parser *Parser, printer *Printer, in, want string) 
 	t.Helper()
 	prog, err := parser.Parse(strings.NewReader(in), "")
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("parsing got an error: %s:\n%s", err, in)
 	}
 	wantNewl := want + "\n"
 	got, err := strPrint(printer, prog)

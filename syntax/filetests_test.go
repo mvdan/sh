@@ -1272,6 +1272,28 @@ var fileTests = []testCase{
 		},
 	},
 	{
+		Strs: []string{"foo <<EOF\nbar\\\nbaz\nEOF"},
+		common: &Stmt{
+			Cmd: litCall("foo"),
+			Redirs: []*Redirect{{
+				Op:   Hdoc,
+				Word: litWord("EOF"),
+				Hdoc: word(lit("bar"), lit("baz\n")),
+			}},
+		},
+	},
+	{
+		Strs: []string{"foo <<'EOF'\nbar\\\nEOF"},
+		common: &Stmt{
+			Cmd: litCall("foo"),
+			Redirs: []*Redirect{{
+				Op:   Hdoc,
+				Word: word(sglQuoted("EOF")),
+				Hdoc: litWord("bar\\\n"),
+			}},
+		},
+	},
+	{
 		Strs: []string{"foo <<-EOF\n\tbar\nEOF"},
 		common: &Stmt{
 			Cmd: litCall("foo"),
@@ -1715,6 +1737,14 @@ var fileTests = []testCase{
 		common: dblQuoted(cmdSubst(stmt(
 			subshell(litStmt("foo")),
 		))),
+	},
+	{
+		Strs:   []string{"\"foo\\\nbar\""},
+		common: dblQuoted(lit("foo"), lit("bar")),
+	},
+	{
+		Strs:   []string{"'foo\\\nbar'"},
+		common: sglQuoted("foo\\\nbar"),
 	},
 	{
 		Strs: []string{"$({ echo; })", "`{ echo; }`"},
@@ -4375,7 +4405,10 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 			if i == 0 {
 				gotErr = got
 			}
-			got = strings.Replace(got, "\\\n", "", -1)
+			if !strings.Contains(want, "\\\n") {
+				// Hack to let "foobar" match the input "foo\\\nbar".
+				got = strings.Replace(got, "\\\n", "", -1)
+			}
 			if strings.HasPrefix(got, want) {
 				return
 			}
