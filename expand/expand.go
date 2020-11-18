@@ -57,6 +57,10 @@ type Config struct {
 	// "**".
 	GlobStar bool
 
+	// NullGlob corresponds to the shell option that allows globbing
+	// patterns which match nothing to result in zero fields.
+	NullGlob bool
+
 	// NoUnset corresponds to the shell option that treats unset variables
 	// as errors.
 	NoUnset bool
@@ -397,7 +401,7 @@ func Fields(cfg *Config, words ...*syntax.Word) ([]string, error) {
 					if err != nil {
 						return nil, err
 					}
-					if len(matches) > 0 {
+					if len(matches) > 0 || cfg.NullGlob {
 						fields = append(fields, matches...)
 						continue
 					}

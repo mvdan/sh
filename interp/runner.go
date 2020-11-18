@@ -129,6 +129,7 @@ func (r *Runner) updateExpandOpts() {
 		r.ecfg.ReadDir = ioutil.ReadDir
 	}
 	r.ecfg.GlobStar = r.opts[optGlobStar]
+	r.ecfg.NullGlob = r.opts[optNullGlob]
 	r.ecfg.NoUnset = r.opts[optNoUnset]
 }
 

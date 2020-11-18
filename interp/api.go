@@ -363,6 +363,7 @@ var bashOptsTable = [...]string{
 	// sorted alphabetically by name
 	"expand_aliases",
 	"globstar",
+	"nullglob",
 }
 
 // To access the shell options arrays without a linear search when we
@@ -378,6 +379,7 @@ const (
 
 	optExpandAliases
 	optGlobStar
+	optNullGlob
 )
 
 // Reset returns a runner to its initial state, right before the first call to

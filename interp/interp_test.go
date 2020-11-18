@@ -2344,6 +2344,10 @@ set +o pipefail
 		"a/b/c\n",
 	},
 	{
+		"shopt -s nullglob; touch existing-1; echo missing-* existing-*",
+		"existing-1\n",
+	},
+	{
 		"cat <<EOF\n{foo,bar}\nEOF",
 		"{foo,bar}\n",
 	},
