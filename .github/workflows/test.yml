@@ -79,12 +79,12 @@ jobs:
         # Export environment variable for later stages.
         if echo "$GITHUB_REF" | grep -q '^refs/heads/'; then
           # Pushes to (master) branch - deploy 'latest'.
-          echo "::set-env name=TAG::latest"
+          echo "TAG=latest" >> $GITHUB_ENV
         elif echo "$GITHUB_REF" | grep -q '^refs/tags/'; then
           # Pushes tag - deploy tag name.
-          echo "::set-env name=TAG::${GITHUB_REF/refs\/tags\//}"
+          echo "TAG=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_ENV
         fi
-        echo "::set-env name=DOCKER_BASE::${DOCKER_USER}/${DOCKER_REPO}"
+        echo "DOCKER_BASE=${DOCKER_USER}/${DOCKER_REPO}" >> $GITHUB_ENV
     - name: Install Docker buildx
       run: |
         set -vx
