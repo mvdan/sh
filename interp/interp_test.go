@@ -1797,6 +1797,10 @@ var runTests = []runTest{
 		"set -u; echo ${foo:?bar}",
 		"foo: bar\nexit status 1 #JUSTERR",
 	},
+	{
+		"set -ue; set -ueo pipefail",
+		"",
+	},
 	{"set -n; echo foo", ""},
 	{"set -n; [ wrong", ""},
 	{"set -n; set +n; echo foo", ""},

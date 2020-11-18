@@ -142,7 +142,7 @@ type alias struct {
 	blank bool
 }
 
-func (r *Runner) optByFlag(flag string) *bool {
+func (r *Runner) optByFlag(flag rune) *bool {
 	for i, opt := range &shellOptsTable {
 		if opt.flag == flag {
 			return &r.opts[i]
@@ -243,40 +243,41 @@ func Params(args ...string) RunnerOption {
 				onlyFlags = false
 				break
 			}
+			args = args[1:]
 			if arg == "--" {
 				onlyFlags = false
-				args = args[1:]
 				break
 			}
 			enable := arg[0] == '-'
-			var opt *bool
-			if flag := arg[1:]; flag == "o" {
-				args = args[1:]
-				if len(args) == 0 && enable {
-					for i, opt := range &shellOptsTable {
-						r.printOptLine(opt.name, r.opts[i])
-					}
-					break
-				}
-				if len(args) == 0 && !enable {
-					for i, opt := range &shellOptsTable {
-						setFlag := "+o"
-						if r.opts[i] {
-							setFlag = "-o"
+			for _, c := range arg[1:] {
+				var opt *bool
+				if c == 'o' {
+					if len(args) == 0 && enable {
+						for i, opt := range &shellOptsTable {
+							r.printOptLine(opt.name, r.opts[i])
 						}
-						r.outf("set %s %s\n", setFlag, opt.name)
+						continue
 					}
-					break
+					if len(args) == 0 && !enable {
+						for i, opt := range &shellOptsTable {
+							setFlag := "+o"
+							if r.opts[i] {
+								setFlag = "-o"
+							}
+							r.outf("set %s %s\n", setFlag, opt.name)
+						}
+						continue
+					}
+					opt = r.optByName(args[0], false)
+					args = args[1:]
+				} else {
+					opt = r.optByFlag(c)
 				}
-				opt = r.optByName(args[0], false)
-			} else {
-				opt = r.optByFlag(flag)
+				if opt == nil {
+					return fmt.Errorf("invalid option: %q", arg)
+				}
+				*opt = enable
 			}
-			if opt == nil {
-				return fmt.Errorf("invalid option: %q", arg)
-			}
-			*opt = enable
-			args = args[1:]
 		}
 		if !onlyFlags {
 			// If "--" wasn't given and there were zero arguments,
@@ -345,16 +346,17 @@ func (r *Runner) optByName(name string, bash bool) *bool {
 type runnerOpts [len(shellOptsTable) + len(bashOptsTable)]bool
 
 var shellOptsTable = [...]struct {
-	flag, name string
+	flag rune
+	name string
 }{
 	// sorted alphabetically by name; use a space for the options
 	// that have no flag form
-	{"a", "allexport"},
-	{"e", "errexit"},
-	{"n", "noexec"},
-	{"f", "noglob"},
-	{"u", "nounset"},
-	{" ", "pipefail"},
+	{'a', "allexport"},
+	{'e', "errexit"},
+	{'n', "noexec"},
+	{'f', "noglob"},
+	{'u', "nounset"},
+	{' ', "pipefail"},
 }
 
 var bashOptsTable = [...]string{
