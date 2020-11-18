@@ -750,6 +750,14 @@ var runTests = []runTest{
 		"",
 	},
 	{
+		`HOME=$PWD/home; mkdir home; touch home/f; [[ -e ~/f ]]`,
+		"",
+	},
+	{
+		`HOME=$PWD/home; mkdir home; touch home/f; [[ ~/f -ef $HOME/f ]]`,
+		"",
+	},
+	{
 		"[[ ~noexist == '~noexist' ]]",
 		"",
 	},
