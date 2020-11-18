@@ -20,7 +20,12 @@ import (
 func (r *Runner) bashTest(ctx context.Context, expr syntax.TestExpr, classic bool) string {
 	switch x := expr.(type) {
 	case *syntax.Word:
-		return r.document(x)
+		if classic {
+			// In the classic "test" mode, we already expanded and
+			// split the list of words, so don't redo that work.
+			return r.document(x)
+		}
+		return r.literal(x)
 	case *syntax.ParenTest:
 		return r.bashTest(ctx, x.X, classic)
 	case *syntax.BinaryTest:
