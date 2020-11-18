@@ -57,6 +57,10 @@ type Config struct {
 	// "**".
 	GlobStar bool
 
+	// NoUnset corresponds to the shell option that treats unset variables
+	// as errors.
+	NoUnset bool
+
 	bufferAlloc bytes.Buffer
 	fieldAlloc  [4]fieldPart
 	fieldsAlloc [4][]fieldPart

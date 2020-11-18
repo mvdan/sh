@@ -29,7 +29,21 @@ type UnsetParameterError struct {
 }
 
 func (u UnsetParameterError) Error() string {
-	return u.Message
+	return fmt.Sprintf("%s: %s", u.Node.Param.Value, u.Message)
+}
+
+func overridingUnset(pe *syntax.ParamExp) bool {
+	if pe.Exp == nil {
+		return false
+	}
+	switch pe.Exp.Op {
+	case syntax.AlternateUnset, syntax.AlternateUnsetOrNull,
+		syntax.DefaultUnset, syntax.DefaultUnsetOrNull,
+		syntax.ErrorUnset, syntax.ErrorUnsetOrNull,
+		syntax.AssignUnset, syntax.AssignUnsetOrNull:
+		return true
+	}
+	return false
 }
 
 func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
@@ -57,6 +71,13 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 	}
 	orig := vr
 	_, vr = vr.Resolve(cfg.Env)
+	if cfg.NoUnset && vr.Kind == Unset && !overridingUnset(pe) {
+		return "", UnsetParameterError{
+			Node:    pe,
+			Message: "unbound variable",
+		}
+	}
+
 	str, err := cfg.varInd(vr, index)
 	if err != nil {
 		return "", err

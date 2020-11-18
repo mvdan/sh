@@ -123,11 +123,6 @@ func (r *Runner) lookupVar(name string) expand.Variable {
 			return vr
 		}
 	}
-	if r.opts[optNoUnset] {
-		r.errf("%s: unbound variable\n", name)
-		r.exit = 1
-		r.exitShell = true
-	}
 	return expand.Variable{}
 }
 

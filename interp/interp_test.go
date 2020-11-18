@@ -444,15 +444,15 @@ var runTests = []runTest{
 	},
 	{
 		"a=b; echo ${a:?err1}; a=; echo ${a:?err2}; unset a; echo ${a:?err3}",
-		"b\nerr2\nexit status 1 #JUSTERR",
+		"b\na: err2\nexit status 1 #JUSTERR",
 	},
 	{
 		"a=b; echo ${a?err1}; a=; echo ${a?err2}; unset a; echo ${a?err3}",
-		"b\n\nerr3\nexit status 1 #JUSTERR",
+		"b\n\na: err3\nexit status 1 #JUSTERR",
 	},
 	{
 		"echo ${a:?%s}",
-		"%s\nexit status 1 #JUSTERR",
+		"a: %s\nexit status 1 #JUSTERR",
 	},
 	{
 		"x=aaabccc; echo ${x#*a}; echo ${x##*a}",
@@ -1735,6 +1735,67 @@ var runTests = []runTest{
 	{
 		"echo $a; set -u; echo $a; echo extra",
 		"\na: unbound variable\nexit status 1 #JUSTERR",
+	},
+	{
+		"foo=bar; set -u; echo ${foo/bar/}",
+		"\n",
+	},
+	{
+		"foo=bar; set -u; echo ${foo#bar}",
+		"\n",
+	},
+	{
+		"set -u; echo ${foo/bar/}",
+		"foo: unbound variable\nexit status 1 #JUSTERR",
+	},
+	{
+		"set -u; echo ${foo#bar}",
+		"foo: unbound variable\nexit status 1 #JUSTERR",
+	},
+	// TODO: detect this case as unset
+	// {
+	// 	"set -u; foo=(bar); echo $foo; echo ${foo[3]}",
+	// 	"bar\nfoo: unbound variable\nexit status 1 #JUSTERR",
+	// },
+	{
+		"set -u; foo=(''); echo ${foo[0]}",
+		"\n",
+	},
+	{
+		"set -u; echo ${#foo}",
+		"foo: unbound variable\nexit status 1 #JUSTERR",
+	},
+	{
+		"set -u; echo ${foo+bar}",
+		"\n",
+	},
+	{
+		"set -u; echo ${foo:+bar}",
+		"\n",
+	},
+	{
+		"set -u; echo ${foo-bar}",
+		"bar\n",
+	},
+	{
+		"set -u; echo ${foo:-bar}",
+		"bar\n",
+	},
+	{
+		"set -u; echo ${foo=bar}",
+		"bar\n",
+	},
+	{
+		"set -u; echo ${foo:=bar}",
+		"bar\n",
+	},
+	{
+		"set -u; echo ${foo?bar}",
+		"foo: bar\nexit status 1 #JUSTERR",
+	},
+	{
+		"set -u; echo ${foo:?bar}",
+		"foo: bar\nexit status 1 #JUSTERR",
 	},
 	{"set -n; echo foo", ""},
 	{"set -n; [ wrong", ""},
@@ -3060,6 +3121,11 @@ func TestRunnerOpts(t *testing.T) {
 			opts(Params("-u", "--", "foo")),
 			"echo $@; echo $unset",
 			"foo\nunset: unbound variable\nexit status 1",
+		},
+		{
+			opts(Params("-u", "--", "foo")),
+			"echo $@; echo ${unset:-default}",
+			"foo\ndefault\n",
 		},
 		{
 			opts(Params("foo")),
