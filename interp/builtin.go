@@ -343,16 +343,17 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		return r.exit
 	case "command":
 		show := false
-		for len(args) > 0 && strings.HasPrefix(args[0], "-") {
-			switch args[0] {
+		fp := flagParser{remaining: args}
+		for fp.more() {
+			switch flag := fp.flag(); flag {
 			case "-v":
 				show = true
 			default:
-				r.errf("command: invalid option %s\n", args[0])
+				r.errf("command: invalid option %q\n", flag)
 				return 2
 			}
-			args = args[1:]
 		}
+		args := fp.args()
 		if len(args) == 0 {
 			break
 		}
@@ -469,17 +470,18 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		r.setErr(returnStatus(code))
 	case "read":
 		raw := false
-		for len(args) > 0 && strings.HasPrefix(args[0], "-") {
-			switch args[0] {
+		fp := flagParser{remaining: args}
+		for fp.more() {
+			switch flag := fp.flag(); flag {
 			case "-r":
 				raw = true
 			default:
-				r.errf("read: invalid option %q\n", args[0])
+				r.errf("read: invalid option %q\n", flag)
 				return 2
 			}
-			args = args[1:]
 		}
 
+		args := fp.args()
 		for _, name := range args {
 			if !syntax.ValidName(name) {
 				r.errf("read: invalid identifier %q\n", name)
@@ -530,7 +532,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		}
 		diagnostics := !strings.HasPrefix(optstr, ":")
 
-		opt, optarg, done := r.optState.Next(optstr, args)
+		opt, optarg, done := r.optState.next(optstr, args)
 
 		r.setVarString(name, string(opt))
 		r.delVar("OPTARG")
@@ -553,20 +555,21 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 	case "shopt":
 		mode := ""
 		posixOpts := false
-		for len(args) > 0 && strings.HasPrefix(args[0], "-") {
-			switch args[0] {
+		fp := flagParser{remaining: args}
+		for fp.more() {
+			switch flag := fp.flag(); flag {
 			case "-s", "-u":
-				mode = args[0]
+				mode = flag
 			case "-o":
 				posixOpts = true
 			case "-p", "-q":
-				panic(fmt.Sprintf("unhandled shopt flag: %s", args[0]))
+				panic(fmt.Sprintf("unhandled shopt flag: %s", flag))
 			default:
-				r.errf("shopt: invalid option %q\n", args[0])
+				r.errf("shopt: invalid option %q\n", flag)
 				return 2
 			}
-			args = args[1:]
 		}
+		args := fp.args()
 		if len(args) == 0 {
 			if !posixOpts {
 				for i, name := range bashOptsTable {
@@ -722,12 +725,74 @@ func (r *Runner) absPath(path string) string {
 	return filepath.Clean(path)
 }
 
+// flagParser is used to parse builtin flags.
+//
+// It's similar to the getopts implementation, but with some key differences.
+// First, the API is designed for Go loops, making it easier to use directly.
+// Second, it doesn't require the awkward ":ab" syntax that getopts uses.
+// Third, it supports "-a" flags as well as "+a".
+type flagParser struct {
+	current   string
+	remaining []string
+}
+
+func (p *flagParser) more() bool {
+	if p.current != "" {
+		// We're still parsing part of "-ab".
+		return true
+	}
+	if len(p.remaining) == 0 {
+		// Nothing left.
+		p.remaining = nil
+		return false
+	}
+	arg := p.remaining[0]
+	if arg == "--" {
+		// We explicitly stop parsing flags.
+		p.remaining = p.remaining[1:]
+		return false
+	}
+	if len(arg) == 0 || (arg[0] != '-' && arg[0] != '+') {
+		// The next argument is not a flag.
+		return false
+	}
+	// More flags to come.
+	return true
+}
+
+func (p *flagParser) flag() string {
+	arg := p.current
+	if arg == "" {
+		arg = p.remaining[0]
+		p.remaining = p.remaining[1:]
+	} else {
+		p.current = ""
+	}
+	if len(arg) > 2 {
+		// We have "-ab", so return "-a" and keep "-b".
+		p.current = arg[:1] + arg[2:]
+		arg = arg[:2]
+	}
+	return arg
+}
+
+func (p *flagParser) value() string {
+	if len(p.remaining) == 0 {
+		return ""
+	}
+	arg := p.remaining[0]
+	p.remaining = p.remaining[1:]
+	return arg
+}
+
+func (p *flagParser) args() []string { return p.remaining }
+
 type getopts struct {
 	argidx  int
 	runeidx int
 }
 
-func (g *getopts) Next(optstr string, args []string) (opt rune, optarg string, done bool) {
+func (g *getopts) next(optstr string, args []string) (opt rune, optarg string, done bool) {
 	if len(args) == 0 || g.argidx >= len(args) {
 		return '?', "", true
 	}

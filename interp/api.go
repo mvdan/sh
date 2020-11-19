@@ -142,7 +142,7 @@ type alias struct {
 	blank bool
 }
 
-func (r *Runner) optByFlag(flag rune) *bool {
+func (r *Runner) optByFlag(flag byte) *bool {
 	for i, opt := range &shellOptsTable {
 		if opt.flag == flag {
 			return &r.opts[i]
@@ -236,50 +236,42 @@ func Dir(path string) RunnerOption {
 // This is similar to what the interpreter's "set" builtin does.
 func Params(args ...string) RunnerOption {
 	return func(r *Runner) error {
-		onlyFlags := true
-		for len(args) > 0 {
-			arg := args[0]
-			if arg == "" || (arg[0] != '-' && arg[0] != '+') {
-				onlyFlags = false
-				break
-			}
-			args = args[1:]
-			if arg == "--" {
-				onlyFlags = false
-				break
-			}
-			enable := arg[0] == '-'
-			for _, c := range arg[1:] {
-				var opt *bool
-				if c == 'o' {
-					if len(args) == 0 && enable {
-						for i, opt := range &shellOptsTable {
-							r.printOptLine(opt.name, r.opts[i])
-						}
-						continue
-					}
-					if len(args) == 0 && !enable {
-						for i, opt := range &shellOptsTable {
-							setFlag := "+o"
-							if r.opts[i] {
-								setFlag = "-o"
-							}
-							r.outf("set %s %s\n", setFlag, opt.name)
-						}
-						continue
-					}
-					opt = r.optByName(args[0], false)
-					args = args[1:]
-				} else {
-					opt = r.optByFlag(c)
-				}
+		fp := flagParser{remaining: args}
+		for fp.more() {
+			flag := fp.flag()
+			enable := flag[0] == '-'
+			if flag[1] != 'o' {
+				opt := r.optByFlag(flag[1])
 				if opt == nil {
-					return fmt.Errorf("invalid option: %q", arg)
+					return fmt.Errorf("invalid option: %q", flag)
 				}
 				*opt = enable
+				continue
 			}
+			value := fp.value()
+			if value == "" && enable {
+				for i, opt := range &shellOptsTable {
+					r.printOptLine(opt.name, r.opts[i])
+				}
+				continue
+			}
+			if value == "" && !enable {
+				for i, opt := range &shellOptsTable {
+					setFlag := "+o"
+					if r.opts[i] {
+						setFlag = "-o"
+					}
+					r.outf("set %s %s\n", setFlag, opt.name)
+				}
+				continue
+			}
+			opt := r.optByName(value, false)
+			if opt == nil {
+				return fmt.Errorf("invalid option: %q", value)
+			}
+			*opt = enable
 		}
-		if !onlyFlags {
+		if args := fp.args(); args != nil {
 			// If "--" wasn't given and there were zero arguments,
 			// we don't want to override the current parameters.
 			r.Params = args
@@ -346,7 +338,7 @@ func (r *Runner) optByName(name string, bash bool) *bool {
 type runnerOpts [len(shellOptsTable) + len(bashOptsTable)]bool
 
 var shellOptsTable = [...]struct {
-	flag rune
+	flag byte
 	name string
 }{
 	// sorted alphabetically by name; use a space for the options

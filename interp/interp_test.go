@@ -999,7 +999,8 @@ var runTests = []runTest{
 
 	// command
 	{"command", ""},
-	{"command -o echo", "command: invalid option -o\nexit status 2 #JUSTERR"},
+	{"command -o echo", "command: invalid option \"-o\"\nexit status 2 #JUSTERR"},
+	{"command -vo echo", "command: invalid option \"-o\"\nexit status 2 #JUSTERR"},
 	{"echo() { :; }; echo foo", ""},
 	{"echo() { :; }; command echo foo", "foo\n"},
 	{"command -v does-not-exist", "exit status 1"},
@@ -1806,7 +1807,7 @@ var runTests = []runTest{
 	{"set -n; set +n; echo foo", ""},
 	{
 		"set -o foobar",
-		"set: invalid option: \"-o\"\nexit status 2 #JUSTERR",
+		"set: invalid option: \"foobar\"\nexit status 2 #JUSTERR",
 	},
 	{"set -o noexec; echo foo", ""},
 	{"set +o noexec; echo foo", "foo\n"},
@@ -1877,6 +1878,7 @@ set +o pipefail
 	{"set -e; shopt -o | grep -E 'errexit|noexec' | wc -l", "2\n"},
 	{"set -e; shopt -o | grep -E 'errexit|noexec' | grep 'on$' | wc -l", "1\n"},
 	{"shopt -s -o noexec; echo foo", ""},
+	{"shopt -so noexec; echo foo", ""},
 	{"shopt -u -o noexec; echo foo", "foo\n"},
 	{"shopt -u globstar; shopt globstar | grep 'off$' | wc -l", "1\n"},
 	{"shopt -s globstar; shopt globstar | grep 'off$' | wc -l", "0\n"},
@@ -2450,6 +2452,10 @@ set +o pipefail
 	},
 	{
 		"read -X",
+		"read: invalid option \"-X\"\nexit status 2 #JUSTERR",
+	},
+	{
+		"read -rX",
 		"read: invalid option \"-X\"\nexit status 2 #JUSTERR",
 	},
 	{
