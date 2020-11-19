@@ -215,7 +215,27 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		return r.builtinCode(ctx, pos, args[0], args[1:])
 	case "type":
 		anyNotFound := false
+		mode := ""
+		fp := flagParser{remaining: args}
+		for fp.more() {
+			switch flag := fp.flag(); flag {
+			case "-p":
+				mode = flag
+			default:
+				r.errf("command: invalid option %q\n", flag)
+				return 2
+			}
+		}
+		args := fp.args()
 		for _, arg := range args {
+			if mode == "-p" {
+				if path, err := LookPath(expandEnv{r}, arg); err == nil {
+					r.outf("%s\n", path)
+				} else {
+					anyNotFound = true
+				}
+				continue
+			}
 			if als, ok := r.alias[arg]; ok && r.opts[optExpandAliases] {
 				var buf bytes.Buffer
 				if len(als.args) > 0 {

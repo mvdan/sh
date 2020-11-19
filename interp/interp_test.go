@@ -26,7 +26,7 @@ import (
 	"mvdan.cc/sh/v3/syntax"
 )
 
-// Some program which should be in $PATH.  Needs to run before runTests is
+// Some program which should be in $PATH. Needs to run before runTests is
 // initialized (so an init function wouldn't work), because runTest uses it.
 var pathProg = func() string {
 	if runtime.GOOS == "windows" {
@@ -1911,11 +1911,13 @@ set +o pipefail
 	{"type", ""},
 	{"type echo", "echo is a shell builtin\n"},
 	{"echo() { :; }; type echo | grep 'is a function'", "echo is a function\n"},
-	{"type $PATH_PROG | grep -q -E ' is (/|[A-Z]:).*'", ""},
+	{"type $PATH_PROG | grep -q -E ' is (/|[A-Z]:)'", ""},
 	{"type noexist", "type: noexist: not found\nexit status 1 #JUSTERR"},
-	{"PATH=/ ; type $PATH_PROG", "type: " + pathProg + ": not found\nexit status 1 #JUSTERR"},
+	{"PATH=/; type $PATH_PROG", "type: " + pathProg + ": not found\nexit status 1 #JUSTERR"},
 	{"shopt -s expand_aliases; alias foo='bar baz'\ntype foo", "foo is aliased to `bar baz'\n"},
 	{"alias foo='bar baz'\ntype foo", "type: foo: not found\nexit status 1 #JUSTERR"},
+	{"type -p $PATH_PROG | grep -q -E '^(/|[A-Z]:)'", ""},
+	{"PATH=/; type -p $PATH_PROG", "exit status 1"},
 
 	// eval
 	{"eval", ""},
