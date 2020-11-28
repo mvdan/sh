@@ -48,9 +48,10 @@ jobs:
       github.repository == 'mvdan/sh'
     env:
       # Export environment variables for all stages.
-      DOCKER_CLI_EXPERIMENTAL: enabled # for 'docker buildx'
-      DOCKER_USER: mvdan
-      DOCKER_PASSWORD: ${{secrets.DOCKER_PASSWORD}}
+      DOCKER_USER: ${{ secrets.DOCKER_USER }}
+      # Pushing READMEs to Dockerhub currently only works with username/password
+      # and not with personal access tokens (Step: Update DockerHub description)
+      DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
       DOCKER_REPO: shfmt
       # We use all platforms for which FROM images in our Dockerfile are
       # available.
@@ -69,11 +70,29 @@ jobs:
       # Get "https://proxy.golang.org/...": local error: tls: unexpected message
       # Get "https://proxy.golang.org/...": x509: certificate signed by unknown authority
     steps:
+    - name: Check GitHub settings
+      run: |
+        missing=()
+        [[ -n "${{ secrets.DOCKER_USER }}" ]] || missing+=(DOCKER_USER)
+        [[ -n "${{ secrets.DOCKER_PASSWORD }}" ]] || missing+=(DOCKER_PASSWORD)
+        for i in "${missing[@]}"; do
+          echo "Missing github secret: $i"
+        done
+        (( ${#missing[@]} == 0 )) || exit 1
     - name: Checkout code
       uses: actions/checkout@v2
       with:
         fetch-depth: 0 # also fetch tags for 'git describe'
-    - name: Set up image tag
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v1
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v1
+    - name: Login to DockerHub
+      uses: docker/login-action@v1
+      with:
+        username: ${{ secrets.DOCKER_USER }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+    - name: Set up env vars
       run: |
         set -vx
         # Export environment variable for later stages.
@@ -84,18 +103,27 @@ jobs:
           # Pushes tag - deploy tag name.
           echo "TAG=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_ENV
         fi
-        echo "DOCKER_BASE=${DOCKER_USER}/${DOCKER_REPO}" >> $GITHUB_ENV
-    - name: Install Docker buildx
+        echo "DOCKER_BASE=${{ secrets.DOCKER_USER }}/${{ env.DOCKER_REPO }}" >> $GITHUB_ENV
+        echo "DOCKER_BUILD_PLATFORMS=${DOCKER_PLATFORMS// /,}" >> $GITHUB_ENV
+    - name: Build and push
+      uses: docker/build-push-action@v2
+      with:
+        context: .
+        file: ./cmd/shfmt/Dockerfile
+        platforms: ${{ env.DOCKER_BUILD_PLATFORMS }}
+        push: true
+        tags: ${{ env.DOCKER_BASE }}:${{ env.TAG }}
+    - name: Build and push (alpine)
+      uses: docker/build-push-action@v2
+      with:
+        context: .
+        file: ./cmd/shfmt/Dockerfile
+        platforms: ${{ env.DOCKER_BUILD_PLATFORMS }}
+        push: true
+        tags: ${{ env.DOCKER_BASE }}:${{ env.TAG }}-alpine
+        target: alpine
+    - name: Test multi-architecture Docker images
       run: |
-        set -vx
-        # Install up-to-date version of docker, with buildx support.
-        docker_apt_repo='https://download.docker.com/linux/ubuntu'
-        curl -fsSL "${docker_apt_repo}/gpg" | sudo apt-key add -
-        os="$(lsb_release -cs)"
-        sudo add-apt-repository "deb [arch=amd64] $docker_apt_repo $os stable"
-        sudo apt-get update
-        sudo apt-get -y -o Dpkg::Options::="--force-confnew" install docker-ce
-
         # Enable docker daemon experimental support (for 'pull --platform').
         config='/etc/docker/daemon.json'
         if [[ -e "$config" ]]; then
@@ -104,36 +132,7 @@ jobs:
           echo '{ "experimental": true }' | sudo tee "$config"
         fi
         sudo systemctl restart docker
-
-        # Install QEMU multi-architecture support for docker buildx.
-        docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-
-        # Instantiate docker buildx builder with multi-architecture support.
-        docker buildx create --name mybuilder
-        docker buildx use mybuilder
-        # Start up buildx and verify that all is OK.
-        docker buildx inspect --bootstrap
-    - name: Build multi-architecture Docker images with buildx
-      run: |
-        set -vx
-        echo "$DOCKER_PASSWORD" \
-        | docker login -u="$DOCKER_USER" --password-stdin
-
-        function buildx() {
-          docker buildx build \
-            --platform ${DOCKER_PLATFORMS// /,} \
-            --push \
-            -f cmd/shfmt/Dockerfile \
-            "$@" \
-            .
-        }
-
-        buildx -t "$DOCKER_BASE:$TAG"
-        buildx -t "$DOCKER_BASE:$TAG-alpine" --target alpine
-    - name: Test multi-architecture Docker images
-      run: |
         printf '%s\n' "#!/bin/sh" "echo 'hello world'" >myscript
-
         for platform in $DOCKER_PLATFORMS; do
           for ext in '' '-alpine'; do
             image="${DOCKER_BASE}:${TAG}${ext}"
@@ -154,34 +153,10 @@ jobs:
             docker run --rm -v "$PWD:/mnt" -w '/mnt' "$image" -d myscript
           done
         done
-    - name: Install Node.js
-      uses: actions/setup-node@v1
-      with:
-        node-version: 13.x
     - name: Update DockerHub description
-      run: |
-        set -vx
-        npm install docker-hub-api@0.8.0
-        node -e '
-          function error(reason) {
-            console.log("Error: " + reason.message);
-            process.exit(1);
-          }
-          const fs = require("fs");
-          let readme = fs.readFileSync("README.md", "utf8");
-          let dockerHubAPI = require("docker-hub-api");
-          dockerHubAPI.login(
-            process.env.DOCKER_USER,
-            process.env.DOCKER_PASSWORD)
-          .then(function () {
-            let url = "https://github.com/" + process.env.GITHUB_REPOSITORY;
-            let repo = process.env.DOCKER_REPO;
-            dockerHubAPI.setRepositoryDescription(
-              process.env.DOCKER_USER,
-              repo,
-              {short: "Official " + repo + " images from " + url,
-               full: readme})
-            .catch(reason => error(reason));
-          })
-          .catch(reason => error(reason));
-        '
+      uses: peter-evans/dockerhub-description@v2
+      with:
+        username: ${{ secrets.DOCKER_USER }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        repository: ${{ secrets.DOCKER_USER }}/${{ env.DOCKER_REPO }}
+        readme-filepath: README.md
