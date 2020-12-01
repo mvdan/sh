@@ -392,6 +392,14 @@ var printTests = []printCase{
 	samePrint("[[ a &&\n\tb ]]"),
 	samePrint("[[ a ||\n\tb ]]"),
 	{
+		"[[ -f \\\n\tfoo ]]",
+		"[[ -f foo ]]",
+	},
+	{
+		"[[ foo \\\n\t-ef \\\n\tbar ]]",
+		"[[ foo -ef bar ]]",
+	},
+	{
 		"[[ a && \\\nb \\\n && c ]]",
 		"[[ a &&\n\tb &&\n\tc ]]",
 	},

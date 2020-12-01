@@ -825,19 +825,30 @@ func (p *Printer) testExpr(expr TestExpr) {
 	} else if p.wantSpace {
 		p.space()
 	}
+	p.testExprSameLine(expr)
+}
+
+func (p *Printer) testExprSameLine(expr TestExpr) {
+	p.line = expr.Pos().Line()
 	switch x := expr.(type) {
 	case *Word:
 		p.word(x)
 	case *BinaryTest:
-		p.testExpr(x.X)
+		p.testExprSameLine(x.X)
 		p.space()
 		p.WriteString(x.Op.String())
-		p.wantSpace = true
-		p.testExpr(x.Y)
+		switch x.Op {
+		case AndTest, OrTest:
+			p.wantSpace = true
+			p.testExpr(x.Y)
+		default:
+			p.space()
+			p.testExprSameLine(x.Y)
+		}
 	case *UnaryTest:
 		p.WriteString(x.Op.String())
 		p.space()
-		p.testExpr(x.X)
+		p.testExprSameLine(x.X)
 	case *ParenTest:
 		p.WriteByte('(')
 		p.wantSpace = startsWithLparen(x.X)

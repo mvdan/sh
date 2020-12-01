@@ -1474,6 +1474,14 @@ var shellTests = []errorCase{
 		bsmk: `1:4: -n must be followed by a word`,
 	},
 	{
+		in:   "[[ a -ef\nb ]]",
+		bsmk: `1:6: -ef must be followed by a word`,
+	},
+	{
+		in:   "[[ a ==\nb ]]",
+		bsmk: `1:6: == must be followed by a word`,
+	},
+	{
 		in:   "[[ a -nt b",
 		bsmk: `1:1: reached EOF without matching [[ with ]]`,
 	},
