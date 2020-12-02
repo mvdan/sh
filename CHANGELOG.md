@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## [3.2.1] - 2020-12-02
+
+- **syntax**
+  - Fix an endless loop when parsing single quotes in parameter expansions
+  - Properly print assignments using escaped newlines
+  - Print inline heredoc comments in the right place
+- **interp**
+  - Always expand `~` in Bash test expressions
+- **expand**
+  - Don't panic on out of bounds array index expansions
+
 ## [3.2.0] - 2020-10-29
 
 - **cmd/shfmt**
@@ -482,6 +493,7 @@ module in v3.
 
 Initial release.
 
+[3.2.1]: https://github.com/mvdan/sh/releases/tag/v3.2.1
 [3.2.0]: https://github.com/mvdan/sh/releases/tag/v3.2.0
 [3.1.2]: https://github.com/mvdan/sh/releases/tag/v3.1.2
 [3.1.1]: https://github.com/mvdan/sh/releases/tag/v3.1.1
