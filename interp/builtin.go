@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -389,7 +388,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			last = 0
 			if r.Funcs[arg] != nil || isBuiltin(arg) {
 				r.outf("%s\n", arg)
-			} else if path, err := exec.LookPath(arg); err == nil {
+			} else if path, err := LookPath(r.Dir, expandEnv{r}, arg); err == nil {
 				r.outf("%s\n", path)
 			} else {
 				last = 1
