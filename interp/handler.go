@@ -68,7 +68,7 @@ type ExecHandlerFunc func(ctx context.Context, args []string) error
 func DefaultExecHandler(killTimeout time.Duration) ExecHandlerFunc {
 	return func(ctx context.Context, args []string) error {
 		hc := HandlerCtx(ctx)
-		path, err := LookPath(hc.Env, args[0])
+		path, err := LookPath(hc.Dir, hc.Env, args[0])
 		if err != nil {
 			fmt.Fprintln(hc.Stderr, err)
 			return NewExitStatus(127)
@@ -217,7 +217,7 @@ func splitList(path string) []string {
 // such as PWD and PATH.
 //
 // If no error is returned, the returned path must be valid.
-func LookPath(env expand.Environ, file string) (string, error) {
+func LookPath(cwd string, env expand.Environ, file string) (string, error) {
 	pathList := splitList(env.Get("PATH").String())
 	chars := `/`
 	if runtime.GOOS == "windows" {
@@ -226,9 +226,8 @@ func LookPath(env expand.Environ, file string) (string, error) {
 		pathList = append([]string{"."}, pathList...)
 	}
 	exts := pathExts(env)
-	dir := env.Get("PWD").String()
 	if strings.ContainsAny(file, chars) {
-		return findExecutable(dir, file, exts)
+		return findExecutable(cwd, file, exts)
 	}
 	for _, elem := range pathList {
 		var path string
@@ -239,7 +238,7 @@ func LookPath(env expand.Environ, file string) (string, error) {
 		default:
 			path = filepath.Join(elem, file)
 		}
-		if f, err := findExecutable(dir, path, exts); err == nil {
+		if f, err := findExecutable(cwd, path, exts); err == nil {
 			return f, nil
 		}
 	}

@@ -229,7 +229,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		args := fp.args()
 		for _, arg := range args {
 			if mode == "-p" {
-				if path, err := LookPath(expandEnv{r}, arg); err == nil {
+				if path, err := LookPath(r.Dir, expandEnv{r}, arg); err == nil {
 					r.outf("%s\n", path)
 				} else {
 					anyNotFound = true
@@ -258,7 +258,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 				r.outf("%s is a shell builtin\n", arg)
 				continue
 			}
-			if path, err := LookPath(expandEnv{r}, arg); err == nil {
+			if path, err := LookPath(r.Dir, expandEnv{r}, arg); err == nil {
 				r.outf("%s is %s\n", arg, path)
 				continue
 			}
