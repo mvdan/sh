@@ -218,6 +218,9 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		fp := flagParser{remaining: args}
 		for fp.more() {
 			switch flag := fp.flag(); flag {
+			case "-a", "-f", "-P", "-t", "--help":
+				r.errf("command: NOT IMPLEMENTED\n")
+				return 3
 			case "-p":
 				mode = flag
 			default:
