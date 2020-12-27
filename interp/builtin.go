@@ -238,6 +238,14 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 				}
 				continue
 			}
+			if syntax.IsKeyword(arg) {
+				if mode == "-t" {
+					r.out("keyword\n")
+				} else {
+					r.outf("%s is a shell keyword\n", arg)
+				}
+				continue
+			}
 			if als, ok := r.alias[arg]; ok && r.opts[optExpandAliases] {
 				var buf bytes.Buffer
 				if len(als.args) > 0 {
