@@ -1918,6 +1918,12 @@ set +o pipefail
 	{"alias foo='bar baz'\ntype foo", "type: foo: not found\nexit status 1 #JUSTERR"},
 	{"type -p $PATH_PROG | grep -q -E '^(/|[A-Z]:)'", ""},
 	{"PATH=/; type -p $PATH_PROG", "exit status 1"},
+	{"shopt -s expand_aliases; alias foo='bar'; type -t foo", "alias\n"},
+	// {"type -t case", "keyword\n"}, // missing
+	{"foo(){ :; }; type -t foo", "function\n"},
+	{"type -t type", "builtin\n"},
+	{"type -t $PATH_PROG", "file\n"},
+	{"type -t inexisting_dfgsdgfds", "exit status 1"},
 
 	// eval
 	{"eval", ""},
