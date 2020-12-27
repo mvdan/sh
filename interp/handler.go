@@ -68,7 +68,7 @@ type ExecHandlerFunc func(ctx context.Context, args []string) error
 func DefaultExecHandler(killTimeout time.Duration) ExecHandlerFunc {
 	return func(ctx context.Context, args []string) error {
 		hc := HandlerCtx(ctx)
-		path, err := LookPath(hc.Dir, hc.Env, args[0])
+		path, err := LookPathDir(hc.Dir, hc.Env, args[0])
 		if err != nil {
 			fmt.Fprintln(hc.Stderr, err)
 			return NewExitStatus(127)
@@ -212,12 +212,17 @@ func splitList(path string) []string {
 	return fixed
 }
 
-// LookPath is similar to os/exec.LookPath, with the difference that it uses the
+// LookPath is deprecated. See LookPathDir.
+func LookPath(env expand.Environ, file string) (string, error) {
+	return LookPathDir(env.Get("PWD").String(), env, file)
+}
+
+// LookPathDir is similar to os/exec.LookPath, with the difference that it uses the
 // provided environment. env is used to fetch relevant environment variables
 // such as PWD and PATH.
 //
 // If no error is returned, the returned path must be valid.
-func LookPath(cwd string, env expand.Environ, file string) (string, error) {
+func LookPathDir(cwd string, env expand.Environ, file string) (string, error) {
 	pathList := splitList(env.Get("PATH").String())
 	chars := `/`
 	if runtime.GOOS == "windows" {
