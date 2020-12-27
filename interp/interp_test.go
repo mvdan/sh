@@ -1919,6 +1919,13 @@ set +o pipefail
 	{"type -p $PATH_PROG | grep -q -E '^(/|[A-Z]:)'", ""},
 	{"PATH=/; type -p $PATH_PROG", "exit status 1"},
 
+	// trap
+	{"trap 'echo at_exit' EXIT; true", "at_exit\n"},
+	{"set -e; trap 'echo on_err' ERR; false; echo FAIL", "on_err\n"},
+	{"trap 'echo at_exit' EXIT; trap - EXIT; echo OK", "OK\n"},
+	{"set -e; trap 'echo A' ERR EXIT; false; echo FAIL", "A\nA\n"},
+	{"trap 'foobar' SIGINT", "trap: SIGINT: invalid signal specification\nexit status 2"},
+
 	// eval
 	{"eval", ""},
 	{"eval ''", ""},

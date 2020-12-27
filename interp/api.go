@@ -135,6 +135,10 @@ type Runner struct {
 	// keepRedirs is used so that "exec" can make any redirections
 	// apply to the current shell, and not just the command.
 	keepRedirs bool
+
+	// Fake signal callbacks
+	callbackErr string
+	callbackExit string
 }
 
 type alias struct {

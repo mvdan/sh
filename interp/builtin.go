@@ -66,7 +66,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			r.errf("exit cannot take multiple arguments\n")
 			return 1
 		}
-		r.exitShell(exit)
+		r.exitShell(ctx, exit)
 		return exit
 	case "set":
 		if err := Params(args...)(r); err != nil {
@@ -360,7 +360,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			r.keepRedirs = true
 			break
 		}
-		r.exitShell(1)
+		r.exitShell(ctx, 1)
 		r.exec(ctx, args)
 		return r.exit
 	case "command":
@@ -677,8 +677,62 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			delete(r.alias, name)
 		}
 
+	case "trap":
+		printUsage := func() {
+			r.errf("trap: usage: trap [-lp] [[arg] signal_spec ...]\n")
+		}
+		fp := flagParser{remaining: args}
+		callback := "-"
+		for fp.more() {
+			switch flag := fp.flag(); flag {
+			case "-l", "-p":
+				r.errf("trap: %q: NOT IMPLEMENTED flag\n", flag)
+				return 2
+			case "-h", "--help":
+				printUsage()
+				return 2
+			case "-":
+				// default signal
+			default:
+				r.errf("trap: %q: invalid option\n", flag)
+				printUsage()
+				return 2
+			}
+		}
+		args := fp.args()
+		switch len(args) {
+		case 0:
+			// Print non-default signals
+			if r.callbackExit != "" {
+				r.outf("trap -- %q EXIT\n", r.callbackExit);
+			}
+			if r.callbackErr != "" {
+				r.outf("trap -- %q ERR\n", r.callbackErr);
+			}
+		case 1:
+			// assume it's a signal, the default will be restored
+		default:
+			callback = args[0]
+			args = args[1:]
+		}
+		// For now, treat both empty and - the same since ERR and EXIT have no
+		// default callback.
+		if callback == "-" {
+			callback = ""
+		}
+		for _, arg := range args {
+			switch arg {
+			case "ERR":
+				r.callbackErr = callback
+			case "EXIT":
+				r.callbackExit = callback
+			default:
+				r.errf("trap: %s: invalid signal specification\n", arg)
+				return 2
+			}
+		}
 	default:
-		// "trap", "umask", "fg", "bg",
+		// "umask", "fg", "bg",
 		panic(fmt.Sprintf("unhandled builtin: %s", name))
 	}
 	return 0

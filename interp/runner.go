@@ -136,7 +136,7 @@ func (r *Runner) updateExpandOpts() {
 func (r *Runner) expandErr(err error) {
 	if err != nil {
 		r.errf("%v\n", err)
-		r.exitShell(1)
+		r.exitShell(context.TODO(), 1)
 	}
 }
 
@@ -295,7 +295,7 @@ func (r *Runner) stmtSync(ctx context.Context, st *syntax.Stmt) {
 		//   conditions (if <cond>, while <cond>, etc)
 		//   part of && or || lists
 		//   preceded by !
-		r.exitShell(r.exit)
+		r.exitShell(ctx, r.exit)
 	}
 	if !r.keepRedirs {
 		r.stdin, r.stdout, r.stderr = oldIn, oldOut, oldErr
@@ -558,9 +558,27 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 }
 
 // setExit call this function to exit the shell with status
-func (r *Runner) exitShell(status int) {
-	r.exit = status
+func (r *Runner) exitShell(ctx context.Context, status int) {
 	r.shellExited = true
+	handleCallback := func(callback, name string) {
+		if callback == "" {
+			return
+		}
+		p := syntax.NewParser()
+		file, err := p.Parse(strings.NewReader(callback), name + " trap")
+		if err != nil {
+			r.errf(name + "trap: %v\n", err)
+			// ignore errors in the callback
+			return
+		}
+		r.stmts(ctx, file.Stmts)
+	}
+	if status != 0 {
+		handleCallback(r.callbackErr, "error")
+	}
+	handleCallback(r.callbackExit, "exit")
+	// Restore the original exit status. We ignore the callbacks.
+	r.exit = status
 }
 
 func (r *Runner) flattenAssign(as *syntax.Assign) []*syntax.Assign {
