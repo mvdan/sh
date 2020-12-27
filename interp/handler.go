@@ -222,8 +222,6 @@ func LookPath(cwd string, env expand.Environ, file string) (string, error) {
 	chars := `/`
 	if runtime.GOOS == "windows" {
 		chars = `:\/`
-		// so that "foo" always tries "./foo"
-		pathList = append([]string{"."}, pathList...)
 	}
 	exts := pathExts(env)
 	if strings.ContainsAny(file, chars) {
