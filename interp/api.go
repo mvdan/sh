@@ -104,8 +104,8 @@ type Runner struct {
 	// track if a sourced script set positional parameters
 	sourceSetParams bool
 
-	err       error // current shell exit code or fatal error
-	exitShell bool  // whether the shell needs to exit
+	err         error // current shell exit code or fatal error
+	shellExited bool  // whether the shell needs to exit
 
 	// The current and last exit status code. They can only be different if
 	// the interpreter is in the middle of running a statement. In that
@@ -492,7 +492,7 @@ func (r *Runner) Run(ctx context.Context, node syntax.Node) error {
 	}
 	r.fillExpandConfig(ctx)
 	r.err = nil
-	r.exitShell = false
+	r.shellExited = false
 	r.filename = ""
 	switch x := node.(type) {
 	case *syntax.File:
@@ -517,7 +517,7 @@ func (r *Runner) Run(ctx context.Context, node syntax.Node) error {
 // Note that this state is overwritten at every Run call, so it should be
 // checked immediately after each Run call.
 func (r *Runner) Exited() bool {
-	return r.exitShell
+	return r.shellExited
 }
 
 // Subshell makes a copy of the given Runner, suitable for use concurrently

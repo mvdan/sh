@@ -51,21 +51,23 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 	case "false":
 		return 1
 	case "exit":
-		r.exitShell = true
+		exit := 0
 		switch len(args) {
 		case 0:
-			return r.lastExit
+			exit = r.lastExit
 		case 1:
 			n, err := strconv.Atoi(args[0])
 			if err != nil {
 				r.errf("invalid exit status code: %q\n", args[0])
 				return 2
 			}
-			return n
+			exit = n
 		default:
 			r.errf("exit cannot take multiple arguments\n")
 			return 1
 		}
+		r.exitShell(exit)
+		return exit
 	case "set":
 		if err := Params(args...)(r); err != nil {
 			r.errf("set: %v\n", err)
@@ -358,7 +360,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			r.keepRedirs = true
 			break
 		}
-		r.exitShell = true
+		r.exitShell(1)
 		r.exec(ctx, args)
 		return r.exit
 	case "command":

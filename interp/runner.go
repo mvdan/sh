@@ -136,8 +136,7 @@ func (r *Runner) updateExpandOpts() {
 func (r *Runner) expandErr(err error) {
 	if err != nil {
 		r.errf("%v\n", err)
-		r.exit = 1
-		r.exitShell = true
+		r.exitShell(1)
 	}
 }
 
@@ -239,7 +238,7 @@ func (r *Runner) errf(format string, a ...interface{}) {
 }
 
 func (r *Runner) stop(ctx context.Context) bool {
-	if r.err != nil || r.exitShell {
+	if r.err != nil || r.Exited() {
 		return true
 	}
 	if err := ctx.Err(); err != nil {
@@ -296,7 +295,7 @@ func (r *Runner) stmtSync(ctx context.Context, st *syntax.Stmt) {
 		//   conditions (if <cond>, while <cond>, etc)
 		//   part of && or || lists
 		//   preceded by !
-		r.exitShell = true
+		r.exitShell(r.exit)
 	}
 	if !r.keepRedirs {
 		r.stdin, r.stdout, r.stderr = oldIn, oldOut, oldErr
@@ -556,6 +555,12 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 	default:
 		panic(fmt.Sprintf("unhandled command node: %T", x))
 	}
+}
+
+// setExit call this function to exit the shell with status
+func (r *Runner) exitShell(status int) {
+	r.exit = status
+	r.shellExited = true
 }
 
 func (r *Runner) flattenAssign(as *syntax.Assign) []*syntax.Assign {
