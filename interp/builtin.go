@@ -218,7 +218,10 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		fp := flagParser{remaining: args}
 		for fp.more() {
 			switch flag := fp.flag(); flag {
-			case "-p":
+			case "-a", "-f", "-P", "--help":
+				r.errf("command: NOT IMPLEMENTED\n")
+				return 3
+			case "-p", "-t":
 				mode = flag
 			default:
 				r.errf("command: invalid option %q\n", flag)
@@ -235,6 +238,14 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 				}
 				continue
 			}
+			if syntax.IsKeyword(arg) {
+				if mode == "-t" {
+					r.out("keyword\n")
+				} else {
+					r.outf("%s is a shell keyword\n", arg)
+				}
+				continue
+			}
 			if als, ok := r.alias[arg]; ok && r.opts[optExpandAliases] {
 				var buf bytes.Buffer
 				if len(als.args) > 0 {
@@ -246,22 +257,40 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 				if als.blank {
 					buf.WriteByte(' ')
 				}
-				r.outf("%s is aliased to `%s'\n", arg, &buf)
+				if mode == "-t" {
+					r.out("alias\n")
+				} else {
+					r.outf("%s is aliased to `%s'\n", arg, &buf)
+				}
 				continue
 			}
 			if _, ok := r.Funcs[arg]; ok {
-				r.outf("%s is a function\n", arg)
+				if mode == "-t" {
+					r.out("function\n")
+				} else {
+					r.outf("%s is a function\n", arg)
+				}
 				continue
 			}
 			if isBuiltin(arg) {
-				r.outf("%s is a shell builtin\n", arg)
+				if mode == "-t" {
+					r.out("builtin\n")
+				} else {
+					r.outf("%s is a shell builtin\n", arg)
+				}
 				continue
 			}
 			if path, err := LookPathDir(r.Dir, expandEnv{r}, arg); err == nil {
-				r.outf("%s is %s\n", arg, path)
+				if mode == "-t" {
+					r.out("file\n")
+				} else {
+					r.outf("%s is %s\n", arg, path)
+				}
 				continue
 			}
-			r.errf("type: %s: not found\n", arg)
+			if mode != "-t" {
+				r.errf("type: %s: not found\n", arg)
+			}
 			anyNotFound = true
 		}
 		if anyNotFound {

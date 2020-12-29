@@ -753,6 +753,37 @@ func IsIncomplete(err error) bool {
 	return ok && perr.Incomplete
 }
 
+// IsKeyword returns true if the given word is part of the language keywords.
+func IsKeyword(word string) bool {
+	// This list has been copied from the bash 5.1 source code, file y.tab.c +4460
+	switch word {
+	case
+		"!",
+		"[[", // only if COND_COMMAND is defined
+		"]]", // only if COND_COMMAND is defined
+		"case",
+		"coproc", // only if COPROCESS_SUPPORT is defined
+		"do",
+		"done",
+		"else",
+		"esac",
+		"fi",
+		"for",
+		"function",
+		"if",
+		"in",
+		"select", // only if SELECT_COMMAND is defined
+		"then",
+		"time", // only if COMMAND_TIMING is defined
+		"until",
+		"while",
+		"{",
+		"}":
+		return true
+	}
+	return false
+}
+
 // ParseError represents an error found when parsing a source file, from which
 // the parser cannot recover.
 type ParseError struct {
