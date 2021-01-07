@@ -6,6 +6,7 @@ package interp
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -719,6 +720,10 @@ func (r *Runner) printOptLine(name string, enabled bool) {
 }
 
 func (r *Runner) readLine(raw bool) ([]byte, error) {
+	if r.stdin == nil {
+		return nil, errors.New("interp: can't read, there's no stdin")
+	}
+
 	var line []byte
 	esc := false
 
