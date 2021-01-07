@@ -3548,3 +3548,16 @@ func TestMalformedPathOnWindows(t *testing.T) {
 		t.Fatalf("wrong output:\nwant: %q\ngot:  %q", want, got)
 	}
 }
+
+func TestReadShouldNotPanicWithNilStdin(t *testing.T) {
+	var b bytes.Buffer
+	r, err := New(StdIO(nil, &b, &b))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	f := parse(t, nil, "read foobar")
+	if err := r.Run(context.Background(), f); err == nil {
+		t.Fatal("it should have retuned an error")
+	}
+}
