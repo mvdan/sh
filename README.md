@@ -26,7 +26,7 @@ For more information, see [its manpage](cmd/shfmt/shfmt.1.scd), which can be
 viewed directly as Markdown or rendered with [scdoc].
 
 Packages are available on [Alpine], [Arch], [Docker], [FreeBSD], [Homebrew],
-[MacPorts], [NixOS], [Scoop], [Snapcraft], and [Void].
+[MacPorts], [NixOS], [Scoop], [Snapcraft], [Void] and [webi].
 
 ### gosh
 
@@ -155,4 +155,5 @@ Other noteworthy integrations include:
 [sublime-pretty-shell]: https://github.com/aerobounce/Sublime-Pretty-Shell
 [vim-shfmt]: https://github.com/z0mbix/vim-shfmt
 [void]: https://github.com/void-linux/void-packages/blob/HEAD/srcpkgs/shfmt/template
+[webi]: https://webinstall.dev/shfmt/
 [pre-commit]: https://pre-commit.com
