@@ -1,6 +1,6 @@
 # sh
 
-[![GoDoc](https://godoc.org/mvdan.cc/sh?status.svg)](https://godoc.org/mvdan.cc/sh)
+[![Go Reference](https://pkg.go.dev/badge/mvdan.cc/sh/v3.svg)](https://pkg.go.dev/mvdan.cc/sh/v3)
 
 A shell parser, formatter, and interpreter. Supports [POSIX Shell], [Bash], and
 [mksh]. Requires Go 1.14 or later.
@@ -8,10 +8,10 @@ A shell parser, formatter, and interpreter. Supports [POSIX Shell], [Bash], and
 ### Quick start
 
 To parse shell scripts, inspect them, and print them out, see the [syntax
-examples](https://godoc.org/mvdan.cc/sh/syntax#pkg-examples).
+examples](https://pkg.go.dev/mvdan.cc/sh/v3/syntax#pkg-examples).
 
 For high-level operations like performing shell expansions on strings, see the
-[shell examples](https://godoc.org/mvdan.cc/sh/shell#pkg-examples).
+[shell examples](https://pkg.go.dev/mvdan.cc/sh/v3/shell#pkg-examples).
 
 ### shfmt
 
@@ -130,7 +130,7 @@ Other noteworthy integrations include:
 [docker]: https://hub.docker.com/r/mvdan/shfmt/
 [dockerized-peterdavehello]: https://github.com/PeterDaveHello/dockerized-shfmt/
 [editorconfig]: https://editorconfig.org/
-[examples]: https://godoc.org/mvdan.cc/sh/syntax#pkg-examples
+[examples]: https://pkg.go.dev/mvdan.cc/sh/v3/syntax#pkg-examples
 [format-shell]: https://atom.io/packages/format-shell
 [freebsd]: https://www.freshports.org/devel/shfmt
 [go-fuzz]: https://github.com/dvyukov/go-fuzz

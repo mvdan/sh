@@ -42,17 +42,17 @@ You can find more samples in
 The APIs listed below are wrapped to be usable in JavaScript. Follow the links
 to read their documentation.
 
-* [syntax.NewParser](https://godoc.org/mvdan.cc/sh/syntax#NewParser)
-  - [Parser.Parse](https://godoc.org/mvdan.cc/sh/syntax#Parser.Parse)
-  - [Parser.Interactive](https://godoc.org/mvdan.cc/sh/syntax#Parser.Interactive)
-  - [Parser.Incomplete](https://godoc.org/mvdan.cc/sh/syntax#Parser.Incomplete)
-* [syntax.DebugPrint](https://godoc.org/mvdan.cc/sh/syntax#DebugPrint)
-* [syntax.Walk](https://godoc.org/mvdan.cc/sh/syntax#Walk)
-* [syntax.NewPrinter](https://godoc.org/mvdan.cc/sh/syntax#NewPrinter)
-  - [Printer.Print](https://godoc.org/mvdan.cc/sh/syntax#Printer.Print)
+* [syntax.NewParser](https://pkg.go.dev/mvdan.cc/sh/v3/syntax#NewParser)
+  - [Parser.Parse](https://pkg.go.dev/mvdan.cc/sh/v3/syntax#Parser.Parse)
+  - [Parser.Interactive](https://pkg.go.dev/mvdan.cc/sh/v3/syntax#Parser.Interactive)
+  - [Parser.Incomplete](https://pkg.go.dev/mvdan.cc/sh/v3/syntax#Parser.Incomplete)
+* [syntax.DebugPrint](https://pkg.go.dev/mvdan.cc/sh/v3/syntax#DebugPrint)
+* [syntax.Walk](https://pkg.go.dev/mvdan.cc/sh/v3/syntax#Walk)
+* [syntax.NewPrinter](https://pkg.go.dev/mvdan.cc/sh/v3/syntax#NewPrinter)
+  - [Printer.Print](https://pkg.go.dev/mvdan.cc/sh/v3/syntax#Printer.Print)
 
 Constructor options like
-[syntax.KeepComments](https://godoc.org/mvdan.cc/sh/syntax#KeepComments) are
+[syntax.KeepComments](https://pkg.go.dev/mvdan.cc/sh/v3/syntax#KeepComments) are
 also available.
 
 The original `io.Reader` parameters can take a string or a
@@ -63,11 +63,11 @@ The nodes you will find in the syntax tree are all equivalent to the nodes you
 will see on the Go API. To get the type of a node, use `syntax.NodeType` as the
 example above shows. Some of the most common node types include:
 
-* [syntax.File](https://godoc.org/mvdan.cc/sh/syntax#File)
-* [syntax.Stmt](https://godoc.org/mvdan.cc/sh/syntax#Stmt)
-* [syntax.CallExpr](https://godoc.org/mvdan.cc/sh/syntax#CallExpr)
-* [syntax.Word](https://godoc.org/mvdan.cc/sh/syntax#Word)
-* [syntax.Lit](https://godoc.org/mvdan.cc/sh/syntax#Lit)
+* [syntax.File](https://pkg.go.dev/mvdan.cc/sh/v3/syntax#File)
+* [syntax.Stmt](https://pkg.go.dev/mvdan.cc/sh/v3/syntax#Stmt)
+* [syntax.CallExpr](https://pkg.go.dev/mvdan.cc/sh/v3/syntax#CallExpr)
+* [syntax.Word](https://pkg.go.dev/mvdan.cc/sh/v3/syntax#Word)
+* [syntax.Lit](https://pkg.go.dev/mvdan.cc/sh/v3/syntax#Lit)
 
 The five above will show up in your syntax tree if you parse a `echo foo`
 command, which you can see if you use `syntax.DebugPrint` to inspect the syntax
