@@ -547,6 +547,7 @@ var printTests = []printCase{
 		"array=('one'\n\t\t# 'two'\n\t\t'three')",
 		"array=('one'\n\t# 'two'\n\t'three')",
 	},
+	samePrint("#comment\n>redir"),
 }
 
 func TestPrintWeirdFormat(t *testing.T) {

@@ -1232,7 +1232,7 @@ func (p *Printer) stmtList(stmts []*Stmt, last []Comment) {
 		for _, c := range s.Comments {
 			// Comments after the end of this command. Note that
 			// this includes "<<EOF # comment".
-			if c.End().After(s.Cmd.End()) {
+			if s.Cmd != nil && c.End().After(s.Cmd.End()) {
 				endComs = append(endComs, c)
 				break
 			}
