@@ -66,9 +66,10 @@ $ echo '$((foo); (bar))' | shfmt
 1:1: reached ) without matching $(( with ))
 ```
 
-* Some builtins like `export` and `let` are parsed as keywords. This is to allow
-  statically parsing them and building their syntax tree, as opposed to just
-  keeping the arguments as a slice of arguments.
+* Some builtins like `export` and `let` are parsed as keywords. This allows
+  statically building their syntax tree, as opposed to keeping the arguments as
+  a slice of words. Note that this means expansions like `declare {a,b}=c` are
+  not supported.
 
 ### JavaScript
 
