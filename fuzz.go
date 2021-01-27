@@ -7,56 +7,68 @@ package sh
 
 import (
 	"bytes"
+	"encoding/binary"
 	"io/ioutil"
 
 	"mvdan.cc/sh/v3/syntax"
 )
 
 func Fuzz(data []byte) int {
-	// first byte masks for parser/printer options:
-	//   1: posix, not bash
-	//   2: mksh, not bash
-	//   4: keep comments
-	//   8: simplify
-	//  16: indent with spaces
-	//  32: binary next line
-	//  64: switch case indent
-	// 128: keep padding
-	if len(data) < 1 {
+	// The first byte contains parser options.
+	// The second and third bytes contain printer options.
+	// Below are the bit masks for them.
+	// Most masks are a single bit, for boolean options.
+	const (
+		// parser
+		// TODO: also fuzz StopAt
+		maskLangVariant  = 0b0000_0011 // two bits; 0-3 matching the iota
+		maskKeepComments = 0b0000_0100
+		maskSimplify     = 0b0000_1000 // pretend it's a parser option
+
+		// printer
+		maskIndent           = 0b0000_0000_0000_1111 // three bits; 0-15
+		maskBinaryNextLine   = 0b0000_0000_0001_0000
+		maskSwitchCaseIndent = 0b0000_0000_0010_0000
+		maskSpaceRedirects   = 0b0000_0000_0100_0000
+		maskKeepPadding      = 0b0000_0000_1000_0000
+		maskMinify           = 0b0000_0001_0000_0000
+		maskSingleLine       = 0b0000_0010_0000_0000
+		maskFunctionNextLine = 0b0000_0100_0000_0000
+	)
+
+	if len(data) < 3 {
 		return 0
 	}
-	opts, src := data[0], data[1:]
+	parserOpts := data[0]
+	printerOpts := binary.BigEndian.Uint16(data[1:3])
+	src := data[3:]
+
 	parser := syntax.NewParser()
-	lang := syntax.LangBash
-	if opts&0x01 != 0 {
-		lang = syntax.LangPOSIX
-	} else if opts&0x02 != 0 {
-		lang = syntax.LangMirBSDKorn
-	}
+	lang := syntax.LangVariant(parserOpts & maskLangVariant) // range 0-3
 	syntax.Variant(lang)(parser)
-	if opts&0x04 != 0 {
-		syntax.KeepComments(true)(parser)
-	}
+	syntax.KeepComments(parserOpts&maskKeepComments != 0)(parser)
+
 	prog, err := parser.Parse(bytes.NewReader(src), "")
 	if err != nil {
 		return 0
 	}
-	if opts&0x08 != 0 {
+
+	if parserOpts&maskSimplify != 0 {
 		syntax.Simplify(prog)
 	}
+
 	printer := syntax.NewPrinter()
-	if opts&0x10 != 0 {
-		syntax.Indent(4)(printer)
-	}
-	if opts&0x20 != 0 {
-		syntax.BinaryNextLine(true)(printer)
-	}
-	if opts&0x40 != 0 {
-		syntax.SwitchCaseIndent(true)(printer)
-	}
-	if opts&0x80 != 0 {
-		syntax.KeepPadding(true)(printer)
-	}
+	indent := uint(printerOpts & maskIndent) // range 0-15
+	syntax.Indent(indent)(printer)
+	syntax.BinaryNextLine(printerOpts&maskBinaryNextLine != 0)(printer)
+	syntax.SwitchCaseIndent(printerOpts&maskSwitchCaseIndent != 0)(printer)
+	syntax.SpaceRedirects(printerOpts&maskSpaceRedirects != 0)(printer)
+	syntax.KeepPadding(printerOpts&maskKeepPadding != 0)(printer)
+	syntax.Minify(printerOpts&maskMinify != 0)(printer)
+	syntax.SingleLine(printerOpts&maskSingleLine != 0)(printer)
+	syntax.FunctionNextLine(printerOpts&maskFunctionNextLine != 0)(printer)
+
 	printer.Print(ioutil.Discard, prog)
+
 	return 1
 }
