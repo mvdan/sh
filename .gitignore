@@ -4,7 +4,6 @@
 # Don't store any of this in the master branch.
 suppressions/
 crashers/
-corpus/
 vendor/
 
 /_js/index.js*
