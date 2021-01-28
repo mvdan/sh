@@ -123,6 +123,7 @@ Other noteworthy integrations include:
 - [modd] - A developer tool that responds to filesystem changes
 - [prettier-plugin-sh] - [Prettier] plugin using [mvdan-sh]
 - [sh-checker] - A GitHub Action that performs static analysis for shell scripts
+- [mdformat-shfmt] - [mdformat] plugin to format shell scripts embedded in Markdown with shfmt
 
 [alpine]: https://pkgs.alpinelinux.org/packages?name=shfmt
 [arch]: https://www.archlinux.org/packages/community/x86_64/shfmt/
@@ -137,6 +138,8 @@ Other noteworthy integrations include:
 [homebrew]: https://formulae.brew.sh/formula/shfmt
 [intellij-shellcript]: https://www.jetbrains.com/help/idea/shell-scripts.html
 [macports]: https://ports.macports.org/port/shfmt/summary
+[mdformat]: https://github.com/executablebooks/mdformat
+[mdformat-shfmt]: https://github.com/hukkinj1/mdformat-shfmt
 [micro]: https://micro-editor.github.io/
 [mksh]: http://www.mirbsd.org/mksh.htm
 [modd]: https://github.com/cortesi/modd
