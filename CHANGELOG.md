@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## [3.2.2] - 2021-01-29
+
+- **syntax**
+  - Avoid comment position panic in the printer
+
 ## [3.2.1] - 2020-12-02
 
 - **syntax**
