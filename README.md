@@ -99,7 +99,7 @@ repo configuration like:
         name: shfmt
         minimum_pre_commit_version: 2.4.0
         language: golang
-        additional_dependencies: [mvdan.cc/sh/v3/cmd/shfmt@v3.2.0]
+        additional_dependencies: [mvdan.cc/sh/v3/cmd/shfmt@v3.2.2]
         entry: shfmt
         args: [-w]
         types: [shell]
@@ -138,8 +138,8 @@ Other noteworthy integrations include:
 [homebrew]: https://formulae.brew.sh/formula/shfmt
 [intellij-shellcript]: https://www.jetbrains.com/help/idea/shell-scripts.html
 [macports]: https://ports.macports.org/port/shfmt/summary
-[mdformat]: https://github.com/executablebooks/mdformat
 [mdformat-shfmt]: https://github.com/hukkinj1/mdformat-shfmt
+[mdformat]: https://github.com/executablebooks/mdformat
 [micro]: https://micro-editor.github.io/
 [mksh]: http://www.mirbsd.org/mksh.htm
 [modd]: https://github.com/cortesi/modd
@@ -147,8 +147,9 @@ Other noteworthy integrations include:
 [nixos]: https://github.com/NixOS/nixpkgs/blob/HEAD/pkgs/tools/text/shfmt/default.nix
 [posix shell]: https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html
 [posix-ambiguity]: https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_06_03
-[prettier]: https://prettier.io
+[pre-commit]: https://pre-commit.com
 [prettier-plugin-sh]: https://github.com/rx-ts/prettier/tree/master/packages/sh
+[prettier]: https://prettier.io
 [scdoc]: https://sr.ht/~sircmpwn/scdoc/
 [scoop]: https://github.com/ScoopInstaller/Main/blob/HEAD/bucket/shfmt.json
 [sh-checker]: https://github.com/luizm/action-sh-checker
@@ -159,4 +160,3 @@ Other noteworthy integrations include:
 [vim-shfmt]: https://github.com/z0mbix/vim-shfmt
 [void]: https://github.com/void-linux/void-packages/blob/HEAD/srcpkgs/shfmt/template
 [webi]: https://webinstall.dev/shfmt/
-[pre-commit]: https://pre-commit.com
