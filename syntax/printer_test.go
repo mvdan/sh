@@ -610,8 +610,8 @@ func TestPrintMultiline(t *testing.T) {
 
 	// If we're on Windows and it was set up to automatically replace LF
 	// with CRLF, that might make this test fail. Just ignore \r characters.
-	want := strings.Replace(string(wantBs), "\r", "", -1)
-	got = strings.Replace(got, "\r", "", -1)
+	want := strings.ReplaceAll(string(wantBs), "\r", "")
+	got = strings.ReplaceAll(got, "\r", "")
 	if got != want {
 		t.Fatalf("Print mismatch in canonical.sh")
 	}
@@ -1124,7 +1124,7 @@ func printTest(t *testing.T, parser *Parser, printer *Printer, in, want string) 
 	if err != nil {
 		t.Fatalf("parsing got an error: %s:\n%s", err, in)
 	}
-	want = want + "\n"
+	want += "\n"
 	got, err := strPrint(printer, prog)
 	if err != nil {
 		t.Fatal(err)

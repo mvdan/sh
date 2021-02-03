@@ -27,7 +27,7 @@ func main() {
 			js.Global.Set("sh", originalGlobalSh)
 			return exps
 		})
-		// make it accessable on `window.sh`
+		// make it accessible on `window.sh`
 		js.Global.Set("sh", exps)
 	}
 

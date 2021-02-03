@@ -4407,7 +4407,7 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 			}
 			if !strings.Contains(want, "\\\n") {
 				// Hack to let "foobar" match the input "foo\\\nbar".
-				got = strings.Replace(got, "\\\n", "", -1)
+				got = strings.ReplaceAll(got, "\\\n", "")
 			}
 			if strings.HasPrefix(got, want) {
 				return

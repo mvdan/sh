@@ -71,11 +71,11 @@ func (p *Parser) arithmExprTernary(compact bool) ArithmExpr {
 	}
 	return &BinaryArithm{
 		OpPos: questPos,
-		Op:    BinAritOperator(TernQuest),
+		Op:    TernQuest,
 		X:     value,
 		Y: &BinaryArithm{
 			OpPos: colonPos,
-			Op:    BinAritOperator(TernColon),
+			Op:    TernColon,
 			X:     trueExpr,
 			Y:     falseExpr,
 		},

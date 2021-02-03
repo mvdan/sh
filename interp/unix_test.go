@@ -126,7 +126,7 @@ func TestRunnerTerminalExec(t *testing.T) {
 				t.Fatal(err)
 			}
 			if got != test.want {
-				t.Fatalf("\nwant: %q\ngot:  %q", test.want, string(got))
+				t.Fatalf("\nwant: %q\ngot:  %q", test.want, got)
 			}
 			if err := cmd.Wait(); err != nil {
 				t.Fatal(err)

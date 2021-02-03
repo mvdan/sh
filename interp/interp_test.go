@@ -2817,7 +2817,7 @@ func readLines(hc HandlerContext) ([][]byte, error) {
 		return nil, err
 	}
 	if runtime.GOOS == "windows" {
-		bs = bytes.Replace(bs, []byte("\r\n"), []byte("\n"), -1)
+		bs = bytes.ReplaceAll(bs, []byte("\r\n"), []byte("\n"))
 	}
 	bs = bytes.TrimSuffix(bs, []byte("\n"))
 	return bytes.Split(bs, []byte("\n")), nil
@@ -3376,7 +3376,7 @@ func TestRunnerDir(t *testing.T) {
 			t.Fatal(err)
 		}
 		got := b.String()
-		got = strings.Replace(got, tempDir, "", -1)
+		got = strings.ReplaceAll(got, tempDir, "")
 		got = strings.TrimSpace(got)
 		want := `/symlink /symlink/realfile`
 		if runtime.GOOS == "windows" {
