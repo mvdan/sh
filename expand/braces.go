@@ -20,7 +20,7 @@ func Braces(word *syntax.Word) []*syntax.Word {
 	for i, wp := range word.Parts {
 		br, ok := wp.(*syntax.BraceExp)
 		if !ok {
-			left = append(left, wp.(syntax.WordPart))
+			left = append(left, wp)
 			continue
 		}
 		if br.Sequence {
