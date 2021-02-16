@@ -559,7 +559,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 
 	case "getopts":
 		if len(args) < 2 {
-			r.errf("getopts: usage: getopts optstring name [arg]\n")
+			r.errf("getopts: usage: getopts optstring name [arg ...]\n")
 			return 2
 		}
 		optind, _ := strconv.Atoi(r.envGet("OPTIND"))

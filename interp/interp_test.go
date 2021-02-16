@@ -149,7 +149,7 @@ func checkBash() bool {
 	if err != nil {
 		return false
 	}
-	return strings.HasPrefix(string(out), "5.0")
+	return strings.HasPrefix(string(out), "5.1")
 }
 
 // concBuffer wraps a bytes.Buffer in a mutex so that concurrent writes
@@ -2535,7 +2535,7 @@ set +o pipefail
 	// getopts
 	{
 		"getopts",
-		"getopts: usage: getopts optstring name [arg]\nexit status 2",
+		"getopts: usage: getopts optstring name [arg ...]\nexit status 2",
 	},
 	{
 		"getopts a a:b",
