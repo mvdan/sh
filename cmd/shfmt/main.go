@@ -162,11 +162,11 @@ For more information, see 'man shfmt' and https://github.com/mvdan/sh.
 		syntax.FunctionNextLine(*funcNext)(printer)
 	}
 
-	if os.Getenv("FORCE_COLOR") == "true" {
-		// Undocumented way to force color; used in the tests.
+	// Decide whether or not to use color for the diff output,
+	// as described in shfmt.1.scd.
+	if os.Getenv("FORCE_COLOR") != "" {
 		color = true
-	} else if os.Getenv("TERM") == "dumb" {
-		// Equivalent to forcing color to be turned off.
+	} else if os.Getenv("NO_COLOR") != "" || os.Getenv("TERM") == "dumb" {
 	} else if f, ok := out.(*os.File); ok && term.IsTerminal(int(f.Fd())) {
 		color = true
 	}

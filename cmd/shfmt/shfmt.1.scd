@@ -37,6 +37,10 @@ predictable. Some aspects of the format can be configured via printer flags.
 *-d*
 	Error with a diff when the formatting differs.
 
+	The diff uses color when the output is a terminal.
+	To never use color, set a non-empty *NO_COLOR* or *TERM=dumb*.
+	To always use color, set a non-empty *FORCE_COLOR*.
+
 *-s*
 	Simplify the code.
 
