@@ -102,8 +102,9 @@ type Runner struct {
 	// track if a sourced script set positional parameters
 	sourceSetParams bool
 
-	err       error // current shell exit code or fatal error
-	exitShell bool  // whether the shell needs to exit
+	err          error // current shell exit code or fatal error
+	handlingTrap bool  // whether we're currently in a trap callback
+	shellExited  bool  // whether the shell needs to exit
 
 	// The current and last exit status code. They can only be different if
 	// the interpreter is in the middle of running a statement. In that
@@ -133,6 +134,10 @@ type Runner struct {
 	// keepRedirs is used so that "exec" can make any redirections
 	// apply to the current shell, and not just the command.
 	keepRedirs bool
+
+	// Fake signal callbacks
+	callbackErr  string
+	callbackExit string
 }
 
 type alias struct {
@@ -474,24 +479,30 @@ func IsExitStatus(err error) (status uint8, ok bool) {
 }
 
 // Run interprets a node, which can be a *File, *Stmt, or Command. If a non-nil
-// error is returned, it will typically contain commands exit status,
-// which can be retrieved with IsExitStatus.
+// error is returned, it will typically contain a command's exit status, which
+// can be retrieved with IsExitStatus.
 //
 // Run can be called multiple times synchronously to interpret programs
 // incrementally. To reuse a Runner without keeping the internal shell state,
 // call Reset.
+//
+// Calling Run on an entire *File implies an exit, meaning that an exit trap may
+// run.
 func (r *Runner) Run(ctx context.Context, node syntax.Node) error {
 	if !r.didReset {
 		r.Reset()
 	}
 	r.fillExpandConfig(ctx)
 	r.err = nil
-	r.exitShell = false
+	r.shellExited = false
 	r.filename = ""
 	switch x := node.(type) {
 	case *syntax.File:
 		r.filename = x.Name
 		r.stmts(ctx, x.Stmts)
+		if !r.shellExited {
+			r.exitShell(ctx, r.exit)
+		}
 	case *syntax.Stmt:
 		r.stmt(ctx, x)
 	case syntax.Command:
@@ -517,7 +528,7 @@ func (r *Runner) Run(ctx context.Context, node syntax.Node) error {
 // Note that this state is overwritten at every Run call, so it should be
 // checked immediately after each Run call.
 func (r *Runner) Exited() bool {
-	return r.exitShell
+	return r.shellExited
 }
 
 // Subshell makes a copy of the given Runner, suitable for use concurrently

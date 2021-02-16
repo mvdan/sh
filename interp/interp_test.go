@@ -1956,6 +1956,16 @@ set +o pipefail
 	{"type -t $PATH_PROG", "file\n"},
 	{"type -t inexisting_dfgsdgfds", "exit status 1"},
 
+	// trap
+	{"trap 'echo at_exit' EXIT; true", "at_exit\n"},
+	{"trap 'echo on_err' ERR; false; echo FAIL", "on_err\nFAIL\n"},
+	{"trap 'echo at_exit' EXIT; trap - EXIT; echo OK", "OK\n"},
+	{"set -e; trap 'echo A' ERR EXIT; false; echo FAIL", "A\nA\nexit status 1"},
+	{"trap 'foobar' UNKNOWN", "trap: UNKNOWN: invalid signal specification\nexit status 2 #JUSTERR"},
+	// TODO: our builtin appears to not receive the piped bytes?
+	// {"trap 'echo on_err' ERR; trap | grep -q '.*echo on_err.*'", "trap -- \"echo on_err\" ERR\n"},
+	{"trap 'false' ERR EXIT; false", "exit status 1"},
+
 	// eval
 	{"eval", ""},
 	{"eval ''", ""},
@@ -2918,6 +2928,8 @@ var testBuiltinsMap = map[string]func(HandlerContext, []string) error{
 			} else if arg == "-E" {
 			} else if rx == nil {
 				rx = regexp.MustCompile(arg)
+			} else {
+				return fmt.Errorf("unexpected arg: %q", arg)
 			}
 		}
 		lines, err := readLines(hc)

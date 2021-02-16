@@ -136,8 +136,7 @@ func (r *Runner) updateExpandOpts() {
 func (r *Runner) expandErr(err error) {
 	if err != nil {
 		r.errf("%v\n", err)
-		r.exit = 1
-		r.exitShell = true
+		r.exitShell(context.TODO(), 1)
 	}
 }
 
@@ -221,7 +220,7 @@ func (r *Runner) errf(format string, a ...interface{}) {
 }
 
 func (r *Runner) stop(ctx context.Context) bool {
-	if r.err != nil || r.exitShell {
+	if r.err != nil || r.Exited() {
 		return true
 	}
 	if err := ctx.Err(); err != nil {
@@ -278,7 +277,9 @@ func (r *Runner) stmtSync(ctx context.Context, st *syntax.Stmt) {
 		//   conditions (if <cond>, while <cond>, etc)
 		//   part of && or || lists
 		//   preceded by !
-		r.exitShell = true
+		r.exitShell(ctx, r.exit)
+	} else if r.exit != 0 {
+		r.trapCallback(ctx, r.callbackErr, "error")
 	}
 	if !r.keepRedirs {
 		r.stdin, r.stdout, r.stderr = oldIn, oldOut, oldErr
@@ -554,6 +555,40 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 	default:
 		panic(fmt.Sprintf("unhandled command node: %T", x))
 	}
+}
+
+func (r *Runner) trapCallback(ctx context.Context, callback, name string) {
+	if callback == "" {
+		return // nothing to do
+	}
+	if r.handlingTrap {
+		return // don't recurse, as that could lead to cycles
+	}
+	r.handlingTrap = true
+
+	p := syntax.NewParser()
+	// TODO: do this parsing when "trap" is called?
+	file, err := p.Parse(strings.NewReader(callback), name+" trap")
+	if err != nil {
+		r.errf(name+"trap: %v\n", err)
+		// ignore errors in the callback
+		return
+	}
+	r.stmts(ctx, file.Stmts)
+
+	r.handlingTrap = false
+}
+
+// setExit call this function to exit the shell with status
+func (r *Runner) exitShell(ctx context.Context, status int) {
+	if status != 0 {
+		r.trapCallback(ctx, r.callbackErr, "error")
+	}
+	r.trapCallback(ctx, r.callbackExit, "exit")
+
+	r.shellExited = true
+	// Restore the original exit status. We ignore the callbacks.
+	r.exit = status
 }
 
 func (r *Runner) flattenAssign(as *syntax.Assign) []*syntax.Assign {
