@@ -294,7 +294,7 @@ func (p *Printer) spacePad(pos Pos) {
 		p.WriteByte(' ')
 		p.wantSpace = false
 	}
-	for p.cols.column > 0 && p.cols.column < int(pos.col) {
+	for p.cols.column > 0 && p.cols.column < int(pos.Col()) {
 		p.WriteByte(' ')
 	}
 }

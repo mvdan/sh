@@ -66,9 +66,19 @@ func stmtsEnd(stmts []*Stmt, last []Comment) Pos {
 
 // Pos is a position within a shell source file.
 type Pos struct {
-	offs      uint32
-	line, col uint16
+	offs, lineCol uint32
 }
+
+// We used to split line and column numbers evenly in 16 bits, but line numbers
+// are significantly more important in practice. Use more bits for them.
+const (
+	lineBitSize = 18
+	lineMax     = (1 << lineBitSize) - 1
+
+	colBitSize = 32 - lineBitSize
+	colMax     = (1 << colBitSize) - 1
+	colBitMask = colMax
+)
 
 // Offset returns the byte offset of the position in the original source file.
 // Byte offsets start at 0.
@@ -78,14 +88,14 @@ func (p Pos) Offset() uint { return uint(p.offs) }
 //
 // Line is protected against overflows; if an input has too many lines, extra
 // lines will have a line number of 0, rendered as "?".
-func (p Pos) Line() uint { return uint(p.line) }
+func (p Pos) Line() uint { return uint(p.lineCol >> colBitSize) }
 
 // Col returns the column number of the position, starting at 1. It counts in
 // bytes.
 //
 // Col is protected against overflows; if an input line has too many columns,
 // extra columns will have a column number of 0, rendered as "?".
-func (p Pos) Col() uint { return uint(p.col) }
+func (p Pos) Col() uint { return uint(p.lineCol & colBitMask) }
 
 func (p Pos) String() string {
 	var b strings.Builder
@@ -112,7 +122,8 @@ func (p Pos) IsValid() bool { return p != Pos{} }
 func (p Pos) After(p2 Pos) bool { return p.offs > p2.offs }
 
 func posAddCol(p Pos, n int) Pos {
-	p.col += uint16(n)
+	// TODO: guard against overflows
+	p.lineCol += uint32(n)
 	p.offs += uint32(n)
 	return p
 }

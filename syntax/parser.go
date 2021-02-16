@@ -179,7 +179,7 @@ type wrappedReader struct {
 	*Parser
 	io.Reader
 
-	lastLine    uint16
+	lastLine    int
 	accumulated []*Stmt
 	fn          func([]*Stmt) bool
 }
@@ -188,7 +188,7 @@ func (w *wrappedReader) Read(p []byte) (n int, err error) {
 	// If we lexed a newline for the first time, we just finished a line, so
 	// we may need to give a callback for the edge cases below not covered
 	// by Parser.Stmts.
-	if (w.r == '\n' || w.r == escNewl) && w.npos.line > w.lastLine {
+	if (w.r == '\n' || w.r == escNewl) && w.line > w.lastLine {
 		if w.Incomplete() {
 			// Incomplete statement; call back to print "> ".
 			if !w.fn(w.accumulated) {
@@ -200,7 +200,7 @@ func (w *wrappedReader) Read(p []byte) (n int, err error) {
 				return 0, io.EOF
 			}
 		}
-		w.lastLine = w.npos.line
+		w.lastLine = w.line
 	}
 	return w.Reader.Read(p)
 }
@@ -246,7 +246,7 @@ func (p *Parser) Interactive(r io.Reader, fn func([]*Stmt) bool) error {
 			// The callback above would already print "$ ", so we
 			// don't want the subsequent wrappedReader.Read to cause
 			// another "$ " print thinking that nothing was parsed.
-			w.lastLine = w.npos.line + 1
+			w.lastLine = w.line + 1
 		}
 		return true
 	})
@@ -324,7 +324,7 @@ type Parser struct {
 	bs  []byte // current chunk of read bytes
 	bsp int    // pos within chunk for the rune after r
 	r   rune   // next rune
-	w   uint16 // width of r
+	w   int    // width of r
 
 	f *File
 
@@ -336,9 +336,10 @@ type Parser struct {
 	tok token  // current token
 	val string // current value (valid if tok is _Lit*)
 
-	offs int
-	pos  Pos // position of tok
-	npos Pos // next position (of r)
+	// position of r, to be converted to Parser.pos later
+	offs, line, col int
+
+	pos Pos // position of tok
 
 	// TODO: Guard against offset overflow too. Less likely as it's 32-bit,
 	// whereas line and col are 16-bit.
@@ -413,8 +414,7 @@ func (p *Parser) reset() {
 	p.tok, p.val = illegalTok, ""
 	p.eqlOffs = 0
 	p.bs, p.bsp = nil, 0
-	p.offs = 0
-	p.npos = Pos{line: 1, col: 1}
+	p.offs, p.line, p.col = 0, 1, 1
 	p.r, p.w = 0, 0
 	p.err, p.readErr = nil, nil
 	p.quote, p.forbidNested = noState, false
@@ -425,16 +425,18 @@ func (p *Parser) reset() {
 	p.accComs, p.curComs = nil, &p.accComs
 }
 
-func (p *Parser) getPos() Pos {
-	pos := p.npos
-	if p.lineOverflow {
-		pos.line = 0
+func (p *Parser) nextPos() Pos {
+	var line, col uint32
+	if !p.lineOverflow {
+		line = uint32(p.line)
 	}
-	if p.colOverflow {
-		pos.col = 0
+	if !p.colOverflow {
+		col = uint32(p.col)
 	}
-	pos.offs = uint32(p.offs + p.bsp - int(p.w))
-	return pos
+	return Pos{
+		offs:    uint32(p.offs + p.bsp - int(p.w)),
+		lineCol: (line << colBitSize) | col,
+	}
 }
 
 func (p *Parser) lit(pos Pos, val string) *Lit {
@@ -444,7 +446,7 @@ func (p *Parser) lit(pos Pos, val string) *Lit {
 	l := &p.litBatch[0]
 	p.litBatch = p.litBatch[1:]
 	l.ValuePos = pos
-	l.ValueEnd = p.getPos()
+	l.ValueEnd = p.nextPos()
 	l.Value = val
 	return l
 }
@@ -613,7 +615,7 @@ func (p *Parser) doHeredocs() {
 		if i > 0 && p.r == '\n' {
 			p.rune()
 		}
-		lastLine := p.npos.line
+		lastLine := p.line
 		if quoted {
 			r.Hdoc = p.quotedHdocWord()
 		} else {
@@ -621,12 +623,12 @@ func (p *Parser) doHeredocs() {
 			r.Hdoc = p.getWord()
 		}
 		if r.Hdoc != nil {
-			lastLine = r.Hdoc.End().line
+			lastLine = int(r.Hdoc.End().Line())
 		}
-		if lastLine < p.npos.line {
+		if lastLine < p.line {
 			// TODO: It seems like this triggers more often than it
 			// should. Look into it.
-			l := p.lit(p.npos, "")
+			l := p.lit(p.nextPos(), "")
 			if r.Hdoc == nil {
 				r.Hdoc = p.word(p.wps(l))
 			} else {
@@ -1108,7 +1110,7 @@ func (p *Parser) wordPart() WordPart {
 					p.rune()
 				}
 			case '\'':
-				sq.Right = p.getPos()
+				sq.Right = p.nextPos()
 				sq.Value = p.endLit()
 
 				// restore openBquotes
@@ -1223,7 +1225,7 @@ func (p *Parser) paramExp() *ParamExp {
 	p.quote = paramExpName
 	if p.r == '#' {
 		p.tok = hash
-		p.pos = p.getPos()
+		p.pos = p.nextPos()
 		p.rune()
 	} else {
 		p.next()

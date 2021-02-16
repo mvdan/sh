@@ -61,13 +61,13 @@ func (p *Parser) rune() rune {
 	if p.r == '\n' || p.r == escNewl {
 		// p.r instead of b so that newline
 		// character positions don't have col 0.
-		if p.npos.line++; p.npos.line == 0 {
+		if p.line++; p.line > lineMax {
 			p.lineOverflow = true
 		}
-		p.npos.col = 0
+		p.col = 0
 		p.colOverflow = false
 	}
-	if p.npos.col += p.w; p.npos.col < p.w {
+	if p.col += p.w; p.col > colMax {
 		p.colOverflow = true
 	}
 	bquotes := 0
@@ -107,9 +107,9 @@ retry:
 		}
 		p.bsp += w
 		if p.r == utf8.RuneError && w == 1 {
-			p.posErr(p.npos, "invalid UTF-8 encoding")
+			p.posErr(p.nextPos(), "invalid UTF-8 encoding")
 		}
-		p.w = uint16(w)
+		p.w = w
 	} else {
 		if p.r == utf8.RuneSelf {
 		} else if p.fill(); p.bs == nil {
@@ -164,7 +164,7 @@ func (p *Parser) nextKeepSpaces() {
 			r = p.rune()
 		}
 	}
-	p.pos = p.getPos()
+	p.pos = p.nextPos()
 	switch p.quote {
 	case paramExpRepl:
 		switch r {
@@ -254,7 +254,7 @@ skipSpace:
 			return
 		}
 	}
-	p.pos = p.getPos()
+	p.pos = p.nextPos()
 	switch {
 	case p.quote&allRegTokens != 0:
 		switch r {
@@ -922,7 +922,7 @@ func (p *Parser) advanceLitHdoc(r rune) {
 		r = p.rune()
 		lastTok = _Lit
 	}
-	p.pos = p.getPos()
+	p.pos = p.nextPos()
 
 	p.tok = _Lit
 	p.newLit(r)
@@ -982,7 +982,7 @@ func (p *Parser) advanceLitHdoc(r rune) {
 func (p *Parser) quotedHdocWord() *Word {
 	r := p.r
 	p.newLit(r)
-	pos := p.getPos()
+	pos := p.nextPos()
 	stop := p.hdocStops[len(p.hdocStops)-1]
 	for ; ; r = p.rune() {
 		if r == utf8.RuneSelf {
