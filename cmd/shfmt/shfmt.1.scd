@@ -45,15 +45,15 @@ predictable. Some aspects of the format can be configured via printer flags.
 	Simplify the code.
 
 *-mn*
-	Minify the code to reduce its size (implies -s).
+	Minify the code to reduce its size (implies *-s*).
 
 ## Parser flags
 
 *-ln* <str>
-	Language variant to parse (bash/posix/mksh/bats, default "bash").
+	Language variant to parse (*bash*/*posix*/*mksh*/*bats*, default *bash*).
 
 *-p*
-	Shorthand for -ln=posix.
+	Shorthand for *-ln=posix*.
 
 *-filename* str
 	Provide a name for the standard input file.
@@ -61,10 +61,10 @@ predictable. Some aspects of the format can be configured via printer flags.
 ## Printer flags
 
 *-i* <uint>
-	Indent: 0 for tabs (default), >0 for number of spaces.
+	Indent: *0* for tabs (default), *>0* for number of spaces.
 
 *-bn*
-	Binary ops like && and | may start a line.
+	Binary ops like *&&* and *|* may start a line.
 
 *-ci*
 	Switch cases will be indented.
