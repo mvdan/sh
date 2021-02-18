@@ -26,6 +26,12 @@ import (
 	"mvdan.cc/sh/v3/syntax"
 )
 
+// runnerRunTimeout is the context timeout used by any tests calling Runner.Run.
+// The timeout saves us from hangs or burning too much CPU if there are bugs.
+// All the test cases are designed to be inexpensive and stop in a very short
+// amount of time, so one second should be plenty even for busy machines.
+const runnerRunTimeout = time.Second
+
 // Some program which should be in $PATH. Needs to run before runTests is
 // initialized (so an init function wouldn't work), because runTest uses it.
 var pathProg = func() string {
@@ -2795,7 +2801,8 @@ func TestRunnerRun(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			ctx := context.Background()
+			ctx, cancel := context.WithTimeout(context.Background(), runnerRunTimeout)
+			defer cancel()
 			if err := r.Run(ctx, file); err != nil {
 				cb.WriteString(err.Error())
 			}
@@ -2804,6 +2811,9 @@ func TestRunnerRun(t *testing.T) {
 				want = want[:i]
 			}
 			if got := cb.String(); got != want {
+				if len(got) > 80 {
+					got = "…" + got[len(got)-80:]
+				}
 				t.Fatalf("wrong output in %q:\nwant: %q\ngot:  %q",
 					c.in, want, got)
 			}
@@ -3054,7 +3064,9 @@ func TestRunnerRunConfirm(t *testing.T) {
 				t.Fatal(err)
 			}
 			defer os.RemoveAll(dir)
-			cmd := exec.Command("bash")
+			ctx, cancel := context.WithTimeout(context.Background(), runnerRunTimeout)
+			defer cancel()
+			cmd := exec.CommandContext(ctx, "bash")
 			cmd.Dir = dir
 			cmd.Stdin = strings.NewReader(c.in)
 			out, err := cmd.CombinedOutput()
@@ -3185,7 +3197,8 @@ func TestRunnerOpts(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			ctx := context.Background()
+			ctx, cancel := context.WithTimeout(context.Background(), runnerRunTimeout)
+			defer cancel()
 			if err := r.Run(ctx, file); err != nil {
 				cb.WriteString(err.Error())
 			}
@@ -3248,7 +3261,8 @@ func TestRunnerAltNodes(t *testing.T) {
 	for _, node := range nodes {
 		var cb concBuffer
 		r, _ := New(StdIO(nil, &cb, &cb))
-		ctx := context.Background()
+		ctx, cancel := context.WithTimeout(context.Background(), runnerRunTimeout)
+		defer cancel()
 		if err := r.Run(ctx, node); err != nil {
 			cb.WriteString(err.Error())
 		}
@@ -3371,7 +3385,8 @@ func TestRunnerDir(t *testing.T) {
 			t.Fatal(err)
 		}
 		file := parse(t, nil, "echo $PWD $PWD/*")
-		ctx := context.Background()
+		ctx, cancel := context.WithTimeout(context.Background(), runnerRunTimeout)
+		defer cancel()
 		if err := r.Run(ctx, file); err != nil {
 			t.Fatal(err)
 		}
@@ -3394,7 +3409,8 @@ func TestRunnerIncremental(t *testing.T) {
 	want := "foo\nbar\n"
 	var b bytes.Buffer
 	r, _ := New(StdIO(nil, &b, &b))
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), runnerRunTimeout)
+	defer cancel()
 	for _, stmt := range file.Stmts {
 		err := r.Run(ctx, stmt)
 		if _, ok := IsExitStatus(err); !ok && err != nil {
@@ -3460,7 +3476,8 @@ exec >/dev/null 2>/dev/null
 GLOBAL=
 export GLOBAL=
 `)
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), runnerRunTimeout)
+	defer cancel()
 	for i := 0; i < 3; i++ {
 		if err := r.Run(ctx, file); err != nil {
 			t.Fatalf("run number %d: %v", i, err)
@@ -3486,7 +3503,8 @@ func TestRunnerFilename(t *testing.T) {
 	file, _ := syntax.NewParser().Parse(strings.NewReader("echo $0"), "f.sh")
 	var b bytes.Buffer
 	r, _ := New(StdIO(nil, &b, &b))
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), runnerRunTimeout)
+	defer cancel()
 	if err := r.Run(ctx, file); err != nil {
 		t.Fatal(err)
 	}
@@ -3502,7 +3520,8 @@ func TestRunnerEnvNoModify(t *testing.T) {
 
 	var b bytes.Buffer
 	r, _ := New(Env(env), StdIO(nil, &b, &b))
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), runnerRunTimeout)
+	defer cancel()
 	for i := 0; i < 3; i++ {
 		r.Reset()
 		err := r.Run(ctx, file)
@@ -3540,7 +3559,9 @@ func TestMalformedPathOnWindows(t *testing.T) {
 	file := parse(t, nil, "test.cmd")
 	var cb concBuffer
 	r, _ := New(Env(expand.ListEnviron("PATH="+pathList)), StdIO(nil, &cb, &cb))
-	if err := r.Run(context.Background(), file); err != nil {
+	ctx, cancel := context.WithTimeout(context.Background(), runnerRunTimeout)
+	defer cancel()
+	if err := r.Run(ctx, file); err != nil {
 		t.Fatal(err)
 	}
 	want := "foo\r\n"
@@ -3557,7 +3578,9 @@ func TestReadShouldNotPanicWithNilStdin(t *testing.T) {
 	}
 
 	f := parse(t, nil, "read foobar")
-	if err := r.Run(context.Background(), f); err == nil {
+	ctx, cancel := context.WithTimeout(context.Background(), runnerRunTimeout)
+	defer cancel()
+	if err := r.Run(ctx, f); err == nil {
 		t.Fatal("it should have retuned an error")
 	}
 }
