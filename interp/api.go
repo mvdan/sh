@@ -38,9 +38,11 @@ import (
 // configured via runner options; once a Runner has been created, the fields
 // should be treated as read-only.
 type Runner struct {
-	// Env specifies the environment of the interpreter, which must be
-	// non-nil.
+	// Env specifies the initial environment for the interpreter, which must
+	// be non-nil.
 	Env expand.Environ
+
+	writeEnv expand.WriteEnviron
 
 	// Dir specifies the working directory of the command, which must be an
 	// absolute path.
@@ -51,7 +53,9 @@ type Runner struct {
 	Params []string
 
 	// Separate maps - note that bash allows a name to be both a var and a
-	// func simultaneously
+	// func simultaneously.
+	// Vars is mostly superseded by Env at this point.
+	// TODO(v4): remove these
 
 	Vars  map[string]expand.Variable
 	Funcs map[string]*syntax.Stmt
@@ -86,12 +90,6 @@ type Runner struct {
 	wgProcSubsts sync.WaitGroup
 
 	filename string // only if Node was a File
-
-	// like Vars, but local to a func i.e. "local foo=bar"
-	funcVars map[string]expand.Variable
-
-	// like Vars, but local to a cmd i.e. "foo=bar prog args..."
-	cmdVars map[string]string
 
 	// >0 to break or continue out of N enclosing loops
 	breakEnclosing, contnEnclosing int
@@ -418,7 +416,6 @@ func (r *Runner) Reset() {
 
 		// emptied below, to reuse the space
 		Vars:     r.Vars,
-		cmdVars:  r.cmdVars,
 		dirStack: r.dirStack[:0],
 		usedNew:  r.usedNew,
 	}
@@ -429,31 +426,28 @@ func (r *Runner) Reset() {
 			delete(r.Vars, k)
 		}
 	}
-	if r.cmdVars == nil {
-		r.cmdVars = make(map[string]string)
-	} else {
-		for k := range r.cmdVars {
-			delete(r.cmdVars, k)
-		}
-	}
-	if vr := r.Env.Get("HOME"); !vr.IsSet() {
+	// TODO(v4): Use the supplied Env directly if it implements enough methods.
+	r.writeEnv = &overlayEnviron{parent: r.Env}
+	if !r.writeEnv.Get("HOME").IsSet() {
 		home, _ := os.UserHomeDir()
-		r.Vars["HOME"] = expand.Variable{Kind: expand.String, Str: home}
+		r.setVarString("HOME", home)
 	}
-	r.Vars["UID"] = expand.Variable{
-		Kind:     expand.String,
-		ReadOnly: true,
-		Str:      strconv.Itoa(os.Getuid()),
+	if !r.writeEnv.Get("UID").IsSet() {
+		r.setVar("UID", nil, expand.Variable{
+			Kind:     expand.String,
+			ReadOnly: true,
+			Str:      strconv.Itoa(os.Getuid()),
+		})
 	}
-	r.Vars["PWD"] = expand.Variable{Kind: expand.String, Str: r.Dir}
-	r.Vars["IFS"] = expand.Variable{Kind: expand.String, Str: " \t\n"}
-	r.Vars["OPTIND"] = expand.Variable{Kind: expand.String, Str: "1"}
+	r.setVarString("PWD", r.Dir)
+	r.setVarString("IFS", " \t\n")
+	r.setVarString("OPTIND", "1")
 
 	if runtime.GOOS == "windows" {
 		// convert $PATH to a unix path list
-		path := r.Env.Get("PATH").String()
+		path := r.writeEnv.Get("PATH").String()
 		path = strings.Join(filepath.SplitList(path), ":")
-		r.Vars["PATH"] = expand.Variable{Kind: expand.String, Str: path}
+		r.setVarString("PATH", path)
 	}
 
 	r.dirStack = append(r.dirStack, r.Dir)
@@ -508,6 +502,12 @@ func (r *Runner) Run(ctx context.Context, node syntax.Node) error {
 	if r.exit != 0 {
 		r.setErr(NewExitStatus(uint8(r.exit)))
 	}
+	if r.Vars != nil {
+		r.writeEnv.Each(func(name string, vr expand.Variable) bool {
+			r.Vars[name] = vr
+			return true
+		})
+	}
 	return r.err
 }
 
@@ -534,7 +534,6 @@ func (r *Runner) Subshell() *Runner {
 	// Keep in sync with the Runner type. Manually copy fields, to not copy
 	// sensitive ones like errgroup.Group, and to do deep copies of slices.
 	r2 := &Runner{
-		Env:         r.Env,
 		Dir:         r.Dir,
 		Params:      r.Params,
 		execHandler: r.execHandler,
@@ -550,28 +549,28 @@ func (r *Runner) Subshell() *Runner {
 
 		origStdout: r.origStdout, // used for process substitutions
 	}
-	r2.Vars = make(map[string]expand.Variable, len(r.Vars))
-	for k, v := range r.Vars {
-		v2 := v
+	// Env vars and funcs are copied, since they might be modified.
+	// TODO(v4): lazy copying? it would probably be enough to add a
+	// copyOnWrite bool field to Variable, then a Modify method that must be
+	// used when one needs to modify a variable. ideally with some way to
+	// catch direct modifications without the use of Modify and panic,
+	// perhaps via a check when getting or setting vars at some level.
+	oenv := &overlayEnviron{parent: expand.ListEnviron()}
+	r.writeEnv.Each(func(name string, vr expand.Variable) bool {
+		vr2 := vr
 		// Make deeper copies of List and Map, but ensure that they remain nil
-		// if they are nil in v.
-		v2.List = append([]string(nil), v.List...)
-		if v.Map != nil {
-			v2.Map = make(map[string]string, len(v.Map))
-			for k, v := range v.Map {
-				v2.Map[k] = v
+		// if they are nil in vr.
+		vr2.List = append([]string(nil), vr.List...)
+		if vr.Map != nil {
+			vr2.Map = make(map[string]string, len(vr.Map))
+			for k, vr := range vr.Map {
+				vr2.Map[k] = vr
 			}
 		}
-		r2.Vars[k] = v2
-	}
-	r2.funcVars = make(map[string]expand.Variable, len(r.funcVars))
-	for k, v := range r.funcVars {
-		r2.funcVars[k] = v
-	}
-	r2.cmdVars = make(map[string]string, len(r.cmdVars))
-	for k, v := range r.cmdVars {
-		r2.cmdVars[k] = v
-	}
+		oenv.Set(name, vr2)
+		return true
+	})
+	r2.writeEnv = oenv
 	r2.Funcs = make(map[string]*syntax.Stmt, len(r.Funcs))
 	for k, v := range r.Funcs {
 		r2.Funcs[k] = v

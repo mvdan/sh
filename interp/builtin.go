@@ -108,11 +108,9 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		}
 
 		for _, arg := range args {
-			if vr := r.lookupVar(arg); vr.IsSet() && vars {
+			if vars && r.lookupVar(arg).IsSet() {
 				r.delVar(arg)
-				continue
-			}
-			if _, ok := r.Funcs[arg]; ok && funcs {
+			} else if _, ok := r.Funcs[arg]; ok && funcs {
 				delete(r.Funcs, arg)
 			}
 		}
@@ -232,7 +230,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		args := fp.args()
 		for _, arg := range args {
 			if mode == "-p" {
-				if path, err := LookPathDir(r.Dir, expandEnv{r}, arg); err == nil {
+				if path, err := LookPathDir(r.Dir, r.writeEnv, arg); err == nil {
 					r.outf("%s\n", path)
 				} else {
 					anyNotFound = true
@@ -281,7 +279,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 				}
 				continue
 			}
-			if path, err := LookPathDir(r.Dir, expandEnv{r}, arg); err == nil {
+			if path, err := LookPathDir(r.Dir, r.writeEnv, arg); err == nil {
 				if mode == "-t" {
 					r.out("file\n")
 				} else {
@@ -418,7 +416,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			last = 0
 			if r.Funcs[arg] != nil || isBuiltin(arg) {
 				r.outf("%s\n", arg)
-			} else if path, err := LookPathDir(r.Dir, expandEnv{r}, arg); err == nil {
+			} else if path, err := LookPathDir(r.Dir, r.writeEnv, arg); err == nil {
 				r.outf("%s\n", path)
 			} else {
 				last = 1
@@ -552,7 +550,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			if i < len(values) {
 				val = values[i]
 			}
-			r.setVar(name, nil, expand.Variable{Kind: expand.String, Str: val})
+			r.setVarString(name, val)
 		}
 
 		return 0
@@ -766,8 +764,8 @@ func (r *Runner) changeDir(path string) int {
 		return 1
 	}
 	r.Dir = path
-	r.Vars["OLDPWD"] = r.Vars["PWD"]
-	r.Vars["PWD"] = expand.Variable{Kind: expand.String, Str: path}
+	r.setVarString("OLDPWD", r.envGet("PWD"))
+	r.setVarString("PWD", path)
 	return 0
 }
 

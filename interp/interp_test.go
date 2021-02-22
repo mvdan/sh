@@ -30,7 +30,7 @@ import (
 // The timeout saves us from hangs or burning too much CPU if there are bugs.
 // All the test cases are designed to be inexpensive and stop in a very short
 // amount of time, so 5s should be plenty even for busy machines.
-const runnerRunTimeout = 5 * time.Second
+const runnerRunTimeout = 1 * time.Second
 
 // Some program which should be in $PATH. Needs to run before runTests is
 // initialized (so an init function wouldn't work), because runTest uses it.
@@ -361,6 +361,21 @@ var runTests = []runTest{
 	{`a=" x  y"; b=$a c="$a"; echo "$b"; echo "$c"`, " x  y\n x  y\n"},
 	// TODO: reenable once we figure out the broken pipe error
 	//{`$ENV_PROG | while read line; do if test -z "$line"; then echo empty; fi; break; done`, ""}, // never begin with an empty element
+
+	// inline variables have special scoping
+	{
+		"f() { echo $inline; inline=bar true; echo $inline; }; inline=foo f",
+		"foo\nfoo\n",
+	},
+	{"v=x; read v <<< 'y'; echo $v", "y\n"},
+	{"v=x; v=inline read v <<< 'y'; echo $v", "x\n"},
+	{"v=x; v=inline unset v; echo $v", "x\n"},
+	{"v=x; echo 'v=y' >f; v=inline source f; echo $v", "x\n"},
+	{"declare -n v=v2; v=inline true; echo $v $v2", "\n"},
+	{"f() { echo $v; }; v=x; v=y f; f", "y\nx\n"},
+	{"f() { echo $v; }; v=x; v+=y f; f", "xy\nx\n"},
+	{"f() { echo $v; }; declare -n v=v2; v2=x; v=y f; f", "y\nx\n"},
+	{"f() { echo ${v[@]}; }; v=(e1 e2); v=y f; f", "y\ne1 e2\n"},
 
 	// special vars
 	{"echo $?; false; echo $?", "0\n1\n"},
@@ -3572,8 +3587,7 @@ func TestMalformedPathOnWindows(t *testing.T) {
 }
 
 func TestReadShouldNotPanicWithNilStdin(t *testing.T) {
-	var b bytes.Buffer
-	r, err := New(StdIO(nil, &b, &b))
+	r, err := New()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -3583,5 +3597,23 @@ func TestReadShouldNotPanicWithNilStdin(t *testing.T) {
 	defer cancel()
 	if err := r.Run(ctx, f); err == nil {
 		t.Fatal("it should have retuned an error")
+	}
+}
+
+func TestRunnerVars(t *testing.T) {
+	r, err := New()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	f := parse(t, nil, "FOO=updated; BAR=new")
+	ctx, cancel := context.WithTimeout(context.Background(), runnerRunTimeout)
+	defer cancel()
+	if err := r.Run(ctx, f); err != nil {
+		t.Fatal(err)
+	}
+
+	if want, got := "updated", r.Vars["FOO"].String(); got != want {
+		t.Fatalf("wrong output:\nwant: %q\ngot:  %q", want, got)
 	}
 }
