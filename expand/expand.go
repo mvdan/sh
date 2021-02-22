@@ -539,7 +539,9 @@ func (cfg *Config) wordFields(wps []syntax.WordPart) ([][]fieldPart, error) {
 				for i := 0; i < len(s); i++ {
 					b := s[i]
 					if b == '\\' {
-						i++
+						if i++; i >= len(s) {
+							break
+						}
 						b = s[i]
 					}
 					buf.WriteByte(b)

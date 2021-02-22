@@ -328,6 +328,7 @@ var runTests = []runTest{
 	{`echo "\""`, "\"\n"},
 	{`echo \\`, "\\\n"},
 	{`echo \\\\`, "\\\\\n"},
+	{`echo \`, "\n"},
 
 	// vars
 	{"foo=bar; echo $foo", "bar\n"},
