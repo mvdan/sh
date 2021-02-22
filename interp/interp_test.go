@@ -30,7 +30,7 @@ import (
 // The timeout saves us from hangs or burning too much CPU if there are bugs.
 // All the test cases are designed to be inexpensive and stop in a very short
 // amount of time, so 5s should be plenty even for busy machines.
-const runnerRunTimeout = 1 * time.Second
+const runnerRunTimeout = 5 * time.Second
 
 // Some program which should be in $PATH. Needs to run before runTests is
 // initialized (so an init function wouldn't work), because runTest uses it.
