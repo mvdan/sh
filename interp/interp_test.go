@@ -388,6 +388,14 @@ var runTests = []runTest{
 	{"a=bar; echo ${#a} ${#a[@]}", "3 1\n"},
 	{"a=世界; echo ${#a}", "2\n"},
 	{"a=(a bcd); echo ${#a} ${#a[@]} ${#a[*]} ${#a[1]}", "1 2 2 3\n"},
+	{
+		"a=($(echo a bcd)); echo ${#a} ${#a[@]} ${#a[*]} ${#a[1]}",
+		"1 2 2 3\n",
+	},
+	{
+		"a=([0]=$(echo a b) $(echo c d)); echo ${#a} ${#a[@]} ${#a[*]} ${#a[0]}",
+		"3 3 3 3\n",
+	},
 	{"set -- a bc; echo ${#@} ${#*} $#", "2 2 2\n"},
 	{
 		"echo ${!a}; echo more",
