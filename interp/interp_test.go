@@ -556,6 +556,14 @@ var runTests = []runTest{
 		`a='"\n'; printf "%s %s" "${a}" "${a@E}"`,
 		"\"\\n \"\n",
 	},
+	{
+		"declare a; a+=(b); echo ${a[@]} ${#a[@]}",
+		"b 1\n",
+	},
+	{
+		`a=""; a+=(b); echo ${a[@]} ${#a[@]}`,
+		"b 2\n",
+	},
 
 	// if
 	{

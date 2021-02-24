@@ -353,6 +353,9 @@ func (r *Runner) assignVal(as *syntax.Assign, valType string) expand.Variable {
 		return prev
 	}
 	switch prev.Kind {
+	case expand.Unset:
+		prev.Kind = expand.Indexed
+		prev.List = strs
 	case expand.String:
 		prev.Kind = expand.Indexed
 		prev.List = append([]string{prev.Str}, strs...)
@@ -360,6 +363,8 @@ func (r *Runner) assignVal(as *syntax.Assign, valType string) expand.Variable {
 		prev.List = append(prev.List, strs...)
 	case expand.Associative:
 		// TODO
+	default:
+		panic(fmt.Sprintf("unhandled conversion of kind %d", prev.Kind))
 	}
 	return prev
 }
