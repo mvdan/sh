@@ -66,6 +66,7 @@ func (o *overlayEnviron) Set(name string, vr expand.Variable) error {
 		}
 	}
 	// modifying the entire variable
+	vr.Local = prev.Local || vr.Local
 	o.values[name] = vr
 	return nil
 }

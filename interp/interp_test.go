@@ -564,6 +564,10 @@ var runTests = []runTest{
 		`a=""; a+=(b); echo ${a[@]} ${#a[@]}`,
 		"b 2\n",
 	},
+	{
+		"f() { local a; a=bad; a=good; echo $a; }; f",
+		"good\n",
+	},
 
 	// if
 	{
