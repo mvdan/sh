@@ -297,6 +297,7 @@ func (r *Runner) assignVal(as *syntax.Assign, valType string) expand.Variable {
 		prev.Str = ""
 		return prev
 	}
+	// Array assignment.
 	elems := as.Array.Elems
 	if valType == "" {
 		valType = "-a" // indexed
@@ -318,22 +319,33 @@ func (r *Runner) assignVal(as *syntax.Assign, valType string) expand.Variable {
 		// TODO
 		return prev
 	}
-	maxIndex := len(elems) - 1
-	indexes := make([]int, len(elems))
+	// Evaluate values for each array element.
+	elemValues := make([]struct {
+		index  int
+		values []string
+	}, len(elems))
+	var index, maxIndex int
 	for i, elem := range elems {
-		if elem.Index == nil {
-			indexes[i] = i
-			continue
+		if elem.Index != nil {
+			// Index resets our index with a literal value.
+			index = r.arithm(elem.Index)
+			elemValues[i].values = []string{r.literal(elem.Value)}
+		} else {
+			// Implicit index, advancing for every word.
+			elemValues[i].values = r.fields(elem.Value)
 		}
-		k := r.arithm(elem.Index)
-		indexes[i] = k
-		if k > maxIndex {
-			maxIndex = k
+		elemValues[i].index = index
+		index += len(elemValues[i].values)
+		if index > maxIndex {
+			maxIndex = index
 		}
 	}
-	strs := make([]string, maxIndex+1)
-	for i, elem := range elems {
-		strs[indexes[i]] = r.literal(elem.Value)
+	// Flatten down the values.
+	strs := make([]string, maxIndex)
+	for _, ev := range elemValues {
+		for i, str := range ev.values {
+			strs[ev.index+i] = str
+		}
 	}
 	if !as.Append {
 		prev.Kind = expand.Indexed
