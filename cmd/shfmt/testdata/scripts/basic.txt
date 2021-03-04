@@ -20,6 +20,9 @@ stdout 'input\.sh'
 ! stderr .
 cmp input.sh input.sh.orig
 
+shfmt -l input.sh input.sh
+stdout -count=2 'input.sh'
+
 shfmt -l -w input.sh
 stdout 'input\.sh'
 ! stdout foo

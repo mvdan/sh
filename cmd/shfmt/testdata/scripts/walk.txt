@@ -7,8 +7,14 @@ shfmt -f .
 cmpenv stdout find.golden
 ! stderr .
 
-# try to walk a missing path
+# try to format missing paths
 ! shfmt nonexistent
+stderr -count=1 nonexistent
+
+! shfmt nonexistent-1 nonexistent-2 nonexistent-3
+stderr -count=1 nonexistent-1
+stderr -count=1 nonexistent-2
+stderr -count=1 nonexistent-3
 
 # format an entire directory without -l or -w
 ! shfmt .
