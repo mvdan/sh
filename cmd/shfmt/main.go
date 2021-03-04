@@ -201,7 +201,7 @@ For more information, see 'man shfmt' and https://github.com/mvdan/sh.
 			// do want to report whether the file is a shell script.
 			if err := formatPath(path, false); err != nil {
 				fmt.Fprintln(os.Stderr, err)
-				return 1
+				status = 1
 			}
 			continue
 		}
@@ -221,9 +221,8 @@ For more information, see 'man shfmt' and https://github.com/mvdan/sh.
 			}
 			return nil
 		}); err != nil {
-			// Something went wrong walking the filesystem; stop.
 			fmt.Fprintln(os.Stderr, err)
-			return 1
+			status = 1
 		}
 	}
 	return status

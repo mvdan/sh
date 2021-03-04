@@ -7,6 +7,9 @@ cmp stdout input.sh.stdindiff
 cmp stdout input.sh.filediff
 ! stderr .
 
+! shfmt -d input.sh input.sh
+stdout -count=2 'input.sh.orig'
+
 env FORCE_COLOR=true
 stdin input.sh
 ! shfmt -d
