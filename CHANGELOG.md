@@ -1,5 +1,10 @@
 # Changelog
 
+## [3.2.3] - 2021-03-08
+
+- **cmd/shfmt**
+  - Don't stop handling arguments when one results in a failure
+
 ## [3.2.2] - 2021-01-29
 
 - **syntax**
@@ -496,6 +501,8 @@ module in v3.
 
 Initial release.
 
+[3.2.3]: https://github.com/mvdan/sh/releases/tag/v3.2.3
+[3.2.2]: https://github.com/mvdan/sh/releases/tag/v3.2.2
 [3.2.1]: https://github.com/mvdan/sh/releases/tag/v3.2.1
 [3.2.0]: https://github.com/mvdan/sh/releases/tag/v3.2.0
 [3.1.2]: https://github.com/mvdan/sh/releases/tag/v3.1.2
