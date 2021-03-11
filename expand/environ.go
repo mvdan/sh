@@ -140,7 +140,8 @@ func (f funcEnviron) Get(name string) Variable {
 func (f funcEnviron) Each(func(name string, vr Variable) bool) {}
 
 // ListEnviron returns an Environ with the supplied variables, in the form
-// "key=value". All variables will be exported.
+// "key=value". All variables will be exported. The last value in pairs is used
+// if multiple values are present.
 //
 // On Windows, where environment variable names are case-insensitive, the
 // resulting variable names will all be uppercase.
@@ -161,7 +162,19 @@ func listEnvironWithUpper(upper bool, pairs ...string) Environ {
 			}
 		}
 	}
-	sort.Strings(list)
+
+	sort.SliceStable(list, func(i, j int) bool {
+		isep := strings.IndexByte(list[i], '=')
+		jsep := strings.IndexByte(list[j], '=')
+		if isep < 0 {
+			isep = 0
+		}
+		if jsep < 0 {
+			jsep = 0
+		}
+		return list[i][:isep] < list[j][:jsep]
+	})
+
 	last := ""
 	for i := 0; i < len(list); {
 		s := list[i]
