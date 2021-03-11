@@ -32,8 +32,8 @@ func TestListEnviron(t *testing.T) {
 		},
 		{
 			name:  "DuplicateNames",
-			pairs: []string{"A=b", "A=x", "c=", "c=y"},
-			want:  []string{"A=x", "c=y"},
+			pairs: []string{"A=x", "A=b", "c=", "c=y"},
+			want:  []string{"A=b", "c=y"},
 		},
 		{
 			name:  "NoName",
