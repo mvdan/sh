@@ -1379,7 +1379,7 @@ func (p *Parser) paramExpExp() *Expansion {
 			p.curErr("@ expansion operator requires a literal")
 		}
 		switch p.val {
-		case "Q", "E", "P", "A", "a":
+		case "Q", "E", "P", "A", "a", "U", "u", "L", "K":
 		default:
 			p.curErr("invalid @ expansion operator")
 		}
