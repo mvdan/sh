@@ -1897,6 +1897,42 @@ var shellTests = []errorCase{
 		posix: `1:11: this expansion operator is a bash/mksh feature`,
 	},
 	{
+		in:   "echo ${foo@a}",
+		mksh: `1:12: this expansion operator is a bash feature`,
+	},
+	{
+		in:   "echo ${foo@u}",
+		mksh: `1:12: this expansion operator is a bash feature`,
+	},
+	{
+		in:   "echo ${foo@A}",
+		mksh: `1:12: this expansion operator is a bash feature`,
+	},
+	{
+		in:   "echo ${foo@E}",
+		mksh: `1:12: this expansion operator is a bash feature`,
+	},
+	{
+		in:   "echo ${foo@K}",
+		mksh: `1:12: this expansion operator is a bash feature`,
+	},
+	{
+		in:   "echo ${foo@L}",
+		mksh: `1:12: this expansion operator is a bash feature`,
+	},
+	{
+		in:   "echo ${foo@P}",
+		mksh: `1:12: this expansion operator is a bash feature`,
+	},
+	{
+		in:   "echo ${foo@U}",
+		mksh: `1:12: this expansion operator is a bash feature`,
+	},
+	{
+		in:   "echo ${foo@#}",
+		bash: `1:12: this expansion operator is a mksh feature`,
+	},
+	{
 		in:     "`\"`\\",
 		common: "1:3: reached EOF without closing quote `",
 	},
