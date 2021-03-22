@@ -1379,7 +1379,15 @@ func (p *Parser) paramExpExp() *Expansion {
 			p.curErr("@ expansion operator requires a literal")
 		}
 		switch p.val {
-		case "Q", "E", "P", "A", "a":
+		case "a", "u", "A", "E", "K", "L", "P", "U":
+			if !p.lang.isBash() {
+				p.langErr(p.pos, "this expansion operator", LangBash)
+			}
+		case "#":
+			if p.lang != LangMirBSDKorn {
+				p.langErr(p.pos, "this expansion operator", LangMirBSDKorn)
+			}
+		case "Q":
 		default:
 			p.curErr("invalid @ expansion operator")
 		}

@@ -2421,7 +2421,7 @@ var fileTests = []testCase{
 	},
 	{
 		Strs: []string{`${a@E} ${b@a} ${@@Q} ${!ref@P}`},
-		bsmk: call(
+		bash: call(
 			word(&ParamExp{
 				Param: lit("a"),
 				Exp: &Expansion{
@@ -2449,6 +2449,25 @@ var fileTests = []testCase{
 				Exp: &Expansion{
 					Op:   OtherParamOps,
 					Word: litWord("P"),
+				},
+			}),
+		),
+	},
+	{
+		Strs: []string{`${a@Q} ${b@#}`},
+		mksh: call(
+			word(&ParamExp{
+				Param: lit("a"),
+				Exp: &Expansion{
+					Op:   OtherParamOps,
+					Word: litWord("Q"),
+				},
+			}),
+			word(&ParamExp{
+				Param: lit("b"),
+				Exp: &Expansion{
+					Op:   OtherParamOps,
+					Word: litWord("#"),
 				},
 			}),
 		),
