@@ -154,20 +154,20 @@ func TestParseBats(t *testing.T) {
 }
 
 var (
-	hasBash50  bool
+	hasBash51  bool
 	hasDash059 bool
-	hasMksh57  bool
+	hasMksh59  bool
 )
 
 func TestMain(m *testing.M) {
 	os.Setenv("LANGUAGE", "en_US.UTF8")
 	os.Setenv("LC_ALL", "en_US.UTF8")
-	hasBash50 = cmdContains("version 5.0", "bash", "--version")
+	hasBash51 = cmdContains("version 5.1", "bash", "--version")
 	// dash provides no way to check its version, so we have to
 	// check if it's new enough as to not have the bug that breaks
 	// our integration tests. Blergh.
 	hasDash059 = cmdContains("Bad subst", "dash", "-c", "echo ${#<}")
-	hasMksh57 = cmdContains(" R57 ", "mksh", "-c", "echo $KSH_VERSION")
+	hasMksh59 = cmdContains(" R59 ", "mksh", "-c", "echo $KSH_VERSION")
 	os.Exit(m.Run())
 }
 
@@ -229,8 +229,8 @@ func TestParseBashConfirm(t *testing.T) {
 	if testing.Short() {
 		t.Skip("calling bash is slow.")
 	}
-	if !hasBash50 {
-		t.Skip("bash 5.0 required to run")
+	if !hasBash51 {
+		t.Skip("bash 5.1 required to run")
 	}
 	i := 0
 	for _, c := range append(fileTests, fileTestsNoPrint...) {
@@ -269,8 +269,8 @@ func TestParseMirBSDKornConfirm(t *testing.T) {
 	if testing.Short() {
 		t.Skip("calling mksh is slow.")
 	}
-	if !hasMksh57 {
-		t.Skip("mksh 57 required to run")
+	if !hasMksh59 {
+		t.Skip("mksh 59 required to run")
 	}
 	i := 0
 	for _, c := range append(fileTests, fileTestsNoPrint...) {
@@ -289,8 +289,8 @@ func TestParseErrBashConfirm(t *testing.T) {
 	if testing.Short() {
 		t.Skip("calling bash is slow.")
 	}
-	if !hasBash50 {
-		t.Skip("bash 5.0 required to run")
+	if !hasBash51 {
+		t.Skip("bash 5.1 required to run")
 	}
 	i := 0
 	for _, c := range shellTests {
@@ -336,8 +336,8 @@ func TestParseErrMirBSDKornConfirm(t *testing.T) {
 	if testing.Short() {
 		t.Skip("calling mksh is slow.")
 	}
-	if !hasMksh57 {
-		t.Skip("mksh 57 required to run")
+	if !hasMksh59 {
+		t.Skip("mksh 59 required to run")
 	}
 	i := 0
 	for _, c := range shellTests {
@@ -803,9 +803,9 @@ var shellTests = []errorCase{
 		mksh:   `1:1: unclosed here-document 'EOF'`,
 	},
 	{
-		in:     "<<EOF\n\\\nEOF",
+		in: "<<EOF\n\\\nEOF",
+		// Seems like mksh has a bug here.
 		common: `1:1: unclosed here-document 'EOF' #NOERR`,
-		mksh:   `1:1: unclosed here-document 'EOF'`,
 	},
 	{
 		in:     "<<EOF\nfoo\\\nEOF",
