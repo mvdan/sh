@@ -3,7 +3,7 @@
 [![Go Reference](https://pkg.go.dev/badge/mvdan.cc/sh/v3.svg)](https://pkg.go.dev/mvdan.cc/sh/v3)
 
 A shell parser, formatter, and interpreter. Supports [POSIX Shell], [Bash], and
-[mksh]. Requires Go 1.14 or later.
+[mksh]. Requires Go 1.15 or later.
 
 ### Quick start
 

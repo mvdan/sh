@@ -6,12 +6,12 @@ jobs:
   test:
     strategy:
       matrix:
-        go-version: [1.14.x, 1.15.x]
-        platform: [ubuntu-latest, macos-latest, windows-latest]
-    runs-on: ${{ matrix.platform }}
+        go-version: [1.15.x, 1.16.x]
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
     - name: Install Go
-      uses: actions/setup-go@v1
+      uses: actions/setup-go@v2
       with:
         go-version: ${{ matrix.go-version }}
     - name: Checkout code
@@ -23,10 +23,10 @@ jobs:
 
     - name: Test with GOARCH=386
       run: GOARCH=386 go test -count=1 ./...
-      if: matrix.platform == 'ubuntu-latest'
+      if: matrix.os == 'ubuntu-latest'
     - name: gofmt check
       run: diff <(echo -n) <(gofmt -d .)
-      if: matrix.platform == 'ubuntu-latest'
+      if: matrix.os == 'ubuntu-latest'
 
   test-linux-alpine:
     runs-on: ubuntu-latest
@@ -34,7 +34,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
     - name: Test as root, without cgo, and with busybox
-      run: docker run -v="$PWD:/pwd" -w=/pwd -e=CGO_ENABLED=0 golang:1.15-alpine go test ./...
+      run: docker run -v="$PWD:/pwd" -w=/pwd -e=CGO_ENABLED=0 golang:1.16-alpine go test ./...
 
   docker:
     name: Build and test Docker images
