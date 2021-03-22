@@ -1930,7 +1930,7 @@ var shellTests = []errorCase{
 	},
 	{
 		in:   "echo ${foo@#}",
-		bash: `1:12: this expansion operator is a mksh feature`,
+		bash: `1:12: this expansion operator is a mksh feature #NOERR`,
 	},
 	{
 		in:     "`\"`\\",
