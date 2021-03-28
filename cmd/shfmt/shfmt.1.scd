@@ -99,7 +99,7 @@ For CI, one can use a variant where formatting changes are just shown as diffs:
 The following formatting flags closely resemble Google's shell style defined in
 <https://google.github.io/styleguide/shell.xml>:
 
-	shfmt -i 2 -ci
+	shfmt -i 2 -ci -bn
 
 Below is a sample EditorConfig file as defined by <https://editorconfig.org/>,
 showing how to set any option:
