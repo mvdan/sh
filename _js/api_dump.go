@@ -1,6 +1,7 @@
 // Copyright (c) 2019, Daniel Martí <mvdan@mvdan.cc>
 // See LICENSE for licensing information
 
+//go:build ignore
 // +build ignore
 
 // api_dump is a simple program to create a description of what the syntax
