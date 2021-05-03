@@ -4,7 +4,7 @@ go 1.15
 
 require (
 	github.com/creack/pty v1.1.11
-	github.com/google/renameio v1.0.0
+	github.com/google/renameio v1.0.1-0.20210406141108-81588dbe0453
 	github.com/kr/pretty v0.2.1
 	github.com/kr/text v0.2.0 // indirect
 	github.com/pkg/diff v0.0.0-20210226163009-20ebb0f2a09e

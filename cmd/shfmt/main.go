@@ -12,10 +12,9 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"runtime"
 	"runtime/debug"
 
-	"github.com/google/renameio"
+	maybeio "github.com/google/renameio/maybe"
 	"github.com/pkg/diff"
 	diffwrite "github.com/pkg/diff/write"
 	"golang.org/x/term"
@@ -359,13 +358,8 @@ func formatBytes(src []byte, path string) error {
 				return err
 			}
 			perm := info.Mode().Perm()
-			writeFile := renameio.WriteFile
-			// TODO: support atomic writes on Windows once renameio
-			// supports it
-			if runtime.GOOS == "windows" {
-				writeFile = ioutil.WriteFile
-			}
-			if err := writeFile(path, res, perm); err != nil {
+			// TODO: support atomic writes on Windows?
+			if err := maybeio.WriteFile(path, res, perm); err != nil {
 				return err
 			}
 		}
