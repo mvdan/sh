@@ -562,7 +562,6 @@ var printTests = []printCase{
 	},
 	samePrint("#comment\n>redir"),
 	samePrint("$(declare)"),
-	samePrint("$(declare)"),
 	{
 		"`declare`",
 		"$(declare)",
