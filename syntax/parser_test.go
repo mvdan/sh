@@ -1442,6 +1442,10 @@ var shellTests = []errorCase{
 		bsmk: `1:2: "let" must be followed by an expression`,
 	},
 	{
+		in:   "$(let)",
+		bsmk: `1:3: "let" must be followed by an expression`,
+	},
+	{
 		in:   "[[",
 		bsmk: `1:1: test clause requires at least one expression`,
 	},

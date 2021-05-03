@@ -1409,11 +1409,13 @@ func (p *Parser) eitherIndex() ArithmExpr {
 	return expr
 }
 
-func stopToken(tok token) bool {
-	switch tok {
+func (p *Parser) stopToken() bool {
+	switch p.tok {
 	case _EOF, _Newl, semicolon, and, or, andAnd, orOr, orAnd, dblSemicolon,
 		semiAnd, dblSemiAnd, semiOr, rightParen:
 		return true
+	case bckQuote:
+		return p.backquoteEnd()
 	}
 	return false
 }
@@ -1490,7 +1492,7 @@ func (p *Parser) getAssign(needEqual bool) *Assign {
 		p.rune()
 		p.pos = posAddCol(p.pos, 1)
 		as.Index = p.eitherIndex()
-		if p.spaced || stopToken(p.tok) {
+		if p.spaced || p.stopToken() {
 			if needEqual {
 				p.followErr(as.Pos(), "a[b]", "=")
 			} else {
@@ -1517,7 +1519,7 @@ func (p *Parser) getAssign(needEqual bool) *Assign {
 			p.next()
 		}
 	}
-	if p.spaced || stopToken(p.tok) {
+	if p.spaced || p.stopToken() {
 		return as
 	}
 	if as.Value == nil && p.tok == leftParen {
@@ -1634,7 +1636,7 @@ func (p *Parser) getStmt(readEnd, binCmd, fnBody bool) *Stmt {
 	s := p.stmt(pos)
 	if ok {
 		s.Negated = true
-		if stopToken(p.tok) {
+		if p.stopToken() {
 			p.posErr(s.Pos(), `"!" cannot form a statement alone`)
 		}
 		if _, ok := p.gotRsrv("!"); ok {
@@ -1998,7 +2000,7 @@ func (p *Parser) wordIter(ftok string, fpos Pos) *WordIter {
 	p.got(_Newl)
 	if pos, ok := p.gotRsrv("in"); ok {
 		wi.InPos = pos
-		for !stopToken(p.tok) {
+		for !p.stopToken() {
 			if w := p.getWord(); w == nil {
 				p.curErr("word list can only contain words")
 			} else {
@@ -2244,7 +2246,7 @@ func (p *Parser) testExprBase(ftok token, fpos Pos) TestExpr {
 func (p *Parser) declClause(s *Stmt) {
 	ds := &DeclClause{Variant: p.lit(p.pos, p.val)}
 	p.next()
-	for !stopToken(p.tok) && !p.peekRedir() {
+	for !p.stopToken() && !p.peekRedir() {
 		if p.hasValidIdent() {
 			ds.Args = append(ds.Args, p.getAssign(false))
 		} else if p.eqlOffs > 0 {
@@ -2324,7 +2326,7 @@ func (p *Parser) letClause(s *Stmt) {
 	lc := &LetClause{Let: p.pos}
 	old := p.preNested(arithmExprLet)
 	p.next()
-	for !stopToken(p.tok) && !p.peekRedir() {
+	for !p.stopToken() && !p.peekRedir() {
 		x := p.arithmExpr(true)
 		if x == nil {
 			break
