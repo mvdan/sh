@@ -218,9 +218,9 @@ func confirmParse(in, cmd string, wantErr bool) func(*testing.T) {
 			err = nil
 		}
 		if wantErr && err == nil {
-			t.Fatalf("Expected error in `%s` of %q, found none", strings.Join(cmd.Args, " "), in)
+			t.Fatalf("Expected error in %q of %q, found none", strings.Join(cmd.Args, " "), in)
 		} else if !wantErr && err != nil {
-			t.Fatalf("Unexpected error in `%s` of %q: %v", strings.Join(cmd.Args, " "), in, err)
+			t.Fatalf("Unexpected error in %q of %q: %v", strings.Join(cmd.Args, " "), in, err)
 		}
 	}
 }
