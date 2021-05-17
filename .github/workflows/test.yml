@@ -34,7 +34,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
     - name: Test as root, without cgo, and with busybox
-      run: docker run -v="$PWD:/pwd" -w=/pwd -e=CGO_ENABLED=0 golang:1.16-alpine go test ./...
+      run: docker run -v="$PWD:/pwd" -w=/pwd -e=CGO_ENABLED=0 golang:1.16.4-alpine go test ./...
 
   docker:
     name: Build and test Docker images
