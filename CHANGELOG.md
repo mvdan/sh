@@ -1,6 +1,23 @@
 # Changelog
 
-## Unreleased
+## [3.3.0] - 2021-05-17
+
+- **cmd/shfmt**
+  - Document the `FORCE_COLOR` env var to always use colors in diffs
+- **syntax**
+  - Add the printer `SingleLine` option to avoid printing newlines
+  - Positions now use more bits for line numbers than column numbers
+  - Test operators like `&&` and `||` no longer escape newlines
+  - Properly handle closing backquotes in a few edge cases
+  - Properly handle trailing escaped newlines in heredocs
+- **interp**
+  - Redesigned variable scoping to fix a number of edge cases
+  - Refactor `set -o nounset` support to fix many edge cases
+  - Deprecate `LookPath` in favor of `LookPathDir`
+  - Array element words are now expanded correctly
+  - Add support for `trap` with error and exit signals
+  - Add support for `shopt -s nullglob`
+  - Add support for `type -p`
 
 ## [3.2.4] - 2021-03-08
 
@@ -505,6 +522,7 @@ module in v3.
 
 Initial release.
 
+[3.3.0]: https://github.com/mvdan/sh/releases/tag/v3.3.0
 [3.2.4]: https://github.com/mvdan/sh/releases/tag/v3.2.4
 [3.2.2]: https://github.com/mvdan/sh/releases/tag/v3.2.2
 [3.2.1]: https://github.com/mvdan/sh/releases/tag/v3.2.1
