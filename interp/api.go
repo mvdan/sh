@@ -532,16 +532,19 @@ func (r *Runner) Exited() bool {
 }
 
 // Subshell makes a copy of the given Runner, suitable for use concurrently
-// with the original.  The copy will have the same environment, including
+// with the original. The copy will have the same environment, including
 // variables and functions, but they can all be modified without affecting the
 // original.
 //
-// Subshell is not safe to use concurrently with Run.  Orchestrating this is
+// Subshell is not safe to use concurrently with Run. Orchestrating this is
 // left up to the caller; no locking is performed.
 //
 // To replace e.g. stdin/out/err, do StdIO(r.stdin, r.stdout, r.stderr)(r) on
 // the copy.
 func (r *Runner) Subshell() *Runner {
+	if !r.didReset {
+		r.Reset()
+	}
 	// Keep in sync with the Runner type. Manually copy fields, to not copy
 	// sensitive ones like errgroup.Group, and to do deep copies of slices.
 	r2 := &Runner{
@@ -586,6 +589,7 @@ func (r *Runner) Subshell() *Runner {
 	for k, v := range r.Funcs {
 		r2.Funcs[k] = v
 	}
+	r2.Vars = make(map[string]expand.Variable)
 	if l := len(r.alias); l > 0 {
 		r2.alias = make(map[string]alias, l)
 		for k, v := range r.alias {

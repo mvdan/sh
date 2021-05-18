@@ -3649,3 +3649,43 @@ func TestRunnerVars(t *testing.T) {
 		t.Fatalf("wrong output:\nwant: %q\ngot:  %q", want, got)
 	}
 }
+
+func TestRunnerSubshell(t *testing.T) {
+	r1, err := New()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	r2 := r1.Subshell()
+	f1 := parse(t, nil, "PARENT=foo")
+	f2 := parse(t, nil, "CHILD=bar")
+
+	ctx, cancel := context.WithTimeout(context.Background(), runnerRunTimeout)
+	defer cancel()
+	if err := r1.Run(ctx, f1); err != nil {
+		t.Fatal(err)
+	}
+	if err := r2.Run(ctx, f2); err != nil {
+		t.Fatal(err)
+	}
+
+	if want, got := "foo", r1.Vars["PARENT"].String(); got != want {
+		t.Fatalf("wrong output:\nwant: %q\ngot:  %q", want, got)
+	}
+	if want, got := "bar", r2.Vars["CHILD"].String(); got != want {
+		t.Fatalf("wrong output:\nwant: %q\ngot:  %q", want, got)
+	}
+
+	r3 := r2.Subshell()
+	f3 := parse(t, nil, "CHILD=modified")
+	if err := r3.Run(ctx, f3); err != nil {
+		t.Fatal(err)
+	}
+	if want, got := "bar", r2.Vars["CHILD"].String(); got != want {
+		t.Fatalf("wrong output:\nwant: %q\ngot:  %q", want, got)
+	}
+	if want, got := "modified", r3.Vars["CHILD"].String(); got != want {
+		t.Fatalf("wrong output:\nwant: %q\ngot:  %q", want, got)
+	}
+
+}
