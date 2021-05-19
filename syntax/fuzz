@@ -12,4 +12,4 @@ go get \
 	github.com/dvyukov/go-fuzz/go-fuzz-build@6a8e9d1f2415cf672ddbe864c2d4092287b33a21
 
 go-fuzz-build
-go-fuzz -bin=./sh-fuzz.zip
+go-fuzz -bin=./syntax-fuzz.zip

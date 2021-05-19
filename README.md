@@ -42,6 +42,7 @@ and the printer. The `fuzz-corpus` branch contains a corpus to get you started.
 For example:
 
 	git checkout fuzz-corpus
+	cd syntax
 	./fuzz
 
 ### Caveats

@@ -1,17 +1,14 @@
 // Copyright (c) 2016, Daniel Martí <mvdan@mvdan.cc>
 // See LICENSE for licensing information
 
-//go:build gofuzz
 // +build gofuzz
 
-package sh
+package syntax
 
 import (
 	"bytes"
 	"encoding/binary"
 	"io/ioutil"
-
-	"mvdan.cc/sh/v3/syntax"
 )
 
 func Fuzz(data []byte) int {
@@ -44,10 +41,10 @@ func Fuzz(data []byte) int {
 	printerOpts := binary.BigEndian.Uint16(data[1:3])
 	src := data[3:]
 
-	parser := syntax.NewParser()
-	lang := syntax.LangVariant(parserOpts & maskLangVariant) // range 0-3
-	syntax.Variant(lang)(parser)
-	syntax.KeepComments(parserOpts&maskKeepComments != 0)(parser)
+	parser := NewParser()
+	lang := LangVariant(parserOpts & maskLangVariant) // range 0-3
+	Variant(lang)(parser)
+	KeepComments(parserOpts&maskKeepComments != 0)(parser)
 
 	prog, err := parser.Parse(bytes.NewReader(src), "")
 	if err != nil {
@@ -55,19 +52,19 @@ func Fuzz(data []byte) int {
 	}
 
 	if parserOpts&maskSimplify != 0 {
-		syntax.Simplify(prog)
+		Simplify(prog)
 	}
 
-	printer := syntax.NewPrinter()
+	printer := NewPrinter()
 	indent := uint(printerOpts & maskIndent) // range 0-15
-	syntax.Indent(indent)(printer)
-	syntax.BinaryNextLine(printerOpts&maskBinaryNextLine != 0)(printer)
-	syntax.SwitchCaseIndent(printerOpts&maskSwitchCaseIndent != 0)(printer)
-	syntax.SpaceRedirects(printerOpts&maskSpaceRedirects != 0)(printer)
-	syntax.KeepPadding(printerOpts&maskKeepPadding != 0)(printer)
-	syntax.Minify(printerOpts&maskMinify != 0)(printer)
-	syntax.SingleLine(printerOpts&maskSingleLine != 0)(printer)
-	syntax.FunctionNextLine(printerOpts&maskFunctionNextLine != 0)(printer)
+	Indent(indent)(printer)
+	BinaryNextLine(printerOpts&maskBinaryNextLine != 0)(printer)
+	SwitchCaseIndent(printerOpts&maskSwitchCaseIndent != 0)(printer)
+	SpaceRedirects(printerOpts&maskSpaceRedirects != 0)(printer)
+	KeepPadding(printerOpts&maskKeepPadding != 0)(printer)
+	Minify(printerOpts&maskMinify != 0)(printer)
+	SingleLine(printerOpts&maskSingleLine != 0)(printer)
+	FunctionNextLine(printerOpts&maskFunctionNextLine != 0)(printer)
 
 	printer.Print(ioutil.Discard, prog)
 
