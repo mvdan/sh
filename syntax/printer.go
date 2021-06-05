@@ -987,25 +987,21 @@ func (p *Printer) stmt(s *Stmt) {
 			p.pendingHdocs = append(p.pendingHdocs, r)
 		}
 	}
-	p.wroteSemi = true
-	switch {
-	case s.Semicolon.IsValid() && s.Semicolon.Line() > p.line && !p.singleLine:
-		p.bslashNewl()
-		p.WriteByte(';')
-	case s.Background:
-		if !p.minify {
+	sep := s.Semicolon.IsValid() && s.Semicolon.Line() > p.line && !p.singleLine
+	if sep || s.Background || s.Coprocess {
+		if sep {
+			p.bslashNewl()
+		} else if !p.minify {
 			p.space()
 		}
-		p.WriteString("&")
-	case s.Coprocess:
-		if !p.minify {
-			p.space()
+		if s.Background {
+			p.WriteString("&")
+		} else if s.Coprocess {
+			p.WriteString("|&")
+		} else {
+			p.WriteString(";")
 		}
-		p.WriteString("|&")
-	default:
-		p.wroteSemi = false
-	}
-	if p.wroteSemi {
+		p.wroteSemi = true
 		p.wantSpace = true
 	}
 	p.decLevel()

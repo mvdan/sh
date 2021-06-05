@@ -703,6 +703,10 @@ var fileTests = []testCase{
 		mksh: &Stmt{Cmd: litCall("foo"), Coprocess: true},
 	},
 	{
+		Strs: []string{"foo \\\n\t|&"},
+		mksh: &Stmt{Cmd: litCall("foo"), Coprocess: true},
+	},
+	{
 		Strs: []string{"foo |& bar", "foo|&bar"},
 		bash: &BinaryCmd{
 			Op: PipeAll,
