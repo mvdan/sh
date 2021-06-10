@@ -237,6 +237,10 @@ var runTests = []runTest{
 		"\"shouldnotexist\": executable file not found in $PATH\nexit status 127 #JUSTERR",
 	},
 	{
+		"echo foo >/shouldnotexist/file",
+		"open /shouldnotexist/file: no such file or directory\nexit status 1 #JUSTERR",
+	},
+	{
 		"for i in 1; do continue a; done",
 		"usage: continue [n]\nexit status 2 #JUSTERR",
 	},
@@ -1706,6 +1710,14 @@ var runTests = []runTest{
 	{
 		"set -e; false; echo foo",
 		"exit status 1",
+	},
+	{
+		"set -e; shouldnotexist; echo foo",
+		"\"shouldnotexist\": executable file not found in $PATH\nexit status 127 #JUSTERR",
+	},
+	{
+		"set -e; echo foo >/shouldnotexist/file; echo foo",
+		"open /shouldnotexist/file: no such file or directory\nexit status 1 #JUSTERR",
 	},
 	{
 		"set -e; set +e; false; echo foo",

@@ -258,13 +258,13 @@ func (r *Runner) stmtSync(ctx context.Context, st *syntax.Stmt) {
 		cls, err := r.redir(ctx, rd)
 		if err != nil {
 			r.exit = 1
-			return
+			break
 		}
 		if cls != nil {
 			defer cls.Close()
 		}
 	}
-	if st.Cmd != nil {
+	if r.exit == 0 && st.Cmd != nil {
 		r.cmd(ctx, st.Cmd)
 	}
 	if st.Negated {
