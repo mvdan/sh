@@ -28,7 +28,7 @@ viewed directly as Markdown or rendered with [scdoc].
 Packages are available on [Alpine], [Arch], [Docker], [FreeBSD], [Homebrew],
 [MacPorts], [NixOS], [Scoop], [Snapcraft], [Void] and [webi].
 
-If the above command does not seem to yield a working executable, then make sure the `GOBIN` environment variable is set to whatever you want it to be or that either `$GOPATH/bin` or `$HOME/go/bin` are in the `PATH` environment variable. For more information, see [the official documentation for 'go get'](https://golang.org/ref/mod#go-get).
+If the above `go get` command does not seem to yield a working executable, then make sure the `GOBIN` environment variable is set to whatever you want it to be or that either `$GOPATH/bin` or `$HOME/go/bin` are in the `PATH` environment variable. For more information, see [the official documentation for 'go get'](https://golang.org/ref/mod#go-get).
 
 ### gosh
 
