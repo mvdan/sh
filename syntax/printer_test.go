@@ -561,6 +561,10 @@ var printTests = []printCase{
 		"array=('one'\n\t# 'two'\n\t'three')",
 	},
 	samePrint("#comment\n>redir"),
+	{
+		">redir \\\n\tfoo",
+		"foo >redir",
+	},
 	samePrint("$(declare)"),
 	{
 		"`declare`",
