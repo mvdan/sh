@@ -1,5 +1,2 @@
 # To prevent CRLF breakages on Windows for fragile files, like testdata.
 * -text
-
-# Temporary workaround for https://github.com/github/linguist/issues/5072.
-*.*.scd linguist-language=Markdown
