@@ -1130,6 +1130,7 @@ func printTest(t *testing.T, parser *Parser, printer *Printer, in, want string) 
 	if err != nil {
 		t.Fatalf("parsing got an error: %s:\n%s", err, in)
 	}
+	origWant := want
 	want += "\n"
 	got, err := strPrint(printer, prog)
 	if err != nil {
@@ -1138,9 +1139,21 @@ func printTest(t *testing.T, parser *Parser, printer *Printer, in, want string) 
 	if got != want {
 		t.Fatalf("Print mismatch:\nin:\n%q\nwant:\n%q\ngot:\n%q", in, want, got)
 	}
-	_, err = parser.Parse(strings.NewReader(want), "")
+
+	// With the original "want" output string,
+	// make sure that it's idempotent when formatted again.
+	// Note that we don't want the added newline,
+	// as that can change the meaning of trailing backslashes.
+	progAgain, err := parser.Parse(strings.NewReader(origWant), "")
 	if err != nil {
 		t.Fatalf("Result is not valid shell:\n%s", want)
+	}
+	gotAgain, err := strPrint(printer, progAgain)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if gotAgain != want {
+		t.Fatalf("Re-print mismatch:\nin:\n%q\nwant:\n%q\ngot:\n%q", in, want, gotAgain)
 	}
 }
 

@@ -1094,7 +1094,7 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			p.spacedToken(x.Op.String(), x.OpPos)
 			if len(x.Y.Comments) > 0 {
 				p.wantSpace = false
-				p.newline(Pos{})
+				p.newline(x.Y.Pos())
 				p.indent()
 				p.comments(x.Y.Comments...)
 				p.newline(Pos{})
