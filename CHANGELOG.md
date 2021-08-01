@@ -1,5 +1,15 @@
 # Changelog
 
+## [3.3.1] - 2021-08-01
+
+- **syntax**
+  - Don't convert `&` in a separate line into `;`
+  - Fix a `BinaryNextLine` edge case idempotency bug
+  - Never start printing a command with an escaped newline
+- **interp**
+  - Support calling `Runner.Reset` before `Runner.Run`
+  - Obey `set -e` for failed redirections
+
 ## [3.3.0] - 2021-05-17
 
 - **cmd/shfmt**
@@ -522,6 +532,7 @@ module in v3.
 
 Initial release.
 
+[3.3.1]: https://github.com/mvdan/sh/releases/tag/v3.3.1
 [3.3.0]: https://github.com/mvdan/sh/releases/tag/v3.3.0
 [3.2.4]: https://github.com/mvdan/sh/releases/tag/v3.2.4
 [3.2.2]: https://github.com/mvdan/sh/releases/tag/v3.2.2
