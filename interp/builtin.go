@@ -519,7 +519,10 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		r.setErr(returnStatus(code))
 	case "read":
 		raw := false
-		prompt := struct{provided bool; message string}{}
+		prompt := struct {
+			provided bool
+			message  string
+		}{}
 		fp := flagParser{remaining: args}
 		for fp.more() {
 			switch flag := fp.flag(); flag {

@@ -2588,8 +2588,8 @@ set +o pipefail
 		"1:2\n3\n\n",
 	},
 	{
-	"read -p",
-	"read: -p: option requires an argument\nexit status 2 #JUSTERR",
+		"read -p",
+		"read: -p: option requires an argument\nexit status 2 #JUSTERR",
 	},
 	{
 		"read -X -p",
