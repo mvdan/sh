@@ -2589,7 +2589,11 @@ set +o pipefail
 	},
 	{
 	"read -p",
-	"read: -p: option requires an argument\nexit status 2",
+	"read: -p: option requires an argument\nexit status 2 #JUSTERR",
+	},
+	{
+		"read -X -p",
+		"read: invalid option \"-X\"\nexit status 2 #JUSTERR",
 	},
 	{
 		"read -p 'Display me as a prompt. Continue? (y/n) ' choice <<< 'y'; echo $choice",
