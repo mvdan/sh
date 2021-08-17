@@ -2587,6 +2587,18 @@ set +o pipefail
 		"IFS=: read a b c <<< '1\\:2:3'; echo \"$a\"; echo $b; echo $c",
 		"1:2\n3\n\n",
 	},
+	{
+	"read -p",
+	"read: -p: option requires an argument\nexit status 2",
+	},
+	{
+		"read -p 'Display me as a prompt. Continue? (y/n) ' choice <<< 'y'; echo $choice",
+		"Display me as a prompt. Continue? (y/n) y\n",
+	},
+	{
+		"read -r -p 'Prompt and raw flag together: ' a <<< '\\a\\b\\c'; echo $a",
+		"Prompt and raw flag together: \\a\\b\\c\n",
+	},
 
 	// getopts
 	{
