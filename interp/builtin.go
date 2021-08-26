@@ -518,12 +518,19 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		}
 		r.setErr(returnStatus(code))
 	case "read":
+		var prompt string
 		raw := false
 		fp := flagParser{remaining: args}
 		for fp.more() {
 			switch flag := fp.flag(); flag {
 			case "-r":
 				raw = true
+			case "-p":
+				prompt = fp.value()
+				if prompt == "" {
+					r.errf("read: -p: option requires an argument\n")
+					return 2
+				}
 			default:
 				r.errf("read: invalid option %q\n", flag)
 				return 2
@@ -536,6 +543,10 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 				r.errf("read: invalid identifier %q\n", name)
 				return 2
 			}
+		}
+
+		if prompt != "" {
+			r.out(prompt)
 		}
 
 		line, err := r.readLine(raw)
