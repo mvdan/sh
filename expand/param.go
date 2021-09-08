@@ -263,7 +263,12 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 		case syntax.OtherParamOps:
 			switch arg {
 			case "Q":
-				str = strconv.Quote(str)
+				var ok bool
+				str, ok = syntax.Quote(str)
+				if !ok {
+					// Variables can't contain null bytes.
+					panic("syntax.Quote should never fail on a variable")
+				}
 			case "E":
 				tail := str
 				var rns []rune

@@ -97,6 +97,41 @@ func ExampleNewParser_options() {
 	// for ((i = 0; i < 5; i++)); do echo $i > f; done
 }
 
+// Keep in sync with FuzzQuote.
+
+func ExampleQuote() {
+	for _, s := range []string{
+		"foo",
+		"bar $baz",
+		`"won't"`,
+		"~/home",
+		"#1304",
+		"name=value",
+		"for",
+		"glob-*",
+		"invalid-\xe2'",
+		"nonprint-\x0b\x1b",
+	} {
+		quoted, ok := syntax.Quote(s)
+		if !ok {
+			fmt.Printf("%q cannot be quoted", s)
+		} else {
+			fmt.Printf("Quote(%17q): %s\n", s, quoted)
+		}
+	}
+	// Output:
+	// Quote(            "foo"): foo
+	// Quote(       "bar $baz"): 'bar $baz'
+	// Quote(      "\"won't\""): "\"won't\""
+	// Quote(         "~/home"): '~/home'
+	// Quote(          "#1304"): '#1304'
+	// Quote(     "name=value"): 'name=value'
+	// Quote(            "for"): 'for'
+	// Quote(         "glob-*"): 'glob-*'
+	// Quote(  "invalid-\xe2'"): $'invalid-\xe2\''
+	// Quote("nonprint-\v\x1b"): $'nonprint-\v\x1b'
+}
+
 func ExampleWalk() {
 	in := strings.NewReader(`echo $foo "and $bar"`)
 	f, err := syntax.NewParser().Parse(in, "")
