@@ -5,7 +5,11 @@ package syntax
 
 import (
 	"bytes"
+	"fmt"
 	"io"
+	"strconv"
+	"strings"
+	"unicode"
 	"unicode/utf8"
 )
 
@@ -1142,4 +1146,108 @@ func testBinaryOp(val string) BinTestOperator {
 	default:
 		return 0
 	}
+}
+
+// Quote returns a quoted version of the input string,
+// so that the quoted version is always expanded or interpreted
+// as the original string.
+//
+// When the boolean result is false,
+// the input string cannot be quoted to satisfy the rule above.
+// For example, an expanded shell string can't contain a null byte.
+//
+// Quoting is necessary when using arbitrary literal strings
+// as words in a shell script or command.
+// Without quoting, one could run into syntax errors,
+// as well as the possibility of running unintended code.
+//
+// The quoting strategy is chosen on a best-effort basis,
+// to minimize the amount of extra bytes necessary.
+//
+// Some strings do not require any quoting and are returned unchanged.
+// Those strings can be directly surrounded in single quotes.
+func Quote(s string) (_ string, ok bool) {
+	shellChars := false
+	nonPrintable := false
+	for _, r := range s {
+		switch r {
+		// Like regOps; token characters.
+		case ';', '"', '\'', '(', ')', '$', '|', '&', '>', '<', '`',
+			// Whitespace; might result in multiple fields.
+			' ', '\t', '\r', '\n',
+			// Escape sequences would be expanded.
+			'\\',
+			// Would start a comment unless quoted.
+			'#',
+			// Might result in brace expansion.
+			'{',
+			// Might result in tilde expansion.
+			'~',
+			// Might result in globbing.
+			'*', '?', '[',
+			// Might result in an assignment.
+			'=':
+			shellChars = true
+		}
+		if r == '\x00' {
+			// We can't quote null bytes.
+			return "", false
+		}
+		if r == utf8.RuneError || !unicode.IsPrint(r) {
+			nonPrintable = true
+		}
+	}
+	if !shellChars && !nonPrintable && !IsKeyword(s) {
+		// Nothing to quote; avoid allocating.
+		return s, true
+	}
+
+	// Single quotes are usually best,
+	// as they don't require any escaping of characters.
+	// If we have any invalid utf8 or non-printable runes,
+	// use $'' so that we can escape them.
+	// Note that we can't use double quotes for those.
+	var b strings.Builder
+	if nonPrintable {
+		b.WriteString("$'")
+		quoteBuf := make([]byte, 0, 16)
+		for rem := s; len(rem) > 0; {
+			r, size := utf8.DecodeRuneInString(rem)
+			switch {
+			case r == utf8.RuneError && size == 1:
+				fmt.Fprintf(&b, "\\x%x", rem[0])
+			case !unicode.IsPrint(r):
+				quoteBuf = quoteBuf[:0]
+				quoteBuf = strconv.AppendQuoteRuneToASCII(quoteBuf, r)
+				// We don't want the single quotes from strconv.
+				b.Write(quoteBuf[1 : len(quoteBuf)-1])
+			case r == '\'', r == '\\':
+				b.WriteByte('\\')
+				b.WriteRune(r)
+			default:
+				b.WriteRune(r)
+			}
+			rem = rem[size:]
+		}
+		b.WriteString("'")
+		return b.String(), true
+	}
+
+	// Single quotes without any need for escaping.
+	if !strings.Contains(s, "'") {
+		return "'" + s + "'", true
+	}
+
+	// The string contains single quotes,
+	// so fall back to double quotes.
+	b.WriteByte('"')
+	for _, r := range s {
+		switch r {
+		case '"', '\\', '`', '$':
+			b.WriteByte('\\')
+		}
+		b.WriteRune(r)
+	}
+	b.WriteByte('"')
+	return b.String(), true
 }
