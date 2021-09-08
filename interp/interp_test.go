@@ -2756,6 +2756,19 @@ var runTestsUnix = []runTest{
 		`mkdir a; chmod 0001 a; cd a && test $UID -ne 0`,
 		"exit status 1 #JUSTERR",
 	},
+	{
+		`unset UID`,
+		"UID: readonly variable\n #IGNORE",
+	},
+	// GID is not set in bash
+	{
+		`unset GID`,
+		"GID: readonly variable\n #IGNORE",
+	},
+	{
+		`[[ -z $GID ]] && echo "GID not set"`,
+		"exit status 1 #JUSTERR #IGNORE",
+	},
 
 	// Unix-y PATH
 	{

@@ -444,6 +444,13 @@ func (r *Runner) Reset() {
 			Str:      strconv.Itoa(os.Getuid()),
 		})
 	}
+	if !r.writeEnv.Get("GID").IsSet() {
+		r.setVar("GID", nil, expand.Variable{
+			Kind:     expand.String,
+			ReadOnly: true,
+			Str:      strconv.Itoa(os.Getgid()),
+		})
+	}
 	r.setVarString("PWD", r.Dir)
 	r.setVarString("IFS", " \t\n")
 	r.setVarString("OPTIND", "1")
