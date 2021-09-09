@@ -208,6 +208,7 @@ var fileTests = []testCase{
 			"if a\nthen\nb\nfi",
 			"if a;\nthen\nb\nfi",
 			"if a \nthen\nb\nfi",
+			"if\x00 a; th\x00en b; \x00fi",
 		},
 		common: &IfClause{
 			Cond: litStmts("a"),
@@ -4432,6 +4433,7 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 				// Hack to let "foobar" match the input "foo\\\nbar".
 				got = strings.ReplaceAll(got, "\\\n", "")
 			}
+			got = strings.ReplaceAll(got, "\x00", "")
 			if strings.HasPrefix(got, want) {
 				return
 			}

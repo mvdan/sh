@@ -90,6 +90,9 @@ func TestMain(m *testing.M) {
 		case "pid_and_hang":
 			fmt.Println(os.Getpid())
 			time.Sleep(time.Hour)
+		case "foo_null_bar":
+			fmt.Println("foo\x00bar")
+			os.Exit(1)
 		}
 		r := strings.NewReader(os.Args[1])
 		file, err := syntax.NewParser().Parse(r, "")
@@ -124,6 +127,13 @@ func TestMain(m *testing.M) {
 	os.Setenv("LC_ALL", "en_US.UTF-8")
 	os.Unsetenv("CDPATH")
 	hasBash50 = checkBash()
+
+	wd, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+	os.Setenv("GO_TEST_DIR", wd)
+
 	os.Setenv("INTERP_GLOBAL", "value")
 	os.Setenv("MULTILINE_INTERP_GLOBAL", "\nwith\nnewlines\n\n")
 
@@ -322,6 +332,47 @@ var runTests = []runTest{
 	{`echo $'\x\xf\x09\xAB'`, "\\x\x0f\x09\xab\n"},
 	{`echo $'\u\uf\u09\uABCD\u00051234'`, "\\u\u000f\u0009\uabcd\u00051234\n"},
 	{`echo $'\U\Uf\U09\UABCD\U00051234'`, "\\U\u000f\u0009\uabcd\U00051234\n"},
+	{
+		"echo 'foo\x00bar'",
+		"foobar\n",
+	},
+	{
+		"echo \"foo\x00bar\"",
+		"foobar\n",
+	},
+	{
+		"echo $'foo\x00bar'",
+		"foobar\n",
+	},
+	{
+		"echo $'foo\\x00bar'",
+		"foo\n",
+	},
+	{
+		"echo $'foo\\xbar'",
+		"foo\xbar\n",
+	},
+	{
+		"a='foo\x00bar'; eval \"echo -n ${a} ${a@Q}\";",
+		"foobar foobar",
+	},
+	{
+		"a=$'foo\\x00bar'; eval \"echo -n ${a} ${a@Q}\";",
+		"foo foo",
+	},
+	{
+		"i\x00f true; then echo foo\x00; \x00fi",
+		"foo\n",
+	},
+	{
+		"echo $(GOSH_CMD=foo_null_bar $GOSH_PROG)",
+		"foobar\n #IGNORE",
+	},
+	// See the TODO where FOO_NULL_BAR is set.
+	// {
+	// 	"echo $FOO_NULL_BAR \"${FOO_NULL_BAR}\"",
+	// 	"foo\n",
+	// },
 
 	// escaped chars
 	{"echo a\\b", "ab\n"},
@@ -2884,6 +2935,9 @@ func TestRunnerRun(t *testing.T) {
 			defer os.RemoveAll(dir)
 			var cb concBuffer
 			r, err := New(Dir(dir), StdIO(nil, &cb, &cb),
+				// TODO: why does this make some tests hang?
+				// Env(expand.ListEnviron(append(os.Environ(),
+				// 	"FOO_NULL_BAR=foo\x00bar")...)),
 				OpenHandler(testOpenHandler),
 				ExecHandler(testExecHandler),
 			)
@@ -3730,5 +3784,4 @@ func TestRunnerSubshell(t *testing.T) {
 	if want, got := "modified", r3.Vars["CHILD"].String(); got != want {
 		t.Fatalf("wrong output:\nwant: %q\ngot:  %q", want, got)
 	}
-
 }

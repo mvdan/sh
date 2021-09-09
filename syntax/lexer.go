@@ -75,6 +75,10 @@ retry:
 	if p.bsp < len(p.bs) {
 		if b := p.bs[p.bsp]; b < utf8.RuneSelf {
 			p.bsp++
+			if b == '\x00' {
+				// Ignore null bytes while parsing, like bash.
+				goto retry
+			}
 			if b == '\\' {
 				if p.r != '\\' && p.peekByte('\n') {
 					p.bsp++

@@ -65,7 +65,7 @@ type Config struct {
 	// as errors.
 	NoUnset bool
 
-	bufferAlloc bytes.Buffer
+	bufferAlloc bytes.Buffer // TODO: use strings.Builder
 	fieldAlloc  [4]fieldPart
 	fieldsAlloc [4][]fieldPart
 
@@ -211,6 +211,7 @@ func Format(cfg *Config, format string, args []string) (string, int, error) {
 	var fmts []byte
 	initialArgs := len(args)
 
+formatLoop:
 	for i := 0; i < len(format); i++ {
 		// readDigits reads from 0 to max digits, either octal or
 		// hexadecimal.
@@ -270,6 +271,11 @@ func Format(cfg *Config, format string, args []string) (string, int, error) {
 				if len(digits) > 0 {
 					// can't error
 					n, _ := strconv.ParseUint(digits, 16, 32)
+					if n == 0 {
+						// If we're about to print \x00,
+						// stop the entire loop, like bash.
+						break formatLoop
+					}
 					if c == 'x' {
 						// always as a single byte
 						buf.WriteByte(byte(n))
@@ -453,6 +459,9 @@ func (cfg *Config) wordField(wps []syntax.WordPart, ql quoteLevel) ([]fieldPart,
 				}
 				s = buf.String()
 			}
+			if i := strings.IndexByte(s, '\x00'); i >= 0 {
+				s = s[:i]
+			}
 			field = append(field, fieldPart{val: s})
 		case *syntax.SglQuoted:
 			fp := fieldPart{quote: quoteSingle, val: x.Value}
@@ -508,7 +517,11 @@ func (cfg *Config) cmdSubst(cs *syntax.CmdSubst) (string, error) {
 	if err := cfg.CmdSubst(buf, cs); err != nil {
 		return "", err
 	}
-	return strings.TrimRight(buf.String(), "\n"), nil
+	out := buf.String()
+	if strings.IndexByte(out, '\x00') >= 0 {
+		out = strings.ReplaceAll(out, "\x00", "")
+	}
+	return strings.TrimRight(out, "\n"), nil
 }
 
 func (cfg *Config) wordFields(wps []syntax.WordPart) ([][]fieldPart, error) {
