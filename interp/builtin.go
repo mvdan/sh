@@ -184,7 +184,27 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			return 2
 		}
 	case "pwd":
-		r.outf("%s\n", r.envGet("PWD"))
+		switch len(args) {
+		case 0:
+			r.outf("%s\n", r.envGet("PWD"))
+		case 1:
+			switch args[0] {
+			case "-L":
+				r.outf("%s\n", r.envGet("PWD"))
+			case "-P":
+				if path, err := filepath.EvalSymlinks(r.envGet("PWD")); err == nil {
+					r.outf("%s\n", path)
+				} else {
+					r.setErr(err)
+				}
+			default:
+				r.errf("invalid option: %q\n", args[0])
+				return 2
+			}
+		default:
+			r.errf("pwd cannot take multiple arguments\n")
+			return 1
+		}
 	case "cd":
 		var path string
 		switch len(args) {
