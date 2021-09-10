@@ -908,11 +908,11 @@ var runTests = []runTest{
 	},
 	{
 		`pwd -a`,
-		"invalid option: \"-a\"\nexit status 2",
+		"invalid option: \"-a\"\nexit status 2 #JUSTERR",
 	},
 	{
-		`pwd -L -P`,
-		"pwd cannot take multiple arguments\nexit status 1",
+		`pwd -L -P -a`,
+		"invalid option: \"-a\"\nexit status 2 #JUSTERR",
 	},
 	{
 		`mkdir a; ln -s a b; [[ "$(cd a && pwd -P)" == "$(cd b && pwd -P)" ]]`,
