@@ -906,6 +906,22 @@ var runTests = []runTest{
 		`mkdir a; ln -s a b; [[ $(cd a && pwd) == "$(cd b && pwd)" ]]; echo $?`,
 		"1\n",
 	},
+	{
+		`pwd -a`,
+		"invalid option: \"-a\"\nexit status 2",
+	},
+	{
+		`pwd -L -P`,
+		"pwd cannot take multiple arguments\nexit status 1",
+	},
+	{
+		`mkdir a; ln -s a b; [[ "$(cd a && pwd -P)" == "$(cd b && pwd -P)" ]]`,
+		"",
+	},
+	{
+		`mkdir a; ln -s a b; [[ "$(cd a && pwd -P)" == "$(cd b && pwd -L)" ]]; echo $?`,
+		"1\n",
+	},
 
 	// dirs/pushd/popd
 	{"set -- $(dirs); echo $# ${#DIRSTACK[@]}", "1 1\n"},
