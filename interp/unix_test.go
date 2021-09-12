@@ -23,7 +23,7 @@ func TestRunnerTerminalStdIO(t *testing.T) {
 
 	tests := []struct {
 		name  string
-		files func(*testing.T) (slave io.Writer, master io.Reader)
+		files func(*testing.T) (secondary io.Writer, primary io.Reader)
 		want  string
 	}{
 		{"Nil", func(t *testing.T) (io.Writer, io.Reader) {
@@ -34,11 +34,11 @@ func TestRunnerTerminalStdIO(t *testing.T) {
 			return pw, pr
 		}, "end\n"},
 		{"Pseudo", func(t *testing.T) (io.Writer, io.Reader) {
-			pty, tty, err := pty.Open()
+			primary, secondary, err := pty.Open()
 			if err != nil {
 				t.Fatal(err)
 			}
-			return tty, pty
+			return secondary, primary
 		}, "012end\r\n"},
 	}
 	file := parse(t, nil, `
@@ -49,11 +49,11 @@ func TestRunnerTerminalStdIO(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			slave, master := test.files(t)
-			// some slaves can be used as stdin too, like a tty
-			slaveReader, _ := slave.(io.Reader)
+			secondary, master := test.files(t)
+			// some secondary ends can be used as stdin too
+			secondaryReader, _ := secondary.(io.Reader)
 
-			r, _ := New(StdIO(slaveReader, slave, slave))
+			r, _ := New(StdIO(secondaryReader, secondary, secondary))
 			go func() {
 				// To mimic os/exec.Cmd.Start, use a goroutine.
 				if err := r.Run(context.Background(), file); err != nil {
@@ -68,7 +68,7 @@ func TestRunnerTerminalStdIO(t *testing.T) {
 			if got != test.want {
 				t.Fatalf("\nwant: %q\ngot:  %q", test.want, got)
 			}
-			if closer, ok := slave.(io.Closer); ok {
+			if closer, ok := secondary.(io.Closer); ok {
 				closer.Close()
 			}
 			if closer, ok := master.(io.Closer); ok {
@@ -103,19 +103,16 @@ func TestRunnerTerminalExec(t *testing.T) {
 			return out
 		}, "end\n"},
 		{"Pseudo", func(t *testing.T, cmd *exec.Cmd) io.Reader {
-			pty_, err := pty.Start(cmd)
+			primary, err := pty.Start(cmd)
 			if err != nil {
 				t.Fatal(err)
 			}
-			return pty_
+			return primary
 		}, "012end\r\n"},
 	}
 	for _, test := range tests {
 		test := test
 		t.Run(test.name, func(t *testing.T) {
-			if test.name == "Pseudo" {
-				t.Skipf("too flaky on GitHub's machines; see https://github.com/mvdan/sh/issues/513")
-			}
 			t.Parallel()
 
 			cmd := exec.Command(os.Getenv("GOSH_PROG"),
