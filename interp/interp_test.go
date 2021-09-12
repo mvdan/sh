@@ -1257,7 +1257,7 @@ var runTests = []runTest{
 	},
 	{
 		"mkdir a; echo foo >a |& grep -q 'is a directory'",
-		" #IGNORE",
+		" #IGNORE bash prints a warning",
 	},
 	{
 		"echo foo 1>&1 | sed 's/o/a/g'",
@@ -1746,7 +1746,7 @@ var runTests = []runTest{
 	},
 	{
 		"a=b b=a; echo $(($a))",
-		"0\n #IGNORE",
+		"0\n #IGNORE bash prints a warning",
 	},
 
 	// set/shift
@@ -1968,7 +1968,7 @@ set +o pipefail
 	},
 	{
 		"readonly a=1; echo $a; unset a; echo $a",
-		"1\na: readonly variable\n1\n #IGNORE",
+		"1\na: readonly variable\n1\n #IGNORE bash prints a warning",
 	},
 	{
 		"f() { local a=1; echo $a; unset a; echo $a; }; f",
@@ -2668,11 +2668,11 @@ set +o pipefail
 	},
 	{
 		"read -p 'Display me as a prompt. Continue? (y/n) ' choice <<< 'y'; echo $choice",
-		"Display me as a prompt. Continue? (y/n) y\n",
+		"Display me as a prompt. Continue? (y/n) y\n #IGNORE bash requires a terminal",
 	},
 	{
 		"read -r -p 'Prompt and raw flag together: ' a <<< '\\a\\b\\c'; echo $a",
-		"Prompt and raw flag together: \\a\\b\\c\n",
+		"Prompt and raw flag together: \\a\\b\\c\n #IGNORE bash requires a terminal",
 	},
 
 	// getopts
