@@ -1516,6 +1516,10 @@ var runTests = []runTest{
 		"block\n",
 	},
 	{
+		"[[ -e /dev/nvme0n1 ]] || { echo block; exit; }; [[ -b /dev/nvme0n1 ]] && echo block; [[ -c /dev/nvme0n1 ]] && echo char; true",
+		"block\n",
+	},
+	{
 		"[[ -e /dev/tty ]] || { echo char; exit; }; [[ -b /dev/tty ]] && echo block; [[ -c /dev/tty ]] && echo char; true",
 		"char\n",
 	},
