@@ -3,7 +3,7 @@
 [![Go Reference](https://pkg.go.dev/badge/mvdan.cc/sh/v3.svg)](https://pkg.go.dev/mvdan.cc/sh/v3)
 
 A shell parser, formatter, and interpreter. Supports [POSIX Shell], [Bash], and
-[mksh]. Requires Go 1.15 or later.
+[mksh]. Requires Go 1.16 or later.
 
 ### Quick start
 
@@ -15,7 +15,7 @@ For high-level operations like performing shell expansions on strings, see the
 
 ### shfmt
 
-	GO111MODULE=on go get mvdan.cc/sh/v3/cmd/shfmt
+	go install mvdan.cc/sh/v3/cmd/shfmt@latest
 
 `shfmt` formats shell programs. See [canonical.sh](syntax/canonical.sh) for a
 quick look at its default style. For example:
@@ -30,7 +30,7 @@ Packages are available on [Alpine], [Arch], [Docker], [FreeBSD], [Homebrew],
 
 ### gosh
 
-	GO111MODULE=on go get mvdan.cc/sh/v3/cmd/gosh
+	go install mvdan.cc/sh/v3/cmd/gosh@latest
 
 Proof of concept shell that uses `interp`. Note that it's not meant to replace a
 POSIX shell at the moment, and its options are intentionally minimalistic.
