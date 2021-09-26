@@ -1188,8 +1188,7 @@ func Quote(s string) (_ string, ok bool) {
 			// Might result in an assignment.
 			'=':
 			shellChars = true
-		}
-		if r == '\x00' {
+		case '\x00':
 			// We can't quote null bytes.
 			return "", false
 		}
