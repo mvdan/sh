@@ -25,7 +25,7 @@ func FuzzQuote(f *testing.F) {
 		quoted, ok := syntax.Quote(s)
 		if !ok {
 			// Contains a null byte; not interesting.
-			return
+			t.Skip()
 		}
 		// Beware that this might run arbitrary code
 		// if Quote is too naive and allows ';' or '$'.
