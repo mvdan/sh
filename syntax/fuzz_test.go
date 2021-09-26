@@ -1,5 +1,5 @@
-//go:build dev.fuzz
-// +build dev.fuzz
+//go:build go1.18
+// +build go1.18
 
 package syntax_test
 
