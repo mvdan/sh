@@ -107,8 +107,18 @@ func TestRunnerTerminalExec(t *testing.T) {
 			return out
 		}, "end\n"},
 		{"Pseudo", func(t *testing.T, cmd *exec.Cmd) io.Reader {
-			primary, err := pty.Start(cmd)
+			// Note that we avoid pty.Start,
+			// as it closes the secondary terminal via a defer,
+			// possibly before the command has finished.
+			// That can lead to "signal: hangup" flakes.
+			primary, secondary, err := pty.Open()
 			if err != nil {
+				t.Fatal(err)
+			}
+			cmd.Stdin = secondary
+			cmd.Stdout = secondary
+			cmd.Stderr = secondary
+			if err := cmd.Start(); err != nil {
 				t.Fatal(err)
 			}
 			return primary
@@ -121,14 +131,19 @@ func TestRunnerTerminalExec(t *testing.T) {
 
 			cmd := exec.Command(os.Getenv("GOSH_PROG"),
 				"for n in 0 1 2 3; do if [[ -t $n ]]; then echo -n $n; fi; done; echo end")
-			out := test.start(t, cmd)
+			primary := test.start(t, cmd)
 
-			got, err := bufio.NewReader(out).ReadString('\n')
+			got, err := bufio.NewReader(primary).ReadString('\n')
 			if err != nil {
 				t.Fatal(err)
 			}
 			if got != test.want {
 				t.Fatalf("\nwant: %q\ngot:  %q", test.want, got)
+			}
+			if closer, ok := primary.(io.Closer); ok {
+				if err := closer.Close(); err != nil {
+					t.Fatal(err)
+				}
 			}
 			if err := cmd.Wait(); err != nil {
 				t.Fatal(err)
