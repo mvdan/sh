@@ -49,7 +49,7 @@ func TestRunnerTerminalStdIO(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			secondary, master := test.files(t)
+			secondary, primary := test.files(t)
 			// some secondary ends can be used as stdin too
 			secondaryReader, _ := secondary.(io.Reader)
 
@@ -61,7 +61,7 @@ func TestRunnerTerminalStdIO(t *testing.T) {
 				}
 			}()
 
-			got, err := bufio.NewReader(master).ReadString('\n')
+			got, err := bufio.NewReader(primary).ReadString('\n')
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -69,10 +69,14 @@ func TestRunnerTerminalStdIO(t *testing.T) {
 				t.Fatalf("\nwant: %q\ngot:  %q", test.want, got)
 			}
 			if closer, ok := secondary.(io.Closer); ok {
-				closer.Close()
+				if err := closer.Close(); err != nil {
+					t.Fatal(err)
+				}
 			}
-			if closer, ok := master.(io.Closer); ok {
-				closer.Close()
+			if closer, ok := primary.(io.Closer); ok {
+				if err := closer.Close(); err != nil {
+					t.Fatal(err)
+				}
 			}
 		})
 	}
