@@ -15,6 +15,11 @@ stdin input.sh
 ! shfmt -d
 stdout '\x1b\[31m- foo'
 ! stderr .
+env FORCE_COLOR=
+
+! shfmt -d .
+cmp stdout input.sh.filediff
+! stderr .
 
 -- input.sh --
  foo

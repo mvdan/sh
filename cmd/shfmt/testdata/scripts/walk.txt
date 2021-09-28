@@ -115,6 +115,7 @@ foo long enough
 #!/bin/shfoo
 -- none/ext.other --
 foo
+-- none/empty --
 -- none/ext-shebang.other --
 #!/bin/sh
  foo
