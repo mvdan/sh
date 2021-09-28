@@ -2127,7 +2127,7 @@ func (p *Parser) testExpr(ftok token, fpos Pos, pastAndOr bool) TestExpr {
 	p.got(_Newl)
 	var left TestExpr
 	if pastAndOr {
-		left = p.testExprBase(ftok, fpos)
+		left = p.testExprBase()
 	} else {
 		left = p.testExpr(ftok, fpos, true)
 	}
@@ -2189,7 +2189,7 @@ func (p *Parser) testExpr(ftok token, fpos Pos, pastAndOr bool) TestExpr {
 	return b
 }
 
-func (p *Parser) testExprBase(ftok token, fpos Pos) TestExpr {
+func (p *Parser) testExprBase() TestExpr {
 	switch p.tok {
 	case _EOF, rightParen:
 		return nil
