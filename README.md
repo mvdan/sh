@@ -37,13 +37,10 @@ POSIX shell at the moment, and its options are intentionally minimalistic.
 
 ### Fuzzing
 
-This project makes use of [go-fuzz] to find crashes and hangs in both the parser
-and the printer. The `fuzz-corpus` branch contains a corpus to get you started.
-For example:
+We use Go's native fuzzing support, which requires Go 1.18 or later. For instance:
 
-	git checkout fuzz-corpus
 	cd syntax
-	./fuzz
+	go test -run=- -fuzz=ParsePrint
 
 ### Caveats
 
@@ -136,7 +133,6 @@ Other noteworthy integrations include:
 [examples]: https://pkg.go.dev/mvdan.cc/sh/v3/syntax#pkg-examples
 [format-shell]: https://atom.io/packages/format-shell
 [freebsd]: https://www.freshports.org/devel/shfmt
-[go-fuzz]: https://github.com/dvyukov/go-fuzz
 [homebrew]: https://formulae.brew.sh/formula/shfmt
 [intellij-shellcript]: https://www.jetbrains.com/help/idea/shell-scripts.html
 [macports]: https://ports.macports.org/port/shfmt/summary
