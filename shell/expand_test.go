@@ -42,9 +42,9 @@ var expandTests = []struct {
 
 func TestExpand(t *testing.T) {
 	os.Setenv("INTERP_GLOBAL", "value")
-	for i := range expandTests {
-		t.Run(fmt.Sprintf("%02d", i), func(t *testing.T) {
-			tc := expandTests[i]
+	for _, tc := range expandTests {
+		tc := tc
+		t.Run("", func(t *testing.T) {
 			t.Parallel()
 			got, err := Expand(tc.in, tc.env)
 			if err != nil {
@@ -110,9 +110,9 @@ var fieldsTests = []struct {
 
 func TestFields(t *testing.T) {
 	os.Setenv("INTERP_GLOBAL", "value")
-	for i := range fieldsTests {
-		t.Run(fmt.Sprintf("%02d", i), func(t *testing.T) {
-			tc := fieldsTests[i]
+	for _, tc := range fieldsTests {
+		tc := tc
+		t.Run("", func(t *testing.T) {
 			t.Parallel()
 			got, err := Fields(tc.in, tc.env)
 			if err != nil {

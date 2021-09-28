@@ -20,8 +20,8 @@ func TestPrintCompact(t *testing.T) {
 	parserMirBSD := NewParser(KeepComments(true), Variant(LangMirBSDKorn))
 	parserBats := NewParser(KeepComments(true), Variant(LangBats))
 	printer := NewPrinter()
-	for i, c := range fileTests {
-		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
+	for _, c := range fileTests {
+		t.Run("", func(t *testing.T) {
 			in := c.Strs[0]
 			parser := parserPosix
 			if c.Bats != nil {
@@ -577,13 +577,13 @@ func TestPrintWeirdFormat(t *testing.T) {
 	parser := NewParser(KeepComments(true))
 	printer := NewPrinter()
 	for i, tc := range printTests {
-		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
+		t.Run(fmt.Sprintf("#%03d", i), func(t *testing.T) {
 			printTest(t, parser, printer, tc.in, tc.want)
 		})
-		t.Run(fmt.Sprintf("%03d-nl", i), func(t *testing.T) {
+		t.Run(fmt.Sprintf("#%03d-nl", i), func(t *testing.T) {
 			printTest(t, parser, printer, "\n"+tc.in+"\n", tc.want)
 		})
-		t.Run(fmt.Sprintf("%03d-redo", i), func(t *testing.T) {
+		t.Run(fmt.Sprintf("#%03d-redo", i), func(t *testing.T) {
 			printTest(t, parser, printer, tc.want, tc.want)
 		})
 	}
@@ -671,8 +671,8 @@ func TestPrintSpaces(t *testing.T) {
 	}
 
 	parser := NewParser(KeepComments(true))
-	for i, tc := range spaceFormats {
-		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
+	for _, tc := range spaceFormats {
+		t.Run("", func(t *testing.T) {
 			printer := NewPrinter(Indent(tc.spaces))
 			printTest(t, parser, printer, tc.in, tc.want)
 		})
@@ -769,8 +769,8 @@ func TestPrintBinaryNextLine(t *testing.T) {
 	}
 	parser := NewParser(KeepComments(true))
 	printer := NewPrinter(BinaryNextLine(true))
-	for i, tc := range tests {
-		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
+	for _, tc := range tests {
+		t.Run("", func(t *testing.T) {
 			printTest(t, parser, printer, tc.in, tc.want)
 		})
 	}
@@ -791,8 +791,8 @@ func TestPrintSwitchCaseIndent(t *testing.T) {
 	}
 	parser := NewParser(KeepComments(true))
 	printer := NewPrinter(SwitchCaseIndent(true))
-	for i, tc := range tests {
-		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
+	for _, tc := range tests {
+		t.Run("", func(t *testing.T) {
 			printTest(t, parser, printer, tc.in, tc.want)
 		})
 	}
@@ -828,8 +828,8 @@ func TestPrintFunctionNextLine(t *testing.T) {
 	}
 	parser := NewParser(KeepComments(true))
 	printer := NewPrinter(FunctionNextLine(true))
-	for i, tc := range tests {
-		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
+	for _, tc := range tests {
+		t.Run("", func(t *testing.T) {
 			printTest(t, parser, printer, tc.in, tc.want)
 		})
 	}
@@ -850,8 +850,8 @@ func TestPrintSpaceRedirects(t *testing.T) {
 	}
 	parser := NewParser(KeepComments(true))
 	printer := NewPrinter(SpaceRedirects(true))
-	for i, tc := range tests {
-		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
+	for _, tc := range tests {
+		t.Run("", func(t *testing.T) {
 			printTest(t, parser, printer, tc.in, tc.want)
 		})
 	}
@@ -890,8 +890,8 @@ func TestPrintKeepPadding(t *testing.T) {
 	}
 	parser := NewParser(KeepComments(true))
 	printer := NewPrinter(KeepPadding(true))
-	for i, tc := range tests {
-		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
+	for _, tc := range tests {
+		t.Run("", func(t *testing.T) {
 			// ensure that Reset does properly reset colCounter
 			printer.WriteByte('x')
 			printer.Reset(nil)
@@ -911,8 +911,8 @@ func TestPrintKeepPaddingSpaces(t *testing.T) {
 	}
 	parser := NewParser(KeepComments(true))
 	printer := NewPrinter(KeepPadding(true), Indent(2))
-	for i, tc := range tests {
-		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
+	for _, tc := range tests {
+		t.Run("", func(t *testing.T) {
 			printTest(t, parser, printer, tc.in, tc.want)
 		})
 	}
@@ -988,8 +988,8 @@ func TestPrintMinify(t *testing.T) {
 	}
 	parser := NewParser(KeepComments(true))
 	printer := NewPrinter(Minify(true))
-	for i, tc := range tests {
-		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
+	for _, tc := range tests {
+		t.Run("", func(t *testing.T) {
 			printTest(t, parser, printer, tc.in, tc.want)
 		})
 	}
@@ -1044,8 +1044,8 @@ func TestPrintSingleLine(t *testing.T) {
 	}
 	parser := NewParser(KeepComments(true))
 	printer := NewPrinter(SingleLine(true))
-	for i, tc := range tests {
-		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
+	for _, tc := range tests {
+		t.Run("", func(t *testing.T) {
 			printTest(t, parser, printer, tc.in, tc.want)
 		})
 	}
@@ -1226,8 +1226,8 @@ func TestPrintNodeTypes(t *testing.T) {
 		},
 	}
 	printer := NewPrinter()
-	for i, tc := range tests {
-		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
+	for _, tc := range tests {
+		t.Run("", func(t *testing.T) {
 			got, err := strPrint(printer, tc.in)
 			if err == nil && tc.wantErr {
 				t.Fatalf("wanted an error but found none")
@@ -1256,8 +1256,8 @@ func TestPrintManyStmts(t *testing.T) {
 	}
 	parser := NewParser(KeepComments(true))
 	printer := NewPrinter()
-	for i, tc := range tests {
-		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
+	for _, tc := range tests {
+		t.Run("", func(t *testing.T) {
 			f, err := parser.Parse(strings.NewReader(tc.in), "")
 			if err != nil {
 				t.Fatal(err)

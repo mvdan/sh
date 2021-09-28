@@ -5,7 +5,6 @@ package syntax
 
 import (
 	"bytes"
-	"fmt"
 	"strings"
 	"testing"
 )
@@ -74,8 +73,8 @@ func TestSimplify(t *testing.T) {
 	t.Parallel()
 	parser := NewParser()
 	printer := NewPrinter()
-	for i, tc := range simplifyTests {
-		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
+	for _, tc := range simplifyTests {
+		t.Run("", func(t *testing.T) {
 			prog, err := parser.Parse(strings.NewReader(tc.in), "")
 			if err != nil {
 				t.Fatal(err)

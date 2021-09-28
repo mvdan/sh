@@ -4,7 +4,6 @@
 package syntax
 
 import (
-	"fmt"
 	"reflect"
 	"strings"
 	"testing"
@@ -62,8 +61,8 @@ func TestWalk(t *testing.T) {
 	for _, c := range printTests {
 		allStrs = append(allStrs, c.in)
 	}
-	for i, in := range allStrs {
-		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
+	for _, in := range allStrs {
+		t.Run("", func(t *testing.T) {
 			prog, err := parser.Parse(strings.NewReader(in), "")
 			if err != nil {
 				// good enough for now, as the bash

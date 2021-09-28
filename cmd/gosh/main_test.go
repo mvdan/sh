@@ -168,8 +168,8 @@ var interactiveTests = []struct {
 
 func TestInteractive(t *testing.T) {
 	t.Parallel()
-	for i, tc := range interactiveTests {
-		t.Run(fmt.Sprintf("%02d", i), func(t *testing.T) {
+	for _, tc := range interactiveTests {
+		t.Run("", func(t *testing.T) {
 			inReader, inWriter := io.Pipe()
 			outReader, outWriter := io.Pipe()
 			runner, _ := interp.New(interp.StdIO(inReader, outWriter, outWriter))

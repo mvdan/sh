@@ -40,7 +40,7 @@ func TestParseBash(t *testing.T) {
 			continue
 		}
 		for j, in := range c.Strs {
-			t.Run(fmt.Sprintf("%03d-%d", i, j), singleParse(p, in, want))
+			t.Run(fmt.Sprintf("#%03d-%d", i, j), singleParse(p, in, want))
 		}
 	}
 }
@@ -117,7 +117,7 @@ func TestParsePosix(t *testing.T) {
 			continue
 		}
 		for j, in := range c.Strs {
-			t.Run(fmt.Sprintf("%03d-%d", i, j),
+			t.Run(fmt.Sprintf("#%03d-%d", i, j),
 				singleParse(p, in, want))
 		}
 	}
@@ -132,7 +132,7 @@ func TestParseMirBSDKorn(t *testing.T) {
 			continue
 		}
 		for j, in := range c.Strs {
-			t.Run(fmt.Sprintf("%03d-%d", i, j),
+			t.Run(fmt.Sprintf("#%03d-%d", i, j),
 				singleParse(p, in, want))
 		}
 	}
@@ -147,7 +147,7 @@ func TestParseBats(t *testing.T) {
 			continue
 		}
 		for j, in := range c.Strs {
-			t.Run(fmt.Sprintf("%03d-%d", i, j),
+			t.Run(fmt.Sprintf("#%03d-%d", i, j),
 				singleParse(p, in, want))
 		}
 	}
@@ -238,7 +238,7 @@ func TestParseBashConfirm(t *testing.T) {
 			continue
 		}
 		for j, in := range c.Strs {
-			t.Run(fmt.Sprintf("%03d-%d", i, j),
+			t.Run(fmt.Sprintf("#%03d-%d", i, j),
 				confirmParse(in, "bash", false))
 		}
 		i++
@@ -258,7 +258,7 @@ func TestParsePosixConfirm(t *testing.T) {
 			continue
 		}
 		for j, in := range c.Strs {
-			t.Run(fmt.Sprintf("%03d-%d", i, j),
+			t.Run(fmt.Sprintf("#%03d-%d", i, j),
 				confirmParse(in, "dash", false))
 		}
 		i++
@@ -278,7 +278,7 @@ func TestParseMirBSDKornConfirm(t *testing.T) {
 			continue
 		}
 		for j, in := range c.Strs {
-			t.Run(fmt.Sprintf("%03d-%d", i, j),
+			t.Run(fmt.Sprintf("#%03d-%d", i, j),
 				confirmParse(in, "mksh", false))
 		}
 		i++
@@ -292,7 +292,6 @@ func TestParseErrBashConfirm(t *testing.T) {
 	if !hasBash51 {
 		t.Skip("bash 5.1 required to run")
 	}
-	i := 0
 	for _, c := range shellTests {
 		want := c.common
 		if c.bsmk != nil {
@@ -305,8 +304,7 @@ func TestParseErrBashConfirm(t *testing.T) {
 			continue
 		}
 		wantErr := !strings.Contains(want.(string), " #NOERR")
-		t.Run(fmt.Sprintf("%03d", i), confirmParse(c.in, "bash", wantErr))
-		i++
+		t.Run("", confirmParse(c.in, "bash", wantErr))
 	}
 }
 
@@ -317,7 +315,6 @@ func TestParseErrPosixConfirm(t *testing.T) {
 	if !hasDash059 {
 		t.Skip("dash 0.5.9 or newer required to run")
 	}
-	i := 0
 	for _, c := range shellTests {
 		want := c.common
 		if c.posix != nil {
@@ -327,8 +324,7 @@ func TestParseErrPosixConfirm(t *testing.T) {
 			continue
 		}
 		wantErr := !strings.Contains(want.(string), " #NOERR")
-		t.Run(fmt.Sprintf("%03d", i), confirmParse(c.in, "dash", wantErr))
-		i++
+		t.Run("", confirmParse(c.in, "dash", wantErr))
 	}
 }
 
@@ -339,7 +335,6 @@ func TestParseErrMirBSDKornConfirm(t *testing.T) {
 	if !hasMksh59 {
 		t.Skip("mksh 59 required to run")
 	}
-	i := 0
 	for _, c := range shellTests {
 		want := c.common
 		if c.bsmk != nil {
@@ -352,8 +347,7 @@ func TestParseErrMirBSDKornConfirm(t *testing.T) {
 			continue
 		}
 		wantErr := !strings.Contains(want.(string), " #NOERR")
-		t.Run(fmt.Sprintf("%03d", i), confirmParse(c.in, "mksh", wantErr))
-		i++
+		t.Run("", confirmParse(c.in, "mksh", wantErr))
 	}
 }
 
@@ -1961,7 +1955,6 @@ func checkError(p *Parser, in, want string) func(*testing.T) {
 func TestParseErrPosix(t *testing.T) {
 	t.Parallel()
 	p := NewParser(KeepComments(true), Variant(LangPOSIX))
-	i := 0
 	for _, c := range shellTests {
 		want := c.common
 		if c.posix != nil {
@@ -1970,15 +1963,13 @@ func TestParseErrPosix(t *testing.T) {
 		if want == nil {
 			continue
 		}
-		t.Run(fmt.Sprintf("%03d", i), checkError(p, c.in, want.(string)))
-		i++
+		t.Run("", checkError(p, c.in, want.(string)))
 	}
 }
 
 func TestParseErrBash(t *testing.T) {
 	t.Parallel()
 	p := NewParser(KeepComments(true))
-	i := 0
 	for _, c := range shellTests {
 		want := c.common
 		if c.bsmk != nil {
@@ -1990,15 +1981,13 @@ func TestParseErrBash(t *testing.T) {
 		if want == nil {
 			continue
 		}
-		t.Run(fmt.Sprintf("%03d", i), checkError(p, c.in, want.(string)))
-		i++
+		t.Run("", checkError(p, c.in, want.(string)))
 	}
 }
 
 func TestParseErrMirBSDKorn(t *testing.T) {
 	t.Parallel()
 	p := NewParser(KeepComments(true), Variant(LangMirBSDKorn))
-	i := 0
 	for _, c := range shellTests {
 		want := c.common
 		if c.bsmk != nil {
@@ -2010,8 +1999,7 @@ func TestParseErrMirBSDKorn(t *testing.T) {
 		if want == nil {
 			continue
 		}
-		t.Run(fmt.Sprintf("%03d", i), checkError(p, c.in, want.(string)))
-		i++
+		t.Run("", checkError(p, c.in, want.(string)))
 	}
 }
 
@@ -2226,8 +2214,8 @@ func TestParseDocument(t *testing.T) {
 	t.Parallel()
 	p := NewParser()
 
-	for i, tc := range documentTests {
-		t.Run(fmt.Sprintf("%02d", i), func(t *testing.T) {
+	for _, tc := range documentTests {
+		t.Run("", func(t *testing.T) {
 			got, err := p.Document(strings.NewReader(tc.in))
 			if err != nil {
 				t.Fatal(err)
@@ -2323,8 +2311,8 @@ func TestParseArithmetic(t *testing.T) {
 	t.Parallel()
 	p := NewParser()
 
-	for i, tc := range arithmeticTests {
-		t.Run(fmt.Sprintf("%02d", i), func(t *testing.T) {
+	for _, tc := range arithmeticTests {
+		t.Run("", func(t *testing.T) {
 			got, err := p.Arithmetic(strings.NewReader(tc.in))
 			if err != nil {
 				t.Fatal(err)
@@ -2395,10 +2383,10 @@ var stopAtTests = []struct {
 
 func TestParseStmtsStopAt(t *testing.T) {
 	t.Parallel()
-	for i, c := range stopAtTests {
+	for _, c := range stopAtTests {
 		p := NewParser(StopAt(c.stop))
 		want := fullProg(c.want)
-		t.Run(fmt.Sprintf("%02d", i), singleParse(p, c.in, want))
+		t.Run("", singleParse(p, c.in, want))
 	}
 }
 

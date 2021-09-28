@@ -5,7 +5,6 @@ package expand
 
 import (
 	"bytes"
-	"fmt"
 	"testing"
 
 	"mvdan.cc/sh/v3/syntax"
@@ -150,8 +149,8 @@ var braceTests = []struct {
 
 func TestBraces(t *testing.T) {
 	t.Parallel()
-	for i, tc := range braceTests {
-		t.Run(fmt.Sprintf("%02d", i), func(t *testing.T) {
+	for _, tc := range braceTests {
+		t.Run("", func(t *testing.T) {
 			inStr := printWords(tc.in)
 			wantStr := printWords(tc.want...)
 			wantBraceExpParts(t, tc.in, false)
