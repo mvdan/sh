@@ -58,22 +58,34 @@ func FuzzParsePrint(f *testing.F) {
 	// TODO: probably use f.Add on table-driven test cases too?
 	// In the past, any crashers found by go-fuzz got put there.
 
-	add := func(src string) {
-		// For now, default to just LangBash with KeepComments.
-		f.Add(src, uint8(LangBash), true, false,
+	add := func(src string, variant LangVariant) {
+		// For now, default to just KeepComments.
+		f.Add(src, uint8(variant), true, false,
 			uint8(0), false, false, false, false, false, false, false)
 	}
 
-	add("echo foo")
-	add("'foo' \"bar\" $'baz'")
-	add("if foo; then bar; baz; fi")
-	add("{ (foo; bar); baz; }")
-	add("$foo ${bar} ${baz[@]} $")
-	add("foo >bar <<EOF\nbaz\nEOF")
-	add("foo=bar baz=(x y z)")
-	add("foo && bar || baz")
-	add("foo | bar # baz")
-	add("foo \\\n bar \\\\ba\\z")
+	for _, test := range shellTests {
+		add(test.in, LangBash)
+	}
+	for _, test := range printTests {
+		add(test.in, LangBash)
+	}
+	for _, test := range fileTests {
+		for _, in := range test.Strs {
+			if test.Bash != nil {
+				add(in, LangBash)
+			}
+			if test.Posix != nil {
+				add(in, LangPOSIX)
+			}
+			if test.MirBSDKorn != nil {
+				add(in, LangMirBSDKorn)
+			}
+			if test.Bats != nil {
+				add(in, LangBats)
+			}
+		}
+	}
 
 	f.Fuzz(func(t *testing.T,
 		src string,
