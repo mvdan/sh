@@ -16,6 +16,10 @@ import (
 )
 
 func FuzzQuote(f *testing.F) {
+	if _, err := exec.LookPath("bash"); err != nil {
+		f.Skipf("requires bash to verify quoted strings")
+	}
+
 	// Keep in sync with ExampleQuote.
 	f.Add("foo")
 	f.Add("bar $baz")
