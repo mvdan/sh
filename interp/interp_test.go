@@ -8,7 +8,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math/bits"
 	"os"
 	"os/exec"
@@ -2987,7 +2986,7 @@ func TestRunnerRun(t *testing.T) {
 }
 
 func readLines(hc HandlerContext) ([][]byte, error) {
-	bs, err := ioutil.ReadAll(hc.Stdin)
+	bs, err := io.ReadAll(hc.Stdin)
 	if err != nil {
 		return nil, err
 	}
@@ -3022,7 +3021,7 @@ var testBuiltinsMap = map[string]func(HandlerContext, []string) error{
 		return nil
 	},
 	"wc": func(hc HandlerContext, args []string) error {
-		bs, err := ioutil.ReadAll(hc.Stdin)
+		bs, err := io.ReadAll(hc.Stdin)
 		if err != nil {
 			return err
 		}
@@ -3104,7 +3103,7 @@ var testBuiltinsMap = map[string]func(HandlerContext, []string) error{
 		from := expr[:strings.IndexByte(expr, sep)]
 		expr = expr[len(from)+1:]
 		to := expr[:strings.IndexByte(expr, sep)]
-		bs, err := ioutil.ReadAll(f)
+		bs, err := io.ReadAll(f)
 		if err != nil {
 			return err
 		}
@@ -3524,7 +3523,7 @@ func TestRunnerDir(t *testing.T) {
 		if err := os.Mkdir(realDir, 0o777); err != nil {
 			t.Fatal(err)
 		}
-		if err := ioutil.WriteFile(realFile, []byte(""), 0o666); err != nil {
+		if err := os.WriteFile(realFile, []byte(""), 0o666); err != nil {
 			t.Fatal(err)
 		}
 
@@ -3710,7 +3709,7 @@ func TestMalformedPathOnWindows(t *testing.T) {
 
 	path := filepath.Join(tdir, "test.cmd")
 	script := []byte("@echo foo")
-	if err := ioutil.WriteFile(path, script, 0o777); err != nil {
+	if err := os.WriteFile(path, script, 0o777); err != nil {
 		t.Fatal(err)
 	}
 

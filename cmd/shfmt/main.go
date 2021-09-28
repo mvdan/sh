@@ -8,7 +8,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -233,7 +232,7 @@ func formatStdin(name string) error {
 	if *write {
 		return fmt.Errorf("-w cannot be used on standard input")
 	}
-	src, err := ioutil.ReadAll(in)
+	src, err := io.ReadAll(in)
 	if err != nil {
 		return err
 	}

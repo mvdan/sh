@@ -49,6 +49,10 @@ type Config struct {
 	// this field might change until #451 is completely fixed.
 	ProcSubst func(*syntax.ProcSubst) (string, error)
 
+	// TODO(v4): update to os.Readdir with fs.DirEntry.
+	// We could possibly expose that as a preferred ReadDir2 before then,
+	// to allow users to opt into better performance in v3.
+
 	// ReadDir is used for file path globbing. If nil, globbing is disabled.
 	// Use ioutil.ReadDir to use the filesystem directly.
 	ReadDir func(string) ([]os.FileInfo, error)

@@ -7,7 +7,7 @@
 package syntax_test
 
 import (
-	"io/ioutil"
+	"io"
 	"os/exec"
 	"strings"
 	"testing"
@@ -117,7 +117,7 @@ func FuzzParsePrint(f *testing.F) {
 		syntax.SingleLine(printerOpts&maskSingleLine != 0)(printer)
 		syntax.FunctionNextLine(printerOpts&maskFunctionNextLine != 0)(printer)
 
-		if err := printer.Print(ioutil.Discard, prog); err != nil {
+		if err := printer.Print(io.Discard, prog); err != nil {
 			t.Skip() // e.g. invalid option
 		}
 	})

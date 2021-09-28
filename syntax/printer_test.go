@@ -6,7 +6,7 @@ package syntax
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"regexp"
 	"strings"
@@ -612,7 +612,7 @@ func TestPrintMultiline(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	wantBs, err := ioutil.ReadFile(canonicalPath)
+	wantBs, err := os.ReadFile(canonicalPath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -631,7 +631,7 @@ func BenchmarkPrint(b *testing.B) {
 	prog := parsePath(b, canonicalPath)
 	printer := NewPrinter()
 	for i := 0; i < b.N; i++ {
-		if err := printer.Print(ioutil.Discard, prog); err != nil {
+		if err := printer.Print(io.Discard, prog); err != nil {
 			b.Fatal(err)
 		}
 	}
