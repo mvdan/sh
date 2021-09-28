@@ -42,6 +42,7 @@ func (r *Runner) fillExpandConfig(ctx context.Context) {
 					return err
 				}
 				_, err = io.Copy(w, f)
+				f.Close()
 				return err
 			}
 			r2 := r.Subshell()
