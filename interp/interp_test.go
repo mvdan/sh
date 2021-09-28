@@ -2941,20 +2941,22 @@ func skipIfUnsupported(tb testing.TB, src string) {
 }
 
 func TestRunnerRun(t *testing.T) {
+	t.Parallel()
+
 	p := syntax.NewParser()
-	for i := range runTests {
-		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
-			c := runTests[i]
+	for _, c := range runTests {
+		c := c
+		t.Run("", func(t *testing.T) {
 			skipIfUnsupported(t, c.in)
+
+			// Parse first, as we reuse a single parser.
 			file := parse(t, p, c.in)
+
 			t.Parallel()
-			dir, err := ioutil.TempDir("", "interp-test")
-			if err != nil {
-				t.Fatal(err)
-			}
-			defer os.RemoveAll(dir)
+
+			tdir := t.TempDir()
 			var cb concBuffer
-			r, err := New(Dir(dir), StdIO(nil, &cb, &cb),
+			r, err := New(Dir(tdir), StdIO(nil, &cb, &cb),
 				// TODO: why does this make some tests hang?
 				// Env(expand.ListEnviron(append(os.Environ(),
 				// 	"FOO_NULL_BAR=foo\x00bar")...)),
@@ -3211,28 +3213,26 @@ func TestRunnerRunConfirm(t *testing.T) {
 	if !hasBash50 {
 		t.Skip("bash 5.0 required to run")
 	}
+	t.Parallel()
+
 	if runtime.GOOS == "windows" {
 		// For example, it seems to treat environment variables as
 		// case-sensitive, which isn't how Windows works.
 		t.Skip("bash on Windows emulates Unix-y behavior")
 	}
-	for i := range runTests {
-		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
-			c := runTests[i]
+	for _, c := range runTests {
+		c := c
+		t.Run("", func(t *testing.T) {
 			if strings.Contains(c.want, " #IGNORE") {
 				return
 			}
 			skipIfUnsupported(t, c.in)
 			t.Parallel()
-			dir, err := ioutil.TempDir("", "interp-test")
-			if err != nil {
-				t.Fatal(err)
-			}
-			defer os.RemoveAll(dir)
+			tdir := t.TempDir()
 			ctx, cancel := context.WithTimeout(context.Background(), runnerRunTimeout)
 			defer cancel()
 			cmd := exec.CommandContext(ctx, "bash")
-			cmd.Dir = dir
+			cmd.Dir = tdir
 			cmd.Stdin = strings.NewReader(c.in)
 			out, err := cmd.CombinedOutput()
 			if strings.Contains(c.want, " #JUSTERR") {
@@ -3258,6 +3258,7 @@ func TestRunnerRunConfirm(t *testing.T) {
 
 func TestRunnerOpts(t *testing.T) {
 	t.Parallel()
+
 	withPath := func(strs ...string) func(*Runner) error {
 		prefix := []string{
 			"PATH=" + os.Getenv("PATH"),
@@ -3349,8 +3350,8 @@ func TestRunnerOpts(t *testing.T) {
 		},
 	}
 	p := syntax.NewParser()
-	for i, c := range cases {
-		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
+	for _, c := range cases {
+		t.Run("", func(t *testing.T) {
 			skipIfUnsupported(t, c.in)
 			file := parse(t, p, c.in)
 			var cb concBuffer
@@ -3377,6 +3378,7 @@ func TestRunnerOpts(t *testing.T) {
 
 func TestRunnerContext(t *testing.T) {
 	t.Parallel()
+
 	cases := []string{
 		"",
 		"while true; do true; done",
@@ -3389,8 +3391,8 @@ func TestRunnerContext(t *testing.T) {
 		"while true; do true; done | while true; do true; done",
 	}
 	p := syntax.NewParser()
-	for i, in := range cases {
-		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
+	for _, in := range cases {
+		t.Run("", func(t *testing.T) {
 			file := parse(t, p, in)
 			ctx, cancel := context.WithCancel(context.Background())
 			cancel()
@@ -3415,6 +3417,7 @@ func TestRunnerContext(t *testing.T) {
 
 func TestRunnerAltNodes(t *testing.T) {
 	t.Parallel()
+
 	in := "echo foo"
 	file := parse(t, nil, in)
 	want := "foo\n"
@@ -3440,6 +3443,7 @@ func TestRunnerAltNodes(t *testing.T) {
 
 func TestElapsedString(t *testing.T) {
 	t.Parallel()
+
 	tests := []struct {
 		in    time.Duration
 		posix bool
@@ -3473,6 +3477,7 @@ func TestElapsedString(t *testing.T) {
 
 func TestRunnerDir(t *testing.T) {
 	t.Parallel()
+
 	wd, err := os.Getwd()
 	if err != nil {
 		t.Fatal(err)
@@ -3511,13 +3516,9 @@ func TestRunnerDir(t *testing.T) {
 	// Ensure that we treat symlinks and short paths properly, especially
 	// with Dir and globbing.
 	t.Run("SymlinkOrShortPath", func(t *testing.T) {
-		tempDir, err := ioutil.TempDir("", "interp-test")
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer os.RemoveAll(tempDir)
+		tdir := t.TempDir()
 
-		realDir := filepath.Join(tempDir, "real-long-dir-name")
+		realDir := filepath.Join(tdir, "real-long-dir-name")
 		realFile := filepath.Join(realDir, "realfile")
 
 		if err := os.Mkdir(realDir, 0o777); err != nil {
@@ -3534,11 +3535,10 @@ func TestRunnerDir(t *testing.T) {
 				t.Fatal(err)
 			}
 			altDir = short
-			// We replace tempDir later, and it might have been
-			// shortened.
-			tempDir = filepath.Dir(altDir)
+			// We replace tdir later, and it might have been shortened.
+			tdir = filepath.Dir(altDir)
 		} else {
-			altDir = filepath.Join(tempDir, "symlink")
+			altDir = filepath.Join(tdir, "symlink")
 			if err := os.Symlink(realDir, altDir); err != nil {
 				t.Fatal(err)
 			}
@@ -3556,7 +3556,7 @@ func TestRunnerDir(t *testing.T) {
 			t.Fatal(err)
 		}
 		got := b.String()
-		got = strings.ReplaceAll(got, tempDir, "")
+		got = strings.ReplaceAll(got, tdir, "")
 		got = strings.TrimSpace(got)
 		want := `/symlink /symlink/realfile`
 		if runtime.GOOS == "windows" {
@@ -3570,6 +3570,7 @@ func TestRunnerDir(t *testing.T) {
 
 func TestRunnerIncremental(t *testing.T) {
 	t.Parallel()
+
 	file := parse(t, nil, "echo foo; false; echo bar; exit 0; echo baz")
 	want := "foo\nbar\n"
 	var b bytes.Buffer
@@ -3593,20 +3594,17 @@ func TestRunnerIncremental(t *testing.T) {
 
 func TestRunnerResetFields(t *testing.T) {
 	t.Parallel()
-	dir, err := ioutil.TempDir("", "interp")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(dir)
-	logPath := filepath.Join(dir, "log")
+
+	tdir := t.TempDir()
+	logPath := filepath.Join(tdir, "log")
 	logFile, err := os.Create(logPath)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer logFile.Close()
 	r, _ := New(
-		Params("-f", "--", "first", dir, logPath),
-		Dir(dir),
+		Params("-f", "--", "first", tdir, logPath),
+		Dir(tdir),
 		OpenHandler(testOpenHandler),
 		ExecHandler(testExecHandler),
 	)
@@ -3664,6 +3662,7 @@ func TestRunnerManyResets(t *testing.T) {
 
 func TestRunnerFilename(t *testing.T) {
 	t.Parallel()
+
 	want := "f.sh\n"
 	file, _ := syntax.NewParser().Parse(strings.NewReader("echo $0"), "f.sh")
 	var b bytes.Buffer
@@ -3680,6 +3679,7 @@ func TestRunnerFilename(t *testing.T) {
 
 func TestRunnerEnvNoModify(t *testing.T) {
 	t.Parallel()
+
 	env := expand.ListEnviron("one=1", "two=2")
 	file := parse(t, nil, `echo -n "$one $two; "; one=x; unset two`)
 
@@ -3705,21 +3705,18 @@ func TestMalformedPathOnWindows(t *testing.T) {
 	if runtime.GOOS != "windows" {
 		t.Skip("Skipping windows test on non-windows GOOS")
 	}
-	dir, err := ioutil.TempDir("", "interp-test")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(dir)
+	tdir := t.TempDir()
+	t.Parallel()
 
-	path := filepath.Join(dir, "test.cmd")
+	path := filepath.Join(tdir, "test.cmd")
 	script := []byte("@echo foo")
 	if err := ioutil.WriteFile(path, script, 0o777); err != nil {
 		t.Fatal(err)
 	}
 
 	// set PATH to c:\tmp\dir instead of C:\tmp\dir
-	volume := filepath.VolumeName(dir)
-	pathList := strings.ToLower(volume) + dir[len(volume):]
+	volume := filepath.VolumeName(tdir)
+	pathList := strings.ToLower(volume) + tdir[len(volume):]
 
 	file := parse(t, nil, "test.cmd")
 	var cb concBuffer
@@ -3736,6 +3733,8 @@ func TestMalformedPathOnWindows(t *testing.T) {
 }
 
 func TestReadShouldNotPanicWithNilStdin(t *testing.T) {
+	t.Parallel()
+
 	r, err := New()
 	if err != nil {
 		t.Fatal(err)
@@ -3750,6 +3749,8 @@ func TestReadShouldNotPanicWithNilStdin(t *testing.T) {
 }
 
 func TestRunnerVars(t *testing.T) {
+	t.Parallel()
+
 	r, err := New()
 	if err != nil {
 		t.Fatal(err)
@@ -3768,6 +3769,8 @@ func TestRunnerVars(t *testing.T) {
 }
 
 func TestRunnerSubshell(t *testing.T) {
+	t.Parallel()
+
 	r1, err := New()
 	if err != nil {
 		t.Fatal(err)

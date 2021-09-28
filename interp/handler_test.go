@@ -112,6 +112,7 @@ var modCases = []struct {
 
 func TestRunnerHandlers(t *testing.T) {
 	t.Parallel()
+
 	p := syntax.NewParser()
 	for _, tc := range modCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -159,6 +160,8 @@ func TestKillTimeout(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("skipping trap tests on windows")
 	}
+	t.Parallel()
+
 	tests := []struct {
 		src         string
 		want        string
@@ -188,9 +191,9 @@ func TestKillTimeout(t *testing.T) {
 		},
 	}
 
-	for i := range tests {
-		test := tests[i]
-		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+	for _, test := range tests {
+		test := test
+		t.Run("", func(t *testing.T) {
 			t.Parallel()
 			file := parse(t, nil, test.src)
 			attempt := 0
@@ -251,8 +254,8 @@ func TestKillSignal(t *testing.T) {
 	// interpreter spawn a process, and easily grab its PID to send it a
 	// signal directly. The program prints its PID and hangs forever.
 	file := parse(t, nil, "GOSH_CMD=pid_and_hang $GOSH_PROG")
-	for i := range tests {
-		test := tests[i]
+	for _, test := range tests {
+		test := test
 		t.Run(fmt.Sprintf("signal-%d", test.signal), func(t *testing.T) {
 			t.Parallel()
 
