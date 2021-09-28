@@ -1,5 +1,27 @@
 # Changelog
 
+## [3.4.0] - 2021-09-??
+
+This release drops support for Go 1.15,
+which allows the code to start benefitting from `io/fs`.
+
+- **cmd/shfmt**
+  - Walks directories ~10% faster thanks to `filepath.WalkDir`
+- **syntax**
+  - Add `Quote` to mirror `strconv.Quote` for shell syntax
+  - Skip null characters when parsing, just like Bash
+  - Rewrite fuzzers with Go 1.18's native fuzzing
+- **fileutil**
+  - Add `CouldBeScript2` using `io/fs.DirEntry`
+- **expand**
+  - Skip or stop at null characters, just like Bash
+- **interp**
+  - Set `GID` just like `UID`
+  - Add support for `read -p`
+  - Add support for `pwd` flags
+  - Create random FIFOs for process substitutions more robustly
+  - Avoid leaking an open file when interpreting `$(<file)`
+
 ## [3.3.1] - 2021-08-01
 
 - **syntax**
