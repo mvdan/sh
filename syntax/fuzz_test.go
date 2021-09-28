@@ -55,9 +55,6 @@ func FuzzQuote(f *testing.F) {
 }
 
 func FuzzParsePrint(f *testing.F) {
-	// TODO: probably use f.Add on table-driven test cases too?
-	// In the past, any crashers found by go-fuzz got put there.
-
 	add := func(src string, variant LangVariant) {
 		// For now, default to just KeepComments.
 		f.Add(src, uint8(variant), true, false,
