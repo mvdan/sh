@@ -7,6 +7,7 @@
 package syntax
 
 import (
+	"fmt"
 	"io"
 	"os/exec"
 	"strings"
@@ -19,21 +20,46 @@ func FuzzQuote(f *testing.F) {
 	}
 
 	// Keep in sync with ExampleQuote.
-	f.Add("foo")
-	f.Add("bar $baz")
-	f.Add(`"won't"`)
-	f.Add(`~/home`)
-	f.Add("#1304")
-	f.Add("name=value")
-	f.Add(`glob-*`)
-	f.Add("invalid-\xe2'")
-	f.Add("nonprint-\x0b\x1b")
-	f.Fuzz(func(t *testing.T, s string) {
-		quoted, ok := Quote(s)
-		if !ok {
-			// Contains a null byte; not interesting.
+	f.Add("foo", uint8(LangBash))
+	f.Add("bar $baz", uint8(LangBash))
+	f.Add(`"won't"`, uint8(LangBash))
+	f.Add(`~/home`, uint8(LangBash))
+	f.Add("#1304", uint8(LangBash))
+	f.Add("name=value", uint8(LangBash))
+	f.Add(`glob-*`, uint8(LangBash))
+	f.Add("invalid-\xe2'", uint8(LangBash))
+	f.Add("nonprint-\x0b\x1b", uint8(LangBash))
+	f.Fuzz(func(t *testing.T, s string, langVariant uint8) {
+		if langVariant > 3 {
+			t.Skip() // lang variants are 0-3
+		}
+		lang := LangVariant(langVariant)
+		quoted, err := Quote(s, lang)
+		if err != nil {
+			// Cannot be quoted; not interesting.
 			t.Skip()
 		}
+
+		var shellProgram string
+		switch lang {
+		case LangBash:
+			hasBash51(t)
+			shellProgram = "bash"
+		case LangPOSIX:
+			hasDash059(t)
+			shellProgram = "dash"
+		case LangMirBSDKorn:
+			hasMksh59(t)
+			shellProgram = "mksh"
+		case LangBats:
+			t.Skip() // bats has no shell and its syntax is just bash
+		default:
+			panic(fmt.Sprintf("unknown lang variant: %d", lang))
+		}
+
+		// TODO: Also double-check with our parser.
+		// That should allow us to fuzz Bats too, for instance.
+
 		// Beware that this might run arbitrary code
 		// if Quote is too naive and allows ';' or '$'.
 		//
@@ -43,13 +69,14 @@ func FuzzQuote(f *testing.F) {
 		//
 		// We could consider ways to fully sandbox the bash process,
 		// but for now that feels overkill.
-		out, err := exec.Command("bash", "-c", "printf %s "+quoted).CombinedOutput()
+		out, err := exec.Command(shellProgram, "-c", "printf %s "+quoted).CombinedOutput()
 		if err != nil {
-			t.Fatalf("bash error on %q quoted as %s: %v: %s", s, quoted, err, out)
+			t.Fatalf("%s error on %q quoted as %s: %v: %s", shellProgram, s, quoted, err, out)
 		}
 		want, got := s, string(out)
 		if want != got {
-			t.Fatalf("output mismatch on %q quoted as %s: got %q (len=%d)", want, quoted, got, len(got))
+			t.Fatalf("%s output mismatch on %q quoted as %s: got %q (len=%d)",
+				shellProgram, want, quoted, got, len(got))
 		}
 	})
 }

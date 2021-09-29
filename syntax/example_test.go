@@ -112,9 +112,11 @@ func ExampleQuote() {
 		"invalid-\xe2'",
 		"nonprint-\x0b\x1b",
 	} {
-		quoted, ok := syntax.Quote(s)
-		if !ok {
-			fmt.Printf("%q cannot be quoted", s)
+		// We assume Bash syntax here.
+		// For general shell syntax quoting, use syntax.LangPOSIX.
+		quoted, err := syntax.Quote(s, syntax.LangBash)
+		if err != nil {
+			fmt.Printf("%q cannot be quoted: %v\n", s, err)
 		} else {
 			fmt.Printf("Quote(%17q): %s\n", s, quoted)
 		}
