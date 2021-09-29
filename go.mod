@@ -4,6 +4,7 @@ go 1.16
 
 require (
 	github.com/creack/pty v1.1.15
+	github.com/frankban/quicktest v1.13.1
 	github.com/google/renameio v1.0.1
 	github.com/kr/pretty v0.3.0
 	github.com/pkg/diff v0.0.0-20210226163009-20ebb0f2a09e

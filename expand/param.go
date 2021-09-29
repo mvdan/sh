@@ -263,11 +263,11 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 		case syntax.OtherParamOps:
 			switch arg {
 			case "Q":
-				var ok bool
-				str, ok = syntax.Quote(str)
-				if !ok {
-					// Variables can't contain null bytes.
-					panic("syntax.Quote should never fail on a variable")
+				str, err = syntax.Quote(str, syntax.LangBash)
+				if err != nil {
+					// Is this even possible? If a user runs into this panic,
+					// it's most likely a bug we need to fix.
+					panic(err)
 				}
 			case "E":
 				tail := str
