@@ -13,6 +13,7 @@ import (
 	"reflect"
 	"regexp"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/kr/pretty"
@@ -153,22 +154,52 @@ func TestParseBats(t *testing.T) {
 	}
 }
 
-var (
-	hasBash51  bool
-	hasDash059 bool
-	hasMksh59  bool
-)
-
 func TestMain(m *testing.M) {
 	os.Setenv("LANGUAGE", "en_US.UTF8")
 	os.Setenv("LC_ALL", "en_US.UTF8")
-	hasBash51 = cmdContains("version 5.1", "bash", "--version")
+	os.Exit(m.Run())
+}
+
+var (
+	storedHasBash51 bool
+	onceHasBash51   sync.Once
+
+	storedHasDash059 bool
+	onceHasDash059   sync.Once
+
+	storedHasMksh59 bool
+	onceHasMksh59   sync.Once
+)
+
+func hasBash51(tb testing.TB) {
+	onceHasBash51.Do(func() {
+		storedHasBash51 = cmdContains("version 5.1", "bash", "--version")
+	})
+	if !storedHasBash51 {
+		tb.Skipf("bash 5.1 required to run")
+	}
+}
+
+func hasDash059(tb testing.TB) {
 	// dash provides no way to check its version, so we have to
 	// check if it's new enough as to not have the bug that breaks
-	// our integration tests. Blergh.
-	hasDash059 = cmdContains("Bad subst", "dash", "-c", "echo ${#<}")
-	hasMksh59 = cmdContains(" R59 ", "mksh", "-c", "echo $KSH_VERSION")
-	os.Exit(m.Run())
+	// our integration tests.
+	// This also means our check does not require a specific version.
+	onceHasDash059.Do(func() {
+		storedHasDash059 = cmdContains("Bad subst", "dash", "-c", "echo ${#<}")
+	})
+	if !storedHasDash059 {
+		tb.Skipf("dash 0.5.9+ required to run")
+	}
+}
+
+func hasMksh59(tb testing.TB) {
+	onceHasMksh59.Do(func() {
+		storedHasMksh59 = cmdContains(" R59 ", "mksh", "-c", "echo $KSH_VERSION")
+	})
+	if !storedHasMksh59 {
+		tb.Skipf("mksh 59 required to run")
+	}
 }
 
 func cmdContains(substr, cmd string, args ...string) bool {
@@ -229,9 +260,7 @@ func TestParseBashConfirm(t *testing.T) {
 	if testing.Short() {
 		t.Skip("calling bash is slow.")
 	}
-	if !hasBash51 {
-		t.Skip("bash 5.1 required to run")
-	}
+	hasBash51(t)
 	i := 0
 	for _, c := range append(fileTests, fileTestsNoPrint...) {
 		if c.Bash == nil {
@@ -249,9 +278,7 @@ func TestParsePosixConfirm(t *testing.T) {
 	if testing.Short() {
 		t.Skip("calling dash is slow.")
 	}
-	if !hasDash059 {
-		t.Skip("dash 0.5.9 or newer required to run")
-	}
+	hasDash059(t)
 	i := 0
 	for _, c := range append(fileTests, fileTestsNoPrint...) {
 		if c.Posix == nil {
@@ -269,9 +296,7 @@ func TestParseMirBSDKornConfirm(t *testing.T) {
 	if testing.Short() {
 		t.Skip("calling mksh is slow.")
 	}
-	if !hasMksh59 {
-		t.Skip("mksh 59 required to run")
-	}
+	hasMksh59(t)
 	i := 0
 	for _, c := range append(fileTests, fileTestsNoPrint...) {
 		if c.MirBSDKorn == nil {
@@ -289,9 +314,7 @@ func TestParseErrBashConfirm(t *testing.T) {
 	if testing.Short() {
 		t.Skip("calling bash is slow.")
 	}
-	if !hasBash51 {
-		t.Skip("bash 5.1 required to run")
-	}
+	hasBash51(t)
 	for _, c := range shellTests {
 		want := c.common
 		if c.bsmk != nil {
@@ -312,9 +335,7 @@ func TestParseErrPosixConfirm(t *testing.T) {
 	if testing.Short() {
 		t.Skip("calling dash is slow.")
 	}
-	if !hasDash059 {
-		t.Skip("dash 0.5.9 or newer required to run")
-	}
+	hasDash059(t)
 	for _, c := range shellTests {
 		want := c.common
 		if c.posix != nil {
@@ -332,9 +353,7 @@ func TestParseErrMirBSDKornConfirm(t *testing.T) {
 	if testing.Short() {
 		t.Skip("calling mksh is slow.")
 	}
-	if !hasMksh59 {
-		t.Skip("mksh 59 required to run")
-	}
+	hasMksh59(t)
 	for _, c := range shellTests {
 		want := c.common
 		if c.bsmk != nil {
