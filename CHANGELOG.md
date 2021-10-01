@@ -1,6 +1,6 @@
 # Changelog
 
-## [3.4.0] - 2021-09-??
+## [3.4.0] - 2021-10-01
 
 This release drops support for Go 1.15,
 which allows the code to start benefitting from `io/fs`.
@@ -554,6 +554,7 @@ module in v3.
 
 Initial release.
 
+[3.4.0]: https://github.com/mvdan/sh/releases/tag/v3.4.0
 [3.3.1]: https://github.com/mvdan/sh/releases/tag/v3.3.1
 [3.3.0]: https://github.com/mvdan/sh/releases/tag/v3.3.0
 [3.2.4]: https://github.com/mvdan/sh/releases/tag/v3.2.4
