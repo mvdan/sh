@@ -9,7 +9,6 @@ package interp
 import (
 	"bufio"
 	"context"
-	"errors"
 	"io"
 	"os"
 	"os/exec"
@@ -108,8 +107,18 @@ func TestRunnerTerminalExec(t *testing.T) {
 			return out
 		}, "end\n"},
 		{"Pseudo", func(t *testing.T, cmd *exec.Cmd) io.Reader {
-			primary, err := pty.Start(cmd)
+			// Note that we avoid pty.Start,
+			// as it closes the secondary terminal via a defer,
+			// possibly before the command has finished.
+			// That can lead to "signal: hangup" flakes.
+			primary, secondary, err := pty.Open()
 			if err != nil {
+				t.Fatal(err)
+			}
+			cmd.Stdin = secondary
+			cmd.Stdout = secondary
+			cmd.Stderr = secondary
+			if err := cmd.Start(); err != nil {
 				t.Fatal(err)
 			}
 			return primary
@@ -131,18 +140,13 @@ func TestRunnerTerminalExec(t *testing.T) {
 			if got != test.want {
 				t.Fatalf("\nwant: %q\ngot:  %q", test.want, got)
 			}
-			if err := cmd.Wait(); err != nil {
-				t.Fatal(err)
-			}
-			// Close the primary after we've waited for the process to stop.
-			// Otherwise, the child process might see "signal: hangup",
-			// as it unexpectedly finds its terminal to be closed too early.
 			if closer, ok := primary.(io.Closer); ok {
-				// Sometimes we'll get a "file already closed" error.
-				// Presumably, this is because the other end may be closed first.
-				if err := closer.Close(); err != nil && !errors.Is(err, os.ErrClosed) {
+				if err := closer.Close(); err != nil {
 					t.Fatal(err)
 				}
+			}
+			if err := cmd.Wait(); err != nil {
+				t.Fatal(err)
 			}
 		})
 	}
