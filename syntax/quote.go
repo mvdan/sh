@@ -138,16 +138,17 @@ func Quote(s string, lang LangVariant) (string, error) {
 			case r > utf8.MaxRune:
 				// Not a valid Unicode code point?
 				return "", &QuoteError{ByteOffset: offs, Message: quoteErrRange}
+			case lang == LangMirBSDKorn && r > 0xFFFD:
+				// From the CAVEATS section in R59's man page:
+				//
+				// mksh currently uses OPTU-16 internally, which is the same as
+				// UTF-8 and CESU-8 with 0000..FFFD being valid codepoints.
+				return "", &QuoteError{ByteOffset: offs, Message: quoteErrMksh}
 			case r < 0x10000:
 				// \uXXXX, fixed at four hexadecimal characters.
 				fmt.Fprintf(&b, "\\u%04x", r)
 			default:
 				// \UXXXXXXXX, fixed at eight hexadecimal characters.
-				if lang == LangMirBSDKorn {
-					// mksh seems to lack support for codepoints above 16 bits?
-					// See the CAVEATS section in R59.
-					return "", &QuoteError{ByteOffset: offs, Message: quoteErrMksh}
-				}
 				fmt.Fprintf(&b, "\\U%08x", r)
 			}
 			rem = rem[size:]
