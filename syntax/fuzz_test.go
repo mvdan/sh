@@ -59,6 +59,7 @@ func FuzzQuote(f *testing.F) {
 			panic(fmt.Sprintf("unknown lang variant: %d", lang))
 		}
 
+		// Verify that our parser ends up with a simple command with one word.
 		f, err := NewParser(Variant(lang)).Parse(strings.NewReader(quoted), "")
 		if err != nil {
 			t.Fatalf("parse error on %q quoted as %s: %v", s, quoted, err)
@@ -68,15 +69,19 @@ func FuzzQuote(f *testing.F) {
 		qt.Assert(t, ok, qt.IsTrue, qt.Commentf("in: %q, quoted: %s", s, quoted))
 		qt.Assert(t, len(call.Args), qt.Equals, 1, qt.Commentf("in: %q, quoted: %s", s, quoted))
 
-		// Beware that this might run arbitrary code
-		// if Quote is too naive and allows ';' or '$'.
-		//
-		// Also note that this fuzzing would not catch '=',
-		// as we don't use the quoted string as a first argument
-		// to avoid running random commands.
-		//
-		// We could consider ways to fully sandbox the bash process,
-		// but for now that feels overkill.
+		// Also check that the single word only uses literals or quoted strings.
+		Walk(call.Args[0], func(node Node) bool {
+			switch node.(type) {
+			case nil, *Word, *Lit, *SglQuoted, *DblQuoted:
+			default:
+				t.Fatalf("unexpected node type: %T", node)
+			}
+			return true
+		})
+
+		// The process below shouldn't run arbitrary code,
+		// since our parser checks above should catch the use of ';' or '$',
+		// in the case that Quote were too naive to quote them.
 		out, err := exec.Command(shellProgram, "-c", "printf %s "+quoted).CombinedOutput()
 		if err != nil {
 			t.Fatalf("%s error on %q quoted as %s: %v: %s", shellProgram, s, quoted, err, out)
