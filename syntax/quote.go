@@ -46,6 +46,11 @@ const (
 // Some strings do not require any quoting and are returned unchanged.
 // Those strings can be directly surrounded in single quotes as well.
 func Quote(s string, lang LangVariant) (string, error) {
+	if s == "" {
+		// Special case; an empty string must always be quoted,
+		// as otherwise it expands to zero fields.
+		return "''", nil
+	}
 	shellChars := false
 	nonPrintable := false
 	offs := 0
