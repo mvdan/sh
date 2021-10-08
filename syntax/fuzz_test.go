@@ -12,6 +12,8 @@ import (
 	"os/exec"
 	"strings"
 	"testing"
+
+	qt "github.com/frankban/quicktest"
 )
 
 func FuzzQuote(f *testing.F) {
@@ -57,8 +59,14 @@ func FuzzQuote(f *testing.F) {
 			panic(fmt.Sprintf("unknown lang variant: %d", lang))
 		}
 
-		// TODO: Also double-check with our parser.
-		// That should allow us to fuzz Bats too, for instance.
+		f, err := NewParser(Variant(lang)).Parse(strings.NewReader(quoted), "")
+		if err != nil {
+			t.Fatalf("parse error on %q quoted as %s: %v", s, quoted, err)
+		}
+		qt.Assert(t, len(f.Stmts), qt.Equals, 1, qt.Commentf("in: %q, quoted: %s", s, quoted))
+		call, ok := f.Stmts[0].Cmd.(*CallExpr)
+		qt.Assert(t, ok, qt.IsTrue, qt.Commentf("in: %q, quoted: %s", s, quoted))
+		qt.Assert(t, len(call.Args), qt.Equals, 1, qt.Commentf("in: %q, quoted: %s", s, quoted))
 
 		// Beware that this might run arbitrary code
 		// if Quote is too naive and allows ';' or '$'.

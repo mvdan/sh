@@ -16,7 +16,7 @@ func TestQuote(t *testing.T) {
 		lang LangVariant
 		want interface{}
 	}{
-		{"", LangBash, ``},
+		{"", LangBash, `''`},
 		{"\a", LangBash, `$'\a'`},
 		{"\b", LangBash, `$'\b'`},
 		{"\f", LangBash, `$'\f'`},
