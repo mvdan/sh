@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"math/bits"
+	"math/rand"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -3226,13 +3227,23 @@ func TestRunnerRunConfirm(t *testing.T) {
 				return
 			}
 			skipIfUnsupported(t, c.in)
+
+			in, want := c.in, c.want
+
+			if strings.Contains(c.want, "not found") {
+				randomSeed := rand.Int63()
+
+				in = replaceIdentifiers(c.in, randomSeed)
+				want = replaceIdentifiers(c.want, randomSeed)
+			}
+
 			t.Parallel()
 			tdir := t.TempDir()
 			ctx, cancel := context.WithTimeout(context.Background(), runnerRunTimeout)
 			defer cancel()
 			cmd := exec.CommandContext(ctx, "bash")
 			cmd.Dir = tdir
-			cmd.Stdin = strings.NewReader(c.in)
+			cmd.Stdin = strings.NewReader(in)
 			out, err := cmd.CombinedOutput()
 			if strings.Contains(c.want, " #JUSTERR") {
 				// bash sometimes exits with status code 0 and
@@ -3247,12 +3258,22 @@ func TestRunnerRunConfirm(t *testing.T) {
 			if err != nil {
 				got += err.Error()
 			}
-			if got != c.want {
+			if got != want {
 				t.Fatalf("wrong bash output in %q:\nwant: %q\ngot:  %q",
-					c.in, c.want, got)
+					in, want, got)
 			}
 		})
 	}
+}
+
+func replaceIdentifiers(s string, seed int64) string {
+	output := s
+
+	for _, operator := range []string{"foo"} {
+		output = strings.ReplaceAll(output, operator, fmt.Sprintf("%s%d", operator, seed))
+	}
+
+	return output
 }
 
 func TestRunnerOpts(t *testing.T) {
