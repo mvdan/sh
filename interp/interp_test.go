@@ -2086,6 +2086,12 @@ set +o pipefail
 		"bar\n",
 	},
 
+	// source from PATH
+	{
+		"mkdir test; echo 'echo foo' >test/a; PATH=$PWD/test source a; . test/a",
+		"foo\nfoo\n",
+	},
+
 	// source with set and shift
 	{
 		"echo 'set -- d e f' >a; source a; echo $@",
