@@ -68,3 +68,15 @@ func TestListEnviron(t *testing.T) {
 		})
 	}
 }
+
+func TestGetWithSameSubPrefix(t *testing.T) {
+	gotEnv := ListEnviron("GREETING=text1", "GREETING2=text2")
+	got := gotEnv.Get("GREETING2").String()
+	if got != "text2" {
+		t.Fatalf("ListEnviron.Get(GREETING2) wanted text2, got %q", got)
+	}
+	got = gotEnv.Get("GREETING").String()
+	if got != "text1" {
+		t.Fatalf("ListEnviron.Get(GREETING) wanted text1, got %q", got)
+	}
+}
