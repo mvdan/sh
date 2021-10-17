@@ -168,9 +168,13 @@ func listEnvironWithUpper(upper bool, pairs ...string) Environ {
 		jsep := strings.IndexByte(list[j], '=')
 		if isep < 0 {
 			isep = 0
+		} else {
+			isep += 1
 		}
 		if jsep < 0 {
 			jsep = 0
+		} else {
+			jsep += 1
 		}
 		return list[i][:isep] < list[j][:jsep]
 	})
