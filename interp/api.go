@@ -350,6 +350,7 @@ var shellOptsTable = [...]struct {
 	{'n', "noexec"},
 	{'f', "noglob"},
 	{'u', "nounset"},
+	{'x', "xtrace"},
 	{' ', "pipefail"},
 }
 
@@ -369,6 +370,7 @@ const (
 	optNoExec
 	optNoGlob
 	optNoUnset
+	optXTrace
 	optPipeFail
 
 	optExpandAliases

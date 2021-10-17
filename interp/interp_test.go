@@ -1936,6 +1936,7 @@ set +o errexit
 set +o noexec
 set +o noglob
 set +o nounset
+set +o xtrace
 set +o pipefail
  #IGNORE`,
 	},
@@ -2896,6 +2897,163 @@ var runTestsUnix = []runTest{
 	{
 		"echo nested > >(cat > >(cat))",
 		"nested\n",
+	},
+	// echo trace
+	{
+		`set -x; animals=("dog", "cat", "otter"); echo "hello ${animals[*]}"`,
+		`+ animals=("dog", "cat", "otter")
++ echo 'hello dog, cat, otter'
+hello dog, cat, otter
+`,
+	},
+	{
+		`set -x; s="always print a decimal point for %e, %E, %f, %F, %g and %G; do not remove trailing zeros for %g and %G"; echo "$s"`,
+		`+ s='always print a decimal point for %e, %E, %f, %F, %g and %G; do not remove trailing zeros for %g and %G'
++ echo 'always print a decimal point for %e, %E, %f, %F, %g and %G; do not remove trailing zeros for %g and %G'
+always print a decimal point for %e, %E, %f, %F, %g and %G; do not remove trailing zeros for %g and %G
+`,
+	},
+	{
+		`set -x
+x=without; echo "$x"
+x="double quote"; echo "$x"
+x='single quote'; echo "$x"`,
+		`+ x=without
++ echo without
+without
++ x='double quote'
++ echo 'double quote'
+double quote
++ x='single quote'
++ echo 'single quote'
+single quote
+`,
+	},
+	// for trace
+	{
+		`set -x
+animals=(dog, cat, otter)
+for i in ${animals[@]}
+do
+   echo "hello ${i}"
+done
+`,
+		`+ animals=(dog, cat, otter)
++ for i in '${animals[@]}'
++ echo 'hello dog,'
+hello dog,
++ for i in '${animals[@]}'
++ echo 'hello cat,'
+hello cat,
++ for i in '${animals[@]}'
++ echo 'hello otter'
+hello otter
+`,
+	},
+	{
+
+		`set -x
+loop() {
+    for i do
+        echo "something with $i"
+    done
+}
+loop 1 2 3`,
+		`+ loop 1 2 3
++ for i in '"$@"'
++ echo 'something with 1'
+something with 1
++ for i in '"$@"'
++ echo 'something with 2'
+something with 2
++ for i in '"$@"'
++ echo 'something with 3'
+something with 3
+`,
+	},
+	{
+		`set -x; animals=(dog, cat, otter); for i in ${animals[@]}; do echo "hello ${i}"; done`,
+		`+ animals=(dog, cat, otter)
++ for i in '${animals[@]}'
++ echo 'hello dog,'
+hello dog,
++ for i in '${animals[@]}'
++ echo 'hello cat,'
+hello cat,
++ for i in '${animals[@]}'
++ echo 'hello otter'
+hello otter
+`,
+	},
+	// case trace
+	{
+		`set -x; pet=dog; case $pet in 'dog') echo "barks";; *) echo "unknown";; esac`,
+		`+ pet=dog
++ case $pet in
++ echo barks
+barks
+`,
+	},
+	{
+		`set -x
+pet="dog"
+case $pet in
+  dog)
+    echo "barks"
+    ;;
+  *)
+    echo "unknown"
+    ;;
+esac`,
+		`+ pet=dog
++ case $pet in
++ echo barks
+barks
+`,
+	},
+	// arithmetic
+	{
+		`set -x
+a=$(( 4 + 5 )); echo $a
+a=$((3+5)); echo $a`,
+		`+ a=9
++ echo 9
+9
++ a=8
++ echo 8
+8
+`,
+	},
+	{
+		`set -x;
+let a=5+4; echo $a
+let "a = 5 + 4"; echo $a
+let a++; echo $a`,
+		`+ let a=5+4
++ echo 9
+9
++ let 'a = 5 + 4'
++ echo 9
+9
++ let a++
++ echo 10
+10
+`,
+	},
+	// functions
+	{
+		`set -x; function with_function () { echo 'hello, world'; }; with_function`,
+		`+ with_function
++ echo 'hello, world'
+hello, world
+`,
+	},
+	{
+		`set -x; without_function () { echo 'hello, world'; }; without_function`,
+		`+ without_function
++ echo 'hello, world'
+hello, world
+`,
 	},
 }
 
