@@ -308,6 +308,10 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 	if r.stop(ctx) {
 		return
 	}
+
+	tracingEnabled := r.opts[optXTrace]
+	trace := r.tracer()
+
 	switch x := cm.(type) {
 	case *syntax.Block:
 		r.stmts(ctx, x.Stmts)
@@ -337,6 +341,17 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			for _, as := range x.Assigns {
 				vr := r.assignVal(as, "")
 				r.setVar(as.Name.Value, as.Index, vr)
+
+				if !tracingEnabled {
+					continue
+				}
+
+				if as.Array != nil {
+					trace.expr(x)
+				} else if as.Value != nil {
+					trace.wordParts(as.Value.Parts, as.Name.Value, vr)
+				}
+				trace.newLineFlush()
 			}
 			break
 		}
@@ -359,6 +374,10 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 
 			r.setVarInternal(name, vr)
 		}
+
+		trace.call(fields[0], fields[1:]...)
+		trace.newLineFlush()
+
 		r.call(ctx, x.Args[0].Pos(), fields)
 		for _, restore := range restores {
 			r.setVarInternal(restore.name, restore.vr)
@@ -434,11 +453,28 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		case *syntax.WordIter:
 			name := y.Name.Value
 			items := r.Params // for i; do ...
-			if y.InPos.IsValid() {
+
+			inToken := y.InPos.IsValid()
+			if inToken {
 				items = r.fields(y.Items...) // for i in ...; do ...
+				inToken = len(items) > 0
 			}
+
+			traceFlush := func() {
+				trace.string(fmt.Sprintf("for %s in '", y.Name.Value))
+				trace.setFirstPrint(false)
+				if inToken {
+					trace.expr(y.Items[0])
+				} else {
+					trace.stringf("%q", "$@")
+				}
+				trace.string("'")
+				trace.newLineFlush()
+			}
+
 			for _, field := range items {
 				r.setVarString(name, field)
+				traceFlush()
 				if r.loopStmtsBroken(ctx, x.Do) {
 					break
 				}
@@ -464,9 +500,33 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		var val int
 		for _, expr := range x.Exprs {
 			val = r.arithm(expr)
+
+			if !tracingEnabled {
+				continue
+			}
+
+			switch v := expr.(type) {
+			case *syntax.Word:
+				qs, err := syntax.Quote(r.literal(v), syntax.LangBash)
+				if err != nil {
+					return
+				}
+				trace.stringf("let %v", qs)
+			case *syntax.BinaryArithm, *syntax.UnaryArithm:
+				trace.expr(x)
+			case *syntax.ParenArithm:
+				// TODO
+			}
 		}
+
+		trace.newLineFlush()
 		r.exit = oneIf(val == 0)
 	case *syntax.CaseClause:
+		trace.string("case ")
+		trace.setFirstPrint(false)
+		trace.expr(x.Word)
+		trace.string(" in")
+		trace.newLineFlush()
 		str := r.literal(x.Word)
 		for _, ci := range x.Items {
 			for _, word := range ci.Patterns {
