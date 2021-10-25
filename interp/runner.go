@@ -457,22 +457,20 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			inToken := y.InPos.IsValid()
 			if inToken {
 				items = r.fields(y.Items...) // for i in ...; do ...
-				inToken = len(items) > 0
-			}
-
-			traceFlush := func() {
-				trace.stringf("for %s in ", y.Name.Value)
-				if inToken {
-					trace.expr(y.Items[0])
-				} else {
-					trace.stringf("%q", "$@")
-				}
-				trace.newLineFlush()
 			}
 
 			for _, field := range items {
 				r.setVarString(name, field)
-				traceFlush()
+				trace.stringf("for %s in", y.Name.Value)
+				if inToken {
+					for _, item := range y.Items {
+						trace.string(" ")
+						trace.expr(item)
+					}
+				} else {
+					trace.string(` "$@"`)
+				}
+				trace.newLineFlush()
 				if r.loopStmtsBroken(ctx, x.Do) {
 					break
 				}

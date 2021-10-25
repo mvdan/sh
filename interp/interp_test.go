@@ -2991,6 +2991,20 @@ hello cat,
 hello otter
 `,
 	},
+	{
+		`set -x; for i in a b; do echo $i; done`,
+		`+ for i in a b
++ echo a
+a
++ for i in a b
++ echo b
+b
+`,
+	},
+	{
+		`set -x; for i in $none_a $none_b; do echo $i; done`,
+		``,
+	},
 	// case trace
 	{
 		`set -x; pet=dog; case $pet in 'dog') echo "barks";; *) echo "unknown";; esac`,
