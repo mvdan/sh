@@ -13,10 +13,10 @@ import (
 // tracer prints expressions like a shell would do if its
 // options '-o' is set to either 'xtrace' or its shorthand, '-x'.
 type tracer struct {
-	buf          bytes.Buffer
-	printer      *syntax.Printer
-	stdout       io.Writer
-	isFirstPrint bool
+	buf       bytes.Buffer
+	printer   *syntax.Printer
+	stdout    io.Writer
+	needsPlus bool
 }
 
 func (r *Runner) tracer() *tracer {
@@ -25,30 +25,23 @@ func (r *Runner) tracer() *tracer {
 	}
 
 	return &tracer{
-		printer:      syntax.NewPrinter(),
-		stdout:       r.stdout,
-		isFirstPrint: true,
+		printer:   syntax.NewPrinter(),
+		stdout:    r.stdout,
+		needsPlus: true,
 	}
-}
-
-func (t *tracer) setFirstPrint(isFirstPrint bool) {
-	if t == nil {
-		return
-	}
-
-	t.isFirstPrint = isFirstPrint
 }
 
 // string writes s to tracer.buf if tracer is non-nil,
-// prepending "+" if tracer.isFirstPrint is true.
+// prepending "+" if tracer.needsPlus is true.
 func (t *tracer) string(s string) {
 	if t == nil {
 		return
 	}
 
-	if t.isFirstPrint {
+	if t.needsPlus {
 		t.buf.WriteString("+ ")
 	}
+	t.needsPlus = false
 	t.buf.WriteString(s)
 }
 
@@ -67,9 +60,10 @@ func (t *tracer) expr(x syntax.Node) {
 		return
 	}
 
-	if t.isFirstPrint {
+	if t.needsPlus {
 		t.buf.WriteString("+ ")
 	}
+	t.needsPlus = false
 	if err := t.printer.Print(&t.buf, x); err != nil {
 		panic(err)
 	}
@@ -82,6 +76,7 @@ func (t *tracer) flush() {
 	}
 
 	t.stdout.Write(t.buf.Bytes())
+	t.buf.Reset()
 }
 
 // newLineFlush is like flush, but with extra new line before tracer.buf gets flushed.
@@ -93,8 +88,7 @@ func (t *tracer) newLineFlush() {
 	t.buf.WriteString("\n")
 	t.flush()
 	// reset state
-	t.buf.Reset()
-	t.isFirstPrint = true
+	t.needsPlus = true
 }
 
 // call prints a command and its arguments with varying formats depending on the cmd type,
