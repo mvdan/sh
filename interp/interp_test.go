@@ -3139,8 +3139,8 @@ func TestRunnerRun(t *testing.T) {
 				want = want[:i]
 			}
 			if got := cb.String(); got != want {
-				if len(got) > 80 {
-					got = "…" + got[len(got)-80:]
+				if len(got) > 200 {
+					got = "…" + got[len(got)-200:]
 				}
 				t.Fatalf("wrong output in %q:\nwant: %q\ngot:  %q",
 					c.in, want, got)

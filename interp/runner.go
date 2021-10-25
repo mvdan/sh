@@ -462,7 +462,6 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 
 			traceFlush := func() {
 				trace.stringf("for %s in ", y.Name.Value)
-				trace.setFirstPrint(false)
 				if inToken {
 					trace.expr(y.Items[0])
 				} else {
@@ -522,7 +521,6 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		r.exit = oneIf(val == 0)
 	case *syntax.CaseClause:
 		trace.string("case ")
-		trace.setFirstPrint(false)
 		trace.expr(x.Word)
 		trace.string(" in")
 		trace.newLineFlush()
