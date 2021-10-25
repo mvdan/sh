@@ -107,9 +107,9 @@ func NewPrinter(opts ...PrinterOption) *Printer {
 // Print "pretty-prints" the given syntax tree node to the given writer. Writes
 // to w are buffered.
 //
-// The node types supported at the moment are *File, *Stmt, *Word, any Command
-// node, and any WordPart node. A trailing newline will only be printed when a
-// *File is used.
+// The node types supported at the moment are *File, *Stmt, *Word, *Assign, any
+// Command node, and any WordPart node. A trailing newline will only be printed
+// when a *File is used.
 func (p *Printer) Print(w io.Writer, node Node) error {
 	p.reset()
 
@@ -146,6 +146,9 @@ func (p *Printer) Print(w io.Writer, node Node) error {
 	case WordPart:
 		p.line = x.Pos().Line()
 		p.wordPart(x, nil)
+	case *Assign:
+		p.line = x.Pos().Line()
+		p.assigns([]*Assign{x})
 	default:
 		return fmt.Errorf("unsupported node type: %T", x)
 	}

@@ -346,10 +346,17 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 					continue
 				}
 
+				// Strangely enough, it seems like Bash prints original
+				// source for arrays, but the expanded value otherwise.
+				// TODO: add test cases for x[i]=y and x+=y.
 				if as.Array != nil {
-					trace.expr(x)
+					trace.expr(as)
 				} else if as.Value != nil {
-					trace.wordParts(as.Value.Parts, as.Name.Value, vr)
+					val, err := syntax.Quote(vr.String(), syntax.LangBash)
+					if err != nil { // should never happen
+						panic(err)
+					}
+					trace.stringf("%s=%s", as.Name.Value, val)
 				}
 				trace.newLineFlush()
 			}

@@ -2957,7 +2957,6 @@ hello otter
 `,
 	},
 	{
-
 		`set -x
 loop() {
     for i do
@@ -2990,6 +2989,10 @@ hello cat,
 + echo 'hello otter'
 hello otter
 `,
+	},
+	{
+		`set -x; a=x"y"$z b=(foo bar $none '')`,
+		"+ a=xy\n+ b=(foo bar $none '')\n",
 	},
 	{
 		`set -x; for i in a b; do echo $i; done`,

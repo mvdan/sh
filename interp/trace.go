@@ -6,7 +6,6 @@ import (
 	"io"
 	"strings"
 
-	"mvdan.cc/sh/v3/expand"
 	"mvdan.cc/sh/v3/syntax"
 )
 
@@ -116,26 +115,5 @@ func (t *tracer) call(cmd string, args ...string) {
 		t.stringf("%s %s", cmd, qs)
 	} else {
 		t.stringf("%s %s", cmd, s)
-	}
-}
-
-func (t *tracer) wordParts(wp []syntax.WordPart, name string, vr expand.Variable) {
-	if t == nil {
-		return
-	}
-
-	for _, p := range wp {
-		switch p.(type) {
-		case *syntax.ArithmExp:
-			t.stringf("%s=%s", name, vr)
-		case *syntax.DblQuoted, *syntax.SglQuoted, *syntax.Lit:
-			qs, err := syntax.Quote(vr.String(), syntax.LangBash)
-			if err != nil { // should never happen
-				panic(err)
-			}
-			t.stringf("%s=%s", name, qs)
-		case *syntax.ParamExp, *syntax.ProcSubst, *syntax.ExtGlob, *syntax.BraceExp:
-			// TODO
-		}
 	}
 }
