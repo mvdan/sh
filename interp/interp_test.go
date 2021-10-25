@@ -2945,13 +2945,13 @@ do
 done
 `,
 		`+ animals=(dog, cat, otter)
-+ for i in '${animals[@]}'
++ for i in ${animals[@]}
 + echo 'hello dog,'
 hello dog,
-+ for i in '${animals[@]}'
++ for i in ${animals[@]}
 + echo 'hello cat,'
 hello cat,
-+ for i in '${animals[@]}'
++ for i in ${animals[@]}
 + echo 'hello otter'
 hello otter
 `,
@@ -2966,13 +2966,13 @@ loop() {
 }
 loop 1 2 3`,
 		`+ loop 1 2 3
-+ for i in '"$@"'
++ for i in "$@"
 + echo 'something with 1'
 something with 1
-+ for i in '"$@"'
++ for i in "$@"
 + echo 'something with 2'
 something with 2
-+ for i in '"$@"'
++ for i in "$@"
 + echo 'something with 3'
 something with 3
 `,
@@ -2980,13 +2980,13 @@ something with 3
 	{
 		`set -x; animals=(dog, cat, otter); for i in ${animals[@]}; do echo "hello ${i}"; done`,
 		`+ animals=(dog, cat, otter)
-+ for i in '${animals[@]}'
++ for i in ${animals[@]}
 + echo 'hello dog,'
 hello dog,
-+ for i in '${animals[@]}'
++ for i in ${animals[@]}
 + echo 'hello cat,'
 hello cat,
-+ for i in '${animals[@]}'
++ for i in ${animals[@]}
 + echo 'hello otter'
 hello otter
 `,

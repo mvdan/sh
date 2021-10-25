@@ -461,14 +461,13 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			}
 
 			traceFlush := func() {
-				trace.string(fmt.Sprintf("for %s in '", y.Name.Value))
+				trace.stringf("for %s in ", y.Name.Value)
 				trace.setFirstPrint(false)
 				if inToken {
 					trace.expr(y.Items[0])
 				} else {
 					trace.stringf("%q", "$@")
 				}
-				trace.string("'")
 				trace.newLineFlush()
 			}
 
