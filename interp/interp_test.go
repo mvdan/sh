@@ -409,6 +409,13 @@ var runTests = []runTest{
 	{"a=b; a+=c x+=y; echo $a $x", "bc y\n"},
 	{`a=" x  y"; b=$a c="$a"; echo $b; echo $c`, "x y\nx y\n"},
 	{`a=" x  y"; b=$a c="$a"; echo "$b"; echo "$c"`, " x  y\n x  y\n"},
+	{`arr=("foo" "bar" "lala" "foobar"); echo ${arr[@]:2}; echo ${arr[*]:2}`, "lala foobar\nlala foobar\n"},
+	{`arr=("foo" "bar" "lala" "foobar"); echo ${arr[@]:2:4}; echo ${arr[*]:1:4}`, "lala foobar\nbar lala foobar\n"},
+	{`arr=("foo" "bar"); echo ${arr[@]}; echo ${arr[*]}`, "foo bar\nfoo bar\n"},
+	{`arr=("foo"); echo ${arr[@]:99}`, "\n"},
+	{`echo ${arr[@]:1:99}; echo ${arr[*]:1:99}`, "\n\n"},
+	{`arr=(0 1 2 3 4 5 6 7 8 9 0 a b c d e f g h); echo ${arr[@]:3:4}`, "3 4 5 6\n"},
+	{`echo ${foo[@]}; echo ${foo[*]}`, "\n\n"},
 	// TODO: reenable once we figure out the broken pipe error
 	//{`$ENV_PROG | while read line; do if test -z "$line"; then echo empty; fi; break; done`, ""}, // never begin with an empty element
 
