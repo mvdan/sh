@@ -78,31 +78,72 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 		}
 	}
 
-	str, err := cfg.varInd(vr, index)
-	if err != nil {
-		return "", err
-	}
-	slicePos := func(n int) int {
-		if n < 0 {
-			n = len(str) + n
-			if n < 0 {
-				n = len(str)
+	var sliceOffset, sliceLen int
+	if pe.Slice != nil {
+		var err error
+		if pe.Slice.Offset != nil {
+			sliceOffset, err = Arithm(cfg, pe.Slice.Offset)
+			if err != nil {
+				return "", err
 			}
-		} else if n > len(str) {
-			n = len(str)
 		}
-		return n
+		if pe.Slice.Length != nil {
+			sliceLen, err = Arithm(cfg, pe.Slice.Length)
+			if err != nil {
+				return "", err
+			}
+		}
 	}
-	elems := []string{str}
+
+	var (
+		str   string
+		elems []string
+
+		indexAllElements bool // true if var has been accessed with * or @ index
+		callVarInd       = true
+	)
+
 	switch nodeLit(index) {
 	case "@", "*":
 		switch vr.Kind {
 		case Unset:
 			elems = nil
+			indexAllElements = true
 		case Indexed:
+			indexAllElements = true
+			callVarInd = false
 			elems = vr.List
+			slicePos := func(n int) int {
+				if n < 0 {
+					n = len(elems) + n
+					if n < 0 {
+						n = len(elems)
+					}
+				} else if n > len(elems) {
+					n = len(elems)
+				}
+				return n
+			}
+			if pe.Slice != nil && pe.Slice.Offset != nil {
+				elems = elems[slicePos(sliceOffset):]
+			}
+			if pe.Slice != nil && pe.Slice.Length != nil {
+				elems = elems[:slicePos(sliceLen)]
+			}
+			str = strings.Join(elems, " ")
 		}
 	}
+	if callVarInd {
+		var err error
+		str, err = cfg.varInd(vr, index)
+		if err != nil {
+			return "", err
+		}
+	}
+	if !indexAllElements {
+		elems = []string{str}
+	}
+
 	switch {
 	case pe.Length:
 		n := len(elems)
@@ -138,19 +179,25 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 		sort.Strings(strs)
 		str = strings.Join(strs, " ")
 	case pe.Slice != nil:
-		if pe.Slice.Offset != nil {
-			n, err := Arithm(cfg, pe.Slice.Offset)
-			if err != nil {
-				return "", err
+		if callVarInd {
+			slicePos := func(n int) int {
+				if n < 0 {
+					n = len(str) + n
+					if n < 0 {
+						n = len(str)
+					}
+				} else if n > len(str) {
+					n = len(str)
+				}
+				return n
 			}
-			str = str[slicePos(n):]
-		}
-		if pe.Slice.Length != nil {
-			n, err := Arithm(cfg, pe.Slice.Length)
-			if err != nil {
-				return "", err
+			if pe.Slice.Offset != nil {
+				str = str[slicePos(sliceOffset):]
 			}
-			str = str[:slicePos(n)]
+			if pe.Slice.Length != nil {
+				str = str[:slicePos(sliceLen)]
+			}
+		} else { // elems are already sliced
 		}
 	case pe.Repl != nil:
 		orig, err := Pattern(cfg, pe.Repl.Orig)
