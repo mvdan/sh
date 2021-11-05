@@ -103,6 +103,19 @@ repo configuration like:
         args: [-w]
         types: [shell]
 ```
+An alternative configuration for running shfmt via the official shfmt docker image is:
+```yaml
+  - repo: local
+    hooks:
+      - id: shfmt
+        name: Format Shell Script Files
+        description: Runs shfmt Docker image to format Shell Script files
+        minimum_pre_commit_version: 2.4.0
+        language: docker_image
+        types: [shell]
+        entry: mvdan/shfmt
+        args: [-w]
+```
 
 ### Related projects
 
