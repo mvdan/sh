@@ -114,7 +114,7 @@ An alternative configuration for running shfmt via the official shfmt docker ima
         minimum_pre_commit_version: 2.4.0
         language: docker_image
         types: [shell]
-        entry: mvdan/shfmt
+        entry: mvdan/shfmt:v3.4.0
         args: [-w]
 ```
 
