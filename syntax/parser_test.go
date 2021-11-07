@@ -240,11 +240,9 @@ func confirmParse(in, cmd string, wantErr bool) func(*testing.T) {
 		err := cmd.Run()
 		if stderr.Len() > 0 {
 			// bash sometimes likes to error on an input via stderr
-			// while forgetting to set the exit code to non-zero.
-			// Fun.
-			if s := stderr.String(); !strings.Contains(s, ": warning: ") {
-				err = errors.New(s)
-			}
+			// while forgetting to set the exit code to non-zero. Fun.
+			// Note that we also treat warnings as errors.
+			err = errors.New(stderr.String())
 		}
 		if err != nil && strings.Contains(err.Error(), "command not found") {
 			err = nil
@@ -804,17 +802,17 @@ var shellTests = []errorCase{
 	{
 		in:     "<<EOF",
 		common: `1:1: unclosed here-document 'EOF' #NOERR`,
-		mksh:   `1:1: unclosed here-document 'EOF'`,
+		bsmk:   `1:1: unclosed here-document 'EOF'`,
 	},
 	{
 		in:     "<<EOF\n\\",
 		common: `1:1: unclosed here-document 'EOF' #NOERR`,
-		mksh:   `1:1: unclosed here-document 'EOF'`,
+		bsmk:   `1:1: unclosed here-document 'EOF'`,
 	},
 	{
 		in:     "<<EOF\n\\\n",
 		common: `1:1: unclosed here-document 'EOF' #NOERR`,
-		mksh:   `1:1: unclosed here-document 'EOF'`,
+		bsmk:   `1:1: unclosed here-document 'EOF'`,
 	},
 	{
 		in: "<<EOF\n\\\nEOF",
@@ -824,47 +822,46 @@ var shellTests = []errorCase{
 	{
 		in:     "<<EOF\nfoo\\\nEOF",
 		common: `1:1: unclosed here-document 'EOF' #NOERR`,
-		mksh:   `1:1: unclosed here-document 'EOF'`,
+		bsmk:   `1:1: unclosed here-document 'EOF'`,
 	},
 	{
 		in:     "<<'EOF'\n\\\n",
 		common: `1:1: unclosed here-document 'EOF' #NOERR`,
-		mksh:   `1:1: unclosed here-document 'EOF'`,
+		bsmk:   `1:1: unclosed here-document 'EOF'`,
 	},
 	{
 		in:     "<<EOF <`\n#\n`\n``",
 		common: `1:1: unclosed here-document 'EOF'`,
-		mksh:   `1:1: unclosed here-document 'EOF'`,
 	},
 	{
 		in:     "<<'EOF'",
 		common: `1:1: unclosed here-document 'EOF' #NOERR`,
-		mksh:   `1:1: unclosed here-document 'EOF'`,
+		bsmk:   `1:1: unclosed here-document 'EOF'`,
 	},
 	{
 		in:     "<<\\EOF",
 		common: `1:1: unclosed here-document 'EOF' #NOERR`,
-		mksh:   `1:1: unclosed here-document 'EOF'`,
+		bsmk:   `1:1: unclosed here-document 'EOF'`,
 	},
 	{
 		in:     "<<\\\\EOF",
 		common: `1:1: unclosed here-document '\EOF' #NOERR`,
-		mksh:   `1:1: unclosed here-document '\EOF'`,
+		bsmk:   `1:1: unclosed here-document '\EOF'`,
 	},
 	{
 		in:     "<<-EOF",
 		common: `1:1: unclosed here-document 'EOF' #NOERR`,
-		mksh:   `1:1: unclosed here-document 'EOF'`,
+		bsmk:   `1:1: unclosed here-document 'EOF'`,
 	},
 	{
 		in:     "<<-EOF\n\t",
 		common: `1:1: unclosed here-document 'EOF' #NOERR`,
-		mksh:   `1:1: unclosed here-document 'EOF'`,
+		bsmk:   `1:1: unclosed here-document 'EOF'`,
 	},
 	{
 		in:     "<<-'EOF'\n\t",
 		common: `1:1: unclosed here-document 'EOF' #NOERR`,
-		mksh:   `1:1: unclosed here-document 'EOF'`,
+		bsmk:   `1:1: unclosed here-document 'EOF'`,
 	},
 	{
 		in:     "<<\nEOF\nbar\nEOF",
@@ -1331,11 +1328,19 @@ var shellTests = []errorCase{
 		in:     "<<${bar}\n${bar}",
 		common: `1:3: expansions not allowed in heredoc words #NOERR`,
 	},
+
+	// bash uses "$(bar)" as the closing word, but other shells use "$".
+	// We instead give an error for expansions in heredoc words.
 	{
 		in:    "<<$(bar)\n$",
-		bsmk:  `1:3: expansions not allowed in heredoc words #NOERR`,
 		posix: `1:3: expansions not allowed in heredoc words`,
+		mksh:  `1:3: expansions not allowed in heredoc words #NOERR`,
 	},
+	{
+		in:   "<<$(bar)\n$(bar)",
+		bash: `1:3: expansions not allowed in heredoc words #NOERR`,
+	},
+
 	{
 		in:     "<<$-\n$-",
 		common: `1:3: expansions not allowed in heredoc words #NOERR`,
