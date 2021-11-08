@@ -155,8 +155,8 @@ func TestParseBats(t *testing.T) {
 }
 
 func TestMain(m *testing.M) {
-	os.Setenv("LANGUAGE", "en_US.UTF8")
-	os.Setenv("LC_ALL", "en_US.UTF8")
+	os.Setenv("LANGUAGE", "en_US.UTF-8")
+	os.Setenv("LC_ALL", "en_US.UTF-8")
 	os.Exit(m.Run())
 }
 
@@ -215,6 +215,7 @@ var extGlobRe = regexp.MustCompile(`[@?*+!]\(`)
 
 func confirmParse(in, cmd string, wantErr bool) func(*testing.T) {
 	return func(t *testing.T) {
+		t.Helper()
 		t.Parallel()
 		var opts []string
 		if cmd == "bash" && extGlobRe.MatchString(in) {
