@@ -104,6 +104,20 @@ repo configuration like:
         types: [shell]
 ```
 
+An alternative configuration for running shfmt via the official shfmt docker image is:
+
+```yaml
+  - repo: local
+    hooks:
+      - id: shfmt
+        name: shfmt
+        minimum_pre_commit_version: 2.4.0
+        language: docker_image
+        types: [shell]
+        entry: mvdan/shfmt:v3.4.0
+        args: [-w]
+```
+
 ### Related projects
 
 The following editor integrations wrap `shfmt`:
