@@ -1202,7 +1202,7 @@ var runTests = []runTest{
 		"bar\n",
 	},
 	{
-		">a; echo foo >>b; wc -c <a >>b; cat b",
+		">a; echo foo >>b; wc -c <a >>b; cat b | tr -d ' '",
 		"foo\n0\n",
 	},
 	{
@@ -1210,11 +1210,11 @@ var runTests = []runTest{
 		"",
 	},
 	{
-		"echo foo >a; wc -c <a",
+		"echo foo >a; wc -c <a | tr -d ' '",
 		"4\n",
 	},
 	{
-		"echo foo >>a; echo bar &>>a; wc -c <a",
+		"echo foo >>a; echo bar &>>a; wc -c <a | tr -d ' '",
 		"8\n",
 	},
 	{
@@ -1934,8 +1934,8 @@ var runTests = []runTest{
 	},
 	{"set -o noexec; echo foo", ""},
 	{"set +o noexec; echo foo", "foo\n"},
-	{"set -e; set -o | grep -E 'errexit|noexec' | wc -l", "2\n"},
-	{"set -e; set -o | grep -E 'errexit|noexec' | grep 'on$' | wc -l", "1\n"},
+	{"set -e; set -o | grep -E 'errexit|noexec' | wc -l | tr -d ' '", "2\n"},
+	{"set -e; set -o | grep -E 'errexit|noexec' | grep 'on$' | wc -l | tr -d ' '", "1\n"},
 	{
 		"set -a; set +o",
 		`set -o allexport
@@ -1999,13 +1999,13 @@ set +o pipefail
 	},
 
 	// shopt
-	{"set -e; shopt -o | grep -E 'errexit|noexec' | wc -l", "2\n"},
-	{"set -e; shopt -o | grep -E 'errexit|noexec' | grep 'on$' | wc -l", "1\n"},
+	{"set -e; shopt -o | grep -E 'errexit|noexec' | wc -l | tr -d ' '", "2\n"},
+	{"set -e; shopt -o | grep -E 'errexit|noexec' | grep 'on$' | wc -l | tr -d ' '", "1\n"},
 	{"shopt -s -o noexec; echo foo", ""},
 	{"shopt -so noexec; echo foo", ""},
 	{"shopt -u -o noexec; echo foo", "foo\n"},
-	{"shopt -u globstar; shopt globstar | grep 'off$' | wc -l", "1\n"},
-	{"shopt -s globstar; shopt globstar | grep 'off$' | wc -l", "0\n"},
+	{"shopt -u globstar; shopt globstar | grep 'off$' | wc -l | tr -d ' '", "1\n"},
+	{"shopt -s globstar; shopt globstar | grep 'off$' | wc -l | tr -d ' '", "0\n"},
 
 	// IFS
 	{`echo -n "$IFS"`, " \t\n"},
@@ -2578,10 +2578,10 @@ set +o pipefail
 	{"cat </dev/null", ""},
 
 	// time - real would be slow and flaky; see TestElapsedString
-	{"{ time; } |& wc", "      4       6      42\n"},
-	{"{ time echo -n; } |& wc", "      4       6      42\n"},
-	{"{ time -p; } |& wc", "      3       6      29\n"},
-	{"{ time -p echo -n; } |& wc", "      3       6      29\n"},
+	{"{ time; } |& wc | tr -s ' '", " 4 6 42\n"},
+	{"{ time echo -n; } |& wc | tr -s ' '", " 4 6 42\n"},
+	{"{ time -p; } |& wc | tr -s ' '", " 3 6 29\n"},
+	{"{ time -p echo -n; } |& wc | tr -s ' '", " 3 6 29\n"},
 
 	// exec
 	{"exec", ""},
