@@ -1382,15 +1382,15 @@ var runTests = []runTest{
 		"exit status 1",
 	},
 	{
-		"touch -d @1 a b; [[ a -nt b || a -ot b ]]",
+		"touch -t 202111050000 a b; [[ a -nt b || a -ot b ]]",
 		"exit status 1",
 	},
 	{
-		"touch -d @1 a; touch -d @2 b; [[ a -nt b ]]",
+		"touch -t 202111050000 a; touch -t 202111060000 b; [[ a -nt b ]]",
 		"exit status 1",
 	},
 	{
-		"touch -d @1 a; touch -d @2 b; [[ a -ot b ]]",
+		"touch -t 202111050000 a; touch -t 202111060000 b; [[ a -ot b ]]",
 		"",
 	},
 	{
@@ -1590,11 +1590,11 @@ var runTests = []runTest{
 		"1:1: -lt must be followed by a word\nexit status 2 #JUSTERR",
 	},
 	{
-		"touch -d @1 a; touch -d @2 b; [ a -nt b ]",
+		"touch -t 202111050000 a; touch -t 202111060000 b; [ a -nt b ]",
 		"exit status 1",
 	},
 	{
-		"touch -d @1 a; touch -d @2 b; [ a -ot b ]",
+		"touch -t 202111050000 a; touch -t 202111060000 b; [ a -ot b ]",
 		"",
 	},
 	{
