@@ -33,7 +33,14 @@ func (o *overlayEnviron) Get(name string) expand.Variable {
 func (o *overlayEnviron) Set(name string, vr expand.Variable) error {
 	// "foo=bar" in a function updates the global scope, unless the variable
 	// has been declared as local.
-	if o.funcScope && vr.IsSet() && !vr.Local && !o.values[name].Local {
+	if o.funcScope && !vr.Local && !o.values[name].Local {
+		// "foo=bar" followed by "export foo" or "readonly foo"
+		if !vr.IsSet() {
+			prev := o.Get(name)
+			prev.Exported = prev.Exported || vr.Exported
+			prev.ReadOnly = prev.ReadOnly || vr.ReadOnly
+			vr = prev
+		}
 		return o.parent.(expand.WriteEnviron).Set(name, vr)
 	}
 
@@ -64,6 +71,9 @@ func (o *overlayEnviron) Set(name string, vr expand.Variable) error {
 			writeEnv.Set(name, vr)
 			return nil
 		}
+	} else if prev.Exported {
+		// variable is set and was marked as exported
+		vr.Exported = true
 	}
 	// modifying the entire variable
 	vr.Local = prev.Local || vr.Local
