@@ -2303,6 +2303,10 @@ set +o pipefail
 	{"export foo=(1 2); $ENV_PROG | grep '^foo='", "exit status 1"},
 	{"declare -A foo=([a]=b); export foo; $ENV_PROG | grep '^foo='", "exit status 1"},
 	{"export foo=(b c); foo=x; $ENV_PROG | grep '^foo='", "exit status 1"},
+	{"foo() { bar=foo; export bar; }; foo; $ENV_PROG | grep ^bar=", "bar=foo\n"},
+	{"foo() { export bar; }; bar=foo; foo; $ENV_PROG | grep ^bar=", "bar=foo\n"},
+	{"foo() { export bar; }; foo; bar=foo; $ENV_PROG | grep ^bar=", "bar=foo\n"},
+	{"foo() { export bar=foo; }; foo; readonly bar; $ENV_PROG | grep ^bar=", "bar=foo\n"},
 
 	// local
 	{
@@ -2429,6 +2433,18 @@ set +o pipefail
 	{
 		"readonly foo=bar; foo=etc",
 		"foo: readonly variable\nexit status 1 #JUSTERR",
+	},
+	{
+		"foo() { bar=foo; readonly bar; }; foo; bar=bar",
+		"bar: readonly variable\nexit status 1 #JUSTERR",
+	},
+	{
+		"foo() { readonly bar; }; foo; bar=foo",
+		"bar: readonly variable\nexit status 1 #JUSTERR",
+	},
+	{
+		"foo() { readonly bar=foo; }; foo; export bar; $ENV_PROG | grep '^bar='",
+		"bar=foo\n",
 	},
 
 	// multiple var modes at once
