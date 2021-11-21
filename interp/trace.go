@@ -104,7 +104,7 @@ func (t *tracer) call(cmd string, args ...string) {
 		t.string(cmd)
 	} else if isBuiltin(cmd) {
 		if cmd == "set" {
-			// TODO: only first occurence of set is not printed, succeeding calls are printed
+			// TODO: only first occurrence of set is not printed, succeeding calls are printed
 			return
 		}
 

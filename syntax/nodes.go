@@ -433,7 +433,7 @@ func (f *FuncDecl) Pos() Pos { return f.Position }
 func (f *FuncDecl) End() Pos { return f.Body.End() }
 
 // Word represents a shell word, containing one or more word parts contiguous to
-// each other. The word is delimeted by word boundaries, such as spaces,
+// each other. The word is delimited by word boundaries, such as spaces,
 // newlines, semicolons, or parentheses.
 type Word struct {
 	Parts []WordPart
@@ -642,7 +642,7 @@ type BinaryArithm struct {
 func (b *BinaryArithm) Pos() Pos { return b.X.Pos() }
 func (b *BinaryArithm) End() Pos { return b.Y.End() }
 
-// UnaryArithm represents an unary arithmetic expression. The unary opearator
+// UnaryArithm represents an unary arithmetic expression. The unary operator
 // may come before or after the sub-expression.
 //
 // If Op is Inc or Dec, X will be a word with a single *Lit whose value is a
@@ -745,7 +745,7 @@ type BinaryTest struct {
 func (b *BinaryTest) Pos() Pos { return b.X.Pos() }
 func (b *BinaryTest) End() Pos { return b.Y.End() }
 
-// UnaryTest represents a unary test expression. The unary opearator may come
+// UnaryTest represents a unary test expression. The unary operator may come
 // before or after the sub-expression.
 type UnaryTest struct {
 	OpPos Pos
