@@ -86,38 +86,6 @@ To use the Docker image, run:
 
 	docker run --rm -v $PWD:/mnt -w /mnt my:tag <shfmt arguments>
 
-### pre-commit
-
-It is possible to use shfmt with [pre-commit][pre-commit] and a `local`
-repo configuration like:
-
-```yaml
-  - repo: local
-    hooks:
-      - id: shfmt
-        name: shfmt
-        minimum_pre_commit_version: 2.4.0
-        language: golang
-        additional_dependencies: [mvdan.cc/sh/v3/cmd/shfmt@v3.2.2]
-        entry: shfmt
-        args: [-w]
-        types: [shell]
-```
-
-An alternative configuration for running shfmt via the official shfmt docker image is:
-
-```yaml
-  - repo: local
-    hooks:
-      - id: shfmt
-        name: shfmt
-        minimum_pre_commit_version: 2.4.0
-        language: docker_image
-        types: [shell]
-        entry: mvdan/shfmt:v3.4.0
-        args: [-w]
-```
-
 ### Related projects
 
 The following editor integrations wrap `shfmt`:
@@ -137,6 +105,7 @@ Other noteworthy integrations include:
 - [prettier-plugin-sh] - [Prettier] plugin using [mvdan-sh]
 - [sh-checker] - A GitHub Action that performs static analysis for shell scripts
 - [mdformat-shfmt] - [mdformat] plugin to format shell scripts embedded in Markdown with shfmt
+- [pre-commit-shfmt] - [pre-commit] shfmt hook
 
 [alpine]: https://pkgs.alpinelinux.org/packages?name=shfmt
 [arch]: https://www.archlinux.org/packages/community/x86_64/shfmt/
@@ -160,6 +129,7 @@ Other noteworthy integrations include:
 [posix shell]: https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html
 [posix-ambiguity]: https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_06_03
 [pre-commit]: https://pre-commit.com
+[pre-commit-shfmt]: https://github.com/scop/pre-commit-shfmt
 [prettier-plugin-sh]: https://github.com/rx-ts/prettier/tree/master/packages/sh
 [prettier]: https://prettier.io
 [scdoc]: https://sr.ht/~sircmpwn/scdoc/
