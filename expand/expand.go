@@ -160,7 +160,7 @@ func Literal(cfg *Config, word *syntax.Word) (string, error) {
 }
 
 // Document expands a single shell word as if it were within double quotes. It
-// is simlar to Literal, but without brace expansion, tilde expansion, and
+// is similar to Literal, but without brace expansion, tilde expansion, and
 // globbing.
 //
 // The config specifies shell expansion options; nil behaves the same as an
