@@ -1,5 +1,16 @@
 # Changelog
 
+## [3.4.1] - 2021-11-23
+
+- **syntax**
+  - Don't return an empty string on empty input to `Quote`
+- **expand**
+  - Properly sort in `ListEnviron` to avoid common prefix issues
+- **interp**
+  - `export` used in functions now affects the global scope
+  - Support looking for scripts in `$PATH` in `source`
+  - Properly slice arrays in parameter expansions
+
 ## [3.4.0] - 2021-10-01
 
 This release drops support for Go 1.15,
@@ -554,6 +565,7 @@ module in v3.
 
 Initial release.
 
+[3.4.1]: https://github.com/mvdan/sh/releases/tag/v3.4.1
 [3.4.0]: https://github.com/mvdan/sh/releases/tag/v3.4.0
 [3.3.1]: https://github.com/mvdan/sh/releases/tag/v3.3.1
 [3.3.0]: https://github.com/mvdan/sh/releases/tag/v3.3.0
