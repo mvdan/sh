@@ -928,6 +928,10 @@ var runTests = []runTest{
 		`mkdir a; ln -s a b; [[ "$(cd a && pwd -P)" == "$(cd b && pwd -L)" ]]; echo $?`,
 		"1\n",
 	},
+	{
+		`orig="$PWD"; mkdir a && cd a && cd - && [[ "$PWD" == "$orig" ]]`,
+		"",
+	},
 
 	// dirs/pushd/popd
 	{"set -- $(dirs); echo $# ${#DIRSTACK[@]}", "1 1\n"},
