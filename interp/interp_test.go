@@ -3240,6 +3240,32 @@ var testBuiltinsMap = map[string]func(HandlerContext, []string) error{
 		}
 		return nil
 	},
+	"tr": func(hc HandlerContext, args []string) error {
+		if len(args) != 2 || len(args[1]) != 1 {
+			return fmt.Errorf("usage: tr [-s -d] [character]")
+		}
+		squeeze := args[0] == "-s"
+		char := args[1][0]
+		bs, err := io.ReadAll(hc.Stdin)
+		if err != nil {
+			return err
+		}
+		for {
+			i := bytes.IndexByte(bs, char)
+			if i < 0 {
+				hc.Stdout.Write(bs) // remaining
+				break
+			}
+			hc.Stdout.Write(bs[:i]) // up to char
+			bs = bs[i+1:]
+
+			bs = bytes.TrimLeft(bs, string(char)) // remove repeats
+			if squeeze {
+				hc.Stdout.Write([]byte{char})
+			}
+		}
+		return nil
+	},
 	"sort": func(hc HandlerContext, args []string) error {
 		lines, err := readLines(hc)
 		if err != nil {
