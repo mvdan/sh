@@ -92,6 +92,14 @@ func TestMain(m *testing.M) {
 		case "foo_null_bar":
 			fmt.Println("foo\x00bar")
 			os.Exit(1)
+		case "lookpath":
+			_, err := exec.LookPath(pathProg)
+			if err != nil {
+				fmt.Println(err)
+				os.Exit(1)
+			}
+			fmt.Printf("%s found\n", pathProg)
+			os.Exit(0)
 		}
 		r := strings.NewReader(os.Args[1])
 		file, err := syntax.NewParser().Parse(r, "")
@@ -2890,6 +2898,10 @@ var runTestsUnix = []runTest{
 		"mkdir c; echo '#!/bin/sh\necho b' >c/a; chmod 0755 c/a; c/a",
 		"b\n",
 	},
+	{
+		"GOSH_CMD=lookpath $GOSH_PROG",
+		"sh found\n",
+	},
 
 	// error strings which are too different on Windows
 	{
@@ -2932,6 +2944,10 @@ var runTestsWindows = []runTest{
 	{"[[ -n $PPID || $PPID -gt 0 ]]", ""}, // os.Getppid can be 0 on windows
 	{"cmd() { :; }; cmd /c 'echo foo'", ""},
 	{"cmd() { :; }; command cmd /c 'echo foo'", "foo\r\n"},
+	{
+		"GOSH_CMD=lookpath $GOSH_PROG",
+		"cmd found\n",
+	},
 }
 
 // These tests are specific to 64-bit architectures, and that's fine. We don't
