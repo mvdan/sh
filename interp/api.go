@@ -14,9 +14,7 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
@@ -455,13 +453,6 @@ func (r *Runner) Reset() {
 	r.setVarString("PWD", r.Dir)
 	r.setVarString("IFS", " \t\n")
 	r.setVarString("OPTIND", "1")
-
-	if runtime.GOOS == "windows" {
-		// convert $PATH to a unix path list
-		path := r.writeEnv.Get("PATH").String()
-		path = strings.Join(filepath.SplitList(path), ":")
-		r.setVarString("PATH", path)
-	}
 
 	r.dirStack = append(r.dirStack, r.Dir)
 	r.didReset = true

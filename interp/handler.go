@@ -183,41 +183,6 @@ func findFile(dir, file string, _ []string) (string, error) {
 	return checkStat(dir, file, false)
 }
 
-func driveLetter(c byte) bool {
-	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
-}
-
-// splitList is like filepath.SplitList, but always using the unix path
-// list separator ':'. On Windows, it also makes sure not to split
-// [A-Z]:[/\].
-func splitList(path string) []string {
-	if path == "" {
-		return []string{""}
-	}
-	list := strings.Split(path, ":")
-	if runtime.GOOS != "windows" {
-		return list
-	}
-	// join "C", "/foo" into "C:/foo"
-	var fixed []string
-	for i := 0; i < len(list); i++ {
-		s := list[i]
-		switch {
-		case len(s) != 1, !driveLetter(s[0]):
-		case i+1 >= len(list):
-			// last element
-		case strings.IndexAny(list[i+1], `/\`) != 0:
-			// next element doesn't start with / or \
-		default:
-			fixed = append(fixed, s+":"+list[i+1])
-			i++
-			continue
-		}
-		fixed = append(fixed, s)
-	}
-	return fixed
-}
-
 // LookPath is deprecated. See LookPathDir.
 func LookPath(env expand.Environ, file string) (string, error) {
 	return LookPathDir(env.Get("PWD").String(), env, file)
@@ -240,7 +205,10 @@ func lookPathDir(cwd string, env expand.Environ, file string, find findAny) (str
 		panic("no find function found")
 	}
 
-	pathList := splitList(env.Get("PATH").String())
+	pathList := filepath.SplitList(env.Get("PATH").String())
+	if len(pathList) == 0 {
+		pathList = []string{""}
+	}
 	chars := `/`
 	if runtime.GOOS == "windows" {
 		chars = `:\/`
