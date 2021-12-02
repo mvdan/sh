@@ -217,7 +217,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 
 			// replicate the commonly implemented behavior of `cd -`
 			// ref: https://www.man7.org/linux/man-pages/man1/cd.1p.html#OPERANDS
-			if len(path) == 1 && path[0] == '-' {
+			if path == "-" {
 				path = r.envGet("OLDPWD")
 			}
 		default:
