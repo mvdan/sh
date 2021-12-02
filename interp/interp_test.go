@@ -929,7 +929,7 @@ var runTests = []runTest{
 		"1\n",
 	},
 	{
-		`orig="$PWD"; mkdir a && cd a && cd - && [[ "$PWD" == "$orig" ]]`,
+		`orig="$PWD"; mkdir a; cd a; cd -; [[ "$PWD" == "$orig" ]]`,
 		"",
 	},
 
