@@ -3508,6 +3508,8 @@ func TestElapsedString(t *testing.T) {
 			true,
 			"610.00",
 		},
+		{31 * time.Second, false, "0m31.000s"},
+		{102 * time.Second, false, "1m42.000s"},
 	}
 	for _, tc := range tests {
 		t.Run(tc.in.String(), func(t *testing.T) {
