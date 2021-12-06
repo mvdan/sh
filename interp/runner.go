@@ -709,7 +709,7 @@ func elapsedString(d time.Duration, posix bool) string {
 		return fmt.Sprintf("%.2f", d.Seconds())
 	}
 	min := int(d.Minutes())
-	sec := math.Remainder(d.Seconds(), 60.0)
+	sec := math.Mod(d.Seconds(), 60.0)
 	return fmt.Sprintf("%dm%.3fs", min, sec)
 }
 
