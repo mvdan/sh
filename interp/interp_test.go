@@ -3117,6 +3117,20 @@ hello, world
 hello, world
 `,
 	},
+	{
+		// globbing wildcard as function name
+		`@() { echo "$@"; }; @ lala; function +() { echo "$@"; }; + foo`,
+		"lala\nfoo\n",
+	},
+	{
+		`      @() { echo "$@"; }; @ lala;`,
+		"lala\n",
+	},
+	{
+		// globbing wildcard as function name but with space after the name
+		`+ () { echo "$@"; }; + foo; @ () { echo "$@"; }; @ lala; ? () { echo "$@"; }; ? bar`,
+		"foo\nlala\nbar\n",
+	},
 }
 
 var runTestsWindows = []runTest{
