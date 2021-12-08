@@ -290,7 +290,7 @@ skipSpace:
 				p.advanceLitNone(r)
 			}
 		case '?', '*', '+', '@', '!':
-			if p.peekByte('(') {
+			if p.tokenizeGlob() {
 				switch r {
 				case '?':
 					p.tok = globQuest
@@ -344,6 +344,28 @@ skipSpace:
 	if p.err != nil && p.tok != _EOF {
 		p.tok = _EOF
 	}
+}
+
+// tokenizeGlob determines whether the expression should be tokenized as a glob literal
+func (p *Parser) tokenizeGlob() bool {
+	if p.val == "function" {
+		return false
+	}
+	// NOTE: empty pattern list is a valid globbing syntax, eg @()
+	// but we'll operate on the "likelihood" that it is a function;
+	// only tokenize if its a non-empty pattern list
+	if p.peekBytes("()") {
+		return false
+	}
+	return p.peekByte('(')
+}
+
+func (p *Parser) peekBytes(s string) bool {
+	for p.bsp+(len(p.bs)-1) >= len(p.bs) {
+		p.fill()
+	}
+	bw := p.bsp + len(s)
+	return bw < len(p.bs) && bytes.HasPrefix(p.bs[p.bsp:bw], []byte(s))
 }
 
 func (p *Parser) peekByte(b byte) bool {
@@ -882,7 +904,7 @@ loop:
 			tok = _Lit
 			break loop
 		case '?', '*', '+', '@', '!':
-			if p.peekByte('(') {
+			if p.tokenizeGlob() {
 				tok = _Lit
 				break loop
 			}
