@@ -130,8 +130,18 @@ func TestMain(m *testing.M) {
 	}
 	os.Setenv("GOSH_PROG", prog)
 
-	os.Setenv("LANGUAGE", "en_US.UTF-8")
-	os.Setenv("LC_ALL", "en_US.UTF-8")
+	// Set the locale to computer-friendly English and UTF-8.
+	// Some systems like Arch miss C.UTF8, so fall back to the US English locale.
+	if out, _ := exec.Command("locale", "-a").Output(); strings.Contains(
+		strings.ToLower(string(out)), "c.utf",
+	) {
+		os.Setenv("LANGUAGE", "C.UTF-8")
+		os.Setenv("LC_ALL", "C.UTF-8")
+	} else {
+		os.Setenv("LANGUAGE", "en_US.UTF-8")
+		os.Setenv("LC_ALL", "en_US.UTF-8")
+	}
+
 	os.Unsetenv("CDPATH")
 	hasBash50 = checkBash()
 
@@ -2780,7 +2790,7 @@ set +o pipefail
 }
 
 var runTestsUnix = []runTest{
-	{"[[ -n $PPID && $PPID -gt 0 ]]", ""},
+	{"[[ -n $PPID && $PPID -ge 0 ]]", ""}, // can be 0 if running as the init process
 	{
 		// no root user on windows
 		"[[ ~root == '~root' ]]",
