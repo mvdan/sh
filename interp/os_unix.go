@@ -24,17 +24,18 @@ func mkfifo(path string, mode uint32) error {
 func hasPermissionToDir(info os.FileInfo) bool {
 	user, err := user.Current()
 	if err != nil {
-		return true
+		return false // unknown user; assume no permissions
 	}
-	uid, _ := strconv.Atoi(user.Uid)
-	// super-user
+	uid, err := strconv.Atoi(user.Uid)
+	if err != nil {
+	}
 	if uid == 0 {
-		return true
+		return true // super-user
 	}
 
 	st, _ := info.Sys().(*syscall.Stat_t)
 	if st == nil {
-		return true
+		panic("unexpected info.Sys type")
 	}
 	perm := info.Mode().Perm()
 	// user (u)
