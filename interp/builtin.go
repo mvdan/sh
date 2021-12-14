@@ -219,6 +219,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			// ref: https://www.man7.org/linux/man-pages/man1/cd.1p.html#OPERANDS
 			if path == "-" {
 				path = r.envGet("OLDPWD")
+				r.outf("%s\n", path)
 			}
 		default:
 			r.errf("usage: cd [dir]\n")
