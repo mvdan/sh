@@ -3,14 +3,15 @@ module mvdan.cc/sh/v3
 go 1.16
 
 require (
-	github.com/creack/pty v1.1.15
-	github.com/frankban/quicktest v1.13.1
+	github.com/creack/pty v1.1.17
+	github.com/frankban/quicktest v1.14.0
 	github.com/google/renameio v1.0.1
 	github.com/kr/pretty v0.3.0
 	github.com/pkg/diff v0.0.0-20210226163009-20ebb0f2a09e
-	github.com/rogpeppe/go-internal v1.8.1-0.20211023094830-115ce09fd6b4
+	github.com/rogpeppe/go-internal v1.8.1
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/sys v0.0.0-20210925032602-92d5a993a665
-	golang.org/x/term v0.0.0-20210916214954-140adaaadfaf
+	golang.org/x/sys v0.0.0-20211216021012-1d35b9e2eb4e
+	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211
+	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	mvdan.cc/editorconfig v0.2.0
 )
