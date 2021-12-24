@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.4.2] - 2021-12-24
+
+- The tests no longer assume what locales are installed
+- **interp**
+  - keep `PATH` list separators OS-specific to fix a recent regression
+  - avoid negative elapsed durations in the `time` builtin
+
 ## [3.4.1] - 2021-11-23
 
 - **syntax**
@@ -565,6 +572,7 @@ module in v3.
 
 Initial release.
 
+[3.4.2]: https://github.com/mvdan/sh/releases/tag/v3.4.2
 [3.4.1]: https://github.com/mvdan/sh/releases/tag/v3.4.1
 [3.4.0]: https://github.com/mvdan/sh/releases/tag/v3.4.0
 [3.3.1]: https://github.com/mvdan/sh/releases/tag/v3.3.1
