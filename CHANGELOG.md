@@ -88,7 +88,7 @@ which allows the code to start benefitting from `io/fs`.
 ## [3.2.0] - 2020-10-29
 
 - **cmd/shfmt**
-  - Add a man page via [scdoc](https://sr.ht/~sircmpwn/scdoc); see [shfmt.1.scd](cmd/shfmt/shfmt.1.scd)
+  - Add a man page via [scdoc](https://sr.ht/~sircmpwn/scdoc/); see [shfmt.1.scd](cmd/shfmt/shfmt.1.scd)
   - Add `-filename` to give a name to standard input
 - **syntax**
   - Add initial support for [Bats](https://github.com/bats-core/bats-core)
@@ -101,7 +101,7 @@ which allows the code to start benefitting from `io/fs`.
   - Obey print options inside `<<-` heredocs
   - Don't simplify indexed parameter expansions in arithmetic expressions
   - Improve parsing errors for missing test expressions
-  - `LangVariant` now implements [flag.Value](https://golang.org/pkg/flag/#Value)
+  - `LangVariant` now implements [flag.Value](https://go.dev/pkg/flag/#Value)
 - **interp**
   - Avoid panic on C-style loops which omit expressions
   - `$@` and `$*` always exist, so `"$@"` can expand to zero words

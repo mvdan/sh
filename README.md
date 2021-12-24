@@ -108,18 +108,18 @@ Other noteworthy integrations include:
 - [pre-commit-shfmt] - [pre-commit] shfmt hook
 
 [alpine]: https://pkgs.alpinelinux.org/packages?name=shfmt
-[arch]: https://www.archlinux.org/packages/community/x86_64/shfmt/
+[arch]: https://archlinux.org/packages/community/x86_64/shfmt/
 [bash]: https://www.gnu.org/software/bash/
 [docker]: https://hub.docker.com/r/mvdan/shfmt/
-[dockerized-peterdavehello]: https://github.com/PeterDaveHello/dockerized-shfmt/
+[dockerized-peterdavehello]: https://github.com/PeterDaveHello/docker-shfmt
 [editorconfig]: https://editorconfig.org/
 [examples]: https://pkg.go.dev/mvdan.cc/sh/v3/syntax#pkg-examples
 [format-shell]: https://atom.io/packages/format-shell
 [freebsd]: https://www.freshports.org/devel/shfmt
 [homebrew]: https://formulae.brew.sh/formula/shfmt
 [intellij-shellcript]: https://www.jetbrains.com/help/idea/shell-scripts.html
-[macports]: https://ports.macports.org/port/shfmt/summary
-[mdformat-shfmt]: https://github.com/hukkinj1/mdformat-shfmt
+[macports]: https://ports.macports.org/port/shfmt/summary/
+[mdformat-shfmt]: https://github.com/hukkin/mdformat-shfmt
 [mdformat]: https://github.com/executablebooks/mdformat
 [micro]: https://micro-editor.github.io/
 [mksh]: http://www.mirbsd.org/mksh.htm
