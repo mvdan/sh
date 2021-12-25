@@ -853,6 +853,9 @@ func (r *Runner) readLine(raw bool) ([]byte, error) {
 }
 
 func (r *Runner) changeDir(path string) int {
+	if path == "" {
+		path = "."
+	}
 	path = r.absPath(path)
 	info, err := r.stat(path)
 	if err != nil || !info.IsDir() {
@@ -867,11 +870,18 @@ func (r *Runner) changeDir(path string) int {
 	return 0
 }
 
-func (r *Runner) absPath(path string) string {
+func absPath(dir, path string) string {
+	if path == "" {
+		return ""
+	}
 	if !filepath.IsAbs(path) {
-		path = filepath.Join(r.Dir, path)
+		path = filepath.Join(dir, path)
 	}
 	return filepath.Clean(path)
+}
+
+func (r *Runner) absPath(path string) string {
+	return absPath(r.Dir, path)
 }
 
 // flagParser is used to parse builtin flags.
