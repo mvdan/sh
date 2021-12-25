@@ -276,7 +276,7 @@ type OpenHandlerFunc func(ctx context.Context, path string, flag int, perm os.Fi
 func DefaultOpenHandler() OpenHandlerFunc {
 	return func(ctx context.Context, path string, flag int, perm os.FileMode) (io.ReadWriteCloser, error) {
 		mc := HandlerCtx(ctx)
-		if !filepath.IsAbs(path) {
+		if path != "" && !filepath.IsAbs(path) {
 			path = filepath.Join(mc.Dir, path)
 		}
 		return os.OpenFile(path, flag, perm)

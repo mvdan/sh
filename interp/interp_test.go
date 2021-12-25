@@ -192,13 +192,6 @@ type concBuffer struct {
 	sync.Mutex
 }
 
-func absPath(dir, path string) string {
-	if !filepath.IsAbs(path) {
-		path = filepath.Join(dir, path)
-	}
-	return filepath.Clean(path)
-}
-
 func (c *concBuffer) Write(p []byte) (int, error) {
 	c.Lock()
 	n, err := c.buf.Write(p)
@@ -858,6 +851,10 @@ var runTests = []runTest{
 	{"[[ a == [ab ]]", "exit status 1"},
 	{`HOME='/*'; echo ~; echo "$HOME"`, "/*\n/*\n"},
 	{`test -d ~`, ""},
+	{
+		`for flag in b c d e f g h k L p r s S u w x; do test -$flag ""; echo -n "$flag$? "; done`,
+		`b1 c1 d1 e1 f1 g1 h1 k1 L1 p1 r1 s1 S1 u1 w1 x1 `,
+	},
 	{`foo=~; test -d $foo`, ""},
 	{`foo=~; test -d "$foo"`, ""},
 	{`foo='~'; test -d $foo`, "exit status 1"},
@@ -880,6 +877,10 @@ var runTests = []runTest{
 	},
 	{
 		`w="$HOME"; cd; [[ $PWD == "$w" ]]`,
+		"",
+	},
+	{
+		`mkdir test.cd; cd test.cd; cd ''; [[ "$PWD" == "$OLDPWD" ]]`,
 		"",
 	},
 	{
