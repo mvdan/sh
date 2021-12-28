@@ -8,7 +8,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math"
 	"math/rand"
 	"os"
@@ -144,7 +143,9 @@ func (r *Runner) updateExpandOpts() {
 	if r.opts[optNoGlob] {
 		r.ecfg.ReadDir = nil
 	} else {
-		r.ecfg.ReadDir = ioutil.ReadDir
+		r.ecfg.ReadDir = func(s string) ([]os.FileInfo, error) {
+			return r.readDirHandler(r.handlerCtx(context.Background()), s)
+		}
 	}
 	r.ecfg.GlobStar = r.opts[optGlobStar]
 	r.ecfg.NullGlob = r.opts[optNullGlob]

@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"golang.org/x/sync/errgroup"
+
 	"mvdan.cc/sh/v3/expand"
 	"mvdan.cc/sh/v3/syntax"
 )
@@ -68,6 +69,10 @@ type Runner struct {
 
 	// openHandler is a function responsible for opening files. It must be non-nil.
 	openHandler OpenHandlerFunc
+
+	// readDirHandler is a function responsible for reading directories during
+	// glob expansion. It must be non-nil.
+	readDirHandler ReadDirHandlerFunc
 
 	stdin  io.Reader
 	stdout io.Writer
@@ -163,9 +168,10 @@ func (r *Runner) optByFlag(flag byte) *bool {
 // standard output writer means that the output will be discarded.
 func New(opts ...RunnerOption) (*Runner, error) {
 	r := &Runner{
-		usedNew:     true,
-		execHandler: DefaultExecHandler(2 * time.Second),
-		openHandler: DefaultOpenHandler(),
+		usedNew:        true,
+		execHandler:    DefaultExecHandler(2 * time.Second),
+		openHandler:    DefaultOpenHandler(),
+		readDirHandler: DefaultReadDirHandler(),
 	}
 	r.dirStack = r.dirBootstrap[:0]
 	for _, opt := range opts {
@@ -313,6 +319,14 @@ func OpenHandler(f OpenHandlerFunc) RunnerOption {
 	}
 }
 
+// ReadDirHandler sets the read directory handler. See ReadDirHandlerFunc for more info.
+func ReadDirHandler(f ReadDirHandlerFunc) RunnerOption {
+	return func(r *Runner) error {
+		r.readDirHandler = f
+		return nil
+	}
+}
+
 // StdIO configures an interpreter's standard input, standard output, and
 // standard error. If out or err are nil, they default to a writer that discards
 // the output.
@@ -409,10 +423,11 @@ func (r *Runner) Reset() {
 	}
 	// reset the internal state
 	*r = Runner{
-		Env:         r.Env,
-		callHandler: r.callHandler,
-		execHandler: r.execHandler,
-		openHandler: r.openHandler,
+		Env:            r.Env,
+		callHandler:    r.callHandler,
+		execHandler:    r.execHandler,
+		openHandler:    r.openHandler,
+		readDirHandler: r.readDirHandler,
 
 		// These can be set by functions like Dir or Params, but
 		// builtins can overwrite them; reset the fields to whatever the
@@ -560,19 +575,20 @@ func (r *Runner) Subshell() *Runner {
 	// Keep in sync with the Runner type. Manually copy fields, to not copy
 	// sensitive ones like errgroup.Group, and to do deep copies of slices.
 	r2 := &Runner{
-		Dir:         r.Dir,
-		Params:      r.Params,
-		callHandler: r.callHandler,
-		execHandler: r.execHandler,
-		openHandler: r.openHandler,
-		stdin:       r.stdin,
-		stdout:      r.stdout,
-		stderr:      r.stderr,
-		filename:    r.filename,
-		opts:        r.opts,
-		usedNew:     r.usedNew,
-		exit:        r.exit,
-		lastExit:    r.lastExit,
+		Dir:            r.Dir,
+		Params:         r.Params,
+		callHandler:    r.callHandler,
+		execHandler:    r.execHandler,
+		openHandler:    r.openHandler,
+		readDirHandler: r.readDirHandler,
+		stdin:          r.stdin,
+		stdout:         r.stdout,
+		stderr:         r.stderr,
+		filename:       r.filename,
+		opts:           r.opts,
+		usedNew:        r.usedNew,
+		exit:           r.exit,
+		lastExit:       r.lastExit,
 
 		origStdout: r.origStdout, // used for process substitutions
 	}

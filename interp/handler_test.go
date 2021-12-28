@@ -42,6 +42,10 @@ func blacklistNondevOpen(ctx context.Context, path string, flags int, mode os.Fi
 	return testOpenHandler(ctx, path, flags, mode)
 }
 
+func blacklistGlob(ctx context.Context, path string) ([]os.FileInfo, error) {
+	return nil, fmt.Errorf("blacklisted: glob")
+}
+
 // runnerCtx allows us to give handler functions access to the Runner, if needed.
 var runnerCtx = new(int)
 
@@ -54,12 +58,13 @@ func execBuiltin(ctx context.Context, args []string) error {
 }
 
 var modCases = []struct {
-	name string
-	exec ExecHandlerFunc
-	open OpenHandlerFunc
-	call CallHandlerFunc
-	src  string
-	want string
+	name    string
+	exec    ExecHandlerFunc
+	open    OpenHandlerFunc
+	call    CallHandlerFunc
+	readdir ReadDirHandlerFunc
+	src     string
+	want    string
 }{
 	{
 		name: "ExecBlacklist",
@@ -137,6 +142,12 @@ var modCases = []struct {
 		src:  "echo foo; echo foo bar",
 		want: "foo\nrefusing to run echo builtin with multiple args",
 	},
+	{
+		name:    "GlobForbid",
+		readdir: blacklistGlob,
+		src:     "echo *",
+		want:    "blacklisted: glob\nexit status 1",
+	},
 }
 
 func TestRunnerHandlers(t *testing.T) {
@@ -157,6 +168,9 @@ func TestRunnerHandlers(t *testing.T) {
 			if tc.call != nil {
 				CallHandler(tc.call)(r)
 			}
+			if tc.readdir != nil {
+				ReadDirHandler(tc.readdir)(r)
+			}
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -166,7 +180,7 @@ func TestRunnerHandlers(t *testing.T) {
 			}
 			got := cb.String()
 			if got != tc.want {
-				t.Fatalf("want:\n%s\ngot:\n%s", tc.want, got)
+				t.Fatalf("want:\n%q\ngot:\n%q", tc.want, got)
 			}
 		})
 	}

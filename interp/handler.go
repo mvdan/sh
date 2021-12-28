@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -299,5 +300,18 @@ func DefaultOpenHandler() OpenHandlerFunc {
 			path = filepath.Join(mc.Dir, path)
 		}
 		return os.OpenFile(path, flag, perm)
+	}
+}
+
+// ReadDirHandlerFunc is a handler which reads directories. It is called during
+// shell globbing, if enabled.
+//
+// TODO(v4): if this is kept in v4, it most likely needs to use fs.DirEntry for efficiency
+type ReadDirHandlerFunc func(ctx context.Context, path string) ([]os.FileInfo, error)
+
+// DefaultReadDirHandler returns a ReadDirHandlerFunc used by default. It uses ioutil.ReadDir().
+func DefaultReadDirHandler() ReadDirHandlerFunc {
+	return func(ctx context.Context, path string) ([]os.FileInfo, error) {
+		return ioutil.ReadDir(path)
 	}
 }
