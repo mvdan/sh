@@ -1425,7 +1425,7 @@ func (p *Parser) stopToken() bool {
 }
 
 func (p *Parser) backquoteEnd() bool {
-	return p.quote == subCmdBckquo && p.lastBquoteEsc < p.openBquotes
+	return p.lastBquoteEsc < p.openBquotes
 }
 
 // ValidName returns whether val is a valid name as per the POSIX spec.
