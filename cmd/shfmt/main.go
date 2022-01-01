@@ -200,7 +200,7 @@ For more information, see 'man shfmt' and https://github.com/mvdan/sh.
 			// do want to report whether the file is a shell script.
 			if err := formatPath(path, false); err != nil {
 				if err != errChangedWithDiff {
-					fmt.Fprintf(os.Stderr, "%s: %v\n", path, err)
+					fmt.Fprintln(os.Stderr, err)
 				}
 				status = 1
 			}
@@ -267,9 +267,6 @@ func walkPath(path string, entry fs.DirEntry) error {
 	}
 	err := formatPath(path, conf == fileutil.ConfIfShebang)
 	if err != nil && !os.IsNotExist(err) {
-		if err != errChangedWithDiff {
-			fmt.Fprintf(os.Stderr, "%s: %v\n", path, err)
-		}
 		return err
 	}
 	return nil
