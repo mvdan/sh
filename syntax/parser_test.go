@@ -877,6 +877,14 @@ var shellTests = []errorCase{
 		common: `1:1: << must be followed by a word`,
 	},
 	{
+		in:   "$(<<EOF\nNOTEOF)",
+		bsmk: `1:3: unclosed here-document 'EOF'`,
+	},
+	{
+		in:   "`<<EOF\nNOTEOF`",
+		bsmk: `1:2: unclosed here-document 'EOF'`,
+	},
+	{
 		in:     "if",
 		common: `1:1: "if" must be followed by a statement list`,
 	},
@@ -1314,7 +1322,7 @@ var shellTests = []errorCase{
 	},
 	{
 		in:     "`\"`",
-		common: "1:3: reached EOF without closing quote `",
+		common: "1:2: reached ` without closing quote \"",
 	},
 	{
 		in:     "`\\```",
@@ -1966,7 +1974,7 @@ var shellTests = []errorCase{
 	},
 	{
 		in:     "`\"`\\",
-		common: "1:3: reached EOF without closing quote `",
+		common: "1:2: reached ` without closing quote \"",
 	},
 }
 

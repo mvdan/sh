@@ -1035,6 +1035,24 @@ var fileTests = []testCase{
 		},
 	},
 	{
+		Strs: []string{
+			"a <<EOF\nfoo$(bar)baz\nEOF",
+			"a <<EOF\nfoo`bar`baz\nEOF",
+		},
+		common: &Stmt{
+			Cmd: litCall("a"),
+			Redirs: []*Redirect{{
+				Op:   Hdoc,
+				Word: litWord("EOF"),
+				Hdoc: word(
+					lit("foo"),
+					cmdSubst(litStmt("bar")),
+					lit("baz\n"),
+				),
+			}},
+		},
+	},
+	{
 		Strs: []string{"a <<EOF\n\\${\nEOF"},
 		common: &Stmt{
 			Cmd: litCall("a"),
@@ -1063,6 +1081,8 @@ var fileTests = []testCase{
 		Strs: []string{
 			"$(\n\tfoo <<EOF\nbar\nEOF\n)",
 			"$(foo <<EOF\nbar\nEOF\n)",
+			"`\nfoo <<EOF\nbar\nEOF\n`",
+			"`foo <<EOF\nbar\nEOF`",
 		},
 		common: cmdSubst(&Stmt{
 			Cmd: litCall("foo"),
@@ -1072,6 +1092,80 @@ var fileTests = []testCase{
 				Hdoc: litWord("bar\n"),
 			}},
 		}),
+	},
+	{
+		Strs: []string{
+			"foo <<EOF\nbar\nEOF$(oops)\nEOF",
+			"foo <<EOF\nbar\nEOF`oops`\nEOF",
+		},
+		common: &Stmt{
+			Cmd: litCall("foo"),
+			Redirs: []*Redirect{{
+				Op:   Hdoc,
+				Word: litWord("EOF"),
+				Hdoc: word(
+					lit("bar\nEOF"),
+					cmdSubst(litStmt("oops")),
+					lit("\n"),
+				),
+			}},
+		},
+	},
+	{
+		Strs: []string{
+			"foo <<EOF\nbar\nNOTEOF$(oops)\nEOF",
+			"foo <<EOF\nbar\nNOTEOF`oops`\nEOF",
+		},
+		common: &Stmt{
+			Cmd: litCall("foo"),
+			Redirs: []*Redirect{{
+				Op:   Hdoc,
+				Word: litWord("EOF"),
+				Hdoc: word(
+					lit("bar\nNOTEOF"),
+					cmdSubst(litStmt("oops")),
+					lit("\n"),
+				),
+			}},
+		},
+	},
+	{
+		Strs: []string{
+			"$(\n\tfoo <<'EOF'\nbar\nEOF\n)",
+			"$(foo <<'EOF'\nbar\nEOF\n)",
+			"`\nfoo <<'EOF'\nbar\nEOF\n`",
+			"`foo <<'EOF'\nbar\nEOF`",
+		},
+		common: cmdSubst(&Stmt{
+			Cmd: litCall("foo"),
+			Redirs: []*Redirect{{
+				Op:   Hdoc,
+				Word: word(sglQuoted("EOF")),
+				Hdoc: litWord("bar\n"),
+			}},
+		}),
+	},
+	{
+		Strs: []string{"foo <<'EOF'\nbar\nEOF`oops`\nEOF"},
+		common: &Stmt{
+			Cmd: litCall("foo"),
+			Redirs: []*Redirect{{
+				Op:   Hdoc,
+				Word: word(sglQuoted("EOF")),
+				Hdoc: litWord("bar\nEOF`oops`\n"),
+			}},
+		},
+	},
+	{
+		Strs: []string{"foo <<'EOF'\nbar\nNOTEOF`oops`\nEOF"},
+		common: &Stmt{
+			Cmd: litCall("foo"),
+			Redirs: []*Redirect{{
+				Op:   Hdoc,
+				Word: word(sglQuoted("EOF")),
+				Hdoc: litWord("bar\nNOTEOF`oops`\n"),
+			}},
+		},
 	},
 	{
 		Strs: []string{"$(<foo)", "`<foo`"},
@@ -4564,14 +4658,14 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 		case strings.Contains(src, "`") && strings.Contains(src, "\\"):
 			// removed quotes inside backquote cmd substs
 			val = ""
-		case end < len(src) && src[end] == '\n':
+		case end < len(src) && (src[end] == '\n' || src[end] == '`'):
 			// heredoc literals that end with the
-			// stop word and a newline
+			// stop word and a newline or closing backquote
 		case end == len(src):
 			// same as above, but with word and EOF
 		case end != want:
-			tb.Fatalf("Unexpected Lit %q End() %d (wanted %d) in %q",
-				val, end, want, src)
+			tb.Fatalf("Unexpected Lit %q End() %d (wanted %d for pos %d) in %q",
+				val, end, want, pos, src)
 		}
 		setPos(&x.ValuePos, val)
 		setPos(&x.ValueEnd)

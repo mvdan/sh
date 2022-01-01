@@ -961,11 +961,17 @@ func (p *Parser) advanceLitHdoc(r rune) {
 	stop := p.hdocStops[len(p.hdocStops)-1]
 	for ; ; r = p.rune() {
 		switch r {
-		case escNewl, '`', '$':
+		case escNewl, '$':
 			p.val = p.endLit()
 			return
 		case '\\': // escaped byte follows
 			p.rune()
+		case '`':
+			if !p.backquoteEnd() {
+				p.val = p.endLit()
+				return
+			}
+			fallthrough
 		case '\n', utf8.RuneSelf:
 			if p.parsingDoc {
 				if r == utf8.RuneSelf {
@@ -979,8 +985,8 @@ func (p *Parser) advanceLitHdoc(r rune) {
 			} else if lStart >= 0 {
 				// Compare the current line with the stop word.
 				line := p.litBs[lStart:]
-				if r == '\n' && len(line) > 0 {
-					line = line[:len(line)-1] // minus \n
+				if r != utf8.RuneSelf && len(line) > 0 {
+					line = line[:len(line)-1] // minus trailing character
 				}
 				if bytes.Equal(line, stop) {
 					p.tok = _LitWord
@@ -992,8 +998,8 @@ func (p *Parser) advanceLitHdoc(r rune) {
 					return
 				}
 			}
-			if r == utf8.RuneSelf {
-				return
+			if r != '\n' {
+				return // hit an unexpected EOF or closing backquote
 			}
 			if p.quote == hdocBodyTabs {
 				for p.peekByte('\t') {
@@ -1020,10 +1026,18 @@ func (p *Parser) quotedHdocWord() *Word {
 			}
 		}
 		lStart := len(p.litBs) - 1
-		for r != utf8.RuneSelf && r != '\n' {
-			if r == escNewl {
+	runeLoop:
+		for {
+			switch r {
+			case utf8.RuneSelf, '\n':
+				break runeLoop
+			case '`':
+				if p.backquoteEnd() {
+					break runeLoop
+				}
+			case escNewl:
 				p.litBs = append(p.litBs, '\\', '\n')
-				break
+				break runeLoop
 			}
 			r = p.rune()
 		}
@@ -1032,7 +1046,7 @@ func (p *Parser) quotedHdocWord() *Word {
 		}
 		// Compare the current line with the stop word.
 		line := p.litBs[lStart:]
-		if r == '\n' && len(line) > 0 {
+		if r != utf8.RuneSelf && len(line) > 0 {
 			line = line[:len(line)-1] // minus \n
 		}
 		if bytes.Equal(line, stop) {
