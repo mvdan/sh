@@ -20,12 +20,16 @@ stderr -count=1 nonexistent-3
 ! shfmt .
 stdout 'foo'
 stdout 'bin/env'
-stderr 'parse-error\.sh'
+stderr -count=1 'parse-error\.sh'
 
 # format an entire directory with -l and -w
 ! shfmt -l -w .
 cmpenv stdout modify.golden
-stderr 'parse-error\.sh'
+stderr -count=1 'parse-error\.sh'
+
+# parse-error again, but now as a lone file
+! shfmt error/parse-error.sh
+stderr -count=1 'parse-error\.sh'
 
 # format files directly which we would ignore when walking directories
 shfmt none/ext-shebang.other
