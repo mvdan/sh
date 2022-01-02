@@ -15,7 +15,6 @@ import (
 	"regexp"
 	"runtime"
 	"sort"
-	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -1408,15 +1407,15 @@ var runTests = []runTest{
 		"exit status 1",
 	},
 	{
-		"touch -t 202111050000 a b; [[ a -nt b || a -ot b ]]",
+		"touch -t 202111050000.30 a b; [[ a -nt b || a -ot b ]]",
 		"exit status 1",
 	},
 	{
-		"touch -t 202111050000 a; touch -t 202111060000 b; [[ a -nt b ]]",
+		"touch -t 202111050200.00 a; touch -t 202111060100.00 b; [[ a -nt b ]]",
 		"exit status 1",
 	},
 	{
-		"touch -t 202111050000 a; touch -t 202111060000 b; [[ a -ot b ]]",
+		"touch -t 202111050000.00 a; touch -t 202111060000.00 b; [[ a -ot b ]]",
 		"",
 	},
 	{
@@ -1616,11 +1615,11 @@ var runTests = []runTest{
 		"1:1: -lt must be followed by a word\nexit status 2 #JUSTERR",
 	},
 	{
-		"touch -t 202111050000 a; touch -t 202111060000 b; [ a -nt b ]",
+		"touch -t 202111050000.00 a; touch -t 202111060000.00 b; [ a -nt b ]",
 		"exit status 1",
 	},
 	{
-		"touch -t 202111050000 a; touch -t 202111060000 b; [ a -ot b ]",
+		"touch -t 202111050000.00 a; touch -t 202111060000.00 b; [ a -ot b ]",
 		"",
 	},
 	{
@@ -3427,19 +3426,30 @@ var testBuiltinsMap = map[string]func(HandlerContext, []string) error{
 		return os.Link(oldname, newname)
 	},
 	"touch": func(hc HandlerContext, args []string) error {
+		filenames := args // create all arugments as filenames
+
 		newTime := time.Now()
-		if args[0] == "-d" {
-			if !strings.HasPrefix(args[1], "@") {
-				return fmt.Errorf("unimplemented")
+		if args[0] == "-t" {
+			if len(args) < 3 {
+				return fmt.Errorf("usage: touch [-t [[CC]YY]MMDDhhmm[.SS]] file")
 			}
-			sec, err := strconv.ParseInt(args[1][1:], 10, 64)
+			filenames = args[2:] // treat the rest of the args as filenames
+
+			arg := args[1]
+			if len(arg) > 15 {
+				return fmt.Errorf("usage: touch [-t [[CC]YY]MMDDhhmm[.SS]] file")
+			}
+			s, err := time.Parse("200601021504.05", arg)
 			if err != nil {
 				return err
 			}
-			newTime = time.Unix(sec, 0)
-			args = args[2:]
+			newTime = s
 		}
-		for _, arg := range args {
+
+		for _, arg := range filenames {
+			if strings.HasPrefix(arg, "-") {
+				return fmt.Errorf("usage: touch [-t [[CC]YY]MMDDhhmm[.SS]] file")
+			}
 			path := absPath(hc.Dir, arg)
 			// create the file if it does not exist
 			f, err := os.OpenFile(path, os.O_CREATE, 0o666)
