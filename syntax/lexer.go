@@ -267,10 +267,18 @@ skipSpace:
 		case '#':
 			r = p.rune()
 			p.newLit(r)
-			for r != '\n' && r != utf8.RuneSelf {
-				if r == escNewl {
+		runeLoop:
+			for {
+				switch r {
+				case '\n', utf8.RuneSelf:
+					break runeLoop
+				case escNewl:
 					p.litBs = append(p.litBs, '\\', '\n')
-					break
+					break runeLoop
+				case '`':
+					if p.backquoteEnd() {
+						break runeLoop
+					}
 				}
 				r = p.rune()
 			}

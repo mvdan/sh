@@ -4492,6 +4492,25 @@ var fileTestsKeepComments = []testCase{
 			}},
 		},
 	},
+	{
+		Strs: []string{
+			"$(\n\t# foo\n)",
+			"`\n\t# foo\n`",
+			"`# foo\n`",
+		},
+		common: &CmdSubst{
+			Last: []Comment{{Text: " foo"}},
+		},
+	},
+	{
+		Strs: []string{
+			"`# foo`",
+			"` # foo`",
+		},
+		common: &CmdSubst{
+			Last: []Comment{{Text: " foo"}},
+		},
+	},
 }
 
 func fullProg(v interface{}) *File {

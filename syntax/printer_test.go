@@ -20,7 +20,7 @@ func TestPrintCompact(t *testing.T) {
 	parserMirBSD := NewParser(KeepComments(true), Variant(LangMirBSDKorn))
 	parserBats := NewParser(KeepComments(true), Variant(LangBats))
 	printer := NewPrinter()
-	for _, c := range fileTests {
+	for _, c := range append(fileTests, fileTestsKeepComments...) {
 		t.Run("", func(t *testing.T) {
 			in := c.Strs[0]
 			parser := parserPosix
@@ -239,6 +239,7 @@ var printTests = []printCase{
 	samePrint("#before\nfoo && bar"),
 	samePrint("foo | bar # inline"),
 	samePrint("foo && bar # inline"),
+	samePrint("foo `# inline` \\\n\tbar"),
 	samePrint("for a in 1 2; do\n\n\tbar\ndone"),
 	{
 		"a \\\n\t&& b",
@@ -1078,7 +1079,7 @@ func TestPrintOptionsNotBroken(t *testing.T) {
 		{"SingleLine", []PrinterOption{SingleLine(true)}},
 	} {
 		printer := NewPrinter(opts.list...)
-		for i, tc := range fileTests {
+		for i, tc := range append(fileTests, fileTestsNoPrint...) {
 			t.Run(fmt.Sprintf("File%s%03d", opts.name, i), func(t *testing.T) {
 				parser := parserPosix
 				if tc.Bats != nil {
