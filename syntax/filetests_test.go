@@ -4523,9 +4523,11 @@ func fullProg(v interface{}) *File {
 	return nil
 }
 
-func clearPosRecurse(tb testing.TB, src string, v interface{}) {
-	zeroPos := Pos{}
-	checkSrc := func(pos Pos, strs ...string) {
+func recursiveSanityCheck(tb testing.TB, src string, v interface{}) {
+	checkPos := func(pos Pos, strs ...string) {
+		if !pos.IsValid() {
+			tb.Fatalf("invalid Pos in %T", v)
+		}
 		if src == "" {
 			return
 		}
@@ -4535,7 +4537,7 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 				pos, v, src)
 			return
 		}
-		if strs == nil {
+		if len(strs) == 0 {
 			return
 		}
 		if strings.Contains(src, "<<-") {
@@ -4561,36 +4563,22 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 		tb.Fatalf("Expected one of %q at %d in %q, found %q",
 			strs, pos, src, gotErr)
 	}
-	setPos := func(p *Pos, strs ...string) {
-		checkSrc(*p, strs...)
-		if *p == zeroPos {
-			tb.Fatalf("Pos in %T is already %v", v, zeroPos)
-		}
-		*p = zeroPos
-	}
-	checkPos := func(n Node) {
-		if n == nil {
-			return
-		}
-		if n.Pos() != zeroPos {
-			tb.Fatalf("Found unexpected Pos() in %T: want %d, got %d",
-				n, zeroPos, n.Pos())
-		}
+	checkNodePosEnd := func(n Node) {
 		if n.Pos().After(n.End()) {
 			tb.Fatalf("Found End() before Pos() in %T", n)
 		}
 	}
 	recurse := func(v interface{}) {
-		clearPosRecurse(tb, src, v)
+		recursiveSanityCheck(tb, src, v)
 		if n, ok := v.(Node); ok {
-			checkPos(n)
+			checkNodePosEnd(n)
 		}
 	}
 	switch x := v.(type) {
 	case *File:
 		recurse(x.Stmts)
 		recurse(x.Last)
-		checkPos(x)
+		checkNodePosEnd(x)
 	case []*Stmt:
 		for _, s := range x {
 			recurse(s)
@@ -4600,7 +4588,7 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 			recurse(&x[i])
 		}
 	case *Comment:
-		setPos(&x.Hash, "#"+x.Text)
+		checkPos(x.Hash, "#"+x.Text)
 	case *Stmt:
 		endOff := int(x.End().Offset())
 		if endOff < len(src) {
@@ -4623,15 +4611,15 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 		if src[x.Position.Offset()] == '#' {
 			tb.Fatalf("Stmt.Pos() should not be a comment")
 		}
-		setPos(&x.Position)
+		checkPos(x.Position)
 		if x.Semicolon.IsValid() {
-			setPos(&x.Semicolon, ";", "&", "|&")
+			checkPos(x.Semicolon, ";", "&", "|&")
 		}
 		if x.Cmd != nil {
 			recurse(x.Cmd)
 		}
 		for _, r := range x.Redirs {
-			setPos(&r.OpPos, r.Op.String())
+			checkPos(r.OpPos, r.Op.String())
 			if r.N != nil {
 				recurse(r.N)
 			}
@@ -4654,7 +4642,7 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 			if a.Array != nil {
 				recurse(a.Array)
 			}
-			checkPos(a)
+			checkNodePosEnd(a)
 		}
 	case *CallExpr:
 		recurse(x.Assigns)
@@ -4693,26 +4681,26 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 			tb.Fatalf("Unexpected Lit %q End() %d (wanted %d for pos %d) in %q",
 				val, end, want, pos, src)
 		}
-		setPos(&x.ValuePos, val)
-		setPos(&x.ValueEnd)
+		checkPos(x.ValuePos, val)
+		checkPos(x.ValueEnd)
 	case *Subshell:
-		setPos(&x.Lparen, "(")
-		setPos(&x.Rparen, ")")
+		checkPos(x.Lparen, "(")
+		checkPos(x.Rparen, ")")
 		recurse(x.Stmts)
 		recurse(x.Last)
 	case *Block:
-		setPos(&x.Lbrace, "{")
-		setPos(&x.Rbrace, "}")
+		checkPos(x.Lbrace, "{")
+		checkPos(x.Rbrace, "}")
 		recurse(x.Stmts)
 		recurse(x.Last)
 	case *IfClause:
 		if x.ThenPos.IsValid() {
-			setPos(&x.Position, "if", "elif")
-			setPos(&x.ThenPos, "then")
+			checkPos(x.Position, "if", "elif")
+			checkPos(x.ThenPos, "then")
 		} else {
-			setPos(&x.Position, "else")
+			checkPos(x.Position, "else")
 		}
-		setPos(&x.FiPos, "fi")
+		checkPos(x.FiPos, "fi")
 		recurse(x.Cond)
 		recurse(x.CondLast)
 		recurse(x.Then)
@@ -4725,28 +4713,28 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 		if x.Until {
 			rsrv = "until"
 		}
-		setPos(&x.WhilePos, rsrv)
-		setPos(&x.DoPos, "do")
-		setPos(&x.DonePos, "done")
+		checkPos(x.WhilePos, rsrv)
+		checkPos(x.DoPos, "do")
+		checkPos(x.DonePos, "done")
 		recurse(x.Cond)
 		recurse(x.CondLast)
 		recurse(x.Do)
 		recurse(x.DoLast)
 	case *ForClause:
 		if x.Select {
-			setPos(&x.ForPos, "select")
+			checkPos(x.ForPos, "select")
 		} else {
-			setPos(&x.ForPos, "for")
+			checkPos(x.ForPos, "for")
 		}
 		if x.Braces {
-			setPos(&x.DoPos, "{")
-			setPos(&x.DonePos, "}")
+			checkPos(x.DoPos, "{")
+			checkPos(x.DonePos, "}")
 			// Zero out Braces, to not duplicate all the test cases.
 			// The printer ignores the field anyway.
 			x.Braces = false
 		} else {
-			setPos(&x.DoPos, "do")
-			setPos(&x.DonePos, "done")
+			checkPos(x.DoPos, "do")
+			checkPos(x.DonePos, "done")
 		}
 		recurse(x.Loop)
 		recurse(x.Do)
@@ -4754,12 +4742,12 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 	case *WordIter:
 		recurse(x.Name)
 		if x.InPos.IsValid() {
-			setPos(&x.InPos, "in")
+			checkPos(x.InPos, "in")
 		}
 		recurse(x.Items)
 	case *CStyleLoop:
-		setPos(&x.Lparen, "((")
-		setPos(&x.Rparen, "))")
+		checkPos(x.Lparen, "((")
+		checkPos(x.Rparen, "))")
 		if x.Init != nil {
 			recurse(x.Init)
 		}
@@ -4770,29 +4758,29 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 			recurse(x.Post)
 		}
 	case *SglQuoted:
-		checkSrc(posAddCol(x.End(), -1), "'")
+		checkPos(posAddCol(x.End(), -1), "'")
 		valuePos := posAddCol(x.Left, 1)
 		if x.Dollar {
 			valuePos = posAddCol(valuePos, 1)
 		}
-		checkSrc(valuePos, x.Value)
+		checkPos(valuePos, x.Value)
 		if x.Dollar {
-			setPos(&x.Left, "$'")
+			checkPos(x.Left, "$'")
 		} else {
-			setPos(&x.Left, "'")
+			checkPos(x.Left, "'")
 		}
-		setPos(&x.Right, "'")
+		checkPos(x.Right, "'")
 	case *DblQuoted:
-		checkSrc(posAddCol(x.End(), -1), `"`)
+		checkPos(posAddCol(x.End(), -1), `"`)
 		if x.Dollar {
-			setPos(&x.Left, `$"`)
+			checkPos(x.Left, `$"`)
 		} else {
-			setPos(&x.Left, `"`)
+			checkPos(x.Left, `"`)
 		}
-		setPos(&x.Right, `"`)
+		checkPos(x.Right, `"`)
 		recurse(x.Parts)
 	case *UnaryArithm:
-		setPos(&x.OpPos, x.Op.String())
+		checkPos(x.OpPos, x.Op.String())
 		recurse(x.X)
 	case *UnaryTest:
 		strs := []string{x.Op.String()}
@@ -4802,14 +4790,14 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 		case TsSmbLink:
 			strs = append(strs, "-h")
 		}
-		setPos(&x.OpPos, strs...)
+		checkPos(x.OpPos, strs...)
 		recurse(x.X)
 	case *BinaryCmd:
-		setPos(&x.OpPos, x.Op.String())
+		checkPos(x.OpPos, x.Op.String())
 		recurse(x.X)
 		recurse(x.Y)
 	case *BinaryArithm:
-		setPos(&x.OpPos, x.Op.String())
+		checkPos(x.OpPos, x.Op.String())
 		recurse(x.X)
 		recurse(x.Y)
 	case *BinaryTest:
@@ -4818,22 +4806,22 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 		case TsMatch:
 			strs = append(strs, "=")
 		}
-		setPos(&x.OpPos, strs...)
+		checkPos(x.OpPos, strs...)
 		recurse(x.X)
 		recurse(x.Y)
 	case *ParenArithm:
-		setPos(&x.Lparen, "(")
-		setPos(&x.Rparen, ")")
+		checkPos(x.Lparen, "(")
+		checkPos(x.Rparen, ")")
 		recurse(x.X)
 	case *ParenTest:
-		setPos(&x.Lparen, "(")
-		setPos(&x.Rparen, ")")
+		checkPos(x.Lparen, "(")
+		checkPos(x.Rparen, ")")
 		recurse(x.X)
 	case *FuncDecl:
 		if x.RsrvWord {
-			setPos(&x.Position, "function")
+			checkPos(x.Position, "function")
 		} else {
-			setPos(&x.Position)
+			checkPos(x.Position)
 		}
 		recurse(x.Name)
 		recurse(x.Body)
@@ -4842,11 +4830,11 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 		if x.nakedIndex() {
 			doll = ""
 		}
-		setPos(&x.Dollar, doll)
+		checkPos(x.Dollar, doll)
 		if !x.Short {
-			setPos(&x.Rbrace, "}")
+			checkPos(x.Rbrace, "}")
 		} else if x.nakedIndex() {
-			checkSrc(posAddCol(x.End(), -1), "]")
+			checkPos(posAddCol(x.End(), -1), "]")
 		}
 		recurse(x.Param)
 		if x.Index != nil {
@@ -4874,48 +4862,48 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 	case *ArithmExp:
 		if x.Bracket {
 			// deprecated $(( form
-			setPos(&x.Left, "$[")
-			setPos(&x.Right, "]")
+			checkPos(x.Left, "$[")
+			checkPos(x.Right, "]")
 		} else {
-			setPos(&x.Left, "$((")
-			setPos(&x.Right, "))")
+			checkPos(x.Left, "$((")
+			checkPos(x.Right, "))")
 		}
 		recurse(x.X)
 	case *ArithmCmd:
-		setPos(&x.Left, "((")
-		setPos(&x.Right, "))")
+		checkPos(x.Left, "((")
+		checkPos(x.Right, "))")
 		recurse(x.X)
 	case *CmdSubst:
 		switch {
 		case x.TempFile:
-			setPos(&x.Left, "${ ", "${\t", "${\n")
-			setPos(&x.Right, "}")
+			checkPos(x.Left, "${ ", "${\t", "${\n")
+			checkPos(x.Right, "}")
 		case x.ReplyVar:
-			setPos(&x.Left, "${|")
-			setPos(&x.Right, "}")
+			checkPos(x.Left, "${|")
+			checkPos(x.Right, "}")
 		case x.Backquotes:
-			setPos(&x.Left, "`", "\\`")
-			setPos(&x.Right, "`", "\\`")
+			checkPos(x.Left, "`", "\\`")
+			checkPos(x.Right, "`", "\\`")
 			// Zero out Backquotes, to not duplicate all the test
 			// cases. The printer ignores the field anyway.
 			x.Backquotes = false
 		default:
-			setPos(&x.Left, "$(")
-			setPos(&x.Right, ")")
+			checkPos(x.Left, "$(")
+			checkPos(x.Right, ")")
 		}
 		recurse(x.Stmts)
 		recurse(x.Last)
 	case *CaseClause:
-		setPos(&x.Case, "case")
+		checkPos(x.Case, "case")
 		if x.Braces {
-			setPos(&x.In, "{")
-			setPos(&x.Esac, "}")
+			checkPos(x.In, "{")
+			checkPos(x.Esac, "}")
 			// Zero out Braces, to not duplicate all the test cases.
 			// The printer ignores the field anyway.
 			x.Braces = false
 		} else {
-			setPos(&x.In, "in")
-			setPos(&x.Esac, "esac")
+			checkPos(x.In, "in")
+			checkPos(x.Esac, "esac")
 		}
 		recurse(x.Word)
 		for _, ci := range x.Items {
@@ -4923,41 +4911,41 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 		}
 	case *CaseItem:
 		if x.OpPos.IsValid() {
-			setPos(&x.OpPos, x.Op.String(), "esac")
+			checkPos(x.OpPos, x.Op.String(), "esac")
 		}
 		recurse(x.Patterns)
 		recurse(x.Stmts)
 		recurse(x.Last)
 	case *TestClause:
-		setPos(&x.Left, "[[")
-		setPos(&x.Right, "]]")
+		checkPos(x.Left, "[[")
+		checkPos(x.Right, "]]")
 		recurse(x.X)
 	case *DeclClause:
 		recurse(x.Variant)
 		recurse(x.Args)
 	case *TimeClause:
-		setPos(&x.Time, "time")
+		checkPos(x.Time, "time")
 		if x.Stmt != nil {
 			recurse(x.Stmt)
 		}
 	case *CoprocClause:
-		setPos(&x.Coproc, "coproc")
+		checkPos(x.Coproc, "coproc")
 		if x.Name != nil {
 			recurse(x.Name)
 		}
 		recurse(x.Stmt)
 	case *LetClause:
-		setPos(&x.Let, "let")
+		checkPos(x.Let, "let")
 		for _, expr := range x.Exprs {
 			recurse(expr)
 		}
 	case *TestDecl:
-		setPos(&x.Position, "@test")
+		checkPos(x.Position, "@test")
 		recurse(x.Description)
 		recurse(x.Body)
 	case *ArrayExpr:
-		setPos(&x.Lparen, "(")
-		setPos(&x.Rparen, ")")
+		checkPos(x.Lparen, "(")
+		checkPos(x.Rparen, ")")
 		for _, elem := range x.Elems {
 			recurse(elem)
 		}
@@ -4969,12 +4957,12 @@ func clearPosRecurse(tb testing.TB, src string, v interface{}) {
 			recurse(x.Value)
 		}
 	case *ExtGlob:
-		setPos(&x.OpPos, x.Op.String())
-		checkSrc(posAddCol(x.End(), -1), ")")
+		checkPos(x.OpPos, x.Op.String())
+		checkPos(posAddCol(x.End(), -1), ")")
 		recurse(x.Pattern)
 	case *ProcSubst:
-		setPos(&x.OpPos, x.Op.String())
-		setPos(&x.Rparen, ")")
+		checkPos(x.OpPos, x.Op.String())
+		checkPos(x.Rparen, ")")
 		recurse(x.Stmts)
 		recurse(x.Last)
 	default:
