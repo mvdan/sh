@@ -378,7 +378,6 @@ func TestParseErrMirBSDKornConfirm(t *testing.T) {
 	}
 }
 
-// TODO: we could use options to avoid clearPosRecurse.
 var cmpOpt = cmp.FilterValues(func(p1, p2 Pos) bool { return true }, cmp.Ignore())
 
 func singleParse(p *Parser, in string, want *File) func(t *testing.T) {
@@ -388,7 +387,7 @@ func singleParse(p *Parser, in string, want *File) func(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Unexpected error in %q: %v", in, err)
 		}
-		clearPosRecurse(t, in, got)
+		recursiveSanityCheck(t, in, got)
 		if diff := cmp.Diff(want, got, cmpOpt); diff != "" {
 			t.Errorf("syntax tree mismatch in %q (-want +got):\n%s", in, diff)
 		}
@@ -2264,7 +2263,7 @@ func TestParseDocument(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			clearPosRecurse(t, "", got)
+			recursiveSanityCheck(t, "", got)
 			want := &Word{Parts: tc.want}
 			if diff := cmp.Diff(want, got, cmpOpt); diff != "" {
 				t.Errorf("syntax tree mismatch in %q (-want +got):\n%s", tc.in, diff)
@@ -2360,7 +2359,7 @@ func TestParseArithmetic(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			clearPosRecurse(t, "", got)
+			recursiveSanityCheck(t, "", got)
 			if diff := cmp.Diff(tc.want, got, cmpOpt); diff != "" {
 				t.Errorf("syntax tree mismatch in %q (-want +got):\n%s", tc.in, diff)
 			}
