@@ -10,13 +10,12 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"reflect"
 	"regexp"
 	"strings"
 	"sync"
 	"testing"
 
-	"github.com/kr/pretty"
+	"github.com/google/go-cmp/cmp"
 )
 
 func TestKeepComments(t *testing.T) {
@@ -378,6 +377,9 @@ func TestParseErrMirBSDKornConfirm(t *testing.T) {
 	}
 }
 
+// TODO: we could use options to avoid clearPosRecurse.
+var cmpOpt = cmp.FilterValues(func(p1, p2 Pos) bool { return true }, cmp.Ignore())
+
 func singleParse(p *Parser, in string, want *File) func(t *testing.T) {
 	return func(t *testing.T) {
 		t.Helper()
@@ -386,9 +388,8 @@ func singleParse(p *Parser, in string, want *File) func(t *testing.T) {
 			t.Fatalf("Unexpected error in %q: %v", in, err)
 		}
 		clearPosRecurse(t, in, got)
-		if !reflect.DeepEqual(got, want) {
-			t.Fatalf("syntax tree mismatch in %q\ndiff:\n%s", in,
-				strings.Join(pretty.Diff(want, got), "\n"))
+		if diff := cmp.Diff(want, got, cmpOpt); diff != "" {
+			t.Errorf("syntax tree mismatch in %q (-want +got):\n%s", in, diff)
 		}
 	}
 }
@@ -2264,9 +2265,8 @@ func TestParseDocument(t *testing.T) {
 			}
 			clearPosRecurse(t, "", got)
 			want := &Word{Parts: tc.want}
-			if !reflect.DeepEqual(got, want) {
-				t.Fatalf("syntax tree mismatch in %q\ndiff:\n%s", tc.in,
-					strings.Join(pretty.Diff(want, got), "\n"))
+			if diff := cmp.Diff(want, got, cmpOpt); diff != "" {
+				t.Errorf("syntax tree mismatch in %q (-want +got):\n%s", tc.in, diff)
 			}
 		})
 	}
@@ -2360,9 +2360,8 @@ func TestParseArithmetic(t *testing.T) {
 				t.Fatal(err)
 			}
 			clearPosRecurse(t, "", got)
-			if !reflect.DeepEqual(got, tc.want) {
-				t.Fatalf("syntax tree mismatch in %q\ndiff:\n%s", tc.in,
-					strings.Join(pretty.Diff(tc.want, got), "\n"))
+			if diff := cmp.Diff(tc.want, got, cmpOpt); diff != "" {
+				t.Errorf("syntax tree mismatch in %q (-want +got):\n%s", tc.in, diff)
 			}
 		})
 	}
