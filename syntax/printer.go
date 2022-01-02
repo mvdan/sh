@@ -627,6 +627,12 @@ func (p *Printer) wordPart(wp, next WordPart) {
 			p.nestedStmts(x.Stmts, x.Last, x.Right)
 			p.wantSpace = false
 			p.semiRsrv("}", x.Right)
+		// Special case: `# inline comment`
+		case x.Backquotes && len(x.Stmts) == 0 &&
+			len(x.Last) == 1 && x.Right.Line() == p.line:
+			p.WriteString("`#")
+			p.WriteString(x.Last[0].Text)
+			p.WriteString("`")
 		default:
 			p.WriteString("$(")
 			p.wantSpace = len(x.Stmts) > 0 && startsWithLparen(x.Stmts[0])
