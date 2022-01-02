@@ -54,6 +54,9 @@ func init() {
 	for i := range fileTestsNoPrint {
 		prepareTest(&fileTestsNoPrint[i])
 	}
+	for i := range fileTestsKeepComments {
+		prepareTest(&fileTestsKeepComments[i])
+	}
 }
 
 func lit(s string) *Lit         { return &Lit{Value: s} }
@@ -4465,6 +4468,29 @@ var fileTestsNoPrint = []testCase{
 			X:  litWord("1"),
 			Y:  litWord("3"),
 		})),
+	},
+}
+
+// these parse with comments
+var fileTestsKeepComments = []testCase{
+	{
+		Strs: []string{"# foo\ncmd\n# bar"},
+		common: &File{
+			Stmts: []*Stmt{{
+				Comments: []Comment{{Text: " foo"}},
+				Cmd:      litCall("cmd"),
+			}},
+			Last: []Comment{{Text: " bar"}},
+		},
+	},
+	{
+		Strs: []string{"foo # bar # baz"},
+		common: &File{
+			Stmts: []*Stmt{{
+				Comments: []Comment{{Text: " bar # baz"}},
+				Cmd:      litCall("foo"),
+			}},
+		},
 	},
 }
 
