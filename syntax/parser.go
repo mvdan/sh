@@ -938,7 +938,9 @@ func (p *Parser) stmtList(stops ...string) ([]*Stmt, []Comment) {
 			split = i
 		}
 	}
-	last = p.accComs[:split]
+	if split > 0 { // keep last nil if empty
+		last = p.accComs[:split]
+	}
 	p.accComs = p.accComs[split:]
 	return stmts, last
 }

@@ -18,17 +18,18 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-func TestKeepComments(t *testing.T) {
+func TestParseBashKeepComments(t *testing.T) {
 	t.Parallel()
-	in := "# foo\ncmd\n# bar"
-	want := &File{
-		Stmts: []*Stmt{{
-			Comments: []Comment{{Text: " foo"}},
-			Cmd:      litCall("cmd"),
-		}},
-		Last: []Comment{{Text: " bar"}},
+	p := NewParser(KeepComments(true))
+	for i, c := range fileTestsKeepComments {
+		want := c.Bash
+		if want == nil {
+			continue
+		}
+		for j, in := range c.Strs {
+			t.Run(fmt.Sprintf("#%03d-%d", i, j), singleParse(p, in, want))
+		}
 	}
-	singleParse(NewParser(KeepComments(true)), in, want)(t)
 }
 
 func TestParseBash(t *testing.T) {
