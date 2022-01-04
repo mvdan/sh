@@ -208,18 +208,18 @@ func Dir(path string) RunnerOption {
 		if path == "" {
 			path, err := os.Getwd()
 			if err != nil {
-				return fmt.Errorf("could not get current dir: %v", err)
+				return fmt.Errorf("could not get current dir: %w", err)
 			}
 			r.Dir = path
 			return nil
 		}
 		path, err := filepath.Abs(path)
 		if err != nil {
-			return fmt.Errorf("could not get absolute dir: %v", err)
+			return fmt.Errorf("could not get absolute dir: %w", err)
 		}
 		info, err := os.Stat(path)
 		if err != nil {
-			return fmt.Errorf("could not stat: %v", err)
+			return fmt.Errorf("could not stat: %w", err)
 		}
 		if !info.IsDir() {
 			return fmt.Errorf("%s is not a directory", path)
