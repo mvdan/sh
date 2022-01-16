@@ -836,6 +836,15 @@ func (r *Runner) call(ctx context.Context, pos syntax.Pos, args []string) {
 	if r.stop(ctx) {
 		return
 	}
+	if r.callHandler != nil {
+		var err error
+		args, err = r.callHandler(r.handlerCtx(ctx), args)
+		if err != nil {
+			// handler's custom fatal error
+			r.setErr(err)
+			return
+		}
+	}
 	name := args[0]
 	if body := r.Funcs[name]; body != nil {
 		// stack them to support nested func calls

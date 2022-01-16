@@ -59,6 +59,10 @@ type Runner struct {
 
 	alias map[string]alias
 
+	// callHandler is a function allowing to replace a simple command's
+	// arguments. It may be nil.
+	callHandler CallHandlerFunc
+
 	// execHandler is a function responsible for executing programs. It must be non-nil.
 	execHandler ExecHandlerFunc
 
@@ -285,7 +289,15 @@ func Params(args ...string) RunnerOption {
 	}
 }
 
-// ExecHandler sets command execution handler. See ExecHandlerFunc for more info.
+// CallHandler sets the call handler. See CallHandlerFunc for more info.
+func CallHandler(f CallHandlerFunc) RunnerOption {
+	return func(r *Runner) error {
+		r.callHandler = f
+		return nil
+	}
+}
+
+// ExecHandler sets the command execution handler. See ExecHandlerFunc for more info.
 func ExecHandler(f ExecHandlerFunc) RunnerOption {
 	return func(r *Runner) error {
 		r.execHandler = f
@@ -398,6 +410,7 @@ func (r *Runner) Reset() {
 	// reset the internal state
 	*r = Runner{
 		Env:         r.Env,
+		callHandler: r.callHandler,
 		execHandler: r.execHandler,
 		openHandler: r.openHandler,
 
@@ -549,6 +562,7 @@ func (r *Runner) Subshell() *Runner {
 	r2 := &Runner{
 		Dir:         r.Dir,
 		Params:      r.Params,
+		callHandler: r.callHandler,
 		execHandler: r.execHandler,
 		openHandler: r.openHandler,
 		stdin:       r.stdin,

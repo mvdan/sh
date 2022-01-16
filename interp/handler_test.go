@@ -57,6 +57,7 @@ var modCases = []struct {
 	name string
 	exec ExecHandlerFunc
 	open OpenHandlerFunc
+	call CallHandlerFunc
 	src  string
 	want string
 }{
@@ -108,6 +109,34 @@ var modCases = []struct {
 		src:  "echo foo >/dev/null; echo bar >/tmp/x",
 		want: "non-dev: /tmp/x",
 	},
+	{
+		name: "CallReplaceWithBlank",
+		open: blacklistNondevOpen,
+		call: func(ctx context.Context, args []string) ([]string, error) {
+			return []string{"echo", "blank"}, nil
+		},
+		src:  "echo foo >/dev/null; { bar; } && baz",
+		want: "blank\nblank\n",
+	},
+	{
+		name: "CallDryRun",
+		call: func(ctx context.Context, args []string) ([]string, error) {
+			return append([]string{"echo", "run:"}, args...), nil
+		},
+		src:  "cd some-dir; cat foo; exit 1",
+		want: "run: cd some-dir\nrun: cat foo\nrun: exit 1\n",
+	},
+	{
+		name: "CallError",
+		call: func(ctx context.Context, args []string) ([]string, error) {
+			if args[0] == "echo" && len(args) > 2 {
+				return nil, fmt.Errorf("refusing to run echo builtin with multiple args")
+			}
+			return args, nil
+		},
+		src:  "echo foo; echo foo bar",
+		want: "foo\nrefusing to run echo builtin with multiple args",
+	},
 }
 
 func TestRunnerHandlers(t *testing.T) {
@@ -124,6 +153,9 @@ func TestRunnerHandlers(t *testing.T) {
 			}
 			if tc.open != nil {
 				OpenHandler(tc.open)(r)
+			}
+			if tc.call != nil {
+				CallHandler(tc.call)(r)
 			}
 			if err != nil {
 				t.Fatal(err)
