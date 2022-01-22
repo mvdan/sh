@@ -57,19 +57,32 @@ stdin input-bash
 shfmt -i 4
 stdout loop
 
-# TODO: introduce stdin lang detection
-#stdin -filename=input.mksh input-mksh
-#shfmt
-#stdout 'coprocess'
-#
-#stdin input-mksh-shebang
-#shfmt
-#stdout 'coprocess'
+# Ensure that -ln=auto works on stdin via filename.
+stdin input-mksh
+shfmt -filename=input.mksh
+stdout 'coprocess'
+
+# Ensure that -ln=auto works on stdin via shebang.
+stdin input-mksh-shebang
+shfmt
+stdout 'coprocess'
+
+# Ensure that -ln=auto works on stdin using the fallback.
+stdin input-bash
+shfmt
+stdout 'loop'
+
+# The default -ln=auto shouldn't require an extension or shebang,
+# as long as we're explicitly formatting a file.
+shfmt input-tiny
+stdout foo
 
 -- input-posix --
 let a+
 -- input-bash --
 for ((;;)); do loop; done
+-- input-tiny --
+foo
 -- input-mksh --
 coprocess |&
 -- input-mksh-shebang --

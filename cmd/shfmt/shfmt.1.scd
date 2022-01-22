@@ -50,7 +50,12 @@ predictable. Some aspects of the format can be configured via printer flags.
 ## Parser flags
 
 *-ln* <str>
-	Language variant to parse (*bash*/*posix*/*mksh*/*bats*, default *bash*).
+	Language dialect (*bash*/*posix*/*mksh*/*bats*, default *auto*).
+
+	When set to *auto*, the language is detected from the input filename,
+	as long as it has a shell extension like *foo.mksh*. Otherwise, if the input
+	begins with a shell shebang like *#!/bin/sh*, that's used instead.
+	If neither come up with a result, *bash* is used as a fallback.
 
 *-p*
 	Shorthand for *-ln=posix*.
