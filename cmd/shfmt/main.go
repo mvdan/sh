@@ -5,6 +5,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -13,6 +14,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime/debug"
+	"strings"
 
 	maybeio "github.com/google/renameio/maybe"
 	"github.com/pkg/diff"
@@ -24,7 +26,8 @@ import (
 	"mvdan.cc/sh/v3/syntax"
 )
 
-const unsetLang = syntax.LangVariant(-1)
+// When unset, we auto-detect what language to use.
+const langAuto = syntax.LangVariant(-1)
 
 var (
 	showVersion = flag.Bool("version", false, "")
@@ -39,7 +42,7 @@ var (
 	// useEditorConfig will be false if any parser or printer flags were used.
 	useEditorConfig = true
 
-	lang     = unsetLang
+	langFlag = langAuto
 	posix    = flag.Bool("p", false, "")
 	filename = flag.String("filename", "", "")
 
@@ -65,7 +68,7 @@ var (
 	version = "(devel)" // to match the default from runtime/debug
 )
 
-func init() { flag.Var(&lang, "ln", "") }
+func init() { flag.Var(&langFlag, "ln", "") }
 
 func main() {
 	os.Exit(main1())
@@ -89,7 +92,7 @@ directory, all shell scripts found under that directory will be used.
 
 Parser options:
 
-  -ln str        language variant to parse (bash/posix/mksh/bats, default "bash")
+  -ln str        language dialect (bash/posix/mksh/bats, default "auto")
   -p             shorthand for -ln=posix
   -filename str  provide a name for the standard input file
 
@@ -124,7 +127,7 @@ For more information, see 'man shfmt' and https://github.com/mvdan/sh.
 		fmt.Println(version)
 		return 0
 	}
-	if *posix && lang != unsetLang {
+	if *posix && langFlag != langAuto {
 		fmt.Fprintf(os.Stderr, "-p and -ln=lang cannot coexist\n")
 		return 1
 	}
@@ -146,12 +149,8 @@ For more information, see 'man shfmt' and https://github.com/mvdan/sh.
 	if !useEditorConfig {
 		if *posix {
 			// -p equals -ln=posix
-			lang = syntax.LangPOSIX
-		} else if lang == unsetLang {
-			// if unset, default to -ln=bash
-			lang = syntax.LangBash
+			langFlag = syntax.LangPOSIX
 		}
-		syntax.Variant(lang)(parser)
 
 		syntax.Indent(*indent)(printer)
 		syntax.BinaryNextLine(*binNext)(printer)
@@ -239,7 +238,18 @@ func formatStdin(name string) error {
 	if err != nil {
 		return err
 	}
-	return formatBytes(src, name)
+	lang := langFlag
+	if lang == langAuto {
+		extensionLang := strings.TrimPrefix(filepath.Ext(name), ".")
+		if err := lang.Set(extensionLang); err != nil {
+			shebangLang := fileutil.Shebang(src)
+			if err := lang.Set(shebangLang); err != nil {
+				// Fall back to bash.
+				lang = syntax.LangBash
+			}
+		}
+	}
+	return formatBytes(src, name, lang)
 }
 
 var vcsDir = regexp.MustCompile(`^\.(git|svn|hg)$`)
@@ -277,8 +287,8 @@ var ecQuery = editorconfig.Query{
 	RegexpCache: make(map[string]*regexp.Regexp),
 }
 
-func propsOptions(props editorconfig.Section) {
-	lang := syntax.LangBash
+func propsOptions(lang syntax.LangVariant, props editorconfig.Section) {
+	// if shell_variant is set to a valid string, it will take precedence
 	lang.Set(props.Get("shell_variant"))
 	syntax.Variant(lang)(parser)
 
@@ -304,17 +314,35 @@ func formatPath(path string, checkShebang bool) error {
 		return err
 	}
 	defer f.Close()
-	readBuf.Reset()
-	if checkShebang {
-		n, err := io.ReadAtLeast(f, copyBuf[:32], len("#/bin/sh\n"))
-		if err == io.EOF || err == io.ErrUnexpectedEOF {
-			return nil // too short to have a shebang
+
+	lang := langFlag
+	shebangForAuto := false
+	if lang == langAuto {
+		extensionLang := strings.TrimPrefix(filepath.Ext(path), ".")
+		if err := lang.Set(extensionLang); err != nil {
+			shebangForAuto = true
 		}
-		if err != nil {
+	}
+	readBuf.Reset()
+	if checkShebang || shebangForAuto {
+		n, err := io.ReadAtLeast(f, copyBuf[:32], len("#/bin/sh\n"))
+		switch {
+		case !checkShebang:
+			// only wanted the shebang for langAuto
+		case err == io.EOF, errors.Is(err, io.ErrUnexpectedEOF):
+			return nil // too short to have a shebang
+		case err != nil:
 			return err // some other read error
 		}
-		if !fileutil.HasShebang(copyBuf[:n]) {
-			return nil
+		shebangLang := fileutil.Shebang(copyBuf[:n])
+		if checkShebang && shebangLang == "" {
+			return nil // not a shell script
+		}
+		if shebangForAuto {
+			if err := lang.Set(shebangLang); err != nil {
+				// Fall back to bash.
+				lang = syntax.LangBash
+			}
 		}
 		readBuf.Write(copyBuf[:n])
 	}
@@ -326,16 +354,18 @@ func formatPath(path string, checkShebang bool) error {
 		return err
 	}
 	f.Close()
-	return formatBytes(readBuf.Bytes(), path)
+	return formatBytes(readBuf.Bytes(), path, lang)
 }
 
-func formatBytes(src []byte, path string) error {
+func formatBytes(src []byte, path string, lang syntax.LangVariant) error {
 	if useEditorConfig {
 		props, err := ecQuery.Find(path)
 		if err != nil {
 			return err
 		}
-		propsOptions(props)
+		propsOptions(lang, props)
+	} else {
+		syntax.Variant(lang)(parser)
 	}
 	prog, err := parser.Parse(bytes.NewReader(src), path)
 	if err != nil {

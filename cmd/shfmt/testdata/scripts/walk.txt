@@ -4,8 +4,8 @@ mkdir symlink/reallylongdir
 [symlink] symlink symlink/symlink-none -> symlink/reallylongdir/nonexistent
 
 shfmt -f .
-cmpenv stdout find.golden
 ! stderr .
+cmpenv stdout find.golden
 
 # try to format missing paths
 ! shfmt nonexistent
@@ -24,8 +24,9 @@ stderr -count=1 'parse-error\.sh'
 
 # format an entire directory with -l and -w
 ! shfmt -l -w .
-cmpenv stdout modify.golden
 stderr -count=1 'parse-error\.sh'
+! stderr '^modify'
+cmpenv stdout modify.golden
 
 # parse-error again, but now as a lone file
 ! shfmt error/parse-error.sh
@@ -38,52 +39,80 @@ shfmt none/noext-noshebang
 stdout 'foo'
 
 # -f on files should still check extension and shebang
-shfmt -f modify/ext.sh modify/shebang-1 none/ext-shebang.other none/noext-noshebang
+shfmt -f modify/ext.sh modify/shebang-sh none/ext-shebang.other none/noext-noshebang
 stdout -count=2 '^modify'
 ! stdout '^none'
+
+# -ln shouldn't be overwritten by a filename
+mkdir modify-ln
+cp modify/ext.mksh modify-ln
+! shfmt -ln=bash modify-ln
+stderr '|& must be followed by a statement'
+rm modify-ln
+
+# -ln shouldn't be overwritten by a shebang
+mkdir modify-ln
+cp modify/shebang-mksh modify-ln
+! shfmt -ln=bash modify-ln
+stderr '|& must be followed by a statement'
+rm modify-ln
 
 -- find.golden --
 error${/}parse-error.sh
 modify${/}dir${/}ext.sh
 modify${/}ext-shebang.sh
 modify${/}ext.bash
+modify${/}ext.bats
+modify${/}ext.mksh
 modify${/}ext.sh
-modify${/}shebang-1
-modify${/}shebang-2
-modify${/}shebang-3
-modify${/}shebang-4
-modify${/}shebang-5
 modify${/}shebang-args
+modify${/}shebang-bash
+modify${/}shebang-env-bash
+modify${/}shebang-env-bats
+modify${/}shebang-env-sh
+modify${/}shebang-mksh
+modify${/}shebang-sh
 modify${/}shebang-space
 modify${/}shebang-tabs
+modify${/}shebang-usr-sh
 -- modify.golden --
 modify${/}dir${/}ext.sh
 modify${/}ext-shebang.sh
 modify${/}ext.bash
+modify${/}ext.bats
+modify${/}ext.mksh
 modify${/}ext.sh
-modify${/}shebang-1
-modify${/}shebang-2
-modify${/}shebang-3
-modify${/}shebang-4
-modify${/}shebang-5
 modify${/}shebang-args
+modify${/}shebang-bash
+modify${/}shebang-env-bash
+modify${/}shebang-env-bats
+modify${/}shebang-env-sh
+modify${/}shebang-mksh
+modify${/}shebang-sh
 modify${/}shebang-space
 modify${/}shebang-tabs
--- modify/shebang-1 --
+modify${/}shebang-usr-sh
+-- modify/shebang-sh --
 #!/bin/sh
  foo
--- modify/shebang-2 --
+-- modify/shebang-bash --
 #!/bin/bash
- foo
--- modify/shebang-3 --
+ foo=(bar)
+-- modify/shebang-usr-sh --
 #!/usr/bin/sh
  foo
--- modify/shebang-4 --
+-- modify/shebang-env-bash --
 #!/usr/bin/env bash
- foo
--- modify/shebang-5 --
+ foo=(bar)
+-- modify/shebang-env-sh --
 #!/bin/env sh
  foo
+-- modify/shebang-mksh --
+#!/bin/mksh
+ foo |&
+-- modify/shebang-env-bats --
+#!/usr/bin/env bats
+ @test "foo" { bar; }
 -- modify/shebang-space --
 #! /bin/sh
  foo
@@ -96,7 +125,11 @@ modify${/}shebang-tabs
 -- modify/ext.sh --
  foo
 -- modify/ext.bash --
- foo
+ foo=(bar)
+-- modify/ext.mksh --
+ foo |&
+-- modify/ext.bats --
+ @test "foo" { bar; }
 -- modify/ext-shebang.sh --
 #!/bin/sh
  foo
@@ -127,6 +160,11 @@ foo
 #!/bin/envsh
  foo
 
+-- skip/ext.zsh
+foo
+-- skip/shebang-zsh
+#!/bin/zsh
+foo
 -- skip/.git/ext.sh --
 foo
 -- skip/.svn/ext.sh --

@@ -11,8 +11,8 @@ stdin stdin-filename-bash
 shfmt
 
 stdin stdin-filename-bash
-! shfmt -filename=foo-posix.sh
-stderr '^foo-posix.sh:.* arrays are a bash'
+! shfmt -filename=foo_posix.sh
+stderr '^foo_posix.sh:.* arrays are a bash'
 
 # Using a file path should use EditorConfig, including with the use of flags
 # like -l.
@@ -60,7 +60,7 @@ root = true
 indent_style = space
 indent_size = 3
 
-[*-posix.sh]
+[*_posix.sh]
 shell_variant = posix
 -- input.sh --
 {
@@ -88,10 +88,10 @@ indent_size = 6
 -- otherknobs/.editorconfig --
 root = true
 
-[shell_variant_posix.sh]
-shell_variant = posix
+[*_bash.sh]
+shell_variant = bash
 
-[shell_variant_mksh.sh]
+[*_mksh.sh]
 shell_variant = mksh
 
 [indent.sh]
@@ -112,10 +112,10 @@ keep_padding = true
 [function_next_line.sh]
 function_next_line = true
 
--- otherknobs/shell_variant_posix.sh --
-let badsyntax+
+-- otherknobs/shell_variant_bash.sh --
+array=(elem)
 -- otherknobs/shell_variant_mksh.sh --
-coproess |&
+coprocess |&
 -- otherknobs/indent.sh --
 {
 	indented
