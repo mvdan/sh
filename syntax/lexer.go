@@ -80,9 +80,14 @@ retry:
 				goto retry
 			}
 			if b == '\\' {
-				if p.r != '\\' && p.peekByte('\n') {
+				if p.r == '\\' {
+				} else if p.peekByte('\n') {
 					p.bsp++
 					p.w, p.r = 1, escNewl
+					return escNewl
+				} else if p.peekBytes("\r\n") {
+					p.bsp += 2
+					p.w, p.r = 2, escNewl
 					return escNewl
 				}
 				if p.openBquotes > 0 && bquotes < p.openBquotes &&
@@ -373,7 +378,7 @@ func (p *Parser) peekBytes(s string) bool {
 		p.fill()
 	}
 	bw := p.bsp + len(s)
-	return bw < len(p.bs) && bytes.HasPrefix(p.bs[p.bsp:bw], []byte(s))
+	return bw <= len(p.bs) && bytes.HasPrefix(p.bs[p.bsp:bw], []byte(s))
 }
 
 func (p *Parser) peekByte(b byte) bool {
