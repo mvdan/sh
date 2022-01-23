@@ -79,6 +79,7 @@ var printTests = []printCase{
 	samePrint("#"),
 	samePrint("#c1\\\n#c2"),
 	samePrint("#\\\n#"),
+	{"#\\\r\n#", "#\\\n#"},
 	samePrint("{\n\t# foo \\\n}"),
 	samePrint("foo\\\\\nbar"),
 	samePrint("a=b # inline\nbar"),

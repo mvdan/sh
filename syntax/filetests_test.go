@@ -168,7 +168,7 @@ var fileTests = []testCase{
 		common: litStmts("foo", "bar"),
 	},
 	{
-		Strs:   []string{"foo a b", " foo  a  b ", "foo \\\n a b"},
+		Strs:   []string{"foo a b", " foo  a  b ", "foo \\\n a b", "foo \\\r\n a b"},
 		common: litCall("foo", "a", "b"),
 	},
 	{
@@ -176,7 +176,7 @@ var fileTests = []testCase{
 		common: litWord("foobar"),
 	},
 	{
-		Strs:   []string{"foo", "foo \\\n"},
+		Strs:   []string{"foo", "foo \\\n", "foo \\\r\n"},
 		common: litWord("foo"),
 	},
 	{
@@ -355,6 +355,7 @@ var fileTests = []testCase{
 		Strs: []string{
 			"while a; do b; done",
 			"wh\\\nile a; do b; done",
+			"wh\\\r\nile a; do b; done",
 			"while a\ndo\nb\ndone",
 			"while a;\ndo\nb\ndone",
 		},
@@ -1385,7 +1386,10 @@ var fileTests = []testCase{
 		},
 	},
 	{
-		Strs: []string{"foo <<'EOF'\nbar\\\nEOF"},
+		Strs: []string{
+			"foo <<'EOF'\nbar\\\nEOF",
+			"foo <<'EOF'\nbar\\\r\nEOF",
+		},
 		common: &Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*Redirect{{
@@ -1845,7 +1849,7 @@ var fileTests = []testCase{
 		common: dblQuoted(lit("foo"), lit("bar")),
 	},
 	{
-		Strs:   []string{"'foo\\\nbar'"},
+		Strs:   []string{"'foo\\\nbar'", "'foo\\\r\nbar'"},
 		common: sglQuoted("foo\\\nbar"),
 	},
 	{
@@ -1863,7 +1867,7 @@ var fileTests = []testCase{
 		common: word(lit("{"), dblQuoted(lit("foo"))),
 	},
 	{
-		Strs:   []string{`foo"bar"`, "fo\\\no\"bar\""},
+		Strs:   []string{`foo"bar"`, "fo\\\no\"bar\"", "fo\\\r\no\"bar\""},
 		common: word(lit("foo"), dblQuoted(lit("bar"))),
 	},
 	{
@@ -2056,7 +2060,7 @@ var fileTests = []testCase{
 		),
 	},
 	{
-		Strs:   []string{"$à", "$\\\nà"},
+		Strs:   []string{"$à", "$\\\nà", "$\\\r\nà"},
 		common: word(lit("$"), lit("à")),
 	},
 	{
@@ -2767,6 +2771,7 @@ var fileTests = []testCase{
 			"$((3 % 7))",
 			"$((3\n% 7))",
 			"$((3\\\n % 7))",
+			"$((3\\\r\n % 7))",
 		},
 		common: arithmExp(&BinaryArithm{
 			Op: Rem,
@@ -3030,7 +3035,7 @@ var fileTests = []testCase{
 		common: word(lit("foo"), lit("$")),
 	},
 	{
-		Strs:   []string{"foo$", "foo$\\\n"},
+		Strs:   []string{"foo$", "foo$\\\n", "foo$\\\r\n"},
 		common: word(lit("foo"), lit("$")),
 	},
 	{
@@ -4552,7 +4557,7 @@ func recursiveSanityCheck(tb testing.TB, src string, v interface{}) {
 		}
 		offs := pos.Offset()
 		if offs > uint(len(src)) {
-			tb.Fatalf("Pos %d in %T is out of bounds in %q",
+			tb.Errorf("Pos %d in %T is out of bounds in %q",
 				pos, v, src)
 			return
 		}
@@ -4573,18 +4578,25 @@ func recursiveSanityCheck(tb testing.TB, src string, v interface{}) {
 			if !strings.Contains(want, "\\\n") {
 				// Hack to let "foobar" match the input "foo\\\nbar".
 				got = strings.ReplaceAll(got, "\\\n", "")
+			} else {
+				// Hack to let "\\\n" match the input "\\\r\n".
+				got = strings.ReplaceAll(got, "\\\r\n", "\\\n")
+			}
+			if !strings.Contains(want, "\\\r\n") {
+				// Hack to let "foobar" match the input "foo\\\r\nbar".
+				got = strings.ReplaceAll(got, "\\\r\n", "")
 			}
 			got = strings.ReplaceAll(got, "\x00", "")
 			if strings.HasPrefix(got, want) {
 				return
 			}
 		}
-		tb.Fatalf("Expected one of %q at %d in %q, found %q",
+		tb.Errorf("Expected one of %q at %d in %q, found %q",
 			strs, pos, src, gotErr)
 	}
 	checkNodePosEnd := func(n Node) {
 		if n.Pos().After(n.End()) {
-			tb.Fatalf("Found End() before Pos() in %T", n)
+			tb.Errorf("Found End() before Pos() in %T", n)
 		}
 	}
 	recurse := func(v interface{}) {
@@ -4622,13 +4634,13 @@ func recursiveSanityCheck(tb testing.TB, src string, v interface{}) {
 			case endOff > 0 && src[endOff-1] == '&':
 				// ended by & or |&
 			default:
-				tb.Fatalf("Unexpected Stmt.End() %d %q in %q",
+				tb.Errorf("Unexpected Stmt.End() %d %q in %q",
 					endOff, end, src)
 			}
 		}
 		recurse(x.Comments)
 		if src[x.Position.Offset()] == '#' {
-			tb.Fatalf("Stmt.Pos() should not be a comment")
+			tb.Errorf("Stmt.Pos() should not be a comment")
 		}
 		checkPos(x.Position)
 		if x.Semicolon.IsValid() {
@@ -4684,9 +4696,9 @@ func recursiveSanityCheck(tb testing.TB, src string, v interface{}) {
 		endLine := x.End().Line()
 		switch {
 		case src == "":
-		case strings.Contains(src, "\\\n"):
+		case strings.Contains(src, "\\\n"), strings.Contains(src, "\\\r\n"):
 		case !strings.Contains(x.Value, "\n") && posLine != endLine:
-			tb.Fatalf("Lit without newlines has Pos/End lines %d and %d",
+			tb.Errorf("Lit without newlines has Pos/End lines %d and %d",
 				posLine, endLine)
 		case strings.Contains(src, "`") && strings.Contains(src, "\\"):
 			// removed quotes inside backquote cmd substs
@@ -4697,7 +4709,7 @@ func recursiveSanityCheck(tb testing.TB, src string, v interface{}) {
 		case end == len(src):
 			// same as above, but with word and EOF
 		case end != want:
-			tb.Fatalf("Unexpected Lit %q End() %d (wanted %d for pos %d) in %q",
+			tb.Errorf("Unexpected Lit %q End() %d (wanted %d for pos %d) in %q",
 				val, end, want, pos, src)
 		}
 		checkPos(x.ValuePos, val)

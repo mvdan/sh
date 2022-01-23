@@ -227,6 +227,9 @@ func confirmParse(in, cmd string, wantErr bool) func(*testing.T) {
 		t.Helper()
 		t.Parallel()
 		var opts []string
+		if strings.Contains(in, "\\\r\n") {
+			t.Skip("shells do not generally support CRLF line endings")
+		}
 		if cmd == "bash" && extGlobRe.MatchString(in) {
 			// otherwise bash refuses to parse these
 			// properly. Also avoid -n since that too makes
