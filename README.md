@@ -96,6 +96,7 @@ The following editor integrations wrap `shfmt`:
 - [shell-format] - VS Code plugin
 - [shfmt.el] - Emacs package
 - [Sublime-Pretty-Shell] - Sublime Text 3 plugin
+- [Trunk] - Universal linter, available as a CLI, VS Code plugin, and GitHub action
 - [vim-shfmt] - Vim plugin
 
 Other noteworthy integrations include:
@@ -139,6 +140,7 @@ Other noteworthy integrations include:
 [shfmt.el]: https://github.com/purcell/emacs-shfmt/
 [snapcraft]: https://snapcraft.io/shfmt
 [sublime-pretty-shell]: https://github.com/aerobounce/Sublime-Pretty-Shell
+[trunk]: https://trunk.io/products/check
 [vim-shfmt]: https://github.com/z0mbix/vim-shfmt
 [void]: https://github.com/void-linux/void-packages/blob/HEAD/srcpkgs/shfmt/template
 [webi]: https://webinstall.dev/shfmt/
