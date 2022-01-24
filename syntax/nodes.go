@@ -80,21 +80,46 @@ const (
 	colBitMask = colMax
 )
 
+// TODO(v4): consider using uint32 for Offset/Line/Col to better represent bit sizes.
+// Or go with int64, which more closely resembles portable "sizes" elsewhere.
+// The latter is probably nicest, as then we can change the number of internal
+// bits later, and we can also do overflow checks for the user in NewPos.
+
+// NewPos creates a position with the given offset, line, and column.
+//
+// Note that Pos uses a limited number of bits to store these numbers.
+// If line or column overflow their allocated space, they are replaced with 0.
+func NewPos(offset, line, column uint) Pos {
+	if line > lineMax {
+		line = 0 // protect agains overflows; rendered as "?"
+	}
+	if column > colMax {
+		column = 0 // protect agains overflows; rendered as "?"
+	}
+	return Pos{
+		offs:    uint32(offset),
+		lineCol: (uint32(line) << colBitSize) | uint32(column),
+	}
+}
+
 // Offset returns the byte offset of the position in the original source file.
 // Byte offsets start at 0.
+//
+// Note that Offset is not protected against overflows;
+// if an input is larger than 4GiB, the offset will wrap around to 0.
 func (p Pos) Offset() uint { return uint(p.offs) }
 
 // Line returns the line number of the position, starting at 1.
 //
 // Line is protected against overflows; if an input has too many lines, extra
-// lines will have a line number of 0, rendered as "?".
+// lines will have a line number of 0, rendered as "?" by Pos.String.
 func (p Pos) Line() uint { return uint(p.lineCol >> colBitSize) }
 
 // Col returns the column number of the position, starting at 1. It counts in
 // bytes.
 //
 // Col is protected against overflows; if an input line has too many columns,
-// extra columns will have a column number of 0, rendered as "?".
+// extra columns will have a column number of 0, rendered as "?" by Pos.String.
 func (p Pos) Col() uint { return uint(p.lineCol & colBitMask) }
 
 func (p Pos) String() string {
