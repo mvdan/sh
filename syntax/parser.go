@@ -430,17 +430,15 @@ func (p *Parser) reset() {
 }
 
 func (p *Parser) nextPos() Pos {
-	var line, col uint32
+	// TODO: detect offset overflow while lexing as well.
+	var line, col uint
 	if !p.lineOverflow {
-		line = uint32(p.line)
+		line = uint(p.line)
 	}
 	if !p.colOverflow {
-		col = uint32(p.col)
+		col = uint(p.col)
 	}
-	return Pos{
-		offs:    uint32(p.offs + p.bsp - int(p.w)),
-		lineCol: (line << colBitSize) | col,
-	}
+	return NewPos(uint(p.offs+p.bsp-int(p.w)), line, col)
 }
 
 func (p *Parser) lit(pos Pos, val string) *Lit {
