@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -19,6 +20,7 @@ import (
 	"time"
 
 	"golang.org/x/sync/errgroup"
+
 	"mvdan.cc/sh/v3/expand"
 	"mvdan.cc/sh/v3/syntax"
 )
@@ -58,6 +60,9 @@ type Runner struct {
 	Funcs map[string]*syntax.Stmt
 
 	alias map[string]alias
+
+	// Filesystem to use. Defaults to os.DirFS("/")
+	fs fs.FS
 
 	// callHandler is a function allowing to replace a simple command's
 	// arguments. It may be nil.
@@ -164,6 +169,7 @@ func (r *Runner) optByFlag(flag byte) *bool {
 func New(opts ...RunnerOption) (*Runner, error) {
 	r := &Runner{
 		usedNew:     true,
+		fs:          os.DirFS("/"),
 		execHandler: DefaultExecHandler(2 * time.Second),
 		openHandler: DefaultOpenHandler(),
 	}
@@ -221,7 +227,7 @@ func Dir(path string) RunnerOption {
 		if err != nil {
 			return fmt.Errorf("could not get absolute dir: %w", err)
 		}
-		info, err := os.Stat(path)
+		info, err := r.stat(path)
 		if err != nil {
 			return fmt.Errorf("could not stat: %w", err)
 		}
@@ -309,6 +315,14 @@ func ExecHandler(f ExecHandlerFunc) RunnerOption {
 func OpenHandler(f OpenHandlerFunc) RunnerOption {
 	return func(r *Runner) error {
 		r.openHandler = f
+		return nil
+	}
+}
+
+// FS sets the fs.FS used for filesystem file and directory read operations.
+func FS(fs fs.FS) RunnerOption {
+	return func(r *Runner) error {
+		r.fs = fs
 		return nil
 	}
 }
@@ -410,6 +424,7 @@ func (r *Runner) Reset() {
 	// reset the internal state
 	*r = Runner{
 		Env:         r.Env,
+		fs:          r.fs,
 		callHandler: r.callHandler,
 		execHandler: r.execHandler,
 		openHandler: r.openHandler,
@@ -562,6 +577,7 @@ func (r *Runner) Subshell() *Runner {
 	r2 := &Runner{
 		Dir:         r.Dir,
 		Params:      r.Params,
+		fs:          r.fs,
 		callHandler: r.callHandler,
 		execHandler: r.execHandler,
 		openHandler: r.openHandler,

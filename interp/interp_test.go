@@ -427,7 +427,7 @@ var runTests = []runTest{
 	{`arr=(0 1 2 3 4 5 6 7 8 9 0 a b c d e f g h); echo ${arr[@]:3:4}`, "3 4 5 6\n"},
 	{`echo ${foo[@]}; echo ${foo[*]}`, "\n\n"},
 	// TODO: reenable once we figure out the broken pipe error
-	//{`$ENV_PROG | while read line; do if test -z "$line"; then echo empty; fi; break; done`, ""}, // never begin with an empty element
+	// {`$ENV_PROG | while read line; do if test -z "$line"; then echo empty; fi; break; done`, ""}, // never begin with an empty element
 
 	// inline variables have special scoping
 	{
@@ -2435,10 +2435,10 @@ set +o pipefail
 		"xxx xxx\n",
 	},
 	// TODO: figure this one out
-	//{
+	// {
 	//        "declare -n foo=bar bar=baz; foo=xxx; echo $foo $bar; echo $baz",
 	//        "xxx xxx\nxxx\n",
-	//},
+	// },
 
 	// read-only vars
 	{"declare -r foo=bar; echo $foo", "bar\n"},
@@ -2903,7 +2903,7 @@ var runTestsUnix = []runTest{
 	},
 	{
 		"cd /; sure/is/missing",
-		"stat /sure/is/missing: no such file or directory\nexit status 127 #JUSTERR",
+		"stat //sure/is/missing: no such file or directory\nexit status 127 #JUSTERR",
 	},
 	{
 		"echo '#!/bin/sh\necho b' >a; chmod 0755 a; PATH=; a",
