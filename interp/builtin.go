@@ -261,7 +261,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		args := fp.args()
 		for _, arg := range args {
 			if mode == "-p" {
-				if path, err := LookPathDir(r.Dir, r.writeEnv, arg); err == nil {
+				if path, err := LookPathDirFS(r.fs, r.Dir, r.writeEnv, arg); err == nil {
 					r.outf("%s\n", path)
 				} else {
 					anyNotFound = true
@@ -310,7 +310,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 				}
 				continue
 			}
-			if path, err := LookPathDir(r.Dir, r.writeEnv, arg); err == nil {
+			if path, err := LookPathDirFS(r.fs, r.Dir, r.writeEnv, arg); err == nil {
 				if mode == "-t" {
 					r.out("file\n")
 				} else {
@@ -341,7 +341,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			r.errf("%v: source: need filename\n", pos)
 			return 2
 		}
-		path, err := scriptFromPathDir(r.Dir, r.writeEnv, args[0])
+		path, err := scriptFromPathDir(r.fs, r.Dir, r.writeEnv, args[0])
 		if err != nil {
 			// If the script was not found in PATH or there was any error, pass
 			// the source path to the open handler so it has a chance to look
@@ -455,7 +455,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			last = 0
 			if r.Funcs[arg] != nil || isBuiltin(arg) {
 				r.outf("%s\n", arg)
-			} else if path, err := LookPathDir(r.Dir, r.writeEnv, arg); err == nil {
+			} else if path, err := LookPathDirFS(r.fs, r.Dir, r.writeEnv, arg); err == nil {
 				r.outf("%s\n", path)
 			} else {
 				last = 1

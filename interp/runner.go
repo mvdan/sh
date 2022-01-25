@@ -8,7 +8,7 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
+	"io/fs"
 	"math"
 	"math/rand"
 	"os"
@@ -144,11 +144,27 @@ func (r *Runner) updateExpandOpts() {
 	if r.opts[optNoGlob] {
 		r.ecfg.ReadDir = nil
 	} else {
-		r.ecfg.ReadDir = ioutil.ReadDir
+		r.ecfg.ReadDir = r.readFSDir
 	}
 	r.ecfg.GlobStar = r.opts[optGlobStar]
 	r.ecfg.NullGlob = r.opts[optNullGlob]
 	r.ecfg.NoUnset = r.opts[optNoUnset]
+}
+
+func (r *Runner) readFSDir(s string) ([]os.FileInfo, error) {
+	dirents, err := fs.ReadDir(r.fs, pathForFS(s))
+	if err != nil {
+		return nil, err
+	}
+	infos := make([]os.FileInfo, len(dirents))
+	for i, dirent := range dirents {
+		info, err := dirent.Info()
+		if err != nil {
+			return nil, err
+		}
+		infos[i] = info
+	}
+	return infos, nil
 }
 
 func (r *Runner) expandErr(err error) {
@@ -211,6 +227,7 @@ func (e expandEnv) Each(fn func(name string, vr expand.Variable) bool) {
 func (r *Runner) handlerCtx(ctx context.Context) context.Context {
 	hc := HandlerContext{
 		Env:    &overlayEnviron{parent: r.writeEnv},
+		FS:     r.fs,
 		Dir:    r.Dir,
 		Stdin:  r.stdin,
 		Stdout: r.stdout,
@@ -907,5 +924,13 @@ func (r *Runner) open(ctx context.Context, path string, flags int, mode os.FileM
 }
 
 func (r *Runner) stat(name string) (os.FileInfo, error) {
-	return os.Stat(r.absPath(name))
+	return fs.Stat(r.fs, pathForFS(r.absPath(name)))
+}
+
+// fs.FS does not allow "rooted" paths, so we have to remap them.
+func pathForFS(path string) string {
+	if path == "/" {
+		return "."
+	}
+	return strings.TrimPrefix(path, "/")
 }

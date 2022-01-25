@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -37,6 +38,9 @@ type HandlerContext struct {
 	// including environment variables, global variables, and local function
 	// variables.
 	Env expand.Environ
+
+	// FS is the interpreter's filesystem.
+	FS fs.FS
 
 	// Dir is the interpreter's current directory.
 	Dir string
@@ -87,7 +91,7 @@ type ExecHandlerFunc func(ctx context.Context, args []string) error
 func DefaultExecHandler(killTimeout time.Duration) ExecHandlerFunc {
 	return func(ctx context.Context, args []string) error {
 		hc := HandlerCtx(ctx)
-		path, err := LookPathDir(hc.Dir, hc.Env, args[0])
+		path, err := LookPathDirFS(hc.FS, hc.Dir, hc.Env, args[0])
 		if err != nil {
 			fmt.Fprintln(hc.Stderr, err)
 			return NewExitStatus(127)
@@ -151,11 +155,11 @@ func DefaultExecHandler(killTimeout time.Duration) ExecHandlerFunc {
 	}
 }
 
-func checkStat(dir, file string, checkExec bool) (string, error) {
+func checkStat(vfs fs.FS, dir, file string, checkExec bool) (string, error) {
 	if !filepath.IsAbs(file) {
 		file = filepath.Join(dir, file)
 	}
-	info, err := os.Stat(file)
+	info, err := fs.Stat(vfs, pathForFS(file))
 	if err != nil {
 		return "", err
 	}
@@ -178,19 +182,19 @@ func winHasExt(file string) bool {
 }
 
 // findExecutable returns the path to an existing executable file.
-func findExecutable(dir, file string, exts []string) (string, error) {
+func findExecutable(vfs fs.FS, dir, file string, exts []string) (string, error) {
 	if len(exts) == 0 {
 		// non-windows
-		return checkStat(dir, file, true)
+		return checkStat(vfs, dir, file, true)
 	}
 	if winHasExt(file) {
-		if file, err := checkStat(dir, file, true); err == nil {
+		if file, err := checkStat(vfs, dir, file, true); err == nil {
 			return file, nil
 		}
 	}
 	for _, e := range exts {
 		f := file + e
-		if f, err := checkStat(dir, f, true); err == nil {
+		if f, err := checkStat(vfs, dir, f, true); err == nil {
 			return f, nil
 		}
 	}
@@ -198,8 +202,8 @@ func findExecutable(dir, file string, exts []string) (string, error) {
 }
 
 // findFile returns the path to an existing file.
-func findFile(dir, file string, _ []string) (string, error) {
-	return checkStat(dir, file, false)
+func findFile(vfs fs.FS, dir, file string, _ []string) (string, error) {
+	return checkStat(vfs, dir, file, false)
 }
 
 // LookPath is deprecated. See LookPathDir.
@@ -213,13 +217,21 @@ func LookPath(env expand.Environ, file string) (string, error) {
 //
 // If no error is returned, the returned path must be valid.
 func LookPathDir(cwd string, env expand.Environ, file string) (string, error) {
-	return lookPathDir(cwd, env, file, findExecutable)
+	return lookPathDir(os.DirFS("/"), cwd, env, file, findExecutable)
+}
+
+// LookPathDirFS is like LookPathDir but retrieves all state from the Runner.
+func LookPathDirFS(vfs fs.FS, cwd string, env expand.Environ, file string) (string, error) {
+	return lookPathDir(vfs, cwd, env, file, findExecutable)
 }
 
 // findAny defines a function to pass to lookPathDir.
-type findAny = func(dir string, file string, exts []string) (string, error)
+type findAny = func(vfs fs.FS, dir string, file string, exts []string) (string, error)
 
-func lookPathDir(cwd string, env expand.Environ, file string, find findAny) (string, error) {
+func lookPathDir(vfs fs.FS, cwd string, env expand.Environ, file string, find findAny) (string, error) {
+	if vfs == nil {
+		panic("no fs.FS found")
+	}
 	if find == nil {
 		panic("no find function found")
 	}
@@ -234,7 +246,7 @@ func lookPathDir(cwd string, env expand.Environ, file string, find findAny) (str
 	}
 	exts := pathExts(env)
 	if strings.ContainsAny(file, chars) {
-		return find(cwd, file, exts)
+		return find(vfs, cwd, file, exts)
 	}
 	for _, elem := range pathList {
 		var path string
@@ -245,7 +257,7 @@ func lookPathDir(cwd string, env expand.Environ, file string, find findAny) (str
 		default:
 			path = filepath.Join(elem, file)
 		}
-		if f, err := find(cwd, path, exts); err == nil {
+		if f, err := find(vfs, cwd, path, exts); err == nil {
 			return f, nil
 		}
 	}
@@ -254,8 +266,8 @@ func lookPathDir(cwd string, env expand.Environ, file string, find findAny) (str
 
 // scriptFromPathDir is similar to LookPathDir, with the difference that it looks
 // for both executable and non-executable files.
-func scriptFromPathDir(cwd string, env expand.Environ, file string) (string, error) {
-	return lookPathDir(cwd, env, file, findFile)
+func scriptFromPathDir(vfs fs.FS, cwd string, env expand.Environ, file string) (string, error) {
+	return lookPathDir(vfs, cwd, env, file, findFile)
 }
 
 func pathExts(env expand.Environ) []string {
