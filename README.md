@@ -90,6 +90,7 @@ To use the Docker image, run:
 
 The following editor integrations wrap `shfmt`:
 
+- [BashSupport-Pro] - Bash plugin for JetBrains IDEs
 - [format-shell] - Atom plugin
 - [intellij-shellcript] - Intellij Jetbrains `shell script` plugin
 - [micro] - Editor with a built-in plugin
@@ -111,6 +112,7 @@ Other noteworthy integrations include:
 [alpine]: https://pkgs.alpinelinux.org/packages?name=shfmt
 [arch]: https://archlinux.org/packages/community/x86_64/shfmt/
 [bash]: https://www.gnu.org/software/bash/
+[BashSupport-Pro]: https://www.bashsupport.com/manual/editor/formatter/
 [docker]: https://hub.docker.com/r/mvdan/shfmt/
 [dockerized-peterdavehello]: https://github.com/PeterDaveHello/docker-shfmt
 [editorconfig]: https://editorconfig.org/
