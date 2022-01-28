@@ -57,6 +57,9 @@ predictable. Some aspects of the format can be configured via printer flags.
 	begins with a shell shebang like *#!/bin/sh*, that's used instead.
 	If neither come up with a result, *bash* is used as a fallback.
 
+	The filename extension *.sh* is a special case: it implies *posix*,
+	but may be overriden by a valid shell shebang.
+
 *-p*
 	Shorthand for *-ln=posix*.
 

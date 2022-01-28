@@ -67,6 +67,7 @@ modify${/}ext.mksh
 modify${/}ext.sh
 modify${/}shebang-args
 modify${/}shebang-bash
+modify${/}shebang-bash.sh
 modify${/}shebang-env-bash
 modify${/}shebang-env-bats
 modify${/}shebang-env-sh
@@ -84,6 +85,7 @@ modify${/}ext.mksh
 modify${/}ext.sh
 modify${/}shebang-args
 modify${/}shebang-bash
+modify${/}shebang-bash.sh
 modify${/}shebang-env-bash
 modify${/}shebang-env-bats
 modify${/}shebang-env-sh
@@ -96,6 +98,9 @@ modify${/}shebang-usr-sh
 #!/bin/sh
  foo
 -- modify/shebang-bash --
+#!/bin/bash
+ foo=(bar)
+-- modify/shebang-bash.sh --
 #!/bin/bash
  foo=(bar)
 -- modify/shebang-usr-sh --

@@ -238,7 +238,7 @@ func formatStdin(name string) error {
 	lang := langFlag
 	if lang == syntax.LangAuto {
 		extensionLang := strings.TrimPrefix(filepath.Ext(name), ".")
-		if err := lang.Set(extensionLang); err != nil {
+		if err := lang.Set(extensionLang); err != nil || lang == syntax.LangPOSIX {
 			shebangLang := fileutil.Shebang(src)
 			if err := lang.Set(shebangLang); err != nil {
 				// Fall back to bash.
@@ -316,7 +316,7 @@ func formatPath(path string, checkShebang bool) error {
 	shebangForAuto := false
 	if lang == syntax.LangAuto {
 		extensionLang := strings.TrimPrefix(filepath.Ext(path), ".")
-		if err := lang.Set(extensionLang); err != nil {
+		if err := lang.Set(extensionLang); err != nil || lang == syntax.LangPOSIX {
 			shebangForAuto = true
 		}
 	}

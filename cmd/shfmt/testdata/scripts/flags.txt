@@ -77,6 +77,11 @@ stdout 'loop'
 shfmt input-tiny
 stdout foo
 
+# -ln=auto should prefer a shebang if the extension is only ".sh".
+stdin input-mksh-shebang
+shfmt -filename=input.sh
+stdout 'coprocess'
+
 # An explicit -ln=auto should still work.
 stdin input-mksh
 shfmt -ln=auto -filename=input.mksh
