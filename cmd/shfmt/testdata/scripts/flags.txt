@@ -77,6 +77,11 @@ stdout 'loop'
 shfmt input-tiny
 stdout foo
 
+# An explicit -ln=auto should still work.
+stdin input-mksh
+shfmt -ln=auto -filename=input.mksh
+stdout 'coprocess'
+
 -- input-posix --
 let a+
 -- input-bash --

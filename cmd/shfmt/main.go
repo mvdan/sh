@@ -26,9 +26,6 @@ import (
 	"mvdan.cc/sh/v3/syntax"
 )
 
-// When unset, we auto-detect what language to use.
-const langAuto = syntax.LangVariant(-1)
-
 var (
 	showVersion = flag.Bool("version", false, "")
 
@@ -42,7 +39,7 @@ var (
 	// useEditorConfig will be false if any parser or printer flags were used.
 	useEditorConfig = true
 
-	langFlag = langAuto
+	langFlag = syntax.LangAuto
 	posix    = flag.Bool("p", false, "")
 	filename = flag.String("filename", "", "")
 
@@ -127,7 +124,7 @@ For more information, see 'man shfmt' and https://github.com/mvdan/sh.
 		fmt.Println(version)
 		return 0
 	}
-	if *posix && langFlag != langAuto {
+	if *posix && langFlag != syntax.LangAuto {
 		fmt.Fprintf(os.Stderr, "-p and -ln=lang cannot coexist\n")
 		return 1
 	}
@@ -239,7 +236,7 @@ func formatStdin(name string) error {
 		return err
 	}
 	lang := langFlag
-	if lang == langAuto {
+	if lang == syntax.LangAuto {
 		extensionLang := strings.TrimPrefix(filepath.Ext(name), ".")
 		if err := lang.Set(extensionLang); err != nil {
 			shebangLang := fileutil.Shebang(src)
@@ -317,7 +314,7 @@ func formatPath(path string, checkShebang bool) error {
 
 	lang := langFlag
 	shebangForAuto := false
-	if lang == langAuto {
+	if lang == syntax.LangAuto {
 		extensionLang := strings.TrimPrefix(filepath.Ext(path), ".")
 		if err := lang.Set(extensionLang); err != nil {
 			shebangForAuto = true
@@ -328,7 +325,7 @@ func formatPath(path string, checkShebang bool) error {
 		n, err := io.ReadAtLeast(f, copyBuf[:32], len("#/bin/sh\n"))
 		switch {
 		case !checkShebang:
-			// only wanted the shebang for langAuto
+			// only wanted the shebang for LangAuto
 		case err == io.EOF, errors.Is(err, io.ErrUnexpectedEOF):
 			return nil // too short to have a shebang
 		case err != nil:

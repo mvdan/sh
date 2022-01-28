@@ -24,7 +24,7 @@ func KeepComments(enabled bool) ParserOption {
 }
 
 // LangVariant describes a shell language variant to use when tokenizing and
-// parsing shell code. The zero value is Bash.
+// parsing shell code. The zero value is LangBash.
 type LangVariant int
 
 const (
@@ -58,6 +58,13 @@ const (
 	//
 	// Its string representation is "bats".
 	LangBats
+
+	// LangAuto corresponds to automatic language detection,
+	// commonly used by end-user applications like shfmt,
+	// which can guess a file's language variant given its filename or shebang.
+	//
+	// At this time, the Parser does not support LangAuto.
+	LangAuto
 )
 
 // Variant changes the shell language variant that the parser will
@@ -68,6 +75,8 @@ const (
 func Variant(l LangVariant) ParserOption {
 	switch l {
 	case LangBash, LangPOSIX, LangMirBSDKorn, LangBats:
+	case LangAuto:
+		panic("LangAuto is not supported by the parser at this time")
 	default:
 		panic(fmt.Sprintf("unknown shell language variant: %d", l))
 	}
@@ -84,6 +93,8 @@ func (l LangVariant) String() string {
 		return "mksh"
 	case LangBats:
 		return "bats"
+	case LangAuto:
+		return "auto"
 	}
 	return "unknown shell language variant"
 }
@@ -98,6 +109,8 @@ func (l *LangVariant) Set(s string) error {
 		*l = LangMirBSDKorn
 	case "bats":
 		*l = LangBats
+	case "auto":
+		*l = LangAuto
 	default:
 		return fmt.Errorf("unknown shell language variant: %q", s)
 	}
