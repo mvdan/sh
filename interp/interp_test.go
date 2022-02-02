@@ -2381,6 +2381,10 @@ set +o pipefail
 		"x=after\nbefore\n",
 	},
 
+	// unset global from inside function
+	{"f() { unset foo; echo $foo; }; foo=bar; f", "\n"},
+	{"f() { unset foo; }; foo=bar; f; echo $foo", "\n"},
+
 	// name references
 	{"declare -n foo=bar; bar=etc; [[ -R foo ]]", ""},
 	{"declare -n foo=bar; bar=etc; [ -R foo ]", ""},
