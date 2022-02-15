@@ -13,7 +13,7 @@ import (
 )
 
 // ParserOption is a function which can be passed to NewParser
-// to alter its behaviour. To apply option to existing Parser
+// to alter its behavior. To apply option to existing Parser
 // call it directly, for example KeepComments(true)(parser).
 type ParserOption func(*Parser)
 
@@ -230,7 +230,7 @@ func (w *wrappedReader) Read(p []byte) (n int, err error) {
 // called with said statements.
 //
 // If a line ending in an incomplete statement is parsed, the function will be
-// called with any fully parsed statents, and Parser.Incomplete will return
+// called with any fully parsed statements, and Parser.Incomplete will return
 // true.
 //
 // One can imagine a simple interactive shell implementation as follows:

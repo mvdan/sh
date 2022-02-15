@@ -91,10 +91,10 @@ const (
 // If line or column overflow their allocated space, they are replaced with 0.
 func NewPos(offset, line, column uint) Pos {
 	if line > lineMax {
-		line = 0 // protect agains overflows; rendered as "?"
+		line = 0 // protect against overflows; rendered as "?"
 	}
 	if column > colMax {
-		column = 0 // protect agains overflows; rendered as "?"
+		column = 0 // protect against overflows; rendered as "?"
 	}
 	return Pos{
 		offs:    uint32(offset),
@@ -422,7 +422,7 @@ func (w *WordIter) End() Pos {
 	return posMax(w.Name.End(), posAddCol(w.InPos, 2))
 }
 
-// CStyleLoop represents the behaviour of a for clause similar to the C
+// CStyleLoop represents the behavior of a for clause similar to the C
 // language.
 //
 // This node will only appear with LangBash.

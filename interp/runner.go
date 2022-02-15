@@ -660,7 +660,7 @@ func (r *Runner) trapCallback(ctx context.Context, callback, name string) {
 	r.handlingTrap = false
 }
 
-// setExit call this function to exit the shell with status
+// exitShell exits the current shell session with the given status code.
 func (r *Runner) exitShell(ctx context.Context, status int) {
 	if status != 0 {
 		r.trapCallback(ctx, r.callbackErr, "error")
