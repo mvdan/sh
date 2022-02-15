@@ -19,7 +19,7 @@ import (
 // are treated as unset; to support variables which are set but empty, use the
 // expand package directly.
 //
-// Command subsitutions like $(echo foo) aren't supported to avoid running
+// Command substitutions like $(echo foo) aren't supported to avoid running
 // arbitrary code. To support those, use an interpreter with the expand package.
 //
 // An error will be reported if the input string had invalid syntax.

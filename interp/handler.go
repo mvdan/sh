@@ -79,7 +79,7 @@ type ExecHandlerFunc func(ctx context.Context, args []string) error
 // DefaultExecHandler returns the ExecHandlerFunc used by default.
 // It finds binaries in PATH and executes them.
 // When context is cancelled, an interrupt signal is sent to running processes.
-// KillTimeout is a duration to wait before sending the kill signal.
+// killTimeout is a duration to wait before sending the kill signal.
 // A negative value means that a kill signal will be sent immediately.
 //
 // On Windows, the kill signal is always sent immediately,

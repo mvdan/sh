@@ -14,7 +14,7 @@ import (
 )
 
 // PrinterOption is a function which can be passed to NewPrinter
-// to alter its behaviour. To apply option to existing Printer
+// to alter its behavior. To apply option to existing Printer
 // call it directly, for example KeepPadding(true)(printer).
 type PrinterOption func(*Printer)
 
