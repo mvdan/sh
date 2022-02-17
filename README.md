@@ -25,8 +25,8 @@ quick look at its default style. For example:
 For more information, see [its manpage](cmd/shfmt/shfmt.1.scd), which can be
 viewed directly as Markdown or rendered with [scdoc].
 
-Packages are available on [Alpine], [Arch], [Docker], [FreeBSD], [Homebrew],
-[MacPorts], [NixOS], [Scoop], [Snapcraft], [Void] and [webi].
+Packages are available on [Alpine], [Arch], [Debian], [Docker], [FreeBSD],
+[Homebrew], [MacPorts], [NixOS], [Scoop], [Snapcraft], [Void] and [webi].
 
 ### gosh
 
@@ -113,6 +113,7 @@ Other noteworthy integrations include:
 [arch]: https://archlinux.org/packages/community/x86_64/shfmt/
 [bash]: https://www.gnu.org/software/bash/
 [BashSupport-Pro]: https://www.bashsupport.com/manual/editor/formatter/
+[debian]: https://tracker.debian.org/pkg/shfmt
 [docker]: https://hub.docker.com/r/mvdan/shfmt/
 [dockerized-peterdavehello]: https://github.com/PeterDaveHello/docker-shfmt
 [editorconfig]: https://editorconfig.org/
