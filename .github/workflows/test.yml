@@ -98,14 +98,17 @@ jobs:
       run: |
         set -vx
         # Export environment variable for later stages.
-        if echo "$GITHUB_REF" | grep -q '^refs/heads/'; then
-          # Pushes to (master) branch - deploy 'latest'.
+        if echo "$GITHUB_REF" | grep -q '^refs/heads/master$'; then
+          # Pushes to the master branch deploy 'latest'.
           echo "TAG=latest" >> $GITHUB_ENV
+        elif echo "$GITHUB_REF" | grep -q '^refs/heads/docker-push-test$'; then
+          # Pushes to the test branch deploy 'latest-test'.
+          echo "TAG=latest-test" >> $GITHUB_ENV
         elif echo "$GITHUB_REF" | grep -q '^refs/tags/'; then
-          # Pushes tag - deploy tag name.
+          # Pushes to a git tag use it as the docker tag.
           echo "TAG=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_ENV
         else
-          # Use commit SHA for PR
+          # Otherwise, we build and test the image locally, but we don't push it.
           echo "TAG=${GITHUB_SHA::8}" >> $GITHUB_ENV
         fi
         echo "DOCKER_BASE=test/${{ env.DOCKER_REPO }}" >> $GITHUB_ENV
@@ -143,8 +146,9 @@ jobs:
             version=$(docker run --rm "$image" --version)
             echo "shfmt version: $version"
             if [[ $TAG != "latest" ]] &&
-            [[ $TAG != "$version" ]] &&
-            ! echo "$version" | grep -q "$TAG"; then
+              [[ $TAG != "latest-test" ]] &&
+              [[ $TAG != "$version" ]] &&
+              ! echo "$version" | grep -q "$TAG"; then
               echo "Version mismatch: shfmt $version tagged as $TAG"
               exit 1
             fi
@@ -154,9 +158,10 @@ jobs:
     - name: Check GitHub settings
       if: >
         github.event_name == 'push' &&
+        github.repository == 'mvdan/sh' &&
         (github.ref == 'refs/heads/master' ||
-        startsWith(github.ref, 'refs/tags/')) &&
-        github.repository == 'mvdan/sh'
+        github.ref == 'refs/heads/docker-push-test' ||
+        startsWith(github.ref, 'refs/tags/'))
       run: |
         missing=()
         [[ -n "${{ secrets.DOCKER_USER }}" ]] || missing+=(DOCKER_USER)
@@ -177,11 +182,22 @@ jobs:
       run: |
         for ext in '' '-alpine'; do
           image_src="${DOCKER_BASE}:${TAG}${ext}"
-          image_dst="${{ secrets.DOCKER_USER }}/${{ env.DOCKER_REPO }}:${TAG}${ext}"
-          msg="Copy multi-arch docker images to DockerHub ($image)"
+
+          image_dsts=("${{ secrets.DOCKER_USER }}/${{ env.DOCKER_REPO }}:${TAG}${ext}")
+          if echo $TAG | grep -q '^v3\.[0-9]\+\.[0-9]\+$'; then
+            image_dsts+=("${{ secrets.DOCKER_USER }}/${{ env.DOCKER_REPO }}:v3${ext}")
+          elif [[ $TAG == latest-test ]]; then
+            image_dsts+=("${{ secrets.DOCKER_USER }}/${{ env.DOCKER_REPO }}:v3-test${ext}")
+          fi
+
+          # Show what we're doing.
+          msg="Copy multi-arch docker images to DockerHub ($image_src with ${#image_dsts[@]} destinations)"
           line="${msg//?/=}"
           printf "\n${line}\n${msg}\n${line}\n"
-          skopeo copy --all --src-tls-verify=0 docker://localhost:5000/$image_src docker://docker.io/$image_dst
+
+          for image_dst in "${image_dsts[@]}"; do
+            skopeo copy --all --src-tls-verify=0 docker://localhost:5000/$image_src docker://docker.io/$image_dst
+          done
         done
     - name: Update DockerHub description
       if: ${{ env.DOCKER_DEPLOY_IMAGES == 'true' }}
