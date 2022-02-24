@@ -250,7 +250,7 @@ func Params(args ...string) RunnerOption {
 		for fp.more() {
 			flag := fp.flag()
 			enable := flag[0] == '-'
-			if flag[1] != 'o' {
+			if len(flag) > 1 && flag[1] != 'o' {
 				opt := r.optByFlag(flag[1])
 				if opt == nil {
 					return fmt.Errorf("invalid option: %q", flag)

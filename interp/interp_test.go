@@ -1973,6 +1973,10 @@ set +o xtrace
 set +o pipefail
  #IGNORE`,
 	},
+	{
+		`set - foobar`,
+		"set: invalid option: \"foobar\"\nexit status 2",
+	},
 
 	// unset
 	{
