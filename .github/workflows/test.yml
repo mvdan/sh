@@ -22,12 +22,9 @@ jobs:
         ./configure
         make
         sudo make install
-        echo $BASH_VERSION
       if: matrix.os == 'ubuntu-latest'
     - name: Checkout code
       uses: actions/checkout@v2
-    - name: Test 2
-      run: go test -v ./interp/. -run TestRunnerRunConfirm
     - name: Test
       run: go test -count=1 ./...
     - name: Test with -short -race
