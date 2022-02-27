@@ -22,6 +22,7 @@ jobs:
         ./configure
         make
         sudo make install
+      if: matrix.os == 'ubuntu-latest'
     - name: Checkout code
       uses: actions/checkout@v2
     - name: Test
