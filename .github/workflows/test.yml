@@ -27,6 +27,11 @@ jobs:
     - name: gofmt check
       run: diff <(echo -n) <(gofmt -d .)
       if: matrix.os == 'ubuntu-latest'
+    
+    - name: Install dockexec
+      run: go install mvdan.cc/dockexec@latest
+    - name: Test bash interpreter
+      run: go test ./interp/. -run TestRunnerRunConfirm -exec='dockexec bash:5.1'
 
   test-linux-alpine:
     runs-on: ubuntu-latest
