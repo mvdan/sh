@@ -30,8 +30,10 @@ jobs:
     
     - name: Install dockexec
       run: go install mvdan.cc/dockexec@latest
+      if: matrix.os == 'ubuntu-latest'
     - name: Test bash interpreter
-      run: go test ./interp/. -run TestRunnerRunConfirm -exec='dockexec bash:5.1'
+      run: go test ./interp/. -run TestRunnerRunConfirm -exec='dockexec bash:5.1 -e=CGO_ENABLED=0'
+      if: matrix.os == 'ubuntu-latest'
 
   test-linux-alpine:
     runs-on: ubuntu-latest
