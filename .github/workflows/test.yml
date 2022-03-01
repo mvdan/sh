@@ -28,11 +28,10 @@ jobs:
       run: diff <(echo -n) <(gofmt -d .)
       if: matrix.os == 'ubuntu-latest'
 
-    - name: Install dockexec
-      run: go install mvdan.cc/dockexec@latest
-      if: matrix.os == 'ubuntu-latest'
-    - name: Test interpreter confirm
-      run: CGO_ENABLED=0 go test -run TestRunnerRunConfirm -exec 'dockexec bash:5.1' ./interp/.
+    - name: Run confirm tests with Bash 5.1
+      run: | 
+        go install mvdan.cc/dockexec@latest
+        CGO_ENABLED=0 go test -run TestRunnerRunConfirm -exec 'dockexec bash:5.1' ./interp
       if: matrix.os == 'ubuntu-latest'
 
   test-linux-alpine:
