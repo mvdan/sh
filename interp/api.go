@@ -249,8 +249,14 @@ func Params(args ...string) RunnerOption {
 		fp := flagParser{remaining: args}
 		for fp.more() {
 			flag := fp.flag()
+			if flag == "-" {
+				if args := fp.args(); len(args) > 0 {
+					r.Params = args
+				}
+				return nil
+			}
 			enable := flag[0] == '-'
-			if len(flag) > 1 && flag[1] != 'o' {
+			if flag[1] != 'o' {
 				opt := r.optByFlag(flag[1])
 				if opt == nil {
 					return fmt.Errorf("invalid option: %q", flag)

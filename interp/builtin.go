@@ -911,14 +911,6 @@ func (p *flagParser) more() bool {
 		p.remaining = p.remaining[1:]
 		return false
 	}
-	if arg == "-" {
-		if len(p.remaining) > 1 {
-			p.remaining = p.remaining[1:]
-			return false
-		}
-		p.remaining = nil
-		return false
-	}
 	if len(arg) == 0 || (arg[0] != '-' && arg[0] != '+') {
 		// The next argument is not a flag.
 		return false
