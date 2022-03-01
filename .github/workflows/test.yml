@@ -14,15 +14,6 @@ jobs:
       uses: actions/setup-go@v2
       with:
         go-version: ${{ matrix.go-version }}
-    - name: Install bash 5.1
-      run: |
-        wget http://ftp.gnu.org/gnu/bash/bash-5.1.tar.gz
-        tar xf bash-5.1.tar.gz
-        cd bash-5.1
-        ./configure
-        make
-        sudo make install
-      if: matrix.os == 'ubuntu-latest'
     - name: Checkout code
       uses: actions/checkout@v2
     - name: Test
@@ -35,6 +26,13 @@ jobs:
       if: matrix.os == 'ubuntu-latest'
     - name: gofmt check
       run: diff <(echo -n) <(gofmt -d .)
+      if: matrix.os == 'ubuntu-latest'
+
+    - name: Install dockexec
+      run: go install mvdan.cc/dockexec@latest
+      if: matrix.os == 'ubuntu-latest'
+    - name: Test interpreter confirm
+      run: CGO_ENABLED=0 go test -run TestRunnerRunConfirm -exec 'dockexec bash:5.1' ./interp/.
       if: matrix.os == 'ubuntu-latest'
 
   test-linux-alpine:
