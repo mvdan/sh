@@ -250,6 +250,7 @@ func Params(args ...string) RunnerOption {
 		for fp.more() {
 			flag := fp.flag()
 			if flag == "-" {
+				// TODO: implement "The -x and -v options are turned off."
 				if args := fp.args(); len(args) > 0 {
 					r.Params = args
 				}
