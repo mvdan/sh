@@ -55,8 +55,8 @@ func BenchmarkRun(b *testing.B) {
 	b.StopTimer()
 	src := `
 echo a b c d
-echo ./$foo/etc $(echo foo bar)
-foo="bar"
+echo ./$foo_interp_missing/etc $(echo foo_interp_missing bar_interp_missing)
+foo_interp_missing="bar_interp_missing"
 x=y :
 fn() {
 	local a=b
@@ -64,7 +64,7 @@ fn() {
 		echo $i | cat
 	done
 }
-[[ $foo == bar ]] && fn
+[[ $foo_interp_missing == bar_interp_missing ]] && fn
 echo a{b,c}d *.go
 let i=(2 + 3)
 `
@@ -88,8 +88,8 @@ func TestMain(m *testing.M) {
 		case "pid_and_hang":
 			fmt.Println(os.Getpid())
 			time.Sleep(time.Hour)
-		case "foo_null_bar":
-			fmt.Println("foo\x00bar")
+		case "foo_interp_missing_null_bar_interp_missing":
+			fmt.Println("foo_interp_missing\x00bar_interp_missing")
 			os.Exit(1)
 		case "lookpath":
 			_, err := exec.LookPath(pathProg)
@@ -169,7 +169,7 @@ func TestMain(m *testing.M) {
 		os.Setenv("ENV_PROG", "env")
 	}
 
-	for _, s := range []string{"a", "b", "c", "d", "foo", "bar"} {
+	for _, s := range []string{"a", "b", "c", "d", "foo_interp_missing", "bar_interp_missing"} {
 		os.Unsetenv(s)
 	}
 	exit := m.Run()
@@ -237,15 +237,15 @@ var runTests = []runTest{
 	{"exit -1", "exit status 255"},
 	{"exit 300", "exit status 44"},
 	{"false", "exit status 1"},
-	{"false foo", "exit status 1"},
+	{"false foo_interp_missing", "exit status 1"},
 	{"! false", ""},
-	{"true foo", ""},
-	{": foo", ""},
+	{"true foo_interp_missing", ""},
+	{": foo_interp_missing", ""},
 	{"! true", "exit status 1"},
 	{"false; true", ""},
 	{"false; exit", "exit status 1"},
-	{"exit; echo foo", ""},
-	{"exit 0; echo foo", ""},
+	{"exit; echo foo_interp_missing", ""},
+	{"exit 0; echo foo_interp_missing", ""},
 	{"printf", "usage: printf format [arguments]\nexit status 2 #JUSTERR"},
 	{"break", "break is only useful in a loop #JUSTERR"},
 	{"continue", "continue is only useful in a loop #JUSTERR"},
@@ -273,29 +273,29 @@ var runTests = []runTest{
 	// echo
 	{"echo", "\n"},
 	{"echo a b c", "a b c\n"},
-	{"echo -n foo", "foo"},
+	{"echo -n foo_interp_missing", "foo_interp_missing"},
 	{`echo -e '\t'`, "\t\n"},
 	{`echo -E '\t'`, "\\t\n"},
-	{"echo -x foo", "-x foo\n"},
-	{"echo -e -x -e foo", "-x -e foo\n"},
+	{"echo -x foo_interp_missing", "-x foo_interp_missing\n"},
+	{"echo -e -x -e foo_interp_missing", "-x -e foo_interp_missing\n"},
 
 	// printf
-	{"printf foo", "foo"},
+	{"printf foo_interp_missing", "foo_interp_missing"},
 	{"printf %%", "%"},
 	{"printf %", "missing format char\nexit status 1 #JUSTERR"},
-	{"printf %; echo foo", "missing format char\nfoo\n #IGNORE"},
+	{"printf %; echo foo_interp_missing", "missing format char\nfoo_interp_missing\n #IGNORE"},
 	{"printf %1", "missing format char\nexit status 1 #JUSTERR"},
 	{"printf %+", "missing format char\nexit status 1 #JUSTERR"},
-	{"printf %B foo", "invalid format char: B\nexit status 1 #JUSTERR"},
-	{"printf %12-s foo", "invalid format char: -\nexit status 1 #JUSTERR"},
-	{"printf ' %s \n' bar", " bar \n"},
+	{"printf %B foo_interp_missing", "invalid format char: B\nexit status 1 #JUSTERR"},
+	{"printf %12-s foo_interp_missing", "invalid format char: -\nexit status 1 #JUSTERR"},
+	{"printf ' %s \n' bar_interp_missing", " bar_interp_missing \n"},
 	{"printf '\\A'", "\\A"},
-	{"printf %s foo", "foo"},
+	{"printf %s foo_interp_missing", "foo_interp_missing"},
 	{"printf %s", ""},
 	{"printf %d,%i 3 4", "3,4"},
 	{"printf %d", "0"},
 	{"printf %d,%d 010 0x10", "8,16"},
-	{"printf %c,%c,%c foo àa", "f,\xc3,\x00"}, // TODO: use a rune?
+	{"printf %c,%c,%c foo_interp_missing àa", "f,\xc3,\x00"}, // TODO: use a rune?
 	{"printf %3s a", "  a"},
 	{"printf %3i 1", "  1"},
 	{"printf %+i%+d 1 -3", "+1-3"},
@@ -307,9 +307,9 @@ var runTests = []runTest{
 	{"printf '%02d %02d\n' 1 2 3", "01 02\n03 00\n"},
 
 	// words and quotes
-	{"echo  foo ", "foo\n"},
-	{"echo ' foo '", " foo \n"},
-	{`echo " foo "`, " foo \n"},
+	{"echo  foo_interp_missing ", "foo_interp_missing\n"},
+	{"echo ' foo_interp_missing '", " foo_interp_missing \n"},
+	{`echo " foo_interp_missing "`, " foo_interp_missing \n"},
 	{`echo a'b'c"d"e`, "abcde\n"},
 	{`a=" b c "; echo $a`, "b c\n"},
 	{`a=" b c "; echo "$a"`, " b c \n"},
@@ -329,12 +329,12 @@ var runTests = []runTest{
 	{`[[ $0 == "bash" || $0 == "gosh" ]]`, ""},
 
 	// dollar quotes
-	{`echo $'foo\nbar'`, "foo\nbar\n"},
+	{`echo $'foo_interp_missing\nbar_interp_missing'`, "foo_interp_missing\nbar_interp_missing\n"},
 	{`echo $'\r\t\\'`, "\r\t\\\n"},
-	{`echo $"foo\nbar"`, "foo\\nbar\n"},
+	{`echo $"foo_interp_missing\nbar_interp_missing"`, "foo_interp_missing\\nbar_interp_missing\n"},
 	{`echo $'%s'`, "%s\n"},
 	{`a=$'\r\t\\'; echo "$a"`, "\r\t\\\n"},
-	{`a=$"foo\nbar"; echo "$a"`, "foo\\nbar\n"},
+	{`a=$"foo_interp_missing\nbar_interp_missing"; echo "$a"`, "foo_interp_missing\\nbar_interp_missing\n"},
 	{`echo $'\a\b\e\E\f\v'`, "\a\b\x1b\x1b\f\v\n"},
 	{`echo $'\\\'\"\?'`, "\\'\"?\n"},
 	{`echo $'\1\45\12345\777\9'`, "\x01%S45\xff\\9\n"},
@@ -342,45 +342,45 @@ var runTests = []runTest{
 	{`echo $'\u\uf\u09\uABCD\u00051234'`, "\\u\u000f\u0009\uabcd\u00051234\n"},
 	{`echo $'\U\Uf\U09\UABCD\U00051234'`, "\\U\u000f\u0009\uabcd\U00051234\n"},
 	{
-		"echo 'foo\x00bar'",
-		"foobar\n",
+		"echo 'foo_interp_missing\x00bar_interp_missing'",
+		"foo_interp_missingbar_interp_missing\n",
 	},
 	{
-		"echo \"foo\x00bar\"",
-		"foobar\n",
+		"echo \"foo_interp_missing\x00bar_interp_missing\"",
+		"foo_interp_missingbar_interp_missing\n",
 	},
 	{
-		"echo $'foo\x00bar'",
-		"foobar\n",
+		"echo $'foo_interp_missing\x00bar_interp_missing'",
+		"foo_interp_missingbar_interp_missing\n",
 	},
 	{
-		"echo $'foo\\x00bar'",
-		"foo\n",
+		"echo $'foo_interp_missing\\x00bar_interp_missing'",
+		"foo_interp_missing\n",
 	},
 	{
-		"echo $'foo\\xbar'",
-		"foo\xbar\n",
+		"echo $'foo_interp_missing\\xbar_interp_missing'",
+		"foo_interp_missing\xbar_interp_missing\n",
 	},
 	{
-		"a='foo\x00bar'; eval \"echo -n ${a} ${a@Q}\";",
-		"foobar foobar",
+		"a='foo_interp_missing\x00bar_interp_missing'; eval \"echo -n ${a} ${a@Q}\";",
+		"foo_interp_missingbar_interp_missing foo_interp_missingbar_interp_missing",
 	},
 	{
-		"a=$'foo\\x00bar'; eval \"echo -n ${a} ${a@Q}\";",
-		"foo foo",
+		"a=$'foo_interp_missing\\x00bar_interp_missing'; eval \"echo -n ${a} ${a@Q}\";",
+		"foo_interp_missing foo_interp_missing",
 	},
 	{
-		"i\x00f true; then echo foo\x00; \x00fi",
-		"foo\n",
+		"i\x00f true; then echo foo_interp_missing\x00; \x00fi",
+		"foo_interp_missing\n",
 	},
 	{
-		"echo $(GOSH_CMD=foo_null_bar $GOSH_PROG)",
-		"foobar\n #IGNORE",
+		"echo $(GOSH_CMD=foo_interp_missing_null_bar_interp_missing $GOSH_PROG)",
+		"foo_interp_missingbar_interp_missing\n #IGNORE",
 	},
-	// See the TODO where FOO_NULL_BAR is set.
+	// See the TODO where FOO_INTERP_MISSING_NULL_BAR_INTERP_MISSING is set.
 	// {
-	// 	"echo $FOO_NULL_BAR \"${FOO_NULL_BAR}\"",
-	// 	"foo\n",
+	// 	"echo $FOO_INTERP_MISSING_NULL_BAR_INTERP_MISSING \"${FOO_INTERP_MISSING_NULL_BAR_INTERP_MISSING}\"",
+	// 	"foo_interp_missing\n",
 	// },
 
 	// escaped chars
@@ -397,21 +397,21 @@ var runTests = []runTest{
 	{`echo \`, "\n"},
 
 	// vars
-	{"foo=bar; echo $foo", "bar\n"},
-	{"foo=bar foo=etc; echo $foo", "etc\n"},
-	{"foo=bar; foo=etc; echo $foo", "etc\n"},
-	{"foo=bar; foo=; echo $foo", "\n"},
-	{"unset foo; echo $foo", "\n"},
-	{"foo=bar; unset foo; echo $foo", "\n"},
+	{"foo_interp_missing=bar_interp_missing; echo $foo_interp_missing", "bar_interp_missing\n"},
+	{"foo_interp_missing=bar_interp_missing foo_interp_missing=etc; echo $foo_interp_missing", "etc\n"},
+	{"foo_interp_missing=bar_interp_missing; foo_interp_missing=etc; echo $foo_interp_missing", "etc\n"},
+	{"foo_interp_missing=bar_interp_missing; foo_interp_missing=; echo $foo_interp_missing", "\n"},
+	{"unset foo_interp_missing; echo $foo_interp_missing", "\n"},
+	{"foo_interp_missing=bar_interp_missing; unset foo_interp_missing; echo $foo_interp_missing", "\n"},
 	{"echo $INTERP_GLOBAL", "value\n"},
 	{"INTERP_GLOBAL=; echo $INTERP_GLOBAL", "\n"},
 	{"unset INTERP_GLOBAL; echo $INTERP_GLOBAL", "\n"},
 	{"echo $MIXEDCASE_INTERP_GLOBAL", "value\n"},
-	{"foo=bar; foo=x true; echo $foo", "bar\n"},
-	{"foo=bar; foo=x true; echo $foo", "bar\n"},
-	{"foo=bar; $ENV_PROG | grep '^foo='", "exit status 1"},
-	{"foo=bar $ENV_PROG | grep '^foo='", "foo=bar\n"},
-	{"foo=a foo=b $ENV_PROG | grep '^foo='", "foo=b\n"},
+	{"foo_interp_missing=bar_interp_missing; foo_interp_missing=x true; echo $foo_interp_missing", "bar_interp_missing\n"},
+	{"foo_interp_missing=bar_interp_missing; foo_interp_missing=x true; echo $foo_interp_missing", "bar_interp_missing\n"},
+	{"foo_interp_missing=bar_interp_missing; $ENV_PROG | grep '^foo_interp_missing='", "exit status 1"},
+	{"foo_interp_missing=bar_interp_missing $ENV_PROG | grep '^foo_interp_missing='", "foo_interp_missing=bar_interp_missing\n"},
+	{"foo_interp_missing=a foo_interp_missing=b $ENV_PROG | grep '^foo_interp_missing='", "foo_interp_missing=b\n"},
 	{"$ENV_PROG | grep '^INTERP_GLOBAL='", "INTERP_GLOBAL=value\n"},
 	{"INTERP_GLOBAL=new; $ENV_PROG | grep '^INTERP_GLOBAL='", "INTERP_GLOBAL=new\n"},
 	{"INTERP_GLOBAL=; $ENV_PROG | grep '^INTERP_GLOBAL='", "INTERP_GLOBAL=\n"},
@@ -419,20 +419,20 @@ var runTests = []runTest{
 	{"a=b; a+=c x+=y; echo $a $x", "bc y\n"},
 	{`a=" x  y"; b=$a c="$a"; echo $b; echo $c`, "x y\nx y\n"},
 	{`a=" x  y"; b=$a c="$a"; echo "$b"; echo "$c"`, " x  y\n x  y\n"},
-	{`arr=("foo" "bar" "lala" "foobar"); echo ${arr[@]:2}; echo ${arr[*]:2}`, "lala foobar\nlala foobar\n"},
-	{`arr=("foo" "bar" "lala" "foobar"); echo ${arr[@]:2:4}; echo ${arr[*]:1:4}`, "lala foobar\nbar lala foobar\n"},
-	{`arr=("foo" "bar"); echo ${arr[@]}; echo ${arr[*]}`, "foo bar\nfoo bar\n"},
-	{`arr=("foo"); echo ${arr[@]:99}`, "\n"},
+	{`arr=("foo_interp_missing" "bar_interp_missing" "lala" "foo_interp_missingbar_interp_missing"); echo ${arr[@]:2}; echo ${arr[*]:2}`, "lala foo_interp_missingbar_interp_missing\nlala foo_interp_missingbar_interp_missing\n"},
+	{`arr=("foo_interp_missing" "bar_interp_missing" "lala" "foo_interp_missingbar_interp_missing"); echo ${arr[@]:2:4}; echo ${arr[*]:1:4}`, "lala foo_interp_missingbar_interp_missing\nbar_interp_missing lala foo_interp_missingbar_interp_missing\n"},
+	{`arr=("foo_interp_missing" "bar_interp_missing"); echo ${arr[@]}; echo ${arr[*]}`, "foo_interp_missing bar_interp_missing\nfoo_interp_missing bar_interp_missing\n"},
+	{`arr=("foo_interp_missing"); echo ${arr[@]:99}`, "\n"},
 	{`echo ${arr[@]:1:99}; echo ${arr[*]:1:99}`, "\n\n"},
 	{`arr=(0 1 2 3 4 5 6 7 8 9 0 a b c d e f g h); echo ${arr[@]:3:4}`, "3 4 5 6\n"},
-	{`echo ${foo[@]}; echo ${foo[*]}`, "\n\n"},
+	{`echo ${foo_interp_missing[@]}; echo ${foo_interp_missing[*]}`, "\n\n"},
 	// TODO: reenable once we figure out the broken pipe error
 	//{`$ENV_PROG | while read line; do if test -z "$line"; then echo empty; fi; break; done`, ""}, // never begin with an empty element
 
 	// inline variables have special scoping
 	{
-		"f() { echo $inline; inline=bar true; echo $inline; }; inline=foo f",
-		"foo\nfoo\n",
+		"f() { echo $inline; inline=bar_interp_missing true; echo $inline; }; inline=foo_interp_missing f",
+		"foo_interp_missing\nfoo_interp_missing\n",
 	},
 	{"v=x; read v <<< 'y'; echo $v", "y\n"},
 	{"v=x; v=inline read v <<< 'y'; echo $v", "x\n"},
@@ -452,7 +452,7 @@ var runTests = []runTest{
 
 	// var manipulation
 	{"echo ${#a} ${#a[@]}", "0 0\n"},
-	{"a=bar; echo ${#a} ${#a[@]}", "3 1\n"},
+	{"a=bar_interp_missing; echo ${#a} ${#a[@]}", "18 1\n"},
 	{"a=世界; echo ${#a}", "2\n"},
 	{"a=(a bcd); echo ${#a} ${#a[@]} ${#a[*]} ${#a[1]}", "1 2 2 3\n"},
 	{
@@ -473,24 +473,24 @@ var runTests = []runTest{
 		"\nc\n",
 	},
 	{
-		"a=foo; echo ${a:1}; echo ${a: -1}; echo ${a: -10}; echo ${a:5}",
-		"oo\no\n\n\n",
+		"a=foo_interp_missing; echo ${a:1}; echo ${a: -1}; echo ${a: -10}; echo ${a:5}",
+		"oo_interp_missing\ng\nrp_missing\nnterp_missing\n",
 	},
 	{
-		"a=foo; echo ${a::2}; echo ${a::-1}; echo ${a: -10}; echo ${a::5}",
-		"fo\nfo\n\nfoo\n",
+		"a=foo_interp_missing; echo ${a::2}; echo ${a::-1}; echo ${a: -10}; echo ${a::5}",
+		"fo\nfoo_interp_missin\nrp_missing\nfoo_i\n",
 	},
 	{
 		"a=abc; echo ${a:1:1}",
 		"b\n",
 	},
 	{
-		"a=foo; echo ${a/no/x} ${a/o/i} ${a//o/i} ${a/fo/}",
-		"foo fio fii o\n",
+		"a=foo_interp_missing; echo ${a/no/x} ${a/o/i} ${a//o/i} ${a/fo/}",
+		"foo_interp_missing fio_interp_missing fii_interp_missing o_interp_missing\n",
 	},
 	{
-		"a=foo; echo ${a/*/xx} ${a//?/na} ${a/o*}",
-		"xx nanana f\n",
+		"a=foo_interp_missing; echo ${a/*/xx} ${a//?/na} ${a/o*}",
+		"xx nananananananananananananananananana f\n",
 	},
 	{
 		"a=12345; echo ${a//[42]} ${a//[^42]} ${a//[!42]}",
@@ -510,7 +510,7 @@ var runTests = []runTest{
 	{"a='[[:wrong:]]'; echo ${a//[[:}", "[[:wrong:]]\n"},
 	{"a='abcx1y'; echo ${a//x[[:digit:]]y}", "abc\n"},
 	{`a=xyz; echo "${a/y/a  b}"`, "xa  bz\n"},
-	{"a='foo/bar'; echo ${a//o*a/}", "fr\n"},
+	{"a='foo_interp_missing/bar_interp_missing'; echo ${a//o*a/}", "fr_interp_missing\n"},
 	{
 		"echo ${a:-b}; echo $a; a=; echo ${a:-b}; a=c; echo ${a:-b}",
 		"b\n\nb\nc\n",
@@ -572,24 +572,24 @@ var runTests = []runTest{
 		"aaabccc\n",
 	},
 	{
-		"a='àÉñ bAr'; echo ${a^}; echo ${a^^}",
-		"ÀÉñ bAr\nÀÉÑ BAR\n",
+		"a='àÉñ bAr_interp_missing'; echo ${a^}; echo ${a^^}",
+		"ÀÉñ bAr_interp_missing\nÀÉÑ BAR_INTERP_MISSING\n",
 	},
 	{
-		"a='àÉñ bAr'; echo ${a,}; echo ${a,,}",
-		"àÉñ bAr\nàéñ bar\n",
+		"a='àÉñ bAr_interp_missing'; echo ${a,}; echo ${a,,}",
+		"àÉñ bAr_interp_missing\nàéñ bar_interp_missing\n",
 	},
 	{
-		"a='àÉñ bAr'; echo ${a^?}; echo ${a^^[br]}",
-		"ÀÉñ bAr\nàÉñ BAR\n",
+		"a='àÉñ bAr_interp_missing'; echo ${a^?}; echo ${a^^[br]}",
+		"ÀÉñ bAr_interp_missing\nàÉñ BAR_inteRp_missing\n",
 	},
 	{
-		"a='àÉñ bAr'; echo ${a,?}; echo ${a,,[br]}",
-		"àÉñ bAr\nàÉñ bAr\n",
+		"a='àÉñ bAr_interp_missing'; echo ${a,?}; echo ${a,,[br]}",
+		"àÉñ bAr_interp_missing\nàÉñ bAr_interp_missing\n",
 	},
 	{
-		"a=(àÉñ bAr); echo ${a[@]^}; echo ${a[*],,}",
-		"ÀÉñ BAr\nàéñ bar\n",
+		"a=(àÉñ bAr_interp_missing); echo ${a[@]^}; echo ${a[*],,}",
+		"ÀÉñ BAr_interp_missing\nàéñ bar_interp_missing\n",
 	},
 	{
 		"INTERP_X_1=a INTERP_X_2=b; echo ${!INTERP_X_*}",
@@ -638,24 +638,24 @@ var runTests = []runTest{
 
 	// if
 	{
-		"if true; then echo foo; fi",
-		"foo\n",
+		"if true; then echo foo_interp_missing; fi",
+		"foo_interp_missing\n",
 	},
 	{
-		"if false; then echo foo; fi",
+		"if false; then echo foo_interp_missing; fi",
 		"",
 	},
 	{
-		"if false; then echo foo; fi",
+		"if false; then echo foo_interp_missing; fi",
 		"",
 	},
 	{
-		"if true; then echo foo; else echo bar; fi",
-		"foo\n",
+		"if true; then echo foo_interp_missing; else echo bar_interp_missing; fi",
+		"foo_interp_missing\n",
 	},
 	{
-		"if false; then echo foo; else echo bar; fi",
-		"bar\n",
+		"if false; then echo foo_interp_missing; else echo bar_interp_missing; fi",
+		"bar_interp_missing\n",
 	},
 	{
 		"if true; then false; fi",
@@ -666,21 +666,21 @@ var runTests = []runTest{
 		"exit status 1",
 	},
 	{
-		"if false; then :; elif true; then echo foo; fi",
-		"foo\n",
+		"if false; then :; elif true; then echo foo_interp_missing; fi",
+		"foo_interp_missing\n",
 	},
 	{
-		"if false; then :; elif false; then :; elif true; then echo foo; fi",
-		"foo\n",
+		"if false; then :; elif false; then :; elif true; then echo foo_interp_missing; fi",
+		"foo_interp_missing\n",
 	},
 	{
-		"if false; then :; elif false; then :; else echo foo; fi",
-		"foo\n",
+		"if false; then :; elif false; then :; else echo foo_interp_missing; fi",
+		"foo_interp_missing\n",
 	},
 
 	// while
 	{
-		"while false; do echo foo; done",
+		"while false; do echo foo_interp_missing; done",
 		"",
 	},
 	{
@@ -698,7 +698,7 @@ var runTests = []runTest{
 
 	// until
 	{
-		"until true; do echo foo; done",
+		"until true; do echo foo_interp_missing; done",
 		"",
 	},
 	{
@@ -728,7 +728,7 @@ var runTests = []runTest{
 		"1\n",
 	},
 	{
-		"for i in 1 2 3; do echo $i; continue; echo foo; done",
+		"for i in 1 2 3; do echo $i; continue; echo foo_interp_missing; done",
 		"1\n2\n3\n",
 	},
 	{
@@ -788,8 +788,8 @@ var runTests = []runTest{
 
 	// block
 	{
-		"{ echo foo; }",
-		"foo\n",
+		"{ echo foo_interp_missing; }",
+		"foo_interp_missing\n",
 	},
 	{
 		"{ false; }",
@@ -798,8 +798,8 @@ var runTests = []runTest{
 
 	// subshell
 	{
-		"(echo foo)",
-		"foo\n",
+		"(echo foo_interp_missing)",
+		"foo_interp_missing\n",
 	},
 	{
 		"(false)",
@@ -810,12 +810,12 @@ var runTests = []runTest{
 		"exit status 1",
 	},
 	{
-		"(foo=bar; echo $foo); echo $foo",
-		"bar\n\n",
+		"(foo_interp_missing=bar_interp_missing; echo $foo_interp_missing); echo $foo_interp_missing",
+		"bar_interp_missing\n\n",
 	},
 	{
-		"(echo() { printf 'bar\n'; }; echo); echo",
-		"bar\n\n",
+		"(echo() { printf 'bar_interp_missing\n'; }; echo); echo",
+		"bar_interp_missing\n\n",
 	},
 	{
 		"unset INTERP_GLOBAL & echo $INTERP_GLOBAL",
@@ -846,7 +846,7 @@ var runTests = []runTest{
 	// cd/pwd
 	{"[[ fo~ == 'fo~' ]]", ""},
 	{`[[ 'ab\c' == *\\* ]]`, ""},
-	{`[[ foo/bar == foo* ]]`, ""},
+	{`[[ foo_interp_missing/bar_interp_missing == foo_interp_missing* ]]`, ""},
 	{"[[ a == [ab ]]", "exit status 1"},
 	{`HOME='/*'; echo ~; echo "$HOME"`, "/*\n/*\n"},
 	{`test -d ~`, ""},
@@ -854,12 +854,12 @@ var runTests = []runTest{
 		`for flag in b c d e f g h k L p r s S u w x; do test -$flag ""; echo -n "$flag$? "; done`,
 		`b1 c1 d1 e1 f1 g1 h1 k1 L1 p1 r1 s1 S1 u1 w1 x1 `,
 	},
-	{`foo=~; test -d $foo`, ""},
-	{`foo=~; test -d "$foo"`, ""},
-	{`foo='~'; test -d $foo`, "exit status 1"},
-	{`foo='~'; [ $foo == '~' ]`, ""},
+	{`foo_interp_missing=~; test -d $foo_interp_missing`, ""},
+	{`foo_interp_missing=~; test -d "$foo_interp_missing"`, ""},
+	{`foo_interp_missing='~'; test -d $foo_interp_missing`, "exit status 1"},
+	{`foo_interp_missing='~'; [ $foo_interp_missing == '~' ]`, ""},
 	{
-		`[[ ~ == "$HOME" ]] && [[ ~/foo == "$HOME/foo" ]]`,
+		`[[ ~ == "$HOME" ]] && [[ ~/foo_interp_missing == "$HOME/foo_interp_missing" ]]`,
 		"",
 	},
 	{
@@ -883,8 +883,8 @@ var runTests = []runTest{
 		"",
 	},
 	{
-		`HOME=/foo; echo $HOME`,
-		"/foo\n",
+		`HOME=/foo_interp_missing; echo $HOME`,
+		"/foo_interp_missing\n",
 	},
 	{
 		"cd noexist",
@@ -959,7 +959,7 @@ var runTests = []runTest{
 	{"set -- $(dirs); echo $# ${#DIRSTACK[@]}", "1 1\n"},
 	{"pushd", "pushd: no other directory\nexit status 1 #JUSTERR"},
 	{"pushd -n", ""},
-	{"pushd foo bar", "pushd: too many arguments\nexit status 2 #JUSTERR"},
+	{"pushd foo_interp_missing bar_interp_missing", "pushd: too many arguments\nexit status 2 #JUSTERR"},
 	{"pushd does-not-exist; set -- $(dirs); echo $#", "1\n #IGNORE"},
 	{"mkdir a; pushd a >/dev/null; set -- $(dirs); echo $#", "2\n"},
 	{"mkdir a; set -- $(pushd a); echo $#", "2\n"},
@@ -993,7 +993,7 @@ var runTests = []runTest{
 	},
 	{"popd", "popd: directory stack empty\nexit status 1 #JUSTERR"},
 	{"popd -n", "popd: directory stack empty\nexit status 1 #JUSTERR"},
-	{"popd foo", "popd: invalid argument\nexit status 2 #JUSTERR"},
+	{"popd foo_interp_missing", "popd: invalid argument\nexit status 2 #JUSTERR"},
 	{"old=$(dirs); mkdir a; pushd a >/dev/null; set -- $(popd); echo $#", "1\n"},
 	{
 		`old=$(dirs); mkdir a; pushd a >/dev/null; popd >/dev/null; [[ $(dirs) == "$old" ]]`,
@@ -1011,119 +1011,119 @@ var runTests = []runTest{
 
 	// binary cmd
 	{
-		"true && echo foo || echo bar",
-		"foo\n",
+		"true && echo foo_interp_missing || echo bar_interp_missing",
+		"foo_interp_missing\n",
 	},
 	{
-		"false && echo foo || echo bar",
-		"bar\n",
+		"false && echo foo_interp_missing || echo bar_interp_missing",
+		"bar_interp_missing\n",
 	},
 
 	// func
 	{
-		"foo() { echo bar; }; foo",
-		"bar\n",
+		"foo_interp_missing() { echo bar_interp_missing; }; foo_interp_missing",
+		"bar_interp_missing\n",
 	},
 	{
-		"foo() { echo $1; }; foo",
+		"foo_interp_missing() { echo $1; }; foo_interp_missing",
 		"\n",
 	},
 	{
-		"foo() { echo $1; }; foo a b",
+		"foo_interp_missing() { echo $1; }; foo_interp_missing a b",
 		"a\n",
 	},
 	{
-		"foo() { echo $1; bar c d; echo $2; }; bar() { echo $2; }; foo a b",
+		"foo_interp_missing() { echo $1; bar_interp_missing c d; echo $2; }; bar_interp_missing() { echo $2; }; foo_interp_missing a b",
 		"a\nd\nb\n",
 	},
 	{
-		`foo() { echo $#; }; foo; foo 1 2 3; foo "a b"; echo $#`,
+		`foo_interp_missing() { echo $#; }; foo_interp_missing; foo_interp_missing 1 2 3; foo_interp_missing "a b"; echo $#`,
 		"0\n3\n1\n0\n",
 	},
 	{
-		`foo() { for a in $*; do echo "$a"; done }; foo 'a  1' 'b  2'`,
+		`foo_interp_missing() { for a in $*; do echo "$a"; done }; foo_interp_missing 'a  1' 'b  2'`,
 		"a\n1\nb\n2\n",
 	},
 	{
-		`foo() { for a in "$*"; do echo "$a"; done }; foo 'a  1' 'b  2'`,
+		`foo_interp_missing() { for a in "$*"; do echo "$a"; done }; foo_interp_missing 'a  1' 'b  2'`,
 		"a  1 b  2\n",
 	},
 	{
-		`foo() { for a in "foo$*"; do echo "$a"; done }; foo 'a  1' 'b  2'`,
-		"fooa  1 b  2\n",
+		`foo_interp_missing() { for a in "foo_interp_missing$*"; do echo "$a"; done }; foo_interp_missing 'a  1' 'b  2'`,
+		"foo_interp_missinga  1 b  2\n",
 	},
 	{
-		`foo() { for a in $@; do echo "$a"; done }; foo 'a  1' 'b  2'`,
+		`foo_interp_missing() { for a in $@; do echo "$a"; done }; foo_interp_missing 'a  1' 'b  2'`,
 		"a\n1\nb\n2\n",
 	},
 	{
-		`foo() { for a in "$@"; do echo "$a"; done }; foo 'a  1' 'b  2'`,
+		`foo_interp_missing() { for a in "$@"; do echo "$a"; done }; foo_interp_missing 'a  1' 'b  2'`,
 		"a  1\nb  2\n",
 	},
 
 	// alias (note the input newlines)
 	{
-		"alias foo; alias foo=echo; alias foo; alias foo=; alias foo",
-		"alias: \"foo\" not found\nalias foo='echo'\nalias foo=''\n #IGNORE",
+		"alias foo_interp_missing; alias foo_interp_missing=echo; alias foo_interp_missing; alias foo_interp_missing=; alias foo_interp_missing",
+		"alias: \"foo_interp_missing\" not found\nalias foo_interp_missing='echo'\nalias foo_interp_missing=''\n #IGNORE",
 	},
 	{
-		"shopt -s expand_aliases; alias foo=echo\nfoo foo; foo bar",
-		"foo\nbar\n",
+		"shopt -s expand_aliases; alias foo_interp_missing=echo\nfoo_interp_missing foo_interp_missing; foo_interp_missing bar_interp_missing",
+		"foo_interp_missing\nbar_interp_missing\n",
 	},
 	{
-		"shopt -s expand_aliases; alias true=echo\ntrue foo; unalias true\ntrue bar",
-		"foo\n",
+		"shopt -s expand_aliases; alias true=echo\ntrue foo_interp_missing; unalias true\ntrue bar_interp_missing",
+		"foo_interp_missing\n",
 	},
 	{
 		"shopt -s expand_aliases; alias echo='echo a'\necho b c",
 		"a b c\n",
 	},
 	{
-		"shopt -s expand_aliases; alias foo='echo '\nfoo foo; foo bar",
-		"echo\nbar\n",
+		"shopt -s expand_aliases; alias foo_interp_missing='echo '\nfoo_interp_missing foo_interp_missing; foo_interp_missing bar_interp_missing",
+		"echo\nbar_interp_missing\n",
 	},
 
 	// case
 	{
-		"case b in x) echo foo ;; a|b) echo bar ;; esac",
-		"bar\n",
+		"case b in x) echo foo_interp_missing ;; a|b) echo bar_interp_missing ;; esac",
+		"bar_interp_missing\n",
 	},
 	{
-		"case b in x) echo foo ;; y|z) echo bar ;; esac",
+		"case b in x) echo foo_interp_missing ;; y|z) echo bar_interp_missing ;; esac",
 		"",
 	},
 	{
-		"case foo in bar) echo foo ;; *) echo bar ;; esac",
-		"bar\n",
+		"case foo_interp_missing in bar_interp_missing) echo foo_interp_missing ;; *) echo bar_interp_missing ;; esac",
+		"bar_interp_missing\n",
 	},
 	{
-		"case foo in *o*) echo bar ;; esac",
-		"bar\n",
+		"case foo_interp_missing in *o*) echo bar_interp_missing ;; esac",
+		"bar_interp_missing\n",
 	},
 	{
-		"case foo in '*') echo x ;; f*) echo y ;; esac",
+		"case foo_interp_missing in '*') echo x ;; f*) echo y ;; esac",
 		"y\n",
 	},
 
 	// exec
 	{
-		"$GOSH_PROG 'echo foo'",
-		"foo\n",
+		"$GOSH_PROG 'echo foo_interp_missing'",
+		"foo_interp_missing\n",
 	},
 	{
-		"$GOSH_PROG 'echo foo >&2' >/dev/null",
-		"foo\n",
+		"$GOSH_PROG 'echo foo_interp_missing >&2' >/dev/null",
+		"foo_interp_missing\n",
 	},
 	{
-		"echo foo | $GOSH_PROG 'cat >&2' >/dev/null",
-		"foo\n",
+		"echo foo_interp_missing | $GOSH_PROG 'cat >&2' >/dev/null",
+		"foo_interp_missing\n",
 	},
 	{
 		"$GOSH_PROG 'exit 1'",
 		"exit status 1",
 	},
 	{
-		"exec >/dev/null; echo foo",
+		"exec >/dev/null; echo foo_interp_missing",
 		"",
 	},
 
@@ -1131,37 +1131,37 @@ var runTests = []runTest{
 	{"return", "return: can only be done from a func or sourced script\nexit status 1 #JUSTERR"},
 	{"f() { return; }; f", ""},
 	{"f() { return 2; }; f", "exit status 2"},
-	{"f() { echo foo; return; echo bar; }; f", "foo\n"},
+	{"f() { echo foo_interp_missing; return; echo bar_interp_missing; }; f", "foo_interp_missing\n"},
 	{"f1() { :; }; f2() { f1; return; }; f2", ""},
 	{"echo 'return' >a; source a", ""},
 	{"echo 'return' >a; source a; return", "return: can only be done from a func or sourced script\nexit status 1 #JUSTERR"},
 	{"echo 'return 2' >a; source a", "exit status 2"},
-	{"echo 'echo foo; return; echo bar' >a; source a", "foo\n"},
+	{"echo 'echo foo_interp_missing; return; echo bar_interp_missing' >a; source a", "foo_interp_missing\n"},
 
 	// command
 	{"command", ""},
 	{"command -o echo", "command: invalid option \"-o\"\nexit status 2 #JUSTERR"},
 	{"command -vo echo", "command: invalid option \"-o\"\nexit status 2 #JUSTERR"},
-	{"echo() { :; }; echo foo", ""},
-	{"echo() { :; }; command echo foo", "foo\n"},
+	{"echo() { :; }; echo foo_interp_missing", ""},
+	{"echo() { :; }; command echo foo_interp_missing", "foo_interp_missing\n"},
 	{"command -v does-not-exist", "exit status 1"},
-	{"foo() { :; }; command -v foo", "foo\n"},
-	{"foo() { :; }; command -v does-not-exist foo", "foo\n"},
+	{"foo_interp_missing() { :; }; command -v foo_interp_missing", "foo_interp_missing\n"},
+	{"foo_interp_missing() { :; }; command -v does-not-exist foo_interp_missing", "foo_interp_missing\n"},
 	{"command -v echo", "echo\n"},
 	{"[[ $(command -v $PATH_PROG) == $PATH_PROG ]]", "exit status 1"},
 
 	// cmd substitution
 	{
-		"echo foo $(printf bar)",
-		"foo bar\n",
+		"echo foo_interp_missing $(printf bar_interp_missing)",
+		"foo_interp_missing bar_interp_missing\n",
 	},
 	{
-		"echo foo $(echo bar)",
-		"foo bar\n",
+		"echo foo_interp_missing $(echo bar_interp_missing)",
+		"foo_interp_missing bar_interp_missing\n",
 	},
 	{
-		"$(echo echo foo bar)",
-		"foo bar\n",
+		"$(echo echo foo_interp_missing bar_interp_missing)",
+		"foo_interp_missing bar_interp_missing\n",
 	},
 	{
 		"for i in 1 $(echo 2 3) 4; do echo $i; done",
@@ -1180,21 +1180,21 @@ var runTests = []runTest{
 		"a=main\n",
 	},
 	{
-		"echo foo >f; echo $(cat f); echo $(<f)",
-		"foo\nfoo\n",
+		"echo foo_interp_missing >f; echo $(cat f); echo $(<f)",
+		"foo_interp_missing\nfoo_interp_missing\n",
 	},
 	{
-		"echo foo >f; echo $(<f; echo bar)",
-		"bar\n",
+		"echo foo_interp_missing >f; echo $(<f; echo bar_interp_missing)",
+		"bar_interp_missing\n",
 	},
 
 	// pipes
 	{
-		"echo foo | sed 's/o/a/g'",
-		"faa\n",
+		"echo foo_interp_missing | sed 's/o/a/g'",
+		"faa_interp_missing\n",
 	},
 	{
-		"echo foo | false | true",
+		"echo foo_interp_missing | false | true",
 		"",
 	},
 	{
@@ -1205,107 +1205,107 @@ var runTests = []runTest{
 		// The first command in the block used to consume stdin, even
 		// though it shouldn't be. We just want to run any arbitrary
 		// non-builtin program that doesn't consume stdin.
-		"echo foo | { $ENV_PROG >/dev/null; cat; }",
-		"foo\n",
+		"echo foo_interp_missing | { $ENV_PROG >/dev/null; cat; }",
+		"foo_interp_missing\n",
 	},
 
 	// redirects
 	{
-		"echo foo >&1 | sed 's/o/a/g'",
-		"faa\n",
+		"echo foo_interp_missing >&1 | sed 's/o/a/g'",
+		"faa_interp_missing\n",
 	},
 	{
-		"echo foo >&2 | sed 's/o/a/g'",
-		"foo\n",
+		"echo foo_interp_missing >&2 | sed 's/o/a/g'",
+		"foo_interp_missing\n",
 	},
 	{
 		// TODO: why does bash need a block here?
-		"{ echo foo >&2; } |& sed 's/o/a/g'",
-		"faa\n",
+		"{ echo foo_interp_missing >&2; } |& sed 's/o/a/g'",
+		"faa_interp_missing\n",
 	},
 	{
-		"echo foo >/dev/null; echo bar",
-		"bar\n",
+		"echo foo_interp_missing >/dev/null; echo bar_interp_missing",
+		"bar_interp_missing\n",
 	},
 	{
-		">a; echo foo >>b; wc -c <a >>b; cat b | tr -d ' '",
-		"foo\n0\n",
+		">a; echo foo_interp_missing >>b; wc -c <a >>b; cat b | tr -d ' '",
+		"foo_interp_missing\n0\n",
 	},
 	{
-		"echo foo >a; <a",
+		"echo foo_interp_missing >a; <a",
 		"",
 	},
 	{
-		"echo foo >a; wc -c <a | tr -d ' '",
-		"4\n",
+		"echo foo_interp_missing >a; wc -c <a | tr -d ' '",
+		"19\n",
 	},
 	{
-		"echo foo >>a; echo bar &>>a; wc -c <a | tr -d ' '",
-		"8\n",
+		"echo foo_interp_missing >>a; echo bar_interp_missing &>>a; wc -c <a | tr -d ' '",
+		"38\n",
 	},
 	{
 		"{ echo a; echo b >&2; } &>/dev/null",
 		"",
 	},
 	{
-		"sed 's/o/a/g' <<EOF\nfoo$foo\nEOF",
-		"faa\n",
+		"sed 's/o/a/g' <<EOF\nfoo_interp_missing$foo_interp_missing\nEOF",
+		"faa_interp_missing\n",
 	},
 	{
-		"sed 's/o/a/g' <<'EOF'\nfoo$foo\nEOF",
-		"faa$faa\n",
+		"sed 's/o/a/g' <<'EOF'\nfoo_interp_missing$foo_interp_missing\nEOF",
+		"faa_interp_missing$faa_interp_missing\n",
 	},
 	{
-		"sed 's/o/a/g' <<EOF\n\tfoo\nEOF",
-		"\tfaa\n",
+		"sed 's/o/a/g' <<EOF\n\tfoo_interp_missing\nEOF",
+		"\tfaa_interp_missing\n",
 	},
 	{
-		"sed 's/o/a/g' <<EOF\nfoo\nEOF",
-		"faa\n",
+		"sed 's/o/a/g' <<EOF\nfoo_interp_missing\nEOF",
+		"faa_interp_missing\n",
 	},
 	{
-		"cat <<EOF\n~/foo\nEOF",
-		"~/foo\n",
+		"cat <<EOF\n~/foo_interp_missing\nEOF",
+		"~/foo_interp_missing\n",
 	},
 	{
-		"sed 's/o/a/g' <<<foo$foo",
-		"faa\n",
+		"sed 's/o/a/g' <<<foo_interp_missing$foo_interp_missing",
+		"faa_interp_missing\n",
 	},
 	{
-		"cat <<-EOF\n\tfoo\nEOF",
-		"foo\n",
+		"cat <<-EOF\n\tfoo_interp_missing\nEOF",
+		"foo_interp_missing\n",
 	},
 	{
-		"cat <<-EOF\n\tfoo\n\nEOF",
-		"foo\n\n",
+		"cat <<-EOF\n\tfoo_interp_missing\n\nEOF",
+		"foo_interp_missing\n\n",
 	},
 	{
-		"cat <<EOF\nfoo\\\nbar\nEOF",
-		"foobar\n",
+		"cat <<EOF\nfoo_interp_missing\\\nbar_interp_missing\nEOF",
+		"foo_interp_missingbar_interp_missing\n",
 	},
 	{
-		"cat <<'EOF'\nfoo\\\nbar\nEOF",
-		"foo\\\nbar\n",
+		"cat <<'EOF'\nfoo_interp_missing\\\nbar_interp_missing\nEOF",
+		"foo_interp_missing\\\nbar_interp_missing\n",
 	},
 	{
-		"mkdir a; echo foo >a |& grep -q 'is a directory'",
+		"mkdir a; echo foo_interp_missing >a |& grep -q 'is a directory'",
 		" #IGNORE bash prints a warning",
 	},
 	{
-		"echo foo 1>&1 | sed 's/o/a/g'",
-		"faa\n",
+		"echo foo_interp_missing 1>&1 | sed 's/o/a/g'",
+		"faa_interp_missing\n",
 	},
 	{
-		"echo foo 2>&2 |& sed 's/o/a/g'",
-		"faa\n",
+		"echo foo_interp_missing 2>&2 |& sed 's/o/a/g'",
+		"faa_interp_missing\n",
 	},
 	{
-		"printf 2>&1 | sed 's/.*usage.*/foo/'",
-		"foo\n",
+		"printf 2>&1 | sed 's/.*usage.*/foo_interp_missing/'",
+		"foo_interp_missing\n",
 	},
 	{
-		"mkdir a && cd a && echo foo >b && cd .. && cat a/b",
-		"foo\n",
+		"mkdir a && cd a && echo foo_interp_missing >b && cd .. && cat a/b",
+		"foo_interp_missing\n",
 	},
 
 	// background/wait
@@ -1313,12 +1313,12 @@ var runTests = []runTest{
 	{"{ true; } & wait", ""},
 	{"{ exit 1; } & wait", ""},
 	{
-		"{ echo foo; } & wait; echo bar",
-		"foo\nbar\n",
+		"{ echo foo_interp_missing; } & wait; echo bar_interp_missing",
+		"foo_interp_missing\nbar_interp_missing\n",
 	},
 	{
-		"{ echo foo & wait; } & wait; echo bar",
-		"foo\nbar\n",
+		"{ echo foo_interp_missing & wait; } & wait; echo bar_interp_missing",
+		"foo_interp_missing\nbar_interp_missing\n",
 	},
 	{`mkdir d; old=$PWD; cd d & wait; [[ $old == "$PWD" ]]`, ""},
 	{
@@ -1440,11 +1440,11 @@ var runTests = []runTest{
 		"",
 	},
 	{
-		"[[ -z 'foo' || -n '' ]]",
+		"[[ -z 'foo_interp_missing' || -n '' ]]",
 		"exit status 1",
 	},
 	{
-		"[[ -z '' && -n 'foo' ]]",
+		"[[ -z '' && -n 'foo_interp_missing' ]]",
 		"",
 	},
 	{
@@ -1488,12 +1488,12 @@ var runTests = []runTest{
 		"exit status 1",
 	},
 	{
-		"[[ foo =~ foo && foo =~ .* && foo =~ f.o ]]",
+		"[[ foo_interp_missing =~ foo_interp_missing && foo_interp_missing =~ .* && foo_interp_missing =~ f.o ]]",
 		"",
 	},
 	{
-		"[[ foo =~ oo ]] && echo foo; [[ foo =~ ^oo$ ]] && echo bar || true",
-		"foo\n",
+		"[[ foo_interp_missing =~ oo ]] && echo foo_interp_missing; [[ foo_interp_missing =~ ^oo$ ]] && echo bar_interp_missing || true",
+		"foo_interp_missing\n",
 	},
 	{
 		"[[ a =~ [ ]]",
@@ -1783,7 +1783,7 @@ var runTests = []runTest{
 
 	// set/shift
 	{
-		"echo $#; set foo bar; echo $#",
+		"echo $#; set foo_interp_missing bar_interp_missing; echo $#",
 		"0\n2\n",
 	},
 	{
@@ -1807,31 +1807,31 @@ var runTests = []runTest{
 		"set: invalid option: \"-U\"\nexit status 2 #JUSTERR",
 	},
 	{
-		"set -e; false; echo foo",
+		"set -e; false; echo foo_interp_missing",
 		"exit status 1",
 	},
 	{
-		"set -e; shouldnotexist; echo foo",
+		"set -e; shouldnotexist; echo foo_interp_missing",
 		"\"shouldnotexist\": executable file not found in $PATH\nexit status 127 #JUSTERR",
 	},
 	{
-		"set -e; set +e; false; echo foo",
-		"foo\n",
+		"set -e; set +e; false; echo foo_interp_missing",
+		"foo_interp_missing\n",
 	},
 	{
-		"set -e; ! false; echo foo",
-		"foo\n",
+		"set -e; ! false; echo foo_interp_missing",
+		"foo_interp_missing\n",
 	},
 	{
-		"set -e; ! true; echo foo",
-		"foo\n",
+		"set -e; ! true; echo foo_interp_missing",
+		"foo_interp_missing\n",
 	},
 	{
-		"set -e; if false; then echo foo; fi",
+		"set -e; if false; then echo foo_interp_missing; fi",
 		"",
 	},
 	{
-		"set -e; while false; do echo foo; done",
+		"set -e; while false; do echo foo_interp_missing; done",
 		"",
 	},
 	{
@@ -1867,15 +1867,15 @@ var runTests = []runTest{
 		"a.x\n",
 	},
 	{
-		"set -a; foo=bar; $ENV_PROG | grep ^foo=",
-		"foo=bar\n",
+		"set -a; foo_interp_missing=bar_interp_missing; $ENV_PROG | grep ^foo_interp_missing=",
+		"foo_interp_missing=bar_interp_missing\n",
 	},
 	{
-		"set -a; foo=(b a r); $ENV_PROG | grep ^foo=",
+		"set -a; foo_interp_missing=(b a r); $ENV_PROG | grep ^foo_interp_missing=",
 		"exit status 1",
 	},
 	{
-		"foo=bar; set -a; $ENV_PROG | grep ^foo=",
+		"foo_interp_missing=bar_interp_missing; set -a; $ENV_PROG | grep ^foo_interp_missing=",
 		"exit status 1",
 	},
 	{
@@ -1887,79 +1887,79 @@ var runTests = []runTest{
 		"\na: unbound variable\nexit status 1 #JUSTERR",
 	},
 	{
-		"foo=bar; set -u; echo ${foo/bar/}",
+		"foo_interp_missing=bar_interp_missing; set -u; echo ${foo_interp_missing/bar_interp_missing/}",
 		"\n",
 	},
 	{
-		"foo=bar; set -u; echo ${foo#bar}",
+		"foo_interp_missing=bar_interp_missing; set -u; echo ${foo_interp_missing#bar_interp_missing}",
 		"\n",
 	},
 	{
-		"set -u; echo ${foo/bar/}",
-		"foo: unbound variable\nexit status 1 #JUSTERR",
+		"set -u; echo ${foo_interp_missing/bar_interp_missing/}",
+		"foo_interp_missing: unbound variable\nexit status 1 #JUSTERR",
 	},
 	{
-		"set -u; echo ${foo#bar}",
-		"foo: unbound variable\nexit status 1 #JUSTERR",
+		"set -u; echo ${foo_interp_missing#bar_interp_missing}",
+		"foo_interp_missing: unbound variable\nexit status 1 #JUSTERR",
 	},
 	// TODO: detect this case as unset
 	// {
-	// 	"set -u; foo=(bar); echo $foo; echo ${foo[3]}",
-	// 	"bar\nfoo: unbound variable\nexit status 1 #JUSTERR",
+	// 	"set -u; foo_interp_missing=(bar_interp_missing); echo $foo_interp_missing; echo ${foo_interp_missing[3]}",
+	// 	"bar_interp_missing\nfoo_interp_missing: unbound variable\nexit status 1 #JUSTERR",
 	// },
 	{
-		"set -u; foo=(''); echo ${foo[0]}",
+		"set -u; foo_interp_missing=(''); echo ${foo_interp_missing[0]}",
 		"\n",
 	},
 	{
-		"set -u; echo ${#foo}",
-		"foo: unbound variable\nexit status 1 #JUSTERR",
+		"set -u; echo ${#foo_interp_missing}",
+		"foo_interp_missing: unbound variable\nexit status 1 #JUSTERR",
 	},
 	{
-		"set -u; echo ${foo+bar}",
+		"set -u; echo ${foo_interp_missing+bar_interp_missing}",
 		"\n",
 	},
 	{
-		"set -u; echo ${foo:+bar}",
+		"set -u; echo ${foo_interp_missing:+bar_interp_missing}",
 		"\n",
 	},
 	{
-		"set -u; echo ${foo-bar}",
-		"bar\n",
+		"set -u; echo ${foo_interp_missing-bar_interp_missing}",
+		"bar_interp_missing\n",
 	},
 	{
-		"set -u; echo ${foo:-bar}",
-		"bar\n",
+		"set -u; echo ${foo_interp_missing:-bar_interp_missing}",
+		"bar_interp_missing\n",
 	},
 	{
-		"set -u; echo ${foo=bar}",
-		"bar\n",
+		"set -u; echo ${foo_interp_missing=bar_interp_missing}",
+		"bar_interp_missing\n",
 	},
 	{
-		"set -u; echo ${foo:=bar}",
-		"bar\n",
+		"set -u; echo ${foo_interp_missing:=bar_interp_missing}",
+		"bar_interp_missing\n",
 	},
 	{
-		"set -u; echo ${foo?bar}",
-		"foo: bar\nexit status 1 #JUSTERR",
+		"set -u; echo ${foo_interp_missing?bar_interp_missing}",
+		"foo_interp_missing: bar_interp_missing\nexit status 1 #JUSTERR",
 	},
 	{
-		"set -u; echo ${foo:?bar}",
-		"foo: bar\nexit status 1 #JUSTERR",
+		"set -u; echo ${foo_interp_missing:?bar_interp_missing}",
+		"foo_interp_missing: bar_interp_missing\nexit status 1 #JUSTERR",
 	},
 	{
 		"set -ue; set -ueo pipefail",
 		"",
 	},
-	{"set -n; echo foo", ""},
+	{"set -n; echo foo_interp_missing", ""},
 	{"set -n; [ wrong", ""},
-	{"set -n; set +n; echo foo", ""},
+	{"set -n; set +n; echo foo_interp_missing", ""},
 	{
-		"set -o foobar",
-		"set: invalid option: \"foobar\"\nexit status 2 #JUSTERR",
+		"set -o foo_interp_missingbar_interp_missing",
+		"set: invalid option: \"foo_interp_missingbar_interp_missing\"\nexit status 2 #JUSTERR",
 	},
-	{"set -o noexec; echo foo", ""},
-	{"set +o noexec; echo foo", "foo\n"},
+	{"set -o noexec; echo foo_interp_missing", ""},
+	{"set +o noexec; echo foo_interp_missing", "foo_interp_missing\n"},
 	{"set -e; set -o | grep -E 'errexit|noexec' | wc -l | tr -d ' '", "2\n"},
 	{"set -e; set -o | grep -E 'errexit|noexec' | grep 'on$' | wc -l | tr -d ' '", "1\n"},
 	{
@@ -2028,9 +2028,9 @@ set +o pipefail
 	// shopt
 	{"set -e; shopt -o | grep -E 'errexit|noexec' | wc -l | tr -d ' '", "2\n"},
 	{"set -e; shopt -o | grep -E 'errexit|noexec' | grep 'on$' | wc -l | tr -d ' '", "1\n"},
-	{"shopt -s -o noexec; echo foo", ""},
-	{"shopt -so noexec; echo foo", ""},
-	{"shopt -u -o noexec; echo foo", "foo\n"},
+	{"shopt -s -o noexec; echo foo_interp_missing", ""},
+	{"shopt -so noexec; echo foo_interp_missing", ""},
+	{"shopt -u -o noexec; echo foo_interp_missing", "foo_interp_missing\n"},
 	{"shopt -u globstar; shopt globstar | grep 'off$' | wc -l | tr -d ' '", "1\n"},
 	{"shopt -s globstar; shopt globstar | grep 'off$' | wc -l | tr -d ' '", "0\n"},
 
@@ -2052,10 +2052,10 @@ set +o pipefail
 	// builtin
 	{"builtin", ""},
 	{"builtin noexist", "exit status 1 #JUSTERR"},
-	{"builtin echo foo", "foo\n"},
+	{"builtin echo foo_interp_missing", "foo_interp_missing\n"},
 	{
-		"echo() { printf 'bar\n'; }; echo foo; builtin echo foo",
-		"bar\nfoo\n",
+		"echo() { printf 'bar_interp_missing\n'; }; echo foo_interp_missing; builtin echo foo_interp_missing",
+		"bar_interp_missing\nfoo_interp_missing\n",
 	},
 
 	// type
@@ -2066,13 +2066,13 @@ set +o pipefail
 	{"type $PATH_PROG | grep -q -E ' is (/|[A-Z]:)'", ""},
 	{"type noexist", "type: noexist: not found\nexit status 1 #JUSTERR"},
 	{"PATH=/; type $PATH_PROG", "type: " + pathProg + ": not found\nexit status 1 #JUSTERR"},
-	{"shopt -s expand_aliases; alias foo='bar baz'\ntype foo", "foo is aliased to `bar baz'\n"},
-	{"alias foo='bar baz'\ntype foo", "type: foo: not found\nexit status 1 #JUSTERR"},
+	{"shopt -s expand_aliases; alias foo_interp_missing='bar_interp_missing baz'\ntype foo_interp_missing", "foo_interp_missing is aliased to `bar_interp_missing baz'\n"},
+	{"alias foo_interp_missing='bar_interp_missing baz'\ntype foo_interp_missing", "type: foo_interp_missing: not found\nexit status 1 #JUSTERR"},
 	{"type -p $PATH_PROG | grep -q -E '^(/|[A-Z]:)'", ""},
 	{"PATH=/; type -p $PATH_PROG", "exit status 1"},
-	{"shopt -s expand_aliases; alias foo='bar'; type -t foo", "alias\n"},
+	{"shopt -s expand_aliases; alias foo_interp_missing='bar_interp_missing'; type -t foo_interp_missing", "alias\n"},
 	{"type -t case", "keyword\n"},
-	{"foo(){ :; }; type -t foo", "function\n"},
+	{"foo_interp_missing(){ :; }; type -t foo_interp_missing", "function\n"},
 	{"type -t type", "builtin\n"},
 	{"type -t $PATH_PROG", "file\n"},
 	{"type -t inexisting_dfgsdgfds", "exit status 1"},
@@ -2082,7 +2082,7 @@ set +o pipefail
 	{"trap 'echo on_err' ERR; false; echo FAIL", "on_err\nFAIL\n"},
 	{"trap 'echo at_exit' EXIT; trap - EXIT; echo OK", "OK\n"},
 	{"set -e; trap 'echo A' ERR EXIT; false; echo FAIL", "A\nA\nexit status 1"},
-	{"trap 'foobar' UNKNOWN", "trap: UNKNOWN: invalid signal specification\nexit status 2 #JUSTERR"},
+	{"trap 'foo_interp_missingbar_interp_missing' UNKNOWN", "trap: UNKNOWN: invalid signal specification\nexit status 2 #JUSTERR"},
 	// TODO: our builtin appears to not receive the piped bytes?
 	// {"trap 'echo on_err' ERR; trap | grep -q '.*echo on_err.*'", "trap -- \"echo on_err\" ERR\n"},
 	{"trap 'false' ERR EXIT; false", "exit status 1"},
@@ -2090,12 +2090,12 @@ set +o pipefail
 	// eval
 	{"eval", ""},
 	{"eval ''", ""},
-	{"eval echo foo", "foo\n"},
-	{"eval 'echo foo'", "foo\n"},
+	{"eval echo foo_interp_missing", "foo_interp_missing\n"},
+	{"eval 'echo foo_interp_missing'", "foo_interp_missing\n"},
 	{"eval 'exit 1'", "exit status 1"},
 	{"eval '('", "eval: 1:1: reached EOF without matching ( with )\nexit status 1 #JUSTERR"},
 	{"set a b; eval 'echo $@'", "a b\n"},
-	{"eval 'a=foo'; echo $a", "foo\n"},
+	{"eval 'a=foo_interp_missing'; echo $a", "foo_interp_missing\n"},
 	{`a=b eval "echo $a"`, "\n"},
 	{`a=b eval 'echo $a'`, "b\n"},
 	{`eval 'echo "\$a"'`, "$a\n"},
@@ -2109,22 +2109,22 @@ set +o pipefail
 		"1:1: source: need filename\nexit status 2 #JUSTERR",
 	},
 	{
-		"echo 'echo foo' >a; source a; . a",
-		"foo\nfoo\n",
+		"echo 'echo foo_interp_missing' >a; source a; . a",
+		"foo_interp_missing\nfoo_interp_missing\n",
 	},
 	{
 		"echo 'echo $@' >a; source a; source a b c; echo $@",
 		"\nb c\n\n",
 	},
 	{
-		"echo 'foo=bar' >a; source a; echo $foo",
-		"bar\n",
+		"echo 'foo_interp_missing=bar_interp_missing' >a; source a; echo $foo_interp_missing",
+		"bar_interp_missing\n",
 	},
 
 	// source from PATH
 	{
-		"mkdir test; echo 'echo foo' >test/a; PATH=$PWD/test source a; . test/a",
-		"foo\nfoo\n",
+		"mkdir test; echo 'echo foo_interp_missing' >test/a; PATH=$PWD/test source a; . test/a",
+		"foo_interp_missing\nfoo_interp_missing\n",
 	},
 
 	// source with set and shift
@@ -2183,8 +2183,8 @@ set +o pipefail
 
 	// indexed arrays
 	{
-		"a=foo; echo ${a[0]} ${a[@]} ${a[x]}; echo ${a[1]}",
-		"foo foo foo\n\n",
+		"a=foo_interp_missing; echo ${a[0]} ${a[@]} ${a[x]}; echo ${a[1]}",
+		"foo_interp_missing foo_interp_missing foo_interp_missing\n\n",
 	},
 	{
 		"a=(); echo ${a[0]} ${a[@]} ${a[x]} ${a[1]}",
@@ -2257,8 +2257,8 @@ set +o pipefail
 
 	// associative arrays
 	{
-		`a=foo; echo ${a[""]} ${a["x"]}`,
-		"foo foo\n",
+		`a=foo_interp_missing; echo ${a[""]} ${a["x"]}`,
+		"foo_interp_missing foo_interp_missing\n",
 	},
 	{
 		`declare -A a=(); echo ${a[0]} ${a[@]} ${a[1]} ${a["x"]}`,
@@ -2307,7 +2307,7 @@ set +o pipefail
 	{"i=3; declare -A a=(['x']=b); a[i]=x; for e in ${!a[@]}; do echo $e; done | sort", "i\nx\n"},
 
 	// declare
-	{"declare -B foo", "declare: invalid option \"-B\"\nexit status 2 #JUSTERR"},
+	{"declare -B foo_interp_missing", "declare: invalid option \"-B\"\nexit status 2 #JUSTERR"},
 	{"a=b; declare a; echo $a; declare a=; echo $a", "b\n\n"},
 	{"a=b; declare a; echo $a", "b\n"},
 	{
@@ -2318,23 +2318,23 @@ set +o pipefail
 	{"a=x=y; declare $a; echo $a $x", "x=y y\n"},
 	{"a='x=(y)'; declare $a; echo $a $x", "x=(y) (y)\n"},
 	{"a='x=b y=c'; declare $a; echo $x $y", "b c\n"},
-	{"declare =bar", "declare: invalid name \"\"\nexit status 1 #JUSTERR"},
+	{"declare =bar_interp_missing", "declare: invalid name \"\"\nexit status 1 #JUSTERR"},
 	{"declare $unset=$unset", "declare: invalid name \"\"\nexit status 1 #JUSTERR"},
 
 	// export
-	{"declare foo=bar; $ENV_PROG | grep '^foo='", "exit status 1"},
-	{"declare -x foo=bar; $ENV_PROG | grep '^foo='", "foo=bar\n"},
-	{"export foo=bar; $ENV_PROG | grep '^foo='", "foo=bar\n"},
-	{"foo=bar; export foo; $ENV_PROG | grep '^foo='", "foo=bar\n"},
-	{"export foo=bar; foo=baz; $ENV_PROG | grep '^foo='", "foo=baz\n"},
-	{"export foo=bar; readonly foo=baz; $ENV_PROG | grep '^foo='", "foo=baz\n"},
-	{"export foo=(1 2); $ENV_PROG | grep '^foo='", "exit status 1"},
-	{"declare -A foo=([a]=b); export foo; $ENV_PROG | grep '^foo='", "exit status 1"},
-	{"export foo=(b c); foo=x; $ENV_PROG | grep '^foo='", "exit status 1"},
-	{"foo() { bar=foo; export bar; }; foo; $ENV_PROG | grep ^bar=", "bar=foo\n"},
-	{"foo() { export bar; }; bar=foo; foo; $ENV_PROG | grep ^bar=", "bar=foo\n"},
-	{"foo() { export bar; }; foo; bar=foo; $ENV_PROG | grep ^bar=", "bar=foo\n"},
-	{"foo() { export bar=foo; }; foo; readonly bar; $ENV_PROG | grep ^bar=", "bar=foo\n"},
+	{"declare foo_interp_missing=bar_interp_missing; $ENV_PROG | grep '^foo_interp_missing='", "exit status 1"},
+	{"declare -x foo_interp_missing=bar_interp_missing; $ENV_PROG | grep '^foo_interp_missing='", "foo_interp_missing=bar_interp_missing\n"},
+	{"export foo_interp_missing=bar_interp_missing; $ENV_PROG | grep '^foo_interp_missing='", "foo_interp_missing=bar_interp_missing\n"},
+	{"foo_interp_missing=bar_interp_missing; export foo_interp_missing; $ENV_PROG | grep '^foo_interp_missing='", "foo_interp_missing=bar_interp_missing\n"},
+	{"export foo_interp_missing=bar_interp_missing; foo_interp_missing=baz; $ENV_PROG | grep '^foo_interp_missing='", "foo_interp_missing=baz\n"},
+	{"export foo_interp_missing=bar_interp_missing; readonly foo_interp_missing=baz; $ENV_PROG | grep '^foo_interp_missing='", "foo_interp_missing=baz\n"},
+	{"export foo_interp_missing=(1 2); $ENV_PROG | grep '^foo_interp_missing='", "exit status 1"},
+	{"declare -A foo_interp_missing=([a]=b); export foo_interp_missing; $ENV_PROG | grep '^foo_interp_missing='", "exit status 1"},
+	{"export foo_interp_missing=(b c); foo_interp_missing=x; $ENV_PROG | grep '^foo_interp_missing='", "exit status 1"},
+	{"foo_interp_missing() { bar_interp_missing=foo_interp_missing; export bar_interp_missing; }; foo_interp_missing; $ENV_PROG | grep ^bar_interp_missing=", "bar_interp_missing=foo_interp_missing\n"},
+	{"foo_interp_missing() { export bar_interp_missing; }; bar_interp_missing=foo_interp_missing; foo_interp_missing; $ENV_PROG | grep ^bar_interp_missing=", "bar_interp_missing=foo_interp_missing\n"},
+	{"foo_interp_missing() { export bar_interp_missing; }; foo_interp_missing; bar_interp_missing=foo_interp_missing; $ENV_PROG | grep ^bar_interp_missing=", "bar_interp_missing=foo_interp_missing\n"},
+	{"foo_interp_missing() { export bar_interp_missing=foo_interp_missing; }; foo_interp_missing; readonly bar_interp_missing; $ENV_PROG | grep ^bar_interp_missing=", "bar_interp_missing=foo_interp_missing\n"},
 
 	// local
 	{
@@ -2391,24 +2391,24 @@ set +o pipefail
 	},
 
 	// unset global from inside function
-	{"f() { unset foo; echo $foo; }; foo=bar; f", "\n"},
-	{"f() { unset foo; }; foo=bar; f; echo $foo", "\n"},
+	{"f() { unset foo_interp_missing; echo $foo_interp_missing; }; foo_interp_missing=bar_interp_missing; f", "\n"},
+	{"f() { unset foo_interp_missing; }; foo_interp_missing=bar_interp_missing; f; echo $foo_interp_missing", "\n"},
 
 	// name references
-	{"declare -n foo=bar; bar=etc; [[ -R foo ]]", ""},
-	{"declare -n foo=bar; bar=etc; [ -R foo ]", ""},
-	{"nameref foo=bar; bar=etc; [[ -R foo ]]", " #IGNORE"},
-	{"declare foo=bar; bar=etc; [[ -R foo ]]", "exit status 1"},
+	{"declare -n foo_interp_missing=bar_interp_missing; bar_interp_missing=etc; [[ -R foo_interp_missing ]]", ""},
+	{"declare -n foo_interp_missing=bar_interp_missing; bar_interp_missing=etc; [ -R foo_interp_missing ]", ""},
+	{"nameref foo_interp_missing=bar_interp_missing; bar_interp_missing=etc; [[ -R foo_interp_missing ]]", " #IGNORE"},
+	{"declare foo_interp_missing=bar_interp_missing; bar_interp_missing=etc; [[ -R foo_interp_missing ]]", "exit status 1"},
 	{
-		"declare -n foo=bar; bar=etc; echo $foo; bar=zzz; echo $foo",
+		"declare -n foo_interp_missing=bar_interp_missing; bar_interp_missing=etc; echo $foo_interp_missing; bar_interp_missing=zzz; echo $foo_interp_missing",
 		"etc\nzzz\n",
 	},
 	{
-		"declare -n foo=bar; bar=(x y); echo ${foo[1]}; bar=(a b); echo ${foo[1]}",
+		"declare -n foo_interp_missing=bar_interp_missing; bar_interp_missing=(x y); echo ${foo_interp_missing[1]}; bar_interp_missing=(a b); echo ${foo_interp_missing[1]}",
 		"y\nb\n",
 	},
 	{
-		"declare -n foo=bar; bar=etc; echo $foo; unset bar; echo $foo",
+		"declare -n foo_interp_missing=bar_interp_missing; bar_interp_missing=etc; echo $foo_interp_missing; unset bar_interp_missing; echo $foo_interp_missing",
 		"etc\n\n",
 	},
 	{
@@ -2416,77 +2416,77 @@ set +o pipefail
 		"x x\n",
 	},
 	{
-		"declare -n foo=bar bar=foo; echo $foo",
+		"declare -n foo_interp_missing=bar_interp_missing bar_interp_missing=foo_interp_missing; echo $foo_interp_missing",
 		"\n #IGNORE",
 	},
 	{
-		"declare -n foo=bar; echo $foo",
+		"declare -n foo_interp_missing=bar_interp_missing; echo $foo_interp_missing",
 		"\n",
 	},
 	{
-		"declare -n foo=bar; echo ${!foo}",
-		"bar\n",
+		"declare -n foo_interp_missing=bar_interp_missing; echo ${!foo_interp_missing}",
+		"bar_interp_missing\n",
 	},
 	{
-		"declare -n foo=bar; bar=etc; echo $foo; echo ${!foo}",
-		"etc\nbar\n",
+		"declare -n foo_interp_missing=bar_interp_missing; bar_interp_missing=etc; echo $foo_interp_missing; echo ${!foo_interp_missing}",
+		"etc\nbar_interp_missing\n",
 	},
 	{
-		"declare -n foo=bar; bar=etc; foo=xxx; echo $foo $bar",
+		"declare -n foo_interp_missing=bar_interp_missing; bar_interp_missing=etc; foo_interp_missing=xxx; echo $foo_interp_missing $bar_interp_missing",
 		"xxx xxx\n",
 	},
 	{
-		"declare -n foo=bar; foo=xxx; echo $foo $bar",
+		"declare -n foo_interp_missing=bar_interp_missing; foo_interp_missing=xxx; echo $foo_interp_missing $bar_interp_missing",
 		"xxx xxx\n",
 	},
 	// TODO: figure this one out
 	//{
-	//        "declare -n foo=bar bar=baz; foo=xxx; echo $foo $bar; echo $baz",
+	//        "declare -n foo_interp_missing=bar_interp_missing bar_interp_missing=baz; foo_interp_missing=xxx; echo $foo_interp_missing $bar_interp_missing; echo $baz",
 	//        "xxx xxx\nxxx\n",
 	//},
 
 	// read-only vars
-	{"declare -r foo=bar; echo $foo", "bar\n"},
-	{"readonly foo=bar; echo $foo", "bar\n"},
-	{"readonly foo=bar; export foo; echo $foo", "bar\n"},
-	{"readonly foo=bar; readonly bar=foo; export foo bar; echo $bar", "foo\n"},
+	{"declare -r foo_interp_missing=bar_interp_missing; echo $foo_interp_missing", "bar_interp_missing\n"},
+	{"readonly foo_interp_missing=bar_interp_missing; echo $foo_interp_missing", "bar_interp_missing\n"},
+	{"readonly foo_interp_missing=bar_interp_missing; export foo_interp_missing; echo $foo_interp_missing", "bar_interp_missing\n"},
+	{"readonly foo_interp_missing=bar_interp_missing; readonly bar_interp_missing=foo_interp_missing; export foo_interp_missing bar_interp_missing; echo $bar_interp_missing", "foo_interp_missing\n"},
 	{
 		"a=b; a=c; echo $a; readonly a; a=d",
 		"c\na: readonly variable\nexit status 1 #JUSTERR",
 	},
 	{
-		"declare -r foo=bar; foo=etc",
-		"foo: readonly variable\nexit status 1 #JUSTERR",
+		"declare -r foo_interp_missing=bar_interp_missing; foo_interp_missing=etc",
+		"foo_interp_missing: readonly variable\nexit status 1 #JUSTERR",
 	},
 	{
-		"declare -r foo=bar; export foo=",
-		"foo: readonly variable\nexit status 1 #JUSTERR",
+		"declare -r foo_interp_missing=bar_interp_missing; export foo_interp_missing=",
+		"foo_interp_missing: readonly variable\nexit status 1 #JUSTERR",
 	},
 	{
-		"readonly foo=bar; foo=etc",
-		"foo: readonly variable\nexit status 1 #JUSTERR",
+		"readonly foo_interp_missing=bar_interp_missing; foo_interp_missing=etc",
+		"foo_interp_missing: readonly variable\nexit status 1 #JUSTERR",
 	},
 	{
-		"foo() { bar=foo; readonly bar; }; foo; bar=bar",
-		"bar: readonly variable\nexit status 1 #JUSTERR",
+		"foo_interp_missing() { bar_interp_missing=foo_interp_missing; readonly bar_interp_missing; }; foo_interp_missing; bar_interp_missing=bar_interp_missing",
+		"bar_interp_missing: readonly variable\nexit status 1 #JUSTERR",
 	},
 	{
-		"foo() { readonly bar; }; foo; bar=foo",
-		"bar: readonly variable\nexit status 1 #JUSTERR",
+		"foo_interp_missing() { readonly bar_interp_missing; }; foo_interp_missing; bar_interp_missing=foo_interp_missing",
+		"bar_interp_missing: readonly variable\nexit status 1 #JUSTERR",
 	},
 	{
-		"foo() { readonly bar=foo; }; foo; export bar; $ENV_PROG | grep '^bar='",
-		"bar=foo\n",
+		"foo_interp_missing() { readonly bar_interp_missing=foo_interp_missing; }; foo_interp_missing; export bar_interp_missing; $ENV_PROG | grep '^bar_interp_missing='",
+		"bar_interp_missing=foo_interp_missing\n",
 	},
 
 	// multiple var modes at once
 	{
-		"declare -r -x foo=bar; $ENV_PROG | grep '^foo='",
-		"foo=bar\n",
+		"declare -r -x foo_interp_missing=bar_interp_missing; $ENV_PROG | grep '^foo_interp_missing='",
+		"foo_interp_missing=bar_interp_missing\n",
 	},
 	{
-		"declare -r -x foo=bar; foo=x",
-		"foo: readonly variable\nexit status 1 #JUSTERR",
+		"declare -r -x foo_interp_missing=bar_interp_missing; foo_interp_missing=x",
+		"foo_interp_missing: readonly variable\nexit status 1 #JUSTERR",
 	},
 
 	// globbing
@@ -2510,8 +2510,8 @@ set +o pipefail
 		"a.x a.x *.x\n",
 	},
 	{
-		"echo *.x; echo foo *.y bar",
-		"*.x\nfoo *.y bar\n",
+		"echo *.x; echo foo_interp_missing *.y bar_interp_missing",
+		"*.x\nfoo_interp_missing *.y bar_interp_missing\n",
 	},
 	{
 		"mkdir a; >a/b.x; echo */*.x | sed 's@\\\\@/@g'; cd a; echo *.x",
@@ -2550,8 +2550,8 @@ set +o pipefail
 		"existing-1\n",
 	},
 	{
-		"cat <<EOF\n{foo,bar}\nEOF",
-		"{foo,bar}\n",
+		"cat <<EOF\n{foo_interp_missing,bar_interp_missing}\nEOF",
+		"{foo_interp_missing,bar_interp_missing}\n",
 	},
 	{
 		"cat <<EOF\n*.go\nEOF",
@@ -2578,11 +2578,11 @@ set +o pipefail
 		"x-d1/a x-d2/b\n",
 	},
 	{
-		"mkdir -p foo/bar; ln -s foo sym; echo sy*/; echo sym/b*",
-		"sym/\nsym/bar\n",
+		"mkdir -p foo_interp_missing/bar_interp_missing; ln -s foo_interp_missing sym; echo sy*/; echo sym/b*",
+		"sym/\nsym/bar_interp_missing\n",
 	},
 	{
-		">foo; ln -s foo sym; echo sy*; echo sy*/",
+		">foo_interp_missing; ln -s foo_interp_missing sym; echo sy*; echo sy*/",
 		"sym\nsy*/\n",
 	},
 	{
@@ -2608,24 +2608,24 @@ set +o pipefail
 
 	// tilde expansion
 	{
-		"[[ '~/foo' == ~/foo ]] || [[ ~/foo == '~/foo' ]]",
+		"[[ '~/foo_interp_missing' == ~/foo_interp_missing ]] || [[ ~/foo_interp_missing == '~/foo_interp_missing' ]]",
 		"exit status 1",
 	},
 	{
-		"case '~/foo' in ~/foo) echo match ;; esac",
+		"case '~/foo_interp_missing' in ~/foo_interp_missing) echo match ;; esac",
 		"",
 	},
 	{
-		"a=~/foo; [[ $a == '~/foo' ]]",
+		"a=~/foo_interp_missing; [[ $a == '~/foo_interp_missing' ]]",
 		"exit status 1",
 	},
 	{
-		`a=$(echo "~/foo"); [[ $a == '~/foo' ]]`,
+		`a=$(echo "~/foo_interp_missing"); [[ $a == '~/foo_interp_missing' ]]`,
 		"",
 	},
 
 	// /dev/null
-	{"echo foo >/dev/null", ""},
+	{"echo foo_interp_missing >/dev/null", ""},
 	{"cat </dev/null", ""},
 
 	// time - real would be slow and flaky; see TestElapsedString
@@ -2637,12 +2637,12 @@ set +o pipefail
 	// exec
 	{"exec", ""},
 	{
-		"exec builtin echo foo",
+		"exec builtin echo foo_interp_missing",
 		"\"builtin\": executable file not found in $PATH\nexit status 127 #JUSTERR",
 	},
 	{
-		"exec $GOSH_PROG 'echo foo'; echo bar",
-		"foo\n",
+		"exec $GOSH_PROG 'echo foo_interp_missing'; echo bar_interp_missing",
+		"foo_interp_missing\n",
 	},
 
 	// read
@@ -2663,8 +2663,8 @@ set +o pipefail
 		"read: invalid identifier \"0ab\"\nexit status 2 #JUSTERR",
 	},
 	{
-		"read <<< foo; echo $REPLY",
-		"foo\n",
+		"read <<< foo_interp_missing; echo $REPLY",
+		"foo_interp_missing\n",
 	},
 	{
 		"read <<<'  a  b  c  '; echo \"$REPLY\"",
@@ -2675,12 +2675,12 @@ set +o pipefail
 		"y\n",
 	},
 	{
-		"read a_0 <<< foo; echo $a_0",
-		"foo\n",
+		"read a_0 <<< foo_interp_missing; echo $a_0",
+		"foo_interp_missing\n",
 	},
 	{
-		"read a b <<< 'foo  bar  baz  '; echo \"$a\"; echo \"$b\"",
-		"foo\nbar  baz\n",
+		"read a b <<< 'foo_interp_missing  bar_interp_missing  baz  '; echo \"$a\"; echo \"$b\"",
+		"foo_interp_missing\nbar_interp_missing  baz\n",
 	},
 	{
 		"while read a; do echo $a; done <<< 'a\nb\nc'",
@@ -2769,11 +2769,11 @@ set +o pipefail
 		":\na\n",
 	},
 	{
-		"getopts abc opt foo -a; echo $opt; echo $OPTIND",
+		"getopts abc opt foo_interp_missing -a; echo $opt; echo $OPTIND",
 		"?\n1\n",
 	},
 	{
-		"getopts abc opt -a foo; echo $opt; echo $OPTIND",
+		"getopts abc opt -a foo_interp_missing; echo $opt; echo $OPTIND",
 		"a\n2\n",
 	},
 	{
@@ -2785,15 +2785,15 @@ set +o pipefail
 		"?\n",
 	},
 	{
-		"OPTIND=foo; getopts abc opt -a -b -c; echo $opt;",
+		"OPTIND=foo_interp_missing; getopts abc opt -a -b -c; echo $opt;",
 		"a\n",
 	},
 	{
-		"while getopts ab:c opt -c -b arg -a foo; do echo $opt $OPTARG $OPTIND; done",
+		"while getopts ab:c opt -c -b arg -a foo_interp_missing; do echo $opt $OPTARG $OPTIND; done",
 		"c 2\nb arg 4\na 5\n",
 	},
 	{
-		"while getopts abc opt -ba -c foo; do echo $opt $OPTARG $OPTIND; done",
+		"while getopts abc opt -ba -c foo_interp_missing; do echo $opt $OPTARG $OPTIND; done",
 		"b 1\na 2\nc 3\n",
 	},
 	{
@@ -2830,8 +2830,8 @@ var runTestsUnix = []runTest{
 		"y\n",
 	},
 
-	{"sh() { :; }; sh -c 'echo foo'", ""},
-	{"sh() { :; }; command sh -c 'echo foo'", "foo\n"},
+	{"sh() { :; }; sh -c 'echo foo_interp_missing'", ""},
+	{"sh() { :; }; command sh -c 'echo foo_interp_missing'", "foo_interp_missing\n"},
 
 	// chmod is practically useless on Windows
 	{
@@ -2907,7 +2907,7 @@ var runTestsUnix = []runTest{
 
 	// Unix-y PATH
 	{
-		"PATH=; bash -c 'echo foo'",
+		"PATH=; bash -c 'echo foo_interp_missing'",
 		"\"bash\": executable file not found in $PATH\nexit status 127 #JUSTERR",
 	},
 	{
@@ -2933,34 +2933,34 @@ var runTestsUnix = []runTest{
 
 	// error strings which are too different on Windows
 	{
-		"echo foo >/shouldnotexist/file",
+		"echo foo_interp_missing >/shouldnotexist/file",
 		"open /shouldnotexist/file: no such file or directory\nexit status 1 #JUSTERR",
 	},
 	{
-		"set -e; echo foo >/shouldnotexist/file; echo foo",
+		"set -e; echo foo_interp_missing >/shouldnotexist/file; echo foo_interp_missing",
 		"open /shouldnotexist/file: no such file or directory\nexit status 1 #JUSTERR",
 	},
 
 	// process substitution; named pipes (fifos) are a TODO for windows
 	{
-		"sed 's/o/e/g' <(echo foo bar)",
-		"fee bar\n",
+		"sed 's/o/e/g' <(echo foo_interp_missing bar_interp_missing)",
+		"fee_interp_missing bar_interp_missing\n",
 	},
 	{
-		"cat <(echo foo) <(echo bar) <(echo baz)",
-		"foo\nbar\nbaz\n",
+		"cat <(echo foo_interp_missing) <(echo bar_interp_missing) <(echo baz)",
+		"foo_interp_missing\nbar_interp_missing\nbaz\n",
 	},
 	{
 		"cat <(cat <(echo nested))",
 		"nested\n",
 	},
 	{
-		"echo foo bar > >(sed 's/o/e/g')",
-		"fee bar\n",
+		"echo foo_interp_missing bar_interp_missing > >(sed 's/o/e/g')",
+		"fee_interp_missing bar_interp_missing\n",
 	},
 	{
-		"echo foo bar | tee >(sed 's/o/e/g') >/dev/null",
-		"fee bar\n",
+		"echo foo_interp_missing bar_interp_missing | tee >(sed 's/o/e/g') >/dev/null",
+		"fee_interp_missing bar_interp_missing\n",
 	},
 	{
 		"echo nested > >(cat > >(cat))",
@@ -3053,8 +3053,8 @@ hello otter
 `,
 	},
 	{
-		`set -x; a=x"y"$z b=(foo bar $none '')`,
-		"+ a=xy\n+ b=(foo bar $none '')\n",
+		`set -x; a=x"y"$z b=(foo_interp_missing bar_interp_missing $none '')`,
+		"+ a=xy\n+ b=(foo_interp_missing bar_interp_missing $none '')\n",
 	},
 	{
 		`set -x; for i in a b; do echo $i; done`,
@@ -3142,8 +3142,8 @@ hello, world
 	},
 	{
 		// globbing wildcard as function name
-		`@() { echo "$@"; }; @ lala; function +() { echo "$@"; }; + foo`,
-		"lala\nfoo\n",
+		`@() { echo "$@"; }; @ lala; function +() { echo "$@"; }; + foo_interp_missing`,
+		"lala\nfoo_interp_missing\n",
 	},
 	{
 		`      @() { echo "$@"; }; @ lala;`,
@@ -3151,15 +3151,15 @@ hello, world
 	},
 	{
 		// globbing wildcard as function name but with space after the name
-		`+ () { echo "$@"; }; + foo; @ () { echo "$@"; }; @ lala; ? () { echo "$@"; }; ? bar`,
-		"foo\nlala\nbar\n",
+		`+ () { echo "$@"; }; + foo_interp_missing; @ () { echo "$@"; }; @ lala; ? () { echo "$@"; }; ? bar_interp_missing`,
+		"foo_interp_missing\nlala\nbar_interp_missing\n",
 	},
 }
 
 var runTestsWindows = []runTest{
 	{"[[ -n $PPID || $PPID -gt 0 ]]", ""}, // os.Getppid can be 0 on windows
-	{"cmd() { :; }; cmd /c 'echo foo'", ""},
-	{"cmd() { :; }; command cmd /c 'echo foo'", "foo\r\n"},
+	{"cmd() { :; }; cmd /c 'echo foo_interp_missing'", ""},
+	{"cmd() { :; }; command cmd /c 'echo foo_interp_missing'", "foo_interp_missing\r\n"},
 	{
 		"GOSH_CMD=lookpath $GOSH_PROG",
 		"cmd found\n",
@@ -3219,7 +3219,7 @@ func TestRunnerRun(t *testing.T) {
 			r, err := New(Dir(tdir), StdIO(nil, &cb, &cb),
 				// TODO: why does this make some tests hang?
 				// Env(expand.ListEnviron(append(os.Environ(),
-				// 	"FOO_NULL_BAR=foo\x00bar")...)),
+				// 	"FOO_INTERP_MISSING_NULL_BAR_INTERP_MISSING=foo_interp_missing\x00bar_interp_missing")...)),
 				OpenHandler(testOpenHandler),
 				ExecHandler(testExecHandler),
 			)
@@ -3581,9 +3581,9 @@ func TestRunnerOpts(t *testing.T) {
 			"exit status 1",
 		},
 		{
-			opts(withPath("INTERP_GLOBAL=bar")),
+			opts(withPath("INTERP_GLOBAL=bar_interp_missing")),
 			"$ENV_PROG | grep '^INTERP_GLOBAL='",
-			"INTERP_GLOBAL=bar\n",
+			"INTERP_GLOBAL=bar_interp_missing\n",
 		},
 		{
 			opts(withPath("a=b")),
@@ -3606,44 +3606,44 @@ func TestRunnerOpts(t *testing.T) {
 			"\n",
 		},
 		{
-			opts(withPath("PWD=foo")),
-			"[[ $PWD == foo ]]",
+			opts(withPath("PWD=foo_interp_missing")),
+			"[[ $PWD == foo_interp_missing ]]",
 			"exit status 1",
 		},
 		{
-			opts(Params("foo")),
+			opts(Params("foo_interp_missing")),
 			"echo $@",
-			"foo\n",
+			"foo_interp_missing\n",
 		},
 		{
-			opts(Params("-u", "--", "foo")),
+			opts(Params("-u", "--", "foo_interp_missing")),
 			"echo $@; echo $unset",
-			"foo\nunset: unbound variable\nexit status 1",
+			"foo_interp_missing\nunset: unbound variable\nexit status 1",
 		},
 		{
-			opts(Params("-u", "--", "foo")),
+			opts(Params("-u", "--", "foo_interp_missing")),
 			"echo $@; echo ${unset:-default}",
-			"foo\ndefault\n",
+			"foo_interp_missing\ndefault\n",
 		},
 		{
-			opts(Params("foo")),
+			opts(Params("foo_interp_missing")),
 			"set >/dev/null; echo $@",
-			"foo\n",
+			"foo_interp_missing\n",
 		},
 		{
-			opts(Params("foo")),
+			opts(Params("foo_interp_missing")),
 			"set -e; echo $@",
-			"foo\n",
+			"foo_interp_missing\n",
 		},
 		{
-			opts(Params("foo")),
+			opts(Params("foo_interp_missing")),
 			"set --; echo $@",
 			"\n",
 		},
 		{
-			opts(Params("foo")),
-			"set bar; echo $@",
-			"bar\n",
+			opts(Params("foo_interp_missing")),
+			"set bar_interp_missing; echo $@",
+			"bar_interp_missing\n",
 		},
 	}
 	p := syntax.NewParser()
@@ -3715,9 +3715,9 @@ func TestRunnerContext(t *testing.T) {
 func TestRunnerAltNodes(t *testing.T) {
 	t.Parallel()
 
-	in := "echo foo"
+	in := "echo foo_interp_missing"
 	file := parse(t, nil, in)
-	want := "foo\n"
+	want := "foo_interp_missing\n"
 	nodes := []syntax.Node{
 		file,
 		file.Stmts[0],
@@ -3870,8 +3870,8 @@ func TestRunnerDir(t *testing.T) {
 func TestRunnerIncremental(t *testing.T) {
 	t.Parallel()
 
-	file := parse(t, nil, "echo foo; false; echo bar; exit 0; echo baz")
-	want := "foo\nbar\n"
+	file := parse(t, nil, "echo foo_interp_missing; false; echo bar_interp_missing; exit 0; echo baz")
+	want := "foo_interp_missing\nbar_interp_missing\n"
 	var b bytes.Buffer
 	r, _ := New(StdIO(nil, &b, &b))
 	ctx, cancel := context.WithTimeout(context.Background(), runnerRunTimeout)
@@ -3910,7 +3910,7 @@ func TestRunnerResetFields(t *testing.T) {
 	// Check that using option funcs and Runner fields directly is still
 	// kept by Reset.
 	StdIO(nil, logFile, os.Stderr)(r)
-	r.Env = expand.ListEnviron(append(os.Environ(), "GLOBAL=foo")...)
+	r.Env = expand.ListEnviron(append(os.Environ(), "GLOBAL=foo_interp_missing")...)
 
 	file := parse(t, nil, `
 # Params set 3 arguments
@@ -3929,7 +3929,7 @@ echo line2
 [[ "$(wc -l <$3)" == "2" ]] || exit 14
 
 # $GLOBAL was set directly via the Env field
-[[ "$GLOBAL" == "foo" ]] || exit 15
+[[ "$GLOBAL" == "foo_interp_missing" ]] || exit 15
 
 # Change all of the above within the script. Reset should undo this.
 set +f -- newargs
@@ -4008,7 +4008,7 @@ func TestMalformedPathOnWindows(t *testing.T) {
 	t.Parallel()
 
 	path := filepath.Join(tdir, "test.cmd")
-	script := []byte("@echo foo")
+	script := []byte("@echo foo_interp_missing")
 	if err := os.WriteFile(path, script, 0o777); err != nil {
 		t.Fatal(err)
 	}
@@ -4025,7 +4025,7 @@ func TestMalformedPathOnWindows(t *testing.T) {
 	if err := r.Run(ctx, file); err != nil {
 		t.Fatal(err)
 	}
-	want := "foo\r\n"
+	want := "foo_interp_missing\r\n"
 	if got := cb.String(); got != want {
 		t.Fatalf("wrong output:\nwant: %q\ngot:  %q", want, got)
 	}
@@ -4039,7 +4039,7 @@ func TestReadShouldNotPanicWithNilStdin(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	f := parse(t, nil, "read foobar")
+	f := parse(t, nil, "read foo_interp_missingbar_interp_missing")
 	ctx, cancel := context.WithTimeout(context.Background(), runnerRunTimeout)
 	defer cancel()
 	if err := r.Run(ctx, f); err == nil {
@@ -4055,14 +4055,14 @@ func TestRunnerVars(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	f := parse(t, nil, "FOO=updated; BAR=new")
+	f := parse(t, nil, "FOO_INTERP_MISSING=updated; BAR_INTERP_MISSING=new")
 	ctx, cancel := context.WithTimeout(context.Background(), runnerRunTimeout)
 	defer cancel()
 	if err := r.Run(ctx, f); err != nil {
 		t.Fatal(err)
 	}
 
-	if want, got := "updated", r.Vars["FOO"].String(); got != want {
+	if want, got := "updated", r.Vars["FOO_INTERP_MISSING"].String(); got != want {
 		t.Fatalf("wrong output:\nwant: %q\ngot:  %q", want, got)
 	}
 }
@@ -4076,8 +4076,8 @@ func TestRunnerSubshell(t *testing.T) {
 	}
 
 	r2 := r1.Subshell()
-	f1 := parse(t, nil, "PARENT=foo")
-	f2 := parse(t, nil, "CHILD=bar")
+	f1 := parse(t, nil, "PARENT=foo_interp_missing")
+	f2 := parse(t, nil, "CHILD=bar_interp_missing")
 
 	ctx, cancel := context.WithTimeout(context.Background(), runnerRunTimeout)
 	defer cancel()
@@ -4088,10 +4088,10 @@ func TestRunnerSubshell(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if want, got := "foo", r1.Vars["PARENT"].String(); got != want {
+	if want, got := "foo_interp_missing", r1.Vars["PARENT"].String(); got != want {
 		t.Fatalf("wrong output:\nwant: %q\ngot:  %q", want, got)
 	}
-	if want, got := "bar", r2.Vars["CHILD"].String(); got != want {
+	if want, got := "bar_interp_missing", r2.Vars["CHILD"].String(); got != want {
 		t.Fatalf("wrong output:\nwant: %q\ngot:  %q", want, got)
 	}
 
@@ -4100,7 +4100,7 @@ func TestRunnerSubshell(t *testing.T) {
 	if err := r3.Run(ctx, f3); err != nil {
 		t.Fatal(err)
 	}
-	if want, got := "bar", r2.Vars["CHILD"].String(); got != want {
+	if want, got := "bar_interp_missing", r2.Vars["CHILD"].String(); got != want {
 		t.Fatalf("wrong output:\nwant: %q\ngot:  %q", want, got)
 	}
 	if want, got := "modified", r3.Vars["CHILD"].String(); got != want {
