@@ -1973,6 +1973,7 @@ set +o xtrace
 set +o pipefail
  #IGNORE`,
 	},
+	{`set - foobar; echo $@; set -; echo $@`, "foobar\nfoobar\n"},
 
 	// unset
 	{
