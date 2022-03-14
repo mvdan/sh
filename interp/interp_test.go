@@ -2542,6 +2542,10 @@ set +o pipefail
 		"a/b/c\n",
 	},
 	{
+		"mkdir foo; touch foo/bar; echo */bar */bar/ | sed 's@\\\\@/@g'",
+		"foo/bar */bar/\n",
+	},
+	{
 		"shopt -s nullglob; touch existing-1; echo missing-* existing-*",
 		"existing-1\n",
 	},
