@@ -14,6 +14,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"syscall"
 
 	"mvdan.cc/sh/v3/pattern"
 	"mvdan.cc/sh/v3/syntax"
@@ -56,6 +57,12 @@ type Config struct {
 	// ReadDir is used for file path globbing. If nil, globbing is disabled.
 	// Use ioutil.ReadDir to use the filesystem directly.
 	ReadDir func(string) ([]os.FileInfo, error)
+
+	// Stat is used as an optimization, to get an os.FileInfo for a single
+	// file. Only needed for Fields, and then only if ReadDir is set. If Stat
+	// is not set, ReadDir is called on name's parent directory. Use os.Stat to
+	// use the filesystem directly.
+	Stat func(name string) (os.FileInfo, error)
 
 	// GlobStar corresponds to the shell option that allows globbing with
 	// "**".
@@ -778,7 +785,7 @@ func (cfg *Config) glob(base, pat string) ([]string, error) {
 					match = filepath.Join(base, match)
 				}
 				match = pathJoin2(match, part)
-				info, err := os.Stat(match)
+				info, err := cfg.stat(match)
 				if err != nil {
 					continue
 				}
@@ -833,6 +840,28 @@ func (cfg *Config) glob(base, pat string) ([]string, error) {
 		matches = newMatches
 	}
 	return matches, nil
+}
+
+// stat calls cfg.Stat if it's set, otherwise calls cfg.ReadDir on name's
+// parent directory, and returns the entry for name.
+func (cfg *Config) stat(name string) (os.FileInfo, error) {
+	if cfg.Stat != nil {
+		return cfg.Stat(name)
+	}
+
+	dir, basename := filepath.Split(name)
+	infos, err := cfg.ReadDir(dir)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, info := range infos {
+		if info.Name() == basename {
+			return info, nil
+		}
+	}
+
+	return nil, &os.PathError{Op: "stat", Path: name, Err: syscall.ENOENT}
 }
 
 func (cfg *Config) globDir(base, dir string, rx *regexp.Regexp, wantDir bool, matches []string) ([]string, error) {
