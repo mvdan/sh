@@ -5,8 +5,10 @@ package expand
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -14,6 +16,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"syscall"
 
 	"mvdan.cc/sh/v3/pattern"
 	"mvdan.cc/sh/v3/syntax"
@@ -762,6 +765,13 @@ func (cfg *Config) glob(base, pat string) ([]string, error) {
 	}
 	// TODO: as an optimization, we could do chunks of the path all at once,
 	// like doing a single stat for "/foo/bar" in "/foo/bar/*".
+
+	// TODO: Another optimization would be to reduce the number of ReadDir calls.
+	// For example, /foo/* can end up doing one duplicate call:
+	//
+	//    ReadDir("/foo") to ensure that "/foo/" exists and only matches a directory
+	//    ReadDir("/foo") glob "*"
+
 	for i, part := range parts {
 		wantDir := i < len(parts)-1
 		switch {
@@ -778,12 +788,28 @@ func (cfg *Config) glob(base, pat string) ([]string, error) {
 					match = filepath.Join(base, match)
 				}
 				match = pathJoin2(match, part)
-				info, err := os.Stat(match)
-				if err != nil {
-					continue
-				}
-				if wantDir && !info.IsDir() {
-					continue
+				// We can't use ReadDir on the parent and match the directory
+				// entry by name, because short paths on Windows break that.
+				// Our only option is to ReadDir on the directory entry itself,
+				// which can be wasteful if we only want to see if it exists,
+				// but at least it's correct in all scenarios.
+				if _, err := cfg.ReadDir(match); err != nil {
+					const errPathNotFound = syscall.Errno(3) // from syscall/types_windows.go, to avoid a build tag
+					var pathErr *os.PathError
+					if runtime.GOOS == "windows" && errors.As(err, &pathErr) && pathErr.Err == errPathNotFound {
+						// Unfortunately, os.File.Readdir on a regular file on
+						// Windows returns an error that satisfies ErrNotExist.
+						// Luckily, it returns a special "path not found" rather
+						// than the normal "file not found" for missing files,
+						// so we can use that knowledge to work around the bug.
+						// See https://github.com/golang/go/issues/46734.
+						// TODO: remove when the Go issue above is resolved.
+					} else if errors.Is(err, fs.ErrNotExist) {
+						continue // simply doesn't exist
+					}
+					if wantDir {
+						continue // exists but not a directory
+					}
 				}
 				newMatches = append(newMatches, pathJoin2(dir, part))
 			}
@@ -847,16 +873,18 @@ func (cfg *Config) globDir(base, dir string, rx *regexp.Regexp, wantDir bool, ma
 	for _, info := range infos {
 		name := info.Name()
 		if !wantDir {
-			// no filtering
+			// No filtering.
 		} else if mode := info.Mode(); mode&os.ModeSymlink != 0 {
-			// TODO: is there a way to do this without the
-			// extra syscall?
-			if _, err := cfg.ReadDir(filepath.Join(fullDir, name)); err != nil {
-				// symlink pointing to non-directory
+			// We need to know if the symlink points to a directory.
+			// This requires an extra syscall, as ReadDir on the parent directory
+			// does not follow symlinks for each of the directory entries.
+			// ReadDir is somewhat wasteful here, as we only want its error result,
+			// but we could try to reuse its result as per the TODO in Config.glob.
+			if _, err := cfg.ReadDir(filepath.Join(fullDir, info.Name())); err != nil {
 				continue
 			}
 		} else if !mode.IsDir() {
-			// definitely not a directory
+			// Not a symlink nor a directory.
 			continue
 		}
 		if !strings.HasPrefix(rx.String(), `^\.`) && name[0] == '.' {
