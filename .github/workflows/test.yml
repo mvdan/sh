@@ -1,46 +1,42 @@
 on: [push, pull_request]
-
-name: Go
+name: Test
 jobs:
-
   test:
     strategy:
       matrix:
-        go-version: [1.16.x, 1.17.x]
+        go-version: [1.17.x, 1.18.x]
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
-    - name: Install Go
-      uses: actions/setup-go@v2
+    - uses: actions/setup-go@v3
       with:
         go-version: ${{ matrix.go-version }}
-    - name: Checkout code
-      uses: actions/checkout@v2
-    - name: Test
-      run: go test -count=1 ./...
-    - name: Test with -short -race
-      run: go test -short -race -count=1 ./...
+    - uses: actions/checkout@v3
+    - run: go test ./...
+    - run: go test -race ./...
 
-    - name: Test with GOARCH=386
-      run: GOARCH=386 go test -count=1 ./...
+    - run: GOARCH=386 go test -count=1 ./...
       if: matrix.os == 'ubuntu-latest'
-    - name: gofmt check
-      run: diff <(echo -n) <(gofmt -d .)
-      if: matrix.os == 'ubuntu-latest'
-
-    - name: Run confirm tests with Bash 5.1
+    - name: confirm tests with Bash 5.1
       run: |
         go install mvdan.cc/dockexec@latest
         CGO_ENABLED=0 go test -run TestRunnerRunConfirm -exec 'dockexec bash:5.1' ./interp
       if: matrix.os == 'ubuntu-latest'
 
+    # Static checks from this point forward. Only run on one Go version and on
+    # Linux, since it's the fastest platform, and the tools behave the same.
+    - if: matrix.os == 'ubuntu-latest' && matrix.go-version == '1.18.x'
+      run: diff <(echo -n) <(gofmt -s -d .)
+    - if: matrix.os == 'ubuntu-latest' && matrix.go-version == '1.18.x'
+      run: go vet ./...
+
   test-linux-alpine:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+    - uses: actions/checkout@v2
     - name: Test as root, without cgo, and with busybox
-      run: docker run -v="$PWD:/pwd" -w=/pwd -e=CGO_ENABLED=0 golang:1.17.1-alpine go test ./...
+      # Note -buildvcs=false since Go's alpine images lack git.
+      run: docker run -v="$PWD:/pwd" -w=/pwd -e=CGO_ENABLED=0 golang:1.18.0-alpine go test -buildvcs=false ./...
 
   docker:
     name: Build and test Docker images
@@ -80,8 +76,7 @@ jobs:
       # Get "https://proxy.golang.org/...": local error: tls: unexpected message
       # Get "https://proxy.golang.org/...": x509: certificate signed by unknown authority
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+    - uses: actions/checkout@v2
       with:
         fetch-depth: 0 # also fetch tags for 'git describe'
     # Enable docker daemon experimental support (for 'pull --platform').
@@ -94,10 +89,8 @@ jobs:
           echo '{ "experimental": true }' | sudo tee "$config"
         fi
         sudo systemctl restart docker
-    - name: Set up QEMU
-      uses: docker/setup-qemu-action@v1
-    - name: Set up Docker Buildx (local builds)
-      uses: docker/setup-buildx-action@v1
+    - uses: docker/setup-qemu-action@v1
+    - uses: docker/setup-buildx-action@v1
       with:
         driver-opts: network=host
     - name: Set up env vars

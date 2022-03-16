@@ -1,6 +1,6 @@
 module mvdan.cc/sh/v3
 
-go 1.16
+go 1.17
 
 require (
 	github.com/creack/pty v1.1.17
@@ -12,6 +12,12 @@ require (
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/sys v0.0.0-20211216021012-1d35b9e2eb4e
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211
-	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	mvdan.cc/editorconfig v0.2.0
+)
+
+require (
+	github.com/kr/pretty v0.3.0 // indirect
+	github.com/kr/text v0.2.0 // indirect
+	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
+	gopkg.in/errgo.v2 v2.1.0 // indirect
 )
