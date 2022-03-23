@@ -84,7 +84,7 @@ This creates an image that only includes shfmt. Alternatively, if you want an
 image that includes alpine, add `--target alpine`.
 To use the Docker image, run:
 
-	docker run --rm -v $PWD:/mnt -w /mnt my:tag <shfmt arguments>
+	docker run --rm -u "$(id -u):$(id -g)" -v "$PWD:/mnt" -w /mnt my:tag <shfmt arguments>
 
 ### Related projects
 
