@@ -47,6 +47,7 @@ func (r *Runner) fillExpandConfig(ctx context.Context) {
 			r2 := r.Subshell()
 			r2.stdout = w
 			r2.stmts(ctx, cs.Stmts)
+			r.lastExpandExit = r2.exit
 			return r2.err
 		},
 		ProcSubst: func(ps *syntax.ProcSubst) (string, error) {
@@ -337,6 +338,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			}
 		}
 		args = append(args, left...)
+		r.lastExpandExit = 0
 		fields := r.fields(args...)
 		if len(fields) == 0 {
 			for _, as := range x.Assigns {
@@ -360,6 +362,12 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 					trace.stringf("%s=%s", as.Name.Value, val)
 				}
 				trace.newLineFlush()
+			}
+			// If interpreting the last expansion like $(foo) failed,
+			// and the expansion and assignments otherwise succeeded,
+			// we need to surface that last exit code.
+			if r.exit == 0 {
+				r.exit = r.lastExpandExit
 			}
 			break
 		}
