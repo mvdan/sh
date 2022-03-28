@@ -1187,6 +1187,22 @@ var runTests = []runTest{
 		"echo foo_interp_missing >f; echo $(<f; echo bar_interp_missing)",
 		"bar_interp_missing\n",
 	},
+	{
+		"$(false); echo $?; $(exit 3); echo $?; $(true); echo $?",
+		"1\n3\n0\n",
+	},
+	{
+		"foo=$(false); echo $?; echo foo $(false); echo $?",
+		"1\nfoo\n0\n",
+	},
+	{
+		"$(false) $(true); echo $?; $(true) $(false); echo $?",
+		"0\n1\n",
+	},
+	{
+		"foo=$(false) $(true); echo $?; foo=$(true) $(false); echo $?",
+		"1\n0\n",
+	},
 
 	// pipes
 	{

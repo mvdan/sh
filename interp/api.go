@@ -81,6 +81,8 @@ type Runner struct {
 	ecfg *expand.Config
 	ectx context.Context // just so that Runner.Subshell can use it again
 
+	lastExpandExit int // used to surface exit codes while expanding fields
+
 	// didReset remembers whether the runner has ever been reset. This is
 	// used so that Reset is automatically called when running any program
 	// or node for the first time on a Runner.
