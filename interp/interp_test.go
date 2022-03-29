@@ -2558,6 +2558,18 @@ set +o pipefail
 		"a/b/c\n",
 	},
 	{
+		"shopt -s globstar; mkdir -p a/b; touch c; echo ** | sed 's@\\\\@/@g'",
+		"a a/b c\n",
+	},
+	{
+		"shopt -s globstar; mkdir -p a/b; touch c; echo **/ | sed 's@\\\\@/@g'",
+		"a/ a/b/\n",
+	},
+	{
+		"shopt -s globstar; mkdir -p a/b/c a/d; echo ** | sed 's@\\\\@/@g'",
+		"a a/b a/b/c a/d\n",
+	},
+	{
 		"mkdir foo; touch foo/bar; echo */bar */bar/ | sed 's@\\\\@/@g'",
 		"foo/bar */bar/\n",
 	},

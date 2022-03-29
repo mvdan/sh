@@ -773,6 +773,9 @@ func (cfg *Config) glob(base, pat string) ([]string, error) {
 	//    ReadDir("/foo") glob "*"
 
 	for i, part := range parts {
+		// Keep around for debugging.
+		// log.Printf("matches %q part %d %q", matches, i, part)
+
 		wantDir := i < len(parts)-1
 		switch {
 		case part == "", part == ".", part == "..":
@@ -816,30 +819,33 @@ func (cfg *Config) glob(base, pat string) ([]string, error) {
 			matches = newMatches
 			continue
 		case part == "**" && cfg.GlobStar:
-			for i, match := range matches {
-				// "a/**" should match "a/ a/b a/b/cfg ..."; note
-				// how the zero-match case has a trailing
-				// separator.
-				matches[i] = pathJoin2(match, "")
+			// Find all recursive matches for "**".
+			// Note that we need the results to be in depth-first order,
+			// and to avoid recursion, we use a slice as a stack.
+			// Since we pop from the back, we populate the stack backwards.
+			stack := make([]string, 0, len(matches))
+			for i := len(matches) - 1; i >= 0; i-- {
+				// "a/**" should match "a/ a/b a/b/cfg ...";
+				// note how the zero-match case has a trailing separator.
+				stack = append(stack, pathJoin2(matches[i], ""))
 			}
-			// expand all the possible levels of **
-			latest := matches
-			for {
-				var newMatches []string
-				for _, dir := range latest {
-					var err error
-					newMatches, err = cfg.globDir(base, dir, rxGlobStar, wantDir, newMatches)
-					if err != nil {
-						return nil, err
-					}
+			matches = matches[:0]
+			var newMatches []string // to reuse its capacity
+			for len(stack) > 0 {
+				dir := stack[len(stack)-1]
+				stack = stack[:len(stack)-1]
+
+				// Don't include the original "" match as it's not a valid path.
+				if dir != "" {
+					matches = append(matches, dir)
 				}
-				if len(newMatches) == 0 {
-					// not another level of directories to
-					// try; stop
-					break
+
+				// If dir is not a directory, we keep the stack as-is and continue.
+				newMatches = newMatches[:0]
+				newMatches, _ = cfg.globDir(base, dir, rxGlobStar, wantDir, newMatches)
+				for i := len(newMatches) - 1; i >= 0; i-- {
+					stack = append(stack, newMatches[i])
 				}
-				matches = append(matches, newMatches...)
-				latest = newMatches
 			}
 			continue
 		}
@@ -868,7 +874,8 @@ func (cfg *Config) globDir(base, dir string, rx *regexp.Regexp, wantDir bool, ma
 	}
 	infos, err := cfg.ReadDir(fullDir)
 	if err != nil {
-		return nil, err
+		// We still want to return matches, for the sake of reusing slices.
+		return matches, err
 	}
 	for _, info := range infos {
 		name := info.Name()
