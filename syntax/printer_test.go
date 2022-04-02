@@ -332,6 +332,22 @@ var printTests = []printCase{
 	samePrint("\"foo\\\n  bar\""),
 	samePrint("'foo\\\n  bar'"),
 	samePrint("v=\"\\\nfoo\""),
+	{
+		"v=foo\\\nbar",
+		"v=foobar",
+	},
+	{
+		"v='foo'\\\n'bar'",
+		"v='foo''bar'",
+	},
+	{
+		"v=\\\n\"foo\"",
+		"v=\"foo\"",
+	},
+	{
+		"v=\\\nfoo\\\n$bar",
+		"v=foo$bar",
+	},
 	samePrint("\"\\\n\\\nfoo\\\n\\\n\""),
 	samePrint("'\\\n\\\nfoo\\\n\\\n'"),
 	{
