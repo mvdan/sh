@@ -583,16 +583,15 @@ func (p *Printer) wordParts(wps []WordPart, quoted bool) {
 		if i+1 < len(wps) {
 			next = wps[i+1]
 		}
+		// Keep escaped newlines separating word parts when quoted.
+		// Note that those escaped newlines don't cause indentaiton.
+		// When not quoted, we strip them out consistently,
+		// because attempting to keep them would prevent indentation.
 		// Can't use p.wantsNewline here, since this is only about
 		// escaped newlines.
-		for !p.singleLine && wp.Pos().Line() > p.line {
-			if quoted {
-				// No extra spacing or indentation if quoted.
-				p.WriteString("\\\n")
-				p.line++
-			} else {
-				p.bslashNewl()
-			}
+		for quoted && !p.singleLine && wp.Pos().Line() > p.line {
+			p.WriteString("\\\n")
+			p.line++
 		}
 		p.wordPart(wp, next)
 		p.line = wp.End().Line()
@@ -1445,7 +1444,10 @@ func (p *Printer) assigns(assigns []*Assign) {
 			// because that can result in indentation, thus
 			// splitting "foo=bar" into "foo= bar".
 			p.line = a.Value.Pos().Line()
+			// Similar to the above, we want to print the word as if it were
+			// quoted, as otherwise escaped newlines could split
 			p.word(a.Value)
+			// p.wordParts(a.Value.Parts, true)
 		} else if a.Array != nil {
 			p.wantSpace = false
 			p.WriteByte('(')
