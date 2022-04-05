@@ -552,6 +552,34 @@ var printTests = []printCase{
 		"foo() # inline\n{\n\tbar\n}",
 		"foo() { # inline\n\tbar\n}",
 	},
+	{
+		"foo() #before\n(\n\tbar #inline\n)",
+		"foo() ( #before\n\tbar #inline\n)",
+	},
+	{
+		"foo() (#before\n\tbar #inline\n)",
+		"foo() ( #before\n\tbar #inline\n)",
+	},
+	{
+		"foo()\n#before-1\n(#before-2\n\tbar #inline\n)",
+		"foo() ( #before-1\n\t#before-2\n\tbar #inline\n)",
+	},
+	{
+		"(#before\n\tbar #inline\n)",
+		"( #before\n\tbar #inline\n)",
+	},
+	{
+		"(\n#before\n\tbar #inline\n)",
+		"(\n\t#before\n\tbar #inline\n)",
+	},
+	{
+		"foo=$(#before\n\tbar #inline\n)",
+		"foo=$( #before\n\tbar #inline\n)",
+	},
+	{
+		"foo=`#before\nbar`",
+		"foo=$( #before\n\tbar\n)",
+	},
 	samePrint("if foo; then\n\tbar\n\t# comment\nfi"),
 	samePrint("if foo; then\n\tbar\n# else commented out\nfi"),
 	samePrint("if foo; then\n\tx\nelse\n\tbar\n\t# comment\nfi"),
