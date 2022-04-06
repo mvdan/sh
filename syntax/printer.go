@@ -1328,65 +1328,6 @@ func (p *Printer) stmtList(stmts []*Stmt, last []Comment) {
 	p.comments(last...)
 }
 
-// extraIndenter ensures that all lines in a '<<-' heredoc body have at least
-// baseIndent leading tabs. Those that had more tab indentation than the first
-// heredoc line will keep that relative indentation.
-type extraIndenter struct {
-	bufWriter
-	baseIndent int
-
-	firstIndent int
-	firstChange int
-	curLine     []byte
-}
-
-func (e *extraIndenter) WriteByte(b byte) error {
-	e.curLine = append(e.curLine, b)
-	if b != '\n' {
-		return nil
-	}
-	trimmed := bytes.TrimLeft(e.curLine, "\t")
-	if len(trimmed) == 1 {
-		// no tabs if this is an empty line, i.e. "\n"
-		e.bufWriter.Write(trimmed)
-		e.curLine = e.curLine[:0]
-		return nil
-	}
-
-	lineIndent := len(e.curLine) - len(trimmed)
-	if e.firstIndent < 0 {
-		// This is the first heredoc line we add extra indentation to.
-		// Keep track of how much we indented.
-		e.firstIndent = lineIndent
-		e.firstChange = e.baseIndent - lineIndent
-		lineIndent = e.baseIndent
-
-	} else if lineIndent < e.firstIndent {
-		// This line did not have enough indentation; simply indent it
-		// like the first line.
-		lineIndent = e.firstIndent
-	} else {
-		// This line had plenty of indentation. Add the extra
-		// indentation that the first line had, for consistency.
-		lineIndent += e.firstChange
-	}
-	e.bufWriter.WriteByte(tabwriter.Escape)
-	for i := 0; i < lineIndent; i++ {
-		e.bufWriter.WriteByte('\t')
-	}
-	e.bufWriter.WriteByte(tabwriter.Escape)
-	e.bufWriter.Write(trimmed)
-	e.curLine = e.curLine[:0]
-	return nil
-}
-
-func (e *extraIndenter) WriteString(s string) (int, error) {
-	for i := 0; i < len(s); i++ {
-		e.WriteByte(s[i])
-	}
-	return len(s), nil
-}
-
 func (p *Printer) nestedStmts(stmts []*Stmt, last []Comment, closing Pos) {
 	p.incLevel()
 	switch {
@@ -1449,6 +1390,65 @@ func (p *Printer) assigns(assigns []*Assign) {
 		p.wantSpace = true
 	}
 	p.decLevel()
+}
+
+// extraIndenter ensures that all lines in a '<<-' heredoc body have at least
+// baseIndent leading tabs. Those that had more tab indentation than the first
+// heredoc line will keep that relative indentation.
+type extraIndenter struct {
+	bufWriter
+	baseIndent int
+
+	firstIndent int
+	firstChange int
+	curLine     []byte
+}
+
+func (e *extraIndenter) WriteByte(b byte) error {
+	e.curLine = append(e.curLine, b)
+	if b != '\n' {
+		return nil
+	}
+	trimmed := bytes.TrimLeft(e.curLine, "\t")
+	if len(trimmed) == 1 {
+		// no tabs if this is an empty line, i.e. "\n"
+		e.bufWriter.Write(trimmed)
+		e.curLine = e.curLine[:0]
+		return nil
+	}
+
+	lineIndent := len(e.curLine) - len(trimmed)
+	if e.firstIndent < 0 {
+		// This is the first heredoc line we add extra indentation to.
+		// Keep track of how much we indented.
+		e.firstIndent = lineIndent
+		e.firstChange = e.baseIndent - lineIndent
+		lineIndent = e.baseIndent
+
+	} else if lineIndent < e.firstIndent {
+		// This line did not have enough indentation; simply indent it
+		// like the first line.
+		lineIndent = e.firstIndent
+	} else {
+		// This line had plenty of indentation. Add the extra
+		// indentation that the first line had, for consistency.
+		lineIndent += e.firstChange
+	}
+	e.bufWriter.WriteByte(tabwriter.Escape)
+	for i := 0; i < lineIndent; i++ {
+		e.bufWriter.WriteByte('\t')
+	}
+	e.bufWriter.WriteByte(tabwriter.Escape)
+	e.bufWriter.Write(trimmed)
+	e.curLine = e.curLine[:0]
+	return nil
+}
+
+func (e *extraIndenter) WriteString(s string) (int, error) {
+	for i := 0; i < len(s); i++ {
+		e.WriteByte(s[i])
+	}
+	return len(s), nil
 }
 
 func startsWithLparen(node Node) bool {
