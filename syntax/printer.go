@@ -1285,41 +1285,6 @@ func (p *Printer) ifClause(ic *IfClause, elif bool) {
 	p.semiRsrv("fi", ic.FiPos)
 }
 
-func startsWithLparen(node Node) bool {
-	switch node := node.(type) {
-	case *Stmt:
-		return startsWithLparen(node.Cmd)
-	case *BinaryCmd:
-		return startsWithLparen(node.X)
-	case *Subshell:
-		return true // keep ( (
-	case *ArithmCmd:
-		return true // keep ( ((
-	}
-	return false
-}
-
-func startsWithComment(node Node) bool {
-	var stmts []*Stmt
-	switch node := node.(type) {
-	case *CmdSubst:
-		if node.TempFile || node.ReplyVar {
-			return false
-		}
-		stmts = node.Stmts
-	case *Subshell:
-		stmts = node.Stmts
-	}
-
-	if len(stmts) == 0 || len(stmts[0].Comments) == 0 {
-		return false
-	}
-	cline := stmts[0].Comments[0].Pos().Line()
-
-	// Comment is before the first statement on the same line as node.
-	return cline < stmts[0].Pos().Line() && cline == node.Pos().Line()
-}
-
 func (p *Printer) stmtList(stmts []*Stmt, last []Comment) {
 	sep := p.wantNewline || (len(stmts) > 0 && stmts[0].Pos().Line() > p.line)
 	for i, s := range stmts {
@@ -1484,4 +1449,39 @@ func (p *Printer) assigns(assigns []*Assign) {
 		p.wantSpace = true
 	}
 	p.decLevel()
+}
+
+func startsWithLparen(node Node) bool {
+	switch node := node.(type) {
+	case *Stmt:
+		return startsWithLparen(node.Cmd)
+	case *BinaryCmd:
+		return startsWithLparen(node.X)
+	case *Subshell:
+		return true // keep ( (
+	case *ArithmCmd:
+		return true // keep ( ((
+	}
+	return false
+}
+
+func startsWithComment(node Node) bool {
+	var stmts []*Stmt
+	switch node := node.(type) {
+	case *CmdSubst:
+		if node.TempFile || node.ReplyVar {
+			return false
+		}
+		stmts = node.Stmts
+	case *Subshell:
+		stmts = node.Stmts
+	}
+
+	if len(stmts) == 0 || len(stmts[0].Comments) == 0 {
+		return false
+	}
+	cline := stmts[0].Comments[0].Pos().Line()
+
+	// Comment is before the first statement on the same line as node.
+	return cline < stmts[0].Pos().Line() && cline == node.Pos().Line()
 }
