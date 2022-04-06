@@ -1392,6 +1392,14 @@ func (p *Printer) assigns(assigns []*Assign) {
 	p.decLevel()
 }
 
+type wantSpaceState uint8
+
+const (
+	spaceNotRequired wantSpaceState = iota
+	spaceRequired                   // we should generally print a space or a newline next
+	spaceWritten                    // we have just written a space or newline
+)
+
 // extraIndenter ensures that all lines in a '<<-' heredoc body have at least
 // baseIndent leading tabs. Those that had more tab indentation than the first
 // heredoc line will keep that relative indentation.
