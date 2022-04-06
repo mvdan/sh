@@ -634,7 +634,11 @@ func (p *Printer) wordPart(wp, next WordPart) {
 			p.WriteString("`")
 		default:
 			p.WriteString("$(")
-			p.wantSpace = len(x.Stmts) > 0 && startsWithLparen(x.Stmts[0])
+			if len(x.Stmts) > 0 && startsWithLparen(x.Stmts[0]) {
+				p.wantSpace = true
+			} else {
+				p.wantSpace = false
+			}
 			if startsWithComment(x) {
 				p.WriteByte(' ')
 			}
@@ -861,7 +865,11 @@ func (p *Printer) testExprSameLine(expr TestExpr) {
 		p.testExprSameLine(x.X)
 	case *ParenTest:
 		p.WriteByte('(')
-		p.wantSpace = startsWithLparen(x.X)
+		if startsWithLparen(x.X) {
+			p.wantSpace = true
+		} else {
+			p.wantSpace = false
+		}
 		p.testExpr(x.X)
 		p.WriteByte(')')
 	}
@@ -1059,7 +1067,11 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		p.ifClause(x, false)
 	case *Subshell:
 		p.WriteByte('(')
-		p.wantSpace = len(x.Stmts) > 0 && startsWithLparen(x.Stmts[0])
+		if len(x.Stmts) > 0 && startsWithLparen(x.Stmts[0]) {
+			p.wantSpace = true
+		} else {
+			p.wantSpace = false
+		}
 		if len(p.pendingComments) > 0 || startsWithComment(x) {
 			p.WriteByte(' ')
 		}
@@ -1170,7 +1182,11 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			p.spacePad(ci.Pos())
 			p.casePatternJoin(ci.Patterns)
 			p.WriteByte(')')
-			p.wantSpace = !p.minify
+			if !p.minify {
+				p.wantSpace = true
+			} else {
+				p.wantSpace = false
+			}
 
 			bodyPos := stmtsPos(ci.Stmts, ci.Last)
 			bodyEnd := stmtsEnd(ci.Stmts, ci.Last)
