@@ -561,6 +561,8 @@ func (p *Printer) flushComments() {
 			} else {
 				p.WriteByte('\t')
 			}
+		case p.wantSpace != spaceWritten:
+			p.space()
 		}
 		// don't go back one line, which may happen in some edge cases
 		if p.line < cline {
@@ -642,9 +644,6 @@ func (p *Printer) wordPart(wp, next WordPart) {
 				p.wantSpace = spaceRequired
 			} else {
 				p.wantSpace = spaceNotRequired
-			}
-			if startsWithComment(x) {
-				p.WriteByte(' ')
 			}
 			p.nestedStmts(x.Stmts, x.Last, x.Right)
 			p.rightParen(x.Right)
@@ -1076,9 +1075,6 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		} else {
 			p.wantSpace = spaceNotRequired
 		}
-		if len(p.pendingComments) > 0 || startsWithComment(x) {
-			p.WriteByte(' ')
-		}
 		p.spacePad(stmtsPos(x.Stmts, x.Last))
 		p.nestedStmts(x.Stmts, x.Last, x.Rparen)
 		p.wantSpace = spaceNotRequired
@@ -1491,25 +1487,4 @@ func startsWithLparen(node Node) bool {
 		return true // keep ( ((
 	}
 	return false
-}
-
-func startsWithComment(node Node) bool {
-	var stmts []*Stmt
-	switch node := node.(type) {
-	case *CmdSubst:
-		if node.TempFile || node.ReplyVar {
-			return false
-		}
-		stmts = node.Stmts
-	case *Subshell:
-		stmts = node.Stmts
-	}
-
-	if len(stmts) == 0 || len(stmts[0].Comments) == 0 {
-		return false
-	}
-	cline := stmts[0].Comments[0].Pos().Line()
-
-	// Comment is before the first statement on the same line as node.
-	return cline < stmts[0].Pos().Line() && cline == node.Pos().Line()
 }
