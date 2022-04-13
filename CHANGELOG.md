@@ -1,5 +1,35 @@
 # Changelog
 
+## [3.5.0] - 2022-05-??
+
+This release drops support for Go 1.16 and includes many new features.
+
+- **cmd/shfmt**
+  - Switch to `-ln=auto` by default to detect the shell language
+  - Add support for long flags, like `--indent` for `-i`
+- **syntax**
+  - Allow extglob wildcards as function names like `@() { ... }`
+  - Add support for heredocs surrounded by backquotes
+  - Add support for backquoted inline comments
+  - Add `NewPos` to create `Pos` values externally
+  - Support escaped newlines with CRLF line endings
+  - `Minify` no longer omits a leading shebang comment
+  - Avoid printing escaped newlines in non-quoted words
+  - Fix some printer edge cases where comments weren't properly spaced
+- **fileutil**
+  - Add `Shebang` to extract the shell language from a `#!` line
+- **expand**
+  - Reimplement globstar `**` globbing for correctness
+  - Replace `os.Stat` as the last direct use of the filesystem
+- **interp**
+  - Add `CallHandler` to intercept all interpreted `CallExpr` nodes
+  - Add `ReadDirHandler` to intercept glob expansion filesystem reads
+  - Add `StatHandler` to intercept `os.Stat` and `os.Lstat` calls
+  - Always surface exit codes from command substitutions
+  - Add initial and incomplete support for `set -x`
+  - Add support for `cd -` as `cd "$OLDPWD"`
+  - Avoid panic on `set - args`
+
 ## [3.4.3] - 2022-02-19
 
 - **cmd/shfmt**
@@ -582,6 +612,7 @@ module in v3.
 
 Initial release.
 
+[3.5.0]: https://github.com/mvdan/sh/releases/tag/v3.5.0
 [3.4.3]: https://github.com/mvdan/sh/releases/tag/v3.4.3
 [3.4.2]: https://github.com/mvdan/sh/releases/tag/v3.4.2
 [3.4.1]: https://github.com/mvdan/sh/releases/tag/v3.4.1
