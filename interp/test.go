@@ -138,7 +138,7 @@ func (r *Runner) unTest(ctx context.Context, op syntax.UnTestOperator, x string)
 	case syntax.TsSocket:
 		return r.statMode(x, os.ModeSocket)
 	case syntax.TsSmbLink:
-		info, err := os.Lstat(r.absPath(x))
+		info, err := r.lstat(x)
 		return err == nil && info.Mode()&os.ModeSymlink != 0
 	case syntax.TsSticky:
 		return r.statMode(x, os.ModeSticky)
