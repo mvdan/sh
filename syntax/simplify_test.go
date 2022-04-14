@@ -67,6 +67,10 @@ var simplifyTests = [...]simplifyTest{
 	{"\"fo\\`o\"", "'fo`o'"},
 	noSimple(`fo"o"bar`),
 	noSimple(`foo""bar`),
+
+	// param expansions
+	{`${foo:-}`, `${foo-}`},
+	noSimple(`${foo:-bar}`),
 }
 
 func TestSimplify(t *testing.T) {
