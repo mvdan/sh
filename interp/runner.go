@@ -916,5 +916,5 @@ func (r *Runner) open(ctx context.Context, path string, flags int, mode os.FileM
 }
 
 func (r *Runner) stat(name string) (os.FileInfo, error) {
-	return os.Stat(r.absPath(name))
+	return r.statHandler(r.Dir, name)
 }
