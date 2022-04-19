@@ -318,12 +318,11 @@ func DefaultReadDirHandler() ReadDirHandlerFunc {
 
 // StatHandlerFunc is a handler which gets the file stat. the first argument provides directory to use as
 // basedir if name is relative path
-type StatHandlerFunc func(ctx context.Context, cwd string, name string, followSymlinks bool) (os.FileInfo, error)
+type StatHandlerFunc func(ctx context.Context, name string, followSymlinks bool) (os.FileInfo, error)
 
 // DefaultStatHandler returns a StatHandlerFunc used by default. It uses os.Stat()
 func DefaultStatHandler() StatHandlerFunc {
-	return func(ctx context.Context, cwd string, name string, followSymlinks bool) (os.FileInfo, error) {
-		path := absPath(cwd, name)
+	return func(ctx context.Context, path string, followSymlinks bool) (os.FileInfo, error) {
 		if !followSymlinks {
 			return os.Lstat(path)
 		} else {

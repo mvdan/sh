@@ -915,10 +915,12 @@ func (r *Runner) open(ctx context.Context, path string, flags int, mode os.FileM
 	return f, err
 }
 
-func (r *Runner) stat(ctx context.Context, path string) (os.FileInfo, error) {
-	return r.statHandler(ctx, r.Dir, path, true)
+func (r *Runner) stat(ctx context.Context, name string) (os.FileInfo, error) {
+	path := absPath(r.Dir, name)
+	return r.statHandler(ctx, path, true)
 }
 
-func (r *Runner) lstat(ctx context.Context, path string) (os.FileInfo, error) {
-	return r.statHandler(ctx, r.Dir, path, false)
+func (r *Runner) lstat(ctx context.Context, name string) (os.FileInfo, error) {
+	path := absPath(r.Dir, name)
+	return r.statHandler(ctx, path, false)
 }
