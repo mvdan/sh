@@ -11,6 +11,8 @@ import (
 	"strings"
 	"text/tabwriter"
 	"unicode"
+
+	"mvdan.cc/sh/v3/fileutil"
 )
 
 // PrinterOption is a function which can be passed to NewPrinter
@@ -578,6 +580,13 @@ func (p *Printer) flushComments() {
 
 func (p *Printer) comments(comments ...Comment) {
 	if p.minify {
+		for _, c := range comments {
+			if fileutil.Shebang([]byte("#"+c.Text)) != "" && c.Hash.Col() == 1 && c.Hash.Line() == 1 {
+				p.WriteString(strings.TrimRightFunc("#"+c.Text, unicode.IsSpace))
+				p.WriteString("\n")
+				p.line++
+			}
+		}
 		return
 	}
 	p.pendingComments = append(p.pendingComments, comments...)
