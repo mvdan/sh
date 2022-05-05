@@ -16,6 +16,10 @@ import (
 	"mvdan.cc/sh/v3/syntax"
 )
 
+type fder interface {
+	Fd() uintptr
+}
+
 // non-empty string is true, empty string is false
 func (r *Runner) bashTest(ctx context.Context, expr syntax.TestExpr, classic bool) string {
 	switch x := expr.(type) {
@@ -178,7 +182,7 @@ func (r *Runner) unTest(ctx context.Context, op syntax.UnTestOperator, x string)
 		case 2:
 			f = r.stderr
 		}
-		if f, ok := f.(interface{ Fd() uintptr }); ok {
+		if f, ok := f.(fder); ok {
 			// Support Fd methods such as the one on *os.File.
 			return term.IsTerminal(int(f.Fd()))
 		}

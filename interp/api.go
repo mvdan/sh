@@ -668,6 +668,11 @@ func (r *Runner) Run(ctx context.Context, node syntax.Node) error {
 	if !r.didReset {
 		r.Reset()
 	}
+	if r.stdin != nil {
+		if _, ok := r.stdin.(Canceler); !ok {
+			r.stdin = NewCancelableReader(ctx, r.stdin)
+		}
+	}
 	r.fillExpandConfig(ctx)
 	r.err = nil
 	r.shellExited = false
