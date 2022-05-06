@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -107,6 +108,7 @@ func DefaultExecHandler(killTimeout time.Duration) ExecHandlerFunc {
 			Stderr: hc.Stderr,
 		}
 
+		log.Printf("cmd.Start: %s", path)
 		err = cmd.Start()
 		if err == nil {
 			if done := ctx.Done(); done != nil {
@@ -129,7 +131,13 @@ func DefaultExecHandler(killTimeout time.Duration) ExecHandlerFunc {
 				}()
 			}
 
+			// if stdin, ok := hc.Stdin.(Canceler); ok {
+			// 	log.Printf("cmd: cancel stdin read")
+			// 	stdin.Cancel()
+			// }
+			log.Printf("cmd.Wait")
 			err = cmd.Wait()
+			log.Printf("cmd.Wait done")
 		}
 
 		switch x := err.(type) {
