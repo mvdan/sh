@@ -2,12 +2,10 @@ module shjs
 
 go 1.17
 
-replace github.com/gopherjs/gopherjs => ./gopherjs
-
 replace mvdan.cc/sh/v3 => ../
 
 require (
-	github.com/gopherjs/gopherjs v0.0.0-20220221023154-0b2280d3ff96
+	github.com/gopherjs/gopherjs v1.17.2
 	mvdan.cc/sh/v3 v3.0.0-00010101000000-000000000000
 )
 
