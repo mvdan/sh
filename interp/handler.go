@@ -98,12 +98,18 @@ func DefaultExecHandler(killTimeout time.Duration) ExecHandlerFunc {
 			fmt.Fprintln(hc.Stderr, err)
 			return NewExitStatus(127)
 		}
+		stdin := hc.Stdin
+		if cr, ok := stdin.(*CancelableReader); ok {
+			stdin = cr.R
+		} else if cr, ok := stdin.(*CancelableReaderTTY); ok {
+			stdin = cr.R
+		}
 		cmd := exec.Cmd{
 			Path:   path,
 			Args:   args,
 			Env:    execEnv(hc.Env),
 			Dir:    hc.Dir,
-			Stdin:  hc.Stdin,
+			Stdin:  stdin,
 			Stdout: hc.Stdout,
 			Stderr: hc.Stderr,
 		}
@@ -131,10 +137,6 @@ func DefaultExecHandler(killTimeout time.Duration) ExecHandlerFunc {
 				}()
 			}
 
-			// if stdin, ok := hc.Stdin.(Canceler); ok {
-			// 	log.Printf("cmd: cancel stdin read")
-			// 	stdin.Cancel()
-			// }
 			log.Printf("cmd.Wait")
 			err = cmd.Wait()
 			log.Printf("cmd.Wait done")
