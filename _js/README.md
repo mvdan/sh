@@ -3,8 +3,7 @@
 This package is a JavaScript version of a shell package written in Go, available
 at https://github.com/mvdan/sh.
 
-It is transpiled from Go to JS using a GopherJS fork, available at
-https://github.com/myitcv/gopherjs.
+It is transpiled from Go to JS using https://github.com/gopherjs/gopherjs.
 
 ### Sample usage
 
@@ -77,8 +76,7 @@ tree.
 
 You will need:
 
-* Latest Go 1.11.x
-* Latest `gopherjs` from @myitcv's fork: https://github.com/myitcv/gopherjs
+* Latest Go 1.17.x
 * NodeJS, to run the `testmain.js` test suite
 
 Then, simply run `./build`. The result will be `index.js`, which isn't minified.

@@ -5,8 +5,6 @@ if ! go version | grep -q go1.17; then
 	exit 1
 fi
 
-export GO111MODULE=on # build in module-aware mode
-
 go run github.com/gopherjs/gopherjs build -o index.js || exit 1
 
 node testmain.js || exit 1
