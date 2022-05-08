@@ -5,6 +5,6 @@ if ! go version | grep -q go1.17; then
 	exit 1
 fi
 
-go run github.com/gopherjs/gopherjs build -o index.js || exit 1
+go run github.com/gopherjs/gopherjs build --minify --output=index.js || exit 1
 
 node testmain.js || exit 1
