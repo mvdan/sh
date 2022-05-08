@@ -1,16 +1,25 @@
-# https://github.com/rogpeppe/go-internal/issues/93
-# ! shfmt -h
-# ! stderr 'flag provided but not defined'
-# stderr 'usage: shfmt'
-# stderr 'Utilities' # definitely includes our help text
-# ! stderr 'help requested' # don't duplicate usage output
-# ! stderr '-test\.' # don't show the test binary's usage func
+shfmt -h
+! stderr 'flag provided but not defined'
+stderr 'usage: shfmt'
+stderr 'Utilities' # definitely includes our help text
+! stderr 'help requested' # don't duplicate usage output
+! stderr '-test\.' # don't show the test binary's usage func
+
+shfmt --help
+stderr 'usage: shfmt'
 
 shfmt -version
 stdout 'devel|v3'
 ! stderr .
 
+shfmt --version
+stdout 'devel|v3'
+! stderr .
+
 ! shfmt -ln=bash -p
+stderr 'cannot coexist'
+
+! shfmt --language-dialect=bash --posix
 stderr 'cannot coexist'
 
 ! shfmt -ln=bad
@@ -53,10 +62,6 @@ stdin input-bash
 shfmt
 stdout loop
 
-stdin input-bash
-shfmt -i 4
-stdout loop
-
 # Ensure that -ln=auto works on stdin via filename.
 stdin input-mksh
 shfmt -filename=input.mksh
@@ -87,6 +92,54 @@ stdin input-mksh
 shfmt -ln=auto -filename=input.mksh
 stdout 'coprocess'
 
+stdin flags-input
+shfmt -i 2
+cmp stdout flags-output.indent-golden
+
+stdin flags-input
+shfmt --indent 2
+cmp stdout flags-output.indent-golden
+
+stdin flags-input
+shfmt -bn
+cmp stdout flags-output.binary-next-line-golden
+
+stdin flags-input
+shfmt --binary-next-line
+cmp stdout flags-output.binary-next-line-golden
+
+stdin flags-input
+shfmt -ci
+cmp stdout flags-output.case-indent-golden
+
+stdin flags-input
+shfmt --case-indent
+cmp stdout flags-output.case-indent-golden
+
+stdin flags-input
+shfmt -sr
+cmp stdout flags-output.space-redirects-golden
+
+stdin flags-input
+shfmt --space-redirects
+cmp stdout flags-output.space-redirects-golden
+
+stdin flags-input
+shfmt -kp
+cmp stdout flags-output.keep-padding-golden
+
+stdin flags-input
+shfmt --keep-padding
+cmp stdout flags-output.keep-padding-golden
+
+stdin flags-input
+shfmt -fn
+cmp stdout flags-output.func-next-line-golden
+
+stdin flags-input
+shfmt --func-next-line
+cmp stdout flags-output.func-next-line-golden
+
 -- input-posix --
 let a+
 -- input-bash --
@@ -98,3 +151,110 @@ coprocess |&
 -- input-mksh-shebang --
 #!/bin/mksh
 coprocess |&
+
+-- flags-input --
+foo() {
+	bar &&
+		baz
+
+	case $i in
+	j)
+		z
+		;;
+	esac
+
+	space >redirs
+
+	keep    padding
+}
+-- flags-output.indent-golden --
+foo() {
+  bar &&
+    baz
+
+  case $i in
+  j)
+    z
+    ;;
+  esac
+
+  space >redirs
+
+  keep padding
+}
+-- flags-output.binary-next-line-golden --
+foo() {
+	bar \
+		&& baz
+
+	case $i in
+	j)
+		z
+		;;
+	esac
+
+	space >redirs
+
+	keep padding
+}
+-- flags-output.case-indent-golden --
+foo() {
+	bar &&
+		baz
+
+	case $i in
+		j)
+			z
+			;;
+	esac
+
+	space >redirs
+
+	keep padding
+}
+-- flags-output.space-redirects-golden --
+foo() {
+	bar &&
+		baz
+
+	case $i in
+	j)
+		z
+		;;
+	esac
+
+	space > redirs
+
+	keep padding
+}
+-- flags-output.keep-padding-golden --
+foo() {
+	bar &&
+		baz
+
+	case $i in
+	j)
+		z
+		;;
+	esac
+
+	space >redirs
+
+	keep  padding
+}
+-- flags-output.func-next-line-golden --
+foo()
+{
+	bar &&
+		baz
+
+	case $i in
+	j)
+		z
+		;;
+	esac
+
+	space >redirs
+
+	keep padding
+}
