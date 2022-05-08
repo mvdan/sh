@@ -29,6 +29,13 @@ stdout 'input\.sh'
 ! stderr .
 cmp input.sh input.sh.golden
 
+cp input.sh.orig input.sh
+shfmt --list --write input.sh
+stdout 'input\.sh'
+! stdout foo
+! stderr .
+cmp input.sh input.sh.golden
+
 -- input.sh --
  foo
 -- input.sh.golden --
