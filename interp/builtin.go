@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -944,6 +945,7 @@ func (r *Runner) readLine(raw bool) ([]byte, error) {
 				esc = false
 			}
 		}
+		log.Printf("readline err: %v", err)
 		if err == io.EOF && len(line) > 0 {
 			return line, nil
 		}
