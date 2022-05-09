@@ -74,6 +74,9 @@ type Runner struct {
 	// glob expansion. It must be non-nil.
 	readDirHandler ReadDirHandlerFunc
 
+	// statHandler is a function responsible for getting file stat. It must be non-nil.
+	statHandler StatHandlerFunc
+
 	stdin  io.Reader
 	stdout io.Writer
 	stderr io.Writer
@@ -174,6 +177,7 @@ func New(opts ...RunnerOption) (*Runner, error) {
 		execHandler:    DefaultExecHandler(2 * time.Second),
 		openHandler:    DefaultOpenHandler(),
 		readDirHandler: DefaultReadDirHandler(),
+		statHandler:    DefaultStatHandler(),
 	}
 	r.dirStack = r.dirBootstrap[:0]
 	for _, opt := range opts {
@@ -336,6 +340,14 @@ func ReadDirHandler(f ReadDirHandlerFunc) RunnerOption {
 	}
 }
 
+// StatHandler sets the stat handler. See StatHandlerFunc for more info.
+func StatHandler(f StatHandlerFunc) RunnerOption {
+	return func(r *Runner) error {
+		r.statHandler = f
+		return nil
+	}
+}
+
 // StdIO configures an interpreter's standard input, standard output, and
 // standard error. If out or err are nil, they default to a writer that discards
 // the output.
@@ -437,6 +449,7 @@ func (r *Runner) Reset() {
 		execHandler:    r.execHandler,
 		openHandler:    r.openHandler,
 		readDirHandler: r.readDirHandler,
+		statHandler:    r.statHandler,
 
 		// These can be set by functions like Dir or Params, but
 		// builtins can overwrite them; reset the fields to whatever the
@@ -590,6 +603,7 @@ func (r *Runner) Subshell() *Runner {
 		execHandler:    r.execHandler,
 		openHandler:    r.openHandler,
 		readDirHandler: r.readDirHandler,
+		statHandler:    r.statHandler,
 		stdin:          r.stdin,
 		stdout:         r.stdout,
 		stderr:         r.stderr,
