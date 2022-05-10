@@ -18,7 +18,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -669,14 +668,8 @@ func (r *Runner) Run(ctx context.Context, node syntax.Node) error {
 	if !r.didReset {
 		r.Reset()
 	}
-	if r.stdin != nil {
-		log.Printf("r.stdin is not nil, ctx is %p", ctx)
-		if _, ok := r.stdin.(Canceler); !ok {
-			log.Printf("setting r.stdin to a NewCancelableReader")
-			r.stdin = NewCancelableReader(ctx, r.stdin)
-		}
-	}
-	defer log.Printf("Run returning, ctx is %p", ctx)
+	// log.Printf("Runner.run: stdin: %p", r.stdin)
+	// defer log.Printf("Run returning, ctx is %p", ctx)
 	r.fillExpandConfig(ctx)
 	r.err = nil
 	r.shellExited = false

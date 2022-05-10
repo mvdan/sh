@@ -32,30 +32,33 @@ func main() {
 }
 
 func runAll() error {
-	r, err := interp.New(interp.StdIO(os.Stdin, os.Stdout, os.Stderr))
-	if err != nil {
-		return err
-	}
-
 	if *command != "" {
-		return run(r, strings.NewReader(*command), "")
+		return run(strings.NewReader(*command), "")
 	}
 	if flag.NArg() == 0 {
 		if term.IsTerminal(int(os.Stdin.Fd())) {
-			return runInteractive(r, os.Stdin, os.Stdout, os.Stderr)
+			return runInteractive(os.Stdin, os.Stdout, os.Stderr)
 		}
-		return run(r, os.Stdin, "")
+		return run(os.Stdin, "")
 	}
 	for _, path := range flag.Args() {
-		if err := runPath(r, path); err != nil {
+		if err := runPath(path); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func run(r *interp.Runner, reader io.Reader, name string) error {
+func run(reader io.Reader, name string) error {
 	prog, err := syntax.NewParser().Parse(reader, name)
+	if err != nil {
+		return err
+	}
+	stdin, err := interp.NewEofWriter(os.Stdin)
+	if err != nil {
+		return err
+	}
+	r, err := interp.New(interp.StdIO(stdin, os.Stdout, os.Stderr))
 	if err != nil {
 		return err
 	}
@@ -64,16 +67,20 @@ func run(r *interp.Runner, reader io.Reader, name string) error {
 	return r.Run(ctx, prog)
 }
 
-func runPath(r *interp.Runner, path string) error {
+func runPath(path string) error {
 	f, err := os.Open(path)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
-	return run(r, f, path)
+	return run(f, path)
 }
 
-func runInteractive(r *interp.Runner, stdin io.Reader, stdout, stderr io.Writer) error {
+func runInteractive(stdin io.Reader, stdout, stderr io.Writer) error {
+	r, err := interp.New(interp.StdIO(os.Stdin, os.Stdout, os.Stderr))
+	if err != nil {
+		return err
+	}
 	parser := syntax.NewParser()
 	fmt.Fprintf(stdout, "$ ")
 	var runErr error
@@ -92,6 +99,10 @@ func runInteractive(r *interp.Runner, stdin io.Reader, stdout, stderr io.Writer)
 		fmt.Fprintf(stdout, "$ ")
 		return true
 	}
+	// stdin, err := interp.NewEOFWriter(stdin)
+	// if err != nil {
+	// 	return err
+	// }
 	if err := parser.Interactive(stdin, fn); err != nil {
 		return err
 	}

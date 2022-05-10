@@ -591,8 +591,12 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		}
 
 		line, err := r.readLine(raw)
-		if err != nil {
-			return 1
+		ret := 0
+		if err == io.EOF {
+			ret = 1
+		} else if err != nil {
+			// 130 is what bash & zsh return when you ^C or "kill -INT" a read.
+			return 130
 		}
 		if len(args) == 0 {
 			args = append(args, "REPLY")
@@ -607,7 +611,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			r.setVarString(name, val)
 		}
 
-		return 0
+		return ret
 
 	case "getopts":
 		if len(args) < 2 {
@@ -922,12 +926,37 @@ func (r *Runner) readLine(raw bool) ([]byte, error) {
 		return nil, errors.New("interp: can't read, there's no stdin")
 	}
 
+	log.Printf("readLine")
+	stdin := r.stdin
+	if eofWriter, ok := stdin.(*EofWriter); ok {
+		log.Printf("readLine starting NewEofReader")
+		cr, err := NewEofReader(r.ectx, eofWriter)
+		if err != nil {
+			return nil, err
+		}
+		stdin = cr
+		defer func() {
+			if !cr.eof {
+				log.Printf("readLine: eofWriter.EOF()")
+				eofWriter.EOF()
+			}
+		}()
+
+		// go func() {
+		// 	log.Printf("readLine cancel goroutine sleeping 5s")
+		// 	time.Sleep(5 * time.Second)
+		// 	log.Printf("readLine cancelling the EofReader")
+		// 	cr.Cancel()
+		// }()
+	}
+
 	var line []byte
 	esc := false
 
 	for {
 		var buf [1]byte
-		n, err := r.stdin.Read(buf[:])
+		n, err := stdin.Read(buf[:])
+		log.Printf("readline read %q, %d, %v", buf[:n], n, err)
 		if n > 0 {
 			b := buf[0]
 			switch {
@@ -945,7 +974,6 @@ func (r *Runner) readLine(raw bool) ([]byte, error) {
 				esc = false
 			}
 		}
-		log.Printf("readline err: %v", err)
 		if err == io.EOF && len(line) > 0 {
 			return line, nil
 		}

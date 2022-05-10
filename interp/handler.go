@@ -98,12 +98,19 @@ func DefaultExecHandler(killTimeout time.Duration) ExecHandlerFunc {
 			fmt.Fprintln(hc.Stderr, err)
 			return NewExitStatus(127)
 		}
+
 		stdin := hc.Stdin
-		if cr, ok := stdin.(*CancelableReader); ok {
-			stdin = cr.R
-		} else if cr, ok := stdin.(*CancelableReaderTTY); ok {
-			stdin = cr.R
+		var cr *EofReader
+		eofWriter, ok := stdin.(*EofWriter)
+		if ok {
+			cr, err = NewEofReader(ctx, eofWriter)
+			if err != nil {
+				return err
+			}
+			stdin = cr.R // Use the pipe reader directly
+			// defer cr.Close()
 		}
+
 		cmd := exec.Cmd{
 			Path:   path,
 			Args:   args,
@@ -140,6 +147,15 @@ func DefaultExecHandler(killTimeout time.Duration) ExecHandlerFunc {
 			log.Printf("cmd.Wait")
 			err = cmd.Wait()
 			log.Printf("cmd.Wait done")
+			if cr != nil {
+				log.Printf("cr.Close()")
+				cr.Close()
+			}
+			// log.Printf("eofWriter: eof")
+			// eofErr := eofWriter.EOF()
+			// if eofErr != nil {
+			// 	log.Printf("eofWriter.EOF error: %v", eofErr)
+			// }
 		}
 
 		switch x := err.(type) {
