@@ -1,6 +1,6 @@
 # Changelog
 
-## [3.5.0] - 2022-05-??
+## [3.5.0] - 2022-05-11
 
 This release drops support for Go 1.16 and includes many new features.
 
