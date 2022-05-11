@@ -49,8 +49,8 @@ type langFlag struct {
 }
 
 var (
-	version = &boolFlag{"", "version", false}
-	list    = &boolFlag{"l", "list", false}
+	versionFlag = &boolFlag{"", "version", false}
+	list        = &boolFlag{"l", "list", false}
 
 	write    = &boolFlag{"w", "write", false}
 	simplify = &boolFlag{"s", "simplify", false}
@@ -84,10 +84,10 @@ var (
 	out   io.Writer = os.Stdout
 	color bool
 
-	knownVersion = "(devel)" // to match the default from runtime/debug
+	version = "(devel)" // to match the default from runtime/debug
 
 	allFlags = []interface{}{
-		version, list, write, simplify, minify, find, diff,
+		versionFlag, list, write, simplify, minify, find, diff,
 		lang, posix, filename,
 		indent, binNext, caseIndent, spaceRedirs, keepPadding, funcNext, toJSON,
 	}
@@ -175,16 +175,16 @@ For more information, see 'man shfmt' and https://github.com/mvdan/sh.
 	}
 	flag.Parse()
 
-	if version.val {
+	if versionFlag.val {
 		// don't overwrite the version if it was set by -ldflags=-X
-		if info, ok := debug.ReadBuildInfo(); ok && knownVersion == "(devel)" {
+		if info, ok := debug.ReadBuildInfo(); ok && version == "(devel)" {
 			mod := &info.Main
 			if mod.Replace != nil {
 				mod = mod.Replace
 			}
-			knownVersion = mod.Version
+			version = mod.Version
 		}
-		fmt.Println(knownVersion)
+		fmt.Println(version)
 		return 0
 	}
 	if posix.val && lang.val != syntax.LangAuto {
