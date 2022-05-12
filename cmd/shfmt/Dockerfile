@@ -1,11 +1,11 @@
-FROM golang:1.17.1-alpine AS build
+FROM golang:1.18.2-alpine AS build
 
 WORKDIR /src
 RUN apk add --no-cache git
 COPY . .
 RUN CGO_ENABLED=0 go build -ldflags "-w -s -extldflags '-static' -X main.version=$(git describe --always --dirty --tags)" ./cmd/shfmt
 
-FROM alpine:3.14.2 AS alpine
+FROM alpine:3.15.4 AS alpine
 COPY --from=build /src/shfmt /bin/shfmt
 COPY "./cmd/shfmt/docker-entrypoint.sh" "/init"
 ENTRYPOINT ["/init"]

@@ -1,12 +1,10 @@
 #!/bin/sh
 
-if ! go version | grep -q go1.12; then
-	echo "Go 1.12.x required to build."
+if ! go version | grep -q go1.17; then
+	echo "Go 1.17.x required to build."
 	exit 1
 fi
 
-export GO111MODULE=on # build in module-aware mode
-
-go run github.com/gopherjs/gopherjs build -o index.js || exit 1
+go run github.com/gopherjs/gopherjs build --minify --output=index.js || exit 1
 
 node testmain.js || exit 1

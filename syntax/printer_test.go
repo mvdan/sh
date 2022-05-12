@@ -1029,6 +1029,10 @@ func TestPrintMinify(t *testing.T) {
 			"${0/${a}\\\n}",
 			"${0/$a/}",
 		},
+		{
+			"#!/bin/sh\necho 1\n#!/bin/sh\necho 2",
+			"#!/bin/sh\necho 1\necho 2",
+		},
 		samePrint("foo >bar 2>baz <etc"),
 		samePrint("<<-EOF\n$(a|b)\nEOF"),
 	}

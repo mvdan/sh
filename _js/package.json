@@ -1,6 +1,6 @@
 {
 	"name": "mvdan-sh",
-	"version": "0.5.0",
+	"version": "0.10.1",
 	"description": "A shell parser and formatter (POSIX/Bash/mksh)",
 	"main": "index.js",
 	"repository": "https://github.com/mvdan/sh",

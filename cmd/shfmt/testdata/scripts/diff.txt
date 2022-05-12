@@ -3,6 +3,11 @@ stdin input.sh
 cmp stdout input.sh.stdindiff
 ! stderr .
 
+stdin input.sh
+! shfmt --diff
+cmp stdout input.sh.stdindiff
+! stderr .
+
 ! shfmt -d input.sh
 cmp stdout input.sh.filediff
 ! stderr .
