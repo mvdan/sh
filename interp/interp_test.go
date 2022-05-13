@@ -1552,6 +1552,10 @@ var runTests = []runTest{
 		"y\n",
 	},
 	{
+		"[[ \"multiline\ntext\" == *text* ]] && echo x; [[ \"multiline\ntext\" == *multiline* ]] && echo y",
+		"x\ny\n",
+	},
+	{
 		"mkdir a; cd a; test -f b && echo x; >b; test -f b && echo y",
 		"y\n",
 	},

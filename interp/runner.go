@@ -709,7 +709,7 @@ func match(pat, name string) bool {
 	if err != nil {
 		return false
 	}
-	rx := regexp.MustCompile("^" + expr + "$")
+	rx := regexp.MustCompile("(?m)^" + expr + "$")
 	return rx.MatchString(name)
 }
 
