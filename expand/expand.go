@@ -409,14 +409,17 @@ func Fields(cfg *Config, words ...*syntax.Word) ([]string, error) {
 			for _, field := range wfields {
 				path, doGlob := cfg.escapedGlobField(field)
 				var matches []string
+				var syntaxError *pattern.SyntaxError
 				if doGlob && cfg.ReadDir != nil {
 					matches, err = cfg.glob(dir, path)
-					if err != nil {
-						return nil, err
-					}
-					if len(matches) > 0 || cfg.NullGlob {
-						fields = append(fields, matches...)
-						continue
+					if !errors.As(err, &syntaxError) {
+						if err != nil {
+							return nil, err
+						}
+						if len(matches) > 0 || cfg.NullGlob {
+							fields = append(fields, matches...)
+							continue
+						}
 					}
 				}
 				fields = append(fields, cfg.fieldJoin(field))
@@ -851,8 +854,7 @@ func (cfg *Config) glob(base, pat string) ([]string, error) {
 		}
 		expr, err := pattern.Regexp(part, pattern.Filenames)
 		if err != nil {
-			// If any glob part is not a valid pattern, don't glob.
-			return nil, nil
+			return nil, err
 		}
 		rx := regexp.MustCompile("^" + expr + "$")
 		var newMatches []string

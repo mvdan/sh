@@ -20,6 +20,15 @@ import (
 // Not all functions change their behavior with all of the options below.
 type Mode uint
 
+type SyntaxError struct {
+	msg string
+	err error
+}
+
+func (e SyntaxError) Error() string { return e.msg }
+
+func (e SyntaxError) Unwrap() error { return e.err }
+
 const (
 	Shortest  Mode = 1 << iota // prefer the shortest match.
 	Filenames                  // "*" and "?" don't match slashes; only "**" does
@@ -85,13 +94,13 @@ writeLoop:
 			}
 		case '\\':
 			if i++; i >= len(pat) {
-				return "", fmt.Errorf(`\ at end of pattern`)
+				return "", &SyntaxError{msg: `\ at end of pattern`}
 			}
 			buf.WriteString(regexp.QuoteMeta(string(pat[i])))
 		case '[':
 			name, err := charClass(pat[i:])
 			if err != nil {
-				return "", err
+				return "", &SyntaxError{msg: "charClass invalid", err: err}
 			}
 			if name != "" {
 				buf.WriteString(name)
@@ -110,19 +119,19 @@ writeLoop:
 			}
 			buf.WriteByte(c)
 			if i++; i >= len(pat) {
-				return "", fmt.Errorf("[ was not matched with a closing ]")
+				return "", &SyntaxError{msg: "[ was not matched with a closing ]"}
 			}
 			switch c = pat[i]; c {
 			case '!', '^':
 				buf.WriteByte('^')
 				if i++; i >= len(pat) {
-					return "", fmt.Errorf("[ was not matched with a closing ]")
+					return "", &SyntaxError{msg: "[ was not matched with a closing ]"}
 				}
 			}
 			if c = pat[i]; c == ']' {
 				buf.WriteByte(']')
 				if i++; i >= len(pat) {
-					return "", fmt.Errorf("[ was not matched with a closing ]")
+					return "", &SyntaxError{msg: "[ was not matched with a closing ]"}
 				}
 			}
 			rangeStart := byte(0)
@@ -140,7 +149,7 @@ writeLoop:
 					break loopBracket
 				}
 				if rangeStart != 0 && rangeStart > c {
-					return "", fmt.Errorf("invalid range: %c-%c", rangeStart, c)
+					return "", &SyntaxError{msg: fmt.Sprintf("invalid range: %c-%c", rangeStart, c)}
 				}
 				if c == '-' {
 					rangeStart = pat[i-1]
@@ -149,7 +158,7 @@ writeLoop:
 				}
 			}
 			if i >= len(pat) {
-				return "", fmt.Errorf("[ was not matched with a closing ]")
+				return "", &SyntaxError{msg: "[ was not matched with a closing ]"}
 			}
 		case '{':
 			if mode&Braces == 0 {
@@ -183,7 +192,7 @@ writeLoop:
 				start, err1 := strconv.Atoi(match[1])
 				end, err2 := strconv.Atoi(match[2])
 				if err1 != nil || err2 != nil || start > end {
-					return "", fmt.Errorf("invalid range: %q", match[0])
+					return "", &SyntaxError{msg: fmt.Sprintf("invalid range: %q", match[0])}
 				}
 				// TODO: can we do better here?
 				buf.WriteString("(?:")
