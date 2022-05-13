@@ -2581,6 +2581,12 @@ set +o pipefail
 		"shopt -s nullglob; touch existing-1; echo missing-* existing-*",
 		"existing-1\n",
 	},
+	// Ensure that setting nullglob does not return invalid globs as null
+	// strings.
+	{
+		"shopt -s nullglob; [ -n butter ] && echo bubbles",
+		"bubbles\n",
+	},
 	{
 		"cat <<EOF\n{foo_interp_missing,bar_interp_missing}\nEOF",
 		"{foo_interp_missing,bar_interp_missing}\n",
