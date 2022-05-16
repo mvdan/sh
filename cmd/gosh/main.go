@@ -32,33 +32,30 @@ func main() {
 }
 
 func runAll() error {
+	r, err := interp.New(interp.StdIO(os.Stdin, os.Stdout, os.Stderr))
+	if err != nil {
+		return err
+	}
+
 	if *command != "" {
-		return run(strings.NewReader(*command), "")
+		return run(r, strings.NewReader(*command), "")
 	}
 	if flag.NArg() == 0 {
 		if term.IsTerminal(int(os.Stdin.Fd())) {
-			return runInteractive(os.Stdin, os.Stdout, os.Stderr)
+			return runInteractive(r, os.Stdin, os.Stdout, os.Stderr)
 		}
-		return run(os.Stdin, "")
+		return run(r, os.Stdin, "")
 	}
 	for _, path := range flag.Args() {
-		if err := runPath(path); err != nil {
+		if err := runPath(r, path); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func run(reader io.Reader, name string) error {
+func run(r *interp.Runner, reader io.Reader, name string) error {
 	prog, err := syntax.NewParser().Parse(reader, name)
-	if err != nil {
-		return err
-	}
-	stdin, err := interp.NewEofWriter(os.Stdin)
-	if err != nil {
-		return err
-	}
-	r, err := interp.New(interp.StdIO(stdin, os.Stdout, os.Stderr))
 	if err != nil {
 		return err
 	}
@@ -67,20 +64,16 @@ func run(reader io.Reader, name string) error {
 	return r.Run(ctx, prog)
 }
 
-func runPath(path string) error {
+func runPath(r *interp.Runner, path string) error {
 	f, err := os.Open(path)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
-	return run(f, path)
+	return run(r, f, path)
 }
 
-func runInteractive(stdin io.Reader, stdout, stderr io.Writer) error {
-	r, err := interp.New(interp.StdIO(os.Stdin, os.Stdout, os.Stderr))
-	if err != nil {
-		return err
-	}
+func runInteractive(r *interp.Runner, stdin io.Reader, stdout, stderr io.Writer) error {
 	parser := syntax.NewParser()
 	fmt.Fprintf(stdout, "$ ")
 	var runErr error
@@ -99,10 +92,6 @@ func runInteractive(stdin io.Reader, stdout, stderr io.Writer) error {
 		fmt.Fprintf(stdout, "$ ")
 		return true
 	}
-	// stdin, err := interp.NewEOFWriter(stdin)
-	// if err != nil {
-	// 	return err
-	// }
 	if err := parser.Interactive(stdin, fn); err != nil {
 		return err
 	}

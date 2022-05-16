@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"sync"
 )
 
 const (
@@ -14,34 +15,31 @@ const (
 )
 
 type EofWriter struct {
-	// wr io.Reader
-	pw *os.File
-	pr *os.File
+	pw   *io.PipeWriter
+	pr   *io.PipeReader
+	once sync.Once
+	err  error
 }
 
 type EofReader struct {
-	ctx    context.Context
-	cancel context.CancelFunc
+	cancel      context.CancelFunc
+	closeCancel context.CancelFunc
 
-	// The wrapped reader
+	// We read from wr and write on pw.
 	wr *EofWriter
-	// We read from wr and write on this, which is the "write" half of a pipe.
 	pw *os.File
 
 	// Caller reads from this, which is the "read" half of a pipe.
 	R *os.File
 
+	mux sync.RWMutex
 	eof bool
 	err error
 }
 
 func NewEofWriter() (*EofWriter, error) {
-	pr, pw, err := os.Pipe()
-	if err != nil {
-		return nil, err
-	}
+	pr, pw := io.Pipe()
 	eofWriter := &EofWriter{
-		// wr: r,
 		pw: pw,
 		pr: pr,
 	}
@@ -58,22 +56,23 @@ func (e *EofWriter) Write(p []byte) (int, error) {
 	buf[0] = Data
 	binary.LittleEndian.PutUint16(buf[1:], uint16(len(p)))
 	copy(buf[3:], p)
-	n, err := e.pw.Write(buf[:])
+	n, err := e.pw.Write(buf)
 	if err != nil {
 		log.Printf("EOFWriter.Write: error writing msg: %v", err)
 		return n, err
 	}
+	// FIXME: Should I retry?  Esp. if there's no error?
 	if n < len(buf) {
 		log.Printf("EOFWriter.Write: error writing msg: wanted to write %d bytes, only wrote %d",
 			len(buf), n)
 	}
-	log.Printf("EOFWriter.run: Wrote data %q, size %d", buf[3:n], n-3)
+	// log.Printf("EOFWriter.run: Wrote data %q, size %d", buf[3:n], n-3)
 	return n, nil
 }
 
-func (e *EofWriter) EOF() error {
+func (e *EofWriter) SendEof() error {
 	_, err := e.pw.Write([]byte{EOF, 0, 0})
-	log.Printf("EOFWriter.EOF: Wrote EOF, err: %v", err)
+	// log.Printf("EOFWriter.EOF: Wrote EOF, err: %v", err)
 	return err
 }
 
@@ -82,94 +81,106 @@ func (e *EofWriter) Read(p []byte) (int, error) {
 }
 
 func (e *EofWriter) Close() error {
-	err := e.pw.Close()
-	err2 := e.pr.Close()
-	if err != nil {
-		return err
+	e.once.Do(func() {
+		err := e.pw.Close()
+		// err2 := e.pr.Close()
+		if err != nil {
+			e.err = err
+			return
+		}
+		// e.err = err2
+	})
+	return e.err
+}
+
+func (e *EofWriter) CloseReader() error {
+	err := e.pr.Close()
+	if err != nil && e.err == nil {
+		e.err = err
 	}
-	if err2 != nil {
-		return err2
-	}
-	return nil
+	return err
 }
 
 func NewEofReader(ctx context.Context, r *EofWriter) (*EofReader, error) {
+	// This cannot be io.Pipe, since we pass pr to os.Exec as stdin, and it
+	// needs to be a *os.File.
 	pr, pw, err := os.Pipe()
 	if err != nil {
 		return nil, err
 	}
 
-	// rdCtx, rdCancel := context.WithCancel(ctx)
+	closeCtx, closeCancel := context.WithCancel(context.Background())
 	ctx, cancel := context.WithCancel(ctx)
-	c := &EofReader{
-		wr:     r,
-		pw:     pw,
-		R:      pr,
-		ctx:    ctx,
-		cancel: cancel,
+	er := &EofReader{
+		wr:          r,
+		pw:          pw,
+		R:           pr,
+		cancel:      cancel,
+		closeCancel: closeCancel,
 	}
 
-	log.Printf("Starting new EofReader: %p", c)
+	// log.Printf("Starting new EofReader: %p", c)
 
 	go func() {
-		<-ctx.Done()
-		log.Printf("EofReader %p: context cancelled: closing pw & pr", c)
-		c.Close()
+		select {
+		case <-ctx.Done():
+			log.Printf("EofReader %p: context cancelled: closing pw & pr", er)
+			er.Close()
+		case <-closeCtx.Done():
+		}
 	}()
 
-	go c.run()
+	go er.run()
 
-	return c, nil
+	return er, nil
 }
 
-func (c *EofReader) run() {
-	defer log.Printf("EofReader.run %p: returning", c)
+func (er *EofReader) run() {
+	// defer log.Printf("EofReader.run %p: returning", c)
 	var header [3]byte
-	for c.err == nil {
+	for er.err == nil {
 		// Read the header
-		log.Printf("EofReader.run %p: reading header", c)
-		_, err := io.ReadFull(c.wr, header[:])
-		// n, err := c.wr.Read(header[:])
+		// log.Printf("EofReader.run %p: reading header", c)
+		_, err := io.ReadFull(er.wr, header[:])
 		if err != nil {
-			c.err = err
-			c.Close()
-			log.Printf("EofReader.run %p: error reading header: %v", c, err)
+			if err == io.EOF {
+				// log.Printf("EofReader.run %p: EOF reading header; closing c.pw.pr", c)
+				er.wr.pr.Close()
+				return
+			}
+			er.err = err
+			er.Close()
+			log.Printf("EofReader.run %p: error reading header: %v", er, err)
 			return
 		}
-		// if n != 3 {
-		// 	c.cancel()
-		// 	log.Printf("EofReader.run %p: read %d bytes, expected 3", c, n)
-		// 	return
-		// }
 
 		switch header[0] {
 		case Data:
 			// Read and forward the data block
 			size := binary.LittleEndian.Uint16(header[1:])
-			log.Printf("EofReader.run %p: read Data header, size: %d", c, size)
+			// log.Printf("EofReader.run %p: read Data header, size: %d", c, size)
 			buf := make([]byte, size)
-			_, err = io.ReadFull(c.wr, buf)
+			_, err = io.ReadFull(er.wr, buf)
 			if err != nil {
-				c.err = err
-				c.Close()
-				log.Printf("EofReader.run %p: error reading data: %v", c, err)
+				er.err = err
+				er.Close()
+				log.Printf("EofReader.run %p: error reading data: %v", er, err)
 				return
 			}
-			log.Printf("EofReader.run %p: Writing %q, %d bytes to pw", c, buf, size)
-			_, err = c.pw.Write(buf)
+			// log.Printf("EofReader.run %p: Writing %q, %d bytes to pw", c, buf, size)
+			_, err = er.pw.Write(buf)
 			if err != nil {
-				// os.Stderr should probably be runner.stderr
-				log.Printf("EofReader.run %p: Error on c.wp.Write: %v", c, err)
-				c.err = err
-				c.Close()
+				log.Printf("EofReader.run %p: Error on c.pw.Write: %v", er, err)
+				er.err = err
+				er.Close()
 				return
 			}
 
 		case EOF:
-			if !c.eof {
+			if !er.Eof() {
 				// "send" an EOF by closing the pipe file handles
-				c.Close()
-				log.Printf("EofReader.run %p: \"sending\" eof by closing output pipe", c)
+				// log.Printf("EofReader.run %p: \"sending\" eof by closing output pipe", c)
+				er.Close()
 			}
 			return
 		}
@@ -177,30 +188,39 @@ func (c *EofReader) run() {
 }
 
 // Read implements io.Reader.
-func (c *EofReader) Read(p []byte) (int, error) {
-	return c.R.Read(p)
+func (er *EofReader) Read(p []byte) (int, error) {
+	return er.R.Read(p)
 }
 
-func (c *EofReader) Cancel() {
-	log.Printf("EofReader %p: cancel", c)
-	c.cancel()
+func (er *EofReader) Cancel() {
+	// log.Printf("EofReader %p: cancel", c)
+	er.cancel()
 }
 
-// TODO: should protect eof with a lock
-func (c *EofReader) Close() {
-	if c.eof {
-		log.Printf("EofReader %p: Close called after eof", c)
-	} else {
-		c.eof = true
-		log.Printf("EofReader %p: Close", c)
-		err := c.pw.Close()
-		if err != nil {
-			log.Printf("EofReader.Close %p: pw.Close error: %v", c, err)
-		}
-		err = c.R.Close()
-		if err != nil {
-			log.Printf("EofReader.Close %p: R.Close error: %v", c, err)
-		}
-		c.cancel()
+func (er *EofReader) Eof() bool {
+	er.mux.RLock()
+	defer er.mux.RUnlock()
+	return er.eof
+}
+
+func (er *EofReader) Close() {
+	er.mux.Lock()
+	defer er.mux.Unlock()
+
+	if er.eof {
+		// log.Printf("EofReader %p: Close called after eof", c)
+		return
 	}
+
+	er.eof = true
+	// log.Printf("EofReader %p: Close", c)
+	err := er.pw.Close()
+	if err != nil {
+		log.Printf("EofReader.Close %p: pw.Close error: %v", er, err)
+	}
+	err = er.R.Close()
+	if err != nil {
+		log.Printf("EofReader.Close %p: R.Close error: %v", er, err)
+	}
+	er.closeCancel()
 }

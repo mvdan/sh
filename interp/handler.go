@@ -100,15 +100,15 @@ func DefaultExecHandler(killTimeout time.Duration) ExecHandlerFunc {
 		}
 
 		stdin := hc.Stdin
-		var cr *EofReader
+		var eofReader *EofReader
 		eofWriter, ok := stdin.(*EofWriter)
 		if ok {
-			cr, err = NewEofReader(ctx, eofWriter)
+			eofReader, err = NewEofReader(ctx, eofWriter)
 			if err != nil {
 				return err
 			}
-			stdin = cr.R // Use the pipe reader directly
-			// defer cr.Close()
+			log.Printf("DefaultExecHandler: %s: eofReader: %p", path, eofReader)
+			stdin = eofReader.R // Use the pipe reader directly
 		}
 
 		cmd := exec.Cmd{
@@ -121,7 +121,7 @@ func DefaultExecHandler(killTimeout time.Duration) ExecHandlerFunc {
 			Stderr: hc.Stderr,
 		}
 
-		log.Printf("cmd.Start: %s", path)
+		// log.Printf("cmd.Start: %s", path)
 		err = cmd.Start()
 		if err == nil {
 			if done := ctx.Done(); done != nil {
@@ -144,18 +144,21 @@ func DefaultExecHandler(killTimeout time.Duration) ExecHandlerFunc {
 				}()
 			}
 
-			log.Printf("cmd.Wait")
+			// log.Printf("cmd.Wait")
 			err = cmd.Wait()
-			log.Printf("cmd.Wait done")
-			if cr != nil {
-				log.Printf("cr.Close()")
-				cr.Close()
-			}
+			// log.Printf("cmd.Wait done")
 			// log.Printf("eofWriter: eof")
 			// eofErr := eofWriter.EOF()
 			// if eofErr != nil {
 			// 	log.Printf("eofWriter.EOF error: %v", eofErr)
 			// }
+		}
+		if eofReader != nil {
+			if !eofReader.Eof() {
+				eofWriter.SendEof()
+			}
+			log.Printf("eofReader.Close(), %p", eofReader)
+			eofReader.Close()
 		}
 
 		switch x := err.(type) {
