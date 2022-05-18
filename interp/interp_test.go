@@ -2832,6 +2832,23 @@ set +o pipefail
 		"a() { while getopts abc: opt; do echo $opt $OPTARG; done }; a -a -b -c arg",
 		"a\nb\nc arg\n",
 	},
+	// mapfile
+	{
+		"mapfile <<EOF\na\nb\nc\nEOF\n" + `for x in "${MAPFILE[@]}"; do echo "$x"; done`,
+		"a\n\nb\n\nc\n\n",
+	},
+	{
+		"mapfile -t <<EOF\na\nb\nc\nEOF\n" + `for x in "${MAPFILE[@]}"; do echo "$x"; done`,
+		"a\nb\nc\n",
+	},
+	{
+		"mapfile -t -d b <<EOF\nabc\nEOF\n" + `for x in "${MAPFILE[@]}"; do echo "$x"; done`,
+		"a\nc\n\n",
+	},
+	{
+		"mapfile -t butter <<EOF\na\nb\nc\nEOF\n" + `for x in "${butter[@]}"; do echo "$x"; done`,
+		"a\nb\nc\n",
+	},
 }
 
 var runTestsUnix = []runTest{
@@ -3185,6 +3202,11 @@ hello, world
 		// globbing wildcard as function name but with space after the name
 		`+ () { echo "$@"; }; + foo_interp_missing; @ () { echo "$@"; }; @ lala; ? () { echo "$@"; }; ? bar_interp_missing`,
 		"foo_interp_missing\nlala\nbar_interp_missing\n",
+	},
+	// mapfile, no process substitution yet on Windows
+	{
+		`mapfile -t -d "" < <(printf "a\0b\n"); for x in "${MAPFILE[@]}"; do echo "$x"; done`,
+		"a\nb\n\n",
 	},
 }
 
