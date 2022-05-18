@@ -929,16 +929,14 @@ func (r *Runner) readLine(raw bool) ([]byte, error) {
 	stdin := r.stdin
 	if eofWriter, ok := stdin.(*EofWriter); ok {
 		// log.Printf("readLine starting NewEofReader")
-		eofReader, err := NewEofReader(r.ectx, eofWriter)
+		eofReader, err := eofWriter.NewReader(r.ectx)
 		if err != nil {
 			return nil, err
 		}
 		stdin = eofReader
 		defer func() {
-			if !eofReader.Eof() {
-				// log.Printf("readLine: eofWriter.EOF()")
-				eofWriter.SendEof()
-			}
+			// log.Printf("readLine: eofWriter.EOF()")
+			eofWriter.CloseReader()
 		}()
 
 		// go func() {
