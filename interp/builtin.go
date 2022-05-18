@@ -4,6 +4,7 @@
 package interp
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"errors"
@@ -25,7 +26,7 @@ func isBuiltin(name string) bool {
 		"wait", "builtin", "trap", "type", "source", ".", "command",
 		"dirs", "pushd", "popd", "umask", "alias", "unalias",
 		"fg", "bg", "getopts", "eval", "test", "[", "exec",
-		"return", "read", "shopt":
+		"return", "read", "mapfile", "readarray", "shopt":
 		return true
 	}
 	return false
@@ -800,11 +801,93 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 				return 2
 			}
 		}
+
+	case "readarray", "mapfile":
+		dropDelim := false
+		delim := "\n"
+		fp := flagParser{remaining: args}
+		for fp.more() {
+			switch flag := fp.flag(); flag {
+			case "-t":
+				// Remove the delim from each line read
+				dropDelim = true
+			case "-d":
+				if len(fp.remaining) == 0 {
+					r.errf("%s: -d: option requires an argument\n", name)
+					return 2
+				}
+				delim = fp.value()
+				if delim == "" {
+					// Bash sets the delim to an ASCII NUL if provided with an empty
+					// string.
+					delim = "\x00"
+				}
+			default:
+				r.errf("%s: invalid option %q\n", name, flag)
+				return 2
+			}
+		}
+
+		args := fp.args()
+		var arrayName string
+		switch len(args) {
+		case 0:
+			arrayName = "MAPFILE"
+		case 1:
+			if !syntax.ValidName(args[0]) {
+				r.errf("%s: invalid identifier %q\n", name, args[0])
+				return 2
+			}
+			arrayName = args[0]
+		default:
+			r.errf("%s: Only one array name may be specified, %v\n", name, args)
+			return 2
+		}
+
+		var vr expand.Variable
+		vr.Kind = expand.Indexed
+		scanner := bufio.NewScanner(r.stdin)
+		scanner.Split(mapfileSplit(delim[0], dropDelim))
+		for scanner.Scan() {
+			vr.List = append(vr.List, scanner.Text())
+		}
+		if err := scanner.Err(); err != nil {
+			r.errf("%s: unable to read, %v", name, err)
+			return 2
+		}
+		r.setVarInternal(arrayName, vr)
+
+		return 0
+
 	default:
 		// "umask", "fg", "bg",
 		panic(fmt.Sprintf("unhandled builtin: %s", name))
 	}
 	return 0
+}
+
+// mapfileSplit returns a suitable Split function for a bufio.Scanner, the code
+// is mostly stolen from bufio.ScanLines.
+func mapfileSplit(delim byte, dropDelim bool) func(data []byte, atEOF bool) (advance int, token []byte, err error) {
+	return func(data []byte, atEOF bool) (advance int, token []byte, err error) {
+		if atEOF && len(data) == 0 {
+			return 0, nil, nil
+		}
+		if i := bytes.IndexByte(data, delim); i >= 0 {
+			// We have a full newline-terminated line.
+			if dropDelim {
+				return i + 1, data[0:i], nil
+			} else {
+				return i + 1, data[0 : i+1], nil
+			}
+		}
+		// If we're at EOF, we have a final, non-terminated line. Return it.
+		if atEOF {
+			return len(data), data, nil
+		}
+		// Request more data.
+		return 0, nil, nil
+	}
 }
 
 func (r *Runner) printOptLine(name string, enabled bool) {
