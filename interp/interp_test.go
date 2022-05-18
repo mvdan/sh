@@ -2776,7 +2776,26 @@ set +o pipefail
 		"read -r -p 'Prompt and raw flag together: ' a <<< '\\a\\b\\c'; echo $a",
 		"Prompt and raw flag together: \\a\\b\\c\n #IGNORE bash requires a terminal",
 	},
-
+	{
+		`read -a butter <<< 'a b c'; for x in "${butter[@]}"; do echo "$x"; done`,
+		"a\nb\nc\n",
+	},
+	{
+		`read -d b x<<< 'abc'; echo "$x"`,
+		"a\n",
+	},
+	{
+		`read -n 3 x<<< 'abcdefg'; echo "$x"`,
+		"abc\n",
+	},
+	{
+		`read -n 3 -d b x<<< 'abcdefg'; echo "$x"`,
+		"a\n",
+	},
+	{
+		`read -N 4 -d b x<<< 'abcdefg'; echo "$x"`,
+		"abcd\n",
+	},
 	// getopts
 	{
 		"getopts",
@@ -3213,6 +3232,16 @@ hello, world
 	{
 		`mapfile -t -d "" < <(printf "a\0b\n"); for x in "${MAPFILE[@]}"; do echo "$x"; done`,
 		"a\nb\n\n",
+	},
+	// read -N with stopping at EOF
+	{
+		`read -N 3 x < <(printf 'ab'); echo "$x"`,
+		"ab\n",
+	},
+	// read 4 bytes and ignore the default delimiter
+	{
+		`read -N 4 x < <(printf 'ab\ncdefg'); echo "$x"`,
+		"ab\nc\n",
 	},
 }
 
