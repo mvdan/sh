@@ -1,5 +1,15 @@
 # Changelog
 
+## [3.5.1] - 2022-05-23
+
+- **cmd/shfmt**
+  - Fix the Docker publishing script bug which broke 3.5.0 - [#860]
+- **interp**
+  - Support multi-line strings when pattern matching in `[[` - [#861]
+  - Invalid glob words are no longer removed with `nullglob` - [#862]
+- **pattern**
+  - `Regexp` now returns the typed error `SyntaxError` - [#862]
+
 ## [3.5.0] - 2022-05-11
 
 This release drops support for Go 1.16 and includes many new features.
@@ -611,6 +621,11 @@ module in v3.
 ## [0.1.0] - 2016-09-20
 
 Initial release.
+
+[3.5.1]: https://github.com/mvdan/sh/releases/tag/v3.5.1
+[#860]: https://github.com/mvdan/sh/pull/860
+[#861]: https://github.com/mvdan/sh/pull/861
+[#862]: https://github.com/mvdan/sh/pull/862
 
 [3.5.0]: https://github.com/mvdan/sh/releases/tag/v3.5.0
 [3.4.3]: https://github.com/mvdan/sh/releases/tag/v3.4.3
