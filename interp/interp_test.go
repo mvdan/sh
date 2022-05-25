@@ -1555,6 +1555,23 @@ var runTests = []runTest{
 		"[[ \"multiline\ntext\" == *text* ]] && echo x; [[ \"multiline\ntext\" == *multiline* ]] && echo y",
 		"x\ny\n",
 	},
+	// * should match a newline
+	{
+		"[[ \"multiline\ntext\" == multiline*text ]] && echo x",
+		"x\n",
+	},
+	{
+		"[[ \"multiline\ntext\" == text ]]",
+		"exit status 1",
+	},
+	{
+		`case $'a\nb' in a*b) echo match ;; esac`,
+		"match\n",
+	},
+	{
+		`a=$'a\nb'; echo "${a/a*b/sub}"`,
+		"sub\n",
+	},
 	{
 		"mkdir a; cd a; test -f b && echo x; >b; test -f b && echo y",
 		"y\n",
@@ -3213,6 +3230,11 @@ hello, world
 	{
 		`mapfile -t -d "" < <(printf "a\0b\n"); for x in "${MAPFILE[@]}"; do echo "$x"; done`,
 		"a\nb\n\n",
+	},
+	// Windows does not support having a `\n` in a filename
+	{
+		`> $'bar\nbaz'; echo bar*baz`,
+		"bar\nbaz\n",
 	},
 }
 
