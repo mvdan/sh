@@ -705,11 +705,11 @@ func (r *Runner) flattenAssign(as *syntax.Assign) []*syntax.Assign {
 }
 
 func match(pat, name string) bool {
-	expr, err := pattern.Regexp(pat, 0)
+	expr, err := pattern.Regexp(pat, pattern.EntireString)
 	if err != nil {
 		return false
 	}
-	rx := regexp.MustCompile("(?m)^" + expr + "$")
+	rx := regexp.MustCompile(expr)
 	return rx.MatchString(name)
 }
 

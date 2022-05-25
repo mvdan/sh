@@ -845,21 +845,22 @@ func (cfg *Config) glob(base, pat string) ([]string, error) {
 
 				// If dir is not a directory, we keep the stack as-is and continue.
 				newMatches = newMatches[:0]
-				newMatches, _ = cfg.globDir(base, dir, rxGlobStar, wantDir, newMatches)
+				newMatches, _ = cfg.globDir(base, dir, rxGlobStar, false, wantDir, newMatches)
 				for i := len(newMatches) - 1; i >= 0; i-- {
 					stack = append(stack, newMatches[i])
 				}
 			}
 			continue
 		}
-		expr, err := pattern.Regexp(part, pattern.Filenames)
+		expr, err := pattern.Regexp(part, pattern.Filenames|pattern.EntireString)
 		if err != nil {
 			return nil, err
 		}
-		rx := regexp.MustCompile("^" + expr + "$")
+		rx := regexp.MustCompile(expr)
+		matchHidden := part[0] == byte('.')
 		var newMatches []string
 		for _, dir := range matches {
-			newMatches, err = cfg.globDir(base, dir, rx, wantDir, newMatches)
+			newMatches, err = cfg.globDir(base, dir, rx, matchHidden, wantDir, newMatches)
 			if err != nil {
 				return nil, err
 			}
@@ -869,7 +870,7 @@ func (cfg *Config) glob(base, pat string) ([]string, error) {
 	return matches, nil
 }
 
-func (cfg *Config) globDir(base, dir string, rx *regexp.Regexp, wantDir bool, matches []string) ([]string, error) {
+func (cfg *Config) globDir(base, dir string, rx *regexp.Regexp, matchHidden bool, wantDir bool, matches []string) ([]string, error) {
 	fullDir := dir
 	if !filepath.IsAbs(dir) {
 		fullDir = filepath.Join(base, dir)
@@ -896,7 +897,7 @@ func (cfg *Config) globDir(base, dir string, rx *regexp.Regexp, wantDir bool, ma
 			// Not a symlink nor a directory.
 			continue
 		}
-		if !strings.HasPrefix(rx.String(), `^\.`) && name[0] == '.' {
+		if !matchHidden && name[0] == '.' {
 			continue
 		}
 		if rx.MatchString(name) {

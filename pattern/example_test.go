@@ -25,7 +25,7 @@ func ExampleRegexp() {
 	fmt.Println(rx.MatchString("foobarbaz"))
 	// Output:
 	// foo?bar*
-	// foo.bar.*
+	// (?s)foo.bar.*
 	// true
 	// false
 }
