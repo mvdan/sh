@@ -426,18 +426,21 @@ func formatPath(path string, checkShebang bool) error {
 	return formatBytes(readBuf.Bytes(), path, fileLang)
 }
 
-func formatBytes(src []byte, path string, lang syntax.LangVariant) error {
+func formatBytes(src []byte, path string, fileLang syntax.LangVariant) error {
 	if useEditorConfig {
 		props, err := ecQuery.Find(path)
 		if err != nil {
 			return err
 		}
-		propsOptions(lang, props)
+		propsOptions(fileLang, props)
 	} else {
-		syntax.Variant(lang)(parser)
+		syntax.Variant(fileLang)(parser)
 	}
 	prog, err := parser.Parse(bytes.NewReader(src), path)
 	if err != nil {
+		if s, ok := err.(syntax.LangError); ok && lang.val == syntax.LangAuto {
+			return fmt.Errorf("%w (parsed as %s via -%s=%s)", s, fileLang, lang.short, lang.val)
+		}
 		return err
 	}
 	if simplify.val {
