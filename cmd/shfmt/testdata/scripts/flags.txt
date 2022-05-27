@@ -92,6 +92,15 @@ stdin input-mksh
 shfmt -ln=auto -filename=input.mksh
 stdout 'coprocess'
 
+# Explicitly state language on parse errors
+stdin input-bash-arrays
+! shfmt -ln=auto -filename=input.sh
+stderr 'parsed as posix via -ln=auto'
+
+stdin input-bash-extglobs
+! shfmt -ln=auto -filename=input.sh
+stderr 'parsed as posix via -ln=auto'
+
 stdin flags-input
 shfmt -i 2
 cmp stdout flags-output.indent-golden
@@ -151,6 +160,12 @@ coprocess |&
 -- input-mksh-shebang --
 #!/bin/mksh
 coprocess |&
+-- input-bash-extglobs --
+#!/bin/sh
+echo !(a)
+-- input-bash-arrays --
+#!/bin/sh
+foo=(bar)
 
 -- flags-input --
 foo() {
