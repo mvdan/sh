@@ -98,7 +98,7 @@ stdin input-bash-arrays
 stderr 'parsed as posix via -ln=auto'
 
 stdin input-bash-extglobs
-! shfmt -ln=auto -filename=input.sh
+! shfmt -filename=input.sh
 stderr 'parsed as posix via -ln=auto'
 
 stdin flags-input
