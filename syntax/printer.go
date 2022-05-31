@@ -1081,6 +1081,13 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		p.WriteByte('(')
 		if len(x.Stmts) > 0 && startsWithLparen(x.Stmts[0]) {
 			p.wantSpace = spaceRequired
+			if nested, ok := x.Stmts[0].Cmd.(*Subshell); ok {
+				// we only want to keep the space between two nested subshells' open brackets
+				// if its in a single line to avoid ambiguity
+				if x.Lparen.Line() != nested.Pos().Line() {
+					p.wantSpace = spaceNotRequired
+				}
+			}
 		} else {
 			p.wantSpace = spaceNotRequired
 		}
