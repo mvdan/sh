@@ -621,9 +621,19 @@ var printTests = []printCase{
 		"(\n\t(foo >redir)\n)",
 	},
 	{
-		"( (foo >redir) )",
-		"( (foo >redir))",
+		"( (foo) )",
+		"( (foo))",
 	},
+	{
+		"( {foo}; bar; )",
+		"(\n\t{foo}\n\tbar\n)",
+	},
+	{
+		"( ((foo++)) )",
+		"( ((foo++)))",
+	},
+	samePrint("(\n\t((foo++))\n)"),
+	samePrint("(foo && bar)"),
 }
 
 func TestPrintWeirdFormat(t *testing.T) {
