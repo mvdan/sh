@@ -641,6 +641,11 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		// TODO: can we do these?
 		r.outf(format, "user", elapsedString(0, x.PosixFormat))
 		r.outf(format, "sys", elapsedString(0, x.PosixFormat))
+	case goCmdExpr:
+		exit := x.fn(ctx, r.Params, r.writeEnv, r.Dir, r.stdin, r.stdout, r.stderr)
+		if exit > 0 {
+			r.err = returnStatus(exit)
+		}
 	default:
 		panic(fmt.Sprintf("unhandled command node: %T", x))
 	}

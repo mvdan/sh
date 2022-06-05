@@ -4167,3 +4167,31 @@ func TestRunnerSubshell(t *testing.T) {
 		t.Fatalf("wrong output:\nwant: %q\ngot:  %q", want, got)
 	}
 }
+
+func TestGoCmd(t *testing.T) {
+	t.Parallel()
+
+	env := expand.ListEnviron("SURNAME=Paca")
+	file := parse(t, nil, `type -t hello && hello Al`)
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	r, _ := New(Env(env), StdIO(nil, &stdout, &stderr))
+	// FIXME: why is Reset needed and must be called before DeclareGoCommand?
+	r.Reset()
+	r.DeclareGoCommand("hello", func(ctx context.Context, args []string, env expand.Environ, cwd string, stdin io.Reader, stdout, stderr io.Writer) uint8 {
+		stdout.Write([]byte("hello " + args[0] + " " + env.Get("SURNAME").String()))
+		return 0
+	})
+	ctx, cancel := context.WithTimeout(context.Background(), runnerRunTimeout)
+	defer cancel()
+	err := r.Run(ctx, file)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	want := "function\nhello Al Paca"
+	if got := stdout.String(); got != want {
+		t.Fatalf("\nwant: %q\ngot:  %q", want, got)
+	}
+}
