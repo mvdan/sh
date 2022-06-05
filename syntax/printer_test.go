@@ -616,6 +616,28 @@ var printTests = []printCase{
 		"`declare`",
 		"$(declare)",
 	},
+	{
+		"(\n(foo >redir))",
+		"(\n\t(foo >redir)\n)",
+	},
+	{
+		"( (foo) )",
+		"( (foo))",
+	},
+	{
+		"( (foo); bar )",
+		"(\n\t(foo)\n\tbar\n)",
+	},
+	{
+		"( ((foo++)) )",
+		"( ((foo++)))",
+	},
+	{
+		"( ((foo++)); bar )",
+		"(\n\t((foo++))\n\tbar\n)",
+	},
+	samePrint("(\n\t((foo++))\n)"),
+	samePrint("(foo && bar)"),
 }
 
 func TestPrintWeirdFormat(t *testing.T) {
@@ -1303,28 +1325,6 @@ func TestPrintManyStmts(t *testing.T) {
 		{"foo\nbar <<EOF\nbody\nEOF\n", "foo\nbar <<EOF\nbody\nEOF\n"},
 		{"foo\nbar # inline", "foo\nbar # inline\n"},
 		{"# comment before\nfoo bar", "# comment before\nfoo bar\n"},
-		{
-			"(\n(foo >redir)\n)",
-			"(\n\t(foo >redir)\n)\n",
-		},
-		{
-			"( (foo) )",
-			"( (foo))\n",
-		},
-		{
-			"( (foo); bar )",
-			"(\n\t(foo)\n\tbar\n)\n",
-		},
-		{
-			"( ((foo++)) )",
-			"( ((foo++)))\n",
-		},
-		{
-			"( ((foo++)); bar )",
-			"(\n\t((foo++))\n\tbar\n)\n",
-		},
-		samePrint("(\n\t((foo++))\n)\n"),
-		samePrint("(foo && bar)\n"),
 	}
 	parser := NewParser(KeepComments(true))
 	printer := NewPrinter()

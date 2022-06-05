@@ -1084,12 +1084,17 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			p.wantSpace = spaceRequired
 			// we only want to keep the space between two nested subshells' open brackets
 			// if its in a single line to avoid ambiguity
-			if x.Lparen.Line() != stmts[0].Pos().Line() || len(stmts) > 1 {
+			if x.Lparen.Line() != stmts[0].Pos().Line() || len(stmts) > 1 && !p.singleLine {
 				p.wantSpace = spaceNotRequired
+
+				if p.minify {
+					p.newline(stmts[0].Pos())
+				}
 			}
 		} else {
 			p.wantSpace = spaceNotRequired
 		}
+
 		p.spacePad(stmtsPos(x.Stmts, x.Last))
 		p.nestedStmts(x.Stmts, x.Last, x.Rparen)
 		p.wantSpace = spaceNotRequired
