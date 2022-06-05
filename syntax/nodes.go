@@ -214,25 +214,25 @@ func (s *Stmt) End() Pos {
 // *DeclClause, *LetClause, *TimeClause, and *CoprocClause.
 type Command interface {
 	Node
-	commandNode()
+	CommandNode()
 }
 
-func (*CallExpr) commandNode()     {}
-func (*IfClause) commandNode()     {}
-func (*WhileClause) commandNode()  {}
-func (*ForClause) commandNode()    {}
-func (*CaseClause) commandNode()   {}
-func (*Block) commandNode()        {}
-func (*Subshell) commandNode()     {}
-func (*BinaryCmd) commandNode()    {}
-func (*FuncDecl) commandNode()     {}
-func (*ArithmCmd) commandNode()    {}
-func (*TestClause) commandNode()   {}
-func (*DeclClause) commandNode()   {}
-func (*LetClause) commandNode()    {}
-func (*TimeClause) commandNode()   {}
-func (*CoprocClause) commandNode() {}
-func (*TestDecl) commandNode()     {}
+func (*CallExpr) CommandNode()     {}
+func (*IfClause) CommandNode()     {}
+func (*WhileClause) CommandNode()  {}
+func (*ForClause) CommandNode()    {}
+func (*CaseClause) CommandNode()   {}
+func (*Block) CommandNode()        {}
+func (*Subshell) CommandNode()     {}
+func (*BinaryCmd) CommandNode()    {}
+func (*FuncDecl) CommandNode()     {}
+func (*ArithmCmd) CommandNode()    {}
+func (*TestClause) CommandNode()   {}
+func (*DeclClause) CommandNode()   {}
+func (*LetClause) CommandNode()    {}
+func (*TimeClause) CommandNode()   {}
+func (*CoprocClause) CommandNode() {}
+func (*TestDecl) CommandNode()     {}
 
 // Assign represents an assignment to a variable.
 //
