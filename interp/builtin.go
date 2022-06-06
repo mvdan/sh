@@ -12,9 +12,12 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 
+	"golang.org/x/sys/unix"
+	"golang.org/x/term"
 	"mvdan.cc/sh/v3/expand"
 	"mvdan.cc/sh/v3/syntax"
 )
@@ -557,7 +560,12 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		r.setErr(returnStatus(code))
 	case "read":
 		var prompt string
+		var readArrayName string
 		raw := false
+		delim := []byte("\n")
+		termNoEcho := false
+		numBytes := -1
+		ignoreDelim := false
 		fp := flagParser{remaining: args}
 		for fp.more() {
 			switch flag := fp.flag(); flag {
@@ -569,6 +577,36 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 					r.errf("read: -p: option requires an argument\n")
 					return 2
 				}
+			case "-s":
+				termNoEcho = true
+			case "-a":
+				readArrayName = fp.value()
+				if readArrayName == "" {
+					r.errf("read: -a: option requires an argument\n")
+					return 2
+				}
+			case "-n", "-N":
+				numBytesStr := fp.value()
+				if numBytesStr == "" {
+					r.errf("read: %s: option requires an integer argument\n", flag)
+					return 2
+				}
+				var err error
+				numBytes, err = strconv.Atoi(numBytesStr)
+				if err != nil {
+					r.errf("read: %s: option requires an integer argument\n", flag)
+					return 2
+				}
+				if flag == "-N" {
+					ignoreDelim = true
+				}
+			case "-d":
+				delimVal := fp.value()
+				if delimVal == "" {
+					r.errf("read: -d: option requires an argument\n")
+					return 2
+				}
+				delim = []byte(delimVal)
 			default:
 				r.errf("read: invalid option %q\n", flag)
 				return 2
@@ -576,10 +614,21 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		}
 
 		args := fp.args()
-		for _, name := range args {
-			if !syntax.ValidName(name) {
-				r.errf("read: invalid identifier %q\n", name)
+
+		if readArrayName != "" {
+			if len(args) > 0 {
+				r.errf("read: unable to read both into an array and named args\n")
 				return 2
+			}
+		} else {
+			for _, name := range args {
+				if !syntax.ValidName(name) {
+					r.errf("read: invalid identifier %q\n", name)
+					return 2
+				}
+			}
+			if len(args) == 0 {
+				args = append(args, "REPLY")
 			}
 		}
 
@@ -587,21 +636,28 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			r.out(prompt)
 		}
 
-		line, err := r.readLine(raw)
+		line, err := r.readLine(delim[0], numBytes, raw, termNoEcho, ignoreDelim)
 		if err != nil {
 			return 1
 		}
-		if len(args) == 0 {
-			args = append(args, "REPLY")
-		}
 
-		values := expand.ReadFields(r.ecfg, string(line), len(args), raw)
-		for i, name := range args {
-			val := ""
-			if i < len(values) {
-				val = values[i]
+		if readArrayName != "" {
+			var vr expand.Variable
+			vr.Kind = expand.Indexed
+			values := expand.ReadFields(r.ecfg, string(line), -1, raw)
+			for _, val := range values {
+				vr.List = append(vr.List, val)
 			}
-			r.setVarString(name, val)
+			r.setVarInternal(readArrayName, vr)
+		} else {
+			for i, name := range args {
+				values := expand.ReadFields(r.ecfg, string(line), len(args), raw)
+				val := ""
+				if i < len(values) {
+					val = values[i]
+				}
+				r.setVarString(name, val)
+			}
 		}
 
 		return 0
@@ -898,9 +954,28 @@ func (r *Runner) printOptLine(name string, enabled bool) {
 	r.outf("%s\t%s\n", name, status)
 }
 
-func (r *Runner) readLine(raw bool) ([]byte, error) {
+func (r *Runner) readLine(delim byte, numBytes int, raw bool, termNoEcho bool, ignoreDelim bool) ([]byte, error) {
 	if r.stdin == nil {
 		return nil, errors.New("interp: can't read, there's no stdin")
+	}
+
+	// If we are using a custom delimiter and stdin is a terminal put the
+	// terminal in one character at a time mode so we can read single characters
+	// rather than a whole line of input.
+	if delim != '\n' && runtime.GOOS != "windows" {
+		if f, ok := r.stdin.(*os.File); ok && term.IsTerminal(int(f.Fd())) {
+			oldState, err := termMakeOneChar(int(f.Fd()))
+			if err != nil {
+				return nil, err
+			}
+			defer termRestore(int(f.Fd()), oldState)
+			if termNoEcho {
+				_, err := termMakeNoEcho(int(f.Fd()))
+				if err != nil {
+					return nil, err
+				}
+			}
+		}
 	}
 
 	var line []byte
@@ -915,24 +990,74 @@ func (r *Runner) readLine(raw bool) ([]byte, error) {
 			case !raw && b == '\\':
 				line = append(line, b)
 				esc = !esc
-			case !raw && b == '\n' && esc:
+			case !raw && b == delim && esc:
 				// line continuation
 				line = line[len(line)-1:]
 				esc = false
-			case b == '\n':
+			case b == delim && !ignoreDelim:
 				return line, nil
 			default:
 				line = append(line, b)
 				esc = false
 			}
 		}
-		if err == io.EOF && len(line) > 0 {
+		switch {
+		case err == nil && len(line) == numBytes:
 			return line, nil
-		}
-		if err != nil {
+		case err == io.EOF && len(line) > 0:
+			return line, nil
+		case err != nil:
 			return nil, err
 		}
 	}
+}
+
+// termMakeOneChar sets the terminal to one character at a time mode, this code
+// is identical to term.MakeRaw except the state of echo is not altered.
+func termMakeOneChar(fd int) (*unix.Termios, error) {
+	termios, err := unix.IoctlGetTermios(fd, unix.TCGETS)
+	if err != nil {
+		return nil, err
+	}
+
+	oldState := *termios
+
+	termios.Iflag &^= unix.IGNBRK | unix.BRKINT | unix.PARMRK | unix.ISTRIP | unix.INLCR | unix.IGNCR | unix.ICRNL | unix.IXON
+	termios.Oflag &^= unix.OPOST
+	termios.Lflag &^= unix.ICANON | unix.ISIG | unix.IEXTEN
+	termios.Cflag &^= unix.CSIZE | unix.PARENB
+	termios.Cflag |= unix.CS8
+	termios.Cc[unix.VMIN] = 1
+	termios.Cc[unix.VTIME] = 0
+	if err := unix.IoctlSetTermios(fd, unix.TCSETS, termios); err != nil {
+		return nil, err
+	}
+
+	return &oldState, nil
+}
+
+// termMakeNoEcho disables terminal echo.
+func termMakeNoEcho(fd int) (*unix.Termios, error) {
+	termios, err := unix.IoctlGetTermios(fd, unix.TCGETS)
+	if err != nil {
+		return nil, err
+	}
+
+	oldState := *termios
+
+	// Flags stolen from Bash's tt_setnoecho.
+	termios.Lflag &^= unix.ECHO | unix.ECHOK | unix.ECHONL
+	if err := unix.IoctlSetTermios(fd, unix.TCSETS, termios); err != nil {
+		return nil, err
+	}
+
+	return &oldState, nil
+}
+
+// termRestore, like term.Restore, restores the terminal state, but uses  a
+// *unix.Termios param, rather than a term.State type.
+func termRestore(fd int, termios *unix.Termios) error {
+	return unix.IoctlSetTermios(fd, unix.TCSETS, termios)
 }
 
 func (r *Runner) changeDir(ctx context.Context, path string) int {
