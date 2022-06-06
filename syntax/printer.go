@@ -1082,13 +1082,13 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		stmts := x.Stmts
 		if len(stmts) > 0 && startsWithLparen(stmts[0]) {
 			p.wantSpace = spaceRequired
-			// we only want to keep the space between two nested subshells' open brackets
-			// if its in a single line to avoid ambiguity
-			if x.Lparen.Line() != stmts[0].Pos().Line() || len(stmts) > 1 && !p.singleLine {
+			// Add a space between nested parentheses if we're printing them in a single line,
+			// to avoid the ambiguity between `((` and `( (`.
+			if (x.Lparen.Line() != stmts[0].Pos().Line() || len(stmts) > 1) && !p.singleLine {
 				p.wantSpace = spaceNotRequired
 
 				if p.minify {
-					p.newline(stmts[0].Pos())
+					p.mustNewline = true
 				}
 			}
 		} else {
@@ -1349,7 +1349,7 @@ func (p *Printer) stmtList(stmts []*Stmt, last []Comment) {
 			// statement.
 			p.comments(c)
 		}
-		if !p.minify || p.wantSpace == spaceRequired {
+		if p.mustNewline || !p.minify || p.wantSpace == spaceRequired {
 			p.newlines(pos)
 		}
 		p.line = pos.Line()
