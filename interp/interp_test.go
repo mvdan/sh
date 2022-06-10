@@ -2598,6 +2598,9 @@ set +o pipefail
 		"shopt -s nullglob; touch existing-1; echo missing-* existing-*",
 		"existing-1\n",
 	},
+	// Extended globbing is not supported
+	{"ls ab+(2|3).txt", "extended globbing is not supported\nexit status 1 #JUSTERR"},
+	{"echo *(/)", "extended globbing is not supported\nexit status 1 #JUSTERR"},
 	// Ensure that setting nullglob does not return invalid globs as null
 	// strings.
 	{
