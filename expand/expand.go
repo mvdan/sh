@@ -636,6 +636,8 @@ func (cfg *Config) wordFields(wps []syntax.WordPart) ([][]fieldPart, error) {
 				return nil, err
 			}
 			splitAdd(path)
+		case *syntax.ExtGlob:
+			return nil, fmt.Errorf("extended globbing is not supported")
 		default:
 			panic(fmt.Sprintf("unhandled word part: %T", x))
 		}
