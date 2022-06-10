@@ -76,13 +76,16 @@ See the [_js](_js) directory for more information.
 
 ### Docker
 
-To build a Docker image, checkout a specific version of the repository and run:
+All release tags are published via [Docker], such as `v3.5.1`.
+The latest stable release is currently published as `v3`,
+and the latest development version as `latest`.
+The images only include `shfmt`; `-alpine` variants exist on Alpine Linux.
+
+To build a Docker image, run:
 
 	docker build -t my:tag -f cmd/shfmt/Dockerfile .
 
-This creates an image that only includes shfmt. Alternatively, if you want an
-image that includes alpine, add `--target alpine`.
-To use the Docker image, run:
+To use a Docker image, run:
 
 	docker run --rm -u "$(id -u):$(id -g)" -v "$PWD:/mnt" -w /mnt my:tag <shfmt arguments>
 
@@ -102,7 +105,6 @@ The following editor integrations wrap `shfmt`:
 
 Other noteworthy integrations include:
 
-- Alternative docker image by [PeterDaveHello][dockerized-peterdavehello]
 - [modd] - A developer tool that responds to filesystem changes
 - [prettier-plugin-sh] - [Prettier] plugin using [mvdan-sh]
 - [sh-checker] - A GitHub Action that performs static analysis for shell scripts
@@ -115,7 +117,6 @@ Other noteworthy integrations include:
 [BashSupport-Pro]: https://www.bashsupport.com/manual/editor/formatter/
 [debian]: https://tracker.debian.org/pkg/shfmt
 [docker]: https://hub.docker.com/r/mvdan/shfmt/
-[dockerized-peterdavehello]: https://github.com/PeterDaveHello/docker-shfmt
 [editorconfig]: https://editorconfig.org/
 [examples]: https://pkg.go.dev/mvdan.cc/sh/v3/syntax#pkg-examples
 [format-shell]: https://atom.io/packages/format-shell
