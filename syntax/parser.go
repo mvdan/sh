@@ -1009,7 +1009,7 @@ func (p *Parser) ensureNoNested() {
 
 func (p *Parser) wordPart() WordPart {
 	switch p.tok {
-	case _Lit, _LitWord:
+	case _Lit, _LitWord, _LitRedir:
 		l := p.lit(p.pos, p.val)
 		p.next()
 		return l
