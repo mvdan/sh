@@ -91,7 +91,7 @@ var printTests = []printCase{
 	{"if a; then b\nelse c\nfi", "if a; then\n\tb\nelse\n\tc\nfi"},
 	samePrint("foo >&2 <f bar"),
 	samePrint("foo >&2 bar <f"),
-	{"foo >&2 bar <f bar2", "foo >&2 bar bar2 <f"},
+	{"foo >&2>/dev/null", "foo >&2 >/dev/null"},
 	{"foo <<EOF bar\nl1\nEOF", "foo bar <<EOF\nl1\nEOF"},
 	samePrint("foo <<\\\\\\\\EOF\nbar\n\\\\EOF"),
 	samePrint("foo <<\"\\EOF\"\nbar\n\\EOF"),
