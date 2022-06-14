@@ -25,7 +25,7 @@ quick look at its default style. For example:
 For more information, see [its manpage](cmd/shfmt/shfmt.1.scd), which can be
 viewed directly as Markdown or rendered with [scdoc].
 
-Packages are available on [Alpine], [Arch], [Debian], [Docker], [FreeBSD],
+Packages are available on [Alpine], [Arch], [Debian], [Docker], [Fedora], [FreeBSD],
 [Homebrew], [MacPorts], [NixOS], [Scoop], [Snapcraft], [Void] and [webi].
 
 ### gosh
@@ -119,6 +119,7 @@ Other noteworthy integrations include:
 [docker]: https://hub.docker.com/r/mvdan/shfmt/
 [editorconfig]: https://editorconfig.org/
 [examples]: https://pkg.go.dev/mvdan.cc/sh/v3/syntax#pkg-examples
+[fedora]: https://packages.fedoraproject.org/pkgs/golang-mvdan-sh-3/shfmt/
 [format-shell]: https://atom.io/packages/format-shell
 [freebsd]: https://www.freshports.org/devel/shfmt
 [homebrew]: https://formulae.brew.sh/formula/shfmt
