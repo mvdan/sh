@@ -593,6 +593,14 @@ func (p *Printer) comments(comments ...Comment) {
 }
 
 func (p *Printer) wordParts(wps []WordPart, quoted bool) {
+	// We disallow unquoted escaped newlines between word parts below.
+	// However, we want to allow a leading escaped newline for cases such as:
+	//
+	//   foo <<< \
+	//     "bar baz"
+	if !quoted && !p.singleLine && wps[0].Pos().Line() > p.line {
+		p.bslashNewl()
+	}
 	for i, wp := range wps {
 		var next WordPart
 		if i+1 < len(wps) {
@@ -1413,10 +1421,7 @@ func (p *Printer) assigns(assigns []*Assign) {
 			// because that can result in indentation, thus
 			// splitting "foo=bar" into "foo= bar".
 			p.line = a.Value.Pos().Line()
-			// Similar to the above, we want to print the word as if it were
-			// quoted, as otherwise escaped newlines could split
 			p.word(a.Value)
-			// p.wordParts(a.Value.Parts, true)
 		} else if a.Array != nil {
 			p.wantSpace = spaceNotRequired
 			p.WriteByte('(')
