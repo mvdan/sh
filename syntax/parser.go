@@ -460,7 +460,7 @@ func (p *Parser) nextPos() Pos {
 
 func (p *Parser) lit(pos Pos, val string) *Lit {
 	if len(p.litBatch) == 0 {
-		p.litBatch = make([]Lit, 128)
+		p.litBatch = make([]Lit, 64)
 	}
 	l := &p.litBatch[0]
 	p.litBatch = p.litBatch[1:]
@@ -472,7 +472,7 @@ func (p *Parser) lit(pos Pos, val string) *Lit {
 
 func (p *Parser) word(parts []WordPart) *Word {
 	if len(p.wordBatch) == 0 {
-		p.wordBatch = make([]Word, 64)
+		p.wordBatch = make([]Word, 32)
 	}
 	w := &p.wordBatch[0]
 	p.wordBatch = p.wordBatch[1:]
@@ -482,7 +482,7 @@ func (p *Parser) word(parts []WordPart) *Word {
 
 func (p *Parser) wps(wp WordPart) []WordPart {
 	if len(p.wpsBatch) == 0 {
-		p.wpsBatch = make([]WordPart, 64)
+		p.wpsBatch = make([]WordPart, 32)
 	}
 	wps := p.wpsBatch[:1:1]
 	p.wpsBatch = p.wpsBatch[1:]
@@ -492,7 +492,7 @@ func (p *Parser) wps(wp WordPart) []WordPart {
 
 func (p *Parser) stmt(pos Pos) *Stmt {
 	if len(p.stmtBatch) == 0 {
-		p.stmtBatch = make([]Stmt, 64)
+		p.stmtBatch = make([]Stmt, 32)
 	}
 	s := &p.stmtBatch[0]
 	p.stmtBatch = p.stmtBatch[1:]
