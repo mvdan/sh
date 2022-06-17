@@ -440,6 +440,12 @@ func (p *Parser) reset() {
 	p.parsingDoc = false
 	p.openBquotes, p.buriedBquotes = 0, 0
 	p.accComs, p.curComs = nil, &p.accComs
+	p.litBatch = nil
+	p.wordBatch = nil
+	p.wpsBatch = nil
+	p.stmtBatch = nil
+	p.stListBatch = nil
+	p.callBatch = nil
 }
 
 func (p *Parser) nextPos() Pos {
