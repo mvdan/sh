@@ -8,7 +8,7 @@
 // Windows need to use double backslashes or be within single quotes when given
 // to functions like Fields. For example:
 //
-//     shell.Fields("echo /foo/bar")     // on Unix-like
-//     shell.Fields("echo C:\\foo\\bar") // on Windows
-//     shell.Fields("echo 'C:\foo\bar'") // on Windows, with quotes
+//	shell.Fields("echo /foo/bar")     // on Unix-like
+//	shell.Fields("echo C:\\foo\\bar") // on Windows
+//	shell.Fields("echo 'C:\foo\bar'") // on Windows, with quotes
 package shell
