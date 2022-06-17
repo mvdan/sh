@@ -400,12 +400,11 @@ type Parser struct {
 	accComs []Comment
 	curComs *[]Comment
 
-	litBatch    []Lit
-	wordBatch   []Word
-	wpsBatch    []WordPart
-	stmtBatch   []Stmt
-	stListBatch []*Stmt
-	callBatch   []callAlloc
+	litBatch  []Lit
+	wordBatch []Word
+	wpsBatch  []WordPart
+	stmtBatch []Stmt
+	callBatch []callAlloc
 
 	readBuf [bufSize]byte
 	litBuf  [bufSize]byte
@@ -444,7 +443,6 @@ func (p *Parser) reset() {
 	p.wordBatch = nil
 	p.wpsBatch = nil
 	p.stmtBatch = nil
-	p.stListBatch = nil
 	p.callBatch = nil
 }
 
@@ -500,15 +498,6 @@ func (p *Parser) stmt(pos Pos) *Stmt {
 	p.stmtBatch = p.stmtBatch[1:]
 	s.Position = pos
 	return s
-}
-
-func (p *Parser) stList() []*Stmt {
-	if len(p.stListBatch) == 0 {
-		p.stListBatch = make([]*Stmt, 256)
-	}
-	stmts := p.stListBatch[:0:4]
-	p.stListBatch = p.stListBatch[4:]
-	return stmts
 }
 
 type callAlloc struct {
@@ -928,9 +917,6 @@ func (p *Parser) stmtList(stops ...string) ([]*Stmt, []Comment) {
 	var stmts []*Stmt
 	var last []Comment
 	fn := func(s *Stmt) bool {
-		if stmts == nil {
-			stmts = p.stList()
-		}
 		stmts = append(stmts, s)
 		return true
 	}
