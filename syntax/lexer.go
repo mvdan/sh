@@ -1068,7 +1068,7 @@ func (p *Parser) quotedHdocWord() *Word {
 			if val == "" {
 				return nil
 			}
-			return p.word(p.wps(p.lit(pos, val)))
+			return p.wordOne(p.lit(pos, val))
 		}
 	}
 }

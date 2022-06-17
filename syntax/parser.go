@@ -401,8 +401,7 @@ type Parser struct {
 	curComs *[]Comment
 
 	litBatch  []Lit
-	wordBatch []Word
-	wpsBatch  []WordPart
+	wordBatch []wordAlloc
 	stmtBatch []Stmt
 	callBatch []callAlloc
 
@@ -441,7 +440,6 @@ func (p *Parser) reset() {
 	p.accComs, p.curComs = nil, &p.accComs
 	p.litBatch = nil
 	p.wordBatch = nil
-	p.wpsBatch = nil
 	p.stmtBatch = nil
 	p.callBatch = nil
 }
@@ -470,24 +468,32 @@ func (p *Parser) lit(pos Pos, val string) *Lit {
 	return l
 }
 
-func (p *Parser) word(parts []WordPart) *Word {
+type wordAlloc struct {
+	word  Word
+	parts [1]WordPart
+}
+
+func (p *Parser) wordAnyNumber() *Word {
 	if len(p.wordBatch) == 0 {
-		p.wordBatch = make([]Word, 32)
+		p.wordBatch = make([]wordAlloc, 32)
 	}
-	w := &p.wordBatch[0]
+	alloc := &p.wordBatch[0]
 	p.wordBatch = p.wordBatch[1:]
-	w.Parts = parts
+	w := &alloc.word
+	w.Parts = p.wordParts(alloc.parts[:0])
 	return w
 }
 
-func (p *Parser) wps(wp WordPart) []WordPart {
-	if len(p.wpsBatch) == 0 {
-		p.wpsBatch = make([]WordPart, 32)
+func (p *Parser) wordOne(part WordPart) *Word {
+	if len(p.wordBatch) == 0 {
+		p.wordBatch = make([]wordAlloc, 32)
 	}
-	wps := p.wpsBatch[:1:1]
-	p.wpsBatch = p.wpsBatch[1:]
-	wps[0] = wp
-	return wps
+	alloc := &p.wordBatch[0]
+	p.wordBatch = p.wordBatch[1:]
+	w := &alloc.word
+	w.Parts = alloc.parts[:1]
+	w.Parts[0] = part
+	return w
 }
 
 func (p *Parser) stmt(pos Pos) *Stmt {
@@ -640,7 +646,7 @@ func (p *Parser) doHeredocs() {
 			// should. Look into it.
 			l := p.lit(p.nextPos(), "")
 			if r.Hdoc == nil {
-				r.Hdoc = p.word(p.wps(l))
+				r.Hdoc = p.wordOne(l)
 			} else {
 				r.Hdoc.Parts = append(r.Hdoc.Parts, l)
 			}
@@ -960,8 +966,8 @@ func (p *Parser) invalidStmtStart() {
 }
 
 func (p *Parser) getWord() *Word {
-	if parts := p.wordParts(); len(parts) > 0 && p.err == nil {
-		return p.word(parts)
+	if w := p.wordAnyNumber(); len(w.Parts) > 0 && p.err == nil {
+		return w
 	}
 	return nil
 }
@@ -976,19 +982,18 @@ func (p *Parser) getLit() *Lit {
 	return nil
 }
 
-func (p *Parser) wordParts() (wps []WordPart) {
+func (p *Parser) wordParts(wps []WordPart) []WordPart {
 	for {
 		n := p.wordPart()
 		if n == nil {
-			return
+			if len(wps) == 0 {
+				return nil // normalize empty lists into nil
+			}
+			return wps
 		}
-		if wps == nil {
-			wps = p.wps(n)
-		} else {
-			wps = append(wps, n)
-		}
+		wps = append(wps, n)
 		if p.spaced {
-			return
+			return wps
 		}
 	}
 }
@@ -1206,11 +1211,17 @@ func (p *Parser) wordPart() WordPart {
 }
 
 func (p *Parser) dblQuoted() *DblQuoted {
-	q := &DblQuoted{Left: p.pos, Dollar: p.tok == dollDblQuote}
+	alloc := &struct {
+		quoted DblQuoted
+		parts  [1]WordPart
+	}{
+		quoted: DblQuoted{Left: p.pos, Dollar: p.tok == dollDblQuote},
+	}
+	q := &alloc.quoted
 	old := p.quote
 	p.quote = dblQuotes
 	p.next()
-	q.Parts = p.wordParts()
+	q.Parts = p.wordParts(alloc.parts[:0])
 	p.quote = old
 	q.Right = p.pos
 	if !p.got(dblQuote) {
@@ -1492,7 +1503,7 @@ func (p *Parser) getAssign(needEqual bool) *Assign {
 		left := p.lit(posAddCol(p.pos, 1), p.val[p.eqlOffs+1:])
 		if left.Value != "" {
 			left.ValuePos = posAddCol(left.ValuePos, p.eqlOffs)
-			as.Value = p.word(p.wps(left))
+			as.Value = p.wordOne(left)
 		}
 		p.next()
 	} else { // foo[x]=bar
@@ -1794,7 +1805,7 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 			}
 			p.funcDecl(s, name, name.ValuePos, true)
 		} else {
-			p.callExpr(s, p.word(p.wps(name)), false)
+			p.callExpr(s, p.wordOne(name), false)
 		}
 	case rdrOut, appOut, rdrIn, dplIn, dplOut, clbOut, rdrInOut,
 		hdoc, dashHdoc, wordHdoc, rdrAll, appAll, _LitRedir:
@@ -1812,7 +1823,7 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 			p.callExpr(s, nil, true)
 			break
 		}
-		w := p.word(p.wordParts())
+		w := p.wordAnyNumber()
 		if p.got(leftParen) {
 			p.posErr(w.Pos(), "invalid func name")
 		}
@@ -2394,16 +2405,14 @@ loop:
 				ce.Assigns = append(ce.Assigns, p.getAssign(true))
 				break
 			}
-			ce.Args = append(ce.Args, p.word(
-				p.wps(p.lit(p.pos, p.val)),
-			))
+			ce.Args = append(ce.Args, p.wordOne(p.lit(p.pos, p.val)))
 			p.next()
 		case _Lit:
 			if len(ce.Args) == 0 && p.hasValidIdent() {
 				ce.Assigns = append(ce.Assigns, p.getAssign(true))
 				break
 			}
-			ce.Args = append(ce.Args, p.word(p.wordParts()))
+			ce.Args = append(ce.Args, p.wordAnyNumber())
 		case bckQuote:
 			if p.backquoteEnd() {
 				break loop
@@ -2412,7 +2421,7 @@ loop:
 		case dollBrace, dollDblParen, dollParen, dollar, cmdIn, cmdOut,
 			sglQuote, dollSglQuote, dblQuote, dollDblQuote, dollBrack,
 			globQuest, globStar, globPlus, globAt, globExcl:
-			ce.Args = append(ce.Args, p.word(p.wordParts()))
+			ce.Args = append(ce.Args, p.wordAnyNumber())
 		case rdrOut, appOut, rdrIn, dplIn, dplOut, clbOut, rdrInOut,
 			hdoc, dashHdoc, wordHdoc, rdrAll, appAll, _LitRedir:
 			p.doRedirect(s)
