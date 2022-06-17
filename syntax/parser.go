@@ -574,39 +574,37 @@ func (p *Parser) postNested(s saveState) {
 }
 
 func (p *Parser) unquotedWordBytes(w *Word) ([]byte, bool) {
-	var buf bytes.Buffer
+	buf := make([]byte, 0, 4)
 	didUnquote := false
 	for _, wp := range w.Parts {
-		if p.unquotedWordPart(&buf, wp, false) {
-			didUnquote = true
-		}
+		buf, didUnquote = p.unquotedWordPart(buf, wp, false)
 	}
-	return buf.Bytes(), didUnquote
+	return buf, didUnquote
 }
 
-func (p *Parser) unquotedWordPart(buf *bytes.Buffer, wp WordPart, quotes bool) (quoted bool) {
+func (p *Parser) unquotedWordPart(buf []byte, wp WordPart, quotes bool) (_ []byte, quoted bool) {
 	switch x := wp.(type) {
 	case *Lit:
 		for i := 0; i < len(x.Value); i++ {
 			if b := x.Value[i]; b == '\\' && !quotes {
 				if i++; i < len(x.Value) {
-					buf.WriteByte(x.Value[i])
+					buf = append(buf, x.Value[i])
 				}
 				quoted = true
 			} else {
-				buf.WriteByte(b)
+				buf = append(buf, b)
 			}
 		}
 	case *SglQuoted:
-		buf.WriteString(x.Value)
+		buf = append(buf, []byte(x.Value)...)
 		quoted = true
 	case *DblQuoted:
 		for _, wp2 := range x.Parts {
-			p.unquotedWordPart(buf, wp2, true)
+			buf, _ = p.unquotedWordPart(buf, wp2, true)
 		}
 		quoted = true
 	}
-	return
+	return buf, quoted
 }
 
 func (p *Parser) doHeredocs() {
