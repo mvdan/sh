@@ -235,16 +235,16 @@ func (w *wrappedReader) Read(p []byte) (n int, err error) {
 //
 // One can imagine a simple interactive shell implementation as follows:
 //
-//         fmt.Fprintf(os.Stdout, "$ ")
-//         parser.Interactive(os.Stdin, func(stmts []*syntax.Stmt) bool {
-//                 if parser.Incomplete() {
-//                         fmt.Fprintf(os.Stdout, "> ")
-//                         return true
-//                 }
-//                 run(stmts)
-//                 fmt.Fprintf(os.Stdout, "$ ")
-//                 return true
-//         }
+//	fmt.Fprintf(os.Stdout, "$ ")
+//	parser.Interactive(os.Stdin, func(stmts []*syntax.Stmt) bool {
+//		if parser.Incomplete() {
+//			fmt.Fprintf(os.Stdout, "> ")
+//			return true
+//		}
+//		run(stmts)
+//		fmt.Fprintf(os.Stdout, "$ ")
+//		return true
+//	}
 //
 // If the callback function returns false, parsing is stopped and the function
 // is not called again.
