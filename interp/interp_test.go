@@ -2072,6 +2072,23 @@ set +o pipefail
 	{"shopt -u -o noexec; echo foo_interp_missing", "foo_interp_missing\n"},
 	{"shopt -u globstar; shopt globstar | grep 'off$' | wc -l | tr -d ' '", "1\n"},
 	{"shopt -s globstar; shopt globstar | grep 'off$' | wc -l | tr -d ' '", "0\n"},
+	{"shopt extglob | grep 'off' | wc -l | tr -d ' '", "1\n"},
+	{
+		"shopt inherit_errexit",
+		"inherit_errexit\ton\t(\"off\" not supported)\n #JUSTERR",
+	},
+	{
+		"shopt -s extglob",
+		"shopt: invalid option name \"extglob\" \"off\" (\"on\" not supported)\nexit status 1 #IGNORE",
+	},
+	{
+		"shopt -s interactive_comments",
+		"shopt: invalid option name \"interactive_comments\" \"on\" (\"off\" not supported)\nexit status 1 #IGNORE",
+	},
+	{
+		"shopt -s foo",
+		"shopt: invalid option name \"foo\"\nexit status 1 #JUSTERR",
+	},
 
 	// IFS
 	{`echo -n "$IFS"`, " \t\n"},
