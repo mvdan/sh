@@ -313,6 +313,8 @@ var runTests = []runTest{
 	{`echo a'b'c"d"e`, "abcde\n"},
 	{`a=" b c "; echo $a`, "b c\n"},
 	{`a=" b c "; echo "$a"`, " b c \n"},
+	{`a=" b c "; echo foo${a}bar`, "foo b c bar\n"},
+	{`a="b    c"; echo foo${a}bar`, "foob cbar\n"},
 	{`echo "$(echo ' b c ')"`, " b c \n"},
 	{"echo ''", "\n"},
 	{`$(echo)`, ""},
