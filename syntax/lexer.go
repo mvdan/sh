@@ -503,7 +503,7 @@ func (p *Parser) regToken(r rune) token {
 			if r = p.rune(); r == '-' {
 				p.rune()
 				return dashHdoc
-			} else if r == '<' && p.lang != LangPOSIX {
+			} else if r == '<' {
 				p.rune()
 				return wordHdoc
 			}
