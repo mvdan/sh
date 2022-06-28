@@ -546,11 +546,22 @@ func (cfg *Config) wordFields(wps []syntax.WordPart) ([][]fieldPart, error) {
 		curField = nil
 	}
 	splitAdd := func(val string) {
-		for i, field := range strings.FieldsFunc(val, cfg.ifsRune) {
-			if i > 0 {
+		fieldStart := -1
+		for i, r := range val {
+			if cfg.ifsRune(r) {
+				if fieldStart >= 0 { // ending a field
+					curField = append(curField, fieldPart{val: val[fieldStart:i]})
+					fieldStart = -1
+				}
 				flush()
+			} else {
+				if fieldStart < 0 { // starting a new field
+					fieldStart = i
+				}
 			}
-			curField = append(curField, fieldPart{val: field})
+		}
+		if fieldStart >= 0 { // ending a field without IFS
+			curField = append(curField, fieldPart{val: val[fieldStart:]})
 		}
 	}
 	for i, wp := range wps {
