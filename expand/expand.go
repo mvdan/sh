@@ -661,31 +661,57 @@ func (cfg *Config) wordFields(wps []syntax.WordPart) ([][]fieldPart, error) {
 }
 
 // quotedElemFields returns the list of elements resulting from a quoted
-// parameter expansion if it was in the form of ${*}, ${@}, ${foo[*], ${foo[@]},
-// or ${!foo@}.
+// parameter expansion that should be treated especially, like "${foo[@]}".
 func (cfg *Config) quotedElemFields(pe *syntax.ParamExp) []string {
 	if pe == nil || pe.Length || pe.Width {
 		return nil
 	}
+	name := pe.Param.Value
 	if pe.Excl {
-		if pe.Names == syntax.NamesPrefixWords {
+		switch pe.Names {
+		case syntax.NamesPrefixWords: // "${!prefix@}"
 			return cfg.namesByPrefix(pe.Param.Value)
+		case syntax.NamesPrefix: // "${!prefix*}"
+			return nil
+		}
+		switch nodeLit(pe.Index) {
+		case "@": // "${!name[@]}"
+			switch vr := cfg.Env.Get(name); vr.Kind {
+			case Indexed:
+				keys := make([]string, 0, len(vr.Map))
+				for key := range vr.List {
+					keys = append(keys, strconv.Itoa(key))
+				}
+				return keys
+			case Associative:
+				keys := make([]string, 0, len(vr.Map))
+				for key := range vr.Map {
+					keys = append(keys, key)
+				}
+				return keys
+			}
 		}
 		return nil
 	}
-	name := pe.Param.Value
 	switch name {
-	case "*":
+	case "*": // "${*}"
 		return []string{cfg.ifsJoin(cfg.Env.Get(name).List)}
-	case "@":
+	case "@": // "${@}"
 		return cfg.Env.Get(name).List
 	}
 	switch nodeLit(pe.Index) {
-	case "@":
-		if vr := cfg.Env.Get(name); vr.Kind == Indexed {
+	case "@": // "${name[@]}"
+		switch vr := cfg.Env.Get(name); vr.Kind {
+		case Indexed:
 			return vr.List
+		case Associative:
+			elems := make([]string, 0, len(vr.Map))
+			for _, elem := range vr.Map {
+				elems = append(elems, elem)
+			}
+			return elems
 		}
-	case "*":
+	case "*": // "${name[*]}"
 		if vr := cfg.Env.Get(name); vr.Kind == Indexed {
 			return []string{cfg.ifsJoin(vr.List)}
 		}

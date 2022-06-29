@@ -2310,6 +2310,23 @@ set +o pipefail
 		`a=(b); echo ${a[-2]}`,
 		"negative array index\nexit status 1 #JUSTERR",
 	},
+	// TODO: also test with gaps in arrays.
+	{
+		`a=([0]=' x ' [1]=' y '); for v in "${a[@]}"; do echo "$v"; done`,
+		" x \n y \n",
+	},
+	{
+		`a=([0]=' x ' [1]=' y '); for v in "${a[*]}"; do echo "$v"; done`,
+		" x   y \n",
+	},
+	{
+		`a=([0]=' x ' [1]=' y '); for v in "${!a[@]}"; do echo "$v"; done`,
+		"0\n1\n",
+	},
+	{
+		`a=([0]=' x ' [1]=' y '); for v in "${!a[*]}"; do echo "$v"; done`,
+		"0 1\n",
+	},
 
 	// associative arrays
 	{
@@ -2352,6 +2369,22 @@ set +o pipefail
 	{
 		`a=(['x']=b); echo ${a['y']}`,
 		"\n #IGNORE bash requires -A",
+	},
+	{
+		`declare -A a=(['a  1']=' x ' ['b  2']=' y '); for v in "${a[@]}"; do echo "$v"; done | sort`,
+		" x \n y \n",
+	},
+	{
+		`declare -A a=(['a  1']=' x ' ['b  2']=' y '); for v in "${a[*]}"; do echo "$v"; done | sort`,
+		" x   y \n",
+	},
+	{
+		`declare -A a=(['a  1']=' x ' ['b  2']=' y '); for v in "${!a[@]}"; do echo "$v"; done | sort`,
+		"a  1\nb  2\n",
+	},
+	{
+		`declare -A a=(['a  1']=' x ' ['b  2']=' y '); for v in "${!a[*]}"; do echo "$v"; done | sort`,
+		"a  1 b  2\n",
 	},
 
 	// weird assignments
@@ -2500,6 +2533,10 @@ set +o pipefail
 	//        "declare -n foo_interp_missing=bar_interp_missing bar_interp_missing=baz; foo_interp_missing=xxx; echo $foo_interp_missing $bar_interp_missing; echo $baz",
 	//        "xxx xxx\nxxx\n",
 	//},
+	{
+		"echo ${!@}-${!*}-${!1}; set -- foo_interp_missing; echo ${!@}-${!*}-${!1}; foo_interp_missing=value; echo ${!@}-${!*}-${!1}",
+		"--\n--\nvalue-value-value\n",
+	},
 
 	// read-only vars
 	{"declare -r foo_interp_missing=bar_interp_missing; echo $foo_interp_missing", "bar_interp_missing\n"},
