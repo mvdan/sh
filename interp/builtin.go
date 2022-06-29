@@ -668,29 +668,44 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			}
 		}
 		args := fp.args()
+		bash := !posixOpts
 		if len(args) == 0 {
-			if !posixOpts {
-				for i, name := range bashOptsTable {
-					r.printOptLine(name, r.opts[len(shellOptsTable)+i])
+			if bash {
+				for i, opt := range bashOptsTable {
+					r.printOptLine(opt.name, r.opts[len(shellOptsTable)+i], opt.supported)
 				}
 				break
 			}
 			for i, opt := range &shellOptsTable {
-				r.printOptLine(opt.name, r.opts[i])
+				r.printOptLine(opt.name, r.opts[i], true)
 			}
 			break
 		}
 		for _, arg := range args {
-			opt := r.optByName(arg, !posixOpts)
+			i, opt := r.optByName(arg, bash)
 			if opt == nil {
 				r.errf("shopt: invalid option name %q\n", arg)
 				return 1
 			}
+
+			var (
+				bo        *bashOpt
+				supported = true // default for shell options
+			)
+			if bash {
+				bo = &bashOptsTable[i-len(shellOptsTable)]
+				supported = bo.supported
+			}
+
 			switch mode {
 			case "-s", "-u":
+				if bash && !supported {
+					r.errf("shopt: invalid option name %q %q (%q not supported)\n", arg, r.optStatusText(bo.defaultState), r.optStatusText(!bo.defaultState))
+					return 1
+				}
 				*opt = mode == "-s"
 			default: // ""
-				r.printOptLine(arg, *opt)
+				r.printOptLine(arg, *opt, supported)
 			}
 		}
 		r.updateExpandOpts()
@@ -890,12 +905,13 @@ func mapfileSplit(delim byte, dropDelim bool) func(data []byte, atEOF bool) (adv
 	}
 }
 
-func (r *Runner) printOptLine(name string, enabled bool) {
-	status := "off"
-	if enabled {
-		status = "on"
+func (r *Runner) printOptLine(name string, enabled, supported bool) {
+	state := r.optStatusText(enabled)
+	if supported {
+		r.outf("%s\t%s\n", name, state)
+		return
 	}
-	r.outf("%s\t%s\n", name, status)
+	r.outf("%s\t%s\t(%q not supported)\n", name, state, r.optStatusText(!enabled))
 }
 
 func (r *Runner) readLine(raw bool) ([]byte, error) {
@@ -1069,4 +1085,12 @@ func (g *getopts) next(optstr string, args []string) (opt rune, optarg string, d
 	}
 
 	return opt, optarg, false
+}
+
+// optStatusText returns a shell option's status text display
+func (r *Runner) optStatusText(status bool) string {
+	if status {
+		return "on"
+	}
+	return "off"
 }
