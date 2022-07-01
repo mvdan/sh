@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -925,26 +926,10 @@ func (r *Runner) readLine(raw bool) ([]byte, error) {
 		return nil, errors.New("interp: can't read, there's no stdin")
 	}
 
-	// log.Printf("readLine")
+	log.Printf("readLine")
 	stdin := r.stdin
 	if eofWriter, ok := stdin.(*EofWriter); ok {
-		// log.Printf("readLine starting NewEofReader")
-		eofReader, err := eofWriter.NewReader(r.ectx)
-		if err != nil {
-			return nil, err
-		}
-		stdin = eofReader
-		defer func() {
-			// log.Printf("readLine: eofWriter.EOF()")
-			eofWriter.CloseReader()
-		}()
-
-		// go func() {
-		// 	log.Printf("readLine cancel goroutine sleeping 5s")
-		// 	time.Sleep(5 * time.Second)
-		// 	log.Printf("readLine cancelling the EofReader")
-		// 	cr.Cancel()
-		// }()
+		stdin = eofWriter.R
 	}
 
 	var line []byte
@@ -953,7 +938,7 @@ func (r *Runner) readLine(raw bool) ([]byte, error) {
 	for {
 		var buf [1]byte
 		n, err := stdin.Read(buf[:])
-		// log.Printf("readline read %q, %d, %v", buf[:n], n, err)
+		log.Printf("readline read %q, %d, %v", buf[:n], n, err)
 		if n > 0 {
 			b := buf[0]
 			switch {

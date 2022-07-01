@@ -100,15 +100,13 @@ func DefaultExecHandler(killTimeout time.Duration) ExecHandlerFunc {
 		}
 
 		stdin := hc.Stdin
-		var eofReader io.ReadCloser
 		eofWriter, ok := stdin.(*EofWriter)
 		if ok {
-			eofReader, err = eofWriter.NewReader(ctx)
+			log.Printf("DefaultExecHandler: %s: eofReader: %p", path, eofWriter.R)
+			stdin, err = eofWriter.GetReader()
 			if err != nil {
 				return err
 			}
-			log.Printf("DefaultExecHandler: %s: eofReader: %p", path, eofReader)
-			stdin = eofReader
 		}
 
 		cmd := exec.Cmd{
@@ -153,10 +151,9 @@ func DefaultExecHandler(killTimeout time.Duration) ExecHandlerFunc {
 			// 	log.Printf("eofWriter.EOF error: %v", eofErr)
 			// }
 		}
-		if eofWriter != nil {
-			log.Printf("interp/handler: EofWriter.CloseReader(), %p", eofReader)
-			eofWriter.CloseReader()
-		}
+		// if eofWriter != nil {
+		// 	eofWriter.CloseReader()
+		// }
 
 		switch x := err.(type) {
 		case *exec.ExitError:
