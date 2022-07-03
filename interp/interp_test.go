@@ -129,8 +129,7 @@ func TestMain(m *testing.M) {
 	}
 	os.Setenv("GOSH_PROG", prog)
 
-	// Set the locale to computer-friendly English and UTF-8.
-	// Some systems like Arch miss C.UTF8, so fall back to the US English locale.
+	// Mimic syntax/parser_test.go's TestMain.
 	if out, _ := exec.Command("locale", "-a").Output(); strings.Contains(
 		strings.ToLower(string(out)), "c.utf",
 	) {
