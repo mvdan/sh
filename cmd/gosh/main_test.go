@@ -141,6 +141,16 @@ var interactiveTests = []struct {
 	},
 	{
 		pairs: []string{
+			"echo *; :\n",
+			"main.go main_test.go\n$ ",
+			"echo *\n",
+			"main.go main_test.go\n$ ",
+			"shopt -s globstar; echo **\n",
+			"main.go main_test.go\n$ ",
+		},
+	},
+	{
+		pairs: []string{
 			"echo foo; exit 0; echo bar\n",
 			"foo\n",
 			"echo baz\n",
@@ -185,9 +195,11 @@ func TestInteractive(t *testing.T) {
 
 			line := 1
 			for len(tc.pairs) > 0 {
+				t.Logf("write %q", tc.pairs[0])
 				if _, err := io.WriteString(inWriter, tc.pairs[0]); err != nil {
 					t.Fatal(err)
 				}
+				t.Logf("read %q", tc.pairs[1])
 				if err := readString(outReader, tc.pairs[1]); err != nil {
 					t.Fatal(err)
 				}
