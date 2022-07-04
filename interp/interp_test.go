@@ -1340,7 +1340,7 @@ var runTests = []runTest{
 	},
 	{`mkdir d; old=$PWD; cd d & wait; [[ $old == "$PWD" ]]`, ""},
 	{
-		"f() { echo 1; }; { sleep 0.01s; f; } & f() { echo 2; }; wait",
+		"f() { echo 1; }; { sleep 0.01; f; } & f() { echo 2; }; wait",
 		"1\n",
 	},
 
@@ -3616,10 +3616,9 @@ var testBuiltinsMap = map[string]func(HandlerContext, []string) error{
 		return nil
 	},
 	"sleep": func(hc HandlerContext, args []string) error {
-		// Note that, unlike GNU sleep, we don't assume a default unit
-		// of seconds.
 		for _, arg := range args {
-			d, err := time.ParseDuration(arg)
+			// assume and default unit to be in seconds
+			d, err := time.ParseDuration(fmt.Sprintf("%ss", arg))
 			if err != nil {
 				return err
 			}
