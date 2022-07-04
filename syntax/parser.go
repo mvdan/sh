@@ -1644,6 +1644,11 @@ func (p *Parser) doRedirect(s *Stmt) {
 			}
 			p.doHeredocs()
 		}
+	case WordHdoc:
+		if p.lang == LangPOSIX {
+			p.langErr(r.OpPos, "herestrings", LangBash, LangMirBSDKorn)
+		}
+		fallthrough
 	default:
 		r.Word = p.followWordTok(token(r.Op), r.OpPos)
 	}

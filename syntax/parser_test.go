@@ -1932,6 +1932,14 @@ var shellTests = []errorCase{
 		posix: `1:11: slicing is a bash/mksh feature`,
 	},
 	{
+		in:    "foo <<< bar",
+		posix: `1:5: herestrings are a bash/mksh feature`,
+	},
+	{
+		in:    "foo << < bar",
+		posix: `1:5: << must be followed by a word`,
+	},
+	{
 		in:    "echo ${foo,bar}",
 		posix: `1:11: this expansion operator is a bash feature`,
 		mksh:  `1:11: this expansion operator is a bash feature`,
