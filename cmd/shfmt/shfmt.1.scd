@@ -74,7 +74,7 @@ predictable. Some aspects of the format can be configured via printer flags.
 *-bn*, *--binary-next-line*
 	Binary ops like *&&* and *|* may start a line.
 
-*-ci*, *--switch-case-indent*
+*-ci*, *--case-indent*
 	Switch cases will be indented.
 
 *-sr*, *--space-redirects*
