@@ -25,8 +25,8 @@ stderr 'cannot coexist'
 ! shfmt -ln=bad
 stderr 'unknown shell language'
 
-! shfmt -tojson file
-stderr '-tojson can only be used with stdin'
+! shfmt --to-json file
+stderr '--to-json can only be used with stdin'
 
 ! shfmt -filename=foo file
 stderr '-filename can only be used with stdin'

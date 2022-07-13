@@ -91,8 +91,11 @@ predictable. Some aspects of the format can be configured via printer flags.
 *-f*, *--find*
 	Recursively find all shell files and print the paths.
 
-*-tojson*
+*--to-json*
 	Print syntax tree to stdout as a typed JSON.
+
+*--from-json*
+	Read syntax tree from stdin as a typed JSON.
 
 # EXAMPLES
 
