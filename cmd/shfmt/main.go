@@ -69,7 +69,8 @@ var (
 	keepPadding = &boolFlag{"kp", "keep-padding", false}
 	funcNext    = &boolFlag{"fn", "func-next-line", false}
 
-	toJSON = &boolFlag{"tojson", "", false} // TODO(v4): consider "to-json" for consistency
+	toJSON   = &boolFlag{"tojson", "to-json", false} // TODO(v4): remove "tojson" for consistency
+	fromJSON = &boolFlag{"", "from-json", false}
 
 	// useEditorConfig will be false if any parser or printer flags were used.
 	useEditorConfig = true
@@ -89,7 +90,7 @@ var (
 	allFlags = []interface{}{
 		versionFlag, list, write, simplify, minify, find, diff,
 		lang, posix, filename,
-		indent, binNext, caseIndent, spaceRedirs, keepPadding, funcNext, toJSON,
+		indent, binNext, caseIndent, spaceRedirs, keepPadding, funcNext, toJSON, fromJSON,
 	}
 )
 
@@ -168,7 +169,8 @@ Printer options:
 Utilities:
 
   -f, --find   recursively find all shell files and print the paths
-  --tojson     print syntax tree to stdout as a typed JSON
+  --to-json    print syntax tree to stdout as a typed JSON
+  --from-json  read syntax tree from stdin as a typed JSON
 
 For more information, see 'man shfmt' and https://github.com/mvdan/sh.
 `)
@@ -237,6 +239,9 @@ For more information, see 'man shfmt' and https://github.com/mvdan/sh.
 	}
 	if flag.NArg() == 0 || (flag.NArg() == 1 && flag.Arg(0) == "-") {
 		name := "<standard input>"
+		if toJSON.val {
+			name = "" // the default is not useful there
+		}
 		if filename.val != "" {
 			name = filename.val
 		}
@@ -253,7 +258,7 @@ For more information, see 'man shfmt' and https://github.com/mvdan/sh.
 		return 1
 	}
 	if toJSON.val {
-		fmt.Fprintln(os.Stderr, "-tojson can only be used with stdin")
+		fmt.Fprintln(os.Stderr, "--to-json can only be used with stdin")
 		return 1
 	}
 	status := 0
@@ -436,22 +441,31 @@ func formatBytes(src []byte, path string, fileLang syntax.LangVariant) error {
 	} else {
 		syntax.Variant(fileLang)(parser)
 	}
-	prog, err := parser.Parse(bytes.NewReader(src), path)
-	if err != nil {
-		if s, ok := err.(syntax.LangError); ok && lang.val == syntax.LangAuto {
-			return fmt.Errorf("%w (parsed as %s via -%s=%s)", s, fileLang, lang.short, lang.val)
+	var node syntax.Node
+	var err error
+	if fromJSON.val {
+		node, err = readJSON(bytes.NewReader(src))
+		if err != nil {
+			return err
 		}
-		return err
+	} else {
+		node, err = parser.Parse(bytes.NewReader(src), path)
+		if err != nil {
+			if s, ok := err.(syntax.LangError); ok && lang.val == syntax.LangAuto {
+				return fmt.Errorf("%w (parsed as %s via -%s=%s)", s, fileLang, lang.short, lang.val)
+			}
+			return err
+		}
 	}
 	if simplify.val {
-		syntax.Simplify(prog)
+		syntax.Simplify(node)
 	}
 	if toJSON.val {
 		// must be standard input; fine to return
-		return writeJSON(out, prog, true)
+		return writeJSON(out, node, true)
 	}
 	writeBuf.Reset()
-	printer.Print(&writeBuf, prog)
+	printer.Print(&writeBuf, node)
 	res := writeBuf.Bytes()
 	if !bytes.Equal(src, res) {
 		if list.val {
