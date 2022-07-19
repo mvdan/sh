@@ -55,9 +55,7 @@ jobs:
       # Export environment variables for all stages.
       DOCKER_USER: ${{ secrets.DOCKER_USER }}
       DOCKER_DEPLOY_IMAGES: false
-      # Pushing READMEs to Dockerhub currently only works with username/password
-      # and not with personal access tokens (Step: Update DockerHub description)
-      DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+      DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
       DOCKER_REPO: shfmt
       # We use all platforms for which FROM images in our Dockerfile are
       # available.
@@ -76,7 +74,7 @@ jobs:
       # Get "https://proxy.golang.org/...": local error: tls: unexpected message
       # Get "https://proxy.golang.org/...": x509: certificate signed by unknown authority
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         fetch-depth: 0 # also fetch tags for 'git describe'
     # Enable docker daemon experimental support (for 'pull --platform').
@@ -89,8 +87,8 @@ jobs:
           echo '{ "experimental": true }' | sudo tee "$config"
         fi
         sudo systemctl restart docker
-    - uses: docker/setup-qemu-action@v1
-    - uses: docker/setup-buildx-action@v1
+    - uses: docker/setup-qemu-action@v2
+    - uses: docker/setup-buildx-action@v2
       with:
         driver-opts: network=host
     - name: Set up env vars
@@ -113,7 +111,7 @@ jobs:
         echo "DOCKER_BASE=test/${{ env.DOCKER_REPO }}" >> $GITHUB_ENV
         echo "DOCKER_BUILD_PLATFORMS=${DOCKER_PLATFORMS// /,}" >> $GITHUB_ENV
     - name: Build and push to local registry
-      uses: docker/build-push-action@v2
+      uses: docker/build-push-action@v3
       with:
         context: .
         file: ./cmd/shfmt/Dockerfile
@@ -121,7 +119,7 @@ jobs:
         push: true
         tags: localhost:5000/${{ env.DOCKER_BASE }}:${{ env.TAG }}
     - name: Build and push to local registry (alpine)
-      uses: docker/build-push-action@v2
+      uses: docker/build-push-action@v3
       with:
         context: .
         file: ./cmd/shfmt/Dockerfile
@@ -164,7 +162,7 @@ jobs:
       run: |
         missing=()
         [[ -n "${{ secrets.DOCKER_USER }}" ]] || missing+=(DOCKER_USER)
-        [[ -n "${{ secrets.DOCKER_PASSWORD }}" ]] || missing+=(DOCKER_PASSWORD)
+        [[ -n "${{ secrets.DOCKER_TOKEN }}" ]] || missing+=(DOCKER_TOKEN)
         for i in "${missing[@]}"; do
           echo "Missing github secret: $i"
         done
@@ -172,10 +170,10 @@ jobs:
         echo "DOCKER_DEPLOY_IMAGES=true" >> $GITHUB_ENV
     - name: Login to DockerHub
       if: ${{ env.DOCKER_DEPLOY_IMAGES == 'true' }}
-      uses: docker/login-action@v1
+      uses: docker/login-action@v2
       with:
         username: ${{ secrets.DOCKER_USER }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
+        password: ${{ secrets.DOCKER_TOKEN }}
     - name: Push images to DockerHub
       if: ${{ env.DOCKER_DEPLOY_IMAGES == 'true' }}
       run: |
@@ -200,9 +198,9 @@ jobs:
         done
     - name: Update DockerHub description
       if: ${{ env.DOCKER_DEPLOY_IMAGES == 'true' }}
-      uses: peter-evans/dockerhub-description@v2
+      uses: peter-evans/dockerhub-description@v3
       with:
         username: ${{ secrets.DOCKER_USER }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
+        password: ${{ secrets.DOCKER_TOKEN }}
         repository: ${{ secrets.DOCKER_USER }}/${{ env.DOCKER_REPO }}
         readme-filepath: README.md
