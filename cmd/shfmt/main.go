@@ -24,6 +24,7 @@ import (
 
 	"mvdan.cc/sh/v3/fileutil"
 	"mvdan.cc/sh/v3/syntax"
+	"mvdan.cc/sh/v3/syntax/typedjson"
 )
 
 // TODO: this flag business screams generics. try again with Go 1.18+.
@@ -444,7 +445,7 @@ func formatBytes(src []byte, path string, fileLang syntax.LangVariant) error {
 	var node syntax.Node
 	var err error
 	if fromJSON.val {
-		node, err = readJSON(bytes.NewReader(src))
+		node, err = typedjson.Decode(bytes.NewReader(src))
 		if err != nil {
 			return err
 		}
@@ -462,7 +463,9 @@ func formatBytes(src []byte, path string, fileLang syntax.LangVariant) error {
 	}
 	if toJSON.val {
 		// must be standard input; fine to return
-		return writeJSON(out, node, true)
+		// TODO: change the default behavior to be compact,
+		// and allow using --to-json=pretty or --to-json=indent.
+		return typedjson.EncodeOptions{Indent: "\t"}.Encode(out, node)
 	}
 	writeBuf.Reset()
 	printer.Print(&writeBuf, node)

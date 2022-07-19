@@ -1,7 +1,20 @@
 // Copyright (c) 2017, Daniel Martí <mvdan@mvdan.cc>
 // See LICENSE for licensing information
 
-package main
+// Package typedjson allows encoding and decoding shell syntax trees as JSON.
+// The decoding process needs to know what syntax node types to decode into,
+// so the "typed JSON" requires "Type" keys in some syntax tree node objects:
+//
+//   - The root node
+//   - Any node represented as an interface field in the parent Go type
+//
+// The types of all other nodes can be inferred from context alone.
+//
+// For the sake of efficiency and simplicity, the "Type" key
+// described above must be first in each JSON object.
+package typedjson
+
+// TODO: encoding and decoding nodes other than File is untested.
 
 import (
 	"encoding/json"
@@ -12,32 +25,50 @@ import (
 	"mvdan.cc/sh/v3/syntax"
 )
 
-func writeJSON(w io.Writer, node syntax.Node, pretty bool) error {
+// Encode is a shortcut for EncodeOptions.Encode, with the default options.
+func Encode(w io.Writer, node syntax.Node) error {
+	return EncodeOptions{}.Encode(w, node)
+}
+
+// EncodeOptions allows configuring how syntax nodes are encoded.
+type EncodeOptions struct {
+	Indent string // e.g. "\t"
+
+	// Allows us to add options later.
+}
+
+// Encode writes node to w in its typed JSON form,
+// as described in the package documentation.
+func (opts EncodeOptions) Encode(w io.Writer, node syntax.Node) error {
 	val := reflect.ValueOf(node)
-	encVal, _ := encode(val)
+	encVal, tname := encodeValue(val)
+	if tname == "" {
+		panic("node did not contain a named type?")
+	}
+	encVal.Elem().Field(0).SetString(tname)
 	enc := json.NewEncoder(w)
-	if pretty {
-		enc.SetIndent("", "\t")
+	if opts.Indent != "" {
+		enc.SetIndent("", opts.Indent)
 	}
 	return enc.Encode(encVal.Interface())
 }
 
-func encode(val reflect.Value) (reflect.Value, string) {
+func encodeValue(val reflect.Value) (reflect.Value, string) {
 	switch val.Kind() {
 	case reflect.Ptr:
-		elem := val.Elem()
-		if !elem.IsValid() {
+		if val.IsNil() {
 			break
 		}
-		return encode(elem)
+		return encodeValue(val.Elem())
 	case reflect.Interface:
 		if val.IsNil() {
 			break
 		}
-		enc, tname := encode(val.Elem())
-		if tname != "" {
-			enc.Elem().Field(0).SetString(tname)
+		enc, tname := encodeValue(val.Elem())
+		if tname == "" {
+			panic("interface did not contain a named type?")
 		}
+		enc.Elem().Field(0).SetString(tname)
 		return enc, ""
 	case reflect.Struct:
 		// Construct a new struct with an optional Type, Pos and End,
@@ -71,7 +102,7 @@ func encode(val reflect.Value) (reflect.Value, string) {
 			if ftyp.Type == exportedPosType {
 				encodePos(enc.Field(i), fval)
 			} else {
-				encElem, _ := encode(fval)
+				encElem, _ := encodeValue(fval)
 				if encElem.IsValid() {
 					enc.Field(i).Set(encElem)
 				}
@@ -88,7 +119,7 @@ func encode(val reflect.Value) (reflect.Value, string) {
 		enc := reflect.MakeSlice(anySliceType, n, n)
 		for i := 0; i < n; i++ {
 			elem := val.Index(i)
-			encElem, _ := encode(elem)
+			encElem, _ := encodeValue(elem)
 			enc.Index(i).Set(encElem)
 		}
 		return enc, ""
@@ -161,19 +192,32 @@ func decodePos(val reflect.Value, enc map[string]interface{}) {
 	val.Set(reflect.ValueOf(syntax.NewPos(offset, line, column)))
 }
 
-func readJSON(r io.Reader) (syntax.Node, error) {
+// Decode is a shortcut for DecodeOptions.Decode, with the default options.
+func Decode(r io.Reader) (syntax.Node, error) {
+	return DecodeOptions{}.Decode(r)
+}
+
+// DecodeOptions allows configuring how syntax nodes are encoded.
+type DecodeOptions struct {
+	// Empty for now; allows us to add options later.
+}
+
+// Decode writes node to w in its typed JSON form,
+// as described in the package documentation.
+func (opts DecodeOptions) Decode(r io.Reader) (syntax.Node, error) {
 	var enc interface{}
 	if err := json.NewDecoder(r).Decode(&enc); err != nil {
 		return nil, err
 	}
-	node := &syntax.File{}
-	if err := decode(reflect.ValueOf(node), enc); err != nil {
+	node := new(syntax.Node)
+	if err := decodeValue(reflect.ValueOf(node).Elem(), enc); err != nil {
 		return nil, err
 	}
-	return node, nil
+	return *node, nil
 }
 
 var nodeByName = map[string]reflect.Type{
+	"File": reflect.TypeOf((*syntax.File)(nil)).Elem(),
 	"Word": reflect.TypeOf((*syntax.Word)(nil)).Elem(),
 
 	"Lit":       reflect.TypeOf((*syntax.Lit)(nil)).Elem(),
@@ -215,7 +259,7 @@ var nodeByName = map[string]reflect.Type{
 	"CStyleLoop": reflect.TypeOf((*syntax.CStyleLoop)(nil)).Elem(),
 }
 
-func decode(val reflect.Value, enc interface{}) error {
+func decodeValue(val reflect.Value, enc interface{}) error {
 	switch enc := enc.(type) {
 	case map[string]interface{}:
 		if val.Kind() == reflect.Ptr && val.IsNil() {
@@ -246,14 +290,14 @@ func decode(val reflect.Value, enc interface{}) error {
 				decodePos(fval, fv.(map[string]interface{}))
 				continue
 			}
-			if err := decode(fval, fv); err != nil {
+			if err := decodeValue(fval, fv); err != nil {
 				return err
 			}
 		}
 	case []interface{}:
 		for _, encElem := range enc {
 			elem := reflect.New(val.Type().Elem()).Elem()
-			if err := decode(elem, encElem); err != nil {
+			if err := decodeValue(elem, encElem); err != nil {
 				return err
 			}
 			val.Set(reflect.Append(val, elem))

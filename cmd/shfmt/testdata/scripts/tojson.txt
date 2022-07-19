@@ -17,11 +17,14 @@ cmp stdout comment.sh.json
 
 -- empty.sh --
 -- empty.sh.json --
-{}
+{
+	"Type": "File"
+}
 -- simple.sh --
 foo
 -- simple.sh.json --
 {
+	"Type": "File",
 	"Pos": {
 		"Offset": 0,
 		"Line": 1,
@@ -109,6 +112,7 @@ foo
 ((2))
 -- arithmetic.sh.json --
 {
+	"Type": "File",
 	"Pos": {
 		"Offset": 0,
 		"Line": 1,
@@ -205,6 +209,7 @@ foo
 #
 -- comment.sh.json --
 {
+	"Type": "File",
 	"Pos": {
 		"Offset": 0,
 		"Line": 1,
