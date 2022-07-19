@@ -55,9 +55,7 @@ jobs:
       # Export environment variables for all stages.
       DOCKER_USER: ${{ secrets.DOCKER_USER }}
       DOCKER_DEPLOY_IMAGES: false
-      # Pushing READMEs to Dockerhub currently only works with username/password
-      # and not with personal access tokens (Step: Update DockerHub description)
-      DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+      DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
       DOCKER_REPO: shfmt
       # We use all platforms for which FROM images in our Dockerfile are
       # available.
@@ -164,7 +162,7 @@ jobs:
       run: |
         missing=()
         [[ -n "${{ secrets.DOCKER_USER }}" ]] || missing+=(DOCKER_USER)
-        [[ -n "${{ secrets.DOCKER_PASSWORD }}" ]] || missing+=(DOCKER_PASSWORD)
+        [[ -n "${{ secrets.DOCKER_TOKEN }}" ]] || missing+=(DOCKER_TOKEN)
         for i in "${missing[@]}"; do
           echo "Missing github secret: $i"
         done
@@ -175,7 +173,7 @@ jobs:
       uses: docker/login-action@v1
       with:
         username: ${{ secrets.DOCKER_USER }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
+        password: ${{ secrets.DOCKER_TOKEN }}
     - name: Push images to DockerHub
       if: ${{ env.DOCKER_DEPLOY_IMAGES == 'true' }}
       run: |
@@ -203,6 +201,6 @@ jobs:
       uses: peter-evans/dockerhub-description@v2
       with:
         username: ${{ secrets.DOCKER_USER }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
+        password: ${{ secrets.DOCKER_TOKEN }}
         repository: ${{ secrets.DOCKER_USER }}/${{ env.DOCKER_REPO }}
         readme-filepath: README.md
