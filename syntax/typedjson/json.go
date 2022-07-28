@@ -75,7 +75,8 @@ func encodeValue(val reflect.Value) (reflect.Value, string) {
 		// and then all the visible fields which aren't positions.
 		typ := val.Type()
 		fields := []reflect.StructField{typeField, posField, endField}
-		for _, field := range reflect.VisibleFields(typ) {
+		for i := 0; i < typ.NumField(); i++ {
+			field := typ.Field(i)
 			typ := anyType
 			if field.Type == posType {
 				typ = exportedPosType
