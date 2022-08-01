@@ -33,7 +33,7 @@ jobs:
   test-linux-alpine:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Test as root, without cgo, and with busybox
       # Note -buildvcs=false since Go's alpine images lack git.
       run: docker run -v="$PWD:/pwd" -w=/pwd -e=CGO_ENABLED=0 golang:1.18.0-alpine go test -buildvcs=false ./...
