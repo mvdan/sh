@@ -4,7 +4,7 @@ jobs:
   test:
     strategy:
       matrix:
-        go-version: [1.17.x, 1.18.x]
+        go-version: [1.18.x, 1.19.x]
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
@@ -25,9 +25,9 @@ jobs:
 
     # Static checks from this point forward. Only run on one Go version and on
     # Linux, since it's the fastest platform, and the tools behave the same.
-    - if: matrix.os == 'ubuntu-latest' && matrix.go-version == '1.18.x'
+    - if: matrix.os == 'ubuntu-latest' && matrix.go-version == '1.19.x'
       run: diff <(echo -n) <(gofmt -s -d .)
-    - if: matrix.os == 'ubuntu-latest' && matrix.go-version == '1.18.x'
+    - if: matrix.os == 'ubuntu-latest' && matrix.go-version == '1.19.x'
       run: go vet ./...
 
   test-linux-alpine:
@@ -35,8 +35,7 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Test as root, without cgo, and with busybox
-      # Note -buildvcs=false since Go's alpine images lack git.
-      run: docker run -v="$PWD:/pwd" -w=/pwd -e=CGO_ENABLED=0 golang:1.18.0-alpine go test -buildvcs=false ./...
+      run: docker run -v="$PWD:/pwd" -w=/pwd -e=CGO_ENABLED=0 golang:1.19.0-alpine go test ./...
 
   docker:
     name: Build and test Docker images
