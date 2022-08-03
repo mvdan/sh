@@ -3,7 +3,7 @@
 [![Go Reference](https://pkg.go.dev/badge/mvdan.cc/sh/v3.svg)](https://pkg.go.dev/mvdan.cc/sh/v3)
 
 A shell parser, formatter, and interpreter. Supports [POSIX Shell], [Bash], and
-[mksh]. Requires Go 1.17 or later.
+[mksh]. Requires Go 1.18 or later.
 
 ### Quick start
 
@@ -37,7 +37,7 @@ POSIX shell at the moment, and its options are intentionally minimalistic.
 
 ### Fuzzing
 
-We use Go's native fuzzing support, which requires Go 1.18 or later. For instance:
+We use Go's native fuzzing support. For instance:
 
 	cd syntax
 	go test -run=- -fuzz=ParsePrint
