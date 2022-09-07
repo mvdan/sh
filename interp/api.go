@@ -14,6 +14,7 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"sync"
 	"time"
@@ -617,8 +618,21 @@ func (r *Runner) Reset() {
 	r.setVarString("IFS", " \t\n")
 	r.setVarString("OPTIND", "1")
 
+	r.setVarString("HOSTTYPE", goos2hosttype[runtime.GOOS])
+	r.setVarString("OSTYPE", goarch2ostype[runtime.GOARCH])
+
 	r.dirStack = append(r.dirStack, r.Dir)
 	r.didReset = true
+}
+
+// FIXME: add more goarch and goos
+var goos2hosttype = map[string]string{
+	"linux":  "linux-gnu",
+	"darwin": "darwin17.7.0",
+}
+var goarch2ostype = map[string]string{
+	"386":   "i686",
+	"amd64": "x86_64",
 }
 
 // exitStatus is a non-zero status code resulting from running a shell node.
