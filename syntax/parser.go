@@ -1757,8 +1757,7 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 			}
 		case "]]":
 			if p.lang != LangPOSIX {
-				p.curErr(`%q can only be used to close a test`,
-					p.val)
+				p.curErr(`%q can only be used to close a test`, p.val)
 			}
 		case "let":
 			if p.lang != LangPOSIX {
@@ -1769,7 +1768,7 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 				p.bashFuncDecl(s)
 			}
 		case "declare":
-			if p.lang.isBash() {
+			if p.lang.isBash() { // Note that mksh lacks this one.
 				p.declClause(s)
 			}
 		case "local", "export", "readonly", "typeset", "nameref":
@@ -1781,7 +1780,7 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 				p.timeClause(s)
 			}
 		case "coproc":
-			if p.lang.isBash() {
+			if p.lang.isBash() { // Note that mksh lacks this one.
 				p.coprocClause(s)
 			}
 		case "select":
@@ -2436,7 +2435,11 @@ loop:
 			}
 			fallthrough
 		default:
-			p.curErr("a command can only contain words and redirects; encountered %s", p.tok)
+			if cmd := ce.Args[0].Lit(); p.lang == LangPOSIX && isBashCompoundCommand(_LitWord, cmd) {
+				p.curErr("the %q builtin exists in bash; tried parsing as posix", cmd)
+			} else {
+				p.curErr("a command can only contain words and redirects; encountered %s", p.tok)
+			}
 		}
 	}
 	if len(ce.Assigns) == 0 && len(ce.Args) == 0 {
