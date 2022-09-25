@@ -1,152 +1,152 @@
-shfmt -h
+exec shfmt -h
 ! stderr 'flag provided but not defined'
 stderr 'usage: shfmt'
 stderr 'Utilities' # definitely includes our help text
 ! stderr 'help requested' # don't duplicate usage output
 ! stderr '-test\.' # don't show the test binary's usage func
 
-shfmt --help
+exec shfmt --help
 stderr 'usage: shfmt'
 
-shfmt -version
+exec shfmt -version
 stdout 'devel|v3'
 ! stderr .
 
-shfmt --version
+exec shfmt --version
 stdout 'devel|v3'
 ! stderr .
 
-! shfmt -ln=bash -p
+! exec shfmt -ln=bash -p
 stderr 'cannot coexist'
 
-! shfmt --language-dialect=bash --posix
+! exec shfmt --language-dialect=bash --posix
 stderr 'cannot coexist'
 
-! shfmt -ln=bad
+! exec shfmt -ln=bad
 stderr 'unknown shell language'
 
-! shfmt --to-json file
+! exec shfmt --to-json file
 stderr '--to-json can only be used with stdin'
 
-! shfmt -filename=foo file
+! exec shfmt -filename=foo file
 stderr '-filename can only be used with stdin'
 
 # Check all the -ln variations.
 
 stdin input-posix
-! shfmt
+! exec shfmt
 
 stdin input-posix
-shfmt -ln=posix
+exec shfmt -ln=posix
 stdout 'let'
 
 stdin input-posix
-shfmt -p
+exec shfmt -p
 stdout 'let'
 
 stdin input-posix
-! shfmt -ln=mksh
+! exec shfmt -ln=mksh
 
 stdin input-posix
-! shfmt -ln=bash
+! exec shfmt -ln=bash
 
 stdin input-mksh
-shfmt -ln=mksh
+exec shfmt -ln=mksh
 stdout 'coprocess'
 
 stdin input-mksh
-! shfmt
+! exec shfmt
 
 # Ensure that the default "bash" language works with and without flags.
 stdin input-bash
-shfmt
+exec shfmt
 stdout loop
 
 # Ensure that -ln=auto works on stdin via filename.
 stdin input-mksh
-shfmt -filename=input.mksh
+exec shfmt -filename=input.mksh
 stdout 'coprocess'
 
 # Ensure that -ln=auto works on stdin via shebang.
 stdin input-mksh-shebang
-shfmt
+exec shfmt
 stdout 'coprocess'
 
 # Ensure that -ln=auto works on stdin using the fallback.
 stdin input-bash
-shfmt
+exec shfmt
 stdout 'loop'
 
 # The default -ln=auto shouldn't require an extension or shebang,
 # as long as we're explicitly formatting a file.
-shfmt input-tiny
+exec shfmt input-tiny
 stdout foo
 
 # -ln=auto should prefer a shebang if the extension is only ".sh".
 stdin input-mksh-shebang
-shfmt -filename=input.sh
+exec shfmt -filename=input.sh
 stdout 'coprocess'
 
 # An explicit -ln=auto should still work.
 stdin input-mksh
-shfmt -ln=auto -filename=input.mksh
+exec shfmt -ln=auto -filename=input.mksh
 stdout 'coprocess'
 
 # Explicitly state language on parse errors
 stdin input-bash-arrays
-! shfmt -ln=auto -filename=input.sh
+! exec shfmt -ln=auto -filename=input.sh
 stderr 'parsed as posix via -ln=auto'
 
 stdin input-bash-extglobs
-! shfmt -filename=input.sh
+! exec shfmt -filename=input.sh
 stderr 'parsed as posix via -ln=auto'
 
 stdin flags-input
-shfmt -i 2
+exec shfmt -i 2
 cmp stdout flags-output.indent-golden
 
 stdin flags-input
-shfmt --indent 2
+exec shfmt --indent 2
 cmp stdout flags-output.indent-golden
 
 stdin flags-input
-shfmt -bn
+exec shfmt -bn
 cmp stdout flags-output.binary-next-line-golden
 
 stdin flags-input
-shfmt --binary-next-line
+exec shfmt --binary-next-line
 cmp stdout flags-output.binary-next-line-golden
 
 stdin flags-input
-shfmt -ci
+exec shfmt -ci
 cmp stdout flags-output.case-indent-golden
 
 stdin flags-input
-shfmt --case-indent
+exec shfmt --case-indent
 cmp stdout flags-output.case-indent-golden
 
 stdin flags-input
-shfmt -sr
+exec shfmt -sr
 cmp stdout flags-output.space-redirects-golden
 
 stdin flags-input
-shfmt --space-redirects
+exec shfmt --space-redirects
 cmp stdout flags-output.space-redirects-golden
 
 stdin flags-input
-shfmt -kp
+exec shfmt -kp
 cmp stdout flags-output.keep-padding-golden
 
 stdin flags-input
-shfmt --keep-padding
+exec shfmt --keep-padding
 cmp stdout flags-output.keep-padding-golden
 
 stdin flags-input
-shfmt -fn
+exec shfmt -fn
 cmp stdout flags-output.func-next-line-golden
 
 stdin flags-input
-shfmt --func-next-line
+exec shfmt --func-next-line
 cmp stdout flags-output.func-next-line-golden
 
 -- input-posix --

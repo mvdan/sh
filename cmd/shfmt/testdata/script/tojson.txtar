@@ -1,18 +1,18 @@
 stdin empty.sh
-shfmt -tojson # old flag name
+exec shfmt -tojson # old flag name
 cmp stdout empty.sh.json
 ! stderr .
 
 stdin simple.sh
-shfmt --to-json
+exec shfmt --to-json
 cmp stdout simple.sh.json
 
 stdin arithmetic.sh
-shfmt --to-json
+exec shfmt --to-json
 cmp stdout arithmetic.sh.json
 
 stdin comment.sh
-shfmt --to-json
+exec shfmt --to-json
 cmp stdout comment.sh.json
 
 -- empty.sh --

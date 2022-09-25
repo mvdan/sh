@@ -1,13 +1,13 @@
-shfmt -s input.sh
+exec shfmt -s input.sh
 cmp stdout input.sh.simplify-golden
 
-shfmt --simplify input.sh
+exec shfmt --simplify input.sh
 cmp stdout input.sh.simplify-golden
 
-shfmt -mn input.sh
+exec shfmt -mn input.sh
 cmp stdout input.sh.minify-golden
 
-shfmt --minify input.sh
+exec shfmt --minify input.sh
 cmp stdout input.sh.minify-golden
 
 -- input.sh --
