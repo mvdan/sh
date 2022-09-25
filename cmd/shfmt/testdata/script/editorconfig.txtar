@@ -2,53 +2,53 @@ cp input.sh input.sh.orig
 
 # Using stdin should use EditorConfig.
 stdin input.sh
-shfmt
+exec shfmt
 cmp stdout input.sh.golden
 ! stderr .
 
 # Verify that -filename works well with EditorConfig.
 stdin stdin-filename-bash
-shfmt
+exec shfmt
 
 stdin stdin-filename-bash
-! shfmt -filename=foo_posix.sh
+! exec shfmt -filename=foo_posix.sh
 stderr '^foo_posix.sh:.* arrays are a bash'
 
 # Using a file path should use EditorConfig, including with the use of flags
 # like -l.
-shfmt input.sh
+exec shfmt input.sh
 cmp stdout input.sh.golden
 ! stderr .
 
-shfmt -l input.sh
+exec shfmt -l input.sh
 stdout 'input\.sh'
 ! stderr .
 
 # Using any formatting option should skip all EditorConfig usage.
-shfmt -p input.sh
+exec shfmt -p input.sh
 cmp stdout input.sh.orig
 ! stderr .
 
-shfmt -l -p input.sh
+exec shfmt -l -p input.sh
 ! stdout .
 ! stderr .
 
-shfmt -sr input.sh
+exec shfmt -sr input.sh
 cmp stdout input.sh.orig
 ! stderr .
 
 # Check that EditorConfig files merge properly.
-shfmt morespaces/input.sh
+exec shfmt morespaces/input.sh
 cmp stdout morespaces/input.sh.golden
 ! stderr .
 
 # Check a folder with all other knobs.
-shfmt -l otherknobs
+exec shfmt -l otherknobs
 ! stdout .
 ! stderr .
 
 # Ignore directories when walking, if they match ignore=true.
-shfmt -l ignored
+exec shfmt -l ignored
 stdout 'regular\.sh'
 ! stdout 'ignored\.sh'
 ! stderr .

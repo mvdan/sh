@@ -1,28 +1,28 @@
 stdin input.sh
-! shfmt -d
+! exec shfmt -d
 cmp stdout input.sh.stdindiff
 ! stderr .
 
 stdin input.sh
-! shfmt --diff
+! exec shfmt --diff
 cmp stdout input.sh.stdindiff
 ! stderr .
 
-! shfmt -d input.sh
+! exec shfmt -d input.sh
 cmp stdout input.sh.filediff
 ! stderr .
 
-! shfmt -d input.sh input.sh
+! exec shfmt -d input.sh input.sh
 stdout -count=2 'input.sh.orig'
 
 env FORCE_COLOR=true
 stdin input.sh
-! shfmt -d
+! exec shfmt -d
 stdout '\x1b\[31m- foo'
 ! stderr .
 env FORCE_COLOR=
 
-! shfmt -d .
+! exec shfmt -d .
 cmp stdout input.sh.filediff
 ! stderr .
 
