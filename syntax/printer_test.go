@@ -1059,6 +1059,18 @@ func TestPrintMinify(t *testing.T) {
 		},
 		samePrint("foo >bar 2>baz <etc"),
 		samePrint("<<-EOF\n$(a|b)\nEOF"),
+		{
+			"a=$(\n\tcat <<'EOF'\n  hello\nEOF\n)",
+			"a=$(cat \\\n<<'EOF'\n  hello\nEOF\n)",
+		},
+		{
+			"(\n\tcat <<EOF\n hello\nEOF\n)",
+			"(cat \\\n<<EOF\n hello\nEOF\n)",
+		},
+		{
+			"diff -y <(cat <<EOF\n1\n2\n3\nEOF\n) <(cat <<EOF\n1\n4\n3\nEOF\n)",
+			"diff -y <(cat \\\n<<EOF\n1\n2\n3\nEOF\n) <(\ncat <<EOF\n1\n4\n3\nEOF\n)",
+		},
 	}
 	parser := NewParser(KeepComments(true))
 	printer := NewPrinter(Minify(true))

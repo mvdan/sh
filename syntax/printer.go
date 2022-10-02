@@ -518,6 +518,10 @@ func (p *Printer) rightParen(pos Pos) {
 	if !p.minify {
 		p.newlines(pos)
 	}
+	if len(p.pendingHdocs) > 0 {
+		p.flushHeredocs()
+		p.WriteByte('\n')
+	}
 	p.WriteByte(')')
 	p.wantSpace = spaceRequired
 }
