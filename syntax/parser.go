@@ -453,7 +453,7 @@ func (p *Parser) nextPos() Pos {
 	if !p.colOverflow {
 		col = uint(p.col)
 	}
-	return NewPos(uint(p.offs+p.bsp-int(p.w)), line, col)
+	return NewPos(uint(p.offs+p.bsp-p.w), line, col)
 }
 
 func (p *Parser) lit(pos Pos, val string) *Lit {
