@@ -822,7 +822,7 @@ func (p *Parser) endLit() (s string) {
 	if p.r == utf8.RuneSelf || p.r == escNewl {
 		s = string(p.litBs)
 	} else {
-		s = string(p.litBs[:len(p.litBs)-int(p.w)])
+		s = string(p.litBs[:len(p.litBs)-p.w])
 	}
 	p.litBs = nil
 	return
