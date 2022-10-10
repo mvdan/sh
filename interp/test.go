@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"strings"
 
 	"golang.org/x/term"
 
@@ -90,17 +91,17 @@ func (r *Runner) binTest(ctx context.Context, op syntax.BinTestOperator, x, y st
 		}
 		return os.SameFile(info1, info2)
 	case syntax.TsEql:
-		return atoi(x) == atoi(y)
+		return atoi(strings.TrimSpace(x)) == atoi(strings.TrimSpace(y))
 	case syntax.TsNeq:
-		return atoi(x) != atoi(y)
+		return atoi(strings.TrimSpace(x)) != atoi(strings.TrimSpace(y))
 	case syntax.TsLeq:
-		return atoi(x) <= atoi(y)
+		return atoi(strings.TrimSpace(x)) <= atoi(strings.TrimSpace(y))
 	case syntax.TsGeq:
-		return atoi(x) >= atoi(y)
+		return atoi(strings.TrimSpace(x)) >= atoi(strings.TrimSpace(y))
 	case syntax.TsLss:
-		return atoi(x) < atoi(y)
+		return atoi(strings.TrimSpace(x)) < atoi(strings.TrimSpace(y))
 	case syntax.TsGtr:
-		return atoi(x) > atoi(y)
+		return atoi(strings.TrimSpace(x)) > atoi(strings.TrimSpace(y))
 	case syntax.AndTest:
 		return x != "" && y != ""
 	case syntax.OrTest:
