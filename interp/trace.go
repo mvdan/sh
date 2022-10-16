@@ -14,7 +14,7 @@ import (
 type tracer struct {
 	buf       bytes.Buffer
 	printer   *syntax.Printer
-	stderr    io.Writer
+	output    io.Writer
 	needsPlus bool
 }
 
@@ -25,7 +25,7 @@ func (r *Runner) tracer() *tracer {
 
 	return &tracer{
 		printer:   syntax.NewPrinter(),
-		stderr:    r.stderr,
+		output:    r.stderr,
 		needsPlus: true,
 	}
 }
@@ -74,7 +74,7 @@ func (t *tracer) flush() {
 		return
 	}
 
-	t.stderr.Write(t.buf.Bytes())
+	t.output.Write(t.buf.Bytes())
 	t.buf.Reset()
 }
 
