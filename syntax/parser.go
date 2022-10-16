@@ -1264,9 +1264,6 @@ func (p *Parser) paramExp() *ParamExp {
 		}
 	case exclMark:
 		if paramNameOp(p.r) {
-			if p.lang == LangPOSIX {
-				p.langErr(p.pos, "${!foo}", LangBash, LangMirBSDKorn)
-			}
 			pe.Excl = true
 			p.next()
 		}
@@ -1298,6 +1295,9 @@ func (p *Parser) paramExp() *ParamExp {
 	case _Lit, _LitWord:
 		p.curErr("%s cannot be followed by a word", op)
 	case rightBrace:
+		if pe.Excl && p.lang == LangPOSIX {
+			p.posErr(pe.Pos(), `"${!foo}" is a bash/mksh feature`)
+		}
 		pe.Rbrace = p.pos
 		p.quote = old
 		p.next()
@@ -1368,6 +1368,9 @@ func (p *Parser) paramExp() *ParamExp {
 		case p.tok == star && !pe.Excl:
 			p.curErr("not a valid parameter expansion operator: %v", p.tok)
 		case pe.Excl && p.r == '}':
+			if !p.lang.isBash() {
+				p.posErr(pe.Pos(), `"${!foo`+p.tok.String()+`}" is a bash feature`)
+			}
 			pe.Names = ParNamesOperator(p.tok)
 			p.next()
 		default:

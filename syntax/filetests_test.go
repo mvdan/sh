@@ -2608,7 +2608,7 @@ var fileTests = []testCase{
 	},
 	{
 		Strs: []string{`${!foo*} ${!bar@}`},
-		bsmk: call(
+		bash: call(
 			word(&ParamExp{
 				Excl:  true,
 				Param: lit("foo"),
