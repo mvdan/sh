@@ -3129,9 +3129,12 @@ single quote
 	},
 	// for trace
 	{
-		`set -x; exec >/dev/null; echo "to stdout"`,
-		`+ exec >/dev/null
-+ echo "trace should go to stderr"`,
+		`set -x
+exec >/dev/null
+echo "trace should go to stderr"`,
+		`+ exec
++ echo 'trace should go to stderr'
+`,
 	},
 	{
 		`set -x
