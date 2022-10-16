@@ -3130,6 +3130,14 @@ single quote
 	// for trace
 	{
 		`set -x
+exec >/dev/null
+echo "trace should go to stderr"`,
+		`+ exec
++ echo 'trace should go to stderr'
+`,
+	},
+	{
+		`set -x
 animals=(dog, cat, otter)
 for i in ${animals[@]}
 do
