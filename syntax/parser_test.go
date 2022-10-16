@@ -1928,7 +1928,21 @@ var shellTests = []errorCase{
 	},
 	{
 		in:    "echo ${!foo}",
-		posix: `1:8: ${!foo} is a bash/mksh feature`,
+		posix: `1:6: "${!foo}" is a bash/mksh feature`,
+	},
+	{
+		in:    "echo ${!foo*}",
+		posix: `1:6: "${!foo*}" is a bash feature`,
+		mksh:  `1:6: "${!foo*}" is a bash feature`,
+	},
+	{
+		in:    "echo ${!foo@}",
+		posix: `1:12: this expansion operator is a bash/mksh feature`,
+		mksh:  `1:6: "${!foo@}" is a bash feature`,
+	},
+	{
+		in:    "echo ${!foo[@]}",
+		posix: `1:12: arrays are a bash/mksh feature`,
 	},
 	{
 		in:    "echo ${foo[1]}",
