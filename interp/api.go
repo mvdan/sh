@@ -4,6 +4,13 @@
 // Package interp implements an interpreter that executes shell
 // programs. It aims to support POSIX, but its support is not complete
 // yet. It also supports some Bash features.
+//
+// The interpreter generally aims to behave like Bash,
+// but it does not support all of its features.
+//
+// The interpreter currently aims to behave like a non-interactive shell,
+// which is how most shells run scripts, and is more useful to machines.
+// In the future, it may gain an option to behave like an interactive shell.
 package interp
 
 import (

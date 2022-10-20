@@ -1818,6 +1818,14 @@ var runTests = []runTest{
 		"a=b b=a; echo $(($a))",
 		"0\n #IGNORE bash prints a warning",
 	},
+	{
+		"let x=3; let 3/0; ((3/0)); echo $((x/y)); let x/=0",
+		"division by zero\ndivision by zero\ndivision by zero\ndivision by zero\nexit status 1 #JUSTERR",
+	},
+	{
+		"let x=3; let 3%0; ((3%0)); echo $((x%y)); let x%=0",
+		"division by zero\ndivision by zero\ndivision by zero\ndivision by zero\nexit status 1 #JUSTERR",
+	},
 
 	// set/shift
 	{
@@ -2307,7 +2315,7 @@ set +o pipefail
 	},
 	{
 		`a=(b); echo ${a[-2]}`,
-		"negative array index\nexit status 1 #JUSTERR",
+		"negative array index\n #JUSTERR",
 	},
 	// TODO: also test with gaps in arrays.
 	{

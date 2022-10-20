@@ -6,6 +6,7 @@ package interp
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -155,7 +156,19 @@ func (r *Runner) updateExpandOpts() {
 
 func (r *Runner) expandErr(err error) {
 	if err != nil {
-		r.errf("%v\n", err)
+		errMsg := err.Error()
+		fmt.Fprintln(r.stderr, errMsg)
+		switch {
+		case errors.As(err, &expand.UnsetParameterError{}):
+		case errMsg == "invalid indirect expansion":
+			// TODO: These errors are treated as fatal by bash.
+			// Make the error type reflect that.
+		case strings.HasSuffix(errMsg, "not supported"):
+			// TODO: This "has suffix" is a temporary measure until the expand
+			// package supports all syntax nodes like extended globbing.
+		default:
+			return // other cases do not exit
+		}
 		r.exitShell(context.TODO(), 1)
 	}
 }

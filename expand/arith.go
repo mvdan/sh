@@ -92,7 +92,7 @@ func Arithm(cfg *Config, expr syntax.ArithmExpr) (int, error) {
 		if err != nil {
 			return 0, err
 		}
-		return binArit(x.Op, left, right), nil
+		return binArit(x.Op, left, right)
 	default:
 		panic(fmt.Sprintf("unexpected arithm expr: %T", x))
 	}
@@ -129,8 +129,14 @@ func (cfg *Config) assgnArit(b *syntax.BinaryArithm) (int, error) {
 	case syntax.MulAssgn:
 		val *= arg
 	case syntax.QuoAssgn:
+		if arg == 0 {
+			return 0, fmt.Errorf("division by zero")
+		}
 		val /= arg
 	case syntax.RemAssgn:
+		if arg == 0 {
+			return 0, fmt.Errorf("division by zero")
+		}
 		val %= arg
 	case syntax.AndAssgn:
 		val &= arg
@@ -161,48 +167,54 @@ func intPow(a, b int) int {
 	return p
 }
 
-func binArit(op syntax.BinAritOperator, x, y int) int {
+func binArit(op syntax.BinAritOperator, x, y int) (int, error) {
 	switch op {
 	case syntax.Add:
-		return x + y
+		return x + y, nil
 	case syntax.Sub:
-		return x - y
+		return x - y, nil
 	case syntax.Mul:
-		return x * y
+		return x * y, nil
 	case syntax.Quo:
-		return x / y
+		if y == 0 {
+			return 0, fmt.Errorf("division by zero")
+		}
+		return x / y, nil
 	case syntax.Rem:
-		return x % y
+		if y == 0 {
+			return 0, fmt.Errorf("division by zero")
+		}
+		return x % y, nil
 	case syntax.Pow:
-		return intPow(x, y)
+		return intPow(x, y), nil
 	case syntax.Eql:
-		return oneIf(x == y)
+		return oneIf(x == y), nil
 	case syntax.Gtr:
-		return oneIf(x > y)
+		return oneIf(x > y), nil
 	case syntax.Lss:
-		return oneIf(x < y)
+		return oneIf(x < y), nil
 	case syntax.Neq:
-		return oneIf(x != y)
+		return oneIf(x != y), nil
 	case syntax.Leq:
-		return oneIf(x <= y)
+		return oneIf(x <= y), nil
 	case syntax.Geq:
-		return oneIf(x >= y)
+		return oneIf(x >= y), nil
 	case syntax.And:
-		return x & y
+		return x & y, nil
 	case syntax.Or:
-		return x | y
+		return x | y, nil
 	case syntax.Xor:
-		return x ^ y
+		return x ^ y, nil
 	case syntax.Shr:
-		return x >> uint(y)
+		return x >> uint(y), nil
 	case syntax.Shl:
-		return x << uint(y)
+		return x << uint(y), nil
 	case syntax.AndArit:
-		return oneIf(x != 0 && y != 0)
+		return oneIf(x != 0 && y != 0), nil
 	case syntax.OrArit:
-		return oneIf(x != 0 || y != 0)
+		return oneIf(x != 0 || y != 0), nil
 	default: // syntax.Comma
 		// x is executed but its result discarded
-		return y
+		return y, nil
 	}
 }
