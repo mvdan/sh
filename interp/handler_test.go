@@ -21,20 +21,20 @@ import (
 	"mvdan.cc/sh/v3/syntax"
 )
 
-func blacklistBuiltinExec(name string) ExecHandlerFunc {
+func blocklistBuiltinExec(name string) ExecHandlerFunc {
 	return func(ctx context.Context, args []string) error {
 		if args[0] == name {
-			return fmt.Errorf("%s: blacklisted builtin", name)
+			return fmt.Errorf("%s: blocklisted builtin", name)
 		}
 		return testExecHandler(ctx, args)
 	}
 }
 
-func blacklistAllExec(ctx context.Context, args []string) error {
-	return fmt.Errorf("blacklisted: %s", args[0])
+func blocklistAllExec(ctx context.Context, args []string) error {
+	return fmt.Errorf("blocklisted: %s", args[0])
 }
 
-func blacklistNondevOpen(ctx context.Context, path string, flags int, mode os.FileMode) (io.ReadWriteCloser, error) {
+func blocklistNondevOpen(ctx context.Context, path string, flags int, mode os.FileMode) (io.ReadWriteCloser, error) {
 	if path != "/dev/null" {
 		return nil, fmt.Errorf("non-dev: %s", path)
 	}
@@ -42,8 +42,8 @@ func blacklistNondevOpen(ctx context.Context, path string, flags int, mode os.Fi
 	return testOpenHandler(ctx, path, flags, mode)
 }
 
-func blacklistGlob(ctx context.Context, path string) ([]os.FileInfo, error) {
-	return nil, fmt.Errorf("blacklisted: glob")
+func blocklistGlob(ctx context.Context, path string) ([]os.FileInfo, error) {
+	return nil, fmt.Errorf("blocklisted: glob")
 }
 
 // runnerCtx allows us to give handler functions access to the Runner, if needed.
@@ -67,40 +67,40 @@ var modCases = []struct {
 	want    string
 }{
 	{
-		name: "ExecBlacklist",
-		exec: blacklistBuiltinExec("sleep"),
+		name: "ExecBlocklistOne",
+		exec: blocklistBuiltinExec("sleep"),
 		src:  "echo foo; sleep 1",
-		want: "foo\nsleep: blacklisted builtin",
+		want: "foo\nsleep: blocklisted builtin",
 	},
 	{
-		name: "ExecWhitelist",
-		exec: blacklistBuiltinExec("faa"),
+		name: "ExecBlocklistOneSubshell",
+		exec: blocklistBuiltinExec("faa"),
 		src:  "a=$(echo foo | sed 's/o/a/g'); echo $a; $a args",
-		want: "faa\nfaa: blacklisted builtin",
+		want: "faa\nfaa: blocklisted builtin",
 	},
 	{
-		name: "ExecSubshell",
-		exec: blacklistAllExec,
+		name: "ExecBlocklistAllSubshell",
+		exec: blocklistAllExec,
 		src:  "(malicious)",
-		want: "blacklisted: malicious",
+		want: "blocklisted: malicious",
 	},
 	{
 		name: "ExecPipe",
-		exec: blacklistAllExec,
+		exec: blocklistAllExec,
 		src:  "malicious | echo foo",
-		want: "foo\nblacklisted: malicious",
+		want: "foo\nblocklisted: malicious",
 	},
 	{
 		name: "ExecCmdSubst",
-		exec: blacklistAllExec,
+		exec: blocklistAllExec,
 		src:  "a=$(malicious)",
-		want: "blacklisted: malicious\nexit status 1",
+		want: "blocklisted: malicious\n", // TODO: why the newline?
 	},
 	{
 		name: "ExecBackground",
-		exec: blacklistAllExec,
+		exec: blocklistAllExec,
 		src:  "{ malicious; true; } & { malicious; true; } & wait",
-		want: "blacklisted: malicious",
+		want: "blocklisted: malicious",
 	},
 	{
 		name: "ExecBuiltin",
@@ -110,13 +110,13 @@ var modCases = []struct {
 	},
 	{
 		name: "OpenForbidNonDev",
-		open: blacklistNondevOpen,
+		open: blocklistNondevOpen,
 		src:  "echo foo >/dev/null; echo bar >/tmp/x",
 		want: "non-dev: /tmp/x",
 	},
 	{
 		name: "CallReplaceWithBlank",
-		open: blacklistNondevOpen,
+		open: blocklistNondevOpen,
 		call: func(ctx context.Context, args []string) ([]string, error) {
 			return []string{"echo", "blank"}, nil
 		},
@@ -144,9 +144,9 @@ var modCases = []struct {
 	},
 	{
 		name:    "GlobForbid",
-		readdir: blacklistGlob,
+		readdir: blocklistGlob,
 		src:     "echo *",
-		want:    "blacklisted: glob\nexit status 1",
+		want:    "blocklisted: glob\n",
 	},
 }
 
