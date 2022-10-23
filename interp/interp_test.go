@@ -1413,6 +1413,10 @@ var runTests = []runTest{
 		"",
 	},
 	{
+		"[[ ' 3' -lt '4 ' ]]",
+		"",
+	},
+	{
 		"[[ 3 -gt 4 ]]",
 		"exit status 1",
 	},
@@ -1637,6 +1641,7 @@ var runTests = []runTest{
 	{"[ 0 -gt 1 -o 1 -gt 0 ]", ""},
 	{"[ 3 -gt 4 ]", "exit status 1"},
 	{"[ 3 -lt 4 ]", ""},
+	{"[ ' 3' -lt '4 ' ]", ""},
 	{
 		"[ -e a ] && echo x; >a; [ -e a ] && echo y",
 		"y\n",
@@ -1825,6 +1830,14 @@ var runTests = []runTest{
 	{
 		"let x=3; let 3%0; ((3%0)); echo $((x%y)); let x%=0",
 		"division by zero\ndivision by zero\ndivision by zero\ndivision by zero\nexit status 1 #JUSTERR",
+	},
+	{
+		"let x=' 3'; echo $x",
+		"3\n",
+	},
+	{
+		"x=' 3'; let x++; echo \"$x\"",
+		"4\n",
 	},
 
 	// set/shift

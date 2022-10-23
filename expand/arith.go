@@ -6,6 +6,7 @@ package expand
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"mvdan.cc/sh/v3/syntax"
 )
@@ -105,9 +106,9 @@ func oneIf(b bool) int {
 	return 0
 }
 
-// atoi is just a shorthand for strconv.Atoi that ignores the error,
-// just like shells do.
+// atoi is like strconv.Atoi, but it ignores errors and trims whitespace.
 func atoi(s string) int {
+	s = strings.TrimSpace(s)
 	n, _ := strconv.Atoi(s)
 	return n
 }

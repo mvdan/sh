@@ -32,6 +32,8 @@ func isBuiltin(name string) bool {
 	return false
 }
 
+// TODO: oneIf and atoi are duplicated in the expand package.
+
 func oneIf(b bool) int {
 	if b {
 		return 1
@@ -39,9 +41,9 @@ func oneIf(b bool) int {
 	return 0
 }
 
-// atoi is just a shorthand for strconv.Atoi that ignores the error,
-// just like shells do.
+// atoi is like strconv.Atoi, but it ignores errors and trims whitespace.
 func atoi(s string) int {
+	s = strings.TrimSpace(s)
 	n, _ := strconv.Atoi(s)
 	return n
 }
