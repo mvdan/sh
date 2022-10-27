@@ -147,8 +147,9 @@ func (r *Runner) unTest(ctx context.Context, op syntax.UnTestOperator, x string)
 		return r.statMode(ctx, x, os.ModeSetuid)
 	case syntax.TsGIDSet:
 		return r.statMode(ctx, x, os.ModeSetgid)
-	// case syntax.TsGrpOwn:
-	// case syntax.TsUsrOwn:
+	case syntax.TsGrpOwn, syntax.TsUsrOwn:
+		_, err := r.stat(ctx, x)
+		return err == nil
 	// case syntax.TsModif:
 	case syntax.TsRead:
 		f, err := r.open(ctx, x, os.O_RDONLY, 0, false)
