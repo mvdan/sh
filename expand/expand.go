@@ -465,6 +465,9 @@ func (cfg *Config) wordField(wps []syntax.WordPart, ql quoteLevel) ([]fieldPart,
 							continue
 						}
 					}
+					if b == '\\' {
+						buf.WriteByte(b)
+					}
 					buf.WriteByte(b)
 				}
 				s = buf.String()
