@@ -2438,11 +2438,13 @@ loop:
 			}
 			fallthrough
 		default:
-			if cmd := ce.Args[0].Lit(); p.lang == LangPOSIX && isBashCompoundCommand(_LitWord, cmd) {
-				p.curErr("the %q builtin exists in bash; tried parsing as posix", cmd)
-			} else {
-				p.curErr("a command can only contain words and redirects; encountered %s", p.tok)
+			// Note that we'll only keep the first error that happens.
+			if len(ce.Args) > 0 {
+				if cmd := ce.Args[0].Lit(); p.lang == LangPOSIX && isBashCompoundCommand(_LitWord, cmd) {
+					p.curErr("the %q builtin exists in bash; tried parsing as posix", cmd)
+				}
 			}
+			p.curErr("a command can only contain words and redirects; encountered %s", p.tok)
 		}
 	}
 	if len(ce.Assigns) == 0 && len(ce.Args) == 0 {
