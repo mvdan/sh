@@ -116,7 +116,7 @@ Other noteworthy integrations include:
 [arch]: https://archlinux.org/packages/community/x86_64/shfmt/
 [bash]: https://www.gnu.org/software/bash/
 [BashSupport-Pro]: https://www.bashsupport.com/manual/editor/formatter/
-[debian]: https://tracker.debian.org/pkg/shfmt
+[debian]: https://tracker.debian.org/pkg/golang-mvdan-sh
 [docker]: https://hub.docker.com/r/mvdan/shfmt/
 [editorconfig]: https://editorconfig.org/
 [examples]: https://pkg.go.dev/mvdan.cc/sh/v3/syntax#pkg-examples
@@ -137,7 +137,7 @@ Other noteworthy integrations include:
 [posix-ambiguity]: https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_06_03
 [pre-commit]: https://pre-commit.com
 [pre-commit-shfmt]: https://github.com/scop/pre-commit-shfmt
-[prettier-plugin-sh]: https://github.com/rx-ts/prettier/tree/master/packages/sh
+[prettier-plugin-sh]: https://github.com/un-ts/prettier/tree/master/packages/sh
 [prettier]: https://prettier.io
 [scdoc]: https://sr.ht/~sircmpwn/scdoc/
 [scoop]: https://github.com/ScoopInstaller/Main/blob/HEAD/bucket/shfmt.json

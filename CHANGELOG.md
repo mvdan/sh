@@ -1,5 +1,37 @@
 # Changelog
 
+## [3.6.0] - 2022-??-??
+
+This release drops support for Go 1.17 and includes many features and fixes.
+
+- **cmd/shfmt**
+  - Implement `--from-json` as the reverse of `--to-json` - [#900]
+  - Improve the quality of the `--to-json` output - [#900]
+  - Provide detected language when erroring with `-ln=auto` - [#803]
+- **syntax**
+  - Don't require peeking two bytes after `echo *` - [#835]
+  - Simplify `${name:-}` to the equivalent `${name-}` - [#849]
+  - Don't print trailing whitespaces on nested subshells - [#814]
+  - Allow escaped newlines before unquoted words again - [#873]
+  - Parse a redirections edge case without spaces - [#879]
+  - Give a helpful error when `<<<` is used in POSIX mode - [#881]
+  - Forbid `${!foo*}` and `${!foo@}` in mksh mode - [#929]
+  - Batch allocations less aggressively in the parser
+- **syntax/typedjson**
+  - Expose `--from-json` and `--to-json` as Go APIs - [#885]
+- **expand**
+  - Improve support for expanding array keys and values - [#884]
+  - Don't panic on unsupported syntax nodes - [#841]
+  - Don't panic on division by zero - [#892]
+  - Properly expand unquoted parameters with spaces - [#886]
+  - Trim spaces when converting strings to integers - [#928]
+- **interp**
+  - Add initial implementation for `mapfile` and `readarray` - [#863]
+  - Improve matching patterns against multiple lines - [#866]
+  - Display all Bash options in `shopt` - [#877]
+- **pattern**
+  - Add `EntireString` to match the entire string using `^$` - [#866]
+
 ## [3.5.1] - 2022-05-23
 
 - **cmd/shfmt**
@@ -158,7 +190,7 @@ which allows the code to start benefitting from `io/fs`.
   - Obey print options inside `<<-` heredocs
   - Don't simplify indexed parameter expansions in arithmetic expressions
   - Improve parsing errors for missing test expressions
-  - `LangVariant` now implements [flag.Value](https://go.dev/pkg/flag/#Value)
+  - `LangVariant` now implements [flag.Value](https://pkg.go.dev/flag#Value)
 - **interp**
   - Avoid panic on C-style loops which omit expressions
   - `$@` and `$*` always exist, so `"$@"` can expand to zero words
@@ -622,8 +654,27 @@ module in v3.
 
 Initial release.
 
+[#803]: https://github.com/mvdan/sh/issues/803
+[#814]: https://github.com/mvdan/sh/issues/814
+[#835]: https://github.com/mvdan/sh/issues/835
+[#841]: https://github.com/mvdan/sh/issues/841
+[#849]: https://github.com/mvdan/sh/pull/849
+[#863]: https://github.com/mvdan/sh/pull/863
+[#866]: https://github.com/mvdan/sh/pull/866
+[#873]: https://github.com/mvdan/sh/issues/873
+[#877]: https://github.com/mvdan/sh/issues/877
+[#879]: https://github.com/mvdan/sh/pull/879
+[#881]: https://github.com/mvdan/sh/issues/881
+[#884]: https://github.com/mvdan/sh/issues/884
+[#885]: https://github.com/mvdan/sh/issues/885
+[#886]: https://github.com/mvdan/sh/issues/886
+[#892]: https://github.com/mvdan/sh/issues/892
+[#900]: https://github.com/mvdan/sh/pull/900
+[#928]: https://github.com/mvdan/sh/issues/928
+[#929]: https://github.com/mvdan/sh/pull/929
+
 [3.5.1]: https://github.com/mvdan/sh/releases/tag/v3.5.1
-[#860]: https://github.com/mvdan/sh/pull/860
+[#860]: https://github.com/mvdan/sh/issues/860
 [#861]: https://github.com/mvdan/sh/pull/861
 [#862]: https://github.com/mvdan/sh/pull/862
 
