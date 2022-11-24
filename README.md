@@ -98,6 +98,7 @@ The following editor integrations wrap `shfmt`:
 - [intellij-shellcript] - Intellij Jetbrains `shell script` plugin
 - [micro] - Editor with a built-in plugin
 - [shell-format] - VS Code plugin
+- [vscode-shfmt] - VS Code plugin
 - [shfmt.el] - Emacs package
 - [Sublime-Pretty-Shell] - Sublime Text 3 plugin
 - [Trunk] - Universal linter, available as a CLI, VS Code plugin, and GitHub action
@@ -148,4 +149,5 @@ Other noteworthy integrations include:
 [trunk]: https://trunk.io/products/check
 [vim-shfmt]: https://github.com/z0mbix/vim-shfmt
 [void]: https://github.com/void-linux/void-packages/blob/HEAD/srcpkgs/shfmt/template
+[vscode-shfmt]: https://marketplace.visualstudio.com/items?itemName=mkhl.shfmt
 [webi]: https://webinstall.dev/shfmt/
