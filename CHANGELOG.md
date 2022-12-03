@@ -13,6 +13,7 @@ This release drops support for Go 1.17 and includes many features and fixes.
   - Simplify `${name:-}` to the equivalent `${name-}` - [#849]
   - Don't print trailing whitespaces on nested subshells - [#814]
   - Don't print extra newlines in some case clauses - [#779]
+  - Don't indent comments preceding case clause items - [#917]
   - Allow escaped newlines before unquoted words again - [#873]
   - Parse a redirections edge case without spaces - [#879]
   - Give a helpful error when `<<<` is used in POSIX mode - [#881]
@@ -672,6 +673,7 @@ Initial release.
 [#886]: https://github.com/mvdan/sh/issues/886
 [#892]: https://github.com/mvdan/sh/issues/892
 [#900]: https://github.com/mvdan/sh/pull/900
+[#917]: https://github.com/mvdan/sh/pull/917
 [#928]: https://github.com/mvdan/sh/issues/928
 [#929]: https://github.com/mvdan/sh/pull/929
 
