@@ -405,6 +405,7 @@ var printTests = []printCase{
 	samePrint("case $i in\n#foo\nesac"),
 	samePrint("case $i in\n#before\n1) ;;\nesac"),
 	samePrint("case $i in\n#bef\n1) ;; #inl\nesac"),
+	samePrint("case $i in\n#before1\n'1') ;;\n#before2\n'2') ;;\nesac"),
 	samePrint("case $i in\n1) ;; #inl1\n2) ;; #inl2\nesac"),
 	samePrint("case $i in\n#bef\n1) #inl\n\tfoo\n\t;;\nesac"),
 	samePrint("case $i in\n1) #inl\n\t;;\nesac"),

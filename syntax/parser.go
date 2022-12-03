@@ -2112,18 +2112,28 @@ func (p *Parser) caseItems(stop string) (items []*CaseItem) {
 		ci.Op = CaseOperator(p.tok)
 		p.next()
 		p.got(_Newl)
+
+		// Split the comments:
+		//
+		// case x in
+		// a)
+		//   foo
+		//   ;;
+		//   # comment for a
+		// # comment for b
+		// b)
+		//   [...]
 		split := len(p.accComs)
-		if p.tok == _LitWord && p.val != stop {
-			for i := len(p.accComs) - 1; i >= 0; i-- {
-				c := p.accComs[i]
-				if c.Pos().Col() != p.pos.Col() {
-					break
-				}
-				split = i
+		for i := len(p.accComs) - 1; i >= 0; i-- {
+			c := p.accComs[i]
+			if c.Pos().Col() != p.pos.Col() {
+				break
 			}
+			split = i
 		}
 		ci.Comments = append(ci.Comments, p.accComs[:split]...)
 		p.accComs = p.accComs[split:]
+
 		items = append(items, ci)
 	}
 	return

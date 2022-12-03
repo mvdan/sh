@@ -313,8 +313,10 @@ func (p *Printer) wantsNewline(pos Pos) bool {
 		// We must have a newline here.
 		return true
 	}
-	if p.singleLine {
-		// The newline is optional, and singleLine turns it off.
+	if p.singleLine && len(p.pendingComments) == 0 {
+		// The newline is optional, and singleLine skips it.
+		// Don't skip if there are any pending comments,
+		// as that might move them further down to the wrong place.
 		return false
 	}
 	// THe newline is optional, and we want it via either wantNewline or via
