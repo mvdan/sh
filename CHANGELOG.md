@@ -12,6 +12,7 @@ This release drops support for Go 1.17 and includes many features and fixes.
   - Don't require peeking two bytes after `echo *` - [#835]
   - Simplify `${name:-}` to the equivalent `${name-}` - [#849]
   - Don't print trailing whitespaces on nested subshells - [#814]
+  - Don't print extra newlines in some case clauses - [#779]
   - Allow escaped newlines before unquoted words again - [#873]
   - Parse a redirections edge case without spaces - [#879]
   - Give a helpful error when `<<<` is used in POSIX mode - [#881]
@@ -654,6 +655,7 @@ module in v3.
 
 Initial release.
 
+[#779]: https://github.com/mvdan/sh/issues/779
 [#803]: https://github.com/mvdan/sh/issues/803
 [#814]: https://github.com/mvdan/sh/issues/814
 [#835]: https://github.com/mvdan/sh/issues/835
