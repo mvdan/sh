@@ -391,6 +391,14 @@ var printTests = []printCase{
 		"case $i in\n1)\n#foo \t\n;;\nesac",
 		"case $i in\n1)\n\t#foo\n\t;;\nesac",
 	},
+	{
+		"case $i in\n1)\n\t;;\n\n2)\n\t;;\nesac",
+		"case $i in\n1) ;;\n\n2) ;;\nesac",
+	},
+	{
+		"case $i\nin\n1)\n\t;;\nesac",
+		"case $i in\n1) ;;\nesac",
+	},
 	samePrint("case $i in\n1)\n\ta\n\t#b\n\t;;\nesac"),
 	samePrint("case $i in\n1) foo() { bar; } ;;\nesac"),
 	samePrint("case $i in\n1) ;; #foo\nesac"),
