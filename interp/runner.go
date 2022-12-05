@@ -311,7 +311,7 @@ func (r *Runner) stmtSync(ctx context.Context, st *syntax.Stmt) {
 		//   part of && or || lists
 		//   preceded by !
 		r.exitShell(ctx, r.exit)
-	} else if r.exit != 0 {
+	} else if r.exit != 0 && !r.noErrExit {
 		r.trapCallback(ctx, r.callbackErr, "error")
 	}
 	if !r.keepRedirs {

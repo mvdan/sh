@@ -2156,6 +2156,7 @@ set +o pipefail
 	// trap
 	{"trap 'echo at_exit' EXIT; true", "at_exit\n"},
 	{"trap 'echo on_err' ERR; false; echo FAIL", "on_err\nFAIL\n"},
+	{"trap 'echo on_err' ERR; false || true; echo OK", "OK\n"},
 	{"trap 'echo at_exit' EXIT; trap - EXIT; echo OK", "OK\n"},
 	{"set -e; trap 'echo A' ERR EXIT; false; echo FAIL", "A\nA\nexit status 1"},
 	{"trap 'foo_interp_missingbar_interp_missing' UNKNOWN", "trap: UNKNOWN: invalid signal specification\nexit status 2 #JUSTERR"},
