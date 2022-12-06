@@ -16,7 +16,7 @@ import (
 	"runtime/debug"
 	"strings"
 
-	maybeio "github.com/google/renameio/maybe"
+	maybeio "github.com/google/renameio/v2/maybe"
 	diffpkg "github.com/pkg/diff"
 	diffwrite "github.com/pkg/diff/write"
 	"golang.org/x/term"
