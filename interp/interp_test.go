@@ -304,6 +304,9 @@ var runTests = []runTest{
 	{"printf 'nofmt' 1 2 3", "nofmt"},
 	{"printf '%d_' 1 2 3", "1_2_3_"},
 	{"printf '%02d %02d\n' 1 2 3", "01 02\n03 00\n"},
+	{`printf '0%s1' 'a\bc'`, `0a\bc1`},
+	{`printf '0%b1' 'a\bc'`, "0a\bc1"},
+	{"printf 'a%bc'", "ac"},
 
 	// words and quotes
 	{"echo  foo_interp_missing ", "foo_interp_missing\n"},
