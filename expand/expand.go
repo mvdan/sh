@@ -215,6 +215,24 @@ func Pattern(cfg *Config, word *syntax.Word) (string, error) {
 func Format(cfg *Config, format string, args []string) (string, int, error) {
 	cfg = prepareConfig(cfg)
 	buf := cfg.strBuilder()
+
+	consumed, err := formatIntoBuffer(buf, format, args)
+	if err != nil {
+		return "", 0, err
+	}
+
+	return buf.String(), consumed, err
+}
+
+// Format expands a format string with a number of arguments, following the
+// shell's format specifications. These include printf(1), among others.
+//
+// The resulting string is written to the provided buffer, and the number
+// of arguments used is returned.
+//
+// The config specifies shell expansion options; nil behaves the same as an
+// empty config.
+func formatIntoBuffer(buf *bytes.Buffer, format string, args []string) (int, error) {
 	var fmts []byte
 	initialArgs := len(args)
 
@@ -314,18 +332,26 @@ formatLoop:
 				fmts = nil
 			case '+', '-', ' ':
 				if len(fmts) > 1 {
-					return "", 0, fmt.Errorf("invalid format char: %c", c)
+					return 0, fmt.Errorf("invalid format char: %c", c)
 				}
 				fmts = append(fmts, c)
 			case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
 				fmts = append(fmts, c)
-			case 's', 'd', 'i', 'u', 'o', 'x':
+			case 's', 'b', 'd', 'i', 'u', 'o', 'x':
 				arg := ""
 				if len(args) > 0 {
 					arg, args = args[0], args[1:]
 				}
-				var farg interface{} = arg
-				if c != 's' {
+				var farg interface{}
+				if c == 'b' {
+					// Passing in nil for args ensures that % format
+					// strings aren't processed; only escape sequences
+					// will be handled.
+					_, err := formatIntoBuffer(buf, arg, nil)
+					if err != nil {
+						return 0, err
+					}
+				} else if c != 's' {
 					n, _ := strconv.ParseInt(arg, 0, 0)
 					if c == 'i' || c == 'd' {
 						farg = int(n)
@@ -335,12 +361,16 @@ formatLoop:
 					if c == 'i' || c == 'u' {
 						c = 'd'
 					}
+				} else {
+					farg = arg
 				}
-				fmts = append(fmts, c)
-				fmt.Fprintf(buf, string(fmts), farg)
+				if farg != nil {
+					fmts = append(fmts, c)
+					fmt.Fprintf(buf, string(fmts), farg)
+				}
 				fmts = nil
 			default:
-				return "", 0, fmt.Errorf("invalid format char: %c", c)
+				return 0, fmt.Errorf("invalid format char: %c", c)
 			}
 		case args != nil && c == '%':
 			// if args == nil, we are not doing format
@@ -351,9 +381,9 @@ formatLoop:
 		}
 	}
 	if len(fmts) > 0 {
-		return "", 0, fmt.Errorf("missing format char")
+		return 0, fmt.Errorf("missing format char")
 	}
-	return buf.String(), initialArgs - len(args), nil
+	return initialArgs - len(args), nil
 }
 
 func (cfg *Config) fieldJoin(parts []fieldPart) string {
