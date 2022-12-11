@@ -1,6 +1,6 @@
 # Changelog
 
-## [3.6.0] - 2022-??-??
+## [3.6.0] - 2022-12-11
 
 This release drops support for Go 1.17 and includes many features and fixes.
 
@@ -30,6 +30,7 @@ This release drops support for Go 1.17 and includes many features and fixes.
 - **interp**
   - Add initial implementation for `mapfile` and `readarray` - [#863]
   - Improve matching patterns against multiple lines - [#866]
+  - Support `%b` in the `printf` builtin - [#955]
   - Display all Bash options in `shopt` - [#877]
 - **pattern**
   - Add `EntireString` to match the entire string using `^$` - [#866]
@@ -656,6 +657,7 @@ module in v3.
 
 Initial release.
 
+[3.6.0]: https://github.com/mvdan/sh/releases/tag/v3.6.0
 [#779]: https://github.com/mvdan/sh/issues/779
 [#803]: https://github.com/mvdan/sh/issues/803
 [#814]: https://github.com/mvdan/sh/issues/814
@@ -676,6 +678,7 @@ Initial release.
 [#917]: https://github.com/mvdan/sh/pull/917
 [#928]: https://github.com/mvdan/sh/issues/928
 [#929]: https://github.com/mvdan/sh/pull/929
+[#955]: https://github.com/mvdan/sh/pull/955
 
 [3.5.1]: https://github.com/mvdan/sh/releases/tag/v3.5.1
 [#860]: https://github.com/mvdan/sh/issues/860
