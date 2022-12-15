@@ -22,10 +22,10 @@ import (
 	"mvdan.cc/sh/v3/syntax"
 )
 
-func blocklistBuiltinExec(name string) interp.ExecHandlerFunc {
+func blocklistOneExec(name string) interp.ExecHandlerFunc {
 	return func(ctx context.Context, args []string) error {
 		if args[0] == name {
-			return fmt.Errorf("%s: blocklisted builtin", name)
+			return fmt.Errorf("%s: blocklisted program", name)
 		}
 		return testExecHandler(ctx, args)
 	}
@@ -50,10 +50,10 @@ func blocklistGlob(ctx context.Context, path string) ([]os.FileInfo, error) {
 // runnerCtx allows us to give handler functions access to the Runner, if needed.
 var runnerCtx = new(int)
 
-func execBuiltin(ctx context.Context, args []string) error {
+func execJustPrint(ctx context.Context, args []string) error {
 	runner, ok := ctx.Value(runnerCtx).(*interp.Runner)
 	if ok && runner.Exited() {
-		return fmt.Errorf("exec builtin: %s", args[0])
+		return fmt.Errorf("would run: %s", args)
 	}
 	return nil
 }
@@ -69,15 +69,15 @@ var modCases = []struct {
 }{
 	{
 		name: "ExecBlocklistOne",
-		exec: blocklistBuiltinExec("sleep"),
+		exec: blocklistOneExec("sleep"),
 		src:  "echo foo; sleep 1",
-		want: "foo\nsleep: blocklisted builtin",
+		want: "foo\nsleep: blocklisted program",
 	},
 	{
 		name: "ExecBlocklistOneSubshell",
-		exec: blocklistBuiltinExec("faa"),
+		exec: blocklistOneExec("faa"),
 		src:  "a=$(echo foo | sed 's/o/a/g'); echo $a; $a args",
-		want: "faa\nfaa: blocklisted builtin",
+		want: "faa\nfaa: blocklisted program",
 	},
 	{
 		name: "ExecBlocklistAllSubshell",
@@ -105,9 +105,9 @@ var modCases = []struct {
 	},
 	{
 		name: "ExecBuiltin",
-		exec: execBuiltin,
+		exec: execJustPrint,
 		src:  "exec /bin/sh",
-		want: "exec builtin: /bin/sh",
+		want: "would run: [/bin/sh]",
 	},
 	{
 		name: "OpenForbidNonDev",
