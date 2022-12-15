@@ -4,7 +4,7 @@
 //go:build windows
 // +build windows
 
-package interp
+package interp_test
 
 import "golang.org/x/sys/windows"
 

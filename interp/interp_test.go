@@ -1,7 +1,7 @@
 // Copyright (c) 2017, Daniel Martí <mvdan@mvdan.cc>
 // See LICENSE for licensing information
 
-package interp
+package interp_test
 
 import (
 	"bytes"
@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"mvdan.cc/sh/v3/expand"
+	"mvdan.cc/sh/v3/interp"
 	"mvdan.cc/sh/v3/syntax"
 )
 
@@ -69,7 +70,7 @@ echo a{b,c}d *.go
 let i=(2 + 3)
 `
 	file := parse(b, nil, src)
-	r, _ := New()
+	r, _ := interp.New()
 	ctx := context.Background()
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
@@ -106,14 +107,14 @@ func TestMain(m *testing.M) {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
-		runner, _ := New(
-			StdIO(os.Stdin, os.Stdout, os.Stderr),
-			OpenHandler(testOpenHandler),
-			ExecHandler(testExecHandler),
+		runner, _ := interp.New(
+			interp.StdIO(os.Stdin, os.Stdout, os.Stderr),
+			interp.OpenHandler(testOpenHandler),
+			interp.ExecHandler(testExecHandler),
 		)
 		ctx := context.Background()
 		if err := runner.Run(ctx, file); err != nil {
-			if status, ok := IsExitStatus(err); ok {
+			if status, ok := interp.IsExitStatus(err); ok {
 				os.Exit(int(status))
 			}
 
@@ -3389,12 +3390,12 @@ func TestRunnerRun(t *testing.T) {
 
 			tdir := t.TempDir()
 			var cb concBuffer
-			r, err := New(Dir(tdir), StdIO(nil, &cb, &cb),
+			r, err := interp.New(interp.Dir(tdir), interp.StdIO(nil, &cb, &cb),
 				// TODO: why does this make some tests hang?
-				// Env(expand.ListEnviron(append(os.Environ(),
+				// interp.Env(expand.ListEnviron(append(os.Environ(),
 				// 	"FOO_INTERP_MISSING_NULL_BAR_INTERP_MISSING=foo_interp_missing\x00bar_interp_missing")...)),
-				OpenHandler(testOpenHandler),
-				ExecHandler(testExecHandler),
+				interp.OpenHandler(testOpenHandler),
+				interp.ExecHandler(testExecHandler),
 			)
 			if err != nil {
 				t.Fatal(err)
@@ -3419,7 +3420,7 @@ func TestRunnerRun(t *testing.T) {
 	}
 }
 
-func readLines(hc HandlerContext) ([][]byte, error) {
+func readLines(hc interp.HandlerContext) ([][]byte, error) {
 	bs, err := io.ReadAll(hc.Stdin)
 	if err != nil {
 		return nil, err
@@ -3431,8 +3432,18 @@ func readLines(hc HandlerContext) ([][]byte, error) {
 	return bytes.Split(bs, []byte("\n")), nil
 }
 
-var testBuiltinsMap = map[string]func(HandlerContext, []string) error{
-	"cat": func(hc HandlerContext, args []string) error {
+func absPath(dir, path string) string {
+	if path == "" {
+		return ""
+	}
+	if !filepath.IsAbs(path) {
+		path = filepath.Join(dir, path)
+	}
+	return filepath.Clean(path) // TODO: this clean is likely unnecessary
+}
+
+var testBuiltinsMap = map[string]func(interp.HandlerContext, []string) error{
+	"cat": func(hc interp.HandlerContext, args []string) error {
 		if len(args) == 0 {
 			if hc.Stdin == nil || hc.Stdout == nil {
 				return nil
@@ -3454,7 +3465,7 @@ var testBuiltinsMap = map[string]func(HandlerContext, []string) error{
 		}
 		return nil
 	},
-	"wc": func(hc HandlerContext, args []string) error {
+	"wc": func(hc interp.HandlerContext, args []string) error {
 		bs, err := io.ReadAll(hc.Stdin)
 		if err != nil {
 			return err
@@ -3470,7 +3481,7 @@ var testBuiltinsMap = map[string]func(HandlerContext, []string) error{
 		}
 		return nil
 	},
-	"tr": func(hc HandlerContext, args []string) error {
+	"tr": func(hc interp.HandlerContext, args []string) error {
 		if len(args) != 2 || len(args[1]) != 1 {
 			return fmt.Errorf("usage: tr [-s -d] [character]")
 		}
@@ -3496,7 +3507,7 @@ var testBuiltinsMap = map[string]func(HandlerContext, []string) error{
 		}
 		return nil
 	},
-	"sort": func(hc HandlerContext, args []string) error {
+	"sort": func(hc interp.HandlerContext, args []string) error {
 		lines, err := readLines(hc)
 		if err != nil {
 			return err
@@ -3509,7 +3520,7 @@ var testBuiltinsMap = map[string]func(HandlerContext, []string) error{
 		}
 		return nil
 	},
-	"grep": func(hc HandlerContext, args []string) error {
+	"grep": func(hc interp.HandlerContext, args []string) error {
 		var rx *regexp.Regexp
 		quiet := false
 		for _, arg := range args {
@@ -3537,11 +3548,11 @@ var testBuiltinsMap = map[string]func(HandlerContext, []string) error{
 			}
 		}
 		if !any {
-			return NewExitStatus(1)
+			return interp.NewExitStatus(1)
 		}
 		return nil
 	},
-	"sed": func(hc HandlerContext, args []string) error {
+	"sed": func(hc interp.HandlerContext, args []string) error {
 		f := hc.Stdin
 		switch len(args) {
 		case 1:
@@ -3572,7 +3583,7 @@ var testBuiltinsMap = map[string]func(HandlerContext, []string) error{
 		_, err = hc.Stdout.Write(bs)
 		return err
 	},
-	"mkdir": func(hc HandlerContext, args []string) error {
+	"mkdir": func(hc interp.HandlerContext, args []string) error {
 		for _, arg := range args {
 			if arg == "-p" {
 				continue
@@ -3584,7 +3595,7 @@ var testBuiltinsMap = map[string]func(HandlerContext, []string) error{
 		}
 		return nil
 	},
-	"rm": func(hc HandlerContext, args []string) error {
+	"rm": func(hc interp.HandlerContext, args []string) error {
 		for _, arg := range args {
 			if arg == "-r" {
 				continue
@@ -3596,7 +3607,7 @@ var testBuiltinsMap = map[string]func(HandlerContext, []string) error{
 		}
 		return nil
 	},
-	"ln": func(hc HandlerContext, args []string) error {
+	"ln": func(hc interp.HandlerContext, args []string) error {
 		symbolic := args[0] == "-s"
 		if symbolic {
 			args = args[1:]
@@ -3608,7 +3619,7 @@ var testBuiltinsMap = map[string]func(HandlerContext, []string) error{
 		}
 		return os.Link(oldname, newname)
 	},
-	"touch": func(hc HandlerContext, args []string) error {
+	"touch": func(hc interp.HandlerContext, args []string) error {
 		filenames := args // create all arugments as filenames
 
 		newTime := time.Now()
@@ -3647,7 +3658,7 @@ var testBuiltinsMap = map[string]func(HandlerContext, []string) error{
 		}
 		return nil
 	},
-	"sleep": func(hc HandlerContext, args []string) error {
+	"sleep": func(hc interp.HandlerContext, args []string) error {
 		for _, arg := range args {
 			// assume and default unit to be in seconds
 			d, err := time.ParseDuration(fmt.Sprintf("%ss", arg))
@@ -3662,9 +3673,9 @@ var testBuiltinsMap = map[string]func(HandlerContext, []string) error{
 
 func testExecHandler(ctx context.Context, args []string) error {
 	if fn := testBuiltinsMap[args[0]]; fn != nil {
-		return fn(HandlerCtx(ctx), args[1:])
+		return fn(interp.HandlerCtx(ctx), args[1:])
 	}
-	return DefaultExecHandler(2*time.Second)(ctx, args)
+	return interp.DefaultExecHandler(2*time.Second)(ctx, args)
 }
 
 func testOpenHandler(ctx context.Context, path string, flag int, perm os.FileMode) (io.ReadWriteCloser, error) {
@@ -3672,7 +3683,7 @@ func testOpenHandler(ctx context.Context, path string, flag int, perm os.FileMod
 		path = "NUL"
 	}
 
-	return DefaultOpenHandler()(ctx, path, flag, perm)
+	return interp.DefaultOpenHandler()(ctx, path, flag, perm)
 }
 
 func TestRunnerRunConfirm(t *testing.T) {
@@ -3728,18 +3739,18 @@ func TestRunnerRunConfirm(t *testing.T) {
 func TestRunnerOpts(t *testing.T) {
 	t.Parallel()
 
-	withPath := func(strs ...string) func(*Runner) error {
+	withPath := func(strs ...string) func(*interp.Runner) error {
 		prefix := []string{
 			"PATH=" + os.Getenv("PATH"),
 			"ENV_PROG=" + os.Getenv("ENV_PROG"),
 		}
-		return Env(expand.ListEnviron(append(prefix, strs...)...))
+		return interp.Env(expand.ListEnviron(append(prefix, strs...)...))
 	}
-	opts := func(list ...RunnerOption) []RunnerOption {
+	opts := func(list ...interp.RunnerOption) []interp.RunnerOption {
 		return list
 	}
 	cases := []struct {
-		opts     []RunnerOption
+		opts     []interp.RunnerOption
 		in, want string
 	}{
 		{
@@ -3783,37 +3794,37 @@ func TestRunnerOpts(t *testing.T) {
 			"exit status 1",
 		},
 		{
-			opts(Params("foo_interp_missing")),
+			opts(interp.Params("foo_interp_missing")),
 			"echo $@",
 			"foo_interp_missing\n",
 		},
 		{
-			opts(Params("-u", "--", "foo_interp_missing")),
+			opts(interp.Params("-u", "--", "foo_interp_missing")),
 			"echo $@; echo $unset",
 			"foo_interp_missing\nunset: unbound variable\nexit status 1",
 		},
 		{
-			opts(Params("-u", "--", "foo_interp_missing")),
+			opts(interp.Params("-u", "--", "foo_interp_missing")),
 			"echo $@; echo ${unset:-default}",
 			"foo_interp_missing\ndefault\n",
 		},
 		{
-			opts(Params("foo_interp_missing")),
+			opts(interp.Params("foo_interp_missing")),
 			"set >/dev/null; echo $@",
 			"foo_interp_missing\n",
 		},
 		{
-			opts(Params("foo_interp_missing")),
+			opts(interp.Params("foo_interp_missing")),
 			"set -e; echo $@",
 			"foo_interp_missing\n",
 		},
 		{
-			opts(Params("foo_interp_missing")),
+			opts(interp.Params("foo_interp_missing")),
 			"set --; echo $@",
 			"\n",
 		},
 		{
-			opts(Params("foo_interp_missing")),
+			opts(interp.Params("foo_interp_missing")),
 			"set bar_interp_missing; echo $@",
 			"bar_interp_missing\n",
 		},
@@ -3824,10 +3835,10 @@ func TestRunnerOpts(t *testing.T) {
 			skipIfUnsupported(t, c.in)
 			file := parse(t, p, c.in)
 			var cb concBuffer
-			r, err := New(append(c.opts,
-				StdIO(nil, &cb, &cb),
-				OpenHandler(testOpenHandler),
-				ExecHandler(testExecHandler),
+			r, err := interp.New(append(c.opts,
+				interp.StdIO(nil, &cb, &cb),
+				interp.OpenHandler(testOpenHandler),
+				interp.ExecHandler(testExecHandler),
 			)...)
 			if err != nil {
 				t.Fatal(err)
@@ -3865,7 +3876,7 @@ func TestRunnerContext(t *testing.T) {
 			file := parse(t, p, in)
 			ctx, cancel := context.WithCancel(context.Background())
 			cancel()
-			r, _ := New()
+			r, _ := interp.New()
 			errChan := make(chan error)
 			go func() {
 				errChan <- r.Run(ctx, file)
@@ -3897,7 +3908,7 @@ func TestRunnerAltNodes(t *testing.T) {
 	}
 	for _, node := range nodes {
 		var cb concBuffer
-		r, _ := New(StdIO(nil, &cb, &cb))
+		r, _ := interp.New(interp.StdIO(nil, &cb, &cb))
 		ctx, cancel := context.WithTimeout(context.Background(), runnerRunTimeout)
 		defer cancel()
 		if err := r.Run(ctx, node); err != nil {
@@ -3910,42 +3921,6 @@ func TestRunnerAltNodes(t *testing.T) {
 	}
 }
 
-func TestElapsedString(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		in    time.Duration
-		posix bool
-		want  string
-	}{
-		{time.Nanosecond, false, "0m0.000s"},
-		{time.Millisecond, false, "0m0.001s"},
-		{time.Millisecond, true, "0.00"},
-		{2500 * time.Millisecond, false, "0m2.500s"},
-		{2500 * time.Millisecond, true, "2.50"},
-		{
-			10*time.Minute + 10*time.Second,
-			false,
-			"10m10.000s",
-		},
-		{
-			10*time.Minute + 10*time.Second,
-			true,
-			"610.00",
-		},
-		{31 * time.Second, false, "0m31.000s"},
-		{102 * time.Second, false, "1m42.000s"},
-	}
-	for _, tc := range tests {
-		t.Run(tc.in.String(), func(t *testing.T) {
-			got := elapsedString(tc.in, tc.posix)
-			if got != tc.want {
-				t.Fatalf("wanted %q, got %q", tc.want, got)
-			}
-		})
-	}
-}
-
 func TestRunnerDir(t *testing.T) {
 	t.Parallel()
 
@@ -3954,19 +3929,19 @@ func TestRunnerDir(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Run("Missing", func(t *testing.T) {
-		_, err := New(Dir("missing"))
+		_, err := interp.New(interp.Dir("missing"))
 		if err == nil {
 			t.Fatal("expected New to error when Dir is missing")
 		}
 	})
 	t.Run("NotDir", func(t *testing.T) {
-		_, err := New(Dir("interp_test.go"))
+		_, err := interp.New(interp.Dir("interp_test.go"))
 		if err == nil {
 			t.Fatal("expected New to error when Dir is not a dir")
 		}
 	})
 	t.Run("NotDirAbs", func(t *testing.T) {
-		_, err := New(Dir(filepath.Join(wd, "interp_test.go")))
+		_, err := interp.New(interp.Dir(filepath.Join(wd, "interp_test.go")))
 		if err == nil {
 			t.Fatal("expected New to error when Dir is not a dir")
 		}
@@ -3976,7 +3951,7 @@ func TestRunnerDir(t *testing.T) {
 		// drive to another. Use the parent directory, as that's for
 		// sure in the same drive as the current directory.
 		rel := ".." + string(filepath.Separator)
-		r, err := New(Dir(rel))
+		r, err := interp.New(interp.Dir(rel))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -4016,7 +3991,7 @@ func TestRunnerDir(t *testing.T) {
 		}
 
 		var b bytes.Buffer
-		r, err := New(Dir(altDir), StdIO(nil, &b, &b))
+		r, err := interp.New(interp.Dir(altDir), interp.StdIO(nil, &b, &b))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -4045,12 +4020,12 @@ func TestRunnerIncremental(t *testing.T) {
 	file := parse(t, nil, "echo foo_interp_missing; false; echo bar_interp_missing; exit 0; echo baz")
 	want := "foo_interp_missing\nbar_interp_missing\n"
 	var b bytes.Buffer
-	r, _ := New(StdIO(nil, &b, &b))
+	r, _ := interp.New(interp.StdIO(nil, &b, &b))
 	ctx, cancel := context.WithTimeout(context.Background(), runnerRunTimeout)
 	defer cancel()
 	for _, stmt := range file.Stmts {
 		err := r.Run(ctx, stmt)
-		if _, ok := IsExitStatus(err); !ok && err != nil {
+		if _, ok := interp.IsExitStatus(err); !ok && err != nil {
 			// Keep track of unexpected errors.
 			b.WriteString(err.Error())
 		}
@@ -4073,15 +4048,15 @@ func TestRunnerResetFields(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer logFile.Close()
-	r, _ := New(
-		Params("-f", "--", "first", tdir, logPath),
-		Dir(tdir),
-		OpenHandler(testOpenHandler),
-		ExecHandler(testExecHandler),
+	r, _ := interp.New(
+		interp.Params("-f", "--", "first", tdir, logPath),
+		interp.Dir(tdir),
+		interp.OpenHandler(testOpenHandler),
+		interp.ExecHandler(testExecHandler),
 	)
 	// Check that using option funcs and Runner fields directly is still
 	// kept by Reset.
-	StdIO(nil, logFile, os.Stderr)(r)
+	interp.StdIO(nil, logFile, os.Stderr)(r)
 	r.Env = expand.ListEnviron(append(os.Environ(), "GLOBAL=foo_interp_missing")...)
 
 	file := parse(t, nil, `
@@ -4125,7 +4100,7 @@ export GLOBAL=
 
 func TestRunnerManyResets(t *testing.T) {
 	t.Parallel()
-	r, _ := New()
+	r, _ := interp.New()
 	for i := 0; i < 5; i++ {
 		r.Reset()
 	}
@@ -4137,7 +4112,7 @@ func TestRunnerFilename(t *testing.T) {
 	want := "f.sh\n"
 	file, _ := syntax.NewParser().Parse(strings.NewReader("echo $0"), "f.sh")
 	var b bytes.Buffer
-	r, _ := New(StdIO(nil, &b, &b))
+	r, _ := interp.New(interp.StdIO(nil, &b, &b))
 	ctx, cancel := context.WithTimeout(context.Background(), runnerRunTimeout)
 	defer cancel()
 	if err := r.Run(ctx, file); err != nil {
@@ -4155,7 +4130,7 @@ func TestRunnerEnvNoModify(t *testing.T) {
 	file := parse(t, nil, `echo -n "$one $two; "; one=x; unset two`)
 
 	var b bytes.Buffer
-	r, _ := New(Env(env), StdIO(nil, &b, &b))
+	r, _ := interp.New(interp.Env(env), interp.StdIO(nil, &b, &b))
 	ctx, cancel := context.WithTimeout(context.Background(), runnerRunTimeout)
 	defer cancel()
 	for i := 0; i < 3; i++ {
@@ -4191,7 +4166,7 @@ func TestMalformedPathOnWindows(t *testing.T) {
 
 	file := parse(t, nil, "test.cmd")
 	var cb concBuffer
-	r, _ := New(Env(expand.ListEnviron("PATH="+pathList)), StdIO(nil, &cb, &cb))
+	r, _ := interp.New(interp.Env(expand.ListEnviron("PATH="+pathList)), interp.StdIO(nil, &cb, &cb))
 	ctx, cancel := context.WithTimeout(context.Background(), runnerRunTimeout)
 	defer cancel()
 	if err := r.Run(ctx, file); err != nil {
@@ -4206,7 +4181,7 @@ func TestMalformedPathOnWindows(t *testing.T) {
 func TestReadShouldNotPanicWithNilStdin(t *testing.T) {
 	t.Parallel()
 
-	r, err := New()
+	r, err := interp.New()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -4222,7 +4197,7 @@ func TestReadShouldNotPanicWithNilStdin(t *testing.T) {
 func TestRunnerVars(t *testing.T) {
 	t.Parallel()
 
-	r, err := New()
+	r, err := interp.New()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -4242,7 +4217,7 @@ func TestRunnerVars(t *testing.T) {
 func TestRunnerSubshell(t *testing.T) {
 	t.Parallel()
 
-	r1, err := New()
+	r1, err := interp.New()
 	if err != nil {
 		t.Fatal(err)
 	}

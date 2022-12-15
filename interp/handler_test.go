@@ -1,7 +1,7 @@
 // Copyright (c) 2017, Daniel Martí <mvdan@mvdan.cc>
 // See LICENSE for licensing information
 
-package interp
+package interp_test
 
 import (
 	"bufio"
@@ -18,10 +18,11 @@ import (
 	"testing"
 	"time"
 
+	"mvdan.cc/sh/v3/interp"
 	"mvdan.cc/sh/v3/syntax"
 )
 
-func blocklistBuiltinExec(name string) ExecHandlerFunc {
+func blocklistBuiltinExec(name string) interp.ExecHandlerFunc {
 	return func(ctx context.Context, args []string) error {
 		if args[0] == name {
 			return fmt.Errorf("%s: blocklisted builtin", name)
@@ -50,7 +51,7 @@ func blocklistGlob(ctx context.Context, path string) ([]os.FileInfo, error) {
 var runnerCtx = new(int)
 
 func execBuiltin(ctx context.Context, args []string) error {
-	runner, ok := ctx.Value(runnerCtx).(*Runner)
+	runner, ok := ctx.Value(runnerCtx).(*interp.Runner)
 	if ok && runner.Exited() {
 		return fmt.Errorf("exec builtin: %s", args[0])
 	}
@@ -59,10 +60,10 @@ func execBuiltin(ctx context.Context, args []string) error {
 
 var modCases = []struct {
 	name    string
-	exec    ExecHandlerFunc
-	open    OpenHandlerFunc
-	call    CallHandlerFunc
-	readdir ReadDirHandlerFunc
+	exec    interp.ExecHandlerFunc
+	open    interp.OpenHandlerFunc
+	call    interp.CallHandlerFunc
+	readdir interp.ReadDirHandlerFunc
 	src     string
 	want    string
 }{
@@ -158,18 +159,18 @@ func TestRunnerHandlers(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			file := parse(t, p, tc.src)
 			var cb concBuffer
-			r, err := New(StdIO(nil, &cb, &cb))
+			r, err := interp.New(interp.StdIO(nil, &cb, &cb))
 			if tc.exec != nil {
-				ExecHandler(tc.exec)(r)
+				interp.ExecHandler(tc.exec)(r)
 			}
 			if tc.open != nil {
-				OpenHandler(tc.open)(r)
+				interp.OpenHandler(tc.open)(r)
 			}
 			if tc.call != nil {
-				CallHandler(tc.call)(r)
+				interp.CallHandler(tc.call)(r)
 			}
 			if tc.readdir != nil {
-				ReadDirHandler(tc.readdir)(r)
+				interp.ReadDirHandler(tc.readdir)(r)
 			}
 			if err != nil {
 				t.Fatal(err)
@@ -247,9 +248,9 @@ func TestKillTimeout(t *testing.T) {
 				var rbuf readyBuffer
 				rbuf.seenReady.Add(1)
 				ctx, cancel := context.WithCancel(context.Background())
-				r, err := New(
-					StdIO(nil, &rbuf, &rbuf),
-					ExecHandler(DefaultExecHandler(test.killTimeout)),
+				r, err := interp.New(
+					interp.StdIO(nil, &rbuf, &rbuf),
+					interp.ExecHandler(interp.DefaultExecHandler(test.killTimeout)),
 				)
 				if err != nil {
 					t.Fatal(err)
@@ -260,7 +261,7 @@ func TestKillTimeout(t *testing.T) {
 				}()
 				err = r.Run(ctx, file)
 				if test.forcedKill {
-					if _, ok := IsExitStatus(err); ok || err == nil {
+					if _, ok := interp.IsExitStatus(err); ok || err == nil {
 						t.Error("command was not force-killed")
 					}
 				} else {
@@ -291,9 +292,9 @@ func TestKillSignal(t *testing.T) {
 		signal os.Signal
 		want   error
 	}{
-		{syscall.SIGINT, NewExitStatus(130)},  // 128 + 2
-		{syscall.SIGKILL, NewExitStatus(137)}, // 128 + 9
-		{syscall.SIGTERM, NewExitStatus(143)}, // 128 + 15
+		{syscall.SIGINT, interp.NewExitStatus(130)},  // 128 + 2
+		{syscall.SIGKILL, interp.NewExitStatus(137)}, // 128 + 9
+		{syscall.SIGTERM, interp.NewExitStatus(143)}, // 128 + 15
 	}
 
 	// pid_and_hang is implemented in TestMain; we use it to have the
@@ -310,7 +311,7 @@ func TestKillSignal(t *testing.T) {
 
 			outReader, outWriter := io.Pipe()
 			stderr := new(bytes.Buffer)
-			r, _ := New(StdIO(nil, outWriter, stderr))
+			r, _ := interp.New(interp.StdIO(nil, outWriter, stderr))
 			errch := make(chan error, 1)
 			go func() {
 				errch <- r.Run(ctx, file)
