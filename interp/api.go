@@ -613,6 +613,13 @@ func (r *Runner) Reset() {
 			Str:      strconv.Itoa(os.Getuid()),
 		})
 	}
+	if !r.writeEnv.Get("EUID").IsSet() {
+		r.setVar("EUID", nil, expand.Variable{
+			Kind:     expand.String,
+			ReadOnly: true,
+			Str:      strconv.Itoa(os.Geteuid()),
+		})
+	}
 	if !r.writeEnv.Get("GID").IsSet() {
 		r.setVar("GID", nil, expand.Variable{
 			Kind:     expand.String,

@@ -1,5 +1,10 @@
 # Changelog
 
+## [3.6.1] - 2023-??-??
+
+- **interp**
+  - Set `EUID` just like `UID`
+
 ## [3.6.0] - 2022-12-11
 
 This release drops support for Go 1.17 and includes many features and fixes.
