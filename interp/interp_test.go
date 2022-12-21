@@ -3051,6 +3051,18 @@ var runTestsUnix = []runTest{
 		`unset UID`,
 		"UID: readonly variable\n #IGNORE",
 	},
+	{
+		`test -n "$EUID" && echo OK`,
+		"OK\n",
+	},
+	{
+		`set EUID=newvalue; test EUID != newvalue && echo OK || echo EUID=$EUID`,
+		"OK\n",
+	},
+	{
+		`unset EUID`,
+		"EUID: readonly variable\n #IGNORE",
+	},
 	// GID is not set in bash
 	{
 		`unset GID`,
