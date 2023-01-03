@@ -90,18 +90,17 @@ func encodeValue(val reflect.Value) (reflect.Value, string) {
 		encTyp := reflect.StructOf(fields)
 		enc := reflect.New(encTyp).Elem()
 
-		// Pos methods are defined on struct pointer receivers.
-		for i, name := range [...]string{"Pos", "End"} {
-			if fn := val.Addr().MethodByName(name); fn.IsValid() {
-				encodePos(enc.Field(1+i), fn.Call(nil)[0])
-			}
+		// Node methods are defined on struct pointer receivers.
+		if node, _ := val.Addr().Interface().(syntax.Node); node != nil {
+			encodePos(enc.Field(1), node.Pos()) // posField
+			encodePos(enc.Field(2), node.End()) // endField
 		}
 		// Do the rest of the fields.
 		for i := 3; i < encTyp.NumField(); i++ {
 			ftyp := encTyp.Field(i)
 			fval := val.FieldByName(ftyp.Name)
 			if ftyp.Type == exportedPosType {
-				encodePos(enc.Field(i), fval)
+				encodePos(enc.Field(i), fval.Interface().(syntax.Pos))
 			} else {
 				encElem, _ := encodeValue(fval)
 				if encElem.IsValid() {
@@ -173,17 +172,17 @@ type exportedPos struct {
 	Offset, Line, Col uint
 }
 
-func encodePos(encPtr, val reflect.Value) {
-	if !val.MethodByName("IsValid").Call(nil)[0].Bool() {
+func encodePos(encPtr reflect.Value, val syntax.Pos) {
+	if !val.IsValid() {
 		return
 	}
 	enc := reflect.New(exportedPosType.Elem())
 	encPtr.Set(enc)
 	enc = enc.Elem()
 
-	enc.Field(0).Set(val.MethodByName("Offset").Call(nil)[0])
-	enc.Field(1).Set(val.MethodByName("Line").Call(nil)[0])
-	enc.Field(2).Set(val.MethodByName("Col").Call(nil)[0])
+	enc.Field(0).SetUint(uint64(val.Offset()))
+	enc.Field(1).SetUint(uint64(val.Line()))
+	enc.Field(2).SetUint(uint64(val.Col()))
 }
 
 func decodePos(val reflect.Value, enc map[string]interface{}) {
