@@ -71,10 +71,15 @@ type Runner struct {
 	// arguments. It may be nil.
 	callHandler CallHandlerFunc
 
-	// execHandler is a function responsible for executing programs. It must be non-nil.
+	// execHandler is responsible for executing programs. It must not be nil.
 	execHandler ExecHandlerFunc
 
-	// openHandler is a function responsible for opening files. It must be non-nil.
+	// execMiddlewares grows with calls to ExecHandlers,
+	// and is used to construct execHandler when Reset is first called.
+	// The slice is needed to preserve the relative order of middlewares.
+	execMiddlewares []func(ExecHandlerFunc) ExecHandlerFunc
+
+	// openHandler is a function responsible for opening files. It must not be nil.
 	openHandler OpenHandlerFunc
 
 	// readDirHandler is a function responsible for reading directories during
@@ -181,7 +186,6 @@ func (r *Runner) optByFlag(flag byte) *bool {
 func New(opts ...RunnerOption) (*Runner, error) {
 	r := &Runner{
 		usedNew:        true,
-		execHandler:    DefaultExecHandler(2 * time.Second),
 		openHandler:    DefaultOpenHandler(),
 		readDirHandler: DefaultReadDirHandler(),
 		statHandler:    DefaultStatHandler(),
@@ -213,9 +217,11 @@ func New(opts ...RunnerOption) (*Runner, error) {
 	return r, nil
 }
 
-// RunnerOption is a function which can be passed to New to alter Runner behaviour.
-// To apply option to existing Runner call it directly,
-// for example interp.Params("-e")(runner).
+// RunnerOption can be passed to New to alter a Runner's behaviour.
+// It can also be applied directly on an existing Runner,
+// such as interp.Params("-e")(runner).
+// Note that options cannot be applied once Run or Reset have been called.
+// TODO: enforce that rule via didReset.
 type RunnerOption func(*Runner) error
 
 // Env sets the interpreter's environment. If nil, a copy of the current
@@ -329,13 +335,45 @@ func CallHandler(f CallHandlerFunc) RunnerOption {
 	}
 }
 
-// ExecHandler sets the command execution handler. See ExecHandlerFunc for more info.
+// ExecHandler sets one command execution handler,
+// which replaces DefaultExecHandler(2 * time.Second).
+//
+// Deprecated: use ExecHandlers instead, which allows for middleware handlers.
 func ExecHandler(f ExecHandlerFunc) RunnerOption {
 	return func(r *Runner) error {
 		r.execHandler = f
 		return nil
 	}
 }
+
+// ExecHandlers appends middlewares to handle command execution.
+// The middlewares are chained from first to last, and the first is called by the runner.
+// Each middleware is expected to call the "next" middleware at most once.
+//
+// For example, a middleware may implement only some commands.
+// For those commands, it can run its logic and avoid calling "next".
+// For any other commands, it can call "next" with the original parameters.
+//
+// Another common example is a middleware which always calls "next",
+// but runs custom logic either before or after that call.
+// For instance, a middleware could change the arguments to the "next" call,
+// or it could print log lines before or after the call to "next".
+//
+// The last exec handler is DefaultExecHandler(2 * time.Second).
+func ExecHandlers(middlewares ...func(next ExecHandlerFunc) ExecHandlerFunc) RunnerOption {
+	return func(r *Runner) error {
+		r.execMiddlewares = append(r.execMiddlewares, middlewares...)
+		return nil
+	}
+}
+
+// TODO: consider porting the middleware API in ExecHandlers to OpenHandler,
+// ReadDirHandler, and StatHandler.
+
+// TODO(v4): now that ExecHandlers allows calling a next handler with changed
+// arguments, one of the two advantages of CallHandler is gone. The other is the
+// ability to work with builtins; if we make ExecHandlers work with builtins, we
+// could join both APIs.
 
 // OpenHandler sets file open handler. See OpenHandlerFunc for more info.
 func OpenHandler(f OpenHandlerFunc) RunnerOption {
@@ -561,6 +599,19 @@ func (r *Runner) Reset() {
 		r.origStdin = r.stdin
 		r.origStdout = r.stdout
 		r.origStderr = r.stderr
+
+		if r.execHandler != nil && len(r.execMiddlewares) > 0 {
+			panic("interp.ExecHandler should be replaced with interp.ExecHandlers, not mixed")
+		}
+		if r.execHandler == nil {
+			r.execHandler = DefaultExecHandler(2 * time.Second)
+		}
+		// Middlewares are chained from first to last, and each can call the
+		// next in the chain, so we need to construct the chain backwards.
+		for i := len(r.execMiddlewares) - 1; i >= 0; i-- {
+			middleware := r.execMiddlewares[i]
+			r.execHandler = middleware(r.execHandler)
+		}
 	}
 	// reset the internal state
 	*r = Runner{
@@ -632,6 +683,7 @@ func (r *Runner) Reset() {
 	r.setVarString("OPTIND", "1")
 
 	r.dirStack = append(r.dirStack, r.Dir)
+
 	r.didReset = true
 }
 

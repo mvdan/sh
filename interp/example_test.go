@@ -10,7 +10,6 @@ import (
 	"os"
 	"runtime"
 	"strings"
-	"time"
 
 	"mvdan.cc/sh/v3/expand"
 	"mvdan.cc/sh/v3/interp"
@@ -38,28 +37,33 @@ func Example() {
 	// global_value
 }
 
-func ExampleExecHandler() {
+func ExampleExecHandlers() {
 	src := "echo foo; join ! foo bar baz; missing-program bar"
 	file, _ := syntax.NewParser().Parse(strings.NewReader(src), "")
 
-	exec := func(ctx context.Context, args []string) error {
-		hc := interp.HandlerCtx(ctx)
-
-		if args[0] == "join" {
-			fmt.Fprintln(hc.Stdout, strings.Join(args[2:], args[1]))
-			return nil
+	execJoin := func(next interp.ExecHandlerFunc) interp.ExecHandlerFunc {
+		return func(ctx context.Context, args []string) error {
+			hc := interp.HandlerCtx(ctx)
+			if args[0] == "join" {
+				fmt.Fprintln(hc.Stdout, strings.Join(args[2:], args[1]))
+				return nil
+			}
+			return next(ctx, args)
 		}
-
-		if _, err := interp.LookPathDir(hc.Dir, hc.Env, args[0]); err != nil {
-			fmt.Printf("%s is not installed\n", args[0])
-			return interp.NewExitStatus(1)
+	}
+	execNotInstalled := func(next interp.ExecHandlerFunc) interp.ExecHandlerFunc {
+		return func(ctx context.Context, args []string) error {
+			hc := interp.HandlerCtx(ctx)
+			if _, err := interp.LookPathDir(hc.Dir, hc.Env, args[0]); err != nil {
+				fmt.Printf("%s is not installed\n", args[0])
+				return interp.NewExitStatus(1)
+			}
+			return next(ctx, args)
 		}
-
-		return interp.DefaultExecHandler(2*time.Second)(ctx, args)
 	}
 	runner, _ := interp.New(
 		interp.StdIO(nil, os.Stdout, os.Stdout),
-		interp.ExecHandler(exec),
+		interp.ExecHandlers(execJoin, execNotInstalled),
 	)
 	runner.Run(context.TODO(), file)
 	// Output:

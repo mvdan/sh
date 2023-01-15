@@ -22,17 +22,21 @@ import (
 	"mvdan.cc/sh/v3/syntax"
 )
 
-func blocklistOneExec(name string) interp.ExecHandlerFunc {
-	return func(ctx context.Context, args []string) error {
-		if args[0] == name {
-			return fmt.Errorf("%s: blocklisted program", name)
+func blocklistOneExec(name string) func(interp.ExecHandlerFunc) interp.ExecHandlerFunc {
+	return func(next interp.ExecHandlerFunc) interp.ExecHandlerFunc {
+		return func(ctx context.Context, args []string) error {
+			if args[0] == name {
+				return fmt.Errorf("%s: blocklisted program", name)
+			}
+			return next(ctx, args)
 		}
-		return testExecHandler(ctx, args)
 	}
 }
 
-func blocklistAllExec(ctx context.Context, args []string) error {
-	return fmt.Errorf("blocklisted: %s", args[0])
+func blocklistAllExec(next interp.ExecHandlerFunc) interp.ExecHandlerFunc {
+	return func(ctx context.Context, args []string) error {
+		return fmt.Errorf("blocklisted: %s", args[0])
+	}
 }
 
 func blocklistNondevOpen(ctx context.Context, path string, flags int, mode os.FileMode) (io.ReadWriteCloser, error) {
@@ -47,107 +51,170 @@ func blocklistGlob(ctx context.Context, path string) ([]os.FileInfo, error) {
 	return nil, fmt.Errorf("blocklisted: glob")
 }
 
+func execPrint(next interp.ExecHandlerFunc) interp.ExecHandlerFunc {
+	return func(ctx context.Context, args []string) error {
+		hc := interp.HandlerCtx(ctx)
+		fmt.Fprintf(hc.Stdout, "would run: %s", args)
+		return nil
+	}
+}
+
 // runnerCtx allows us to give handler functions access to the Runner, if needed.
 var runnerCtx = new(int)
 
-func execJustPrint(ctx context.Context, args []string) error {
-	runner, ok := ctx.Value(runnerCtx).(*interp.Runner)
-	if ok && runner.Exited() {
-		return fmt.Errorf("would run: %s", args)
+func execPrintWouldExec(next interp.ExecHandlerFunc) interp.ExecHandlerFunc {
+	return func(ctx context.Context, args []string) error {
+		runner, ok := ctx.Value(runnerCtx).(*interp.Runner)
+		if ok && runner.Exited() {
+			return fmt.Errorf("would exec via builtin: %s", args)
+		}
+		return nil
 	}
-	return nil
 }
 
+// TODO: join with TestRunnerOpts?
 var modCases = []struct {
-	name    string
-	exec    interp.ExecHandlerFunc
-	open    interp.OpenHandlerFunc
-	call    interp.CallHandlerFunc
-	readdir interp.ReadDirHandlerFunc
-	src     string
-	want    string
+	name string
+	opts []interp.RunnerOption
+	src  string
+	want string
 }{
 	{
 		name: "ExecBlocklistOne",
-		exec: blocklistOneExec("sleep"),
+		opts: []interp.RunnerOption{
+			interp.ExecHandlers(blocklistOneExec("sleep")),
+		},
 		src:  "echo foo; sleep 1",
 		want: "foo\nsleep: blocklisted program",
 	},
 	{
 		name: "ExecBlocklistOneSubshell",
-		exec: blocklistOneExec("faa"),
+		opts: []interp.RunnerOption{
+			interp.ExecHandlers(blocklistOneExec("faa")),
+		},
 		src:  "a=$(echo foo | sed 's/o/a/g'); echo $a; $a args",
 		want: "faa\nfaa: blocklisted program",
 	},
 	{
 		name: "ExecBlocklistAllSubshell",
-		exec: blocklistAllExec,
+		opts: []interp.RunnerOption{
+			interp.ExecHandlers(blocklistAllExec),
+		},
 		src:  "(malicious)",
 		want: "blocklisted: malicious",
 	},
 	{
 		name: "ExecPipe",
-		exec: blocklistAllExec,
+		opts: []interp.RunnerOption{
+			interp.ExecHandlers(blocklistAllExec),
+		},
 		src:  "malicious | echo foo",
 		want: "foo\nblocklisted: malicious",
 	},
 	{
 		name: "ExecCmdSubst",
-		exec: blocklistAllExec,
+		opts: []interp.RunnerOption{
+			interp.ExecHandlers(blocklistAllExec),
+		},
 		src:  "a=$(malicious)",
 		want: "blocklisted: malicious\n", // TODO: why the newline?
 	},
 	{
 		name: "ExecBackground",
-		exec: blocklistAllExec,
+		opts: []interp.RunnerOption{
+			interp.ExecHandlers(blocklistAllExec),
+		},
 		src:  "{ malicious; true; } & { malicious; true; } & wait",
 		want: "blocklisted: malicious",
 	},
 	{
-		name: "ExecBuiltin",
-		exec: execJustPrint,
+		name: "ExecPrintWouldExec",
+		opts: []interp.RunnerOption{
+			interp.ExecHandlers(execPrintWouldExec),
+		},
 		src:  "exec /bin/sh",
-		want: "would run: [/bin/sh]",
+		want: "would exec via builtin: [/bin/sh]",
+	},
+	{
+		name: "ExecPrintAndBlocklist",
+		opts: []interp.RunnerOption{
+			interp.ExecHandlers(
+				execPrint,
+				blocklistOneExec("foo"),
+			),
+		},
+		src:  "foo",
+		want: "would run: [foo]",
+	},
+	{
+		name: "ExecPrintAndBlocklistSeparate",
+		opts: []interp.RunnerOption{
+			interp.ExecHandlers(execPrint),
+			interp.ExecHandlers(blocklistOneExec("foo")),
+		},
+		src:  "foo",
+		want: "would run: [foo]",
+	},
+	{
+		name: "ExecBlocklistAndPrint",
+		opts: []interp.RunnerOption{
+			interp.ExecHandlers(
+				blocklistOneExec("foo"),
+				execPrint,
+			),
+		},
+		src:  "foo",
+		want: "foo: blocklisted program",
 	},
 	{
 		name: "OpenForbidNonDev",
-		open: blocklistNondevOpen,
+		opts: []interp.RunnerOption{
+			interp.OpenHandler(blocklistNondevOpen),
+		},
 		src:  "echo foo >/dev/null; echo bar >/tmp/x",
 		want: "non-dev: /tmp/x",
 	},
 	{
 		name: "CallReplaceWithBlank",
-		open: blocklistNondevOpen,
-		call: func(ctx context.Context, args []string) ([]string, error) {
-			return []string{"echo", "blank"}, nil
+		opts: []interp.RunnerOption{
+			interp.OpenHandler(blocklistNondevOpen),
+			interp.CallHandler(func(ctx context.Context, args []string) ([]string, error) {
+				return []string{"echo", "blank"}, nil
+			}),
 		},
 		src:  "echo foo >/dev/null; { bar; } && baz",
 		want: "blank\nblank\n",
 	},
 	{
 		name: "CallDryRun",
-		call: func(ctx context.Context, args []string) ([]string, error) {
-			return append([]string{"echo", "run:"}, args...), nil
+		opts: []interp.RunnerOption{
+			interp.CallHandler(func(ctx context.Context, args []string) ([]string, error) {
+				return append([]string{"echo", "run:"}, args...), nil
+			}),
 		},
 		src:  "cd some-dir; cat foo; exit 1",
 		want: "run: cd some-dir\nrun: cat foo\nrun: exit 1\n",
 	},
 	{
 		name: "CallError",
-		call: func(ctx context.Context, args []string) ([]string, error) {
-			if args[0] == "echo" && len(args) > 2 {
-				return nil, fmt.Errorf("refusing to run echo builtin with multiple args")
-			}
-			return args, nil
+		opts: []interp.RunnerOption{
+			interp.CallHandler(func(ctx context.Context, args []string) ([]string, error) {
+				if args[0] == "echo" && len(args) > 2 {
+					return nil, fmt.Errorf("refusing to run echo builtin with multiple args")
+				}
+				return args, nil
+			}),
 		},
 		src:  "echo foo; echo foo bar",
 		want: "foo\nrefusing to run echo builtin with multiple args",
 	},
 	{
-		name:    "GlobForbid",
-		readdir: blocklistGlob,
-		src:     "echo *",
-		want:    "blocklisted: glob\n",
+		name: "GlobForbid",
+		opts: []interp.RunnerOption{
+			interp.ReadDirHandler(blocklistGlob),
+		},
+		src:  "echo *",
+		want: "blocklisted: glob\n",
 	},
 }
 
@@ -160,20 +227,11 @@ func TestRunnerHandlers(t *testing.T) {
 			file := parse(t, p, tc.src)
 			var cb concBuffer
 			r, err := interp.New(interp.StdIO(nil, &cb, &cb))
-			if tc.exec != nil {
-				interp.ExecHandler(tc.exec)(r)
-			}
-			if tc.open != nil {
-				interp.OpenHandler(tc.open)(r)
-			}
-			if tc.call != nil {
-				interp.CallHandler(tc.call)(r)
-			}
-			if tc.readdir != nil {
-				interp.ReadDirHandler(tc.readdir)(r)
-			}
 			if err != nil {
 				t.Fatal(err)
+			}
+			for _, opt := range tc.opts {
+				opt(r)
 			}
 			ctx := context.WithValue(context.Background(), runnerCtx, r)
 			if err := r.Run(ctx, file); err != nil {
