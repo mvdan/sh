@@ -25,7 +25,7 @@ import (
 	"mvdan.cc/sh/v3/syntax"
 )
 
-// Encode is a shortcut for EncodeOptions.Encode, with the default options.
+// Encode is a shortcut for [EncodeOptions.Encode] with the default options.
 func Encode(w io.Writer, node syntax.Node) error {
 	return EncodeOptions{}.Encode(w, node)
 }
@@ -192,7 +192,7 @@ func decodePos(val reflect.Value, enc map[string]interface{}) {
 	val.Set(reflect.ValueOf(syntax.NewPos(offset, line, column)))
 }
 
-// Decode is a shortcut for DecodeOptions.Decode, with the default options.
+// Decode is a shortcut for [DecodeOptions.Decode] with the default options.
 func Decode(r io.Reader) (syntax.Node, error) {
 	return DecodeOptions{}.Decode(r)
 }

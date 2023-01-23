@@ -1,6 +1,7 @@
 // Copyright (c) 2017, Daniel Martí <mvdan@mvdan.cc>
 // See LICENSE for licensing information
 
+// gosh is a proof of concept shell built on top of [interp].
 package main
 
 import (

@@ -32,16 +32,15 @@ import (
 )
 
 // A Runner interprets shell programs. It can be reused, but it is not safe for
-// concurrent use. You should typically use New to build a new Runner.
+// concurrent use. Use [New] to build a new Runner.
 //
 // Note that writes to Stdout and Stderr may be concurrent if background
-// commands are used. If you plan on using an io.Writer implementation that
+// commands are used. If you plan on using an [io.Writer] implementation that
 // isn't safe for concurrent use, consider a workaround like hiding writes
 // behind a mutex.
 //
-// To create a Runner, use New. Runner's exported fields are meant to be
-// configured via runner options; once a Runner has been created, the fields
-// should be treated as read-only.
+// Runner's exported fields are meant to be configured via [RunnerOption];
+// once a Runner has been created, the fields should be treated as read-only.
 type Runner struct {
 	// Env specifies the initial environment for the interpreter, which must
 	// be non-nil.
@@ -217,7 +216,7 @@ func New(opts ...RunnerOption) (*Runner, error) {
 	return r, nil
 }
 
-// RunnerOption can be passed to New to alter a Runner's behaviour.
+// RunnerOption can be passed to [New] to alter a [Runner]'s behaviour.
 // It can also be applied directly on an existing Runner,
 // such as interp.Params("-e")(runner).
 // Note that options cannot be applied once Run or Reset have been called.
@@ -327,7 +326,7 @@ func Params(args ...string) RunnerOption {
 	}
 }
 
-// CallHandler sets the call handler. See CallHandlerFunc for more info.
+// CallHandler sets the call handler. See [CallHandlerFunc] for more info.
 func CallHandler(f CallHandlerFunc) RunnerOption {
 	return func(r *Runner) error {
 		r.callHandler = f
@@ -338,7 +337,7 @@ func CallHandler(f CallHandlerFunc) RunnerOption {
 // ExecHandler sets one command execution handler,
 // which replaces DefaultExecHandler(2 * time.Second).
 //
-// Deprecated: use ExecHandlers instead, which allows for middleware handlers.
+// Deprecated: use [ExecHandlers] instead, which allows for middleware handlers.
 func ExecHandler(f ExecHandlerFunc) RunnerOption {
 	return func(r *Runner) error {
 		r.execHandler = f
@@ -375,7 +374,7 @@ func ExecHandlers(middlewares ...func(next ExecHandlerFunc) ExecHandlerFunc) Run
 // ability to work with builtins; if we make ExecHandlers work with builtins, we
 // could join both APIs.
 
-// OpenHandler sets file open handler. See OpenHandlerFunc for more info.
+// OpenHandler sets file open handler. See [OpenHandlerFunc] for more info.
 func OpenHandler(f OpenHandlerFunc) RunnerOption {
 	return func(r *Runner) error {
 		r.openHandler = f
@@ -383,7 +382,7 @@ func OpenHandler(f OpenHandlerFunc) RunnerOption {
 	}
 }
 
-// ReadDirHandler sets the read directory handler. See ReadDirHandlerFunc for more info.
+// ReadDirHandler sets the read directory handler. See [ReadDirHandlerFunc] for more info.
 func ReadDirHandler(f ReadDirHandlerFunc) RunnerOption {
 	return func(r *Runner) error {
 		r.readDirHandler = f
@@ -391,7 +390,7 @@ func ReadDirHandler(f ReadDirHandlerFunc) RunnerOption {
 	}
 }
 
-// StatHandler sets the stat handler. See StatHandlerFunc for more info.
+// StatHandler sets the stat handler. See [StatHandlerFunc] for more info.
 func StatHandler(f StatHandlerFunc) RunnerOption {
 	return func(r *Runner) error {
 		r.statHandler = f

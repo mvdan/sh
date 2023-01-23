@@ -230,8 +230,7 @@ func (w *wrappedReader) Read(p []byte) (n int, err error) {
 // called with said statements.
 //
 // If a line ending in an incomplete statement is parsed, the function will be
-// called with any fully parsed statements, and Parser.Incomplete will return
-// true.
+// called with any fully parsed statements, and [Parser.Incomplete] will return true.
 //
 // One can imagine a simple interactive shell implementation as follows:
 //
@@ -414,7 +413,7 @@ type Parser struct {
 // it needs to finish properly parsing a statement.
 //
 // It is only safe to call while the parser is blocked on a read. For an example
-// use case, see the documentation for Parser.Interactive.
+// use case, see [Parser.Interactive].
 func (p *Parser) Incomplete() bool {
 	// If we're in a quote state other than noState, we're parsing a node
 	// such as a double-quoted string.
@@ -762,7 +761,7 @@ func (p *Parser) errPass(err error) {
 }
 
 // IsIncomplete reports whether a Parser error could have been avoided with
-// extra input bytes. For example, if an io.EOF was encountered while there was
+// extra input bytes. For example, if an [io.EOF] was encountered while there was
 // an unclosed quote or parenthesis.
 func IsIncomplete(err error) bool {
 	perr, ok := err.(ParseError)

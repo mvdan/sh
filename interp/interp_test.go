@@ -184,7 +184,7 @@ func checkBash() bool {
 	return strings.HasPrefix(string(out), "5.1")
 }
 
-// concBuffer wraps a bytes.Buffer in a mutex so that concurrent writes
+// concBuffer wraps a [bytes.Buffer] in a mutex so that concurrent writes
 // to it don't upset the race detector.
 type concBuffer struct {
 	buf bytes.Buffer
