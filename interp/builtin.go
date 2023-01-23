@@ -41,7 +41,7 @@ func oneIf(b bool) int {
 	return 0
 }
 
-// atoi is like strconv.Atoi, but it ignores errors and trims whitespace.
+// atoi is like [strconv.Atoi], but it ignores errors and trims whitespace.
 func atoi(s string) int {
 	s = strings.TrimSpace(s)
 	n, _ := strconv.Atoi(s)
@@ -883,8 +883,8 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 	return 0
 }
 
-// mapfileSplit returns a suitable Split function for a bufio.Scanner, the code
-// is mostly stolen from bufio.ScanLines.
+// mapfileSplit returns a suitable Split function for a [bufio.Scanner];
+// the code is mostly stolen from [bufio.ScanLines].
 func mapfileSplit(delim byte, dropDelim bool) func(data []byte, atEOF bool) (advance int, token []byte, err error) {
 	return func(data []byte, atEOF bool) (advance int, token []byte, err error) {
 		if atEOF && len(data) == 0 {
