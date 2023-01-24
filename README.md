@@ -28,6 +28,19 @@ viewed directly as Markdown or rendered with [scdoc].
 Packages are available on [Alpine], [Arch], [Debian], [Docker], [Fedora], [FreeBSD],
 [Homebrew], [MacPorts], [NixOS], [Scoop], [Snapcraft], [Void] and [webi].
 
+### As a pre-commit hook
+
+See [pre-commit](https://github.com/pre-commit/pre-commit) for instructions
+
+Sample `.pre-commit-config.yaml`:
+
+```yaml
+-   repo: https://github.com/mvdan/sh
+    rev: ''  # Use the sha / tag you want to point at > 3.6.0
+    hooks:
+    -   id: shfmt
+```
+
 ### gosh
 
 	go install mvdan.cc/sh/v3/cmd/gosh@latest

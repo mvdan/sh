@@ -1,0 +1,16 @@
+- id: shfmt
+  name: shfmt
+  description: A shell formatter.
+  minimum_pre_commit_version: 3.0.0
+  entry: shfmt
+  language: golang
+  types: [shell]
+  args: [-s, -w]
+
+- id: shfmt-system
+  name: shfmt system
+  description: A shell formatter.
+  entry: shfmt
+  language: system
+  types: [shell]
+  args: [-s, -w]
