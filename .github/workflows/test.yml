@@ -112,6 +112,7 @@ jobs:
     - name: Build and push to local registry
       uses: docker/build-push-action@v3
       with:
+        provenance: false # temporarily work around https://github.com/containers/skopeo/issues/1874
         context: .
         file: ./cmd/shfmt/Dockerfile
         platforms: ${{ env.DOCKER_BUILD_PLATFORMS }}
@@ -120,6 +121,7 @@ jobs:
     - name: Build and push to local registry (alpine)
       uses: docker/build-push-action@v3
       with:
+        provenance: false # temporarily work around https://github.com/containers/skopeo/issues/1874
         context: .
         file: ./cmd/shfmt/Dockerfile
         platforms: ${{ env.DOCKER_BUILD_PLATFORMS }}
