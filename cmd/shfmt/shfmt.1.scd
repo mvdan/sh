@@ -108,7 +108,7 @@ For CI, one can use a variant where formatting changes are just shown as diffs:
 	shfmt -d .
 
 The following formatting flags closely resemble Google's shell style defined in
-<https://google.github.io/styleguide/shell.xml>:
+<https://google.github.io/styleguide/shellguide.html>:
 
 	shfmt -i 2 -ci -bn
 
