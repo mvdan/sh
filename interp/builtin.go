@@ -594,7 +594,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			return 1
 		}
 		if len(args) == 0 {
-			args = append(args, "REPLY")
+			args = append(args, shellReplyVar)
 		}
 
 		values := expand.ReadFields(r.ecfg, string(line), len(args), raw)

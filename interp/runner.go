@@ -14,6 +14,8 @@ import (
 	"os"
 	"regexp"
 	"runtime"
+	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -21,6 +23,17 @@ import (
 	"mvdan.cc/sh/v3/expand"
 	"mvdan.cc/sh/v3/pattern"
 	"mvdan.cc/sh/v3/syntax"
+)
+
+const (
+	// shellReplyPS3Var, or PS3, is a special variable in Bash used by the select command,
+	// while the shell is awaiting for input. the default value is shellDefaultPS3
+	shellReplyPS3Var = "PS3"
+	// shellDefaultPS3, or #?, is PS3's default value
+	shellDefaultPS3 = "#?"
+	// shellReplyVar, or REPLY, is a special variable in Bash that is used to store the result of
+	// the select command or of the read command, when no variable name is specified
+	shellReplyVar = "REPLY"
 )
 
 func (r *Runner) fillExpandConfig(ctx context.Context) {
@@ -486,6 +499,80 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			inToken := y.InPos.IsValid()
 			if inToken {
 				items = r.fields(y.Items...) // for i in ...; do ...
+			}
+
+			if x.Select {
+				type word struct {
+					pos   int
+					value string
+				}
+
+				ps3 := fmt.Sprintf("%s ", shellDefaultPS3)
+				if e := r.envGet(shellReplyPS3Var); e != "" {
+					ps3 = e
+				}
+
+				words := make([]word, len(items))
+				for i, field := range items {
+					words[i] = word{
+						pos:   i + 1,
+						value: field,
+					}
+				}
+				// sort words by position
+				sort.Slice(words, func(i, j int) bool {
+					return words[i].pos < words[j].pos
+				})
+
+				readCh := make(chan []byte, 1)
+				prompt := func() {
+					// display menu
+					for _, word := range words {
+						r.errf("%d) %v\n", word.pos, word.value)
+					}
+					r.errf("%s", ps3)
+
+					// read line from the stdin
+					raw := true
+					line, err := r.readLine(raw)
+					if err != nil {
+						r.exit = 1
+						return
+					}
+					readCh <- line
+				}
+				prompt()
+
+				var choice []byte
+				for i := range readCh {
+					// line is empty, display words and prompt again
+					if len(i) == 0 {
+						prompt()
+						continue
+					}
+
+					choice = i
+					break
+				}
+
+				if len(choice) == 1 {
+					reply := string(choice)
+					r.setVarString(shellReplyVar, reply)
+
+					// if the input doesn't match any from the menu, name would be an empty string
+					c, _ := strconv.Atoi(reply)
+					for _, word := range words {
+						if word.pos == c {
+							r.setVarString(name, words[c-1].value)
+							break
+						}
+					}
+				}
+
+				// execute commands until break or return is encountered
+				if r.loopStmtsBroken(ctx, x.Do) {
+					break
+				}
 			}
 
 			for _, field := range items {

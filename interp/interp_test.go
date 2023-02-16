@@ -2087,6 +2087,23 @@ set +o pipefail
 		`x=orig; f() { local x=local; unset x; [[ -v x ]] && echo set || echo unset; }; f`,
 		"unset\n",
 	},
+	{
+		`PS3="pick one: "; select opt in foo bar baz; do echo "Selected $opt"; break; done <<< 3`,
+		"1) foo\n2) bar\n3) baz\npick one: Selected baz\n",
+	},
+	{
+		`opts=(foo bar baz); select opt in ${opts[@]}; do echo "Selected $opt"; break; done <<< 99`,
+		"1) foo\n2) bar\n3) baz\n#? Selected \n",
+	},
+	{
+		`select opt in foo; do
+	case $opt in
+	foo) echo "option 1"; break;;
+	*) echo "invalid option $REPLY"; break;;
+	esac
+done <<< 2`,
+		"1) foo\n#? invalid option 2\n",
+	},
 
 	// shopt
 	{"set -e; shopt -o | grep -E 'errexit|noexec' | wc -l | tr -d ' '", "2\n"},
