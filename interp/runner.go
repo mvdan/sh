@@ -14,7 +14,6 @@ import (
 	"os"
 	"regexp"
 	"runtime"
-	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -30,7 +29,7 @@ const (
 	// while the shell is awaiting for input. the default value is shellDefaultPS3
 	shellReplyPS3Var = "PS3"
 	// shellDefaultPS3, or #?, is PS3's default value
-	shellDefaultPS3 = "#?"
+	shellDefaultPS3 = "#? "
 	// shellReplyVar, or REPLY, is a special variable in Bash that is used to store the result of
 	// the select command or of the read command, when no variable name is specified
 	shellReplyVar = "REPLY"
@@ -502,71 +501,38 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			}
 
 			if x.Select {
-				type word struct {
-					pos   int
-					value string
-				}
-
-				ps3 := fmt.Sprintf("%s ", shellDefaultPS3)
+				ps3 := shellDefaultPS3
 				if e := r.envGet(shellReplyPS3Var); e != "" {
 					ps3 = e
 				}
 
-				words := make([]word, len(items))
-				for i, field := range items {
-					words[i] = word{
-						pos:   i + 1,
-						value: field,
-					}
-				}
-				// sort words by position
-				sort.Slice(words, func(i, j int) bool {
-					return words[i].pos < words[j].pos
-				})
-
-				readCh := make(chan []byte, 1)
-				prompt := func() {
+				prompt := func() []byte {
 					// display menu
-					for _, word := range words {
-						r.errf("%d) %v\n", word.pos, word.value)
+					for i, word := range items {
+						r.errf("%d) %v\n", i+1, word)
 					}
 					r.errf("%s", ps3)
 
-					// read line from the stdin
-					raw := true
-					line, err := r.readLine(raw)
+					line, err := r.readLine(true)
 					if err != nil {
 						r.exit = 1
-						return
+						return nil
 					}
-					readCh <- line
-				}
-				prompt()
-
-				var choice []byte
-				for i := range readCh {
-					// line is empty, display words and prompt again
-					if len(i) == 0 {
-						prompt()
-						continue
-					}
-
-					choice = i
-					break
+					return line
 				}
 
-				if len(choice) == 1 {
-					reply := string(choice)
-					r.setVarString(shellReplyVar, reply)
+			retry:
+				choice := prompt()
+				if len(choice) == 0 {
+					goto retry // no reply; try again
+				}
 
-					// if the input doesn't match any from the menu, name would be an empty string
-					c, _ := strconv.Atoi(reply)
-					for _, word := range words {
-						if word.pos == c {
-							r.setVarString(name, words[c-1].value)
-							break
-						}
-					}
+				reply := string(choice)
+				r.setVarString(shellReplyVar, reply)
+
+				c, _ := strconv.Atoi(reply)
+				if c > 0 && c <= len(items) {
+					r.setVarString(name, items[c-1])
 				}
 
 				// execute commands until break or return is encountered
