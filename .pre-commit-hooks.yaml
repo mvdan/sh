@@ -1,0 +1,28 @@
+---
+- id: shfmt
+  name: shfmt
+  description: "A shell parser, formatter, and interpreter with bash support"
+  minimum_pre_commit_version: 3.0.0
+  language: golang
+  entry: shfmt
+  args:
+    - -s
+    - -w
+  types:
+    - shell
+  exclude_types:
+    - zsh
+
+- id: shfmt-system
+  name: shfmt system
+  description: "A shell parser, formatter, and interpreter with bash support"
+  minimum_pre_commit_version: 3.0.0
+  language: system
+  entry: shfmt
+  args:
+    - -s
+    - -w
+  types:
+    - shell
+  exclude_types:
+    - zsh
