@@ -35,7 +35,7 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Test as root, without cgo, and with busybox
-      run: docker run -v="$PWD:/pwd" -w=/pwd -e=CGO_ENABLED=0 golang:1.20.0-alpine go test ./...
+      run: docker run -v="$PWD:/pwd" -w=/pwd -e=CGO_ENABLED=0 golang:1.20.2-alpine go test ./...
 
   docker:
     name: Build and test Docker images
