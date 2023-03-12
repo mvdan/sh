@@ -1,6 +1,6 @@
 module shjs
 
-go 1.18
+go 1.19
 
 replace mvdan.cc/sh/v3 => ../
 
