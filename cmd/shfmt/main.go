@@ -198,8 +198,9 @@ For more information, see 'man shfmt' and https://github.com/mvdan/sh.
 	if minify.val {
 		simplify.val = true
 	}
+	// TODO(mvdan): remove sometime in 2024.
 	if os.Getenv("SHFMT_NO_EDITORCONFIG") == "true" {
-		useEditorConfig = false
+		fmt.Fprintln(os.Stderr, "SHFMT_NO_EDITORCONFIG was always undocumented; use any parser or printer flag to disable editorconfig support")
 	}
 	flag.Visit(func(f *flag.Flag) {
 		switch f.Name {
