@@ -1068,6 +1068,15 @@ func TestPrintMinify(t *testing.T) {
 		},
 		samePrint("foo >bar 2>baz <etc"),
 		samePrint("<<-EOF\n$(a|b)\nEOF"),
+		{
+			"a=$(\n\tcat <<'EOF'\n  hello\nEOF\n)",
+			"a=$(cat <<'EOF'\n  hello\nEOF\n)",
+		},
+		{
+			"(\n\tcat <<EOF\n hello\nEOF\n)",
+			"(cat <<EOF\n hello\nEOF\n)",
+		},
+		samePrint("diff -y <(cat <<EOF\n1\n2\n3\nEOF\n) <(cat <<EOF\n1\n4\n3\nEOF\n)"),
 	}
 	parser := NewParser(KeepComments(true))
 	printer := NewPrinter(Minify(true))
@@ -1161,8 +1170,8 @@ func TestPrintOptionsNotBroken(t *testing.T) {
 		{"SingleLine", []PrinterOption{SingleLine(true)}},
 	} {
 		printer := NewPrinter(opts.list...)
-		for i, tc := range append(fileTests, fileTestsNoPrint...) {
-			t.Run(fmt.Sprintf("File%s%03d", opts.name, i), func(t *testing.T) {
+		for _, tc := range append(fileTests, fileTestsNoPrint...) {
+			t.Run("File"+opts.name, func(t *testing.T) {
 				parser := parserPosix
 				if tc.Bats != nil {
 					parser = parserBats
@@ -1189,8 +1198,8 @@ func TestPrintOptionsNotBroken(t *testing.T) {
 				}
 			})
 		}
-		for i, tc := range printTests {
-			t.Run(fmt.Sprintf("Print%s%03d", opts.name, i), func(t *testing.T) {
+		for _, tc := range printTests {
+			t.Run("Print"+opts.name, func(t *testing.T) {
 				prog, err := parserBash.Parse(strings.NewReader(tc.in), "")
 				if err != nil {
 					t.Fatal(err)
