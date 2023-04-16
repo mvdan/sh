@@ -1922,6 +1922,14 @@ var runTests = []runTest{
 		"exit status 1",
 	},
 	{
+		"set -o pipefail; false | :; echo next",
+		"next\n",
+	},
+	{
+		"set -e -o pipefail; false | :; echo next",
+		"exit status 1",
+	},
+	{
 		"set -f; >a.x; echo *.x;",
 		"*.x\n",
 	},

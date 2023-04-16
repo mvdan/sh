@@ -459,6 +459,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			wg.Wait()
 			if r.opts[optPipeFail] && r2.exit != 0 && r.exit == 0 {
 				r.exit = r2.exit
+				r.shellExited = r2.shellExited
 			}
 			r.setErr(r2.err)
 		}
