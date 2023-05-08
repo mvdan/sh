@@ -28,51 +28,34 @@ import (
 	"mvdan.cc/sh/v3/syntax/typedjson"
 )
 
-// TODO: this flag business screams generics. try again with Go 1.18+.
-
-type boolFlag struct {
+type multiFlag[T any] struct {
 	short, long string
-	val         bool
-}
-
-type stringFlag struct {
-	short, long string
-	val         string
-}
-
-type uintFlag struct {
-	short, long string
-	val         uint
-}
-
-type langFlag struct {
-	short, long string
-	val         syntax.LangVariant
+	val         T
 }
 
 var (
-	versionFlag = &boolFlag{"", "version", false}
-	list        = &boolFlag{"l", "list", false}
+	versionFlag = &multiFlag[bool]{"", "version", false}
+	list        = &multiFlag[bool]{"l", "list", false}
 
-	write    = &boolFlag{"w", "write", false}
-	simplify = &boolFlag{"s", "simplify", false}
-	minify   = &boolFlag{"mn", "minify", false}
-	find     = &boolFlag{"f", "find", false}
-	diff     = &boolFlag{"d", "diff", false}
+	write    = &multiFlag[bool]{"w", "write", false}
+	simplify = &multiFlag[bool]{"s", "simplify", false}
+	minify   = &multiFlag[bool]{"mn", "minify", false}
+	find     = &multiFlag[bool]{"f", "find", false}
+	diff     = &multiFlag[bool]{"d", "diff", false}
 
-	lang     = &langFlag{"ln", "language-dialect", syntax.LangAuto}
-	posix    = &boolFlag{"p", "posix", false}
-	filename = &stringFlag{"", "filename", ""}
+	lang     = &multiFlag[syntax.LangVariant]{"ln", "language-dialect", syntax.LangAuto}
+	posix    = &multiFlag[bool]{"p", "posix", false}
+	filename = &multiFlag[string]{"", "filename", ""}
 
-	indent      = &uintFlag{"i", "indent", 0}
-	binNext     = &boolFlag{"bn", "binary-next-line", false}
-	caseIndent  = &boolFlag{"ci", "case-indent", false}
-	spaceRedirs = &boolFlag{"sr", "space-redirects", false}
-	keepPadding = &boolFlag{"kp", "keep-padding", false}
-	funcNext    = &boolFlag{"fn", "func-next-line", false}
+	indent      = &multiFlag[uint]{"i", "indent", 0}
+	binNext     = &multiFlag[bool]{"bn", "binary-next-line", false}
+	caseIndent  = &multiFlag[bool]{"ci", "case-indent", false}
+	spaceRedirs = &multiFlag[bool]{"sr", "space-redirects", false}
+	keepPadding = &multiFlag[bool]{"kp", "keep-padding", false}
+	funcNext    = &multiFlag[bool]{"fn", "func-next-line", false}
 
-	toJSON   = &boolFlag{"tojson", "to-json", false} // TODO(v4): remove "tojson" for consistency
-	fromJSON = &boolFlag{"", "from-json", false}
+	toJSON   = &multiFlag[bool]{"tojson", "to-json", false} // TODO(v4): remove "tojson" for consistency
+	fromJSON = &multiFlag[bool]{"", "from-json", false}
 
 	// useEditorConfig will be false if any parser or printer flags were used.
 	useEditorConfig = true
@@ -97,30 +80,33 @@ var (
 )
 
 func init() {
+	// TODO: the flag package has constructors like newBoolValue;
+	// if we had access to something like that, we could use flag.Value everywhere,
+	// and avoid this monstrosity of a type switch.
 	for _, f := range allFlags {
 		switch f := f.(type) {
-		case *boolFlag:
+		case *multiFlag[bool]:
 			if name := f.short; name != "" {
 				flag.BoolVar(&f.val, name, f.val, "")
 			}
 			if name := f.long; name != "" {
 				flag.BoolVar(&f.val, name, f.val, "")
 			}
-		case *stringFlag:
+		case *multiFlag[string]:
 			if name := f.short; name != "" {
 				flag.StringVar(&f.val, name, f.val, "")
 			}
 			if name := f.long; name != "" {
 				flag.StringVar(&f.val, name, f.val, "")
 			}
-		case *uintFlag:
+		case *multiFlag[uint]:
 			if name := f.short; name != "" {
 				flag.UintVar(&f.val, name, f.val, "")
 			}
 			if name := f.long; name != "" {
 				flag.UintVar(&f.val, name, f.val, "")
 			}
-		case *langFlag:
+		case *multiFlag[syntax.LangVariant]:
 			if name := f.short; name != "" {
 				flag.Var(&f.val, name, "")
 			}
