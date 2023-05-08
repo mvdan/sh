@@ -976,7 +976,8 @@ func (cfg *Config) globDir(base, dir string, rx *regexp.Regexp, matchHidden bool
 	return matches, nil
 }
 
-// ReadFields TODO write doc.
+// ReadFields splits and returns n fields from s, like the "read" shell builtin.
+// If raw is set, backslash escape sequences are not interpreted.
 //
 // The config specifies shell expansion options; nil behaves the same as an
 // empty config.
