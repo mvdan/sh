@@ -429,9 +429,9 @@ func BenchmarkParse(b *testing.B) {
 
 type errorCase struct {
 	in          string
-	common      interface{}
-	bash, posix interface{}
-	bsmk, mksh  interface{}
+	common      any
+	bash, posix any
+	bsmk, mksh  any
 }
 
 var shellTests = []errorCase{
@@ -2418,7 +2418,7 @@ func TestParseArithmeticError(t *testing.T) {
 var stopAtTests = []struct {
 	in   string
 	stop string
-	want interface{}
+	want any
 }{
 	{
 		"foo bar", "$$",

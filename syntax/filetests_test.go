@@ -122,10 +122,10 @@ func arrValues(words ...*Word) *ArrayExpr {
 
 type testCase struct {
 	Strs        []string
-	common      interface{}
-	bash, posix interface{}
-	bsmk, mksh  interface{}
-	bats        interface{}
+	common      any
+	bash, posix any
+	bsmk, mksh  any
+	bats        any
 	All         []*File
 	Bash, Posix *File
 	MirBSDKorn  *File
@@ -4518,7 +4518,7 @@ var fileTestsKeepComments = []testCase{
 	},
 }
 
-func fullProg(v interface{}) *File {
+func fullProg(v any) *File {
 	f := &File{}
 	switch x := v.(type) {
 	case *File:
@@ -4547,7 +4547,7 @@ func fullProg(v interface{}) *File {
 	return nil
 }
 
-func recursiveSanityCheck(tb testing.TB, src string, v interface{}) {
+func recursiveSanityCheck(tb testing.TB, src string, v any) {
 	checkPos := func(pos Pos, strs ...string) {
 		if !pos.IsValid() {
 			tb.Fatalf("invalid Pos in %T", v)
@@ -4599,7 +4599,7 @@ func recursiveSanityCheck(tb testing.TB, src string, v interface{}) {
 			tb.Errorf("Found End() before Pos() in %T", n)
 		}
 	}
-	recurse := func(v interface{}) {
+	recurse := func(v any) {
 		recursiveSanityCheck(tb, src, v)
 		if n, ok := v.(Node); ok {
 			checkNodePosEnd(n)

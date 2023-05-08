@@ -89,7 +89,7 @@ var (
 
 	version = "(devel)" // to match the default from runtime/debug
 
-	allFlags = []interface{}{
+	allFlags = []any{
 		versionFlag, list, write, simplify, minify, find, diff,
 		lang, posix, filename,
 		indent, binNext, caseIndent, spaceRedirs, keepPadding, funcNext, toJSON, fromJSON,

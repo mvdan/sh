@@ -342,7 +342,7 @@ formatLoop:
 				if len(args) > 0 {
 					arg, args = args[0], args[1:]
 				}
-				var farg interface{}
+				var farg any
 				if c == 'b' {
 					// Passing in nil for args ensures that % format
 					// strings aren't processed; only escape sequences

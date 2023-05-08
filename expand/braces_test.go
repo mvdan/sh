@@ -171,15 +171,15 @@ func TestBraces(t *testing.T) {
 
 func wantBraceExpParts(t *testing.T, word *syntax.Word, want bool) {
 	t.Helper()
-	any := false
+	anyBrace := false
 	for _, part := range word.Parts {
-		if _, any = part.(*syntax.BraceExp); any {
+		if _, anyBrace = part.(*syntax.BraceExp); anyBrace {
 			break
 		}
 	}
-	if any && !want {
+	if anyBrace && !want {
 		t.Fatalf("didn't want any BraceExp node, but found one")
-	} else if !any && want {
+	} else if !anyBrace && want {
 		t.Fatalf("wanted a BraceExp node, but found none")
 	}
 }

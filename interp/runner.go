@@ -256,11 +256,11 @@ func (r *Runner) out(s string) {
 	io.WriteString(r.stdout, s)
 }
 
-func (r *Runner) outf(format string, a ...interface{}) {
+func (r *Runner) outf(format string, a ...any) {
 	fmt.Fprintf(r.stdout, format, a...)
 }
 
-func (r *Runner) errf(format string, a ...interface{}) {
+func (r *Runner) errf(format string, a ...any) {
 	fmt.Fprintf(r.stderr, format, a...)
 }
 

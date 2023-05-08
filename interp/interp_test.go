@@ -3574,17 +3574,17 @@ var testBuiltinsMap = map[string]func(interp.HandlerContext, []string) error{
 		if err != nil {
 			return err
 		}
-		any := false
+		anyMatch := false
 		for _, line := range lines {
 			if rx.Match(line) {
 				if quiet {
 					return nil
 				}
-				any = true
+				anyMatch = true
 				fmt.Fprintf(hc.Stdout, "%s\n", line)
 			}
 		}
-		if !any {
+		if !anyMatch {
 			return interp.NewExitStatus(1)
 		}
 		return nil

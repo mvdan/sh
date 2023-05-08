@@ -14,7 +14,7 @@ func TestQuote(t *testing.T) {
 	tests := [...]struct {
 		str  string
 		lang LangVariant
-		want interface{}
+		want any
 	}{
 		{"", LangBash, `''`},
 		{"\a", LangBash, `$'\a'`},
