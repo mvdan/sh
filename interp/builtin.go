@@ -166,7 +166,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		}
 	case "break", "continue":
 		if !r.inLoop {
-			r.errf("%s is only useful in a loop", name)
+			r.errf("%s is only useful in a loop\n", name)
 			break
 		}
 		enclosing := &r.breakEnclosing
@@ -752,7 +752,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 				words = append(words, w)
 				return true
 			}); err != nil {
-				r.errf("alias: could not parse %q: %v", src, err)
+				r.errf("alias: could not parse %q: %v\n", src, err)
 				continue
 			}
 
@@ -869,7 +869,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			vr.List = append(vr.List, scanner.Text())
 		}
 		if err := scanner.Err(); err != nil {
-			r.errf("%s: unable to read, %v", name, err)
+			r.errf("%s: unable to read, %v\n", name, err)
 			return 2
 		}
 		r.setVarInternal(arrayName, vr)

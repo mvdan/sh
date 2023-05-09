@@ -105,20 +105,20 @@ func (r *Runner) fillExpandConfig(ctx context.Context) {
 				case syntax.CmdIn:
 					f, err := os.OpenFile(path, os.O_WRONLY, 0)
 					if err != nil {
-						r.errf("cannot open fifo for stdout: %v", err)
+						r.errf("cannot open fifo for stdout: %v\n", err)
 						return
 					}
 					r2.stdout = f
 					defer func() {
 						if err := f.Close(); err != nil {
-							r.errf("closing stdout fifo: %v", err)
+							r.errf("closing stdout fifo: %v\n", err)
 						}
 						os.Remove(path)
 					}()
 				default: // syntax.CmdOut
 					f, err := os.OpenFile(path, os.O_RDONLY, 0)
 					if err != nil {
-						r.errf("cannot open fifo for stdin: %v", err)
+						r.errf("cannot open fifo for stdin: %v\n", err)
 						return
 					}
 					r2.stdin = f
