@@ -878,7 +878,8 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 
 	default:
 		// "umask", "fg", "bg",
-		panic(fmt.Sprintf("unhandled builtin: %s", name))
+		r.errf("%s: unimplemented builtin\n", name)
+		return 2
 	}
 	return 0
 }
