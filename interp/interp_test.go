@@ -247,8 +247,8 @@ var runTests = []runTest{
 	{"exit; echo foo_interp_missing", ""},
 	{"exit 0; echo foo_interp_missing", ""},
 	{"printf", "usage: printf format [arguments]\nexit status 2 #JUSTERR"},
-	{"break", "break is only useful in a loop #JUSTERR"},
-	{"continue", "continue is only useful in a loop #JUSTERR"},
+	{"break", "break is only useful in a loop\n #JUSTERR"},
+	{"continue", "continue is only useful in a loop\n #JUSTERR"},
 	{"cd a b", "usage: cd [dir]\nexit status 2 #JUSTERR"},
 	{"shift a", "usage: shift [n]\nexit status 2 #JUSTERR"},
 	{
