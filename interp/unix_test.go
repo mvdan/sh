@@ -2,7 +2,6 @@
 // See LICENSE for licensing information
 
 //go:build unix
-// +build unix
 
 package interp_test
 

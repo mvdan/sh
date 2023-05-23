@@ -2,7 +2,6 @@
 // See LICENSE for licensing information
 
 //go:build windows
-// +build windows
 
 package interp_test
 
