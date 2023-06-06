@@ -1,0 +1,20 @@
+- id: shfmt
+  name: shfmt
+  description: Shell source code formatter (native install)
+  language: golang
+  entry: shfmt
+  args: [-w, -s]
+  types: [shell]
+  exclude_types: [csh, tcsh, zsh]
+  stages: [commit, merge-commit, push, manual]
+
+- id: shfmt-docker
+  name: shfmt
+  description: Shell source code formatter (Docker image)
+  language: docker_image
+  # Note: use the top level multiplatform image digest here
+  entry: --net none mvdan/shfmt:v3.6.0@sha256:b68b0e33bf799f393aec27f72da64ec1d84476c8cfa9a2a7bfd0cbbdbfc8d534
+  args: [-w, -s]
+  types: [shell]
+  exclude_types: [csh, tcsh, zsh]
+  stages: [commit, merge-commit, push, manual]
