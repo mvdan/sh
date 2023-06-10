@@ -216,7 +216,7 @@ func (c *colCounter) Reset(w io.Writer) {
 // Printer holds the internal state of the printing mechanism of a
 // program.
 type Printer struct {
-	bufWriter
+	bufWriter // TODO: embedding this makes the methods part of the API, which we did not intend
 	tabWriter *tabwriter.Writer
 	cols      colCounter
 
