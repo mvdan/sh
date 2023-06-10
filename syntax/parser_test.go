@@ -242,13 +242,13 @@ func confirmParse(in, cmd string, wantErr bool) func(*testing.T) {
 			// -n makes bash accept invalid inputs like
 			// "let" or "`{`", so only use it in
 			// non-erroring tests. Should be safe to not use
-			// -n anyway since these are supposed to just
-			// fail.
+			// -n anyway since these are supposed to just fail.
 			// also, -n will break if we are using extglob
 			// as extglob is not actually applied.
 			opts = append(opts, "-n")
 		}
 		cmd := exec.Command(cmd, opts...)
+		cmd.Dir = t.TempDir() // to be safe
 		cmd.Stdin = strings.NewReader(in)
 		var stderr bytes.Buffer
 		cmd.Stderr = &stderr
