@@ -803,8 +803,8 @@ func IsKeyword(word string) bool {
 // the parser cannot recover.
 type ParseError struct {
 	Filename string
-	Pos
-	Text string
+	Pos      Pos
+	Text     string
 
 	Incomplete bool
 }
@@ -821,9 +821,9 @@ func (e ParseError) Error() string {
 // in the current language variant, and what languages support it.
 type LangError struct {
 	Filename string
-	Pos
-	Feature string
-	Langs   []LangVariant
+	Pos      Pos
+	Feature  string
+	Langs    []LangVariant
 }
 
 func (e LangError) Error() string {
