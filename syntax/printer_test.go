@@ -649,6 +649,13 @@ var printTests = []printCase{
 	},
 	samePrint("(\n\t((foo++))\n)"),
 	samePrint("(foo && bar)"),
+	samePrint(`$foo#bar ${foo}#bar 'foo'#bar "foo"#bar`),
+	// TODO: support cases with command substitutions as well
+	// {
+	// 	"`foo`#bar",
+	// 	"$(foo)#bar",
+	// },
+	// samePrint(`$("foo"#bar)#bar`),
 }
 
 func TestPrintWeirdFormat(t *testing.T) {

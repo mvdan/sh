@@ -1744,6 +1744,13 @@ var fileTests = []testCase{
 		common: litWord("foo#bar"),
 	},
 	{
+		Strs: []string{"$foo#bar foo#$bar"},
+		common: call(
+			word(litParamExp("foo"), lit("#bar")),
+			word(lit("foo#"), litParamExp("bar")),
+		),
+	},
+	{
 		Strs:   []string{"{ echo } }; }"},
 		common: block(litStmt("echo", "}", "}")),
 	},
