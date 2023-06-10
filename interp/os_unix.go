@@ -27,6 +27,7 @@ func hasPermissionToDir(info os.FileInfo) bool {
 	}
 	uid, err := strconv.Atoi(user.Uid)
 	if err != nil {
+		return false // on POSIX systems, Uid should always be a decimal number
 	}
 	if uid == 0 {
 		return true // super-user

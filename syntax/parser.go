@@ -2077,7 +2077,7 @@ func (p *Parser) caseClause(s *Stmt) {
 
 func (p *Parser) caseItems(stop string) (items []*CaseItem) {
 	p.got(_Newl)
-	for p.tok != _EOF && !(p.tok == _LitWord && p.val == stop) {
+	for p.tok != _EOF && (p.tok != _LitWord || p.val != stop) {
 		ci := &CaseItem{}
 		ci.Comments, p.accComs = p.accComs, nil
 		p.got(leftParen)

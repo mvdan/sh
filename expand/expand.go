@@ -287,9 +287,10 @@ formatLoop:
 			case 'x', 'u', 'U':
 				i++
 				max := 2
-				if c == 'u' {
+				switch c {
+				case 'u':
 					max = 4
-				} else if c == 'U' {
+				case 'U':
 					max = 8
 				}
 				digits := readDigits(max, true)

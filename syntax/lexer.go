@@ -372,10 +372,7 @@ func (p *Parser) extendedGlob() bool {
 		// We do this after peeking for just one byte, so that the input `echo *`
 		// followed by a newline does not hang an interactive shell parser until
 		// another byte is input.
-		if p.peekBytes("()") {
-			return false
-		}
-		return true
+		return !p.peekBytes("()")
 	}
 	return false
 }
