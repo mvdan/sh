@@ -9,9 +9,9 @@ require (
 	github.com/google/renameio/v2 v2.0.0
 	github.com/pkg/diff v0.0.0-20210226163009-20ebb0f2a09e
 	github.com/rogpeppe/go-internal v1.10.1-0.20230524175051-ec119421bb97
-	golang.org/x/sync v0.1.0
-	golang.org/x/sys v0.7.0
-	golang.org/x/term v0.7.0
+	golang.org/x/sync v0.2.0
+	golang.org/x/sys v0.8.0
+	golang.org/x/term v0.8.0
 	mvdan.cc/editorconfig v0.2.0
 )
 
