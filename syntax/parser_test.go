@@ -812,6 +812,14 @@ var shellTests = []errorCase{
 		common: `1:9: > must be followed by a word`,
 	},
 	{
+		in:    "foo &>/dev/null",
+		posix: `1:5: &> redirects are a bash/mksh feature`,
+	},
+	{
+		in:    "foo &>>/dev/null",
+		posix: `1:5: &> redirects are a bash/mksh feature`,
+	},
+	{
 		in:     "<<",
 		common: `1:1: << must be followed by a word`,
 	},

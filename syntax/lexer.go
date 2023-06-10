@@ -429,9 +429,6 @@ func (p *Parser) regToken(r rune) token {
 			p.rune()
 			return andAnd
 		case '>':
-			if p.lang == LangPOSIX {
-				break
-			}
 			if p.rune() == '>' {
 				p.rune()
 				return appAll

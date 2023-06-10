@@ -1627,6 +1627,9 @@ func (p *Parser) doRedirect(s *Stmt) {
 	if !p.lang.isBash() && r.N != nil && r.N.Value[0] == '{' {
 		p.langErr(r.N.Pos(), "{varname} redirects", LangBash)
 	}
+	if p.lang == LangPOSIX && (p.tok == rdrAll || p.tok == appAll) {
+		p.langErr(p.pos, "&> redirects", LangBash, LangMirBSDKorn)
+	}
 	r.Op, r.OpPos = RedirOperator(p.tok), p.pos
 	p.next()
 	switch r.Op {

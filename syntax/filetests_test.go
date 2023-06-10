@@ -1546,15 +1546,6 @@ var fileTests = []testCase{
 				{Op: AppAll, Word: litWord("b")},
 			},
 		},
-		posix: []*Stmt{
-			{Cmd: litCall("foo"), Background: true},
-			{Redirs: []*Redirect{
-				{Op: RdrOut, Word: litWord("a")},
-			}, Background: true},
-			{Redirs: []*Redirect{
-				{Op: AppOut, Word: litWord("b")},
-			}},
-		},
 	},
 	{
 		Strs: []string{"foo 2>file bar", "2>file foo bar"},
