@@ -1,6 +1,6 @@
 # Changelog
 
-## [3.7.0] - 2023-06-??
+## [3.7.0] - 2023-06-18
 
 - **syntax**
   - Correctly parse `$foo#bar` as a single word - [#1003]
@@ -673,6 +673,8 @@ module in v3.
 ## [0.1.0] - 2016-09-20
 
 Initial release.
+
+[3.7.0]: https://github.com/mvdan/sh/releases/tag/v3.7.0
 
 [3.6.0]: https://github.com/mvdan/sh/releases/tag/v3.6.0
 [#779]: https://github.com/mvdan/sh/issues/779
