@@ -3,19 +3,19 @@
 ## [3.7.0] - 2023-06-18
 
 - **syntax**
-  - Correctly parse `$foo#bar` as a single word - [#1003]
-  - Make `&>` redirect operators an error in POSIX mode - [#991]
-  - Avoid producing invalid shell when minifying some heredocs - [#923]
-  - Revert the simplification of `${foo:-}` into `${foo-}` - [#970]
+  - Correctly parse `$foo#bar` as a single word - #1003
+  - Make `&>` redirect operators an error in POSIX mode - #991
+  - Avoid producing invalid shell when minifying some heredocs - #923
+  - Revert the simplification of `${foo:-}` into `${foo-}` - #970
 - **interp**
-  - Add `ExecHandlers` to support layering multiple middlewares - [#964]
-  - Add initial support for the `select` clause - [#969]
-  - Support combining the `errexit` and `pipefail` options - [#870]
-  - Set `EUID` just like `UID` - [#958]
-  - Replace panics on unimplemented builtins with errors - [#999]
-  - Tweak build tags to support building for `js/wasm` - [#983]
+  - Add `ExecHandlers` to support layering multiple middlewares - #964
+  - Add initial support for the `select` clause - #969
+  - Support combining the `errexit` and `pipefail` options - #870
+  - Set `EUID` just like `UID` - #958
+  - Replace panics on unimplemented builtins with errors - #999
+  - Tweak build tags to support building for `js/wasm` - #983
 - **syntax/typedjson**
-  - Avoid `reflect.Value.MethodByName` to reduce binary sizes - [#961]
+  - Avoid `reflect.Value.MethodByName` to reduce binary sizes - #961
 
 ## [3.6.0] - 2022-12-11
 
