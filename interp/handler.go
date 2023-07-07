@@ -315,7 +315,7 @@ func DefaultOpenHandler() OpenHandlerFunc {
 type ReadDirHandlerFunc func(ctx context.Context, path string) ([]os.FileInfo, error)
 
 // DefaultReadDirHandler returns the [ReadDirHandlerFunc] used by default.
-// It makes use of [ioutil.ReadDir].
+// It makes use of [os.ReadDir].
 func DefaultReadDirHandler() ReadDirHandlerFunc {
 	return func(ctx context.Context, path string) ([]os.FileInfo, error) {
 		entries, err := os.ReadDir(path)
