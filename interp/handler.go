@@ -7,7 +7,7 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -318,7 +318,19 @@ type ReadDirHandlerFunc func(ctx context.Context, path string) ([]os.FileInfo, e
 // It makes use of [ioutil.ReadDir].
 func DefaultReadDirHandler() ReadDirHandlerFunc {
 	return func(ctx context.Context, path string) ([]os.FileInfo, error) {
-		return ioutil.ReadDir(path)
+		entries, err := os.ReadDir(path)
+		if err != nil {
+			return nil, err
+		}
+		infos := make([]fs.FileInfo, 0, len(entries))
+		for _, entry := range entries {
+			info, err := entry.Info()
+			if err != nil {
+				return nil, err
+			}
+			infos = append(infos, info)
+		}
+		return infos, err
 	}
 }
 
