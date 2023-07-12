@@ -121,12 +121,15 @@ showing how to set any option:
 indent_style = space
 indent_size = 4
 
-shell_variant      = posix # --language-variant
+# --language-variant
+shell_variant      = posix
 binary_next_line   = true
-switch_case_indent = true  # --case-indent
+# --case-indent
+switch_case_indent = true
 space_redirects    = true
 keep_padding       = true
-function_next_line = true  # --func-next-line
+# --func-next-line
+function_next_line = true
 
 # Ignore the entire "third_party" directory.
 [third_party/**]
