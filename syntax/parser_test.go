@@ -1856,15 +1856,19 @@ var shellTests = []errorCase{
 	},
 	{
 		in:    "function foo() { bar; }",
-		posix: `1:13: the "function" builtin exists in bash; tried parsing as posix`,
+		posix: `1:13: the "function" builtin is a bash feature; tried parsing as posix`,
+	},
+	{
+		in:    "function foo { bar; }",
+		posix: `1:14: the "function" builtin is a bash feature; tried parsing as posix`,
 	},
 	{
 		in:    "declare foo=(bar)",
-		posix: `1:13: the "declare" builtin exists in bash; tried parsing as posix`,
+		posix: `1:13: the "declare" builtin is a bash feature; tried parsing as posix`,
 	},
 	{
 		in:    "let foo=(bar)",
-		posix: `1:9: the "let" builtin exists in bash; tried parsing as posix`,
+		posix: `1:9: the "let" builtin is a bash feature; tried parsing as posix`,
 	},
 	{
 		in:    "echo <(",

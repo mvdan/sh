@@ -2422,6 +2422,10 @@ loop:
 				ce.Assigns = append(ce.Assigns, p.getAssign(true))
 				break
 			}
+			// Avoid failing later with the confusing "} can only be used to close a block".
+			if p.lang == LangPOSIX && p.val == "{" && w != nil && w.Lit() == "function" {
+				p.curErr("the %q builtin is a bash feature; tried parsing as posix", "function")
+			}
 			ce.Args = append(ce.Args, p.wordOne(p.lit(p.pos, p.val)))
 			p.next()
 		case _Lit:
@@ -2453,7 +2457,7 @@ loop:
 			// Note that we'll only keep the first error that happens.
 			if len(ce.Args) > 0 {
 				if cmd := ce.Args[0].Lit(); p.lang == LangPOSIX && isBashCompoundCommand(_LitWord, cmd) {
-					p.curErr("the %q builtin exists in bash; tried parsing as posix", cmd)
+					p.curErr("the %q builtin is a bash feature; tried parsing as posix", cmd)
 				}
 			}
 			p.curErr("a command can only contain words and redirects; encountered %s", p.tok)
