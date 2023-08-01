@@ -26,7 +26,7 @@ For more information, see [its manpage](cmd/shfmt/shfmt.1.scd), which can be
 viewed directly as Markdown or rendered with [scdoc].
 
 Packages are available on [Alpine], [Arch], [Debian], [Docker], [Fedora], [FreeBSD],
-[Homebrew], [MacPorts], [NixOS], [Scoop], [Snapcraft], [Void] and [webi].
+[Homebrew], [MacPorts], [NixOS], [OpenSUSE], [Scoop], [Snapcraft], [Void] and [webi].
 
 ### gosh
 
@@ -133,6 +133,7 @@ Other noteworthy integrations include:
 [modd]: https://github.com/cortesi/modd
 [mvdan-sh]: https://www.npmjs.com/package/mvdan-sh
 [nixos]: https://github.com/NixOS/nixpkgs/blob/HEAD/pkgs/tools/text/shfmt/default.nix
+[OpenSUSE]: https://software.opensuse.org/package/shfmt
 [posix shell]: https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html
 [posix-ambiguity]: https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_06_03
 [pre-commit]: https://pre-commit.com
