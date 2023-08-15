@@ -1,6 +1,6 @@
 module mvdan.cc/sh/v3
 
-go 1.19
+go 1.20
 
 require (
 	github.com/creack/pty v1.1.18
