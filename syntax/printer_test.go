@@ -91,6 +91,9 @@ var printTests = []printCase{
 	{"if a; then b\nelse c\nfi", "if a; then\n\tb\nelse\n\tc\nfi"},
 	samePrint("foo >&2 <f bar"),
 	samePrint("foo >&2 bar <f"),
+	samePrint(">&2 foo bar <f"),
+	samePrint(">&2 foo"),
+	samePrint(">&2 foo 2>&1 bar <f"),
 	{"foo >&2>/dev/null", "foo >&2 >/dev/null"},
 	{"foo <<EOF bar\nl1\nEOF", "foo bar <<EOF\nl1\nEOF"},
 	samePrint("foo <<\\\\\\\\EOF\nbar\n\\\\EOF"),
@@ -620,7 +623,7 @@ var printTests = []printCase{
 	samePrint("#comment\n>redir"),
 	{
 		">redir \\\n\tfoo",
-		"foo >redir",
+		">redir foo",
 	},
 	samePrint("$(declare)"),
 	{
