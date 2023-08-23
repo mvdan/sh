@@ -1058,36 +1058,44 @@ func (p *Printer) stmt(s *Stmt) {
 	p.decLevel()
 }
 
+func (p *Printer) printRedirsUntil(redirs []*Redirect, startRedirs int, pos Pos) int {
+	for _, r := range redirs[startRedirs:] {
+		if r.Pos().After(pos) || r.Op == Hdoc || r.Op == DashHdoc {
+			break
+		}
+		if p.wantSpace == spaceRequired {
+			p.spacePad(r.Pos())
+		}
+		if r.N != nil {
+			p.writeLit(r.N.Value)
+		}
+		p.WriteString(r.Op.String())
+		if p.spaceRedirects && (r.Op != DplIn && r.Op != DplOut) {
+			p.space()
+		} else {
+			p.wantSpace = spaceRequired
+		}
+		p.word(r.Word)
+		startRedirs++
+	}
+	return startRedirs
+}
+
 func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 	p.advanceLine(cmd.Pos().Line())
 	p.spacePad(cmd.Pos())
 	switch x := cmd.(type) {
 	case *CallExpr:
 		p.assigns(x.Assigns)
+		if len(x.Args) > 0 {
+			startRedirs = p.printRedirsUntil(redirs, startRedirs, x.Args[0].Pos())
+		}
 		if len(x.Args) <= 1 {
 			p.wordJoin(x.Args)
-			return 0
+			return startRedirs
 		}
 		p.wordJoin(x.Args[:1])
-		for _, r := range redirs {
-			if r.Pos().After(x.Args[1].Pos()) || r.Op == Hdoc || r.Op == DashHdoc {
-				break
-			}
-			if p.wantSpace == spaceRequired {
-				p.spacePad(r.Pos())
-			}
-			if r.N != nil {
-				p.writeLit(r.N.Value)
-			}
-			p.WriteString(r.Op.String())
-			if p.spaceRedirects && (r.Op != DplIn && r.Op != DplOut) {
-				p.space()
-			} else {
-				p.wantSpace = spaceRequired
-			}
-			p.word(r.Word)
-			startRedirs++
-		}
+		startRedirs = p.printRedirsUntil(redirs, startRedirs, x.Args[1].Pos())
 		p.wordJoin(x.Args[1:])
 	case *Block:
 		p.WriteByte('{')
