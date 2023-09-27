@@ -43,13 +43,26 @@ func hasPermissionToDir(info os.FileInfo) bool {
 		return true
 	}
 
+	// Group perms only apply if you're not the owner of the directory.
 	gid, _ := strconv.Atoi(user.Gid)
-	// other users in group (g)
-	if perm&0o010 != 0 && st.Uid != uint32(uid) && st.Gid == uint32(gid) {
-		return true
+	inGroup := st.Gid == uint32(gid)
+	if st.Uid != uint32(uid) {
+		gids, _ := user.GroupIds()
+		for _, gid := range gids {
+			gid, _ := strconv.Atoi(gid)
+			if st.Gid == uint32(gid) {
+				// other users in group (g)
+				if perm&0o010 != 0 {
+					return true
+				}
+				inGroup = true
+			}
+		}
 	}
-	// remaining users (o)
-	if perm&0o001 != 0 && st.Uid != uint32(uid) && st.Gid != uint32(gid) {
+
+	// remaining users (o) -- only apply if you're not the owner and none of
+	// your groups match its group.
+	if perm&0o001 != 0 && st.Uid != uint32(uid) && !inGroup {
 		return true
 	}
 
