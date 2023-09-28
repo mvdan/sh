@@ -963,7 +963,7 @@ func (r *Runner) changeDir(ctx context.Context, path string) int {
 	if err != nil || !info.IsDir() {
 		return 1
 	}
-	if !hasPermissionToDir(info) {
+	if !hasPermissionToDir(path) {
 		return 1
 	}
 	r.Dir = path

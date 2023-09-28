@@ -15,6 +15,6 @@ func mkfifo(path string, mode uint32) error {
 }
 
 // hasPermissionToDir is a no-op on Windows.
-func hasPermissionToDir(info os.FileInfo) bool {
+func hasPermissionToDir(string) bool {
 	return true
 }
