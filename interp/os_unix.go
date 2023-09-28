@@ -18,8 +18,8 @@ func mkfifo(path string, mode uint32) error {
 	return unix.Mkfifo(path, mode)
 }
 
-// hasPermissionToDir returns if the OS current user has execute permission
-// to the given directory
+// hasPermissionToDir returns true if the OS current user has execute
+// permission to the given directory
 func hasPermissionToDir(info os.FileInfo) bool {
 	user, err := user.Current()
 	if err != nil {
@@ -38,33 +38,37 @@ func hasPermissionToDir(info os.FileInfo) bool {
 		panic("unexpected info.Sys type")
 	}
 	perm := info.Mode().Perm()
+
 	// user (u)
-	if perm&0o100 != 0 && st.Uid == uint32(uid) {
-		return true
+	if st.Uid == uint32(uid) {
+		return perm&0o100 != 0
 	}
 
-	// Group perms only apply if you're not the owner of the directory.
-	gid, _ := strconv.Atoi(user.Gid)
-	inGroup := st.Gid == uint32(gid)
-	if st.Uid != uint32(uid) {
-		gids, _ := user.GroupIds()
-		for _, gid := range gids {
-			gid, _ := strconv.Atoi(gid)
-			if st.Gid == uint32(gid) {
-				// other users in group (g)
-				if perm&0o010 != 0 {
-					return true
-				}
-				inGroup = true
-			}
+	// group (g) -- check the users's actual group, and then all the other
+	// groups they're in.
+	gid, err := strconv.Atoi(user.Gid)
+	if err != nil {
+		return false // on POSIX systems, Gid should always be a decimal number
+	}
+	if st.Gid == uint32(gid) {
+		return perm&0o010 != 0
+	}
+	gids, err := user.GroupIds()
+	if err != nil {
+		// If we can't get the list of group IDs, we can't know if the group
+		// permissions, so default to false/no access.
+		return false
+	}
+	for _, gid := range gids {
+		gid, err := strconv.Atoi(gid)
+		if err != nil {
+			return false
+		}
+		if st.Gid == uint32(gid) {
+			return perm&0o010 != 0
 		}
 	}
 
-	// remaining users (o) -- only apply if you're not the owner and none of
-	// your groups match its group.
-	if perm&0o001 != 0 && st.Uid != uint32(uid) && !inGroup {
-		return true
-	}
-
-	return false
+	// remaining users (o)
+	return perm&0o001 != 0
 }
