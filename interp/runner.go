@@ -156,9 +156,9 @@ func catShortcutArg(stmt *syntax.Stmt) *syntax.Word {
 
 func (r *Runner) updateExpandOpts() {
 	if r.opts[optNoGlob] {
-		r.ecfg.ReadDir = nil
+		r.ecfg.ReadDir2 = nil
 	} else {
-		r.ecfg.ReadDir = func(s string) ([]fs.FileInfo, error) {
+		r.ecfg.ReadDir2 = func(s string) ([]fs.DirEntry, error) {
 			return r.readDirHandler(r.handlerCtx(context.Background()), s)
 		}
 	}

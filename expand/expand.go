@@ -52,13 +52,17 @@ type Config struct {
 	// this field might change until #451 is completely fixed.
 	ProcSubst func(*syntax.ProcSubst) (string, error)
 
-	// TODO(v4): update to os.Readdir with fs.DirEntry.
-	// We could possibly expose that as a preferred ReadDir2 before then,
-	// to allow users to opt into better performance in v3.
+	// TODO(v4): replace ReadDir with ReadDir2.
 
-	// ReadDir is used for file path globbing. If nil, globbing is disabled.
-	// Use ioutil.ReadDir to use the filesystem directly.
+	// ReadDir is the older form of [ReadDir2], before io/fs.
+	//
+	// Deprecated: use ReadDir2 instead.
 	ReadDir func(string) ([]fs.FileInfo, error)
+
+	// ReadDir is used for file path globbing.
+	// If nil, and ReadDir is nil as well, globbing is disabled.
+	// Use os.ReadDir to use the filesystem directly.
+	ReadDir2 func(string) ([]fs.DirEntry, error)
 
 	// GlobStar corresponds to the shell option that allows globbing with
 	// "**".
@@ -94,6 +98,9 @@ func (u UnexpectedCommandError) Error() string {
 
 var zeroConfig = &Config{}
 
+// TODO: note that prepareConfig is modifying the user's config in place,
+// which doesn't feel right - we should make a copy.
+
 func prepareConfig(cfg *Config) *Config {
 	if cfg == nil {
 		cfg = zeroConfig
@@ -105,6 +112,20 @@ func prepareConfig(cfg *Config) *Config {
 	cfg.ifs = " \t\n"
 	if vr := cfg.Env.Get("IFS"); vr.IsSet() {
 		cfg.ifs = vr.String()
+	}
+
+	if cfg.ReadDir != nil && cfg.ReadDir2 == nil {
+		cfg.ReadDir2 = func(path string) ([]fs.DirEntry, error) {
+			infos, err := cfg.ReadDir(path)
+			if err != nil {
+				return nil, err
+			}
+			entries := make([]fs.DirEntry, len(infos))
+			for i, info := range infos {
+				entries[i] = fs.FileInfoToDirEntry(info)
+			}
+			return entries, nil
+		}
 	}
 	return cfg
 }
@@ -441,7 +462,7 @@ func Fields(cfg *Config, words ...*syntax.Word) ([]string, error) {
 				path, doGlob := cfg.escapedGlobField(field)
 				var matches []string
 				var syntaxError *pattern.SyntaxError
-				if doGlob && cfg.ReadDir != nil {
+				if doGlob && cfg.ReadDir2 != nil {
 					matches, err = cfg.glob(dir, path)
 					if !errors.As(err, &syntaxError) {
 						if err != nil {
@@ -839,11 +860,11 @@ func (cfg *Config) glob(base, pat string) ([]string, error) {
 	// TODO: as an optimization, we could do chunks of the path all at once,
 	// like doing a single stat for "/foo/bar" in "/foo/bar/*".
 
-	// TODO: Another optimization would be to reduce the number of ReadDir calls.
+	// TODO: Another optimization would be to reduce the number of ReadDir2 calls.
 	// For example, /foo/* can end up doing one duplicate call:
 	//
-	//    ReadDir("/foo") to ensure that "/foo/" exists and only matches a directory
-	//    ReadDir("/foo") glob "*"
+	//    ReadDir2("/foo") to ensure that "/foo/" exists and only matches a directory
+	//    ReadDir2("/foo") glob "*"
 
 	for i, part := range parts {
 		// Keep around for debugging.
@@ -864,12 +885,12 @@ func (cfg *Config) glob(base, pat string) ([]string, error) {
 					match = filepath.Join(base, match)
 				}
 				match = pathJoin2(match, part)
-				// We can't use ReadDir on the parent and match the directory
+				// We can't use ReadDir2 on the parent and match the directory
 				// entry by name, because short paths on Windows break that.
-				// Our only option is to ReadDir on the directory entry itself,
+				// Our only option is to ReadDir2 on the directory entry itself,
 				// which can be wasteful if we only want to see if it exists,
 				// but at least it's correct in all scenarios.
-				if _, err := cfg.ReadDir(match); err != nil {
+				if _, err := cfg.ReadDir2(match); err != nil {
 					const errPathNotFound = syscall.Errno(3) // from syscall/types_windows.go, to avoid a build tag
 					var pathErr *os.PathError
 					if runtime.GOOS == "windows" && errors.As(err, &pathErr) && pathErr.Err == errPathNotFound {
@@ -945,7 +966,7 @@ func (cfg *Config) globDir(base, dir string, rx *regexp.Regexp, matchHidden bool
 	if !filepath.IsAbs(dir) {
 		fullDir = filepath.Join(base, dir)
 	}
-	infos, err := cfg.ReadDir(fullDir)
+	infos, err := cfg.ReadDir2(fullDir)
 	if err != nil {
 		// We still want to return matches, for the sake of reusing slices.
 		return matches, err
@@ -954,13 +975,13 @@ func (cfg *Config) globDir(base, dir string, rx *regexp.Regexp, matchHidden bool
 		name := info.Name()
 		if !wantDir {
 			// No filtering.
-		} else if mode := info.Mode(); mode&os.ModeSymlink != 0 {
+		} else if mode := info.Type(); mode&os.ModeSymlink != 0 {
 			// We need to know if the symlink points to a directory.
 			// This requires an extra syscall, as ReadDir on the parent directory
 			// does not follow symlinks for each of the directory entries.
 			// ReadDir is somewhat wasteful here, as we only want its error result,
 			// but we could try to reuse its result as per the TODO in Config.glob.
-			if _, err := cfg.ReadDir(filepath.Join(fullDir, info.Name())); err != nil {
+			if _, err := cfg.ReadDir2(filepath.Join(fullDir, info.Name())); err != nil {
 				continue
 			}
 		} else if !mode.IsDir() {

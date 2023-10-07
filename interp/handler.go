@@ -315,11 +315,21 @@ func DefaultOpenHandler() OpenHandlerFunc {
 // TODO(v4): if this is kept in v4, it most likely needs to use [io/fs.DirEntry] for efficiency
 type ReadDirHandlerFunc func(ctx context.Context, path string) ([]fs.FileInfo, error)
 
+type ReadDirHandlerFunc2 func(ctx context.Context, path string) ([]fs.DirEntry, error)
+
 // DefaultReadDirHandler returns the [ReadDirHandlerFunc] used by default.
 // It makes use of [ioutil.ReadDir].
 func DefaultReadDirHandler() ReadDirHandlerFunc {
 	return func(ctx context.Context, path string) ([]fs.FileInfo, error) {
 		return ioutil.ReadDir(path)
+	}
+}
+
+// DefaultReadDirHandler2 returns the [ReadDirHandlerFunc2] used by default.
+// It uses [os.ReadDir].
+func DefaultReadDirHandler2() ReadDirHandlerFunc2 {
+	return func(ctx context.Context, path string) ([]fs.DirEntry, error) {
+		return os.ReadDir(path)
 	}
 }
 
