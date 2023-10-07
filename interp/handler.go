@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"io/fs"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -312,23 +313,23 @@ func DefaultOpenHandler() OpenHandlerFunc {
 // shell globbing, if enabled.
 //
 // TODO(v4): if this is kept in v4, it most likely needs to use [io/fs.DirEntry] for efficiency
-type ReadDirHandlerFunc func(ctx context.Context, path string) ([]os.FileInfo, error)
+type ReadDirHandlerFunc func(ctx context.Context, path string) ([]fs.FileInfo, error)
 
 // DefaultReadDirHandler returns the [ReadDirHandlerFunc] used by default.
 // It makes use of [ioutil.ReadDir].
 func DefaultReadDirHandler() ReadDirHandlerFunc {
-	return func(ctx context.Context, path string) ([]os.FileInfo, error) {
+	return func(ctx context.Context, path string) ([]fs.FileInfo, error) {
 		return ioutil.ReadDir(path)
 	}
 }
 
 // StatHandlerFunc is a handler which gets a file's information.
-type StatHandlerFunc func(ctx context.Context, name string, followSymlinks bool) (os.FileInfo, error)
+type StatHandlerFunc func(ctx context.Context, name string, followSymlinks bool) (fs.FileInfo, error)
 
 // DefaultStatHandler returns the [StatHandlerFunc] used by default.
 // It makes use of [os.Stat] and [os.Lstat], depending on followSymlinks.
 func DefaultStatHandler() StatHandlerFunc {
-	return func(ctx context.Context, path string, followSymlinks bool) (os.FileInfo, error) {
+	return func(ctx context.Context, path string, followSymlinks bool) (fs.FileInfo, error) {
 		if !followSymlinks {
 			return os.Lstat(path)
 		} else {

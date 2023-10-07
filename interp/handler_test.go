@@ -9,6 +9,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"runtime"
 	"strconv"
@@ -47,7 +48,7 @@ func blocklistNondevOpen(ctx context.Context, path string, flags int, mode os.Fi
 	return testOpenHandler(ctx, path, flags, mode)
 }
 
-func blocklistGlob(ctx context.Context, path string) ([]os.FileInfo, error) {
+func blocklistGlob(ctx context.Context, path string) ([]fs.FileInfo, error) {
 	return nil, fmt.Errorf("blocklisted: glob")
 }
 

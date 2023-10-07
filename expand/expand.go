@@ -58,7 +58,7 @@ type Config struct {
 
 	// ReadDir is used for file path globbing. If nil, globbing is disabled.
 	// Use ioutil.ReadDir to use the filesystem directly.
-	ReadDir func(string) ([]os.FileInfo, error)
+	ReadDir func(string) ([]fs.FileInfo, error)
 
 	// GlobStar corresponds to the shell option that allows globbing with
 	// "**".

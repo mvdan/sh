@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"math"
 	"math/rand"
 	"os"
@@ -157,7 +158,7 @@ func (r *Runner) updateExpandOpts() {
 	if r.opts[optNoGlob] {
 		r.ecfg.ReadDir = nil
 	} else {
-		r.ecfg.ReadDir = func(s string) ([]os.FileInfo, error) {
+		r.ecfg.ReadDir = func(s string) ([]fs.FileInfo, error) {
 			return r.readDirHandler(r.handlerCtx(context.Background()), s)
 		}
 	}
@@ -982,12 +983,12 @@ func (r *Runner) open(ctx context.Context, path string, flags int, mode os.FileM
 	return f, err
 }
 
-func (r *Runner) stat(ctx context.Context, name string) (os.FileInfo, error) {
+func (r *Runner) stat(ctx context.Context, name string) (fs.FileInfo, error) {
 	path := absPath(r.Dir, name)
 	return r.statHandler(ctx, path, true)
 }
 
-func (r *Runner) lstat(ctx context.Context, name string) (os.FileInfo, error) {
+func (r *Runner) lstat(ctx context.Context, name string) (fs.FileInfo, error) {
 	path := absPath(r.Dir, name)
 	return r.statHandler(ctx, path, false)
 }

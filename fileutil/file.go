@@ -50,7 +50,7 @@ const (
 
 	// ConfIfShebang describes files which might be shell scripts, depending
 	// on the shebang line in the file's contents. Since CouldBeScript only
-	// works on os.FileInfo, the answer in this case can't be final.
+	// works on fs.FileInfo, the answer in this case can't be final.
 	ConfIfShebang
 
 	// ConfIsScript describes files which are definitely shell scripts,
@@ -61,7 +61,7 @@ const (
 // CouldBeScript is a shortcut for CouldBeScript2(fs.FileInfoToDirEntry(info)).
 //
 // Deprecated: prefer CouldBeScript2, which usually requires fewer syscalls.
-func CouldBeScript(info os.FileInfo) ScriptConfidence {
+func CouldBeScript(info fs.FileInfo) ScriptConfidence {
 	return CouldBeScript2(fs.FileInfoToDirEntry(info))
 }
 
