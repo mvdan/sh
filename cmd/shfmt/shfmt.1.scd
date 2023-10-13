@@ -131,7 +131,10 @@ keep_padding       = true
 # --func-next-line
 function_next_line = true
 
-# Ignore the entire "third_party" directory.
+# Ignore the entire "third_party" directory when calling shfmt on directories,
+# such as "shfmt -l -w .".
+# When formatting regular files explicitly, like "shfmt -w third_party/foo.sh",
+# the files are always formatted regardless of this setting.
 [third_party/**]
 ignore = true
 ```
