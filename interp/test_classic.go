@@ -51,7 +51,7 @@ func (p *testParser) classicTest(fval string, pastAndOr bool) syntax.TestExpr {
 	} else {
 		left = p.classicTest(fval, true)
 	}
-	if left == nil || p.eof {
+	if left == nil || p.eof || p.val == ")" {
 		return left
 	}
 	opStr := p.val
@@ -76,7 +76,7 @@ func (p *testParser) classicTest(fval string, pastAndOr bool) syntax.TestExpr {
 }
 
 func (p *testParser) testExprBase(fval string) syntax.TestExpr {
-	if p.eof {
+	if p.eof || p.val == ")" {
 		return nil
 	}
 	op := testUnaryOp(p.val)
@@ -86,6 +86,15 @@ func (p *testParser) testExprBase(fval string) syntax.TestExpr {
 		p.next()
 		u.X = p.classicTest(op.String(), false)
 		return u
+	case syntax.TsParen:
+		pe := &syntax.ParenTest{}
+		p.next()
+		pe.X = p.classicTest(op.String(), false)
+		if p.val != ")" {
+			p.errf("reached %s without matching ( with )", p.val)
+		}
+		p.next()
+		return pe
 	case illegalTok:
 		return p.followWord(fval)
 	default:
@@ -108,6 +117,8 @@ func testUnaryOp(val string) syntax.UnTestOperator {
 	switch val {
 	case "!":
 		return syntax.TsNot
+	case "(":
+		return syntax.TsParen
 	case "-e", "-a":
 		return syntax.TsExists
 	case "-f":

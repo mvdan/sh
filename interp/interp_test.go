@@ -1611,6 +1611,8 @@ var runTests = []runTest{
 	{"set -o pipefail; [[ -o pipefail ]]", ""},
 	// TODO: we don't implement precedence of && over ||.
 	// {"[[ a == x && b == x || c == c ]]", ""},
+	{"[[ (a == x && b == x) || c == c ]]", ""},
+	{"[[ a == x && (b == x || c == c) ]]", "exit status 1"},
 
 	// classic test
 	{
@@ -1710,6 +1712,8 @@ var runTests = []runTest{
 	{"[ abc != ab* ]", ""},
 	// TODO: we don't implement precedence of -a over -o.
 	// {"[ a = x -a b = x -o c = c ]", ""},
+	{`[ \( a = x -a b = x \) -o c = c ]`, ""},
+	{`[ a = x -a \( b = x -o c = c \) ]`, "exit status 1"},
 
 	// arithm
 	{
