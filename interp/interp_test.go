@@ -1609,6 +1609,8 @@ var runTests = []runTest{
 	{"set -n; [[ -o noexec ]]", ""}, // actually does nothing, but oh well
 	{"[[ -o pipefail ]]", "exit status 1"},
 	{"set -o pipefail; [[ -o pipefail ]]", ""},
+	// TODO: we don't implement precedence of && over ||.
+	// {"[[ a == x && b == x || c == c ]]", ""},
 
 	// classic test
 	{
@@ -1706,6 +1708,8 @@ var runTests = []runTest{
 	{"[ a != a ]", "exit status 1"},
 	{"[ abc = ab* ]", "exit status 1"},
 	{"[ abc != ab* ]", ""},
+	// TODO: we don't implement precedence of -a over -o.
+	// {"[ a = x -a b = x -o c = c ]", ""},
 
 	// arithm
 	{
