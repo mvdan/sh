@@ -134,6 +134,18 @@ var braceTests = []struct {
 		litWords("a4", "a3", "a2", "a1"),
 	},
 	{
+		litWord("{1..005}"),
+		litWords("001", "002", "003", "004", "005"),
+	},
+	{
+		litWord("{0001..05..2}"),
+		litWords("0001", "0003", "0005"),
+	},
+	{
+		litWord("{0..1}"),
+		litWords("0", "1"),
+	},
+	{
 		litWord("a{d..k..3}"),
 		litWords("ad", "ag", "aj"),
 	},

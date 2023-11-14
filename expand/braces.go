@@ -5,6 +5,7 @@ package expand
 
 import (
 	"strconv"
+	"strings"
 
 	"mvdan.cc/sh/v3/syntax"
 )
@@ -25,8 +26,17 @@ func Braces(word *syntax.Word) []*syntax.Word {
 		}
 		if br.Sequence {
 			chars := false
-			from, err1 := strconv.Atoi(br.Elems[0].Lit())
-			to, err2 := strconv.Atoi(br.Elems[1].Lit())
+
+			fromLit := br.Elems[0].Lit()
+			toLit := br.Elems[1].Lit()
+			zeros := extraLeadingZeros(fromLit)
+			// TODO: use max when we can assume Go 1.21
+			if z := extraLeadingZeros(toLit); z > zeros {
+				zeros = z
+			}
+
+			from, err1 := strconv.Atoi(fromLit)
+			to, err2 := strconv.Atoi(toLit)
 			if err1 != nil || err2 != nil {
 				chars = true
 				from = int(br.Elems[0].Lit()[0])
@@ -57,7 +67,7 @@ func Braces(word *syntax.Word) []*syntax.Word {
 				if chars {
 					lit.Value = string(rune(n))
 				} else {
-					lit.Value = strconv.Itoa(n)
+					lit.Value = strings.Repeat("0", zeros) + strconv.Itoa(n)
 				}
 				next.Parts = append([]syntax.WordPart{lit}, next.Parts...)
 				exp := Braces(&next)
@@ -82,4 +92,13 @@ func Braces(word *syntax.Word) []*syntax.Word {
 		return all
 	}
 	return []*syntax.Word{{Parts: left}}
+}
+
+func extraLeadingZeros(s string) int {
+	for i, r := range s {
+		if r != '0' {
+			return i
+		}
+	}
+	return 0 // "0" has no extra leading zeros
 }
