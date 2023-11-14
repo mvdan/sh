@@ -102,6 +102,10 @@ var braceTests = []struct {
 		litWords("ac", "ad", "ae", "af"),
 	},
 	{
+		litWord("a{H..K}"),
+		litWords("aH", "aI", "aJ", "aK"),
+	},
+	{
 		litWord("a{-..f}"),
 		litWords("a{-..f}"),
 	},
