@@ -3868,6 +3868,16 @@ func TestRunnerOpts(t *testing.T) {
 			"set bar_interp_missing; echo $@",
 			"bar_interp_missing\n",
 		},
+		{
+			opts(interp.Env(expand.FuncEnviron(func(name string) string {
+				if name == "foo" {
+					return "bar"
+				}
+				return ""
+			}))),
+			"(echo $foo); echo x | echo $foo",
+			"bar\nbar\n",
+		},
 	}
 	p := syntax.NewParser()
 	for _, c := range cases {

@@ -814,27 +814,9 @@ func (r *Runner) Subshell() *Runner {
 
 		origStdout: r.origStdout, // used for process substitutions
 	}
-	// Env vars and funcs are copied, since they might be modified.
-	// TODO(v4): lazy copying? it would probably be enough to add a
-	// copyOnWrite bool field to Variable, then a Modify method that must be
-	// used when one needs to modify a variable. ideally with some way to
-	// catch direct modifications without the use of Modify and panic,
-	// perhaps via a check when getting or setting vars at some level.
-	oenv := &overlayEnviron{parent: expand.ListEnviron()}
-	r.writeEnv.Each(func(name string, vr expand.Variable) bool {
-		vr2 := vr
-		// Make deeper copies of List and Map, but ensure that they remain nil
-		// if they are nil in vr.
-		vr2.List = append([]string(nil), vr.List...)
-		if vr.Map != nil {
-			vr2.Map = make(map[string]string, len(vr.Map))
-			for k, vr := range vr.Map {
-				vr2.Map[k] = vr
-			}
-		}
-		oenv.Set(name, vr2)
-		return true
-	})
+	// Funcs are copied, since they might be modified.
+	// Env vars aren't copied; setVar will copy lists and maps as needed.
+	oenv := &overlayEnviron{parent: r.writeEnv}
 	r2.writeEnv = oenv
 	r2.Funcs = make(map[string]*syntax.Stmt, len(r.Funcs))
 	for k, v := range r.Funcs {
