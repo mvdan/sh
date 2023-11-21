@@ -94,7 +94,6 @@ To use a Docker image, run:
 The following editor integrations wrap `shfmt`:
 
 - [BashSupport-Pro] - Bash plugin for JetBrains IDEs
-- [format-shell] - Atom plugin
 - [intellij-shellcript] - Intellij Jetbrains `shell script` plugin
 - [micro] - Editor with a built-in plugin
 - [shell-format] - VS Code plugin
@@ -121,11 +120,10 @@ Other noteworthy integrations include:
 [editorconfig]: https://editorconfig.org/
 [examples]: https://pkg.go.dev/mvdan.cc/sh/v3/syntax#pkg-examples
 [fedora]: https://packages.fedoraproject.org/pkgs/golang-mvdan-sh-3/shfmt/
-[format-shell]: https://atom.io/packages/format-shell
 [freebsd]: https://www.freshports.org/devel/shfmt
 [homebrew]: https://formulae.brew.sh/formula/shfmt
 [intellij-shellcript]: https://www.jetbrains.com/help/idea/shell-scripts.html
-[macports]: https://ports.macports.org/port/shfmt/summary/
+[macports]: https://ports.macports.org/port/shfmt/details/
 [mdformat-shfmt]: https://github.com/hukkin/mdformat-shfmt
 [mdformat]: https://github.com/executablebooks/mdformat
 [micro]: https://micro-editor.github.io/
@@ -133,7 +131,7 @@ Other noteworthy integrations include:
 [modd]: https://github.com/cortesi/modd
 [mvdan-sh]: https://www.npmjs.com/package/mvdan-sh
 [nixos]: https://github.com/NixOS/nixpkgs/blob/HEAD/pkgs/tools/text/shfmt/default.nix
-[OpenSUSE]: https://software.opensuse.org/package/shfmt
+[OpenSUSE]: https://build.opensuse.org/package/show/openSUSE:Factory/shfmt
 [posix shell]: https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html
 [posix-ambiguity]: https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_06_03
 [pre-commit]: https://pre-commit.com
@@ -147,7 +145,7 @@ Other noteworthy integrations include:
 [shfmt.el]: https://github.com/purcell/emacs-shfmt/
 [snapcraft]: https://snapcraft.io/shfmt
 [sublime-pretty-shell]: https://github.com/aerobounce/Sublime-Pretty-Shell
-[trunk]: https://trunk.io/products/check
+[trunk]: https://trunk.io/check
 [vim-shfmt]: https://github.com/z0mbix/vim-shfmt
 [void]: https://github.com/void-linux/void-packages/blob/HEAD/srcpkgs/shfmt/template
 [vscode-shfmt]: https://marketplace.visualstudio.com/items?itemName=mkhl.shfmt
