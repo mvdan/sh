@@ -113,7 +113,7 @@ Other noteworthy integrations include:
 - [pre-commit-shfmt] - [pre-commit] shfmt hook
 
 [alpine]: https://pkgs.alpinelinux.org/packages?name=shfmt
-[arch]: https://archlinux.org/packages/community/x86_64/shfmt/
+[arch]: https://archlinux.org/packages/extra/x86_64/shfmt/
 [bash]: https://www.gnu.org/software/bash/
 [BashSupport-Pro]: https://www.bashsupport.com/manual/editor/formatter/
 [debian]: https://tracker.debian.org/pkg/golang-mvdan-sh
