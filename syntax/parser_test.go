@@ -163,8 +163,8 @@ func TestMain(m *testing.M) {
 }
 
 var (
-	storedHasBash51 bool
-	onceHasBash51   sync.Once
+	storedHasBash52 bool
+	onceHasBash52   sync.Once
 
 	storedHasDash059 bool
 	onceHasDash059   sync.Once
@@ -174,10 +174,10 @@ var (
 )
 
 func hasBash51(tb testing.TB) {
-	onceHasBash51.Do(func() {
-		storedHasBash51 = cmdContains("version 5.1", "bash", "--version")
+	onceHasBash52.Do(func() {
+		storedHasBash52 = cmdContains("version 5.2", "bash", "--version")
 	})
-	if !storedHasBash51 {
+	if !storedHasBash52 {
 		tb.Skipf("bash 5.1 required to run")
 	}
 }

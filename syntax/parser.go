@@ -31,7 +31,7 @@ const (
 	// LangBash corresponds to the GNU Bash language, as described in its
 	// manual at https://www.gnu.org/software/bash/manual/bash.html.
 	//
-	// We currently follow Bash version 5.1.
+	// We currently follow Bash version 5.2.
 	//
 	// Its string representation is "bash".
 	LangBash LangVariant = iota
