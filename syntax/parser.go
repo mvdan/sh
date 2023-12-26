@@ -389,9 +389,6 @@ type Parser struct {
 
 	// lastBquoteEsc is how many times the last backquote token was escaped
 	lastBquoteEsc int
-	// buriedBquotes is like openBquotes, but saved for when the parser
-	// comes out of single quotes
-	buriedBquotes int
 
 	rxOpenParens int
 	rxFirstPart  bool
@@ -435,7 +432,7 @@ func (p *Parser) reset() {
 	p.openStmts = 0
 	p.heredocs, p.buriedHdocs = p.heredocs[:0], 0
 	p.parsingDoc = false
-	p.openBquotes, p.buriedBquotes = 0, 0
+	p.openBquotes = 0
 	p.accComs, p.curComs = nil, &p.accComs
 	p.litBatch = nil
 	p.wordBatch = nil
@@ -1123,10 +1120,6 @@ func (p *Parser) wordPart() WordPart {
 			case '\'':
 				sq.Right = p.nextPos()
 				sq.Value = p.endLit()
-
-				// restore openBquotes
-				p.openBquotes = p.buriedBquotes
-				p.buriedBquotes = 0
 
 				p.rune()
 				p.next()

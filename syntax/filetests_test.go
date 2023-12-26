@@ -1797,7 +1797,7 @@ var fileTests = []testCase{
 	{
 		Strs: []string{
 			`$(echo '\' 'a\b' "\\" "a\a")`,
-			"`" + `echo '\' 'a\b' "\\\\" "a\a"` + "`",
+			"`" + `echo '\' 'a\\b' "\\\\" "a\a"` + "`",
 		},
 		common: cmdSubst(stmt(call(
 			litWord("echo"),
@@ -4589,7 +4589,7 @@ func recursiveSanityCheck(tb testing.TB, src string, v any) {
 				return
 			}
 		}
-		tb.Errorf("Expected one of %q at %d in %q, found %q",
+		tb.Errorf("Expected one of %q at %s in %q, found %q",
 			strs, pos, src, gotErr)
 	}
 	checkNodePosEnd := func(n Node) {
@@ -4701,7 +4701,7 @@ func recursiveSanityCheck(tb testing.TB, src string, v any) {
 			tb.Errorf("Lit without newlines has Pos/End lines %d and %d",
 				posLine, endLine)
 		case strings.Contains(src, "`") && strings.Contains(src, "\\"):
-			// removed quotes inside backquote cmd substs
+			// removed backslashes inside backquote cmd substs
 			val = ""
 		case end < len(src) && (src[end] == '\n' || src[end] == '`'):
 			// heredoc literals that end with the
@@ -4794,7 +4794,12 @@ func recursiveSanityCheck(tb testing.TB, src string, v any) {
 		if x.Dollar {
 			valuePos = posAddCol(valuePos, 1)
 		}
-		checkPos(valuePos, x.Value)
+		val := x.Value
+		if strings.Contains(src, "`") && strings.Contains(src, "\\") {
+			// removed backslashes inside backquote cmd substs
+			val = ""
+		}
+		checkPos(valuePos, val)
 		if x.Dollar {
 			checkPos(x.Left, "$'")
 		} else {
