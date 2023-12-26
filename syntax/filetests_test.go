@@ -4631,6 +4631,8 @@ func recursiveSanityCheck(tb testing.TB, src string, v any) {
 				// ended by semicolon
 			case endOff > 0 && src[endOff-1] == '&':
 				// ended by & or |&
+			case end == '\\' && src[endOff+1] == '`':
+				// ended by an escaped backquote
 			default:
 				tb.Errorf("Unexpected Stmt.End() %d %q in %q",
 					endOff, end, src)
