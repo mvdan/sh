@@ -320,7 +320,11 @@ func walkPath(path string, entry fs.DirEntry) error {
 		return filepath.SkipDir
 	}
 	if useEditorConfig {
-		props, err := ecQuery.Find(path)
+		// We don't know the language variant at this point yet, as we are walking directories
+		// and we first want to tell if we should skip a path entirely.
+		// TODO: Should the call to Find with the language name check "ignore" too, then?
+		// Otherwise a [[bash]] section with ignore=true is effectively never used.
+		props, err := ecQuery.Find(path, []string{"shell"})
 		if err != nil {
 			return err
 		}
@@ -420,9 +424,23 @@ func formatPath(path string, checkShebang bool) error {
 	return formatBytes(readBuf.Bytes(), path, fileLang)
 }
 
+func editorConfigLangs(l syntax.LangVariant) []string {
+	// All known shells match [[shell]].
+	// As a special case, bash and the bash-like bats also match [[bash]]
+	// We can later consider others like [[mksh]] or [[posix-shell]],
+	// just consider what list of languages the EditorConfig spec might eventually use.
+	switch l {
+	case syntax.LangBash, syntax.LangBats:
+		return []string{"shell", "bash"}
+	case syntax.LangPOSIX, syntax.LangMirBSDKorn, syntax.LangAuto:
+		return []string{"shell"}
+	}
+	return nil
+}
+
 func formatBytes(src []byte, path string, fileLang syntax.LangVariant) error {
 	if useEditorConfig {
-		props, err := ecQuery.Find(path)
+		props, err := ecQuery.Find(path, editorConfigLangs(fileLang))
 		if err != nil {
 			return err
 		}

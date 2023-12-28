@@ -12,7 +12,7 @@ require (
 	golang.org/x/sync v0.5.0
 	golang.org/x/sys v0.15.0
 	golang.org/x/term v0.15.0
-	mvdan.cc/editorconfig v0.2.0
+	mvdan.cc/editorconfig v0.2.1-0.20231228180347-1925077f8eb2
 )
 
 require (

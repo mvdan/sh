@@ -139,6 +139,10 @@ function_next_line = true
 ignore = true
 ```
 
+EditorConfig sections may also use `[[shell]]` or `[[bash]]` to match any shell or bash scripts,
+which is particularly useful when scripts use a shebang but no extension.
+Note that this feature is outside of the EditorConfig spec and may be changed in the future.
+
 shfmt can also replace *bash -n* to check shell scripts for syntax errors. It is
 more exhaustive, as it parses all syntax statically and requires valid UTF-8:
 

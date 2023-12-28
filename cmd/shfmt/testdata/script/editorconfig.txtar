@@ -53,6 +53,11 @@ stdout 'regular\.sh'
 ! stdout 'ignored\.sh'
 ! stderr .
 
+# Check EditorConfig [[language]] sections, used primarily for extension-less strings with shebangs.
+exec shfmt -d shebang
+! stdout .
+! stderr .
+
 -- .editorconfig --
 root = true
 
@@ -156,3 +161,29 @@ echo   foo
 echo   foo
 -- ignored/3_regular/regular.sh --
 echo   foo
+-- shebang/.editorconfig --
+root = true
+
+[*]
+indent_style = space
+indent_size = 1
+
+[[shell]]
+indent_size = 2
+
+[[bash]]
+indent_size = 4
+
+-- shebang/binsh --
+#!/bin/sh
+
+{
+  indented
+}
+-- shebang/binbash --
+#!/bin/bash
+
+{
+    indented
+}
+array=(elem)
