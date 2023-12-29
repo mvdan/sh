@@ -1,6 +1,10 @@
 #!/bin/sh
 
-if { ! go version | grep -q go1.18 ;} && { ! command -v go1.18.10 &> /dev/null ;} then
+if { go version | grep -q go1.18 ;} then
+	GO_CMD=go
+elif { command -v go1.18.10 &> /dev/null ;} then
+	GO_CMD=go1.18.10
+else
 	echo "Go 1.18.x required to build."
 	while true; do
 		read -p "Do you wish to install this program? " yn
@@ -12,8 +16,9 @@ if { ! go version | grep -q go1.18 ;} && { ! command -v go1.18.10 &> /dev/null ;
 	done
 	go install golang.org/dl/go1.18.10@latest
 	go1.18.10 download
+	GO_CMD=go1.18.10
 fi
 
-go1.18.10 run github.com/gopherjs/gopherjs build --minify --output=index.js || exit 1
+$GO_CMD run github.com/gopherjs/gopherjs build --minify --output=index.js || exit 1
 
 node testmain.js || exit 1
