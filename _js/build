@@ -1,10 +1,10 @@
 #!/bin/sh
 
-if ! go version | grep -q go1.17; then
-	echo "Go 1.17.x required to build."
+if ! go1.18.10 version | grep -q go1.18; then
+	echo "Go 1.18.x required to build."
 	exit 1
 fi
 
-go run github.com/gopherjs/gopherjs build --minify --output=index.js || exit 1
+go1.18.10 run github.com/gopherjs/gopherjs build --minify --output=index.js || exit 1
 
 node testmain.js || exit 1
