@@ -37,11 +37,12 @@ var (
 	versionFlag = &multiFlag[bool]{"", "version", false}
 	list        = &multiFlag[bool]{"l", "list", false}
 
-	write    = &multiFlag[bool]{"w", "write", false}
-	simplify = &multiFlag[bool]{"s", "simplify", false}
-	minify   = &multiFlag[bool]{"mn", "minify", false}
-	find     = &multiFlag[bool]{"f", "find", false}
-	diff     = &multiFlag[bool]{"d", "diff", false}
+	write       = &multiFlag[bool]{"w", "write", false}
+	simplify    = &multiFlag[bool]{"s", "simplify", false}
+	minify      = &multiFlag[bool]{"mn", "minify", false}
+	find        = &multiFlag[bool]{"f", "find", false}
+	diff        = &multiFlag[bool]{"d", "diff", false}
+	applyIgnore = &multiFlag[bool]{"", "apply-ignore", false}
 
 	lang     = &multiFlag[syntax.LangVariant]{"ln", "language-dialect", syntax.LangAuto}
 	posix    = &multiFlag[bool]{"p", "posix", false}
@@ -73,7 +74,7 @@ var (
 	version = "(devel)" // to match the default from runtime/debug
 
 	allFlags = []any{
-		versionFlag, list, write, simplify, minify, find, diff,
+		versionFlag, list, write, simplify, minify, find, diff, applyIgnore,
 		lang, posix, filename,
 		indent, binNext, caseIndent, spaceRedirs, keepPadding, funcNext, toJSON, fromJSON,
 	}
@@ -138,6 +139,7 @@ directory, all shell scripts found under that directory will be used.
   -d,  --diff      error with a diff when the formatting differs
   -s,  --simplify  simplify the code
   -mn, --minify    minify the code to reduce its size (implies -s)
+  --apply-ignore   always apply EditorConfig ignore rules
 
 Parser options:
 
@@ -252,12 +254,12 @@ For more information, see 'man shfmt' and https://github.com/mvdan/sh.
 	}
 	status := 0
 	for _, path := range flag.Args() {
-		if info, err := os.Stat(path); err == nil && !info.IsDir() && !find.val {
-			// When given paths to files directly, always format
-			// them, no matter their extension or shebang.
+		if info, err := os.Stat(path); err == nil && !info.IsDir() && !applyIgnore.val && !find.val {
+			// When given paths to files directly, always format them,
+			// no matter their extension or shebang.
 			//
-			// The only exception is the -f flag; in that case, we
-			// do want to report whether the file is a shell script.
+			// One exception is --apply-ignore, which explicitly changes this behavior.
+			// Another is --find, whose logic depends on walkPath being called.
 			if err := formatPath(path, false); err != nil {
 				if err != errChangedWithDiff {
 					fmt.Fprintln(os.Stderr, err)
@@ -295,6 +297,16 @@ func formatStdin(name string) error {
 	if write.val {
 		return fmt.Errorf("-w cannot be used on standard input")
 	}
+	if applyIgnore.val {
+		// Mimic the logic from walkPath to apply the ignore rules.
+		props, err := ecQuery.Find(name, []string{"shell"})
+		if err != nil {
+			return err
+		}
+		if props.Get("ignore") == "true" {
+			return nil
+		}
+	}
 	src, err := io.ReadAll(in)
 	if err != nil {
 		return err
@@ -319,28 +331,31 @@ func walkPath(path string, entry fs.DirEntry) error {
 	if entry.IsDir() && vcsDir.MatchString(entry.Name()) {
 		return filepath.SkipDir
 	}
-	if useEditorConfig {
-		// We don't know the language variant at this point yet, as we are walking directories
-		// and we first want to tell if we should skip a path entirely.
-		// TODO: Should the call to Find with the language name check "ignore" too, then?
-		// Otherwise a [[bash]] section with ignore=true is effectively never used.
-		props, err := ecQuery.Find(path, []string{"shell"})
-		if err != nil {
-			return err
-		}
-		if props.Get("ignore") == "true" {
-			if entry.IsDir() {
-				return filepath.SkipDir
-			} else {
-				return nil
-			}
+	// We don't know the language variant at this point yet, as we are walking directories
+	// and we first want to tell if we should skip a path entirely.
+	//
+	// TODO: Should the call to Find with the language name check "ignore" too, then?
+	// Otherwise a [[bash]] section with ignore=true is effectively never used.
+	//
+	// TODO: Should there be a way to explicitly turn off ignore rules when walking?
+	// Perhaps swapping the default to --apply-ignore=auto and allowing --apply-ignore=false?
+	// I don't imagine it's a particularly uesful scenario for now.
+	props, err := ecQuery.Find(path, []string{"shell"})
+	if err != nil {
+		return err
+	}
+	if props.Get("ignore") == "true" {
+		if entry.IsDir() {
+			return filepath.SkipDir
+		} else {
+			return nil
 		}
 	}
 	conf := fileutil.CouldBeScript2(entry)
 	if conf == fileutil.ConfNotScript {
 		return nil
 	}
-	err := formatPath(path, conf == fileutil.ConfIfShebang)
+	err = formatPath(path, conf == fileutil.ConfIfShebang)
 	if err != nil && !os.IsNotExist(err) {
 		return err
 	}
