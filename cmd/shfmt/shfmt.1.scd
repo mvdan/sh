@@ -16,7 +16,7 @@ directory, all shell scripts found under that directory will be used.
 
 If any EditorConfig files are found, they will be used to apply formatting
 options. If any parser or printer flags are given to the tool, no EditorConfig
-files will be used. A default like *-i=0* can be used for this purpose.
+formatting options will be used. A default like *-i=0* can be used for this purpose.
 
 shfmt's default shell formatting was chosen to be consistent, common, and
 predictable. Some aspects of the format can be configured via printer flags.
@@ -46,6 +46,13 @@ predictable. Some aspects of the format can be configured via printer flags.
 
 *-mn*, *--minify*
 	Minify the code to reduce its size (implies *-s*).
+
+*--apply-ignore*
+	Always apply EditorConfig ignore rules.
+
+	When formatting files directly, ignore rules are skipped without this flag.
+	Should be useful to any tools or editors which format stdin or a single file.
+	When printing results to stdout, an ignored file results in no output at all.
 
 ## Parser flags
 
@@ -132,9 +139,9 @@ keep_padding       = true
 function_next_line = true
 
 # Ignore the entire "third_party" directory when calling shfmt on directories,
-# such as "shfmt -l -w .".
-# When formatting regular files explicitly, like "shfmt -w third_party/foo.sh",
-# the files are always formatted regardless of this setting.
+# such as "shfmt -l -w .". When formatting files directly,
+# like "shfmt -w third_party/foo.sh" or "shfmt --filename=third_party/foo.sh",
+# the ignore logic is applied only when the --apply-ignore flag is given.
 [third_party/**]
 ignore = true
 ```

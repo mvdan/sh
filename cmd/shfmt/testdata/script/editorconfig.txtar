@@ -47,10 +47,48 @@ exec shfmt -l otherknobs
 ! stdout .
 ! stderr .
 
-# Ignore directories when walking, if they match ignore=true.
+# Files found by walking directories are skipped if they match ignore=true properties.
 exec shfmt -l ignored
 stdout 'regular\.sh'
 ! stdout 'ignored\.sh'
+! stderr .
+
+# Formatting files directly does not obey ignore=true properties by default.
+# Test the various modes in which shfmt can run.
+! exec shfmt -l input.sh ignored/1_lone_ignored.sh ignored/third_party/bad_syntax_ignored.sh
+stdout -count=1 'input\.sh$'
+stdout -count=1 'ignored\.sh$'
+stderr -count=1 'ignored\.sh.* must be followed by'
+! exec shfmt -d input.sh ignored/1_lone_ignored.sh ignored/third_party/bad_syntax_ignored.sh
+stdout -count=1 'input\.sh$'
+stdout -count=1 'ignored\.sh$'
+stderr -count=1 'ignored\.sh.* must be followed by'
+! exec shfmt input.sh ignored/1_lone_ignored.sh ignored/third_party/bad_syntax_ignored.sh
+stdout -count=1 'indented'
+stdout -count=1 'echo foo'
+stderr -count=1 'ignored\.sh.* must be followed by'
+stdin ignored/1_lone_ignored.sh
+exec shfmt --filename=ignored/1_lone_ignored.sh
+stdout -count=1 'echo foo'
+! stderr .
+
+# Formatting files directly obeys ignore=true when --apply-ignore is given.
+# Test the same modes that the earlier section does.
+exec shfmt --apply-ignore -l input.sh ignored/1_lone_ignored.sh ignored/third_party/bad_syntax_ignored.sh
+stdout -count=1 'input\.sh$'
+! stdout 'ignored\.sh'
+! stderr .
+! exec shfmt --apply-ignore -d input.sh ignored/1_lone_ignored.sh ignored/third_party/bad_syntax_ignored.sh
+stdout -count=1 'input\.sh$'
+! stdout 'ignored\.sh'
+! stderr .
+exec shfmt --apply-ignore input.sh ignored/1_lone_ignored.sh ignored/third_party/bad_syntax_ignored.sh
+stdout -count=1 'indented'
+! stdout 'echo foo'
+! stderr .
+stdin ignored/1_lone_ignored.sh
+exec shfmt --apply-ignore --filename=ignored/1_lone_ignored.sh
+! stdout .
 ! stderr .
 
 # Check EditorConfig [[language]] sections, used primarily for extension-less strings with shebangs.
@@ -153,9 +191,9 @@ ignore = true
 [2_dir_ignored]
 ignore = true
 
--- ignored/third_party/ignored.sh --
+-- ignored/third_party/bad_syntax_ignored.sh --
 bad (syntax
--- ignored/1_lone_ignored.sh
+-- ignored/1_lone_ignored.sh --
 echo   foo
 -- ignored/2_dir_ignored/ignored.sh --
 echo   foo
