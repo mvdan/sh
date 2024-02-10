@@ -8,8 +8,8 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
-    - uses: actions/checkout@v3
-    - uses: actions/setup-go@v4
+    - uses: actions/checkout@v4
+    - uses: actions/setup-go@v5
       with:
         go-version: ${{ matrix.go-version }}
         cache: false
@@ -36,7 +36,7 @@ jobs:
   test-linux-alpine:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Test as root, without cgo, and with busybox
       run: docker run -v="$PWD:/pwd" -w=/pwd -e=CGO_ENABLED=0 golang:1.21.0-alpine go test ./...
 
@@ -76,7 +76,7 @@ jobs:
       # Get "https://proxy.golang.org/...": local error: tls: unexpected message
       # Get "https://proxy.golang.org/...": x509: certificate signed by unknown authority
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         fetch-depth: 0 # also fetch tags for 'git describe'
     # Enable docker daemon experimental support (for 'pull --platform').
@@ -89,8 +89,8 @@ jobs:
           echo '{ "experimental": true }' | sudo tee "$config"
         fi
         sudo systemctl restart docker
-    - uses: docker/setup-qemu-action@v2
-    - uses: docker/setup-buildx-action@v2
+    - uses: docker/setup-qemu-action@v3
+    - uses: docker/setup-buildx-action@v3
       with:
         driver-opts: network=host
     - name: Set up env vars
@@ -113,7 +113,7 @@ jobs:
         echo "DOCKER_BASE=test/${{ env.DOCKER_REPO }}" >> $GITHUB_ENV
         echo "DOCKER_BUILD_PLATFORMS=${DOCKER_PLATFORMS// /,}" >> $GITHUB_ENV
     - name: Build and push to local registry
-      uses: docker/build-push-action@v3
+      uses: docker/build-push-action@v5
       with:
         provenance: false # temporarily work around https://github.com/containers/skopeo/issues/1874
         context: .
@@ -122,7 +122,7 @@ jobs:
         push: true
         tags: localhost:5000/${{ env.DOCKER_BASE }}:${{ env.TAG }}
     - name: Build and push to local registry (alpine)
-      uses: docker/build-push-action@v3
+      uses: docker/build-push-action@v5
       with:
         provenance: false # temporarily work around https://github.com/containers/skopeo/issues/1874
         context: .
@@ -174,7 +174,7 @@ jobs:
         echo "DOCKER_DEPLOY_IMAGES=true" >> $GITHUB_ENV
     - name: Login to DockerHub
       if: ${{ env.DOCKER_DEPLOY_IMAGES == 'true' }}
-      uses: docker/login-action@v2
+      uses: docker/login-action@v3
       with:
         username: ${{ secrets.DOCKER_USER }}
         password: ${{ secrets.DOCKER_TOKEN }}
@@ -202,7 +202,7 @@ jobs:
         done
     - name: Update DockerHub description
       if: ${{ env.DOCKER_DEPLOY_IMAGES == 'true' }}
-      uses: peter-evans/dockerhub-description@v3
+      uses: peter-evans/dockerhub-description@v4
       with:
         username: ${{ secrets.DOCKER_USER }}
         password: ${{ secrets.DOCKER_TOKEN }}
