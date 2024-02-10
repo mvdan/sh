@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"maps"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -667,9 +668,7 @@ func (r *Runner) Reset() {
 	if r.Vars == nil {
 		r.Vars = make(map[string]expand.Variable)
 	} else {
-		for k := range r.Vars {
-			delete(r.Vars, k)
-		}
+		clear(r.Vars)
 	}
 	// TODO(v4): Use the supplied Env directly if it implements enough methods.
 	r.writeEnv = &overlayEnviron{parent: r.Env}
@@ -818,17 +817,9 @@ func (r *Runner) Subshell() *Runner {
 	// Env vars aren't copied; setVar will copy lists and maps as needed.
 	oenv := &overlayEnviron{parent: r.writeEnv}
 	r2.writeEnv = oenv
-	r2.Funcs = make(map[string]*syntax.Stmt, len(r.Funcs))
-	for k, v := range r.Funcs {
-		r2.Funcs[k] = v
-	}
+	r2.Funcs = maps.Clone(r.Funcs)
 	r2.Vars = make(map[string]expand.Variable)
-	if l := len(r.alias); l > 0 {
-		r2.alias = make(map[string]alias, l)
-		for k, v := range r.alias {
-			r2.alias[k] = v
-		}
-	}
+	r2.alias = maps.Clone(r.alias)
 
 	r2.dirStack = append(r2.dirBootstrap[:0], r.dirStack...)
 	r2.fillExpandConfig(r.ectx)

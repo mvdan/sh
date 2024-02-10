@@ -731,12 +731,14 @@ func (cfg *Config) quotedElemFields(pe *syntax.ParamExp) []string {
 			switch vr := cfg.Env.Get(name); vr.Kind {
 			case Indexed:
 				keys := make([]string, 0, len(vr.Map))
+				// TODO: maps.Keys if it makes it into Go 1.23
 				for key := range vr.List {
 					keys = append(keys, strconv.Itoa(key))
 				}
 				return keys
 			case Associative:
 				keys := make([]string, 0, len(vr.Map))
+				// TODO: maps.Keys if it makes it into Go 1.23
 				for key := range vr.Map {
 					keys = append(keys, key)
 				}
@@ -757,6 +759,7 @@ func (cfg *Config) quotedElemFields(pe *syntax.ParamExp) []string {
 		case Indexed:
 			return vr.List
 		case Associative:
+			// TODO: maps.Values if it makes it into Go 1.23
 			elems := make([]string, 0, len(vr.Map))
 			for _, elem := range vr.Map {
 				elems = append(elems, elem)

@@ -5,6 +5,7 @@ package expand
 
 import (
 	"runtime"
+	"slices"
 	"sort"
 	"strings"
 )
@@ -152,7 +153,7 @@ func ListEnviron(pairs ...string) Environ {
 // listEnvironWithUpper implements ListEnviron, but letting the tests specify
 // whether to uppercase all names or not.
 func listEnvironWithUpper(upper bool, pairs ...string) Environ {
-	list := append([]string{}, pairs...)
+	list := slices.Clone(pairs)
 	if upper {
 		// Uppercase before sorting, so that we can remove duplicates
 		// without the need for linear search nor a map.

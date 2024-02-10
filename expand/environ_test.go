@@ -18,7 +18,7 @@ func TestListEnviron(t *testing.T) {
 		{
 			name:  "Empty",
 			pairs: nil,
-			want:  []string{},
+			want:  nil,
 		},
 		{
 			name:  "Simple",
@@ -62,7 +62,7 @@ func TestListEnviron(t *testing.T) {
 			gotEnv := listEnvironWithUpper(tc.upper, tc.pairs...)
 			got := []string(gotEnv.(listEnviron))
 			if !reflect.DeepEqual(got, tc.want) {
-				t.Fatalf("ListEnviron(%t, %q) wanted %q, got %q",
+				t.Fatalf("ListEnviron(%t, %q) wanted %#v, got %#v",
 					tc.upper, tc.pairs, tc.want, got)
 			}
 		})

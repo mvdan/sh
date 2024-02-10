@@ -44,13 +44,13 @@ func FuzzQuote(f *testing.F) {
 		var shellProgram string
 		switch lang {
 		case LangBash:
-			hasBash51(t)
+			requireBash52(t)
 			shellProgram = "bash"
 		case LangPOSIX:
-			hasDash059(t)
+			requireDash059(t)
 			shellProgram = "dash"
 		case LangMirBSDKorn:
-			hasMksh59(t)
+			requireMksh59(t)
 			shellProgram = "mksh"
 		case LangBats:
 			t.Skip() // bats has no shell and its syntax is just bash

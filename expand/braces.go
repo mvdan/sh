@@ -29,11 +29,7 @@ func Braces(word *syntax.Word) []*syntax.Word {
 
 			fromLit := br.Elems[0].Lit()
 			toLit := br.Elems[1].Lit()
-			zeros := extraLeadingZeros(fromLit)
-			// TODO: use max when we can assume Go 1.21
-			if z := extraLeadingZeros(toLit); z > zeros {
-				zeros = z
-			}
+			zeros := max(extraLeadingZeros(fromLit), extraLeadingZeros(toLit))
 
 			from, err1 := strconv.Atoi(fromLit)
 			to, err2 := strconv.Atoi(toLit)

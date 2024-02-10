@@ -5,8 +5,10 @@ package interp
 
 import (
 	"fmt"
+	"maps"
 	"os"
 	"runtime"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -228,9 +230,8 @@ func (r *Runner) setVar(name string, index syntax.ArithmExpr, vr expand.Variable
 	case expand.String:
 		list = append(list, cur.Str)
 	case expand.Indexed:
-		// TODO: slices.Clone
 		// TODO: only clone when inside a subshell and getting a var from outside for the first time
-		list = append([]string(nil), cur.List...)
+		list = slices.Clone(cur.List)
 	case expand.Associative:
 		// if the existing variable is already an AssocArray, try our
 		// best to convert the key to a string
@@ -240,13 +241,8 @@ func (r *Runner) setVar(name string, index syntax.ArithmExpr, vr expand.Variable
 		}
 		k := r.literal(w)
 
-		// TODO: maps.Clone
 		// TODO: only clone when inside a subshell and getting a var from outside for the first time
-		m2 := make(map[string]string, len(cur.Map))
-		for k, vr := range cur.Map {
-			m2[k] = vr
-		}
-		cur.Map = m2
+		cur.Map = maps.Clone(cur.Map)
 		cur.Map[k] = valStr
 		r.setVarInternal(name, cur)
 		return
@@ -355,9 +351,7 @@ func (r *Runner) assignVal(as *syntax.Assign, valType string) expand.Variable {
 		}
 		elemValues[i].index = index
 		index += len(elemValues[i].values)
-		if index > maxIndex {
-			maxIndex = index
-		}
+		maxIndex = max(maxIndex, index)
 	}
 	// Flatten down the values.
 	strs := make([]string, maxIndex)
