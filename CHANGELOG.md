@@ -1,5 +1,28 @@
 # Changelog
 
+## [3.8.0] - 2024-02-11
+
+This release drops support for Go 1.19 and 1.20 and includes many
+features and bugfixes, such as improving EditorConfig support in `shfmt`.
+
+- **cmd/shfmt**
+  - Support EditorConfig language sections such as `[[shell]]` - #664
+  - Add `--apply-ignore` for tools and editors - #1037
+- **syntax**
+  - Allow formatting redirects before all command argumetnts - #942
+  - Support brace expansions with uppercase letters - #1042
+  - Unescape backquotes in single quotes within backquotes - #1041
+  - Better error when using `function` in POSIX mode - #993
+  - Better column numbers for escapes inside backquotes - #1028
+- **interp**
+  - Support parentheses in classic test commands - #1036
+  - Determine access to a directory via `unix.Access` - #1033
+  - Support subshells with `FuncEnviron` as `Env` - #1043
+  - Add support for `fs.DirEntry` via `ReadDirHandler2`
+- **expand**
+  - Add support for `fs.DirEntry` via `ReadDir2`
+  - Support zero-padding in brace expansions - #1042
+
 ## [3.7.0] - 2023-06-18
 
 - **syntax**
@@ -673,6 +696,8 @@ module in v3.
 ## [0.1.0] - 2016-09-20
 
 Initial release.
+
+[3.8.0]: https://github.com/mvdan/sh/releases/tag/v3.8.0
 
 [3.7.0]: https://github.com/mvdan/sh/releases/tag/v3.7.0
 
