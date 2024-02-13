@@ -25,7 +25,7 @@ predictable. Some aspects of the format can be configured via printer flags.
 
 ## Generic flags
 
-*-version*
+*--version*
 	Show version and exit.
 
 *-l*, *--list*
@@ -70,8 +70,11 @@ predictable. Some aspects of the format can be configured via printer flags.
 *-p*, *--posix*
 	Shorthand for *-ln=posix*.
 
-*-filename* str
+*--filename* str
 	Provide a name for the standard input file.
+
+	Use of this flag is necessary for EditorConfig support to work with stdin,
+	since EditorConfig files are found relative to the location of a script.
 
 ## Printer flags
 

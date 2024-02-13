@@ -14,6 +14,10 @@ stdin stdin-filename-bash
 ! exec shfmt -filename=foo_posix.sh
 stderr '^foo_posix.sh:.* arrays are a bash'
 
+stdin stdin-filename-bash
+! exec shfmt -filename=${WORK}/foo_posix.sh
+stderr ^${WORK@R}/'foo_posix.sh:.* arrays are a bash'
+
 # Using a file path should use EditorConfig, including with the use of flags
 # like -l.
 exec shfmt input.sh
