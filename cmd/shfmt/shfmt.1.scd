@@ -65,7 +65,7 @@ predictable. Some aspects of the format can be configured via printer flags.
 	If neither come up with a result, *bash* is used as a fallback.
 
 	The filename extension *.sh* is a special case: it implies *posix*,
-	but may be overriden by a valid shell shebang.
+	but may be overridden by a valid shell shebang.
 
 *-p*, *--posix*
 	Shorthand for *-ln=posix*.
