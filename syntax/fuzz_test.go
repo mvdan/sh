@@ -1,8 +1,6 @@
 // Copyright (c) 2016, Daniel Martí <mvdan@mvdan.cc>
 // See LICENSE for licensing information
 
-//go:build go1.18
-
 package syntax
 
 import (
