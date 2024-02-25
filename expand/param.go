@@ -6,7 +6,7 @@ package expand
 import (
 	"fmt"
 	"regexp"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 	"unicode"
@@ -167,6 +167,7 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 				}
 			}
 		case pe.Index != nil && vr.Kind == Associative:
+			// TODO: use maps.Keys
 			for k := range vr.Map {
 				strs = append(strs, k)
 			}
@@ -178,7 +179,7 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 			vr = cfg.Env.Get(str)
 			strs = append(strs, vr.String())
 		}
-		sort.Strings(strs)
+		slices.Sort(strs)
 		str = strings.Join(strs, " ")
 	case pe.Slice != nil:
 		if callVarInd {
@@ -397,10 +398,11 @@ func (cfg *Config) varInd(vr Variable, idx syntax.ArithmExpr) (string, error) {
 		switch lit := nodeLit(idx); lit {
 		case "@", "*":
 			strs := make([]string, 0, len(vr.Map))
+			// TODO: use maps.Values
 			for _, val := range vr.Map {
 				strs = append(strs, val)
 			}
-			sort.Strings(strs)
+			slices.Sort(strs)
 			if lit == "*" {
 				return cfg.ifsJoin(strs), nil
 			}

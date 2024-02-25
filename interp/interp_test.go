@@ -14,7 +14,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
-	"sort"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -3550,9 +3550,7 @@ var testBuiltinsMap = map[string]func(interp.HandlerContext, []string) error{
 		if err != nil {
 			return err
 		}
-		sort.Slice(lines, func(i, j int) bool {
-			return bytes.Compare(lines[i], lines[j]) < 0
-		})
+		slices.SortFunc(lines, bytes.Compare)
 		for _, line := range lines {
 			fmt.Fprintf(hc.Stdout, "%s\n", line)
 		}

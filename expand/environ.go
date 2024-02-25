@@ -164,9 +164,9 @@ func listEnvironWithUpper(upper bool, pairs ...string) Environ {
 		}
 	}
 
-	sort.SliceStable(list, func(i, j int) bool {
-		isep := strings.IndexByte(list[i], '=')
-		jsep := strings.IndexByte(list[j], '=')
+	slices.SortStableFunc(list, func(a, b string) int {
+		isep := strings.IndexByte(a, '=')
+		jsep := strings.IndexByte(b, '=')
 		if isep < 0 {
 			isep = 0
 		} else {
@@ -177,7 +177,7 @@ func listEnvironWithUpper(upper bool, pairs ...string) Environ {
 		} else {
 			jsep += 1
 		}
-		return list[i][:isep] < list[j][:jsep]
+		return strings.Compare(a[:isep], b[:jsep])
 	})
 
 	last := ""
