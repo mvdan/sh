@@ -6,7 +6,7 @@ package syntax
 import (
 	"testing"
 
-	qt "github.com/frankban/quicktest"
+	"github.com/go-quicktest/qt"
 )
 
 func TestQuote(t *testing.T) {
@@ -41,11 +41,11 @@ func TestQuote(t *testing.T) {
 			got, gotErr := Quote(test.str, test.lang)
 			switch want := test.want.(type) {
 			case string:
-				qt.Assert(t, got, qt.Equals, want)
-				qt.Assert(t, gotErr, qt.IsNil)
+				qt.Assert(t, qt.Equals(got, want))
+				qt.Assert(t, qt.IsNil(gotErr))
 			case *QuoteError:
-				qt.Assert(t, got, qt.Equals, "")
-				qt.Assert(t, gotErr, qt.DeepEquals, want)
+				qt.Assert(t, qt.Equals(got, ""))
+				qt.Assert(t, qt.DeepEquals(gotErr, error(want)))
 			default:
 				t.Fatalf("unexpected type: %T", want)
 			}

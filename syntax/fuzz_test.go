@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	qt "github.com/frankban/quicktest"
+	"github.com/go-quicktest/qt"
 )
 
 func FuzzQuote(f *testing.F) {
@@ -61,10 +61,10 @@ func FuzzQuote(f *testing.F) {
 		if err != nil {
 			t.Fatalf("parse error on %q quoted as %s: %v", s, quoted, err)
 		}
-		qt.Assert(t, len(f.Stmts), qt.Equals, 1, qt.Commentf("in: %q, quoted: %s", s, quoted))
+		qt.Assert(t, qt.Equals(len(f.Stmts), 1), qt.Commentf("in: %q, quoted: %s", s, quoted))
 		call, ok := f.Stmts[0].Cmd.(*CallExpr)
-		qt.Assert(t, ok, qt.IsTrue, qt.Commentf("in: %q, quoted: %s", s, quoted))
-		qt.Assert(t, len(call.Args), qt.Equals, 1, qt.Commentf("in: %q, quoted: %s", s, quoted))
+		qt.Assert(t, qt.IsTrue(ok), qt.Commentf("in: %q, quoted: %s", s, quoted))
+		qt.Assert(t, qt.Equals(len(call.Args), 1), qt.Commentf("in: %q, quoted: %s", s, quoted))
 
 		// Also check that the single word only uses literals or quoted strings.
 		Walk(call.Args[0], func(node Node) bool {

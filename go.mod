@@ -4,7 +4,7 @@ go 1.21
 
 require (
 	github.com/creack/pty v1.1.21
-	github.com/frankban/quicktest v1.14.6
+	github.com/go-quicktest/qt v1.101.0
 	github.com/google/go-cmp v0.6.0
 	github.com/google/renameio/v2 v2.0.0
 	github.com/pkg/diff v0.0.0-20210226163009-20ebb0f2a09e

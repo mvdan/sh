@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	qt "github.com/frankban/quicktest"
+	"github.com/go-quicktest/qt"
 
 	"mvdan.cc/sh/v3/syntax"
 	"mvdan.cc/sh/v3/syntax/typedjson"
@@ -24,7 +24,7 @@ func TestRoundtrip(t *testing.T) {
 
 	dir := filepath.Join("testdata", "roundtrip")
 	shellPaths, err := filepath.Glob(filepath.Join(dir, "*.sh"))
-	qt.Assert(t, err, qt.IsNil)
+	qt.Assert(t, qt.IsNil(err))
 	for _, shellPath := range shellPaths {
 
 		shellPath := shellPath // do not reuse the range var
@@ -34,35 +34,35 @@ func TestRoundtrip(t *testing.T) {
 			t.Parallel()
 
 			shellInput, err := os.ReadFile(shellPath)
-			qt.Assert(t, err, qt.IsNil)
+			qt.Assert(t, qt.IsNil(err))
 			jsonInput, err := os.ReadFile(jsonPath)
 			if !*update { // allow it to not exist
-				qt.Assert(t, err, qt.IsNil)
+				qt.Assert(t, qt.IsNil(err))
 			}
 			sb := new(strings.Builder)
 
 			// Parse the shell source and check that it is well formatted.
 			parser := syntax.NewParser(syntax.KeepComments(true))
 			node, err := parser.Parse(bytes.NewReader(shellInput), "")
-			qt.Assert(t, err, qt.IsNil)
+			qt.Assert(t, qt.IsNil(err))
 
 			printer := syntax.NewPrinter()
 			sb.Reset()
 			err = printer.Print(sb, node)
-			qt.Assert(t, err, qt.IsNil)
-			qt.Assert(t, sb.String(), qt.Equals, string(shellInput))
+			qt.Assert(t, qt.IsNil(err))
+			qt.Assert(t, qt.Equals(sb.String(), string(shellInput)))
 
 			// Validate writing the pretty JSON.
 			sb.Reset()
 			encOpts := typedjson.EncodeOptions{Indent: "\t"}
 			err = encOpts.Encode(sb, node)
-			qt.Assert(t, err, qt.IsNil)
+			qt.Assert(t, qt.IsNil(err))
 			got := sb.String()
 			if *update {
 				err := os.WriteFile(jsonPath, []byte(got), 0o666)
-				qt.Assert(t, err, qt.IsNil)
+				qt.Assert(t, qt.IsNil(err))
 			} else {
-				qt.Assert(t, got, qt.Equals, string(jsonInput))
+				qt.Assert(t, qt.Equals(got, string(jsonInput)))
 			}
 
 			// Ensure we don't use the originally parsed node again.
@@ -70,19 +70,19 @@ func TestRoundtrip(t *testing.T) {
 
 			// Validate reading the pretty JSON and check that it formats the same.
 			node2, err := typedjson.Decode(bytes.NewReader(jsonInput))
-			qt.Assert(t, err, qt.IsNil)
+			qt.Assert(t, qt.IsNil(err))
 
 			sb.Reset()
 			err = printer.Print(sb, node2)
-			qt.Assert(t, err, qt.IsNil)
-			qt.Assert(t, sb.String(), qt.Equals, string(shellInput))
+			qt.Assert(t, qt.IsNil(err))
+			qt.Assert(t, qt.Equals(sb.String(), string(shellInput)))
 
 			// Validate that emitting the JSON again produces the same result.
 			sb.Reset()
 			err = encOpts.Encode(sb, node2)
-			qt.Assert(t, err, qt.IsNil)
+			qt.Assert(t, qt.IsNil(err))
 			got = sb.String()
-			qt.Assert(t, got, qt.Equals, string(jsonInput))
+			qt.Assert(t, qt.Equals(got, string(jsonInput)))
 		})
 	}
 }
