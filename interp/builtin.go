@@ -14,8 +14,10 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 
 	"github.com/muesli/cancelreader"
+	"golang.org/x/term"
 
 	"mvdan.cc/sh/v3/expand"
 	"mvdan.cc/sh/v3/syntax"
@@ -562,9 +564,12 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 	case "read":
 		var prompt string
 		raw := false
+		silent := false
 		fp := flagParser{remaining: args}
 		for fp.more() {
 			switch flag := fp.flag(); flag {
+			case "-s":
+				silent = true
 			case "-r":
 				raw = true
 			case "-p":
@@ -591,7 +596,13 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			r.out(prompt)
 		}
 
-		line, err := r.readLine(ctx, raw)
+		var line []byte
+		var err error
+		if silent {
+			line, err = term.ReadPassword(int(syscall.Stdin))
+		} else {
+			line, err = r.readLine(ctx, raw)
+		}
 		if len(args) == 0 {
 			args = append(args, shellReplyVar)
 		}
