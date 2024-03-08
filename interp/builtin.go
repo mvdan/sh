@@ -9,12 +9,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 
+	"github.com/muesli/cancelreader"
 	"mvdan.cc/sh/v3/expand"
 	"mvdan.cc/sh/v3/syntax"
 )
@@ -589,10 +590,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			r.out(prompt)
 		}
 
-		line, err := r.readLine(raw)
-		if err != nil {
-			return 1
-		}
+		line, err := r.readLine(ctx, raw)
 		if len(args) == 0 {
 			args = append(args, shellReplyVar)
 		}
@@ -604,6 +602,12 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 				val = values[i]
 			}
 			r.setVarString(name, val)
+		}
+
+		// We can get data back from readLine and an error at the same time, so
+		// check err after we process the data.
+		if err != nil {
+			return 1
 		}
 
 		return 0
@@ -917,7 +921,7 @@ func (r *Runner) printOptLine(name string, enabled, supported bool) {
 	r.outf("%s\t%s\t(%q not supported)\n", name, state, r.optStatusText(!enabled))
 }
 
-func (r *Runner) readLine(raw bool) ([]byte, error) {
+func (r *Runner) readLine(ctx context.Context, raw bool) ([]byte, error) {
 	if r.stdin == nil {
 		return nil, errors.New("interp: can't read, there's no stdin")
 	}
@@ -925,9 +929,38 @@ func (r *Runner) readLine(raw bool) ([]byte, error) {
 	var line []byte
 	esc := false
 
+	stdin := r.stdin
+	if osFile, ok := stdin.(*os.File); ok {
+		cr, err := cancelreader.NewReader(osFile)
+		if err != nil {
+			return nil, err
+		}
+		stdin = cr
+		done := make(chan struct{})
+		var wg sync.WaitGroup
+		wg.Add(1)
+		go func() {
+			select {
+			case <-ctx.Done():
+				cr.Cancel()
+			case <-done:
+			}
+			wg.Done()
+		}()
+		defer func() {
+			close(done)
+			wg.Wait()
+			// Could put the Close in the above goroutine, but if "read" is
+			// immediately called again, the Close might overlap with creating a
+			// new cancelreader. Want this cancelreader to be completely closed
+			// by the time readLine returns.
+			cr.Close()
+		}()
+	}
+
 	for {
 		var buf [1]byte
-		n, err := r.stdin.Read(buf[:])
+		n, err := stdin.Read(buf[:])
 		if n > 0 {
 			b := buf[0]
 			switch {
@@ -945,11 +978,8 @@ func (r *Runner) readLine(raw bool) ([]byte, error) {
 				esc = false
 			}
 		}
-		if err == io.EOF && len(line) > 0 {
-			return line, nil
-		}
 		if err != nil {
-			return nil, err
+			return line, err
 		}
 	}
 }
