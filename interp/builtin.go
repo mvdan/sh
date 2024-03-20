@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/muesli/cancelreader"
 	"mvdan.cc/sh/v3/expand"
@@ -935,16 +936,26 @@ func (r *Runner) readLine(ctx context.Context, raw bool) ([]byte, error) {
 			return nil, err
 		}
 		stdin = cr
-		done := make(chan bool)
+		done := make(chan struct{})
+		var wg sync.WaitGroup
+		wg.Add(1)
 		go func() {
 			select {
 			case <-ctx.Done():
 				cr.Cancel()
 			case <-done:
 			}
+			wg.Done()
+		}()
+		defer func() {
+			close(done)
+			wg.Wait()
+			// Could put the Close in the above goroutine, but if "read" is
+			// immediately called again, the Close might overlap with creating a
+			// new cancelreader. Want this cancelreader to be completely closed
+			// by the time readLine returns.
 			cr.Close()
 		}()
-		defer close(done)
 	}
 
 	for {
