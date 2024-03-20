@@ -3974,21 +3974,23 @@ func TestCancelreader(t *testing.T) {
 	// timeout.
 	defer cancel()
 
-	var r *interp.Runner
+	var stdinRead *os.File
 	if runtime.GOOS == "windows" {
 		// On Windows, the cancelreader only works on stdin
-		r, _ = interp.New(interp.StdIO(os.Stdin, nil, nil))
+		stdinRead = os.Stdin
 	} else {
-		siR, siW, err := os.Pipe()
+		var stdinWrite *os.File
+		var err error
+		stdinRead, stdinWrite, err = os.Pipe()
 		if err != nil {
 			t.Fatalf("Error calling os.Pipe: %v", err)
 		}
 		defer func() {
-			siW.Close()
-			siR.Close()
+			stdinWrite.Close()
+			stdinRead.Close()
 		}()
-		r, _ = interp.New(interp.StdIO(siR, nil, nil))
 	}
+	r, _ := interp.New(interp.StdIO(stdinRead, nil, nil))
 	now := time.Now()
 	errChan := make(chan error)
 	go func() {
