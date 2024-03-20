@@ -9,7 +9,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -604,6 +603,8 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			r.setVarString(name, val)
 		}
 
+		// We can get data back from readLine and an error at the same time, so
+		// check err after we process the data.
 		if err != nil {
 			return 1
 		}
@@ -966,11 +967,8 @@ func (r *Runner) readLine(ctx context.Context, raw bool) ([]byte, error) {
 				esc = false
 			}
 		}
-		if err == io.EOF && len(line) > 0 {
-			return line, nil
-		}
 		if err != nil {
-			return nil, err
+			return line, err
 		}
 	}
 }

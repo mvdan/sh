@@ -2982,6 +2982,27 @@ done <<< 2`,
 		"mapfile -t butter <<EOF\na\nb\nc\nEOF\n" + `for x in "${butter[@]}"; do echo "$x"; done`,
 		"a\nb\nc\n",
 	},
+	// read & EOF
+	// // newline
+	// {
+	// 	`a=a; echo | read a; echo -n "$a"`,
+	// 	"",
+	// },
+	// empty input
+	{
+		`a=b; read a < /dev/null; echo -n "$a"`,
+		"",
+	},
+	// // some string and newline
+	// {
+	// 	"a=c; echo x | read a; echo -n $a",
+	// 	"x",
+	// },
+	// // some string and EOF
+	// {
+	// 	"a=d; echo -n y | read a; echo -n $a",
+	// 	"y",
+	// },
 }
 
 var runTestsUnix = []runTest{
@@ -3940,6 +3961,49 @@ func TestRunnerContext(t *testing.T) {
 				t.Fatalf("program was not killed in %s", timeout)
 			}
 		})
+	}
+}
+
+func TestCancelreader(t *testing.T) {
+	t.Parallel()
+
+	p := syntax.NewParser()
+	file := parse(t, p, "read x")
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	// Make the linter happy, even though we deliberately wait for the
+	// timeout.
+	defer cancel()
+
+	var r *interp.Runner
+	if runtime.GOOS == "windows" {
+		// On Windows, the cancelreader only works on stdin
+		r, _ = interp.New(interp.StdIO(os.Stdin, nil, nil))
+	} else {
+		siR, siW, err := os.Pipe()
+		if err != nil {
+			t.Fatalf("Error calling os.Pipe: %v", err)
+		}
+		defer func() {
+			siW.Close()
+			siR.Close()
+		}()
+		r, _ = interp.New(interp.StdIO(siR, nil, nil))
+	}
+	now := time.Now()
+	errChan := make(chan error)
+	go func() {
+		errChan <- r.Run(ctx, file)
+	}()
+
+	timeout := 500 * time.Millisecond
+	select {
+	case err := <-errChan:
+		if err == nil || err.Error() != "exit status 1" || ctx.Err() != context.DeadlineExceeded {
+			t.Fatalf("'read x' did not timeout correctly; err: %v, ctx.Err(): %v; dur: %v",
+				err, ctx.Err(), time.Since(now))
+		}
+	case <-time.After(timeout):
+		t.Fatalf("program was not killed in %s", timeout)
 	}
 }
 
