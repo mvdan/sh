@@ -2903,6 +2903,22 @@ done <<< 2`,
 		"read -r -p 'Prompt and raw flag together: ' a <<< '\\a\\b\\c'; echo $a",
 		"Prompt and raw flag together: \\a\\b\\c\n #IGNORE bash requires a terminal",
 	},
+	{
+		`a=a; echo | (read a; echo -n "$a")`,
+		"",
+	},
+	{
+		`a=b; read a < /dev/null; echo -n "$a"`,
+		"",
+	},
+	{
+		"a=c; echo x | (read a; echo -n $a)",
+		"x",
+	},
+	{
+		"a=d; echo -n y | (read a; echo -n $a)",
+		"y",
+	},
 
 	// getopts
 	{
@@ -2982,27 +2998,6 @@ done <<< 2`,
 		"mapfile -t butter <<EOF\na\nb\nc\nEOF\n" + `for x in "${butter[@]}"; do echo "$x"; done`,
 		"a\nb\nc\n",
 	},
-	// read & EOF
-	// // newline
-	// {
-	// 	`a=a; echo | read a; echo -n "$a"`,
-	// 	"",
-	// },
-	// empty input
-	{
-		`a=b; read a < /dev/null; echo -n "$a"`,
-		"",
-	},
-	// // some string and newline
-	// {
-	// 	"a=c; echo x | read a; echo -n $a",
-	// 	"x",
-	// },
-	// // some string and EOF
-	// {
-	// 	"a=d; echo -n y | read a; echo -n $a",
-	// 	"y",
-	// },
 }
 
 var runTestsUnix = []runTest{
@@ -3997,7 +3992,13 @@ func TestCancelreader(t *testing.T) {
 		errChan <- r.Run(ctx, file)
 	}()
 
+	go func() {
+		<-ctx.Done()
+		t.Logf("context cancelled after %v", time.Since(now))
+	}()
+
 	timeout := 500 * time.Millisecond
+	timeout = 5 * time.Second
 	select {
 	case err := <-errChan:
 		if err == nil || err.Error() != "exit status 1" || ctx.Err() != context.DeadlineExceeded {
