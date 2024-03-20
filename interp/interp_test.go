@@ -3992,13 +3992,7 @@ func TestCancelreader(t *testing.T) {
 		errChan <- r.Run(ctx, file)
 	}()
 
-	go func() {
-		<-ctx.Done()
-		t.Logf("context cancelled after %v", time.Since(now))
-	}()
-
 	timeout := 500 * time.Millisecond
-	timeout = 5 * time.Second
 	select {
 	case err := <-errChan:
 		if err == nil || err.Error() != "exit status 1" || ctx.Err() != context.DeadlineExceeded {
