@@ -7,6 +7,7 @@ require (
 	github.com/go-quicktest/qt v1.101.0
 	github.com/google/go-cmp v0.6.0
 	github.com/google/renameio/v2 v2.0.0
+	github.com/muesli/cancelreader v0.2.2
 	github.com/pkg/diff v0.0.0-20210226163009-20ebb0f2a09e
 	github.com/rogpeppe/go-internal v1.12.0
 	golang.org/x/sync v0.6.0
