@@ -2139,6 +2139,24 @@ done <<< 2`,
 		"shopt -s foo",
 		"shopt: invalid option name \"foo\"\nexit status 1 #JUSTERR",
 	},
+	{
+		// Beware that macOS file systems are by default case-preserving but
+		// case-insensitive, so e.g. "touch x X" creates only one file.
+		"touch a ab Ac Ad; shopt -u nocaseglob; echo a*",
+		"a ab\n",
+	},
+	{
+		"touch a ab Ac Ad; shopt -s nocaseglob; echo a*",
+		"Ac Ad a ab\n",
+	},
+	{
+		"touch a ab abB Ac Ad; shopt -u nocaseglob; echo *b",
+		"ab\n",
+	},
+	{
+		"touch a ab abB Ac Ad; shopt -s nocaseglob; echo *b",
+		"ab abB\n",
+	},
 
 	// IFS
 	{`echo -n "$IFS"`, " \t\n"},

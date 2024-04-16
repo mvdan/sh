@@ -4,6 +4,7 @@
 package expand
 
 import (
+	"io/fs"
 	"os"
 	"reflect"
 	"strings"
@@ -90,3 +91,52 @@ func TestFieldsIdempotency(t *testing.T) {
 		}
 	}
 }
+
+func Test_glob(t *testing.T) {
+	cfg := &Config{
+		ReadDir2: func(string) ([]fs.DirEntry, error) {
+			return []fs.DirEntry{
+				&mockFileInfo{name: "a"},
+				&mockFileInfo{name: "ab"},
+				&mockFileInfo{name: "A"},
+				&mockFileInfo{name: "AB"},
+			}, nil
+		},
+	}
+
+	tests := []struct {
+		noCaseGlob bool
+		pat        string
+		want       []string
+	}{
+		{false, "a*", []string{"a", "ab"}},
+		{false, "A*", []string{"A", "AB"}},
+		{false, "*b", []string{"ab"}},
+		{false, "b*", nil},
+		{true, "a*", []string{"a", "ab", "A", "AB"}},
+		{true, "A*", []string{"a", "ab", "A", "AB"}},
+		{true, "*b", []string{"ab", "AB"}},
+		{true, "b*", nil},
+	}
+	for _, tc := range tests {
+		cfg.NoCaseGlob = tc.noCaseGlob
+		got, err := cfg.glob("/", tc.pat)
+		if err != nil {
+			t.Fatalf("did not want error, got %v", err)
+		}
+		if !reflect.DeepEqual(got, tc.want) {
+			t.Fatalf("wanted %q, got %q", tc.want, got)
+		}
+	}
+}
+
+type mockFileInfo struct {
+	name        string
+	typ         fs.FileMode
+	fs.DirEntry // Stub out everything but Name() & Type()
+}
+
+var _ fs.DirEntry = (*mockFileInfo)(nil)
+
+func (fi *mockFileInfo) Name() string      { return fi.name }
+func (fi *mockFileInfo) Type() fs.FileMode { return fi.typ }

@@ -494,6 +494,11 @@ var bashOptsTable = [...]bashOpt{
 		supported:    true,
 	},
 	{
+		name:         "nocaseglob",
+		defaultState: false,
+		supported:    true,
+	},
+	{
 		name:         "nullglob",
 		defaultState: false,
 		supported:    true,
@@ -565,7 +570,6 @@ var bashOptsTable = [...]bashOpt{
 	{name: "login_shell"},
 	{name: "mailwarn"},
 	{name: "no_empty_cmd_completion"},
-	{name: "nocaseglob"},
 	{name: "nocasematch"},
 	{
 		name:         "progcomp",
@@ -589,6 +593,7 @@ var bashOptsTable = [...]bashOpt{
 // know which option we're after at compile time. First come the shell options,
 // then the bash options.
 const (
+	// These correspond to indexes in shellOptsTable
 	optAllExport = iota
 	optErrExit
 	optNoExec
@@ -597,8 +602,11 @@ const (
 	optXTrace
 	optPipeFail
 
+	// These correspond to indexes (offset by the above seven items) of
+	// supported options in bashOptsTable
 	optExpandAliases
 	optGlobStar
+	optNoCaseGlob
 	optNullGlob
 )
 

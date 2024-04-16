@@ -68,6 +68,10 @@ type Config struct {
 	// "**".
 	GlobStar bool
 
+	// NoCaseGlob corresponds to the shell option that causes case-insensitive
+	// pattern matching in pathname expansion.
+	NoCaseGlob bool
+
 	// NullGlob corresponds to the shell option that allows globbing
 	// patterns which match nothing to result in zero fields.
 	NullGlob bool
@@ -946,7 +950,11 @@ func (cfg *Config) glob(base, pat string) ([]string, error) {
 			}
 			continue
 		}
-		expr, err := pattern.Regexp(part, pattern.Filenames|pattern.EntireString)
+		mode := pattern.Filenames | pattern.EntireString
+		if cfg.NoCaseGlob {
+			mode |= pattern.NoGlobCase
+		}
+		expr, err := pattern.Regexp(part, mode)
 		if err != nil {
 			return nil, err
 		}
