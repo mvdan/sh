@@ -308,6 +308,10 @@ func (p *debugPrinter) print(x reflect.Value) {
 		}
 		p.printf("}")
 	default:
-		p.printf("%#v", x.Interface())
+		if s, ok := x.Interface().(fmt.Stringer); ok && !x.IsZero() {
+			p.printf("%#v (%s)", x.Interface(), s)
+		} else {
+			p.printf("%#v", x.Interface())
+		}
 	}
 }
