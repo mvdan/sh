@@ -67,7 +67,7 @@ func (p *Parser) rune() rune {
 	p.col += int64(p.w)
 	bquotes := 0
 retry:
-	if p.bsp < len(p.bs) {
+	if p.bsp < uint(len(p.bs)) {
 		if b := p.bs[p.bsp]; b < utf8.RuneSelf {
 			p.bsp++
 			if b == '\x00' {
@@ -86,7 +86,7 @@ retry:
 					return escNewl
 				}
 				if p.openBquotes > 0 && bquotes < p.openBquotes &&
-					p.bsp < len(p.bs) && bquoteEscaped(p.bs[p.bsp]) {
+					p.bsp < uint(len(p.bs)) && bquoteEscaped(p.bs[p.bsp]) {
 					// We turn backquote command substitutions into $(),
 					// so we remove the extra backslashes needed by the backquotes.
 					// For good position information, we still include them in p.w.
@@ -110,9 +110,9 @@ retry:
 		var w int
 		p.r, w = utf8.DecodeRune(p.bs[p.bsp:])
 		if p.litBs != nil {
-			p.litBs = append(p.litBs, p.bs[p.bsp:p.bsp+w]...)
+			p.litBs = append(p.litBs, p.bs[p.bsp:p.bsp+uint(w)]...)
 		}
-		p.bsp += w
+		p.bsp += uint(w)
 		if p.r == utf8.RuneError && w == 1 {
 			p.posErr(p.nextPos(), "invalid UTF-8 encoding")
 		}
@@ -135,7 +135,7 @@ retry:
 // beginning of the buffer.
 func (p *Parser) fill() {
 	p.offs += int64(p.bsp)
-	left := len(p.bs) - p.bsp
+	left := len(p.bs) - int(p.bsp)
 	copy(p.readBuf[:left], p.readBuf[p.bsp:])
 readAgain:
 	n, err := 0, p.readErr
@@ -254,7 +254,7 @@ skipSpace:
 	}
 	if p.stopAt != nil && (p.spaced || p.tok == illegalTok || p.stopToken()) {
 		w := utf8.RuneLen(r)
-		if bytes.HasPrefix(p.bs[p.bsp-w:], p.stopAt) {
+		if bytes.HasPrefix(p.bs[p.bsp-uint(w):], p.stopAt) {
 			p.r = utf8.RuneSelf
 			p.w = 1
 			p.tok = _EOF
@@ -388,7 +388,7 @@ func (p *Parser) extendedGlob() bool {
 }
 
 func (p *Parser) peekBytes(s string) bool {
-	peekEnd := p.bsp + len(s)
+	peekEnd := int(p.bsp) + len(s)
 	// TODO: This should loop for slow readers, e.g. those providing one byte at
 	// a time. Use a loop and test it with testing/iotest.OneByteReader.
 	if peekEnd > len(p.bs) {
@@ -398,10 +398,10 @@ func (p *Parser) peekBytes(s string) bool {
 }
 
 func (p *Parser) peekByte(b byte) bool {
-	if p.bsp == len(p.bs) {
+	if p.bsp == uint(len(p.bs)) {
 		p.fill()
 	}
-	return p.bsp < len(p.bs) && p.bs[p.bsp] == b
+	return p.bsp < uint(len(p.bs)) && p.bs[p.bsp] == b
 }
 
 func (p *Parser) regToken(r rune) token {
@@ -809,7 +809,7 @@ func (p *Parser) newLit(r rune) {
 		p.litBs[0] = byte(r)
 	case r > escNewl:
 		w := utf8.RuneLen(r)
-		p.litBs = append(p.litBuf[:0], p.bs[p.bsp-w:p.bsp]...)
+		p.litBs = append(p.litBuf[:0], p.bs[p.bsp-uint(w):p.bsp]...)
 	default:
 		// don't let r == utf8.RuneSelf go to the second case as RuneLen
 		// would return -1

@@ -338,7 +338,7 @@ func (p *Parser) Arithmetic(r io.Reader) (ArithmExpr, error) {
 type Parser struct {
 	src io.Reader
 	bs  []byte // current chunk of read bytes
-	bsp int    // pos within chunk for the rune after r
+	bsp uint   // pos within chunk for the rune after r; uint helps eliminate bounds checks
 	r   rune   // next rune
 	w   int    // width of r
 
@@ -733,7 +733,7 @@ func (p *Parser) matched(lpos Pos, left, right token) Pos {
 func (p *Parser) errPass(err error) {
 	if p.err == nil {
 		p.err = err
-		p.bsp = len(p.bs) + 1
+		p.bsp = uint(len(p.bs)) + 1
 		p.r = utf8.RuneSelf
 		p.w = 1
 		p.tok = _EOF
