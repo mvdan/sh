@@ -65,11 +65,9 @@ func (p *Parser) rune() rune {
 			p.lineOverflow = true
 		}
 		p.col = 0
-		p.colOverflow = false
 	}
-	if p.col += p.w; p.col > colMax {
-		p.colOverflow = true
-	}
+	p.col += p.w
+	p.colOverflow = p.col > colMax
 	bquotes := 0
 retry:
 	if p.bsp < len(p.bs) {
