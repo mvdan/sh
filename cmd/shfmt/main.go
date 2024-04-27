@@ -64,12 +64,9 @@ var (
 	parser            *syntax.Parser
 	printer           *syntax.Printer
 	readBuf, writeBuf bytes.Buffer
+	color             bool
 
 	copyBuf = make([]byte, 32*1024)
-
-	in    io.Reader = os.Stdin
-	out   io.Writer = os.Stdout
-	color bool
 
 	version = "(devel)" // to match the default from runtime/debug
 
@@ -225,7 +222,7 @@ For more information, see 'man shfmt' and https://github.com/mvdan/sh.
 	if os.Getenv("FORCE_COLOR") != "" {
 		color = true
 	} else if os.Getenv("NO_COLOR") != "" || os.Getenv("TERM") == "dumb" {
-	} else if f, ok := out.(*os.File); ok && term.IsTerminal(int(f.Fd())) {
+	} else if term.IsTerminal(int(os.Stdout.Fd())) {
 		color = true
 	}
 	if flag.NArg() == 0 || (flag.NArg() == 1 && flag.Arg(0) == "-") {
@@ -307,7 +304,7 @@ func formatStdin(name string) error {
 			return nil
 		}
 	}
-	src, err := io.ReadAll(in)
+	src, err := io.ReadAll(os.Stdin)
 	if err != nil {
 		return err
 	}
@@ -429,7 +426,7 @@ func formatPath(path string, checkShebang bool) error {
 		readBuf.Write(copyBuf[:n])
 	}
 	if find.val {
-		fmt.Fprintln(out, path)
+		fmt.Println(path)
 		return nil
 	}
 	if _, err := io.CopyBuffer(&readBuf, f, copyBuf); err != nil {
@@ -486,16 +483,14 @@ func formatBytes(src []byte, path string, fileLang syntax.LangVariant) error {
 		// must be standard input; fine to return
 		// TODO: change the default behavior to be compact,
 		// and allow using --to-json=pretty or --to-json=indent.
-		return typedjson.EncodeOptions{Indent: "\t"}.Encode(out, node)
+		return typedjson.EncodeOptions{Indent: "\t"}.Encode(os.Stdout, node)
 	}
 	writeBuf.Reset()
 	printer.Print(&writeBuf, node)
 	res := writeBuf.Bytes()
 	if !bytes.Equal(src, res) {
 		if list.val {
-			if _, err := fmt.Fprintln(out, path); err != nil {
-				return err
-			}
+			fmt.Println(path)
 		}
 		if write.val {
 			info, err := os.Lstat(path)
@@ -513,16 +508,14 @@ func formatBytes(src []byte, path string, fileLang syntax.LangVariant) error {
 			if color {
 				opts = append(opts, diffwrite.TerminalColor())
 			}
-			if err := diffpkg.Text(path+".orig", path, src, res, out, opts...); err != nil {
+			if err := diffpkg.Text(path+".orig", path, src, res, os.Stdout, opts...); err != nil {
 				return fmt.Errorf("computing diff: %s", err)
 			}
 			return errChangedWithDiff
 		}
 	}
 	if !list.val && !write.val && !diff.val {
-		if _, err := out.Write(res); err != nil {
-			return err
-		}
+		os.Stdout.Write(res)
 	}
 	return nil
 }
