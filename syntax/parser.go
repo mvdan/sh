@@ -431,13 +431,16 @@ func (p *Parser) reset() {
 	p.quote, p.forbidNested = noState, false
 	p.openStmts = 0
 	p.heredocs, p.buriedHdocs = p.heredocs[:0], 0
+	p.hdocStops = nil
 	p.parsingDoc = false
 	p.openBquotes = 0
+	p.accComs = nil
 	p.accComs, p.curComs = nil, &p.accComs
 	p.litBatch = nil
 	p.wordBatch = nil
 	p.stmtBatch = nil
 	p.callBatch = nil
+	p.litBs = nil
 }
 
 func (p *Parser) nextPos() Pos {
