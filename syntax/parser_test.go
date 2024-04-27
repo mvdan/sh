@@ -379,9 +379,7 @@ func singleParse(p *Parser, in string, want *File) func(t *testing.T) {
 			t.Fatalf("Unexpected error in %q: %v", in, err)
 		}
 		recursiveSanityCheck(t, in, got)
-		if diff := cmp.Diff(want, got, cmpOpt); diff != "" {
-			t.Errorf("syntax tree mismatch in %q (-want +got):\n%s", in, diff)
-		}
+		qt.CmpEquals(got, want, cmpOpt)
 	}
 }
 
@@ -2298,9 +2296,7 @@ func TestParseDocument(t *testing.T) {
 			}
 			recursiveSanityCheck(t, "", got)
 			want := &Word{Parts: tc.want}
-			if diff := cmp.Diff(want, got, cmpOpt); diff != "" {
-				t.Errorf("syntax tree mismatch in %q (-want +got):\n%s", tc.in, diff)
-			}
+			qt.CmpEquals(got, want, cmpOpt)
 		})
 	}
 }
@@ -2393,9 +2389,7 @@ func TestParseArithmetic(t *testing.T) {
 				t.Fatal(err)
 			}
 			recursiveSanityCheck(t, "", got)
-			if diff := cmp.Diff(tc.want, got, cmpOpt); diff != "" {
-				t.Errorf("syntax tree mismatch in %q (-want +got):\n%s", tc.in, diff)
-			}
+			qt.CmpEquals(got, tc.want, cmpOpt)
 		})
 	}
 }
