@@ -61,13 +61,10 @@ func (p *Parser) rune() rune {
 	if p.r == '\n' || p.r == escNewl {
 		// p.r instead of b so that newline
 		// character positions don't have col 0.
-		if p.line++; p.line > lineMax {
-			p.lineOverflow = true
-		}
+		p.line++
 		p.col = 0
 	}
-	p.col += p.w
-	p.colOverflow = p.col > colMax
+	p.col += int64(p.w)
 	bquotes := 0
 retry:
 	if p.bsp < len(p.bs) {
@@ -137,7 +134,7 @@ retry:
 // had not yet been used at the end of the buffer are slid into the
 // beginning of the buffer.
 func (p *Parser) fill() {
-	p.offs += p.bsp
+	p.offs += int64(p.bsp)
 	left := len(p.bs) - p.bsp
 	copy(p.readBuf[:left], p.readBuf[p.bsp:])
 readAgain:

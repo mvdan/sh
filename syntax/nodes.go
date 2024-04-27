@@ -4,6 +4,7 @@
 package syntax
 
 import (
+	"math"
 	"strconv"
 	"strings"
 )
@@ -72,6 +73,8 @@ type Pos struct {
 // We used to split line and column numbers evenly in 16 bits, but line numbers
 // are significantly more important in practice. Use more bits for them.
 const (
+	offsetMax = math.MaxUint32
+
 	lineBitSize = 18
 	lineMax     = (1 << lineBitSize) - 1
 
@@ -90,6 +93,11 @@ const (
 // Note that Pos uses a limited number of bits to store these numbers.
 // If line or column overflow their allocated space, they are replaced with 0.
 func NewPos(offset, line, column uint) Pos {
+	if offset > offsetMax {
+		// Basic protection against offset overflow;
+		// note that an offset of 0 is valid, so we leave the maximum.
+		offset = offsetMax
+	}
 	if line > lineMax {
 		line = 0 // protect against overflows; rendered as "?"
 	}
@@ -105,8 +113,8 @@ func NewPos(offset, line, column uint) Pos {
 // Offset returns the byte offset of the position in the original source file.
 // Byte offsets start at 0.
 //
-// Note that Offset is not protected against overflows;
-// if an input is larger than 4GiB, the offset will wrap around to 0.
+// Offset has basic protection against overflows; if an input is too large,
+// offset numbers will stop increasing past a very large number.
 func (p Pos) Offset() uint { return uint(p.offs) }
 
 // Line returns the line number of the position, starting at 1.

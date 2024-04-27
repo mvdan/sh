@@ -196,7 +196,7 @@ type wrappedReader struct {
 	*Parser
 	io.Reader
 
-	lastLine    int
+	lastLine    int64
 	accumulated []*Stmt
 	fn          func([]*Stmt) bool
 }
@@ -353,14 +353,9 @@ type Parser struct {
 	val string // current value (valid if tok is _Lit*)
 
 	// position of r, to be converted to Parser.pos later
-	offs, line, col int
+	offs, line, col int64
 
 	pos Pos // position of tok
-
-	// TODO: Guard against offset overflow too. Less likely as it's 32-bit,
-	// whereas line and col are 16-bit.
-	lineOverflow bool
-	colOverflow  bool
 
 	quote   quoteState // current lexer state
 	eqlOffs int        // position of '=' in val (a literal)
@@ -440,15 +435,20 @@ func (p *Parser) reset() {
 }
 
 func (p *Parser) nextPos() Pos {
-	// TODO: detect offset overflow while lexing as well.
+	offset := p.offs + int64(p.bsp) - int64(p.w)
+	if offset > offsetMax {
+		// Basic protection against offset overflow;
+		// note that an offset of 0 is valid, so we leave the maximum.
+		offset = offsetMax
+	}
 	var line, col uint
-	if !p.lineOverflow {
+	if p.line <= lineMax {
 		line = uint(p.line)
 	}
-	if !p.colOverflow {
+	if p.col <= colMax {
 		col = uint(p.col)
 	}
-	return NewPos(uint(p.offs+p.bsp-p.w), line, col)
+	return NewPos(uint(offset), line, col)
 }
 
 func (p *Parser) lit(pos Pos, val string) *Lit {
@@ -616,7 +616,7 @@ func (p *Parser) doHeredocs() {
 			r.Hdoc = p.getWord()
 		}
 		if r.Hdoc != nil {
-			lastLine = int(r.Hdoc.End().Line())
+			lastLine = int64(r.Hdoc.End().Line())
 		}
 		if lastLine < p.line {
 			// TODO: It seems like this triggers more often than it
