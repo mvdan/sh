@@ -501,9 +501,9 @@ const (
 func (cfg *Config) wordField(wps []syntax.WordPart, ql quoteLevel) ([]fieldPart, error) {
 	var field []fieldPart
 	for i, wp := range wps {
-		switch x := wp.(type) {
+		switch wp := wp.(type) {
 		case *syntax.Lit:
-			s := x.Value
+			s := wp.Value
 			if i == 0 && ql == quoteNone {
 				if prefix, rest := cfg.expandUser(s); prefix != "" {
 					// TODO: return two separate fieldParts,
@@ -530,13 +530,13 @@ func (cfg *Config) wordField(wps []syntax.WordPart, ql quoteLevel) ([]fieldPart,
 			}
 			field = append(field, fieldPart{val: s})
 		case *syntax.SglQuoted:
-			fp := fieldPart{quote: quoteSingle, val: x.Value}
-			if x.Dollar {
+			fp := fieldPart{quote: quoteSingle, val: wp.Value}
+			if wp.Dollar {
 				fp.val, _, _ = Format(cfg, fp.val, nil)
 			}
 			field = append(field, fp)
 		case *syntax.DblQuoted:
-			wfield, err := cfg.wordField(x.Parts, quoteDouble)
+			wfield, err := cfg.wordField(wp.Parts, quoteDouble)
 			if err != nil {
 				return nil, err
 			}
@@ -545,31 +545,31 @@ func (cfg *Config) wordField(wps []syntax.WordPart, ql quoteLevel) ([]fieldPart,
 				field = append(field, part)
 			}
 		case *syntax.ParamExp:
-			val, err := cfg.paramExp(x)
+			val, err := cfg.paramExp(wp)
 			if err != nil {
 				return nil, err
 			}
 			field = append(field, fieldPart{val: val})
 		case *syntax.CmdSubst:
-			val, err := cfg.cmdSubst(x)
+			val, err := cfg.cmdSubst(wp)
 			if err != nil {
 				return nil, err
 			}
 			field = append(field, fieldPart{val: val})
 		case *syntax.ArithmExp:
-			n, err := Arithm(cfg, x.X)
+			n, err := Arithm(cfg, wp.X)
 			if err != nil {
 				return nil, err
 			}
 			field = append(field, fieldPart{val: strconv.Itoa(n)})
 		case *syntax.ProcSubst:
-			path, err := cfg.ProcSubst(x)
+			path, err := cfg.ProcSubst(wp)
 			if err != nil {
 				return nil, err
 			}
 			field = append(field, fieldPart{val: path})
 		default:
-			panic(fmt.Sprintf("unhandled word part: %T", x))
+			panic(fmt.Sprintf("unhandled word part: %T", wp))
 		}
 	}
 	return field, nil
@@ -621,9 +621,9 @@ func (cfg *Config) wordFields(wps []syntax.WordPart) ([][]fieldPart, error) {
 		}
 	}
 	for i, wp := range wps {
-		switch x := wp.(type) {
+		switch wp := wp.(type) {
 		case *syntax.Lit:
-			s := x.Value
+			s := wp.Value
 			if i == 0 {
 				prefix, rest := cfg.expandUser(s)
 				curField = append(curField, fieldPart{
@@ -649,14 +649,14 @@ func (cfg *Config) wordFields(wps []syntax.WordPart) ([][]fieldPart, error) {
 			curField = append(curField, fieldPart{val: s})
 		case *syntax.SglQuoted:
 			allowEmpty = true
-			fp := fieldPart{quote: quoteSingle, val: x.Value}
-			if x.Dollar {
+			fp := fieldPart{quote: quoteSingle, val: wp.Value}
+			if wp.Dollar {
 				fp.val, _, _ = Format(cfg, fp.val, nil)
 			}
 			curField = append(curField, fp)
 		case *syntax.DblQuoted:
-			if len(x.Parts) == 1 {
-				pe, _ := x.Parts[0].(*syntax.ParamExp)
+			if len(wp.Parts) == 1 {
+				pe, _ := wp.Parts[0].(*syntax.ParamExp)
 				if elems := cfg.quotedElemFields(pe); elems != nil {
 					for i, elem := range elems {
 						if i > 0 {
@@ -671,7 +671,7 @@ func (cfg *Config) wordFields(wps []syntax.WordPart) ([][]fieldPart, error) {
 				}
 			}
 			allowEmpty = true
-			wfield, err := cfg.wordField(x.Parts, quoteDouble)
+			wfield, err := cfg.wordField(wp.Parts, quoteDouble)
 			if err != nil {
 				return nil, err
 			}
@@ -680,25 +680,25 @@ func (cfg *Config) wordFields(wps []syntax.WordPart) ([][]fieldPart, error) {
 				curField = append(curField, part)
 			}
 		case *syntax.ParamExp:
-			val, err := cfg.paramExp(x)
+			val, err := cfg.paramExp(wp)
 			if err != nil {
 				return nil, err
 			}
 			splitAdd(val)
 		case *syntax.CmdSubst:
-			val, err := cfg.cmdSubst(x)
+			val, err := cfg.cmdSubst(wp)
 			if err != nil {
 				return nil, err
 			}
 			splitAdd(val)
 		case *syntax.ArithmExp:
-			n, err := Arithm(cfg, x.X)
+			n, err := Arithm(cfg, wp.X)
 			if err != nil {
 				return nil, err
 			}
 			curField = append(curField, fieldPart{val: strconv.Itoa(n)})
 		case *syntax.ProcSubst:
-			path, err := cfg.ProcSubst(x)
+			path, err := cfg.ProcSubst(wp)
 			if err != nil {
 				return nil, err
 			}
@@ -706,7 +706,7 @@ func (cfg *Config) wordFields(wps []syntax.WordPart) ([][]fieldPart, error) {
 		case *syntax.ExtGlob:
 			return nil, fmt.Errorf("extended globbing is not supported")
 		default:
-			panic(fmt.Sprintf("unhandled word part: %T", x))
+			panic(fmt.Sprintf("unhandled word part: %T", wp))
 		}
 	}
 	flush()

@@ -4518,26 +4518,26 @@ var fileTestsKeepComments = []testCase{
 
 func fullProg(v any) *File {
 	f := &File{}
-	switch x := v.(type) {
+	switch v := v.(type) {
 	case *File:
-		return x
+		return v
 	case []*Stmt:
-		f.Stmts = x
+		f.Stmts = v
 		return f
 	case *Stmt:
-		f.Stmts = append(f.Stmts, x)
+		f.Stmts = append(f.Stmts, v)
 		return f
 	case []Command:
-		for _, cmd := range x {
+		for _, cmd := range v {
 			f.Stmts = append(f.Stmts, stmt(cmd))
 		}
 		return f
 	case *Word:
-		return fullProg(call(x))
+		return fullProg(call(v))
 	case WordPart:
-		return fullProg(word(x))
+		return fullProg(word(v))
 	case Command:
-		return fullProg(stmt(x))
+		return fullProg(stmt(v))
 	case nil:
 	default:
 		panic(reflect.TypeOf(v))
@@ -4603,23 +4603,23 @@ func recursiveSanityCheck(tb testing.TB, src string, v any) {
 			checkNodePosEnd(n)
 		}
 	}
-	switch x := v.(type) {
+	switch v := v.(type) {
 	case *File:
-		recurse(x.Stmts)
-		recurse(x.Last)
-		checkNodePosEnd(x)
+		recurse(v.Stmts)
+		recurse(v.Last)
+		checkNodePosEnd(v)
 	case []*Stmt:
-		for _, s := range x {
+		for _, s := range v {
 			recurse(s)
 		}
 	case []Comment:
-		for i := range x {
-			recurse(&x[i])
+		for i := range v {
+			recurse(&v[i])
 		}
 	case *Comment:
-		checkPos(x.Hash, "#"+x.Text)
+		checkPos(v.Hash, "#"+v.Text)
 	case *Stmt:
-		endOff := int(x.End().Offset())
+		endOff := int(v.End().Offset())
 		if endOff < len(src) {
 			end := src[endOff]
 			switch {
@@ -4638,18 +4638,18 @@ func recursiveSanityCheck(tb testing.TB, src string, v any) {
 					endOff, end, src)
 			}
 		}
-		recurse(x.Comments)
-		if src[x.Position.Offset()] == '#' {
+		recurse(v.Comments)
+		if src[v.Position.Offset()] == '#' {
 			tb.Errorf("Stmt.Pos() should not be a comment")
 		}
-		checkPos(x.Position)
-		if x.Semicolon.IsValid() {
-			checkPos(x.Semicolon, ";", "&", "|&")
+		checkPos(v.Position)
+		if v.Semicolon.IsValid() {
+			checkPos(v.Semicolon, ";", "&", "|&")
 		}
-		if x.Cmd != nil {
-			recurse(x.Cmd)
+		if v.Cmd != nil {
+			recurse(v.Cmd)
 		}
-		for _, r := range x.Redirs {
+		for _, r := range v.Redirs {
 			checkPos(r.OpPos, r.Op.String())
 			if r.N != nil {
 				recurse(r.N)
@@ -4660,7 +4660,7 @@ func recursiveSanityCheck(tb testing.TB, src string, v any) {
 			}
 		}
 	case []*Assign:
-		for _, a := range x {
+		for _, a := range v {
 			if a.Name != nil {
 				recurse(a.Name)
 			}
@@ -4676,28 +4676,28 @@ func recursiveSanityCheck(tb testing.TB, src string, v any) {
 			checkNodePosEnd(a)
 		}
 	case *CallExpr:
-		recurse(x.Assigns)
-		recurse(x.Args)
+		recurse(v.Assigns)
+		recurse(v.Args)
 	case []*Word:
-		for _, w := range x {
+		for _, w := range v {
 			recurse(w)
 		}
 	case *Word:
-		recurse(x.Parts)
+		recurse(v.Parts)
 	case []WordPart:
-		for _, wp := range x {
+		for _, wp := range v {
 			recurse(wp)
 		}
 	case *Lit:
-		pos, end := int(x.Pos().Offset()), int(x.End().Offset())
-		want := pos + len(x.Value)
-		val := x.Value
-		posLine := x.Pos().Line()
-		endLine := x.End().Line()
+		pos, end := int(v.Pos().Offset()), int(v.End().Offset())
+		want := pos + len(v.Value)
+		val := v.Value
+		posLine := v.Pos().Line()
+		endLine := v.End().Line()
 		switch {
 		case src == "":
 		case strings.Contains(src, "\\\n"), strings.Contains(src, "\\\r\n"):
-		case !strings.Contains(x.Value, "\n") && posLine != endLine:
+		case !strings.Contains(v.Value, "\n") && posLine != endLine:
 			tb.Errorf("Lit without newlines has Pos/End lines %d and %d",
 				posLine, endLine)
 		case strings.Contains(src, "`") && strings.Contains(src, "\\"):
@@ -4712,295 +4712,295 @@ func recursiveSanityCheck(tb testing.TB, src string, v any) {
 			tb.Errorf("Unexpected Lit %q End() %d (wanted %d for pos %d) in %q",
 				val, end, want, pos, src)
 		}
-		checkPos(x.ValuePos, val)
-		checkPos(x.ValueEnd)
+		checkPos(v.ValuePos, val)
+		checkPos(v.ValueEnd)
 	case *Subshell:
-		checkPos(x.Lparen, "(")
-		checkPos(x.Rparen, ")")
-		recurse(x.Stmts)
-		recurse(x.Last)
+		checkPos(v.Lparen, "(")
+		checkPos(v.Rparen, ")")
+		recurse(v.Stmts)
+		recurse(v.Last)
 	case *Block:
-		checkPos(x.Lbrace, "{")
-		checkPos(x.Rbrace, "}")
-		recurse(x.Stmts)
-		recurse(x.Last)
+		checkPos(v.Lbrace, "{")
+		checkPos(v.Rbrace, "}")
+		recurse(v.Stmts)
+		recurse(v.Last)
 	case *IfClause:
-		if x.ThenPos.IsValid() {
-			checkPos(x.Position, "if", "elif")
-			checkPos(x.ThenPos, "then")
+		if v.ThenPos.IsValid() {
+			checkPos(v.Position, "if", "elif")
+			checkPos(v.ThenPos, "then")
 		} else {
-			checkPos(x.Position, "else")
+			checkPos(v.Position, "else")
 		}
-		checkPos(x.FiPos, "fi")
-		recurse(x.Cond)
-		recurse(x.CondLast)
-		recurse(x.Then)
-		recurse(x.ThenLast)
-		if x.Else != nil {
-			recurse(x.Else)
+		checkPos(v.FiPos, "fi")
+		recurse(v.Cond)
+		recurse(v.CondLast)
+		recurse(v.Then)
+		recurse(v.ThenLast)
+		if v.Else != nil {
+			recurse(v.Else)
 		}
 	case *WhileClause:
 		rsrv := "while"
-		if x.Until {
+		if v.Until {
 			rsrv = "until"
 		}
-		checkPos(x.WhilePos, rsrv)
-		checkPos(x.DoPos, "do")
-		checkPos(x.DonePos, "done")
-		recurse(x.Cond)
-		recurse(x.CondLast)
-		recurse(x.Do)
-		recurse(x.DoLast)
+		checkPos(v.WhilePos, rsrv)
+		checkPos(v.DoPos, "do")
+		checkPos(v.DonePos, "done")
+		recurse(v.Cond)
+		recurse(v.CondLast)
+		recurse(v.Do)
+		recurse(v.DoLast)
 	case *ForClause:
-		if x.Select {
-			checkPos(x.ForPos, "select")
+		if v.Select {
+			checkPos(v.ForPos, "select")
 		} else {
-			checkPos(x.ForPos, "for")
+			checkPos(v.ForPos, "for")
 		}
-		if x.Braces {
-			checkPos(x.DoPos, "{")
-			checkPos(x.DonePos, "}")
+		if v.Braces {
+			checkPos(v.DoPos, "{")
+			checkPos(v.DonePos, "}")
 			// Zero out Braces, to not duplicate all the test cases.
 			// The printer ignores the field anyway.
-			x.Braces = false
+			v.Braces = false
 		} else {
-			checkPos(x.DoPos, "do")
-			checkPos(x.DonePos, "done")
+			checkPos(v.DoPos, "do")
+			checkPos(v.DonePos, "done")
 		}
-		recurse(x.Loop)
-		recurse(x.Do)
-		recurse(x.DoLast)
+		recurse(v.Loop)
+		recurse(v.Do)
+		recurse(v.DoLast)
 	case *WordIter:
-		recurse(x.Name)
-		if x.InPos.IsValid() {
-			checkPos(x.InPos, "in")
+		recurse(v.Name)
+		if v.InPos.IsValid() {
+			checkPos(v.InPos, "in")
 		}
-		recurse(x.Items)
+		recurse(v.Items)
 	case *CStyleLoop:
-		checkPos(x.Lparen, "((")
-		checkPos(x.Rparen, "))")
-		if x.Init != nil {
-			recurse(x.Init)
+		checkPos(v.Lparen, "((")
+		checkPos(v.Rparen, "))")
+		if v.Init != nil {
+			recurse(v.Init)
 		}
-		if x.Cond != nil {
-			recurse(x.Cond)
+		if v.Cond != nil {
+			recurse(v.Cond)
 		}
-		if x.Post != nil {
-			recurse(x.Post)
+		if v.Post != nil {
+			recurse(v.Post)
 		}
 	case *SglQuoted:
-		checkPos(posAddCol(x.End(), -1), "'")
-		valuePos := posAddCol(x.Left, 1)
-		if x.Dollar {
+		checkPos(posAddCol(v.End(), -1), "'")
+		valuePos := posAddCol(v.Left, 1)
+		if v.Dollar {
 			valuePos = posAddCol(valuePos, 1)
 		}
-		val := x.Value
+		val := v.Value
 		if strings.Contains(src, "`") && strings.Contains(src, "\\") {
 			// removed backslashes inside backquote cmd substs
 			val = ""
 		}
 		checkPos(valuePos, val)
-		if x.Dollar {
-			checkPos(x.Left, "$'")
+		if v.Dollar {
+			checkPos(v.Left, "$'")
 		} else {
-			checkPos(x.Left, "'")
+			checkPos(v.Left, "'")
 		}
-		checkPos(x.Right, "'")
+		checkPos(v.Right, "'")
 	case *DblQuoted:
-		checkPos(posAddCol(x.End(), -1), `"`)
-		if x.Dollar {
-			checkPos(x.Left, `$"`)
+		checkPos(posAddCol(v.End(), -1), `"`)
+		if v.Dollar {
+			checkPos(v.Left, `$"`)
 		} else {
-			checkPos(x.Left, `"`)
+			checkPos(v.Left, `"`)
 		}
-		checkPos(x.Right, `"`)
-		recurse(x.Parts)
+		checkPos(v.Right, `"`)
+		recurse(v.Parts)
 	case *UnaryArithm:
-		checkPos(x.OpPos, x.Op.String())
-		recurse(x.X)
+		checkPos(v.OpPos, v.Op.String())
+		recurse(v.X)
 	case *UnaryTest:
-		strs := []string{x.Op.String()}
-		switch x.Op {
+		strs := []string{v.Op.String()}
+		switch v.Op {
 		case TsExists:
 			strs = append(strs, "-a")
 		case TsSmbLink:
 			strs = append(strs, "-h")
 		}
-		checkPos(x.OpPos, strs...)
-		recurse(x.X)
+		checkPos(v.OpPos, strs...)
+		recurse(v.X)
 	case *BinaryCmd:
-		checkPos(x.OpPos, x.Op.String())
-		recurse(x.X)
-		recurse(x.Y)
+		checkPos(v.OpPos, v.Op.String())
+		recurse(v.X)
+		recurse(v.Y)
 	case *BinaryArithm:
-		checkPos(x.OpPos, x.Op.String())
-		recurse(x.X)
-		recurse(x.Y)
+		checkPos(v.OpPos, v.Op.String())
+		recurse(v.X)
+		recurse(v.Y)
 	case *BinaryTest:
-		strs := []string{x.Op.String()}
-		switch x.Op {
+		strs := []string{v.Op.String()}
+		switch v.Op {
 		case TsMatch:
 			strs = append(strs, "=")
 		}
-		checkPos(x.OpPos, strs...)
-		recurse(x.X)
-		recurse(x.Y)
+		checkPos(v.OpPos, strs...)
+		recurse(v.X)
+		recurse(v.Y)
 	case *ParenArithm:
-		checkPos(x.Lparen, "(")
-		checkPos(x.Rparen, ")")
-		recurse(x.X)
+		checkPos(v.Lparen, "(")
+		checkPos(v.Rparen, ")")
+		recurse(v.X)
 	case *ParenTest:
-		checkPos(x.Lparen, "(")
-		checkPos(x.Rparen, ")")
-		recurse(x.X)
+		checkPos(v.Lparen, "(")
+		checkPos(v.Rparen, ")")
+		recurse(v.X)
 	case *FuncDecl:
-		if x.RsrvWord {
-			checkPos(x.Position, "function")
+		if v.RsrvWord {
+			checkPos(v.Position, "function")
 		} else {
-			checkPos(x.Position)
+			checkPos(v.Position)
 		}
-		recurse(x.Name)
-		recurse(x.Body)
+		recurse(v.Name)
+		recurse(v.Body)
 	case *ParamExp:
 		doll := "$"
-		if x.nakedIndex() {
+		if v.nakedIndex() {
 			doll = ""
 		}
-		checkPos(x.Dollar, doll)
-		if !x.Short {
-			checkPos(x.Rbrace, "}")
-		} else if x.nakedIndex() {
-			checkPos(posAddCol(x.End(), -1), "]")
+		checkPos(v.Dollar, doll)
+		if !v.Short {
+			checkPos(v.Rbrace, "}")
+		} else if v.nakedIndex() {
+			checkPos(posAddCol(v.End(), -1), "]")
 		}
-		recurse(x.Param)
-		if x.Index != nil {
-			recurse(x.Index)
+		recurse(v.Param)
+		if v.Index != nil {
+			recurse(v.Index)
 		}
-		if x.Slice != nil {
-			if x.Slice.Offset != nil {
-				recurse(x.Slice.Offset)
+		if v.Slice != nil {
+			if v.Slice.Offset != nil {
+				recurse(v.Slice.Offset)
 			}
-			if x.Slice.Length != nil {
-				recurse(x.Slice.Length)
-			}
-		}
-		if x.Repl != nil {
-			if x.Repl.Orig != nil {
-				recurse(x.Repl.Orig)
-			}
-			if x.Repl.With != nil {
-				recurse(x.Repl.With)
+			if v.Slice.Length != nil {
+				recurse(v.Slice.Length)
 			}
 		}
-		if x.Exp != nil && x.Exp.Word != nil {
-			recurse(x.Exp.Word)
+		if v.Repl != nil {
+			if v.Repl.Orig != nil {
+				recurse(v.Repl.Orig)
+			}
+			if v.Repl.With != nil {
+				recurse(v.Repl.With)
+			}
+		}
+		if v.Exp != nil && v.Exp.Word != nil {
+			recurse(v.Exp.Word)
 		}
 	case *ArithmExp:
-		if x.Bracket {
+		if v.Bracket {
 			// deprecated $(( form
-			checkPos(x.Left, "$[")
-			checkPos(x.Right, "]")
+			checkPos(v.Left, "$[")
+			checkPos(v.Right, "]")
 		} else {
-			checkPos(x.Left, "$((")
-			checkPos(x.Right, "))")
+			checkPos(v.Left, "$((")
+			checkPos(v.Right, "))")
 		}
-		recurse(x.X)
+		recurse(v.X)
 	case *ArithmCmd:
-		checkPos(x.Left, "((")
-		checkPos(x.Right, "))")
-		recurse(x.X)
+		checkPos(v.Left, "((")
+		checkPos(v.Right, "))")
+		recurse(v.X)
 	case *CmdSubst:
 		switch {
-		case x.TempFile:
-			checkPos(x.Left, "${ ", "${\t", "${\n")
-			checkPos(x.Right, "}")
-		case x.ReplyVar:
-			checkPos(x.Left, "${|")
-			checkPos(x.Right, "}")
-		case x.Backquotes:
-			checkPos(x.Left, "`", "\\`")
-			checkPos(x.Right, "`", "\\`")
+		case v.TempFile:
+			checkPos(v.Left, "${ ", "${\t", "${\n")
+			checkPos(v.Right, "}")
+		case v.ReplyVar:
+			checkPos(v.Left, "${|")
+			checkPos(v.Right, "}")
+		case v.Backquotes:
+			checkPos(v.Left, "`", "\\`")
+			checkPos(v.Right, "`", "\\`")
 			// Zero out Backquotes, to not duplicate all the test
 			// cases. The printer ignores the field anyway.
-			x.Backquotes = false
+			v.Backquotes = false
 		default:
-			checkPos(x.Left, "$(")
-			checkPos(x.Right, ")")
+			checkPos(v.Left, "$(")
+			checkPos(v.Right, ")")
 		}
-		recurse(x.Stmts)
-		recurse(x.Last)
+		recurse(v.Stmts)
+		recurse(v.Last)
 	case *CaseClause:
-		checkPos(x.Case, "case")
-		if x.Braces {
-			checkPos(x.In, "{")
-			checkPos(x.Esac, "}")
+		checkPos(v.Case, "case")
+		if v.Braces {
+			checkPos(v.In, "{")
+			checkPos(v.Esac, "}")
 			// Zero out Braces, to not duplicate all the test cases.
 			// The printer ignores the field anyway.
-			x.Braces = false
+			v.Braces = false
 		} else {
-			checkPos(x.In, "in")
-			checkPos(x.Esac, "esac")
+			checkPos(v.In, "in")
+			checkPos(v.Esac, "esac")
 		}
-		recurse(x.Word)
-		for _, ci := range x.Items {
+		recurse(v.Word)
+		for _, ci := range v.Items {
 			recurse(ci)
 		}
 	case *CaseItem:
-		if x.OpPos.IsValid() {
-			checkPos(x.OpPos, x.Op.String(), "esac")
+		if v.OpPos.IsValid() {
+			checkPos(v.OpPos, v.Op.String(), "esac")
 		}
-		recurse(x.Patterns)
-		recurse(x.Stmts)
-		recurse(x.Last)
+		recurse(v.Patterns)
+		recurse(v.Stmts)
+		recurse(v.Last)
 	case *TestClause:
-		checkPos(x.Left, "[[")
-		checkPos(x.Right, "]]")
-		recurse(x.X)
+		checkPos(v.Left, "[[")
+		checkPos(v.Right, "]]")
+		recurse(v.X)
 	case *DeclClause:
-		recurse(x.Variant)
-		recurse(x.Args)
+		recurse(v.Variant)
+		recurse(v.Args)
 	case *TimeClause:
-		checkPos(x.Time, "time")
-		if x.Stmt != nil {
-			recurse(x.Stmt)
+		checkPos(v.Time, "time")
+		if v.Stmt != nil {
+			recurse(v.Stmt)
 		}
 	case *CoprocClause:
-		checkPos(x.Coproc, "coproc")
-		if x.Name != nil {
-			recurse(x.Name)
+		checkPos(v.Coproc, "coproc")
+		if v.Name != nil {
+			recurse(v.Name)
 		}
-		recurse(x.Stmt)
+		recurse(v.Stmt)
 	case *LetClause:
-		checkPos(x.Let, "let")
-		for _, expr := range x.Exprs {
+		checkPos(v.Let, "let")
+		for _, expr := range v.Exprs {
 			recurse(expr)
 		}
 	case *TestDecl:
-		checkPos(x.Position, "@test")
-		recurse(x.Description)
-		recurse(x.Body)
+		checkPos(v.Position, "@test")
+		recurse(v.Description)
+		recurse(v.Body)
 	case *ArrayExpr:
-		checkPos(x.Lparen, "(")
-		checkPos(x.Rparen, ")")
-		for _, elem := range x.Elems {
+		checkPos(v.Lparen, "(")
+		checkPos(v.Rparen, ")")
+		for _, elem := range v.Elems {
 			recurse(elem)
 		}
 	case *ArrayElem:
-		if x.Index != nil {
-			recurse(x.Index)
+		if v.Index != nil {
+			recurse(v.Index)
 		}
-		if x.Value != nil {
-			recurse(x.Value)
+		if v.Value != nil {
+			recurse(v.Value)
 		}
 	case *ExtGlob:
-		checkPos(x.OpPos, x.Op.String())
-		checkPos(posAddCol(x.End(), -1), ")")
-		recurse(x.Pattern)
+		checkPos(v.OpPos, v.Op.String())
+		checkPos(posAddCol(v.End(), -1), ")")
+		recurse(v.Pattern)
 	case *ProcSubst:
-		checkPos(x.OpPos, x.Op.String())
-		checkPos(x.Rparen, ")")
-		recurse(x.Stmts)
-		recurse(x.Last)
+		checkPos(v.OpPos, v.Op.String())
+		checkPos(v.Rparen, ")")
+		recurse(v.Stmts)
+		recurse(v.Last)
 	default:
 		panic(reflect.TypeOf(v))
 	}

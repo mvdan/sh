@@ -341,18 +341,18 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 	tracingEnabled := r.opts[optXTrace]
 	trace := r.tracer()
 
-	switch x := cm.(type) {
+	switch cm := cm.(type) {
 	case *syntax.Block:
-		r.stmts(ctx, x.Stmts)
+		r.stmts(ctx, cm.Stmts)
 	case *syntax.Subshell:
 		r2 := r.Subshell()
-		r2.stmts(ctx, x.Stmts)
+		r2.stmts(ctx, cm.Stmts)
 		r.exit = r2.exit
 		r.setErr(r2.err)
 	case *syntax.CallExpr:
 		// Use a new slice, to not modify the slice in the alias map.
 		var args []*syntax.Word
-		left := x.Args
+		left := cm.Args
 		for len(left) > 0 && r.opts[optExpandAliases] {
 			als, ok := r.alias[left[0].Lit()]
 			if !ok {
@@ -368,7 +368,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		r.lastExpandExit = 0
 		fields := r.fields(args...)
 		if len(fields) == 0 {
-			for _, as := range x.Assigns {
+			for _, as := range cm.Assigns {
 				vr := r.assignVal(as, "")
 				r.setVar(as.Name.Value, as.Index, vr)
 
@@ -405,7 +405,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		}
 		var restores []restoreVar
 
-		for _, as := range x.Assigns {
+		for _, as := range cm.Assigns {
 			name := as.Name.Value
 			origVr := r.lookupVar(name)
 
@@ -421,19 +421,19 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		trace.call(fields[0], fields[1:]...)
 		trace.newLineFlush()
 
-		r.call(ctx, x.Args[0].Pos(), fields)
+		r.call(ctx, cm.Args[0].Pos(), fields)
 		for _, restore := range restores {
 			r.setVarInternal(restore.name, restore.vr)
 		}
 	case *syntax.BinaryCmd:
-		switch x.Op {
+		switch cm.Op {
 		case syntax.AndStmt, syntax.OrStmt:
 			oldNoErrExit := r.noErrExit
 			r.noErrExit = true
-			r.stmt(ctx, x.X)
+			r.stmt(ctx, cm.X)
 			r.noErrExit = oldNoErrExit
-			if (r.exit == 0) == (x.Op == syntax.AndStmt) {
-				r.stmt(ctx, x.Y)
+			if (r.exit == 0) == (cm.Op == syntax.AndStmt) {
+				r.stmt(ctx, cm.Y)
 			}
 		case syntax.Pipe, syntax.PipeAll:
 			pr, pw, err := os.Pipe()
@@ -443,7 +443,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			}
 			r2 := r.Subshell()
 			r2.stdout = pw
-			if x.Op == syntax.PipeAll {
+			if cm.Op == syntax.PipeAll {
 				r2.stderr = pw
 			} else {
 				r2.stderr = r.stderr
@@ -452,11 +452,11 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			var wg sync.WaitGroup
 			wg.Add(1)
 			go func() {
-				r2.stmt(ctx, x.X)
+				r2.stmt(ctx, cm.X)
 				pw.Close()
 				wg.Done()
 			}()
-			r.stmt(ctx, x.Y)
+			r.stmt(ctx, cm.Y)
 			pr.Close()
 			wg.Wait()
 			if r.opts[optPipeFail] && r2.exit != 0 && r.exit == 0 {
@@ -468,32 +468,32 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 	case *syntax.IfClause:
 		oldNoErrExit := r.noErrExit
 		r.noErrExit = true
-		r.stmts(ctx, x.Cond)
+		r.stmts(ctx, cm.Cond)
 		r.noErrExit = oldNoErrExit
 
 		if r.exit == 0 {
-			r.stmts(ctx, x.Then)
+			r.stmts(ctx, cm.Then)
 			break
 		}
 		r.exit = 0
-		if x.Else != nil {
-			r.cmd(ctx, x.Else)
+		if cm.Else != nil {
+			r.cmd(ctx, cm.Else)
 		}
 	case *syntax.WhileClause:
 		for !r.stop(ctx) {
 			oldNoErrExit := r.noErrExit
 			r.noErrExit = true
-			r.stmts(ctx, x.Cond)
+			r.stmts(ctx, cm.Cond)
 			r.noErrExit = oldNoErrExit
 
-			stop := (r.exit == 0) == x.Until
+			stop := (r.exit == 0) == cm.Until
 			r.exit = 0
-			if stop || r.loopStmtsBroken(ctx, x.Do) {
+			if stop || r.loopStmtsBroken(ctx, cm.Do) {
 				break
 			}
 		}
 	case *syntax.ForClause:
-		switch y := x.Loop.(type) {
+		switch y := cm.Loop.(type) {
 		case *syntax.WordIter:
 			name := y.Name.Value
 			items := r.Params // for i; do ...
@@ -503,7 +503,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 				items = r.fields(y.Items...) // for i in ...; do ...
 			}
 
-			if x.Select {
+			if cm.Select {
 				ps3 := shellDefaultPS3
 				if e := r.envGet(shellReplyPS3Var); e != "" {
 					ps3 = e
@@ -539,7 +539,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 				}
 
 				// execute commands until break or return is encountered
-				if r.loopStmtsBroken(ctx, x.Do) {
+				if r.loopStmtsBroken(ctx, cm.Do) {
 					break
 				}
 			}
@@ -556,7 +556,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 					trace.string(` "$@"`)
 				}
 				trace.newLineFlush()
-				if r.loopStmtsBroken(ctx, x.Do) {
+				if r.loopStmtsBroken(ctx, cm.Do) {
 					break
 				}
 			}
@@ -565,7 +565,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 				r.arithm(y.Init)
 			}
 			for y.Cond == nil || r.arithm(y.Cond) != 0 {
-				if r.exit != 0 || r.loopStmtsBroken(ctx, x.Do) {
+				if r.exit != 0 || r.loopStmtsBroken(ctx, cm.Do) {
 					break
 				}
 				if y.Post != nil {
@@ -574,27 +574,27 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			}
 		}
 	case *syntax.FuncDecl:
-		r.setFunc(x.Name.Value, x.Body)
+		r.setFunc(cm.Name.Value, cm.Body)
 	case *syntax.ArithmCmd:
-		r.exit = oneIf(r.arithm(x.X) == 0)
+		r.exit = oneIf(r.arithm(cm.X) == 0)
 	case *syntax.LetClause:
 		var val int
-		for _, expr := range x.Exprs {
+		for _, expr := range cm.Exprs {
 			val = r.arithm(expr)
 
 			if !tracingEnabled {
 				continue
 			}
 
-			switch v := expr.(type) {
+			switch expr := expr.(type) {
 			case *syntax.Word:
-				qs, err := syntax.Quote(r.literal(v), syntax.LangBash)
+				qs, err := syntax.Quote(r.literal(expr), syntax.LangBash)
 				if err != nil {
 					return
 				}
 				trace.stringf("let %v", qs)
 			case *syntax.BinaryArithm, *syntax.UnaryArithm:
-				trace.expr(x)
+				trace.expr(cm)
 			case *syntax.ParenArithm:
 				// TODO
 			}
@@ -604,11 +604,11 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		r.exit = oneIf(val == 0)
 	case *syntax.CaseClause:
 		trace.string("case ")
-		trace.expr(x.Word)
+		trace.expr(cm.Word)
 		trace.string(" in")
 		trace.newLineFlush()
-		str := r.literal(x.Word)
-		for _, ci := range x.Items {
+		str := r.literal(cm.Word)
+		for _, ci := range cm.Items {
 			for _, word := range ci.Patterns {
 				pattern := r.pattern(word)
 				if match(pattern, str) {
@@ -618,7 +618,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			}
 		}
 	case *syntax.TestClause:
-		if r.bashTest(ctx, x.X, false) == "" && r.exit == 0 {
+		if r.bashTest(ctx, cm.X, false) == "" && r.exit == 0 {
 			// to preserve exit status code 2 for regex errors, etc
 			r.exit = 1
 		}
@@ -626,7 +626,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		local, global := false, false
 		var modes []string
 		valType := ""
-		switch x.Variant.Value {
+		switch cm.Variant.Value {
 		case "declare":
 			// When used in a function, "declare" acts as "local"
 			// unless the "-g" option is used.
@@ -645,7 +645,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		case "nameref":
 			valType = "-n"
 		}
-		for _, as := range x.Args {
+		for _, as := range cm.Args {
 			for _, as := range r.flattenAssign(as) {
 				name := as.Name.Value
 				if strings.HasPrefix(name, "-") {
@@ -696,22 +696,22 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		}
 	case *syntax.TimeClause:
 		start := time.Now()
-		if x.Stmt != nil {
-			r.stmt(ctx, x.Stmt)
+		if cm.Stmt != nil {
+			r.stmt(ctx, cm.Stmt)
 		}
 		format := "%s\t%s\n"
-		if x.PosixFormat {
+		if cm.PosixFormat {
 			format = "%s %s\n"
 		} else {
 			r.outf("\n")
 		}
 		real := time.Since(start)
-		r.outf(format, "real", elapsedString(real, x.PosixFormat))
+		r.outf(format, "real", elapsedString(real, cm.PosixFormat))
 		// TODO: can we do these?
-		r.outf(format, "user", elapsedString(0, x.PosixFormat))
-		r.outf(format, "sys", elapsedString(0, x.PosixFormat))
+		r.outf(format, "user", elapsedString(0, cm.PosixFormat))
+		r.outf(format, "sys", elapsedString(0, cm.PosixFormat))
 	default:
-		panic(fmt.Sprintf("unhandled command node: %T", x))
+		panic(fmt.Sprintf("unhandled command node: %T", cm))
 	}
 }
 

@@ -579,12 +579,12 @@ func (p *Parser) unquotedWordBytes(w *Word) ([]byte, bool) {
 }
 
 func (p *Parser) unquotedWordPart(buf []byte, wp WordPart, quotes bool) (_ []byte, quoted bool) {
-	switch x := wp.(type) {
+	switch wp := wp.(type) {
 	case *Lit:
-		for i := 0; i < len(x.Value); i++ {
-			if b := x.Value[i]; b == '\\' && !quotes {
-				if i++; i < len(x.Value) {
-					buf = append(buf, x.Value[i])
+		for i := 0; i < len(wp.Value); i++ {
+			if b := wp.Value[i]; b == '\\' && !quotes {
+				if i++; i < len(wp.Value) {
+					buf = append(buf, wp.Value[i])
 				}
 				quoted = true
 			} else {
@@ -592,10 +592,10 @@ func (p *Parser) unquotedWordPart(buf []byte, wp WordPart, quotes bool) (_ []byt
 			}
 		}
 	case *SglQuoted:
-		buf = append(buf, []byte(x.Value)...)
+		buf = append(buf, []byte(wp.Value)...)
 		quoted = true
 	case *DblQuoted:
-		for _, wp2 := range x.Parts {
+		for _, wp2 := range wp.Parts {
 			buf, _ = p.unquotedWordPart(buf, wp2, true)
 		}
 		quoted = true

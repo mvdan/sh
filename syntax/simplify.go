@@ -27,63 +27,63 @@ type simplifier struct {
 }
 
 func (s *simplifier) visit(node Node) bool {
-	switch x := node.(type) {
+	switch node := node.(type) {
 	case *Assign:
-		x.Index = s.removeParensArithm(x.Index)
+		node.Index = s.removeParensArithm(node.Index)
 		// Don't inline params, as x[i] and x[$i] mean
 		// different things when x is an associative
 		// array; the first means "i", the second "$i".
 	case *ParamExp:
-		x.Index = s.removeParensArithm(x.Index)
+		node.Index = s.removeParensArithm(node.Index)
 		// don't inline params - same as above.
 
-		if x.Slice == nil {
+		if node.Slice == nil {
 			break
 		}
-		x.Slice.Offset = s.removeParensArithm(x.Slice.Offset)
-		x.Slice.Offset = s.inlineSimpleParams(x.Slice.Offset)
-		x.Slice.Length = s.removeParensArithm(x.Slice.Length)
-		x.Slice.Length = s.inlineSimpleParams(x.Slice.Length)
+		node.Slice.Offset = s.removeParensArithm(node.Slice.Offset)
+		node.Slice.Offset = s.inlineSimpleParams(node.Slice.Offset)
+		node.Slice.Length = s.removeParensArithm(node.Slice.Length)
+		node.Slice.Length = s.inlineSimpleParams(node.Slice.Length)
 	case *ArithmExp:
-		x.X = s.removeParensArithm(x.X)
-		x.X = s.inlineSimpleParams(x.X)
+		node.X = s.removeParensArithm(node.X)
+		node.X = s.inlineSimpleParams(node.X)
 	case *ArithmCmd:
-		x.X = s.removeParensArithm(x.X)
-		x.X = s.inlineSimpleParams(x.X)
+		node.X = s.removeParensArithm(node.X)
+		node.X = s.inlineSimpleParams(node.X)
 	case *ParenArithm:
-		x.X = s.removeParensArithm(x.X)
-		x.X = s.inlineSimpleParams(x.X)
+		node.X = s.removeParensArithm(node.X)
+		node.X = s.inlineSimpleParams(node.X)
 	case *BinaryArithm:
-		x.X = s.inlineSimpleParams(x.X)
-		x.Y = s.inlineSimpleParams(x.Y)
+		node.X = s.inlineSimpleParams(node.X)
+		node.Y = s.inlineSimpleParams(node.Y)
 	case *CmdSubst:
-		x.Stmts = s.inlineSubshell(x.Stmts)
+		node.Stmts = s.inlineSubshell(node.Stmts)
 	case *Subshell:
-		x.Stmts = s.inlineSubshell(x.Stmts)
+		node.Stmts = s.inlineSubshell(node.Stmts)
 	case *Word:
-		x.Parts = s.simplifyWord(x.Parts)
+		node.Parts = s.simplifyWord(node.Parts)
 	case *TestClause:
-		x.X = s.removeParensTest(x.X)
-		x.X = s.removeNegateTest(x.X)
+		node.X = s.removeParensTest(node.X)
+		node.X = s.removeNegateTest(node.X)
 	case *ParenTest:
-		x.X = s.removeParensTest(x.X)
-		x.X = s.removeNegateTest(x.X)
+		node.X = s.removeParensTest(node.X)
+		node.X = s.removeNegateTest(node.X)
 	case *BinaryTest:
-		x.X = s.unquoteParams(x.X)
-		x.X = s.removeNegateTest(x.X)
-		if x.Op == TsMatchShort {
+		node.X = s.unquoteParams(node.X)
+		node.X = s.removeNegateTest(node.X)
+		if node.Op == TsMatchShort {
 			s.modified = true
-			x.Op = TsMatch
+			node.Op = TsMatch
 		}
-		switch x.Op {
+		switch node.Op {
 		case TsMatch, TsNoMatch:
 			// unquoting enables globbing
 		default:
-			x.Y = s.unquoteParams(x.Y)
+			node.Y = s.unquoteParams(node.Y)
 		}
-		x.Y = s.removeNegateTest(x.Y)
+		node.Y = s.removeNegateTest(node.Y)
 	case *UnaryTest:
-		x.X = s.unquoteParams(x.X)
+		node.X = s.unquoteParams(node.X)
 	}
 	return true
 }

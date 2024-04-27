@@ -133,11 +133,11 @@ func DefaultExecHandler(killTimeout time.Duration) ExecHandlerFunc {
 			err = cmd.Wait()
 		}
 
-		switch x := err.(type) {
+		switch err := err.(type) {
 		case *exec.ExitError:
 			// started, but errored - default to 1 if OS
 			// doesn't have exit statuses
-			if status, ok := x.Sys().(syscall.WaitStatus); ok {
+			if status, ok := err.Sys().(syscall.WaitStatus); ok {
 				if status.Signaled() {
 					if ctx.Err() != nil {
 						return ctx.Err()

@@ -141,9 +141,9 @@ func ExampleWalk() {
 		return
 	}
 	syntax.Walk(f, func(node syntax.Node) bool {
-		switch x := node.(type) {
+		switch node := node.(type) {
 		case *syntax.ParamExp:
-			x.Param.Value = strings.ToUpper(x.Param.Value)
+			node.Param.Value = strings.ToUpper(node.Param.Value)
 		}
 		return true
 	})

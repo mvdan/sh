@@ -751,19 +751,19 @@ func (r *Runner) Run(ctx context.Context, node syntax.Node) error {
 	r.err = nil
 	r.shellExited = false
 	r.filename = ""
-	switch x := node.(type) {
+	switch node := node.(type) {
 	case *syntax.File:
-		r.filename = x.Name
-		r.stmts(ctx, x.Stmts)
+		r.filename = node.Name
+		r.stmts(ctx, node.Stmts)
 		if !r.shellExited {
 			r.exitShell(ctx, r.exit)
 		}
 	case *syntax.Stmt:
-		r.stmt(ctx, x)
+		r.stmt(ctx, node)
 	case syntax.Command:
-		r.cmd(ctx, x)
+		r.cmd(ctx, node)
 	default:
-		return fmt.Errorf("node can only be File, Stmt, or Command: %T", x)
+		return fmt.Errorf("node can only be File, Stmt, or Command: %T", node)
 	}
 	if r.exit != 0 {
 		r.setErr(NewExitStatus(uint8(r.exit)))
