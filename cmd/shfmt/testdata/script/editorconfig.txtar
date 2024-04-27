@@ -64,8 +64,8 @@ stdout -count=1 'input\.sh$'
 stdout -count=1 'ignored\.sh$'
 stderr -count=1 'ignored\.sh.* must be followed by'
 ! exec shfmt -d input.sh ignored/1_lone_ignored.sh ignored/third_party/bad_syntax_ignored.sh
-stdout -count=1 'input\.sh$'
-stdout -count=1 'ignored\.sh$'
+stdout -count=2 'input\.sh$'
+stdout -count=2 'ignored\.sh$'
 stderr -count=1 'ignored\.sh.* must be followed by'
 ! exec shfmt input.sh ignored/1_lone_ignored.sh ignored/third_party/bad_syntax_ignored.sh
 stdout -count=1 'indented'
@@ -83,7 +83,7 @@ stdout -count=1 'input\.sh$'
 ! stdout 'ignored\.sh'
 ! stderr .
 ! exec shfmt --apply-ignore -d input.sh ignored/1_lone_ignored.sh ignored/third_party/bad_syntax_ignored.sh
-stdout -count=1 'input\.sh$'
+stdout -count=2 'input\.sh$'
 ! stdout 'ignored\.sh'
 ! stderr .
 exec shfmt --apply-ignore input.sh ignored/1_lone_ignored.sh ignored/third_party/bad_syntax_ignored.sh

@@ -18,8 +18,7 @@ import (
 	"strings"
 
 	maybeio "github.com/google/renameio/v2/maybe"
-	diffpkg "github.com/pkg/diff"
-	diffwrite "github.com/pkg/diff/write"
+	diffpkg "github.com/rogpeppe/go-internal/diff"
 	"golang.org/x/term"
 	"mvdan.cc/editorconfig"
 
@@ -504,12 +503,32 @@ func formatBytes(src []byte, path string, fileLang syntax.LangVariant) error {
 			}
 		}
 		if diff.val {
-			opts := []diffwrite.Option{}
-			if color {
-				opts = append(opts, diffwrite.TerminalColor())
+			diffBytes := diffpkg.Diff(path+".orig", src, path, res)
+			if !color {
+				os.Stdout.Write(diffBytes)
+				return errChangedWithDiff
 			}
-			if err := diffpkg.Text(path+".orig", path, src, res, os.Stdout, opts...); err != nil {
-				return fmt.Errorf("computing diff: %s", err)
+			// The first three lines are the header with the filenames, including --- and +++,
+			// and are marked in bold.
+			current := terminalBold
+			os.Stdout.WriteString(current)
+			for i, line := range bytes.SplitAfter(diffBytes, []byte("\n")) {
+				last := current
+				switch {
+				case i < 3: // the first three lines are bold
+				case bytes.HasPrefix(line, []byte("@@")):
+					current = terminalCyan
+				case bytes.HasPrefix(line, []byte("-")):
+					current = terminalRed
+				case bytes.HasPrefix(line, []byte("+")):
+					current = terminalGreen
+				default:
+					current = terminalReset
+				}
+				if current != last {
+					os.Stdout.WriteString(current)
+				}
+				os.Stdout.Write(line)
 			}
 			return errChangedWithDiff
 		}
@@ -519,3 +538,11 @@ func formatBytes(src []byte, path string, fileLang syntax.LangVariant) error {
 	}
 	return nil
 }
+
+const (
+	terminalGreen = "\u001b[32m"
+	terminalRed   = "\u001b[31m"
+	terminalCyan  = "\u001b[36m"
+	terminalReset = "\u001b[0m"
+	terminalBold  = "\u001b[1m"
+)
