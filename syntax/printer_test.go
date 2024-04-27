@@ -6,7 +6,6 @@ package syntax
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"os"
 	"regexp"
 	"strings"
@@ -712,17 +711,6 @@ func TestPrintMultiline(t *testing.T) {
 	got = strings.ReplaceAll(got, "\r", "")
 	if got != want {
 		t.Fatalf("Print mismatch in canonical.sh")
-	}
-}
-
-func BenchmarkPrint(b *testing.B) {
-	b.ReportAllocs()
-	prog := parsePath(b, canonicalPath)
-	printer := NewPrinter()
-	for i := 0; i < b.N; i++ {
-		if err := printer.Print(io.Discard, prog); err != nil {
-			b.Fatal(err)
-		}
 	}
 }
 
