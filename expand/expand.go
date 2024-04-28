@@ -214,6 +214,9 @@ const patMode = pattern.Filenames | pattern.Braces
 // The config specifies shell expansion options; nil behaves the same as an
 // empty config.
 func Pattern(cfg *Config, word *syntax.Word) (string, error) {
+	if word == nil {
+		return "", nil
+	}
 	cfg = prepareConfig(cfg)
 	field, err := cfg.wordField(word.Parts, quoteNone)
 	if err != nil {

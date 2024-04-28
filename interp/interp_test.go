@@ -509,6 +509,7 @@ var runTests = []runTest{
 	{"a='abcx1y'; echo ${a//x[[:digit:]]y}", "abc\n"},
 	{`a=xyz; echo "${a/y/a  b}"`, "xa  bz\n"},
 	{"a='foo_interp_missing/bar_interp_missing'; echo ${a//o*a/}", "fr_interp_missing\n"},
+	{"a=foobar; echo ${a//a/} ${a///b} ${a///}", "foobr foobar foobar\n"},
 	{
 		"echo ${a:-b}; echo $a; a=; echo ${a:-b}; a=c; echo ${a:-b}",
 		"b\n\nb\nc\n",

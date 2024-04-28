@@ -206,6 +206,9 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 		if err != nil {
 			return "", err
 		}
+		if orig == "" {
+			break // nothing to replace
+		}
 		with, err := Literal(cfg, pe.Repl.With)
 		if err != nil {
 			return "", err
