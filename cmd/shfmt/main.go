@@ -43,28 +43,32 @@ type multiFlag[T any] struct {
 }
 
 var (
+	// Generic flags.
 	versionFlag = &multiFlag[bool]{"", "version", false}
 	list        = &multiFlag[boolString]{"l", "list", "false"}
-
 	write       = &multiFlag[bool]{"w", "write", false}
-	simplify    = &multiFlag[bool]{"s", "simplify", false}
-	minify      = &multiFlag[bool]{"mn", "minify", false}
-	find        = &multiFlag[boolString]{"f", "find", "false"}
 	diff        = &multiFlag[bool]{"d", "diff", false}
 	applyIgnore = &multiFlag[bool]{"", "apply-ignore", false}
+	filename    = &multiFlag[string]{"", "filename", ""}
 
-	lang       = &multiFlag[syntax.LangVariant]{"ln", "language-dialect", syntax.LangAuto}
-	posix      = &multiFlag[bool]{"p", "posix", false}
-	filename   = &multiFlag[string]{"", "filename", ""}
+	// Parser flags.
+	lang     = &multiFlag[syntax.LangVariant]{"ln", "language-dialect", syntax.LangAuto}
+	posix    = &multiFlag[bool]{"p", "posix", false}
+	simplify = &multiFlag[bool]{"s", "simplify", false}
+	// TODO: when promoting exp.recover to a stable flag, add it as an EditorConfig knob too, and perhaps rename to recover-errors
 	expRecover = &multiFlag[int]{"", "exp.recover", 0}
 
+	// Printer flags.
 	indent      = &multiFlag[uint]{"i", "indent", 0}
 	binNext     = &multiFlag[bool]{"bn", "binary-next-line", false}
 	caseIndent  = &multiFlag[bool]{"ci", "case-indent", false}
 	spaceRedirs = &multiFlag[bool]{"sr", "space-redirects", false}
 	keepPadding = &multiFlag[bool]{"kp", "keep-padding", false}
 	funcNext    = &multiFlag[bool]{"fn", "func-next-line", false}
+	minify      = &multiFlag[bool]{"mn", "minify", false}
 
+	// Utility flags.
+	find     = &multiFlag[boolString]{"f", "find", "false"}
 	toJSON   = &multiFlag[bool]{"tojson", "to-json", false} // TODO(v4): remove "tojson" for consistency
 	fromJSON = &multiFlag[bool]{"", "from-json", false}
 
@@ -81,9 +85,10 @@ var (
 	version = "(devel)" // to match the default from runtime/debug
 
 	allFlags = []any{
-		versionFlag, list, write, simplify, minify, find, diff, applyIgnore,
-		lang, posix, filename, expRecover,
-		indent, binNext, caseIndent, spaceRedirs, keepPadding, funcNext, toJSON, fromJSON,
+		versionFlag, list, write, find, diff, applyIgnore,
+		lang, posix, filename, simplify, expRecover,
+		indent, binNext, caseIndent, spaceRedirs, keepPadding, funcNext, minify,
+		toJSON, fromJSON,
 	}
 )
 
@@ -155,8 +160,6 @@ directory, all shell scripts found under that directory will be used.
                       paths are separated by a newline or a null character if -l=0
   -w,     --write     write result to file instead of stdout
   -d,     --diff      error with a diff when the formatting differs
-  -s,     --simplify  simplify the code
-  -mn,    --minify    minify the code to reduce its size (implies -s)
   --apply-ignore      always apply EditorConfig ignore rules
   --filename str      provide a name for the standard input file
 
@@ -164,6 +167,7 @@ Parser options:
 
   -ln, --language-dialect str  bash/posix/mksh/bats, default "auto"
   -p,  --posix                 shorthand for -ln=posix
+  -s,  --simplify              simplify the code
 
 Printer options:
 
@@ -173,6 +177,7 @@ Printer options:
   -sr, --space-redirects   redirect operators will be followed by a space
   -kp, --keep-padding      keep column alignment paddings
   -fn, --func-next-line    function opening braces are placed on a separate line
+  -mn, --minify             minify the code to reduce its size (implies -s)
 
 Utilities:
 
@@ -212,19 +217,21 @@ For more information and to report bugs, see https://github.com/mvdan/sh.
 		fmt.Fprintf(os.Stderr, "only -f and -f=0 allowed\n")
 		os.Exit(1)
 	}
-	if minify.val {
-		simplify.val = true
-	}
+	simplify.val = simplify.val || minify.val
 	flag.Visit(func(f *flag.Flag) {
+		// This list should be in sync with the grouping of parser and printer options
+		// as shown by ./shfmt.1.scd.
 		switch f.Name {
 		case lang.short, lang.long,
 			posix.short, posix.long,
+			simplify.short, simplify.long,
 			indent.short, indent.long,
 			binNext.short, binNext.long,
 			caseIndent.short, caseIndent.long,
 			spaceRedirs.short, spaceRedirs.long,
 			keepPadding.short, keepPadding.long,
-			funcNext.short, funcNext.long:
+			funcNext.short, funcNext.long,
+			minify.short, minify.long:
 			useEditorConfig = false
 		}
 	})
@@ -416,6 +423,12 @@ func propsOptions(lang syntax.LangVariant, props editorconfig.Section) (_ syntax
 	// TODO(v4): rename to func_next_line for consistency with flags
 	syntax.FunctionNextLine(props.Get("function_next_line") == "true")(printer)
 
+	minify := props.Get("minify") == "true"
+	syntax.Minify(minify)(printer)
+	// Note that --simplify is not actually a parser option, so we use a global var.
+	// Just like the CLI flags, minify=true implies simplify=true.
+	simplify.val = minify || props.Get("simplify") == "true"
+
 	return lang, langErr == nil
 }
 
@@ -517,6 +530,8 @@ func formatBytes(src []byte, path string, fileLang syntax.LangVariant) error {
 			return err
 		}
 	}
+	// Note that --simplify is treated as a parser option as it happens
+	// immediately after parsing, even if it's not a [syntax.ParserOption] today.
 	if simplify.val {
 		syntax.Simplify(node)
 	}

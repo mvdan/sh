@@ -1,5 +1,7 @@
 shfmt(1)
 
+; To render and view: scdoc <shfmt.1.scd | man -l -
+
 # NAME
 
 shfmt - Format shell programs
@@ -42,12 +44,6 @@ predictable. Some aspects of the format can be configured via printer flags.
 	To never use color, set a non-empty *NO_COLOR* or *TERM=dumb*.
 	To always use color, set a non-empty *FORCE_COLOR*.
 
-*-s*, *--simplify*
-	Simplify the code.
-
-*-mn*, *--minify*
-	Minify the code to reduce its size (implies *-s*).
-
 *--apply-ignore*
 	Always apply EditorConfig ignore rules.
 
@@ -77,6 +73,9 @@ predictable. Some aspects of the format can be configured via printer flags.
 *-p*, *--posix*
 	Shorthand for *-ln=posix*.
 
+*-s*, *--simplify*
+	Simplify the code.
+
 ## Printer flags
 
 *-i*, *--indent* <uint>
@@ -99,6 +98,9 @@ predictable. Some aspects of the format can be configured via printer flags.
 
 *-fn*, *--func-next-line*
 	Function opening braces are placed on a separate line.
+
+*-mn*, *--minify*
+	Minify the code to reduce its size (implies *-s*).
 
 ## Utility flags
 

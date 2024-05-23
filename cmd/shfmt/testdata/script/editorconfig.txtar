@@ -172,6 +172,12 @@ keep_padding = true
 [function_next_line.sh]
 function_next_line = true
 
+[simplify.sh]
+simplify = true
+
+[minify.sh]
+minify = true
+
 -- otherknobs/shell_variant_bash.sh --
 array=(elem)
 -- otherknobs/shell_variant_mksh.sh --
@@ -195,6 +201,14 @@ echo  foo    bar
 foo()
 {
 	echo foo
+}
+-- otherknobs/simplify.sh --
+foo() {
+	((bar))
+}
+-- otherknobs/minify.sh --
+foo(){
+((bar))
 }
 -- ignored/.editorconfig --
 root = true
