@@ -1375,7 +1375,7 @@ func (p *Parser) paramExpExp() *Expansion {
 			p.curErr("@ expansion operator requires a literal")
 		}
 		switch p.val {
-		case "a", "u", "A", "E", "K", "L", "P", "U":
+		case "a", "k", "u", "A", "E", "K", "L", "P", "U":
 			if !p.lang.isBash() {
 				p.langErr(p.pos, "this expansion operator", LangBash)
 			}
@@ -1385,7 +1385,7 @@ func (p *Parser) paramExpExp() *Expansion {
 			}
 		case "Q":
 		default:
-			p.curErr("invalid @ expansion operator")
+			p.curErr("invalid @ expansion operator %q", p.val)
 		}
 	}
 	return &Expansion{Op: op, Word: p.getWord()}

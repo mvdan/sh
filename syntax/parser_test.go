@@ -1798,7 +1798,7 @@ var shellTests = []errorCase{
 	},
 	{
 		in:   "echo ${foo@bar}",
-		bash: `1:12: invalid @ expansion operator #NOERR at runtime`,
+		bash: `1:12: invalid @ expansion operator "bar" #NOERR at runtime`,
 	},
 	{
 		in:   "echo ${foo@'Q'}",
@@ -1959,6 +1959,10 @@ var shellTests = []errorCase{
 	},
 	{
 		in:   "echo ${foo@K}",
+		mksh: `1:12: this expansion operator is a bash feature`,
+	},
+	{
+		in:   "echo ${foo@k}",
 		mksh: `1:12: this expansion operator is a bash feature`,
 	},
 	{

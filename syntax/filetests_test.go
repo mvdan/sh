@@ -2558,6 +2558,25 @@ var fileTests = []testCase{
 		),
 	},
 	{
+		Strs: []string{`${a@K} ${b@k}`},
+		bash: call(
+			word(&ParamExp{
+				Param: lit("a"),
+				Exp: &Expansion{
+					Op:   OtherParamOps,
+					Word: litWord("K"),
+				},
+			}),
+			word(&ParamExp{
+				Param: lit("b"),
+				Exp: &Expansion{
+					Op:   OtherParamOps,
+					Word: litWord("a"),
+				},
+			}),
+		),
+	},
+	{
 		Strs: []string{`${a@Q} ${b@#}`},
 		mksh: call(
 			word(&ParamExp{
