@@ -4,9 +4,9 @@
 package expand
 
 import (
+	"cmp"
 	"runtime"
 	"slices"
-	"sort"
 	"strings"
 )
 
@@ -205,10 +205,23 @@ func listEnvironWithUpper(upper bool, pairs ...string) Environ {
 type listEnviron []string
 
 func (l listEnviron) Get(name string) Variable {
-	prefix := name + "="
-	i := sort.SearchStrings(l, prefix)
-	if i < len(l) && strings.HasPrefix(l[i], prefix) {
-		return Variable{Exported: true, Kind: String, Str: strings.TrimPrefix(l[i], prefix)}
+	eqpos := len(name)
+	endpos := len(name) + 1
+	i, ok := slices.BinarySearchFunc(l, name, func(l, name string) int {
+		if len(l) < endpos {
+			// Too short; see if we are before or after the name.
+			return strings.Compare(l, name)
+		}
+		// Compare the name prefix, then the equal character.
+		c := strings.Compare(l[:eqpos], name)
+		eq := l[eqpos]
+		if c == 0 {
+			return cmp.Compare(eq, '=')
+		}
+		return c
+	})
+	if ok {
+		return Variable{Exported: true, Kind: String, Str: l[i][endpos:]}
 	}
 	return Variable{}
 }
