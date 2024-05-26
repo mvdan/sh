@@ -468,17 +468,17 @@ func Fields(cfg *Config, words ...*syntax.Word) ([]string, error) {
 			for _, field := range wfields {
 				path, doGlob := cfg.escapedGlobField(field)
 				var matches []string
-				var syntaxError *pattern.SyntaxError
 				if doGlob && cfg.ReadDir2 != nil {
 					matches, err = cfg.glob(dir, path)
-					if !errors.As(err, &syntaxError) {
-						if err != nil {
+					if err != nil {
+						// We avoid [errors.As] as it allocates,
+						// and we know that [Config.glob] returns [pattern.Regexp] errors without wrapping.
+						if _, ok := err.(*pattern.SyntaxError); !ok {
 							return nil, err
 						}
-						if len(matches) > 0 || cfg.NullGlob {
-							fields = append(fields, matches...)
-							continue
-						}
+					} else if len(matches) > 0 || cfg.NullGlob {
+						fields = append(fields, matches...)
+						continue
 					}
 				}
 				fields = append(fields, cfg.fieldJoin(field))
