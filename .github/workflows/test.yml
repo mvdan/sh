@@ -40,6 +40,34 @@ jobs:
     - name: Test as root, without cgo, and with busybox
       run: docker run -v="$PWD:/pwd" -w=/pwd -e=CGO_ENABLED=0 golang:1.22.0-alpine go test ./...
 
+  test-tinygo:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install Tinygo
+      uses: acifani/setup-tinygo@v2
+      with:
+        tinygo-version: 0.32.0
+
+    - name: Create temporary main package
+      run: |
+        mkdir _tinygo && cat<<EOF > _tinygo/main.go
+        package main
+
+        import (
+          _ "mvdan.cc/sh/v3/expand"
+          _ "mvdan.cc/sh/v3/interp"
+          _ "mvdan.cc/sh/v3/syntax"
+        )
+
+        func main() {}
+        EOF
+
+    - name: Build with Tinygo natively
+      run: tinygo build -o /dev/null ./_tinygo
+    - name: Build with Tinygo on WASM
+      run: tinygo build -o /dev/null -target wasm ./_tinygo
+
   docker:
     name: Build and test Docker images
     # Only deploy if previous stages pass.
