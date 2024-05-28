@@ -10,7 +10,6 @@ import (
 	"io"
 	"io/fs"
 	"os"
-	"os/user"
 	"path/filepath"
 	"regexp"
 	"runtime"
@@ -18,6 +17,7 @@ import (
 	"strings"
 	"syscall"
 
+	"mvdan.cc/sh/v3/internal/tinygostub"
 	"mvdan.cc/sh/v3/pattern"
 	"mvdan.cc/sh/v3/syntax"
 )
@@ -815,11 +815,11 @@ func (cfg *Config) expandUser(field string) (prefix, rest string) {
 		return vr.String(), rest
 	}
 
-	u, err := user.Lookup(name)
-	if err != nil {
-		return "", field
+	if homeDir, ok := tinygostub.LookupUserHomeDir(name); ok {
+		return homeDir, rest
 	}
-	return u.HomeDir, rest
+
+	return "", field
 }
 
 func findAllIndex(pat, name string, n int) [][]int {
