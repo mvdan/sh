@@ -380,6 +380,10 @@ func propsOptions(lang syntax.LangVariant, props editorconfig.Section) {
 	syntax.KeepPadding(props.Get("keep_padding") == "true")(printer)
 	// TODO(v4): rename to func_next_line for consistency with flags
 	syntax.FunctionNextLine(props.Get("function_next_line") == "true")(printer)
+	minify_opt := minify.val || props.Get("minify") == "true"
+	syntax.Minify(minify_opt)(printer)
+	// Keep the original value if passed by CLI, or minify is enabled, or it is in the config file
+	simplify.val = simplify.val || minify_opt || props.Get("simplify") == "true"
 }
 
 func formatPath(path string, checkShebang bool) error {
