@@ -8,7 +8,11 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"os/user"
 	"regexp"
+	"runtime"
+	"strconv"
+	"syscall"
 
 	"golang.org/x/term"
 
@@ -200,6 +204,24 @@ func (r *Runner) unTest(ctx context.Context, op syntax.UnTestOperator, x string)
 		return r.lookupVar(x).Kind == expand.NameRef
 	case syntax.TsNot:
 		return x == ""
+	case syntax.TsUsrOwn, syntax.TsGrpOwn:
+		if runtime.GOOS == "windows" {
+			panic(fmt.Sprintf("unhandled unary test op: %v", op))
+		}
+		fi, err := os.Stat(x)
+		if err != nil {
+			return false
+		}
+		u, err := user.Current()
+		if err != nil {
+			return false
+		}
+		if op == syntax.TsUsrOwn {
+			uid, _ := strconv.Atoi(u.Uid)
+			return uint32(uid) == fi.Sys().(*syscall.Stat_t).Uid
+		}
+		gid, _ := strconv.Atoi(u.Gid)
+		return uint32(gid) == fi.Sys().(*syscall.Stat_t).Gid
 	default:
 		panic(fmt.Sprintf("unhandled unary test op: %v", op))
 	}
