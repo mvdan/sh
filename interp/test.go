@@ -200,6 +200,8 @@ func (r *Runner) unTest(ctx context.Context, op syntax.UnTestOperator, x string)
 		return r.lookupVar(x).Kind == expand.NameRef
 	case syntax.TsNot:
 		return x == ""
+	case syntax.TsUsrOwn, syntax.TsGrpOwn:
+		return r.unTestOwnOrGrp(ctx, op, x)
 	default:
 		panic(fmt.Sprintf("unhandled unary test op: %v", op))
 	}

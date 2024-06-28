@@ -6,7 +6,10 @@
 package interp
 
 import (
+	"context"
 	"fmt"
+
+	"mvdan.cc/sh/v3/syntax"
 )
 
 func mkfifo(path string, mode uint32) error {
@@ -16,4 +19,12 @@ func mkfifo(path string, mode uint32) error {
 // hasPermissionToDir is a no-op on Windows.
 func hasPermissionToDir(string) bool {
 	return true
+}
+
+// unTestOwnOrGrp panics. Under Unix, it implements the -O and -G unary tests,
+// but under Windows, it's unclear how to implement those tests, since Windows
+// doesn't have the concept of a file owner, just ACLs, and it's unclear how
+// to map the one to the other.
+func (r *Runner) unTestOwnOrGrp(ctx context.Context, op syntax.UnTestOperator, x string) bool {
+	panic(fmt.Sprintf("unhandled unary test op: %v", op))
 }
