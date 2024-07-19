@@ -10,9 +10,9 @@ require (
 	github.com/muesli/cancelreader v0.2.2
 	github.com/rogpeppe/go-internal v1.12.0
 	golang.org/x/sync v0.7.0
-	golang.org/x/sys v0.20.0
-	golang.org/x/term v0.20.0
-	mvdan.cc/editorconfig v0.2.1-0.20231228180347-1925077f8eb2
+	golang.org/x/sys v0.22.0
+	golang.org/x/term v0.22.0
+	mvdan.cc/editorconfig v0.3.0
 )
 
 require (
