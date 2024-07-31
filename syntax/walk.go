@@ -235,6 +235,7 @@ func Walk(node Node, f func(Node) bool) {
 func DebugPrint(w io.Writer, node Node) error {
 	p := debugPrinter{out: w}
 	p.print(reflect.ValueOf(node))
+	p.printf("\n")
 	return p.err
 }
 

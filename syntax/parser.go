@@ -1359,8 +1359,7 @@ func (p *Parser) paramExp() *ParamExp {
 		p.curErr("not a valid parameter expansion operator: %v", p.tok)
 	}
 	p.quote = old
-	pe.Rbrace = p.pos
-	p.matched(pe.Dollar, dollBrace, rightBrace)
+	pe.Rbrace = p.matched(pe.Dollar, dollBrace, rightBrace)
 	return pe
 }
 
