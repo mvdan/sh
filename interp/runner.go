@@ -4,6 +4,7 @@
 package interp
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -803,41 +804,43 @@ func (r *Runner) hdocReader(rd *syntax.Redirect) (*os.File, error) {
 	}
 	// We write to the pipe in a new goroutine,
 	// as pipe writes may block once the buffer gets full.
-	// TODO: r.document calls below buffer into a string;
-	// it would be nice to have them write to the pipe directly.
-	go func() {
-		if rd.Op != syntax.DashHdoc {
-			hdoc := r.document(rd.Hdoc)
+	// We still construct and buffer the entire heredoc first,
+	// as doing it concurrently would lead to different semantics and be racy.
+	if rd.Op != syntax.DashHdoc {
+		hdoc := r.document(rd.Hdoc)
+		go func() {
 			pw.WriteString(hdoc)
 			pw.Close()
-			return
+		}()
+		return pr, nil
+	}
+	var buf bytes.Buffer
+	var cur []syntax.WordPart
+	flushLine := func() {
+		if buf.Len() > 0 {
+			buf.WriteByte('\n')
 		}
-		var cur []syntax.WordPart
-		firstLine := true
-		flushLine := func() {
-			if !firstLine {
-				pw.WriteString("\n")
-			}
-			firstLine = false
-			pw.WriteString(r.document(&syntax.Word{Parts: cur}))
-			cur = cur[:0]
+		buf.WriteString(r.document(&syntax.Word{Parts: cur}))
+		cur = cur[:0]
+	}
+	for _, wp := range rd.Hdoc.Parts {
+		lit, ok := wp.(*syntax.Lit)
+		if !ok {
+			cur = append(cur, wp)
+			continue
 		}
-		for _, wp := range rd.Hdoc.Parts {
-			lit, ok := wp.(*syntax.Lit)
-			if !ok {
-				cur = append(cur, wp)
-				continue
+		for i, part := range strings.Split(lit.Value, "\n") {
+			if i > 0 {
+				flushLine()
+				cur = cur[:0]
 			}
-			for i, part := range strings.Split(lit.Value, "\n") {
-				if i > 0 {
-					flushLine()
-					cur = cur[:0]
-				}
-				part = strings.TrimLeft(part, "\t")
-				cur = append(cur, &syntax.Lit{Value: part})
-			}
+			part = strings.TrimLeft(part, "\t")
+			cur = append(cur, &syntax.Lit{Value: part})
 		}
-		flushLine()
+	}
+	flushLine()
+	go func() {
+		pw.Write(buf.Bytes())
 		pw.Close()
 	}()
 	return pr, nil
