@@ -93,11 +93,9 @@ const (
 // Note that Pos uses a limited number of bits to store these numbers.
 // If line or column overflow their allocated space, they are replaced with 0.
 func NewPos(offset, line, column uint) Pos {
-	if offset > offsetMax {
-		// Basic protection against offset overflow;
-		// note that an offset of 0 is valid, so we leave the maximum.
-		offset = offsetMax
-	}
+	// Basic protection against offset overflow;
+	// note that an offset of 0 is valid, so we leave the maximum.
+	offset = min(offset, offsetMax)
 	if line > lineMax {
 		line = 0 // protect against overflows; rendered as "?"
 	}

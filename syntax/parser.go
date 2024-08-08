@@ -435,12 +435,9 @@ func (p *Parser) reset() {
 }
 
 func (p *Parser) nextPos() Pos {
-	offset := p.offs + int64(p.bsp) - int64(p.w)
-	if offset > offsetMax {
-		// Basic protection against offset overflow;
-		// note that an offset of 0 is valid, so we leave the maximum.
-		offset = offsetMax
-	}
+	// Basic protection against offset overflow;
+	// note that an offset of 0 is valid, so we leave the maximum.
+	offset := min(p.offs+int64(p.bsp)-int64(p.w), offsetMax)
 	var line, col uint
 	if p.line <= lineMax {
 		line = uint(p.line)
