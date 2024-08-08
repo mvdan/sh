@@ -232,9 +232,13 @@ func TestInteractive(t *testing.T) {
 }
 
 func TestInteractiveExit(t *testing.T) {
-	inReader, inWriter := io.Pipe()
+	inReader, inWriter, err := os.Pipe()
+	qt.Assert(t, qt.IsNil(err))
 	defer inReader.Close()
-	go io.WriteString(inWriter, "exit\n")
+	go func() {
+		io.WriteString(inWriter, "exit\n")
+		inWriter.Close()
+	}()
 	w := io.Discard
 	runner, _ := interp.New(interp.StdIO(inReader, w, w))
 	if err := runInteractive(runner, inReader, w, w); err != nil {
