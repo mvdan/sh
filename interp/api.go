@@ -90,6 +90,10 @@ type Runner struct {
 	// statHandler is a function responsible for getting file stat. It must be non-nil.
 	statHandler StatHandlerFunc
 
+	// TODO: we should force stdin to always be an *os.File,
+	// otherwise the first os/exec command we execute with stdin
+	// will always consume the entirety of the contents.
+
 	stdin  io.Reader
 	stdout io.Writer
 	stderr io.Writer

@@ -86,6 +86,12 @@ var hasBash52 bool
 func TestMain(m *testing.M) {
 	if os.Getenv("GOSH_PROG") != "" {
 		switch os.Getenv("GOSH_CMD") {
+		case "exec_ok":
+			fmt.Printf("exec ok\n")
+			os.Exit(0)
+		case "exec_fail":
+			fmt.Printf("exec fail\n")
+			os.Exit(1)
 		case "pid_and_hang":
 			fmt.Println(os.Getpid())
 			time.Sleep(time.Hour)
@@ -2890,6 +2896,19 @@ done <<< 2`,
 		"echo line\\\ncontinuation | while read a; do echo $a; done",
 		"linecontinuation\n",
 	},
+	{
+		"while read a; do echo $a; GOSH_CMD=exec_ok $GOSH_PROG; done <<< 'a\nb\nc'",
+		"a\nexec ok\nb\nexec ok\nc\nexec ok\n",
+	},
+	{
+		"while read a; do echo $a; GOSH_CMD=exec_ok $GOSH_PROG; done <<EOF\na\nb\nc\nEOF",
+		"a\nexec ok\nb\nexec ok\nc\nexec ok\n",
+	},
+	// TODO: our final exit status here isn't right.
+	// {
+	// 	"while read a; do echo $a; GOSH_CMD=exec_fail $GOSH_PROG; done <<< 'a\nb\nc'",
+	// 	"a\nexec fail\nb\nexec fail\nc\nexec fail\nexit status 1",
+	// },
 	{
 		`read -r a <<< '\\'; echo "$a"`,
 		"\\\\\n",

@@ -4,7 +4,6 @@
 package interp
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -797,43 +796,61 @@ func (r *Runner) stmts(ctx context.Context, stmts []*syntax.Stmt) {
 	}
 }
 
-func (r *Runner) hdocReader(rd *syntax.Redirect) io.Reader {
-	if rd.Op != syntax.DashHdoc {
-		hdoc := r.document(rd.Hdoc)
-		return strings.NewReader(hdoc)
+func (r *Runner) hdocReader(rd *syntax.Redirect) (io.ReadCloser, error) {
+	pr, pw, err := os.Pipe()
+	if err != nil {
+		return nil, err
 	}
-	var buf bytes.Buffer
-	var cur []syntax.WordPart
-	flushLine := func() {
-		if buf.Len() > 0 {
-			buf.WriteByte('\n')
+	// We write to the pipe in a new goroutine,
+	// as pipe writes may block once the buffer gets full.
+	// TODO: r.document calls below buffer into a string;
+	// it would be nice to have them write to the pipe directly.
+	go func() {
+		if rd.Op != syntax.DashHdoc {
+			hdoc := r.document(rd.Hdoc)
+			pw.WriteString(hdoc)
+			pw.Close()
+			return
 		}
-		buf.WriteString(r.document(&syntax.Word{Parts: cur}))
-		cur = cur[:0]
-	}
-	for _, wp := range rd.Hdoc.Parts {
-		lit, ok := wp.(*syntax.Lit)
-		if !ok {
-			cur = append(cur, wp)
-			continue
-		}
-		for i, part := range strings.Split(lit.Value, "\n") {
-			if i > 0 {
-				flushLine()
-				cur = cur[:0]
+		var cur []syntax.WordPart
+		firstLine := true
+		flushLine := func() {
+			if !firstLine {
+				pw.WriteString("\n")
 			}
-			part = strings.TrimLeft(part, "\t")
-			cur = append(cur, &syntax.Lit{Value: part})
+			firstLine = false
+			pw.WriteString(r.document(&syntax.Word{Parts: cur}))
+			cur = cur[:0]
 		}
-	}
-	flushLine()
-	return &buf
+		for _, wp := range rd.Hdoc.Parts {
+			lit, ok := wp.(*syntax.Lit)
+			if !ok {
+				cur = append(cur, wp)
+				continue
+			}
+			for i, part := range strings.Split(lit.Value, "\n") {
+				if i > 0 {
+					flushLine()
+					cur = cur[:0]
+				}
+				part = strings.TrimLeft(part, "\t")
+				cur = append(cur, &syntax.Lit{Value: part})
+			}
+		}
+		flushLine()
+		pw.Close()
+	}()
+	return pr, nil
 }
 
 func (r *Runner) redir(ctx context.Context, rd *syntax.Redirect) (io.Closer, error) {
 	if rd.Hdoc != nil {
-		r.stdin = r.hdocReader(rd)
-		return nil, nil
+		pr, err := r.hdocReader(rd)
+		if err != nil {
+			return nil, err
+		}
+		r.stdin = pr
+		return pr, nil
 	}
 	orig := &r.stdout
 	if rd.N != nil {
@@ -846,8 +863,19 @@ func (r *Runner) redir(ctx context.Context, rd *syntax.Redirect) (io.Closer, err
 	arg := r.literal(rd.Word)
 	switch rd.Op {
 	case syntax.WordHdoc:
-		r.stdin = strings.NewReader(arg + "\n")
-		return nil, nil
+		pr, pw, err := os.Pipe()
+		if err != nil {
+			return nil, err
+		}
+		r.stdin = pr
+		// We write to the pipe in a new goroutine,
+		// as pipe writes may block once the buffer gets full.
+		go func() {
+			pw.WriteString(arg)
+			pw.WriteString("\n")
+			pw.Close()
+		}()
+		return pr, nil
 	case syntax.DplOut:
 		switch arg {
 		case "1":
