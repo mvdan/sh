@@ -16,6 +16,7 @@ import (
 	"sync"
 
 	"github.com/muesli/cancelreader"
+
 	"mvdan.cc/sh/v3/expand"
 	"mvdan.cc/sh/v3/syntax"
 )

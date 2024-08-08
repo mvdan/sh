@@ -226,8 +226,9 @@ func New(opts ...RunnerOption) (*Runner, error) {
 // It can also be applied directly on an existing Runner,
 // such as interp.Params("-e")(runner).
 // Note that options cannot be applied once Run or Reset have been called.
-// TODO: enforce that rule via didReset.
 type RunnerOption func(*Runner) error
+
+// TODO: enforce the rule above via didReset.
 
 // Env sets the interpreter's environment. If nil, a copy of the current
 // process's environment is used.

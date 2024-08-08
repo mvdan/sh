@@ -309,10 +309,10 @@ func DefaultOpenHandler() OpenHandlerFunc {
 	}
 }
 
+// TODO(v4): if this is kept in v4, it most likely needs to use [io/fs.DirEntry] for efficiency
+
 // ReadDirHandlerFunc is a handler which reads directories. It is called during
 // shell globbing, if enabled.
-//
-// TODO(v4): if this is kept in v4, it most likely needs to use [io/fs.DirEntry] for efficiency
 type ReadDirHandlerFunc func(ctx context.Context, path string) ([]fs.FileInfo, error)
 
 type ReadDirHandlerFunc2 func(ctx context.Context, path string) ([]fs.DirEntry, error)
