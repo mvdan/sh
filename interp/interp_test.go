@@ -81,7 +81,7 @@ let i=(2 + 3)
 	}
 }
 
-var hasBash50 bool
+var hasBash52 bool
 
 func TestMain(m *testing.M) {
 	if os.Getenv("GOSH_PROG") != "" {
@@ -135,7 +135,7 @@ func TestMain(m *testing.M) {
 	os.Setenv("LC_ALL", "C.UTF-8")
 
 	os.Unsetenv("CDPATH")
-	hasBash50 = checkBash()
+	hasBash52 = checkBash()
 
 	wd, err := os.Getwd()
 	if err != nil {
@@ -174,7 +174,7 @@ func checkBash() bool {
 	if err != nil {
 		return false
 	}
-	return strings.HasPrefix(string(out), "5.1")
+	return strings.HasPrefix(string(out), "5.2")
 }
 
 // concBuffer wraps a [bytes.Buffer] in a mutex so that concurrent writes
@@ -3763,8 +3763,8 @@ func TestRunnerRunConfirm(t *testing.T) {
 	if testing.Short() {
 		t.Skip("calling bash is slow")
 	}
-	if !hasBash50 {
-		t.Skip("bash 5.0 required to run")
+	if !hasBash52 {
+		t.Skip("bash 5.2 required to run")
 	}
 	t.Parallel()
 
