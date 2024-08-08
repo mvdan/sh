@@ -930,38 +930,34 @@ func (r *Runner) readLine(ctx context.Context, raw bool) ([]byte, error) {
 	var line []byte
 	esc := false
 
-	stdin := r.stdin
-	if osFile, ok := stdin.(*os.File); ok {
-		cr, err := cancelreader.NewReader(osFile)
-		if err != nil {
-			return nil, err
-		}
-		stdin = cr
-		done := make(chan struct{})
-		var wg sync.WaitGroup
-		wg.Add(1)
-		go func() {
-			select {
-			case <-ctx.Done():
-				cr.Cancel()
-			case <-done:
-			}
-			wg.Done()
-		}()
-		defer func() {
-			close(done)
-			wg.Wait()
-			// Could put the Close in the above goroutine, but if "read" is
-			// immediately called again, the Close might overlap with creating a
-			// new cancelreader. Want this cancelreader to be completely closed
-			// by the time readLine returns.
-			cr.Close()
-		}()
+	cr, err := cancelreader.NewReader(r.stdin)
+	if err != nil {
+		return nil, err
 	}
+	done := make(chan struct{})
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		select {
+		case <-ctx.Done():
+			cr.Cancel()
+		case <-done:
+		}
+		wg.Done()
+	}()
+	defer func() {
+		close(done)
+		wg.Wait()
+		// Could put the Close in the above goroutine, but if "read" is
+		// immediately called again, the Close might overlap with creating a
+		// new cancelreader. Want this cancelreader to be completely closed
+		// by the time readLine returns.
+		cr.Close()
+	}()
 
 	for {
 		var buf [1]byte
-		n, err := stdin.Read(buf[:])
+		n, err := cr.Read(buf[:])
 		if n > 0 {
 			b := buf[0]
 			switch {

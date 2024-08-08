@@ -4418,5 +4418,5 @@ func TestRunnerNonFileStdin(t *testing.T) {
 		cb.WriteString(err.Error())
 	}
 	// TODO: just like with heredocs, the first exec_ok call consumes all stdin.
-	qt.Assert(t, qt.Equals(cb.String(), "a\nexec ok\n"))
+	qt.Assert(t, qt.Equals(cb.String(), "a\nexec ok\nb\nexec ok\nc\nexec ok\n"))
 }

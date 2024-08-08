@@ -90,11 +90,7 @@ type Runner struct {
 	// statHandler is a function responsible for getting file stat. It must be non-nil.
 	statHandler StatHandlerFunc
 
-	// TODO: we should force stdin to always be an *os.File,
-	// otherwise the first os/exec command we execute with stdin
-	// will always consume the entirety of the contents.
-
-	stdin  io.Reader
+	stdin  *os.File // e.g. the read end of a pipe
 	stdout io.Writer
 	stderr io.Writer
 
@@ -148,7 +144,7 @@ type Runner struct {
 	origDir    string
 	origParams []string
 	origOpts   runnerOpts
-	origStdin  io.Reader
+	origStdin  *os.File
 	origStdout io.Writer
 	origStderr io.Writer
 
@@ -425,12 +421,40 @@ func StatHandler(f StatHandlerFunc) RunnerOption {
 	}
 }
 
+func stdinFile(r io.Reader) (*os.File, error) {
+	switch r := r.(type) {
+	case *os.File:
+		return r, nil
+	case nil:
+		return nil, nil
+	default:
+		pr, pw, err := os.Pipe()
+		if err != nil {
+			return nil, err
+		}
+		go func() {
+			io.Copy(pw, r)
+			pw.Close()
+		}()
+		return pr, nil
+	}
+}
+
 // StdIO configures an interpreter's standard input, standard output, and
 // standard error. If out or err are nil, they default to a writer that discards
 // the output.
+//
+// Note that providing a non-nil standard input other than [os.File] will require
+// an [os.Pipe] and spawning a goroutine to copy into it,
+// as an [os.File] is the only way to share a reader with subprocesses.
+// See [os/exec.Cmd.Stdin].
 func StdIO(in io.Reader, out, err io.Writer) RunnerOption {
 	return func(r *Runner) error {
-		r.stdin = in
+		stdin, _err := stdinFile(in)
+		if _err != nil {
+			return _err
+		}
+		r.stdin = stdin
 		if out == nil {
 			out = io.Discard
 		}

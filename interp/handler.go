@@ -295,6 +295,9 @@ func pathExts(env expand.Environ) []string {
 // Use a return error of type [*os.PathError] to have the error printed to
 // stderr and the exit status set to 1. If the error is of any other type, the
 // interpreter will come to a stop.
+//
+// Note that implementations which do not return [os.File] will cause
+// extra files and goroutines for input redirections; see [StdIO].
 type OpenHandlerFunc func(ctx context.Context, path string, flag int, perm os.FileMode) (io.ReadWriteCloser, error)
 
 // DefaultOpenHandler returns the [OpenHandlerFunc] used by default.

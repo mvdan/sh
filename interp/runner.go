@@ -796,7 +796,7 @@ func (r *Runner) stmts(ctx context.Context, stmts []*syntax.Stmt) {
 	}
 }
 
-func (r *Runner) hdocReader(rd *syntax.Redirect) (io.ReadCloser, error) {
+func (r *Runner) hdocReader(rd *syntax.Redirect) (*os.File, error) {
 	pr, pw, err := os.Pipe()
 	if err != nil {
 		return nil, err
@@ -904,7 +904,11 @@ func (r *Runner) redir(ctx context.Context, rd *syntax.Redirect) (io.Closer, err
 	}
 	switch rd.Op {
 	case syntax.RdrIn:
-		r.stdin = f
+		stdin, err := stdinFile(f)
+		if err != nil {
+			return nil, err
+		}
+		r.stdin = stdin
 	case syntax.RdrOut, syntax.AppOut:
 		*orig = f
 	case syntax.RdrAll, syntax.AppAll:
@@ -1002,6 +1006,7 @@ func (r *Runner) open(ctx context.Context, path string, flags int, mode os.FileM
 	// TODO: support wrapped PathError returned from openHandler.
 	switch err.(type) {
 	case nil:
+		return f, nil
 	case *os.PathError:
 		if print {
 			r.errf("%v\n", err)
@@ -1009,7 +1014,7 @@ func (r *Runner) open(ctx context.Context, path string, flags int, mode os.FileM
 	default: // handler's custom fatal error
 		r.setErr(err)
 	}
-	return f, err
+	return nil, err
 }
 
 func (r *Runner) stat(ctx context.Context, name string) (fs.FileInfo, error) {

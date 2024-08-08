@@ -6,8 +6,10 @@ package main
 import (
 	"fmt"
 	"io"
+	"os"
 	"testing"
 
+	"github.com/go-quicktest/qt"
 	"mvdan.cc/sh/v3/interp"
 )
 
@@ -179,14 +181,18 @@ func TestInteractive(t *testing.T) {
 	t.Parallel()
 	for _, tc := range interactiveTests {
 		t.Run("", func(t *testing.T) {
-			inReader, inWriter := io.Pipe()
-			outReader, outWriter := io.Pipe()
+			inReader, inWriter, err := os.Pipe()
+			qt.Assert(t, qt.IsNil(err))
+			outReader, outWriter, err := os.Pipe()
+			qt.Assert(t, qt.IsNil(err))
 			runner, _ := interp.New(interp.StdIO(inReader, outWriter, outWriter))
 			errc := make(chan error, 1)
 			go func() {
 				errc <- runInteractive(runner, inReader, outWriter, outWriter)
 				// Discard the rest of the input.
 				io.Copy(io.Discard, inReader)
+				inReader.Close()
+				outWriter.Close()
 			}()
 
 			if err := readString(outReader, "$ "); err != nil {
@@ -215,7 +221,7 @@ func TestInteractive(t *testing.T) {
 			// so that any remaining prompt writes get discarded.
 			outReader.Close()
 
-			err := <-errc
+			err = <-errc
 			if err != nil && tc.wantErr == "" {
 				t.Fatalf("unexpected error: %v", err)
 			} else if tc.wantErr != "" && fmt.Sprint(err) != tc.wantErr {
