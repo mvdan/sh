@@ -20,6 +20,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-quicktest/qt"
 	"mvdan.cc/sh/v3/expand"
 	"mvdan.cc/sh/v3/interp"
 	"mvdan.cc/sh/v3/syntax"
@@ -4400,4 +4401,22 @@ func TestRunnerSubshell(t *testing.T) {
 	if want, got := "modified", r3.Vars["CHILD"].String(); got != want {
 		t.Fatalf("wrong output:\nwant: %q\ngot:  %q", want, got)
 	}
+}
+
+func TestRunnerNonFileStdin(t *testing.T) {
+	t.Parallel()
+
+	var cb concBuffer
+	r, err := interp.New(interp.StdIO(strings.NewReader("a\nb\nc\n"), &cb, &cb))
+	if err != nil {
+		t.Fatal(err)
+	}
+	file := parse(t, nil, "while read a; do echo $a; GOSH_CMD=exec_ok $GOSH_PROG; done")
+	ctx, cancel := context.WithTimeout(context.Background(), runnerRunTimeout)
+	defer cancel()
+	if err := r.Run(ctx, file); err != nil {
+		cb.WriteString(err.Error())
+	}
+	// TODO: just like with heredocs, the first exec_ok call consumes all stdin.
+	qt.Assert(t, qt.Equals(cb.String(), "a\nexec ok\n"))
 }
