@@ -1,5 +1,28 @@
 # Changelog
 
+## [3.9.0] - 2024-08-16
+
+This release drops support for Go 1.21 and includes many fixes.
+
+- **cmd/shfmt**
+  - Switch the diff implementation to remove one dependency
+- **syntax**
+  - Protect against overflows in position offset integers
+- **interp**
+  - Use `os.Pipe` for stdin to prevent draining by subprocesses - #1085
+  - Support cancelling reads in builtins when stdin is a file - #1066
+  - Support the `nocaseglob` bash option - #1073
+  - Support the Bash 5.2 `@k` parameter expansion operator
+  - Support the `test -O` and `test -G` operators on non-Windows - #1080
+  - Support the `read -s` builtin flag - #1063
+- **expand**
+  - Add support for case insensitive globbing - #1073
+  - Don't panic when pattern words are nil - #1076
+
+A special thanks to @theclapp for their contributors to this release!
+
+Consider [becoming a sponsor](https://github.com/sponsors/mvdan) if you benefit from the work that went into this release!
+
 ## [3.8.0] - 2024-02-11
 
 This release drops support for Go 1.19 and 1.20 and includes many
@@ -696,6 +719,8 @@ module in v3.
 ## [0.1.0] - 2016-09-20
 
 Initial release.
+
+[3.9.0]: https://github.com/mvdan/sh/releases/tag/v3.9.0
 
 [3.8.0]: https://github.com/mvdan/sh/releases/tag/v3.8.0
 
