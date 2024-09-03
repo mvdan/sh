@@ -4,7 +4,6 @@
 package syntax
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"strconv"
@@ -804,25 +803,25 @@ type LangError struct {
 }
 
 func (e LangError) Error() string {
-	var buf bytes.Buffer
+	var sb strings.Builder
 	if e.Filename != "" {
-		buf.WriteString(e.Filename + ":")
+		sb.WriteString(e.Filename + ":")
 	}
-	buf.WriteString(e.Pos.String() + ": ")
-	buf.WriteString(e.Feature)
+	sb.WriteString(e.Pos.String() + ": ")
+	sb.WriteString(e.Feature)
 	if strings.HasSuffix(e.Feature, "s") {
-		buf.WriteString(" are a ")
+		sb.WriteString(" are a ")
 	} else {
-		buf.WriteString(" is a ")
+		sb.WriteString(" is a ")
 	}
 	for i, lang := range e.Langs {
 		if i > 0 {
-			buf.WriteString("/")
+			sb.WriteString("/")
 		}
-		buf.WriteString(lang.String())
+		sb.WriteString(lang.String())
 	}
-	buf.WriteString(" feature")
-	return buf.String()
+	sb.WriteString(" feature")
+	return sb.String()
 }
 
 func (p *Parser) posErr(pos Pos, format string, a ...any) {

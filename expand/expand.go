@@ -4,7 +4,6 @@
 package expand
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -80,7 +79,7 @@ type Config struct {
 	// as errors.
 	NoUnset bool
 
-	bufferAlloc bytes.Buffer // TODO: use strings.Builder
+	bufferAlloc strings.Builder
 	fieldAlloc  [4]fieldPart
 	fieldsAlloc [4][]fieldPart
 
@@ -151,7 +150,7 @@ func (cfg *Config) ifsJoin(strs []string) string {
 	return strings.Join(strs, sep)
 }
 
-func (cfg *Config) strBuilder() *bytes.Buffer {
+func (cfg *Config) strBuilder() *strings.Builder {
 	b := &cfg.bufferAlloc
 	b.Reset()
 	return b
@@ -222,15 +221,15 @@ func Pattern(cfg *Config, word *syntax.Word) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	buf := cfg.strBuilder()
+	sb := cfg.strBuilder()
 	for _, part := range field {
 		if part.quote > quoteNone {
-			buf.WriteString(pattern.QuoteMeta(part.val, patMode))
+			sb.WriteString(pattern.QuoteMeta(part.val, patMode))
 		} else {
-			buf.WriteString(part.val)
+			sb.WriteString(part.val)
 		}
 	}
-	return buf.String(), nil
+	return sb.String(), nil
 }
 
 // Format expands a format string with a number of arguments, following the
@@ -242,25 +241,17 @@ func Pattern(cfg *Config, word *syntax.Word) (string, error) {
 // empty config.
 func Format(cfg *Config, format string, args []string) (string, int, error) {
 	cfg = prepareConfig(cfg)
-	buf := cfg.strBuilder()
+	sb := cfg.strBuilder()
 
-	consumed, err := formatIntoBuffer(buf, format, args)
+	consumed, err := formatInto(sb, format, args)
 	if err != nil {
 		return "", 0, err
 	}
 
-	return buf.String(), consumed, err
+	return sb.String(), consumed, err
 }
 
-// Format expands a format string with a number of arguments, following the
-// shell's format specifications. These include printf(1), among others.
-//
-// The resulting string is written to the provided buffer, and the number
-// of arguments used is returned.
-//
-// The config specifies shell expansion options; nil behaves the same as an
-// empty config.
-func formatIntoBuffer(buf *bytes.Buffer, format string, args []string) (int, error) {
+func formatInto(sb *strings.Builder, format string, args []string) (int, error) {
 	var fmts []byte
 	initialArgs := len(args)
 
@@ -290,28 +281,28 @@ formatLoop:
 			i++
 			switch c = format[i]; c {
 			case 'a': // bell
-				buf.WriteByte('\a')
+				sb.WriteByte('\a')
 			case 'b': // backspace
-				buf.WriteByte('\b')
+				sb.WriteByte('\b')
 			case 'e', 'E': // escape
-				buf.WriteByte('\x1b')
+				sb.WriteByte('\x1b')
 			case 'f': // form feed
-				buf.WriteByte('\f')
+				sb.WriteByte('\f')
 			case 'n': // new line
-				buf.WriteByte('\n')
+				sb.WriteByte('\n')
 			case 'r': // carriage return
-				buf.WriteByte('\r')
+				sb.WriteByte('\r')
 			case 't': // horizontal tab
-				buf.WriteByte('\t')
+				sb.WriteByte('\t')
 			case 'v': // vertical tab
-				buf.WriteByte('\v')
+				sb.WriteByte('\v')
 			case '\\', '\'', '"', '?': // just the character
-				buf.WriteByte(c)
+				sb.WriteByte(c)
 			case '0', '1', '2', '3', '4', '5', '6', '7':
 				digits := readDigits(3, false)
 				// if digits don't fit in 8 bits, 0xff via strconv
 				n, _ := strconv.ParseUint(digits, 8, 8)
-				buf.WriteByte(byte(n))
+				sb.WriteByte(byte(n))
 			case 'x', 'u', 'U':
 				i++
 				max := 2
@@ -332,21 +323,21 @@ formatLoop:
 					}
 					if c == 'x' {
 						// always as a single byte
-						buf.WriteByte(byte(n))
+						sb.WriteByte(byte(n))
 					} else {
-						buf.WriteRune(rune(n))
+						sb.WriteRune(rune(n))
 					}
 					break
 				}
 				fallthrough
 			default: // no escape sequence
-				buf.WriteByte('\\')
-				buf.WriteByte(c)
+				sb.WriteByte('\\')
+				sb.WriteByte(c)
 			}
 		case len(fmts) > 0:
 			switch c {
 			case '%':
-				buf.WriteByte('%')
+				sb.WriteByte('%')
 				fmts = nil
 			case 'c':
 				var b byte
@@ -357,7 +348,7 @@ formatLoop:
 						b = arg[0]
 					}
 				}
-				buf.WriteByte(b)
+				sb.WriteByte(b)
 				fmts = nil
 			case '+', '-', ' ':
 				if len(fmts) > 1 {
@@ -376,7 +367,7 @@ formatLoop:
 					// Passing in nil for args ensures that % format
 					// strings aren't processed; only escape sequences
 					// will be handled.
-					_, err := formatIntoBuffer(buf, arg, nil)
+					_, err := formatInto(sb, arg, nil)
 					if err != nil {
 						return 0, err
 					}
@@ -395,7 +386,7 @@ formatLoop:
 				}
 				if farg != nil {
 					fmts = append(fmts, c)
-					fmt.Fprintf(buf, string(fmts), farg)
+					fmt.Fprintf(sb, string(fmts), farg)
 				}
 				fmts = nil
 			default:
@@ -406,7 +397,7 @@ formatLoop:
 			// arguments
 			fmts = []byte{c}
 		default:
-			buf.WriteByte(c)
+			sb.WriteByte(c)
 		}
 	}
 	if len(fmts) > 0 {
@@ -422,27 +413,27 @@ func (cfg *Config) fieldJoin(parts []fieldPart) string {
 	case 1: // short-cut without a string copy
 		return parts[0].val
 	}
-	buf := cfg.strBuilder()
+	sb := cfg.strBuilder()
 	for _, part := range parts {
-		buf.WriteString(part.val)
+		sb.WriteString(part.val)
 	}
-	return buf.String()
+	return sb.String()
 }
 
 func (cfg *Config) escapedGlobField(parts []fieldPart) (escaped string, glob bool) {
-	buf := cfg.strBuilder()
+	sb := cfg.strBuilder()
 	for _, part := range parts {
 		if part.quote > quoteNone {
-			buf.WriteString(pattern.QuoteMeta(part.val, patMode))
+			sb.WriteString(pattern.QuoteMeta(part.val, patMode))
 			continue
 		}
-		buf.WriteString(part.val)
+		sb.WriteString(part.val)
 		if pattern.HasMeta(part.val, patMode) {
 			glob = true
 		}
 	}
 	if glob { // only copy the string if it will be used
-		escaped = buf.String()
+		escaped = sb.String()
 	}
 	return escaped, glob
 }
@@ -515,7 +506,7 @@ func (cfg *Config) wordField(wps []syntax.WordPart, ql quoteLevel) ([]fieldPart,
 				}
 			}
 			if ql == quoteDouble && strings.Contains(s, "\\") {
-				buf := cfg.strBuilder()
+				sb := cfg.strBuilder()
 				for i := 0; i < len(s); i++ {
 					b := s[i]
 					if b == '\\' && i+1 < len(s) {
@@ -524,9 +515,9 @@ func (cfg *Config) wordField(wps []syntax.WordPart, ql quoteLevel) ([]fieldPart,
 							continue
 						}
 					}
-					buf.WriteByte(b)
+					sb.WriteByte(b)
 				}
-				s = buf.String()
+				s = sb.String()
 			}
 			if i := strings.IndexByte(s, '\x00'); i >= 0 {
 				s = s[:i]
@@ -582,11 +573,11 @@ func (cfg *Config) cmdSubst(cs *syntax.CmdSubst) (string, error) {
 	if cfg.CmdSubst == nil {
 		return "", UnexpectedCommandError{Node: cs}
 	}
-	buf := cfg.strBuilder()
-	if err := cfg.CmdSubst(buf, cs); err != nil {
+	sb := cfg.strBuilder()
+	if err := cfg.CmdSubst(sb, cs); err != nil {
 		return "", err
 	}
-	out := buf.String()
+	out := sb.String()
 	if strings.IndexByte(out, '\x00') >= 0 {
 		out = strings.ReplaceAll(out, "\x00", "")
 	}
@@ -636,7 +627,7 @@ func (cfg *Config) wordFields(wps []syntax.WordPart) ([][]fieldPart, error) {
 				s = rest
 			}
 			if strings.Contains(s, "\\") {
-				buf := cfg.strBuilder()
+				sb := cfg.strBuilder()
 				for i := 0; i < len(s); i++ {
 					b := s[i]
 					if b == '\\' {
@@ -645,9 +636,9 @@ func (cfg *Config) wordFields(wps []syntax.WordPart) ([][]fieldPart, error) {
 						}
 						b = s[i]
 					}
-					buf.WriteByte(b)
+					sb.WriteByte(b)
 				}
-				s = buf.String()
+				s = sb.String()
 			}
 			curField = append(curField, fieldPart{val: s})
 		case *syntax.SglQuoted:

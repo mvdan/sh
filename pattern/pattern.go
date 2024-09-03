@@ -323,17 +323,17 @@ loop:
 	if !needsEscaping { // short-cut without a string copy
 		return pat
 	}
-	var buf bytes.Buffer
+	var sb strings.Builder
 	for _, r := range pat {
 		switch r {
 		case '*', '?', '[', '\\':
-			buf.WriteByte('\\')
+			sb.WriteByte('\\')
 		case '{':
 			if mode&Braces != 0 {
-				buf.WriteByte('\\')
+				sb.WriteByte('\\')
 			}
 		}
-		buf.WriteRune(r)
+		sb.WriteRune(r)
 	}
-	return buf.String()
+	return sb.String()
 }

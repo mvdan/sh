@@ -218,15 +218,15 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 			n = -1
 		}
 		locs := findAllIndex(orig, str, n)
-		buf := cfg.strBuilder()
+		sb := cfg.strBuilder()
 		last := 0
 		for _, loc := range locs {
-			buf.WriteString(str[last:loc[0]])
-			buf.WriteString(with)
+			sb.WriteString(str[last:loc[0]])
+			sb.WriteString(with)
 			last = loc[1]
 		}
-		buf.WriteString(str[last:])
-		str = buf.String()
+		sb.WriteString(str[last:])
+		str = sb.String()
 	case pe.Exp != nil:
 		arg, err := Literal(cfg, pe.Exp.Word)
 		if err != nil {

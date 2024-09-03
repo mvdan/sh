@@ -3,7 +3,7 @@
 
 package syntax
 
-import "bytes"
+import "strings"
 
 // Simplify modifies a node to remove redundant pieces of syntax, and returns
 // whether any changes were made.
@@ -99,7 +99,7 @@ parts:
 		if lit == nil {
 			break
 		}
-		var buf bytes.Buffer
+		var sb strings.Builder
 		escaped := false
 		for _, r := range lit.Value {
 			switch r {
@@ -118,9 +118,9 @@ parts:
 				}
 				escaped = false
 			}
-			buf.WriteRune(r)
+			sb.WriteRune(r)
 		}
-		newVal := buf.String()
+		newVal := sb.String()
 		if newVal == lit.Value {
 			break
 		}
