@@ -1340,7 +1340,7 @@ func (p *Parser) paramExp() *ParamExp {
 			p.curErr("not a valid parameter expansion operator: %v", p.tok)
 		case pe.Excl && p.r == '}':
 			if !p.lang.isBash() {
-				p.posErr(pe.Pos(), `"${!foo`+p.tok.String()+`}" is a bash feature`)
+				p.posErr(pe.Pos(), `"${!foo%s}" is a bash feature`, p.tok)
 			}
 			pe.Names = ParNamesOperator(p.tok)
 			p.next()
