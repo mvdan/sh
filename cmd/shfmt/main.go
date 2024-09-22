@@ -323,6 +323,9 @@ func walkPath(path string, entry fs.DirEntry) error {
 	if entry.IsDir() && vcsDir.MatchString(entry.Name()) {
 		return filepath.SkipDir
 	}
+	if !entry.IsDir() && !entry.Type().IsRegular() {
+		return nil
+	}
 	// We don't know the language variant at this point yet, as we are walking directories
 	// and we first want to tell if we should skip a path entirely.
 	//
