@@ -3472,7 +3472,6 @@ func TestRunnerRun(t *testing.T) {
 
 	p := syntax.NewParser()
 	for _, c := range runTests {
-		c := c
 		t.Run("", func(t *testing.T) {
 			skipIfUnsupported(t, c.in)
 
@@ -3794,7 +3793,6 @@ func TestRunnerRunConfirm(t *testing.T) {
 		t.Skip("bash on Windows emulates Unix-y behavior")
 	}
 	for _, c := range runTests {
-		c := c
 		t.Run("", func(t *testing.T) {
 			if strings.Contains(c.want, " #IGNORE") {
 				return

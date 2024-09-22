@@ -45,7 +45,6 @@ func TestRunnerTerminalStdIO(t *testing.T) {
 		for n in 0 1 2 3; do if [[ -t $n ]]; then echo -n $n; fi; done; echo end
 	`)
 	for _, test := range tests {
-		test := test
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -125,7 +124,6 @@ func TestRunnerTerminalExec(t *testing.T) {
 		}, "012end\r\n"},
 	}
 	for _, test := range tests {
-		test := test
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 

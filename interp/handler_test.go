@@ -298,7 +298,6 @@ func TestKillTimeout(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		test := test
 		t.Run("", func(t *testing.T) {
 			t.Parallel()
 			file := parse(t, nil, test.src)
@@ -361,7 +360,6 @@ func TestKillSignal(t *testing.T) {
 	// signal directly. The program prints its PID and hangs forever.
 	file := parse(t, nil, "GOSH_CMD=pid_and_hang $GOSH_PROG")
 	for _, test := range tests {
-		test := test
 		t.Run(fmt.Sprintf("signal-%d", test.signal), func(t *testing.T) {
 			t.Parallel()
 
