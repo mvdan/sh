@@ -144,16 +144,16 @@ func encodeValue(val reflect.Value) (reflect.Value, string) {
 var (
 	noValue reflect.Value
 
-	anyType         = reflect.TypeOf((*any)(nil)).Elem()        // any
-	anySliceType    = reflect.SliceOf(anyType)                  // []any
-	posType         = reflect.TypeOf((*syntax.Pos)(nil)).Elem() // syntax.Pos
-	exportedPosType = reflect.TypeOf((*exportedPos)(nil))       // *exportedPos
+	anyType         = reflect.TypeFor[any]()
+	anySliceType    = reflect.TypeFor[[]any]()
+	posType         = reflect.TypeFor[syntax.Pos]()
+	exportedPosType = reflect.TypeFor[*exportedPos]()
 
 	// TODO(v4): derived fields like Type, Pos, and End should have clearly
 	// different names to prevent confusion. For example: _type, _pos, _end.
 	typeField = reflect.StructField{
 		Name: "Type",
-		Type: reflect.TypeOf((*string)(nil)).Elem(),
+		Type: reflect.TypeFor[string](),
 		Tag:  `json:",omitempty"`,
 	}
 	posField = reflect.StructField{
@@ -217,46 +217,46 @@ func (opts DecodeOptions) Decode(r io.Reader) (syntax.Node, error) {
 }
 
 var nodeByName = map[string]reflect.Type{
-	"File": reflect.TypeOf((*syntax.File)(nil)).Elem(),
-	"Word": reflect.TypeOf((*syntax.Word)(nil)).Elem(),
+	"File": reflect.TypeFor[syntax.File](),
+	"Word": reflect.TypeFor[syntax.Word](),
 
-	"Lit":       reflect.TypeOf((*syntax.Lit)(nil)).Elem(),
-	"SglQuoted": reflect.TypeOf((*syntax.SglQuoted)(nil)).Elem(),
-	"DblQuoted": reflect.TypeOf((*syntax.DblQuoted)(nil)).Elem(),
-	"ParamExp":  reflect.TypeOf((*syntax.ParamExp)(nil)).Elem(),
-	"CmdSubst":  reflect.TypeOf((*syntax.CmdSubst)(nil)).Elem(),
-	"CallExpr":  reflect.TypeOf((*syntax.CallExpr)(nil)).Elem(),
-	"ArithmExp": reflect.TypeOf((*syntax.ArithmExp)(nil)).Elem(),
-	"ProcSubst": reflect.TypeOf((*syntax.ProcSubst)(nil)).Elem(),
-	"ExtGlob":   reflect.TypeOf((*syntax.ExtGlob)(nil)).Elem(),
-	"BraceExp":  reflect.TypeOf((*syntax.BraceExp)(nil)).Elem(),
+	"Lit":       reflect.TypeFor[syntax.Lit](),
+	"SglQuoted": reflect.TypeFor[syntax.SglQuoted](),
+	"DblQuoted": reflect.TypeFor[syntax.DblQuoted](),
+	"ParamExp":  reflect.TypeFor[syntax.ParamExp](),
+	"CmdSubst":  reflect.TypeFor[syntax.CmdSubst](),
+	"CallExpr":  reflect.TypeFor[syntax.CallExpr](),
+	"ArithmExp": reflect.TypeFor[syntax.ArithmExp](),
+	"ProcSubst": reflect.TypeFor[syntax.ProcSubst](),
+	"ExtGlob":   reflect.TypeFor[syntax.ExtGlob](),
+	"BraceExp":  reflect.TypeFor[syntax.BraceExp](),
 
-	"ArithmCmd":    reflect.TypeOf((*syntax.ArithmCmd)(nil)).Elem(),
-	"BinaryCmd":    reflect.TypeOf((*syntax.BinaryCmd)(nil)).Elem(),
-	"IfClause":     reflect.TypeOf((*syntax.IfClause)(nil)).Elem(),
-	"ForClause":    reflect.TypeOf((*syntax.ForClause)(nil)).Elem(),
-	"WhileClause":  reflect.TypeOf((*syntax.WhileClause)(nil)).Elem(),
-	"CaseClause":   reflect.TypeOf((*syntax.CaseClause)(nil)).Elem(),
-	"Block":        reflect.TypeOf((*syntax.Block)(nil)).Elem(),
-	"Subshell":     reflect.TypeOf((*syntax.Subshell)(nil)).Elem(),
-	"FuncDecl":     reflect.TypeOf((*syntax.FuncDecl)(nil)).Elem(),
-	"TestClause":   reflect.TypeOf((*syntax.TestClause)(nil)).Elem(),
-	"DeclClause":   reflect.TypeOf((*syntax.DeclClause)(nil)).Elem(),
-	"LetClause":    reflect.TypeOf((*syntax.LetClause)(nil)).Elem(),
-	"TimeClause":   reflect.TypeOf((*syntax.TimeClause)(nil)).Elem(),
-	"CoprocClause": reflect.TypeOf((*syntax.CoprocClause)(nil)).Elem(),
-	"TestDecl":     reflect.TypeOf((*syntax.TestDecl)(nil)).Elem(),
+	"ArithmCmd":    reflect.TypeFor[syntax.ArithmCmd](),
+	"BinaryCmd":    reflect.TypeFor[syntax.BinaryCmd](),
+	"IfClause":     reflect.TypeFor[syntax.IfClause](),
+	"ForClause":    reflect.TypeFor[syntax.ForClause](),
+	"WhileClause":  reflect.TypeFor[syntax.WhileClause](),
+	"CaseClause":   reflect.TypeFor[syntax.CaseClause](),
+	"Block":        reflect.TypeFor[syntax.Block](),
+	"Subshell":     reflect.TypeFor[syntax.Subshell](),
+	"FuncDecl":     reflect.TypeFor[syntax.FuncDecl](),
+	"TestClause":   reflect.TypeFor[syntax.TestClause](),
+	"DeclClause":   reflect.TypeFor[syntax.DeclClause](),
+	"LetClause":    reflect.TypeFor[syntax.LetClause](),
+	"TimeClause":   reflect.TypeFor[syntax.TimeClause](),
+	"CoprocClause": reflect.TypeFor[syntax.CoprocClause](),
+	"TestDecl":     reflect.TypeFor[syntax.TestDecl](),
 
-	"UnaryArithm":  reflect.TypeOf((*syntax.UnaryArithm)(nil)).Elem(),
-	"BinaryArithm": reflect.TypeOf((*syntax.BinaryArithm)(nil)).Elem(),
-	"ParenArithm":  reflect.TypeOf((*syntax.ParenArithm)(nil)).Elem(),
+	"UnaryArithm":  reflect.TypeFor[syntax.UnaryArithm](),
+	"BinaryArithm": reflect.TypeFor[syntax.BinaryArithm](),
+	"ParenArithm":  reflect.TypeFor[syntax.ParenArithm](),
 
-	"UnaryTest":  reflect.TypeOf((*syntax.UnaryTest)(nil)).Elem(),
-	"BinaryTest": reflect.TypeOf((*syntax.BinaryTest)(nil)).Elem(),
-	"ParenTest":  reflect.TypeOf((*syntax.ParenTest)(nil)).Elem(),
+	"UnaryTest":  reflect.TypeFor[syntax.UnaryTest](),
+	"BinaryTest": reflect.TypeFor[syntax.BinaryTest](),
+	"ParenTest":  reflect.TypeFor[syntax.ParenTest](),
 
-	"WordIter":   reflect.TypeOf((*syntax.WordIter)(nil)).Elem(),
-	"CStyleLoop": reflect.TypeOf((*syntax.CStyleLoop)(nil)).Elem(),
+	"WordIter":   reflect.TypeFor[syntax.WordIter](),
+	"CStyleLoop": reflect.TypeFor[syntax.CStyleLoop](),
 }
 
 func decodeValue(val reflect.Value, enc any) error {
