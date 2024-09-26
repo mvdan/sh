@@ -4574,8 +4574,8 @@ func recursiveSanityCheck(tb testing.TB, src string, v any) {
 		}
 		offs := pos.Offset()
 		if offs > uint(len(src)) {
-			tb.Errorf("Pos %d in %T is out of bounds in %q",
-				pos, v, src)
+			tb.Errorf("Pos offset %d in %T is out of bounds in %q",
+				offs, v, src)
 			return
 		}
 		if len(strs) == 0 {
