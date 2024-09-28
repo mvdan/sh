@@ -2495,19 +2495,25 @@ func TestIsIncomplete(t *testing.T) {
 	}
 }
 
-func TestBackquotesPos(t *testing.T) {
-	in := "`\\\\foo`"
+func TestPosEdgeCases(t *testing.T) {
+	in := "`\\\\foo`\n" + // one escaped backslash and 3 bytes
+		"\x00foo\x00bar\n" // 8 bytes and newline
 	p := NewParser()
 	f, err := p.Parse(strings.NewReader(in), "")
 	qt.Assert(t, qt.IsNil(err))
 	cmdSubst := f.Stmts[0].Cmd.(*CallExpr).Args[0].Parts[0].(*CmdSubst)
 	lit := cmdSubst.Stmts[0].Cmd.(*CallExpr).Args[0].Parts[0].(*Lit)
 
-	qt.Assert(t, qt.Equals(lit.Value, lit.Value))
+	qt.Check(t, qt.Equals(lit.Value, lit.Value))
 	// Note that positions of literals with escape sequences inside backquote command substitutions
 	// are weird, since we effectively skip over the double escaping in the literal value and positions.
 	// Even though the input source has '\\foo' between columns 2 and 7 (length 5)
 	// we end up keeping '\foo' between columns 3 and 7 (length 4).
-	qt.Assert(t, qt.Equals(lit.ValuePos.String(), "1:2"))
-	qt.Assert(t, qt.Equals(lit.ValueEnd.String(), "1:7"))
+	qt.Check(t, qt.Equals(lit.ValuePos.String(), "1:2"))
+	qt.Check(t, qt.Equals(lit.ValueEnd.String(), "1:7"))
+
+	// TODO: skip over null bytes in position columns,
+	// as they aren't part of the words at all.
+	qt.Check(t, qt.Equals(f.Stmts[1].Pos().String(), "2:1"))
+	qt.Check(t, qt.Equals(f.Stmts[1].End().String(), "2:7"))
 }
