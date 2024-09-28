@@ -1296,7 +1296,7 @@ var shellTests = []errorCase{
 	},
 	{
 		in:     "`\\```",
-		common: "1:2: reached EOF without closing quote `",
+		common: "1:3: reached EOF without closing quote `",
 	},
 	{
 		in:     "`{\n`",
@@ -2509,7 +2509,7 @@ func TestPosEdgeCases(t *testing.T) {
 	// are weird, since we effectively skip over the double escaping in the literal value and positions.
 	// Even though the input source has '\\foo' between columns 2 and 7 (length 5)
 	// we end up keeping '\foo' between columns 3 and 7 (length 4).
-	qt.Check(t, qt.Equals(lit.ValuePos.String(), "1:2"))
+	qt.Check(t, qt.Equals(lit.ValuePos.String(), "1:3"))
 	qt.Check(t, qt.Equals(lit.ValueEnd.String(), "1:7"))
 
 	// Check that we skip over null bytes when counting columns.

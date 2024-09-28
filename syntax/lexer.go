@@ -92,6 +92,7 @@ retry:
 					// so we remove the extra backslashes needed by the backquotes.
 					// For good position information, we still include them in p.w.
 					bquotes++
+					p.col++
 					goto retry
 				}
 			}
@@ -101,7 +102,7 @@ retry:
 			if p.litBs != nil {
 				p.litBs = append(p.litBs, b)
 			}
-			p.w, p.r = 1+bquotes, rune(b)
+			p.w, p.r = 1, rune(b)
 			return p.r
 		}
 		if !utf8.FullRune(p.bs[p.bsp:]) {
@@ -821,9 +822,6 @@ func (p *Parser) newLit(r rune) {
 func (p *Parser) endLit() (s string) {
 	if p.r == utf8.RuneSelf || p.r == escNewl {
 		s = string(p.litBs)
-	} else if p.r == '`' && p.w > 1 {
-		// If we ended at a nested and escaped backquote, litBs does not include the backslash.
-		s = string(p.litBs[:len(p.litBs)-1])
 	} else {
 		s = string(p.litBs[:len(p.litBs)-p.w])
 	}
