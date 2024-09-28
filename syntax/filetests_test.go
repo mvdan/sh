@@ -2571,7 +2571,7 @@ var fileTests = []testCase{
 				Param: lit("b"),
 				Exp: &Expansion{
 					Op:   OtherParamOps,
-					Word: litWord("a"),
+					Word: litWord("k"),
 				},
 			}),
 		),
