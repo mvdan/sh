@@ -72,6 +72,7 @@ retry:
 			p.bsp++
 			if b == '\x00' {
 				// Ignore null bytes while parsing, like bash.
+				p.col++
 				goto retry
 			}
 			if b == '\\' {

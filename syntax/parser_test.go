@@ -2512,8 +2512,7 @@ func TestPosEdgeCases(t *testing.T) {
 	qt.Check(t, qt.Equals(lit.ValuePos.String(), "1:2"))
 	qt.Check(t, qt.Equals(lit.ValueEnd.String(), "1:7"))
 
-	// TODO: skip over null bytes in position columns,
-	// as they aren't part of the words at all.
-	qt.Check(t, qt.Equals(f.Stmts[1].Pos().String(), "2:1"))
-	qt.Check(t, qt.Equals(f.Stmts[1].End().String(), "2:7"))
+	// Check that we skip over null bytes when counting columns.
+	qt.Check(t, qt.Equals(f.Stmts[1].Pos().String(), "2:2"))
+	qt.Check(t, qt.Equals(f.Stmts[1].End().String(), "2:9"))
 }
