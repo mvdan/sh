@@ -4,6 +4,7 @@
 package expand
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 	"io"
@@ -105,12 +106,8 @@ var zeroConfig = &Config{}
 // which doesn't feel right - we should make a copy.
 
 func prepareConfig(cfg *Config) *Config {
-	if cfg == nil {
-		cfg = zeroConfig
-	}
-	if cfg.Env == nil {
-		cfg.Env = FuncEnviron(func(string) string { return "" })
-	}
+	cfg = cmp.Or(cfg, zeroConfig)
+	cfg.Env = cmp.Or(cfg.Env, FuncEnviron(func(string) string { return "" }))
 
 	cfg.ifs = " \t\n"
 	if vr := cfg.Env.Get("IFS"); vr.IsSet() {
