@@ -57,6 +57,13 @@ stdout 'regular\.sh'
 ! stdout 'ignored\.sh'
 ! stderr .
 
+# EditorConfig ignore=true properties are obeyed even when any formatting flags
+# are used, which cause formatting options from EditorConfig files to be skipped.
+exec shfmt -i=0 -l ignored
+stdout 'regular\.sh'
+! stdout 'ignored\.sh'
+! stderr .
+
 # Formatting files directly does not obey ignore=true properties by default.
 # Test the various modes in which shfmt can run.
 ! exec shfmt -l input.sh ignored/1_lone_ignored.sh ignored/third_party/bad_syntax_ignored.sh
