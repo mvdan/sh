@@ -63,7 +63,7 @@ $ echo '$((foo); (bar))' | shfmt
 1:1: reached ) without matching $(( with ))
 ```
 
-* Some builtins like `export` and `let` are parsed as keywords.
+* `export`, `let`, and `declare` are parsed as keywords.
   This allows statically building their syntax tree,
   as opposed to keeping the arguments as a slice of words.
   It is also required to support `declare foo=(bar)`.
