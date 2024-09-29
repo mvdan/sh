@@ -23,7 +23,7 @@ func KeepComments(enabled bool) ParserOption {
 }
 
 // LangVariant describes a shell language variant to use when tokenizing and
-// parsing shell code. The zero value is LangBash.
+// parsing shell code. The zero value is [LangBash].
 type LangVariant int
 
 const (
@@ -62,7 +62,7 @@ const (
 	// commonly used by end-user applications like shfmt,
 	// which can guess a file's language variant given its filename or shebang.
 	//
-	// At this time, the Parser does not support LangAuto.
+	// At this time, [Variant] does not support LangAuto.
 	LangAuto
 )
 
@@ -143,7 +143,7 @@ func StopAt(word string) ParserOption {
 	return func(p *Parser) { p.stopAt = []byte(word) }
 }
 
-// NewParser allocates a new Parser and applies any number of options.
+// NewParser allocates a new [Parser] and applies any number of options.
 func NewParser(options ...ParserOption) *Parser {
 	p := &Parser{}
 	for _, opt := range options {
