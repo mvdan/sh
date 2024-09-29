@@ -932,6 +932,7 @@ var fileTests = []testCase{
 			"foo <<EOF\nbar\nEOF",
 			"foo <<EOF \nbar\nEOF",
 			"foo <<EOF\t\nbar\nEOF",
+			"foo <<EOF\r\nbar\r\nEOF\r\n",
 		},
 		common: &Stmt{
 			Cmd: litCall("foo"),
@@ -1389,6 +1390,7 @@ var fileTests = []testCase{
 		Strs: []string{
 			"foo <<'EOF'\nbar\\\nEOF",
 			"foo <<'EOF'\nbar\\\r\nEOF",
+			"foo <<'EOF'\nbar\\\r\nEOF\r\n",
 		},
 		common: &Stmt{
 			Cmd: litCall("foo"),
@@ -1400,7 +1402,10 @@ var fileTests = []testCase{
 		},
 	},
 	{
-		Strs: []string{"foo <<-EOF\n\tbar\nEOF"},
+		Strs: []string{
+			"foo <<-EOF\n\tbar\nEOF",
+			"foo <<-EOF\r\n\tbar\r\nEOF\r\n",
+		},
 		common: &Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*Redirect{{
@@ -4592,18 +4597,12 @@ func recursiveSanityCheck(tb testing.TB, src string, v any) {
 			if i == 0 {
 				gotErr = got
 			}
+			got = strings.ReplaceAll(got, "\x00", "")
+			got = strings.ReplaceAll(got, "\r\n", "\n")
 			if !strings.Contains(want, "\\\n") {
 				// Hack to let "foobar" match the input "foo\\\nbar".
 				got = strings.ReplaceAll(got, "\\\n", "")
-			} else {
-				// Hack to let "\\\n" match the input "\\\r\n".
-				got = strings.ReplaceAll(got, "\\\r\n", "\\\n")
 			}
-			if !strings.Contains(want, "\\\r\n") {
-				// Hack to let "foobar" match the input "foo\\\r\nbar".
-				got = strings.ReplaceAll(got, "\\\r\n", "")
-			}
-			got = strings.ReplaceAll(got, "\x00", "")
 			if strings.HasPrefix(got, want) {
 				return
 			}

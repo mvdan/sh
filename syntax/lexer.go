@@ -70,18 +70,24 @@ retry:
 	if p.bsp < uint(len(p.bs)) {
 		if b := p.bs[p.bsp]; b < utf8.RuneSelf {
 			p.bsp++
-			if b == '\x00' {
+			switch b {
+			case '\x00':
 				// Ignore null bytes while parsing, like bash.
 				p.col++
 				goto retry
-			}
-			if b == '\\' {
+			case '\r':
+				if p.peekByte('\n') { // \r\n turns into \n
+					p.col++
+					goto retry
+				}
+			case '\\':
 				if p.r == '\\' {
 				} else if p.peekByte('\n') {
 					p.bsp++
 					p.w, p.r = 1, escNewl
 					return escNewl
-				} else if p.peekBytes("\r\n") {
+				} else if p.peekBytes("\r\n") { // \\\r\n turns into \\\n
+					p.col++
 					p.bsp += 2
 					p.w, p.r = 2, escNewl
 					return escNewl
@@ -90,7 +96,6 @@ retry:
 					p.bsp < uint(len(p.bs)) && bquoteEscaped(p.bs[p.bsp]) {
 					// We turn backquote command substitutions into $(),
 					// so we remove the extra backslashes needed by the backquotes.
-					// For good position information, we still include them in p.w.
 					bquotes++
 					p.col++
 					goto retry
