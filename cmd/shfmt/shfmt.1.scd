@@ -99,8 +99,9 @@ predictable. Some aspects of the format can be configured via printer flags.
 
 ## Utility flags
 
-*-f*, *--find*
-	Recursively find all shell files and print the paths.
+*-f[=0]*, *--find[=0]*
+	Recursively find all shell files and print the paths;
+	paths are separated by a newline or a null character if -f=0.
 
 *--to-json*
 	Print syntax tree to stdout as a typed JSON.

@@ -49,7 +49,7 @@ var (
 	write       = &multiFlag[bool]{"w", "write", false}
 	simplify    = &multiFlag[bool]{"s", "simplify", false}
 	minify      = &multiFlag[bool]{"mn", "minify", false}
-	find        = &multiFlag[bool]{"f", "find", false}
+	find        = &multiFlag[boolString]{"f", "find", "false"}
 	diff        = &multiFlag[bool]{"d", "diff", false}
 	applyIgnore = &multiFlag[bool]{"", "apply-ignore", false}
 
@@ -172,9 +172,10 @@ Printer options:
 
 Utilities:
 
-  -f, --find   recursively find all shell files and print the paths
-  --to-json    print syntax tree to stdout as a typed JSON
-  --from-json  read syntax tree from stdin as a typed JSON
+  -f[=0], --find[=0]  recursively find all shell files and print the paths;
+                      paths are separated by a newline or a null character if -f=0
+  --to-json           print syntax tree to stdout as a typed JSON
+  --from-json         read syntax tree from stdin as a typed JSON
 
 For more information, see 'man shfmt' and https://github.com/mvdan/sh.
 `)
@@ -199,6 +200,10 @@ For more information, see 'man shfmt' and https://github.com/mvdan/sh.
 	}
 	if list.val != "true" && list.val != "false" && list.val != "0" {
 		fmt.Fprintf(os.Stderr, "only -l and -l=0 allowed\n")
+		return 1
+	}
+	if find.val != "true" && find.val != "false" && find.val != "0" {
+		fmt.Fprintf(os.Stderr, "only -f and -f=0 allowed\n")
 		return 1
 	}
 	if minify.val {
@@ -268,7 +273,7 @@ For more information, see 'man shfmt' and https://github.com/mvdan/sh.
 	}
 	status := 0
 	for _, path := range flag.Args() {
-		if info, err := os.Stat(path); err == nil && !info.IsDir() && !applyIgnore.val && !find.val {
+		if info, err := os.Stat(path); err == nil && !info.IsDir() && !applyIgnore.val && find.val == "false" {
 			// When given paths to files directly, always format them,
 			// no matter their extension or shebang.
 			//
@@ -442,8 +447,13 @@ func formatPath(path string, checkShebang bool) error {
 		}
 		readBuf.Write(copyBuf[:n])
 	}
-	if find.val {
+	switch find.val {
+	case "true":
 		fmt.Println(path)
+		return nil
+	case "0":
+		fmt.Print(path)
+		fmt.Print("\000")
 		return nil
 	}
 	if _, err := io.CopyBuffer(&readBuf, f, copyBuf); err != nil {
