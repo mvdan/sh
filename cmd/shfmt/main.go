@@ -27,6 +27,16 @@ import (
 	"mvdan.cc/sh/v3/syntax/typedjson"
 )
 
+type boolString string
+
+func (s *boolString) Set(val string) error {
+	*s = boolString(val)
+	return nil
+}
+func (s *boolString) Get() any       { return string(*s) }
+func (s *boolString) String() string { return string(*s) }
+func (*boolString) IsBoolFlag() bool { return true }
+
 type multiFlag[T any] struct {
 	short, long string
 	val         T
@@ -34,12 +44,12 @@ type multiFlag[T any] struct {
 
 var (
 	versionFlag = &multiFlag[bool]{"", "version", false}
-	list        = &multiFlag[bool]{"l", "list", false}
+	list        = &multiFlag[boolString]{"l", "list", "false"}
 
 	write       = &multiFlag[bool]{"w", "write", false}
 	simplify    = &multiFlag[bool]{"s", "simplify", false}
 	minify      = &multiFlag[bool]{"mn", "minify", false}
-	find        = &multiFlag[bool]{"f", "find", false}
+	find        = &multiFlag[boolString]{"f", "find", "false"}
 	diff        = &multiFlag[bool]{"d", "diff", false}
 	applyIgnore = &multiFlag[bool]{"", "apply-ignore", false}
 
@@ -89,6 +99,13 @@ func init() {
 			if name := f.long; name != "" {
 				flag.BoolVar(&f.val, name, f.val, "")
 			}
+		case *multiFlag[boolString]:
+			if name := f.short; name != "" {
+				flag.Var(&f.val, name, "")
+			}
+			if name := f.long; name != "" {
+				flag.Var(&f.val, name, "")
+			}
 		case *multiFlag[string]:
 			if name := f.short; name != "" {
 				flag.StringVar(&f.val, name, f.val, "")
@@ -130,13 +147,14 @@ directory, all shell scripts found under that directory will be used.
 
   --version  show version and exit
 
-  -l,  --list      list files whose formatting differs from shfmt's
-  -w,  --write     write result to file instead of stdout
-  -d,  --diff      error with a diff when the formatting differs
-  -s,  --simplify  simplify the code
-  -mn, --minify    minify the code to reduce its size (implies -s)
-  --apply-ignore   always apply EditorConfig ignore rules
-  --filename str   provide a name for the standard input file
+  -l[=0], --list[=0]  list files whose formatting differs from shfmt;
+                      paths are separated by a newline or a null character if -l=0
+  -w,     --write     write result to file instead of stdout
+  -d,     --diff      error with a diff when the formatting differs
+  -s,     --simplify  simplify the code
+  -mn,    --minify    minify the code to reduce its size (implies -s)
+  --apply-ignore      always apply EditorConfig ignore rules
+  --filename str      provide a name for the standard input file
 
 Parser options:
 
@@ -154,9 +172,10 @@ Printer options:
 
 Utilities:
 
-  -f, --find   recursively find all shell files and print the paths
-  --to-json    print syntax tree to stdout as a typed JSON
-  --from-json  read syntax tree from stdin as a typed JSON
+  -f[=0], --find[=0]  recursively find all shell files and print the paths;
+                      paths are separated by a newline or a null character if -f=0
+  --to-json           print syntax tree to stdout as a typed JSON
+  --from-json         read syntax tree from stdin as a typed JSON
 
 Formatting options can also be read from EditorConfig files; see 'man shfmt'
 for a detailed description of the tool's behavior.
@@ -179,6 +198,14 @@ For more information and to report bugs, see https://github.com/mvdan/sh.
 	}
 	if posix.val && lang.val != syntax.LangAuto {
 		fmt.Fprintf(os.Stderr, "-p and -ln=lang cannot coexist\n")
+		return 1
+	}
+	if list.val != "true" && list.val != "false" && list.val != "0" {
+		fmt.Fprintf(os.Stderr, "only -l and -l=0 allowed\n")
+		return 1
+	}
+	if find.val != "true" && find.val != "false" && find.val != "0" {
+		fmt.Fprintf(os.Stderr, "only -f and -f=0 allowed\n")
 		return 1
 	}
 	if minify.val {
@@ -248,7 +275,7 @@ For more information and to report bugs, see https://github.com/mvdan/sh.
 	}
 	status := 0
 	for _, path := range flag.Args() {
-		if info, err := os.Stat(path); err == nil && !info.IsDir() && !applyIgnore.val && !find.val {
+		if info, err := os.Stat(path); err == nil && !info.IsDir() && !applyIgnore.val && find.val == "false" {
 			// When given paths to files directly, always format them,
 			// no matter their extension or shebang.
 			//
@@ -424,8 +451,13 @@ func formatPath(path string, checkShebang bool) error {
 		}
 		readBuf.Write(copyBuf[:n])
 	}
-	if find.val {
+	switch find.val {
+	case "true":
 		fmt.Println(path)
+		return nil
+	case "0":
+		fmt.Print(path)
+		fmt.Print("\000")
 		return nil
 	}
 	if _, err := io.CopyBuffer(&readBuf, f, copyBuf); err != nil {
@@ -492,8 +524,12 @@ func formatBytes(src []byte, path string, fileLang syntax.LangVariant) error {
 	printer.Print(&writeBuf, node)
 	res := writeBuf.Bytes()
 	if !bytes.Equal(src, res) {
-		if list.val {
+		switch list.val {
+		case "true":
 			fmt.Println(path)
+		case "0":
+			fmt.Print(path)
+			fmt.Print("\000")
 		}
 		if write.val {
 			info, err := os.Lstat(path)
@@ -537,7 +573,7 @@ func formatBytes(src []byte, path string, fileLang syntax.LangVariant) error {
 			return errChangedWithDiff
 		}
 	}
-	if !list.val && !write.val && !diff.val {
+	if list.val == "false" && !write.val && !diff.val {
 		os.Stdout.Write(res)
 	}
 	return nil
