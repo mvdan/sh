@@ -28,8 +28,9 @@ predictable. Some aspects of the format can be configured via printer flags.
 *--version*
 	Show version and exit.
 
-*-l*, *--list*
-	List files whose formatting differs from shfmt's.
+*-l[=0]*, *--list[=0]*
+	List files whose formatting differs from shfmt's;
+	paths are separated by a newline or a null character if -l=0
 
 *-w*, *--write*
 	Write result to file instead of stdout.

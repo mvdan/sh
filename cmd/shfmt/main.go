@@ -44,7 +44,7 @@ type multiFlag[T any] struct {
 
 var (
 	versionFlag = &multiFlag[bool]{"", "version", false}
-	list        = &multiFlag[bool]{"l", "list", false}
+	list        = &multiFlag[boolString]{"l", "list", "false"}
 
 	write       = &multiFlag[bool]{"w", "write", false}
 	simplify    = &multiFlag[bool]{"s", "simplify", false}
@@ -99,6 +99,13 @@ func init() {
 			if name := f.long; name != "" {
 				flag.BoolVar(&f.val, name, f.val, "")
 			}
+		case *multiFlag[boolString]:
+			if name := f.short; name != "" {
+				flag.Var(&f.val, name, "")
+			}
+			if name := f.long; name != "" {
+				flag.Var(&f.val, name, "")
+			}
 		case *multiFlag[string]:
 			if name := f.short; name != "" {
 				flag.StringVar(&f.val, name, f.val, "")
@@ -140,12 +147,13 @@ directory, all shell scripts found under that directory will be used.
 
   --version  show version and exit
 
-  -l,  --list      list files whose formatting differs from shfmt's
-  -w,  --write     write result to file instead of stdout
-  -d,  --diff      error with a diff when the formatting differs
-  -s,  --simplify  simplify the code
-  -mn, --minify    minify the code to reduce its size (implies -s)
-  --apply-ignore   always apply EditorConfig ignore rules
+  -l[=0], --list[=0]  list files whose formatting differs from shfmt;
+                      paths are separated by a newline or a null character if -l=0
+  -w,     --write     write result to file instead of stdout
+  -d,     --diff      error with a diff when the formatting differs
+  -s,     --simplify  simplify the code
+  -mn,    --minify    minify the code to reduce its size (implies -s)
+  --apply-ignore      always apply EditorConfig ignore rules
 
 Parser options:
 
@@ -187,6 +195,10 @@ For more information, see 'man shfmt' and https://github.com/mvdan/sh.
 	}
 	if posix.val && lang.val != syntax.LangAuto {
 		fmt.Fprintf(os.Stderr, "-p and -ln=lang cannot coexist\n")
+		return 1
+	}
+	if list.val != "true" && list.val != "false" && list.val != "0" {
+		fmt.Fprintf(os.Stderr, "only -l and -l=0 allowed\n")
 		return 1
 	}
 	if minify.val {
@@ -494,8 +506,12 @@ func formatBytes(src []byte, path string, fileLang syntax.LangVariant) error {
 	printer.Print(&writeBuf, node)
 	res := writeBuf.Bytes()
 	if !bytes.Equal(src, res) {
-		if list.val {
+		switch list.val {
+		case "true":
 			fmt.Println(path)
+		case "0":
+			fmt.Print(path)
+			fmt.Print("\000")
 		}
 		if write.val {
 			info, err := os.Lstat(path)
@@ -539,7 +555,7 @@ func formatBytes(src []byte, path string, fileLang syntax.LangVariant) error {
 			return errChangedWithDiff
 		}
 	}
-	if !list.val && !write.val && !diff.val {
+	if list.val == "false" && !write.val && !diff.val {
 		os.Stdout.Write(res)
 	}
 	return nil
