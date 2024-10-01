@@ -27,6 +27,16 @@ import (
 	"mvdan.cc/sh/v3/syntax/typedjson"
 )
 
+type boolString string
+
+func (s *boolString) Set(val string) error {
+	*s = boolString(val)
+	return nil
+}
+func (s *boolString) Get() any       { return string(*s) }
+func (s *boolString) String() string { return string(*s) }
+func (*boolString) IsBoolFlag() bool { return true }
+
 type multiFlag[T any] struct {
 	short, long string
 	val         T
