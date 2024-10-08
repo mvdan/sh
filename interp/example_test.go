@@ -28,6 +28,7 @@ func Example() {
 	`
 	file, _ := syntax.NewParser().Parse(strings.NewReader(src), "")
 	runner, _ := interp.New(
+		// Use [interp.Interactive] to enable interactive shell defaults like expanding aliases.
 		interp.Env(expand.ListEnviron("GLOBAL=global_value")),
 		interp.StdIO(nil, os.Stdout, os.Stdout),
 	)

@@ -33,7 +33,7 @@ func main() {
 }
 
 func runAll() error {
-	r, err := interp.New(interp.StdIO(os.Stdin, os.Stdout, os.Stderr))
+	r, err := interp.New(interp.Interactive(true), interp.StdIO(os.Stdin, os.Stdout, os.Stderr))
 	if err != nil {
 		return err
 	}

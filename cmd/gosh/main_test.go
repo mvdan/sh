@@ -179,11 +179,10 @@ var interactiveTests = []struct {
 		pairs: []string{
 			"gosh_alias arg || true\n",
 			"\"gosh_alias\": executable file not found in $PATH\n$ ",
-			// TODO: aliases should be expanded by default, gosh is an interactive shell
 			"alias gosh_alias=echo\n",
 			"$ ",
 			"gosh_alias arg || true\n",
-			"\"gosh_alias\": executable file not found in $PATH\n$ ",
+			"arg\n$ ",
 			"unalias gosh_alias\n",
 			"$ ",
 			"gosh_alias arg || true\n",
@@ -200,7 +199,7 @@ func TestInteractive(t *testing.T) {
 			qt.Assert(t, qt.IsNil(err))
 			outReader, outWriter, err := os.Pipe()
 			qt.Assert(t, qt.IsNil(err))
-			runner, _ := interp.New(interp.StdIO(inReader, outWriter, outWriter))
+			runner, _ := interp.New(interp.Interactive(true), interp.StdIO(inReader, outWriter, outWriter))
 			errc := make(chan error, 1)
 			go func() {
 				errc <- runInteractive(runner, inReader, outWriter, outWriter)
@@ -255,7 +254,7 @@ func TestInteractiveExit(t *testing.T) {
 		inWriter.Close()
 	}()
 	w := io.Discard
-	runner, _ := interp.New(interp.StdIO(inReader, w, w))
+	runner, _ := interp.New(interp.Interactive(true), interp.StdIO(inReader, w, w))
 	if err := runInteractive(runner, inReader, w, w); err != nil {
 		t.Fatal("expected a nil error")
 	}

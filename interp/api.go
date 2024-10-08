@@ -192,15 +192,15 @@ func New(opts ...RunnerOption) (*Runner, error) {
 		statHandler:    DefaultStatHandler(),
 	}
 	r.dirStack = r.dirBootstrap[:0]
+	// turn "on" the default Bash options
+	for i, opt := range bashOptsTable {
+		r.opts[len(shellOptsTable)+i] = opt.defaultState
+	}
+
 	for _, opt := range opts {
 		if err := opt(r); err != nil {
 			return nil, err
 		}
-	}
-
-	// turn "on" the default Bash options
-	for i, opt := range bashOptsTable {
-		r.opts[len(shellOptsTable)+i] = opt.defaultState
 	}
 
 	// Set the default fallbacks, if necessary.
@@ -262,6 +262,16 @@ func Dir(path string) RunnerOption {
 			return fmt.Errorf("%s is not a directory", path)
 		}
 		r.Dir = path
+		return nil
+	}
+}
+
+// Interactive configures the interpreter to behave like an interactive shell,
+// akin to Bash. Currently, this only enables the expansion of aliases,
+// but later on it should also change other behavior.
+func Interactive(enabled bool) RunnerOption {
+	return func(r *Runner) error {
+		r.opts[optExpandAliases] = enabled
 		return nil
 	}
 }
