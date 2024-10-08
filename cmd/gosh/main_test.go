@@ -175,6 +175,21 @@ var interactiveTests = []struct {
 		},
 		wantErr: "1:1: reached EOF without matching ( with )",
 	},
+	{
+		pairs: []string{
+			"gosh_alias arg || true\n",
+			"\"gosh_alias\": executable file not found in $PATH\n$ ",
+			// TODO: aliases should be expanded by default, gosh is an interactive shell
+			"alias gosh_alias=echo\n",
+			"$ ",
+			"gosh_alias arg || true\n",
+			"\"gosh_alias\": executable file not found in $PATH\n$ ",
+			"unalias gosh_alias\n",
+			"$ ",
+			"gosh_alias arg || true\n",
+			"\"gosh_alias\": executable file not found in $PATH\n$ ",
+		},
+	},
 }
 
 func TestInteractive(t *testing.T) {
