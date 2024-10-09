@@ -183,9 +183,9 @@ foo
 #!/bin/envsh
  foo
 
--- skip/ext.zsh
+-- skip/ext.zsh --
 foo
--- skip/shebang-zsh
+-- skip/shebang-zsh --
 #!/bin/zsh
 foo
 -- skip/.git/ext.sh --
