@@ -93,6 +93,9 @@ predictable. Some aspects of the format can be configured via printer flags.
 *-kp*, *--keep-padding*
 	Keep column alignment paddings.
 
+	This flag is *DEPRECATED* and will be removed in the next major version.
+	For more information, see: https://github.com/mvdan/sh/issues/658
+
 *-fn*, *--func-next-line*
 	Function opening braces are placed on a separate line.
 

@@ -55,6 +55,11 @@ func SpaceRedirects(enabled bool) PrinterOption {
 // Note that this feature is best-effort and will only keep the
 // alignment stable, so it may need some human help the first time it is
 // run.
+//
+// Deprecated: this formatting option is flawed and buggy, and often does
+// not result in what the user wants when the code gets complex enough.
+// The next major version, v4, will remove this feature entirely.
+// See: https://github.com/mvdan/sh/issues/658
 func KeepPadding(enabled bool) PrinterOption {
 	return func(p *Printer) {
 		if enabled && !p.keepPadding {
