@@ -54,6 +54,12 @@ predictable. Some aspects of the format can be configured via printer flags.
 	Should be useful to any tools or editors which format stdin or a single file.
 	When printing results to stdout, an ignored file results in no output at all.
 
+*--filename* str
+	Provide a name for the standard input file.
+
+	Use of this flag is necessary for EditorConfig support to work with stdin,
+	since EditorConfig files are found relative to the location of a script.
+
 ## Parser flags
 
 *-ln*, *--language-dialect* <str>
@@ -69,12 +75,6 @@ predictable. Some aspects of the format can be configured via printer flags.
 
 *-p*, *--posix*
 	Shorthand for *-ln=posix*.
-
-*--filename* str
-	Provide a name for the standard input file.
-
-	Use of this flag is necessary for EditorConfig support to work with stdin,
-	since EditorConfig files are found relative to the location of a script.
 
 ## Printer flags
 
