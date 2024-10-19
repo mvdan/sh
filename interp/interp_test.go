@@ -2905,6 +2905,10 @@ done <<< 2`,
 		"while read a; do echo $a; GOSH_CMD=exec_ok $GOSH_PROG; done <<EOF\na\nb\nc\nEOF",
 		"a\nexec ok\nb\nexec ok\nc\nexec ok\n",
 	},
+	{
+		"echo file1 >f; echo file2 >>f; while read a; do echo $a; done <f",
+		"file1\nfile2\n",
+	},
 	// TODO: our final exit status here isn't right.
 	// {
 	// 	"while read a; do echo $a; GOSH_CMD=exec_fail $GOSH_PROG; done <<< 'a\nb\nc'",

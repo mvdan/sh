@@ -10,6 +10,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -942,34 +943,43 @@ func (r *Runner) readLine(ctx context.Context, raw bool) ([]byte, error) {
 	var line []byte
 	esc := false
 
-	cr, err := cancelreader.NewReader(r.stdin)
-	if err != nil {
-		return nil, err
+	stdin := io.Reader(r.stdin)
+	// [cancelreader.NewReader] may fail under some circumstances, such as r.stdin being
+	// a regular file on Linux, in which case epoll returns an "operation not permitted" error
+	// given that regular files can always be read immediately. Polling them makes no sense.
+	// As such, if cancelreader fails, fall back to no cancellation, meaning this is best-effort.
+	//
+	// TODO: it would be nice if the cancelreader library classified errors so that we could
+	// safely handle "this file does not need polling" by skipping the polling as we do below
+	// but still fail on other errors, which may be unexpected or hide bugs.
+	// See the upstream issue: https://github.com/muesli/cancelreader/issues/23
+	if cr, err := cancelreader.NewReader(r.stdin); err == nil {
+		done := make(chan struct{})
+		var wg sync.WaitGroup
+		wg.Add(1)
+		go func() {
+			select {
+			case <-ctx.Done():
+				cr.Cancel()
+			case <-done:
+			}
+			wg.Done()
+		}()
+		defer func() {
+			close(done)
+			wg.Wait()
+			// Could put the Close in the above goroutine, but if "read" is
+			// immediately called again, the Close might overlap with creating a
+			// new cancelreader. Want this cancelreader to be completely closed
+			// by the time readLine returns.
+			cr.Close()
+		}()
+		stdin = cr
 	}
-	done := make(chan struct{})
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		select {
-		case <-ctx.Done():
-			cr.Cancel()
-		case <-done:
-		}
-		wg.Done()
-	}()
-	defer func() {
-		close(done)
-		wg.Wait()
-		// Could put the Close in the above goroutine, but if "read" is
-		// immediately called again, the Close might overlap with creating a
-		// new cancelreader. Want this cancelreader to be completely closed
-		// by the time readLine returns.
-		cr.Close()
-	}()
 
 	for {
 		var buf [1]byte
-		n, err := cr.Read(buf[:])
+		n, err := stdin.Read(buf[:])
 		if n > 0 {
 			b := buf[0]
 			switch {
