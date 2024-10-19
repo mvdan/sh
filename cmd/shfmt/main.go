@@ -359,9 +359,9 @@ var ecQuery = editorconfig.Query{
 	RegexpCache: make(map[string]*regexp.Regexp),
 }
 
-func propsOptions(lang syntax.LangVariant, props editorconfig.Section) {
+func propsOptions(lang syntax.LangVariant, props editorconfig.Section) (_ syntax.LangVariant, validLang bool) {
 	// if shell_variant is set to a valid string, it will take precedence
-	lang.Set(props.Get("shell_variant"))
+	langErr := lang.Set(props.Get("shell_variant"))
 	syntax.Variant(lang)(parser)
 
 	size := uint(0)
@@ -380,6 +380,8 @@ func propsOptions(lang syntax.LangVariant, props editorconfig.Section) {
 	syntax.KeepPadding(props.Get("keep_padding") == "true")(printer)
 	// TODO(v4): rename to func_next_line for consistency with flags
 	syntax.FunctionNextLine(props.Get("function_next_line") == "true")(printer)
+
+	return lang, langErr == nil
 }
 
 func formatPath(path string, checkShebang bool) error {
@@ -446,12 +448,13 @@ func editorConfigLangs(l syntax.LangVariant) []string {
 }
 
 func formatBytes(src []byte, path string, fileLang syntax.LangVariant) error {
+	fileLangFromEditorConfig := false
 	if useEditorConfig {
 		props, err := ecQuery.Find(path, editorConfigLangs(fileLang))
 		if err != nil {
 			return err
 		}
-		propsOptions(fileLang, props)
+		fileLang, fileLangFromEditorConfig = propsOptions(fileLang, props)
 	} else {
 		syntax.Variant(fileLang)(parser)
 	}
@@ -466,6 +469,9 @@ func formatBytes(src []byte, path string, fileLang syntax.LangVariant) error {
 		node, err = parser.Parse(bytes.NewReader(src), path)
 		if err != nil {
 			if s, ok := err.(syntax.LangError); ok && lang.val == syntax.LangAuto {
+				if fileLangFromEditorConfig {
+					return fmt.Errorf("%w (parsed as %s via EditorConfig)", s, fileLang)
+				}
 				return fmt.Errorf("%w (parsed as %s via -%s=%s)", s, fileLang, lang.short, lang.val)
 			}
 			return err

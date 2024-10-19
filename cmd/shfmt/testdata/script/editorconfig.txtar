@@ -12,13 +12,11 @@ exec shfmt
 
 stdin stdin-filename-bash
 ! exec shfmt -filename=foo_posix.sh
-# TODO: we didn't parse as bash!
-stderr '^foo_posix.sh:.* arrays are a bash.*parsed as bash via -ln=auto'
+stderr '^foo_posix.sh:.* arrays are a bash.*parsed as posix via EditorConfig'
 
 stdin stdin-filename-bash
 ! exec shfmt -filename=${WORK}/foo_posix.sh
-# TODO: we didn't parse as bash!
-stderr ^${WORK@R}/'foo_posix.sh:.* arrays are a bash.*parsed as bash via -ln=auto'
+stderr ^${WORK@R}/'foo_posix.sh:.* arrays are a bash.*parsed as posix via EditorConfig'
 
 # Using a file path should use EditorConfig, including with the use of flags
 # like -l.
