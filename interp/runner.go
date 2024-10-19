@@ -855,12 +855,19 @@ func (r *Runner) redir(ctx context.Context, rd *syntax.Redirect) (io.Closer, err
 		r.stdin = pr
 		return pr, nil
 	}
+
 	orig := &r.stdout
 	if rd.N != nil {
 		switch rd.N.Value {
+		case "0":
+			// Note that the input redirects below always use stdin (0)
+			// because we don't support anything else right now.
 		case "1":
+			// The default for the output redirects below.
 		case "2":
 			orig = &r.stderr
+		default:
+			panic(fmt.Sprintf("unsupported redirect fd: %v", rd.N.Value))
 		}
 	}
 	arg := r.literal(rd.Word)
@@ -885,12 +892,23 @@ func (r *Runner) redir(ctx context.Context, rd *syntax.Redirect) (io.Closer, err
 			*orig = r.stdout
 		case "2":
 			*orig = r.stderr
+		case "-":
+			*orig = io.Discard // closing the output writer
+		default:
+			panic(fmt.Sprintf("unhandled %v arg: %q", rd.Op, arg))
 		}
 		return nil, nil
 	case syntax.RdrIn, syntax.RdrOut, syntax.AppOut,
 		syntax.RdrAll, syntax.AppAll:
 		// done further below
-	// case syntax.DplIn:
+	case syntax.DplIn:
+		switch arg {
+		case "-":
+			r.stdin = nil // closing the input file
+		default:
+			panic(fmt.Sprintf("unhandled %v arg: %q", rd.Op, arg))
+		}
+		return nil, nil
 	default:
 		panic(fmt.Sprintf("unhandled redirect op: %v", rd.Op))
 	}

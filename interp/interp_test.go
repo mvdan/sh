@@ -1329,6 +1329,26 @@ var runTests = []runTest{
 		"mkdir a && cd a && echo foo_interp_missing >b && cd .. && cat a/b",
 		"foo_interp_missing\n",
 	},
+	{
+		"echo foo 2>&-; :",
+		"foo\n",
+	},
+	{
+		// `>&-` closes stdout or stderr. Note that any writes result in errors.
+		"echo foo >&- 2>&-; :",
+		"",
+	},
+	{
+		"echo foo | sed $(read line 2>/dev/null; echo 's/o/a/g')",
+		"",
+	},
+	{
+		// `<&-` closes stdin, to e.g. ensure that a subshell does not consume
+		// the standard input shared with the parent shell.
+		// Note that any reads result in errors.
+		"echo foo | sed $(exec <&-; read line 2>/dev/null; echo 's/o/a/g')",
+		"faa\n",
+	},
 
 	// background/wait
 	{"wait", ""},
@@ -2839,6 +2859,10 @@ done <<< 2`,
 	// read
 	{
 		"read </dev/null",
+		"exit status 1",
+	},
+	{
+		"read 1</dev/null",
 		"exit status 1",
 	},
 	{
