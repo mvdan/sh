@@ -1,5 +1,22 @@
 # Changelog
 
+## [3.10.0] - 2024-10-20
+
+- **cmd/shfmt**
+  - Report the correct language variant in parser error messages - #1102
+  - Move `--filename` out of the parser options category - #1079
+- **syntax**
+  - Parse all CRLF line endings as LF, including inside heredocs - #1088
+  - Count skipped backslashes inside backticks in position column numbers - #1098
+  - Count skipped null bytes in position column numbers for consistency
+- **interp**
+  - Fix a regression in `v3.9.0` which broke redirecting files to stdin - #1099
+  - Fix a regression in `v3.9.0` where `HandlerContext.Stdin` was never nil
+  - Add an `Interactive` option to be used by interactive shells - #1100
+  - Support closing stdin, stdout, and stderr via redirections like `<&-`
+
+Consider [becoming a sponsor](https://github.com/sponsors/mvdan) if you benefit from the work that went into this release!
+
 ## [3.9.0] - 2024-08-16
 
 This release drops support for Go 1.21 and includes many fixes.
@@ -720,10 +737,9 @@ module in v3.
 
 Initial release.
 
+[3.10.0]: https://github.com/mvdan/sh/releases/tag/v3.10.0
 [3.9.0]: https://github.com/mvdan/sh/releases/tag/v3.9.0
-
 [3.8.0]: https://github.com/mvdan/sh/releases/tag/v3.8.0
-
 [3.7.0]: https://github.com/mvdan/sh/releases/tag/v3.7.0
 
 [3.6.0]: https://github.com/mvdan/sh/releases/tag/v3.6.0
