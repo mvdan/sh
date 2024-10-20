@@ -241,9 +241,11 @@ func (r *Runner) handlerCtx(ctx context.Context) context.Context {
 	hc := HandlerContext{
 		Env:    &overlayEnviron{parent: r.writeEnv},
 		Dir:    r.Dir,
-		Stdin:  r.stdin,
 		Stdout: r.stdout,
 		Stderr: r.stderr,
+	}
+	if r.stdin != nil { // do not leave hc.Stdin as a typed nil
+		hc.Stdin = r.stdin
 	}
 	return context.WithValue(ctx, handlerCtxKey{}, hc)
 }
