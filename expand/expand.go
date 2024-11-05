@@ -503,7 +503,19 @@ func (cfg *Config) wordField(wps []syntax.WordPart, ql quoteLevel) ([]fieldPart,
 				}
 			}
 			if ql == quoteDouble && strings.Contains(s, "\\") {
-				s = cfg.handleDoubleQuotedEscapeCharacters(s)
+				buf := cfg.strBuilder()
+				for i := 0; i < len(s); i++ {
+					b := s[i]
+					if b == '\\' && i+1 < len(s) {
+						switch s[i+1] {
+						case '"', '\\', '$', '`': // special chars
+							i++
+							b = s[i] // write the special char, skipping the backslash
+						}
+					}
+					buf.WriteByte(b)
+				}
+				s = buf.String()
 			}
 			if i := strings.IndexByte(s, '\x00'); i >= 0 {
 				s = s[:i]
@@ -553,22 +565,6 @@ func (cfg *Config) wordField(wps []syntax.WordPart, ql quoteLevel) ([]fieldPart,
 		}
 	}
 	return field, nil
-}
-
-func (cfg *Config) handleDoubleQuotedEscapeCharacters(s string) string {
-	buf := cfg.strBuilder()
-	for i := 0; i < len(s); i++ {
-		b := s[i]
-		if b == '\\' && i+1 < len(s) {
-			switch s[i+1] {
-			case '"', '\\', '$', '`': // special chars
-				i++
-				b = s[i] // write the special char, skipping the backslash
-			}
-		}
-		buf.WriteByte(b)
-	}
-	return buf.String()
 }
 
 func (cfg *Config) cmdSubst(cs *syntax.CmdSubst) (string, error) {
