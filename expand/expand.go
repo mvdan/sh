@@ -503,7 +503,7 @@ func (cfg *Config) wordField(wps []syntax.WordPart, ql quoteLevel) ([]fieldPart,
 				}
 			}
 			if ql == quoteDouble && strings.Contains(s, "\\") {
-				buf := cfg.strBuilder()
+				sb := cfg.strBuilder()
 				for i := 0; i < len(s); i++ {
 					b := s[i]
 					if b == '\\' && i+1 < len(s) {
@@ -513,9 +513,9 @@ func (cfg *Config) wordField(wps []syntax.WordPart, ql quoteLevel) ([]fieldPart,
 							b = s[i] // write the special char, skipping the backslash
 						}
 					}
-					buf.WriteByte(b)
+					sb.WriteByte(b)
 				}
-				s = buf.String()
+				s = sb.String()
 			}
 			if i := strings.IndexByte(s, '\x00'); i >= 0 {
 				s = s[:i]
