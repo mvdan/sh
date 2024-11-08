@@ -401,6 +401,11 @@ var runTests = []runTest{
 	{`echo \\\\`, "\\\\\n"},
 	{`echo \`, "\n"},
 
+	// escape characters in double quote literal
+	{`echo "\\"`, "\\\n"},     // special character is preserved
+	{`echo "\b"`, "\\b\n"},    // non-special character has both characters preserved
+	{`echo "\\\\"`, "\\\\\n"}, // sequential backslashes (escape characters repeated sequentially)
+
 	// vars
 	{"foo_interp_missing=bar_interp_missing; echo $foo_interp_missing", "bar_interp_missing\n"},
 	{"foo_interp_missing=bar_interp_missing foo_interp_missing=etc; echo $foo_interp_missing", "etc\n"},

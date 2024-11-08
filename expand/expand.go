@@ -509,7 +509,8 @@ func (cfg *Config) wordField(wps []syntax.WordPart, ql quoteLevel) ([]fieldPart,
 					if b == '\\' && i+1 < len(s) {
 						switch s[i+1] {
 						case '"', '\\', '$', '`': // special chars
-							continue
+							i++
+							b = s[i] // write the special char, skipping the backslash
 						}
 					}
 					sb.WriteByte(b)
