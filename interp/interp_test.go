@@ -400,10 +400,10 @@ var runTests = []runTest{
 	{`echo \\`, "\\\n"},
 	{`echo \\\\`, "\\\\\n"},
 	{`echo \`, "\n"},
-	
+
 	// escape characters in double quote literal
-	{`echo "\\"`, "\\\n"},    // special character is preserved
-	{`echo "\b"`, "\\b\n"},   // non-special character has both characters preserved
+	{`echo "\\"`, "\\\n"},     // special character is preserved
+	{`echo "\b"`, "\\b\n"},    // non-special character has both characters preserved
 	{`echo "\\\\"`, "\\\\\n"}, // sequential backslashes (escape characters repeated sequentially)
 
 	// vars
