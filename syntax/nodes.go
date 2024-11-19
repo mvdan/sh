@@ -90,7 +90,7 @@ const (
 
 // NewPos creates a position with the given offset, line, and column.
 //
-// Note that Pos uses a limited number of bits to store these numbers.
+// Note that [Pos] uses a limited number of bits to store these numbers.
 // If line or column overflow their allocated space, they are replaced with 0.
 func NewPos(offset, line, column uint) Pos {
 	// Basic protection against offset overflow;
@@ -216,9 +216,9 @@ func (s *Stmt) End() Pos {
 // Command represents all nodes that are simple or compound commands, including
 // function declarations.
 //
-// These are *CallExpr, *IfClause, *WhileClause, *ForClause, *CaseClause,
-// *Block, *Subshell, *BinaryCmd, *FuncDecl, *ArithmCmd, *TestClause,
-// *DeclClause, *LetClause, *TimeClause, and *CoprocClause.
+// These are [*CallExpr], [*IfClause], [*WhileClause], [*ForClause], [*CaseClause],
+// [*Block], [*Subshell], [*BinaryCmd], [*FuncDecl], [*ArithmCmd], [*TestClause],
+// [*DeclClause], [*LetClause], [*TimeClause], and [*CoprocClause].
 type Command interface {
 	Node
 	commandNode()
@@ -249,7 +249,7 @@ func (*TestDecl) commandNode()     {}
 // If Index is non-nil, the value will be a word and not an array as nested
 // arrays are not allowed.
 //
-// If Naked is true and Name is nil, the assignment is part of a DeclClause and
+// If Naked is true and Name is nil, the assignment is part of a [DeclClause] and
 // the argument (in the Value field) will be evaluated at run-time. This
 // includes parameter expansions, which may expand to assignments or options.
 type Assign struct {
@@ -403,7 +403,7 @@ type ForClause struct {
 func (f *ForClause) Pos() Pos { return f.ForPos }
 func (f *ForClause) End() Pos { return posAddCol(f.DonePos, 4) }
 
-// Loop holds either *WordIter or *CStyleLoop.
+// Loop holds either [*WordIter] or [*CStyleLoop].
 type Loop interface {
 	Node
 	loopNode()
@@ -432,7 +432,7 @@ func (w *WordIter) End() Pos {
 // CStyleLoop represents the behavior of a for clause similar to the C
 // language.
 //
-// This node will only appear with LangBash.
+// This node will only appear with [LangBash].
 type CStyleLoop struct {
 	Lparen, Rparen Pos
 	// Init, Cond, Post can each be nil, if the for loop construct omits it.
@@ -474,7 +474,7 @@ type Word struct {
 func (w *Word) Pos() Pos { return w.Parts[0].Pos() }
 func (w *Word) End() Pos { return w.Parts[len(w.Parts)-1].End() }
 
-// Lit returns the word as a literal value, if the word consists of *Lit nodes
+// Lit returns the word as a literal value, if the word consists of [*Lit] nodes
 // only. An empty string is returned otherwise. Words with multiple literals,
 // which can appear in some edge cases, are handled properly.
 //
@@ -498,8 +498,8 @@ func (w *Word) Lit() string {
 
 // WordPart represents all nodes that can form part of a word.
 //
-// These are *Lit, *SglQuoted, *DblQuoted, *ParamExp, *CmdSubst, *ArithmExp,
-// *ProcSubst, and *ExtGlob.
+// These are [*Lit], [*SglQuoted], [*DblQuoted], [*ParamExp], [*CmdSubst], [*ArithmExp],
+// [*ProcSubst], and [*ExtGlob].
 type WordPart interface {
 	Node
 	wordPartNode()
@@ -594,21 +594,21 @@ func (p *ParamExp) nakedIndex() bool {
 	return p.Short && p.Index != nil
 }
 
-// Slice represents a character slicing expression inside a ParamExp.
+// Slice represents a character slicing expression inside a [ParamExp].
 //
-// This node will only appear in LangBash and LangMirBSDKorn.
+// This node will only appear with [LangBash] and [LangMirBSDKorn].
 type Slice struct {
 	Offset, Length ArithmExpr
 }
 
-// Replace represents a search and replace expression inside a ParamExp.
+// Replace represents a search and replace expression inside a [ParamExp].
 type Replace struct {
 	All        bool
 	Orig, With *Word
 }
 
-// Expansion represents string manipulation in a ParamExp other than those
-// covered by Replace.
+// Expansion represents string manipulation in a [ParamExp] other than those
+// covered by [Replace].
 type Expansion struct {
 	Op   ParExpOperator
 	Word *Word
@@ -633,7 +633,7 @@ func (a *ArithmExp) End() Pos {
 
 // ArithmCmd represents an arithmetic command.
 //
-// This node will only appear in LangBash and LangMirBSDKorn.
+// This node will only appear with [LangBash] and [LangMirBSDKorn].
 type ArithmCmd struct {
 	Left, Right Pos
 	Unsigned    bool // mksh's ((# expr))
@@ -646,7 +646,7 @@ func (a *ArithmCmd) End() Pos { return posAddCol(a.Right, 2) }
 
 // ArithmExpr represents all nodes that form arithmetic expressions.
 //
-// These are *BinaryArithm, *UnaryArithm, *ParenArithm, and *Word.
+// These are [*BinaryArithm], [*UnaryArithm], [*ParenArithm], and [*Word].
 type ArithmExpr interface {
 	Node
 	arithmExprNode()
@@ -659,12 +659,12 @@ func (*Word) arithmExprNode()         {}
 
 // BinaryArithm represents a binary arithmetic expression.
 //
-// If Op is any assign operator, X will be a word with a single *Lit whose value
+// If Op is any assign operator, X will be a word with a single [*Lit] whose value
 // is a valid name.
 //
 // Ternary operators like "a ? b : c" are fit into this structure. Thus, if
-// Op==TernQuest, Y will be a *BinaryArithm with Op==TernColon. Op can only be
-// TernColon in that scenario.
+// Op==[TernQuest], Y will be a [*BinaryArithm] with Op==[TernColon].
+// [TernColon] does not appear in any other scenario.
 type BinaryArithm struct {
 	OpPos Pos
 	Op    BinAritOperator
@@ -677,7 +677,7 @@ func (b *BinaryArithm) End() Pos { return b.Y.End() }
 // UnaryArithm represents an unary arithmetic expression. The unary operator
 // may come before or after the sub-expression.
 //
-// If Op is Inc or Dec, X will be a word with a single *Lit whose value is a
+// If Op is [Inc] or [Dec], X will be a word with a single [*Lit] whose value is a
 // valid name.
 type UnaryArithm struct {
 	OpPos Pos
@@ -723,7 +723,7 @@ type CaseClause struct {
 func (c *CaseClause) Pos() Pos { return c.Case }
 func (c *CaseClause) End() Pos { return posAddCol(c.Esac, 4) }
 
-// CaseItem represents a pattern list (case) within a CaseClause.
+// CaseItem represents a pattern list (case) within a [CaseClause].
 type CaseItem struct {
 	Op       CaseOperator
 	OpPos    Pos // unset if it was finished by "esac"
@@ -744,7 +744,7 @@ func (c *CaseItem) End() Pos {
 
 // TestClause represents a Bash extended test clause.
 //
-// This node will only appear in LangBash and LangMirBSDKorn.
+// This node will only appear with [LangBash] and [LangMirBSDKorn].
 type TestClause struct {
 	Left, Right Pos
 
@@ -756,7 +756,7 @@ func (t *TestClause) End() Pos { return posAddCol(t.Right, 2) }
 
 // TestExpr represents all nodes that form test expressions.
 //
-// These are *BinaryTest, *UnaryTest, *ParenTest, and *Word.
+// These are [*BinaryTest], [*UnaryTest], [*ParenTest], and [*Word].
 type TestExpr interface {
 	Node
 	testExprNode()
@@ -803,7 +803,7 @@ func (p *ParenTest) End() Pos { return posAddCol(p.Rparen, 1) }
 // Args can contain a mix of regular and naked assignments. The naked
 // assignments can represent either options or variable names.
 //
-// This node will only appear with LangBash.
+// This node will only appear with [LangBash].
 type DeclClause struct {
 	// Variant is one of "declare", "local", "export", "readonly",
 	// "typeset", or "nameref".
@@ -821,7 +821,7 @@ func (d *DeclClause) End() Pos {
 
 // ArrayExpr represents a Bash array expression.
 //
-// This node will only appear with LangBash.
+// This node will only appear with [LangBash].
 type ArrayExpr struct {
 	Lparen, Rparen Pos
 
@@ -860,7 +860,7 @@ func (a *ArrayElem) End() Pos {
 // ExtGlob represents a Bash extended globbing expression. Note that these are
 // parsed independently of whether shopt has been called or not.
 //
-// This node will only appear in LangBash and LangMirBSDKorn.
+// This node will only appear with [LangBash] and [LangMirBSDKorn].
 type ExtGlob struct {
 	OpPos   Pos
 	Op      GlobOperator
@@ -872,7 +872,7 @@ func (e *ExtGlob) End() Pos { return posAddCol(e.Pattern.End(), 1) }
 
 // ProcSubst represents a Bash process substitution.
 //
-// This node will only appear with LangBash.
+// This node will only appear with [LangBash].
 type ProcSubst struct {
 	OpPos, Rparen Pos
 	Op            ProcOperator
@@ -887,7 +887,7 @@ func (s *ProcSubst) End() Pos { return posAddCol(s.Rparen, 1) }
 // TimeClause represents a Bash time clause. PosixFormat corresponds to the -p
 // flag.
 //
-// This node will only appear in LangBash and LangMirBSDKorn.
+// This node will only appear with [LangBash] and [LangMirBSDKorn].
 type TimeClause struct {
 	Time        Pos
 	PosixFormat bool
@@ -904,7 +904,7 @@ func (c *TimeClause) End() Pos {
 
 // CoprocClause represents a Bash coproc clause.
 //
-// This node will only appear with LangBash.
+// This node will only appear with [LangBash].
 type CoprocClause struct {
 	Coproc Pos
 	Name   *Word
@@ -916,7 +916,7 @@ func (c *CoprocClause) End() Pos { return c.Stmt.End() }
 
 // LetClause represents a Bash let clause.
 //
-// This node will only appear in LangBash and LangMirBSDKorn.
+// This node will only appear with [LangBash] and [LangMirBSDKorn].
 type LetClause struct {
 	Let   Pos
 	Exprs []ArithmExpr
@@ -927,7 +927,7 @@ func (l *LetClause) End() Pos { return l.Exprs[len(l.Exprs)-1].End() }
 
 // BraceExp represents a Bash brace expression, such as "{a,f}" or "{1..10}".
 //
-// This node will only appear as a result of SplitBraces.
+// This node will only appear as a result of [SplitBraces].
 type BraceExp struct {
 	Sequence bool // {x..y[..incr]} instead of {x,y[,...]}
 	Elems    []*Word
