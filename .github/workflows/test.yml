@@ -26,6 +26,12 @@ jobs:
         CGO_ENABLED=0 go test -run TestRunnerRunConfirm -exec 'dockexec bash:5.2' ./interp
       if: matrix.os == 'ubuntu-latest'
 
+    # Test that we can build for platforms that we can't currently test on.
+    - if: matrix.os == 'ubuntu-latest' && matrix.go-version == '1.23.x'
+      run: |
+        GOOS=plan9 GOARCH=amd64 go build ./...
+        GOOS=js GOARCH=wasm go build ./...
+
     # Static checks from this point forward. Only run on one Go version and on
     # Linux, since it's the fastest platform, and the tools behave the same.
     - if: matrix.os == 'ubuntu-latest' && matrix.go-version == '1.23.x'
