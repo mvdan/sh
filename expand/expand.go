@@ -16,7 +16,6 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
-	"syscall"
 
 	"mvdan.cc/sh/v3/pattern"
 	"mvdan.cc/sh/v3/syntax"
@@ -890,9 +889,7 @@ func (cfg *Config) glob(base, pat string) ([]string, error) {
 				// which can be wasteful if we only want to see if it exists,
 				// but at least it's correct in all scenarios.
 				if _, err := cfg.ReadDir2(match); err != nil {
-					const errPathNotFound = syscall.Errno(3) // from syscall/types_windows.go, to avoid a build tag
-					var pathErr *os.PathError
-					if runtime.GOOS == "windows" && errors.As(err, &pathErr) && pathErr.Err == errPathNotFound {
+					if isWindowsErrPathNotFound(err) {
 						// Unfortunately, os.File.Readdir on a regular file on
 						// Windows returns an error that satisfies ErrNotExist.
 						// Luckily, it returns a special "path not found" rather

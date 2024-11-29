@@ -43,3 +43,5 @@ func (r *Runner) unTestOwnOrGrp(ctx context.Context, op syntax.UnTestOperator, x
 	gid, _ := strconv.Atoi(u.Gid)
 	return uint32(gid) == info.Sys().(*syscall.Stat_t).Gid
 }
+
+type waitStatus = syscall.WaitStatus

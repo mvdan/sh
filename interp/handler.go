@@ -14,7 +14,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	"syscall"
 	"time"
 
 	"mvdan.cc/sh/v3/expand"
@@ -135,18 +134,15 @@ func DefaultExecHandler(killTimeout time.Duration) ExecHandlerFunc {
 
 		switch err := err.(type) {
 		case *exec.ExitError:
-			// started, but errored - default to 1 if OS
-			// doesn't have exit statuses
-			if status, ok := err.Sys().(syscall.WaitStatus); ok {
-				if status.Signaled() {
-					if ctx.Err() != nil {
-						return ctx.Err()
-					}
-					return NewExitStatus(uint8(128 + status.Signal()))
+			// Windows and Plan9 do not have support for syscall.WaitStatus
+			// with methods like Signaled and Signal, so for those, waitStatus is a no-op.
+			if status, ok := err.Sys().(waitStatus); ok && status.Signaled() {
+				if ctx.Err() != nil {
+					return ctx.Err()
 				}
-				return NewExitStatus(uint8(status.ExitStatus()))
+				return NewExitStatus(uint8(128 + status.Signal()))
 			}
-			return NewExitStatus(1)
+			return NewExitStatus(uint8(err.ExitCode()))
 		case *exec.Error:
 			// did not start
 			fmt.Fprintf(hc.Stderr, "%v\n", err)

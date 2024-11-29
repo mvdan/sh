@@ -28,3 +28,9 @@ func hasPermissionToDir(string) bool {
 func (r *Runner) unTestOwnOrGrp(ctx context.Context, op syntax.UnTestOperator, x string) bool {
 	panic(fmt.Sprintf("unhandled unary test op: %v", op))
 }
+
+// waitStatus is a no-op on plan9 and windows.
+type waitStatus struct{}
+
+func (waitStatus) Signaled() bool { return false }
+func (waitStatus) Signal() int    { return 0 }
