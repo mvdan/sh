@@ -360,7 +360,7 @@ func walkPath(path string, entry fs.DirEntry) error {
 	//
 	// TODO: Should there be a way to explicitly turn off ignore rules when walking?
 	// Perhaps swapping the default to --apply-ignore=auto and allowing --apply-ignore=false?
-	// I don't imagine it's a particularly uesful scenario for now.
+	// I don't imagine it's a particularly useful scenario for now.
 	props, err := ecQuery.Find(path, []string{"shell"})
 	if err != nil {
 		return err
