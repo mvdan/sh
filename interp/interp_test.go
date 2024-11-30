@@ -3743,7 +3743,7 @@ var testBuiltinsMap = map[string]func(interp.HandlerContext, []string) error{
 		return os.Link(oldname, newname)
 	},
 	"touch": func(hc interp.HandlerContext, args []string) error {
-		filenames := args // create all arugments as filenames
+		filenames := args // create all arguments as filenames
 
 		newTime := time.Now()
 		if args[0] == "-t" {
@@ -4369,7 +4369,7 @@ func TestReadShouldNotPanicWithNilStdin(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), runnerRunTimeout)
 	defer cancel()
 	if err := r.Run(ctx, f); err == nil {
-		t.Fatal("it should have retuned an error")
+		t.Fatal("it should have returned an error")
 	}
 }
 
