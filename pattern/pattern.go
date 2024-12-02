@@ -282,8 +282,8 @@ func charClass(s string) (string, error) {
 // For example, HasMeta(`foo\*bar`) returns false, but HasMeta(`foo*bar`)
 // returns true.
 //
-// This can be useful to avoid extra work, like TranslatePattern. Note that this
-// function cannot be used to avoid QuotePattern, as backslashes are quoted by
+// This can be useful to avoid extra work, like [Regexp]. Note that this
+// function cannot be used to avoid [QuoteMeta], as backslashes are quoted by
 // that function but ignored here.
 func HasMeta(pat string, mode Mode) bool {
 	for i := 0; i < len(pat); i++ {
