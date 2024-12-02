@@ -902,9 +902,9 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 	return 0
 }
 
-// mapfileSplit returns a suitable Split function for a [bufio.Scanner];
+// mapfileSplit returns a function that satisfies [bufio.SplitFunc] interface, [bufio.Scanner] will use it to split;
 // the code is mostly stolen from [bufio.ScanLines].
-func mapfileSplit(delim byte, dropDelim bool) func(data []byte, atEOF bool) (advance int, token []byte, err error) {
+func mapfileSplit(delim byte, dropDelim bool) bufio.SplitFunc {
 	return func(data []byte, atEOF bool) (advance int, token []byte, err error) {
 		if atEOF && len(data) == 0 {
 			return 0, nil, nil
