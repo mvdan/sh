@@ -127,8 +127,9 @@ func DefaultExecHandler(killTimeout time.Duration) ExecHandlerFunc {
 
 		switch err := err.(type) {
 		case *exec.ExitError:
-			// Windows and Plan9 do not have support for syscall.WaitStatus
-			// with methods like Signaled and Signal, so for those, waitStatus is a no-op.
+			// Windows and Plan9 do not have support for [syscall.WaitStatus]
+			// with methods like Signaled and Signal, so for those, [waitStatus] is a no-op.
+			// Note: [waitStatus] is an alias [syscall.WaitStatus]
 			if status, ok := err.Sys().(waitStatus); ok && status.Signaled() {
 				if ctx.Err() != nil {
 					return ctx.Err()
@@ -211,7 +212,7 @@ func LookPathDir(cwd string, env expand.Environ, file string) (string, error) {
 	return lookPathDir(cwd, env, file, findExecutable)
 }
 
-// findAny defines a function to pass to lookPathDir.
+// findAny defines a function to pass to [lookPathDir].
 type findAny = func(dir string, file string, exts []string) (string, error)
 
 func lookPathDir(cwd string, env expand.Environ, file string, find findAny) (string, error) {
@@ -247,7 +248,7 @@ func lookPathDir(cwd string, env expand.Environ, file string, find findAny) (str
 	return "", fmt.Errorf("%q: executable file not found in $PATH", file)
 }
 
-// scriptFromPathDir is similar to LookPathDir, with the difference that it looks
+// scriptFromPathDir is similar to [LookPathDir], with the difference that it looks
 // for both executable and non-executable files.
 func scriptFromPathDir(cwd string, env expand.Environ, file string) (string, error) {
 	return lookPathDir(cwd, env, file, findFile)

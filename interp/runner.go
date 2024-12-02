@@ -27,7 +27,7 @@ import (
 
 const (
 	// shellReplyPS3Var, or PS3, is a special variable in Bash used by the select command,
-	// while the shell is awaiting for input. the default value is shellDefaultPS3
+	// while the shell is awaiting for input. the default value is [shellDefaultPS3]
 	shellReplyPS3Var = "PS3"
 	// shellDefaultPS3, or #?, is PS3's default value
 	shellDefaultPS3 = "#? "
@@ -78,7 +78,7 @@ func (r *Runner) fillExpandConfig(ctx context.Context) {
 			dir := os.TempDir()
 
 			// We can't atomically create a random unused temporary FIFO.
-			// Similar to os.CreateTemp,
+			// Similar to [os.CreateTemp],
 			// keep trying new random paths until one does not exist.
 			// We use a uint64 because a uint32 easily runs into retries.
 			var path string
@@ -217,7 +217,7 @@ func (r *Runner) pattern(word *syntax.Word) string {
 	return str
 }
 
-// expandEnviron exposes Runner's variables to the expand package.
+// expandEnviron exposes [Runner]'s variables to the expand package.
 type expandEnv struct {
 	r *Runner
 }
@@ -987,7 +987,7 @@ func (r *Runner) call(ctx context.Context, pos syntax.Pos, args []string) {
 		r.inFunc = true
 
 		// Functions run in a nested scope.
-		// Note that Runner.exec below does something similar.
+		// Note that [Runner.exec] below does something similar.
 		origEnv := r.writeEnv
 		r.writeEnv = &overlayEnviron{parent: r.writeEnv, funcScope: true}
 

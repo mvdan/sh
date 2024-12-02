@@ -54,7 +54,7 @@ func TestRunnerTerminalStdIO(t *testing.T) {
 
 			r, _ := interp.New(interp.StdIO(secondaryReader, secondary, secondary))
 			go func() {
-				// To mimic os/exec.Cmd.Start, use a goroutine.
+				// To mimic [os/exec.Cmd.Start], use a goroutine.
 				if err := r.Run(context.Background(), file); err != nil {
 					t.Error(err)
 				}

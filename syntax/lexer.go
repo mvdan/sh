@@ -397,7 +397,7 @@ func (p *Parser) extendedGlob() bool {
 func (p *Parser) peekBytes(s string) bool {
 	peekEnd := int(p.bsp) + len(s)
 	// TODO: This should loop for slow readers, e.g. those providing one byte at
-	// a time. Use a loop and test it with testing/iotest.OneByteReader.
+	// a time. Use a loop and test it with [testing/iotest.OneByteReader].
 	if peekEnd > len(p.bs) {
 		p.fill()
 	}
@@ -818,7 +818,7 @@ func (p *Parser) newLit(r rune) {
 		w := utf8.RuneLen(r)
 		p.litBs = append(p.litBuf[:0], p.bs[p.bsp-uint(w):p.bsp]...)
 	default:
-		// don't let r == utf8.RuneSelf go to the second case as RuneLen
+		// don't let r == utf8.RuneSelf go to the second case as [utf8.RuneLen]
 		// would return -1
 		p.litBs = p.litBuf[:0]
 	}
