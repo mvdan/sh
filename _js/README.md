@@ -7,7 +7,7 @@ It is transpiled from Go to JS using https://github.com/gopherjs/gopherjs.
 
 ### Sample usage
 
-```
+```javascript
 const sh = require('mvdan-sh')
 const syntax = sh.syntax
 

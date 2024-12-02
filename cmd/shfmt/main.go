@@ -88,7 +88,7 @@ var (
 
 func init() {
 	// TODO: the flag package has constructors like newBoolValue;
-	// if we had access to something like that, we could use flag.Value everywhere,
+	// if we had access to something like that, we could use [flag.Value] everywhere,
 	// and avoid this monstrosity of a type switch.
 	for _, f := range allFlags {
 		switch f := f.(type) {
@@ -356,7 +356,7 @@ func walkPath(path string, entry fs.DirEntry) error {
 	// and we first want to tell if we should skip a path entirely.
 	//
 	// TODO: Should the call to Find with the language name check "ignore" too, then?
-	// Otherwise a [[bash]] section with ignore=true is effectively never used.
+	// Otherwise, a [[bash]] section with ignore=true is effectively never used.
 	//
 	// TODO: Should there be a way to explicitly turn off ignore rules when walking?
 	// Perhaps swapping the default to --apply-ignore=auto and allowing --apply-ignore=false?

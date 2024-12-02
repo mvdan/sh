@@ -12,11 +12,11 @@ import (
 // Node represents a syntax tree node.
 type Node interface {
 	// Pos returns the position of the first character of the node. Comments
-	// are ignored, except if the node is a *File.
+	// are ignored, except if the node is a [*File].
 	Pos() Pos
 	// End returns the position of the character immediately after the node.
 	// If the character is a newline, the line number won't cross into the
-	// next line. Comments are ignored, except if the node is a *File.
+	// next line. Comments are ignored, except if the node is a [*File].
 	End() Pos
 }
 

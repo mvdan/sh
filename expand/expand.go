@@ -39,7 +39,7 @@ type Config struct {
 	Env Environ
 
 	// CmdSubst expands a command substitution node, writing its standard
-	// output to the provided io.Writer.
+	// output to the provided [io.Writer].
 	//
 	// If nil, encountering a command substitution will result in an
 	// UnexpectedCommandError.
@@ -58,9 +58,9 @@ type Config struct {
 	// Deprecated: use ReadDir2 instead.
 	ReadDir func(string) ([]fs.FileInfo, error)
 
-	// ReadDir is used for file path globbing.
-	// If nil, and ReadDir is nil as well, globbing is disabled.
-	// Use os.ReadDir to use the filesystem directly.
+	// ReadDir2 is used for file path globbing.
+	// If nil, and [ReadDir] is nil as well, globbing is disabled.
+	// Use [os.ReadDir] to use the filesystem directly.
 	ReadDir2 func(string) ([]fs.DirEntry, error)
 
 	// GlobStar corresponds to the shell option that allows globbing with
@@ -164,7 +164,7 @@ func (cfg *Config) envSet(name, value string) error {
 	return wenv.Set(name, Variable{Kind: String, Str: value})
 }
 
-// Literal expands a single shell word. It is similar to Fields, but the result
+// Literal expands a single shell word. It is similar to [Fields], but the result
 // is a single string. This is the behavior when a word is used as the value in
 // a shell variable assignment, for example.
 //
@@ -781,7 +781,7 @@ func (cfg *Config) expandUser(field string) (prefix, rest string) {
 	if name == "" {
 		// Current user; try via "HOME", otherwise fall back to the
 		// system's appropriate home dir env var. Don't use os/user, as
-		// that's overkill. We can't use os.UserHomeDir, because we want
+		// that's overkill. We can't use [os.UserHomeDir], because we want
 		// to use cfg.Env, and we always want to check "HOME" first.
 
 		if vr := cfg.Env.Get("HOME"); vr.IsSet() {
@@ -883,15 +883,15 @@ func (cfg *Config) glob(base, pat string) ([]string, error) {
 					match = filepath.Join(base, match)
 				}
 				match = pathJoin2(match, part)
-				// We can't use ReadDir2 on the parent and match the directory
+				// We can't use [Config.ReadDir2] on the parent and match the directory
 				// entry by name, because short paths on Windows break that.
-				// Our only option is to ReadDir2 on the directory entry itself,
+				// Our only option is to [Config.ReadDir2] on the directory entry itself,
 				// which can be wasteful if we only want to see if it exists,
 				// but at least it's correct in all scenarios.
 				if _, err := cfg.ReadDir2(match); err != nil {
 					if isWindowsErrPathNotFound(err) {
-						// Unfortunately, os.File.Readdir on a regular file on
-						// Windows returns an error that satisfies ErrNotExist.
+						// Unfortunately, [os.File.Readdir] on a regular file on
+						// Windows returns an error that satisfies [fs.ErrNotExist].
 						// Luckily, it returns a special "path not found" rather
 						// than the normal "file not found" for missing files,
 						// so we can use that knowledge to work around the bug.
@@ -977,10 +977,10 @@ func (cfg *Config) globDir(base, dir string, rx *regexp.Regexp, matchHidden bool
 			// No filtering.
 		} else if mode := info.Type(); mode&os.ModeSymlink != 0 {
 			// We need to know if the symlink points to a directory.
-			// This requires an extra syscall, as ReadDir on the parent directory
+			// This requires an extra syscall, as [Config.ReadDir] on the parent directory
 			// does not follow symlinks for each of the directory entries.
 			// ReadDir is somewhat wasteful here, as we only want its error result,
-			// but we could try to reuse its result as per the TODO in Config.glob.
+			// but we could try to reuse its result as per the TODO in [Config.glob].
 			if _, err := cfg.ReadDir2(filepath.Join(fullDir, info.Name())); err != nil {
 				continue
 			}

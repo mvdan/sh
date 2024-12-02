@@ -71,7 +71,7 @@ func encodeValue(val reflect.Value) (reflect.Value, string) {
 		enc.Elem().Field(0).SetString(tname)
 		return enc, ""
 	case reflect.Struct:
-		// Construct a new struct with an optional Type, Pos and End,
+		// Construct a new struct with an optional Type, [syntax.Node.Pos] and [syntax.Node.End],
 		// and then all the visible fields which aren't positions.
 		typ := val.Type()
 		fields := []reflect.StructField{typeField, posField, endField}
@@ -279,7 +279,7 @@ func decodeValue(val reflect.Value, enc any) error {
 			fval := val.FieldByName(name)
 			switch name {
 			case "Type", "Pos", "End":
-				// Type is already used above. Pos and End came from method calls.
+				// Type is already used above. [syntax.Node.Pos] and [syntax.Node.End] came from method calls.
 				continue
 			}
 			if !fval.IsValid() {
