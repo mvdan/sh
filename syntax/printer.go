@@ -89,7 +89,7 @@ func Minify(enabled bool) PrinterOption {
 // newlines must still appear, such as those following comments or around
 // here-documents.
 //
-// Print's trailing newline when given a *File is not affected by this option.
+// Print's trailing newline when given a [*File] is not affected by this option.
 func SingleLine(enabled bool) PrinterOption {
 	return func(p *Printer) { p.singleLine = enabled }
 }
@@ -114,9 +114,9 @@ func NewPrinter(opts ...PrinterOption) *Printer {
 // Print "pretty-prints" the given syntax tree node to the given writer. Writes
 // to w are buffered.
 //
-// The node types supported at the moment are *File, *Stmt, *Word, *Assign, any
-// Command node, and any WordPart node. A trailing newline will only be printed
-// when a *File is used.
+// The node types supported at the moment are [*File], [*Stmt], [*Word], [*Assign], any
+// [Command] node, and any WordPart node. A trailing newline will only be printed
+// when a [*File] is used.
 func (p *Printer) Print(w io.Writer, node Node) error {
 	p.reset()
 

@@ -75,7 +75,7 @@ type Runner struct {
 	// execHandler is responsible for executing programs. It must not be nil.
 	execHandler ExecHandlerFunc
 
-	// execMiddlewares grows with calls to ExecHandlers,
+	// execMiddlewares grows with calls to [ExecHandlers],
 	// and is used to construct execHandler when Reset is first called.
 	// The slice is needed to preserve the relative order of middlewares.
 	execMiddlewares []func(ExecHandlerFunc) ExecHandlerFunc
@@ -379,12 +379,12 @@ func ExecHandlers(middlewares ...func(next ExecHandlerFunc) ExecHandlerFunc) Run
 	}
 }
 
-// TODO: consider porting the middleware API in ExecHandlers to OpenHandler,
+// TODO: consider porting the middleware API in [ExecHandlers] to [OpenHandler],
 // ReadDirHandler, and StatHandler.
 
-// TODO(v4): now that ExecHandlers allows calling a next handler with changed
-// arguments, one of the two advantages of CallHandler is gone. The other is the
-// ability to work with builtins; if we make ExecHandlers work with builtins, we
+// TODO(v4): now that [ExecHandlers] allows calling a next handler with changed
+// arguments, one of the two advantages of [CallHandler] is gone. The other is the
+// ability to work with builtins; if we make [ExecHandlers] work with builtins, we
 // could join both APIs.
 
 // OpenHandler sets file open handler. See [OpenHandlerFunc] for more info.
@@ -457,7 +457,7 @@ func stdinFile(r io.Reader) (*os.File, error) {
 // Note that providing a non-nil standard input other than [os.File] will require
 // an [os.Pipe] and spawning a goroutine to copy into it,
 // as an [os.File] is the only way to share a reader with subprocesses.
-// See [os/exec.Cmd.Stdin].
+// See os/[exec.Cmd.Stdin].
 func StdIO(in io.Reader, out, err io.Writer) RunnerOption {
 	return func(r *Runner) error {
 		stdin, _err := stdinFile(in)
@@ -632,7 +632,7 @@ var bashOptsTable = [...]bashOpt{
 // know which option we're after at compile time. First come the shell options,
 // then the bash options.
 const (
-	// These correspond to indexes in shellOptsTable
+	// These correspond to indexes in [shellOptsTable]
 	optAllExport = iota
 	optErrExit
 	optNoExec
@@ -642,7 +642,7 @@ const (
 	optPipeFail
 
 	// These correspond to indexes (offset by the above seven items) of
-	// supported options in bashOptsTable
+	// supported options in [bashOptsTable]
 	optExpandAliases
 	optGlobStar
 	optNoCaseGlob
@@ -690,7 +690,7 @@ func (r *Runner) Reset() {
 		readDirHandler: r.readDirHandler,
 		statHandler:    r.statHandler,
 
-		// These can be set by functions like Dir or Params, but
+		// These can be set by functions like [Dir] or [Params], but
 		// builtins can overwrite them; reset the fields to whatever the
 		// constructor set up.
 		Dir:    r.origDir,
@@ -772,15 +772,15 @@ func IsExitStatus(err error) (status uint8, ok bool) {
 	return 0, false
 }
 
-// Run interprets a node, which can be a *File, *Stmt, or Command. If a non-nil
+// Run interprets a node, which can be a [*File], [*Stmt], or [Command]. If a non-nil
 // error is returned, it will typically contain a command's exit status, which
-// can be retrieved with IsExitStatus.
+// can be retrieved with [IsExitStatus].
 //
 // Run can be called multiple times synchronously to interpret programs
-// incrementally. To reuse a Runner without keeping the internal shell state,
+// incrementally. To reuse a [Runner] without keeping the internal shell state,
 // call Reset.
 //
-// Calling Run on an entire *File implies an exit, meaning that an exit trap may
+// Calling Run on an entire [*File] implies an exit, meaning that an exit trap may
 // run.
 func (r *Runner) Run(ctx context.Context, node syntax.Node) error {
 	if !r.didReset {
@@ -825,12 +825,12 @@ func (r *Runner) Exited() bool {
 	return r.shellExited
 }
 
-// Subshell makes a copy of the given Runner, suitable for use concurrently
+// Subshell makes a copy of the given [Runner], suitable for use concurrently
 // with the original. The copy will have the same environment, including
 // variables and functions, but they can all be modified without affecting the
 // original.
 //
-// Subshell is not safe to use concurrently with Run. Orchestrating this is
+// Subshell is not safe to use concurrently with [Run]. Orchestrating this is
 // left up to the caller; no locking is performed.
 //
 // To replace e.g. stdin/out/err, do StdIO(r.stdin, r.stdout, r.stderr)(r) on
@@ -840,7 +840,7 @@ func (r *Runner) Subshell() *Runner {
 		r.Reset()
 	}
 	// Keep in sync with the Runner type. Manually copy fields, to not copy
-	// sensitive ones like errgroup.Group, and to do deep copies of slices.
+	// sensitive ones like [errgroup.Group], and to do deep copies of slices.
 	r2 := &Runner{
 		Dir:            r.Dir,
 		Params:         r.Params,

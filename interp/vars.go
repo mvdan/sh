@@ -276,7 +276,7 @@ func stringIndex(index syntax.ArithmExpr) bool {
 	return false
 }
 
-// TODO: make assignVal and setVar consistent with the WriteEnviron interface
+// TODO: make assignVal and [setVar] consistent with the [expand.WriteEnviron] interface
 
 func (r *Runner) assignVal(as *syntax.Assign, valType string) expand.Variable {
 	prev := r.lookupVar(as.Name.Value)

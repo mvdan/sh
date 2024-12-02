@@ -26,7 +26,7 @@ import (
 	"mvdan.cc/sh/v3/syntax"
 )
 
-// runnerRunTimeout is the context timeout used by any tests calling Runner.Run.
+// runnerRunTimeout is the context timeout used by any tests calling [Runner.Run].
 // The timeout saves us from hangs or burning too much CPU if there are bugs.
 // All the test cases are designed to be inexpensive and stop in a very short
 // amount of time, so 5s should be plenty even for busy machines.

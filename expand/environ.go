@@ -120,7 +120,7 @@ func (v Variable) Resolve(env Environ) (string, Variable) {
 }
 
 // FuncEnviron wraps a function mapping variable names to their string values,
-// and implements Environ. Empty strings returned by the function will be
+// and implements [Environ]. Empty strings returned by the function will be
 // treated as unset variables. All variables will be exported.
 //
 // Note that the returned Environ's Each method will be a no-op.
@@ -140,7 +140,7 @@ func (f funcEnviron) Get(name string) Variable {
 
 func (f funcEnviron) Each(func(name string, vr Variable) bool) {}
 
-// ListEnviron returns an Environ with the supplied variables, in the form
+// ListEnviron returns an [Environ] with the supplied variables, in the form
 // "key=value". All variables will be exported. The last value in pairs is used
 // if multiple values are present.
 //
@@ -150,7 +150,7 @@ func ListEnviron(pairs ...string) Environ {
 	return listEnvironWithUpper(runtime.GOOS == "windows", pairs...)
 }
 
-// listEnvironWithUpper implements ListEnviron, but letting the tests specify
+// listEnvironWithUpper implements [ListEnviron], but letting the tests specify
 // whether to uppercase all names or not.
 func listEnvironWithUpper(upper bool, pairs ...string) Environ {
 	list := slices.Clone(pairs)

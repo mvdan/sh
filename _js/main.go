@@ -157,7 +157,7 @@ func throw(err error) {
 	js.Global.Call("$throw", js.MakeFullWrapper(err))
 }
 
-// streamReader is an io.Reader wrapper for Node's stream.Readable. See
+// streamReader is an [io.Reader] wrapper for Node's stream.Readable. See
 // https://nodejs.org/api/stream.html#stream_class_stream_readable
 // TODO: support https://streams.spec.whatwg.org/#rs-class too?
 type streamReader struct {

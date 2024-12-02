@@ -947,7 +947,7 @@ func (r *Runner) readLine(ctx context.Context, raw bool) ([]byte, error) {
 	// [cancelreader.NewReader] may fail under some circumstances, such as r.stdin being
 	// a regular file on Linux, in which case epoll returns an "operation not permitted" error
 	// given that regular files can always be read immediately. Polling them makes no sense.
-	// As such, if cancelreader fails, fall back to no cancellation, meaning this is best-effort.
+	// As such, if [cancelreader] fails, fall back to no cancellation, meaning this is best-effort.
 	//
 	// TODO: it would be nice if the cancelreader library classified errors so that we could
 	// safely handle "this file does not need polling" by skipping the polling as we do below
