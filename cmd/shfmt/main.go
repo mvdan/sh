@@ -67,6 +67,8 @@ var (
 	toJSON   = &multiFlag[bool]{"tojson", "to-json", false} // TODO(v4): remove "tojson" for consistency
 	fromJSON = &multiFlag[bool]{"", "from-json", false}
 
+	expRecover = &multiFlag[int]{"", "exp.recover", 0}
+
 	// useEditorConfig will be false if any parser or printer flags were used.
 	useEditorConfig = true
 
@@ -226,6 +228,8 @@ For more information and to report bugs, see https://github.com/mvdan/sh.
 	})
 	parser = syntax.NewParser(syntax.KeepComments(true))
 	printer = syntax.NewPrinter(syntax.Minify(minify.val))
+
+	syntax.RecoverErrors(expRecover.val)(parser)
 
 	if !useEditorConfig {
 		if posix.val {

@@ -2516,3 +2516,187 @@ func TestPosEdgeCases(t *testing.T) {
 	qt.Check(t, qt.Equals(f.Stmts[1].Pos().String(), "2:2"))
 	qt.Check(t, qt.Equals(f.Stmts[1].End().String(), "2:9"))
 }
+
+func TestParseRecoverErrors(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		src string
+
+		wantErr     bool
+		wantMissing int
+	}{
+		{src: "foo;"},
+		{src: "foo"},
+		{
+			src:         "'incomp",
+			wantMissing: 1,
+		},
+		{
+			src:         "foo; 'incomp",
+			wantMissing: 1,
+		},
+		{
+			src:         "{ incomp",
+			wantMissing: 1,
+		},
+		{
+			src:         "(incomp",
+			wantMissing: 1,
+		},
+		{
+			src:         "(incomp; foo",
+			wantMissing: 1,
+		},
+		{
+			src:         "$(incomp",
+			wantMissing: 1,
+		},
+		{
+			src:         "((incomp",
+			wantMissing: 1,
+		},
+		{
+			src:         "$((incomp",
+			wantMissing: 1,
+		},
+		{
+			src:         "if foo; then bar",
+			wantMissing: 1,
+		},
+		{
+			src:         `"incomp`,
+			wantMissing: 1,
+		},
+		{
+			src:         "`incomp",
+			wantMissing: 1,
+		},
+		{
+			src:         "incomp >",
+			wantMissing: 1,
+		},
+		{
+			src:         "${incomp",
+			wantMissing: 1,
+		},
+		{
+			src:         "incomp | ",
+			wantMissing: 1,
+		},
+		{
+			src:         "incomp || ",
+			wantMissing: 1,
+		},
+		{
+			src:         "incomp && ",
+			wantMissing: 1,
+		},
+		{
+			src:         `(one | { two >`,
+			wantMissing: 3,
+		},
+		{
+			src:         `(one > ; two | ); { three`,
+			wantMissing: 3,
+		},
+		{
+			src:     "badsyntax)",
+			wantErr: true,
+		},
+	}
+	p := NewParser(RecoverErrors(3))
+	for _, tc := range tests {
+		t.Run("", func(t *testing.T) {
+			r := strings.NewReader(tc.src)
+			f, err := p.Parse(r, "")
+			if tc.wantErr && err == nil {
+				t.Fatalf("Expected error in %q with RecoverErrors(3), found none", tc.src)
+			} else if !tc.wantErr && err != nil {
+				t.Fatalf("Unexpected error in %q with RecoverErrors(3): %v", tc.src, err)
+			}
+			gotMissing := missing(f)
+			t.Logf("%#v\n", gotMissing)
+			if got := len(gotMissing); got != tc.wantMissing {
+				DebugPrint(os.Stderr, f)
+				t.Fatalf("want %d missing tokens in %q, got %d", tc.wantMissing, tc.src, got)
+			}
+		})
+	}
+}
+
+type missingToken struct {
+	node Node
+}
+
+func missing(node Node) []missingToken {
+	var f finder
+	f.missing(node)
+	return f.result
+}
+
+type finder struct {
+	result []missingToken
+
+	path []Node
+}
+
+func (f *finder) missing(node Node) {
+	switch node := node.(type) {
+	case *File:
+		missingList(f, node.Stmts)
+	case *Stmt:
+		f.missingPos(node, node.Position)
+		f.missing(node.Cmd)
+		missingList(f, node.Redirs)
+	case *Redirect:
+		f.missing(node.Word)
+
+	case *Block:
+		f.missingPos(node, node.Rbrace)
+		missingList(f, node.Stmts)
+	case *Subshell:
+		f.missingPos(node, node.Rparen)
+		missingList(f, node.Stmts)
+	case *CmdSubst:
+		f.missingPos(node, node.Right)
+		missingList(f, node.Stmts)
+	case *BinaryCmd:
+		f.missing(node.Y)
+	case *IfClause:
+		missingList(f, node.Cond)
+		missingList(f, node.Then)
+		f.missingPos(node, node.FiPos)
+
+	case *CallExpr:
+		missingList(f, node.Args)
+	case *ParamExp:
+		f.missingPos(node, node.Rbrace)
+	case *ArithmCmd:
+		f.missingPos(node, node.Right)
+		f.missing(node.X)
+	case *ArithmExp:
+		f.missingPos(node, node.Right)
+		f.missing(node.X)
+	case *Word:
+		missingList(f, node.Parts)
+	case *SglQuoted:
+		f.missingPos(node, node.Right)
+	case *DblQuoted:
+		f.missingPos(node, node.Right)
+	case *Lit:
+		f.missingPos(node, node.ValuePos)
+	}
+}
+
+func (f *finder) missingPos(node Node, pos Pos) {
+	if pos.IsRecovered() {
+		f.result = append(f.result, missingToken{node: node})
+	}
+}
+
+func missingList[N Node](f *finder, list []N) {
+	for _, node := range list {
+		f.missing(node)
+	}
+}

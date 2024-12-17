@@ -149,11 +149,18 @@ func (p Pos) String() string {
 // will only be valid if a statement contained a closing token such as ';'.
 func (p Pos) IsValid() bool { return p != Pos{} }
 
+var recoveredPos = Pos{offs: math.MaxUint32}
+
+func (p Pos) IsRecovered() bool { return p == recoveredPos }
+
 // After reports whether the position p is after p2. It is a more expressive
 // version of p.Offset() > p2.Offset().
 func (p Pos) After(p2 Pos) bool { return p.offs > p2.offs }
 
 func posAddCol(p Pos, n int) Pos {
+	if !p.IsValid() || p.IsRecovered() {
+		return p
+	}
 	// TODO: guard against overflows
 	p.lineCol += uint32(n)
 	p.offs += uint32(n)
