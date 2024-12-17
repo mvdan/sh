@@ -15,7 +15,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"sync"
 	"syscall"
 
 	"github.com/muesli/cancelreader"
@@ -954,25 +953,21 @@ func (r *Runner) readLine(ctx context.Context, raw bool) ([]byte, error) {
 	// but still fail on other errors, which may be unexpected or hide bugs.
 	// See the upstream issue: https://github.com/muesli/cancelreader/issues/23
 	if cr, err := cancelreader.NewReader(r.stdin); err == nil {
-		done := make(chan struct{})
-		var wg sync.WaitGroup
-		wg.Add(1)
-		go func() {
-			select {
-			case <-ctx.Done():
-				cr.Cancel()
-			case <-done:
-			}
-			wg.Done()
-		}()
+		stopc := make(chan struct{})
+		stop := context.AfterFunc(ctx, func() {
+			cr.Cancel()
+			close(stopc)
+		})
 		defer func() {
-			close(done)
-			wg.Wait()
-			// Could put the Close in the above goroutine, but if "read" is
-			// immediately called again, the Close might overlap with creating a
-			// new cancelreader. Want this cancelreader to be completely closed
-			// by the time readLine returns.
-			cr.Close()
+			if !stop() {
+				// The AfterFunc was started; wait for it to complete and close the cancel reader.
+				// Could put the Close in the above goroutine, but if "read" is
+				// immediately called again, the Close might overlap with creating a
+				// new cancelreader. Want this cancelreader to be completely closed
+				// by the time readLine returns.
+				<-stopc
+				cr.Close()
+			}
 		}()
 		stdin = cr
 	}
