@@ -454,10 +454,15 @@ func stdinFile(r io.Reader) (*os.File, error) {
 // standard error. If out or err are nil, they default to a writer that discards
 // the output.
 //
-// Note that providing a non-nil standard input other than [os.File] will require
+// Note that providing a non-nil standard input other than [*os.File] will require
 // an [os.Pipe] and spawning a goroutine to copy into it,
 // as an [os.File] is the only way to share a reader with subprocesses.
+// This may cause the interpreter to consume the entire reader.
 // See [os/exec.Cmd.Stdin].
+//
+// When providing an [*os.File] as standard input, consider using an [os.Pipe]
+// as it has the best chance to support cancellable reads via [os.File.SetReadDeadline],
+// so that cancelling the runner's context can stop a blocked standard input read.
 func StdIO(in io.Reader, out, err io.Writer) RunnerOption {
 	return func(r *Runner) error {
 		stdin, _err := stdinFile(in)

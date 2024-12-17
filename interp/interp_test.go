@@ -4029,14 +4029,21 @@ func TestRunnerContext(t *testing.T) {
 	}
 }
 
-func TestCancelreader(t *testing.T) {
+func TestCancelBlockedStdinRead(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		// TODO: Why is this? The [os.File.SetReadDeadline] docs seem to imply that it should work
+		// across all major platforms, and the file polling  implementation seems to be
+		// for all posix platforms including Windows.
+		// Our previous logic and tests with muesli/cancelreader did not test an os.Pipe
+		// on Windows either, so skipping here is not any worse.
+		t.Skip("os.Pipe on windows appears to not support cancellable reads")
+	}
 	t.Parallel()
 
 	p := syntax.NewParser()
 	file := parse(t, p, "read x")
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
-	// Make the linter happy, even though we deliberately wait for the
-	// timeout.
+	// Make the linter happy, even though we deliberately wait for the timeout.
 	defer cancel()
 
 	stdinRead, stdinWrite, err := os.Pipe()
