@@ -10,14 +10,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 
-	"github.com/muesli/cancelreader"
 	"golang.org/x/term"
 
 	"mvdan.cc/sh/v3/expand"
@@ -942,39 +941,22 @@ func (r *Runner) readLine(ctx context.Context, raw bool) ([]byte, error) {
 	var line []byte
 	esc := false
 
-	stdin := io.Reader(r.stdin)
-	// [cancelreader.NewReader] may fail under some circumstances, such as r.stdin being
-	// a regular file on Linux, in which case epoll returns an "operation not permitted" error
-	// given that regular files can always be read immediately. Polling them makes no sense.
-	// As such, if cancelreader fails, fall back to no cancellation, meaning this is best-effort.
-	//
-	// TODO: it would be nice if the cancelreader library classified errors so that we could
-	// safely handle "this file does not need polling" by skipping the polling as we do below
-	// but still fail on other errors, which may be unexpected or hide bugs.
-	// See the upstream issue: https://github.com/muesli/cancelreader/issues/23
-	if cr, err := cancelreader.NewReader(r.stdin); err == nil {
-		stopc := make(chan struct{})
-		stop := context.AfterFunc(ctx, func() {
-			cr.Cancel()
-			close(stopc)
-		})
-		defer func() {
-			if !stop() {
-				// The AfterFunc was started; wait for it to complete and close the cancel reader.
-				// Could put the Close in the above goroutine, but if "read" is
-				// immediately called again, the Close might overlap with creating a
-				// new cancelreader. Want this cancelreader to be completely closed
-				// by the time readLine returns.
-				<-stopc
-				cr.Close()
-			}
-		}()
-		stdin = cr
-	}
-
+	stopc := make(chan struct{})
+	stop := context.AfterFunc(ctx, func() {
+		r.stdin.SetReadDeadline(time.Now())
+		close(stopc)
+	})
+	defer func() {
+		if !stop() {
+			// The AfterFunc was started.
+			// Wait for it to complete, and reset the file's deadline.
+			<-stopc
+			r.stdin.SetReadDeadline(time.Time{})
+		}
+	}()
 	for {
 		var buf [1]byte
-		n, err := stdin.Read(buf[:])
+		n, err := r.stdin.Read(buf[:])
 		if n > 0 {
 			b := buf[0]
 			switch {
