@@ -173,6 +173,7 @@ type exportedPos struct {
 }
 
 func encodePos(encPtr reflect.Value, val syntax.Pos) {
+	// TODO: perhaps we should encode recovered positions, as that is still useful information.
 	if !val.IsValid() {
 		return
 	}

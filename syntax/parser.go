@@ -143,6 +143,26 @@ func StopAt(word string) ParserOption {
 	return func(p *Parser) { p.stopAt = []byte(word) }
 }
 
+// RecoverErrors allows the parser to skip up to a maximum number of
+// errors in the given input on a best-effort basis.
+// This can be useful to tab-complete an interactive shell prompt,
+// or when providing diagnostics on slightly incomplete shell source.
+//
+// Currently, this only helps with mandatory tokens from the shell grammar
+// which are not present in the input. They result in position fields
+// or nodes whose position report [Pos.IsRecovered] as true.
+//
+// For example, given the input
+//
+//	(foo |
+//
+// the result will contain two recovered positions; first, the pipe requires
+// a statement to follow, and as [Stmt.Pos] reports, the entire node is recovered.
+// Second, the subshell needs to be closed, so [Subshell.Rparen] is recovered.
+func RecoverErrors(maximum int) ParserOption {
+	return func(p *Parser) { p.recoverErrorsMax = maximum }
+}
+
 // NewParser allocates a new [Parser] and applies any number of options.
 func NewParser(options ...ParserOption) *Parser {
 	p := &Parser{}
@@ -364,6 +384,9 @@ type Parser struct {
 
 	stopAt []byte
 
+	recoveredErrors  int
+	recoverErrorsMax int
+
 	forbidNested bool
 
 	// list of pending heredoc bodies
@@ -422,6 +445,7 @@ func (p *Parser) reset() {
 	p.err, p.readErr = nil, nil
 	p.quote, p.forbidNested = noState, false
 	p.openStmts = 0
+	p.recoveredErrors = 0
 	p.heredocs, p.buriedHdocs = p.heredocs[:0], 0
 	p.hdocStops = nil
 	p.parsingDoc = false
@@ -649,6 +673,14 @@ func (p *Parser) gotRsrv(val string) (Pos, bool) {
 	return pos, false
 }
 
+func (p *Parser) recoverError() bool {
+	if p.recoveredErrors < p.recoverErrorsMax {
+		p.recoveredErrors++
+		return true
+	}
+	return false
+}
+
 func readableStr(s string) string {
 	// don't quote tokens like & or }
 	if s != "" && s[0] >= 'a' && s[0] <= 'z' {
@@ -675,6 +707,9 @@ func (p *Parser) follow(lpos Pos, left string, tok token) {
 func (p *Parser) followRsrv(lpos Pos, left, val string) Pos {
 	pos, ok := p.gotRsrv(val)
 	if !ok {
+		if p.recoverError() {
+			return recoveredPos
+		}
 		p.followErr(lpos, left, fmt.Sprintf("%q", val))
 	}
 	return pos
@@ -687,6 +722,9 @@ func (p *Parser) followStmts(left string, lpos Pos, stops ...string) ([]*Stmt, [
 	newLine := p.got(_Newl)
 	stmts, last := p.stmtList(stops...)
 	if len(stmts) < 1 && !newLine {
+		if p.recoverError() {
+			return []*Stmt{{Position: recoveredPos}}, nil
+		}
 		p.followErr(lpos, left, "a statement list")
 	}
 	return stmts, last
@@ -695,6 +733,9 @@ func (p *Parser) followStmts(left string, lpos Pos, stops ...string) ([]*Stmt, [
 func (p *Parser) followWordTok(tok token, pos Pos) *Word {
 	w := p.getWord()
 	if w == nil {
+		if p.recoverError() {
+			return p.wordOne(&Lit{ValuePos: recoveredPos})
+		}
 		p.followErr(pos, tok.String(), "a word")
 	}
 	return w
@@ -703,6 +744,9 @@ func (p *Parser) followWordTok(tok token, pos Pos) *Word {
 func (p *Parser) stmtEnd(n Node, start, end string) Pos {
 	pos, ok := p.gotRsrv(end)
 	if !ok {
+		if p.recoverError() {
+			return recoveredPos
+		}
 		p.posErr(n.Pos(), "%s statement must end with %q", start, end)
 	}
 	return pos
@@ -721,6 +765,9 @@ func (p *Parser) matchingErr(lpos Pos, left, right any) {
 func (p *Parser) matched(lpos Pos, left, right token) Pos {
 	pos := p.pos
 	if !p.got(right) {
+		if p.recoverError() {
+			return recoveredPos
+		}
 		p.matchingErr(lpos, left, right)
 	}
 	return pos
@@ -1107,6 +1154,10 @@ func (p *Parser) wordPart() WordPart {
 				p.litBs = append(p.litBs, '\\', '\n')
 			case utf8.RuneSelf:
 				p.tok = _EOF
+				if p.recoverError() {
+					sq.Right = recoveredPos
+					return sq
+				}
 				p.quoteErr(sq.Pos(), sglQuote)
 				return nil
 			}
@@ -1144,7 +1195,11 @@ func (p *Parser) wordPart() WordPart {
 		// Like above, the lexer didn't call p.rune for us.
 		p.rune()
 		if !p.got(bckQuote) {
-			p.quoteErr(cs.Pos(), bckQuote)
+			if p.recoverError() {
+				cs.Right = recoveredPos
+			} else {
+				p.quoteErr(cs.Pos(), bckQuote)
+			}
 		}
 		return cs
 	case globQuest, globStar, globPlus, globAt, globExcl:
@@ -1194,7 +1249,11 @@ func (p *Parser) dblQuoted() *DblQuoted {
 	p.quote = old
 	q.Right = p.pos
 	if !p.got(dblQuote) {
-		p.quoteErr(q.Pos(), dblQuote)
+		if p.recoverError() {
+			q.Right = recoveredPos
+		} else {
+			p.quoteErr(q.Pos(), dblQuote)
+		}
 	}
 	return q
 }
@@ -1661,6 +1720,9 @@ func (p *Parser) getStmt(readEnd, binCmd, fnBody bool) *Stmt {
 		p.got(_Newl)
 		b.Y = p.getStmt(false, true, false)
 		if b.Y == nil || p.err != nil {
+			if p.recoverError() {
+				return &Stmt{Position: recoveredPos}
+			}
 			p.followErr(b.OpPos, b.Op.String(), "a statement")
 			return nil
 		}
@@ -1834,6 +1896,9 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 		p.next()
 		p.got(_Newl)
 		if b.Y = p.gotStmtPipe(&Stmt{Position: p.pos}, true); b.Y == nil || p.err != nil {
+			if p.recoverError() {
+				return &Stmt{Position: recoveredPos}
+			}
 			p.followErr(b.OpPos, b.Op.String(), "a statement")
 			break
 		}
@@ -1876,9 +1941,11 @@ func (p *Parser) block(s *Stmt) {
 	b := &Block{Lbrace: p.pos}
 	p.next()
 	b.Stmts, b.Last = p.stmtList("}")
-	pos, ok := p.gotRsrv("}")
-	b.Rbrace = pos
-	if !ok {
+	if pos, ok := p.gotRsrv("}"); ok {
+		b.Rbrace = pos
+	} else if p.recoverError() {
+		b.Rbrace = recoveredPos
+	} else {
 		p.matchingErr(b.Lbrace, "{", "}")
 	}
 	s.Cmd = b

@@ -292,6 +292,10 @@ func (p *debugPrinter) print(x reflect.Value) {
 
 	case reflect.Struct:
 		if v, ok := x.Interface().(Pos); ok {
+			if v.IsRecovered() {
+				p.printf("<recovered>")
+				return
+			}
 			p.printf("%v:%v", v.Line(), v.Col())
 			return
 		}

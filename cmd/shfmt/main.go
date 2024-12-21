@@ -53,9 +53,10 @@ var (
 	diff        = &multiFlag[bool]{"d", "diff", false}
 	applyIgnore = &multiFlag[bool]{"", "apply-ignore", false}
 
-	lang     = &multiFlag[syntax.LangVariant]{"ln", "language-dialect", syntax.LangAuto}
-	posix    = &multiFlag[bool]{"p", "posix", false}
-	filename = &multiFlag[string]{"", "filename", ""}
+	lang       = &multiFlag[syntax.LangVariant]{"ln", "language-dialect", syntax.LangAuto}
+	posix      = &multiFlag[bool]{"p", "posix", false}
+	filename   = &multiFlag[string]{"", "filename", ""}
+	expRecover = &multiFlag[int]{"", "exp.recover", 0}
 
 	indent      = &multiFlag[uint]{"i", "indent", 0}
 	binNext     = &multiFlag[bool]{"bn", "binary-next-line", false}
@@ -81,7 +82,7 @@ var (
 
 	allFlags = []any{
 		versionFlag, list, write, simplify, minify, find, diff, applyIgnore,
-		lang, posix, filename,
+		lang, posix, filename, expRecover,
 		indent, binNext, caseIndent, spaceRedirs, keepPadding, funcNext, toJSON, fromJSON,
 	}
 )
@@ -112,6 +113,13 @@ func init() {
 			}
 			if name := f.long; name != "" {
 				flag.StringVar(&f.val, name, f.val, "")
+			}
+		case *multiFlag[int]:
+			if name := f.short; name != "" {
+				flag.IntVar(&f.val, name, f.val, "")
+			}
+			if name := f.long; name != "" {
+				flag.IntVar(&f.val, name, f.val, "")
 			}
 		case *multiFlag[uint]:
 			if name := f.short; name != "" {
@@ -226,6 +234,8 @@ For more information and to report bugs, see https://github.com/mvdan/sh.
 	})
 	parser = syntax.NewParser(syntax.KeepComments(true))
 	printer = syntax.NewPrinter(syntax.Minify(minify.val))
+
+	syntax.RecoverErrors(expRecover.val)(parser)
 
 	if !useEditorConfig {
 		if posix.val {

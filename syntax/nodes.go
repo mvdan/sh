@@ -70,10 +70,16 @@ type Pos struct {
 	offs, lineCol uint32
 }
 
-// We used to split line and column numbers evenly in 16 bits, but line numbers
-// are significantly more important in practice. Use more bits for them.
 const (
-	offsetMax = math.MaxUint32
+	// Offsets use 32 bits for a reasonable amount of precision.
+	// We reserve a few of the highest values to represent types of invalid positions.
+	// We leave some space before the real uint32 maximum so that we can easily detect
+	// when arithmetic on invalid positions is done by mistake.
+	offsetRecovered = math.MaxUint32 - 10
+	offsetMax       = math.MaxUint32 - 11
+
+	// We used to split line and column numbers evenly in 16 bits, but line numbers
+	// are significantly more important in practice. Use more bits for them.
 
 	lineBitSize = 18
 	lineMax     = (1 << lineBitSize) - 1
@@ -109,20 +115,26 @@ func NewPos(offset, line, column uint) Pos {
 }
 
 // Offset returns the byte offset of the position in the original source file.
-// Byte offsets start at 0.
+// Byte offsets start at 0. Invalid positions always report the offset 0.
 //
 // Offset has basic protection against overflows; if an input is too large,
 // offset numbers will stop increasing past a very large number.
-func (p Pos) Offset() uint { return uint(p.offs) }
+func (p Pos) Offset() uint {
+	if p.offs > offsetMax {
+		return 0 // invalid
+	}
+	return uint(p.offs)
+}
 
 // Line returns the line number of the position, starting at 1.
+// Invalid positions always report the line number 0.
 //
 // Line is protected against overflows; if an input has too many lines, extra
 // lines will have a line number of 0, rendered as "?" by [Pos.String].
 func (p Pos) Line() uint { return uint(p.lineCol >> colBitSize) }
 
 // Col returns the column number of the position, starting at 1. It counts in
-// bytes.
+// bytes. Invalid positions always report the column number 0.
 //
 // Col is protected against overflows; if an input line has too many columns,
 // extra columns will have a column number of 0, rendered as "?" by [Pos.String].
@@ -147,13 +159,33 @@ func (p Pos) String() string {
 // IsValid reports whether the position contains useful position information.
 // Some positions returned via [Parse] may be invalid: for example, [Stmt.Semicolon]
 // will only be valid if a statement contained a closing token such as ';'.
-func (p Pos) IsValid() bool { return p != Pos{} }
+//
+// Recovered positions, as reported by [Pos.IsRecovered], are not considered valid
+// given that they don't contain position information.
+func (p Pos) IsValid() bool {
+	return p.offs <= offsetMax && p.lineCol != 0
+}
+
+var recoveredPos = Pos{offs: offsetRecovered}
+
+// IsRecovered reports whether the position that the token or node belongs to
+// was missing in the original input and recovered via [RecoverErrors].
+func (p Pos) IsRecovered() bool { return p == recoveredPos }
 
 // After reports whether the position p is after p2. It is a more expressive
 // version of p.Offset() > p2.Offset().
-func (p Pos) After(p2 Pos) bool { return p.offs > p2.offs }
+// It always returns false if p is an invalid position.
+func (p Pos) After(p2 Pos) bool {
+	if !p.IsValid() {
+		return false
+	}
+	return p.offs > p2.offs
+}
 
 func posAddCol(p Pos, n int) Pos {
+	if !p.IsValid() {
+		return p
+	}
 	// TODO: guard against overflows
 	p.lineCol += uint32(n)
 	p.offs += uint32(n)

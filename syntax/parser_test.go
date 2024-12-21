@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"reflect"
 	"regexp"
 	"strings"
 	"sync"
@@ -2515,4 +2516,167 @@ func TestPosEdgeCases(t *testing.T) {
 	// Check that we skip over null bytes when counting columns.
 	qt.Check(t, qt.Equals(f.Stmts[1].Pos().String(), "2:2"))
 	qt.Check(t, qt.Equals(f.Stmts[1].End().String(), "2:9"))
+}
+
+func TestParseRecoverErrors(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		src string
+
+		wantErr     bool
+		wantMissing int
+	}{
+		{src: "foo;"},
+		{src: "foo"},
+		{
+			src:         "'incomp",
+			wantMissing: 1,
+		},
+		{
+			src:         "foo; 'incomp",
+			wantMissing: 1,
+		},
+		{
+			src:         "{ incomp",
+			wantMissing: 1,
+		},
+		{
+			src:         "(incomp",
+			wantMissing: 1,
+		},
+		{
+			src:         "(incomp; foo",
+			wantMissing: 1,
+		},
+		{
+			src:         "$(incomp",
+			wantMissing: 1,
+		},
+		{
+			src:         "((incomp",
+			wantMissing: 1,
+		},
+		{
+			src:         "$((incomp",
+			wantMissing: 1,
+		},
+		{
+			src:         "if foo",
+			wantMissing: 3,
+		},
+		{
+			src:         "if foo; then bar",
+			wantMissing: 1,
+		},
+		{
+			src:         "for i in 1 2 3; echo $i; done",
+			wantMissing: 1,
+		},
+		{
+			src:         `"incomp`,
+			wantMissing: 1,
+		},
+		{
+			src:         "`incomp",
+			wantMissing: 1,
+		},
+		{
+			src:         "incomp >",
+			wantMissing: 1,
+		},
+		{
+			src:         "${incomp",
+			wantMissing: 1,
+		},
+		{
+			src:         "incomp | ",
+			wantMissing: 1,
+		},
+		{
+			src:         "incomp || ",
+			wantMissing: 1,
+		},
+		{
+			src:         "incomp && ",
+			wantMissing: 1,
+		},
+		{
+			src:         `(one | { two >`,
+			wantMissing: 3,
+		},
+		{
+			src:         `(one > ; two | ); { three`,
+			wantMissing: 3,
+		},
+		{
+			src:     "badsyntax)",
+			wantErr: true,
+		},
+	}
+	parser := NewParser(RecoverErrors(3))
+	printer := NewPrinter()
+	for _, tc := range tests {
+		t.Run("", func(t *testing.T) {
+			r := strings.NewReader(tc.src)
+			f, err := parser.Parse(r, "")
+			if tc.wantErr {
+				qt.Assert(t, qt.Not(qt.IsNil(err)))
+			} else {
+				qt.Assert(t, qt.IsNil(err))
+			}
+			qt.Assert(t, qt.Equals(countRecoveredPositions(reflect.ValueOf(f)), tc.wantMissing))
+
+			// Check that walking or printing the syntax tree still appears to work
+			// even when the input source was incomplete.
+			Walk(f, func(node Node) bool {
+				if node == nil {
+					return true
+				}
+				// Each position should either be valid, pointing to an offset within the input,
+				// or invalid, which could be due to the position being recovered.
+				for _, pos := range []Pos{node.Pos(), node.End()} {
+					qt.Assert(t, qt.IsFalse(pos.IsValid() && pos.IsRecovered()), qt.Commentf("positions cannot be valid and recovered"))
+					if !pos.IsValid() {
+						qt.Assert(t, qt.Equals(pos.Offset(), 0), qt.Commentf("invalid positions have no offset"))
+						qt.Assert(t, qt.Equals(pos.Line(), 0), qt.Commentf("invalid positions have no line"))
+						qt.Assert(t, qt.Equals(pos.Col(), 0), qt.Commentf("invalid positions have no column"))
+					}
+				}
+				return true
+			})
+			// Note that we don't particularly care about good formatting here.
+			printer.Print(io.Discard, f)
+		})
+	}
+}
+
+func countRecoveredPositions(x reflect.Value) int {
+	switch x.Kind() {
+	case reflect.Interface:
+		return countRecoveredPositions(x.Elem())
+	case reflect.Ptr:
+		if !x.IsNil() {
+			return countRecoveredPositions(x.Elem())
+		}
+	case reflect.Slice:
+		n := 0
+		for i := 0; i < x.Len(); i++ {
+			n += countRecoveredPositions(x.Index(i))
+		}
+		return n
+	case reflect.Struct:
+		if pos, ok := x.Interface().(Pos); ok {
+			if pos.IsRecovered() {
+				return 1
+			}
+			return 0
+		}
+		n := 0
+		for i := 0; i < x.NumField(); i++ {
+			n += countRecoveredPositions(x.Field(i))
+		}
+		return n
+	}
+	return 0
 }
