@@ -2618,12 +2618,21 @@ func TestParseRecoverErrors(t *testing.T) {
 	printer := NewPrinter()
 	for _, tc := range tests {
 		t.Run("", func(t *testing.T) {
+			t.Logf("input: %s", tc.src)
 			r := strings.NewReader(tc.src)
 			f, err := parser.Parse(r, "")
 			if tc.wantErr {
 				qt.Assert(t, qt.Not(qt.IsNil(err)))
 			} else {
 				qt.Assert(t, qt.IsNil(err))
+				switch len(f.Stmts) {
+				case 0:
+					t.Fatalf("result has no statements")
+				case 1:
+					if f.Stmts[0].Pos().IsRecovered() {
+						t.Fatalf("result is only a recovered statement")
+					}
+				}
 			}
 			qt.Assert(t, qt.Equals(countRecoveredPositions(reflect.ValueOf(f)), tc.wantMissing))
 

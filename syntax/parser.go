@@ -1721,10 +1721,11 @@ func (p *Parser) getStmt(readEnd, binCmd, fnBody bool) *Stmt {
 		b.Y = p.getStmt(false, true, false)
 		if b.Y == nil || p.err != nil {
 			if p.recoverError() {
-				return &Stmt{Position: recoveredPos}
+				b.Y = &Stmt{Position: recoveredPos}
+			} else {
+				p.followErr(b.OpPos, b.Op.String(), "a statement")
+				return nil
 			}
-			p.followErr(b.OpPos, b.Op.String(), "a statement")
-			return nil
 		}
 		s = &Stmt{Position: s.Position}
 		s.Cmd = b
@@ -1897,10 +1898,11 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 		p.got(_Newl)
 		if b.Y = p.gotStmtPipe(&Stmt{Position: p.pos}, true); b.Y == nil || p.err != nil {
 			if p.recoverError() {
-				return &Stmt{Position: recoveredPos}
+				b.Y = &Stmt{Position: recoveredPos}
+			} else {
+				p.followErr(b.OpPos, b.Op.String(), "a statement")
+				break
 			}
-			p.followErr(b.OpPos, b.Op.String(), "a statement")
-			break
 		}
 		s = &Stmt{Position: s.Position}
 		s.Cmd = b
