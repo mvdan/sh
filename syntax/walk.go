@@ -36,26 +36,14 @@ func Walk(node Node, f func(Node) bool) {
 		}
 		walkList(node.Redirs, f)
 	case *Assign:
-		if node.Name != nil {
-			Walk(node.Name, f)
-		}
-		if node.Value != nil {
-			Walk(node.Value, f)
-		}
-		if node.Index != nil {
-			Walk(node.Index, f)
-		}
-		if node.Array != nil {
-			Walk(node.Array, f)
-		}
+		walkNilable(node.Name, f)
+		walkNilable(node.Value, f)
+		walkNilable(node.Index, f)
+		walkNilable(node.Array, f)
 	case *Redirect:
-		if node.N != nil {
-			Walk(node.N, f)
-		}
+		walkNilable(node.N, f)
 		Walk(node.Word, f)
-		if node.Hdoc != nil {
-			Walk(node.Hdoc, f)
-		}
+		walkNilable(node.Hdoc, f)
 	case *CallExpr:
 		walkList(node.Assigns, f)
 		walkList(node.Args, f)
@@ -70,9 +58,7 @@ func Walk(node Node, f func(Node) bool) {
 		walkComments(node.CondLast, f)
 		walkList(node.Then, f)
 		walkComments(node.ThenLast, f)
-		if node.Else != nil {
-			Walk(node.Else, f)
-		}
+		walkNilable(node.Else, f)
 	case *WhileClause:
 		walkList(node.Cond, f)
 		walkComments(node.CondLast, f)
@@ -86,15 +72,9 @@ func Walk(node Node, f func(Node) bool) {
 		Walk(node.Name, f)
 		walkList(node.Items, f)
 	case *CStyleLoop:
-		if node.Init != nil {
-			Walk(node.Init, f)
-		}
-		if node.Cond != nil {
-			Walk(node.Cond, f)
-		}
-		if node.Post != nil {
-			Walk(node.Post, f)
-		}
+		walkNilable(node.Init, f)
+		walkNilable(node.Cond, f)
+		walkNilable(node.Post, f)
 	case *BinaryCmd:
 		Walk(node.X, f)
 		Walk(node.Y, f)
@@ -112,19 +92,13 @@ func Walk(node Node, f func(Node) bool) {
 		walkComments(node.Last, f)
 	case *ParamExp:
 		Walk(node.Param, f)
-		if node.Index != nil {
-			Walk(node.Index, f)
-		}
+		walkNilable(node.Index, f)
 		if node.Repl != nil {
-			if node.Repl.Orig != nil {
-				Walk(node.Repl.Orig, f)
-			}
-			if node.Repl.With != nil {
-				Walk(node.Repl.With, f)
-			}
+			walkNilable(node.Repl.Orig, f)
+			walkNilable(node.Repl.With, f)
 		}
-		if node.Exp != nil && node.Exp.Word != nil {
-			Walk(node.Exp.Word, f)
+		if node.Exp != nil {
+			walkNilable(node.Exp.Word, f)
 		}
 	case *ArithmExp:
 		Walk(node.X, f)
@@ -174,25 +148,17 @@ func Walk(node Node, f func(Node) bool) {
 			}
 			Walk(&c, f)
 		}
-		if node.Index != nil {
-			Walk(node.Index, f)
-		}
-		if node.Value != nil {
-			Walk(node.Value, f)
-		}
+		walkNilable(node.Index, f)
+		walkNilable(node.Value, f)
 	case *ExtGlob:
 		Walk(node.Pattern, f)
 	case *ProcSubst:
 		walkList(node.Stmts, f)
 		walkComments(node.Last, f)
 	case *TimeClause:
-		if node.Stmt != nil {
-			Walk(node.Stmt, f)
-		}
+		walkNilable(node.Stmt, f)
 	case *CoprocClause:
-		if node.Name != nil {
-			Walk(node.Name, f)
-		}
+		walkNilable(node.Name, f)
 		Walk(node.Stmt, f)
 	case *LetClause:
 		walkList(node.Exprs, f)
@@ -206,6 +172,17 @@ func Walk(node Node, f func(Node) bool) {
 	f(nil)
 }
 
+type nilableNode interface {
+	Node
+	comparable // pointer nodes, which can be compared to nil
+}
+
+func walkNilable[N nilableNode](node N, f func(Node) bool) {
+	var zero N // nil
+	if node != zero {
+		Walk(node, f)
+	}
+}
 func walkList[N Node](list []N, f func(Node) bool) {
 	for _, node := range list {
 		Walk(node, f)
