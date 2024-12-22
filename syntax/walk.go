@@ -9,21 +9,6 @@ import (
 	"reflect"
 )
 
-func walkStmts(stmts []*Stmt, last []Comment, f func(Node) bool) {
-	for _, s := range stmts {
-		Walk(s, f)
-	}
-	for _, c := range last {
-		Walk(&c, f)
-	}
-}
-
-func walkWords(words []*Word, f func(Node) bool) {
-	for _, w := range words {
-		Walk(w, f)
-	}
-}
-
 // Walk traverses a syntax tree in depth-first order: It starts by calling
 // f(node); node must not be nil. If f returns true, Walk invokes f
 // recursively for each of the non-nil children of node, followed by
@@ -35,7 +20,8 @@ func Walk(node Node, f func(Node) bool) {
 
 	switch node := node.(type) {
 	case *File:
-		walkStmts(node.Stmts, node.Last, f)
+		walkList(node.Stmts, f)
+		walkComments(node.Last, f)
 	case *Comment:
 	case *Stmt:
 		for _, c := range node.Comments {
@@ -48,9 +34,7 @@ func Walk(node Node, f func(Node) bool) {
 		if node.Cmd != nil {
 			Walk(node.Cmd, f)
 		}
-		for _, r := range node.Redirs {
-			Walk(r, f)
-		}
+		walkList(node.Redirs, f)
 	case *Assign:
 		if node.Name != nil {
 			Walk(node.Name, f)
@@ -73,29 +57,34 @@ func Walk(node Node, f func(Node) bool) {
 			Walk(node.Hdoc, f)
 		}
 	case *CallExpr:
-		for _, a := range node.Assigns {
-			Walk(a, f)
-		}
-		walkWords(node.Args, f)
+		walkList(node.Assigns, f)
+		walkList(node.Args, f)
 	case *Subshell:
-		walkStmts(node.Stmts, node.Last, f)
+		walkList(node.Stmts, f)
+		walkComments(node.Last, f)
 	case *Block:
-		walkStmts(node.Stmts, node.Last, f)
+		walkList(node.Stmts, f)
+		walkComments(node.Last, f)
 	case *IfClause:
-		walkStmts(node.Cond, node.CondLast, f)
-		walkStmts(node.Then, node.ThenLast, f)
+		walkList(node.Cond, f)
+		walkComments(node.CondLast, f)
+		walkList(node.Then, f)
+		walkComments(node.ThenLast, f)
 		if node.Else != nil {
 			Walk(node.Else, f)
 		}
 	case *WhileClause:
-		walkStmts(node.Cond, node.CondLast, f)
-		walkStmts(node.Do, node.DoLast, f)
+		walkList(node.Cond, f)
+		walkComments(node.CondLast, f)
+		walkList(node.Do, f)
+		walkComments(node.DoLast, f)
 	case *ForClause:
 		Walk(node.Loop, f)
-		walkStmts(node.Do, node.DoLast, f)
+		walkList(node.Do, f)
+		walkComments(node.DoLast, f)
 	case *WordIter:
 		Walk(node.Name, f)
-		walkWords(node.Items, f)
+		walkList(node.Items, f)
 	case *CStyleLoop:
 		if node.Init != nil {
 			Walk(node.Init, f)
@@ -113,17 +102,14 @@ func Walk(node Node, f func(Node) bool) {
 		Walk(node.Name, f)
 		Walk(node.Body, f)
 	case *Word:
-		for _, wp := range node.Parts {
-			Walk(wp, f)
-		}
+		walkList(node.Parts, f)
 	case *Lit:
 	case *SglQuoted:
 	case *DblQuoted:
-		for _, wp := range node.Parts {
-			Walk(wp, f)
-		}
+		walkList(node.Parts, f)
 	case *CmdSubst:
-		walkStmts(node.Stmts, node.Last, f)
+		walkList(node.Stmts, f)
+		walkComments(node.Last, f)
 	case *ParamExp:
 		Walk(node.Param, f)
 		if node.Index != nil {
@@ -160,12 +146,8 @@ func Walk(node Node, f func(Node) bool) {
 		Walk(node.X, f)
 	case *CaseClause:
 		Walk(node.Word, f)
-		for _, ci := range node.Items {
-			Walk(ci, f)
-		}
-		for _, c := range node.Last {
-			Walk(&c, f)
-		}
+		walkList(node.Items, f)
+		walkComments(node.Last, f)
 	case *CaseItem:
 		for _, c := range node.Comments {
 			if c.Pos().After(node.Pos()) {
@@ -174,21 +156,16 @@ func Walk(node Node, f func(Node) bool) {
 			}
 			Walk(&c, f)
 		}
-		walkWords(node.Patterns, f)
-		walkStmts(node.Stmts, node.Last, f)
+		walkList(node.Patterns, f)
+		walkList(node.Stmts, f)
+		walkComments(node.Last, f)
 	case *TestClause:
 		Walk(node.X, f)
 	case *DeclClause:
-		for _, a := range node.Args {
-			Walk(a, f)
-		}
+		walkList(node.Args, f)
 	case *ArrayExpr:
-		for _, el := range node.Elems {
-			Walk(el, f)
-		}
-		for _, c := range node.Last {
-			Walk(&c, f)
-		}
+		walkList(node.Elems, f)
+		walkComments(node.Last, f)
 	case *ArrayElem:
 		for _, c := range node.Comments {
 			if c.Pos().After(node.Pos()) {
@@ -206,7 +183,8 @@ func Walk(node Node, f func(Node) bool) {
 	case *ExtGlob:
 		Walk(node.Pattern, f)
 	case *ProcSubst:
-		walkStmts(node.Stmts, node.Last, f)
+		walkList(node.Stmts, f)
+		walkComments(node.Last, f)
 	case *TimeClause:
 		if node.Stmt != nil {
 			Walk(node.Stmt, f)
@@ -217,9 +195,7 @@ func Walk(node Node, f func(Node) bool) {
 		}
 		Walk(node.Stmt, f)
 	case *LetClause:
-		for _, expr := range node.Exprs {
-			Walk(expr, f)
-		}
+		walkList(node.Exprs, f)
 	case *TestDecl:
 		Walk(node.Description, f)
 		Walk(node.Body, f)
@@ -228,6 +204,18 @@ func Walk(node Node, f func(Node) bool) {
 	}
 
 	f(nil)
+}
+
+func walkList[N Node](list []N, f func(Node) bool) {
+	for _, node := range list {
+		Walk(node, f)
+	}
+}
+func walkComments(list []Comment, f func(Node) bool) {
+	// Note that []Comment does not satisfy the generic constraint []Node.
+	for i := range list {
+		Walk(&list[i], f)
+	}
 }
 
 // DebugPrint prints the provided syntax tree, spanning multiple lines and with
