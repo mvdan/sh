@@ -5,7 +5,6 @@ package main
 
 import (
 	"flag"
-	"os"
 	"path/filepath"
 	"testing"
 
@@ -13,9 +12,9 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	os.Exit(testscript.RunMain(m, map[string]func() int{
-		"shfmt": main1,
-	}))
+	testscript.Main(m, map[string]func(){
+		"shfmt": main,
+	})
 }
 
 var update = flag.Bool("u", false, "update testscript output files")

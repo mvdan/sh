@@ -142,10 +142,6 @@ func init() {
 }
 
 func main() {
-	os.Exit(main1())
-}
-
-func main1() int {
 	flag.Usage = func() {
 		fmt.Fprint(os.Stderr, `usage: shfmt [flags] [path ...]
 
@@ -202,19 +198,19 @@ For more information and to report bugs, see https://github.com/mvdan/sh.
 			version = mod.Version
 		}
 		fmt.Println(version)
-		return 0
+		return
 	}
 	if posix.val && lang.val != syntax.LangAuto {
 		fmt.Fprintf(os.Stderr, "-p and -ln=lang cannot coexist\n")
-		return 1
+		os.Exit(1)
 	}
 	if list.val != "true" && list.val != "false" && list.val != "0" {
 		fmt.Fprintf(os.Stderr, "only -l and -l=0 allowed\n")
-		return 1
+		os.Exit(1)
 	}
 	if find.val != "true" && find.val != "false" && find.val != "0" {
 		fmt.Fprintf(os.Stderr, "only -f and -f=0 allowed\n")
-		return 1
+		os.Exit(1)
 	}
 	if minify.val {
 		simplify.val = true
@@ -271,17 +267,17 @@ For more information and to report bugs, see https://github.com/mvdan/sh.
 			if err != errChangedWithDiff {
 				fmt.Fprintln(os.Stderr, err)
 			}
-			return 1
+			os.Exit(1)
 		}
-		return 0
+		return
 	}
 	if filename.val != "" {
 		fmt.Fprintln(os.Stderr, "-filename can only be used with stdin")
-		return 1
+		os.Exit(1)
 	}
 	if toJSON.val {
 		fmt.Fprintln(os.Stderr, "--to-json can only be used with stdin")
-		return 1
+		os.Exit(1)
 	}
 	status := 0
 	for _, path := range flag.Args() {
@@ -319,7 +315,7 @@ For more information and to report bugs, see https://github.com/mvdan/sh.
 			status = 1
 		}
 	}
-	return status
+	os.Exit(status)
 }
 
 var errChangedWithDiff = fmt.Errorf("")
