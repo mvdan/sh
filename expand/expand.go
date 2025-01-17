@@ -202,9 +202,9 @@ func Document(cfg *Config, word *syntax.Word) (string, error) {
 
 const patMode = pattern.Filenames | pattern.Braces
 
-// Pattern expands a single shell word as a pattern, using [syntax.QuotePattern]
+// Pattern expands a single shell word as a pattern, using [pattern.QuoteMeta]
 // on any non-quoted parts of the input word. The result can be used on
-// [syntax.TranslatePattern] directly.
+// [pattern.Regexp] directly.
 //
 // The config specifies shell expansion options; nil behaves the same as an
 // empty config.
