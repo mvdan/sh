@@ -48,6 +48,10 @@ predictable. Some aspects of the format can be configured via printer flags.
 *-mn*, *--minify*
 	Minify the code to reduce its size (implies *-s*).
 
+*-vb*, *--variable-braces*
+	Prefer putting braces around variable references ;
+	this option is ignored if -mn is used
+
 *--apply-ignore*
 	Always apply EditorConfig ignore rules.
 
@@ -133,8 +137,8 @@ showing how to set any option:
 ```
 [*.sh]
 # like -i=4
-indent_style = space
-indent_size = 4
+indent_style       = space
+indent_size        = 4
 
 # --language-variant
 shell_variant      = posix

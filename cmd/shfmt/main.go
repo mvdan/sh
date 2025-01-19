@@ -47,15 +47,15 @@ var (
 	list        = &multiFlag[boolString]{"l", "list", "false"}
 
 	write       = &multiFlag[bool]{"w", "write", false}
+	diff        = &multiFlag[bool]{"d", "diff", false}
 	simplify    = &multiFlag[bool]{"s", "simplify", false}
 	minify      = &multiFlag[bool]{"mn", "minify", false}
-	find        = &multiFlag[boolString]{"f", "find", "false"}
-	diff        = &multiFlag[bool]{"d", "diff", false}
+	varBraces   = &multiFlag[bool]{"vb", "variable-braces", false}
 	applyIgnore = &multiFlag[bool]{"", "apply-ignore", false}
+	filename    = &multiFlag[string]{"", "filename", ""}
 
 	lang       = &multiFlag[syntax.LangVariant]{"ln", "language-dialect", syntax.LangAuto}
 	posix      = &multiFlag[bool]{"p", "posix", false}
-	filename   = &multiFlag[string]{"", "filename", ""}
 	expRecover = &multiFlag[int]{"", "exp.recover", 0}
 
 	indent      = &multiFlag[uint]{"i", "indent", 0}
@@ -65,6 +65,7 @@ var (
 	keepPadding = &multiFlag[bool]{"kp", "keep-padding", false}
 	funcNext    = &multiFlag[bool]{"fn", "func-next-line", false}
 
+	find     = &multiFlag[boolString]{"f", "find", "false"}
 	toJSON   = &multiFlag[bool]{"tojson", "to-json", false} // TODO(v4): remove "tojson" for consistency
 	fromJSON = &multiFlag[bool]{"", "from-json", false}
 
@@ -149,16 +150,18 @@ shfmt formats shell programs. If the only argument is a dash ('-') or no
 arguments are given, standard input will be used. If a given path is a
 directory, all shell scripts found under that directory will be used.
 
-  --version  show version and exit
+  -v,     --version     show version and exit
+  -l[=0], --list[=0]    list files whose formatting differs from shfmt;
+                        paths are separated by a newline or a null character if -l=0
 
-  -l[=0], --list[=0]  list files whose formatting differs from shfmt;
-                      paths are separated by a newline or a null character if -l=0
-  -w,     --write     write result to file instead of stdout
-  -d,     --diff      error with a diff when the formatting differs
-  -s,     --simplify  simplify the code
-  -mn,    --minify    minify the code to reduce its size (implies -s)
-  --apply-ignore      always apply EditorConfig ignore rules
-  --filename str      provide a name for the standard input file
+  -w,     --write              write result to file instead of stdout
+  -d,     --diff               error with a diff when the formatting differs
+  -s,     --simplify           simplify the code
+  -mn,    --minify             minify the code to reduce its size (implies -s)
+  -vb,    --variable-braces    prefer putting braces around variable references;
+                               this option is ignored if -mn is used
+          --apply-ignore       always apply EditorConfig ignore rules
+          --filename str       provide a name for the standard input file
 
 Parser options:
 
@@ -167,19 +170,19 @@ Parser options:
 
 Printer options:
 
-  -i,  --indent uint       0 for tabs (default), >0 for number of spaces
-  -bn, --binary-next-line  binary ops like && and | may start a line
-  -ci, --case-indent       switch cases will be indented
-  -sr, --space-redirects   redirect operators will be followed by a space
-  -kp, --keep-padding      keep column alignment paddings
-  -fn, --func-next-line    function opening braces are placed on a separate line
+  -i,     --indent uint        0 for tabs (default), >0 for number of spaces
+  -bn,    --binary-next-line   binary ops like && and | may start a line
+  -ci,    --case-indent        switch cases will be indented
+  -sr,    --space-redirects    redirect operators will be followed by a space
+  -kp,    --keep-padding       keep column alignment paddings
+  -fn,    --func-next-line     function opening braces are placed on a separate line
 
 Utilities:
 
-  -f[=0], --find[=0]  recursively find all shell files and print the paths;
-                      paths are separated by a newline or a null character if -f=0
-  --to-json           print syntax tree to stdout as a typed JSON
-  --from-json         read syntax tree from stdin as a typed JSON
+  -f[=0], --find[=0]    recursively find all shell files and print the paths;
+                        paths are separated by a newline or a null character if -f=0
+          --to-json     print syntax tree to stdout as a typed JSON
+          --from-json   read syntax tree from stdin as a typed JSON
 
 Formatting options can also be read from EditorConfig files; see 'man shfmt'
 for a detailed description of the tool's behavior.

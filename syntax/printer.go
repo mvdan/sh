@@ -231,12 +231,13 @@ type Printer struct {
 	spaceRedirects bool
 	keepPadding    bool
 	minify         bool
+	varBraces      bool
 	singleLine     bool
 	funcNextLine   bool
 
 	wantSpace wantSpaceState // whether space is required or has been written
 
-	wantNewline bool // newline is wanted for pretty-printing; ignored by singleLine; ignored by singleLine
+	wantNewline bool // newline is wanted for pretty-printing; ignored by singleLine
 	mustNewline bool // newline is required to keep shell syntax valid
 	wroteSemi   bool // wrote ';' for the current statement
 
@@ -615,7 +616,7 @@ func (p *Printer) wordParts(wps []WordPart, quoted bool) {
 	// However, we want to allow a leading escaped newline for cases such as:
 	//
 	//   foo <<< \
-	//     "bar baz"
+	//   "bar baz"
 	if !quoted && !p.singleLine && wps[0].Pos().Line() > p.line {
 		p.bslashNewl()
 	}
@@ -691,6 +692,9 @@ func (p *Printer) wordPart(wp, next WordPart) {
 		name := wp.Param.Value
 		switch {
 		case !p.minify:
+			if p.varBraces {
+				wp.Short = false
+			}
 		case wp.Excl, wp.Length, wp.Width:
 		case wp.Index != nil, wp.Slice != nil:
 		case wp.Repl != nil, wp.Exp != nil:
