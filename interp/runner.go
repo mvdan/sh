@@ -99,9 +99,11 @@ func (r *Runner) fillExpandConfig(ctx context.Context) {
 
 			r2 := r.Subshell()
 			stdout := r.origStdout
-			r.wgProcSubsts.Add(1)
+			// TODO: note that `man bash` mentions that `wait` only waits for the last
+			// process substitution; the logic here would mean we wait for all of them.
+			r.bgShells.Add(1)
 			go func() {
-				defer r.wgProcSubsts.Done()
+				defer r.bgShells.Done()
 				switch ps.Op {
 				case syntax.CmdIn:
 					f, err := os.OpenFile(path, os.O_WRONLY, 0)
@@ -291,9 +293,11 @@ func (r *Runner) stmt(ctx context.Context, st *syntax.Stmt) {
 		r2 := r.Subshell()
 		st2 := *st
 		st2.Background = false
-		r.bgShells.Go(func() error {
-			return r2.Run(ctx, &st2)
-		})
+		r.bgShells.Add(1)
+		go func() {
+			r2.Run(ctx, &st2)
+			r.bgShells.Done()
+		}()
 	} else {
 		r.stmtSync(ctx, st)
 	}
@@ -301,7 +305,6 @@ func (r *Runner) stmt(ctx context.Context, st *syntax.Stmt) {
 }
 
 func (r *Runner) stmtSync(ctx context.Context, st *syntax.Stmt) {
-	defer r.wgProcSubsts.Wait()
 	oldIn, oldOut, oldErr := r.stdin, r.stdout, r.stderr
 	for _, rd := range st.Redirs {
 		cls, err := r.redir(ctx, rd)

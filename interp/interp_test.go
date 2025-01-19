@@ -3237,16 +3237,23 @@ var runTestsUnix = []runTest{
 		"nested\n",
 	},
 	{
-		"echo foo_interp_missing bar_interp_missing > >(sed 's/o/e/g')",
+		// The tests here use "wait" because otherwise the parent may finish before
+		// the subprocess has had time to process the input and print the result.
+		"echo foo_interp_missing bar_interp_missing > >(sed 's/o/e/g'); wait",
 		"fee_interp_missing bar_interp_missing\n",
 	},
 	{
-		"echo foo_interp_missing bar_interp_missing | tee >(sed 's/o/e/g') >/dev/null",
+		"echo foo_interp_missing bar_interp_missing | tee >(sed 's/o/e/g') >/dev/null; wait",
 		"fee_interp_missing bar_interp_missing\n",
 	},
 	{
-		"echo nested > >(cat > >(cat))",
+		"echo nested > >(cat > >(cat); wait); wait",
 		"nested\n",
+	},
+	{
+		// The reader here does not consume the named pipe.
+		"test -e <(echo foo)",
+		"",
 	},
 	// echo trace
 	{

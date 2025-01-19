@@ -237,10 +237,8 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		if len(args) > 0 {
 			panic("wait with args not handled yet")
 		}
-		err := r.bgShells.Wait()
-		if _, ok := IsExitStatus(err); err != nil && !ok {
-			r.setErr(err)
-		}
+		// Note that "wait" without arguments always returns exit status zero.
+		r.bgShells.Wait()
 	case "builtin":
 		if len(args) < 1 {
 			break

@@ -125,8 +125,9 @@ var modCases = []struct {
 		opts: []interp.RunnerOption{
 			interp.ExecHandlers(blocklistAllExec),
 		},
-		src:  "{ malicious; true; } & { malicious; true; } & wait",
-		want: "blocklisted: malicious",
+		src: "{ malicious; true; } & { malicious; true; } & wait",
+		// Note that "wait" with no arguments always succeeds.
+		want: "",
 	},
 	{
 		name: "ExecPrintWouldExec",

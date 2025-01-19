@@ -27,8 +27,6 @@ import (
 	"sync"
 	"time"
 
-	"golang.org/x/sync/errgroup"
-
 	"mvdan.cc/sh/v3/expand"
 	"mvdan.cc/sh/v3/syntax"
 )
@@ -109,10 +107,6 @@ type Runner struct {
 	// rand is used mainly to generate temporary files.
 	rand *rand.Rand
 
-	// wgProcSubsts allows waiting for any process substitution sub-shells
-	// to finish running.
-	wgProcSubsts sync.WaitGroup
-
 	filename string // only if Node was a File
 
 	// >0 to break or continue out of N enclosing loops
@@ -137,7 +131,7 @@ type Runner struct {
 	exit     int
 	lastExit int
 
-	bgShells errgroup.Group
+	bgShells sync.WaitGroup
 
 	opts runnerOpts
 
