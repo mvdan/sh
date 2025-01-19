@@ -42,7 +42,11 @@ type HandlerContext struct {
 	// Dir is the interpreter's current directory.
 	Dir string
 
+	// TODO(v4): use an os.File for stdin below directly.
+
 	// Stdin is the interpreter's current standard input reader.
+	// It is always an [*os.File], but the type here remains an [io.Reader]
+	// due to backwards compatibility.
 	Stdin io.Reader
 	// Stdout is the interpreter's current standard output writer.
 	Stdout io.Writer
