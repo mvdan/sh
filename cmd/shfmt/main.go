@@ -43,7 +43,7 @@ type multiFlag[T any] struct {
 }
 
 var (
-	versionFlag = &multiFlag[bool]{"", "version", false}
+	versionFlag = &multiFlag[bool]{"v", "version", false}
 	list        = &multiFlag[boolString]{"l", "list", "false"}
 
 	write       = &multiFlag[bool]{"w", "write", false}
@@ -82,9 +82,11 @@ var (
 	version = "(devel)" // to match the default from runtime/debug
 
 	allFlags = []any{
-		versionFlag, list, write, simplify, minify, find, diff, applyIgnore,
-		lang, posix, filename, expRecover,
-		indent, binNext, caseIndent, spaceRedirs, keepPadding, funcNext, toJSON, fromJSON,
+		versionFlag, list,
+		write, diff, simplify, minify, varBraces, applyIgnore, filename,
+		lang, posix, expRecover,
+		indent, binNext, caseIndent, spaceRedirs, keepPadding, funcNext,
+		find, toJSON, fromJSON,
 	}
 )
 
