@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"regexp"
 	"strings"
 	"text/tabwriter"
 	"unicode"
@@ -99,6 +100,11 @@ func FunctionNextLine(enabled bool) PrinterOption {
 	return func(p *Printer) { p.funcNextLine = enabled }
 }
 
+// VariableBraces will put braces around all variables even if not required.
+func VariableBraces(enabled bool) PrinterOption {
+	return func(p *Printer) { p.varBraces = enabled }
+}
+
 // NewPrinter allocates a new Printer and applies any number of options.
 func NewPrinter(opts ...PrinterOption) *Printer {
 	p := &Printer{
@@ -119,6 +125,7 @@ func NewPrinter(opts ...PrinterOption) *Printer {
 // when a [*File] is used.
 func (p *Printer) Print(w io.Writer, node Node) error {
 	p.reset()
+	fmt.Println(p.varBraces)
 
 	if p.minify && p.singleLine {
 		return fmt.Errorf("Minify and SingleLine together are not supported yet; please file an issue describing your use case: https://github.com/mvdan/sh/issues")
@@ -692,8 +699,11 @@ func (p *Printer) wordPart(wp, next WordPart) {
 		name := wp.Param.Value
 		switch {
 		case !p.minify:
-			if p.varBraces {
-				wp.Short = false
+			if p.varBraces && strings.ContainsAny(name, regexp.MustCompile("[a-zA-Z]").String()) {
+				x2 := *wp
+				x2.Short = false
+				p.paramExp(&x2)
+				return
 			}
 		case wp.Excl, wp.Length, wp.Width:
 		case wp.Index != nil, wp.Slice != nil:
@@ -761,6 +771,7 @@ func (p *Printer) paramExp(pe *ParamExp) {
 		p.wroteIndex(pe.Index)
 		return
 	}
+	// fmt.Println(pe.Short, pe.Param.Value)
 	if pe.Short { // $var
 		p.WriteByte('$')
 		p.writeLit(pe.Param.Value)

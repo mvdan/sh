@@ -30,7 +30,7 @@ predictable. Some aspects of the format can be configured via printer flags.
 
 *-l[=0]*, *--list[=0]*
 	List files whose formatting differs from shfmt's;
-	paths are separated by a newline or a null character if -l=0
+	paths are separated by a newline or a null character if *-l=0*.
 
 *-w*, *--write*
 	Write result to file instead of stdout.
@@ -48,10 +48,6 @@ predictable. Some aspects of the format can be configured via printer flags.
 *-mn*, *--minify*
 	Minify the code to reduce its size (implies *-s*).
 
-*-vb*, *--variable-braces*
-	Prefer putting braces around variable references ;
-	this option is ignored if -mn is used
-
 *--apply-ignore*
 	Always apply EditorConfig ignore rules.
 
@@ -67,7 +63,7 @@ predictable. Some aspects of the format can be configured via printer flags.
 
 ## Parser flags
 
-*-ln*, *--language-dialect* <str>
+*-ln*, *--language* <str>
 	Language dialect (*bash*/*posix*/*mksh*/*bats*, default *auto*).
 
 	When set to *auto*, the language is detected from the input filename,
@@ -104,11 +100,14 @@ predictable. Some aspects of the format can be configured via printer flags.
 *-fn*, *--func-next-line*
 	Function opening braces are placed on a separate line.
 
+*-vb*, *--variable-braces*
+	Put braces around all variable references (overriden by *-mn*).
+
 ## Utility flags
 
 *-f[=0]*, *--find[=0]*
 	Recursively find all shell files and print the paths;
-	paths are separated by a newline or a null character if -f=0.
+	paths are separated by a newline or a null character if *-f=0*.
 
 *--to-json*
 	Print syntax tree to stdout as a typed JSON.
