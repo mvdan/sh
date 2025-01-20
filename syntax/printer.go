@@ -125,7 +125,6 @@ func NewPrinter(opts ...PrinterOption) *Printer {
 // when a [*File] is used.
 func (p *Printer) Print(w io.Writer, node Node) error {
 	p.reset()
-	fmt.Println(p.varBraces)
 
 	if p.minify && p.singleLine {
 		return fmt.Errorf("Minify and SingleLine together are not supported yet; please file an issue describing your use case: https://github.com/mvdan/sh/issues")
@@ -699,12 +698,13 @@ func (p *Printer) wordPart(wp, next WordPart) {
 		name := wp.Param.Value
 		switch {
 		case !p.minify:
-			if p.varBraces && strings.ContainsAny(name, regexp.MustCompile("[a-zA-Z]").String()) {
+			if p.varBraces && regexp.MustCompile("[a-zA-Z]").MatchString(name) {
 				x2 := *wp
 				x2.Short = false
 				p.paramExp(&x2)
 				return
 			}
+
 		case wp.Excl, wp.Length, wp.Width:
 		case wp.Index != nil, wp.Slice != nil:
 		case wp.Repl != nil, wp.Exp != nil:
@@ -771,7 +771,6 @@ func (p *Printer) paramExp(pe *ParamExp) {
 		p.wroteIndex(pe.Index)
 		return
 	}
-	// fmt.Println(pe.Short, pe.Param.Value)
 	if pe.Short { // $var
 		p.WriteByte('$')
 		p.writeLit(pe.Param.Value)
