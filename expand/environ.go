@@ -47,6 +47,8 @@ type WriteEnviron interface {
 	Set(name string, vr Variable) error
 }
 
+//go:generate stringer -type=ValueKind
+
 type ValueKind uint8
 
 const (
