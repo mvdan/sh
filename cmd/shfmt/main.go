@@ -50,7 +50,6 @@ var (
 	diff        = &multiFlag[bool]{"d", "diff", false}
 	simplify    = &multiFlag[bool]{"s", "simplify", false}
 	minify      = &multiFlag[bool]{"mn", "minify", false}
-	varBraces   = &multiFlag[bool]{"vb", "variable-braces", false}
 	applyIgnore = &multiFlag[bool]{"", "apply-ignore", false}
 	filename    = &multiFlag[string]{"", "filename", ""}
 
@@ -64,6 +63,7 @@ var (
 	spaceRedirs = &multiFlag[bool]{"sr", "space-redirects", false}
 	keepPadding = &multiFlag[bool]{"kp", "keep-padding", false}
 	funcNext    = &multiFlag[bool]{"fn", "func-next-line", false}
+	varBraces   = &multiFlag[bool]{"vb", "variable-braces", false}
 
 	find     = &multiFlag[boolString]{"f", "find", "false"}
 	toJSON   = &multiFlag[bool]{"tojson", "to-json", false} // TODO(v4): remove "tojson" for consistency
@@ -83,9 +83,9 @@ var (
 
 	allFlags = []any{
 		versionFlag, list,
-		write, diff, simplify, minify, varBraces, applyIgnore, filename,
+		write, diff, simplify, minify, applyIgnore, filename,
 		lang, posix, expRecover,
-		indent, binNext, caseIndent, spaceRedirs, keepPadding, funcNext,
+		indent, binNext, caseIndent, spaceRedirs, keepPadding, funcNext, varBraces,
 		find, toJSON, fromJSON,
 	}
 )
@@ -170,7 +170,7 @@ Parser options:
 
 Printer options:
 
-  -i,     --indent uint       0 for tabs (default), >0 for number of spaces
+  -i,     --indent <uint>     0 for tabs (default), >0 for number of spaces
   -bn,    --binary-next-line  binary ops like && and | may start a line
   -ci,    --case-indent       switch cases will be indented
   -sr,    --space-redirects   redirect operators will be followed by a space
