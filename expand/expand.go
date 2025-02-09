@@ -182,8 +182,8 @@ func Literal(cfg *Config, word *syntax.Word) (string, error) {
 	return cfg.fieldJoin(field), nil
 }
 
-// Document expands a single shell word as if it were within double quotes. It
-// is similar to Literal, but without brace expansion, tilde expansion, and
+// Document expands a single shell word as if it were a here-document body.
+// It is similar to [Literal], but without brace expansion, tilde expansion, and
 // globbing.
 //
 // The config specifies shell expansion options; nil behaves the same as an
@@ -193,7 +193,7 @@ func Document(cfg *Config, word *syntax.Word) (string, error) {
 		return "", nil
 	}
 	cfg = prepareConfig(cfg)
-	field, err := cfg.wordField(word.Parts, quoteDouble)
+	field, err := cfg.wordField(word.Parts, quoteSingle)
 	if err != nil {
 		return "", err
 	}
