@@ -374,8 +374,9 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		fields := r.fields(args...)
 		if len(fields) == 0 {
 			for _, as := range cm.Assigns {
-				vr := r.assignVal(as, "")
-				r.setVarWithIndex(as.Name.Value, as.Index, vr)
+				prev := r.lookupVar(as.Name.Value)
+				vr := r.assignVal(prev, as, "")
+				r.setVarWithIndex(prev, as.Name.Value, as.Index, vr)
 
 				if !tracingEnabled {
 					continue
@@ -412,13 +413,13 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 
 		for _, as := range cm.Assigns {
 			name := as.Name.Value
-			origVr := r.lookupVar(name)
+			prev := r.lookupVar(name)
 
-			vr := r.assignVal(as, "")
+			vr := r.assignVal(prev, as, "")
 			// Inline command vars are always exported.
 			vr.Exported = true
 
-			restores = append(restores, restoreVar{name, origVr})
+			restores = append(restores, restoreVar{name, prev})
 
 			r.setVar(name, vr)
 		}
@@ -673,16 +674,15 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 					r.exit = 1
 					return
 				}
-				var vr expand.Variable
+				vr := r.lookupVar(as.Name.Value)
 				if as.Naked {
-					vr = r.lookupVar(as.Name.Value)
 					if valType == "-A" {
 						vr.Kind = expand.Associative
 					} else {
 						vr.Kind = expand.KeepValue
 					}
 				} else {
-					vr = r.assignVal(as, valType)
+					vr = r.assignVal(vr, as, valType)
 				}
 				if global {
 					vr.Local = false

@@ -180,18 +180,17 @@ func (r *Runner) setVar(name string, vr expand.Variable) {
 	}
 }
 
-func (r *Runner) setVarWithIndex(name string, index syntax.ArithmExpr, vr expand.Variable) {
-	cur := r.lookupVar(name)
-	cur.Set = true
-	if name2, var2 := cur.Resolve(r.writeEnv); name2 != "" {
+func (r *Runner) setVarWithIndex(prev expand.Variable, name string, index syntax.ArithmExpr, vr expand.Variable) {
+	prev.Set = true
+	if name2, var2 := prev.Resolve(r.writeEnv); name2 != "" {
 		name = name2
-		cur = var2
+		prev = var2
 	}
 
 	if vr.Kind == expand.String && index == nil {
 		// When assigning a string to an array, fall back to the
 		// zero value for the index.
-		switch cur.Kind {
+		switch prev.Kind {
 		case expand.Indexed:
 			index = &syntax.Word{Parts: []syntax.WordPart{
 				&syntax.Lit{Value: "0"},
@@ -212,12 +211,12 @@ func (r *Runner) setVarWithIndex(name string, index syntax.ArithmExpr, vr expand
 	valStr := vr.Str
 
 	var list []string
-	switch cur.Kind {
+	switch prev.Kind {
 	case expand.String:
-		list = append(list, cur.Str)
+		list = append(list, prev.Str)
 	case expand.Indexed:
 		// TODO: only clone when inside a subshell and getting a var from outside for the first time
-		list = slices.Clone(cur.List)
+		list = slices.Clone(prev.List)
 	case expand.Associative:
 		// if the existing variable is already an AssocArray, try our
 		// best to convert the key to a string
@@ -228,12 +227,12 @@ func (r *Runner) setVarWithIndex(name string, index syntax.ArithmExpr, vr expand
 		k := r.literal(w)
 
 		// TODO: only clone when inside a subshell and getting a var from outside for the first time
-		cur.Map = maps.Clone(cur.Map)
-		if cur.Map == nil {
-			cur.Map = make(map[string]string)
+		prev.Map = maps.Clone(prev.Map)
+		if prev.Map == nil {
+			prev.Map = make(map[string]string)
 		}
-		cur.Map[k] = valStr
-		r.setVar(name, cur)
+		prev.Map[k] = valStr
+		r.setVar(name, prev)
 		return
 	}
 	k := r.arithm(index)
@@ -241,9 +240,9 @@ func (r *Runner) setVarWithIndex(name string, index syntax.ArithmExpr, vr expand
 		list = append(list, "")
 	}
 	list[k] = valStr
-	cur.Kind = expand.Indexed
-	cur.List = list
-	r.setVar(name, cur)
+	prev.Kind = expand.Indexed
+	prev.List = list
+	r.setVar(name, prev)
 }
 
 func (r *Runner) setFunc(name string, body *syntax.Stmt) {
@@ -267,8 +266,7 @@ func stringIndex(index syntax.ArithmExpr) bool {
 
 // TODO: make assignVal and [setVar] consistent with the [expand.WriteEnviron] interface
 
-func (r *Runner) assignVal(as *syntax.Assign, valType string) expand.Variable {
-	prev := r.lookupVar(as.Name.Value)
+func (r *Runner) assignVal(prev expand.Variable, as *syntax.Assign, valType string) expand.Variable {
 	prev.Set = true
 	if as.Value != nil {
 		s := r.literal(as.Value)
