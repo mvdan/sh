@@ -646,6 +646,30 @@ var runTests = []runTest{
 		"f() { local a; a=bad; a=good; echo $a; }; f",
 		"good\n",
 	},
+	{
+		`declare x; [[ -v x ]] && echo set || echo unset`,
+		"unset\n",
+	},
+	{
+		`declare x=; [[ -v x ]] && echo set || echo unset`,
+		"set\n",
+	},
+	{
+		`declare -a x; [[ -v x ]] && echo set || echo unset`,
+		"unset\n",
+	},
+	{
+		`declare -A x; [[ -v x ]] && echo set || echo unset`,
+		"unset\n",
+	},
+	{
+		`declare -r -x x; [[ -v x ]] && echo set || echo unset`,
+		"unset\n",
+	},
+	{
+		`declare -n x; [[ -v x ]] && echo set || echo unset`,
+		"unset\n",
+	},
 
 	// if
 	{
@@ -2389,6 +2413,10 @@ done <<< 2`,
 		"a  1\nb  2\n",
 	},
 	{
+		`declare -a a; a[0]='a  1'; a[1]='b  2'; for e in "${a[@]}"; do echo "$e"; done`,
+		"a  1\nb  2\n",
+	},
+	{
 		`a=([1]=y [0]=x); echo ${a[0]}`,
 		"x\n",
 	},
@@ -2481,7 +2509,7 @@ done <<< 2`,
 		" x \n y \n",
 	},
 	{
-		`declare -A a=(['a  1']=' x ' ['b  2']=' y '); for v in "${a[*]}"; do echo "$v"; done | sort`,
+		`declare -A a=(['a  1']=' x ' ['b  2']=' y '); for v in "${a[*]}"; do echo "$v"; done`,
 		" x   y \n",
 	},
 	{
@@ -2489,10 +2517,18 @@ done <<< 2`,
 		"a  1\nb  2\n",
 	},
 	{
-		`declare -A a=(['a  1']=' x ' ['b  2']=' y '); for v in "${!a[*]}"; do echo "$v"; done | sort`,
+		`declare -A a=(['a  1']=' x ' ['b  2']=' y '); for v in "${!a[*]}"; do echo "$v"; done`,
 		"a  1 b  2\n",
 	},
-
+	// TODO: see issue 1108
+	// {
+	// 	`declare -A a; a[a]=x; a[b]=y; for v in "${!a[@]}"; do echo "$v"; done | sort`,
+	// 	"a\nb\n",
+	// },
+	// {
+	// 	`declare -A a; a[a]=x; a[b]=y; declare -A a; for v in "${!a[@]}"; do echo "$v"; done | sort`,
+	// 	"a\nb\n",
+	// },
 	// weird assignments
 	{"a=b; a=(c d); echo ${a[@]}", "c d\n"},
 	{"a=(b c); a=d; echo ${a[@]}", "d c\n"},
