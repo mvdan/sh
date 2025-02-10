@@ -8,16 +8,17 @@ func _() {
 	// An "invalid array index" compiler error signifies that the constant values have changed.
 	// Re-run the stringer command to generate them again.
 	var x [1]struct{}
-	_ = x[Unset-0]
+	_ = x[Unknown-0]
 	_ = x[String-1]
 	_ = x[NameRef-2]
 	_ = x[Indexed-3]
 	_ = x[Associative-4]
+	_ = x[KeepValue-5]
 }
 
-const _ValueKind_name = "UnsetStringNameRefIndexedAssociative"
+const _ValueKind_name = "UnknownStringNameRefIndexedAssociativeKeepValue"
 
-var _ValueKind_index = [...]uint8{0, 5, 11, 18, 25, 36}
+var _ValueKind_index = [...]uint8{0, 7, 13, 20, 27, 38, 47}
 
 func (i ValueKind) String() string {
 	if i >= ValueKind(len(_ValueKind_index)-1) {

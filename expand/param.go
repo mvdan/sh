@@ -65,13 +65,13 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 		// This is the only parameter expansion that the environment
 		// interface cannot satisfy.
 		line := uint64(cfg.curParam.Pos().Line())
-		vr = Variable{Kind: String, Str: strconv.FormatUint(line, 10)}
+		vr = Variable{Set: true, Kind: String, Str: strconv.FormatUint(line, 10)}
 	default:
 		vr = cfg.Env.Get(name)
 	}
 	orig := vr
 	_, vr = vr.Resolve(cfg.Env)
-	if cfg.NoUnset && vr.Kind == Unset && !overridingUnset(pe) {
+	if cfg.NoUnset && !vr.IsSet() && !overridingUnset(pe) {
 		return "", UnsetParameterError{
 			Node:    pe,
 			Message: "unbound variable",
@@ -106,7 +106,7 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 	switch nodeLit(index) {
 	case "@", "*":
 		switch vr.Kind {
-		case Unset:
+		case Unknown:
 			elems = nil
 			indexAllElements = true
 		case Indexed:
@@ -171,7 +171,7 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 			for k := range vr.Map {
 				strs = append(strs, k)
 			}
-		case vr.Kind == Unset:
+		case !vr.IsSet():
 			return "", fmt.Errorf("invalid indirect expansion")
 		case str == "":
 			return "", nil

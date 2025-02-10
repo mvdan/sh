@@ -2520,15 +2520,14 @@ done <<< 2`,
 		`declare -A a=(['a  1']=' x ' ['b  2']=' y '); for v in "${!a[*]}"; do echo "$v"; done`,
 		"a  1 b  2\n",
 	},
-	// TODO: see issue 1108
-	// {
-	// 	`declare -A a; a[a]=x; a[b]=y; for v in "${!a[@]}"; do echo "$v"; done | sort`,
-	// 	"a\nb\n",
-	// },
-	// {
-	// 	`declare -A a; a[a]=x; a[b]=y; declare -A a; for v in "${!a[@]}"; do echo "$v"; done | sort`,
-	// 	"a\nb\n",
-	// },
+	{
+		`declare -A a; a[a]=x; a[b]=y; for v in "${!a[@]}"; do echo "$v"; done | sort`,
+		"a\nb\n",
+	},
+	{
+		`declare -A a; a[a]=x; a[b]=y; declare -A a; for v in "${!a[@]}"; do echo "$v"; done | sort`,
+		"a\nb\n",
+	},
 	// weird assignments
 	{"a=b; a=(c d); echo ${a[@]}", "c d\n"},
 	{"a=(b c); a=d; echo ${a[@]}", "d c\n"},

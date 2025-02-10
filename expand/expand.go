@@ -161,7 +161,7 @@ func (cfg *Config) envSet(name, value string) error {
 	if !ok {
 		return fmt.Errorf("environment is read-only")
 	}
-	return wenv.Set(name, Variable{Kind: String, Str: value})
+	return wenv.Set(name, Variable{Set: true, Kind: String, Str: value})
 }
 
 // Literal expands a single shell word. It is similar to [Fields], but the result

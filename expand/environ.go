@@ -30,6 +30,11 @@ type Environ interface {
 	Each(func(name string, vr Variable) bool)
 }
 
+// TODO(v4): [WriteEnviron.Set] below is overloaded to the point that correctly
+// implementing both sides of the interface is tricky. In particular, some operations
+// such as `export foo` or `readonly foo` alter the attributes but not the value,
+// and `foo=bar` or `foo=[3]=baz` alter the value but not the attributes.
+
 // WriteEnviron is an extension on Environ that supports modifying and deleting
 // variables.
 type WriteEnviron interface {
@@ -37,10 +42,10 @@ type WriteEnviron interface {
 	// Set sets a variable by name. If !vr.IsSet(), the variable is being
 	// unset; otherwise, the variable is being replaced.
 	//
-	// It is the implementation's responsibility to handle variable
-	// attributes correctly. For example, changing an exported variable's
-	// value does not unexport it, and overwriting a name reference variable
-	// should modify its target.
+	// The given variable can have the kind [KeepValue] to replace an existing
+	// variable's attributes without changing its value at all.
+	// This is helpful to implement `readonly foo=bar; export foo`,
+	// as the second declaration needs to clearly signal that the value is not modified.
 	//
 	// An error may be returned if the operation is invalid, such as if the
 	// name is empty or if we're trying to overwrite a read-only variable.
@@ -49,30 +54,42 @@ type WriteEnviron interface {
 
 //go:generate stringer -type=ValueKind
 
+// ValueKind describes which kind of value the variable holds.
+// While most unset variables will have an [Unknown] kind, an unset variable may
+// have a kind associated too, such as via `declare -a foo` resulting in [Indexed].
 type ValueKind uint8
 
 const (
-	Unset ValueKind = iota
+	// Unknown is used for unset variables which do not have a kind yet.
+	Unknown ValueKind = iota
+	// String describes plain string variables, such as `foo=bar`.
 	String
+	// NameRef describes variables which reference another by name, such as `declare -n foo=foo2`.
 	NameRef
+	// Indexed describes indexed array variables, such as `foo=(bar baz)`.
 	Indexed
+	// Associative describes associative array variables, such as `foo=([bar]=x [baz]=y)`.
 	Associative
+
+	// KeepValue is used by [WriteEnviron.Set] to signal that we are changing attributes
+	// about a variable, such as exporting it, without changing its value at all.
+	KeepValue
+
+	// Deprecated: use [Unknown], as tracking whether or not a variable is set
+	// is now done via [Variable.Set].
+	Unset = Unknown
 )
 
 // Variable describes a shell variable, which can have a number of attributes
 // and a value.
-//
-// A Variable is unset if its Kind field is Unset, which can be checked via
-// [Variable.IsSet]. The zero value of a Variable is thus a valid unset variable.
-//
-// If a variable is set, its Value field will be a []string if it is an indexed
-// array, a map[string]string if it's an associative array, or a string
-// otherwise.
 type Variable struct {
+	Set bool
+
 	Local    bool
 	Exported bool
 	ReadOnly bool
 
+	// Kind defines which of the value fields below should be used.
 	Kind ValueKind
 
 	Str  string            // Used when Kind is String or NameRef.
@@ -80,10 +97,17 @@ type Variable struct {
 	Map  map[string]string // Used when Kind is Associative.
 }
 
-// IsSet returns whether the variable is set. An empty variable is set, but an
-// undeclared variable is not.
+// IsSet reports whether the variable has been set to a value.
+// The zero value of a Variable is unset.
 func (v Variable) IsSet() bool {
-	return v.Kind != Unset
+	return v.Set
+}
+
+// Declared reports whether the variable has been declared.
+// Declared variables may not be set; `export foo` is exported but not set to a value,
+// and `declare -a foo` is an indexed array but not set to a value.
+func (v Variable) Declared() bool {
+	return v.Set || v.Local || v.Exported || v.ReadOnly || v.Kind != Unknown
 }
 
 // String returns the variable's value as a string. In general, this only makes
@@ -137,7 +161,7 @@ func (f funcEnviron) Get(name string) Variable {
 	if value == "" {
 		return Variable{}
 	}
-	return Variable{Exported: true, Kind: String, Str: value}
+	return Variable{Set: true, Exported: true, Kind: String, Str: value}
 }
 
 func (f funcEnviron) Each(func(name string, vr Variable) bool) {}
@@ -223,7 +247,7 @@ func (l listEnviron) Get(name string) Variable {
 		return c
 	})
 	if ok {
-		return Variable{Exported: true, Kind: String, Str: l[i][endpos:]}
+		return Variable{Set: true, Exported: true, Kind: String, Str: l[i][endpos:]}
 	}
 	return Variable{}
 }
@@ -236,7 +260,7 @@ func (l listEnviron) Each(fn func(name string, vr Variable) bool) {
 			panic("expand.listEnviron: did not expect malformed name-value pair: " + pair)
 		}
 		name, value := pair[:i], pair[i+1:]
-		if !fn(name, Variable{Exported: true, Kind: String, Str: value}) {
+		if !fn(name, Variable{Set: true, Exported: true, Kind: String, Str: value}) {
 			return
 		}
 	}

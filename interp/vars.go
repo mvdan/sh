@@ -35,33 +35,20 @@ func (o *overlayEnviron) Get(name string) expand.Variable {
 func (o *overlayEnviron) Set(name string, vr expand.Variable) error {
 	// Manipulation of a global var inside a function.
 	if o.funcScope && !vr.Local && !o.values[name].Local {
-		if vr.IsSet() {
-			// "foo=bar" on a global var in a function updates the global scope
-		} else if vr.Exported || vr.ReadOnly {
-			// "foo=bar" followed by "export foo" or "readonly foo"
-			prev := o.Get(name)
-			prev.Exported = prev.Exported || vr.Exported
-			prev.ReadOnly = prev.ReadOnly || vr.ReadOnly
-			vr = prev
-		}
 		// In a function, the parent environment is ours, so it's always read-write.
 		return o.parent.(expand.WriteEnviron).Set(name, vr)
 	}
 
-	prev := o.Get(name)
 	if o.values == nil {
 		o.values = make(map[string]expand.Variable)
 	}
-	if !vr.IsSet() && (vr.Exported || vr.Local || vr.ReadOnly) {
-		// marking as exported/local/readonly
-		prev.Exported = prev.Exported || vr.Exported
-		prev.Local = prev.Local || vr.Local
-		prev.ReadOnly = prev.ReadOnly || vr.ReadOnly
-		vr = prev
-		o.values[name] = vr
-		return nil
-	}
-	if prev.ReadOnly {
+	prev := o.Get(name)
+	if vr.Kind == expand.KeepValue {
+		vr.Kind = prev.Kind
+		vr.Str = prev.Str
+		vr.List = prev.List
+		vr.Map = prev.Map
+	} else if prev.ReadOnly {
 		return fmt.Errorf("readonly variable")
 	}
 	if !vr.IsSet() { // unsetting
@@ -71,9 +58,6 @@ func (o *overlayEnviron) Set(name string, vr expand.Variable) error {
 			return nil
 		}
 		delete(o.values, name)
-	} else if prev.Exported {
-		// variable is set and was marked as exported
-		vr.Exported = true
 	}
 	// modifying the entire variable
 	vr.Local = prev.Local || vr.Local
@@ -153,15 +137,16 @@ func (r *Runner) lookupVar(name string) expand.Variable {
 			vr.Str = ""
 		}
 	}
-	if vr.IsSet() {
+	if vr.Kind != expand.Unknown {
+		vr.Set = true
 		return vr
 	}
-	if vr := r.writeEnv.Get(name); vr.IsSet() {
+	if vr := r.writeEnv.Get(name); vr.Declared() {
 		return vr
 	}
 	if runtime.GOOS == "windows" {
 		upper := strings.ToUpper(name)
-		if vr := r.writeEnv.Get(upper); vr.IsSet() {
+		if vr := r.writeEnv.Get(upper); vr.Declared() {
 			return vr
 		}
 	}
@@ -181,10 +166,10 @@ func (r *Runner) delVar(name string) {
 }
 
 func (r *Runner) setVarString(name, value string) {
-	r.setVar(name, nil, expand.Variable{Kind: expand.String, Str: value})
+	r.setVar(name, expand.Variable{Set: true, Kind: expand.String, Str: value})
 }
 
-func (r *Runner) setVarInternal(name string, vr expand.Variable) {
+func (r *Runner) setVar(name string, vr expand.Variable) {
 	if r.opts[optAllExport] {
 		vr.Exported = true
 	}
@@ -195,8 +180,9 @@ func (r *Runner) setVarInternal(name string, vr expand.Variable) {
 	}
 }
 
-func (r *Runner) setVar(name string, index syntax.ArithmExpr, vr expand.Variable) {
+func (r *Runner) setVarWithIndex(name string, index syntax.ArithmExpr, vr expand.Variable) {
 	cur := r.lookupVar(name)
+	cur.Set = true
 	if name2, var2 := cur.Resolve(r.writeEnv); name2 != "" {
 		name = name2
 		cur = var2
@@ -217,7 +203,7 @@ func (r *Runner) setVar(name string, index syntax.ArithmExpr, vr expand.Variable
 		}
 	}
 	if index == nil {
-		r.setVarInternal(name, vr)
+		r.setVar(name, vr)
 		return
 	}
 
@@ -243,8 +229,11 @@ func (r *Runner) setVar(name string, index syntax.ArithmExpr, vr expand.Variable
 
 		// TODO: only clone when inside a subshell and getting a var from outside for the first time
 		cur.Map = maps.Clone(cur.Map)
+		if cur.Map == nil {
+			cur.Map = make(map[string]string)
+		}
 		cur.Map[k] = valStr
-		r.setVarInternal(name, cur)
+		r.setVar(name, cur)
 		return
 	}
 	k := r.arithm(index)
@@ -254,7 +243,7 @@ func (r *Runner) setVar(name string, index syntax.ArithmExpr, vr expand.Variable
 	list[k] = valStr
 	cur.Kind = expand.Indexed
 	cur.List = list
-	r.setVarInternal(name, cur)
+	r.setVar(name, cur)
 }
 
 func (r *Runner) setFunc(name string, body *syntax.Stmt) {
@@ -280,9 +269,10 @@ func stringIndex(index syntax.ArithmExpr) bool {
 
 func (r *Runner) assignVal(as *syntax.Assign, valType string) expand.Variable {
 	prev := r.lookupVar(as.Name.Value)
+	prev.Set = true
 	if as.Value != nil {
 		s := r.literal(as.Value)
-		if !as.Append || !prev.IsSet() {
+		if !as.Append {
 			prev.Kind = expand.String
 			if valType == "-n" {
 				prev.Kind = expand.NameRef
@@ -291,7 +281,8 @@ func (r *Runner) assignVal(as *syntax.Assign, valType string) expand.Variable {
 			return prev
 		}
 		switch prev.Kind {
-		case expand.String:
+		case expand.String, expand.Unknown:
+			prev.Kind = expand.String
 			prev.Str += s
 		case expand.Indexed:
 			if len(prev.List) == 0 {
@@ -366,7 +357,7 @@ func (r *Runner) assignVal(as *syntax.Assign, valType string) expand.Variable {
 		return prev
 	}
 	switch prev.Kind {
-	case expand.Unset:
+	case expand.Unknown:
 		prev.Kind = expand.Indexed
 		prev.List = strs
 	case expand.String:

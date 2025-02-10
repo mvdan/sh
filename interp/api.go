@@ -723,21 +723,24 @@ func (r *Runner) Reset() {
 		r.setVarString("HOME", home)
 	}
 	if !r.writeEnv.Get("UID").IsSet() {
-		r.setVar("UID", nil, expand.Variable{
+		r.setVar("UID", expand.Variable{
+			Set:      true,
 			Kind:     expand.String,
 			ReadOnly: true,
 			Str:      strconv.Itoa(os.Getuid()),
 		})
 	}
 	if !r.writeEnv.Get("EUID").IsSet() {
-		r.setVar("EUID", nil, expand.Variable{
+		r.setVar("EUID", expand.Variable{
+			Set:      true,
 			Kind:     expand.String,
 			ReadOnly: true,
 			Str:      strconv.Itoa(os.Geteuid()),
 		})
 	}
 	if !r.writeEnv.Get("GID").IsSet() {
-		r.setVar("GID", nil, expand.Variable{
+		r.setVar("GID", expand.Variable{
+			Set:      true,
 			Kind:     expand.String,
 			ReadOnly: true,
 			Str:      strconv.Itoa(os.Getgid()),

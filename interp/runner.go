@@ -231,7 +231,7 @@ func (e expandEnv) Get(name string) expand.Variable {
 }
 
 func (e expandEnv) Set(name string, vr expand.Variable) error {
-	e.r.setVarInternal(name, vr)
+	e.r.setVar(name, vr)
 	return nil // TODO: return any errors
 }
 
@@ -375,7 +375,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		if len(fields) == 0 {
 			for _, as := range cm.Assigns {
 				vr := r.assignVal(as, "")
-				r.setVar(as.Name.Value, as.Index, vr)
+				r.setVarWithIndex(as.Name.Value, as.Index, vr)
 
 				if !tracingEnabled {
 					continue
@@ -420,7 +420,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 
 			restores = append(restores, restoreVar{name, origVr})
 
-			r.setVarInternal(name, vr)
+			r.setVar(name, vr)
 		}
 
 		trace.call(fields[0], fields[1:]...)
@@ -428,7 +428,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 
 		r.call(ctx, cm.Args[0].Pos(), fields)
 		for _, restore := range restores {
-			r.setVarInternal(restore.name, restore.vr)
+			r.setVar(restore.name, restore.vr)
 		}
 	case *syntax.BinaryCmd:
 		switch cm.Op {
@@ -674,7 +674,14 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 					return
 				}
 				var vr expand.Variable
-				if !as.Naked {
+				if as.Naked {
+					vr = r.lookupVar(as.Name.Value)
+					if valType == "-A" {
+						vr.Kind = expand.Associative
+					} else {
+						vr.Kind = expand.KeepValue
+					}
+				} else {
 					vr = r.assignVal(as, valType)
 				}
 				if global {
@@ -690,13 +697,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 						vr.ReadOnly = true
 					}
 				}
-				if as.Naked {
-					if vr.Exported || vr.Local || vr.ReadOnly {
-						r.setVarInternal(name, vr)
-					}
-				} else {
-					r.setVar(name, as.Index, vr)
-				}
+				r.setVar(name, vr)
 			}
 		}
 	case *syntax.TimeClause:

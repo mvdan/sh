@@ -886,7 +886,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			r.errf("%s: unable to read, %v\n", name, err)
 			return 2
 		}
-		r.setVarInternal(arrayName, vr)
+		r.setVar(arrayName, vr)
 
 		return 0
 
