@@ -810,10 +810,7 @@ func (r *Runner) Run(ctx context.Context, node syntax.Node) error {
 		r.setErr(NewExitStatus(uint8(r.exit)))
 	}
 	if r.Vars != nil {
-		r.writeEnv.Each(func(name string, vr expand.Variable) bool {
-			r.Vars[name] = vr
-			return true
-		})
+		maps.Insert(r.Vars, r.writeEnv.Each)
 	}
 	return r.err
 }

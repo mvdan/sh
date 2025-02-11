@@ -415,11 +415,10 @@ func (cfg *Config) varInd(vr Variable, idx syntax.ArithmExpr) (string, error) {
 
 func (cfg *Config) namesByPrefix(prefix string) []string {
 	var names []string
-	cfg.Env.Each(func(name string, vr Variable) bool {
+	for name := range cfg.Env.Each {
 		if strings.HasPrefix(name, prefix) {
 			names = append(names, name)
 		}
-		return true
-	})
+	}
 	return names
 }

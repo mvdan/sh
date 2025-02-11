@@ -76,7 +76,7 @@ func (o *overlayEnviron) Each(f func(name string, vr expand.Variable) bool) {
 
 func execEnv(env expand.Environ) []string {
 	list := make([]string, 0, 64)
-	env.Each(func(name string, vr expand.Variable) bool {
+	for name, vr := range env.Each {
 		if !vr.IsSet() {
 			// If a variable is set globally but unset in the
 			// runner, we need to ensure it's not part of the final
@@ -92,8 +92,7 @@ func execEnv(env expand.Environ) []string {
 		if vr.Exported && vr.Kind == expand.String {
 			list = append(list, name+"="+vr.String())
 		}
-		return true
-	})
+	}
 	return list
 }
 
