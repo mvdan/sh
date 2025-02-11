@@ -5,6 +5,7 @@ package expand
 
 import (
 	"fmt"
+	"maps"
 	"regexp"
 	"slices"
 	"strconv"
@@ -167,10 +168,7 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 				}
 			}
 		case pe.Index != nil && vr.Kind == Associative:
-			// TODO: use maps.Keys
-			for k := range vr.Map {
-				strs = append(strs, k)
-			}
+			strs = slices.AppendSeq(strs, maps.Keys(vr.Map))
 		case !vr.IsSet():
 			return "", fmt.Errorf("invalid indirect expansion")
 		case str == "":
@@ -400,12 +398,7 @@ func (cfg *Config) varInd(vr Variable, idx syntax.ArithmExpr) (string, error) {
 	case Associative:
 		switch lit := nodeLit(idx); lit {
 		case "@", "*":
-			strs := make([]string, 0, len(vr.Map))
-			// TODO: use maps.Values
-			for _, val := range vr.Map {
-				strs = append(strs, val)
-			}
-			slices.Sort(strs)
+			strs := slices.Sorted(maps.Values(vr.Map))
 			if lit == "*" {
 				return cfg.ifsJoin(strs), nil
 			}
