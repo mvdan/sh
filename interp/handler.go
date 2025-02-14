@@ -305,6 +305,12 @@ func DefaultOpenHandler() OpenHandlerFunc {
 		if path != "" && !filepath.IsAbs(path) {
 			path = filepath.Join(mc.Dir, path)
 		}
+		// Work around https://go.dev/issue/71752, where Go 1.24 started giving
+		// "Invalid handle" errors when opening "NUL" with O_TRUNC.
+		// TODO: hopefully remove this in the future once the bug is fixed.
+		if path == os.DevNull {
+			flag &^= os.O_TRUNC
+		}
 		return os.OpenFile(path, flag, perm)
 	}
 }
