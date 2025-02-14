@@ -1287,6 +1287,10 @@ var runTests = []runTest{
 		"",
 	},
 	{
+		"echo foo_interp_missing >a; mkdir b; cd b; cat <../a",
+		"foo_interp_missing\n",
+	},
+	{
 		"echo foo_interp_missing >a; wc -c <a | tr -d ' '",
 		"19\n",
 	},

@@ -299,6 +299,9 @@ type OpenHandlerFunc func(ctx context.Context, path string, flag int, perm os.Fi
 func DefaultOpenHandler() OpenHandlerFunc {
 	return func(ctx context.Context, path string, flag int, perm os.FileMode) (io.ReadWriteCloser, error) {
 		mc := HandlerCtx(ctx)
+		// Note that, on Windows, this causes opening "NUL" to instead open
+		// "C:\current\dir\NUL" given that [filepath.IsAbs] returns false for it.
+		// Such "absolute" paths to [os.DevNull] still appear to work on Windows.
 		if path != "" && !filepath.IsAbs(path) {
 			path = filepath.Join(mc.Dir, path)
 		}
