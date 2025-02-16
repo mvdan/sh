@@ -45,7 +45,7 @@ func blocklistNondevOpen(ctx context.Context, path string, flags int, mode os.Fi
 		return nil, fmt.Errorf("non-dev: %s", path)
 	}
 
-	return testOpenHandler(ctx, path, flags, mode)
+	return interp.DefaultOpenHandler()(ctx, path, flags, mode)
 }
 
 func blocklistGlob(ctx context.Context, path string) ([]fs.FileInfo, error) {

@@ -294,22 +294,23 @@ func pathExts(env expand.Environ) []string {
 // extra files and goroutines for input redirections; see [StdIO].
 type OpenHandlerFunc func(ctx context.Context, path string, flag int, perm os.FileMode) (io.ReadWriteCloser, error)
 
+// TODO: paths passed to [OpenHandlerFunc] should be cleaned.
+
 // DefaultOpenHandler returns the [OpenHandlerFunc] used by default.
 // It uses [os.OpenFile] to open files.
+//
+// For the sake of portability, /dev/null opens NUL on Windows.
 func DefaultOpenHandler() OpenHandlerFunc {
 	return func(ctx context.Context, path string, flag int, perm os.FileMode) (io.ReadWriteCloser, error) {
 		mc := HandlerCtx(ctx)
-		// Note that, on Windows, this causes opening "NUL" to instead open
-		// "C:\current\dir\NUL" given that [filepath.IsAbs] returns false for it.
-		// Such "absolute" paths to [os.DevNull] still appear to work on Windows.
-		if path != "" && !filepath.IsAbs(path) {
-			path = filepath.Join(mc.Dir, path)
-		}
-		// Work around https://go.dev/issue/71752, where Go 1.24 started giving
-		// "Invalid handle" errors when opening "NUL" with O_TRUNC.
-		// TODO: hopefully remove this in the future once the bug is fixed.
-		if path == os.DevNull {
+		if runtime.GOOS == "windows" && path == "/dev/null" {
+			path = "NUL"
+			// Work around https://go.dev/issue/71752, where Go 1.24 started giving
+			// "Invalid handle" errors when opening "NUL" with O_TRUNC.
+			// TODO: hopefully remove this in the future once the bug is fixed.
 			flag &^= os.O_TRUNC
+		} else if path != "" && !filepath.IsAbs(path) {
+			path = filepath.Join(mc.Dir, path)
 		}
 		return os.OpenFile(path, flag, perm)
 	}

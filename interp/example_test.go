@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"runtime"
 	"strings"
 
 	"mvdan.cc/sh/v3/expand"
@@ -73,14 +72,23 @@ func ExampleExecHandlers() {
 	// missing-program is not installed
 }
 
+type nopWriterCloser struct {
+	*strings.Reader
+}
+
+func (nopWriterCloser) Write([]byte) (int, error) { return 0, io.EOF }
+func (nopWriterCloser) Close() error              { return nil }
+
 func ExampleOpenHandler() {
-	src := "echo foo; echo bar >/dev/null"
+	src := "echo $(</etc/hostname); echo bar >/dev/null"
 	file, _ := syntax.NewParser().Parse(strings.NewReader(src), "")
 
 	open := func(ctx context.Context, path string, flag int, perm os.FileMode) (io.ReadWriteCloser, error) {
-		if runtime.GOOS == "windows" && path == "/dev/null" {
-			path = "NUL"
+		// Hard-code the contents of the hostname file for all platforms.
+		if path == "/etc/hostname" {
+			return nopWriterCloser{strings.NewReader("mymachine")}, nil
 		}
+		// DefaultOpenHandler already redirects /dev/null to NUL on Windows.
 		return interp.DefaultOpenHandler()(ctx, path, flag, perm)
 	}
 	runner, _ := interp.New(
@@ -89,5 +97,5 @@ func ExampleOpenHandler() {
 	)
 	runner.Run(context.TODO(), file)
 	// Output:
-	// foo
+	// mymachine
 }

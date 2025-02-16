@@ -116,7 +116,6 @@ func TestMain(m *testing.M) {
 		}
 		runner, _ := interp.New(
 			interp.StdIO(os.Stdin, os.Stdout, os.Stderr),
-			interp.OpenHandler(testOpenHandler),
 			interp.ExecHandlers(testExecHandler),
 		)
 		ctx := context.Background()
@@ -3569,7 +3568,6 @@ func TestRunnerRun(t *testing.T) {
 				// TODO: why does this make some tests hang?
 				// interp.Env(expand.ListEnviron(append(os.Environ(),
 				// 	"FOO_INTERP_MISSING_NULL_BAR_INTERP_MISSING=foo_interp_missing\x00bar_interp_missing")...)),
-				interp.OpenHandler(testOpenHandler),
 				interp.ExecHandlers(testExecHandler),
 			)
 			if err != nil {
@@ -3853,14 +3851,6 @@ func testExecHandler(next interp.ExecHandlerFunc) interp.ExecHandlerFunc {
 	}
 }
 
-func testOpenHandler(ctx context.Context, path string, flag int, perm os.FileMode) (io.ReadWriteCloser, error) {
-	if runtime.GOOS == "windows" && path == "/dev/null" {
-		path = "NUL"
-	}
-
-	return interp.DefaultOpenHandler()(ctx, path, flag, perm)
-}
-
 func TestRunnerRunConfirm(t *testing.T) {
 	if testing.Short() {
 		t.Skip("calling bash is slow")
@@ -4021,7 +4011,6 @@ func TestRunnerOpts(t *testing.T) {
 			var cb concBuffer
 			r, err := interp.New(append(c.opts,
 				interp.StdIO(nil, &cb, &cb),
-				interp.OpenHandler(testOpenHandler),
 				interp.ExecHandlers(testExecHandler),
 			)...)
 			if err != nil {
@@ -4279,7 +4268,6 @@ func TestRunnerResetFields(t *testing.T) {
 	r, _ := interp.New(
 		interp.Params("-f", "--", "first", tdir, logPath),
 		interp.Dir(tdir),
-		interp.OpenHandler(testOpenHandler),
 		interp.ExecHandlers(testExecHandler),
 	)
 	// Check that using option funcs and Runner fields directly is still
