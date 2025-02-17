@@ -96,6 +96,7 @@ The following editor integrations wrap `shfmt`:
 - [BashSupport-Pro] - Bash plugin for JetBrains IDEs
 - [intellij-shellcript] - Intellij Jetbrains `shell script` plugin
 - [micro] - Editor with a built-in plugin
+- [neoformat] - (Neo)Vim plugin
 - [shell-format] - VS Code plugin
 - [vscode-shfmt] - VS Code plugin
 - [shfmt.el] - Emacs package
@@ -130,6 +131,7 @@ Other noteworthy integrations include:
 [mksh]: http://www.mirbsd.org/mksh.htm
 [modd]: https://github.com/cortesi/modd
 [mvdan-sh]: https://www.npmjs.com/package/mvdan-sh
+[neoformat]: https://github.com/sbdchd/neoformat
 [nixos]: https://github.com/NixOS/nixpkgs/blob/HEAD/pkgs/tools/text/shfmt/default.nix
 [OpenSUSE]: https://build.opensuse.org/package/show/openSUSE:Factory/shfmt
 [posix shell]: https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html
