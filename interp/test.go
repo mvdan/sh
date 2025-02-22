@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"os/exec"
 	"regexp"
 
 	"golang.org/x/term"
@@ -117,6 +116,13 @@ func (r *Runner) statMode(ctx context.Context, name string, mode os.FileMode) bo
 	return err == nil && info.Mode()&mode != 0
 }
 
+// These are copied from x/sys/unix as we can't import it here.
+const (
+	access_R_OK = 0x4
+	access_W_OK = 0x2
+	access_X_OK = 0x1
+)
+
 func (r *Runner) unTest(ctx context.Context, op syntax.UnTestOperator, x string) bool {
 	switch op {
 	case syntax.TsExists:
@@ -150,20 +156,11 @@ func (r *Runner) unTest(ctx context.Context, op syntax.UnTestOperator, x string)
 	// case syntax.TsUsrOwn:
 	// case syntax.TsModif:
 	case syntax.TsRead:
-		f, err := r.open(ctx, x, os.O_RDONLY, 0, false)
-		if err == nil {
-			f.Close()
-		}
-		return err == nil
+		return r.access(ctx, r.absPath(x), access_R_OK) == nil
 	case syntax.TsWrite:
-		f, err := r.open(ctx, x, os.O_WRONLY, 0, false)
-		if err == nil {
-			f.Close()
-		}
-		return err == nil
+		return r.access(ctx, r.absPath(x), access_W_OK) == nil
 	case syntax.TsExec:
-		_, err := exec.LookPath(r.absPath(x))
-		return err == nil
+		return r.access(ctx, r.absPath(x), access_X_OK) == nil
 	case syntax.TsNoEmpty:
 		info, err := r.stat(ctx, x)
 		return err == nil && info.Size() > 0

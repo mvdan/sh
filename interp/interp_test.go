@@ -1753,6 +1753,11 @@ var runTests = []runTest{
 		"y\n",
 	},
 	{
+		// A directory is readable, writable, and executable.
+		"mkdir d; [ -r d ] && echo r; [ -w d ] && echo w; [ -x d ] && echo x",
+		"r\nw\nx\n",
+	},
+	{
 		"[ -s a ] && echo x; echo body >a; [ -s a ] && echo y",
 		"y\n",
 	},

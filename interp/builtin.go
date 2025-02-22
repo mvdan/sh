@@ -986,7 +986,7 @@ func (r *Runner) changeDir(ctx context.Context, path string) int {
 	if err != nil || !info.IsDir() {
 		return 1
 	}
-	if !hasPermissionToDir(path) {
+	if r.access(ctx, path, access_X_OK) != nil {
 		return 1
 	}
 	r.Dir = path
