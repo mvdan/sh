@@ -6,6 +6,7 @@ package syntax
 import (
 	"fmt"
 	"io"
+	"slices"
 	"strconv"
 	"strings"
 	"unicode/utf8"
@@ -959,8 +960,7 @@ func (p *Parser) stmtList(stops ...string) ([]*Stmt, []Comment) {
 		//     fi
 		// TODO(mvdan): look into deduplicating this with similar logic
 		// in caseItems.
-		for i := len(p.accComs) - 1; i >= 0; i-- {
-			c := p.accComs[i]
+		for i, c := range slices.Backward(p.accComs) {
 			if c.Pos().Col() != p.pos.Col() {
 				break
 			}
@@ -2166,8 +2166,7 @@ func (p *Parser) caseItems(stop string) (items []*CaseItem) {
 		// b)
 		//   [...]
 		split := len(p.accComs)
-		for i := len(p.accComs) - 1; i >= 0; i-- {
-			c := p.accComs[i]
+		for i, c := range slices.Backward(p.accComs) {
 			if c.Pos().Col() != p.pos.Col() {
 				break
 			}

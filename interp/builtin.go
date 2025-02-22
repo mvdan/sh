@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"syscall"
@@ -468,8 +469,8 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		}
 		return last
 	case "dirs":
-		for i := len(r.dirStack) - 1; i >= 0; i-- {
-			r.outf("%s", r.dirStack[i])
+		for i, dir := range slices.Backward(r.dirStack) {
+			r.outf("%s", dir)
 			if i > 0 {
 				r.out(" ")
 			}

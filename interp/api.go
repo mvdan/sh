@@ -23,6 +23,7 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"sync"
 	"time"
@@ -675,9 +676,8 @@ func (r *Runner) Reset() {
 		}
 		// Middlewares are chained from first to last, and each can call the
 		// next in the chain, so we need to construct the chain backwards.
-		for i := len(r.execMiddlewares) - 1; i >= 0; i-- {
-			middleware := r.execMiddlewares[i]
-			r.execHandler = middleware(r.execHandler)
+		for _, mw := range slices.Backward(r.execMiddlewares) {
+			r.execHandler = mw(r.execHandler)
 		}
 	}
 	// reset the internal state

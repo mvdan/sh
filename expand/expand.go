@@ -907,10 +907,10 @@ func (cfg *Config) glob(base, pat string) ([]string, error) {
 			// and to avoid recursion, we use a slice as a stack.
 			// Since we pop from the back, we populate the stack backwards.
 			stack := make([]string, 0, len(matches))
-			for i := len(matches) - 1; i >= 0; i-- {
+			for _, match := range slices.Backward(matches) {
 				// "a/**" should match "a/ a/b a/b/cfg ...";
 				// note how the zero-match case has a trailing separator.
-				stack = append(stack, pathJoin2(matches[i], ""))
+				stack = append(stack, pathJoin2(match, ""))
 			}
 			matches = matches[:0]
 			var newMatches []string // to reuse its capacity
@@ -926,8 +926,8 @@ func (cfg *Config) glob(base, pat string) ([]string, error) {
 				// If dir is not a directory, we keep the stack as-is and continue.
 				newMatches = newMatches[:0]
 				newMatches, _ = cfg.globDir(base, dir, rxGlobStar, false, wantDir, newMatches)
-				for i := len(newMatches) - 1; i >= 0; i-- {
-					stack = append(stack, newMatches[i])
+				for _, match := range slices.Backward(newMatches) {
+					stack = append(stack, match)
 				}
 			}
 			continue
