@@ -221,7 +221,7 @@ func (p *debugPrinter) printf(format string, args ...any) {
 
 func (p *debugPrinter) newline() {
 	p.printf("\n")
-	for i := 0; i < p.level; i++ {
+	for range p.level {
 		p.printf(".  ")
 	}
 }
@@ -246,7 +246,7 @@ func (p *debugPrinter) print(x reflect.Value) {
 		if x.Len() > 0 {
 			p.level++
 			p.newline()
-			for i := 0; i < x.Len(); i++ {
+			for i := range x.Len() {
 				p.printf("%d: ", i)
 				p.print(x.Index(i))
 				if i == x.Len()-1 {
@@ -270,7 +270,7 @@ func (p *debugPrinter) print(x reflect.Value) {
 		p.printf("%s {", t)
 		p.level++
 		p.newline()
-		for i := 0; i < t.NumField(); i++ {
+		for i := range t.NumField() {
 			p.printf("%s: ", t.Field(i).Name)
 			p.print(x.Field(i))
 			if i == x.NumField()-1 {

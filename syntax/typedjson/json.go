@@ -75,7 +75,7 @@ func encodeValue(val reflect.Value) (reflect.Value, string) {
 		// and then all the visible fields which aren't positions.
 		typ := val.Type()
 		fields := []reflect.StructField{typeField, posField, endField}
-		for i := 0; i < typ.NumField(); i++ {
+		for i := range typ.NumField() {
 			field := typ.Field(i)
 			typ := anyType
 			if field.Type == posType {
@@ -117,7 +117,7 @@ func encodeValue(val reflect.Value) (reflect.Value, string) {
 			break
 		}
 		enc := reflect.MakeSlice(anySliceType, n, n)
-		for i := 0; i < n; i++ {
+		for i := range n {
 			elem := val.Index(i)
 			encElem, _ := encodeValue(elem)
 			enc.Index(i).Set(encElem)

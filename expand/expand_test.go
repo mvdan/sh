@@ -80,7 +80,7 @@ func TestFieldsIdempotency(t *testing.T) {
 	}
 	for _, tc := range tests {
 		word := parseWord(t, tc.src)
-		for j := 0; j < 2; j++ {
+		for range 2 {
 			got, err := Fields(nil, word)
 			if err != nil {
 				t.Fatalf("did not want error, got %v", err)

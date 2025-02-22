@@ -1512,7 +1512,7 @@ func (e *extraIndenter) WriteByte(b byte) error {
 		lineIndent += e.firstChange
 	}
 	e.bufWriter.WriteByte(tabwriter.Escape)
-	for i := 0; i < lineIndent; i++ {
+	for range lineIndent {
 		e.bufWriter.WriteByte('\t')
 	}
 	e.bufWriter.WriteByte(tabwriter.Escape)
@@ -1522,7 +1522,7 @@ func (e *extraIndenter) WriteByte(b byte) error {
 }
 
 func (e *extraIndenter) WriteString(s string) (int, error) {
-	for i := 0; i < len(s); i++ {
+	for i := range len(s) {
 		e.WriteByte(s[i])
 	}
 	return len(s), nil

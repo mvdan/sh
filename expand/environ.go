@@ -135,7 +135,7 @@ const maxNameRefDepth = 100
 // name that was followed and the variable that it points to.
 func (v Variable) Resolve(env Environ) (string, Variable) {
 	name := ""
-	for i := 0; i < maxNameRefDepth; i++ {
+	for range maxNameRefDepth {
 		if v.Kind != NameRef {
 			return name, v
 		}
@@ -212,13 +212,13 @@ func listEnvironWithUpper(upper bool, pairs ...string) Environ {
 		sep := strings.IndexByte(s, '=')
 		if sep <= 0 {
 			// invalid element; remove it
-			list = append(list[:i], list[i+1:]...)
+			list = slices.Delete(list, i, i+1)
 			continue
 		}
 		name := s[:sep]
 		if last == name {
 			// duplicate; the last one wins
-			list = append(list[:i-1], list[i:]...)
+			list = slices.Delete(list, i-1, i)
 			continue
 		}
 		last = name

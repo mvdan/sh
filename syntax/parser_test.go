@@ -2670,7 +2670,7 @@ func countRecoveredPositions(x reflect.Value) int {
 		}
 	case reflect.Slice:
 		n := 0
-		for i := 0; i < x.Len(); i++ {
+		for i := range x.Len() {
 			n += countRecoveredPositions(x.Index(i))
 		}
 		return n
@@ -2682,7 +2682,7 @@ func countRecoveredPositions(x reflect.Value) int {
 			return 0
 		}
 		n := 0
-		for i := 0; i < x.NumField(); i++ {
+		for i := range x.NumField() {
 			n += countRecoveredPositions(x.Field(i))
 		}
 		return n

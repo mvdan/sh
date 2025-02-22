@@ -4308,7 +4308,7 @@ export GLOBAL=
 `)
 	ctx, cancel := context.WithTimeout(context.Background(), runnerRunTimeout)
 	defer cancel()
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		if err := r.Run(ctx, file); err != nil {
 			t.Fatalf("run number %d: %v", i, err)
 		}
@@ -4322,7 +4322,7 @@ export GLOBAL=
 func TestRunnerManyResets(t *testing.T) {
 	t.Parallel()
 	r, _ := interp.New()
-	for i := 0; i < 5; i++ {
+	for range 5 {
 		r.Reset()
 	}
 }
@@ -4354,7 +4354,7 @@ func TestRunnerEnvNoModify(t *testing.T) {
 	r, _ := interp.New(interp.Env(env), interp.StdIO(nil, &b, &b))
 	ctx, cancel := context.WithTimeout(context.Background(), runnerRunTimeout)
 	defer cancel()
-	for i := 0; i < 3; i++ {
+	for range 3 {
 		r.Reset()
 		err := r.Run(ctx, file)
 		if err != nil {
