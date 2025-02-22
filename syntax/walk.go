@@ -183,11 +183,13 @@ func walkNilable[N nilableNode](node N, f func(Node) bool) {
 		Walk(node, f)
 	}
 }
+
 func walkList[N Node](list []N, f func(Node) bool) {
 	for _, node := range list {
 		Walk(node, f)
 	}
 }
+
 func walkComments(list []Comment, f func(Node) bool) {
 	// Note that []Comment does not satisfy the generic constraint []Node.
 	for i := range list {
