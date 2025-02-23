@@ -17,6 +17,8 @@ type Environ interface {
 	// set, use Variable.IsSet.
 	Get(name string) Variable
 
+	// TODO(v4): make Each below a func that returns an iterator.
+
 	// Each iterates over all the currently set variables, calling the
 	// supplied function on each variable. Iteration is stopped if the
 	// function returns false.

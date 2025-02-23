@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"iter"
 	"maps"
 	"os"
 	"os/user"
@@ -436,45 +437,62 @@ func (cfg *Config) escapedGlobField(parts []fieldPart) (escaped string, glob boo
 	return escaped, glob
 }
 
+// Fields is a pre-iterators API which now wraps [FieldsSeq].
+func Fields(cfg *Config, words ...*syntax.Word) ([]string, error) {
+	var fields []string
+	for s, err := range FieldsSeq(cfg, words...) {
+		if err != nil {
+			return nil, err
+		}
+		fields = append(fields, s)
+	}
+	return fields, nil
+}
+
 // Fields expands a number of words as if they were arguments in a shell
 // command. This includes brace expansion, tilde expansion, parameter expansion,
 // command substitution, arithmetic expansion, and quote removal.
-func Fields(cfg *Config, words ...*syntax.Word) ([]string, error) {
+func FieldsSeq(cfg *Config, words ...*syntax.Word) iter.Seq2[string, error] {
 	cfg = prepareConfig(cfg)
-	fields := make([]string, 0, len(words))
 	dir := cfg.envGet("PWD")
-	for _, word := range words {
-		word := *word // make a copy, since SplitBraces replaces the Parts slice
-		afterBraces := []*syntax.Word{&word}
-		if syntax.SplitBraces(&word) {
-			afterBraces = Braces(&word)
-		}
-		for _, word2 := range afterBraces {
-			wfields, err := cfg.wordFields(word2.Parts)
-			if err != nil {
-				return nil, err
+	return func(yield func(string, error) bool) {
+		for _, word := range words {
+			word := *word // make a copy, since SplitBraces replaces the Parts slice
+			afterBraces := []*syntax.Word{&word}
+			if syntax.SplitBraces(&word) {
+				afterBraces = Braces(&word)
 			}
-			for _, field := range wfields {
-				path, doGlob := cfg.escapedGlobField(field)
-				var matches []string
-				if doGlob && cfg.ReadDir2 != nil {
-					matches, err = cfg.glob(dir, path)
-					if err != nil {
-						// We avoid [errors.As] as it allocates,
-						// and we know that [Config.glob] returns [pattern.Regexp] errors without wrapping.
-						if _, ok := err.(*pattern.SyntaxError); !ok {
-							return nil, err
-						}
-					} else if len(matches) > 0 || cfg.NullGlob {
-						fields = append(fields, matches...)
-						continue
-					}
+			for _, word2 := range afterBraces {
+				wfields, err := cfg.wordFields(word2.Parts)
+				if err != nil {
+					yield("", err)
+					return
 				}
-				fields = append(fields, cfg.fieldJoin(field))
+				for _, field := range wfields {
+					path, doGlob := cfg.escapedGlobField(field)
+					if doGlob && cfg.ReadDir2 != nil {
+						// Note that globbing requires keeping a slice state, so it doesn't
+						// really benefit from using an iterator.
+						matches, err := cfg.glob(dir, path)
+						if err != nil {
+							// We avoid [errors.As] as it allocates,
+							// and we know that [Config.glob] returns [pattern.Regexp] errors without wrapping.
+							if _, ok := err.(*pattern.SyntaxError); !ok {
+								yield("", err)
+								return
+							}
+						} else if len(matches) > 0 || cfg.NullGlob {
+							for _, m := range matches {
+								yield(m, nil)
+							}
+							continue
+						}
+					}
+					yield(cfg.fieldJoin(field), nil)
+				}
 			}
 		}
 	}
-	return fields, nil
 }
 
 type fieldPart struct {

@@ -747,6 +747,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 				show(name, als)
 			}
 		}
+	argsLoop:
 		for _, name := range args {
 			i := strings.IndexByte(name, '=')
 			if i < 1 { // don't save an empty name
@@ -763,12 +764,12 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			parser := syntax.NewParser()
 			var words []*syntax.Word
 			src := name[i+1:]
-			if err := parser.Words(strings.NewReader(src), func(w *syntax.Word) bool {
+			for w, err := range parser.WordsSeq(strings.NewReader(src)) {
+				if err != nil {
+					r.errf("alias: could not parse %q: %v\n", src, err)
+					continue argsLoop
+				}
 				words = append(words, w)
-				return true
-			}); err != nil {
-				r.errf("alias: could not parse %q: %v\n", src, err)
-				continue
 			}
 
 			name = name[:i]

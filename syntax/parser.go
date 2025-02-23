@@ -6,6 +6,7 @@ package syntax
 import (
 	"fmt"
 	"io"
+	"iter"
 	"slices"
 	"strconv"
 	"strings"
@@ -288,9 +289,20 @@ func (p *Parser) Interactive(r io.Reader, fn func([]*Stmt) bool) error {
 	})
 }
 
-// Words reads and parses words one at a time, calling a function each time one
-// is parsed. If the function returns false, parsing is stopped and the function
-// is not called again.
+// Words is a pre-iterators API which now wraps [Parser.WordsSeq].
+func (p *Parser) Words(r io.Reader, fn func(*Word) bool) error {
+	for w, err := range p.WordsSeq(r) {
+		if err != nil {
+			return err
+		}
+		if !fn(w) {
+			break
+		}
+	}
+	return nil
+}
+
+// WordsSeq reads and parses a sequence of words alongside any error encountered.
 //
 // Newlines are skipped, meaning that multi-line input will work fine. If the
 // parser encounters a token that isn't a word, such as a semicolon, an error
@@ -299,23 +311,28 @@ func (p *Parser) Interactive(r io.Reader, fn func([]*Stmt) bool) error {
 // Note that the lexer doesn't currently tokenize spaces, so it may need to read
 // a non-space byte such as a newline or a letter before finishing the parsing
 // of a word. This will be fixed in the future.
-func (p *Parser) Words(r io.Reader, fn func(*Word) bool) error {
+func (p *Parser) WordsSeq(r io.Reader) iter.Seq2[*Word, error] {
 	p.reset()
 	p.f = &File{}
 	p.src = r
-	p.rune()
-	p.next()
-	for {
-		p.got(_Newl)
-		w := p.getWord()
-		if w == nil {
-			if p.tok != _EOF {
-				p.curErr("%s is not a valid word", p.tok)
+	return func(yield func(*Word, error) bool) {
+		p.rune()
+		p.next()
+		for {
+			p.got(_Newl)
+			w := p.getWord()
+			if w == nil {
+				if p.tok != _EOF {
+					p.curErr("%s is not a valid word", p.tok)
+				}
+				if p.err != nil {
+					yield(nil, p.err)
+				}
+				return
 			}
-			return p.err
-		}
-		if !fn(w) {
-			return nil
+			if !yield(w, nil) {
+				return
+			}
 		}
 	}
 }

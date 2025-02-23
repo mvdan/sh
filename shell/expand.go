@@ -48,12 +48,11 @@ func Expand(s string, env func(string) string) (string, error) {
 func Fields(s string, env func(string) string) ([]string, error) {
 	p := syntax.NewParser()
 	var words []*syntax.Word
-	err := p.Words(strings.NewReader(s), func(w *syntax.Word) bool {
+	for w, err := range p.WordsSeq(strings.NewReader(s)) {
+		if err != nil {
+			return nil, err
+		}
 		words = append(words, w)
-		return true
-	})
-	if err != nil {
-		return nil, err
 	}
 	if env == nil {
 		env = os.Getenv
