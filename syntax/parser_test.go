@@ -429,17 +429,17 @@ var shellTests = []errorCase{
 	},
 	{
 		in:   `((# 1 + 2))`,
-		bash: `1:1: unsigned expressions are a mksh feature`,
+		bash: `1:1: unsigned expressions are a mksh feature; tried parsing as bash`,
 	},
 	{
 		in:    `$((# 1 + 2))`,
-		posix: `1:1: unsigned expressions are a mksh feature`,
-		bash:  `1:1: unsigned expressions are a mksh feature`,
+		posix: `1:1: unsigned expressions are a mksh feature; tried parsing as posix`,
+		bash:  `1:1: unsigned expressions are a mksh feature; tried parsing as bash`,
 	},
 	{
 		in:    `${ foo;}`,
-		posix: `1:1: "${ stmts;}" is a mksh feature`,
-		bash:  `1:1: "${ stmts;}" is a mksh feature`,
+		posix: `1:1: "${ stmts;}" is a mksh feature; tried parsing as posix`,
+		bash:  `1:1: "${ stmts;}" is a mksh feature; tried parsing as bash`,
 	},
 	{
 		in:   `${ `,
@@ -455,8 +455,8 @@ var shellTests = []errorCase{
 	},
 	{
 		in:    `${|foo;}`,
-		posix: `1:1: "${|stmts;}" is a mksh feature`,
-		bash:  `1:1: "${|stmts;}" is a mksh feature`,
+		posix: `1:1: "${|stmts;}" is a mksh feature; tried parsing as posix`,
+		bash:  `1:1: "${|stmts;}" is a mksh feature; tried parsing as bash`,
 	},
 	{
 		in:   `${|`,
@@ -769,11 +769,11 @@ var shellTests = []errorCase{
 	},
 	{
 		in:    "foo &>/dev/null",
-		posix: `1:5: &> redirects are a bash/mksh feature`,
+		posix: `1:5: &> redirects are a bash/mksh feature; tried parsing as posix`,
 	},
 	{
 		in:    "foo &>>/dev/null",
-		posix: `1:5: &> redirects are a bash/mksh feature`,
+		posix: `1:5: &> redirects are a bash/mksh feature; tried parsing as posix`,
 	},
 	{
 		in:     "<<",
@@ -1151,7 +1151,7 @@ var shellTests = []errorCase{
 	},
 	{
 		in:     "echo ${%",
-		common: `1:6: "${%foo}" is a mksh feature`,
+		common: `1:6: "${%foo}" is a mksh feature; tried parsing as LANG`,
 		mksh:   `1:8: parameter expansion requires a literal`,
 	},
 	{
@@ -1280,7 +1280,7 @@ var shellTests = []errorCase{
 	},
 	{
 		in:     "case i {",
-		common: `1:1: "case i {" is a mksh feature`,
+		common: `1:1: "case i {" is a mksh feature; tried parsing as LANG`,
 		mksh:   `1:1: case statement must end with "}"`,
 	},
 	{
@@ -1483,7 +1483,7 @@ var shellTests = []errorCase{
 	{
 		in:   "[[ a =~",
 		bash: `1:6: =~ must be followed by a word`,
-		mksh: `1:6: regex tests are a bash feature`,
+		mksh: `1:6: regex tests are a bash feature; tried parsing as mksh`,
 	},
 	{
 		in:   "[[ -f a",
@@ -1851,8 +1851,8 @@ var shellTests = []errorCase{
 		// so that users won't think this will work like they expect in
 		// POSIX shell.
 		in:    "echo {var}>foo",
-		posix: `1:6: {varname} redirects are a bash feature #NOERR`,
-		mksh:  `1:6: {varname} redirects are a bash feature #NOERR`,
+		posix: `1:6: {varname} redirects are a bash feature; tried parsing as posix #NOERR`,
+		mksh:  `1:6: {varname} redirects are a bash feature; tried parsing as mksh #NOERR`,
 	},
 	{
 		in:    "echo ;&",
@@ -1871,24 +1871,24 @@ var shellTests = []errorCase{
 	},
 	{
 		in:    "for i in 1 2 3; { echo; }",
-		posix: `1:17: for loops with braces are a bash/mksh feature`,
+		posix: `1:17: for loops with braces are a bash/mksh feature; tried parsing as posix`,
 	},
 	{
 		in:    "for ((i=0; i<5; i++)); do echo; done",
-		posix: `1:5: c-style fors are a bash feature`,
-		mksh:  `1:5: c-style fors are a bash feature`,
+		posix: `1:5: c-style fors are a bash feature; tried parsing as posix`,
+		mksh:  `1:5: c-style fors are a bash feature; tried parsing as mksh`,
 	},
 	{
 		in:    "echo !(a)",
-		posix: `1:6: extended globs are a bash/mksh feature`,
+		posix: `1:6: extended globs are a bash/mksh feature; tried parsing as posix`,
 	},
 	{
 		in:    "echo $a@(b)",
-		posix: `1:8: extended globs are a bash/mksh feature`,
+		posix: `1:8: extended globs are a bash/mksh feature; tried parsing as posix`,
 	},
 	{
 		in:    "foo=(1 2)",
-		posix: `1:5: arrays are a bash/mksh feature`,
+		posix: `1:5: arrays are a bash/mksh feature; tried parsing as posix`,
 	},
 	{
 		in:     "a=$c\n'",
@@ -1896,37 +1896,37 @@ var shellTests = []errorCase{
 	},
 	{
 		in:    "echo ${!foo}",
-		posix: `1:6: "${!foo}" is a bash/mksh feature`,
+		posix: `1:6: "${!foo}" is a bash/mksh feature; tried parsing as posix`,
 	},
 	{
 		in:    "echo ${!foo*}",
-		posix: `1:6: "${!foo*}" is a bash feature`,
-		mksh:  `1:6: "${!foo*}" is a bash feature`,
+		posix: `1:6: "${!foo*}" is a bash feature; tried parsing as posix`,
+		mksh:  `1:6: "${!foo*}" is a bash feature; tried parsing as mksh`,
 	},
 	{
 		in:    "echo ${!foo@}",
-		posix: `1:12: this expansion operator is a bash/mksh feature`,
-		mksh:  `1:6: "${!foo@}" is a bash feature`,
+		posix: `1:12: this expansion operator is a bash/mksh feature; tried parsing as posix`,
+		mksh:  `1:6: "${!foo@}" is a bash feature; tried parsing as mksh`,
 	},
 	{
 		in:    "echo ${!foo[@]}",
-		posix: `1:12: arrays are a bash/mksh feature`,
+		posix: `1:12: arrays are a bash/mksh feature; tried parsing as posix`,
 	},
 	{
 		in:    "echo ${foo[1]}",
-		posix: `1:11: arrays are a bash/mksh feature`,
+		posix: `1:11: arrays are a bash/mksh feature; tried parsing as posix`,
 	},
 	{
 		in:    "echo ${foo/a/b}",
-		posix: `1:11: search and replace is a bash/mksh feature`,
+		posix: `1:11: search and replace is a bash/mksh feature; tried parsing as posix`,
 	},
 	{
 		in:    "echo ${foo:1}",
-		posix: `1:11: slicing is a bash/mksh feature`,
+		posix: `1:11: slicing is a bash/mksh feature; tried parsing as posix`,
 	},
 	{
 		in:    "foo <<< bar",
-		posix: `1:5: herestrings are a bash/mksh feature`,
+		posix: `1:5: herestrings are a bash/mksh feature; tried parsing as posix`,
 	},
 	{
 		in:    "foo << < bar",
@@ -1934,52 +1934,52 @@ var shellTests = []errorCase{
 	},
 	{
 		in:    "echo ${foo,bar}",
-		posix: `1:11: this expansion operator is a bash feature`,
-		mksh:  `1:11: this expansion operator is a bash feature`,
+		posix: `1:11: this expansion operator is a bash feature; tried parsing as posix`,
+		mksh:  `1:11: this expansion operator is a bash feature; tried parsing as mksh`,
 	},
 	{
 		in:    "echo ${foo@Q}",
-		posix: `1:11: this expansion operator is a bash/mksh feature`,
+		posix: `1:11: this expansion operator is a bash/mksh feature; tried parsing as posix`,
 	},
 	{
 		in:   "echo ${foo@a}",
-		mksh: `1:12: this expansion operator is a bash feature`,
+		mksh: `1:12: this expansion operator is a bash feature; tried parsing as mksh`,
 	},
 	{
 		in:   "echo ${foo@u}",
-		mksh: `1:12: this expansion operator is a bash feature`,
+		mksh: `1:12: this expansion operator is a bash feature; tried parsing as mksh`,
 	},
 	{
 		in:   "echo ${foo@A}",
-		mksh: `1:12: this expansion operator is a bash feature`,
+		mksh: `1:12: this expansion operator is a bash feature; tried parsing as mksh`,
 	},
 	{
 		in:   "echo ${foo@E}",
-		mksh: `1:12: this expansion operator is a bash feature`,
+		mksh: `1:12: this expansion operator is a bash feature; tried parsing as mksh`,
 	},
 	{
 		in:   "echo ${foo@K}",
-		mksh: `1:12: this expansion operator is a bash feature`,
+		mksh: `1:12: this expansion operator is a bash feature; tried parsing as mksh`,
 	},
 	{
 		in:   "echo ${foo@k}",
-		mksh: `1:12: this expansion operator is a bash feature`,
+		mksh: `1:12: this expansion operator is a bash feature; tried parsing as mksh`,
 	},
 	{
 		in:   "echo ${foo@L}",
-		mksh: `1:12: this expansion operator is a bash feature`,
+		mksh: `1:12: this expansion operator is a bash feature; tried parsing as mksh`,
 	},
 	{
 		in:   "echo ${foo@P}",
-		mksh: `1:12: this expansion operator is a bash feature`,
+		mksh: `1:12: this expansion operator is a bash feature; tried parsing as mksh`,
 	},
 	{
 		in:   "echo ${foo@U}",
-		mksh: `1:12: this expansion operator is a bash feature`,
+		mksh: `1:12: this expansion operator is a bash feature; tried parsing as mksh`,
 	},
 	{
 		in:   "echo ${foo@#}",
-		bash: `1:12: this expansion operator is a mksh feature #NOERR`,
+		bash: `1:12: this expansion operator is a mksh feature; tried parsing as bash #NOERR`,
 	},
 	{
 		in:     "`\"`\\",
@@ -1992,6 +1992,7 @@ func checkError(p *Parser, in, want string) func(*testing.T) {
 		if i := strings.Index(want, " #NOERR"); i >= 0 {
 			want = want[:i]
 		}
+		want = strings.Replace(want, "LANG", p.lang.String(), 1)
 		_, err := p.Parse(newStrictReader(in), "")
 		if err == nil {
 			t.Fatalf("Expected error in %q: %v", in, want)

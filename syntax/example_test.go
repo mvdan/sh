@@ -92,7 +92,7 @@ func ExampleNewParser_options() {
 
 	// Output:
 	// <nil>
-	// 1:5: c-style fors are a bash feature
+	// 1:5: c-style fors are a bash feature; tried parsing as posix
 	// for ((i = 0; i < 5; i++)); do echo $i >f; done
 	// for ((i = 0; i < 5; i++)); do echo $i > f; done
 }

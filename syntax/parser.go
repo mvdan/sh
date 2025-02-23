@@ -861,8 +861,13 @@ func (e ParseError) Error() string {
 type LangError struct {
 	Filename string
 	Pos      Pos
-	Feature  string
-	Langs    []LangVariant
+
+	// Feature briefly describes which language feature caused the error.
+	Feature string
+	// Langs lists some of the language variants which support the feature.
+	Langs []LangVariant
+	// LangUsed is the language variant used which led to the error.
+	LangUsed LangVariant
 }
 
 func (e LangError) Error() string {
@@ -883,7 +888,8 @@ func (e LangError) Error() string {
 		}
 		sb.WriteString(lang.String())
 	}
-	sb.WriteString(" feature")
+	sb.WriteString(" feature; tried parsing as ")
+	sb.WriteString(e.LangUsed.String())
 	return sb.String()
 }
 
@@ -906,6 +912,7 @@ func (p *Parser) langErr(pos Pos, feature string, langs ...LangVariant) {
 		Pos:      pos,
 		Feature:  feature,
 		Langs:    langs,
+		LangUsed: p.lang,
 	})
 }
 
@@ -1052,12 +1059,12 @@ func (p *Parser) wordPart() WordPart {
 		switch p.r {
 		case '|':
 			if p.lang != LangMirBSDKorn {
-				p.curErr(`"${|stmts;}" is a mksh feature`)
+				p.langErr(p.pos, `"${|stmts;}"`, LangMirBSDKorn)
 			}
 			fallthrough
 		case ' ', '\t', '\n':
 			if p.lang != LangMirBSDKorn {
-				p.curErr(`"${ stmts;}" is a mksh feature`)
+				p.langErr(p.pos, `"${ stmts;}"`, LangMirBSDKorn)
 			}
 			cs := &CmdSubst{
 				Left:     p.pos,
@@ -1303,7 +1310,7 @@ func (p *Parser) paramExp() *ParamExp {
 		}
 	case perc:
 		if p.lang != LangMirBSDKorn {
-			p.posErr(pe.Pos(), `"${%%foo}" is a mksh feature`)
+			p.langErr(pe.Pos(), `"${%foo}"`, LangMirBSDKorn)
 		}
 		if paramNameOp(p.r) {
 			pe.Width = true
@@ -1343,7 +1350,7 @@ func (p *Parser) paramExp() *ParamExp {
 		p.curErr("%s cannot be followed by a word", op)
 	case rightBrace:
 		if pe.Excl && p.lang == LangPOSIX {
-			p.posErr(pe.Pos(), `"${!foo}" is a bash/mksh feature`)
+			p.langErr(pe.Pos(), `"${!foo}"`, LangBash, LangMirBSDKorn)
 		}
 		pe.Rbrace = p.pos
 		p.quote = old
@@ -1416,7 +1423,7 @@ func (p *Parser) paramExp() *ParamExp {
 			p.curErr("not a valid parameter expansion operator: %v", p.tok)
 		case pe.Excl && p.r == '}':
 			if !p.lang.isBash() {
-				p.posErr(pe.Pos(), `"${!foo%s}" is a bash feature`, p.tok)
+				p.langErr(pe.Pos(), fmt.Sprintf(`"${!foo%s}"`, p.tok), LangBash)
 			}
 			pe.Names = ParNamesOperator(p.tok)
 			p.next()
@@ -2123,7 +2130,7 @@ func (p *Parser) caseClause(s *Stmt) {
 		cc.In = pos
 		cc.Braces = true
 		if p.lang != LangMirBSDKorn {
-			p.posErr(cc.Pos(), `"case i {" is a mksh feature`)
+			p.langErr(cc.Pos(), `"case i {"`, LangMirBSDKorn)
 		}
 		end = "}"
 	} else {
@@ -2480,7 +2487,7 @@ loop:
 			}
 			// Avoid failing later with the confusing "} can only be used to close a block".
 			if p.lang == LangPOSIX && p.val == "{" && w != nil && w.Lit() == "function" {
-				p.curErr("the %q builtin is a bash feature; tried parsing as posix", "function")
+				p.langErr(p.pos, `the "function" builtin`, LangBash)
 			}
 			ce.Args = append(ce.Args, p.wordOne(p.lit(p.pos, p.val)))
 			p.next()
@@ -2513,7 +2520,7 @@ loop:
 			// Note that we'll only keep the first error that happens.
 			if len(ce.Args) > 0 {
 				if cmd := ce.Args[0].Lit(); p.lang == LangPOSIX && isBashCompoundCommand(_LitWord, cmd) {
-					p.curErr("the %q builtin is a bash feature; tried parsing as posix", cmd)
+					p.langErr(p.pos, fmt.Sprintf("the %q builtin", cmd), LangBash)
 				}
 			}
 			p.curErr("a command can only contain words and redirects; encountered %s", p.tok)
