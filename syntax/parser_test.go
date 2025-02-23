@@ -2156,19 +2156,25 @@ func TestParseStmtsStopEarly(t *testing.T) {
 
 func TestParseStmtsError(t *testing.T) {
 	t.Parallel()
-	in := "foo; )"
-	p := NewParser()
-	recv := make(chan bool, 10)
-	errc := make(chan error, 1)
-	go func() {
-		errc <- p.Stmts(strings.NewReader(in), func(s *Stmt) bool {
-			recv <- true
-			return true
+	for _, in := range []string{
+		"foo; )",
+		"bar; <<EOF",
+	} {
+		t.Run("", func(t *testing.T) {
+			p := NewParser()
+			recv := make(chan bool, 10)
+			errc := make(chan error, 1)
+			go func() {
+				errc <- p.Stmts(strings.NewReader(in), func(s *Stmt) bool {
+					recv <- true
+					return true
+				})
+			}()
+			<-recv
+			if err := <-errc; err == nil {
+				t.Fatalf("Expected an error in %q, but got nil", in)
+			}
 		})
-	}()
-	<-recv
-	if err := <-errc; err == nil {
-		t.Fatalf("Expected an error in %q, but got nil", in)
 	}
 }
 
