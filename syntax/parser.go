@@ -415,10 +415,10 @@ type Parser struct {
 
 	parsingDoc bool // true if using Parser.Document
 
-	// openStmts is how many entire statements we're currently parsing. A
-	// non-zero number means that we require certain tokens or words before
-	// reaching EOF.
-	openStmts int
+	// openNodes tracks how many entire statements or words we're currently parsing.
+	// A non-zero number means that we require certain tokens or words before
+	// reaching EOF, used for [Parser.Incomplete].
+	openNodes int
 	// openBquotes is how many levels of backquotes are open at the moment.
 	openBquotes int
 
@@ -439,17 +439,15 @@ type Parser struct {
 	litBs   []byte
 }
 
-// Incomplete reports whether the parser is waiting to read more bytes because
-// it needs to finish properly parsing a statement.
+// Incomplete reports whether the parser needs more input bytes
+// to finish properly parsing a statement or word.
 //
 // It is only safe to call while the parser is blocked on a read. For an example
 // use case, see [Parser.Interactive].
 func (p *Parser) Incomplete() bool {
-	// If we're in a quote state other than noState, we're parsing a node
-	// such as a double-quoted string.
-	// If there are any open statements, we need to finish them.
+	// If there are any open nodes, we need to finish them.
 	// If we're constructing a literal, we need to finish it.
-	return p.quote != noState || p.openStmts > 0 || p.litBs != nil
+	return p.openNodes > 0 || len(p.litBs) > 0
 }
 
 const bufSize = 1 << 10
@@ -462,7 +460,7 @@ func (p *Parser) reset() {
 	p.r, p.w = 0, 0
 	p.err, p.readErr = nil, nil
 	p.quote, p.forbidNested = noState, false
-	p.openStmts = 0
+	p.openNodes = 0
 	p.recoveredErrors = 0
 	p.heredocs, p.buriedHdocs = p.heredocs[:0], 0
 	p.hdocStops = nil
@@ -943,9 +941,9 @@ loop:
 		if p.tok == _EOF {
 			break
 		}
-		p.openStmts++
+		p.openNodes++
 		s := p.getStmt(true, false, false)
-		p.openStmts--
+		p.openNodes--
 		if s == nil {
 			p.invalidStmtStart()
 			break
@@ -1021,7 +1019,9 @@ func (p *Parser) getLit() *Lit {
 
 func (p *Parser) wordParts(wps []WordPart) []WordPart {
 	for {
+		p.openNodes++
 		n := p.wordPart()
+		p.openNodes--
 		if n == nil {
 			if len(wps) == 0 {
 				return nil // normalize empty lists into nil

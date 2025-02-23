@@ -2470,16 +2470,21 @@ func TestIsIncomplete(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		in   string
-		want bool
+		in       string
+		notWords bool
+		want     bool
 	}{
-		{"foo\n", false},
-		{"foo;", false},
-		{"\n", false},
-		{"'incomp", true},
-		{"foo; 'incomp", true},
-		{" (incomp", true},
-		{"badsyntax)", false},
+		{in: "foo\n", want: false},
+		{in: "foo;", want: false},
+		{in: "\n", want: false},
+		{in: "badsyntax)", want: false},
+		{in: "foo 'incomp", want: true},
+		{in: `foo "incomp`, want: true},
+		{in: "foo ${incomp", want: true},
+
+		{in: "foo; 'incomp", notWords: true, want: true},
+		{in: `foo; "incomp`, notWords: true, want: true},
+		{in: " (incomp", notWords: true, want: true},
 	}
 	p := NewParser()
 	for i, tc := range tests {
@@ -2499,6 +2504,20 @@ func TestIsIncomplete(t *testing.T) {
 				t.Fatalf("%q got %t, wanted %t", tc.in, got, tc.want)
 			}
 		})
+		if !tc.notWords {
+			t.Run(fmt.Sprintf("WordsSeq%02d", i), func(t *testing.T) {
+				r := strings.NewReader(tc.in)
+				var firstErr error
+				for _, err := range p.WordsSeq(r) {
+					if err != nil {
+						firstErr = err
+					}
+				}
+				if got := IsIncomplete(firstErr); got != tc.want {
+					t.Fatalf("%q got %t, wanted %t", tc.in, got, tc.want)
+				}
+			})
+		}
 	}
 }
 
