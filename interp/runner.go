@@ -13,6 +13,7 @@ import (
 	"math"
 	"math/rand"
 	"os"
+	"path/filepath"
 	"regexp"
 	"runtime"
 	"strconv"
@@ -34,6 +35,8 @@ const (
 	// shellReplyVar, or REPLY, is a special variable in Bash that is used to store the result of
 	// the select command or of the read command, when no variable name is specified
 	shellReplyVar = "REPLY"
+
+	fifoNamePrefix = "sh-interp-"
 )
 
 func (r *Runner) fillExpandConfig(ctx context.Context) {
@@ -84,7 +87,7 @@ func (r *Runner) fillExpandConfig(ctx context.Context) {
 			var path string
 			try := 0
 			for {
-				path = fmt.Sprintf("%s/sh-interp-%x", dir, r.rand.Uint64())
+				path = filepath.Join(dir, fifoNamePrefix+strconv.FormatUint(r.rand.Uint64(), 16))
 				err := mkfifo(path, 0o666)
 				if err == nil {
 					break
@@ -1029,6 +1032,19 @@ func (r *Runner) exec(ctx context.Context, args []string) {
 }
 
 func (r *Runner) open(ctx context.Context, path string, flags int, mode os.FileMode, print bool) (io.ReadWriteCloser, error) {
+	// If we are opening a FIFO temporary file created by the interpreter itself,
+	// don't pass this along to the open handler as it will not work at all
+	// unless [os.OpenFile] is used directly with it.
+	// Matching by directory and basename prefix isn't perfect, but works.
+	//
+	// If we want FIFOs to use a handler in the future, they probably
+	// need their own separate handler API matching Unix-like semantics.
+	dir, name := filepath.Split(path)
+	dir = strings.TrimSuffix(dir, "/")
+	if dir == os.TempDir() && strings.HasPrefix(name, fifoNamePrefix) {
+		return os.OpenFile(path, flags, mode)
+	}
+
 	f, err := r.openHandler(r.handlerCtx(ctx), path, flags, mode)
 	// TODO: support wrapped PathError returned from openHandler.
 	switch err.(type) {
