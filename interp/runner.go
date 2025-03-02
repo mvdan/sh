@@ -78,7 +78,6 @@ func (r *Runner) fillExpandConfig(ctx context.Context) {
 			if r.rand == nil {
 				r.rand = rand.New(rand.NewSource(time.Now().UnixNano()))
 			}
-			dir := os.TempDir()
 
 			// We can't atomically create a random unused temporary FIFO.
 			// Similar to [os.CreateTemp],
@@ -87,7 +86,7 @@ func (r *Runner) fillExpandConfig(ctx context.Context) {
 			var path string
 			try := 0
 			for {
-				path = filepath.Join(dir, fifoNamePrefix+strconv.FormatUint(r.rand.Uint64(), 16))
+				path = filepath.Join(r.tempDir, fifoNamePrefix+strconv.FormatUint(r.rand.Uint64(), 16))
 				err := mkfifo(path, 0o666)
 				if err == nil {
 					break
@@ -1041,7 +1040,7 @@ func (r *Runner) open(ctx context.Context, path string, flags int, mode os.FileM
 	// need their own separate handler API matching Unix-like semantics.
 	dir, name := filepath.Split(path)
 	dir = strings.TrimSuffix(dir, "/")
-	if dir == os.TempDir() && strings.HasPrefix(name, fifoNamePrefix) {
+	if dir == r.tempDir && strings.HasPrefix(name, fifoNamePrefix) {
 		return os.OpenFile(path, flags, mode)
 	}
 

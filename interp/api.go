@@ -44,17 +44,26 @@ import (
 // once a Runner has been created, the fields should be treated as read-only.
 type Runner struct {
 	// Env specifies the initial environment for the interpreter, which must
-	// be non-nil.
+	// not be nil. It can only be set via [Env].
+	//
+	// If it includes a non-empty TMPDIR variable, it is used as the directory in which
+	// to create temporary files needed for the interpreter's use,
+	// such as named pipes for process substitutions.
+	// Otherwise, [os.TempDir] is used.
 	Env expand.Environ
 
 	writeEnv expand.WriteEnviron
 
 	// Dir specifies the working directory of the command, which must be an
-	// absolute path.
+	// absolute path. It can only be set via [Dir].
 	Dir string
+
+	// tempDir is either $TMPDIR from [Runner.Env], or [os.TempDir].
+	tempDir string
 
 	// Params are the current shell parameters, e.g. from running a shell
 	// file or calling a function. Accessible via the $@/$* family of vars.
+	// It can only be set via [Params].
 	Params []string
 
 	// Separate maps - note that bash allows a name to be both a var and a
@@ -679,10 +688,17 @@ func (r *Runner) Reset() {
 		for _, mw := range slices.Backward(r.execMiddlewares) {
 			r.execHandler = mw(r.execHandler)
 		}
+		// Fill tempDir; only need to do this once given that Env will not change.
+		if dir := r.Env.Get("TMPDIR").String(); dir != "" {
+			r.tempDir = dir
+		} else {
+			r.tempDir = os.TempDir()
+		}
 	}
 	// reset the internal state
 	*r = Runner{
 		Env:            r.Env,
+		tempDir:        r.tempDir,
 		callHandler:    r.callHandler,
 		execHandler:    r.execHandler,
 		openHandler:    r.openHandler,
@@ -842,6 +858,7 @@ func (r *Runner) Subshell() *Runner {
 	// sensitive ones like [errgroup.Group], and to do deep copies of slices.
 	r2 := &Runner{
 		Dir:            r.Dir,
+		tempDir:        r.tempDir,
 		Params:         r.Params,
 		callHandler:    r.callHandler,
 		execHandler:    r.execHandler,
