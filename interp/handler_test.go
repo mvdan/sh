@@ -48,6 +48,10 @@ func blocklistNondevOpen(ctx context.Context, path string, flags int, mode os.Fi
 	return interp.DefaultOpenHandler()(ctx, path, flags, mode)
 }
 
+func mockFileOpen(ctx context.Context, path string, flags int, mode os.FileMode) (io.ReadWriteCloser, error) {
+	return nopWriterCloser{strings.NewReader(fmt.Sprintf("body of %s", path))}, nil
+}
+
 func blocklistGlob(ctx context.Context, path string) ([]fs.FileInfo, error) {
 	return nil, fmt.Errorf("blocklisted: glob")
 }
@@ -175,6 +179,14 @@ var modCases = []struct {
 		},
 		src:  "echo foo >/dev/null; echo bar >/tmp/x",
 		want: "non-dev: /tmp/x",
+	},
+	{
+		name: "OpenMockFile",
+		opts: []interp.RunnerOption{
+			interp.OpenHandler(mockFileOpen),
+		},
+		src:  "echo $(<foo); echo $(< <(echo bar))",
+		want: "body of foo\nbody of /tmp/sh-interp-271d264d485390cc\n",
 	},
 	{
 		name: "CallReplaceWithBlank",
