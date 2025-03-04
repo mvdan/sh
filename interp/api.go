@@ -46,9 +46,9 @@ type Runner struct {
 	// Env specifies the initial environment for the interpreter, which must
 	// not be nil. It can only be set via [Env].
 	//
-	// If it includes a non-empty TMPDIR variable, it is used as the directory in which
-	// to create temporary files needed for the interpreter's use,
-	// such as named pipes for process substitutions.
+	// If it includes a TMPDIR variable describing an absolute directory,
+	// it is used as the directory in which to create temporary files needed
+	// for the interpreter's use, such as named pipes for process substitutions.
 	// Otherwise, [os.TempDir] is used.
 	Env expand.Environ
 
@@ -689,11 +689,13 @@ func (r *Runner) Reset() {
 			r.execHandler = mw(r.execHandler)
 		}
 		// Fill tempDir; only need to do this once given that Env will not change.
-		if dir := r.Env.Get("TMPDIR").String(); dir != "" {
+		if dir := r.Env.Get("TMPDIR").String(); filepath.IsAbs(dir) {
 			r.tempDir = dir
 		} else {
 			r.tempDir = os.TempDir()
 		}
+		// Clean it as we will later do a string prefix match.
+		r.tempDir = filepath.Clean(r.tempDir)
 	}
 	// reset the internal state
 	*r = Runner{
