@@ -238,6 +238,9 @@ func TestRunnerHandlers(t *testing.T) {
 	p := syntax.NewParser()
 	for _, tc := range modCases {
 		t.Run(tc.name, func(t *testing.T) {
+			if runtime.GOOS == "windows" && strings.Contains(tc.src, "<(") {
+				t.Skipf("windows does not have named pipes")
+			}
 			file := parse(t, p, tc.src)
 			var cb concBuffer
 			r, err := interp.New(interp.StdIO(nil, &cb, &cb))
