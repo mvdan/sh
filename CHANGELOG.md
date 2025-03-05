@@ -1,5 +1,30 @@
 # Changelog
 
+## [3.11.0] - 2025-03-05
+
+This release drops support for Go 1.22 and includes many enhancements.
+
+- **cmd/shfmt**
+  - Support `-l=0` and `-f=0` to split filenames with null bytes - #1096
+- **syntax**
+  - New iterator API: `Parser.WordsSeq`
+  - Fix `Parser.Incomplete` and `IsIncomplete` to work well with `Parser.Words` - #937
+  - Initial support for parsing incomplete shell via `RecoverErrors`
+  - Expand `LangError` to include which language was used when parsing
+- **interp**
+  - Refactor setting variables to fix array declaration edge cases - #1108
+  - Fix `test` read/write/exec operators to work correctly on directories - #1116
+  - Replace the `cancelreader` dependency with `os.File.SetReadDeadline`
+  - Avoid waiting for process substitutions, matching Bash
+  - Skip `OpenHandler` when opening named pipes for process substitutions - #1120
+  - Use `TMPDIR` if set via `Env` to create temporary files such as named pipes
+- **expand**
+  - New iterator API: `FieldsSeq`
+  - Correctly handle repeated backslashes in double quotes - #1106
+  - Don't expand backslashes inside here-documents - #1070
+
+Consider [becoming a sponsor](https://github.com/sponsors/mvdan) if you benefit from the work that went into this release!
+
 ## [3.10.0] - 2024-10-20
 
 - **cmd/shfmt**
@@ -737,6 +762,7 @@ module in v3.
 
 Initial release.
 
+[3.11.0]: https://github.com/mvdan/sh/releases/tag/v3.11.0
 [3.10.0]: https://github.com/mvdan/sh/releases/tag/v3.10.0
 [3.9.0]: https://github.com/mvdan/sh/releases/tag/v3.9.0
 [3.8.0]: https://github.com/mvdan/sh/releases/tag/v3.8.0
