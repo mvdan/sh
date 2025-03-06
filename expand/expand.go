@@ -536,9 +536,7 @@ func (cfg *Config) wordField(wps []syntax.WordPart, ql quoteLevel) ([]fieldPart,
 				}
 				s = sb.String()
 			}
-			if i := strings.IndexByte(s, '\x00'); i >= 0 {
-				s = s[:i]
-			}
+			s, _, _ = strings.Cut(s, "\x00")
 			field = append(field, fieldPart{val: s})
 		case *syntax.SglQuoted:
 			fp := fieldPart{quote: quoteSingle, val: wp.Value}
@@ -595,9 +593,7 @@ func (cfg *Config) cmdSubst(cs *syntax.CmdSubst) (string, error) {
 		return "", err
 	}
 	out := sb.String()
-	if strings.IndexByte(out, '\x00') >= 0 {
-		out = strings.ReplaceAll(out, "\x00", "")
-	}
+	out = strings.ReplaceAll(out, "\x00", "")
 	return strings.TrimRight(out, "\n"), nil
 }
 
@@ -781,11 +777,11 @@ func (cfg *Config) quotedElemFields(pe *syntax.ParamExp) []string {
 }
 
 func (cfg *Config) expandUser(field string) (prefix, rest string) {
-	if len(field) == 0 || field[0] != '~' {
+	name, ok := strings.CutPrefix(field, "~")
+	if !ok {
 		return "", field
 	}
-	name := field[1:]
-	if i := strings.Index(name, "/"); i >= 0 {
+	if i := strings.IndexByte(name, '/'); i >= 0 {
 		rest = name[i:]
 		name = name[:i]
 	}

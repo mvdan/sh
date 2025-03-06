@@ -748,9 +748,9 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			}
 		}
 	argsLoop:
-		for _, name := range args {
-			i := strings.IndexByte(name, '=')
-			if i < 1 { // don't save an empty name
+		for _, arg := range args {
+			name, src, ok := strings.Cut(arg, "=")
+			if !ok {
 				als, ok := r.alias[name]
 				if !ok {
 					r.errf("alias: %q not found\n", name)
@@ -763,7 +763,6 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			// TODO: parse any CallExpr perhaps, or even any Stmt
 			parser := syntax.NewParser()
 			var words []*syntax.Word
-			src := name[i+1:]
 			for w, err := range parser.WordsSeq(strings.NewReader(src)) {
 				if err != nil {
 					r.errf("alias: could not parse %q: %v\n", src, err)
@@ -772,7 +771,6 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 				words = append(words, w)
 			}
 
-			name = name[:i]
 			if r.alias == nil {
 				r.alias = make(map[string]alias)
 			}

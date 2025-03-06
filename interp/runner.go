@@ -767,13 +767,13 @@ func (r *Runner) flattenAssign(as *syntax.Assign) []*syntax.Assign {
 	var asgns []*syntax.Assign
 	for _, field := range r.fields(as.Value) {
 		as := &syntax.Assign{}
-		parts := strings.SplitN(field, "=", 2)
-		as.Name = &syntax.Lit{Value: parts[0]}
-		if len(parts) == 1 {
+		name, val, ok := strings.Cut(field, "=")
+		as.Name = &syntax.Lit{Value: name}
+		if !ok {
 			as.Naked = true
 		} else {
 			as.Value = &syntax.Word{Parts: []syntax.WordPart{
-				&syntax.Lit{Value: parts[1]},
+				&syntax.Lit{Value: val},
 			}}
 		}
 		asgns = append(asgns, as)

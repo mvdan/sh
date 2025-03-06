@@ -257,15 +257,14 @@ func charClass(s string) (string, error) {
 	if strings.HasPrefix(s, "[[.") || strings.HasPrefix(s, "[[=") {
 		return "", fmt.Errorf("collating features not available")
 	}
-	if !strings.HasPrefix(s, "[[:") {
+	name, ok := strings.CutPrefix(s, "[[:")
+	if !ok {
 		return "", nil
 	}
-	name := s[3:]
-	end := strings.Index(name, ":]]")
-	if end < 0 {
+	name, _, ok = strings.Cut(name, ":]]")
+	if !ok {
 		return "", fmt.Errorf("[[: was not matched with a closing :]]")
 	}
-	name = name[:end]
 	switch name {
 	case "alnum", "alpha", "ascii", "blank", "cntrl", "digit", "graph",
 		"lower", "print", "punct", "space", "upper", "word", "xdigit":
