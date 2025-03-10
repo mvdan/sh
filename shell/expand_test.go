@@ -33,6 +33,7 @@ var expandTests = []struct {
 	{"\nfoo\n", nil, "\nfoo\n"},
 	{"a-$b-c", nil, "a--c"},
 	{"${INTERP_GLOBAL:+hasOsEnv}", nil, "hasOsEnv"},
+	{"[${UNSET:-${BAR-defaultValue}}]", strEnviron("FOO=first", "BAR=""), "[]"}, 
 	{"a-$b-c", strEnviron(), "a--c"},
 	{"a-$b-c", strEnviron("b=b_val"), "a-b_val-c"},
 	{"${x//o/a}", strEnviron("x=foo"), "faa"},
