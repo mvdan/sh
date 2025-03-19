@@ -79,12 +79,16 @@ const (
 
 	// Deprecated: use [Unknown], as tracking whether or not a variable is set
 	// is now done via [Variable.Set].
+	// Otherwise it was impossible to describe an unset variable with a known kind
+	// such as `declare -A foo`.
 	Unset = Unknown
 )
 
 // Variable describes a shell variable, which can have a number of attributes
 // and a value.
 type Variable struct {
+	// Set is true when the variable has been set to a value,
+	// which may be empty.
 	Set bool
 
 	Local    bool

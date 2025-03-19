@@ -22,6 +22,7 @@ This release drops support for Go 1.22 and includes many enhancements.
   - New iterator API: `FieldsSeq`
   - Correctly handle repeated backslashes in double quotes - #1106
   - Don't expand backslashes inside here-documents - #1070
+  - Replace the `Unset` kind with a new `Variable.Set` boolean field
 
 Consider [becoming a sponsor](https://github.com/sponsors/mvdan) if you benefit from the work that went into this release!
 
