@@ -196,7 +196,7 @@ func Document(cfg *Config, word *syntax.Word) (string, error) {
 		return "", nil
 	}
 	cfg = prepareConfig(cfg)
-	field, err := cfg.wordField(word.Parts, quoteSingle)
+	field, err := cfg.wordField(word.Parts, quoteHeredoc)
 	if err != nil {
 		return "", err
 	}
@@ -505,6 +505,7 @@ type quoteLevel uint
 const (
 	quoteNone quoteLevel = iota
 	quoteDouble
+	quoteHeredoc
 	quoteSingle
 )
 
@@ -521,13 +522,18 @@ func (cfg *Config) wordField(wps []syntax.WordPart, ql quoteLevel) ([]fieldPart,
 					s = prefix + rest
 				}
 			}
-			if ql == quoteDouble && strings.Contains(s, "\\") {
+			if (ql == quoteDouble || ql == quoteHeredoc) && strings.Contains(s, "\\") {
 				sb := cfg.strBuilder()
 				for i := 0; i < len(s); i++ {
 					b := s[i]
 					if b == '\\' && i+1 < len(s) {
 						switch s[i+1] {
-						case '"', '\\', '$', '`': // special chars
+						case '"':
+							if ql != quoteDouble {
+								break
+							}
+							fallthrough
+						case '\\', '$', '`': // special chars
 							i++
 							b = s[i] // write the special char, skipping the backslash
 						}

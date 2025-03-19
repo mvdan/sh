@@ -1346,6 +1346,10 @@ var runTests = []runTest{
 		"foo\\\"bar\\baz\n",
 	},
 	{
+		"cat <<EOF\n \\\\ \\$ \\` \nEOF",
+		" \\ $ ` \n",
+	},
+	{
 		"mkdir a; echo foo_interp_missing >a |& grep -q 'is a directory'",
 		" #IGNORE bash prints a warning",
 	},
