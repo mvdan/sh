@@ -66,7 +66,17 @@ func (r *Runner) binTest(ctx context.Context, op syntax.BinTestOperator, x, y st
 			r.exit = 2
 			return false
 		}
-		return re.MatchString(x)
+		m := re.FindStringSubmatch(x)
+		if m == nil {
+			return false
+		}
+		vr := expand.Variable{
+			Set:  true,
+			Kind: expand.Indexed,
+			List: m,
+		}
+		r.setVar("BASH_REMATCH", vr)
+		return true
 	case syntax.TsNewer:
 		info1, err1 := r.stat(ctx, x)
 		info2, err2 := r.stat(ctx, y)

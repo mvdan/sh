@@ -1586,6 +1586,10 @@ var runTests = []runTest{
 		"exit status 2",
 	},
 	{
+		"[[ a__b__c =~ _*(b_*) ]]; echo ${BASH_REMATCH[0]}; echo ${BASH_REMATCH[1]}",
+		"__b__\nb__\n",
+	},
+	{
 		"[[ -e a ]] && echo x; >a; [[ -e a ]] && echo y",
 		"y\n",
 	},
