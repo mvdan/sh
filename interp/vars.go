@@ -33,16 +33,20 @@ func (o *overlayEnviron) Get(name string) expand.Variable {
 }
 
 func (o *overlayEnviron) Set(name string, vr expand.Variable) error {
+	prevOverlay, inOverlay := o.values[name]
+	prev := o.parent.Get(name)
 	// Manipulation of a global var inside a function.
-	if o.funcScope && !vr.Local && !o.values[name].Local {
+	if o.funcScope && !vr.Local && !prevOverlay.Local {
 		// In a function, the parent environment is ours, so it's always read-write.
 		return o.parent.(expand.WriteEnviron).Set(name, vr)
+	}
+	if inOverlay {
+		prev = prevOverlay
 	}
 
 	if o.values == nil {
 		o.values = make(map[string]expand.Variable)
 	}
-	prev := o.Get(name)
 	if vr.Kind == expand.KeepValue {
 		vr.Kind = prev.Kind
 		vr.Str = prev.Str
