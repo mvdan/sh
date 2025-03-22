@@ -377,7 +377,12 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		if len(fields) == 0 {
 			for _, as := range cm.Assigns {
 				prev := r.lookupVar(as.Name.Value)
+				// Here we have a naked "foo=bar", so if we inherited a local var from a parent
+				// function we want to signal that we are modifying the parent var rather than
+				// creating a new local var via "local foo=bar".
+				// TODO: there is likely a better way to do this.
 				prev.Local = false
+
 				vr := r.assignVal(prev, as, "")
 				r.setVarWithIndex(prev, as.Name.Value, as.Index, vr)
 
