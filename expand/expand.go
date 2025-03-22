@@ -516,7 +516,7 @@ func (cfg *Config) wordField(wps []syntax.WordPart, ql quoteLevel) ([]fieldPart,
 		case *syntax.Lit:
 			s := wp.Value
 			if i == 0 && ql == quoteNone {
-				if prefix, rest := cfg.expandUser(s); prefix != "" {
+				if prefix, rest := cfg.expandUser(s, len(wps) > 1); prefix != "" {
 					// TODO: return two separate fieldParts,
 					// like in wordFields?
 					s = prefix + rest
@@ -638,7 +638,7 @@ func (cfg *Config) wordFields(wps []syntax.WordPart) ([][]fieldPart, error) {
 		case *syntax.Lit:
 			s := wp.Value
 			if i == 0 {
-				prefix, rest := cfg.expandUser(s)
+				prefix, rest := cfg.expandUser(s, len(wps) > 1)
 				curField = append(curField, fieldPart{
 					quote: quoteSingle,
 					val:   prefix,
@@ -782,12 +782,19 @@ func (cfg *Config) quotedElemFields(pe *syntax.ParamExp) []string {
 	return nil
 }
 
-func (cfg *Config) expandUser(field string) (prefix, rest string) {
+func (cfg *Config) expandUser(field string, moreFields bool) (prefix, rest string) {
 	name, ok := strings.CutPrefix(field, "~")
 	if !ok {
+		// No tilde prefix to expand, e.g. "foo".
 		return "", field
 	}
-	if i := strings.IndexByte(name, '/'); i >= 0 {
+	i := strings.IndexByte(name, '/')
+	if i < 0 && moreFields {
+		// There is a tilde prefix, but followed by more fields, e.g. "~'foo'".
+		// We only proceed if an unquoted slash was found in this field, e.g. "~/'foo'".
+		return "", field
+	}
+	if i >= 0 {
 		rest = name[i:]
 		name = name[:i]
 	}

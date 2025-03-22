@@ -2914,6 +2914,18 @@ done <<< 2`,
 		`a=$(echo "~/foo_interp_missing"); [[ $a == '~/foo_interp_missing' ]]`,
 		"",
 	},
+	{
+		`HOME=/foo; rel=/bar; echo ~/bar ~/'bar' ~/"bar" ~/$rel ~/"$rel"`,
+		"/foo/bar /foo/bar /foo/bar /foo//bar /foo//bar\n",
+	},
+	{
+		`HOME=/foo; rel=/bar; echo ~'/bar' ~"/bar" ~$rel ~"/$rel"`,
+		"~/bar ~/bar ~/bar ~//bar\n",
+	},
+	{
+		`HOME=/foo; echo ~ ~/ ~/'' ~'' ~""`,
+		"/foo /foo/ /foo/ ~ ~\n",
+	},
 
 	// /dev/null
 	{"echo foo_interp_missing >/dev/null", ""},
