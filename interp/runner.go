@@ -377,6 +377,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		if len(fields) == 0 {
 			for _, as := range cm.Assigns {
 				prev := r.lookupVar(as.Name.Value)
+				prev.Local = false
 				vr := r.assignVal(prev, as, "")
 				r.setVarWithIndex(prev, as.Name.Value, as.Index, vr)
 

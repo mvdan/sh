@@ -2639,11 +2639,10 @@ done <<< 2`,
 		"getx() { echo $X; }; f() { local X=Y; getx; echo $X; }; f",
 		"Y\nY\n",
 	},
-	// TODO: fix this one
-	// {
-	// 	"setx() { X=Y; }; f() { local X; setx; echo $X; }; f",
-	// 	"Y\n",
-	// },
+	{
+		"setx() { X=Y; }; f() { local X; setx; echo $X; }; f",
+		"Y\n",
+	},
 	{
 		"setx() { local X=Y; }; f() { local X; setx; echo $X; }; f",
 		"\n",
