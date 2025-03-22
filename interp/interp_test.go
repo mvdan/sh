@@ -2635,6 +2635,27 @@ done <<< 2`,
 		`export x=before; f() { local x; export x=after; $ENV_PROG | grep '^x='; }; f; echo $x`,
 		"x=after\nbefore\n",
 	},
+	{
+		"getx() { echo $X; }; f() { local X=Y; getx; echo $X; }; f",
+		"Y\nY\n",
+	},
+	// TODO: fix this one
+	// {
+	// 	"setx() { X=Y; }; f() { local X; setx; echo $X; }; f",
+	// 	"Y\n",
+	// },
+	{
+		"setx() { local X=Y; }; f() { local X; setx; echo $X; }; f",
+		"\n",
+	},
+	{
+		"setx() { declare X=Y; }; f() { local X; setx; echo $X; }; f",
+		"\n",
+	},
+	{
+		"setx() { X=Y :; }; f() { local X; setx; echo $X; }; f",
+		"\n",
+	},
 
 	// unset global from inside function
 	{"f() { unset foo_interp_missing; echo $foo_interp_missing; }; foo_interp_missing=bar_interp_missing; f", "\n"},
