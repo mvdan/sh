@@ -352,9 +352,10 @@ func CallHandler(f CallHandlerFunc) RunnerOption {
 }
 
 // ExecHandler sets one command execution handler,
-// which replaces DefaultExecHandler(2 * time.Second).
+// which replaces [DefaultExecHandler](2 * time.Second).
 //
-// Deprecated: use [ExecHandlers] instead, which allows for middleware handlers.
+// Deprecated: use [ExecHandlers] instead, which allows chaining handlers more easily
+// like middleware functions.
 func ExecHandler(f ExecHandlerFunc) RunnerOption {
 	return func(r *Runner) error {
 		r.execHandler = f
@@ -375,7 +376,7 @@ func ExecHandler(f ExecHandlerFunc) RunnerOption {
 // For instance, a middleware could change the arguments to the "next" call,
 // or it could print log lines before or after the call to "next".
 //
-// The last exec handler is DefaultExecHandler(2 * time.Second).
+// The last exec handler is always [DefaultExecHandler](2 * time.Second).
 func ExecHandlers(middlewares ...func(next ExecHandlerFunc) ExecHandlerFunc) RunnerOption {
 	return func(r *Runner) error {
 		r.execMiddlewares = append(r.execMiddlewares, middlewares...)
@@ -384,7 +385,7 @@ func ExecHandlers(middlewares ...func(next ExecHandlerFunc) ExecHandlerFunc) Run
 }
 
 // TODO: consider porting the middleware API in [ExecHandlers] to [OpenHandler],
-// ReadDirHandler, and StatHandler.
+// [ReadDirHandler2], and [StatHandler].
 
 // TODO(v4): now that [ExecHandlers] allows calling a next handler with changed
 // arguments, one of the two advantages of [CallHandler] is gone. The other is the
