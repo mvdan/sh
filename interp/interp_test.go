@@ -1422,6 +1422,19 @@ var runTests = []runTest{
 	{"echo foo | true | false & wait $!", "exit status 1"},
 	{"echo foo | false | true & wait $!", ""},
 	{"f() { false & true; }; f; wait $!", "exit status 1"},
+	// The parent and child shells should not cause data races when setting env vars.
+	{
+		"{ for n in {0..9}; do { echo $n; } & done; wait; } | sort",
+		"0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n",
+	},
+	{
+		"outer=val; for n in {0..9}; do { echo $outer; } & outer=val; done; wait",
+		"val\nval\nval\nval\nval\nval\nval\nval\nval\nval\n",
+	},
+	{
+		"for n in {0..9}; do { inner=val; } & echo $inner; done",
+		"\n\n\n\n\n\n\n\n\n\n",
+	},
 
 	// bash test
 	{

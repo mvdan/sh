@@ -16,12 +16,25 @@ import (
 	"mvdan.cc/sh/v3/syntax"
 )
 
+func newOverlayEnviron(parent expand.Environ, background bool) *overlayEnviron {
+	oenv := &overlayEnviron{}
+	if !background {
+		oenv.parent = parent
+	} else {
+		// We could do better here if the parent is also an overlayEnviron;
+		// measure with profiles or benchmarks before we choose to do so.
+		oenv.values = make(map[string]expand.Variable)
+		maps.Insert(oenv.values, parent.Each)
+	}
+	return oenv
+}
+
 type overlayEnviron struct {
 	parent expand.Environ
 	values map[string]expand.Variable
 
 	// We need to know if the current scope is a function's scope, because
-	// functions can modify global variables.
+	// functions can modify global variables. When true, [parent] must not be nil.
 	funcScope bool
 }
 
@@ -29,19 +42,21 @@ func (o *overlayEnviron) Get(name string) expand.Variable {
 	if vr, ok := o.values[name]; ok {
 		return vr
 	}
-	return o.parent.Get(name)
+	if o.parent != nil {
+		return o.parent.Get(name)
+	}
+	return expand.Variable{}
 }
 
 func (o *overlayEnviron) Set(name string, vr expand.Variable) error {
-	prevOverlay, inOverlay := o.values[name]
-	prev := o.parent.Get(name)
+	prev, inOverlay := o.values[name]
 	// Manipulation of a global var inside a function.
-	if o.funcScope && !vr.Local && !prevOverlay.Local {
+	if o.funcScope && !vr.Local && !prev.Local {
 		// In a function, the parent environment is ours, so it's always read-write.
 		return o.parent.(expand.WriteEnviron).Set(name, vr)
 	}
-	if inOverlay {
-		prev = prevOverlay
+	if !inOverlay && o.parent != nil {
+		prev = o.parent.Get(name)
 	}
 
 	if o.values == nil {
@@ -70,7 +85,9 @@ func (o *overlayEnviron) Set(name string, vr expand.Variable) error {
 }
 
 func (o *overlayEnviron) Each(f func(name string, vr expand.Variable) bool) {
-	o.parent.Each(f)
+	if o.parent != nil {
+		o.parent.Each(f)
+	}
 	for name, vr := range o.values {
 		if !f(name, vr) {
 			return

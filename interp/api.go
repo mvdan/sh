@@ -869,9 +869,16 @@ func (r *Runner) Exited() bool {
 // Subshell is not safe to use concurrently with [Run]. Orchestrating this is
 // left up to the caller; no locking is performed.
 //
-// To replace e.g. stdin/out/err, do StdIO(r.stdin, r.stdout, r.stderr)(r) on
+// To replace e.g. stdin/out/err, do [StdIO](r.stdin, r.stdout, r.stderr)(r) on
 // the copy.
 func (r *Runner) Subshell() *Runner {
+	return r.subshell(true)
+}
+
+// subshell is like [Runner.subshell], but allows skipping some allocations and copies
+// when creating subshells which will not be used concurrently with the parent shell.
+// TODO(v4): we should expose this, e.g. SubshellForeground and SubshellBackground.
+func (r *Runner) subshell(background bool) *Runner {
 	if !r.didReset {
 		r.Reset()
 	}
@@ -897,10 +904,8 @@ func (r *Runner) Subshell() *Runner {
 
 		origStdout: r.origStdout, // used for process substitutions
 	}
+	r2.writeEnv = newOverlayEnviron(r.writeEnv, background)
 	// Funcs are copied, since they might be modified.
-	// Env vars aren't copied; setVar will copy lists and maps as needed.
-	oenv := &overlayEnviron{parent: r.writeEnv}
-	r2.writeEnv = oenv
 	r2.Funcs = maps.Clone(r.Funcs)
 	r2.Vars = make(map[string]expand.Variable)
 	r2.alias = maps.Clone(r.alias)

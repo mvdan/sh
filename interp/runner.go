@@ -61,7 +61,7 @@ func (r *Runner) fillExpandConfig(ctx context.Context) {
 				f.Close()
 				return err
 			}
-			r2 := r.Subshell()
+			r2 := r.subshell(false)
 			r2.stdout = w
 			r2.stmts(ctx, cs.Stmts)
 			r.lastExpandExit = r2.exit
@@ -99,7 +99,7 @@ func (r *Runner) fillExpandConfig(ctx context.Context) {
 				}
 			}
 
-			r2 := r.Subshell()
+			r2 := r.subshell(true)
 			stdout := r.origStdout
 			// TODO: note that `man bash` mentions that `wait` only waits for the last
 			// process substitution as long as it is $!; the logic here would mean we wait for all of them.
@@ -299,7 +299,7 @@ func (r *Runner) stmt(ctx context.Context, st *syntax.Stmt) {
 	}
 	r.exit = 0
 	if st.Background {
-		r2 := r.Subshell()
+		r2 := r.subshell(true)
 		st2 := *st
 		st2.Background = false
 		bg := bgProc{
@@ -364,7 +364,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 	case *syntax.Block:
 		r.stmts(ctx, cm.Stmts)
 	case *syntax.Subshell:
-		r2 := r.Subshell()
+		r2 := r.subshell(false)
 		r2.stmts(ctx, cm.Stmts)
 		r.exit = r2.exit
 		r.setErr(r2.err)
@@ -467,7 +467,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 				r.setErr(err)
 				return
 			}
-			r2 := r.Subshell()
+			r2 := r.subshell(false)
 			r2.stdout = pw
 			if cm.Op == syntax.PipeAll {
 				r2.stderr = pw
