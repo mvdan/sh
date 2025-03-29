@@ -1423,12 +1423,14 @@ var runTests = []runTest{
 	{"echo foo | false | true & wait $!", ""},
 	{"f() { false & true; }; f; wait $!", "exit status 1"},
 	// The parent and child shells should not cause data races when setting env vars.
+	// Note that we can't use `echo $var`, as it seems to write newlines separately,
+	// which can cause them to get mixed up between concurrent subshells.
 	{
-		"{ for n in {0..9}; do { echo $n; } & done; wait; } | sort",
+		"{ for n in {0..9}; do { echo -n $n$'\n'; } & done; wait; } | sort",
 		"0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n",
 	},
 	{
-		"outer=val; for n in {0..9}; do { echo $outer; } & outer=val; done; wait",
+		"outer=val; for n in {0..9}; do { echo -n $outer$'\n'; } & outer=val; done; wait",
 		"val\nval\nval\nval\nval\nval\nval\nval\nval\nval\n",
 	},
 	{
