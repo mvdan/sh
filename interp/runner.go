@@ -102,10 +102,17 @@ func (r *Runner) fillExpandConfig(ctx context.Context) {
 			r2 := r.Subshell()
 			stdout := r.origStdout
 			// TODO: note that `man bash` mentions that `wait` only waits for the last
-			// process substitution; the logic here would mean we wait for all of them.
-			r.bgShells.Add(1)
+			// process substitution as long as it is $!; the logic here would mean we wait for all of them.
+			bg := bgProc{
+				done: make(chan struct{}),
+				exit: new(int),
+			}
+			r.bgProcs = append(r.bgProcs, bg)
 			go func() {
-				defer r.bgShells.Done()
+				defer func() {
+					*bg.exit = r2.exit
+					close(bg.done)
+				}()
 				switch ps.Op {
 				case syntax.CmdIn:
 					f, err := os.OpenFile(path, os.O_WRONLY, 0)
@@ -295,10 +302,15 @@ func (r *Runner) stmt(ctx context.Context, st *syntax.Stmt) {
 		r2 := r.Subshell()
 		st2 := *st
 		st2.Background = false
-		r.bgShells.Add(1)
+		bg := bgProc{
+			done: make(chan struct{}),
+			exit: new(int),
+		}
+		r.bgProcs = append(r.bgProcs, bg)
 		go func() {
 			r2.Run(ctx, &st2)
-			r.bgShells.Done()
+			*bg.exit = r2.exit
+			close(bg.done)
 		}()
 	} else {
 		r.stmtSync(ctx, st)

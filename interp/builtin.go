@@ -235,11 +235,39 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		}
 		return r.changeDir(ctx, path)
 	case "wait":
-		if len(args) > 0 {
-			panic("wait with args not handled yet")
+		fp := flagParser{remaining: args}
+		for fp.more() {
+			switch flag := fp.flag(); flag {
+			case "-n", "-p":
+				r.errf("wait: unsupported option %q\n", flag)
+				return 2
+			default:
+				r.errf("wait: invalid option %q\n", flag)
+				return 2
+			}
 		}
-		// Note that "wait" without arguments always returns exit status zero.
-		r.bgShells.Wait()
+		if len(args) == 0 {
+			// Note that "wait" without arguments always returns exit status zero.
+			for _, bg := range r.bgProcs {
+				<-bg.done
+			}
+			return 0
+		}
+		exit := 0
+		for _, arg := range args {
+			arg, ok := strings.CutPrefix(arg, "g")
+			pid := atoi(arg)
+			if !ok || pid <= 0 || pid > len(r.bgProcs) {
+				r.errf("wait: pid %s is not a child of this shell\n", arg)
+				return 1
+			}
+			bg := r.bgProcs[pid-1]
+			<-bg.done
+			if exit == 0 {
+				exit = *bg.exit
+			}
+		}
+		return exit
 	case "builtin":
 		if len(args) < 1 {
 			break

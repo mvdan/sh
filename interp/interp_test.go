@@ -1392,8 +1392,11 @@ var runTests = []runTest{
 
 	// background/wait
 	{"wait", ""},
+	{"wait foo_interp_missing", "wait: pid foo_interp_missing is not a child of this shell\nexit status 1 #JUSTERR"},
 	{"{ true; } & wait", ""},
-	{"{ exit 1; } & wait", ""},
+	{"{ false; } & wait", ""},
+	{"{ sleep 0.01; true; } & wait", ""},
+	{"{ sleep 0.01; false; } & wait", ""},
 	{
 		"{ echo foo_interp_missing; } & wait; echo bar_interp_missing",
 		"foo_interp_missing\nbar_interp_missing\n",
@@ -1407,6 +1410,18 @@ var runTests = []runTest{
 		"f() { echo 1; }; { sleep 0.01; f; } & f() { echo 2; }; wait",
 		"1\n",
 	},
+	{"[[ -n $! ]]", "exit status 1"},
+	{"true & [[ -n $! ]]", ""},
+	{"true & true;  [[ -n $! ]]", ""},
+	{"true & pid=$!; wait $pid", ""},
+	{"false & pid=$!; wait $pid", "exit status 1"},
+	{"{ sleep 0.01; true; } & pid=$!; wait $pid", ""},
+	{"{ sleep 0.01; false; } & pid=$!; wait $pid", "exit status 1"},
+	{"(true) & ok=$!; (false) & fail=$!; wait $ok $fail", "exit status 1"},
+	{"(true) & ok=$!; (false) & ignore=$!; wait $ok", ""},
+	{"echo foo | true | false & wait $!", "exit status 1"},
+	{"echo foo | false | true & wait $!", ""},
+	{"f() { false & true; }; f; wait $!", "exit status 1"},
 
 	// bash test
 	{

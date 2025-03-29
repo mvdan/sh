@@ -25,7 +25,6 @@ import (
 	"path/filepath"
 	"slices"
 	"strconv"
-	"sync"
 	"time"
 
 	"mvdan.cc/sh/v3/expand"
@@ -141,7 +140,13 @@ type Runner struct {
 	exit     int
 	lastExit int
 
-	bgShells sync.WaitGroup
+	// bgProcs holds all background shells spawned by this runner.
+	// Their PIDs are 1-indexed, from 1 to len(bgProcs), with a "g" prefix
+	// to distinguish them from real PIDs on the host operating system.
+	//
+	// Note that each shell only tracks its direct children;
+	// subshells do not share nor inherit the background PIDs they can wait for.
+	bgProcs []bgProc
 
 	opts runnerOpts
 
@@ -166,6 +171,14 @@ type Runner struct {
 	// Fake signal callbacks
 	callbackErr  string
 	callbackExit string
+}
+
+type bgProc struct {
+	// closed when the background process finishes,
+	// after which point the result fields below are set.
+	done chan struct{}
+
+	exit *int
 }
 
 type alias struct {
@@ -726,10 +739,15 @@ func (r *Runner) Reset() {
 		origStderr: r.origStderr,
 
 		// emptied below, to reuse the space
-		Vars:     r.Vars,
+		Vars: r.Vars,
+
 		dirStack: r.dirStack[:0],
 		usedNew:  r.usedNew,
 	}
+	// Ensure we stop referencing any pointers before we reuse bgProcs.
+	clear(r.bgProcs)
+	r.bgProcs = r.bgProcs[:0]
+
 	if r.Vars == nil {
 		r.Vars = make(map[string]expand.Variable)
 	} else {

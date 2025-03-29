@@ -116,6 +116,10 @@ func (r *Runner) lookupVar(name string) expand.Variable {
 		} else {
 			vr.List = r.Params
 		}
+	case "!":
+		if n := len(r.bgProcs); n > 0 {
+			vr.Kind, vr.Str = expand.String, "g"+strconv.Itoa(n)
+		}
 	case "?":
 		vr.Kind, vr.Str = expand.String, strconv.Itoa(r.lastExit)
 	case "$":
