@@ -29,7 +29,11 @@ func newOverlayEnviron(parent expand.Environ, background bool) *overlayEnviron {
 	return oenv
 }
 
+// overlayEnviron is our main implementation of [expand.WriteEnviron].
 type overlayEnviron struct {
+	// parent is non-nil if [values] is an overlay over a parent environment
+	// which we can safely reuse without data races, such as non-background subshells
+	// or function calls.
 	parent expand.Environ
 	values map[string]expand.Variable
 
