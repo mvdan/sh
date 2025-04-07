@@ -35,6 +35,7 @@ const (
 	Braces                        // support "{a,b}" and "{1..4}"
 	EntireString                  // match the entire string using ^$ delimiters
 	NoGlobCase                    // Do case-insensitive match (that is, use (?i) in the regexp)
+	NoGlobStar                    // Do not support "**"
 )
 
 var numRange = regexp.MustCompile(`^([+-]?\d+)\.\.([+-]?\d+)}`)
@@ -81,7 +82,9 @@ writeLoop:
 		case '*':
 			if mode&Filenames != 0 {
 				if i++; i < len(pat) && pat[i] == '*' {
-					if i++; i < len(pat) && pat[i] == '/' {
+					if mode&NoGlobStar != 0 {
+						buf.WriteString("[^/]*")
+					} else if i++; i < len(pat) && pat[i] == '/' {
 						buf.WriteString("(.*/|)")
 						dotMeta = true
 					} else {
