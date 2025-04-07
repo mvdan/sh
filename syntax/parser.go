@@ -45,7 +45,7 @@ const (
 
 	// LangMirBSDKorn corresponds to the MirBSD Korn Shell, also known as
 	// mksh, as described at http://www.mirbsd.org/htman/i386/man1/mksh.htm.
-	// Note that it shares some features with Bash, due to the the shared
+	// Note that it shares some features with Bash, due to the shared
 	// ancestry that is ksh.
 	//
 	// We currently follow mksh version 59.
