@@ -94,6 +94,7 @@ To use a Docker image, run:
 The following editor integrations wrap `shfmt`:
 
 - [BashSupport-Pro] - Bash plugin for JetBrains IDEs
+- [dockerfmt] - Dockerfile formatter using shfmt
 - [intellij-shellcript] - Intellij Jetbrains `shell script` plugin
 - [micro] - Editor with a built-in plugin
 - [neoformat] - (Neo)Vim plugin
@@ -118,6 +119,7 @@ Other noteworthy integrations include:
 [BashSupport-Pro]: https://www.bashsupport.com/manual/editor/formatter/
 [debian]: https://tracker.debian.org/pkg/golang-mvdan-sh
 [docker]: https://hub.docker.com/r/mvdan/shfmt/
+[dockerfmt]: https://github.com/reteps/dockerfmt
 [editorconfig]: https://editorconfig.org/
 [examples]: https://pkg.go.dev/mvdan.cc/sh/v3/syntax#pkg-examples
 [fedora]: https://packages.fedoraproject.org/pkgs/golang-mvdan-sh-3/shfmt/
