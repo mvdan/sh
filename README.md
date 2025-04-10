@@ -149,6 +149,7 @@ Other noteworthy integrations include:
 [scdoc]: https://sr.ht/~sircmpwn/scdoc/
 [scoop]: https://github.com/ScoopInstaller/Main/blob/HEAD/bucket/shfmt.json
 [sh-checker]: https://github.com/luizm/action-sh-checker
+[sh-syntax]: https://github.com/un-ts/sh-syntax
 [shell-format]: https://marketplace.visualstudio.com/items?itemName=foxundermoon.shell-format
 [shfmt.el]: https://github.com/purcell/emacs-shfmt/
 [snapcraft]: https://snapcraft.io/shfmt
