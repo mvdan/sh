@@ -71,8 +71,12 @@ $ echo '$((foo); (bar))' | shfmt
 
 ### JavaScript
 
-A subset of the Go packages are available as an npm package called [mvdan-sh].
-See the [_js](_js) directory for more information.
+The parser and formatter are available as a third party npm package called [sh-syntax],
+which bundle a version of this library compiled to WASM.
+
+Previously, we maintained an npm package called [mvdan-sh] which used GopherJS
+to bundle a JS version of this library, but that npm package is now archived
+given its poor performance and GopherJS not being as actively developed.
 
 ### Docker
 
