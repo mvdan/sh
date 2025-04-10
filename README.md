@@ -8,10 +8,10 @@ A shell parser, formatter, and interpreter. Supports [POSIX Shell], [Bash], and
 ### Quick start
 
 To parse shell scripts, inspect them, and print them out, see the [syntax
-examples](https://pkg.go.dev/mvdan.cc/sh/v3/syntax#pkg-examples).
+package examples](https://pkg.go.dev/mvdan.cc/sh/v3/syntax#pkg-examples).
 
 For high-level operations like performing shell expansions on strings, see the
-[shell examples](https://pkg.go.dev/mvdan.cc/sh/v3/shell#pkg-examples).
+[shell package examples](https://pkg.go.dev/mvdan.cc/sh/v3/shell#pkg-examples).
 
 ### shfmt
 
@@ -69,14 +69,21 @@ $ echo '$((foo); (bar))' | shfmt
   It is also required to support `declare foo=(bar)`.
   Note that this means expansions like `declare {a,b}=c` are not supported.
 
+* The entire library is written in pure Go, which limits how closely the
+  interpreter can follow POSIX Shell and Bash semantics.
+  For example, Go does not support forking its own process, so subshells
+  use a goroutine instead, meaning that real PIDs and file descriptors
+  cannot be used directly.
+
 ### JavaScript
 
 The parser and formatter are available as a third party npm package called [sh-syntax],
-which bundle a version of this library compiled to WASM.
+which bundles a version of this library compiled to WASM.
 
 Previously, we maintained an npm package called [mvdan-sh] which used GopherJS
-to bundle a JS version of this library, but that npm package is now archived
+to bundle a JS version of this library. That npm package is now archived
 given its poor performance and GopherJS not being as actively developed.
+Any existing or new users should look at [sh-syntax] instead.
 
 ### Docker
 
