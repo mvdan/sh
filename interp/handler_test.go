@@ -135,6 +135,14 @@ var modCases = []struct {
 		want: "foo\nRunner.Run error: blocklisted: malicious",
 	},
 	{
+		name: "ExecPipeFail",
+		opts: []interp.RunnerOption{
+			interp.ExecHandlers(blocklistAllExec),
+		},
+		src:  "set -o pipefail; malicious | echo foo",
+		want: "foo\nRunner.Run error: blocklisted: malicious",
+	},
+	{
 		name: "ExecCmdSubst",
 		opts: []interp.RunnerOption{
 			interp.ExecHandlers(blocklistAllExec),

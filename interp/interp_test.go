@@ -87,10 +87,14 @@ var hasBash52 bool
 func TestMain(m *testing.M) {
 	if os.Getenv("GOSH_PROG") != "" {
 		switch os.Getenv("GOSH_CMD") {
-		case "exec_ok":
+		case "exit_0":
+			os.Exit(0)
+		case "exit_5":
+			os.Exit(5)
+		case "print_ok":
 			fmt.Printf("exec ok\n")
 			os.Exit(0)
-		case "exec_fail":
+		case "print_fail":
 			fmt.Printf("exec fail\n")
 			os.Exit(1)
 		case "pid_and_hang":
@@ -2019,8 +2023,17 @@ var runTests = []runTest{
 		"",
 	},
 	{
+		// Important that we don't print in these, as otherwise we get "broken pipe" errors.
+		"GOSH_CMD=exit_5 $GOSH_PROG | GOSH_CMD=exit_0 $GOSH_PROG",
+		"",
+	},
+	{
 		"set -o pipefail; false | :",
 		"exit status 1",
+	},
+	{
+		"set -o pipefail; GOSH_CMD=exit_5 $GOSH_PROG | GOSH_CMD=exit_0 $GOSH_PROG",
+		"exit status 5",
 	},
 	{
 		"set -o pipefail; true | false | true | :",
@@ -3045,11 +3058,11 @@ done <<< 2`,
 		"linecontinuation\n",
 	},
 	{
-		"while read a; do echo $a; GOSH_CMD=exec_ok $GOSH_PROG; done <<< 'a\nb\nc'",
+		"while read a; do echo $a; GOSH_CMD=print_ok $GOSH_PROG; done <<< 'a\nb\nc'",
 		"a\nexec ok\nb\nexec ok\nc\nexec ok\n",
 	},
 	{
-		"while read a; do echo $a; GOSH_CMD=exec_ok $GOSH_PROG; done <<EOF\na\nb\nc\nEOF",
+		"while read a; do echo $a; GOSH_CMD=print_ok $GOSH_PROG; done <<EOF\na\nb\nc\nEOF",
 		"a\nexec ok\nb\nexec ok\nc\nexec ok\n",
 	},
 	{
@@ -3058,7 +3071,7 @@ done <<< 2`,
 	},
 	// TODO: our final exit status here isn't right.
 	// {
-	// 	"while read a; do echo $a; GOSH_CMD=exec_fail $GOSH_PROG; done <<< 'a\nb\nc'",
+	// 	"while read a; do echo $a; GOSH_CMD=print_fail $GOSH_PROG; done <<< 'a\nb\nc'",
 	// 	"a\nexec fail\nb\nexec fail\nc\nexec fail\nexit status 1",
 	// },
 	{
@@ -4555,12 +4568,12 @@ func TestRunnerNonFileStdin(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	file := parse(t, nil, "while read a; do echo $a; GOSH_CMD=exec_ok $GOSH_PROG; done")
+	file := parse(t, nil, "while read a; do echo $a; GOSH_CMD=print_ok $GOSH_PROG; done")
 	ctx, cancel := context.WithTimeout(context.Background(), runnerRunTimeout)
 	defer cancel()
 	if err := r.Run(ctx, file); err != nil {
 		cb.WriteString(err.Error())
 	}
-	// TODO: just like with heredocs, the first exec_ok call consumes all stdin.
+	// TODO: just like with heredocs, the first print_ok call consumes all stdin.
 	qt.Assert(t, qt.Equals(cb.String(), "a\nexec ok\nb\nexec ok\nc\nexec ok\n"))
 }
