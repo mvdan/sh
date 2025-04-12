@@ -64,6 +64,24 @@ func execPrint(next interp.ExecHandlerFunc) interp.ExecHandlerFunc {
 	}
 }
 
+func execExitStatus5(next interp.ExecHandlerFunc) interp.ExecHandlerFunc {
+	return func(ctx context.Context, args []string) error {
+		return interp.NewExitStatus(5)
+	}
+}
+
+func execCustomError(next interp.ExecHandlerFunc) interp.ExecHandlerFunc {
+	return func(ctx context.Context, args []string) error {
+		return fmt.Errorf("custom error")
+	}
+}
+
+func execCustomExitStatus5(next interp.ExecHandlerFunc) interp.ExecHandlerFunc {
+	return func(ctx context.Context, args []string) error {
+		return fmt.Errorf("custom error: %w", interp.NewExitStatus(5))
+	}
+}
+
 // runnerCtx allows us to give handler functions access to the Runner, if needed.
 var runnerCtx = new(int)
 
@@ -171,6 +189,30 @@ var modCases = []struct {
 		},
 		src:  "foo",
 		want: "Runner.Run error: foo: blocklisted program",
+	},
+	{
+		name: "ExecExitStatus5",
+		opts: []interp.RunnerOption{
+			interp.ExecHandlers(execExitStatus5),
+		},
+		src:  "foo",
+		want: "Runner.Run error: exit status 5",
+	},
+	{
+		name: "ExecCustomError",
+		opts: []interp.RunnerOption{
+			interp.ExecHandlers(execCustomError),
+		},
+		src:  "foo",
+		want: "Runner.Run error: custom error",
+	},
+	{
+		name: "ExecCustomExitStatus5",
+		opts: []interp.RunnerOption{
+			interp.ExecHandlers(execCustomExitStatus5),
+		},
+		src:  "foo",
+		want: "Runner.Run error: exit status 5",
 	},
 	{
 		name: "OpenForbidNonDev",
