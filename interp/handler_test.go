@@ -90,7 +90,7 @@ var modCases = []struct {
 			interp.ExecHandlers(blocklistOneExec("sleep")),
 		},
 		src:  "echo foo; sleep 1",
-		want: "foo\nsleep: blocklisted program",
+		want: "foo\nRunner.Run error: sleep: blocklisted program",
 	},
 	{
 		name: "ExecBlocklistOneSubshell",
@@ -98,7 +98,7 @@ var modCases = []struct {
 			interp.ExecHandlers(blocklistOneExec("faa")),
 		},
 		src:  "a=$(echo foo | sed 's/o/a/g'); echo $a; $a args",
-		want: "faa\nfaa: blocklisted program",
+		want: "faa\nRunner.Run error: faa: blocklisted program",
 	},
 	{
 		name: "ExecBlocklistAllSubshell",
@@ -106,7 +106,7 @@ var modCases = []struct {
 			interp.ExecHandlers(blocklistAllExec),
 		},
 		src:  "(malicious)",
-		want: "blocklisted: malicious",
+		want: "Runner.Run error: blocklisted: malicious",
 	},
 	{
 		name: "ExecPipe",
@@ -114,7 +114,7 @@ var modCases = []struct {
 			interp.ExecHandlers(blocklistAllExec),
 		},
 		src:  "malicious | echo foo",
-		want: "foo\nblocklisted: malicious",
+		want: "foo\nRunner.Run error: blocklisted: malicious",
 	},
 	{
 		name: "ExecCmdSubst",
@@ -139,7 +139,7 @@ var modCases = []struct {
 			interp.ExecHandlers(execPrintWouldExec),
 		},
 		src:  "exec /bin/sh",
-		want: "would exec via builtin: [/bin/sh]",
+		want: "Runner.Run error: would exec via builtin: [/bin/sh]",
 	},
 	{
 		name: "ExecPrintAndBlocklist",
@@ -170,7 +170,7 @@ var modCases = []struct {
 			),
 		},
 		src:  "foo",
-		want: "foo: blocklisted program",
+		want: "Runner.Run error: foo: blocklisted program",
 	},
 	{
 		name: "OpenForbidNonDev",
@@ -178,7 +178,7 @@ var modCases = []struct {
 			interp.OpenHandler(blocklistNondevOpen),
 		},
 		src:  "echo foo >/dev/null; echo bar >/tmp/x",
-		want: "non-dev: /tmp/x",
+		want: "Runner.Run error: non-dev: /tmp/x",
 	},
 	{
 		name: "OpenMockFile",
@@ -220,7 +220,7 @@ var modCases = []struct {
 			}),
 		},
 		src:  "echo foo; echo foo bar",
-		want: "foo\nrefusing to run echo builtin with multiple args",
+		want: "foo\nRunner.Run error: refusing to run echo builtin with multiple args",
 	},
 	{
 		name: "GlobForbid",
@@ -252,7 +252,7 @@ func TestRunnerHandlers(t *testing.T) {
 			}
 			ctx := context.WithValue(context.Background(), runnerCtx, r)
 			if err := r.Run(ctx, file); err != nil {
-				cb.WriteString(err.Error())
+				fmt.Fprintf(&cb, "Runner.Run error: %v", err)
 			}
 			got := cb.String()
 			if got != tc.want {
