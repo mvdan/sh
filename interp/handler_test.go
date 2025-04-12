@@ -215,12 +215,28 @@ var modCases = []struct {
 		want: "Runner.Run error: custom error",
 	},
 	{
+		name: "ExecCustomErrorContinuation",
+		opts: []interp.RunnerOption{
+			interp.ExecHandlers(execCustomError),
+		},
+		src:  "foo; echo next",
+		want: "Runner.Run error: custom error",
+	},
+	{
 		name: "ExecCustomExitStatus5",
 		opts: []interp.RunnerOption{
 			interp.ExecHandlers(execCustomExitStatus5),
 		},
 		src:  "foo",
 		want: "Runner.Run error: exit status 5",
+	},
+	{
+		name: "ExecCustomExitStatus5Continuation",
+		opts: []interp.RunnerOption{
+			interp.ExecHandlers(execCustomExitStatus5),
+		},
+		src:  "foo; echo next",
+		want: "next\n",
 	},
 	{
 		name: "OpenForbidNonDev",
