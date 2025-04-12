@@ -119,7 +119,7 @@ The following editor integrations wrap `shfmt`:
 Other noteworthy integrations include:
 
 - [modd] - A developer tool that responds to filesystem changes
-- [prettier-plugin-sh] - [Prettier] plugin using [mvdan-sh]
+- [prettier-plugin-sh] - [Prettier] plugin using [sh-syntax]
 - [sh-checker] - A GitHub Action that performs static analysis for shell scripts
 - [mdformat-shfmt] - [mdformat] plugin to format shell scripts embedded in Markdown with shfmt
 - [pre-commit-shfmt] - [pre-commit] shfmt hook
