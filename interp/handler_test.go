@@ -148,7 +148,7 @@ var modCases = []struct {
 			interp.ExecHandlers(blocklistAllExec),
 		},
 		src:  "a=$(malicious)",
-		want: "blocklisted: malicious\n", // TODO: why the newline?
+		want: "blocklisted: malicious\nRunner.Run error: exit status 1", // TODO: why the newline?
 	},
 	{
 		name: "ExecBackground",

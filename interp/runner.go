@@ -1036,16 +1036,17 @@ func (r *Runner) call(ctx context.Context, pos syntax.Pos, args []string) {
 
 func (r *Runner) exec(ctx context.Context, args []string) {
 	err := r.execHandler(r.handlerCtx(ctx), args)
-	if status, ok := IsExitStatus(err); ok {
-		r.exit = int(status)
-		return
-	}
 	if err != nil {
-		// handler's custom fatal error
-		r.setErr(err)
-		return
+		if status, ok := IsExitStatus(err); ok {
+			r.exit = int(status)
+		} else {
+			// handler's custom fatal error
+			r.setErr(err)
+			r.exit = 1
+		}
+	} else {
+		r.exit = 0
 	}
-	r.exit = 0
 }
 
 func (r *Runner) open(ctx context.Context, path string, flags int, mode os.FileMode, print bool) (io.ReadWriteCloser, error) {
