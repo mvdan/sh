@@ -96,9 +96,10 @@ func TestMain(m *testing.M) {
 		case "pid_and_hang":
 			fmt.Println(os.Getpid())
 			time.Sleep(time.Hour)
+			os.Exit(0)
 		case "foo_interp_missing_null_bar_interp_missing":
 			fmt.Println("foo_interp_missing\x00bar_interp_missing")
-			os.Exit(1)
+			os.Exit(0)
 		case "lookpath":
 			_, err := exec.LookPath(pathProg)
 			if err != nil {
