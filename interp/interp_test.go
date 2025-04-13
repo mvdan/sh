@@ -3632,7 +3632,8 @@ func init() {
 }
 
 // ln -s: wine doesn't implement symlinks; see https://bugs.winehq.org/show_bug.cgi?id=44948
-var skipOnWindows = regexp.MustCompile(`ln -s`)
+// process substitutions are not supported on Windows
+var skipOnWindows = regexp.MustCompile(`ln -s|<\(`)
 
 // process substitutions seemflaky on mac; see https://github.com/mvdan/sh/issues/576
 var skipOnMac = regexp.MustCompile(`>\(|<\(`)

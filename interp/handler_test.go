@@ -113,7 +113,10 @@ var modCases = []struct {
 	{
 		name: "ExecBlocklistOneSubshell",
 		opts: []interp.RunnerOption{
-			interp.ExecHandlers(blocklistOneExec("faa")),
+			interp.ExecHandlers(
+				blocklistOneExec("faa"),
+				testExecHandler, // sed is used below
+			),
 		},
 		src:  "a=$(echo foo | sed 's/o/a/g'); echo $a; $a args",
 		want: "faa\nRunner.Run error: faa: blocklisted program",
@@ -304,9 +307,7 @@ func TestRunnerHandlers(t *testing.T) {
 	p := syntax.NewParser()
 	for _, tc := range modCases {
 		t.Run(tc.name, func(t *testing.T) {
-			if runtime.GOOS == "windows" && strings.Contains(tc.src, "<(") {
-				t.Skipf("windows does not have named pipes")
-			}
+			skipIfUnsupported(t, tc.src)
 			file := parse(t, p, tc.src)
 			var cb concBuffer
 			r, err := interp.New(interp.StdIO(nil, &cb, &cb))
