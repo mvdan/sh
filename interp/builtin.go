@@ -210,7 +210,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			var err error
 			pwd, err = filepath.EvalSymlinks(pwd)
 			if err != nil {
-				r.setErr(err)
+				r.setFatalErr(err) // perhaps overly dramatic?
 				return 1
 			}
 		}

@@ -65,7 +65,7 @@ func (r *Runner) fillExpandConfig(ctx context.Context) {
 			r2.stdout = w
 			r2.stmts(ctx, cs.Stmts)
 			r.lastExpandExit = r2.exit
-			return r2.err
+			return r2.fatalErr
 		},
 		ProcSubst: func(ps *syntax.ProcSubst) (string, error) {
 			if runtime.GOOS == "windows" {
@@ -261,9 +261,9 @@ func (r *Runner) handlerCtx(ctx context.Context) context.Context {
 	return context.WithValue(ctx, handlerCtxKey{}, hc)
 }
 
-func (r *Runner) setErr(err error) {
-	if r.err == nil {
-		r.err = err
+func (r *Runner) setFatalErr(err error) {
+	if r.fatalErr == nil {
+		r.fatalErr = err
 	}
 }
 
@@ -280,11 +280,11 @@ func (r *Runner) errf(format string, a ...any) {
 }
 
 func (r *Runner) stop(ctx context.Context) bool {
-	if r.err != nil || r.returning || r.exiting {
+	if r.fatalErr != nil || r.returning || r.exiting {
 		return true
 	}
 	if err := ctx.Err(); err != nil {
-		r.err = err
+		r.fatalErr = err
 		return true
 	}
 	if r.opts[optNoExec] {
@@ -367,7 +367,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		r2 := r.subshell(false)
 		r2.stmts(ctx, cm.Stmts)
 		r.exit = r2.exit
-		r.setErr(r2.err)
+		r.setFatalErr(r2.fatalErr)
 	case *syntax.CallExpr:
 		// Use a new slice, to not modify the slice in the alias map.
 		var args []*syntax.Word
@@ -464,7 +464,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		case syntax.Pipe, syntax.PipeAll:
 			pr, pw, err := os.Pipe()
 			if err != nil {
-				r.setErr(err)
+				r.setFatalErr(err) // not being able to create a pipe is rare but critical
 				return
 			}
 			r2 := r.subshell(false)
@@ -489,7 +489,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 				r.exit = r2.exit
 				r.exiting = r2.exiting
 			}
-			r.setErr(r2.err)
+			r.setFatalErr(r2.fatalErr)
 		}
 	case *syntax.IfClause:
 		oldNoErrExit := r.noErrExit
@@ -994,7 +994,7 @@ func (r *Runner) call(ctx context.Context, pos syntax.Pos, args []string) {
 		args, err = r.callHandler(r.handlerCtx(ctx), args)
 		if err != nil {
 			// handler's custom fatal error
-			r.setErr(err)
+			r.setFatalErr(err)
 			return
 		}
 	}
@@ -1034,7 +1034,7 @@ func (r *Runner) exec(ctx context.Context, args []string) {
 			r.exit = int(status)
 		} else {
 			// handler's custom fatal error
-			r.setErr(err)
+			r.setFatalErr(err)
 			r.exit = 1
 		}
 	} else {
@@ -1066,7 +1066,7 @@ func (r *Runner) open(ctx context.Context, path string, flags int, mode os.FileM
 			r.errf("%v\n", err)
 		}
 	default: // handler's custom fatal error
-		r.setErr(err)
+		r.setFatalErr(err)
 	}
 	return nil, err
 }

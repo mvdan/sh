@@ -131,7 +131,7 @@ type Runner struct {
 
 	noErrExit bool
 
-	err       error // current shell exit code or fatal error
+	fatalErr  error // current fatal error, e.g. from a handler
 	returning bool  // whether the current function `return`ed
 	exiting   bool  // whether the current shell `exit`ed
 
@@ -828,7 +828,7 @@ func (r *Runner) Run(ctx context.Context, node syntax.Node) error {
 		r.Reset()
 	}
 	r.fillExpandConfig(ctx)
-	r.err = nil
+	r.fatalErr = nil
 	r.returning = false
 	r.exiting = false
 	r.filename = ""
@@ -846,13 +846,14 @@ func (r *Runner) Run(ctx context.Context, node syntax.Node) error {
 	default:
 		return fmt.Errorf("node can only be File, Stmt, or Command: %T", node)
 	}
+	maps.Insert(r.Vars, r.writeEnv.Each)
+	if r.fatalErr != nil {
+		return r.fatalErr
+	}
 	if r.exit != 0 {
-		r.setErr(NewExitStatus(uint8(r.exit)))
+		return NewExitStatus(uint8(r.exit))
 	}
-	if r.Vars != nil {
-		maps.Insert(r.Vars, r.writeEnv.Each)
-	}
-	return r.err
+	return nil
 }
 
 // Exited reports whether the last Run call should exit an entire shell. This
