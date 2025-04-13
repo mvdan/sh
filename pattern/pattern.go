@@ -9,7 +9,6 @@
 package pattern
 
 import (
-	"bytes"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -66,15 +65,15 @@ noopLoop:
 		return pat, nil
 	}
 	closingBraces := []int{}
-	var buf bytes.Buffer
+	var sb strings.Builder
 	// Enable matching `\n` with the `.` metacharacter as globs match `\n`
-	buf.WriteString("(?s)")
+	sb.WriteString("(?s)")
 	dotMeta := false
 	if mode&NoGlobCase != 0 {
-		buf.WriteString("(?i)")
+		sb.WriteString("(?i)")
 	}
 	if mode&EntireString != 0 {
-		buf.WriteString("^")
+		sb.WriteString("^")
 	}
 writeLoop:
 	for i := 0; i < len(pat); i++ {
@@ -86,45 +85,45 @@ writeLoop:
 				if i++; i < len(pat) && pat[i] == '*' {
 					singleAfter := i == len(pat)-1 || pat[i+1] == '/'
 					if mode&NoGlobStar != 0 || !singleBefore || !singleAfter {
-						buf.WriteString("[^/]*")
+						sb.WriteString("[^/]*")
 					} else if i++; i < len(pat) && pat[i] == '/' {
-						buf.WriteString("(.*/|)")
+						sb.WriteString("(.*/|)")
 						dotMeta = true
 					} else {
-						buf.WriteString(".*")
+						sb.WriteString(".*")
 						dotMeta = true
 						i--
 					}
 				} else {
-					buf.WriteString("[^/]*")
+					sb.WriteString("[^/]*")
 					i--
 				}
 			} else {
-				buf.WriteString(".*")
+				sb.WriteString(".*")
 				dotMeta = true
 			}
 			if mode&Shortest != 0 {
-				buf.WriteByte('?')
+				sb.WriteByte('?')
 			}
 		case '?':
 			if mode&Filenames != 0 {
-				buf.WriteString("[^/]")
+				sb.WriteString("[^/]")
 			} else {
-				buf.WriteByte('.')
+				sb.WriteByte('.')
 				dotMeta = true
 			}
 		case '\\':
 			if i++; i >= len(pat) {
 				return "", &SyntaxError{msg: `\ at end of pattern`}
 			}
-			buf.WriteString(regexp.QuoteMeta(string(pat[i])))
+			sb.WriteString(regexp.QuoteMeta(string(pat[i])))
 		case '[':
 			name, err := charClass(pat[i:])
 			if err != nil {
 				return "", &SyntaxError{msg: "charClass invalid", err: err}
 			}
 			if name != "" {
-				buf.WriteString(name)
+				sb.WriteString(name)
 				i += len(name) - 1
 				break
 			}
@@ -133,24 +132,24 @@ writeLoop:
 					if c == ']' {
 						break
 					} else if c == '/' {
-						buf.WriteString("\\[")
+						sb.WriteString("\\[")
 						continue writeLoop
 					}
 				}
 			}
-			buf.WriteByte(c)
+			sb.WriteByte(c)
 			if i++; i >= len(pat) {
 				return "", &SyntaxError{msg: "[ was not matched with a closing ]"}
 			}
 			switch c = pat[i]; c {
 			case '!', '^':
-				buf.WriteByte('^')
+				sb.WriteByte('^')
 				if i++; i >= len(pat) {
 					return "", &SyntaxError{msg: "[ was not matched with a closing ]"}
 				}
 			}
 			if c = pat[i]; c == ']' {
-				buf.WriteByte(']')
+				sb.WriteByte(']')
 				if i++; i >= len(pat) {
 					return "", &SyntaxError{msg: "[ was not matched with a closing ]"}
 				}
@@ -159,11 +158,11 @@ writeLoop:
 		loopBracket:
 			for ; i < len(pat); i++ {
 				c = pat[i]
-				buf.WriteByte(c)
+				sb.WriteByte(c)
 				switch c {
 				case '\\':
 					if i++; i < len(pat) {
-						buf.WriteByte(pat[i])
+						sb.WriteByte(pat[i])
 					}
 					continue
 				case ']':
@@ -183,7 +182,7 @@ writeLoop:
 			}
 		case '{':
 			if mode&Braces == 0 {
-				buf.WriteString(regexp.QuoteMeta(string(c)))
+				sb.WriteString(regexp.QuoteMeta(string(c)))
 				break
 			}
 			innerLevel := 1
@@ -205,7 +204,7 @@ writeLoop:
 						break peekBrace
 					}
 					closingBraces = append(closingBraces, j)
-					buf.WriteString("(?:")
+					sb.WriteString("(?:")
 					continue writeLoop
 				}
 			}
@@ -216,47 +215,47 @@ writeLoop:
 					return "", &SyntaxError{msg: fmt.Sprintf("invalid range: %q", match[0])}
 				}
 				// TODO: can we do better here?
-				buf.WriteString("(?:")
+				sb.WriteString("(?:")
 				for n := start; n <= end; n++ {
 					if n > start {
-						buf.WriteByte('|')
+						sb.WriteByte('|')
 					}
-					fmt.Fprintf(&buf, "%d", n)
+					fmt.Fprintf(&sb, "%d", n)
 				}
-				buf.WriteByte(')')
+				sb.WriteByte(')')
 				i += len(match[0])
 				break
 			}
-			buf.WriteString(regexp.QuoteMeta(string(c)))
+			sb.WriteString(regexp.QuoteMeta(string(c)))
 		case ',':
 			if len(closingBraces) == 0 {
-				buf.WriteString(regexp.QuoteMeta(string(c)))
+				sb.WriteString(regexp.QuoteMeta(string(c)))
 			} else {
-				buf.WriteByte('|')
+				sb.WriteByte('|')
 			}
 		case '}':
 			if len(closingBraces) > 0 && closingBraces[len(closingBraces)-1] == i {
-				buf.WriteByte(')')
+				sb.WriteByte(')')
 				closingBraces = closingBraces[:len(closingBraces)-1]
 			} else {
-				buf.WriteString(regexp.QuoteMeta(string(c)))
+				sb.WriteString(regexp.QuoteMeta(string(c)))
 			}
 		default:
 			if c > 128 {
-				buf.WriteByte(c)
+				sb.WriteByte(c)
 			} else {
-				buf.WriteString(regexp.QuoteMeta(string(c)))
+				sb.WriteString(regexp.QuoteMeta(string(c)))
 			}
 		}
 	}
 	if mode&EntireString != 0 {
-		buf.WriteString("$")
+		sb.WriteString("$")
 	}
 	// No `.` metacharacters were used, so don't return the (?s) flag.
 	if !dotMeta {
-		return string(buf.Bytes()[4:]), nil
+		return sb.String()[4:], nil
 	}
-	return buf.String(), nil
+	return sb.String(), nil
 }
 
 func charClass(s string) (string, error) {
