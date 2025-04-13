@@ -5,15 +5,21 @@ package pattern
 
 import (
 	"fmt"
+	"regexp"
 	"regexp/syntax"
 	"testing"
+
+	"github.com/go-quicktest/qt"
 )
 
-var translateTests = []struct {
+var regexpTests = []struct {
 	pat     string
 	mode    Mode
 	want    string
 	wantErr bool
+
+	mustMatch    []string
+	mustNotMatch []string
 }{
 	{pat: ``, want: ``},
 	{pat: `foo`, want: `foo`},
@@ -30,7 +36,23 @@ var translateTests = []struct {
 	{pat: `/**/foo`, mode: Filenames, want: `(?s)/(.*/|)foo`},
 	{pat: `/**/foo`, mode: Filenames | NoGlobStar, want: `/[^/]*/foo`},
 	{pat: `/**/à`, mode: Filenames, want: `(?s)/(.*/|)à`},
-	{pat: `/**foo`, mode: Filenames, want: `(?s)/.*foo`},
+	{
+		pat: `/**foo`, mode: Filenames, want: `(?s)/.*foo`,
+		// These all match because without EntireString, we match substrings.
+		mustMatch: []string{"/foo", "/prefix-foo", "/foo-suffix", "/sub/foo"},
+	},
+	{
+		pat: `/**foo`, mode: Filenames | EntireString, want: `(?s)^/.*foo$`,
+		// TODO: /sub/foo should not match; see issue 1149
+		mustMatch:    []string{"/foo", "/prefix-foo", "/sub/foo"},
+		mustNotMatch: []string{"/foo-suffix"},
+	},
+	{
+		pat: `/foo**`, mode: Filenames | EntireString, want: `(?s)^/foo.*$`,
+		// TODO: /foo/sub should not match; see issue 1149
+		mustMatch:    []string{"/foo", "/foo-suffix", "/foo/sub"},
+		mustNotMatch: []string{"/prefix-foo"},
+	},
 	{pat: `\*`, want: `\*`},
 	{pat: `\`, wantErr: true},
 	{pat: `?`, want: `(?s).`},
@@ -88,7 +110,7 @@ var translateTests = []struct {
 
 func TestRegexp(t *testing.T) {
 	t.Parallel()
-	for i, tc := range translateTests {
+	for i, tc := range regexpTests {
 		t.Run(fmt.Sprintf("%02d", i), func(t *testing.T) {
 			got, gotErr := Regexp(tc.pat, tc.mode)
 			if tc.wantErr && gotErr == nil {
@@ -103,6 +125,13 @@ func TestRegexp(t *testing.T) {
 			_, rxErr := syntax.Parse(got, syntax.Perl)
 			if gotErr == nil && rxErr != nil {
 				t.Fatalf("regexp/syntax.Parse(%q) failed with %q", got, rxErr)
+			}
+			rx := regexp.MustCompile(got)
+			for _, s := range tc.mustMatch {
+				qt.Assert(t, qt.IsTrue(rx.MatchString(s)), qt.Commentf("must match: %q", s))
+			}
+			for _, s := range tc.mustNotMatch {
+				qt.Assert(t, qt.IsFalse(rx.MatchString(s)), qt.Commentf("must not match: %q", s))
 			}
 		})
 	}
