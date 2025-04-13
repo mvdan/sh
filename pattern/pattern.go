@@ -81,8 +81,11 @@ writeLoop:
 		switch c := pat[i]; c {
 		case '*':
 			if mode&Filenames != 0 {
+				// "**" only acts as globstar if it is alone as a path element.
+				singleBefore := i == 0 || pat[i-1] == '/'
 				if i++; i < len(pat) && pat[i] == '*' {
-					if mode&NoGlobStar != 0 {
+					singleAfter := i == len(pat)-1 || pat[i+1] == '/'
+					if mode&NoGlobStar != 0 || !singleBefore || !singleAfter {
 						buf.WriteString("[^/]*")
 					} else if i++; i < len(pat) && pat[i] == '/' {
 						buf.WriteString("(.*/|)")
