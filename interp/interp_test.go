@@ -1404,6 +1404,11 @@ var runTests = []runTest{
 		"echo foo | sed $(exec <&-; read line 2>/dev/null; echo 's/o/a/g')",
 		"faa\n",
 	},
+	{
+		// Concurrent pipe commands used to cause races when modifying the environment.
+		"a=1 b=2 c=3 d=4 e=5 : | a=1 b=2 c=3 d=4 e=5 : | a=1 b=2 c=3 d=4 e=5 : | a=1 b=2 c=3 d=4 e=5 :",
+		"",
+	},
 
 	// background/wait
 	{"wait", ""},

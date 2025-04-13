@@ -468,7 +468,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 				r.setFatalErr(err) // not being able to create a pipe is rare but critical
 				return
 			}
-			r2 := r.subshell(false)
+			r2 := r.subshell(true)
 			r2.stdout = pw
 			if cm.Op == syntax.PipeAll {
 				r2.stderr = pw
