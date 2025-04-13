@@ -280,7 +280,7 @@ func (r *Runner) errf(format string, a ...any) {
 }
 
 func (r *Runner) stop(ctx context.Context) bool {
-	if r.err != nil || r.Exited() {
+	if r.err != nil || r.returning || r.exiting {
 		return true
 	}
 	if err := ctx.Err(); err != nil {
@@ -487,7 +487,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			wg.Wait()
 			if r.opts[optPipeFail] && r2.exit != 0 && r.exit == 0 {
 				r.exit = r2.exit
-				r.shellExited = r2.shellExited
+				r.exiting = r2.exiting
 			}
 			r.setErr(r2.err)
 		}
@@ -770,7 +770,7 @@ func (r *Runner) exitShell(ctx context.Context, status int) {
 	}
 	r.trapCallback(ctx, r.callbackExit, "exit")
 
-	r.shellExited = true
+	r.exiting = true
 	// Restore the original exit status. We ignore the callbacks.
 	r.exit = status
 }
@@ -985,10 +985,6 @@ func (r *Runner) loopStmtsBroken(ctx context.Context, stmts []*syntax.Stmt) bool
 	return false
 }
 
-type returnStatus uint8
-
-func (s returnStatus) Error() string { return fmt.Sprintf("return status %d", s) }
-
 func (r *Runner) call(ctx context.Context, pos syntax.Pos, args []string) {
 	if r.stop(ctx) {
 		return
@@ -1021,10 +1017,7 @@ func (r *Runner) call(ctx context.Context, pos syntax.Pos, args []string) {
 
 		r.Params = oldParams
 		r.inFunc = oldInFunc
-		if code, ok := r.err.(returnStatus); ok {
-			r.err = nil
-			r.exit = int(code)
-		}
+		r.returning = false
 		return
 	}
 	if isBuiltin(name) {

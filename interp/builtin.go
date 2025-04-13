@@ -422,10 +422,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		r.sourceSetParams = oldSourceSetParams
 		r.inSource = oldInSource
 
-		if code, ok := r.err.(returnStatus); ok {
-			r.err = nil
-			return int(code)
-		}
+		r.returning = false
 		return r.exit
 	case "[":
 		if len(args) == 0 || args[len(args)-1] != "]" {
@@ -587,7 +584,8 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			r.errf("return: too many arguments\n")
 			return 2
 		}
-		r.setErr(returnStatus(code))
+		r.returning = true
+		return code
 	case "read":
 		var prompt string
 		raw := false

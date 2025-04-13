@@ -121,17 +121,19 @@ type Runner struct {
 	// >0 to break or continue out of N enclosing loops
 	breakEnclosing, contnEnclosing int
 
-	inLoop    bool
-	inFunc    bool
-	inSource  bool
-	noErrExit bool
+	inLoop       bool
+	inFunc       bool
+	inSource     bool
+	handlingTrap bool // whether we're currently in a trap callback
 
 	// track if a sourced script set positional parameters
 	sourceSetParams bool
 
-	err          error // current shell exit code or fatal error
-	handlingTrap bool  // whether we're currently in a trap callback
-	shellExited  bool  // whether the shell needs to exit
+	noErrExit bool
+
+	err       error // current shell exit code or fatal error
+	returning bool  // whether the current function `return`ed
+	exiting   bool  // whether the current shell `exit`ed
 
 	// The current and last exit status code. They can only be different if
 	// the interpreter is in the middle of running a statement. In that
@@ -827,13 +829,14 @@ func (r *Runner) Run(ctx context.Context, node syntax.Node) error {
 	}
 	r.fillExpandConfig(ctx)
 	r.err = nil
-	r.shellExited = false
+	r.returning = false
+	r.exiting = false
 	r.filename = ""
 	switch node := node.(type) {
 	case *syntax.File:
 		r.filename = node.Name
 		r.stmts(ctx, node.Stmts)
-		if !r.shellExited {
+		if !r.exiting {
 			r.exitShell(ctx, r.exit)
 		}
 	case *syntax.Stmt:
@@ -858,7 +861,7 @@ func (r *Runner) Run(ctx context.Context, node syntax.Node) error {
 // Note that this state is overwritten at every Run call, so it should be
 // checked immediately after each Run call.
 func (r *Runner) Exited() bool {
-	return r.shellExited
+	return r.exiting
 }
 
 // Subshell makes a copy of the given [Runner], suitable for use concurrently
