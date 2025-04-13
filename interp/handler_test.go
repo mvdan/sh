@@ -7,6 +7,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
@@ -66,7 +67,7 @@ func execPrint(next interp.ExecHandlerFunc) interp.ExecHandlerFunc {
 
 func execExitStatus5(next interp.ExecHandlerFunc) interp.ExecHandlerFunc {
 	return func(ctx context.Context, args []string) error {
-		return interp.NewExitStatus(5)
+		return interp.ExitStatus(5)
 	}
 }
 
@@ -78,7 +79,7 @@ func execCustomError(next interp.ExecHandlerFunc) interp.ExecHandlerFunc {
 
 func execCustomExitStatus5(next interp.ExecHandlerFunc) interp.ExecHandlerFunc {
 	return func(ctx context.Context, args []string) error {
-		return fmt.Errorf("custom error: %w", interp.NewExitStatus(5))
+		return fmt.Errorf("custom error: %w", interp.ExitStatus(5))
 	}
 }
 
@@ -402,7 +403,7 @@ func TestKillTimeout(t *testing.T) {
 				}()
 				err = r.Run(ctx, file)
 				if test.forcedKill {
-					if _, ok := interp.IsExitStatus(err); ok || err == nil {
+					if errors.As(err, new(interp.ExitStatus)) || err == nil {
 						t.Error("command was not force-killed")
 					}
 				} else {
@@ -433,9 +434,9 @@ func TestKillSignal(t *testing.T) {
 		signal os.Signal
 		want   error
 	}{
-		{syscall.SIGINT, interp.NewExitStatus(130)},  // 128 + 2
-		{syscall.SIGKILL, interp.NewExitStatus(137)}, // 128 + 9
-		{syscall.SIGTERM, interp.NewExitStatus(143)}, // 128 + 15
+		{syscall.SIGINT, interp.ExitStatus(130)},  // 128 + 2
+		{syscall.SIGKILL, interp.ExitStatus(137)}, // 128 + 9
+		{syscall.SIGTERM, interp.ExitStatus(143)}, // 128 + 15
 	}
 
 	// pid_and_hang is implemented in TestMain; we use it to have the

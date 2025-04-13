@@ -1031,9 +1031,10 @@ func (r *Runner) call(ctx context.Context, pos syntax.Pos, args []string) {
 func (r *Runner) exec(ctx context.Context, args []string) {
 	err := r.execHandler(r.handlerCtx(ctx), args)
 	if err != nil {
-		if status, ok := IsExitStatus(err); ok {
+		var es ExitStatus
+		if errors.As(err, &es) {
 			r.nonFatalHandlerErr = err
-			r.exit = int(status)
+			r.exit = int(es)
 		} else {
 			// handler's custom fatal error
 			r.setFatalErr(err)

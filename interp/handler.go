@@ -100,7 +100,7 @@ func DefaultExecHandler(killTimeout time.Duration) ExecHandlerFunc {
 		path, err := LookPathDir(hc.Dir, hc.Env, args[0])
 		if err != nil {
 			fmt.Fprintln(hc.Stderr, err)
-			return NewExitStatus(127)
+			return ExitStatus(127)
 		}
 		cmd := exec.Cmd{
 			Path:   path,
@@ -139,13 +139,13 @@ func DefaultExecHandler(killTimeout time.Duration) ExecHandlerFunc {
 				if ctx.Err() != nil {
 					return ctx.Err()
 				}
-				return NewExitStatus(uint8(128 + status.Signal()))
+				return ExitStatus(128 + status.Signal())
 			}
-			return NewExitStatus(uint8(err.ExitCode()))
+			return ExitStatus(err.ExitCode())
 		case *exec.Error:
 			// did not start
 			fmt.Fprintf(hc.Stderr, "%v\n", err)
-			return NewExitStatus(127)
+			return ExitStatus(127)
 		default:
 			return err
 		}

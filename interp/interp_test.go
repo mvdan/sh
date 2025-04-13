@@ -6,6 +6,7 @@ package interp_test
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"math/bits"
@@ -125,8 +126,9 @@ func TestMain(m *testing.M) {
 		)
 		ctx := context.Background()
 		if err := runner.Run(ctx, file); err != nil {
-			if status, ok := interp.IsExitStatus(err); ok {
-				os.Exit(int(status))
+			var es interp.ExitStatus
+			if errors.As(err, &es) {
+				os.Exit(int(es))
 			}
 
 			fmt.Fprintln(os.Stderr, err)
@@ -3817,7 +3819,7 @@ var testBuiltinsMap = map[string]func(interp.HandlerContext, []string) error{
 			}
 		}
 		if !anyMatch {
-			return interp.NewExitStatus(1)
+			return interp.ExitStatus(1)
 		}
 		return nil
 	},
@@ -4340,7 +4342,7 @@ func TestRunnerIncremental(t *testing.T) {
 	defer cancel()
 	for _, stmt := range file.Stmts {
 		err := r.Run(ctx, stmt)
-		if _, ok := interp.IsExitStatus(err); !ok && err != nil {
+		if !errors.As(err, new(interp.ExitStatus)) && err != nil {
 			// Keep track of unexpected errors.
 			b.WriteString(err.Error())
 		}

@@ -800,21 +800,29 @@ func (r *Runner) Reset() {
 	r.didReset = true
 }
 
-// exitStatus is a non-zero status code resulting from running a shell node.
-type exitStatus uint8
+// ExitStatus is a non-zero status code resulting from running a shell node.
+type ExitStatus uint8
 
-func (s exitStatus) Error() string { return fmt.Sprintf("exit status %d", s) }
+func (s ExitStatus) Error() string { return fmt.Sprintf("exit status %d", s) }
 
 // NewExitStatus creates an error which contains the specified exit status code.
+//
+// Deprecated: use [ExitStatus] directly.
+//
+//go:fix inline
 func NewExitStatus(status uint8) error {
-	return exitStatus(status)
+	return ExitStatus(status)
 }
 
 // IsExitStatus checks whether error contains an exit status and returns it.
+//
+// Deprecated: use [errors.As] with [ExitStatus] directly.
+//
+//go:fix inline
 func IsExitStatus(err error) (status uint8, ok bool) {
-	var s exitStatus
-	if errors.As(err, &s) {
-		return uint8(s), true
+	var es ExitStatus
+	if errors.As(err, &es) {
+		return uint8(es), true
 	}
 	return 0, false
 }
@@ -861,7 +869,7 @@ func (r *Runner) Run(ctx context.Context, node syntax.Node) error {
 		return r.nonFatalHandlerErr
 	}
 	if r.exit != 0 {
-		return NewExitStatus(uint8(r.exit))
+		return ExitStatus(r.exit)
 	}
 	return nil
 }

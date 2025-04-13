@@ -6,6 +6,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -23,8 +24,9 @@ var command = flag.String("c", "", "command to be executed")
 func main() {
 	flag.Parse()
 	err := runAll()
-	if e, ok := interp.IsExitStatus(err); ok {
-		os.Exit(int(e))
+	var es interp.ExitStatus
+	if errors.As(err, &es) {
+		os.Exit(int(es))
 	}
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

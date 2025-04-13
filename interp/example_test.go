@@ -56,7 +56,7 @@ func ExampleExecHandlers() {
 			hc := interp.HandlerCtx(ctx)
 			if _, err := interp.LookPathDir(hc.Dir, hc.Env, args[0]); err != nil {
 				fmt.Printf("%s is not installed\n", args[0])
-				return interp.NewExitStatus(1)
+				return interp.ExitStatus(1)
 			}
 			return next(ctx, args)
 		}
