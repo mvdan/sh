@@ -135,6 +135,12 @@ type Runner struct {
 	returning bool  // whether the current function `return`ed
 	exiting   bool  // whether the current shell `exit`ed
 
+	// nonFatalHandlerErr is the current non-fatal error from a handler.
+	// Used so that running a single statement with a custom handler
+	// which returns a non-fatal Go error, such as a Go error wrapping [NewExitStatus],
+	// can be returned by [Runner.Run] without being lost entirely.
+	nonFatalHandlerErr error
+
 	// The current and last exit status code. They can only be different if
 	// the interpreter is in the middle of running a statement. In that
 	// scenario, 'exit' is the status code for the statement being run, and
@@ -847,8 +853,12 @@ func (r *Runner) Run(ctx context.Context, node syntax.Node) error {
 		return fmt.Errorf("node can only be File, Stmt, or Command: %T", node)
 	}
 	maps.Insert(r.Vars, r.writeEnv.Each)
+	// Return the first of: a fatal error, a non-fatal handler error, or the exit code.
 	if r.fatalErr != nil {
 		return r.fatalErr
+	}
+	if r.nonFatalHandlerErr != nil {
+		return r.nonFatalHandlerErr
 	}
 	if r.exit != 0 {
 		return NewExitStatus(uint8(r.exit))

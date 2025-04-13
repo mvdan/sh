@@ -68,7 +68,7 @@ type HandlerContext struct {
 // allow running custom code which allows replacing the argument list.
 // Shell builtins touch on many internals of the Runner, after all.
 //
-// Returning a non-nil error will halt the Runner.
+// Returning a non-nil error will halt the [Runner] and will be returned via the API.
 type CallHandlerFunc func(ctx context.Context, args []string) ([]string, error)
 
 // TODO: consistently treat handler errors as non-fatal by default,
@@ -80,8 +80,9 @@ type CallHandlerFunc func(ctx context.Context, args []string) ([]string, error)
 // where the first argument is neither a declared function nor a builtin.
 //
 // Returning a nil error means a zero exit status.
-// Other exit statuses can be set with [NewExitStatus].
-// Any other error will halt the Runner.
+// Other exit statuses can be set by returning or wrapping a [NewExitStatus] error,
+// and such an error is returned via the API if it is the last statement executed.
+// Any other error will halt the [Runner] and will be returned via the API.
 type ExecHandlerFunc func(ctx context.Context, args []string) error
 
 // DefaultExecHandler returns the [ExecHandlerFunc] used by default.
@@ -288,8 +289,8 @@ func pathExts(env expand.Environ) []string {
 // which can be fetched via [HandlerCtx].
 //
 // Use a return error of type [*os.PathError] to have the error printed to
-// stderr and the exit status set to 1. If the error is of any other type, the
-// interpreter will come to a stop.
+// stderr and the exit status set to 1.
+// Any other error will halt the [Runner] and will be returned via the API.
 //
 // Note that implementations which do not return [os.File] will cause
 // extra files and goroutines for input redirections; see [StdIO].

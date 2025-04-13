@@ -298,6 +298,7 @@ func (r *Runner) stmt(ctx context.Context, st *syntax.Stmt) {
 		return
 	}
 	r.exit = 0
+	r.nonFatalHandlerErr = nil
 	if st.Background {
 		r2 := r.subshell(true)
 		st2 := *st
@@ -1031,6 +1032,7 @@ func (r *Runner) exec(ctx context.Context, args []string) {
 	err := r.execHandler(r.handlerCtx(ctx), args)
 	if err != nil {
 		if status, ok := IsExitStatus(err); ok {
+			r.nonFatalHandlerErr = err
 			r.exit = int(status)
 		} else {
 			// handler's custom fatal error
