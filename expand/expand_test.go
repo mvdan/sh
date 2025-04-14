@@ -4,11 +4,11 @@
 package expand
 
 import (
-	"io/fs"
 	"os"
 	"reflect"
 	"strings"
 	"testing"
+	"testing/fstest"
 
 	"mvdan.cc/sh/v3/syntax"
 )
@@ -93,34 +93,43 @@ func TestFieldsIdempotency(t *testing.T) {
 }
 
 func Test_glob(t *testing.T) {
-	cfg := &Config{
-		ReadDir2: func(string) ([]fs.DirEntry, error) {
-			return []fs.DirEntry{
-				&mockFileInfo{name: "a"},
-				&mockFileInfo{name: "ab"},
-				&mockFileInfo{name: "A"},
-				&mockFileInfo{name: "AB"},
-			}, nil
-		},
+	fs := fstest.MapFS{
+		"case/A":             {},
+		"case/AB":            {},
+		"case/a":             {},
+		"case/ab":            {},
+		"globstar/foo":       {},
+		"globstar/a/foo":     {},
+		"globstar/a/b/c/foo": {},
 	}
 
 	tests := []struct {
-		noCaseGlob bool
-		pat        string
-		want       []string
+		base string
+		pat  string
+		want []string
+		cfg  Config
 	}{
-		{false, "a*", []string{"a", "ab"}},
-		{false, "A*", []string{"A", "AB"}},
-		{false, "*b", []string{"ab"}},
-		{false, "b*", nil},
-		{true, "a*", []string{"a", "ab", "A", "AB"}},
-		{true, "A*", []string{"a", "ab", "A", "AB"}},
-		{true, "*b", []string{"ab", "AB"}},
-		{true, "b*", nil},
+		{base: "case", pat: "a*", want: []string{"a", "ab"}},
+		{base: "case", pat: "A*", want: []string{"A", "AB"}},
+		{base: "case", pat: "*b", want: []string{"ab"}},
+		{base: "case", pat: "b*", want: nil},
+		{base: "case", pat: "a*", want: []string{"A", "AB", "a", "ab"}, cfg: Config{NoCaseGlob: true}},
+		{base: "case", pat: "A*", want: []string{"A", "AB", "a", "ab"}, cfg: Config{NoCaseGlob: true}},
+		{base: "case", pat: "*b", want: []string{"AB", "ab"}, cfg: Config{NoCaseGlob: true}},
+		{base: "case", pat: "b*", want: nil, cfg: Config{NoCaseGlob: true}},
+
+		{base: "globstar", pat: "**", want: []string{"a", "foo"}, cfg: Config{GlobStar: false}},
+		{base: "globstar", pat: "**", want: []string{"a", "a/b", "a/b/c", "a/b/c/foo", "a/foo", "foo"}, cfg: Config{GlobStar: true}},
+		{base: "globstar", pat: "**/", want: []string{"a/"}, cfg: Config{GlobStar: false}},
+		{base: "globstar", pat: "**/", want: []string{"a/", "a/b/", "a/b/c/"}, cfg: Config{GlobStar: true}},
+		{base: "globstar", pat: "**/foo", want: []string{"a/foo"}, cfg: Config{GlobStar: false}},
+		{base: "globstar", pat: "**/foo", want: []string{"a/foo", "a/b/c/foo"}, cfg: Config{GlobStar: true}},
+		{base: "globstar", pat: "**foo", want: []string{"foo"}, cfg: Config{GlobStar: false}},
+		{base: "globstar", pat: "**foo", want: []string{"foo"}, cfg: Config{GlobStar: true}},
 	}
 	for _, tc := range tests {
-		cfg.NoCaseGlob = tc.noCaseGlob
-		got, err := cfg.glob("/", tc.pat)
+		tc.cfg.ReadDir2 = fs.ReadDir
+		got, err := tc.cfg.glob(tc.base, tc.pat)
 		if err != nil {
 			t.Fatalf("did not want error, got %v", err)
 		}
@@ -129,14 +138,3 @@ func Test_glob(t *testing.T) {
 		}
 	}
 }
-
-type mockFileInfo struct {
-	name        string
-	typ         fs.FileMode
-	fs.DirEntry // Stub out everything but Name() & Type()
-}
-
-var _ fs.DirEntry = (*mockFileInfo)(nil)
-
-func (fi *mockFileInfo) Name() string      { return fi.name }
-func (fi *mockFileInfo) Type() fs.FileMode { return fi.typ }
