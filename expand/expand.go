@@ -963,7 +963,7 @@ func (cfg *Config) glob(base, pat string) ([]string, error) {
 			}
 			continue
 		}
-		mode := pattern.Filenames | pattern.EntireString
+		mode := pattern.Filenames | pattern.EntireString | pattern.NoGlobStar
 		if cfg.NoCaseGlob {
 			mode |= pattern.NoGlobCase
 		}
