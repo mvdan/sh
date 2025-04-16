@@ -144,8 +144,15 @@ func TestMain(m *testing.M) {
 	os.Setenv("GOSH_PROG", prog)
 
 	// Mimic syntax/parser_test.go's TestMain.
-	os.Setenv("LANGUAGE", "C.UTF-8")
-	os.Setenv("LC_ALL", "C.UTF-8")
+	if out, _ := exec.Command("locale", "-a").Output(); strings.Contains(
+		strings.ToLower(string(out)), "c.utf",
+	) {
+		os.Setenv("LANGUAGE", "C.UTF-8")
+		os.Setenv("LC_ALL", "C.UTF-8")
+	} else {
+		os.Setenv("LANGUAGE", "en_US.UTF-8")
+		os.Setenv("LC_ALL", "en_US.UTF-8")
+	}
 
 	os.Unsetenv("CDPATH")
 	hasBash52 = checkBash()
