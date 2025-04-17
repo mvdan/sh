@@ -2551,6 +2551,10 @@ done <<< 2`,
 		"\n\nb\n\n",
 	},
 	{
+		`declare -Ag a=([x]=y); echo ${a["x"]}`,
+		"y\n",
+	},
+	{
 		`declare -A a=([x]=b [y]=c); for e in ${a[@]}; do echo $e; done | sort`,
 		"b\nc\n",
 	},
