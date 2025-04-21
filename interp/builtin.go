@@ -624,7 +624,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		var line []byte
 		var err error
 		if silent {
-			line, err = term.ReadPassword(int(syscall.Stdin))
+			line, err = term.ReadPassword(syscall.Stdin)
 		} else {
 			line, err = r.readLine(ctx, raw)
 		}

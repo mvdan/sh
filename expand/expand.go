@@ -968,7 +968,7 @@ func (cfg *Config) glob(base, pat string) ([]string, error) {
 			return nil, err
 		}
 		rx := regexp.MustCompile(expr)
-		matchHidden := part[0] == byte('.')
+		matchHidden := part[0] == '.'
 		var newMatches []string
 		for _, dir := range matches {
 			newMatches, err = cfg.globDir(base, dir, rx, matchHidden, wantDir, newMatches)
