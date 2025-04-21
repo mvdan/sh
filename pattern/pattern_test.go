@@ -29,11 +29,28 @@ var regexpTests = []struct {
 	{pat: `foo*`, mode: Shortest, want: `(?s)foo.*?`},
 	{pat: `foo*`, mode: Shortest | Filenames, want: `foo[^/]*?`},
 	{pat: `*foo`, mode: Filenames, want: `[^/]*foo`},
+	{
+		pat: `*foo`, mode: Filenames | EntireString, want: `^[^/]*foo$`,
+		mustMatch:    []string{"foo", "prefix-foo", "prefix.foo", ".foo", ".prefix-foo"},
+		mustNotMatch: []string{"foo-suffix", "/prefix/foo"},
+	},
 	{pat: `**`, want: `(?s).*.*`},
-	{pat: `**`, mode: Filenames, want: `(?s).*`},
-	{pat: `**`, mode: Filenames | NoGlobStar, want: `[^/]*`},
+	{
+		pat: `**`, mode: Filenames | EntireString, want: `(?s)^.*$`,
+		mustMatch:    []string{"/foo", "/prefix/foo", "/a.b.c/foo", "/a/b/c/foo", "/.prefix/foo", "/foo/suffix.ext"},
+		mustNotMatch: []string{},
+	},
+	{
+		pat: `**`, mode: Filenames | NoGlobStar | EntireString, want: `^[^/]*$`,
+		mustMatch:    []string{"foo.bar", ".foo"},
+		mustNotMatch: []string{"foo/bar"},
+	},
 	{pat: `/**/foo`, want: `(?s)/.*.*/foo`},
-	{pat: `/**/foo`, mode: Filenames, want: `(?s)/(.*/|)foo`},
+	{
+		pat: `/**/foo`, mode: Filenames | EntireString, want: `(?s)^/(.*/|)foo$`,
+		mustMatch:    []string{"/foo", "/prefix/foo", "/a.b.c/foo", "/a/b/c/foo", "/.prefix/foo"},
+		mustNotMatch: []string{"/foo/suffix", "prefix/foo"},
+	},
 	{pat: `/**/foo`, mode: Filenames | NoGlobStar, want: `/[^/]*/foo`},
 	{pat: `/**/à`, mode: Filenames, want: `(?s)/(.*/|)à`},
 	{
@@ -43,7 +60,7 @@ var regexpTests = []struct {
 	},
 	{
 		pat: `/**foo`, mode: Filenames | EntireString, want: `^/[^/]*foo$`,
-		mustMatch:    []string{"/foo", "/prefix-foo"},
+		mustMatch:    []string{"/foo", "/prefix-foo", "/.foo", "/.prefix-foo"},
 		mustNotMatch: []string{"/foo-suffix", "/sub/foo"},
 	},
 	{
@@ -112,13 +129,13 @@ func TestRegexp(t *testing.T) {
 		t.Run(fmt.Sprintf("%02d", i), func(t *testing.T) {
 			got, gotErr := Regexp(tc.pat, tc.mode)
 			if tc.wantErr && gotErr == nil {
-				t.Fatalf("(%q, %b) did not error", tc.pat, tc.mode)
+				t.Fatalf("(%q, %#b) did not error", tc.pat, tc.mode)
 			}
 			if !tc.wantErr && gotErr != nil {
-				t.Fatalf("(%q, %b) errored with %q", tc.pat, tc.mode, gotErr)
+				t.Fatalf("(%q, %#b) errored with %q", tc.pat, tc.mode, gotErr)
 			}
 			if got != tc.want {
-				t.Fatalf("(%q, %b) got %q, wanted %q", tc.pat, tc.mode, got, tc.want)
+				t.Fatalf("(%q, %#b) got %q, wanted %q", tc.pat, tc.mode, got, tc.want)
 			}
 			_, rxErr := syntax.Parse(got, syntax.Perl)
 			if gotErr == nil && rxErr != nil {
@@ -126,10 +143,10 @@ func TestRegexp(t *testing.T) {
 			}
 			rx := regexp.MustCompile(got)
 			for _, s := range tc.mustMatch {
-				qt.Assert(t, qt.IsTrue(rx.MatchString(s)), qt.Commentf("must match: %q", s))
+				qt.Check(t, qt.IsTrue(rx.MatchString(s)), qt.Commentf("must match: %q", s))
 			}
 			for _, s := range tc.mustNotMatch {
-				qt.Assert(t, qt.IsFalse(rx.MatchString(s)), qt.Commentf("must not match: %q", s))
+				qt.Check(t, qt.IsFalse(rx.MatchString(s)), qt.Commentf("must not match: %q", s))
 			}
 		})
 	}
@@ -156,11 +173,11 @@ func TestMeta(t *testing.T) {
 	t.Parallel()
 	for _, tc := range metaTests {
 		if got := HasMeta(tc.pat, tc.mode); got != tc.wantHas {
-			t.Errorf("HasMeta(%q, %b) got %t, wanted %t",
+			t.Errorf("HasMeta(%q, %#b) got %t, wanted %t",
 				tc.pat, tc.mode, got, tc.wantHas)
 		}
 		if got := QuoteMeta(tc.pat, tc.mode); got != tc.wantQuote {
-			t.Errorf("QuoteMeta(%q, %b) got %q, wanted %q",
+			t.Errorf("QuoteMeta(%q, %#b) got %q, wanted %q",
 				tc.pat, tc.mode, got, tc.wantQuote)
 		}
 	}

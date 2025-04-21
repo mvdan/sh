@@ -28,6 +28,11 @@ func (e SyntaxError) Error() string { return e.msg }
 
 func (e SyntaxError) Unwrap() error { return e.err }
 
+// TODO(v4): flip NoGlobStar to be opt-in via GlobStar, matching bash
+// TODO(v4): flip EntireString to be opt-out via PartialMatch, as EntireString causes subtle bugs when forgotten
+// TODO(v4): rename NoGlobCase to CaseInsensitive for readability
+// TODO: remove Braces? it's unclear why it's needed at all; [syntax.SplitBraces] implements them, and they are not globbing.
+
 const (
 	Shortest     Mode = 1 << iota // prefer the shortest match.
 	Filenames                     // "*" and "?" don't match slashes; only "**" does
@@ -85,20 +90,25 @@ writeLoop:
 				if i++; i < len(pat) && pat[i] == '*' {
 					singleAfter := i == len(pat)-1 || pat[i+1] == '/'
 					if mode&NoGlobStar != 0 || !singleBefore || !singleAfter {
+						// foo**, **bar, or NoGlobStar - behaves like "*"
 						sb.WriteString("[^/]*")
 					} else if i++; i < len(pat) && pat[i] == '/' {
+						// **/ - requires a trailing slash when matching
 						sb.WriteString("(.*/|)")
 						dotMeta = true
 					} else {
+						// ** - the base logic matching zero or any path elements
 						sb.WriteString(".*")
 						dotMeta = true
 						i--
 					}
 				} else {
+					// * - matches any non-slash characters
 					sb.WriteString("[^/]*")
 					i--
 				}
 			} else {
+				// * - matches anything when not in filename mode
 				sb.WriteString(".*")
 				dotMeta = true
 			}
