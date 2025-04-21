@@ -11,7 +11,6 @@ package pattern
 import (
 	"fmt"
 	"regexp"
-	"strconv"
 	"strings"
 )
 
@@ -31,12 +30,10 @@ func (e SyntaxError) Unwrap() error { return e.err }
 // TODO(v4): flip NoGlobStar to be opt-in via GlobStar, matching bash
 // TODO(v4): flip EntireString to be opt-out via PartialMatch, as EntireString causes subtle bugs when forgotten
 // TODO(v4): rename NoGlobCase to CaseInsensitive for readability
-// TODO: remove Braces? it's unclear why it's needed at all; [syntax.SplitBraces] implements them, and they are not globbing.
 
 const (
 	Shortest     Mode = 1 << iota // prefer the shortest match.
 	Filenames                     // "*" and "?" don't match slashes; only "**" does
-	Braces                        // support "{a,b}" and "{1..4}"
 	EntireString                  // match the entire string using ^$ delimiters
 	NoGlobCase                    // Do case-insensitive match (that is, use (?i) in the regexp)
 	NoGlobStar                    // Do not support "**"
@@ -69,7 +66,6 @@ noopLoop:
 	if !needsEscaping && mode&EntireString == 0 { // short-cut without a string copy
 		return pat, nil
 	}
-	closingBraces := []int{}
 	var sb strings.Builder
 	// Enable matching `\n` with the `.` metacharacter as globs match `\n`
 	sb.WriteString("(?s)")
@@ -190,66 +186,6 @@ writeLoop:
 			if i >= len(pat) {
 				return "", &SyntaxError{msg: "[ was not matched with a closing ]"}
 			}
-		case '{':
-			if mode&Braces == 0 {
-				sb.WriteString(regexp.QuoteMeta(string(c)))
-				break
-			}
-			innerLevel := 1
-			commas := false
-		peekBrace:
-			for j := i + 1; j < len(pat); j++ {
-				switch c := pat[j]; c {
-				case '{':
-					innerLevel++
-				case ',':
-					commas = true
-				case '\\':
-					j++
-				case '}':
-					if innerLevel--; innerLevel > 0 {
-						continue
-					}
-					if !commas {
-						break peekBrace
-					}
-					closingBraces = append(closingBraces, j)
-					sb.WriteString("(?:")
-					continue writeLoop
-				}
-			}
-			if match := numRange.FindStringSubmatch(pat[i+1:]); len(match) == 3 {
-				start, err1 := strconv.Atoi(match[1])
-				end, err2 := strconv.Atoi(match[2])
-				if err1 != nil || err2 != nil || start > end {
-					return "", &SyntaxError{msg: fmt.Sprintf("invalid range: %q", match[0])}
-				}
-				// TODO: can we do better here?
-				sb.WriteString("(?:")
-				for n := start; n <= end; n++ {
-					if n > start {
-						sb.WriteByte('|')
-					}
-					fmt.Fprintf(&sb, "%d", n)
-				}
-				sb.WriteByte(')')
-				i += len(match[0])
-				break
-			}
-			sb.WriteString(regexp.QuoteMeta(string(c)))
-		case ',':
-			if len(closingBraces) == 0 {
-				sb.WriteString(regexp.QuoteMeta(string(c)))
-			} else {
-				sb.WriteByte('|')
-			}
-		case '}':
-			if len(closingBraces) > 0 && closingBraces[len(closingBraces)-1] == i {
-				sb.WriteByte(')')
-				closingBraces = closingBraces[:len(closingBraces)-1]
-			} else {
-				sb.WriteString(regexp.QuoteMeta(string(c)))
-			}
 		default:
 			if c > 128 {
 				sb.WriteByte(c)
@@ -299,6 +235,8 @@ func charClass(s string) (string, error) {
 // This can be useful to avoid extra work, like [Regexp]. Note that this
 // function cannot be used to avoid [QuoteMeta], as backslashes are quoted by
 // that function but ignored here.
+//
+// The [Mode] parameter is unused, and will be removed in v4.
 func HasMeta(pat string, mode Mode) bool {
 	for i := 0; i < len(pat); i++ {
 		switch pat[i] {
@@ -306,10 +244,6 @@ func HasMeta(pat string, mode Mode) bool {
 			i++
 		case '*', '?', '[':
 			return true
-		case '{':
-			if mode&Braces != 0 {
-				return true
-			}
 		}
 	}
 	return false
@@ -319,16 +253,13 @@ func HasMeta(pat string, mode Mode) bool {
 // given text. The returned string is a pattern that matches the literal text.
 //
 // For example, QuoteMeta(`foo*bar?`) returns `foo\*bar\?`.
+//
+// The [Mode] parameter is unused, and will be removed in v4.
 func QuoteMeta(pat string, mode Mode) string {
 	needsEscaping := false
 loop:
 	for _, r := range pat {
 		switch r {
-		case '{':
-			if mode&Braces == 0 {
-				continue
-			}
-			fallthrough
 		case '*', '?', '[', '\\':
 			needsEscaping = true
 			break loop
@@ -342,10 +273,6 @@ loop:
 		switch r {
 		case '*', '?', '[', '\\':
 			sb.WriteByte('\\')
-		case '{':
-			if mode&Braces != 0 {
-				sb.WriteByte('\\')
-			}
 		}
 		sb.WriteRune(r)
 	}

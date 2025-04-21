@@ -23,7 +23,7 @@ var regexpTests = []struct {
 }{
 	{pat: ``, want: ``},
 	{pat: `foo`, want: `foo`},
-	{pat: `foóà中`, mode: Filenames | Braces, want: `foóà中`},
+	{pat: `foóà中`, mode: Filenames, want: `foóà中`},
 	{pat: `.`, want: `\.`},
 	{pat: `foo*`, want: `(?s)foo.*`},
 	{pat: `foo*`, mode: Shortest, want: `(?s)foo.*?`},
@@ -78,14 +78,6 @@ var regexpTests = []struct {
 	{pat: `a|b`, want: `a\|b`},
 	{pat: `x{3}`, want: `x\{3\}`},
 	{pat: `{3,4}`, want: `\{3,4\}`},
-	{pat: `{3,4}`, mode: Braces, want: `(?:3|4)`},
-	{pat: `{3,`, want: `\{3,`},
-	{pat: `{3,`, mode: Braces, want: `\{3,`},
-	{pat: `{3,{4}`, mode: Braces, want: `\{3,\{4\}`},
-	{pat: `{3,{4}}`, mode: Braces, want: `(?:3|\{4\})`},
-	{pat: `{3,{4,[56]}}`, mode: Braces, want: `(?:3|(?:4|[56]))`},
-	{pat: `{3..5}`, mode: Braces, want: `(?:3|4|5)`},
-	{pat: `{9..12}`, mode: Braces, want: `(?:9|10|11|12)`},
 	{pat: `[a]`, want: `[a]`},
 	{pat: `[abc]`, want: `[abc]`},
 	{pat: `[^bc]`, want: `[^bc]`},
@@ -154,31 +146,28 @@ func TestRegexp(t *testing.T) {
 
 var metaTests = []struct {
 	pat       string
-	mode      Mode
 	wantHas   bool
 	wantQuote string
 }{
-	{``, 0, false, ``},
-	{`foo`, 0, false, `foo`},
-	{`.`, 0, false, `.`},
-	{`*`, 0, true, `\*`},
-	{`*`, Shortest | Filenames, true, `\*`},
-	{`foo?`, 0, true, `foo\?`},
-	{`\[`, 0, false, `\\\[`},
-	{`{`, 0, false, `{`},
-	{`{`, Braces, true, `\{`},
+	{``, false, ``},
+	{`foo`, false, `foo`},
+	{`.`, false, `.`},
+	{`*`, true, `\*`},
+	{`foo?`, true, `foo\?`},
+	{`\[`, false, `\\\[`},
+	{`{`, false, `{`},
 }
 
 func TestMeta(t *testing.T) {
 	t.Parallel()
 	for _, tc := range metaTests {
-		if got := HasMeta(tc.pat, tc.mode); got != tc.wantHas {
-			t.Errorf("HasMeta(%q, %#b) got %t, wanted %t",
-				tc.pat, tc.mode, got, tc.wantHas)
+		if got := HasMeta(tc.pat, 0); got != tc.wantHas {
+			t.Errorf("HasMeta(%q, 0) got %t, wanted %t",
+				tc.pat, got, tc.wantHas)
 		}
-		if got := QuoteMeta(tc.pat, tc.mode); got != tc.wantQuote {
-			t.Errorf("QuoteMeta(%q, %#b) got %q, wanted %q",
-				tc.pat, tc.mode, got, tc.wantQuote)
+		if got := QuoteMeta(tc.pat, 0); got != tc.wantQuote {
+			t.Errorf("QuoteMeta(%q, 0) got %q, wanted %q",
+				tc.pat, got, tc.wantQuote)
 		}
 	}
 }

@@ -203,8 +203,6 @@ func Document(cfg *Config, word *syntax.Word) (string, error) {
 	return cfg.fieldJoin(field), nil
 }
 
-const patMode = pattern.Filenames | pattern.Braces
-
 // Pattern expands a single shell word as a pattern, using [pattern.QuoteMeta]
 // on any non-quoted parts of the input word. The result can be used on
 // [pattern.Regexp] directly.
@@ -223,7 +221,7 @@ func Pattern(cfg *Config, word *syntax.Word) (string, error) {
 	sb := cfg.strBuilder()
 	for _, part := range field {
 		if part.quote > quoteNone {
-			sb.WriteString(pattern.QuoteMeta(part.val, patMode))
+			sb.WriteString(pattern.QuoteMeta(part.val, 0))
 		} else {
 			sb.WriteString(part.val)
 		}
@@ -423,11 +421,11 @@ func (cfg *Config) escapedGlobField(parts []fieldPart) (escaped string, glob boo
 	sb := cfg.strBuilder()
 	for _, part := range parts {
 		if part.quote > quoteNone {
-			sb.WriteString(pattern.QuoteMeta(part.val, patMode))
+			sb.WriteString(pattern.QuoteMeta(part.val, 0))
 			continue
 		}
 		sb.WriteString(part.val)
-		if pattern.HasMeta(part.val, patMode) {
+		if pattern.HasMeta(part.val, 0) {
 			glob = true
 		}
 	}
@@ -895,7 +893,7 @@ func (cfg *Config) glob(base, pat string) ([]string, error) {
 				matches[i] = pathJoin2(dir, part)
 			}
 			continue
-		case !pattern.HasMeta(part, patMode):
+		case !pattern.HasMeta(part, 0):
 			var newMatches []string
 			for _, dir := range matches {
 				match := dir
@@ -968,7 +966,7 @@ func (cfg *Config) glob(base, pat string) ([]string, error) {
 			return nil, err
 		}
 		rx := regexp.MustCompile(expr)
-		matchHidden := part[0] == '.'
+		matchHidden := part[0] == byte('.')
 		var newMatches []string
 		for _, dir := range matches {
 			newMatches, err = cfg.globDir(base, dir, rx, matchHidden, wantDir, newMatches)
