@@ -89,12 +89,12 @@ writeLoop:
 						// foo**, **bar, or NoGlobStar - behaves like "*"
 						sb.WriteString("([^/.][^/]*)?")
 					} else if i++; i < len(pat) && pat[i] == '/' {
-						// **/ - requires a trailing slash when matching
-						sb.WriteString("(.*/)?")
+						// **/ - like "**" but requiring a trailing slash when matching
+						sb.WriteString("((/|[^/.][^/]*)*/)?")
 						dotMeta = true
 					} else {
-						// ** - the base logic matching zero or any path elements
-						sb.WriteString(".*")
+						// ** - match any number of slashes or "*" path elements
+						sb.WriteString("(/|[^/.][^/]*)*")
 						dotMeta = true
 						i--
 					}
