@@ -47,12 +47,12 @@ var regexpTests = []struct {
 	},
 	{pat: `/**/foo`, want: `(?s)/.*.*/foo`},
 	{
-		pat: `/**/foo`, mode: Filenames | EntireString, want: `(?s)^/(.*/|)foo$`,
+		pat: `/**/foo`, mode: Filenames | EntireString, want: `(?s)^/(.*/)?foo$`,
 		mustMatch:    []string{"/foo", "/prefix/foo", "/a.b.c/foo", "/a/b/c/foo", "/.prefix/foo"},
 		mustNotMatch: []string{"/foo/suffix", "prefix/foo"},
 	},
 	{pat: `/**/foo`, mode: Filenames | NoGlobStar, want: `/[^/]*/foo`},
-	{pat: `/**/à`, mode: Filenames, want: `(?s)/(.*/|)à`},
+	{pat: `/**/à`, mode: Filenames, want: `(?s)/(.*/)?à`},
 	{
 		pat: `/**foo`, mode: Filenames, want: `/[^/]*foo`,
 		// These all match because without EntireString, we match substrings.

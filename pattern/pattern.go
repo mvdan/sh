@@ -90,7 +90,7 @@ writeLoop:
 						sb.WriteString("[^/]*")
 					} else if i++; i < len(pat) && pat[i] == '/' {
 						// **/ - requires a trailing slash when matching
-						sb.WriteString("(.*/|)")
+						sb.WriteString("(.*/)?")
 						dotMeta = true
 					} else {
 						// ** - the base logic matching zero or any path elements
