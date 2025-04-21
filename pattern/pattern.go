@@ -87,7 +87,7 @@ writeLoop:
 					singleAfter := i == len(pat)-1 || pat[i+1] == '/'
 					if mode&NoGlobStar != 0 || !singleBefore || !singleAfter {
 						// foo**, **bar, or NoGlobStar - behaves like "*"
-						sb.WriteString("[^/]*")
+						sb.WriteString("([^/.][^/]*)?")
 					} else if i++; i < len(pat) && pat[i] == '/' {
 						// **/ - requires a trailing slash when matching
 						sb.WriteString("(.*/)?")
@@ -99,8 +99,8 @@ writeLoop:
 						i--
 					}
 				} else {
-					// * - matches any non-slash characters
-					sb.WriteString("[^/]*")
+					// * - matches anything except slashes and leading dots
+					sb.WriteString("([^/.][^/]*)?")
 					i--
 				}
 			} else {
