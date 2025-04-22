@@ -7,7 +7,6 @@ package fileutil
 
 import (
 	"io/fs"
-	"os"
 	"regexp"
 	"strings"
 )
@@ -66,20 +65,20 @@ func CouldBeScript(info fs.FileInfo) ScriptConfidence {
 }
 
 // CouldBeScript2 reports how likely a directory entry is to be a shell script.
-// It discards directories, symlinks, hidden files and files with non-shell
-// extensions.
+// It discards directories and other non-regular files like symbolic links,
+// filenames beginning with '.', and files with non-shell extensions.
 func CouldBeScript2(entry fs.DirEntry) ScriptConfidence {
 	name := entry.Name()
 	switch {
-	case entry.IsDir(), name[0] == '.':
-		return ConfNotScript
-	case entry.Type()&os.ModeSymlink != 0:
-		return ConfNotScript
+	case name[0] == '.':
+		return ConfNotScript // '.' prefix (hidden file)
+	case !entry.Type().IsRegular():
+		return ConfNotScript // dir, symlink, named pipes, etc
 	case extRe.MatchString(name):
-		return ConfIsScript
+		return ConfIsScript // shell extension
 	case strings.IndexByte(name, '.') > 0:
-		return ConfNotScript // different extension
+		return ConfNotScript // non-shell extension
 	default:
-		return ConfIfShebang
+		return ConfIfShebang // no extension; read and look for a shebang
 	}
 }

@@ -7,6 +7,10 @@ mkdir symlink/subdir
 [symlink] symlink symlink/symlink-dir -> subdir
 [symlink] symlink symlink/symlink-none -> nonexistent
 
+# Other non-regular files like FIFOs could cause issues like blocking reads
+# when we look for shebangs. We use the "mkfifo" tool here, available on Linux.
+[exec:mkfifo] exec mkfifo named-pipe
+
 exec shfmt -f .
 ! stderr .
 cmpenv stdout find.golden
