@@ -100,7 +100,11 @@ writeLoop:
 					}
 				} else {
 					// * - matches anything except slashes and leading dots
-					sb.WriteString("([^/.][^/]*)?")
+					if singleBefore {
+						sb.WriteString("([^/.][^/]*)?")
+					} else {
+						sb.WriteString("[^/]*")
+					}
 					i--
 				}
 			} else {
