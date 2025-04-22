@@ -73,8 +73,8 @@ var regexpTests = []struct {
 		mustNotMatch: []string{"/foo-suffix", "/sub/foo", "/.foo", "/.prefix-foo"},
 	},
 	{
-		pat: `/foo**`, mode: Filenames | EntireString, want: `^/foo([^/.][^/]*)?$`,
-		mustMatch:    []string{"/foo", "/foo-suffix"},
+		pat: `/foo**`, mode: Filenames | EntireString, want: `^/foo[^/]*$`,
+		mustMatch:    []string{"/foo", "/foo-suffix", "/foo.suffix"},
 		mustNotMatch: []string{"/prefix-foo", "/foo/sub"},
 	},
 	{pat: `\*`, want: `\*`},
