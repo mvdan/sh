@@ -673,24 +673,24 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			valType = "-n"
 		}
 		for _, as := range cm.Args {
+		assignLoop:
 			for _, as := range r.flattenAssign(as) {
 				name := as.Name.Value
-				if strings.HasPrefix(name, "-") {
-					for _, rune := range name[1:] {
-						switch rune {
-						case 'x', 'r':
-							modes = append(modes, name)
-						case 'a', 'A', 'n':
-							valType = name
-						case 'g':
-							global = true
-						default:
-							r.errf("declare: invalid option %q\n", name)
-							r.exit = 2
-							return
-						}
+				fp := flagParser{remaining: []string{name}}
+				for fp.more() {
+					switch flag := fp.flag(); flag {
+					case "-x", "-r":
+						modes = append(modes, flag)
+					case "-a", "-A", "-n":
+						valType = flag
+					case "-g":
+						global = true
+					default:
+						r.errf("declare: invalid option %q\n", name)
+						r.exit = 2
+						return
 					}
-					continue
+					continue assignLoop
 				}
 				if !syntax.ValidName(name) {
 					r.errf("declare: invalid name %q\n", name)
