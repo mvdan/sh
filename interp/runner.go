@@ -676,17 +676,19 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			for _, as := range r.flattenAssign(as) {
 				name := as.Name.Value
 				if strings.HasPrefix(name, "-") {
-					switch name {
-					case "-x", "-r":
-						modes = append(modes, name)
-					case "-a", "-A", "-n":
-						valType = name
-					case "-g":
-						global = true
-					default:
-						r.errf("declare: invalid option %q\n", name)
-						r.exit = 2
-						return
+					for _, rune := range name[1:] {
+						switch rune {
+						case 'x', 'r':
+							modes = append(modes, name)
+						case 'a', 'A', 'n':
+							valType = name
+						case 'g':
+							global = true
+						default:
+							r.errf("declare: invalid option %q\n", name)
+							r.exit = 2
+							return
+						}
 					}
 					continue
 				}
