@@ -581,6 +581,8 @@ func (cfg *Config) wordField(wps []syntax.WordPart, ql quoteLevel) ([]fieldPart,
 				return nil, err
 			}
 			field = append(field, fieldPart{val: path})
+		case *syntax.ExtGlob:
+			return nil, fmt.Errorf("extended globbing is not supported")
 		default:
 			panic(fmt.Sprintf("unhandled word part: %T", wp))
 		}

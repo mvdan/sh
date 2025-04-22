@@ -2904,6 +2904,7 @@ done <<< 2`,
 	// Extended globbing is not supported
 	{"ls ab+(2|3).txt", "extended globbing is not supported\nexit status 1 #JUSTERR"},
 	{"echo *(/)", "extended globbing is not supported\nexit status 1 #JUSTERR"},
+	{`if [[ "foo" == @(foo|bar) ]]; then exit 1; else exit 1; fi`, "extended globbing is not supported\n #JUSTERR"},
 	// Ensure that setting nullglob does not return invalid globs as null
 	// strings.
 	{
