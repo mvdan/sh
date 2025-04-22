@@ -107,6 +107,12 @@ exec shfmt -d shebang
 ! stdout .
 ! stderr .
 
+# Verify that sibling EditorConfig files do not get their settings mixed up,
+# which could happen if we incrementally use their flags without care.
+exec shfmt -d multiconfig
+! stdout .
+! stderr .
+
 -- .editorconfig --
 root = true
 
@@ -236,3 +242,17 @@ indent_size = 4
     indented
 }
 array=(elem)
+-- multiconfig/space_redirects/.editorconfig --
+[*]
+space_redirects = true
+-- multiconfig/space_redirects/f.sh --
+foo > bar
+foo &&
+   bar
+-- multiconfig/binary_next_line/.editorconfig --
+[*]
+binary_next_line = true
+-- multiconfig/binary_next_line/f.sh --
+foo >bar
+foo \
+   && bar
