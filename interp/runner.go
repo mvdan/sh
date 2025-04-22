@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"iter"
 	"math"
 	"math/rand"
 	"os"
@@ -672,56 +673,54 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		case "nameref":
 			valType = "-n"
 		}
-		for _, as := range cm.Args {
-		assignLoop:
-			for _, as := range r.flattenAssign(as) {
-				name := as.Name.Value
-				fp := flagParser{remaining: []string{name}}
-				for fp.more() {
-					switch flag := fp.flag(); flag {
-					case "-x", "-r":
-						modes = append(modes, flag)
-					case "-a", "-A", "-n":
-						valType = flag
-					case "-g":
-						global = true
-					default:
-						r.errf("declare: invalid option %q\n", name)
-						r.exit = 2
-						return
-					}
-					continue assignLoop
-				}
-				if !syntax.ValidName(name) {
-					r.errf("declare: invalid name %q\n", name)
-					r.exit = 1
+	assignLoop:
+		for as := range r.flattenAssigns(cm.Args) {
+			fp := flagParser{remaining: []string{as.Name.Value}}
+			for fp.more() {
+				switch flag := fp.flag(); flag {
+				case "-x", "-r":
+					modes = append(modes, flag)
+				case "-a", "-A", "-n":
+					valType = flag
+				case "-g":
+					global = true
+				default:
+					r.errf("declare: invalid option %q\n", flag)
+					r.exit = 2
 					return
 				}
-				vr := r.lookupVar(as.Name.Value)
-				if as.Naked {
-					if valType == "-A" {
-						vr.Kind = expand.Associative
-					} else {
-						vr.Kind = expand.KeepValue
-					}
-				} else {
-					vr = r.assignVal(vr, as, valType)
-				}
-				if global {
-					vr.Local = false
-				} else if local {
-					vr.Local = true
-				}
-				for _, mode := range modes {
-					switch mode {
-					case "-x":
-						vr.Exported = true
-					case "-r":
-						vr.ReadOnly = true
-					}
-				}
-				r.setVar(name, vr)
+				continue assignLoop
 			}
+			name := as.Name.Value
+			if !syntax.ValidName(name) {
+				r.errf("declare: invalid name %q\n", name)
+				r.exit = 1
+				return
+			}
+			vr := r.lookupVar(as.Name.Value)
+			if as.Naked {
+				if valType == "-A" {
+					vr.Kind = expand.Associative
+				} else {
+					vr.Kind = expand.KeepValue
+				}
+			} else {
+				vr = r.assignVal(vr, as, valType)
+			}
+			if global {
+				vr.Local = false
+			} else if local {
+				vr.Local = true
+			}
+			for _, mode := range modes {
+				switch mode {
+				case "-x":
+					vr.Exported = true
+				case "-r":
+					vr.ReadOnly = true
+				}
+			}
+			r.setVar(name, vr)
 		}
 	case *syntax.TimeClause:
 		start := time.Now()
@@ -778,28 +777,35 @@ func (r *Runner) exitShell(ctx context.Context, status int) {
 	r.exit = status
 }
 
-func (r *Runner) flattenAssign(as *syntax.Assign) []*syntax.Assign {
-	// Convert "declare $x" into "declare value".
-	// Don't use syntax.Parser here, as we only want the basic
-	// splitting by '='.
-	if as.Name != nil {
-		return []*syntax.Assign{as} // nothing to do
-	}
-	var asgns []*syntax.Assign
-	for _, field := range r.fields(as.Value) {
-		as := &syntax.Assign{}
-		name, val, ok := strings.Cut(field, "=")
-		as.Name = &syntax.Lit{Value: name}
-		if !ok {
-			as.Naked = true
-		} else {
-			as.Value = &syntax.Word{Parts: []syntax.WordPart{
-				&syntax.Lit{Value: val},
-			}}
+func (r *Runner) flattenAssigns(args []*syntax.Assign) iter.Seq[*syntax.Assign] {
+	return func(yield func(*syntax.Assign) bool) {
+		for _, as := range args {
+			// Convert "declare $x" into "declare value".
+			// Don't use syntax.Parser here, as we only want the basic
+			// splitting by '='.
+			if as.Name != nil {
+				if !yield(as) {
+					return
+				}
+				continue
+			}
+			for _, field := range r.fields(as.Value) {
+				as := &syntax.Assign{}
+				name, val, ok := strings.Cut(field, "=")
+				as.Name = &syntax.Lit{Value: name}
+				if !ok {
+					as.Naked = true
+				} else {
+					as.Value = &syntax.Word{Parts: []syntax.WordPart{
+						&syntax.Lit{Value: val},
+					}}
+				}
+				if !yield(as) {
+					return
+				}
+			}
 		}
-		asgns = append(asgns, as)
 	}
-	return asgns
 }
 
 func match(pat, name string) bool {
