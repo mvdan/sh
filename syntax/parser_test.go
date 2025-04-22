@@ -157,10 +157,8 @@ func TestParseBats(t *testing.T) {
 
 func TestMain(m *testing.M) {
 	// Set the locale to computer-friendly English and UTF-8.
-	// Some systems like Arch miss C.UTF8, so fall back to the US English locale.
-	//
-	// TODO: glibc 2.35 was released with C.UTF-8 in February 2022.
-	// This locale is now becoming a standard, so remove the workaround in 2023.
+	// Some systems like macOS miss C.UTF8, so fall back to the US English
+	// locale.
 	if out, _ := exec.Command("locale", "-a").Output(); strings.Contains(
 		strings.ToLower(string(out)), "c.utf",
 	) {
