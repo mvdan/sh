@@ -481,12 +481,16 @@ func FieldsSeq(cfg *Config, words ...*syntax.Word) iter.Seq2[string, error] {
 							}
 						} else if len(matches) > 0 || cfg.NullGlob {
 							for _, m := range matches {
-								yield(m, nil)
+								if !yield(m, nil) {
+									return
+								}
 							}
 							continue
 						}
 					}
-					yield(cfg.fieldJoin(field), nil)
+					if !yield(cfg.fieldJoin(field), nil) {
+						return
+					}
 				}
 			}
 		}
