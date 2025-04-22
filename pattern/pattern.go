@@ -87,7 +87,11 @@ writeLoop:
 					singleAfter := i == len(pat)-1 || pat[i+1] == '/'
 					if mode&NoGlobStar != 0 || !singleBefore || !singleAfter {
 						// foo**, **bar, or NoGlobStar - behaves like "*"
-						sb.WriteString("([^/.][^/]*)?")
+						if singleBefore {
+							sb.WriteString("([^/.][^/]*)?")
+						} else {
+							sb.WriteString("[^/]*")
+						}
 					} else if i++; i < len(pat) && pat[i] == '/' {
 						// **/ - like "**" but requiring a trailing slash when matching
 						sb.WriteString("((/|[^/.][^/]*)*/)?")
