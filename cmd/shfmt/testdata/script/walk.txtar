@@ -1,7 +1,9 @@
 mkdir symlink/subdir
-cp modify/ext-shebang.sh symlink/subdir/ext-shebang.sh
-[symlink] symlink symlink/subdir/symlink-file -> ../modify/ext-shebang.sh
+# Remember that the symlink target is relative to the symlink directory.
+[symlink] symlink symlink/subdir/symlink-file -> ../../modify/ext-shebang.sh
 [symlink] symlink symlink/symlink-shebang.sh -> ../modify/ext-shebang.sh
+[symlink] cp modify/ext.bash symlink/target-ext-bash # a copy that won't be formatted on its own
+[symlink] symlink symlink/symlink-ext.bash -> target-ext-bash
 [symlink] symlink symlink/symlink-dir -> subdir
 [symlink] symlink symlink/symlink-none -> nonexistent
 
@@ -92,7 +94,6 @@ modify${/}shebang-sh
 modify${/}shebang-space
 modify${/}shebang-tabs
 modify${/}shebang-usr-sh
-symlink${/}subdir${/}ext-shebang.sh
 -- modify.golden --
 modify${/}dir${/}ext.sh
 modify${/}ext-shebang.sh
@@ -111,7 +112,6 @@ modify${/}shebang-sh
 modify${/}shebang-space
 modify${/}shebang-tabs
 modify${/}shebang-usr-sh
-symlink${/}subdir${/}ext-shebang.sh
 -- modify/shebang-sh --
 #!/bin/sh
  foo
