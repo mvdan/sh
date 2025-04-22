@@ -60,12 +60,13 @@ stdout 'foo'
 [symlink] exec shfmt symlink/symlink-dir
 [symlink] ! stdout . # note that filepath.WalkDir does not follow symlinks
 
-# TODO: writing to non-regular files is forbidden as they'd be replaced by a regular file.
+# writing to non-regular files is forbidden as they'd be replaced by a regular file.
 [symlink] exec shfmt -l symlink/symlink-ext.bash
 [symlink] stdout 'symlink-ext.bash'
-[symlink] exec shfmt -w symlink/symlink-ext.bash
+[symlink] ! exec shfmt -w symlink/symlink-ext.bash
+[symlink] stderr 'refusing to atomically replace'
 [symlink] exec shfmt -l symlink/symlink-ext.bash
-[symlink] ! stdout .
+[symlink] stdout 'symlink-ext.bash'
 
 # -f on files should still check extension and shebang
 exec shfmt -f modify/ext.sh modify/shebang-sh none/ext-shebang.other none/noext-noshebang

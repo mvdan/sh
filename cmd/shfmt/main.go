@@ -557,6 +557,9 @@ func formatBytes(src []byte, path string, fileLang syntax.LangVariant) error {
 			if err != nil {
 				return err
 			}
+			if !info.Mode().IsRegular() {
+				return fmt.Errorf("refusing to atomically replace %q with a regular file as it is not one already", path)
+			}
 			perm := info.Mode().Perm()
 			// TODO: support atomic writes on Windows?
 			if err := maybeio.WriteFile(path, res, perm); err != nil {
