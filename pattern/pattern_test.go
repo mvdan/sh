@@ -16,7 +16,7 @@ var regexpTests = []struct {
 	pat     string
 	mode    Mode
 	want    string
-	wantErr bool
+	wantErr string
 
 	mustMatch    []string
 	mustNotMatch []string
@@ -78,7 +78,7 @@ var regexpTests = []struct {
 		mustNotMatch: []string{"/prefix-foo", "/foo/sub"},
 	},
 	{pat: `\*`, want: `\*`},
-	{pat: `\`, wantErr: true},
+	{pat: `\`, wantErr: `^\\ at end of pattern$`},
 	{pat: `?`, want: `(?s).`},
 	{pat: `?`, mode: Filenames, want: `[^/]`},
 	{pat: `?à`, want: `(?s).à`},
@@ -99,17 +99,17 @@ var regexpTests = []struct {
 	{pat: `[^]]`, want: `[^]]`},
 	{pat: `[a/b]`, want: `[a/b]`},
 	{pat: `[a/b]`, mode: Filenames, want: `\[a/b\]`},
-	{pat: `[`, wantErr: true},
-	{pat: `[\`, wantErr: true},
-	{pat: `[^`, wantErr: true},
-	{pat: `[!`, wantErr: true},
+	{pat: `[`, wantErr: `^\[ was not matched with a closing \]$`},
+	{pat: `[\`, wantErr: `^\[ was not matched with a closing \]$`},
+	{pat: `[^`, wantErr: `^\[ was not matched with a closing \]$`},
+	{pat: `[!`, wantErr: `^\[ was not matched with a closing \]$`},
 	{pat: `[!bc]`, want: `[^bc]`},
-	{pat: `[]`, wantErr: true},
-	{pat: `[^]`, wantErr: true},
-	{pat: `[!]`, wantErr: true},
-	{pat: `[ab`, wantErr: true},
+	{pat: `[]`, wantErr: `^\[ was not matched with a closing \]$`},
+	{pat: `[^]`, wantErr: `^\[ was not matched with a closing \]$`},
+	{pat: `[!]`, wantErr: `^\[ was not matched with a closing \]$`},
+	{pat: `[ab`, wantErr: `^\[ was not matched with a closing \]$`},
 	{pat: `[a-]`, want: `[a-]`},
-	{pat: `[z-a]`, wantErr: true},
+	{pat: `[z-a]`, wantErr: `^invalid range: z-a$`},
 	{pat: `[a-a]`, want: `[a-a]`},
 	{pat: `[aa]`, want: `[aa]`},
 	{pat: `[0-4A-Z]`, want: `[0-4A-Z]`},
@@ -117,23 +117,23 @@ var regexpTests = []struct {
 	{pat: `[^-a]`, want: `[^-a]`},
 	{pat: `[a-]`, want: `[a-]`},
 	{pat: `[[:digit:]]`, want: `[[:digit:]]`},
-	{pat: `[[:`, wantErr: true},
-	{pat: `[[:digit`, wantErr: true},
-	{pat: `[[:wrong:]]`, wantErr: true},
-	{pat: `[[=x=]]`, wantErr: true},
-	{pat: `[[.x.]]`, wantErr: true},
+	{pat: `[[:`, wantErr: `^charClass invalid$`},
+	{pat: `[[:digit`, wantErr: `^charClass invalid$`},
+	{pat: `[[:wrong:]]`, wantErr: `^charClass invalid$`},
+	{pat: `[[=x=]]`, wantErr: `^charClass invalid$`},
+	{pat: `[[.x.]]`, wantErr: `^charClass invalid$`},
 }
 
 func TestRegexp(t *testing.T) {
 	t.Parallel()
 	for i, tc := range regexpTests {
 		t.Run(fmt.Sprintf("%02d", i), func(t *testing.T) {
+			t.Logf("pattern input: %q\n", tc.pat)
 			got, gotErr := Regexp(tc.pat, tc.mode)
-			if tc.wantErr && gotErr == nil {
-				t.Fatalf("(%q, %#b) did not error", tc.pat, tc.mode)
-			}
-			if !tc.wantErr && gotErr != nil {
-				t.Fatalf("(%q, %#b) errored with %q", tc.pat, tc.mode, gotErr)
+			if tc.wantErr != "" {
+				qt.Assert(t, qt.ErrorMatches(gotErr, tc.wantErr))
+			} else {
+				qt.Assert(t, qt.IsNil(gotErr))
 			}
 			if got != tc.want {
 				t.Fatalf("(%q, %#b) got %q, wanted %q", tc.pat, tc.mode, got, tc.want)
