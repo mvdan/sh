@@ -73,22 +73,20 @@ func Regexp(pat string, mode Mode) (string, error) {
 	}
 	var sb strings.Builder
 	// Enable matching `\n` with the `.` metacharacter as globs match `\n`
-	sb.WriteString("(?s)")
-	anyDotMeta := false
+	sb.WriteString("(?s")
 	if mode&NoGlobCase != 0 {
-		sb.WriteString("(?i)")
+		sb.WriteString("i")
 	}
 	if mode&Shortest != 0 {
-		sb.WriteString("(?U)")
+		sb.WriteString("U")
 	}
+	sb.WriteString(")")
 	if mode&EntireString != 0 {
 		sb.WriteString("^")
 	}
 	sl := stringLexer{s: pat}
 	for {
-		dotMeta, err := regexpNext(&sb, &sl, mode)
-		anyDotMeta = anyDotMeta || dotMeta
-		if err == io.EOF {
+		if err := regexpNext(&sb, &sl, mode); err == io.EOF {
 			break
 		} else if err != nil {
 			return "", err
@@ -96,10 +94,6 @@ func Regexp(pat string, mode Mode) (string, error) {
 	}
 	if mode&EntireString != 0 {
 		sb.WriteString("$")
-	}
-	// No `.` metacharacters were used, so don't return the (?s) flag.
-	if !anyDotMeta {
-		return sb.String()[4:], nil
 	}
 	return sb.String(), nil
 }
@@ -139,15 +133,14 @@ func (sl *stringLexer) peekRest() string {
 	return sl.s[sl.i:]
 }
 
-func regexpNext(sb *strings.Builder, sl *stringLexer, mode Mode) (dotMeta bool, _ error) {
+func regexpNext(sb *strings.Builder, sl *stringLexer, mode Mode) error {
 	switch c := sl.next(); c {
 	case '\x00':
-		return false, io.EOF
+		return io.EOF
 	case '*':
 		if mode&Filenames == 0 {
 			// * - matches anything when not in filename mode
 			sb.WriteString(".*")
-			dotMeta = true
 			break
 		}
 		// "**" only acts as globstar if it is alone as a path element.
@@ -183,18 +176,17 @@ func regexpNext(sb *strings.Builder, sl *stringLexer, mode Mode) (dotMeta bool, 
 			sb.WriteString("[^/]")
 		} else {
 			sb.WriteByte('.')
-			dotMeta = true
 		}
 	case '\\':
 		c = sl.next()
 		if c == '\x00' {
-			return false, &SyntaxError{msg: `\ at end of pattern`}
+			return &SyntaxError{msg: `\ at end of pattern`}
 		}
 		sb.WriteString(regexp.QuoteMeta(string(c)))
 	case '[':
 		// TODO: surely char classes can be mixed with others, e.g. [[:foo:]xyz]
 		if name, err := charClass(sl.peekRest()); err != nil {
-			return false, &SyntaxError{msg: "charClass invalid", err: err}
+			return &SyntaxError{msg: "charClass invalid", err: err}
 		} else if name != "" {
 			sb.WriteByte('[')
 			sb.WriteString(name)
@@ -207,32 +199,32 @@ func regexpNext(sb *strings.Builder, sl *stringLexer, mode Mode) (dotMeta bool, 
 					break
 				} else if c == '/' {
 					sb.WriteString("\\[")
-					return
+					return nil
 				}
 			}
 		}
 		sb.WriteByte(c)
 		if c = sl.next(); c == '\x00' {
-			return false, &SyntaxError{msg: "[ was not matched with a closing ]"}
+			return &SyntaxError{msg: "[ was not matched with a closing ]"}
 		}
 		switch c {
 		case '!', '^':
 			sb.WriteByte('^')
 			if c = sl.next(); c == '\x00' {
-				return false, &SyntaxError{msg: "[ was not matched with a closing ]"}
+				return &SyntaxError{msg: "[ was not matched with a closing ]"}
 			}
 		}
 		if c == ']' {
 			sb.WriteByte(']')
 			if c = sl.next(); c == '\x00' {
-				return false, &SyntaxError{msg: "[ was not matched with a closing ]"}
+				return &SyntaxError{msg: "[ was not matched with a closing ]"}
 			}
 		}
 		for {
 			sb.WriteByte(c)
 			switch c {
 			case '\x00':
-				return false, &SyntaxError{msg: "[ was not matched with a closing ]"}
+				return &SyntaxError{msg: "[ was not matched with a closing ]"}
 			case '\\':
 				if c = sl.next(); c != '0' {
 					sb.WriteByte(c)
@@ -242,10 +234,10 @@ func regexpNext(sb *strings.Builder, sl *stringLexer, mode Mode) (dotMeta bool, 
 				end := sl.peekNext()
 				// TODO: what about overlapping ranges, like: [a--z]
 				if end != ']' && start > end {
-					return false, &SyntaxError{msg: fmt.Sprintf("invalid range: %c-%c", start, end)}
+					return &SyntaxError{msg: fmt.Sprintf("invalid range: %c-%c", start, end)}
 				}
 			case ']':
-				return dotMeta, nil
+				return nil
 			}
 			c = sl.next()
 		}
@@ -256,7 +248,7 @@ func regexpNext(sb *strings.Builder, sl *stringLexer, mode Mode) (dotMeta bool, 
 			sb.WriteString(regexp.QuoteMeta(string(c)))
 		}
 	}
-	return dotMeta, nil
+	return nil
 }
 
 func charClass(s string) (string, error) {
