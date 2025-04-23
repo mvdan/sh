@@ -73,6 +73,9 @@ noopLoop:
 	if mode&NoGlobCase != 0 {
 		sb.WriteString("(?i)")
 	}
+	if mode&Shortest != 0 {
+		sb.WriteString("(?U)")
+	}
 	if mode&EntireString != 0 {
 		sb.WriteString("^")
 	}
@@ -136,44 +139,41 @@ func regexpNext(sb *strings.Builder, sl *stringLexer, mode Mode) (dotMeta bool, 
 	case '\x00':
 		return false, io.EOF
 	case '*':
-		if mode&Filenames != 0 {
-			// "**" only acts as globstar if it is alone as a path element.
-			singleBefore := sl.i == 1 || sl.last() == '/'
-			if sl.peekNext() == '*' {
-				sl.i++
-				singleAfter := sl.i == len(sl.s) || sl.peekNext() == '/'
-				if mode&NoGlobStar != 0 || !singleBefore || !singleAfter {
-					// foo**, **bar, or NoGlobStar - behaves like "*"
-					if singleBefore {
-						sb.WriteString("([^/.][^/]*)?")
-					} else {
-						sb.WriteString("[^/]*")
-					}
-				} else if sl.peekNext() == '/' {
-					// **/ - like "**" but requiring a trailing slash when matching
-					sl.i++
-					sb.WriteString("((/|[^/.][^/]*)*/)?")
-					dotMeta = true
-				} else {
-					// ** - match any number of slashes or "*" path elements
-					sb.WriteString("(/|[^/.][^/]*)*")
-					dotMeta = true
-				}
-			} else {
-				// * - matches anything except slashes and leading dots
+		if mode&Filenames == 0 {
+			// * - matches anything when not in filename mode
+			sb.WriteString(".*")
+			dotMeta = true
+			break
+		}
+		// "**" only acts as globstar if it is alone as a path element.
+		singleBefore := sl.i == 1 || sl.last() == '/'
+		if sl.peekNext() == '*' {
+			sl.i++
+			singleAfter := sl.i == len(sl.s) || sl.peekNext() == '/'
+			if mode&NoGlobStar != 0 || !singleBefore || !singleAfter {
+				// foo**, **bar, or NoGlobStar - behaves like "*"
 				if singleBefore {
 					sb.WriteString("([^/.][^/]*)?")
 				} else {
 					sb.WriteString("[^/]*")
 				}
+			} else if sl.peekNext() == '/' {
+				// **/ - like "**" but requiring a trailing slash when matching
+				sl.i++
+				sb.WriteString("((/|[^/.][^/]*)*/)?")
+				dotMeta = true
+			} else {
+				// ** - match any number of slashes or "*" path elements
+				sb.WriteString("(/|[^/.][^/]*)*")
+				dotMeta = true
 			}
 		} else {
-			// * - matches anything when not in filename mode
-			sb.WriteString(".*")
-			dotMeta = true
-		}
-		if mode&Shortest != 0 {
-			sb.WriteByte('?')
+			// * - matches anything except slashes and leading dots
+			if singleBefore {
+				sb.WriteString("([^/.][^/]*)?")
+			} else {
+				sb.WriteString("[^/]*")
+			}
 		}
 	case '?':
 		if mode&Filenames != 0 {
