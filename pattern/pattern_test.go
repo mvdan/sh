@@ -23,6 +23,11 @@ var regexpTests = []struct {
 }{
 	{pat: ``, want: ``},
 	{pat: `foo`, want: `foo`},
+	{
+		pat: `foo`, mode: NoGlobCase, want: `(?i)foo`,
+		mustMatch:    []string{"foo", "FOO", "Foo"},
+		mustNotMatch: []string{"bar"},
+	},
 	{pat: `foóà中`, mode: Filenames, want: `foóà中`},
 	{pat: `.`, want: `\.`},
 	{pat: `foo*`, want: `(?s)foo.*`},

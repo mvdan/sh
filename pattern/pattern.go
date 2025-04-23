@@ -63,7 +63,10 @@ noopLoop:
 			break noopLoop
 		}
 	}
-	if !needsEscaping && mode&EntireString == 0 { // short-cut without a string copy
+	// If there are no special pattern matching or regular expression characters,
+	// and we don't need to insert extras for the modes affecting non-special characters,
+	// we can directly return the input string as a short-cut.
+	if !needsEscaping && mode&(EntireString|NoGlobCase) == 0 {
 		return pat, nil
 	}
 	var sb strings.Builder
