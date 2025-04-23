@@ -10,8 +10,10 @@ package pattern
 
 import (
 	"fmt"
+	"io"
 	"regexp"
 	"strings"
+	"unicode/utf8"
 )
 
 // Mode can be used to supply a number of options to the package's functions.
@@ -38,8 +40,6 @@ const (
 	NoGlobCase                    // Do case-insensitive match (that is, use (?i) in the regexp)
 	NoGlobStar                    // Do not support "**"
 )
-
-var numRange = regexp.MustCompile(`^([+-]?\d+)\.\.([+-]?\d+)}`)
 
 // Regexp turns a shell pattern into a regular expression that can be used with
 // [regexp.Compile]. It will return an error if the input pattern was incorrect.
@@ -69,154 +69,198 @@ noopLoop:
 	var sb strings.Builder
 	// Enable matching `\n` with the `.` metacharacter as globs match `\n`
 	sb.WriteString("(?s)")
-	dotMeta := false
+	anyDotMeta := false
 	if mode&NoGlobCase != 0 {
 		sb.WriteString("(?i)")
 	}
 	if mode&EntireString != 0 {
 		sb.WriteString("^")
 	}
-writeLoop:
-	for i := 0; i < len(pat); i++ {
-		switch c := pat[i]; c {
-		case '*':
-			if mode&Filenames != 0 {
-				// "**" only acts as globstar if it is alone as a path element.
-				singleBefore := i == 0 || pat[i-1] == '/'
-				if i++; i < len(pat) && pat[i] == '*' {
-					singleAfter := i == len(pat)-1 || pat[i+1] == '/'
-					if mode&NoGlobStar != 0 || !singleBefore || !singleAfter {
-						// foo**, **bar, or NoGlobStar - behaves like "*"
-						if singleBefore {
-							sb.WriteString("([^/.][^/]*)?")
-						} else {
-							sb.WriteString("[^/]*")
-						}
-					} else if i++; i < len(pat) && pat[i] == '/' {
-						// **/ - like "**" but requiring a trailing slash when matching
-						sb.WriteString("((/|[^/.][^/]*)*/)?")
-						dotMeta = true
-					} else {
-						// ** - match any number of slashes or "*" path elements
-						sb.WriteString("(/|[^/.][^/]*)*")
-						dotMeta = true
-						i--
-					}
-				} else {
-					// * - matches anything except slashes and leading dots
-					if singleBefore {
-						sb.WriteString("([^/.][^/]*)?")
-					} else {
-						sb.WriteString("[^/]*")
-					}
-					i--
-				}
-			} else {
-				// * - matches anything when not in filename mode
-				sb.WriteString(".*")
-				dotMeta = true
-			}
-			if mode&Shortest != 0 {
-				sb.WriteByte('?')
-			}
-		case '?':
-			if mode&Filenames != 0 {
-				sb.WriteString("[^/]")
-			} else {
-				sb.WriteByte('.')
-				dotMeta = true
-			}
-		case '\\':
-			if i++; i >= len(pat) {
-				return "", &SyntaxError{msg: `\ at end of pattern`}
-			}
-			sb.WriteString(regexp.QuoteMeta(string(pat[i])))
-		case '[':
-			name, err := charClass(pat[i:])
-			if err != nil {
-				return "", &SyntaxError{msg: "charClass invalid", err: err}
-			}
-			if name != "" {
-				sb.WriteString(name)
-				i += len(name) - 1
-				break
-			}
-			if mode&Filenames != 0 {
-				for _, c := range pat[i:] {
-					if c == ']' {
-						break
-					} else if c == '/' {
-						sb.WriteString("\\[")
-						continue writeLoop
-					}
-				}
-			}
-			sb.WriteByte(c)
-			if i++; i >= len(pat) {
-				return "", &SyntaxError{msg: "[ was not matched with a closing ]"}
-			}
-			switch c = pat[i]; c {
-			case '!', '^':
-				sb.WriteByte('^')
-				if i++; i >= len(pat) {
-					return "", &SyntaxError{msg: "[ was not matched with a closing ]"}
-				}
-			}
-			if c = pat[i]; c == ']' {
-				sb.WriteByte(']')
-				if i++; i >= len(pat) {
-					return "", &SyntaxError{msg: "[ was not matched with a closing ]"}
-				}
-			}
-			rangeStart := byte(0)
-		loopBracket:
-			for ; i < len(pat); i++ {
-				c = pat[i]
-				sb.WriteByte(c)
-				switch c {
-				case '\\':
-					if i++; i < len(pat) {
-						sb.WriteByte(pat[i])
-					}
-					continue
-				case ']':
-					break loopBracket
-				}
-				if rangeStart != 0 && rangeStart > c {
-					return "", &SyntaxError{msg: fmt.Sprintf("invalid range: %c-%c", rangeStart, c)}
-				}
-				if c == '-' {
-					rangeStart = pat[i-1]
-				} else {
-					rangeStart = 0
-				}
-			}
-			if i >= len(pat) {
-				return "", &SyntaxError{msg: "[ was not matched with a closing ]"}
-			}
-		default:
-			if c > 128 {
-				sb.WriteByte(c)
-			} else {
-				sb.WriteString(regexp.QuoteMeta(string(c)))
-			}
+	sl := stringLexer{s: pat}
+	for {
+		dotMeta, err := regexpNext(&sb, &sl, mode)
+		anyDotMeta = anyDotMeta || dotMeta
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			return "", err
 		}
 	}
 	if mode&EntireString != 0 {
 		sb.WriteString("$")
 	}
 	// No `.` metacharacters were used, so don't return the (?s) flag.
-	if !dotMeta {
+	if !anyDotMeta {
 		return sb.String()[4:], nil
 	}
 	return sb.String(), nil
 }
 
+// stringLexer helps us tokenize a pattern string.
+// Note that we can use the null byte '\x00' to signal "no character" as shell strings cannot contain null bytes.
+// TODO: should the tokenization be based on runes? e.g: [á-é]
+type stringLexer struct {
+	s string
+	i int
+}
+
+func (sl *stringLexer) next() byte {
+	if sl.i >= len(sl.s) {
+		return '\x00'
+	}
+	c := sl.s[sl.i]
+	sl.i++
+	return c
+}
+
+func (sl *stringLexer) last() byte {
+	if sl.i < 2 {
+		return '\x00'
+	}
+	return sl.s[sl.i-2]
+}
+
+func (sl *stringLexer) peekNext() byte {
+	if sl.i >= len(sl.s) {
+		return '\x00'
+	}
+	return sl.s[sl.i]
+}
+
+func (sl *stringLexer) peekRest() string {
+	return sl.s[sl.i:]
+}
+
+func regexpNext(sb *strings.Builder, sl *stringLexer, mode Mode) (dotMeta bool, _ error) {
+	switch c := sl.next(); c {
+	case '\x00':
+		return false, io.EOF
+	case '*':
+		if mode&Filenames != 0 {
+			// "**" only acts as globstar if it is alone as a path element.
+			singleBefore := sl.i == 1 || sl.last() == '/'
+			if sl.peekNext() == '*' {
+				sl.i++
+				singleAfter := sl.i == len(sl.s) || sl.peekNext() == '/'
+				if mode&NoGlobStar != 0 || !singleBefore || !singleAfter {
+					// foo**, **bar, or NoGlobStar - behaves like "*"
+					if singleBefore {
+						sb.WriteString("([^/.][^/]*)?")
+					} else {
+						sb.WriteString("[^/]*")
+					}
+				} else if sl.peekNext() == '/' {
+					// **/ - like "**" but requiring a trailing slash when matching
+					sl.i++
+					sb.WriteString("((/|[^/.][^/]*)*/)?")
+					dotMeta = true
+				} else {
+					// ** - match any number of slashes or "*" path elements
+					sb.WriteString("(/|[^/.][^/]*)*")
+					dotMeta = true
+				}
+			} else {
+				// * - matches anything except slashes and leading dots
+				if singleBefore {
+					sb.WriteString("([^/.][^/]*)?")
+				} else {
+					sb.WriteString("[^/]*")
+				}
+			}
+		} else {
+			// * - matches anything when not in filename mode
+			sb.WriteString(".*")
+			dotMeta = true
+		}
+		if mode&Shortest != 0 {
+			sb.WriteByte('?')
+		}
+	case '?':
+		if mode&Filenames != 0 {
+			sb.WriteString("[^/]")
+		} else {
+			sb.WriteByte('.')
+			dotMeta = true
+		}
+	case '\\':
+		c = sl.next()
+		if c == '\x00' {
+			return false, &SyntaxError{msg: `\ at end of pattern`}
+		}
+		sb.WriteString(regexp.QuoteMeta(string(c)))
+	case '[':
+		// TODO: surely char classes can be mixed with others, e.g. [[:foo:]xyz]
+		if name, err := charClass(sl.peekRest()); err != nil {
+			return false, &SyntaxError{msg: "charClass invalid", err: err}
+		} else if name != "" {
+			sb.WriteByte('[')
+			sb.WriteString(name)
+			sl.i += len(name)
+			break
+		}
+		if mode&Filenames != 0 {
+			for _, c := range sl.peekRest() {
+				if c == ']' {
+					break
+				} else if c == '/' {
+					sb.WriteString("\\[")
+					return
+				}
+			}
+		}
+		sb.WriteByte(c)
+		if c = sl.next(); c == '\x00' {
+			return false, &SyntaxError{msg: "[ was not matched with a closing ]"}
+		}
+		switch c {
+		case '!', '^':
+			sb.WriteByte('^')
+			if c = sl.next(); c == '\x00' {
+				return false, &SyntaxError{msg: "[ was not matched with a closing ]"}
+			}
+		}
+		if c == ']' {
+			sb.WriteByte(']')
+			if c = sl.next(); c == '\x00' {
+				return false, &SyntaxError{msg: "[ was not matched with a closing ]"}
+			}
+		}
+		for {
+			sb.WriteByte(c)
+			switch c {
+			case '\x00':
+				return false, &SyntaxError{msg: "[ was not matched with a closing ]"}
+			case '\\':
+				if c = sl.next(); c != '0' {
+					sb.WriteByte(c)
+				}
+			case '-':
+				start := sl.last()
+				end := sl.peekNext()
+				// TODO: what about overlapping ranges, like: [a--z]
+				if end != ']' && start > end {
+					return false, &SyntaxError{msg: fmt.Sprintf("invalid range: %c-%c", start, end)}
+				}
+			case ']':
+				return dotMeta, nil
+			}
+			c = sl.next()
+		}
+	default:
+		if c > utf8.RuneSelf {
+			sb.WriteByte(c)
+		} else {
+			sb.WriteString(regexp.QuoteMeta(string(c)))
+		}
+	}
+	return dotMeta, nil
+}
+
 func charClass(s string) (string, error) {
-	if strings.HasPrefix(s, "[[.") || strings.HasPrefix(s, "[[=") {
+	if strings.HasPrefix(s, "[.") || strings.HasPrefix(s, "[=") {
 		return "", fmt.Errorf("collating features not available")
 	}
-	name, ok := strings.CutPrefix(s, "[[:")
+	name, ok := strings.CutPrefix(s, "[:")
 	if !ok {
 		return "", nil
 	}
@@ -230,7 +274,7 @@ func charClass(s string) (string, error) {
 	default:
 		return "", fmt.Errorf("invalid character class: %q", name)
 	}
-	return s[:len(name)+6], nil
+	return s[:len(name)+5], nil
 }
 
 // HasMeta returns whether a string contains any unescaped pattern
