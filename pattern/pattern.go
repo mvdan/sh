@@ -161,11 +161,9 @@ func regexpNext(sb *strings.Builder, sl *stringLexer, mode Mode) (dotMeta bool, 
 				// **/ - like "**" but requiring a trailing slash when matching
 				sl.i++
 				sb.WriteString("((/|[^/.][^/]*)*/)?")
-				dotMeta = true
 			} else {
 				// ** - match any number of slashes or "*" path elements
 				sb.WriteString("(/|[^/.][^/]*)*")
-				dotMeta = true
 			}
 		} else {
 			// * - matches anything except slashes and leading dots

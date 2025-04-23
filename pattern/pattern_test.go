@@ -49,7 +49,7 @@ var regexpTests = []struct {
 	},
 	{pat: `**`, want: `(?s).*.*`},
 	{
-		pat: `**`, mode: Filenames | EntireString, want: `(?s)^(/|[^/.][^/]*)*$`,
+		pat: `**`, mode: Filenames | EntireString, want: `^(/|[^/.][^/]*)*$`,
 		mustMatch:    []string{"/foo", "/prefix/foo", "/a.b.c/foo", "/a/b/c/foo", "/foo/suffix.ext", "/a\n/\nb"},
 		mustNotMatch: []string{"/.prefix/foo", "/prefix/.foo"},
 	},
@@ -60,12 +60,12 @@ var regexpTests = []struct {
 	},
 	{pat: `/**/foo`, want: `(?s)/.*.*/foo`},
 	{
-		pat: `/**/foo`, mode: Filenames | EntireString, want: `(?s)^/((/|[^/.][^/]*)*/)?foo$`,
+		pat: `/**/foo`, mode: Filenames | EntireString, want: `^/((/|[^/.][^/]*)*/)?foo$`,
 		mustMatch:    []string{"/foo", "/prefix/foo", "/a.b.c/foo", "/a/b/c/foo"},
 		mustNotMatch: []string{"/foo/suffix", "prefix/foo", "/.prefix/foo", "/prefix/.foo"},
 	},
 	{pat: `/**/foo`, mode: Filenames | NoGlobStar, want: `/([^/.][^/]*)?/foo`},
-	{pat: `/**/à`, mode: Filenames, want: `(?s)/((/|[^/.][^/]*)*/)?à`},
+	{pat: `/**/à`, mode: Filenames, want: `/((/|[^/.][^/]*)*/)?à`},
 	{
 		pat: `/**foo`, mode: Filenames, want: `/([^/.][^/]*)?foo`,
 		// These all match because without EntireString, we match substrings.
