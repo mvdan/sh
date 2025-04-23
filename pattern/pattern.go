@@ -51,23 +51,25 @@ const (
 // paths if Windows is supported, as the path separator on that platform is the
 // same character as the escaping character for shell patterns.
 func Regexp(pat string, mode Mode) (string, error) {
-	needsEscaping := false
-noopLoop:
-	for _, r := range pat {
-		switch r {
-		// including those that need escaping since they are
-		// regular expression metacharacters
-		case '*', '?', '[', '\\', '.', '+', '(', ')', '|',
-			']', '{', '}', '^', '$':
-			needsEscaping = true
-			break noopLoop
-		}
-	}
 	// If there are no special pattern matching or regular expression characters,
 	// and we don't need to insert extras for the modes affecting non-special characters,
 	// we can directly return the input string as a short-cut.
-	if !needsEscaping && mode&(EntireString|NoGlobCase) == 0 {
-		return pat, nil
+	if mode&(EntireString|NoGlobCase) == 0 {
+		needsEscaping := false
+	noopLoop:
+		for _, r := range pat {
+			switch r {
+			// including those that need escaping since they are
+			// regular expression metacharacters
+			case '*', '?', '[', '\\', '.', '+', '(', ')', '|',
+				']', '{', '}', '^', '$':
+				needsEscaping = true
+				break noopLoop
+			}
+		}
+		if !needsEscaping {
+			return pat, nil
+		}
 	}
 	var sb strings.Builder
 	// Enable matching `\n` with the `.` metacharacter as globs match `\n`
