@@ -285,7 +285,7 @@ func (p *Printer) reset() {
 }
 
 func (p *Printer) spaces(n uint) {
-	for i := uint(0); i < n; i++ {
+	for range n {
 		p.WriteByte(' ')
 	}
 }

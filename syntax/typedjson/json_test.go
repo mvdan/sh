@@ -26,8 +26,6 @@ func TestRoundtrip(t *testing.T) {
 	shellPaths, err := filepath.Glob(filepath.Join(dir, "*.sh"))
 	qt.Assert(t, qt.IsNil(err))
 	for _, shellPath := range shellPaths {
-
-		shellPath := shellPath // do not reuse the range var
 		name := strings.TrimSuffix(filepath.Base(shellPath), ".sh")
 		jsonPath := filepath.Join(dir, name+".json")
 		t.Run(name, func(t *testing.T) {

@@ -447,7 +447,7 @@ func Fields(cfg *Config, words ...*syntax.Word) ([]string, error) {
 	return fields, nil
 }
 
-// Fields expands a number of words as if they were arguments in a shell
+// FieldsSeq expands a number of words as if they were arguments in a shell
 // command. This includes brace expansion, tilde expansion, parameter expansion,
 // command substitution, arithmetic expansion, and quote removal.
 func FieldsSeq(cfg *Config, words ...*syntax.Word) iter.Seq2[string, error] {

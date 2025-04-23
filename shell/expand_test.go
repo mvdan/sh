@@ -16,7 +16,7 @@ func strEnviron(pairs ...string) func(string) string {
 	return func(name string) string {
 		prefix := name + "="
 		for _, pair := range pairs {
-			if val := strings.TrimPrefix(pair, prefix); val != pair {
+			if val, ok := strings.CutPrefix(pair, prefix); ok {
 				return val
 			}
 		}

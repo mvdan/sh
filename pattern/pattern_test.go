@@ -38,11 +38,13 @@ var regexpTests = []struct {
 		mustMatch:    []string{"foo", "prefix-foo", "foo-suffix", "foo.suffix", ".foo.", "a\nbfooc\nd"},
 		mustNotMatch: []string{"bar"},
 	},
-	{pat: `foo*`, mode: Filenames | EntireString, want: `^foo[^/]*$`,
+	{
+		pat: `foo*`, mode: Filenames | EntireString, want: `^foo[^/]*$`,
 		mustMatch:    []string{"foo", "foo-suffix", "foo.suffix", "foo\nsuffix"},
 		mustNotMatch: []string{"prefix-foo", "foo/suffix"},
 	},
-	{pat: `foo/*`, mode: Filenames | EntireString, want: `^foo/([^/.][^/]*)?$`,
+	{
+		pat: `foo/*`, mode: Filenames | EntireString, want: `^foo/([^/.][^/]*)?$`,
 		mustMatch:    []string{"foo/", "foo/suffix"},
 		mustNotMatch: []string{"foo/.suffix"},
 	},
