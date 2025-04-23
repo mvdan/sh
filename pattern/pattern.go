@@ -148,28 +148,24 @@ func regexpNext(sb *strings.Builder, sl *stringLexer, mode Mode) error {
 		if sl.peekNext() == '*' {
 			sl.i++
 			singleAfter := sl.i == len(sl.s) || sl.peekNext() == '/'
-			if mode&NoGlobStar != 0 || !singleBefore || !singleAfter {
-				// foo**, **bar, or NoGlobStar - behaves like "*"
-				if singleBefore {
-					sb.WriteString("([^/.][^/]*)?")
+			if mode&NoGlobStar == 0 && singleBefore && singleAfter {
+				if sl.peekNext() == '/' {
+					// **/ - like "**" but requiring a trailing slash when matching
+					sl.i++
+					sb.WriteString("((/|[^/.][^/]*)*/)?")
 				} else {
-					sb.WriteString("[^/]*")
+					// ** - match any number of slashes or "*" path elements
+					sb.WriteString("(/|[^/.][^/]*)*")
 				}
-			} else if sl.peekNext() == '/' {
-				// **/ - like "**" but requiring a trailing slash when matching
-				sl.i++
-				sb.WriteString("((/|[^/.][^/]*)*/)?")
-			} else {
-				// ** - match any number of slashes or "*" path elements
-				sb.WriteString("(/|[^/.][^/]*)*")
+				break
 			}
+			// foo**, **bar, or NoGlobStar - behaves like "*" below
+		}
+		// * - matches anything except slashes and leading dots
+		if singleBefore {
+			sb.WriteString("([^/.][^/]*)?")
 		} else {
-			// * - matches anything except slashes and leading dots
-			if singleBefore {
-				sb.WriteString("([^/.][^/]*)?")
-			} else {
-				sb.WriteString("[^/]*")
-			}
+			sb.WriteString("[^/]*")
 		}
 	case '?':
 		if mode&Filenames != 0 {
