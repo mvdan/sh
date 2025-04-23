@@ -28,8 +28,13 @@ var regexpTests = []struct {
 	{pat: `foo*`, want: `(?s)foo.*`},
 	{pat: `foo*`, mode: Shortest, want: `(?s)(?U)foo.*`},
 	{pat: `foo*`, mode: Shortest | Filenames, want: `(?U)foo[^/]*`},
+	{
+		pat: `*foo*`, mode: EntireString, want: `(?s)^.*foo.*$`,
+		mustMatch:    []string{"foo", "prefix-foo", "foo-suffix", "foo.suffix", ".foo.", "a\nbfooc\nd"},
+		mustNotMatch: []string{"bar"},
+	},
 	{pat: `foo*`, mode: Filenames | EntireString, want: `^foo[^/]*$`,
-		mustMatch:    []string{"foo", "foo-suffix", "foo.suffix"},
+		mustMatch:    []string{"foo", "foo-suffix", "foo.suffix", "foo\nsuffix"},
 		mustNotMatch: []string{"prefix-foo", "foo/suffix"},
 	},
 	{pat: `foo/*`, mode: Filenames | EntireString, want: `^foo/([^/.][^/]*)?$`,
@@ -45,7 +50,7 @@ var regexpTests = []struct {
 	{pat: `**`, want: `(?s).*.*`},
 	{
 		pat: `**`, mode: Filenames | EntireString, want: `(?s)^(/|[^/.][^/]*)*$`,
-		mustMatch:    []string{"/foo", "/prefix/foo", "/a.b.c/foo", "/a/b/c/foo", "/foo/suffix.ext"},
+		mustMatch:    []string{"/foo", "/prefix/foo", "/a.b.c/foo", "/a/b/c/foo", "/foo/suffix.ext", "/a\n/\nb"},
 		mustNotMatch: []string{"/.prefix/foo", "/prefix/.foo"},
 	},
 	{
@@ -79,6 +84,11 @@ var regexpTests = []struct {
 	{pat: `\*`, want: `\*`},
 	{pat: `\`, wantErr: `^\\ at end of pattern$`},
 	{pat: `?`, want: `(?s).`},
+	{
+		pat: `?`, mode: EntireString, want: `(?s)^.$`,
+		mustMatch:    []string{"a", "\n", " "},
+		mustNotMatch: []string{"abc", ""},
+	},
 	{pat: `?`, mode: Filenames, want: `[^/]`},
 	{pat: `?à`, want: `(?s).à`},
 	{pat: `\a`, want: `a`},
