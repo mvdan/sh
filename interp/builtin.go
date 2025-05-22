@@ -263,9 +263,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			}
 			bg := r.bgProcs[pid-1]
 			<-bg.done
-			if exit == 0 {
-				exit = *bg.exit
-			}
+			exit = *bg.exit
 		}
 		return exit
 	case "builtin":

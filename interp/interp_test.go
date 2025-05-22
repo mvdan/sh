@@ -1464,6 +1464,14 @@ var runTests = []runTest{
 		"for n in {0..9}; do { inner=val; } & echo $inner; done",
 		"\n\n\n\n\n\n\n\n\n\n",
 	},
+	{
+		"exit 2 & bg1=$!; exit 0 & bg2=$!; wait $bg1 $bg2; echo $?",
+		"0\n",
+	},
+	{
+		"exit 2 & bg1=$!; exit 4 & bg2=$!; wait $bg1 $bg2; echo $?",
+		"4\n",
+	},
 
 	// bash test
 	{
