@@ -243,6 +243,42 @@ var modCases = []struct {
 		want: "next\n",
 	},
 	{
+		name: "ExecCustomExitStatus5Pipefail",
+		opts: []interp.RunnerOption{
+			interp.ExecHandlers(execCustomExitStatus5),
+		},
+		src: "set -e -o pipefail; foo | true",
+		// TODO: keep the original custom error
+		want: "Runner.Run error: exit status 5",
+	},
+	{
+		name: "ExecCustomExitStatus5CmdSubst",
+		opts: []interp.RunnerOption{
+			interp.ExecHandlers(execCustomExitStatus5),
+		},
+		src: "x=$(foo)",
+		// TODO: keep the original custom error
+		want: "Runner.Run error: exit status 5",
+	},
+	{
+		name: "ExecCustomExitStatus5Subshell",
+		opts: []interp.RunnerOption{
+			interp.ExecHandlers(execCustomExitStatus5),
+		},
+		src: "(foo)",
+		// TODO: keep the original custom error
+		want: "Runner.Run error: exit status 5",
+	},
+	{
+		name: "ExecCustomExitStatus5Wait",
+		opts: []interp.RunnerOption{
+			interp.ExecHandlers(execCustomExitStatus5),
+		},
+		src: "foo & bg=$!; wait $bg",
+		// TODO: keep the original custom error
+		want: "Runner.Run error: exit status 5",
+	},
+	{
 		name: "OpenForbidNonDev",
 		opts: []interp.RunnerOption{
 			interp.OpenHandler(blocklistNondevOpen),
