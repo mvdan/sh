@@ -374,6 +374,9 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		r2.stmts(ctx, cm.Stmts)
 		r.exit = r2.exit
 		r.setFatalErr(r2.fatalErr)
+		if err := r2.nonFatalHandlerErr; err != nil {
+			r.nonFatalHandlerErr = err
+		}
 	case *syntax.CallExpr:
 		// Use a new slice, to not modify the slice in the alias map.
 		var args []*syntax.Word
@@ -494,6 +497,9 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			if r.opts[optPipeFail] && r2.exit != 0 && r.exit == 0 {
 				r.exit = r2.exit
 				r.exiting = r2.exiting
+				if err := r2.nonFatalHandlerErr; err != nil {
+					r.nonFatalHandlerErr = err
+				}
 			}
 			r.setFatalErr(r2.fatalErr)
 		}
