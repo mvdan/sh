@@ -322,8 +322,12 @@ func DefaultOpenHandler() OpenHandlerFunc {
 
 // ReadDirHandlerFunc is a handler which reads directories. It is called during
 // shell globbing, if enabled.
+//
+// Deprecated: use [ReadDirHandlerFunc2], which uses [fs.DirEntry].
 type ReadDirHandlerFunc func(ctx context.Context, path string) ([]fs.FileInfo, error)
 
+// ReadDirHandlerFunc2 is a handler which reads directories. It is called during
+// shell globbing, if enabled.
 type ReadDirHandlerFunc2 func(ctx context.Context, path string) ([]fs.DirEntry, error)
 
 // DefaultReadDirHandler returns the [ReadDirHandlerFunc] used by default.
