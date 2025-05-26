@@ -133,7 +133,7 @@ type Runner struct {
 
 	fatalErr  error // current fatal error, e.g. from a handler
 	returning bool  // whether the current function `return`ed
-	exiting   bool  // whether the current shell `exit`ed
+	exiting   bool  // whether the current shell `exit`ed or encountered a fatal error
 
 	// nonFatalHandlerErr is the current non-fatal error from a handler.
 	// Used so that running a single statement with a custom handler

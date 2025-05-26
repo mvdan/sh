@@ -263,8 +263,9 @@ func (r *Runner) handlerCtx(ctx context.Context) context.Context {
 }
 
 func (r *Runner) setFatalErr(err error) {
-	if r.fatalErr == nil {
+	if r.fatalErr == nil && err != nil {
 		r.fatalErr = err
+		r.exiting = true
 	}
 }
 
@@ -281,11 +282,11 @@ func (r *Runner) errf(format string, a ...any) {
 }
 
 func (r *Runner) stop(ctx context.Context) bool {
-	if r.fatalErr != nil || r.returning || r.exiting {
+	if r.returning || r.exiting {
 		return true
 	}
 	if err := ctx.Err(); err != nil {
-		r.fatalErr = err
+		r.setFatalErr(err)
 		return true
 	}
 	if r.opts[optNoExec] {
