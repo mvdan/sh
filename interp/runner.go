@@ -783,7 +783,6 @@ func (r *Runner) exitShell(ctx context.Context, status int) {
 	r.trapCallback(ctx, r.callbackExit, "exit")
 
 	r.exiting = true
-	// Restore the original exit status. We ignore the callbacks.
 	r.exit = status
 }
 

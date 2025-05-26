@@ -54,6 +54,10 @@ func atoi(s string) int {
 }
 
 func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, args []string) int {
+	failf := func(code int, format string, args ...any) int {
+		r.errf(format, args...)
+		return code
+	}
 	switch name {
 	case "true", ":":
 	case "false":
@@ -66,20 +70,17 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		case 1:
 			n, err := strconv.Atoi(args[0])
 			if err != nil {
-				r.errf("invalid exit status code: %q\n", args[0])
-				return 2
+				return failf(2, "invalid exit status code: %q\n", args[0])
 			}
 			exit = n
 		default:
-			r.errf("exit cannot take multiple arguments\n")
-			return 1
+			return failf(1, "exit cannot take multiple arguments\n")
 		}
 		r.exitShell(ctx, exit)
 		return exit
 	case "set":
 		if err := Params(args...)(r); err != nil {
-			r.errf("set: %v\n", err)
-			return 2
+			return failf(2, "set: %v\n", err)
 		}
 		r.updateExpandOpts()
 	case "shift":
@@ -93,8 +94,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			}
 			fallthrough
 		default:
-			r.errf("usage: shift [n]\n")
-			return 2
+			return failf(2, "usage: shift [n]\n")
 		}
 		if n >= len(r.Params) {
 			r.Params = nil
@@ -153,15 +153,13 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		}
 	case "printf":
 		if len(args) == 0 {
-			r.errf("usage: printf format [arguments]\n")
-			return 2
+			return failf(2, "usage: printf format [arguments]\n")
 		}
 		format, args := args[0], args[1:]
 		for {
 			s, n, err := expand.Format(r.ecfg, format, args)
 			if err != nil {
-				r.errf("%v\n", err)
-				return 1
+				return failf(1, "%v\n", err)
 			}
 			r.out(s)
 			args = args[n:]
@@ -171,8 +169,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		}
 	case "break", "continue":
 		if !r.inLoop {
-			r.errf("%s is only useful in a loop\n", name)
-			break
+			return failf(0, "%s is only useful in a loop\n", name)
 		}
 		enclosing := &r.breakEnclosing
 		if name == "continue" {
@@ -188,8 +185,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			}
 			fallthrough
 		default:
-			r.errf("usage: %s [n]\n", name)
-			return 2
+			return failf(2, "usage: %s [n]\n", name)
 		}
 	case "pwd":
 		evalSymlinks := false
@@ -200,8 +196,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			case "-P":
 				evalSymlinks = true
 			default:
-				r.errf("invalid option: %q\n", args[0])
-				return 2
+				return failf(2, "invalid option: %q\n", args[0])
 			}
 			args = args[1:]
 		}
@@ -230,8 +225,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 				r.outf("%s\n", path)
 			}
 		default:
-			r.errf("usage: cd [dir]\n")
-			return 2
+			return failf(2, "usage: cd [dir]\n")
 		}
 		return r.changeDir(ctx, path)
 	case "wait":
@@ -239,11 +233,9 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		for fp.more() {
 			switch flag := fp.flag(); flag {
 			case "-n", "-p":
-				r.errf("wait: unsupported option %q\n", flag)
-				return 2
+				return failf(2, "wait: unsupported option %q\n", flag)
 			default:
-				r.errf("wait: invalid option %q\n", flag)
-				return 2
+				return failf(2, "wait: invalid option %q\n", flag)
 			}
 		}
 		if len(args) == 0 {
@@ -258,8 +250,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			arg, ok := strings.CutPrefix(arg, "g")
 			pid := atoi(arg)
 			if !ok || pid <= 0 || pid > len(r.bgProcs) {
-				r.errf("wait: pid %s is not a child of this shell\n", arg)
-				return 1
+				return failf(1, "wait: pid %s is not a child of this shell\n", arg)
 			}
 			bg := r.bgProcs[pid-1]
 			<-bg.done
@@ -281,13 +272,11 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		for fp.more() {
 			switch flag := fp.flag(); flag {
 			case "-a", "-f", "-P", "--help":
-				r.errf("command: NOT IMPLEMENTED\n")
-				return 3
+				return failf(3, "command: NOT IMPLEMENTED\n")
 			case "-p", "-t":
 				mode = flag
 			default:
-				r.errf("command: invalid option %q\n", flag)
-				return 2
+				return failf(2, "command: invalid option %q\n", flag)
 			}
 		}
 		args := fp.args()
@@ -363,15 +352,13 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		p := syntax.NewParser()
 		file, err := p.Parse(strings.NewReader(src), "")
 		if err != nil {
-			r.errf("eval: %v\n", err)
-			return 1
+			return failf(1, "eval: %v\n", err)
 		}
 		r.stmts(ctx, file.Stmts)
 		return r.exit
 	case "source", ".":
 		if len(args) < 1 {
-			r.errf("%v: source: need filename\n", pos)
-			return 2
+			return failf(2, "%v: source: need filename\n", pos)
 		}
 		path, err := scriptFromPathDir(r.Dir, r.writeEnv, args[0])
 		if err != nil {
@@ -383,15 +370,13 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		}
 		f, err := r.open(ctx, path, os.O_RDONLY, 0, false)
 		if err != nil {
-			r.errf("source: %v\n", err)
-			return 1
+			return failf(1, "source: %v\n", err)
 		}
 		defer f.Close()
 		p := syntax.NewParser()
 		file, err := p.Parse(f, path)
 		if err != nil {
-			r.errf("source: %v\n", err)
-			return 1
+			return failf(1, "source: %v\n", err)
 		}
 
 		// Keep the current versions of some fields we might modify.
@@ -424,8 +409,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		return r.exit
 	case "[":
 		if len(args) == 0 || args[len(args)-1] != "]" {
-			r.errf("%v: [: missing matching ]\n", pos)
-			return 2
+			return failf(2, "%v: [: missing matching ]\n", pos)
 		}
 		args = args[:len(args)-1]
 		fallthrough
@@ -464,8 +448,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			case "-v":
 				show = true
 			default:
-				r.errf("command: invalid option %q\n", flag)
-				return 2
+				return failf(2, "command: invalid option %q\n", flag)
 			}
 		}
 		args := fp.args()
@@ -518,8 +501,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 				break
 			}
 			if len(r.dirStack) < 2 {
-				r.errf("pushd: no other directory\n")
-				return 1
+				return failf(1, "pushd: no other directory\n")
 			}
 			newtop := swap()
 			if code := r.changeDir(ctx, newtop); code != 0 {
@@ -538,8 +520,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			}
 			r.builtinCode(ctx, syntax.Pos{}, "dirs", nil)
 		default:
-			r.errf("pushd: too many arguments\n")
-			return 2
+			return failf(2, "pushd: too many arguments\n")
 		}
 	case "popd":
 		change := true
@@ -550,8 +531,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		switch len(args) {
 		case 0:
 			if len(r.dirStack) < 2 {
-				r.errf("popd: directory stack empty\n")
-				return 1
+				return failf(1, "popd: directory stack empty\n")
 			}
 			oldtop := r.dirStack[len(r.dirStack)-1]
 			r.dirStack = r.dirStack[:len(r.dirStack)-1]
@@ -565,13 +545,11 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			}
 			r.builtinCode(ctx, syntax.Pos{}, "dirs", nil)
 		default:
-			r.errf("popd: invalid argument\n")
-			return 2
+			return failf(2, "popd: invalid argument\n")
 		}
 	case "return":
 		if !r.inFunc && !r.inSource {
-			r.errf("return: can only be done from a func or sourced script\n")
-			return 1
+			return failf(1, "return: can only be done from a func or sourced script\n")
 		}
 		code := 0
 		switch len(args) {
@@ -579,8 +557,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		case 1:
 			code = atoi(args[0])
 		default:
-			r.errf("return: too many arguments\n")
-			return 2
+			return failf(2, "return: too many arguments\n")
 		}
 		r.returning = true
 		return code
@@ -598,20 +575,17 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			case "-p":
 				prompt = fp.value()
 				if prompt == "" {
-					r.errf("read: -p: option requires an argument\n")
-					return 2
+					return failf(2, "read: -p: option requires an argument\n")
 				}
 			default:
-				r.errf("read: invalid option %q\n", flag)
-				return 2
+				return failf(2, "read: invalid option %q\n", flag)
 			}
 		}
 
 		args := fp.args()
 		for _, name := range args {
 			if !syntax.ValidName(name) {
-				r.errf("read: invalid identifier %q\n", name)
-				return 2
+				return failf(2, "read: invalid identifier %q\n", name)
 			}
 		}
 
@@ -646,12 +620,9 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			return 1
 		}
 
-		return 0
-
 	case "getopts":
 		if len(args) < 2 {
-			r.errf("getopts: usage: getopts optstring name [arg ...]\n")
-			return 2
+			return failf(2, "getopts: usage: getopts optstring name [arg ...]\n")
 		}
 		optind, _ := strconv.Atoi(r.envGet("OPTIND"))
 		if optind-1 != r.optState.argidx {
@@ -663,8 +634,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		optstr := args[0]
 		name := args[1]
 		if !syntax.ValidName(name) {
-			r.errf("getopts: invalid identifier: %q\n", name)
-			return 2
+			return failf(2, "getopts: invalid identifier: %q\n", name)
 		}
 		args = args[2:]
 		if len(args) == 0 {
@@ -705,8 +675,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			case "-p", "-q":
 				panic(fmt.Sprintf("unhandled shopt flag: %s", flag))
 			default:
-				r.errf("shopt: invalid option %q\n", flag)
-				return 2
+				return failf(2, "shopt: invalid option %q\n", flag)
 			}
 		}
 		args := fp.args()
@@ -726,8 +695,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		for _, arg := range args {
 			i, opt := r.optByName(arg, bash)
 			if opt == nil {
-				r.errf("shopt: invalid option name %q\n", arg)
-				return 1
+				return failf(1, "shopt: invalid option name %q\n", arg)
 			}
 
 			var (
@@ -742,8 +710,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			switch mode {
 			case "-s", "-u":
 				if bash && !supported {
-					r.errf("shopt: invalid option name %q %q (%q not supported)\n", arg, r.optStatusText(bo.defaultState), r.optStatusText(!bo.defaultState))
-					return 1
+					return failf(1, "shopt: invalid option name %q %q (%q not supported)\n", arg, r.optStatusText(bo.defaultState), r.optStatusText(!bo.defaultState))
 				}
 				*opt = mode == "-s"
 			default: // ""
@@ -815,8 +782,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		for fp.more() {
 			switch flag := fp.flag(); flag {
 			case "-l", "-p":
-				r.errf("trap: %q: NOT IMPLEMENTED flag\n", flag)
-				return 2
+				return failf(2, "trap: %q: NOT IMPLEMENTED flag\n", flag)
 			case "-":
 				// default signal
 			default:
@@ -853,8 +819,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			case "EXIT":
 				r.callbackExit = callback
 			default:
-				r.errf("trap: %s: invalid signal specification\n", arg)
-				return 2
+				return failf(2, "trap: %s: invalid signal specification\n", arg)
 			}
 		}
 
@@ -869,8 +834,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 				dropDelim = true
 			case "-d":
 				if len(fp.remaining) == 0 {
-					r.errf("%s: -d: option requires an argument\n", name)
-					return 2
+					return failf(2, "%s: -d: option requires an argument\n", name)
 				}
 				delim = fp.value()
 				if delim == "" {
@@ -879,8 +843,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 					delim = "\x00"
 				}
 			default:
-				r.errf("%s: invalid option %q\n", name, flag)
-				return 2
+				return failf(2, "%s: invalid option %q\n", name, flag)
 			}
 		}
 
@@ -891,13 +854,11 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			arrayName = "MAPFILE"
 		case 1:
 			if !syntax.ValidName(args[0]) {
-				r.errf("%s: invalid identifier %q\n", name, args[0])
-				return 2
+				return failf(2, "%s: invalid identifier %q\n", name, args[0])
 			}
 			arrayName = args[0]
 		default:
-			r.errf("%s: Only one array name may be specified, %v\n", name, args)
-			return 2
+			return failf(2, "%s: Only one array name may be specified, %v\n", name, args)
 		}
 
 		var vr expand.Variable
@@ -908,17 +869,13 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			vr.List = append(vr.List, scanner.Text())
 		}
 		if err := scanner.Err(); err != nil {
-			r.errf("%s: unable to read, %v\n", name, err)
-			return 2
+			return failf(2, "%s: unable to read, %v\n", name, err)
 		}
 		r.setVar(arrayName, vr)
 
-		return 0
-
 	default:
 		// "umask", "fg", "bg",
-		r.errf("%s: unimplemented builtin\n", name)
-		return 2
+		return failf(2, "%s: unimplemented builtin\n", name)
 	}
 	return 0
 }
