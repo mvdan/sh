@@ -266,6 +266,9 @@ func (r *Runner) setFatalErr(err error) {
 	if r.fatalErr == nil && err != nil {
 		r.fatalErr = err
 		r.exiting = true
+		if r.exit == 0 {
+			r.exit = 1
+		}
 	}
 }
 
@@ -1045,9 +1048,7 @@ func (r *Runner) exec(ctx context.Context, args []string) {
 			r.nonFatalHandlerErr = err
 			r.exit = int(es)
 		} else {
-			// handler's custom fatal error
-			r.setFatalErr(err)
-			r.exit = 1
+			r.setFatalErr(err) // handler's custom fatal error
 		}
 	} else {
 		r.exit = 0
