@@ -131,22 +131,12 @@ type Runner struct {
 
 	noErrExit bool
 
-	fatalErr  error // current fatal error, e.g. from a handler
-	returning bool  // whether the current function `return`ed
-	exiting   bool  // whether the current shell `exit`ed or encountered a fatal error
-
-	// nonFatalHandlerErr is the current non-fatal error from a handler.
-	// Used so that running a single statement with a custom handler
-	// which returns a non-fatal Go error, such as a Go error wrapping [NewExitStatus],
-	// can be returned by [Runner.Run] without being lost entirely.
-	nonFatalHandlerErr error
-
-	// The current and last exit status code. They can only be different if
+	// The current and last exit statuses. They can only be different if
 	// the interpreter is in the middle of running a statement. In that
-	// scenario, 'exit' is the status code for the statement being run, and
-	// 'lastExit' corresponds to the previous statement that was run.
-	exit     int
-	lastExit int
+	// scenario, 'exit' is the status for the current statement being run,
+	// and 'lastExit' corresponds to the previous statement that was run.
+	exit     exitStatus
+	lastExit exitStatus
 
 	// bgProcs holds all background shells spawned by this runner.
 	// Their PIDs are 1-indexed, from 1 to len(bgProcs), with a "g" prefix
@@ -179,6 +169,24 @@ type Runner struct {
 	// Fake signal callbacks
 	callbackErr  string
 	callbackExit string
+}
+
+// exitStatus holds the state of the shell after running one command.
+// Beyond the exit status code, it also holds whether the shell should return or exit,
+// as well as any Go error values that should be given back to the user.
+type exitStatus struct {
+	code int
+
+	returning bool // whether the current function `return`ed
+	exiting   bool // whether the current shell `exit`ed or encountered a fatal error
+
+	fatalErr error // current fatal error, e.g. from a handler
+
+	// nonFatalHandlerErr is the current non-fatal error from a handler.
+	// Used so that running a single statement with a custom handler
+	// which returns a non-fatal Go error, such as a Go error wrapping [NewExitStatus],
+	// can be returned by [Runner.Run] without being lost entirely.
+	nonFatalHandlerErr error
 }
 
 type bgProc struct {
@@ -842,16 +850,14 @@ func (r *Runner) Run(ctx context.Context, node syntax.Node) error {
 		r.Reset()
 	}
 	r.fillExpandConfig(ctx)
-	r.fatalErr = nil
-	r.returning = false
-	r.exiting = false
+	r.exit = exitStatus{}
 	r.filename = ""
 	switch node := node.(type) {
 	case *syntax.File:
 		r.filename = node.Name
 		r.stmts(ctx, node.Stmts)
-		if !r.exiting {
-			r.exitShell(ctx, r.exit)
+		if !r.exit.exiting {
+			r.exitShell(ctx, r.exit.code)
 		}
 	case *syntax.Stmt:
 		r.stmt(ctx, node)
@@ -862,14 +868,14 @@ func (r *Runner) Run(ctx context.Context, node syntax.Node) error {
 	}
 	maps.Insert(r.Vars, r.writeEnv.Each)
 	// Return the first of: a fatal error, a non-fatal handler error, or the exit code.
-	if r.fatalErr != nil {
-		return r.fatalErr
+	if err := r.exit.fatalErr; err != nil {
+		return err
 	}
-	if r.nonFatalHandlerErr != nil {
-		return r.nonFatalHandlerErr
+	if err := r.exit.nonFatalHandlerErr; err != nil {
+		return err
 	}
-	if r.exit != 0 {
-		return ExitStatus(r.exit)
+	if code := r.exit.code; code != 0 {
+		return ExitStatus(code)
 	}
 	return nil
 }
@@ -880,7 +886,7 @@ func (r *Runner) Run(ctx context.Context, node syntax.Node) error {
 // Note that this state is overwritten at every Run call, so it should be
 // checked immediately after each Run call.
 func (r *Runner) Exited() bool {
-	return r.exiting
+	return r.exit.exiting
 }
 
 // Subshell makes a copy of the given [Runner], suitable for use concurrently

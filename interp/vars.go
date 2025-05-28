@@ -142,7 +142,7 @@ func (r *Runner) lookupVar(name string) expand.Variable {
 			vr.Kind, vr.Str = expand.String, "g"+strconv.Itoa(n)
 		}
 	case "?":
-		vr.Kind, vr.Str = expand.String, strconv.Itoa(r.lastExit)
+		vr.Kind, vr.Str = expand.String, strconv.Itoa(r.lastExit.code)
 	case "$":
 		vr.Kind, vr.Str = expand.String, strconv.Itoa(os.Getpid())
 	case "PPID":
@@ -188,7 +188,7 @@ func (r *Runner) envGet(name string) string {
 func (r *Runner) delVar(name string) {
 	if err := r.writeEnv.Set(name, expand.Variable{}); err != nil {
 		r.errf("%s: %v\n", name, err)
-		r.exit = 1
+		r.exit.code = 1
 		return
 	}
 }
@@ -203,7 +203,7 @@ func (r *Runner) setVar(name string, vr expand.Variable) {
 	}
 	if err := r.writeEnv.Set(name, vr); err != nil {
 		r.errf("%s: %v\n", name, err)
-		r.exit = 1
+		r.exit.code = 1
 		return
 	}
 }

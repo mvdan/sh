@@ -63,7 +63,7 @@ func (r *Runner) binTest(ctx context.Context, op syntax.BinTestOperator, x, y st
 	case syntax.TsReMatch:
 		re, err := regexp.Compile(y)
 		if err != nil {
-			r.exit = 2
+			r.exit.code = 2
 			return false
 		}
 		m := re.FindStringSubmatch(x)

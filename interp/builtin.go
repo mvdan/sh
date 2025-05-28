@@ -66,7 +66,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		exit := 0
 		switch len(args) {
 		case 0:
-			exit = r.lastExit
+			exit = r.lastExit.code
 		case 1:
 			n, err := strconv.Atoi(args[0])
 			if err != nil {
@@ -355,7 +355,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			return failf(1, "eval: %v\n", err)
 		}
 		r.stmts(ctx, file.Stmts)
-		return r.exit
+		return r.exit.code
 	case "source", ".":
 		if len(args) < 1 {
 			return failf(2, "%v: source: need filename\n", pos)
@@ -405,8 +405,8 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		r.sourceSetParams = oldSourceSetParams
 		r.inSource = oldInSource
 
-		r.returning = false
-		return r.exit
+		r.exit.returning = false
+		return r.exit.code
 	case "[":
 		if len(args) == 0 || args[len(args)-1] != "]" {
 			return failf(2, "%v: [: missing matching ]\n", pos)
@@ -439,7 +439,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		}
 		r.exitShell(ctx, 1)
 		r.exec(ctx, args)
-		return r.exit
+		return r.exit.code
 	case "command":
 		show := false
 		fp := flagParser{remaining: args}
@@ -460,7 +460,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 				return r.builtinCode(ctx, pos, args[0], args[1:])
 			}
 			r.exec(ctx, args)
-			return r.exit
+			return r.exit.code
 		}
 		last := 0
 		for _, arg := range args {
@@ -559,7 +559,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		default:
 			return failf(2, "return: too many arguments\n")
 		}
-		r.returning = true
+		r.exit.returning = true
 		return code
 	case "read":
 		var prompt string
