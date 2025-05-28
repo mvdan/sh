@@ -63,21 +63,22 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 	case "false":
 		return 1
 	case "exit":
-		exit := 0
+		var exit exitStatus
 		switch len(args) {
 		case 0:
-			exit = r.lastExit.code
+			exit = r.lastExit
 		case 1:
 			n, err := strconv.Atoi(args[0])
 			if err != nil {
 				return failf(2, "invalid exit status code: %q\n", args[0])
 			}
-			exit = n
+			exit.code = n
 		default:
 			return failf(1, "exit cannot take multiple arguments\n")
 		}
-		r.exitShell(ctx, exit)
-		return exit
+		r.exit = exit
+		r.exitShell(ctx, exit.code)
+		return exit.code
 	case "set":
 		if err := Params(args...)(r); err != nil {
 			return failf(2, "set: %v\n", err)
