@@ -339,14 +339,15 @@ func (r *Runner) stmtSync(ctx context.Context, st *syntax.Stmt) {
 		// TODO: negate the entire [exitStatus] here, wiping errors
 		r.exit.code = oneIf(r.exit.code == 0)
 	} else if b, ok := st.Cmd.(*syntax.BinaryCmd); ok && (b.Op == syntax.AndStmt || b.Op == syntax.OrStmt) {
-	} else if r.exit.code != 0 && !r.noErrExit && r.opts[optErrExit] {
+	} else if r.exit.code != 0 && !r.noErrExit {
 		// If the "errexit" option is set and a command failed, exit the shell. Exceptions:
 		//
 		//   conditions (if <cond>, while <cond>, etc)
 		//   part of && or || lists; excluded via "else" above
 		//   preceded by !; excluded via "else" above
-		r.exitShell(ctx, r.exit.code)
-	} else if r.exit.code != 0 && !r.noErrExit {
+		if r.opts[optErrExit] {
+			r.exitShell(ctx, r.exit.code)
+		}
 		r.trapCallback(ctx, r.callbackErr, "error")
 	}
 	if !r.keepRedirs {
