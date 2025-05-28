@@ -480,8 +480,8 @@ var runTests = []runTest{
 	{"for i in 1 2; do\necho $LINENO\necho $LINENO\ndone", "2\n3\n2\n3\n"},
 	{"[[ -n $$ && $$ -gt 0 ]]", ""},
 	{"[[ $$ -eq $PPID ]]", "exit status 1"},
-	{"[[ $RANDOM -eq $RANDOM ]]", "exit status 1"}, // 1 in 32k chance of a collision, 0.003%
-	{"[[ $SRANDOM -eq $SRANDOM ]]", "exit status 1"},
+	{"[[ $RANDOM -eq $RANDOM ]]", "exit status 1"},   // 1 in 32k chance of a collision, 0.003%
+	{"[[ $SRANDOM -eq $SRANDOM ]]", "exit status 1"}, // 1 in 2**32 chance of a collision,
 
 	// var manipulation
 	{"echo ${#a} ${#a[@]}", "0 0\n"},
@@ -552,6 +552,14 @@ var runTests = []runTest{
 	{
 		"echo ${#:-never} ${?:-never} ${LINENO:-never}",
 		"0 0 1\n",
+	},
+	{
+		"echo ${1-one} ${2-two} ${3-three}",
+		"one two three\n",
+	},
+	{
+		"set -u; echo ${1}",
+		"1: unbound variable\nexit status 1 #JUSTERR",
 	},
 	{
 		"echo ${a-b}; echo $a; a=; echo ${a-b}; a=c; echo ${a-b}",
@@ -2823,8 +2831,8 @@ done <<< 2`,
 	//        "xxx xxx\nxxx\n",
 	//},
 	{
-		"echo ${!@}-${!*}-${!1}; set -- foo_interp_missing; echo ${!@}-${!*}-${!1}; foo_interp_missing=value; echo ${!@}-${!*}-${!1}",
-		"--\n--\nvalue-value-value\n",
+		"echo ${!@}-${!*}; set -- foo_interp_missing; echo ${!@}-${!*}-${!1}; foo_interp_missing=value; echo ${!@}-${!*}-${!1}",
+		"-\n--\nvalue-value-value\n",
 	},
 
 	// read-only vars

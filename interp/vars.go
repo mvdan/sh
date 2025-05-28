@@ -168,12 +168,9 @@ func (r *Runner) lookupVar(name string) expand.Variable {
 			vr.Str = "gosh"
 		}
 	case "1", "2", "3", "4", "5", "6", "7", "8", "9":
-		vr.Kind = expand.String
-		i := int(name[0] - '1')
-		if i < len(r.Params) {
+		if i := int(name[0] - '1'); i < len(r.Params) {
+			vr.Kind = expand.String
 			vr.Str = r.Params[i]
-		} else {
-			vr.Str = ""
 		}
 	}
 	if vr.Kind != expand.Unknown {
