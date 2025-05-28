@@ -3,7 +3,10 @@
 
 package syntax
 
-import "strconv"
+import (
+	"strconv"
+	"strings"
+)
 
 var (
 	litLeftBrace  = &Lit{Value: "{"}
@@ -23,7 +26,10 @@ var (
 // It does not return an error; malformed brace expansions are simply skipped.
 // For example, the literal word "a{b" is left unchanged.
 func SplitBraces(word *Word) bool {
-	toSplit := false
+	if !strings.Contains(word.Lit(), "{") {
+		// In the common case where a word has no braces, skip any allocs.
+		return false
+	}
 	top := &Word{}
 	acc := top
 	var cur *BraceExp
@@ -90,7 +96,6 @@ func SplitBraces(word *Word) bool {
 				if cur == nil {
 					continue
 				}
-				toSplit = true
 				addlitidx()
 				br := pop()
 				if len(br.Elems) == 1 {
@@ -154,9 +159,6 @@ func SplitBraces(word *Word) bool {
 			left.Value = left.Value[last:]
 			addLit(&left)
 		}
-	}
-	if !toSplit {
-		return false
 	}
 	// open braces that were never closed fall back to non-braces
 	for acc != top {
