@@ -373,11 +373,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 	case *syntax.Subshell:
 		r2 := r.subshell(false)
 		r2.stmts(ctx, cm.Stmts)
-		r.exit.code = r2.exit.code
-		r.setFatalErr(r2.exit.fatalErr)
-		if err := r2.exit.nonFatalHandlerErr; err != nil {
-			r.exit.nonFatalHandlerErr = err
-		}
+		r.exit = r2.exit
 	case *syntax.CallExpr:
 		// Use a new slice, to not modify the slice in the alias map.
 		var args []*syntax.Word
@@ -496,11 +492,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			pr.Close()
 			wg.Wait()
 			if r.opts[optPipeFail] && r2.exit.code != 0 && r.exit.code == 0 {
-				r.exit.code = r2.exit.code
-				r.exit.exiting = r2.exit.exiting
-				if err := r2.exit.nonFatalHandlerErr; err != nil {
-					r.exit.nonFatalHandlerErr = err
-				}
+				r.exit = r2.exit
 			}
 			r.setFatalErr(r2.exit.fatalErr)
 		}
