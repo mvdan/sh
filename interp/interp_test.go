@@ -484,6 +484,13 @@ var runTests = []runTest{
 	{"[[ $RANDOM -eq $RANDOM ]]", "exit status 1"},   // 1 in 32k chance of a collision, 0.003%
 	{"[[ $SRANDOM -eq $SRANDOM ]]", "exit status 1"}, // 1 in 2**32 chance of a collision,
 
+	// Ensure that we consistently use 64 bits even on 32-bit platforms.
+	// Bash doesn't do this, but we do, for portability and consistency.
+	{"[[ 1000000000123 -lt 100 ]]", "exit status 1"},
+	{"[[ 1000000000123 -eq 1000000000456 ]]", "exit status 1"},
+	{"[[ 1000000000123 < 100 ]]", "exit status 1"},
+	{"((1000000000123 == 1000000000456))", "exit status 1"},
+
 	// var manipulation
 	{"echo ${#a} ${#a[@]}", "0 0\n"},
 	{"a=bar_interp_missing; echo ${#a} ${#a[@]}", "18 1\n"},

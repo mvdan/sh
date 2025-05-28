@@ -11,6 +11,9 @@ import (
 	"mvdan.cc/sh/v3/syntax"
 )
 
+// TODO(v4): the arithmetic APIs should return int64 for portability with 32-bit systems,
+// even if Bash only supports native int sizes.
+
 func Arithm(cfg *Config, expr syntax.ArithmExpr) (int, error) {
 	switch expr := expr.(type) {
 	case *syntax.Word:
@@ -31,7 +34,7 @@ func Arithm(cfg *Config, expr syntax.ArithmExpr) (int, error) {
 			str = val
 		}
 		// default to 0
-		return atoi(str), nil
+		return int(atoi(str)), nil
 	case *syntax.ParenArithm:
 		return Arithm(cfg, expr.X)
 	case *syntax.UnaryArithm:
@@ -45,13 +48,13 @@ func Arithm(cfg *Config, expr syntax.ArithmExpr) (int, error) {
 			} else {
 				val--
 			}
-			if err := cfg.envSet(name, strconv.Itoa(val)); err != nil {
+			if err := cfg.envSet(name, strconv.FormatInt(val, 10)); err != nil {
 				return 0, err
 			}
 			if expr.Post {
-				return old, nil
+				return int(old), nil
 			}
-			return val, nil
+			return int(val), nil
 		}
 		val, err := Arithm(cfg, expr.X)
 		if err != nil {
@@ -106,20 +109,21 @@ func oneIf(b bool) int {
 	return 0
 }
 
-// atoi is like [strconv.Atoi], but it ignores errors and trims whitespace.
-func atoi(s string) int {
+// atoi is like [strconv.ParseInt](s, 10, 64), but it ignores errors and trims whitespace.
+func atoi(s string) int64 {
 	s = strings.TrimSpace(s)
-	n, _ := strconv.Atoi(s)
+	n, _ := strconv.ParseInt(s, 10, 64)
 	return n
 }
 
 func (cfg *Config) assgnArit(b *syntax.BinaryArithm) (int, error) {
 	name := b.X.(*syntax.Word).Lit()
 	val := atoi(cfg.envGet(name))
-	arg, err := Arithm(cfg, b.Y)
+	arg_, err := Arithm(cfg, b.Y)
 	if err != nil {
 		return 0, err
 	}
+	arg := int64(arg_)
 	switch b.Op {
 	case syntax.Assgn:
 		val = arg
@@ -150,10 +154,10 @@ func (cfg *Config) assgnArit(b *syntax.BinaryArithm) (int, error) {
 	case syntax.ShrAssgn:
 		val >>= uint(arg)
 	}
-	if err := cfg.envSet(name, strconv.Itoa(val)); err != nil {
+	if err := cfg.envSet(name, strconv.FormatInt(val, 10)); err != nil {
 		return 0, err
 	}
-	return val, nil
+	return int(val), nil
 }
 
 func intPow(a, b int) int {

@@ -46,10 +46,10 @@ func oneIf(b bool) int {
 	return 0
 }
 
-// atoi is like [strconv.Atoi], but it ignores errors and trims whitespace.
-func atoi(s string) int {
+// atoi is like [strconv.ParseInt](s, 10, 64), but it ignores errors and trims whitespace.
+func atoi(s string) int64 {
 	s = strings.TrimSpace(s)
-	n, _ := strconv.Atoi(s)
+	n, _ := strconv.ParseInt(s, 10, 64)
 	return n
 }
 
@@ -250,7 +250,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		for _, arg := range args {
 			arg, ok := strings.CutPrefix(arg, "g")
 			pid := atoi(arg)
-			if !ok || pid <= 0 || pid > len(r.bgProcs) {
+			if !ok || pid <= 0 || pid > int64(len(r.bgProcs)) {
 				return failf(1, "wait: pid %s is not a child of this shell\n", arg)
 			}
 			bg := r.bgProcs[pid-1]
