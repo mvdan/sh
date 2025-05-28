@@ -264,17 +264,6 @@ func (r *Runner) handlerCtx(ctx context.Context) context.Context {
 	return context.WithValue(ctx, handlerCtxKey{}, hc)
 }
 
-func (r *Runner) setFatalErr(err error) {
-	// TODO: move this method to [exitStatus]
-	if r.exit.fatalErr == nil && err != nil {
-		r.exit.fatalErr = err
-		r.exit.exiting = true
-		if r.exit.code == 0 {
-			r.exit.code = 1
-		}
-	}
-}
-
 func (r *Runner) out(s string) {
 	io.WriteString(r.stdout, s)
 }
@@ -292,7 +281,7 @@ func (r *Runner) stop(ctx context.Context) bool {
 		return true
 	}
 	if err := ctx.Err(); err != nil {
-		r.setFatalErr(err)
+		r.exit.fatal(err)
 		return true
 	}
 	if r.opts[optNoExec] {
@@ -473,7 +462,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		case syntax.Pipe, syntax.PipeAll:
 			pr, pw, err := os.Pipe()
 			if err != nil {
-				r.setFatalErr(err) // not being able to create a pipe is rare but critical
+				r.exit.fatal(err) // not being able to create a pipe is rare but critical
 				return
 			}
 			r2 := r.subshell(true)
@@ -498,7 +487,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			if r.opts[optPipeFail] && r2.exit.code != 0 && r.exit.code == 0 {
 				r.exit = r2.exit
 			}
-			r.setFatalErr(r2.exit.fatalErr)
+			r.exit.fatal(r2.exit.fatalErr)
 		}
 	case *syntax.IfClause:
 		oldNoErrExit := r.noErrExit
@@ -1009,7 +998,7 @@ func (r *Runner) call(ctx context.Context, pos syntax.Pos, args []string) {
 		args, err = r.callHandler(r.handlerCtx(ctx), args)
 		if err != nil {
 			// handler's custom fatal error
-			r.setFatalErr(err)
+			r.exit.fatal(err)
 			return
 		}
 	}
@@ -1050,7 +1039,7 @@ func (r *Runner) exec(ctx context.Context, args []string) {
 			r.exit.nonFatalHandlerErr = err
 			r.exit.code = int(es)
 		} else {
-			r.setFatalErr(err) // handler's custom fatal error
+			r.exit.fatal(err) // handler's custom fatal error
 		}
 	} else {
 		r.exit.code = 0
@@ -1081,7 +1070,7 @@ func (r *Runner) open(ctx context.Context, path string, flags int, mode os.FileM
 			r.errf("%v\n", err)
 		}
 	default: // handler's custom fatal error
-		r.setFatalErr(err)
+		r.exit.fatal(err)
 	}
 	return nil, err
 }

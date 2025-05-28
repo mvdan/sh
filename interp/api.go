@@ -189,6 +189,16 @@ type exitStatus struct {
 	nonFatalHandlerErr error
 }
 
+func (e *exitStatus) fatal(err error) {
+	if e.fatalErr == nil && err != nil {
+		e.fatalErr = err
+		e.exiting = true
+		if e.code == 0 {
+			e.code = 1
+		}
+	}
+}
+
 type bgProc struct {
 	// closed when the background process finishes,
 	// after which point the result fields below are set.
