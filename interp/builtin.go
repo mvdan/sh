@@ -76,8 +76,8 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		default:
 			return failf(1, "exit cannot take multiple arguments\n")
 		}
+		exit.exiting = true
 		r.exit = exit
-		r.exitShell(ctx, exit.code)
 		return exit.code
 	case "set":
 		if err := Params(args...)(r); err != nil {
@@ -439,7 +439,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			r.keepRedirs = true
 			break
 		}
-		r.exitShell(ctx, 1)
+		r.exit.exiting = true
 		r.exec(ctx, args)
 		return r.exit.code
 	case "command":

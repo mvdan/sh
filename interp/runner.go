@@ -187,22 +187,24 @@ func (r *Runner) updateExpandOpts() {
 }
 
 func (r *Runner) expandErr(err error) {
-	if err != nil {
-		errMsg := err.Error()
-		fmt.Fprintln(r.stderr, errMsg)
-		switch {
-		case errors.As(err, &expand.UnsetParameterError{}):
-		case errMsg == "invalid indirect expansion":
-			// TODO: These errors are treated as fatal by bash.
-			// Make the error type reflect that.
-		case strings.HasSuffix(errMsg, "not supported"):
-			// TODO: This "has suffix" is a temporary measure until the expand
-			// package supports all syntax nodes like extended globbing.
-		default:
-			return // other cases do not exit
-		}
-		r.exitShell(context.TODO(), 1)
+	if err == nil {
+		return
 	}
+	errMsg := err.Error()
+	fmt.Fprintln(r.stderr, errMsg)
+	switch {
+	case errors.As(err, &expand.UnsetParameterError{}):
+	case errMsg == "invalid indirect expansion":
+		// TODO: These errors are treated as fatal by bash.
+		// Make the error type reflect that.
+	case strings.HasSuffix(errMsg, "not supported"):
+		// TODO: This "has suffix" is a temporary measure until the expand
+		// package supports all syntax nodes like extended globbing.
+	default:
+		return // other cases do not exit
+	}
+	r.exit.code = 1
+	r.exit.exiting = true
 }
 
 func (r *Runner) arithm(expr syntax.ArithmExpr) int {
@@ -281,7 +283,8 @@ func (r *Runner) errf(format string, a ...any) {
 }
 
 func (r *Runner) stop(ctx context.Context) bool {
-	if r.exit.returning || r.exit.exiting {
+	// Some traps trigger on exit, so we do want those to run.
+	if !r.handlingTrap && (r.exit.returning || r.exit.exiting) {
 		return true
 	}
 	if err := ctx.Err(); err != nil {
@@ -340,15 +343,15 @@ func (r *Runner) stmtSync(ctx context.Context, st *syntax.Stmt) {
 		r.exit.code = oneIf(r.exit.code == 0)
 	} else if b, ok := st.Cmd.(*syntax.BinaryCmd); ok && (b.Op == syntax.AndStmt || b.Op == syntax.OrStmt) {
 	} else if r.exit.code != 0 && !r.noErrExit {
+		r.trapCallback(ctx, r.callbackErr, "error")
 		// If the "errexit" option is set and a command failed, exit the shell. Exceptions:
 		//
 		//   conditions (if <cond>, while <cond>, etc)
 		//   part of && or || lists; excluded via "else" above
 		//   preceded by !; excluded via "else" above
 		if r.opts[optErrExit] {
-			r.exitShell(ctx, r.exit.code)
+			r.exit.exiting = true
 		}
-		r.trapCallback(ctx, r.callbackErr, "error")
 	}
 	if !r.keepRedirs {
 		r.stdin, r.stdout, r.stderr = oldIn, oldOut, oldErr
@@ -764,20 +767,11 @@ func (r *Runner) trapCallback(ctx context.Context, callback, name string) {
 		// ignore errors in the callback
 		return
 	}
+	oldExit := r.exit
 	r.stmts(ctx, file.Stmts)
+	r.exit = oldExit // traps on EXIT or ERR should not modify the result
 
 	r.handlingTrap = false
-}
-
-// exitShell exits the current shell session with the given status code.
-func (r *Runner) exitShell(ctx context.Context, code uint8) {
-	if code != 0 {
-		r.trapCallback(ctx, r.callbackErr, "error")
-	}
-	r.trapCallback(ctx, r.callbackExit, "exit")
-
-	r.exit.exiting = true
-	r.exit.code = code
 }
 
 func (r *Runner) flattenAssigns(args []*syntax.Assign) iter.Seq[*syntax.Assign] {
