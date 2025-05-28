@@ -68,7 +68,10 @@ func (r *Runner) fillExpandConfig(ctx context.Context) {
 			r2.stmts(ctx, cs.Stmts)
 			r2.exit.exiting = false // subshells don't exit the parent shell
 			r.lastExpandExit = r2.exit
-			return r2.exit.fatalErr
+			if r2.exit.fatalExit {
+				return r2.exit.err // surface fatal errors immediately
+			}
+			return nil
 		},
 		ProcSubst: func(ps *syntax.ProcSubst) (string, error) {
 			if runtime.GOOS == "windows" {
@@ -489,7 +492,9 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			if r.opts[optPipeFail] && r2.exit.code != 0 && r.exit.code == 0 {
 				r.exit = r2.exit
 			}
-			r.exit.fatal(r2.exit.fatalErr)
+			if r2.exit.fatalExit {
+				r.exit.fatal(r2.exit.err) // surface fatal errors immediately
+			}
 		}
 	case *syntax.IfClause:
 		oldNoErrExit := r.noErrExit
@@ -764,14 +769,14 @@ func (r *Runner) trapCallback(ctx context.Context, callback, name string) {
 }
 
 // exitShell exits the current shell session with the given status code.
-func (r *Runner) exitShell(ctx context.Context, status int) {
-	if status != 0 {
+func (r *Runner) exitShell(ctx context.Context, code uint8) {
+	if code != 0 {
 		r.trapCallback(ctx, r.callbackErr, "error")
 	}
 	r.trapCallback(ctx, r.callbackExit, "exit")
 
 	r.exit.exiting = true
-	r.exit.code = status
+	r.exit.code = code
 }
 
 func (r *Runner) flattenAssigns(args []*syntax.Assign) iter.Seq[*syntax.Assign] {
@@ -1038,8 +1043,8 @@ func (r *Runner) exec(ctx context.Context, args []string) {
 	if err != nil {
 		var es ExitStatus
 		if errors.As(err, &es) {
-			r.exit.nonFatalHandlerErr = err
-			r.exit.code = int(es)
+			r.exit.err = err
+			r.exit.code = uint8(es)
 		} else {
 			r.exit.fatal(err) // handler's custom fatal error
 		}

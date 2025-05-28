@@ -175,24 +175,25 @@ type Runner struct {
 // Beyond the exit status code, it also holds whether the shell should return or exit,
 // as well as any Go error values that should be given back to the user.
 type exitStatus struct {
-	code int
+	code uint8
 
+	// TODO: consider an enum, as only one of these should be set at a time
 	returning bool // whether the current function `return`ed
-	exiting   bool // whether the current shell `exit`ed or encountered a fatal error
+	exiting   bool // whether the current shell is exiting
+	fatalExit bool // whether the current shell is exiting due to a fatal error
 
-	fatalErr error // current fatal error, e.g. from a handler
-
-	// nonFatalHandlerErr is the current non-fatal error from a handler.
+	// err is a fatal error if fatal is true, or a non-fatal custom error from a handler.
 	// Used so that running a single statement with a custom handler
 	// which returns a non-fatal Go error, such as a Go error wrapping [NewExitStatus],
 	// can be returned by [Runner.Run] without being lost entirely.
-	nonFatalHandlerErr error
+	err error
 }
 
 func (e *exitStatus) fatal(err error) {
-	if e.fatalErr == nil && err != nil {
-		e.fatalErr = err
+	if !e.fatalExit && err != nil {
 		e.exiting = true
+		e.fatalExit = true
+		e.err = err
 		if e.code == 0 {
 			e.code = 1
 		}
@@ -878,10 +879,7 @@ func (r *Runner) Run(ctx context.Context, node syntax.Node) error {
 	}
 	maps.Insert(r.Vars, r.writeEnv.Each)
 	// Return the first of: a fatal error, a non-fatal handler error, or the exit code.
-	if err := r.exit.fatalErr; err != nil {
-		return err
-	}
-	if err := r.exit.nonFatalHandlerErr; err != nil {
+	if err := r.exit.err; err != nil {
 		return err
 	}
 	if code := r.exit.code; code != 0 {

@@ -145,7 +145,7 @@ func (r *Runner) lookupVar(name string) expand.Variable {
 			vr.Kind, vr.Str = expand.String, "g"+strconv.Itoa(n)
 		}
 	case "?":
-		vr.Kind, vr.Str = expand.String, strconv.Itoa(r.lastExit.code)
+		vr.Kind, vr.Str = expand.String, strconv.Itoa(int(r.lastExit.code))
 	case "$":
 		vr.Kind, vr.Str = expand.String, strconv.Itoa(os.Getpid())
 	case "PPID":

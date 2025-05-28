@@ -39,7 +39,7 @@ func isBuiltin(name string) bool {
 
 // TODO: oneIf and atoi are duplicated in the expand package.
 
-func oneIf(b bool) int {
+func oneIf(b bool) uint8 {
 	if b {
 		return 1
 	}
@@ -53,8 +53,8 @@ func atoi(s string) int64 {
 	return n
 }
 
-func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, args []string) int {
-	failf := func(code int, format string, args ...any) int {
+func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, args []string) uint8 {
+	failf := func(code uint8, format string, args ...any) uint8 {
 		r.errf(format, args...)
 		return code
 	}
@@ -72,7 +72,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			if err != nil {
 				return failf(2, "invalid exit status code: %q\n", args[0])
 			}
-			exit.code = n
+			exit.code = uint8(n)
 		default:
 			return failf(1, "exit cannot take multiple arguments\n")
 		}
@@ -464,7 +464,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			r.exec(ctx, args)
 			return r.exit.code
 		}
-		last := 0
+		last := uint8(0)
 		for _, arg := range args {
 			last = 0
 			if r.Funcs[arg] != nil || isBuiltin(arg) {
@@ -553,15 +553,15 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		if !r.inFunc && !r.inSource {
 			return failf(1, "return: can only be done from a func or sourced script\n")
 		}
-		code := 0
+		code := uint8(0)
 		switch len(args) {
 		case 0:
 		case 1:
-			var err error
-			code, err = strconv.Atoi(args[0])
+			n, err := strconv.Atoi(args[0])
 			if err != nil {
 				return failf(2, "invalid return status code: %q\n", args[0])
 			}
+			code = uint8(n)
 		default:
 			return failf(2, "return: too many arguments\n")
 		}
@@ -966,7 +966,7 @@ func (r *Runner) readLine(ctx context.Context, raw bool) ([]byte, error) {
 	}
 }
 
-func (r *Runner) changeDir(ctx context.Context, path string) int {
+func (r *Runner) changeDir(ctx context.Context, path string) uint8 {
 	path = cmp.Or(path, ".")
 	path = r.absPath(path)
 	info, err := r.stat(ctx, path)
