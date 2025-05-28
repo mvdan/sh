@@ -65,7 +65,7 @@ func (r *Runner) fillExpandConfig(ctx context.Context) {
 			r2 := r.subshell(false)
 			r2.stdout = w
 			r2.stmts(ctx, cs.Stmts)
-			r2.exit.exiting = false // command substitutions subshells don't exit the parent shell
+			r2.exit.exiting = false // subshells don't exit the parent shell
 			r.lastExpandExit = r2.exit
 			return r2.exit.fatalErr
 		},
@@ -343,14 +343,13 @@ func (r *Runner) stmtSync(ctx context.Context, st *syntax.Stmt) {
 	if st.Negated {
 		// TODO: negate the entire [exitStatus] here, wiping errors
 		r.exit.code = oneIf(r.exit.code == 0)
-	} else if _, ok := st.Cmd.(*syntax.CallExpr); !ok {
+	} else if b, ok := st.Cmd.(*syntax.BinaryCmd); ok && (b.Op == syntax.AndStmt || b.Op == syntax.OrStmt) {
 	} else if r.exit.code != 0 && !r.noErrExit && r.opts[optErrExit] {
-		// If the "errexit" option is set and a simple command failed,
-		// exit the shell. Exceptions:
+		// If the "errexit" option is set and a command failed, exit the shell. Exceptions:
 		//
 		//   conditions (if <cond>, while <cond>, etc)
-		//   part of && or || lists
-		//   preceded by !
+		//   part of && or || lists; excluded via "else" above
+		//   preceded by !; excluded via "else" above
 		r.exitShell(ctx, r.exit.code)
 	} else if r.exit.code != 0 && !r.noErrExit {
 		r.trapCallback(ctx, r.callbackErr, "error")
@@ -374,6 +373,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 	case *syntax.Subshell:
 		r2 := r.subshell(false)
 		r2.stmts(ctx, cm.Stmts)
+		r2.exit.exiting = false // subshells don't exit the parent shell
 		r.exit = r2.exit
 	case *syntax.CallExpr:
 		// Use a new slice, to not modify the slice in the alias map.
@@ -486,6 +486,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			wg.Add(1)
 			go func() {
 				r2.stmt(ctx, cm.X)
+				r2.exit.exiting = false // subshells don't exit the parent shell
 				pw.Close()
 				wg.Done()
 			}()

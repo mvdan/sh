@@ -866,6 +866,18 @@ var runTests = []runTest{
 		"exit status 1",
 	},
 	{
+		"(false); echo foo_interp_missing",
+		"foo_interp_missing\n",
+	},
+	{
+		"(exit 0); echo foo_interp_missing",
+		"foo_interp_missing\n",
+	},
+	{
+		"(exit 1); echo foo_interp_missing",
+		"foo_interp_missing\n",
+	},
+	{
 		"(foo_interp_missing=bar_interp_missing; echo $foo_interp_missing); echo $foo_interp_missing",
 		"bar_interp_missing\n\n",
 	},
@@ -2033,20 +2045,24 @@ var runTests = []runTest{
 		"foo_interp_missing\n",
 	},
 	{
-		"set -e; if false; then echo foo_interp_missing; fi",
-		"",
+		"set -e; if false; then echo never; fi; echo foo_interp_missing",
+		"foo_interp_missing\n",
 	},
 	{
-		"set -e; while false; do echo foo_interp_missing; done",
-		"",
+		"set -e; while false; do echo never; done; echo foo_interp_missing",
+		"foo_interp_missing\n",
 	},
 	{
-		"set -e; false || true",
-		"",
+		"set -e; false || true; echo foo_interp_missing",
+		"foo_interp_missing\n",
 	},
 	{
-		"set -e; false && true; true",
-		"",
+		"set -e; false && true; echo foo_interp_missing",
+		"foo_interp_missing\n",
+	},
+	{
+		"set -e; true && false; echo foo_interp_missing",
+		"exit status 1",
 	},
 	{
 		"false | :",
@@ -2078,7 +2094,23 @@ var runTests = []runTest{
 		"next\n",
 	},
 	{
+		"set -o pipefail; exit 0 | :; echo next",
+		"next\n",
+	},
+	{
+		"set -o pipefail; exit 1 | :; echo next",
+		"next\n",
+	},
+	{
 		"set -e -o pipefail; false | :; echo next",
+		"exit status 1",
+	},
+	{
+		"exit 0 && true; echo foo_interp_missing",
+		"",
+	},
+	{
+		"exit 1 && true; echo foo_interp_missing",
 		"exit status 1",
 	},
 	{
