@@ -171,8 +171,7 @@ func (r *Runner) updateExpandOpts() {
 		r.ecfg.ReadDir2 = nil
 	} else {
 		r.ecfg.ReadDir2 = func(s string) ([]fs.DirEntry, error) {
-			// TODO: use [Runner.ectx]
-			return r.readDirHandler(r.handlerCtx(context.Background()), s)
+			return r.readDirHandler(r.handlerCtx(r.ectx), s)
 		}
 	}
 	r.ecfg.GlobStar = r.opts[optGlobStar]
