@@ -557,7 +557,11 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		switch len(args) {
 		case 0:
 		case 1:
-			code = atoi(args[0])
+			var err error
+			code, err = strconv.Atoi(args[0])
+			if err != nil {
+				return failf(2, "invalid return status code: %q\n", args[0])
+			}
 		default:
 			return failf(2, "return: too many arguments\n")
 		}
