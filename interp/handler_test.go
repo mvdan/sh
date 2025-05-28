@@ -247,8 +247,32 @@ var modCases = []struct {
 		opts: []interp.RunnerOption{
 			interp.ExecHandlers(execCustomExitStatus5),
 		},
-		src:  "set -e -o pipefail; foo | true",
+		src:  "set -o pipefail; foo | true",
 		want: "Runner.Run error: custom error: exit status 5",
+	},
+	{
+		name: "ExecCustomExitStatus5ErrExit",
+		opts: []interp.RunnerOption{
+			interp.ExecHandlers(execCustomExitStatus5),
+		},
+		src:  "set -o errexit; foo",
+		want: "Runner.Run error: custom error: exit status 5",
+	},
+	{
+		name: "ExecCustomExitStatus5Exec",
+		opts: []interp.RunnerOption{
+			interp.ExecHandlers(execCustomExitStatus5),
+		},
+		src:  "exec foo; echo never-run",
+		want: "Runner.Run error: custom error: exit status 5",
+	},
+	{
+		name: "ExecCustomExitStatus5Negated",
+		opts: []interp.RunnerOption{
+			interp.ExecHandlers(execCustomExitStatus5),
+		},
+		src:  "! foo; echo custom-error-wiped; exit 1",
+		want: "custom-error-wiped\nRunner.Run error: exit status 1",
 	},
 	{
 		name: "ExecCustomExitStatus5CmdSubst",
@@ -275,6 +299,23 @@ var modCases = []struct {
 		src: "foo & bg=$!; wait $bg",
 		// TODO: keep the original custom error
 		want: "Runner.Run error: exit status 5",
+	},
+	{
+		name: "ExecCustomExitStatus5Exit",
+		opts: []interp.RunnerOption{
+			interp.ExecHandlers(execCustomExitStatus5),
+		},
+		src: "foo; exit",
+		// TODO: keep the original custom error
+		want: "Runner.Run error: exit status 5",
+	},
+	{
+		name: "ExecCustomExitStatus5Source",
+		opts: []interp.RunnerOption{
+			interp.ExecHandlers(execCustomExitStatus5),
+		},
+		src:  "echo 'foo' >a; source a",
+		want: "Runner.Run error: custom error: exit status 5",
 	},
 	{
 		name: "OpenForbidNonDev",
@@ -344,8 +385,9 @@ func TestRunnerHandlers(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			skipIfUnsupported(t, tc.src)
 			file := parse(t, p, tc.src)
+			tdir := t.TempDir()
 			var cb concBuffer
-			r, err := interp.New(interp.StdIO(nil, &cb, &cb))
+			r, err := interp.New(interp.Dir(tdir), interp.StdIO(nil, &cb, &cb))
 			if err != nil {
 				t.Fatal(err)
 			}
