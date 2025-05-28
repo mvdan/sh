@@ -107,12 +107,12 @@ func (r *Runner) fillExpandConfig(ctx context.Context) {
 			// process substitution as long as it is $!; the logic here would mean we wait for all of them.
 			bg := bgProc{
 				done: make(chan struct{}),
-				exit: new(int),
+				exit: new(exitStatus),
 			}
 			r.bgProcs = append(r.bgProcs, bg)
 			go func() {
 				defer func() {
-					*bg.exit = r2.exit.code
+					*bg.exit = r2.exit
 					close(bg.done)
 				}()
 				switch ps.Op {
@@ -144,6 +144,7 @@ func (r *Runner) fillExpandConfig(ctx context.Context) {
 					}()
 				}
 				r2.stmts(ctx, ps.Stmts)
+				r2.exit.exiting = false // subshells don't exit the parent shell
 			}()
 			return path, nil
 		},
@@ -311,12 +312,13 @@ func (r *Runner) stmt(ctx context.Context, st *syntax.Stmt) {
 		st2.Background = false
 		bg := bgProc{
 			done: make(chan struct{}),
-			exit: new(int),
+			exit: new(exitStatus),
 		}
 		r.bgProcs = append(r.bgProcs, bg)
 		go func() {
 			r2.Run(ctx, &st2)
-			*bg.exit = r2.exit.code
+			r2.exit.exiting = false // subshells don't exit the parent shell
+			*bg.exit = r2.exit
 			close(bg.done)
 		}()
 	} else {

@@ -246,7 +246,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			}
 			return 0
 		}
-		exit := 0
+		var exit exitStatus
 		for _, arg := range args {
 			arg, ok := strings.CutPrefix(arg, "g")
 			pid := atoi(arg)
@@ -257,7 +257,8 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			<-bg.done
 			exit = *bg.exit
 		}
-		return exit
+		r.exit = exit
+		return exit.code
 	case "builtin":
 		if len(args) < 1 {
 			break

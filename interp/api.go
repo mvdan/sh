@@ -194,7 +194,7 @@ type bgProc struct {
 	// after which point the result fields below are set.
 	done chan struct{}
 
-	exit *int
+	exit *exitStatus
 }
 
 type alias struct {
