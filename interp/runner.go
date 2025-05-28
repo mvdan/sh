@@ -17,6 +17,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -368,20 +369,21 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		r.exit = r2.exit
 	case *syntax.CallExpr:
 		// Use a new slice, to not modify the slice in the alias map.
-		var args []*syntax.Word
-		left := cm.Args
-		for len(left) > 0 && r.opts[optExpandAliases] {
-			als, ok := r.alias[left[0].Lit()]
+		args := cm.Args
+		for i := 0; i < len(args); {
+			if !r.opts[optExpandAliases] {
+				break
+			}
+			als, ok := r.alias[args[i].Lit()]
 			if !ok {
 				break
 			}
-			args = append(args, als.args...)
-			left = left[1:]
+			args = slices.Replace(args, i, i+1, als.args...)
 			if !als.blank {
 				break
 			}
+			i += len(als.args)
 		}
-		args = append(args, left...)
 		r.lastExpandExit = exitStatus{}
 		fields := r.fields(args...)
 		if len(fields) == 0 {
