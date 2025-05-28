@@ -152,7 +152,7 @@ var modCases = []struct {
 			interp.ExecHandlers(blocklistAllExec),
 		},
 		src:  "a=$(malicious)",
-		want: "blocklisted: malicious\nRunner.Run error: exit status 1", // TODO: why the newline?
+		want: "blocklisted: malicious\nRunner.Run error: blocklisted: malicious",
 	},
 	{
 		name: "ExecBackground",
@@ -279,9 +279,8 @@ var modCases = []struct {
 		opts: []interp.RunnerOption{
 			interp.ExecHandlers(execCustomExitStatus5),
 		},
-		src: "x=$(foo)",
-		// TODO: keep the original custom error
-		want: "Runner.Run error: exit status 5",
+		src:  "x=$(foo)",
+		want: "Runner.Run error: custom error: exit status 5",
 	},
 	{
 		name: "ExecCustomExitStatus5Subshell",

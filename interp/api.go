@@ -104,8 +104,6 @@ type Runner struct {
 	ecfg *expand.Config
 	ectx context.Context // just so that Runner.Subshell can use it again
 
-	lastExpandExit int // used to surface exit codes while expanding fields
-
 	// didReset remembers whether the runner has ever been reset. This is
 	// used so that Reset is automatically called when running any program
 	// or node for the first time on a Runner.
@@ -137,6 +135,8 @@ type Runner struct {
 	// and 'lastExit' corresponds to the previous statement that was run.
 	exit     exitStatus
 	lastExit exitStatus
+
+	lastExpandExit exitStatus // used to surface exit statuses while expanding fields
 
 	// bgProcs holds all background shells spawned by this runner.
 	// Their PIDs are 1-indexed, from 1 to len(bgProcs), with a "g" prefix
