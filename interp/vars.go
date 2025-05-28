@@ -4,8 +4,11 @@
 package interp
 
 import (
+	cryptorand "crypto/rand"
+	"encoding/binary"
 	"fmt"
 	"maps"
+	mathrand "math/rand/v2"
 	"os"
 	"runtime"
 	"slices"
@@ -147,6 +150,14 @@ func (r *Runner) lookupVar(name string) expand.Variable {
 		vr.Kind, vr.Str = expand.String, strconv.Itoa(os.Getpid())
 	case "PPID":
 		vr.Kind, vr.Str = expand.String, strconv.Itoa(os.Getppid())
+	case "RANDOM": // not for cryptographic use
+		vr.Kind, vr.Str = expand.String, strconv.Itoa(mathrand.IntN(32767))
+		// TODO: support setting RANDOM to seed it
+	case "SRANDOM": // pseudo-random generator from the system
+		var p [4]byte
+		cryptorand.Read(p[:])
+		n := binary.NativeEndian.Uint32(p[:])
+		vr.Kind, vr.Str = expand.String, strconv.FormatUint(uint64(n), 10)
 	case "DIRSTACK":
 		vr.Kind, vr.List = expand.Indexed, r.dirStack
 	case "0":

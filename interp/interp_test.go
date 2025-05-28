@@ -480,6 +480,8 @@ var runTests = []runTest{
 	{"for i in 1 2; do\necho $LINENO\necho $LINENO\ndone", "2\n3\n2\n3\n"},
 	{"[[ -n $$ && $$ -gt 0 ]]", ""},
 	{"[[ $$ -eq $PPID ]]", "exit status 1"},
+	{"[[ $RANDOM -eq $RANDOM ]]", "exit status 1"}, // 1 in 32k chance of a collision, 0.003%
+	{"[[ $SRANDOM -eq $SRANDOM ]]", "exit status 1"},
 
 	// var manipulation
 	{"echo ${#a} ${#a[@]}", "0 0\n"},
