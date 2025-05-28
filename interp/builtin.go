@@ -37,14 +37,14 @@ func isBuiltin(name string) bool {
 	return false
 }
 
-// TODO: oneIf and atoi are duplicated in the expand package.
-
 func oneIf(b bool) uint8 {
 	if b {
 		return 1
 	}
 	return 0
 }
+
+// TODO: atoi is duplicated in the expand package.
 
 // atoi is like [strconv.ParseInt](s, 10, 64), but it ignores errors and trims whitespace.
 func atoi(s string) int64 {
@@ -53,17 +53,17 @@ func atoi(s string) int64 {
 	return n
 }
 
-func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, args []string) uint8 {
-	failf := func(code uint8, format string, args ...any) uint8 {
+func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args []string) (exit exitStatus) {
+	failf := func(code uint8, format string, args ...any) exitStatus {
 		r.errf(format, args...)
-		return code
+		exit.code = code
+		return exit
 	}
 	switch name {
 	case "true", ":":
 	case "false":
-		return 1
+		exit.code = 1
 	case "exit":
-		var exit exitStatus
 		switch len(args) {
 		case 0:
 			exit = r.lastExit
@@ -77,8 +77,6 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			return failf(1, "exit cannot take multiple arguments\n")
 		}
 		exit.exiting = true
-		r.exit = exit
-		return exit.code
 	case "set":
 		if err := Params(args...)(r); err != nil {
 			return failf(2, "set: %v\n", err)
@@ -206,8 +204,8 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			var err error
 			pwd, err = filepath.EvalSymlinks(pwd)
 			if err != nil {
-				r.exit.fatal(err) // perhaps overly dramatic?
-				return 1
+				exit.fatal(err) // perhaps overly dramatic?
+				return exit
 			}
 		}
 		r.outf("%s\n", pwd)
@@ -228,7 +226,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		default:
 			return failf(2, "usage: cd [dir]\n")
 		}
-		return r.changeDir(ctx, path)
+		exit.code = r.changeDir(ctx, path)
 	case "wait":
 		fp := flagParser{remaining: args}
 		for fp.more() {
@@ -244,9 +242,8 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			for _, bg := range r.bgProcs {
 				<-bg.done
 			}
-			return 0
+			break
 		}
-		var exit exitStatus
 		for _, arg := range args {
 			arg, ok := strings.CutPrefix(arg, "g")
 			pid := atoi(arg)
@@ -257,16 +254,15 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			<-bg.done
 			exit = *bg.exit
 		}
-		r.exit = exit
-		return exit.code
 	case "builtin":
 		if len(args) < 1 {
 			break
 		}
 		if !isBuiltin(args[0]) {
-			return 1
+			exit.code = 1
+			return exit
 		}
-		return r.builtinCode(ctx, pos, args[0], args[1:])
+		exit = r.builtin(ctx, pos, args[0], args[1:])
 	case "type":
 		anyNotFound := false
 		mode := ""
@@ -347,7 +343,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			anyNotFound = true
 		}
 		if anyNotFound {
-			return 1
+			exit.code = 1
 		}
 	case "eval":
 		src := strings.Join(args, " ")
@@ -357,7 +353,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			return failf(1, "eval: %v\n", err)
 		}
 		r.stmts(ctx, file.Stmts)
-		return r.exit.code
+		exit = r.exit
 	case "source", ".":
 		if len(args) < 1 {
 			return failf(2, "%v: source: need filename\n", pos)
@@ -407,8 +403,8 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		r.sourceSetParams = oldSourceSetParams
 		r.inSource = oldInSource
 
-		r.exit.returning = false
-		return r.exit.code
+		exit = r.exit
+		exit.returning = false
 	case "[":
 		if len(args) == 0 || args[len(args)-1] != "]" {
 			return failf(2, "%v: [: missing matching ]\n", pos)
@@ -427,9 +423,10 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		p.next()
 		expr := p.classicTest("[", false)
 		if parseErr {
-			return 2
+			exit.code = 2
+			return exit
 		}
-		return oneIf(r.bashTest(ctx, expr, true) == "")
+		exit.code = oneIf(r.bashTest(ctx, expr, true) == "")
 	case "exec":
 		// TODO: Consider unix.Exec, i.e. actually replacing
 		// the process. It's in theory what a shell should do,
@@ -441,7 +438,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		}
 		r.exit.exiting = true
 		r.exec(ctx, args)
-		return r.exit.code
+		exit = r.exit
 	case "command":
 		show := false
 		fp := flagParser{remaining: args}
@@ -459,10 +456,11 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		}
 		if !show {
 			if isBuiltin(args[0]) {
-				return r.builtinCode(ctx, pos, args[0], args[1:])
+				return r.builtin(ctx, pos, args[0], args[1:])
 			}
 			r.exec(ctx, args)
-			return r.exit.code
+			exit = r.exit
+			return exit
 		}
 		last := uint8(0)
 		for _, arg := range args {
@@ -475,7 +473,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 				last = 1
 			}
 		}
-		return last
+		exit.code = last
 	case "dirs":
 		for i, dir := range slices.Backward(r.dirStack) {
 			r.outf("%s", dir)
@@ -507,20 +505,22 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			}
 			newtop := swap()
 			if code := r.changeDir(ctx, newtop); code != 0 {
-				return code
+				exit.code = code
+				return exit
 			}
-			r.builtinCode(ctx, syntax.Pos{}, "dirs", nil)
+			r.builtin(ctx, syntax.Pos{}, "dirs", nil)
 		case 1:
 			if change {
 				if code := r.changeDir(ctx, args[0]); code != 0 {
-					return code
+					exit.code = code
+					return exit
 				}
 				r.dirStack = append(r.dirStack, r.Dir)
 			} else {
 				r.dirStack = append(r.dirStack, args[0])
 				swap()
 			}
-			r.builtinCode(ctx, syntax.Pos{}, "dirs", nil)
+			r.builtin(ctx, syntax.Pos{}, "dirs", nil)
 		default:
 			return failf(2, "pushd: too many arguments\n")
 		}
@@ -540,12 +540,13 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			if change {
 				newtop := r.dirStack[len(r.dirStack)-1]
 				if code := r.changeDir(ctx, newtop); code != 0 {
-					return code
+					exit.code = code
+					return exit
 				}
 			} else {
 				r.dirStack[len(r.dirStack)-1] = oldtop
 			}
-			r.builtinCode(ctx, syntax.Pos{}, "dirs", nil)
+			r.builtin(ctx, syntax.Pos{}, "dirs", nil)
 		default:
 			return failf(2, "popd: invalid argument\n")
 		}
@@ -553,7 +554,6 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		if !r.inFunc && !r.inSource {
 			return failf(1, "return: can only be done from a func or sourced script\n")
 		}
-		code := uint8(0)
 		switch len(args) {
 		case 0:
 		case 1:
@@ -561,12 +561,11 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			if err != nil {
 				return failf(2, "invalid return status code: %q\n", args[0])
 			}
-			code = uint8(n)
+			exit.code = uint8(n)
 		default:
 			return failf(2, "return: too many arguments\n")
 		}
-		r.exit.returning = true
-		return code
+		exit.returning = true
 	case "read":
 		var prompt string
 		raw := false
@@ -623,7 +622,8 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		// We can get data back from readLine and an error at the same time, so
 		// check err after we process the data.
 		if err != nil {
-			return 1
+			exit.code = 1
+			return exit
 		}
 
 	case "getopts":
@@ -666,7 +666,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			r.setVarString("OPTIND", strconv.FormatInt(int64(r.optState.argidx+1), 10))
 		}
 
-		return oneIf(done)
+		exit.code = oneIf(done)
 
 	case "shopt":
 		mode := ""
@@ -794,7 +794,8 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 			default:
 				r.errf("trap: %q: invalid option\n", flag)
 				r.errf("trap: usage: trap [-lp] [[arg] signal_spec ...]\n")
-				return 2
+				exit.code = 2
+				return exit
 			}
 		}
 		args := fp.args()
@@ -883,7 +884,7 @@ func (r *Runner) builtinCode(ctx context.Context, pos syntax.Pos, name string, a
 		// "umask", "fg", "bg",
 		return failf(2, "%s: unimplemented builtin\n", name)
 	}
-	return 0
+	return exit
 }
 
 // mapfileSplit returns a suitable Split function for a [bufio.Scanner];

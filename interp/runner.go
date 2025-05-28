@@ -1027,7 +1027,7 @@ func (r *Runner) call(ctx context.Context, pos syntax.Pos, args []string) {
 		return
 	}
 	if isBuiltin(name) {
-		r.exit.code = r.builtinCode(ctx, pos, name, args[1:])
+		r.exit = r.builtin(ctx, pos, name, args[1:])
 		return
 	}
 	r.exec(ctx, args)
