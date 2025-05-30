@@ -24,9 +24,10 @@ import (
 	"mvdan.cc/sh/v3/syntax"
 )
 
-func isBuiltin(name string) bool {
+// IsBuiltin returns true if the given word is a shell builtin.
+func IsBuiltin(name string) bool {
 	switch name {
-	case "true", ":", "false", "exit", "set", "shift", "unset",
+	case ":", "true", "false", "exit", "set", "shift", "unset",
 		"echo", "printf", "break", "continue", "pwd", "cd",
 		"wait", "builtin", "trap", "type", "source", ".", "command",
 		"dirs", "pushd", "popd", "umask", "alias", "unalias",
@@ -60,7 +61,7 @@ func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args 
 		return exit
 	}
 	switch name {
-	case "true", ":":
+	case ":", "true":
 	case "false":
 		exit.code = 1
 	case "exit":
@@ -258,7 +259,7 @@ func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args 
 		if len(args) < 1 {
 			break
 		}
-		if !isBuiltin(args[0]) {
+		if !IsBuiltin(args[0]) {
 			exit.code = 1
 			return exit
 		}
@@ -321,7 +322,7 @@ func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args 
 				}
 				continue
 			}
-			if isBuiltin(arg) {
+			if IsBuiltin(arg) {
 				if mode == "-t" {
 					r.out("builtin\n")
 				} else {
@@ -455,7 +456,7 @@ func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args 
 			break
 		}
 		if !show {
-			if isBuiltin(args[0]) {
+			if IsBuiltin(args[0]) {
 				return r.builtin(ctx, pos, args[0], args[1:])
 			}
 			r.exec(ctx, args)
@@ -465,7 +466,7 @@ func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args 
 		last := uint8(0)
 		for _, arg := range args {
 			last = 0
-			if r.Funcs[arg] != nil || isBuiltin(arg) {
+			if r.Funcs[arg] != nil || IsBuiltin(arg) {
 				r.outf("%s\n", arg)
 			} else if path, err := LookPathDir(r.Dir, r.writeEnv, arg); err == nil {
 				r.outf("%s\n", path)
