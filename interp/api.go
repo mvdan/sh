@@ -51,6 +51,8 @@ type Runner struct {
 	// Otherwise, [os.TempDir] is used.
 	Env expand.Environ
 
+	// writeEnv overlays [Runner.Env] so that we can write environment variables
+	// as an overlay.
 	writeEnv expand.WriteEnviron
 
 	// Dir specifies the working directory of the command, which must be an
@@ -127,6 +129,8 @@ type Runner struct {
 	// track if a sourced script set positional parameters
 	sourceSetParams bool
 
+	// noErrExit prevents failing commands from triggering [optErrExit],
+	// such as the condition in a [syntax.IfClause].
 	noErrExit bool
 
 	// The current and last exit statuses. They can only be different if
@@ -175,12 +179,13 @@ type Runner struct {
 // Beyond the exit status code, it also holds whether the shell should return or exit,
 // as well as any Go error values that should be given back to the user.
 type exitStatus struct {
+	// code is the exit status code.
 	code uint8
 
 	// TODO: consider an enum, as only one of these should be set at a time
 	returning bool // whether the current function `return`ed
 	exiting   bool // whether the current shell is exiting
-	fatalExit bool // whether the current shell is exiting due to a fatal error
+	fatalExit bool // whether the current shell is exiting due to a fatal error; err below must not be nil
 
 	// err is a fatal error if fatal is true, or a non-fatal custom error from a handler.
 	// Used so that running a single statement with a custom handler
@@ -188,6 +193,8 @@ type exitStatus struct {
 	// can be returned by [Runner.Run] without being lost entirely.
 	err error
 }
+
+func (e *exitStatus) ok() bool { return e.code == 0 }
 
 func (e *exitStatus) oneIf(b bool) {
 	if b {

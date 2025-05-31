@@ -335,14 +335,14 @@ func (r *Runner) stmtSync(ctx context.Context, st *syntax.Stmt) {
 			defer cls.Close()
 		}
 	}
-	if r.exit.code == 0 && st.Cmd != nil {
+	if r.exit.ok() && st.Cmd != nil {
 		r.cmd(ctx, st.Cmd)
 	}
 	if st.Negated {
 		// TODO: negate the entire [exitStatus] here, wiping errors
-		r.exit.oneIf(r.exit.code == 0)
+		r.exit.oneIf(r.exit.ok())
 	} else if b, ok := st.Cmd.(*syntax.BinaryCmd); ok && (b.Op == syntax.AndStmt || b.Op == syntax.OrStmt) {
-	} else if r.exit.code != 0 && !r.noErrExit {
+	} else if !r.exit.ok() && !r.noErrExit {
 		r.trapCallback(ctx, r.callbackErr, "error")
 		// If the "errexit" option is set and a command failed, exit the shell. Exceptions:
 		//
@@ -426,7 +426,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			// If interpreting the last expansion like $(foo) failed,
 			// and the expansion and assignments otherwise succeeded,
 			// we need to surface that last exit code.
-			if r.exit.code == 0 {
+			if r.exit.ok() {
 				r.exit = r.lastExpandExit
 			}
 			break
@@ -465,7 +465,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			r.noErrExit = true
 			r.stmt(ctx, cm.X)
 			r.noErrExit = oldNoErrExit
-			if (r.exit.code == 0) == (cm.Op == syntax.AndStmt) {
+			if r.exit.ok() == (cm.Op == syntax.AndStmt) {
 				r.stmt(ctx, cm.Y)
 			}
 		case syntax.Pipe, syntax.PipeAll:
@@ -493,7 +493,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			r.stmt(ctx, cm.Y)
 			pr.Close()
 			wg.Wait()
-			if r.opts[optPipeFail] && r2.exit.code != 0 && r.exit.code == 0 {
+			if r.opts[optPipeFail] && !r2.exit.ok() && r.exit.ok() {
 				r.exit = r2.exit
 			}
 			if r2.exit.fatalExit {
@@ -506,7 +506,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		r.stmts(ctx, cm.Cond)
 		r.noErrExit = oldNoErrExit
 
-		if r.exit.code == 0 {
+		if r.exit.ok() {
 			r.stmts(ctx, cm.Then)
 			break
 		}
@@ -521,7 +521,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			r.stmts(ctx, cm.Cond)
 			r.noErrExit = oldNoErrExit
 
-			stop := (r.exit.code == 0) == cm.Until
+			stop := r.exit.ok() == cm.Until
 			r.exit.code = 0
 			if stop || r.loopStmtsBroken(ctx, cm.Do) {
 				break
@@ -600,7 +600,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 				r.arithm(y.Init)
 			}
 			for y.Cond == nil || r.arithm(y.Cond) != 0 {
-				if r.exit.code != 0 || r.loopStmtsBroken(ctx, cm.Do) {
+				if !r.exit.ok() || r.loopStmtsBroken(ctx, cm.Do) {
 					break
 				}
 				if y.Post != nil {
@@ -653,7 +653,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			}
 		}
 	case *syntax.TestClause:
-		if r.bashTest(ctx, cm.X, false) == "" && r.exit.code == 0 {
+		if r.bashTest(ctx, cm.X, false) == "" && r.exit.ok() {
 			// to preserve exit status code 2 for regex errors, etc
 			r.exit.code = 1
 		}
