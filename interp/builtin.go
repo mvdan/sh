@@ -38,13 +38,6 @@ func IsBuiltin(name string) bool {
 	return false
 }
 
-func oneIf(b bool) uint8 {
-	if b {
-		return 1
-	}
-	return 0
-}
-
 // TODO: atoi is duplicated in the expand package.
 
 // atoi is like [strconv.ParseInt](s, 10, 64), but it ignores errors and trims whitespace.
@@ -427,7 +420,7 @@ func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args 
 			exit.code = 2
 			return exit
 		}
-		exit.code = oneIf(r.bashTest(ctx, expr, true) == "")
+		exit.oneIf(r.bashTest(ctx, expr, true) == "")
 	case "exec":
 		// TODO: Consider unix.Exec, i.e. actually replacing
 		// the process. It's in theory what a shell should do,
@@ -667,7 +660,7 @@ func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args 
 			r.setVarString("OPTIND", strconv.FormatInt(int64(r.optState.argidx+1), 10))
 		}
 
-		exit.code = oneIf(done)
+		exit.oneIf(done)
 
 	case "shopt":
 		mode := ""

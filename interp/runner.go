@@ -340,7 +340,7 @@ func (r *Runner) stmtSync(ctx context.Context, st *syntax.Stmt) {
 	}
 	if st.Negated {
 		// TODO: negate the entire [exitStatus] here, wiping errors
-		r.exit.code = oneIf(r.exit.code == 0)
+		r.exit.oneIf(r.exit.code == 0)
 	} else if b, ok := st.Cmd.(*syntax.BinaryCmd); ok && (b.Op == syntax.AndStmt || b.Op == syntax.OrStmt) {
 	} else if r.exit.code != 0 && !r.noErrExit {
 		r.trapCallback(ctx, r.callbackErr, "error")
@@ -611,7 +611,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 	case *syntax.FuncDecl:
 		r.setFunc(cm.Name.Value, cm.Body)
 	case *syntax.ArithmCmd:
-		r.exit.code = oneIf(r.arithm(cm.X) == 0)
+		r.exit.oneIf(r.arithm(cm.X) == 0)
 	case *syntax.LetClause:
 		var val int
 		for _, expr := range cm.Exprs {
@@ -636,7 +636,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		}
 
 		trace.newLineFlush()
-		r.exit.code = oneIf(val == 0)
+		r.exit.oneIf(val == 0)
 	case *syntax.CaseClause:
 		trace.string("case ")
 		trace.expr(cm.Word)

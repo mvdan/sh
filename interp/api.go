@@ -189,6 +189,14 @@ type exitStatus struct {
 	err error
 }
 
+func (e *exitStatus) oneIf(b bool) {
+	if b {
+		e.code = 1
+	} else {
+		e.code = 0
+	}
+}
+
 func (e *exitStatus) fatal(err error) {
 	if !e.fatalExit && err != nil {
 		e.exiting = true
