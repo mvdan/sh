@@ -12,7 +12,7 @@ import (
 	"io/fs"
 	"iter"
 	"math"
-	"math/rand"
+	mathrand "math/rand/v2"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -81,10 +81,6 @@ func (r *Runner) fillExpandConfig(ctx context.Context) {
 				return os.DevNull, nil
 			}
 
-			if r.rand == nil {
-				r.rand = rand.New(rand.NewSource(time.Now().UnixNano()))
-			}
-
 			// We can't atomically create a random unused temporary FIFO.
 			// Similar to [os.CreateTemp],
 			// keep trying new random paths until one does not exist.
@@ -92,7 +88,7 @@ func (r *Runner) fillExpandConfig(ctx context.Context) {
 			var path string
 			try := 0
 			for {
-				path = filepath.Join(r.tempDir, fifoNamePrefix+strconv.FormatUint(r.rand.Uint64(), 16))
+				path = filepath.Join(r.tempDir, fifoNamePrefix+strconv.FormatUint(mathrand.Uint64(), 16))
 				err := mkfifo(path, 0o666)
 				if err == nil {
 					break

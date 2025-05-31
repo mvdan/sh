@@ -20,7 +20,6 @@ import (
 	"io"
 	"io/fs"
 	"maps"
-	"math/rand"
 	"os"
 	"path/filepath"
 	"slices"
@@ -112,9 +111,6 @@ type Runner struct {
 	didReset bool
 
 	usedNew bool
-
-	// rand is used mainly to generate temporary files.
-	rand *rand.Rand
 
 	filename string // only if Node was a File
 
