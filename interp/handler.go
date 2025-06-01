@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"mvdan.cc/sh/v3/expand"
+	"mvdan.cc/sh/v3/syntax"
 )
 
 // HandlerCtx returns HandlerContext value stored in ctx.
@@ -41,6 +42,11 @@ type HandlerContext struct {
 
 	// Dir is the interpreter's current directory.
 	Dir string
+
+	// Pos is the source position which relates to the operation,
+	// such as a [syntax.CallExpr] when calling an [ExecHandlerFunc].
+	// It may be invalid if the operation has no relevant position information.
+	Pos syntax.Pos
 
 	// TODO(v4): use an os.File for stdin below directly.
 

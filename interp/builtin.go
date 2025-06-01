@@ -431,7 +431,7 @@ func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args 
 			break
 		}
 		r.exit.exiting = true
-		r.exec(ctx, args)
+		r.exec(ctx, pos, args)
 		exit = r.exit
 	case "command":
 		show := false
@@ -452,7 +452,7 @@ func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args 
 			if IsBuiltin(args[0]) {
 				return r.builtin(ctx, pos, args[0], args[1:])
 			}
-			r.exec(ctx, args)
+			r.exec(ctx, pos, args)
 			exit = r.exit
 			return exit
 		}
