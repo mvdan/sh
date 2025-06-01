@@ -35,6 +35,8 @@ type handlerCtxKey struct{}
 // HandlerContext is the data passed to all the handler functions via [context.WithValue].
 // It contains some of the current state of the [Runner].
 type HandlerContext struct {
+	runner *Runner // for internal use only, e.g. [HandlerContext.Builtin]
+
 	// Env is a read-only version of the interpreter's environment,
 	// including environment variables, global variables, and local function
 	// variables.
