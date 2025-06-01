@@ -3471,6 +3471,14 @@ var runTestsUnix = []runTest{
 		"nested\n",
 	},
 	{
+		"cat <(exit 0); wait $!; echo $?",
+		"0\n",
+	},
+	{
+		"cat <(exit 5); wait $!; echo $?",
+		"5\n",
+	},
+	{
 		// The reader here does not consume the named pipe.
 		"test -e <(echo foo)",
 		"",
