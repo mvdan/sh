@@ -174,6 +174,10 @@ type Runner struct {
 // exitStatus holds the state of the shell after running one command.
 // Beyond the exit status code, it also holds whether the shell should return or exit,
 // as well as any Go error values that should be given back to the user.
+//
+// TODO(v4): consider replacing ExitStatus with a struct like this,
+// so that an [ExecHandlerFunc] can e.g. mimic `exit 0` or fatal errors
+// with specific exit codes.
 type exitStatus struct {
 	// code is the exit status code.
 	code uint8
@@ -208,6 +212,23 @@ func (e *exitStatus) fatal(err error) {
 		if e.code == 0 {
 			e.code = 1
 		}
+	}
+}
+
+func (e *exitStatus) fromHandlerError(err error) {
+	if err != nil {
+		var exit errBuiltinExitStatus
+		var es ExitStatus
+		if errors.As(err, &exit) {
+			*e = exitStatus(exit)
+		} else if errors.As(err, &es) {
+			e.err = err
+			e.code = uint8(es)
+		} else {
+			e.fatal(err) // handler's custom fatal error
+		}
+	} else {
+		e.code = 0
 	}
 }
 

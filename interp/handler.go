@@ -32,9 +32,24 @@ func HandlerCtx(ctx context.Context) HandlerContext {
 
 type handlerCtxKey struct{}
 
+type handlerKind int
+
+const (
+	_                  handlerKind = iota
+	handlerKindExec                // [ExecHandlerFunc]
+	handlerKindCall                // [CallHandlerFunc]
+	handlerKindOpen                // [OpenHandlerFunc]
+	handlerKindReadDir             // [ReadDirHandlerFunc2]
+)
+
 // HandlerContext is the data passed to all the handler functions via [context.WithValue].
 // It contains some of the current state of the [Runner].
 type HandlerContext struct {
+	runner *Runner // for internal use only, e.g. [HandlerContext.Builtin]
+
+	// kind records which type of handler this context was built for.
+	kind handlerKind
+
 	// Env is a read-only version of the interpreter's environment,
 	// including environment variables, global variables, and local function
 	// variables.

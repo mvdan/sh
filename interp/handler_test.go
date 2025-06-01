@@ -60,7 +60,7 @@ func blocklistGlob(ctx context.Context, path string) ([]fs.FileInfo, error) {
 func execPrint(next interp.ExecHandlerFunc) interp.ExecHandlerFunc {
 	return func(ctx context.Context, args []string) error {
 		hc := interp.HandlerCtx(ctx)
-		fmt.Fprintf(hc.Stdout, "would run: %s", args)
+		fmt.Fprintf(hc.Stdout, "would run: %s\n", args)
 		return nil
 	}
 }
@@ -80,6 +80,19 @@ func execCustomError(next interp.ExecHandlerFunc) interp.ExecHandlerFunc {
 func execCustomExitStatus5(next interp.ExecHandlerFunc) interp.ExecHandlerFunc {
 	return func(ctx context.Context, args []string) error {
 		return fmt.Errorf("custom error: %w", interp.ExitStatus(5))
+	}
+}
+
+func execDotRunnerBuiltin(next interp.ExecHandlerFunc) interp.ExecHandlerFunc {
+	return func(ctx context.Context, args []string) error {
+		if name, ok := strings.CutPrefix(args[0], "."); ok {
+			hc := interp.HandlerCtx(ctx)
+			args[0] = name
+			err := hc.Builtin(ctx, args)
+			fmt.Fprintf(hc.Stdout, "ran builtin: %s\n", args)
+			return err
+		}
+		return next(ctx, args)
 	}
 }
 
@@ -180,7 +193,7 @@ var modCases = []struct {
 			),
 		},
 		src:  "foo",
-		want: "would run: [foo]",
+		want: "would run: [foo]\n",
 	},
 	{
 		name: "ExecPrintAndBlocklistSeparate",
@@ -189,7 +202,7 @@ var modCases = []struct {
 			interp.ExecHandlers(blocklistOneExec("foo")),
 		},
 		src:  "foo",
-		want: "would run: [foo]",
+		want: "would run: [foo]\n",
 	},
 	{
 		name: "ExecBlocklistAndPrint",
@@ -313,6 +326,34 @@ var modCases = []struct {
 		},
 		src:  "echo 'foo' >a; source a",
 		want: "Runner.Run error: custom error: exit status 5",
+	},
+	{
+		name: "ExecDotRunnerBuiltin",
+		opts: []interp.RunnerOption{
+			interp.ExecHandlers(execDotRunnerBuiltin, execExitStatus5),
+		},
+		src:  ".true; foo; echo $?; .false",
+		want: "ran builtin: [true]\n5\nran builtin: [false]\nRunner.Run error: exit status 1",
+	},
+	{
+		name: "ExecDotRunnerBuiltinExiting",
+		opts: []interp.RunnerOption{
+			interp.ExecHandlers(execDotRunnerBuiltin, execExitStatus5),
+		},
+		src:  "echo before; .exit 0; echo after",
+		want: "before\nran builtin: [exit 0]\n",
+	},
+	{
+		name: "NonExecBuiltin",
+		opts: []interp.RunnerOption{
+			interp.CallHandler(func(ctx context.Context, args []string) ([]string, error) {
+				hc := interp.HandlerCtx(ctx)
+				err := hc.Builtin(ctx, append([]string{"echo"}, args...))
+				return nil, err
+			}),
+		},
+		src:  "foo; bar",
+		want: "Runner.Run error: HandlerContext.Builtin can only be called via an ExecHandlerFunc",
 	},
 	{
 		name: "OpenForbidNonDev",

@@ -47,6 +47,29 @@ func atoi(s string) int64 {
 	return n
 }
 
+type errBuiltinExitStatus exitStatus
+
+func (e errBuiltinExitStatus) Error() string {
+	return fmt.Sprintf("builtin exit status %d", e.code)
+}
+
+// Builtin allows [ExecHandlerFunc] implementations to execute any builtin,
+// which can be useful for an exec handler to wrap or combine builtin calls.
+//
+// Note that a non-nil error may be returned in cases where the builtin
+// alters the control flow of the runner, even if the builtin did not fail.
+// For example, this is the case with `exit 0` or `return`.
+func (hc HandlerContext) Builtin(ctx context.Context, args []string) error {
+	if hc.kind != handlerKindExec {
+		return fmt.Errorf("HandlerContext.Builtin can only be called via an ExecHandlerFunc")
+	}
+	exit := hc.runner.builtin(ctx, hc.Pos, args[0], args[1:])
+	if exit != (exitStatus{}) {
+		return errBuiltinExitStatus(exit)
+	}
+	return nil
+}
+
 func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args []string) (exit exitStatus) {
 	failf := func(code uint8, format string, args ...any) exitStatus {
 		r.errf(format, args...)

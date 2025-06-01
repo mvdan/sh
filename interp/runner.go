@@ -173,7 +173,7 @@ func (r *Runner) updateExpandOpts() {
 		r.ecfg.ReadDir2 = nil
 	} else {
 		r.ecfg.ReadDir2 = func(s string) ([]fs.DirEntry, error) {
-			return r.readDirHandler(r.handlerCtx(r.ectx, todoPos), s)
+			return r.readDirHandler(r.handlerCtx(r.ectx, handlerKindReadDir, todoPos), s)
 		}
 	}
 	r.ecfg.GlobStar = r.opts[optGlobStar]
@@ -255,8 +255,10 @@ func (e expandEnv) Each(fn func(name string, vr expand.Variable) bool) {
 
 var todoPos syntax.Pos // for handlerCtx callers where we don't yet have a position
 
-func (r *Runner) handlerCtx(ctx context.Context, pos syntax.Pos) context.Context {
+func (r *Runner) handlerCtx(ctx context.Context, kind handlerKind, pos syntax.Pos) context.Context {
 	hc := HandlerContext{
+		runner: r,
+		kind:   kind,
 		Env:    &overlayEnviron{parent: r.writeEnv},
 		Dir:    r.Dir,
 		Pos:    pos,
@@ -996,7 +998,7 @@ func (r *Runner) call(ctx context.Context, pos syntax.Pos, args []string) {
 	}
 	if r.callHandler != nil {
 		var err error
-		args, err = r.callHandler(r.handlerCtx(ctx, pos), args)
+		args, err = r.callHandler(r.handlerCtx(ctx, handlerKindCall, pos), args)
 		if err != nil {
 			// handler's custom fatal error
 			r.exit.fatal(err)
@@ -1033,18 +1035,7 @@ func (r *Runner) call(ctx context.Context, pos syntax.Pos, args []string) {
 }
 
 func (r *Runner) exec(ctx context.Context, pos syntax.Pos, args []string) {
-	err := r.execHandler(r.handlerCtx(ctx, pos), args)
-	if err != nil {
-		var es ExitStatus
-		if errors.As(err, &es) {
-			r.exit.err = err
-			r.exit.code = uint8(es)
-		} else {
-			r.exit.fatal(err) // handler's custom fatal error
-		}
-	} else {
-		r.exit.code = 0
-	}
+	r.exit.fromHandlerError(r.execHandler(r.handlerCtx(ctx, handlerKindExec, pos), args))
 }
 
 func (r *Runner) open(ctx context.Context, path string, flags int, mode os.FileMode, print bool) (io.ReadWriteCloser, error) {
@@ -1061,7 +1052,7 @@ func (r *Runner) open(ctx context.Context, path string, flags int, mode os.FileM
 		return os.OpenFile(path, flags, mode)
 	}
 
-	f, err := r.openHandler(r.handlerCtx(ctx, todoPos), path, flags, mode)
+	f, err := r.openHandler(r.handlerCtx(ctx, handlerKindOpen, todoPos), path, flags, mode)
 	// TODO: support wrapped PathError returned from openHandler.
 	switch err.(type) {
 	case nil:
