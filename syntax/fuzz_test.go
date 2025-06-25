@@ -133,6 +133,7 @@ func FuzzParsePrint(f *testing.F) {
 
 		// printer options
 		indent uint8, // 0-255
+		balanceCase bool,
 		binaryNextLine bool,
 		switchCaseIndent bool,
 		spaceRedirects bool,
@@ -163,6 +164,7 @@ func FuzzParsePrint(f *testing.F) {
 
 		printer := NewPrinter()
 		Indent(uint(indent))(printer)
+		BalanceCase(balanceCase)(printer)
 		BinaryNextLine(binaryNextLine)(printer)
 		SwitchCaseIndent(switchCaseIndent)(printer)
 		SpaceRedirects(spaceRedirects)(printer)

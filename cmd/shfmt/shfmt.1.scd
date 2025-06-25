@@ -81,6 +81,9 @@ predictable. Some aspects of the format can be configured via printer flags.
 *-i*, *--indent* <uint>
 	Indent: *0* for tabs (default), *>0* for number of spaces.
 
+*-bc*, *--balance-case*
+	Balance case statement patterns by using the form *(PAT)* instead of *PAT)*.
+
 *-bn*, *--binary-next-line*
 	Binary ops like *&&* and *|* may start a line.
 

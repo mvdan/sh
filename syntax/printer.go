@@ -26,6 +26,11 @@ func Indent(spaces uint) PrinterOption {
 	return func(p *Printer) { p.indentSpaces = spaces }
 }
 
+// BalanceCase will balance the parentheses around case patterns.
+func BalanceCase(enabled bool) PrinterOption {
+	return func(p *Printer) { p.balanceCase = enabled }
+}
+
 // BinaryNextLine will make binary operators appear on the next line
 // when a binary command, such as a pipe, spans multiple lines. A
 // backslash will be used.
@@ -226,6 +231,7 @@ type Printer struct {
 	cols      colCounter
 
 	indentSpaces   uint
+	balanceCase    bool
 	binNextLine    bool
 	swtCaseIndent  bool
 	spaceRedirects bool
@@ -1235,6 +1241,9 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			}
 			p.newlines(ci.Pos())
 			p.spacePad(ci.Pos())
+			if p.balanceCase {
+				p.WriteByte('(')
+			}
 			p.casePatternJoin(ci.Patterns)
 			p.WriteByte(')')
 			if !p.minify {

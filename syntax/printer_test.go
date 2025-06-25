@@ -783,6 +783,28 @@ func TestWriteErr(t *testing.T) {
 	}
 }
 
+func TestPrintBalanceCase(t *testing.T) {
+	t.Parallel()
+	tests := [...]printCase{
+		{
+			"case $i in\n1)\nfoo\n;;\nesac",
+			"case $i in\n(1)\nfoo\n;;\nesac",
+		},
+		{
+			"case $i in\n1)\na\n;;\n2)\nb\n;;\nesac",
+			"case $i in\n(1)\na\n;;\n(2)\nb\n;;\nesac",
+		},
+		samePrint("case $i in\n\t#foo\nesac"),
+	}
+	parser := NewParser(KeepComments(true))
+	printer := NewPrinter(BalanceCase(true))
+	for _, tc := range tests {
+		t.Run("", func(t *testing.T) {
+			printTest(t, parser, printer, tc.in, tc.want)
+		})
+	}
+}
+
 func TestPrintBinaryNextLine(t *testing.T) {
 	t.Parallel()
 	tests := [...]printCase{
@@ -1045,7 +1067,7 @@ func TestPrintMinify(t *testing.T) {
 			"echo $0 $3 ${10} ${22}",
 		},
 		{
-			"case $a in\nx) c ;;\ny | z)\n\td\n\t;;\nesac",
+			"case $a in\n(x) c ;;\n(y | z)\n\td\n\t;;\nesac",
 			"case $a in\nx)c;;\ny|z)d\nesac",
 		},
 		{

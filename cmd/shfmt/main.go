@@ -60,6 +60,7 @@ var (
 
 	// Printer flags.
 	indent      = &multiFlag[uint]{"i", "indent", 0}
+	balanceCase = &multiFlag[bool]{"bc", "balance-case", false}
 	binNext     = &multiFlag[bool]{"bn", "binary-next-line", false}
 	caseIndent  = &multiFlag[bool]{"ci", "case-indent", false}
 	spaceRedirs = &multiFlag[bool]{"sr", "space-redirects", false}
@@ -172,6 +173,7 @@ Parser options:
 Printer options:
 
   -i,  --indent uint       0 for tabs (default), >0 for number of spaces
+  -bc, --balance-case      balance the parentheses around case statement patterns
   -bn, --binary-next-line  binary ops like && and | may start a line
   -ci, --case-indent       switch cases will be indented
   -sr, --space-redirects   redirect operators will be followed by a space
@@ -226,6 +228,7 @@ For more information and to report bugs, see https://github.com/mvdan/sh.
 			posix.short, posix.long,
 			simplify.short, simplify.long,
 			indent.short, indent.long,
+			balanceCase.short, balanceCase.long,
 			binNext.short, binNext.long,
 			caseIndent.short, caseIndent.long,
 			spaceRedirs.short, spaceRedirs.long,
@@ -247,6 +250,7 @@ For more information and to report bugs, see https://github.com/mvdan/sh.
 		}
 
 		syntax.Indent(indent.val)(printer)
+		syntax.BalanceCase(balanceCase.val)(printer)
 		syntax.BinaryNextLine(binNext.val)(printer)
 		syntax.SwitchCaseIndent(caseIndent.val)(printer)
 		syntax.SpaceRedirects(spaceRedirs.val)(printer)
@@ -415,6 +419,7 @@ func propsOptions(lang syntax.LangVariant, props editorconfig.Section) (_ syntax
 	}
 	syntax.Indent(size)(printer)
 
+	syntax.BalanceCase(props.Get("balance_case") == "true")(printer)
 	syntax.BinaryNextLine(props.Get("binary_next_line") == "true")(printer)
 	// TODO(v4): rename to case_indent for consistency with flags
 	syntax.SwitchCaseIndent(props.Get("switch_case_indent") == "true")(printer)
