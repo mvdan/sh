@@ -11,7 +11,9 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 
 	"golang.org/x/term"
 
@@ -63,8 +65,7 @@ func run(r *interp.Runner, reader io.Reader, name string) error {
 		return err
 	}
 	r.Reset()
-	ctx := context.Background()
-	return r.Run(ctx, prog)
+	return r.Run(getContext(), prog)
 }
 
 func runPath(r *interp.Runner, path string) error {
@@ -85,9 +86,8 @@ func runInteractive(r *interp.Runner, stdin io.Reader, stdout, stderr io.Writer)
 			fmt.Fprintf(stdout, "> ")
 			return true
 		}
-		ctx := context.Background()
 		for _, stmt := range stmts {
-			runErr = r.Run(ctx, stmt)
+			runErr = r.Run(getContext(), stmt)
 			if r.Exited() {
 				return false
 			}
@@ -99,4 +99,28 @@ func runInteractive(r *interp.Runner, stdin io.Reader, stdout, stderr io.Writer)
 		return err
 	}
 	return runErr
+}
+
+func getContext() context.Context {
+	const maxSignals = 3
+
+	ctx, cancel := context.WithCancel(context.Background())
+	channel := make(chan os.Signal, maxSignals)
+	signal.Notify(channel, os.Interrupt, syscall.SIGTERM)
+
+	go func() {
+		for i := range maxSignals {
+			sig := <-channel
+
+			if i+1 >= maxSignals {
+				fmt.Fprintf(os.Stderr, "gosh: signal received for the third time: %q, forcing shutdown\n", sig)
+				os.Exit(1)
+			}
+
+			fmt.Fprintf(os.Stderr, "gosh: signal received: %q\n", sig)
+			cancel()
+		}
+	}()
+
+	return ctx
 }
