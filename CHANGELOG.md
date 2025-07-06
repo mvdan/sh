@@ -3,10 +3,10 @@
 ## [3.12.0] - 2025-07-06
 
 - The `mvdan-sh` JS package is discontinued in favor of `sh-syntax` - #1145
-**cmd/shfmt**
+- **cmd/shfmt**
   - Support the "simplify" and "minify" flags via EditorConfig - #819
   - Do not allow `--write` to replace non-regular files - #843
-**interp**
+- **interp**
   - Add `IsBuiltin` to check if a command name is a shell built-in - #1164
   - Add `HandlerContext.Builtin` to allow `ExecHandlerFunc` to call built-ins
   - Initial support for `$!` and `wait PID` - #221
@@ -18,15 +18,15 @@
   - Support reading random numbers via `$RANDOM` and `$SRANDOM`
   - Set `$BASH_REMATCH` when matching regular expressions via `=~`
   - Support modifying local vars from the parent calling function
-**expand**
+- **expand**
   - Adjust which backslash sequences are expanded in here-docs - #1138
   - Tweak tilde expansions to match Bash semantics
-**pattern**
+- **pattern**
   - Remove the flawed and broken `Braces` mode; use `syntax.SplitBraces` instead
   - Tweak `**` to only act as "globstar" when alone as a path element - #1149
   - Tweak `*` and `**` to not match leading dots in basenames
   - Add a `NoGlobStar` mode to match the POSIX semantics
-**fileutil**
+- **fileutil**
   - Treat all non-regular files as definitely not shell scripts - #1089
 
 ## [3.11.0] - 2025-03-05
