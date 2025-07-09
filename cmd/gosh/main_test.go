@@ -4,6 +4,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -202,7 +203,7 @@ func TestInteractive(t *testing.T) {
 			runner, _ := interp.New(interp.Interactive(true), interp.StdIO(inReader, outWriter, outWriter))
 			errc := make(chan error, 1)
 			go func() {
-				errc <- runInteractive(runner, inReader, outWriter, outWriter)
+				errc <- runInteractive(context.Background(), runner, inReader, outWriter, outWriter)
 				// Discard the rest of the input.
 				io.Copy(io.Discard, inReader)
 				inReader.Close()
@@ -255,7 +256,7 @@ func TestInteractiveExit(t *testing.T) {
 	}()
 	w := io.Discard
 	runner, _ := interp.New(interp.Interactive(true), interp.StdIO(inReader, w, w))
-	if err := runInteractive(runner, inReader, w, w); err != nil {
+	if err := runInteractive(context.Background(), runner, inReader, w, w); err != nil {
 		t.Fatal("expected a nil error")
 	}
 }
