@@ -130,7 +130,7 @@ The following formatting flags closely resemble Google's shell style defined in
 	shfmt -i 2 -ci -bn
 
 Below is a sample EditorConfig file as defined by <https://editorconfig.org/>,
-showing how to set any option:
+showing how to set supported options:
 
 ```
 [*.sh]
@@ -138,8 +138,9 @@ showing how to set any option:
 indent_style = space
 indent_size = 4
 
-# --language-variant
+# --language-dialect
 shell_variant      = posix
+simplify           = true
 binary_next_line   = true
 # --case-indent
 switch_case_indent = true
@@ -147,6 +148,7 @@ space_redirects    = true
 keep_padding       = true
 # --func-next-line
 function_next_line = true
+minify             = true
 
 # Ignore the entire "third_party" directory when calling shfmt on directories,
 # such as "shfmt -l -w .". When formatting files directly,
