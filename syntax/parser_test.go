@@ -446,8 +446,7 @@ var shellTests = []errorCase{
 	},
 	{
 		in:    `${ foo;}`,
-		posix: `1:1: "${ stmts;}" is a mksh feature; tried parsing as posix`,
-		bash:  `1:1: "${ stmts;}" is a mksh feature; tried parsing as bash`,
+		posix: `1:1: "${ stmts;}" is a bash/mksh feature; tried parsing as posix`,
 	},
 	{
 		in:   `${ `,
@@ -463,8 +462,7 @@ var shellTests = []errorCase{
 	},
 	{
 		in:    `${|foo;}`,
-		posix: `1:1: "${|stmts;}" is a mksh feature; tried parsing as posix`,
-		bash:  `1:1: "${|stmts;}" is a mksh feature; tried parsing as bash`,
+		posix: `1:1: "${|stmts;}" is a bash/mksh feature; tried parsing as posix`,
 	},
 	{
 		in:   `${|`,
