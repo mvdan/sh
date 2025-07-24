@@ -1951,29 +1951,29 @@ var fileTests = []testCase{
 		)))),
 	},
 	{
-		Strs: []string{"${ foo;}", "${\n\tfoo; }", "${\tfoo;}"},
-		mksh: &CmdSubst{
+		Strs: []string{"${ foo;}", "${\nfoo; }", "${\n\tfoo; }", "${\tfoo;}"},
+		bsmk: &CmdSubst{
 			Stmts:    litStmts("foo"),
 			TempFile: true,
 		},
 	},
 	{
 		Strs: []string{"${\n\tfoo\n\tbar\n}", "${ foo; bar;}"},
-		mksh: &CmdSubst{
+		bsmk: &CmdSubst{
 			Stmts:    litStmts("foo", "bar"),
 			TempFile: true,
 		},
 	},
 	{
 		Strs: []string{"${|foo;}", "${| foo; }"},
-		mksh: &CmdSubst{
+		bsmk: &CmdSubst{
 			Stmts:    litStmts("foo"),
 			ReplyVar: true,
 		},
 	},
 	{
 		Strs: []string{"${|\n\tfoo\n\tbar\n}", "${|foo; bar;}"},
-		mksh: &CmdSubst{
+		bsmk: &CmdSubst{
 			Stmts:    litStmts("foo", "bar"),
 			ReplyVar: true,
 		},
