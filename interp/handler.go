@@ -79,6 +79,7 @@ type HandlerContext struct {
 // It is called once variable assignments and field expansion have occurred.
 // The call's arguments are replaced by what the handler returns,
 // and then the call is executed by the Runner as usual.
+// The args slice is never empty.
 // At this time, returning an empty slice without an error is not supported.
 //
 // This handler is similar to [ExecHandlerFunc], but has two major differences:
@@ -99,6 +100,7 @@ type CallHandlerFunc func(ctx context.Context, args []string) ([]string, error)
 // ExecHandlerFunc is a handler which executes simple commands.
 // It is called for all [syntax.CallExpr] nodes
 // where the first argument is neither a declared function nor a builtin.
+// The args slice is never empty.
 //
 // Returning a nil error means a zero exit status.
 // Other exit statuses can be set by returning or wrapping a [NewExitStatus] error,
