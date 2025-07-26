@@ -392,10 +392,14 @@ func singleParse(p *Parser, in string, want *File) func(t *testing.T) {
 }
 
 type errorCase struct {
-	in          string
-	common      any
-	bash, posix any
-	bsmk, mksh  any
+	in string
+
+	common any
+	bash   any
+	posix  any
+	mksh   any
+
+	bsmk any // "bash and mksh", given their similarity
 }
 
 var shellTests = []errorCase{

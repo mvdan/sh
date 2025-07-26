@@ -14,35 +14,29 @@ func prepareTest(c *testCase) {
 	c.bash = fullProg(c.bash)
 	c.posix = fullProg(c.posix)
 	c.mksh = fullProg(c.mksh)
-	c.bsmk = fullProg(c.bsmk) // bash AND mksh
+	c.bsmk = fullProg(c.bsmk)
 	c.bats = fullProg(c.bats)
 	if f, ok := c.common.(*File); ok && f != nil {
-		c.All = append(c.All, f)
 		c.Bash = f
 		c.Posix = f
 		c.MirBSDKorn = f
 		c.Bats = f
 	}
 	if f, ok := c.bash.(*File); ok && f != nil {
-		c.All = append(c.All, f)
 		c.Bash = f
 		c.Bats = f
 	}
 	if f, ok := c.posix.(*File); ok && f != nil {
-		c.All = append(c.All, f)
 		c.Posix = f
 	}
 	if f, ok := c.mksh.(*File); ok && f != nil {
-		c.All = append(c.All, f)
 		c.MirBSDKorn = f
 	}
 	if f, ok := c.bsmk.(*File); ok && f != nil {
-		c.All = append(c.All, f)
 		c.Bash = f
 		c.MirBSDKorn = f
 	}
 	if f, ok := c.bats.(*File); ok && f != nil {
-		c.All = append(c.All, f)
 		c.Bats = f
 	}
 }
@@ -121,12 +115,18 @@ func arrValues(words ...*Word) *ArrayExpr {
 }
 
 type testCase struct {
-	Strs        []string
-	common      any
-	bash, posix any
-	bsmk, mksh  any
-	bats        any
-	All         []*File
+	Strs []string // input sources; the first is the canonical formatting
+
+	common any
+	bash   any
+	posix  any
+	mksh   any
+	bats   any
+
+	bsmk any // "bash and mksh", given their similarity
+
+	// The resulting syntax trees are below.
+
 	Bash, Posix *File
 	MirBSDKorn  *File
 	Bats        *File
