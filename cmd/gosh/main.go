@@ -11,7 +11,9 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 
 	"golang.org/x/term"
 
@@ -35,48 +37,49 @@ func main() {
 }
 
 func runAll() error {
+	ctx, _ := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+
 	r, err := interp.New(interp.Interactive(true), interp.StdIO(os.Stdin, os.Stdout, os.Stderr))
 	if err != nil {
 		return err
 	}
 
 	if *command != "" {
-		return run(r, strings.NewReader(*command), "")
+		return run(ctx, r, strings.NewReader(*command), "")
 	}
 	if flag.NArg() == 0 {
 		if term.IsTerminal(int(os.Stdin.Fd())) {
-			return runInteractive(r, os.Stdin, os.Stdout, os.Stderr)
+			return runInteractive(ctx, r, os.Stdin, os.Stdout, os.Stderr)
 		}
-		return run(r, os.Stdin, "")
+		return run(ctx, r, os.Stdin, "")
 	}
 	for _, path := range flag.Args() {
-		if err := runPath(r, path); err != nil {
+		if err := runPath(ctx, r, path); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func run(r *interp.Runner, reader io.Reader, name string) error {
+func run(ctx context.Context, r *interp.Runner, reader io.Reader, name string) error {
 	prog, err := syntax.NewParser().Parse(reader, name)
 	if err != nil {
 		return err
 	}
 	r.Reset()
-	ctx := context.Background()
 	return r.Run(ctx, prog)
 }
 
-func runPath(r *interp.Runner, path string) error {
+func runPath(ctx context.Context, r *interp.Runner, path string) error {
 	f, err := os.Open(path)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
-	return run(r, f, path)
+	return run(ctx, r, f, path)
 }
 
-func runInteractive(r *interp.Runner, stdin io.Reader, stdout, stderr io.Writer) error {
+func runInteractive(ctx context.Context, r *interp.Runner, stdin io.Reader, stdout, stderr io.Writer) error {
 	parser := syntax.NewParser()
 	fmt.Fprintf(stdout, "$ ")
 	var runErr error
@@ -85,7 +88,6 @@ func runInteractive(r *interp.Runner, stdin io.Reader, stdout, stderr io.Writer)
 			fmt.Fprintf(stdout, "> ")
 			return true
 		}
-		ctx := context.Background()
 		for _, stmt := range stmts {
 			runErr = r.Run(ctx, stmt)
 			if r.Exited() {
