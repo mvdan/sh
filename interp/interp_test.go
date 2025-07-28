@@ -298,6 +298,7 @@ var runTests = []runTest{
 	{"echo -n foo_interp_missing", "foo_interp_missing"},
 	{`echo -e '\t'`, "\t\n"},
 	{`echo -E '\t'`, "\\t\n"},
+	{`echo -e 'before\x00after'`, "before\x00after\n"},
 	{"echo -x foo_interp_missing", "-x foo_interp_missing\n"},
 	{"echo -e -x -e foo_interp_missing", "-x -e foo_interp_missing\n"},
 
@@ -330,6 +331,7 @@ var runTests = []runTest{
 	{`printf '0%s1' 'a\bc'`, `0a\bc1`},
 	{`printf '0%b1' 'a\bc'`, "0a\bc1"},
 	{"printf 'a%bc'", "ac"},
+	{"printf 'before\\x00after'", "before\x00after"},
 
 	// words and quotes
 	{"echo  foo_interp_missing ", "foo_interp_missing\n"},
@@ -369,36 +371,36 @@ var runTests = []runTest{
 	{`echo $'\u\uf\u09\uABCD\u00051234'`, "\\u\u000f\u0009\uabcd\u00051234\n"},
 	{`echo $'\U\Uf\U09\UABCD\U00051234'`, "\\U\u000f\u0009\uabcd\U00051234\n"},
 	{
-		"echo 'foo_interp_missing\x00bar_interp_missing'",
-		"foo_interp_missingbar_interp_missing\n",
+		"echo 'before\x00after'",
+		"beforeafter\n",
 	},
 	{
-		"echo \"foo_interp_missing\x00bar_interp_missing\"",
-		"foo_interp_missingbar_interp_missing\n",
+		"echo \"before\x00after\"",
+		"beforeafter\n",
 	},
 	{
-		"echo $'foo_interp_missing\x00bar_interp_missing'",
-		"foo_interp_missingbar_interp_missing\n",
+		"echo $'before\x00after'",
+		"beforeafter\n",
 	},
 	{
-		"echo $'foo_interp_missing\\x00bar_interp_missing'",
-		"foo_interp_missing\n",
+		"echo $'before\\x00after'",
+		"before\n",
 	},
 	{
-		"echo $'foo_interp_missing\\xbar_interp_missing'",
-		"foo_interp_missing\xbar_interp_missing\n",
+		"echo $'before\\xafter'",
+		"before\xafter\n",
 	},
 	{
-		"a='foo_interp_missing\x00bar_interp_missing'; eval \"echo -n ${a} ${a@Q}\";",
-		"foo_interp_missingbar_interp_missing foo_interp_missingbar_interp_missing",
+		"a='before\x00after'; eval \"echo -n ${a} ${a@Q}\";",
+		"beforeafter beforeafter",
 	},
 	{
-		"a=$'foo_interp_missing\\x00bar_interp_missing'; eval \"echo -n ${a} ${a@Q}\";",
-		"foo_interp_missing foo_interp_missing",
+		"a=$'before\\x00after'; eval \"echo -n ${a} ${a@Q}\";",
+		"before before",
 	},
 	{
-		"i\x00f true; then echo foo_interp_missing\x00; \x00fi",
-		"foo_interp_missing\n",
+		"i\x00f true; then echo before\x00; \x00fi",
+		"before\n",
 	},
 	{
 		"echo $(GOSH_CMD=foo_interp_missing_null_bar_interp_missing $GOSH_PROG)",
@@ -3743,6 +3745,7 @@ func TestRunnerRun(t *testing.T) {
 	for _, c := range runTests {
 		t.Run("", func(t *testing.T) {
 			skipIfUnsupported(t, c.in)
+			t.Logf("input: %q", c.in)
 
 			// Parse first, as we reuse a single parser.
 			file := parse(t, p, c.in)

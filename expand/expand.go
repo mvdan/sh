@@ -233,6 +233,9 @@ func Pattern(cfg *Config, word *syntax.Word) (string, error) {
 // shell's format specifications. These include printf(1), among others.
 //
 // The resulting string is returned, along with the number of arguments used.
+// Note that the resulting string may contain null bytes, for example
+// if the format string used `\x00`. The caller should terminate the string
+// at the first null byte if needed, such as when expanding for `$'foo\x00bar'`.
 //
 // The config specifies shell expansion options; nil behaves the same as an
 // empty config.
@@ -252,7 +255,6 @@ func formatInto(sb *strings.Builder, format string, args []string) (int, error) 
 	var fmts []byte
 	initialArgs := len(args)
 
-formatLoop:
 	for i := 0; i < len(format); i++ {
 		// readDigits reads from 0 to max digits, either octal or
 		// hexadecimal.
@@ -313,11 +315,6 @@ formatLoop:
 				if len(digits) > 0 {
 					// can't error
 					n, _ := strconv.ParseUint(digits, 16, 32)
-					if n == 0 {
-						// If we're about to print \x00,
-						// stop the entire loop, like bash.
-						break formatLoop
-					}
 					if c == 'x' {
 						// always as a single byte
 						sb.WriteByte(byte(n))
@@ -544,12 +541,13 @@ func (cfg *Config) wordField(wps []syntax.WordPart, ql quoteLevel) ([]fieldPart,
 				}
 				s = sb.String()
 			}
-			s, _, _ = strings.Cut(s, "\x00")
+			s, _, _ = strings.Cut(s, "\x00") // TODO: why is this needed?
 			field = append(field, fieldPart{val: s})
 		case *syntax.SglQuoted:
 			fp := fieldPart{quote: quoteSingle, val: wp.Value}
 			if wp.Dollar {
 				fp.val, _, _ = Format(cfg, fp.val, nil)
+				fp.val, _, _ = strings.Cut(fp.val, "\x00") // cut the string if format included \x00
 			}
 			field = append(field, fp)
 		case *syntax.DblQuoted:
@@ -669,6 +667,7 @@ func (cfg *Config) wordFields(wps []syntax.WordPart) ([][]fieldPart, error) {
 			fp := fieldPart{quote: quoteSingle, val: wp.Value}
 			if wp.Dollar {
 				fp.val, _, _ = Format(cfg, fp.val, nil)
+				fp.val, _, _ = strings.Cut(fp.val, "\x00") // cut the string if format included \x00
 			}
 			curField = append(curField, fp)
 		case *syntax.DblQuoted:
