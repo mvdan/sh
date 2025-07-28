@@ -7,6 +7,7 @@ jobs:
         go-version: [1.23.x, 1.24.x]
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
     steps:
     - uses: actions/checkout@v4
     - uses: actions/setup-go@v5
@@ -41,6 +42,7 @@ jobs:
 
   test-linux-alpine:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
     - uses: actions/checkout@v4
     - name: Test as root, without cgo, and with busybox
@@ -51,6 +53,7 @@ jobs:
     # Only deploy if previous stages pass.
     needs: [test, test-linux-alpine]
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     services:
       registry:
         image: registry:2
