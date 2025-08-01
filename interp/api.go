@@ -187,11 +187,21 @@ type exitStatus struct {
 	exiting   bool // whether the current shell is exiting
 	fatalExit bool // whether the current shell is exiting due to a fatal error; err below must not be nil
 
-	// err is a fatal error if fatal is true, or a non-fatal custom error from a handler.
+	// err holds the error information for a non-zero exit status code or fatal error.
 	// Used so that running a single statement with a custom handler
 	// which returns a non-fatal Go error, such as a Go error wrapping [NewExitStatus],
 	// can be returned by [Runner.Run] without being lost entirely.
 	err error
+}
+
+// clear sets the exit status code and error to zero, as long as the exit status
+// was not set by `return`, `exit`, or a fatal error.
+func (e *exitStatus) clear() {
+	if e.returning || e.exiting || e.fatalExit {
+		return
+	}
+	e.code = 0
+	e.err = nil
 }
 
 func (e *exitStatus) ok() bool { return e.code == 0 }

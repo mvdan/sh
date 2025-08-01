@@ -722,8 +722,8 @@ var runTests = []runTest{
 		"",
 	},
 	{
-		"if false; then echo foo_interp_missing; fi",
-		"",
+		"if GOSH_CMD=print_fail $GOSH_PROG; then echo foo_interp_missing; fi",
+		"exec fail\n",
 	},
 	{
 		"if true; then echo foo_interp_missing; else echo bar_interp_missing; fi",
@@ -758,6 +758,10 @@ var runTests = []runTest{
 	{
 		"while false; do echo foo_interp_missing; done",
 		"",
+	},
+	{
+		"while GOSH_CMD=print_fail $GOSH_PROG; do echo foo_interp_missing; done",
+		"exec fail\n",
 	},
 	{
 		"while true; do exit 1; done",
@@ -2968,7 +2972,7 @@ done <<< 2`,
 	// Extended globbing is not supported
 	{"ls ab+(2|3).txt", "extended globbing is not supported\nexit status 1 #JUSTERR"},
 	{"echo *(/)", "extended globbing is not supported\nexit status 1 #JUSTERR"},
-	{`if [[ "foo" == @(foo|bar) ]]; then exit 1; else exit 1; fi`, "extended globbing is not supported\n #JUSTERR"},
+	{`if [[ "foo" == @(foo|bar) ]]; then echo "then"; else echo "else"; fi; exit 5`, "extended globbing is not supported\nexit status 1 #JUSTERR"},
 	// Ensure that setting nullglob does not return invalid globs as null
 	// strings.
 	{

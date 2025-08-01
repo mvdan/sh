@@ -511,7 +511,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			r.stmts(ctx, cm.Then)
 			break
 		}
-		r.exit.code = 0
+		r.exit.clear()
 		if cm.Else != nil {
 			r.cmd(ctx, cm.Else)
 		}
@@ -523,7 +523,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			r.noErrExit = oldNoErrExit
 
 			stop := r.exit.ok() == cm.Until
-			r.exit.code = 0
+			r.exit.clear()
 			if stop || r.loopStmtsBroken(ctx, cm.Do) {
 				break
 			}
