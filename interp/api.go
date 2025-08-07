@@ -922,6 +922,12 @@ func (r *Runner) Run(ctx context.Context, node syntax.Node) error {
 	maps.Insert(r.Vars, r.writeEnv.Each)
 	// Return the first of: a fatal error, a non-fatal handler error, or the exit code.
 	if err := r.exit.err; err != nil {
+		if r.exit.code == 0 {
+			// This should never happen; too much code relies on checking [exitStatus.code]
+			// to see if the last command succeeded or failed. [exitStatus.err] should only be
+			// additional information, so fail loudly if the invariant is broken.
+			panic("ended up with a non-nil exitStatus.err but a zero exitStatus.code")
+		}
 		return err
 	}
 	if code := r.exit.code; code != 0 {
