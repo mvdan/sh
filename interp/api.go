@@ -180,6 +180,7 @@ type Runner struct {
 // with specific exit codes.
 type exitStatus struct {
 	// code is the exit status code.
+	// When code is zero, err must be nil.
 	code uint8
 
 	// TODO: consider an enum, as only one of these should be set at a time
@@ -206,39 +207,40 @@ func (e *exitStatus) clear() {
 
 func (e *exitStatus) ok() bool { return e.code == 0 }
 
+// oneIf sets the exit status code to 1 if b is true.
+// Note that it assumes the exit status hasn't been set yet,
+// meaning that [exitStatus.code] and [exitStatus.err] are zero values.
 func (e *exitStatus) oneIf(b bool) {
 	if b {
 		e.code = 1
-	} else {
-		e.code = 0
 	}
 }
 
 func (e *exitStatus) fatal(err error) {
-	if !e.fatalExit && err != nil {
-		e.exiting = true
-		e.fatalExit = true
-		e.err = err
-		if e.code == 0 {
-			e.code = 1
-		}
+	if e.fatalExit || err == nil {
+		return
+	}
+	e.exiting = true
+	e.fatalExit = true
+	e.err = err
+	if e.code == 0 {
+		e.code = 1
 	}
 }
 
 func (e *exitStatus) fromHandlerError(err error) {
-	if err != nil {
-		var exit errBuiltinExitStatus
-		var es ExitStatus
-		if errors.As(err, &exit) {
-			*e = exitStatus(exit)
-		} else if errors.As(err, &es) {
-			e.err = err
-			e.code = uint8(es)
-		} else {
-			e.fatal(err) // handler's custom fatal error
-		}
+	if err == nil {
+		return
+	}
+	var exit errBuiltinExitStatus
+	var es ExitStatus
+	if errors.As(err, &exit) {
+		*e = exitStatus(exit)
+	} else if errors.As(err, &es) {
+		e.err = err
+		e.code = uint8(es)
 	} else {
-		e.code = 0
+		e.fatal(err) // handler's custom fatal error
 	}
 }
 

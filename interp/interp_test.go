@@ -286,6 +286,14 @@ var runTests = []runTest{
 		"GOSH_CMD=exit_5 $GOSH_PROG; echo next",
 		"next\n",
 	},
+	{
+		"! GOSH_CMD=exit_0 $GOSH_PROG",
+		"exit status 1",
+	},
+	{
+		"! GOSH_CMD=exit_5 $GOSH_PROG",
+		"",
+	},
 
 	// we don't need to follow bash error strings
 	{"exit a", "invalid exit status code: \"a\"\nexit status 2 #JUSTERR"},

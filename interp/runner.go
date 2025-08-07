@@ -340,8 +340,11 @@ func (r *Runner) stmtSync(ctx context.Context, st *syntax.Stmt) {
 		r.cmd(ctx, st.Cmd)
 	}
 	if st.Negated {
-		// TODO: negate the entire [exitStatus] here, wiping errors
-		r.exit.oneIf(r.exit.ok())
+		if r.exit.ok() {
+			r.exit.code = 1
+		} else {
+			r.exit.clear()
+		}
 	} else if b, ok := st.Cmd.(*syntax.BinaryCmd); ok && (b.Op == syntax.AndStmt || b.Op == syntax.OrStmt) {
 	} else if !r.exit.ok() && !r.noErrExit {
 		r.trapCallback(ctx, r.callbackErr, "error")
