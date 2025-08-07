@@ -40,9 +40,15 @@ func TestExecHandler(t *testing.T) {
 			}
 
 			// FIXME(@andreynering): Return the proper flag error from u-root to
-			// avoid a special test for chmod.
+			// avoid a special tests for chmod and gzip.
 			if coreUtil == "chmod" {
 				if err.Error() != "chmod: chmod [mode] filepath" {
+					t.Errorf("expected %q output, got: %q", cmd, err)
+				}
+				return
+			}
+			if coreUtil == "gzip" {
+				if err.Error() != "gzip: ignoring stdout, use -f to compression" {
 					t.Errorf("expected %q output, got: %q", cmd, err)
 				}
 				return

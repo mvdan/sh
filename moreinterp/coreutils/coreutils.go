@@ -14,30 +14,40 @@ import (
 	"context"
 
 	"github.com/u-root/u-root/pkg/core"
+	"github.com/u-root/u-root/pkg/core/base64"
 	"github.com/u-root/u-root/pkg/core/cat"
 	"github.com/u-root/u-root/pkg/core/chmod"
 	"github.com/u-root/u-root/pkg/core/cp"
 	"github.com/u-root/u-root/pkg/core/find"
+	"github.com/u-root/u-root/pkg/core/gzip"
 	"github.com/u-root/u-root/pkg/core/ls"
 	"github.com/u-root/u-root/pkg/core/mkdir"
+	"github.com/u-root/u-root/pkg/core/mktemp"
 	"github.com/u-root/u-root/pkg/core/mv"
 	"github.com/u-root/u-root/pkg/core/rm"
+	"github.com/u-root/u-root/pkg/core/shasum"
+	"github.com/u-root/u-root/pkg/core/tar"
 	"github.com/u-root/u-root/pkg/core/touch"
 	"github.com/u-root/u-root/pkg/core/xargs"
 	"mvdan.cc/sh/v3/interp"
 )
 
 var commandBuilders = map[string]func() core.Command{
-	"cat":   func() core.Command { return cat.New() },
-	"chmod": func() core.Command { return chmod.New() },
-	"cp":    func() core.Command { return cp.New() },
-	"find":  func() core.Command { return find.New() },
-	"ls":    func() core.Command { return ls.New() },
-	"mkdir": func() core.Command { return mkdir.New() },
-	"mv":    func() core.Command { return mv.New() },
-	"rm":    func() core.Command { return rm.New() },
-	"touch": func() core.Command { return touch.New() },
-	"xargs": func() core.Command { return xargs.New() },
+	"cat":    func() core.Command { return cat.New() },
+	"chmod":  func() core.Command { return chmod.New() },
+	"cp":     func() core.Command { return cp.New() },
+	"find":   func() core.Command { return find.New() },
+	"ls":     func() core.Command { return ls.New() },
+	"mkdir":  func() core.Command { return mkdir.New() },
+	"mv":     func() core.Command { return mv.New() },
+	"rm":     func() core.Command { return rm.New() },
+	"touch":  func() core.Command { return touch.New() },
+	"xargs":  func() core.Command { return xargs.New() },
+	"base64": func() core.Command { return base64.New() },
+	"gzip":   func() core.Command { return gzip.New() },
+	"mktemp": func() core.Command { return mktemp.New() },
+	"shasum": func() core.Command { return shasum.New() },
+	"tar":    func() core.Command { return tar.New() },
 }
 
 // ExecHandler returns an [interp.ExecHandlerFunc] middleware that handles core
