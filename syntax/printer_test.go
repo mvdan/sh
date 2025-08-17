@@ -875,6 +875,20 @@ func TestPrintSwitchCaseIndent(t *testing.T) {
 	}
 }
 
+func TestPrintSwitchCaseEsacLiteral(t *testing.T) {
+	t.Parallel()
+	tests := [...]printCase{
+		samePrint("case $i in\n1)\n\ta\n\t;;\n(esac)\n\tb\n\t;;\nesac"),
+		samePrint("case $i in\n1)\n\ta\n\t;;\n(esac | 2)\n\tb\n\t;;\nesac"),
+		samePrint("case $i in\n1)\n\ta\n\t;;\n2 | esac)\n\tb\n\t;;\nesac"),
+	}
+	for _, tc := range tests {
+		t.Run("", func(t *testing.T) {
+			printTest(t, NewParser(), NewPrinter(), tc.in, tc.want)
+		})
+	}
+}
+
 func TestPrintFunctionNextLine(t *testing.T) {
 	t.Parallel()
 	tests := [...]printCase{
