@@ -960,6 +960,10 @@ func (p *Printer) wordJoin(ws []*Word) {
 func (p *Printer) casePatternJoin(pats []*Word) {
 	anyNewline := false
 	for i, w := range pats {
+		// Only valid situation for a literal 'esac' here is with a preceding left paran.
+		if i == 0 && w.Lit() == "esac" {
+			p.WriteString("(")
+		}
 		if i > 0 {
 			p.spacedToken("|", Pos{})
 		}
