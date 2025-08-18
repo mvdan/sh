@@ -652,6 +652,9 @@ var printTests = []printCase{
 	samePrint("(\n\t((foo++))\n)"),
 	samePrint("(foo && bar)"),
 	samePrint(`$foo#bar ${foo}#bar 'foo'#bar "foo"#bar`),
+	samePrint("case $i in\n1)\n\ta\n\t;;\n(esac)\n\tb\n\t;;\nesac"),
+	samePrint("case $i in\n1)\n\ta\n\t;;\n(esac | 2)\n\tb\n\t;;\nesac"),
+	samePrint("case $i in\n1)\n\ta\n\t;;\n2 | esac)\n\tb\n\t;;\nesac"),
 	// TODO: support cases with command substitutions as well
 	// {
 	// 	"`foo`#bar",
