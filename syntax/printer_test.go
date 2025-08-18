@@ -652,6 +652,9 @@ var printTests = []printCase{
 	samePrint("(\n\t((foo++))\n)"),
 	samePrint("(foo && bar)"),
 	samePrint(`$foo#bar ${foo}#bar 'foo'#bar "foo"#bar`),
+	samePrint("case $i in\n1)\n\ta\n\t;;\n(esac)\n\tb\n\t;;\nesac"),
+	samePrint("case $i in\n1)\n\ta\n\t;;\n(esac | 2)\n\tb\n\t;;\nesac"),
+	samePrint("case $i in\n1)\n\ta\n\t;;\n2 | esac)\n\tb\n\t;;\nesac"),
 	// TODO: support cases with command substitutions as well
 	// {
 	// 	"`foo`#bar",
@@ -871,20 +874,6 @@ func TestPrintSwitchCaseIndent(t *testing.T) {
 	for _, tc := range tests {
 		t.Run("", func(t *testing.T) {
 			printTest(t, parser, printer, tc.in, tc.want)
-		})
-	}
-}
-
-func TestPrintSwitchCaseEsacLiteral(t *testing.T) {
-	t.Parallel()
-	tests := [...]printCase{
-		samePrint("case $i in\n1)\n\ta\n\t;;\n(esac)\n\tb\n\t;;\nesac"),
-		samePrint("case $i in\n1)\n\ta\n\t;;\n(esac | 2)\n\tb\n\t;;\nesac"),
-		samePrint("case $i in\n1)\n\ta\n\t;;\n2 | esac)\n\tb\n\t;;\nesac"),
-	}
-	for _, tc := range tests {
-		t.Run("", func(t *testing.T) {
-			printTest(t, NewParser(), NewPrinter(), tc.in, tc.want)
 		})
 	}
 }
