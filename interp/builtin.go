@@ -243,7 +243,7 @@ func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args 
 		default:
 			return failf(2, "usage: cd [dir]\n")
 		}
-		exit.code = r.changeDir(ctx, path)
+		exit.code = r.changeDir(ctx, "cd", path)
 	case "wait":
 		fp := flagParser{remaining: args}
 		for fp.more() {
@@ -521,14 +521,14 @@ func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args 
 				return failf(1, "pushd: no other directory\n")
 			}
 			newtop := swap()
-			if code := r.changeDir(ctx, newtop); code != 0 {
+			if code := r.changeDir(ctx, "pushd", newtop); code != 0 {
 				exit.code = code
 				return exit
 			}
 			r.builtin(ctx, syntax.Pos{}, "dirs", nil)
 		case 1:
 			if change {
-				if code := r.changeDir(ctx, args[0]); code != 0 {
+				if code := r.changeDir(ctx, "pushd", args[0]); code != 0 {
 					exit.code = code
 					return exit
 				}
@@ -556,7 +556,7 @@ func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args 
 			r.dirStack = r.dirStack[:len(r.dirStack)-1]
 			if change {
 				newtop := r.dirStack[len(r.dirStack)-1]
-				if code := r.changeDir(ctx, newtop); code != 0 {
+				if code := r.changeDir(ctx, "popd", newtop); code != 0 {
 					exit.code = code
 					return exit
 				}
@@ -984,19 +984,21 @@ func (r *Runner) readLine(ctx context.Context, raw bool) ([]byte, error) {
 	}
 }
 
-func (r *Runner) changeDir(ctx context.Context, path string) uint8 {
+func (r *Runner) changeDir(ctx context.Context, cmd, path string) uint8 {
 	path = cmp.Or(path, ".")
-	path = r.absPath(path)
-	info, err := r.stat(ctx, path)
+	apath := r.absPath(path)
+	info, err := r.stat(ctx, apath)
 	if err != nil || !info.IsDir() {
+		r.errf("%s: no such file or directory: %q\n", cmd, path)
 		return 1
 	}
-	if r.access(ctx, path, access_X_OK) != nil {
+	if r.access(ctx, apath, access_X_OK) != nil {
+		r.errf("%s: permission denied: %q\n", cmd, path)
 		return 1
 	}
-	r.Dir = path
+	r.Dir = apath
 	r.setVarString("OLDPWD", r.envGet("PWD"))
-	r.setVarString("PWD", path)
+	r.setVarString("PWD", apath)
 	return 0
 }
 
