@@ -988,7 +988,7 @@ var runTests = []runTest{
 	},
 	{
 		"cd noexist",
-		"exit status 1 #JUSTERR",
+		"cd: no such file or directory: noexist\nexit status 1",
 	},
 	{
 		"mkdir -p a/b && cd a && cd b && cd ../..",
@@ -996,7 +996,7 @@ var runTests = []runTest{
 	},
 	{
 		">a && cd a",
-		"exit status 1 #JUSTERR",
+		"cd: no such file or directory: a\nexit status 1",
 	},
 	{
 		`[[ $PWD == "$(pwd)" ]]`,
@@ -3377,23 +3377,23 @@ var runTestsUnix = []runTest{
 	// Note that these will succeed if we're root.
 	{
 		`mkdir a; chmod 0000 a; cd a && test $UID -ne 0`,
-		"exit status 1 #JUSTERR",
+		"cd: permission denied: a\nexit status 1",
 	},
 	{
 		`mkdir a; chmod 0222 a; cd a && test $UID -ne 0`,
-		"exit status 1 #JUSTERR",
+		"cd: permission denied: a\nexit status 1",
 	},
 	{
 		`mkdir a; chmod 0444 a; cd a && test $UID -ne 0`,
-		"exit status 1 #JUSTERR",
+		"cd: permission denied: a\nexit status 1",
 	},
 	{
 		`mkdir a; chmod 0010 a; cd a && test $UID -ne 0`,
-		"exit status 1 #JUSTERR",
+		"cd: permission denied: a\nexit status 1",
 	},
 	{
 		`mkdir a; chmod 0001 a; cd a && test $UID -ne 0`,
-		"exit status 1 #JUSTERR",
+		"cd: permission denied: a\nexit status 1",
 	},
 	{
 		`unset UID`,

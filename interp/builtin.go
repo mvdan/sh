@@ -243,7 +243,11 @@ func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args 
 		default:
 			return failf(2, "usage: cd [dir]\n")
 		}
-		exit.code = r.changeDir(ctx, path)
+		if err := r.changeDir(ctx, path); err != nil {
+			r.errf("%v", err)
+			exit.code = 1
+			return exit
+		}
 	case "wait":
 		fp := flagParser{remaining: args}
 		for fp.more() {
@@ -521,15 +525,15 @@ func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args 
 				return failf(1, "pushd: no other directory\n")
 			}
 			newtop := swap()
-			if code := r.changeDir(ctx, newtop); code != 0 {
-				exit.code = code
+			if err := r.changeDir(ctx, newtop); err != nil {
+				exit.code = 1
 				return exit
 			}
 			r.builtin(ctx, syntax.Pos{}, "dirs", nil)
 		case 1:
 			if change {
-				if code := r.changeDir(ctx, args[0]); code != 0 {
-					exit.code = code
+				if err := r.changeDir(ctx, args[0]); err != nil {
+					exit.code = 1
 					return exit
 				}
 				r.dirStack = append(r.dirStack, r.Dir)
@@ -556,8 +560,8 @@ func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args 
 			r.dirStack = r.dirStack[:len(r.dirStack)-1]
 			if change {
 				newtop := r.dirStack[len(r.dirStack)-1]
-				if code := r.changeDir(ctx, newtop); code != 0 {
-					exit.code = code
+				if err := r.changeDir(ctx, newtop); err != nil {
+					exit.code = 1
 					return exit
 				}
 			} else {
@@ -984,20 +988,20 @@ func (r *Runner) readLine(ctx context.Context, raw bool) ([]byte, error) {
 	}
 }
 
-func (r *Runner) changeDir(ctx context.Context, path string) uint8 {
-	path = cmp.Or(path, ".")
-	path = r.absPath(path)
+func (r *Runner) changeDir(ctx context.Context, path string) error {
+	arg := cmp.Or(path, ".")
+	path = r.absPath(arg)
 	info, err := r.stat(ctx, path)
 	if err != nil || !info.IsDir() {
-		return 1
+		return fmt.Errorf("cd: no such file or directory: %v\n", arg)
 	}
 	if r.access(ctx, path, access_X_OK) != nil {
-		return 1
+		return fmt.Errorf("cd: permission denied: %v\n", arg)
 	}
 	r.Dir = path
 	r.setVarString("OLDPWD", r.envGet("PWD"))
 	r.setVarString("PWD", path)
-	return 0
+	return nil
 }
 
 func absPath(dir, path string) string {
