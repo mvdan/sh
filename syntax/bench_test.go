@@ -28,7 +28,7 @@ func BenchmarkParse(b *testing.B) {
 		""
 	p := NewParser(KeepComments(true))
 	in := strings.NewReader(src)
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		if _, err := p.Parse(in, ""); err != nil {
 			b.Fatal(err)
 		}
@@ -40,7 +40,7 @@ func BenchmarkPrint(b *testing.B) {
 	b.ReportAllocs()
 	prog := parsePath(b, canonicalPath)
 	printer := NewPrinter()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		if err := printer.Print(io.Discard, prog); err != nil {
 			b.Fatal(err)
 		}

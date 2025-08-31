@@ -55,7 +55,7 @@ func parse(tb testing.TB, parser *syntax.Parser, src string) *syntax.File {
 
 func BenchmarkRun(b *testing.B) {
 	b.ReportAllocs()
-	b.StopTimer()
+
 	src := `
 echo a b c d
 echo ./$foo_interp_missing/etc $(echo foo_interp_missing bar_interp_missing)
@@ -74,8 +74,8 @@ let i=(2 + 3)
 	file := parse(b, nil, src)
 	r, _ := interp.New()
 	ctx := context.Background()
-	b.StartTimer()
-	for i := 0; i < b.N; i++ {
+
+	for b.Loop() {
 		r.Reset()
 		if err := r.Run(ctx, file); err != nil {
 			b.Fatal(err)
