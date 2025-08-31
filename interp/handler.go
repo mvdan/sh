@@ -331,10 +331,6 @@ func DefaultOpenHandler() OpenHandlerFunc {
 		mc := HandlerCtx(ctx)
 		if runtime.GOOS == "windows" && path == "/dev/null" {
 			path = "NUL"
-			// Work around https://go.dev/issue/71752, where Go 1.24 started giving
-			// "Invalid handle" errors when opening "NUL" with O_TRUNC.
-			// TODO: hopefully remove this in the future once the bug is fixed.
-			flag &^= os.O_TRUNC
 		} else if path != "" && !filepath.IsAbs(path) {
 			path = filepath.Join(mc.Dir, path)
 		}
