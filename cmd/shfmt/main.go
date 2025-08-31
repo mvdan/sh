@@ -82,8 +82,6 @@ var (
 
 	copyBuf = make([]byte, 32*1024)
 
-	version = "(devel)" // to match the default from runtime/debug
-
 	allFlags = []any{
 		versionFlag, list, write, find, diff, applyIgnore,
 		lang, posix, filename, simplify, expRecover,
@@ -194,8 +192,8 @@ For more information and to report bugs, see https://github.com/mvdan/sh.
 	flag.Parse()
 
 	if versionFlag.val {
-		// don't overwrite the version if it was set by -ldflags=-X
-		if info, ok := debug.ReadBuildInfo(); ok && version == "(devel)" {
+		version := "(unknown)"
+		if info, ok := debug.ReadBuildInfo(); ok {
 			mod := &info.Main
 			if mod.Replace != nil {
 				mod = mod.Replace
