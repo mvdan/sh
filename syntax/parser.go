@@ -189,7 +189,7 @@ func (p *Parser) Parse(r io.Reader, name string) (*File, error) {
 	p.f.Stmts, p.f.Last = p.stmtList()
 	if p.err == nil {
 		// EOF immediately after heredoc word so no newline to
-		// trigger it
+		// trigger the parsing error.
 		p.doHeredocs()
 	}
 	return p.f, p.err
@@ -214,8 +214,8 @@ func (p *Parser) Stmts(r io.Reader, fn func(*Stmt) bool) error {
 }
 
 type wrappedReader struct {
-	*Parser
-	io.Reader
+	p  *Parser
+	rd io.Reader
 
 	lastLine    int64
 	accumulated []*Stmt
@@ -226,8 +226,8 @@ func (w *wrappedReader) Read(p []byte) (n int, err error) {
 	// If we lexed a newline for the first time, we just finished a line, so
 	// we may need to give a callback for the edge cases below not covered
 	// by Parser.Stmts.
-	if (w.r == '\n' || w.r == escNewl) && w.line > w.lastLine {
-		if w.Incomplete() {
+	if (w.p.r == '\n' || w.p.r == escNewl) && w.p.line > w.lastLine {
+		if w.p.Incomplete() {
 			// Incomplete statement; call back to print "> ".
 			if !w.fn(w.accumulated) {
 				return 0, io.EOF
@@ -238,9 +238,9 @@ func (w *wrappedReader) Read(p []byte) (n int, err error) {
 				return 0, io.EOF
 			}
 		}
-		w.lastLine = w.line
+		w.lastLine = w.p.line
 	}
-	return w.Reader.Read(p)
+	return w.rd.Read(p)
 }
 
 // Interactive implements what is necessary to parse statements in an
@@ -269,7 +269,7 @@ func (w *wrappedReader) Read(p []byte) (n int, err error) {
 // If the callback function returns false, parsing is stopped and the function
 // is not called again.
 func (p *Parser) Interactive(r io.Reader, fn func([]*Stmt) bool) error {
-	w := wrappedReader{Parser: p, Reader: r, fn: fn}
+	w := wrappedReader{p: p, rd: r, fn: fn}
 	return p.Stmts(&w, func(stmt *Stmt) bool {
 		w.accumulated = append(w.accumulated, stmt)
 		// We finished parsing a statement and we're at a newline token,
@@ -283,7 +283,7 @@ func (p *Parser) Interactive(r io.Reader, fn func([]*Stmt) bool) error {
 			// The callback above would already print "$ ", so we
 			// don't want the subsequent wrappedReader.Read to cause
 			// another "$ " print thinking that nothing was parsed.
-			w.lastLine = w.line + 1
+			w.lastLine = w.p.line + 1
 		}
 		return true
 	})
