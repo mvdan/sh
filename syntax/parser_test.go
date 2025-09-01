@@ -2700,7 +2700,7 @@ func countRecoveredPositions(x reflect.Value) int {
 	switch x.Kind() {
 	case reflect.Interface:
 		return countRecoveredPositions(x.Elem())
-	case reflect.Ptr:
+	case reflect.Pointer:
 		if !x.IsNil() {
 			return countRecoveredPositions(x.Elem())
 		}
