@@ -195,22 +195,40 @@ func (p *Parser) Parse(r io.Reader, name string) (*File, error) {
 	return p.f, p.err
 }
 
-// Stmts reads and parses statements one at a time, calling a function
-// each time one is parsed. If the function returns false, parsing is
-// stopped and the function is not called again.
+// TODO: deprecate the pre-iterator APIs in early 2026.
+
+// Stmts is a pre-iterators API which now wraps [Parser.StmtsSeq].
 func (p *Parser) Stmts(r io.Reader, fn func(*Stmt) bool) error {
+	for stmt, err := range p.StmtsSeq(r) {
+		if err != nil {
+			return err
+		}
+		if !fn(stmt) {
+			break
+		}
+	}
+	return nil
+}
+
+// StmtsSeq reads and parses statements one at a time via an iterator.
+func (p *Parser) StmtsSeq(r io.Reader) iter.Seq2[*Stmt, error] {
 	p.reset()
 	p.f = &File{}
 	p.src = r
-	p.rune()
-	p.next()
-	p.stmts(fn)
-	if p.err == nil {
-		// EOF immediately after heredoc word so no newline to
-		// trigger it
-		p.doHeredocs()
+	return func(yield func(*Stmt, error) bool) {
+		p.rune()
+		p.next()
+		p.stmts(yield)
+		if p.err == nil {
+			// EOF immediately after heredoc word so no newline to
+			// trigger the parsing error.
+			p.doHeredocs()
+		}
+		if p.err != nil {
+			// Yield any final error from the parser.
+			yield(nil, p.err)
+		}
 	}
-	return p.err
 }
 
 type wrappedReader struct {
@@ -219,7 +237,7 @@ type wrappedReader struct {
 
 	lastLine    int64
 	accumulated []*Stmt
-	fn          func([]*Stmt) bool
+	yield       func([]*Stmt, error) bool
 }
 
 func (w *wrappedReader) Read(p []byte) (n int, err error) {
@@ -229,12 +247,12 @@ func (w *wrappedReader) Read(p []byte) (n int, err error) {
 	if (w.p.r == '\n' || w.p.r == escNewl) && w.p.line > w.lastLine {
 		if w.p.Incomplete() {
 			// Incomplete statement; call back to print "> ".
-			if !w.fn(w.accumulated) {
+			if !w.yield(w.accumulated, w.p.err) {
 				return 0, io.EOF
 			}
 		} else if len(w.accumulated) == 0 {
 			// Nothing was parsed; call back to print another "$ ".
-			if !w.fn(nil) {
+			if !w.yield(nil, w.p.err) {
 				return 0, io.EOF
 			}
 		}
@@ -243,7 +261,20 @@ func (w *wrappedReader) Read(p []byte) (n int, err error) {
 	return w.rd.Read(p)
 }
 
-// Interactive implements what is necessary to parse statements in an
+// Interactive is a pre-iterators API which now wraps [Parser.InteractiveSeq].
+func (p *Parser) Interactive(r io.Reader, fn func([]*Stmt) bool) error {
+	for stmts, err := range p.InteractiveSeq(r) {
+		if err != nil {
+			return err
+		}
+		if !fn(stmts) {
+			break
+		}
+	}
+	return nil
+}
+
+// InteractiveSeq implements what is necessary to parse statements in an
 // interactive shell. The parser will call the given function under two
 // circumstances outlined below.
 //
@@ -268,25 +299,34 @@ func (w *wrappedReader) Read(p []byte) (n int, err error) {
 //
 // If the callback function returns false, parsing is stopped and the function
 // is not called again.
-func (p *Parser) Interactive(r io.Reader, fn func([]*Stmt) bool) error {
-	w := wrappedReader{p: p, rd: r, fn: fn}
-	return p.Stmts(&w, func(stmt *Stmt) bool {
-		w.accumulated = append(w.accumulated, stmt)
-		// We finished parsing a statement and we're at a newline token,
-		// so we finished fully parsing a number of statements. Call
-		// back to run the statements and print "$ ".
-		if p.tok == _Newl {
-			if !fn(w.accumulated) {
-				return false
+func (p *Parser) InteractiveSeq(r io.Reader) iter.Seq2[[]*Stmt, error] {
+	return func(yield func([]*Stmt, error) bool) {
+		w := wrappedReader{p: p, rd: r, yield: yield}
+		for stmts, err := range p.StmtsSeq(&w) {
+			w.accumulated = append(w.accumulated, stmts)
+			if err != nil {
+				if !yield(w.accumulated, err) {
+					break
+				}
+				// If the caller wishes, they can continue in the presence of parse errors.
+				// TODO: does this even work? Write tests for it. This only came up
+				continue
 			}
-			w.accumulated = w.accumulated[:0]
-			// The callback above would already print "$ ", so we
-			// don't want the subsequent wrappedReader.Read to cause
-			// another "$ " print thinking that nothing was parsed.
-			w.lastLine = w.p.line + 1
+			// We finished parsing a statement and we're at a newline token,
+			// so we finished fully parsing a number of statements. Call
+			// back to run the statements and print "$ ".
+			if p.tok == _Newl {
+				if !yield(w.accumulated, nil) {
+					break
+				}
+				w.accumulated = w.accumulated[:0]
+				// The callback above would already print "$ ", so we
+				// don't want the subsequent wrappedReader.Read to cause
+				// another "$ " print thinking that nothing was parsed.
+				w.lastLine = w.p.line + 1
+			}
 		}
-		return true
-	})
+	}
 }
 
 // Words is a pre-iterators API which now wraps [Parser.WordsSeq].
@@ -916,7 +956,7 @@ func (p *Parser) langErr(pos Pos, feature string, langs ...LangVariant) {
 	})
 }
 
-func (p *Parser) stmts(fn func(*Stmt) bool, stops ...string) {
+func (p *Parser) stmts(yield func(*Stmt, error) bool, stops ...string) {
 	gotEnd := true
 loop:
 	for p.tok != _EOF {
@@ -956,7 +996,7 @@ loop:
 			break
 		}
 		gotEnd = s.Semicolon.IsValid()
-		if !fn(s) {
+		if !yield(s, p.err) {
 			break
 		}
 	}
@@ -965,7 +1005,7 @@ loop:
 func (p *Parser) stmtList(stops ...string) ([]*Stmt, []Comment) {
 	var stmts []*Stmt
 	var last []Comment
-	fn := func(s *Stmt) bool {
+	fn := func(s *Stmt, err error) bool {
 		stmts = append(stmts, s)
 		return true
 	}

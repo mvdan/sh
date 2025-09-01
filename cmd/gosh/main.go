@@ -82,23 +82,21 @@ func runPath(ctx context.Context, r *interp.Runner, path string) error {
 func runInteractive(ctx context.Context, r *interp.Runner, stdin io.Reader, stdout, stderr io.Writer) error {
 	parser := syntax.NewParser()
 	fmt.Fprintf(stdout, "$ ")
-	var runErr error
-	fn := func(stmts []*syntax.Stmt) bool {
+	for stmts, err := range parser.InteractiveSeq(stdin) {
+		if err != nil {
+			return err // stop at the first error
+		}
 		if parser.Incomplete() {
 			fmt.Fprintf(stdout, "> ")
-			return true
+			continue
 		}
 		for _, stmt := range stmts {
-			runErr = r.Run(ctx, stmt)
+			err := r.Run(ctx, stmt)
 			if r.Exited() {
-				return false
+				return err
 			}
 		}
 		fmt.Fprintf(stdout, "$ ")
-		return true
 	}
-	if err := parser.Interactive(stdin, fn); err != nil {
-		return err
-	}
-	return runErr
+	return nil
 }

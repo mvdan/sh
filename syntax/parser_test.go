@@ -2120,17 +2120,21 @@ func (r *strictStringReader) Read(p []byte) (int, error) {
 	return n, err
 }
 
-func TestParseStmts(t *testing.T) {
+func TestParseStmtsSeq(t *testing.T) {
 	t.Parallel()
 	p := NewParser()
 	inReader, inWriter := io.Pipe()
 	recv := make(chan bool, 10)
 	errc := make(chan error, 1)
 	go func() {
-		errc <- p.Stmts(inReader, func(s *Stmt) bool {
+		var firstErr error
+		for _, err := range p.StmtsSeq(inReader) {
 			recv <- true
-			return true
-		})
+			if firstErr == nil && err != nil {
+				firstErr = err
+			}
+		}
+		errc <- firstErr
 	}()
 	io.WriteString(inWriter, "foo\n")
 	<-recv
@@ -2143,7 +2147,7 @@ func TestParseStmts(t *testing.T) {
 	}
 }
 
-func TestParseStmtsStopEarly(t *testing.T) {
+func TestParseStmtsSeqStopEarly(t *testing.T) {
 	t.Parallel()
 	p := NewParser()
 	inReader, inWriter := io.Pipe()
@@ -2151,10 +2155,17 @@ func TestParseStmtsStopEarly(t *testing.T) {
 	recv := make(chan bool, 10)
 	errc := make(chan error, 1)
 	go func() {
-		errc <- p.Stmts(inReader, func(s *Stmt) bool {
+		var firstErr error
+		for stmt, err := range p.StmtsSeq(inReader) {
 			recv <- true
-			return !s.Background
-		})
+			if firstErr == nil && err != nil {
+				firstErr = err
+			}
+			if stmt.Background {
+				break
+			}
+		}
+		errc <- firstErr
 	}()
 	io.WriteString(inWriter, "a\n")
 	<-recv
@@ -2165,7 +2176,7 @@ func TestParseStmtsStopEarly(t *testing.T) {
 	}
 }
 
-func TestParseStmtsError(t *testing.T) {
+func TestParseStmtsSeqError(t *testing.T) {
 	t.Parallel()
 	for _, in := range []string{
 		"foo; )",
@@ -2176,10 +2187,14 @@ func TestParseStmtsError(t *testing.T) {
 			recv := make(chan bool, 10)
 			errc := make(chan error, 1)
 			go func() {
-				errc <- p.Stmts(strings.NewReader(in), func(s *Stmt) bool {
+				var firstErr error
+				for _, err := range p.StmtsSeq(strings.NewReader(in)) {
 					recv <- true
-					return true
-				})
+					if firstErr == nil && err != nil {
+						firstErr = err
+					}
+				}
+				errc <- firstErr
 			}()
 			<-recv
 			if err := <-errc; err == nil {
@@ -2443,7 +2458,7 @@ var stopAtTests = []struct {
 	},
 }
 
-func TestParseStmtsStopAt(t *testing.T) {
+func TestParseStopAt(t *testing.T) {
 	t.Parallel()
 	for _, c := range stopAtTests {
 		p := NewParser(StopAt(c.stop))
@@ -2508,10 +2523,13 @@ func TestIsIncomplete(t *testing.T) {
 		})
 		t.Run(fmt.Sprintf("Interactive%02d", i), func(t *testing.T) {
 			r := strings.NewReader(tc.in)
-			err := p.Interactive(r, func([]*Stmt) bool {
-				return false
-			})
-			if got := IsIncomplete(err); got != tc.want {
+			var firstErr error
+			for _, err := range p.InteractiveSeq(r) {
+				if firstErr == nil && err != nil {
+					firstErr = err
+				}
+			}
+			if got := IsIncomplete(firstErr); got != tc.want {
 				t.Fatalf("%q got %t, wanted %t", tc.in, got, tc.want)
 			}
 		})
@@ -2520,7 +2538,7 @@ func TestIsIncomplete(t *testing.T) {
 				r := strings.NewReader(tc.in)
 				var firstErr error
 				for _, err := range p.WordsSeq(r) {
-					if err != nil {
+					if firstErr == nil && err != nil {
 						firstErr = err
 					}
 				}
