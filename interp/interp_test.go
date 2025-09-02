@@ -3376,23 +3376,23 @@ var runTestsUnix = []runTest{
 	},
 	// Note that these will succeed if we're root.
 	{
-		`mkdir a; chmod 0000 a; cd a && test $UID -ne 0`,
+		`mkdir a; chmod 0000 a; cd a`,
 		"exit status 1 #JUSTERR",
 	},
 	{
-		`mkdir a; chmod 0222 a; cd a && test $UID -ne 0`,
+		`mkdir a; chmod 0222 a; cd a`,
 		"exit status 1 #JUSTERR",
 	},
 	{
-		`mkdir a; chmod 0444 a; cd a && test $UID -ne 0`,
+		`mkdir a; chmod 0444 a; cd a`,
 		"exit status 1 #JUSTERR",
 	},
 	{
-		`mkdir a; chmod 0010 a; cd a && test $UID -ne 0`,
+		`mkdir a; chmod 0010 a; cd a`,
 		"exit status 1 #JUSTERR",
 	},
 	{
-		`mkdir a; chmod 0001 a; cd a && test $UID -ne 0`,
+		`mkdir a; chmod 0001 a; cd a`,
 		"exit status 1 #JUSTERR",
 	},
 	{
