@@ -865,11 +865,13 @@ func (r *Runner) hdocReader(rd *syntax.Redirect) (*os.File, error) {
 			cur = append(cur, wp)
 			continue
 		}
-		for i, part := range strings.Split(lit.Value, "\n") {
-			if i > 0 {
+		first := true
+		for part := range strings.SplitSeq(lit.Value, "\n") {
+			if !first {
 				flushLine()
 				cur = cur[:0]
 			}
+			first = false
 			part = strings.TrimLeft(part, "\t")
 			cur = append(cur, &syntax.Lit{Value: part})
 		}
