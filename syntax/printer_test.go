@@ -1039,6 +1039,19 @@ func TestPrintMinify(t *testing.T) {
 			"((1 + 2))",
 			"((1+2))",
 		},
+		// TODO: see https://github.com/mvdan/sh/issues/1169
+		{
+			"((\nfoo\n))",
+			"((\\\nfoo))",
+		},
+		{
+			"((\na > 0\n&&\na < 10\n))",
+			"((\\\na>0&& \\\na<10))",
+		},
+		{
+			"((a > 0 &&\na < 10))",
+			"((a>0&& \\\na<10))",
+		},
 		{
 			"echo $a ${b} ${c}-d ${e}f ${g}_h",
 			"echo $a $b $c-d ${e}f ${g}_h",
