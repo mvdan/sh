@@ -3032,7 +3032,7 @@ done <<< 2`,
 		"",
 	},
 
-	// brace expansion; more exhaustive tests in the syntax package
+	// brace expansion; there are also some tests in the expand package
 	{"echo a}b", "a}b\n"},
 	{"echo {a,b{c,d}", "{a,bc {a,bd\n"},
 	{"echo a{b}", "a{b}\n"},
@@ -3043,6 +3043,9 @@ done <<< 2`,
 	{"echo a{1..2}b{4..5}c", "a1b4c a1b5c a2b4c a2b5c\n"},
 	{"echo a{c..f}", "ac ad ae af\n"},
 	{"echo a{4..1..1}", "a4 a3 a2 a1\n"},
+	{"b=c; echo ${b}a{4..1..1}", "ca4 ca3 ca2 ca1\n"},
+	{"b=c; echo a{1,2}$b", "a1c a2c\n"},
+	{"echo a{1,2}'bc'", "a1bc a2bc\n"},
 
 	// tilde expansion
 	{

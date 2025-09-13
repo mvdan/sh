@@ -506,12 +506,12 @@ type Word struct {
 func (w *Word) Pos() Pos { return w.Parts[0].Pos() }
 func (w *Word) End() Pos { return w.Parts[len(w.Parts)-1].End() }
 
-// Lit returns the word as a literal value, if the word consists of [*Lit] nodes
-// only. An empty string is returned otherwise. Words with multiple literals,
-// which can appear in some edge cases, are handled properly.
+// Lit returns the word as a string when it is a simple literal,
+// made up of [*Lit] word parts only.
+// An empty string is returned otherwise.
 //
-// For example, the word "foo" will return "foo", but the word "foo${bar}" will
-// return "".
+// For example, the word "foo" will return "foo",
+// but the word "foo${bar}" will return "".
 func (w *Word) Lit() string {
 	// In the usual case, we'll have either a single part that's a literal,
 	// or one of the parts being a non-literal. Using strings.Join instead
