@@ -831,26 +831,30 @@ func (p *Printer) arithmExpr(expr ArithmExpr, compact, spacePlusMinus bool) {
 	if p.minify {
 		compact = true
 	}
+	p.arithmExprRecurse(expr, compact, spacePlusMinus)
+}
+
+func (p *Printer) arithmExprRecurse(expr ArithmExpr, compact, spacePlusMinus bool) {
 	switch expr := expr.(type) {
 	case *Word:
 		p.word(expr)
 	case *BinaryArithm:
 		if compact {
-			p.arithmExpr(expr.X, compact, spacePlusMinus)
+			p.arithmExprRecurse(expr.X, compact, spacePlusMinus)
 			p.w.WriteString(expr.Op.String())
-			p.arithmExpr(expr.Y, compact, false)
+			p.arithmExprRecurse(expr.Y, compact, false)
 		} else {
-			p.arithmExpr(expr.X, compact, spacePlusMinus)
+			p.arithmExprRecurse(expr.X, compact, spacePlusMinus)
 			if expr.Op != Comma {
 				p.space()
 			}
 			p.w.WriteString(expr.Op.String())
 			p.space()
-			p.arithmExpr(expr.Y, compact, false)
+			p.arithmExprRecurse(expr.Y, compact, false)
 		}
 	case *UnaryArithm:
 		if expr.Post {
-			p.arithmExpr(expr.X, compact, spacePlusMinus)
+			p.arithmExprRecurse(expr.X, compact, spacePlusMinus)
 			p.w.WriteString(expr.Op.String())
 		} else {
 			if spacePlusMinus {
@@ -860,11 +864,11 @@ func (p *Printer) arithmExpr(expr ArithmExpr, compact, spacePlusMinus bool) {
 				}
 			}
 			p.w.WriteString(expr.Op.String())
-			p.arithmExpr(expr.X, compact, false)
+			p.arithmExprRecurse(expr.X, compact, false)
 		}
 	case *ParenArithm:
 		p.w.WriteByte('(')
-		p.arithmExpr(expr.X, false, false)
+		p.arithmExprRecurse(expr.X, false, false)
 		p.w.WriteByte(')')
 	}
 }
