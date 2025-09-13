@@ -414,7 +414,7 @@ func (p *Parser) Arithmetic(r io.Reader) (ArithmExpr, error) {
 // program.
 type Parser struct {
 	src io.Reader
-	bs  []byte // current chunk of read bytes
+	bs  []byte // current chunk of read bytes; nil when at EOF
 	bsp uint   // pos within chunk for the rune after r; uint helps eliminate bounds checks
 	r   rune   // next rune
 	w   int    // width of r

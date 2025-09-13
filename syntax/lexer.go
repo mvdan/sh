@@ -110,12 +110,15 @@ retry:
 			p.w, p.r = 1, rune(b)
 			return p.r
 		}
-		if !utf8.FullRune(p.bs[p.bsp:]) {
-			// we need more bytes to read a full non-ascii rune
-			p.fill()
-		}
+	decodeRune:
 		var w int
 		p.r, w = utf8.DecodeRune(p.bs[p.bsp:])
+		if p.r == utf8.RuneError && !utf8.FullRune(p.bs[p.bsp:]) {
+			// we need more bytes to read a full non-ascii rune
+			if p.fill() > 0 {
+				goto decodeRune
+			}
+		}
 		if p.litBs != nil {
 			p.litBs = append(p.litBs, p.bs[p.bsp:p.bsp+uint(w)]...)
 		}
@@ -137,10 +140,11 @@ retry:
 	return p.r
 }
 
-// fill reads more bytes from the input src into readBuf. Any bytes that
-// had not yet been used at the end of the buffer are slid into the
-// beginning of the buffer.
-func (p *Parser) fill() {
+// fill reads more bytes from the input src into readBuf.
+// Any bytes that had not yet been used at the end of the buffer
+// are slid into the beginning of the buffer.
+// The number of read bytes is returned.
+func (p *Parser) fill() (n int) {
 	p.offs += int64(p.bsp)
 	left := len(p.bs) - int(p.bsp)
 	copy(p.readBuf[:left], p.readBuf[p.bsp:])
@@ -167,6 +171,7 @@ readAgain:
 		p.bs = p.readBuf[:left+n]
 	}
 	p.bsp = 0
+	return n
 }
 
 func (p *Parser) nextKeepSpaces() {
