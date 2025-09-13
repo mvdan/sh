@@ -578,8 +578,6 @@ func (p *Parser) call(w *Word) *CallExpr {
 	return ce
 }
 
-//go:generate stringer -type=quoteState
-
 type quoteState uint32
 
 const (
