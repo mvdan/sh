@@ -836,7 +836,7 @@ func (p *Parser) endLit() (s string) {
 		s = string(p.litBs[:len(p.litBs)-p.w])
 	}
 	p.litBs = nil
-	return
+	return s
 }
 
 func (p *Parser) isLitRedir() bool {

@@ -619,7 +619,7 @@ type saveState struct {
 func (p *Parser) preNested(quote quoteState) (s saveState) {
 	s.quote, s.buriedHdocs = p.quote, p.buriedHdocs
 	p.buriedHdocs, p.quote = len(p.heredocs), quote
-	return
+	return s
 }
 
 func (p *Parser) postNested(s saveState) {
@@ -2208,7 +2208,7 @@ func (p *Parser) caseItems(stop string) (items []*CaseItem) {
 		default:
 			ci.Op = Break
 			items = append(items, ci)
-			return
+			return items
 		}
 		ci.Last = append(ci.Last, p.accComs...)
 		p.accComs = nil
@@ -2239,7 +2239,7 @@ func (p *Parser) caseItems(stop string) (items []*CaseItem) {
 
 		items = append(items, ci)
 	}
-	return
+	return items
 }
 
 func (p *Parser) testClause(s *Stmt) {
