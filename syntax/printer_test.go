@@ -973,8 +973,8 @@ func TestPrintKeepPadding(t *testing.T) {
 	for _, tc := range tests {
 		t.Run("", func(t *testing.T) {
 			// ensure that Reset does properly reset colCounter
-			printer.WriteByte('x')
-			printer.Reset(nil)
+			printer.w.WriteByte('x')
+			printer.w.Reset(nil)
 			printTest(t, parser, printer, tc.in, tc.want)
 		})
 	}
