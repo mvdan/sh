@@ -26,13 +26,83 @@ import (
 
 // IsBuiltin returns true if the given word is a shell builtin.
 func IsBuiltin(name string) bool {
+	// TODO: given the categories below, perhaps this should be more like:
+	//
+	//   func IsBuiltin(lang syntax.LangVariant, name string) bool
+	//
+	// or perhaps some API that also lets the user iterate through the builtins?
 	switch name {
-	case ":", "true", "false", "exit", "set", "shift", "unset",
-		"echo", "printf", "break", "continue", "pwd", "cd",
-		"wait", "builtin", "trap", "type", "source", ".", "command",
-		"dirs", "pushd", "popd", "umask", "alias", "unalias",
-		"fg", "bg", "getopts", "eval", "test", "[", "exec",
-		"return", "read", "mapfile", "readarray", "shopt":
+	case
+		// POSIX Shell builtins, from section 1.d obtained in September 2025 from:
+		// https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_09_01_01
+		"alias",
+		"bg",
+		"cd",
+		"command",
+		"false",
+		"fc",
+		"fg",
+		"getopts",
+		"hash",
+		"jobs",
+		"kill",
+		"newgrp",
+		"pwd",
+		"read",
+		"true",
+		"umask",
+		"unalias",
+		"wait",
+
+		// POSIX Shell special built-ins, obtained in September 2025 from:
+		// https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_14
+		"break",
+		":",
+		"continue",
+		".",
+		"eval",
+		"exec",
+		"exit",
+		"export",   // NOTE: our parser treats this as a keyword
+		"readonly", // NOTE: our parser treats this as a keyword
+		"return",
+		"set",
+		"shift",
+		"times",
+		"trap",
+		"unset",
+
+		// Bash built-ins which are not present in POSIX, obtained in September 2025 from:
+		// https://man.archlinux.org/man/bash.1.en#SHELL_BUILTIN_COMMANDS
+		"source",
+		"bind",
+		"builtin",
+		"caller",
+		"compgen",
+		"complete",
+		"compopt",
+		"declare", // NOTE: our parser treats this as a keyword
+		"typeset", // NOTE: our parser treats this as a keyword
+		"dirs",
+		"disown",
+		"echo", // TODO: surely this is POSIX? but why is it not in the main POSIX spec page?
+		"enable",
+		"history",
+		"help",
+		"let", // NOTE: our parser treats this as a keyword
+		"local",
+		"logout",
+		"mapfile",
+		"readarray",
+		"popd",
+		"printf", // TODO: surely this is POSIX? but why is it not in the main POSIX spec page?
+		"pushd",
+		"shopt",
+		"suspend",
+		"test",
+		"[", // NOTE: an alias for "test", not explicitly listed
+		"type",
+		"ulimit":
 		return true
 	}
 	return false
@@ -898,7 +968,6 @@ func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args 
 		r.setVar(arrayName, vr)
 
 	default:
-		// "umask", "fg", "bg",
 		return failf(2, "%s: unimplemented builtin\n", name)
 	}
 	return exit
