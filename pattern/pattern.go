@@ -34,11 +34,12 @@ func (e SyntaxError) Unwrap() error { return e.err }
 // TODO(v4): rename NoGlobCase to CaseInsensitive for readability
 
 const (
-	Shortest     Mode = 1 << iota // prefer the shortest match.
-	Filenames                     // "*" and "?" don't match slashes; only "**" does
-	EntireString                  // match the entire string using ^$ delimiters
-	NoGlobCase                    // Do case-insensitive match (that is, use (?i) in the regexp)
-	NoGlobStar                    // Do not support "**"
+	Shortest       Mode = 1 << iota // prefer the shortest match.
+	Filenames                       // "*" and "?" don't match slashes; only "**" does
+	EntireString                    // match the entire string using ^$ delimiters
+	NoGlobCase                      // do case-insensitive match (that is, use (?i) in the regexp); shopt "nocaseglob"
+	NoGlobStar                      // do not support "**"; negated shopt "globstar"
+	GlobLeadingDot                  // let wildcards match leading dots in filenames; shopt "dotglob"
 )
 
 // Regexp turns a shell pattern into a regular expression that can be used with
@@ -162,7 +163,7 @@ func regexpNext(sb *strings.Builder, sl *stringLexer, mode Mode) error {
 			// foo**, **bar, or NoGlobStar - behaves like "*" below
 		}
 		// * - matches anything except slashes and leading dots
-		if singleBefore {
+		if singleBefore && mode&GlobLeadingDot == 0 {
 			sb.WriteString("([^/.][^/]*)?")
 		} else {
 			sb.WriteString("[^/]*")

@@ -63,19 +63,22 @@ type Config struct {
 	// Use [os.ReadDir] to use the filesystem directly.
 	ReadDir2 func(string) ([]fs.DirEntry, error)
 
-	// GlobStar corresponds to the shell option that allows globbing with
-	// "**".
+	// GlobStar corresponds to the shell option which allows globbing with "**".
 	GlobStar bool
 
-	// NoCaseGlob corresponds to the shell option that causes case-insensitive
+	// DotGlob corresponds to the shell option which allows filenames beginning
+	// with a dot to be matched by a pattern which does not begin with a dot.
+	DotGlob bool
+
+	// NoCaseGlob corresponds to the shell option which causes case-insensitive
 	// pattern matching in pathname expansion.
 	NoCaseGlob bool
 
-	// NullGlob corresponds to the shell option that allows globbing
+	// NullGlob corresponds to the shell option which allows globbing
 	// patterns which match nothing to result in zero fields.
 	NullGlob bool
 
-	// NoUnset corresponds to the shell option that treats unset variables
+	// NoUnset corresponds to the shell option which treats unset variables
 	// as errors.
 	NoUnset bool
 
@@ -962,6 +965,9 @@ func (cfg *Config) glob(base, pat string) ([]string, error) {
 		mode := pattern.Filenames | pattern.EntireString | pattern.NoGlobStar
 		if cfg.NoCaseGlob {
 			mode |= pattern.NoGlobCase
+		}
+		if cfg.DotGlob {
+			mode |= pattern.GlobLeadingDot
 		}
 		expr, err := pattern.Regexp(part, mode)
 		if err != nil {

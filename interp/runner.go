@@ -177,6 +177,7 @@ func (r *Runner) updateExpandOpts() {
 		}
 	}
 	r.ecfg.GlobStar = r.opts[optGlobStar]
+	r.ecfg.DotGlob = r.opts[optDotGlob]
 	r.ecfg.NoCaseGlob = r.opts[optNoCaseGlob]
 	r.ecfg.NullGlob = r.opts[optNullGlob]
 	r.ecfg.NoUnset = r.opts[optNoUnset]

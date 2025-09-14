@@ -2355,6 +2355,23 @@ done <<< 2`,
 		"shopt: invalid option name \"foo\"\nexit status 1 #JUSTERR",
 	},
 	{
+		"touch a .b ..c; shopt -u dotglob; echo *",
+		"a\n",
+	},
+	{
+		"touch a .b ..c; shopt -s dotglob; echo *",
+		"..c .b a\n",
+	},
+	// TODO: fix dotglob with globstar
+	// {
+	// 	"mkdir sub .sub2; touch {sub,.sub2}/{a,.b}; shopt -s globstar; shopt -u dotglob; echo **/* | sed 's@\\\\@/@g'",
+	// 	"sub sub/a\n",
+	// },
+	// {
+	// 	"mkdir sub .sub2; touch {sub,.sub2}/{a,.b}; shopt -s globstar; shopt -s dotglob; echo **/* | sed 's@\\\\@/@g'",
+	// 	".sub2 .sub2/.b .sub2/a sub sub/.b sub/a\n",
+	// },
+	{
 		// Beware that macOS file systems are by default case-preserving but
 		// case-insensitive, so e.g. "touch x X" creates only one file.
 		"touch a ab Ac Ad; shopt -u nocaseglob; echo a*",
