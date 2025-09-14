@@ -432,6 +432,8 @@ func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args 
 		if anyNotFound {
 			exit.code = 1
 		}
+	case "hash":
+		// TODO: implement. for now, having this as a no-op is better than nothing.
 	case "eval":
 		src := strings.Join(args, " ")
 		p := syntax.NewParser()

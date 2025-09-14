@@ -2416,6 +2416,9 @@ done <<< 2`,
 	{"type -t $PATH_PROG", "file\n"},
 	{"type -t inexisting_dfgsdgfds", "exit status 1"},
 
+	// hash
+	{"hash $PATH_PROG", ""},
+
 	// trap
 	{"trap 'echo at_exit' EXIT; true", "at_exit\n"},
 	{"trap 'echo on_err' ERR; false; echo FAIL", "on_err\nFAIL\n"},
