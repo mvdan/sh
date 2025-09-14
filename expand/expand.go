@@ -49,9 +49,6 @@ type Config struct {
 	CmdSubst func(io.Writer, *syntax.CmdSubst) error
 
 	// ProcSubst expands a process substitution node.
-	//
-	// Note that this feature is a work in progress, and the signature of
-	// this field might change until #451 is completely fixed.
 	ProcSubst func(*syntax.ProcSubst) (string, error)
 
 	// TODO(v4): replace ReadDir with ReadDir2.
