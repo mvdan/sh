@@ -1117,7 +1117,7 @@ var shellTests = []errorCase{
 	{
 		in: "echo $((1'2'))",
 		// TODO: Take a look at this again, since this no longer fails
-		// after fixing github.com/mvdan/sh/issues/587.
+		// after fixing https://github.com/mvdan/sh/issues/587.
 		// Note that Bash seems to treat code inside $(()) as if it were
 		// within double quotes, yet still requires single quotes to be
 		// matched.
