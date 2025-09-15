@@ -842,7 +842,10 @@ func findAllIndex(pat, name string, n int) [][]int {
 	return rx.FindAllStringIndex(name, n)
 }
 
-var rxGlobStar = regexp.MustCompile(`.*`)
+var (
+	rxGlobStar        = regexp.MustCompile(`^[^/.][^/]*$`)
+	rxGlobStarDotGlob = regexp.MustCompile(`^[^/]*$`)
+)
 
 // pathJoin2 is a simpler version of [filepath.Join] without cleaning the result,
 // since that's needed for globbing.
@@ -951,7 +954,11 @@ func (cfg *Config) glob(base, pat string) ([]string, error) {
 
 				// If dir is not a directory, we keep the stack as-is and continue.
 				newMatches = newMatches[:0]
-				newMatches, _ = cfg.globDir(base, dir, rxGlobStar, wantDir, newMatches)
+				rx := rxGlobStar
+				if cfg.DotGlob {
+					rx = rxGlobStarDotGlob
+				}
+				newMatches, _ = cfg.globDir(base, dir, rx, wantDir, newMatches)
 				for _, match := range slices.Backward(newMatches) {
 					stack = append(stack, match)
 				}
