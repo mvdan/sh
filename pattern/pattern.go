@@ -150,14 +150,17 @@ func regexpNext(sb *strings.Builder, sl *stringLexer, mode Mode) error {
 			sl.i++
 			singleAfter := sl.i == len(sl.s) || sl.peekNext() == '/'
 			if mode&NoGlobStar == 0 && singleBefore && singleAfter {
-				// TODO: support dotglob
-				if sl.peekNext() == '/' {
+				// ** - match any number of slashes or "*" path elements
+				slashSuffix := sl.peekNext() == '/'
+				if slashSuffix {
 					// **/ - like "**" but requiring a trailing slash when matching
 					sl.i++
-					sb.WriteString(`((/|[^/.][^/]*)*/)?`)
-				} else {
-					// ** - match any number of slashes or "*" path elements
-					sb.WriteString(`(/|[^/.][^/]*)*`)
+					// wrap the expression to ensure that any match has a slash suffix
+					sb.WriteString(`(`)
+				}
+				sb.WriteString(`(/|[^/.][^/]*)*`)
+				if slashSuffix {
+					sb.WriteString(`/)?`)
 				}
 				break
 			}
