@@ -74,16 +74,16 @@ func Regexp(pat string, mode Mode) (string, error) {
 	}
 	var sb strings.Builder
 	// Enable matching `\n` with the `.` metacharacter as globs match `\n`
-	sb.WriteString("(?s")
+	sb.WriteString(`(?s`)
 	if mode&NoGlobCase != 0 {
-		sb.WriteString("i")
+		sb.WriteString(`i`)
 	}
 	if mode&Shortest != 0 {
-		sb.WriteString("U")
+		sb.WriteString(`U`)
 	}
-	sb.WriteString(")")
+	sb.WriteString(`)`)
 	if mode&EntireString != 0 {
-		sb.WriteString("^")
+		sb.WriteString(`^`)
 	}
 	sl := stringLexer{s: pat}
 	for {
@@ -94,7 +94,7 @@ func Regexp(pat string, mode Mode) (string, error) {
 		}
 	}
 	if mode&EntireString != 0 {
-		sb.WriteString("$")
+		sb.WriteString(`$`)
 	}
 	return sb.String(), nil
 }
@@ -141,7 +141,7 @@ func regexpNext(sb *strings.Builder, sl *stringLexer, mode Mode) error {
 	case '*':
 		if mode&Filenames == 0 {
 			// * - matches anything when not in filename mode
-			sb.WriteString(".*")
+			sb.WriteString(`.*`)
 			break
 		}
 		// "**" only acts as globstar if it is alone as a path element.
@@ -153,10 +153,10 @@ func regexpNext(sb *strings.Builder, sl *stringLexer, mode Mode) error {
 				if sl.peekNext() == '/' {
 					// **/ - like "**" but requiring a trailing slash when matching
 					sl.i++
-					sb.WriteString("((/|[^/.][^/]*)*/)?")
+					sb.WriteString(`((/|[^/.][^/]*)*/)?`)
 				} else {
 					// ** - match any number of slashes or "*" path elements
-					sb.WriteString("(/|[^/.][^/]*)*")
+					sb.WriteString(`(/|[^/.][^/]*)*`)
 				}
 				break
 			}
@@ -164,13 +164,13 @@ func regexpNext(sb *strings.Builder, sl *stringLexer, mode Mode) error {
 		}
 		// * - matches anything except slashes and leading dots
 		if singleBefore && mode&GlobLeadingDot == 0 {
-			sb.WriteString("([^/.][^/]*)?")
+			sb.WriteString(`([^/.][^/]*)?`)
 		} else {
-			sb.WriteString("[^/]*")
+			sb.WriteString(`[^/]*`)
 		}
 	case '?':
 		if mode&Filenames != 0 {
-			sb.WriteString("[^/]")
+			sb.WriteString(`[^/]`)
 		} else {
 			sb.WriteByte('.')
 		}
@@ -195,7 +195,7 @@ func regexpNext(sb *strings.Builder, sl *stringLexer, mode Mode) error {
 				if c == ']' {
 					break
 				} else if c == '/' {
-					sb.WriteString("\\[")
+					sb.WriteString(`\[`)
 					return nil
 				}
 			}

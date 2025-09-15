@@ -842,7 +842,7 @@ func findAllIndex(pat, name string, n int) [][]int {
 	return rx.FindAllStringIndex(name, n)
 }
 
-var rxGlobStar = regexp.MustCompile(".*")
+var rxGlobStar = regexp.MustCompile(`.*`)
 
 // pathJoin2 is a simpler version of [filepath.Join] without cleaning the result,
 // since that's needed for globbing.
