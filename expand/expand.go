@@ -939,7 +939,7 @@ func (cfg *Config) glob(base, pat string) ([]string, error) {
 			stack := make([]string, 0, len(matches))
 			for _, match := range slices.Backward(matches) {
 				// "a/**" should match "a/ a/b a/b/cfg ...";
-				// note how the zero-match case has a trailing separator.
+				// note how the zero-match case there has a trailing separator.
 				stack = append(stack, pathJoin2(match, ""))
 			}
 			matches = matches[:0]
@@ -947,11 +947,7 @@ func (cfg *Config) glob(base, pat string) ([]string, error) {
 			for len(stack) > 0 {
 				dir := stack[len(stack)-1]
 				stack = stack[:len(stack)-1]
-
-				// Don't include the original "" match as it's not a valid path.
-				if dir != "" {
-					matches = append(matches, dir)
-				}
+				matches = append(matches, dir)
 
 				// If dir is not a directory, we keep the stack as-is and continue.
 				newMatches = newMatches[:0]
@@ -982,6 +978,13 @@ func (cfg *Config) glob(base, pat string) ([]string, error) {
 			}
 		}
 		matches = newMatches
+	}
+	// Note that the results need to be sorted.
+	// TODO: above we do a BFS; if we did a DFS, the matches would already be sorted.
+	slices.Sort(matches)
+	// Remove any empty matches left behind from "**".
+	if len(matches) > 0 && matches[0] == "" {
+		matches = matches[1:]
 	}
 	return matches, nil
 }

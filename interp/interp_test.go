@@ -2990,6 +2990,14 @@ done <<< 2`,
 		"a.x ./a.x\n",
 	},
 	{
+		"shopt -s globstar; mkdir -p a/b; touch a/b/c; echo **/* | sed 's@\\\\@/@g'",
+		"a a/b a/b/c\n",
+	},
+	{
+		"shopt -s globstar; mkdir -p b; touch x2 a b/c d x1; echo **/* | sed 's@\\\\@/@g'",
+		"a b b/c d x1 x2\n",
+	},
+	{
 		"mkdir foo; touch foo/bar; echo */bar */bar/ | sed 's@\\\\@/@g'",
 		"foo/bar */bar/\n",
 	},

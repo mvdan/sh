@@ -96,10 +96,11 @@ func Test_glob(t *testing.T) {
 	cfg := &Config{
 		ReadDir2: func(string) ([]fs.DirEntry, error) {
 			return []fs.DirEntry{
-				&mockFileInfo{name: "a"},
-				&mockFileInfo{name: "ab"},
+				// The filenames here are sorted, just like [io/fs.ReadDirFS].
 				&mockFileInfo{name: "A"},
 				&mockFileInfo{name: "AB"},
+				&mockFileInfo{name: "a"},
+				&mockFileInfo{name: "ab"},
 			}, nil
 		},
 	}
@@ -113,20 +114,22 @@ func Test_glob(t *testing.T) {
 		{false, "A*", []string{"A", "AB"}},
 		{false, "*b", []string{"ab"}},
 		{false, "b*", nil},
-		{true, "a*", []string{"a", "ab", "A", "AB"}},
-		{true, "A*", []string{"a", "ab", "A", "AB"}},
-		{true, "*b", []string{"ab", "AB"}},
+		{true, "a*", []string{"A", "AB", "a", "ab"}},
+		{true, "A*", []string{"A", "AB", "a", "ab"}},
+		{true, "*b", []string{"AB", "ab"}},
 		{true, "b*", nil},
 	}
 	for _, tc := range tests {
-		cfg.NoCaseGlob = tc.noCaseGlob
-		got, err := cfg.glob("/", tc.pat)
-		if err != nil {
-			t.Fatalf("did not want error, got %v", err)
-		}
-		if !reflect.DeepEqual(got, tc.want) {
-			t.Fatalf("wanted %q, got %q", tc.want, got)
-		}
+		t.Run(tc.pat, func(t *testing.T) {
+			cfg.NoCaseGlob = tc.noCaseGlob
+			got, err := cfg.glob("/", tc.pat)
+			if err != nil {
+				t.Fatalf("did not want error, got %v", err)
+			}
+			if !reflect.DeepEqual(got, tc.want) {
+				t.Fatalf("wanted %q, got %q", tc.want, got)
+			}
+		})
 	}
 }
 
