@@ -46,7 +46,12 @@ var regexpTests = []struct {
 	{
 		pat: `foo/*`, mode: Filenames | EntireString, want: `(?s)^foo/([^/.][^/]*)?$`,
 		mustMatch:    []string{"foo/", "foo/suffix"},
-		mustNotMatch: []string{"foo/.suffix"},
+		mustNotMatch: []string{"foo/.suffix", "foo/bar/baz"},
+	},
+	{
+		pat: `foo/*`, mode: Filenames | EntireString | GlobLeadingDot, want: `(?s)^foo/[^/]*$`,
+		mustMatch:    []string{"foo/", "foo/suffix", "foo/.suffix"},
+		mustNotMatch: []string{"foo/bar/baz"},
 	},
 	{pat: `*foo`, mode: Filenames, want: `(?s)([^/.][^/]*)?foo`},
 	{
@@ -65,9 +70,21 @@ var regexpTests = []struct {
 		mustMatch:    []string{"foo.bar"},
 		mustNotMatch: []string{"foo/bar", ".foo"},
 	},
+	{
+		// TODO: this should match the leading dots
+		pat: `**`, mode: Filenames | EntireString | GlobLeadingDot, want: `(?s)^(/|[^/.][^/]*)*$`,
+		mustMatch:    []string{"/foo", "/prefix/foo", "/a.b.c/foo", "/a/b/c/foo", "/foo/suffix.ext", "/a\n/\nb"},
+		mustNotMatch: []string{"/.prefix/foo", "/prefix/.foo"},
+	},
 	{pat: `/**/foo`, want: `(?s)/.*.*/foo`},
 	{
 		pat: `/**/foo`, mode: Filenames | EntireString, want: `(?s)^/((/|[^/.][^/]*)*/)?foo$`,
+		mustMatch:    []string{"/foo", "/prefix/foo", "/a.b.c/foo", "/a/b/c/foo"},
+		mustNotMatch: []string{"/foo/suffix", "prefix/foo", "/.prefix/foo", "/prefix/.foo"},
+	},
+	{
+		// TODO: this should match the leading dots
+		pat: `/**/foo`, mode: Filenames | EntireString | GlobLeadingDot, want: `(?s)^/((/|[^/.][^/]*)*/)?foo$`,
 		mustMatch:    []string{"/foo", "/prefix/foo", "/a.b.c/foo", "/a/b/c/foo"},
 		mustNotMatch: []string{"/foo/suffix", "prefix/foo", "/.prefix/foo", "/prefix/.foo"},
 	},

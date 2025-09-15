@@ -150,6 +150,7 @@ func regexpNext(sb *strings.Builder, sl *stringLexer, mode Mode) error {
 			sl.i++
 			singleAfter := sl.i == len(sl.s) || sl.peekNext() == '/'
 			if mode&NoGlobStar == 0 && singleBefore && singleAfter {
+				// TODO: support dotglob
 				if sl.peekNext() == '/' {
 					// **/ - like "**" but requiring a trailing slash when matching
 					sl.i++
