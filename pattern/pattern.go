@@ -35,7 +35,7 @@ func (e SyntaxError) Unwrap() error { return e.err }
 
 const (
 	Shortest       Mode = 1 << iota // prefer the shortest match.
-	Filenames                       // "*" and "?" don't match slashes; only "**" does
+	Filenames                       // "*" and "?" don't match slashes; only "**" does; only makes sense with EntireString too
 	EntireString                    // match the entire string using ^$ delimiters
 	NoGlobCase                      // do case-insensitive match (that is, use (?i) in the regexp); shopt "nocaseglob"
 	NoGlobStar                      // do not support "**"; negated shopt "globstar"
@@ -158,7 +158,12 @@ func regexpNext(sb *strings.Builder, sl *stringLexer, mode Mode) error {
 					// wrap the expression to ensure that any match has a slash suffix
 					sb.WriteString(`(`)
 				}
-				sb.WriteString(`(/|[^/.][^/]*)*`)
+				if mode&GlobLeadingDot == 0 {
+					sb.WriteString(`(/|[^/.][^/]*)*`)
+				} else {
+					// with GlobLeadingDot (dotglob), match anything at all
+					sb.WriteString(`.*`)
+				}
 				if slashSuffix {
 					sb.WriteString(`/)?`)
 				}
@@ -170,6 +175,7 @@ func regexpNext(sb *strings.Builder, sl *stringLexer, mode Mode) error {
 		if singleBefore && mode&GlobLeadingDot == 0 {
 			sb.WriteString(`([^/.][^/]*)?`)
 		} else {
+			// with GlobLeadingDot (dotglob), match anything except slashes
 			sb.WriteString(`[^/]*`)
 		}
 	case '?':
