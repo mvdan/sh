@@ -336,6 +336,10 @@ func DefaultOpenHandler() OpenHandlerFunc {
 		mc := HandlerCtx(ctx)
 		if runtime.GOOS == "windows" && path == "/dev/null" {
 			path = "NUL"
+			// Note that even though https://go.dev/issue/71752 was resolved for Windows,
+			// the workaround here seems to still be required for Wine as of 10.14.
+			// TODO(mvdan): Why? Is this Wine's fault?
+			flag &^= os.O_TRUNC
 		} else if path != "" && !filepath.IsAbs(path) {
 			path = filepath.Join(mc.Dir, path)
 		}
