@@ -24,6 +24,8 @@ func nodeLit(node syntax.Node) string {
 	return ""
 }
 
+// UnsetParameterError is returned when a parameter expansion encounters an
+// unset variable and [Config.NoUnset] has been set.
 type UnsetParameterError struct {
 	Node    *syntax.ParamExp
 	Message string
