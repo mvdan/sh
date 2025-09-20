@@ -257,8 +257,8 @@ type alias struct {
 	blank bool
 }
 
-func (r *Runner) optByFlag(flag byte) *bool {
-	for i, opt := range &shellOptsTable {
+func (r *Runner) posixOptByFlag(flag byte) *bool {
+	for i, opt := range &posixOptsTable {
 		if opt.flag == flag {
 			return &r.opts[i]
 		}
@@ -282,7 +282,7 @@ func New(opts ...RunnerOption) (*Runner, error) {
 	r.dirStack = r.dirBootstrap[:0]
 	// turn "on" the default Bash options
 	for i, opt := range bashOptsTable {
-		r.opts[len(shellOptsTable)+i] = opt.defaultState
+		r.opts[len(posixOptsTable)+i] = opt.defaultState
 	}
 
 	for _, opt := range opts {
@@ -383,7 +383,7 @@ func Params(args ...string) RunnerOption {
 			}
 			enable := flag[0] == '-'
 			if flag[1] != 'o' {
-				opt := r.optByFlag(flag[1])
+				opt := r.posixOptByFlag(flag[1])
 				if opt == nil {
 					return fmt.Errorf("invalid option: %q", flag)
 				}
@@ -392,13 +392,13 @@ func Params(args ...string) RunnerOption {
 			}
 			value := fp.value()
 			if value == "" && enable {
-				for i, opt := range &shellOptsTable {
+				for i, opt := range &posixOptsTable {
 					r.printOptLine(opt.name, r.opts[i], true)
 				}
 				continue
 			}
 			if value == "" && !enable {
-				for i, opt := range &shellOptsTable {
+				for i, opt := range &posixOptsTable {
 					setFlag := "+o"
 					if r.opts[i] {
 						setFlag = "-o"
@@ -571,29 +571,33 @@ func StdIO(in io.Reader, out, err io.Writer) RunnerOption {
 	}
 }
 
-// optByName returns the matching runner's option index and status
+// optByName finds the first shell option matching the given name,
+// returnin its index into [runnerOpts] and a pointer to its boolean status.
+//
+// When the bash parameter is true, Bash options are searched as well.
 func (r *Runner) optByName(name string, bash bool) (index int, status *bool) {
+	for i, opt := range &posixOptsTable {
+		if opt.name == name {
+			return i, &r.opts[i]
+		}
+	}
 	if bash {
 		for i, opt := range bashOptsTable {
 			if opt.name == name {
-				index = len(shellOptsTable) + i
+				index = len(posixOptsTable) + i
 				return index, &r.opts[index]
 			}
-		}
-	}
-	for i, opt := range &shellOptsTable {
-		if opt.name == name {
-			return i, &r.opts[i]
 		}
 	}
 	return 0, nil
 }
 
-type runnerOpts [len(shellOptsTable) + len(bashOptsTable)]bool
+// runnerOpts contains all POSIX Shell and Bash options as one contiguous table.
+type runnerOpts [len(posixOptsTable) + len(bashOptsTable)]bool
 
-type shellOpt struct {
-	flag byte
-	name string
+type posixOpt struct {
+	flag byte   // one-character flag form for this option; a space if none exists
+	name string // full name of the option
 }
 
 type bashOpt struct {
@@ -602,9 +606,8 @@ type bashOpt struct {
 	supported    bool // whether we support the option's non-default state
 }
 
-var shellOptsTable = [...]shellOpt{
-	// sorted alphabetically by name; use a space for the options
-	// that have no flag form
+var posixOptsTable = [...]posixOpt{
+	// sorted alphabetically by name
 	{'a', "allexport"},
 	{'e', "errexit"},
 	{'n', "noexec"},
@@ -617,17 +620,17 @@ var shellOptsTable = [...]shellOpt{
 var bashOptsTable = [...]bashOpt{
 	// supported options, sorted alphabetically by name
 	{
+		name:         "dotglob",
+		defaultState: false,
+		supported:    true,
+	},
+	{
 		name:         "expand_aliases",
 		defaultState: false,
 		supported:    true,
 	},
 	{
 		name:         "globstar",
-		defaultState: false,
-		supported:    true,
-	},
-	{
-		name:         "dotglob",
 		defaultState: false,
 		supported:    true,
 	},
@@ -741,9 +744,9 @@ const (
 
 	// These correspond to indexes (offset by the above seven items) of
 	// supported options in [bashOptsTable]
+	optDotGlob
 	optExpandAliases
 	optGlobStar
-	optDotGlob
 	optNoCaseGlob
 	optNullGlob
 )

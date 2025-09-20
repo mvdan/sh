@@ -778,11 +778,11 @@ func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args 
 		if len(args) == 0 {
 			if bash {
 				for i, opt := range bashOptsTable {
-					r.printOptLine(opt.name, r.opts[len(shellOptsTable)+i], opt.supported)
+					r.printOptLine(opt.name, r.opts[len(posixOptsTable)+i], opt.supported)
 				}
 				break
 			}
-			for i, opt := range &shellOptsTable {
+			for i, opt := range &posixOptsTable {
 				r.printOptLine(opt.name, r.opts[i], true)
 			}
 			break
@@ -798,7 +798,7 @@ func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args 
 				supported = true // default for shell options
 			)
 			if bash {
-				bo = &bashOptsTable[i-len(shellOptsTable)]
+				bo = &bashOptsTable[i-len(posixOptsTable)]
 				supported = bo.supported
 			}
 
