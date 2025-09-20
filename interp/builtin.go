@@ -805,7 +805,7 @@ func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args 
 			switch mode {
 			case "-s", "-u":
 				if bash && !supported {
-					return failf(1, "shopt: invalid option name %q %q (%q not supported)\n", arg, r.optStatusText(bo.defaultState), r.optStatusText(!bo.defaultState))
+					return failf(1, "shopt: unsupported option %q\n", arg)
 				}
 				*opt = mode == "-s"
 			default: // ""

@@ -2357,11 +2357,11 @@ done <<< 2`,
 	},
 	{
 		"shopt -s extglob",
-		"shopt: invalid option name \"extglob\" \"off\" (\"on\" not supported)\nexit status 1 #IGNORE",
+		"shopt: unsupported option \"extglob\"\nexit status 1 #IGNORE",
 	},
 	{
 		"shopt -s interactive_comments",
-		"shopt: invalid option name \"interactive_comments\" \"on\" (\"off\" not supported)\nexit status 1 #IGNORE",
+		"shopt: unsupported option \"interactive_comments\"\nexit status 1 #IGNORE",
 	},
 	{
 		"shopt -s foo",
