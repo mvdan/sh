@@ -2330,8 +2330,9 @@ done <<< 2`,
 	},
 
 	// shopt
-	{"set -e; shopt -o | grep -E 'errexit|noexec' | wc -l | tr -d ' '", "2\n"},
-	{"set -e; shopt -o | grep -E 'errexit|noexec' | grep 'on$' | wc -l | tr -d ' '", "1\n"},
+	{"set -e; shopt -o | grep -E '^(errexit|noexec)' | wc -l | tr -d ' '", "2\n"},
+	{"set -e; shopt -o | grep -E '^(errexit|noexec)' | grep 'on$' | wc -l | tr -d ' '", "1\n"},
+	{"set -e; shopt | grep -E '^(errexit|noexec)' | wc -l | tr -d ' '", "0\n"},
 	{"shopt -s -o noexec; echo foo_interp_missing", ""},
 	{"shopt -so noexec; echo foo_interp_missing", ""},
 	{"shopt -u -o noexec; echo foo_interp_missing", "foo_interp_missing\n"},
@@ -2341,6 +2342,18 @@ done <<< 2`,
 	{
 		"shopt inherit_errexit",
 		"inherit_errexit\ton\t(\"off\" not supported)\n #JUSTERR",
+	},
+	{
+		"shopt -o -s pipefail; shopt -o pipefail | grep -q 'on$'",
+		"",
+	},
+	{
+		"shopt -o -u pipefail; shopt -o pipefail | grep -q 'on$'",
+		"exit status 1",
+	},
+	{
+		"shopt -o -s extglob",
+		"shopt: invalid option name \"extglob\"\nexit status 1 #JUSTERR",
 	},
 	{
 		"shopt -s extglob",
