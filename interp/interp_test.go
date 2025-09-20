@@ -2970,6 +2970,14 @@ done <<< 2`,
 		"*.x\nfoo_interp_missing *.y bar_interp_missing\n",
 	},
 	{
+		`>a.x >b.x >c.x; a=*.x; echo $a; echo "$a"`,
+		"a.x b.x c.x\n*.x\n",
+	},
+	{
+		`>a.x >b.x >c.x; a=(*.x); echo "${a[@]}"; echo ${a[1]}`,
+		"a.x b.x c.x\nb.x\n",
+	},
+	{
 		"mkdir a; >a/b.x; echo */*.x | sed 's@\\\\@/@g'; cd a; echo *.x",
 		"a/b.x\nb.x\n",
 	},
