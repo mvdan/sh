@@ -257,15 +257,6 @@ type alias struct {
 	blank bool
 }
 
-func (r *Runner) posixOptByFlag(flag byte) *bool {
-	for i, opt := range &posixOptsTable {
-		if opt.flag == flag {
-			return &r.opts[i]
-		}
-	}
-	return nil
-}
-
 // New creates a new Runner, applying a number of options. If applying any of
 // the options results in an error, it is returned.
 //
@@ -407,7 +398,7 @@ func Params(args ...string) RunnerOption {
 				}
 				continue
 			}
-			_, opt := r.optByName(value, false)
+			opt := r.posixOptByName(value)
 			if opt == nil {
 				return fmt.Errorf("invalid option: %q", value)
 			}
@@ -571,25 +562,32 @@ func StdIO(in io.Reader, out, err io.Writer) RunnerOption {
 	}
 }
 
-// optByName finds the first shell option matching the given name,
-// returnin its index into [runnerOpts] and a pointer to its boolean status.
-//
-// When the bash parameter is true, Bash options are searched as well.
-func (r *Runner) optByName(name string, bash bool) (index int, status *bool) {
+func (r *Runner) posixOptByName(name string) *bool {
 	for i, opt := range &posixOptsTable {
 		if opt.name == name {
-			return i, &r.opts[i]
+			return &r.opts[i]
 		}
 	}
-	if bash {
-		for i, opt := range bashOptsTable {
-			if opt.name == name {
-				index = len(posixOptsTable) + i
-				return index, &r.opts[index]
-			}
+	return nil
+}
+
+func (r *Runner) posixOptByFlag(flag byte) *bool {
+	for i, opt := range &posixOptsTable {
+		if opt.flag == flag {
+			return &r.opts[i]
 		}
 	}
-	return 0, nil
+	return nil
+}
+
+func (r *Runner) bashOptByName(name string) (status *bool, supported bool) {
+	for i, opt := range bashOptsTable {
+		if opt.name == name {
+			index := len(posixOptsTable) + i
+			return &r.opts[index], opt.supported
+		}
+	}
+	return nil, false
 }
 
 // runnerOpts contains all POSIX Shell and Bash options as one contiguous table.

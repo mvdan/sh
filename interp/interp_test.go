@@ -2352,6 +2352,14 @@ done <<< 2`,
 		"exit status 1",
 	},
 	{
+		"shopt pipefail",
+		"shopt: invalid option name \"pipefail\"\nexit status 1 #JUSTERR",
+	},
+	{
+		"shopt -s pipefail",
+		"shopt: invalid option name \"pipefail\"\nexit status 1 #JUSTERR",
+	},
+	{
 		"shopt -o -s extglob",
 		"shopt: invalid option name \"extglob\"\nexit status 1 #JUSTERR",
 	},
@@ -2364,8 +2372,12 @@ done <<< 2`,
 		"shopt: unsupported option \"interactive_comments\"\nexit status 1 #IGNORE",
 	},
 	{
-		"shopt -s foo",
-		"shopt: invalid option name \"foo\"\nexit status 1 #JUSTERR",
+		"shopt -s nosuchname",
+		"shopt: invalid option name \"nosuchname\"\nexit status 1 #JUSTERR",
+	},
+	{
+		"shopt -o -s nosuchname",
+		"shopt: invalid option name \"nosuchname\"\nexit status 1 #JUSTERR",
 	},
 	{
 		"touch a .b ..c; shopt -u dotglob; echo *",

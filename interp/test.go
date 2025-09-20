@@ -197,7 +197,7 @@ func (r *Runner) unTest(ctx context.Context, op syntax.UnTestOperator, x string)
 	case syntax.TsNempStr:
 		return x != ""
 	case syntax.TsOptSet:
-		if _, opt := r.optByName(x, false); opt != nil {
+		if opt := r.posixOptByName(x); opt != nil {
 			return *opt
 		}
 		return false

@@ -774,37 +774,32 @@ func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args 
 			}
 		}
 		args := fp.args()
-		bash := !posixOpts
 		if len(args) == 0 {
-			if bash {
+			if posixOpts {
+				for i, opt := range &posixOptsTable {
+					r.printOptLine(opt.name, r.opts[i], true)
+				}
+			} else {
 				for i, opt := range bashOptsTable {
 					r.printOptLine(opt.name, r.opts[len(posixOptsTable)+i], opt.supported)
 				}
-				break
-			}
-			for i, opt := range &posixOptsTable {
-				r.printOptLine(opt.name, r.opts[i], true)
 			}
 			break
 		}
 		for _, arg := range args {
-			i, opt := r.optByName(arg, bash)
+			opt, supported := (*bool)(nil), true
+			if posixOpts {
+				opt = r.posixOptByName(arg)
+			} else {
+				opt, supported = r.bashOptByName(arg)
+			}
 			if opt == nil {
 				return failf(1, "shopt: invalid option name %q\n", arg)
 			}
 
-			var (
-				bo        *bashOpt
-				supported = true // default for shell options
-			)
-			if bash {
-				bo = &bashOptsTable[i-len(posixOptsTable)]
-				supported = bo.supported
-			}
-
 			switch mode {
 			case "-s", "-u":
-				if bash && !supported {
+				if !supported {
 					return failf(1, "shopt: unsupported option %q\n", arg)
 				}
 				*opt = mode == "-s"
