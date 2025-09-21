@@ -1271,6 +1271,7 @@ func (p *Parser) wordPart() WordPart {
 		eg := &ExtGlob{Op: GlobOperator(p.tok), OpPos: p.pos}
 		lparens := 1
 		r := p.r
+		// TODO: this parenthesis counting should ignore characters inside [ ]
 	globLoop:
 		for p.newLit(r); ; r = p.rune() {
 			switch r {

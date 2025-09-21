@@ -202,6 +202,7 @@ func regexpNext(sb *strings.Builder, sl *stringLexer, mode Mode) error {
 		}
 		if mode&Filenames != 0 {
 			for _, c := range sl.peekRest() {
+				// TODO: []] contains one character, not zero
 				if c == ']' {
 					break
 				} else if c == '/' {
