@@ -628,6 +628,11 @@ var bashOptsTable = [...]bashOpt{
 		supported:    true,
 	},
 	{
+		name:         "extglob",
+		defaultState: false,
+		supported:    true,
+	},
+	{
 		name:         "globstar",
 		defaultState: false,
 		supported:    true,
@@ -673,7 +678,6 @@ var bashOptsTable = [...]bashOpt{
 	{name: "dirspell"},
 	{name: "execfail"},
 	{name: "extdebug"},
-	{name: "extglob"},
 	{
 		name:         "extquote",
 		defaultState: true,
@@ -744,6 +748,7 @@ const (
 	// supported options in [bashOptsTable]
 	optDotGlob
 	optExpandAliases
+	optExtGlob
 	optGlobStar
 	optNoCaseGlob
 	optNullGlob

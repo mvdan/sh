@@ -181,6 +181,7 @@ func (r *Runner) updateExpandOpts() {
 	r.ecfg.NoCaseGlob = r.opts[optNoCaseGlob]
 	r.ecfg.NullGlob = r.opts[optNullGlob]
 	r.ecfg.NoUnset = r.opts[optNoUnset]
+	r.ecfg.ExtGlob = r.opts[optExtGlob]
 }
 
 func (r *Runner) expandErr(err error) {
@@ -194,9 +195,6 @@ func (r *Runner) expandErr(err error) {
 	case errMsg == "invalid indirect expansion":
 		// TODO: These errors are treated as fatal by bash.
 		// Make the error type reflect that.
-	case strings.HasSuffix(errMsg, "not supported"):
-		// TODO: This "has suffix" is a temporary measure until the expand
-		// package supports all syntax nodes like extended globbing.
 	default:
 		return // other cases do not exit
 	}
@@ -811,7 +809,8 @@ func (r *Runner) flattenAssigns(args []*syntax.Assign) iter.Seq[*syntax.Assign] 
 }
 
 func match(pat, name string) bool {
-	expr, err := pattern.Regexp(pat, pattern.EntireString)
+	// Extended pattern matching operators are always on outside of pathname expansion.
+	expr, err := pattern.Regexp(pat, pattern.EntireString|pattern.ExtendedOperators)
 	if err != nil {
 		return false
 	}

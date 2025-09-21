@@ -82,6 +82,10 @@ type Config struct {
 	// as errors.
 	NoUnset bool
 
+	// ExtGlob corresponds to the shell option which allows using extended
+	// pattern matching features when performing pathname expansion (globbing).
+	ExtGlob bool
+
 	bufferAlloc strings.Builder
 	fieldAlloc  [4]fieldPart
 	fieldsAlloc [4][]fieldPart
@@ -584,7 +588,10 @@ func (cfg *Config) wordField(wps []syntax.WordPart, ql quoteLevel) ([]fieldPart,
 			}
 			field = append(field, fieldPart{val: path})
 		case *syntax.ExtGlob:
-			return nil, fmt.Errorf("extended globbing is not supported")
+			// Like how [Config.wordFields] deals with [syntax.ExtGlob],
+			// except that we allow these through even when [Config.ExtGlob]
+			// is false, as it only applies to pathname expansion.
+			field = append(field, fieldPart{val: wp.Op.String() + wp.Pattern.Value + ")"})
 		default:
 			panic(fmt.Sprintf("unhandled word part: %T", wp))
 		}
@@ -720,7 +727,17 @@ func (cfg *Config) wordFields(wps []syntax.WordPart) ([][]fieldPart, error) {
 			}
 			splitAdd(path)
 		case *syntax.ExtGlob:
-			return nil, fmt.Errorf("extended globbing is not supported")
+			if !cfg.ExtGlob {
+				return nil, fmt.Errorf("extended globbing operator used without the \"extglob\" option set")
+			}
+			// We don't translate or interpret the pattern here in any way;
+			// that's done later when globbing takes place via [pattern.Regexp].
+			// Here, all we do is keep the extended globbing expression in string form.
+			//
+			// TODO(v4): perhaps the syntax parser should keep extended globbing expressions
+			// as plain literal strings, because a custom node is not particularly helpful.
+			// It's not like other globbing operators like `*` or `**` get their own nodes.
+			curField = append(curField, fieldPart{val: wp.Op.String() + wp.Pattern.Value + ")"})
 		default:
 			panic(fmt.Sprintf("unhandled word part: %T", wp))
 		}
@@ -971,6 +988,9 @@ func (cfg *Config) glob(base, pat string) ([]string, error) {
 		}
 		if cfg.DotGlob {
 			mode |= pattern.GlobLeadingDot
+		}
+		if cfg.ExtGlob {
+			mode |= pattern.ExtendedOperators
 		}
 		expr, err := pattern.Regexp(part, mode)
 		if err != nil {

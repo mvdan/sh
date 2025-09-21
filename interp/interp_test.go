@@ -2364,8 +2364,8 @@ done <<< 2`,
 		"shopt: invalid option name \"extglob\"\nexit status 1 #JUSTERR",
 	},
 	{
-		"shopt -s extglob",
-		"shopt: unsupported option \"extglob\"\nexit status 1 #IGNORE",
+		"shopt -s login_shell",
+		"shopt: unsupported option \"login_shell\"\nexit status 1 #IGNORE",
 	},
 	{
 		"shopt -s interactive_comments",
@@ -3037,10 +3037,46 @@ done <<< 2`,
 		"shopt -s nullglob; touch existing-1; echo missing-* existing-*",
 		"existing-1\n",
 	},
-	// Extended globbing is not supported
-	{"ls ab+(2|3).txt", "extended globbing is not supported\nexit status 1 #JUSTERR"},
-	{"echo *(/)", "extended globbing is not supported\nexit status 1 #JUSTERR"},
-	{`if [[ "foo" == @(foo|bar) ]]; then echo "then"; else echo "else"; fi; exit 5`, "extended globbing is not supported\nexit status 1 #JUSTERR"},
+	// Extended globbing via the extglob option.
+	// Note how extglob affects Bash's own line-by-line parsing, so we set the option before a newline.
+	{
+		"shopt -s extglob\necho invalid-?([)",
+		"invalid-?([)\n",
+	},
+	{
+		"touch az a1z a12z a123z; echo a?([0-9])z",
+		"extended globbing operator used without the \"extglob\" option set\n #JUSTERR",
+	},
+	{
+		"shopt -s extglob\ntouch az a1z a12z a123z; echo a?([0-9])z",
+		"a1z az\n",
+	},
+	{
+		"shopt -s extglob\ntouch az a1z a12z a123z; echo a*([0-9])z",
+		"a123z a12z a1z az\n",
+	},
+	{
+		"shopt -s extglob\ntouch az a1z a12z a123z; echo a+([0-9])z",
+		"a123z a12z a1z\n",
+	},
+	{
+		"shopt -s extglob\ntouch az a1z a12z a123z; echo a@([0-9])z",
+		"a1z\n",
+	},
+	{
+		"shopt -s extglob\ntouch a{1..9}0z; echo a+(0|[1-2]|8)z",
+		"a10z a20z a80z\n",
+	},
+	{
+		"shopt -s extglob\ntouch az a1z a12z a123z; echo a!([0-9])z",
+		// Bash would print "a123z a12z az\n"
+		"extglob operator !(: Go's regexp package does not support negative lookahead\n #IGNORE",
+	},
+	{
+		// Extended pattern matching is always available outside of pathname expansions (globbing).
+		"[[ a123z == a@([0-9])z ]]; echo $?; [[ a123z == a+([0-9])z ]]; echo $?",
+		"1\n0\n",
+	},
 	// Ensure that setting nullglob does not return invalid globs as null
 	// strings.
 	{

@@ -34,12 +34,13 @@ func (e SyntaxError) Unwrap() error { return e.err }
 // TODO(v4): rename NoGlobCase to CaseInsensitive for readability
 
 const (
-	Shortest       Mode = 1 << iota // prefer the shortest match.
-	Filenames                       // "*" and "?" don't match slashes; only "**" does; only makes sense with EntireString too
-	EntireString                    // match the entire string using ^$ delimiters
-	NoGlobCase                      // do case-insensitive match (that is, use (?i) in the regexp); shopt "nocaseglob"
-	NoGlobStar                      // do not support "**"; negated shopt "globstar"
-	GlobLeadingDot                  // let wildcards match leading dots in filenames; shopt "dotglob"
+	Shortest          Mode = 1 << iota // prefer the shortest match.
+	Filenames                          // "*" and "?" don't match slashes; only "**" does; only makes sense with EntireString too
+	EntireString                       // match the entire string using ^$ delimiters
+	NoGlobCase                         // do case-insensitive match (that is, use (?i) in the regexp); shopt "nocaseglob"
+	NoGlobStar                         // do not support "**"; negated shopt "globstar"
+	GlobLeadingDot                     // let wildcards match leading dots in filenames; shopt "dotglob"
+	ExtendedOperators                  // support extended pattern matching operators; shopt "extglob" for pathname expansion
 )
 
 // Regexp turns a shell pattern into a regular expression that can be used with
@@ -135,7 +136,45 @@ func (sl *stringLexer) peekRest() string {
 }
 
 func regexpNext(sb *strings.Builder, sl *stringLexer, mode Mode) error {
-	switch c := sl.next(); c {
+	c := sl.next()
+	if mode&ExtendedOperators != 0 {
+		// Handle extended pattern matching operators separately,
+		// given that they can be one of many two-character prefixes.
+		// Note that we recurse into the same function in a loop,
+		// as each of the patterns in the list separated by '|' is a regular pattern.
+		switch op := c; op {
+		case '!':
+			return fmt.Errorf("extglob operator !(: Go's regexp package does not support negative lookahead")
+		case '?', '*', '+', '@':
+			if sl.peekNext() != '(' {
+				break
+			}
+			sb.WriteByte(sl.next()) // (
+		nestedLoop:
+			for {
+				switch sl.peekNext() {
+				case ')':
+					break nestedLoop
+				case '|':
+					// extended operators support a list of "or" separated expressions
+					sb.WriteByte(sl.next())
+					continue
+				}
+				if err := regexpNext(sb, sl, mode); err == io.EOF {
+					break
+				} else if err != nil {
+					return err
+				}
+			}
+			sb.WriteByte(sl.next()) // )
+			if op != '@' {
+				// @( is [syntax.GlobOne] for matching once; no suffix needed
+				sb.WriteByte(op)
+			}
+			return nil
+		}
+	}
+	switch c {
 	case '\x00':
 		return io.EOF
 	case '*':
