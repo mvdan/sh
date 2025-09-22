@@ -81,7 +81,6 @@ var regexpTests = []struct {
 		mustNotMatch: []string{"/foo/suffix", "prefix/foo", "/.prefix/foo", "/prefix/.foo"},
 	},
 	{
-		// TODO: this should match the leading dots
 		pat: `/**/foo`, mode: Filenames | EntireString | GlobLeadingDot, want: `(?s)^/(.*/)?foo$`,
 		mustMatch:    []string{"/foo", "/prefix/foo", "/a.b.c/foo", "/a/b/c/foo", "/.prefix/foo"},
 		mustNotMatch: []string{"/foo/suffix", "prefix/foo", "/prefix/.foo"},
