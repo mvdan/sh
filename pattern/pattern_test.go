@@ -128,7 +128,16 @@ var regexpTests = []struct {
 	{pat: `[!]]`, want: `(?s)[^]]`},
 	{pat: `[^]]`, want: `(?s)[^]]`},
 	{pat: `[a/b]`, want: `(?s)[a/b]`},
-	{pat: `[a/b]`, mode: Filenames, want: `(?s)\[a/b\]`},
+	{
+		pat: `[a/b]`, mode: EntireString | Filenames, want: `(?s)^\[a/b\]$`,
+		mustMatch:    []string{"[a/b]"},
+		mustNotMatch: []string{"a", "/", "b"},
+	},
+	{
+		pat: `[]/a]`, mode: EntireString | Filenames, want: `(?s)^[]/a]$`,
+		mustMatch:    []string{"]", "/", "a"},
+		mustNotMatch: []string{"/a]", "/a"},
+	},
 	{pat: `[`, wantErr: `^\[ was not matched with a closing \]$`},
 	{pat: `[\`, wantErr: `^\[ was not matched with a closing \]$`},
 	{pat: `[^`, wantErr: `^\[ was not matched with a closing \]$`},
@@ -158,7 +167,7 @@ func TestRegexp(t *testing.T) {
 	t.Parallel()
 	for i, tc := range regexpTests {
 		t.Run(fmt.Sprintf("%02d", i), func(t *testing.T) {
-			t.Logf("pattern input: %q\n", tc.pat)
+			t.Logf("input: pattern=%q mode=%#b\n", tc.pat, tc.mode)
 			got, gotErr := Regexp(tc.pat, tc.mode)
 			if tc.wantErr != "" {
 				qt.Assert(t, qt.ErrorMatches(gotErr, tc.wantErr))
@@ -166,7 +175,7 @@ func TestRegexp(t *testing.T) {
 				qt.Assert(t, qt.IsNil(gotErr))
 			}
 			if got != tc.want {
-				t.Fatalf("(%q, %#b) got %q, wanted %q", tc.pat, tc.mode, got, tc.want)
+				t.Errorf("(%q, %#b) got %q, wanted %q", tc.pat, tc.mode, got, tc.want)
 			}
 			_, rxErr := syntax.Parse(got, syntax.Perl)
 			if gotErr == nil && rxErr != nil {
