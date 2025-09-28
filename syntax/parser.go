@@ -28,6 +28,10 @@ func KeepComments(enabled bool) ParserOption {
 // parsing shell code. The zero value is [LangBash].
 type LangVariant int
 
+// TODO(v4): the zero value should be left as unset,
+// and the values below should work like a bitset
+// so that we can quickly check compatibility for common syntax.
+
 const (
 	// LangBash corresponds to the GNU Bash language, as described in its
 	// manual at https://www.gnu.org/software/bash/manual/bash.html.
