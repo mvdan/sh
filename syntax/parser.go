@@ -1162,8 +1162,7 @@ func (p *Parser) wordPart() WordPart {
 		cs.Right = p.matched(cs.Left, leftParen, rightParen)
 		return cs
 	case dollar:
-		r := p.r
-		switch {
+		switch r := p.r; {
 		case singleRuneParam(r):
 			p.tok, p.val = _LitWord, string(r)
 			p.rune()
@@ -1334,6 +1333,7 @@ func (p *Parser) paramExp() *ParamExp {
 	old := p.quote
 	p.quote = paramExpName
 	if p.r == '#' {
+		// don't let the lexer parse ${##} as [dblHash]
 		p.tok = hash
 		p.pos = p.nextPos()
 		p.rune()
