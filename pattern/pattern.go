@@ -240,9 +240,8 @@ func regexpNext(sb *strings.Builder, sl *stringLexer, mode Mode) error {
 			break
 		}
 		if mode&Filenames != 0 {
-			for _, c := range sl.peekRest() {
-				// TODO: []] contains one character, not zero
-				if c == ']' {
+			for i, c := range sl.peekRest() {
+				if i > 0 && c == ']' {
 					break
 				} else if c == '/' {
 					sb.WriteString(`\[`)

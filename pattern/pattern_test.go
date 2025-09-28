@@ -134,9 +134,9 @@ var regexpTests = []struct {
 		mustNotMatch: []string{"a", "/", "b"},
 	},
 	{
-		pat: `[]/a]`, mode: EntireString | Filenames, want: `(?s)^[]/a]$`,
-		mustMatch:    []string{"]", "/", "a"},
-		mustNotMatch: []string{"/a]", "/a"},
+		pat: `[]/a]`, mode: EntireString | Filenames, want: `(?s)^\[\]/a\]$`,
+		mustMatch:    []string{"[]/a]"},
+		mustNotMatch: []string{"]", "/", "a", "/a]", "/a"},
 	},
 	{pat: `[`, wantErr: `^\[ was not matched with a closing \]$`},
 	{pat: `[\`, wantErr: `^\[ was not matched with a closing \]$`},
