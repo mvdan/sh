@@ -98,7 +98,7 @@ func FuzzParsePrint(f *testing.F) {
 			uint8(0), false, false, false, false, false, false, false)
 	}
 
-	for _, test := range shellTests {
+	for _, test := range errorCases {
 		add(test.in, LangBash)
 	}
 	for _, test := range printTests {
