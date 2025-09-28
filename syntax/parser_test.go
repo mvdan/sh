@@ -12,6 +12,7 @@ import (
 	"os/exec"
 	"reflect"
 	"regexp"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -324,16 +325,16 @@ func TestParseErrBashConfirm(t *testing.T) {
 	requireBash52(t)
 	for _, c := range shellTests {
 		want := c.common
-		if c.bsmk != nil {
+		if c.bsmk != "" {
 			want = c.bsmk
 		}
-		if c.bash != nil {
+		if c.bash != "" {
 			want = c.bash
 		}
-		if want == nil {
+		if want == "" {
 			continue
 		}
-		wantErr := !strings.Contains(want.(string), " #NOERR")
+		wantErr := !slices.Contains(c.flipConfirm, LangBash)
 		t.Run("", confirmParse(c.in, "bash", wantErr))
 	}
 }
@@ -345,13 +346,13 @@ func TestParseErrPosixConfirm(t *testing.T) {
 	requireDash059(t)
 	for _, c := range shellTests {
 		want := c.common
-		if c.posix != nil {
+		if c.posix != "" {
 			want = c.posix
 		}
-		if want == nil {
+		if want == "" {
 			continue
 		}
-		wantErr := !strings.Contains(want.(string), " #NOERR")
+		wantErr := !slices.Contains(c.flipConfirm, LangPOSIX)
 		t.Run("", confirmParse(c.in, "dash", wantErr))
 	}
 }
@@ -363,16 +364,16 @@ func TestParseErrMirBSDKornConfirm(t *testing.T) {
 	requireMksh59(t)
 	for _, c := range shellTests {
 		want := c.common
-		if c.bsmk != nil {
+		if c.bsmk != "" {
 			want = c.bsmk
 		}
-		if c.mksh != nil {
+		if c.mksh != "" {
 			want = c.mksh
 		}
-		if want == nil {
+		if want == "" {
 			continue
 		}
-		wantErr := !strings.Contains(want.(string), " #NOERR")
+		wantErr := !slices.Contains(c.flipConfirm, LangMirBSDKorn)
 		t.Run("", confirmParse(c.in, "mksh", wantErr))
 	}
 }
@@ -394,42 +395,54 @@ func singleParse(p *Parser, in string, want *File) func(t *testing.T) {
 type errorCase struct {
 	in string
 
-	common any
-	bash   any
-	posix  any
-	mksh   any
+	common string
+	bash   string
+	posix  string
+	mksh   string
 
-	bsmk any // "bash and mksh", given their similarity
+	bsmk string // "bash and mksh", given their similarity
+
+	// The real shells where testing the input succeeds rather than failing as expected.
+	flipConfirm []LangVariant
 }
+
+var allVariants = []LangVariant{LangBash, LangPOSIX, LangMirBSDKorn, LangBats}
 
 var shellTests = []errorCase{
 	{
-		in:     "echo \x80",
-		common: `1:6: invalid UTF-8 encoding #NOERR common shells use bytes`,
+		in:          "echo \x80",
+		common:      `1:6: invalid UTF-8 encoding`,
+		flipConfirm: allVariants, // common shells use bytes
 	},
 	{
-		in:     "\necho \x80",
-		common: `2:6: invalid UTF-8 encoding #NOERR common shells use bytes`,
+		in:          "\necho \x80",
+		common:      `2:6: invalid UTF-8 encoding`,
+		flipConfirm: allVariants, // common shells use bytes
 	},
 	{
-		in:     "echo foo\x80bar",
-		common: `1:9: invalid UTF-8 encoding #NOERR common shells use bytes`,
+		in:          "echo foo\x80bar",
+		common:      `1:9: invalid UTF-8 encoding`,
+		flipConfirm: allVariants, // common shells use bytes
 	},
 	{
-		in:     "echo foo\xc3",
-		common: `1:9: invalid UTF-8 encoding #NOERR common shells use bytes`,
+		in:          "echo foo\xc3",
+		common:      `1:9: invalid UTF-8 encoding`,
+		flipConfirm: allVariants, // common shells use bytes
 	},
 	{
-		in:     "#foo\xc3",
-		common: `1:5: invalid UTF-8 encoding #NOERR common shells use bytes`,
+		in:          "#foo\xc3",
+		common:      `1:5: invalid UTF-8 encoding`,
+		flipConfirm: allVariants, // common shells use bytes
 	},
 	{
-		in:     "echo a\x80",
-		common: `1:7: invalid UTF-8 encoding #NOERR common shells use bytes`,
+		in:          "echo a\x80",
+		common:      `1:7: invalid UTF-8 encoding`,
+		flipConfirm: allVariants, // common shells use bytes
 	},
 	{
-		in:     "<<$\xc8\n$\xc8",
-		common: `1:4: invalid UTF-8 encoding #NOERR common shells use bytes`,
+		in:          "<<$\xc8\n$\xc8",
+		common:      `1:4: invalid UTF-8 encoding`,
+		flipConfirm: allVariants, // common shells use bytes
 	},
 	{
 		in:     "echo $((foo\x80bar",
@@ -510,14 +523,14 @@ var shellTests = []errorCase{
 	},
 	{
 		// bash allows lone '!', unlike dash, mksh, and us.
-		in:     "! !",
-		common: `1:1: cannot negate a command multiple times`,
-		bash:   `1:1: cannot negate a command multiple times #NOERR`,
+		in:          "! !",
+		common:      `1:1: cannot negate a command multiple times`,
+		flipConfirm: []LangVariant{LangBash},
 	},
 	{
-		in:     "! ! foo",
-		common: `1:1: cannot negate a command multiple times #NOERR`,
-		posix:  `1:1: cannot negate a command multiple times`,
+		in:          "! ! foo",
+		common:      `1:1: cannot negate a command multiple times`,
+		flipConfirm: []LangVariant{LangBash, LangMirBSDKorn},
 	},
 	{
 		in:     "}",
@@ -596,9 +609,9 @@ var shellTests = []errorCase{
 		common: `1:3: ; can only immediately follow a statement`,
 	},
 	{
-		in:     `"foo"(){ :; }`,
-		common: `1:1: invalid func name`,
-		mksh:   `1:1: invalid func name #NOERR`,
+		in:          `"foo"(){ :; }`,
+		common:      `1:1: invalid func name`,
+		flipConfirm: []LangVariant{LangMirBSDKorn},
 	},
 	{
 		in:     `foo$bar(){ :; }`,
@@ -697,9 +710,9 @@ var shellTests = []errorCase{
 		common: `1:1: reached EOF without closing quote "`,
 	},
 	{
-		in:     "foo()",
-		common: `1:1: "foo()" must be followed by a statement`,
-		mksh:   `1:1: "foo()" must be followed by a statement #NOERR`,
+		in:          "foo()",
+		common:      `1:1: "foo()" must be followed by a statement`,
+		flipConfirm: []LangVariant{LangMirBSDKorn},
 	},
 	{
 		in:     "foo() {",
@@ -790,68 +803,69 @@ var shellTests = []errorCase{
 		common: `1:1: << must be followed by a word`,
 	},
 	{
-		in:     "<<EOF",
-		common: `1:1: unclosed here-document 'EOF' #NOERR`,
-		bsmk:   `1:1: unclosed here-document 'EOF'`,
+		in:          "<<EOF",
+		common:      `1:1: unclosed here-document 'EOF'`,
+		flipConfirm: []LangVariant{LangPOSIX},
 	},
 	{
-		in:     "<<EOF\n\\",
-		common: `1:1: unclosed here-document 'EOF' #NOERR`,
-		bsmk:   `1:1: unclosed here-document 'EOF'`,
+		in:          "<<EOF\n\\",
+		common:      `1:1: unclosed here-document 'EOF'`,
+		flipConfirm: []LangVariant{LangPOSIX},
 	},
 	{
-		in:     "<<EOF\n\\\n",
-		common: `1:1: unclosed here-document 'EOF' #NOERR`,
-		bsmk:   `1:1: unclosed here-document 'EOF'`,
+		in:          "<<EOF\n\\\n",
+		common:      `1:1: unclosed here-document 'EOF'`,
+		flipConfirm: []LangVariant{LangPOSIX},
 	},
 	{
 		in: "<<EOF\n\\\nEOF",
 		// Seems like mksh has a bug here.
-		common: `1:1: unclosed here-document 'EOF' #NOERR`,
+		common:      `1:1: unclosed here-document 'EOF'`,
+		flipConfirm: allVariants,
 	},
 	{
-		in:     "<<EOF\nfoo\\\nEOF",
-		common: `1:1: unclosed here-document 'EOF' #NOERR`,
-		bsmk:   `1:1: unclosed here-document 'EOF'`,
+		in:          "<<EOF\nfoo\\\nEOF",
+		common:      `1:1: unclosed here-document 'EOF'`,
+		flipConfirm: []LangVariant{LangPOSIX},
 	},
 	{
-		in:     "<<'EOF'\n\\\n",
-		common: `1:1: unclosed here-document 'EOF' #NOERR`,
-		bsmk:   `1:1: unclosed here-document 'EOF'`,
+		in:          "<<'EOF'\n\\\n",
+		common:      `1:1: unclosed here-document 'EOF'`,
+		flipConfirm: []LangVariant{LangPOSIX},
 	},
 	{
 		in:     "<<EOF <`\n#\n`\n``",
 		common: `1:1: unclosed here-document 'EOF'`,
 	},
 	{
-		in:     "<<'EOF'",
-		common: `1:1: unclosed here-document 'EOF' #NOERR`,
-		bsmk:   `1:1: unclosed here-document 'EOF'`,
+		in:          "<<'EOF'",
+		common:      `1:1: unclosed here-document 'EOF'`,
+		flipConfirm: []LangVariant{LangPOSIX},
 	},
 	{
-		in:     "<<\\EOF",
-		common: `1:1: unclosed here-document 'EOF' #NOERR`,
-		bsmk:   `1:1: unclosed here-document 'EOF'`,
+		in:          "<<\\EOF",
+		common:      `1:1: unclosed here-document 'EOF'`,
+		flipConfirm: []LangVariant{LangPOSIX},
 	},
 	{
-		in:     "<<\\\\EOF",
-		common: `1:1: unclosed here-document '\EOF' #NOERR`,
-		bsmk:   `1:1: unclosed here-document '\EOF'`,
+		in:          "<<\\\\EOF",
+		common:      `1:1: unclosed here-document '\EOF'`,
+		flipConfirm: []LangVariant{LangPOSIX},
 	},
 	{
-		in:     "<<-EOF",
-		common: `1:1: unclosed here-document 'EOF' #NOERR`,
-		bsmk:   `1:1: unclosed here-document 'EOF'`,
+		in:          "<<-EOF",
+		common:      `1:1: unclosed here-document 'EOF'`,
+		flipConfirm: []LangVariant{LangPOSIX},
 	},
 	{
-		in:     "<<-EOF\n\t",
-		common: `1:1: unclosed here-document 'EOF' #NOERR`,
-		bsmk:   `1:1: unclosed here-document 'EOF'`,
+		in:          "<<-EOF\n\t",
+		common:      `1:1: unclosed here-document 'EOF'`,
+		flipConfirm: []LangVariant{LangPOSIX},
 	},
 	{
-		in:     "<<-'EOF'\n\t",
-		common: `1:1: unclosed here-document 'EOF' #NOERR`,
-		bsmk:   `1:1: unclosed here-document 'EOF'`,
+		in:          "<<-'EOF'\n\t",
+		common:      `1:1: unclosed here-document 'EOF'`,
+		flipConfirm: []LangVariant{LangPOSIX},
 	},
 	{
 		in:     "<<\nEOF\nbar\nEOF",
@@ -1046,8 +1060,9 @@ var shellTests = []errorCase{
 		common: `1:11: not a valid arithmetic operator: b`,
 	},
 	{
-		in:     "echo $(())",
-		common: `1:6: $(( must be followed by an expression #NOERR`,
+		in:          "echo $(())",
+		common:      `1:6: $(( must be followed by an expression`,
+		flipConfirm: allVariants,
 	},
 	{
 		in:     "echo $((()))",
@@ -1070,8 +1085,9 @@ var shellTests = []errorCase{
 		common: `1:11: not a valid arithmetic operator: ;`,
 	},
 	{
-		in:   "echo $((foo) )",
-		bsmk: `1:6: reached ) without matching $(( with )) #NOERR`,
+		in:          "echo $((foo) )",
+		bsmk:        `1:6: reached ) without matching $(( with ))`,
+		flipConfirm: allVariants,
 	},
 	{
 		in:     "echo $((a *))",
@@ -1098,21 +1114,23 @@ var shellTests = []errorCase{
 		common: `1:9: ternary operator missing ? before :`,
 	},
 	{
-		in:     "echo $(((a)+=b))",
-		common: `1:12: += must follow a name`,
-		mksh:   `1:12: += must follow a name #NOERR`,
+		in:          "echo $(((a)+=b))",
+		common:      `1:12: += must follow a name`,
+		flipConfirm: []LangVariant{LangMirBSDKorn},
 	},
 	{
 		in:     "echo $((1=2))",
 		common: `1:10: = must follow a name`,
 	},
 	{
-		in:     "echo $(($0=2))",
-		common: `1:11: = must follow a name #NOERR`,
+		in:          "echo $(($0=2))",
+		common:      `1:11: = must follow a name`,
+		flipConfirm: allVariants,
 	},
 	{
-		in:     "echo $(($(a)=2))",
-		common: `1:13: = must follow a name #NOERR`,
+		in:          "echo $(($(a)=2))",
+		common:      `1:13: = must follow a name`,
+		flipConfirm: allVariants,
 	},
 	{
 		in: "echo $((1'2'))",
@@ -1314,51 +1332,59 @@ var shellTests = []errorCase{
 		common: "1:2: reached ` without matching { with }",
 	},
 	{
-		in:    "echo \"`)`\"",
-		bsmk:  `1:8: ) can only be used to close a subshell`,
-		posix: `1:8: ) can only be used to close a subshell #NOERR dash bug`,
+		in:          "echo \"`)`\"",
+		posix:       `1:8: ) can only be used to close a subshell`,
+		bsmk:        `1:8: ) can only be used to close a subshell`,
+		flipConfirm: []LangVariant{LangPOSIX}, // dash bug
 	},
 	{
-		in:     "<<$bar\n$bar",
-		common: `1:3: expansions not allowed in heredoc words #NOERR`,
+		in:          "<<$bar\n$bar",
+		common:      `1:3: expansions not allowed in heredoc words`,
+		flipConfirm: allVariants,
 	},
 	{
-		in:     "<<${bar}\n${bar}",
-		common: `1:3: expansions not allowed in heredoc words #NOERR`,
+		in:          "<<${bar}\n${bar}",
+		common:      `1:3: expansions not allowed in heredoc words`,
+		flipConfirm: allVariants,
 	},
 
 	// bash uses "$(bar)" as the closing word, but other shells use "$".
 	// We instead give an error for expansions in heredoc words.
 	{
-		in:    "<<$(bar)\n$",
-		posix: `1:3: expansions not allowed in heredoc words`,
-		mksh:  `1:3: expansions not allowed in heredoc words #NOERR`,
+		in:          "<<$(bar)\n$",
+		posix:       `1:3: expansions not allowed in heredoc words`,
+		mksh:        `1:3: expansions not allowed in heredoc words`,
+		flipConfirm: []LangVariant{LangMirBSDKorn},
 	},
 	{
-		in:   "<<$(bar)\n$(bar)",
-		bash: `1:3: expansions not allowed in heredoc words #NOERR`,
+		in:          "<<$(bar)\n$(bar)",
+		bash:        `1:3: expansions not allowed in heredoc words`,
+		flipConfirm: allVariants,
 	},
 
 	{
-		in:     "<<$-\n$-",
-		common: `1:3: expansions not allowed in heredoc words #NOERR`,
+		in:          "<<$-\n$-",
+		common:      `1:3: expansions not allowed in heredoc words`,
+		flipConfirm: allVariants,
 	},
 	{
-		in:     "<<`bar`\n`bar`",
-		common: `1:3: expansions not allowed in heredoc words #NOERR`,
+		in:          "<<`bar`\n`bar`",
+		common:      `1:3: expansions not allowed in heredoc words`,
+		flipConfirm: allVariants,
 	},
 	{
-		in:     "<<\"$bar\"\n$bar",
-		common: `1:4: expansions not allowed in heredoc words #NOERR`,
+		in:          "<<\"$bar\"\n$bar",
+		common:      `1:4: expansions not allowed in heredoc words`,
+		flipConfirm: allVariants,
 	},
 	{
 		in:     "<<a <<0\n$(<<$<<",
 		common: `2:6: << must be followed by a word`,
 	},
 	{
-		in:     `""()`,
-		common: `1:1: invalid func name`,
-		mksh:   `1:1: invalid func name #NOERR`,
+		in:          `""()`,
+		common:      `1:1: invalid func name`,
+		flipConfirm: []LangVariant{LangMirBSDKorn},
 	},
 	{
 		// bash errors on the empty condition here, this is to
@@ -1596,8 +1622,9 @@ var shellTests = []errorCase{
 		bash: `1:4: reached ) without matching [ with ]`,
 	},
 	{
-		in:   "a=([i])",
-		bash: `1:4: "[x]" must be followed by = #NOERR`,
+		in:          "a=([i])",
+		bash:        `1:4: "[x]" must be followed by =`,
+		flipConfirm: allVariants,
 	},
 	{
 		in:   "a[i]=(y)",
@@ -1612,20 +1639,24 @@ var shellTests = []errorCase{
 		bash: `1:8: array element values must be words`,
 	},
 	{
-		in:   "a[b] ==[",
-		bash: `1:1: "a[b]" must be followed by = #NOERR stringifies`,
+		in:          "a[b] ==[",
+		bash:        `1:1: "a[b]" must be followed by =`,
+		flipConfirm: allVariants, // stringifies
 	},
 	{
-		in:   "a[b] +=c",
-		bash: `1:1: "a[b]" must be followed by = #NOERR stringifies`,
+		in:          "a[b] +=c",
+		bash:        `1:1: "a[b]" must be followed by =`,
+		flipConfirm: allVariants, // stringifies
 	},
 	{
-		in:   "a=(x y) foo",
-		bash: `1:1: inline variables cannot be arrays #NOERR stringifies`,
+		in:          "a=(x y) foo",
+		bash:        `1:1: inline variables cannot be arrays`,
+		flipConfirm: allVariants, // stringifies
 	},
 	{
-		in:   "a[2]=x foo",
-		bash: `1:1: inline variables cannot be arrays #NOERR stringifies`,
+		in:          "a[2]=x foo",
+		bash:        `1:1: inline variables cannot be arrays`,
+		flipConfirm: allVariants, // stringifies
 	},
 	{
 		in:   "function",
@@ -1660,8 +1691,9 @@ var shellTests = []errorCase{
 		bsmk: `1:2: reached EOF without matching [ with ]`,
 	},
 	{
-		in:   "a[]",
-		bsmk: `1:2: [ must be followed by an expression #NOERR is cmd`,
+		in:          "a[]",
+		bsmk:        `1:2: [ must be followed by an expression`,
+		flipConfirm: allVariants, // is cmd
 	},
 	{
 		in:   "a[[",
@@ -1676,25 +1708,29 @@ var shellTests = []errorCase{
 		bsmk: `1:10: reached ) without matching [ with ]`,
 	},
 	{
-		in:   "echo $((a[]))",
-		bash: `1:10: [ must be followed by an expression`,
-		mksh: `1:10: [ must be followed by an expression #NOERR wrong?`,
+		in:          "echo $((a[]))",
+		bash:        `1:10: [ must be followed by an expression`,
+		mksh:        `1:10: [ must be followed by an expression`,
+		flipConfirm: []LangVariant{LangMirBSDKorn}, // wrong?
 	},
 	{
 		in:   "echo $((x$t[",
 		bsmk: `1:12: [ must follow a name`,
 	},
 	{
-		in:   "a[1]",
-		bsmk: `1:1: "a[b]" must be followed by = #NOERR is cmd`,
+		in:          "a[1]",
+		bsmk:        `1:1: "a[b]" must be followed by =`,
+		flipConfirm: allVariants, // is cmd
 	},
 	{
-		in:   "a[i]+",
-		bsmk: `1:1: "a[b]+" must be followed by = #NOERR is cmd`,
+		in:          "a[i]+",
+		bsmk:        `1:1: "a[b]+" must be followed by =`,
+		flipConfirm: allVariants, // is cmd
 	},
 	{
-		in:   "a[1]#",
-		bsmk: `1:1: "a[b]" must be followed by = #NOERR is cmd`,
+		in:          "a[1]#",
+		bsmk:        `1:1: "a[b]" must be followed by =`,
+		flipConfirm: allVariants, // is cmd
 	},
 	{
 		in:   "echo $[foo",
@@ -1729,9 +1765,10 @@ var shellTests = []errorCase{
 		bsmk: `1:6: reached EOF without matching { with }`,
 	},
 	{
-		in:   "time ! foo",
-		bash: `1:6: "!" can only be used in full statements #NOERR wrong`,
-		mksh: `1:6: "!" can only be used in full statements`,
+		in:          "time ! foo",
+		bash:        `1:6: "!" can only be used in full statements`,
+		mksh:        `1:6: "!" can only be used in full statements`,
+		flipConfirm: []LangVariant{LangBash}, // wrong
 	},
 	{
 		in:   "coproc",
@@ -1758,9 +1795,10 @@ var shellTests = []errorCase{
 		bsmk: `1:11: not a valid parameter expansion operator: ]`,
 	},
 	{
-		in:   "echo ${foo[]}",
-		bash: `1:11: [ must be followed by an expression`,
-		mksh: `1:11: [ must be followed by an expression #NOERR wrong?`,
+		in:          "echo ${foo[]}",
+		bash:        `1:11: [ must be followed by an expression`,
+		mksh:        `1:11: [ must be followed by an expression`,
+		flipConfirm: []LangVariant{LangMirBSDKorn}, // wrong?
 	},
 	{
 		in:   "echo ${a/\n",
@@ -1779,8 +1817,9 @@ var shellTests = []errorCase{
 		bsmk: `1:11: : must be followed by an expression`,
 	},
 	{
-		in:   "echo ${foo:1 2}",
-		bsmk: `1:14: not a valid arithmetic operator: 2 #NOERR lazy eval`,
+		in:          "echo ${foo:1 2}",
+		bsmk:        `1:14: not a valid arithmetic operator: 2`,
+		flipConfirm: allVariants, // lazy eval
 	},
 	{
 		in:   "echo ${foo:1",
@@ -1803,28 +1842,33 @@ var shellTests = []errorCase{
 		bash: `1:11: @ expansion operator requires a literal`,
 	},
 	{
-		in:   "echo ${foo@}",
-		bash: `1:12: @ expansion operator requires a literal #NOERR empty string fallback`,
+		in:          "echo ${foo@}",
+		bash:        `1:12: @ expansion operator requires a literal`,
+		flipConfirm: allVariants, // empty string fallback
 	},
 	{
 		in:   "echo ${foo@Q",
 		bash: `1:6: reached EOF without matching ${ with }`,
 	},
 	{
-		in:   "echo ${foo@bar}",
-		bash: `1:12: invalid @ expansion operator "bar" #NOERR at runtime`,
+		in:          "echo ${foo@bar}",
+		bash:        `1:12: invalid @ expansion operator "bar"`,
+		flipConfirm: allVariants, // at runtime
 	},
 	{
-		in:   "echo ${foo@'Q'}",
-		bash: `1:12: @ expansion operator requires a literal #NOERR at runtime`,
+		in:          "echo ${foo@'Q'}",
+		bash:        `1:12: @ expansion operator requires a literal`,
+		flipConfirm: allVariants, // at runtime
 	},
 	{
-		in:   `echo $((echo a); (echo b))`,
-		bsmk: `1:14: not a valid arithmetic operator: a #NOERR backtrack`,
+		in:          `echo $((echo a); (echo b))`,
+		bsmk:        `1:14: not a valid arithmetic operator: a`,
+		flipConfirm: []LangVariant{LangBash}, // backtrack
 	},
 	{
-		in:   `((echo a); (echo b))`,
-		bsmk: `1:8: not a valid arithmetic operator: a #NOERR backtrack`,
+		in:          `((echo a); (echo b))`,
+		bsmk:        `1:8: not a valid arithmetic operator: a`,
+		flipConfirm: []LangVariant{LangBash}, // backtrack
 	},
 	{
 		in:   "for ((;;",
@@ -1864,9 +1908,10 @@ var shellTests = []errorCase{
 		// shells treat {var} as an argument, but we are a bit stricter
 		// so that users won't think this will work like they expect in
 		// POSIX shell.
-		in:    "echo {var}>foo",
-		posix: `1:6: {varname} redirects are a bash feature; tried parsing as LANG #NOERR`,
-		mksh:  `1:6: {varname} redirects are a bash feature; tried parsing as LANG #NOERR`,
+		in:          "echo {var}>foo",
+		posix:       `1:6: {varname} redirects are a bash feature; tried parsing as LANG`,
+		mksh:        `1:6: {varname} redirects are a bash feature; tried parsing as LANG`,
+		flipConfirm: allVariants,
 	},
 	{
 		in:    "echo ;&",
@@ -1992,8 +2037,9 @@ var shellTests = []errorCase{
 		mksh: `1:12: this expansion operator is a bash feature; tried parsing as LANG`,
 	},
 	{
-		in:   "echo ${foo@#}",
-		bash: `1:12: this expansion operator is a mksh feature; tried parsing as LANG #NOERR`,
+		in:          "echo ${foo@#}",
+		bash:        `1:12: this expansion operator is a mksh feature; tried parsing as LANG`,
+		flipConfirm: allVariants,
 	},
 	{
 		in:     "`\"`\\",
@@ -2003,9 +2049,6 @@ var shellTests = []errorCase{
 
 func checkError(p *Parser, in, want string) func(*testing.T) {
 	return func(t *testing.T) {
-		if i := strings.Index(want, " #NOERR"); i >= 0 {
-			want = want[:i]
-		}
 		want = strings.Replace(want, "LANG", p.lang.String(), 1)
 		_, err := p.Parse(newStrictReader(in), "")
 		if err == nil {
@@ -2023,13 +2066,13 @@ func TestParseErrPosix(t *testing.T) {
 	p := NewParser(KeepComments(true), Variant(LangPOSIX))
 	for _, c := range shellTests {
 		want := c.common
-		if c.posix != nil {
+		if c.posix != "" {
 			want = c.posix
 		}
-		if want == nil {
+		if want == "" {
 			continue
 		}
-		t.Run("", checkError(p, c.in, want.(string)))
+		t.Run("", checkError(p, c.in, want))
 	}
 }
 
@@ -2038,16 +2081,16 @@ func TestParseErrBash(t *testing.T) {
 	p := NewParser(KeepComments(true))
 	for _, c := range shellTests {
 		want := c.common
-		if c.bsmk != nil {
+		if c.bsmk != "" {
 			want = c.bsmk
 		}
-		if c.bash != nil {
+		if c.bash != "" {
 			want = c.bash
 		}
-		if want == nil {
+		if want == "" {
 			continue
 		}
-		t.Run("", checkError(p, c.in, want.(string)))
+		t.Run("", checkError(p, c.in, want))
 	}
 }
 
@@ -2056,16 +2099,16 @@ func TestParseErrMirBSDKorn(t *testing.T) {
 	p := NewParser(KeepComments(true), Variant(LangMirBSDKorn))
 	for _, c := range shellTests {
 		want := c.common
-		if c.bsmk != nil {
+		if c.bsmk != "" {
 			want = c.bsmk
 		}
-		if c.mksh != nil {
+		if c.mksh != "" {
 			want = c.mksh
 		}
-		if want == nil {
+		if want == "" {
 			continue
 		}
-		t.Run("", checkError(p, c.in, want.(string)))
+		t.Run("", checkError(p, c.in, want))
 	}
 }
 
