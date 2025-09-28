@@ -1717,6 +1717,10 @@ var shellTests = []errorCase{
 		bsmk: `1:6: reached EOF without matching @( with )`,
 	},
 	{
+		in:   "echo @([abc)])",
+		bsmk: `1:14: a command can only contain words and redirects; encountered )`,
+	},
+	{
 		in:   "((@(",
 		bsmk: `1:1: reached ( without matching (( with ))`,
 	},
