@@ -25,11 +25,11 @@ func TestParseBashKeepComments(t *testing.T) {
 	t.Parallel()
 	p := NewParser(KeepComments(true))
 	for i, c := range fileTestsKeepComments {
-		want := c.Bash
+		want := c.bash
 		if want == nil {
 			continue
 		}
-		for j, in := range c.Strs {
+		for j, in := range c.inputs {
 			t.Run(fmt.Sprintf("#%03d-%d", i, j), singleParse(p, in, want))
 		}
 	}
@@ -39,11 +39,11 @@ func TestParseBash(t *testing.T) {
 	t.Parallel()
 	p := NewParser()
 	for i, c := range append(fileTests, fileTestsNoPrint...) {
-		want := c.Bash
+		want := c.bash
 		if want == nil {
 			continue
 		}
-		for j, in := range c.Strs {
+		for j, in := range c.inputs {
 			t.Run(fmt.Sprintf("#%03d-%d", i, j), singleParse(p, in, want))
 		}
 	}
@@ -115,11 +115,11 @@ func TestParsePosix(t *testing.T) {
 	t.Parallel()
 	p := NewParser(Variant(LangPOSIX))
 	for i, c := range append(fileTests, fileTestsNoPrint...) {
-		want := c.Posix
+		want := c.posix
 		if want == nil {
 			continue
 		}
-		for j, in := range c.Strs {
+		for j, in := range c.inputs {
 			t.Run(fmt.Sprintf("#%03d-%d", i, j),
 				singleParse(p, in, want))
 		}
@@ -130,11 +130,11 @@ func TestParseMirBSDKorn(t *testing.T) {
 	t.Parallel()
 	p := NewParser(Variant(LangMirBSDKorn))
 	for i, c := range append(fileTests, fileTestsNoPrint...) {
-		want := c.MirBSDKorn
+		want := c.mksh
 		if want == nil {
 			continue
 		}
-		for j, in := range c.Strs {
+		for j, in := range c.inputs {
 			t.Run(fmt.Sprintf("#%03d-%d", i, j),
 				singleParse(p, in, want))
 		}
@@ -145,11 +145,11 @@ func TestParseBats(t *testing.T) {
 	t.Parallel()
 	p := NewParser(Variant(LangBats))
 	for i, c := range append(fileTests, fileTestsNoPrint...) {
-		want := c.Bats
+		want := c.bats
 		if want == nil {
 			continue
 		}
-		for j, in := range c.Strs {
+		for j, in := range c.inputs {
 			t.Run(fmt.Sprintf("#%03d-%d", i, j),
 				singleParse(p, in, want))
 		}
@@ -271,10 +271,10 @@ func TestParseBashConfirm(t *testing.T) {
 	requireBash52(t)
 	i := 0
 	for _, c := range append(fileTests, fileTestsNoPrint...) {
-		if c.Bash == nil {
+		if c.bash == nil {
 			continue
 		}
-		for j, in := range c.Strs {
+		for j, in := range c.inputs {
 			t.Run(fmt.Sprintf("#%03d-%d", i, j),
 				confirmParse(in, "bash", false))
 		}
@@ -289,10 +289,10 @@ func TestParsePosixConfirm(t *testing.T) {
 	requireDash059(t)
 	i := 0
 	for _, c := range append(fileTests, fileTestsNoPrint...) {
-		if c.Posix == nil {
+		if c.posix == nil {
 			continue
 		}
-		for j, in := range c.Strs {
+		for j, in := range c.inputs {
 			t.Run(fmt.Sprintf("#%03d-%d", i, j),
 				confirmParse(in, "dash", false))
 		}
@@ -307,10 +307,10 @@ func TestParseMirBSDKornConfirm(t *testing.T) {
 	requireMksh59(t)
 	i := 0
 	for _, c := range append(fileTests, fileTestsNoPrint...) {
-		if c.MirBSDKorn == nil {
+		if c.mksh == nil {
 			continue
 		}
-		for j, in := range c.Strs {
+		for j, in := range c.inputs {
 			t.Run(fmt.Sprintf("#%03d-%d", i, j),
 				confirmParse(in, "mksh", false))
 		}
@@ -365,6 +365,7 @@ var cmpOpt = cmp.FilterValues(func(p1, p2 Pos) bool { return true }, cmp.Ignore(
 func singleParse(p *Parser, in string, want *File) func(t *testing.T) {
 	return func(t *testing.T) {
 		t.Helper()
+		t.Logf("input: %s", in)
 		got, err := p.Parse(newStrictReader(in), "")
 		if err != nil {
 			t.Fatalf("Unexpected error in %q: %v", in, err)

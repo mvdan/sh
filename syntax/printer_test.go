@@ -21,13 +21,13 @@ func TestPrintCompact(t *testing.T) {
 	printer := NewPrinter()
 	for _, c := range append(fileTests, fileTestsKeepComments...) {
 		t.Run("", func(t *testing.T) {
-			in := c.Strs[0]
+			in := c.inputs[0]
 			parser := parserPosix
-			if c.Bats != nil {
+			if c.bats != nil {
 				parser = parserBats
-			} else if c.Bash != nil {
+			} else if c.bash != nil {
 				parser = parserBash
-			} else if c.MirBSDKorn != nil {
+			} else if c.mksh != nil {
 				parser = parserMirBSD
 			}
 			printTest(t, parser, printer, in, in)
@@ -1187,14 +1187,14 @@ func TestPrintOptionsNotBroken(t *testing.T) {
 		for _, tc := range append(fileTests, fileTestsNoPrint...) {
 			t.Run("File"+opts.name, func(t *testing.T) {
 				parser := parserPosix
-				if tc.Bats != nil {
+				if tc.bats != nil {
 					parser = parserBats
-				} else if tc.Bash != nil {
+				} else if tc.bash != nil {
 					parser = parserBash
-				} else if tc.MirBSDKorn != nil {
+				} else if tc.mksh != nil {
 					parser = parserMirBSD
 				}
-				in := tc.Strs[0]
+				in := tc.inputs[0]
 				prog, err := parser.Parse(strings.NewReader(in), "")
 				if err != nil {
 					t.Fatal(err)

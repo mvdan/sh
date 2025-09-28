@@ -56,7 +56,7 @@ func TestWalk(t *testing.T) {
 	parser := NewParser(KeepComments(true))
 	var allStrs []string
 	for _, c := range fileTests {
-		allStrs = append(allStrs, c.Strs[0])
+		allStrs = append(allStrs, c.inputs[0])
 	}
 	for _, c := range printTests {
 		allStrs = append(allStrs, c.in)
