@@ -1100,12 +1100,12 @@ func (p *Parser) wordPart() WordPart {
 		p.ensureNoNested()
 		switch p.r {
 		case '|':
-			if p.lang != LangBash && p.lang != LangMirBSDKorn {
+			if !p.lang.isBash() && p.lang != LangMirBSDKorn {
 				p.langErr(p.pos, `"${|stmts;}"`, LangBash, LangMirBSDKorn)
 			}
 			fallthrough
 		case ' ', '\t', '\n':
-			if p.lang != LangBash && p.lang != LangMirBSDKorn {
+			if !p.lang.isBash() && p.lang != LangMirBSDKorn {
 				p.langErr(p.pos, `"${ stmts;}"`, LangBash, LangMirBSDKorn)
 			}
 			cs := &CmdSubst{
