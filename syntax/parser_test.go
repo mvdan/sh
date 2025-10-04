@@ -1990,16 +1990,17 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"echo ${!foo*}",
-		langErr(`1:6: "${!foo*}" is a bash feature; tried parsing as LANG`, LangPOSIX, LangMirBSDKorn),
+		langErr(`1:6: "${!foo}" is a bash/mksh feature; tried parsing as LANG`, LangPOSIX),
+		langErr(`1:6: "${!foo*}" is a bash feature; tried parsing as LANG`, LangMirBSDKorn),
 	),
 	errCase(
 		"echo ${!foo@}",
-		langErr(`1:12: this expansion operator is a bash/mksh feature; tried parsing as LANG`, LangPOSIX),
+		langErr(`1:6: "${!foo}" is a bash/mksh feature; tried parsing as LANG`, LangPOSIX),
 		langErr(`1:6: "${!foo@}" is a bash feature; tried parsing as LANG`, LangMirBSDKorn),
 	),
 	errCase(
 		"echo ${!foo[@]}",
-		langErr(`1:12: arrays are a bash/mksh feature; tried parsing as LANG`, LangPOSIX),
+		langErr(`1:6: "${!foo}" is a bash/mksh feature; tried parsing as LANG`, LangPOSIX),
 	),
 	errCase(
 		"echo ${foo[1]}",

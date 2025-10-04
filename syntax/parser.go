@@ -1173,6 +1173,7 @@ func (p *Parser) wordPart() WordPart {
 		case 'a' <= r && r <= 'z', 'A' <= r && r <= 'Z',
 			'0' <= r && r <= '9', r == '_', r == '\\':
 			p.advanceNameCont(r)
+			// continue below
 		default:
 			l := p.lit(p.pos, "$")
 			p.next()
@@ -1351,15 +1352,18 @@ func (p *Parser) paramExp() *ParamExp {
 			p.next()
 		}
 	case perc:
-		if p.lang != LangMirBSDKorn {
-			p.langErr(pe.Pos(), `"${%foo}"`, LangMirBSDKorn)
-		}
 		if paramNameOp(p.r) {
+			if p.lang != LangMirBSDKorn {
+				p.langErr(pe.Pos(), `"${%foo}"`, LangMirBSDKorn)
+			}
 			pe.Width = true
 			p.next()
 		}
 	case exclMark:
 		if paramNameOp(p.r) {
+			if p.lang == LangPOSIX {
+				p.langErr(pe.Pos(), `"${!foo}"`, LangBash, LangMirBSDKorn)
+			}
 			pe.Excl = true
 			p.next()
 		}
@@ -1390,14 +1394,6 @@ func (p *Parser) paramExp() *ParamExp {
 	switch p.tok {
 	case _Lit, _LitWord:
 		p.curErr("%s cannot be followed by a word", op)
-	case rightBrace:
-		if pe.Excl && p.lang == LangPOSIX {
-			p.langErr(pe.Pos(), `"${!foo}"`, LangBash, LangMirBSDKorn)
-		}
-		pe.Rbrace = p.pos
-		p.quote = old
-		p.next()
-		return pe
 	case leftBrack:
 		if p.lang == LangPOSIX {
 			p.langErr(p.pos, "arrays", LangBash, LangMirBSDKorn)
