@@ -17,10 +17,10 @@ import (
 //
 // If env is nil, the current environment variables are used. Empty variables
 // are treated as unset; to support variables which are set but empty, use the
-// expand package directly.
+// [expand] package directly.
 //
-// Command substitutions like $(echo foo) aren't supported to avoid running
-// arbitrary code. To support those, use an interpreter with the expand package.
+// Other forms of expansion are not supported in this simple API, such as
+// command substitutions like $(echo foo). To support them, use the [expand] package.
 //
 // An error will be reported if the input string had invalid syntax.
 func Expand(s string, env func(string) string) (string, error) {
@@ -38,11 +38,15 @@ func Expand(s string, env func(string) string) (string, error) {
 
 // Fields performs shell expansion on s as if it were a command's arguments,
 // using env to resolve variables. It is similar to Expand, but includes brace
-// expansion, tilde expansion, and globbing.
+// expansion, tilde expansion, and word splitting.
 //
 // If env is nil, the current environment variables are used. Empty variables
 // are treated as unset; to support variables which are set but empty, use the
-// expand package directly.
+// [expand] package directly.
+//
+// Other forms of expansion are not supported in this simple API, such as
+// globbing and command substitutions like $(echo foo).
+// To support them, use the [expand] package.
 //
 // An error will be reported if the input string had invalid syntax.
 func Fields(s string, env func(string) string) ([]string, error) {
