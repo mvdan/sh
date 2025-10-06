@@ -450,7 +450,7 @@ func Fields(cfg *Config, words ...*syntax.Word) ([]string, error) {
 
 // FieldsSeq expands a number of words as if they were arguments in a shell
 // command. This includes brace expansion, tilde expansion, parameter expansion,
-// command substitution, arithmetic expansion, and quote removal.
+// command substitution, arithmetic expansion, quote removal, and globbing.
 func FieldsSeq(cfg *Config, words ...*syntax.Word) iter.Seq2[string, error] {
 	cfg = prepareConfig(cfg)
 	dir := cfg.envGet("PWD")
