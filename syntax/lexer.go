@@ -177,8 +177,7 @@ readAgain:
 func (p *Parser) nextKeepSpaces() {
 	r := p.r
 	if p.quote != hdocBody && p.quote != hdocBodyTabs {
-		// Heredocs handle escaped newlines in a special way, but others
-		// do not.
+		// Heredocs handle escaped newlines in a special way, but others do not.
 		for r == escNewl {
 			r = p.rune()
 		}
@@ -990,10 +989,8 @@ func (p *Parser) advanceLitHdoc(r rune) {
 
 	p.tok = _Lit
 	p.newLit(r)
-	if p.quote == hdocBodyTabs {
-		for r == '\t' {
-			r = p.rune()
-		}
+	for p.quote == hdocBodyTabs && r == '\t' {
+		r = p.rune()
 	}
 	lStart := len(p.litBs) - 1
 	stop := p.hdocStops[len(p.hdocStops)-1]
@@ -1039,10 +1036,8 @@ func (p *Parser) advanceLitHdoc(r rune) {
 			if r != '\n' {
 				return // hit an unexpected EOF or closing backquote
 			}
-			if p.quote == hdocBodyTabs {
-				for p.peek() == '\t' {
-					p.rune()
-				}
+			for p.quote == hdocBodyTabs && p.peek() == '\t' {
+				p.rune()
 			}
 			lStart = len(p.litBs)
 		}
@@ -1058,10 +1053,8 @@ func (p *Parser) quotedHdocWord() *Word {
 		if r == utf8.RuneSelf {
 			return nil
 		}
-		if p.quote == hdocBodyTabs {
-			for r == '\t' {
-				r = p.rune()
-			}
+		for p.quote == hdocBodyTabs && r == '\t' {
+			r = p.rune()
 		}
 		lStart := len(p.litBs) - 1
 	runeLoop:
