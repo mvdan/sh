@@ -689,25 +689,11 @@ func (p *Parser) doHeredocs() {
 		if i > 0 && p.r == '\n' {
 			p.rune()
 		}
-		lastLine := p.line
 		if quoted {
 			r.Hdoc = p.quotedHdocWord()
 		} else {
 			p.next()
 			r.Hdoc = p.getWord()
-		}
-		if r.Hdoc != nil {
-			lastLine = int64(r.Hdoc.End().Line())
-		}
-		if lastLine < p.line {
-			// TODO: It seems like this triggers more often than it
-			// should. Look into it.
-			l := p.lit(p.nextPos(), "")
-			if r.Hdoc == nil {
-				r.Hdoc = p.wordOne(l)
-			} else {
-				r.Hdoc.Parts = append(r.Hdoc.Parts, l)
-			}
 		}
 		if stop := p.hdocStops[len(p.hdocStops)-1]; stop != nil {
 			p.posErr(r.Pos(), "unclosed here-document '%s'", stop)
