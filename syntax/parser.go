@@ -586,7 +586,13 @@ func (p *Parser) call(w *Word) *CallExpr {
 type quoteState uint32
 
 const (
+	// The default state of the parser.
 	noState quoteState = 1 << iota
+
+	// Used when parsing parameter expansions; use with [Parser.rune],
+	// [Parser.next] always returns [illegalTok].
+	runeByRune
+
 	subCmd
 	subCmdBckquo
 	dblQuotes
@@ -596,24 +602,20 @@ const (
 	arithmExpr
 	arithmExprLet
 	arithmExprCmd
-	arithmExprBrack
 	testExpr
 	testExprRegexp
 	switchCase
-	paramExpName
-	paramExpSlice
+	paramExpArithm
 	paramExpRepl
 	paramExpExp
 	arrayElems
 
-	allKeepSpaces = paramExpRepl | dblQuotes | hdocBody |
-		hdocBodyTabs | paramExpExp
+	allKeepSpaces = runeByRune | paramExpRepl | dblQuotes | hdocBody |
+		hdocBodyTabs | paramExpRepl | paramExpExp
 	allRegTokens = noState | subCmd | subCmdBckquo | hdocWord |
 		switchCase | arrayElems | testExpr
-	allArithmExpr = arithmExpr | arithmExprLet | arithmExprCmd |
-		arithmExprBrack | paramExpSlice
-	allParamReg = paramExpName | paramExpSlice
-	allParamExp = allParamReg | paramExpRepl | paramExpExp | arithmExprBrack
+	allArithmExpr = arithmExpr | arithmExprLet | arithmExprCmd | paramExpArithm
+	allParamExp   = paramExpArithm | paramExpRepl | paramExpExp
 )
 
 type saveState struct {
@@ -1132,12 +1134,7 @@ func (p *Parser) wordPart() WordPart {
 		p.ensureNoNested()
 		left := p.tok
 		ar := &ArithmExp{Left: p.pos, Bracket: left == dollBrack}
-		var old saveState
-		if ar.Bracket {
-			old = p.preNested(arithmExprBrack)
-		} else {
-			old = p.preNested(arithmExpr)
-		}
+		old := p.preNested(arithmExpr)
 		p.next()
 		if p.got(hash) {
 			if p.lang != LangMirBSDKorn {
@@ -1335,87 +1332,83 @@ func singleRuneParam(r rune) bool {
 }
 
 func (p *Parser) paramExp() *ParamExp {
-	pe := &ParamExp{Dollar: p.pos}
 	old := p.quote
-	p.quote = paramExpName
-	if p.r == '#' {
-		// don't let the lexer parse ${##} as [dblHash]
-		p.tok = hash
-		p.pos = p.nextPos()
-		p.rune()
-	} else {
-		p.next()
-	}
-	switch p.tok {
-	case hash:
-		if paramNameOp(p.r) {
+	p.quote = runeByRune
+	pe := &ParamExp{Dollar: p.pos}
+	switch p.r {
+	case '#':
+		if paramNameOp(p.peek()) {
 			pe.Length = true
-			p.next()
+			p.rune()
 		}
-	case perc:
-		if paramNameOp(p.r) {
+	case '%':
+		if paramNameOp(p.peek()) {
 			if p.lang != LangMirBSDKorn {
 				p.langErr(pe.Pos(), `"${%foo}"`, LangMirBSDKorn)
 			}
 			pe.Width = true
-			p.next()
+			p.rune()
 		}
-	case exclMark:
-		if paramNameOp(p.r) {
+	case '!':
+		if paramNameOp(p.peek()) {
 			if p.lang == LangPOSIX {
 				p.langErr(pe.Pos(), `"${!foo}"`, LangBash, LangMirBSDKorn)
 			}
 			pe.Excl = true
-			p.next()
+			p.rune()
 		}
 	}
-	op := p.tok
-	switch p.tok {
-	case _Lit, _LitWord:
-		if !numberLiteral(p.val) && !ValidName(p.val) {
-			p.curErr("invalid parameter name")
-		}
-		pe.Param = p.lit(p.pos, p.val)
-		p.next()
-	case quest, minus:
-		if pe.Length && p.r != '}' {
+	switch p.r {
+	case '?', '-':
+		if pe.Length && p.peek() != '}' {
 			// actually ${#-default}, not ${#-}; fix the ambiguity
 			pe.Length = false
-			pe.Param = p.lit(posAddCol(p.pos, -1), "#")
-			pe.Param.ValueEnd = p.pos
+			pos := p.nextPos()
+			pe.Param = p.lit(posAddCol(pos, -1), "#")
+			pe.Param.ValueEnd = pos
 			break
 		}
 		fallthrough
-	case at, star, hash, exclMark, dollar:
-		pe.Param = p.lit(p.pos, p.tok.String())
-		p.next()
+	case '@', '*', '#', '!', '$':
+		r, pos := p.r, p.nextPos()
+		p.rune()
+		pe.Param = p.lit(pos, string(r))
 	default:
-		p.curErr("parameter expansion requires a literal")
+		if !paramNameOp(p.r) {
+			p.posErr(p.nextPos(), "parameter expansion requires a literal")
+		}
+		pos := p.nextPos()
+		p.advanceNameCont(p.r)
+		if !numberLiteral(p.val) && !ValidName(p.val) {
+			p.posErr(pos, "invalid parameter name")
+		}
+		pe.Param = p.lit(pos, p.val)
 	}
-	switch p.tok {
-	case _Lit, _LitWord:
-		p.curErr("%s cannot be followed by a word", op)
-	case leftBrack:
+	if p.r == '[' {
 		if p.lang == LangPOSIX {
-			p.langErr(p.pos, "arrays", LangBash, LangMirBSDKorn)
+			p.langErr(p.nextPos(), "arrays", LangBash, LangMirBSDKorn)
 		}
 		if !ValidName(pe.Param.Value) {
-			p.curErr("cannot index a special parameter name")
+			p.posErr(p.nextPos(), "cannot index a special parameter name")
 		}
+		p.pos = p.nextPos()
+		p.rune()
 		pe.Index = p.eitherIndex()
 	}
-	if p.tok == rightBrace {
-		pe.Rbrace = p.pos
+	if p.r == '}' {
+		pe.Rbrace = p.nextPos()
 		p.quote = old
+		p.rune()
 		p.next()
 		return pe
 	}
-	if p.tok != _EOF && (pe.Length || pe.Width) {
-		p.curErr("cannot combine multiple parameter expansion operators")
+	if p.r != utf8.RuneSelf && (pe.Length || pe.Width) {
+		p.posErr(p.nextPos(), "cannot combine multiple parameter expansion operators")
 	}
-	switch p.tok {
-	case slash, dblSlash:
-		// pattern search and replace
+	p.pos = p.nextPos()
+	op := p.r
+	switch p.tok = p.paramToken(p.r); p.tok {
+	case slash, dblSlash: // pattern search and replace
 		if p.lang == LangPOSIX {
 			p.langErr(p.pos, "search and replace", LangBash, LangMirBSDKorn)
 		}
@@ -1427,14 +1420,13 @@ func (p *Parser) paramExp() *ParamExp {
 		if p.got(slash) {
 			pe.Repl.With = p.getWord()
 		}
-	case colon:
-		// slicing
+	case colon: // slicing
 		if p.lang == LangPOSIX {
 			p.langErr(p.pos, "slicing", LangBash, LangMirBSDKorn)
 		}
 		pe.Slice = &Slice{}
 		colonPos := p.pos
-		p.quote = paramExpSlice
+		p.quote = paramExpArithm
 		if p.next(); p.tok != colon {
 			pe.Slice.Offset = p.followArithm(colon, colonPos)
 		}
@@ -1448,8 +1440,7 @@ func (p *Parser) paramExp() *ParamExp {
 		pe.Rbrace = p.pos
 		p.matchedArithm(pe.Dollar, dollBrace, rightBrace)
 		return pe
-	case caret, dblCaret, comma, dblComma:
-		// upper/lower case
+	case caret, dblCaret, comma, dblComma: // upper/lower case
 		if !p.lang.isBash() {
 			p.langErr(p.pos, "this expansion operator", LangBash)
 		}
@@ -1459,7 +1450,7 @@ func (p *Parser) paramExp() *ParamExp {
 		case p.tok == at && p.lang == LangPOSIX:
 			p.langErr(p.pos, "this expansion operator", LangBash, LangMirBSDKorn)
 		case p.tok == star && !pe.Excl:
-			p.curErr("not a valid parameter expansion operator: %v", p.tok)
+			p.posErr(p.pos, "not a valid parameter expansion operator: %q", p.tok)
 		case pe.Excl && p.r == '}':
 			if !p.lang.isBash() {
 				p.langErr(pe.Pos(), fmt.Sprintf(`"${!foo%s}"`, p.tok), LangBash)
@@ -1474,7 +1465,14 @@ func (p *Parser) paramExp() *ParamExp {
 		pe.Exp = p.paramExpExp()
 	case _EOF:
 	default:
-		p.curErr("not a valid parameter expansion operator: %v", p.tok)
+		if paramNameOp(p.r) {
+			p.posErr(p.nextPos(), "%q cannot be followed by a word", pe.Param.Value)
+		} else {
+			p.posErr(p.pos, "not a valid parameter expansion operator: %q", string(op))
+		}
+	}
+	if p.tok != _EOF && p.tok != rightBrace {
+		p.tok = p.paramToken(p.r)
 	}
 	p.quote = old
 	pe.Rbrace = p.matched(pe.Dollar, dollBrace, rightBrace)
@@ -1511,7 +1509,7 @@ func (p *Parser) paramExpExp() *Expansion {
 func (p *Parser) eitherIndex() ArithmExpr {
 	old := p.quote
 	lpos := p.pos
-	p.quote = arithmExprBrack
+	p.quote = paramExpArithm
 	p.next()
 	if p.tok == star || p.tok == at {
 		p.tok, p.val = _LitWord, p.tok.String()

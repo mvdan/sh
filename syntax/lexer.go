@@ -29,9 +29,9 @@ func paramOps(r rune) bool {
 }
 
 // these start a parameter expansion name
-func paramNameOp(r rune) bool {
+func paramNameOp[T rune | byte](r T) bool {
 	switch r {
-	case '}', ':', '+', '=', '%', '[', ']', '/', '^', ',':
+	case utf8.RuneSelf, '}', ':', '+', '=', '%', '[', ']', '/', '^', ',', '<', '\'', '"', ';':
 		return false
 	}
 	return true
@@ -76,13 +76,13 @@ retry:
 				p.col++
 				goto retry
 			case '\r':
-				if p.peekByte('\n') { // \r\n turns into \n
+				if p.peek() == '\n' { // \r\n turns into \n
 					p.col++
 					goto retry
 				}
 			case '\\':
 				if p.r == '\\' {
-				} else if p.peekByte('\n') {
+				} else if p.peek() == '\n' {
 					p.bsp++
 					p.w, p.r = 1, escNewl
 					return escNewl
@@ -185,15 +185,8 @@ func (p *Parser) nextKeepSpaces() {
 	}
 	p.pos = p.nextPos()
 	switch p.quote {
-	case paramExpRepl:
-		switch r {
-		case '}', '/':
-			p.tok = p.paramToken(r)
-		case '`', '"', '$', '\'':
-			p.tok = p.regToken(r)
-		default:
-			p.advanceLitOther(r)
-		}
+	case runeByRune:
+		p.tok = illegalTok
 	case dblQuotes:
 		switch r {
 		case '`', '"', '$':
@@ -208,6 +201,13 @@ func (p *Parser) nextKeepSpaces() {
 		default:
 			p.advanceLitHdoc(r)
 		}
+	case paramExpRepl:
+		if r == '/' {
+			p.rune()
+			p.tok = slash
+			break
+		}
+		fallthrough
 	default: // paramExpExp:
 		switch r {
 		case '}':
@@ -387,7 +387,7 @@ func (p *Parser) extendedGlob() bool {
 	if p.val == "function" {
 		return false
 	}
-	if p.peekByte('(') {
+	if p.peek() == '(' {
 		// NOTE: empty pattern list is a valid globbing syntax like `@()`,
 		// but we'll operate on the "likelihood" that it is a function;
 		// only tokenize if its a non-empty pattern list.
@@ -409,11 +409,14 @@ func (p *Parser) peekBytes(s string) bool {
 	return peekEnd <= len(p.bs) && bytes.HasPrefix(p.bs[p.bsp:peekEnd], []byte(s))
 }
 
-func (p *Parser) peekByte(b byte) bool {
+func (p *Parser) peek() byte {
 	if p.bsp == uint(len(p.bs)) {
 		p.fill()
 	}
-	return p.bsp < uint(len(p.bs)) && p.bs[p.bsp] == b
+	if p.bsp >= uint(len(p.bs)) {
+		return 0
+	}
+	return p.bs[p.bsp]
 }
 
 func (p *Parser) regToken(r rune) token {
@@ -472,7 +475,7 @@ func (p *Parser) regToken(r rune) token {
 			p.rune()
 			return dollBrace
 		case '[':
-			if !p.lang.isBash() || p.quote == paramExpName {
+			if !p.lang.isBash() {
 				// latter to not tokenise ${$[@]} as $[
 				break
 			}
@@ -650,7 +653,7 @@ func (p *Parser) paramToken(r rune) token {
 		p.rune()
 		return rightBrack
 	case '/':
-		if p.rune() == '/' && p.quote != paramExpRepl {
+		if p.rune() == '/' {
 			p.rune()
 			return dblSlash
 		}
@@ -670,9 +673,15 @@ func (p *Parser) paramToken(r rune) token {
 	case '@':
 		p.rune()
 		return at
-	default: // '*'
+	case '*':
 		p.rune()
 		return star
+	// This func gets called by the parser in [runeByRune] mode;
+	// we need to handle EOF and unexpected runes.
+	case utf8.RuneSelf:
+		return _EOF
+	default:
+		return illegalTok
 	}
 }
 
@@ -890,7 +899,7 @@ loop:
 				break loop
 			}
 		case ':', '=', '%', '^', ',', '?', '!', '~', '*':
-			if p.quote&allArithmExpr != 0 || p.quote == paramExpName {
+			if p.quote&allArithmExpr != 0 {
 				break loop
 			}
 		case '[', ']':
@@ -898,10 +907,6 @@ loop:
 				break loop
 			}
 			fallthrough
-		case '#', '@':
-			if p.quote&allParamReg != 0 {
-				break loop
-			}
 		case '+', '-', ' ', '\t', ';', '&', '>', '<', '|', '(', ')', '\n', '\r':
 			if p.quote&allKeepSpaces == 0 {
 				break loop
@@ -922,7 +927,7 @@ loop:
 		case '\\': // escaped byte follows
 			p.rune()
 		case '>', '<':
-			if p.peekByte('(') {
+			if p.peek() == '(' {
 				tok = _Lit
 			} else if p.isLitRedir() {
 				tok = _LitRedir
@@ -1035,7 +1040,7 @@ func (p *Parser) advanceLitHdoc(r rune) {
 				return // hit an unexpected EOF or closing backquote
 			}
 			if p.quote == hdocBodyTabs {
-				for p.peekByte('\t') {
+				for p.peek() == '\t' {
 					p.rune()
 				}
 			}

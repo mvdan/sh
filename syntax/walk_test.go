@@ -63,6 +63,7 @@ func TestWalk(t *testing.T) {
 	}
 	for _, in := range allStrs {
 		t.Run("", func(t *testing.T) {
+			t.Logf("input: %s", in)
 			prog, err := parser.Parse(strings.NewReader(in), "")
 			if err != nil {
 				// good enough for now, as the bash

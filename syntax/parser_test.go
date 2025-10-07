@@ -1216,12 +1216,12 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		`echo "foo${bar"`,
-		langErr(`1:15: not a valid parameter expansion operator: "`),
+		langErr(`1:15: not a valid parameter expansion operator: "\""`),
 	),
 	errCase(
 		"echo ${%",
 		langErr(`1:6: "${%foo}" is a mksh feature; tried parsing as LANG`),
-		langErr(`1:8: parameter expansion requires a literal`, LangMirBSDKorn),
+		langErr(`1:9: parameter expansion requires a literal`, LangMirBSDKorn),
 	),
 	errCase(
 		"echo ${##",
@@ -1229,31 +1229,31 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"echo ${#<}",
-		langErr(`1:9: parameter expansion requires a literal`),
+		langErr(`1:9: not a valid parameter expansion operator: "<"`),
 	),
 	errCase(
 		"echo ${%<}",
-		langErr(`1:9: parameter expansion requires a literal`, LangMirBSDKorn),
+		langErr(`1:8: parameter expansion requires a literal`, LangMirBSDKorn),
 	),
 	errCase(
 		"echo ${!<}",
-		langErr(`1:9: parameter expansion requires a literal`, LangBash, LangMirBSDKorn),
+		langErr(`1:9: not a valid parameter expansion operator: "<"`, LangBash, LangMirBSDKorn),
 	),
 	errCase(
 		"echo ${@foo}",
-		langErr(`1:9: @ cannot be followed by a word`),
+		langErr(`1:9: "@" cannot be followed by a word`),
 	),
 	errCase(
 		"echo ${$foo}",
-		langErr(`1:9: $ cannot be followed by a word`),
+		langErr(`1:9: "$" cannot be followed by a word`),
 	),
 	errCase(
 		"echo ${?foo}",
-		langErr(`1:9: ? cannot be followed by a word`),
+		langErr(`1:9: "?" cannot be followed by a word`),
 	),
 	errCase(
 		"echo ${-foo}",
-		langErr(`1:9: - cannot be followed by a word`),
+		langErr(`1:9: "-" cannot be followed by a word`),
 	),
 	errCase(
 		"echo ${@[@]} ${@[*]}",
@@ -1281,15 +1281,15 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"echo ${foo*}",
-		langErr(`1:11: not a valid parameter expansion operator: *`, LangBash, LangMirBSDKorn),
+		langErr(`1:11: not a valid parameter expansion operator: "*"`, LangBash, LangMirBSDKorn),
 	),
 	errCase(
 		"echo ${foo;}",
-		langErr(`1:11: not a valid parameter expansion operator: ;`, LangBash, LangMirBSDKorn),
+		langErr(`1:11: not a valid parameter expansion operator: ";"`, LangBash, LangMirBSDKorn),
 	),
 	errCase(
 		"echo ${foo!}",
-		langErr(`1:11: not a valid parameter expansion operator: !`, LangBash, LangMirBSDKorn),
+		langErr(`1:11: not a valid parameter expansion operator: "!"`, LangBash, LangMirBSDKorn),
 	),
 	errCase(
 		"echo ${#foo:-bar}",
@@ -1830,7 +1830,7 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"echo ${foo]}",
-		langErr(`1:11: not a valid parameter expansion operator: ]`, LangBash, LangMirBSDKorn),
+		langErr(`1:11: not a valid parameter expansion operator: "]"`, LangBash, LangMirBSDKorn),
 	),
 	errCase(
 		"echo ${foo[]}",
