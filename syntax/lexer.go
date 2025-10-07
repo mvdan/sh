@@ -217,7 +217,7 @@ func (p *Parser) nextKeepSpaces() {
 			p.advanceLitOther(r)
 		}
 	}
-	if p.err != nil && p.tok != _EOF {
+	if p.err != nil {
 		p.tok = _EOF
 	}
 }
@@ -375,7 +375,7 @@ skipSpace:
 	default:
 		p.advanceLitOther(r)
 	}
-	if p.err != nil && p.tok != _EOF {
+	if p.err != nil {
 		p.tok = _EOF
 	}
 }
