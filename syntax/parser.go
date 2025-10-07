@@ -517,6 +517,7 @@ func (p *Parser) reset() {
 	p.litBs = nil
 }
 
+// nextPos returns the position of the next rune, [Parser.r].
 func (p *Parser) nextPos() Pos {
 	// Basic protection against offset overflow;
 	// note that an offset of 0 is valid, so we leave the maximum.
@@ -1555,6 +1556,9 @@ func ValidName(val string) bool {
 }
 
 func numberLiteral(val string) bool {
+	if val == "" {
+		return false
+	}
 	for _, r := range val {
 		if '0' > r || r > '9' {
 			return false
