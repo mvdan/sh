@@ -1154,9 +1154,8 @@ func (p *Parser) wordPart() WordPart {
 		case singleRuneParam(r):
 			p.tok, p.val = _LitWord, string(r)
 			p.rune()
-		case 'a' <= r && r <= 'z', 'A' <= r && r <= 'Z',
-			'0' <= r && r <= '9', r == '_', r == '\\':
-			p.advanceNameCont(r)
+		case paramNameRune(r), r == '\\':
+			p.advanceParamNameCont(r)
 			// continue below
 		default:
 			l := p.lit(p.pos, "$")
@@ -1364,7 +1363,7 @@ func (p *Parser) paramExp() *ParamExp {
 			p.posErr(p.nextPos(), "parameter expansion requires a literal")
 		}
 		pos := p.nextPos()
-		p.advanceNameCont(p.r)
+		p.advanceParamNameCont(p.r)
 		if !numberLiteral(p.val) && !ValidName(p.val) {
 			p.posErr(pos, "invalid parameter name")
 		}

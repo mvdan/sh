@@ -28,7 +28,7 @@ func paramOps(r rune) bool {
 	return false
 }
 
-// these start a parameter expansion name
+// true if r could start a parameter expansion name
 func paramNameOp[T rune | byte](r T) bool {
 	switch r {
 	case utf8.RuneSelf, '}', ':', '+', '=', '%', '[', ']', '/', '^', ',', '<', '\'', '"', ';':
@@ -862,18 +862,23 @@ func (p *Parser) isLitRedir() bool {
 	return true
 }
 
-func (p *Parser) advanceNameCont(r rune) {
+func paramNameRune[T rune | byte](r T) bool {
+	switch {
+	case 'a' <= r && r <= 'z':
+	case 'A' <= r && r <= 'Z':
+	case r == '_':
+	case '0' <= r && r <= '9':
+	default:
+		return false
+	}
+	return true
+}
+
+func (p *Parser) advanceParamNameCont(r rune) {
 	// we know that r is a letter or underscore
-loop:
 	for p.newLit(r); r != utf8.RuneSelf; r = p.rune() {
-		switch {
-		case 'a' <= r && r <= 'z':
-		case 'A' <= r && r <= 'Z':
-		case r == '_':
-		case '0' <= r && r <= '9':
-		case r == escNewl:
-		default:
-			break loop
+		if !paramNameRune(r) && r != escNewl {
+			break
 		}
 	}
 	p.tok, p.val = _LitWord, p.endLit()
