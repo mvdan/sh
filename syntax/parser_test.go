@@ -1196,11 +1196,11 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"echo $foo ${}",
-		langErr(`1:13: parameter expansion requires a literal`),
+		langErr(`1:13: parameter expansion requires a valid name`),
 	),
 	errCase(
 		"echo ${à}",
-		langErr(`1:8: invalid parameter name`),
+		langErr(`1:8: parameter expansion requires a valid name`),
 	),
 	errCase(
 		"echo ${1a}",
@@ -1221,7 +1221,7 @@ var errorCases = []errorCase{
 	errCase(
 		"echo ${%",
 		langErr(`1:6: "${%foo}" is a mksh feature; tried parsing as LANG`),
-		langErr(`1:9: parameter expansion requires a literal`, LangMirBSDKorn),
+		langErr(`1:9: parameter expansion requires a valid name`, LangMirBSDKorn),
 	),
 	errCase(
 		"echo ${##",
@@ -1233,7 +1233,7 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"echo ${%<}",
-		langErr(`1:8: parameter expansion requires a literal`, LangMirBSDKorn),
+		langErr(`1:8: parameter expansion requires a valid name`, LangMirBSDKorn),
 	),
 	errCase(
 		"echo ${!<}",

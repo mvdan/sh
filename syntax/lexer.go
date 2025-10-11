@@ -28,15 +28,6 @@ func paramOps(r rune) bool {
 	return false
 }
 
-// true if r could start a parameter expansion name
-func paramNameOp[T rune | byte](r T) bool {
-	switch r {
-	case utf8.RuneSelf, '}', ':', '+', '=', '%', '[', ']', '/', '^', ',', '<', '\'', '"', ';':
-		return false
-	}
-	return true
-}
-
 // tokenize these inside arithmetic expansions
 func arithmOps(r rune) bool {
 	switch r {
@@ -860,6 +851,15 @@ func (p *Parser) isLitRedir() bool {
 		}
 	}
 	return true
+}
+
+func singleRuneParam[T rune | byte](r T) bool {
+	switch r {
+	case '@', '*', '#', '$', '?', '!', '-',
+		'0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
+		return true
+	}
+	return false
 }
 
 func paramNameRune[T rune | byte](r T) bool {

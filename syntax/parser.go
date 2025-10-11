@@ -1307,27 +1307,18 @@ func (p *Parser) dblQuoted() *DblQuoted {
 	return q
 }
 
-func singleRuneParam(r rune) bool {
-	switch r {
-	case '@', '*', '#', '$', '?', '!', '-',
-		'0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
-		return true
-	}
-	return false
-}
-
 func (p *Parser) paramExp() *ParamExp {
 	old := p.quote
 	p.quote = runeByRune
 	pe := &ParamExp{Dollar: p.pos}
 	switch p.r {
 	case '#':
-		if paramNameOp(p.peek()) {
+		if r := p.peek(); r == 0 || singleRuneParam(r) || paramNameRune(r) {
 			pe.Length = true
 			p.rune()
 		}
 	case '%':
-		if paramNameOp(p.peek()) {
+		if r := p.peek(); r == 0 || singleRuneParam(r) || paramNameRune(r) {
 			if p.lang != LangMirBSDKorn {
 				p.langErr(pe.Pos(), `"${%foo}"`, LangMirBSDKorn)
 			}
@@ -1335,7 +1326,7 @@ func (p *Parser) paramExp() *ParamExp {
 			p.rune()
 		}
 	case '!':
-		if paramNameOp(p.peek()) {
+		if r := p.peek(); r == 0 || singleRuneParam(r) || paramNameRune(r) {
 			if p.lang == LangPOSIX {
 				p.langErr(pe.Pos(), `"${!foo}"`, LangBash, LangMirBSDKorn)
 			}
@@ -1359,8 +1350,8 @@ func (p *Parser) paramExp() *ParamExp {
 		p.rune()
 		pe.Param = p.lit(pos, string(r))
 	default:
-		if !paramNameOp(p.r) {
-			p.posErr(p.nextPos(), "parameter expansion requires a literal")
+		if !paramNameRune(p.r) {
+			p.posErr(p.nextPos(), "parameter expansion requires a valid name")
 		}
 		pos := p.nextPos()
 		p.advanceParamNameCont(p.r)
@@ -1450,7 +1441,7 @@ func (p *Parser) paramExp() *ParamExp {
 		pe.Exp = p.paramExpExp()
 	case _EOF:
 	default:
-		if paramNameOp(p.r) {
+		if paramNameRune(p.r) {
 			p.posErr(p.nextPos(), "%q cannot be followed by a word", pe.Param.Value)
 		} else {
 			p.posErr(p.pos, "not a valid parameter expansion operator: %q", string(op))
