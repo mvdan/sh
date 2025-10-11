@@ -77,7 +77,7 @@ retry:
 					p.bsp++
 					p.w, p.r = 1, escNewl
 					return escNewl
-				} else if p.peekBytes("\r\n") { // \\\r\n turns into \\\n
+				} else if p1, p2 := p.peekTwo(); p1 == '\r' && p2 == '\n' { // \\\r\n turns into \\\n
 					p.col++
 					p.bsp += 2
 					p.w, p.r = 2, escNewl
@@ -134,7 +134,8 @@ retry:
 // fill reads more bytes from the input src into readBuf.
 // Any bytes that had not yet been used at the end of the buffer
 // are slid into the beginning of the buffer.
-// The number of read bytes is returned.
+// The number of read bytes is returned, which is at least one
+// unless a read error occurred, such as [io.EOF].
 func (p *Parser) fill() (n int) {
 	p.offs += int64(p.bsp)
 	left := len(p.bs) - int(p.bsp)
@@ -384,29 +385,36 @@ func (p *Parser) extendedGlob() bool {
 		// We do this after peeking for just one byte, so that the input `echo *`
 		// followed by a newline does not hang an interactive shell parser until
 		// another byte is input.
-		return !p.peekBytes("()")
+		_, p2 := p.peekTwo()
+		return p2 != ')'
 	}
 	return false
 }
 
-func (p *Parser) peekBytes(s string) bool {
-	peekEnd := int(p.bsp) + len(s)
-	// TODO: This should loop for slow readers, e.g. those providing one byte at
-	// a time. Use a loop and test it with [testing/iotest.OneByteReader].
-	if peekEnd > len(p.bs) {
-		p.fill()
-	}
-	return peekEnd <= len(p.bs) && bytes.HasPrefix(p.bs[p.bsp:peekEnd], []byte(s))
-}
-
 func (p *Parser) peek() byte {
-	if p.bsp == uint(len(p.bs)) {
+	if len(p.bs) < int(p.bsp)+1 {
 		p.fill()
 	}
-	if p.bsp >= uint(len(p.bs)) {
+	if len(p.bs) < int(p.bsp)+1 {
 		return utf8.RuneSelf // EOF
 	}
 	return p.bs[p.bsp]
+}
+
+func (p *Parser) peekTwo() (byte, byte) {
+	// TODO: This should loop for slow readers, e.g. those providing one byte at
+	// a time. Use a loop and test it with [testing/iotest.OneByteReader].
+	if len(p.bs) < int(p.bsp)+2 {
+		p.fill()
+	}
+	switch len(p.bs) {
+	case int(p.bsp):
+		return utf8.RuneSelf, utf8.RuneSelf
+	case int(p.bsp) + 1:
+		return p.bs[p.bsp], utf8.RuneSelf
+	default:
+		return p.bs[p.bsp], p.bs[p.bsp+1]
+	}
 }
 
 func (p *Parser) regToken(r rune) token {
@@ -875,7 +883,6 @@ func paramNameRune[T rune | byte](r T) bool {
 }
 
 func (p *Parser) advanceParamNameCont(r rune) {
-	// we know that r is a letter or underscore
 	for p.newLit(r); r != utf8.RuneSelf; r = p.rune() {
 		if !paramNameRune(r) && r != escNewl {
 			break
