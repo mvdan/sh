@@ -404,7 +404,7 @@ func (p *Parser) peek() byte {
 		p.fill()
 	}
 	if p.bsp >= uint(len(p.bs)) {
-		return 0
+		return utf8.RuneSelf // EOF
 	}
 	return p.bs[p.bsp]
 }

@@ -420,7 +420,7 @@ type Parser struct {
 	src io.Reader
 	bs  []byte // current chunk of read bytes; nil when at EOF
 	bsp uint   // pos within chunk for the rune after r; uint helps eliminate bounds checks
-	r   rune   // next rune
+	r   rune   // next rune; [utf8.RuneSelf] when at EOF
 	w   int    // width of r
 
 	f *File
@@ -1313,12 +1313,12 @@ func (p *Parser) paramExp() *ParamExp {
 	pe := &ParamExp{Dollar: p.pos}
 	switch p.r {
 	case '#':
-		if r := p.peek(); r == 0 || singleRuneParam(r) || paramNameRune(r) {
+		if r := p.peek(); r == utf8.RuneSelf || singleRuneParam(r) || paramNameRune(r) {
 			pe.Length = true
 			p.rune()
 		}
 	case '%':
-		if r := p.peek(); r == 0 || singleRuneParam(r) || paramNameRune(r) {
+		if r := p.peek(); r == utf8.RuneSelf || singleRuneParam(r) || paramNameRune(r) {
 			if p.lang != LangMirBSDKorn {
 				p.langErr(pe.Pos(), `"${%foo}"`, LangMirBSDKorn)
 			}
@@ -1326,7 +1326,7 @@ func (p *Parser) paramExp() *ParamExp {
 			p.rune()
 		}
 	case '!':
-		if r := p.peek(); r == 0 || singleRuneParam(r) || paramNameRune(r) {
+		if r := p.peek(); r == utf8.RuneSelf || singleRuneParam(r) || paramNameRune(r) {
 			if p.lang == LangPOSIX {
 				p.langErr(pe.Pos(), `"${!foo}"`, LangBash, LangMirBSDKorn)
 			}
