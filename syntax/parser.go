@@ -1350,9 +1350,8 @@ func (p *Parser) paramExp() *ParamExp {
 		p.rune()
 		pe.Param = p.lit(pos, string(r))
 	default:
-		if !paramNameRune(p.r) {
-			p.posErr(p.nextPos(), "parameter expansion requires a valid name")
-		}
+		// Note that $1a is equivalent to ${1}a, but ${1a} is not.
+		// POSIX Shell says the latter is unspecified behavior, so match Bash's behavior.
 		pos := p.nextPos()
 		p.advanceParamNameCont(p.r)
 		if !numberLiteral(p.val) && !ValidName(p.val) {
