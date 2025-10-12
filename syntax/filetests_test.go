@@ -1759,6 +1759,12 @@ var fileTests = []fileTestCase{
 		)),
 	),
 	fileTest(
+		[]string{"$(foo)#bar", "`foo`#bar"},
+		langFile(call(
+			word(cmdSubst(litStmt("foo")), lit("#bar")),
+		)),
+	),
+	fileTest(
 		[]string{"{ echo } }; }"},
 		langFile(block(litStmt("echo", "}", "}"))),
 	),

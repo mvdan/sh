@@ -273,15 +273,9 @@ skipSpace:
 		case '#':
 			// If we're parsing $foo#bar, ${foo}#bar, 'foo'#bar, or "foo"#bar,
 			// #bar is a continuation of the same word, not a comment.
-			// TODO: support $(foo)#bar and `foo`#bar as well, which is slightly tricky,
-			// as we can't easily tell them apart from (foo)#bar and `#bar`,
-			// where #bar should remain a comment.
-			if !p.spaced {
-				switch p.tok {
-				case dollar, rightBrace, sglQuote, dblQuote:
-					p.advanceLitNone(r)
-					return
-				}
+			if p.quote == unquotedWordCont && !p.spaced {
+				p.advanceLitNone(r)
+				return
 			}
 			r = p.rune()
 			p.newLit(r)

@@ -247,7 +247,7 @@ type wrappedReader struct {
 func (w *wrappedReader) Read(p []byte) (n int, err error) {
 	// If we lexed a newline for the first time, we just finished a line, so
 	// we may need to give a callback for the edge cases below not covered
-	// by Parser.Stmts.
+	// by [Parser.Stmts].
 	if (w.p.r == '\n' || w.p.r == escNewl) && w.p.line > w.lastLine {
 		if w.p.Incomplete() {
 			// Incomplete statement; call back to print "> ".
@@ -433,7 +433,7 @@ type Parser struct {
 	tok token  // current token
 	val string // current value (valid if tok is _Lit*)
 
-	// position of r, to be converted to Parser.pos later
+	// position of r, to be converted to [Parser.pos] later
 	offs, line, col int64
 
 	pos Pos // position of tok
@@ -457,7 +457,7 @@ type Parser struct {
 
 	hdocStops [][]byte // stack of end words for open heredocs
 
-	parsingDoc bool // true if using Parser.Document
+	parsingDoc bool // true if using [Parser.Document]
 
 	// openNodes tracks how many entire statements or words we're currently parsing.
 	// A non-zero number means that we require certain tokens or words before
@@ -586,12 +586,16 @@ func (p *Parser) call(w *Word) *CallExpr {
 type quoteState uint32
 
 const (
-	// The default state of the parser.
+	// The initial state of the parser.
 	noState quoteState = 1 << iota
 
 	// Used when parsing parameter expansions; use with [Parser.rune],
 	// [Parser.next] always returns [illegalTok].
 	runeByRune
+
+	// unquotedWordCont exists purely so that the '#' in $foo#bar does not
+	// get parsed as a comment; it's a tiny variation on [noState].
+	unquotedWordCont
 
 	subCmd
 	subCmdBckquo
@@ -612,7 +616,7 @@ const (
 
 	allKeepSpaces = runeByRune | paramExpRepl | dblQuotes | hdocBody |
 		hdocBodyTabs | paramExpRepl | paramExpExp
-	allRegTokens = noState | subCmd | subCmdBckquo | hdocWord |
+	allRegTokens = noState | unquotedWordCont | subCmd | subCmdBckquo | hdocWord |
 		switchCase | arrayElems | testExpr
 	allArithmExpr = arithmExpr | arithmExprLet | arithmExprCmd | paramExpArithm
 	allParamExp   = paramExpArithm | paramExpRepl | paramExpExp
@@ -1056,6 +1060,10 @@ func (p *Parser) getLit() *Lit {
 }
 
 func (p *Parser) wordParts(wps []WordPart) []WordPart {
+	if p.quote == noState {
+		p.quote = unquotedWordCont
+		defer func() { p.quote = noState }()
+	}
 	for {
 		p.openNodes++
 		n := p.wordPart()
