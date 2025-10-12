@@ -599,16 +599,21 @@ func (c *CmdSubst) End() Pos { return posAddCol(c.Right, 1) }
 type ParamExp struct {
 	Dollar, Rbrace Pos
 
-	Short  bool // $a instead of ${a}
+	Short bool // $a instead of ${a}
+
+	// TODO(v4): perhaps use an Operator token here, given how we've grown the number of booleans
+
 	Excl   bool // ${!a}
 	Length bool // ${#a}
-	Width  bool // ${%a}
-	Param  *Lit
-	Index  ArithmExpr       // ${a[i]}, ${a["k"]}
-	Slice  *Slice           // ${a:x:y}
-	Repl   *Replace         // ${a/x/y}
-	Names  ParNamesOperator // ${!prefix*} or ${!prefix@}
-	Exp    *Expansion       // ${a:-b}, ${a#b}, etc
+	Width  bool // mksh's ${%a}
+	Plus   bool // zsh's ${+a}
+
+	Param *Lit
+	Index ArithmExpr       // ${a[i]}, ${a["k"]}
+	Slice *Slice           // ${a:x:y}
+	Repl  *Replace         // ${a/x/y}
+	Names ParNamesOperator // ${!prefix*} or ${!prefix@}
+	Exp   *Expansion       // ${a:-b}, ${a#b}, etc
 }
 
 func (p *ParamExp) Pos() Pos { return p.Dollar }

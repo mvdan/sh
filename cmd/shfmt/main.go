@@ -492,7 +492,7 @@ func editorConfigLangs(l syntax.LangVariant) []string {
 	switch l {
 	case syntax.LangBash, syntax.LangBats:
 		return []string{"shell", "bash"}
-	case syntax.LangPOSIX, syntax.LangMirBSDKorn, syntax.LangAuto:
+	case syntax.LangPOSIX, syntax.LangMirBSDKorn, syntax.LangZsh, syntax.LangAuto:
 		return []string{"shell"}
 	}
 	return nil

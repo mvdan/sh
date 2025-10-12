@@ -752,7 +752,7 @@ func (cfg *Config) wordFields(wps []syntax.WordPart) ([][]fieldPart, error) {
 // quotedElemFields returns the list of elements resulting from a quoted
 // parameter expansion that should be treated especially, like "${foo[@]}".
 func (cfg *Config) quotedElemFields(pe *syntax.ParamExp) []string {
-	if pe == nil || pe.Length || pe.Width {
+	if pe == nil || pe.Length || pe.Width || pe.Plus {
 		return nil
 	}
 	name := pe.Param.Value

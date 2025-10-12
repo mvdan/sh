@@ -181,6 +181,10 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 		}
 		slices.Sort(strs)
 		str = strings.Join(strs, " ")
+	case pe.Width:
+		return "", fmt.Errorf("unsupported")
+	case pe.Plus:
+		return "", fmt.Errorf("unsupported")
 	case pe.Slice != nil:
 		if callVarInd {
 			slicePos := func(n int) int {

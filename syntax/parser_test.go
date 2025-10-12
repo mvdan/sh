@@ -4,7 +4,6 @@
 package syntax
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -155,6 +154,38 @@ func TestParseBats(t *testing.T) {
 	}
 }
 
+func TestParseZsh(t *testing.T) {
+	t.Parallel()
+	p := NewParser(Variant(LangZsh))
+	for i, c := range append(fileTests, fileTestsNoPrint...) {
+		if c.zsh == nil {
+			continue
+		}
+		for j, in := range c.inputs {
+			t.Run(fmt.Sprintf("#%03d-%d", i, j),
+				singleParse(p, in, c.zsh))
+		}
+	}
+}
+
+func TestParseZshConfirm(t *testing.T) {
+	if testing.Short() {
+		t.Skip("calling zsh is slow")
+	}
+	requireZsh59(t)
+	i := 0
+	for _, c := range append(fileTests, fileTestsNoPrint...) {
+		if c.zsh == nil {
+			continue
+		}
+		for j, in := range c.inputs {
+			t.Run(fmt.Sprintf("#%03d-%d", i, j),
+				confirmParse(in, "zsh", false))
+		}
+		i++
+	}
+}
+
 func TestMain(m *testing.M) {
 	// Set the locale to computer-friendly English and UTF-8.
 	// Some systems like macOS miss C.UTF8, so fall back to the US English
@@ -187,6 +218,10 @@ var (
 	onceHasMksh59 = sync.OnceValue(func() bool {
 		return cmdContains(" R59 ", "mksh", "-c", "echo $KSH_VERSION")
 	})
+
+	onceHasZsh59 = sync.OnceValue(func() bool {
+		return cmdContains("zsh 5.9", "zsh", "--version")
+	})
 )
 
 func requireBash52(tb testing.TB) {
@@ -204,6 +239,12 @@ func requireDash059(tb testing.TB) {
 func requireMksh59(tb testing.TB) {
 	if !onceHasMksh59() {
 		tb.Skipf("mksh 59 required to run")
+	}
+}
+
+func requireZsh59(tb testing.TB) {
+	if !onceHasZsh59() {
+		tb.Skipf("zsh 5.9 required to run")
 	}
 }
 
@@ -243,14 +284,14 @@ func confirmParse(in, cmd string, wantErr bool) func(*testing.T) {
 		cmd := exec.Command(cmd, opts...)
 		cmd.Dir = t.TempDir() // to be safe
 		cmd.Stdin = strings.NewReader(in)
-		var stderr bytes.Buffer
+		var stderr strings.Builder
 		cmd.Stderr = &stderr
 		err := cmd.Run()
 		if stderr.Len() > 0 {
 			// bash sometimes likes to error on an input via stderr
 			// while forgetting to set the exit code to non-zero. Fun.
 			// Note that we also treat warnings as errors.
-			err = errors.New(stderr.String())
+			err = errors.New(strings.TrimSpace(stderr.String()))
 		}
 		if err != nil && strings.Contains(err.Error(), "command not found") {
 			err = nil
@@ -359,6 +400,20 @@ func TestParseErrMirBSDKornConfirm(t *testing.T) {
 	}
 }
 
+func TestParseErrZshConfirm(t *testing.T) {
+	if testing.Short() {
+		t.Skip("calling zsh is slow.")
+	}
+	requireZsh59(t)
+	for _, c := range errorCases {
+		if c.zsh == "" {
+			continue
+		}
+		wantErr := !LangZsh.is(c.flipConfirmSet)
+		t.Run("", confirmParse(c.in, "zsh", wantErr))
+	}
+}
+
 var cmpOpt = cmp.FilterValues(func(p1, p2 Pos) bool { return true }, cmp.Ignore())
 
 func singleParse(p *Parser, in string, want *File) func(t *testing.T) {
@@ -380,6 +435,7 @@ type errorCase struct {
 	bash  string
 	posix string
 	mksh  string
+	zsh   string
 
 	// The real shells where testing the input succeeds rather than failing as expected.
 	flipConfirmSet LangVariant
@@ -403,6 +459,8 @@ func langPass(langSet LangVariant) func(*errorCase) {
 				c.posix = ""
 			case LangMirBSDKorn:
 				c.mksh = ""
+			case LangZsh:
+				c.zsh = ""
 			default:
 				panic(fmt.Sprintf("unsupported LangVariant: %#b", lang))
 			}
@@ -432,6 +490,8 @@ func langErr(want string, langSets ...LangVariant) func(*errorCase) {
 				c.posix = want
 			case LangMirBSDKorn:
 				c.mksh = want
+			case LangZsh:
+				c.zsh = want
 			default:
 				panic(fmt.Sprintf("unsupported LangVariant: %#b", lang))
 			}
@@ -1228,6 +1288,11 @@ var errorCases = []errorCase{
 		"echo ${%",
 		langErr(`1:6: "${%foo}" is a mksh feature; tried parsing as LANG`),
 		langErr(`1:9: invalid parameter name`, LangMirBSDKorn),
+	),
+	errCase(
+		"echo ${+",
+		langErr(`1:6: "${+foo}" is a zsh feature; tried parsing as LANG`),
+		langErr(`1:9: invalid parameter name`, LangZsh),
 	),
 	errCase(
 		"echo ${##",

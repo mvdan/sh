@@ -15,11 +15,14 @@ func TestPosition(t *testing.T) {
 	parserPosix := NewParser(KeepComments(true), Variant(LangPOSIX))
 	parserMirBSD := NewParser(KeepComments(true), Variant(LangMirBSDKorn))
 	parserBats := NewParser(KeepComments(true), Variant(LangBats))
+	parserZsh := NewParser(KeepComments(true), Variant(LangZsh))
 	for i, c := range fileTests {
 		for j, in := range c.inputs {
 			t.Run(fmt.Sprintf("%03d-%d", i, j), func(t *testing.T) {
 				parser := parserPosix
-				if c.bats != nil {
+				if c.zsh != nil {
+					parser = parserZsh
+				} else if c.bats != nil {
 					parser = parserBats
 				} else if c.bash != nil {
 					parser = parserBash

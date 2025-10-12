@@ -46,6 +46,7 @@ func FuzzQuote(f *testing.F) {
 		case LangMirBSDKorn:
 			requireMksh59(t)
 			shellProgram = "mksh"
+		// TODO: LangZsh
 		case LangBats:
 			t.Skip() // bats has no shell and its syntax is just bash
 		default:

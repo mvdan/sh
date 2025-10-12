@@ -107,6 +107,7 @@ type fileTestCase struct {
 	posix *File
 	mksh  *File
 	bats  *File
+	zsh   *File
 }
 
 func fileTest(in []string, opts ...func(*fileTestCase)) fileTestCase {
@@ -127,6 +128,7 @@ func langFile(want any, langSets ...LangVariant) func(*fileTestCase) {
 			c.posix = file
 			c.mksh = file
 			c.bats = file
+			c.zsh = file
 			return
 		case 1:
 			// continue below
@@ -144,6 +146,8 @@ func langFile(want any, langSets ...LangVariant) func(*fileTestCase) {
 				c.mksh = file
 			case LangBats:
 				c.bats = file
+			case LangZsh:
+				c.zsh = file
 			default:
 				panic(fmt.Sprintf("unsupported LangVariant: %#b", lang))
 			}
@@ -621,6 +625,7 @@ var fileTests = []fileTestCase{
 	fileTest(
 		[]string{"=a s{s s=s"},
 		langFile(litCall("=a", "s{s", "s=s")),
+		langFile(nil, LangZsh),
 	),
 	fileTest(
 		[]string{"foo && bar", "foo&&bar", "foo &&\nbar"},
@@ -754,6 +759,7 @@ var fileTests = []fileTestCase{
 			Name:   lit("foo"),
 			Body:   stmt(block(litStmt("a"), litStmt("b"))),
 		}),
+		langFile(nil, LangZsh), // fails on foo ( )
 	),
 	fileTest(
 		[]string{"foo() { a; }\nbar", "foo() {\na\n}; bar"},
@@ -1199,6 +1205,7 @@ var fileTests = []fileTestCase{
 				Word: litWord("foo"),
 			}},
 		})),
+		langFile(nil, LangZsh), // actually tries to read foo when confirming
 	),
 	fileTest(
 		[]string{"foo <<EOF >f\nbar\nEOF"},
@@ -1679,6 +1686,7 @@ var fileTests = []fileTestCase{
 			Negated: true,
 			Cmd:     litCall("foo"),
 		}),
+		langFile(nil, LangZsh), // fails to confirm?
 	),
 	fileTest(
 		[]string{"foo &\nbar", "foo & bar", "foo&bar"},
@@ -1714,6 +1722,7 @@ var fileTests = []fileTestCase{
 			},
 			Y: litStmt("bar"),
 		}),
+		langFile(nil, LangZsh), // fails to confirm?
 	),
 	fileTest(
 		[]string{"! foo | bar"},
@@ -1725,6 +1734,7 @@ var fileTests = []fileTestCase{
 			},
 			Negated: true,
 		}),
+		langFile(nil, LangZsh), // fails to confirm?
 	),
 	fileTest(
 		[]string{
@@ -1774,6 +1784,8 @@ var fileTests = []fileTestCase{
 	fileTest(
 		[]string{"{ echo } }; }"},
 		langFile(block(litStmt("echo", "}", "}"))),
+		// TODO: turn these nil files into error tests
+		langFile(nil, LangZsh),
 	),
 	fileTest(
 		[]string{"$({ echo; })"},
@@ -1893,6 +1905,7 @@ var fileTests = []fileTestCase{
 	fileTest(
 		[]string{`{"foo"`},
 		langFile(word(lit("{"), dblQuoted(lit("foo")))),
+		langFile(nil, LangZsh),
 	),
 	fileTest(
 		[]string{`foo"bar"`, "fo\\\no\"bar\"", "fo\\\r\no\"bar\""},
@@ -2692,6 +2705,7 @@ var fileTests = []fileTestCase{
 				},
 			}),
 		)),
+		langFile(nil, LangZsh),
 	),
 	fileTest(
 		[]string{`"${foo}"`},
@@ -4500,6 +4514,13 @@ var fileTests = []fileTestCase{
 			Description: word(sglQuoted("desc")),
 			Body:        stmt(block(litStmts("multiple", "statements")...)),
 		}, LangBats),
+	),
+	fileTest(
+		[]string{"${+foo}"},
+		langFile(&ParamExp{
+			Plus:  true,
+			Param: lit("foo"),
+		}, LangZsh),
 	),
 }
 

@@ -65,6 +65,16 @@ const (
 	// Its string representation is "bats".
 	LangBats
 
+	// LangZsh corresponds to the Z shell, as described at https://www.zsh.org/.
+	//
+	// Note that its support in the syntax package is experimental and
+	// incomplete for now. See https://github.com/mvdan/sh/issues/120.
+	//
+	// We currently follow Zsh version 5.9.
+	//
+	// Its string representation is "zsh".
+	LangZsh
+
 	// LangAuto corresponds to automatic language detection,
 	// commonly used by end-user applications like shfmt,
 	// which can guess a file's language variant given its filename or shebang.
@@ -78,7 +88,7 @@ const (
 
 	// langResolvedVariants contains all known variants except [LangAuto],
 	// which is meant to resolve to another variant.
-	langResolvedVariants = LangBash | LangPOSIX | LangMirBSDKorn | LangBats
+	langResolvedVariants = LangBash | LangPOSIX | LangMirBSDKorn | LangBats | LangZsh
 
 	// langBashLike contains Bash plus all variants which are extensions of it.
 	langBashLike = LangBash | LangBats
@@ -93,7 +103,7 @@ func Variant(l LangVariant) ParserOption {
 	switch l {
 	case langBashLegacy:
 		l = LangBash
-	case LangBash, LangPOSIX, LangMirBSDKorn, LangBats:
+	case LangBash, LangPOSIX, LangMirBSDKorn, LangBats, LangZsh:
 	case LangAuto:
 		panic("LangAuto is not supported by the parser at this time")
 	default:
@@ -112,6 +122,8 @@ func (l LangVariant) String() string {
 		return "mksh"
 	case LangBats:
 		return "bats"
+	case LangZsh:
+		return "zsh"
 	case LangAuto:
 		return "auto"
 	}
@@ -128,6 +140,8 @@ func (l *LangVariant) Set(s string) error {
 		*l = LangMirBSDKorn
 	case "bats":
 		*l = LangBats
+	case "zsh":
+		*l = LangZsh
 	case "auto":
 		*l = LangAuto
 	default:
@@ -1366,6 +1380,12 @@ func (p *Parser) paramExp() *ParamExp {
 				pe.Excl = true
 				p.rune()
 			}
+		case '+':
+			if r := p.peek(); r == utf8.RuneSelf || singleRuneParam(r) || paramNameRune(r) {
+				p.checkLang(pe.Pos(), LangZsh, `"${+foo}"`)
+				pe.Plus = true
+				p.rune()
+			}
 		}
 	}
 	// The parameter name itself, like $foo or $?.
@@ -1434,7 +1454,7 @@ func (p *Parser) paramExp() *ParamExp {
 		p.next()
 		return pe
 	}
-	if p.tok != _EOF && (pe.Length || pe.Width) {
+	if p.tok != _EOF && (pe.Length || pe.Width || pe.Plus) {
 		p.curErr("cannot combine multiple parameter expansion operators")
 	}
 	switch p.tok {
@@ -1845,11 +1865,13 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 		case "if":
 			p.ifClause(s)
 		case "while", "until":
+			// TODO(zsh): "repeat"
 			p.whileClause(s, p.val == "until")
 		case "for":
 			p.forClause(s)
 		case "case":
 			p.caseClause(s)
+		// TODO(zsh): { try-list } "always" { always-list }
 		case "}":
 			p.curErr(`%q can only be used to close a block`, p.val)
 		case "then":

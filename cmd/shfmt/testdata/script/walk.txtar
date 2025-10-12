@@ -95,6 +95,7 @@ modify${/}ext.bash
 modify${/}ext.bats
 modify${/}ext.mksh
 modify${/}ext.sh
+modify${/}ext.zsh
 modify${/}shebang-args
 modify${/}shebang-bash
 modify${/}shebang-bash.sh
@@ -106,6 +107,7 @@ modify${/}shebang-sh
 modify${/}shebang-space
 modify${/}shebang-tabs
 modify${/}shebang-usr-sh
+modify${/}shebang-zsh
 -- modify.golden --
 modify${/}dir${/}ext.sh
 modify${/}ext-shebang.sh
@@ -113,6 +115,7 @@ modify${/}ext.bash
 modify${/}ext.bats
 modify${/}ext.mksh
 modify${/}ext.sh
+modify${/}ext.zsh
 modify${/}shebang-args
 modify${/}shebang-bash
 modify${/}shebang-bash.sh
@@ -124,6 +127,7 @@ modify${/}shebang-sh
 modify${/}shebang-space
 modify${/}shebang-tabs
 modify${/}shebang-usr-sh
+modify${/}shebang-zsh
 -- modify/shebang-sh --
 #!/bin/sh
  foo
@@ -145,6 +149,9 @@ modify${/}shebang-usr-sh
 -- modify/shebang-mksh --
 #!/bin/mksh
  foo |&
+-- modify/shebang-zsh --
+#!/bin/zsh
+ ${+foo}
 -- modify/shebang-env-bats --
 #!/usr/bin/env bats
  @test "foo" { bar; }
@@ -163,6 +170,8 @@ modify${/}shebang-usr-sh
  foo=(bar)
 -- modify/ext.mksh --
  foo |&
+-- modify/ext.zsh --
+ ${+foo}
 -- modify/ext.bats --
  @test "foo" { bar; }
 -- modify/ext-shebang.sh --
@@ -195,11 +204,6 @@ foo
 #!/bin/envsh
  foo
 
--- skip/ext.zsh
-foo
--- skip/shebang-zsh
-#!/bin/zsh
-foo
 -- skip/.git/ext.sh --
 foo
 -- skip/.svn/ext.sh --

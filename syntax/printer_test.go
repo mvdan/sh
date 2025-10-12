@@ -18,12 +18,15 @@ func TestPrintCompact(t *testing.T) {
 	parserPosix := NewParser(KeepComments(true), Variant(LangPOSIX))
 	parserMirBSD := NewParser(KeepComments(true), Variant(LangMirBSDKorn))
 	parserBats := NewParser(KeepComments(true), Variant(LangBats))
+	parserZsh := NewParser(KeepComments(true), Variant(LangZsh))
 	printer := NewPrinter()
 	for _, c := range append(fileTests, fileTestsKeepComments...) {
 		t.Run("", func(t *testing.T) {
 			in := c.inputs[0]
 			parser := parserPosix
-			if c.bats != nil {
+			if c.zsh != nil {
+				parser = parserZsh
+			} else if c.bats != nil {
 				parser = parserBats
 			} else if c.bash != nil {
 				parser = parserBash
@@ -1163,6 +1166,7 @@ func TestPrintOptionsNotBroken(t *testing.T) {
 	parserPosix := NewParser(KeepComments(true), Variant(LangPOSIX))
 	parserMirBSD := NewParser(KeepComments(true), Variant(LangMirBSDKorn))
 	parserBats := NewParser(KeepComments(true), Variant(LangBats))
+	parserZsh := NewParser(KeepComments(true), Variant(LangZsh))
 
 	// e.g. comments and heredocs require newlines
 	singleLineException := regexp.MustCompile(`#|<<|'|"`)
@@ -1187,7 +1191,9 @@ func TestPrintOptionsNotBroken(t *testing.T) {
 		for _, tc := range append(fileTests, fileTestsNoPrint...) {
 			t.Run("File"+opts.name, func(t *testing.T) {
 				parser := parserPosix
-				if tc.bats != nil {
+				if tc.zsh != nil {
+					parser = parserZsh
+				} else if tc.bats != nil {
 					parser = parserBats
 				} else if tc.bash != nil {
 					parser = parserBash

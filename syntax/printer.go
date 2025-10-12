@@ -691,7 +691,7 @@ func (p *Printer) wordPart(wp, next WordPart) {
 		name := wp.Param.Value
 		switch {
 		case !p.minify:
-		case wp.Excl, wp.Length, wp.Width:
+		case wp.Excl, wp.Length, wp.Width, wp.Plus:
 		case wp.Index != nil, wp.Slice != nil:
 		case wp.Repl != nil, wp.Exp != nil:
 		case len(name) > 1 && !ValidName(name): // ${10}
@@ -769,6 +769,8 @@ func (p *Printer) paramExp(pe *ParamExp) {
 		p.w.WriteByte('#')
 	case pe.Width:
 		p.w.WriteByte('%')
+	case pe.Plus:
+		p.w.WriteByte('+')
 	case pe.Excl:
 		p.w.WriteByte('!')
 	}
