@@ -482,7 +482,7 @@ func (p *Parser) regToken(r rune) token {
 		}
 		return dollar
 	case '(':
-		if p.rune() == '(' && p.lang.is(langBashLike|LangMirBSDKorn) && p.quote != testExpr {
+		if p.rune() == '(' && p.lang.is(langBashLike|LangMirBSDKorn|LangZsh) && p.quote != testExpr {
 			p.rune()
 			return dblLeftParen
 		}

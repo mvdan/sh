@@ -1613,7 +1613,7 @@ func (p *Parser) hasValidIdent() bool {
 		return false
 	}
 	if end := p.eqlOffs; end > 0 {
-		if p.val[end-1] == '+' && p.lang.is(langBashLike|LangMirBSDKorn) {
+		if p.val[end-1] == '+' && p.lang.is(langBashLike|LangMirBSDKorn|LangZsh) {
 			end-- // a+=x
 		}
 		if ValidName(p.val[:end]) {
@@ -1629,7 +1629,7 @@ func (p *Parser) getAssign(needEqual bool) *Assign {
 	as := &Assign{}
 	if p.eqlOffs > 0 { // foo=bar
 		nameEnd := p.eqlOffs
-		if p.lang.is(langBashLike|LangMirBSDKorn) && p.val[p.eqlOffs-1] == '+' {
+		if p.lang.is(langBashLike|LangMirBSDKorn|LangZsh) && p.val[p.eqlOffs-1] == '+' {
 			// a+=b
 			as.Append = true
 			nameEnd--

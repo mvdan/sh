@@ -1203,7 +1203,7 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"echo $((foo) )",
-		langErr(`1:6: reached ) without matching $(( with ))`, LangBash|LangMirBSDKorn),
+		langErr(`1:6: reached ) without matching $(( with ))`, LangBash|LangMirBSDKorn|LangZsh),
 		flipConfirmAll,
 	),
 	errCase(
@@ -1338,27 +1338,27 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"echo ${@[@]} ${@[*]}",
-		langErr(`1:9: cannot index a special parameter name`, LangBash|LangMirBSDKorn),
+		langErr(`1:9: cannot index a special parameter name`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"echo ${*[@]} ${*[*]}",
-		langErr(`1:9: cannot index a special parameter name`, LangBash|LangMirBSDKorn),
+		langErr(`1:9: cannot index a special parameter name`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"echo ${#[x]}",
-		langErr(`1:9: cannot index a special parameter name`, LangBash|LangMirBSDKorn),
+		langErr(`1:9: cannot index a special parameter name`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"echo ${$[0]}",
-		langErr(`1:9: cannot index a special parameter name`, LangBash|LangMirBSDKorn),
+		langErr(`1:9: cannot index a special parameter name`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"echo ${?[@]}",
-		langErr(`1:9: cannot index a special parameter name`, LangBash|LangMirBSDKorn),
+		langErr(`1:9: cannot index a special parameter name`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"echo ${2[@]}",
-		langErr(`1:9: cannot index a special parameter name`, LangBash|LangMirBSDKorn),
+		langErr(`1:9: cannot index a special parameter name`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"echo ${foo*}",
@@ -1519,16 +1519,16 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"((foo",
-		langErr(`1:1: reached EOF without matching (( with ))`, LangBash|LangMirBSDKorn),
+		langErr(`1:1: reached EOF without matching (( with ))`, LangBash|LangMirBSDKorn|LangZsh),
 		langErr(`1:2: reached EOF without matching ( with )`, LangPOSIX),
 	),
 	errCase(
 		"(())",
-		langErr(`1:1: (( must be followed by an expression`, LangBash|LangMirBSDKorn),
+		langErr(`1:1: (( must be followed by an expression`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"echo ((foo",
-		langErr(`1:6: (( can only be used to open an arithmetic cmd`, LangBash|LangMirBSDKorn),
+		langErr(`1:6: (( can only be used to open an arithmetic cmd`, LangBash|LangMirBSDKorn|LangZsh),
 		langErr(`1:1: "foo(" must be followed by )`, LangPOSIX),
 	),
 	errCase(
@@ -1903,7 +1903,7 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"echo ${foo[1 2]}",
-		langErr(`1:14: not a valid arithmetic operator: 2`, LangBash|LangMirBSDKorn),
+		langErr(`1:14: not a valid arithmetic operator: 2`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"echo ${foo[}",
@@ -1980,12 +1980,12 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		`echo $((echo a); (echo b))`,
-		langErr(`1:14: not a valid arithmetic operator: a`, LangBash|LangMirBSDKorn),
+		langErr(`1:14: not a valid arithmetic operator: a`, LangBash|LangMirBSDKorn|LangZsh),
 		flipConfirm(LangBash), // backtrack
 	),
 	errCase(
 		`((echo a); (echo b))`,
-		langErr(`1:8: not a valid arithmetic operator: a`, LangBash|LangMirBSDKorn),
+		langErr(`1:8: not a valid arithmetic operator: a`, LangBash|LangMirBSDKorn|LangZsh),
 		flipConfirm(LangBash), // backtrack
 	),
 	errCase(

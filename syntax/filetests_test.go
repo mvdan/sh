@@ -312,7 +312,7 @@ var fileTests = []fileTestCase{
 			Op: Eql,
 			X:  litWord("a"),
 			Y:  litWord("2"),
-		}), LangBash|LangMirBSDKorn),
+		}), LangBash|LangMirBSDKorn|LangZsh),
 		langFile(subshell(stmt(subshell(litStmt("a", "==", "2")))), LangPOSIX),
 	),
 	fileTest(
@@ -324,7 +324,7 @@ var fileTests = []fileTestCase{
 				Y:  litWord("2"),
 			})),
 			Then: litStmts("b"),
-		}, LangBash|LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{
@@ -335,7 +335,7 @@ var fileTests = []fileTestCase{
 			Op: Gtr,
 			X:  word(cmdSubst(litStmt("date", "-u"))),
 			Y:  litWord("DATE"),
-		}), LangBash|LangMirBSDKorn),
+		}), LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{": $((0x$foo == 10))"},
@@ -372,7 +372,7 @@ var fileTests = []fileTestCase{
 	),
 	fileTest(
 		[]string{"((3#20))"},
-		langFile(arithmCmd(litWord("3#20")), LangBash|LangMirBSDKorn),
+		langFile(arithmCmd(litWord("3#20")), LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{
@@ -410,7 +410,7 @@ var fileTests = []fileTestCase{
 				Y:  litWord("2"),
 			})),
 			Do: litStmts("b"),
-		}, LangBash|LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{"until a; do b; done", "until a\ndo\nb\ndone"},
@@ -2787,7 +2787,7 @@ var fileTests = []fileTestCase{
 				Param: lit("arr"),
 				Index: litWord("0"),
 			}),
-		}), LangBash|LangMirBSDKorn),
+		}), LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{`$((++arr[0]))`},
@@ -2798,7 +2798,7 @@ var fileTests = []fileTestCase{
 				Param: lit("arr"),
 				Index: litWord("0"),
 			}),
-		}), LangBash|LangMirBSDKorn),
+		}), LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{`$((${a:-1}))`},
@@ -2808,7 +2808,7 @@ var fileTests = []fileTestCase{
 				Op:   DefaultUnsetOrNull,
 				Word: litWord("1"),
 			},
-		})), LangBash|LangMirBSDKorn),
+		})), LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{"$((5 * 2 - 1))", "$((5*2-1))"},
@@ -2967,7 +2967,7 @@ var fileTests = []fileTestCase{
 				Index: litWord("i"),
 			}),
 			Y: litWord("4"),
-		}), LangBash|LangMirBSDKorn),
+		}), LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{"$((a += 2, b -= 3))"},
@@ -4249,7 +4249,7 @@ var fileTests = []fileTestCase{
 				Name:  lit("foo"),
 				Array: arrValues(litWord("bar")),
 			}}},
-		), LangBash|LangMirBSDKorn),
+		), LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{
@@ -4277,7 +4277,7 @@ var fileTests = []fileTestCase{
 				Name:   lit("a"),
 				Value:  litWord("1"),
 			}},
-		}, LangBash|LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn|LangZsh),
 		langFile(litStmt("a+=1"), LangPOSIX),
 	),
 	fileTest(
@@ -4286,7 +4286,7 @@ var fileTests = []fileTestCase{
 			Append: true,
 			Name:   lit("b"),
 			Array:  arrValues(litWords("2", "3")...),
-		}}}, LangBash|LangMirBSDKorn),
+		}}}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{"a[2]=b c[-3]= d[x]+=e"},
@@ -4310,11 +4310,11 @@ var fileTests = []fileTestCase{
 				Append: true,
 				Value:  litWord("e"),
 			},
-		}}, LangBash|LangMirBSDKorn),
+		}}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{"*[i]=x"},
-		langFile(word(lit("*"), lit("[i]=x")), LangBash|LangMirBSDKorn),
+		langFile(word(lit("*"), lit("[i]=x")), LangBash|LangMirBSDKorn|LangZsh),
 		langFile(lit("*[i]=x"), LangPOSIX),
 	),
 	fileTest(
@@ -4327,7 +4327,7 @@ var fileTests = []fileTestCase{
 			Name:   lit("b"),
 			Index:  litWord("i"),
 			Value:  litWord("2"),
-		}}}, LangBash|LangMirBSDKorn),
+		}}}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{`$((a + "b + $c"))`},
@@ -4374,7 +4374,7 @@ var fileTests = []fileTestCase{
 				Index: word(dblQuoted(lit("x y"))),
 			}),
 			Y: litWord("b"),
-		}), LangBash|LangMirBSDKorn),
+		}), LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{
@@ -4412,7 +4412,7 @@ var fileTests = []fileTestCase{
 		langFile(call(litWord("echo"),
 			word(lit("a"), lit("[b")),
 			word(lit("c"), lit("[de]f")),
-		), LangBash|LangMirBSDKorn),
+		), LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{"<<EOF | b\nfoo\nEOF"},
