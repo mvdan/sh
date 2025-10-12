@@ -1669,7 +1669,7 @@ var fileTests = []fileTestCase{
 				Op:    CmdOut,
 				Stmts: litStmts("d"),
 			}),
-		), LangBash),
+		), LangBash|LangZsh),
 	),
 	fileTest(
 		[]string{"foo {fd}<f"},
@@ -3856,7 +3856,7 @@ var fileTests = []fileTestCase{
 				{Naked: true, Value: litWord("-f")},
 				{Naked: true, Name: lit("func")},
 			},
-		}, LangBash),
+		}, LangBash|LangZsh),
 	),
 	fileTest(
 		[]string{"(local bar)"},
@@ -4046,7 +4046,7 @@ var fileTests = []fileTestCase{
 			Redirs: []*Redirect{
 				{Op: RdrOut, Word: litWord("/dev/null")},
 			},
-		}, LangBash),
+		}, LangBash|LangZsh),
 	),
 	fileTest(
 		[]string{"declare a\n{ x; }"},

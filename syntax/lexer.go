@@ -530,7 +530,7 @@ func (p *Parser) regToken(r rune) token {
 			p.rune()
 			return dplIn
 		case '(':
-			if !p.lang.is(langBashLike) {
+			if !p.lang.is(langBashLike | LangZsh) {
 				break
 			}
 			p.rune()
@@ -549,7 +549,7 @@ func (p *Parser) regToken(r rune) token {
 			p.rune()
 			return clbOut
 		case '(':
-			if !p.lang.is(langBashLike) {
+			if !p.lang.is(langBashLike | LangZsh) {
 				break
 			}
 			p.rune()

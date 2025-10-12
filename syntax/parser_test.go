@@ -1638,8 +1638,8 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"[[ a =~",
-		langErr(`1:6: =~ must be followed by a word`, LangBash),
-		langErr(`1:6: regex tests are a bash feature; tried parsing as LANG`, LangMirBSDKorn),
+		langErr(`1:6: =~ must be followed by a word`, LangBash|LangZsh),
+		langErr(`1:6: regex tests are a bash/zsh feature; tried parsing as LANG`, LangMirBSDKorn),
 	),
 	errCase(
 		"[[ -f a",
@@ -1663,7 +1663,7 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"[[ a =~ b",
-		langErr(`1:1: reached EOF without matching [[ with ]]`, LangBash),
+		langErr(`1:1: reached EOF without matching [[ with ]]`, LangBash|LangZsh),
 	),
 	errCase(
 		"[[ a b c ]]",
@@ -1707,15 +1707,15 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"[[ a =~ ; ]]",
-		langErr(`1:6: =~ must be followed by a word`, LangBash),
+		langErr(`1:6: =~ must be followed by a word`, LangBash|LangZsh),
 	),
 	errCase(
 		"[[ a =~ )",
-		langErr(`1:6: =~ must be followed by a word`, LangBash),
+		langErr(`1:6: =~ must be followed by a word`, LangBash|LangZsh),
 	),
 	errCase(
 		"[[ a =~ ())",
-		langErr(`1:1: reached ) without matching [[ with ]]`, LangBash),
+		langErr(`1:1: reached ) without matching [[ with ]]`, LangBash|LangZsh),
 	),
 	errCase(
 		"[[ >",
@@ -1723,11 +1723,11 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"local (",
-		langErr(`1:7: "local" must be followed by names or assignments`, LangBash),
+		langErr(`1:7: "local" must be followed by names or assignments`, LangBash|LangZsh),
 	),
 	errCase(
 		"declare 0=${o})",
-		langErr(`1:9: invalid var name`, LangBash),
+		langErr(`1:9: invalid var name`, LangBash|LangZsh),
 	),
 	errCase(
 		"a=(<)",
@@ -1748,11 +1748,11 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"a[i]=(y)",
-		langErr(`1:6: arrays cannot be nested`, LangBash),
+		langErr(`1:6: arrays cannot be nested`, LangBash|LangZsh),
 	),
 	errCase(
 		"a=([i]=(y))",
-		langErr(`1:8: arrays cannot be nested`, LangBash),
+		langErr(`1:8: arrays cannot be nested`, LangBash|LangZsh),
 	),
 	errCase(
 		"o=([0]=#",
@@ -1760,22 +1760,22 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"a[b] ==[",
-		langErr(`1:1: "a[b]" must be followed by =`, LangBash),
+		langErr(`1:1: "a[b]" must be followed by =`, LangBash|LangZsh),
 		flipConfirmAll, // stringifies
 	),
 	errCase(
 		"a[b] +=c",
-		langErr(`1:1: "a[b]" must be followed by =`, LangBash),
+		langErr(`1:1: "a[b]" must be followed by =`, LangBash|LangZsh),
 		flipConfirmAll, // stringifies
 	),
 	errCase(
 		"a=(x y) foo",
-		langErr(`1:1: inline variables cannot be arrays`, LangBash),
+		langErr(`1:1: inline variables cannot be arrays`, LangBash|LangZsh),
 		flipConfirmAll, // stringifies
 	),
 	errCase(
 		"a[2]=x foo",
-		langErr(`1:1: inline variables cannot be arrays`, LangBash),
+		langErr(`1:1: inline variables cannot be arrays`, LangBash|LangZsh),
 		flipConfirmAll, // stringifies
 	),
 	errCase(
@@ -1829,8 +1829,7 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"echo $((a[]))",
-		langErr(`1:10: [ must be followed by an expression`, LangBash),
-		langErr(`1:10: [ must be followed by an expression`, LangMirBSDKorn),
+		langErr(`1:10: [ must be followed by an expression`, LangBash|LangMirBSDKorn|LangZsh),
 		flipConfirm(LangMirBSDKorn), // wrong?
 	),
 	errCase(

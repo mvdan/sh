@@ -1912,7 +1912,7 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 				p.bashFuncDecl(s)
 			}
 		case "declare":
-			if p.lang.is(langBashLike) { // Note that mksh lacks this one.
+			if p.lang.is(langBashLike | LangZsh) { // Note that mksh lacks this one.
 				p.declClause(s)
 			}
 		case "local", "export", "readonly", "typeset", "nameref":
@@ -2340,7 +2340,7 @@ func (p *Parser) testExpr(pastAndOr bool) TestExpr {
 			p.followErrExp(b.OpPos, b.Op.String())
 		}
 	case TsReMatch:
-		p.checkLang(p.pos, langBashLike, "regex tests")
+		p.checkLang(p.pos, langBashLike|LangZsh, "regex tests")
 		p.rxOpenParens = 0
 		p.rxFirstPart = true
 		// TODO(mvdan): Using nested states within a regex will break in
