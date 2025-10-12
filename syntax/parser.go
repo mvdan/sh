@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"iter"
+	"math/bits"
 	"slices"
 	"strconv"
 	"strings"
@@ -96,7 +97,7 @@ func Variant(l LangVariant) ParserOption {
 	case LangAuto:
 		panic("LangAuto is not supported by the parser at this time")
 	default:
-		panic(fmt.Sprintf("unknown shell language variant: %d", l))
+		panic(fmt.Sprintf("unknown shell language variant: %#b", l))
 	}
 	return func(p *Parser) { p.lang = l }
 }
@@ -137,6 +138,10 @@ func (l *LangVariant) Set(s string) error {
 
 func (l LangVariant) is(langSet LangVariant) bool {
 	return l&langSet != 0
+}
+
+func (l LangVariant) count() int {
+	return bits.OnesCount32(uint32(l))
 }
 
 func (l LangVariant) bits() iter.Seq[LangVariant] {
@@ -1901,7 +1906,7 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 				p.selectClause(s)
 			}
 		case "@test":
-			if p.lang == LangBats {
+			if p.lang.is(LangBats) {
 				p.testDecl(s)
 			}
 		}
@@ -1962,7 +1967,7 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 			// right recursion should only read a single element
 			return s
 		}
-		if p.tok == orAnd && p.lang == LangMirBSDKorn {
+		if p.tok == orAnd && p.lang.is(LangMirBSDKorn) {
 			// No need to check for LangPOSIX, as on that language
 			// we parse |& as two tokens.
 			break

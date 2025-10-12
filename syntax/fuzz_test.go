@@ -138,9 +138,7 @@ func FuzzParsePrint(f *testing.F) {
 		functionNextLine bool,
 	) {
 		lang := LangVariant(langVariant)
-		switch lang {
-		case LangBash, LangPOSIX, LangMirBSDKorn, LangBats:
-		default:
+		if lang.count() != 1 || !lang.is(langResolvedVariants) {
 			t.Skip()
 		}
 		if indent > 16 {

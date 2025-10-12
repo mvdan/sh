@@ -78,7 +78,7 @@ func Quote(s string, lang LangVariant) (string, error) {
 			return "", &QuoteError{ByteOffset: offs, Message: quoteErrNull}
 		}
 		if r == utf8.RuneError || !unicode.IsPrint(r) {
-			if lang == LangPOSIX {
+			if lang.is(LangPOSIX) {
 				return "", &QuoteError{ByteOffset: offs, Message: quoteErrPOSIX}
 			}
 			nonPrintable = true
@@ -132,13 +132,13 @@ func Quote(s string, lang LangVariant) (string, error) {
 				fmt.Fprintf(&b, "\\x%02x", rem[0])
 				// Unfortunately, mksh allows \x to consume more hex characters.
 				// Ensure that we don't allow it to read more than two.
-				if lang == LangMirBSDKorn {
+				if lang.is(LangMirBSDKorn) {
 					nextRequoteIfHex = true
 				}
 			case r > utf8.MaxRune:
 				// Not a valid Unicode code point?
 				return "", &QuoteError{ByteOffset: offs, Message: quoteErrRange}
-			case lang == LangMirBSDKorn && r > 0xFFFD:
+			case lang.is(LangMirBSDKorn) && r > 0xFFFD:
 				// From the CAVEATS section in R59's man page:
 				//
 				// mksh currently uses OPTU-16 internally, which is the same as
