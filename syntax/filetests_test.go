@@ -3483,7 +3483,7 @@ var fileTests = []fileTestCase{
 	),
 	fileTest(
 		[]string{"[[ a ]]"},
-		langFile(&TestClause{X: litWord("a")}, LangBash|LangMirBSDKorn),
+		langFile(&TestClause{X: litWord("a")}, LangBash|LangMirBSDKorn|LangZsh),
 		langFile(litStmt("[[", "a", "]]"), LangPOSIX),
 	),
 	fileTest(
@@ -3491,7 +3491,7 @@ var fileTests = []fileTestCase{
 		langFile(stmts(
 			&TestClause{X: litWord("a")},
 			litCall("b"),
-		), LangBash|LangMirBSDKorn),
+		), LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{"[[ a > b ]]"},
@@ -3499,7 +3499,7 @@ var fileTests = []fileTestCase{
 			Op: TsAfter,
 			X:  litWord("a"),
 			Y:  litWord("b"),
-		}}, LangBash|LangMirBSDKorn),
+		}}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{"[[ 1 -nt 2 ]]"},
@@ -3507,7 +3507,7 @@ var fileTests = []fileTestCase{
 			Op: TsNewer,
 			X:  litWord("1"),
 			Y:  litWord("2"),
-		}}, LangBash|LangMirBSDKorn),
+		}}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{"[[ 1 -eq 2 ]]"},
@@ -3515,7 +3515,7 @@ var fileTests = []fileTestCase{
 			Op: TsEql,
 			X:  litWord("1"),
 			Y:  litWord("2"),
-		}}, LangBash|LangMirBSDKorn),
+		}}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{
@@ -3595,7 +3595,7 @@ var fileTests = []fileTestCase{
 			Op: TsMatch,
 			X:  litWord("a"),
 			Y:  litWord("-n"),
-		}}, LangBash|LangMirBSDKorn),
+		}}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{`[[ a =~ -n ]]`},
@@ -3625,7 +3625,7 @@ var fileTests = []fileTestCase{
 		[]string{"[[ -n $a ]]"},
 		langFile(&TestClause{
 			X: &UnaryTest{Op: TsNempStr, X: word(litParamExp("a"))},
-		}, LangBash|LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{"[[ ! $a < 'b' ]]"},
@@ -3636,7 +3636,7 @@ var fileTests = []fileTestCase{
 				X:  word(litParamExp("a")),
 				Y:  word(sglQuoted("b")),
 			},
-		}}, LangBash|LangMirBSDKorn),
+		}}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{
@@ -3647,7 +3647,7 @@ var fileTests = []fileTestCase{
 		langFile(&TestClause{X: &UnaryTest{
 			Op: TsNot,
 			X:  &UnaryTest{Op: TsExists, X: word(litParamExp("a"))},
-		}}, LangBash|LangMirBSDKorn),
+		}}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{
@@ -3659,7 +3659,7 @@ var fileTests = []fileTestCase{
 			Op: AndTest,
 			X:  litWord("a"),
 			Y:  litWord("b"),
-		}}, LangBash|LangMirBSDKorn),
+		}}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{"[[ (a && b) ]]"},
@@ -3667,7 +3667,7 @@ var fileTests = []fileTestCase{
 			Op: AndTest,
 			X:  litWord("a"),
 			Y:  litWord("b"),
-		})}, LangBash|LangMirBSDKorn),
+		})}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{
@@ -3678,7 +3678,7 @@ var fileTests = []fileTestCase{
 			Op: AndTest,
 			X:  litWord("a"),
 			Y:  parenTest(litWord("b")),
-		}}, LangBash|LangMirBSDKorn),
+		}}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{"[[ (a && b) || -f c ]]"},
@@ -3690,7 +3690,7 @@ var fileTests = []fileTestCase{
 				Y:  litWord("b"),
 			}),
 			Y: &UnaryTest{Op: TsRegFile, X: litWord("c")},
-		}}, LangBash|LangMirBSDKorn),
+		}}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{
@@ -3701,7 +3701,7 @@ var fileTests = []fileTestCase{
 			Op: AndTest,
 			X:  &UnaryTest{Op: TsSocket, X: litWord("a")},
 			Y:  &UnaryTest{Op: TsSmbLink, X: litWord("b")},
-		}}, LangBash|LangMirBSDKorn),
+		}}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{"[[ -k a && -N b ]]"},
@@ -3717,7 +3717,7 @@ var fileTests = []fileTestCase{
 			Op: AndTest,
 			X:  &UnaryTest{Op: TsGrpOwn, X: litWord("a")},
 			Y:  &UnaryTest{Op: TsUsrOwn, X: litWord("b")},
-		}}, LangBash|LangMirBSDKorn),
+		}}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{"[[ -d a && -c b ]]"},
@@ -3725,7 +3725,7 @@ var fileTests = []fileTestCase{
 			Op: AndTest,
 			X:  &UnaryTest{Op: TsDirect, X: litWord("a")},
 			Y:  &UnaryTest{Op: TsCharSp, X: litWord("b")},
-		}}, LangBash|LangMirBSDKorn),
+		}}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{"[[ -b a && -p b ]]"},
@@ -3733,7 +3733,7 @@ var fileTests = []fileTestCase{
 			Op: AndTest,
 			X:  &UnaryTest{Op: TsBlckSp, X: litWord("a")},
 			Y:  &UnaryTest{Op: TsNmPipe, X: litWord("b")},
-		}}, LangBash|LangMirBSDKorn),
+		}}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{"[[ -g a && -u b ]]"},
@@ -3741,7 +3741,7 @@ var fileTests = []fileTestCase{
 			Op: AndTest,
 			X:  &UnaryTest{Op: TsGIDSet, X: litWord("a")},
 			Y:  &UnaryTest{Op: TsUIDSet, X: litWord("b")},
-		}}, LangBash|LangMirBSDKorn),
+		}}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{"[[ -r a && -w b ]]"},
@@ -3749,7 +3749,7 @@ var fileTests = []fileTestCase{
 			Op: AndTest,
 			X:  &UnaryTest{Op: TsRead, X: litWord("a")},
 			Y:  &UnaryTest{Op: TsWrite, X: litWord("b")},
-		}}, LangBash|LangMirBSDKorn),
+		}}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{"[[ -x a && -s b ]]"},
@@ -3757,7 +3757,7 @@ var fileTests = []fileTestCase{
 			Op: AndTest,
 			X:  &UnaryTest{Op: TsExec, X: litWord("a")},
 			Y:  &UnaryTest{Op: TsNoEmpty, X: litWord("b")},
-		}}, LangBash|LangMirBSDKorn),
+		}}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{"[[ -t a && -z b ]]"},
@@ -3765,7 +3765,7 @@ var fileTests = []fileTestCase{
 			Op: AndTest,
 			X:  &UnaryTest{Op: TsFdTerm, X: litWord("a")},
 			Y:  &UnaryTest{Op: TsEmpStr, X: litWord("b")},
-		}}, LangBash|LangMirBSDKorn),
+		}}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{"[[ -o a && -v b ]]"},
@@ -3773,7 +3773,7 @@ var fileTests = []fileTestCase{
 			Op: AndTest,
 			X:  &UnaryTest{Op: TsOptSet, X: litWord("a")},
 			Y:  &UnaryTest{Op: TsVarSet, X: litWord("b")},
-		}}, LangBash|LangMirBSDKorn),
+		}}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{"[[ a -ot b && c -ef d ]]"},
@@ -3789,7 +3789,7 @@ var fileTests = []fileTestCase{
 				X:  litWord("c"),
 				Y:  litWord("d"),
 			},
-		}}, LangBash|LangMirBSDKorn),
+		}}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{"[[ a = b && c != d ]]"},
@@ -3805,7 +3805,7 @@ var fileTests = []fileTestCase{
 				X:  litWord("c"),
 				Y:  litWord("d"),
 			},
-		}}, LangBash|LangMirBSDKorn),
+		}}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{"[[ a -ne b && c -le d ]]"},
@@ -3821,7 +3821,7 @@ var fileTests = []fileTestCase{
 				X:  litWord("c"),
 				Y:  litWord("d"),
 			},
-		}}, LangBash|LangMirBSDKorn),
+		}}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{"[[ c -ge d ]]"},
@@ -3829,7 +3829,7 @@ var fileTests = []fileTestCase{
 			Op: TsGeq,
 			X:  litWord("c"),
 			Y:  litWord("d"),
-		}}, LangBash|LangMirBSDKorn),
+		}}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{"[[ a -lt b && c -gt d ]]"},
@@ -3845,7 +3845,7 @@ var fileTests = []fileTestCase{
 				X:  litWord("c"),
 				Y:  litWord("d"),
 			},
-		}}, LangBash|LangMirBSDKorn),
+		}}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{"declare -f func"},

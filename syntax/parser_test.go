@@ -477,8 +477,7 @@ func langErr(want string, langSets ...LangVariant) func(*errorCase) {
 			c.bash = want
 			c.posix = want
 			c.mksh = want
-			// TODO: we forgot to cover zsh here
-			// c.zsh = want
+			c.zsh = want
 			return
 		case 1:
 			// continue below
@@ -1611,31 +1610,31 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"[[",
-		langErr(`1:1: test clause requires at least one expression`, LangBash|LangMirBSDKorn),
+		langErr(`1:1: test clause requires at least one expression`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"[[ ]]",
-		langErr(`1:1: test clause requires at least one expression`, LangBash|LangMirBSDKorn),
+		langErr(`1:1: test clause requires at least one expression`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"[[ a",
-		langErr(`1:1: reached EOF without matching [[ with ]]`, LangBash|LangMirBSDKorn),
+		langErr(`1:1: reached EOF without matching [[ with ]]`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"[[ a ||",
-		langErr(`1:6: || must be followed by an expression`, LangBash|LangMirBSDKorn),
+		langErr(`1:6: || must be followed by an expression`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"[[ a && &&",
-		langErr(`1:6: && must be followed by an expression`, LangBash|LangMirBSDKorn),
+		langErr(`1:6: && must be followed by an expression`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"[[ a && ]]",
-		langErr(`1:6: && must be followed by an expression`, LangBash|LangMirBSDKorn),
+		langErr(`1:6: && must be followed by an expression`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"[[ a ==",
-		langErr(`1:6: == must be followed by a word`, LangBash|LangMirBSDKorn),
+		langErr(`1:6: == must be followed by a word`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"[[ a =~",
@@ -1644,23 +1643,23 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"[[ -f a",
-		langErr(`1:1: reached EOF without matching [[ with ]]`, LangBash|LangMirBSDKorn),
+		langErr(`1:1: reached EOF without matching [[ with ]]`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"[[ -n\na ]]",
-		langErr(`1:4: -n must be followed by a word`, LangBash|LangMirBSDKorn),
+		langErr(`1:4: -n must be followed by a word`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"[[ a -ef\nb ]]",
-		langErr(`1:6: -ef must be followed by a word`, LangBash|LangMirBSDKorn),
+		langErr(`1:6: -ef must be followed by a word`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"[[ a ==\nb ]]",
-		langErr(`1:6: == must be followed by a word`, LangBash|LangMirBSDKorn),
+		langErr(`1:6: == must be followed by a word`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"[[ a -nt b",
-		langErr(`1:1: reached EOF without matching [[ with ]]`, LangBash|LangMirBSDKorn),
+		langErr(`1:1: reached EOF without matching [[ with ]]`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"[[ a =~ b",
@@ -1668,43 +1667,43 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"[[ a b c ]]",
-		langErr(`1:6: not a valid test operator: b`, LangBash|LangMirBSDKorn),
+		langErr(`1:6: not a valid test operator: b`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"[[ a b$x c ]]",
-		langErr(`1:6: test operator words must consist of a single literal`, LangBash|LangMirBSDKorn),
+		langErr(`1:6: test operator words must consist of a single literal`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"[[ a & b ]]",
-		langErr(`1:6: not a valid test operator: &`, LangBash|LangMirBSDKorn),
+		langErr(`1:6: not a valid test operator: &`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"[[ true && () ]]",
-		langErr(`1:12: ( must be followed by an expression`, LangBash|LangMirBSDKorn),
+		langErr(`1:12: ( must be followed by an expression`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"[[ true && (&& ]]",
-		langErr(`1:12: ( must be followed by an expression`, LangBash|LangMirBSDKorn),
+		langErr(`1:12: ( must be followed by an expression`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"[[ a == ! b ]]",
-		langErr(`1:11: not a valid test operator: b`, LangBash|LangMirBSDKorn),
+		langErr(`1:11: not a valid test operator: b`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"[[ (! ) ]]",
-		langErr(`1:5: ! must be followed by an expression`, LangBash|LangMirBSDKorn),
+		langErr(`1:5: ! must be followed by an expression`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"[[ ! && ]]",
-		langErr(`1:4: ! must be followed by an expression`, LangBash|LangMirBSDKorn),
+		langErr(`1:4: ! must be followed by an expression`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"[[ (-e ) ]]",
-		langErr(`1:5: -e must be followed by a word`, LangBash|LangMirBSDKorn),
+		langErr(`1:5: -e must be followed by a word`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"[[ (a) == b ]]",
-		langErr(`1:8: expected &&, || or ]] after complex expr`, LangBash|LangMirBSDKorn),
+		langErr(`1:8: expected &&, || or ]] after complex expr`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"[[ a =~ ; ]]",
@@ -1720,7 +1719,7 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"[[ >",
-		langErr(`1:1: [[ must be followed by an expression`, LangBash|LangMirBSDKorn),
+		langErr(`1:1: [[ must be followed by an expression`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"local (",

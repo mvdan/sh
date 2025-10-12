@@ -1896,11 +1896,11 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 				break
 			}
 		case "[[":
-			if p.lang.is(langBashLike | LangMirBSDKorn) {
+			if p.lang.is(langBashLike | LangMirBSDKorn | LangZsh) {
 				p.testClause(s)
 			}
 		case "]]":
-			if p.lang.is(langBashLike | LangMirBSDKorn) {
+			if p.lang.is(langBashLike | LangMirBSDKorn | LangZsh) {
 				p.curErr(`%q can only be used to close a test`, p.val)
 			}
 		case "let":
