@@ -278,7 +278,7 @@ skipSpace:
 			// where #bar should remain a comment.
 			if !p.spaced {
 				switch p.tok {
-				case _LitWord, rightBrace, sglQuote, dblQuote:
+				case dollar, rightBrace, sglQuote, dblQuote:
 					p.advanceLitNone(r)
 					return
 				}

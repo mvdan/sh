@@ -1367,8 +1367,6 @@ func (p *Parser) paramExp() *ParamExp {
 				p.posErr(pos, "invalid parameter name")
 			}
 		}
-		// TODO: unclear why we need to set LitWord here for the syntax tree to be correct
-		p.tok = _LitWord
 		pe.Param = p.lit(pos, p.val)
 	}
 	// In short mode, any indexing or suffixes is not allowed, and we don't require '}'.
