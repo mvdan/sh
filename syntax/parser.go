@@ -122,8 +122,12 @@ func (l *LangVariant) Set(s string) error {
 	return nil
 }
 
-func (l LangVariant) isBash() bool {
-	return l == LangBash || l == LangBats
+func (l LangVariant) is(l2 LangVariant) bool {
+	if l == LangBats && l2 == LangBash {
+		// bats is bash plus some extra syntax.
+		return true
+	}
+	return l == l2
 }
 
 // StopAt configures the lexer to stop at an arbitrary word, treating it
@@ -941,6 +945,19 @@ func (p *Parser) curErr(format string, a ...any) {
 	p.posErr(p.pos, format, a...)
 }
 
+func (p *Parser) checkLang(pos Pos, feature string, langs ...LangVariant) {
+	if slices.ContainsFunc(langs, p.lang.is) {
+		return
+	}
+	p.errPass(LangError{
+		Filename: p.f.Name,
+		Pos:      pos,
+		Feature:  feature,
+		Langs:    langs,
+		LangUsed: p.lang,
+	})
+}
+
 func (p *Parser) langErr(pos Pos, feature string, langs ...LangVariant) {
 	p.errPass(LangError{
 		Filename: p.f.Name,
@@ -1097,14 +1114,10 @@ func (p *Parser) wordPart() WordPart {
 		p.ensureNoNested(p.pos)
 		switch p.r {
 		case '|':
-			if !p.lang.isBash() && p.lang != LangMirBSDKorn {
-				p.langErr(p.pos, `"${|stmts;}"`, LangBash, LangMirBSDKorn)
-			}
+			p.checkLang(p.pos, `"${|stmts;}"`, LangBash, LangMirBSDKorn)
 			fallthrough
 		case ' ', '\t', '\n':
-			if !p.lang.isBash() && p.lang != LangMirBSDKorn {
-				p.langErr(p.pos, `"${ stmts;}"`, LangBash, LangMirBSDKorn)
-			}
+			p.checkLang(p.pos, `"${ stmts;}"`, LangBash, LangMirBSDKorn)
 			cs := &CmdSubst{
 				Left:     p.pos,
 				TempFile: p.r != '|',
@@ -1131,9 +1144,7 @@ func (p *Parser) wordPart() WordPart {
 		old := p.preNested(arithmExpr)
 		p.next()
 		if p.got(hash) {
-			if p.lang != LangMirBSDKorn {
-				p.langErr(ar.Pos(), "unsigned expressions", LangMirBSDKorn)
-			}
+			p.checkLang(ar.Pos(), "unsigned expressions", LangMirBSDKorn)
 			ar.Unsigned = true
 		}
 		ar.X = p.followArithm(left, ar.Left)
@@ -1244,9 +1255,7 @@ func (p *Parser) wordPart() WordPart {
 		}
 		return cs
 	case globQuest, globStar, globPlus, globAt, globExcl:
-		if p.lang == LangPOSIX {
-			p.langErr(p.pos, "extended globs", LangBash, LangMirBSDKorn)
-		}
+		p.checkLang(p.pos, "extended globs", LangBash, LangMirBSDKorn)
 		eg := &ExtGlob{Op: GlobOperator(p.tok), OpPos: p.pos}
 		lparens := 1
 		r := p.r
@@ -1321,17 +1330,13 @@ func (p *Parser) paramExp() *ParamExp {
 			}
 		case '%':
 			if r := p.peek(); r == utf8.RuneSelf || singleRuneParam(r) || paramNameRune(r) {
-				if p.lang != LangMirBSDKorn {
-					p.langErr(pe.Pos(), `"${%foo}"`, LangMirBSDKorn)
-				}
+				p.checkLang(pe.Pos(), `"${%foo}"`, LangMirBSDKorn)
 				pe.Width = true
 				p.rune()
 			}
 		case '!':
 			if r := p.peek(); r == utf8.RuneSelf || singleRuneParam(r) || paramNameRune(r) {
-				if p.lang == LangPOSIX {
-					p.langErr(pe.Pos(), `"${!foo}"`, LangBash, LangMirBSDKorn)
-				}
+				p.checkLang(pe.Pos(), `"${!foo}"`, LangBash, LangMirBSDKorn)
 				pe.Excl = true
 				p.rune()
 			}
@@ -1386,9 +1391,7 @@ func (p *Parser) paramExp() *ParamExp {
 	// Index expressions like ${foo[1]}. Note that expansion suffixes can be combined,
 	// like ${foo[@]//replace/with}.
 	if p.r == '[' {
-		if p.lang == LangPOSIX {
-			p.langErr(p.nextPos(), "arrays", LangBash, LangMirBSDKorn)
-		}
+		p.checkLang(p.nextPos(), "arrays", LangBash, LangMirBSDKorn)
 		if !ValidName(pe.Param.Value) {
 			p.posErr(p.nextPos(), "cannot index a special parameter name")
 		}
@@ -1410,9 +1413,7 @@ func (p *Parser) paramExp() *ParamExp {
 	}
 	switch p.tok {
 	case slash, dblSlash: // pattern search and replace
-		if p.lang == LangPOSIX {
-			p.langErr(p.pos, "search and replace", LangBash, LangMirBSDKorn)
-		}
+		p.checkLang(p.pos, "search and replace", LangBash, LangMirBSDKorn)
 		pe.Repl = &Replace{All: p.tok == dblSlash}
 		p.quote = paramExpRepl
 		p.next()
@@ -1422,9 +1423,7 @@ func (p *Parser) paramExp() *ParamExp {
 			pe.Repl.With = p.getWord()
 		}
 	case colon: // slicing
-		if p.lang == LangPOSIX {
-			p.langErr(p.pos, "slicing", LangBash, LangMirBSDKorn)
-		}
+		p.checkLang(p.pos, "slicing", LangBash, LangMirBSDKorn)
 		pe.Slice = &Slice{}
 		colonPos := p.pos
 		p.quote = paramExpArithm
@@ -1442,20 +1441,17 @@ func (p *Parser) paramExp() *ParamExp {
 		p.matchedArithm(pe.Dollar, dollBrace, rightBrace)
 		return pe
 	case caret, dblCaret, comma, dblComma: // upper/lower case
-		if !p.lang.isBash() {
-			p.langErr(p.pos, "this expansion operator", LangBash)
-		}
+		p.checkLang(p.pos, "this expansion operator", LangBash)
 		pe.Exp = p.paramExpExp()
 	case at, star:
 		switch {
 		case p.tok == at && p.lang == LangPOSIX:
+			// TODO: refactor with checkLang somehow
 			p.langErr(p.pos, "this expansion operator", LangBash, LangMirBSDKorn)
 		case p.tok == star && !pe.Excl:
 			p.curErr("not a valid parameter expansion operator: %q", p.tok)
 		case pe.Excl && p.r == '}':
-			if !p.lang.isBash() {
-				p.langErr(pe.Pos(), fmt.Sprintf(`"${!foo%s}"`, p.tok), LangBash)
-			}
+			p.checkLang(pe.Pos(), fmt.Sprintf(`"${!foo%s}"`, p.tok), LangBash)
 			pe.Names = ParNamesOperator(p.tok)
 			p.next()
 		default:
@@ -1492,13 +1488,9 @@ func (p *Parser) paramExpExp() *Expansion {
 		}
 		switch p.val {
 		case "a", "k", "u", "A", "E", "K", "L", "P", "U":
-			if !p.lang.isBash() {
-				p.langErr(p.pos, "this expansion operator", LangBash)
-			}
+			p.checkLang(p.pos, "this expansion operator", LangBash)
 		case "#":
-			if p.lang != LangMirBSDKorn {
-				p.langErr(p.pos, "this expansion operator", LangMirBSDKorn)
-			}
+			p.checkLang(p.pos, "this expansion operator", LangMirBSDKorn)
 		case "Q":
 		default:
 			p.curErr("invalid @ expansion operator %q", p.val)
@@ -1638,15 +1630,13 @@ func (p *Parser) getAssign(needEqual bool) *Assign {
 		return as
 	}
 	if as.Value == nil && p.tok == leftParen {
-		if p.lang == LangPOSIX {
-			p.langErr(p.pos, "arrays", LangBash, LangMirBSDKorn)
-		}
+		p.checkLang(p.pos, "arrays", LangBash, LangMirBSDKorn)
 		if as.Index != nil {
 			p.curErr("arrays cannot be nested")
 		}
 		as.Array = &ArrayExpr{Lparen: p.pos}
 		newQuote := p.quote
-		if p.lang.isBash() {
+		if p.lang.is(LangBash) {
 			newQuote = arrayElems
 		}
 		old := p.preNested(newQuote)
@@ -1719,11 +1709,11 @@ func (p *Parser) doRedirect(s *Stmt) {
 		s.Redirs = append(s.Redirs, r)
 	}
 	r.N = p.getLit()
-	if !p.lang.isBash() && r.N != nil && r.N.Value[0] == '{' {
-		p.langErr(r.N.Pos(), "{varname} redirects", LangBash)
+	if r.N != nil && r.N.Value[0] == '{' {
+		p.checkLang(r.N.Pos(), "{varname} redirects", LangBash)
 	}
-	if p.lang == LangPOSIX && (p.tok == rdrAll || p.tok == appAll) {
-		p.langErr(p.pos, "&> redirects", LangBash, LangMirBSDKorn)
+	if p.tok == rdrAll || p.tok == appAll {
+		p.checkLang(p.pos, "&> redirects", LangBash, LangMirBSDKorn)
 	}
 	r.Op, r.OpPos = RedirOperator(p.tok), p.pos
 	p.next()
@@ -1745,9 +1735,7 @@ func (p *Parser) doRedirect(s *Stmt) {
 			p.doHeredocs()
 		}
 	case WordHdoc:
-		if p.lang == LangPOSIX {
-			p.langErr(r.OpPos, "herestrings", LangBash, LangMirBSDKorn)
-		}
+		p.checkLang(r.OpPos, "herestrings", LangBash, LangMirBSDKorn)
 		fallthrough
 	default:
 		r.Word = p.followWordTok(token(r.Op), r.OpPos)
@@ -1872,7 +1860,7 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 				p.bashFuncDecl(s)
 			}
 		case "declare":
-			if p.lang.isBash() { // Note that mksh lacks this one.
+			if p.lang.is(LangBash) { // Note that mksh lacks this one.
 				p.declClause(s)
 			}
 		case "local", "export", "readonly", "typeset", "nameref":
@@ -1884,7 +1872,7 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 				p.timeClause(s)
 			}
 		case "coproc":
-			if p.lang.isBash() { // Note that mksh lacks this one.
+			if p.lang.is(LangBash) { // Note that mksh lacks this one.
 				p.coprocClause(s)
 			}
 		case "select":
@@ -1994,9 +1982,7 @@ func (p *Parser) arithmExpCmd(s *Stmt) {
 	old := p.preNested(arithmExprCmd)
 	p.next()
 	if p.got(hash) {
-		if p.lang != LangMirBSDKorn {
-			p.langErr(ar.Pos(), "unsigned expressions", LangMirBSDKorn)
-		}
+		p.checkLang(ar.Pos(), "unsigned expressions", LangMirBSDKorn)
 		ar.Unsigned = true
 	}
 	ar.X = p.followArithm(dblLeftParen, ar.Left)
@@ -2077,9 +2063,7 @@ func (p *Parser) forClause(s *Stmt) {
 
 	start, end := "do", "done"
 	if pos, ok := p.gotRsrv("{"); ok {
-		if p.lang == LangPOSIX {
-			p.langErr(pos, "for loops with braces", LangBash, LangMirBSDKorn)
-		}
+		p.checkLang(pos, "for loops with braces", LangBash, LangMirBSDKorn)
 		fc.DoPos = pos
 		fc.Braces = true
 		start, end = "{", "}"
@@ -2095,11 +2079,9 @@ func (p *Parser) forClause(s *Stmt) {
 }
 
 func (p *Parser) loop(fpos Pos) Loop {
-	if !p.lang.isBash() {
-		switch p.tok {
-		case leftParen, dblLeftParen:
-			p.langErr(p.pos, "c-style fors", LangBash)
-		}
+	switch p.tok {
+	case leftParen, dblLeftParen:
+		p.checkLang(p.pos, "c-style fors", LangBash)
 	}
 	if p.tok == dblLeftParen {
 		cl := &CStyleLoop{Lparen: p.pos}
@@ -2170,9 +2152,7 @@ func (p *Parser) caseClause(s *Stmt) {
 	if pos, ok := p.gotRsrv("{"); ok {
 		cc.In = pos
 		cc.Braces = true
-		if p.lang != LangMirBSDKorn {
-			p.langErr(cc.Pos(), `"case i {"`, LangMirBSDKorn)
-		}
+		p.checkLang(cc.Pos(), `"case i {"`, LangMirBSDKorn)
 		end = "}"
 	} else {
 		cc.In = p.followRsrv(cc.Case, "case x", "in")
@@ -2308,9 +2288,7 @@ func (p *Parser) testExpr(pastAndOr bool) TestExpr {
 			p.followErrExp(b.OpPos, b.Op.String())
 		}
 	case TsReMatch:
-		if !p.lang.isBash() {
-			p.langErr(p.pos, "regex tests", LangBash)
-		}
+		p.checkLang(p.pos, "regex tests", LangBash)
 		p.rxOpenParens = 0
 		p.rxFirstPart = true
 		// TODO(mvdan): Using nested states within a regex will break in
@@ -2339,7 +2317,7 @@ func (p *Parser) testExprBase() TestExpr {
 		switch op {
 		case illegalTok:
 		case tsRefVar, tsModif: // not available in mksh
-			if p.lang.isBash() {
+			if p.lang.is(LangBash) {
 				p.tok = op
 			}
 		default:
@@ -2527,8 +2505,8 @@ loop:
 				break
 			}
 			// Avoid failing later with the confusing "} can only be used to close a block".
-			if p.lang == LangPOSIX && p.val == "{" && w != nil && w.Lit() == "function" {
-				p.langErr(p.pos, `the "function" builtin`, LangBash)
+			if p.val == "{" && w != nil && w.Lit() == "function" {
+				p.checkLang(p.pos, `the "function" builtin`, LangBash)
 			}
 			ce.Args = append(ce.Args, p.wordOne(p.lit(p.pos, p.val)))
 			p.next()
@@ -2560,8 +2538,8 @@ loop:
 		default:
 			// Note that we'll only keep the first error that happens.
 			if len(ce.Args) > 0 {
-				if cmd := ce.Args[0].Lit(); p.lang == LangPOSIX && isBashCompoundCommand(_LitWord, cmd) {
-					p.langErr(p.pos, fmt.Sprintf("the %q builtin", cmd), LangBash)
+				if cmd := ce.Args[0].Lit(); isBashCompoundCommand(_LitWord, cmd) {
+					p.checkLang(p.pos, fmt.Sprintf("the %q builtin", cmd), LangBash)
 				}
 			}
 			p.curErr("a command can only contain words and redirects; encountered %s", p.tok)

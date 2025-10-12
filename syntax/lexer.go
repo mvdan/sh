@@ -467,7 +467,7 @@ func (p *Parser) regToken(r rune) token {
 			p.rune()
 			return dollBrace
 		case '[':
-			if !p.lang.isBash() {
+			if !p.lang.is(LangBash) {
 				// latter to not tokenise ${$[@]} as $[
 				break
 			}
@@ -493,7 +493,7 @@ func (p *Parser) regToken(r rune) token {
 	case ';':
 		switch p.rune() {
 		case ';':
-			if p.rune() == '&' && p.lang.isBash() {
+			if p.rune() == '&' && p.lang.is(LangBash) {
 				p.rune()
 				return dblSemiAnd
 			}
@@ -530,7 +530,7 @@ func (p *Parser) regToken(r rune) token {
 			p.rune()
 			return dplIn
 		case '(':
-			if !p.lang.isBash() {
+			if !p.lang.is(LangBash) {
 				break
 			}
 			p.rune()
@@ -549,7 +549,7 @@ func (p *Parser) regToken(r rune) token {
 			p.rune()
 			return clbOut
 		case '(':
-			if !p.lang.isBash() {
+			if !p.lang.is(LangBash) {
 				break
 			}
 			p.rune()
@@ -574,7 +574,7 @@ func (p *Parser) dqToken(r rune) token {
 			p.rune()
 			return dollBrace
 		case '[':
-			if !p.lang.isBash() {
+			if !p.lang.is(LangBash) {
 				break
 			}
 			p.rune()
