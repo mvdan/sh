@@ -1073,9 +1073,9 @@ func (p *Parser) wordParts(wps []WordPart) []WordPart {
 	}
 }
 
-func (p *Parser) ensureNoNested() {
+func (p *Parser) ensureNoNested(pos Pos) {
 	if p.forbidNested {
-		p.curErr("expansions not allowed in heredoc words")
+		p.posErr(pos, "expansions not allowed in heredoc words")
 	}
 }
 
@@ -1086,7 +1086,7 @@ func (p *Parser) wordPart() WordPart {
 		p.next()
 		return l
 	case dollBrace:
-		p.ensureNoNested()
+		p.ensureNoNested(p.pos)
 		switch p.r {
 		case '|':
 			if !p.lang.isBash() && p.lang != LangMirBSDKorn {
@@ -1117,7 +1117,7 @@ func (p *Parser) wordPart() WordPart {
 			return p.paramExp()
 		}
 	case dollDblParen, dollBrack:
-		p.ensureNoNested()
+		p.ensureNoNested(p.pos)
 		left := p.tok
 		ar := &ArithmExp{Left: p.pos, Bracket: left == dollBrack}
 		old := p.preNested(arithmExpr)
@@ -1141,7 +1141,7 @@ func (p *Parser) wordPart() WordPart {
 		}
 		return ar
 	case dollParen:
-		p.ensureNoNested()
+		p.ensureNoNested(p.pos)
 		cs := &CmdSubst{Left: p.pos}
 		old := p.preNested(subCmd)
 		p.next()
@@ -1150,32 +1150,16 @@ func (p *Parser) wordPart() WordPart {
 		cs.Right = p.matched(cs.Left, leftParen, rightParen)
 		return cs
 	case dollar:
-		switch r := p.r; {
-		case singleRuneParam(r):
-			p.tok, p.val = _LitWord, string(r)
-			p.rune()
-		case paramNameRune(r), r == '\\':
-			p.advanceParamNameCont(r)
-			// continue below
-		default:
+		pe := p.paramExp()
+		if pe == nil { // was not actually a parameter expansion, like: "foo$"
 			l := p.lit(p.pos, "$")
 			p.next()
 			return l
 		}
-		p.ensureNoNested()
-		pe := &ParamExp{Dollar: p.pos, Short: true}
-		p.pos = posAddCol(p.pos, 1)
-		pe.Param = p.getLit()
-		if pe.Param != nil && pe.Param.Value == "" {
-			l := p.lit(pe.Dollar, "$")
-			// e.g. "$\\\"" within double quotes, so we must
-			// keep the rest of the literal characters.
-			l.ValueEnd = posAddCol(l.ValuePos, 1)
-			return l
-		}
+		p.ensureNoNested(pe.Dollar)
 		return pe
 	case cmdIn, cmdOut:
-		p.ensureNoNested()
+		p.ensureNoNested(p.pos)
 		ps := &ProcSubst{Op: ProcOperator(p.tok), OpPos: p.pos}
 		old := p.preNested(subCmd)
 		p.next()
@@ -1221,7 +1205,7 @@ func (p *Parser) wordPart() WordPart {
 		if p.backquoteEnd() {
 			return nil
 		}
-		p.ensureNoNested()
+		p.ensureNoNested(p.pos)
 		cs := &CmdSubst{Left: p.pos, Backquotes: true}
 		old := p.preNested(subCmdBckquo)
 		p.openBquotes++
@@ -1307,33 +1291,45 @@ func (p *Parser) dblQuoted() *DblQuoted {
 	return q
 }
 
+// paramExp parses a short or full parameter expansion, depending on whether
+// [Parser.tok] is [dollar] or [dollBrace]. It returns nil if a [dollar] token
+// does not form a valid parameter expansion, in which case it should be parsed
+// as a literal.
 func (p *Parser) paramExp() *ParamExp {
 	old := p.quote
 	p.quote = runeByRune
-	pe := &ParamExp{Dollar: p.pos}
-	switch p.r {
-	case '#':
-		if r := p.peek(); r == utf8.RuneSelf || singleRuneParam(r) || paramNameRune(r) {
-			pe.Length = true
-			p.rune()
-		}
-	case '%':
-		if r := p.peek(); r == utf8.RuneSelf || singleRuneParam(r) || paramNameRune(r) {
-			if p.lang != LangMirBSDKorn {
-				p.langErr(pe.Pos(), `"${%foo}"`, LangMirBSDKorn)
+	// [ParamExp.Short] means we are parsing $exp rather than ${exp}.
+	pe := &ParamExp{
+		Dollar: p.pos,
+		Short:  p.tok == dollar,
+	}
+	if !pe.Short {
+		// Prefixes, like ${#name} to get the length of a variable.
+		switch p.r {
+		case '#':
+			if r := p.peek(); r == utf8.RuneSelf || singleRuneParam(r) || paramNameRune(r) {
+				pe.Length = true
+				p.rune()
 			}
-			pe.Width = true
-			p.rune()
-		}
-	case '!':
-		if r := p.peek(); r == utf8.RuneSelf || singleRuneParam(r) || paramNameRune(r) {
-			if p.lang == LangPOSIX {
-				p.langErr(pe.Pos(), `"${!foo}"`, LangBash, LangMirBSDKorn)
+		case '%':
+			if r := p.peek(); r == utf8.RuneSelf || singleRuneParam(r) || paramNameRune(r) {
+				if p.lang != LangMirBSDKorn {
+					p.langErr(pe.Pos(), `"${%foo}"`, LangMirBSDKorn)
+				}
+				pe.Width = true
+				p.rune()
 			}
-			pe.Excl = true
-			p.rune()
+		case '!':
+			if r := p.peek(); r == utf8.RuneSelf || singleRuneParam(r) || paramNameRune(r) {
+				if p.lang == LangPOSIX {
+					p.langErr(pe.Pos(), `"${!foo}"`, LangBash, LangMirBSDKorn)
+				}
+				pe.Excl = true
+				p.rune()
+			}
 		}
 	}
+	// The parameter name itself, like $foo or $?.
 	switch p.r {
 	case '?', '-':
 		if pe.Length && p.peek() != '}' {
@@ -1353,12 +1349,29 @@ func (p *Parser) paramExp() *ParamExp {
 		// Note that $1a is equivalent to ${1}a, but ${1a} is not.
 		// POSIX Shell says the latter is unspecified behavior, so match Bash's behavior.
 		pos := p.nextPos()
-		p.advanceParamNameCont(p.r)
-		if !numberLiteral(p.val) && !ValidName(p.val) {
-			p.posErr(pos, "invalid parameter name")
+		if pe.Short && singleRuneParam(p.r) {
+			p.tok, p.val = _LitWord, string(p.r)
+			p.rune()
+		} else {
+			p.advanceParamNameCont(p.r)
+			if !numberLiteral(p.val) && !ValidName(p.val) {
+				if pe.Short {
+					p.quote = old
+					return nil // just "$"
+				}
+				p.posErr(pos, "invalid parameter name")
+			}
 		}
 		pe.Param = p.lit(pos, p.val)
 	}
+	// In short mode, any indexing or suffixes is not allowed, and we don't require '}'.
+	if pe.Short {
+		p.quote = old
+		p.next()
+		return pe
+	}
+	// Index expressions like ${foo[1]}. Note that expansion suffixes can be combined,
+	// like ${foo[@]//replace/with}.
 	if p.r == '[' {
 		if p.lang == LangPOSIX {
 			p.langErr(p.nextPos(), "arrays", LangBash, LangMirBSDKorn)
