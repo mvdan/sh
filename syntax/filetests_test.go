@@ -4286,7 +4286,7 @@ var fileTests = []fileTestCase{
 	),
 	fileTest(
 		[]string{"*[i]=x"},
-		langFile(word(lit("*"), lit("[i]=x"))),
+		langFile(word(lit("*"), lit("[i]=x")), LangBash|LangMirBSDKorn),
 		langFile(lit("*[i]=x"), LangPOSIX),
 	),
 	fileTest(
