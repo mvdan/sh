@@ -1102,35 +1102,35 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"select",
-		langErr(`1:1: "select" must be followed by a literal`, LangBash|LangMirBSDKorn),
+		langErr(`1:1: "select" must be followed by a literal`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"select i",
-		langErr(`1:1: "select foo" must be followed by "in", "do", ;, or a newline`, LangBash|LangMirBSDKorn),
+		langErr(`1:1: "select foo" must be followed by "in", "do", ;, or a newline`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"select i in;",
-		langErr(`1:1: "select foo [in words]" must be followed by "do"`, LangBash|LangMirBSDKorn),
+		langErr(`1:1: "select foo [in words]" must be followed by "do"`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"select i in 1 2 3;",
-		langErr(`1:1: "select foo [in words]" must be followed by "do"`, LangBash|LangMirBSDKorn),
+		langErr(`1:1: "select foo [in words]" must be followed by "do"`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"select i in 1 2 3; do echo $i;",
-		langErr(`1:1: select statement must end with "done"`, LangBash|LangMirBSDKorn),
+		langErr(`1:1: select statement must end with "done"`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"select i in 1 2 3; echo $i;",
-		langErr(`1:1: "select foo [in words]" must be followed by "do"`, LangBash|LangMirBSDKorn),
+		langErr(`1:1: "select foo [in words]" must be followed by "do"`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"select 'i' in 1 2 3; do echo $i; done",
-		langErr(`1:1: "select" must be followed by a literal`, LangBash|LangMirBSDKorn),
+		langErr(`1:1: "select" must be followed by a literal`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"select in 1 2 3; do echo $i; done",
-		langErr(`1:1: "select foo" must be followed by "in", "do", ;, or a newline`, LangBash|LangMirBSDKorn),
+		langErr(`1:1: "select foo" must be followed by "in", "do", ;, or a newline`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"echo foo &\n;",
@@ -1546,67 +1546,67 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"let",
-		langErr(`1:1: "let" must be followed by an expression`, LangBash|LangMirBSDKorn),
+		langErr(`1:1: "let" must be followed by an expression`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"let a+ b",
-		langErr(`1:6: + must be followed by an expression`, LangBash|LangMirBSDKorn),
+		langErr(`1:6: + must be followed by an expression`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"let + a",
-		langErr(`1:5: + must be followed by an expression`, LangBash|LangMirBSDKorn),
+		langErr(`1:5: + must be followed by an expression`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"let a ++",
-		langErr(`1:7: ++ must be followed by a literal`, LangBash|LangMirBSDKorn),
+		langErr(`1:7: ++ must be followed by a literal`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"let (a)++",
-		langErr(`1:8: ++ must follow a name`, LangBash|LangMirBSDKorn),
+		langErr(`1:8: ++ must follow a name`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"let 1++",
-		langErr(`1:6: ++ must follow a name`, LangBash|LangMirBSDKorn),
+		langErr(`1:6: ++ must follow a name`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"let $0++",
-		langErr(`1:7: ++ must follow a name`, LangBash|LangMirBSDKorn),
+		langErr(`1:7: ++ must follow a name`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"let --(a)",
-		langErr(`1:5: -- must be followed by a literal`, LangBash|LangMirBSDKorn),
+		langErr(`1:5: -- must be followed by a literal`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"let --$a",
-		langErr(`1:5: -- must be followed by a literal`, LangBash|LangMirBSDKorn),
+		langErr(`1:5: -- must be followed by a literal`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"let a+\n",
-		langErr(`1:6: + must be followed by an expression`, LangBash|LangMirBSDKorn),
+		langErr(`1:6: + must be followed by an expression`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"let ))",
-		langErr(`1:1: "let" must be followed by an expression`, LangBash|LangMirBSDKorn),
+		langErr(`1:1: "let" must be followed by an expression`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"`let !`",
-		langErr(`1:6: ! must be followed by an expression`, LangBash|LangMirBSDKorn),
+		langErr(`1:6: ! must be followed by an expression`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"let a:b",
-		langErr(`1:6: ternary operator missing ? before :`, LangBash|LangMirBSDKorn),
+		langErr(`1:6: ternary operator missing ? before :`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"let a+b=c",
-		langErr(`1:8: = must follow a name`, LangBash|LangMirBSDKorn),
+		langErr(`1:8: = must follow a name`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"`let` { foo; }",
-		langErr(`1:2: "let" must be followed by an expression`, LangBash|LangMirBSDKorn),
+		langErr(`1:2: "let" must be followed by an expression`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"$(let)",
-		langErr(`1:3: "let" must be followed by an expression`, LangBash|LangMirBSDKorn),
+		langErr(`1:3: "let" must be followed by an expression`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"[[",
@@ -1780,23 +1780,23 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"function",
-		langErr(`1:1: "function" must be followed by a name`, LangBash|LangMirBSDKorn),
+		langErr(`1:1: "function" must be followed by a name`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"function foo(",
-		langErr(`1:10: "foo(" must be followed by )`, LangBash|LangMirBSDKorn),
+		langErr(`1:10: "foo(" must be followed by )`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"function `function",
-		langErr(`1:1: "function" must be followed by a name`, LangBash|LangMirBSDKorn),
+		langErr(`1:1: "function" must be followed by a name`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		`function "foo"(){}`,
-		langErr(`1:1: "function" must be followed by a name`, LangBash|LangMirBSDKorn),
+		langErr(`1:1: "function" must be followed by a name`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"function foo()",
-		langErr(`1:1: "foo()" must be followed by a statement`, LangBash|LangMirBSDKorn),
+		langErr(`1:1: "foo()" must be followed by a statement`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"echo <<<",
@@ -1882,11 +1882,11 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"time {",
-		langErr(`1:6: reached EOF without matching { with }`, LangBash|LangMirBSDKorn),
+		langErr(`1:6: reached EOF without matching { with }`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"time ! foo",
-		langErr(`1:6: "!" can only be used in full statements`, LangBash|LangMirBSDKorn),
+		langErr(`1:6: "!" can only be used in full statements`, LangBash|LangMirBSDKorn|LangZsh),
 		flipConfirm(LangBash), // wrong
 	),
 	errCase(
@@ -2031,7 +2031,7 @@ var errorCases = []errorCase{
 	errCase(
 		"echo ;&",
 		langErr(`1:7: & can only immediately follow a statement`, LangPOSIX),
-		langErr(`1:6: ;& can only be used in a case clause`, LangBash|LangMirBSDKorn),
+		langErr(`1:6: ;& can only be used in a case clause`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"echo ;;&",

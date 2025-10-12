@@ -1904,11 +1904,11 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 				p.curErr(`%q can only be used to close a test`, p.val)
 			}
 		case "let":
-			if p.lang.is(langBashLike | LangMirBSDKorn) {
+			if p.lang.is(langBashLike | LangMirBSDKorn | LangZsh) {
 				p.letClause(s)
 			}
 		case "function":
-			if p.lang.is(langBashLike | LangMirBSDKorn) {
+			if p.lang.is(langBashLike | LangMirBSDKorn | LangZsh) {
 				p.bashFuncDecl(s)
 			}
 		case "declare":
@@ -1916,11 +1916,11 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 				p.declClause(s)
 			}
 		case "local", "export", "readonly", "typeset", "nameref":
-			if p.lang.is(langBashLike | LangMirBSDKorn) {
+			if p.lang.is(langBashLike | LangMirBSDKorn | LangZsh) {
 				p.declClause(s)
 			}
 		case "time":
-			if p.lang.is(langBashLike | LangMirBSDKorn) {
+			if p.lang.is(langBashLike | LangMirBSDKorn | LangZsh) {
 				p.timeClause(s)
 			}
 		case "coproc":
@@ -1928,7 +1928,7 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 				p.coprocClause(s)
 			}
 		case "select":
-			if p.lang.is(langBashLike | LangMirBSDKorn) {
+			if p.lang.is(langBashLike | LangMirBSDKorn | LangZsh) {
 				p.selectClause(s)
 			}
 		case "@test":

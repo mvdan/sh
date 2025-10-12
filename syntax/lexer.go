@@ -499,7 +499,7 @@ func (p *Parser) regToken(r rune) token {
 			}
 			return dblSemicolon
 		case '&':
-			if !p.lang.is(langBashLike | LangMirBSDKorn) {
+			if !p.lang.is(langBashLike | LangMirBSDKorn | LangZsh) {
 				break
 			}
 			p.rune()
