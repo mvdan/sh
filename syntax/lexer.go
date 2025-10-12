@@ -442,7 +442,7 @@ func (p *Parser) regToken(r rune) token {
 			p.rune()
 			return orOr
 		case '&':
-			if !p.lang.isAny(LangBash, LangMirBSDKorn) {
+			if !p.lang.is(langBashLike | LangMirBSDKorn) {
 				break
 			}
 			p.rune()
@@ -452,13 +452,13 @@ func (p *Parser) regToken(r rune) token {
 	case '$':
 		switch p.rune() {
 		case '\'':
-			if !p.lang.isAny(LangBash, LangMirBSDKorn) {
+			if !p.lang.is(langBashLike | LangMirBSDKorn) {
 				break
 			}
 			p.rune()
 			return dollSglQuote
 		case '"':
-			if !p.lang.isAny(LangBash, LangMirBSDKorn) {
+			if !p.lang.is(langBashLike | LangMirBSDKorn) {
 				break
 			}
 			p.rune()
@@ -467,7 +467,7 @@ func (p *Parser) regToken(r rune) token {
 			p.rune()
 			return dollBrace
 		case '[':
-			if !p.lang.is(LangBash) {
+			if !p.lang.is(langBashLike) {
 				// latter to not tokenise ${$[@]} as $[
 				break
 			}
@@ -482,7 +482,7 @@ func (p *Parser) regToken(r rune) token {
 		}
 		return dollar
 	case '(':
-		if p.rune() == '(' && p.lang.isAny(LangBash, LangMirBSDKorn) && p.quote != testExpr {
+		if p.rune() == '(' && p.lang.is(langBashLike|LangMirBSDKorn) && p.quote != testExpr {
 			p.rune()
 			return dblLeftParen
 		}
@@ -493,13 +493,13 @@ func (p *Parser) regToken(r rune) token {
 	case ';':
 		switch p.rune() {
 		case ';':
-			if p.rune() == '&' && p.lang.is(LangBash) {
+			if p.rune() == '&' && p.lang.is(langBashLike) {
 				p.rune()
 				return dblSemiAnd
 			}
 			return dblSemicolon
 		case '&':
-			if !p.lang.isAny(LangBash, LangMirBSDKorn) {
+			if !p.lang.is(langBashLike | LangMirBSDKorn) {
 				break
 			}
 			p.rune()
@@ -530,7 +530,7 @@ func (p *Parser) regToken(r rune) token {
 			p.rune()
 			return dplIn
 		case '(':
-			if !p.lang.is(LangBash) {
+			if !p.lang.is(langBashLike) {
 				break
 			}
 			p.rune()
@@ -549,7 +549,7 @@ func (p *Parser) regToken(r rune) token {
 			p.rune()
 			return clbOut
 		case '(':
-			if !p.lang.is(LangBash) {
+			if !p.lang.is(langBashLike) {
 				break
 			}
 			p.rune()
@@ -574,7 +574,7 @@ func (p *Parser) dqToken(r rune) token {
 			p.rune()
 			return dollBrace
 		case '[':
-			if !p.lang.is(LangBash) {
+			if !p.lang.is(langBashLike) {
 				break
 			}
 			p.rune()
@@ -899,7 +899,7 @@ loop:
 				break loop
 			}
 		case '[', ']':
-			if p.lang.isAny(LangBash, LangMirBSDKorn) && p.quote&allArithmExpr != 0 {
+			if p.lang.is(langBashLike|LangMirBSDKorn) && p.quote&allArithmExpr != 0 {
 				break loop
 			}
 			fallthrough
@@ -947,7 +947,7 @@ loop:
 				p.eqlOffs = len(p.litBs) - 1
 			}
 		case '[':
-			if p.lang.isAny(LangBash, LangMirBSDKorn) && len(p.litBs) > 1 && p.litBs[0] != '[' {
+			if p.lang.is(langBashLike|LangMirBSDKorn) && len(p.litBs) > 1 && p.litBs[0] != '[' {
 				tok = _Lit
 				break loop
 			}
