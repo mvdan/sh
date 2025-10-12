@@ -24,14 +24,15 @@ func TestPrintCompact(t *testing.T) {
 		t.Run("", func(t *testing.T) {
 			in := c.inputs[0]
 			parser := parserPosix
-			if c.zsh != nil {
-				parser = parserZsh
+			// TODO: consider splitting this into per-language subtests
+			if c.bash != nil {
+				parser = parserBash
 			} else if c.bats != nil {
 				parser = parserBats
-			} else if c.bash != nil {
-				parser = parserBash
 			} else if c.mksh != nil {
 				parser = parserMirBSD
+			} else if c.zsh != nil {
+				parser = parserZsh
 			}
 			printTest(t, parser, printer, in, in)
 		})
@@ -1191,14 +1192,15 @@ func TestPrintOptionsNotBroken(t *testing.T) {
 		for _, tc := range append(fileTests, fileTestsNoPrint...) {
 			t.Run("File"+opts.name, func(t *testing.T) {
 				parser := parserPosix
-				if tc.zsh != nil {
-					parser = parserZsh
+				// TODO: consider splitting this into per-language subtests
+				if tc.bash != nil {
+					parser = parserBash
 				} else if tc.bats != nil {
 					parser = parserBats
-				} else if tc.bash != nil {
-					parser = parserBash
 				} else if tc.mksh != nil {
 					parser = parserMirBSD
+				} else if tc.zsh != nil {
+					parser = parserZsh
 				}
 				in := tc.inputs[0]
 				prog, err := parser.Parse(strings.NewReader(in), "")
