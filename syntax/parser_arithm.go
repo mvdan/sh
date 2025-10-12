@@ -18,7 +18,8 @@ func (p *Parser) arithmExprAssign(compact bool) ArithmExpr {
 	value := p.arithmExprTernary(compact)
 	switch BinAritOperator(p.tok) {
 	case AddAssgn, SubAssgn, MulAssgn, QuoAssgn, RemAssgn, AndAssgn,
-		OrAssgn, XorAssgn, ShlAssgn, ShrAssgn, Assgn:
+		OrAssgn, XorAssgn, ShlAssgn, ShrAssgn, Assgn,
+		AndBoolAssgn, OrBoolAssgn, XorBoolAssgn, PowAssgn:
 		if compact && p.spaced {
 			return value
 		}
@@ -83,7 +84,7 @@ func (p *Parser) arithmExprTernary(compact bool) ArithmExpr {
 }
 
 func (p *Parser) arithmExprLor(compact bool) ArithmExpr {
-	return p.arithmExprBinary(compact, p.arithmExprLand, OrArit)
+	return p.arithmExprBinary(compact, p.arithmExprLand, OrArit, XorBool)
 }
 
 func (p *Parser) arithmExprLand(compact bool) ArithmExpr {

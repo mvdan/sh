@@ -703,7 +703,10 @@ func (p *Parser) arithmToken(r rune) token {
 	case '&':
 		switch p.rune() {
 		case '&':
-			p.rune()
+			if p.rune() == '=' && p.lang.is(LangZsh) {
+				p.rune()
+				return andBoolAssgn
+			}
 			return andAnd
 		case '=':
 			p.rune()
@@ -713,7 +716,10 @@ func (p *Parser) arithmToken(r rune) token {
 	case '|':
 		switch p.rune() {
 		case '|':
-			p.rune()
+			if p.rune() == '=' && p.lang.is(LangZsh) {
+				p.rune()
+				return orBoolAssgn
+			}
 			return orOr
 		case '=':
 			p.rune()
@@ -775,7 +781,10 @@ func (p *Parser) arithmToken(r rune) token {
 	case '*':
 		switch p.rune() {
 		case '*':
-			p.rune()
+			if p.rune() == '=' && p.lang.is(LangZsh) {
+				p.rune()
+				return powAssgn
+			}
 			return power
 		case '=':
 			p.rune()
@@ -789,7 +798,14 @@ func (p *Parser) arithmToken(r rune) token {
 		}
 		return slash
 	case '^':
-		if p.rune() == '=' {
+		switch p.rune() {
+		case '^':
+			if p.rune() == '=' && p.lang.is(LangZsh) {
+				p.rune()
+				return xorBoolAssgn
+			}
+			return dblCaret
+		case '=':
 			p.rune()
 			return xorAssgn
 		}

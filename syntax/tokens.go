@@ -61,16 +61,20 @@ const (
 	lequal   // <=
 	gequal   // >=
 
-	addAssgn // +=
-	subAssgn // -=
-	mulAssgn // *=
-	quoAssgn // /=
-	remAssgn // %=
-	andAssgn // &=
-	orAssgn  // |=
-	xorAssgn // ^=
-	shlAssgn // <<=
-	shrAssgn // >>=
+	addAssgn     // +=
+	subAssgn     // -=
+	mulAssgn     // *=
+	quoAssgn     // /=
+	remAssgn     // %=
+	andAssgn     // &=
+	orAssgn      // |=
+	xorAssgn     // ^=
+	shlAssgn     // <<=
+	shrAssgn     // >>=
+	andBoolAssgn // &&=
+	orBoolAssgn  // ||=
+	xorBoolAssgn // ^^=
+	powAssgn     // **=
 
 	rdrOut   // >
 	appOut   // >>
@@ -265,23 +269,30 @@ const (
 	Shr = BinAritOperator(appOut) // >>
 	Shl = BinAritOperator(hdoc)   // <<
 
-	AndArit   = BinAritOperator(andAnd) // &&
-	OrArit    = BinAritOperator(orOr)   // ||
-	Comma     = BinAritOperator(comma)  // ,
-	TernQuest = BinAritOperator(quest)  // ?
-	TernColon = BinAritOperator(colon)  // :
+	// TODO: use "Bool" consistently for logical operators like AndArit and OrArit; use //go:fix inline?
 
-	Assgn    = BinAritOperator(assgn)    // =
-	AddAssgn = BinAritOperator(addAssgn) // +=
-	SubAssgn = BinAritOperator(subAssgn) // -=
-	MulAssgn = BinAritOperator(mulAssgn) // *=
-	QuoAssgn = BinAritOperator(quoAssgn) // /=
-	RemAssgn = BinAritOperator(remAssgn) // %=
-	AndAssgn = BinAritOperator(andAssgn) // &=
-	OrAssgn  = BinAritOperator(orAssgn)  // |=
-	XorAssgn = BinAritOperator(xorAssgn) // ^=
-	ShlAssgn = BinAritOperator(shlAssgn) // <<=
-	ShrAssgn = BinAritOperator(shrAssgn) // >>=
+	AndArit   = BinAritOperator(andAnd)   // &&
+	OrArit    = BinAritOperator(orOr)     // ||
+	XorBool   = BinAritOperator(dblCaret) // ^^
+	Comma     = BinAritOperator(comma)    // ,
+	TernQuest = BinAritOperator(quest)    // ?
+	TernColon = BinAritOperator(colon)    // :
+
+	Assgn        = BinAritOperator(assgn)        // =
+	AddAssgn     = BinAritOperator(addAssgn)     // +=
+	SubAssgn     = BinAritOperator(subAssgn)     // -=
+	MulAssgn     = BinAritOperator(mulAssgn)     // *=
+	QuoAssgn     = BinAritOperator(quoAssgn)     // /=
+	RemAssgn     = BinAritOperator(remAssgn)     // %=
+	AndAssgn     = BinAritOperator(andAssgn)     // &=
+	OrAssgn      = BinAritOperator(orAssgn)      // |=
+	XorAssgn     = BinAritOperator(xorAssgn)     // ^=
+	ShlAssgn     = BinAritOperator(shlAssgn)     // <<=
+	ShrAssgn     = BinAritOperator(shrAssgn)     // >>=
+	AndBoolAssgn = BinAritOperator(andBoolAssgn) // &&=
+	OrBoolAssgn  = BinAritOperator(orBoolAssgn)  // ||=
+	XorBoolAssgn = BinAritOperator(xorBoolAssgn) // ^^=
+	PowAssgn     = BinAritOperator(powAssgn)     // **=
 )
 
 type UnTestOperator token

@@ -3002,6 +3002,46 @@ var fileTests = []fileTestCase{
 		})),
 	),
 	fileTest(
+		[]string{"$((a ^^ 2))"},
+		langFile(arithmExp(&BinaryArithm{
+			Op: XorBool,
+			X:  litWord("a"),
+			Y:  litWord("2"),
+		}), LangZsh),
+	),
+	fileTest(
+		[]string{"$((a ^^= 2, b **= 3))"},
+		langFile(arithmExp(&BinaryArithm{
+			Op: Comma,
+			X: &BinaryArithm{
+				Op: XorBoolAssgn,
+				X:  litWord("a"),
+				Y:  litWord("2"),
+			},
+			Y: &BinaryArithm{
+				Op: PowAssgn,
+				X:  litWord("b"),
+				Y:  litWord("3"),
+			},
+		}), LangZsh),
+	),
+	fileTest(
+		[]string{"$((a &&= 2, b ||= 3))"},
+		langFile(arithmExp(&BinaryArithm{
+			Op: Comma,
+			X: &BinaryArithm{
+				Op: AndBoolAssgn,
+				X:  litWord("a"),
+				Y:  litWord("2"),
+			},
+			Y: &BinaryArithm{
+				Op: OrBoolAssgn,
+				X:  litWord("b"),
+				Y:  litWord("3"),
+			},
+		}), LangZsh),
+	),
+	fileTest(
 		[]string{"$((a == b && c > d))"},
 		langFile(arithmExp(&BinaryArithm{
 			Op: AndArit,
