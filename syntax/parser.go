@@ -28,18 +28,20 @@ func KeepComments(enabled bool) ParserOption {
 // parsing shell code. The zero value is [LangBash].
 type LangVariant int
 
-// TODO(v4): the zero value should be left as unset,
-// and the values below should work like a bitset
-// so that [LangVariant.is] can quickly check compatibility for common syntax.
+// TODO(v4): the zero value should be left as an unset and invalid value.
 
 const (
+	// langBashLegacy is what LangBash used to be, when it was zero.
+	// We still support it for the sake of backwards compatibility.
+	langBashLegacy LangVariant = 0
+
 	// LangBash corresponds to the GNU Bash language, as described in its
 	// manual at https://www.gnu.org/software/bash/manual/bash.html.
 	//
 	// We currently follow Bash version 5.2.
 	//
 	// Its string representation is "bash".
-	LangBash LangVariant = iota
+	LangBash LangVariant = 1 << iota
 
 	// LangPOSIX corresponds to the POSIX Shell language, as described at
 	// https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html.
@@ -79,6 +81,8 @@ const (
 // this package.
 func Variant(l LangVariant) ParserOption {
 	switch l {
+	case langBashLegacy:
+		l = LangBash
 	case LangBash, LangPOSIX, LangMirBSDKorn, LangBats:
 	case LangAuto:
 		panic("LangAuto is not supported by the parser at this time")
@@ -90,7 +94,7 @@ func Variant(l LangVariant) ParserOption {
 
 func (l LangVariant) String() string {
 	switch l {
-	case LangBash:
+	case langBashLegacy, LangBash:
 		return "bash"
 	case LangPOSIX:
 		return "posix"
@@ -179,7 +183,9 @@ func RecoverErrors(maximum int) ParserOption {
 
 // NewParser allocates a new [Parser] and applies any number of options.
 func NewParser(options ...ParserOption) *Parser {
-	p := &Parser{}
+	p := &Parser{
+		lang: LangBash,
+	}
 	for _, opt := range options {
 		opt(p)
 	}

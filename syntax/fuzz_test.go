@@ -4,7 +4,6 @@
 package syntax
 
 import (
-	"fmt"
 	"io"
 	"os/exec"
 	"strings"
@@ -29,9 +28,6 @@ func FuzzQuote(f *testing.F) {
 	f.Add("invalid-\xe2'", uint8(LangBash))
 	f.Add("nonprint-\x0b\x1b", uint8(LangBash))
 	f.Fuzz(func(t *testing.T, s string, langVariant uint8) {
-		if langVariant > 3 {
-			t.Skip() // lang variants are 0-3
-		}
 		lang := LangVariant(langVariant)
 		quoted, err := Quote(s, lang)
 		if err != nil {
@@ -53,7 +49,7 @@ func FuzzQuote(f *testing.F) {
 		case LangBats:
 			t.Skip() // bats has no shell and its syntax is just bash
 		default:
-			panic(fmt.Sprintf("unknown lang variant: %d", lang))
+			t.Skip() // invalid/unknown lang variant
 		}
 
 		// Verify that our parser ends up with a simple command with one word.
@@ -141,17 +137,17 @@ func FuzzParsePrint(f *testing.F) {
 		singleLine bool,
 		functionNextLine bool,
 	) {
-		if langVariant > 3 {
-			t.Skip() // lang variants are 0-3
+		lang := LangVariant(langVariant)
+		switch lang {
+		case LangBash, LangPOSIX, LangMirBSDKorn, LangBats:
+		default:
+			t.Skip()
 		}
 		if indent > 16 {
 			t.Skip() // more indentation won't really be interesting
 		}
 
-		parser := NewParser()
-		Variant(LangVariant(langVariant))(parser)
-		KeepComments(keepComments)(parser)
-
+		parser := NewParser(Variant(lang), KeepComments(keepComments))
 		prog, err := parser.Parse(strings.NewReader(src), "")
 		if err != nil {
 			t.Skip() // not valid shell syntax
