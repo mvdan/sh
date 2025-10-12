@@ -757,13 +757,10 @@ func (p *Printer) paramExp(pe *ParamExp) {
 		p.wroteIndex(pe.Index)
 		return
 	}
-	if pe.Short { // $var
-		p.w.WriteByte('$')
-		p.writeLit(pe.Param.Value)
-		return
+	p.w.WriteByte('$')
+	if !pe.Short {
+		p.w.WriteByte('{')
 	}
-	// ${var...}
-	p.w.WriteString("${")
 	switch {
 	case pe.Length:
 		p.w.WriteByte('#')
@@ -804,7 +801,9 @@ func (p *Printer) paramExp(pe *ParamExp) {
 			p.word(pe.Exp.Word)
 		}
 	}
-	p.w.WriteByte('}')
+	if !pe.Short {
+		p.w.WriteByte('}')
+	}
 }
 
 func (p *Printer) loop(loop Loop) {

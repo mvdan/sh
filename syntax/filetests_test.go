@@ -2038,6 +2038,7 @@ var fileTests = []fileTestCase{
 			word(litParamExp("3"), lit("0a")),
 			word(litParamExp("_a")),
 		)),
+		langFile(nil, LangZsh), // TODO: $#a parses as ParamExp, but $!a does not
 	),
 	fileTest(
 		[]string{`$`, `$ #`},
@@ -4521,6 +4522,21 @@ var fileTests = []fileTestCase{
 			Plus:  true,
 			Param: lit("foo"),
 		}, LangZsh),
+	),
+	fileTest(
+		[]string{"$+foo $#bar"},
+		langFile(call(
+			word(&ParamExp{
+				Short: true,
+				Plus:  true,
+				Param: lit("foo"),
+			}),
+			word(&ParamExp{
+				Short:  true,
+				Length: true,
+				Param:  lit("bar"),
+			}),
+		), LangZsh),
 	),
 }
 

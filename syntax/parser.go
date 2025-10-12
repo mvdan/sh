@@ -1360,8 +1360,9 @@ func (p *Parser) paramExp() *ParamExp {
 		Dollar: p.pos,
 		Short:  p.tok == dollar,
 	}
-	if !pe.Short {
+	if !pe.Short || p.lang.is(LangZsh) {
 		// Prefixes, like ${#name} to get the length of a variable.
+		// Note that in Zsh, the short form like $#name is allowed too.
 		switch p.r {
 		case '#':
 			if r := p.peek(); r == utf8.RuneSelf || singleRuneParam(r) || paramNameRune(r) {
