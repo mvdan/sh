@@ -33,10 +33,6 @@ type LangVariant int
 // an unsigned integer is clearer, and being agnostic to uint size avoids issues.
 
 const (
-	// langBashLegacy is what [LangBash] used to be, when it was zero.
-	// We still support it for the sake of backwards compatibility.
-	langBashLegacy LangVariant = 0
-
 	// LangBash corresponds to the GNU Bash language, as described in its
 	// manual at https://www.gnu.org/software/bash/manual/bash.html.
 	//
@@ -74,6 +70,10 @@ const (
 	//
 	// At this time, [Variant] does not support LangAuto.
 	LangAuto
+
+	// langBashLegacy is what [LangBash] used to be, when it was zero.
+	// We still support it for the sake of backwards compatibility.
+	langBashLegacy LangVariant = 0
 
 	// langResolvedVariants contains all known variants except [LangAuto],
 	// which is meant to resolve to another variant.
