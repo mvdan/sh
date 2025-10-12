@@ -899,7 +899,7 @@ loop:
 				break loop
 			}
 		case '[', ']':
-			if p.lang.is(langBashLike|LangMirBSDKorn) && p.quote&allArithmExpr != 0 {
+			if p.lang.is(langBashLike|LangMirBSDKorn|LangZsh) && p.quote&allArithmExpr != 0 {
 				break loop
 			}
 			fallthrough
@@ -947,7 +947,7 @@ loop:
 				p.eqlOffs = len(p.litBs) - 1
 			}
 		case '[':
-			if p.lang.is(langBashLike|LangMirBSDKorn) && len(p.litBs) > 1 && p.litBs[0] != '[' {
+			if p.lang.is(langBashLike|LangMirBSDKorn|LangZsh) && len(p.litBs) > 1 && p.litBs[0] != '[' {
 				tok = _Lit
 				break loop
 			}

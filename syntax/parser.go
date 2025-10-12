@@ -1441,7 +1441,7 @@ func (p *Parser) paramExp() *ParamExp {
 	// Index expressions like ${foo[1]}. Note that expansion suffixes can be combined,
 	// like ${foo[@]//replace/with}.
 	if p.r == '[' {
-		p.checkLang(p.nextPos(), langBashLike|LangMirBSDKorn, "arrays")
+		p.checkLang(p.nextPos(), langBashLike|LangMirBSDKorn|LangZsh, "arrays")
 		if !ValidName(pe.Param.Value) {
 			p.posErr(p.nextPos(), "cannot index a special parameter name")
 		}
@@ -1680,7 +1680,7 @@ func (p *Parser) getAssign(needEqual bool) *Assign {
 		return as
 	}
 	if as.Value == nil && p.tok == leftParen {
-		p.checkLang(p.pos, langBashLike|LangMirBSDKorn, "arrays")
+		p.checkLang(p.pos, langBashLike|LangMirBSDKorn|LangZsh, "arrays")
 		if as.Index != nil {
 			p.curErr("arrays cannot be nested")
 		}

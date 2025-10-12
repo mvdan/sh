@@ -1731,7 +1731,7 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"a=(<)",
-		langErr(`1:4: array element values must be words`, LangBash|LangMirBSDKorn),
+		langErr(`1:4: array element values must be words`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"a=([)",
@@ -1804,28 +1804,28 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"a[",
-		langErr(`1:2: [ must be followed by an expression`, LangBash|LangMirBSDKorn),
+		langErr(`1:2: [ must be followed by an expression`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"a[b",
-		langErr(`1:2: reached EOF without matching [ with ]`, LangBash|LangMirBSDKorn),
+		langErr(`1:2: reached EOF without matching [ with ]`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"a[]",
-		langErr(`1:2: [ must be followed by an expression`, LangBash|LangMirBSDKorn),
+		langErr(`1:2: [ must be followed by an expression`, LangBash|LangMirBSDKorn|LangZsh),
 		flipConfirmAll, // is cmd
 	),
 	errCase(
 		"a[[",
-		langErr(`1:3: [ must follow a name`, LangBash|LangMirBSDKorn),
+		langErr(`1:3: [ must follow a name`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"echo $((a[))",
-		langErr(`1:10: [ must be followed by an expression`, LangBash|LangMirBSDKorn),
+		langErr(`1:10: [ must be followed by an expression`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"echo $((a[b))",
-		langErr(`1:10: reached ) without matching [ with ]`, LangBash|LangMirBSDKorn),
+		langErr(`1:10: reached ) without matching [ with ]`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"echo $((a[]))",
@@ -1835,21 +1835,21 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"echo $((x$t[",
-		langErr(`1:12: [ must follow a name`, LangBash|LangMirBSDKorn),
+		langErr(`1:12: [ must follow a name`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"a[1]",
-		langErr(`1:1: "a[b]" must be followed by =`, LangBash|LangMirBSDKorn),
+		langErr(`1:1: "a[b]" must be followed by =`, LangBash|LangMirBSDKorn|LangZsh),
 		flipConfirmAll, // is cmd
 	),
 	errCase(
 		"a[i]+",
-		langErr(`1:1: "a[b]+" must be followed by =`, LangBash|LangMirBSDKorn),
+		langErr(`1:1: "a[b]+" must be followed by =`, LangBash|LangMirBSDKorn|LangZsh),
 		flipConfirmAll, // is cmd
 	),
 	errCase(
 		"a[1]#",
-		langErr(`1:1: "a[b]" must be followed by =`, LangBash|LangMirBSDKorn),
+		langErr(`1:1: "a[b]" must be followed by =`, LangBash|LangMirBSDKorn|LangZsh),
 		flipConfirmAll, // is cmd
 	),
 	errCase(
@@ -1907,15 +1907,15 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"echo ${foo[}",
-		langErr(`1:11: [ must be followed by an expression`, LangBash|LangMirBSDKorn),
+		langErr(`1:11: [ must be followed by an expression`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"echo ${foo]}",
-		langErr(`1:11: not a valid parameter expansion operator: "]"`, LangBash|LangMirBSDKorn),
+		langErr(`1:11: not a valid parameter expansion operator: "]"`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"echo ${foo[]}",
-		langErr(`1:11: [ must be followed by an expression`, LangBash|LangMirBSDKorn),
+		langErr(`1:11: [ must be followed by an expression`, LangBash|LangMirBSDKorn|LangZsh),
 		flipConfirm(LangMirBSDKorn), // wrong?
 	),
 	errCase(
@@ -2059,7 +2059,7 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"foo=(1 2)",
-		langErr(`1:5: arrays are a bash/mksh feature; tried parsing as LANG`, LangPOSIX),
+		langErr(`1:5: arrays are a bash/mksh/zsh feature; tried parsing as LANG`, LangPOSIX),
 	),
 	errCase(
 		"a=$c\n'",
@@ -2085,7 +2085,7 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"echo ${foo[1]}",
-		langErr(`1:11: arrays are a bash/mksh feature; tried parsing as LANG`, LangPOSIX),
+		langErr(`1:11: arrays are a bash/mksh/zsh feature; tried parsing as LANG`, LangPOSIX),
 	),
 	errCase(
 		"echo ${foo/a/b}",

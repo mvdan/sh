@@ -2330,7 +2330,7 @@ var fileTests = []fileTestCase{
 		langFile(&ParamExp{
 			Param: lit("foo"),
 			Index: litWord("1"),
-		}, LangBash|LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{`${foo[-1]}`},
@@ -2340,14 +2340,14 @@ var fileTests = []fileTestCase{
 				Op: Minus,
 				X:  litWord("1"),
 			},
-		}, LangBash|LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{`${foo[@]}`},
 		langFile(&ParamExp{
 			Param: lit("foo"),
 			Index: litWord("@"),
-		}, LangBash|LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{`${foo[*]-etc}`},
@@ -2358,28 +2358,28 @@ var fileTests = []fileTestCase{
 				Op:   DefaultUnset,
 				Word: litWord("etc"),
 			},
-		}, LangBash|LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{`${foo[bar]}`},
 		langFile(&ParamExp{
 			Param: lit("foo"),
 			Index: litWord("bar"),
-		}, LangBash|LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{`${foo[$bar]}`},
 		langFile(&ParamExp{
 			Param: lit("foo"),
 			Index: word(litParamExp("bar")),
-		}, LangBash|LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{`${foo[${bar}]}`},
 		langFile(&ParamExp{
 			Param: lit("foo"),
 			Index: word(&ParamExp{Param: lit("bar")}),
-		}, LangBash|LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{`${foo:1}`, `${foo: 1 }`},
