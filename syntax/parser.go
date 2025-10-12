@@ -1686,7 +1686,7 @@ func (p *Parser) getAssign(needEqual bool) *Assign {
 		}
 		as.Array = &ArrayExpr{Lparen: p.pos}
 		newQuote := p.quote
-		if p.lang.is(langBashLike) {
+		if p.lang.is(langBashLike | LangZsh) {
 			newQuote = arrayElems
 		}
 		old := p.preNested(newQuote)

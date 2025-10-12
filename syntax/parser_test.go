@@ -1735,15 +1735,15 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"a=([)",
-		langErr(`1:4: [ must be followed by an expression`, LangBash),
+		langErr(`1:4: [ must be followed by an expression`, LangBash|LangZsh),
 	),
 	errCase(
 		"a=([i)",
-		langErr(`1:4: reached ) without matching [ with ]`, LangBash),
+		langErr(`1:4: reached ) without matching [ with ]`, LangBash|LangZsh),
 	),
 	errCase(
 		"a=([i])",
-		langErr(`1:4: "[x]" must be followed by =`, LangBash),
+		langErr(`1:4: "[x]" must be followed by =`, LangBash|LangZsh),
 		flipConfirmAll,
 	),
 	errCase(
@@ -1756,7 +1756,7 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"o=([0]=#",
-		langErr(`1:8: array element values must be words`, LangBash),
+		langErr(`1:8: array element values must be words`, LangBash|LangZsh),
 	),
 	errCase(
 		"a[b] ==[",
