@@ -1533,12 +1533,12 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"echo |&",
-		langErr(`1:6: |& must be followed by a statement`, LangBash),
+		langErr(`1:6: |& must be followed by a statement`, LangBash|LangZsh),
 		langErr(`1:6: | must be followed by a statement`, LangPOSIX),
 	),
 	errCase(
 		"|& a",
-		langErr(`1:1: |& is not a valid start for a statement`, LangBash|LangMirBSDKorn),
+		langErr(`1:1: |& is not a valid start for a statement`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"foo |& bar",
@@ -1858,7 +1858,7 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"echo $'",
-		langErr(`1:6: reached EOF without closing quote '`, LangBash|LangMirBSDKorn),
+		langErr(`1:6: reached EOF without closing quote '`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		`echo $"`,

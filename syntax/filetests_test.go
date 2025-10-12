@@ -741,7 +741,7 @@ var fileTests = []fileTestCase{
 			Op: PipeAll,
 			X:  litStmt("foo"),
 			Y:  litStmt("bar"),
-		}, LangBash),
+		}, LangBash|LangZsh),
 		langFile([]*Stmt{
 			{Cmd: litCall("foo"), Coprocess: true},
 			litStmt("bar"),
@@ -3115,30 +3115,30 @@ var fileTests = []fileTestCase{
 	),
 	fileTest(
 		[]string{`$''`},
-		langFile(sglDQuoted(""), LangBash|LangMirBSDKorn),
+		langFile(sglDQuoted(""), LangBash|LangMirBSDKorn|LangZsh),
 		langFile(word(lit("$"), sglQuoted("")), LangPOSIX),
 	),
 	fileTest(
 		[]string{`$""`},
 		langFile(dblDQuoted(), LangBash|LangMirBSDKorn),
-		langFile(word(lit("$"), dblQuoted()), LangPOSIX),
+		langFile(word(lit("$"), dblQuoted()), LangPOSIX|LangZsh),
 	),
 	fileTest(
 		[]string{`$'foo'`},
-		langFile(sglDQuoted("foo"), LangBash|LangMirBSDKorn),
+		langFile(sglDQuoted("foo"), LangBash|LangMirBSDKorn|LangZsh),
 		langFile(word(lit("$"), sglQuoted("foo")), LangPOSIX),
 	),
 	fileTest(
 		[]string{`$'f+oo${'`},
-		langFile(sglDQuoted("f+oo${"), LangBash|LangMirBSDKorn),
+		langFile(sglDQuoted("f+oo${"), LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{"$'foo bar`'"},
-		langFile(sglDQuoted("foo bar`"), LangBash|LangMirBSDKorn),
+		langFile(sglDQuoted("foo bar`"), LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{"$'a ${b} c'"},
-		langFile(sglDQuoted("a ${b} c"), LangBash|LangMirBSDKorn),
+		langFile(sglDQuoted("a ${b} c"), LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{`$"a ${b} c"`},
@@ -3162,7 +3162,7 @@ var fileTests = []fileTestCase{
 	),
 	fileTest(
 		[]string{"$'f\\'oo\n'"},
-		langFile(sglDQuoted("f\\'oo\n"), LangBash|LangMirBSDKorn),
+		langFile(sglDQuoted("f\\'oo\n"), LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{`$"foo"`},
@@ -3179,7 +3179,7 @@ var fileTests = []fileTestCase{
 	),
 	fileTest(
 		[]string{`$'f\'oo'`},
-		langFile(sglDQuoted(`f\'oo`), LangBash|LangMirBSDKorn),
+		langFile(sglDQuoted(`f\'oo`), LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{`$"f\"oo"`},
@@ -4028,7 +4028,7 @@ var fileTests = []fileTestCase{
 				}}}),
 			},
 			litCall("d"),
-		), LangBash|LangMirBSDKorn),
+		), LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{"declare -f $func >/dev/null"},

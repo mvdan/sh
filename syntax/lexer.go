@@ -442,7 +442,7 @@ func (p *Parser) regToken(r rune) token {
 			p.rune()
 			return orOr
 		case '&':
-			if !p.lang.is(langBashLike | LangMirBSDKorn) {
+			if !p.lang.is(langBashLike | LangMirBSDKorn | LangZsh) {
 				break
 			}
 			p.rune()
@@ -452,7 +452,7 @@ func (p *Parser) regToken(r rune) token {
 	case '$':
 		switch p.rune() {
 		case '\'':
-			if !p.lang.is(langBashLike | LangMirBSDKorn) {
+			if !p.lang.is(langBashLike | LangMirBSDKorn | LangZsh) {
 				break
 			}
 			p.rune()
