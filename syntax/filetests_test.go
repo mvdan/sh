@@ -1796,6 +1796,11 @@ var fileTests = []fileTestCase{
 		langFile(litStmt("foo", "}"), LangBash),
 	),
 	fileTest(
+		// TODO: should shfmt lean towards no semicolons in Zsh mode?
+		[]string{"{ foo; }", "{ foo }"},
+		langFile(block(litStmt("foo")), LangZsh),
+	),
+	fileTest(
 		[]string{"$({ foo; })"},
 		langFile(cmdSubst(stmt(
 			block(litStmt("foo")),

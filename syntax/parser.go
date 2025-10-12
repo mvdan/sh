@@ -1020,6 +1020,9 @@ loop:
 					break loop
 				}
 			}
+			if p.val == "}" {
+				p.curErr(`%q can only be used to close a block`, p.val)
+			}
 		case rightParen:
 			if p.quote == subCmd {
 				break loop
@@ -2556,6 +2559,10 @@ loop:
 			// Avoid failing later with the confusing "} can only be used to close a block".
 			if p.val == "{" && w != nil && w.Lit() == "function" {
 				p.checkLang(p.pos, langBashLike, `the "function" builtin`)
+			}
+			// Zsh does not require a semicolon to close a block.
+			if p.lang.is(LangZsh) && p.val == "}" {
+				break loop
 			}
 			ce.Args = append(ce.Args, p.wordOne(p.lit(p.pos, p.val)))
 			p.next()

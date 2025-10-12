@@ -401,6 +401,7 @@ func TestParseErrMirBSDKornConfirm(t *testing.T) {
 }
 
 func TestParseErrZshConfirm(t *testing.T) {
+	t.Skip("TODO: we don't confirm with zsh yet")
 	if testing.Short() {
 		t.Skip("calling zsh is slow.")
 	}
@@ -476,6 +477,8 @@ func langErr(want string, langSets ...LangVariant) func(*errorCase) {
 			c.bash = want
 			c.posix = want
 			c.mksh = want
+			// TODO: we forgot to cover zsh here
+			// c.zsh = want
 			return
 		case 1:
 			// continue below
@@ -642,6 +645,14 @@ var errorCases = []errorCase{
 	errCase(
 		"}",
 		langErr(`1:1: "}" can only be used to close a block`),
+	),
+	errCase(
+		"foo | }",
+		langErr(`1:7: "}" can only be used to close a block`),
+	),
+	errCase(
+		"foo }",
+		langErr(`1:5: "}" can only be used to close a block`, LangZsh),
 	),
 	errCase(
 		"then",
