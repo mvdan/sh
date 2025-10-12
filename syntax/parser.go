@@ -1350,10 +1350,15 @@ func (p *Parser) paramExp() *ParamExp {
 		// POSIX Shell says the latter is unspecified behavior, so match Bash's behavior.
 		pos := p.nextPos()
 		if pe.Short && singleRuneParam(p.r) {
-			p.tok, p.val = _LitWord, string(p.r)
+			p.val = string(p.r)
 			p.rune()
 		} else {
-			p.advanceParamNameCont(p.r)
+			for p.newLit(p.r); p.r != utf8.RuneSelf; p.rune() {
+				if !paramNameRune(p.r) && p.r != escNewl {
+					break
+				}
+			}
+			p.val = p.endLit()
 			if !numberLiteral(p.val) && !ValidName(p.val) {
 				if pe.Short {
 					p.quote = old
@@ -1362,6 +1367,8 @@ func (p *Parser) paramExp() *ParamExp {
 				p.posErr(pos, "invalid parameter name")
 			}
 		}
+		// TODO: unclear why we need to set LitWord here for the syntax tree to be correct
+		p.tok = _LitWord
 		pe.Param = p.lit(pos, p.val)
 	}
 	// In short mode, any indexing or suffixes is not allowed, and we don't require '}'.
@@ -1383,19 +1390,19 @@ func (p *Parser) paramExp() *ParamExp {
 		p.rune()
 		pe.Index = p.eitherIndex()
 	}
-	if p.r == '}' {
-		pe.Rbrace = p.nextPos()
+	tokRune := p.r
+	p.pos = p.nextPos()
+	p.tok = p.paramToken(p.r)
+	if p.tok == rightBrace {
+		pe.Rbrace = p.pos
 		p.quote = old
-		p.rune()
 		p.next()
 		return pe
 	}
-	if p.r != utf8.RuneSelf && (pe.Length || pe.Width) {
-		p.posErr(p.nextPos(), "cannot combine multiple parameter expansion operators")
+	if p.tok != _EOF && (pe.Length || pe.Width) {
+		p.curErr("cannot combine multiple parameter expansion operators")
 	}
-	p.pos = p.nextPos()
-	op := p.r
-	switch p.tok = p.paramToken(p.r); p.tok {
+	switch p.tok {
 	case slash, dblSlash: // pattern search and replace
 		if p.lang == LangPOSIX {
 			p.langErr(p.pos, "search and replace", LangBash, LangMirBSDKorn)
@@ -1438,7 +1445,7 @@ func (p *Parser) paramExp() *ParamExp {
 		case p.tok == at && p.lang == LangPOSIX:
 			p.langErr(p.pos, "this expansion operator", LangBash, LangMirBSDKorn)
 		case p.tok == star && !pe.Excl:
-			p.posErr(p.pos, "not a valid parameter expansion operator: %q", p.tok)
+			p.curErr("not a valid parameter expansion operator: %q", p.tok)
 		case pe.Excl && p.r == '}':
 			if !p.lang.isBash() {
 				p.langErr(pe.Pos(), fmt.Sprintf(`"${!foo%s}"`, p.tok), LangBash)
@@ -1454,9 +1461,9 @@ func (p *Parser) paramExp() *ParamExp {
 	case _EOF:
 	default:
 		if paramNameRune(p.r) {
-			p.posErr(p.nextPos(), "%q cannot be followed by a word", pe.Param.Value)
+			p.curErr("%q cannot be followed by a word", pe.Param.Value)
 		} else {
-			p.posErr(p.pos, "not a valid parameter expansion operator: %q", string(op))
+			p.curErr("not a valid parameter expansion operator: %q", string(tokRune))
 		}
 	}
 	if p.tok != _EOF && p.tok != rightBrace {

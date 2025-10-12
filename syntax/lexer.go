@@ -882,15 +882,6 @@ func paramNameRune[T rune | byte](r T) bool {
 	return true
 }
 
-func (p *Parser) advanceParamNameCont(r rune) {
-	for p.newLit(r); r != utf8.RuneSelf; r = p.rune() {
-		if !paramNameRune(r) && r != escNewl {
-			break
-		}
-	}
-	p.tok, p.val = _LitWord, p.endLit()
-}
-
 func (p *Parser) advanceLitOther(r rune) {
 	tok := _LitWord
 loop:
