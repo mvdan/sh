@@ -1782,15 +1782,23 @@ var fileTests = []fileTestCase{
 		)),
 	),
 	fileTest(
-		[]string{"{ echo } }; }"},
-		langFile(block(litStmt("echo", "}", "}"))),
+		[]string{"{ foo } }; }"},
+		langFile(block(litStmt("foo", "}", "}"))),
 		// TODO: turn these nil files into error tests
 		langFile(nil, LangZsh),
 	),
 	fileTest(
-		[]string{"$({ echo; })"},
+		[]string{"foo {"},
+		langFile(litStmt("foo", "{")),
+	),
+	fileTest(
+		[]string{"foo }"},
+		langFile(litStmt("foo", "}"), LangBash),
+	),
+	fileTest(
+		[]string{"$({ foo; })"},
 		langFile(cmdSubst(stmt(
-			block(litStmt("echo")),
+			block(litStmt("foo")),
 		))),
 	),
 	fileTest(
