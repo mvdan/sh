@@ -442,7 +442,7 @@ func (p *Parser) regToken(r rune) token {
 			p.rune()
 			return orOr
 		case '&':
-			if p.lang == LangPOSIX {
+			if !p.lang.isAny(LangBash, LangMirBSDKorn) {
 				break
 			}
 			p.rune()
@@ -452,13 +452,13 @@ func (p *Parser) regToken(r rune) token {
 	case '$':
 		switch p.rune() {
 		case '\'':
-			if p.lang == LangPOSIX {
+			if !p.lang.isAny(LangBash, LangMirBSDKorn) {
 				break
 			}
 			p.rune()
 			return dollSglQuote
 		case '"':
-			if p.lang == LangPOSIX {
+			if !p.lang.isAny(LangBash, LangMirBSDKorn) {
 				break
 			}
 			p.rune()
@@ -482,7 +482,7 @@ func (p *Parser) regToken(r rune) token {
 		}
 		return dollar
 	case '(':
-		if p.rune() == '(' && p.lang != LangPOSIX && p.quote != testExpr {
+		if p.rune() == '(' && p.lang.isAny(LangBash, LangMirBSDKorn) && p.quote != testExpr {
 			p.rune()
 			return dblLeftParen
 		}
@@ -499,13 +499,13 @@ func (p *Parser) regToken(r rune) token {
 			}
 			return dblSemicolon
 		case '&':
-			if p.lang == LangPOSIX {
+			if !p.lang.isAny(LangBash, LangMirBSDKorn) {
 				break
 			}
 			p.rune()
 			return semiAnd
 		case '|':
-			if p.lang != LangMirBSDKorn {
+			if !p.lang.is(LangMirBSDKorn) {
 				break
 			}
 			p.rune()
@@ -899,7 +899,7 @@ loop:
 				break loop
 			}
 		case '[', ']':
-			if p.lang != LangPOSIX && p.quote&allArithmExpr != 0 {
+			if p.lang.isAny(LangBash, LangMirBSDKorn) && p.quote&allArithmExpr != 0 {
 				break loop
 			}
 			fallthrough
@@ -947,7 +947,7 @@ loop:
 				p.eqlOffs = len(p.litBs) - 1
 			}
 		case '[':
-			if p.lang != LangPOSIX && len(p.litBs) > 1 && p.litBs[0] != '[' {
+			if p.lang.isAny(LangBash, LangMirBSDKorn) && len(p.litBs) > 1 && p.litBs[0] != '[' {
 				tok = _Lit
 				break loop
 			}

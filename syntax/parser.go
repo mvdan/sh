@@ -30,7 +30,7 @@ type LangVariant int
 
 // TODO(v4): the zero value should be left as unset,
 // and the values below should work like a bitset
-// so that we can quickly check compatibility for common syntax.
+// so that [LangVariant.is] can quickly check compatibility for common syntax.
 
 const (
 	// LangBash corresponds to the GNU Bash language, as described in its
@@ -128,6 +128,10 @@ func (l LangVariant) is(l2 LangVariant) bool {
 		return true
 	}
 	return l == l2
+}
+
+func (l LangVariant) isAny(langs ...LangVariant) bool {
+	return slices.ContainsFunc(langs, l.is)
 }
 
 // StopAt configures the lexer to stop at an arbitrary word, treating it
@@ -946,7 +950,7 @@ func (p *Parser) curErr(format string, a ...any) {
 }
 
 func (p *Parser) checkLang(pos Pos, feature string, langs ...LangVariant) {
-	if slices.ContainsFunc(langs, p.lang.is) {
+	if p.lang.isAny(langs...) {
 		return
 	}
 	p.errPass(LangError{
@@ -1563,7 +1567,7 @@ func (p *Parser) hasValidIdent() bool {
 		return false
 	}
 	if end := p.eqlOffs; end > 0 {
-		if p.val[end-1] == '+' && p.lang != LangPOSIX {
+		if p.val[end-1] == '+' && p.lang.isAny(LangBash, LangMirBSDKorn) {
 			end-- // a+=x
 		}
 		if ValidName(p.val[:end]) {
@@ -1579,7 +1583,7 @@ func (p *Parser) getAssign(needEqual bool) *Assign {
 	as := &Assign{}
 	if p.eqlOffs > 0 { // foo=bar
 		nameEnd := p.eqlOffs
-		if p.lang != LangPOSIX && p.val[p.eqlOffs-1] == '+' {
+		if p.lang.isAny(LangBash, LangMirBSDKorn) && p.val[p.eqlOffs-1] == '+' {
 			// a+=b
 			as.Append = true
 			nameEnd--
@@ -1844,19 +1848,19 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 				break
 			}
 		case "[[":
-			if p.lang != LangPOSIX {
+			if p.lang.isAny(LangBash, LangMirBSDKorn) {
 				p.testClause(s)
 			}
 		case "]]":
-			if p.lang != LangPOSIX {
+			if p.lang.isAny(LangBash, LangMirBSDKorn) {
 				p.curErr(`%q can only be used to close a test`, p.val)
 			}
 		case "let":
-			if p.lang != LangPOSIX {
+			if p.lang.isAny(LangBash, LangMirBSDKorn) {
 				p.letClause(s)
 			}
 		case "function":
-			if p.lang != LangPOSIX {
+			if p.lang.isAny(LangBash, LangMirBSDKorn) {
 				p.bashFuncDecl(s)
 			}
 		case "declare":
@@ -1864,11 +1868,11 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 				p.declClause(s)
 			}
 		case "local", "export", "readonly", "typeset", "nameref":
-			if p.lang != LangPOSIX {
+			if p.lang.isAny(LangBash, LangMirBSDKorn) {
 				p.declClause(s)
 			}
 		case "time":
-			if p.lang != LangPOSIX {
+			if p.lang.isAny(LangBash, LangMirBSDKorn) {
 				p.timeClause(s)
 			}
 		case "coproc":
@@ -1876,7 +1880,7 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 				p.coprocClause(s)
 			}
 		case "select":
-			if p.lang != LangPOSIX {
+			if p.lang.isAny(LangBash, LangMirBSDKorn) {
 				p.selectClause(s)
 			}
 		case "@test":
@@ -1894,7 +1898,7 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 		name := p.lit(p.pos, p.val)
 		if p.next(); p.got(leftParen) {
 			p.follow(name.ValuePos, "foo(", rightParen)
-			if p.lang == LangPOSIX && !ValidName(name.Value) {
+			if p.lang.is(LangPOSIX) && !ValidName(name.Value) {
 				p.posErr(name.Pos(), "invalid func name")
 			}
 			p.funcDecl(s, name, name.ValuePos, true)
