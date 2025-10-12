@@ -117,17 +117,24 @@ func fileTest(in []string, opts ...func(*fileTestCase)) fileTestCase {
 	return c
 }
 
-func langFile(want any, variants ...LangVariant) func(*fileTestCase) {
+func langFile(want any, langSets ...LangVariant) func(*fileTestCase) {
 	return func(c *fileTestCase) {
 		file := fullProg(want)
-		if len(variants) == 0 {
+		// The parameter is a slice to allow omitting the argument.
+		switch len(langSets) {
+		case 0:
 			c.bash = file
 			c.posix = file
 			c.mksh = file
 			c.bats = file
+			return
+		case 1:
+			// continue below
+		default:
+			panic("use a LangVariant bitset")
 		}
-		for _, v := range variants {
-			switch v {
+		for lang := range langSets[0].bits() {
+			switch lang {
 			case LangBash:
 				c.bash = file
 				c.bats = file // bats is extremely similar to bash
@@ -138,7 +145,7 @@ func langFile(want any, variants ...LangVariant) func(*fileTestCase) {
 			case LangBats:
 				c.bats = file
 			default:
-				panic(fmt.Sprintf("unsupported LangVariant: %q", v))
+				panic(fmt.Sprintf("unsupported LangVariant: %#b", lang))
 			}
 		}
 	}
@@ -301,7 +308,7 @@ var fileTests = []fileTestCase{
 			Op: Eql,
 			X:  litWord("a"),
 			Y:  litWord("2"),
-		}), LangBash, LangMirBSDKorn),
+		}), LangBash|LangMirBSDKorn),
 		langFile(subshell(stmt(subshell(litStmt("a", "==", "2")))), LangPOSIX),
 	),
 	fileTest(
@@ -313,7 +320,7 @@ var fileTests = []fileTestCase{
 				Y:  litWord("2"),
 			})),
 			Then: litStmts("b"),
-		}, LangBash, LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{
@@ -324,7 +331,7 @@ var fileTests = []fileTestCase{
 			Op: Gtr,
 			X:  word(cmdSubst(litStmt("date", "-u"))),
 			Y:  litWord("DATE"),
-		}), LangBash, LangMirBSDKorn),
+		}), LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{": $((0x$foo == 10))"},
@@ -361,7 +368,7 @@ var fileTests = []fileTestCase{
 	),
 	fileTest(
 		[]string{"((3#20))"},
-		langFile(arithmCmd(litWord("3#20")), LangBash, LangMirBSDKorn),
+		langFile(arithmCmd(litWord("3#20")), LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{
@@ -399,7 +406,7 @@ var fileTests = []fileTestCase{
 				Y:  litWord("2"),
 			})),
 			Do: litStmts("b"),
-		}, LangBash, LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{"until a; do b; done", "until a\ndo\nb\ndone"},
@@ -464,7 +471,7 @@ var fileTests = []fileTestCase{
 		langFile(&ForClause{
 			Loop: &WordIter{Name: lit("i")},
 			Do:   litStmts("foo"),
-		}, LangBash, LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{
@@ -480,7 +487,7 @@ var fileTests = []fileTestCase{
 				litWord("echo"),
 				word(litParamExp("i")),
 			)),
-		}, LangBash, LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{
@@ -549,7 +556,7 @@ var fileTests = []fileTestCase{
 			Select: true,
 			Loop:   &WordIter{Name: lit("i")},
 			Do:     litStmts("foo"),
-		}, LangBash, LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{
@@ -567,7 +574,7 @@ var fileTests = []fileTestCase{
 				litWord("echo"),
 				word(litParamExp("i")),
 			)),
-		}, LangBash, LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{"select foo bar"},
@@ -773,7 +780,7 @@ var fileTests = []fileTestCase{
 			Parens: true,
 			Name:   lit("-foo_.,+-bar"),
 			Body:   stmt(block(litStmt("a"))),
-		}, LangBash, LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{
@@ -785,7 +792,7 @@ var fileTests = []fileTestCase{
 			Parens:   true,
 			Name:     lit("foo"),
 			Body:     stmt(block(litStmt("a"), litStmt("b"))),
-		}, LangBash, LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{
@@ -796,7 +803,7 @@ var fileTests = []fileTestCase{
 			RsrvWord: true,
 			Name:     lit("foo"),
 			Body:     stmt(block(litStmt("a"), litStmt("b"))),
-		}, LangBash, LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{"function foo() (a)"},
@@ -1235,7 +1242,7 @@ var fileTests = []fileTestCase{
 				Word: litWord("EOF"),
 				Hdoc: litWord("bar\n"),
 			}},
-		}, LangBash, LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{
@@ -1562,7 +1569,7 @@ var fileTests = []fileTestCase{
 				{Op: RdrAll, Word: litWord("a")},
 				{Op: AppAll, Word: litWord("b")},
 			},
-		}, LangBash, LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{"foo 2>file bar", "2>file foo bar"},
@@ -1606,7 +1613,7 @@ var fileTests = []fileTestCase{
 				Op:   WordHdoc,
 				Word: litWord("input"),
 			}},
-		}, LangBash, LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{
@@ -1619,7 +1626,7 @@ var fileTests = []fileTestCase{
 				Op:   WordHdoc,
 				Word: word(dblQuoted(lit("spaced input"))),
 			}},
-		}, LangBash, LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{"foo >(foo)"},
@@ -1973,28 +1980,28 @@ var fileTests = []fileTestCase{
 		langFile(&CmdSubst{
 			Stmts:    litStmts("foo"),
 			TempFile: true,
-		}, LangBash, LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{"${\n\tfoo\n\tbar\n}", "${ foo; bar;}"},
 		langFile(&CmdSubst{
 			Stmts:    litStmts("foo", "bar"),
 			TempFile: true,
-		}, LangBash, LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{"${|foo;}", "${| foo; }"},
 		langFile(&CmdSubst{
 			Stmts:    litStmts("foo"),
 			ReplyVar: true,
-		}, LangBash, LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{"${|\n\tfoo\n\tbar\n}", "${|foo; bar;}"},
 		langFile(&CmdSubst{
 			Stmts:    litStmts("foo", "bar"),
 			ReplyVar: true,
-		}, LangBash, LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{`"$foo"`},
@@ -2238,7 +2245,7 @@ var fileTests = []fileTestCase{
 				Orig: word(sglQuoted("a")),
 				With: word(lit("b"), sglQuoted("c"), lit("d")),
 			},
-		}, LangBash, LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{`${foo%bar}${foo%%bar*}`},
@@ -2296,7 +2303,7 @@ var fileTests = []fileTestCase{
 		langFile(&ParamExp{
 			Param: lit("foo"),
 			Index: litWord("1"),
-		}, LangBash, LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{`${foo[-1]}`},
@@ -2306,14 +2313,14 @@ var fileTests = []fileTestCase{
 				Op: Minus,
 				X:  litWord("1"),
 			},
-		}, LangBash, LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{`${foo[@]}`},
 		langFile(&ParamExp{
 			Param: lit("foo"),
 			Index: litWord("@"),
-		}, LangBash, LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{`${foo[*]-etc}`},
@@ -2324,35 +2331,35 @@ var fileTests = []fileTestCase{
 				Op:   DefaultUnset,
 				Word: litWord("etc"),
 			},
-		}, LangBash, LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{`${foo[bar]}`},
 		langFile(&ParamExp{
 			Param: lit("foo"),
 			Index: litWord("bar"),
-		}, LangBash, LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{`${foo[$bar]}`},
 		langFile(&ParamExp{
 			Param: lit("foo"),
 			Index: word(litParamExp("bar")),
-		}, LangBash, LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{`${foo[${bar}]}`},
 		langFile(&ParamExp{
 			Param: lit("foo"),
 			Index: word(&ParamExp{Param: lit("bar")}),
-		}, LangBash, LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{`${foo:1}`, `${foo: 1 }`},
 		langFile(&ParamExp{
 			Param: lit("foo"),
 			Slice: &Slice{Offset: litWord("1")},
-		}, LangBash, LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{`${foo:1:2}`, `${foo: 1 : 2 }`},
@@ -2362,7 +2369,7 @@ var fileTests = []fileTestCase{
 				Offset: litWord("1"),
 				Length: litWord("2"),
 			},
-		}, LangBash, LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{`${foo:a:b}`},
@@ -2372,7 +2379,7 @@ var fileTests = []fileTestCase{
 				Offset: litWord("a"),
 				Length: litWord("b"),
 			},
-		}, LangBash, LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{`${foo:1:-2}`},
@@ -2382,7 +2389,7 @@ var fileTests = []fileTestCase{
 				Offset: litWord("1"),
 				Length: &UnaryArithm{Op: Minus, X: litWord("2")},
 			},
-		}, LangBash, LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{`${foo::+3}`},
@@ -2391,7 +2398,7 @@ var fileTests = []fileTestCase{
 			Slice: &Slice{
 				Length: &UnaryArithm{Op: Plus, X: litWord("3")},
 			},
-		}, LangBash, LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{`${foo: -1}`},
@@ -2400,7 +2407,7 @@ var fileTests = []fileTestCase{
 			Slice: &Slice{
 				Offset: &UnaryArithm{Op: Minus, X: litWord("1")},
 			},
-		}, LangBash, LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{`${foo: +2+3}`},
@@ -2413,7 +2420,7 @@ var fileTests = []fileTestCase{
 					Y:  litWord("3"),
 				},
 			},
-		}, LangBash, LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{`${foo:a?1:2:3}`},
@@ -2431,28 +2438,28 @@ var fileTests = []fileTestCase{
 				},
 				Length: litWord("3"),
 			},
-		}, LangBash, LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{`${foo/a/b}`},
 		langFile(&ParamExp{
 			Param: lit("foo"),
 			Repl:  &Replace{Orig: litWord("a"), With: litWord("b")},
-		}, LangBash, LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{"${foo/ /\t}"},
 		langFile(&ParamExp{
 			Param: lit("foo"),
 			Repl:  &Replace{Orig: litWord(" "), With: litWord("\t")},
-		}, LangBash, LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{`${foo/[/]-}`},
 		langFile(&ParamExp{
 			Param: lit("foo"),
 			Repl:  &Replace{Orig: litWord("["), With: litWord("]-")},
-		}, LangBash, LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{`${foo/bar/b/a/r}`},
@@ -2462,7 +2469,7 @@ var fileTests = []fileTestCase{
 				Orig: litWord("bar"),
 				With: litWord("b/a/r"),
 			},
-		}, LangBash, LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{`${foo/$a/$'\''}`},
@@ -2472,7 +2479,7 @@ var fileTests = []fileTestCase{
 				Orig: word(litParamExp("a")),
 				With: word(sglDQuoted(`\'`)),
 			},
-		}, LangBash, LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{`${foo//b1/b2}`},
@@ -2483,35 +2490,35 @@ var fileTests = []fileTestCase{
 				Orig: litWord("b1"),
 				With: litWord("b2"),
 			},
-		}, LangBash, LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{`${foo///}`, `${foo//}`},
 		langFile(&ParamExp{
 			Param: lit("foo"),
 			Repl:  &Replace{All: true},
-		}, LangBash, LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{`${foo/-//}`},
 		langFile(&ParamExp{
 			Param: lit("foo"),
 			Repl:  &Replace{Orig: litWord("-"), With: litWord("/")},
-		}, LangBash, LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{`${foo//#/}`, `${foo//#}`},
 		langFile(&ParamExp{
 			Param: lit("foo"),
 			Repl:  &Replace{All: true, Orig: litWord("#")},
-		}, LangBash, LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{`${foo//[42]/}`},
 		langFile(&ParamExp{
 			Param: lit("foo"),
 			Repl:  &Replace{All: true, Orig: litWord("[42]")},
-		}, LangBash, LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{`${a^b} ${a^^b} ${a,b} ${a,,b}`},
@@ -2644,7 +2651,7 @@ var fileTests = []fileTestCase{
 				Param: lit("bar"),
 				Index: litWord("@"),
 			}),
-		), LangBash, LangMirBSDKorn),
+		), LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{`${!foo*} ${!bar@}`},
@@ -2752,7 +2759,7 @@ var fileTests = []fileTestCase{
 				Param: lit("arr"),
 				Index: litWord("0"),
 			}),
-		}), LangBash, LangMirBSDKorn),
+		}), LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{`$((++arr[0]))`},
@@ -2763,7 +2770,7 @@ var fileTests = []fileTestCase{
 				Param: lit("arr"),
 				Index: litWord("0"),
 			}),
-		}), LangBash, LangMirBSDKorn),
+		}), LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{`$((${a:-1}))`},
@@ -2773,7 +2780,7 @@ var fileTests = []fileTestCase{
 				Op:   DefaultUnsetOrNull,
 				Word: litWord("1"),
 			},
-		})), LangBash, LangMirBSDKorn),
+		})), LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{"$((5 * 2 - 1))", "$((5*2-1))"},
@@ -2932,7 +2939,7 @@ var fileTests = []fileTestCase{
 				Index: litWord("i"),
 			}),
 			Y: litWord("4"),
-		}), LangBash, LangMirBSDKorn),
+		}), LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{"$((a += 2, b -= 3))"},
@@ -3080,30 +3087,30 @@ var fileTests = []fileTestCase{
 	),
 	fileTest(
 		[]string{`$''`},
-		langFile(sglDQuoted(""), LangBash, LangMirBSDKorn),
+		langFile(sglDQuoted(""), LangBash|LangMirBSDKorn),
 		langFile(word(lit("$"), sglQuoted("")), LangPOSIX),
 	),
 	fileTest(
 		[]string{`$""`},
-		langFile(dblDQuoted(), LangBash, LangMirBSDKorn),
+		langFile(dblDQuoted(), LangBash|LangMirBSDKorn),
 		langFile(word(lit("$"), dblQuoted()), LangPOSIX),
 	),
 	fileTest(
 		[]string{`$'foo'`},
-		langFile(sglDQuoted("foo"), LangBash, LangMirBSDKorn),
+		langFile(sglDQuoted("foo"), LangBash|LangMirBSDKorn),
 		langFile(word(lit("$"), sglQuoted("foo")), LangPOSIX),
 	),
 	fileTest(
 		[]string{`$'f+oo${'`},
-		langFile(sglDQuoted("f+oo${"), LangBash, LangMirBSDKorn),
+		langFile(sglDQuoted("f+oo${"), LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{"$'foo bar`'"},
-		langFile(sglDQuoted("foo bar`"), LangBash, LangMirBSDKorn),
+		langFile(sglDQuoted("foo bar`"), LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{"$'a ${b} c'"},
-		langFile(sglDQuoted("a ${b} c"), LangBash, LangMirBSDKorn),
+		langFile(sglDQuoted("a ${b} c"), LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{`$"a ${b} c"`},
@@ -3111,7 +3118,7 @@ var fileTests = []fileTestCase{
 			lit("a "),
 			&ParamExp{Param: lit("b")},
 			lit(" c"),
-		), LangBash, LangMirBSDKorn),
+		), LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{`"a $b c"`},
@@ -3123,32 +3130,32 @@ var fileTests = []fileTestCase{
 			lit("a "),
 			litParamExp("b"),
 			lit(" c"),
-		), LangBash, LangMirBSDKorn),
+		), LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{"$'f\\'oo\n'"},
-		langFile(sglDQuoted("f\\'oo\n"), LangBash, LangMirBSDKorn),
+		langFile(sglDQuoted("f\\'oo\n"), LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{`$"foo"`},
-		langFile(dblDQuoted(lit("foo")), LangBash, LangMirBSDKorn),
+		langFile(dblDQuoted(lit("foo")), LangBash|LangMirBSDKorn),
 		langFile(word(lit("$"), dblQuoted(lit("foo"))), LangPOSIX),
 	),
 	fileTest(
 		[]string{`$"foo$"`},
-		langFile(dblDQuoted(lit("foo"), lit("$")), LangBash, LangMirBSDKorn),
+		langFile(dblDQuoted(lit("foo"), lit("$")), LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{`$"foo bar"`},
-		langFile(dblDQuoted(lit("foo bar")), LangBash, LangMirBSDKorn),
+		langFile(dblDQuoted(lit("foo bar")), LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{`$'f\'oo'`},
-		langFile(sglDQuoted(`f\'oo`), LangBash, LangMirBSDKorn),
+		langFile(sglDQuoted(`f\'oo`), LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{`$"f\"oo"`},
-		langFile(dblDQuoted(lit(`f\"oo`)), LangBash, LangMirBSDKorn),
+		langFile(dblDQuoted(lit(`f\"oo`)), LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{`"foo$"`},
@@ -3240,7 +3247,7 @@ var fileTests = []fileTestCase{
 				},
 				{Op: Break, Patterns: litWords("2")},
 			},
-		}, LangBash, LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{
@@ -3448,7 +3455,7 @@ var fileTests = []fileTestCase{
 	),
 	fileTest(
 		[]string{"[[ a ]]"},
-		langFile(&TestClause{X: litWord("a")}, LangBash, LangMirBSDKorn),
+		langFile(&TestClause{X: litWord("a")}, LangBash|LangMirBSDKorn),
 		langFile(litStmt("[[", "a", "]]"), LangPOSIX),
 	),
 	fileTest(
@@ -3456,7 +3463,7 @@ var fileTests = []fileTestCase{
 		langFile(stmts(
 			&TestClause{X: litWord("a")},
 			litCall("b"),
-		), LangBash, LangMirBSDKorn),
+		), LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{"[[ a > b ]]"},
@@ -3464,7 +3471,7 @@ var fileTests = []fileTestCase{
 			Op: TsAfter,
 			X:  litWord("a"),
 			Y:  litWord("b"),
-		}}, LangBash, LangMirBSDKorn),
+		}}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{"[[ 1 -nt 2 ]]"},
@@ -3472,7 +3479,7 @@ var fileTests = []fileTestCase{
 			Op: TsNewer,
 			X:  litWord("1"),
 			Y:  litWord("2"),
-		}}, LangBash, LangMirBSDKorn),
+		}}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{"[[ 1 -eq 2 ]]"},
@@ -3480,7 +3487,7 @@ var fileTests = []fileTestCase{
 			Op: TsEql,
 			X:  litWord("1"),
 			Y:  litWord("2"),
-		}}, LangBash, LangMirBSDKorn),
+		}}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{
@@ -3560,7 +3567,7 @@ var fileTests = []fileTestCase{
 			Op: TsMatch,
 			X:  litWord("a"),
 			Y:  litWord("-n"),
-		}}, LangBash, LangMirBSDKorn),
+		}}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{`[[ a =~ -n ]]`},
@@ -3590,7 +3597,7 @@ var fileTests = []fileTestCase{
 		[]string{"[[ -n $a ]]"},
 		langFile(&TestClause{
 			X: &UnaryTest{Op: TsNempStr, X: word(litParamExp("a"))},
-		}, LangBash, LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{"[[ ! $a < 'b' ]]"},
@@ -3601,7 +3608,7 @@ var fileTests = []fileTestCase{
 				X:  word(litParamExp("a")),
 				Y:  word(sglQuoted("b")),
 			},
-		}}, LangBash, LangMirBSDKorn),
+		}}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{
@@ -3612,7 +3619,7 @@ var fileTests = []fileTestCase{
 		langFile(&TestClause{X: &UnaryTest{
 			Op: TsNot,
 			X:  &UnaryTest{Op: TsExists, X: word(litParamExp("a"))},
-		}}, LangBash, LangMirBSDKorn),
+		}}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{
@@ -3624,7 +3631,7 @@ var fileTests = []fileTestCase{
 			Op: AndTest,
 			X:  litWord("a"),
 			Y:  litWord("b"),
-		}}, LangBash, LangMirBSDKorn),
+		}}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{"[[ (a && b) ]]"},
@@ -3632,7 +3639,7 @@ var fileTests = []fileTestCase{
 			Op: AndTest,
 			X:  litWord("a"),
 			Y:  litWord("b"),
-		})}, LangBash, LangMirBSDKorn),
+		})}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{
@@ -3643,7 +3650,7 @@ var fileTests = []fileTestCase{
 			Op: AndTest,
 			X:  litWord("a"),
 			Y:  parenTest(litWord("b")),
-		}}, LangBash, LangMirBSDKorn),
+		}}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{"[[ (a && b) || -f c ]]"},
@@ -3655,7 +3662,7 @@ var fileTests = []fileTestCase{
 				Y:  litWord("b"),
 			}),
 			Y: &UnaryTest{Op: TsRegFile, X: litWord("c")},
-		}}, LangBash, LangMirBSDKorn),
+		}}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{
@@ -3666,7 +3673,7 @@ var fileTests = []fileTestCase{
 			Op: AndTest,
 			X:  &UnaryTest{Op: TsSocket, X: litWord("a")},
 			Y:  &UnaryTest{Op: TsSmbLink, X: litWord("b")},
-		}}, LangBash, LangMirBSDKorn),
+		}}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{"[[ -k a && -N b ]]"},
@@ -3682,7 +3689,7 @@ var fileTests = []fileTestCase{
 			Op: AndTest,
 			X:  &UnaryTest{Op: TsGrpOwn, X: litWord("a")},
 			Y:  &UnaryTest{Op: TsUsrOwn, X: litWord("b")},
-		}}, LangBash, LangMirBSDKorn),
+		}}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{"[[ -d a && -c b ]]"},
@@ -3690,7 +3697,7 @@ var fileTests = []fileTestCase{
 			Op: AndTest,
 			X:  &UnaryTest{Op: TsDirect, X: litWord("a")},
 			Y:  &UnaryTest{Op: TsCharSp, X: litWord("b")},
-		}}, LangBash, LangMirBSDKorn),
+		}}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{"[[ -b a && -p b ]]"},
@@ -3698,7 +3705,7 @@ var fileTests = []fileTestCase{
 			Op: AndTest,
 			X:  &UnaryTest{Op: TsBlckSp, X: litWord("a")},
 			Y:  &UnaryTest{Op: TsNmPipe, X: litWord("b")},
-		}}, LangBash, LangMirBSDKorn),
+		}}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{"[[ -g a && -u b ]]"},
@@ -3706,7 +3713,7 @@ var fileTests = []fileTestCase{
 			Op: AndTest,
 			X:  &UnaryTest{Op: TsGIDSet, X: litWord("a")},
 			Y:  &UnaryTest{Op: TsUIDSet, X: litWord("b")},
-		}}, LangBash, LangMirBSDKorn),
+		}}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{"[[ -r a && -w b ]]"},
@@ -3714,7 +3721,7 @@ var fileTests = []fileTestCase{
 			Op: AndTest,
 			X:  &UnaryTest{Op: TsRead, X: litWord("a")},
 			Y:  &UnaryTest{Op: TsWrite, X: litWord("b")},
-		}}, LangBash, LangMirBSDKorn),
+		}}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{"[[ -x a && -s b ]]"},
@@ -3722,7 +3729,7 @@ var fileTests = []fileTestCase{
 			Op: AndTest,
 			X:  &UnaryTest{Op: TsExec, X: litWord("a")},
 			Y:  &UnaryTest{Op: TsNoEmpty, X: litWord("b")},
-		}}, LangBash, LangMirBSDKorn),
+		}}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{"[[ -t a && -z b ]]"},
@@ -3730,7 +3737,7 @@ var fileTests = []fileTestCase{
 			Op: AndTest,
 			X:  &UnaryTest{Op: TsFdTerm, X: litWord("a")},
 			Y:  &UnaryTest{Op: TsEmpStr, X: litWord("b")},
-		}}, LangBash, LangMirBSDKorn),
+		}}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{"[[ -o a && -v b ]]"},
@@ -3738,7 +3745,7 @@ var fileTests = []fileTestCase{
 			Op: AndTest,
 			X:  &UnaryTest{Op: TsOptSet, X: litWord("a")},
 			Y:  &UnaryTest{Op: TsVarSet, X: litWord("b")},
-		}}, LangBash, LangMirBSDKorn),
+		}}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{"[[ a -ot b && c -ef d ]]"},
@@ -3754,7 +3761,7 @@ var fileTests = []fileTestCase{
 				X:  litWord("c"),
 				Y:  litWord("d"),
 			},
-		}}, LangBash, LangMirBSDKorn),
+		}}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{"[[ a = b && c != d ]]"},
@@ -3770,7 +3777,7 @@ var fileTests = []fileTestCase{
 				X:  litWord("c"),
 				Y:  litWord("d"),
 			},
-		}}, LangBash, LangMirBSDKorn),
+		}}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{"[[ a -ne b && c -le d ]]"},
@@ -3786,7 +3793,7 @@ var fileTests = []fileTestCase{
 				X:  litWord("c"),
 				Y:  litWord("d"),
 			},
-		}}, LangBash, LangMirBSDKorn),
+		}}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{"[[ c -ge d ]]"},
@@ -3794,7 +3801,7 @@ var fileTests = []fileTestCase{
 			Op: TsGeq,
 			X:  litWord("c"),
 			Y:  litWord("d"),
-		}}, LangBash, LangMirBSDKorn),
+		}}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{"[[ a -lt b && c -gt d ]]"},
@@ -3810,7 +3817,7 @@ var fileTests = []fileTestCase{
 				X:  litWord("c"),
 				Y:  litWord("d"),
 			},
-		}}, LangBash, LangMirBSDKorn),
+		}}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{"declare -f func"},
@@ -3831,12 +3838,12 @@ var fileTests = []fileTestCase{
 				Naked: true,
 				Name:  lit("bar"),
 			}},
-		})), LangBash, LangMirBSDKorn),
+		})), LangBash|LangMirBSDKorn),
 		langFile(subshell(litStmt("local", "bar")), LangPOSIX),
 	),
 	fileTest(
 		[]string{"typeset"},
-		langFile(&DeclClause{Variant: lit("typeset")}, LangBash, LangMirBSDKorn),
+		langFile(&DeclClause{Variant: lit("typeset")}, LangBash|LangMirBSDKorn),
 		langFile(litStmt("typeset"), LangPOSIX),
 	),
 	fileTest(
@@ -3847,7 +3854,7 @@ var fileTests = []fileTestCase{
 				Naked: true,
 				Name:  lit("bar"),
 			}},
-		}, LangBash, LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn),
 		langFile(litStmt("export", "bar"), LangPOSIX),
 	),
 	fileTest(
@@ -3855,7 +3862,7 @@ var fileTests = []fileTestCase{
 		langFile(&DeclClause{
 			Variant: lit("readonly"),
 			Args:    []*Assign{{Naked: true, Value: litWord("-n")}},
-		}, LangBash, LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn),
 		langFile(litStmt("readonly", "-n"), LangPOSIX),
 	),
 	fileTest(
@@ -3865,7 +3872,7 @@ var fileTests = []fileTestCase{
 			Args: []*Assign{{
 				Name: lit("bar"),
 			}},
-		}, LangBash, LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn),
 		langFile(litStmt("nameref", "bar="), LangPOSIX),
 	),
 	fileTest(
@@ -3993,7 +4000,7 @@ var fileTests = []fileTestCase{
 				}}}),
 			},
 			litCall("d"),
-		), LangBash, LangMirBSDKorn),
+		), LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{"declare -f $func >/dev/null"},
@@ -4033,37 +4040,37 @@ var fileTests = []fileTestCase{
 	fileTest(
 		[]string{"time", "time\n"},
 		langFile(litStmt("time"), LangPOSIX),
-		langFile(&TimeClause{}, LangBash, LangMirBSDKorn),
+		langFile(&TimeClause{}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{"time -p"},
 		langFile(litStmt("time", "-p"), LangPOSIX),
-		langFile(&TimeClause{PosixFormat: true}, LangBash, LangMirBSDKorn),
+		langFile(&TimeClause{PosixFormat: true}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{"time -a"},
 		langFile(litStmt("time", "-a"), LangPOSIX),
-		langFile(&TimeClause{Stmt: litStmt("-a")}, LangBash, LangMirBSDKorn),
+		langFile(&TimeClause{Stmt: litStmt("-a")}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{"time --"},
 		langFile(litStmt("time", "--"), LangPOSIX),
-		langFile(&TimeClause{Stmt: litStmt("--")}, LangBash, LangMirBSDKorn),
+		langFile(&TimeClause{Stmt: litStmt("--")}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{"time foo"},
-		langFile(&TimeClause{Stmt: litStmt("foo")}, LangBash, LangMirBSDKorn),
+		langFile(&TimeClause{Stmt: litStmt("foo")}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{"time { foo; }"},
-		langFile(&TimeClause{Stmt: stmt(block(litStmt("foo")))}, LangBash, LangMirBSDKorn),
+		langFile(&TimeClause{Stmt: stmt(block(litStmt("foo")))}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{"time\nfoo"},
 		langFile([]*Stmt{
 			stmt(&TimeClause{}),
 			litStmt("foo"),
-		}, LangBash, LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{"coproc foo bar"},
@@ -4121,7 +4128,7 @@ var fileTests = []fileTestCase{
 		[]string{`let i++`},
 		langFile(letClause(
 			&UnaryArithm{Op: Inc, Post: true, X: litWord("i")},
-		), LangBash, LangMirBSDKorn),
+		), LangBash|LangMirBSDKorn),
 		langFile(litStmt("let", "i++"), LangPOSIX),
 	),
 	fileTest(
@@ -4131,14 +4138,14 @@ var fileTests = []fileTestCase{
 			&UnaryArithm{Op: Inc, Post: true, X: litWord("b")},
 			litWord("c"),
 			&UnaryArithm{Op: Plus, X: litWord("d")},
-		), LangBash, LangMirBSDKorn),
+		), LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{`let ++i >/dev/null`},
 		langFile(&Stmt{
 			Cmd:    letClause(&UnaryArithm{Op: Inc, X: litWord("i")}),
 			Redirs: []*Redirect{{Op: RdrOut, Word: litWord("/dev/null")}},
-		}, LangBash, LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{
@@ -4196,7 +4203,7 @@ var fileTests = []fileTestCase{
 				X:    litWord("i"),
 			}),
 			litCall("bar"),
-		), LangBash, LangMirBSDKorn),
+		), LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{
@@ -4214,7 +4221,7 @@ var fileTests = []fileTestCase{
 				Name:  lit("foo"),
 				Array: arrValues(litWord("bar")),
 			}}},
-		), LangBash, LangMirBSDKorn),
+		), LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{
@@ -4232,7 +4239,7 @@ var fileTests = []fileTestCase{
 					X:    litWord("i"),
 				})),
 			}},
-		}, LangBash, LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{"a+=1"},
@@ -4242,7 +4249,7 @@ var fileTests = []fileTestCase{
 				Name:   lit("a"),
 				Value:  litWord("1"),
 			}},
-		}, LangBash, LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn),
 		langFile(litStmt("a+=1"), LangPOSIX),
 	),
 	fileTest(
@@ -4251,7 +4258,7 @@ var fileTests = []fileTestCase{
 			Append: true,
 			Name:   lit("b"),
 			Array:  arrValues(litWords("2", "3")...),
-		}}}, LangBash, LangMirBSDKorn),
+		}}}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{"a[2]=b c[-3]= d[x]+=e"},
@@ -4275,7 +4282,7 @@ var fileTests = []fileTestCase{
 				Append: true,
 				Value:  litWord("e"),
 			},
-		}}, LangBash, LangMirBSDKorn),
+		}}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{"*[i]=x"},
@@ -4292,7 +4299,7 @@ var fileTests = []fileTestCase{
 			Name:   lit("b"),
 			Index:  litWord("i"),
 			Value:  litWord("2"),
-		}}}, LangBash, LangMirBSDKorn),
+		}}}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{`$((a + "b + $c"))`},
@@ -4307,7 +4314,7 @@ var fileTests = []fileTestCase{
 	),
 	fileTest(
 		[]string{`let 'i++'`},
-		langFile(letClause(word(sglQuoted("i++"))), LangBash, LangMirBSDKorn),
+		langFile(letClause(word(sglQuoted("i++"))), LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{`echo ${a["x y"]}`},
@@ -4339,7 +4346,7 @@ var fileTests = []fileTestCase{
 				Index: word(dblQuoted(lit("x y"))),
 			}),
 			Y: litWord("b"),
-		}), LangBash, LangMirBSDKorn),
+		}), LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{
@@ -4377,7 +4384,7 @@ var fileTests = []fileTestCase{
 		langFile(call(litWord("echo"),
 			word(lit("a"), lit("[b")),
 			word(lit("c"), lit("[de]f")),
-		), LangBash, LangMirBSDKorn),
+		), LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{"<<EOF | b\nfoo\nEOF"},
@@ -4454,7 +4461,7 @@ var fileTests = []fileTestCase{
 			&ExtGlob{Op: GlobOneOrMore, Pattern: lit("d")},
 			&ExtGlob{Op: GlobOne, Pattern: lit("e")},
 			&ExtGlob{Op: GlobExcept, Pattern: lit("f")},
-		)), LangBash, LangMirBSDKorn),
+		)), LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{"echo foo@(b*(c|d))bar"},
@@ -4462,7 +4469,7 @@ var fileTests = []fileTestCase{
 			lit("foo"),
 			&ExtGlob{Op: GlobOne, Pattern: lit("b*(c|d)")},
 			lit("bar"),
-		)), LangBash, LangMirBSDKorn),
+		)), LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{"echo $a@(b)$c?(d)$e*(f)$g+(h)$i!(j)$k"},
@@ -4478,7 +4485,7 @@ var fileTests = []fileTestCase{
 			litParamExp("i"),
 			&ExtGlob{Op: GlobExcept, Pattern: lit("j")},
 			litParamExp("k"),
-		)), LangBash, LangMirBSDKorn),
+		)), LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{"@test \"desc\" { body; }"},
