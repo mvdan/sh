@@ -2195,6 +2195,17 @@ func TestParseErrMirBSDKorn(t *testing.T) {
 	}
 }
 
+func TestParseErrZsh(t *testing.T) {
+	t.Parallel()
+	p := NewParser(KeepComments(true), Variant(LangZsh))
+	for _, c := range errorCases {
+		if c.zsh == "" {
+			continue
+		}
+		t.Run("", checkError(p, c.in, c.zsh))
+	}
+}
+
 func TestInputName(t *testing.T) {
 	t.Parallel()
 	in := "("
