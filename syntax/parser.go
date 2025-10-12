@@ -962,16 +962,6 @@ func (p *Parser) checkLang(pos Pos, feature string, langs ...LangVariant) {
 	})
 }
 
-func (p *Parser) langErr(pos Pos, feature string, langs ...LangVariant) {
-	p.errPass(LangError{
-		Filename: p.f.Name,
-		Pos:      pos,
-		Feature:  feature,
-		Langs:    langs,
-		LangUsed: p.lang,
-	})
-}
-
 func (p *Parser) stmts(yield func(*Stmt, error) bool, stops ...string) {
 	gotEnd := true
 loop:
@@ -1449,15 +1439,15 @@ func (p *Parser) paramExp() *ParamExp {
 		pe.Exp = p.paramExpExp()
 	case at, star:
 		switch {
-		case p.tok == at && p.lang == LangPOSIX:
-			// TODO: refactor with checkLang somehow
-			p.langErr(p.pos, "this expansion operator", LangBash, LangMirBSDKorn)
 		case p.tok == star && !pe.Excl:
 			p.curErr("not a valid parameter expansion operator: %q", p.tok)
 		case pe.Excl && p.r == '}':
 			p.checkLang(pe.Pos(), fmt.Sprintf(`"${!foo%s}"`, p.tok), LangBash)
 			pe.Names = ParNamesOperator(p.tok)
 			p.next()
+		case p.tok == at:
+			p.checkLang(p.pos, "this expansion operator", LangBash, LangMirBSDKorn)
+			fallthrough
 		default:
 			pe.Exp = p.paramExpExp()
 		}
