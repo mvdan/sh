@@ -3,16 +3,16 @@ module mvdan.cc/sh/moreinterp
 go 1.24.0
 
 require (
-	github.com/u-root/u-root v0.14.1-0.20250807200646-5e7721023dc7
+	github.com/u-root/u-root v0.15.1-0.20251014130006-62f7144b33da
 	mvdan.cc/sh/v3 v3.11.0
 )
 
 require (
 	github.com/dustin/go-humanize v1.0.1 // indirect
-	github.com/klauspost/compress v1.17.4 // indirect
+	github.com/klauspost/compress v1.18.0 // indirect
 	github.com/klauspost/pgzip v1.2.6 // indirect
 	github.com/pierrec/lz4/v4 v4.1.22 // indirect
 	github.com/u-root/uio v0.0.0-20240224005618-d2acac8f3701 // indirect
-	golang.org/x/sys v0.31.0 // indirect
-	golang.org/x/term v0.30.0 // indirect
+	golang.org/x/sys v0.33.0 // indirect
+	golang.org/x/term v0.32.0 // indirect
 )
