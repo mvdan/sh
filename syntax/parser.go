@@ -892,6 +892,7 @@ func IsIncomplete(err error) bool {
 // IsKeyword returns true if the given word is part of the language keywords.
 func IsKeyword(word string) bool {
 	// This list has been copied from the bash 5.1 source code, file y.tab.c +4460
+	// TODO: should we include entries for zsh here? e.g. "{}", "repeat", "always", ...
 	switch word {
 	case
 		"!",
@@ -1866,6 +1867,12 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 		switch p.val {
 		case "{":
 			p.block(s)
+		case "{}":
+			// Zsh treats closing braces in a special way, allowing this.
+			if p.lang.is(LangZsh) {
+				s.Cmd = &Block{Lbrace: p.pos, Rbrace: posAddCol(p.pos, 1)}
+				p.next()
+			}
 		case "if":
 			p.ifClause(s)
 		case "while", "until":

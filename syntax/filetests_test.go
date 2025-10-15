@@ -1797,8 +1797,14 @@ var fileTests = []fileTestCase{
 	),
 	fileTest(
 		// TODO: should shfmt lean towards no semicolons in Zsh mode?
+		// Note that zsh seems to support "{foo}" too, but that is undocumented,
+		// and hopefully noone actually relies on that.
 		[]string{"{ foo; }", "{ foo }"},
 		langFile(block(litStmt("foo")), LangZsh),
+	),
+	fileTest(
+		[]string{"{ }", "{}"},
+		langFile(block(), LangZsh),
 	),
 	fileTest(
 		[]string{"$({ foo; })"},

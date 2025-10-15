@@ -1113,6 +1113,8 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		p.wordJoin(cmd.Args[1:])
 	case *Block:
 		p.w.WriteByte('{')
+		// avoid ; in an empty block
+		p.wroteSemi = true
 		p.wantSpace = spaceRequired
 		// Forbid "foo()\n{ bar; }"
 		p.wantNewline = p.wantNewline || p.funcNextLine
