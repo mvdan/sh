@@ -260,6 +260,10 @@ For more information and to report bugs, see https://github.com/mvdan/sh.
 	} else if term.IsTerminal(int(os.Stdout.Fd())) {
 		color = true
 	}
+	// TODO(v4): show the help text on zero arguments,
+	// having the user run `shfmt -` if they want to format stdin.
+	// Using a dash is more explicit, and new users can easily be
+	// confused by `shfmt` seemingly hanging forever.
 	if flag.NArg() == 0 || (flag.NArg() == 1 && flag.Arg(0) == "-") {
 		name := "<standard input>"
 		if toJSON.val {
