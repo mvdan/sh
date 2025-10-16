@@ -1868,10 +1868,10 @@ func (p *Parser) getStmt(readEnd, binCmd, fnBody bool) *Stmt {
 
 func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 	s.Comments, p.accComs = p.accComs, nil
-	for p.lang.is(LangZsh) && p.peekRedir() {
-		// Zsh supports redirects before compound commands.
+	for p.peekRedir() {
 		p.doRedirect(s)
 	}
+	redirsStart := len(s.Redirs)
 	switch p.tok {
 	case _LitWord:
 		switch p.val {
@@ -1970,10 +1970,6 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 		} else {
 			p.callExpr(s, p.wordOne(name), false)
 		}
-	case rdrOut, appOut, rdrIn, dplIn, dplOut, clbOut, rdrInOut,
-		hdoc, dashHdoc, wordHdoc, rdrAll, appAll, _LitRedir:
-		p.doRedirect(s)
-		p.callExpr(s, nil, false)
 	case bckQuote:
 		if p.backquoteEnd() {
 			break
@@ -1998,6 +1994,11 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 	}
 	if s.Cmd == nil && len(s.Redirs) == 0 {
 		return nil // no statement found
+	}
+	if redirsStart > 0 && s.Cmd != nil {
+		if _, ok := s.Cmd.(*CallExpr); !ok {
+			p.checkLang(s.Pos(), LangZsh, "redirects before compound commands")
+		}
 	}
 	for p.peekRedir() {
 		p.doRedirect(s)

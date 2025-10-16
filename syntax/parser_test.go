@@ -716,17 +716,17 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		">f { foo; }",
-		langErr(`1:11: "}" can only be used to close a block`),
+		langErr(`1:1: redirects before compound commands are a zsh feature; tried parsing as LANG`),
 		langErr("", LangZsh),
 	),
 	errCase(
 		">f foo() { bar; }",
-		langErr(`1:7: a command can only contain words and redirects; encountered (`),
+		langErr(`1:1: redirects before compound commands are a zsh feature; tried parsing as LANG`),
 		langErr("", LangZsh),
 	),
 	errCase(
 		">f if foo; then bar; fi",
-		langErr(`1:12: "then" can only be used in an if`),
+		langErr(`1:1: redirects before compound commands are a zsh feature; tried parsing as LANG`),
 		langErr("", LangZsh),
 	),
 	errCase(
