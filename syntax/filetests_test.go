@@ -1806,6 +1806,19 @@ var fileTests = []fileTestCase{
 		[]string{"{ }", "{}"},
 		langFile(block(), LangZsh),
 	),
+	// TODO: "()" is actually a function declaration in Zsh
+	// fileTest(
+	// 	[]string{"()"},
+	// 	langFile(subshell(), LangZsh),
+	// ),
+	fileTest(
+		[]string{"if; then; fi"},
+		langFile(&IfClause{}, LangZsh),
+	),
+	fileTest(
+		[]string{"while; do\ndone", "while\ndo\ndone"},
+		langFile(&WhileClause{}, LangZsh),
+	),
 	fileTest(
 		[]string{"$({ foo; })"},
 		langFile(cmdSubst(stmt(
@@ -1825,10 +1838,6 @@ var fileTests = []fileTestCase{
 	fileTest(
 		[]string{"$()"},
 		langFile(cmdSubst()),
-	),
-	fileTest(
-		[]string{"()"},
-		langFile(subshell(), LangMirBSDKorn), // not common, as dash/bash wrongly error
 	),
 	fileTest(
 		[]string{

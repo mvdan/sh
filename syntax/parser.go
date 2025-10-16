@@ -815,11 +815,17 @@ func (p *Parser) followRsrv(lpos Pos, left, val string) Pos {
 
 func (p *Parser) followStmts(left string, lpos Pos, stops ...string) ([]*Stmt, []Comment) {
 	if p.got(semicolon) {
+		if p.lang.is(LangZsh) {
+			return nil, nil // zsh allows empty command lists
+		}
+		p.followErr(lpos, left, "a statement list")
 		return nil, nil
 	}
-	newLine := p.got(_Newl)
 	stmts, last := p.stmtList(stops...)
-	if len(stmts) < 1 && !newLine {
+	if len(stmts) < 1 {
+		if p.lang.is(LangZsh) {
+			return nil, nil // zsh allows empty command lists
+		}
 		if p.recoverError() {
 			return []*Stmt{{Position: recoveredPos}}, nil
 		}
@@ -2030,7 +2036,7 @@ func (p *Parser) subshell(s *Stmt) {
 	sub := &Subshell{Lparen: p.pos}
 	old := p.preNested(subCmd)
 	p.next()
-	sub.Stmts, sub.Last = p.stmtList()
+	sub.Stmts, sub.Last = p.followStmts("(", sub.Lparen)
 	p.postNested(old)
 	sub.Rparen = p.matched(sub.Lparen, leftParen, rightParen)
 	s.Cmd = sub
@@ -2052,7 +2058,7 @@ func (p *Parser) arithmExpCmd(s *Stmt) {
 func (p *Parser) block(s *Stmt) {
 	b := &Block{Lbrace: p.pos}
 	p.next()
-	b.Stmts, b.Last = p.stmtList("}")
+	b.Stmts, b.Last = p.followStmts("{", b.Lbrace, "}")
 	if pos, ok := p.gotRsrv("}"); ok {
 		b.Rbrace = pos
 	} else if p.recoverError() {

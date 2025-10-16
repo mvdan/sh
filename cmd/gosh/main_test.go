@@ -171,7 +171,7 @@ var interactiveTests = []struct {
 	},
 	{
 		pairs: []string{
-			"(\n",
+			"(x\n",
 			"> ",
 		},
 		wantErr: "1:1: reached EOF without matching ( with )",

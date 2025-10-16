@@ -646,6 +646,31 @@ var errorCases = []errorCase{
 		langErr(`1:1: "}" can only be used to close a block`),
 	),
 	errCase(
+		"{ }",
+		langErr(`1:1: { must be followed by a statement list`),
+		langErr("", LangZsh),
+	),
+	errCase(
+		"( )",
+		langErr(`1:1: ( must be followed by a statement list`),
+		langErr("", LangZsh),
+	),
+	errCase(
+		`if; then bar; fi`,
+		langErr(`1:1: "if" must be followed by a statement list`),
+		langErr("", LangZsh),
+	),
+	errCase(
+		"if foo; then; fi",
+		langErr(`1:9: "then" must be followed by a statement list`),
+		langErr("", LangZsh),
+	),
+	errCase(
+		"while true; do; done",
+		langErr(`1:13: "do" must be followed by a statement list`),
+		langErr("", LangZsh),
+	),
+	errCase(
 		"foo | }",
 		langErr(`1:7: "}" can only be used to close a block`),
 	),
@@ -723,7 +748,8 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"{ ; }",
-		langErr(`1:3: ; can only immediately follow a statement`),
+		langErr(`1:1: { must be followed by a statement list`),
+		langErr("", LangZsh),
 	),
 	errCase(
 		`"foo"(){ :; }`,
@@ -736,14 +762,19 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"{",
+		langErr(`1:1: { must be followed by a statement list`),
+		langErr(`1:1: reached EOF without matching { with }`, LangZsh),
+	),
+	errCase(
+		"{ foo;",
 		langErr(`1:1: reached EOF without matching { with }`),
 	),
 	errCase(
-		"{ #}",
+		"{ foo; #}",
 		langErr(`1:1: reached EOF without matching { with }`),
 	),
 	errCase(
-		"(",
+		"(x",
 		langErr(`1:1: reached EOF without matching ( with )`),
 	),
 	errCase(
@@ -833,6 +864,11 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"foo() {",
+		langErr(`1:7: { must be followed by a statement list`),
+		langErr(`1:7: reached EOF without matching { with }`, LangZsh),
+	),
+	errCase(
+		"foo() { bar;",
 		langErr(`1:7: reached EOF without matching { with }`),
 	),
 	errCase(
@@ -999,6 +1035,7 @@ var errorCases = []errorCase{
 	errCase(
 		"if",
 		langErr(`1:1: "if" must be followed by a statement list`),
+		langErr(`1:1: "if <cond>" must be followed by "then"`, LangZsh),
 	),
 	errCase(
 		"if true;",
@@ -1031,6 +1068,7 @@ var errorCases = []errorCase{
 	errCase(
 		"while",
 		langErr(`1:1: "while" must be followed by a statement list`),
+		langErr(`1:1: "while <cond>" must be followed by "do"`, LangZsh),
 	),
 	errCase(
 		"while true;",
@@ -1047,6 +1085,7 @@ var errorCases = []errorCase{
 	errCase(
 		"until",
 		langErr(`1:1: "until" must be followed by a statement list`),
+		langErr(`1:1: "until <cond>" must be followed by "do"`, LangZsh),
 	),
 	errCase(
 		"until true;",
@@ -1287,7 +1326,7 @@ var errorCases = []errorCase{
 		langErr(`1:6: reached EOF without matching ${ with }`),
 	),
 	errCase(
-		"#foo\n{",
+		"#foo\n{ bar;",
 		langErr(`2:1: reached EOF without matching { with }`),
 	),
 	errCase(
@@ -1450,7 +1489,7 @@ var errorCases = []errorCase{
 		langErr("1:3: reached EOF without closing quote `"),
 	),
 	errCase(
-		"`{\n`",
+		"`{\nfoo`",
 		langErr("1:2: reached ` without matching { with }"),
 	),
 	errCase(
@@ -1505,12 +1544,6 @@ var errorCases = []errorCase{
 		`""()`,
 		langErr(`1:1: invalid func name`),
 		flipConfirm(LangMirBSDKorn),
-	),
-	errCase(
-		// bash errors on the empty condition here, this is to
-		// add coverage for empty statement lists
-		`if; then bar; fi; ;`,
-		langErr(`1:19: ; can only immediately follow a statement`),
 	),
 	errCase(
 		"]] )",
@@ -1880,7 +1913,7 @@ var errorCases = []errorCase{
 		langErr(`1:1: reached ( without matching (( with ))`, LangBash|LangMirBSDKorn),
 	),
 	errCase(
-		"time {",
+		"time { foo;",
 		langErr(`1:6: reached EOF without matching { with }`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
@@ -2218,7 +2251,7 @@ func TestParseErrZsh(t *testing.T) {
 func TestInputName(t *testing.T) {
 	t.Parallel()
 	in := "("
-	want := "some-file.sh:1:1: reached EOF without matching ( with )"
+	want := "some-file.sh:1:1: ( must be followed by a statement list"
 	p := NewParser()
 	_, err := p.Parse(strings.NewReader(in), "some-file.sh")
 	if err == nil {
