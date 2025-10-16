@@ -1868,6 +1868,10 @@ func (p *Parser) getStmt(readEnd, binCmd, fnBody bool) *Stmt {
 
 func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 	s.Comments, p.accComs = p.accComs, nil
+	for p.lang.is(LangZsh) && p.peekRedir() {
+		// Zsh supports redirects before compound commands.
+		p.doRedirect(s)
+	}
 	switch p.tok {
 	case _LitWord:
 		switch p.val {
@@ -1972,7 +1976,7 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 		p.callExpr(s, nil, false)
 	case bckQuote:
 		if p.backquoteEnd() {
-			return nil
+			break
 		}
 		fallthrough
 	case _Lit, dollBrace, dollDblParen, dollParen, dollar, cmdIn, cmdOut,
@@ -1991,10 +1995,9 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 		p.subshell(s)
 	case dblLeftParen:
 		p.arithmExpCmd(s)
-	default:
-		if len(s.Redirs) == 0 {
-			return nil
-		}
+	}
+	if s.Cmd == nil && len(s.Redirs) == 0 {
+		return nil // no statement found
 	}
 	for p.peekRedir() {
 		p.doRedirect(s)

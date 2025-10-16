@@ -1713,6 +1713,22 @@ var fileTests = []fileTestCase{
 		}),
 	),
 	fileTest(
+		[]string{
+			// TODO: should we allow formatting a redirect at the start?
+			"if foo; then bar; fi >/dev/null",
+			">/dev/null if foo; then bar; fi",
+		},
+		langFile(&Stmt{
+			Cmd: &IfClause{
+				Cond: litStmts("foo"),
+				Then: litStmts("bar"),
+			},
+			Redirs: []*Redirect{
+				{Op: RdrOut, Word: litWord("/dev/null")},
+			},
+		}, LangZsh),
+	),
+	fileTest(
 		[]string{"! foo && bar"},
 		langFile(&BinaryCmd{
 			Op: AndStmt,
