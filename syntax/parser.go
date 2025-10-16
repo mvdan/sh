@@ -2598,9 +2598,6 @@ loop:
 			sglQuote, dollSglQuote, dblQuote, dollDblQuote, dollBrack,
 			globQuest, globStar, globPlus, globAt, globExcl:
 			ce.Args = append(ce.Args, p.wordAnyNumber())
-		case rdrOut, appOut, rdrIn, dplIn, dplOut, clbOut, rdrInOut,
-			hdoc, dashHdoc, wordHdoc, rdrAll, appAll, _LitRedir:
-			p.doRedirect(s)
 		case dblLeftParen:
 			p.curErr("%s can only be used to open an arithmetic cmd", p.tok)
 		case rightParen:
@@ -2609,6 +2606,10 @@ loop:
 			}
 			fallthrough
 		default:
+			if p.peekRedir() {
+				p.doRedirect(s)
+				continue
+			}
 			// Note that we'll only keep the first error that happens.
 			if len(ce.Args) > 0 {
 				if cmd := ce.Args[0].Lit(); isBashCompoundCommand(_LitWord, cmd) {
