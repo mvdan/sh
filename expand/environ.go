@@ -54,7 +54,7 @@ type WriteEnviron interface {
 	Set(name string, vr Variable) error
 }
 
-//go:generate stringer -type=ValueKind
+//go:generate go tool stringer -type=ValueKind
 
 // ValueKind describes which kind of value the variable holds.
 // While most unset variables will have an [Unknown] kind, an unset variable may

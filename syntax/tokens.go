@@ -3,7 +3,7 @@
 
 package syntax
 
-//go:generate stringer -type token -linecomment -trimprefix _
+//go:generate go tool stringer -type token -linecomment -trimprefix _
 
 type token uint32
 
