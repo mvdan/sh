@@ -1,9 +1,8 @@
 // Copyright (c) 2017, Daniel Martí <mvdan@mvdan.cc>
 // See LICENSE for licensing information
 
-// Package interp implements an interpreter that executes shell
-// programs. It aims to support POSIX, but its support is not complete
-// yet. It also supports some Bash features.
+// Package interp implements an interpreter to execute shell programs
+// parsed by the [syntax] package.
 //
 // The interpreter generally aims to behave like Bash,
 // but it does not support all of its features.

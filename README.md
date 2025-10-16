@@ -7,11 +7,14 @@ A shell parser, formatter, and interpreter. Supports [POSIX Shell], [Bash], and
 
 ### Quick start
 
-To parse shell scripts, inspect them, and print them out, see the [syntax
-package examples](https://pkg.go.dev/mvdan.cc/sh/v3/syntax#pkg-examples).
+To parse shell scripts, inspect them, and print them out,
+see the [syntax package](https://pkg.go.dev/mvdan.cc/sh/v3/syntax).
 
-For high-level operations like performing shell expansions on strings, see the
-[shell package examples](https://pkg.go.dev/mvdan.cc/sh/v3/shell#pkg-examples).
+For high-level operations like performing shell expansions on strings,
+see the [shell package](https://pkg.go.dev/mvdan.cc/sh/v3/shell).
+
+To interpret or run shell scripts,
+see the [interp package](https://pkg.go.dev/mvdan.cc/sh/v3/interp).
 
 ### shfmt
 
@@ -32,8 +35,7 @@ Packages are available on [Alpine], [Arch], [Debian], [Docker], [Fedora], [FreeB
 
 	go install mvdan.cc/sh/v3/cmd/gosh@latest
 
-Proof of concept shell that uses `interp`. Note that it's not meant to replace a
-POSIX shell at the moment, and its options are intentionally minimalistic.
+Proof of concept shell that uses the `interp` package.
 
 ### Fuzzing
 
