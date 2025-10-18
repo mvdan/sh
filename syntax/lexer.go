@@ -58,76 +58,73 @@ func (p *Parser) rune() rune {
 	p.col += int64(p.w)
 	bquotes := 0
 retry:
-	if p.bsp < uint(len(p.bs)) {
-		if b := p.bs[p.bsp]; b < utf8.RuneSelf {
-			p.bsp++
-			switch b {
-			case '\x00':
-				// Ignore null bytes while parsing, like bash.
-				p.col++
-				goto retry
-			case '\r':
-				if p.peek() == '\n' { // \r\n turns into \n
-					p.col++
-					goto retry
-				}
-			case '\\':
-				if p.r == '\\' {
-				} else if p.peek() == '\n' {
-					p.bsp++
-					p.w, p.r = 1, escNewl
-					return escNewl
-				} else if p1, p2 := p.peekTwo(); p1 == '\r' && p2 == '\n' { // \\\r\n turns into \\\n
-					p.col++
-					p.bsp += 2
-					p.w, p.r = 2, escNewl
-					return escNewl
-				}
-				// TODO: why is this necessary to ensure correct position info?
-				p.readEOF = false
-				if p.openBquotes > 0 && bquotes < p.openBquotes &&
-					p.bsp < uint(len(p.bs)) && bquoteEscaped(p.bs[p.bsp]) {
-					// We turn backquote command substitutions into $(),
-					// so we remove the extra backslashes needed by the backquotes.
-					bquotes++
-					p.col++
-					goto retry
-				}
-			}
-			if b == '`' {
-				p.lastBquoteEsc = bquotes
-			}
-			if p.litBs != nil {
-				p.litBs = append(p.litBs, b)
-			}
-			p.w, p.r = 1, rune(b)
-			return p.r
-		}
-	decodeRune:
-		var w int
-		p.r, w = utf8.DecodeRune(p.bs[p.bsp:])
-		if p.r == utf8.RuneError && !utf8.FullRune(p.bs[p.bsp:]) {
-			// we need more bytes to read a full non-ascii rune
-			if p.fill() > 0 {
-				goto decodeRune
-			}
-		}
-		if p.litBs != nil {
-			p.litBs = append(p.litBs, p.bs[p.bsp:p.bsp+uint(w)]...)
-		}
-		p.bsp += uint(w)
-		if p.r == utf8.RuneError && w == 1 {
-			p.posErr(p.nextPos(), "invalid UTF-8 encoding")
-		}
-		p.w = w
-	} else {
-		if p.fill() > 0 {
-			goto retry
-		}
+	if p.bsp >= uint(len(p.bs)) && p.fill() == 0 {
 		p.bsp = 1
 		p.r = utf8.RuneSelf
 		p.w = 1
+		return p.r
 	}
+	if b := p.bs[p.bsp]; b < utf8.RuneSelf {
+		p.bsp++
+		switch b {
+		case '\x00':
+			// Ignore null bytes while parsing, like bash.
+			p.col++
+			goto retry
+		case '\r':
+			if p.peek() == '\n' { // \r\n turns into \n
+				p.col++
+				goto retry
+			}
+		case '\\':
+			if p.r == '\\' {
+			} else if p.peek() == '\n' {
+				p.bsp++
+				p.w, p.r = 1, escNewl
+				return escNewl
+			} else if p1, p2 := p.peekTwo(); p1 == '\r' && p2 == '\n' { // \\\r\n turns into \\\n
+				p.col++
+				p.bsp += 2
+				p.w, p.r = 2, escNewl
+				return escNewl
+			}
+			// TODO: why is this necessary to ensure correct position info?
+			p.readEOF = false
+			if p.openBquotes > 0 && bquotes < p.openBquotes &&
+				p.bsp < uint(len(p.bs)) && bquoteEscaped(p.bs[p.bsp]) {
+				// We turn backquote command substitutions into $(),
+				// so we remove the extra backslashes needed by the backquotes.
+				bquotes++
+				p.col++
+				goto retry
+			}
+		}
+		if b == '`' {
+			p.lastBquoteEsc = bquotes
+		}
+		if p.litBs != nil {
+			p.litBs = append(p.litBs, b)
+		}
+		p.w, p.r = 1, rune(b)
+		return p.r
+	}
+decodeRune:
+	var w int
+	p.r, w = utf8.DecodeRune(p.bs[p.bsp:])
+	if p.r == utf8.RuneError && !utf8.FullRune(p.bs[p.bsp:]) {
+		// we need more bytes to read a full non-ascii rune
+		if p.fill() > 0 {
+			goto decodeRune
+		}
+	}
+	if p.litBs != nil {
+		p.litBs = append(p.litBs, p.bs[p.bsp:p.bsp+uint(w)]...)
+	}
+	p.bsp += uint(w)
+	if p.r == utf8.RuneError && w == 1 {
+		p.posErr(p.nextPos(), "invalid UTF-8 encoding")
+	}
+	p.w = w
 	return p.r
 }
 
