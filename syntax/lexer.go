@@ -375,6 +375,7 @@ skipSpace:
 // For example, whether `*` or `@` are followed by `(` to form `@(foo)`.
 func (p *Parser) extendedGlob() bool {
 	if p.val == "function" {
+		// We don't support e.g. `function @() { ... }` at the moment, but we could.
 		return false
 	}
 	if p.peek() == '(' {

@@ -2638,9 +2638,6 @@ loop:
 			p.curErr("a command can only contain words and redirects; encountered %s", p.tok)
 		}
 	}
-	if len(ce.Assigns) == 0 && len(ce.Args) == 0 {
-		return
-	}
 	if len(ce.Args) == 0 {
 		ce.Args = nil
 	} else {
