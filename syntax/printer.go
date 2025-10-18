@@ -1207,11 +1207,18 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		p.nestedBinary = false
 	case *FuncDecl:
 		if cmd.RsrvWord {
-			p.w.WriteString("function ")
+			p.spacedString("function", Pos{})
 		}
-		p.writeLit(cmd.Name.Value)
+		if cmd.Name != nil {
+			p.spacedString(cmd.Name.Value, Pos{})
+		} else {
+			for _, name := range cmd.Names {
+				p.spacedString(name.Value, Pos{})
+			}
+		}
 		if !cmd.RsrvWord || cmd.Parens {
 			p.w.WriteString("()")
+			p.wantSpace = spaceNotRequired
 		}
 		if p.funcNextLine {
 			p.newline(Pos{})

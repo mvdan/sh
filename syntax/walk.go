@@ -79,7 +79,8 @@ func Walk(node Node, f func(Node) bool) {
 		Walk(node.X, f)
 		Walk(node.Y, f)
 	case *FuncDecl:
-		Walk(node.Name, f)
+		walkNilable(node.Name, f)
+		walkList(node.Names, f)
 		Walk(node.Body, f)
 	case *Word:
 		walkList(node.Parts, f)

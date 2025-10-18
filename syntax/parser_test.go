@@ -1816,23 +1816,34 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"function",
-		langErr(`1:1: "function" must be followed by a name`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr(`1:1: "function" must be followed by a name`, LangBash|LangMirBSDKorn),
+		langErr(`1:1: "foo()" must be followed by a statement`, LangZsh),
 	),
 	errCase(
 		"function foo(",
-		langErr(`1:10: "foo(" must be followed by )`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr(`1:1: "function foo(" must be followed by )`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"function `function",
-		langErr(`1:1: "function" must be followed by a name`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr(`1:1: "function" must be followed by a name`, LangBash|LangMirBSDKorn),
+		langErr(`1:11: "foo()" must be followed by a statement`, LangZsh),
 	),
 	errCase(
 		`function "foo"(){}`,
-		langErr(`1:1: "function" must be followed by a name`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr(`1:1: "function" must be followed by a name`, LangBash|LangMirBSDKorn),
+		langErr(`1:10: invalid func name`, LangZsh),
 	),
 	errCase(
 		"function foo()",
 		langErr(`1:1: "foo()" must be followed by a statement`, LangBash|LangMirBSDKorn|LangZsh),
+	),
+	errCase(
+		"function f1 f2 f3() { a; }",
+		langErr(`1:1: multi-name functions are a zsh feature; tried parsing as LANG`, LangBash|LangMirBSDKorn),
+	),
+	errCase(
+		"function { a; }",
+		langErr(`1:1: anonymous functions are a zsh feature; tried parsing as LANG`, LangBash|LangMirBSDKorn),
 	),
 	errCase(
 		"echo <<<",

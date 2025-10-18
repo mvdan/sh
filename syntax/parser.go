@@ -1970,7 +1970,7 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 			if p.lang.is(LangPOSIX) && !ValidName(name.Value) {
 				p.posErr(name.Pos(), "invalid func name")
 			}
-			p.funcDecl(s, name, name.ValuePos, true)
+			p.funcDecl(s, name.ValuePos, false, true, name)
 		} else {
 			p.callExpr(s, p.wordOne(name), false)
 		}
@@ -2534,16 +2534,29 @@ func (p *Parser) letClause(s *Stmt) {
 
 func (p *Parser) bashFuncDecl(s *Stmt) {
 	fpos := p.pos
-	if p.next(); p.tok != _LitWord {
-		p.followErr(fpos, "function", "a name")
+	p.next()
+	names := make([]*Lit, 0, 1)
+	for p.tok == _LitWord && p.val != "{" {
+		names = append(names, p.lit(p.pos, p.val))
+		p.next()
 	}
-	name := p.lit(p.pos, p.val)
-	hasParens := false
-	if p.next(); p.got(leftParen) {
-		hasParens = true
-		p.follow(name.ValuePos, "foo(", rightParen)
+	hasParens := p.got(leftParen)
+	switch len(names) {
+	case 0:
+		if hasParens || (p.tok == _LitWord && p.val == "{") {
+			p.checkLang(fpos, LangZsh, "anonymous functions")
+		} else if !p.lang.is(LangZsh) {
+			p.followErr(fpos, "function", "a name")
+		}
+	case 1:
+		// allowed in all variants
+	default:
+		p.checkLang(fpos, LangZsh, "multi-name functions")
 	}
-	p.funcDecl(s, name, fpos, hasParens)
+	if hasParens {
+		p.follow(fpos, "function foo(", rightParen)
+	}
+	p.funcDecl(s, fpos, true, hasParens, names...)
 }
 
 func (p *Parser) testDecl(s *Stmt) {
@@ -2638,14 +2651,19 @@ loop:
 	s.Cmd = ce
 }
 
-func (p *Parser) funcDecl(s *Stmt, name *Lit, pos Pos, withParens bool) {
+func (p *Parser) funcDecl(s *Stmt, pos Pos, long, withParens bool, names ...*Lit) {
 	fd := &FuncDecl{
 		Position: pos,
-		RsrvWord: pos != name.ValuePos,
+		RsrvWord: long,
 		Parens:   withParens,
-		Name:     name,
+	}
+	if len(names) == 1 {
+		fd.Name = names[0]
+	} else {
+		fd.Names = names
 	}
 	p.got(_Newl)
+	// TODO: reject any body which isn't a compound command, like a quoted word
 	if fd.Body = p.getStmt(false, false, true); fd.Body == nil {
 		p.followErr(fd.Pos(), "foo()", "a statement")
 	}

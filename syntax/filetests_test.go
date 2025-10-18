@@ -10,7 +10,14 @@ import (
 	"testing"
 )
 
-func lit(s string) *Lit         { return &Lit{Value: s} }
+func lit(s string) *Lit { return &Lit{Value: s} }
+func lits(strs ...string) []*Lit {
+	l := make([]*Lit, 0, len(strs))
+	for _, s := range strs {
+		l = append(l, lit(s))
+	}
+	return l
+}
 func word(ps ...WordPart) *Word { return &Word{Parts: ps} }
 func litWord(s string) *Word    { return word(lit(s)) }
 func litWords(strs ...string) []*Word {
@@ -819,6 +826,38 @@ var fileTests = []fileTestCase{
 			Name:     lit("foo"),
 			Body:     stmt(subshell(litStmt("a"))),
 		}, LangBash),
+	),
+	fileTest(
+		[]string{
+			"function f1 f2 f3() {\n\ta\n}",
+		},
+		langFile(&FuncDecl{
+			RsrvWord: true,
+			Parens:   true,
+			Names:    lits("f1", "f2", "f3"),
+			Body:     stmt(block(litStmt("a"))),
+		}, LangZsh),
+	),
+	fileTest(
+		[]string{
+			"function f1 f2 f3() {\n\ta\n}",
+		},
+		langFile(&FuncDecl{
+			RsrvWord: true,
+			Parens:   true,
+			Names:    lits("f1", "f2", "f3"),
+			Body:     stmt(block(litStmt("a"))),
+		}, LangZsh),
+	),
+	fileTest(
+		[]string{
+			"function {\n\ta\n}",
+		},
+		langFile(&FuncDecl{
+			RsrvWord: true,
+			Names:    lits(),
+			Body:     stmt(block(litStmt("a"))),
+		}, LangZsh),
 	),
 	fileTest(
 		[]string{"a=b foo=$bar foo=start$bar"},
@@ -4849,6 +4888,10 @@ func recursiveSanityCheck(tb testing.TB, src string, v any) {
 		}
 		checkPos(v.ValuePos, val)
 		checkPos(v.ValueEnd)
+	case []*Lit:
+		for _, l := range v {
+			recurse(l)
+		}
 	case *Subshell:
 		checkPos(v.Lparen, "(")
 		checkPos(v.Rparen, ")")
@@ -4994,7 +5037,10 @@ func recursiveSanityCheck(tb testing.TB, src string, v any) {
 		} else {
 			checkPos(v.Position)
 		}
-		recurse(v.Name)
+		if v.Name != nil {
+			recurse(v.Name)
+		}
+		recurse(v.Names)
 		recurse(v.Body)
 	case *ParamExp:
 		doll := "$"

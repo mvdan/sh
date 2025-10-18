@@ -488,9 +488,13 @@ func (b *BinaryCmd) End() Pos { return b.Y.End() }
 type FuncDecl struct {
 	Position Pos
 	RsrvWord bool // non-posix "function f" style
-	Parens   bool // with () parentheses, only meaningful with RsrvWord=true
-	Name     *Lit
-	Body     *Stmt
+	Parens   bool // with () parentheses, can only be false when RsrvWord==true
+
+	// Only one of these is set at a time.
+	Name  *Lit
+	Names []*Lit // When declaring zero or many func names with [LangZsh].
+
+	Body *Stmt
 }
 
 func (f *FuncDecl) Pos() Pos { return f.Position }
