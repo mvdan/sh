@@ -601,15 +601,19 @@ type ParamExp struct {
 
 	Short bool // $a instead of ${a}
 
-	// TODO(v4): perhaps use an Operator token here, given how we've grown the number of booleans
-
+	// Only one of these is set at a time.
+	// TODO(v4): perhaps use an Operator token here,
+	// given how we've grown the number of booleans
 	Excl   bool // ${!a}
 	Length bool // ${#a}
 	Width  bool // mksh's ${%a}
 	Plus   bool // zsh's ${+a}
 
 	Param *Lit
-	Index ArithmExpr       // ${a[i]}, ${a["k"]}
+
+	Index ArithmExpr // ${a[i]}, ${a["k"]}
+
+	// Only one of these is set at a time.
 	Slice *Slice           // ${a:x:y}
 	Repl  *Replace         // ${a/x/y}
 	Names ParNamesOperator // ${!prefix*} or ${!prefix@}
