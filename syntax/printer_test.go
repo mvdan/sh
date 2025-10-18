@@ -1203,6 +1203,7 @@ func TestPrintOptionsNotBroken(t *testing.T) {
 					parser = parserZsh
 				}
 				in := tc.inputs[0]
+				t.Logf("input: %s", in)
 				prog, err := parser.Parse(strings.NewReader(in), "")
 				if err != nil {
 					t.Fatal(err)

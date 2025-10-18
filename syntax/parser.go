@@ -465,28 +465,29 @@ func (p *Parser) Arithmetic(r io.Reader) (ArithmExpr, error) {
 // program.
 type Parser struct {
 	src io.Reader
-	bs  []byte // current chunk of read bytes; nil when at EOF
-	bsp uint   // pos within chunk for the rune after r; uint helps eliminate bounds checks
-	r   rune   // next rune; [utf8.RuneSelf] when at EOF
-	w   int    // width of r
+	bs  []byte // current chunk of read bytes
+	bsp uint   // offset within [Parser.bs] for the rune after [Parser.r]
+	r   rune   // next rune; [utf8.RuneSelf] when reached EOF
+	w   int    // width of [Parser.r]
 
 	f *File
 
-	spaced bool // whether tok has whitespace on its left
+	spaced bool // whether [Parser.tok] has whitespace on its left
 
 	err     error // lexer/parser error
 	readErr error // got a read error, but bytes left
+	readEOF bool  // [Parser.src] already gave us an [io.EOF] error
 
 	tok token  // current token
 	val string // current value (valid if tok is _Lit*)
 
-	// position of r, to be converted to [Parser.pos] later
+	// position of [Parser.r], to be converted to [Parser.pos] later
 	offs, line, col int64
 
 	pos Pos // position of tok
 
 	quote   quoteState // current lexer state
-	eqlOffs int        // position of '=' in val (a literal)
+	eqlOffs int        // position of '=' in [Parser.val] (a literal)
 
 	keepComments bool
 	lang         LangVariant
@@ -549,7 +550,7 @@ func (p *Parser) reset() {
 	p.bs, p.bsp = nil, 0
 	p.offs, p.line, p.col = 0, 1, 1
 	p.r, p.w = 0, 0
-	p.err, p.readErr = nil, nil
+	p.err, p.readErr, p.readEOF = nil, nil, false
 	p.quote, p.forbidNested = noState, false
 	p.openNodes = 0
 	p.recoveredErrors = 0
@@ -576,6 +577,7 @@ func (p *Parser) nextPos() Pos {
 	if p.col <= colMax {
 		col = uint(p.col)
 	}
+	// println("offset", offset)
 	return NewPos(uint(offset), line, col)
 }
 

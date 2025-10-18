@@ -2206,6 +2206,7 @@ var errorCases = []errorCase{
 
 func checkError(p *Parser, in, want string) func(*testing.T) {
 	return func(t *testing.T) {
+		t.Logf("input: %s", in)
 		want = strings.Replace(want, "LANG", p.lang.String(), 1)
 		_, err := p.Parse(newStrictReader(in), "")
 		if err == nil {

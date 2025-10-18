@@ -83,6 +83,8 @@ retry:
 					p.w, p.r = 2, escNewl
 					return escNewl
 				}
+				// TODO: why is this necessary to ensure correct position info?
+				p.readEOF = false
 				if p.openBquotes > 0 && bquotes < p.openBquotes &&
 					p.bsp < uint(len(p.bs)) && bquoteEscaped(p.bs[p.bsp]) {
 					// We turn backquote command substitutions into $(),
@@ -119,14 +121,12 @@ retry:
 		}
 		p.w = w
 	} else {
-		if p.r == utf8.RuneSelf {
-		} else if p.fill(); p.bs == nil {
-			p.bsp++
-			p.r = utf8.RuneSelf
-			p.w = 1
-		} else {
+		if p.fill() > 0 {
 			goto retry
 		}
+		p.bsp = 1
+		p.r = utf8.RuneSelf
+		p.w = 1
 	}
 	return p.r
 }
@@ -137,6 +137,9 @@ retry:
 // The number of read bytes is returned, which is at least one
 // unless a read error occurred, such as [io.EOF].
 func (p *Parser) fill() (n int) {
+	if p.readEOF || p.r == utf8.RuneSelf {
+		return 0
+	}
 	p.offs += int64(p.bsp)
 	left := len(p.bs) - int(p.bsp)
 	copy(p.readBuf[:left], p.readBuf[p.bsp:])
@@ -145,6 +148,9 @@ readAgain:
 	if err == nil {
 		n, err = p.src.Read(p.readBuf[left:])
 		p.readErr = err
+		if err == io.EOF {
+			p.readEOF = true
+		}
 	}
 	if n == 0 {
 		if err == nil {
@@ -386,11 +392,11 @@ func (p *Parser) extendedGlob() bool {
 }
 
 func (p *Parser) peek() byte {
-	if len(p.bs) < int(p.bsp)+1 {
+	if int(p.bsp) >= len(p.bs) {
 		p.fill()
 	}
-	if len(p.bs) < int(p.bsp)+1 {
-		return utf8.RuneSelf // EOF
+	if int(p.bsp) >= len(p.bs) {
+		return utf8.RuneSelf
 	}
 	return p.bs[p.bsp]
 }
@@ -398,17 +404,16 @@ func (p *Parser) peek() byte {
 func (p *Parser) peekTwo() (byte, byte) {
 	// TODO: This should loop for slow readers, e.g. those providing one byte at
 	// a time. Use a loop and test it with [testing/iotest.OneByteReader].
-	if len(p.bs) < int(p.bsp)+2 {
+	if int(p.bsp+1) >= len(p.bs) {
 		p.fill()
 	}
-	switch len(p.bs) {
-	case int(p.bsp):
+	if int(p.bsp) >= len(p.bs) {
 		return utf8.RuneSelf, utf8.RuneSelf
-	case int(p.bsp) + 1:
-		return p.bs[p.bsp], utf8.RuneSelf
-	default:
-		return p.bs[p.bsp], p.bs[p.bsp+1]
 	}
+	if int(p.bsp+1) >= len(p.bs) {
+		return p.bs[p.bsp], utf8.RuneSelf
+	}
+	return p.bs[p.bsp], p.bs[p.bsp+1]
 }
 
 func (p *Parser) regToken(r rune) token {
