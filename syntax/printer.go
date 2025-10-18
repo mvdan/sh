@@ -223,7 +223,7 @@ func (c *colCounter) Reset(w io.Writer) {
 type Printer struct {
 	w         bufWriter
 	tabWriter *tabwriter.Writer
-	cols      colCounter
+	cols      colCounter // used for [KeepPadding]
 
 	indentSpaces   uint
 	binNextLine    bool
