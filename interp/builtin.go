@@ -24,13 +24,19 @@ import (
 	"mvdan.cc/sh/v3/syntax"
 )
 
-// IsBuiltin returns true if the given word is a shell builtin.
+// TODO: given the categories below, perhaps this should be more like:
+//
+//   func IsBuiltin(lang syntax.LangVariant, name string) bool
+//
+// or perhaps some API that also lets the user iterate through the builtins?
+//
+// Also, should we move this to the syntax package too?
+// It's not a syntactical property strictly speaking,
+// but it's also odd to require importing the interp package for it.
+
+// IsBuiltin returns true if the given word is a POSIX Shell
+// or Bash builtin.
 func IsBuiltin(name string) bool {
-	// TODO: given the categories below, perhaps this should be more like:
-	//
-	//   func IsBuiltin(lang syntax.LangVariant, name string) bool
-	//
-	// or perhaps some API that also lets the user iterate through the builtins?
 	switch name {
 	case
 		// POSIX Shell builtins, from section 1.d obtained in September 2025 from:

@@ -895,7 +895,11 @@ func IsIncomplete(err error) bool {
 	return ok && perr.Incomplete
 }
 
-// IsKeyword returns true if the given word is part of the language keywords.
+// TODO: probably redo with a [LangVariant] argument.
+// Perhaps offer an iterator version as well.
+
+// IsKeyword returns true if the given word is a language keyword
+// in POSIX Shell or Bash.
 func IsKeyword(word string) bool {
 	// This list has been copied from the bash 5.1 source code, file y.tab.c +4460
 	// TODO: should we include entries for zsh here? e.g. "{}", "repeat", "always", ...
