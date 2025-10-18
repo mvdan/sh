@@ -135,6 +135,8 @@ decodeRune:
 // unless a read error occurred, such as [io.EOF].
 func (p *Parser) fill() (n int) {
 	if p.readEOF || p.r == utf8.RuneSelf {
+		// If the reader already gave us [io.EOF], do not try again.
+		// If we decided to stop for any reason, do not bother reading either.
 		return 0
 	}
 	p.offs += int64(p.bsp)

@@ -467,7 +467,7 @@ type Parser struct {
 	src io.Reader
 	bs  []byte // current chunk of read bytes
 	bsp uint   // offset within [Parser.bs] for the rune after [Parser.r]
-	r   rune   // next rune; [utf8.RuneSelf] when reached EOF
+	r   rune   // next rune; [utf8.RuneSelf] when it went past EOF, or we stopped
 	w   int    // width of [Parser.r]
 
 	f *File
