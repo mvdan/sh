@@ -436,6 +436,7 @@ type errorCase struct {
 	bash  string
 	posix string
 	mksh  string
+	bats  string
 	zsh   string
 
 	// The real shells where testing the input succeeds rather than failing as expected.
@@ -492,6 +493,8 @@ func langErr(want string, langSets ...LangVariant) func(*errorCase) {
 				c.posix = want
 			case LangMirBSDKorn:
 				c.mksh = want
+			case LangBats:
+				c.bats = want
 			case LangZsh:
 				c.zsh = want
 			default:
@@ -1846,6 +1849,14 @@ var errorCases = []errorCase{
 		langErr(`1:1: anonymous functions are a zsh feature; tried parsing as LANG`, LangBash|LangMirBSDKorn),
 	),
 	errCase(
+		"@test",
+		langErr(`1:1: @test must be followed by a description word`, LangBats),
+	),
+	errCase(
+		"@test 'desc'",
+		langErr(`1:1: @test "desc" must be followed by a statement`, LangBats),
+	),
+	errCase(
 		"echo <<<",
 		langErr(`1:6: <<< must be followed by a word`, LangBash|LangMirBSDKorn),
 	),
@@ -2249,6 +2260,17 @@ func TestParseErrMirBSDKorn(t *testing.T) {
 			continue
 		}
 		t.Run("", checkError(p, c.in, c.mksh))
+	}
+}
+
+func TestParseErrBats(t *testing.T) {
+	t.Parallel()
+	p := NewParser(KeepComments(true), Variant(LangBats))
+	for _, c := range errorCases {
+		if c.bats == "" {
+			continue
+		}
+		t.Run("", checkError(p, c.in, c.bats))
 	}
 }
 
