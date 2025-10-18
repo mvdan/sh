@@ -367,7 +367,7 @@ func TestParseErrBashConfirm(t *testing.T) {
 		if c.bash == "" {
 			continue
 		}
-		wantErr := !LangBash.is(c.flipConfirmSet)
+		wantErr := !LangBash.in(c.flipConfirmSet)
 		t.Run("", confirmParse(c.in, "bash", wantErr))
 	}
 }
@@ -381,7 +381,7 @@ func TestParseErrPosixConfirm(t *testing.T) {
 		if c.posix == "" {
 			continue
 		}
-		wantErr := !LangPOSIX.is(c.flipConfirmSet)
+		wantErr := !LangPOSIX.in(c.flipConfirmSet)
 		t.Run("", confirmParse(c.in, "dash", wantErr))
 	}
 }
@@ -395,7 +395,7 @@ func TestParseErrMirBSDKornConfirm(t *testing.T) {
 		if c.mksh == "" {
 			continue
 		}
-		wantErr := !LangMirBSDKorn.is(c.flipConfirmSet)
+		wantErr := !LangMirBSDKorn.in(c.flipConfirmSet)
 		t.Run("", confirmParse(c.in, "mksh", wantErr))
 	}
 }
@@ -410,7 +410,7 @@ func TestParseErrZshConfirm(t *testing.T) {
 		if c.zsh == "" {
 			continue
 		}
-		wantErr := !LangZsh.is(c.flipConfirmSet)
+		wantErr := !LangZsh.in(c.flipConfirmSet)
 		t.Run("", confirmParse(c.in, "zsh", wantErr))
 	}
 }

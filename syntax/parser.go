@@ -150,8 +150,8 @@ func (l *LangVariant) Set(s string) error {
 	return nil
 }
 
-func (l LangVariant) is(langSet LangVariant) bool {
-	return l&langSet != 0
+func (l LangVariant) in(l2 LangVariant) bool {
+	return l&l2 == l
 }
 
 func (l LangVariant) count() int {
@@ -817,7 +817,7 @@ func (p *Parser) followRsrv(lpos Pos, left, val string) Pos {
 
 func (p *Parser) followStmts(left string, lpos Pos, stops ...string) ([]*Stmt, []Comment) {
 	if p.got(semicolon) {
-		if p.lang.is(LangZsh) {
+		if p.lang.in(LangZsh) {
 			return nil, nil // zsh allows empty command lists
 		}
 		p.followErr(lpos, left, "a statement list")
@@ -825,7 +825,7 @@ func (p *Parser) followStmts(left string, lpos Pos, stops ...string) ([]*Stmt, [
 	}
 	stmts, last := p.stmtList(stops...)
 	if len(stmts) < 1 {
-		if p.lang.is(LangZsh) {
+		if p.lang.in(LangZsh) {
 			return nil, nil // zsh allows empty command lists
 		}
 		if p.recoverError() {
@@ -1004,10 +1004,10 @@ func (p *Parser) curErr(format string, a ...any) {
 }
 
 func (p *Parser) checkLang(pos Pos, langSet LangVariant, format string, a ...any) {
-	if p.lang.is(langSet) {
+	if p.lang.in(langSet) {
 		return
 	}
-	if langSet.is(langBashLike) {
+	if langBashLike.in(langSet) {
 		// If we're reporting an error because a feature is for bash-like funcs,
 		// just mention "bash" rather than "bash/bats" for the sake of clarity.
 		langSet &^= LangBats
@@ -1376,7 +1376,7 @@ func (p *Parser) paramExp() *ParamExp {
 		Dollar: p.pos,
 		Short:  p.tok == dollar,
 	}
-	if !pe.Short || p.lang.is(LangZsh) {
+	if !pe.Short || p.lang.in(LangZsh) {
 		// Prefixes, like ${#name} to get the length of a variable.
 		// Note that in Zsh, the short form like $#name is allowed too.
 		switch p.r {
@@ -1626,7 +1626,7 @@ func (p *Parser) hasValidIdent() bool {
 		return false
 	}
 	if end := p.eqlOffs; end > 0 {
-		if p.val[end-1] == '+' && p.lang.is(langBashLike|LangMirBSDKorn|LangZsh) {
+		if p.val[end-1] == '+' && p.lang.in(langBashLike|LangMirBSDKorn|LangZsh) {
 			end-- // a+=x
 		}
 		if ValidName(p.val[:end]) {
@@ -1642,7 +1642,7 @@ func (p *Parser) getAssign(needEqual bool) *Assign {
 	as := &Assign{}
 	if p.eqlOffs > 0 { // foo=bar
 		nameEnd := p.eqlOffs
-		if p.lang.is(langBashLike|LangMirBSDKorn|LangZsh) && p.val[p.eqlOffs-1] == '+' {
+		if p.lang.in(langBashLike|LangMirBSDKorn|LangZsh) && p.val[p.eqlOffs-1] == '+' {
 			// a+=b
 			as.Append = true
 			nameEnd--
@@ -1699,7 +1699,7 @@ func (p *Parser) getAssign(needEqual bool) *Assign {
 		}
 		as.Array = &ArrayExpr{Lparen: p.pos}
 		newQuote := p.quote
-		if p.lang.is(langBashLike | LangZsh) {
+		if p.lang.in(langBashLike | LangZsh) {
 			newQuote = arrayElems
 		}
 		old := p.preNested(newQuote)
@@ -1885,7 +1885,7 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 			p.block(s)
 		case "{}":
 			// Zsh treats closing braces in a special way, allowing this.
-			if p.lang.is(LangZsh) {
+			if p.lang.in(LangZsh) {
 				s.Cmd = &Block{Lbrace: p.pos, Rbrace: posAddCol(p.pos, 1)}
 				p.next()
 			}
@@ -1919,43 +1919,43 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 				break
 			}
 		case "[[":
-			if p.lang.is(langBashLike | LangMirBSDKorn | LangZsh) {
+			if p.lang.in(langBashLike | LangMirBSDKorn | LangZsh) {
 				p.testClause(s)
 			}
 		case "]]":
-			if p.lang.is(langBashLike | LangMirBSDKorn | LangZsh) {
+			if p.lang.in(langBashLike | LangMirBSDKorn | LangZsh) {
 				p.curErr(`%q can only be used to close a test`, p.val)
 			}
 		case "let":
-			if p.lang.is(langBashLike | LangMirBSDKorn | LangZsh) {
+			if p.lang.in(langBashLike | LangMirBSDKorn | LangZsh) {
 				p.letClause(s)
 			}
 		case "function":
-			if p.lang.is(langBashLike | LangMirBSDKorn | LangZsh) {
+			if p.lang.in(langBashLike | LangMirBSDKorn | LangZsh) {
 				p.bashFuncDecl(s)
 			}
 		case "declare":
-			if p.lang.is(langBashLike | LangZsh) { // Note that mksh lacks this one.
+			if p.lang.in(langBashLike | LangZsh) { // Note that mksh lacks this one.
 				p.declClause(s)
 			}
 		case "local", "export", "readonly", "typeset", "nameref":
-			if p.lang.is(langBashLike | LangMirBSDKorn | LangZsh) {
+			if p.lang.in(langBashLike | LangMirBSDKorn | LangZsh) {
 				p.declClause(s)
 			}
 		case "time":
-			if p.lang.is(langBashLike | LangMirBSDKorn | LangZsh) {
+			if p.lang.in(langBashLike | LangMirBSDKorn | LangZsh) {
 				p.timeClause(s)
 			}
 		case "coproc":
-			if p.lang.is(langBashLike) { // Note that mksh lacks this one.
+			if p.lang.in(langBashLike) { // Note that mksh lacks this one.
 				p.coprocClause(s)
 			}
 		case "select":
-			if p.lang.is(langBashLike | LangMirBSDKorn | LangZsh) {
+			if p.lang.in(langBashLike | LangMirBSDKorn | LangZsh) {
 				p.selectClause(s)
 			}
 		case "@test":
-			if p.lang.is(LangBats) {
+			if p.lang.in(LangBats) {
 				p.testDecl(s)
 			}
 		}
@@ -1969,7 +1969,7 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 		name := p.lit(p.pos, p.val)
 		if p.next(); p.got(leftParen) {
 			p.follow(name.ValuePos, "foo(", rightParen)
-			if p.lang.is(LangPOSIX) && !ValidName(name.Value) {
+			if p.lang.in(LangPOSIX) && !ValidName(name.Value) {
 				p.posErr(name.Pos(), "invalid func name")
 			}
 			p.funcDecl(s, name.ValuePos, false, true, name)
@@ -2016,7 +2016,7 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 			// right recursion should only read a single element
 			return s
 		}
-		if p.tok == orAnd && p.lang.is(LangMirBSDKorn) {
+		if p.tok == orAnd && p.lang.in(LangMirBSDKorn) {
 			// No need to check for LangPOSIX, as on that language
 			// we parse |& as two tokens.
 			break
@@ -2392,7 +2392,7 @@ func (p *Parser) testExprBase() TestExpr {
 		switch op {
 		case illegalTok:
 		case tsRefVar, tsModif: // not available in mksh
-			if p.lang.is(langBashLike) {
+			if p.lang.in(langBashLike) {
 				p.tok = op
 			}
 		default:
@@ -2547,7 +2547,7 @@ func (p *Parser) bashFuncDecl(s *Stmt) {
 	case 0:
 		if hasParens || (p.tok == _LitWord && p.val == "{") {
 			p.checkLang(fpos, LangZsh, "anonymous functions")
-		} else if !p.lang.is(LangZsh) {
+		} else if !p.lang.in(LangZsh) {
 			p.followErr(fpos, "function", "a name")
 		}
 	case 1:
@@ -2597,7 +2597,7 @@ loop:
 				p.checkLang(p.pos, langBashLike, `the "function" builtin`)
 			}
 			// Zsh does not require a semicolon to close a block.
-			if p.lang.is(LangZsh) && p.val == "}" {
+			if p.lang.in(LangZsh) && p.val == "}" {
 				break loop
 			}
 			ce.Args = append(ce.Args, p.wordOne(p.lit(p.pos, p.val)))

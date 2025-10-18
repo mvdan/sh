@@ -447,7 +447,7 @@ func (p *Parser) regToken(r rune) token {
 			p.rune()
 			return orOr
 		case '&':
-			if !p.lang.is(langBashLike | LangMirBSDKorn | LangZsh) {
+			if !p.lang.in(langBashLike | LangMirBSDKorn | LangZsh) {
 				break
 			}
 			p.rune()
@@ -457,13 +457,13 @@ func (p *Parser) regToken(r rune) token {
 	case '$':
 		switch p.rune() {
 		case '\'':
-			if !p.lang.is(langBashLike | LangMirBSDKorn | LangZsh) {
+			if !p.lang.in(langBashLike | LangMirBSDKorn | LangZsh) {
 				break
 			}
 			p.rune()
 			return dollSglQuote
 		case '"':
-			if !p.lang.is(langBashLike | LangMirBSDKorn) {
+			if !p.lang.in(langBashLike | LangMirBSDKorn) {
 				break
 			}
 			p.rune()
@@ -472,7 +472,7 @@ func (p *Parser) regToken(r rune) token {
 			p.rune()
 			return dollBrace
 		case '[':
-			if !p.lang.is(langBashLike) {
+			if !p.lang.in(langBashLike) {
 				// latter to not tokenise ${$[@]} as $[
 				break
 			}
@@ -487,7 +487,7 @@ func (p *Parser) regToken(r rune) token {
 		}
 		return dollar
 	case '(':
-		if p.rune() == '(' && p.lang.is(langBashLike|LangMirBSDKorn|LangZsh) && p.quote != testExpr {
+		if p.rune() == '(' && p.lang.in(langBashLike|LangMirBSDKorn|LangZsh) && p.quote != testExpr {
 			p.rune()
 			return dblLeftParen
 		}
@@ -498,19 +498,19 @@ func (p *Parser) regToken(r rune) token {
 	case ';':
 		switch p.rune() {
 		case ';':
-			if p.rune() == '&' && p.lang.is(langBashLike) {
+			if p.rune() == '&' && p.lang.in(langBashLike) {
 				p.rune()
 				return dblSemiAnd
 			}
 			return dblSemicolon
 		case '&':
-			if !p.lang.is(langBashLike | LangMirBSDKorn | LangZsh) {
+			if !p.lang.in(langBashLike | LangMirBSDKorn | LangZsh) {
 				break
 			}
 			p.rune()
 			return semiAnd
 		case '|':
-			if !p.lang.is(LangMirBSDKorn) {
+			if !p.lang.in(LangMirBSDKorn) {
 				break
 			}
 			p.rune()
@@ -535,7 +535,7 @@ func (p *Parser) regToken(r rune) token {
 			p.rune()
 			return dplIn
 		case '(':
-			if !p.lang.is(langBashLike | LangZsh) {
+			if !p.lang.in(langBashLike | LangZsh) {
 				break
 			}
 			p.rune()
@@ -554,7 +554,7 @@ func (p *Parser) regToken(r rune) token {
 			p.rune()
 			return clbOut
 		case '(':
-			if !p.lang.is(langBashLike | LangZsh) {
+			if !p.lang.in(langBashLike | LangZsh) {
 				break
 			}
 			p.rune()
@@ -579,7 +579,7 @@ func (p *Parser) dqToken(r rune) token {
 			p.rune()
 			return dollBrace
 		case '[':
-			if !p.lang.is(langBashLike) {
+			if !p.lang.in(langBashLike) {
 				break
 			}
 			p.rune()
@@ -708,7 +708,7 @@ func (p *Parser) arithmToken(r rune) token {
 	case '&':
 		switch p.rune() {
 		case '&':
-			if p.rune() == '=' && p.lang.is(LangZsh) {
+			if p.rune() == '=' && p.lang.in(LangZsh) {
 				p.rune()
 				return andBoolAssgn
 			}
@@ -721,7 +721,7 @@ func (p *Parser) arithmToken(r rune) token {
 	case '|':
 		switch p.rune() {
 		case '|':
-			if p.rune() == '=' && p.lang.is(LangZsh) {
+			if p.rune() == '=' && p.lang.in(LangZsh) {
 				p.rune()
 				return orBoolAssgn
 			}
@@ -786,7 +786,7 @@ func (p *Parser) arithmToken(r rune) token {
 	case '*':
 		switch p.rune() {
 		case '*':
-			if p.rune() == '=' && p.lang.is(LangZsh) {
+			if p.rune() == '=' && p.lang.in(LangZsh) {
 				p.rune()
 				return powAssgn
 			}
@@ -805,7 +805,7 @@ func (p *Parser) arithmToken(r rune) token {
 	case '^':
 		switch p.rune() {
 		case '^':
-			if p.rune() == '=' && p.lang.is(LangZsh) {
+			if p.rune() == '=' && p.lang.in(LangZsh) {
 				p.rune()
 				return xorBoolAssgn
 			}
@@ -920,7 +920,7 @@ loop:
 				break loop
 			}
 		case '[', ']':
-			if p.lang.is(langBashLike|LangMirBSDKorn|LangZsh) && p.quote&allArithmExpr != 0 {
+			if p.lang.in(langBashLike|LangMirBSDKorn|LangZsh) && p.quote&allArithmExpr != 0 {
 				break loop
 			}
 			fallthrough
@@ -968,7 +968,7 @@ loop:
 				p.eqlOffs = len(p.litBs) - 1
 			}
 		case '[':
-			if p.lang.is(langBashLike|LangMirBSDKorn|LangZsh) && len(p.litBs) > 1 && p.litBs[0] != '[' {
+			if p.lang.in(langBashLike|LangMirBSDKorn|LangZsh) && len(p.litBs) > 1 && p.litBs[0] != '[' {
 				tok = _Lit
 				break loop
 			}

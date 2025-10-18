@@ -139,7 +139,7 @@ func FuzzParsePrint(f *testing.F) {
 		functionNextLine bool,
 	) {
 		lang := LangVariant(langVariant)
-		if lang.count() != 1 || !lang.is(langResolvedVariants) {
+		if lang.count() != 1 || !lang.in(langResolvedVariants) {
 			t.Skip()
 		}
 		if indent > 16 {
