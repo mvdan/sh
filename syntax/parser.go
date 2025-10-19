@@ -90,6 +90,11 @@ const (
 	// which is meant to resolve to another variant.
 	langResolvedVariants = LangBash | LangPOSIX | LangMirBSDKorn | LangBats | LangZsh
 
+	// langResolvedVariantsCount is langResolvedVariants.count() as a constant.
+	// TODO: Can we compute this as a constant expression somehow?
+	// For example, if we had log2, we could do log2(LangAuto).
+	langResolvedVariantsCount = 5
+
 	// langBashLike contains Bash plus all variants which are extensions of it.
 	langBashLike = LangBash | LangBats
 )
@@ -156,6 +161,10 @@ func (l LangVariant) in(l2 LangVariant) bool {
 
 func (l LangVariant) count() int {
 	return bits.OnesCount32(uint32(l))
+}
+
+func (l LangVariant) index() int {
+	return bits.TrailingZeros32(uint32(l))
 }
 
 func (l LangVariant) bits() iter.Seq[LangVariant] {

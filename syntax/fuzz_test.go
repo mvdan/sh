@@ -35,23 +35,14 @@ func FuzzQuote(f *testing.F) {
 			t.Skip()
 		}
 
-		var shellProgram string
-		switch lang {
-		case LangBash:
-			requireBash52(t)
-			shellProgram = "bash"
-		case LangPOSIX:
-			requireDash059(t)
-			shellProgram = "dash"
-		case LangMirBSDKorn:
-			requireMksh59(t)
-			shellProgram = "mksh"
-		// TODO: LangZsh
-		case LangBats:
-			t.Skip() // bats has no shell and its syntax is just bash
-		default:
-			t.Skip() // invalid/unknown lang variant
+		external, ok := externalShells[lang]
+		if !ok {
+			t.Skip() // invalid/untested lang variant
 		}
+		if lang == LangZsh {
+			t.Skip() // TODO
+		}
+		external.require(t)
 
 		// Verify that our parser ends up with a simple command with one word.
 		f, err := NewParser(Variant(lang)).Parse(strings.NewReader(quoted), "")
@@ -76,14 +67,14 @@ func FuzzQuote(f *testing.F) {
 		// The process below shouldn't run arbitrary code,
 		// since our parser checks above should catch the use of ';' or '$',
 		// in the case that Quote were too naive to quote them.
-		out, err := exec.Command(shellProgram, "-c", "printf %s "+quoted).CombinedOutput()
+		out, err := exec.Command(external.cmd, "-c", "printf %s "+quoted).CombinedOutput()
 		if err != nil {
-			t.Fatalf("%s error on %q quoted as %s: %v: %s", shellProgram, s, quoted, err, out)
+			t.Fatalf("%s error on %q quoted as %s: %v: %s", external.cmd, s, quoted, err, out)
 		}
 		want, got := s, string(out)
 		if want != got {
 			t.Fatalf("%s output mismatch on %q quoted as %s: got %q (len=%d)",
-				shellProgram, want, quoted, got, len(got))
+				external.cmd, want, quoted, got, len(got))
 		}
 	})
 }

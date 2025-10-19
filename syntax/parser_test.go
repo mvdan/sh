@@ -172,7 +172,7 @@ func TestParseZshConfirm(t *testing.T) {
 	if testing.Short() {
 		t.Skip("calling zsh is slow")
 	}
-	requireZsh59(t)
+	externalShells[LangZsh].require(t)
 	i := 0
 	for _, c := range append(fileTests, fileTestsNoPrint...) {
 		if c.zsh == nil {
@@ -224,28 +224,35 @@ var (
 	})
 )
 
-func requireBash52(tb testing.TB) {
-	if !onceHasBash52() {
-		tb.Skipf("bash 5.2 required to run")
-	}
+type externalShell struct {
+	cmd     string
+	require func(testing.TB)
 }
 
-func requireDash059(tb testing.TB) {
-	if !onceHasDash059() {
-		tb.Skipf("dash 0.5.9+ required to run")
-	}
-}
-
-func requireMksh59(tb testing.TB) {
-	if !onceHasMksh59() {
-		tb.Skipf("mksh 59 required to run")
-	}
-}
-
-func requireZsh59(tb testing.TB) {
-	if !onceHasZsh59() {
-		tb.Skipf("zsh 5.9 required to run")
-	}
+// Note that externalShells is a map, and not an array,
+// because [LangVariant.index] is not a constant expression.
+// This seems fine; this table is only for the sake of testing.
+var externalShells = map[LangVariant]externalShell{
+	LangBash: {"bash", func(tb testing.TB) {
+		if !onceHasBash52() {
+			tb.Skipf("bash 5.2 required to run")
+		}
+	}},
+	LangPOSIX: {"dash", func(tb testing.TB) {
+		if !onceHasDash059() {
+			tb.Skipf("dash 0.5.9+ required to run")
+		}
+	}},
+	LangMirBSDKorn: {"mksh", func(tb testing.TB) {
+		if !onceHasMksh59() {
+			tb.Skipf("mksh 59 required to run")
+		}
+	}},
+	LangZsh: {"zsh", func(tb testing.TB) {
+		if !onceHasZsh59() {
+			tb.Skipf("zsh 5.9 required to run")
+		}
+	}},
 }
 
 func cmdContains(substr, cmd string, args ...string) bool {
@@ -308,7 +315,7 @@ func TestParseBashConfirm(t *testing.T) {
 	if testing.Short() {
 		t.Skip("calling bash is slow.")
 	}
-	requireBash52(t)
+	externalShells[LangBash].require(t)
 	i := 0
 	for _, c := range append(fileTests, fileTestsNoPrint...) {
 		if c.bash == nil {
@@ -326,7 +333,7 @@ func TestParsePosixConfirm(t *testing.T) {
 	if testing.Short() {
 		t.Skip("calling dash is slow.")
 	}
-	requireDash059(t)
+	externalShells[LangPOSIX].require(t)
 	i := 0
 	for _, c := range append(fileTests, fileTestsNoPrint...) {
 		if c.posix == nil {
@@ -344,7 +351,7 @@ func TestParseMirBSDKornConfirm(t *testing.T) {
 	if testing.Short() {
 		t.Skip("calling mksh is slow.")
 	}
-	requireMksh59(t)
+	externalShells[LangMirBSDKorn].require(t)
 	i := 0
 	for _, c := range append(fileTests, fileTestsNoPrint...) {
 		if c.mksh == nil {
@@ -355,63 +362,6 @@ func TestParseMirBSDKornConfirm(t *testing.T) {
 				confirmParse(in, "mksh", false))
 		}
 		i++
-	}
-}
-
-func TestParseErrBashConfirm(t *testing.T) {
-	if testing.Short() {
-		t.Skip("calling bash is slow.")
-	}
-	requireBash52(t)
-	for _, c := range errorCases {
-		if c.bash == "" {
-			continue
-		}
-		wantErr := !LangBash.in(c.flipConfirmSet)
-		t.Run("", confirmParse(c.in, "bash", wantErr))
-	}
-}
-
-func TestParseErrPosixConfirm(t *testing.T) {
-	if testing.Short() {
-		t.Skip("calling dash is slow.")
-	}
-	requireDash059(t)
-	for _, c := range errorCases {
-		if c.posix == "" {
-			continue
-		}
-		wantErr := !LangPOSIX.in(c.flipConfirmSet)
-		t.Run("", confirmParse(c.in, "dash", wantErr))
-	}
-}
-
-func TestParseErrMirBSDKornConfirm(t *testing.T) {
-	if testing.Short() {
-		t.Skip("calling mksh is slow.")
-	}
-	requireMksh59(t)
-	for _, c := range errorCases {
-		if c.mksh == "" {
-			continue
-		}
-		wantErr := !LangMirBSDKorn.in(c.flipConfirmSet)
-		t.Run("", confirmParse(c.in, "mksh", wantErr))
-	}
-}
-
-func TestParseErrZshConfirm(t *testing.T) {
-	t.Skip("TODO: we don't confirm with zsh yet")
-	if testing.Short() {
-		t.Skip("calling zsh is slow.")
-	}
-	requireZsh59(t)
-	for _, c := range errorCases {
-		if c.zsh == "" {
-			continue
-		}
-		wantErr := !LangZsh.in(c.flipConfirmSet)
-		t.Run("", confirmParse(c.in, "zsh", wantErr))
 	}
 }
 
@@ -433,11 +383,7 @@ func singleParse(p *Parser, in string, want *File) func(t *testing.T) {
 type errorCase struct {
 	in string
 
-	bash  string
-	posix string
-	mksh  string
-	bats  string
-	zsh   string
+	byLangIndex [langResolvedVariantsCount]string
 
 	// The real shells where testing the input succeeds rather than failing as expected.
 	flipConfirmSet LangVariant
@@ -454,18 +400,7 @@ func errCase(in string, opts ...func(*errorCase)) errorCase {
 func langPass(langSet LangVariant) func(*errorCase) {
 	return func(c *errorCase) {
 		for lang := range langSet.bits() {
-			switch lang {
-			case LangBash:
-				c.bash = ""
-			case LangPOSIX:
-				c.posix = ""
-			case LangMirBSDKorn:
-				c.mksh = ""
-			case LangZsh:
-				c.zsh = ""
-			default:
-				panic(fmt.Sprintf("unsupported LangVariant: %#b", lang))
-			}
+			c.byLangIndex[lang.index()] = ""
 		}
 	}
 }
@@ -475,10 +410,9 @@ func langErr(want string, langSets ...LangVariant) func(*errorCase) {
 		// The parameter is a slice to allow omitting the argument.
 		switch len(langSets) {
 		case 0:
-			c.bash = want
-			c.posix = want
-			c.mksh = want
-			c.zsh = want
+			for i := range c.byLangIndex {
+				c.byLangIndex[i] = want
+			}
 			return
 		case 1:
 			// continue below
@@ -486,20 +420,7 @@ func langErr(want string, langSets ...LangVariant) func(*errorCase) {
 			panic("use a LangVariant bitset")
 		}
 		for lang := range langSets[0].bits() {
-			switch lang {
-			case LangBash:
-				c.bash = want
-			case LangPOSIX:
-				c.posix = want
-			case LangMirBSDKorn:
-				c.mksh = want
-			case LangBats:
-				c.bats = want
-			case LangZsh:
-				c.zsh = want
-			default:
-				panic(fmt.Sprintf("unsupported LangVariant: %#b", lang))
-			}
+			c.byLangIndex[lang.index()] = want
 		}
 	}
 }
@@ -2215,73 +2136,58 @@ var errorCases = []errorCase{
 	),
 }
 
-func checkError(p *Parser, in, want string) func(*testing.T) {
-	return func(t *testing.T) {
-		t.Logf("input: %s", in)
-		want = strings.Replace(want, "LANG", p.lang.String(), 1)
-		_, err := p.Parse(newStrictReader(in), "")
-		if err == nil {
-			t.Fatalf("Expected error in %q: %v", in, want)
-		}
-		if got := err.Error(); got != want {
-			t.Fatalf("Error mismatch in %q\nwant: %s\ngot:  %s",
-				in, want, got)
-		}
+func TestParseErr(t *testing.T) {
+	t.Parallel()
+	for lang := range langResolvedVariants.bits() {
+		t.Run(lang.String(), func(t *testing.T) {
+			p := NewParser(Variant(lang), KeepComments(true))
+			for _, c := range errorCases {
+				want := c.byLangIndex[lang.index()]
+				if want == "" {
+					continue
+				}
+				t.Run("", func(t *testing.T) { // number them #001, #002, ...
+					t.Logf("input: %s", c.in)
+					want = strings.Replace(want, "LANG", p.lang.String(), 1)
+					_, err := p.Parse(newStrictReader(c.in), "")
+					if err == nil {
+						t.Fatalf("Expected error in %q: %v", c.in, want)
+					}
+					if got := err.Error(); got != want {
+						t.Fatalf("Error mismatch in %q\nwant: %s\ngot:  %s",
+							c.in, want, got)
+					}
+				})
+			}
+		})
 	}
 }
 
-func TestParseErrPosix(t *testing.T) {
-	t.Parallel()
-	p := NewParser(KeepComments(true), Variant(LangPOSIX))
-	for _, c := range errorCases {
-		if c.posix == "" {
-			continue
-		}
-		t.Run("", checkError(p, c.in, c.posix))
+func TestParseConfirmErr(t *testing.T) {
+	if testing.Short() {
+		t.Skip("calling external shells is slow")
 	}
-}
-
-func TestParseErrBash(t *testing.T) {
-	t.Parallel()
-	p := NewParser(KeepComments(true))
-	for _, c := range errorCases {
-		if c.bash == "" {
-			continue
+	for lang := range langResolvedVariants.bits() {
+		external, ok := externalShells[lang]
+		if !ok {
+			continue // no external shell to check against, e.g. bats
 		}
-		t.Run("", checkError(p, c.in, c.bash))
-	}
-}
-
-func TestParseErrMirBSDKorn(t *testing.T) {
-	t.Parallel()
-	p := NewParser(KeepComments(true), Variant(LangMirBSDKorn))
-	for _, c := range errorCases {
-		if c.mksh == "" {
-			continue
-		}
-		t.Run("", checkError(p, c.in, c.mksh))
-	}
-}
-
-func TestParseErrBats(t *testing.T) {
-	t.Parallel()
-	p := NewParser(KeepComments(true), Variant(LangBats))
-	for _, c := range errorCases {
-		if c.bats == "" {
-			continue
-		}
-		t.Run("", checkError(p, c.in, c.bats))
-	}
-}
-
-func TestParseErrZsh(t *testing.T) {
-	t.Parallel()
-	p := NewParser(KeepComments(true), Variant(LangZsh))
-	for _, c := range errorCases {
-		if c.zsh == "" {
-			continue
-		}
-		t.Run("", checkError(p, c.in, c.zsh))
+		t.Run(lang.String(), func(t *testing.T) {
+			if lang == LangZsh {
+				t.Skip("TODO: we don't confirm with zsh yet")
+			}
+			if external.require != nil {
+				external.require(t)
+			}
+			for _, c := range errorCases {
+				want := c.byLangIndex[lang.index()]
+				if want == "" {
+					continue
+				}
+				wantErr := !lang.in(c.flipConfirmSet)
+				t.Run("", confirmParse(c.in, external.cmd, wantErr))
+			}
+		})
 	}
 }
 
