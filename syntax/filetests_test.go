@@ -4725,464 +4725,300 @@ var fileTestsKeepComments = []fileTestCase{
 	),
 }
 
-func recursiveSanityCheck(tb testing.TB, src string, v any) {
-	checkPos := func(pos Pos, strs ...string) {
-		if !pos.IsValid() {
-			tb.Fatalf("invalid Pos in %T", v)
-		}
-		if src == "" {
-			return
-		}
-		offs := pos.Offset()
-		if offs > uint(len(src)) {
-			tb.Errorf("Pos offset %d in %T is out of bounds in %q",
-				offs, v, src)
-			return
-		}
-		if len(strs) == 0 {
-			return
-		}
-		if strings.Contains(src, "<<-") {
-			// since the tab indentation in <<- heredoc bodies
-			// aren't part of the final literals
-			return
-		}
-		var gotErr string
-		for i, want := range strs {
-			got := src[offs:]
-			if i == 0 {
-				gotErr = got
-			}
-			got = strings.ReplaceAll(got, "\x00", "")
-			got = strings.ReplaceAll(got, "\r\n", "\n")
-			if !strings.Contains(want, "\\\n") {
-				// Hack to let "foobar" match the input "foo\\\nbar".
-				got = strings.ReplaceAll(got, "\\\n", "")
-			}
-			if strings.HasPrefix(got, want) {
-				return
-			}
-		}
-		tb.Errorf("Expected one of %q at %s in %q, found %q",
-			strs, pos, src, gotErr)
+type sanityChecker struct {
+	tb  testing.TB
+	src string
+}
+
+func (c sanityChecker) checkPos(node Node, pos Pos, strs ...string) {
+	if !pos.IsValid() {
+		c.tb.Fatalf("invalid Pos in %T", node)
 	}
-	checkNodePosEnd := func(n Node) {
-		if n.Pos().After(n.End()) {
-			tb.Errorf("Found End() before Pos() in %T", n)
+	if c.src == "" {
+		return
+	}
+	offs := pos.Offset()
+	if offs > uint(len(c.src)) {
+		c.tb.Errorf("Pos offset %d in %T is out of bounds in %q",
+			offs, node, c.src)
+		return
+	}
+	if len(strs) == 0 {
+		return
+	}
+	if strings.Contains(c.src, "<<-") {
+		// since the tab indentation in <<- heredoc bodies
+		// aren't part of the final literals
+		return
+	}
+	var gotErr string
+	for i, want := range strs {
+		got := c.src[offs:]
+		if i == 0 {
+			gotErr = got
+		}
+		got = strings.ReplaceAll(got, "\x00", "")
+		got = strings.ReplaceAll(got, "\r\n", "\n")
+		if !strings.Contains(want, "\\\n") {
+			// Hack to let "foobar" match the input "foo\\\nbar".
+			got = strings.ReplaceAll(got, "\\\n", "")
+		}
+		if strings.HasPrefix(got, want) {
+			return
 		}
 	}
-	recurse := func(v any) {
-		recursiveSanityCheck(tb, src, v)
-		if n, ok := v.(Node); ok {
-			checkNodePosEnd(n)
-		}
+	c.tb.Errorf("Expected one of %q at %s in %q, found %q",
+		strs, pos, c.src, gotErr)
+}
+
+func (c sanityChecker) visit(node Node) bool {
+	if node == nil {
+		return true
 	}
-	switch v := v.(type) {
-	case *File:
-		recurse(v.Stmts)
-		recurse(v.Last)
-		checkNodePosEnd(v)
-	case []*Stmt:
-		for _, s := range v {
-			recurse(s)
-		}
-	case []Comment:
-		for i := range v {
-			recurse(&v[i])
-		}
+	if node.Pos().After(node.End()) {
+		c.tb.Errorf("Found End() before Pos() in %T", node)
+	}
+	switch node := node.(type) {
 	case *Comment:
-		checkPos(v.Hash, "#"+v.Text)
+		c.checkPos(node, node.Hash, "#"+node.Text)
 	case *Stmt:
-		endOff := int(v.End().Offset())
-		if endOff < len(src) {
-			end := src[endOff]
+		endOff := int(node.End().Offset())
+		if endOff < len(c.src) {
+			end := c.src[endOff]
 			switch {
 			case end == ' ', end == '\n', end == '\t', end == '\r':
 				// ended by whitespace
 			case regOps(rune(end)):
 				// ended by end character
-			case endOff > 0 && src[endOff-1] == ';':
+			case endOff > 0 && c.src[endOff-1] == ';':
 				// ended by semicolon
-			case endOff > 0 && src[endOff-1] == '&':
+			case endOff > 0 && c.src[endOff-1] == '&':
 				// ended by & or |&
-			case end == '\\' && src[endOff+1] == '`':
+			case end == '\\' && c.src[endOff+1] == '`':
 				// ended by an escaped backquote
 			default:
-				tb.Errorf("Unexpected Stmt.End() %d %q in %q",
-					endOff, end, src)
+				c.tb.Errorf("Unexpected Stmt.End() %d %q in %q",
+					endOff, end, c.src)
 			}
 		}
-		recurse(v.Comments)
-		if src[v.Position.Offset()] == '#' {
-			tb.Errorf("Stmt.Pos() should not be a comment")
+		if c.src[node.Position.Offset()] == '#' {
+			c.tb.Errorf("Stmt.Pos() should not be a comment")
 		}
-		checkPos(v.Position)
-		if v.Semicolon.IsValid() {
-			checkPos(v.Semicolon, ";", "&", "|&")
+		c.checkPos(node, node.Position)
+		if node.Semicolon.IsValid() {
+			c.checkPos(node, node.Semicolon, ";", "&", "|&")
 		}
-		if v.Cmd != nil {
-			recurse(v.Cmd)
-		}
-		for _, r := range v.Redirs {
-			checkPos(r.OpPos, r.Op.String())
-			if r.N != nil {
-				recurse(r.N)
-			}
-			recurse(r.Word)
-			if r.Hdoc != nil {
-				recurse(r.Hdoc)
-			}
-		}
-	case []*Assign:
-		for _, a := range v {
-			if a.Name != nil {
-				recurse(a.Name)
-			}
-			if a.Index != nil {
-				recurse(a.Index)
-			}
-			if a.Value != nil {
-				recurse(a.Value)
-			}
-			if a.Array != nil {
-				recurse(a.Array)
-			}
-			checkNodePosEnd(a)
-		}
-	case *CallExpr:
-		recurse(v.Assigns)
-		recurse(v.Args)
-	case []*Word:
-		for _, w := range v {
-			recurse(w)
-		}
-	case *Word:
-		recurse(v.Parts)
-	case []WordPart:
-		for _, wp := range v {
-			recurse(wp)
+		for _, r := range node.Redirs {
+			c.checkPos(node, r.OpPos, r.Op.String())
 		}
 	case *Lit:
-		pos, end := int(v.Pos().Offset()), int(v.End().Offset())
-		want := pos + len(v.Value)
-		val := v.Value
-		posLine := v.Pos().Line()
-		endLine := v.End().Line()
+		pos, end := int(node.Pos().Offset()), int(node.End().Offset())
+		want := pos + len(node.Value)
+		val := node.Value
+		posLine := node.Pos().Line()
+		endLine := node.End().Line()
 		switch {
-		case src == "":
-		case strings.Contains(src, "\\\n"), strings.Contains(src, "\\\r\n"):
-		case !strings.Contains(v.Value, "\n") && posLine != endLine:
-			tb.Errorf("Lit without newlines has Pos/End lines %d and %d",
+		case c.src == "":
+		case strings.Contains(c.src, "\\\n"), strings.Contains(c.src, "\\\r\n"):
+		case !strings.Contains(node.Value, "\n") && posLine != endLine:
+			c.tb.Errorf("Lit without newlines has Pos/End lines %d and %d",
 				posLine, endLine)
-		case strings.Contains(src, "`") && strings.Contains(src, "\\"):
+		case strings.Contains(c.src, "`") && strings.Contains(c.src, "\\"):
 			// removed backslashes inside backquote cmd substs
 			val = ""
-		case end < len(src) && (src[end] == '\n' || src[end] == '`'):
+		case end < len(c.src) && (c.src[end] == '\n' || c.src[end] == '`'):
 			// heredoc literals that end with the
 			// stop word and a newline or closing backquote
-		case end == len(src):
+		case end == len(c.src):
 			// same as above, but with word and EOF
 		case end != want:
-			tb.Errorf("Unexpected Lit %q End() %d (wanted %d for pos %d) in %q",
-				val, end, want, pos, src)
+			c.tb.Errorf("Unexpected Lit %q End() %d (wanted %d for pos %d) in %q",
+				val, end, want, pos, c.src)
 		}
-		checkPos(v.ValuePos, val)
-		checkPos(v.ValueEnd)
-	case []*Lit:
-		for _, l := range v {
-			recurse(l)
-		}
+		c.checkPos(node, node.ValuePos, val)
+		c.checkPos(node, node.ValueEnd)
 	case *Subshell:
-		checkPos(v.Lparen, "(")
-		checkPos(v.Rparen, ")")
-		recurse(v.Stmts)
-		recurse(v.Last)
+		c.checkPos(node, node.Lparen, "(")
+		c.checkPos(node, node.Rparen, ")")
 	case *Block:
-		checkPos(v.Lbrace, "{")
-		checkPos(v.Rbrace, "}")
-		recurse(v.Stmts)
-		recurse(v.Last)
+		c.checkPos(node, node.Lbrace, "{")
+		c.checkPos(node, node.Rbrace, "}")
 	case *IfClause:
-		if v.ThenPos.IsValid() {
-			checkPos(v.Position, "if", "elif")
-			checkPos(v.ThenPos, "then")
+		if node.ThenPos.IsValid() {
+			c.checkPos(node, node.Position, "if", "elif")
+			c.checkPos(node, node.ThenPos, "then")
 		} else {
-			checkPos(v.Position, "else")
+			c.checkPos(node, node.Position, "else")
 		}
-		checkPos(v.FiPos, "fi")
-		recurse(v.Cond)
-		recurse(v.CondLast)
-		recurse(v.Then)
-		recurse(v.ThenLast)
-		if v.Else != nil {
-			recurse(v.Else)
-		}
+		c.checkPos(node, node.FiPos, "fi")
 	case *WhileClause:
 		rsrv := "while"
-		if v.Until {
+		if node.Until {
 			rsrv = "until"
 		}
-		checkPos(v.WhilePos, rsrv)
-		checkPos(v.DoPos, "do")
-		checkPos(v.DonePos, "done")
-		recurse(v.Cond)
-		recurse(v.CondLast)
-		recurse(v.Do)
-		recurse(v.DoLast)
+		c.checkPos(node, node.WhilePos, rsrv)
+		c.checkPos(node, node.DoPos, "do")
+		c.checkPos(node, node.DonePos, "done")
 	case *ForClause:
-		if v.Select {
-			checkPos(v.ForPos, "select")
+		if node.Select {
+			c.checkPos(node, node.ForPos, "select")
 		} else {
-			checkPos(v.ForPos, "for")
+			c.checkPos(node, node.ForPos, "for")
 		}
-		if v.Braces {
-			checkPos(v.DoPos, "{")
-			checkPos(v.DonePos, "}")
+		if node.Braces {
+			c.checkPos(node, node.DoPos, "{")
+			c.checkPos(node, node.DonePos, "}")
 			// Zero out Braces, to not duplicate all the test cases.
 			// The printer ignores the field anyway.
-			v.Braces = false
+			node.Braces = false
 		} else {
-			checkPos(v.DoPos, "do")
-			checkPos(v.DonePos, "done")
+			c.checkPos(node, node.DoPos, "do")
+			c.checkPos(node, node.DonePos, "done")
 		}
-		recurse(v.Loop)
-		recurse(v.Do)
-		recurse(v.DoLast)
 	case *WordIter:
-		recurse(v.Name)
-		if v.InPos.IsValid() {
-			checkPos(v.InPos, "in")
+		if node.InPos.IsValid() {
+			c.checkPos(node, node.InPos, "in")
 		}
-		recurse(v.Items)
 	case *CStyleLoop:
-		checkPos(v.Lparen, "((")
-		checkPos(v.Rparen, "))")
-		if v.Init != nil {
-			recurse(v.Init)
-		}
-		if v.Cond != nil {
-			recurse(v.Cond)
-		}
-		if v.Post != nil {
-			recurse(v.Post)
-		}
+		c.checkPos(node, node.Lparen, "((")
+		c.checkPos(node, node.Rparen, "))")
 	case *SglQuoted:
-		checkPos(posAddCol(v.End(), -1), "'")
-		valuePos := posAddCol(v.Left, 1)
-		if v.Dollar {
+		c.checkPos(node, posAddCol(node.End(), -1), "'")
+		valuePos := posAddCol(node.Left, 1)
+		if node.Dollar {
 			valuePos = posAddCol(valuePos, 1)
 		}
-		val := v.Value
-		if strings.Contains(src, "`") && strings.Contains(src, "\\") {
+		val := node.Value
+		if strings.Contains(c.src, "`") && strings.Contains(c.src, "\\") {
 			// removed backslashes inside backquote cmd substs
 			val = ""
 		}
-		checkPos(valuePos, val)
-		if v.Dollar {
-			checkPos(v.Left, "$'")
+		c.checkPos(node, valuePos, val)
+		if node.Dollar {
+			c.checkPos(node, node.Left, "$'")
 		} else {
-			checkPos(v.Left, "'")
+			c.checkPos(node, node.Left, "'")
 		}
-		checkPos(v.Right, "'")
+		c.checkPos(node, node.Right, "'")
 	case *DblQuoted:
-		checkPos(posAddCol(v.End(), -1), `"`)
-		if v.Dollar {
-			checkPos(v.Left, `$"`)
+		c.checkPos(node, posAddCol(node.End(), -1), `"`)
+		if node.Dollar {
+			c.checkPos(node, node.Left, `$"`)
 		} else {
-			checkPos(v.Left, `"`)
+			c.checkPos(node, node.Left, `"`)
 		}
-		checkPos(v.Right, `"`)
-		recurse(v.Parts)
+		c.checkPos(node, node.Right, `"`)
 	case *UnaryArithm:
-		checkPos(v.OpPos, v.Op.String())
-		recurse(v.X)
+		c.checkPos(node, node.OpPos, node.Op.String())
 	case *UnaryTest:
-		strs := []string{v.Op.String()}
-		switch v.Op {
+		strs := []string{node.Op.String()}
+		switch node.Op {
 		case TsExists:
 			strs = append(strs, "-a")
 		case TsSmbLink:
 			strs = append(strs, "-h")
 		}
-		checkPos(v.OpPos, strs...)
-		recurse(v.X)
+		c.checkPos(node, node.OpPos, strs...)
 	case *BinaryCmd:
-		checkPos(v.OpPos, v.Op.String())
-		recurse(v.X)
-		recurse(v.Y)
+		c.checkPos(node, node.OpPos, node.Op.String())
 	case *BinaryArithm:
-		checkPos(v.OpPos, v.Op.String())
-		recurse(v.X)
-		recurse(v.Y)
+		c.checkPos(node, node.OpPos, node.Op.String())
 	case *BinaryTest:
-		strs := []string{v.Op.String()}
-		switch v.Op {
+		strs := []string{node.Op.String()}
+		switch node.Op {
 		case TsMatch:
 			strs = append(strs, "=")
 		}
-		checkPos(v.OpPos, strs...)
-		recurse(v.X)
-		recurse(v.Y)
+		c.checkPos(node, node.OpPos, strs...)
 	case *ParenArithm:
-		checkPos(v.Lparen, "(")
-		checkPos(v.Rparen, ")")
-		recurse(v.X)
+		c.checkPos(node, node.Lparen, "(")
+		c.checkPos(node, node.Rparen, ")")
 	case *ParenTest:
-		checkPos(v.Lparen, "(")
-		checkPos(v.Rparen, ")")
-		recurse(v.X)
+		c.checkPos(node, node.Lparen, "(")
+		c.checkPos(node, node.Rparen, ")")
 	case *FuncDecl:
-		if v.RsrvWord {
-			checkPos(v.Position, "function")
+		if node.RsrvWord {
+			c.checkPos(node, node.Position, "function")
 		} else {
-			checkPos(v.Position)
+			c.checkPos(node, node.Position)
 		}
-		if v.Name != nil {
-			recurse(v.Name)
-		}
-		recurse(v.Names)
-		recurse(v.Body)
 	case *ParamExp:
 		doll := "$"
-		if v.nakedIndex() {
+		if node.nakedIndex() {
 			doll = ""
 		}
-		checkPos(v.Dollar, doll)
-		if !v.Short {
-			checkPos(v.Rbrace, "}")
-		} else if v.nakedIndex() {
-			checkPos(posAddCol(v.End(), -1), "]")
-		}
-		recurse(v.Param)
-		if v.Index != nil {
-			recurse(v.Index)
-		}
-		if v.Slice != nil {
-			if v.Slice.Offset != nil {
-				recurse(v.Slice.Offset)
-			}
-			if v.Slice.Length != nil {
-				recurse(v.Slice.Length)
-			}
-		}
-		if v.Repl != nil {
-			if v.Repl.Orig != nil {
-				recurse(v.Repl.Orig)
-			}
-			if v.Repl.With != nil {
-				recurse(v.Repl.With)
-			}
-		}
-		if v.Exp != nil && v.Exp.Word != nil {
-			recurse(v.Exp.Word)
+		c.checkPos(node, node.Dollar, doll)
+		if !node.Short {
+			c.checkPos(node, node.Rbrace, "}")
+		} else if node.nakedIndex() {
+			c.checkPos(node, posAddCol(node.End(), -1), "]")
 		}
 	case *ArithmExp:
-		if v.Bracket {
+		if node.Bracket {
 			// deprecated $(( form
-			checkPos(v.Left, "$[")
-			checkPos(v.Right, "]")
+			c.checkPos(node, node.Left, "$[")
+			c.checkPos(node, node.Right, "]")
 		} else {
-			checkPos(v.Left, "$((")
-			checkPos(v.Right, "))")
+			c.checkPos(node, node.Left, "$((")
+			c.checkPos(node, node.Right, "))")
 		}
-		recurse(v.X)
 	case *ArithmCmd:
-		checkPos(v.Left, "((")
-		checkPos(v.Right, "))")
-		recurse(v.X)
+		c.checkPos(node, node.Left, "((")
+		c.checkPos(node, node.Right, "))")
 	case *CmdSubst:
 		switch {
-		case v.TempFile:
-			checkPos(v.Left, "${ ", "${\t", "${\n")
-			checkPos(v.Right, "}")
-		case v.ReplyVar:
-			checkPos(v.Left, "${|")
-			checkPos(v.Right, "}")
-		case v.Backquotes:
-			checkPos(v.Left, "`", "\\`")
-			checkPos(v.Right, "`", "\\`")
+		case node.TempFile:
+			c.checkPos(node, node.Left, "${ ", "${\t", "${\n")
+			c.checkPos(node, node.Right, "}")
+		case node.ReplyVar:
+			c.checkPos(node, node.Left, "${|")
+			c.checkPos(node, node.Right, "}")
+		case node.Backquotes:
+			c.checkPos(node, node.Left, "`", "\\`")
+			c.checkPos(node, node.Right, "`", "\\`")
 			// Zero out Backquotes, to not duplicate all the test
 			// cases. The printer ignores the field anyway.
-			v.Backquotes = false
+			node.Backquotes = false
 		default:
-			checkPos(v.Left, "$(")
-			checkPos(v.Right, ")")
+			c.checkPos(node, node.Left, "$(")
+			c.checkPos(node, node.Right, ")")
 		}
-		recurse(v.Stmts)
-		recurse(v.Last)
 	case *CaseClause:
-		checkPos(v.Case, "case")
-		if v.Braces {
-			checkPos(v.In, "{")
-			checkPos(v.Esac, "}")
+		c.checkPos(node, node.Case, "case")
+		if node.Braces {
+			c.checkPos(node, node.In, "{")
+			c.checkPos(node, node.Esac, "}")
 			// Zero out Braces, to not duplicate all the test cases.
 			// The printer ignores the field anyway.
-			v.Braces = false
+			node.Braces = false
 		} else {
-			checkPos(v.In, "in")
-			checkPos(v.Esac, "esac")
-		}
-		recurse(v.Word)
-		for _, ci := range v.Items {
-			recurse(ci)
+			c.checkPos(node, node.In, "in")
+			c.checkPos(node, node.Esac, "esac")
 		}
 	case *CaseItem:
-		if v.OpPos.IsValid() {
-			checkPos(v.OpPos, v.Op.String(), "esac")
+		if node.OpPos.IsValid() {
+			c.checkPos(node, node.OpPos, node.Op.String(), "esac")
 		}
-		recurse(v.Patterns)
-		recurse(v.Stmts)
-		recurse(v.Last)
 	case *TestClause:
-		checkPos(v.Left, "[[")
-		checkPos(v.Right, "]]")
-		recurse(v.X)
-	case *DeclClause:
-		recurse(v.Variant)
-		recurse(v.Args)
+		c.checkPos(node, node.Left, "[[")
+		c.checkPos(node, node.Right, "]]")
 	case *TimeClause:
-		checkPos(v.Time, "time")
-		if v.Stmt != nil {
-			recurse(v.Stmt)
-		}
+		c.checkPos(node, node.Time, "time")
 	case *CoprocClause:
-		checkPos(v.Coproc, "coproc")
-		if v.Name != nil {
-			recurse(v.Name)
-		}
-		recurse(v.Stmt)
+		c.checkPos(node, node.Coproc, "coproc")
 	case *LetClause:
-		checkPos(v.Let, "let")
-		for _, expr := range v.Exprs {
-			recurse(expr)
-		}
+		c.checkPos(node, node.Let, "let")
 	case *TestDecl:
-		checkPos(v.Position, "@test")
-		recurse(v.Description)
-		recurse(v.Body)
+		c.checkPos(node, node.Position, "@test")
 	case *ArrayExpr:
-		checkPos(v.Lparen, "(")
-		checkPos(v.Rparen, ")")
-		for _, elem := range v.Elems {
-			recurse(elem)
-		}
-	case *ArrayElem:
-		if v.Index != nil {
-			recurse(v.Index)
-		}
-		if v.Value != nil {
-			recurse(v.Value)
-		}
+		c.checkPos(node, node.Lparen, "(")
+		c.checkPos(node, node.Rparen, ")")
 	case *ExtGlob:
-		checkPos(v.OpPos, v.Op.String())
-		checkPos(posAddCol(v.End(), -1), ")")
-		recurse(v.Pattern)
+		c.checkPos(node, node.OpPos, node.Op.String())
+		c.checkPos(node, posAddCol(node.End(), -1), ")")
 	case *ProcSubst:
-		checkPos(v.OpPos, v.Op.String())
-		checkPos(v.Rparen, ")")
-		recurse(v.Stmts)
-		recurse(v.Last)
-	default:
-		panic(reflect.TypeOf(v))
+		c.checkPos(node, node.OpPos, node.Op.String())
+		c.checkPos(node, node.Rparen, ")")
 	}
+	return true
 }

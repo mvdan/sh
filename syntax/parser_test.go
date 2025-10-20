@@ -375,7 +375,7 @@ func singleParse(p *Parser, in string, want *File) func(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Unexpected error in %q: %v", in, err)
 		}
-		recursiveSanityCheck(t, in, got)
+		Walk(got, sanityChecker{t, in}.visit)
 		qt.Assert(t, qt.CmpEquals(got, want, cmpOpt))
 	}
 }
@@ -2429,7 +2429,7 @@ func TestParseDocument(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			recursiveSanityCheck(t, "", got)
+			Walk(got, sanityChecker{t, ""}.visit)
 			want := &Word{Parts: tc.want}
 			qt.Assert(t, qt.CmpEquals(got, want, cmpOpt))
 		})
@@ -2523,7 +2523,7 @@ func TestParseArithmetic(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			recursiveSanityCheck(t, "", got)
+			Walk(got, sanityChecker{t, ""}.visit)
 			qt.Assert(t, qt.CmpEquals(got, tc.want, cmpOpt))
 		})
 	}
