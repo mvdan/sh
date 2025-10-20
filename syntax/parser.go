@@ -586,7 +586,6 @@ func (p *Parser) nextPos() Pos {
 	if p.col <= colMax {
 		col = uint(p.col)
 	}
-	// println("offset", offset)
 	return NewPos(uint(offset), line, col)
 }
 
@@ -2003,6 +2002,16 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 		}
 		p.callExpr(s, w, false)
 	case leftParen:
+		if p.r == ')' {
+			p.rune()
+			fpos := p.pos
+			p.next()
+			if p.tok == _LitWord && p.val == "{" {
+				p.checkLang(fpos, LangZsh, "anonymous functions")
+			}
+			p.funcDecl(s, fpos, false, true)
+			break
+		}
 		p.subshell(s)
 	case dblLeftParen:
 		p.arithmExpCmd(s)
@@ -2559,6 +2568,7 @@ func (p *Parser) bashFuncDecl(s *Stmt) {
 		} else if !p.lang.in(LangZsh) {
 			p.followErr(fpos, "function", "a name")
 		}
+		names = nil // avoid non-nil zero-length slices
 	case 1:
 		// allowed in all variants
 	default:

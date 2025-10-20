@@ -834,8 +834,19 @@ var fileTests = []fileTestCase{
 		},
 		langFile(&FuncDecl{
 			RsrvWord: true,
-			Names:    lits(),
 			Body:     stmt(block(litStmt("a"))),
+		}, LangZsh),
+	),
+	// Note that zsh also supports `f1 f2 f3 () { body; }`,
+	// but it seems rare and hard to implement well,
+	// so leave it out for now.
+	fileTest(
+		[]string{
+			"() {\n\ta\n}",
+		},
+		langFile(&FuncDecl{
+			Parens: true,
+			Body:   stmt(block(litStmt("a"))),
 		}, LangZsh),
 	),
 	fileTest(
@@ -1840,11 +1851,10 @@ var fileTests = []fileTestCase{
 		[]string{"{ }", "{}"},
 		langFile(block(), LangZsh),
 	),
-	// TODO: "()" is actually a function declaration in Zsh
-	// fileTest(
-	// 	[]string{"()"},
-	// 	langFile(subshell(), LangZsh),
-	// ),
+	fileTest(
+		[]string{"( )"},
+		langFile(subshell(), LangZsh),
+	),
 	fileTest(
 		[]string{"if; then; fi"},
 		langFile(&IfClause{}, LangZsh),

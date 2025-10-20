@@ -1136,6 +1136,10 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 					p.mustNewline = true
 				}
 			}
+		} else if len(stmts) == 0 {
+			// Zsh allows empty subshells, but prevent `()`
+			// from looking like `() { anon-func; }`.
+			p.wantSpace = spaceRequired
 		} else {
 			p.wantSpace = spaceNotRequired
 		}

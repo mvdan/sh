@@ -1714,6 +1714,10 @@ var errorCases = []errorCase{
 		langErr(`1:1: anonymous functions are a zsh feature; tried parsing as LANG`, LangBash|LangMirBSDKorn),
 	),
 	errCase(
+		"() { a; }",
+		langErr(`1:1: anonymous functions are a zsh feature; tried parsing as LANG`, LangBash|LangMirBSDKorn),
+	),
+	errCase(
 		"@test",
 		langErr(`1:1: @test must be followed by a description word`, LangBats),
 	),
