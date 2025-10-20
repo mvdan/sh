@@ -4735,9 +4735,6 @@ func (c sanityChecker) checkPos(node Node, pos Pos, strs ...string) {
 	if !pos.IsValid() {
 		c.tb.Fatalf("invalid Pos in %T", node)
 	}
-	if c.src == "" {
-		return
-	}
 	offs := pos.Offset()
 	if offs > uint(len(c.src)) {
 		c.tb.Errorf("Pos offset %d in %T is out of bounds in %q",
@@ -4832,7 +4829,6 @@ func (c sanityChecker) visit(node Node) bool {
 		posLine := node.Pos().Line()
 		endLine := node.End().Line()
 		switch {
-		case c.src == "":
 		case strings.Contains(c.src, "\\\n"), strings.Contains(c.src, "\\\r\n"):
 		case !strings.Contains(node.Value, "\n") && posLine != endLine:
 			c.tb.Errorf("Lit without newlines has Pos/End lines %d and %d",

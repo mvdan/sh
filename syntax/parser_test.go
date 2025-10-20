@@ -2429,7 +2429,7 @@ func TestParseDocument(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			Walk(got, sanityChecker{tb: t}.visit)
+			Walk(got, sanityChecker{tb: t, src: tc.in}.visit)
 			want := &Word{Parts: tc.want}
 			qt.Assert(t, qt.CmpEquals(got, want, cmpOpt))
 		})
@@ -2523,7 +2523,7 @@ func TestParseArithmetic(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			Walk(got, sanityChecker{tb: t}.visit)
+			Walk(got, sanityChecker{tb: t, src: tc.in}.visit)
 			qt.Assert(t, qt.CmpEquals(got, tc.want, cmpOpt))
 		})
 	}
