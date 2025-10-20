@@ -4726,8 +4726,9 @@ var fileTestsKeepComments = []fileTestCase{
 }
 
 type sanityChecker struct {
-	tb  testing.TB
-	src string
+	tb   testing.TB
+	src  string
+	file *File // nil if not checking a whole file
 }
 
 func (c sanityChecker) checkPos(node Node, pos Pos, strs ...string) {
@@ -4775,11 +4776,24 @@ func (c sanityChecker) visit(node Node) bool {
 	if node == nil {
 		return true
 	}
+	if f := c.file; f != nil {
+		if !node.Pos().IsValid() && len(f.Stmts) > 0 {
+			c.tb.Fatalf("Invalid Pos")
+		}
+	}
 	if node.Pos().After(node.End()) {
 		c.tb.Errorf("Found End() before Pos() in %T", node)
 	}
 	switch node := node.(type) {
 	case *Comment:
+		if f := c.file; f != nil {
+			if f.Pos().After(node.Pos()) {
+				c.tb.Fatalf("A Comment is before its File")
+			}
+			if node.End().After(f.End()) {
+				c.tb.Fatalf("A Comment is after its File")
+			}
+		}
 		c.checkPos(node, node.Hash, "#"+node.Text)
 	case *Stmt:
 		endOff := int(node.End().Offset())
