@@ -94,17 +94,10 @@ func FuzzParsePrint(f *testing.F) {
 	}
 	for _, test := range fileTests {
 		for _, in := range test.inputs {
-			if test.bash != nil {
-				add(in, LangBash)
-			}
-			if test.posix != nil {
-				add(in, LangPOSIX)
-			}
-			if test.mksh != nil {
-				add(in, LangMirBSDKorn)
-			}
-			if test.bats != nil {
-				add(in, LangBats)
+			for lang := range langResolvedVariants.bits() {
+				if test.byLangIndex[lang.index()] != nil {
+					add(in, lang)
+				}
 			}
 		}
 	}

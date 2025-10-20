@@ -4,7 +4,6 @@
 package syntax
 
 import (
-	"fmt"
 	"reflect"
 	"strings"
 	"testing"
@@ -110,11 +109,7 @@ func fullProg(v any) *File {
 type fileTestCase struct {
 	inputs []string // input sources; the first is the canonical formatting
 
-	bash  *File
-	posix *File
-	mksh  *File
-	bats  *File
-	zsh   *File
+	byLangIndex [langResolvedVariantsCount]*File
 }
 
 func fileTest(in []string, opts ...func(*fileTestCase)) fileTestCase {
@@ -131,11 +126,9 @@ func langFile(want any, langSets ...LangVariant) func(*fileTestCase) {
 		// The parameter is a slice to allow omitting the argument.
 		switch len(langSets) {
 		case 0:
-			c.bash = file
-			c.posix = file
-			c.mksh = file
-			c.bats = file
-			c.zsh = file
+			for i := range c.byLangIndex {
+				c.byLangIndex[i] = file
+			}
 			return
 		case 1:
 			// continue below
@@ -143,21 +136,7 @@ func langFile(want any, langSets ...LangVariant) func(*fileTestCase) {
 			panic("use a LangVariant bitset")
 		}
 		for lang := range langSets[0].bits() {
-			switch lang {
-			case LangBash:
-				c.bash = file
-				c.bats = file // bats is extremely similar to bash
-			case LangPOSIX:
-				c.posix = file
-			case LangMirBSDKorn:
-				c.mksh = file
-			case LangBats:
-				c.bats = file
-			case LangZsh:
-				c.zsh = file
-			default:
-				panic(fmt.Sprintf("unsupported LangVariant: %#b", lang))
-			}
+			c.byLangIndex[lang.index()] = file
 		}
 	}
 }
@@ -3966,7 +3945,7 @@ var fileTests = []fileTestCase{
 				{Naked: true, Value: litWord("-f")},
 				{Naked: true, Name: lit("func")},
 			},
-		}, LangBash|LangZsh),
+		}, langBashLike|LangZsh),
 	),
 	fileTest(
 		[]string{"(local bar)"},
@@ -4213,7 +4192,7 @@ var fileTests = []fileTestCase{
 	fileTest(
 		[]string{"coproc foo bar"},
 		langFile(litStmt("coproc", "foo", "bar")),
-		langFile(&CoprocClause{Stmt: litStmt("foo", "bar")}, LangBash),
+		langFile(&CoprocClause{Stmt: litStmt("foo", "bar")}, langBashLike),
 	),
 	fileTest(
 		[]string{"coproc name { foo; }"},

@@ -19,25 +19,100 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
+func TestParsePass(t *testing.T) {
+	t.Parallel()
+	for lang := range langResolvedVariants.bits() {
+		t.Run(lang.String(), func(t *testing.T) {
+			p := NewParser(Variant(lang))
+			for i, c := range append(fileTests, fileTestsNoPrint...) {
+				want := c.byLangIndex[lang.index()]
+				if want == nil {
+					continue
+				}
+				for j, in := range c.inputs {
+					t.Run(fmt.Sprintf("#%03d-%d", i, j), singleParse(p, in, want))
+				}
+			}
+		})
+	}
+}
+
+func TestParseErr(t *testing.T) {
+	t.Parallel()
+	for lang := range langResolvedVariants.bits() {
+		t.Run(lang.String(), func(t *testing.T) {
+			p := NewParser(Variant(lang), KeepComments(true))
+			for _, c := range errorCases {
+				want := c.byLangIndex[lang.index()]
+				if want == "" {
+					continue
+				}
+				t.Run("", func(t *testing.T) { // number them #001, #002, ...
+					t.Logf("input: %s", c.in)
+					want = strings.Replace(want, "LANG", p.lang.String(), 1)
+					_, err := p.Parse(newStrictReader(c.in), "")
+					if err == nil {
+						t.Fatalf("Expected error in %q: %v", c.in, want)
+					}
+					if got := err.Error(); got != want {
+						t.Fatalf("Error mismatch in %q\nwant: %s\ngot:  %s",
+							c.in, want, got)
+					}
+				})
+			}
+		})
+	}
+}
+
+func TestParseConfirm(t *testing.T) {
+	if testing.Short() {
+		t.Skip("calling external shells is slow")
+	}
+	for lang := range langResolvedVariants.bits() {
+		external, ok := externalShells[lang]
+		if !ok {
+			continue // no external shell to check against, e.g. bats
+		}
+		t.Run(fmt.Sprintf("Pass/%s", lang), func(t *testing.T) {
+			if external.require != nil {
+				external.require(t)
+			}
+			i := 0
+			for _, c := range append(fileTests, fileTestsNoPrint...) {
+				want := c.byLangIndex[lang.index()]
+				if want == nil {
+					continue
+				}
+				for j, in := range c.inputs {
+					t.Run(fmt.Sprintf("#%03d-%d", i, j), confirmParse(in, external.cmd, false))
+				}
+				i++
+			}
+		})
+		if lang == LangZsh {
+			continue // TODO: we don't confirm errors with zsh yet
+		}
+		t.Run(fmt.Sprintf("Err/%s", lang), func(t *testing.T) {
+			if external.require != nil {
+				external.require(t)
+			}
+			for _, c := range errorCases {
+				want := c.byLangIndex[lang.index()]
+				if want == "" {
+					continue
+				}
+				wantErr := !lang.in(c.flipConfirmSet)
+				t.Run("", confirmParse(c.in, external.cmd, wantErr))
+			}
+		})
+	}
+}
+
 func TestParseBashKeepComments(t *testing.T) {
 	t.Parallel()
 	p := NewParser(KeepComments(true))
 	for i, c := range fileTestsKeepComments {
-		want := c.bash
-		if want == nil {
-			continue
-		}
-		for j, in := range c.inputs {
-			t.Run(fmt.Sprintf("#%03d-%d", i, j), singleParse(p, in, want))
-		}
-	}
-}
-
-func TestParseBash(t *testing.T) {
-	t.Parallel()
-	p := NewParser()
-	for i, c := range append(fileTests, fileTestsNoPrint...) {
-		want := c.bash
+		want := c.byLangIndex[LangBash.index()]
 		if want == nil {
 			continue
 		}
@@ -106,83 +181,6 @@ func TestParsePosOverflow(t *testing.T) {
 				t.Fatalf("want error %q, got %q", test.want, got)
 			}
 		})
-	}
-}
-
-func TestParsePosix(t *testing.T) {
-	t.Parallel()
-	p := NewParser(Variant(LangPOSIX))
-	for i, c := range append(fileTests, fileTestsNoPrint...) {
-		want := c.posix
-		if want == nil {
-			continue
-		}
-		for j, in := range c.inputs {
-			t.Run(fmt.Sprintf("#%03d-%d", i, j),
-				singleParse(p, in, want))
-		}
-	}
-}
-
-func TestParseMirBSDKorn(t *testing.T) {
-	t.Parallel()
-	p := NewParser(Variant(LangMirBSDKorn))
-	for i, c := range append(fileTests, fileTestsNoPrint...) {
-		want := c.mksh
-		if want == nil {
-			continue
-		}
-		for j, in := range c.inputs {
-			t.Run(fmt.Sprintf("#%03d-%d", i, j),
-				singleParse(p, in, want))
-		}
-	}
-}
-
-func TestParseBats(t *testing.T) {
-	t.Parallel()
-	p := NewParser(Variant(LangBats))
-	for i, c := range append(fileTests, fileTestsNoPrint...) {
-		want := c.bats
-		if want == nil {
-			continue
-		}
-		for j, in := range c.inputs {
-			t.Run(fmt.Sprintf("#%03d-%d", i, j),
-				singleParse(p, in, want))
-		}
-	}
-}
-
-func TestParseZsh(t *testing.T) {
-	t.Parallel()
-	p := NewParser(Variant(LangZsh))
-	for i, c := range append(fileTests, fileTestsNoPrint...) {
-		if c.zsh == nil {
-			continue
-		}
-		for j, in := range c.inputs {
-			t.Run(fmt.Sprintf("#%03d-%d", i, j),
-				singleParse(p, in, c.zsh))
-		}
-	}
-}
-
-func TestParseZshConfirm(t *testing.T) {
-	if testing.Short() {
-		t.Skip("calling zsh is slow")
-	}
-	externalShells[LangZsh].require(t)
-	i := 0
-	for _, c := range append(fileTests, fileTestsNoPrint...) {
-		if c.zsh == nil {
-			continue
-		}
-		for j, in := range c.inputs {
-			t.Run(fmt.Sprintf("#%03d-%d", i, j),
-				confirmParse(in, "zsh", false))
-		}
-		i++
 	}
 }
 
@@ -308,60 +306,6 @@ func confirmParse(in, cmd string, wantErr bool) func(*testing.T) {
 		} else if !wantErr && err != nil {
 			t.Fatalf("Unexpected error in %q of %q: %v", strings.Join(cmd.Args, " "), in, err)
 		}
-	}
-}
-
-func TestParseBashConfirm(t *testing.T) {
-	if testing.Short() {
-		t.Skip("calling bash is slow.")
-	}
-	externalShells[LangBash].require(t)
-	i := 0
-	for _, c := range append(fileTests, fileTestsNoPrint...) {
-		if c.bash == nil {
-			continue
-		}
-		for j, in := range c.inputs {
-			t.Run(fmt.Sprintf("#%03d-%d", i, j),
-				confirmParse(in, "bash", false))
-		}
-		i++
-	}
-}
-
-func TestParsePosixConfirm(t *testing.T) {
-	if testing.Short() {
-		t.Skip("calling dash is slow.")
-	}
-	externalShells[LangPOSIX].require(t)
-	i := 0
-	for _, c := range append(fileTests, fileTestsNoPrint...) {
-		if c.posix == nil {
-			continue
-		}
-		for j, in := range c.inputs {
-			t.Run(fmt.Sprintf("#%03d-%d", i, j),
-				confirmParse(in, "dash", false))
-		}
-		i++
-	}
-}
-
-func TestParseMirBSDKornConfirm(t *testing.T) {
-	if testing.Short() {
-		t.Skip("calling mksh is slow.")
-	}
-	externalShells[LangMirBSDKorn].require(t)
-	i := 0
-	for _, c := range append(fileTests, fileTestsNoPrint...) {
-		if c.mksh == nil {
-			continue
-		}
-		for j, in := range c.inputs {
-			t.Run(fmt.Sprintf("#%03d-%d", i, j),
-				confirmParse(in, "mksh", false))
-		}
-		i++
 	}
 }
 
@@ -2134,61 +2078,6 @@ var errorCases = []errorCase{
 		"`\"`\\",
 		langErr("1:2: reached ` without closing quote \""),
 	),
-}
-
-func TestParseErr(t *testing.T) {
-	t.Parallel()
-	for lang := range langResolvedVariants.bits() {
-		t.Run(lang.String(), func(t *testing.T) {
-			p := NewParser(Variant(lang), KeepComments(true))
-			for _, c := range errorCases {
-				want := c.byLangIndex[lang.index()]
-				if want == "" {
-					continue
-				}
-				t.Run("", func(t *testing.T) { // number them #001, #002, ...
-					t.Logf("input: %s", c.in)
-					want = strings.Replace(want, "LANG", p.lang.String(), 1)
-					_, err := p.Parse(newStrictReader(c.in), "")
-					if err == nil {
-						t.Fatalf("Expected error in %q: %v", c.in, want)
-					}
-					if got := err.Error(); got != want {
-						t.Fatalf("Error mismatch in %q\nwant: %s\ngot:  %s",
-							c.in, want, got)
-					}
-				})
-			}
-		})
-	}
-}
-
-func TestParseConfirmErr(t *testing.T) {
-	if testing.Short() {
-		t.Skip("calling external shells is slow")
-	}
-	for lang := range langResolvedVariants.bits() {
-		external, ok := externalShells[lang]
-		if !ok {
-			continue // no external shell to check against, e.g. bats
-		}
-		t.Run(lang.String(), func(t *testing.T) {
-			if lang == LangZsh {
-				t.Skip("TODO: we don't confirm with zsh yet")
-			}
-			if external.require != nil {
-				external.require(t)
-			}
-			for _, c := range errorCases {
-				want := c.byLangIndex[lang.index()]
-				if want == "" {
-					continue
-				}
-				wantErr := !lang.in(c.flipConfirmSet)
-				t.Run("", confirmParse(c.in, external.cmd, wantErr))
-			}
-		})
-	}
 }
 
 func TestInputName(t *testing.T) {

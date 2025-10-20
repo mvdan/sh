@@ -12,29 +12,27 @@ import (
 	"testing"
 )
 
-func TestPrintCompact(t *testing.T) {
+func TestPrintFiles(t *testing.T) {
 	t.Parallel()
-	parserBash := NewParser(KeepComments(true))
-	parserPosix := NewParser(KeepComments(true), Variant(LangPOSIX))
-	parserMirBSD := NewParser(KeepComments(true), Variant(LangMirBSDKorn))
-	parserBats := NewParser(KeepComments(true), Variant(LangBats))
-	parserZsh := NewParser(KeepComments(true), Variant(LangZsh))
-	printer := NewPrinter()
-	for _, c := range append(fileTests, fileTestsKeepComments...) {
-		t.Run("", func(t *testing.T) {
-			in := c.inputs[0]
-			parser := parserPosix
-			// TODO: consider splitting this into per-language subtests
-			if c.bash != nil {
-				parser = parserBash
-			} else if c.bats != nil {
-				parser = parserBats
-			} else if c.mksh != nil {
-				parser = parserMirBSD
-			} else if c.zsh != nil {
-				parser = parserZsh
+	for lang := range langResolvedVariants.bits() {
+		t.Run(lang.String(), func(t *testing.T) {
+			parser := NewParser(Variant(lang), KeepComments(true))
+			printer := NewPrinter()
+			for _, c := range append(fileTests, fileTestsKeepComments...) {
+				want := c.byLangIndex[lang.index()]
+				if want == nil {
+					continue
+				}
+				if lang != LangBash && want != c.byLangIndex[LangBash.index()] {
+					// Skip cases where a non-Bash language parses differently than Bash.
+					// For example, `((foo))` prints as `( (foo))` only when in POSIX.
+					continue
+				}
+				t.Run("", func(t *testing.T) {
+					in := c.inputs[0]
+					printTest(t, parser, printer, in, in)
+				})
 			}
-			printTest(t, parser, printer, in, in)
 		})
 	}
 }
@@ -667,7 +665,7 @@ var printTests = []printCase{
 	// samePrint(`$("foo"#bar)#bar`),
 }
 
-func TestPrintWeirdFormat(t *testing.T) {
+func TestPrintTable(t *testing.T) {
 	t.Parallel()
 	parser := NewParser(KeepComments(true))
 	printer := NewPrinter()
@@ -1163,13 +1161,6 @@ func TestPrintSingleLine(t *testing.T) {
 
 func TestPrintOptionsNotBroken(t *testing.T) {
 	t.Parallel()
-	parserBash := NewParser(KeepComments(true))
-	parserPosix := NewParser(KeepComments(true), Variant(LangPOSIX))
-	parserMirBSD := NewParser(KeepComments(true), Variant(LangMirBSDKorn))
-	parserBats := NewParser(KeepComments(true), Variant(LangBats))
-	parserZsh := NewParser(KeepComments(true), Variant(LangZsh))
-
-	// e.g. comments and heredocs require newlines
 	singleLineException := regexp.MustCompile(`#|<<|'|"`)
 	checkSingleLine := func(t *testing.T, got string) {
 		if singleLineException.MatchString(got) {
@@ -1189,22 +1180,38 @@ func TestPrintOptionsNotBroken(t *testing.T) {
 		{"SingleLine", []PrinterOption{SingleLine(true)}},
 	} {
 		printer := NewPrinter(opts.list...)
-		for _, tc := range append(fileTests, fileTestsNoPrint...) {
-			t.Run("File"+opts.name, func(t *testing.T) {
-				parser := parserPosix
-				// TODO: consider splitting this into per-language subtests
-				if tc.bash != nil {
-					parser = parserBash
-				} else if tc.bats != nil {
-					parser = parserBats
-				} else if tc.mksh != nil {
-					parser = parserMirBSD
-				} else if tc.zsh != nil {
-					parser = parserZsh
+		for lang := range langResolvedVariants.bits() {
+			parser := NewParser(Variant(lang), KeepComments(true))
+			for _, tc := range append(fileTests, fileTestsNoPrint...) {
+				want := tc.byLangIndex[lang.index()]
+				if want == nil {
+					continue
 				}
-				in := tc.inputs[0]
-				t.Logf("input: %s", in)
-				prog, err := parser.Parse(strings.NewReader(in), "")
+				t.Run(fmt.Sprintf("File%s/%s", opts.name, lang), func(t *testing.T) {
+					in := tc.inputs[0]
+					t.Logf("input: %s", in)
+					prog, err := parser.Parse(strings.NewReader(in), "")
+					if err != nil {
+						t.Fatal(err)
+					}
+					got, err := strPrint(printer, prog)
+					if err != nil {
+						t.Fatal(err)
+					}
+					if opts.name == "SingleLine" {
+						checkSingleLine(t, got)
+					}
+					_, err = parser.Parse(strings.NewReader(got), "")
+					if err != nil {
+						t.Fatalf("program was broken: %v\noriginal:\n%s\nfinal:\n%s", err, in, got)
+					}
+				})
+			}
+		}
+		parser := NewParser(KeepComments(true))
+		for _, tc := range printTests {
+			t.Run(fmt.Sprintf("Print%s", opts.name), func(t *testing.T) {
+				prog, err := parser.Parse(strings.NewReader(tc.in), "")
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -1216,25 +1223,6 @@ func TestPrintOptionsNotBroken(t *testing.T) {
 					checkSingleLine(t, got)
 				}
 				_, err = parser.Parse(strings.NewReader(got), "")
-				if err != nil {
-					t.Fatalf("program was broken: %v\noriginal:\n%s\nfinal:\n%s", err, in, got)
-				}
-			})
-		}
-		for _, tc := range printTests {
-			t.Run("Print"+opts.name, func(t *testing.T) {
-				prog, err := parserBash.Parse(strings.NewReader(tc.in), "")
-				if err != nil {
-					t.Fatal(err)
-				}
-				got, err := strPrint(printer, prog)
-				if err != nil {
-					t.Fatal(err)
-				}
-				if opts.name == "SingleLine" {
-					checkSingleLine(t, got)
-				}
-				_, err = parserBash.Parse(strings.NewReader(got), "")
 				if err != nil {
 					t.Fatalf("program was broken: %v\noriginal:\n%s\nfinal:\n%s", err, tc.in, got)
 				}
