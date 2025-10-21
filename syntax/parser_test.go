@@ -1225,6 +1225,10 @@ var errorCases = []errorCase{
 		langErr(`1:9: reached EOF without matching $( with )`, LangZsh),
 	),
 	errCase(
+		"echo $$(foo)",
+		langErr(`1:8: a command can only contain words and redirects; encountered (`),
+	),
+	errCase(
 		"echo ${##",
 		langErr(`1:6: reached EOF without matching ${ with }`),
 	),

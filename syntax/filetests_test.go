@@ -4676,6 +4676,13 @@ var fileTests = []fileTestCase{
 			},
 		}, LangZsh),
 	),
+	fileTest(
+		[]string{"$${foo}"},
+		langFile(word(
+			litParamExp("$"),
+			lit("{foo}"),
+		)),
+	),
 }
 
 // these don't have a canonical format with the same syntax tree

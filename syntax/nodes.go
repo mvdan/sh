@@ -635,6 +635,9 @@ func (p *ParamExp) End() Pos {
 	if p.Index != nil {
 		return posAddCol(p.Index.End(), 1)
 	}
+	if p.NestedParam != nil {
+		return p.NestedParam.End()
+	}
 	return p.Param.End()
 }
 

@@ -1516,7 +1516,7 @@ func (p *Parser) paramExp() *ParamExp {
 }
 
 func (p *Parser) paramExpParameter(pe *ParamExp) *ParamExp {
-	if p.r == '$' {
+	if !pe.Short && p.r == '$' {
 		switch p1 := p.peek(); p1 {
 		case '{', '(':
 			p.pos = p.nextPos()
