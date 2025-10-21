@@ -4650,6 +4650,32 @@ var fileTests = []fileTestCase{
 			}),
 		), LangZsh),
 	),
+	fileTest(
+		[]string{"${${foo#head}%tail}"},
+		langFile(&ParamExp{
+			NestedParam: &ParamExp{
+				Param: lit("foo"),
+				Exp: &Expansion{
+					Op:   RemSmallPrefix,
+					Word: litWord("head"),
+				},
+			},
+			Exp: &Expansion{
+				Op:   RemSmallSuffix,
+				Word: litWord("tail"),
+			},
+		}, LangZsh),
+	),
+	fileTest(
+		[]string{"${$(echo footail)%tail}"},
+		langFile(&ParamExp{
+			NestedParam: cmdSubst(litStmt("echo", "footail")),
+			Exp: &Expansion{
+				Op:   RemSmallSuffix,
+				Word: litWord("tail"),
+			},
+		}, LangZsh),
+	),
 }
 
 // these don't have a canonical format with the same syntax tree

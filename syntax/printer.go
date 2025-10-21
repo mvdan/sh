@@ -655,52 +655,26 @@ func (p *Printer) wordPart(wp, next WordPart) {
 		p.dblQuoted(wp)
 	case *CmdSubst:
 		p.advanceLine(wp.Pos().Line())
-		switch {
-		case wp.TempFile:
-			p.w.WriteString("${")
-			p.wantSpace = spaceRequired
-			p.nestedStmts(wp.Stmts, wp.Last, wp.Right)
-			p.wantSpace = spaceNotRequired
-			p.semiRsrv("}", wp.Right)
-		case wp.ReplyVar:
-			p.w.WriteString("${|")
-			p.nestedStmts(wp.Stmts, wp.Last, wp.Right)
-			p.wantSpace = spaceNotRequired
-			p.semiRsrv("}", wp.Right)
-		// Special case: `# inline comment`
-		case wp.Backquotes && len(wp.Stmts) == 0 &&
-			len(wp.Last) == 1 && wp.Right.Line() == p.line:
-			p.w.WriteString("`#")
-			p.w.WriteString(wp.Last[0].Text)
-			p.w.WriteString("`")
-		default:
-			p.w.WriteString("$(")
-			if len(wp.Stmts) > 0 && startsWithLparen(wp.Stmts[0]) {
-				p.wantSpace = spaceRequired
-			} else {
-				p.wantSpace = spaceNotRequired
-			}
-			p.nestedStmts(wp.Stmts, wp.Last, wp.Right)
-			p.rightParen(wp.Right)
-		}
+		p.cmdSubst(wp)
 	case *ParamExp:
 		litCont := ";"
 		if nextLit, ok := next.(*Lit); ok && nextLit.Value != "" {
 			litCont = nextLit.Value[:1]
 		}
-		name := wp.Param.Value
-		switch {
-		case !p.minify:
-		case wp.Excl, wp.Length, wp.Width, wp.Plus:
-		case wp.Index != nil, wp.Slice != nil:
-		case wp.Repl != nil, wp.Exp != nil:
-		case len(name) > 1 && !ValidName(name): // ${10}
-		case ValidName(name + litCont): // ${var}cont
-		default:
-			x2 := *wp
-			x2.Short = true
-			p.paramExp(&x2)
-			return
+		if p.minify && wp.Param != nil {
+			name := wp.Param.Value
+			switch {
+			case wp.Excl, wp.Length, wp.Width, wp.Plus:
+			case wp.Index != nil, wp.Slice != nil:
+			case wp.Repl != nil, wp.Exp != nil:
+			case len(name) > 1 && !ValidName(name): // ${10}
+			case ValidName(name + litCont): // ${var}cont
+			default:
+				x2 := *wp
+				x2.Short = true
+				p.paramExp(&x2)
+				return
+			}
 		}
 		p.paramExp(wp)
 	case *ArithmExp:
@@ -771,7 +745,16 @@ func (p *Printer) paramExp(pe *ParamExp) {
 	case pe.Excl:
 		p.w.WriteByte('!')
 	}
-	p.writeLit(pe.Param.Value)
+	if pe.Param != nil {
+		p.writeLit(pe.Param.Value)
+	} else {
+		switch nested := pe.NestedParam.(type) {
+		case *ParamExp:
+			p.paramExp(nested)
+		case *CmdSubst:
+			p.cmdSubst(nested)
+		}
+	}
 	p.wroteIndex(pe.Index)
 	switch {
 	case pe.Slice != nil:
@@ -803,6 +786,37 @@ func (p *Printer) paramExp(pe *ParamExp) {
 	}
 	if !pe.Short {
 		p.w.WriteByte('}')
+	}
+}
+
+func (p *Printer) cmdSubst(cs *CmdSubst) {
+	switch {
+	case cs.TempFile:
+		p.w.WriteString("${")
+		p.wantSpace = spaceRequired
+		p.nestedStmts(cs.Stmts, cs.Last, cs.Right)
+		p.wantSpace = spaceNotRequired
+		p.semiRsrv("}", cs.Right)
+	case cs.ReplyVar:
+		p.w.WriteString("${|")
+		p.nestedStmts(cs.Stmts, cs.Last, cs.Right)
+		p.wantSpace = spaceNotRequired
+		p.semiRsrv("}", cs.Right)
+	// Special case: `# inline comment`
+	case cs.Backquotes && len(cs.Stmts) == 0 &&
+		len(cs.Last) == 1 && cs.Right.Line() == p.line:
+		p.w.WriteString("`#")
+		p.w.WriteString(cs.Last[0].Text)
+		p.w.WriteString("`")
+	default:
+		p.w.WriteString("$(")
+		if len(cs.Stmts) > 0 && startsWithLparen(cs.Stmts[0]) {
+			p.wantSpace = spaceRequired
+		} else {
+			p.wantSpace = spaceNotRequired
+		}
+		p.nestedStmts(cs.Stmts, cs.Last, cs.Right)
+		p.rightParen(cs.Right)
 	}
 }
 

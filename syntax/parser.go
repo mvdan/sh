@@ -1225,13 +1225,7 @@ func (p *Parser) wordPart() WordPart {
 		return ar
 	case dollParen:
 		p.ensureNoNested(p.pos)
-		cs := &CmdSubst{Left: p.pos}
-		old := p.preNested(subCmd)
-		p.next()
-		cs.Stmts, cs.Last = p.stmtList()
-		p.postNested(old)
-		cs.Right = p.matched(cs.Left, leftParen, rightParen)
-		return cs
+		return p.cmdSubst()
 	case dollar:
 		pe := p.paramExp()
 		if pe == nil { // was not actually a parameter expansion, like: "foo$"
@@ -1348,6 +1342,16 @@ func (p *Parser) wordPart() WordPart {
 	}
 }
 
+func (p *Parser) cmdSubst() *CmdSubst {
+	cs := &CmdSubst{Left: p.pos}
+	old := p.preNested(subCmd)
+	p.next()
+	cs.Stmts, cs.Last = p.stmtList()
+	p.postNested(old)
+	cs.Right = p.matched(cs.Left, leftParen, rightParen)
+	return cs
+}
+
 func (p *Parser) dblQuoted() *DblQuoted {
 	alloc := &struct {
 		quoted DblQuoted
@@ -1413,45 +1417,9 @@ func (p *Parser) paramExp() *ParamExp {
 			}
 		}
 	}
-	// The parameter name itself, like $foo or $?.
-	switch p.r {
-	case '?', '-':
-		if pe.Length && p.peek() != '}' {
-			// actually ${#-default}, not ${#-}; fix the ambiguity
-			pe.Length = false
-			pos := p.nextPos()
-			pe.Param = p.lit(posAddCol(pos, -1), "#")
-			pe.Param.ValueEnd = pos
-			break
-		}
-		fallthrough
-	case '@', '*', '#', '!', '$':
-		r, pos := p.r, p.nextPos()
-		p.rune()
-		pe.Param = p.lit(pos, string(r))
-	default:
-		// Note that $1a is equivalent to ${1}a, but ${1a} is not.
-		// POSIX Shell says the latter is unspecified behavior, so match Bash's behavior.
-		pos := p.nextPos()
-		if pe.Short && singleRuneParam(p.r) {
-			p.val = string(p.r)
-			p.rune()
-		} else {
-			for p.newLit(p.r); p.r != utf8.RuneSelf; p.rune() {
-				if !paramNameRune(p.r) && p.r != escNewl {
-					break
-				}
-			}
-			p.val = p.endLit()
-			if !numberLiteral(p.val) && !ValidName(p.val) {
-				if pe.Short {
-					p.quote = old
-					return nil // just "$"
-				}
-				p.posErr(pos, "invalid parameter name")
-			}
-		}
-		pe.Param = p.lit(pos, p.val)
+	if pe = p.paramExpParameter(pe); pe == nil {
+		p.quote = old
+		return nil // just "$"
 	}
 	// In short mode, any indexing or suffixes is not allowed, and we don't require '}'.
 	if pe.Short {
@@ -1544,6 +1512,68 @@ func (p *Parser) paramExp() *ParamExp {
 	}
 	p.quote = old
 	pe.Rbrace = p.matched(pe.Dollar, dollBrace, rightBrace)
+	return pe
+}
+
+func (p *Parser) paramExpParameter(pe *ParamExp) *ParamExp {
+	if p.r == '$' {
+		switch p1 := p.peek(); p1 {
+		case '{', '(':
+			p.pos = p.nextPos()
+			p.checkLang(p.pos, LangZsh, "nested parameter expansions")
+			if p.err != nil {
+				return pe // given that we overwrite p.tok below
+			}
+			p.rune()
+			p.rune()
+			if p1 == '{' { // ${#${nested parameter}}
+				p.tok = dollBrace
+				pe.NestedParam = p.paramExp()
+			} else { // ${#$(nested command)}
+				pe.NestedParam = p.cmdSubst()
+			}
+			return pe
+		}
+	}
+	// The parameter name itself, like $foo or $?.
+	switch p.r {
+	case '?', '-':
+		if pe.Length && p.peek() != '}' {
+			// actually ${#-default}, not ${#-}; fix the ambiguity
+			pe.Length = false
+			pos := p.nextPos()
+			pe.Param = p.lit(posAddCol(pos, -1), "#")
+			pe.Param.ValueEnd = pos
+			break
+		}
+		fallthrough
+	case '@', '*', '#', '!', '$':
+		r, pos := p.r, p.nextPos()
+		p.rune()
+		pe.Param = p.lit(pos, string(r))
+	default:
+		// Note that $1a is equivalent to ${1}a, but ${1a} is not.
+		// POSIX Shell says the latter is unspecified behavior, so match Bash's behavior.
+		pos := p.nextPos()
+		if pe.Short && singleRuneParam(p.r) {
+			p.val = string(p.r)
+			p.rune()
+		} else {
+			for p.newLit(p.r); p.r != utf8.RuneSelf; p.rune() {
+				if !paramNameRune(p.r) && p.r != escNewl {
+					break
+				}
+			}
+			p.val = p.endLit()
+			if !numberLiteral(p.val) && !ValidName(p.val) {
+				if pe.Short {
+					return nil // just "$"
+				}
+				p.posErr(pos, "invalid parameter name")
+			}
+		}
+		pe.Param = p.lit(pos, p.val)
+	}
 	return pe
 }
 

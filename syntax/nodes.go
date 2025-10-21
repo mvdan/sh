@@ -491,8 +491,9 @@ type FuncDecl struct {
 	Parens   bool // with () parentheses, can only be false when RsrvWord==true
 
 	// Only one of these is set at a time.
+	// Neither is set when declaring an anonymous func with [LangZsh].
 	Name  *Lit
-	Names []*Lit // When declaring zero or many func names with [LangZsh].
+	Names []*Lit // When declaring many func names with [LangZsh].
 
 	Body *Stmt
 }
@@ -611,9 +612,11 @@ type ParamExp struct {
 	Excl   bool // ${!a}
 	Length bool // ${#a}
 	Width  bool // mksh's ${%a}
-	Plus   bool // zsh's ${+a}
+	Plus   bool // ${+a} with [LangZsh]
 
-	Param *Lit
+	// Only one of these is set at a time.
+	Param       *Lit
+	NestedParam NestedParam // only possible with [LangZsh]
 
 	Index ArithmExpr // ${a[i]}, ${a["k"]}
 
@@ -638,6 +641,15 @@ func (p *ParamExp) End() Pos {
 func (p *ParamExp) nakedIndex() bool {
 	return p.Short && p.Index != nil
 }
+
+// NestedParam holds either [*ParamExp] or [*CmdSubst].
+type NestedParam interface {
+	Node
+	nestedParamNode()
+}
+
+func (*ParamExp) nestedParamNode() {}
+func (*CmdSubst) nestedParamNode() {}
 
 // Slice represents a character slicing expression inside a [ParamExp].
 //
