@@ -1192,7 +1192,7 @@ func TestPrintOptionsNotBroken(t *testing.T) {
 					t.Logf("input: %s", in)
 					prog, err := parser.Parse(strings.NewReader(in), "")
 					if err != nil {
-						t.Fatal(err)
+						t.Skipf("skipping due to error; TestParsePass should catch this")
 					}
 					got, err := strPrint(printer, prog)
 					if err != nil {
@@ -1213,7 +1213,7 @@ func TestPrintOptionsNotBroken(t *testing.T) {
 			t.Run(fmt.Sprintf("Print%s", opts.name), func(t *testing.T) {
 				prog, err := parser.Parse(strings.NewReader(tc.in), "")
 				if err != nil {
-					t.Fatal(err)
+					t.Skipf("skipping due to error; TestPrintTable should catch this")
 				}
 				got, err := strPrint(printer, prog)
 				if err != nil {
