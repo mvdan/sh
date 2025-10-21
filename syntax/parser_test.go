@@ -1048,7 +1048,7 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"echo $(foo",
-		langErr(`1:6: reached EOF without matching ( with )`),
+		langErr(`1:6: reached EOF without matching $( with )`),
 	),
 	errCase(
 		"echo $((foo",
@@ -1222,7 +1222,7 @@ var errorCases = []errorCase{
 	errCase(
 		"echo ${#$(",
 		langErr(`1:9: nested parameter expansions are a zsh feature; tried parsing as LANG`),
-		langErr(`1:9: reached EOF without matching ( with )`, LangZsh),
+		langErr(`1:9: reached EOF without matching $( with )`, LangZsh),
 	),
 	errCase(
 		"echo ${##",
@@ -2344,7 +2344,7 @@ func TestParseDocumentError(t *testing.T) {
 	in := "foo $("
 	p := NewParser()
 	_, err := p.Document(strings.NewReader(in))
-	want := "1:5: reached EOF without matching ( with )"
+	want := "1:5: reached EOF without matching $( with )"
 	got := fmt.Sprintf("%v", err)
 	if got != want {
 		t.Fatalf("Expected %q as an error, but got %q", want, got)

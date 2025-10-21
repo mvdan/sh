@@ -1348,7 +1348,7 @@ func (p *Parser) cmdSubst() *CmdSubst {
 	p.next()
 	cs.Stmts, cs.Last = p.stmtList()
 	p.postNested(old)
-	cs.Right = p.matched(cs.Left, leftParen, rightParen)
+	cs.Right = p.matched(cs.Left, dollParen, rightParen)
 	return cs
 }
 
