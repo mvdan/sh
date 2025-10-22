@@ -1649,7 +1649,7 @@ var fileTests = []fileTestCase{
 				Op:   WordHdoc,
 				Word: litWord("input"),
 			}},
-		}, LangBash|LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{
@@ -1662,7 +1662,7 @@ var fileTests = []fileTestCase{
 				Op:   WordHdoc,
 				Word: word(dblQuoted(lit("spaced input"))),
 			}},
-		}, LangBash|LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{"foo >(foo)"},
@@ -2331,7 +2331,7 @@ var fileTests = []fileTestCase{
 				Orig: word(sglQuoted("a")),
 				With: word(lit("b"), sglQuoted("c"), lit("d")),
 			},
-		}, LangBash|LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{`${foo%bar}${foo%%bar*}`},
@@ -2445,7 +2445,7 @@ var fileTests = []fileTestCase{
 		langFile(&ParamExp{
 			Param: lit("foo"),
 			Slice: &Slice{Offset: litWord("1")},
-		}, LangBash|LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{`${foo:1:2}`, `${foo: 1 : 2 }`},
@@ -2455,7 +2455,7 @@ var fileTests = []fileTestCase{
 				Offset: litWord("1"),
 				Length: litWord("2"),
 			},
-		}, LangBash|LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{`${foo:a:b}`},
@@ -2465,7 +2465,7 @@ var fileTests = []fileTestCase{
 				Offset: litWord("a"),
 				Length: litWord("b"),
 			},
-		}, LangBash|LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn), // TODO: zsh parses as modifiers
 	),
 	fileTest(
 		[]string{`${foo:1:-2}`},
@@ -2475,7 +2475,7 @@ var fileTests = []fileTestCase{
 				Offset: litWord("1"),
 				Length: &UnaryArithm{Op: Minus, X: litWord("2")},
 			},
-		}, LangBash|LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn), // TODO: zsh -n is too aggressive here?
 	),
 	fileTest(
 		[]string{`${foo::+3}`},
@@ -2484,7 +2484,7 @@ var fileTests = []fileTestCase{
 			Slice: &Slice{
 				Length: &UnaryArithm{Op: Plus, X: litWord("3")},
 			},
-		}, LangBash|LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{`${foo: -1}`},
@@ -2493,7 +2493,7 @@ var fileTests = []fileTestCase{
 			Slice: &Slice{
 				Offset: &UnaryArithm{Op: Minus, X: litWord("1")},
 			},
-		}, LangBash|LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{`${foo: +2+3}`},
@@ -2506,7 +2506,7 @@ var fileTests = []fileTestCase{
 					Y:  litWord("3"),
 				},
 			},
-		}, LangBash|LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{`${foo:a?1:2:3}`},
@@ -2531,21 +2531,21 @@ var fileTests = []fileTestCase{
 		langFile(&ParamExp{
 			Param: lit("foo"),
 			Repl:  &Replace{Orig: litWord("a"), With: litWord("b")},
-		}, LangBash|LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{"${foo/ /\t}"},
 		langFile(&ParamExp{
 			Param: lit("foo"),
 			Repl:  &Replace{Orig: litWord(" "), With: litWord("\t")},
-		}, LangBash|LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{`${foo/[/]-}`},
 		langFile(&ParamExp{
 			Param: lit("foo"),
 			Repl:  &Replace{Orig: litWord("["), With: litWord("]-")},
-		}, LangBash|LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn), // TODO: zsh parses as a pattern?
 	),
 	fileTest(
 		[]string{`${foo/bar/b/a/r}`},
@@ -2555,7 +2555,7 @@ var fileTests = []fileTestCase{
 				Orig: litWord("bar"),
 				With: litWord("b/a/r"),
 			},
-		}, LangBash|LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{`${foo/$a/$'\''}`},
@@ -2565,7 +2565,7 @@ var fileTests = []fileTestCase{
 				Orig: word(litParamExp("a")),
 				With: word(sglDQuoted(`\'`)),
 			},
-		}, LangBash|LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{`${foo//b1/b2}`},
@@ -2576,35 +2576,35 @@ var fileTests = []fileTestCase{
 				Orig: litWord("b1"),
 				With: litWord("b2"),
 			},
-		}, LangBash|LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{`${foo///}`, `${foo//}`},
 		langFile(&ParamExp{
 			Param: lit("foo"),
 			Repl:  &Replace{All: true},
-		}, LangBash|LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{`${foo/-//}`},
 		langFile(&ParamExp{
 			Param: lit("foo"),
 			Repl:  &Replace{Orig: litWord("-"), With: litWord("/")},
-		}, LangBash|LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{`${foo//#/}`, `${foo//#}`},
 		langFile(&ParamExp{
 			Param: lit("foo"),
 			Repl:  &Replace{All: true, Orig: litWord("#")},
-		}, LangBash|LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{`${foo//[42]/}`},
 		langFile(&ParamExp{
 			Param: lit("foo"),
 			Repl:  &Replace{All: true, Orig: litWord("[42]")},
-		}, LangBash|LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{`${a^b} ${a^^b} ${a,b} ${a,,b}`},

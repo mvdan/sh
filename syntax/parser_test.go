@@ -1741,7 +1741,7 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"echo <<<",
-		langErr(`1:6: <<< must be followed by a word`, LangBash|LangMirBSDKorn),
+		langErr(`1:6: <<< must be followed by a word`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"a[",
@@ -2029,15 +2029,15 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"echo ${foo/a/b}",
-		langErr(`1:11: search and replace is a bash/mksh feature; tried parsing as LANG`, LangPOSIX),
+		langErr(`1:11: search and replace is a bash/mksh/zsh feature; tried parsing as LANG`, LangPOSIX),
 	),
 	errCase(
 		"echo ${foo:1}",
-		langErr(`1:11: slicing is a bash/mksh feature; tried parsing as LANG`, LangPOSIX),
+		langErr(`1:11: slicing is a bash/mksh/zsh feature; tried parsing as LANG`, LangPOSIX),
 	),
 	errCase(
 		"foo <<< bar",
-		langErr(`1:5: herestrings are a bash/mksh feature; tried parsing as LANG`, LangPOSIX),
+		langErr(`1:5: herestrings are a bash/mksh/zsh feature; tried parsing as LANG`, LangPOSIX),
 	),
 	errCase(
 		"foo << < bar",

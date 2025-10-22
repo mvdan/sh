@@ -1452,7 +1452,7 @@ func (p *Parser) paramExp() *ParamExp {
 	}
 	switch p.tok {
 	case slash, dblSlash: // pattern search and replace
-		p.checkLang(p.pos, langBashLike|LangMirBSDKorn, "search and replace")
+		p.checkLang(p.pos, langBashLike|LangMirBSDKorn|LangZsh, "search and replace")
 		pe.Repl = &Replace{All: p.tok == dblSlash}
 		p.quote = paramExpRepl
 		p.next()
@@ -1462,7 +1462,7 @@ func (p *Parser) paramExp() *ParamExp {
 			pe.Repl.With = p.getWord()
 		}
 	case colon: // slicing
-		p.checkLang(p.pos, langBashLike|LangMirBSDKorn, "slicing")
+		p.checkLang(p.pos, langBashLike|LangMirBSDKorn|LangZsh, "slicing")
 		pe.Slice = &Slice{}
 		colonPos := p.pos
 		p.quote = paramExpArithm
@@ -1836,7 +1836,7 @@ func (p *Parser) doRedirect(s *Stmt) {
 			p.doHeredocs()
 		}
 	case WordHdoc:
-		p.checkLang(r.OpPos, langBashLike|LangMirBSDKorn, "herestrings")
+		p.checkLang(r.OpPos, langBashLike|LangMirBSDKorn|LangZsh, "herestrings")
 		fallthrough
 	default:
 		r.Word = p.followWordTok(token(r.Op), r.OpPos)
