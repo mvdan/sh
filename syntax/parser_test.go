@@ -511,7 +511,7 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"}",
-		langErr(`1:1: "}" can only be used to close a block`),
+		langErr(`1:1: } can only be used to close a block`),
 	),
 	errCase(
 		"{ }",
@@ -540,11 +540,11 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"foo | }",
-		langErr(`1:7: "}" can only be used to close a block`),
+		langErr(`1:7: } can only be used to close a block`),
 	),
 	errCase(
 		"foo }",
-		langErr(`1:5: "}" can only be used to close a block`, LangZsh),
+		langErr(`1:5: } can only be used to close a block`, LangZsh),
 	),
 	errCase(
 		"then",
@@ -572,7 +572,7 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"a=b { foo; }",
-		langErr(`1:12: "}" can only be used to close a block`),
+		langErr(`1:12: } can only be used to close a block`),
 	),
 	errCase(
 		"a=b foo() { bar; }",
@@ -1360,11 +1360,11 @@ var errorCases = []errorCase{
 	errCase(
 		"case i {",
 		langErr(`1:1: "case i {" is a mksh feature; tried parsing as LANG`),
-		langErr(`1:1: case statement must end with "}"`, LangMirBSDKorn),
+		langErr(`1:1: case statement must end with }`, LangMirBSDKorn),
 	),
 	errCase(
 		"case i { x) y ;;",
-		langErr(`1:1: case statement must end with "}"`, LangMirBSDKorn),
+		langErr(`1:1: case statement must end with }`, LangMirBSDKorn),
 	),
 	errCase(
 		"\"`\"",
@@ -1437,7 +1437,7 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"]] )",
-		langErr(`1:1: "]]" can only be used to close a test`),
+		langErr(`1:1: ]] can only be used to close a test`),
 		langErr(`1:4: a command can only contain words and redirects; encountered )`, LangPOSIX),
 	),
 	errCase(

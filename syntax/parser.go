@@ -789,7 +789,8 @@ func (p *Parser) recoverError() bool {
 	return false
 }
 
-func readableStr(s string) string {
+// quoteTok quotes tokens like "case", but not & or }.
+func quoteTok(s string) string {
 	// don't quote tokens like & or }
 	if s != "" && s[0] >= 'a' && s[0] <= 'z' {
 		return strconv.Quote(s)
@@ -798,8 +799,8 @@ func readableStr(s string) string {
 }
 
 func (p *Parser) followErr(pos Pos, left, right string) {
-	leftStr := readableStr(left)
-	p.posErr(pos, "%s must be followed by %s", leftStr, right)
+	p.posErr(pos, "%s must be followed by %s",
+		quoteTok(left), right)
 }
 
 func (p *Parser) followErrExp(pos Pos, left string) {
@@ -818,7 +819,7 @@ func (p *Parser) followRsrv(lpos Pos, left, val string) Pos {
 		if p.recoverError() {
 			return recoveredPos
 		}
-		p.followErr(lpos, left, fmt.Sprintf("%q", val))
+		p.followErr(lpos, left, strconv.Quote(val))
 	}
 	return pos
 }
@@ -861,7 +862,7 @@ func (p *Parser) stmtEnd(n Node, start, end string) Pos {
 		if p.recoverError() {
 			return recoveredPos
 		}
-		p.posErr(n.Pos(), "%s statement must end with %q", start, end)
+		p.posErr(n.Pos(), "%s statement must end with %s", start, quoteTok(end))
 	}
 	return pos
 }
@@ -1040,7 +1041,7 @@ loop:
 				}
 			}
 			if p.val == "}" {
-				p.curErr(`%q can only be used to close a block`, p.val)
+				p.curErr(`%s can only be used to close a block`, p.val)
 			}
 		case rightParen:
 			if p.quote == subCmd {
@@ -1961,7 +1962,7 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 			p.caseClause(s)
 		// TODO(zsh): { try-list } "always" { always-list }
 		case "}":
-			p.curErr(`%q can only be used to close a block`, p.val)
+			p.curErr(`%s can only be used to close a block`, p.val)
 		case "then":
 			p.curErr(`%q can only be used in an if`, p.val)
 		case "elif":
@@ -1985,7 +1986,7 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 			}
 		case "]]":
 			if p.lang.in(langBashLike | LangMirBSDKorn | LangZsh) {
-				p.curErr(`%q can only be used to close a test`, p.val)
+				p.curErr(`%s can only be used to close a test`, p.val)
 			}
 		case "let":
 			if p.lang.in(langBashLike | LangMirBSDKorn | LangZsh) {
