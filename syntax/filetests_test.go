@@ -108,6 +108,7 @@ func fullProg(v any) *File {
 
 type fileTestCase struct {
 	inputs []string // input sources; the first is the canonical formatting
+	before string
 
 	byLangIndex [langResolvedVariantsCount]*File
 }
@@ -118,6 +119,12 @@ func fileTest(in []string, opts ...func(*fileTestCase)) fileTestCase {
 		o(&c)
 	}
 	return c
+}
+
+func beforeRun(in string) func(*fileTestCase) {
+	return func(c *fileTestCase) {
+		c.before = in
+	}
 }
 
 func langFile(want any, langSets ...LangVariant) func(*fileTestCase) {
@@ -2476,6 +2483,7 @@ var fileTests = []fileTestCase{
 				Length: &UnaryArithm{Op: Minus, X: litWord("2")},
 			},
 		}, LangBash|LangMirBSDKorn|LangZsh),
+		beforeRun("foo=abcdef"),
 	),
 	fileTest(
 		[]string{`${foo::+3}`},

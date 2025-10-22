@@ -84,7 +84,7 @@ func TestParseConfirm(t *testing.T) {
 					continue
 				}
 				for j, in := range c.inputs {
-					t.Run(fmt.Sprintf("#%03d-%d", i, j), confirmParse(in, external.cmd, false))
+					t.Run(fmt.Sprintf("#%03d-%d", i, j), confirmParse(in, c.before, external.cmd, false))
 				}
 				i++
 			}
@@ -102,7 +102,7 @@ func TestParseConfirm(t *testing.T) {
 					continue
 				}
 				wantErr := !lang.in(c.flipConfirmSet)
-				t.Run("", confirmParse(c.in, external.cmd, wantErr))
+				t.Run("", confirmParse(c.in, "", external.cmd, wantErr))
 			}
 		})
 	}
@@ -264,7 +264,7 @@ func cmdContains(substr, cmd string, args ...string) bool {
 
 var extGlobRe = regexp.MustCompile(`[@?*+!]\(`)
 
-func confirmParse(in, cmd string, wantErr bool) func(*testing.T) {
+func confirmParse(in, before, cmd string, wantErr bool) func(*testing.T) {
 	return func(t *testing.T) {
 		t.Helper()
 		t.Parallel()
@@ -272,12 +272,13 @@ func confirmParse(in, cmd string, wantErr bool) func(*testing.T) {
 		if strings.Contains(in, "\\\r\n") {
 			t.Skip("shells do not generally support CRLF line endings")
 		}
+		in = before + "\n" + in
 		if cmd == "bash" && extGlobRe.MatchString(in) {
 			// otherwise bash refuses to parse these
 			// properly. Also avoid -n since that too makes
 			// bash bail.
 			in = "shopt -s extglob\n" + in
-		} else if !wantErr {
+		} else if !wantErr && len(before) == 0 {
 			// -n makes bash accept invalid inputs like
 			// "let" or "`{`", so only use it in
 			// non-erroring tests. Should be safe to not use
