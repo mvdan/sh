@@ -52,11 +52,11 @@ func TestParseErr(t *testing.T) {
 					want = strings.Replace(want, "LANG", p.lang.String(), 1)
 					_, err := p.Parse(newStrictReader(c.in), "")
 					if err == nil {
-						t.Fatalf("Expected error in %q: %v", c.in, want)
+						t.Fatalf("Expected error: %v", want)
 					}
 					if got := err.Error(); got != want {
-						t.Fatalf("Error mismatch in %q\nwant: %s\ngot:  %s",
-							c.in, want, got)
+						t.Fatalf("Error mismatch\nwant: %s\ngot:  %s",
+							want, got)
 					}
 				})
 			}
@@ -268,6 +268,7 @@ func confirmParse(in, cmd string, wantErr bool) func(*testing.T) {
 	return func(t *testing.T) {
 		t.Helper()
 		t.Parallel()
+		t.Logf("input: %s", in)
 		var opts []string
 		if strings.Contains(in, "\\\r\n") {
 			t.Skip("shells do not generally support CRLF line endings")
@@ -302,9 +303,9 @@ func confirmParse(in, cmd string, wantErr bool) func(*testing.T) {
 			err = nil
 		}
 		if wantErr && err == nil {
-			t.Fatalf("Expected error in %q of %q, found none", strings.Join(cmd.Args, " "), in)
+			t.Fatalf("Expected error in %q", strings.Join(cmd.Args, " "))
 		} else if !wantErr && err != nil {
-			t.Fatalf("Unexpected error in %q of %q: %v", strings.Join(cmd.Args, " "), in, err)
+			t.Fatalf("Unexpected error in %q: %v", strings.Join(cmd.Args, " "), err)
 		}
 	}
 }
@@ -317,7 +318,7 @@ func singleParse(p *Parser, in string, want *File) func(t *testing.T) {
 		t.Logf("input: %s", in)
 		got, err := p.Parse(newStrictReader(in), "")
 		if err != nil {
-			t.Fatalf("Unexpected error in %q: %v", in, err)
+			t.Fatalf("Unexpected error: %v", err)
 		}
 		Walk(got, sanityChecker{tb: t, src: in}.visit)
 		qt.Assert(t, qt.CmpEquals(got, want, cmpOpt))

@@ -1233,6 +1233,7 @@ func TestPrintOptionsNotBroken(t *testing.T) {
 
 func printTest(t *testing.T, parser *Parser, printer *Printer, in, want string) {
 	t.Helper()
+	t.Logf("input: %s", in)
 	prog, err := parser.Parse(strings.NewReader(in), "")
 	if err != nil {
 		t.Fatalf("parsing got an error: %s:\n%s", err, in)
@@ -1244,7 +1245,7 @@ func printTest(t *testing.T, parser *Parser, printer *Printer, in, want string) 
 		t.Fatal(err)
 	}
 	if got != want {
-		t.Fatalf("Print mismatch:\nin:\n%q\nwant:\n%q\ngot:\n%q", in, want, got)
+		t.Fatalf("Print mismatch:\n\nwant:\n%q\ngot:\n%q", want, got)
 	}
 
 	// With the original "want" output string,
@@ -1260,7 +1261,7 @@ func printTest(t *testing.T, parser *Parser, printer *Printer, in, want string) 
 		t.Fatal(err)
 	}
 	if gotAgain != want {
-		t.Fatalf("Re-print mismatch:\nin:\n%q\nwant:\n%q\ngot:\n%q", in, want, gotAgain)
+		t.Fatalf("Re-print mismatch:\nwant:\n%q\ngot:\n%q", want, gotAgain)
 	}
 }
 
