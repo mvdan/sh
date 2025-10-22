@@ -60,7 +60,7 @@ predictable. Some aspects of the format can be configured via printer flags.
 ## Parser flags
 
 *-ln*, *--language-dialect* <str>
-	Language dialect (*bash*/*posix*/*mksh*/*bats*, default *auto*).
+	Language dialect (*bash*/*posix*/*mksh*/*bats*/*zsh*, default *auto*).
 
 	When set to *auto*, the language is detected from the input filename,
 	as long as it has a shell extension like *foo.mksh*. Otherwise, if the input

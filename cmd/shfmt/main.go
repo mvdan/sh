@@ -163,7 +163,7 @@ directory, all shell scripts found under that directory will be used.
 
 Parser options:
 
-  -ln, --language-dialect str  bash/posix/mksh/bats, default "auto"
+  -ln, --language-dialect str  bash/posix/mksh/bats/zsh, default "auto"
   -p,  --posix                 shorthand for -ln=posix
   -s,  --simplify              simplify the code
 
