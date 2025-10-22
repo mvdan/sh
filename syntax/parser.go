@@ -867,13 +867,11 @@ func (p *Parser) stmtEnd(n Node, start, end string) Pos {
 }
 
 func (p *Parser) quoteErr(lpos Pos, quote token) {
-	p.posErr(lpos, "reached %s without closing quote %s",
-		p.tok.String(), quote)
+	p.posErr(lpos, "reached %s without closing quote %s", p.tok, quote)
 }
 
 func (p *Parser) matchingErr(lpos Pos, left, right any) {
-	p.posErr(lpos, "reached %s without matching %s with %s",
-		p.tok.String(), left, right)
+	p.posErr(lpos, "reached %s without matching %s with %s", p.tok, left, right)
 }
 
 func (p *Parser) matched(lpos Pos, left, right token) Pos {
@@ -953,9 +951,9 @@ type ParseError struct {
 
 func (e ParseError) Error() string {
 	if e.Filename == "" {
-		return fmt.Sprintf("%s: %s", e.Pos.String(), e.Text)
+		return fmt.Sprintf("%s: %s", e.Pos, e.Text)
 	}
-	return fmt.Sprintf("%s:%s: %s", e.Filename, e.Pos.String(), e.Text)
+	return fmt.Sprintf("%s:%s: %s", e.Filename, e.Pos, e.Text)
 }
 
 // LangError is returned when the parser encounters code that is only valid in
