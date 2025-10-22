@@ -1199,7 +1199,11 @@ func (p *Parser) wordPart() WordPart {
 			cs.Right = pos
 			return cs
 		default:
-			return p.paramExp()
+			pe := p.paramExp()
+			if p.tok == illegalTok {
+				p.tok = _EOF
+			}
+			return pe
 		}
 	case dollDblParen, dollBrack:
 		p.ensureNoNested(p.pos)
@@ -1387,6 +1391,27 @@ func (p *Parser) paramExp() *ParamExp {
 	pe := &ParamExp{
 		Dollar: p.pos,
 		Short:  p.tok == dollar,
+	}
+	if !pe.Short && p.r == '(' {
+		p.checkLang(pe.Pos(), LangZsh, `parameter expansion flags`)
+		// For now, for simplicity, we parse flags as just a literal.
+		// In the future, parsing as a word is better for cases like
+		// `${(ps.$sep.)val}`.
+		lparen := p.nextPos()
+		p.rune()
+		p.pos = p.nextPos()
+		for p.newLit(p.r); p.r != utf8.RuneSelf; p.rune() {
+			if p.r == ')' {
+				break
+			}
+		}
+		p.val = p.endLit()
+		if p.r != ')' {
+			p.tok = _EOF // we can only get here due to EOF
+			p.matchingErr(lparen, "(", ")")
+		}
+		p.rune()
+		pe.Flags = p.wordOne(p.lit(p.pos, p.val))
 	}
 	if !pe.Short || p.lang.in(LangZsh) {
 		// Prefixes, like ${#name} to get the length of a variable.

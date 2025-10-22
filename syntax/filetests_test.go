@@ -4683,6 +4683,19 @@ var fileTests = []fileTestCase{
 			lit("{foo}"),
 		)),
 	),
+	fileTest(
+		[]string{"${(aO)foo} ${(s/x/)foo}"},
+		langFile(call(
+			word(&ParamExp{
+				Flags: litWord("aO"),
+				Param: lit("foo"),
+			}),
+			word(&ParamExp{
+				Flags: litWord("s/x/"),
+				Param: lit("foo"),
+			}),
+		), LangZsh),
+	),
 }
 
 // these don't have a canonical format with the same syntax tree
