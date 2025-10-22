@@ -2037,7 +2037,7 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"foo <<< bar",
-		langErr(`1:5: herestrings are a bash/mksh feature; tried parsing as LANG`, LangPOSIX),
+		langErr(`1:5: herestrings are a bash/mksh/zsh feature; tried parsing as LANG`, LangPOSIX),
 	),
 	errCase(
 		"foo << < bar",

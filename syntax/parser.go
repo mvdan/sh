@@ -1836,7 +1836,7 @@ func (p *Parser) doRedirect(s *Stmt) {
 			p.doHeredocs()
 		}
 	case WordHdoc:
-		p.checkLang(r.OpPos, langBashLike|LangMirBSDKorn, "herestrings")
+		p.checkLang(r.OpPos, langBashLike|LangMirBSDKorn|LangZsh, "herestrings")
 		fallthrough
 	default:
 		r.Word = p.followWordTok(token(r.Op), r.OpPos)

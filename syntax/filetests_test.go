@@ -1649,7 +1649,7 @@ var fileTests = []fileTestCase{
 				Op:   WordHdoc,
 				Word: litWord("input"),
 			}},
-		}, LangBash|LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{
@@ -1662,7 +1662,7 @@ var fileTests = []fileTestCase{
 				Op:   WordHdoc,
 				Word: word(dblQuoted(lit("spaced input"))),
 			}},
-		}, LangBash|LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{"foo >(foo)"},
