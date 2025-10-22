@@ -2331,7 +2331,7 @@ var fileTests = []fileTestCase{
 				Orig: word(sglQuoted("a")),
 				With: word(lit("b"), sglQuoted("c"), lit("d")),
 			},
-		}, LangBash|LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{`${foo%bar}${foo%%bar*}`},
@@ -2531,14 +2531,14 @@ var fileTests = []fileTestCase{
 		langFile(&ParamExp{
 			Param: lit("foo"),
 			Repl:  &Replace{Orig: litWord("a"), With: litWord("b")},
-		}, LangBash|LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{"${foo/ /\t}"},
 		langFile(&ParamExp{
 			Param: lit("foo"),
 			Repl:  &Replace{Orig: litWord(" "), With: litWord("\t")},
-		}, LangBash|LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{`${foo/[/]-}`},
@@ -2555,7 +2555,7 @@ var fileTests = []fileTestCase{
 				Orig: litWord("bar"),
 				With: litWord("b/a/r"),
 			},
-		}, LangBash|LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{`${foo/$a/$'\''}`},
@@ -2565,7 +2565,7 @@ var fileTests = []fileTestCase{
 				Orig: word(litParamExp("a")),
 				With: word(sglDQuoted(`\'`)),
 			},
-		}, LangBash|LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{`${foo//b1/b2}`},
@@ -2576,35 +2576,35 @@ var fileTests = []fileTestCase{
 				Orig: litWord("b1"),
 				With: litWord("b2"),
 			},
-		}, LangBash|LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{`${foo///}`, `${foo//}`},
 		langFile(&ParamExp{
 			Param: lit("foo"),
 			Repl:  &Replace{All: true},
-		}, LangBash|LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{`${foo/-//}`},
 		langFile(&ParamExp{
 			Param: lit("foo"),
 			Repl:  &Replace{Orig: litWord("-"), With: litWord("/")},
-		}, LangBash|LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{`${foo//#/}`, `${foo//#}`},
 		langFile(&ParamExp{
 			Param: lit("foo"),
 			Repl:  &Replace{All: true, Orig: litWord("#")},
-		}, LangBash|LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{`${foo//[42]/}`},
 		langFile(&ParamExp{
 			Param: lit("foo"),
 			Repl:  &Replace{All: true, Orig: litWord("[42]")},
-		}, LangBash|LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{`${a^b} ${a^^b} ${a,b} ${a,,b}`},

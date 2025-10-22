@@ -2029,7 +2029,7 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"echo ${foo/a/b}",
-		langErr(`1:11: search and replace is a bash/mksh feature; tried parsing as LANG`, LangPOSIX),
+		langErr(`1:11: search and replace is a bash/mksh/zsh feature; tried parsing as LANG`, LangPOSIX),
 	),
 	errCase(
 		"echo ${foo:1}",

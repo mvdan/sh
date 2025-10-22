@@ -1452,7 +1452,7 @@ func (p *Parser) paramExp() *ParamExp {
 	}
 	switch p.tok {
 	case slash, dblSlash: // pattern search and replace
-		p.checkLang(p.pos, langBashLike|LangMirBSDKorn, "search and replace")
+		p.checkLang(p.pos, langBashLike|LangMirBSDKorn|LangZsh, "search and replace")
 		pe.Repl = &Replace{All: p.tok == dblSlash}
 		p.quote = paramExpRepl
 		p.next()
