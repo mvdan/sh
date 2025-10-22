@@ -2445,7 +2445,7 @@ var fileTests = []fileTestCase{
 		langFile(&ParamExp{
 			Param: lit("foo"),
 			Slice: &Slice{Offset: litWord("1")},
-		}, LangBash|LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{`${foo:1:2}`, `${foo: 1 : 2 }`},
@@ -2455,7 +2455,7 @@ var fileTests = []fileTestCase{
 				Offset: litWord("1"),
 				Length: litWord("2"),
 			},
-		}, LangBash|LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{`${foo:a:b}`},
@@ -2475,7 +2475,7 @@ var fileTests = []fileTestCase{
 				Offset: litWord("1"),
 				Length: &UnaryArithm{Op: Minus, X: litWord("2")},
 			},
-		}, LangBash|LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{`${foo::+3}`},
@@ -2484,7 +2484,7 @@ var fileTests = []fileTestCase{
 			Slice: &Slice{
 				Length: &UnaryArithm{Op: Plus, X: litWord("3")},
 			},
-		}, LangBash|LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{`${foo: -1}`},
@@ -2506,7 +2506,7 @@ var fileTests = []fileTestCase{
 					Y:  litWord("3"),
 				},
 			},
-		}, LangBash|LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{`${foo:a?1:2:3}`},

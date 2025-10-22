@@ -2033,7 +2033,7 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"echo ${foo:1}",
-		langErr(`1:11: slicing is a bash/mksh feature; tried parsing as LANG`, LangPOSIX),
+		langErr(`1:11: slicing is a bash/mksh/zsh feature; tried parsing as LANG`, LangPOSIX),
 	),
 	errCase(
 		"foo <<< bar",

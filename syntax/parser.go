@@ -1462,7 +1462,7 @@ func (p *Parser) paramExp() *ParamExp {
 			pe.Repl.With = p.getWord()
 		}
 	case colon: // slicing
-		p.checkLang(p.pos, langBashLike|LangMirBSDKorn, "slicing")
+		p.checkLang(p.pos, langBashLike|LangMirBSDKorn|LangZsh, "slicing")
 		pe.Slice = &Slice{}
 		colonPos := p.pos
 		p.quote = paramExpArithm
