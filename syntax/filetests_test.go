@@ -2435,6 +2435,7 @@ var fileTests = []fileTestCase{
 			Param: lit("foo"),
 			Index: litWord("1"),
 		}, LangBash|LangMirBSDKorn|LangZsh),
+		langErr2(`1:6: arrays are a bash/mksh/zsh feature; tried parsing as LANG`, LangPOSIX),
 	),
 	fileTest(
 		[]string{`${foo[-1]}`},
@@ -2491,6 +2492,7 @@ var fileTests = []fileTestCase{
 			Param: lit("foo"),
 			Slice: &Slice{Offset: litWord("1")},
 		}, LangBash|LangMirBSDKorn|LangZsh),
+		langErr2(`1:6: slicing is a bash/mksh/zsh feature; tried parsing as LANG`, LangPOSIX),
 	),
 	fileTest(
 		[]string{`${foo:1:2}`, `${foo: 1 : 2 }`},
@@ -2577,6 +2579,7 @@ var fileTests = []fileTestCase{
 			Param: lit("foo"),
 			Repl:  &Replace{Orig: litWord("a"), With: litWord("b")},
 		}, LangBash|LangMirBSDKorn|LangZsh),
+		langErr2(`1:6: search and replace is a bash/mksh/zsh feature; tried parsing as LANG`, LangPOSIX),
 	),
 	fileTest(
 		[]string{"${foo/ /\t}"},
@@ -2783,6 +2786,7 @@ var fileTests = []fileTestCase{
 				Index: litWord("@"),
 			}),
 		), LangBash|LangMirBSDKorn),
+		langErr2(`1:1: "${!foo}" is a bash/mksh feature; tried parsing as LANG`, LangPOSIX),
 	),
 	fileTest(
 		[]string{`${!foo*} ${!bar@}`},
@@ -2798,6 +2802,8 @@ var fileTests = []fileTestCase{
 				Names: NamesPrefixWords,
 			}),
 		), LangBash),
+		langErr2(`1:1: "${!foo}" is a bash/mksh feature; tried parsing as LANG`, LangPOSIX),
+		langErr2(`1:1: "${!foo*}" is a bash feature; tried parsing as LANG`, LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{`${#?}`},

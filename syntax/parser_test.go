@@ -1934,34 +1934,8 @@ var errorCases = []errorCase{
 		langErr(`2:1: reached EOF without closing quote '`),
 	),
 	errCase(
-		"echo ${!foo}",
-		langErr(`1:6: "${!foo}" is a bash/mksh feature; tried parsing as LANG`, LangPOSIX),
-	),
-	errCase(
-		"echo ${!foo*}",
-		langErr(`1:6: "${!foo}" is a bash/mksh feature; tried parsing as LANG`, LangPOSIX),
-		langErr(`1:6: "${!foo*}" is a bash feature; tried parsing as LANG`, LangMirBSDKorn),
-	),
-	errCase(
-		"echo ${!foo@}",
-		langErr(`1:6: "${!foo}" is a bash/mksh feature; tried parsing as LANG`, LangPOSIX),
-		langErr(`1:6: "${!foo@}" is a bash feature; tried parsing as LANG`, LangMirBSDKorn),
-	),
-	errCase(
 		"echo ${!foo[@]}",
 		langErr(`1:6: "${!foo}" is a bash/mksh feature; tried parsing as LANG`, LangPOSIX),
-	),
-	errCase(
-		"echo ${foo[1]}",
-		langErr(`1:11: arrays are a bash/mksh/zsh feature; tried parsing as LANG`, LangPOSIX),
-	),
-	errCase(
-		"echo ${foo/a/b}",
-		langErr(`1:11: search and replace is a bash/mksh/zsh feature; tried parsing as LANG`, LangPOSIX),
-	),
-	errCase(
-		"echo ${foo:1}",
-		langErr(`1:11: slicing is a bash/mksh/zsh feature; tried parsing as LANG`, LangPOSIX),
 	),
 	errCase(
 		"foo << < bar",
