@@ -19,11 +19,11 @@ func TestPrintFiles(t *testing.T) {
 			parser := NewParser(Variant(lang), KeepComments(true))
 			printer := NewPrinter()
 			for _, c := range append(fileTests, fileTestsKeepComments...) {
-				want := c.byLangIndex[lang.index()]
+				want, _ := c.byLangIndex[lang.index()].(*File)
 				if want == nil {
 					continue
 				}
-				if wantBash := c.byLangIndex[LangBash.index()]; wantBash != nil &&
+				if wantBash, _ := c.byLangIndex[LangBash.index()].(*File); wantBash != nil &&
 					lang != LangBash && want != wantBash {
 					// Skip cases where a non-Bash language parses differently than Bash.
 					// For example, `((foo))` prints as `( (foo))` only when in POSIX.
@@ -1184,7 +1184,7 @@ func TestPrintOptionsNotBroken(t *testing.T) {
 		for lang := range langResolvedVariants.bits() {
 			parser := NewParser(Variant(lang), KeepComments(true))
 			for _, tc := range append(fileTests, fileTestsNoPrint...) {
-				want := tc.byLangIndex[lang.index()]
+				want, _ := tc.byLangIndex[lang.index()].(*File)
 				if want == nil {
 					continue
 				}

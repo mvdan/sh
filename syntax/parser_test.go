@@ -19,18 +19,35 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-func TestParsePass(t *testing.T) {
+func TestParseFiles(t *testing.T) {
 	t.Parallel()
 	for lang := range langResolvedVariants.bits() {
 		t.Run(lang.String(), func(t *testing.T) {
 			p := NewParser(Variant(lang))
 			for i, c := range append(fileTests, fileTestsNoPrint...) {
 				want := c.byLangIndex[lang.index()]
-				if want == nil {
+				switch want := want.(type) {
+				case nil:
 					continue
-				}
-				for j, in := range c.inputs {
-					t.Run(fmt.Sprintf("#%03d-%d", i, j), singleParse(p, in, want))
+				case *File:
+					for j, in := range c.inputs {
+						t.Run(fmt.Sprintf("OK/%03d-%d", i, j), singleParse(p, in, want))
+					}
+				case string:
+					want = strings.Replace(want, "LANG", p.lang.String(), 1)
+					for j, in := range c.inputs {
+						t.Run(fmt.Sprintf("Err/%03d-%d", i, j), func(t *testing.T) {
+							t.Logf("input: %s", in)
+							_, err := p.Parse(newStrictReader(in), "")
+							if err == nil {
+								t.Fatalf("Expected error: %v", want)
+							}
+							if got := err.Error(); got != want {
+								t.Fatalf("Error mismatch\nwant: %s\ngot:  %s",
+									want, got)
+							}
+						})
+					}
 				}
 			}
 		})
@@ -48,8 +65,8 @@ func TestParseErr(t *testing.T) {
 					continue
 				}
 				t.Run("", func(t *testing.T) { // number them #001, #002, ...
-					t.Logf("input: %s", c.in)
 					want = strings.Replace(want, "LANG", p.lang.String(), 1)
+					t.Logf("input: %s", c.in)
 					_, err := p.Parse(newStrictReader(c.in), "")
 					if err == nil {
 						t.Fatalf("Expected error: %v", want)
@@ -69,40 +86,39 @@ func TestParseConfirm(t *testing.T) {
 		t.Skip("calling external shells is slow")
 	}
 	for lang := range langResolvedVariants.bits() {
-		external, ok := externalShells[lang]
-		if !ok {
-			continue // no external shell to check against, e.g. bats
-		}
-		t.Run(fmt.Sprintf("Pass/%s", lang), func(t *testing.T) {
+		t.Run(lang.String(), func(t *testing.T) {
+			external, ok := externalShells[lang]
+			if !ok {
+				t.Skip("no external shell to check against")
+			}
 			if external.require != nil {
 				external.require(t)
 			}
-			i := 0
-			for _, c := range append(fileTests, fileTestsNoPrint...) {
+			for i, c := range append(fileTests, fileTestsNoPrint...) {
 				want := c.byLangIndex[lang.index()]
-				if want == nil {
+				switch want.(type) {
+				case nil:
 					continue
+				case *File:
+					for j, in := range c.inputs {
+						t.Run(fmt.Sprintf("OK/%03d-%d", i, j), confirmParse(in, external.cmd, false))
+					}
+				case string:
+					for j, in := range c.inputs {
+						t.Run(fmt.Sprintf("Err/%03d-%d", i, j), confirmParse(in, external.cmd, true))
+					}
 				}
-				for j, in := range c.inputs {
-					t.Run(fmt.Sprintf("#%03d-%d", i, j), confirmParse(in, external.cmd, false))
-				}
-				i++
 			}
-		})
-		if lang == LangZsh {
-			continue // TODO: we don't confirm errors with zsh yet
-		}
-		t.Run(fmt.Sprintf("Err/%s", lang), func(t *testing.T) {
-			if external.require != nil {
-				external.require(t)
+			if lang == LangZsh {
+				return // TODO: we don't confirm errors with zsh yet
 			}
-			for _, c := range errorCases {
+			for i, c := range errorCases {
 				want := c.byLangIndex[lang.index()]
 				if want == "" {
 					continue
 				}
 				wantErr := !lang.in(c.flipConfirmSet)
-				t.Run("", confirmParse(c.in, external.cmd, wantErr))
+				t.Run(fmt.Sprintf("ErrOld/%03d", i), confirmParse(c.in, external.cmd, wantErr))
 			}
 		})
 	}
@@ -112,12 +128,12 @@ func TestParseBashKeepComments(t *testing.T) {
 	t.Parallel()
 	p := NewParser(KeepComments(true))
 	for i, c := range fileTestsKeepComments {
-		want := c.byLangIndex[LangBash.index()]
+		want, _ := c.byLangIndex[LangBash.index()].(*File)
 		if want == nil {
 			continue
 		}
 		for j, in := range c.inputs {
-			t.Run(fmt.Sprintf("#%03d-%d", i, j), singleParse(p, in, want))
+			t.Run(fmt.Sprintf("%03d-%d", i, j), singleParse(p, in, want))
 		}
 	}
 }
@@ -429,15 +445,6 @@ var errorCases = []errorCase{
 	errCase(
 		"z=($\\\n#\\\n\\\n$#\x91\\\n",
 		langErr(`4:3: invalid UTF-8 encoding`, LangBash),
-	),
-	errCase(
-		`((# 1 + 2))`,
-		langErr(`1:1: unsigned expressions are a mksh feature; tried parsing as LANG`, LangBash),
-	),
-	errCase(
-		`$((# 1 + 2))`,
-		langErr(`1:1: unsigned expressions are a mksh feature; tried parsing as LANG`),
-		langPass(LangMirBSDKorn),
 	),
 	errCase(
 		`${ foo;}`,

@@ -109,7 +109,11 @@ func fullProg(v any) *File {
 type fileTestCase struct {
 	inputs []string // input sources; the first is the canonical formatting
 
-	byLangIndex [langResolvedVariantsCount]*File
+	// Each language in [langResolvedVariants] has an entry:
+	// - nil:    nothing to test
+	// - *File:  parse as the given syntax tree
+	// - string: parse error containing the given substring
+	byLangIndex [langResolvedVariantsCount]any
 }
 
 func fileTest(in []string, opts ...func(*fileTestCase)) fileTestCase {
@@ -118,6 +122,26 @@ func fileTest(in []string, opts ...func(*fileTestCase)) fileTestCase {
 		o(&c)
 	}
 	return c
+}
+
+func langSkip(langSets ...LangVariant) func(*fileTestCase) {
+	return func(c *fileTestCase) {
+		// The parameter is a slice to allow omitting the argument.
+		switch len(langSets) {
+		case 0:
+			for i := range c.byLangIndex {
+				c.byLangIndex[i] = nil
+			}
+			return
+		case 1:
+			// continue below
+		default:
+			panic("use a LangVariant bitset")
+		}
+		for lang := range langSets[0].bits() {
+			c.byLangIndex[lang.index()] = nil
+		}
+	}
 }
 
 func langFile(want any, langSets ...LangVariant) func(*fileTestCase) {
@@ -137,6 +161,26 @@ func langFile(want any, langSets ...LangVariant) func(*fileTestCase) {
 		}
 		for lang := range langSets[0].bits() {
 			c.byLangIndex[lang.index()] = file
+		}
+	}
+}
+
+func langErr2(want string, langSets ...LangVariant) func(*fileTestCase) {
+	return func(c *fileTestCase) {
+		// The parameter is a slice to allow omitting the argument.
+		switch len(langSets) {
+		case 0:
+			for i := range c.byLangIndex {
+				c.byLangIndex[i] = want
+			}
+			return
+		case 1:
+			// continue below
+		default:
+			panic("use a LangVariant bitset")
+		}
+		for lang := range langSets[0].bits() {
+			c.byLangIndex[lang.index()] = want
 		}
 	}
 }
@@ -344,6 +388,7 @@ var fileTests = []fileTestCase{
 			},
 			Unsigned: true,
 		}, LangMirBSDKorn),
+		langErr2(`1:1: unsigned expressions are a mksh feature; tried parsing as LANG`, LangBash),
 	),
 	fileTest(
 		[]string{"$((# 1 + 2))", "$(( # 1 + 2 ))"},
@@ -355,6 +400,7 @@ var fileTests = []fileTestCase{
 			},
 			Unsigned: true,
 		}, LangMirBSDKorn),
+		langErr2(`1:1: unsigned expressions are a mksh feature; tried parsing as LANG`, LangBash),
 	),
 	fileTest(
 		[]string{"((3#20))"},
@@ -611,7 +657,7 @@ var fileTests = []fileTestCase{
 	fileTest(
 		[]string{"=a s{s s=s"},
 		langFile(litCall("=a", "s{s", "s=s")),
-		langFile(nil, LangZsh),
+		langSkip(LangZsh),
 	),
 	fileTest(
 		[]string{"foo && bar", "foo&&bar", "foo &&\nbar"},
@@ -745,7 +791,7 @@ var fileTests = []fileTestCase{
 			Name:   lit("foo"),
 			Body:   stmt(block(litStmt("a"), litStmt("b"))),
 		}),
-		langFile(nil, LangZsh), // fails on foo ( )
+		langSkip(LangZsh), // fails on foo ( )
 	),
 	fileTest(
 		[]string{"foo() { a; }\nbar", "foo() {\na\n}; bar"},
@@ -1234,7 +1280,7 @@ var fileTests = []fileTestCase{
 				Word: litWord("foo"),
 			}},
 		})),
-		langFile(nil, LangZsh), // actually tries to read foo when confirming
+		langSkip(LangZsh), // actually tries to read foo when confirming
 	),
 	fileTest(
 		[]string{"foo <<EOF >f\nbar\nEOF"},
@@ -1715,7 +1761,7 @@ var fileTests = []fileTestCase{
 			Negated: true,
 			Cmd:     litCall("foo"),
 		}),
-		langFile(nil, LangZsh), // fails to confirm?
+		langSkip(LangZsh), // fails to confirm?
 	),
 	fileTest(
 		[]string{"foo &\nbar", "foo & bar", "foo&bar"},
@@ -1767,7 +1813,7 @@ var fileTests = []fileTestCase{
 			},
 			Y: litStmt("bar"),
 		}),
-		langFile(nil, LangZsh), // fails to confirm?
+		langSkip(LangZsh), // fails to confirm?
 	),
 	fileTest(
 		[]string{"! foo | bar"},
@@ -1779,7 +1825,7 @@ var fileTests = []fileTestCase{
 			},
 			Negated: true,
 		}),
-		langFile(nil, LangZsh), // fails to confirm?
+		langSkip(LangZsh), // fails to confirm?
 	),
 	fileTest(
 		[]string{
@@ -1830,7 +1876,7 @@ var fileTests = []fileTestCase{
 		[]string{"{ foo } }; }"},
 		langFile(block(litStmt("foo", "}", "}"))),
 		// TODO: turn these nil files into error tests
-		langFile(nil, LangZsh),
+		langSkip(LangZsh),
 	),
 	fileTest(
 		[]string{"foo {"},
@@ -1977,7 +2023,7 @@ var fileTests = []fileTestCase{
 	fileTest(
 		[]string{`{"foo"`},
 		langFile(word(lit("{"), dblQuoted(lit("foo")))),
-		langFile(nil, LangZsh),
+		langSkip(LangZsh),
 	),
 	fileTest(
 		[]string{`foo"bar"`, "fo\\\no\"bar\"", "fo\\\r\no\"bar\""},
@@ -2110,7 +2156,7 @@ var fileTests = []fileTestCase{
 			word(litParamExp("3"), lit("0a")),
 			word(litParamExp("_a")),
 		)),
-		langFile(nil, LangZsh), // TODO: $#a parses as ParamExp, but $!a does not
+		langSkip(LangZsh), // TODO: $#a parses as ParamExp, but $!a does not
 	),
 	fileTest(
 		[]string{`$`, `$ #`},
@@ -2778,7 +2824,7 @@ var fileTests = []fileTestCase{
 				},
 			}),
 		)),
-		langFile(nil, LangZsh),
+		langSkip(LangZsh),
 	),
 	fileTest(
 		[]string{`"${foo}"`},
