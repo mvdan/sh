@@ -325,9 +325,6 @@ func confirmParse(in, cmd string, wantErr bool) func(*testing.T) {
 			err = errors.New(stderr)
 		}
 
-		if err != nil && strings.Contains(err.Error(), "command not found") {
-			err = nil
-		}
 		if wantErr && err == nil {
 			t.Fatalf("Expected error in %q", strings.Join(cmd.Args, " "))
 		} else if !wantErr && err != nil {
