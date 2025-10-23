@@ -116,6 +116,23 @@ type fileTestCase struct {
 	byLangIndex [langResolvedVariantsCount]any
 }
 
+func (c *fileTestCase) setForLangs(val any, langSets ...LangVariant) {
+	// The parameter is a slice to allow omitting the argument.
+	switch len(langSets) {
+	case 0:
+		for i := range c.byLangIndex {
+			c.byLangIndex[i] = val
+		}
+		return
+	case 1:
+		for lang := range langSets[0].bits() {
+			c.byLangIndex[lang.index()] = val
+		}
+	default:
+		panic("use a LangVariant bitset")
+	}
+}
+
 func fileTest(in []string, opts ...func(*fileTestCase)) fileTestCase {
 	c := fileTestCase{inputs: in}
 	for _, o := range opts {
@@ -125,64 +142,17 @@ func fileTest(in []string, opts ...func(*fileTestCase)) fileTestCase {
 }
 
 func langSkip(langSets ...LangVariant) func(*fileTestCase) {
+	return func(c *fileTestCase) { c.setForLangs(nil, langSets...) }
+}
+
+func langFile(wantNode any, langSets ...LangVariant) func(*fileTestCase) {
 	return func(c *fileTestCase) {
-		// The parameter is a slice to allow omitting the argument.
-		switch len(langSets) {
-		case 0:
-			for i := range c.byLangIndex {
-				c.byLangIndex[i] = nil
-			}
-			return
-		case 1:
-			// continue below
-		default:
-			panic("use a LangVariant bitset")
-		}
-		for lang := range langSets[0].bits() {
-			c.byLangIndex[lang.index()] = nil
-		}
+		c.setForLangs(fullProg(wantNode), langSets...)
 	}
 }
 
-func langFile(want any, langSets ...LangVariant) func(*fileTestCase) {
-	return func(c *fileTestCase) {
-		file := fullProg(want)
-		// The parameter is a slice to allow omitting the argument.
-		switch len(langSets) {
-		case 0:
-			for i := range c.byLangIndex {
-				c.byLangIndex[i] = file
-			}
-			return
-		case 1:
-			// continue below
-		default:
-			panic("use a LangVariant bitset")
-		}
-		for lang := range langSets[0].bits() {
-			c.byLangIndex[lang.index()] = file
-		}
-	}
-}
-
-func langErr2(want string, langSets ...LangVariant) func(*fileTestCase) {
-	return func(c *fileTestCase) {
-		// The parameter is a slice to allow omitting the argument.
-		switch len(langSets) {
-		case 0:
-			for i := range c.byLangIndex {
-				c.byLangIndex[i] = want
-			}
-			return
-		case 1:
-			// continue below
-		default:
-			panic("use a LangVariant bitset")
-		}
-		for lang := range langSets[0].bits() {
-			c.byLangIndex[lang.index()] = want
-		}
-	}
+func langErr2(wantErr string, langSets ...LangVariant) func(*fileTestCase) {
+	return func(c *fileTestCase) { c.setForLangs(wantErr, langSets...) }
 }
 
 var fileTests = []fileTestCase{
