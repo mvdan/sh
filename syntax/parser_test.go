@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"reflect"
 	"regexp"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -306,15 +307,24 @@ func confirmParse(in, cmd string, wantErr bool) func(*testing.T) {
 		cmd := exec.Command(cmd, opts...)
 		cmd.Dir = t.TempDir() // to be safe
 		cmd.Stdin = strings.NewReader(in)
-		var stderr strings.Builder
-		cmd.Stderr = &stderr
+		var stderrBuf strings.Builder
+		cmd.Stderr = &stderrBuf
 		err := cmd.Run()
-		if stderr.Len() > 0 {
-			// bash sometimes likes to error on an input via stderr
-			// while forgetting to set the exit code to non-zero. Fun.
-			// Note that we also treat warnings as errors.
-			err = errors.New(strings.TrimSpace(stderr.String()))
+
+		// bash sometimes likes to error on an input via stderr
+		// while forgetting to set the exit code to non-zero. Fun.
+		// Note that we do not treat warnings as errors.
+		stderrLines := strings.Split(stderrBuf.String(), "\n")
+		for i, line := range stderrLines {
+			stderrLines[i] = strings.TrimSpace(line)
 		}
+		stderrLines = slices.DeleteFunc(stderrLines, func(line string) bool {
+			return line == "" || strings.Contains(line, "warning:")
+		})
+		if stderr := strings.Join(stderrLines, "\n"); stderr != "" {
+			err = errors.New(stderr)
+		}
+
 		if err != nil && strings.Contains(err.Error(), "command not found") {
 			err = nil
 		}
@@ -787,34 +797,32 @@ var errorCases = []errorCase{
 	errCase(
 		"<<EOF",
 		langErr(`1:1: unclosed here-document 'EOF'`),
-		flipConfirm(LangPOSIX), // TODO: some language variants allow ending heredocs at EOF
+		flipConfirmAll, // TODO: allow ending a heredoc at EOF
 	),
 	errCase(
 		"<<EOF\n\\",
 		langErr(`1:1: unclosed here-document 'EOF'`),
-		flipConfirm(LangPOSIX), // TODO: some language variants allow ending heredocs at EOF
+		flipConfirmAll, // TODO: allow ending a heredoc at EOF
 	),
 	errCase(
 		"<<EOF\n\\\n",
 		langErr(`1:1: unclosed here-document 'EOF'`),
-		flipConfirm(LangPOSIX), // TODO: some language variants allow ending heredocs at EOF
+		flipConfirmAll, // TODO: allow ending a heredoc at EOF
 	),
 	errCase(
 		"<<EOF\n\\\nEOF",
 		langErr(`1:1: unclosed here-document 'EOF'`),
-		flipConfirmAll, // TODO: some language variants allow ending heredocs at EOF
+		flipConfirmAll, // TODO: allow ending a heredoc at EOF
 	),
 	errCase(
 		"<<EOF\nfoo\\\nEOF",
 		langErr(`1:1: unclosed here-document 'EOF'`),
-		flipConfirm(LangPOSIX),
-		flipConfirm(LangPOSIX), // TODO: some language variants allow ending heredocs at EOF
+		flipConfirmAll, // TODO: allow ending a heredoc at EOF
 	),
 	errCase(
 		"<<'EOF'\n\\\n",
 		langErr(`1:1: unclosed here-document 'EOF'`),
-		flipConfirm(LangPOSIX),
-		flipConfirm(LangPOSIX), // TODO: some language variants allow ending heredocs at EOF
+		flipConfirmAll, // TODO: allow ending a heredoc at EOF
 	),
 	errCase(
 		"<<EOF <`\n#\n`\n``",
@@ -823,32 +831,32 @@ var errorCases = []errorCase{
 	errCase(
 		"<<'EOF'",
 		langErr(`1:1: unclosed here-document 'EOF'`),
-		flipConfirm(LangPOSIX), // TODO: some language variants allow ending heredocs at EOF
+		flipConfirmAll, // TODO: allow ending a heredoc at EOF
 	),
 	errCase(
 		"<<\\EOF",
 		langErr(`1:1: unclosed here-document 'EOF'`),
-		flipConfirm(LangPOSIX), // TODO: some language variants allow ending heredocs at EOF
+		flipConfirmAll, // TODO: allow ending a heredoc at EOF
 	),
 	errCase(
 		"<<\\\\EOF",
 		langErr(`1:1: unclosed here-document '\EOF'`),
-		flipConfirm(LangPOSIX), // TODO: some language variants allow ending heredocs at EOF
+		flipConfirmAll, // TODO: allow ending a heredoc at EOF
 	),
 	errCase(
 		"<<-EOF",
 		langErr(`1:1: unclosed here-document 'EOF'`),
-		flipConfirm(LangPOSIX), // TODO: some language variants allow ending heredocs at EOF
+		flipConfirmAll, // TODO: allow ending a heredoc at EOF
 	),
 	errCase(
 		"<<-EOF\n\t",
 		langErr(`1:1: unclosed here-document 'EOF'`),
-		flipConfirm(LangPOSIX), // TODO: some language variants allow ending heredocs at EOF
+		flipConfirmAll, // TODO: allow ending a heredoc at EOF
 	),
 	errCase(
 		"<<-'EOF'\n\t",
 		langErr(`1:1: unclosed here-document 'EOF'`),
-		flipConfirm(LangPOSIX), // TODO: some language variants allow ending heredocs at EOF
+		flipConfirmAll, // TODO: allow ending a heredoc at EOF
 	),
 	errCase(
 		"<<\nEOF\nbar\nEOF",
@@ -857,10 +865,13 @@ var errorCases = []errorCase{
 	errCase(
 		"$(<<EOF\nNOTEOF)",
 		langErr(`1:3: unclosed here-document 'EOF'`, LangBash|LangMirBSDKorn),
+		// Note that this fails on external shells as they treat ")" as part of the heredoc.
 	),
 	errCase(
 		"`<<EOF\nNOTEOF`",
 		langErr(`1:2: unclosed here-document 'EOF'`, LangBash|LangMirBSDKorn),
+		flipConfirmAll,
+		// Note that this works on external shells as they treat "`" as outside the heredoc.
 	),
 	errCase(
 		"if",
@@ -1355,14 +1366,6 @@ var errorCases = []errorCase{
 		"<<${bar}\n${bar}",
 		langErr(`1:3: expansions not allowed in heredoc words`),
 		flipConfirmAll, // we are stricter
-	),
-
-	// bash uses "$(bar)" as the closing word, but other shells use "$".
-	// We instead give an error for expansions in heredoc words.
-	errCase(
-		"<<$(bar)\n$",
-		langErr(`1:3: expansions not allowed in heredoc words`),
-		flipConfirm(LangMirBSDKorn),
 	),
 	errCase(
 		"<<$(bar)\n$(bar)",
