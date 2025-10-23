@@ -500,15 +500,14 @@ var errorCases = []errorCase{
 		langErr(`1:1: "!" cannot form a statement alone`),
 	),
 	errCase(
-		// bash allows lone '!', unlike dash, mksh, and us.
 		"! !",
 		langErr(`1:1: cannot negate a command multiple times`),
-		flipConfirm(LangBash),
+		flipConfirm(LangBash), // bash allows lone '!', unlike dash, mksh, and us.
 	),
 	errCase(
 		"! ! foo",
 		langErr(`1:1: cannot negate a command multiple times`),
-		flipConfirm(LangBash|LangMirBSDKorn),
+		flipConfirm(LangBash|LangMirBSDKorn), // bash allows lone '!', unlike dash, mksh, and us.
 	),
 	errCase(
 		"}",
@@ -626,7 +625,7 @@ var errorCases = []errorCase{
 	errCase(
 		`"foo"(){ :; }`,
 		langErr(`1:1: invalid func name`),
-		flipConfirm(LangMirBSDKorn),
+		flipConfirm(LangMirBSDKorn), // TODO: support non-literal func names
 	),
 	errCase(
 		`foo$bar(){ :; }`,
@@ -732,7 +731,7 @@ var errorCases = []errorCase{
 	errCase(
 		"foo()",
 		langErr(`1:1: "foo()" must be followed by a statement`),
-		flipConfirm(LangMirBSDKorn),
+		flipConfirm(LangMirBSDKorn), // TODO: some variants allow a missing body
 	),
 	errCase(
 		"foo() {",
@@ -830,33 +829,34 @@ var errorCases = []errorCase{
 	errCase(
 		"<<EOF",
 		langErr(`1:1: unclosed here-document 'EOF'`),
-		flipConfirm(LangPOSIX),
+		flipConfirm(LangPOSIX), // TODO: some language variants allow ending heredocs at EOF
 	),
 	errCase(
 		"<<EOF\n\\",
 		langErr(`1:1: unclosed here-document 'EOF'`),
-		flipConfirm(LangPOSIX),
+		flipConfirm(LangPOSIX), // TODO: some language variants allow ending heredocs at EOF
 	),
 	errCase(
 		"<<EOF\n\\\n",
 		langErr(`1:1: unclosed here-document 'EOF'`),
-		flipConfirm(LangPOSIX),
+		flipConfirm(LangPOSIX), // TODO: some language variants allow ending heredocs at EOF
 	),
 	errCase(
 		"<<EOF\n\\\nEOF",
-		langErr( // Seems like mksh has a bug here.
-			`1:1: unclosed here-document 'EOF'`),
-		flipConfirmAll,
+		langErr(`1:1: unclosed here-document 'EOF'`),
+		flipConfirmAll, // TODO: some language variants allow ending heredocs at EOF
 	),
 	errCase(
 		"<<EOF\nfoo\\\nEOF",
 		langErr(`1:1: unclosed here-document 'EOF'`),
 		flipConfirm(LangPOSIX),
+		flipConfirm(LangPOSIX), // TODO: some language variants allow ending heredocs at EOF
 	),
 	errCase(
 		"<<'EOF'\n\\\n",
 		langErr(`1:1: unclosed here-document 'EOF'`),
 		flipConfirm(LangPOSIX),
+		flipConfirm(LangPOSIX), // TODO: some language variants allow ending heredocs at EOF
 	),
 	errCase(
 		"<<EOF <`\n#\n`\n``",
@@ -865,32 +865,32 @@ var errorCases = []errorCase{
 	errCase(
 		"<<'EOF'",
 		langErr(`1:1: unclosed here-document 'EOF'`),
-		flipConfirm(LangPOSIX),
+		flipConfirm(LangPOSIX), // TODO: some language variants allow ending heredocs at EOF
 	),
 	errCase(
 		"<<\\EOF",
 		langErr(`1:1: unclosed here-document 'EOF'`),
-		flipConfirm(LangPOSIX),
+		flipConfirm(LangPOSIX), // TODO: some language variants allow ending heredocs at EOF
 	),
 	errCase(
 		"<<\\\\EOF",
 		langErr(`1:1: unclosed here-document '\EOF'`),
-		flipConfirm(LangPOSIX),
+		flipConfirm(LangPOSIX), // TODO: some language variants allow ending heredocs at EOF
 	),
 	errCase(
 		"<<-EOF",
 		langErr(`1:1: unclosed here-document 'EOF'`),
-		flipConfirm(LangPOSIX),
+		flipConfirm(LangPOSIX), // TODO: some language variants allow ending heredocs at EOF
 	),
 	errCase(
 		"<<-EOF\n\t",
 		langErr(`1:1: unclosed here-document 'EOF'`),
-		flipConfirm(LangPOSIX),
+		flipConfirm(LangPOSIX), // TODO: some language variants allow ending heredocs at EOF
 	),
 	errCase(
 		"<<-'EOF'\n\t",
 		langErr(`1:1: unclosed here-document 'EOF'`),
-		flipConfirm(LangPOSIX),
+		flipConfirm(LangPOSIX), // TODO: some language variants allow ending heredocs at EOF
 	),
 	errCase(
 		"<<\nEOF\nbar\nEOF",
@@ -1090,7 +1090,7 @@ var errorCases = []errorCase{
 	errCase(
 		"echo $(())",
 		langErr(`1:6: $(( must be followed by an expression`),
-		flipConfirmAll,
+		flipConfirmAll, // TODO: empty arithmetic expressions seem to be OK?
 	),
 	errCase(
 		"echo $((()))",
@@ -1115,7 +1115,7 @@ var errorCases = []errorCase{
 	errCase(
 		"echo $((foo) )",
 		langErr(`1:6: reached ) without matching $(( with ))`, LangBash|LangMirBSDKorn|LangZsh),
-		flipConfirmAll,
+		flipConfirmAll, // note that we don't backtrack
 	),
 	errCase(
 		"echo $((a *))",
@@ -1386,17 +1386,17 @@ var errorCases = []errorCase{
 	errCase(
 		"echo \"`)`\"",
 		langErr(`1:8: ) can only be used to close a subshell`),
-		flipConfirm(LangPOSIX), // dash bug
+		flipConfirm(LangPOSIX), // dash bug?
 	),
 	errCase(
 		"<<$bar\n$bar",
 		langErr(`1:3: expansions not allowed in heredoc words`),
-		flipConfirmAll,
+		flipConfirmAll, // we are stricter
 	),
 	errCase(
 		"<<${bar}\n${bar}",
 		langErr(`1:3: expansions not allowed in heredoc words`),
-		flipConfirmAll,
+		flipConfirmAll, // we are stricter
 	),
 
 	// bash uses "$(bar)" as the closing word, but other shells use "$".
@@ -1409,23 +1409,23 @@ var errorCases = []errorCase{
 	errCase(
 		"<<$(bar)\n$(bar)",
 		langErr(`1:3: expansions not allowed in heredoc words`, LangBash),
-		flipConfirmAll,
+		flipConfirmAll, // we are stricter
 	),
 
 	errCase(
 		"<<$-\n$-",
 		langErr(`1:3: expansions not allowed in heredoc words`),
-		flipConfirmAll,
+		flipConfirmAll, // we are stricter
 	),
 	errCase(
 		"<<`bar`\n`bar`",
 		langErr(`1:3: expansions not allowed in heredoc words`),
-		flipConfirmAll,
+		flipConfirmAll, // we are stricter
 	),
 	errCase(
 		"<<\"$bar\"\n$bar",
 		langErr(`1:4: expansions not allowed in heredoc words`),
-		flipConfirmAll,
+		flipConfirmAll, // we are stricter
 	),
 	errCase(
 		"<<a <<0\n$(<<$<<",
@@ -1434,7 +1434,7 @@ var errorCases = []errorCase{
 	errCase(
 		`""()`,
 		langErr(`1:1: invalid func name`),
-		flipConfirm(LangMirBSDKorn),
+		flipConfirm(LangMirBSDKorn), // TODO: support non-literal func names, even empty ones?
 	),
 	errCase(
 		"]] )",
@@ -1668,7 +1668,7 @@ var errorCases = []errorCase{
 	errCase(
 		"a=([i])",
 		langErr(`1:4: "[x]" must be followed by =`, LangBash|LangZsh),
-		flipConfirmAll,
+		flipConfirmAll, // TODO: why is this valid?
 	),
 	errCase(
 		"a[i]=(y)",
@@ -1833,7 +1833,7 @@ var errorCases = []errorCase{
 	errCase(
 		"time ! foo",
 		langErr(`1:6: "!" can only be used in full statements`, LangBash|LangMirBSDKorn|LangZsh),
-		flipConfirm(LangBash), // wrong
+		flipConfirm(LangBash), // TODO: why is this valid?
 	),
 	errCase(
 		"coproc",
@@ -1862,7 +1862,7 @@ var errorCases = []errorCase{
 	errCase(
 		"echo ${foo[]}",
 		langErr(`1:11: [ must be followed by an expression`, LangBash|LangMirBSDKorn|LangZsh),
-		flipConfirm(LangMirBSDKorn), // wrong?
+		flipConfirm(LangMirBSDKorn), // TODO: why is this valid?
 	),
 	errCase(
 		"echo ${a/\n",
@@ -1883,7 +1883,7 @@ var errorCases = []errorCase{
 	errCase(
 		"echo ${foo:1 2}",
 		langErr(`1:14: not a valid arithmetic operator: 2`, LangBash|LangMirBSDKorn),
-		flipConfirmAll, // lazy eval
+		flipConfirmAll, // lazy evaluation?
 	),
 	errCase(
 		"echo ${foo:1",
@@ -1917,22 +1917,22 @@ var errorCases = []errorCase{
 	errCase(
 		"echo ${foo@bar}",
 		langErr(`1:12: invalid @ expansion operator "bar"`, LangBash),
-		flipConfirmAll, // at runtime
+		flipConfirmAll, // lazy evaluation?
 	),
 	errCase(
 		"echo ${foo@'Q'}",
 		langErr(`1:12: @ expansion operator requires a literal`, LangBash),
-		flipConfirmAll, // at runtime
+		flipConfirmAll, // lazy evaluation?
 	),
 	errCase(
 		`echo $((echo a); (echo b))`,
 		langErr(`1:14: not a valid arithmetic operator: a`, LangBash|LangMirBSDKorn|LangZsh),
-		flipConfirm(LangBash), // backtrack
+		flipConfirm(LangBash), // note that we don't backtrack
 	),
 	errCase(
 		`((echo a); (echo b))`,
 		langErr(`1:8: not a valid arithmetic operator: a`, LangBash|LangMirBSDKorn|LangZsh),
-		flipConfirm(LangBash), // backtrack
+		flipConfirm(LangBash), // note that we don't backtrack
 	),
 	errCase(
 		"for ((;;",
@@ -1967,11 +1967,10 @@ var errorCases = []errorCase{
 		langErr(`1:6: > must be followed by a word`, LangPOSIX|LangMirBSDKorn),
 	),
 	errCase(
-		// shells treat {var} as an argument, but we are a bit stricter
-		// so that users won't think this will work like they expect in
-		// POSIX shell.
 		"echo {var}>foo",
 		langErr(`1:6: {varname} redirects are a bash feature; tried parsing as LANG`, LangPOSIX|LangMirBSDKorn),
+		// shells treat {var} as an argument, but we are a bit stricter
+		// so that users won't think this will work like they expect in POSIX shell.
 		flipConfirmAll,
 	),
 	errCase(
@@ -2096,7 +2095,7 @@ var errorCases = []errorCase{
 	errCase(
 		"echo ${foo@#}",
 		langErr(`1:12: this expansion operator is a mksh feature; tried parsing as LANG`, LangBash),
-		flipConfirmAll,
+		flipConfirmAll, // TODO: why is this valid?
 	),
 	errCase(
 		"`\"`\\",
