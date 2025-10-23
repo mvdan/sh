@@ -92,6 +92,7 @@ func Walk(node Node, f func(Node) bool) {
 		walkList(node.Stmts, f)
 		walkComments(node.Last, f)
 	case *ParamExp:
+		walkNilable(node.Flags, f)
 		walkNilable(node.Param, f)
 		walkNilable(node.NestedParam, f)
 		walkNilable(node.Index, f)

@@ -23,7 +23,8 @@ func TestPrintFiles(t *testing.T) {
 				if want == nil {
 					continue
 				}
-				if lang != LangBash && want != c.byLangIndex[LangBash.index()] {
+				if wantBash := c.byLangIndex[LangBash.index()]; wantBash != nil &&
+					lang != LangBash && want != wantBash {
 					// Skip cases where a non-Bash language parses differently than Bash.
 					// For example, `((foo))` prints as `( (foo))` only when in POSIX.
 					continue
@@ -1245,7 +1246,7 @@ func printTest(t *testing.T, parser *Parser, printer *Printer, in, want string) 
 		t.Fatal(err)
 	}
 	if got != want {
-		t.Fatalf("Print mismatch:\n\nwant:\n%q\ngot:\n%q", want, got)
+		t.Fatalf("Print mismatch:\nwant:\n%q\ngot:\n%q", want, got)
 	}
 
 	// With the original "want" output string,

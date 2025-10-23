@@ -1409,8 +1409,8 @@ func (p *Parser) paramExp() *ParamExp {
 			p.tok = _EOF // we can only get here due to EOF
 			p.matchingErr(lparen, "(", ")")
 		}
-		p.rune()
 		pe.Flags = p.wordOne(p.lit(p.pos, p.val))
+		p.rune()
 	}
 	if !pe.Short || p.lang.in(LangZsh) {
 		// Prefixes, like ${#name} to get the length of a variable.
