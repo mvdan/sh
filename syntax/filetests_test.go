@@ -112,7 +112,7 @@ type fileTestCase struct {
 	// Each language in [langResolvedVariants] has an entry:
 	// - nil:    nothing to test
 	// - *File:  parse as the given syntax tree
-	// - string: parse error containing the given substring
+	// - string: parse error with the given string, substituting LANG
 	byLangIndex [langResolvedVariantsCount]any
 }
 
@@ -525,6 +525,7 @@ var fileTests = []fileTestCase{
 				word(litParamExp("i")),
 			)),
 		}, LangBash),
+		langErr2(`1:5: c-style fors are a bash feature; tried parsing as LANG`, LangPOSIX|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{
@@ -801,6 +802,7 @@ var fileTests = []fileTestCase{
 			Name:     lit("foo"),
 			Body:     stmt(block(litStmt("a"), litStmt("b"))),
 		}, LangBash|LangMirBSDKorn|LangZsh),
+		langErr2(`1:13: the "function" builtin is a bash feature; tried parsing as LANG`, LangPOSIX),
 	),
 	fileTest(
 		[]string{
@@ -821,11 +823,10 @@ var fileTests = []fileTestCase{
 			Name:     lit("foo"),
 			Body:     stmt(subshell(litStmt("a"))),
 		}, LangBash),
+		langErr2(`1:13: the "function" builtin is a bash feature; tried parsing as LANG`, LangPOSIX),
 	),
 	fileTest(
-		[]string{
-			"function f1 f2 f3() {\n\ta\n}",
-		},
+		[]string{"function f1 f2 f3() {\n\ta\n}"},
 		langFile(&FuncDecl{
 			RsrvWord: true,
 			Parens:   true,
@@ -834,36 +835,33 @@ var fileTests = []fileTestCase{
 		}, LangZsh),
 	),
 	fileTest(
-		[]string{
-			"function f1 f2 f3() {\n\ta\n}",
-		},
+		[]string{"function f1 f2 f3() {\n\ta\n}"},
 		langFile(&FuncDecl{
 			RsrvWord: true,
 			Parens:   true,
 			Names:    lits("f1", "f2", "f3"),
 			Body:     stmt(block(litStmt("a"))),
 		}, LangZsh),
+		langErr2(`1:1: multi-name functions are a zsh feature; tried parsing as LANG`, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
-		[]string{
-			"function {\n\ta\n}",
-		},
+		[]string{"function {\n\ta\n}"},
 		langFile(&FuncDecl{
 			RsrvWord: true,
 			Body:     stmt(block(litStmt("a"))),
 		}, LangZsh),
+		langErr2(`1:1: anonymous functions are a zsh feature; tried parsing as LANG`, LangBash|LangMirBSDKorn),
 	),
 	// Note that zsh also supports `f1 f2 f3 () { body; }`,
 	// but it seems rare and hard to implement well,
 	// so leave it out for now.
 	fileTest(
-		[]string{
-			"() {\n\ta\n}",
-		},
+		[]string{"() {\n\ta\n}"},
 		langFile(&FuncDecl{
 			Parens: true,
 			Body:   stmt(block(litStmt("a"))),
 		}, LangZsh),
+		langErr2(`1:1: anonymous functions are a zsh feature; tried parsing as LANG`, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{"a=b foo=$bar foo=start$bar"},
@@ -1614,14 +1612,24 @@ var fileTests = []fileTestCase{
 		}),
 	),
 	fileTest(
-		[]string{"foo &>a &>>b"},
+		[]string{"foo &>a"},
 		langFile(&Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*Redirect{
 				{Op: RdrAll, Word: litWord("a")},
+			},
+		}, LangBash|LangMirBSDKorn),
+		langErr2(`1:5: &> redirects are a bash/mksh feature; tried parsing as LANG`, LangPOSIX),
+	),
+	fileTest(
+		[]string{"foo &>>b"},
+		langFile(&Stmt{
+			Cmd: litCall("foo"),
+			Redirs: []*Redirect{
 				{Op: AppAll, Word: litWord("b")},
 			},
 		}, LangBash|LangMirBSDKorn),
+		langErr2(`1:5: &> redirects are a bash/mksh feature; tried parsing as LANG`, LangPOSIX),
 	),
 	fileTest(
 		[]string{"foo 2>file bar", "2>file foo bar"},
@@ -1666,6 +1674,7 @@ var fileTests = []fileTestCase{
 				Word: litWord("input"),
 			}},
 		}, LangBash|LangMirBSDKorn|LangZsh),
+		langErr2(`1:5: herestrings are a bash/mksh/zsh feature; tried parsing as LANG`, LangPOSIX),
 	),
 	fileTest(
 		[]string{
@@ -1864,20 +1873,38 @@ var fileTests = []fileTestCase{
 		langFile(block(litStmt("foo")), LangZsh),
 	),
 	fileTest(
-		[]string{"{ }", "{}"},
+		[]string{"{ }"},
+		langErr2(`1:1: { must be followed by a statement list`),
+		langFile(block(), LangZsh),
+	),
+	fileTest(
+		[]string{"{ }", "{}"}, // Note that "{}" is a command in POSIX/Bash.
 		langFile(block(), LangZsh),
 	),
 	fileTest(
 		[]string{"( )"},
+		langErr2(`1:1: ( must be followed by a statement list`),
 		langFile(subshell(), LangZsh),
 	),
 	fileTest(
 		[]string{"if; then; fi"},
+		langErr2(`1:1: "if" must be followed by a statement list`),
 		langFile(&IfClause{}, LangZsh),
 	),
 	fileTest(
+		[]string{"if foo; then; fi"},
+		langErr2(`1:9: "then" must be followed by a statement list`),
+		langFile(&IfClause{Cond: litStmts("foo")}, LangZsh),
+	),
+	fileTest(
 		[]string{"while; do\ndone", "while\ndo\ndone"},
+		langErr2(`1:1: "while" must be followed by a statement list`),
 		langFile(&WhileClause{}, LangZsh),
+	),
+	fileTest(
+		[]string{"while true; do; done"},
+		langErr2(`1:13: "do" must be followed by a statement list`),
+		langFile(&WhileClause{Cond: litStmts("true")}, LangZsh),
 	),
 	fileTest(
 		[]string{"$({ foo; })"},
@@ -2082,6 +2109,7 @@ var fileTests = []fileTestCase{
 			Stmts:    litStmts("foo"),
 			TempFile: true,
 		}, LangBash|LangMirBSDKorn),
+		langErr2(`1:1: "${ stmts;}" is a bash/mksh feature; tried parsing as LANG`, LangPOSIX),
 	),
 	fileTest(
 		[]string{"${\n\tfoo\n\tbar\n}", "${ foo; bar;}"},
@@ -2096,6 +2124,7 @@ var fileTests = []fileTestCase{
 			Stmts:    litStmts("foo"),
 			ReplyVar: true,
 		}, LangBash|LangMirBSDKorn),
+		langErr2(`1:1: "${|stmts;}" is a bash/mksh feature; tried parsing as LANG`, LangPOSIX),
 	),
 	fileTest(
 		[]string{"${|\n\tfoo\n\tbar\n}", "${|foo; bar;}"},
@@ -4048,6 +4077,7 @@ var fileTests = []fileTestCase{
 				},
 			},
 		}, LangBash),
+		langErr2(`1:16: the "declare" builtin is a bash feature; tried parsing as LANG`, LangPOSIX),
 	),
 	fileTest(
 		[]string{"local -a foo=(b1)"},
@@ -4315,6 +4345,7 @@ var fileTests = []fileTestCase{
 				},
 			},
 		), LangBash),
+		langErr2(`1:7: the "let" builtin is a bash feature; tried parsing as LANG`, LangPOSIX),
 	),
 	fileTest(
 		[]string{

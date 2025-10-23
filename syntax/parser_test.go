@@ -358,14 +358,6 @@ func errCase(in string, opts ...func(*errorCase)) errorCase {
 	return c
 }
 
-func langPass(langSet LangVariant) func(*errorCase) {
-	return func(c *errorCase) {
-		for lang := range langSet.bits() {
-			c.byLangIndex[lang.index()] = ""
-		}
-	}
-}
-
 func langErr(want string, langSets ...LangVariant) func(*errorCase) {
 	return func(c *errorCase) {
 		// The parameter is a slice to allow omitting the argument.
@@ -447,10 +439,6 @@ var errorCases = []errorCase{
 		langErr(`4:3: invalid UTF-8 encoding`, LangBash),
 	),
 	errCase(
-		`${ foo;}`,
-		langErr(`1:1: "${ stmts;}" is a bash/mksh feature; tried parsing as LANG`, LangPOSIX),
-	),
-	errCase(
 		`${ `,
 		langErr(`1:1: reached EOF without matching ${ with }`, LangMirBSDKorn),
 	),
@@ -461,10 +449,6 @@ var errorCases = []errorCase{
 	errCase(
 		`${ foo }`,
 		langErr(`1:1: reached EOF without matching ${ with }`, LangMirBSDKorn),
-	),
-	errCase(
-		`${|foo;}`,
-		langErr(`1:1: "${|stmts;}" is a bash/mksh feature; tried parsing as LANG`, LangPOSIX),
 	),
 	errCase(
 		`${|`,
@@ -519,31 +503,6 @@ var errorCases = []errorCase{
 	errCase(
 		"}",
 		langErr(`1:1: } can only be used to close a block`),
-	),
-	errCase(
-		"{ }",
-		langErr(`1:1: { must be followed by a statement list`),
-		langErr("", LangZsh),
-	),
-	errCase(
-		"( )",
-		langErr(`1:1: ( must be followed by a statement list`),
-		langErr("", LangZsh),
-	),
-	errCase(
-		`if; then bar; fi`,
-		langErr(`1:1: "if" must be followed by a statement list`),
-		langErr("", LangZsh),
-	),
-	errCase(
-		"if foo; then; fi",
-		langErr(`1:9: "then" must be followed by a statement list`),
-		langErr("", LangZsh),
-	),
-	errCase(
-		"while true; do; done",
-		langErr(`1:13: "do" must be followed by a statement list`),
-		langErr("", LangZsh),
 	),
 	errCase(
 		"foo | }",
@@ -820,14 +779,6 @@ var errorCases = []errorCase{
 	errCase(
 		"echo && > #",
 		langErr(`1:9: > must be followed by a word`),
-	),
-	errCase(
-		"foo &>/dev/null",
-		langErr(`1:5: &> redirects are a bash/mksh feature; tried parsing as LANG`, LangPOSIX),
-	),
-	errCase(
-		"foo &>>/dev/null",
-		langErr(`1:5: &> redirects are a bash/mksh feature; tried parsing as LANG`, LangPOSIX),
 	),
 	errCase(
 		"<<",
@@ -1733,18 +1684,6 @@ var errorCases = []errorCase{
 		langErr(`1:1: "foo()" must be followed by a statement`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
-		"function f1 f2 f3() { a; }",
-		langErr(`1:1: multi-name functions are a zsh feature; tried parsing as LANG`, LangBash|LangMirBSDKorn),
-	),
-	errCase(
-		"function { a; }",
-		langErr(`1:1: anonymous functions are a zsh feature; tried parsing as LANG`, LangBash|LangMirBSDKorn),
-	),
-	errCase(
-		"() { a; }",
-		langErr(`1:1: anonymous functions are a zsh feature; tried parsing as LANG`, LangBash|LangMirBSDKorn),
-	),
-	errCase(
 		"@test",
 		langErr(`1:1: @test must be followed by a description word`, LangBats),
 	),
@@ -1947,22 +1886,6 @@ var errorCases = []errorCase{
 		langErr(`1:5: reached EOF without matching (( with ))`, LangBash),
 	),
 	errCase(
-		"function foo() { bar; }",
-		langErr(`1:13: the "function" builtin is a bash feature; tried parsing as LANG`, LangPOSIX),
-	),
-	errCase(
-		"function foo { bar; }",
-		langErr(`1:14: the "function" builtin is a bash feature; tried parsing as LANG`, LangPOSIX),
-	),
-	errCase(
-		"declare foo=(bar)",
-		langErr(`1:13: the "declare" builtin is a bash feature; tried parsing as LANG`, LangPOSIX),
-	),
-	errCase(
-		"let foo=(bar)",
-		langErr(`1:9: the "let" builtin is a bash feature; tried parsing as LANG`, LangPOSIX),
-	),
-	errCase(
 		"echo <(",
 		langErr(`1:6: < must be followed by a word`, LangPOSIX|LangMirBSDKorn),
 	),
@@ -1993,10 +1916,6 @@ var errorCases = []errorCase{
 	errCase(
 		"for i in 1 2 3; { echo; }",
 		langErr(`1:17: for loops with braces are a bash/mksh feature; tried parsing as LANG`, LangPOSIX),
-	),
-	errCase(
-		"for ((i=0; i<5; i++)); do echo; done",
-		langErr(`1:5: c-style fors are a bash feature; tried parsing as LANG`, LangPOSIX|LangMirBSDKorn),
 	),
 	errCase(
 		"echo !(a)",
@@ -2043,10 +1962,6 @@ var errorCases = []errorCase{
 	errCase(
 		"echo ${foo:1}",
 		langErr(`1:11: slicing is a bash/mksh/zsh feature; tried parsing as LANG`, LangPOSIX),
-	),
-	errCase(
-		"foo <<< bar",
-		langErr(`1:5: herestrings are a bash/mksh/zsh feature; tried parsing as LANG`, LangPOSIX),
 	),
 	errCase(
 		"foo << < bar",
