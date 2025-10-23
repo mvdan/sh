@@ -1881,9 +1881,8 @@ var errorCases = []errorCase{
 		langErr(`1:11: : must be followed by an expression`, LangBash|LangMirBSDKorn),
 	),
 	errCase(
-		"echo ${foo:1 2}",
-		langErr(`1:14: not a valid arithmetic operator: 2`, LangBash|LangMirBSDKorn),
-		flipConfirmAll, // lazy evaluation?
+		"foo=force_expansion; echo ${foo:1 2}",
+		langErr(`1:35: not a valid arithmetic operator: 2`, LangBash|LangMirBSDKorn),
 	),
 	errCase(
 		"echo ${foo:1",
@@ -1915,14 +1914,12 @@ var errorCases = []errorCase{
 		langErr(`1:6: reached EOF without matching ${ with }`, LangBash),
 	),
 	errCase(
-		"echo ${foo@bar}",
-		langErr(`1:12: invalid @ expansion operator "bar"`, LangBash),
-		flipConfirmAll, // lazy evaluation?
+		"foo=force_expansion; echo ${foo@bar}",
+		langErr(`1:33: invalid @ expansion operator "bar"`, LangBash),
 	),
 	errCase(
-		"echo ${foo@'Q'}",
-		langErr(`1:12: @ expansion operator requires a literal`, LangBash),
-		flipConfirmAll, // lazy evaluation?
+		"foo=force_expansion; echo ${foo@'Q'}",
+		langErr(`1:33: @ expansion operator requires a literal`, LangBash),
 	),
 	errCase(
 		`echo $((echo a); (echo b))`,
@@ -2093,9 +2090,8 @@ var errorCases = []errorCase{
 		langErr(`1:12: this expansion operator is a bash feature; tried parsing as LANG`, LangMirBSDKorn),
 	),
 	errCase(
-		"echo ${foo@#}",
-		langErr(`1:12: this expansion operator is a mksh feature; tried parsing as LANG`, LangBash),
-		flipConfirmAll, // TODO: why is this valid?
+		"foo=force_expansion; echo ${foo@#}",
+		langErr(`1:33: this expansion operator is a mksh feature; tried parsing as LANG`, LangBash),
 	),
 	errCase(
 		"`\"`\\",
