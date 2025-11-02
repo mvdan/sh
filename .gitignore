@@ -1,6 +1,10 @@
 *.a
 *.zip
 
+# Built binaries
+/shfmt
+/gosh
+
 # Don't store any of this in the master branch.
 suppressions/
 crashers/
