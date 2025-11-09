@@ -4,6 +4,7 @@
 package syntax
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -15,6 +16,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/go-quicktest/qt"
 	"github.com/google/go-cmp/cmp"
@@ -304,7 +306,14 @@ func confirmParse(in, cmd string, wantErr bool) func(*testing.T) {
 			// as extglob is not actually applied.
 			opts = append(opts, "-n")
 		}
-		cmd := exec.Command(cmd, opts...)
+
+		// All the bits of shell we test should either finish or fail very quickly,
+		// given that they are very small. If we make a mistake with an endless loop,
+		// or we somehow trigger a bug that makes a shell hang, kill it.
+		ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
+		defer cancel()
+
+		cmd := exec.CommandContext(ctx, cmd, opts...)
 		cmd.Dir = t.TempDir() // to be safe
 		cmd.Stdin = strings.NewReader(in)
 		var stderrBuf strings.Builder
