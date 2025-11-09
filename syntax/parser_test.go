@@ -607,7 +607,7 @@ var errorCases = []errorCase{
 	errCase(
 		"{ ; }",
 		langErr(`1:1: { must be followed by a statement list`),
-		langErr("", LangZsh),
+		langErr("", LangZsh|LangMirBSDKorn),
 	),
 	errCase(
 		`"foo"(){ :; }`,
@@ -621,7 +621,7 @@ var errorCases = []errorCase{
 	errCase(
 		"{",
 		langErr(`1:1: { must be followed by a statement list`),
-		langErr(`1:1: reached EOF without matching { with }`, LangZsh),
+		langErr(`1:1: reached EOF without matching { with }`, LangZsh|LangMirBSDKorn),
 	),
 	errCase(
 		"{ foo;",
@@ -723,7 +723,7 @@ var errorCases = []errorCase{
 	errCase(
 		"foo() {",
 		langErr(`1:7: { must be followed by a statement list`),
-		langErr(`1:7: reached EOF without matching { with }`, LangZsh),
+		langErr(`1:7: reached EOF without matching { with }`, LangZsh|LangMirBSDKorn),
 	),
 	errCase(
 		"foo() { bar;",
@@ -887,7 +887,7 @@ var errorCases = []errorCase{
 	errCase(
 		"if",
 		langErr(`1:1: "if" must be followed by a statement list`),
-		langErr(`1:1: "if <cond>" must be followed by "then"`, LangZsh),
+		langErr(`1:1: "if <cond>" must be followed by "then"`, LangZsh|LangMirBSDKorn),
 	),
 	errCase(
 		"if true;",
@@ -920,7 +920,7 @@ var errorCases = []errorCase{
 	errCase(
 		"while",
 		langErr(`1:1: "while" must be followed by a statement list`),
-		langErr(`1:1: "while <cond>" must be followed by "do"`, LangZsh),
+		langErr(`1:1: "while <cond>" must be followed by "do"`, LangZsh|LangMirBSDKorn),
 	),
 	errCase(
 		"while true;",
@@ -937,7 +937,7 @@ var errorCases = []errorCase{
 	errCase(
 		"until",
 		langErr(`1:1: "until" must be followed by a statement list`),
-		langErr(`1:1: "until <cond>" must be followed by "do"`, LangZsh),
+		langErr(`1:1: "until <cond>" must be followed by "do"`, LangZsh|LangMirBSDKorn),
 	),
 	errCase(
 		"until true;",
@@ -1884,12 +1884,12 @@ var errorCases = []errorCase{
 	errCase(
 		`echo $((echo a); (echo b))`,
 		langErr(`1:14: not a valid arithmetic operator: a`, LangBash|LangMirBSDKorn|LangZsh),
-		flipConfirm(LangBash), // note that we don't backtrack
+		flipConfirmAll, // note that we don't backtrack
 	),
 	errCase(
 		`((echo a); (echo b))`,
 		langErr(`1:8: not a valid arithmetic operator: a`, LangBash|LangMirBSDKorn|LangZsh),
-		flipConfirm(LangBash), // note that we don't backtrack
+		flipConfirmAll, // note that we don't backtrack
 	),
 	errCase(
 		"for ((;;",

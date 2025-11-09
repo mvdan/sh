@@ -1882,7 +1882,7 @@ var fileTests = []fileTestCase{
 	fileTest(
 		[]string{"{ }"},
 		langErr2(`1:1: { must be followed by a statement list`),
-		langFile(block(), LangZsh),
+		langFile(block(), LangZsh|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{"{ }", "{}"}, // Note that "{}" is a command in POSIX/Bash.
@@ -1891,27 +1891,31 @@ var fileTests = []fileTestCase{
 	fileTest(
 		[]string{"( )"},
 		langErr2(`1:1: ( must be followed by a statement list`),
-		langFile(subshell(), LangZsh),
+		langFile(subshell(), LangZsh|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{"if; then; fi"},
 		langErr2(`1:1: "if" must be followed by a statement list`),
-		langFile(&IfClause{}, LangZsh),
+		langFile(&IfClause{}, LangZsh|LangMirBSDKorn),
+		flipConfirm2(LangMirBSDKorn), // only allows empty lists with newlines?
 	),
 	fileTest(
 		[]string{"if foo; then; fi"},
 		langErr2(`1:9: "then" must be followed by a statement list`),
-		langFile(&IfClause{Cond: litStmts("foo")}, LangZsh),
+		langFile(&IfClause{Cond: litStmts("foo")}, LangZsh|LangMirBSDKorn),
+		flipConfirm2(LangMirBSDKorn), // only allows empty lists with newlines?
 	),
 	fileTest(
 		[]string{"while; do\ndone", "while\ndo\ndone"},
 		langErr2(`1:1: "while" must be followed by a statement list`),
-		langFile(&WhileClause{}, LangZsh),
+		langFile(&WhileClause{}, LangZsh|LangMirBSDKorn),
+		flipConfirm2(LangMirBSDKorn), // only allows empty lists with newlines?
 	),
 	fileTest(
 		[]string{"while true; do; done"},
 		langErr2(`1:13: "do" must be followed by a statement list`),
-		langFile(&WhileClause{Cond: litStmts("true")}, LangZsh),
+		langFile(&WhileClause{Cond: litStmts("true")}, LangZsh|LangMirBSDKorn),
+		flipConfirm2(LangMirBSDKorn), // only allows empty lists with newlines?
 	),
 	fileTest(
 		[]string{"$({ foo; })"},

@@ -825,17 +825,25 @@ func (p *Parser) followRsrv(lpos Pos, left, val string) Pos {
 }
 
 func (p *Parser) followStmts(left string, lpos Pos, stops ...string) ([]*Stmt, []Comment) {
+	// Language variants disallowing empty command lists:
+	// * [LangPOSIX]: "A list is a sequence of one or more AND-OR lists...".
+	// * [LangBash]: "A list is a sequence of one or more pipelines..."
+	//
+	// Language variants allowing empty command lists:
+	// * [LangZsh]: "A list is a sequence of zero or more sublists...".
+	// * [LangMirBSDKorn]: "Lists of commands can be created by separating pipelines...";
+	//   note that the man page is not explicit, but the shell clearly allows e.g. `{ }`.
 	if p.got(semicolon) {
-		if p.lang.in(LangZsh) {
-			return nil, nil // zsh allows empty command lists
+		if p.lang.in(LangZsh | LangMirBSDKorn) {
+			return nil, nil // allow an empty list
 		}
 		p.followErr(lpos, left, "a statement list")
 		return nil, nil
 	}
 	stmts, last := p.stmtList(stops...)
 	if len(stmts) < 1 {
-		if p.lang.in(LangZsh) {
-			return nil, nil // zsh allows empty command lists
+		if p.lang.in(LangZsh | LangMirBSDKorn) {
+			return nil, nil // allow an empty list
 		}
 		if p.recoverError() {
 			return []*Stmt{{Position: recoveredPos}}, nil
