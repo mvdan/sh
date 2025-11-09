@@ -5,7 +5,6 @@ package syntax
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -331,7 +330,11 @@ func confirmParse(in, cmd string, wantErr bool) func(*testing.T) {
 			return line == "" || strings.Contains(line, "warning:")
 		})
 		if stderr := strings.Join(stderrLines, "\n"); stderr != "" {
-			err = errors.New(stderr)
+			if err == nil {
+				err = fmt.Errorf("non-fatal error: %s", stderr)
+			} else {
+				err = fmt.Errorf("%v: %s", err, stderr)
+			}
 		}
 
 		if wantErr && err == nil {
