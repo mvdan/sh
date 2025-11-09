@@ -103,11 +103,13 @@ func TestParseConfirm(t *testing.T) {
 					continue
 				case *File:
 					for j, in := range c.inputs {
-						t.Run(fmt.Sprintf("OK/%03d-%d", i, j), confirmParse(in, external.cmd, false))
+						wantErr := lang.in(c.flipConfirmSet)
+						t.Run(fmt.Sprintf("OK/%03d-%d", i, j), confirmParse(in, external.cmd, wantErr))
 					}
 				case string:
 					for j, in := range c.inputs {
-						t.Run(fmt.Sprintf("Err/%03d-%d", i, j), confirmParse(in, external.cmd, true))
+						wantErr := !lang.in(c.flipConfirmSet)
+						t.Run(fmt.Sprintf("Err/%03d-%d", i, j), confirmParse(in, external.cmd, wantErr))
 					}
 				}
 			}

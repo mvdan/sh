@@ -114,6 +114,13 @@ type fileTestCase struct {
 	// - *File:  parse as the given syntax tree
 	// - string: parse error with the given string, substituting LANG
 	byLangIndex [langResolvedVariantsCount]any
+
+	// The real shells where testing the input succeeds or fails in the opposite way.
+	flipConfirmSet LangVariant
+}
+
+func flipConfirm2(langSet LangVariant) func(*fileTestCase) {
+	return func(c *fileTestCase) { c.flipConfirmSet = langSet }
 }
 
 func (c *fileTestCase) setForLangs(val any, langSets ...LangVariant) {
