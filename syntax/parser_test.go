@@ -221,7 +221,7 @@ func TestMain(m *testing.M) {
 
 var (
 	onceHasBash52 = sync.OnceValue(func() bool {
-		return cmdContains("version 5.2", "bash", "--version")
+		return cmdContains("version 5.3", "bash", "--version")
 	})
 
 	onceHasDash059 = sync.OnceValue(func() bool {
