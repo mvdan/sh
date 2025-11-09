@@ -405,6 +405,10 @@ func flipConfirm(langSet LangVariant) func(*errorCase) {
 
 var flipConfirmAll = flipConfirm(langResolvedVariants)
 
+// The real shells which allow unclosed heredocs.
+// TODO: allow ending a heredoc at EOF in these language variant modes.
+var flipConfirmUnclosedHeredoc = flipConfirm(LangBash | LangPOSIX | LangBats | LangZsh)
+
 func init() {
 	seenInputs := make(map[string]bool)
 	for i, c := range errorCases {
@@ -808,32 +812,32 @@ var errorCases = []errorCase{
 	errCase(
 		"<<EOF",
 		langErr(`1:1: unclosed here-document 'EOF'`),
-		flipConfirmAll, // TODO: allow ending a heredoc at EOF
+		flipConfirmUnclosedHeredoc,
 	),
 	errCase(
 		"<<EOF\n\\",
 		langErr(`1:1: unclosed here-document 'EOF'`),
-		flipConfirmAll, // TODO: allow ending a heredoc at EOF
+		flipConfirmUnclosedHeredoc,
 	),
 	errCase(
 		"<<EOF\n\\\n",
 		langErr(`1:1: unclosed here-document 'EOF'`),
-		flipConfirmAll, // TODO: allow ending a heredoc at EOF
+		flipConfirmUnclosedHeredoc,
 	),
 	errCase(
 		"<<EOF\n\\\nEOF",
 		langErr(`1:1: unclosed here-document 'EOF'`),
-		flipConfirmAll, // TODO: allow ending a heredoc at EOF
+		flipConfirmAll, // why does mksh allow this?
 	),
 	errCase(
 		"<<EOF\nfoo\\\nEOF",
 		langErr(`1:1: unclosed here-document 'EOF'`),
-		flipConfirmAll, // TODO: allow ending a heredoc at EOF
+		flipConfirmUnclosedHeredoc,
 	),
 	errCase(
 		"<<'EOF'\n\\\n",
 		langErr(`1:1: unclosed here-document 'EOF'`),
-		flipConfirmAll, // TODO: allow ending a heredoc at EOF
+		flipConfirmUnclosedHeredoc,
 	),
 	errCase(
 		"<<EOF <`\n#\n`\n``",
@@ -842,32 +846,32 @@ var errorCases = []errorCase{
 	errCase(
 		"<<'EOF'",
 		langErr(`1:1: unclosed here-document 'EOF'`),
-		flipConfirmAll, // TODO: allow ending a heredoc at EOF
+		flipConfirmUnclosedHeredoc,
 	),
 	errCase(
 		"<<\\EOF",
 		langErr(`1:1: unclosed here-document 'EOF'`),
-		flipConfirmAll, // TODO: allow ending a heredoc at EOF
+		flipConfirmUnclosedHeredoc,
 	),
 	errCase(
 		"<<\\\\EOF",
 		langErr(`1:1: unclosed here-document '\EOF'`),
-		flipConfirmAll, // TODO: allow ending a heredoc at EOF
+		flipConfirmUnclosedHeredoc,
 	),
 	errCase(
 		"<<-EOF",
 		langErr(`1:1: unclosed here-document 'EOF'`),
-		flipConfirmAll, // TODO: allow ending a heredoc at EOF
+		flipConfirmUnclosedHeredoc,
 	),
 	errCase(
 		"<<-EOF\n\t",
 		langErr(`1:1: unclosed here-document 'EOF'`),
-		flipConfirmAll, // TODO: allow ending a heredoc at EOF
+		flipConfirmUnclosedHeredoc,
 	),
 	errCase(
 		"<<-'EOF'\n\t",
 		langErr(`1:1: unclosed here-document 'EOF'`),
-		flipConfirmAll, // TODO: allow ending a heredoc at EOF
+		flipConfirmUnclosedHeredoc,
 	),
 	errCase(
 		"<<\nEOF\nbar\nEOF",
