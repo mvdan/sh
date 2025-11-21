@@ -273,7 +273,7 @@ For more information and to report bugs, see https://github.com/mvdan/sh.
 			name = filename.val
 		}
 		if err := formatStdin(name); err != nil {
-			if err != errUnformatted {
+			if err != errFormattingDiffers {
 				fmt.Fprintln(os.Stderr, err)
 			}
 			os.Exit(1)
@@ -297,7 +297,7 @@ For more information and to report bugs, see https://github.com/mvdan/sh.
 			// One exception is --apply-ignore, which explicitly changes this behavior.
 			// Another is --find, whose logic depends on walkPath being called.
 			if err := formatPath(path, false); err != nil {
-				if err != errUnformatted {
+				if err != errFormattingDiffers {
 					fmt.Fprintln(os.Stderr, err)
 				}
 				status = 1
@@ -312,7 +312,7 @@ For more information and to report bugs, see https://github.com/mvdan/sh.
 			case nil:
 			case filepath.SkipDir:
 				return err
-			case errUnformatted:
+			case errFormattingDiffers:
 				status = 1
 			default:
 				fmt.Fprintln(os.Stderr, err)
@@ -327,7 +327,7 @@ For more information and to report bugs, see https://github.com/mvdan/sh.
 	os.Exit(status)
 }
 
-var errUnformatted = fmt.Errorf("")
+var errFormattingDiffers = fmt.Errorf("")
 
 func formatStdin(name string) error {
 	if write.val {
@@ -572,7 +572,7 @@ func formatBytes(src []byte, path string, fileLang syntax.LangVariant) error {
 			diffBytes := diffpkg.Diff(path+".orig", src, path, res)
 			if !color {
 				os.Stdout.Write(diffBytes)
-				return errUnformatted
+				return errFormattingDiffers
 			}
 			// The first three lines are the header with the filenames, including --- and +++,
 			// and are marked in bold.
@@ -596,10 +596,10 @@ func formatBytes(src []byte, path string, fileLang syntax.LangVariant) error {
 				}
 				os.Stdout.Write(line)
 			}
-			return errUnformatted
+			return errFormattingDiffers
 		}
 		if list.val != "false" && !write.val {
-			return errUnformatted
+			return errFormattingDiffers
 		}
 	}
 	if list.val == "false" && !write.val && !diff.val {
