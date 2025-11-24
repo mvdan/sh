@@ -204,7 +204,7 @@ func (p *Parser) nextKeepSpaces() {
 			break
 		}
 		fallthrough
-	default: // paramExpExp:
+	case paramExpExp:
 		switch r {
 		case '}':
 			p.tok = p.paramToken(r)
@@ -325,7 +325,7 @@ skipSpace:
 					p.tok = globPlus
 				case '@':
 					p.tok = globAt
-				default: // '!'
+				case '!':
 					p.tok = globExcl
 				}
 				p.rune()
@@ -542,7 +542,7 @@ func (p *Parser) regToken(r rune) token {
 			return cmdIn
 		}
 		return rdrIn
-	default: // '>'
+	case '>':
 		switch p.rune() {
 		case '>':
 			p.rune()
@@ -562,6 +562,8 @@ func (p *Parser) regToken(r rune) token {
 		}
 		return rdrOut
 	}
+	p.rune()
+	return illegalTok
 }
 
 func (p *Parser) dqToken(r rune) token {
@@ -573,7 +575,7 @@ func (p *Parser) dqToken(r rune) token {
 		// Don't call p.rune, as we need to work out p.openBquotes to
 		// properly handle backslashes in the lexer.
 		return bckQuote
-	default: // '$'
+	case '$':
 		switch p.rune() {
 		case '{':
 			p.rune()
@@ -593,6 +595,8 @@ func (p *Parser) dqToken(r rune) token {
 		}
 		return dollar
 	}
+	p.rune()
+	return illegalTok
 }
 
 func (p *Parser) paramToken(r rune) token {
@@ -830,10 +834,12 @@ func (p *Parser) arithmToken(r rune) token {
 	case ':':
 		p.rune()
 		return colon
-	default: // '#'
+	case '#':
 		p.rune()
 		return hash
 	}
+	p.rune()
+	return illegalTok
 }
 
 func (p *Parser) newLit(r rune) {
