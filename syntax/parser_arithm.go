@@ -329,7 +329,7 @@ func (p *Parser) arithmMatchingErr(pos Pos, left, right token) {
 	case rightParen, _EOF:
 		p.matchingErr(pos, left, right)
 	default:
-		if p.quote == arithmExpr {
+		if p.quote&allArithmExpr != 0 {
 			p.curErr("not a valid arithmetic operator: %v", p.tok)
 		}
 		p.matchingErr(pos, left, right)

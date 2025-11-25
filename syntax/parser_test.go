@@ -1788,7 +1788,7 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"((@(",
-		langErr(`1:1: reached ( without matching (( with ))`, LangBash|LangMirBSDKorn),
+		langErr(`1:4: not a valid arithmetic operator: (`, LangBash|LangMirBSDKorn),
 	),
 	errCase(
 		"time { foo;",
