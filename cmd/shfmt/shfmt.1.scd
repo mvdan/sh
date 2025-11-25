@@ -31,7 +31,7 @@ predictable. Some aspects of the format can be configured via printer flags.
 	Show version and exit.
 
 *-l[=0]*, *--list[=0]*
-	List files whose formatting differs from shfmt's;
+	Error with a list of files whose formatting differs from shfmt;
 	paths are separated by a newline or a null character if -l=0
 
 *-w*, *--write*

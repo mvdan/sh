@@ -154,7 +154,7 @@ directory, all shell scripts found under that directory will be used.
 
   --version  show version and exit
 
-  -l[=0], --list[=0]  list files whose formatting differs from shfmt;
+  -l[=0], --list[=0]  error with a list of files whose formatting differs from shfmt;
                       paths are separated by a newline or a null character if -l=0
   -w,     --write     write result to file instead of stdout
   -d,     --diff      error with a diff when the formatting differs
