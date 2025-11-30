@@ -61,14 +61,15 @@ func TestWalk(t *testing.T) {
 	for _, c := range printTests {
 		allStrs = append(allStrs, c.in)
 	}
+	countRan := 0
 	for _, in := range allStrs {
 		t.Run("", func(t *testing.T) {
 			t.Logf("input: %s", in)
+			countRan++
 			prog, err := parser.Parse(strings.NewReader(in), "")
 			if err != nil {
-				// good enough for now, as the bash
-				// parser ignoring errors covers what we
-				// need.
+				// good enough for now, as the bash parser
+				// ignoring errors covers what we need.
 				return
 			}
 			lastOffs := uint(0)
@@ -99,9 +100,13 @@ func TestWalk(t *testing.T) {
 			})
 		})
 	}
-	for tstr, tseen := range seen {
-		if !tseen {
-			t.Errorf("type not seen: %s", tstr)
+	// If we're running a subset of the tests,
+	// we can't expect to have seen all node types.
+	if countRan == len(allStrs) {
+		for tstr, tseen := range seen {
+			if !tseen {
+				t.Errorf("type not seen: %s", tstr)
+			}
 		}
 	}
 }
