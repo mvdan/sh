@@ -2384,11 +2384,7 @@ func (p *Parser) testClause(s *Stmt) {
 	tc := &TestClause{Left: p.pos}
 	old := p.preNested(testExpr)
 	p.next()
-	if _, ok := p.gotRsrv("]]"); ok || p.tok == _EOF {
-		p.posErr(tc.Left, "test clause requires at least one expression")
-	}
-	tc.X = p.testExpr(false)
-	if tc.X == nil {
+	if tc.X = p.testExprBinary(false); tc.X == nil {
 		p.followErrExp(tc.Left, "[[")
 	}
 	tc.Right = p.pos
@@ -2399,13 +2395,13 @@ func (p *Parser) testClause(s *Stmt) {
 	s.Cmd = tc
 }
 
-func (p *Parser) testExpr(pastAndOr bool) TestExpr {
+func (p *Parser) testExprBinary(pastAndOr bool) TestExpr {
 	p.got(_Newl)
 	var left TestExpr
 	if pastAndOr {
-		left = p.testExprBase()
+		left = p.testExprUnary()
 	} else {
-		left = p.testExpr(true)
+		left = p.testExprBinary(true)
 	}
 	if left == nil {
 		return left
@@ -2439,7 +2435,7 @@ func (p *Parser) testExpr(pastAndOr bool) TestExpr {
 	switch b.Op {
 	case AndTest, OrTest:
 		p.next()
-		if b.Y = p.testExpr(false); b.Y == nil {
+		if b.Y = p.testExprBinary(false); b.Y == nil {
 			p.followErrExp(b.OpPos, b.Op.String())
 		}
 	case TsReMatch:
@@ -2463,7 +2459,7 @@ func (p *Parser) testExpr(pastAndOr bool) TestExpr {
 	return b
 }
 
-func (p *Parser) testExprBase() TestExpr {
+func (p *Parser) testExprUnary() TestExpr {
 	switch p.tok {
 	case _EOF, rightParen:
 		return nil
@@ -2483,7 +2479,7 @@ func (p *Parser) testExprBase() TestExpr {
 	case exclMark:
 		u := &UnaryTest{OpPos: p.pos, Op: TsNot}
 		p.next()
-		if u.X = p.testExpr(false); u.X == nil {
+		if u.X = p.testExprBinary(false); u.X == nil {
 			p.followErrExp(u.OpPos, u.Op.String())
 		}
 		return u
@@ -2498,7 +2494,7 @@ func (p *Parser) testExprBase() TestExpr {
 	case leftParen:
 		pe := &ParenTest{Lparen: p.pos}
 		p.next()
-		if pe.X = p.testExpr(false); pe.X == nil {
+		if pe.X = p.testExprBinary(false); pe.X == nil {
 			p.followErrExp(pe.Lparen, "(")
 		}
 		pe.Rparen = p.matched(pe.Lparen, leftParen, rightParen)

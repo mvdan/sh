@@ -342,7 +342,7 @@ skipSpace:
 		p.tok = p.paramToken(r)
 	case p.quote == testExprRegexp:
 		if !p.rxFirstPart && p.spaced {
-			p.quote = noState
+			p.quote = testExpr
 			goto skipSpace
 		}
 		p.rxFirstPart = false
@@ -355,7 +355,7 @@ skipSpace:
 				p.advanceLitRe(r)
 			} else {
 				p.tok = rightParen
-				p.quote = noState
+				p.quote = testExpr
 				p.rune() // we are tokenizing manually
 			}
 		default: // including '(', '|'
@@ -1132,13 +1132,13 @@ func (p *Parser) advanceLitRe(r rune) {
 		case ')':
 			if p.rxOpenParens--; p.rxOpenParens < 0 {
 				p.tok, p.val = _LitWord, p.endLit()
-				p.quote = noState
+				p.quote = testExpr
 				return
 			}
 		case ' ', '\t', '\r', '\n', ';', '&', '>', '<':
 			if p.rxOpenParens <= 0 {
 				p.tok, p.val = _LitWord, p.endLit()
-				p.quote = noState
+				p.quote = testExpr
 				return
 			}
 		case '"', '\'', '$', '`':

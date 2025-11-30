@@ -1510,11 +1510,11 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"[[",
-		langErr(`1:1: test clause requires at least one expression`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr(`1:1: [[ must be followed by an expression`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"[[ ]]",
-		langErr(`1:1: test clause requires at least one expression`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr(`1:1: [[ must be followed by an expression`, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"[[ a",
