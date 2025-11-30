@@ -328,6 +328,8 @@ func (p *Parser) arithmMatchingErr(pos Pos, left, right token) {
 		p.curErr("ternary operator missing ? before :")
 	case rightParen, _EOF:
 		p.matchingErr(pos, left, right)
+	case period:
+		p.checkLang(p.pos, LangZsh, `floating point arithmetic`)
 	default:
 		if p.quote&allArithmExpr != 0 {
 			p.curErr("not a valid arithmetic operator: %v", p.tok)

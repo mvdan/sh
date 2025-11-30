@@ -384,6 +384,15 @@ var fileTests = []fileTestCase{
 		langFile(arithmCmd(litWord("3#20")), LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
+		[]string{"((1.2 > 0.3))"},
+		langFile(arithmCmd(&BinaryArithm{
+			Op: Gtr,
+			X:  litWord("1.2"),
+			Y:  litWord("0.3"),
+		}), LangZsh),
+		langErr2(`1:4: floating point arithmetic is a zsh feature; tried parsing as LANG`, LangBash|LangMirBSDKorn),
+	),
+	fileTest(
 		[]string{
 			"while a; do b; done",
 			"wh\\\nile a; do b; done",
@@ -3679,6 +3688,24 @@ var fileTests = []fileTestCase{
 		}}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
+		[]string{"[[ -1 -eq -1 ]]"},
+		langFile(&TestClause{X: &BinaryTest{
+			Op: TsEql,
+			// TODO: parse as unary expressions
+			X: litWord("-1"),
+			Y: litWord("-1"),
+		}}, LangBash|LangMirBSDKorn|LangZsh),
+	),
+	fileTest(
+		[]string{"[[ +3 -eq 1+2 ]]"},
+		langFile(&TestClause{X: &BinaryTest{
+			Op: TsEql,
+			// TODO: parse as unary and binary expressions
+			X: litWord("+3"),
+			Y: litWord("1+2"),
+		}}, LangBash|LangMirBSDKorn|LangZsh),
+	),
+	fileTest(
 		[]string{
 			"[[ -R a ]]",
 			"[[\n-R a\n]]",
@@ -4007,6 +4034,16 @@ var fileTests = []fileTestCase{
 				Y:  litWord("d"),
 			},
 		}}, LangBash|LangMirBSDKorn|LangZsh),
+	),
+	fileTest(
+		[]string{"[[ 1.2 -gt 0.3 ]]"},
+		langFile(&TestClause{X: &BinaryTest{
+			Op: TsGtr,
+			X:  litWord("1.2"),
+			Y:  litWord("0.3"),
+		}}, LangZsh),
+		// TODO: reject floating point here, just like with arithmetic expressions
+		// langErr2(``, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{"declare -f func"},

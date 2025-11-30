@@ -111,6 +111,7 @@ const (
 	at       // @
 	slash    // /
 	dblSlash // //
+	period   // .
 	colon    // :
 
 	tsExists  // -e

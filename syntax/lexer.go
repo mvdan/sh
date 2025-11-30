@@ -32,7 +32,7 @@ func paramOps(r rune) bool {
 func arithmOps(r rune) bool {
 	switch r {
 	case '+', '-', '!', '~', '*', '/', '%', '(', ')', '^', '<', '>', ':', '=',
-		',', '?', '|', '&', '[', ']', '#':
+		',', '?', '|', '&', '[', ']', '#', '.':
 		return true
 	}
 	return false
@@ -837,6 +837,9 @@ func (p *Parser) arithmToken(r rune) token {
 	case '#':
 		p.rune()
 		return hash
+	case '.':
+		p.rune()
+		return period
 	}
 	p.rune()
 	return illegalTok
@@ -923,6 +926,10 @@ loop:
 			}
 		case ':', '=', '%', '^', ',', '?', '!', '~', '*':
 			if p.quote&allArithmExpr != 0 {
+				break loop
+			}
+		case '.':
+			if !p.lang.in(LangZsh) && p.quote&allArithmExpr != 0 {
 				break loop
 			}
 		case '[', ']':
