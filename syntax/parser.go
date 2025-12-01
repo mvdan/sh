@@ -2429,9 +2429,6 @@ func (p *Parser) testExprBinary(pastAndOr bool) TestExpr {
 		Op:    BinTestOperator(p.tok),
 		X:     left,
 	}
-	// Save the previous quoteState, since we change it in TsReMatch.
-	oldQuote := p.quote
-
 	switch b.Op {
 	case AndTest, OrTest:
 		p.next()
@@ -2455,7 +2452,6 @@ func (p *Parser) testExprBinary(pastAndOr bool) TestExpr {
 		p.next()
 		b.Y = p.followWordTok(token(b.Op), b.OpPos)
 	}
-	p.quote = oldQuote
 	return b
 }
 
