@@ -34,6 +34,7 @@ const (
 	dollBrack    // $[
 	dollParen    // $(
 	dollDblParen // $((
+	leftBrace    // {
 	leftBrack    // [
 	dblLeftBrack // [[
 	leftParen    // (
@@ -41,6 +42,7 @@ const (
 
 	rightBrace    // }
 	rightBrack    // ]
+	dblRightBrack // ]]
 	rightParen    // )
 	dblRightParen // ))
 	semicolon     // ;

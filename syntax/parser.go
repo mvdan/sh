@@ -879,7 +879,7 @@ func (p *Parser) quoteErr(lpos Pos, quote token) {
 	p.posErr(lpos, "reached %s without closing quote %s", p.tok, quote)
 }
 
-func (p *Parser) matchingErr(lpos Pos, left, right any) {
+func (p *Parser) matchingErr(lpos Pos, left, right token) {
 	p.posErr(lpos, "reached %s without matching %s with %s", p.tok, left, right)
 }
 
@@ -1201,7 +1201,7 @@ func (p *Parser) wordPart() WordPart {
 			p.postNested(old)
 			pos, ok := p.gotRsrv("}")
 			if !ok {
-				p.matchingErr(cs.Left, "${", "}")
+				p.matchingErr(cs.Left, dollBrace, rightBrace)
 			}
 			cs.Right = pos
 			return cs
@@ -1345,7 +1345,7 @@ func (p *Parser) wordPart() WordPart {
 		p.rune()
 		p.next()
 		if lparens != 0 {
-			p.matchingErr(eg.OpPos, eg.Op, rightParen)
+			p.matchingErr(eg.OpPos, token(eg.Op), rightParen)
 		}
 		return eg
 	default:
@@ -1415,7 +1415,7 @@ func (p *Parser) paramExp() *ParamExp {
 		p.val = p.endLit()
 		if p.r != ')' {
 			p.tok = _EOF // we can only get here due to EOF
-			p.matchingErr(lparen, "(", ")")
+			p.matchingErr(lparen, leftParen, rightParen)
 		}
 		pe.Flags = p.wordOne(p.lit(p.pos, p.val))
 		p.rune()
@@ -2154,7 +2154,7 @@ func (p *Parser) block(s *Stmt) {
 	} else if p.recoverError() {
 		b.Rbrace = recoveredPos
 	} else {
-		p.matchingErr(b.Lbrace, "{", "}")
+		p.matchingErr(b.Lbrace, leftBrace, rightBrace)
 	}
 	s.Cmd = b
 }
@@ -2389,7 +2389,7 @@ func (p *Parser) testClause(s *Stmt) {
 	}
 	tc.Right = p.pos
 	if _, ok := p.gotRsrv("]]"); !ok {
-		p.matchingErr(tc.Left, "[[", "]]")
+		p.matchingErr(tc.Left, dblLeftBrack, dblRightBrack)
 	}
 	p.postNested(old)
 	s.Cmd = tc
@@ -2447,7 +2447,7 @@ func (p *Parser) testExprBinary(pastAndOr bool) TestExpr {
 	default:
 		if _, ok := b.X.(*Word); !ok {
 			p.posErr(b.OpPos, "expected %s, %s or %s after complex expr",
-				AndTest, OrTest, "]]")
+				AndTest, OrTest, dblRightBrack)
 		}
 		p.next()
 		b.Y = p.followWordTok(token(b.Op), b.OpPos)
