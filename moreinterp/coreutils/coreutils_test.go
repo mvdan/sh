@@ -39,21 +39,6 @@ func TestExecHandler(t *testing.T) {
 				t.Fatalf("expected error for command %q, got none", cmd)
 			}
 
-			// FIXME(@andreynering): Return the proper flag error from u-root to
-			// avoid a special tests for chmod and gzip.
-			if coreUtil == "chmod" {
-				if err.Error() != "chmod: chmod [mode] filepath" {
-					t.Errorf("expected %q output, got: %q", cmd, err)
-				}
-				return
-			}
-			if coreUtil == "gzip" {
-				if err.Error() != "gzip: ignoring stdout, use -f to compression" {
-					t.Errorf("expected %q output, got: %q", cmd, err)
-				}
-				return
-			}
-
 			if !strings.Contains(err.Error(), "flag provided but not defined: -badoption") {
 				t.Errorf("expected error for command %q, got: %v", cmd, err)
 			}
