@@ -24,7 +24,7 @@ exec shfmt input.sh
 cmp stdout input.sh.golden
 ! stderr .
 
-exec shfmt -l input.sh
+! exec shfmt -l input.sh
 stdout 'input\.sh'
 ! stderr .
 
@@ -52,14 +52,14 @@ exec shfmt -l otherknobs
 ! stderr .
 
 # Files found by walking directories are skipped if they match ignore=true properties.
-exec shfmt -l ignored
+! exec shfmt -l ignored
 stdout 'regular\.sh'
 ! stdout 'ignored\.sh'
 ! stderr .
 
 # EditorConfig ignore=true properties are obeyed even when any formatting flags
 # are used, which cause formatting options from EditorConfig files to be skipped.
-exec shfmt -i=0 -l ignored
+! exec shfmt -i=0 -l ignored
 stdout 'regular\.sh'
 ! stdout 'ignored\.sh'
 ! stderr .
@@ -85,7 +85,7 @@ stdout -count=1 'echo foo'
 
 # Formatting files directly obeys ignore=true when --apply-ignore is given.
 # Test the same modes that the earlier section does.
-exec shfmt --apply-ignore -l input.sh ignored/1_lone_ignored.sh ignored/third_party/bad_syntax_ignored.sh
+! exec shfmt --apply-ignore -l input.sh ignored/1_lone_ignored.sh ignored/third_party/bad_syntax_ignored.sh
 stdout -count=1 'input\.sh$'
 ! stdout 'ignored\.sh'
 ! stderr .
