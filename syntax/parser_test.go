@@ -247,28 +247,41 @@ type externalShell struct {
 	require func(testing.TB)
 }
 
+// requireShells can be set to make sure that no external shell tests
+// are being skipped due to a misalignment in installed versions.
+var requireShells = os.Getenv("REQUIRE_SHELLS") == "1"
+
+func skipExternal(tb testing.TB, message string) {
+	println(requireShells)
+	if requireShells {
+		tb.Fatal(message)
+	} else {
+		tb.Skip(message)
+	}
+}
+
 // Note that externalShells is a map, and not an array,
 // because [LangVariant.index] is not a constant expression.
 // This seems fine; this table is only for the sake of testing.
 var externalShells = map[LangVariant]externalShell{
 	LangBash: {"bash", func(tb testing.TB) {
 		if !onceHasBash52() {
-			tb.Skipf("bash 5.2 required to run")
+			skipExternal(tb, "bash 5.2 required to run")
 		}
 	}},
 	LangPOSIX: {"dash", func(tb testing.TB) {
 		if !onceHasDash059() {
-			tb.Skipf("dash 0.5.9+ required to run")
+			skipExternal(tb, "dash 0.5.9+ required to run")
 		}
 	}},
 	LangMirBSDKorn: {"mksh", func(tb testing.TB) {
 		if !onceHasMksh59() {
-			tb.Skipf("mksh 59 required to run")
+			skipExternal(tb, "mksh 59 required to run")
 		}
 	}},
 	LangZsh: {"zsh", func(tb testing.TB) {
 		if !onceHasZsh59() {
-			tb.Skipf("zsh 5.9 required to run")
+			skipExternal(tb, "zsh 5.9 required to run")
 		}
 	}},
 }
