@@ -572,8 +572,7 @@ var fileTests = []fileTestCase{
 	fileTest(
 		[]string{
 			"select i; do foo; done",
-			// TODO: bash won't allow this - bug?
-			//"select i in; do foo; done",
+			"select i in; do foo; done",
 		},
 		langFile(&ForClause{
 			Select: true,
