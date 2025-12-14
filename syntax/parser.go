@@ -255,9 +255,9 @@ func (p *Parser) Parse(r io.Reader, name string) (*File, error) {
 	return p.f, p.err
 }
 
-// TODO: deprecate the pre-iterator APIs in early 2026.
-
 // Stmts is a pre-iterators API which now wraps [Parser.StmtsSeq].
+//
+// Deprecated: use [Parser.StmtsSeq].
 func (p *Parser) Stmts(r io.Reader, fn func(*Stmt) bool) error {
 	for stmt, err := range p.StmtsSeq(r) {
 		if err != nil {
@@ -322,6 +322,8 @@ func (w *wrappedReader) Read(p []byte) (n int, err error) {
 }
 
 // Interactive is a pre-iterators API which now wraps [Parser.InteractiveSeq].
+//
+// Deprecated: use [Parser.InteractiveSeq].
 func (p *Parser) Interactive(r io.Reader, fn func([]*Stmt) bool) error {
 	for stmts, err := range p.InteractiveSeq(r) {
 		if err != nil {
@@ -390,6 +392,8 @@ func (p *Parser) InteractiveSeq(r io.Reader) iter.Seq2[[]*Stmt, error] {
 }
 
 // Words is a pre-iterators API which now wraps [Parser.WordsSeq].
+//
+// Deprecated: use [Parser.WordsSeq].
 func (p *Parser) Words(r io.Reader, fn func(*Word) bool) error {
 	for w, err := range p.WordsSeq(r) {
 		if err != nil {
