@@ -315,6 +315,7 @@ func confirmParse(in, cmd string, wantErr bool) func(*testing.T) {
 		defer cancel()
 
 		cmd := exec.CommandContext(ctx, cmd, opts...)
+		killCommandOnTestExit(cmd)
 		cmd.Dir = t.TempDir() // to be safe
 		cmd.Stdin = strings.NewReader(in)
 		var stderrBuf strings.Builder
