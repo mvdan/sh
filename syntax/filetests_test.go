@@ -1906,25 +1906,25 @@ var fileTests = []fileTestCase{
 		[]string{"if; then; fi"},
 		langErr2(`1:1: "if" must be followed by a statement list`),
 		langFile(&IfClause{}, LangZsh|LangMirBSDKorn),
-		flipConfirm2(LangMirBSDKorn), // only allows empty lists with newlines?
+		langSkip(LangMirBSDKorn), // only allows empty lists with newlines?
 	),
 	fileTest(
 		[]string{"if foo; then; fi"},
 		langErr2(`1:9: "then" must be followed by a statement list`),
 		langFile(&IfClause{Cond: litStmts("foo")}, LangZsh|LangMirBSDKorn),
-		flipConfirm2(LangMirBSDKorn), // only allows empty lists with newlines?
+		langSkip(LangMirBSDKorn), // only allows empty lists with newlines?
 	),
 	fileTest(
-		[]string{"while; do\ndone", "while\ndo\ndone"},
+		[]string{"while; do exit; done", "while\ndo exit\ndone"},
 		langErr2(`1:1: "while" must be followed by a statement list`),
-		langFile(&WhileClause{}, LangZsh|LangMirBSDKorn),
-		flipConfirm2(LangMirBSDKorn), // only allows empty lists with newlines?
+		langFile(&WhileClause{Do: litStmts("exit")}, LangZsh|LangMirBSDKorn),
+		langSkip(LangMirBSDKorn), // only allows empty lists with newlines?
 	),
 	fileTest(
-		[]string{"while true; do; done"},
-		langErr2(`1:13: "do" must be followed by a statement list`),
-		langFile(&WhileClause{Cond: litStmts("true")}, LangZsh|LangMirBSDKorn),
-		flipConfirm2(LangMirBSDKorn), // only allows empty lists with newlines?
+		[]string{"while false; do; done"},
+		langErr2(`1:14: "do" must be followed by a statement list`),
+		langFile(&WhileClause{Cond: litStmts("false")}, LangZsh|LangMirBSDKorn),
+		langSkip(LangMirBSDKorn), // only allows empty lists with newlines?
 	),
 	fileTest(
 		[]string{"$({ foo; })"},
