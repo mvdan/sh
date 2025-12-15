@@ -1,7 +1,7 @@
 // Copyright (c) 2025, Daniel Martí <mvdan@mvdan.cc>
 // See LICENSE for licensing information
 
-//go:build !unix
+//go:build !linux
 
 package syntax
 

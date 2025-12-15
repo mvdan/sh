@@ -252,7 +252,6 @@ type externalShell struct {
 var requireShells = os.Getenv("REQUIRE_SHELLS") == "1"
 
 func skipExternal(tb testing.TB, message string) {
-	println(requireShells)
 	if requireShells {
 		tb.Fatal(message)
 	} else {
