@@ -10,6 +10,7 @@ import (
 	"maps"
 	mathrand "math/rand/v2"
 	"os"
+	"runtime"
 	"slices"
 	"strconv"
 	"strings"
@@ -25,8 +26,9 @@ func newOverlayEnviron(parent expand.Environ, background bool) *overlayEnviron {
 	} else {
 		// We could do better here if the parent is also an overlayEnviron;
 		// measure with profiles or benchmarks before we choose to do so.
-		oenv.values = make(map[string]expand.Variable)
-		maps.Insert(oenv.values, parent.Each)
+		for name, vr := range parent.Each {
+			oenv.Set(name, vr)
+		}
 	}
 	return oenv
 }
@@ -37,16 +39,38 @@ type overlayEnviron struct {
 	// which we can safely reuse without data races, such as non-background subshells
 	// or function calls.
 	parent expand.Environ
-	values map[string]expand.Variable
+
+	// values maps normalized variable names, per [overlayEnviron.normalize].
+	values map[string]namedVariable
 
 	// We need to know if the current scope is a function's scope, because
 	// functions can modify global variables. When true, [parent] must not be nil.
 	funcScope bool
 }
 
+// namedVariable records the original name of a variable for platforms
+// where variable names are matched in a case-insensitive way.
+type namedVariable struct {
+	// TODO(v4): consider adding this field to [expand.Variable],
+	// as a general way for a variable to report its original name.
+	// This can be useful for GOOS=windows with case insensitive env vars,
+	// as otherwise it's not possible to Environ.Get a var
+	// and know what was its original name without looping over Environ.Each.
+	Name string
+	expand.Variable
+}
+
+func (o *overlayEnviron) normalize(name string) string {
+	if runtime.GOOS == "windows" {
+		return strings.ToUpper(name)
+	}
+	return name
+}
+
 func (o *overlayEnviron) Get(name string) expand.Variable {
-	if vr, ok := o.values[name]; ok {
-		return vr
+	normalized := o.normalize(name)
+	if vr, ok := o.values[normalized]; ok {
+		return vr.Variable
 	}
 	if o.parent != nil {
 		return o.parent.Get(name)
@@ -55,18 +79,19 @@ func (o *overlayEnviron) Get(name string) expand.Variable {
 }
 
 func (o *overlayEnviron) Set(name string, vr expand.Variable) error {
-	prev, inOverlay := o.values[name]
+	normalized := o.normalize(name)
+	prev, inOverlay := o.values[normalized]
 	// Manipulation of a global var inside a function.
 	if o.funcScope && !vr.Local && !prev.Local {
 		// In a function, the parent environment is ours, so it's always read-write.
 		return o.parent.(expand.WriteEnviron).Set(name, vr)
 	}
 	if !inOverlay && o.parent != nil {
-		prev = o.parent.Get(name)
+		prev.Variable = o.parent.Get(name)
 	}
 
 	if o.values == nil {
-		o.values = make(map[string]expand.Variable)
+		o.values = make(map[string]namedVariable)
 	}
 	if vr.Kind == expand.KeepValue {
 		vr.Kind = prev.Kind
@@ -79,14 +104,14 @@ func (o *overlayEnviron) Set(name string, vr expand.Variable) error {
 	if !vr.IsSet() { // unsetting
 		if prev.Local {
 			vr.Local = true
-			o.values[name] = vr
+			o.values[normalized] = namedVariable{name, vr}
 			return nil
 		}
-		delete(o.values, name)
+		delete(o.values, normalized)
 	}
 	// modifying the entire variable
 	vr.Local = prev.Local || vr.Local
-	o.values[name] = vr
+	o.values[normalized] = namedVariable{name, vr}
 	return nil
 }
 
@@ -94,8 +119,8 @@ func (o *overlayEnviron) Each(f func(name string, vr expand.Variable) bool) {
 	if o.parent != nil {
 		o.parent.Each(f)
 	}
-	for name, vr := range o.values {
-		if !f(name, vr) {
+	for _, vr := range o.values {
+		if !f(vr.Name, vr.Variable) {
 			return
 		}
 	}

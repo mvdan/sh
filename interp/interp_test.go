@@ -3814,8 +3814,7 @@ var runTestsWindows = []runTest{
 	},
 	{
 		"localCase=camel; LocalCase=pascal; echo $localcase",
-		// TODO: should be "pascal"
-		"\n",
+		"pascal\n",
 	},
 	{
 		// Matching the env var name set as a global
@@ -3827,14 +3826,12 @@ var runTestsWindows = []runTest{
 		// Overwriting the env var set as a global
 		// in a case insensitive way.
 		"MIXEDCASE_interp_global=replaced; echo $MIXEDCASE_interp_GLOBAL",
-		// TODO: should be "replaced"
-		"value\n",
+		"replaced\n",
 	},
-	// TODO: this test appears to be a race between the two cases?
-	// {
-	// 	"MIXEDCASE_interp_global=replaced; $ENV_PROG | grep -i '^mixedcase_interp'",
-	// 	"MIXEDCASE_interp_global=replaced\n",
-	// },
+	{
+		"MIXEDCASE_interp_global=replaced; $ENV_PROG | grep -i '^mixedcase_interp'",
+		"MIXEDCASE_interp_global=replaced\n",
+	},
 }
 
 // These tests are specific to 64-bit architectures, and that's fine. We don't
