@@ -454,10 +454,10 @@ var runTests = []runTest{
 	{"foo_interp_missing=bar_interp_missing; $ENV_PROG | grep '^foo_interp_missing='", "exit status 1"},
 	{"foo_interp_missing=bar_interp_missing $ENV_PROG | grep '^foo_interp_missing='", "foo_interp_missing=bar_interp_missing\n"},
 	{"foo_interp_missing=a foo_interp_missing=b $ENV_PROG | grep '^foo_interp_missing='", "foo_interp_missing=b\n"},
-	{"$ENV_PROG | grep '^INTERP_GLOBAL='", "INTERP_GLOBAL=value\n"},
-	{"INTERP_GLOBAL=new; $ENV_PROG | grep '^INTERP_GLOBAL='", "INTERP_GLOBAL=new\n"},
-	{"INTERP_GLOBAL=; $ENV_PROG | grep '^INTERP_GLOBAL='", "INTERP_GLOBAL=\n"},
-	{"unset INTERP_GLOBAL; $ENV_PROG | grep '^INTERP_GLOBAL='", "exit status 1"},
+	{"$ENV_PROG | grep -i '^interp_global='", "INTERP_GLOBAL=value\n"},
+	{"INTERP_GLOBAL=new; $ENV_PROG | grep -i '^interp_global='", "INTERP_GLOBAL=new\n"},
+	{"INTERP_GLOBAL=; $ENV_PROG | grep -i '^interp_global='", "INTERP_GLOBAL=\n"},
+	{"unset INTERP_GLOBAL; $ENV_PROG | grep -i '^interp_global='", "exit status 1"},
 	{"a=b; a+=c x+=y; echo $a $x", "bc y\n"},
 	{`a=" x  y"; b=$a c="$a"; echo $b; echo $c`, "x y\nx y\n"},
 	{`a=" x  y"; b=$a c="$a"; echo "$b"; echo "$c"`, " x  y\n x  y\n"},
@@ -4250,17 +4250,17 @@ func TestRunnerOpts(t *testing.T) {
 	}{
 		{
 			nil,
-			"$ENV_PROG | grep '^INTERP_GLOBAL='",
+			"$ENV_PROG | grep -i '^interp_global='",
 			"INTERP_GLOBAL=value\n",
 		},
 		{
 			opts(withPath()),
-			"$ENV_PROG | grep '^INTERP_GLOBAL='",
+			"$ENV_PROG | grep -i '^interp_global='",
 			"exit status 1",
 		},
 		{
 			opts(withPath("INTERP_GLOBAL=bar_interp_missing")),
-			"$ENV_PROG | grep '^INTERP_GLOBAL='",
+			"$ENV_PROG | grep -i '^interp_global='",
 			"INTERP_GLOBAL=bar_interp_missing\n",
 		},
 		{
