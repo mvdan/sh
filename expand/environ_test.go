@@ -10,10 +10,10 @@ import (
 
 func TestListEnviron(t *testing.T) {
 	tests := []struct {
-		name  string
-		upper bool
-		pairs []string
-		want  []string
+		name        string
+		insensitive bool
+		pairs       []string
+		want        []string
 	}{
 		{
 			name:  "Empty",
@@ -46,24 +46,24 @@ func TestListEnviron(t *testing.T) {
 			want:  []string{"A=b", "c="},
 		},
 		{
-			name:  "MixedCaseNoUpper",
+			name:  "MixedCaseNoInsensitive",
 			pairs: []string{"A=b1", "Path=foo", "a=b2"},
 			want:  []string{"A=b1", "Path=foo", "a=b2"},
 		},
 		{
-			name:  "MixedCaseUpper",
-			upper: true,
-			pairs: []string{"A=b1", "Path=foo", "a=b2"},
-			want:  []string{"A=b2", "PATH=foo"},
+			name:        "MixedCaseInsensitive",
+			insensitive: true,
+			pairs:       []string{"A=b1", "Path=foo", "a=b2"},
+			want:        []string{"a=b2", "Path=foo"},
 		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			gotEnv := listEnvironWithUpper(tc.upper, tc.pairs...)
-			got := []string(gotEnv.(listEnviron))
+			gotEnv := listEnviron_(tc.insensitive, tc.pairs...)
+			got := gotEnv.(listEnviron).pairs
 			if !reflect.DeepEqual(got, tc.want) {
 				t.Fatalf("ListEnviron(%t, %q) wanted %#v, got %#v",
-					tc.upper, tc.pairs, tc.want, got)
+					tc.insensitive, tc.pairs, tc.want, got)
 			}
 		})
 	}

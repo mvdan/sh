@@ -3821,8 +3821,7 @@ var runTestsWindows = []runTest{
 		// Matching the env var name set as a global
 		// in a case sensitive way.
 		"$ENV_PROG | grep -i '^mixedCase_interp'",
-		// TODO: should be "mixedCase_INTERP_GLOBAL"
-		"MIXEDCASE_INTERP_GLOBAL=value\n",
+		"mixedCase_INTERP_GLOBAL=value\n",
 	},
 	{
 		// Overwriting the env var set as a global

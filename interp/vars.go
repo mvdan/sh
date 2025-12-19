@@ -10,7 +10,6 @@ import (
 	"maps"
 	mathrand "math/rand/v2"
 	"os"
-	"runtime"
 	"slices"
 	"strconv"
 	"strings"
@@ -179,12 +178,6 @@ func (r *Runner) lookupVar(name string) expand.Variable {
 	}
 	if vr := r.writeEnv.Get(name); vr.Declared() {
 		return vr
-	}
-	if runtime.GOOS == "windows" {
-		upper := strings.ToUpper(name)
-		if vr := r.writeEnv.Get(upper); vr.Declared() {
-			return vr
-		}
 	}
 	return expand.Variable{}
 }
