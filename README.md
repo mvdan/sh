@@ -110,7 +110,7 @@ The following editor integrations wrap `shfmt`:
 
 - [BashSupport-Pro] - Bash plugin for JetBrains IDEs
 - [dockerfmt] - Dockerfile formatter using shfmt
-- [intellij-shellcript] - Intellij Jetbrains `shell script` plugin
+- [intellij-shellscript] - Intellij Jetbrains `shell script` plugin
 - [micro] - Editor with a built-in plugin
 - [neoformat] - (Neo)Vim plugin
 - [shell-format] - VS Code plugin
@@ -140,7 +140,7 @@ Other noteworthy integrations include:
 [fedora]: https://packages.fedoraproject.org/pkgs/golang-mvdan-sh-3/shfmt/
 [freebsd]: https://www.freshports.org/devel/shfmt
 [homebrew]: https://formulae.brew.sh/formula/shfmt
-[intellij-shellcript]: https://www.jetbrains.com/help/idea/shell-scripts.html
+[intellij-shellscript]: https://www.jetbrains.com/help/idea/shell-scripts.html
 [macports]: https://ports.macports.org/port/shfmt/details/
 [mdformat-shfmt]: https://github.com/hukkin/mdformat-shfmt
 [mdformat]: https://github.com/executablebooks/mdformat
