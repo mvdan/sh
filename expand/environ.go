@@ -245,7 +245,7 @@ func (l listEnviron) Get(name string) Variable {
 	i, ok := slices.BinarySearchFunc(l.pairs, name, func(pair, name string) int {
 		if len(pair) < endpos {
 			// Too short; see if we are before or after the name.
-			return strings.Compare(pair, name)
+			return l.compare(pair, name)
 		}
 		// Compare the name prefix, then the equal character.
 		c := l.compare(pair[:eqpos], name)
