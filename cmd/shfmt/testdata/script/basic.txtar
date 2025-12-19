@@ -14,13 +14,13 @@ exec shfmt input.sh
 cmp stdout input.sh.golden
 ! stderr .
 
-exec shfmt -l input.sh
+! exec shfmt -l input.sh
 stdout 'input\.sh'
 ! stdout foo
 ! stderr .
 cmp input.sh input.sh.orig
 
-exec shfmt -l input.sh input.sh
+! exec shfmt -l input.sh input.sh
 stdout -count=2 'input.sh'
 
 exec shfmt -l -w input.sh
