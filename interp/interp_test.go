@@ -3812,6 +3812,30 @@ var runTestsWindows = []runTest{
 		"GOSH_CMD=lookpath $GOSH_PROG",
 		"cmd found\n",
 	},
+	{
+		"localCase=camel; LocalCase=pascal; echo $localcase",
+		// TODO: should be "pascal"
+		"\n",
+	},
+	{
+		// Matching the env var name set as a global
+		// in a case sensitive way.
+		"$ENV_PROG | grep -i '^mixedCase_interp'",
+		// TODO: should be "mixedCase_INTERP_GLOBAL"
+		"MIXEDCASE_INTERP_GLOBAL=value\n",
+	},
+	{
+		// Overwriting the env var set as a global
+		// in a case insensitive way.
+		"MIXEDCASE_interp_global=replaced; echo $MIXEDCASE_interp_GLOBAL",
+		// TODO: should be "replaced"
+		"value\n",
+	},
+	// TODO: this test appears to be a race between the two cases?
+	// {
+	// 	"MIXEDCASE_interp_global=replaced; $ENV_PROG | grep -i '^mixedcase_interp'",
+	// 	"MIXEDCASE_interp_global=replaced\n",
+	// },
 }
 
 // These tests are specific to 64-bit architectures, and that's fine. We don't
@@ -3999,11 +4023,17 @@ var testBuiltinsMap = map[string]func(interp.HandlerContext, []string) error{
 	"grep": func(hc interp.HandlerContext, args []string) error {
 		var rx *regexp.Regexp
 		quiet := false
+		caseInsensitive := false
 		for _, arg := range args {
 			if arg == "-q" {
 				quiet = true
+			} else if arg == "-i" {
+				caseInsensitive = true
 			} else if arg == "-E" {
 			} else if rx == nil {
+				if caseInsensitive {
+					arg = "(?i)" + arg
+				}
 				rx = regexp.MustCompile(arg)
 			} else {
 				return fmt.Errorf("unexpected arg: %q", arg)
