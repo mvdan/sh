@@ -335,7 +335,7 @@ func confirmParse(in, cmd string, wantErr bool) func(*testing.T) {
 		err := cmd.Run()
 
 		if cmd.ProcessState.ExitCode() == -1 {
-			t.Fatalf("Shell had to be killed after a timeout")
+			t.Fatalf("shell terminated by signal: %v", err)
 		}
 
 		// bash sometimes likes to error on an input via stderr
