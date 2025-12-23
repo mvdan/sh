@@ -629,6 +629,16 @@ type ParamExp struct {
 	Exp   *Expansion       // ${a:-b}, ${a#b}, etc
 }
 
+// simple returns true if the parameter expansion is of the form $name or ${name},
+// only expanding a name without any further logic.
+func (p *ParamExp) simple() bool {
+	return p.Flags == nil &&
+		!p.Excl && !p.Length && !p.Width && !p.Plus &&
+		p.NestedParam == nil && p.Index == nil &&
+		p.Slice == nil && p.Repl == nil &&
+		p.Names == 0 && p.Exp == nil
+}
+
 func (p *ParamExp) Pos() Pos { return p.Dollar }
 func (p *ParamExp) End() Pos {
 	if !p.Short {

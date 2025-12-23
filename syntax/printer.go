@@ -661,13 +661,9 @@ func (p *Printer) wordPart(wp, next WordPart) {
 		if nextLit, ok := next.(*Lit); ok && nextLit.Value != "" {
 			litCont = nextLit.Value[:1]
 		}
-		if p.minify && !wp.Short && wp.Param != nil {
+		if p.minify && !wp.Short && wp.simple() {
 			name := wp.Param.Value
 			switch {
-			case wp.Flags != nil:
-			case wp.Excl, wp.Length, wp.Width, wp.Plus:
-			case wp.Index != nil:
-			case wp.Slice != nil, wp.Repl != nil, wp.Names != 0, wp.Exp != nil:
 			case len(name) > 1 && !ValidName(name): // ${10}
 			case ValidName(name + litCont): // ${var}cont
 			default:
