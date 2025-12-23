@@ -606,7 +606,7 @@ type ParamExp struct {
 
 	Short bool // $a instead of ${a}
 
-	Flags *Word // ${(flags)a} with [LangZsh]
+	Flags *Lit // ${(flags)a} with [LangZsh]
 
 	// Only one of these is set at a time.
 	// TODO(v4): perhaps use an Operator token here,

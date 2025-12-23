@@ -4787,11 +4787,11 @@ var fileTests = []fileTestCase{
 		[]string{"${(aO)foo} ${(s/x/)foo}"},
 		langFile(call(
 			word(&ParamExp{
-				Flags: litWord("aO"),
+				Flags: lit("aO"),
 				Param: lit("foo"),
 			}),
 			word(&ParamExp{
-				Flags: litWord("s/x/"),
+				Flags: lit("s/x/"),
 				Param: lit("foo"),
 			}),
 		), LangZsh),

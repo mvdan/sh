@@ -738,7 +738,7 @@ func (p *Printer) paramExp(pe *ParamExp) {
 	}
 	if pe.Flags != nil {
 		p.w.WriteByte('(')
-		p.word(pe.Flags)
+		p.writeLit(pe.Flags.Value)
 		p.w.WriteByte(')')
 	}
 	switch {
