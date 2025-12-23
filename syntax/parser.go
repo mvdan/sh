@@ -1850,7 +1850,7 @@ func (p *Parser) doRedirect(s *Stmt) {
 		p.checkLang(r.N.Pos(), langBashLike, "{varname} redirects")
 	}
 	if p.tok == rdrAll || p.tok == appAll {
-		p.checkLang(p.pos, langBashLike|LangMirBSDKorn, "&> redirects")
+		p.checkLang(p.pos, langBashLike|LangMirBSDKorn|LangZsh, "&> redirects")
 	}
 	r.Op, r.OpPos = RedirOperator(p.tok), p.pos
 	p.next()

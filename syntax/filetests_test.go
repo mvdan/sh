@@ -1633,8 +1633,8 @@ var fileTests = []fileTestCase{
 			Redirs: []*Redirect{
 				{Op: RdrAll, Word: litWord("a")},
 			},
-		}, LangBash|LangMirBSDKorn),
-		langErr2(`1:5: &> redirects are a bash/mksh feature; tried parsing as LANG`, LangPOSIX),
+		}, LangBash|LangMirBSDKorn|LangZsh),
+		langErr2(`1:5: &> redirects are a bash/mksh/zsh feature; tried parsing as LANG`, LangPOSIX),
 	),
 	fileTest(
 		[]string{"foo &>>b"},
@@ -1643,8 +1643,8 @@ var fileTests = []fileTestCase{
 			Redirs: []*Redirect{
 				{Op: AppAll, Word: litWord("b")},
 			},
-		}, LangBash|LangMirBSDKorn),
-		langErr2(`1:5: &> redirects are a bash/mksh feature; tried parsing as LANG`, LangPOSIX),
+		}, LangBash|LangMirBSDKorn|LangZsh),
+		langErr2(`1:5: &> redirects are a bash/mksh/zsh feature; tried parsing as LANG`, LangPOSIX),
 	),
 	fileTest(
 		[]string{"foo 2>file bar", "2>file foo bar"},
