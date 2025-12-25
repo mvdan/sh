@@ -1537,7 +1537,7 @@ func (p *Parser) paramExp() *ParamExp {
 		pe.Exp = p.paramExpExp()
 	case _EOF:
 	default:
-		if paramNameRune(p.r) {
+		if paramNameRune(tokRune) {
 			p.curErr("%q cannot be followed by a word", pe.Param.Value)
 		} else {
 			p.curErr("not a valid parameter expansion operator: %q", string(tokRune))
