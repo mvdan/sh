@@ -106,6 +106,7 @@ const (
 	dblPerc  // %%
 	hash     // #
 	dblHash  // ##
+	colHash  // :#
 	caret    // ^
 	dblCaret // ^^
 	comma    // ,
@@ -233,6 +234,7 @@ const (
 	RemLargeSuffix                                     // %%
 	RemSmallPrefix                                     // #
 	RemLargePrefix                                     // ##
+	MatchEmpty                                         // :# with [LangZsh]
 	UpperFirst                                         // ^
 	UpperAll                                           // ^^
 	LowerFirst                                         // ,

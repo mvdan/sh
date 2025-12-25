@@ -1551,7 +1551,7 @@ func (p *Parser) paramExp() *ParamExp {
 			pe.Exp = p.paramExpExp()
 		}
 	case plus, colPlus, minus, colMinus, quest, colQuest, assgn, colAssgn,
-		perc, dblPerc, hash, dblHash:
+		perc, dblPerc, hash, dblHash, colHash:
 		pe.Exp = p.paramExpExp()
 	case _EOF:
 	default:
@@ -1633,6 +1633,10 @@ func (p *Parser) paramExpParameter(pe *ParamExp) *ParamExp {
 
 func (p *Parser) paramExpExp() *Expansion {
 	op := ParExpOperator(p.tok)
+	switch op {
+	case MatchEmpty:
+		p.checkLang(p.pos, LangZsh, "${name%sarg}", op)
+	}
 	p.quote = paramExpExp
 	p.next()
 	if op == OtherParamOps {

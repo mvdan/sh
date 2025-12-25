@@ -2455,6 +2455,20 @@ var fileTests = []fileTestCase{
 		}),
 	),
 	fileTest(
+		[]string{`foo=force_expansion ${foo:#bar}`},
+		langErr2(`1:26: ${name:#arg} is a zsh feature; tried parsing as LANG`),
+		langFile(&CallExpr{
+			Assigns: litAssigns("foo=force_expansion"),
+			Args: []*Word{word(&ParamExp{
+				Param: lit("foo"),
+				Exp: &Expansion{
+					Op:   MatchEmpty,
+					Word: litWord("bar"),
+				},
+			})},
+		}, LangZsh),
+	),
+	fileTest(
 		[]string{
 			`${foo[1]}`,
 			`${foo[ 1 ]}`,
