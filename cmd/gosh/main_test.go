@@ -174,7 +174,7 @@ var interactiveTests = []struct {
 			"(x\n",
 			"> ",
 		},
-		wantErr: "1:1: reached EOF without matching ( with )",
+		wantErr: "1:1: reached EOF without matching '(' with ')'",
 	},
 	{
 		pairs: []string{

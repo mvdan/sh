@@ -91,7 +91,7 @@ func (p *testParser) testExprBase(fval string) syntax.TestExpr {
 		p.next()
 		pe.X = p.classicTest(op.String(), false)
 		if p.val != ")" {
-			p.errf("reached %s without matching ( with )", p.val)
+			p.errf("reached %s without matching '(' with ')'", p.val)
 		}
 		p.next()
 		return pe

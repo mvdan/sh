@@ -1889,7 +1889,7 @@ var fileTests = []fileTestCase{
 	),
 	fileTest(
 		[]string{"{ }"},
-		langErr2(`1:1: { must be followed by a statement list`),
+		langErr2(`1:1: '{' must be followed by a statement list`),
 		langFile(block(), LangZsh|LangMirBSDKorn),
 	),
 	fileTest(
@@ -1898,7 +1898,7 @@ var fileTests = []fileTestCase{
 	),
 	fileTest(
 		[]string{"( )"},
-		langErr2(`1:1: ( must be followed by a statement list`),
+		langErr2(`1:1: '(' must be followed by a statement list`),
 		langFile(subshell(), LangZsh|LangMirBSDKorn),
 	),
 	fileTest(

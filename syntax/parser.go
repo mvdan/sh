@@ -11,6 +11,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"unicode"
 	"unicode/utf8"
 )
 
@@ -793,13 +794,25 @@ func (p *Parser) recoverError() bool {
 	return false
 }
 
-// quoteTok quotes tokens like "case", but not & or }.
+// quoteTok quotes a token or word string for an error message,
+// using either single or double quotes depending on what is best.
 func quoteTok(s string) string {
-	// don't quote tokens like & or }
-	if s != "" && s[0] >= 'a' && s[0] <= 'z' {
-		return strconv.Quote(s)
+	if s == "" {
+		panic("a token string should never be empty")
 	}
-	return s
+	// We want tokens like '"' or '>>' to use single quotes,
+	// and words like "if" or "case" to use double quotes.
+	// Mixed cases like "@test" or "[x]" fall back to double quotes.
+	for _, r := range s {
+		if unicode.IsLetter(r) || r == '\'' {
+			return strconv.Quote(s)
+		}
+	}
+	return "'" + s + "'"
+}
+
+func quotedToken[T fmt.Stringer](tok T) string {
+	return quoteTok(tok.String())
 }
 
 func (p *Parser) followErr(pos Pos, left, right string) {
@@ -813,7 +826,7 @@ func (p *Parser) followErrExp(pos Pos, left string) {
 
 func (p *Parser) follow(lpos Pos, left string, tok token) {
 	if !p.got(tok) {
-		p.followErr(lpos, left, tok.String())
+		p.followErr(lpos, left, quotedToken(tok))
 	}
 }
 
@@ -1009,17 +1022,22 @@ func (e LangError) Error() string {
 	return sb.String()
 }
 
-func (p *Parser) posErr(pos Pos, format string, a ...any) {
+func (p *Parser) posErr(pos Pos, format string, args ...any) {
+	for i, arg := range args {
+		if arg, ok := arg.(fmt.Stringer); ok && arg != _EOF {
+			args[i] = quotedToken(arg)
+		}
+	}
 	p.errPass(ParseError{
 		Filename:   p.f.Name,
 		Pos:        pos,
-		Text:       fmt.Sprintf(format, a...),
+		Text:       fmt.Sprintf(format, args...),
 		Incomplete: p.tok == _EOF && p.Incomplete(),
 	})
 }
 
-func (p *Parser) curErr(format string, a ...any) {
-	p.posErr(p.pos, format, a...)
+func (p *Parser) curErr(format string, args ...any) {
+	p.posErr(p.pos, format, args...)
 }
 
 func (p *Parser) checkLang(pos Pos, langSet LangVariant, format string, a ...any) {
@@ -1053,7 +1071,7 @@ loop:
 				}
 			}
 			if p.val == "}" {
-				p.curErr(`%s can only be used to close a block`, p.val)
+				p.curErr(`%s can only be used to close a block`, rightBrace)
 			}
 		case rightParen:
 			if p.quote == subCmd {
@@ -1738,7 +1756,7 @@ func (p *Parser) getAssign(needEqual bool) *Assign {
 		as.Index = p.eitherIndex()
 		if p.spaced || p.stopToken() {
 			if needEqual {
-				p.followErr(as.Pos(), "a[b]", "=")
+				p.followErr(as.Pos(), "a[b]", "'='")
 			} else {
 				as.Naked = true
 				return as
@@ -1751,9 +1769,9 @@ func (p *Parser) getAssign(needEqual bool) *Assign {
 		}
 		if len(p.val) < 1 || p.val[0] != '=' {
 			if as.Append {
-				p.followErr(as.Pos(), "a[b]+", "=")
+				p.followErr(as.Pos(), "a[b]+", "'='")
 			} else {
-				p.followErr(as.Pos(), "a[b]", "=")
+				p.followErr(as.Pos(), "a[b]", "'='")
 			}
 			return nil
 		}
@@ -1785,7 +1803,7 @@ func (p *Parser) getAssign(needEqual bool) *Assign {
 			if p.tok == leftBrack {
 				left := p.pos
 				ae.Index = p.eitherIndex()
-				p.follow(left, `"[x]"`, assgn)
+				p.follow(left, `[x]`, assgn)
 			}
 			if ae.Value = p.getWord(); ae.Value == nil {
 				switch p.tok {
@@ -1885,7 +1903,7 @@ func (p *Parser) getStmt(readEnd, binCmd, fnBody bool) *Stmt {
 	if ok {
 		s.Negated = true
 		if p.stopToken() {
-			p.posErr(s.Pos(), `"!" cannot form a statement alone`)
+			p.posErr(s.Pos(), `'!' cannot form a statement alone`)
 		}
 		if _, ok := p.gotRsrv("!"); ok {
 			p.posErr(s.Pos(), `cannot negate a command multiple times`)
@@ -1974,22 +1992,20 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 			p.caseClause(s)
 		// TODO(zsh): { try-list } "always" { always-list }
 		case "}":
-			p.curErr(`%s can only be used to close a block`, p.val)
-		case "then":
-			p.curErr(`%q can only be used in an if`, p.val)
-		case "elif":
-			p.curErr(`%q can only be used in an if`, p.val)
+			p.curErr(`%s can only be used to close a block`, rightBrace)
+		case "then", "elif":
+			p.curErr(`%q can only be used in an "if"`, p.val)
 		case "fi":
-			p.curErr(`%q can only be used to end an if`, p.val)
+			p.curErr(`%q can only be used to end an "if"`, p.val)
 		case "do":
 			p.curErr(`%q can only be used in a loop`, p.val)
 		case "done":
 			p.curErr(`%q can only be used to end a loop`, p.val)
 		case "esac":
-			p.curErr(`%q can only be used to end a case`, p.val)
+			p.curErr(`%q can only be used to end a "case"`, p.val)
 		case "!":
 			if !s.Negated {
-				p.curErr(`"!" can only be used in full statements`)
+				p.curErr(`%s can only be used in full statements`, exclMark)
 				break
 			}
 		case "[[":
@@ -1998,7 +2014,7 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 			}
 		case "]]":
 			if p.lang.in(langBashLike | LangMirBSDKorn | LangZsh) {
-				p.curErr(`%s can only be used to close a test`, p.val)
+				p.curErr(`%s can only be used to close a test`, dblRightBrack)
 			}
 		case "let":
 			if p.lang.in(langBashLike | LangMirBSDKorn | LangZsh) {
@@ -2284,7 +2300,7 @@ func (p *Parser) wordIter(ftok string, fpos Pos) *WordIter {
 		p.got(_Newl)
 	} else if p.tok == _LitWord && p.val == "do" {
 	} else {
-		p.followErr(fpos, ftok+" foo", `"in", "do", ;, or a newline`)
+		p.followErr(fpos, ftok+" foo", `"in", "do", ';', or a newline`)
 	}
 	return wi
 }
@@ -2338,7 +2354,7 @@ func (p *Parser) caseItems(stop string) (items []*CaseItem) {
 				break
 			}
 			if !p.got(or) {
-				p.curErr("case patterns must be separated with |")
+				p.curErr("case patterns must be separated with %s", or)
 			}
 		}
 		old := p.preNested(switchCase)
@@ -2645,7 +2661,7 @@ func (p *Parser) testDecl(s *Stmt) {
 		p.followErr(td.Position, "@test", "a description word")
 	}
 	if td.Body = p.getStmt(false, false, true); td.Body == nil {
-		p.followErr(td.Position, `@test "desc"`, "a statement")
+		p.followErr(td.Position, `@test desc...`, "a statement")
 	}
 	s.Cmd = td
 }
