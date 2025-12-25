@@ -1521,7 +1521,7 @@ func (p *Parser) paramExp() *ParamExp {
 	case at, star:
 		switch {
 		case p.tok == star && !pe.Excl:
-			p.curErr("not a valid parameter expansion operator: %q", p.tok)
+			p.curErr("not a valid parameter expansion operator: %q", '*')
 		case pe.Excl && p.r == '}':
 			p.checkLang(pe.Pos(), langBashLike, `"${!foo%s}"`, p.tok)
 			pe.Names = ParNamesOperator(p.tok)
@@ -1540,7 +1540,7 @@ func (p *Parser) paramExp() *ParamExp {
 		if paramNameRune(tokRune) {
 			p.curErr("%q cannot be followed by a word", pe.Param.Value)
 		} else {
-			p.curErr("not a valid parameter expansion operator: %q", string(tokRune))
+			p.curErr("not a valid parameter expansion operator: %q", tokRune)
 		}
 	}
 	if p.tok != _EOF && p.tok != rightBrace {
