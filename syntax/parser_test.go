@@ -1886,9 +1886,8 @@ var errorCases = []errorCase{
 		langErr(`1:11: @ expansion operator requires a literal`, LangBash),
 	),
 	errCase(
-		"echo ${foo@}",
-		langErr(`1:12: @ expansion operator requires a literal`, LangBash),
-		flipConfirmAll, // empty string fallback
+		"foo=force_expansion; echo ${foo@}",
+		langErr(`1:33: @ expansion operator requires a literal`, LangBash),
 	),
 	errCase(
 		"echo ${foo@Q",
