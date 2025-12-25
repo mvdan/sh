@@ -623,10 +623,11 @@ type ParamExp struct {
 	Index ArithmExpr // ${a[i]}, ${a["k"]}
 
 	// Only one of these is set at a time.
-	Slice *Slice           // ${a:x:y}
-	Repl  *Replace         // ${a/x/y}
-	Names ParNamesOperator // ${!prefix*} or ${!prefix@}
-	Exp   *Expansion       // ${a:-b}, ${a#b}, etc
+	Modifiers []*Lit           // ${a:h2} with [LangZsh]
+	Slice     *Slice           // ${a:x:y}
+	Repl      *Replace         // ${a/x/y}
+	Names     ParNamesOperator // ${!prefix*} or ${!prefix@}
+	Exp       *Expansion       // ${a:-b}, ${a#b}, etc
 }
 
 // simple returns true if the parameter expansion is of the form $name or ${name},
@@ -635,8 +636,8 @@ func (p *ParamExp) simple() bool {
 	return p.Flags == nil &&
 		!p.Excl && !p.Length && !p.Width && !p.Plus &&
 		p.NestedParam == nil && p.Index == nil &&
-		p.Slice == nil && p.Repl == nil &&
-		p.Names == 0 && p.Exp == nil
+		len(p.Modifiers) == 0 && p.Slice == nil &&
+		p.Repl == nil && p.Names == 0 && p.Exp == nil
 }
 
 func (p *ParamExp) Pos() Pos { return p.Dollar }

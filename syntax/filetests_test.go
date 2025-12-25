@@ -4783,6 +4783,24 @@ var fileTests = []fileTestCase{
 		}, LangZsh),
 	),
 	fileTest(
+		[]string{"${foo:u}"},
+		langFile(&ParamExp{
+			Param:     lit("foo"),
+			Modifiers: lits("u"),
+		}, LangZsh),
+		langFile(&ParamExp{
+			Param: lit("foo"),
+			Slice: &Slice{Offset: litWord("u")},
+		}, LangBash|LangMirBSDKorn),
+	),
+	fileTest(
+		[]string{"${foo:t5:h2:l}"},
+		langFile(&ParamExp{
+			Param:     lit("foo"),
+			Modifiers: lits("t5", "h2", "l"),
+		}, LangZsh),
+	),
+	fileTest(
 		[]string{"$${foo}"},
 		langFile(word(
 			litParamExp("$"),

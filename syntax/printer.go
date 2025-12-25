@@ -759,6 +759,11 @@ func (p *Printer) paramExp(pe *ParamExp) {
 	}
 	p.wroteIndex(pe.Index)
 	switch {
+	case len(pe.Modifiers) > 0:
+		for _, lit := range pe.Modifiers {
+			p.w.WriteByte(':')
+			p.w.WriteString(lit.Value)
+		}
 	case pe.Slice != nil:
 		p.w.WriteByte(':')
 		p.arithmExpr(pe.Slice.Offset, true, true)

@@ -1516,6 +1516,30 @@ func (p *Parser) paramExp() *ParamExp {
 			pe.Repl.With = p.getWord()
 		}
 	case colon: // slicing
+		if p.lang.in(LangZsh) && (p.r == '&' || (p.r >= 'a' && p.r <= 'z') || (p.r >= 'A' && p.r <= 'Z')) {
+			pos := p.pos
+		loop:
+			for p.newLit(p.r); ; p.rune() {
+				switch p.r {
+				case utf8.RuneSelf:
+					p.matchingErr(pe.Dollar, dollBrace, rightBrace)
+					break loop
+				case '}':
+					pe.Modifiers = append(pe.Modifiers, p.lit(pos, p.endLit()))
+					pe.Rbrace = p.nextPos()
+					p.rune()
+					break loop
+				case ':':
+					pe.Modifiers = append(pe.Modifiers, p.lit(pos, p.endLit()))
+					p.rune()
+					pos = p.nextPos()
+					p.newLit(p.r)
+				}
+			}
+			p.quote = old
+			p.next()
+			return pe
+		}
 		p.checkLang(p.pos, langBashLike|LangMirBSDKorn|LangZsh, "slicing")
 		pe.Slice = &Slice{}
 		colonPos := p.pos
