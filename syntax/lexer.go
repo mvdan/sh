@@ -59,7 +59,11 @@ func (p *Parser) rune() rune {
 	bquotes := 0
 retry:
 	if p.bsp >= uint(len(p.bs)) && p.fill() == 0 {
-		p.bsp = 1
+		if len(p.bs) == 0 {
+			// Necessary for the last position to be correct.
+			// TODO: this is not exactly intuitive; figure out a better way.
+			p.bsp = 1
+		}
 		p.r = utf8.RuneSelf
 		p.w = 1
 		return p.r

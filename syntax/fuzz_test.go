@@ -107,7 +107,7 @@ func FuzzParsePrint(f *testing.F) {
 
 		// parser options
 		// TODO: also fuzz StopAt
-		langVariant uint8, // 0-3
+		langVariant uint8,
 		keepComments bool,
 
 		simplify bool,
@@ -131,6 +131,9 @@ func FuzzParsePrint(f *testing.F) {
 		}
 
 		parser := NewParser(Variant(lang), KeepComments(keepComments))
+		t.Logf("input: %q", src)
+		t.Logf("LangVariant: %s", lang)
+		t.Logf("KeepComments: %t", keepComments)
 		prog, err := parser.Parse(strings.NewReader(src), "")
 		if err != nil {
 			t.Skip() // not valid shell syntax
