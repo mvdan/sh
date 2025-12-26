@@ -1870,8 +1870,9 @@ func (p *Parser) getAssign(needEqual bool) *Assign {
 
 func (p *Parser) peekRedir() bool {
 	switch p.tok {
-	case rdrOut, appOut, rdrIn, dplIn, dplOut, clbOut, rdrInOut,
-		hdoc, dashHdoc, wordHdoc, rdrAll, appAll, _LitRedir:
+	case _LitRedir, rdrOut, appOut, rdrIn, rdrInOut, dplIn, dplOut,
+		rdrClob, rdrTrunc, appClob, appTrunc, hdoc, dashHdoc, wordHdoc,
+		rdrAll, rdrAllClob, rdrAllTrunc, appAll, appAllClob, appAllTrunc:
 		return true
 	}
 	return false
@@ -1895,10 +1896,13 @@ func (p *Parser) doRedirect(s *Stmt) {
 	if r.N != nil && r.N.Value[0] == '{' {
 		p.checkLang(r.N.Pos(), langBashLike, "{varname} redirects")
 	}
-	if p.tok == rdrAll || p.tok == appAll {
-		p.checkLang(p.pos, langBashLike|LangMirBSDKorn|LangZsh, "&> redirects")
-	}
 	r.Op, r.OpPos = RedirOperator(p.tok), p.pos
+	switch r.Op {
+	case RdrAll, AppAll:
+		p.checkLang(p.pos, langBashLike|LangMirBSDKorn|LangZsh, "%s redirects", r.Op)
+	case RdrTrunc, AppClob, AppTrunc, RdrAllClob, RdrAllTrunc, AppAllClob, AppAllTrunc:
+		p.checkLang(p.pos, LangZsh, "%s redirects", r.Op)
+	}
 	p.next()
 	switch r.Op {
 	case Hdoc, DashHdoc:

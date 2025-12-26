@@ -1653,7 +1653,7 @@ var fileTests = []fileTestCase{
 				{Op: AppAll, Word: litWord("b")},
 			},
 		}, LangBash|LangMirBSDKorn|LangZsh),
-		langErr2(`1:5: &> redirects are a bash/mksh/zsh feature; tried parsing as LANG`, LangPOSIX),
+		langErr2(`1:5: &>> redirects are a bash/mksh/zsh feature; tried parsing as LANG`, LangPOSIX),
 	),
 	fileTest(
 		[]string{"foo 2>file bar", "2>file foo bar"},
@@ -1682,9 +1682,25 @@ var fileTests = []fileTestCase{
 		langFile(&Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*Redirect{
-				{Op: ClbOut, Word: litWord("bar")},
+				{Op: RdrClob, Word: litWord("bar")},
 			},
 		}),
+	),
+	fileTest(
+		[]string{"foo >!a >>|b >>!c &>|d &>!e &>>|f &>>!g"},
+		langErr2(`1:5: >! redirects are a zsh feature; tried parsing as LANG`),
+		langFile(&Stmt{
+			Cmd: litCall("foo"),
+			Redirs: []*Redirect{
+				{Op: RdrTrunc, Word: litWord("a")},
+				{Op: AppClob, Word: litWord("b")},
+				{Op: AppTrunc, Word: litWord("c")},
+				{Op: RdrAllClob, Word: litWord("d")},
+				{Op: RdrAllTrunc, Word: litWord("e")},
+				{Op: AppAllClob, Word: litWord("f")},
+				{Op: AppAllTrunc, Word: litWord("g")},
+			},
+		}, LangZsh),
 	),
 	fileTest(
 		[]string{

@@ -434,8 +434,22 @@ func (p *Parser) regToken(r rune) token {
 			p.rune()
 			return andAnd
 		case '>':
-			if p.rune() == '>' {
+			switch p.rune() {
+			case '|':
 				p.rune()
+				return rdrAllClob
+			case '!':
+				p.rune()
+				return rdrAllTrunc
+			case '>':
+				switch p.rune() {
+				case '|':
+					p.rune()
+					return appAllClob
+				case '!':
+					p.rune()
+					return appAllTrunc
+				}
 				return appAll
 			}
 			return rdrAll
@@ -545,14 +559,24 @@ func (p *Parser) regToken(r rune) token {
 	case '>':
 		switch p.rune() {
 		case '>':
-			p.rune()
+			switch p.rune() {
+			case '|':
+				p.rune()
+				return appClob
+			case '!':
+				p.rune()
+				return appTrunc
+			}
 			return appOut
 		case '&':
 			p.rune()
 			return dplOut
 		case '|':
 			p.rune()
-			return clbOut
+			return rdrClob
+		case '!':
+			p.rune()
+			return rdrTrunc
 		case '(':
 			if !p.lang.in(langBashLike | LangZsh) {
 				break

@@ -78,18 +78,25 @@ const (
 	xorBoolAssgn // ^^=
 	powAssgn     // **=
 
-	rdrOut   // >
-	appOut   // >>
-	rdrIn    // <
-	rdrInOut // <>
-	dplIn    // <&
-	dplOut   // >&
-	clbOut   // >|
-	hdoc     // <<
-	dashHdoc // <<-
-	wordHdoc // <<<
-	rdrAll   // &>
-	appAll   // &>>
+	rdrOut      // >
+	appOut      // >>
+	rdrIn       // <
+	rdrInOut    // <>
+	dplIn       // <&
+	dplOut      // >&
+	rdrClob     // >|
+	rdrTrunc    // >!
+	appClob     // >>|
+	appTrunc    // >>!
+	hdoc        // <<
+	dashHdoc    // <<-
+	wordHdoc    // <<<
+	rdrAll      // &>
+	rdrAllClob  // &>|
+	rdrAllTrunc // &>!
+	appAll      // &>>
+	appAllClob  // &>>|
+	appAllTrunc // &>>!
 
 	cmdIn  // <(
 	cmdOut // >(
@@ -163,18 +170,30 @@ const (
 type RedirOperator token
 
 const (
-	RdrOut   = RedirOperator(rdrOut) + iota // >
-	AppOut                                  // >>
-	RdrIn                                   // <
-	RdrInOut                                // <>
-	DplIn                                   // <&
-	DplOut                                  // >&
-	ClbOut                                  // >|
-	Hdoc                                    // <<
-	DashHdoc                                // <<-
-	WordHdoc                                // <<<
-	RdrAll                                  // &>
-	AppAll                                  // &>>
+	RdrOut      = RedirOperator(rdrOut) + iota // >
+	AppOut                                     // >>
+	RdrIn                                      // <
+	RdrInOut                                   // <>
+	DplIn                                      // <&
+	DplOut                                     // >&
+	RdrClob                                    // >|
+	RdrTrunc                                   // >! with [LangZsh]
+	AppClob                                    // >>| with [LangZsh]
+	AppTrunc                                   // >>! with [LangZsh]
+	Hdoc                                       // <<
+	DashHdoc                                   // <<-
+	WordHdoc                                   // <<<
+	RdrAll                                     // &>
+	RdrAllClob                                 // &>| with [LangZsh]
+	RdrAllTrunc                                // &>! with [LangZsh]
+	AppAll                                     // &>>
+	AppAllClob                                 // &>>| with [LangZsh]
+	AppAllTrunc                                // &>>! with [LangZsh]
+
+	// Deprecated: use [RdrClob]
+	//
+	//go:fix inline
+	ClbOut = RdrClob
 )
 
 type ProcOperator token
