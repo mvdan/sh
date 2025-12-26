@@ -610,8 +610,7 @@ func (p *Parser) regToken(r rune) token {
 		}
 		return rdrOut
 	}
-	p.rune()
-	return illegalTok
+	panic("unreachable")
 }
 
 func (p *Parser) dqToken(r rune) token {
@@ -643,8 +642,7 @@ func (p *Parser) dqToken(r rune) token {
 		}
 		return dollar
 	}
-	p.rune()
-	return illegalTok
+	panic("unreachable")
 }
 
 func (p *Parser) paramToken(r rune) token {
@@ -728,6 +726,7 @@ func (p *Parser) paramToken(r rune) token {
 	case '*':
 		p.rune()
 		return star
+
 	// This func gets called by the parser in [runeByRune] mode;
 	// we need to handle EOF and unexpected runes.
 	case utf8.RuneSelf:
@@ -892,8 +891,7 @@ func (p *Parser) arithmToken(r rune) token {
 		p.rune()
 		return period
 	}
-	p.rune()
-	return illegalTok
+	panic("unreachable")
 }
 
 func (p *Parser) newLit(r rune) {
