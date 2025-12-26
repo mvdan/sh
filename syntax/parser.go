@@ -1220,11 +1220,7 @@ func (p *Parser) wordPart() WordPart {
 			cs.Right = pos
 			return cs
 		default:
-			pe := p.paramExp()
-			if p.tok == illegalTok {
-				p.tok = _EOF
-			}
-			return pe
+			return p.paramExp()
 		}
 	case dollDblParen, dollBrack:
 		p.ensureNoNested(p.pos)
@@ -1517,6 +1513,7 @@ func (p *Parser) paramExp() *ParamExp {
 			for p.newLit(p.r); ; p.rune() {
 				switch p.r {
 				case utf8.RuneSelf:
+					p.tok = _EOF
 					p.matchingErr(pe.Dollar, dollBrace, rightBrace)
 					break loop
 				case '}':

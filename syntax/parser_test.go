@@ -1886,6 +1886,10 @@ var errorCases = []errorCase{
 		langErr("1:6: reached EOF without matching `${` with `}`", LangBash|LangMirBSDKorn),
 	),
 	errCase(
+		"echo ${foo:h",
+		langErr("1:6: reached EOF without matching `${` with `}`", LangZsh),
+	),
+	errCase(
 		"echo ${foo,",
 		langErr("1:6: reached EOF without matching `${` with `}`", LangBash),
 	),

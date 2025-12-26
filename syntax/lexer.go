@@ -696,9 +696,6 @@ func (p *Parser) paramToken(r rune) token {
 	case '!':
 		p.rune()
 		return exclMark
-	case '[':
-		p.rune()
-		return leftBrack
 	case ']':
 		p.rune()
 		return rightBrack

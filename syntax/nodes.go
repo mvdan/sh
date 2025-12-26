@@ -645,11 +645,9 @@ func (p *ParamExp) End() Pos {
 	if !p.Short {
 		return posAddCol(p.Rbrace, 1)
 	}
+	// In short mode, we can only end in either an index or a simple name.
 	if p.Index != nil {
 		return posAddCol(p.Index.End(), 1)
-	}
-	if p.NestedParam != nil {
-		return p.NestedParam.End()
 	}
 	return p.Param.End()
 }
