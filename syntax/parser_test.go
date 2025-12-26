@@ -157,37 +157,37 @@ func TestParsePosOverflow(t *testing.T) {
 		{
 			"LineOverflowPosString",
 			strings.Repeat("\n", lineMax) + ")",
-			"?:1: ')' can only be used to close a subshell",
+			"?:1: `)` can only be used to close a subshell",
 		},
 		{
 			"LineOverflowExtraPosString",
 			strings.Repeat("\n", lineMax+5) + ")",
-			"?:1: ')' can only be used to close a subshell",
+			"?:1: `)` can only be used to close a subshell",
 		},
 		{
 			"ColOverflowPosString",
 			strings.Repeat(" ", colMax) + ")",
-			"1:?: ')' can only be used to close a subshell",
+			"1:?: `)` can only be used to close a subshell",
 		},
 		{
 			"ColOverflowExtraPosString",
 			strings.Repeat(" ", colMax) + ")",
-			"1:?: ')' can only be used to close a subshell",
+			"1:?: `)` can only be used to close a subshell",
 		},
 		{
 			"ColOverflowSkippedPosString",
 			strings.Repeat(" ", colMax+5) + "\n)",
-			"2:1: ')' can only be used to close a subshell",
+			"2:1: `)` can only be used to close a subshell",
 		},
 		{
 			"LargestLineNumber",
 			strings.Repeat("\n", lineMax-1) + ")",
-			"262143:1: ')' can only be used to close a subshell",
+			"262143:1: `)` can only be used to close a subshell",
 		},
 		{
 			"LargestColNumber",
 			strings.Repeat(" ", colMax-1) + ")",
-			"1:16383: ')' can only be used to close a subshell",
+			"1:16383: `)` can only be used to close a subshell",
 		},
 	}
 	for _, test := range tests {
@@ -439,1600 +439,1600 @@ func init() {
 var errorCases = []errorCase{
 	errCase(
 		"echo \x80",
-		langErr(`1:6: invalid UTF-8 encoding`),
+		langErr("1:6: invalid UTF-8 encoding"),
 		flipConfirmAll, // common shells use bytes
 	),
 	errCase(
 		"\necho \x80",
-		langErr(`2:6: invalid UTF-8 encoding`),
+		langErr("2:6: invalid UTF-8 encoding"),
 		flipConfirmAll, // common shells use bytes
 	),
 	errCase(
 		"echo foo\x80bar",
-		langErr(`1:9: invalid UTF-8 encoding`),
+		langErr("1:9: invalid UTF-8 encoding"),
 		flipConfirmAll, // common shells use bytes
 	),
 	errCase(
 		"echo foo\xc3",
-		langErr(`1:9: invalid UTF-8 encoding`),
+		langErr("1:9: invalid UTF-8 encoding"),
 		flipConfirmAll, // common shells use bytes
 	),
 	errCase(
 		"#foo\xc3",
-		langErr(`1:5: invalid UTF-8 encoding`),
+		langErr("1:5: invalid UTF-8 encoding"),
 		flipConfirmAll, // common shells use bytes
 	),
 	errCase(
 		"echo a\x80",
-		langErr(`1:7: invalid UTF-8 encoding`),
+		langErr("1:7: invalid UTF-8 encoding"),
 		flipConfirmAll, // common shells use bytes
 	),
 	errCase(
 		"<<$\xc8\n$\xc8",
-		langErr(`1:4: invalid UTF-8 encoding`),
+		langErr("1:4: invalid UTF-8 encoding"),
 		flipConfirmAll, // common shells use bytes
 	),
 	errCase(
 		"echo $((foo\x80bar",
-		langErr(`1:12: invalid UTF-8 encoding`),
+		langErr("1:12: invalid UTF-8 encoding"),
 	),
 	errCase(
 		"z=($\\\n#\\\n\\\n$#\x91\\\n",
-		langErr(`4:3: invalid UTF-8 encoding`, LangBash),
+		langErr("4:3: invalid UTF-8 encoding", LangBash),
 	),
 	errCase(
 		`${ `,
-		langErr(`1:1: reached EOF without matching '${' with '}'`, LangMirBSDKorn),
+		langErr("1:1: reached EOF without matching `${` with `}`", LangMirBSDKorn),
 	),
 	errCase(
 		`${ foo;`,
-		langErr(`1:1: reached EOF without matching '${' with '}'`, LangMirBSDKorn),
+		langErr("1:1: reached EOF without matching `${` with `}`", LangMirBSDKorn),
 	),
 	errCase(
 		`${ foo }`,
-		langErr(`1:1: reached EOF without matching '${' with '}'`, LangMirBSDKorn),
+		langErr("1:1: reached EOF without matching `${` with `}`", LangMirBSDKorn),
 	),
 	errCase(
 		`${|`,
-		langErr(`1:1: reached EOF without matching '${' with '}'`, LangMirBSDKorn),
+		langErr("1:1: reached EOF without matching `${` with `}`", LangMirBSDKorn),
 	),
 	errCase(
 		`${|foo;`,
-		langErr(`1:1: reached EOF without matching '${' with '}'`, LangMirBSDKorn),
+		langErr("1:1: reached EOF without matching `${` with `}`", LangMirBSDKorn),
 	),
 	errCase(
 		`${|foo }`,
-		langErr(`1:1: reached EOF without matching '${' with '}'`, LangMirBSDKorn),
+		langErr("1:1: reached EOF without matching `${` with `}`", LangMirBSDKorn),
 	),
 	errCase(
 		"((foo\x80bar",
-		langErr(`1:6: invalid UTF-8 encoding`),
+		langErr("1:6: invalid UTF-8 encoding"),
 	),
 	errCase(
 		";\x80",
-		langErr(`1:2: invalid UTF-8 encoding`),
+		langErr("1:2: invalid UTF-8 encoding"),
 	),
 	errCase(
 		"${a\x80",
-		langErr(`1:4: invalid UTF-8 encoding`),
+		langErr("1:4: invalid UTF-8 encoding"),
 	),
 	errCase(
 		"${a#\x80",
-		langErr(`1:5: invalid UTF-8 encoding`),
+		langErr("1:5: invalid UTF-8 encoding"),
 	),
 	errCase(
 		"${a-'\x80",
-		langErr(`1:6: invalid UTF-8 encoding`),
+		langErr("1:6: invalid UTF-8 encoding"),
 	),
 	errCase(
 		"echo $((a |\x80",
-		langErr(`1:12: invalid UTF-8 encoding`),
+		langErr("1:12: invalid UTF-8 encoding"),
 	),
 	errCase(
 		"!",
-		langErr(`1:1: '!' cannot form a statement alone`),
+		langErr("1:1: `!` cannot form a statement alone"),
 	),
 	errCase(
 		"! !",
-		langErr(`1:1: cannot negate a command multiple times`),
-		flipConfirm(LangBash), // bash allows lone '!', unlike dash, mksh, and us.
+		langErr("1:1: cannot negate a command multiple times"),
+		flipConfirm(LangBash), // bash allows lone `!`, unlike dash, mksh, and us.
 	),
 	errCase(
 		"! ! foo",
-		langErr(`1:1: cannot negate a command multiple times`),
-		flipConfirm(LangBash|LangMirBSDKorn), // bash allows lone '!', unlike dash, mksh, and us.
+		langErr("1:1: cannot negate a command multiple times"),
+		flipConfirm(LangBash|LangMirBSDKorn), // bash allows lone `!`, unlike dash, mksh, and us.
 	),
 	errCase(
 		"}",
-		langErr(`1:1: '}' can only be used to close a block`),
+		langErr("1:1: `}` can only be used to close a block"),
 	),
 	errCase(
 		"foo | }",
-		langErr(`1:7: '}' can only be used to close a block`),
+		langErr("1:7: `}` can only be used to close a block"),
 	),
 	errCase(
 		"foo }",
-		langErr(`1:5: '}' can only be used to close a block`, LangZsh),
+		langErr("1:5: `}` can only be used to close a block", LangZsh),
 	),
 	errCase(
 		"then",
-		langErr(`1:1: "then" can only be used in an "if"`),
+		langErr("1:1: `then` can only be used in an `if`"),
 	),
 	errCase(
 		"elif",
-		langErr(`1:1: "elif" can only be used in an "if"`),
+		langErr("1:1: `elif` can only be used in an `if`"),
 	),
 	errCase(
 		"fi",
-		langErr(`1:1: "fi" can only be used to end an "if"`),
+		langErr("1:1: `fi` can only be used to end an `if`"),
 	),
 	errCase(
 		"do",
-		langErr(`1:1: "do" can only be used in a loop`),
+		langErr("1:1: `do` can only be used in a loop"),
 	),
 	errCase(
 		"done",
-		langErr(`1:1: "done" can only be used to end a loop`),
+		langErr("1:1: `done` can only be used to end a loop"),
 	),
 	errCase(
 		"esac",
-		langErr(`1:1: "esac" can only be used to end a "case"`),
+		langErr("1:1: `esac` can only be used to end a `case`"),
 	),
 	errCase(
 		"a=b { foo; }",
-		langErr(`1:12: '}' can only be used to close a block`),
+		langErr("1:12: `}` can only be used to close a block"),
 	),
 	errCase(
 		"a=b foo() { bar; }",
-		langErr(`1:8: a command can only contain words and redirects; encountered '('`),
+		langErr("1:8: a command can only contain words and redirects; encountered `(`"),
 	),
 	errCase(
 		"a=b if foo; then bar; fi",
-		langErr(`1:13: "then" can only be used in an "if"`),
+		langErr("1:13: `then` can only be used in an `if`"),
 	),
 	errCase(
 		">f { foo; }",
-		langErr(`1:1: redirects before compound commands are a zsh feature; tried parsing as LANG`),
+		langErr("1:1: redirects before compound commands are a zsh feature; tried parsing as LANG"),
 		langErr("", LangZsh),
 	),
 	errCase(
 		">f foo() { bar; }",
-		langErr(`1:1: redirects before compound commands are a zsh feature; tried parsing as LANG`),
+		langErr("1:1: redirects before compound commands are a zsh feature; tried parsing as LANG"),
 		langErr("", LangZsh),
 	),
 	errCase(
 		">f if foo; then bar; fi",
-		langErr(`1:1: redirects before compound commands are a zsh feature; tried parsing as LANG`),
+		langErr("1:1: redirects before compound commands are a zsh feature; tried parsing as LANG"),
 		langErr("", LangZsh),
 	),
 	errCase(
 		"if done; then b; fi",
-		langErr(`1:4: "done" can only be used to end a loop`),
+		langErr("1:4: `done` can only be used to end a loop"),
 	),
 	errCase(
 		"'",
-		langErr(`1:1: reached EOF without closing quote "'"`),
+		langErr("1:1: reached EOF without closing quote `'`"),
 	),
 	errCase(
 		`"`,
-		langErr(`1:1: reached EOF without closing quote '"'`),
+		langErr("1:1: reached EOF without closing quote `\"`"),
 	),
 	errCase(
 		`'\''`,
-		langErr(`1:4: reached EOF without closing quote "'"`),
+		langErr("1:4: reached EOF without closing quote `'`"),
 	),
 	errCase(
 		";",
-		langErr(`1:1: ';' can only immediately follow a statement`),
+		langErr("1:1: `;` can only immediately follow a statement"),
 	),
 	errCase(
 		"{ ; }",
-		langErr(`1:1: '{' must be followed by a statement list`),
+		langErr("1:1: `{` must be followed by a statement list"),
 		langErr("", LangZsh|LangMirBSDKorn),
 	),
 	errCase(
 		`"foo"(){ :; }`,
-		langErr(`1:1: invalid func name`),
+		langErr("1:1: invalid func name"),
 		flipConfirm(LangMirBSDKorn), // TODO: support non-literal func names
 	),
 	errCase(
 		`foo$bar(){ :; }`,
-		langErr(`1:1: invalid func name`),
+		langErr("1:1: invalid func name"),
 	),
 	errCase(
 		"{",
-		langErr(`1:1: '{' must be followed by a statement list`),
-		langErr(`1:1: reached EOF without matching '{' with '}'`, LangZsh|LangMirBSDKorn),
+		langErr("1:1: `{` must be followed by a statement list"),
+		langErr("1:1: reached EOF without matching `{` with `}`", LangZsh|LangMirBSDKorn),
 	),
 	errCase(
 		"{ foo;",
-		langErr(`1:1: reached EOF without matching '{' with '}'`),
+		langErr("1:1: reached EOF without matching `{` with `}`"),
 	),
 	errCase(
 		"{ foo; #}",
-		langErr(`1:1: reached EOF without matching '{' with '}'`),
+		langErr("1:1: reached EOF without matching `{` with `}`"),
 	),
 	errCase(
 		"(x",
-		langErr(`1:1: reached EOF without matching '(' with ')'`),
+		langErr("1:1: reached EOF without matching `(` with `)`"),
 	),
 	errCase(
 		")",
-		langErr(`1:1: ')' can only be used to close a subshell`),
+		langErr("1:1: `)` can only be used to close a subshell"),
 	),
 	errCase(
 		"`",
-		langErr("1:1: reached EOF without closing quote '`'"),
+		langErr("1:1: reached EOF without closing quote \"`\""),
 	),
 	errCase(
 		";;",
-		langErr(`1:1: ';;' can only be used in a case clause`),
+		langErr("1:1: `;;` can only be used in a case clause"),
 	),
 	errCase(
 		"( foo;",
-		langErr(`1:1: reached EOF without matching '(' with ')'`),
+		langErr("1:1: reached EOF without matching `(` with `)`"),
 	),
 	errCase(
 		"&",
-		langErr(`1:1: '&' can only immediately follow a statement`),
+		langErr("1:1: `&` can only immediately follow a statement"),
 	),
 	errCase(
 		"|",
-		langErr(`1:1: '|' can only immediately follow a statement`),
+		langErr("1:1: `|` can only immediately follow a statement"),
 	),
 	errCase(
 		"&&",
-		langErr(`1:1: '&&' can only immediately follow a statement`),
+		langErr("1:1: `&&` can only immediately follow a statement"),
 	),
 	errCase(
 		"||",
-		langErr(`1:1: '||' can only immediately follow a statement`),
+		langErr("1:1: `||` can only immediately follow a statement"),
 	),
 	errCase(
 		"foo; || bar",
-		langErr(`1:6: '||' can only immediately follow a statement`),
+		langErr("1:6: `||` can only immediately follow a statement"),
 	),
 	errCase(
 		"echo & || bar",
-		langErr(`1:8: '||' can only immediately follow a statement`),
+		langErr("1:8: `||` can only immediately follow a statement"),
 	),
 	errCase(
 		"echo & ; bar",
-		langErr(`1:8: ';' can only immediately follow a statement`),
+		langErr("1:8: `;` can only immediately follow a statement"),
 	),
 	errCase(
 		"foo;;",
-		langErr(`1:4: ';;' can only be used in a case clause`),
+		langErr("1:4: `;;` can only be used in a case clause"),
 	),
 	errCase(
 		"foo(",
-		langErr(`1:1: "foo(" must be followed by ')'`),
+		langErr("1:1: `foo(` must be followed by `)`"),
 	),
 	errCase(
 		"foo(bar",
-		langErr(`1:1: "foo(" must be followed by ')'`),
+		langErr("1:1: `foo(` must be followed by `)`"),
 	),
 	errCase(
 		"à(",
-		langErr(`1:1: "foo(" must be followed by ')'`),
+		langErr("1:1: `foo(` must be followed by `)`"),
 	),
 	errCase(
 		"foo'",
-		langErr(`1:4: reached EOF without closing quote "'"`),
+		langErr("1:4: reached EOF without closing quote `'`"),
 	),
 	errCase(
 		`foo"`,
-		langErr(`1:4: reached EOF without closing quote '"'`),
+		langErr("1:4: reached EOF without closing quote `\"`"),
 	),
 	errCase(
 		`"foo`,
-		langErr(`1:1: reached EOF without closing quote '"'`),
+		langErr("1:1: reached EOF without closing quote `\"`"),
 	),
 	errCase(
 		`"foobar\`,
-		langErr(`1:1: reached EOF without closing quote '"'`),
+		langErr("1:1: reached EOF without closing quote `\"`"),
 	),
 	errCase(
 		`"foo\a`,
-		langErr(`1:1: reached EOF without closing quote '"'`),
+		langErr("1:1: reached EOF without closing quote `\"`"),
 	),
 	errCase(
 		"foo()",
-		langErr(`1:1: "foo()" must be followed by a statement`),
+		langErr("1:1: `foo()` must be followed by a statement"),
 		flipConfirm(LangMirBSDKorn), // TODO: some variants allow a missing body
 	),
 	errCase(
 		"foo() {",
-		langErr(`1:7: '{' must be followed by a statement list`),
-		langErr(`1:7: reached EOF without matching '{' with '}'`, LangZsh|LangMirBSDKorn),
+		langErr("1:7: `{` must be followed by a statement list"),
+		langErr("1:7: reached EOF without matching `{` with `}`", LangZsh|LangMirBSDKorn),
 	),
 	errCase(
 		"foo() { bar;",
-		langErr(`1:7: reached EOF without matching '{' with '}'`),
+		langErr("1:7: reached EOF without matching `{` with `}`"),
 	),
 	errCase(
 		"foo-bar() { x; }",
-		langErr(`1:1: invalid func name`, LangPOSIX),
+		langErr("1:1: invalid func name", LangPOSIX),
 	),
 	errCase(
 		"foò() { x; }",
-		langErr(`1:1: invalid func name`, LangPOSIX),
+		langErr("1:1: invalid func name", LangPOSIX),
 	),
 	errCase(
 		"echo foo(",
-		langErr(`1:9: a command can only contain words and redirects; encountered '('`),
+		langErr("1:9: a command can only contain words and redirects; encountered `(`"),
 	),
 	errCase(
 		"echo &&",
-		langErr(`1:6: '&&' must be followed by a statement`),
+		langErr("1:6: `&&` must be followed by a statement"),
 	),
 	errCase(
 		"echo |",
-		langErr(`1:6: '|' must be followed by a statement`),
+		langErr("1:6: `|` must be followed by a statement"),
 	),
 	errCase(
 		"echo ||",
-		langErr(`1:6: '||' must be followed by a statement`),
+		langErr("1:6: `||` must be followed by a statement"),
 	),
 	errCase(
 		"echo | #bar",
-		langErr(`1:6: '|' must be followed by a statement`),
+		langErr("1:6: `|` must be followed by a statement"),
 	),
 	errCase(
 		"echo && #bar",
-		langErr(`1:6: '&&' must be followed by a statement`),
+		langErr("1:6: `&&` must be followed by a statement"),
 	),
 	errCase(
 		"`echo &&`",
-		langErr(`1:7: '&&' must be followed by a statement`),
+		langErr("1:7: `&&` must be followed by a statement"),
 	),
 	errCase(
 		"`echo |`",
-		langErr(`1:7: '|' must be followed by a statement`),
+		langErr("1:7: `|` must be followed by a statement"),
 	),
 	errCase(
 		"echo | ! bar",
-		langErr(`1:8: '!' can only be used in full statements`),
+		langErr("1:8: `!` can only be used in full statements"),
 	),
 	errCase(
 		"echo >",
-		langErr(`1:6: '>' must be followed by a word`),
+		langErr("1:6: `>` must be followed by a word"),
 	),
 	errCase(
 		"echo >>",
-		langErr(`1:6: '>>' must be followed by a word`),
+		langErr("1:6: `>>` must be followed by a word"),
 	),
 	errCase(
 		"echo <",
-		langErr(`1:6: '<' must be followed by a word`),
+		langErr("1:6: `<` must be followed by a word"),
 	),
 	errCase(
 		"echo 2>",
-		langErr(`1:7: '>' must be followed by a word`),
+		langErr("1:7: `>` must be followed by a word"),
 	),
 	errCase(
 		"echo <\nbar",
-		langErr(`1:6: '<' must be followed by a word`),
+		langErr("1:6: `<` must be followed by a word"),
 	),
 	errCase(
 		"echo | < #bar",
-		langErr(`1:8: '<' must be followed by a word`),
+		langErr("1:8: `<` must be followed by a word"),
 	),
 	errCase(
 		"echo && > #",
-		langErr(`1:9: '>' must be followed by a word`),
+		langErr("1:9: `>` must be followed by a word"),
 	),
 	errCase(
 		"<<",
-		langErr(`1:1: '<<' must be followed by a word`),
+		langErr("1:1: `<<` must be followed by a word"),
 	),
 	errCase(
 		"<<EOF",
-		langErr(`1:1: unclosed here-document 'EOF'`),
+		langErr("1:1: unclosed here-document `EOF`"),
 		flipConfirmUnclosedHeredoc,
 	),
 	errCase(
 		"<<EOF\n\\",
-		langErr(`1:1: unclosed here-document 'EOF'`),
+		langErr("1:1: unclosed here-document `EOF`"),
 		flipConfirmUnclosedHeredoc,
 	),
 	errCase(
 		"<<EOF\n\\\n",
-		langErr(`1:1: unclosed here-document 'EOF'`),
+		langErr("1:1: unclosed here-document `EOF`"),
 		flipConfirmUnclosedHeredoc,
 	),
 	errCase(
 		"<<EOF\n\\\nEOF",
-		langErr(`1:1: unclosed here-document 'EOF'`),
+		langErr("1:1: unclosed here-document `EOF`"),
 		flipConfirmAll, // why does mksh allow this?
 	),
 	errCase(
 		"<<EOF\nfoo\\\nEOF",
-		langErr(`1:1: unclosed here-document 'EOF'`),
+		langErr("1:1: unclosed here-document `EOF`"),
 		flipConfirmUnclosedHeredoc,
 	),
 	errCase(
 		"<<'EOF'\n\\\n",
-		langErr(`1:1: unclosed here-document 'EOF'`),
+		langErr("1:1: unclosed here-document `EOF`"),
 		flipConfirmUnclosedHeredoc,
 	),
 	errCase(
 		"<<EOF <`\n#\n`\n``",
-		langErr(`1:1: unclosed here-document 'EOF'`),
+		langErr("1:1: unclosed here-document `EOF`"),
 	),
 	errCase(
 		"<<'EOF'",
-		langErr(`1:1: unclosed here-document 'EOF'`),
+		langErr("1:1: unclosed here-document `EOF`"),
 		flipConfirmUnclosedHeredoc,
 	),
 	errCase(
 		"<<\\EOF",
-		langErr(`1:1: unclosed here-document 'EOF'`),
+		langErr("1:1: unclosed here-document `EOF`"),
 		flipConfirmUnclosedHeredoc,
 	),
 	errCase(
 		"<<\\\\EOF",
-		langErr(`1:1: unclosed here-document '\EOF'`),
+		langErr("1:1: unclosed here-document `\\EOF`"),
 		flipConfirmUnclosedHeredoc,
 	),
 	errCase(
 		"<<-EOF",
-		langErr(`1:1: unclosed here-document 'EOF'`),
+		langErr("1:1: unclosed here-document `EOF`"),
 		flipConfirmUnclosedHeredoc,
 	),
 	errCase(
 		"<<-EOF\n\t",
-		langErr(`1:1: unclosed here-document 'EOF'`),
+		langErr("1:1: unclosed here-document `EOF`"),
 		flipConfirmUnclosedHeredoc,
 	),
 	errCase(
 		"<<-'EOF'\n\t",
-		langErr(`1:1: unclosed here-document 'EOF'`),
+		langErr("1:1: unclosed here-document `EOF`"),
 		flipConfirmUnclosedHeredoc,
 	),
 	errCase(
 		"<<\nEOF\nbar\nEOF",
-		langErr(`1:1: '<<' must be followed by a word`),
+		langErr("1:1: `<<` must be followed by a word"),
 	),
 	errCase(
 		"$(<<EOF\nNOTEOF)",
-		langErr(`1:3: unclosed here-document 'EOF'`, LangBash|LangMirBSDKorn),
+		langErr("1:3: unclosed here-document `EOF`", LangBash|LangMirBSDKorn),
 		// Note that this fails on external shells as they treat ")" as part of the heredoc.
 	),
 	errCase(
 		"`<<EOF\nNOTEOF`",
-		langErr(`1:2: unclosed here-document 'EOF'`, LangBash|LangMirBSDKorn),
+		langErr("1:2: unclosed here-document `EOF`", LangBash|LangMirBSDKorn),
 		flipConfirmAll,
 		// Note that this works on external shells as they treat "`" as outside the heredoc.
 	),
 	errCase(
 		"if",
-		langErr(`1:1: "if" must be followed by a statement list`),
-		langErr(`1:1: "if <cond>" must be followed by "then"`, LangZsh|LangMirBSDKorn),
+		langErr("1:1: `if` must be followed by a statement list"),
+		langErr("1:1: `if <cond>` must be followed by `then`", LangZsh|LangMirBSDKorn),
 	),
 	errCase(
 		"if true;",
-		langErr(`1:1: "if <cond>" must be followed by "then"`),
+		langErr("1:1: `if <cond>` must be followed by `then`"),
 	),
 	errCase(
 		"if true then",
-		langErr(`1:1: "if <cond>" must be followed by "then"`),
+		langErr("1:1: `if <cond>` must be followed by `then`"),
 	),
 	errCase(
 		"if true; then bar;",
-		langErr(`1:1: if statement must end with "fi"`),
+		langErr("1:1: `if` statement must end with `fi`"),
 	),
 	errCase(
 		"if true; then bar; fi#etc",
-		langErr(`1:1: if statement must end with "fi"`),
+		langErr("1:1: `if` statement must end with `fi`"),
 	),
 	errCase(
 		"if a; then b; elif c;",
-		langErr(`1:15: "elif <cond>" must be followed by "then"`),
+		langErr("1:15: `elif <cond>` must be followed by `then`"),
 	),
 	errCase(
 		"'foo' '",
-		langErr(`1:7: reached EOF without closing quote "'"`),
+		langErr("1:7: reached EOF without closing quote `'`"),
 	),
 	errCase(
 		"'foo\n' '",
-		langErr(`2:3: reached EOF without closing quote "'"`),
+		langErr("2:3: reached EOF without closing quote `'`"),
 	),
 	errCase(
 		"while",
-		langErr(`1:1: "while" must be followed by a statement list`),
-		langErr(`1:1: "while <cond>" must be followed by "do"`, LangZsh|LangMirBSDKorn),
+		langErr("1:1: `while` must be followed by a statement list"),
+		langErr("1:1: `while <cond>` must be followed by `do`", LangZsh|LangMirBSDKorn),
 	),
 	errCase(
 		"while true;",
-		langErr(`1:1: "while <cond>" must be followed by "do"`),
+		langErr("1:1: `while <cond>` must be followed by `do`"),
 	),
 	errCase(
 		"while true; do bar",
-		langErr(`1:1: while statement must end with "done"`),
+		langErr("1:1: `while` statement must end with `done`"),
 	),
 	errCase(
 		"while true; do bar;",
-		langErr(`1:1: while statement must end with "done"`),
+		langErr("1:1: `while` statement must end with `done`"),
 	),
 	errCase(
 		"until",
-		langErr(`1:1: "until" must be followed by a statement list`),
-		langErr(`1:1: "until <cond>" must be followed by "do"`, LangZsh|LangMirBSDKorn),
+		langErr("1:1: `until` must be followed by a statement list"),
+		langErr("1:1: `until <cond>` must be followed by `do`", LangZsh|LangMirBSDKorn),
 	),
 	errCase(
 		"until true;",
-		langErr(`1:1: "until <cond>" must be followed by "do"`),
+		langErr("1:1: `until <cond>` must be followed by `do`"),
 	),
 	errCase(
 		"until true; do bar",
-		langErr(`1:1: until statement must end with "done"`),
+		langErr("1:1: `until` statement must end with `done`"),
 	),
 	errCase(
 		"until true; do bar;",
-		langErr(`1:1: until statement must end with "done"`),
+		langErr("1:1: `until` statement must end with `done`"),
 	),
 	errCase(
 		"for",
-		langErr(`1:1: "for" must be followed by a literal`),
+		langErr("1:1: `for` must be followed by a literal"),
 	),
 	errCase(
 		"for i",
-		langErr(`1:1: "for foo" must be followed by "in", "do", ';', or a newline`),
+		langErr("1:1: `for foo` must be followed by `in`, `do`, `;`, or a newline"),
 	),
 	errCase(
 		"for i in;",
-		langErr(`1:1: "for foo [in words]" must be followed by "do"`),
+		langErr("1:1: `for foo [in words]` must be followed by `do`"),
 	),
 	errCase(
 		"for i in 1 2 3;",
-		langErr(`1:1: "for foo [in words]" must be followed by "do"`),
+		langErr("1:1: `for foo [in words]` must be followed by `do`"),
 	),
 	errCase(
 		"for i in 1 2 &",
-		langErr(`1:1: "for foo [in words]" must be followed by "do"`),
+		langErr("1:1: `for foo [in words]` must be followed by `do`"),
 	),
 	errCase(
 		"for i in 1 2 (",
-		langErr(`1:14: word list can only contain words`),
+		langErr("1:14: word list can only contain words"),
 	),
 	errCase(
 		"for i in 1 2 3; do echo $i;",
-		langErr(`1:1: for statement must end with "done"`),
+		langErr("1:1: `for` statement must end with `done`"),
 	),
 	errCase(
 		"for i in 1 2 3; echo $i;",
-		langErr(`1:1: "for foo [in words]" must be followed by "do"`),
+		langErr("1:1: `for foo [in words]` must be followed by `do`"),
 	),
 	errCase(
 		"for 'i' in 1 2 3; do echo $i; done",
-		langErr(`1:1: "for" must be followed by a literal`),
+		langErr("1:1: `for` must be followed by a literal"),
 	),
 	errCase(
 		"for in 1 2 3; do echo $i; done",
-		langErr(`1:1: "for foo" must be followed by "in", "do", ';', or a newline`),
+		langErr("1:1: `for foo` must be followed by `in`, `do`, `;`, or a newline"),
 	),
 	errCase(
 		"select",
-		langErr(`1:1: "select" must be followed by a literal`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:1: `select` must be followed by a literal", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"select i",
-		langErr(`1:1: "select foo" must be followed by "in", "do", ';', or a newline`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:1: `select foo` must be followed by `in`, `do`, `;`, or a newline", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"select i in;",
-		langErr(`1:1: "select foo [in words]" must be followed by "do"`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:1: `select foo [in words]` must be followed by `do`", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"select i in 1 2 3;",
-		langErr(`1:1: "select foo [in words]" must be followed by "do"`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:1: `select foo [in words]` must be followed by `do`", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"select i in 1 2 3; do echo $i;",
-		langErr(`1:1: select statement must end with "done"`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:1: `select` statement must end with `done`", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"select i in 1 2 3; echo $i;",
-		langErr(`1:1: "select foo [in words]" must be followed by "do"`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:1: `select foo [in words]` must be followed by `do`", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"select 'i' in 1 2 3; do echo $i; done",
-		langErr(`1:1: "select" must be followed by a literal`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:1: `select` must be followed by a literal", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"select in 1 2 3; do echo $i; done",
-		langErr(`1:1: "select foo" must be followed by "in", "do", ';', or a newline`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:1: `select foo` must be followed by `in`, `do`, `;`, or a newline", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"echo foo &\n;",
-		langErr(`2:1: ';' can only immediately follow a statement`),
+		langErr("2:1: `;` can only immediately follow a statement"),
 	),
 	errCase(
 		"echo $(foo",
-		langErr(`1:6: reached EOF without matching '$(' with ')'`),
+		langErr("1:6: reached EOF without matching `$(` with `)`"),
 	),
 	errCase(
 		"echo $((foo",
-		langErr(`1:6: reached EOF without matching '$((' with '))'`),
+		langErr("1:6: reached EOF without matching `$((` with `))`"),
 	),
 	errCase(
 		`echo $((\`,
-		langErr(`1:6: reached EOF without matching '$((' with '))'`),
+		langErr("1:6: reached EOF without matching `$((` with `))`"),
 	),
 	errCase(
 		`echo $((o\`,
-		langErr(`1:6: reached EOF without matching '$((' with '))'`),
+		langErr("1:6: reached EOF without matching `$((` with `))`"),
 	),
 	errCase(
 		`echo $((foo\a`,
-		langErr(`1:6: reached EOF without matching '$((' with '))'`),
+		langErr("1:6: reached EOF without matching `$((` with `))`"),
 	),
 	errCase(
 		`echo $(($(a"`,
-		langErr(`1:12: reached EOF without closing quote '"'`),
+		langErr("1:12: reached EOF without closing quote `\"`"),
 	),
 	errCase(
 		"echo $((`echo 0`",
-		langErr(`1:6: reached EOF without matching '$((' with '))'`),
+		langErr("1:6: reached EOF without matching `$((` with `))`"),
 	),
 	errCase(
 		`echo $((& $(`,
-		langErr(`1:9: '&' must follow an expression`),
+		langErr("1:9: `&` must follow an expression"),
 	),
 	errCase(
 		`echo $((a'`,
-		langErr(`1:10: reached EOF without closing quote "'"`),
+		langErr("1:10: reached EOF without closing quote `'`"),
 	),
 	errCase(
 		`echo $((a b"`,
-		langErr(`1:11: not a valid arithmetic operator: b`),
+		langErr("1:11: not a valid arithmetic operator: `b`"),
 	),
 	errCase(
 		"echo $(())",
-		langErr(`1:6: '$((' must be followed by an expression`),
+		langErr("1:6: `$((` must be followed by an expression"),
 		flipConfirmAll, // TODO: empty arithmetic expressions seem to be OK?
 	),
 	errCase(
 		"echo $((()))",
-		langErr(`1:9: '(' must be followed by an expression`),
+		langErr("1:9: `(` must be followed by an expression"),
 	),
 	errCase(
 		"echo $(((3))",
-		langErr(`1:6: reached ')' without matching '$((' with '))'`),
+		langErr("1:6: reached `)` without matching `$((` with `))`"),
 	),
 	errCase(
 		"echo $((+))",
-		langErr(`1:9: '+' must be followed by an expression`),
+		langErr("1:9: `+` must be followed by an expression"),
 	),
 	errCase(
 		"echo $((a b c))",
-		langErr(`1:11: not a valid arithmetic operator: b`),
+		langErr("1:11: not a valid arithmetic operator: `b`"),
 	),
 	errCase(
 		"echo $((a ; c))",
-		langErr(`1:11: not a valid arithmetic operator: ';'`),
+		langErr("1:11: not a valid arithmetic operator: `;`"),
 	),
 	errCase(
 		"echo $((foo) )",
-		langErr(`1:6: reached ')' without matching '$((' with '))'`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:6: reached `)` without matching `$((` with `))`", LangBash|LangMirBSDKorn|LangZsh),
 		flipConfirmAll, // note that we don't backtrack
 	),
 	errCase(
 		"echo $((a *))",
-		langErr(`1:11: '*' must be followed by an expression`),
+		langErr("1:11: `*` must be followed by an expression"),
 	),
 	errCase(
 		"echo $((++))",
-		langErr(`1:9: '++' must be followed by a literal`),
+		langErr("1:9: `++` must be followed by a literal"),
 	),
 	errCase(
 		"echo $((a ? b))",
-		langErr(`1:11: ternary operator missing ':' after '?'`),
+		langErr("1:11: ternary operator missing `:` after `?`"),
 	),
 	errCase(
 		"echo $((a : b))",
-		langErr(`1:11: ternary operator missing '?' before ':'`),
+		langErr("1:11: ternary operator missing `?` before `:`"),
 	),
 	errCase(
 		"echo $((/",
-		langErr(`1:9: '/' must follow an expression`),
+		langErr("1:9: `/` must follow an expression"),
 	),
 	errCase(
 		"echo $((:",
-		langErr(`1:9: ternary operator missing '?' before ':'`),
+		langErr("1:9: ternary operator missing `?` before `:`"),
 	),
 	errCase(
 		"echo $(((a)+=b))",
-		langErr(`1:12: '+=' must follow a name`),
+		langErr("1:12: `+=` must follow a name"),
 		flipConfirm(LangMirBSDKorn),
 	),
 	errCase(
 		"echo $((1=2))",
-		langErr(`1:10: '=' must follow a name`),
+		langErr("1:10: `=` must follow a name"),
 	),
 	errCase(
 		"echo $(($0=2))",
-		langErr(`1:11: '=' must follow a name`),
+		langErr("1:11: `=` must follow a name"),
 		flipConfirmAll,
 	),
 	errCase(
 		"echo $(($(a)=2))",
-		langErr(`1:13: '=' must follow a name`),
+		langErr("1:13: `=` must follow a name"),
 		flipConfirmAll,
 	),
 	// errCase(
-	// 	"echo $((1'2'))",
+	// 	"echo $((1'2`))",
 	// 	// TODO: Take a look at this again, since this no longer fails
 	// 	// after fixing https://github.com/mvdan/sh/issues/587.
 	// 	// Note that Bash seems to treat code inside $(()) as if it were
 	// 	// within double quotes, yet still requires single quotes to be
 	// 	// matched.
-	// 	//  `1:10: not a valid arithmetic operator: '`,
+	// 	//  `1:10: not a valid arithmetic operator: ``,
 	// ),
 	errCase(
 		"<<EOF\n$(()a",
-		langErr(`2:1: '$((' must be followed by an expression`),
+		langErr("2:1: `$((` must be followed by an expression"),
 	),
 	errCase(
 		"<<EOF\n`))",
-		langErr(`2:2: ')' can only be used to close a subshell`),
+		langErr("2:2: `)` can only be used to close a subshell"),
 	),
 	errCase(
 		"echo ${foo",
-		langErr(`1:6: reached EOF without matching '${' with '}'`),
+		langErr("1:6: reached EOF without matching `${` with `}`"),
 	),
 	errCase(
 		"echo $foo ${}",
-		langErr(`1:13: invalid parameter name`),
+		langErr("1:13: invalid parameter name"),
 	),
 	errCase(
 		"echo ${à}",
-		langErr(`1:8: invalid parameter name`),
+		langErr("1:8: invalid parameter name"),
 	),
 	errCase(
 		"echo ${1a}",
-		langErr(`1:8: invalid parameter name`),
+		langErr("1:8: invalid parameter name"),
 	),
 	errCase(
 		"echo ${foo-bar",
-		langErr(`1:6: reached EOF without matching '${' with '}'`),
+		langErr("1:6: reached EOF without matching `${` with `}`"),
 	),
 	errCase(
 		"#foo\n{ bar;",
-		langErr(`2:1: reached EOF without matching '{' with '}'`),
+		langErr("2:1: reached EOF without matching `{` with `}`"),
 	),
 	errCase(
 		`echo "foo${bar"`,
-		langErr(`1:15: not a valid parameter expansion operator: '"'`),
+		langErr("1:15: not a valid parameter expansion operator: `\"`"),
 	),
 	errCase(
 		"echo ${%",
-		langErr(`1:6: "${%foo}" is a mksh feature; tried parsing as LANG`),
-		langErr(`1:9: invalid parameter name`, LangMirBSDKorn),
+		langErr("1:6: `${%foo}` is a mksh feature; tried parsing as LANG"),
+		langErr("1:9: invalid parameter name", LangMirBSDKorn),
 	),
 	errCase(
 		"echo ${+",
-		langErr(`1:6: "${+foo}" is a zsh feature; tried parsing as LANG`),
-		langErr(`1:9: invalid parameter name`, LangZsh),
+		langErr("1:6: `${+foo}` is a zsh feature; tried parsing as LANG"),
+		langErr("1:9: invalid parameter name", LangZsh),
 	),
 	errCase(
 		"echo ${#${",
-		langErr(`1:9: nested parameter expansions are a zsh feature; tried parsing as LANG`),
-		langErr(`1:11: invalid parameter name`, LangZsh),
+		langErr("1:9: nested parameter expansions are a zsh feature; tried parsing as LANG"),
+		langErr("1:11: invalid parameter name", LangZsh),
 	),
 	errCase(
 		"echo ${#$(",
-		langErr(`1:9: nested parameter expansions are a zsh feature; tried parsing as LANG`),
-		langErr(`1:9: reached EOF without matching '$(' with ')'`, LangZsh),
+		langErr("1:9: nested parameter expansions are a zsh feature; tried parsing as LANG"),
+		langErr("1:9: reached EOF without matching `$(` with `)`", LangZsh),
 	),
 	errCase(
 		"echo ${(",
-		langErr(`1:6: parameter expansion flags are a zsh feature; tried parsing as LANG`),
-		langErr(`1:8: reached EOF without matching '(' with ')'`, LangZsh),
+		langErr("1:6: parameter expansion flags are a zsh feature; tried parsing as LANG"),
+		langErr("1:8: reached EOF without matching `(` with `)`", LangZsh),
 	),
 	errCase(
 		"echo $$(foo)",
-		langErr(`1:8: a command can only contain words and redirects; encountered '('`),
+		langErr("1:8: a command can only contain words and redirects; encountered `(`"),
 	),
 	errCase(
 		"echo ${##",
-		langErr(`1:6: reached EOF without matching '${' with '}'`),
+		langErr("1:6: reached EOF without matching `${` with `}`"),
 	),
 	errCase(
 		"echo ${#<}",
-		langErr(`1:9: not a valid parameter expansion operator: '<'`),
+		langErr("1:9: not a valid parameter expansion operator: `<`"),
 	),
 	errCase(
 		"echo ${%<}",
-		langErr(`1:8: invalid parameter name`, LangMirBSDKorn),
+		langErr("1:8: invalid parameter name", LangMirBSDKorn),
 	),
 	errCase(
 		"echo ${!<}",
-		langErr(`1:9: not a valid parameter expansion operator: '<'`, LangBash|LangMirBSDKorn),
+		langErr("1:9: not a valid parameter expansion operator: `<`", LangBash|LangMirBSDKorn),
 	),
 	errCase(
 		"echo ${@foo}",
-		langErr(`1:9: "@" cannot be followed by a word`),
+		langErr("1:9: `@` cannot be followed by a word"),
 	),
 	errCase(
 		"echo ${$foo}",
-		langErr(`1:9: "$" cannot be followed by a word`),
+		langErr("1:9: `$` cannot be followed by a word"),
 	),
 	errCase(
 		"echo ${?foo}",
-		langErr(`1:9: "?" cannot be followed by a word`),
+		langErr("1:9: `?` cannot be followed by a word"),
 	),
 	errCase(
 		"echo ${-foo}",
-		langErr(`1:9: "-" cannot be followed by a word`),
+		langErr("1:9: `-` cannot be followed by a word"),
 	),
 	errCase(
 		"echo ${@[@]} ${@[*]}",
-		langErr(`1:9: cannot index a special parameter name`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:9: cannot index a special parameter name", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"echo ${*[@]} ${*[*]}",
-		langErr(`1:9: cannot index a special parameter name`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:9: cannot index a special parameter name", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"echo ${#[x]}",
-		langErr(`1:9: cannot index a special parameter name`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:9: cannot index a special parameter name", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"echo ${$[0]}",
-		langErr(`1:9: cannot index a special parameter name`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:9: cannot index a special parameter name", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"echo ${?[@]}",
-		langErr(`1:9: cannot index a special parameter name`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:9: cannot index a special parameter name", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"echo ${2[@]}",
-		langErr(`1:9: cannot index a special parameter name`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:9: cannot index a special parameter name", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"echo ${foo*}",
-		langErr(`1:11: not a valid parameter expansion operator: '*'`, LangBash|LangMirBSDKorn),
+		langErr("1:11: not a valid parameter expansion operator: `*`", LangBash|LangMirBSDKorn),
 	),
 	errCase(
 		"echo ${foo;}",
-		langErr(`1:11: not a valid parameter expansion operator: ';'`, LangBash|LangMirBSDKorn),
+		langErr("1:11: not a valid parameter expansion operator: `;`", LangBash|LangMirBSDKorn),
 	),
 	errCase(
 		"echo ${foo!}",
-		langErr(`1:11: not a valid parameter expansion operator: '!'`, LangBash|LangMirBSDKorn),
+		langErr("1:11: not a valid parameter expansion operator: `!`", LangBash|LangMirBSDKorn),
 	),
 	errCase(
 		"echo ${#foo:-bar}",
-		langErr(`1:12: cannot combine multiple parameter expansion operators`, LangBash|LangMirBSDKorn),
+		langErr("1:12: cannot combine multiple parameter expansion operators", LangBash|LangMirBSDKorn),
 	),
 	errCase(
 		"echo ${%foo:1:3}",
-		langErr(`1:12: cannot combine multiple parameter expansion operators`, LangMirBSDKorn),
+		langErr("1:12: cannot combine multiple parameter expansion operators", LangMirBSDKorn),
 	),
 	errCase(
 		"echo ${#foo%x}",
-		langErr(`1:12: cannot combine multiple parameter expansion operators`, LangMirBSDKorn),
+		langErr("1:12: cannot combine multiple parameter expansion operators", LangMirBSDKorn),
 	),
 	errCase(
 		"echo foo\n;",
-		langErr(`2:1: ';' can only immediately follow a statement`),
+		langErr("2:1: `;` can only immediately follow a statement"),
 	),
 	errCase(
 		"<<$ <<0\n$(<<$<<",
-		langErr(`2:6: '<<' must be followed by a word`, LangBash|LangMirBSDKorn),
+		langErr("2:6: `<<` must be followed by a word", LangBash|LangMirBSDKorn),
 	),
 	errCase(
 		"(foo) bar",
-		langErr(`1:7: statements must be separated by &, ; or a newline`),
+		langErr("1:7: statements must be separated by &, ; or a newline"),
 	),
 	errCase(
 		"{ foo; } bar",
-		langErr(`1:10: statements must be separated by &, ; or a newline`),
+		langErr("1:10: statements must be separated by &, ; or a newline"),
 	),
 	errCase(
 		"if foo; then bar; fi bar",
-		langErr(`1:22: statements must be separated by &, ; or a newline`),
+		langErr("1:22: statements must be separated by &, ; or a newline"),
 	),
 	errCase(
 		"case",
-		langErr(`1:1: "case" must be followed by a word`),
+		langErr("1:1: `case` must be followed by a word"),
 	),
 	errCase(
 		"case i",
-		langErr(`1:1: "case x" must be followed by "in"`),
+		langErr("1:1: `case x` must be followed by `in`"),
 	),
 	errCase(
 		"case i in 3) foo;",
-		langErr(`1:1: case statement must end with "esac"`),
+		langErr("1:1: `case` statement must end with `esac`"),
 	),
 	errCase(
 		"case i in 3) foo; 4) bar; esac",
-		langErr(`1:20: a command can only contain words and redirects; encountered ')'`),
+		langErr("1:20: a command can only contain words and redirects; encountered `)`"),
 	),
 	errCase(
 		"case i in 3&) foo;",
-		langErr(`1:12: case patterns must be separated with '|'`),
+		langErr("1:12: case patterns must be separated with `|`"),
 	),
 	errCase(
 		"case $i in &) foo;",
-		langErr(`1:12: case patterns must consist of words`),
+		langErr("1:12: case patterns must consist of words"),
 	),
 	errCase(
 		"case i {",
-		langErr(`1:1: "case i {" is a mksh feature; tried parsing as LANG`),
-		langErr(`1:1: case statement must end with '}'`, LangMirBSDKorn),
+		langErr("1:1: `case i {` is a mksh feature; tried parsing as LANG"),
+		langErr("1:1: `case` statement must end with `}`", LangMirBSDKorn),
 	),
 	errCase(
 		"case i { x) y ;;",
-		langErr(`1:1: case statement must end with '}'`, LangMirBSDKorn),
+		langErr("1:1: `case` statement must end with `}`", LangMirBSDKorn),
 	),
 	errCase(
 		"\"`\"",
-		langErr(`1:3: reached EOF without closing quote '"'`),
+		langErr("1:3: reached EOF without closing quote `\"`"),
 	),
 	errCase(
 		"`\"`",
-		langErr("1:2: reached '`' without closing quote '\"'"),
+		langErr("1:2: reached \"`\" without closing quote `\"`"),
 	),
 	errCase(
 		"`\\```",
-		langErr("1:3: reached EOF without closing quote '`'"),
+		langErr("1:3: reached EOF without closing quote \"`\""),
 	),
 	errCase(
 		"`{\nfoo`",
-		langErr("1:2: reached '`' without matching '{' with '}'"),
+		langErr("1:2: reached \"`\" without matching `{` with `}`"),
 	),
 	errCase(
 		"echo \"`)`\"",
-		langErr(`1:8: ')' can only be used to close a subshell`),
+		langErr("1:8: `)` can only be used to close a subshell"),
 		flipConfirm(LangPOSIX), // dash bug?
 	),
 	errCase(
 		"<<$bar\n$bar",
-		langErr(`1:3: expansions not allowed in heredoc words`),
+		langErr("1:3: expansions not allowed in heredoc words"),
 		flipConfirmAll, // we are stricter
 	),
 	errCase(
 		"<<${bar}\n${bar}",
-		langErr(`1:3: expansions not allowed in heredoc words`),
+		langErr("1:3: expansions not allowed in heredoc words"),
 		flipConfirmAll, // we are stricter
 	),
 	errCase(
 		"<<$(bar)\n$(bar)",
-		langErr(`1:3: expansions not allowed in heredoc words`, LangBash),
+		langErr("1:3: expansions not allowed in heredoc words", LangBash),
 		flipConfirmAll, // we are stricter
 	),
 
 	errCase(
 		"<<$-\n$-",
-		langErr(`1:3: expansions not allowed in heredoc words`),
+		langErr("1:3: expansions not allowed in heredoc words"),
 		flipConfirmAll, // we are stricter
 	),
 	errCase(
 		"<<`bar`\n`bar`",
-		langErr(`1:3: expansions not allowed in heredoc words`),
+		langErr("1:3: expansions not allowed in heredoc words"),
 		flipConfirmAll, // we are stricter
 	),
 	errCase(
 		"<<\"$bar\"\n$bar",
-		langErr(`1:4: expansions not allowed in heredoc words`),
+		langErr("1:4: expansions not allowed in heredoc words"),
 		flipConfirmAll, // we are stricter
 	),
 	errCase(
 		"<<a <<0\n$(<<$<<",
-		langErr(`2:6: '<<' must be followed by a word`),
+		langErr("2:6: `<<` must be followed by a word"),
 	),
 	errCase(
 		`""()`,
-		langErr(`1:1: invalid func name`),
+		langErr("1:1: invalid func name"),
 		flipConfirm(LangMirBSDKorn), // TODO: support non-literal func names, even empty ones?
 	),
 	errCase(
 		"]] )",
-		langErr(`1:1: ']]' can only be used to close a test`),
-		langErr(`1:4: a command can only contain words and redirects; encountered ')'`, LangPOSIX),
+		langErr("1:1: `]]` can only be used to close a test"),
+		langErr("1:4: a command can only contain words and redirects; encountered `)`", LangPOSIX),
 	),
 	errCase(
 		"((foo",
-		langErr(`1:1: reached EOF without matching '((' with '))'`, LangBash|LangMirBSDKorn|LangZsh),
-		langErr(`1:2: reached EOF without matching '(' with ')'`, LangPOSIX),
+		langErr("1:1: reached EOF without matching `((` with `))`", LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:2: reached EOF without matching `(` with `)`", LangPOSIX),
 	),
 	errCase(
 		"(())",
-		langErr(`1:1: '((' must be followed by an expression`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:1: `((` must be followed by an expression", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"echo ((foo",
-		langErr(`1:6: '((' can only be used to open an arithmetic cmd`, LangBash|LangMirBSDKorn|LangZsh),
-		langErr(`1:1: "foo(" must be followed by ')'`, LangPOSIX),
+		langErr("1:6: `((` can only be used to open an arithmetic cmd", LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:1: `foo(` must be followed by `)`", LangPOSIX),
 	),
 	errCase(
 		"echo |&",
-		langErr(`1:6: '|&' must be followed by a statement`, LangBash|LangZsh),
-		langErr(`1:6: '|' must be followed by a statement`, LangPOSIX),
+		langErr("1:6: `|&` must be followed by a statement", LangBash|LangZsh),
+		langErr("1:6: `|` must be followed by a statement", LangPOSIX),
 	),
 	errCase(
 		"|& a",
-		langErr(`1:1: '|&' is not a valid start for a statement`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:1: `|&` is not a valid start for a statement", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"foo |& bar",
-		langErr(`1:5: '|' must be followed by a statement`, LangPOSIX),
+		langErr("1:5: `|` must be followed by a statement", LangPOSIX),
 	),
 	errCase(
 		"let",
-		langErr(`1:1: "let" must be followed by an expression`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:1: `let` must be followed by an expression", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"let a+ b",
-		langErr(`1:6: '+' must be followed by an expression`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:6: `+` must be followed by an expression", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"let + a",
-		langErr(`1:5: '+' must be followed by an expression`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:5: `+` must be followed by an expression", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"let a ++",
-		langErr(`1:7: '++' must be followed by a literal`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:7: `++` must be followed by a literal", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"let (a)++",
-		langErr(`1:8: '++' must follow a name`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:8: `++` must follow a name", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"let 1++",
-		langErr(`1:6: '++' must follow a name`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:6: `++` must follow a name", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"let $0++",
-		langErr(`1:7: '++' must follow a name`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:7: `++` must follow a name", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"let --(a)",
-		langErr(`1:5: '--' must be followed by a literal`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:5: `--` must be followed by a literal", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"let --$a",
-		langErr(`1:5: '--' must be followed by a literal`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:5: `--` must be followed by a literal", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"let a+\n",
-		langErr(`1:6: '+' must be followed by an expression`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:6: `+` must be followed by an expression", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"let ))",
-		langErr(`1:1: "let" must be followed by an expression`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:1: `let` must be followed by an expression", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"`let !`",
-		langErr(`1:6: '!' must be followed by an expression`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:6: `!` must be followed by an expression", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"let a:b",
-		langErr(`1:6: ternary operator missing '?' before ':'`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:6: ternary operator missing `?` before `:`", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"let a+b=c",
-		langErr(`1:8: '=' must follow a name`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:8: `=` must follow a name", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"`let` { foo; }",
-		langErr(`1:2: "let" must be followed by an expression`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:2: `let` must be followed by an expression", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"$(let)",
-		langErr(`1:3: "let" must be followed by an expression`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:3: `let` must be followed by an expression", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"[[",
-		langErr(`1:1: '[[' must be followed by an expression`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:1: `[[` must be followed by an expression", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"[[ ]]",
-		langErr(`1:1: '[[' must be followed by an expression`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:1: `[[` must be followed by an expression", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"[[ a",
-		langErr(`1:1: reached EOF without matching '[[' with ']]'`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:1: reached EOF without matching `[[` with `]]`", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"[[ a ||",
-		langErr(`1:6: '||' must be followed by an expression`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:6: `||` must be followed by an expression", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"[[ a && &&",
-		langErr(`1:6: '&&' must be followed by an expression`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:6: `&&` must be followed by an expression", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"[[ a && ]]",
-		langErr(`1:6: '&&' must be followed by an expression`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:6: `&&` must be followed by an expression", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"[[ a ==",
-		langErr(`1:6: '==' must be followed by a word`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:6: `==` must be followed by a word", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"[[ a =~",
-		langErr(`1:6: '=~' must be followed by a word`, LangBash|LangZsh),
-		langErr(`1:6: regex tests are a bash/zsh feature; tried parsing as LANG`, LangMirBSDKorn),
+		langErr("1:6: `=~` must be followed by a word", LangBash|LangZsh),
+		langErr("1:6: regex tests are a bash/zsh feature; tried parsing as LANG", LangMirBSDKorn),
 	),
 	errCase(
 		"[[ -f a",
-		langErr(`1:1: reached EOF without matching '[[' with ']]'`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:1: reached EOF without matching `[[` with `]]`", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"[[ -n\na ]]",
-		langErr(`1:4: "-n" must be followed by a word`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:4: `-n` must be followed by a word", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"[[ a -ef\nb ]]",
-		langErr(`1:6: "-ef" must be followed by a word`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:6: `-ef` must be followed by a word", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"[[ a ==\nb ]]",
-		langErr(`1:6: '==' must be followed by a word`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:6: `==` must be followed by a word", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"[[ a -nt b",
-		langErr(`1:1: reached EOF without matching '[[' with ']]'`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:1: reached EOF without matching `[[` with `]]`", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"[[ a =~ b",
-		langErr(`1:1: reached EOF without matching '[[' with ']]'`, LangBash|LangZsh),
+		langErr("1:1: reached EOF without matching `[[` with `]]`", LangBash|LangZsh),
 	),
 	errCase(
 		"[[ a b c ]]",
-		langErr(`1:6: not a valid test operator: b`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:6: not a valid test operator: `b`", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"[[ a b$x c ]]",
-		langErr(`1:6: test operator words must consist of a single literal`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:6: test operator words must consist of a single literal", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"[[ a & b ]]",
-		langErr(`1:6: not a valid test operator: '&'`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:6: not a valid test operator: `&`", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"[[ true && () ]]",
-		langErr(`1:12: '(' must be followed by an expression`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:12: `(` must be followed by an expression", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"[[ true && (&& ]]",
-		langErr(`1:12: '(' must be followed by an expression`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:12: `(` must be followed by an expression", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"[[ a == ! b ]]",
-		langErr(`1:11: not a valid test operator: b`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:11: not a valid test operator: `b`", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"[[ (! ) ]]",
-		langErr(`1:5: '!' must be followed by an expression`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:5: `!` must be followed by an expression", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"[[ ! && ]]",
-		langErr(`1:4: '!' must be followed by an expression`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:4: `!` must be followed by an expression", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"[[ (-e ) ]]",
-		langErr(`1:5: "-e" must be followed by a word`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:5: `-e` must be followed by a word", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"[[ (a) == b ]]",
-		langErr(`1:8: expected '&&', '||' or ']]' after complex expr`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:8: expected `&&`, `||` or `]]` after complex expr", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"[[ a =~ ; ]]",
-		langErr(`1:6: '=~' must be followed by a word`, LangBash|LangZsh),
+		langErr("1:6: `=~` must be followed by a word", LangBash|LangZsh),
 	),
 	errCase(
 		"[[ a =~ )",
-		langErr(`1:6: '=~' must be followed by a word`, LangBash|LangZsh),
+		langErr("1:6: `=~` must be followed by a word", LangBash|LangZsh),
 	),
 	errCase(
 		"[[ a =~ ())",
-		langErr(`1:1: reached ')' without matching '[[' with ']]'`, LangBash|LangZsh),
+		langErr("1:1: reached `)` without matching `[[` with `]]`", LangBash|LangZsh),
 	),
 	errCase(
 		"[[ >",
-		langErr(`1:1: '[[' must be followed by an expression`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:1: `[[` must be followed by an expression", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"local (",
-		langErr(`1:7: "local" must be followed by names or assignments`, LangBash|LangZsh),
+		langErr("1:7: `local` must be followed by names or assignments", LangBash|LangZsh),
 	),
 	errCase(
 		"declare 0=${o})",
-		langErr(`1:9: invalid var name`, LangBash|LangZsh),
+		langErr("1:9: invalid var name", LangBash|LangZsh),
 	),
 	errCase(
 		"a=(<)",
-		langErr(`1:4: array element values must be words`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:4: array element values must be words", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"a=([)",
-		langErr(`1:4: '[' must be followed by an expression`, LangBash|LangZsh),
+		langErr("1:4: `[` must be followed by an expression", LangBash|LangZsh),
 	),
 	errCase(
 		"a=([i)",
-		langErr(`1:4: reached ')' without matching '[' with ']'`, LangBash|LangZsh),
+		langErr("1:4: reached `)` without matching `[` with `]`", LangBash|LangZsh),
 	),
 	errCase(
 		"a=([i])",
-		langErr(`1:4: "[x]" must be followed by '='`, LangBash|LangZsh),
+		langErr("1:4: `[x]` must be followed by `=`", LangBash|LangZsh),
 		flipConfirmAll, // TODO: why is this valid?
 	),
 	errCase(
 		"a[i]=(y)",
-		langErr(`1:6: arrays cannot be nested`, LangBash|LangZsh),
+		langErr("1:6: arrays cannot be nested", LangBash|LangZsh),
 	),
 	errCase(
 		"a=([i]=(y))",
-		langErr(`1:8: arrays cannot be nested`, LangBash|LangZsh),
+		langErr("1:8: arrays cannot be nested", LangBash|LangZsh),
 	),
 	errCase(
 		"o=([0]=#",
-		langErr(`1:8: array element values must be words`, LangBash|LangZsh),
+		langErr("1:8: array element values must be words", LangBash|LangZsh),
 	),
 	errCase(
 		"a[b] ==[",
-		langErr(`1:1: "a[b]" must be followed by '='`, LangBash|LangZsh),
+		langErr("1:1: `a[b]` must be followed by `=`", LangBash|LangZsh),
 		flipConfirmAll, // stringifies
 	),
 	errCase(
 		"a[b] +=c",
-		langErr(`1:1: "a[b]" must be followed by '='`, LangBash|LangZsh),
+		langErr("1:1: `a[b]` must be followed by `=`", LangBash|LangZsh),
 		flipConfirmAll, // stringifies
 	),
 	errCase(
 		"a=(x y) foo",
-		langErr(`1:1: inline variables cannot be arrays`, LangBash|LangZsh),
+		langErr("1:1: inline variables cannot be arrays", LangBash|LangZsh),
 		flipConfirmAll, // stringifies
 	),
 	errCase(
 		"a[2]=x foo",
-		langErr(`1:1: inline variables cannot be arrays`, LangBash|LangZsh),
+		langErr("1:1: inline variables cannot be arrays", LangBash|LangZsh),
 		flipConfirmAll, // stringifies
 	),
 	errCase(
 		"function",
-		langErr(`1:1: "function" must be followed by a name`, LangBash|LangMirBSDKorn),
-		langErr(`1:1: "foo()" must be followed by a statement`, LangZsh),
+		langErr("1:1: `function` must be followed by a name", LangBash|LangMirBSDKorn),
+		langErr("1:1: `foo()` must be followed by a statement", LangZsh),
 	),
 	errCase(
 		"function foo(",
-		langErr(`1:1: "function foo(" must be followed by ')'`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:1: `function foo(` must be followed by `)`", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"function `function",
-		langErr(`1:1: "function" must be followed by a name`, LangBash|LangMirBSDKorn),
-		langErr(`1:11: "foo()" must be followed by a statement`, LangZsh),
+		langErr("1:1: `function` must be followed by a name", LangBash|LangMirBSDKorn),
+		langErr("1:11: `foo()` must be followed by a statement", LangZsh),
 	),
 	errCase(
 		`function "foo"(){}`,
-		langErr(`1:1: "function" must be followed by a name`, LangBash|LangMirBSDKorn),
-		langErr(`1:10: invalid func name`, LangZsh),
+		langErr("1:1: `function` must be followed by a name", LangBash|LangMirBSDKorn),
+		langErr("1:10: invalid func name", LangZsh),
 	),
 	errCase(
 		"function foo()",
-		langErr(`1:1: "foo()" must be followed by a statement`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:1: `foo()` must be followed by a statement", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"@test",
-		langErr(`1:1: "@test" must be followed by a description word`, LangBats),
+		langErr("1:1: `@test` must be followed by a description word", LangBats),
 	),
 	errCase(
 		"@test 'desc'",
-		langErr(`1:1: "@test desc..." must be followed by a statement`, LangBats),
+		langErr("1:1: `@test \"desc\"` must be followed by a statement", LangBats),
 	),
 	errCase(
 		"echo <<<",
-		langErr(`1:6: '<<<' must be followed by a word`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:6: `<<<` must be followed by a word", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"a[",
-		langErr(`1:2: '[' must be followed by an expression`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:2: `[` must be followed by an expression", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"a[b",
-		langErr(`1:2: reached EOF without matching '[' with ']'`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:2: reached EOF without matching `[` with `]`", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"a[]",
-		langErr(`1:2: '[' must be followed by an expression`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:2: `[` must be followed by an expression", LangBash|LangMirBSDKorn|LangZsh),
 		flipConfirmAll, // is cmd
 	),
 	errCase(
 		"a[[",
-		langErr(`1:3: '[' must follow a name`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:3: `[` must follow a name", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"echo $((a[))",
-		langErr(`1:10: '[' must be followed by an expression`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:10: `[` must be followed by an expression", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"echo $((a[b))",
-		langErr(`1:10: reached ')' without matching '[' with ']'`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:10: reached `)` without matching `[` with `]`", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"echo $((a[]))",
-		langErr(`1:10: '[' must be followed by an expression`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:10: `[` must be followed by an expression", LangBash|LangMirBSDKorn|LangZsh),
 		flipConfirm(LangMirBSDKorn), // wrong?
 	),
 	errCase(
 		"echo $((x$t[",
-		langErr(`1:12: '[' must follow a name`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:12: `[` must follow a name", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"a[1]",
-		langErr(`1:1: "a[b]" must be followed by '='`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:1: `a[b]` must be followed by `=`", LangBash|LangMirBSDKorn|LangZsh),
 		flipConfirmAll, // is cmd
 	),
 	errCase(
 		"a[i]+",
-		langErr(`1:1: "a[b]+" must be followed by '='`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:1: `a[b]+` must be followed by `=`", LangBash|LangMirBSDKorn|LangZsh),
 		flipConfirmAll, // is cmd
 	),
 	errCase(
 		"a[1]#",
-		langErr(`1:1: "a[b]" must be followed by '='`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:1: `a[b]` must be followed by `=`", LangBash|LangMirBSDKorn|LangZsh),
 		flipConfirmAll, // is cmd
 	),
 	errCase(
 		"echo $[foo",
-		langErr(`1:6: reached EOF without matching '$[' with ']'`, LangBash),
+		langErr("1:6: reached EOF without matching `$[` with `]`", LangBash),
 	),
 	errCase(
 		"echo $'",
-		langErr(`1:6: reached EOF without closing quote "'"`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:6: reached EOF without closing quote `'`", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		`echo $"`,
-		langErr(`1:6: reached EOF without closing quote '"'`, LangBash|LangMirBSDKorn),
+		langErr("1:6: reached EOF without closing quote `\"`", LangBash|LangMirBSDKorn),
 	),
 	errCase(
 		"echo @(",
-		langErr(`1:6: reached EOF without matching '@(' with ')'`, LangBash|LangMirBSDKorn),
+		langErr("1:6: reached EOF without matching `@(` with `)`", LangBash|LangMirBSDKorn),
 	),
 	errCase(
 		"echo @(a",
-		langErr(`1:6: reached EOF without matching '@(' with ')'`, LangBash|LangMirBSDKorn),
+		langErr("1:6: reached EOF without matching `@(` with `)`", LangBash|LangMirBSDKorn),
 	),
 	errCase(
 		"echo @([abc)])",
-		langErr(`1:14: a command can only contain words and redirects; encountered ')'`, LangBash|LangMirBSDKorn),
+		langErr("1:14: a command can only contain words and redirects; encountered `)`", LangBash|LangMirBSDKorn),
 	),
 	errCase(
 		"((@(",
-		langErr(`1:4: not a valid arithmetic operator: '('`, LangBash|LangMirBSDKorn),
+		langErr("1:4: not a valid arithmetic operator: `(`", LangBash|LangMirBSDKorn),
 	),
 	errCase(
 		"time { foo;",
-		langErr(`1:6: reached EOF without matching '{' with '}'`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:6: reached EOF without matching `{` with `}`", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"time ! foo",
-		langErr(`1:6: '!' can only be used in full statements`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:6: `!` can only be used in full statements", LangBash|LangMirBSDKorn|LangZsh),
 		flipConfirm(LangBash), // TODO: why is this valid?
 	),
 	errCase(
 		"coproc",
-		langErr(`1:1: coproc clause requires a command`, LangBash),
+		langErr("1:1: coproc clause requires a command", LangBash),
 	),
 	errCase(
 		"coproc\n$",
-		langErr(`1:1: coproc clause requires a command`, LangBash),
+		langErr("1:1: coproc clause requires a command", LangBash),
 	),
 	errCase(
 		"coproc declare (",
-		langErr(`1:16: "declare" must be followed by names or assignments`, LangBash),
+		langErr("1:16: `declare` must be followed by names or assignments", LangBash),
 	),
 	errCase(
 		"echo ${foo[1 2]}",
-		langErr(`1:14: not a valid arithmetic operator: 2`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:14: not a valid arithmetic operator: `2`", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"echo ${foo[}",
-		langErr(`1:11: '[' must be followed by an expression`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:11: `[` must be followed by an expression", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"echo ${foo]}",
-		langErr(`1:11: not a valid parameter expansion operator: ']'`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:11: not a valid parameter expansion operator: `]`", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"echo ${foo[]}",
-		langErr(`1:11: '[' must be followed by an expression`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:11: `[` must be followed by an expression", LangBash|LangMirBSDKorn|LangZsh),
 		flipConfirm(LangMirBSDKorn), // TODO: why is this valid?
 	),
 	errCase(
 		"echo ${a/\n",
-		langErr(`1:6: reached EOF without matching '${' with '}'`, LangBash|LangMirBSDKorn),
+		langErr("1:6: reached EOF without matching `${` with `}`", LangBash|LangMirBSDKorn),
 	),
 	errCase(
 		"echo ${a/''",
-		langErr(`1:6: reached EOF without matching '${' with '}'`, LangBash|LangMirBSDKorn),
+		langErr("1:6: reached EOF without matching `${` with `}`", LangBash|LangMirBSDKorn),
 	),
 	errCase(
 		"echo ${a-\n",
-		langErr(`1:6: reached EOF without matching '${' with '}'`, LangBash|LangMirBSDKorn),
+		langErr("1:6: reached EOF without matching `${` with `}`", LangBash|LangMirBSDKorn),
 	),
 	errCase(
 		"echo ${foo:",
-		langErr(`1:11: ':' must be followed by an expression`, LangBash|LangMirBSDKorn),
+		langErr("1:11: `:` must be followed by an expression", LangBash|LangMirBSDKorn),
 	),
 	errCase(
 		"foo=force_expansion; echo ${foo:1 2}",
-		langErr(`1:35: not a valid arithmetic operator: 2`, LangBash|LangMirBSDKorn),
+		langErr("1:35: not a valid arithmetic operator: `2`", LangBash|LangMirBSDKorn),
 	),
 	errCase(
 		"echo ${foo:1",
-		langErr(`1:6: reached EOF without matching '${' with '}'`, LangBash|LangMirBSDKorn),
+		langErr("1:6: reached EOF without matching `${` with `}`", LangBash|LangMirBSDKorn),
 	),
 	errCase(
 		"echo ${foo:1:",
-		langErr(`1:13: ':' must be followed by an expression`, LangBash|LangMirBSDKorn),
+		langErr("1:13: `:` must be followed by an expression", LangBash|LangMirBSDKorn),
 	),
 	errCase(
 		"echo ${foo:1:2",
-		langErr(`1:6: reached EOF without matching '${' with '}'`, LangBash|LangMirBSDKorn),
+		langErr("1:6: reached EOF without matching `${` with `}`", LangBash|LangMirBSDKorn),
 	),
 	errCase(
 		"echo ${foo,",
-		langErr(`1:6: reached EOF without matching '${' with '}'`, LangBash),
+		langErr("1:6: reached EOF without matching `${` with `}`", LangBash),
 	),
 	errCase(
 		"echo ${foo@",
-		langErr(`1:11: @ expansion operator requires a literal`, LangBash),
+		langErr("1:11: @ expansion operator requires a literal", LangBash),
 	),
 	errCase(
 		"foo=force_expansion; echo ${foo@}",
-		langErr(`1:33: @ expansion operator requires a literal`, LangBash),
+		langErr("1:33: @ expansion operator requires a literal", LangBash),
 	),
 	errCase(
 		"echo ${foo@Q",
-		langErr(`1:6: reached EOF without matching '${' with '}'`, LangBash),
+		langErr("1:6: reached EOF without matching `${` with `}`", LangBash),
 	),
 	errCase(
 		"foo=force_expansion; echo ${foo@bar}",
-		langErr(`1:33: invalid @ expansion operator "bar"`, LangBash),
+		langErr("1:33: invalid @ expansion operator `bar`", LangBash),
 	),
 	errCase(
 		"foo=force_expansion; echo ${foo@'Q'}",
-		langErr(`1:33: @ expansion operator requires a literal`, LangBash),
+		langErr("1:33: @ expansion operator requires a literal", LangBash),
 	),
 	errCase(
 		`echo $((echo a); (echo b))`,
-		langErr(`1:14: not a valid arithmetic operator: a`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:14: not a valid arithmetic operator: `a`", LangBash|LangMirBSDKorn|LangZsh),
 		flipConfirmAll, // note that we don't backtrack
 	),
 	errCase(
 		`((echo a); (echo b))`,
-		langErr(`1:8: not a valid arithmetic operator: a`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:8: not a valid arithmetic operator: `a`", LangBash|LangMirBSDKorn|LangZsh),
 		flipConfirmAll, // note that we don't backtrack
 	),
 	errCase(
 		"for ((;;",
-		langErr(`1:5: reached EOF without matching '((' with '))'`, LangBash),
+		langErr("1:5: reached EOF without matching `((` with `))`", LangBash),
 	),
 	errCase(
 		"for ((;;0000000",
-		langErr(`1:5: reached EOF without matching '((' with '))'`, LangBash),
+		langErr("1:5: reached EOF without matching `((` with `))`", LangBash),
 	),
 	errCase(
 		"echo <(",
-		langErr(`1:6: '<' must be followed by a word`, LangPOSIX|LangMirBSDKorn),
+		langErr("1:6: `<` must be followed by a word", LangPOSIX|LangMirBSDKorn),
 	),
 	errCase(
 		"echo >(",
-		langErr(`1:6: '>' must be followed by a word`, LangPOSIX|LangMirBSDKorn),
+		langErr("1:6: `>` must be followed by a word", LangPOSIX|LangMirBSDKorn),
 	),
 	errCase(
 		"echo {var}>foo",
-		langErr(`1:6: {varname} redirects are a bash feature; tried parsing as LANG`, LangPOSIX|LangMirBSDKorn),
+		langErr("1:6: `{varname}` redirects are a bash feature; tried parsing as LANG", LangPOSIX|LangMirBSDKorn),
 		// shells treat {var} as an argument, but we are a bit stricter
 		// so that users won't think this will work like they expect in POSIX shell.
 		flipConfirmAll,
 	),
 	errCase(
 		"echo ;&",
-		langErr(`1:7: '&' can only immediately follow a statement`, LangPOSIX),
-		langErr(`1:6: ';&' can only be used in a case clause`, LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:7: `&` can only immediately follow a statement", LangPOSIX),
+		langErr("1:6: `;&` can only be used in a case clause", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"echo ;;&",
-		langErr(`1:6: ';;' can only be used in a case clause`, LangPOSIX|LangMirBSDKorn),
+		langErr("1:6: `;;` can only be used in a case clause", LangPOSIX|LangMirBSDKorn),
 	),
 	errCase(
 		"echo ;|",
-		langErr(`1:7: '|' can only immediately follow a statement`, LangPOSIX|LangBash),
+		langErr("1:7: `|` can only immediately follow a statement", LangPOSIX|LangBash),
 	),
 	errCase(
 		"for i in 1 2 3; { echo; }",
-		langErr(`1:17: for loops with braces are a bash/mksh feature; tried parsing as LANG`, LangPOSIX),
+		langErr("1:17: for loops with braces are a bash/mksh feature; tried parsing as LANG", LangPOSIX),
 	),
 	errCase(
 		"echo !(a)",
-		langErr(`1:6: extended globs are a bash/mksh feature; tried parsing as LANG`, LangPOSIX),
+		langErr("1:6: extended globs are a bash/mksh feature; tried parsing as LANG", LangPOSIX),
 	),
 	errCase(
 		"echo $a@(b)",
-		langErr(`1:8: extended globs are a bash/mksh feature; tried parsing as LANG`, LangPOSIX),
+		langErr("1:8: extended globs are a bash/mksh feature; tried parsing as LANG", LangPOSIX),
 	),
 	errCase(
 		"foo=(1 2)",
-		langErr(`1:5: arrays are a bash/mksh/zsh feature; tried parsing as LANG`, LangPOSIX),
+		langErr("1:5: arrays are a bash/mksh/zsh feature; tried parsing as LANG", LangPOSIX),
 	),
 	errCase(
 		"a=$c\n'",
-		langErr(`2:1: reached EOF without closing quote "'"`),
+		langErr("2:1: reached EOF without closing quote `'`"),
 	),
 	errCase(
 		"echo ${!foo[@]}",
-		langErr(`1:6: "${!foo}" is a bash/mksh feature; tried parsing as LANG`, LangPOSIX),
+		langErr("1:6: `${!foo}` is a bash/mksh feature; tried parsing as LANG", LangPOSIX),
 	),
 	errCase(
 		"foo << < bar",
-		langErr(`1:5: '<<' must be followed by a word`, LangPOSIX),
+		langErr("1:5: `<<` must be followed by a word", LangPOSIX),
 	),
 	errCase(
 		"echo ${foo,bar}",
-		langErr(`1:11: this expansion operator is a bash feature; tried parsing as LANG`, LangPOSIX|LangMirBSDKorn),
+		langErr("1:11: this expansion operator is a bash feature; tried parsing as LANG", LangPOSIX|LangMirBSDKorn),
 	),
 	errCase(
 		"echo ${foo@Q}",
-		langErr(`1:11: this expansion operator is a bash/mksh feature; tried parsing as LANG`, LangPOSIX),
+		langErr("1:11: this expansion operator is a bash/mksh feature; tried parsing as LANG", LangPOSIX),
 	),
 	errCase(
 		"echo ${foo@a}",
-		langErr(`1:12: this expansion operator is a bash feature; tried parsing as LANG`, LangMirBSDKorn),
+		langErr("1:12: this expansion operator is a bash feature; tried parsing as LANG", LangMirBSDKorn),
 	),
 	errCase(
 		"echo ${foo@u}",
-		langErr(`1:12: this expansion operator is a bash feature; tried parsing as LANG`, LangMirBSDKorn),
+		langErr("1:12: this expansion operator is a bash feature; tried parsing as LANG", LangMirBSDKorn),
 	),
 	errCase(
 		"echo ${foo@A}",
-		langErr(`1:12: this expansion operator is a bash feature; tried parsing as LANG`, LangMirBSDKorn),
+		langErr("1:12: this expansion operator is a bash feature; tried parsing as LANG", LangMirBSDKorn),
 	),
 	errCase(
 		"echo ${foo@E}",
-		langErr(`1:12: this expansion operator is a bash feature; tried parsing as LANG`, LangMirBSDKorn),
+		langErr("1:12: this expansion operator is a bash feature; tried parsing as LANG", LangMirBSDKorn),
 	),
 	errCase(
 		"echo ${foo@K}",
-		langErr(`1:12: this expansion operator is a bash feature; tried parsing as LANG`, LangMirBSDKorn),
+		langErr("1:12: this expansion operator is a bash feature; tried parsing as LANG", LangMirBSDKorn),
 	),
 	errCase(
 		"echo ${foo@k}",
-		langErr(`1:12: this expansion operator is a bash feature; tried parsing as LANG`, LangMirBSDKorn),
+		langErr("1:12: this expansion operator is a bash feature; tried parsing as LANG", LangMirBSDKorn),
 	),
 	errCase(
 		"echo ${foo@L}",
-		langErr(`1:12: this expansion operator is a bash feature; tried parsing as LANG`, LangMirBSDKorn),
+		langErr("1:12: this expansion operator is a bash feature; tried parsing as LANG", LangMirBSDKorn),
 	),
 	errCase(
 		"echo ${foo@P}",
-		langErr(`1:12: this expansion operator is a bash feature; tried parsing as LANG`, LangMirBSDKorn),
+		langErr("1:12: this expansion operator is a bash feature; tried parsing as LANG", LangMirBSDKorn),
 	),
 	errCase(
 		"echo ${foo@U}",
-		langErr(`1:12: this expansion operator is a bash feature; tried parsing as LANG`, LangMirBSDKorn),
+		langErr("1:12: this expansion operator is a bash feature; tried parsing as LANG", LangMirBSDKorn),
 	),
 	errCase(
 		"foo=force_expansion; echo ${foo@#}",
-		langErr(`1:33: this expansion operator is a mksh feature; tried parsing as LANG`, LangBash),
+		langErr("1:33: this expansion operator is a mksh feature; tried parsing as LANG", LangBash),
 	),
 	errCase(
 		"`\"`\\",
-		langErr("1:2: reached '`' without closing quote '\"'"),
+		langErr("1:2: reached \"`\" without closing quote `\"`"),
 	),
 }
 
 func TestInputName(t *testing.T) {
 	t.Parallel()
 	in := "("
-	want := "some-file.sh:1:1: '(' must be followed by a statement list"
+	want := "some-file.sh:1:1: `(` must be followed by a statement list"
 	p := NewParser()
 	_, err := p.Parse(strings.NewReader(in), "some-file.sh")
 	if err == nil {
@@ -2226,7 +2226,7 @@ func TestParseWordsError(t *testing.T) {
 		})
 	}()
 	<-recv
-	want := "1:5: ')' is not a valid word"
+	want := "1:5: `)` is not a valid word"
 	got := fmt.Sprintf("%v", <-errc)
 	if got != want {
 		t.Fatalf("Expected %q as an error, but got %q", want, got)
@@ -2279,7 +2279,7 @@ func TestParseDocumentError(t *testing.T) {
 	in := "foo $("
 	p := NewParser()
 	_, err := p.Document(strings.NewReader(in))
-	want := "1:5: reached EOF without matching '$(' with ')'"
+	want := "1:5: reached EOF without matching `$(` with `)`"
 	got := fmt.Sprintf("%v", err)
 	if got != want {
 		t.Fatalf("Expected %q as an error, but got %q", want, got)
@@ -2372,7 +2372,7 @@ func TestParseArithmeticError(t *testing.T) {
 	in := "3 +"
 	p := NewParser()
 	_, err := p.Arithmetic(strings.NewReader(in))
-	want := "1:3: '+' must be followed by an expression"
+	want := "1:3: `+` must be followed by an expression"
 	got := fmt.Sprintf("%v", err)
 	if got != want {
 		t.Fatalf("Expected %q as an error, but got %q", want, got)

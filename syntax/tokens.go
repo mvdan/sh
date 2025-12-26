@@ -17,6 +17,9 @@ const (
 	_LitWord
 	_LitRedir
 
+	// Token values beyond this point stringify as exact source.
+	_realTokenBoundary
+
 	sglQuote // '
 	dblQuote // "
 	bckQuote // `

@@ -9,9 +9,7 @@ import (
 	"iter"
 	"math/bits"
 	"slices"
-	"strconv"
 	"strings"
-	"unicode"
 	"unicode/utf8"
 )
 
@@ -428,7 +426,7 @@ func (p *Parser) WordsSeq(r io.Reader) iter.Seq2[*Word, error] {
 			w := p.getWord()
 			if w == nil {
 				if p.tok != _EOF {
-					p.curErr("%s is not a valid word", p.tok)
+					p.curErr("%#q is not a valid word", p.tok)
 				}
 				if p.err != nil {
 					yield(nil, p.err)
@@ -762,7 +760,7 @@ func (p *Parser) doHeredocs() {
 			r.Hdoc = p.getWord()
 		}
 		if stop := p.hdocStops[len(p.hdocStops)-1]; stop != nil {
-			p.posErr(r.Pos(), "unclosed here-document '%s'", stop)
+			p.posErr(r.Pos(), "unclosed here-document %#q", stop)
 		}
 		p.hdocStops = p.hdocStops[:len(p.hdocStops)-1]
 	}
@@ -794,39 +792,33 @@ func (p *Parser) recoverError() bool {
 	return false
 }
 
-// quoteTok quotes a token or word string for an error message,
-// using either single or double quotes depending on what is best.
-func quoteTok(s string) string {
-	if s == "" {
-		panic("a token string should never be empty")
+type noQuote string
+
+func (s noQuote) Format(f fmt.State, verb rune) {
+	f.Write([]byte(s))
+}
+
+func (t token) Format(f fmt.State, verb rune) {
+	if t < _realTokenBoundary && verb == 'q' {
+		// EOF, Lit and the others should not be quoted in error messages
+		// as they are not real shell syntax like `if` or `{`.
+		f.Write([]byte(t.String()))
+	} else {
+		fmt.Fprintf(f, fmt.FormatString(f, verb), t.String())
 	}
-	// We want tokens like '"' or '>>' to use single quotes,
-	// and words like "if" or "case" to use double quotes.
-	// Mixed cases like "@test" or "[x]" fall back to double quotes.
-	for _, r := range s {
-		if unicode.IsLetter(r) || r == '\'' {
-			return strconv.Quote(s)
-		}
-	}
-	return "'" + s + "'"
 }
 
-func quotedToken[T fmt.Stringer](tok T) string {
-	return quoteTok(tok.String())
+func (p *Parser) followErr(pos Pos, left, right any) {
+	p.posErr(pos, "%#q must be followed by %#q", left, right)
 }
 
-func (p *Parser) followErr(pos Pos, left, right string) {
-	p.posErr(pos, "%s must be followed by %s",
-		quoteTok(left), right)
-}
-
-func (p *Parser) followErrExp(pos Pos, left string) {
-	p.followErr(pos, left, "an expression")
+func (p *Parser) followErrExp(pos Pos, left any) {
+	p.followErr(pos, left, noQuote("an expression"))
 }
 
 func (p *Parser) follow(lpos Pos, left string, tok token) {
 	if !p.got(tok) {
-		p.followErr(lpos, left, quotedToken(tok))
+		p.followErr(lpos, left, tok)
 	}
 }
 
@@ -836,7 +828,7 @@ func (p *Parser) followRsrv(lpos Pos, left, val string) Pos {
 		if p.recoverError() {
 			return recoveredPos
 		}
-		p.followErr(lpos, left, strconv.Quote(val))
+		p.followErr(lpos, left, val)
 	}
 	return pos
 }
@@ -854,7 +846,7 @@ func (p *Parser) followStmts(left string, lpos Pos, stops ...string) ([]*Stmt, [
 		if p.lang.in(LangZsh | LangMirBSDKorn) {
 			return nil, nil // allow an empty list
 		}
-		p.followErr(lpos, left, "a statement list")
+		p.followErr(lpos, left, noQuote("a statement list"))
 		return nil, nil
 	}
 	stmts, last := p.stmtList(stops...)
@@ -865,7 +857,7 @@ func (p *Parser) followStmts(left string, lpos Pos, stops ...string) ([]*Stmt, [
 		if p.recoverError() {
 			return []*Stmt{{Position: recoveredPos}}, nil
 		}
-		p.followErr(lpos, left, "a statement list")
+		p.followErr(lpos, left, noQuote("a statement list"))
 	}
 	return stmts, last
 }
@@ -876,7 +868,7 @@ func (p *Parser) followWordTok(tok token, pos Pos) *Word {
 		if p.recoverError() {
 			return p.wordOne(&Lit{ValuePos: recoveredPos})
 		}
-		p.followErr(pos, tok.String(), "a word")
+		p.followErr(pos, tok, noQuote("a word"))
 	}
 	return w
 }
@@ -887,17 +879,17 @@ func (p *Parser) stmtEnd(n Node, start, end string) Pos {
 		if p.recoverError() {
 			return recoveredPos
 		}
-		p.posErr(n.Pos(), "%s statement must end with %s", start, quoteTok(end))
+		p.posErr(n.Pos(), "%#q statement must end with %#q", start, end)
 	}
 	return pos
 }
 
 func (p *Parser) quoteErr(lpos Pos, quote token) {
-	p.posErr(lpos, "reached %s without closing quote %s", p.tok, quote)
+	p.posErr(lpos, "reached %#q without closing quote %#q", p.tok, quote)
 }
 
 func (p *Parser) matchingErr(lpos Pos, left, right token) {
-	p.posErr(lpos, "reached %s without matching %s with %s", p.tok, left, right)
+	p.posErr(lpos, "reached %#q without matching %#q with %#q", p.tok, left, right)
 }
 
 func (p *Parser) matched(lpos Pos, left, right token) Pos {
@@ -1023,11 +1015,11 @@ func (e LangError) Error() string {
 }
 
 func (p *Parser) posErr(pos Pos, format string, args ...any) {
-	for i, arg := range args {
-		if arg, ok := arg.(fmt.Stringer); ok && arg != _EOF {
-			args[i] = quotedToken(arg)
-		}
-	}
+	// for i, arg := range args {
+	// 	if arg, ok := arg.(fmt.Stringer); ok && arg != _EOF {
+	// 		args[i] = quotedToken(arg)
+	// 	}
+	// }
 	p.errPass(ParseError{
 		Filename:   p.f.Name,
 		Pos:        pos,
@@ -1071,7 +1063,7 @@ loop:
 				}
 			}
 			if p.val == "}" {
-				p.curErr(`%s can only be used to close a block`, rightBrace)
+				p.curErr(`%#q can only be used to close a block`, rightBrace)
 			}
 		case rightParen:
 			if p.quote == subCmd {
@@ -1085,7 +1077,7 @@ loop:
 			if p.quote == switchCase {
 				break loop
 			}
-			p.curErr("%s can only be used in a case clause", p.tok)
+			p.curErr("%#q can only be used in a case clause", p.tok)
 		}
 		if !newLine && !gotEnd {
 			p.curErr("statements must be separated by &, ; or a newline")
@@ -1144,11 +1136,11 @@ func (p *Parser) stmtList(stops ...string) ([]*Stmt, []Comment) {
 func (p *Parser) invalidStmtStart() {
 	switch p.tok {
 	case semicolon, and, or, andAnd, orOr:
-		p.curErr("%s can only immediately follow a statement", p.tok)
+		p.curErr("%#q can only immediately follow a statement", p.tok)
 	case rightParen:
-		p.curErr("%s can only be used to close a subshell", p.tok)
+		p.curErr("%#q can only be used to close a subshell", p.tok)
 	default:
-		p.curErr("%s is not a valid start for a statement", p.tok)
+		p.curErr("%#q is not a valid start for a statement", p.tok)
 	}
 }
 
@@ -1207,10 +1199,10 @@ func (p *Parser) wordPart() WordPart {
 		p.ensureNoNested(p.pos)
 		switch p.r {
 		case '|':
-			p.checkLang(p.pos, langBashLike|LangMirBSDKorn, `"${|stmts;}"`)
+			p.checkLang(p.pos, langBashLike|LangMirBSDKorn, "`${|stmts;}`")
 			fallthrough
 		case ' ', '\t', '\n':
-			p.checkLang(p.pos, langBashLike|LangMirBSDKorn, `"${ stmts;}"`)
+			p.checkLang(p.pos, langBashLike|LangMirBSDKorn, "`${ stmts;}`")
 			cs := &CmdSubst{
 				Left:     p.pos,
 				TempFile: p.r != '|',
@@ -1453,19 +1445,19 @@ func (p *Parser) paramExp() *ParamExp {
 			}
 		case '%':
 			if r := p.peek(); r == utf8.RuneSelf || singleRuneParam(r) || paramNameRune(r) {
-				p.checkLang(pe.Pos(), LangMirBSDKorn, `"${%%foo}"`)
+				p.checkLang(pe.Pos(), LangMirBSDKorn, "`${%%foo}`")
 				pe.Width = true
 				p.rune()
 			}
 		case '!':
 			if r := p.peek(); r == utf8.RuneSelf || singleRuneParam(r) || paramNameRune(r) {
-				p.checkLang(pe.Pos(), langBashLike|LangMirBSDKorn, `"${!foo}"`)
+				p.checkLang(pe.Pos(), langBashLike|LangMirBSDKorn, "`${!foo}`")
 				pe.Excl = true
 				p.rune()
 			}
 		case '+':
 			if r := p.peek(); r == utf8.RuneSelf || singleRuneParam(r) || paramNameRune(r) {
-				p.checkLang(pe.Pos(), LangZsh, `"${+foo}"`)
+				p.checkLang(pe.Pos(), LangZsh, "`${+foo}`")
 				pe.Plus = true
 				p.rune()
 			}
@@ -1563,9 +1555,9 @@ func (p *Parser) paramExp() *ParamExp {
 	case at, star:
 		switch {
 		case p.tok == star && !pe.Excl:
-			p.curErr("not a valid parameter expansion operator: %q", '*')
+			p.curErr("not a valid parameter expansion operator: %#q", p.tok)
 		case pe.Excl && p.r == '}':
-			p.checkLang(pe.Pos(), langBashLike, `"${!foo%s}"`, p.tok)
+			p.checkLang(pe.Pos(), langBashLike, "`${!foo%s}`", p.tok)
 			pe.Names = ParNamesOperator(p.tok)
 			p.next()
 		case p.tok == at:
@@ -1580,9 +1572,9 @@ func (p *Parser) paramExp() *ParamExp {
 	case _EOF:
 	default:
 		if paramNameRune(tokRune) {
-			p.curErr("%q cannot be followed by a word", pe.Param.Value)
+			p.curErr("%#q cannot be followed by a word", pe.Param.Value)
 		} else {
-			p.curErr("not a valid parameter expansion operator: %q", tokRune)
+			p.curErr("not a valid parameter expansion operator: %#q", string(tokRune))
 		}
 	}
 	if p.tok != _EOF && p.tok != rightBrace {
@@ -1676,7 +1668,7 @@ func (p *Parser) paramExpExp() *Expansion {
 			p.checkLang(p.pos, LangMirBSDKorn, "this expansion operator")
 		case "Q":
 		default:
-			p.curErr("invalid @ expansion operator %q", p.val)
+			p.curErr("invalid @ expansion operator %#q", p.val)
 		}
 	}
 	return &Expansion{Op: op, Word: p.getWord()}
@@ -1784,7 +1776,7 @@ func (p *Parser) getAssign(needEqual bool) *Assign {
 		as.Index = p.eitherIndex()
 		if p.spaced || p.stopToken() {
 			if needEqual {
-				p.followErr(as.Pos(), "a[b]", "'='")
+				p.followErr(as.Pos(), "a[b]", assgn)
 			} else {
 				as.Naked = true
 				return as
@@ -1797,9 +1789,9 @@ func (p *Parser) getAssign(needEqual bool) *Assign {
 		}
 		if len(p.val) < 1 || p.val[0] != '=' {
 			if as.Append {
-				p.followErr(as.Pos(), "a[b]+", "'='")
+				p.followErr(as.Pos(), "a[b]+", assgn)
 			} else {
-				p.followErr(as.Pos(), "a[b]", "'='")
+				p.followErr(as.Pos(), "a[b]", assgn)
 			}
 			return nil
 		}
@@ -1894,14 +1886,14 @@ func (p *Parser) doRedirect(s *Stmt) {
 	}
 	r.N = p.getLit()
 	if r.N != nil && r.N.Value[0] == '{' {
-		p.checkLang(r.N.Pos(), langBashLike, "{varname} redirects")
+		p.checkLang(r.N.Pos(), langBashLike, "`{varname}` redirects")
 	}
 	r.Op, r.OpPos = RedirOperator(p.tok), p.pos
 	switch r.Op {
 	case RdrAll, AppAll:
-		p.checkLang(p.pos, langBashLike|LangMirBSDKorn|LangZsh, "%s redirects", r.Op)
+		p.checkLang(p.pos, langBashLike|LangMirBSDKorn|LangZsh, "%#q redirects", r.Op)
 	case RdrTrunc, AppClob, AppTrunc, RdrAllClob, RdrAllTrunc, AppAllClob, AppAllTrunc:
-		p.checkLang(p.pos, LangZsh, "%s redirects", r.Op)
+		p.checkLang(p.pos, LangZsh, "%#q redirects", r.Op)
 	}
 	p.next()
 	switch r.Op {
@@ -1935,7 +1927,7 @@ func (p *Parser) getStmt(readEnd, binCmd, fnBody bool) *Stmt {
 	if ok {
 		s.Negated = true
 		if p.stopToken() {
-			p.posErr(s.Pos(), `'!' cannot form a statement alone`)
+			p.posErr(s.Pos(), `%#q cannot form a statement alone`, exclMark)
 		}
 		if _, ok := p.gotRsrv("!"); ok {
 			p.posErr(s.Pos(), `cannot negate a command multiple times`)
@@ -1963,7 +1955,7 @@ func (p *Parser) getStmt(readEnd, binCmd, fnBody bool) *Stmt {
 			if p.recoverError() {
 				b.Y = &Stmt{Position: recoveredPos}
 			} else {
-				p.followErr(b.OpPos, b.Op.String(), "a statement")
+				p.followErr(b.OpPos, b.Op, noQuote("a statement"))
 				return nil
 			}
 		}
@@ -2024,20 +2016,20 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 			p.caseClause(s)
 		// TODO(zsh): { try-list } "always" { always-list }
 		case "}":
-			p.curErr(`%s can only be used to close a block`, rightBrace)
+			p.curErr(`%#q can only be used to close a block`, rightBrace)
 		case "then", "elif":
-			p.curErr(`%q can only be used in an "if"`, p.val)
+			p.curErr("%#q can only be used in an `if`", p.val)
 		case "fi":
-			p.curErr(`%q can only be used to end an "if"`, p.val)
+			p.curErr("%#q can only be used to end an `if`", p.val)
 		case "do":
-			p.curErr(`%q can only be used in a loop`, p.val)
+			p.curErr(`%#q can only be used in a loop`, p.val)
 		case "done":
-			p.curErr(`%q can only be used to end a loop`, p.val)
+			p.curErr(`%#q can only be used to end a loop`, p.val)
 		case "esac":
-			p.curErr(`%q can only be used to end a "case"`, p.val)
+			p.curErr("%#q can only be used to end a `case`", p.val)
 		case "!":
 			if !s.Negated {
-				p.curErr(`%s can only be used in full statements`, exclMark)
+				p.curErr(`%#q can only be used in full statements`, exclMark)
 				break
 			}
 		case "[[":
@@ -2046,7 +2038,7 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 			}
 		case "]]":
 			if p.lang.in(langBashLike | LangMirBSDKorn | LangZsh) {
-				p.curErr(`%s can only be used to close a test`, dblRightBrack)
+				p.curErr(`%#q can only be used to close a test`, dblRightBrack)
 			}
 		case "let":
 			if p.lang.in(langBashLike | LangMirBSDKorn | LangZsh) {
@@ -2160,7 +2152,7 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 			if p.recoverError() {
 				b.Y = &Stmt{Position: recoveredPos}
 			} else {
-				p.followErr(b.OpPos, b.Op.String(), "a statement")
+				p.followErr(b.OpPos, b.Op, noQuote("a statement"))
 				break
 			}
 		}
@@ -2312,7 +2304,7 @@ func (p *Parser) loop(fpos Pos) Loop {
 func (p *Parser) wordIter(ftok string, fpos Pos) *WordIter {
 	wi := &WordIter{}
 	if wi.Name = p.getLit(); wi.Name == nil {
-		p.followErr(fpos, ftok, "a literal")
+		p.followErr(fpos, ftok, noQuote("a literal"))
 	}
 	if p.got(semicolon) {
 		p.got(_Newl)
@@ -2332,7 +2324,7 @@ func (p *Parser) wordIter(ftok string, fpos Pos) *WordIter {
 		p.got(_Newl)
 	} else if p.tok == _LitWord && p.val == "do" {
 	} else {
-		p.followErr(fpos, ftok+" foo", `"in", "do", ';', or a newline`)
+		p.followErr(fpos, ftok+" foo", noQuote("`in`, `do`, `;`, or a newline"))
 	}
 	return wi
 }
@@ -2352,14 +2344,14 @@ func (p *Parser) caseClause(s *Stmt) {
 	p.next()
 	cc.Word = p.getWord()
 	if cc.Word == nil {
-		p.followErr(cc.Case, "case", "a word")
+		p.followErr(cc.Case, "case", noQuote("a word"))
 	}
 	end := "esac"
 	p.got(_Newl)
 	if pos, ok := p.gotRsrv("{"); ok {
 		cc.In = pos
 		cc.Braces = true
-		p.checkLang(cc.Pos(), LangMirBSDKorn, `"case i {"`)
+		p.checkLang(cc.Pos(), LangMirBSDKorn, "`case i {`")
 		end = "}"
 	} else {
 		cc.In = p.followRsrv(cc.Case, "case x", "in")
@@ -2386,7 +2378,7 @@ func (p *Parser) caseItems(stop string) (items []*CaseItem) {
 				break
 			}
 			if !p.got(or) {
-				p.curErr("case patterns must be separated with %s", or)
+				p.curErr("case patterns must be separated with %#q", or)
 			}
 		}
 		old := p.preNested(switchCase)
@@ -2437,7 +2429,7 @@ func (p *Parser) testClause(s *Stmt) {
 	old := p.preNested(testExpr)
 	p.next()
 	if tc.X = p.testExprBinary(false); tc.X == nil {
-		p.followErrExp(tc.Left, "[[")
+		p.followErrExp(tc.Left, dblLeftBrack)
 	}
 	tc.Right = p.pos
 	if _, ok := p.gotRsrv("]]"); !ok {
@@ -2466,7 +2458,7 @@ func (p *Parser) testExprBinary(pastAndOr bool) TestExpr {
 			return left
 		}
 		if p.tok = token(testBinaryOp(p.val)); p.tok == illegalTok {
-			p.curErr("not a valid test operator: %s", p.val)
+			p.curErr("not a valid test operator: %#q", p.val)
 		}
 	case rdrIn, rdrOut:
 	case _EOF, rightParen:
@@ -2474,7 +2466,7 @@ func (p *Parser) testExprBinary(pastAndOr bool) TestExpr {
 	case _Lit:
 		p.curErr("test operator words must consist of a single literal")
 	default:
-		p.curErr("not a valid test operator: %v", p.tok)
+		p.curErr("not a valid test operator: %#q", p.tok)
 	}
 	b := &BinaryTest{
 		OpPos: p.pos,
@@ -2485,7 +2477,7 @@ func (p *Parser) testExprBinary(pastAndOr bool) TestExpr {
 	case AndTest, OrTest:
 		p.next()
 		if b.Y = p.testExprBinary(false); b.Y == nil {
-			p.followErrExp(b.OpPos, b.Op.String())
+			p.followErrExp(b.OpPos, b.Op)
 		}
 	case TsReMatch:
 		p.checkLang(p.pos, langBashLike|LangZsh, "regex tests")
@@ -2498,7 +2490,7 @@ func (p *Parser) testExprBinary(pastAndOr bool) TestExpr {
 		fallthrough
 	default:
 		if _, ok := b.X.(*Word); !ok {
-			p.posErr(b.OpPos, "expected %s, %s or %s after complex expr",
+			p.posErr(b.OpPos, "expected %#q, %#q or %#q after complex expr",
 				AndTest, OrTest, dblRightBrack)
 		}
 		p.next()
@@ -2528,7 +2520,7 @@ func (p *Parser) testExprUnary() TestExpr {
 		u := &UnaryTest{OpPos: p.pos, Op: TsNot}
 		p.next()
 		if u.X = p.testExprBinary(false); u.X == nil {
-			p.followErrExp(u.OpPos, u.Op.String())
+			p.followErrExp(u.OpPos, u.Op)
 		}
 		return u
 	case tsExists, tsRegFile, tsDirect, tsCharSp, tsBlckSp, tsNmPipe,
@@ -2543,7 +2535,7 @@ func (p *Parser) testExprUnary() TestExpr {
 		pe := &ParenTest{Lparen: p.pos}
 		p.next()
 		if pe.X = p.testExprBinary(false); pe.X == nil {
-			p.followErrExp(pe.Lparen, "(")
+			p.followErrExp(pe.Lparen, leftParen)
 		}
 		pe.Rparen = p.matched(pe.Lparen, leftParen, rightParen)
 		return pe
@@ -2580,7 +2572,7 @@ func (p *Parser) declClause(s *Stmt) {
 				Value: w,
 			})
 		} else {
-			p.followErr(p.pos, ds.Variant.Value, "names or assignments")
+			p.followErr(p.pos, ds.Variant.Value, noQuote("names or assignments"))
 		}
 	}
 	s.Cmd = ds
@@ -2672,7 +2664,7 @@ func (p *Parser) bashFuncDecl(s *Stmt) {
 		if hasParens || (p.tok == _LitWord && p.val == "{") {
 			p.checkLang(fpos, LangZsh, "anonymous functions")
 		} else if !p.lang.in(LangZsh) {
-			p.followErr(fpos, "function", "a name")
+			p.followErr(fpos, "function", noQuote("a name"))
 		}
 		names = nil // avoid non-nil zero-length slices
 	case 1:
@@ -2690,10 +2682,10 @@ func (p *Parser) testDecl(s *Stmt) {
 	td := &TestDecl{Position: p.pos}
 	p.next()
 	if td.Description = p.getWord(); td.Description == nil {
-		p.followErr(td.Position, "@test", "a description word")
+		p.followErr(td.Position, "@test", noQuote("a description word"))
 	}
 	if td.Body = p.getStmt(false, false, true); td.Body == nil {
-		p.followErr(td.Position, `@test desc...`, "a statement")
+		p.followErr(td.Position, `@test "desc"`, noQuote("a statement"))
 	}
 	s.Cmd = td
 }
@@ -2743,7 +2735,7 @@ loop:
 			globQuest, globStar, globPlus, globAt, globExcl:
 			ce.Args = append(ce.Args, p.wordAnyNumber())
 		case dblLeftParen:
-			p.curErr("%s can only be used to open an arithmetic cmd", p.tok)
+			p.curErr("%#q can only be used to open an arithmetic cmd", p.tok)
 		case rightParen:
 			if p.quote == subCmd {
 				break loop
@@ -2757,10 +2749,10 @@ loop:
 			// Note that we'll only keep the first error that happens.
 			if len(ce.Args) > 0 {
 				if cmd := ce.Args[0].Lit(); isBashCompoundCommand(_LitWord, cmd) {
-					p.checkLang(p.pos, langBashLike, "the %q builtin", cmd)
+					p.checkLang(p.pos, langBashLike, "the %#q builtin", cmd)
 				}
 			}
-			p.curErr("a command can only contain words and redirects; encountered %s", p.tok)
+			p.curErr("a command can only contain words and redirects; encountered %#q", p.tok)
 		}
 	}
 	if len(ce.Args) == 0 {
@@ -2789,7 +2781,7 @@ func (p *Parser) funcDecl(s *Stmt, pos Pos, long, withParens bool, names ...*Lit
 	p.got(_Newl)
 	// TODO: reject any body which isn't a compound command, like a quoted word
 	if fd.Body = p.getStmt(false, false, true); fd.Body == nil {
-		p.followErr(fd.Pos(), "foo()", "a statement")
+		p.followErr(fd.Pos(), "foo()", noQuote("a statement"))
 	}
 	s.Cmd = fd
 }
