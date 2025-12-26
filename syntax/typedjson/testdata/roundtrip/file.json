@@ -691,7 +691,7 @@
 									"Line": 6,
 									"Col": 1
 								},
-								"Op": 141,
+								"Op": 142,
 								"Pattern": {
 									"Pos": {
 										"Offset": 53,
@@ -1883,7 +1883,7 @@
 							"Line": 13,
 							"Col": 9
 						},
-						"Op": 88,
+						"Op": 89,
 						"X": {
 							"Type": "Word",
 							"Pos": {
@@ -3160,7 +3160,7 @@
 							"Line": 21,
 							"Col": 8
 						},
-						"Op": 88,
+						"Op": 89,
 						"X": {
 							"Type": "Word",
 							"Pos": {
@@ -3217,7 +3217,7 @@
 								"Line": 21,
 								"Col": 14
 							},
-							"Op": 82,
+							"Op": 83,
 							"X": {
 								"Type": "ParenArithm",
 								"Pos": {

@@ -1782,6 +1782,10 @@ func (p *Parser) getAssign(needEqual bool) *Assign {
 				return as
 			}
 		}
+		if p.tok == assgnParen {
+			p.curErr("arrays cannot be nested")
+			return nil
+		}
 		if len(p.val) > 0 && p.val[0] == '+' {
 			as.Append = true
 			p.val = p.val[1:]
@@ -1806,9 +1810,6 @@ func (p *Parser) getAssign(needEqual bool) *Assign {
 	}
 	if as.Value == nil && p.tok == leftParen {
 		p.checkLang(p.pos, langBashLike|LangMirBSDKorn|LangZsh, "arrays")
-		if as.Index != nil {
-			p.curErr("arrays cannot be nested")
-		}
 		as.Array = &ArrayExpr{Lparen: p.pos}
 		newQuote := p.quote
 		if p.lang.in(langBashLike | LangZsh) {
@@ -1823,13 +1824,14 @@ func (p *Parser) getAssign(needEqual bool) *Assign {
 			if p.tok == leftBrack {
 				left := p.pos
 				ae.Index = p.eitherIndex()
+				if p.tok == assgnParen {
+					p.curErr("arrays cannot be nested")
+					return nil
+				}
 				p.follow(left, `[x]`, assgn)
 			}
 			if ae.Value = p.getWord(); ae.Value == nil {
 				switch p.tok {
-				case leftParen:
-					p.curErr("arrays cannot be nested")
-					return nil
 				case _Newl, rightParen, leftBrack:
 					// TODO: support [index]=[
 				default:

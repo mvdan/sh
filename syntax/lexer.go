@@ -308,9 +308,21 @@ skipSpace:
 				p.litBs = nil
 			}
 			p.next()
-		case '[', '=':
+		case '[':
 			if p.quote == arrayElems {
-				p.tok = p.paramToken(r)
+				p.rune()
+				p.tok = leftBrack
+			} else {
+				p.advanceLitNone(r)
+			}
+		case '=':
+			if p.peek() == '(' {
+				p.rune()
+				p.rune()
+				p.tok = assgnParen
+			} else if p.quote == arrayElems {
+				p.rune()
+				p.tok = assgn
 			} else {
 				p.advanceLitNone(r)
 			}

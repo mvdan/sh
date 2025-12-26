@@ -101,8 +101,9 @@ const (
 	appAllClob  // &>>|
 	appAllTrunc // &>>!
 
-	cmdIn  // <(
-	cmdOut // >(
+	cmdIn      // <(
+	assgnParen // =(
+	cmdOut     // >(
 
 	plus     // +
 	colPlus  // :+
@@ -203,6 +204,7 @@ type ProcOperator token
 
 const (
 	CmdIn  = ProcOperator(cmdIn) + iota // <(
+	_                                   // =(
 	CmdOut                              // >(
 )
 
