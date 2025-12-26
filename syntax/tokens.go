@@ -203,9 +203,9 @@ const (
 type ProcOperator token
 
 const (
-	CmdIn  = ProcOperator(cmdIn) + iota // <(
-	_                                   // =(
-	CmdOut                              // >(
+	CmdIn     = ProcOperator(cmdIn) + iota // <(
+	CmdInTemp                              // =(
+	CmdOut                                 // >(
 )
 
 type GlobOperator token

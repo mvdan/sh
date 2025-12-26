@@ -1260,6 +1260,9 @@ func (p *Parser) wordPart() WordPart {
 		}
 		p.ensureNoNested(pe.Dollar)
 		return pe
+	case assgnParen:
+		p.checkLang(p.pos, LangZsh, `%#q process substitutions`, p.tok)
+		fallthrough
 	case cmdIn, cmdOut:
 		p.ensureNoNested(p.pos)
 		ps := &ProcSubst{Op: ProcOperator(p.tok), OpPos: p.pos}
@@ -2097,7 +2100,7 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 			break
 		}
 		fallthrough
-	case _Lit, dollBrace, dollDblParen, dollParen, dollar, cmdIn, cmdOut,
+	case _Lit, dollBrace, dollDblParen, dollParen, dollar, cmdIn, assgnParen, cmdOut,
 		sglQuote, dollSglQuote, dblQuote, dollDblQuote, dollBrack,
 		globQuest, globStar, globPlus, globAt, globExcl:
 		if p.hasValidIdent() {
@@ -2732,7 +2735,7 @@ loop:
 				break loop
 			}
 			fallthrough
-		case dollBrace, dollDblParen, dollParen, dollar, cmdIn, cmdOut,
+		case dollBrace, dollDblParen, dollParen, dollar, cmdIn, assgnParen, cmdOut,
 			sglQuote, dollSglQuote, dblQuote, dollDblQuote, dollBrack,
 			globQuest, globStar, globPlus, globAt, globExcl:
 			ce.Args = append(ce.Args, p.wordAnyNumber())

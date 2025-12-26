@@ -1766,6 +1766,16 @@ var fileTests = []fileTestCase{
 		), LangBash|LangZsh),
 	),
 	fileTest(
+		[]string{"foo =(bar)"},
+		langErr2("1:5: `=(` process substitutions are a zsh feature; tried parsing as LANG"),
+		langFile(call(
+			litWord("foo"), word(&ProcSubst{
+				Op:    CmdInTemp,
+				Stmts: litStmts("bar"),
+			}),
+		), LangZsh),
+	),
+	fileTest(
 		[]string{"foo {fd}<f"},
 		langFile(&Stmt{
 			Cmd: litCall("foo"),
