@@ -1480,7 +1480,7 @@ func (p *Parser) paramExp() *ParamExp {
 	// like ${foo[@]//replace/with}.
 	if p.r == '[' {
 		p.checkLang(p.nextPos(), langBashLike|LangMirBSDKorn|LangZsh, "arrays")
-		if !ValidName(pe.Param.Value) {
+		if pe.Param != nil && !ValidName(pe.Param.Value) {
 			p.posErr(p.nextPos(), "cannot index a special parameter name")
 		}
 		p.pos = p.nextPos()
@@ -1575,7 +1575,11 @@ func (p *Parser) paramExp() *ParamExp {
 	case _EOF:
 	default:
 		if paramNameRune(tokRune) {
-			p.curErr("%#q cannot be followed by a word", pe.Param.Value)
+			if pe.Param != nil {
+				p.curErr("%#q cannot be followed by a word", pe.Param.Value)
+			} else {
+				p.curErr("nested parameter expansion cannot be followed by a word")
+			}
 		} else {
 			p.curErr("not a valid parameter expansion operator: %#q", string(tokRune))
 		}

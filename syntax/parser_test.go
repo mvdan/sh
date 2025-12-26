@@ -1268,8 +1268,16 @@ var errorCases = []errorCase{
 		langErr("1:9: `-` cannot be followed by a word"),
 	),
 	errCase(
+		"echo ${${nested}foo}",
+		langErr("1:17: nested parameter expansion cannot be followed by a word", LangZsh),
+	),
+	errCase(
 		"echo ${@[@]} ${@[*]}",
 		langErr("1:9: cannot index a special parameter name", LangBash|LangMirBSDKorn|LangZsh),
+	),
+	errCase(
+		"echo ${${nested}[@]",
+		langErr("1:6: reached EOF without matching `${` with `}`", LangZsh),
 	),
 	errCase(
 		"echo ${*[@]} ${*[*]}",
