@@ -9,6 +9,14 @@ import (
 	"unicode/utf8"
 )
 
+func asciiLetter[T rune | byte](r T) bool {
+	return ('a' <= r && r <= 'z') || ('A' <= r && r <= 'Z')
+}
+
+func asciiDigit[T rune | byte](r T) bool {
+	return r >= '0' && r <= '9'
+}
+
 // bytes that form or start a token
 func regOps(r rune) bool {
 	switch r {
@@ -919,9 +927,7 @@ func (p *Parser) isLitRedir() bool {
 		return ValidName(string(lit[1 : len(lit)-1]))
 	}
 	for _, b := range lit {
-		switch b {
-		case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
-		default:
+		if !asciiDigit(b) {
 			return false
 		}
 	}
@@ -938,15 +944,7 @@ func singleRuneParam[T rune | byte](r T) bool {
 }
 
 func paramNameRune[T rune | byte](r T) bool {
-	switch {
-	case 'a' <= r && r <= 'z':
-	case 'A' <= r && r <= 'Z':
-	case r == '_':
-	case '0' <= r && r <= '9':
-	default:
-		return false
-	}
-	return true
+	return asciiLetter(r) || asciiDigit(r) || r == '_'
 }
 
 func (p *Parser) advanceLitOther(r rune) {

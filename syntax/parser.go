@@ -1511,7 +1511,7 @@ func (p *Parser) paramExp() *ParamExp {
 			pe.Repl.With = p.getWord()
 		}
 	case colon: // slicing
-		if p.lang.in(LangZsh) && (p.r == '&' || (p.r >= 'a' && p.r <= 'z') || (p.r >= 'A' && p.r <= 'Z')) {
+		if p.lang.in(LangZsh) && (p.r == '&' || asciiLetter(p.r)) {
 			pos := p.pos
 		loop:
 			for p.newLit(p.r); ; p.rune() {
@@ -1717,10 +1717,8 @@ func ValidName(val string) bool {
 	}
 	for i, r := range val {
 		switch {
-		case 'a' <= r && r <= 'z':
-		case 'A' <= r && r <= 'Z':
-		case r == '_':
-		case i > 0 && '0' <= r && r <= '9':
+		case asciiLetter(r), r == '_':
+		case i > 0 && asciiDigit(r):
 		default:
 			return false
 		}
@@ -1733,7 +1731,7 @@ func numberLiteral(val string) bool {
 		return false
 	}
 	for _, r := range val {
-		if '0' > r || r > '9' {
+		if !asciiDigit(r) {
 			return false
 		}
 	}
