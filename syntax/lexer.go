@@ -926,12 +926,7 @@ func (p *Parser) isLitRedir() bool {
 	if lit[0] == '{' && lit[len(lit)-1] == '}' {
 		return ValidName(string(lit[1 : len(lit)-1]))
 	}
-	for _, b := range lit {
-		if !asciiDigit(b) {
-			return false
-		}
-	}
-	return true
+	return numberLiteral(lit)
 }
 
 func singleRuneParam[T rune | byte](r T) bool {

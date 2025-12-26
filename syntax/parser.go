@@ -1726,11 +1726,11 @@ func ValidName(val string) bool {
 	return true
 }
 
-func numberLiteral(val string) bool {
-	if val == "" {
+func numberLiteral[T string | []byte](val T) bool {
+	if len(val) == 0 {
 		return false
 	}
-	for _, r := range val {
+	for _, r := range string(val) {
 		if !asciiDigit(r) {
 			return false
 		}
