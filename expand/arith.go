@@ -67,8 +67,10 @@ func Arithm(cfg *Config, expr syntax.ArithmExpr) (int, error) {
 			return ^val, nil
 		case syntax.Plus:
 			return val, nil
-		default: // syntax.Minus
+		case syntax.Minus:
 			return -val, nil
+		default:
+			return 0, fmt.Errorf("unsupported unary arithmetic operator: %q", expr.Op)
 		}
 	case *syntax.BinaryArithm:
 		switch expr.Op {
@@ -218,8 +220,10 @@ func binArit(op syntax.BinAritOperator, x, y int) (int, error) {
 		return oneIf(x != 0 && y != 0), nil
 	case syntax.OrArit:
 		return oneIf(x != 0 || y != 0), nil
-	default: // syntax.Comma
+	case syntax.Comma:
 		// x is executed but its result discarded
 		return y, nil
+	default:
+		return 0, fmt.Errorf("unsupported binary arithmetic operator: %q", op)
 	}
 }

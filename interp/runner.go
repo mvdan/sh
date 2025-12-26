@@ -129,7 +129,7 @@ func (r *Runner) fillExpandConfig(ctx context.Context) {
 						}
 						os.Remove(path)
 					}()
-				default: // syntax.CmdOut
+				case syntax.CmdOut:
 					f, err := os.OpenFile(path, os.O_RDONLY, 0)
 					if err != nil {
 						r.errf("cannot open fifo for stdin: %v\n", err)
@@ -142,6 +142,8 @@ func (r *Runner) fillExpandConfig(ctx context.Context) {
 						f.Close()
 						os.Remove(path)
 					}()
+				default:
+					panic(fmt.Sprintf("unsupported process substitution operator: %q", ps.Op))
 				}
 				r2.stmts(ctx, ps.Stmts)
 				r2.exit.exiting = false // subshells don't exit the parent shell

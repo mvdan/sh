@@ -116,8 +116,10 @@ func (r *Runner) binTest(ctx context.Context, op syntax.BinTestOperator, x, y st
 		return x != "" || y != ""
 	case syntax.TsBefore:
 		return x < y
-	default: // syntax.TsAfter
+	case syntax.TsAfter:
 		return x > y
+	default:
+		panic(fmt.Sprintf("unsupported binary test operator: %q", op))
 	}
 }
 
