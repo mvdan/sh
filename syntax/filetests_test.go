@@ -2580,7 +2580,7 @@ var fileTests = []fileTestCase{
 				Offset: litWord("a"),
 				Length: litWord("b"),
 			},
-		}, LangBash|LangMirBSDKorn), // TODO: zsh parses as modifiers
+		}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{`${foo:1:-2}`},
@@ -2590,7 +2590,7 @@ var fileTests = []fileTestCase{
 				Offset: litWord("1"),
 				Length: &UnaryArithm{Op: Minus, X: litWord("2")},
 			},
-		}, LangBash|LangMirBSDKorn), // TODO: zsh -n is too aggressive here?
+		}, LangBash|LangMirBSDKorn), // TODO: zsh -n is buggy here
 	),
 	fileTest(
 		[]string{`${foo::+3}`},
