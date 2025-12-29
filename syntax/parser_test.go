@@ -1256,7 +1256,7 @@ var errorCases = []errorCase{
 		langErr("1:9: `@` cannot be followed by a word"),
 	),
 	errCase(
-		"echo ${$foo}",
+		"echo ${$needbraces}",
 		langErr("1:9: `$` cannot be followed by a word"),
 	),
 	errCase(
@@ -1266,6 +1266,22 @@ var errorCases = []errorCase{
 	errCase(
 		"echo ${-foo}",
 		langErr("1:9: `-` cannot be followed by a word"),
+	),
+	errCase(
+		`echo ${"bad"}`,
+		langErr("1:6: invalid nested parameter expansion", LangZsh),
+	),
+	errCase(
+		`echo ${"$needbraces"}`,
+		langErr("1:10: `$` cannot be followed by a word", LangZsh),
+	),
+	errCase(
+		`echo ${"${foo}}`,
+		langErr("1:8: reached `}` without closing quote `\"`", LangZsh),
+	),
+	errCase(
+		`echo ${"${foo}bad"}`,
+		langErr("1:6: invalid nested parameter expansion", LangZsh),
 	),
 	errCase(
 		"echo ${${nested}foo}",

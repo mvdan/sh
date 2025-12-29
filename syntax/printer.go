@@ -750,12 +750,12 @@ func (p *Printer) paramExp(pe *ParamExp) {
 	if pe.Param != nil {
 		p.writeLit(pe.Param.Value)
 	} else {
-		switch nested := pe.NestedParam.(type) {
-		case *ParamExp:
-			p.paramExp(nested)
-		case *CmdSubst:
-			p.cmdSubst(nested)
-		}
+		// Note that Zsh supports ${${nested}} but not ${$nested},
+		// so we need to avoid that simplification here.
+		saved := p.minify
+		p.minify = false
+		p.wordPart(pe.NestedParam.(WordPart), nil)
+		p.minify = saved
 	}
 	p.wroteIndex(pe.Index)
 	switch {

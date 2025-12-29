@@ -1438,24 +1438,24 @@ func (p *Parser) paramExp() *ParamExp {
 		// Note that in Zsh, the short form like $#name is allowed too.
 		switch p.r {
 		case '#':
-			if r := p.peek(); r == utf8.RuneSelf || singleRuneParam(r) || paramNameRune(r) {
+			if r := p.peek(); r == utf8.RuneSelf || singleRuneParam(r) || paramNameRune(r) || r == '"' {
 				pe.Length = true
 				p.rune()
 			}
 		case '%':
-			if r := p.peek(); r == utf8.RuneSelf || singleRuneParam(r) || paramNameRune(r) {
+			if r := p.peek(); r == utf8.RuneSelf || singleRuneParam(r) || paramNameRune(r) || r == '"' {
 				p.checkLang(pe.Pos(), LangMirBSDKorn, "`${%%foo}`")
 				pe.Width = true
 				p.rune()
 			}
 		case '!':
-			if r := p.peek(); r == utf8.RuneSelf || singleRuneParam(r) || paramNameRune(r) {
+			if r := p.peek(); r == utf8.RuneSelf || singleRuneParam(r) || paramNameRune(r) || r == '"' {
 				p.checkLang(pe.Pos(), langBashLike|LangMirBSDKorn, "`${!foo}`")
 				pe.Excl = true
 				p.rune()
 			}
 		case '+':
-			if r := p.peek(); r == utf8.RuneSelf || singleRuneParam(r) || paramNameRune(r) {
+			if r := p.peek(); r == utf8.RuneSelf || singleRuneParam(r) || paramNameRune(r) || r == '"' {
 				p.checkLang(pe.Pos(), LangZsh, "`${+foo}`")
 				pe.Plus = true
 				p.rune()
@@ -1589,25 +1589,70 @@ func (p *Parser) paramExp() *ParamExp {
 	return pe
 }
 
-func (p *Parser) paramExpParameter(pe *ParamExp) *ParamExp {
-	if !pe.Short && p.r == '$' {
-		switch p1 := p.peek(); p1 {
-		case '{', '(':
-			p.pos = p.nextPos()
-			p.checkLang(p.pos, LangZsh, "nested parameter expansions")
-			if p.err != nil {
-				return pe // given that we overwrite p.tok below
-			}
-			p.rune()
-			p.rune()
-			if p1 == '{' { // ${#${nested parameter}}
-				p.tok = dollBrace
-				pe.NestedParam = p.paramExp()
-			} else { // ${#$(nested command)}
-				pe.NestedParam = p.cmdSubst()
-			}
-			return pe
+func (p *Parser) nestedParameterStart(pe *ParamExp) (left token, quotePos Pos) {
+	if pe.Short {
+		return illegalTok, Pos{}
+	}
+	if p.r == '"' {
+		quotePos = p.nextPos()
+		p.rune()
+	}
+	if p.r != '$' {
+		if quotePos.IsValid() {
+			return dollar, quotePos
 		}
+		return illegalTok, Pos{}
+	}
+	switch p1 := p.peek(); p1 {
+	case '{', '(':
+		p.pos = p.nextPos()
+		p.checkLang(p.pos, LangZsh, "nested parameter expansions")
+		if p.err != nil {
+			return illegalTok, Pos{} // xxx given that we overwrite p.tok below
+		}
+		p.rune()
+		p.rune()
+		if p1 == '{' {
+			left = dollBrace
+		} else { // '('
+			left = dollParen
+		}
+	}
+	return left, quotePos
+}
+
+func (p *Parser) paramExpParameter(pe *ParamExp) *ParamExp {
+	// Check for Zsh nested parameter expressions like ${(f)"$(foo)"}.
+	if left, quotePos := p.nestedParameterStart(pe); left != illegalTok {
+		var wp WordPart
+		switch p.tok = left; p.tok {
+		case dollBrace: // ${#${nested parameter}}
+			p.tok = dollBrace
+			wp = p.paramExp()
+		case dollParen: // ${#$(nested command)}
+			wp = p.cmdSubst()
+		default: // dollar
+			p.posErr(pe.Pos(), "invalid nested parameter expansion")
+		}
+		if quotePos.IsValid() {
+			if p.r != '"' {
+				p.tok = p.paramToken(p.r)
+				if p.tok == illegalTok {
+					p.posErr(pe.Pos(), "invalid nested parameter expansion")
+				} else {
+					p.quoteErr(quotePos, dblQuote)
+				}
+			}
+			pe.NestedParam = &DblQuoted{
+				Left:  quotePos,
+				Right: p.nextPos(),
+				Parts: []WordPart{wp},
+			}
+			p.rune()
+		} else {
+			pe.NestedParam = wp.(NestedParam)
+		}
+		return pe
 	}
 	// The parameter name itself, like $foo or $?.
 	switch p.r {

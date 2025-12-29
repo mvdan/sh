@@ -4799,6 +4799,14 @@ var fileTests = []fileTestCase{
 		}, LangZsh),
 	),
 	fileTest(
+		[]string{`${#"${foo}"}`},
+		langFile(&ParamExp{
+			Length:      true,
+			NestedParam: dblQuoted(&ParamExp{Param: lit("foo")}),
+		}, LangZsh),
+		flipConfirm2(LangZsh), // TODO: why is this a bad substitution in zsh?
+	),
+	fileTest(
 		[]string{"${$(echo footail)%tail}"},
 		langFile(&ParamExp{
 			NestedParam: cmdSubst(litStmt("echo", "footail")),
