@@ -76,6 +76,9 @@ func ExecHandler(next interp.ExecHandlerFunc) interp.ExecHandlerFunc {
 			v := c.Env.Get(key)
 			return v.Str, v.Set
 		})
-		return cmd.RunContext(ctx, programArgs...)
+		if err := cmd.RunContext(ctx, programArgs...); err != nil {
+			return &Error{err: err}
+		}
+		return nil
 	}
 }
