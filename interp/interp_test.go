@@ -2630,6 +2630,16 @@ done <<< 2`,
 		`declare -a a=(x y); echo ${a[1]}`,
 		"y\n",
 	},
+	// Test that "local -a" without assignment creates an indexed array
+	{
+		`f() { local -a arr; arr+=("a" "b"); echo "${arr[@]}"; }; f`,
+		"a b\n",
+	},
+	// Test that "declare -a" without assignment creates an indexed array
+	{
+		`f() { declare -a arr; arr[0]="x"; arr[1]="y"; echo "${arr[@]}"; }; f`,
+		"x y\n",
+	},
 	{
 		`a=b; echo "${a[@]}"`,
 		"b\n",

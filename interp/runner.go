@@ -711,9 +711,12 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			}
 			vr := r.lookupVar(as.Name.Value)
 			if as.Naked {
-				if valType == "-A" {
+				switch valType {
+				case "-A":
 					vr.Kind = expand.Associative
-				} else {
+				case "-a":
+					vr.Kind = expand.Indexed
+				default:
 					vr.Kind = expand.KeepValue
 				}
 			} else {
