@@ -15,6 +15,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime/debug"
+	"strconv"
 	"strings"
 
 	maybeio "github.com/google/renameio/v2/maybe"
@@ -27,50 +28,98 @@ import (
 	"mvdan.cc/sh/v3/syntax/typedjson"
 )
 
+var errParse = errors.New("parse error")
+
 type boolString string
 
-func (s *boolString) Set(val string) error {
-	*s = boolString(val)
+type boolStringValue boolString
+
+func (b *boolStringValue) Set(val string) error {
+	*b = boolStringValue(val)
 	return nil
 }
-func (s *boolString) Get() any       { return string(*s) }
-func (s *boolString) String() string { return string(*s) }
-func (*boolString) IsBoolFlag() bool { return true }
+func (b *boolStringValue) String() string {
+	return string(*b)
+}
+
+func newBoolStringvalue(val boolString, p *boolString) *boolStringValue {
+	*p = val
+	return (*boolStringValue)(p)
+}
+
+func boolStringVar(p *boolString, name string, value boolString, usage string) {
+	flag.Var(newBoolStringvalue(value, p), name, usage)
+}
+
+type langVariantValue syntax.LangVariant
+
+func (l *langVariantValue) Set(val string) error {
+	v, err := strconv.Atoi(val)
+	if err != nil {
+		err = errParse
+	}
+	*l = langVariantValue(v)
+	return err
+}
+
+func (l *langVariantValue) String() string {
+	return strconv.Itoa(int(*l))
+}
+
+func newLangVariantValue(val syntax.LangVariant, p *syntax.LangVariant) *langVariantValue {
+	*p = val
+	return (*langVariantValue)(p)
+}
+
+func langVariantVar(p *syntax.LangVariant, name string, value syntax.LangVariant, usage string) {
+	flag.Var(newLangVariantValue(value, p), name, usage)
+}
 
 type multiFlag[T any] struct {
 	short, long string
 	val         T
 }
 
+func flagVal[T any](short, long string, val T, register func(*T, string, T, string)) *multiFlag[T] {
+	f := &multiFlag[T]{short, long, val}
+	if short != "" {
+		register(&f.val, short, val, "")
+	}
+	if long != "" {
+		register(&f.val, long, val, "")
+	}
+	return f
+}
+
 var (
 	// Generic flags.
-	versionFlag = &multiFlag[bool]{"", "version", false}
-	list        = &multiFlag[boolString]{"l", "list", "false"}
-	write       = &multiFlag[bool]{"w", "write", false}
-	diff        = &multiFlag[bool]{"d", "diff", false}
-	applyIgnore = &multiFlag[bool]{"", "apply-ignore", false}
-	filename    = &multiFlag[string]{"", "filename", ""}
+	versionFlag = flagVal("", "version", false, flag.BoolVar)
+	list        = flagVal("l", "list", "false", boolStringVar)
+	write       = flagVal("w", "write", false, flag.BoolVar)
+	diff        = flagVal("d", "diff", false, flag.BoolVar)
+	applyIgnore = flagVal("", "apply-ignore", false, flag.BoolVar)
+	filename    = flagVal("", "filename", "", flag.StringVar)
 
 	// Parser flags.
-	lang     = &multiFlag[syntax.LangVariant]{"ln", "language-dialect", syntax.LangAuto}
-	posix    = &multiFlag[bool]{"p", "posix", false}
-	simplify = &multiFlag[bool]{"s", "simplify", false}
+	lang     = flagVal("ln", "language-dialect", syntax.LangAuto, langVariantVar)
+	posix    = flagVal("p", "posix", false, flag.BoolVar)
+	simplify = flagVal("s", "simplify", false, flag.BoolVar)
 	// TODO: when promoting exp.recover to a stable flag, add it as an EditorConfig knob too, and perhaps rename to recover-errors
-	expRecover = &multiFlag[int]{"", "exp.recover", 0}
+	expRecover = flagVal("", "exp.recover", 0, flag.IntVar)
 
 	// Printer flags.
-	indent      = &multiFlag[uint]{"i", "indent", 0}
-	binNext     = &multiFlag[bool]{"bn", "binary-next-line", false}
-	caseIndent  = &multiFlag[bool]{"ci", "case-indent", false}
-	spaceRedirs = &multiFlag[bool]{"sr", "space-redirects", false}
-	keepPadding = &multiFlag[bool]{"kp", "keep-padding", false}
-	funcNext    = &multiFlag[bool]{"fn", "func-next-line", false}
-	minify      = &multiFlag[bool]{"mn", "minify", false}
+	indent      = flagVal("i", "indent", 0, flag.UintVar)
+	binNext     = flagVal("bn", "binary-next-line", false, flag.BoolVar)
+	caseIndent  = flagVal("ci", "case-indent", false, flag.BoolVar)
+	spaceRedirs = flagVal("sr", "space-redirects", false, flag.BoolVar)
+	keepPadding = flagVal("kp", "keep-padding", false, flag.BoolVar)
+	funcNext    = flagVal("fn", "func-next-line", false, flag.BoolVar)
+	minify      = flagVal("mn", "minify", false, flag.BoolVar)
 
 	// Utility flags.
-	find     = &multiFlag[boolString]{"f", "find", "false"}
-	toJSON   = &multiFlag[bool]{"tojson", "to-json", false} // TODO(v4): remove "tojson" for consistency
-	fromJSON = &multiFlag[bool]{"", "from-json", false}
+	find     = flagVal("f", "find", "false", boolStringVar)
+	toJSON   = flagVal("tojson", "to-json", false, flag.BoolVar) // TODO(v4): remove "tojson" for consistency
+	fromJSON = flagVal("", "from-json", false, flag.BoolVar)
 
 	// useEditorConfig will be false if any parser or printer flags were used.
 	useEditorConfig = true
@@ -81,68 +130,7 @@ var (
 	color             bool
 
 	copyBuf = make([]byte, 32*1024)
-
-	allFlags = []any{
-		versionFlag, list, write, find, diff, applyIgnore,
-		lang, posix, filename, simplify, expRecover,
-		indent, binNext, caseIndent, spaceRedirs, keepPadding, funcNext, minify,
-		toJSON, fromJSON,
-	}
 )
-
-func init() {
-	// TODO: the flag package has constructors like newBoolValue;
-	// if we had access to something like that, we could use [flag.Value] everywhere,
-	// and avoid this monstrosity of a type switch.
-	for _, f := range allFlags {
-		switch f := f.(type) {
-		case *multiFlag[bool]:
-			if name := f.short; name != "" {
-				flag.BoolVar(&f.val, name, f.val, "")
-			}
-			if name := f.long; name != "" {
-				flag.BoolVar(&f.val, name, f.val, "")
-			}
-		case *multiFlag[boolString]:
-			if name := f.short; name != "" {
-				flag.Var(&f.val, name, "")
-			}
-			if name := f.long; name != "" {
-				flag.Var(&f.val, name, "")
-			}
-		case *multiFlag[string]:
-			if name := f.short; name != "" {
-				flag.StringVar(&f.val, name, f.val, "")
-			}
-			if name := f.long; name != "" {
-				flag.StringVar(&f.val, name, f.val, "")
-			}
-		case *multiFlag[int]:
-			if name := f.short; name != "" {
-				flag.IntVar(&f.val, name, f.val, "")
-			}
-			if name := f.long; name != "" {
-				flag.IntVar(&f.val, name, f.val, "")
-			}
-		case *multiFlag[uint]:
-			if name := f.short; name != "" {
-				flag.UintVar(&f.val, name, f.val, "")
-			}
-			if name := f.long; name != "" {
-				flag.UintVar(&f.val, name, f.val, "")
-			}
-		case *multiFlag[syntax.LangVariant]:
-			if name := f.short; name != "" {
-				flag.Var(&f.val, name, "")
-			}
-			if name := f.long; name != "" {
-				flag.Var(&f.val, name, "")
-			}
-		default:
-			panic(fmt.Sprintf("%T", f))
-		}
-	}
-}
 
 func main() {
 	flag.Usage = func() {
