@@ -217,7 +217,7 @@ func TestMain(m *testing.M) {
 		os.Setenv("LANGUAGE", "en_US.UTF-8")
 		os.Setenv("LC_ALL", "en_US.UTF-8")
 	}
-	os.Exit(m.Run())
+	m.Run()
 }
 
 var (
