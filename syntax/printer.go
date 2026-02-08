@@ -754,7 +754,7 @@ func (p *Printer) paramExp(pe *ParamExp) {
 		// so we need to avoid that simplification here.
 		saved := p.minify
 		p.minify = false
-		p.wordPart(pe.NestedParam.(WordPart), nil)
+		p.wordPart(pe.NestedParam, nil)
 		p.minify = saved
 	}
 	p.wroteIndex(pe.Index)

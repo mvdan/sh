@@ -619,8 +619,10 @@ type ParamExp struct {
 	// Only one of these is set at a time.
 	// TODO(v4): consider joining Param and NestedParam into a single field,
 	// even if that would be mildly annoying to non-Zsh users.
-	Param       *Lit
-	NestedParam NestedParam // only possible with [LangZsh]
+	Param *Lit
+	// A nested parameter expression in the form of [*ParamExp] or [*CmdSubst],
+	// or either of those in a [*DblQuoted]. Only possible with [LangZsh].
+	NestedParam WordPart
 
 	Index ArithmExpr // ${a[i]}, ${a["k"]}
 
@@ -657,17 +659,6 @@ func (p *ParamExp) End() Pos {
 func (p *ParamExp) nakedIndex() bool {
 	return p.Short && p.Index != nil
 }
-
-// NestedParam holds [*ParamExp] or [*CmdSubst],
-// or either of them directly inside [*DblQuoted].
-type NestedParam interface {
-	Node
-	nestedParamNode()
-}
-
-func (*ParamExp) nestedParamNode()  {}
-func (*CmdSubst) nestedParamNode()  {}
-func (*DblQuoted) nestedParamNode() {}
 
 // Slice represents a character slicing expression inside a [ParamExp].
 //

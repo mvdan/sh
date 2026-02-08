@@ -1650,7 +1650,7 @@ func (p *Parser) paramExpParameter(pe *ParamExp) *ParamExp {
 			}
 			p.rune()
 		} else {
-			pe.NestedParam = wp.(NestedParam)
+			pe.NestedParam = wp
 		}
 		return pe
 	}
