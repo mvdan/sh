@@ -135,9 +135,9 @@ func TestMain(m *testing.M) {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
-
 		os.Exit(0)
 	}
+
 	prog, err := os.Executable()
 	if err != nil {
 		panic(err)
@@ -146,7 +146,6 @@ func TestMain(m *testing.M) {
 
 	internal.TestMainSetup()
 
-	os.Unsetenv("CDPATH")
 	hasBash52 = checkBash()
 
 	wd, err := os.Getwd()
@@ -174,9 +173,6 @@ func TestMain(m *testing.M) {
 		os.Setenv("ENV_PROG", "env")
 	}
 
-	for _, s := range []string{"a", "b", "c", "d", "foo_interp_missing", "bar_interp_missing"} {
-		os.Unsetenv(s)
-	}
 	m.Run()
 }
 

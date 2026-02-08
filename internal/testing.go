@@ -24,4 +24,13 @@ func TestMainSetup() {
 		os.Setenv("LANGUAGE", "en_US.UTF-8")
 		os.Setenv("LC_ALL", "en_US.UTF-8")
 	}
+
+	// Bash prints the pwd after changing directories when CDPATH is set.
+	os.Unsetenv("CDPATH")
+
+	// These short names are commonly used as variables.
+	// Ensure they are unset.
+	for _, s := range []string{"a", "b", "c", "d", "foo_interp_missing", "bar_interp_missing"} {
+		os.Unsetenv(s)
+	}
 }
