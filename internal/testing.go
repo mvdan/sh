@@ -6,6 +6,7 @@ package internal
 import (
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 )
 
@@ -28,9 +29,24 @@ func TestMainSetup() {
 	// Bash prints the pwd after changing directories when CDPATH is set.
 	os.Unsetenv("CDPATH")
 
-	// These short names are commonly used as variables.
-	// Ensure they are unset.
-	for _, s := range []string{"a", "b", "c", "d", "foo_interp_missing", "bar_interp_missing"} {
-		os.Unsetenv(s)
+	pathDir, err := os.MkdirTemp("", "interp-bin-")
+	if err != nil {
+		panic(err)
 	}
+
+	// These short names are commonly used as variables.
+	// Ensure they are unset as env vars.
+	// We can't easily remove names from $PATH,
+	// so do the next best thing: override each name with a failing script.
+	for _, s := range []string{
+		"a", "b", "c", "d", "e", "f", "foo", "bar",
+	} {
+		os.Unsetenv(s)
+		pathFile := filepath.Join(pathDir, s)
+		if err := os.WriteFile(pathFile, []byte("#!/bin/sh\necho NO_SUCH_COMMAND; exit 1"), 0o777); err != nil {
+			panic(err)
+		}
+	}
+
+	os.Setenv("PATH", pathDir+string(os.PathListSeparator)+os.Getenv("PATH"))
 }
