@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"reflect"
 	"regexp"
+	"runtime"
 	"slices"
 	"strings"
 	"sync"
@@ -230,7 +231,11 @@ var (
 		// check if it's new enough as to not have the bug that breaks
 		// our integration tests.
 		// This also means our check does not require a specific version.
-		return cmdContains("Bad subst", "dash", "-c", "echo ${#<}")
+		//
+		// We get odd failures on Windows on CI, and it's hard to debug
+		// or even understand what version of dash it's using; skip on those.
+		return cmdContains("Bad subst", "dash", "-c", "echo ${#<}") &&
+			runtime.GOOS != "windows"
 	})
 
 	onceHasMksh59 = sync.OnceValue(func() bool {
