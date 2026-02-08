@@ -185,8 +185,7 @@ func TestMain(m *testing.M) {
 	for _, s := range []string{"a", "b", "c", "d", "foo_interp_missing", "bar_interp_missing"} {
 		os.Unsetenv(s)
 	}
-	exit := m.Run()
-	os.Exit(exit)
+	m.Run()
 }
 
 func checkBash() bool {
