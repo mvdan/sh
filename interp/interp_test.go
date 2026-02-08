@@ -23,6 +23,7 @@ import (
 
 	"github.com/go-quicktest/qt"
 	"mvdan.cc/sh/v3/expand"
+	"mvdan.cc/sh/v3/internal"
 	"mvdan.cc/sh/v3/interp"
 	"mvdan.cc/sh/v3/syntax"
 )
@@ -143,16 +144,7 @@ func TestMain(m *testing.M) {
 	}
 	os.Setenv("GOSH_PROG", prog)
 
-	// Mimic syntax/parser_test.go's TestMain.
-	if out, _ := exec.Command("locale", "-a").Output(); strings.Contains(
-		strings.ToLower(string(out)), "c.utf",
-	) {
-		os.Setenv("LANGUAGE", "C.UTF-8")
-		os.Setenv("LC_ALL", "C.UTF-8")
-	} else {
-		os.Setenv("LANGUAGE", "en_US.UTF-8")
-		os.Setenv("LC_ALL", "en_US.UTF-8")
-	}
+	internal.TestMainSetup()
 
 	os.Unsetenv("CDPATH")
 	hasBash52 = checkBash()
