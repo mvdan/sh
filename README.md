@@ -79,6 +79,21 @@ $ echo '$((foo); (bar))' | shfmt
   use a goroutine instead, meaning that real PIDs and file descriptors
   cannot be used directly.
 
+### Formatting FAQs
+
+* The formatter cannot be disabled for ranges of lines; most users wanting this
+  are working around a bug or they don't like how a piece of code is formatted.
+  Instead, search the issue tracker and file a new issue if necessary.
+  Formatting of partial files leads to lots of edge cases and complexity
+  which this project has no resources for, nor interest in, getting into.
+
+* We avoid adding more formatting options where possible. Each added flag interacts
+  with all others, multiplying the human cost of development, maintenance, testing,
+  and properly documenting the behavior for end users.
+
+* The true value in a formatter is consistency, especially for teams of developers.
+  We do not aim to satisfy every developer's personal choice of optimal formatting.
+
 ### JavaScript
 
 The parser and formatter are available as a third party npm package called [sh-syntax],
