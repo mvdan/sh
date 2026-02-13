@@ -142,6 +142,7 @@ Other noteworthy integrations include:
 - [sh-checker] - A GitHub Action that performs static analysis for shell scripts
 - [mdformat-shfmt] - [mdformat] plugin to format shell scripts embedded in Markdown with shfmt
 - [pre-commit-shfmt] - [pre-commit] shfmt hook
+- [tesh] - Run scripts with mocks, assertions, and coverage
 
 [alpine]: https://pkgs.alpinelinux.org/packages?name=shfmt
 [arch]: https://archlinux.org/packages/extra/x86_64/shfmt/
@@ -180,6 +181,7 @@ Other noteworthy integrations include:
 [shfmt.el]: https://github.com/purcell/emacs-shfmt/
 [snapcraft]: https://snapcraft.io/shfmt
 [sublime-pretty-shell]: https://github.com/aerobounce/Sublime-Pretty-Shell
+[tesh]: https://github.com/feloy/tesh
 [trunk]: https://trunk.io/check
 [vim-shfmt]: https://github.com/z0mbix/vim-shfmt
 [void]: https://github.com/void-linux/void-packages/blob/HEAD/srcpkgs/shfmt/template
