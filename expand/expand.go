@@ -264,7 +264,7 @@ func formatInto(sb *strings.Builder, format string, args []string) (int, error) 
 		// hexadecimal.
 		readDigits := func(max int, hex bool) string {
 			j := 0
-			for ; j < max; j++ {
+			for ; j < max && i+j < len(format); j++ {
 				c := format[i+j]
 				if (c >= '0' && c <= '9') ||
 					(hex && c >= 'a' && c <= 'f') ||
@@ -282,6 +282,10 @@ func formatInto(sb *strings.Builder, format string, args []string) (int, error) 
 		switch {
 		case c == '\\': // escaped
 			i++
+			if i >= len(format) {
+				sb.WriteByte('\\')
+				break
+			}
 			switch c = format[i]; c {
 			case 'a': // bell
 				sb.WriteByte('\a')
@@ -788,11 +792,18 @@ func (cfg *Config) quotedElemFields(pe *syntax.ParamExp) []string {
 	}
 	switch nodeLit(pe.Index) {
 	case "@": // "${name[@]}"
-		switch vr := cfg.Env.Get(name); vr.Kind {
+		vr := cfg.Env.Get(name)
+		switch vr.Kind {
 		case Indexed:
 			return vr.List
 		case Associative:
 			return slices.Collect(maps.Values(vr.Map))
+		case Unknown:
+			if !vr.IsSet() {
+				// An unset variable expanded as "${name[@]}" produces
+				// zero fields, just like an empty array.
+				return []string{}
+			}
 		}
 	case "*": // "${name[*]}"
 		if vr := cfg.Env.Get(name); vr.Kind == Indexed {

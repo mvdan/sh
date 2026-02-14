@@ -341,6 +341,13 @@ var runTests = []runTest{
 	{"printf 'a%bc'", "ac"},
 	{"printf 'before\\x00after'", "before\x00after"},
 
+	// printf escape sequences at end of format string (must not panic)
+	{"printf '\\0'", "\x00"},
+	{"printf '\\01'", "\x01"},
+	{"printf '\\x'", "\\x"},
+	{"printf 'a\\0'", "a\x00"},
+	{"printf '\\\\'", "\\"},
+
 	// words and quotes
 	{"echo  foo_interp_missing ", "foo_interp_missing\n"},
 	{"echo ' foo_interp_missing '", " foo_interp_missing \n"},
@@ -361,6 +368,7 @@ var runTests = []runTest{
 	{`count() { echo $#; }; set -- ""; count "$@"`, "1\n"},
 	{`count() { echo $#; }; set -- ""; shift; count "$@"`, "0\n"},
 	{`count() { echo $#; }; a=(); count "${a[@]}"`, "0\n"},
+	{`count() { echo $#; }; count "${unset_var[@]}"`, "0\n"},
 	{`count() { echo $#; }; a=(""); count "${a[@]}"`, "1\n"},
 	{`echo $1 $3; set -- a b c; echo $1 $3`, "\na c\n"},
 	{`[[ $0 == "bash" || $0 == "gosh" ]]`, ""},
