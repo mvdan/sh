@@ -762,6 +762,40 @@ var runTests = []runTest{
 		"unset\n",
 	},
 
+	// declare -f and declare -p
+	{
+		`f() { echo hello; }; declare -f f`,
+		"f()\n{ echo hello; }\n #IGNORE output format differs from bash",
+	},
+	{
+		`declare -f nonexistent 2>/dev/null; echo "exit: $?"`,
+		"exit: 1\n",
+	},
+	{
+		`f() { echo hello; }; declare -f f >/dev/null && echo "f exists"`,
+		"f exists\n",
+	},
+	{
+		`a=hello; declare -p a`,
+		"declare -- a=\"hello\"\n",
+	},
+	{
+		`declare -a arr=(1 2 3); declare -p arr`,
+		"declare -a arr=([0]=\"1\" [1]=\"2\" [2]=\"3\")\n",
+	},
+	{
+		`export e=1; declare -p e`,
+		"declare -x e=\"1\"\n",
+	},
+	{
+		`readonly c=immutable; declare -p c`,
+		"declare -r c=\"immutable\"\n",
+	},
+	{
+		`declare -p nonexistent 2>/dev/null; echo "exit: $?"`,
+		"exit: 1\n",
+	},
+
 	// if
 	{
 		"if true; then echo foo_interp_missing; fi",

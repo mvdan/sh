@@ -666,6 +666,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		local, global := false, false
 		var modes []string
 		valType := ""
+		declQuery := "" // "-f" or "-p" for query mode
 		switch cm.Variant.Value {
 		case "declare":
 			// When used in a function, "declare" acts as "local"
@@ -696,6 +697,8 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 					valType = flag
 				case "-g":
 					global = true
+				case "-f", "-p":
+					declQuery = flag
 				default:
 					r.errf("declare: invalid option %q\n", flag)
 					r.exit.code = 2
@@ -708,6 +711,58 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 				r.errf("declare: invalid name %q\n", name)
 				r.exit.code = 1
 				return
+			}
+			if declQuery == "-f" {
+				// declare -f name: print function definition.
+				// Bash silently returns exit 1 for missing functions.
+				if body := r.Funcs[name]; body != nil {
+					r.outf("%s()\n", name)
+					printer := syntax.NewPrinter()
+					var buf bytes.Buffer
+					printer.Print(&buf, body)
+					r.outf("%s\n", buf.String())
+				} else {
+					r.exit.code = 1
+				}
+				continue
+			}
+			if declQuery == "-p" {
+				// declare -p name: print variable with attributes.
+				vr := r.lookupVar(name)
+				if !vr.Declared() {
+					r.errf("declare: %s: not found\n", name)
+					r.exit.code = 1
+					continue
+				}
+				flags := vr.Flags()
+				if flags == "" {
+					flags = "-"
+				}
+				switch vr.Kind {
+				case expand.Indexed:
+					r.outf("declare -%s %s=(", flags, name)
+					for i, v := range vr.List {
+						if i > 0 {
+							r.out(" ")
+						}
+						r.outf("[%d]=%q", i, v)
+					}
+					r.out(")\n")
+				case expand.Associative:
+					r.outf("declare -%s %s=(", flags, name)
+					first := true
+					for k, v := range vr.Map {
+						if !first {
+							r.out(" ")
+						}
+						r.outf("[%s]=%q", k, v)
+						first = false
+					}
+					r.out(")\n")
+				default:
+					r.outf("declare -%s %s=%q\n", flags, name, vr.Str)
+				}
+				continue
 			}
 			vr := r.lookupVar(as.Name.Value)
 			if as.Naked {
