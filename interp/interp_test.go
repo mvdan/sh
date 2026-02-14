@@ -691,6 +691,40 @@ var runTests = []runTest{
 		`a='"\n'; printf "%s %s" "${a}" "${a@E}"`,
 		"\"\\n \"\n",
 	},
+
+	// ${var@a} and ${var@A}
+	{
+		`a=foo; echo "<${a@a}>"`,
+		"<>\n",
+	},
+	{
+		`declare -a arr=(1 2 3); echo "${arr@a}"`,
+		"a\n",
+	},
+	{
+		`declare -A map=([k]=v); echo "${map@a}"`,
+		"A\n",
+	},
+	{
+		`export e=1; echo "${e@a}"`,
+		"x\n",
+	},
+	{
+		`readonly ro=1; echo "${ro@a}"`,
+		"r\n",
+	},
+	{
+		`declare -a arr=(1); export arr; echo "${arr@a}"`,
+		"ax\n",
+	},
+	{
+		`a=hello; echo "${a@A}"`,
+		"a=hello\n #IGNORE bash always single-quotes",
+	},
+	{
+		`export e=1; echo "${e@A}"`,
+		"declare -x e=1\n #IGNORE bash always single-quotes",
+	},
 	{
 		"declare a; a+=(b); echo ${a[@]} ${#a[@]}",
 		"b 1\n",

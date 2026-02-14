@@ -116,6 +116,27 @@ func (v Variable) Declared() bool {
 	return v.Set || v.Local || v.Exported || v.ReadOnly || v.Kind != Unknown
 }
 
+// Flags returns the variable's attribute flags in the order used by bash's
+// declare builtin and ${var@a}: type (a/A/n), readonly (r), exported (x).
+func (v Variable) Flags() string {
+	var flags []byte
+	switch v.Kind {
+	case Indexed:
+		flags = append(flags, 'a')
+	case Associative:
+		flags = append(flags, 'A')
+	case NameRef:
+		flags = append(flags, 'n')
+	}
+	if v.ReadOnly {
+		flags = append(flags, 'r')
+	}
+	if v.Exported {
+		flags = append(flags, 'x')
+	}
+	return string(flags)
+}
+
 // String returns the variable's value as a string. In general, this only makes
 // sense if the variable has a string value or no value at all.
 func (v Variable) String() string {
