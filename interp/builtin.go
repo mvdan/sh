@@ -362,9 +362,9 @@ func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args 
 		fp := flagParser{remaining: args}
 		for fp.more() {
 			switch flag := fp.flag(); flag {
-			case "-a", "-f", "-P", "--help":
+			case "-a", "-f", "--help":
 				return failf(3, "command: NOT IMPLEMENTED\n")
-			case "-p", "-t":
+			case "-p", "-P", "-t":
 				mode = flag
 			default:
 				return failf(2, "command: invalid option %q\n", flag)
@@ -372,7 +372,7 @@ func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args 
 		}
 		args := fp.args()
 		for _, arg := range args {
-			if mode == "-p" {
+			if mode == "-p" || mode == "-P" {
 				if path, err := LookPathDir(r.Dir, r.writeEnv, arg); err == nil {
 					r.outf("%s\n", path)
 				} else {
