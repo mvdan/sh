@@ -792,11 +792,18 @@ func (cfg *Config) quotedElemFields(pe *syntax.ParamExp) []string {
 	}
 	switch nodeLit(pe.Index) {
 	case "@": // "${name[@]}"
-		switch vr := cfg.Env.Get(name); vr.Kind {
+		vr := cfg.Env.Get(name)
+		switch vr.Kind {
 		case Indexed:
 			return vr.List
 		case Associative:
 			return slices.Collect(maps.Values(vr.Map))
+		case Unknown:
+			if !vr.IsSet() {
+				// An unset variable expanded as "${name[@]}" produces
+				// zero fields, just like an empty array.
+				return []string{}
+			}
 		}
 	case "*": // "${name[*]}"
 		if vr := cfg.Env.Get(name); vr.Kind == Indexed {
