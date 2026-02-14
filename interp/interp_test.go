@@ -341,6 +341,13 @@ var runTests = []runTest{
 	{"printf 'a%bc'", "ac"},
 	{"printf 'before\\x00after'", "before\x00after"},
 
+	// printf escape sequences at end of format string (must not panic)
+	{"printf '\\0'", "\x00"},
+	{"printf '\\01'", "\x01"},
+	{"printf '\\x'", "\\x #IGNORE bash prints a warning to stderr"},
+	{"printf 'a\\0'", "a\x00"},
+	{"printf '\\\\'", "\\"},
+
 	// words and quotes
 	{"echo  foo_interp_missing ", "foo_interp_missing\n"},
 	{"echo ' foo_interp_missing '", " foo_interp_missing \n"},
