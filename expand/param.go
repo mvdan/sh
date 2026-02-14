@@ -334,8 +334,24 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 					rns = append(rns, rn)
 				}
 				str = string(rns)
-			case "P", "A", "a":
-				panic(fmt.Sprintf("unhandled @%s param expansion", arg))
+			case "a":
+				// ${var@a} returns variable attribute flags.
+				// We use orig (before nameref resolve) for the attributes.
+				str = orig.Flags()
+			case "A":
+				// ${var@A} returns a declare statement that recreates the variable.
+				flags := orig.Flags()
+				quoted, err := syntax.Quote(str, syntax.LangBash)
+				if err != nil {
+					return "", err
+				}
+				if flags == "" {
+					str = fmt.Sprintf("%s=%s", name, quoted)
+				} else {
+					str = fmt.Sprintf("declare -%s %s=%s", flags, name, quoted)
+				}
+			case "P":
+				// TODO: implement prompt expansion (\u, \h, \w, etc.).
 			default:
 				panic(fmt.Sprintf("unexpected @%s param expansion", arg))
 			}
