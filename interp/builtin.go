@@ -665,6 +665,7 @@ func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args 
 		var prompt string
 		raw := false
 		silent := false
+		readArray := false
 		fp := flagParser{remaining: args}
 		for fp.more() {
 			switch flag := fp.flag(); flag {
@@ -672,6 +673,8 @@ func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args 
 				silent = true
 			case "-r":
 				raw = true
+			case "-a":
+				readArray = true
 			case "-p":
 				prompt = fp.value()
 				if prompt == "" {
@@ -701,17 +704,32 @@ func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args 
 		} else {
 			line, err = r.readLine(ctx, raw)
 		}
-		if len(args) == 0 {
-			args = append(args, shellReplyVar)
-		}
-
-		values := expand.ReadFields(r.ecfg, string(line), len(args), raw)
-		for i, name := range args {
-			val := ""
-			if i < len(values) {
-				val = values[i]
+		if readArray {
+			// read -a arrayname: split line into fields and assign to indexed array.
+			arrayName := shellReplyVar
+			if len(args) > 0 {
+				arrayName = args[0]
 			}
-			r.setVarString(name, val)
+			// Use -1 as max to get all fields without joining the last ones.
+			values := expand.ReadFields(r.ecfg, string(line), -1, raw)
+			r.setVar(arrayName, expand.Variable{
+				Set:  true,
+				Kind: expand.Indexed,
+				List: values,
+			})
+		} else {
+			if len(args) == 0 {
+				args = append(args, shellReplyVar)
+			}
+
+			values := expand.ReadFields(r.ecfg, string(line), len(args), raw)
+			for i, name := range args {
+				val := ""
+				if i < len(values) {
+					val = values[i]
+				}
+				r.setVarString(name, val)
+			}
 		}
 
 		// We can get data back from readLine and an error at the same time, so

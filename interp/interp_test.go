@@ -3387,6 +3387,24 @@ done <<< 2`,
 		"read -r -p 'Prompt and raw flag together: ' a <<< '\\a\\b\\c'; echo $a",
 		"Prompt and raw flag together: \\a\\b\\c\n #IGNORE bash requires a terminal",
 	},
+
+	// read -a
+	{
+		`echo "1 2 3" | { read -a arr; echo "${arr[0]} ${arr[1]} ${arr[2]}"; }`,
+		"1 2 3\n",
+	},
+	{
+		`echo "a b c" | { read -a arr; echo "${#arr[@]}"; }`,
+		"3\n",
+	},
+	{
+		`echo "" | { read -a arr; echo "${#arr[@]}"; }`,
+		"0\n",
+	},
+	{
+		`echo 'a\tb' | { read -ra arr; echo "${#arr[@]} ${arr[0]}"; }`,
+		"1 a\\tb\n",
+	},
 	{
 		`a=a; echo | (read a; echo -n "$a")`,
 		"",
