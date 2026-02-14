@@ -786,7 +786,7 @@ var errorCases = []errorCase{
 		langErr("1:7: `|` must be followed by a statement"),
 	),
 	errCase(
-		"echo | ! bar",
+		"echo | ! true",
 		langErr("1:8: `!` can only be used in full statements"),
 	),
 	errCase(

@@ -1636,24 +1636,26 @@ var fileTests = []fileTestCase{
 		}),
 	),
 	fileTest(
-		[]string{"foo &>a"},
+		[]string{"true &>a"},
 		langFile(&Stmt{
-			Cmd: litCall("foo"),
+			Cmd: litCall("true"),
 			Redirs: []*Redirect{
 				{Op: RdrAll, Word: litWord("a")},
 			},
 		}, LangBash|LangMirBSDKorn|LangZsh),
-		langErr2("1:5: `&>` redirects are a bash/mksh/zsh feature; tried parsing as LANG", LangPOSIX),
+		langErr2("1:6: `&>` redirects are a bash/mksh/zsh feature; tried parsing as LANG", LangPOSIX),
+		flipConfirm2(LangPOSIX), // POSIX shells tend to parse &> as & > hence it runs as two commands
 	),
 	fileTest(
-		[]string{"foo &>>b"},
+		[]string{"true &>>b"},
 		langFile(&Stmt{
-			Cmd: litCall("foo"),
+			Cmd: litCall("true"),
 			Redirs: []*Redirect{
 				{Op: AppAll, Word: litWord("b")},
 			},
 		}, LangBash|LangMirBSDKorn|LangZsh),
-		langErr2("1:5: `&>>` redirects are a bash/mksh/zsh feature; tried parsing as LANG", LangPOSIX),
+		langErr2("1:6: `&>>` redirects are a bash/mksh/zsh feature; tried parsing as LANG", LangPOSIX),
+		flipConfirm2(LangPOSIX), // POSIX shells tend to parse &> as & > hence it runs as two commands
 	),
 	fileTest(
 		[]string{"foo 2>file bar", "2>file foo bar"},
