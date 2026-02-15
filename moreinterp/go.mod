@@ -1,6 +1,6 @@
 module mvdan.cc/sh/moreinterp
 
-go 1.24.0
+go 1.25.0
 
 require (
 	github.com/u-root/u-root v0.15.1-0.20251208185023-2f8c7e763cf8
