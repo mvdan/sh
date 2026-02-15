@@ -41,15 +41,14 @@ func ExtendedPatternMatcher(pat string, mode pattern.Mode) (func(string) bool, e
 // Only a single !(...) group with fixed-string prefix and suffix is supported.
 func extNegatedMatcher(pat string, groups []pattern.NegExtglobGroup) (func(string) bool, error) {
 	if len(groups) != 1 {
-		return nil, fmt.Errorf("extglob operator !(: multiple groups are not supported yet")
+		return nil, fmt.Errorf("multiple extglob !(...) groups are not supported yet")
 	}
 	g := groups[0]
 	prefix := pat[:g.Start]
 	suffix := pat[g.End:]
 
-	// Only support fixed-string prefix/suffix.
 	if pattern.HasMeta(prefix, 0) || pattern.HasMeta(suffix, 0) {
-		return nil, fmt.Errorf("extglob operator !(: only fixed prefixes and suffixes are supported")
+		return nil, fmt.Errorf("extglob !(...) is only supported with a fixed prefix and suffix")
 	}
 
 	// Use @(inner) to compile the pattern list, then negate the match.

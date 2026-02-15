@@ -44,7 +44,7 @@ type NegExtglobError struct {
 }
 
 func (e *NegExtglobError) Error() string {
-	return "extglob operator !(: Go's regexp package does not support negative lookahead"
+	return "extglob !(...) is not supported in this scenario"
 }
 
 // TODO(v4): flip NoGlobStar to be opt-in via GlobStar, matching bash
