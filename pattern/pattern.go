@@ -29,6 +29,24 @@ func (e SyntaxError) Error() string { return e.msg }
 
 func (e SyntaxError) Unwrap() error { return e.err }
 
+// NegExtglobGroup represents the byte offset range of a single !(expr) group
+// within a pattern string. Start is the offset of '!', End is one past ')'.
+type NegExtglobGroup struct {
+	Start, End int
+}
+
+// NegExtglobError is returned by [Regexp] when an extglob negation operator
+// !(pattern-list) is encountered, as Go's [regexp] package does not support
+// negative lookahead. Callers can handle this by negating the result of
+// matching the inner pattern.
+type NegExtglobError struct {
+	Groups []NegExtglobGroup
+}
+
+func (e *NegExtglobError) Error() string {
+	return "extglob operator !(: Go's regexp package does not support negative lookahead"
+}
+
 // TODO(v4): flip NoGlobStar to be opt-in via GlobStar, matching bash
 // TODO(v4): flip EntireString to be opt-out via PartialMatch, as EntireString causes subtle bugs when forgotten
 // TODO(v4): rename NoGlobCase to CaseInsensitive for readability
@@ -87,12 +105,20 @@ func Regexp(pat string, mode Mode) (string, error) {
 		sb.WriteString(`^`)
 	}
 	sl := stringLexer{s: pat}
+	var negGroups []NegExtglobGroup
 	for {
 		if err := regexpNext(&sb, &sl, mode); err == io.EOF {
 			break
 		} else if err != nil {
-			return "", err
+			negErr, ok := err.(*NegExtglobError)
+			if !ok {
+				return "", err
+			}
+			negGroups = append(negGroups, negErr.Groups...)
 		}
+	}
+	if len(negGroups) > 0 {
+		return "", &NegExtglobError{Groups: negGroups}
 	}
 	if mode&EntireString != 0 {
 		sb.WriteString(`$`)
@@ -143,12 +169,11 @@ func regexpNext(sb *strings.Builder, sl *stringLexer, mode Mode) error {
 		// Note that we recurse into the same function in a loop,
 		// as each of the patterns in the list separated by '|' is a regular pattern.
 		switch op := c; op {
-		case '!':
-			return fmt.Errorf("extglob operator !(: Go's regexp package does not support negative lookahead")
-		case '?', '*', '+', '@':
+		case '!', '?', '*', '+', '@':
 			if sl.peekNext() != '(' {
 				break
 			}
+			start := sl.i - 1       // position of the operator
 			sb.WriteByte(sl.next()) // (
 		nestedLoop:
 			for {
@@ -167,6 +192,9 @@ func regexpNext(sb *strings.Builder, sl *stringLexer, mode Mode) error {
 				}
 			}
 			sb.WriteByte(sl.next()) // )
+			if op == '!' {
+				return &NegExtglobError{Groups: []NegExtglobGroup{{Start: start, End: sl.i}}}
+			}
 			if op != '@' {
 				// @( is [syntax.GlobOne] for matching once; no suffix needed
 				sb.WriteByte(op)

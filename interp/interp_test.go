@@ -3138,6 +3138,64 @@ done <<< 2`,
 		// Bash would print "a123z a12z az\n"
 		"extglob operator !(: Go's regexp package does not support negative lookahead\n #IGNORE",
 	},
+	// !(pattern) extglob negation in case and [[ ]] matching
+	{
+		"shopt -s extglob\ncase \"bar\" in !(foo)) echo match;; esac",
+		"match\n",
+	},
+	{
+		"shopt -s extglob\ncase \"foo\" in !(foo)) echo match;; esac",
+		"",
+	},
+	{
+		"shopt -s extglob\ncase \"\" in !(foo)) echo match;; esac",
+		"match\n",
+	},
+	{
+		"shopt -s extglob\ncase \"baz\" in !(foo|bar)) echo match;; esac",
+		"match\n",
+	},
+	{
+		"shopt -s extglob\ncase \"file.tar.gz\" in !(*.sig)) echo match;; esac",
+		"match\n",
+	},
+	{
+		"shopt -s extglob\ncase \"file.sig\" in !(*.sig)) echo match;; esac",
+		"",
+	},
+	{
+		"shopt -s extglob\ncase \"foo_xxx_baz\" in foo_!(bar)_baz) echo match;; esac",
+		"match\n",
+	},
+	{
+		"shopt -s extglob\ncase \"foo_bar_baz\" in foo_!(bar)_baz) echo match;; esac",
+		"",
+	},
+	{
+		"shopt -s extglob\n[[ \"bar\" == !(foo) ]] && echo match",
+		"match\n",
+	},
+	// Unsupported: multiple groups, glob prefix, or glob suffix.
+	{
+		"shopt -s extglob\ncase \"xabab\" in *a!(b)) echo match;; esac",
+		" #IGNORE glob prefix not supported",
+	},
+	{
+		"shopt -s extglob\ncase \"baz\" in !(foo)!(bar)) echo match;; esac",
+		" #IGNORE multiple extglob negation groups not supported",
+	},
+	{
+		"shopt -s extglob\ncase \".bar\" in .*!(foo)) echo match;; esac",
+		" #IGNORE glob prefix not supported",
+	},
+	{
+		"shopt -s extglob\ncase \".foo\" in .*!(foo)) echo match;; esac",
+		" #IGNORE glob prefix not supported",
+	},
+	{
+		"shopt -s extglob\ncase \"bar\" in .*!(foo)) echo match;; esac",
+		" #IGNORE glob prefix not supported",
+	},
 	{
 		// Extended pattern matching is always available outside of pathname expansions (globbing).
 		"[[ a123z == a@([0-9])z ]]; echo $?; [[ a123z == a+([0-9])z ]]; echo $?",
