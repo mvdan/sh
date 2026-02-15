@@ -869,10 +869,52 @@ func match(pat, name string) bool {
 	// Extended pattern matching operators are always on outside of pathname expansion.
 	expr, err := pattern.Regexp(pat, pattern.EntireString|pattern.ExtendedOperators)
 	if err != nil {
-		return false
+		// Handle !(pattern-list) negation: when Regexp returns NegExtglobError,
+		// match the inner pattern and negate the result.
+		var negErr *pattern.NegExtglobError
+		if !errors.As(err, &negErr) {
+			return false
+		}
+		return matchNegExtglob(pat, name, negErr.Groups)
 	}
 	rx := regexp.MustCompile(expr)
 	return rx.MatchString(name)
+}
+
+// matchNegExtglob handles !(pattern-list) extglob negation.
+// Only a single !(...) group with fixed-string prefix and suffix is supported.
+func matchNegExtglob(pat, name string, groups []pattern.NegExtglobGroup) bool {
+	if len(groups) != 1 {
+		return false // multiple groups not supported
+	}
+	g := groups[0]
+	prefix := pat[:g.Start]
+	suffix := pat[g.End:]
+	inner := pat[g.Start+len("!(") : g.End-len(")")]
+
+	// Only support fixed-string prefix/suffix.
+	if pattern.HasMeta(prefix, 0) || pattern.HasMeta(suffix, 0) {
+		return false
+	}
+	if !strings.HasPrefix(name, prefix) {
+		return false
+	}
+	if !strings.HasSuffix(name, suffix) {
+		return false
+	}
+	end := len(name) - len(suffix)
+	if end < len(prefix) {
+		return false // prefix and suffix overlap in name
+	}
+	middle := name[len(prefix):end]
+
+	// Use @(inner) to compile the pattern list, then negate the match.
+	expr, err := pattern.Regexp("@("+inner+")", pattern.EntireString|pattern.ExtendedOperators)
+	if err != nil {
+		return false
+	}
+	rx := regexp.MustCompile(expr)
+	return !rx.MatchString(middle)
 }
 
 func elapsedString(d time.Duration, posix bool) string {
