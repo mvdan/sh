@@ -324,7 +324,7 @@ var modCases = []struct {
 		opts: []interp.RunnerOption{
 			interp.ExecHandlers(execCustomExitStatus5),
 		},
-		src:  "echo 'foo' >a; source a",
+		src:  "echo 'foo' >a; source ./a",
 		want: "Runner.Run error: custom error: exit status 5",
 	},
 	{

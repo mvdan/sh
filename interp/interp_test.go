@@ -474,7 +474,7 @@ var runTests = []runTest{
 	{"v=x; read v <<< 'y'; echo $v", "y\n"},
 	{"v=x; v=inline read v <<< 'y'; echo $v", "x\n"},
 	{"v=x; v=inline unset v; echo $v", "x\n"},
-	{"v=x; echo 'v=y' >f; v=inline source f; echo $v", "x\n"},
+	{"v=x; echo 'v=y' >f; v=inline source ./f; echo $v", "x\n"},
 	{"declare -n v=v2; v=inline true; echo $v $v2", "\n"},
 	{"f() { echo $v; }; v=x; v=y f; f", "y\nx\n"},
 	{"f() { echo $v; }; v=x; v+=y f; f", "xy\nx\n"},
@@ -1296,10 +1296,10 @@ var runTests = []runTest{
 	{"f() { return 2; }; f", "exit status 2"},
 	{"f() { echo foo_interp_missing; return; echo bar_interp_missing; }; f", "foo_interp_missing\n"},
 	{"f1() { :; }; f2() { f1; return; }; f2", ""},
-	{"echo 'return' >a; source a", ""},
-	{"echo 'return' >a; source a; return", "return: can only be done from a func or sourced script\nexit status 1 #JUSTERR"},
-	{"echo 'return 2' >a; source a", "exit status 2"},
-	{"echo 'echo foo_interp_missing; return; echo bar_interp_missing' >a; source a", "foo_interp_missing\n"},
+	{"echo 'return' >a; source ./a", ""},
+	{"echo 'return' >a; source ./a; return", "return: can only be done from a func or sourced script\nexit status 1 #JUSTERR"},
+	{"echo 'return 2' >a; source ./a", "exit status 2"},
+	{"echo 'echo foo_interp_missing; return; echo bar_interp_missing' >a; source ./a", "foo_interp_missing\n"},
 
 	// command
 	{"command", ""},
@@ -2559,15 +2559,15 @@ done <<< 2`,
 		"1:1: source: need filename\nexit status 2 #JUSTERR",
 	},
 	{
-		"echo 'echo foo_interp_missing' >a; source a; . a",
+		"echo 'echo foo_interp_missing' >a; source ./a; . ./a",
 		"foo_interp_missing\nfoo_interp_missing\n",
 	},
 	{
-		"echo 'echo $@' >a; source a; source a b c; echo $@",
+		"echo 'echo $@' >a; source ./a; source ./a b c; echo $@",
 		"\nb c\n\n",
 	},
 	{
-		"echo 'foo_interp_missing=bar_interp_missing' >a; source a; echo $foo_interp_missing",
+		"echo 'foo_interp_missing=bar_interp_missing' >a; source ./a; echo $foo_interp_missing",
 		"bar_interp_missing\n",
 	},
 
@@ -2579,55 +2579,55 @@ done <<< 2`,
 
 	// source with set and shift
 	{
-		"echo 'set -- d e f' >a; source a; echo $@",
+		"echo 'set -- d e f' >a; source ./a; echo $@",
 		"d e f\n",
 	},
 	{
-		"echo 'echo $@' >a; set -- b c; source a; echo $@",
+		"echo 'echo $@' >a; set -- b c; source ./a; echo $@",
 		"b c\nb c\n",
 	},
 	{
-		"echo 'echo $@' >a; set -- b c; source a d e; echo $@",
+		"echo 'echo $@' >a; set -- b c; source ./a d e; echo $@",
 		"d e\nb c\n",
 	},
 	{
-		"echo 'shift; echo $@' >a; set -- b c; source a d e; echo $@",
+		"echo 'shift; echo $@' >a; set -- b c; source ./a d e; echo $@",
 		"e\nb c\n",
 	},
 	{
-		"echo 'shift' >a; set -- b c; source a; echo $@",
+		"echo 'shift' >a; set -- b c; source ./a; echo $@",
 		"c\n",
 	},
 	{
-		"echo 'shift; set -- $@' >a; set -- b c; source a d e; echo $@",
+		"echo 'shift; set -- $@' >a; set -- b c; source ./a d e; echo $@",
 		"e\n",
 	},
 	{
-		"echo 'set -- g f'>b; echo 'set -- d e f; echo $@; source b;' >a; source a; echo $@",
+		"echo 'set -- g f'>b; echo 'set -- d e f; echo $@; source ./b;' >a; source ./a; echo $@",
 		"d e f\ng f\n",
 	},
 	{
-		"echo 'set -- g f'>b; echo 'echo $@; set -- d e f; source b;' >a; source a b c; echo $@",
+		"echo 'set -- g f'>b; echo 'echo $@; set -- d e f; source ./b;' >a; source ./a b c; echo $@",
 		"b c\ng f\n",
 	},
 	{
-		"echo 'shift; echo $@' >b; echo 'shift; echo $@; source b' >a; source a b c d; echo $@",
+		"echo 'shift; echo $@' >b; echo 'shift; echo $@; source ./b' >a; source ./a b c d; echo $@",
 		"c d\nd\n\n",
 	},
 	{
-		"echo 'set -- b c d' >b; echo 'source b' >a; set -- a; source a; echo $@",
+		"echo 'set -- b c d' >b; echo 'source ./b' >a; set -- a; source ./a; echo $@",
 		"b c d\n",
 	},
 	{
-		"echo 'echo $@' >b; echo 'set -- b c d; source b' >a; set -- a; source a; echo $@",
+		"echo 'echo $@' >b; echo 'set -- b c d; source ./b' >a; set -- a; source ./a; echo $@",
 		"b c d\nb c d\n",
 	},
 	{
-		"echo 'shift; echo $@' >b; echo 'shift; echo $@; source b c d' >a; set -- a b; source a; echo $@",
+		"echo 'shift; echo $@' >b; echo 'shift; echo $@; source ./b c d' >a; set -- a b; source ./a; echo $@",
 		"b\nd\nb\n",
 	},
 	{
-		"echo 'set -- a b c' >b; echo 'echo $@; source b; echo $@' >a; source a; echo $@",
+		"echo 'set -- a b c' >b; echo 'echo $@; source ./b; echo $@' >a; source ./a; echo $@",
 		"\na b c\na b c\n",
 	},
 
@@ -2848,11 +2848,11 @@ done <<< 2`,
 		"local: can only be used in a function\nexit status 1 #JUSTERR",
 	},
 	{
-		"echo 'local a=b' >a; source a",
+		"echo 'local a=b' >a; source ./a",
 		"local: can only be used in a function\nexit status 1 #JUSTERR",
 	},
 	{
-		"echo 'local a=b' >a; f() { source a; }; f; echo $a",
+		"echo 'local a=b' >a; f() { source ./a; }; f; echo $a",
 		"\n",
 	},
 	{
