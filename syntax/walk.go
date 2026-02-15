@@ -241,7 +241,7 @@ func (p *debugPrinter) print(x reflect.Value) {
 			return
 		}
 		p.print(x.Elem())
-	case reflect.Ptr:
+	case reflect.Pointer:
 		if x.IsNil() {
 			p.printf("nil")
 			return

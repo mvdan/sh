@@ -488,13 +488,11 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			}
 			r.stdin = pr
 			var wg sync.WaitGroup
-			wg.Add(1)
-			go func() {
+			wg.Go(func() {
 				r2.stmt(ctx, cm.X)
 				r2.exit.exiting = false // subshells don't exit the parent shell
 				pw.Close()
-				wg.Done()
-			}()
+			})
 			r.stmt(ctx, cm.Y)
 			pr.Close()
 			wg.Wait()

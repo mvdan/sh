@@ -55,7 +55,7 @@ func (opts EncodeOptions) Encode(w io.Writer, node syntax.Node) error {
 
 func encodeValue(val reflect.Value) (reflect.Value, string) {
 	switch val.Kind() {
-	case reflect.Ptr:
+	case reflect.Pointer:
 		if val.IsNil() {
 			break
 		}
@@ -263,7 +263,7 @@ var nodeByName = map[string]reflect.Type{
 func decodeValue(val reflect.Value, enc any) error {
 	switch enc := enc.(type) {
 	case map[string]any:
-		if val.Kind() == reflect.Ptr && val.IsNil() {
+		if val.Kind() == reflect.Pointer && val.IsNil() {
 			val.Set(reflect.New(val.Type().Elem()))
 		}
 		if typeName, _ := enc["Type"].(string); typeName != "" {
@@ -273,7 +273,7 @@ func decodeValue(val reflect.Value, enc any) error {
 			}
 			val.Set(reflect.New(typ))
 		}
-		for val.Kind() == reflect.Ptr || val.Kind() == reflect.Interface {
+		for val.Kind() == reflect.Pointer || val.Kind() == reflect.Interface {
 			val = val.Elem()
 		}
 		for name, fv := range enc {
