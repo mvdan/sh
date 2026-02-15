@@ -5,6 +5,7 @@ package internal
 
 import (
 	"errors"
+	"fmt"
 	"regexp"
 	"strings"
 
@@ -14,7 +15,7 @@ import (
 // ExtendedPatternMatcher returns a [regexp.Regexp.MatchString]-like function
 // to support !(pattern-list) extended patterns where possible.
 // It can be used instead of [pattern.Regexp] for narrow use cases.
-func ExtendedPatternMatcher(pat string, mode pattern.Mode) func(string) bool {
+func ExtendedPatternMatcher(pat string, mode pattern.Mode) (func(string) bool, error) {
 	if mode&pattern.ExtendedOperators != 0 && mode&pattern.EntireString == 0 {
 		// In the future we could try to support !(pattern) without matching
 		// the entire input, ensuring we add enough test cases.
@@ -28,19 +29,19 @@ func ExtendedPatternMatcher(pat string, mode pattern.Mode) func(string) bool {
 		// match the inner pattern and negate the result.
 		var negErr *pattern.NegExtglobError
 		if !errors.As(err, &negErr) {
-			return nil
+			return nil, err
 		}
 		return extNegatedMatcher(pat, negErr.Groups)
 	}
 	rx := regexp.MustCompile(expr)
-	return rx.MatchString
+	return rx.MatchString, nil
 }
 
 // extNegatedMatcher handles !(pattern-list) extglob negation.
 // Only a single !(...) group with fixed-string prefix and suffix is supported.
-func extNegatedMatcher(pat string, groups []pattern.NegExtglobGroup) func(string) bool {
+func extNegatedMatcher(pat string, groups []pattern.NegExtglobGroup) (func(string) bool, error) {
 	if len(groups) != 1 {
-		return nil // multiple groups not supported
+		return nil, fmt.Errorf("extglob operator !(: multiple groups are not supported yet")
 	}
 	g := groups[0]
 	prefix := pat[:g.Start]
@@ -48,14 +49,14 @@ func extNegatedMatcher(pat string, groups []pattern.NegExtglobGroup) func(string
 
 	// Only support fixed-string prefix/suffix.
 	if pattern.HasMeta(prefix, 0) || pattern.HasMeta(suffix, 0) {
-		return nil
+		return nil, fmt.Errorf("extglob operator !(: only fixed prefixes and suffixes are supported")
 	}
 
 	// Use @(inner) to compile the pattern list, then negate the match.
 	inner := pat[g.Start+len("!(") : g.End-len(")")]
 	expr, err := pattern.Regexp("@("+inner+")", pattern.EntireString|pattern.ExtendedOperators)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 	rx := regexp.MustCompile(expr)
 
@@ -73,5 +74,5 @@ func extNegatedMatcher(pat string, groups []pattern.NegExtglobGroup) func(string
 		middle := name[len(prefix):end]
 
 		return !rx.MatchString(middle)
-	}
+	}, nil
 }
