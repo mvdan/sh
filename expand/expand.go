@@ -20,6 +20,7 @@ import (
 	"strconv"
 	"strings"
 
+	"mvdan.cc/sh/v3/internal"
 	"mvdan.cc/sh/v3/pattern"
 	"mvdan.cc/sh/v3/syntax"
 )
@@ -982,9 +983,9 @@ func (cfg *Config) glob(base, pat string) ([]string, error) {
 
 				// If dir is not a directory, we keep the stack as-is and continue.
 				newMatches = newMatches[:0]
-				rx := rxGlobStar
+				rx := rxGlobStar.MatchString
 				if cfg.DotGlob {
-					rx = rxGlobStarDotGlob
+					rx = rxGlobStarDotGlob.MatchString
 				}
 				newMatches, _ = cfg.globDir(base, dir, rx, wantDir, newMatches)
 				for _, match := range slices.Backward(newMatches) {
@@ -1003,14 +1004,13 @@ func (cfg *Config) glob(base, pat string) ([]string, error) {
 		if cfg.ExtGlob {
 			mode |= pattern.ExtendedOperators
 		}
-		expr, err := pattern.Regexp(part, mode)
+		matcher, err := internal.ExtendedPatternMatcher(part, mode)
 		if err != nil {
 			return nil, err
 		}
-		rx := regexp.MustCompile(expr)
 		var newMatches []string
 		for _, dir := range matches {
-			newMatches, err = cfg.globDir(base, dir, rx, wantDir, newMatches)
+			newMatches, err = cfg.globDir(base, dir, matcher, wantDir, newMatches)
 			if err != nil {
 				return nil, err
 			}
@@ -1027,7 +1027,7 @@ func (cfg *Config) glob(base, pat string) ([]string, error) {
 	return matches, nil
 }
 
-func (cfg *Config) globDir(base, dir string, rx *regexp.Regexp, wantDir bool, matches []string) ([]string, error) {
+func (cfg *Config) globDir(base, dir string, matcher func(string) bool, wantDir bool, matches []string) ([]string, error) {
 	fullDir := dir
 	if !filepath.IsAbs(dir) {
 		fullDir = filepath.Join(base, dir)
@@ -1054,7 +1054,7 @@ func (cfg *Config) globDir(base, dir string, rx *regexp.Regexp, wantDir bool, ma
 			// Not a symlink nor a directory.
 			continue
 		}
-		if rx.MatchString(name) {
+		if matcher(name) {
 			matches = append(matches, pathJoin2(dir, name))
 		}
 	}

@@ -3135,8 +3135,7 @@ done <<< 2`,
 	},
 	{
 		"shopt -s extglob\ntouch az a1z a12z a123z; echo a!([0-9])z",
-		// Bash would print "a123z a12z az\n"
-		"extglob operator !(: Go's regexp package does not support negative lookahead\n #IGNORE",
+		"a123z a12z az\n",
 	},
 	// !(pattern) extglob negation in case and [[ ]] matching
 	{
