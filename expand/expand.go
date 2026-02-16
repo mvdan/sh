@@ -796,7 +796,7 @@ func (cfg *Config) quotedElemFields(pe *syntax.ParamExp) []string {
 		vr := cfg.Env.Get(name)
 		switch vr.Kind {
 		case Indexed:
-			return vr.List
+			return cfg.sliceElems(pe, vr.List)
 		case Associative:
 			return slices.Collect(maps.Values(vr.Map))
 		case Unknown:
@@ -808,10 +808,43 @@ func (cfg *Config) quotedElemFields(pe *syntax.ParamExp) []string {
 		}
 	case "*": // "${name[*]}"
 		if vr := cfg.Env.Get(name); vr.Kind == Indexed {
-			return []string{cfg.ifsJoin(vr.List)}
+			return []string{cfg.ifsJoin(cfg.sliceElems(pe, vr.List))}
 		}
 	}
 	return nil
+}
+
+// sliceElems applies ${var:offset:length} slicing to a list of elements.
+func (cfg *Config) sliceElems(pe *syntax.ParamExp, elems []string) []string {
+	if pe.Slice == nil {
+		return elems
+	}
+	slicePos := func(n int) int {
+		if n < 0 {
+			n = len(elems) + n
+			if n < 0 {
+				n = len(elems)
+			}
+		} else if n > len(elems) {
+			n = len(elems)
+		}
+		return n
+	}
+	if pe.Slice.Offset != nil {
+		offset, err := Arithm(cfg, pe.Slice.Offset)
+		if err != nil {
+			return elems
+		}
+		elems = elems[slicePos(offset):]
+	}
+	if pe.Slice.Length != nil {
+		length, err := Arithm(cfg, pe.Slice.Length)
+		if err != nil {
+			return elems
+		}
+		elems = elems[:slicePos(length)]
+	}
+	return elems
 }
 
 func (cfg *Config) expandUser(field string, moreFields bool) (prefix, rest string) {
