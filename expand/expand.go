@@ -786,10 +786,18 @@ func (cfg *Config) quotedElemFields(pe *syntax.ParamExp) []string {
 		return nil
 	}
 	switch name {
-	case "*": // "${*}"
-		return []string{cfg.ifsJoin(cfg.Env.Get(name).List)}
-	case "@": // "${@}"
-		return cfg.Env.Get(name).List
+	case "*": // "${*}" or "${*:offset:length}"
+		elems := cfg.Env.Get(name).List
+		if pe.Slice != nil {
+			elems = cfg.slicePositionalParams(pe, elems)
+		}
+		return []string{cfg.ifsJoin(elems)}
+	case "@": // "${@}" or "${@:offset:length}"
+		elems := cfg.Env.Get(name).List
+		if pe.Slice != nil {
+			elems = cfg.slicePositionalParams(pe, elems)
+		}
+		return elems
 	}
 	switch nodeLit(pe.Index) {
 	case "@": // "${name[@]}"
@@ -812,6 +820,40 @@ func (cfg *Config) quotedElemFields(pe *syntax.ParamExp) []string {
 		}
 	}
 	return nil
+}
+
+// slicePositionalParams applies ${:offset:length} slicing to positional
+// parameters. In bash, offsets for @ and * are 1-based, and offset 0
+// includes $0 (the script or shell name).
+func (cfg *Config) slicePositionalParams(pe *syntax.ParamExp, elems []string) []string {
+	// Prepend $0 so that standard 0-based slicing gives correct results.
+	elems = append([]string{cfg.Env.Get("0").Str}, elems...)
+	slicePos := func(n int) int {
+		if n < 0 {
+			n = len(elems) + n
+			if n < 0 {
+				n = len(elems)
+			}
+		} else if n > len(elems) {
+			n = len(elems)
+		}
+		return n
+	}
+	if pe.Slice.Offset != nil {
+		offset, err := Arithm(cfg, pe.Slice.Offset)
+		if err != nil {
+			return elems
+		}
+		elems = elems[slicePos(offset):]
+	}
+	if pe.Slice.Length != nil {
+		length, err := Arithm(cfg, pe.Slice.Length)
+		if err != nil {
+			return elems
+		}
+		elems = elems[:slicePos(length)]
+	}
+	return elems
 }
 
 func (cfg *Config) expandUser(field string, moreFields bool) (prefix, rest string) {
