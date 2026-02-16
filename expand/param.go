@@ -116,6 +116,12 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 			indexAllElements = true
 			callVarInd = false
 			elems = vr.List
+			// For positional parameters, offsets are 1-based and
+			// offset 0 includes $0. Prepend $0 so that standard
+			// 0-based Go slicing produces correct results.
+			if pe.Slice != nil && (name == "@" || name == "*") {
+				elems = append([]string{cfg.Env.Get("0").Str}, elems...)
+			}
 			slicePos := func(n int) int {
 				if n < 0 {
 					n = len(elems) + n
