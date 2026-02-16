@@ -462,6 +462,14 @@ var runTests = []runTest{
 	{`arr=("foo"); echo ${arr[@]:99}`, "\n"},
 	{`echo ${arr[@]:1:99}; echo ${arr[*]:1:99}`, "\n\n"},
 	{`arr=(0 1 2 3 4 5 6 7 8 9 0 a b c d e f g h); echo ${arr[@]:3:4}`, "3 4 5 6\n"},
+
+	// quoted array slicing
+	{`a=(1 2 3 4 5); echo "${a[@]:2:2}"`, "3 4\n"},
+	{`a=(1 2 3 4 5); echo "${a[*]:2:2}"`, "3 4\n"},
+	{`a=(1 2 3 4 5); b=("${a[@]:2:2}"); echo ${#b[@]}`, "2\n"},
+	{`a=(1 2 3 4 5); echo "${a[@]:3}"`, "4 5\n"},
+	{`a=(1 2 3 4 5); echo "${a[@]: -2}"`, "4 5\n"},
+	{`a=(1 2 3 4 5); echo "${a[@]: -99}"`, "\n"},
 	{`echo ${foo[@]}; echo ${foo[*]}`, "\n\n"},
 	// TODO: reenable once we figure out the broken pipe error
 	//{`$ENV_PROG | while read line; do if test -z "$line"; then echo empty; fi; break; done`, ""}, // never begin with an empty element

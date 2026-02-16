@@ -115,24 +115,7 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 		case Indexed:
 			indexAllElements = true
 			callVarInd = false
-			elems = vr.List
-			slicePos := func(n int) int {
-				if n < 0 {
-					n = len(elems) + n
-					if n < 0 {
-						n = len(elems)
-					}
-				} else if n > len(elems) {
-					n = len(elems)
-				}
-				return n
-			}
-			if pe.Slice != nil && pe.Slice.Offset != nil {
-				elems = elems[slicePos(sliceOffset):]
-			}
-			if pe.Slice != nil && pe.Slice.Length != nil {
-				elems = elems[:slicePos(sliceLen)]
-			}
+			elems = cfg.sliceElems(pe, vr.List)
 			str = strings.Join(elems, " ")
 		}
 	}
