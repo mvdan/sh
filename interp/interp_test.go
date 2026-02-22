@@ -470,6 +470,21 @@ var runTests = []runTest{
 	{`a=(1 2 3 4 5); echo "${a[@]:3}"`, "4 5\n"},
 	{`a=(1 2 3 4 5); echo "${a[@]: -2}"`, "4 5\n"},
 	{`a=(1 2 3 4 5); echo "${a[@]: -99}"`, "\n"},
+
+	// positional parameter slicing (1-based offset, $0 at offset 0)
+	{`f() { echo "${@:2:2}"; }; f a b c d e`, "b c\n"},
+	{`f() { echo ${@:2:2}; }; f a b c d e`, "b c\n"},
+	{`f() { echo "${@:1}"; }; f a b c`, "a b c\n"},
+	{`f() { echo "${*:2:2}"; }; f a b c d e`, "b c\n"},
+	{`f() { echo "${@: -2}"; }; f a b c d e`, "d e\n"},
+	{`f() { echo "${@: -3:2}"; }; f a b c d e`, "c d\n"},
+	{`f() { echo "${@:1:0}"; }; f a b c`, "\n"},
+	{`f() { echo "${@:99}"; }; f a b c`, "\n"},
+	{`set -- a b c; v=("${@:0:2}"); echo "${#v[@]}"`, "2\n"},
+	{`f() { for x in "${@:2:2}"; do echo "$x"; done; }; f a b c d e`, "b\nc\n"},
+	{`set --; v=("${@:0}"); echo "${#v[@]}"`, "1\n"},
+	{`f() { echo "${@: -10}"; }; f a b c`, "\n"},
+
 	{`echo ${foo[@]}; echo ${foo[*]}`, "\n\n"},
 	// TODO: reenable once we figure out the broken pipe error
 	//{`$ENV_PROG | while read line; do if test -z "$line"; then echo empty; fi; break; done`, ""}, // never begin with an empty element

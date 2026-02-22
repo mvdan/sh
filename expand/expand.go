@@ -786,17 +786,17 @@ func (cfg *Config) quotedElemFields(pe *syntax.ParamExp) []string {
 		return nil
 	}
 	switch name {
-	case "*": // "${*}"
-		return []string{cfg.ifsJoin(cfg.Env.Get(name).List)}
-	case "@": // "${@}"
-		return cfg.Env.Get(name).List
+	case "*": // "${*}" or "${*:offset:length}"
+		return []string{cfg.ifsJoin(cfg.sliceElems(pe, cfg.Env.Get(name).List, true))}
+	case "@": // "${@}" or "${@:offset:length}"
+		return cfg.sliceElems(pe, cfg.Env.Get(name).List, true)
 	}
 	switch nodeLit(pe.Index) {
 	case "@": // "${name[@]}"
 		vr := cfg.Env.Get(name)
 		switch vr.Kind {
 		case Indexed:
-			return cfg.sliceElems(pe, vr.List)
+			return cfg.sliceElems(pe, vr.List, false)
 		case Associative:
 			return slices.Collect(maps.Values(vr.Map))
 		case Unknown:
@@ -808,16 +808,23 @@ func (cfg *Config) quotedElemFields(pe *syntax.ParamExp) []string {
 		}
 	case "*": // "${name[*]}"
 		if vr := cfg.Env.Get(name); vr.Kind == Indexed {
-			return []string{cfg.ifsJoin(cfg.sliceElems(pe, vr.List))}
+			return []string{cfg.ifsJoin(cfg.sliceElems(pe, vr.List, false))}
 		}
 	}
 	return nil
 }
 
 // sliceElems applies ${var:offset:length} slicing to a list of elements.
-func (cfg *Config) sliceElems(pe *syntax.ParamExp, elems []string) []string {
+// When positional is true, $0 is prepended to the list before slicing.
+// In bash, positional parameter offsets ($@ and $*) are 1-based and
+// offset 0 includes $0 (the shell or script name). Negative offsets
+// count from $# + 1, so $0 is reachable via large enough negative values.
+func (cfg *Config) sliceElems(pe *syntax.ParamExp, elems []string, positional bool) []string {
 	if pe.Slice == nil {
 		return elems
+	}
+	if positional {
+		elems = append([]string{cfg.Env.Get("0").Str}, elems...)
 	}
 	slicePos := func(n int) int {
 		if n < 0 {
