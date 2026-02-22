@@ -5208,11 +5208,11 @@ func (c sanityChecker) visit(node Node) bool {
 			c.checkPos(node, node.Position)
 		}
 	case *ParamExp:
-		doll := "$"
 		if node.nakedIndex() {
-			doll = ""
+			// Dollar is unset; Pos falls back to Param.
+		} else {
+			c.checkPos(node, node.Dollar, "$")
 		}
-		c.checkPos(node, node.Dollar, doll)
 		if !node.Short {
 			c.checkPos(node, node.Rbrace, "}")
 		} else if node.nakedIndex() {

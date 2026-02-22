@@ -193,7 +193,7 @@ func (p *Parser) arithmExprValue(compact bool) ArithmExpr {
 			x = p.wordOne(l)
 			break
 		}
-		pe := &ParamExp{Dollar: l.ValuePos, Short: true, Param: l}
+		pe := &ParamExp{Short: true, Param: l}
 		pe.Index = p.eitherIndex()
 		x = p.wordOne(pe)
 	case bckQuote:
