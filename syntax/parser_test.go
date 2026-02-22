@@ -1781,7 +1781,8 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"echo $((x$t[",
-		langErr("1:12: `[` must follow a name", LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:12: `[` must follow a name", LangBash|LangMirBSDKorn),
+		langErr("1:12: `[` must be followed by an expression", LangZsh),
 	),
 	errCase(
 		"a[1]",

@@ -2508,6 +2508,14 @@ var fileTests = []fileTestCase{
 		langErr2("1:6: arrays are a bash/mksh/zsh feature; tried parsing as LANG", LangPOSIX),
 	),
 	fileTest(
+		[]string{`$foo[1]`},
+		langFile(&ParamExp{
+			Short: true,
+			Param: lit("foo"),
+			Index: litWord("1"),
+		}, LangZsh),
+	),
+	fileTest(
 		[]string{`${foo[-1]}`},
 		langFile(&ParamExp{
 			Param: lit("foo"),

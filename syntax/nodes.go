@@ -657,7 +657,10 @@ func (p *ParamExp) End() Pos {
 }
 
 func (p *ParamExp) nakedIndex() bool {
-	return p.Short && p.Index != nil
+	// A naked index is arr[x] inside arithmetic, without a leading '$'.
+	// In that case Dollar == Param.ValuePos, unlike $arr[x] in Zsh
+	// where Dollar is the position of '$'.
+	return p.Short && p.Index != nil && p.Dollar == p.Param.ValuePos
 }
 
 // Slice represents a character slicing expression inside a [ParamExp].
