@@ -2516,6 +2516,45 @@ var fileTests = []fileTestCase{
 		}, LangZsh),
 	),
 	fileTest(
+		[]string{`${foo[1,3]}`, `${foo[ 1 , 3 ]}`},
+		langFile(&ParamExp{
+			Param: lit("foo"),
+			Index: &BinaryArithm{
+				Op: Comma,
+				X:  litWord("1"),
+				Y:  litWord("3"),
+			},
+		}, LangBash|LangMirBSDKorn|LangZsh),
+		langErr2("1:6: arrays are a bash/mksh/zsh feature; tried parsing as LANG", LangPOSIX),
+	),
+	fileTest(
+		[]string{`${foo[1,-1]}`},
+		langFile(&ParamExp{
+			Param: lit("foo"),
+			Index: &BinaryArithm{
+				Op: Comma,
+				X:  litWord("1"),
+				Y: &UnaryArithm{
+					Op: Minus,
+					X:  litWord("1"),
+				},
+			},
+		}, LangBash|LangMirBSDKorn|LangZsh),
+		langErr2("1:6: arrays are a bash/mksh/zsh feature; tried parsing as LANG", LangPOSIX),
+	),
+	fileTest(
+		[]string{`$foo[1,3]`},
+		langFile(&ParamExp{
+			Short: true,
+			Param: lit("foo"),
+			Index: &BinaryArithm{
+				Op: Comma,
+				X:  litWord("1"),
+				Y:  litWord("3"),
+			},
+		}, LangZsh),
+	),
+	fileTest(
 		[]string{`${foo[-1]}`},
 		langFile(&ParamExp{
 			Param: lit("foo"),
@@ -4557,6 +4596,19 @@ var fileTests = []fileTestCase{
 		[]string{"*[i]=x"},
 		langFile(word(lit("*"), lit("[i]=x")), LangBash|LangMirBSDKorn|LangZsh),
 		langFile(lit("*[i]=x"), LangPOSIX),
+	),
+	fileTest(
+		[]string{"arr[0,1]=x"},
+		langFile(&CallExpr{Assigns: []*Assign{{
+			Name: lit("arr"),
+			Index: &BinaryArithm{
+				Op: Comma,
+				X:  litWord("0"),
+				Y:  litWord("1"),
+			},
+			Value: litWord("x"),
+		}}}, LangZsh),
+		langFile(lit("arr[0,1]=x"), LangPOSIX),
 	),
 	fileTest(
 		[]string{

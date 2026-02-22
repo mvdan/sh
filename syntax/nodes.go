@@ -624,7 +624,7 @@ type ParamExp struct {
 	// or either of those in a [*DblQuoted]. Only possible with [LangZsh].
 	NestedParam WordPart
 
-	Index ArithmExpr // ${a[i]}, ${a["k"]}
+	Index ArithmExpr // ${a[i]}, ${a["k"]}, or a ${a[i,j]} slice with [LangZsh]
 
 	// Only one of these is set at a time.
 	Modifiers []*Lit           // ${a:h2} with [LangZsh]
@@ -666,6 +666,7 @@ func (p *ParamExp) nakedIndex() bool {
 // Slice represents a character slicing expression inside a [ParamExp].
 //
 // This node will only appear with [LangBash] and [LangMirBSDKorn].
+// [LangZsh] uses a [BinaryArithm] with [Comma] in [ParamExp.Index] instead.
 type Slice struct {
 	Offset, Length ArithmExpr
 }
