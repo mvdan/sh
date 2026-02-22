@@ -123,6 +123,11 @@ func Walk(node Node, f func(Node) bool) {
 		Walk(node.X, f)
 	case *ParenArithm:
 		Walk(node.X, f)
+	case *ZshSubFlags:
+		Walk(node.Flags, f)
+		if node.X != nil {
+			Walk(node.X, f)
+		}
 	case *ParenTest:
 		Walk(node.X, f)
 	case *CaseClause:

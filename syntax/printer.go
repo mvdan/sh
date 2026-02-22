@@ -894,6 +894,11 @@ func (p *Printer) arithmExprRecurse(expr ArithmExpr, compact, spacePlusMinus boo
 		p.w.WriteByte('(')
 		p.arithmExprRecurse(expr.X, false, false)
 		p.w.WriteByte(')')
+	case *ZshSubFlags:
+		p.w.WriteByte('(')
+		p.w.WriteString(expr.Flags.Value)
+		p.w.WriteByte(')')
+		p.arithmExprRecurse(expr.X, compact, false)
 	}
 }
 

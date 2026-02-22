@@ -1743,6 +1743,35 @@ func (p *Parser) eitherIndex() ArithmExpr {
 	return expr
 }
 
+func (p *Parser) zshSubFlags() *ZshSubFlags {
+	zf := &ZshSubFlags{}
+	// Lex flags as raw text, like paramExp does for ${(flags)...}.
+	lparen := p.pos
+	old := p.quote
+	p.quote = runeByRune
+	p.pos = p.nextPos()
+	for p.newLit(p.r); p.r != utf8.RuneSelf; p.rune() {
+		if p.r == ')' {
+			break
+		}
+	}
+	p.val = p.endLit()
+	if p.r != ')' {
+		p.tok = _EOF
+		p.matchingErr(lparen, leftParen, rightParen)
+	}
+	zf.Flags = p.lit(p.pos, p.val)
+	p.rune()
+	p.quote = old
+	// Parse the expression; use arithmExprAssign so commas are left for ranges.
+	p.next()
+	if p.tok == star || p.tok == at {
+		p.tok, p.val = _LitWord, p.tok.String()
+	}
+	zf.X = p.arithmExprAssign(false)
+	return zf
+}
+
 func (p *Parser) stopToken() bool {
 	switch p.tok {
 	case _EOF, _Newl, semicolon, and, or, andAnd, orOr, orAnd, dblSemicolon,

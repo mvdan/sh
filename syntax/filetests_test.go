@@ -2555,6 +2555,55 @@ var fileTests = []fileTestCase{
 		}, LangZsh),
 	),
 	fileTest(
+		[]string{`${signals[(i)QUIT]}`},
+		langFile(&ParamExp{
+			Param: lit("signals"),
+			Index: &ZshSubFlags{
+				Flags: lit("i"),
+				X:     litWord("QUIT"),
+			},
+		}, LangZsh),
+		langErr2("1:11: subscript flags are a zsh feature; tried parsing as LANG", LangBash|LangMirBSDKorn),
+	),
+	fileTest(
+		[]string{`${ZSH_VERSION[(s:.:w)2]}`},
+		langFile(&ParamExp{
+			Param: lit("ZSH_VERSION"),
+			Index: &ZshSubFlags{
+				Flags: lit("s:.:w"),
+				X:     litWord("2"),
+			},
+		}, LangZsh),
+	),
+	fileTest(
+		[]string{`$foo[(r)pattern]`},
+		langFile(&ParamExp{
+			Short: true,
+			Param: lit("foo"),
+			Index: &ZshSubFlags{
+				Flags: lit("r"),
+				X:     litWord("pattern"),
+			},
+		}, LangZsh),
+	),
+	fileTest(
+		[]string{`${foo[(r)ab,(r)cd]}`},
+		langFile(&ParamExp{
+			Param: lit("foo"),
+			Index: &BinaryArithm{
+				Op: Comma,
+				X: &ZshSubFlags{
+					Flags: lit("r"),
+					X:     litWord("ab"),
+				},
+				Y: &ZshSubFlags{
+					Flags: lit("r"),
+					X:     litWord("cd"),
+				},
+			},
+		}, LangZsh),
+	),
+	fileTest(
 		[]string{`${foo[-1]}`},
 		langFile(&ParamExp{
 			Param: lit("foo"),
@@ -5198,6 +5247,7 @@ func (c sanityChecker) visit(node Node) bool {
 	case *ParenArithm:
 		c.checkPos(node, node.Lparen, "(")
 		c.checkPos(node, node.Rparen, ")")
+	case *ZshSubFlags:
 	case *ParenTest:
 		c.checkPos(node, node.Lparen, "(")
 		c.checkPos(node, node.Rparen, ")")

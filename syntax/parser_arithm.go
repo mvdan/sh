@@ -178,10 +178,17 @@ func (p *Parser) arithmExprValue(compact bool) ArithmExpr {
 		ue.X = p.arithmExprValue(compact)
 		return ue
 	case leftParen:
+		if p.quote == paramExpArithm && p.lang.in(LangZsh) {
+			x = p.zshSubFlags()
+			break
+		}
 		pe := &ParenArithm{Lparen: p.pos}
 		p.nextArithOp(compact)
 		pe.X = p.followArithm(leftParen, pe.Lparen)
 		pe.Rparen = p.matched(pe.Lparen, leftParen, rightParen)
+		if p.quote == paramExpArithm && p.tok == _LitWord {
+			p.checkLang(pe.Lparen, LangZsh, "subscript flags")
+		}
 		x = pe
 	case leftBrack:
 		p.curErr("%#q must follow a name", p.tok)
