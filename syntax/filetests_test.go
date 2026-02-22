@@ -4864,7 +4864,7 @@ var fileTests = []fileTestCase{
 	),
 	fileTest(
 		[]string{"echo **(/)"},
-		langFile(litCall("echo", "**(/)", ), LangZsh),
+		langFile(litCall("echo", "**(/)"), LangZsh),
 	),
 	fileTest(
 		[]string{"echo *.txt(@)"},
