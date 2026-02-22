@@ -115,7 +115,7 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 		case Indexed:
 			indexAllElements = true
 			callVarInd = false
-			elems = cfg.sliceElems(pe, vr.List)
+			elems = cfg.sliceElems(pe, vr.List, name == "@" || name == "*")
 			str = strings.Join(elems, " ")
 		}
 	}
