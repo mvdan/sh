@@ -71,7 +71,6 @@ $ echo '$((foo); (bar))' | shfmt
   This allows statically building their syntax tree,
   as opposed to keeping the arguments as a slice of words.
   It is also required to support `declare foo=(bar)`.
-  Note that this means expansions like `declare {a,b}=c` are not supported.
 
 * The entire library is written in pure Go, which limits how closely the
   interpreter can follow POSIX Shell and Bash semantics.

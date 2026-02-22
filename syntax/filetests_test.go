@@ -4203,6 +4203,14 @@ var fileTests = []fileTestCase{
 		langFile(subshell(litStmt("local", "bar")), LangPOSIX),
 	),
 	fileTest(
+		[]string{"local {a,b}_c=1"},
+		langFile(&DeclClause{
+			Variant: lit("local"),
+			Args:    []*Assign{{Naked: true, Value: litWord("{a,b}_c=1")}},
+		}, LangBash|LangMirBSDKorn|LangZsh),
+		langFile(litStmt("local", "{a,b}_c=1"), LangPOSIX),
+	),
+	fileTest(
 		[]string{"typeset"},
 		langFile(&DeclClause{Variant: lit("typeset")}, LangBash|LangMirBSDKorn|LangZsh),
 		langFile(litStmt("typeset"), LangPOSIX),
