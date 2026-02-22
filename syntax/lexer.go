@@ -987,13 +987,39 @@ loop:
 	p.tok, p.val = tok, p.endLit()
 }
 
+// litBsGlob reports whether the literal bytes accumulated so far
+// contain a glob metacharacter, excluding the last byte which is '('.
+func (p *Parser) litBsGlob() bool {
+	// Exclude the last byte which is the '(' that triggered this check.
+	for _, b := range p.litBs[:len(p.litBs)-1] {
+		switch b {
+		case '*', '?', '[':
+			return true
+		}
+	}
+	return false
+}
+
 func (p *Parser) advanceLitNone(r rune) {
 	p.eqlOffs = -1
 	tok := _LitWord
 loop:
 	for p.newLit(r); r != utf8.RuneSelf; r = p.rune() {
 		switch r {
-		case ' ', '\t', '\n', '\r', '&', '|', ';', '(', ')':
+		case ' ', '\t', '\n', '\r', '&', '|', ';', ')':
+			break loop
+		case '(':
+			if p.lang.in(LangZsh) && p.litBsGlob() {
+				// Zsh glob qualifiers like *(.), **(/) or *(om[1,5]).
+				// Consume through ')' as part of the literal.
+				for {
+					r = p.rune()
+					if r == utf8.RuneSelf || r == ')' {
+						break
+					}
+				}
+				continue
+			}
 			break loop
 		case '\\': // escaped byte follows
 			p.rune()

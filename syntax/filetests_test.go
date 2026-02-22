@@ -4857,6 +4857,23 @@ var fileTests = []fileTestCase{
 			litParamExp("k"),
 		)), LangBash|LangMirBSDKorn),
 	),
+	// Zsh glob qualifiers are parsed as part of the literal.
+	fileTest(
+		[]string{"echo *(.)"},
+		langFile(litCall("echo", "*(.)"), LangZsh),
+	),
+	fileTest(
+		[]string{"echo **(/)"},
+		langFile(litCall("echo", "**(/)", ), LangZsh),
+	),
+	fileTest(
+		[]string{"echo *.txt(@)"},
+		langFile(litCall("echo", "*.txt(@)"), LangZsh),
+	),
+	fileTest(
+		[]string{"echo *(om[1,5])"},
+		langFile(litCall("echo", "*(om[1,5])"), LangZsh),
+	),
 	fileTest(
 		[]string{"@test \"desc\" { body; }"},
 		langFile(&TestDecl{
