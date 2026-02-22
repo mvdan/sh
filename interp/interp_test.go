@@ -3289,6 +3289,15 @@ done <<< 2`,
 	{"b=c; echo a{1,2}$b", "a1c a2c\n"},
 	{"echo a{1,2}'bc'", "a1bc a2bc\n"},
 
+	// brace expansion in declarations
+	{"declare {A,B}_VAR=1; echo $A_VAR $B_VAR", "1 1\n"},
+	{"declare {x,y}=val; echo $x $y", "val val\n"},
+	{"declare -x RUN_{VERY_,}EXPENSIVE_TESTS=yes; echo $RUN_EXPENSIVE_TESTS", "yes\n"},
+	{"declare {A,B}_VAR; A_VAR=1; B_VAR=2; echo $A_VAR $B_VAR", "1 2\n"},
+	{"declare {foo=x,bar=y}; echo $foo $bar", "x y\n"},
+	{`declare foo{bar=baz`, "declare: invalid name \"foo{bar\"\nexit status 1 #JUSTERR"},
+	{"{a,b}=value", "\"a=value\": executable file not found in $PATH\nexit status 127 #JUSTERR"},
+
 	// tilde expansion
 	{
 		"[[ '~/foo' == ~/foo ]] || [[ ~/foo == '~/foo' ]]",

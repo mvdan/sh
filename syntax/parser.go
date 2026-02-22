@@ -2643,7 +2643,7 @@ func (p *Parser) declClause(s *Stmt) {
 	for !p.stopToken() && !p.peekRedir() {
 		if p.hasValidIdent() {
 			ds.Args = append(ds.Args, p.getAssign(false))
-		} else if p.eqlOffs > 0 {
+		} else if p.eqlOffs > 0 && !strings.Contains(p.val[:p.eqlOffs], "{") {
 			p.curErr("invalid var name")
 		} else if p.tok == _LitWord && ValidName(p.val) {
 			ds.Args = append(ds.Args, &Assign{

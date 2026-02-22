@@ -1666,6 +1666,10 @@ var errorCases = []errorCase{
 		langErr("1:9: invalid var name", LangBash|LangZsh),
 	),
 	errCase(
+		"declare {x,y}=(1 2)",
+		langErr("1:15: `declare` must be followed by names or assignments", LangBash|LangZsh),
+	),
+	errCase(
 		"a=(<)",
 		langErr("1:4: array element values must be words", LangBash|LangMirBSDKorn|LangZsh),
 	),
