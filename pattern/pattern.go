@@ -29,21 +29,21 @@ func (e SyntaxError) Error() string { return e.msg }
 
 func (e SyntaxError) Unwrap() error { return e.err }
 
-// NegExtglobGroup represents the byte offset range of a single !(expr) group
+// NegExtGlobGroup represents the byte offset range of a single !(expr) group
 // within a pattern string. Start is the offset of '!', End is one past ')'.
-type NegExtglobGroup struct {
+type NegExtGlobGroup struct {
 	Start, End int
 }
 
-// NegExtglobError is returned by [Regexp] when an extglob negation operator
+// NegExtGlobError is returned by [Regexp] when an extglob negation operator
 // !(pattern-list) is encountered, as Go's [regexp] package does not support
 // negative lookahead. Callers can handle this by negating the result of
 // matching the inner pattern.
-type NegExtglobError struct {
-	Groups []NegExtglobGroup
+type NegExtGlobError struct {
+	Groups []NegExtGlobGroup
 }
 
-func (e *NegExtglobError) Error() string {
+func (e *NegExtGlobError) Error() string {
 	return "extglob !(...) is not supported in this scenario"
 }
 
@@ -105,12 +105,12 @@ func Regexp(pat string, mode Mode) (string, error) {
 		sb.WriteString(`^`)
 	}
 	sl := stringLexer{s: pat}
-	var negGroups []NegExtglobGroup
+	var negGroups []NegExtGlobGroup
 	for {
 		if err := regexpNext(&sb, &sl, mode); err == io.EOF {
 			break
 		} else if err != nil {
-			negErr, ok := err.(*NegExtglobError)
+			negErr, ok := err.(*NegExtGlobError)
 			if !ok {
 				return "", err
 			}
@@ -118,7 +118,7 @@ func Regexp(pat string, mode Mode) (string, error) {
 		}
 	}
 	if len(negGroups) > 0 {
-		return "", &NegExtglobError{Groups: negGroups}
+		return "", &NegExtGlobError{Groups: negGroups}
 	}
 	if mode&EntireString != 0 {
 		sb.WriteString(`$`)
@@ -193,7 +193,7 @@ func regexpNext(sb *strings.Builder, sl *stringLexer, mode Mode) error {
 			}
 			sb.WriteByte(sl.next()) // )
 			if op == '!' {
-				return &NegExtglobError{Groups: []NegExtglobGroup{{Start: start, End: sl.i}}}
+				return &NegExtGlobError{Groups: []NegExtGlobGroup{{Start: start, End: sl.i}}}
 			}
 			if op != '@' {
 				// @( is [syntax.GlobOne] for matching once; no suffix needed

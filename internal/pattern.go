@@ -27,7 +27,7 @@ func ExtendedPatternMatcher(pat string, mode pattern.Mode) (func(string) bool, e
 	if err != nil {
 		// Handle !(pattern-list) negation: when Regexp returns NegExtglobError,
 		// match the inner pattern and negate the result.
-		var negErr *pattern.NegExtglobError
+		var negErr *pattern.NegExtGlobError
 		if !errors.As(err, &negErr) {
 			return nil, err
 		}
@@ -39,7 +39,7 @@ func ExtendedPatternMatcher(pat string, mode pattern.Mode) (func(string) bool, e
 
 // extNegatedMatcher handles !(pattern-list) extglob negation.
 // Only a single !(...) group with fixed-string prefix and suffix is supported.
-func extNegatedMatcher(pat string, groups []pattern.NegExtglobGroup) (func(string) bool, error) {
+func extNegatedMatcher(pat string, groups []pattern.NegExtGlobGroup) (func(string) bool, error) {
 	if len(groups) != 1 {
 		return nil, fmt.Errorf("multiple extglob !(...) groups are not supported yet")
 	}
