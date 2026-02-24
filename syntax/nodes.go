@@ -492,6 +492,7 @@ type FuncDecl struct {
 
 	// Only one of these is set at a time.
 	// Neither is set when declaring an anonymous func with [LangZsh].
+	// TODO(v4): join these, even if it's mildly annoying to non-Zsh users.
 	Name  *Lit
 	Names []*Lit // When declaring many func names with [LangZsh].
 
@@ -627,6 +628,9 @@ type ParamExp struct {
 	Index ArithmExpr // ${a[i]}, ${a["k"]}, or a ${a[i,j]} slice with [LangZsh]
 
 	// Only one of these is set at a time.
+	// TODO(v4): consider joining these in a single "expansion" field/type,
+	// because it should be impossible for multiple to be set at once,
+	// and a flat structure like this takes up more space.
 	Modifiers []*Lit           // ${a:h2} with [LangZsh]
 	Slice     *Slice           // ${a:x:y}
 	Repl      *Replace         // ${a/x/y}
