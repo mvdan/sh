@@ -1743,8 +1743,8 @@ func (p *Parser) eitherIndex() ArithmExpr {
 	return expr
 }
 
-func (p *Parser) zshSubFlags() *ZshSubFlags {
-	zf := &ZshSubFlags{}
+func (p *Parser) zshSubFlags() *FlagsArithm {
+	zf := &FlagsArithm{}
 	// Lex flags as raw text, like paramExp does for ${(flags)...}.
 	lparen := p.pos
 	old := p.quote

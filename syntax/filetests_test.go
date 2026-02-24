@@ -2558,7 +2558,7 @@ var fileTests = []fileTestCase{
 		[]string{`${signals[(i)QUIT]}`},
 		langFile(&ParamExp{
 			Param: lit("signals"),
-			Index: &ZshSubFlags{
+			Index: &FlagsArithm{
 				Flags: lit("i"),
 				X:     litWord("QUIT"),
 			},
@@ -2569,7 +2569,7 @@ var fileTests = []fileTestCase{
 		[]string{`${ZSH_VERSION[(s:.:w)2]}`},
 		langFile(&ParamExp{
 			Param: lit("ZSH_VERSION"),
-			Index: &ZshSubFlags{
+			Index: &FlagsArithm{
 				Flags: lit("s:.:w"),
 				X:     litWord("2"),
 			},
@@ -2580,7 +2580,7 @@ var fileTests = []fileTestCase{
 		langFile(&ParamExp{
 			Short: true,
 			Param: lit("foo"),
-			Index: &ZshSubFlags{
+			Index: &FlagsArithm{
 				Flags: lit("r"),
 				X:     litWord("pattern"),
 			},
@@ -2592,11 +2592,11 @@ var fileTests = []fileTestCase{
 			Param: lit("foo"),
 			Index: &BinaryArithm{
 				Op: Comma,
-				X: &ZshSubFlags{
+				X: &FlagsArithm{
 					Flags: lit("r"),
 					X:     litWord("ab"),
 				},
-				Y: &ZshSubFlags{
+				Y: &FlagsArithm{
 					Flags: lit("r"),
 					X:     litWord("cd"),
 				},
@@ -5272,7 +5272,7 @@ func (c sanityChecker) visit(node Node) bool {
 	case *ParenArithm:
 		c.checkPos(node, node.Lparen, "(")
 		c.checkPos(node, node.Rparen, ")")
-	case *ZshSubFlags:
+	case *FlagsArithm:
 	case *ParenTest:
 		c.checkPos(node, node.Lparen, "(")
 		c.checkPos(node, node.Rparen, ")")

@@ -720,7 +720,7 @@ func (a *ArithmCmd) End() Pos { return posAddCol(a.Right, 2) }
 
 // ArithmExpr represents all nodes that form arithmetic expressions.
 //
-// These are [*BinaryArithm], [*UnaryArithm], [*ParenArithm], [*ZshSubFlags], and [*Word].
+// These are [*BinaryArithm], [*UnaryArithm], [*ParenArithm], [*FlagsArithm], and [*Word].
 type ArithmExpr interface {
 	Node
 	arithmExprNode()
@@ -729,7 +729,7 @@ type ArithmExpr interface {
 func (*BinaryArithm) arithmExprNode() {}
 func (*UnaryArithm) arithmExprNode()  {}
 func (*ParenArithm) arithmExprNode()  {}
-func (*ZshSubFlags) arithmExprNode()  {}
+func (*FlagsArithm) arithmExprNode()  {}
 func (*Word) arithmExprNode()         {}
 
 // BinaryArithm represents a binary arithmetic expression.
@@ -785,15 +785,17 @@ type ParenArithm struct {
 func (p *ParenArithm) Pos() Pos { return p.Lparen }
 func (p *ParenArithm) End() Pos { return posAddCol(p.Rparen, 1) }
 
-// ZshSubFlags represents zsh subscript flags attached to an index expression,
-// as in ${array[(flags)expr]}. Only valid with [LangZsh].
-type ZshSubFlags struct {
+// FlagsArithm represents zsh subscript flags attached to an arithmetic expression,
+// such as ${array[(flags)expr]}.
+//
+// This node will only appear with [LangZsh].
+type FlagsArithm struct {
 	Flags *Lit
 	X     ArithmExpr
 }
 
-func (z *ZshSubFlags) Pos() Pos { return posAddCol(z.Flags.Pos(), -1) }
-func (z *ZshSubFlags) End() Pos { return z.X.End() }
+func (z *FlagsArithm) Pos() Pos { return posAddCol(z.Flags.Pos(), -1) }
+func (z *FlagsArithm) End() Pos { return z.X.End() }
 
 // CaseClause represents a case (switch) clause.
 type CaseClause struct {
