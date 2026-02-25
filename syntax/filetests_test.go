@@ -555,8 +555,8 @@ var fileTests = []fileTestCase{
 				litWord("echo"),
 				word(litParamExp("i")),
 			)),
-		}, LangBash),
-		langErr2("1:5: c-style fors are a bash feature; tried parsing as LANG", LangPOSIX|LangMirBSDKorn),
+		}, LangBash|LangZsh),
+		langErr2("1:5: c-style fors are a bash/zsh feature; tried parsing as LANG", LangPOSIX|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{

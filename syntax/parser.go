@@ -2364,7 +2364,7 @@ func (p *Parser) forClause(s *Stmt) {
 func (p *Parser) loop(fpos Pos) Loop {
 	switch p.tok {
 	case leftParen, dblLeftParen:
-		p.checkLang(p.pos, langBashLike, "c-style fors")
+		p.checkLang(p.pos, langBashLike|LangZsh, "c-style fors")
 	}
 	if p.tok == dblLeftParen {
 		cl := &CStyleLoop{Lparen: p.pos}
