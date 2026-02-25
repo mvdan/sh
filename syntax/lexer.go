@@ -995,6 +995,10 @@ func (p *Parser) litBsGlob() bool {
 		switch b {
 		case '*', '?', '[':
 			return true
+		case '/':
+			// Paths like /bin/sh(:t) can also have glob qualifiers;
+			// function names never contain slashes.
+			return true
 		}
 	}
 	return false

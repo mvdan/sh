@@ -4892,6 +4892,10 @@ var fileTests = []fileTestCase{
 		langFile(litCall("echo", "*(om[1,5])"), LangZsh),
 	),
 	fileTest(
+		[]string{"echo /bin/sh(:t)"},
+		langFile(litCall("echo", "/bin/sh(:t)"), LangZsh),
+	),
+	fileTest(
 		[]string{"@test \"desc\" { body; }"},
 		langFile(&TestDecl{
 			Description: word(dblQuoted(lit("desc"))),
