@@ -799,7 +799,12 @@ type FlagsArithm struct {
 }
 
 func (z *FlagsArithm) Pos() Pos { return posAddCol(z.Flags.Pos(), -1) }
-func (z *FlagsArithm) End() Pos { return z.X.End() }
+func (z *FlagsArithm) End() Pos {
+	if z.X != nil {
+		return z.X.End()
+	}
+	return posAddCol(z.Flags.End(), 1) // closing paren
+}
 
 // CaseClause represents a case (switch) clause.
 type CaseClause struct {
