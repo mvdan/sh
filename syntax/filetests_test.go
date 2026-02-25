@@ -4895,6 +4895,31 @@ var fileTests = []fileTestCase{
 		[]string{"echo /bin/sh(:t)"},
 		langFile(litCall("echo", "/bin/sh(:t)"), LangZsh),
 	),
+	// Zsh numeric range globs.
+	fileTest(
+		[]string{"echo <->"},
+		langFile(litCall("echo", "<->"), LangZsh),
+	),
+	fileTest(
+		[]string{"echo <5-10>"},
+		langFile(litCall("echo", "<5-10>"), LangZsh),
+	),
+	fileTest(
+		[]string{"echo foo<->.txt"},
+		langFile(litCall("echo", "foo<->.txt"), LangZsh),
+	),
+	fileTest(
+		[]string{"echo <5->.*"},
+		langFile(litCall("echo", "<5->.*"), LangZsh),
+	),
+	fileTest(
+		// <2-3 is a redirect, not a numeric range glob (no closing >).
+		[]string{"echo <2-3"},
+		langFile(&Stmt{
+			Cmd:    litCall("echo"),
+			Redirs: []*Redirect{{Op: RdrIn, Word: litWord("2-3")}},
+		}, LangZsh),
+	),
 	fileTest(
 		[]string{"@test \"desc\" { body; }"},
 		langFile(&TestDecl{
