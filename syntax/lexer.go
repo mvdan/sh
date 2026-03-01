@@ -681,6 +681,12 @@ func (p *Parser) paramToken(r rune) token {
 		case '#':
 			p.rune()
 			return colHash
+		case '|':
+			p.rune()
+			return colPipe
+		case '*':
+			p.rune()
+			return colStar
 		}
 		return colon
 	case '+':

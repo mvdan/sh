@@ -118,6 +118,8 @@ const (
 	hash     // #
 	dblHash  // ##
 	colHash  // :#
+	colPipe  // :|
+	colStar  // :*
 	caret    // ^
 	dblCaret // ^^
 	comma    // ,
@@ -259,6 +261,8 @@ const (
 	RemSmallPrefix                                     // #
 	RemLargePrefix                                     // ##
 	MatchEmpty                                         // :# with [LangZsh]
+	ArrayExclude                                       // :| with [LangZsh]
+	ArrayIntersect                                     // :* with [LangZsh]
 	UpperFirst                                         // ^
 	UpperAll                                           // ^^
 	LowerFirst                                         // ,

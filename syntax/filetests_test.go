@@ -2483,14 +2483,43 @@ var fileTests = []fileTestCase{
 		}),
 	),
 	fileTest(
-		[]string{"foo=force_expansion\n${foo:#bar}"},
-		langErr2("2:6: ${name:#arg} is a zsh feature; tried parsing as LANG"),
+		[]string{"foo=force_expansion\necho ${foo:#bar}"},
+		langErr2("2:11: ${name:#arg} is a zsh feature; tried parsing as LANG"),
 		langFile(stmts(
 			&CallExpr{Assigns: litAssigns("foo=force_expansion")},
-			call(word(&ParamExp{
+			call(litWord("echo"), word(&ParamExp{
 				Param: lit("foo"),
 				Exp: &Expansion{
 					Op:   MatchEmpty,
+					Word: litWord("bar"),
+				},
+			})),
+		), LangZsh),
+		flipConfirm2(LangMirBSDKorn), // TODO: why is this a valid substitution in mksh?
+	),
+	fileTest(
+		[]string{"foo=force_expansion\necho ${foo:|bar}"},
+		langErr2("2:11: ${name:|arg} is a zsh feature; tried parsing as LANG"),
+		langFile(stmts(
+			&CallExpr{Assigns: litAssigns("foo=force_expansion")},
+			call(litWord("echo"), word(&ParamExp{
+				Param: lit("foo"),
+				Exp: &Expansion{
+					Op:   ArrayExclude,
+					Word: litWord("bar"),
+				},
+			})),
+		), LangZsh),
+	),
+	fileTest(
+		[]string{"foo=force_expansion\necho ${foo:*bar}"},
+		langErr2("2:11: ${name:*arg} is a zsh feature; tried parsing as LANG"),
+		langFile(stmts(
+			&CallExpr{Assigns: litAssigns("foo=force_expansion")},
+			call(litWord("echo"), word(&ParamExp{
+				Param: lit("foo"),
+				Exp: &Expansion{
+					Op:   ArrayIntersect,
 					Word: litWord("bar"),
 				},
 			})),
