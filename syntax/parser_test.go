@@ -701,15 +701,18 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"foo(",
-		langErr("1:1: `foo(` must be followed by `)`"),
+		langErr("1:1: `foo(` must be followed by `)`", LangPOSIX|LangBash|LangMirBSDKorn|LangBats),
+		langErr("1:4: reached EOF without matching `(` with `)`", LangZsh),
 	),
 	errCase(
 		"foo(bar",
-		langErr("1:1: `foo(` must be followed by `)`"),
+		langErr("1:1: `foo(` must be followed by `)`", LangPOSIX|LangBash|LangMirBSDKorn|LangBats),
+		langErr("1:4: reached EOF without matching `(` with `)`", LangZsh),
 	),
 	errCase(
 		"à(",
-		langErr("1:1: `foo(` must be followed by `)`"),
+		langErr("1:1: `foo(` must be followed by `)`", LangPOSIX|LangBash|LangMirBSDKorn|LangBats),
+		langErr("1:3: reached EOF without matching `(` with `)`", LangZsh),
 	),
 	errCase(
 		"foo'",
@@ -755,7 +758,8 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"echo foo(",
-		langErr("1:9: a command can only contain words and redirects; encountered `(`"),
+		langErr("1:9: a command can only contain words and redirects; encountered `(`", LangPOSIX|LangBash|LangMirBSDKorn|LangBats),
+		langErr("1:9: reached EOF without matching `(` with `)`", LangZsh),
 	),
 	errCase(
 		"echo &&",
@@ -1228,7 +1232,7 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"echo $$(foo)",
-		langErr("1:8: a command can only contain words and redirects; encountered `(`"),
+		langErr("1:8: a command can only contain words and redirects; encountered `(`", LangPOSIX|LangBash|LangMirBSDKorn|LangBats),
 	),
 	errCase(
 		"echo ${##",
@@ -1667,7 +1671,7 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"declare {x,y}=(1 2)",
-		langErr("1:15: `declare` must be followed by names or assignments", LangBash|LangZsh),
+		langErr("1:15: `declare` must be followed by names or assignments", LangBash),
 	),
 	errCase(
 		"a=(<)",

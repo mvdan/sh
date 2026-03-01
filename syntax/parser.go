@@ -1336,6 +1336,25 @@ func (p *Parser) wordPart() WordPart {
 			}
 		}
 		return cs
+	case leftParen:
+		if p.lang.in(LangZsh) && !p.spaced && p.r != ')' {
+			// Zsh glob qualifier like *(N) or .(:a); the only case where
+			// ( immediately after a word is not a glob qualifier is ()
+			// for a function declaration, which the parser handles earlier.
+			pos := p.pos
+			p.pos = p.nextPos()
+			for p.newLit(p.r); p.r != utf8.RuneSelf && p.r != ')'; p.rune() {
+			}
+			if p.r != ')' {
+				p.tok = _EOF // we can only get here due to EOF
+				p.matchingErr(pos, leftParen, rightParen)
+			}
+			p.rune()
+			p.val = p.endLit()
+			p.next()
+			return p.lit(pos, "("+p.val)
+		}
+		return nil
 	case globQuest, globStar, globPlus, globAt, globExcl:
 		p.checkLang(p.pos, langBashLike|LangMirBSDKorn, "extended globs")
 		eg := &ExtGlob{Op: GlobOperator(p.tok), OpPos: p.pos}
@@ -1420,10 +1439,7 @@ func (p *Parser) paramExp() *ParamExp {
 		lparen := p.nextPos()
 		p.rune()
 		p.pos = p.nextPos()
-		for p.newLit(p.r); p.r != utf8.RuneSelf; p.rune() {
-			if p.r == ')' {
-				break
-			}
+		for p.newLit(p.r); p.r != utf8.RuneSelf && p.r != ')'; p.rune() {
 		}
 		p.val = p.endLit()
 		if p.r != ')' {
@@ -2165,14 +2181,22 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 			break
 		}
 		name := p.lit(p.pos, p.val)
-		if p.next(); p.got(leftParen) {
+		p.next()
+		// In zsh, ( after a word is a glob qualifier unless followed
+		// immediately by ), which is the func declaration syntax.
+		if p.tok == leftParen && (!p.lang.in(LangZsh) || p.r == ')') {
+			p.next()
 			p.follow(name.ValuePos, "foo(", rightParen)
 			if p.lang.in(LangPOSIX) && !ValidName(name.Value) {
 				p.posErr(name.Pos(), "invalid func name")
 			}
 			p.funcDecl(s, name.ValuePos, false, true, name)
 		} else {
-			p.callExpr(s, p.wordOne(name), false)
+			w := p.wordOne(name)
+			if p.lang.in(LangZsh) && !p.spaced {
+				w.Parts = append(w.Parts, p.wordParts(nil)...)
+			}
+			p.callExpr(s, w, false)
 		}
 	case bckQuote:
 		if p.backquoteEnd() {
@@ -2801,8 +2825,12 @@ loop:
 			if p.lang.in(LangZsh) && p.val == "}" {
 				break loop
 			}
-			ce.Args = append(ce.Args, p.wordOne(p.lit(p.pos, p.val)))
+			w := p.wordOne(p.lit(p.pos, p.val))
 			p.next()
+			if p.lang.in(LangZsh) && !p.spaced {
+				w.Parts = append(w.Parts, p.wordParts(nil)...)
+			}
+			ce.Args = append(ce.Args, w)
 		case _Lit:
 			if len(ce.Args) == 0 && p.hasValidIdent() {
 				ce.Assigns = append(ce.Assigns, p.getAssign(true))

@@ -4874,26 +4874,43 @@ var fileTests = []fileTestCase{
 			litParamExp("k"),
 		)), LangBash|LangMirBSDKorn),
 	),
-	// Zsh glob qualifiers are parsed as part of the literal.
+	// Zsh glob qualifiers are parsed as part of the word.
 	fileTest(
 		[]string{"echo *(.)"},
-		langFile(litCall("echo", "*(.)"), LangZsh),
+		langFile(call(litWord("echo"), word(lit("*"), lit("(.)"))), LangZsh),
 	),
 	fileTest(
 		[]string{"echo **(/)"},
-		langFile(litCall("echo", "**(/)"), LangZsh),
+		langFile(call(litWord("echo"), word(lit("**"), lit("(/)"))), LangZsh),
 	),
 	fileTest(
 		[]string{"echo *.txt(@)"},
-		langFile(litCall("echo", "*.txt(@)"), LangZsh),
+		langFile(call(litWord("echo"), word(lit("*.txt"), lit("(@)"))), LangZsh),
 	),
 	fileTest(
 		[]string{"echo *(om[1,5])"},
-		langFile(litCall("echo", "*(om[1,5])"), LangZsh),
+		langFile(call(litWord("echo"), word(lit("*"), lit("(om[1,5])"))), LangZsh),
 	),
 	fileTest(
 		[]string{"echo /bin/sh(:t)"},
-		langFile(litCall("echo", "/bin/sh(:t)"), LangZsh),
+		langFile(call(litWord("echo"), word(lit("/bin/sh"), lit("(:t)"))), LangZsh),
+	),
+	// Zsh glob qualifiers on words without glob metacharacters or slashes.
+	fileTest(
+		[]string{"echo .(:a)"},
+		langFile(call(litWord("echo"), word(lit("."), lit("(:a)"))), LangZsh),
+	),
+	fileTest(
+		[]string{"echo ~(:t)"},
+		langFile(call(litWord("echo"), word(lit("~"), lit("(:t)"))), LangZsh),
+	),
+	fileTest(
+		[]string{`echo {go.mod,shfmt}(N*)`},
+		langFile(call(litWord("echo"), word(lit("{go.mod,shfmt}"), lit("(N*)"))), LangZsh),
+	),
+	fileTest(
+		[]string{"echo $var(Nms-3)"},
+		langFile(call(litWord("echo"), word(litParamExp("var"), lit("(Nms-3)"))), LangZsh),
 	),
 	// Zsh numeric range globs.
 	fileTest(
