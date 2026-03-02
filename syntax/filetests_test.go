@@ -4941,6 +4941,10 @@ var fileTests = []fileTestCase{
 		[]string{"echo $var(Nms-3)"},
 		langFile(call(litWord("echo"), word(litParamExp("var"), lit("(Nms-3)"))), LangZsh),
 	),
+	fileTest(
+		[]string{"echo a(A) b(B)"},
+		langFile(call(litWord("echo"), word(lit("a"), lit("(A)")), word(lit("b"), lit("(B)"))), LangZsh),
+	),
 	// Zsh numeric range globs.
 	fileTest(
 		[]string{"echo <->"},

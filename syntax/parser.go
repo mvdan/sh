@@ -1351,8 +1351,9 @@ func (p *Parser) wordPart() WordPart {
 			}
 			p.rune()
 			p.val = p.endLit()
+			l := p.lit(pos, "("+p.val)
 			p.next()
-			return p.lit(pos, "("+p.val)
+			return l
 		}
 		return nil
 	case globQuest, globStar, globPlus, globAt, globExcl:
@@ -1766,10 +1767,7 @@ func (p *Parser) zshSubFlags() *FlagsArithm {
 	old := p.quote
 	p.quote = runeByRune
 	p.pos = p.nextPos()
-	for p.newLit(p.r); p.r != utf8.RuneSelf; p.rune() {
-		if p.r == ')' {
-			break
-		}
+	for p.newLit(p.r); p.r != utf8.RuneSelf && p.r != ')'; p.rune() {
 	}
 	p.val = p.endLit()
 	if p.r != ')' {
