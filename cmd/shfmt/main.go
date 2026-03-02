@@ -28,8 +28,6 @@ import (
 	"mvdan.cc/sh/v3/syntax/typedjson"
 )
 
-var errParse = errors.New("parse error")
-
 type boolString string
 
 type boolStringValue boolString
