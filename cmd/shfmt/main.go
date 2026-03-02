@@ -44,13 +44,13 @@ func (b *boolStringValue) String() string {
 func (b *boolStringValue) Get() any       { return string(*b) }
 func (*boolStringValue) IsBoolFlag() bool { return true }
 
-func newBoolStringvalue(val boolString, p *boolString) *boolStringValue {
+func newBoolStringValue(val boolString, p *boolString) *boolStringValue {
 	*p = val
 	return (*boolStringValue)(p)
 }
 
 func boolStringVar(p *boolString, name string, value boolString, usage string) {
-	flag.Var(newBoolStringvalue(value, p), name, usage)
+	flag.Var(newBoolStringValue(value, p), name, usage)
 }
 
 type langVariantValue syntax.LangVariant
