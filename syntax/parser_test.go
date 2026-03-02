@@ -1692,7 +1692,7 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"a[i]=(y)",
-		langErr("1:5: arrays cannot be nested", LangBash|LangZsh),
+		langErr("1:5: arrays cannot be nested", LangBash),
 	),
 	errCase(
 		"a=([i]=(y))",

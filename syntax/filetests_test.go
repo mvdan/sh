@@ -4691,6 +4691,14 @@ var fileTests = []fileTestCase{
 		}}}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
+		[]string{"a[1]=(b c)"},
+		langFile(&CallExpr{Assigns: []*Assign{{
+			Name:  lit("a"),
+			Index: litWord("1"),
+			Array: arrValues(litWords("b", "c")...),
+		}}}, LangZsh),
+	),
+	fileTest(
 		[]string{"a[2]=b c[-3]= d[x]+=e"},
 		langFile(litStmt("a[2]=b", "c[-3]=", "d[x]+=e"), LangPOSIX),
 		langFile(&CallExpr{Assigns: []*Assign{

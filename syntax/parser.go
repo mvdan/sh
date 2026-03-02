@@ -1879,26 +1879,34 @@ func (p *Parser) getAssign(needEqual bool) *Assign {
 			}
 		}
 		if p.tok == assgnParen {
-			p.curErr("arrays cannot be nested")
-			return nil
-		}
-		if len(p.val) > 0 && p.val[0] == '+' {
-			as.Append = true
-			p.val = p.val[1:]
-			p.pos = posAddCol(p.pos, 1)
-		}
-		if len(p.val) < 1 || p.val[0] != '=' {
-			if as.Append {
-				p.followErr(as.Pos(), "a[b]+", assgn)
-			} else {
-				p.followErr(as.Pos(), "a[b]", assgn)
+			if !p.lang.in(LangZsh) {
+				p.curErr("arrays cannot be nested")
+				return nil
 			}
-			return nil
-		}
-		p.pos = posAddCol(p.pos, 1)
-		p.val = p.val[1:]
-		if p.val == "" {
-			p.next()
+			// zsh allows a[i]=(values...).
+			// assgnParen consumed both '=' and '(',
+			// so rewrite as leftParen for array parsing below.
+			p.tok = leftParen
+			p.pos = posAddCol(p.pos, 1)
+		} else {
+			if len(p.val) > 0 && p.val[0] == '+' {
+				as.Append = true
+				p.val = p.val[1:]
+				p.pos = posAddCol(p.pos, 1)
+			}
+			if len(p.val) < 1 || p.val[0] != '=' {
+				if as.Append {
+					p.followErr(as.Pos(), "a[b]+", assgn)
+				} else {
+					p.followErr(as.Pos(), "a[b]", assgn)
+				}
+				return nil
+			}
+			p.pos = posAddCol(p.pos, 1)
+			p.val = p.val[1:]
+			if p.val == "" {
+				p.next()
+			}
 		}
 	}
 	if p.spaced || p.stopToken() {
