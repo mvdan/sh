@@ -41,6 +41,8 @@ func (b *boolStringValue) Set(val string) error {
 func (b *boolStringValue) String() string {
 	return string(*b)
 }
+func (b *boolStringValue) Get() any       { return string(*b) }
+func (*boolStringValue) IsBoolFlag() bool { return true }
 
 func newBoolStringvalue(val boolString, p *boolString) *boolStringValue {
 	*p = val
