@@ -56,12 +56,7 @@ func boolStringVar(p *boolString, name string, value boolString, usage string) {
 type langVariantValue syntax.LangVariant
 
 func (l *langVariantValue) Set(val string) error {
-	v, err := strconv.Atoi(val)
-	if err != nil {
-		err = errParse
-	}
-	*l = langVariantValue(v)
-	return err
+	return (*syntax.LangVariant)(l).Set(val)
 }
 
 func (l *langVariantValue) String() string {
