@@ -24,10 +24,10 @@ const (
 	dblQuote // "
 	bckQuote // `
 
-	and    // &
-	andAnd // &&
-	orOr   // ||
-	or     // |
+	and     // &
+	andAnd  // &&
+	orOr    // ||
+	or      // |
 	orAnd   // |&
 	andPipe // &|
 	andBang // &!
