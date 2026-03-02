@@ -171,7 +171,7 @@ func (s *simplifier) inlineSimpleParams(x ArithmExpr) ArithmExpr {
 func (s *simplifier) inlineSubshell(stmts []*Stmt) []*Stmt {
 	for len(stmts) == 1 {
 		st := stmts[0]
-		if st.Negated || st.Background || st.Coprocess ||
+		if st.Negated || st.Background || st.Coprocess || st.Disown ||
 			len(st.Redirs) > 0 {
 			break
 		}

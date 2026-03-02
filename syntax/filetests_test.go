@@ -778,6 +778,17 @@ var fileTests = []fileTestCase{
 		}, LangMirBSDKorn),
 	),
 	fileTest(
+		[]string{"foo &|", "foo &!"},
+		langFile(&Stmt{Cmd: litCall("foo"), Disown: true}, LangZsh),
+	),
+	fileTest(
+		[]string{"foo &|\nbar"},
+		langFile([]*Stmt{
+			{Cmd: litCall("foo"), Disown: true},
+			litStmt("bar"),
+		}, LangZsh),
+	),
+	fileTest(
 		[]string{
 			"foo() {\n\ta\n\tb\n}",
 			"foo() { a; b; }",

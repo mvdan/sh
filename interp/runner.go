@@ -157,7 +157,7 @@ func (r *Runner) fillExpandConfig(ctx context.Context) {
 // catShortcutArg checks if a statement is of the form "$(<file)". The redirect
 // word is returned if there's a match, and nil otherwise.
 func catShortcutArg(stmt *syntax.Stmt) *syntax.Word {
-	if stmt.Cmd != nil || stmt.Negated || stmt.Background || stmt.Coprocess {
+	if stmt.Cmd != nil || stmt.Negated || stmt.Background || stmt.Coprocess || stmt.Disown {
 		return nil
 	}
 	if len(stmt.Redirs) != 1 {
@@ -304,10 +304,11 @@ func (r *Runner) stmt(ctx context.Context, st *syntax.Stmt) {
 		return
 	}
 	r.exit = exitStatus{}
-	if st.Background {
+	if st.Background || st.Disown {
 		r2 := r.subshell(true)
 		st2 := *st
 		st2.Background = false
+		st2.Disown = false
 		bg := bgProc{
 			done: make(chan struct{}),
 			exit: new(exitStatus),

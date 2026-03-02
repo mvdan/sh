@@ -1135,7 +1135,7 @@ func (p *Parser) stmtList(stops ...string) ([]*Stmt, []Comment) {
 
 func (p *Parser) invalidStmtStart() {
 	switch p.tok {
-	case semicolon, and, or, andAnd, orOr:
+	case semicolon, and, or, andAnd, orOr, andPipe, andBang:
 		p.curErr("%#q can only immediately follow a statement", p.tok)
 	case rightParen:
 		p.curErr("%#q can only be used to close a subshell", p.tok)
@@ -1788,8 +1788,8 @@ func (p *Parser) zshSubFlags() *FlagsArithm {
 
 func (p *Parser) stopToken() bool {
 	switch p.tok {
-	case _EOF, _Newl, semicolon, and, or, andAnd, orOr, orAnd, dblSemicolon,
-		semiAnd, dblSemiAnd, semiOr, rightParen:
+	case _EOF, _Newl, semicolon, and, or, andAnd, orOr, orAnd, andPipe, andBang,
+		dblSemicolon, semiAnd, dblSemiAnd, semiOr, rightParen:
 		return true
 	case bckQuote:
 		return p.backquoteEnd()
@@ -2074,6 +2074,10 @@ func (p *Parser) getStmt(readEnd, binCmd, fnBody bool) *Stmt {
 			s.Semicolon = p.pos
 			p.next()
 			s.Coprocess = true
+		case andPipe, andBang:
+			s.Semicolon = p.pos
+			p.next()
+			s.Disown = true
 		}
 	}
 	if len(p.accComs) > 0 && !binCmd && !fnBody {
@@ -2807,7 +2811,7 @@ func (p *Parser) callExpr(s *Stmt, w *Word, assign bool) {
 loop:
 	for {
 		switch p.tok {
-		case _EOF, _Newl, semicolon, and, or, andAnd, orOr, orAnd,
+		case _EOF, _Newl, semicolon, and, or, andAnd, orOr, orAnd, andPipe, andBang,
 			dblSemicolon, semiAnd, dblSemiAnd, semiOr:
 			break loop
 		case _LitWord:

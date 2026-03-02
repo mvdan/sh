@@ -219,6 +219,7 @@ type Stmt struct {
 	Negated    bool // ! stmt
 	Background bool // stmt &
 	Coprocess  bool // mksh's |&
+	Disown     bool // zsh's &| or &!
 
 	Redirs []*Redirect // stmt >a <b
 }
@@ -227,8 +228,8 @@ func (s *Stmt) Pos() Pos { return s.Position }
 func (s *Stmt) End() Pos {
 	if s.Semicolon.IsValid() {
 		end := posAddCol(s.Semicolon, 1) // ';' or '&'
-		if s.Coprocess {
-			end = posAddCol(end, 1) // '|&'
+		if s.Coprocess || s.Disown {
+			end = posAddCol(end, 1) // '|&' or '&|' or '&!'
 		}
 		return end
 	}

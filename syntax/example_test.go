@@ -193,6 +193,7 @@ func ExampleDebugPrint() {
 	// .  .  .  Negated: false
 	// .  .  .  Background: false
 	// .  .  .  Coprocess: false
+	// .  .  .  Disown: false
 	// .  .  .  Redirs: []*syntax.Redirect (len = 0) {}
 	// .  .  }
 	// .  }

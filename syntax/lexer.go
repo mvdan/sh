@@ -491,6 +491,16 @@ func (p *Parser) regToken(r rune) token {
 				return appAll
 			}
 			return rdrAll
+		case '|':
+			if p.lang.in(LangZsh) {
+				p.rune()
+				return andPipe
+			}
+		case '!':
+			if p.lang.in(LangZsh) {
+				p.rune()
+				return andBang
+			}
 		}
 		return and
 	case '|':

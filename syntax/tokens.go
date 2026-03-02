@@ -28,7 +28,9 @@ const (
 	andAnd // &&
 	orOr   // ||
 	or     // |
-	orAnd  // |&
+	orAnd   // |&
+	andPipe // &|
+	andBang // &!
 
 	dollar       // $
 	dollSglQuote // $'
