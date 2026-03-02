@@ -582,10 +582,11 @@ func (p *Parser) regToken(r rune) token {
 	case '<':
 		switch p.rune() {
 		case '<':
-			if r = p.rune(); r == '-' {
+			switch p.rune() {
+			case '-':
 				p.rune()
 				return dashHdoc
-			} else if r == '<' {
+			case '<':
 				p.rune()
 				return wordHdoc
 			}
@@ -614,10 +615,33 @@ func (p *Parser) regToken(r rune) token {
 			case '!':
 				p.rune()
 				return appTrunc
+			case '&':
+				if !p.lang.in(LangZsh) {
+					break
+				}
+				switch p.rune() {
+				case '|':
+					p.rune()
+					return appAllClob // >>&| is an alias for &>>|
+				case '!':
+					p.rune()
+					return appAllTrunc // >>&! is an alias for &>>!
+				}
+				return appAll // >>& is an alias for &>>
 			}
 			return appOut
 		case '&':
-			p.rune()
+			r = p.rune()
+			if p.lang.in(LangZsh) {
+				switch r {
+				case '|':
+					p.rune()
+					return rdrAllClob // >&| is an alias for &>|
+				case '!':
+					p.rune()
+					return rdrAllTrunc // >&! is an alias for &>!
+				}
+			}
 			return dplOut
 		case '|':
 			p.rune()

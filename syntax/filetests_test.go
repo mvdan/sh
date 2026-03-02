@@ -1717,6 +1717,22 @@ var fileTests = []fileTestCase{
 	),
 	fileTest(
 		[]string{
+			"foo &>|a &>!b &>>c &>>|d &>>!e",
+			"foo >&|a >&!b >>&c >>&|d >>&!e",
+		},
+		langFile(&Stmt{
+			Cmd: litCall("foo"),
+			Redirs: []*Redirect{
+				{Op: RdrAllClob, Word: litWord("a")},
+				{Op: RdrAllTrunc, Word: litWord("b")},
+				{Op: AppAll, Word: litWord("c")},
+				{Op: AppAllClob, Word: litWord("d")},
+				{Op: AppAllTrunc, Word: litWord("e")},
+			},
+		}, LangZsh),
+	),
+	fileTest(
+		[]string{
 			"foo <<<input",
 			"foo <<< input",
 		},
@@ -5248,7 +5264,22 @@ func (c sanityChecker) visit(node Node) bool {
 			c.checkPos(node, node.Semicolon, ";", "&", "|&")
 		}
 		for _, r := range node.Redirs {
-			c.checkPos(node, r.OpPos, r.Op.String())
+			strs := []string{r.Op.String()}
+			// Zsh supports alternate forms of redirect operators
+			// where >& and >>& prefixes are used instead of &> and &>>.
+			switch r.Op {
+			case RdrAllClob:
+				strs = append(strs, ">&|")
+			case RdrAllTrunc:
+				strs = append(strs, ">&!")
+			case AppAll:
+				strs = append(strs, ">>&")
+			case AppAllClob:
+				strs = append(strs, ">>&|")
+			case AppAllTrunc:
+				strs = append(strs, ">>&!")
+			}
+			c.checkPos(node, r.OpPos, strs...)
 		}
 	case *Lit:
 		pos, end := int(node.Pos().Offset()), int(node.End().Offset())
