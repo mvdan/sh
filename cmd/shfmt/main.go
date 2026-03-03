@@ -28,9 +28,7 @@ import (
 	"mvdan.cc/sh/v3/syntax/typedjson"
 )
 
-type boolString string
-
-type boolStringValue boolString
+type boolStringValue string
 
 func (b *boolStringValue) Set(val string) error {
 	*b = boolStringValue(val)
@@ -42,12 +40,12 @@ func (b *boolStringValue) String() string {
 func (b *boolStringValue) Get() any       { return string(*b) }
 func (*boolStringValue) IsBoolFlag() bool { return true }
 
-func newBoolStringValue(val boolString, p *boolString) *boolStringValue {
+func newBoolStringValue(val string, p *string) *boolStringValue {
 	*p = val
 	return (*boolStringValue)(p)
 }
 
-func boolStringVar(p *boolString, name string, value boolString, usage string) {
+func boolStringVar(p *string, name string, value string, usage string) {
 	flag.Var(newBoolStringValue(value, p), name, usage)
 }
 
