@@ -40,13 +40,9 @@ func (b *boolStringValue) String() string {
 func (b *boolStringValue) Get() any       { return string(*b) }
 func (*boolStringValue) IsBoolFlag() bool { return true }
 
-func newBoolStringValue(val string, p *string) *boolStringValue {
-	*p = val
-	return (*boolStringValue)(p)
-}
-
 func boolStringVar(p *string, name string, value string, usage string) {
-	flag.Var(newBoolStringValue(value, p), name, usage)
+	*p = value
+	flag.Var((*boolStringValue)(p), name, usage)
 }
 
 type langVariantValue syntax.LangVariant
@@ -59,13 +55,9 @@ func (l *langVariantValue) String() string {
 	return strconv.Itoa(int(*l))
 }
 
-func newLangVariantValue(val syntax.LangVariant, p *syntax.LangVariant) *langVariantValue {
-	*p = val
-	return (*langVariantValue)(p)
-}
-
 func langVariantVar(p *syntax.LangVariant, name string, value syntax.LangVariant, usage string) {
-	flag.Var(newLangVariantValue(value, p), name, usage)
+	*p = value
+	flag.Var((*langVariantValue)(p), name, usage)
 }
 
 type multiFlag[T any] struct {
