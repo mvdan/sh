@@ -89,19 +89,15 @@ const (
 	rdrInOut    // <>
 	dplIn       // <&
 	dplOut      // >&
-	rdrClob     // >|
-	rdrTrunc    // >!
-	appClob     // >>|
-	appTrunc    // >>!
-	hdoc        // <<
-	dashHdoc    // <<-
-	wordHdoc    // <<<
-	rdrAll      // &>
-	rdrAllClob  // &>|
-	rdrAllTrunc // &>!
-	appAll      // &>>
-	appAllClob  // &>>|
-	appAllTrunc // &>>!
+	rdrClob    // >|
+	appClob    // >>|
+	hdoc       // <<
+	dashHdoc   // <<-
+	wordHdoc   // <<<
+	rdrAll     // &>
+	rdrAllClob // &>|
+	appAll     // &>>
+	appAllClob // &>>|
 
 	cmdIn      // <(
 	assgnParen // =(
@@ -185,18 +181,14 @@ const (
 	DplIn                                      // <&
 	DplOut                                     // >&
 	RdrClob                                    // >|
-	RdrTrunc                                   // >! with [LangZsh]
 	AppClob                                    // >>| with [LangZsh]
-	AppTrunc                                   // >>! with [LangZsh]
 	Hdoc                                       // <<
 	DashHdoc                                   // <<-
 	WordHdoc                                   // <<<
 	RdrAll                                     // &>
 	RdrAllClob                                 // &>| with [LangZsh]
-	RdrAllTrunc                                // &>! with [LangZsh]
 	AppAll                                     // &>>
 	AppAllClob                                 // &>>| with [LangZsh]
-	AppAllTrunc                                // &>>! with [LangZsh]
 
 	// Deprecated: use [RdrClob]
 	//

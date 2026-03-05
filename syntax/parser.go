@@ -1971,8 +1971,8 @@ func (p *Parser) getAssign(needEqual bool) *Assign {
 func (p *Parser) peekRedir() bool {
 	switch p.tok {
 	case _LitRedir, rdrOut, appOut, rdrIn, rdrInOut, dplIn, dplOut,
-		rdrClob, rdrTrunc, appClob, appTrunc, hdoc, dashHdoc, wordHdoc,
-		rdrAll, rdrAllClob, rdrAllTrunc, appAll, appAllClob, appAllTrunc:
+		rdrClob, appClob, hdoc, dashHdoc, wordHdoc,
+		rdrAll, rdrAllClob, appAll, appAllClob:
 		return true
 	}
 	return false
@@ -2000,7 +2000,7 @@ func (p *Parser) doRedirect(s *Stmt) {
 	switch r.Op {
 	case RdrAll, AppAll:
 		p.checkLang(p.pos, langBashLike|LangMirBSDKorn|LangZsh, "%#q redirects", r.Op)
-	case RdrTrunc, AppClob, AppTrunc, RdrAllClob, RdrAllTrunc, AppAllClob, AppAllTrunc:
+	case AppClob, RdrAllClob, AppAllClob:
 		p.checkLang(p.pos, LangZsh, "%#q redirects", r.Op)
 	}
 	p.next()

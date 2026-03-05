@@ -477,16 +477,20 @@ func (p *Parser) regToken(r rune) token {
 				p.rune()
 				return rdrAllClob
 			case '!':
-				p.rune()
-				return rdrAllTrunc
+				if p.lang.in(LangZsh) {
+					p.rune()
+					return rdrAllClob
+				}
 			case '>':
 				switch p.rune() {
 				case '|':
 					p.rune()
 					return appAllClob
 				case '!':
-					p.rune()
-					return appAllTrunc
+					if p.lang.in(LangZsh) {
+						p.rune()
+						return appAllClob
+					}
 				}
 				return appAll
 			}
@@ -613,8 +617,10 @@ func (p *Parser) regToken(r rune) token {
 				p.rune()
 				return appClob
 			case '!':
-				p.rune()
-				return appTrunc
+				if p.lang.in(LangZsh) {
+					p.rune()
+					return appClob
+				}
 			case '&':
 				if !p.lang.in(LangZsh) {
 					break
@@ -625,7 +631,7 @@ func (p *Parser) regToken(r rune) token {
 					return appAllClob // >>&| is an alias for &>>|
 				case '!':
 					p.rune()
-					return appAllTrunc // >>&! is an alias for &>>!
+					return appAllClob // >>&! is an alias for &>>|
 				}
 				return appAll // >>& is an alias for &>>
 			}
@@ -639,7 +645,7 @@ func (p *Parser) regToken(r rune) token {
 					return rdrAllClob // >&| is an alias for &>|
 				case '!':
 					p.rune()
-					return rdrAllTrunc // >&! is an alias for &>!
+					return rdrAllClob // >&! is an alias for &>|
 				}
 			}
 			return dplOut
@@ -647,8 +653,10 @@ func (p *Parser) regToken(r rune) token {
 			p.rune()
 			return rdrClob
 		case '!':
-			p.rune()
-			return rdrTrunc
+			if p.lang.in(LangZsh) {
+				p.rune()
+				return rdrClob
+			}
 		case '(':
 			if !p.lang.in(langBashLike | LangZsh) {
 				break

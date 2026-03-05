@@ -1700,34 +1700,45 @@ var fileTests = []fileTestCase{
 		}),
 	),
 	fileTest(
-		[]string{"foo >!a >>|b >>!c &>|d &>!e &>>|f &>>!g"},
-		langErr2("1:5: `>!` redirects are a zsh feature; tried parsing as LANG"),
+		[]string{"foo >>|a &>|b &>>|c"},
+		langErr2("1:5: `>>|` redirects are a zsh feature; tried parsing as LANG"),
 		langFile(&Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*Redirect{
-				{Op: RdrTrunc, Word: litWord("a")},
-				{Op: AppClob, Word: litWord("b")},
-				{Op: AppTrunc, Word: litWord("c")},
-				{Op: RdrAllClob, Word: litWord("d")},
-				{Op: RdrAllTrunc, Word: litWord("e")},
-				{Op: AppAllClob, Word: litWord("f")},
-				{Op: AppAllTrunc, Word: litWord("g")},
+				{Op: AppClob, Word: litWord("a")},
+				{Op: RdrAllClob, Word: litWord("b")},
+				{Op: AppAllClob, Word: litWord("c")},
 			},
 		}, LangZsh),
 	),
 	fileTest(
 		[]string{
-			"foo &>|a &>!b &>>c &>>|d &>>!e",
-			"foo >&|a >&!b >>&c >>&|d >>&!e",
+			"foo >|a >>|b &>|c &>>|d",
+			"foo >!a >>!b &>!c &>>!d",
+		},
+		langFile(&Stmt{
+			Cmd: litCall("foo"),
+			Redirs: []*Redirect{
+				{Op: RdrClob, Word: litWord("a")},
+				{Op: AppClob, Word: litWord("b")},
+				{Op: RdrAllClob, Word: litWord("c")},
+				{Op: AppAllClob, Word: litWord("d")},
+			},
+		}, LangZsh),
+	),
+	fileTest(
+		[]string{
+			"foo &>|a &>>c &>>|d",
+			"foo >&|a >>&c >>&|d",
+			"foo &>!a >>&c >>&!d",
+			"foo >&!a >>&c >>&!d",
 		},
 		langFile(&Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*Redirect{
 				{Op: RdrAllClob, Word: litWord("a")},
-				{Op: RdrAllTrunc, Word: litWord("b")},
 				{Op: AppAll, Word: litWord("c")},
 				{Op: AppAllClob, Word: litWord("d")},
-				{Op: AppAllTrunc, Word: litWord("e")},
 			},
 		}, LangZsh),
 	),
@@ -5273,19 +5284,19 @@ func (c sanityChecker) visit(node Node) bool {
 		}
 		for _, r := range node.Redirs {
 			strs := []string{r.Op.String()}
-			// Zsh supports alternate forms of redirect operators
-			// where >& and >>& prefixes are used instead of &> and &>>.
+			// Zsh supports alternate forms of redirect operators:
+			// ! instead of |, and >& or >>& prefixes instead of &> and &>>.
 			switch r.Op {
+			case RdrClob:
+				strs = append(strs, ">!")
+			case AppClob:
+				strs = append(strs, ">>!")
 			case RdrAllClob:
-				strs = append(strs, ">&|")
-			case RdrAllTrunc:
-				strs = append(strs, ">&!")
+				strs = append(strs, "&>!", ">&|", ">&!")
 			case AppAll:
 				strs = append(strs, ">>&")
 			case AppAllClob:
-				strs = append(strs, ">>&|")
-			case AppAllTrunc:
-				strs = append(strs, ">>&!")
+				strs = append(strs, "&>>!", ">>&|", ">>&!")
 			}
 			c.checkPos(node, r.OpPos, strs...)
 		}
