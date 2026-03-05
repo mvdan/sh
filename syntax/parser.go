@@ -26,6 +26,8 @@ func KeepComments(enabled bool) ParserOption {
 
 // LangVariant describes a shell language variant to use when tokenizing and
 // parsing shell code. The zero value is [LangBash].
+//
+// This type implements [flag.Value] so that it can be used as a CLI flag.
 type LangVariant int
 
 // TODO(v4): the zero value should be left as an unset and invalid value.

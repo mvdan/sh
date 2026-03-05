@@ -15,7 +15,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime/debug"
-	"strconv"
 	"strings"
 
 	maybeio "github.com/google/renameio/v2/maybe"
@@ -37,7 +36,6 @@ func (b *boolStringValue) Set(val string) error {
 func (b *boolStringValue) String() string {
 	return string(*b)
 }
-func (b *boolStringValue) Get() any       { return string(*b) }
 func (*boolStringValue) IsBoolFlag() bool { return true }
 
 func boolStringVar(p *string, name string, value string, usage string) {
@@ -45,19 +43,9 @@ func boolStringVar(p *string, name string, value string, usage string) {
 	flag.Var((*boolStringValue)(p), name, usage)
 }
 
-type langVariantValue syntax.LangVariant
-
-func (l *langVariantValue) Set(val string) error {
-	return (*syntax.LangVariant)(l).Set(val)
-}
-
-func (l *langVariantValue) String() string {
-	return strconv.Itoa(int(*l))
-}
-
 func langVariantVar(p *syntax.LangVariant, name string, value syntax.LangVariant, usage string) {
 	*p = value
-	flag.Var((*langVariantValue)(p), name, usage)
+	flag.Var(p, name, usage)
 }
 
 type multiFlag[T any] struct {
