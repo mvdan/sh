@@ -1339,7 +1339,7 @@ func (p *Parser) wordPart() WordPart {
 		}
 		return cs
 	case leftParen:
-		if p.lang.in(LangZsh) && !p.spaced && p.r != ')' {
+		if p.lang.in(LangZsh) && p.r != ')' && (!p.spaced || p.quote == testExpr) {
 			// Zsh glob qualifier like *(N) or .(:a); the only case where
 			// ( immediately after a word is not a glob qualifier is ()
 			// for a function declaration, which the parser handles earlier.

@@ -4000,6 +4000,22 @@ var fileTests = []fileTestCase{
 		}}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
+		[]string{`[[ a == (b|c)* ]]`},
+		langFile(&TestClause{X: &BinaryTest{
+			Op: TsMatch,
+			X:  litWord("a"),
+			Y:  word(lit("(b|c)"), lit("*")),
+		}}, LangZsh),
+	),
+	fileTest(
+		[]string{`[[ a == (#i)bar ]]`},
+		langFile(&TestClause{X: &BinaryTest{
+			Op: TsMatch,
+			X:  litWord("a"),
+			Y:  word(lit("(#i)"), lit("bar")),
+		}}, LangZsh),
+	),
+	fileTest(
 		[]string{`[[ a =~ -n ]]`},
 		langFile(&TestClause{X: &BinaryTest{
 			Op: TsReMatch,
