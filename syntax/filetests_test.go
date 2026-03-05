@@ -4924,6 +4924,13 @@ var fileTests = []fileTestCase{
 			&ExtGlob{Op: GlobOne, Pattern: lit("e")},
 			&ExtGlob{Op: GlobExcept, Pattern: lit("f")},
 		)), LangBash|LangMirBSDKorn),
+		langFile(call(litWord("echo"), word(
+			lit("?"), lit("(b)"),
+			lit("*"), lit("(c)"),
+			lit("+"), lit("(d)"),
+			lit("@"), lit("(e)"),
+			lit("!"), lit("(f)"),
+		)), LangZsh),
 	),
 	fileTest(
 		[]string{"echo foo@(b*(c|d))bar"},

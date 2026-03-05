@@ -1985,11 +1985,11 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"echo !(a)",
-		langErr("1:6: extended globs are a bash/mksh feature; tried parsing as LANG", LangPOSIX|LangZsh),
+		langErr("1:6: extended globs are a bash/mksh feature; tried parsing as LANG", LangPOSIX),
 	),
 	errCase(
 		"echo $a@(b)",
-		langErr("1:8: extended globs are a bash/mksh feature; tried parsing as LANG", LangPOSIX|LangZsh),
+		langErr("1:8: extended globs are a bash/mksh feature; tried parsing as LANG", LangPOSIX),
 	),
 	errCase(
 		"foo=(1 2)",

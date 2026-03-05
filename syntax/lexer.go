@@ -403,14 +403,11 @@ skipSpace:
 // For example, whether `*` or `@` are followed by `(` to form `@(foo)`.
 func (p *Parser) extendedGlob() bool {
 	if p.lang.in(LangZsh) {
-		// Zsh doesn't have extended globs like bash/mksh.
-		// We still tokenize +( @( !( so the parser can give a clear error,
-		// but not *( or ?( as those are used in zsh glob qualifiers.
-		switch p.r {
-		case '+', '@', '!':
-		default:
-			return false
-		}
+		// Zsh supports Bash extended globs via the KSH_GLOB option.
+		// In Bash we would parse extended globs as [ExtGlob] nodes,
+		// but trying to do that in Zsh would cause ambiguity with glob qualifiers.
+		// Just like glob qualifiers, parse extended globs as literals in Zsh.
+		return false
 	}
 	if p.val == "function" {
 		// We don't support e.g. `function @() { ... }` at the moment, but we could.
