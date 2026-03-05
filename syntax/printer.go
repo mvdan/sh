@@ -744,7 +744,7 @@ func (p *Printer) paramExp(pe *ParamExp) {
 		p.w.WriteByte('#')
 	case pe.Width:
 		p.w.WriteByte('%')
-	case pe.Plus:
+	case pe.IsSet:
 		p.w.WriteByte('+')
 	case pe.Excl:
 		p.w.WriteByte('!')

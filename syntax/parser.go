@@ -1476,7 +1476,7 @@ func (p *Parser) paramExp() *ParamExp {
 		case '+':
 			if r := p.peek(); r == utf8.RuneSelf || singleRuneParam(r) || paramNameRune(r) || r == '"' {
 				p.checkLang(pe.Pos(), LangZsh, "`${+foo}`")
-				pe.Plus = true
+				pe.IsSet = true
 				p.rune()
 			}
 		}
@@ -1517,7 +1517,7 @@ func (p *Parser) paramExp() *ParamExp {
 		p.next()
 		return pe
 	}
-	if p.tok != _EOF && (pe.Length || pe.Width || pe.Plus) {
+	if p.tok != _EOF && (pe.Length || pe.Width || pe.IsSet) {
 		p.curErr("cannot combine multiple parameter expansion operators")
 	}
 	switch p.tok {

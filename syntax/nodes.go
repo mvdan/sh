@@ -606,6 +606,8 @@ func (c *CmdSubst) End() Pos { return posAddCol(c.Right, 1) }
 type ParamExp struct {
 	Dollar, Rbrace Pos
 
+	// TODO(v4): replace Short for !Rbrace.IsValid()
+
 	Short bool // $a instead of ${a}
 
 	Flags *Lit // ${(flags)a} with [LangZsh]
@@ -613,10 +615,11 @@ type ParamExp struct {
 	// Only one of these is set at a time.
 	// TODO(v4): perhaps use an Operator token here,
 	// given how we've grown the number of booleans
+	// TODO(v4): rename Excl to reflect its purpose
 	Excl   bool // ${!a}
 	Length bool // ${#a}
 	Width  bool // mksh's ${%a}
-	Plus   bool // ${+a} with [LangZsh]
+	IsSet  bool // ${+a} with [LangZsh]
 
 	// Only one of these is set at a time.
 	// TODO(v4): consider joining Param and NestedParam into a single field,
@@ -643,7 +646,7 @@ type ParamExp struct {
 // only expanding a name without any further logic.
 func (p *ParamExp) simple() bool {
 	return p.Flags == nil &&
-		!p.Excl && !p.Length && !p.Width && !p.Plus &&
+		!p.Excl && !p.Length && !p.Width && !p.IsSet &&
 		p.NestedParam == nil && p.Index == nil &&
 		len(p.Modifiers) == 0 && p.Slice == nil &&
 		p.Repl == nil && p.Names == 0 && p.Exp == nil
@@ -953,6 +956,10 @@ func (a *ArrayElem) End() Pos {
 	}
 	return posAddCol(a.Index.Pos(), 1)
 }
+
+// TODO(v4): the expand package has to stringify ExtGlob again,
+// and we don't gain much from a WordPart node anyway;
+// make these opaque literals like we did for zsh glob qualifiers.
 
 // ExtGlob represents a Bash extended globbing expression. Note that these are
 // parsed independently of whether or not `shopt -s extglob` has been used,

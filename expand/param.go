@@ -166,7 +166,7 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 		str = strings.Join(strs, " ")
 	case pe.Width:
 		return "", fmt.Errorf("unsupported")
-	case pe.Plus:
+	case pe.IsSet:
 		return "", fmt.Errorf("unsupported")
 	case pe.Slice != nil:
 		if callVarInd {

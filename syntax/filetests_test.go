@@ -5022,7 +5022,7 @@ var fileTests = []fileTestCase{
 	fileTest(
 		[]string{"${+foo}"},
 		langFile(&ParamExp{
-			Plus:  true,
+			IsSet: true,
 			Param: lit("foo"),
 		}, LangZsh),
 	),
@@ -5031,7 +5031,7 @@ var fileTests = []fileTestCase{
 		langFile(call(
 			word(&ParamExp{
 				Short: true,
-				Plus:  true,
+				IsSet: true,
 				Param: lit("foo"),
 			}),
 			word(&ParamExp{
