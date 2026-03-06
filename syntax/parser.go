@@ -996,9 +996,11 @@ type LangError struct {
 func (e LangError) Error() string {
 	var sb strings.Builder
 	if e.Filename != "" {
-		sb.WriteString(e.Filename + ":")
+		sb.WriteString(e.Filename)
+		sb.WriteString(":")
 	}
-	sb.WriteString(e.Pos.String() + ": ")
+	sb.WriteString(e.Pos.String())
+	sb.WriteString(": ")
 	sb.WriteString(e.Feature)
 	if strings.HasSuffix(e.Feature, "s") {
 		sb.WriteString(" are a ")
