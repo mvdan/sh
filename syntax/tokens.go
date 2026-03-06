@@ -83,12 +83,12 @@ const (
 	xorBoolAssgn // ^^=
 	powAssgn     // **=
 
-	rdrOut      // >
-	appOut      // >>
-	rdrIn       // <
-	rdrInOut    // <>
-	dplIn       // <&
-	dplOut      // >&
+	rdrOut     // >
+	appOut     // >>
+	rdrIn      // <
+	rdrInOut   // <>
+	dplIn      // <&
+	dplOut     // >&
 	rdrClob    // >|
 	appClob    // >>|
 	hdoc       // <<
@@ -174,21 +174,21 @@ const (
 type RedirOperator token
 
 const (
-	RdrOut      = RedirOperator(rdrOut) + iota // >
-	AppOut                                     // >>
-	RdrIn                                      // <
-	RdrInOut                                   // <>
-	DplIn                                      // <&
-	DplOut                                     // >&
-	RdrClob                                    // >|
-	AppClob                                    // >>| with [LangZsh]
-	Hdoc                                       // <<
-	DashHdoc                                   // <<-
-	WordHdoc                                   // <<<
-	RdrAll                                     // &>
-	RdrAllClob                                 // &>| with [LangZsh]
-	AppAll                                     // &>>
-	AppAllClob                                 // &>>| with [LangZsh]
+	RdrOut     = RedirOperator(rdrOut) + iota // >
+	AppOut                                    // >>
+	RdrIn                                     // <
+	RdrInOut                                  // <>
+	DplIn                                     // <&
+	DplOut                                    // >&
+	RdrClob                                   // >|
+	AppClob                                   // >>| with [LangZsh]
+	Hdoc                                      // <<
+	DashHdoc                                  // <<-
+	WordHdoc                                  // <<<
+	RdrAll                                    // &>
+	RdrAllClob                                // &>| with [LangZsh]
+	AppAll                                    // &>>
+	AppAllClob                                // &>>| with [LangZsh]
 
 	// Deprecated: use [RdrClob]
 	//
