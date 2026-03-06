@@ -994,6 +994,7 @@ var errorCases = []errorCase{
 	errCase(
 		"for i in 1 2 (",
 		langErr("1:14: word list can only contain words"),
+		langErr("1:14: reached EOF without matching `(` with `)`", LangZsh),
 	),
 	errCase(
 		"for i in 1 2 3; do echo $i;",
@@ -1663,7 +1664,8 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"local (",
-		langErr("1:7: `local` must be followed by names or assignments", LangBash|LangZsh),
+		langErr("1:7: `local` must be followed by names or assignments", LangBash),
+		langErr("1:7: reached EOF without matching `(` with `)`", LangZsh),
 	),
 	errCase(
 		"declare 0=${o})",
