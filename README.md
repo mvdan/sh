@@ -2,8 +2,8 @@
 
 [![Go Reference](https://pkg.go.dev/badge/mvdan.cc/sh/v3.svg)](https://pkg.go.dev/mvdan.cc/sh/v3)
 
-A shell parser, formatter, and interpreter. Supports [POSIX Shell], [Bash], and
-[mksh]. Requires Go 1.25 or later.
+A shell parser, formatter, and interpreter.
+Supports [POSIX Shell], [Bash], [Zsh], and [mksh]. Requires Go 1.25 or later.
 
 ### Quick start
 
@@ -186,3 +186,4 @@ Other noteworthy integrations include:
 [void]: https://github.com/void-linux/void-packages/blob/HEAD/srcpkgs/shfmt/template
 [vscode-shfmt]: https://marketplace.visualstudio.com/items?itemName=mkhl.shfmt
 [webi]: https://webinstall.dev/shfmt/
+[Zsh]: https://www.zsh.org/
