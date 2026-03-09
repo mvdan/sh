@@ -2,10 +2,8 @@
 // See LICENSE for licensing information
 
 // Package interp implements an interpreter to execute shell programs
-// parsed by the [syntax] package.
-//
-// The interpreter generally aims to behave like Bash,
-// but it does not support all of its features.
+// parsed by the [syntax] package as either [syntax.LangBash]
+// or [syntax.LangPOSIX], behaving like Bash as a result.
 //
 // The interpreter currently aims to behave like a non-interactive shell,
 // which is how most shells run scripts, and is more useful to machines.
