@@ -243,6 +243,9 @@ indent_size = 2
 [[bash]]
 indent_size = 4
 
+[[zsh]]
+indent_size = 5
+
 -- shebang/binsh --
 #!/bin/sh
 
@@ -254,6 +257,13 @@ indent_size = 4
 
 {
     indented
+}
+array=(elem)
+-- shebang/binzsh --
+#!/bin/zsh
+
+{
+     indented
 }
 array=(elem)
 -- multiconfig/space_redirects/.editorconfig --

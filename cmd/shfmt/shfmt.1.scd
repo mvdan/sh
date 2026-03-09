@@ -158,7 +158,7 @@ minify             = true
 ignore = true
 ```
 
-EditorConfig sections may also use `[[shell]]` or `[[bash]]` to match any shell or bash scripts,
+EditorConfig sections may also use `[[shell]]`, `[[bash]]`, or `[[zsh]]` to match shell scripts,
 which is particularly useful when scripts use a shebang but no extension.
 Note that this feature is outside of the EditorConfig spec and may be changed in the future.
 

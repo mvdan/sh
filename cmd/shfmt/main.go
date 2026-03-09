@@ -451,13 +451,16 @@ func formatPath(path string, checkShebang bool) error {
 
 func editorConfigLangs(l syntax.LangVariant) []string {
 	// All known shells match [[shell]].
-	// As a special case, bash and the bash-like bats also match [[bash]]
+	// As a special case, bash and the bash-like bats also match [[bash]],
+	// and zsh also matches [[zsh]].
 	// We can later consider others like [[mksh]] or [[posix-shell]],
 	// just consider what list of languages the EditorConfig spec might eventually use.
 	switch l {
 	case syntax.LangBash, syntax.LangBats:
 		return []string{"shell", "bash"}
-	case syntax.LangPOSIX, syntax.LangMirBSDKorn, syntax.LangZsh, syntax.LangAuto:
+	case syntax.LangZsh:
+		return []string{"shell", "zsh"}
+	case syntax.LangPOSIX, syntax.LangMirBSDKorn, syntax.LangAuto:
 		return []string{"shell"}
 	}
 	return nil
