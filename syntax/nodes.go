@@ -629,6 +629,8 @@ type ParamExp struct {
 	// or either of those in a [*DblQuoted]. Only possible with [LangZsh].
 	NestedParam WordPart
 
+	// TODO(v4): rename Index to Subscript, which better matches bash and zsh terminology
+
 	Index ArithmExpr // ${a[i]}, ${a["k"]}, or a ${a[i,j]} slice with [LangZsh]
 
 	// Only one of these is set at a time.

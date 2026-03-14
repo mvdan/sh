@@ -983,13 +983,20 @@ func (p *Parser) isLitRedir() bool {
 	return numberLiteral(lit)
 }
 
-func singleRuneParam[T rune | byte](r T) bool {
+func positionalRuneParam[T rune | byte](r T) bool {
 	switch r {
-	case '@', '*', '#', '$', '?', '!', '-',
-		'0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
+	case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
 		return true
 	}
 	return false
+}
+
+func singleRuneParam[T rune | byte](r T) bool {
+	switch r {
+	case '@', '*', '#', '$', '?', '!', '-':
+		return true
+	}
+	return positionalRuneParam(r)
 }
 
 func paramNameRune[T rune | byte](r T) bool {

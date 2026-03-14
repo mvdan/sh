@@ -2236,6 +2236,14 @@ var fileTests = []fileTestCase{
 		langFile(dblQuoted(lit("#foo"))),
 	),
 	fileTest(
+		[]string{`$2foo $3[bar] "ba$4z"`},
+		langFile(call(
+			word(litParamExp("2"), lit("foo")),
+			word(litParamExp("3"), lit("[bar]")),
+			word(dblQuoted(lit("ba"), litParamExp("4"), lit("z"))),
+		)),
+	),
+	fileTest(
 		[]string{`$@a $*a $#a $$a $?a $!a $-a $0a $30a $_a`},
 		langFile(call(
 			word(litParamExp("@"), lit("a")),
@@ -2581,6 +2589,31 @@ var fileTests = []fileTestCase{
 			Param: lit("foo"),
 			Index: litWord("1"),
 		}, LangZsh),
+	),
+	fileTest(
+		[]string{`a$foo[1]b`},
+		langFile(word(lit("a"), litParamExp("foo"), lit("[1]b"))),
+		langFile(word(
+			lit("a"),
+			&ParamExp{
+				Short: true,
+				Param: lit("foo"),
+				Index: litWord("1"),
+			},
+			lit("b"),
+		), LangZsh),
+	),
+	fileTest(
+		[]string{`"a$foo[1]b"`},
+		langFile(dblQuoted(
+			lit("a"),
+			&ParamExp{
+				Short: true,
+				Param: lit("foo"),
+				Index: litWord("1"),
+			},
+			lit("b"),
+		), LangZsh),
 	),
 	fileTest(
 		[]string{`${foo[1,3]}`, `${foo[ 1 , 3 ]}`},
@@ -4971,6 +5004,14 @@ var fileTests = []fileTestCase{
 			&ExtGlob{Op: GlobExcept, Pattern: lit("j")},
 			litParamExp("k"),
 		)), LangBash|LangMirBSDKorn),
+	),
+	fileTest(
+		[]string{`"^$1[[:space:]]"`},
+		langFile(dblQuoted(
+			lit("^"),
+			litParamExp("1"),
+			lit("[[:space:]]"),
+		)),
 	),
 	// Zsh glob qualifiers are parsed as part of the word.
 	fileTest(

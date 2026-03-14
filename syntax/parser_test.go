@@ -1783,7 +1783,7 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"a[[",
-		langErr("1:3: `[` must follow a name", LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:3: `[` must follow a name like a[i]", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"echo $((a[))",
@@ -1800,7 +1800,7 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"echo $((x$t[",
-		langErr("1:12: `[` must follow a name", LangBash|LangMirBSDKorn),
+		langErr("1:12: `[` must follow a name like a[i]", LangBash|LangMirBSDKorn),
 		langErr("1:12: `[` must be followed by an expression", LangZsh),
 	),
 	errCase(

@@ -191,7 +191,7 @@ func (p *Parser) arithmExprValue(compact bool) ArithmExpr {
 		}
 		x = pe
 	case leftBrack:
-		p.curErr("%#q must follow a name", p.tok)
+		p.curErr("%#q must follow a name like a[i]", p.tok)
 	case colon:
 		p.curErr("ternary operator missing %#q before %#q", quest, colon)
 	case _LitWord:
@@ -330,7 +330,7 @@ func (p *Parser) arithmMatchingErr(pos Pos, left, right token) {
 	case _Lit, _LitWord:
 		p.curErr("not a valid arithmetic operator: %#q", p.val)
 	case leftBrack:
-		p.curErr("%#q must follow a name", leftBrack)
+		p.curErr("%#q must follow a name like a[i]", leftBrack)
 	case colon:
 		p.curErr("ternary operator missing %#q before %#q", quest, colon)
 	case rightParen, _EOF:

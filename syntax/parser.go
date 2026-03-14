@@ -1487,9 +1487,9 @@ func (p *Parser) paramExp() *ParamExp {
 		return nil // just "$"
 	}
 	// In short mode, any indexing or suffixes is not allowed, and we don't require '}'.
-	// Zsh is an exception: $foo[1] and $foo[1,3] are valid.
+	// Zsh is an exception: $foo[1] and $foo[1,3] are valid. Note that $1[x] does not qualify.
 	if pe.Short {
-		if p.lang.in(LangZsh) && p.r == '[' {
+		if p.lang.in(LangZsh) && p.r == '[' && (len(p.val) != 1 || !positionalRuneParam(p.val[0])) {
 			p.pos = p.nextPos()
 			p.rune()
 			pe.Index = p.eitherIndex()
