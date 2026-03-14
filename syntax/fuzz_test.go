@@ -39,9 +39,6 @@ func FuzzQuote(f *testing.F) {
 		if !ok {
 			t.Skip() // invalid/untested lang variant
 		}
-		if lang == LangZsh {
-			t.Skip() // TODO
-		}
 		external.require(t)
 
 		// Verify that our parser ends up with a simple command with one word.
