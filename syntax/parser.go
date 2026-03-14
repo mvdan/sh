@@ -501,7 +501,7 @@ type Parser struct {
 	pos Pos // position of tok
 
 	quote   quoteState // current lexer state
-	eqlOffs int        // position of '=' in [Parser.val] (a literal)
+	eqlOffs int        // position of '=' in [Parser.val] when [Parser.tok].isLit is true
 
 	keepComments bool
 	lang         LangVariant
@@ -2678,7 +2678,7 @@ func (p *Parser) declClause(s *Stmt) {
 	for !p.stopToken() && !p.peekRedir() {
 		if p.hasValidIdent() {
 			ds.Args = append(ds.Args, p.getAssign(false))
-		} else if p.eqlOffs > 0 && !strings.Contains(p.val[:p.eqlOffs], "{") {
+		} else if p.tok.isLit() && p.eqlOffs > 0 && !strings.Contains(p.val[:p.eqlOffs], "{") {
 			p.curErr("invalid var name")
 		} else if p.tok == _LitWord && ValidName(p.val) {
 			ds.Args = append(ds.Args, &Assign{
