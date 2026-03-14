@@ -1156,8 +1156,7 @@ func (p *Parser) getWord() *Word {
 }
 
 func (p *Parser) getLit() *Lit {
-	switch p.tok {
-	case _Lit, _LitWord, _LitRedir:
+	if p.tok.isLit() {
 		l := p.lit(p.pos, p.val)
 		p.next()
 		return l
@@ -1732,9 +1731,7 @@ func (p *Parser) paramExpExp() *Expansion {
 	p.quote = paramExpExp
 	p.next()
 	if op == OtherParamOps {
-		switch p.tok {
-		case _Lit, _LitWord:
-		default:
+		if !p.tok.isLit() {
 			p.curErr("@ expansion operator requires a literal")
 		}
 		switch p.val {
@@ -1834,7 +1831,7 @@ func numberLiteral[T string | []byte](val T) bool {
 }
 
 func (p *Parser) hasValidIdent() bool {
-	if p.tok != _Lit && p.tok != _LitWord {
+	if !p.tok.isLit() {
 		return false
 	}
 	if end := p.eqlOffs; end > 0 {

@@ -171,6 +171,10 @@ const (
 	globExcl  // !(
 )
 
+func (t token) isLit() bool {
+	return t == _Lit || t == _LitWord || t == _LitRedir
+}
+
 type RedirOperator token
 
 const (
