@@ -1297,14 +1297,10 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 				p.wantSpace = spaceNotRequired
 			}
 
-			bodyPos := stmtsPos(ci.Stmts, ci.Last)
-			bodyEnd := stmtsEnd(ci.Stmts, ci.Last)
-			sep := len(ci.Stmts) > 1 || bodyPos.Line() > p.line ||
-				(bodyEnd.IsValid() && ci.OpPos.Line() > bodyEnd.Line())
 			p.nestedStmts(ci.Stmts, ci.Last, ci.OpPos)
 			p.level++
 			if !p.minify || i != len(cmd.Items)-1 {
-				if sep {
+				if p.wantsNewline(ci.OpPos, false) {
 					p.newlines(ci.OpPos)
 					p.wantNewline = true
 				}
