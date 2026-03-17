@@ -846,6 +846,14 @@ func TestPrintBinaryNextLine(t *testing.T) {
 			"a \\\n\t| b \\\n\t|\n\t#c2\n\tc",
 		},
 		samePrint("a \\\n\t&"),
+		{
+			"a \\\n\tb \\\n\tc \\\n\t# EOC",
+			"a \\\n\tb \\\n\tc\n# EOC",
+		},
+		{
+			"a \\\n\t| b \\\n\t| c \\\n\t# EOC",
+			"a \\\n\t| b \\\n\t| c\n# EOC",
+		},
 	}
 	parser := NewParser(KeepComments(true))
 	printer := NewPrinter(BinaryNextLine(true))
