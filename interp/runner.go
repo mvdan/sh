@@ -332,6 +332,7 @@ func (r *Runner) stmtSync(ctx context.Context, st *syntax.Stmt) {
 		cls, err := r.redir(ctx, rd)
 		if err != nil {
 			r.exit.code = 1
+			r.errf("%s\n", err)
 			break
 		}
 		if cls != nil {
