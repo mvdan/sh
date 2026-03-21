@@ -1183,12 +1183,9 @@ var errorCases = []errorCase{
 		langErr("1:6: reached EOF without matching `${` with `}`"),
 	),
 	errCase(
-		"echo $foo ${}",
-		langErr("1:13: invalid parameter name"),
-	),
-	errCase(
 		"echo ${à}",
 		langErr("1:8: invalid parameter name"),
+		langErr("1:8: not a valid parameter expansion operator: `à`", LangZsh), // not great, but seems like an edge case
 	),
 	errCase(
 		"echo ${1a}",
@@ -1214,12 +1211,12 @@ var errorCases = []errorCase{
 	errCase(
 		"echo ${+",
 		langErr("1:6: `${+foo}` is a zsh feature; tried parsing as LANG"),
-		langErr("1:9: invalid parameter name", LangZsh),
+		langErr("1:6: reached EOF without matching `${` with `}`", LangZsh),
 	),
 	errCase(
 		"echo ${#${",
 		langErr("1:9: nested parameter expansions are a zsh feature; tried parsing as LANG"),
-		langErr("1:11: invalid parameter name", LangZsh),
+		langErr("1:9: reached EOF without matching `${` with `}`", LangZsh),
 	),
 	errCase(
 		"echo ${#$(",

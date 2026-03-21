@@ -2295,6 +2295,11 @@ var fileTests = []fileTestCase{
 		langFile(&ParamExp{Param: lit("foo")}),
 	),
 	fileTest(
+		[]string{`${}`},
+		langErr2("1:3: invalid parameter name"),
+		langFile(&ParamExp{}, LangZsh),
+	),
+	fileTest(
 		[]string{`${foo}"bar"`},
 		langFile(word(
 			&ParamExp{Param: lit("foo")},
@@ -5211,6 +5216,36 @@ var fileTests = []fileTestCase{
 				Param: lit("foo"),
 			}),
 		), LangZsh),
+	),
+	fileTest(
+		[]string{`${:-word}`},
+		langErr2("1:3: invalid parameter name"),
+		langFile(&ParamExp{
+			Exp: &Expansion{
+				Op:   DefaultUnsetOrNull,
+				Word: litWord("word"),
+			},
+		}, LangZsh),
+	),
+	fileTest(
+		[]string{`${:+word}`},
+		langErr2("1:3: invalid parameter name"),
+		langFile(&ParamExp{
+			Exp: &Expansion{
+				Op:   AlternateUnsetOrNull,
+				Word: litWord("word"),
+			},
+		}, LangZsh),
+	),
+	fileTest(
+		[]string{`${(%):-%N}`},
+		langFile(&ParamExp{
+			Flags: lit("%"),
+			Exp: &Expansion{
+				Op:   DefaultUnsetOrNull,
+				Word: word(lit("%N")),
+			},
+		}, LangZsh),
 	),
 }
 

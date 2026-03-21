@@ -1722,6 +1722,10 @@ func (p *Parser) paramExpParameter(pe *ParamExp) *ParamExp {
 				if pe.Short {
 					return nil // just "$"
 				}
+				if p.lang.in(LangZsh) && p.val == "" {
+					// Zsh allows omitting the parameter name, e.g. ${:-word}.
+					return pe
+				}
 				p.posErr(pos, "invalid parameter name")
 			}
 		}

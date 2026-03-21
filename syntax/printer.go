@@ -749,9 +749,10 @@ func (p *Printer) paramExp(pe *ParamExp) {
 	case pe.Excl:
 		p.w.WriteByte('!')
 	}
-	if pe.Param != nil {
+	switch {
+	case pe.Param != nil:
 		p.writeLit(pe.Param.Value)
-	} else {
+	case pe.NestedParam != nil:
 		// Note that Zsh supports ${${nested}} but not ${$nested},
 		// so we need to avoid that simplification here.
 		saved := p.minify
