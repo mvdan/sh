@@ -1289,7 +1289,7 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"echo ${@[@]} ${@[*]}",
-		langErr("1:9: cannot index a special parameter name", LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:9: cannot index a special parameter name", LangBash|LangMirBSDKorn),
 	),
 	errCase(
 		"echo ${${nested}[@]",
@@ -1297,23 +1297,23 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"echo ${*[@]} ${*[*]}",
-		langErr("1:9: cannot index a special parameter name", LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:9: cannot index a special parameter name", LangBash|LangMirBSDKorn),
 	),
 	errCase(
 		"echo ${#[x]}",
-		langErr("1:9: cannot index a special parameter name", LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:9: cannot index a special parameter name", LangBash|LangMirBSDKorn),
 	),
 	errCase(
 		"echo ${$[0]}",
-		langErr("1:9: cannot index a special parameter name", LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:9: cannot index a special parameter name", LangBash|LangMirBSDKorn),
 	),
 	errCase(
 		"echo ${?[@]}",
-		langErr("1:9: cannot index a special parameter name", LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:9: cannot index a special parameter name", LangBash|LangMirBSDKorn),
 	),
 	errCase(
 		"echo ${2[@]}",
-		langErr("1:9: cannot index a special parameter name", LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:9: cannot index a special parameter name", LangBash|LangMirBSDKorn),
 	),
 	errCase(
 		"echo ${foo*}",

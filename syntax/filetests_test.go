@@ -2647,6 +2647,26 @@ var fileTests = []fileTestCase{
 		langErr2("1:6: arrays are a bash/mksh/zsh feature; tried parsing as LANG", LangPOSIX),
 	),
 	fileTest(
+		[]string{`${@[-1]}`},
+		langFile(&ParamExp{
+			Param: lit("@"),
+			Index: &UnaryArithm{
+				Op: Minus,
+				X:  litWord("1"),
+			},
+		}, LangZsh),
+	),
+	fileTest(
+		[]string{`${*[-1]}`},
+		langFile(&ParamExp{
+			Param: lit("*"),
+			Index: &UnaryArithm{
+				Op: Minus,
+				X:  litWord("1"),
+			},
+		}, LangZsh),
+	),
+	fileTest(
 		[]string{`$foo[1,3]`},
 		langFile(&ParamExp{
 			Short: true,

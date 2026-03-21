@@ -1499,7 +1499,9 @@ func (p *Parser) paramExp() *ParamExp {
 	// like ${foo[@]//replace/with}.
 	if p.r == '[' {
 		p.checkLang(p.nextPos(), langBashLike|LangMirBSDKorn|LangZsh, "arrays")
-		if pe.Param != nil && !ValidName(pe.Param.Value) {
+		// In zsh some of these like ${@[-1]} or ${*[1,3]} work,
+		// so we don't do this sort of check at all.
+		if !p.lang.in(LangZsh) && pe.Param != nil && !ValidName(pe.Param.Value) {
 			p.posErr(p.nextPos(), "cannot index a special parameter name")
 		}
 		p.pos = p.nextPos()
