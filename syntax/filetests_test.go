@@ -2260,6 +2260,10 @@ var fileTests = []fileTestCase{
 		langSkip(LangZsh), // TODO: $#a parses as ParamExp, but $!a does not
 	),
 	fileTest(
+		[]string{`"$!"`},
+		langFile(dblQuoted(litParamExp("!"))),
+	),
+	fileTest(
 		[]string{`$`, `$ #`},
 		langFile(litWord("$")),
 	),

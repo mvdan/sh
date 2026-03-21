@@ -1458,27 +1458,24 @@ func (p *Parser) paramExp() *ParamExp {
 		// Note that in Zsh, the short form like $#name is allowed too.
 		switch p.r {
 		case '#':
-			if r := p.peek(); r == utf8.RuneSelf || singleRuneParam(r) || paramNameRune(r) || r == '"' {
+			if p.paramNameStart() {
 				pe.Length = true
-				p.rune()
 			}
 		case '%':
-			if r := p.peek(); r == utf8.RuneSelf || singleRuneParam(r) || paramNameRune(r) || r == '"' {
+			if p.paramNameStart() {
 				p.checkLang(pe.Pos(), LangMirBSDKorn, "`${%%foo}`")
 				pe.Width = true
-				p.rune()
 			}
 		case '!':
-			if r := p.peek(); r == utf8.RuneSelf || singleRuneParam(r) || paramNameRune(r) || r == '"' {
+			// Unlike the others, zsh has no $!foo prefix.
+			if !pe.Short && p.paramNameStart() {
 				p.checkLang(pe.Pos(), langBashLike|LangMirBSDKorn, "`${!foo}`")
 				pe.Excl = true
-				p.rune()
 			}
 		case '+':
-			if r := p.peek(); r == utf8.RuneSelf || singleRuneParam(r) || paramNameRune(r) || r == '"' {
+			if p.paramNameStart() {
 				p.checkLang(pe.Pos(), LangZsh, "`${+foo}`")
 				pe.IsSet = true
-				p.rune()
 			}
 		}
 	}
@@ -1613,6 +1610,15 @@ func (p *Parser) paramExp() *ParamExp {
 	p.quote = old
 	pe.Rbrace = p.matched(pe.Dollar, dollBrace, rightBrace)
 	return pe
+}
+
+func (p *Parser) paramNameStart() bool {
+	r := p.peek()
+	if r == utf8.RuneSelf || singleRuneParam(r) || paramNameRune(r) || r == '"' {
+		p.rune()
+		return true
+	}
+	return false
 }
 
 func (p *Parser) nestedParameterStart(pe *ParamExp) (left token, quotePos Pos) {
