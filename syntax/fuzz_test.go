@@ -131,6 +131,16 @@ func FuzzParsePrint(f *testing.F) {
 		t.Logf("input: %q", src)
 		t.Logf("LangVariant: %s", lang)
 		t.Logf("KeepComments: %t", keepComments)
+		t.Logf("Simplify: %v", simplify)
+		t.Logf("Indent: %v", indent)
+		t.Logf("BinaryNextLine: %v", binaryNextLine)
+		t.Logf("SwitchCaseIndent: %v", switchCaseIndent)
+		t.Logf("SpaceRedirects: %v", spaceRedirects)
+		t.Logf("KeepPadding: %v", keepPadding)
+		t.Logf("Minify: %v", minify)
+		t.Logf("SingleLine: %v", singleLine)
+		t.Logf("FunctionNextLine: %v", functionNextLine)
+
 		prog, err := parser.Parse(strings.NewReader(src), "")
 		if err != nil {
 			t.Skip() // not valid shell syntax
