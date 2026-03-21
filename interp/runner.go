@@ -805,7 +805,8 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		r.outf(format, "user", elapsedString(0, cm.PosixFormat))
 		r.outf(format, "sys", elapsedString(0, cm.PosixFormat))
 	default:
-		panic(fmt.Sprintf("unhandled command node: %T", cm))
+		r.errf("unhandled command node: %T\n", cm)
+		r.exit.code = 1
 	}
 }
 
@@ -957,7 +958,7 @@ func (r *Runner) redir(ctx context.Context, rd *syntax.Redirect) (io.Closer, err
 		case "2":
 			orig = &r.stderr
 		default:
-			panic(fmt.Sprintf("unsupported redirect fd: %v", rd.N.Value))
+			return nil, fmt.Errorf("unsupported redirect fd: %v", rd.N.Value)
 		}
 	}
 	arg := r.literal(rd.Word)
@@ -985,7 +986,7 @@ func (r *Runner) redir(ctx context.Context, rd *syntax.Redirect) (io.Closer, err
 		case "-":
 			*orig = io.Discard // closing the output writer
 		default:
-			panic(fmt.Sprintf("unhandled %v arg: %q", rd.Op, arg))
+			return nil, fmt.Errorf("unhandled %v arg: %q", rd.Op, arg)
 		}
 		return nil, nil
 	case syntax.RdrIn, syntax.RdrOut, syntax.AppOut,
@@ -996,11 +997,11 @@ func (r *Runner) redir(ctx context.Context, rd *syntax.Redirect) (io.Closer, err
 		case "-":
 			r.stdin = nil // closing the input file
 		default:
-			panic(fmt.Sprintf("unhandled %v arg: %q", rd.Op, arg))
+			return nil, fmt.Errorf("unhandled %v arg: %q", rd.Op, arg)
 		}
 		return nil, nil
 	default:
-		panic(fmt.Sprintf("unhandled redirect op: %v", rd.Op))
+		return nil, fmt.Errorf("unhandled redirect op: %v", rd.Op)
 	}
 	mode := os.O_RDONLY
 	switch rd.Op {
@@ -1026,7 +1027,7 @@ func (r *Runner) redir(ctx context.Context, rd *syntax.Redirect) (io.Closer, err
 		r.stdout = f
 		r.stderr = f
 	default:
-		panic(fmt.Sprintf("unhandled redirect op: %v", rd.Op))
+		return nil, fmt.Errorf("unhandled redirect op: %v", rd.Op)
 	}
 	return f, nil
 }
