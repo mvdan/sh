@@ -308,18 +308,27 @@ func formatStdin(name string) error {
 	if err != nil {
 		return err
 	}
-	fileLang := lang.val
-	if fileLang == syntax.LangAuto {
-		extensionLang := strings.TrimPrefix(filepath.Ext(name), ".")
-		if err := fileLang.Set(extensionLang); err != nil || fileLang == syntax.LangPOSIX {
+	l := lang.val
+	if l == syntax.LangAuto {
+		if l = langFromFilename(name); l == syntax.LangAuto {
 			shebangLang := fileutil.Shebang(src)
-			if err := fileLang.Set(shebangLang); err != nil {
+			if err := l.Set(shebangLang); err != nil {
 				// Fall back to bash.
-				fileLang = syntax.LangBash
+				l = syntax.LangBash
 			}
 		}
 	}
-	return formatBytes(src, name, fileLang)
+	return formatBytes(src, name, l)
+}
+
+func langFromFilename(name string) syntax.LangVariant {
+	lang := syntax.LangAuto // fallback when none is found
+	if ext := strings.TrimPrefix(filepath.Ext(name), "."); ext != "sh" {
+		// Note that ".sh" doesn't mean it's POSIX Shell for sure.
+		// A shebang in the file contents could say Bash or some other POSIX-like shell.
+		lang.Set(ext)
+	}
+	return lang
 }
 
 var vcsDir = regexp.MustCompile(`^\.(git|svn|hg)$`)
@@ -402,11 +411,10 @@ func formatPath(path string, checkShebang bool) error {
 	}
 	defer f.Close()
 
-	fileLang := lang.val
+	l := lang.val
 	shebangForAuto := false
-	if fileLang == syntax.LangAuto {
-		extensionLang := strings.TrimPrefix(filepath.Ext(path), ".")
-		if err := fileLang.Set(extensionLang); err != nil || fileLang == syntax.LangPOSIX {
+	if l == syntax.LangAuto {
+		if l = langFromFilename(path); l == syntax.LangAuto {
 			shebangForAuto = true
 		}
 	}
@@ -426,9 +434,9 @@ func formatPath(path string, checkShebang bool) error {
 			return nil // not a shell script
 		}
 		if shebangForAuto {
-			if err := fileLang.Set(shebangLang); err != nil {
+			if err := l.Set(shebangLang); err != nil {
 				// Fall back to bash.
-				fileLang = syntax.LangBash
+				l = syntax.LangBash
 			}
 		}
 		readBuf.Write(copyBuf[:n])
@@ -446,7 +454,7 @@ func formatPath(path string, checkShebang bool) error {
 		return err
 	}
 	f.Close()
-	return formatBytes(readBuf.Bytes(), path, fileLang)
+	return formatBytes(readBuf.Bytes(), path, l)
 }
 
 func editorConfigLangs(l syntax.LangVariant) []string {
