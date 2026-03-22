@@ -92,6 +92,14 @@ stdin input-mksh
 exec shfmt -ln=auto -filename=input.mksh
 stdout 'coprocess'
 
+# Certain filenames are recognised like an extension.
+stdin input-zsh
+exec shfmt -filename=/etc/zprofile
+stdout '\${}'
+cp input-zsh .zshrc
+exec shfmt .zshrc
+stdout '\${}'
+
 # Explicitly state language on parse errors
 stdin input-bash-arrays
 ! exec shfmt -ln=auto -filename=input.sh
@@ -157,6 +165,8 @@ for ((;;)); do loop; done
 foo
 -- input-mksh --
 coprocess |&
+-- input-zsh --
+${} =(bar)
 -- input-mksh-shebang --
 #!/bin/mksh
 coprocess |&

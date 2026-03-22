@@ -322,6 +322,18 @@ func formatStdin(name string) error {
 }
 
 func langFromFilename(name string) syntax.LangVariant {
+	// Detect shell config files, which typically have no extension nor shebang.
+	// Note that these are not matched by [fileutil.CouldBeScript2],
+	// because these files are typically not part of source code projects,
+	// so finding these files when formatting entire directories is unnecessary.
+	switch strings.TrimPrefix(filepath.Base(name), ".") {
+	case "bash_profile", "bashrc", "bash_logout":
+		// Same as the usual fallback, but we can avoid trying to read a shebang.
+		return syntax.LangBash
+	case "zshenv", "zprofile", "zshrc", "zlogin", "zlogout":
+		return syntax.LangZsh
+	}
+
 	lang := syntax.LangAuto // fallback when none is found
 	if ext := strings.TrimPrefix(filepath.Ext(name), "."); ext != "sh" {
 		// Note that ".sh" doesn't mean it's POSIX Shell for sure.
