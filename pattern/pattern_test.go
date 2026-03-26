@@ -112,6 +112,7 @@ var regexpTests = []struct {
 	},
 	{pat: `?`, mode: Filenames, want: `(?s)[^/]`},
 	{pat: `?à`, want: `(?s).à`},
+	{pat: `ŀ*`, want: `(?s)ŀ.*`},
 	{pat: `\a`, want: `(?s)a`},
 	{pat: `(`, want: `(?s)\(`},
 	{pat: `a|b`, want: `(?s)a\|b`},

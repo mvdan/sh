@@ -128,33 +128,34 @@ func Regexp(pat string, mode Mode) (string, error) {
 
 // stringLexer helps us tokenize a pattern string.
 // Note that we can use the null byte '\x00' to signal "no character" as shell strings cannot contain null bytes.
-// TODO: should the tokenization be based on runes? e.g: [á-é]
 type stringLexer struct {
 	s string
 	i int
 }
 
-func (sl *stringLexer) next() byte {
+func (sl *stringLexer) next() rune {
 	if sl.i >= len(sl.s) {
 		return '\x00'
 	}
-	c := sl.s[sl.i]
-	sl.i++
+	c, size := utf8.DecodeRuneInString(sl.s[sl.i:])
+	sl.i += size
 	return c
 }
 
-func (sl *stringLexer) last() byte {
+func (sl *stringLexer) last() rune {
 	if sl.i < 2 {
 		return '\x00'
 	}
-	return sl.s[sl.i-2]
+	c, _ := utf8.DecodeLastRuneInString(sl.s[:sl.i-1])
+	return c
 }
 
-func (sl *stringLexer) peekNext() byte {
+func (sl *stringLexer) peekNext() rune {
 	if sl.i >= len(sl.s) {
 		return '\x00'
 	}
-	return sl.s[sl.i]
+	c, _ := utf8.DecodeRuneInString(sl.s[sl.i:])
+	return c
 }
 
 func (sl *stringLexer) peekRest() string {
@@ -174,7 +175,7 @@ func regexpNext(sb *strings.Builder, sl *stringLexer, mode Mode) error {
 				break
 			}
 			start := sl.i - 1       // position of the operator
-			sb.WriteByte(sl.next()) // (
+			sb.WriteRune(sl.next()) // (
 		nestedLoop:
 			for {
 				switch sl.peekNext() {
@@ -182,7 +183,7 @@ func regexpNext(sb *strings.Builder, sl *stringLexer, mode Mode) error {
 					break nestedLoop
 				case '|':
 					// extended operators support a list of "or" separated expressions
-					sb.WriteByte(sl.next())
+					sb.WriteRune(sl.next())
 					continue
 				}
 				if err := regexpNext(sb, sl, mode); err == io.EOF {
@@ -191,13 +192,13 @@ func regexpNext(sb *strings.Builder, sl *stringLexer, mode Mode) error {
 					return err
 				}
 			}
-			sb.WriteByte(sl.next()) // )
+			sb.WriteRune(sl.next()) // )
 			if op == '!' {
 				return &NegExtGlobError{Groups: []NegExtGlobGroup{{Start: start, End: sl.i}}}
 			}
 			if op != '@' {
 				// @( is [syntax.GlobOne] for matching once; no suffix needed
-				sb.WriteByte(op)
+				sb.WriteRune(op)
 			}
 			return nil
 		}
@@ -277,7 +278,7 @@ func regexpNext(sb *strings.Builder, sl *stringLexer, mode Mode) error {
 				}
 			}
 		}
-		sb.WriteByte(c)
+		sb.WriteRune(c)
 		if c = sl.next(); c == '\x00' {
 			return &SyntaxError{msg: "[ was not matched with a closing ]"}
 		}
@@ -295,13 +296,13 @@ func regexpNext(sb *strings.Builder, sl *stringLexer, mode Mode) error {
 			}
 		}
 		for {
-			sb.WriteByte(c)
+			sb.WriteRune(c)
 			switch c {
 			case '\x00':
 				return &SyntaxError{msg: "[ was not matched with a closing ]"}
 			case '\\':
 				if c = sl.next(); c != '0' {
-					sb.WriteByte(c)
+					sb.WriteRune(c)
 				}
 			case '-':
 				start := sl.last()
@@ -317,7 +318,7 @@ func regexpNext(sb *strings.Builder, sl *stringLexer, mode Mode) error {
 		}
 	default:
 		if c > utf8.RuneSelf {
-			sb.WriteByte(c)
+			sb.WriteRune(c)
 		} else {
 			sb.WriteString(regexp.QuoteMeta(string(c)))
 		}

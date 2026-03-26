@@ -3126,6 +3126,11 @@ done <<< 2`,
 		"shopt -s nullglob; touch existing-1; echo missing-* existing-*",
 		"existing-1\n",
 	},
+	{
+		"touch ŀfoo; echo ŀ*",
+		"ŀfoo\n",
+	},
+
 	// Extended globbing via the extglob option.
 	// Note how extglob affects Bash's own line-by-line parsing, so we set the option before a newline.
 	{
