@@ -9,7 +9,7 @@ require (
 	github.com/google/renameio/v2 v2.0.2
 	github.com/rogpeppe/go-internal v1.14.1
 	golang.org/x/sys v0.42.0
-	golang.org/x/term v0.40.0
+	golang.org/x/term v0.41.0
 	mvdan.cc/editorconfig v0.3.0
 )
 
