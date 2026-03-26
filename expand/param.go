@@ -73,7 +73,9 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 		vr = cfg.Env.Get(name)
 	}
 	orig := vr
-	_, vr = vr.Resolve(cfg.Env)
+	if n, v := vr.Resolve(cfg.Env); n != "" {
+		name, vr = n, v
+	}
 	if cfg.NoUnset && !vr.IsSet() && !overridingUnset(pe) {
 		return "", UnsetParameterError{
 			Node:    pe,

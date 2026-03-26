@@ -401,15 +401,17 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		fields := r.fields(args...)
 		if len(fields) == 0 {
 			for _, as := range cm.Assigns {
-				prev := r.lookupVar(as.Name.Value)
+				name := as.Name.Value
+
+				prev := r.lookupVar(name)
 				// Here we have a naked "foo=bar", so if we inherited a local var from a parent
 				// function we want to signal that we are modifying the parent var rather than
 				// creating a new local var via "local foo=bar".
 				// TODO: there is likely a better way to do this.
 				prev.Local = false
 
-				vr := r.assignVal(prev, as, "")
-				r.setVarWithIndex(prev, as.Name.Value, as.Index, vr)
+				name, vr := r.assignVal(name, prev, as, "")
+				r.setVarWithIndex(prev, name, as.Index, vr)
 
 				if !tracingEnabled {
 					continue
@@ -425,7 +427,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 					if err != nil { // should never happen
 						panic(err)
 					}
-					trace.stringf("%s=%s", as.Name.Value, val)
+					trace.stringf("%s=%s", name, val)
 				}
 				trace.newLineFlush()
 			}
@@ -447,8 +449,12 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		for _, as := range cm.Assigns {
 			name := as.Name.Value
 			prev := r.lookupVar(name)
+			// Resolve any nameref so we can restore the original final value later on.
+			if n, v := prev.Resolve(r.writeEnv); n != "" {
+				name, prev = n, v
+			}
 
-			vr := r.assignVal(prev, as, "")
+			name, vr := r.assignVal(name, prev, as, "")
 			// Inline command vars are always exported.
 			vr.Exported = true
 
@@ -763,7 +769,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 				}
 				continue
 			}
-			vr := r.lookupVar(as.Name.Value)
+			vr := r.lookupVar(name)
 			if as.Naked {
 				if valType == "-A" {
 					vr.Kind = expand.Associative
@@ -771,7 +777,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 					vr.Kind = expand.KeepValue
 				}
 			} else {
-				vr = r.assignVal(vr, as, valType)
+				name, vr = r.assignVal(name, vr, as, valType)
 			}
 			if global {
 				vr.Local = false

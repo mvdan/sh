@@ -2973,21 +2973,40 @@ done <<< 2`,
 		"etc\nbar\n",
 	},
 	{
-		"declare -n foo=bar; bar=etc; foo=xxx; echo $foo $bar",
-		"xxx xxx\n",
+		"declare -n foo=bar; bar=etc; foo=value; echo $foo; echo $bar",
+		"value\nvalue\n",
 	},
 	{
-		"declare -n foo=bar; foo=xxx; echo $foo $bar",
-		"xxx xxx\n",
+		"declare -n foo=bar; foo=value; echo $foo; echo $bar",
+		"value\nvalue\n",
 	},
-	// TODO: figure this one out
-	//{
-	//        "declare -n foo=bar bar=baz; foo=xxx; echo $foo $bar; echo $baz",
-	//        "xxx xxx\nxxx\n",
-	//},
+	{
+		"declare -n foo=bar; declare foo=value; echo $foo; echo $bar",
+		"value\nvalue\n",
+	},
+	{
+		"declare -n foo=bar bar=baz; foo=value; echo $foo; echo $bar; echo $baz",
+		"value\nvalue\nvalue\n",
+	},
+	{
+		"declare -n foo=bar; set -u; echo ${foo}",
+		"foo: unbound variable\nexit status 1 #JUSTERR",
+	},
+	{
+		"declare -n foo=bar; set -u; echo ${foo:=value}; echo $foo; echo $bar",
+		"value\nvalue\nvalue\n",
+	},
+	{
+		"declare -n foo=bar; foo=value $ENV_PROG | grep '^bar='",
+		"bar=value\n",
+	},
 	{
 		"echo ${!@}-${!*}; set -- foo; echo ${!@}-${!*}-${!1}; foo=value; echo ${!@}-${!*}-${!1}",
 		"-\n--\nvalue-value-value\n",
+	},
+	{
+		"declare -n ref=arr; ref+=(x y); echo ${ref[@]} ${arr[@]}",
+		"x y x y\n",
 	},
 
 	// read-only vars

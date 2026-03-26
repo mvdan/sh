@@ -235,12 +235,6 @@ func (r *Runner) setVar(name string, vr expand.Variable) {
 }
 
 func (r *Runner) setVarWithIndex(prev expand.Variable, name string, index syntax.ArithmExpr, vr expand.Variable) {
-	prev.Set = true
-	if name2, var2 := prev.Resolve(r.writeEnv); name2 != "" {
-		name = name2
-		prev = var2
-	}
-
 	if vr.Kind == expand.String && index == nil {
 		// When assigning a string to an array, fall back to the
 		// zero value for the index.
@@ -320,7 +314,10 @@ func stringIndex(index syntax.ArithmExpr) bool {
 
 // TODO: make assignVal and [setVar] consistent with the [expand.WriteEnviron] interface
 
-func (r *Runner) assignVal(prev expand.Variable, as *syntax.Assign, valType string) expand.Variable {
+func (r *Runner) assignVal(name string, prev expand.Variable, as *syntax.Assign, valType string) (string, expand.Variable) {
+	if n, v := prev.Resolve(r.writeEnv); n != "" {
+		name, prev = n, v
+	}
 	prev.Set = true
 	if as.Value != nil {
 		s := r.literal(as.Value)
@@ -330,7 +327,7 @@ func (r *Runner) assignVal(prev expand.Variable, as *syntax.Assign, valType stri
 				prev.Kind = expand.NameRef
 			}
 			prev.Str = s
-			return prev
+			return name, prev
 		}
 		switch prev.Kind {
 		case expand.String, expand.Unknown:
@@ -344,7 +341,7 @@ func (r *Runner) assignVal(prev expand.Variable, as *syntax.Assign, valType stri
 		case expand.Associative:
 			// TODO
 		}
-		return prev
+		return name, prev
 	}
 	if as.Array == nil {
 		// don't return the zero value, as that's an unset variable
@@ -353,7 +350,7 @@ func (r *Runner) assignVal(prev expand.Variable, as *syntax.Assign, valType stri
 			prev.Kind = expand.NameRef
 		}
 		prev.Str = ""
-		return prev
+		return name, prev
 	}
 	// Array assignment.
 	elems := as.Array.Elems
@@ -372,10 +369,10 @@ func (r *Runner) assignVal(prev expand.Variable, as *syntax.Assign, valType stri
 		if !as.Append {
 			prev.Kind = expand.Associative
 			prev.Map = amap
-			return prev
+			return name, prev
 		}
 		// TODO
-		return prev
+		return name, prev
 	}
 	// Evaluate values for each array element.
 	elemValues := make([]struct {
@@ -406,7 +403,7 @@ func (r *Runner) assignVal(prev expand.Variable, as *syntax.Assign, valType stri
 	if !as.Append {
 		prev.Kind = expand.Indexed
 		prev.List = strs
-		return prev
+		return name, prev
 	}
 	switch prev.Kind {
 	case expand.Unknown:
@@ -422,5 +419,5 @@ func (r *Runner) assignVal(prev expand.Variable, as *syntax.Assign, valType stri
 	default:
 		panic(fmt.Sprintf("unhandled conversion of kind %d", prev.Kind))
 	}
-	return prev
+	return name, prev
 }
