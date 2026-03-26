@@ -84,7 +84,7 @@ let i=(2 + 3)
 	}
 }
 
-var hasBash52 bool
+var hasBash53 bool
 
 func TestMain(m *testing.M) {
 	if os.Getenv("GOSH_PROG") != "" {
@@ -146,7 +146,7 @@ func TestMain(m *testing.M) {
 
 	internal.TestMainSetup()
 
-	hasBash52 = checkBash()
+	hasBash53 = checkBash()
 
 	wd, err := os.Getwd()
 	if err != nil {
@@ -181,7 +181,7 @@ func checkBash() bool {
 	if err != nil {
 		return false
 	}
-	return strings.HasPrefix(string(out), "5.2")
+	return strings.HasPrefix(string(out), "5.3")
 }
 
 // concBuffer wraps a [bytes.Buffer] in a mutex so that concurrent writes
@@ -426,7 +426,7 @@ var runTests = []runTest{
 	{`echo "\""`, "\"\n"},
 	{`echo \\`, "\\\n"},
 	{`echo \\\\`, "\\\\\n"},
-	{`echo \`, "\n"},
+	{`echo \`, "\\\n"},
 
 	// escape characters in double quote literal
 	{`echo "\\"`, "\\\n"},     // special character is preserved
@@ -1065,8 +1065,8 @@ var runTests = []runTest{
 		"",
 	},
 	{
-		`mkdir test.cd; cd test.cd; cd ''; [[ "$PWD" == "$OLDPWD" ]]`,
-		"",
+		`cd ''`,
+		"cd: empty directory path\nexit status 1 #JUSTERR",
 	},
 	{
 		`HOME=/foo; echo $HOME`,
@@ -1778,7 +1778,7 @@ var runTests = []runTest{
 	},
 	{
 		"[[ a =~ [ ]]",
-		"exit status 2",
+		"exit status 2 #JUSTERR",
 	},
 	{
 		"[[ a__b__c =~ _*(b_*) ]]; echo ${BASH_REMATCH[0]}; echo ${BASH_REMATCH[1]}",
@@ -4360,12 +4360,19 @@ func testExecHandler(next interp.ExecHandlerFunc) interp.ExecHandlerFunc {
 	}
 }
 
+// Same as the syntax package.
+var requireShells = os.Getenv("REQUIRE_SHELLS") == "1"
+
 func TestRunnerRunConfirm(t *testing.T) {
 	if testing.Short() {
 		t.Skip("calling bash is slow")
 	}
-	if !hasBash52 {
-		t.Skip("bash 5.2 required to run")
+	if !hasBash53 {
+		if requireShells {
+			t.Fatal("bash 5.3 required to run")
+		} else {
+			t.Skip("bash 5.3 required to run")
+		}
 	}
 	t.Parallel()
 

@@ -6,7 +6,6 @@ package interp
 import (
 	"bufio"
 	"bytes"
-	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -1075,7 +1074,10 @@ func (r *Runner) readLine(ctx context.Context, raw bool) ([]byte, error) {
 }
 
 func (r *Runner) changeDir(ctx context.Context, cmd, path string) uint8 {
-	path = cmp.Or(path, ".")
+	if path == "" {
+		r.errf("%s: empty directory path\n", cmd)
+		return 1
+	}
 	apath := r.absPath(path)
 	info, err := r.stat(ctx, apath)
 	if err != nil || !info.IsDir() {

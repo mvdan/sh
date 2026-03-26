@@ -212,7 +212,7 @@ func TestMain(m *testing.M) {
 }
 
 var (
-	onceHasBash52 = sync.OnceValue(func() bool {
+	onceHasBash53 = sync.OnceValue(func() bool {
 		return cmdContains("version 5.3", "bash", "--version")
 	})
 
@@ -259,7 +259,7 @@ func skipExternal(tb testing.TB, message string) {
 // This seems fine; this table is only for the sake of testing.
 var externalShells = map[LangVariant]externalShell{
 	LangBash: {"bash", func(tb testing.TB) {
-		if !onceHasBash52() {
+		if !onceHasBash53() {
 			skipExternal(tb, "bash 5.2 required to run")
 		}
 	}},
