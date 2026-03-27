@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"syscall"
+	"time"
 
 	"golang.org/x/term"
 
@@ -166,7 +168,12 @@ func (r *Runner) unTest(ctx context.Context, op syntax.UnTestOperator, x string)
 		return r.statMode(ctx, x, os.ModeSetgid)
 	// case syntax.TsGrpOwn:
 	// case syntax.TsUsrOwn:
-	// case syntax.TsModif:
+	case syntax.TsModif:
+		statInfo, err := r.stat(ctx, x)
+		stat := statInfo.Sys().(*syscall.Stat_t)
+		mtime := statInfo.ModTime()
+		atime := time.Unix(stat.Atim.Sec, stat.Atim.Nsec)
+		return err == nil && mtime.After(atime)
 	case syntax.TsRead:
 		return r.access(ctx, r.absPath(x), access_R_OK) == nil
 	case syntax.TsWrite:
