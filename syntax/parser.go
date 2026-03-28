@@ -140,7 +140,7 @@ func (l *LangVariant) Set(s string) error {
 	switch s {
 	case "bash":
 		*l = LangBash
-	case "posix", "sh":
+	case "posix", "sh", "dash":
 		*l = LangPOSIX
 	case "mksh":
 		*l = LangMirBSDKorn
