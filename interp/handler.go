@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"syscall"
 	"time"
 
 	"mvdan.cc/sh/v3/expand"
@@ -129,14 +130,19 @@ func DefaultExecHandler(killTimeout time.Duration) ExecHandlerFunc {
 			fmt.Fprintln(hc.Stderr, err)
 			return ExitStatus(127)
 		}
+		sysProcAttr := &syscall.SysProcAttr{}
+		if runtime.GOOS != "windows" {
+			sysProcAttr.Setpgid = true
+		}
 		cmd := exec.Cmd{
-			Path:   path,
-			Args:   args,
-			Env:    execEnv(hc.Env),
-			Dir:    hc.Dir,
-			Stdin:  hc.Stdin,
-			Stdout: hc.Stdout,
-			Stderr: hc.Stderr,
+			Path:       path,
+			Args:       args,
+			Env:        execEnv(hc.Env),
+			Dir:        hc.Dir,
+			Stdin:      hc.Stdin,
+			Stdout:     hc.Stdout,
+			Stderr:     hc.Stderr,
+			SysProcAttr: sysProcAttr,
 		}
 
 		err = cmd.Start()
@@ -146,11 +152,13 @@ func DefaultExecHandler(killTimeout time.Duration) ExecHandlerFunc {
 					_ = cmd.Process.Signal(os.Kill)
 					return
 				}
-				_ = cmd.Process.Signal(os.Interrupt)
+				// Send interrupt to the entire process group
+				pgid := cmd.Process.Pid
+				_ = syscall.Kill(-pgid, syscall.SIGINT)
 				// TODO: don't sleep in this goroutine if the program
 				// stops itself with the interrupt above.
 				time.Sleep(killTimeout)
-				_ = cmd.Process.Signal(os.Kill)
+				_ = syscall.Kill(-pgid, syscall.SIGKILL)
 			})
 			defer stopf()
 
