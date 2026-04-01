@@ -101,6 +101,8 @@ stdin ignored/1_lone_ignored.sh
 exec shfmt --apply-ignore --filename=ignored/1_lone_ignored.sh
 ! stdout .
 ! stderr .
+! exec shfmt --apply-ignore --diff hidden/.script.sh
+stdout -count=1 '^\+   indented'
 
 # Check EditorConfig [[language]] sections, used primarily for extension-less strings with shebangs.
 exec shfmt -d shebang
@@ -266,6 +268,10 @@ array=(elem)
      indented
 }
 array=(elem)
+-- hidden/.script.sh --
+{
+indented
+}
 -- multiconfig/space_redirects/.editorconfig --
 [*]
 space_redirects = true

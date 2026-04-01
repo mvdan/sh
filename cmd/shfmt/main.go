@@ -251,31 +251,62 @@ For more information and to report bugs, see https://github.com/mvdan/sh.
 	}
 	status := 0
 	for _, path := range flag.Args() {
-		if info, err := os.Stat(path); err == nil && !info.IsDir() && !applyIgnore.val && find.val == "false" {
-			// When given paths to files directly, always format them,
-			// no matter their extension or shebang.
-			//
-			// One exception is --apply-ignore, which explicitly changes this behavior.
-			// Another is --find, whose logic depends on walkPath being called.
-			if err := formatPath(path, false); err != nil {
-				if err != errFormattingDiffers {
-					fmt.Fprintln(os.Stderr, err)
-				}
-				status = 1
-			}
-			continue
-		}
+		explicit := true
 		if err := filepath.WalkDir(path, func(path string, entry fs.DirEntry, err error) error {
+			defer func() { explicit = false }()
 			if err != nil {
 				return err
 			}
-			switch err := walkPath(path, entry); err {
-			case nil:
-			case filepath.SkipDir:
-				return err
-			case errFormattingDiffers:
+			if entry.IsDir() && vcsDir.MatchString(entry.Name()) {
+				return filepath.SkipDir
+			}
+			// If the path is not an explicit arg, or if --apply-ignore is set,
+			// we find and apply EditorConfig ignore rules.
+			if !explicit || applyIgnore.val {
+				// We don't know the language variant at this point yet, as we are walking directories
+				// and we first want to tell if we should skip a path entirely.
+				//
+				// TODO: Should the call to Find with the language name check "ignore" too, then?
+				// Otherwise, a [[bash]] section with ignore=true is effectively never used.
+				//
+				// TODO: Should there be a way to explicitly turn off ignore rules when walking?
+				// Perhaps swapping the default to --apply-ignore=auto and allowing --apply-ignore=false?
+				// I don't imagine it's a particularly useful scenario for now.
+				props, err := ecQuery.Find(path, []string{"shell"})
+				if err != nil {
+					return err
+				}
+				if props.Get("ignore") == "true" {
+					if entry.IsDir() {
+						return filepath.SkipDir
+					} else {
+						return nil
+					}
+				}
+			}
+			conf := fileutil.ConfIsScript
+			// If the path is an explicit arg and it points to a symlink,
+			// resolve that symlink so that we don't try to format non-regular files.
+			if explicit && entry.Type()&fs.ModeSymlink != 0 {
+				info, err := os.Stat(path)
+				if err != nil {
+					return err
+				}
+				entry = fs.FileInfoToDirEntry(info)
+			}
+			// If the path is not an explicit arg, or it's not regular, or --find is set,
+			// then we check for extensions and shebangs.
+			if !explicit || !entry.Type().IsRegular() || find.val == "true" {
+				conf = fileutil.CouldBeScript2(entry)
+				if conf == fileutil.ConfNotScript {
+					return nil
+				}
+			}
+			err = formatPath(path, conf == fileutil.ConfIfShebang)
+			if err == errFormattingDiffers {
 				status = 1
-			default:
+				err = nil
+			} else if err != nil {
 				fmt.Fprintln(os.Stderr, err)
 				status = 1
 			}
@@ -287,6 +318,8 @@ For more information and to report bugs, see https://github.com/mvdan/sh.
 	}
 	os.Exit(status)
 }
+
+var vcsDir = regexp.MustCompile(`^\.(git|svn|hg)$`)
 
 var errFormattingDiffers = fmt.Errorf("")
 
@@ -341,43 +374,6 @@ func langFromFilename(name string) syntax.LangVariant {
 		lang.Set(ext)
 	}
 	return lang
-}
-
-var vcsDir = regexp.MustCompile(`^\.(git|svn|hg)$`)
-
-func walkPath(path string, entry fs.DirEntry) error {
-	if entry.IsDir() && vcsDir.MatchString(entry.Name()) {
-		return filepath.SkipDir
-	}
-	// We don't know the language variant at this point yet, as we are walking directories
-	// and we first want to tell if we should skip a path entirely.
-	//
-	// TODO: Should the call to Find with the language name check "ignore" too, then?
-	// Otherwise, a [[bash]] section with ignore=true is effectively never used.
-	//
-	// TODO: Should there be a way to explicitly turn off ignore rules when walking?
-	// Perhaps swapping the default to --apply-ignore=auto and allowing --apply-ignore=false?
-	// I don't imagine it's a particularly useful scenario for now.
-	props, err := ecQuery.Find(path, []string{"shell"})
-	if err != nil {
-		return err
-	}
-	if props.Get("ignore") == "true" {
-		if entry.IsDir() {
-			return filepath.SkipDir
-		} else {
-			return nil
-		}
-	}
-	conf := fileutil.CouldBeScript2(entry)
-	if conf == fileutil.ConfNotScript {
-		return nil
-	}
-	err = formatPath(path, conf == fileutil.ConfIfShebang)
-	if err != nil && !os.IsNotExist(err) {
-		return err
-	}
-	return nil
 }
 
 var ecQuery = editorconfig.Query{
