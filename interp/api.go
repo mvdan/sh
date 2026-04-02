@@ -126,6 +126,10 @@ type Runner struct {
 	// such as the condition in a [syntax.IfClause].
 	noErrExit bool
 
+	// killProcessGroup controls whether to kill the entire process group
+	// instead of only a single process when terminating subprocesses.
+	killProcessGroup bool
+
 	// The current and last exit statuses. They can only be different if
 	// the interpreter is in the middle of running a statement. In that
 	// scenario, 'exit' is the status for the current statement being run,
@@ -348,6 +352,20 @@ func Dir(path string) RunnerOption {
 func Interactive(enabled bool) RunnerOption {
 	return func(r *Runner) error {
 		r.opts[optExpandAliases] = enabled
+		return nil
+	}
+}
+
+// KillProcessGroup configures the runner to send signals to the entire
+// process group rather than the single child process when terminating
+// subprocesses. When enabled, child processes are placed in their own
+// process group via setpgid, and interrupt/kill signals are sent to the
+// group.
+//
+// Defaults to false. Note that this option only has an effect on Unix systems.
+func KillProcessGroup(enabled bool) RunnerOption {
+	return func(r *Runner) error {
+		r.killProcessGroup = enabled
 		return nil
 	}
 }
@@ -822,6 +840,8 @@ func (r *Runner) Reset() {
 
 		dirStack: r.dirStack[:0],
 		usedNew:  r.usedNew,
+
+		killProcessGroup: r.killProcessGroup,
 	}
 	// Ensure we stop referencing any pointers before we reuse bgProcs.
 	clear(r.bgProcs)
@@ -995,6 +1015,8 @@ func (r *Runner) subshell(background bool) *Runner {
 		lastExit:       r.lastExit,
 
 		origStdout: r.origStdout, // used for process substitutions
+
+		killProcessGroup: r.killProcessGroup,
 	}
 	r2.writeEnv = newOverlayEnviron(r.writeEnv, background)
 	// Funcs are copied, since they might be modified.

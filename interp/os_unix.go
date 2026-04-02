@@ -7,6 +7,7 @@ package interp
 
 import (
 	"context"
+	"os/exec"
 	"os/user"
 	"strconv"
 	"syscall"
@@ -46,3 +47,27 @@ func (r *Runner) unTestOwnOrGrp(ctx context.Context, op syntax.UnTestOperator, x
 }
 
 type waitStatus = syscall.WaitStatus
+
+// prepareCommand sets the SysProcAttr for the command.
+// If processGroup is true, a new process group is created.
+func prepareCommand(cmd *exec.Cmd, processGroup bool) {
+	if processGroup {
+		cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	}
+}
+
+// interruptCommand sends SIGINT to the process or its process group.
+func interruptCommand(cmd *exec.Cmd, processGroup bool) error {
+	if processGroup {
+		return unix.Kill(-cmd.Process.Pid, unix.SIGINT)
+	}
+	return cmd.Process.Signal(syscall.SIGINT)
+}
+
+// killCommand sends SIGKILL to the process or its process group.
+func killCommand(cmd *exec.Cmd, processGroup bool) error {
+	if processGroup {
+		return unix.Kill(-cmd.Process.Pid, unix.SIGKILL)
+	}
+	return cmd.Process.Kill()
+}

@@ -8,6 +8,7 @@ package interp
 import (
 	"context"
 	"fmt"
+	"os/exec"
 
 	"mvdan.cc/sh/v3/syntax"
 )
@@ -55,3 +56,16 @@ type waitStatus struct{}
 
 func (waitStatus) Signaled() bool { return false }
 func (waitStatus) Signal() int    { return 0 }
+
+// prepareCommand is a no-op.
+func prepareCommand(cmd *exec.Cmd, processGroup bool) {}
+
+// interruptCommand interrupts the process by killing it.
+func interruptCommand(cmd *exec.Cmd, processGroup bool) error {
+	return cmd.Process.Kill()
+}
+
+// killCommand kills the process by killing it.
+func killCommand(cmd *exec.Cmd, processGroup bool) error {
+	return cmd.Process.Kill()
+}
