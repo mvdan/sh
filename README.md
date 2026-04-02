@@ -51,9 +51,9 @@ We use Go's native fuzzing support. For instance:
 
 ```sh
 $ echo '${array[spaced string]}' | shfmt
-<standard input>:1:16: not a valid arithmetic operator: string
+<standard input>:1:16: not a valid arithmetic operator: `string`
 $ echo '${array[weird!key]}' | shfmt
-<standard input>:1:8: reached ! without matching [ with ]
+<standard input>:1:8: reached `!` without matching `[` with `]`
 $ echo '${array[dash-string]}' | shfmt
 ${array[dash - string]}
 ```
