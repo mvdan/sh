@@ -1,7 +1,7 @@
 // Copyright (c) 2017, Andrey Nering <andrey.nering@gmail.com>
 // See LICENSE for licensing information
 
-//go:build !unix
+//go:build !unix && !windows
 
 package interp
 
@@ -59,6 +59,9 @@ func (waitStatus) Signal() int    { return 0 }
 
 // prepareCommand is a no-op.
 func prepareCommand(cmd *exec.Cmd, processGroup bool) {}
+
+// postStartCommand is a no-op.
+func postStartCommand(cmd *exec.Cmd, processGroup bool) {}
 
 // interruptCommand interrupts the process by killing it.
 func interruptCommand(cmd *exec.Cmd, processGroup bool) error {

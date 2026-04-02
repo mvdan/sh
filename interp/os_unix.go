@@ -56,6 +56,9 @@ func prepareCommand(cmd *exec.Cmd, processGroup bool) {
 	}
 }
 
+// postStartCommand is a no-op on Unix.
+func postStartCommand(cmd *exec.Cmd, processGroup bool) {}
+
 // interruptCommand sends SIGINT to the process or its process group.
 func interruptCommand(cmd *exec.Cmd, processGroup bool) error {
 	if processGroup {

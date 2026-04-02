@@ -362,7 +362,8 @@ func Interactive(enabled bool) RunnerOption {
 // process group via setpgid, and interrupt/kill signals are sent to the
 // group.
 //
-// Defaults to false. Note that this option only has an effect on Unix systems.
+// Defaults to false. On Windows, this uses CREATE_NEW_PROCESS_GROUP and
+// GenerateConsoleCtrlEvent to signal the process group.
 func KillProcessGroup(enabled bool) RunnerOption {
 	return func(r *Runner) error {
 		r.killProcessGroup = enabled

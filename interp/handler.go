@@ -142,9 +142,11 @@ func DefaultExecHandler(killTimeout time.Duration) ExecHandlerFunc {
 
 		err = cmd.Start()
 		if err == nil {
+			postStartCommand(&cmd, hc.runner.killProcessGroup)
+
 			stopf := context.AfterFunc(ctx, func() {
 				pg := hc.runner.killProcessGroup
-				if killTimeout <= 0 || runtime.GOOS == "windows" {
+				if killTimeout <= 0 {
 					_ = killCommand(&cmd, pg)
 					return
 				}
