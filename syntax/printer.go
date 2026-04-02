@@ -719,7 +719,9 @@ func (p *Printer) wroteIndex(index ArithmExpr) bool {
 	p.w.WriteByte('[')
 	// Note that e.g. foo[1,3]=$bar in Zsh does not allow any spaces around the comma,
 	// as that breaks the assignment word.
-	p.arithmExpr(index, true, false)
+	binary, ok := index.(*BinaryArithm)
+	compact := ok && binary.Op == Comma
+	p.arithmExpr(index, compact, false)
 	p.w.WriteByte(']')
 	return true
 }

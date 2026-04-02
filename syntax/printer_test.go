@@ -661,8 +661,8 @@ var printTests = []printCase{
 	// 	"$(foo)#bar",
 	// },
 	// samePrint(`$("foo"#bar)#bar`),
-	samePrint("${array[dash-string]}"),
-	samePrint("array[dash-string]=123"),
+	samePrint("${array[dash - string]}"),
+	samePrint("array[dash - string]=123"),
 	samePrint("${arr[0,1]}"),
 	samePrint("arr[0,1]=x"),
 }
