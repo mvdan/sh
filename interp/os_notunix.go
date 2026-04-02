@@ -47,7 +47,8 @@ func (r *Runner) access(ctx context.Context, path string, mode uint32) error {
 // doesn't have the concept of a file owner, just ACLs, and it's unclear how
 // to map the one to the other.
 func (r *Runner) unTestOwnOrGrp(ctx context.Context, op syntax.UnTestOperator, x string) bool {
-	panic(fmt.Sprintf("unhandled unary test op: %v", op))
+	r.errf("unsupported unary test op: %v\n", op)
+	return false
 }
 
 // waitStatus is a no-op on plan9 and windows.

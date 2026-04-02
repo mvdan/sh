@@ -143,7 +143,8 @@ func (r *Runner) fillExpandConfig(ctx context.Context) {
 						os.Remove(path)
 					}()
 				default:
-					panic(fmt.Sprintf("unsupported process substitution operator: %q", ps.Op))
+					// Should only happen if we forgot a case above.
+					panic(fmt.Sprintf("unexpected process substitution operator: %q", ps.Op))
 				}
 				r2.stmts(ctx, ps.Stmts)
 				r2.exit.exiting = false // subshells don't exit the parent shell
@@ -811,6 +812,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		r.outf(format, "user", elapsedString(0, cm.PosixFormat))
 		r.outf(format, "sys", elapsedString(0, cm.PosixFormat))
 	default:
+		// Should only happen if we forgot a case above.
 		r.errf("unhandled command node: %T\n", cm)
 		r.exit.code = 1
 	}

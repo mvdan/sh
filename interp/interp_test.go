@@ -1961,6 +1961,15 @@ var runTests = []runTest{
 		"r\nw\nx\n",
 	},
 	{
+		"test -N a",
+		"unsupported unary test op: -N\nexit status 1 #IGNORE",
+	},
+	{
+		"test -? a",
+		// TODO: this error message should refer to `-?`
+		"1:1: not a valid test operator: `a`\n1:1: a must be followed by a word\nexit status 2 #JUSTERR",
+	},
+	{
 		"[ -s a ] && echo x; echo body >a; [ -s a ] && echo y",
 		"y\n",
 	},
@@ -2498,6 +2507,14 @@ done <<< 2`,
 	{
 		"touch a ab abB Ac Ad; shopt -s nocaseglob; echo *b",
 		"ab abB\n",
+	},
+	{
+		"shopt -p",
+		"shopt: unsupported option \"-p\"\nexit status 2 #IGNORE",
+	},
+	{
+		"shopt -q",
+		"shopt: unsupported option \"-q\"\nexit status 2 #IGNORE",
 	},
 
 	// IFS
