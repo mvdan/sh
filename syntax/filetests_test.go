@@ -3324,7 +3324,7 @@ var fileTests = []fileTestCase{
 		langFile(arithmExp(&UnaryArithm{Op: Dec, X: litWord("i")})),
 	),
 	fileTest(
-		[]string{`$((!i))`},
+		[]string{`$((! i))`},
 		langFile(arithmExp(&UnaryArithm{Op: Not, X: litWord("i")})),
 	),
 	fileTest(
@@ -3332,7 +3332,7 @@ var fileTests = []fileTestCase{
 		langFile(arithmExp(&UnaryArithm{Op: BitNegation, X: litWord("i")})),
 	),
 	fileTest(
-		[]string{`$((-!+i))`},
+		[]string{`$((-! +i))`},
 		langFile(arithmExp(&UnaryArithm{
 			Op: Minus,
 			X: &UnaryArithm{
@@ -3342,7 +3342,7 @@ var fileTests = []fileTestCase{
 		})),
 	),
 	fileTest(
-		[]string{`$((!!i))`},
+		[]string{`$((! ! i))`},
 		langFile(arithmExp(&UnaryArithm{
 			Op: Not,
 			X:  &UnaryArithm{Op: Not, X: litWord("i")},
