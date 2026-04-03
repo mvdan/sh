@@ -417,7 +417,8 @@ func (r *Runner) assignVal(name string, prev expand.Variable, as *syntax.Assign,
 	case expand.Associative:
 		// TODO
 	default:
-		panic(fmt.Sprintf("unhandled conversion of kind %d", prev.Kind))
+		// Should only happen if we forgot a case above.
+		panic(fmt.Sprintf("unexpected conversion of kind %d", prev.Kind))
 	}
 	return name, prev
 }

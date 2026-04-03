@@ -791,7 +791,7 @@ func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args 
 			case "-o":
 				posixOpts = true
 			case "-p", "-q":
-				panic(fmt.Sprintf("unhandled shopt flag: %s", flag))
+				return failf(2, "shopt: unsupported option %q\n", flag)
 			default:
 				return failf(2, "shopt: invalid option %q\n", flag)
 			}
@@ -988,7 +988,7 @@ func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args 
 		r.setVar(arrayName, vr)
 
 	default:
-		return failf(2, "%s: unimplemented builtin\n", name)
+		return failf(2, "%s: unsupported builtin\n", name)
 	}
 	return exit
 }
