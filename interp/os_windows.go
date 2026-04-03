@@ -62,12 +62,43 @@ type waitStatus struct{}
 func (waitStatus) Signaled() bool { return false }
 func (waitStatus) Signal() int    { return 0 }
 
-// jobHandles maps process IDs to their job object handles.
+// jobEntry holds the job object handle and a flag indicating whether it has
+// already been terminated, so that the cleanup goroutine and killCommand /
+// interruptCommand do not race to close the same handle.
+type jobEntry struct {
+	mu          sync.Mutex
+	handle      windows.Handle
+	closed      bool
+}
+
+// terminate terminates the job object and closes the handle exactly once.
+// It is safe to call from multiple goroutines concurrently.
+// When called from the cleanup goroutine after natural process exit, the
+// TerminateJobObject call is a no-op because the job is already empty.
+func (e *jobEntry) terminate(exitCode uint32) error {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	if e.closed {
+		return nil
+	}
+	e.closed = true
+	err := windows.TerminateJobObject(e.handle, exitCode)
+	windows.CloseHandle(e.handle)
+	return err
+}
+
+// jobHandles maps process IDs to their *jobEntry.
 var jobHandles sync.Map
+
+// ntResumeProcess is the NtResumeProcess syscall from ntdll.dll.
+// Unlike ResumeThread (which requires a thread handle), NtResumeProcess
+// accepts a process handle and resumes all suspended threads in the process.
+// The required access right is PROCESS_SUSPEND_RESUME.
+var ntResumeProcess = windows.NewLazyDLL("ntdll.dll").NewProc("NtResumeProcess")
 
 // prepareCommand sets the SysProcAttr for the command.
 // If processGroup is true, the process is created suspended and will be
-// assigned to a job object in postStartCommand.
+// assigned to a job object in postStartCommand before being resumed.
 func prepareCommand(cmd *exec.Cmd, processGroup bool) {
 	if processGroup {
 		cmd.SysProcAttr = &syscall.SysProcAttr{
@@ -78,22 +109,40 @@ func prepareCommand(cmd *exec.Cmd, processGroup bool) {
 
 // postStartCommand assigns the process to a job object if processGroup is true,
 // then resumes the process. This must be called immediately after cmd.Start().
-func postStartCommand(cmd *exec.Cmd, processGroup bool) {
+//
+// The process is started suspended (via CREATE_SUSPENDED in prepareCommand) to
+// eliminate the race between process start and job object assignment: the process
+// cannot spawn children until it is resumed, so all descendants will inherit the job.
+func postStartCommand(cmd *exec.Cmd, processGroup bool) error {
 	if !processGroup || cmd.Process == nil {
-		return
+		return nil
 	}
+
+	pid := cmd.Process.Pid
+
+	// Open the process with the rights needed for job assignment, termination,
+	// and resuming (PROCESS_SUSPEND_RESUME).
+	procHandle, err := windows.OpenProcess(
+		windows.PROCESS_SET_QUOTA|windows.PROCESS_TERMINATE|windows.PROCESS_SUSPEND_RESUME|windows.SYNCHRONIZE,
+		false, uint32(pid))
+	if err != nil {
+		cmd.Process.Kill()
+		return fmt.Errorf("OpenProcess: %w", err)
+	}
+	// procHandle is kept open for the lifetime of postStartCommand; the cleanup
+	// goroutine below takes ownership and closes it when the process exits.
 
 	// Create a job object.
 	job, err := windows.CreateJobObject(nil, nil)
 	if err != nil {
+		windows.CloseHandle(procHandle)
 		cmd.Process.Kill()
-		return
+		return fmt.Errorf("CreateJobObject: %w", err)
 	}
 
-	// Set the job to kill all processes when the job handle is closed.
+	// Set the job to kill all processes when the last job handle is closed.
 	info := windows.JOBOBJECT_EXTENDED_LIMIT_INFORMATION{}
 	info.BasicLimitInformation.LimitFlags = windows.JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
-
 	_, err = windows.SetInformationJobObject(
 		job,
 		windows.JobObjectExtendedLimitInformation,
@@ -102,61 +151,67 @@ func postStartCommand(cmd *exec.Cmd, processGroup bool) {
 	)
 	if err != nil {
 		windows.CloseHandle(job)
+		windows.CloseHandle(procHandle)
 		cmd.Process.Kill()
-		return
+		return fmt.Errorf("SetInformationJobObject: %w", err)
 	}
 
-	// Assign the process to the job.
-	procHandle, err := windows.OpenProcess(windows.PROCESS_SET_QUOTA|windows.PROCESS_TERMINATE, false, uint32(cmd.Process.Pid))
-	if err != nil {
+	// Assign the process to the job before resuming it, so all child processes
+	// it spawns will also belong to the job.
+	if err = windows.AssignProcessToJobObject(job, procHandle); err != nil {
 		windows.CloseHandle(job)
+		windows.CloseHandle(procHandle)
 		cmd.Process.Kill()
-		return
-	}
-	defer windows.CloseHandle(procHandle)
-	err = windows.AssignProcessToJobObject(job, procHandle)
-	if err != nil {
-		windows.CloseHandle(job)
-		cmd.Process.Kill()
-		return
+		return fmt.Errorf("AssignProcessToJobObject: %w", err)
 	}
 
-	// Store the job handle for later termination.
-	jobHandles.Store(cmd.Process.Pid, job)
+	entry := &jobEntry{handle: job}
 
-	// Resume the process.
-	_, err = windows.ResumeThread(procHandle)
-	if err != nil {
-		// If resume fails, kill the job.
-		windows.TerminateJobObject(job, 1)
-		windows.CloseHandle(job)
-		jobHandles.Delete(cmd.Process.Pid)
-	} else {
-		// Clean up the job handle when the process exits.
-		pid := cmd.Process.Pid
-		go func() {
-			cmd.Wait()
-			if handle, ok := jobHandles.LoadAndDelete(pid); ok {
-				windows.CloseHandle(handle.(windows.Handle))
-			}
-		}()
+	// Store the job entry before resuming so interruptCommand/killCommand can find it.
+	jobHandles.Store(pid, entry)
+
+	// Resume the suspended process. NtResumeProcess accepts a process handle
+	// directly, unlike ResumeThread which requires a thread handle.
+	// NTSTATUS 0 == STATUS_SUCCESS.
+	//
+	// We must pin procHandle as a uintptr passed to a syscall only during the
+	// call itself; storing it before and using it here is correct because
+	// procHandle is a windows.Handle (uintptr) that we own.
+	if status, _, _ := ntResumeProcess.Call(uintptr(procHandle)); status != 0 {
+		jobHandles.Delete(pid)
+		entry.terminate(1)
+		windows.CloseHandle(procHandle)
+		return fmt.Errorf("NtResumeProcess: NTSTATUS 0x%x", status)
 	}
+
+	// Release the job handle when the process exits naturally.
+	// procHandle was opened with SYNCHRONIZE so we can wait on it directly,
+	// avoiding a second OpenProcess call.
+	go func() {
+		defer windows.CloseHandle(procHandle)
+		windows.WaitForSingleObject(procHandle, windows.INFINITE)
+		if e, ok := jobHandles.LoadAndDelete(pid); ok {
+			e.(*jobEntry).terminate(0)
+		}
+	}()
+	return nil
 }
 
-// interruptCommand sends CTRL_C_EVENT to the process group if processGroup is true,
-// otherwise signals the individual process. If sending the console event fails,
-// it falls back to terminating the job object.
+// interruptCommand sends CTRL_BREAK_EVENT to the process group if processGroup
+// is true, otherwise signals the individual process.
+//
+// Note: processes created with CREATE_NEW_PROCESS_GROUP ignore CTRL_C_EVENT,
+// so CTRL_BREAK_EVENT must be used instead. If the console event fails,
+// the job object is terminated as a fallback.
 func interruptCommand(cmd *exec.Cmd, processGroup bool) error {
 	if processGroup {
-		// Try to send CTRL_C_EVENT to the process group.
-		// This requires that the process was created with CREATE_NEW_PROCESS_GROUP.
-		err := windows.GenerateConsoleCtrlEvent(windows.CTRL_C_EVENT, uint32(cmd.Process.Pid))
+		err := windows.GenerateConsoleCtrlEvent(windows.CTRL_BREAK_EVENT, uint32(cmd.Process.Pid))
 		if err == nil {
 			return nil
 		}
-		// If sending console event fails, fall back to terminating the job object.
-		if job, ok := jobHandles.Load(cmd.Process.Pid); ok {
-			return windows.TerminateJobObject(job.(windows.Handle), 1)
+		// Fall back to terminating the job object if the console event fails.
+		if e, ok := jobHandles.LoadAndDelete(cmd.Process.Pid); ok {
+			return e.(*jobEntry).terminate(1)
 		}
 	}
 	return cmd.Process.Signal(os.Interrupt)
@@ -166,11 +221,8 @@ func interruptCommand(cmd *exec.Cmd, processGroup bool) error {
 // otherwise kills the individual process.
 func killCommand(cmd *exec.Cmd, processGroup bool) error {
 	if processGroup {
-		if job, ok := jobHandles.LoadAndDelete(cmd.Process.Pid); ok {
-			handle := job.(windows.Handle)
-			err := windows.TerminateJobObject(handle, 1)
-			windows.CloseHandle(handle)
-			return err
+		if e, ok := jobHandles.LoadAndDelete(cmd.Process.Pid); ok {
+			return e.(*jobEntry).terminate(1)
 		}
 	}
 	return cmd.Process.Kill()

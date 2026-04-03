@@ -62,7 +62,7 @@ func (waitStatus) Signal() int    { return 0 }
 func prepareCommand(cmd *exec.Cmd, processGroup bool) {}
 
 // postStartCommand is a no-op.
-func postStartCommand(cmd *exec.Cmd, processGroup bool) {}
+func postStartCommand(cmd *exec.Cmd, processGroup bool) error { return nil }
 
 // interruptCommand interrupts the process by killing it.
 func interruptCommand(cmd *exec.Cmd, processGroup bool) error {

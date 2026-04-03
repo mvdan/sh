@@ -142,23 +142,25 @@ func DefaultExecHandler(killTimeout time.Duration) ExecHandlerFunc {
 
 		err = cmd.Start()
 		if err == nil {
-			postStartCommand(&cmd, hc.runner.killProcessGroup)
-
-			stopf := context.AfterFunc(ctx, func() {
-				pg := hc.runner.killProcessGroup
-				if killTimeout <= 0 {
+			if err = postStartCommand(&cmd, hc.runner.killProcessGroup); err == nil {
+				stopf := context.AfterFunc(ctx, func() {
+					pg := hc.runner.killProcessGroup
+					if killTimeout <= 0 {
+						_ = killCommand(&cmd, pg)
+						return
+					}
+					_ = interruptCommand(&cmd, pg)
+					// TODO: don't sleep in this goroutine if the program
+					// stops itself with the interrupt above.
+					time.Sleep(killTimeout)
 					_ = killCommand(&cmd, pg)
-					return
-				}
-				_ = interruptCommand(&cmd, pg)
-				// TODO: don't sleep in this goroutine if the program
-				// stops itself with the interrupt above.
-				time.Sleep(killTimeout)
-				_ = killCommand(&cmd, pg)
-			})
-			defer stopf()
+				})
+				defer stopf()
 
-			err = cmd.Wait()
+				err = cmd.Wait()
+			} else {
+				_ = cmd.Wait()
+			}
 		}
 
 		switch err := err.(type) {
