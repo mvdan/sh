@@ -1977,10 +1977,6 @@ var runTests = []runTest{
 		"r\nw\nx\n",
 	},
 	{
-		"test -N a",
-		"unsupported unary test op: -N\nexit status 1 #IGNORE",
-	},
-	{
 		"test -? a",
 		// TODO: this error message should refer to `-?`
 		"1:1: not a valid test operator: `a`\n1:1: a must be followed by a word\nexit status 2 #JUSTERR",
@@ -3704,6 +3700,20 @@ var runTestsUnix = []runTest{
 	{
 		"mkdir -p 'a-*/d'; test -d $PWD/a-*/*",
 		"",
+	},
+
+	// windows does not reliably track last-access time, so -N is unix-only
+	{
+		">a; cat a; sleep 0.01; echo 'Hello' >> a; test -N a && echo yes",
+		"yes\n",
+	},
+	{
+		"test -N nonexistent",
+		"exit status 1",
+	},
+	{
+		">a; sleep 0.01; cat a; test -N a; echo $?",
+		"1\n",
 	},
 
 	// no fifos on windows
