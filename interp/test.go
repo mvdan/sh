@@ -167,12 +167,11 @@ func (r *Runner) unTest(ctx context.Context, op syntax.UnTestOperator, x string)
 	case syntax.TsGIDSet:
 		return r.statMode(ctx, x, os.ModeSetgid)
 	case syntax.TsModif:
-		statInfo, err := r.stat(ctx, x)
-		mtime := statInfo.ModTime()
-		atime := actime.GetAtime(statInfo)
-		fmt.Println(mtime, atime)
-		fmt.Println(mtime.After(atime))
-		return err == nil && mtime.After(atime)
+		info, err := r.stat(ctx, x)
+		if err != nil {
+			return false
+		}
+		return info.ModTime().After(actime.GetAtime(info))
 	case syntax.TsRead:
 		return r.access(ctx, r.absPath(x), access_R_OK) == nil
 	case syntax.TsWrite:
