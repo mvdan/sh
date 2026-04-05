@@ -12,6 +12,7 @@ import (
 	"golang.org/x/term"
 
 	"mvdan.cc/sh/v3/expand"
+	"mvdan.cc/sh/v3/interp/actime"
 	"mvdan.cc/sh/v3/syntax"
 )
 
@@ -166,8 +167,12 @@ func (r *Runner) unTest(ctx context.Context, op syntax.UnTestOperator, x string)
 	case syntax.TsGIDSet:
 		return r.statMode(ctx, x, os.ModeSetgid)
 	case syntax.TsModif:
-		r.errf("unsupported unary test op: %v\n", op)
-		return false
+		statInfo, err := r.stat(ctx, x)
+		mtime := statInfo.ModTime()
+		atime := actime.GetAtime(statInfo)
+		fmt.Println(mtime, atime)
+		fmt.Println(mtime.After(atime))
+		return err == nil && mtime.After(atime)
 	case syntax.TsRead:
 		return r.access(ctx, r.absPath(x), access_R_OK) == nil
 	case syntax.TsWrite:
