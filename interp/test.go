@@ -166,8 +166,11 @@ func (r *Runner) unTest(ctx context.Context, op syntax.UnTestOperator, x string)
 	case syntax.TsGIDSet:
 		return r.statMode(ctx, x, os.ModeSetgid)
 	case syntax.TsModif:
-		r.errf("unsupported unary test op: %v\n", op)
-		return false
+		info, err := r.stat(ctx, x)
+		if err != nil {
+			return false
+		}
+		return info.ModTime().After(getAtime(info))
 	case syntax.TsRead:
 		return r.access(ctx, r.absPath(x), access_R_OK) == nil
 	case syntax.TsWrite:
