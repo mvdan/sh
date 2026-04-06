@@ -1,5 +1,23 @@
 # Changelog
 
+## [3.13.1] - 2026-03-09
+
+- **cmd/shfmt**
+  - Add support for `[[zsh]]` in EditorConfig files
+  - Detect the shell variant from filenames like `.zshrc` and `.bash_profile`
+  - Fix `--apply-ignore` when used with explicit args - #1310
+- **syntax**
+  - Revert an accidental change to how array subscripts are formatted - #1314
+  - Never join `;;` with the previous line when formatting - #1289
+  - Fix a bug where `$1[foo]` was parsed as a subscript in Zsh - #1288
+  - Correctly parse `$!` in double quotes in Zsh - #1298
+  - Allow indexing into special parameters in Zsh - #1299
+  - Allow parameter expansions with empty names in Zsh - #1280
+- **interp**
+  - Test against Bash 5.3 and fix three new discrepancies
+  - Fix a few bugs related to `nameref` variables
+  - Avoid panics when user input encounters unimplemented features
+
 ## [3.13.0] - 2026-03-09
 
 This release introduces support for [Zsh](https://www.zsh.org/)
@@ -819,6 +837,7 @@ module in v3.
 
 Initial release.
 
+[3.13.1]: https://github.com/mvdan/sh/releases/tag/v3.13.1
 [3.13.0]: https://github.com/mvdan/sh/releases/tag/v3.13.0
 [3.12.0]: https://github.com/mvdan/sh/releases/tag/v3.12.0
 [3.11.0]: https://github.com/mvdan/sh/releases/tag/v3.11.0
