@@ -113,6 +113,8 @@ var printTests = []printCase{
 	samePrint("<<EOF\nEOF"),
 	samePrint("foo <<EOF\nEOF\n\nbar"),
 	samePrint("foo <<'EOF'\nEOF\n\nbar"),
+	samePrint("if cmd <<EOF\nbody\nEOF\nthen\n\tfoo\nfi"),
+	samePrint("while cmd <<EOF\nbody\nEOF\ndo\n\tfoo\ndone"),
 	{
 		"{ foo; bar; }",
 		"{\n\tfoo\n\tbar\n}",
