@@ -352,24 +352,12 @@ func Dir(path string) RunnerOption {
 func Interactive(enabled bool) RunnerOption {
 	return func(r *Runner) error {
 		r.opts[optExpandAliases] = enabled
+		r.killProcessGroup = !enabled
 		return nil
 	}
 }
 
-// KillProcessGroup configures the runner to send signals to the entire
-// process group rather than the single child process when terminating
-// subprocesses. When enabled, child processes are placed in their own
-// process group via setpgid, and interrupt/kill signals are sent to the
-// group.
-//
-// Defaults to false. On Windows, this uses CREATE_NEW_PROCESS_GROUP and
-// GenerateConsoleCtrlEvent to signal the process group.
-func KillProcessGroup(enabled bool) RunnerOption {
-	return func(r *Runner) error {
-		r.killProcessGroup = enabled
-		return nil
-	}
-}
+
 
 // Params populates the shell options and parameters. For example, Params("-e",
 // "--", "foo") will set the "-e" option and the parameters ["foo"], and
