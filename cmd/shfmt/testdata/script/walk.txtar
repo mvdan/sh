@@ -99,6 +99,7 @@ modify${/}ext.zsh
 modify${/}shebang-args
 modify${/}shebang-bash
 modify${/}shebang-bash.sh
+modify${/}shebang-dash
 modify${/}shebang-env-bash
 modify${/}shebang-env-bats
 modify${/}shebang-env-sh
@@ -119,6 +120,7 @@ modify${/}ext.zsh
 modify${/}shebang-args
 modify${/}shebang-bash
 modify${/}shebang-bash.sh
+modify${/}shebang-dash
 modify${/}shebang-env-bash
 modify${/}shebang-env-bats
 modify${/}shebang-env-sh
@@ -137,6 +139,9 @@ modify${/}shebang-zsh
 -- modify/shebang-bash.sh --
 #!/bin/bash
  foo=(bar)
+-- modify/shebang-dash --
+#!/bin/dash
+ foo
 -- modify/shebang-usr-sh --
 #!/usr/bin/sh
  foo

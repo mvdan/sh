@@ -1,5 +1,56 @@
 # Changelog
 
+## [3.13.1] - 2026-03-09
+
+- **cmd/shfmt**
+  - Add support for `[[zsh]]` in EditorConfig files
+  - Detect the shell variant from filenames like `.zshrc` and `.bash_profile`
+  - Fix `--apply-ignore` when used with explicit args - #1310
+- **syntax**
+  - Revert an accidental change to how array subscripts are formatted - #1314
+  - Never join `;;` with the previous line when formatting - #1289
+  - Fix a bug where `$1[foo]` was parsed as a subscript in Zsh - #1288
+  - Correctly parse `$!` in double quotes in Zsh - #1298
+  - Allow indexing into special parameters in Zsh - #1299
+  - Allow parameter expansions with empty names in Zsh - #1280
+- **interp**
+  - Test against Bash 5.3 and fix three new discrepancies
+  - Fix a few bugs related to `nameref` variables
+  - Avoid panics when user input encounters unimplemented features
+
+## [3.13.0] - 2026-03-09
+
+This release introduces support for [Zsh](https://www.zsh.org/)
+in the parser and formatter, which was tracked in issue #120
+alongside the label https://github.com/mvdan/sh/labels/zsh.
+While support is not complete, it should be far enough for many use cases.
+
+This release also drops support for Go 1.24 and includes many other enhancements:
+
+- **cmd/shfmt**
+  - Exit with a non-zero status when `-l` prints any filenames
+  - `shfmt -version` is now derived from the git current tag, dropping the `-ldflags` workaround
+- **syntax**
+  - New nodes types and node fields are introduced alongside `LangZsh`
+  - `LangVariant` is now a bitset, allowing the use of sets like "Bash-like"
+  - Add `InteractiveSeq` and `StmtsSeq` iterator methods for `Parser`
+  - Stop exposing the internal buffer in `Printer` via struct embedding
+  - Support the use of brace expansions like `declare {a,b}_c=value`
+  - Fix a bug where POSIX and Bash incorrectly allowed empty command lists
+- **interp**
+  - Add support for `shopt -s dotglob` and `shopt -s extglob`
+  - Add support for simple uses of `!(expr)` extended glob patterns
+  - Support more builtin flags for `declare`, `type`, `read`
+  - Fix various bugs relating to nulls, errors, and arrays
+- **expand**
+  - Add `Config.DotGlob` and `Config.ExtGlob` for the interpreter
+  - Add `Variable.Flags` to get the one-character `declare` flags
+  - Do not force env vars on Windows to be uppercase
+  - Fix various bugs relating to glob pattern matching
+- **pattern**
+  - Add `GlobLeadingDot` and `ExtendedOperators` for the interpreter
+  - Add `NegExtGlobError` to mark the use of `!(expr)` negation patterns
+
 ## [3.12.0] - 2025-07-06
 
 - The `mvdan-sh` JS package is discontinued in favor of `sh-syntax` - #1145
@@ -53,8 +104,6 @@ This release drops support for Go 1.22 and includes many enhancements.
   - Don't expand backslashes inside here-documents - #1070
   - Replace the `Unset` kind with a new `Variable.Set` boolean field
 
-Consider [becoming a sponsor](https://github.com/sponsors/mvdan) if you benefit from the work that went into this release!
-
 ## [3.10.0] - 2024-10-20
 
 - **cmd/shfmt**
@@ -69,8 +118,6 @@ Consider [becoming a sponsor](https://github.com/sponsors/mvdan) if you benefit 
   - Fix a regression in `v3.9.0` where `HandlerContext.Stdin` was never nil
   - Add an `Interactive` option to be used by interactive shells - #1100
   - Support closing stdin, stdout, and stderr via redirections like `<&-`
-
-Consider [becoming a sponsor](https://github.com/sponsors/mvdan) if you benefit from the work that went into this release!
 
 ## [3.9.0] - 2024-08-16
 
@@ -92,8 +139,6 @@ This release drops support for Go 1.21 and includes many fixes.
   - Don't panic when pattern words are nil - #1076
 
 A special thanks to @theclapp for their contributors to this release!
-
-Consider [becoming a sponsor](https://github.com/sponsors/mvdan) if you benefit from the work that went into this release!
 
 ## [3.8.0] - 2024-02-11
 
@@ -792,6 +837,8 @@ module in v3.
 
 Initial release.
 
+[3.13.1]: https://github.com/mvdan/sh/releases/tag/v3.13.1
+[3.13.0]: https://github.com/mvdan/sh/releases/tag/v3.13.0
 [3.12.0]: https://github.com/mvdan/sh/releases/tag/v3.12.0
 [3.11.0]: https://github.com/mvdan/sh/releases/tag/v3.11.0
 [3.10.0]: https://github.com/mvdan/sh/releases/tag/v3.10.0

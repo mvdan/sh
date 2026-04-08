@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	shebangRe = regexp.MustCompile(`^#![ \t]*/(usr/)?bin/(env[ \t]+)?(sh|bash|mksh|bats|zsh)(\s|$)`)
+	shebangRe = regexp.MustCompile(`^#![ \t]*/(usr/)?bin/(env[ \t]+)?(sh|dash|bash|mksh|bats|zsh)(\s|$)`)
 	extRe     = regexp.MustCompile(`\.(sh|bash|mksh|bats|zsh)$`)
 )
 

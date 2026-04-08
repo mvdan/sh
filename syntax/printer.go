@@ -359,7 +359,7 @@ func (p *Printer) spacedToken(s string, pos Pos) {
 }
 
 func (p *Printer) semiOrNewl(s string, pos Pos) {
-	if p.wantsNewline(Pos{}, false) {
+	if p.wantsNewline(Pos{}, false) || len(p.pendingHdocs) > 0 {
 		p.newline(pos)
 		p.indent()
 	} else {
