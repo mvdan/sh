@@ -390,3 +390,7 @@ func DefaultStatHandler() StatHandlerFunc {
 		}
 	}
 }
+
+// AccessHandlerFunc is a handler which checks file permissions.
+// The context includes a [HandlerContext] value.
+type AccessHandlerFunc func(ctx context.Context, path string, mode uint32) error
