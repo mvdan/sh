@@ -7,6 +7,9 @@ import (
 )
 
 func GetAtime(info fs.FileInfo) time.Time {
-	stat := info.Sys().(*syscall.Win32FileAttributeData)
+	stat, ok := info.Sys().(*syscall.Win32FileAttributeData)
+	if !ok {
+		return info.ModTime()
+	}
 	return time.Unix(0, stat.LastAccessTime.Nanoseconds())
 }
