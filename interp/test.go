@@ -12,7 +12,6 @@ import (
 	"golang.org/x/term"
 
 	"mvdan.cc/sh/v3/expand"
-	actime "mvdan.cc/sh/v3/interp/internal"
 	"mvdan.cc/sh/v3/syntax"
 )
 
@@ -171,7 +170,7 @@ func (r *Runner) unTest(ctx context.Context, op syntax.UnTestOperator, x string)
 		if err != nil {
 			return false
 		}
-		return info.ModTime().After(actime.GetAtime(info))
+		return info.ModTime().After(getAtime(info))
 	case syntax.TsRead:
 		return r.access(ctx, r.absPath(x), access_R_OK) == nil
 	case syntax.TsWrite:

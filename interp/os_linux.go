@@ -1,4 +1,4 @@
-package actime
+package interp
 
 import (
 	"io/fs"
@@ -6,10 +6,11 @@ import (
 	"time"
 )
 
-func GetAtime(info fs.FileInfo) time.Time {
+func getAtime(info fs.FileInfo) time.Time {
 	stat, ok := info.Sys().(*syscall.Stat_t)
+
 	if !ok {
 		return info.ModTime()
 	}
-	return time.Unix(stat.Atimespec.Sec, stat.Atimespec.Nsec)
+	return time.Unix(stat.Atim.Sec, stat.Atim.Nsec)
 }

@@ -1,12 +1,12 @@
 //go:build !linux && !darwin && !windows
 
-package actime
+package interp
 
 import (
 	"io/fs"
 	"time"
 )
 
-func GetAtime(info fs.FileInfo) time.Time {
+func getAtime(info fs.FileInfo) time.Time {
 	return info.ModTime()
 }
