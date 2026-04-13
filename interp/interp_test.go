@@ -1960,9 +1960,20 @@ var runTests = []runTest{
 		"mkdir d; [ -r d ] && echo r; [ -w d ] && echo w; [ -x d ] && echo x",
 		"r\nw\nx\n",
 	},
+	// -N: true if file exists and was modified since last read
 	{
-		"test -N a",
-		"unsupported unary test op: -N\nexit status 1 #IGNORE",
+		">a; cat a; sleep 0.01; echo 'Hello' >> a; test -N a && echo yes",
+		"yes\n",
+	},
+	// -N: false for non-existent file
+	{
+		"test -N nonexistent",
+		"exit status 1",
+	},
+	// -N: false if file was read after last modification
+	{
+		">a; sleep 0.01; cat a; test -N a; echo $?",
+		"1\n",
 	},
 	{
 		"test -? a",
