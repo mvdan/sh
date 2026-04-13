@@ -12,7 +12,7 @@ import (
 	"golang.org/x/term"
 
 	"mvdan.cc/sh/v3/expand"
-	"mvdan.cc/sh/v3/interp/actime"
+	actime "mvdan.cc/sh/v3/interp/internal"
 	"mvdan.cc/sh/v3/syntax"
 )
 

@@ -1,3 +1,5 @@
+//go:build !linux && !darwin && !windows
+
 package actime
 
 import (
