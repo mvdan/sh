@@ -325,7 +325,7 @@ skipSpace:
 			}
 			p.next()
 		case '[':
-			if p.quote == arrayElems {
+			if p.quote == arrayElems && p.arrayIndexAssign() {
 				p.rune()
 				p.tok = leftBrack
 			} else {
@@ -1064,6 +1064,54 @@ func (p *Parser) zshNumRange() bool {
 		rest = rest[1:]
 	}
 	return len(rest) > 0 && rest[0] == '>'
+}
+
+// arrayIndexAssign peeks ahead after a '[' in an array literal and reports
+// whether it begins an indexed assignment like [x]=y rather than a word that
+// happens to start with a bracket glob, like [0-9] or [[:space:]].
+func (p *Parser) arrayIndexAssign() bool {
+	rest := p.bs[p.bsp:]
+	depth := 1
+	var quote byte
+	escaped := false
+	for i, b := range rest {
+		if quote != 0 {
+			if escaped {
+				escaped = false
+				continue
+			}
+			if quote == '"' && b == '\\' {
+				escaped = true
+				continue
+			}
+			if b == quote {
+				quote = 0
+			}
+			continue
+		}
+		if escaped {
+			escaped = false
+			continue
+		}
+		switch b {
+		case '\\':
+			escaped = true
+		case '\'', '"':
+			quote = b
+		case '[':
+			depth++
+		case ']':
+			depth--
+			if depth == 0 {
+				return i+1 < len(rest) && rest[i+1] == '='
+			}
+		}
+	}
+	// If we can't find a matching closing bracket in the buffered input, keep the
+	// existing indexed-assignment tokenization and let the parser report any
+	// syntax errors. This keeps the lookahead conservative and avoids changing
+	// unrelated incomplete forms.
+	return true
 }
 
 func (p *Parser) advanceLitNone(r rune) {

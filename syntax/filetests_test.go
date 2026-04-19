@@ -4915,6 +4915,20 @@ var fileTests = []fileTestCase{
 		}}}, LangBash),
 	),
 	fileTest(
+		[]string{`a=([i])`},
+		langFile(&CallExpr{Assigns: []*Assign{{
+			Name: lit("a"),
+			Array: arrValues(word(lit("[i]"))),
+		}}}, LangBash|LangZsh),
+	),
+	fileTest(
+		[]string{`a=("foo"[0-9])`},
+		langFile(&CallExpr{Assigns: []*Assign{{
+			Name: lit("a"),
+			Array: arrValues(word(dblQuoted(lit("foo")), lit("[0-9]"))),
+		}}}, LangBash|LangZsh),
+	),
+	fileTest(
 		[]string{"a]b"},
 		langFile(litStmt("a]b")),
 	),

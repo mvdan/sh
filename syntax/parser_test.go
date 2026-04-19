@@ -1694,11 +1694,6 @@ var errorCases = []errorCase{
 		langErr("1:4: reached `)` without matching `[` with `]`", LangBash|LangZsh),
 	),
 	errCase(
-		"a=([i])",
-		langErr("1:4: `[x]` must be followed by `=`", LangBash|LangZsh),
-		flipConfirmAll, // TODO: why is this valid?
-	),
-	errCase(
 		"a[i]=(y)",
 		langErr("1:5: arrays cannot be nested", LangBash),
 	),
