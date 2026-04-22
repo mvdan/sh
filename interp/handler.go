@@ -155,6 +155,12 @@ func DefaultExecHandler(killTimeout time.Duration) ExecHandlerFunc {
 			})
 			defer stopf()
 
+			// Set the command's process group as foreground so that signals
+			// (e.g., SIGINT) are delivered to it.
+			setProcessForeground(cmd.Process.Pid, hc.runner.stdin.Fd())
+			// Restore the shell's process group as foreground when done.
+			defer restoreForeground(hc.runner.stdin.Fd())
+
 			err = cmd.Wait()
 		}
 
