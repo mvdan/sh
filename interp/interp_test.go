@@ -2074,6 +2074,44 @@ var runTests = []runTest{
 		"2 3\n",
 	},
 	{
+		"echo $((255+1))",
+		"256\n",
+	},
+	{
+		"echo $((0xff+1))",
+		"256\n",
+	},
+	{
+		"echo $((0377+1))",
+		"256\n",
+	},
+	{
+		"echo $((10#255+1))",
+		"256\n",
+	},
+	{
+		"echo $((16#ff+1))",
+		"256\n",
+	},
+	{
+		"echo $((2#11111111+1))",
+		"256\n",
+	},
+	// TODO: Enable this test once integer bit widths are
+	// handled in a consistent manner throughout the library.
+	//{
+	//	"echo $((16#badc0ffee+1))",
+	//	"50159747055\n",
+	//},
+	{
+		"echo $((16#cafe+1))",
+		"51967\n",
+	},
+	{
+		"echo $((nope+1))",
+		"1\n", // Yes, this is what bash does.
+	},
+	{
 		"((1))",
 		"",
 	},
