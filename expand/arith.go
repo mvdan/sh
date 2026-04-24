@@ -111,10 +111,25 @@ func oneIf(b bool) int {
 	return 0
 }
 
-// atoi is like [strconv.ParseInt](s, 10, 64), but it ignores errors and trims whitespace.
+// atoi is like [strconv.ParseInt](s, BASE, 64), but it handles integer
+// base prefixes and ignores errors and trims whitespace.
 func atoi(s string) int64 {
 	s = strings.TrimSpace(s)
-	n, _ := strconv.ParseInt(s, 10, 64)
+        base := 10
+        if len(s) > 2 {
+                switch s[0:2] {
+                case "0b":
+                        base = 2
+                        s = s[2:]
+                case "0o":
+                        base = 8
+                        s = s[2:]
+                case "0x":
+                        base = 16
+                        s = s[2:]
+                }
+        }
+	n, _ := strconv.ParseInt(s, base, 64)
 	return n
 }
 
