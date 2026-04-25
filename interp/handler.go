@@ -138,21 +138,28 @@ func DefaultExecHandler(killTimeout time.Duration) ExecHandlerFunc {
 			Stdout: hc.Stdout,
 			Stderr: hc.Stderr,
 		}
+		prepareCommand(&cmd)
 
 		err = cmd.Start()
 		if err == nil {
 			stopf := context.AfterFunc(ctx, func() {
 				if killTimeout <= 0 || runtime.GOOS == "windows" {
-					_ = cmd.Process.Signal(os.Kill)
+					_ = killCommand(&cmd)
 					return
 				}
-				_ = cmd.Process.Signal(os.Interrupt)
+				_ = interruptCommand(&cmd)
 				// TODO: don't sleep in this goroutine if the program
 				// stops itself with the interrupt above.
 				time.Sleep(killTimeout)
-				_ = cmd.Process.Signal(os.Kill)
+				_ = killCommand(&cmd)
 			})
 			defer stopf()
+
+			// Set the command's process group as foreground so that signals
+			// (e.g., SIGINT) are delivered to it.
+			setProcessForeground(cmd.Process.Pid, hc.runner.stdin.Fd())
+			// Restore the shell's process group as foreground when done.
+			defer restoreForeground(hc.runner.stdin.Fd())
 
 			err = cmd.Wait()
 		}
