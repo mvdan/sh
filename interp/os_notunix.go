@@ -59,7 +59,8 @@ func (waitStatus) Signaled() bool { return false }
 func (waitStatus) Signal() int    { return 0 }
 
 // prepareCommand is a no-op.
-func prepareCommand(cmd *exec.Cmd)             {}
+func prepareCommand(cmd *exec.Cmd) {}
+
 // setProcessForeground is a no-op on non-Unix systems.
 func setProcessForeground(pid int, fd uintptr) {}
 
