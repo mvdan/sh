@@ -92,6 +92,39 @@ func TestFieldsIdempotency(t *testing.T) {
 	}
 }
 
+func TestFieldsBraceEscapes(t *testing.T) {
+	tests := []struct {
+		src  string
+		want []string
+	}{
+		{`\{a,b}`, []string{"{a,b}"}},
+		{`\\{a,b}`, []string{`\a`, `\b`}},
+		{`\\\{a,b}`, []string{`\{a,b}`}},
+		{`{a\,b,c}`, []string{"a,b", "c"}},
+		{`{a\}b,c}`, []string{"a}b", "c"}},
+		{`{1\..3,foo}`, []string{"1..3", "foo"}},
+		{`\{{x},z}`, []string{"{x}", "{z"}},
+		{`\{{x,y},z}`, []string{"{x,z}", "{y,z}"}},
+		{`\{{x}y,z}`, []string{"{x}y", "{z"}},
+		{`\{{1..3},}`, []string{"{1,}", "{2,}", "{3,}"}},
+		{`\{{1\..3},}`, []string{"{1..3}", "{"}},
+		{`{x},z}`, []string{"x}", "z"}},
+		{`{{x},z}`, []string{"{x}", "z"}},
+	}
+	for _, tc := range tests {
+		t.Run(tc.src, func(t *testing.T) {
+			word := parseWord(t, tc.src)
+			got, err := Fields(nil, word)
+			if err != nil {
+				t.Fatalf("did not want error, got %v", err)
+			}
+			if !reflect.DeepEqual(got, tc.want) {
+				t.Fatalf("wanted %q, got %q", tc.want, got)
+			}
+		})
+	}
+}
+
 func Test_glob(t *testing.T) {
 	cfg := &Config{
 		ReadDir2: func(string) ([]fs.DirEntry, error) {

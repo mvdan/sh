@@ -16,6 +16,22 @@ var (
 	litRightBrace = &Lit{Value: "}"}
 )
 
+// braceEscaped reports whether s[i] is quoted by a backslash.
+//
+// The parser keeps backslashes in literal word parts until quote removal,
+// but brace expansion happens before quote removal. SplitBraces must therefore
+// distinguish unquoted brace metacharacters from escaped literal bytes. An odd
+// number of immediately preceding backslashes quotes s[i]; an even number leaves
+// s[i] unquoted because the backslashes pair up as literal backslashes.
+func braceEscaped(s string, i int) bool {
+	count := 0
+	for i > 0 && s[i-1] == '\\' {
+		count++
+		i--
+	}
+	return count%2 == 1
+}
+
 // SplitBraces parses brace expansions within a word's literal parts.
 // If any valid brace expansions are found, they are replaced with BraceExp nodes,
 // and the function returns true.
@@ -73,19 +89,22 @@ func SplitBraces(word *Word) bool {
 			}
 			switch lit.Value[j] {
 			case '{':
+				if braceEscaped(lit.Value, j) {
+					continue
+				}
 				addlitidx()
 				acc = &Word{}
 				cur = &BraceExp{Elems: []*Word{acc}}
 				open = append(open, cur)
 			case ',':
-				if cur == nil {
+				if cur == nil || braceEscaped(lit.Value, j) {
 					continue
 				}
 				addlitidx()
 				acc = &Word{}
 				cur.Elems = append(cur.Elems, acc)
 			case '.':
-				if cur == nil {
+				if cur == nil || braceEscaped(lit.Value, j) {
 					continue
 				}
 				if j+1 >= len(lit.Value) || lit.Value[j+1] != '.' {
@@ -97,10 +116,19 @@ func SplitBraces(word *Word) bool {
 				cur.Elems = append(cur.Elems, acc)
 				j++
 			case '}':
-				if cur == nil {
+				if cur == nil || braceEscaped(lit.Value, j) {
 					continue
 				}
 				addlitidx()
+				if len(open) == 1 && len(cur.Elems) == 1 && !cur.Sequence {
+					// A single-element top-level brace cannot form an
+					// expansion yet, but a later comma or sequence operator
+					// might; bash treats this '}' as literal in cases like
+					// {x},y}. Nested single-element braces are still closed
+					// below so that {{x},y} expands to {x} and y.
+					addLit(litRightBrace)
+					break
+				}
 				br := pop()
 				if len(br.Elems) == 1 {
 					// return {x} to a non-brace
