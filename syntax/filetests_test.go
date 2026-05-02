@@ -5213,6 +5213,76 @@ var fileTests = []fileTestCase{
 		)),
 	),
 	fileTest(
+		[]string{"${=foo}"},
+		langFile(&ParamExp{
+			Split: OptOn,
+			Param: lit("foo"),
+		}, LangZsh),
+	),
+	fileTest(
+		[]string{"${~foo}"},
+		langFile(&ParamExp{
+			GlobSubst: OptOn,
+			Param:     lit("foo"),
+		}, LangZsh),
+	),
+	fileTest(
+		[]string{"${^foo}"},
+		langFile(&ParamExp{
+			RcExpand: OptOn,
+			Param:    lit("foo"),
+		}, LangZsh),
+	),
+	fileTest(
+		[]string{"${==foo}"},
+		langFile(&ParamExp{
+			Split: OptOff,
+			Param: lit("foo"),
+		}, LangZsh),
+	),
+	fileTest(
+		[]string{"${~~foo}"},
+		langFile(&ParamExp{
+			GlobSubst: OptOff,
+			Param:     lit("foo"),
+		}, LangZsh),
+	),
+	fileTest(
+		[]string{"${^^foo}"},
+		langFile(&ParamExp{
+			RcExpand: OptOff,
+			Param:    lit("foo"),
+		}, LangZsh),
+	),
+	fileTest(
+		[]string{"$=foo $^bar $~baz"},
+		langFile(call(
+			word(&ParamExp{
+				Short: true,
+				Split: OptOn,
+				Param: lit("foo"),
+			}),
+			word(&ParamExp{
+				Short:    true,
+				RcExpand: OptOn,
+				Param:    lit("bar"),
+			}),
+			word(&ParamExp{
+				Short:     true,
+				GlobSubst: OptOn,
+				Param:     lit("baz"),
+			}),
+		), LangZsh),
+	),
+	fileTest(
+		[]string{"${(o)=items}"},
+		langFile(&ParamExp{
+			Flags: lit("o"),
+			Split: OptOn,
+			Param: lit("items"),
+		}, LangZsh),
+	),
+	fileTest(
 		[]string{"${(aO)foo} ${(s/x/)foo}"},
 		langFile(call(
 			word(&ParamExp{

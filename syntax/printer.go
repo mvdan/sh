@@ -751,6 +751,22 @@ func (p *Printer) paramExp(pe *ParamExp) {
 	case pe.Excl:
 		p.w.WriteByte('!')
 	}
+	for _, pre := range [...]struct {
+		c     byte
+		state OptState
+	}{
+		{'=', pe.Split},
+		{'~', pe.GlobSubst},
+		{'^', pe.RcExpand},
+	} {
+		if pre.state == OptUnset {
+			continue
+		}
+		p.w.WriteByte(pre.c)
+		if pre.state == OptOff {
+			p.w.WriteByte(pre.c)
+		}
+	}
 	switch {
 	case pe.Param != nil:
 		p.writeLit(pe.Param.Value)

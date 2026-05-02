@@ -1453,6 +1453,44 @@ func (p *Parser) paramExp() *ParamExp {
 		pe.Flags = p.lit(p.pos, p.val)
 		p.rune()
 	}
+	// Zsh-only prefixes that change how the parameter is expanded.
+	// They may appear in any combination, like ${=^name}.
+	// Doubling the rune (${==a}, ${~~a}, ${^^a}) forces the option off.
+zshPrefixLoop:
+	for p.lang.in(LangZsh) {
+		var field *OptState
+		switch p.r {
+		case '=':
+			field = &pe.Split
+		case '~':
+			field = &pe.GlobSubst
+		case '^':
+			field = &pe.RcExpand
+		default:
+			break zshPrefixLoop
+		}
+		next, after := p.peekTwo()
+		state := OptOn
+		check := next
+		if rune(next) == p.r {
+			state = OptOff
+			check = after
+		}
+		if check == utf8.RuneSelf || check == '}' {
+			break zshPrefixLoop
+		}
+		// For the short form, only treat as a prefix if followed by something
+		// that could start a parameter name or another zsh prefix.
+		if pe.Short && check != '=' && check != '~' && check != '^' &&
+			!singleRuneParam(check) && !paramNameRune(check) && check != '"' {
+			break zshPrefixLoop
+		}
+		if state == OptOff {
+			p.rune() // consume the first of the doubled pair
+		}
+		p.rune()
+		*field = state
+	}
 	if !pe.Short || p.lang.in(LangZsh) {
 		// Prefixes, like ${#name} to get the length of a variable.
 		// Note that in Zsh, the short form like $#name is allowed too.

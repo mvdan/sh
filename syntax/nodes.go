@@ -602,6 +602,16 @@ type CmdSubst struct {
 func (c *CmdSubst) Pos() Pos { return c.Left }
 func (c *CmdSubst) End() Pos { return posAddCol(c.Right, 1) }
 
+// OptState represents a boolean option which may be unset
+// on top of being explicitly set on or off.
+type OptState uint8
+
+const (
+	OptUnset OptState = iota // option not set
+	OptOn                    // option set to true
+	OptOff                   // option set to false
+)
+
 // ParamExp represents a parameter expansion.
 type ParamExp struct {
 	Dollar, Rbrace Pos
@@ -620,6 +630,13 @@ type ParamExp struct {
 	Length bool // ${#a}
 	Width  bool // mksh's ${%a}
 	IsSet  bool // ${+a} with [LangZsh]
+
+	// Zsh expansion prefixes that override shell options for this expansion.
+	// They can stack with one another and with the operators above.
+	// The doubled forms (${==a}, ${~~a}, ${^^a}) force the option off.
+	Split     OptState // ${=a} / ${==a} word splitting with [LangZsh]
+	GlobSubst OptState // ${~a} / ${~~a} treat value as a glob pattern with [LangZsh]
+	RcExpand  OptState // ${^a} / ${^^a} RC_EXPAND_PARAM-style array expansion with [LangZsh]
 
 	// Only one of these is set at a time,
 	// or neither with [LangZsh] when the name is omitted.
@@ -650,6 +667,7 @@ type ParamExp struct {
 func (p *ParamExp) simple() bool {
 	return p.Param != nil && p.Flags == nil &&
 		!p.Excl && !p.Length && !p.Width && !p.IsSet &&
+		p.Split == OptUnset && p.GlobSubst == OptUnset && p.RcExpand == OptUnset &&
 		p.NestedParam == nil && p.Index == nil &&
 		len(p.Modifiers) == 0 && p.Slice == nil &&
 		p.Repl == nil && p.Names == 0 && p.Exp == nil
