@@ -120,7 +120,8 @@ func SplitBraces(word *Word) bool {
 				broken := false
 				for i, elem := range br.Elems[:2] {
 					val := elem.Lit()
-					if _, err := strconv.Atoi(val); err == nil {
+					// ParseInt with bit size 64 to ensure consistent behavior on 32-bit platforms.
+					if _, err := strconv.ParseInt(val, 10, 64); err == nil {
 					} else if len(val) == 1 && asciiLetter(val[0]) {
 						chars[i] = true
 					} else {
@@ -130,7 +131,8 @@ func SplitBraces(word *Word) bool {
 				if len(br.Elems) == 3 {
 					// increment must be a number
 					val := br.Elems[2].Lit()
-					if _, err := strconv.Atoi(val); err != nil {
+					// ParseInt with bit size 64 to ensure consistent behavior on 32-bit platforms.
+					if _, err := strconv.ParseInt(val, 10, 64); err != nil {
 						broken = true
 					}
 				}

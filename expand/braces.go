@@ -81,20 +81,22 @@ func bracesSeqRec(word *syntax.Word, yield func(*syntax.Word) bool) bool {
 			zeros := max(extraLeadingZeros(fromLit), extraLeadingZeros(toLit))
 
 			chars := false
-			from, err1 := strconv.Atoi(fromLit)
-			to, err2 := strconv.Atoi(toLit)
+			// ParseInt with bit size 64 to ensure consistent behavior on 32-bit platforms.
+			from, err1 := strconv.ParseInt(fromLit, 10, 64)
+			to, err2 := strconv.ParseInt(toLit, 10, 64)
 			if err1 != nil || err2 != nil {
 				chars = true
-				from = int(fromLit[0])
-				to = int(toLit[0])
+				from = int64(fromLit[0])
+				to = int64(toLit[0])
 			}
 			upward := from <= to
-			incr := 1
+			incr := int64(1)
 			if !upward {
 				incr = -1
 			}
 			if len(br.Elems) > 2 {
-				n, _ := strconv.Atoi(br.Elems[2].Lit())
+				// ParseInt with bit size 64 to ensure consistent behavior on 32-bit platforms.
+				n, _ := strconv.ParseInt(br.Elems[2].Lit(), 10, 64)
 				if n != 0 && n > 0 == upward {
 					incr = n
 				}
@@ -105,7 +107,7 @@ func bracesSeqRec(word *syntax.Word, yield func(*syntax.Word) bool) bool {
 				if chars {
 					lit.Value = string(rune(n))
 				} else {
-					lit.Value = strings.Repeat("0", zeros) + strconv.Itoa(n)
+					lit.Value = strings.Repeat("0", zeros) + strconv.FormatInt(n, 10)
 				}
 				next.Parts = append([]syntax.WordPart{lit}, rest...)
 				if !expand(&next) {
