@@ -337,6 +337,18 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 				}
 			case "P":
 				// TODO: implement prompt expansion (\u, \h, \w, etc.).
+			case "U":
+				str = strings.ToUpper(str)
+			case "u":
+				rs := []rune(str)
+				if len(rs) > 0 {
+					rs[0] = unicode.ToUpper(rs[0])
+					str = string(rs)
+				}
+			case "L":
+				str = strings.ToLower(str)
+			case "K", "k":
+				// TODO: implement, like @A but listing keys for assoc arrays.
 			default:
 				panic(fmt.Sprintf("unexpected @%s param expansion", arg))
 			}

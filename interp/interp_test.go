@@ -736,6 +736,22 @@ var runTests = []runTest{
 		"declare -x e=1\n #IGNORE bash always single-quotes",
 	},
 	{
+		`a=Hello; echo "${a@U}"`,
+		"HELLO\n",
+	},
+	{
+		`a=hello; echo "${a@u}"`,
+		"Hello\n",
+	},
+	{
+		`a=HELLO; echo "${a@L}"`,
+		"hello\n",
+	},
+	{
+		`a=foo; echo "<${a@K}><${a@k}>"`,
+		"<foo><foo>\n #IGNORE not implemented; must not panic",
+	},
+	{
 		"declare a; a+=(b); echo ${a[@]} ${#a[@]}",
 		"b 1\n",
 	},
