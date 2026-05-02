@@ -185,6 +185,60 @@ func TestBraces(t *testing.T) {
 	}
 }
 
+func TestBracesSeq(t *testing.T) {
+	t.Parallel()
+	for _, tc := range braceTests {
+		t.Run("", func(t *testing.T) {
+			inStr := printWords(tc.in)
+			wantStr := printWords(tc.want...)
+
+			inBraces := *tc.in
+			syntax.SplitBraces(&inBraces)
+
+			var got []*syntax.Word
+			for w, err := range BracesSeq(nil, &inBraces) {
+				if err != nil {
+					t.Fatalf("unexpected error on %q: %v", inStr, err)
+				}
+				got = append(got, w)
+			}
+			gotStr := printWords(got...)
+			if gotStr != wantStr {
+				t.Fatalf("mismatch in %q\nwant:\n%s\ngot: %s",
+					inStr, wantStr, gotStr)
+			}
+		})
+	}
+}
+
+func TestBracesSeqError(t *testing.T) {
+	t.Parallel()
+	tests := []string{
+		"{1..100000}",
+		"a{0..9223372036854775807}b",
+		"{-9223372036854775808..9223372036854775807}",
+		"{1..1000000000..1}",
+		"{1..100}{1..100}{1..100}",
+		"{a,b,c,d}{1..100}{1..100}{1..50}",
+	}
+	for _, in := range tests {
+		t.Run(in, func(t *testing.T) {
+			word := &syntax.Word{Parts: []syntax.WordPart{lit(in)}}
+			syntax.SplitBraces(word)
+			var gotErr error
+			for _, err := range BracesSeq(nil, word) {
+				if err != nil {
+					gotErr = err
+					break
+				}
+			}
+			if gotErr == nil {
+				t.Fatalf("expected error for %q", in)
+			}
+		})
+	}
+}
+
 func wantBraceExpParts(t *testing.T, word *syntax.Word, want bool) {
 	t.Helper()
 	anyBrace := false

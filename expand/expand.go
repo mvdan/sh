@@ -460,43 +460,55 @@ func FieldsSeq(cfg *Config, words ...*syntax.Word) iter.Seq2[string, error] {
 	cfg = prepareConfig(cfg)
 	dir := cfg.envGet("PWD")
 	return func(yield func(string, error) bool) {
+		expandWord := func(w *syntax.Word) (stop bool) {
+			wfields, err := cfg.wordFields(w.Parts)
+			if err != nil {
+				yield("", err)
+				return true
+			}
+			for _, field := range wfields {
+				path, doGlob := cfg.escapedGlobField(field)
+				if doGlob && cfg.ReadDir2 != nil {
+					// Note that globbing requires keeping a slice state, so it doesn't
+					// really benefit from using an iterator.
+					matches, err := cfg.glob(dir, path)
+					if err != nil {
+						// We avoid [errors.As] as it allocates,
+						// and we know that [Config.glob] returns [pattern.Regexp] errors without wrapping.
+						if _, ok := err.(*pattern.SyntaxError); !ok {
+							yield("", err)
+							return true
+						}
+					} else if len(matches) > 0 || cfg.NullGlob {
+						for _, m := range matches {
+							if !yield(m, nil) {
+								return true
+							}
+						}
+						continue
+					}
+				}
+				if !yield(cfg.fieldJoin(field), nil) {
+					return true
+				}
+			}
+			return false
+		}
 		for _, word := range words {
 			word := *word // make a copy, since SplitBraces replaces the Parts slice
-			afterBraces := []*syntax.Word{&word}
-			if syntax.SplitBraces(&word) {
-				afterBraces = Braces(&word)
+			if !syntax.SplitBraces(&word) {
+				if expandWord(&word) {
+					return
+				}
+				continue
 			}
-			for _, word2 := range afterBraces {
-				wfields, err := cfg.wordFields(word2.Parts)
+			for w, err := range BracesSeq(cfg, &word) {
 				if err != nil {
 					yield("", err)
 					return
 				}
-				for _, field := range wfields {
-					path, doGlob := cfg.escapedGlobField(field)
-					if doGlob && cfg.ReadDir2 != nil {
-						// Note that globbing requires keeping a slice state, so it doesn't
-						// really benefit from using an iterator.
-						matches, err := cfg.glob(dir, path)
-						if err != nil {
-							// We avoid [errors.As] as it allocates,
-							// and we know that [Config.glob] returns [pattern.Regexp] errors without wrapping.
-							if _, ok := err.(*pattern.SyntaxError); !ok {
-								yield("", err)
-								return
-							}
-						} else if len(matches) > 0 || cfg.NullGlob {
-							for _, m := range matches {
-								if !yield(m, nil) {
-									return
-								}
-							}
-							continue
-						}
-					}
-					if !yield(cfg.fieldJoin(field), nil) {
-						return
-					}
+				if expandWord(w) {
+					return
 				}
 			}
 		}

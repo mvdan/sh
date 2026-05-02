@@ -3352,6 +3352,14 @@ done <<< 2`,
 	{`echo a{1\}2,3}b`, "a1}2b a3b\n"},
 	{`echo a{1\..2}b`, "a{1..2}b\n"},
 	{`echo \{\{iriname\}\}`, "{{iriname}}\n"},
+	{
+		"echo {1..100000}",
+		"brace expansion would exceed 16384 elements\n #IGNORE bash has no defensive limit below MaxInt",
+	},
+	{
+		"echo a{0..9999999999}b",
+		"brace expansion would exceed 16384 elements\n #JUSTERR bash errors with a different message",
+	},
 
 	// brace expansion in declarations
 	{"declare {A,B}_VAR=1; echo $A_VAR $B_VAR", "1 1\n"},

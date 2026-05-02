@@ -4,6 +4,8 @@
 package expand
 
 import (
+	"fmt"
+	"iter"
 	"strconv"
 	"strings"
 
@@ -15,8 +17,48 @@ import (
 // "foo{bar,baz}" will return two literal words, "foobar" and "foobaz".
 //
 // Note that the resulting words may share word parts.
+//
+// Deprecated: use [BracesSeq], which yields words lazily and reports an
+// error rather than letting a large sequence allocate huge amounts.
 func Braces(word *syntax.Word) []*syntax.Word {
 	var all []*syntax.Word
+	bracesSeqRec(word, func(w *syntax.Word) bool {
+		all = append(all, w)
+		return true
+	})
+	return all
+}
+
+// BracesSeq performs brace expansion on a word, given that it contains any
+// [syntax.BraceExp] parts. For example, the word with a brace expansion
+// "foo{bar,baz}" will return two literal words, "foobar" and "foobaz".
+//
+// The iteration yields an error and stops if the total expansion is too
+// large, including combinatorial blow-ups across multiple brace expansions
+// like {1..100}{1..100}{1..100}. This may be configurable with cfg in the
+// future; the parameter is entirely unused for now.
+//
+// Note that the resulting words may share word parts.
+func BracesSeq(cfg *Config, word *syntax.Word) iter.Seq2[*syntax.Word, error] {
+	return func(yield func(*syntax.Word, error) bool) {
+		// 16Ki expanded elements is more than any script should need in practice,
+		// but it's small enough where we don't waste too much memory and CPU.
+		const limit = 16 << 10
+		count := 0
+		bracesSeqRec(word, func(w *syntax.Word) bool {
+			count++
+			if count > limit {
+				yield(nil, fmt.Errorf("brace expansion would exceed %d elements", limit))
+				return false
+			}
+			return yield(w, nil)
+		})
+	}
+}
+
+// bracesSeqRec yields each fully-expanded word descended from word.
+// It returns false if iteration should stop.
+func bracesSeqRec(word *syntax.Word, yield func(*syntax.Word) bool) bool {
 	var left []syntax.WordPart
 	for i, wp := range word.Parts {
 		br, ok := wp.(*syntax.BraceExp)
@@ -24,19 +66,27 @@ func Braces(word *syntax.Word) []*syntax.Word {
 			left = append(left, wp)
 			continue
 		}
+		rest := word.Parts[i+1:]
+		// Yield each word produced by recursing on `next`,
+		// after prepending `left` to its Parts.
+		expand := func(next *syntax.Word) bool {
+			return bracesSeqRec(next, func(w *syntax.Word) bool {
+				w.Parts = append(append([]syntax.WordPart(nil), left...), w.Parts...)
+				return yield(w)
+			})
+		}
 		if br.Sequence {
-			chars := false
-
 			fromLit := br.Elems[0].Lit()
 			toLit := br.Elems[1].Lit()
 			zeros := max(extraLeadingZeros(fromLit), extraLeadingZeros(toLit))
 
+			chars := false
 			from, err1 := strconv.Atoi(fromLit)
 			to, err2 := strconv.Atoi(toLit)
 			if err1 != nil || err2 != nil {
 				chars = true
-				from = int(br.Elems[0].Lit()[0])
-				to = int(br.Elems[1].Lit()[0])
+				from = int(fromLit[0])
+				to = int(toLit[0])
 			}
 			upward := from <= to
 			incr := 1
@@ -49,45 +99,31 @@ func Braces(word *syntax.Word) []*syntax.Word {
 					incr = n
 				}
 			}
-			n := from
-			for {
-				if upward && n > to {
-					break
-				}
-				if !upward && n < to {
-					break
-				}
+			for n := from; (upward && n <= to) || (!upward && n >= to); n += incr {
 				next := *word
-				next.Parts = next.Parts[i+1:]
 				lit := &syntax.Lit{}
 				if chars {
 					lit.Value = string(rune(n))
 				} else {
 					lit.Value = strings.Repeat("0", zeros) + strconv.Itoa(n)
 				}
-				next.Parts = append([]syntax.WordPart{lit}, next.Parts...)
-				exp := Braces(&next)
-				for _, w := range exp {
-					w.Parts = append(left, w.Parts...)
+				next.Parts = append([]syntax.WordPart{lit}, rest...)
+				if !expand(&next) {
+					return false
 				}
-				all = append(all, exp...)
-				n += incr
 			}
-			return all
+			return true
 		}
 		for _, elem := range br.Elems {
 			next := *word
-			next.Parts = next.Parts[i+1:]
-			next.Parts = append(elem.Parts, next.Parts...)
-			exp := Braces(&next)
-			for _, w := range exp {
-				w.Parts = append(left, w.Parts...)
+			next.Parts = append(append([]syntax.WordPart(nil), elem.Parts...), rest...)
+			if !expand(&next) {
+				return false
 			}
-			all = append(all, exp...)
 		}
-		return all
+		return true
 	}
-	return []*syntax.Word{{Parts: left}}
+	return yield(&syntax.Word{Parts: left})
 }
 
 func extraLeadingZeros(s string) int {
