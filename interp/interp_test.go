@@ -3329,6 +3329,13 @@ done <<< 2`,
 	{"b=c; echo ${b}a{4..1..1}", "ca4 ca3 ca2 ca1\n"},
 	{"b=c; echo a{1,2}$b", "a1c a2c\n"},
 	{"echo a{1,2}'bc'", "a1bc a2bc\n"},
+	{`echo a\{1,2}b`, "a{1,2}b\n"},
+	{`echo a{1,2\`, "a{1,2\\\n"},
+	{`echo a{1,2\}b`, "a{1,2}b\n"},
+	{`echo a{1\,2,3}b`, "a1,2b a3b\n"},
+	{`echo a{1\}2,3}b`, "a1}2b a3b\n"},
+	{`echo a{1\..2}b`, "a{1..2}b\n"},
+	{`echo \{\{iriname\}\}`, "{{iriname}}\n"},
 
 	// brace expansion in declarations
 	{"declare {A,B}_VAR=1; echo $A_VAR $B_VAR", "1 1\n"},

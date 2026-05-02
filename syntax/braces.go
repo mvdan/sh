@@ -72,6 +72,9 @@ func SplitBraces(word *Word) bool {
 				addLit(&l2)
 			}
 			switch lit.Value[j] {
+			case '\\':
+				j++
+				continue
 			case '{':
 				addlitidx()
 				acc = &Word{}
