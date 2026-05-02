@@ -7,9 +7,12 @@ package interp
 
 import (
 	"context"
+	"os/exec"
+	"os/signal"
 	"os/user"
 	"strconv"
 	"syscall"
+	"unsafe"
 
 	"golang.org/x/sys/unix"
 	"mvdan.cc/sh/v3/syntax"
@@ -46,3 +49,48 @@ func (r *Runner) unTestOwnOrGrp(ctx context.Context, op syntax.UnTestOperator, x
 }
 
 type waitStatus = syscall.WaitStatus
+
+// prepareCommand sets the SysProcAttr for the command to create a new process group.
+func prepareCommand(cmd *exec.Cmd) {
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+}
+
+// setProcessForeground sets the given process group as the foreground process group
+// on the terminal associated with fd. This ensures that signals like SIGINT are
+// delivered to the process group.
+func setProcessForeground(pid int, fd uintptr) {
+	signal.Ignore(syscall.SIGTTOU)
+	defer signal.Reset(syscall.SIGTTOU)
+
+	syscall.Syscall(
+		syscall.SYS_IOCTL,
+		fd,
+		syscall.TIOCSPGRP,
+		uintptr(unsafe.Pointer(&pid)),
+	)
+}
+
+// restoreForeground restores the shell's process group as the foreground process group
+// on the terminal associated with fd.
+func restoreForeground(fd uintptr) {
+	signal.Ignore(syscall.SIGTTOU)
+	defer signal.Reset(syscall.SIGTTOU)
+
+	shPgid, _ := syscall.Getpgid(0)
+	syscall.Syscall(
+		syscall.SYS_IOCTL,
+		fd,
+		syscall.TIOCSPGRP,
+		uintptr(unsafe.Pointer(&shPgid)),
+	)
+}
+
+// interruptCommand interrupts the whole process group.
+func interruptCommand(cmd *exec.Cmd) error {
+	return unix.Kill(-cmd.Process.Pid, unix.SIGINT)
+}
+
+// killCommand kills the whole process group.
+func killCommand(cmd *exec.Cmd) error {
+	return unix.Kill(-cmd.Process.Pid, unix.SIGKILL)
+}
