@@ -111,10 +111,48 @@ func oneIf(b bool) int {
 	return 0
 }
 
-// atoi is like [strconv.ParseInt](s, 10, 64), but it ignores errors and trims whitespace.
+// atoi is like [strconv.ParseInt](s, BASE, 64), but it handles integer
+// base prefixes according to bash-shell's rules, ignores errors, and
+// trims whitespace.
+//
+// Here is how bash handles integer parsing according to its manual page:
+//
+//	Integer constants follow the C language definition, without
+//	suffixes or character constants. Constants with a leading 0 are
+//	interpreted as octal numbers. A leading 0x or 0X denotes
+//	hexadecimal. Otherwise, numbers take the form [base#]n, where the
+//	optional base is a decimal number between 2 and 64 representing
+//	the arithmetic base, and n is a number in that base. If base# is
+//	omitted, then base 10 is used. When specifying n, if a non-digit
+//	is required, the digits greater than 9 are represented by the
+//	lowercase letters, the uppercase letters, @, and _, in that order.
+//	If base is less than or equal to 36, lowercase and uppercase
+//	letters may be used interchangeably to represent numbers between
+//	10 and 35.
+//
+// - https://www.man7.org/linux/man-pages/man1/bash.1.html
 func atoi(s string) int64 {
 	s = strings.TrimSpace(s)
-	n, _ := strconv.ParseInt(s, 10, 64)
+	base := int64(10)
+	switch {
+	case strings.HasPrefix(s, "0x") || strings.HasPrefix(s, "0X"):
+		base = 16
+		s = s[2:]
+	case strings.HasPrefix(s, "0"):
+		base = 8
+		s = s[1:]
+	default:
+		baseStr, intStr, hasSep := strings.Cut(s, "#")
+		if hasSep {
+			var err error
+			base, err = strconv.ParseInt(baseStr, 10, 8)
+			if err != nil || base > 64 {
+				return 0
+			}
+			s = intStr
+		}
+	}
+	n, _ := strconv.ParseInt(s, int(base), 64)
 	return n
 }
 

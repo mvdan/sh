@@ -133,6 +133,58 @@ func Test_glob(t *testing.T) {
 	}
 }
 
+func TestArith(t *testing.T) {
+	tests := []struct {
+		src  string
+		want []string
+	}{
+		{
+			"$((255+1))",
+			[]string{"256"},
+		},
+		{
+			"$((0xff+1))",
+			[]string{"256"},
+		},
+		{
+			"$((0377+1))",
+			[]string{"256"},
+		},
+		{
+			"$((10#255+1))",
+			[]string{"256"},
+		},
+		{
+			"$((16#ff+1))",
+			[]string{"256"},
+		},
+		{
+			"$((2#11111111+1))",
+			[]string{"256"},
+		},
+		{
+			"$((16#badc0ffee+1))",
+			[]string{"50159747055"},
+		},
+		{
+			"$((nope+1))",
+			[]string{"1"}, // Yes, this is what bash does.
+		},
+	}
+	for _, tc := range tests {
+		word := parseWord(t, tc.src)
+		for range 2 {
+			got, err := Fields(nil, word)
+			if err != nil {
+				t.Fatalf("did not want error, got %v", err)
+			}
+			if !reflect.DeepEqual(got, tc.want) {
+				t.Fatalf("wanted %q, got %q", tc.want, got)
+			}
+		}
+	}
+}
+
 type mockFileInfo struct {
 	name        string
 	typ         fs.FileMode
