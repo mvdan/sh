@@ -4078,6 +4078,14 @@ var fileTests = []fileTestCase{
 		}}, LangZsh),
 	),
 	fileTest(
+		[]string{`echo (foo|bar).baz`},
+		langFile(call(litWord("echo"), word(lit("(foo|bar)"), lit(".baz"))), LangZsh),
+	),
+	fileTest(
+		[]string{`ls (#i)*.mod`},
+		langFile(call(litWord("ls"), word(lit("(#i)"), lit("*.mod"))), LangZsh),
+	),
+	fileTest(
 		[]string{`[[ a =~ -n ]]`},
 		langFile(&TestClause{X: &BinaryTest{
 			Op: TsReMatch,

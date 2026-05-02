@@ -2821,6 +2821,16 @@ func (p *Parser) testDecl(s *Stmt) {
 	s.Cmd = td
 }
 
+func (p *Parser) unexpectedInCallExpr(ce *CallExpr) {
+	// Note that we'll only keep the first error that happens.
+	if len(ce.Args) > 0 {
+		if cmd := ce.Args[0].Lit(); isBashCompoundCommand(_LitWord, cmd) {
+			p.checkLang(p.pos, langBashLike, "the %#q builtin", cmd)
+		}
+	}
+	p.curErr("a command can only contain words and redirects; encountered %#q", p.tok)
+}
+
 func (p *Parser) callExpr(s *Stmt, w *Word, assign bool) {
 	ce := p.call(w)
 	if w == nil {
@@ -2871,23 +2881,23 @@ loop:
 			ce.Args = append(ce.Args, p.wordAnyNumber())
 		case dblLeftParen:
 			p.curErr("%#q can only be used to open an arithmetic cmd", p.tok)
+		case leftParen:
+			if p.lang.in(LangZsh) && p.r != ')' {
+				ce.Args = append(ce.Args, p.wordAnyNumber())
+				break
+			}
+			p.unexpectedInCallExpr(ce)
 		case rightParen:
 			if p.quote == subCmd {
 				break loop
 			}
-			fallthrough
+			p.unexpectedInCallExpr(ce)
 		default:
 			if p.peekRedir() {
 				p.doRedirect(s)
 				continue
 			}
-			// Note that we'll only keep the first error that happens.
-			if len(ce.Args) > 0 {
-				if cmd := ce.Args[0].Lit(); isBashCompoundCommand(_LitWord, cmd) {
-					p.checkLang(p.pos, langBashLike, "the %#q builtin", cmd)
-				}
-			}
-			p.curErr("a command can only contain words and redirects; encountered %#q", p.tok)
+			p.unexpectedInCallExpr(ce)
 		}
 	}
 	if len(ce.Args) == 0 {
