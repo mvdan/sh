@@ -4923,6 +4923,24 @@ var fileTests = []fileTestCase{
 		}}}, LangBash),
 	),
 	fileTest(
+		[]string{`a=(foo[0-9])`},
+		langFile(&CallExpr{Assigns: []*Assign{{
+			Name: lit("a"),
+			Array: &ArrayExpr{Elems: []*ArrayElem{
+				{Value: word(lit("foo"), lit("[0-9]"))},
+			}},
+		}}}, LangBash|LangMirBSDKorn|LangZsh),
+	),
+	fileTest(
+		[]string{`a=("foo"[0-9])`},
+		langFile(&CallExpr{Assigns: []*Assign{{
+			Name: lit("a"),
+			Array: &ArrayExpr{Elems: []*ArrayElem{
+				{Value: word(dblQuoted(lit("foo")), lit("[0-9]"))},
+			}},
+		}}}, LangBash|LangMirBSDKorn|LangZsh),
+	),
+	fileTest(
 		[]string{"a]b"},
 		langFile(litStmt("a]b")),
 	),

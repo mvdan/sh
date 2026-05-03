@@ -325,7 +325,9 @@ skipSpace:
 			}
 			p.next()
 		case '[':
-			if p.quote == arrayElems {
+			// `[` only starts an `[idx]=val` element when it begins a new word;
+			// otherwise it continues a glob like `foo[0-9]`.
+			if p.quote == arrayElems && (p.spaced || p.tok == leftParen || p.tok == _Newl) {
 				p.rune()
 				p.tok = leftBrack
 			} else {
