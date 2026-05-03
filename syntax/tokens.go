@@ -379,6 +379,23 @@ const (
 	TsAfter      = BinTestOperator(rdrOut)           // >
 )
 
+// ParseToken is the inverse of the String method shared by the exported
+// operator types such as [RedirOperator] or [BinAritOperator].
+// The returned value can be converted to any of those types.
+func ParseToken(s string) (uint32, bool) {
+	t, ok := tokenByString[s]
+	return uint32(t), ok
+}
+
+var tokenByString = func() map[string]token {
+	m := make(map[string]token, len(_token_index)-1)
+	for i := range len(_token_index) - 1 {
+		s := _token_name[_token_index[i]:_token_index[i+1]]
+		m[s] = token(i)
+	}
+	return m
+}()
+
 func (o RedirOperator) String() string    { return token(o).String() }
 func (o ProcOperator) String() string     { return token(o).String() }
 func (o GlobOperator) String() string     { return token(o).String() }
