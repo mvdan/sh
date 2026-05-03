@@ -133,9 +133,15 @@ func encodeValue(val reflect.Value) (reflect.Value, string) {
 			return val, ""
 		}
 	case reflect.Uint8, reflect.Uint32:
-		if val.Uint() != 0 {
-			return val, ""
+		if val.Uint() == 0 {
+			break
 		}
+		// Encode token-derived operator enums as their syntax string form
+		// so the wire format stays stable as new tokens are added.
+		if s, ok := reflect.TypeAssert[fmt.Stringer](val); ok {
+			return reflect.ValueOf(s.String()), ""
+		}
+		return val, ""
 	default:
 		panic(val.Kind().String())
 	}
@@ -304,11 +310,19 @@ func decodeValue(val reflect.Value, enc any) error {
 			}
 			val.Set(reflect.Append(val, elem))
 		}
+	case string:
+		if val.Kind() == reflect.Uint32 {
+			v, ok := syntax.ParseToken(enc)
+			if !ok {
+				return fmt.Errorf("unknown %s value: %q", val.Type(), enc)
+			}
+			val.SetUint(uint64(v))
+			return nil
+		}
+		val.SetString(enc)
 	case float64:
-		// Tokens and thus operators are uint32, but encoding/json defaults to float64.
-		// TODO: reject invalid operators.
-		u := uint64(enc)
-		val.SetUint(u)
+		// Note that encoding/json defaults to float64 for numbers.
+		val.SetUint(uint64(enc))
 	default:
 		if enc != nil {
 			val.Set(reflect.ValueOf(enc))
