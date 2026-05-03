@@ -2725,6 +2725,36 @@ var fileTests = []fileTestCase{
 		}, LangZsh),
 	),
 	fileTest(
+		[]string{`${array[(i)--]}`},
+		langFile(&ParamExp{
+			Param: lit("array"),
+			Index: &FlagsArithm{
+				Flags: lit("i"),
+				X:     litWord("--"),
+			},
+		}, LangZsh),
+	),
+	fileTest(
+		[]string{`${array[(R)/*]}`},
+		langFile(&ParamExp{
+			Param: lit("array"),
+			Index: &FlagsArithm{
+				Flags: lit("R"),
+				X:     litWord("/*"),
+			},
+		}, LangZsh),
+	),
+	fileTest(
+		[]string{`${array[(i)&]}`},
+		langFile(&ParamExp{
+			Param: lit("array"),
+			Index: &FlagsArithm{
+				Flags: lit("i"),
+				X:     litWord("&"),
+			},
+		}, LangZsh),
+	),
+	fileTest(
 		[]string{`${foo[(r)ab,(r)cd]}`},
 		langFile(&ParamExp{
 			Param: lit("foo"),

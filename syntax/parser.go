@@ -1827,13 +1827,16 @@ func (p *Parser) zshSubFlags() *FlagsArithm {
 	}
 	zf.Flags = p.lit(p.pos, p.val)
 	p.rune()
-	p.quote = old
-	// Parse the expression; use arithmExprAssign so commas are left for ranges.
-	p.next()
-	if p.tok == star || p.tok == at {
-		p.tok, p.val = _LitWord, p.tok.String()
+	// Lex the argument as a raw pattern, stopping at ',' or ']',
+	// since zsh treats it as a pattern rather than an arithmetic expression.
+	argPos := p.nextPos()
+	for p.newLit(p.r); p.r != utf8.RuneSelf && p.r != ',' && p.r != ']'; p.rune() {
 	}
-	zf.X = p.arithmExprAssign(false)
+	if val := p.endLit(); val != "" {
+		zf.X = p.wordOne(p.lit(argPos, val))
+	}
+	p.quote = old
+	p.next()
 	return zf
 }
 
