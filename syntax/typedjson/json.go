@@ -47,6 +47,7 @@ func (opts EncodeOptions) Encode(w io.Writer, node syntax.Node) error {
 	}
 	encVal.Elem().Field(0).SetString(tname)
 	enc := json.NewEncoder(w)
+	enc.SetEscapeHTML(false)
 	if opts.Indent != "" {
 		enc.SetIndent("", opts.Indent)
 	}
