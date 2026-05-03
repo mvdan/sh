@@ -3780,7 +3780,7 @@ var fileTests = []fileTestCase{
 					Stmts:    litStmts("b"),
 				},
 			},
-		}, LangMirBSDKorn),
+		}, LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{"case $i in 1) cat <<EOF ;;\nfoo\nEOF\nesac"},

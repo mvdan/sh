@@ -573,7 +573,7 @@ func (p *Parser) regToken(r rune) token {
 			p.rune()
 			return semiAnd
 		case '|':
-			if !p.lang.in(LangMirBSDKorn) {
+			if !p.lang.in(LangMirBSDKorn | LangZsh) {
 				break
 			}
 			p.rune()

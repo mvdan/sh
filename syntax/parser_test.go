@@ -1986,6 +1986,7 @@ var errorCases = []errorCase{
 	errCase(
 		"echo ;|",
 		langErr("1:7: `|` can only immediately follow a statement", LangPOSIX|LangBash),
+		langErr("1:6: `;|` can only be used in a case clause", LangMirBSDKorn|LangZsh),
 	),
 	errCase(
 		"for i in 1 2 3; { echo; }",
