@@ -17,6 +17,7 @@ package typedjson
 // TODO: encoding and decoding nodes other than File is untested.
 
 import (
+	"encoding"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -312,12 +313,11 @@ func decodeValue(val reflect.Value, enc any) error {
 		}
 	case string:
 		if val.Kind() == reflect.Uint32 {
-			v, ok := syntax.ParseToken(enc)
+			u, ok := val.Addr().Interface().(encoding.TextUnmarshaler)
 			if !ok {
-				return fmt.Errorf("unknown %s value: %q", val.Type(), enc)
+				return fmt.Errorf("cannot decode string into %s", val.Type())
 			}
-			val.SetUint(uint64(v))
-			return nil
+			return u.UnmarshalText([]byte(enc))
 		}
 		val.SetString(enc)
 	case float64:
