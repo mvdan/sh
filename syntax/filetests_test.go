@@ -4022,6 +4022,14 @@ var fileTests = []fileTestCase{
 		}}, LangBash),
 	),
 	fileTest(
+		// '#' inside [[ ]] is part of a word, not a comment.
+		[]string{"[[ -n $foo#bar ]]"},
+		langFile(&TestClause{X: &UnaryTest{
+			Op: TsNempStr,
+			X:  word(litParamExp("foo"), lit("#bar")),
+		}}, LangBash|LangMirBSDKorn|LangZsh),
+	),
+	fileTest(
 		[]string{"[[ a =~ b ]]", "[[ a =~ b ]];"},
 		langFile(&TestClause{X: &BinaryTest{
 			Op: TsReMatch,
