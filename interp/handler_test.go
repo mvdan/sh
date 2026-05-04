@@ -16,10 +16,12 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"testing"
 	"time"
 
+	"mvdan.cc/sh/v3/expand"
 	"mvdan.cc/sh/v3/interp"
 	"mvdan.cc/sh/v3/syntax"
 )
@@ -595,4 +597,327 @@ func TestKillSignal(t *testing.T) {
 			}
 		})
 	}
+}
+
+func runWithOptions(t *testing.T, script string, opts ...interp.RunnerOption) string {
+	t.Helper()
+	file := parse(t, nil, script)
+	var stdout bytes.Buffer
+	allOpts := append([]interp.RunnerOption{interp.StdIO(nil, &stdout, os.Stderr)}, opts...)
+	r, err := interp.New(allOpts...)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = r.Run(context.Background(), file)
+	return stdout.String()
+}
+
+func TestRunStmts(t *testing.T) {
+	t.Parallel()
+
+	t.Run("FromMiddleware", func(t *testing.T) {
+		injected := parse(t, nil, `echo injected`)
+		mw := func(next interp.StmtHandlerFunc) interp.StmtHandlerFunc {
+			return func(ctx context.Context, stmt *syntax.Stmt) {
+				var buf bytes.Buffer
+				_ = syntax.NewPrinter().Print(&buf, stmt)
+				if strings.Contains(buf.String(), "echo orig") {
+					if err := interp.RunStmts(ctx, injected.Stmts); err != nil {
+						t.Errorf("RunStmts: %v", err)
+					}
+				}
+				next(ctx, stmt)
+			}
+		}
+		out := runWithOptions(t, `echo before; echo orig; echo after`, interp.StmtHandlers(mw))
+		want := "before\ninjected\norig\nafter\n"
+		if out != want {
+			t.Fatalf("output: %q, want %q", out, want)
+		}
+	})
+
+	t.Run("ExitCodeError", func(t *testing.T) {
+		injected := parse(t, nil, `false`)
+		var observedErr error
+		mw := func(next interp.StmtHandlerFunc) interp.StmtHandlerFunc {
+			return func(ctx context.Context, stmt *syntax.Stmt) {
+				var buf bytes.Buffer
+				_ = syntax.NewPrinter().Print(&buf, stmt)
+				if strings.Contains(buf.String(), "marker") && observedErr == nil {
+					observedErr = interp.RunStmts(ctx, injected.Stmts)
+				}
+				next(ctx, stmt)
+			}
+		}
+		runWithOptions(t, `echo marker`, interp.StmtHandlers(mw))
+		var es interp.ExitStatus
+		if !errors.As(observedErr, &es) || int(es) != 1 {
+			t.Fatalf("expected ExitStatus(1), got %v", observedErr)
+		}
+	})
+
+	t.Run("NoRunner", func(t *testing.T) {
+		file := parse(t, nil, `echo hi`)
+		if err := interp.RunStmts(context.Background(), file.Stmts); err == nil {
+			t.Fatal("expected error when ctx has no runner")
+		}
+	})
+}
+
+func TestStmtHandlers(t *testing.T) {
+	t.Parallel()
+
+	t.Run("FireOnEachStatement", func(t *testing.T) {
+		var calls atomic.Int32
+		mw := func(next interp.StmtHandlerFunc) interp.StmtHandlerFunc {
+			return func(ctx context.Context, stmt *syntax.Stmt) {
+				calls.Add(1)
+				next(ctx, stmt)
+			}
+		}
+		out := runWithOptions(t, `echo a; echo b; echo c`, interp.StmtHandlers(mw))
+		if out != "a\nb\nc\n" {
+			t.Fatalf("output: %q", out)
+		}
+		if got := calls.Load(); got < 3 {
+			t.Errorf("expected at least 3 stmt callbacks, got %d", got)
+		}
+	})
+
+	t.Run("ShortCircuit", func(t *testing.T) {
+		mw := func(next interp.StmtHandlerFunc) interp.StmtHandlerFunc {
+			return func(ctx context.Context, stmt *syntax.Stmt) {
+				var buf bytes.Buffer
+				_ = syntax.NewPrinter().Print(&buf, stmt)
+				if strings.Contains(buf.String(), "echo skipped") {
+					return
+				}
+				next(ctx, stmt)
+			}
+		}
+		out := runWithOptions(t, `echo before; echo skipped; echo after`, interp.StmtHandlers(mw))
+		if out != "before\nafter\n" {
+			t.Fatalf("expected short-circuit, got %q", out)
+		}
+	})
+
+	t.Run("ChainedInOrder", func(t *testing.T) {
+		var order []string
+		mwA := func(next interp.StmtHandlerFunc) interp.StmtHandlerFunc {
+			return func(ctx context.Context, stmt *syntax.Stmt) {
+				order = append(order, "A-pre")
+				next(ctx, stmt)
+				order = append(order, "A-post")
+			}
+		}
+		mwB := func(next interp.StmtHandlerFunc) interp.StmtHandlerFunc {
+			return func(ctx context.Context, stmt *syntax.Stmt) {
+				order = append(order, "B-pre")
+				next(ctx, stmt)
+				order = append(order, "B-post")
+			}
+		}
+		runWithOptions(t, `:`, interp.StmtHandlers(mwA, mwB))
+		want := []string{"A-pre", "B-pre", "B-post", "A-post"}
+		if len(order) < len(want) {
+			t.Fatalf("got %v, want %v", order, want)
+		}
+		for i, w := range want {
+			if order[i] != w {
+				t.Fatalf("order[%d] = %q, want %q (full: %v)", i, order[i], w, order)
+			}
+		}
+	})
+}
+
+func TestSubshellHandlers(t *testing.T) {
+	t.Parallel()
+
+	t.Run("FireForEachKind", func(t *testing.T) {
+		kinds := map[interp.SubshellKind]int{}
+		mw := func(next interp.SubshellHandlerFunc) interp.SubshellHandlerFunc {
+			return func(ctx context.Context, kind interp.SubshellKind, run func(ctx context.Context) int) int {
+				kinds[kind]++
+				return next(ctx, kind, run)
+			}
+		}
+		runWithOptions(t, `( true ) &
+wait
+( true )
+x=$(echo hi)
+true | true
+cat <(echo hi) >/dev/null`, interp.SubshellHandlers(mw))
+
+		for _, k := range []interp.SubshellKind{
+			interp.SubshellKindBackground,
+			interp.SubshellKindParen,
+			interp.SubshellKindCmdSubst,
+			interp.SubshellKindPipeline,
+			interp.SubshellKindProcSubst,
+		} {
+			if kinds[k] == 0 {
+				t.Errorf("expected at least one %v, got none", k)
+			}
+		}
+	})
+
+	t.Run("ShortCircuit", func(t *testing.T) {
+		// Skip the body so that the cmd subst returns empty.
+		mw := func(next interp.SubshellHandlerFunc) interp.SubshellHandlerFunc {
+			return func(ctx context.Context, kind interp.SubshellKind, run func(ctx context.Context) int) int {
+				if kind == interp.SubshellKindCmdSubst {
+					return 0
+				}
+				return next(ctx, kind, run)
+			}
+		}
+		out := runWithOptions(t, `x=$(echo body); echo "[$x]"`, interp.SubshellHandlers(mw))
+		if out != "[]\n" {
+			t.Fatalf("expected empty cmd subst, got %q", out)
+		}
+	})
+}
+
+func TestBuiltinHandler(t *testing.T) {
+	t.Parallel()
+
+	t.Run("OverrideByName", func(t *testing.T) {
+		var lastArgs []string
+		override := func(ctx context.Context, name string, args []string) interp.ExitStatus {
+			lastArgs = append([]string(nil), args...)
+			return 42
+		}
+		out := runWithOptions(t, `mybuiltin one two; echo "exit=$?"`,
+			interp.BuiltinHandler("mybuiltin", override),
+		)
+		if out != "exit=42\n" {
+			t.Fatalf("expected exit=42 from override, got %q", out)
+		}
+		if len(lastArgs) != 2 || lastArgs[0] != "one" || lastArgs[1] != "two" {
+			t.Errorf("override saw args %v", lastArgs)
+		}
+	})
+
+	t.Run("ReplacesExistingBuiltin", func(t *testing.T) {
+		override := func(ctx context.Context, name string, args []string) interp.ExitStatus {
+			hc := interp.HandlerCtx(ctx)
+			_, _ = io.WriteString(hc.Stdout, "magic\n")
+			return 0
+		}
+		out := runWithOptions(t, `type printf`, interp.BuiltinHandler("type", override))
+		if out != "magic\n" {
+			t.Fatalf("override didn't replace builtin: %q", out)
+		}
+	})
+
+	t.Run("NilRemovesEntry", func(t *testing.T) {
+		first := func(ctx context.Context, name string, args []string) interp.ExitStatus { return 5 }
+		out := runWithOptions(t,
+			`echo "$?"`,
+			interp.BuiltinHandler("echo", first),
+			interp.BuiltinHandler("echo", nil),
+		)
+		if out != "0\n" {
+			t.Fatalf("expected nil removal, got %q", out)
+		}
+	})
+}
+
+func TestLookupVarHandlers(t *testing.T) {
+	t.Parallel()
+
+	t.Run("ProvidesValue", func(t *testing.T) {
+		mw := func(next interp.LookupVarHandlerFunc) interp.LookupVarHandlerFunc {
+			return func(ctx context.Context, name string) expand.Variable {
+				if name == "MY_DYNAMIC" {
+					return expand.Variable{Set: true, Kind: expand.String, Str: "hello"}
+				}
+				return next(ctx, name)
+			}
+		}
+		out := runWithOptions(t, `echo "[$MY_DYNAMIC]"`, interp.LookupVarHandlers(mw))
+		if out != "[hello]\n" {
+			t.Fatalf("got %q", out)
+		}
+	})
+
+	t.Run("WrapsRunnerDefault", func(t *testing.T) {
+		// Translate the runner's fake bg PID ("g1", "g2", …) into a different
+		// string by wrapping the runner's own $! result.
+		mw := func(next interp.LookupVarHandlerFunc) interp.LookupVarHandlerFunc {
+			return func(ctx context.Context, name string) expand.Variable {
+				vr := next(ctx, name)
+				if name == "!" && vr.Set && strings.HasPrefix(vr.Str, "g") {
+					vr.Str = "1000" + vr.Str[1:]
+				}
+				return vr
+			}
+		}
+		out := runWithOptions(t, `sleep 0 & echo "$!"`, interp.LookupVarHandlers(mw))
+		if out != "10001\n" {
+			t.Fatalf("got %q", out)
+		}
+	})
+
+	t.Run("ChainOrder", func(t *testing.T) {
+		// The outer middleware short-circuits, so the inner one never runs.
+		outer := func(next interp.LookupVarHandlerFunc) interp.LookupVarHandlerFunc {
+			return func(ctx context.Context, name string) expand.Variable {
+				if name == "X" {
+					return expand.Variable{Set: true, Kind: expand.String, Str: "outer"}
+				}
+				return next(ctx, name)
+			}
+		}
+		inner := func(next interp.LookupVarHandlerFunc) interp.LookupVarHandlerFunc {
+			return func(ctx context.Context, name string) expand.Variable {
+				if name == "X" {
+					return expand.Variable{Set: true, Kind: expand.String, Str: "inner"}
+				}
+				return next(ctx, name)
+			}
+		}
+		out := runWithOptions(t, `echo "$X"`, interp.LookupVarHandlers(outer, inner))
+		if out != "outer\n" {
+			t.Fatalf("got %q", out)
+		}
+	})
+}
+
+func TestFuncCallHandlers(t *testing.T) {
+	t.Parallel()
+
+	t.Run("WrapBody", func(t *testing.T) {
+		var stack []string
+		mw := func(next interp.FuncCallHandlerFunc) interp.FuncCallHandlerFunc {
+			return func(ctx context.Context, name string, args []string) {
+				stack = append(stack, name)
+				next(ctx, name, args)
+				stack = stack[:len(stack)-1]
+			}
+		}
+		out := runWithOptions(t, `f() { echo in_f; g; }; g() { echo in_g; }; f`,
+			interp.FuncCallHandlers(mw),
+		)
+		if out != "in_f\nin_g\n" {
+			t.Fatalf("got %q", out)
+		}
+		if len(stack) != 0 {
+			t.Errorf("stack not empty after run: %v", stack)
+		}
+	})
+
+	t.Run("IgnoreBuiltins", func(t *testing.T) {
+		var calls int
+		mw := func(next interp.FuncCallHandlerFunc) interp.FuncCallHandlerFunc {
+			return func(ctx context.Context, name string, args []string) {
+				calls++
+				next(ctx, name, args)
+			}
+		}
+		runWithOptions(t, `echo hi; true; printf x`, interp.FuncCallHandlers(mw))
+		if calls != 0 {
+			t.Errorf("expected 0 func-call hits, got %d", calls)
+		}
+	})
 }
