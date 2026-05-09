@@ -7,6 +7,7 @@ package interp
 
 import (
 	"context"
+	"os"
 	"os/user"
 	"strconv"
 	"syscall"
@@ -17,6 +18,20 @@ import (
 
 func mkfifo(path string, mode uint32) error {
 	return unix.Mkfifo(path, mode)
+}
+
+// dupPipeFd duplicates a pipe file descriptor, returning a new *os.File
+// that refers to the same underlying pipe endpoint. The caller can close
+// the original fd while the duplicate remains valid. This is used to
+// ensure the parent process does not hold extra pipe fd references during
+// pipeline execution, which would prevent EOF/SIGPIPE propagation.
+func dupPipeFd(f *os.File) (*os.File, error) {
+	newFd, err := syscall.Dup(int(f.Fd()))
+	if err != nil {
+		return nil, err
+	}
+	syscall.CloseOnExec(newFd)
+	return os.NewFile(uintptr(newFd), f.Name()+"-dup"), nil
 }
 
 // access is similar to checking the permission bits from [io/fs.FileInfo],
