@@ -886,6 +886,15 @@ func (p *Printer) arithmExprRecurse(expr ArithmExpr, compact, spacePlusMinus boo
 			p.arithmExprRecurse(expr.X, compact, spacePlusMinus)
 			p.w.WriteString(expr.Op.String())
 			p.arithmExprRecurse(expr.Y, compact, false)
+		} else if p.binNextLine && !p.singleLine && expr.Y.Pos().Line() > p.line {
+			p.arithmExprRecurse(expr.X, compact, spacePlusMinus)
+			p.incLevel()
+			p.newline(expr.Y.Pos())
+			p.indent()
+			p.w.WriteString(expr.Op.String())
+			p.space()
+			p.arithmExprRecurse(expr.Y, compact, false)
+			p.decLevel()
 		} else {
 			p.arithmExprRecurse(expr.X, compact, spacePlusMinus)
 			if expr.Op != Comma {
@@ -941,13 +950,23 @@ func (p *Printer) testExprSameLine(expr TestExpr) {
 		p.word(expr)
 	case *BinaryTest:
 		p.testExprSameLine(expr.X)
-		p.space()
-		p.w.WriteString(expr.Op.String())
 		switch expr.Op {
 		case AndTest, OrTest:
-			p.wantSpace = spaceRequired
-			p.testExpr(expr.Y)
+			if p.binNextLine && !p.minify && !p.singleLine && expr.Y.Pos().Line() > p.line {
+				p.newlines(expr.Y.Pos())
+				p.spacePad(expr.Y.Pos())
+				p.w.WriteString(expr.Op.String())
+				p.space()
+				p.testExprSameLine(expr.Y)
+			} else {
+				p.space()
+				p.w.WriteString(expr.Op.String())
+				p.wantSpace = spaceRequired
+				p.testExpr(expr.Y)
+			}
 		default:
+			p.space()
+			p.w.WriteString(expr.Op.String())
 			p.space()
 			p.testExprSameLine(expr.Y)
 		}
