@@ -998,8 +998,19 @@ func (r *Runner) redir(ctx context.Context, rd *syntax.Redirect) (io.Closer, err
 		}
 		return nil, nil
 	case syntax.RdrIn, syntax.RdrOut, syntax.AppOut,
-		syntax.RdrAll, syntax.AppAll:
-		// done further below
+		syntax.RdrAll, syntax.AppAll,
+		syntax.RdrClob, syntax.AppClob,
+		syntax.RdrAllClob, syntax.AppAllClob,
+		syntax.RdrInOut:
+		// done further below.
+		// The "Clob" variants (>|, >>|, &>|, &>>|) bypass the noclobber
+		// shell option (set -C). Since this interpreter does not enforce
+		// noclobber on file redirects, they are functionally identical to
+		// their plain counterparts.
+		// RdrInOut (<>) opens the target file for read+write and binds it
+		// to the input fd (default 0); we read from the resulting file as
+		// stdin. Writes back through fd 0 are not propagated to the file
+		// since stdin is plumbed as io.Reader internally.
 	case syntax.DplIn:
 		switch arg {
 		case "-":
@@ -1013,25 +1024,27 @@ func (r *Runner) redir(ctx context.Context, rd *syntax.Redirect) (io.Closer, err
 	}
 	mode := os.O_RDONLY
 	switch rd.Op {
-	case syntax.AppOut, syntax.AppAll:
+	case syntax.AppOut, syntax.AppAll, syntax.AppClob, syntax.AppAllClob:
 		mode = os.O_WRONLY | os.O_CREATE | os.O_APPEND
-	case syntax.RdrOut, syntax.RdrAll:
+	case syntax.RdrOut, syntax.RdrAll, syntax.RdrClob, syntax.RdrAllClob:
 		mode = os.O_WRONLY | os.O_CREATE | os.O_TRUNC
+	case syntax.RdrInOut:
+		mode = os.O_RDWR | os.O_CREATE
 	}
 	f, err := r.open(ctx, arg, mode, 0o644, true)
 	if err != nil {
 		return nil, err
 	}
 	switch rd.Op {
-	case syntax.RdrIn:
+	case syntax.RdrIn, syntax.RdrInOut:
 		stdin, err := stdinFile(f)
 		if err != nil {
 			return nil, err
 		}
 		r.stdin = stdin
-	case syntax.RdrOut, syntax.AppOut:
+	case syntax.RdrOut, syntax.AppOut, syntax.RdrClob, syntax.AppClob:
 		*orig = f
-	case syntax.RdrAll, syntax.AppAll:
+	case syntax.RdrAll, syntax.AppAll, syntax.RdrAllClob, syntax.AppAllClob:
 		r.stdout = f
 		r.stderr = f
 	default:

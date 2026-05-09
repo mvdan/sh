@@ -1470,6 +1470,26 @@ var runTests = []runTest{
 		"",
 	},
 	{
+		// >| force-overwrite; equivalent to > when noclobber is unset.
+		"echo foo >| a; cat a",
+		"foo\n",
+	},
+	{
+		// >| overwrites an existing file.
+		"echo foo >a; echo bar >| a; cat a",
+		"bar\n",
+	},
+	{
+		// <> opens for read-write; the file must be readable as stdin.
+		"echo foo >a; cat <>a",
+		"foo\n",
+	},
+	{
+		// <> creates the target file if it does not exist.
+		"cat <>missing; ls missing",
+		"missing\n",
+	},
+	{
 		"sed 's/o/a/g' <<EOF\nfoo$foo\nEOF",
 		"faa\n",
 	},
