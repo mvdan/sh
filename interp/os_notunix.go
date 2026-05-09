@@ -8,12 +8,20 @@ package interp
 import (
 	"context"
 	"fmt"
+	"os"
 
 	"mvdan.cc/sh/v3/syntax"
 )
 
 func mkfifo(path string, mode uint32) error {
 	return fmt.Errorf("unsupported")
+}
+
+// dupPipeFd is a no-op on non-unix platforms; the original pipe fd is
+// returned. Pipelines will still run, but EOF/SIGPIPE propagation is
+// best-effort because the parent retains the original fd reference.
+func dupPipeFd(f *os.File) (*os.File, error) {
+	return f, nil
 }
 
 // access attempts to emulate [unix.Access] on Windows.
