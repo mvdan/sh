@@ -145,7 +145,20 @@ func (hc HandlerContext) Builtin(ctx context.Context, args []string) error {
 	return nil
 }
 
-func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args []string) (exit exitStatus) {
+func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args []string) exitStatus {
+	hctx := r.handlerCtx(ctx, handlerKindBuiltin, pos)
+	r.exit = exitStatus{}
+	code := r.builtinHandler(hctx, name, args)
+	// A middleware may short-circuit without writing r.exit;
+	// fall back to the returned exit code.
+	if r.exit == (exitStatus{}) {
+		r.exit.code = uint8(code)
+	}
+	return r.exit
+}
+
+func (r *Runner) internalBuiltin(ctx context.Context, name string, args []string) (exit exitStatus) {
+	pos := HandlerCtx(ctx).Pos
 	failf := func(code uint8, format string, args ...any) exitStatus {
 		r.errf(format, args...)
 		exit.code = code
