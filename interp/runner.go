@@ -487,23 +487,51 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 				r.exit.fatal(err) // not being able to create a pipe is rare but critical
 				return
 			}
+			// Duplicate pipe fds for use by the goroutines, then close
+			// the originals. This ensures the parent process does not
+			// hold extra references to the pipe, so that:
+			//   - EOF propagates when the writer closes its end
+			//   - SIGPIPE is delivered when the reader closes its end
+			// Builtins and external commands in the goroutines use the
+			// duplicated fds, which remain valid until explicitly closed.
+			// See https://github.com/mvdan/sh/issues/1142
+			pwDup, err := dupPipeFd(pw)
+			if err != nil {
+				pw.Close()
+				pr.Close()
+				r.exit.fatal(err)
+				return
+			}
+			prDup, err := dupPipeFd(pr)
+			if err != nil {
+				pw.Close()
+				pr.Close()
+				pwDup.Close()
+				r.exit.fatal(err)
+				return
+			}
+			pw.Close()
+			pr.Close()
+
 			r2 := r.subshell(true)
-			r2.stdout = pw
+			r2.stdout = pwDup
 			if cm.Op == syntax.PipeAll {
-				r2.stderr = pw
+				r2.stderr = pwDup
 			} else {
 				r2.stderr = r.stderr
 			}
-			r.stdin = pr
+			oldStdin := r.stdin
+			r.stdin = prDup
 			var wg sync.WaitGroup
 			wg.Go(func() {
 				r2.stmt(ctx, cm.X)
 				r2.exit.exiting = false // subshells don't exit the parent shell
-				pw.Close()
+				pwDup.Close()
 			})
 			r.stmt(ctx, cm.Y)
-			pr.Close()
+			prDup.Close()
 			wg.Wait()
+			r.stdin = oldStdin
 			if r.opts[optPipeFail] && !r2.exit.ok() && r.exit.ok() {
 				r.exit = r2.exit
 			}
