@@ -907,6 +907,9 @@ func (p *Printer) arithmExprRecurse(expr ArithmExpr, compact, spacePlusMinus boo
 				}
 			}
 			p.w.WriteString(expr.Op.String())
+			if expr.Op == Not {
+				p.space()
+			}
 			p.arithmExprRecurse(expr.X, compact, false)
 		}
 	case *ParenArithm:
