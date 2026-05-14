@@ -860,6 +860,36 @@ func TestPrintBinaryNextLine(t *testing.T) {
 			"a \\\n\t| b \\\n\t| c \\\n\t# EOC",
 			"a \\\n\t| b \\\n\t| c\n# EOC",
 		},
+		// BinaryTest: operator moves to next line with -bn
+		samePrint("[[ a && b ]]"),
+		{
+			"[[ a &&\nb ]]",
+			"[[ a\n\t&& b ]]",
+		},
+		{
+			"[[ a ||\nb ]]",
+			"[[ a\n\t|| b ]]",
+		},
+		samePrint("[[ a\n\t&& b ]]"),
+		{
+			"[[ a &&\nb &&\nc ]]",
+			"[[ a\n\t&& b\n\t&& c ]]",
+		},
+		// Issue #813: test expression inside if
+		{
+			"if [[ -z \"${foo}\" ||\n    -z \"${bar}\" ||\n    -z \"${baz}\" ]]; then\n    echo \"Hello world\"\nfi",
+			"if [[ -z \"${foo}\"\n\t|| -z \"${bar}\"\n\t|| -z \"${baz}\" ]]; then\n\techo \"Hello world\"\nfi",
+		},
+		// BinaryArithm: operator moves to next line with -bn
+		samePrint("$((1 + 2))"),
+		{
+			"$(( 1 +\n2 ))",
+			"$((1\n\t+ 2))",
+		},
+		{
+			"$(( 1 +\n2 +\n3 ))",
+			"$((1\n\t+ 2\n\t+ 3))",
+		},
 	}
 	parser := NewParser(KeepComments(true))
 	printer := NewPrinter(BinaryNextLine(true))
