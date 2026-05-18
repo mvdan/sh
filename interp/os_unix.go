@@ -23,6 +23,26 @@ func mkfifo(path string, mode uint32) error {
 // but it also takes into account the current user's role.
 func (r *Runner) access(ctx context.Context, path string, mode uint32) error {
 	// TODO(v4): "access" may need to become part of a handler, like "open" or "stat".
+	// Consult the StatHandler first so virtual filesystems are honoured.
+	// If it can't satisfy the request we fall back to unix.Access against
+	// the host FS, which preserves the real-user permission check.
+	if info, err := r.lstat(ctx, path); err == nil {
+		m := info.Mode()
+		switch mode {
+		case access_R_OK:
+			if m&0o400 != 0 {
+				return nil
+			}
+		case access_W_OK:
+			if m&0o200 != 0 {
+				return nil
+			}
+		case access_X_OK:
+			if m&0o100 != 0 {
+				return nil
+			}
+		}
+	}
 	return unix.Access(path, mode)
 }
 
