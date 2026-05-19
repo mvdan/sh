@@ -142,6 +142,7 @@ Other noteworthy integrations include:
 - [mdformat-shfmt] - [mdformat] plugin to format shell scripts embedded in Markdown with shfmt
 - [pre-commit-shfmt] - [pre-commit] shfmt hook
 - [tesh] - Run scripts with mocks, assertions, and coverage
+- [gosh] - A compact Bash-style shell written in Go
 
 [alpine]: https://pkgs.alpinelinux.org/packages?name=shfmt
 [arch]: https://archlinux.org/packages/extra/x86_64/shfmt/
@@ -154,6 +155,7 @@ Other noteworthy integrations include:
 [examples]: https://pkg.go.dev/mvdan.cc/sh/v3/syntax#pkg-examples
 [fedora]: https://packages.fedoraproject.org/pkgs/golang-mvdan-sh-3/shfmt/
 [freebsd]: https://www.freshports.org/devel/shfmt
+[gosh]: https://github.com/phuslu/gosh
 [homebrew]: https://formulae.brew.sh/formula/shfmt
 [intellij-shellscript]: https://www.jetbrains.com/help/idea/shell-scripts.html
 [macports]: https://ports.macports.org/port/shfmt/details/
