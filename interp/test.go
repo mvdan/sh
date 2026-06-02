@@ -77,20 +77,22 @@ func (r *Runner) binTest(ctx context.Context, op syntax.BinTestOperator, x, y st
 		}
 		r.setVar("BASH_REMATCH", vr)
 		return true
-	case syntax.TsNewer:
+	case syntax.TsNewer, syntax.TsOlder:
 		info1, err1 := r.stat(ctx, x)
 		info2, err2 := r.stat(ctx, y)
-		if err1 != nil || err2 != nil {
+		// -ot is the mirror of -nt, so swap the operands and share the logic.
+		if op == syntax.TsOlder {
+			info1, info2, err1, err2 = info2, info1, err2, err1
+		}
+		// True if the first operand exists and the second does not,
+		// or if both exist and the first is newer.
+		if err1 != nil {
 			return false
+		}
+		if err2 != nil {
+			return true
 		}
 		return info1.ModTime().After(info2.ModTime())
-	case syntax.TsOlder:
-		info1, err1 := r.stat(ctx, x)
-		info2, err2 := r.stat(ctx, y)
-		if err1 != nil || err2 != nil {
-			return false
-		}
-		return info1.ModTime().Before(info2.ModTime())
 	case syntax.TsDevIno:
 		info1, err1 := r.stat(ctx, x)
 		info2, err2 := r.stat(ctx, y)

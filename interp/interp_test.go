@@ -1717,6 +1717,22 @@ var runTests = []runTest{
 		"",
 	},
 	{
+		">a; [[ a -nt b ]]",
+		"",
+	},
+	{
+		">a; [[ a -ot b ]]",
+		"exit status 1",
+	},
+	{
+		">b; [[ a -nt b ]]",
+		"exit status 1",
+	},
+	{
+		">b; [[ a -ot b ]]",
+		"",
+	},
+	{
 		"[[ a -ef b ]]",
 		"exit status 1",
 	},
@@ -1949,6 +1965,18 @@ var runTests = []runTest{
 	{
 		"touch -t 202111050000.00 a; touch -t 202111060000.00 b; [ a -ot b ]",
 		"",
+	},
+	{
+		">a; [ a -nt b ]",
+		"",
+	},
+	{
+		">b; [ a -ot b ]",
+		"",
+	},
+	{
+		"[ a -nt b ]",
+		"exit status 1",
 	},
 	{
 		">a; [ a -ef a ]",
