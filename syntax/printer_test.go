@@ -460,7 +460,7 @@ var printTests = []printCase{
 	},
 	{
 		"( (foo) )\n$( (foo) )\n<( (foo) )",
-		"( (foo))\n$( (foo))\n<((foo))",
+		"( (foo) )\n$( (foo) )\n<((foo))",
 	},
 	{
 		"if ( ((foo)) || bar ); then baz; fi",
@@ -635,22 +635,24 @@ var printTests = []printCase{
 		"(\n(foo >redir))",
 		"(\n\t(foo >redir)\n)",
 	},
+	samePrint("( (foo) )"),
+	samePrint("$( (foo) )"),
+	samePrint("$( ((foo++)) )"),
 	{
-		"( (foo) )",
-		"( (foo))",
+		"$( (foo); bar )",
+		"$(\n\t(foo)\n\tbar\n)",
 	},
 	{
 		"( (foo); bar )",
 		"(\n\t(foo)\n\tbar\n)",
 	},
-	{
-		"( ((foo++)) )",
-		"( ((foo++)))",
-	},
+	samePrint("( ((foo++)) )"),
 	{
 		"( ((foo++)); bar )",
 		"(\n\t((foo++))\n\tbar\n)",
 	},
+	samePrint("(foo && (bar) )"),
+	samePrint("( (foo) >redir)"),
 	samePrint("(\n\t((foo++))\n)"),
 	samePrint("(foo && bar)"),
 	samePrint(`$foo#bar ${foo}#bar 'foo'#bar "foo"#bar`),

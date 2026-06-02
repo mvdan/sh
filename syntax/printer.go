@@ -542,6 +542,19 @@ func (p *Printer) rightParen(pos Pos) {
 	p.wantSpace = spaceRequired
 }
 
+// closingParen prints a closing parenthesis at closePos, separating it from a
+// preceding closing parenthesis on the same line to mirror the `( (` spacing
+// that startsWithLparen adds to the matching opening parenthesis.
+func (p *Printer) closingParen(stmts []*Stmt, last []Comment, openPos, closePos Pos) {
+	p.wantSpace = spaceNotRequired
+	if len(last) == 0 && len(stmts) == 1 && endsWithRparen(stmts[0]) &&
+		(p.singleLine || openPos.Line() == closePos.Line()) {
+		p.wantSpace = spaceRequired
+	}
+	p.spacePad(closePos)
+	p.rightParen(closePos)
+}
+
 func (p *Printer) semiRsrv(s string, pos Pos) {
 	if p.wantsNewline(pos, false) {
 		p.newlines(pos)
@@ -844,7 +857,7 @@ func (p *Printer) cmdSubst(cs *CmdSubst) {
 			p.wantSpace = spaceNotRequired
 		}
 		p.nestedStmts(cs.Stmts, cs.Last, cs.Right)
-		p.rightParen(cs.Right)
+		p.closingParen(cs.Stmts, cs.Last, cs.Left, cs.Right)
 	}
 }
 
@@ -1197,9 +1210,7 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 
 		p.spacePad(stmtsPos(cmd.Stmts, cmd.Last))
 		p.nestedStmts(cmd.Stmts, cmd.Last, cmd.Rparen)
-		p.wantSpace = spaceNotRequired
-		p.spacePad(cmd.Rparen)
-		p.rightParen(cmd.Rparen)
+		p.closingParen(cmd.Stmts, cmd.Last, cmd.Lparen, cmd.Rparen)
 	case *WhileClause:
 		if cmd.Until {
 			p.spacedString("until", cmd.Pos())
@@ -1607,6 +1618,23 @@ func startsWithLparen(node Node) bool {
 		return true // keep ( (
 	case *ArithmCmd:
 		return true // keep ( ((
+	}
+	return false
+}
+
+func endsWithRparen(node Node) bool {
+	switch node := node.(type) {
+	case *Stmt:
+		if node.Background || node.Coprocess || node.Disown || len(node.Redirs) > 0 {
+			return false
+		}
+		return endsWithRparen(node.Cmd)
+	case *BinaryCmd:
+		return endsWithRparen(node.Y)
+	case *Subshell:
+		return true // keep ) )
+	case *ArithmCmd:
+		return true // keep )) )
 	}
 	return false
 }

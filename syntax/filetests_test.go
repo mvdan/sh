@@ -2008,8 +2008,8 @@ var fileTests = []fileTestCase{
 	),
 	fileTest(
 		[]string{
-			"$( (echo foo bar))",
 			"$( (echo foo bar) )",
+			"$( (echo foo bar))",
 			"`(echo foo bar)`",
 		},
 		langFile(cmdSubst(stmt(
@@ -2088,7 +2088,7 @@ var fileTests = []fileTestCase{
 		)),
 	),
 	fileTest(
-		[]string{`"$( (foo))"`},
+		[]string{`"$( (foo) )"`},
 		langFile(dblQuoted(cmdSubst(stmt(
 			subshell(litStmt("foo")),
 		)))),
