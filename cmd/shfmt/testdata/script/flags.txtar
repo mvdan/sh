@@ -157,6 +157,21 @@ stdin flags-input
 exec shfmt --func-next-line
 cmp stdout flags-output.func-next-line-golden
 
+# Test completion flag.
+exec shfmt --completion=bash
+stdout '_shfmt_completions'
+stdout 'complete -F _shfmt_completions shfmt'
+
+exec shfmt --completion=zsh
+stdout '#compdef shfmt'
+stdout '_shfmt'
+
+exec shfmt --completion=fish
+stdout 'complete -c shfmt'
+
+! exec shfmt --completion=invalid
+stderr 'unsupported shell'
+
 -- input-posix --
 let a+
 -- input-bash --

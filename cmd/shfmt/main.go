@@ -144,6 +144,7 @@ Utilities:
                       paths are separated by a newline or a null character if -f=0
   --to-json           print syntax tree to stdout as a typed JSON
   --from-json         read syntax tree from stdin as a typed JSON
+  --completion shell  generate shell completion script (bash, zsh, or fish)
 
 Formatting options can also be read from EditorConfig files; see 'man shfmt'
 for a detailed description of the tool's behavior.
@@ -152,6 +153,10 @@ For more information and to report bugs, see https://github.com/mvdan/sh.
 	}
 	flag.Parse()
 
+	if completionFlag.val != "" {
+		printCompletion(completionFlag.val)
+		return
+	}
 	if versionFlag.val {
 		version := "(unknown)"
 		if info, ok := debug.ReadBuildInfo(); ok {

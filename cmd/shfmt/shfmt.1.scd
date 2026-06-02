@@ -114,6 +114,14 @@ predictable. Some aspects of the format can be configured via printer flags.
 *--from-json*
 	Read syntax tree from stdin as a typed JSON.
 
+*--completion* <shell>
+	Generate a shell completion script for the given shell.
+	Supported shells: *bash*, *zsh*, *fish*.
+	The script is printed to stdout and can be installed via
+	*source <(shfmt --completion=bash)* for bash,
+	*source <(shfmt --completion=zsh)* for zsh, or
+	*shfmt --completion=fish > ~/.config/fish/completions/shfmt.fish* for fish.
+
 # EXAMPLES
 
 Format all the scripts under the current directory, printing which are modified:
@@ -128,6 +136,10 @@ The following formatting flags closely resemble Google's shell style defined in
 <https://google.github.io/styleguide/shellguide.html>:
 
 	shfmt -i 2 -ci -bn
+
+Install shell completions (bash example):
+
+	source <(shfmt --completion=bash)
 
 Below is a sample EditorConfig file as defined by <https://editorconfig.org/>,
 showing how to set supported options:
