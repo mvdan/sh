@@ -730,13 +730,29 @@ func (p *Printer) wroteIndex(index ArithmExpr) bool {
 		return false
 	}
 	p.w.WriteByte('[')
-	// Note that e.g. foo[1,3]=$bar in Zsh does not allow any spaces around the comma,
-	// as that breaks the assignment word.
+	// In an associative array, [a-b] is a literal key, not arithmetic, so
+	// spacing it to [a - b] would change the key. The printer can't know the
+	// array's type, so it preserves the source spacing instead. A comma stays
+	// compact, as Zsh foo[1,3]=$bar breaks with spaces around it.
 	binary, ok := index.(*BinaryArithm)
-	compact := ok && binary.Op == Comma
+	compact := ok && (binary.Op == Comma || !indexBinaryHadSpace(binary))
 	p.arithmExpr(index, compact, false)
 	p.w.WriteByte(']')
 	return true
+}
+
+// indexBinaryHadSpace reports whether a subscript's operator had surrounding
+// space in the source: false for a-b, true for a - b (or if positions are
+// unset, conservatively preserving the previous spacing).
+func indexBinaryHadSpace(b *BinaryArithm) bool {
+	xEnd, opPos, yPos := b.X.End(), b.OpPos, b.Y.Pos()
+	if !xEnd.IsValid() || !opPos.IsValid() || !yPos.IsValid() {
+		return true
+	}
+	opLen := uint(len(b.Op.String()))
+	adjacent := xEnd.Offset() == opPos.Offset() &&
+		opPos.Offset()+opLen == yPos.Offset()
+	return !adjacent
 }
 
 func (p *Printer) paramExp(pe *ParamExp) {

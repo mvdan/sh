@@ -665,8 +665,16 @@ var printTests = []printCase{
 	// 	"$(foo)#bar",
 	// },
 	// samePrint(`$("foo"#bar)#bar`),
+	// An associative-array key like dash-string is parsed as arithmetic but is
+	// really a literal string; spacing it (dash - string) would change the key.
+	// The printer keeps the subscript exactly as the user wrote it, so compact
+	// stays compact (the #956 fix) and any spacing the user chose is preserved.
+	samePrint("${array[dash-string]}"),
+	samePrint("array[dash-string]=123"),
 	samePrint("${array[dash - string]}"),
 	samePrint("array[dash - string]=123"),
+	samePrint("${array[1 + 2]}"),
+	samePrint("array[1 + 2]=x"),
 	samePrint("${arr[0,1]}"),
 	samePrint("arr[0,1]=x"),
 }
