@@ -1958,9 +1958,21 @@ var fileTests = []fileTestCase{
 	fileTest(
 		// TODO: should shfmt lean towards no semicolons in Zsh mode?
 		// Note that zsh seems to support "{foo}" too, but that is undocumented,
-		// and hopefully noone actually relies on that.
-		[]string{"{ foo; }", "{ foo }"},
+		// and hopefully noone actually relies on that. zsh also closes the
+		// block when `}` is attached to the previous word, `{ foo}` and
+		// `{ foo }` are the same.
+		[]string{"{ foo; }", "{ foo }", "{ foo}"},
 		langFile(block(litStmt("foo")), LangZsh),
+	),
+	fileTest(
+		// zsh does not require a separator before '}' to close a brace block,
+		// even when the '}' is attached to the previous word as in `echo foo}`.
+		[]string{"f() { echo foo; }", "f() { echo foo }", "f() { echo foo}"},
+		langFile(&FuncDecl{
+			Parens: true,
+			Name:   lit("f"),
+			Body:   stmt(block(litStmt("echo", "foo"))),
+		}, LangZsh),
 	),
 	fileTest(
 		[]string{"{ }"},
@@ -5521,6 +5533,9 @@ func (c sanityChecker) visit(node Node) bool {
 				// ended by whitespace
 			case regOps(rune(end)):
 				// ended by end character
+			case end == '}':
+				// ended by a zsh brace block close attached to the
+				// statement, e.g. the `}` in `{ foo}`
 			case endOff > 0 && c.src[endOff-1] == ';':
 				// ended by semicolon
 			case endOff > 0 && c.src[endOff-1] == '&':

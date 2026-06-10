@@ -26,6 +26,16 @@ func regOps(r rune) bool {
 	return false
 }
 
+// reports whether b terminates the current word, e.g. `echo foo}` but not
+// `echo foo}bar`.
+func zshBraceWordEnd(b byte) bool {
+	switch b {
+	case ' ', '\t', '\r', '\n', ';', '&', '|', '(', ')', '<', '>', utf8.RuneSelf:
+		return true
+	}
+	return false
+}
+
 // tokenize these inside parameter expansions
 func paramOps(r rune) bool {
 	switch r {
@@ -1117,6 +1127,12 @@ loop:
 		case '[':
 			if p.lang.in(langBashLike|LangMirBSDKorn|LangZsh) && len(p.litBs) > 1 && p.litBs[0] != '[' {
 				tok = _Lit
+				break loop
+			}
+		case '}':
+			if p.lang.in(LangZsh) && p.eqlOffs < 0 && len(p.litBs) > 1 &&
+				bytes.IndexByte(p.litBs[:len(p.litBs)-1], '{') < 0 &&
+				zshBraceWordEnd(p.peek()) {
 				break loop
 			}
 		}

@@ -1195,6 +1195,10 @@ func (p *Parser) ensureNoNested(pos Pos) {
 func (p *Parser) wordPart() WordPart {
 	switch p.tok {
 	case _Lit, _LitWord, _LitRedir:
+		if p.tok == _LitWord && p.val == "}" && p.lang.in(LangZsh) {
+			// prevent re-joining the preceding word in zsh
+			return nil
+		}
 		l := p.lit(p.pos, p.val)
 		p.next()
 		return l
