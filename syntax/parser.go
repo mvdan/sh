@@ -2046,7 +2046,7 @@ func (p *Parser) doRedirect(s *Stmt) {
 	}
 	r.N = p.getLit()
 	if r.N != nil && r.N.Value[0] == '{' {
-		p.checkLang(r.N.Pos(), langBashLike, "`{varname}` redirects")
+		p.checkLang(r.N.Pos(), langBashLike|LangZsh, "`{varname}` redirects")
 	}
 	r.Op, r.OpPos = RedirOperator(p.tok), p.pos
 	switch r.Op {

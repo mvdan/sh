@@ -1969,7 +1969,7 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"echo {var}>foo",
-		langErr("1:6: `{varname}` redirects are a bash feature; tried parsing as LANG", LangPOSIX|LangMirBSDKorn),
+		langErr("1:6: `{varname}` redirects are a bash/zsh feature; tried parsing as LANG", LangPOSIX|LangMirBSDKorn),
 		// shells treat {var} as an argument, but we are a bit stricter
 		// so that users won't think this will work like they expect in POSIX shell.
 		flipConfirmAll,

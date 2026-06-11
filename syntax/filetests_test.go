@@ -1822,7 +1822,7 @@ var fileTests = []fileTestCase{
 			Redirs: []*Redirect{
 				{Op: RdrIn, N: lit("{fd}"), Word: litWord("f")},
 			},
-		}, LangBash),
+		}, LangBash|LangZsh),
 	),
 	fileTest(
 		[]string{"! foo"},

@@ -321,7 +321,7 @@ func (a *Assign) End() Pos {
 type Redirect struct {
 	OpPos Pos
 	Op    RedirOperator
-	N     *Lit  // fd>, or {varname}> in Bash
+	N     *Lit  // fd>, or {varname}> with [LangBash] or [LangZsh]
 	Word  *Word // >word
 	Hdoc  *Word // here-document body
 }
@@ -679,6 +679,7 @@ func (p *ParamExp) Pos() Pos {
 	}
 	return p.Param.Pos()
 }
+
 func (p *ParamExp) End() Pos {
 	if !p.Short {
 		return posAddCol(p.Rbrace, 1)

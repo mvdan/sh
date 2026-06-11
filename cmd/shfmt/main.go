@@ -33,6 +33,7 @@ func (b *boolStringValue) Set(val string) error {
 	*b = boolStringValue(val)
 	return nil
 }
+
 func (b *boolStringValue) String() string {
 	return string(*b)
 }
