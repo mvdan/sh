@@ -7,6 +7,8 @@ package interp
 
 import (
 	"context"
+	"errors"
+	"io/fs"
 	"os/user"
 	"strconv"
 	"syscall"
@@ -23,7 +25,31 @@ func mkfifo(path string, mode uint32) error {
 // but it also takes into account the current user's role.
 func (r *Runner) access(ctx context.Context, path string, mode uint32) error {
 	// TODO(v4): "access" may need to become part of a handler, like "open" or "stat".
-	return unix.Access(path, mode)
+	err := unix.Access(path, mode)
+	if err == nil {
+		return nil
+	}
+	if !errors.Is(err, unix.ENOENT) && !errors.Is(err, unix.ENOTDIR) {
+		return err
+	}
+	info, statErr := r.stat(ctx, path)
+	if statErr != nil {
+		return err
+	}
+	return accessFileMode(info.Mode(), mode)
+}
+
+func accessFileMode(mode fs.FileMode, access uint32) error {
+	if access&access_R_OK != 0 && mode&0o400 == 0 {
+		return errors.New("file is not readable")
+	}
+	if access&access_W_OK != 0 && mode&0o200 == 0 {
+		return errors.New("file is not writable")
+	}
+	if access&access_X_OK != 0 && mode&0o100 == 0 {
+		return errors.New("file is not executable")
+	}
+	return nil
 }
 
 // unTestOwnOrGrp implements the -O and -G unary tests. If the file does not

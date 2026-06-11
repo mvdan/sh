@@ -9,14 +9,51 @@ import (
 	"bufio"
 	"context"
 	"io"
+	"io/fs"
 	"os"
 	"os/exec"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/creack/pty"
 	"mvdan.cc/sh/v3/interp"
 )
+
+type virtualDirInfo struct{}
+
+func (virtualDirInfo) Name() string       { return "virtual" }
+func (virtualDirInfo) Size() int64        { return 0 }
+func (virtualDirInfo) Mode() fs.FileMode  { return fs.ModeDir | 0o755 }
+func (virtualDirInfo) ModTime() time.Time { return time.Time{} }
+func (virtualDirInfo) IsDir() bool        { return true }
+func (virtualDirInfo) Sys() any           { return nil }
+
+func TestRunnerAccessStatHandlerVirtualDir(t *testing.T) {
+	t.Parallel()
+
+	file := parse(t, nil, "cd /virtual; pwd")
+	stat := func(ctx context.Context, name string, followSymlinks bool) (fs.FileInfo, error) {
+		if name == "/virtual" {
+			return virtualDirInfo{}, nil
+		}
+		return interp.DefaultStatHandler()(ctx, name, followSymlinks)
+	}
+	var cb concBuffer
+	r, err := interp.New(
+		interp.StdIO(nil, &cb, &cb),
+		interp.StatHandler(stat),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := r.Run(context.Background(), file); err != nil {
+		t.Fatal(err)
+	}
+	if got, want := cb.String(), "/virtual\n"; got != want {
+		t.Fatalf("\nwant: %q\ngot:  %q", want, got)
+	}
+}
 
 func TestRunnerTerminalStdIO(t *testing.T) {
 	t.Parallel()
