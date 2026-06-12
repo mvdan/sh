@@ -42,6 +42,11 @@ const (
 )
 
 func (r *Runner) fillExpandConfig(ctx context.Context) {
+	// Wrap so handlers reached via expand can recover r from ctx.
+	// ctx is nil when [Runner.Subshell] is called before [Runner.Run].
+	if ctx != nil {
+		ctx = runnerWithCtx(ctx, r)
+	}
 	r.ectx = ctx
 	r.ecfg = &expand.Config{
 		Env: expandEnv{r},
@@ -65,7 +70,10 @@ func (r *Runner) fillExpandConfig(ctx context.Context) {
 			}
 			r2 := r.subshell(false)
 			r2.stdout = w
-			r2.stmts(ctx, cs.Stmts)
+			r.subshellHandler(ctx, SubshellKindCmdSubst, func(sctx context.Context) int {
+				r2.stmts(sctx, cs.Stmts)
+				return int(r2.exit.code)
+			})
 			r2.exit.exiting = false // subshells don't exit the parent shell
 			r.lastExpandExit = r2.exit
 			if r2.exit.fatalExit {
@@ -110,7 +118,7 @@ func (r *Runner) fillExpandConfig(ctx context.Context) {
 				exit: new(exitStatus),
 			}
 			r.bgProcs = append(r.bgProcs, bg)
-			go func() {
+			go r.subshellHandler(ctx, SubshellKindProcSubst, func(ctx context.Context) int {
 				defer func() {
 					*bg.exit = r2.exit
 					close(bg.done)
@@ -120,7 +128,7 @@ func (r *Runner) fillExpandConfig(ctx context.Context) {
 					f, err := os.OpenFile(path, os.O_WRONLY, 0)
 					if err != nil {
 						r.errf("cannot open fifo for stdout: %v\n", err)
-						return
+						return int(r2.exit.code)
 					}
 					r2.stdout = f
 					defer func() {
@@ -133,7 +141,7 @@ func (r *Runner) fillExpandConfig(ctx context.Context) {
 					f, err := os.OpenFile(path, os.O_RDONLY, 0)
 					if err != nil {
 						r.errf("cannot open fifo for stdin: %v\n", err)
-						return
+						return int(r2.exit.code)
 					}
 					r2.stdin = f
 					r2.stdout = stdout
@@ -148,7 +156,8 @@ func (r *Runner) fillExpandConfig(ctx context.Context) {
 				}
 				r2.stmts(ctx, ps.Stmts)
 				r2.exit.exiting = false // subshells don't exit the parent shell
-			}()
+				return int(r2.exit.code)
+			})
 			return path, nil
 		},
 	}
@@ -304,23 +313,30 @@ func (r *Runner) stmt(ctx context.Context, st *syntax.Stmt) {
 	if r.stop(ctx) {
 		return
 	}
+	r.stmtHandler(runnerWithCtx(ctx, r), st)
+}
+
+func (r *Runner) dispatchStmt(ctx context.Context, st *syntax.Stmt) {
 	r.exit = exitStatus{}
 	if st.Background || st.Disown {
-		r2 := r.subshell(true)
-		st2 := *st
-		st2.Background = false
-		st2.Disown = false
-		bg := bgProc{
-			done: make(chan struct{}),
-			exit: new(exitStatus),
-		}
-		r.bgProcs = append(r.bgProcs, bg)
-		go func() {
-			r2.Run(ctx, &st2)
-			r2.exit.exiting = false // subshells don't exit the parent shell
-			*bg.exit = r2.exit
-			close(bg.done)
-		}()
+		r.subshellHandler(ctx, SubshellKindBackground, func(ctx context.Context) int {
+			r2 := r.subshell(true)
+			st2 := *st
+			st2.Background = false
+			st2.Disown = false
+			bg := bgProc{
+				done: make(chan struct{}),
+				exit: new(exitStatus),
+			}
+			r.bgProcs = append(r.bgProcs, bg)
+			go func() {
+				r2.Run(ctx, &st2)
+				r2.exit.exiting = false // subshells don't exit the parent shell
+				*bg.exit = r2.exit
+				close(bg.done)
+			}()
+			return 0
+		})
 	} else {
 		r.stmtSync(ctx, st)
 	}
@@ -378,7 +394,10 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		r.stmts(ctx, cm.Stmts)
 	case *syntax.Subshell:
 		r2 := r.subshell(false)
-		r2.stmts(ctx, cm.Stmts)
+		r.subshellHandler(ctx, SubshellKindParen, func(sctx context.Context) int {
+			r2.stmts(sctx, cm.Stmts)
+			return int(r2.exit.code)
+		})
 		r2.exit.exiting = false // subshells don't exit the parent shell
 		r.exit = r2.exit
 	case *syntax.CallExpr:
@@ -497,9 +516,12 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			r.stdin = pr
 			var wg sync.WaitGroup
 			wg.Go(func() {
-				r2.stmt(ctx, cm.X)
-				r2.exit.exiting = false // subshells don't exit the parent shell
-				pw.Close()
+				r.subshellHandler(ctx, SubshellKindPipeline, func(ctx context.Context) int {
+					r2.stmt(ctx, cm.X)
+					r2.exit.exiting = false // subshells don't exit the parent shell
+					pw.Close()
+					return int(r2.exit.code)
+				})
 			})
 			r.stmt(ctx, cm.Y)
 			pr.Close()
@@ -1072,25 +1094,13 @@ func (r *Runner) call(ctx context.Context, pos syntax.Pos, args []string) {
 		}
 	}
 	name := args[0]
-	if body := r.Funcs[name]; body != nil {
-		// stack them to support nested func calls
-		oldParams := r.Params
-		r.Params = args[1:]
-		oldInFunc := r.inFunc
-		r.inFunc = true
-
-		// Functions run in a nested scope.
-		// Note that [Runner.exec] below does something similar.
-		origEnv := r.writeEnv
-		r.writeEnv = &overlayEnviron{parent: r.writeEnv, funcScope: true}
-
-		r.stmt(ctx, body)
-
-		r.writeEnv = origEnv
-
-		r.Params = oldParams
-		r.inFunc = oldInFunc
-		r.exit.returning = false
+	if r.Funcs[name] != nil {
+		r.funcCallHandler(ctx, name, args)
+		return
+	}
+	// A [BuiltinHandler] override applies even to non-builtin names.
+	if _, ok := r.builtinOverrides[name]; ok {
+		r.exit = r.builtin(ctx, pos, name, args[1:])
 		return
 	}
 	if IsBuiltin(name) {
@@ -1098,6 +1108,28 @@ func (r *Runner) call(ctx context.Context, pos syntax.Pos, args []string) {
 		return
 	}
 	r.exec(ctx, pos, args)
+}
+
+func (r *Runner) dispatchFuncCall(ctx context.Context, name string, args []string) {
+	body := r.Funcs[name]
+	// stack them to support nested func calls
+	oldParams := r.Params
+	r.Params = args[1:]
+	oldInFunc := r.inFunc
+	r.inFunc = true
+
+	// Functions run in a nested scope.
+	// Note that [Runner.exec] below does something similar.
+	origEnv := r.writeEnv
+	r.writeEnv = &overlayEnviron{parent: r.writeEnv, funcScope: true}
+
+	r.stmt(ctx, body)
+
+	r.writeEnv = origEnv
+
+	r.Params = oldParams
+	r.inFunc = oldInFunc
+	r.exit.returning = false
 }
 
 func (r *Runner) exec(ctx context.Context, pos syntax.Pos, args []string) {

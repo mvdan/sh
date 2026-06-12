@@ -85,6 +85,29 @@ type Runner struct {
 	// The slice is needed to preserve the relative order of middlewares.
 	execMiddlewares []func(ExecHandlerFunc) ExecHandlerFunc
 
+	// stmtHandler is built from stmtMiddlewares when Reset is first called.
+	stmtHandler     StmtHandlerFunc
+	stmtMiddlewares []func(StmtHandlerFunc) StmtHandlerFunc
+
+	// subshellHandler is built from subshellMiddlewares when Reset is first called.
+	subshellHandler     SubshellHandlerFunc
+	subshellMiddlewares []func(SubshellHandlerFunc) SubshellHandlerFunc
+
+	// builtinOverrides is the registry populated by [BuiltinHandler]. It may be nil.
+	builtinOverrides map[string]BuiltinHandlerFunc
+
+	// builtinHandler is built from builtinMiddlewares when Reset is first called.
+	builtinHandler     BuiltinHandlerFunc
+	builtinMiddlewares []func(BuiltinHandlerFunc) BuiltinHandlerFunc
+
+	// lookupVarHandler is built from lookupVarMiddlewares when Reset is first called.
+	lookupVarHandler     LookupVarHandlerFunc
+	lookupVarMiddlewares []func(LookupVarHandlerFunc) LookupVarHandlerFunc
+
+	// funcCallHandler is built from funcCallMiddlewares when Reset is first called.
+	funcCallHandler     FuncCallHandlerFunc
+	funcCallMiddlewares []func(FuncCallHandlerFunc) FuncCallHandlerFunc
+
 	// openHandler is a function responsible for opening files. It must not be nil.
 	openHandler OpenHandlerFunc
 
@@ -166,6 +189,48 @@ type Runner struct {
 	// Fake signal callbacks
 	callbackErr  string
 	callbackExit string
+}
+
+// buildHandlerChains constructs the handler middleware chains.
+// Each chain bottom recovers its runner from ctx, so subshells inherit them.
+func (r *Runner) buildHandlerChains() {
+	r.stmtHandler = func(ctx context.Context, stmt *syntax.Stmt) {
+		runnerFromCtx(ctx).dispatchStmt(ctx, stmt)
+	}
+	for _, mw := range slices.Backward(r.stmtMiddlewares) {
+		r.stmtHandler = mw(r.stmtHandler)
+	}
+	r.subshellHandler = func(ctx context.Context, kind SubshellKind, run func(ctx context.Context) int) int {
+		return run(ctx)
+	}
+	for _, mw := range slices.Backward(r.subshellMiddlewares) {
+		r.subshellHandler = mw(r.subshellHandler)
+	}
+	r.builtinHandler = func(ctx context.Context, name string, args []string) ExitStatus {
+		r := HandlerCtx(ctx).runner
+		if fn, ok := r.builtinOverrides[name]; ok {
+			code := fn(ctx, name, args)
+			r.exit.code = uint8(code)
+			return code
+		}
+		r.exit = r.internalBuiltin(ctx, name, args)
+		return ExitStatus(r.exit.code)
+	}
+	for _, mw := range slices.Backward(r.builtinMiddlewares) {
+		r.builtinHandler = mw(r.builtinHandler)
+	}
+	r.funcCallHandler = func(ctx context.Context, name string, args []string) {
+		runnerFromCtx(ctx).dispatchFuncCall(ctx, name, args)
+	}
+	for _, mw := range slices.Backward(r.funcCallMiddlewares) {
+		r.funcCallHandler = mw(r.funcCallHandler)
+	}
+	r.lookupVarHandler = func(ctx context.Context, name string) expand.Variable {
+		return runnerFromCtx(ctx).defaultLookupVar(ctx, name)
+	}
+	for _, mw := range slices.Backward(r.lookupVarMiddlewares) {
+		r.lookupVarHandler = mw(r.lookupVarHandler)
+	}
 }
 
 // exitStatus holds the state of the shell after running one command.
@@ -508,6 +573,83 @@ func StatHandler(f StatHandlerFunc) RunnerOption {
 	}
 }
 
+// StmtHandlers appends middlewares to handle statement dispatch.
+// See [ExecHandlers] for details on the middleware chaining.
+//
+// Unlike [ExecHandlers], this fires for every statement,
+// including builtins, function calls, and nested subshells.
+func StmtHandlers(middlewares ...func(next StmtHandlerFunc) StmtHandlerFunc) RunnerOption {
+	return func(r *Runner) error {
+		r.stmtMiddlewares = append(r.stmtMiddlewares, middlewares...)
+		return nil
+	}
+}
+
+// SubshellHandlers appends middlewares to handle subshell creation.
+// See [ExecHandlers] for details on the middleware chaining.
+func SubshellHandlers(middlewares ...func(next SubshellHandlerFunc) SubshellHandlerFunc) RunnerOption {
+	return func(r *Runner) error {
+		r.subshellMiddlewares = append(r.subshellMiddlewares, middlewares...)
+		return nil
+	}
+}
+
+// BuiltinHandler registers fn as the override for the named builtin.
+// See [BuiltinHandlerFunc] for more info.
+//
+// A nil fn removes any previous registration.
+// The override applies even to names that are not real builtins,
+// so it can also be used to add custom commands.
+//
+// Overriding "set", "unset", "cd", or "read" can disrupt the runner's internal state.
+// For finer-grained control, see [BuiltinHandlers].
+func BuiltinHandler(name string, fn BuiltinHandlerFunc) RunnerOption {
+	return func(r *Runner) error {
+		if fn == nil {
+			delete(r.builtinOverrides, name)
+			return nil
+		}
+		if r.builtinOverrides == nil {
+			r.builtinOverrides = make(map[string]BuiltinHandlerFunc)
+		}
+		r.builtinOverrides[name] = fn
+		return nil
+	}
+}
+
+// BuiltinHandlers appends middlewares around builtin execution.
+// See [ExecHandlers] for details on the middleware chaining.
+//
+// The bottom of the chain dispatches to a [BuiltinHandler] override
+// or to the runner's internal builtin implementation.
+func BuiltinHandlers(middlewares ...func(next BuiltinHandlerFunc) BuiltinHandlerFunc) RunnerOption {
+	return func(r *Runner) error {
+		r.builtinMiddlewares = append(r.builtinMiddlewares, middlewares...)
+		return nil
+	}
+}
+
+// LookupVarHandlers appends middlewares around variable lookup.
+// See [ExecHandlers] for details on the middleware chaining.
+//
+// The bottom of the chain is the runner's own resolution,
+// so middlewares can wrap rather than replace it.
+func LookupVarHandlers(middlewares ...func(next LookupVarHandlerFunc) LookupVarHandlerFunc) RunnerOption {
+	return func(r *Runner) error {
+		r.lookupVarMiddlewares = append(r.lookupVarMiddlewares, middlewares...)
+		return nil
+	}
+}
+
+// FuncCallHandlers appends middlewares around the execution of declared shell functions.
+// See [ExecHandlers] for details on the middleware chaining.
+func FuncCallHandlers(middlewares ...func(next FuncCallHandlerFunc) FuncCallHandlerFunc) RunnerOption {
+	return func(r *Runner) error {
+		r.funcCallMiddlewares = append(r.funcCallMiddlewares, middlewares...)
+		return nil
+	}
+}
+
 func stdinFile(r io.Reader) (*os.File, error) {
 	switch r := r.(type) {
 	case *os.File:
@@ -781,6 +923,7 @@ func (r *Runner) Reset() {
 		for _, mw := range slices.Backward(r.execMiddlewares) {
 			r.execHandler = mw(r.execHandler)
 		}
+		r.buildHandlerChains()
 		// Fill tempDir; only need to do this once given that Env will not change.
 		if dir := r.Env.Get("TMPDIR").String(); filepath.IsAbs(dir) {
 			r.tempDir = dir
@@ -792,13 +935,14 @@ func (r *Runner) Reset() {
 	}
 	// reset the internal state
 	*r = Runner{
-		Env:            r.Env,
-		tempDir:        r.tempDir,
-		callHandler:    r.callHandler,
-		execHandler:    r.execHandler,
-		openHandler:    r.openHandler,
-		readDirHandler: r.readDirHandler,
-		statHandler:    r.statHandler,
+		Env:              r.Env,
+		tempDir:          r.tempDir,
+		callHandler:      r.callHandler,
+		execHandler:      r.execHandler,
+		builtinOverrides: r.builtinOverrides,
+		openHandler:      r.openHandler,
+		readDirHandler:   r.readDirHandler,
+		statHandler:      r.statHandler,
 
 		// These can be set by functions like [Dir] or [Params], but
 		// builtins can overwrite them; reset the fields to whatever the
@@ -822,6 +966,19 @@ func (r *Runner) Reset() {
 
 		dirStack: r.dirStack[:0],
 		usedNew:  r.usedNew,
+
+		stmtMiddlewares:      r.stmtMiddlewares,
+		subshellMiddlewares:  r.subshellMiddlewares,
+		builtinMiddlewares:   r.builtinMiddlewares,
+		funcCallMiddlewares:  r.funcCallMiddlewares,
+		lookupVarMiddlewares: r.lookupVarMiddlewares,
+
+		// Built once in the first-time setup above; see [Runner.buildHandlerChains].
+		stmtHandler:      r.stmtHandler,
+		subshellHandler:  r.subshellHandler,
+		builtinHandler:   r.builtinHandler,
+		funcCallHandler:  r.funcCallHandler,
+		lookupVarHandler: r.lookupVarHandler,
 	}
 	// Ensure we stop referencing any pointers before we reuse bgProcs.
 	clear(r.bgProcs)
@@ -977,22 +1134,37 @@ func (r *Runner) subshell(background bool) *Runner {
 	// Keep in sync with the Runner type. Manually copy fields, to not copy
 	// sensitive ones like [errgroup.Group], and to do deep copies of slices.
 	r2 := &Runner{
-		Dir:            r.Dir,
-		tempDir:        r.tempDir,
-		Params:         r.Params,
-		callHandler:    r.callHandler,
-		execHandler:    r.execHandler,
-		openHandler:    r.openHandler,
-		readDirHandler: r.readDirHandler,
-		statHandler:    r.statHandler,
-		stdin:          r.stdin,
-		stdout:         r.stdout,
-		stderr:         r.stderr,
-		filename:       r.filename,
-		opts:           r.opts,
-		usedNew:        r.usedNew,
-		exit:           r.exit,
-		lastExit:       r.lastExit,
+		Dir:              r.Dir,
+		tempDir:          r.tempDir,
+		Params:           r.Params,
+		callHandler:      r.callHandler,
+		execHandler:      r.execHandler,
+		builtinOverrides: r.builtinOverrides,
+		openHandler:      r.openHandler,
+		readDirHandler:   r.readDirHandler,
+		statHandler:      r.statHandler,
+
+		stmtMiddlewares:      r.stmtMiddlewares,
+		subshellMiddlewares:  r.subshellMiddlewares,
+		builtinMiddlewares:   r.builtinMiddlewares,
+		funcCallMiddlewares:  r.funcCallMiddlewares,
+		lookupVarMiddlewares: r.lookupVarMiddlewares,
+
+		// Inherited from the parent; see [Runner.buildHandlerChains].
+		stmtHandler:      r.stmtHandler,
+		subshellHandler:  r.subshellHandler,
+		builtinHandler:   r.builtinHandler,
+		funcCallHandler:  r.funcCallHandler,
+		lookupVarHandler: r.lookupVarHandler,
+
+		stdin:    r.stdin,
+		stdout:   r.stdout,
+		stderr:   r.stderr,
+		filename: r.filename,
+		opts:     r.opts,
+		usedNew:  r.usedNew,
+		exit:     r.exit,
+		lastExit: r.lastExit,
 
 		origStdout: r.origStdout, // used for process substitutions
 	}

@@ -5,6 +5,7 @@ package interp
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
@@ -41,6 +42,7 @@ const (
 	handlerKindCall                // [CallHandlerFunc]
 	handlerKindOpen                // [OpenHandlerFunc]
 	handlerKindReadDir             // [ReadDirHandlerFunc2]
+	handlerKindBuiltin             // [BuiltinHandlerFunc]
 )
 
 // HandlerContext is the data passed to all the handler functions via [context.WithValue].
@@ -389,4 +391,92 @@ func DefaultStatHandler() StatHandlerFunc {
 			return os.Stat(path)
 		}
 	}
+}
+
+// StmtHandlerFunc is a handler which runs on every [syntax.Stmt]
+// before it is dispatched by the runner.
+type StmtHandlerFunc func(ctx context.Context, stmt *syntax.Stmt)
+
+// SubshellKind identifies the kind of subshell creation site.
+// It is passed to [SubshellHandlerFunc] so handlers can distinguish them.
+type SubshellKind int
+
+const (
+	_                      SubshellKind = iota
+	SubshellKindBackground              // `cmd &` and `cmd & disown`
+	SubshellKindParen                   // `( ... )`
+	SubshellKindCmdSubst                // `$(...)` and the legacy backtick form
+	SubshellKindProcSubst               // `<(...)` and `>(...)`
+	SubshellKindPipeline                // a non-final pipeline element, e.g. the `a` in `a | b`
+)
+
+func (k SubshellKind) String() string {
+	switch k {
+	case SubshellKindBackground:
+		return "background"
+	case SubshellKindParen:
+		return "paren"
+	case SubshellKindCmdSubst:
+		return "cmd-subst"
+	case SubshellKindProcSubst:
+		return "proc-subst"
+	case SubshellKindPipeline:
+		return "pipeline"
+	}
+	return "unknown"
+}
+
+// SubshellHandlerFunc is a handler which runs around the body of a subshell.
+// It is expected to call run to execute the body, and to return its exit code.
+//
+// The ctx passed into run can differ from the ctx received by the handler,
+// so a middleware can derive a child context with its own cancellation.
+//
+// For [SubshellKindBackground], run returns 0 immediately after launching the
+// goroutine; the body's eventual exit code is not available through this hook.
+type SubshellHandlerFunc func(ctx context.Context, kind SubshellKind, run func(ctx context.Context) int) int
+
+// BuiltinHandlerFunc is a handler which replaces a named builtin.
+// The context includes a [HandlerContext] value.
+//
+// The returned [ExitStatus] is recorded as the runner's exit status.
+type BuiltinHandlerFunc func(ctx context.Context, name string, args []string) ExitStatus
+
+// LookupVarHandlerFunc is a handler which produces a value for a named variable.
+// A returned [expand.Variable] with Set=false signals an unset variable.
+type LookupVarHandlerFunc func(ctx context.Context, name string) expand.Variable
+
+// FuncCallHandlerFunc is a handler which runs around the body of a declared shell function.
+type FuncCallHandlerFunc func(ctx context.Context, name string, args []string)
+
+type runnerCtxKey struct{}
+
+func runnerWithCtx(ctx context.Context, r *Runner) context.Context {
+	return context.WithValue(ctx, runnerCtxKey{}, r)
+}
+
+func runnerFromCtx(ctx context.Context) *Runner {
+	r, _ := ctx.Value(runnerCtxKey{}).(*Runner)
+	return r
+}
+
+// RunStmts dispatches stmts on the runner attached to ctx,
+// reusing its current scope rather than starting a fresh program.
+// To run a fresh program, use [Runner.Run].
+//
+// A non-zero exit status is returned as an [ExitStatus] error.
+// An error is also returned if ctx has no runner attached.
+func RunStmts(ctx context.Context, stmts []*syntax.Stmt) error {
+	r := runnerFromCtx(ctx)
+	if r == nil {
+		return errors.New("interp.RunStmts: no runner in context")
+	}
+	r.stmts(ctx, stmts)
+	if err := r.exit.err; err != nil {
+		return err
+	}
+	if code := r.exit.code; code != 0 {
+		return ExitStatus(code)
+	}
+	return nil
 }

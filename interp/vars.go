@@ -4,6 +4,7 @@
 package interp
 
 import (
+	"context"
 	cryptorand "crypto/rand"
 	"encoding/binary"
 	"fmt"
@@ -152,6 +153,10 @@ func (r *Runner) lookupVar(name string) expand.Variable {
 	if name == "" {
 		panic("variable name must not be empty")
 	}
+	return r.lookupVarHandler(r.ectx, name)
+}
+
+func (r *Runner) defaultLookupVar(ctx context.Context, name string) expand.Variable {
 	var vr expand.Variable
 	switch name {
 	case "#":
