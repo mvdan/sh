@@ -127,7 +127,6 @@ The following editor integrations wrap `shfmt`:
 - [intellij-shellscript] - Intellij Jetbrains `shell script` plugin
 - [micro] - Editor with a built-in plugin
 - [neoformat] - (Neo)Vim plugin
-- [shell-format] - VS Code plugin
 - [vscode-shfmt] - VS Code plugin
 - [shfmt.el] - Emacs package
 - [Sublime-Pretty-Shell] - Sublime Text 3 plugin
