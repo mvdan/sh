@@ -3414,6 +3414,18 @@ var fileTests = []fileTestCase{
 		}), LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
+		[]string{`$((ARGS[COMMAND,#]))`},
+		langFile(arithmExp(word(&ParamExp{
+			Short: true,
+			Param: lit("ARGS"),
+			Index: &BinaryArithm{
+				Op: Comma,
+				X:  litWord("COMMAND"),
+				Y:  litWord("#"),
+			},
+		})), LangBash|LangMirBSDKorn|LangZsh),
+	),
+	fileTest(
 		[]string{"$((a += 2, b -= 3))"},
 		langFile(arithmExp(&BinaryArithm{
 			Op: Comma,
