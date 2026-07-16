@@ -826,6 +826,7 @@ func (r *Runner) trapCallback(ctx context.Context, callback, name string) {
 		return // don't recurse, as that could lead to cycles
 	}
 	r.handlingTrap = true
+	defer func() { r.handlingTrap = false }()
 
 	p := syntax.NewParser()
 	// TODO: do this parsing when "trap" is called?
@@ -838,8 +839,6 @@ func (r *Runner) trapCallback(ctx context.Context, callback, name string) {
 	oldExit := r.exit
 	r.stmts(ctx, file.Stmts)
 	r.exit = oldExit // traps on EXIT or ERR should not modify the result
-
-	r.handlingTrap = false
 }
 
 func (r *Runner) flattenAssigns(args []*syntax.Assign) iter.Seq[*syntax.Assign] {

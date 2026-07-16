@@ -2654,6 +2654,8 @@ done <<< 2`,
 	// TODO: our builtin appears to not receive the piped bytes?
 	// {"trap 'echo on_err' ERR; trap | grep -q '.*echo on_err.*'", "trap -- \"echo on_err\" ERR\n"},
 	{"trap 'false' ERR EXIT; false", "exit status 1"},
+	// A parse error in one trap callback must not disable later ones.
+	{"trap '(' ERR; false; trap 'echo ok' ERR; false; :", "errortrap: error trap:1:1: `(` must be followed by a statement list\nok\n #IGNORE"},
 
 	// eval
 	{"eval", ""},
