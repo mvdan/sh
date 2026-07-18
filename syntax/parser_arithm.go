@@ -203,6 +203,13 @@ func (p *Parser) arithmExprValue(compact bool) ArithmExpr {
 		pe := &ParamExp{Short: true, Param: l}
 		pe.Index = p.eitherIndex()
 		x = p.wordOne(pe)
+	case hash:
+		// A bare `#` can appear as a literal array subscript key, e.g.
+		// `a[COMMAND,#]` for an associative array; it is not always the
+		// length-of-parameter operator, which is parsed separately.
+		l := p.lit(p.pos, p.tok.String())
+		p.next()
+		x = p.wordOne(l)
 	case bckQuote:
 		if p.quote == arithmExprLet && p.openBquotes > 0 {
 			return nil

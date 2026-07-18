@@ -17,6 +17,20 @@ func asciiDigit[T rune | byte](r T) bool {
 	return r >= '0' && r <= '9'
 }
 
+// allDigits reports whether bs is non-empty and consists entirely of ASCII
+// digits, as in the base of a base-N numeric literal like 16#FF.
+func allDigits(bs []byte) bool {
+	if len(bs) == 0 {
+		return false
+	}
+	for _, b := range bs {
+		if !asciiDigit(b) {
+			return false
+		}
+	}
+	return true
+}
+
 // bytes that form or start a token
 func regOps(r rune) bool {
 	switch r {
@@ -1026,6 +1040,13 @@ loop:
 			}
 		case ':', '=', '%', '^', ',', '?', '!', '~', '*':
 			if p.quote&allArithmExpr != 0 {
+				break loop
+			}
+		case '#':
+			// Don't split up a base-N numeric literal like 16#FF, which is
+			// entirely made up of ASCII digits up to the '#'. Otherwise, as
+			// in an array subscript like a[COMMAND,#], '#' is its own token.
+			if p.quote&allArithmExpr != 0 && !allDigits(p.litBs[:len(p.litBs)-1]) {
 				break loop
 			}
 		case '.':
