@@ -41,6 +41,7 @@ const (
 	handlerKindCall                // [CallHandlerFunc]
 	handlerKindOpen                // [OpenHandlerFunc]
 	handlerKindReadDir             // [ReadDirHandlerFunc2]
+	handlerKindStat                // [StatHandlerFunc]
 )
 
 // HandlerContext is the data passed to all the handler functions via [context.WithValue].

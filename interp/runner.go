@@ -1134,10 +1134,10 @@ func (r *Runner) open(ctx context.Context, path string, flags int, mode os.FileM
 
 func (r *Runner) stat(ctx context.Context, name string) (fs.FileInfo, error) {
 	path := absPath(r.Dir, name)
-	return r.statHandler(ctx, path, true)
+	return r.statHandler(r.handlerCtx(ctx, handlerKindStat, todoPos), path, true)
 }
 
 func (r *Runner) lstat(ctx context.Context, name string) (fs.FileInfo, error) {
 	path := absPath(r.Dir, name)
-	return r.statHandler(ctx, path, false)
+	return r.statHandler(r.handlerCtx(ctx, handlerKindStat, todoPos), path, false)
 }
