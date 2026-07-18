@@ -259,13 +259,14 @@ var todoPos syntax.Pos // for handlerCtx callers where we don't yet have a posit
 
 func (r *Runner) handlerCtx(ctx context.Context, kind handlerKind, pos syntax.Pos) context.Context {
 	hc := HandlerContext{
-		runner: r,
-		kind:   kind,
-		Env:    &overlayEnviron{parent: r.writeEnv},
-		Dir:    r.Dir,
-		Pos:    pos,
-		Stdout: r.stdout,
-		Stderr: r.stderr,
+		runner:         r,
+		kind:           kind,
+		Env:            &overlayEnviron{parent: r.writeEnv},
+		Dir:            r.Dir,
+		Pos:            pos,
+		Stdout:         r.stdout,
+		Stderr:         r.stderr,
+		LastExitStatus: int(r.lastExit.code),
 	}
 	if r.stdin != nil { // do not leave hc.Stdin as a typed nil
 		hc.Stdin = r.stdin
@@ -836,9 +837,10 @@ func (r *Runner) trapCallback(ctx context.Context, callback, name string) {
 		// ignore errors in the callback
 		return
 	}
-	oldExit := r.exit
+	oldExit, oldLastExit := r.exit, r.lastExit
+	r.lastExit = r.exit
 	r.stmts(ctx, file.Stmts)
-	r.exit = oldExit // traps on EXIT or ERR should not modify the result
+	r.exit, r.lastExit = oldExit, oldLastExit // traps on EXIT or ERR should not modify the result
 }
 
 func (r *Runner) flattenAssigns(args []*syntax.Assign) iter.Seq[*syntax.Assign] {

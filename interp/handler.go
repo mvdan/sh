@@ -75,6 +75,12 @@ type HandlerContext struct {
 	Stdout io.Writer
 	// Stderr is the interpreter's current standard error writer.
 	Stderr io.Writer
+
+	// LastExitStatus is the value that "$?" would hold when the handler is called.
+	// A [CallHandlerFunc] or [ExecHandlerFunc] runs as part of its own command,
+	// so this refers to the command before it.
+	// At the start of a trap callback, it is the status of the command which triggered the trap.
+	LastExitStatus int
 }
 
 // CallHandlerFunc is a handler which runs on every [syntax.CallExpr].

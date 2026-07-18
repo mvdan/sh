@@ -2656,6 +2656,13 @@ done <<< 2`,
 	{"trap 'false' ERR EXIT; false", "exit status 1"},
 	// A parse error in one trap callback must not disable later ones.
 	{"trap '(' ERR; false; trap 'echo ok' ERR; false; :", "errortrap: error trap:1:1: `(` must be followed by a statement list\nok\n #IGNORE"},
+	// On entry to a trap, "$?" is the status of the command which triggered it.
+	{"trap 'echo err $?' ERR; false; echo after $?", "err 1\nafter 1\n"},
+	{"trap 'echo exit $?' EXIT; false", "exit 1\nexit status 1"},
+	{"trap 'echo exit $?' EXIT; true", "exit 0\n"},
+	{"trap 'false; echo next $?' EXIT; true", "next 1\n"},
+	{"trap 'echo err $?' ERR; trap 'echo exit $?' EXIT; false; true", "err 1\nexit 0\n"},
+	{"false; trap 'echo exit $?' EXIT; true", "exit 0\n"},
 
 	// eval
 	{"eval", ""},
