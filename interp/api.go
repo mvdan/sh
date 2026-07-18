@@ -926,6 +926,8 @@ func (r *Runner) Run(ctx context.Context, node syntax.Node) error {
 	default:
 		return fmt.Errorf("node can only be File, Stmt, or Command: %T", node)
 	}
+	// A bare Command bypasses stmt, which normally updates lastExit.
+	r.lastExit = r.exit
 	r.trapCallback(ctx, r.callbackExit, "exit")
 	maps.Insert(r.Vars, r.writeEnv.Each)
 	// Return the first of: a fatal error, a non-fatal handler error, or the exit code.
