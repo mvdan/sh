@@ -1439,6 +1439,28 @@ func (p *Printer) ifClause(ic *IfClause, elif bool) {
 	p.semiRsrv("fi", ic.FiPos)
 }
 
+func (p *Printer) printContinuedComment(s *Stmt, comments []Comment) []Comment {
+	if !p.binNextLine || p.minify || p.singleLine || len(comments) == 0 || p.mustNewline ||
+		p.wantSpace != spaceRequired || s.Semicolon.IsValid() {
+		return comments
+	}
+	if len(p.pendingHdocs) > 0 {
+		// Do not change the ordering of pending heredoc bodies and comments.
+		return comments
+	}
+	comment := comments[0]
+	if comment.Pos().Line() <= s.End().Line() {
+		return comments
+	}
+	p.incLevel()
+	p.bslashNewl()
+	p.advanceLine(comment.Pos().Line())
+	p.comments(comment)
+	p.flushComments()
+	p.decLevel()
+	return comments[1:]
+}
+
 func (p *Printer) stmtList(stmts []*Stmt, last []Comment) {
 	sep := p.wantNewline || (len(stmts) > 0 && stmts[0].Pos().Line() > p.line)
 	for i, s := range stmts {
@@ -1473,6 +1495,7 @@ func (p *Printer) stmtList(stmts []*Stmt, last []Comment) {
 		p.advanceLine(pos.Line())
 		p.comments(midComs...)
 		p.stmt(s)
+		endComs = p.printContinuedComment(s, endComs)
 		p.comments(endComs...)
 		p.wantNewline = true
 	}
