@@ -617,6 +617,45 @@ var fileTests = []fileTestCase{
 		[]string{"select foo bar"},
 		langFile(litStmt("select", "foo", "bar"), LangPOSIX),
 	),
+	// Zsh parenthesized word list with a `do`/`done` body.
+	fileTest(
+		[]string{
+			"for i (1 2 3); do echo $i; done",
+			"for i (1 2 3)\ndo echo $i\ndone",
+			"for i (1 2 3) { echo $i; }",
+		},
+		langFile(&ForClause{
+			Loop: &WordIter{
+				Name:   lit("i"),
+				Parens: true,
+				Items:  litWords("1", "2", "3"),
+			},
+			Do: stmts(call(
+				litWord("echo"),
+				word(litParamExp("i")),
+			)),
+		}, LangZsh),
+	),
+	// Zsh short loop form: a parenthesized word list followed by a single
+	// statement, without do/done or braces.
+	fileTest(
+		[]string{
+			"for i (1 2 3) echo $i",
+			"for i (1 2 3)\necho $i",
+		},
+		langFile(&ForClause{
+			Short: true,
+			Loop: &WordIter{
+				Name:   lit("i"),
+				Parens: true,
+				Items:  litWords("1", "2", "3"),
+			},
+			Do: stmts(call(
+				litWord("echo"),
+				word(litParamExp("i")),
+			)),
+		}, LangZsh),
+	),
 	fileTest(
 		[]string{`' ' "foo bar"`},
 		langFile(call(
@@ -5610,7 +5649,9 @@ func (c sanityChecker) visit(node Node) bool {
 		} else {
 			c.checkPos(node, node.ForPos, "for")
 		}
-		if node.Braces {
+		if node.Short {
+			// Zsh short form: no do/done or braces.
+		} else if node.Braces {
 			c.checkPos(node, node.DoPos, "{")
 			c.checkPos(node, node.DonePos, "}")
 			// Zero out Braces, to not duplicate all the test cases.
@@ -5621,6 +5662,10 @@ func (c sanityChecker) visit(node Node) bool {
 			c.checkPos(node, node.DonePos, "done")
 		}
 	case *WordIter:
+		if node.Parens {
+			c.checkPos(node, node.Lparen, "(")
+			c.checkPos(node, node.Rparen, ")")
+		}
 		if node.InPos.IsValid() {
 			c.checkPos(node, node.InPos, "in")
 		}

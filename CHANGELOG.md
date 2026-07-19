@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- **syntax**
+  - Support Zsh short `for` loops with a parenthesized word list, such as
+    `for i ($arr) echo $i` and `for i (1 2 3) { echo $i }`
+
 ## [3.13.1] - 2026-03-09
 
 - **cmd/shfmt**

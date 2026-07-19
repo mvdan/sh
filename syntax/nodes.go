@@ -427,6 +427,7 @@ type ForClause struct {
 	ForPos, DoPos, DonePos Pos
 	Select                 bool
 	Braces                 bool // deprecated form with { } instead of do/done
+	Short                  bool // Zsh short form; the body is a single statement without do/done or braces
 	Loop                   Loop
 
 	Do     []*Stmt
@@ -434,7 +435,16 @@ type ForClause struct {
 }
 
 func (f *ForClause) Pos() Pos { return f.ForPos }
-func (f *ForClause) End() Pos { return posAddCol(f.DonePos, 4) }
+func (f *ForClause) End() Pos {
+	if f.Short {
+		// Zsh short form: no do/done, so the clause ends with its body.
+		if len(f.Do) > 0 {
+			return f.Do[len(f.Do)-1].End()
+		}
+		return f.Loop.End()
+	}
+	return posAddCol(f.DonePos, 4)
+}
 
 // Loop holds either [*WordIter] or [*CStyleLoop].
 type Loop interface {
@@ -448,14 +458,23 @@ func (*CStyleLoop) loopNode() {}
 // WordIter represents the iteration of a variable over a series of words in a
 // for clause. If InPos is an invalid position, the "in" token was missing, so
 // the iteration is over the shell's positional parameters.
+//
+// In Zsh, the list of words may be given inside parentheses instead of after
+// "in", such as `for name (word...)`. In that case Parens is true and Lparen
+// and Rparen hold the positions of the surrounding parentheses.
 type WordIter struct {
-	Name  *Lit
-	InPos Pos // position of "in"
-	Items []*Word
+	Name           *Lit
+	InPos          Pos // position of "in"
+	Parens         bool
+	Lparen, Rparen Pos // position of "(" and ")" when Parens is true
+	Items          []*Word
 }
 
 func (w *WordIter) Pos() Pos { return w.Name.Pos() }
 func (w *WordIter) End() Pos {
+	if w.Parens {
+		return posAddCol(w.Rparen, 1)
+	}
 	if len(w.Items) > 0 {
 		return wordLastEnd(w.Items)
 	}

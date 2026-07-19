@@ -1990,7 +1990,7 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"for i in 1 2 3; { echo; }",
-		langErr("1:17: for loops with braces are a bash/mksh feature; tried parsing as LANG", LangPOSIX),
+		langErr("1:17: for loops with braces are a bash/mksh/zsh feature; tried parsing as LANG", LangPOSIX),
 	),
 	errCase(
 		"echo !(a)",

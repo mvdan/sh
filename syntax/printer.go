@@ -867,7 +867,15 @@ func (p *Printer) loop(loop Loop) {
 	switch loop := loop.(type) {
 	case *WordIter:
 		p.writeLit(loop.Name.Value)
-		if loop.InPos.IsValid() {
+		if loop.Parens {
+			p.space()
+			p.w.WriteByte('(')
+			p.wantSpace = spaceNotRequired
+			p.wordJoin(loop.Items)
+			p.wantSpace = spaceNotRequired
+			p.w.WriteByte(')')
+			p.wantSpace = spaceRequired
+		} else if loop.InPos.IsValid() {
 			p.spacedString(" in", Pos{})
 			p.wordJoin(loop.Items)
 		}
@@ -1230,6 +1238,14 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			p.w.WriteString("for ")
 		}
 		p.loop(cmd.Loop)
+		if cmd.Short {
+			// Zsh short loop form: a single statement with no do/done.
+			p.space()
+			if len(cmd.Do) > 0 {
+				p.stmt(cmd.Do[0])
+			}
+			break
+		}
 		p.semiOrNewl("do", cmd.DoPos)
 		p.nestedStmts(cmd.Do, cmd.DoLast, cmd.DonePos)
 		p.semiRsrv("done", cmd.DonePos)

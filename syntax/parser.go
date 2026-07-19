@@ -2432,12 +2432,32 @@ func (p *Parser) forClause(s *Stmt) {
 	p.next()
 	fc.Loop = p.loop(fc.ForPos)
 
+	// A Zsh parenthesized word list, `for name (word...)`, may be followed by
+	// a short loop body: braces, do/done, or a single statement.
+	parens := false
+	if wi, ok := fc.Loop.(*WordIter); ok {
+		parens = wi.Parens
+	}
+
 	start, end := "do", "done"
 	if pos, ok := p.gotRsrv("{"); ok {
-		p.checkLang(pos, langBashLike|LangMirBSDKorn, "for loops with braces")
+		p.checkLang(pos, langBashLike|LangMirBSDKorn|LangZsh, "for loops with braces")
 		fc.DoPos = pos
 		fc.Braces = true
 		start, end = "{", "}"
+	} else if parens && !(p.tok == _LitWord && p.val == "do") {
+		// Zsh short loop form: the body is a single statement without
+		// do/done or braces, such as `for i (1 2 3) echo $i`.
+		fc.Short = true
+		s.Comments = append(s.Comments, p.accComs...)
+		p.accComs = nil
+		if st := p.getStmt(false, false, false); st != nil {
+			fc.Do = []*Stmt{st}
+		} else {
+			p.followErr(fc.ForPos, "for foo [in words]", noQuote("a statement"))
+		}
+		s.Cmd = fc
+		return
 	} else {
 		fc.DoPos = p.followRsrv(fc.ForPos, "for foo [in words]", start)
 	}
@@ -2477,6 +2497,24 @@ func (p *Parser) wordIter(ftok string, fpos Pos) *WordIter {
 	wi := &WordIter{}
 	if wi.Name = p.getLit(); wi.Name == nil {
 		p.followErr(fpos, ftok, noQuote("a literal"))
+	}
+	// Zsh allows the list of words to be given in parentheses instead of
+	// after "in", such as `for name (word...)`.
+	if p.tok == leftParen && p.lang == LangZsh {
+		wi.Parens = true
+		wi.Lparen = p.pos
+		p.next()
+		for !p.stopToken() && p.tok != rightParen {
+			if w := p.getWord(); w == nil {
+				p.curErr("word list can only contain words")
+			} else {
+				wi.Items = append(wi.Items, w)
+			}
+		}
+		wi.Rparen = p.matched(wi.Lparen, leftParen, rightParen)
+		p.got(semicolon)
+		p.got(_Newl)
+		return wi
 	}
 	if p.got(semicolon) {
 		p.got(_Newl)
