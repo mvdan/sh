@@ -3872,6 +3872,15 @@ var runTestsUnix = []runTest{
 		"b\n",
 	},
 	{
+		// executable script without shebang: kernel returns ENOEXEC; bash runs via sh
+		"echo 'echo b' >a; chmod 0755 a; PATH=; a",
+		"b\n",
+	},
+	{
+		"mkdir c; cd c; echo 'echo b' >a; chmod 0755 a; PATH=; a",
+		"b\n",
+	},
+	{
 		"GOSH_CMD=lookpath $GOSH_PROG",
 		"sh found\n",
 	},

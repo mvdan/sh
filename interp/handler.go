@@ -5,6 +5,7 @@ package interp
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
@@ -14,6 +15,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"syscall"
 	"time"
 
 	"mvdan.cc/sh/v3/expand"
@@ -147,6 +149,30 @@ func DefaultExecHandler(killTimeout time.Duration) ExecHandlerFunc {
 		}
 
 		err = cmd.Start()
+		// Bash retries executable scripts that the kernel rejects with ENOEXEC
+		// (for example a missing shebang) by running them via /bin/sh.
+		// Match that behavior so "./script" without a shebang still works.
+		if err != nil && runtime.GOOS != "windows" && isExecFormatError(err) {
+			// Prefer sh from PATH, but bash still falls back to /bin/sh when PATH is empty.
+			shPath, shErr := LookPathDir(hc.Dir, hc.Env, "sh")
+			if shErr != nil {
+				if _, statErr := os.Stat("/bin/sh"); statErr == nil {
+					shPath, shErr = "/bin/sh", nil
+				}
+			}
+			if shErr == nil {
+				cmd = exec.Cmd{
+					Path:   shPath,
+					Args:   append([]string{shPath, path}, args[1:]...),
+					Env:    execEnv(hc.Env),
+					Dir:    hc.Dir,
+					Stdin:  hc.Stdin,
+					Stdout: hc.Stdout,
+					Stderr: hc.Stderr,
+				}
+				err = cmd.Start()
+			}
+		}
 		if err == nil {
 			stopf := context.AfterFunc(ctx, func() {
 				if killTimeout <= 0 || runtime.GOOS == "windows" {
@@ -184,6 +210,21 @@ func DefaultExecHandler(killTimeout time.Duration) ExecHandlerFunc {
 			return err
 		}
 	}
+}
+
+// isExecFormatError reports whether err is the kernel's ENOEXEC failure when
+// trying to execute a text script without a valid interpreter header.
+func isExecFormatError(err error) bool {
+	if errors.Is(err, syscall.ENOEXEC) {
+		return true
+	}
+	// Go's os/exec often wraps ENOEXEC as PathError from fork/exec.
+	var pe *os.PathError
+	if errors.As(err, &pe) && errors.Is(pe.Err, syscall.ENOEXEC) {
+		return true
+	}
+	// Last resort: portable message used by syscall.Errno.
+	return strings.Contains(err.Error(), "exec format error")
 }
 
 func checkStat(dir, file string, checkExec bool) (string, error) {
