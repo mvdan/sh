@@ -37,7 +37,7 @@ func SplitBraces(word *Word) bool {
 	top := &Word{}
 	acc := top
 	var cur *BraceExp
-	open := []*BraceExp{}
+	var open []*BraceExp
 
 	pop := func() *BraceExp {
 		old := cur

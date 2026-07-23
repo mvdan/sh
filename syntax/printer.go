@@ -436,9 +436,7 @@ func (p *Printer) newline(pos Pos) {
 }
 
 func (p *Printer) advanceLine(line uint) {
-	if p.line < line {
-		p.line = line
-	}
+	p.line = max(p.line, line)
 }
 
 func (p *Printer) flushHeredocs() {

@@ -6,6 +6,7 @@ package expand
 import (
 	"fmt"
 	"iter"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -71,7 +72,7 @@ func bracesSeqRec(word *syntax.Word, yield func(*syntax.Word) bool) bool {
 		// after prepending `left` to its Parts.
 		expand := func(next *syntax.Word) bool {
 			return bracesSeqRec(next, func(w *syntax.Word) bool {
-				w.Parts = append(append([]syntax.WordPart(nil), left...), w.Parts...)
+				w.Parts = slices.Concat(left, w.Parts)
 				return yield(w)
 			})
 		}
@@ -118,7 +119,7 @@ func bracesSeqRec(word *syntax.Word, yield func(*syntax.Word) bool) bool {
 		}
 		for _, elem := range br.Elems {
 			next := *word
-			next.Parts = append(append([]syntax.WordPart(nil), elem.Parts...), rest...)
+			next.Parts = slices.Concat(elem.Parts, rest)
 			if !expand(&next) {
 				return false
 			}

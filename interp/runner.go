@@ -5,6 +5,7 @@ package interp
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -551,10 +552,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			}
 
 			if cm.Select {
-				ps3 := shellDefaultPS3
-				if e := r.envGet(shellReplyPS3Var); e != "" {
-					ps3 = e
-				}
+				ps3 := cmp.Or(r.envGet(shellReplyPS3Var), shellDefaultPS3)
 
 				prompt := func() []byte {
 					// display menu
@@ -884,9 +882,9 @@ func elapsedString(d time.Duration, posix bool) string {
 	if posix {
 		return fmt.Sprintf("%.2f", d.Seconds())
 	}
-	min := int(d.Minutes())
+	mins := int(d.Minutes())
 	sec := math.Mod(d.Seconds(), 60.0)
-	return fmt.Sprintf("%dm%.3fs", min, sec)
+	return fmt.Sprintf("%dm%.3fs", mins, sec)
 }
 
 func (r *Runner) stmts(ctx context.Context, stmts []*syntax.Stmt) {

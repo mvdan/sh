@@ -6,10 +6,10 @@ package expand
 import (
 	"io/fs"
 	"os"
-	"reflect"
 	"strings"
 	"testing"
 
+	"github.com/go-quicktest/qt"
 	"mvdan.cc/sh/v3/syntax"
 )
 
@@ -85,9 +85,7 @@ func TestFieldsIdempotency(t *testing.T) {
 			if err != nil {
 				t.Fatalf("did not want error, got %v", err)
 			}
-			if !reflect.DeepEqual(got, tc.want) {
-				t.Fatalf("wanted %q, got %q", tc.want, got)
-			}
+			qt.Assert(t, qt.DeepEquals(got, tc.want))
 		}
 	}
 }
@@ -126,9 +124,7 @@ func Test_glob(t *testing.T) {
 			if err != nil {
 				t.Fatalf("did not want error, got %v", err)
 			}
-			if !reflect.DeepEqual(got, tc.want) {
-				t.Fatalf("wanted %q, got %q", tc.want, got)
-			}
+			qt.Assert(t, qt.DeepEquals(got, tc.want))
 		})
 	}
 }
