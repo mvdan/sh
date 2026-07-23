@@ -1306,6 +1306,14 @@ var runTests = []runTest{
 		"case foo in '*') echo x ;; f*) echo y ;; esac",
 		"y\n",
 	},
+	{
+		`case 0 in [\0]) echo bar ;; esac`,
+		"bar\n",
+	},
+	{
+		`case d in [\d]) echo bar ;; esac`,
+		"bar\n",
+	},
 
 	// exec
 	{
@@ -2224,6 +2232,14 @@ var runTests = []runTest{
 	{
 		"set -- a b; echo $#",
 		"2\n",
+	},
+	{
+		"set +; echo $#",
+		"0\n",
+	},
+	{
+		"set + a b; echo $# $1 $2",
+		"2 a b\n",
 	},
 	{
 		"set -U",
