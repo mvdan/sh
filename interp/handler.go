@@ -6,6 +6,7 @@ package interp
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
@@ -145,14 +146,19 @@ func DefaultExecHandler(killTimeout time.Duration) ExecHandlerFunc {
 			fmt.Fprintln(hc.Stderr, err)
 			return ExitStatus(127)
 		}
-		cmd := exec.Cmd{
-			Path:   path,
-			Args:   args,
-			Env:    execEnv(hc.Env),
-			Dir:    hc.Dir,
-			Stdin:  hc.Stdin,
-			Stdout: hc.Stdout,
-			Stderr: hc.Stderr,
+		cmd := exec.CommandContext(ctx, path)
+		cmd.Args = args
+		cmd.Env = execEnv(hc.Env)
+		cmd.Dir = hc.Dir
+		cmd.Stdin = hc.Stdin
+		cmd.Stdout = hc.Stdout
+		cmd.Stderr = hc.Stderr
+		if killTimeout > 0 && runtime.GOOS != "windows" {
+			// On cancellation, send an interrupt signal first, and let
+			// WaitDelay escalate to a kill signal if the process does not
+			// exit in time. Otherwise, keep the default of killing right away.
+			cmd.Cancel = func() error { return cmd.Process.Signal(os.Interrupt) }
+			cmd.WaitDelay = killTimeout
 		}
 
 		err = cmd.Start()
@@ -163,19 +169,6 @@ func DefaultExecHandler(killTimeout time.Duration) ExecHandlerFunc {
 			return runScriptENOEXEC(ctx, hc, killTimeout, path, args)
 		}
 		if err == nil {
-			stopf := context.AfterFunc(ctx, func() {
-				if killTimeout <= 0 || runtime.GOOS == "windows" {
-					_ = cmd.Process.Signal(os.Kill)
-					return
-				}
-				_ = cmd.Process.Signal(os.Interrupt)
-				// TODO: don't sleep in this goroutine if the program
-				// stops itself with the interrupt above.
-				time.Sleep(killTimeout)
-				_ = cmd.Process.Signal(os.Kill)
-			})
-			defer stopf()
-
 			err = cmd.Wait()
 		}
 
@@ -196,6 +189,11 @@ func DefaultExecHandler(killTimeout time.Duration) ExecHandlerFunc {
 			fmt.Fprintf(hc.Stderr, "%v\n", err)
 			return ExitStatus(127)
 		default:
+			// The command exited with success, but WaitDelay elapsed with its
+			// I/O pipes still open, e.g. due to an orphaned subprocess.
+			if errors.Is(err, exec.ErrWaitDelay) {
+				return nil
+			}
 			return err
 		}
 	}
