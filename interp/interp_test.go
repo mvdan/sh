@@ -679,23 +679,23 @@ var runTests = []runTest{
 	},
 	{
 		`a=(foo boo); printf '[%s]' "${a[@]%o}"; echo; printf '[%s]' "${a[@]/o/O}"; echo; printf '[%s]' "${a[@]^}"; echo`,
-		"[foo][boo]\n[foo][boo]\n[foo][boo]\n #IGNORE TODO: the operators are silently ignored",
+		"[fo][bo]\n[fOo][bOo]\n[Foo][Boo]\n",
 	},
 	{
 		`set -- foo boo; printf '[%s]' "${@#?}"; echo; IFS=,; echo "${*%o}"`,
-		"[foo][boo]\nfoo,boo\n #IGNORE TODO: the operators are silently ignored",
+		"[oo][oo]\nfo,bo\n",
 	},
 	{
 		`a=(foo boo); IFS=,; echo "${a[*]%o}"`,
-		"foo,boo\n #IGNORE TODO: the operator is silently ignored",
+		"fo,bo\n",
 	},
 	{
 		`a=(aax abx); echo ${a[@]/x/}; b=("${a[@]/a/z}"); echo "${b[0]}" "${b[1]}"`,
-		"aa abx\naax abx\n #IGNORE TODO: replacement should apply to each element",
+		"aa ab\nzax zbx\n",
 	},
 	{
 		"a=(foo boo); echo ${a[@]%o}; echo ${a[@]}",
-		"fo bo\nfo bo\n #IGNORE TODO: the operator must not modify the array itself",
+		"fo bo\nfoo boo\n",
 	},
 	{
 		"INTERP_X_1=a INTERP_X_2=b; echo ${!INTERP_X_*}",

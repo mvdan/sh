@@ -201,31 +201,11 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 			str = string(rs)
 		} // else, elems are already sliced
 	case pe.Repl != nil:
-		orig, err := Pattern(cfg, pe.Repl.Orig)
+		elems, err := cfg.replaceElems(pe.Repl, elems)
 		if err != nil {
 			return "", err
 		}
-		if orig == "" {
-			break // nothing to replace
-		}
-		with, err := Literal(cfg, pe.Repl.With)
-		if err != nil {
-			return "", err
-		}
-		n := 1
-		if pe.Repl.All {
-			n = -1
-		}
-		locs := findAllIndex(orig, str, n)
-		sb := cfg.strBuilder()
-		last := 0
-		for _, loc := range locs {
-			sb.WriteString(str[last:loc[0]])
-			sb.WriteString(with)
-			last = loc[1]
-		}
-		sb.WriteString(str[last:])
-		str = sb.String()
+		str = join(elems)
 	case pe.Exp != nil:
 		arg, err := Literal(cfg, pe.Exp.Word)
 		if err != nil {
@@ -276,41 +256,10 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 			}
 		case syntax.RemSmallPrefix, syntax.RemLargePrefix,
 			syntax.RemSmallSuffix, syntax.RemLargeSuffix:
-			suffix := op == syntax.RemSmallSuffix || op == syntax.RemLargeSuffix
-			small := op == syntax.RemSmallPrefix || op == syntax.RemSmallSuffix
-			for i, elem := range elems {
-				elems[i] = removePattern(elem, arg, suffix, small)
-			}
-			str = join(elems)
+			str = join(cfg.removePatternElems(op, arg, elems))
 		case syntax.UpperFirst, syntax.UpperAll,
 			syntax.LowerFirst, syntax.LowerAll:
-
-			caseFunc := unicode.ToLower
-			if op == syntax.UpperFirst || op == syntax.UpperAll {
-				caseFunc = unicode.ToUpper
-			}
-			all := op == syntax.UpperAll || op == syntax.LowerAll
-
-			// empty string means '?'; nothing to do there
-			expr, err := pattern.Regexp(arg, 0)
-			if err != nil {
-				return str, nil
-			}
-			rx := regexp.MustCompile(expr)
-
-			for i, elem := range elems {
-				rs := []rune(elem)
-				for ri, r := range rs {
-					if rx.MatchString(string(r)) {
-						rs[ri] = caseFunc(r)
-					}
-					if !all {
-						break // only the first character is considered
-					}
-				}
-				elems[i] = string(rs)
-			}
-			str = join(elems)
+			str = join(cfg.caseConvElems(op, arg, elems))
 		case syntax.OtherParamOps:
 			switch arg {
 			case "Q":
@@ -394,6 +343,107 @@ func removePattern(str, pat string, fromEnd, shortest bool) string {
 		str = str[:loc[2]] + str[loc[3]:]
 	}
 	return str
+}
+
+// The helpers below never modify elems in place, as it may alias a
+// variable's list of elements.
+
+// perElemOps applies pattern removal, replacement, or case conversion to
+// each element, leaving them unchanged for any whole-expansion operator.
+func (cfg *Config) perElemOps(pe *syntax.ParamExp, elems []string) ([]string, error) {
+	switch {
+	case pe.Repl != nil:
+		return cfg.replaceElems(pe.Repl, elems)
+	case pe.Exp != nil:
+		arg, err := Literal(cfg, pe.Exp.Word)
+		if err != nil {
+			return nil, err
+		}
+		switch op := pe.Exp.Op; op {
+		case syntax.RemSmallPrefix, syntax.RemLargePrefix,
+			syntax.RemSmallSuffix, syntax.RemLargeSuffix:
+			return cfg.removePatternElems(op, arg, elems), nil
+		case syntax.UpperFirst, syntax.UpperAll,
+			syntax.LowerFirst, syntax.LowerAll:
+			return cfg.caseConvElems(op, arg, elems), nil
+		}
+	}
+	return elems, nil
+}
+
+// replaceElems applies a ${var/pattern/repl} replacement to each element.
+func (cfg *Config) replaceElems(repl *syntax.Replace, elems []string) ([]string, error) {
+	orig, err := Pattern(cfg, repl.Orig)
+	if err != nil {
+		return nil, err
+	}
+	if orig == "" {
+		return elems, nil // nothing to replace
+	}
+	with, err := Literal(cfg, repl.With)
+	if err != nil {
+		return nil, err
+	}
+	n := 1
+	if repl.All {
+		n = -1
+	}
+	out := make([]string, len(elems))
+	for i, elem := range elems {
+		locs := findAllIndex(orig, elem, n)
+		sb := cfg.strBuilder()
+		last := 0
+		for _, loc := range locs {
+			sb.WriteString(elem[last:loc[0]])
+			sb.WriteString(with)
+			last = loc[1]
+		}
+		sb.WriteString(elem[last:])
+		out[i] = sb.String()
+	}
+	return out, nil
+}
+
+// removePatternElems applies a pattern removal operator to each element.
+func (cfg *Config) removePatternElems(op syntax.ParExpOperator, arg string, elems []string) []string {
+	suffix := op == syntax.RemSmallSuffix || op == syntax.RemLargeSuffix
+	small := op == syntax.RemSmallPrefix || op == syntax.RemSmallSuffix
+	out := make([]string, len(elems))
+	for i, elem := range elems {
+		out[i] = removePattern(elem, arg, suffix, small)
+	}
+	return out
+}
+
+// caseConvElems applies a case conversion operator to each element.
+func (cfg *Config) caseConvElems(op syntax.ParExpOperator, arg string, elems []string) []string {
+	caseFunc := unicode.ToLower
+	if op == syntax.UpperFirst || op == syntax.UpperAll {
+		caseFunc = unicode.ToUpper
+	}
+	all := op == syntax.UpperAll || op == syntax.LowerAll
+
+	// empty string means '?'; nothing to do there
+	expr, err := pattern.Regexp(arg, 0)
+	if err != nil {
+		return elems
+	}
+	rx := regexp.MustCompile(expr)
+
+	out := make([]string, len(elems))
+	for i, elem := range elems {
+		rs := []rune(elem)
+		for ri, r := range rs {
+			if rx.MatchString(string(r)) {
+				rs[ri] = caseFunc(r)
+			}
+			if !all {
+				break // only the first character is considered
+			}
+		}
+		out[i] = string(rs)
+	}
+	return out
 }
 
 func (cfg *Config) varInd(vr Variable, idx syntax.ArithmExpr) (string, error) {
