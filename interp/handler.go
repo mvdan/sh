@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -400,8 +399,6 @@ func DefaultOpenHandler() OpenHandlerFunc {
 	}
 }
 
-// TODO(v4): if this is kept in v4, it most likely needs to use [io/fs.DirEntry] for efficiency
-
 // ReadDirHandlerFunc is a handler which reads directories. It is called during
 // shell globbing, if enabled.
 //
@@ -414,10 +411,24 @@ type ReadDirHandlerFunc func(ctx context.Context, path string) ([]fs.FileInfo, e
 type ReadDirHandlerFunc2 func(ctx context.Context, path string) ([]fs.DirEntry, error)
 
 // DefaultReadDirHandler returns the [ReadDirHandlerFunc] used by default.
-// It makes use of [ioutil.ReadDir].
+// It uses [os.ReadDir].
+//
+// Deprecated: use [DefaultReadDirHandler2], which uses [fs.DirEntry].
 func DefaultReadDirHandler() ReadDirHandlerFunc {
 	return func(ctx context.Context, path string) ([]fs.FileInfo, error) {
-		return ioutil.ReadDir(path)
+		entries, err := os.ReadDir(path)
+		if err != nil {
+			return nil, err
+		}
+		infos := make([]fs.FileInfo, 0, len(entries))
+		for _, entry := range entries {
+			info, err := entry.Info()
+			if err != nil {
+				return nil, err
+			}
+			infos = append(infos, info)
+		}
+		return infos, nil
 	}
 }
 
