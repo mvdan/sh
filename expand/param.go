@@ -62,6 +62,14 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 			&syntax.Lit{Value: name},
 		}}
 	}
+	// "*" expansions like ${*}, ${arr[*]}, or ${!prefix*} join their
+	// elements with the first IFS character; others use a space.
+	join := func(elems []string) string {
+		if nodeLit(index) == "*" || pe.Names == syntax.NamesPrefix {
+			return cfg.ifsJoin(elems)
+		}
+		return strings.Join(elems, " ")
+	}
 	var vr Variable
 	switch name {
 	case "LINENO":
@@ -118,7 +126,7 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 			indexAllElements = true
 			callVarInd = false
 			elems = cfg.sliceElems(pe, vr.List, name == "@" || name == "*")
-			str = strings.Join(elems, " ")
+			str = join(elems)
 		}
 	}
 	if callVarInd {
@@ -165,7 +173,7 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 			strs = append(strs, vr.String())
 		}
 		slices.Sort(strs)
-		str = strings.Join(strs, " ")
+		str = join(strs)
 	case pe.Width:
 		return "", fmt.Errorf("unsupported")
 	case pe.IsSet:
@@ -274,7 +282,7 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 			for i, elem := range elems {
 				elems[i] = removePattern(elem, arg, suffix, small)
 			}
-			str = strings.Join(elems, " ")
+			str = join(elems)
 		case syntax.UpperFirst, syntax.UpperAll,
 			syntax.LowerFirst, syntax.LowerAll:
 
@@ -303,7 +311,7 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 				}
 				elems[i] = string(rs)
 			}
-			str = strings.Join(elems, " ")
+			str = join(elems)
 		case syntax.OtherParamOps:
 			switch arg {
 			case "Q":

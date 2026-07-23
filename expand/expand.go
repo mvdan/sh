@@ -19,6 +19,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"mvdan.cc/sh/v3/internal"
 	"mvdan.cc/sh/v3/pattern"
@@ -144,7 +145,9 @@ func (cfg *Config) ifsRune(r rune) bool {
 func (cfg *Config) ifsJoin(strs []string) string {
 	sep := ""
 	if cfg.ifs != "" {
-		sep = cfg.ifs[:1]
+		// The separator is the first character of IFS, not the first byte.
+		_, size := utf8.DecodeRuneInString(cfg.ifs)
+		sep = cfg.ifs[:size]
 	}
 	return strings.Join(strs, sep)
 }
@@ -716,6 +719,18 @@ func (cfg *Config) wordFields(wps []syntax.WordPart) ([][]fieldPart, error) {
 				curField = append(curField, part)
 			}
 		case *syntax.ParamExp:
+			if elems, ok := cfg.unquotedElemFields(wp); ok {
+				// Unquoted "*" or "@" expansions produce one field per
+				// element; joining and re-splitting them would lose
+				// fields when IFS is empty.
+				for j, elem := range elems {
+					if j > 0 {
+						flush()
+					}
+					splitAdd(elem)
+				}
+				continue
+			}
 			val, err := cfg.paramExp(wp)
 			if err != nil {
 				return nil, err
@@ -760,6 +775,36 @@ func (cfg *Config) wordFields(wps []syntax.WordPart) ([][]fieldPart, error) {
 		fields = append(fields, curField)
 	}
 	return fields, nil
+}
+
+// listElems returns the elements of a "*" or "@" expansion of a list, like
+// $@ or ${arr[*]}, with star set for the "*" forms which join into a single
+// field when quoted. ok is false for any other parameter expansion.
+func (cfg *Config) listElems(pe *syntax.ParamExp) (elems []string, star, ok bool) {
+	switch name := pe.Param.Value; name {
+	case "*", "@":
+		return cfg.sliceElems(pe, cfg.Env.Get(name).List, true), name == "*", true
+	}
+	switch lit := nodeLit(pe.Index); lit {
+	case "@", "*":
+		switch vr := cfg.Env.Get(pe.Param.Value); vr.Kind {
+		case Indexed:
+			return cfg.sliceElems(pe, vr.List, false), lit == "*", true
+		case Associative:
+			return slices.Sorted(maps.Values(vr.Map)), lit == "*", true
+		}
+	}
+	return nil, false, false
+}
+
+// unquotedElemFields returns the elements of an unquoted "*" or "@" list
+// expansion like $* or ${foo[@]}; ok is false for any other expansion.
+func (cfg *Config) unquotedElemFields(pe *syntax.ParamExp) ([]string, bool) {
+	if pe.Excl || pe.Length || pe.Width || pe.IsSet || pe.Repl != nil || pe.Exp != nil {
+		return nil, false
+	}
+	elems, _, ok := cfg.listElems(pe)
+	return elems, ok
 }
 
 // quotedElemFields returns the list of elements resulting from a quoted
