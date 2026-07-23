@@ -40,7 +40,14 @@ func runAll() error {
 		return err
 	}
 
-	if *command != "" {
+	// Note that -c '' is a no-op, so check whether the flag was set.
+	commandSet := false
+	flag.Visit(func(f *flag.Flag) {
+		if f.Name == "c" {
+			commandSet = true
+		}
+	})
+	if commandSet {
 		return run(r, strings.NewReader(*command), "")
 	}
 	if flag.NArg() == 0 {

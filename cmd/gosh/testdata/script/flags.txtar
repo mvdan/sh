@@ -5,10 +5,9 @@ stdout 'from-c'
 ! stdout 'from-stdin'
 
 # an empty -c is a no-op, like in other shells
-# TODO: stdin should not be run
 stdin stdin.sh
 exec gosh -c ''
-stdout 'from-stdin'
+! stdout .
 
 # without -c, stdin is run
 stdin stdin.sh
