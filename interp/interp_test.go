@@ -2122,6 +2122,10 @@ var runTests = []runTest{
 		"2 3\n",
 	},
 	{
+		"echo $((2 ? 3 : 4)) $((-1 ? 3 : 4))",
+		"4 4\n #IGNORE TODO: bash prints 3 3",
+	},
+	{
 		"echo $((255+1))",
 		"256\n",
 	},
