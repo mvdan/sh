@@ -87,6 +87,10 @@ var printTests = []printCase{
 	samePrint("a=b # inline\nbar"),
 	samePrint("a=$(b) # inline"),
 	samePrint("foo # inline\n# after"),
+	{
+		"a \\\n\tb \\\n\t# EOC",
+		"a \\\n\tb\n# EOC",
+	},
 	samePrint("$(a) $(b)"),
 	{"if a\nthen\n\tb\nfi", "if a; then\n\tb\nfi"},
 	samePrint("if a; then\n\tb\nelse\n\tc\nfi"),
@@ -855,13 +859,32 @@ func TestPrintBinaryNextLine(t *testing.T) {
 			"a \\\n\t| b \\\n\t|\n\t#c2\n\tc",
 		},
 		samePrint("a \\\n\t&"),
+		samePrint("a \\\n\tb \\\n\tc \\\n\t# EOC"),
+		samePrint("a \\\n\t| b \\\n\t| c \\\n\t# EOC"),
 		{
-			"a \\\n\tb \\\n\tc \\\n\t# EOC",
-			"a \\\n\tb \\\n\tc\n# EOC",
+			"a   \\\n\tb \\\n\t# EOC",
+			"a \\\n\tb \\\n\t# EOC",
 		},
 		{
-			"a \\\n\t| b \\\n\t| c \\\n\t# EOC",
-			"a \\\n\t| b \\\n\t| c\n# EOC",
+			"a \\\n\tb  \n\t# ordinary",
+			"a \\\n\tb\n# ordinary",
+		},
+		{
+			"a \\\r\n\tb \\\r\n\t# EOC",
+			"a \\\n\tb \\\n\t# EOC",
+		},
+		{
+			"a\\\n\tb\\\n\t# EOC",
+			"a b # EOC",
+		},
+		samePrint("a \\\n\tb \\\n\t# EOC\nnext"),
+		{
+			"a \\\n\tb \\\n\t# EOC\n\t# ordinary",
+			"a \\\n\tb \\\n\t# EOC\n# ordinary",
+		},
+		{
+			"a; \\\n\t# ordinary",
+			"a\n# ordinary",
 		},
 	}
 	parser := NewParser(KeepComments(true))

@@ -2144,7 +2144,9 @@ func (p *Parser) getStmt(readEnd, binCmd, fnBody bool) *Stmt {
 	}
 	if len(p.accComs) > 0 && !binCmd && !fnBody {
 		c := p.accComs[0]
-		if c.Pos().Line() == s.End().Line() {
+		// A later-line comment can only be reached here through an escaped
+		// newline, as a regular newline ends getStmt first.
+		if c.Pos().Line() >= s.End().Line() {
 			s.Comments = append(s.Comments, c)
 			p.accComs = p.accComs[1:]
 		}

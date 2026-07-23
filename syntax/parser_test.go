@@ -144,6 +144,52 @@ func TestParseBashKeepComments(t *testing.T) {
 	}
 }
 
+func TestParseContinuedComment(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name                  string
+		input                 string
+		firstComs, secondComs int
+	}{
+		{
+			"EscapedNewline",
+			"cmd \\\n\targ \\\n\t# EOL\nnext",
+			1, 0,
+		},
+		{
+			"OrdinaryNewline",
+			"cmd \\\n\targ  \n\t# EOL\nnext",
+			0, 1,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			prog, err := NewParser(KeepComments(true)).Parse(strings.NewReader(test.input), "")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got := len(prog.Stmts); got != 2 {
+				t.Fatalf("got %d statements, want 2", got)
+			}
+			if got := len(prog.Stmts[0].Comments); got != test.firstComs {
+				t.Fatalf("first statement has %d comments, want %d", got, test.firstComs)
+			}
+			if got := len(prog.Stmts[1].Comments); got != test.secondComs {
+				t.Fatalf("second statement has %d comments, want %d", got, test.secondComs)
+			}
+			var comment Comment
+			if test.firstComs > 0 {
+				comment = prog.Stmts[0].Comments[0]
+			} else {
+				comment = prog.Stmts[1].Comments[0]
+			}
+			if comment.Text != " EOL" || comment.Pos().Line() != 3 {
+				t.Errorf("got comment %q at line %d", comment.Text, comment.Pos().Line())
+			}
+		})
+	}
+}
+
 func TestParsePosOverflow(t *testing.T) {
 	t.Parallel()
 
