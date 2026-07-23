@@ -138,12 +138,7 @@ func prepareConfig(cfg *Config) *Config {
 }
 
 func (cfg *Config) ifsRune(r rune) bool {
-	for _, r2 := range cfg.ifs {
-		if r == r2 {
-			return true
-		}
-	}
-	return false
+	return strings.ContainsRune(cfg.ifs, r)
 }
 
 func (cfg *Config) ifsJoin(strs []string) string {
