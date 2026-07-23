@@ -157,13 +157,13 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 		case orig.Kind == NameRef:
 			strs = append(strs, orig.Str)
 		case pe.Index != nil && vr.Kind == Indexed:
-			for i, e := range vr.List {
-				if e != "" {
-					strs = append(strs, strconv.Itoa(i))
-				}
+			// TODO: this is only correct for dense lists, as we
+			// cannot represent the unset elements of a sparse array.
+			for i := range vr.List {
+				strs = append(strs, strconv.Itoa(i))
 			}
 		case pe.Index != nil && vr.Kind == Associative:
-			strs = slices.AppendSeq(strs, maps.Keys(vr.Map))
+			strs = slices.Sorted(maps.Keys(vr.Map))
 		case !vr.IsSet():
 			return "", fmt.Errorf("invalid indirect expansion")
 		case str == "":
@@ -172,7 +172,6 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 			vr = cfg.Env.Get(str)
 			strs = append(strs, vr.String())
 		}
-		slices.Sort(strs)
 		str = join(strs)
 	case pe.Width:
 		return "", fmt.Errorf("unsupported")
@@ -450,5 +449,6 @@ func (cfg *Config) namesByPrefix(prefix string) []string {
 			names = append(names, name)
 		}
 	}
+	slices.Sort(names)
 	return names
 }

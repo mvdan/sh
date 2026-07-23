@@ -2981,9 +2981,9 @@ done <<< 2`,
 	{"a=(b c); a=d; echo ${a[@]}", "d c\n"},
 	{"declare -A a=([x]=b [y]=c); a=d; for e in ${a[@]}; do echo $e; done | sort", "b\nc\nd\n"},
 	{"i=3; a=b; a[i]=x; echo ${a[@]}", "b x\n"},
-	{"i=3; declare a=(b); a[i]=x; echo ${!a[@]}", "0 3\n"},
-	{`a=(x "" y); echo ${!a[@]}; echo "${!a[@]}"`, "0 2\n0 1 2\n #IGNORE TODO: bash prints 0 1 2 twice"},
-	{"a=(0 1 2 3 4 5 6 7 8 9 10); echo ${!a[@]}", "0 1 10 2 3 4 5 6 7 8 9\n #IGNORE TODO: bash prints the indices in order"},
+	{"i=3; declare a=(b); a[i]=x; echo ${!a[@]}", "0 1 2 3\n #IGNORE bash prints 0 3; our arrays are dense, so unset elements are not tracked"},
+	{`a=(x "" y); echo ${!a[@]}; echo "${!a[@]}"`, "0 1 2\n0 1 2\n"},
+	{"a=(0 1 2 3 4 5 6 7 8 9 10); echo ${!a[@]}", "0 1 2 3 4 5 6 7 8 9 10\n"},
 	{"i=3; declare -A a=(['x']=b); a[i]=x; for e in ${!a[@]}; do echo $e; done | sort", "i\nx\n"},
 
 	// declare
