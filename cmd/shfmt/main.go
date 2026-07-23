@@ -250,6 +250,10 @@ For more information and to report bugs, see https://github.com/mvdan/sh.
 		fmt.Fprintln(os.Stderr, "--to-json can only be used with stdin")
 		os.Exit(1)
 	}
+	if fromJSON.val {
+		fmt.Fprintln(os.Stderr, "--from-json can only be used with stdin")
+		os.Exit(1)
+	}
 	status := 0
 	for _, path := range flag.Args() {
 		explicit := true
