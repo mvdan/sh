@@ -4,7 +4,9 @@
 package syntax
 
 import (
+	"fmt"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -108,6 +110,44 @@ func TestWalk(t *testing.T) {
 				t.Errorf("type not seen: %s", tstr)
 			}
 		}
+	}
+}
+
+func TestPreorder(t *testing.T) {
+	t.Parallel()
+	in := "echo ${foo:-bar}; { baz >f; } # comment"
+	prog, err := NewParser(KeepComments(true)).Parse(strings.NewReader(in), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Comment nodes are addressed differently on each traversal,
+	// so compare the nodes by type and position rather than by pointer.
+	describe := func(node Node) string {
+		return fmt.Sprintf("%T@%d", node, node.Pos().Offset())
+	}
+	var walked []string
+	Walk(prog, func(node Node) bool {
+		if node != nil {
+			walked = append(walked, describe(node))
+		}
+		return true
+	})
+	var collected []string
+	for node := range Preorder(prog) {
+		collected = append(collected, describe(node))
+	}
+	if !slices.Equal(collected, walked) {
+		t.Errorf("Preorder visited %q, Walk visited %q in preorder", collected, walked)
+	}
+	var stopped []string
+	for node := range Preorder(prog) {
+		stopped = append(stopped, describe(node))
+		if len(stopped) == 3 {
+			break
+		}
+	}
+	if !slices.Equal(stopped, walked[:3]) {
+		t.Errorf("stopping early visited %q, want %q", stopped, walked[:3])
 	}
 }
 
