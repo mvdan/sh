@@ -7,6 +7,7 @@ package interp
 
 import (
 	"context"
+	"errors"
 	"os/user"
 	"strconv"
 	"syscall"
@@ -46,3 +47,7 @@ func (r *Runner) unTestOwnOrGrp(ctx context.Context, op syntax.UnTestOperator, x
 }
 
 type waitStatus = syscall.WaitStatus
+
+// isENOEXEC reports whether the kernel refused to execute a file
+// with ENOEXEC, e.g. a script without a shebang line.
+func isENOEXEC(err error) bool { return errors.Is(err, syscall.ENOEXEC) }

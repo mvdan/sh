@@ -54,5 +54,8 @@ func (r *Runner) unTestOwnOrGrp(ctx context.Context, op syntax.UnTestOperator, x
 // waitStatus is a no-op on plan9 and windows.
 type waitStatus struct{}
 
+// isENOEXEC is a no-op on plan9 and windows.
+func isENOEXEC(err error) bool { return false }
+
 func (waitStatus) Signaled() bool { return false }
 func (waitStatus) Signal() int    { return 0 }

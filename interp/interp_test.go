@@ -3766,6 +3766,32 @@ var runTestsUnix = []runTest{
 	{"sh() { :; }; sh -c 'echo foo'", ""},
 	{"sh() { :; }; command sh -c 'echo foo'", "foo\n"},
 
+	// files without a shebang line are run as shell scripts; see issue #1065
+	{
+		"echo 'echo foo' >a; chmod +x a; ./a",
+		"foo\n",
+	},
+	{
+		"echo 'echo $#: $1' >a; chmod +x a; ./a one two",
+		"2: one\n",
+	},
+	{
+		"echo 'echo \"[$foo][$bar]\"' >a; chmod +x a; foo=1; export bar=2; ./a",
+		"[][2]\n",
+	},
+	{
+		"echo 'exit 5' >a; chmod +x a; ./a",
+		"exit status 5",
+	},
+	{
+		"printf '\\0\\n' >a; chmod +x a; ./a",
+		"./a: cannot execute binary file\nexit status 126 #JUSTERR",
+	},
+	{
+		"echo 'if' >a; chmod +x a; ./a",
+		"./a:1:1: `if` must be followed by a statement list\nexit status 2 #JUSTERR",
+	},
+
 	// chmod is practically useless on Windows
 	{
 		"[ -x a ] && echo x; >a; chmod 0755 a; [ -x a ] && echo y",

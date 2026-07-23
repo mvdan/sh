@@ -4,6 +4,7 @@
 package interp
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -128,6 +129,13 @@ type ExecHandlerFunc func(ctx context.Context, args []string) error
 // On Windows, the kill signal is always sent immediately,
 // because Go doesn't currently support sending Interrupt on Windows.
 // [Runner] defaults to a killTimeout of 2 seconds.
+//
+// On Unix, a file which fails to execute with ENOEXEC, such as a script
+// without a shebang line, is run as a shell script with a new [Runner]
+// using default options and handlers, like other shells do.
+//
+// TODO: perhaps intercept ENOEXEC scripts as well as shell shebangs
+// such as "#!/bin/sh" so that they reuse the runner's configured handlers.
 func DefaultExecHandler(killTimeout time.Duration) ExecHandlerFunc {
 	return func(ctx context.Context, args []string) error {
 		hc := HandlerCtx(ctx)
@@ -147,6 +155,12 @@ func DefaultExecHandler(killTimeout time.Duration) ExecHandlerFunc {
 		}
 
 		err = cmd.Start()
+		if isENOEXEC(err) {
+			// Like other shells, run a file which the kernel refuses to
+			// execute with ENOEXEC, such as a script without a shebang line,
+			// as a shell script with a new copy of the shell.
+			return runScriptENOEXEC(ctx, hc, killTimeout, path, args)
+		}
 		if err == nil {
 			stopf := context.AfterFunc(ctx, func() {
 				if killTimeout <= 0 || runtime.GOOS == "windows" {
@@ -184,6 +198,40 @@ func DefaultExecHandler(killTimeout time.Duration) ExecHandlerFunc {
 			return err
 		}
 	}
+}
+
+// runScriptENOEXEC runs a file as a shell script with a new shell,
+// as POSIX requires when the kernel fails to execute it with ENOEXEC.
+// The new shell does not inherit functions or unexported variables.
+func runScriptENOEXEC(ctx context.Context, hc HandlerContext, killTimeout time.Duration, path string, args []string) error {
+	b, err := os.ReadFile(path)
+	if err != nil {
+		fmt.Fprintln(hc.Stderr, err)
+		return ExitStatus(126)
+	}
+	// Like Bash, refuse to run the file as a script
+	// if a null byte appears before the first newline.
+	line, _, _ := bytes.Cut(b, []byte("\n"))
+	if bytes.IndexByte(line, 0) >= 0 {
+		fmt.Fprintf(hc.Stderr, "%s: cannot execute binary file\n", args[0])
+		return ExitStatus(126)
+	}
+	file, err := syntax.NewParser().Parse(bytes.NewReader(b), args[0])
+	if err != nil {
+		fmt.Fprintln(hc.Stderr, err)
+		return ExitStatus(2) // like Bash with a syntax error
+	}
+	r, err := New(
+		Dir(hc.Dir),
+		Env(expand.ListEnviron(execEnv(hc.Env)...)),
+		StdIO(hc.Stdin, hc.Stdout, hc.Stderr),
+		ExecHandler(DefaultExecHandler(killTimeout)),
+	)
+	if err != nil {
+		return err
+	}
+	r.Params = args[1:]
+	return r.Run(ctx, file)
 }
 
 func checkStat(dir, file string, checkExec bool) (string, error) {
