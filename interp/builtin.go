@@ -716,11 +716,25 @@ func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args 
 				Kind: expand.Indexed,
 				List: values,
 			})
-		} else {
-			if len(args) == 0 {
-				args = append(args, shellReplyVar)
+		} else if len(args) == 0 {
+			// Bare "read" assigns the whole line to REPLY without any
+			// trimming, only discarding backslash escapes unless raw.
+			val := string(line)
+			if !raw {
+				var sb strings.Builder
+				esc := false
+				for i := range len(val) {
+					if val[i] == '\\' && !esc {
+						esc = true
+						continue
+					}
+					sb.WriteByte(val[i])
+					esc = false
+				}
+				val = sb.String()
 			}
-
+			r.setVarString(shellReplyVar, val)
+		} else {
 			values := expand.ReadFields(r.ecfg, string(line), len(args), raw)
 			for i, name := range args {
 				val := ""

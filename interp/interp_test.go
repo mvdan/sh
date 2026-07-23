@@ -3671,11 +3671,11 @@ done <<< 2`,
 	},
 	{
 		`read x <<< '  a  b  '; echo "[$x]"`,
-		"[  a  b  ]\n #IGNORE TODO: bash trims the leading and trailing IFS whitespace",
+		"[a  b]\n",
 	},
 	{
 		`IFS=' :' read x <<< ' :a b: '; echo "[$x]"`,
-		"[ :a b: ]\n #IGNORE TODO: bash trims the leading and trailing IFS whitespace",
+		"[:a b:]\n",
 	},
 	{
 		`IFS=: read x <<< ':a:b:'; echo "[$x]"`,

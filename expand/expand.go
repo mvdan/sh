@@ -142,6 +142,11 @@ func (cfg *Config) ifsRune(r rune) bool {
 	return strings.ContainsRune(cfg.ifs, r)
 }
 
+// ifsWhitespace reports whether r is a space, tab, or newline present in IFS.
+func (cfg *Config) ifsWhitespace(r rune) bool {
+	return (r == ' ' || r == '\t' || r == '\n') && cfg.ifsRune(r)
+}
+
 func (cfg *Config) ifsJoin(strs []string) string {
 	sep := ""
 	if cfg.ifs != "" {
@@ -1194,8 +1199,16 @@ func ReadFields(cfg *Config, s string, n int, raw bool) []string {
 
 	switch {
 	case n == 1:
-		// include heading/trailing IFSs
-		fpos[0].start, fpos[0].end = 0, len(runes)
+		// The single field spans the whole line minus leading and trailing
+		// IFS whitespace; anything outside the fields is already IFS.
+		lo, hi := 0, len(runes)
+		for lo < fpos[0].start && cfg.ifsWhitespace(runes[lo]) {
+			lo++
+		}
+		for hi > fpos[len(fpos)-1].end && cfg.ifsWhitespace(runes[hi-1]) {
+			hi--
+		}
+		fpos[0].start, fpos[0].end = lo, hi
 		fpos = fpos[:1]
 	case n != -1 && n < len(fpos):
 		// combine to max n fields
