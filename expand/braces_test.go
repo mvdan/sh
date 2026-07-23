@@ -147,28 +147,23 @@ var braceTests = []struct {
 	},
 	{
 		litWord("{00..2}"),
-		// TODO: bash pads to the widest endpoint: 00 01 02
-		litWords("0", "1", "2"),
+		litWords("00", "01", "02"),
 	},
 	{
 		litWord("{01..10}"),
-		// TODO: bash pads to the widest endpoint: 01 02 [...] 09 10
-		litWords("01", "02", "03", "04", "05", "06", "07", "08", "09", "010"),
+		litWords("01", "02", "03", "04", "05", "06", "07", "08", "09", "10"),
 	},
 	{
 		litWord("{-03..3..3}"),
-		// TODO: bash pads to the widest endpoint: -03 000 003
-		litWords("-3", "0", "3"),
+		litWords("-03", "000", "003"),
 	},
 	{
 		litWord("a{1..10..-3}"),
-		// TODO: bash uses the absolute value of the step: a1 a4 a7 a10
-		litWords("a1", "a2", "a3", "a4", "a5", "a6", "a7", "a8", "a9", "a10"),
+		litWords("a1", "a4", "a7", "a10"),
 	},
 	{
 		litWord("a{10..1..3}"),
-		// TODO: bash uses the absolute value of the step: a10 a7 a4 a1
-		litWords("a10", "a9", "a8", "a7", "a6", "a5", "a4", "a3", "a2", "a1"),
+		litWords("a10", "a7", "a4", "a1"),
 	},
 	{
 		litWord("a{d..k..3}"),

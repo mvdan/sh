@@ -79,7 +79,6 @@ func bracesSeqRec(word *syntax.Word, yield func(*syntax.Word) bool) bool {
 		if br.Sequence {
 			fromLit := br.Elems[0].Lit()
 			toLit := br.Elems[1].Lit()
-			zeros := max(extraLeadingZeros(fromLit), extraLeadingZeros(toLit))
 
 			chars := false
 			// ParseInt with bit size 64 to ensure consistent behavior on 32-bit platforms.
@@ -90,25 +89,37 @@ func bracesSeqRec(word *syntax.Word, yield func(*syntax.Word) bool) bool {
 				from = int64(fromLit[0])
 				to = int64(toLit[0])
 			}
+			// Endpoints with leading zeros pad all results to the
+			// widest endpoint, e.g. {01..10} gives 01 02 [...] 09 10.
+			width := 0
+			if !chars && (hasLeadingZeros(fromLit) || hasLeadingZeros(toLit)) {
+				width = max(len(fromLit), len(toLit))
+			}
 			upward := from <= to
 			incr := int64(1)
-			if !upward {
-				incr = -1
-			}
 			if len(br.Elems) > 2 {
 				// ParseInt with bit size 64 to ensure consistent behavior on 32-bit platforms.
 				n, _ := strconv.ParseInt(br.Elems[2].Lit(), 10, 64)
-				if n != 0 && n > 0 == upward {
+				if n < 0 {
+					n = -n // only the absolute value of the step matters
+				}
+				if n != 0 {
 					incr = n
 				}
+			}
+			if !upward {
+				incr = -incr
 			}
 			for n := from; (upward && n <= to) || (!upward && n >= to); n += incr {
 				next := *word
 				lit := &syntax.Lit{}
-				if chars {
+				switch {
+				case chars:
 					lit.Value = string(rune(n))
-				} else {
-					lit.Value = strings.Repeat("0", zeros) + strconv.FormatInt(n, 10)
+				case width > 0:
+					lit.Value = fmt.Sprintf("%0*d", width, n)
+				default:
+					lit.Value = strconv.FormatInt(n, 10)
 				}
 				next.Parts = append([]syntax.WordPart{lit}, rest...)
 				if !expand(&next) {
@@ -129,11 +140,7 @@ func bracesSeqRec(word *syntax.Word, yield func(*syntax.Word) bool) bool {
 	return yield(&syntax.Word{Parts: left})
 }
 
-func extraLeadingZeros(s string) int {
-	for i, r := range s {
-		if r != '0' {
-			return i
-		}
-	}
-	return 0 // "0" has no extra leading zeros
+func hasLeadingZeros(s string) bool {
+	s = strings.TrimPrefix(s, "-")
+	return len(s) > 1 && s[0] == '0'
 }

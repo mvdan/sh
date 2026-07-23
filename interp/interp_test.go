@@ -3487,7 +3487,7 @@ done <<< 2`,
 	{"echo a{1..", "a{1..\n"},
 	{
 		"echo {00..2}; echo {01..10}; echo {1..10..-2}; echo {10..1..2}; echo {-03..3}",
-		"0 1 2\n01 02 03 04 05 06 07 08 09 010\n1 2 3 4 5 6 7 8 9 10\n10 9 8 7 6 5 4 3 2 1\n-3 -2 -1 0 1 2 3\n #IGNORE TODO: fix zero padding and steps against the direction",
+		"00 01 02\n01 02 03 04 05 06 07 08 09 10\n1 3 5 7 9\n10 8 6 4 2\n-03 -02 -01 000 001 002 003\n",
 	},
 	{"echo a{1..2}b{4..5}c", "a1b4c a1b5c a2b4c a2b5c\n"},
 	{"echo a{c..f}", "ac ad ae af\n"},
