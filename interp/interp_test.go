@@ -678,6 +678,26 @@ var runTests = []runTest{
 		"ÀÉñ BAr\nàéñ bar\n",
 	},
 	{
+		`a=(foo boo); printf '[%s]' "${a[@]%o}"; echo; printf '[%s]' "${a[@]/o/O}"; echo; printf '[%s]' "${a[@]^}"; echo`,
+		"[foo][boo]\n[foo][boo]\n[foo][boo]\n #IGNORE TODO: the operators are silently ignored",
+	},
+	{
+		`set -- foo boo; printf '[%s]' "${@#?}"; echo; IFS=,; echo "${*%o}"`,
+		"[foo][boo]\nfoo,boo\n #IGNORE TODO: the operators are silently ignored",
+	},
+	{
+		`a=(foo boo); IFS=,; echo "${a[*]%o}"`,
+		"foo,boo\n #IGNORE TODO: the operator is silently ignored",
+	},
+	{
+		`a=(aax abx); echo ${a[@]/x/}; b=("${a[@]/a/z}"); echo "${b[0]}" "${b[1]}"`,
+		"aa abx\naax abx\n #IGNORE TODO: replacement should apply to each element",
+	},
+	{
+		"a=(foo boo); echo ${a[@]%o}; echo ${a[@]}",
+		"fo bo\nfo bo\n #IGNORE TODO: the operator must not modify the array itself",
+	},
+	{
 		"INTERP_X_1=a INTERP_X_2=b; echo ${!INTERP_X_*}",
 		"INTERP_X_1 INTERP_X_2\n",
 	},
