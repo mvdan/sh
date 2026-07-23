@@ -85,8 +85,7 @@ stdout -count=2 'modify'
 cp nonl/.shebang-src nonl/shebang
 trim-newline nonl/shebang
 exec shfmt -f nonl
-# TODO: nonl/shebang should be found
-! stdout .
+stdout 'shebang'
 exec shfmt nonl/shebang
 stdout '#!/bin/sh'
 

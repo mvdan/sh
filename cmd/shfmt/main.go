@@ -429,7 +429,7 @@ func formatPath(path string, checkShebang bool) error {
 	}
 	readBuf.Reset()
 	if checkShebang || shebangForAuto {
-		n, err := io.ReadAtLeast(f, copyBuf[:32], len("#!/bin/sh\n"))
+		n, err := io.ReadAtLeast(f, copyBuf[:32], len("#!/bin/sh"))
 		switch {
 		case !checkShebang:
 			// only wanted the shebang for LangAuto
