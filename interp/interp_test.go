@@ -2123,7 +2123,7 @@ var runTests = []runTest{
 	},
 	{
 		"echo $((2 ? 3 : 4)) $((-1 ? 3 : 4))",
-		"4 4\n #IGNORE TODO: bash prints 3 3",
+		"3 3\n",
 	},
 	{
 		"echo $((255+1))",

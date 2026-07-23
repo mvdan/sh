@@ -85,7 +85,7 @@ func Arithm(cfg *Config, expr syntax.ArithmExpr) (int, error) {
 				return 0, err
 			}
 			b2 := expr.Y.(*syntax.BinaryArithm) // must have Op==TernColon
-			if cond == 1 {
+			if cond != 0 {
 				return Arithm(cfg, b2.X)
 			}
 			return Arithm(cfg, b2.Y)
