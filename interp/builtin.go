@@ -1084,7 +1084,7 @@ func (r *Runner) changeDir(ctx context.Context, cmd, path string) uint8 {
 		r.errf("%s: no such file or directory: %q\n", cmd, path)
 		return 1
 	}
-	if r.access(ctx, apath, access_X_OK) != nil {
+	if r.access(ctx, apath, AccessExec) != nil {
 		r.errf("%s: permission denied: %q\n", cmd, path)
 		return 1
 	}

@@ -95,6 +95,9 @@ type Runner struct {
 	// statHandler is a function responsible for getting file stat. It must be non-nil.
 	statHandler StatHandlerFunc
 
+	// accessHandler is a function responsible for checking file access. It must be non-nil.
+	accessHandler AccessHandlerFunc
+
 	stdin  *os.File // e.g. the read end of a pipe
 	stdout io.Writer
 	stderr io.Writer
@@ -266,6 +269,7 @@ func New(opts ...RunnerOption) (*Runner, error) {
 		openHandler:    DefaultOpenHandler(),
 		readDirHandler: DefaultReadDirHandler2(),
 		statHandler:    DefaultStatHandler(),
+		accessHandler:  DefaultAccessHandler(),
 	}
 	r.dirStack = r.dirBootstrap[:0]
 	// turn "on" the default Bash options
@@ -504,6 +508,14 @@ func ReadDirHandler2(f ReadDirHandlerFunc2) RunnerOption {
 func StatHandler(f StatHandlerFunc) RunnerOption {
 	return func(r *Runner) error {
 		r.statHandler = f
+		return nil
+	}
+}
+
+// AccessHandler sets the file access handler. See [AccessHandlerFunc] for more info.
+func AccessHandler(f AccessHandlerFunc) RunnerOption {
+	return func(r *Runner) error {
+		r.accessHandler = f
 		return nil
 	}
 }
@@ -799,6 +811,7 @@ func (r *Runner) Reset() {
 		openHandler:    r.openHandler,
 		readDirHandler: r.readDirHandler,
 		statHandler:    r.statHandler,
+		accessHandler:  r.accessHandler,
 
 		// These can be set by functions like [Dir] or [Params], but
 		// builtins can overwrite them; reset the fields to whatever the
@@ -987,6 +1000,7 @@ func (r *Runner) subshell(background bool) *Runner {
 		openHandler:    r.openHandler,
 		readDirHandler: r.readDirHandler,
 		statHandler:    r.statHandler,
+		accessHandler:  r.accessHandler,
 		stdin:          r.stdin,
 		stdout:         r.stdout,
 		stderr:         r.stderr,

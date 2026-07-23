@@ -12,12 +12,14 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
 	"sync"
 	"syscall"
 	"testing"
+	"testing/fstest"
 	"time"
 
 	"mvdan.cc/sh/v3/interp"
@@ -55,6 +57,29 @@ func mockFileOpen(ctx context.Context, path string, flags int, mode os.FileMode)
 
 func blocklistGlob(ctx context.Context, path string) ([]fs.FileInfo, error) {
 	return nil, fmt.Errorf("blocklisted: glob")
+}
+
+func blocklistWriteAccess(ctx context.Context, path string, mode interp.AccessMode) error {
+	if mode == interp.AccessWrite {
+		return fmt.Errorf("blocklisted: write access")
+	}
+	return interp.DefaultAccessHandler()(ctx, path, mode)
+}
+
+// virtualDirStat and virtualDirAccess pretend that a "vdir" directory
+// exists, as a minimal virtual filesystem; see issue #1318.
+func virtualDirStat(ctx context.Context, path string, followSymlinks bool) (fs.FileInfo, error) {
+	if filepath.Base(path) == "vdir" {
+		return fstest.MapFS{"vdir": &fstest.MapFile{Mode: fs.ModeDir | 0o755}}.Stat("vdir")
+	}
+	return interp.DefaultStatHandler()(ctx, path, followSymlinks)
+}
+
+func virtualDirAccess(ctx context.Context, path string, mode interp.AccessMode) error {
+	if filepath.Base(path) == "vdir" {
+		return nil
+	}
+	return interp.DefaultAccessHandler()(ctx, path, mode)
 }
 
 func execPrint(next interp.ExecHandlerFunc) interp.ExecHandlerFunc {
@@ -412,6 +437,23 @@ var modCases = []struct {
 		},
 		src:  "echo *",
 		want: "blocklisted: glob\n",
+	},
+	{
+		name: "AccessForbidWrite",
+		opts: []interp.RunnerOption{
+			interp.AccessHandler(blocklistWriteAccess),
+		},
+		src:  ">file; [ -w file ] && echo writable; [ -r file ] && echo readable",
+		want: "readable\n",
+	},
+	{
+		name: "AccessVirtualCd",
+		opts: []interp.RunnerOption{
+			interp.StatHandler(virtualDirStat),
+			interp.AccessHandler(virtualDirAccess),
+		},
+		src:  "cd vdir && echo ok",
+		want: "ok\n",
 	},
 }
 

@@ -131,13 +131,6 @@ func (r *Runner) statMode(ctx context.Context, name string, mode os.FileMode) bo
 	return err == nil && info.Mode()&mode != 0
 }
 
-// These are copied from x/sys/unix as we can't import it here.
-const (
-	access_R_OK = 0x4
-	access_W_OK = 0x2
-	access_X_OK = 0x1
-)
-
 func (r *Runner) unTest(ctx context.Context, op syntax.UnTestOperator, x string) bool {
 	switch op {
 	case syntax.TsExists:
@@ -174,11 +167,11 @@ func (r *Runner) unTest(ctx context.Context, op syntax.UnTestOperator, x string)
 		}
 		return info.ModTime().After(getAtime(info))
 	case syntax.TsRead:
-		return r.access(ctx, r.absPath(x), access_R_OK) == nil
+		return r.access(ctx, x, AccessRead) == nil
 	case syntax.TsWrite:
-		return r.access(ctx, r.absPath(x), access_W_OK) == nil
+		return r.access(ctx, x, AccessWrite) == nil
 	case syntax.TsExec:
-		return r.access(ctx, r.absPath(x), access_X_OK) == nil
+		return r.access(ctx, x, AccessExec) == nil
 	case syntax.TsNoEmpty:
 		info, err := r.stat(ctx, x)
 		return err == nil && info.Size() > 0

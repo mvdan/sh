@@ -16,28 +16,24 @@ func mkfifo(path string, mode uint32) error {
 	return fmt.Errorf("unsupported")
 }
 
-// access attempts to emulate [unix.Access] on Windows.
+// defaultAccess attempts to emulate access(2) on Windows.
 // Windows seems to have a different system of permissions than Unix,
-// so for now just rely on what [io/fs.FileInfo] gives us.
-func (r *Runner) access(ctx context.Context, path string, mode uint32) error {
-	info, err := r.lstat(ctx, path)
+// so for now just rely on what [io/fs.FileInfo] gives us
+// via the stat handler.
+func defaultAccess(ctx context.Context, path string, mode AccessMode) error {
+	info, err := HandlerCtx(ctx).runner.statHandler(ctx, path, false)
 	if err != nil {
 		return err
 	}
 	m := info.Mode()
-	switch mode {
-	case access_R_OK:
-		if m&0o400 == 0 {
-			return fmt.Errorf("file is not readable")
-		}
-	case access_W_OK:
-		if m&0o200 == 0 {
-			return fmt.Errorf("file is not writable")
-		}
-	case access_X_OK:
-		if m&0o100 == 0 {
-			return fmt.Errorf("file is not executable")
-		}
+	if mode&AccessRead != 0 && m&0o400 == 0 {
+		return fmt.Errorf("file is not readable")
+	}
+	if mode&AccessWrite != 0 && m&0o200 == 0 {
+		return fmt.Errorf("file is not writable")
+	}
+	if mode&AccessExec != 0 && m&0o100 == 0 {
+		return fmt.Errorf("file is not executable")
 	}
 	return nil
 }

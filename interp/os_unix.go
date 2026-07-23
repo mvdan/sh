@@ -20,11 +20,10 @@ func mkfifo(path string, mode uint32) error {
 	return unix.Mkfifo(path, mode)
 }
 
-// access is similar to checking the permission bits from [io/fs.FileInfo],
+// defaultAccess is similar to checking the permission bits from [io/fs.FileInfo],
 // but it also takes into account the current user's role.
-func (r *Runner) access(ctx context.Context, path string, mode uint32) error {
-	// TODO(v4): "access" may need to become part of a handler, like "open" or "stat".
-	return unix.Access(path, mode)
+func defaultAccess(ctx context.Context, path string, mode AccessMode) error {
+	return unix.Access(path, uint32(mode))
 }
 
 // unTestOwnOrGrp implements the -O and -G unary tests. If the file does not

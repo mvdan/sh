@@ -1143,3 +1143,8 @@ func (r *Runner) lstat(ctx context.Context, name string) (fs.FileInfo, error) {
 	path := absPath(r.Dir, name)
 	return r.statHandler(r.handlerCtx(ctx, handlerKindStat, todoPos), path, false)
 }
+
+func (r *Runner) access(ctx context.Context, name string, mode AccessMode) error {
+	path := absPath(r.Dir, name)
+	return r.accessHandler(r.handlerCtx(ctx, handlerKindAccess, todoPos), path, mode)
+}

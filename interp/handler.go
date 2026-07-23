@@ -43,6 +43,7 @@ const (
 	handlerKindOpen                // [OpenHandlerFunc]
 	handlerKindReadDir             // [ReadDirHandlerFunc2]
 	handlerKindStat                // [StatHandlerFunc]
+	handlerKindAccess              // [AccessHandlerFunc]
 )
 
 // HandlerContext is the data passed to all the handler functions via [context.WithValue].
@@ -444,4 +445,31 @@ func DefaultStatHandler() StatHandlerFunc {
 			return os.Stat(path)
 		}
 	}
+}
+
+// AccessMode is a bitmask of file access checks, used by [AccessHandlerFunc].
+type AccessMode uint32
+
+// The values match access(2)'s R_OK, W_OK, and X_OK.
+const (
+	AccessRead  AccessMode = 0b100
+	AccessWrite AccessMode = 0b010
+	AccessExec  AccessMode = 0b001
+)
+
+// TODO(v4): fold AccessHandlerFunc into StatHandlerFunc.
+
+// AccessHandlerFunc is a handler which checks whether the current user can
+// access a file. It is called by the unary test operators -r, -w, and -x,
+// and by builtins such as cd. The path is always absolute.
+// A nil error means access is allowed.
+// The context includes a [HandlerContext] value.
+type AccessHandlerFunc func(ctx context.Context, path string, mode AccessMode) error
+
+// DefaultAccessHandler returns the [AccessHandlerFunc] used by default.
+// On Unix it uses access(2), which consults the real filesystem and the
+// current user's role. On other platforms, which lack access(2), it
+// approximates the check via the stat handler and the file's permission bits.
+func DefaultAccessHandler() AccessHandlerFunc {
+	return defaultAccess
 }
