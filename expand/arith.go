@@ -120,6 +120,14 @@ func oneIf(b bool) int {
 // https://www.man7.org/linux/man-pages/man1/bash.1.html
 func atoi(s string) int64 {
 	s = strings.TrimSpace(s)
+	neg := false
+	switch {
+	case strings.HasPrefix(s, "+"):
+		s = s[1:]
+	case strings.HasPrefix(s, "-"):
+		neg = true
+		s = s[1:]
+	}
 	base := int64(10)
 	switch {
 	case strings.HasPrefix(s, "0x") || strings.HasPrefix(s, "0X"):
@@ -133,13 +141,49 @@ func atoi(s string) int64 {
 		if hasSep {
 			var err error
 			base, err = strconv.ParseInt(baseStr, 10, 8)
-			if err != nil || base > 64 {
+			if err != nil || base < 2 || base > 64 {
 				return 0
 			}
 			s = intStr
 		}
 	}
-	n, _ := strconv.ParseInt(s, int(base), 64)
+	var n int64
+	if base > 36 {
+		n = atoiLargeBase(s, base)
+	} else {
+		n, _ = strconv.ParseInt(s, int(base), 64)
+	}
+	if neg {
+		n = -n
+	}
+	return n
+}
+
+// atoiLargeBase parses bases 37 to 64, which [strconv.ParseInt] does not
+// support, using bash's digit set: 0-9, a-z, A-Z, "@", and "_".
+func atoiLargeBase(s string, base int64) int64 {
+	var n int64
+	for i := range len(s) {
+		var d int64
+		switch c := s[i]; {
+		case c >= '0' && c <= '9':
+			d = int64(c - '0')
+		case c >= 'a' && c <= 'z':
+			d = int64(c-'a') + 10
+		case c >= 'A' && c <= 'Z':
+			d = int64(c-'A') + 36
+		case c == '@':
+			d = 62
+		case c == '_':
+			d = 63
+		default:
+			return 0
+		}
+		if d >= base {
+			return 0
+		}
+		n = n*base + d
+	}
 	return n
 }
 
@@ -218,6 +262,9 @@ func binArit(op syntax.BinAritOperator, x, y int) (int, error) {
 		}
 		return x % y, nil
 	case syntax.Pow:
+		if y < 0 {
+			return 0, fmt.Errorf("exponent less than 0")
+		}
 		return intPow(x, y), nil
 	case syntax.Eql:
 		return oneIf(x == y), nil
