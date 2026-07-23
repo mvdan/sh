@@ -172,23 +172,26 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 		return "", fmt.Errorf("unsupported")
 	case pe.Slice != nil:
 		if callVarInd {
+			// The offset and length are in characters, not bytes.
+			rs := []rune(str)
 			slicePos := func(n int) int {
 				if n < 0 {
-					n = len(str) + n
+					n = len(rs) + n
 					if n < 0 {
-						n = len(str)
+						n = len(rs)
 					}
-				} else if n > len(str) {
-					n = len(str)
+				} else if n > len(rs) {
+					n = len(rs)
 				}
 				return n
 			}
 			if pe.Slice.Offset != nil {
-				str = str[slicePos(sliceOffset):]
+				rs = rs[slicePos(sliceOffset):]
 			}
 			if pe.Slice.Length != nil {
-				str = str[:slicePos(sliceLen)]
+				rs = rs[:slicePos(sliceLen)]
 			}
+			str = string(rs)
 		} // else, elems are already sliced
 	case pe.Repl != nil:
 		orig, err := Pattern(cfg, pe.Repl.Orig)

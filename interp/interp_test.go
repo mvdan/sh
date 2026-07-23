@@ -555,7 +555,7 @@ var runTests = []runTest{
 	},
 	{
 		`a=héllo; echo "${a:2}" "${a:1:2}" "${a::-3}" "${a: -2}"`,
-		"\xa9llo \xc3\xa9 h\xc3\xa9 lo\n #IGNORE TODO: slicing should count characters, not bytes",
+		"llo él hé lo\n",
 	},
 	{
 		"a=foo; echo ${a/no/x} ${a/o/i} ${a//o/i} ${a/fo/}",
