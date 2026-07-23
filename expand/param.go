@@ -296,9 +296,9 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 				for ri, r := range rs {
 					if rx.MatchString(string(r)) {
 						rs[ri] = caseFunc(r)
-						if !all {
-							break
-						}
+					}
+					if !all {
+						break // only the first character is considered
 					}
 				}
 				elems[i] = string(rs)

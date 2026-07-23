@@ -671,7 +671,7 @@ var runTests = []runTest{
 	},
 	{
 		"a=foo; echo ${a^o} ${a^f}; a=OOF; echo ${a,O} ${a,,O} ${a,o}",
-		"fOo Foo\noOF ooF OOF\n #IGNORE TODO: ${a^o} should only test the first character",
+		"foo Foo\noOF ooF OOF\n",
 	},
 	{
 		"a=(àÉñ bAr); echo ${a[@]^}; echo ${a[*],,}",
