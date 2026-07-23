@@ -28,6 +28,11 @@ stderr 'unknown shell language'
 ! exec shfmt --to-json file
 stderr '--to-json can only be used with stdin'
 
+# TODO: --from-json should reject path arguments like --to-json,
+# rather than walking them and printing path-less JSON decode errors.
+! exec shfmt --from-json .
+stderr 'invalid character'
+
 ! exec shfmt -filename=foo file
 stderr '-filename can only be used with stdin'
 
