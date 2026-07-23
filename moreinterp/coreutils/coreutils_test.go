@@ -5,7 +5,6 @@ package coreutils
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"strings"
 	"testing"
@@ -34,7 +33,7 @@ func TestExecHandler(t *testing.T) {
 			if err != nil {
 				t.Fatalf("failed to parse command %q: %v", cmd, err)
 			}
-			err = r.Run(context.Background(), program)
+			err = r.Run(t.Context(), program)
 			if err == nil {
 				t.Fatalf("expected error for command %q, got none", cmd)
 			}

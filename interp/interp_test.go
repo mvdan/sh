@@ -74,7 +74,7 @@ let i=(2 + 3)
 `
 	file := parse(b, nil, src)
 	r, _ := interp.New()
-	ctx := context.Background()
+	ctx := b.Context()
 
 	for b.Loop() {
 		r.Reset()
@@ -4250,7 +4250,7 @@ func TestRunnerRun(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			ctx, cancel := context.WithTimeout(context.Background(), runnerRunTimeout)
+			ctx, cancel := context.WithTimeout(t.Context(), runnerRunTimeout)
 			defer cancel()
 			if err := r.Run(ctx, file); err != nil {
 				cb.WriteString(err.Error())
@@ -4567,7 +4567,7 @@ func TestRunnerRunConfirm(t *testing.T) {
 			skipIfUnsupported(t, c.in)
 			t.Parallel()
 			tdir := t.TempDir()
-			ctx, cancel := context.WithTimeout(context.Background(), runnerRunTimeout)
+			ctx, cancel := context.WithTimeout(t.Context(), runnerRunTimeout)
 			defer cancel()
 			cmd := exec.CommandContext(ctx, "bash")
 			cmd.Dir = tdir
@@ -4710,7 +4710,7 @@ func TestRunnerOpts(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			ctx, cancel := context.WithTimeout(context.Background(), runnerRunTimeout)
+			ctx, cancel := context.WithTimeout(t.Context(), runnerRunTimeout)
 			defer cancel()
 			if err := r.Run(ctx, file); err != nil {
 				cb.WriteString(err.Error())
@@ -4741,7 +4741,7 @@ func TestRunnerContext(t *testing.T) {
 	for _, in := range cases {
 		t.Run("", func(t *testing.T) {
 			file := parse(t, p, in)
-			ctx, cancel := context.WithCancel(context.Background())
+			ctx, cancel := context.WithCancel(t.Context())
 			cancel()
 			r, _ := interp.New()
 			errChan := make(chan error)
@@ -4775,7 +4775,7 @@ func TestCancelBlockedStdinRead(t *testing.T) {
 
 	p := syntax.NewParser()
 	file := parse(t, p, "read x")
-	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	ctx, cancel := context.WithTimeout(t.Context(), 100*time.Millisecond)
 	// Make the linter happy, even though we deliberately wait for the timeout.
 	defer cancel()
 
@@ -4820,7 +4820,7 @@ func TestRunnerAltNodes(t *testing.T) {
 	for _, node := range nodes {
 		var cb concBuffer
 		r, _ := interp.New(interp.StdIO(nil, &cb, &cb))
-		ctx, cancel := context.WithTimeout(context.Background(), runnerRunTimeout)
+		ctx, cancel := context.WithTimeout(t.Context(), runnerRunTimeout)
 		defer cancel()
 		if err := r.Run(ctx, node); err != nil {
 			cb.WriteString(err.Error())
@@ -4907,7 +4907,7 @@ func TestRunnerDir(t *testing.T) {
 			t.Fatal(err)
 		}
 		file := parse(t, nil, "echo $PWD $PWD/*")
-		ctx, cancel := context.WithTimeout(context.Background(), runnerRunTimeout)
+		ctx, cancel := context.WithTimeout(t.Context(), runnerRunTimeout)
 		defer cancel()
 		if err := r.Run(ctx, file); err != nil {
 			t.Fatal(err)
@@ -4932,7 +4932,7 @@ func TestRunnerIncremental(t *testing.T) {
 	want := "foo\nbar\n"
 	var b bytes.Buffer
 	r, _ := interp.New(interp.StdIO(nil, &b, &b))
-	ctx, cancel := context.WithTimeout(context.Background(), runnerRunTimeout)
+	ctx, cancel := context.WithTimeout(t.Context(), runnerRunTimeout)
 	defer cancel()
 	for _, stmt := range file.Stmts {
 		err := r.Run(ctx, stmt)
@@ -4995,7 +4995,7 @@ exec >/dev/null 2>/dev/null
 GLOBAL=
 export GLOBAL=
 `)
-	ctx, cancel := context.WithTimeout(context.Background(), runnerRunTimeout)
+	ctx, cancel := context.WithTimeout(t.Context(), runnerRunTimeout)
 	defer cancel()
 	for i := range 3 {
 		if err := r.Run(ctx, file); err != nil {
@@ -5023,7 +5023,7 @@ func TestRunnerFilename(t *testing.T) {
 	file, _ := syntax.NewParser().Parse(strings.NewReader("echo $0"), "f.sh")
 	var b bytes.Buffer
 	r, _ := interp.New(interp.StdIO(nil, &b, &b))
-	ctx, cancel := context.WithTimeout(context.Background(), runnerRunTimeout)
+	ctx, cancel := context.WithTimeout(t.Context(), runnerRunTimeout)
 	defer cancel()
 	if err := r.Run(ctx, file); err != nil {
 		t.Fatal(err)
@@ -5041,7 +5041,7 @@ func TestRunnerEnvNoModify(t *testing.T) {
 
 	var b bytes.Buffer
 	r, _ := interp.New(interp.Env(env), interp.StdIO(nil, &b, &b))
-	ctx, cancel := context.WithTimeout(context.Background(), runnerRunTimeout)
+	ctx, cancel := context.WithTimeout(t.Context(), runnerRunTimeout)
 	defer cancel()
 	for range 3 {
 		r.Reset()
@@ -5077,7 +5077,7 @@ func TestMalformedPathOnWindows(t *testing.T) {
 	file := parse(t, nil, "test.cmd")
 	var cb concBuffer
 	r, _ := interp.New(interp.Env(expand.ListEnviron("PATH="+pathList)), interp.StdIO(nil, &cb, &cb))
-	ctx, cancel := context.WithTimeout(context.Background(), runnerRunTimeout)
+	ctx, cancel := context.WithTimeout(t.Context(), runnerRunTimeout)
 	defer cancel()
 	if err := r.Run(ctx, file); err != nil {
 		t.Fatal(err)
@@ -5097,7 +5097,7 @@ func TestReadShouldNotPanicWithNilStdin(t *testing.T) {
 	}
 
 	f := parse(t, nil, "read foobar")
-	ctx, cancel := context.WithTimeout(context.Background(), runnerRunTimeout)
+	ctx, cancel := context.WithTimeout(t.Context(), runnerRunTimeout)
 	defer cancel()
 	if err := r.Run(ctx, f); err == nil {
 		t.Fatal("it should have returned an error")
@@ -5113,7 +5113,7 @@ func TestRunnerVars(t *testing.T) {
 	}
 
 	f := parse(t, nil, "foo=updated; BAR=new")
-	ctx, cancel := context.WithTimeout(context.Background(), runnerRunTimeout)
+	ctx, cancel := context.WithTimeout(t.Context(), runnerRunTimeout)
 	defer cancel()
 	if err := r.Run(ctx, f); err != nil {
 		t.Fatal(err)
@@ -5136,7 +5136,7 @@ func TestRunnerSubshell(t *testing.T) {
 	f1 := parse(t, nil, "PARENT=foo")
 	f2 := parse(t, nil, "CHILD=bar")
 
-	ctx, cancel := context.WithTimeout(context.Background(), runnerRunTimeout)
+	ctx, cancel := context.WithTimeout(t.Context(), runnerRunTimeout)
 	defer cancel()
 	if err := r1.Run(ctx, f1); err != nil {
 		t.Fatal(err)
@@ -5174,7 +5174,7 @@ func TestRunnerNonFileStdin(t *testing.T) {
 		t.Fatal(err)
 	}
 	file := parse(t, nil, "while read a; do echo $a; GOSH_CMD=print_ok $GOSH_PROG; done")
-	ctx, cancel := context.WithTimeout(context.Background(), runnerRunTimeout)
+	ctx, cancel := context.WithTimeout(t.Context(), runnerRunTimeout)
 	defer cancel()
 	if err := r.Run(ctx, file); err != nil {
 		cb.WriteString(err.Error())

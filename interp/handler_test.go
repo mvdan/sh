@@ -474,7 +474,7 @@ func TestRunnerHandlers(t *testing.T) {
 			for _, opt := range tc.opts {
 				opt(r)
 			}
-			ctx := context.WithValue(context.Background(), runnerCtx, r)
+			ctx := context.WithValue(t.Context(), runnerCtx, r)
 			if err := r.Run(ctx, file); err != nil {
 				fmt.Fprintf(&cb, "Runner.Run error: %v", err)
 			}
@@ -545,7 +545,7 @@ func TestKillTimeout(t *testing.T) {
 			for {
 				var rbuf readyBuffer
 				rbuf.seenReady.Add(1)
-				ctx, cancel := context.WithCancel(context.Background())
+				ctx, cancel := context.WithCancel(t.Context())
 				r, err := interp.New(
 					interp.StdIO(nil, &rbuf, &rbuf),
 					interp.ExecHandler(interp.DefaultExecHandler(test.killTimeout)),
@@ -603,7 +603,7 @@ func TestKillSignal(t *testing.T) {
 		t.Run(fmt.Sprintf("signal-%d", test.signal), func(t *testing.T) {
 			t.Parallel()
 
-			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+			ctx, cancel := context.WithTimeout(t.Context(), time.Second)
 			defer cancel()
 
 			outReader, outWriter := io.Pipe()
