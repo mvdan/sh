@@ -3670,6 +3670,22 @@ done <<< 2`,
 		"1:2\n3\n\n",
 	},
 	{
+		`read x <<< '  a  b  '; echo "[$x]"`,
+		"[  a  b  ]\n #IGNORE TODO: bash trims the leading and trailing IFS whitespace",
+	},
+	{
+		`IFS=' :' read x <<< ' :a b: '; echo "[$x]"`,
+		"[ :a b: ]\n #IGNORE TODO: bash trims the leading and trailing IFS whitespace",
+	},
+	{
+		`IFS=: read x <<< ':a:b:'; echo "[$x]"`,
+		"[:a:b:]\n",
+	},
+	{
+		`read <<< '  a \b  '; echo "[$REPLY]"; read -r <<< ' a\b '; echo "[$REPLY]"`,
+		"[  a b  ]\n[ a\\b ]\n",
+	},
+	{
 		"read -p",
 		"read: -p: option requires an argument\nexit status 2 #JUSTERR",
 	},
