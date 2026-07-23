@@ -2118,6 +2118,10 @@ var runTests = []runTest{
 		"8 0\n",
 	},
 	{
+		"echo $((2 ** -1)); let x=2**-1",
+		"1\n #IGNORE TODO: bash errors with: exponent less than 0",
+	},
+	{
 		"echo $((1 ? 2 : 3)) $((0 ? 2 : 3))",
 		"2 3\n",
 	},
@@ -2158,6 +2162,18 @@ var runTests = []runTest{
 	{
 		"echo $((16#cafe+1))",
 		"51967\n",
+	},
+	{
+		"x=-010 y=+010 z=-0x10; echo $((x)) $((y)) $((z))",
+		"-10 10 0\n #IGNORE TODO: bash prints -8 8 -16",
+	},
+	{
+		"echo $((64#z)) $((64#Z)) $((40#A)) $((64#10)) $((36#z))",
+		"0 0 0 0 35\n #IGNORE TODO: bash prints 35 61 36 64 35",
+	},
+	{
+		"a=64#@ b=64#_ c=64#1_; echo $((a)) $((b)) $((c))",
+		"0 0 0\n #IGNORE TODO: bash prints 62 63 127",
 	},
 	{
 		"echo $((nope+1))",
