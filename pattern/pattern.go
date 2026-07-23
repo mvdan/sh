@@ -296,15 +296,27 @@ func regexpNext(sb *strings.Builder, sl *stringLexer, mode Mode) error {
 			}
 		}
 		for {
-			sb.WriteRune(c)
 			switch c {
 			case '\x00':
 				return &SyntaxError{msg: "[ was not matched with a closing ]"}
 			case '\\':
-				if c = sl.next(); c != '0' {
+				// An escaped character matches itself; quote it so that
+				// the regexp doesn't give it a special meaning, such as
+				// \0 being an octal escape or \d a character class.
+				switch c = sl.next(); {
+				case c == '\x00':
+					return &SyntaxError{msg: "[ was not matched with a closing ]"}
+				case c == '-':
+					// regexp.QuoteMeta does not escape '-', which would
+					// form a range inside a bracket expression.
+					sb.WriteString(`\-`)
+				case c > utf8.RuneSelf:
 					sb.WriteRune(c)
+				default:
+					sb.WriteString(regexp.QuoteMeta(string(c)))
 				}
 			case '-':
+				sb.WriteByte('-')
 				start := sl.last()
 				end := sl.peekNext()
 				// TODO: what about overlapping ranges, like: [a--z]
@@ -312,7 +324,10 @@ func regexpNext(sb *strings.Builder, sl *stringLexer, mode Mode) error {
 					return &SyntaxError{msg: fmt.Sprintf("invalid range: %c-%c", start, end)}
 				}
 			case ']':
+				sb.WriteByte(']')
 				return nil
+			default:
+				sb.WriteRune(c)
 			}
 			c = sl.next()
 		}

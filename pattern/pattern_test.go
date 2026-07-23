@@ -149,6 +149,26 @@ var regexpTests = []struct {
 	{pat: `[!]`, wantErr: `^\[ was not matched with a closing \]$`},
 	{pat: `[ab`, wantErr: `^\[ was not matched with a closing \]$`},
 	{pat: `[a-]`, want: `(?s)[a-]`},
+	{
+		pat: `[\0]`, want: `(?s)[0]`,
+		mustMatch:    []string{"0"},
+		mustNotMatch: []string{"\x00", "a"},
+	},
+	{
+		pat: `[\d]`, want: `(?s)[d]`,
+		mustMatch:    []string{"d"},
+		mustNotMatch: []string{"5"},
+	},
+	{pat: `[\5]`, want: `(?s)[5]`},
+	{
+		pat: `[\é]`, want: `(?s)[é]`,
+		mustMatch: []string{"é"},
+	},
+	{
+		pat: `[\-]`, want: `(?s)[\-]`,
+		mustMatch:    []string{"-"},
+		mustNotMatch: []string{"a"},
+	},
 	{pat: `[z-a]`, wantErr: `^invalid range: z-a$`},
 	{pat: `[a-a]`, want: `(?s)[a-a]`},
 	{pat: `[aa]`, want: `(?s)[aa]`},
