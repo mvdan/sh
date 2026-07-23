@@ -297,7 +297,7 @@ For more information and to report bugs, see https://github.com/mvdan/sh.
 			}
 			// If the path is not an explicit arg, or it's not regular, or --find is set,
 			// then we check for extensions and shebangs.
-			if !explicit || !entry.Type().IsRegular() || find.val == "true" {
+			if !explicit || !entry.Type().IsRegular() || find.val != "false" {
 				conf = fileutil.CouldBeScript2(entry)
 				if conf == fileutil.ConfNotScript {
 					return nil

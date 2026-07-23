@@ -74,10 +74,9 @@ stdout -count=2 '^modify'
 ! stdout '^none'
 
 # -f=0 should apply the same checks
-# TODO: the "none" files should not be printed
 exec shfmt -f=0 modify/ext.sh modify/shebang-sh none/ext-shebang.other none/noext-noshebang
 stdout -count=2 'modify'
-stdout -count=2 'none'
+! stdout 'none'
 
 # -ln shouldn't be overwritten by a filename
 mkdir modify-ln
