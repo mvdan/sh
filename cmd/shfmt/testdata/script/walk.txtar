@@ -78,6 +78,18 @@ exec shfmt -f=0 modify/ext.sh modify/shebang-sh none/ext-shebang.other none/noex
 stdout -count=2 'modify'
 ! stdout 'none'
 
+# A file holding just a shebang with no final newline is nine bytes long,
+# the shortest possible file which is a shell script per its shebang.
+# The source file is hidden so that the walks above don't pick it up,
+# and copied and trimmed here as txtar files always end with a newline.
+cp nonl/.shebang-src nonl/shebang
+trim-newline nonl/shebang
+exec shfmt -f nonl
+# TODO: nonl/shebang should be found
+! stdout .
+exec shfmt nonl/shebang
+stdout '#!/bin/sh'
+
 # -ln shouldn't be overwritten by a filename
 mkdir modify-ln
 cp modify/ext.mksh modify-ln
@@ -214,6 +226,8 @@ foo
 #!/bin/envsh
  foo
 
+-- nonl/.shebang-src --
+#!/bin/sh
 -- skip/.git/ext.sh --
 foo
 -- skip/.svn/ext.sh --
