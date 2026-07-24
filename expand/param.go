@@ -49,12 +49,19 @@ func overridingUnset(pe *syntax.ParamExp) bool {
 	return false
 }
 
+func paramName(pe *syntax.ParamExp) string {
+	if pe.Param == nil {
+		return ""
+	}
+	return pe.Param.Value
+}
+
 func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 	oldParam := cfg.curParam
 	cfg.curParam = pe
 	defer func() { cfg.curParam = oldParam }()
 
-	name := pe.Param.Value
+	name := paramName(pe)
 	index := pe.Index
 	switch name {
 	case "@", "*":
@@ -153,7 +160,7 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 		var strs []string
 		switch {
 		case pe.Names != 0:
-			strs = cfg.namesByPrefix(pe.Param.Value)
+			strs = cfg.namesByPrefix(paramName(pe))
 		case orig.Kind == NameRef:
 			strs = append(strs, orig.Str)
 		case pe.Index != nil && vr.Kind == Indexed:

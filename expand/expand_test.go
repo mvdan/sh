@@ -64,6 +64,35 @@ func TestConfigNils(t *testing.T) {
 	}
 }
 
+func TestFieldsMissingParamName(t *testing.T) {
+	tests := []struct {
+		variant syntax.LangVariant
+		src     string
+		want    []string
+		wantErr string // regexp matched against the parse error, if any
+	}{
+		{variant: syntax.LangZsh, src: "x${}y", want: []string{"xy"}},
+		{variant: syntax.LangZsh, src: "${:-foo}", want: []string{"foo"}},
+		{variant: syntax.LangBash, src: "x${}y", wantErr: ".*invalid parameter name"},
+		{variant: syntax.LangPOSIX, src: "x${}y", wantErr: ".*invalid parameter name"},
+		{variant: syntax.LangMirBSDKorn, src: "x${}y", wantErr: ".*invalid parameter name"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.variant.String()+" "+tc.src, func(t *testing.T) {
+			p := syntax.NewParser(syntax.Variant(tc.variant))
+			word, err := p.Document(strings.NewReader(tc.src))
+			if tc.wantErr != "" {
+				qt.Assert(t, qt.ErrorMatches(err, tc.wantErr))
+				return
+			}
+			qt.Assert(t, qt.IsNil(err))
+			got, err := Fields(nil, word)
+			qt.Assert(t, qt.IsNil(err))
+			qt.Assert(t, qt.DeepEquals(got, tc.want))
+		})
+	}
+}
+
 func TestFieldsIdempotency(t *testing.T) {
 	tests := []struct {
 		src  string

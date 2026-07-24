@@ -790,13 +790,13 @@ func (cfg *Config) wordFields(wps []syntax.WordPart) ([][]fieldPart, error) {
 // $@ or ${arr[*]}, with star set for the "*" forms which join into a single
 // field when quoted. ok is false for any other parameter expansion.
 func (cfg *Config) listElems(pe *syntax.ParamExp) (elems []string, star, ok bool) {
-	switch name := pe.Param.Value; name {
+	switch name := paramName(pe); name {
 	case "*", "@":
 		return cfg.sliceElems(pe, cfg.Env.Get(name).List, true), name == "*", true
 	}
 	switch lit := nodeLit(pe.Index); lit {
 	case "@", "*":
-		switch vr := cfg.Env.Get(pe.Param.Value); vr.Kind {
+		switch vr := cfg.Env.Get(paramName(pe)); vr.Kind {
 		case Indexed:
 			return cfg.sliceElems(pe, vr.List, false), lit == "*", true
 		case Associative:
@@ -823,11 +823,11 @@ func (cfg *Config) quotedElemFields(pe *syntax.ParamExp) ([]string, error) {
 	if pe == nil || pe.Length || pe.Width || pe.IsSet {
 		return nil, nil
 	}
-	name := pe.Param.Value
+	name := paramName(pe)
 	if pe.Excl {
 		switch pe.Names {
 		case syntax.NamesPrefixWords: // "${!prefix@}"
-			return cfg.namesByPrefix(pe.Param.Value), nil
+			return cfg.namesByPrefix(paramName(pe)), nil
 		case syntax.NamesPrefix: // "${!prefix*}"
 			return nil, nil
 		}
