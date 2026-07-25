@@ -2585,29 +2585,29 @@ func TestNodeEndPos(t *testing.T) {
 	f, err := p.Parse(strings.NewReader("declare -A x=([index]=)"), "")
 	qt.Assert(t, qt.IsNil(err))
 	elem := f.Stmts[0].Cmd.(*DeclClause).Args[1].Array.Elems[0]
-	qt.Check(t, qt.Equals(elem.End().Offset(), uint(16))) // TODO: want 22
+	qt.Check(t, qt.Equals(elem.End().Offset(), uint(22)))
 
 	// A trailing comment ends the file even when a leading comment exists.
 	p = NewParser(KeepComments(true))
 	f, err = p.Parse(strings.NewReader("# lead\nfoo # trail\n"), "")
 	qt.Assert(t, qt.IsNil(err))
-	qt.Check(t, qt.Equals(f.End().Offset(), uint(10))) // TODO: want 18
+	qt.Check(t, qt.Equals(f.End().Offset(), uint(18)))
 
 	// A naked indexed assignment ends after the "]"; there is no "=".
 	f, err = p.Parse(strings.NewReader("declare a[1]"), "")
 	qt.Assert(t, qt.IsNil(err))
-	qt.Check(t, qt.Equals(f.Stmts[0].Cmd.(*DeclClause).Args[0].End().Offset(), uint(13))) // TODO: want 12
+	qt.Check(t, qt.Equals(f.Stmts[0].Cmd.(*DeclClause).Args[0].End().Offset(), uint(12)))
 
 	// The mksh brace forms of for and case clauses end after the "}",
 	// not four bytes as if it were "done" or "esac".
 	p = NewParser(Variant(LangMirBSDKorn))
 	f, err = p.Parse(strings.NewReader("for i in a; { b; }"), "")
 	qt.Assert(t, qt.IsNil(err))
-	qt.Check(t, qt.Equals(f.Stmts[0].Cmd.(*ForClause).End().Offset(), uint(21))) // TODO: want 18
+	qt.Check(t, qt.Equals(f.Stmts[0].Cmd.(*ForClause).End().Offset(), uint(18)))
 
 	f, err = p.Parse(strings.NewReader("case x { a) b ;; }"), "")
 	qt.Assert(t, qt.IsNil(err))
-	qt.Check(t, qt.Equals(f.Stmts[0].Cmd.(*CaseClause).End().Offset(), uint(21))) // TODO: want 18
+	qt.Check(t, qt.Equals(f.Stmts[0].Cmd.(*CaseClause).End().Offset(), uint(18)))
 }
 
 func TestParseRecoverErrors(t *testing.T) {

@@ -56,7 +56,9 @@ func stmtsEnd(stmts []*Stmt, last []Comment) Pos {
 		s := stmts[len(stmts)-1]
 		sEnd := s.End()
 		if len(s.Comments) > 0 {
-			if cEnd := s.Comments[0].End(); cEnd.After(sEnd) {
+			// The comments are sorted by position; a comment which trails
+			// the statement on the same line is last.
+			if cEnd := s.Comments[len(s.Comments)-1].End(); cEnd.After(sEnd) {
 				return cEnd
 			}
 		}
@@ -309,7 +311,10 @@ func (a *Assign) End() Pos {
 		return a.Array.End()
 	}
 	if a.Index != nil {
-		return posAddCol(a.Index.End(), 2)
+		if a.Naked {
+			return posAddCol(a.Index.End(), len("]"))
+		}
+		return posAddCol(a.Index.End(), len("]="))
 	}
 	if a.Naked {
 		return a.Name.End()
@@ -434,7 +439,12 @@ type ForClause struct {
 }
 
 func (f *ForClause) Pos() Pos { return f.ForPos }
-func (f *ForClause) End() Pos { return posAddCol(f.DonePos, 4) }
+func (f *ForClause) End() Pos {
+	if f.Braces {
+		return posAddCol(f.DonePos, len("}"))
+	}
+	return posAddCol(f.DonePos, len("done"))
+}
 
 // Loop holds either [*WordIter] or [*CStyleLoop].
 type Loop interface {
@@ -843,7 +853,12 @@ type CaseClause struct {
 }
 
 func (c *CaseClause) Pos() Pos { return c.Case }
-func (c *CaseClause) End() Pos { return posAddCol(c.Esac, 4) }
+func (c *CaseClause) End() Pos {
+	if c.Braces {
+		return posAddCol(c.Esac, len("}"))
+	}
+	return posAddCol(c.Esac, len("esac"))
+}
 
 // CaseItem represents a pattern list (case) within a [CaseClause].
 type CaseItem struct {
@@ -976,7 +991,7 @@ func (a *ArrayElem) End() Pos {
 	if a.Value != nil {
 		return a.Value.End()
 	}
-	return posAddCol(a.Index.Pos(), 1)
+	return posAddCol(a.Index.End(), len("]="))
 }
 
 // TODO(v4): the expand package has to stringify ExtGlob again,
