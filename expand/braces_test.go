@@ -181,6 +181,25 @@ var braceTests = []struct {
 		litWord("{1..1}"),
 		litWords("1"),
 	},
+	// TODO: a comma should make these list expansions with literal "..",
+	// like bash: "1 2..3", "1..2 3", and "1..2..3 4".
+	{
+		litWord("{1,2..3}"),
+		litWords("1"),
+	},
+	{
+		litWord("{1..2,3}"),
+		litWords("1"),
+	},
+	{
+		litWord("{1..2..3,4}"),
+		litWords("1"),
+	},
+	// TODO: sequences with too many dots are literal in bash: "a{1..2..3..4}".
+	{
+		litWord("a{1..2..3..4}"),
+		litWords("a1"),
+	},
 }
 
 func TestBraces(t *testing.T) {
