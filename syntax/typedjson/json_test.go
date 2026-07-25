@@ -19,6 +19,23 @@ import (
 
 var update = flag.Bool("u", false, "update output files")
 
+func TestRoundtripZsh(t *testing.T) {
+	t.Parallel()
+
+	// ${a[(r)foo]} produces a FlagsArithm node, which only appears with zsh.
+	src := "echo ${a[(r)foo]}\n"
+	parser := syntax.NewParser(syntax.Variant(syntax.LangZsh))
+	node, err := parser.Parse(strings.NewReader(src), "")
+	qt.Assert(t, qt.IsNil(err))
+
+	var buf bytes.Buffer
+	qt.Assert(t, qt.IsNil(typedjson.Encode(&buf, node)))
+
+	// TODO: Decode should support FlagsArithm and round-trip back to src.
+	_, err = typedjson.Decode(&buf)
+	qt.Assert(t, qt.ErrorMatches(err, `unknown type: "FlagsArithm"`))
+}
+
 func TestRoundtrip(t *testing.T) {
 	t.Parallel()
 
