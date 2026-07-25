@@ -467,7 +467,7 @@ func (p *Printer) flushHeredocs() {
 		p.line++
 		p.w.WriteByte('\n')
 		p.wantSpace = spaceWritten
-		p.wantNewline, p.wantNewline = false, false
+		p.wantNewline, p.mustNewline = false, false
 		if r.Op == DashHdoc && p.indentSpaces == 0 && !p.minify {
 			if r.Hdoc != nil {
 				extra := extraIndenter{
