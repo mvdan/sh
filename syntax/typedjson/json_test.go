@@ -31,9 +31,12 @@ func TestRoundtripZsh(t *testing.T) {
 	var buf bytes.Buffer
 	qt.Assert(t, qt.IsNil(typedjson.Encode(&buf, node)))
 
-	// TODO: Decode should support FlagsArithm and round-trip back to src.
-	_, err = typedjson.Decode(&buf)
-	qt.Assert(t, qt.ErrorMatches(err, `unknown type: "FlagsArithm"`))
+	node2, err := typedjson.Decode(&buf)
+	qt.Assert(t, qt.IsNil(err))
+
+	sb := new(strings.Builder)
+	qt.Assert(t, qt.IsNil(syntax.NewPrinter().Print(sb, node2)))
+	qt.Assert(t, qt.Equals(sb.String(), src))
 }
 
 func TestRoundtrip(t *testing.T) {
