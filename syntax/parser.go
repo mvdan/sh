@@ -481,7 +481,7 @@ type Parser struct {
 	src io.Reader
 	bs  []byte // current chunk of read bytes
 	bsp uint   // offset within [Parser.bs] for the rune after [Parser.r]
-	r   rune   // next rune; [utf8.RuneSelf] when it went past EOF, or we stopped
+	r   rune   // next rune; [runeEOF] when it went past EOF, or we stopped
 	w   int    // width of [Parser.r]
 
 	f *File
@@ -909,7 +909,7 @@ func (p *Parser) errPass(err error) {
 	if p.err == nil {
 		p.err = err
 		p.bsp = uint(len(p.bs)) + 1
-		p.r = utf8.RuneSelf
+		p.r = runeEOF
 		p.w = 1
 		p.tok = _EOF
 	}
@@ -1289,7 +1289,7 @@ func (p *Parser) wordPart() WordPart {
 				return sq
 			case escNewl:
 				p.litBs = append(p.litBs, '\\', '\n')
-			case utf8.RuneSelf:
+			case runeEOF:
 				p.tok = _EOF
 				if p.recoverError() {
 					sq.Right = recoveredPos
@@ -1346,7 +1346,7 @@ func (p *Parser) wordPart() WordPart {
 			// for a function declaration, which the parser handles earlier.
 			pos := p.pos
 			p.pos = p.nextPos()
-			for p.newLit(p.r); p.r != utf8.RuneSelf && p.r != ')'; p.rune() {
+			for p.newLit(p.r); p.r != runeEOF && p.r != ')'; p.rune() {
 			}
 			if p.r != ')' {
 				p.tok = _EOF // we can only get here due to EOF
@@ -1367,7 +1367,7 @@ func (p *Parser) wordPart() WordPart {
 	globLoop:
 		for p.newLit(r); ; r = p.rune() {
 			switch r {
-			case utf8.RuneSelf:
+			case runeEOF:
 				break globLoop
 			case '(':
 				lparens++
@@ -1443,7 +1443,7 @@ func (p *Parser) paramExp() *ParamExp {
 		lparen := p.nextPos()
 		p.rune()
 		p.pos = p.nextPos()
-		for p.newLit(p.r); p.r != utf8.RuneSelf && p.r != ')'; p.rune() {
+		for p.newLit(p.r); p.r != runeEOF && p.r != ')'; p.rune() {
 		}
 		p.val = p.endLit()
 		if p.r != ')' {
@@ -1575,7 +1575,7 @@ zshPrefixLoop:
 		loop:
 			for p.newLit(p.r); ; p.rune() {
 				switch p.r {
-				case utf8.RuneSelf:
+				case runeEOF:
 					p.tok = _EOF
 					p.matchingErr(pe.Dollar, dollBrace, rightBrace)
 					break loop
@@ -1750,7 +1750,7 @@ func (p *Parser) paramExpParameter(pe *ParamExp) *ParamExp {
 			p.val = string(p.r)
 			p.rune()
 		} else {
-			for p.newLit(p.r); p.r != utf8.RuneSelf; p.rune() {
+			for p.newLit(p.r); p.r != runeEOF; p.rune() {
 				if !paramNameRune(p.r) && p.r != escNewl {
 					break
 				}
@@ -1818,7 +1818,7 @@ func (p *Parser) zshSubFlags() *FlagsArithm {
 	old := p.quote
 	p.quote = runeByRune
 	p.pos = p.nextPos()
-	for p.newLit(p.r); p.r != utf8.RuneSelf && p.r != ')'; p.rune() {
+	for p.newLit(p.r); p.r != runeEOF && p.r != ')'; p.rune() {
 	}
 	p.val = p.endLit()
 	if p.r != ')' {
@@ -1830,7 +1830,7 @@ func (p *Parser) zshSubFlags() *FlagsArithm {
 	// Lex the argument as a raw pattern, stopping at ',' or ']',
 	// since zsh treats it as a pattern rather than an arithmetic expression.
 	argPos := p.nextPos()
-	for p.newLit(p.r); p.r != utf8.RuneSelf && p.r != ',' && p.r != ']'; p.rune() {
+	for p.newLit(p.r); p.r != runeEOF && p.r != ',' && p.r != ']'; p.rune() {
 	}
 	if val := p.endLit(); val != "" {
 		zf.X = p.wordOne(p.lit(argPos, val))

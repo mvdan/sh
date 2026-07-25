@@ -54,7 +54,12 @@ func bquoteEscaped(b byte) bool {
 	return false
 }
 
-const escNewl rune = utf8.RuneSelf + 1
+// Sentinel rune values used by [Parser.rune]. They are above [utf8.MaxRune]
+// so that they can never collide with runes decoded from the input.
+const (
+	runeEOF rune = utf8.MaxRune + 1 // the input ran out, or we stopped early
+	escNewl rune = utf8.MaxRune + 2 // an escaped newline, "\\\n"
+)
 
 func (p *Parser) rune() rune {
 	if p.r == '\n' || p.r == escNewl {
@@ -72,7 +77,7 @@ retry:
 			// TODO: this is not exactly intuitive; figure out a better way.
 			p.bsp = 1
 		}
-		p.r = utf8.RuneSelf
+		p.r = runeEOF
 		p.w = 1
 		return p.r
 	}
@@ -146,7 +151,7 @@ decodeRune:
 // The number of read bytes is returned, which is at least one
 // unless a read error occurred, such as [io.EOF].
 func (p *Parser) fill() (n int) {
-	if p.readEOF || p.r == utf8.RuneSelf {
+	if p.readEOF || p.r == runeEOF {
 		// If the reader already gave us [io.EOF], do not try again.
 		// If we decided to stop for any reason, do not bother reading either.
 		return 0
@@ -232,7 +237,7 @@ func (p *Parser) nextKeepSpaces() {
 }
 
 func (p *Parser) next() {
-	if p.r == utf8.RuneSelf {
+	if p.r == runeEOF {
 		p.tok = _EOF
 		return
 	}
@@ -248,7 +253,7 @@ func (p *Parser) next() {
 skipSpace:
 	for {
 		switch r {
-		case utf8.RuneSelf:
+		case runeEOF:
 			p.tok = _EOF
 			return
 		case escNewl:
@@ -275,7 +280,7 @@ skipSpace:
 	if p.stopAt != nil && (p.spaced || p.tok == illegalTok || p.stopToken()) {
 		w := utf8.RuneLen(r)
 		if bytes.HasPrefix(p.bs[p.bsp-uint(w):], p.stopAt) {
-			p.r = utf8.RuneSelf
+			p.r = runeEOF
 			p.w = 1
 			p.tok = _EOF
 			return
@@ -304,7 +309,7 @@ skipSpace:
 		runeLoop:
 			for {
 				switch r {
-				case '\n', utf8.RuneSelf:
+				case '\n', runeEOF:
 					break runeLoop
 				case escNewl:
 					p.litBs = append(p.litBs, '\\', '\n')
@@ -788,7 +793,7 @@ func (p *Parser) paramToken(r rune) token {
 
 	// This func gets called by the parser in [runeByRune] mode;
 	// we need to handle EOF and unexpected runes.
-	case utf8.RuneSelf:
+	case runeEOF:
 		return _EOF
 	default:
 		return illegalTok
@@ -958,18 +963,17 @@ func (p *Parser) newLit(r rune) {
 	case r < utf8.RuneSelf:
 		p.litBs = p.litBuf[:1]
 		p.litBs[0] = byte(r)
-	case r > escNewl:
+	case r == runeEOF || r == escNewl:
+		// sentinel runes not present in the input as-is
+		p.litBs = p.litBuf[:0]
+	default:
 		w := utf8.RuneLen(r)
 		p.litBs = append(p.litBuf[:0], p.bs[p.bsp-uint(w):p.bsp]...)
-	default:
-		// don't let r == utf8.RuneSelf go to the second case as [utf8.RuneLen]
-		// would return -1
-		p.litBs = p.litBuf[:0]
 	}
 }
 
 func (p *Parser) endLit() (s string) {
-	if p.r == utf8.RuneSelf || p.r == escNewl {
+	if p.r == runeEOF || p.r == escNewl {
 		s = string(p.litBs)
 	} else {
 		s = string(p.litBs[:len(p.litBs)-p.w])
@@ -1009,7 +1013,7 @@ func paramNameRune[T rune | byte](r T) bool {
 func (p *Parser) advanceLitOther(r rune) {
 	tok := _LitWord
 loop:
-	for p.newLit(r); r != utf8.RuneSelf; r = p.rune() {
+	for p.newLit(r); r != runeEOF; r = p.rune() {
 		switch r {
 		case '\\': // escaped byte follows
 			p.rune()
@@ -1073,7 +1077,7 @@ func (p *Parser) advanceLitNone(r rune) {
 	p.eqlOffs = -1
 	tok := _LitWord
 loop:
-	for p.newLit(r); r != utf8.RuneSelf; r = p.rune() {
+	for p.newLit(r); r != runeEOF; r = p.rune() {
 		switch r {
 		case ' ', '\t', '\n', '\r', '&', '|', ';', ')':
 			break loop
@@ -1085,7 +1089,7 @@ loop:
 			if r == '<' && p.lang.in(LangZsh) && p.zshNumRange() {
 				// Zsh numeric range glob like <-> or <1-100>; consume until '>'.
 				for {
-					if r = p.rune(); r == '>' || r == utf8.RuneSelf {
+					if r = p.rune(); r == '>' || r == runeEOF {
 						break
 					}
 				}
@@ -1127,7 +1131,7 @@ loop:
 func (p *Parser) advanceLitDquote(r rune) {
 	tok := _LitWord
 loop:
-	for p.newLit(r); r != utf8.RuneSelf; r = p.rune() {
+	for p.newLit(r); r != runeEOF; r = p.rune() {
 		switch r {
 		case '"':
 			break loop
@@ -1172,9 +1176,9 @@ func (p *Parser) advanceLitHdoc(r rune) {
 				return
 			}
 			fallthrough
-		case '\n', utf8.RuneSelf:
+		case '\n', runeEOF:
 			if p.parsingDoc {
-				if r == utf8.RuneSelf {
+				if r == runeEOF {
 					p.tok = _LitWord
 					p.val = p.endLit()
 					return
@@ -1185,7 +1189,7 @@ func (p *Parser) advanceLitHdoc(r rune) {
 			} else if lStart >= 0 {
 				// Compare the current line with the stop word.
 				line := p.litBs[lStart:]
-				if r != utf8.RuneSelf && len(line) > 0 {
+				if r != runeEOF && len(line) > 0 {
 					line = line[:len(line)-1] // minus trailing character
 				}
 				if bytes.Equal(line, stop) {
@@ -1215,7 +1219,7 @@ func (p *Parser) quotedHdocWord() *Word {
 	pos := p.nextPos()
 	stop := p.hdocStops[len(p.hdocStops)-1]
 	for ; ; r = p.rune() {
-		if r == utf8.RuneSelf {
+		if r == runeEOF {
 			return nil
 		}
 		for p.quote == hdocBodyTabs && r == '\t' {
@@ -1225,7 +1229,7 @@ func (p *Parser) quotedHdocWord() *Word {
 	runeLoop:
 		for {
 			switch r {
-			case utf8.RuneSelf, '\n':
+			case runeEOF, '\n':
 				break runeLoop
 			case '`':
 				if p.backquoteEnd() {
@@ -1242,7 +1246,7 @@ func (p *Parser) quotedHdocWord() *Word {
 		}
 		// Compare the current line with the stop word.
 		line := p.litBs[lStart:]
-		if r != utf8.RuneSelf && len(line) > 0 {
+		if r != runeEOF && len(line) > 0 {
 			line = line[:len(line)-1] // minus \n
 		}
 		if bytes.Equal(line, stop) {
@@ -1278,7 +1282,7 @@ func (p *Parser) advanceLitRe(r rune) {
 		case '"', '\'', '$', '`':
 			p.tok, p.val = _Lit, p.endLit()
 			return
-		case utf8.RuneSelf:
+		case runeEOF:
 			p.tok, p.val = _LitWord, p.endLit()
 			p.quote = noState
 			return

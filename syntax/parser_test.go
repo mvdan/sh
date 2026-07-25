@@ -2579,19 +2579,18 @@ func TestPosEdgeCases(t *testing.T) {
 
 func TestParseHighControlRunes(t *testing.T) {
 	t.Parallel()
-	// TODO: U+0080 and U+0081 should parse as regular characters, but they
-	// collide with the rune sentinels that the lexer uses for "reached EOF"
-	// and "escaped newline", truncating or corrupting the input.
+	// U+0080 and U+0081 must parse as regular characters even though the
+	// lexer uses rune sentinels for "reached EOF" and "escaped newline".
 	tests := []struct {
 		in, want string // want is an error string when wantErr
 		wantErr  bool
 	}{
-		{in: "echo a\u0080b", want: "echo a\u0080\n"},
-		{in: "echo 'a\u0080b'", want: "1:6: reached EOF without closing quote `'`", wantErr: true},
-		{in: "echo \"a\u0080b\"", want: "1:6: reached EOF without closing quote `\"`", wantErr: true},
+		{in: "echo a\u0080b", want: "echo a\u0080b\n"},
+		{in: "echo 'a\u0080b'", want: "echo 'a\u0080b'\n"},
+		{in: "echo \"a\u0080b\"", want: "echo \"a\u0080b\"\n"},
 		{in: "echo a\u0081b", want: "echo a\u0081b\n"},
-		{in: "echo 'a\u0081b'", want: "echo 'a\u0081\\\nb'\n"},
-		{in: "echo \"a\u0081b\"", want: "echo \"a\u0081\\\nb\"\n"},
+		{in: "echo 'a\u0081b'", want: "echo 'a\u0081b'\n"},
+		{in: "echo \"a\u0081b\"", want: "echo \"a\u0081b\"\n"},
 	}
 	p := NewParser()
 	printer := NewPrinter()
