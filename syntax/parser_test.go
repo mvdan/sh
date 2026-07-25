@@ -2577,6 +2577,37 @@ func TestPosEdgeCases(t *testing.T) {
 	qt.Check(t, qt.Equals(f.Stmts[1].End().String(), "2:9"))
 }
 
+func TestParseHighControlRunes(t *testing.T) {
+	t.Parallel()
+	// TODO: U+0080 and U+0081 should parse as regular characters, but they
+	// collide with the rune sentinels that the lexer uses for "reached EOF"
+	// and "escaped newline", truncating or corrupting the input.
+	tests := []struct {
+		in, want string // want is an error string when wantErr
+		wantErr  bool
+	}{
+		{in: "echo a\u0080b", want: "echo a\u0080\n"},
+		{in: "echo 'a\u0080b'", want: "1:6: reached EOF without closing quote `'`", wantErr: true},
+		{in: "echo \"a\u0080b\"", want: "1:6: reached EOF without closing quote `\"`", wantErr: true},
+		{in: "echo a\u0081b", want: "echo a\u0081b\n"},
+		{in: "echo 'a\u0081b'", want: "echo 'a\u0081\\\nb'\n"},
+		{in: "echo \"a\u0081b\"", want: "echo \"a\u0081\\\nb\"\n"},
+	}
+	p := NewParser()
+	printer := NewPrinter()
+	for _, tc := range tests {
+		f, err := p.Parse(strings.NewReader(tc.in), "")
+		if tc.wantErr {
+			qt.Assert(t, qt.ErrorMatches(err, regexp.QuoteMeta(tc.want)), qt.Commentf("input: %q", tc.in))
+			continue
+		}
+		qt.Assert(t, qt.IsNil(err), qt.Commentf("input: %q", tc.in))
+		var sb strings.Builder
+		qt.Assert(t, qt.IsNil(printer.Print(&sb, f)))
+		qt.Check(t, qt.Equals(sb.String(), tc.want), qt.Commentf("input: %q", tc.in))
+	}
+}
+
 func TestNodeEndPos(t *testing.T) {
 	t.Parallel()
 
