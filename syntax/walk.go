@@ -98,6 +98,9 @@ func Walk(node Node, f func(Node) bool) {
 		walkNilable(node.Param, f)
 		walkNilable(node.NestedParam, f)
 		walkNilable(node.Index, f)
+		for _, idx := range node.ExtraIndexes {
+			walkNilable(idx, f)
+		}
 		if node.Slice != nil {
 			walkNilable(node.Slice.Offset, f)
 			walkNilable(node.Slice.Length, f)

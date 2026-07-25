@@ -743,6 +743,9 @@ func (p *Printer) paramExp(pe *ParamExp) {
 	if pe.nakedIndex() { // arr[x]
 		p.writeLit(pe.Param.Value)
 		p.wroteIndex(pe.Index)
+		for _, idx := range pe.ExtraIndexes {
+			p.wroteIndex(idx)
+		}
 		return
 	}
 	p.w.WriteByte('$')
@@ -792,6 +795,9 @@ func (p *Printer) paramExp(pe *ParamExp) {
 		p.minify = saved
 	}
 	p.wroteIndex(pe.Index)
+	for _, idx := range pe.ExtraIndexes {
+		p.wroteIndex(idx)
+	}
 	switch {
 	case len(pe.Modifiers) > 0:
 		for _, lit := range pe.Modifiers {

@@ -1528,6 +1528,11 @@ zshPrefixLoop:
 			p.pos = p.nextPos()
 			p.rune()
 			pe.Index = p.eitherIndex()
+			for p.r == '[' {
+				p.pos = p.nextPos()
+				p.rune()
+				pe.ExtraIndexes = append(pe.ExtraIndexes, p.eitherIndex())
+			}
 		}
 		p.quote = old
 		p.next()
@@ -1545,6 +1550,12 @@ zshPrefixLoop:
 		p.pos = p.nextPos()
 		p.rune()
 		pe.Index = p.eitherIndex()
+		// Zsh allows chained subscripts: ${var[1][2]}.
+		for p.lang.in(LangZsh) && p.r == '[' {
+			p.pos = p.nextPos()
+			p.rune()
+			pe.ExtraIndexes = append(pe.ExtraIndexes, p.eitherIndex())
+		}
 	}
 	tokRune := p.r
 	p.pos = p.nextPos()

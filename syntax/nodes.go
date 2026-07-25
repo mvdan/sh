@@ -660,6 +660,9 @@ type ParamExp struct {
 	// TODO(v4): rename Index to Subscript, which better matches bash and zsh terminology
 
 	Index ArithmExpr // ${a[i]}, ${a["k"]}, or a ${a[i,j]} slice with [LangZsh]
+	// ExtraIndexes holds additional consecutive subscripts like ${a[i][j]} with [LangZsh].
+	// Index is always the first subscript when any are present.
+	ExtraIndexes []ArithmExpr
 
 	// Only one of these is set at a time.
 	// TODO(v4): consider joining these in a single "expansion" field/type,
