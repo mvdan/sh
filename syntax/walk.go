@@ -59,6 +59,7 @@ func Walk(node Node, f func(Node) bool) {
 		walkComments(node.CondLast, f)
 		walkList(node.Then, f)
 		walkComments(node.ThenLast, f)
+		walkComments(node.Last, f)
 		walkNilable(node.Else, f)
 	case *WhileClause:
 		walkList(node.Cond, f)

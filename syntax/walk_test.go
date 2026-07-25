@@ -127,9 +127,7 @@ func TestWalkIfClauseComments(t *testing.T) {
 			comments = append(comments, c.Text)
 		}
 	}
-	// TODO: Walk should visit the IfClause.Last comments too:
-	// []string{" document the else", " document the fi"}
-	var want []string
+	want := []string{" document the else", " document the fi"}
 	if !slices.Equal(comments, want) {
 		t.Fatalf("walked comments %q, want %q", comments, want)
 	}
