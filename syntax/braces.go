@@ -85,6 +85,18 @@ func SplitBraces(word *Word) bool {
 					continue
 				}
 				addlitidx()
+				if cur.Sequence {
+					// A comma inside a sequence like {1..2,3} makes it
+					// a list expansion where the ".." are literal.
+					merged := cur.Elems[0]
+					for _, elem := range cur.Elems[1:] {
+						merged.Parts = append(merged.Parts, litDots)
+						merged.Parts = append(merged.Parts, elem.Parts...)
+					}
+					cur.Sequence = false
+					cur.Elems = cur.Elems[:1]
+					cur.Elems[0] = merged
+				}
 				acc = &Word{}
 				cur.Elems = append(cur.Elems, acc)
 			case '.':
@@ -92,6 +104,10 @@ func SplitBraces(word *Word) bool {
 					continue
 				}
 				if j+1 >= len(lit.Value) || lit.Value[j+1] != '.' {
+					continue
+				}
+				if !cur.Sequence && len(cur.Elems) > 1 {
+					// ".." inside a list expansion like {1,2..3} is literal.
 					continue
 				}
 				addlitidx()
@@ -135,6 +151,9 @@ func SplitBraces(word *Word) bool {
 					if _, err := strconv.ParseInt(val, 10, 64); err != nil {
 						broken = true
 					}
+				} else if len(br.Elems) > 3 {
+					// sequences like {1..2..3..4} are literal in bash
+					broken = true
 				}
 				// are start and end both chars or
 				// non-chars?
