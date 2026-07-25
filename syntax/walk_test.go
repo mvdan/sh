@@ -113,6 +113,28 @@ func TestWalk(t *testing.T) {
 	}
 }
 
+func TestWalkIfClauseComments(t *testing.T) {
+	t.Parallel()
+	// Comments aligned with "else" or "fi" are attached to IfClause.Last.
+	in := "if a; then\n\tb\n# document the else\nelse\n\tc\n# document the fi\nfi\n"
+	prog, err := NewParser(KeepComments(true)).Parse(strings.NewReader(in), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var comments []string
+	for node := range Preorder(prog) {
+		if c, ok := node.(*Comment); ok {
+			comments = append(comments, c.Text)
+		}
+	}
+	// TODO: Walk should visit the IfClause.Last comments too:
+	// []string{" document the else", " document the fi"}
+	var want []string
+	if !slices.Equal(comments, want) {
+		t.Fatalf("walked comments %q, want %q", comments, want)
+	}
+}
+
 func TestPreorder(t *testing.T) {
 	t.Parallel()
 	in := "echo ${foo:-bar}; { baz >f; } # comment"
