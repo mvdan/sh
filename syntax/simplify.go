@@ -80,6 +80,8 @@ func (s *simplifier) visit(node Node) {
 		switch node.Op {
 		case TsMatch, TsNoMatch:
 			// unquoting enables globbing
+		case TsReMatch:
+			// unquoting turns a literal string into a regular expression
 		default:
 			node.Y = s.unquoteParams(node.Y)
 		}

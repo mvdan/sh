@@ -47,9 +47,7 @@ var simplifyTests = [...]simplifyTest{
 	noSimple(`[[ ! -e foo ]]`),
 	noSimple(`[[ foo == bar ]]`),
 	{`[[ foo = bar ]]`, `[[ foo == bar ]]`},
-	// TODO: the first case should be noSimple; quoting the right-hand side
-	// of =~ is what makes it a literal string rather than a regular expression.
-	{`[[ foo =~ "$bar" ]]`, `[[ foo =~ $bar ]]`},
+	noSimple(`[[ foo =~ "$bar" ]]`),
 	{`[[ "$foo" =~ bar ]]`, `[[ $foo =~ bar ]]`},
 
 	// stmts
