@@ -698,6 +698,10 @@ func (p *ParamExp) End() Pos {
 		return posAddCol(p.Rbrace, 1)
 	}
 	// In short mode, we can only end in either an index or a simple name.
+	// ExtraIndexes are consecutive zsh subscripts after Index ($var[1][2]).
+	if n := len(p.ExtraIndexes); n > 0 {
+		return posAddCol(p.ExtraIndexes[n-1].End(), 1)
+	}
 	if p.Index != nil {
 		return posAddCol(p.Index.End(), 1)
 	}
