@@ -169,7 +169,8 @@ var interactiveTests = []struct {
 			"echo *\n",
 			"main.go main_test.go testdata\n$ ",
 			"shopt -s globstar; echo **\n",
-			"main.go main_test.go testdata testdata/script testdata/script/flags.txtar\n$ ",
+			// Globs expand with the OS path separator.
+			filepath.FromSlash("main.go main_test.go testdata testdata/script testdata/script/flags.txtar") + "\n$ ",
 		},
 	},
 	{
