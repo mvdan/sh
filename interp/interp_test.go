@@ -2565,6 +2565,14 @@ set +o pipefail
 done <<< 2`,
 		"1) foo\n#? invalid option 2\n",
 	},
+	{
+		"select opt in a b c; do echo \"got $opt\"; if [[ $REPLY == 2 ]]; then break; fi; done <<< $'1\n2'",
+		"1) a\n2) b\n3) c\n#? got a\ngot a\ngot b\ngot c\n #IGNORE TODO: select should re-prompt after each reply",
+	},
+	{
+		"select opt in a b; do break; done <<< $'\n1'",
+		"1) a\n2) b\n#? 1) a\n2) b\n#? ",
+	},
 
 	// shopt
 	{"set -e; shopt -o | grep -E '^(errexit|noexec)' | wc -l | tr -d ' '", "2\n"},
