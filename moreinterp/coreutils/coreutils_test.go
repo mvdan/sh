@@ -34,12 +34,12 @@ func TestExecHandler(t *testing.T) {
 				t.Fatalf("failed to parse command %q: %v", cmd, err)
 			}
 			err = r.Run(t.Context(), program)
-			if err == nil {
-				t.Fatalf("expected error for command %q, got none", cmd)
+			if code, ok := interp.IsExitStatus(err); !ok || code != 1 {
+				t.Fatalf("expected exit status 1 for command %q, got: %v", cmd, err)
 			}
 
-			if !strings.Contains(err.Error(), "flag provided but not defined: -badoption") {
-				t.Errorf("expected error for command %q, got: %v", cmd, err)
+			if !strings.Contains(out.String(), "flag provided but not defined: -badoption") {
+				t.Errorf("expected error output for command %q, got: %q", cmd, out.String())
 			}
 		})
 	}
@@ -62,13 +62,13 @@ func TestExecHandlerErrorNotFatal(t *testing.T) {
 		t.Fatalf("failed to parse command %q: %v", cmd, err)
 	}
 	err = r.Run(t.Context(), program)
-	// TODO: a failing core utility should result in a regular non-zero
-	// exit status so that the script can recover, rather than a fatal
-	// error which aborts the entire run.
-	if err == nil {
-		t.Fatalf("expected Run to return a fatal error; output: %q", out.String())
+	if err != nil {
+		t.Fatalf("expected Run to succeed, got: %v", err)
 	}
-	if got := out.String(); got != "" {
-		t.Fatalf("expected no output, got: %q", got)
+	// The error message printed by rm varies by platform; only check
+	// that the script recovered after it.
+	got := out.String()
+	if !strings.HasPrefix(got, "rm: ") || !strings.HasSuffix(got, "\nrecovered\n") {
+		t.Fatalf("expected an rm error followed by %q, got: %q", "recovered", got)
 	}
 }

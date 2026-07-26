@@ -12,6 +12,7 @@ package coreutils
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/u-root/u-root/pkg/core"
 	"github.com/u-root/u-root/pkg/core/base64"
@@ -77,6 +78,9 @@ func ExecHandler(next interp.ExecHandlerFunc) interp.ExecHandlerFunc {
 			return v.Str, v.Set
 		})
 		if err := cmd.RunContext(ctx, programArgs...); err != nil {
+			// Print the error like a real command would, as the returned
+			// exit status may not carry the message.
+			fmt.Fprintf(c.Stderr, "%s: %v\n", program, err)
 			return &Error{err: err}
 		}
 		return nil
