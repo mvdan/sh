@@ -44,3 +44,31 @@ func TestExecHandler(t *testing.T) {
 		})
 	}
 }
+
+func TestExecHandlerErrorNotFatal(t *testing.T) {
+	var out strings.Builder
+	r, err := interp.New(
+		interp.Dir(t.TempDir()),
+		interp.StdIO(nil, &out, &out),
+		interp.ExecHandlers(ExecHandler),
+	)
+	if err != nil {
+		t.Fatalf("failed to create interpreter: %v", err)
+	}
+
+	cmd := "rm does-not-exist || echo recovered"
+	program, err := syntax.NewParser().Parse(strings.NewReader(cmd), "")
+	if err != nil {
+		t.Fatalf("failed to parse command %q: %v", cmd, err)
+	}
+	err = r.Run(t.Context(), program)
+	// TODO: a failing core utility should result in a regular non-zero
+	// exit status so that the script can recover, rather than a fatal
+	// error which aborts the entire run.
+	if err == nil {
+		t.Fatalf("expected Run to return a fatal error; output: %q", out.String())
+	}
+	if got := out.String(); got != "" {
+		t.Fatalf("expected no output, got: %q", got)
+	}
+}
