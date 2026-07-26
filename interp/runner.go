@@ -392,7 +392,8 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		r2.exit.exiting = false // subshells don't exit the parent shell
 		r.exit = r2.exit
 	case *syntax.CallExpr:
-		// Use a new slice, to not modify the slice in the alias map.
+		// Build new slices, to not modify the caller's AST
+		// nor the slices in the alias map.
 		args := cm.Args
 		for i := 0; i < len(args); {
 			if !r.opts[optExpandAliases] {
@@ -402,7 +403,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			if !ok {
 				break
 			}
-			args = slices.Replace(args, i, i+1, als.args...)
+			args = slices.Concat(args[:i], als.args, args[i+1:])
 			if !als.blank {
 				break
 			}

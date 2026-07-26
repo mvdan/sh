@@ -5254,10 +5254,8 @@ func TestRunnerASTNoModify(t *testing.T) {
 	sb.Reset()
 	printer.Print(&sb, file)
 	after := sb.String()
-	// TODO: running a file should not modify its AST; alias expansion
-	// currently rewrites "foo bar" into "echo bar" in place.
-	if after == before {
-		t.Fatalf("expected Run to modify the AST:\nbefore: %q\nafter:  %q", before, after)
+	if after != before {
+		t.Fatalf("Run modified the AST:\nbefore: %q\nafter:  %q", before, after)
 	}
 }
 
