@@ -5096,6 +5096,35 @@ func TestRunnerIncremental(t *testing.T) {
 	}
 }
 
+func TestRunnerIncrementalExitTrap(t *testing.T) {
+	t.Parallel()
+
+	file := parse(t, nil, "trap 'echo bye' EXIT\necho a\necho b\nexit 3\necho never")
+	// TODO: the exit trap should only fire once the shell exits,
+	// giving "a\nb\nbye\n".
+	want := "bye\na\nbye\nb\nbye\nbye\n"
+	var b bytes.Buffer
+	r, _ := interp.New(interp.StdIO(nil, &b, &b))
+	ctx, cancel := context.WithTimeout(t.Context(), runnerRunTimeout)
+	defer cancel()
+	var exit interp.ExitStatus
+	for _, stmt := range file.Stmts {
+		err := r.Run(ctx, stmt)
+		if err != nil && !errors.As(err, &exit) {
+			b.WriteString(err.Error())
+		}
+		if r.Exited() {
+			break
+		}
+	}
+	if exit != 3 {
+		t.Fatalf("want exit status 3, got %d", exit)
+	}
+	if got := b.String(); got != want {
+		t.Fatalf("\nwant: %q\ngot:  %q", want, got)
+	}
+}
+
 func TestRunnerResetFields(t *testing.T) {
 	t.Parallel()
 
