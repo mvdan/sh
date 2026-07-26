@@ -942,7 +942,11 @@ func (r *Runner) Run(ctx context.Context, node syntax.Node) error {
 	}
 	// A bare Command bypasses stmt, which normally updates lastExit.
 	r.lastExit = r.exit
-	r.trapCallback(ctx, r.callbackExit, "exit")
+	// Running an entire file implies an exit; a statement or command
+	// only exits the shell via the exit builtin, errexit, and so on.
+	if _, ok := node.(*syntax.File); ok || r.exit.exiting {
+		r.trapCallback(ctx, r.callbackExit, "exit")
+	}
 	maps.Insert(r.Vars, r.writeEnv.Each)
 	// Return the first of: a fatal error, a non-fatal handler error, or the exit code.
 	if err := r.exit.err; err != nil {

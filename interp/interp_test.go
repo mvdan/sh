@@ -5100,9 +5100,7 @@ func TestRunnerIncrementalExitTrap(t *testing.T) {
 	t.Parallel()
 
 	file := parse(t, nil, "trap 'echo bye' EXIT\necho a\necho b\nexit 3\necho never")
-	// TODO: the exit trap should only fire once the shell exits,
-	// giving "a\nb\nbye\n".
-	want := "bye\na\nbye\nb\nbye\nbye\n"
+	want := "a\nb\nbye\n"
 	var b bytes.Buffer
 	r, _ := interp.New(interp.StdIO(nil, &b, &b))
 	ctx, cancel := context.WithTimeout(t.Context(), runnerRunTimeout)
