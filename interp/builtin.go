@@ -1200,30 +1200,39 @@ func (g *getopts) next(optstr string, args []string) (opt rune, optarg string, d
 
 	opts := arg[1:]
 	opt = opts[g.runeidx]
+
+	i := strings.IndexRune(optstr, opt)
+	if i >= 0 && i+1 < len(optstr) && optstr[i+1] == ':' {
+		// the option requires an argument
+		if g.runeidx+1 < len(opts) {
+			// attached to the option in the same word, like -bval
+			optarg = string(opts[g.runeidx+1:])
+		} else if g.argidx+1 < len(args) {
+			// the word that follows
+			optarg = args[g.argidx+1]
+			g.argidx++
+		} else {
+			// missing argument
+			g.argidx++
+			g.runeidx = 0
+			return ':', string(opt), false
+		}
+		g.argidx++
+		g.runeidx = 0
+		return opt, optarg, false
+	}
+
 	if g.runeidx+1 < len(opts) {
 		g.runeidx++
 	} else {
 		g.argidx++
 		g.runeidx = 0
 	}
-
-	i := strings.IndexRune(optstr, opt)
 	if i < 0 {
 		// invalid option
 		return '?', string(opt), false
 	}
-
-	if i+1 < len(optstr) && optstr[i+1] == ':' {
-		if g.argidx >= len(args) {
-			// missing argument
-			return ':', string(opt), false
-		}
-		optarg = args[g.argidx]
-		g.argidx++
-		g.runeidx = 0
-	}
-
-	return opt, optarg, false
+	return opt, "", false
 }
 
 // optStatusText returns a shell option's status text display
