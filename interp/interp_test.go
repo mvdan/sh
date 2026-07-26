@@ -2567,7 +2567,15 @@ done <<< 2`,
 	},
 	{
 		"select opt in a b c; do echo \"got $opt\"; if [[ $REPLY == 2 ]]; then break; fi; done <<< $'1\n2'",
-		"1) a\n2) b\n3) c\n#? got a\ngot a\ngot b\ngot c\n #IGNORE TODO: select should re-prompt after each reply",
+		"1) a\n2) b\n3) c\n#? got a\n#? got b\n",
+	},
+	{
+		"select opt in a b; do break; done </dev/null; echo status $?",
+		"1) a\n2) b\n#? \nstatus 1\n",
+	},
+	{
+		"select opt in a b; do echo \"got $opt\"; done <<< 2",
+		"1) a\n2) b\n#? got b\n#? \nexit status 1",
 	},
 	{
 		"select opt in a b; do break; done <<< $'\n1'",

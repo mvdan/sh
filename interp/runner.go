@@ -554,39 +554,42 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			if cm.Select {
 				ps3 := cmp.Or(r.envGet(shellReplyPS3Var), shellDefaultPS3)
 
-				prompt := func() []byte {
-					// display menu
-					for i, word := range items {
-						r.errf("%d) %v\n", i+1, word)
+				for menu := true; ; {
+					if menu {
+						// display menu
+						for i, word := range items {
+							r.errf("%d) %v\n", i+1, word)
+						}
+						menu = false
 					}
 					r.errf("%s", ps3)
 
 					line, err := r.readLine(ctx, true)
 					if err != nil {
+						r.errf("\n")
 						r.exit.code = 1
-						return nil
+						break
 					}
-					return line
-				}
+					if len(line) == 0 {
+						menu = true // no reply; show the menu again
+						continue
+					}
 
-			retry:
-				choice := prompt()
-				if len(choice) == 0 {
-					goto retry // no reply; try again
-				}
+					reply := string(line)
+					r.setVarString(shellReplyVar, reply)
 
-				reply := string(choice)
-				r.setVarString(shellReplyVar, reply)
+					if c, _ := strconv.Atoi(reply); c > 0 && c <= len(items) {
+						r.setVarString(name, items[c-1])
+					} else {
+						r.setVarString(name, "")
+					}
 
-				c, _ := strconv.Atoi(reply)
-				if c > 0 && c <= len(items) {
-					r.setVarString(name, items[c-1])
+					// execute commands until break or return is encountered
+					if r.loopStmtsBroken(ctx, cm.Do) {
+						break
+					}
 				}
-
-				// execute commands until break or return is encountered
-				if r.loopStmtsBroken(ctx, cm.Do) {
-					break
-				}
+				break
 			}
 
 			for _, field := range items {
