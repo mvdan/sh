@@ -3834,6 +3834,18 @@ done <<< 2`,
 		"b 1\na 2\nc 3\n",
 	},
 	{
+		"while getopts ab: opt -a -bval -a; do echo $opt $OPTARG $OPTIND; done",
+		"a 2\nb -bval 3\na 4\n #IGNORE TODO: OPTARG should be val, not the whole word",
+	},
+	{
+		"while getopts b: opt -bval foo; do echo $opt $OPTARG $OPTIND; done",
+		"b -bval 2\n #IGNORE TODO: OPTARG should be val, not the whole word",
+	},
+	{
+		"while getopts ab: opt -ab val; do echo $opt $OPTARG $OPTIND; done",
+		"a 1\nb val 3\n",
+	},
+	{
 		"a() { while getopts abc: opt; do echo $opt $OPTARG; done }; a -a -b -c arg",
 		"a\nb\nc arg\n",
 	},
