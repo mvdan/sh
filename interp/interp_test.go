@@ -3637,6 +3637,18 @@ done <<< 2`,
 		"linecontinuation\n",
 	},
 	{
+		"read x <<< $'foo\\\\\nbar'; echo \"$x\"",
+		"bar\n #IGNORE TODO: a line continuation should result in foobar",
+	},
+	{
+		"read x <<< $'a\\\\\nb\\\\\nc'; echo \"$x\"",
+		"c\n #IGNORE TODO: line continuations should result in abc",
+	},
+	{
+		"read -r x <<< $'foo\\\\\nbar'; echo \"$x\"",
+		"foo\\\n",
+	},
+	{
 		"while read a; do echo $a; GOSH_CMD=print_ok $GOSH_PROG; done <<< 'a\nb\nc'",
 		"a\nexec ok\nb\nexec ok\nc\nexec ok\n",
 	},
