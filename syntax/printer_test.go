@@ -120,6 +120,11 @@ var printTests = []printCase{
 		"{ foo; bar; }",
 		"{\n\tfoo\n\tbar\n}",
 	},
+	samePrint("for i in 1 2 3; do if true; then foo; fi; done"),
+	{
+		"for i in 1 2 3; do if true; then foo; bar; fi; done",
+		"for i in 1 2 3; do\n\tif true; then\n\t\tfoo\n\t\tbar\n\tfi\ndone",
+	},
 	{
 		"{ foo; bar; }\n#etc",
 		"{\n\tfoo\n\tbar\n}\n#etc",

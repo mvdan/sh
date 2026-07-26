@@ -1487,6 +1487,10 @@ func (p *Printer) nestedStmts(stmts []*Stmt, last []Comment, closing Pos) {
 		// Force a newline if we find:
 		//     { stmt; stmt; }
 		p.wantNewline = true
+	case stmtsWillBeMultiline(stmts):
+		// Force a newline if the only statement expands while printing:
+		//     { if foo; then stmt; stmt; fi; }
+		p.wantNewline = true
 	case closing.Line() > p.line && len(stmts) > 0 &&
 		stmtsEnd(stmts, last).Line() < closing.Line():
 		// Force a newline if we find:
@@ -1504,6 +1508,47 @@ func (p *Printer) nestedStmts(stmts []*Stmt, last []Comment, closing Pos) {
 		p.flushComments()
 	}
 	p.decLevel()
+}
+
+func stmtsWillBeMultiline(stmts []*Stmt) bool {
+	if len(stmts) != 1 {
+		return len(stmts) > 1
+	}
+	return commandWillBeMultiline(stmts[0].Cmd)
+}
+
+func commandWillBeMultiline(cmd Command) bool {
+	switch cmd := cmd.(type) {
+	case *Block:
+		return stmtsWillBeMultiline(cmd.Stmts)
+	case *Subshell:
+		return stmtsWillBeMultiline(cmd.Stmts)
+	case *IfClause:
+		return stmtsWillBeMultiline(cmd.Cond) ||
+			stmtsWillBeMultiline(cmd.Then) ||
+			cmd.Else != nil && commandWillBeMultiline(cmd.Else)
+	case *WhileClause:
+		return stmtsWillBeMultiline(cmd.Cond) || stmtsWillBeMultiline(cmd.Do)
+	case *ForClause:
+		return stmtsWillBeMultiline(cmd.Do)
+	case *BinaryCmd:
+		return commandWillBeMultiline(cmd.X.Cmd) || commandWillBeMultiline(cmd.Y.Cmd)
+	case *FuncDecl:
+		return commandWillBeMultiline(cmd.Body.Cmd)
+	case *CaseClause:
+		for _, item := range cmd.Items {
+			if stmtsWillBeMultiline(item.Stmts) {
+				return true
+			}
+		}
+	case *TimeClause:
+		return cmd.Stmt != nil && commandWillBeMultiline(cmd.Stmt.Cmd)
+	case *CoprocClause:
+		return commandWillBeMultiline(cmd.Stmt.Cmd)
+	case *TestDecl:
+		return commandWillBeMultiline(cmd.Body.Cmd)
+	}
+	return false
 }
 
 func (p *Printer) assigns(assigns []*Assign) {
