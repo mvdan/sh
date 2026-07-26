@@ -1364,6 +1364,18 @@ var runTests = []runTest{
 		"exec >/dev/null; echo foo",
 		"",
 	},
+	{
+		"exec >a; echo foo; cat a >&2",
+		" #IGNORE TODO: exec should not close its redirections; should print foo",
+	},
+	{
+		"exec >a; echo one >b; echo two; cat a b >&2",
+		"one\n #IGNORE TODO: a redirection after exec should be undone; should print two, one",
+	},
+	{
+		"{ exec >a; echo in; } >b; echo out; cat a b >&2",
+		" #IGNORE TODO: the enclosing redirection should undo exec's; should print out, in",
+	},
 
 	// return
 	{"return", "return: can only be done from a func or sourced script\nexit status 1 #JUSTERR"},
