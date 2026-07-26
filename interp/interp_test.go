@@ -3638,11 +3638,11 @@ done <<< 2`,
 	},
 	{
 		"read x <<< $'foo\\\\\nbar'; echo \"$x\"",
-		"bar\n #IGNORE TODO: a line continuation should result in foobar",
+		"foobar\n",
 	},
 	{
 		"read x <<< $'a\\\\\nb\\\\\nc'; echo \"$x\"",
-		"c\n #IGNORE TODO: line continuations should result in abc",
+		"abc\n",
 	},
 	{
 		"read -r x <<< $'foo\\\\\nbar'; echo \"$x\"",

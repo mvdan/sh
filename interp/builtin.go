@@ -1071,8 +1071,8 @@ func (r *Runner) readLine(ctx context.Context, raw bool) ([]byte, error) {
 				line = append(line, b)
 				esc = !esc
 			case !raw && b == '\n' && esc:
-				// line continuation
-				line = line[len(line)-1:]
+				// line continuation; drop the trailing backslash
+				line = line[:len(line)-1]
 				esc = false
 			case b == '\n':
 				return line, nil
