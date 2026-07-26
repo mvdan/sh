@@ -5231,6 +5231,36 @@ func TestRunnerEnvNoModify(t *testing.T) {
 	}
 }
 
+func TestRunnerASTNoModify(t *testing.T) {
+	t.Parallel()
+
+	file := parse(t, nil, "shopt -s expand_aliases; alias foo=echo\nfoo bar")
+	printer := syntax.NewPrinter()
+	var sb strings.Builder
+	printer.Print(&sb, file)
+	before := sb.String()
+
+	var b bytes.Buffer
+	r, _ := interp.New(interp.StdIO(nil, &b, &b))
+	ctx, cancel := context.WithTimeout(t.Context(), runnerRunTimeout)
+	defer cancel()
+	if err := r.Run(ctx, file); err != nil {
+		t.Fatal(err)
+	}
+	if want := "bar\n"; b.String() != want {
+		t.Fatalf("want output %q, got %q", want, b.String())
+	}
+
+	sb.Reset()
+	printer.Print(&sb, file)
+	after := sb.String()
+	// TODO: running a file should not modify its AST; alias expansion
+	// currently rewrites "foo bar" into "echo bar" in place.
+	if after == before {
+		t.Fatalf("expected Run to modify the AST:\nbefore: %q\nafter:  %q", before, after)
+	}
+}
+
 func TestMalformedPathOnWindows(t *testing.T) {
 	if runtime.GOOS != "windows" {
 		t.Skip("Skipping windows test on non-windows GOOS")
