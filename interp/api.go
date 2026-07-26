@@ -162,8 +162,9 @@ type Runner struct {
 
 	optState getopts
 
-	// keepRedirs is used so that "exec" can make any redirections
+	// keepRedirs is set by "exec" so that its statement's redirections
 	// apply to the current shell, and not just the command.
+	// It is consumed by the enclosing statement once it finishes.
 	keepRedirs bool
 
 	// Fake signal callbacks

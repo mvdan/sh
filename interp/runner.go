@@ -331,6 +331,7 @@ func (r *Runner) stmt(ctx context.Context, st *syntax.Stmt) {
 
 func (r *Runner) stmtSync(ctx context.Context, st *syntax.Stmt) {
 	oldIn, oldOut, oldErr := r.stdin, r.stdout, r.stderr
+	var closers []io.Closer
 	for _, rd := range st.Redirs {
 		cls, err := r.redir(ctx, rd)
 		if err != nil {
@@ -338,7 +339,7 @@ func (r *Runner) stmtSync(ctx context.Context, st *syntax.Stmt) {
 			break
 		}
 		if cls != nil {
-			defer cls.Close()
+			closers = append(closers, cls)
 		}
 	}
 	if r.exit.ok() && st.Cmd != nil {
@@ -362,8 +363,15 @@ func (r *Runner) stmtSync(ctx context.Context, st *syntax.Stmt) {
 			r.exit.exiting = true
 		}
 	}
-	if !r.keepRedirs {
+	if r.keepRedirs {
+		// The exec builtin made this statement's redirections apply to the
+		// shell itself, so don't undo them and keep their files open.
+		r.keepRedirs = false
+	} else if len(st.Redirs) > 0 {
 		r.stdin, r.stdout, r.stderr = oldIn, oldOut, oldErr
+		for _, cls := range closers {
+			cls.Close()
+		}
 	}
 }
 
@@ -496,6 +504,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			} else {
 				r2.stderr = r.stderr
 			}
+			oldIn := r.stdin
 			r.stdin = pr
 			var wg sync.WaitGroup
 			wg.Go(func() {
@@ -506,6 +515,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			r.stmt(ctx, cm.Y)
 			pr.Close()
 			wg.Wait()
+			r.stdin = oldIn
 			if r.opts[optPipeFail] && !r2.exit.ok() && r.exit.ok() {
 				r.exit = r2.exit
 			}
