@@ -677,7 +677,6 @@ var bashOptsTable = [...]bashOpt{
 	{name: "compat40"},
 	{name: "compat41"},
 	{name: "compat42"},
-	{name: "compat44"},
 	{name: "compat43"},
 	{name: "compat44"},
 	{
