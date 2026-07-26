@@ -689,6 +689,36 @@ func TestPrintTable(t *testing.T) {
 	}
 }
 
+func TestPrintTrailingBackslashes(t *testing.T) {
+	t.Parallel()
+	parser := NewParser(KeepComments(true))
+	printer := NewPrinter()
+	trailing := func(n int) string {
+		return "echo foo" + strings.Repeat("\\", n)
+	}
+	tests := []struct {
+		name     string
+		in, want string
+	}{
+		{"one", trailing(1), trailing(2)},
+		{"two", trailing(2), trailing(2)},
+		{"three", trailing(3), trailing(4)},
+		{"four", trailing(4), trailing(4)},
+		{"five", trailing(5), trailing(6)},
+		{"six", trailing(6), trailing(6)},
+		{"line-continuation", "echo foo \\\nbar", "echo foo \\\n\tbar"},
+		{"single-quoted", `echo 'foo\'`, `echo 'foo\'`},
+		{"double-quoted", `echo "foo\\"`, `echo "foo\\"`},
+		{"quoted-heredoc", "cat <<'EOF'\nfoo\\\nEOF", "cat <<'EOF'\nfoo\\\nEOF"},
+		{"comment", `# foo\`, `# foo\`},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			printTest(t, parser, printer, tc.in, tc.want)
+		})
+	}
+}
+
 func parsePath(tb testing.TB, path string) *File {
 	f, err := os.Open(path)
 	if err != nil {
@@ -1253,7 +1283,6 @@ func printTest(t *testing.T, parser *Parser, printer *Printer, in, want string) 
 	if err != nil {
 		t.Fatalf("parsing got an error: %s:\n%s", err, in)
 	}
-	origWant := want
 	want += "\n"
 	got, err := strPrint(printer, prog)
 	if err != nil {
@@ -1263,11 +1292,9 @@ func printTest(t *testing.T, parser *Parser, printer *Printer, in, want string) 
 		t.Fatalf("Print mismatch:\nwant:\n%q\ngot:\n%q", want, got)
 	}
 
-	// With the original "want" output string,
-	// make sure that it's idempotent when formatted again.
-	// Note that we don't want the added newline,
-	// as that can change the meaning of trailing backslashes.
-	progAgain, err := parser.Parse(strings.NewReader(origWant), "")
+	// Reparse the exact output to make sure that it is idempotent when formatted
+	// again.
+	progAgain, err := parser.Parse(strings.NewReader(want), "")
 	if err != nil {
 		t.Fatalf("Result is not valid shell:\n%s", want)
 	}

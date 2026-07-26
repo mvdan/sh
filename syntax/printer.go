@@ -65,13 +65,13 @@ func KeepPadding(enabled bool) PrinterOption {
 		if enabled && !p.keepPadding {
 			// Enable the flag, and set up the writer wrapper.
 			p.keepPadding = true
-			p.cols.Writer = p.w.(*bufio.Writer)
-			p.w = &p.cols
+			p.cols.Writer = p.w.bufWriter.(*bufio.Writer)
+			p.w.bufWriter = &p.cols
 
 		} else if !enabled && p.keepPadding {
 			// Ensure we reset the state to that of NewPrinter.
 			p.keepPadding = false
-			p.w = p.cols.Writer
+			p.w.bufWriter = p.cols.Writer
 			p.cols = colCounter{}
 		}
 	}
@@ -101,8 +101,9 @@ func FunctionNextLine(enabled bool) PrinterOption {
 
 // NewPrinter allocates a new Printer and applies any number of options.
 func NewPrinter(opts ...PrinterOption) *Printer {
+	bw := bufio.NewWriter(nil)
 	p := &Printer{
-		w:         bufio.NewWriter(nil),
+		w:         &printerWriter{bufWriter: bw},
 		tabWriter: new(tabwriter.Writer),
 	}
 	for _, opt := range opts {
@@ -142,7 +143,7 @@ func (p *Printer) Print(w io.Writer, node Node) error {
 	switch node := node.(type) {
 	case *File:
 		p.stmtList(node.Stmts, node.Last)
-		p.newline(Pos{})
+		p.finalNewline(Pos{})
 	case *Stmt:
 		p.stmtList([]*Stmt{node}, nil)
 	case Command:
@@ -180,6 +181,55 @@ type bufWriter interface {
 	WriteByte(byte) error
 	Reset(io.Writer)
 	Flush() error
+}
+
+// printerWriter tracks whether the output ends in backslashes from an unquoted
+// literal, so the File's final newline cannot turn an odd count into a continuation.
+type printerWriter struct {
+	bufWriter
+	trailingBackslashes int
+	trailingUnquotedLit bool
+}
+
+func (w *printerWriter) track(bs []byte, unquotedLit bool) {
+	for _, b := range bs {
+		if b == tabwriter.Escape {
+			continue
+		}
+		if b == '\\' {
+			w.trailingBackslashes++
+			w.trailingUnquotedLit = unquotedLit
+		} else {
+			w.trailingBackslashes = 0
+			w.trailingUnquotedLit = false
+		}
+	}
+}
+
+func (w *printerWriter) Write(bs []byte) (int, error) {
+	w.track(bs, false)
+	return w.bufWriter.Write(bs)
+}
+
+func (w *printerWriter) WriteString(s string) (int, error) {
+	w.track([]byte(s), false)
+	return w.bufWriter.WriteString(s)
+}
+
+func (w *printerWriter) WriteByte(b byte) error {
+	w.track([]byte{b}, false)
+	return w.bufWriter.WriteByte(b)
+}
+
+func (w *printerWriter) writeUnquotedLit(s string) {
+	w.track([]byte(s), true)
+	w.bufWriter.WriteString(s)
+}
+
+func (w *printerWriter) Reset(dst io.Writer) {
+	w.trailingBackslashes = 0
+	w.trailingUnquotedLit = false
+	w.bufWriter.Reset(dst)
 }
 
 type colCounter struct {
@@ -221,7 +271,7 @@ func (c *colCounter) Reset(w io.Writer) {
 // Printer holds the internal state of the printing mechanism of a
 // program.
 type Printer struct {
-	w         bufWriter
+	w         *printerWriter
 	tabWriter *tabwriter.Writer
 	cols      colCounter // used for [KeepPadding]
 
@@ -386,6 +436,14 @@ func (p *Printer) writeLit(s string) {
 	p.w.WriteString(s)
 }
 
+func (p *Printer) writeUnquotedLit(s string) {
+	if p.tabWriter != nil && strings.Contains(s, "\t") {
+		p.w.WriteByte(tabwriter.Escape)
+		defer p.w.WriteByte(tabwriter.Escape)
+	}
+	p.w.writeUnquotedLit(s)
+}
+
 func (p *Printer) incLevel() {
 	inc := false
 	if p.level <= p.lastLevel || len(p.levelIncs) == 0 {
@@ -427,8 +485,19 @@ func (p *Printer) indent() {
 
 // newline prints one newline and advances p.line to pos.Line().
 func (p *Printer) newline(pos Pos) {
+	p.newlineWithMode(pos, false)
+}
+
+func (p *Printer) finalNewline(pos Pos) {
+	p.newlineWithMode(pos, true)
+}
+
+func (p *Printer) newlineWithMode(pos Pos, final bool) {
 	p.flushHeredocs()
 	p.flushComments()
+	if final && p.w.trailingUnquotedLit && p.w.trailingBackslashes%2 == 1 {
+		p.w.writeUnquotedLit("\\")
+	}
 	p.w.WriteByte('\n')
 	p.wantSpace = spaceWritten
 	p.wantNewline, p.mustNewline = false, false
@@ -476,7 +545,7 @@ func (p *Printer) flushHeredocs() {
 					firstIndent: -1,
 				}
 				p.tabsPrinter = &Printer{
-					w: &extra,
+					w: &printerWriter{bufWriter: &extra},
 
 					// The options need to persist.
 					indentSpaces:   p.indentSpaces,
@@ -655,7 +724,7 @@ func (p *Printer) wordParts(wps []WordPart, quoted bool) {
 func (p *Printer) wordPart(wp, next WordPart) {
 	switch wp := wp.(type) {
 	case *Lit:
-		p.writeLit(wp.Value)
+		p.writeUnquotedLit(wp.Value)
 	case *SglQuoted:
 		if wp.Dollar {
 			p.w.WriteByte('$')

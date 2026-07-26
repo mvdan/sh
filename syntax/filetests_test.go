@@ -191,14 +191,6 @@ var fileTests = []fileTestCase{
 		langFile(litWord("foo")),
 	),
 	fileTest(
-		[]string{`\`},
-		langFile(litWord(`\`)),
-	),
-	fileTest(
-		[]string{`foo\`, "f\\\noo\\"},
-		langFile(litWord(`foo\`)),
-	),
-	fileTest(
 		[]string{`foo\a`, "f\\\noo\\a"},
 		langFile(litWord(`foo\a`)),
 	),
@@ -5385,6 +5377,14 @@ var fileTests = []fileTestCase{
 
 // these don't have a canonical format with the same syntax tree
 var fileTestsNoPrint = []fileTestCase{
+	fileTest(
+		[]string{`\`},
+		langFile(litWord(`\`)),
+	),
+	fileTest(
+		[]string{`foo\`, "f\\\noo\\"},
+		langFile(litWord(`foo\`)),
+	),
 	fileTest(
 		[]string{`$[foo]`},
 		langFile(word(lit("$"), lit("[foo]")), LangPOSIX),
