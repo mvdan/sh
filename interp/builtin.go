@@ -362,11 +362,11 @@ func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args 
 		for fp.more() {
 			switch flag := fp.flag(); flag {
 			case "-a", "-f", "--help":
-				return failf(3, "command: NOT IMPLEMENTED\n")
+				return failf(3, "type: NOT IMPLEMENTED\n")
 			case "-p", "-P", "-t":
 				mode = flag
 			default:
-				return failf(2, "command: invalid option %q\n", flag)
+				return failf(2, "type: invalid option %q\n", flag)
 			}
 		}
 		args := fp.args()
