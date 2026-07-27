@@ -790,6 +790,9 @@ func (cfg *Config) wordFields(wps []syntax.WordPart) ([][]fieldPart, error) {
 // $@ or ${arr[*]}, with star set for the "*" forms which join into a single
 // field when quoted. ok is false for any other parameter expansion.
 func (cfg *Config) listElems(pe *syntax.ParamExp) (elems []string, star, ok bool) {
+	if pe.Param == nil { // e.g. zsh's ${}; paramExp rejects it
+		return nil, false, false
+	}
 	switch name := pe.Param.Value; name {
 	case "*", "@":
 		return cfg.sliceElems(pe, cfg.Env.Get(name).List, true), name == "*", true
@@ -820,7 +823,7 @@ func (cfg *Config) unquotedElemFields(pe *syntax.ParamExp) ([]string, bool) {
 // parameter expansion that should be treated especially, like "${foo[@]}".
 // The result is nil for any other parameter expansion.
 func (cfg *Config) quotedElemFields(pe *syntax.ParamExp) ([]string, error) {
-	if pe == nil || pe.Length || pe.Width || pe.IsSet {
+	if pe == nil || pe.Param == nil || pe.Length || pe.Width || pe.IsSet {
 		return nil, nil
 	}
 	name := pe.Param.Value

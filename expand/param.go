@@ -54,6 +54,9 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 	cfg.curParam = pe
 	defer func() { cfg.curParam = oldParam }()
 
+	if pe.Param == nil { // e.g. zsh's ${}
+		return "", fmt.Errorf("unsupported")
+	}
 	name := pe.Param.Value
 	index := pe.Index
 	switch name {

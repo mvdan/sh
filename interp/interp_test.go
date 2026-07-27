@@ -4422,6 +4422,46 @@ func TestRunnerRun(t *testing.T) {
 	}
 }
 
+func TestRunnerUnsupported(t *testing.T) {
+	t.Parallel()
+
+	// Features from language variants that the interpreter does not
+	// support, such as zsh, should error rather than panic.
+	tests := []struct {
+		lang syntax.LangVariant
+		in   string
+		want string
+	}{
+		{syntax.LangZsh, "echo x${}y", "unsupported\n"},
+		{syntax.LangZsh, `echo "${}"`, "unsupported\n"},
+		{syntax.LangZsh, "echo ${:-foo}", "unsupported\n"},
+		{syntax.LangZsh, "echo ${+a}", "unsupported\n"},
+		{syntax.LangMirBSDKorn, "echo ${%a}", "unsupported\n"},
+	}
+	for _, tc := range tests {
+		t.Run("", func(t *testing.T) {
+			t.Parallel()
+			t.Logf("input: %q", tc.in)
+			p := syntax.NewParser(syntax.Variant(tc.lang))
+			file := parse(t, p, tc.in)
+			var cb concBuffer
+			r, err := interp.New(interp.StdIO(nil, &cb, &cb))
+			if err != nil {
+				t.Fatal(err)
+			}
+			ctx, cancel := context.WithTimeout(t.Context(), runnerRunTimeout)
+			defer cancel()
+			if err := r.Run(ctx, file); err != nil {
+				cb.WriteString(err.Error())
+			}
+			if got := cb.String(); got != tc.want {
+				t.Fatalf("wrong output in %q:\nwant: %q\ngot:  %q",
+					tc.in, tc.want, got)
+			}
+		})
+	}
+}
+
 func readLines(hc interp.HandlerContext) ([][]byte, error) {
 	bs, err := io.ReadAll(hc.Stdin)
 	if err != nil {
