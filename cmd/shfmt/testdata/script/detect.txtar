@@ -1,0 +1,66 @@
+# Test the --detect flag and its modes.
+
+! exec shfmt --detect=bad .
+stderr '--detect only allows'
+
+# The default only uses shell extensions and extensionless shebangs.
+exec shfmt -f .
+! stderr .
+stdout 'ext\.sh'
+stdout 'noext-shebang'
+! stdout '\.other'
+
+exec shfmt -f --detect=default .
+! stderr .
+stdout 'ext\.sh'
+stdout 'noext-shebang'
+! stdout '\.other'
+
+# detect=all reads shebangs regardless of any non-shell extension.
+exec shfmt -f --detect=all .
+! stderr .
+stdout 'plain\.other'
+stdout 'exec\.other'
+! stdout 'noshebang\.other'
+! stdout 'hidden'
+
+# detect=exec only considers files with an executable bit set.
+[!windows] chmod 755 exec.other
+[!windows] chmod 755 execnoshebang.other
+[!windows] exec shfmt -f --detect=exec .
+[!windows] ! stderr .
+[!windows] stdout 'exec\.other'
+[!windows] ! stdout 'plain\.other'
+[!windows] ! stdout 'execnoshebang\.other'
+
+# --find on explicit file arguments applies the detect mode too.
+exec shfmt -f --detect=all plain.other noshebang.other
+stdout 'plain\.other'
+! stdout 'noshebang\.other'
+
+# Formatting a directory follows the same detection.
+! exec shfmt -l --detect=all .
+stdout 'plain\.other'
+
+exec shfmt -l -w --detect=all .
+stdout 'plain\.other'
+grep '^foo' plain.other
+
+-- ext.sh --
+ foo
+-- noext-shebang --
+#!/bin/sh
+ foo
+-- plain.other --
+#!/bin/sh
+ foo
+-- exec.other --
+#!/bin/sh
+ foo
+-- execnoshebang.other --
+foo long enough
+-- noshebang.other --
+foo long enough
+-- .hidden.other --
+#!/bin/sh
+ foo

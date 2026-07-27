@@ -51,6 +51,16 @@ predictable. Some aspects of the format can be configured via printer flags.
 	Should be useful to any tools or editors which format stdin or a single file.
 	When printing results to stdout, an ignored file results in no output at all.
 
+*--detect* <str>
+	How to detect shell files when walking directories or via *--find*:
+	*default*, *exec*, or *all*.
+
+	By default, files with a non-shell extension like *foo.go* are skipped;
+	only shell extensions like *foo.sh* and extensionless files with a shell
+	shebang are used. *exec* also reads the shebangs of executable files,
+	costing an extra stat per skipped file, and *all* reads the shebangs of
+	all regular files.
+
 *--filename* str
 	Provide a name for the standard input file.
 
