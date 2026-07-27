@@ -4436,6 +4436,11 @@ func TestRunnerUnsupported(t *testing.T) {
 		{syntax.LangZsh, `echo "${}"`, "unsupported\n"},
 		{syntax.LangZsh, "echo ${:-foo}", "unsupported\n"},
 		{syntax.LangZsh, "echo ${+a}", "unsupported\n"},
+		{syntax.LangZsh, "a=abc; echo ${a[(r)b]}", "unsupported\n"},
+		{syntax.LangZsh, "() { echo anon; }", "unsupported\nexit status 1"},
+		{syntax.LangZsh, "function { echo anon; }", "unsupported\nexit status 1"},
+		{syntax.LangZsh, "function f g { echo multi; }", "unsupported\nexit status 1"},
+		{syntax.LangZsh, "cat =(echo hi)", "unsupported\n"},
 		{syntax.LangMirBSDKorn, "echo ${%a}", "unsupported\n"},
 	}
 	for _, tc := range tests {

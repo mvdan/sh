@@ -75,6 +75,9 @@ func (r *Runner) fillExpandConfig(ctx context.Context) {
 			return nil
 		},
 		ProcSubst: func(ps *syntax.ProcSubst) (string, error) {
+			if ps.Op == syntax.CmdInTemp { // zsh's =(...)
+				return "", fmt.Errorf("unsupported")
+			}
 			if runtime.GOOS == "windows" {
 				return "", fmt.Errorf("TODO: support process substitution on Windows")
 			}
@@ -633,6 +636,11 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			}
 		}
 	case *syntax.FuncDecl:
+		if cm.Name == nil { // e.g. zsh's anonymous or multi-name functions
+			r.errf("unsupported\n")
+			r.exit.code = 1
+			break
+		}
 		r.setFunc(cm.Name.Value, cm.Body)
 	case *syntax.ArithmCmd:
 		r.exit.oneIf(r.arithm(cm.X) == 0)

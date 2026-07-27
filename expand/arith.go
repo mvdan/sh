@@ -99,6 +99,8 @@ func Arithm(cfg *Config, expr syntax.ArithmExpr) (int, error) {
 			return 0, err
 		}
 		return binArit(expr.Op, left, right)
+	case *syntax.FlagsArithm: // e.g. zsh's ${a[(r)b]}
+		return 0, fmt.Errorf("unsupported")
 	default:
 		panic(fmt.Sprintf("unexpected arithm expr: %T", expr))
 	}
