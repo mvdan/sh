@@ -127,7 +127,6 @@ The following editor integrations wrap `shfmt`:
 - [intellij-shellscript] - Intellij Jetbrains `shell script` plugin
 - [micro] - Editor with a built-in plugin
 - [neoformat] - (Neo)Vim plugin
-- [shell-format] - VS Code plugin
 - [vscode-shfmt] - VS Code plugin
 - [shfmt.el] - Emacs package
 - [Sublime-Pretty-Shell] - Sublime Text 3 plugin
@@ -176,7 +175,6 @@ Other noteworthy integrations include:
 [scoop]: https://github.com/ScoopInstaller/Main/blob/HEAD/bucket/shfmt.json
 [sh-checker]: https://github.com/luizm/action-sh-checker
 [sh-syntax]: https://github.com/un-ts/sh-syntax
-[shell-format]: https://marketplace.visualstudio.com/items?itemName=foxundermoon.shell-format
 [shfmt.el]: https://github.com/purcell/emacs-shfmt/
 [snapcraft]: https://snapcraft.io/shfmt
 [sublime-pretty-shell]: https://github.com/aerobounce/Sublime-Pretty-Shell
