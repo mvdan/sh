@@ -473,6 +473,12 @@ var printTests = []printCase{
 	samePrint("\"foo\\\nbar\""),
 	samePrint("((foo++)) || bar"),
 	{
+		// TODO: "!" should keep a space before its operand, as "!0"
+		// triggers history expansion in interactive shells; see #987.
+		"(( ! 0 )) && echo true",
+		"((!0)) && echo true",
+	},
+	{
 		"a=b \\\nc=d \\\nfoo",
 		"a=b \\\n\tc=d \\\n\tfoo",
 	},
