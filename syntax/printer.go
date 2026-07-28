@@ -920,6 +920,11 @@ func (p *Printer) arithmExprRecurse(expr ArithmExpr, compact, spacePlusMinus boo
 				}
 			}
 			p.w.WriteString(expr.Op.String())
+			if expr.Op == Not && !compact {
+				// "!" followed by a word triggers history expansion
+				// in interactive shells; a space prevents that.
+				p.space()
+			}
 			p.arithmExprRecurse(expr.X, compact, false)
 		}
 	case *ParenArithm:
