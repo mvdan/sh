@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"reflect"
 
 	"mvdan.cc/sh/v3/syntax"
@@ -194,11 +195,68 @@ func encodePos(encPtr reflect.Value, val syntax.Pos) {
 	enc.Field(2).SetUint(uint64(val.Col()))
 }
 
-func decodePos(val reflect.Value, enc map[string]any) {
-	offset := uint(enc["Offset"].(float64))
-	line := uint(enc["Line"].(float64))
-	column := uint(enc["Col"].(float64))
-	val.Set(reflect.ValueOf(syntax.NewPos(offset, line, column)))
+// posFieldNames are the fields of [exportedPos], which must all be present.
+var posFieldNames = [...]string{"Offset", "Line", "Col"}
+
+func decodePos(val reflect.Value, enc any) error {
+	obj, ok := enc.(map[string]any)
+	if !ok {
+		return fmt.Errorf("cannot decode JSON %s into a position", jsonTypeName(enc))
+	}
+	if len(obj) != len(posFieldNames) {
+		return fmt.Errorf("a position must contain exactly the fields %s", posFieldNames)
+	}
+	var nums [len(posFieldNames)]uint
+	for i, name := range posFieldNames {
+		fv, ok := obj[name]
+		if !ok {
+			return fmt.Errorf("a position must contain the field %q", name)
+		}
+		num, ok := fv.(float64)
+		if !ok {
+			return fmt.Errorf("cannot decode JSON %s into the position field %q", jsonTypeName(fv), name)
+		}
+		// Note that this is only a sanity bound;
+		// [syntax.NewPos] clamps beyond its own tighter limits.
+		u, ok := jsonUint(num)
+		if !ok {
+			return fmt.Errorf("the position field %q is out of range: %v", name, num)
+		}
+		nums[i] = uint(u)
+	}
+	val.Set(reflect.ValueOf(syntax.NewPos(nums[0], nums[1], nums[2])))
+	return nil
+}
+
+// jsonUint converts a JSON number to an integer, reporting whether it is a
+// non-negative integer which fits in a uint32, as no syntax node field is
+// wider than that. The upper bound also keeps the conversion well defined.
+func jsonUint(num float64) (uint64, bool) {
+	if num < 0 || num > math.MaxUint32 || num != math.Trunc(num) {
+		return 0, false
+	}
+	return uint64(num), true
+}
+
+// jsonTypeName describes a decoded JSON value in terms of JSON types,
+// as the Go types that [encoding/json] decodes into are an implementation detail.
+func jsonTypeName(enc any) string {
+	switch enc.(type) {
+	case nil:
+		return "null"
+	case bool:
+		return "boolean"
+	case float64:
+		return "number"
+	case string:
+		return "string"
+	case []any:
+		return "array"
+	case map[string]any:
+		return "object"
+	default:
+		return fmt.Sprintf("%T", enc)
+	}
 }
 
 // Decode is a shortcut for [DecodeOptions.Decode] with the default options.
@@ -211,8 +269,12 @@ type DecodeOptions struct {
 	// Empty for now; allows us to add options later.
 }
 
-// Decode writes node to w in its typed JSON form,
+// Decode reads a node from r in its typed JSON form,
 // as described in the package documentation.
+//
+// Malformed input results in an error. Note that the resulting tree is only
+// validated as far as its types and shape; just like a tree built by hand,
+// it may be missing nodes which the printer and interpreter require.
 func (opts DecodeOptions) Decode(r io.Reader) (syntax.Node, error) {
 	var enc any
 	if err := json.NewDecoder(r).Decode(&enc); err != nil {
@@ -221,6 +283,10 @@ func (opts DecodeOptions) Decode(r io.Reader) (syntax.Node, error) {
 	node := new(syntax.Node)
 	if err := decodeValue(reflect.ValueOf(node).Elem(), enc); err != nil {
 		return nil, err
+	}
+	if *node == nil {
+		// Only a JSON null decodes into a nil node without an error.
+		return nil, fmt.Errorf("cannot decode JSON null into a syntax node")
 	}
 	return *node, nil
 }
@@ -269,35 +335,48 @@ var nodeByName = map[string]reflect.Type{
 	"CStyleLoop": reflect.TypeFor[syntax.CStyleLoop](),
 }
 
+// decodeValue decodes enc, which comes from untrusted input, into val.
+// Every reflect operation below must first check that val can hold the value,
+// so that a mismatch results in an error rather than a panic.
 func decodeValue(val reflect.Value, enc any) error {
 	switch enc := enc.(type) {
 	case map[string]any:
-		if val.Kind() == reflect.Pointer && val.IsNil() {
-			val.Set(reflect.New(val.Type().Elem()))
-		}
+		typ := val.Type()
 		if typeName, _ := enc["Type"].(string); typeName != "" {
-			typ := nodeByName[typeName]
-			if typ == nil {
+			nodeType := nodeByName[typeName]
+			if nodeType == nil {
 				return fmt.Errorf("unknown type: %q", typeName)
 			}
-			val.Set(reflect.New(typ))
+			if !reflect.PointerTo(nodeType).AssignableTo(typ) {
+				return fmt.Errorf("cannot decode %s into %s", typeName, typ)
+			}
+			val.Set(reflect.New(nodeType))
+		} else if val.Kind() == reflect.Pointer && val.IsNil() {
+			val.Set(reflect.New(typ.Elem()))
 		}
 		for val.Kind() == reflect.Pointer || val.Kind() == reflect.Interface {
+			if val.IsNil() {
+				return fmt.Errorf(`missing "Type" to decode a JSON object into %s`, typ)
+			}
 			val = val.Elem()
 		}
+		if val.Kind() != reflect.Struct {
+			return fmt.Errorf("cannot decode JSON object into %s", typ)
+		}
 		for name, fv := range enc {
-			fval := val.FieldByName(name)
 			switch name {
 			case "Type", "Pos", "End":
 				// Type is already used above. Pos and End came from method calls.
 				continue
 			}
-			if !fval.IsValid() {
+			fval := val.FieldByName(name)
+			if !fval.IsValid() || !fval.CanSet() {
 				return fmt.Errorf("unknown field for %s: %q", val.Type(), name)
 			}
 			if fval.Type() == posType {
-				// TODO: don't panic on bad input
-				decodePos(fval, fv.(map[string]any))
+				if err := decodePos(fval, fv); err != nil {
+					return err
+				}
 				continue
 			}
 			if err := decodeValue(fval, fv); err != nil {
@@ -305,6 +384,9 @@ func decodeValue(val reflect.Value, enc any) error {
 			}
 		}
 	case []any:
+		if val.Kind() != reflect.Slice {
+			return fmt.Errorf("cannot decode JSON array into %s", val.Type())
+		}
 		for _, encElem := range enc {
 			elem := reflect.New(val.Type().Elem()).Elem()
 			if err := decodeValue(elem, encElem); err != nil {
@@ -313,21 +395,49 @@ func decodeValue(val reflect.Value, enc any) error {
 			val.Set(reflect.Append(val, elem))
 		}
 	case string:
-		if val.Kind() == reflect.Uint32 {
-			u, ok := val.Addr().Interface().(encoding.TextUnmarshaler)
-			if !ok {
-				return fmt.Errorf("cannot decode string into %s", val.Type())
-			}
+		if val.Kind() == reflect.String {
+			val.SetString(enc)
+			break
+		}
+		// Operators are encoded as their syntax form, such as "&&".
+		if u, ok := textUnmarshaler(val); ok {
 			return u.UnmarshalText([]byte(enc))
 		}
-		val.SetString(enc)
+		return fmt.Errorf("cannot decode JSON string into %s", val.Type())
 	case float64:
-		// Note that encoding/json defaults to float64 for numbers.
-		val.SetUint(uint64(enc))
+		// Note that encoding/json defaults to float64 for numbers,
+		// and that the kinds mirror those encoded by [encodeValue].
+		switch val.Kind() {
+		case reflect.Uint8, reflect.Uint32:
+			if _, ok := textUnmarshaler(val); ok {
+				// Operator integer values are not part of the wire format.
+				return fmt.Errorf("cannot decode JSON number into %s; a string is required", val.Type())
+			}
+			u, ok := jsonUint(enc)
+			if !ok || val.OverflowUint(u) {
+				return fmt.Errorf("cannot decode the JSON number %v into %s", enc, val.Type())
+			}
+			val.SetUint(u)
+		default:
+			return fmt.Errorf("cannot decode JSON number into %s", val.Type())
+		}
 	default:
+		// Note that a JSON null leaves the destination as its zero value.
 		if enc != nil {
-			val.Set(reflect.ValueOf(enc))
+			encVal := reflect.ValueOf(enc)
+			if !encVal.Type().AssignableTo(val.Type()) {
+				return fmt.Errorf("cannot decode JSON %s into %s", jsonTypeName(enc), val.Type())
+			}
+			val.Set(encVal)
 		}
 	}
 	return nil
+}
+
+// textUnmarshaler reports whether val is an operator enum,
+// as those are encoded as strings rather than as their integer values.
+// Note that val is always addressable,
+// as [decodeValue] only writes to new values and to their fields.
+func textUnmarshaler(val reflect.Value) (encoding.TextUnmarshaler, bool) {
+	return reflect.TypeAssert[encoding.TextUnmarshaler](val.Addr())
 }

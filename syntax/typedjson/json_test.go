@@ -39,6 +39,80 @@ func TestRoundtripZsh(t *testing.T) {
 	qt.Assert(t, qt.Equals(sb.String(), src))
 }
 
+// TestDecodeErrors checks that malformed input results in errors
+// rather than panics from unchecked reflection operations.
+func TestDecodeErrors(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{"Empty", ``, "EOF"},
+		{"BadJSON", `{`, "unexpected EOF"},
+		{"Null", `null`, "cannot decode JSON null into a syntax node"},
+		{"RootString", `"x"`, "cannot decode JSON string into syntax.Node"},
+		{"RootNumber", `3`, "cannot decode JSON number into syntax.Node"},
+		{"RootBool", `true`, "cannot decode JSON boolean into syntax.Node"},
+		{"RootArray", `[]`, "cannot decode JSON array into syntax.Node"},
+		{"RootNoType", `{}`, `missing "Type" to decode a JSON object into syntax.Node`},
+		{"UnknownType", `{"Type":"Foo"}`, `unknown type: "Foo"`},
+		{"UnknownField", `{"Type":"File","Foo":3}`, `unknown field for syntax.File: "Foo"`},
+
+		{"StringIntoSlice", `{"Type":"File","Stmts":"x"}`, "cannot decode JSON string into []*syntax.Stmt"},
+		{"NumberIntoSlice", `{"Type":"File","Stmts":3}`, "cannot decode JSON number into []*syntax.Stmt"},
+		{"ObjectIntoSlice", `{"Type":"File","Stmts":{}}`, "cannot decode JSON object into []*syntax.Stmt"},
+		{"NumberIntoString", `{"Type":"File","Name":3}`, "cannot decode JSON number into string"},
+		{"ArrayIntoString", `{"Type":"File","Name":[]}`, "cannot decode JSON array into string"},
+		{"BoolIntoString", `{"Type":"File","Name":true}`, "cannot decode JSON boolean into string"},
+		{"StringIntoBool", `{"Type":"Word","Parts":[{"Type":"ParamExp","Short":"x"}]}`, "cannot decode JSON string into bool"},
+		{"ArrayIntoStruct", `{"Type":"File","Stmts":[[]]}`, "cannot decode JSON array into *syntax.Stmt"},
+		{"MismatchedType", `{"Type":"File","Stmts":[{"Cmd":{"Type":"Word"}}]}`, "cannot decode Word into syntax.Command"},
+		{"NoTypeForInterface", `{"Type":"File","Stmts":[{"Cmd":{}}]}`, `missing "Type" to decode a JSON object into syntax.Command`},
+
+		{"StringIntoPos", `{"Type":"Lit","ValuePos":"x"}`, `cannot decode JSON string into a position`},
+		{"ArrayIntoPos", `{"Type":"Lit","ValuePos":[]}`, `cannot decode JSON array into a position`},
+		{"PosMissingField", `{"Type":"Lit","ValuePos":{"Offset":0,"Line":1}}`, `a position must contain exactly the fields [Offset Line Col]`},
+		{"PosWrongField", `{"Type":"Lit","ValuePos":{"Offset":0,"Line":1,"Column":1}}`, `a position must contain the field "Col"`},
+		{"PosStringField", `{"Type":"Lit","ValuePos":{"Offset":0,"Line":1,"Col":"x"}}`, `cannot decode JSON string into the position field "Col"`},
+		{"PosNegativeField", `{"Type":"Lit","ValuePos":{"Offset":-1,"Line":1,"Col":1}}`, `the position field "Offset" is out of range: -1`},
+		{"PosHugeField", `{"Type":"Lit","ValuePos":{"Offset":1e30,"Line":1,"Col":1}}`, `the position field "Offset" is out of range: 1e+30`},
+		{"PosFractionField", `{"Type":"Lit","ValuePos":{"Offset":1.5,"Line":1,"Col":1}}`, `the position field "Offset" is out of range: 1.5`},
+
+		{"UnknownOperator", `{"Type":"ExtGlob","Op":"x"}`, `invalid GlobOperator: "x"`},
+		{"NumberIntoOperator", `{"Type":"ExtGlob","Op":3}`, "cannot decode JSON number into syntax.GlobOperator; a string is required"},
+		{"OptStateOverflow", `{"Type":"ParamExp","Split":300}`, "cannot decode the JSON number 300 into syntax.OptState"},
+		{"OptStateNegative", `{"Type":"ParamExp","Split":-1}`, "cannot decode the JSON number -1 into syntax.OptState"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			node, err := typedjson.Decode(strings.NewReader(test.input))
+			qt.Assert(t, qt.IsNil(node))
+			qt.Assert(t, qt.IsNotNil(err))
+			qt.Assert(t, qt.StringContains(err.Error(), test.want))
+		})
+	}
+}
+
+// FuzzDecode checks that no input can cause the decoder to panic.
+// Note that a decoded tree may still be incomplete, such as a binary command
+// missing its operands, which the printer and interpreter do not support.
+func FuzzDecode(f *testing.F) {
+	jsonInput, err := os.ReadFile(filepath.Join("testdata", "roundtrip", "file.json"))
+	qt.Assert(f, qt.IsNil(err))
+	f.Add(string(jsonInput))
+	f.Add(`{"Type":"File","Stmts":"x"}`)
+	f.Add(`{"Type":"Lit","ValuePos":{"Offset":0,"Line":1,"Col":1},"Value":"x"}`)
+	f.Add(`{"Type":"Word","Parts":[{"Type":"ParamExp","Excl":true,"Names":"@"}]}`)
+
+	f.Fuzz(func(t *testing.T, src string) {
+		typedjson.Decode(strings.NewReader(src))
+	})
+}
+
 func TestRoundtrip(t *testing.T) {
 	t.Parallel()
 
