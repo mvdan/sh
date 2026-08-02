@@ -989,7 +989,8 @@ type LangError struct {
 	Filename string
 	Pos      Pos
 
-	// TODO: consider replacing the Langs slice with a bitset.
+	// TODO(v4): replace the Langs slice with a single LangVariant bitset,
+	// which is what the parser uses internally already.
 
 	// Feature briefly describes which language feature caused the error.
 	Feature string
