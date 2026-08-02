@@ -188,9 +188,18 @@ func posAddCol(p Pos, n int) Pos {
 	if !p.IsValid() {
 		return p
 	}
-	// TODO: guard against overflows
-	p.lineCol += uint32(n)
-	p.offs += uint32(n)
+	// Clamp the offset, and drop columns which no longer fit,
+	// just like [NewPos] does. Note that a column of zero is already unknown,
+	// so adding to it would only make up a number.
+	offs := min(max(int64(p.offs)+int64(n), 0), offsetMax)
+	col := int64(p.Col())
+	if col > 0 {
+		if col += int64(n); col < 1 || col > colMax {
+			col = 0 // protect against overflows; rendered as "?"
+		}
+	}
+	p.offs = uint32(offs)
+	p.lineCol = (p.lineCol &^ colBitMask) | uint32(col)
 	return p
 }
 

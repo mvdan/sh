@@ -2584,33 +2584,27 @@ func TestPosEdgeCases(t *testing.T) {
 func TestPosAddCol(t *testing.T) {
 	t.Parallel()
 
-	// TODO: posAddCol does not guard against overflows, so the last five cases
-	// below record broken behavior; a column which no longer fits should be
-	// dropped as unknown rather than carry over into the line number,
-	// and an offset which no longer fits should be clamped rather than
-	// turn the position into an invalid one.
 	tests := []struct {
 		name       string
 		pos        Pos
 		n          int
 		want       string // as printed by [Pos.String]
 		wantOffset uint
-		wantValid  bool
 	}{
-		{"Add", NewPos(10, 5, 3), 2, "5:5", 12, true},
-		{"Subtract", NewPos(10, 5, 3), -2, "5:1", 8, true},
-		{"UnknownCol", NewPos(10, 5, 0), 2, "5:2", 12, true},            // want "5:?"
-		{"ColOverflow", NewPos(10, 5, colMax), 2, "6:1", 12, true},      // want "5:?"
-		{"ColUnderflow", NewPos(10, 5, 1), -2, "4:16383", 8, true},      // want "5:?"
-		{"OffsetOverflow", NewPos(offsetMax, 5, 3), 2, "5:5", 0, false}, // want offsetMax and valid
-		{"OffsetUnderflow", NewPos(0, 1, 1), -2, "?:16383", 0, false},   // want "1:?" and valid
+		{"Add", NewPos(10, 5, 3), 2, "5:5", 12},
+		{"Subtract", NewPos(10, 5, 3), -2, "5:1", 8},
+		{"UnknownCol", NewPos(10, 5, 0), 2, "5:?", 12},
+		{"ColOverflow", NewPos(10, 5, colMax), 2, "5:?", 12},
+		{"ColUnderflow", NewPos(10, 5, 1), -2, "5:?", 8},
+		{"OffsetOverflow", NewPos(offsetMax, 5, 3), 2, "5:5", offsetMax},
+		{"OffsetUnderflow", NewPos(0, 1, 1), -2, "1:?", 0},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
 			got := posAddCol(test.pos, test.n)
-			qt.Check(t, qt.Equals(got.IsValid(), test.wantValid))
+			qt.Check(t, qt.IsTrue(got.IsValid()))
 			qt.Check(t, qt.Equals(got.String(), test.want))
 			qt.Check(t, qt.Equals(got.Offset(), test.wantOffset))
 		})
