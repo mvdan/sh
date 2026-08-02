@@ -5,9 +5,12 @@ package typedjson_test
 
 import (
 	"bytes"
+	"encoding/json"
 	"flag"
+	"maps"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -37,6 +40,111 @@ func TestRoundtripZsh(t *testing.T) {
 	sb := new(strings.Builder)
 	qt.Assert(t, qt.IsNil(syntax.NewPrinter().Print(sb, node2)))
 	qt.Assert(t, qt.Equals(sb.String(), src))
+}
+
+// allNodeNames lists the name of every [syntax.Node] type,
+// all of which must be encodable and decodable as a root node.
+var allNodeNames = []string{
+	"ArithmCmd", "ArithmExp", "ArrayElem", "ArrayExpr", "Assign",
+	"BinaryArithm", "BinaryCmd", "BinaryTest", "Block", "BraceExp",
+	"CStyleLoop", "CallExpr", "CaseClause", "CaseItem", "CmdSubst", "Comment",
+	"CoprocClause", "DblQuoted", "DeclClause", "ExtGlob", "File", "FlagsArithm",
+	"ForClause", "FuncDecl", "IfClause", "LetClause", "Lit", "ParamExp",
+	"ParenArithm", "ParenTest", "ProcSubst", "Redirect", "SglQuoted", "Stmt",
+	"Subshell", "TestClause", "TestDecl", "TimeClause", "UnaryArithm",
+	"UnaryTest", "WhileClause", "Word", "WordIter",
+}
+
+// TestRoundtripAnyNode checks that any node can be encoded and decoded,
+// not just [syntax.File], and that every node type is covered.
+func TestRoundtripAnyNode(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		lang syntax.LangVariant
+		src  string
+	}{
+		{syntax.LangBash, `
+foo=bar qux >redir <<EOF
+hdoc
+EOF
+baz=(one [two]=three)
+! foo | bar || baz & 'sgl' "dbl" ${foo:-x} $(cmd) $((1 + -2)) $(( ($x) )) @(glob) <(proc) {a,b}
+if foo; then bar; else baz; fi
+for i in x; do foo; done
+for ((i = 0; i < 3; i++)); do foo; done
+while foo; do bar; done
+case i in foo) bar ;; esac
+{ foo; }
+(foo)
+foo() { bar; }
+declare -A foo
+let x=1
+time foo
+coproc foo
+((2))
+[[ ! (foo && -n bar) ]]
+# comment
+`},
+		// ${a[(r)foo]} produces a FlagsArithm node, which only appears with zsh.
+		{syntax.LangZsh, "echo ${a[(r)foo]}\n"},
+		// TestDecl only appears with bats.
+		{syntax.LangBats, "@test \"name\" {\n\tfoo\n}\n"},
+	}
+
+	// TODO: these node types can be encoded, but not decoded back,
+	// as typedjson only knows the names of the types which may show up
+	// as an interface field in a parent node.
+	notDecodable := map[string]bool{
+		"Comment": true, "Stmt": true, "Assign": true, "Redirect": true,
+		"CaseItem": true, "ArrayExpr": true, "ArrayElem": true,
+	}
+
+	seen := make(map[string]bool)
+	roundtrip := func(node syntax.Node) {
+		var buf bytes.Buffer
+		qt.Assert(t, qt.IsNil(typedjson.Encode(&buf, node)))
+		encoded := buf.String()
+
+		var typed struct{ Type string }
+		qt.Assert(t, qt.IsNil(json.Unmarshal(buf.Bytes(), &typed)))
+		qt.Assert(t, qt.Not(qt.Equals(typed.Type, "")))
+		seen[typed.Type] = true
+
+		// Decoding and encoding again must give the same JSON,
+		// as no information is lost along the way.
+		node2, err := typedjson.Decode(strings.NewReader(encoded))
+		if notDecodable[typed.Type] {
+			qt.Assert(t, qt.ErrorMatches(err, `unknown type: ".*"`))
+			return
+		}
+		qt.Assert(t, qt.IsNil(err), qt.Commentf("node: %s", encoded))
+		buf.Reset()
+		qt.Assert(t, qt.IsNil(typedjson.Encode(&buf, node2)))
+		qt.Assert(t, qt.Equals(buf.String(), encoded))
+	}
+	for _, test := range tests {
+		parser := syntax.NewParser(syntax.Variant(test.lang), syntax.KeepComments(true))
+		file, err := parser.Parse(strings.NewReader(test.src), "")
+		qt.Assert(t, qt.IsNil(err))
+		syntax.Walk(file, func(node syntax.Node) bool {
+			if node == nil {
+				return false
+			}
+			roundtrip(node)
+			return true
+		})
+	}
+
+	// The parser never produces a BraceExp, and [syntax.Walk] does not know
+	// how to walk one either, so cover it on its own.
+	file, err := syntax.NewParser().Parse(strings.NewReader("{a,b}"), "")
+	qt.Assert(t, qt.IsNil(err))
+	word := file.Stmts[0].Cmd.(*syntax.CallExpr).Args[0]
+	qt.Assert(t, qt.IsTrue(syntax.SplitBraces(word)))
+	roundtrip(word.Parts[0].(*syntax.BraceExp))
+
+	qt.Assert(t, qt.ContentEquals(slices.Sorted(maps.Keys(seen)), allNodeNames))
 }
 
 // TestDecodeErrors checks that malformed input results in errors
