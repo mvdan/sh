@@ -77,35 +77,38 @@ func FuzzQuote(f *testing.F) {
 }
 
 func FuzzParsePrint(f *testing.F) {
-	add := func(src string, variant LangVariant) {
+	add := func(src string, variant LangVariant, stopAt string) {
 		// For now, default to just KeepComments.
-		f.Add(src, uint8(variant), true, false,
+		f.Add(src, uint8(variant), true, stopAt, false,
 			uint8(0), false, false, false, false, false, false, false)
 	}
 
 	for _, test := range errorCases {
-		add(test.in, LangBash)
+		add(test.in, LangBash, "")
 	}
 	for _, test := range printTests {
-		add(test.in, LangBash)
+		add(test.in, LangBash, "")
 	}
 	for _, test := range fileTests {
 		for _, in := range test.inputs {
 			for lang := range langResolvedVariants.bits() {
 				if test.byLangIndex[lang.index()] != nil {
-					add(in, lang)
+					add(in, lang, "")
 				}
 			}
 		}
+	}
+	for _, test := range stopAtTests {
+		add(test.in, LangBash, test.stop)
 	}
 
 	f.Fuzz(func(t *testing.T,
 		src string,
 
 		// parser options
-		// TODO: also fuzz StopAt
 		langVariant uint8,
 		keepComments bool,
+		stopAt string,
 
 		simplify bool,
 
@@ -126,11 +129,19 @@ func FuzzParsePrint(f *testing.F) {
 		if indent > 16 {
 			t.Skip() // more indentation won't really be interesting
 		}
+		if len(stopAt) > 4 || strings.ContainsAny(stopAt, " \t\n\r") {
+			t.Skip() // StopAt panics on these
+		}
 
-		parser := NewParser(Variant(lang), KeepComments(keepComments))
+		opts := []ParserOption{Variant(lang), KeepComments(keepComments)}
+		if stopAt != "" {
+			opts = append(opts, StopAt(stopAt))
+		}
+		parser := NewParser(opts...)
 		t.Logf("input: %q", src)
 		t.Logf("LangVariant: %s", lang)
 		t.Logf("KeepComments: %t", keepComments)
+		t.Logf("StopAt: %q", stopAt)
 		t.Logf("Simplify: %v", simplify)
 		t.Logf("Indent: %v", indent)
 		t.Logf("BinaryNextLine: %v", binaryNextLine)

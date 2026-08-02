@@ -2,6 +2,7 @@ go test fuzz v1
 string("A=0(")
 byte('\x00')
 bool(true)
+string("")
 bool(false)
 byte('\x00')
 bool(false)
