@@ -180,6 +180,8 @@ type exportedPos struct {
 
 func encodePos(encPtr reflect.Value, val syntax.Pos) {
 	// TODO: perhaps we should encode recovered positions, as that is still useful information.
+	// Note that decoding them back requires a way to build a recovered position,
+	// as [syntax.NewPos] clamps offsets and so can never produce one.
 	if !val.IsValid() {
 		return
 	}
