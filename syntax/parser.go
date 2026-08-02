@@ -76,12 +76,16 @@ const (
 	// Its string representation is "zsh".
 	LangZsh
 
+	// langResolvedVariantsCount is the number of variants declared above,
+	// that is, langResolvedVariants.count() as a constant.
+	langResolvedVariantsCount = iota
+
 	// LangAuto corresponds to automatic language detection,
 	// commonly used by end-user applications like shfmt,
 	// which can guess a file's language variant given its filename or shebang.
 	//
 	// At this time, [Variant] does not support LangAuto.
-	LangAuto
+	LangAuto LangVariant = 1 << langResolvedVariantsCount
 
 	// langBashLegacy is what [LangBash] used to be, when it was zero.
 	// We still support it for the sake of backwards compatibility.
@@ -90,11 +94,6 @@ const (
 	// langResolvedVariants contains all known variants except [LangAuto],
 	// which is meant to resolve to another variant.
 	langResolvedVariants = LangBash | LangPOSIX | LangMirBSDKorn | LangBats | LangZsh
-
-	// langResolvedVariantsCount is langResolvedVariants.count() as a constant.
-	// TODO: Can we compute this as a constant expression somehow?
-	// For example, if we had log2, we could do log2(LangAuto).
-	langResolvedVariantsCount = 5
 
 	// langBashLike contains Bash plus all variants which are extensions of it.
 	langBashLike = LangBash | LangBats
