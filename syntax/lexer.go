@@ -280,8 +280,11 @@ skipSpace:
 		}
 	}
 	if p.stopAt != nil && (p.spaced || p.tok == illegalTok || p.stopToken()) {
-		w := utf8.RuneLen(r)
-		if bytes.HasPrefix(p.bs[p.bsp-uint(w):], p.stopAt) {
+		// Note that the buffer may have been refilled since we read r,
+		// such as when peeking at the byte which follows a backslash,
+		// in which case r's bytes are gone and we cannot match on them.
+		w := uint(utf8.RuneLen(r))
+		if p.bsp >= w && bytes.HasPrefix(p.bs[p.bsp-w:], p.stopAt) {
 			p.r = runeEOF
 			p.w = 1
 			p.tok = _EOF

@@ -2465,6 +2465,12 @@ var stopAtTests = []struct {
 		"echo '$$'", "$$",
 		call(litWord("echo"), word(sglQuoted("$$"))),
 	},
+	{
+		// A trailing backslash empties the read buffer as we peek at what
+		// follows it, so the stop word cannot be matched against it.
+		"\\", "0",
+		litCall("\\"),
+	},
 }
 
 func TestParseStopAt(t *testing.T) {
