@@ -92,14 +92,6 @@ coproc foo
 		{syntax.LangBats, "@test \"name\" {\n\tfoo\n}\n"},
 	}
 
-	// TODO: these node types can be encoded, but not decoded back,
-	// as typedjson only knows the names of the types which may show up
-	// as an interface field in a parent node.
-	notDecodable := map[string]bool{
-		"Comment": true, "Stmt": true, "Assign": true, "Redirect": true,
-		"CaseItem": true, "ArrayExpr": true, "ArrayElem": true,
-	}
-
 	seen := make(map[string]bool)
 	roundtrip := func(node syntax.Node) {
 		var buf bytes.Buffer
@@ -114,10 +106,6 @@ coproc foo
 		// Decoding and encoding again must give the same JSON,
 		// as no information is lost along the way.
 		node2, err := typedjson.Decode(strings.NewReader(encoded))
-		if notDecodable[typed.Type] {
-			qt.Assert(t, qt.ErrorMatches(err, `unknown type: ".*"`))
-			return
-		}
 		qt.Assert(t, qt.IsNil(err), qt.Commentf("node: %s", encoded))
 		buf.Reset()
 		qt.Assert(t, qt.IsNil(typedjson.Encode(&buf, node2)))

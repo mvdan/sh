@@ -14,8 +14,6 @@
 // described above must be first in each JSON object.
 package typedjson
 
-// TODO: encoding and decoding nodes other than File is untested.
-
 import (
 	"encoding"
 	"encoding/json"
@@ -290,9 +288,15 @@ func (opts DecodeOptions) Decode(r io.Reader) (syntax.Node, error) {
 	return *node, nil
 }
 
+// nodeByName holds every [syntax.Node] type, as any of them may be the root
+// node, which always requires a "Type" key.
 var nodeByName = map[string]reflect.Type{
-	"File": reflect.TypeFor[syntax.File](),
-	"Word": reflect.TypeFor[syntax.Word](),
+	"File":     reflect.TypeFor[syntax.File](),
+	"Comment":  reflect.TypeFor[syntax.Comment](),
+	"Stmt":     reflect.TypeFor[syntax.Stmt](),
+	"Assign":   reflect.TypeFor[syntax.Assign](),
+	"Redirect": reflect.TypeFor[syntax.Redirect](),
+	"Word":     reflect.TypeFor[syntax.Word](),
 
 	"Lit":       reflect.TypeFor[syntax.Lit](),
 	"SglQuoted": reflect.TypeFor[syntax.SglQuoted](),
@@ -332,6 +336,9 @@ var nodeByName = map[string]reflect.Type{
 
 	"WordIter":   reflect.TypeFor[syntax.WordIter](),
 	"CStyleLoop": reflect.TypeFor[syntax.CStyleLoop](),
+	"CaseItem":   reflect.TypeFor[syntax.CaseItem](),
+	"ArrayExpr":  reflect.TypeFor[syntax.ArrayExpr](),
+	"ArrayElem":  reflect.TypeFor[syntax.ArrayElem](),
 }
 
 // decodeValue decodes enc, which comes from untrusted input, into val.
