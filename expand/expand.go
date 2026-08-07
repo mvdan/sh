@@ -378,7 +378,7 @@ func formatInto(sb *strings.Builder, format string, args []string) (int, error) 
 						return 0, err
 					}
 				} else if c != 's' {
-					n, _ := strconv.ParseInt(arg, 0, 0)
+					n := formatNum(arg)
 					if c == 'i' || c == 'd' {
 						farg = int(n)
 					} else {
@@ -410,6 +410,20 @@ func formatInto(sb *strings.Builder, format string, args []string) (int, error) 
 		return 0, fmt.Errorf("missing format char")
 	}
 	return initialArgs - len(args), nil
+}
+
+// formatNum parses a printf numeric argument. Following POSIX, if the argument
+// begins with a single- or double-quote character, its value is the numeric
+// value of the character right after the quote, rather than a parsed number.
+// For example, `printf %d "'A"` prints 65. Any characters beyond the first are
+// ignored, as in other shells.
+func formatNum(arg string) int64 {
+	if len(arg) > 1 && (arg[0] == '\'' || arg[0] == '"') {
+		r, _ := utf8.DecodeRuneInString(arg[1:])
+		return int64(r)
+	}
+	n, _ := strconv.ParseInt(arg, 0, 0)
+	return n
 }
 
 func (cfg *Config) fieldJoin(parts []fieldPart) string {

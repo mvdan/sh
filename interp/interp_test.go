@@ -313,6 +313,12 @@ var runTests = []runTest{
 	{"printf %d,%i 3 4", "3,4"},
 	{"printf %d", "0"},
 	{"printf %d,%d 010 0x10", "8,16"},
+	{`printf %d "'A"`, "65"},
+	{`printf %d '"A'`, "65"},
+	{`printf %d "'0"`, "48"},
+	{`printf %d "'AB"`, "65"},
+	{`printf %x,%o "'A" "'A"`, "41,101"},
+	{`printf %d "'"`, "0"},
 	{"printf %c,%c,%c foo àa", "f,\xc3,\x00"}, // TODO: use a rune?
 	{"printf %3s a", "  a"},
 	{"printf %3i 1", "  1"},
