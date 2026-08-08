@@ -30,6 +30,8 @@ viewed directly as Markdown or rendered with [scdoc].
 
 Packages are available on [Alpine], [Arch], [Debian], [Docker], [Fedora], [FreeBSD],
 [Homebrew], [MacPorts], [NixOS], [OpenSUSE], [Scoop], [Snapcraft], [Void] and [webi].
+On Windows, after `go install` or Scoop, open a **new** terminal so `shfmt` is on
+`PATH` (for Go installs, ensure `%USERPROFILE%\go\bin` is listed).
 
 ### gosh
 
