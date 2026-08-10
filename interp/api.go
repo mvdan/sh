@@ -19,6 +19,7 @@ import (
 	"maps"
 	"os"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strconv"
 	"time"
@@ -326,6 +327,12 @@ func Dir(path string) RunnerOption {
 		if path == "" {
 			path, err := os.Getwd()
 			if err != nil {
+				if runtime.GOOS == "js" {
+					// js/wasm has no working directory; virtual
+					// filesystems set Runner.Dir themselves
+					r.Dir = "/"
+					return nil
+				}
 				return fmt.Errorf("could not get current dir: %w", err)
 			}
 			r.Dir = path
