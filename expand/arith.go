@@ -89,6 +89,23 @@ func Arithm(cfg *Config, expr syntax.ArithmExpr) (int, error) {
 				return Arithm(cfg, b2.X)
 			}
 			return Arithm(cfg, b2.Y)
+		case syntax.AndArit, syntax.OrArit:
+			// Like Bash, short-circuit the right operand.
+			left, err := Arithm(cfg, expr.X)
+			if err != nil {
+				return 0, err
+			}
+			if expr.Op == syntax.AndArit && left == 0 {
+				return 0, nil
+			}
+			if expr.Op == syntax.OrArit && left != 0 {
+				return 1, nil
+			}
+			right, err := Arithm(cfg, expr.Y)
+			if err != nil {
+				return 0, err
+			}
+			return oneIf(right != 0), nil
 		}
 		left, err := Arithm(cfg, expr.X)
 		if err != nil {
@@ -290,10 +307,6 @@ func binArit(op syntax.BinAritOperator, x, y int) (int, error) {
 		return x >> uint(y), nil
 	case syntax.Shl:
 		return x << uint(y), nil
-	case syntax.AndArit:
-		return oneIf(x != 0 && y != 0), nil
-	case syntax.OrArit:
-		return oneIf(x != 0 || y != 0), nil
 	case syntax.Comma:
 		// x is executed but its result discarded
 		return y, nil

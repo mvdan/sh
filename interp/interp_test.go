@@ -2131,15 +2131,15 @@ var runTests = []runTest{
 	},
 	{
 		"x=0; echo $((0 && (x = 1))) $x",
-		"0 1\n #IGNORE TODO: bash short-circuits, issue #1371",
+		"0 0\n",
 	},
 	{
 		"x=0; echo $((1 || (x = 1))) $x",
-		"1 1\n #IGNORE TODO: bash short-circuits, issue #1371",
+		"1 0\n",
 	},
 	{
 		"x=0; echo $((0 && x++)) $x $((1 || x++)) $x",
-		"0 1 1 2\n #IGNORE TODO: bash short-circuits, issue #1371",
+		"0 0 1 0\n",
 	},
 	{
 		"x=0; echo $((1 && (x = 1))) $x",
@@ -2151,7 +2151,15 @@ var runTests = []runTest{
 	},
 	{
 		"echo $((0 && 1/0)) $((1 || 1/0))",
-		"division by zero\n #IGNORE TODO: bash short-circuits, issue #1371",
+		"0 1\n",
+	},
+	{
+		"x=0; y=0; echo $((0 && (x = 1) || (y = 2))) $x $y",
+		"1 0 2\n",
+	},
+	{
+		"x=0; echo $((1/0 && x++)); echo $x",
+		"division by zero\n0\n #JUSTERR",
 	},
 	{
 		"echo $(((1 & 2) != (1 | 2)))",
