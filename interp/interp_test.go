@@ -1344,11 +1344,15 @@ var runTests = []runTest{
 	},
 	{
 		`case '[' in [) echo match ;; *) echo miss ;; esac`,
-		"miss\n #IGNORE TODO: bash treats an unmatched [ as a literal, issue #1372",
+		"match\n",
 	},
 	{
 		`case '[abc' in [a*) echo match ;; *) echo miss ;; esac`,
-		"miss\n #IGNORE TODO: bash treats an unmatched [ as a literal, issue #1372",
+		"match\n",
+	},
+	{
+		`touch a b; x=']'; echo [ab$x`,
+		"a b\n",
 	},
 
 	// exec

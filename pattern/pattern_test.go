@@ -176,18 +176,47 @@ var regexpTests = []struct {
 		mustMatch:    []string{"[/]", ":/]", "d/]"},
 		mustNotMatch: []string{`[\[:digit:]/]`, "/"},
 	},
-	// TODO: an unmatched "[" should be a literal, like in Bash; issue #1372.
-	{pat: `[`, wantErr: `^\[ was not matched with a closing \]$`},
-	{pat: `[\`, wantErr: `^\[ was not matched with a closing \]$`},
-	{pat: `[^`, wantErr: `^\[ was not matched with a closing \]$`},
-	{pat: `[!`, wantErr: `^\[ was not matched with a closing \]$`},
+	// An unmatched "[" is a literal, like in Bash.
+	{
+		pat: `[`, mode: EntireString, want: `(?s)^\[$`,
+		mustMatch:    []string{"["},
+		mustNotMatch: []string{"", "[]"},
+	},
+	// TODO: bash treats the trailing backslash as a literal instead.
+	{pat: `[\`, wantErr: `^\\ at end of pattern$`},
+	{pat: `[^`, want: `(?s)\[\^`},
+	{pat: `[!`, want: `(?s)\[!`},
 	{pat: `[!bc]`, want: `(?s)[^bc]`},
-	{pat: `[]`, wantErr: `^\[ was not matched with a closing \]$`},
-	{pat: `[^]`, wantErr: `^\[ was not matched with a closing \]$`},
-	{pat: `[!]`, wantErr: `^\[ was not matched with a closing \]$`},
-	{pat: `[ab`, wantErr: `^\[ was not matched with a closing \]$`},
-	{pat: `[a*`, wantErr: `^\[ was not matched with a closing \]$`},
-	{pat: `[z-a`, wantErr: `^invalid range: z-a$`},
+	{pat: `[]`, want: `(?s)\[\]`},
+	{pat: `[^]`, want: `(?s)\[\^\]`},
+	{pat: `[!]`, want: `(?s)\[!\]`},
+	{
+		pat: `[ab`, mode: EntireString, want: `(?s)^\[ab$`,
+		mustMatch:    []string{"[ab"},
+		mustNotMatch: []string{"ab", "a"},
+	},
+	{
+		pat: `[a*`, mode: EntireString, want: `(?s)^\[a.*$`,
+		mustMatch:    []string{"[a", "[abc"},
+		mustNotMatch: []string{"a", "[b"},
+	},
+	{pat: `[z-a`, want: `(?s)\[z-a`},
+	{pat: `[[ab`, want: `(?s)\[\[ab`},
+	{pat: `[a[b`, want: `(?s)\[a\[b`},
+	{
+		pat: `[[abc]`, mode: EntireString, want: `(?s)^[[abc]$`,
+		mustMatch:    []string{"[", "a"},
+		mustNotMatch: []string{"[a", "d"},
+	},
+	{
+		pat: `[[:alpha:]`, mode: EntireString, want: `(?s)^\[[:alpha:]$`,
+		mustMatch:    []string{"[a", "[:"},
+		mustNotMatch: []string{"[1", "["},
+	},
+	// Invalid character classes are errors even in an unmatched bracket.
+	{pat: `[[:wrong:]`, wantErr: `^charClass invalid$`},
+	{pat: `[[.x.]`, wantErr: `^charClass invalid$`},
+	{pat: `[z-a[:wrong:]`, wantErr: `^charClass invalid$`},
 	{pat: `[a-]`, want: `(?s)[a-]`},
 	{
 		pat: `[\0]`, want: `(?s)[0]`,
@@ -273,10 +302,11 @@ var metaTests = []struct {
 	{`\[`, false, `\\\[`},
 	{`{`, false, `{`},
 	{`[ab]`, true, `\[ab]`},
-	// TODO: "[ab" and "[a\]" can only match one string each; issue #1372.
-	{`[ab`, true, `\[ab`},
+	{`[ab`, false, `\[ab`},
 	{`ab]`, false, `ab]`},
-	{`[a\]`, true, `\[a\\]`},
+	{`[a\]`, false, `\[a\\]`},
+	{`[[:wrong:]]`, true, `\[\[:wrong:]]`},
+	{`[[:`, false, `\[\[:`},
 }
 
 func TestMeta(t *testing.T) {

@@ -266,36 +266,42 @@ func regexpNext(sb *strings.Builder, sl *stringLexer, mode Mode) error {
 		var bsb strings.Builder
 		bsb.WriteByte('[')
 		hasSlash := false
-		var deferredErr error // reported only if the bracket isn't literal
+		var deferredErr error // reported only if the bracket expression closes
+		var classErr error    // reported even if the bracket is unmatched
+		// Like Bash, an unmatched "[" is a literal; emit it and reparse
+		// the rest of the pattern.
+		literalBracket := func() error {
+			sl.i = lit
+			sb.WriteString(`\[`)
+			return nil
+		}
 		if c = sl.next(); c == '\x00' {
-			return &SyntaxError{msg: "[ was not matched with a closing ]"}
+			return literalBracket()
 		}
 		switch c {
 		case '!', '^':
 			bsb.WriteByte('^')
 			if c = sl.next(); c == '\x00' {
-				return &SyntaxError{msg: "[ was not matched with a closing ]"}
+				return literalBracket()
 			}
 		}
 		if c == ']' {
 			bsb.WriteByte(']')
 			if c = sl.next(); c == '\x00' {
-				return &SyntaxError{msg: "[ was not matched with a closing ]"}
+				return literalBracket()
 			}
 		}
 		for {
 			switch c {
 			case '\x00':
-				if hasSlash {
-					// e.g. "[a/": emit "[" literally and reparse the rest.
-					sl.i = lit
-					sb.WriteString(`\[`)
-					return nil
+				// Bash is inconsistent about invalid character classes
+				// in an unmatched bracket: `case` treats the whole
+				// bracket as literal, but ${a//[[:} refuses to match.
+				// We follow the latter, keeping the error.
+				if classErr != nil {
+					return classErr
 				}
-				if deferredErr != nil {
-					return deferredErr
-				}
-				return &SyntaxError{msg: "[ was not matched with a closing ]"}
+				return literalBracket()
 			case '\\':
 				// An escaped character matches itself; quote it so that
 				// the regexp doesn't give it a special meaning, such as
@@ -339,8 +345,13 @@ func regexpNext(sb *strings.Builder, sl *stringLexer, mode Mode) error {
 			case '[':
 				rest := sl.peekRest()
 				n, err := charClass(rest)
-				if err != nil && deferredErr == nil {
-					deferredErr = &SyntaxError{msg: "charClass invalid", err: err}
+				if err != nil {
+					if classErr == nil {
+						classErr = &SyntaxError{msg: "charClass invalid", err: err}
+					}
+					if deferredErr == nil {
+						deferredErr = classErr
+					}
 				}
 				bsb.WriteByte('[')
 				if n > 0 {
@@ -402,8 +413,8 @@ func charClass(s string) (int, error) {
 }
 
 // HasMeta returns whether a string contains any unescaped pattern
-// metacharacters: '*', '?', or '['. When the function returns false, the given
-// pattern can only match at most one string.
+// metacharacters: '*', '?', or '[' followed by a matching ']'. When the
+// function returns false, the given pattern can only match at most one string.
 //
 // For example, HasMeta(`foo\*bar`) returns false, but HasMeta(`foo*bar`)
 // returns true.
@@ -414,12 +425,21 @@ func charClass(s string) (int, error) {
 //
 // The [Mode] parameter is unused, and will be removed in v4.
 func HasMeta(pat string, mode Mode) bool {
+	openBracket := false
 	for i := 0; i < len(pat); i++ {
 		switch pat[i] {
 		case '\\':
 			i++
-		case '*', '?', '[':
+		case '*', '?':
 			return true
+		case '[':
+			openBracket = true
+		case ']':
+			// Like Bash, an unmatched '[' is a literal,
+			// so it can only match one string.
+			if openBracket {
+				return true
+			}
 		}
 	}
 	return false

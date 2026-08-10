@@ -427,21 +427,31 @@ func (cfg *Config) fieldJoin(parts []fieldPart) string {
 }
 
 func (cfg *Config) escapedGlobField(parts []fieldPart) (escaped string, glob bool) {
+	candidate := false
+	for _, part := range parts {
+		if part.quote == quoteNone && strings.ContainsAny(part.val, "*?[") {
+			candidate = true
+			break
+		}
+	}
+	if !candidate {
+		return "", false
+	}
 	sb := cfg.strBuilder()
 	for _, part := range parts {
 		if part.quote > quoteNone {
 			sb.WriteString(pattern.QuoteMeta(part.val, 0))
-			continue
-		}
-		sb.WriteString(part.val)
-		if pattern.HasMeta(part.val, 0) {
-			glob = true
+		} else {
+			sb.WriteString(part.val)
 		}
 	}
-	if glob { // only copy the string if it will be used
-		escaped = sb.String()
+	// Check the entire escaped word, as a bracket expression could span
+	// multiple unquoted parts, such as `[a$x` where x holds "]".
+	escaped = sb.String()
+	if pattern.HasMeta(escaped, 0) {
+		return escaped, true
 	}
-	return escaped, glob
+	return "", false
 }
 
 // Fields is a pre-iterators API which now wraps [FieldsSeq].
