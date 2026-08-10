@@ -1238,6 +1238,10 @@ func (p *Parser) wordPart() WordPart {
 		ar.X = p.followArithm(left, ar.Left)
 		if ar.Bracket {
 			if p.tok != rightBrack {
+				if p.recoverError() {
+					ar.Right = recoveredPos
+					return ar
+				}
 				p.arithmMatchingErr(ar.Left, dollBrack, rightBrack)
 			}
 			p.postNested(old)
