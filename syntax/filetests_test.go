@@ -2206,6 +2206,22 @@ var fileTests = []fileTestCase{
 		langErr2("1:1: `${ stmts;}` is a bash/mksh feature; tried parsing as LANG", LangPOSIX),
 	),
 	fileTest(
+		[]string{`"${ foo;}"`, `"${ foo; }"`},
+		langFile(dblQuoted(&CmdSubst{
+			Stmts:    litStmts("foo"),
+			TempFile: true,
+		}), LangBash|LangMirBSDKorn),
+		langErr2("1:2: `${ stmts;}` is a bash/mksh feature; tried parsing as LANG", LangPOSIX),
+	),
+	fileTest(
+		[]string{`"${|foo;}"`, `"${| foo; }"`},
+		langFile(dblQuoted(&CmdSubst{
+			Stmts:    litStmts("foo"),
+			ReplyVar: true,
+		}), LangBash|LangMirBSDKorn),
+		langErr2("1:2: `${|stmts;}` is a bash/mksh feature; tried parsing as LANG", LangPOSIX),
+	),
+	fileTest(
 		[]string{"${\n\tfoo\n\tbar\n}", "${ foo; bar;}"},
 		langFile(&CmdSubst{
 			Stmts:    litStmts("foo", "bar"),

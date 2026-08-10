@@ -779,7 +779,7 @@ func (p *Parser) got(tok token) bool {
 
 func (p *Parser) gotRsrv(val string) (Pos, bool) {
 	pos := p.pos
-	if p.tok == _LitWord && p.val == val {
+	if p.tok.isLit() && p.val == val {
 		p.next()
 		return pos, true
 	}
@@ -1060,7 +1060,7 @@ loop:
 	for p.tok != _EOF {
 		newLine := p.got(_Newl)
 		switch p.tok {
-		case _LitWord:
+		case _Lit, _LitWord:
 			for _, stop := range stops {
 				if p.val == stop {
 					break loop
