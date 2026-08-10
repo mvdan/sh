@@ -123,6 +123,7 @@ func fullProg(v any) *File {
 
 type fileTestCase struct {
 	inputs []string // input sources; the first is the canonical formatting
+	print  string   // optional canonical formatting when it differs from inputs[0]
 
 	// Each language in [langResolvedVariants] has an entry:
 	// - nil:    nothing to test
@@ -132,6 +133,10 @@ type fileTestCase struct {
 
 	// The real shells where testing the input succeeds or fails in the opposite way.
 	flipConfirmSet LangVariant
+}
+
+func printAs(want string) func(*fileTestCase) {
+	return func(c *fileTestCase) { c.print = want }
 }
 
 func flipConfirm2(langSet LangVariant) func(*fileTestCase) {
@@ -193,10 +198,12 @@ var fileTests = []fileTestCase{
 	fileTest(
 		[]string{`\`},
 		langFile(litWord(`\`)),
+		printAs("\\\\"),
 	),
 	fileTest(
 		[]string{`foo\`, "f\\\noo\\"},
 		langFile(litWord(`foo\`)),
+		printAs("foo\\\\"),
 	),
 	fileTest(
 		[]string{`foo\a`, "f\\\noo\\a"},

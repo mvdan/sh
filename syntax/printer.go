@@ -62,6 +62,7 @@ func SpaceRedirects(enabled bool) PrinterOption {
 // See: https://github.com/mvdan/sh/issues/658
 func KeepPadding(enabled bool) PrinterOption {
 	return func(p *Printer) {
+		p.stopTracking()
 		if enabled && !p.keepPadding {
 			// Enable the flag, and set up the writer wrapper.
 			p.keepPadding = true
@@ -142,7 +143,7 @@ func (p *Printer) Print(w io.Writer, node Node) error {
 	switch node := node.(type) {
 	case *File:
 		p.stmtList(node.Stmts, node.Last)
-		p.newline(Pos{})
+		p.finalNewline()
 	case *Stmt:
 		p.stmtList([]*Stmt{node}, nil)
 	case Command:
@@ -180,6 +181,49 @@ type bufWriter interface {
 	WriteByte(byte) error
 	Reset(io.Writer)
 	Flush() error
+}
+
+// trackingWriter is only installed after an unquoted literal ends in an
+// unpaired backslash.
+type trackingWriter struct {
+	bufWriter
+	pending bool
+}
+
+func (w *trackingWriter) wroteVisibleBytes(bs []byte) {
+	for _, b := range bs {
+		if b != tabwriter.Escape {
+			w.pending = false
+			return
+		}
+	}
+}
+
+func (w *trackingWriter) Write(bs []byte) (int, error) {
+	n, err := w.bufWriter.Write(bs)
+	w.wroteVisibleBytes(bs[:n])
+	return n, err
+}
+
+func (w *trackingWriter) WriteString(s string) (int, error) {
+	n, err := w.bufWriter.WriteString(s)
+	for i := 0; i < n; i++ {
+		if s[i] != tabwriter.Escape {
+			w.pending = false
+			break
+		}
+	}
+	return n, err
+}
+
+func (w *trackingWriter) WriteByte(b byte) error {
+	if err := w.bufWriter.WriteByte(b); err != nil {
+		return err
+	}
+	if b != tabwriter.Escape {
+		w.pending = false
+	}
+	return nil
 }
 
 type colCounter struct {
@@ -269,7 +313,25 @@ type Printer struct {
 	tabsPrinter *Printer
 }
 
+func (p *Printer) startTracking() {
+	if tracker, ok := p.w.(*trackingWriter); ok {
+		tracker.pending = true
+		return
+	}
+	p.w = &trackingWriter{
+		bufWriter: p.w,
+		pending:   true,
+	}
+}
+
+func (p *Printer) stopTracking() {
+	if tracker, ok := p.w.(*trackingWriter); ok {
+		p.w = tracker.bufWriter
+	}
+}
+
 func (p *Printer) reset() {
+	p.stopTracking()
 	p.wantSpace = spaceWritten
 	p.wantNewline, p.mustNewline = false, false
 	p.pendingComments = p.pendingComments[:0]
@@ -433,6 +495,19 @@ func (p *Printer) newline(pos Pos) {
 	p.wantSpace = spaceWritten
 	p.wantNewline, p.mustNewline = false, false
 	p.advanceLine(pos.Line())
+}
+
+func (p *Printer) finalNewline() {
+	p.flushHeredocs()
+	p.flushComments()
+	// An unpaired backslash at EOF is literal, but before a newline it would
+	// escape that newline. Pair it to preserve the literal value.
+	if tracker, ok := p.w.(*trackingWriter); ok && tracker.pending {
+		p.w.WriteByte('\\')
+	}
+	p.w.WriteByte('\n')
+	p.wantSpace = spaceWritten
+	p.wantNewline, p.mustNewline = false, false
 }
 
 func (p *Printer) advanceLine(line uint) {
@@ -655,7 +730,25 @@ func (p *Printer) wordParts(wps []WordPart, quoted bool) {
 func (p *Printer) wordPart(wp, next WordPart) {
 	switch wp := wp.(type) {
 	case *Lit:
+		tracker, _ := p.w.(*trackingWriter)
+		wasTracking := tracker != nil && tracker.pending
 		p.writeLit(wp.Value)
+		if wp.Value == "" || wp.Value[len(wp.Value)-1] != '\\' {
+			break
+		}
+		trailing := 1
+		for i := len(wp.Value) - 2; i >= 0 && wp.Value[i] == '\\'; i-- {
+			trailing++
+		}
+		needsTracking := trailing%2 == 1
+		if wasTracking && trailing == len(wp.Value) {
+			needsTracking = trailing%2 == 0
+		}
+		if needsTracking {
+			p.startTracking()
+		} else if tracker != nil {
+			tracker.pending = false
+		}
 	case *SglQuoted:
 		if wp.Dollar {
 			p.w.WriteByte('$')

@@ -31,7 +31,11 @@ func TestPrintFiles(t *testing.T) {
 				}
 				t.Run("", func(t *testing.T) {
 					in := c.inputs[0]
-					printTest(t, parser, printer, in, in)
+					want := c.print
+					if want == "" {
+						want = in
+					}
+					printTest(t, parser, printer, in, want)
 				})
 			}
 		})
@@ -79,6 +83,7 @@ var printTests = []printCase{
 	{"\n\nfoo", "foo"},
 	{"# foo \n # bar\t", "# foo\n# bar"},
 	samePrint("#"),
+	samePrint("# trailing \\"),
 	samePrint("#c1\\\n#c2"),
 	samePrint("#\\\n#"),
 	{"#\\\r\n#", "#\\\n#"},
@@ -1257,7 +1262,6 @@ func printTest(t *testing.T, parser *Parser, printer *Printer, in, want string) 
 	if err != nil {
 		t.Fatalf("parsing got an error: %s:\n%s", err, in)
 	}
-	origWant := want
 	want += "\n"
 	got, err := strPrint(printer, prog)
 	if err != nil {
@@ -1267,11 +1271,8 @@ func printTest(t *testing.T, parser *Parser, printer *Printer, in, want string) 
 		t.Fatalf("Print mismatch:\nwant:\n%q\ngot:\n%q", want, got)
 	}
 
-	// With the original "want" output string,
-	// make sure that it's idempotent when formatted again.
-	// Note that we don't want the added newline,
-	// as that can change the meaning of trailing backslashes.
-	progAgain, err := parser.Parse(strings.NewReader(origWant), "")
+	// Make sure that the exact output is idempotent when formatted again.
+	progAgain, err := parser.Parse(strings.NewReader(want), "")
 	if err != nil {
 		t.Fatalf("Result is not valid shell:\n%s", want)
 	}
