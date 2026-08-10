@@ -162,6 +162,15 @@ func (sl *stringLexer) peekRest() string {
 	return sl.s[sl.i:]
 }
 
+// reparseBracket emits "[" as a literal and rewinds the lexer so the rest
+// of the pattern is reparsed normally. This is what bash does for an
+// unmatched "[", and what the Filenames mode does for bracket expressions
+// containing a slash.
+func reparseBracket(sb *strings.Builder, sl *stringLexer, lit int) {
+	sl.i = lit
+	sb.WriteString(`\[`)
+}
+
 func regexpNext(sb *strings.Builder, sl *stringLexer, mode Mode) error {
 	c := sl.next()
 	if mode&ExtendedOperators != 0 {
@@ -268,34 +277,32 @@ func regexpNext(sb *strings.Builder, sl *stringLexer, mode Mode) error {
 		hasSlash := false
 		var deferredErr error // reported only if the bracket isn't literal
 		if c = sl.next(); c == '\x00' {
-			return &SyntaxError{msg: "[ was not matched with a closing ]"}
+			reparseBracket(sb, sl, lit)
+			return nil
 		}
 		switch c {
 		case '!', '^':
 			bsb.WriteByte('^')
 			if c = sl.next(); c == '\x00' {
-				return &SyntaxError{msg: "[ was not matched with a closing ]"}
+				reparseBracket(sb, sl, lit)
+				return nil
 			}
 		}
 		if c == ']' {
 			bsb.WriteByte(']')
 			if c = sl.next(); c == '\x00' {
-				return &SyntaxError{msg: "[ was not matched with a closing ]"}
+				reparseBracket(sb, sl, lit)
+				return nil
 			}
 		}
 		for {
 			switch c {
 			case '\x00':
-				if hasSlash {
-					// e.g. "[a/": emit "[" literally and reparse the rest.
-					sl.i = lit
-					sb.WriteString(`\[`)
-					return nil
-				}
-				if deferredErr != nil {
-					return deferredErr
-				}
-				return &SyntaxError{msg: "[ was not matched with a closing ]"}
+				// The bracket never got its closing "]"; bash treats the
+				// unmatched "[" as a literal, so emit it and reparse the
+				// rest of the pattern normally.
+				reparseBracket(sb, sl, lit)
+				return nil
 			case '\\':
 				// An escaped character matches itself; quote it so that
 				// the regexp doesn't give it a special meaning, such as
