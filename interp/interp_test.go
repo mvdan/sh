@@ -2130,6 +2130,20 @@ var runTests = []runTest{
 		"1\n",
 	},
 	{
+		// && and || must short-circuit, so the assignment on the
+		// right-hand side is not evaluated.
+		"x=0; echo $((0 && (x = 1))); echo $x",
+		"0\n0\n",
+	},
+	{
+		"x=0; echo $((1 || (x = 1))); echo $x",
+		"1\n0\n",
+	},
+	{
+		"x=0; echo $((1 && (x = 2))); echo $x",
+		"1\n2\n",
+	},
+	{
 		"echo $(((1 & 2) != (1 | 2)))",
 		"1\n",
 	},

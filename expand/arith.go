@@ -94,6 +94,17 @@ func Arithm(cfg *Config, expr syntax.ArithmExpr) (int, error) {
 		if err != nil {
 			return 0, err
 		}
+		if expr.Op == syntax.AndArit && left == 0 {
+			// Short-circuit &&: the result is already false, so the
+			// right-hand side (and any side effects, such as an
+			// assignment) must not be evaluated.
+			return 0, nil
+		}
+		if expr.Op == syntax.OrArit && left != 0 {
+			// Short-circuit ||: the result is already true, so the
+			// right-hand side must not be evaluated.
+			return 1, nil
+		}
 		right, err := Arithm(cfg, expr.Y)
 		if err != nil {
 			return 0, err
