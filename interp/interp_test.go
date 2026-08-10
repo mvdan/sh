@@ -2130,6 +2130,30 @@ var runTests = []runTest{
 		"1\n",
 	},
 	{
+		"x=0; echo $((0 && (x = 1))) $x",
+		"0 1\n #IGNORE TODO: bash short-circuits, issue #1371",
+	},
+	{
+		"x=0; echo $((1 || (x = 1))) $x",
+		"1 1\n #IGNORE TODO: bash short-circuits, issue #1371",
+	},
+	{
+		"x=0; echo $((0 && x++)) $x $((1 || x++)) $x",
+		"0 1 1 2\n #IGNORE TODO: bash short-circuits, issue #1371",
+	},
+	{
+		"x=0; echo $((1 && (x = 1))) $x",
+		"1 1\n",
+	},
+	{
+		"x=0; echo $((0 || (x = 2))) $x",
+		"1 2\n",
+	},
+	{
+		"echo $((0 && 1/0)) $((1 || 1/0))",
+		"division by zero\n #IGNORE TODO: bash short-circuits, issue #1371",
+	},
+	{
 		"echo $(((1 & 2) != (1 | 2)))",
 		"1\n",
 	},
