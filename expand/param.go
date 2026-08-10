@@ -13,6 +13,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
+	"mvdan.cc/sh/v3/internal"
 	"mvdan.cc/sh/v3/pattern"
 	"mvdan.cc/sh/v3/syntax"
 )
@@ -117,6 +118,7 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 
 		indexAllElements bool // true if var has been accessed with * or @ index
 		callVarInd       = true
+		set              = vr.IsSet()
 	)
 
 	switch nodeLit(index) {
@@ -128,13 +130,13 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 		case Indexed:
 			indexAllElements = true
 			callVarInd = false
-			elems = cfg.sliceElems(pe, vr.List, name == "@" || name == "*")
+			elems = cfg.sliceElems(pe, vr.List, vr.Indexes, name == "@" || name == "*")
 			str = join(elems)
 		}
 	}
 	if callVarInd {
 		var err error
-		str, err = cfg.varInd(vr, index)
+		str, set, err = cfg.varInd(vr, index)
 		if err != nil {
 			return "", err
 		}
@@ -160,11 +162,7 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 		case orig.Kind == NameRef:
 			strs = append(strs, orig.Str)
 		case pe.Index != nil && vr.Kind == Indexed:
-			// TODO: this is only correct for dense lists, as we
-			// cannot represent the unset elements of a sparse array.
-			for i := range vr.List {
-				strs = append(strs, strconv.Itoa(i))
-			}
+			strs = vr.indexedKeys()
 		case pe.Index != nil && vr.Kind == Associative:
 			strs = slices.Sorted(maps.Keys(vr.Map))
 		case !vr.IsSet():
@@ -221,11 +219,11 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 			}
 			fallthrough
 		case syntax.AlternateUnset:
-			if vr.IsSet() {
+			if set {
 				str = arg
 			}
 		case syntax.DefaultUnset:
-			if vr.IsSet() {
+			if set {
 				break
 			}
 			fallthrough
@@ -234,7 +232,7 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 				str = arg
 			}
 		case syntax.ErrorUnset:
-			if vr.IsSet() {
+			if set {
 				break
 			}
 			fallthrough
@@ -246,13 +244,13 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 				}
 			}
 		case syntax.AssignUnset:
-			if vr.IsSet() {
+			if set {
 				break
 			}
 			fallthrough
 		case syntax.AssignUnsetOrNull:
 			if str == "" {
-				if err := cfg.envSet(name, arg); err != nil {
+				if err := cfg.assignElem(name, vr, index, arg); err != nil {
 					return "", err
 				}
 				str = arg
@@ -449,50 +447,124 @@ func (cfg *Config) caseConvElems(op syntax.ParExpOperator, arg string, elems []s
 	return out
 }
 
-func (cfg *Config) varInd(vr Variable, idx syntax.ArithmExpr) (string, error) {
+// varInd expands an indexed variable expansion like ${a[i]}, also reporting
+// whether the resulting element is set, which may be false for missing array
+// elements such as the holes in a sparse array.
+func (cfg *Config) varInd(vr Variable, idx syntax.ArithmExpr) (string, bool, error) {
 	if idx == nil {
-		return vr.String(), nil
+		switch vr.Kind {
+		case Indexed:
+			// A bare $a is the element at index zero, which may be unset.
+			str, ok := vr.indexedVal(0)
+			return str, ok, nil
+		case Associative:
+			str, ok := vr.Map["0"]
+			return str, ok, nil
+		}
+		return vr.String(), vr.IsSet(), nil
 	}
 	switch vr.Kind {
 	case String:
 		n, err := Arithm(cfg, idx)
 		if err != nil {
-			return "", err
+			return "", false, err
 		}
 		if n == 0 {
-			return vr.Str, nil
+			return vr.Str, vr.IsSet(), nil
 		}
 	case Indexed:
 		switch nodeLit(idx) {
 		case "*", "@":
-			return strings.Join(vr.List, " "), nil
+			return strings.Join(vr.List, " "), vr.IsSet(), nil
 		}
 		i, err := Arithm(cfg, idx)
 		if err != nil {
-			return "", err
+			return "", false, err
 		}
 		if i < 0 {
-			return "", fmt.Errorf("negative array index")
+			// Negative indices count from one past the maximum index.
+			if i += internal.IndexedMax(vr.List, vr.Indexes) + 1; i < 0 {
+				return "", false, fmt.Errorf("negative array index")
+			}
 		}
-		if i < len(vr.List) {
-			return vr.List[i], nil
+		if str, ok := vr.indexedVal(i); ok {
+			return str, true, nil
 		}
 	case Associative:
 		switch lit := nodeLit(idx); lit {
 		case "@", "*":
 			strs := slices.Sorted(maps.Values(vr.Map))
 			if lit == "*" {
-				return cfg.ifsJoin(strs), nil
+				return cfg.ifsJoin(strs), vr.IsSet(), nil
 			}
-			return strings.Join(strs, " "), nil
+			return strings.Join(strs, " "), vr.IsSet(), nil
 		}
 		val, err := Literal(cfg, idx.(*syntax.Word))
 		if err != nil {
-			return "", err
+			return "", false, err
 		}
-		return vr.Map[val], nil
+		str, ok := vr.Map[val]
+		return str, ok, nil
 	}
-	return "", nil
+	return "", false, nil
+}
+
+// assignElem assigns a variable via an expansion like ${a=val} or
+// ${a[i]=val}, setting a single element when the variable is an array or is
+// indexed, like Bash. ${a[i]=val} on a whole scalar converts it to an array.
+func (cfg *Config) assignElem(name string, vr Variable, idx syntax.ArithmExpr, val string) error {
+	wenv, ok := cfg.Env.(WriteEnviron)
+	if !ok {
+		return fmt.Errorf("environment is read-only")
+	}
+	arrayWise := false
+	switch nodeLit(idx) {
+	case "@", "*":
+		// ${a[@]=val} assigns the element at index zero.
+		arrayWise = true
+		idx = nil
+	}
+	if idx == nil && !arrayWise && vr.Kind != Indexed && vr.Kind != Associative {
+		// A plain scalar assignment like ${x=val}.
+		return wenv.Set(name, Variable{Set: true, Kind: String, Str: val})
+	}
+	switch vr.Kind {
+	case Associative:
+		key := "0"
+		if idx != nil {
+			var err error
+			if key, err = Literal(cfg, idx.(*syntax.Word)); err != nil {
+				return err
+			}
+		}
+		vr.Map = maps.Clone(vr.Map)
+		if vr.Map == nil {
+			vr.Map = make(map[string]string, 1)
+		}
+		vr.Map[key] = val
+	default: // assign a single indexed element
+		i := 0
+		if idx != nil {
+			var err error
+			if i, err = Arithm(cfg, idx); err != nil {
+				return err
+			}
+			if i < 0 {
+				// Negative indices count from one past the maximum index.
+				if i += internal.IndexedMax(vr.List, vr.Indexes) + 1; i < 0 {
+					return fmt.Errorf("negative array index")
+				}
+			}
+		}
+		list, indexes := slices.Clone(vr.List), slices.Clone(vr.Indexes)
+		if vr.Kind == String {
+			list, indexes = []string{vr.Str}, nil
+		}
+		list, indexes = internal.SetIndexedElem(list, indexes, i, val)
+		vr.Kind, vr.Str, vr.List, vr.Indexes = Indexed, "", list, indexes
+	}
+	vr.Set = true
+	return wenv.Set(name, vr)
 }
 
 func (cfg *Config) namesByPrefix(prefix string) []string {

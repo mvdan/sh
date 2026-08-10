@@ -7,6 +7,7 @@ import (
 	"cmp"
 	"runtime"
 	"slices"
+	"strconv"
 	"strings"
 )
 
@@ -101,6 +102,12 @@ type Variable struct {
 	Str  string            // Used when Kind is String or NameRef.
 	List []string          // Used when Kind is Indexed.
 	Map  map[string]string // Used when Kind is Associative.
+
+	// Indexes records the index of each [Variable.List] element when an
+	// indexed array is sparse, such as `a=([2]=x [5]=y)`. The indices
+	// must be unique, non-negative, sorted, and as many as the List
+	// elements. Nil means the array is dense: element i has index i.
+	Indexes []int
 }
 
 // IsSet reports whether the variable has been set to a value.
@@ -144,13 +151,42 @@ func (v Variable) String() string {
 	case String:
 		return v.Str
 	case Indexed:
-		if len(v.List) > 0 {
-			return v.List[0]
+		if str, ok := v.indexedVal(0); ok {
+			return str
 		}
 	case Associative:
 		// nothing to do
 	}
 	return ""
+}
+
+// indexedVal returns the element of an indexed array at index i,
+// taking [Variable.Indexes] into account for sparse arrays.
+func (v Variable) indexedVal(i int) (string, bool) {
+	if v.Indexes != nil {
+		if pos, ok := slices.BinarySearch(v.Indexes, i); ok {
+			return v.List[pos], true
+		}
+		return "", false
+	}
+	if i < len(v.List) {
+		return v.List[i], true
+	}
+	return "", false
+}
+
+// indexedKeys returns the index of each element of an indexed array as a
+// string, for the sake of expansions like "${!a[@]}".
+func (v Variable) indexedKeys() []string {
+	keys := make([]string, len(v.List))
+	for i := range v.List {
+		if v.Indexes != nil {
+			keys[i] = strconv.Itoa(v.Indexes[i])
+		} else {
+			keys[i] = strconv.Itoa(i)
+		}
+	}
+	return keys
 }
 
 // maxNameRefDepth defines the maximum number of times to follow references when

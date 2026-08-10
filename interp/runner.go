@@ -772,7 +772,11 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 						if i > 0 {
 							r.out(" ")
 						}
-						r.outf("[%d]=%q", i, v)
+						idx := i
+						if vr.Indexes != nil {
+							idx = vr.Indexes[i]
+						}
+						r.outf("[%d]=%q", idx, v)
 					}
 					r.out(")\n")
 				case expand.Associative:

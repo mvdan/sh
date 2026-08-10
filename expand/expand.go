@@ -805,13 +805,13 @@ func (cfg *Config) listElems(pe *syntax.ParamExp) (elems []string, star, ok bool
 	}
 	switch name := pe.Param.Value; name {
 	case "*", "@":
-		return cfg.sliceElems(pe, cfg.Env.Get(name).List, true), name == "*", true
+		return cfg.sliceElems(pe, cfg.Env.Get(name).List, nil, true), name == "*", true
 	}
 	switch lit := nodeLit(pe.Index); lit {
 	case "@", "*":
 		switch vr := cfg.Env.Get(pe.Param.Value); vr.Kind {
 		case Indexed:
-			return cfg.sliceElems(pe, vr.List, false), lit == "*", true
+			return cfg.sliceElems(pe, vr.List, vr.Indexes, false), lit == "*", true
 		case Associative:
 			return slices.Sorted(maps.Values(vr.Map)), lit == "*", true
 		}
@@ -848,13 +848,7 @@ func (cfg *Config) quotedElemFields(pe *syntax.ParamExp) ([]string, error) {
 		case "@": // "${!name[@]}"
 			switch vr := cfg.Env.Get(name); vr.Kind {
 			case Indexed:
-				// TODO: if an indexed array only has elements 0 and 10,
-				// we should not return all indices in between those.
-				keys := make([]string, 0, len(vr.List))
-				for key := range vr.List {
-					keys = append(keys, strconv.Itoa(key))
-				}
-				return keys, nil
+				return vr.indexedKeys(), nil
 			case Associative:
 				return slices.Collect(maps.Keys(vr.Map)), nil
 			}
@@ -884,7 +878,9 @@ func (cfg *Config) quotedElemFields(pe *syntax.ParamExp) ([]string, error) {
 // In bash, positional parameter offsets ($@ and $*) are 1-based and
 // offset 0 includes $0 (the shell or script name). Negative offsets
 // count from $# + 1, so $0 is reachable via large enough negative values.
-func (cfg *Config) sliceElems(pe *syntax.ParamExp, elems []string, positional bool) []string {
+// A non-nil indexes records the index of each element in a sparse array;
+// see [Variable.Indexes].
+func (cfg *Config) sliceElems(pe *syntax.ParamExp, elems []string, indexes []int, positional bool) []string {
 	if pe.Slice == nil {
 		return elems
 	}
@@ -907,7 +903,21 @@ func (cfg *Config) sliceElems(pe *syntax.ParamExp, elems []string, positional bo
 		if err != nil {
 			return elems
 		}
-		elems = elems[slicePos(offset):]
+		if len(indexes) > 0 {
+			// Sparse arrays slice by index: a negative offset counts
+			// from one past the maximum index, and the result begins
+			// with the first element whose index is at least the offset.
+			if offset < 0 {
+				offset += indexes[len(indexes)-1] + 1
+				if offset < 0 {
+					offset = indexes[len(indexes)-1] + 1
+				}
+			}
+			pos, _ := slices.BinarySearch(indexes, offset)
+			elems = elems[pos:]
+		} else {
+			elems = elems[slicePos(offset):]
+		}
 	}
 	if pe.Slice.Length != nil {
 		length, err := Arithm(cfg, pe.Slice.Length)

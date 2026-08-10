@@ -16,6 +16,7 @@ import (
 	"strings"
 
 	"mvdan.cc/sh/v3/expand"
+	"mvdan.cc/sh/v3/internal"
 	"mvdan.cc/sh/v3/syntax"
 )
 
@@ -97,6 +98,7 @@ func (o *overlayEnviron) Set(name string, vr expand.Variable) error {
 		vr.Kind = prev.Kind
 		vr.Str = prev.Str
 		vr.List = prev.List
+		vr.Indexes = prev.Indexes
 		vr.Map = prev.Map
 	} else if prev.ReadOnly {
 		return fmt.Errorf("readonly variable")
@@ -259,12 +261,14 @@ func (r *Runner) setVarWithIndex(prev expand.Variable, name string, index syntax
 	valStr := vr.Str
 
 	var list []string
+	var indexes []int
 	switch prev.Kind {
 	case expand.String:
 		list = append(list, prev.Str)
 	case expand.Indexed:
 		// TODO: only clone when inside a subshell and getting a var from outside for the first time
 		list = slices.Clone(prev.List)
+		indexes = slices.Clone(prev.Indexes)
 	case expand.Associative:
 		// if the existing variable is already an AssocArray, try our
 		// best to convert the key to a string
@@ -284,13 +288,85 @@ func (r *Runner) setVarWithIndex(prev expand.Variable, name string, index syntax
 		return
 	}
 	k := r.arithm(index)
-	for len(list) < k+1 {
-		list = append(list, "")
+	if k < 0 {
+		// Negative indices count from one past the maximum index.
+		if k += internal.IndexedMax(list, indexes) + 1; k < 0 {
+			r.errf("%s: bad array subscript\n", name)
+			r.exit.code = 1
+			return
+		}
 	}
-	list[k] = valStr
+	list, indexes = internal.SetIndexedElem(list, indexes, k, valStr)
 	prev.Kind = expand.Indexed
 	prev.List = list
+	prev.Indexes = indexes
 	r.setVar(name, prev)
+}
+
+// cutElemSubscript splits an array element argument like `a[3]`, as used by
+// the unset builtin, into the array name and the subscript between brackets.
+func cutElemSubscript(arg string) (name, sub string, ok bool) {
+	i := strings.IndexByte(arg, '[')
+	if i > 0 && strings.HasSuffix(arg, "]") && syntax.ValidName(arg[:i]) {
+		return arg[:i], arg[i+1 : len(arg)-1], true
+	}
+	return "", "", false
+}
+
+// unsetElem unsets a single element of an indexed or associative array, like
+// `unset 'a[3]'`. Unsetting an indexed array element may leave a hole.
+func (r *Runner) unsetElem(name, sub string) {
+	vr := r.lookupVar(name)
+	if n, v := vr.Resolve(r.writeEnv); n != "" {
+		name, vr = n, v
+	}
+	switch vr.Kind {
+	case expand.Indexed:
+		if sub == "@" || sub == "*" {
+			r.delVar(name)
+			return
+		}
+		expr, err := syntax.NewParser().Arithmetic(strings.NewReader(sub))
+		if err != nil {
+			r.errf("unset: %s[%s]: bad array subscript\n", name, sub)
+			r.exit.code = 1
+			return
+		}
+		if expr == nil {
+			return // an empty subscript like `unset 'a[]'` is a no-op
+		}
+		k := r.arithm(expr)
+		if k < 0 {
+			// Negative indices count from one past the maximum index.
+			if k += internal.IndexedMax(vr.List, vr.Indexes) + 1; k < 0 {
+				r.errf("unset: %s[%s]: bad array subscript\n", name, sub)
+				r.exit.code = 1
+				return
+			}
+		}
+		// TODO: only clone when inside a subshell and getting a var from outside for the first time
+		vr.List = slices.Clone(vr.List)
+		vr.Indexes = slices.Clone(vr.Indexes)
+		vr.List, vr.Indexes = internal.DeleteIndexedElem(vr.List, vr.Indexes, k)
+		r.setVar(name, vr)
+	case expand.Associative:
+		if sub == "@" || sub == "*" {
+			r.delVar(name)
+			return
+		}
+		// TODO: only clone when inside a subshell and getting a var from outside for the first time
+		vr.Map = maps.Clone(vr.Map)
+		delete(vr.Map, sub)
+		r.setVar(name, vr)
+	case expand.String:
+		// A scalar can be unset via subscript zero.
+		if sub == "0" {
+			r.delVar(name)
+		} else {
+			r.errf("unset: %s: not an array variable\n", name)
+			r.exit.code = 1
+		}
+	}
 }
 
 func (r *Runner) setFunc(name string, body *syntax.Stmt) {
@@ -334,10 +410,12 @@ func (r *Runner) assignVal(name string, prev expand.Variable, as *syntax.Assign,
 			prev.Kind = expand.String
 			prev.Str += s
 		case expand.Indexed:
-			if len(prev.List) == 0 {
-				prev.List = append(prev.List, "")
+			// Appends to the element at index 0, creating it if unset.
+			if len(prev.List) > 0 && (prev.Indexes == nil || prev.Indexes[0] == 0) {
+				prev.List[0] += s
+			} else {
+				prev.List, prev.Indexes = internal.SetIndexedElem(prev.List, prev.Indexes, 0, s)
 			}
-			prev.List[0] += s
 		case expand.Associative:
 			// TODO
 		}
@@ -374,51 +452,59 @@ func (r *Runner) assignVal(name string, prev expand.Variable, as *syntax.Assign,
 		// TODO
 		return name, prev
 	}
-	// Evaluate values for each array element.
-	elemValues := make([]struct {
-		index  int
-		values []string
-	}, len(elems))
-	var index, maxIndex int
-	for i, elem := range elems {
+	// The base array which the new elements are set on; empty unless
+	// we are appending to an existing value.
+	var list []string
+	var indexes []int
+	if as.Append {
+		switch prev.Kind {
+		case expand.Unknown:
+		case expand.String:
+			list = []string{prev.Str}
+		case expand.Indexed:
+			// TODO: only clone when inside a subshell and getting a var from outside for the first time
+			list = slices.Clone(prev.List)
+			indexes = slices.Clone(prev.Indexes)
+		case expand.Associative:
+			// TODO
+			return name, prev
+		default:
+			// Should only happen if we forgot a case above.
+			panic(fmt.Sprintf("unexpected conversion of kind %d", prev.Kind))
+		}
+	}
+	// Evaluate values for each array element. An explicit index like
+	// [5]=x resets our index counter, which otherwise advances for every
+	// value, starting after the maximum index of the base array.
+	index := internal.IndexedMax(list, indexes) + 1
+	for _, elem := range elems {
 		if elem.Index != nil {
 			// Index resets our index with a literal value.
 			index = r.arithm(elem.Index)
-			elemValues[i].values = []string{r.literal(elem.Value)}
+			if index < 0 {
+				// Negative indices count from one past the maximum index.
+				if index += internal.IndexedMax(list, indexes) + 1; index < 0 {
+					r.errf("%s: bad array subscript\n", name)
+					r.exit.code = 1
+					break
+				}
+			}
+			list, indexes = internal.SetIndexedElem(list, indexes, index, r.literal(elem.Value))
+			index++
 		} else {
 			// Implicit index, advancing for every word.
-			elemValues[i].values = r.fields(elem.Value)
-		}
-		elemValues[i].index = index
-		index += len(elemValues[i].values)
-		maxIndex = max(maxIndex, index)
-	}
-	// Flatten down the values.
-	strs := make([]string, maxIndex)
-	for _, ev := range elemValues {
-		for i, str := range ev.values {
-			strs[ev.index+i] = str
+			for _, val := range r.fields(elem.Value) {
+				list, indexes = internal.SetIndexedElem(list, indexes, index, val)
+				index++
+			}
 		}
 	}
-	if !as.Append {
-		prev.Kind = expand.Indexed
-		prev.List = strs
-		return name, prev
+	if list == nil {
+		// An empty array like a=() must still expand to zero fields.
+		list = []string{}
 	}
-	switch prev.Kind {
-	case expand.Unknown:
-		prev.Kind = expand.Indexed
-		prev.List = strs
-	case expand.String:
-		prev.Kind = expand.Indexed
-		prev.List = append([]string{prev.Str}, strs...)
-	case expand.Indexed:
-		prev.List = append(prev.List, strs...)
-	case expand.Associative:
-		// TODO
-	default:
-		// Should only happen if we forgot a case above.
-		panic(fmt.Sprintf("unexpected conversion of kind %d", prev.Kind))
-	}
+	prev.Kind = expand.Indexed
+	prev.List = list
+	prev.Indexes = indexes
 	return name, prev
 }

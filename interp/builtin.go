@@ -209,7 +209,9 @@ func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args 
 		}
 
 		for _, arg := range args {
-			if vars && r.lookupVar(arg).IsSet() {
+			if name, sub, ok := cutElemSubscript(arg); vars && ok {
+				r.unsetElem(name, sub)
+			} else if vars && r.lookupVar(arg).IsSet() {
 				r.delVar(arg)
 			} else if _, ok := r.Funcs[arg]; ok && funcs {
 				delete(r.Funcs, arg)
