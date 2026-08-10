@@ -2684,6 +2684,11 @@ func TestParseRecoverErrors(t *testing.T) {
 			wantMissing: 1,
 		},
 		{
+			// TODO: recover a missing "]" like we do for "))"; issue #1375.
+			src:     "$[incomp",
+			wantErr: true,
+		},
+		{
 			src:         "if foo",
 			wantMissing: 3,
 		},
