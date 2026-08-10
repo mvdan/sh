@@ -298,6 +298,12 @@ func regexpNext(sb *strings.Builder, sl *stringLexer, mode Mode) error {
 		for {
 			switch c {
 			case '\x00':
+				if deferredErr != nil {
+					// e.g. "[[:": a nested POSIX class without its
+					// closing ":]"; bash's ${a//[[:} leaves the value
+					// unchanged, so keep reporting the class error.
+					return deferredErr
+				}
 				// The bracket never got its closing "]"; bash treats the
 				// unmatched "[" as a literal, so emit it and reparse the
 				// rest of the pattern normally.
