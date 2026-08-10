@@ -176,6 +176,7 @@ var regexpTests = []struct {
 		mustMatch:    []string{"[/]", ":/]", "d/]"},
 		mustNotMatch: []string{`[\[:digit:]/]`, "/"},
 	},
+	// TODO: an unmatched "[" should be a literal, like in Bash; issue #1372.
 	{pat: `[`, wantErr: `^\[ was not matched with a closing \]$`},
 	{pat: `[\`, wantErr: `^\[ was not matched with a closing \]$`},
 	{pat: `[^`, wantErr: `^\[ was not matched with a closing \]$`},
@@ -185,6 +186,8 @@ var regexpTests = []struct {
 	{pat: `[^]`, wantErr: `^\[ was not matched with a closing \]$`},
 	{pat: `[!]`, wantErr: `^\[ was not matched with a closing \]$`},
 	{pat: `[ab`, wantErr: `^\[ was not matched with a closing \]$`},
+	{pat: `[a*`, wantErr: `^\[ was not matched with a closing \]$`},
+	{pat: `[z-a`, wantErr: `^invalid range: z-a$`},
 	{pat: `[a-]`, want: `(?s)[a-]`},
 	{
 		pat: `[\0]`, want: `(?s)[0]`,
@@ -269,6 +272,11 @@ var metaTests = []struct {
 	{`foo?`, true, `foo\?`},
 	{`\[`, false, `\\\[`},
 	{`{`, false, `{`},
+	{`[ab]`, true, `\[ab]`},
+	// TODO: "[ab" and "[a\]" can only match one string each; issue #1372.
+	{`[ab`, true, `\[ab`},
+	{`ab]`, false, `ab]`},
+	{`[a\]`, true, `\[a\\]`},
 }
 
 func TestMeta(t *testing.T) {
