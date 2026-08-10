@@ -2684,6 +2684,10 @@ func TestParseRecoverErrors(t *testing.T) {
 			wantMissing: 1,
 		},
 		{
+			src:         "$[incomp",
+			wantMissing: 1,
+		},
+		{
 			src:         "if foo",
 			wantMissing: 3,
 		},
