@@ -496,7 +496,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 				r.stmt(ctx, cm.Y)
 			}
 		case syntax.Pipe, syntax.PipeAll:
-			pr, pw, err := os.Pipe()
+			pr, pw, err := newOSPipe()
 			if err != nil {
 				r.exit.fatal(err) // not being able to create a pipe is rare but critical
 				return
@@ -919,8 +919,8 @@ func (r *Runner) stmts(ctx context.Context, stmts []*syntax.Stmt) {
 	}
 }
 
-func (r *Runner) hdocReader(rd *syntax.Redirect) (*os.File, error) {
-	pr, pw, err := os.Pipe()
+func (r *Runner) hdocReader(rd *syntax.Redirect) (stdinFile, error) {
+	pr, pw, err := newOSPipe()
 	if err != nil {
 		return nil, err
 	}
@@ -997,7 +997,7 @@ func (r *Runner) redir(ctx context.Context, rd *syntax.Redirect) (io.Closer, err
 	arg := r.literal(rd.Word)
 	switch rd.Op {
 	case syntax.WordHdoc:
-		pr, pw, err := os.Pipe()
+		pr, pw, err := newOSPipe()
 		if err != nil {
 			return nil, err
 		}
@@ -1049,7 +1049,7 @@ func (r *Runner) redir(ctx context.Context, rd *syntax.Redirect) (io.Closer, err
 	}
 	switch rd.Op {
 	case syntax.RdrIn:
-		stdin, err := stdinFile(f)
+		stdin, err := newStdinFile(f)
 		if err != nil {
 			return nil, err
 		}

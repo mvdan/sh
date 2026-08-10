@@ -98,7 +98,7 @@ type Runner struct {
 	// accessHandler is a function responsible for checking file access. It must be non-nil.
 	accessHandler AccessHandlerFunc
 
-	stdin  *os.File // e.g. the read end of a pipe
+	stdin  stdinFile // e.g. the read end of a pipe
 	stdout io.Writer
 	stderr io.Writer
 
@@ -151,7 +151,7 @@ type Runner struct {
 	origDir    string
 	origParams []string
 	origOpts   runnerOpts
-	origStdin  *os.File
+	origStdin  stdinFile
 	origStdout io.Writer
 	origStderr io.Writer
 
@@ -521,25 +521,6 @@ func AccessHandler(f AccessHandlerFunc) RunnerOption {
 	}
 }
 
-func stdinFile(r io.Reader) (*os.File, error) {
-	switch r := r.(type) {
-	case *os.File:
-		return r, nil
-	case nil:
-		return nil, nil
-	default:
-		pr, pw, err := os.Pipe()
-		if err != nil {
-			return nil, err
-		}
-		go func() {
-			io.Copy(pw, r)
-			pw.Close()
-		}()
-		return pr, nil
-	}
-}
-
 // StdIO configures an interpreter's standard input, standard output, and
 // standard error. If out or err are nil, they default to a writer that discards
 // the output.
@@ -555,7 +536,7 @@ func stdinFile(r io.Reader) (*os.File, error) {
 // so that cancelling the runner's context can stop a blocked standard input read.
 func StdIO(in io.Reader, out, err io.Writer) RunnerOption {
 	return func(r *Runner) error {
-		stdin, _err := stdinFile(in)
+		stdin, _err := newStdinFile(in)
 		if _err != nil {
 			return _err
 		}
