@@ -157,6 +157,26 @@ func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args 
 		exit.code = 1
 	case "help":
 		return r.runHelp(args)
+	case "jobs":
+		return r.runJobs(args)
+	case "kill":
+		return r.runKill(args)
+	case "disown":
+		return r.runDisown(args)
+	case "fg":
+		return r.runFg(ctx, args)
+	case "bg":
+		return r.runBg(args)
+	case "enable":
+		return r.runEnable(args)
+	case "compgen":
+		return r.runCompgen(ctx, args)
+	case "history":
+		return r.runHistory(args)
+	case "logout":
+		// There is no login shell here, so this is bash's error for one that
+		// is not: the user wants exit.
+		return failf(1, "logout: not login shell: use `exit'\n")
 	case "times":
 		// js/wasm has no per-process CPU accounting at all, so report zeros
 		// in bash's format — shell user/sys, then children user/sys — rather
@@ -372,6 +392,9 @@ func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args 
 		if len(args) == 0 {
 			// Note that "wait" without arguments always returns exit status zero.
 			for _, bg := range r.bgProcs {
+				if bg.disowned {
+					continue
+				}
 				<-bg.done
 			}
 			break

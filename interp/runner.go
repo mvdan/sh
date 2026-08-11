@@ -315,13 +315,20 @@ func (r *Runner) stmt(ctx context.Context, st *syntax.Stmt) {
 		st2 := *st
 		st2.Background = false
 		st2.Disown = false
+		// A job is a goroutine, so kill cancels its context rather than
+		// signalling a process.
+		bgCtx, cancel := context.WithCancel(ctx)
 		bg := bgProc{
-			done: make(chan struct{}),
-			exit: new(exitStatus),
+			done:     make(chan struct{}),
+			exit:     new(exitStatus),
+			cmd:      jobText(&st2),
+			cancel:   cancel,
+			disowned: st.Disown,
 		}
 		r.bgProcs = append(r.bgProcs, bg)
 		go func() {
-			r2.Run(ctx, &st2)
+			defer cancel()
+			r2.Run(bgCtx, &st2)
 			r2.exit.exiting = false // subshells don't exit the parent shell
 			*bg.exit = r2.exit
 			close(bg.done)
@@ -1118,7 +1125,7 @@ func (r *Runner) call(ctx context.Context, pos syntax.Pos, args []string) {
 		r.exit.returning = false
 		return
 	}
-	if IsBuiltin(name) {
+	if IsBuiltin(name) && !r.builtinDisabled(name) {
 		r.exit = r.builtin(ctx, pos, name, args[1:])
 		return
 	}
