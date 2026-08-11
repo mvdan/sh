@@ -362,7 +362,9 @@ func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args 
 				if bg.disowned {
 					continue
 				}
-				<-bg.done
+				if !bg.await(ctx) {
+					return exitStatus{code: 130}
+				}
 			}
 			break
 		}
@@ -371,7 +373,9 @@ func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args 
 			if !ok {
 				return failf(1, "wait: pid %s is not a child of this shell\n", arg)
 			}
-			<-bg.done
+			if !bg.await(ctx) {
+				return exitStatus{code: 130}
+			}
 			exit = *bg.exit
 		}
 	case "builtin":

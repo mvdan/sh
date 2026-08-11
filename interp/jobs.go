@@ -26,6 +26,24 @@ import (
 	"mvdan.cc/sh/v3/syntax"
 )
 
+// StopJobs cancels every background job this runner started, disowned ones
+// included, and returns once they have all finished.
+//
+// A background job outlives the command line that started it, so an embedder
+// that runs each line under its own context — an interactive shell, typically
+// — should call this when the shell itself goes away. It is the closest thing
+// here to the SIGHUP bash sends its jobs on exit.
+func (r *Runner) StopJobs() {
+	for _, bg := range r.bgProcs {
+		if bg.cancel != nil {
+			bg.cancel()
+		}
+	}
+	for _, bg := range r.bgProcs {
+		<-bg.done
+	}
+}
+
 // jobText renders a backgrounded statement the way jobs prints it.
 func jobText(st *syntax.Stmt) string {
 	var b strings.Builder
@@ -43,6 +61,19 @@ func (bg bgProc) running() bool {
 		return false
 	default:
 		return true
+	}
+}
+
+// await blocks until the job finishes, reporting false if the caller's context
+// was cancelled first. A job's own context is detached from the caller's, so
+// waiting for one must watch the caller's separately or an interrupted shell
+// would block until the job chose to end.
+func (bg bgProc) await(ctx context.Context) bool {
+	select {
+	case <-bg.done:
+		return true
+	case <-ctx.Done():
+		return false
 	}
 }
 
@@ -474,10 +505,8 @@ func (r *Runner) runFg(ctx context.Context, args []string) exitStatus {
 	}
 	bg := r.bgProcs[i]
 	r.outf("%s\n", bg.cmd)
-	select {
-	case <-ctx.Done():
+	if !bg.await(ctx) {
 		return exitStatus{code: 130}
-	case <-bg.done:
 	}
 	exit := *bg.exit
 	exit.exiting = false

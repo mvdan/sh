@@ -4,7 +4,9 @@ import (
 	"context"
 	"runtime"
 	"strings"
+	"sync"
 	"testing"
+	"time"
 
 	"mvdan.cc/sh/v3/interp"
 	"mvdan.cc/sh/v3/syntax"
@@ -144,5 +146,79 @@ func TestDisownFgBg(t *testing.T) {
 	}
 	if s := runSrc(t, "sleep 0 & wait; bg"); !strings.Contains(s, "has terminated") {
 		t.Fatalf("bg on finished job = %q", s)
+	}
+}
+
+// syncBuffer collects output from the shell and from its background jobs,
+// which write concurrently.
+type syncBuffer struct {
+	mu  sync.Mutex
+	buf strings.Builder
+}
+
+func (b *syncBuffer) Write(p []byte) (int, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buf.Write(p)
+}
+
+func (b *syncBuffer) takeString() string {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	s := b.buf.String()
+	b.buf.Reset()
+	return s
+}
+
+func TestJobsOutliveTheirContext(t *testing.T) {
+	needsSubprocesses(t)
+	t.Parallel()
+	var out syncBuffer
+	r, err := interp.New(interp.StdIO(strings.NewReader(""), &out, &out))
+	if err != nil {
+		t.Fatal(err)
+	}
+	run := func(ctx context.Context, src string) {
+		t.Helper()
+		f, err := syntax.NewParser().Parse(strings.NewReader(src), "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		_ = r.Run(ctx, f)
+	}
+
+	// An interactive shell cancels each line's context once the line is
+	// done; the job it started must survive that.
+	ctx, cancel := context.WithCancel(context.Background())
+	run(ctx, "sleep 30 &")
+	cancel()
+	out.takeString()
+
+	run(context.Background(), "jobs")
+	if s := out.takeString(); !strings.Contains(s, "Running") {
+		t.Fatalf("job did not outlive its context: %q", s)
+	}
+
+	// Waiting for one still gives up when the caller's context is cancelled,
+	// rather than blocking on a job that no longer dies with it.
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		waitCtx, waitCancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+		defer waitCancel()
+		run(waitCtx, "wait")
+	}()
+	select {
+	case <-done:
+	case <-time.After(30 * time.Second):
+		t.Fatal("wait did not return when its context was cancelled")
+	}
+	out.takeString()
+
+	// StopJobs is how the embedder ends them when the shell goes away.
+	r.StopJobs()
+	run(context.Background(), "jobs")
+	if s := out.takeString(); strings.Contains(s, "Running") {
+		t.Fatalf("StopJobs left a job running: %q", s)
 	}
 }
