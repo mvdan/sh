@@ -317,7 +317,14 @@ func (r *Runner) stmt(ctx context.Context, st *syntax.Stmt) {
 		st2.Disown = false
 		// A job is a goroutine, so kill cancels its context rather than
 		// signalling a process.
-		bgCtx, cancel := context.WithCancel(ctx)
+		//
+		// The job's context is detached from the statement's, because a
+		// background job outlives the command line that started it: an
+		// interactive shell cancels a line's context when the line is done,
+		// and in bash the interrupt that ends a foreground job leaves the
+		// background ones running. What ends a job here is kill, the shell
+		// exiting, or [Runner.StopJobs].
+		bgCtx, cancel := context.WithCancel(context.WithoutCancel(ctx))
 		bg := bgProc{
 			done:     make(chan struct{}),
 			exit:     new(exitStatus),
