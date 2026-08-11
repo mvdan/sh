@@ -345,9 +345,7 @@ var runTests = []runTest{
 	{`a=" b c "; echo foo${a}bar`, "foo b c bar\n"},
 	{`a="b    c"; echo foo${a}bar`, "foob cbar\n"},
 	{`echo "$(echo ' b c ')"`, " b c \n"},
-	// TODO: wrong result; the backslashes should be dropped when a backquote
-	// command substitution is within double quotes. See issue #1083.
-	{"echo \"`echo \\\"foobar\\\"`\"", "\"foobar\"\n #IGNORE wrong result; see issue #1083"},
+	{"echo \"`echo \\\"foobar\\\"`\"", "foobar\n"},
 	{"echo ''", "\n"},
 	{`$(echo)`, ""},
 	{`echo -n '\\'`, `\\`},

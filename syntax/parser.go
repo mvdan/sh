@@ -527,6 +527,9 @@ type Parser struct {
 	openNodes int
 	// openBquotes is how many levels of backquotes are open at the moment.
 	openBquotes int
+	// openBquoteDbls is how many of those backquote levels began inside
+	// double quotes, where backslashes also escape double quotes.
+	openBquoteDbls int
 
 	// lastBquoteEsc is how many times the last backquote token was escaped
 	lastBquoteEsc int
@@ -572,6 +575,7 @@ func (p *Parser) reset() {
 	p.hdocStops = nil
 	p.parsingDoc = false
 	p.openBquotes = 0
+	p.openBquoteDbls = 0
 	p.accComs = nil
 	p.accComs, p.curComs = nil, &p.accComs
 	p.litBatch = nil
@@ -1317,6 +1321,9 @@ func (p *Parser) wordPart() WordPart {
 		cs := &CmdSubst{Left: p.pos, Backquotes: true}
 		old := p.preNested(subCmdBckquo)
 		p.openBquotes++
+		if old.quote == dblQuotes {
+			p.openBquoteDbls++
+		}
 
 		// The lexer didn't call p.rune for us, so that it could have
 		// the right p.openBquotes to properly handle backslashes.
@@ -1331,6 +1338,9 @@ func (p *Parser) wordPart() WordPart {
 		}
 		p.postNested(old)
 		p.openBquotes--
+		if old.quote == dblQuotes {
+			p.openBquoteDbls--
+		}
 		cs.Right = p.pos
 
 		// Like above, the lexer didn't call p.rune for us.
