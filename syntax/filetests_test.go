@@ -190,6 +190,11 @@ var fileTests = []fileTestCase{
 		[]string{"foo", "foo ", " foo", "foo # bar"},
 		langFile(litWord("foo")),
 	),
+	// TODO: a literal ending in a lone backslash at the end of a file is
+	// printed right before the final newline, so a second round of
+	// formatting drops it; see issue #1354. Note that printTest's
+	// idempotency check re-parses without the trailing newline,
+	// sidestepping this for the entries below.
 	fileTest(
 		[]string{`\`},
 		langFile(litWord(`\`)),
@@ -197,6 +202,14 @@ var fileTests = []fileTestCase{
 	fileTest(
 		[]string{`foo\`, "f\\\noo\\"},
 		langFile(litWord(`foo\`)),
+	),
+	fileTest(
+		[]string{`foo\\`},
+		langFile(litWord(`foo\\`)),
+	),
+	fileTest(
+		[]string{`foo\\\`},
+		langFile(litWord(`foo\\\`)),
 	),
 	fileTest(
 		[]string{`foo\a`, "f\\\noo\\a"},
