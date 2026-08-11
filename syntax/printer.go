@@ -656,6 +656,13 @@ func (p *Printer) wordPart(wp, next WordPart) {
 	switch wp := wp.(type) {
 	case *Lit:
 		p.writeLit(wp.Value)
+		// An odd number of trailing backslashes would escape whatever
+		// follows, such as the newline ending a file; escape the last
+		// backslash to keep the literal value intact. Parsed source can
+		// only hit this case via a lone backslash at the end of a file.
+		if n := len(wp.Value) - len(strings.TrimRight(wp.Value, `\`)); n%2 == 1 {
+			p.w.WriteByte('\\')
+		}
 	case *SglQuoted:
 		if wp.Dollar {
 			p.w.WriteByte('$')

@@ -124,6 +124,10 @@ func fullProg(v any) *File {
 type fileTestCase struct {
 	inputs []string // input sources; the first is the canonical formatting
 
+	// printedAs is the canonical formatting when it differs from inputs[0],
+	// such as a lone trailing backslash being escaped by the printer.
+	printedAs string
+
 	// Each language in [langResolvedVariants] has an entry:
 	// - nil:    nothing to test
 	// - *File:  parse as the given syntax tree
@@ -163,6 +167,10 @@ func fileTest(in []string, opts ...func(*fileTestCase)) fileTestCase {
 	return c
 }
 
+func printsAs(s string) func(*fileTestCase) {
+	return func(c *fileTestCase) { c.printedAs = s }
+}
+
 func langSkip(langSets ...LangVariant) func(*fileTestCase) {
 	return func(c *fileTestCase) { c.setForLangs(nil, langSets...) }
 }
@@ -190,17 +198,14 @@ var fileTests = []fileTestCase{
 		[]string{"foo", "foo ", " foo", "foo # bar"},
 		langFile(litWord("foo")),
 	),
-	// TODO: a literal ending in a lone backslash at the end of a file is
-	// printed right before the final newline, so a second round of
-	// formatting drops it; see issue #1354. Note that printTest's
-	// idempotency check re-parses without the trailing newline,
-	// sidestepping this for the entries below.
 	fileTest(
 		[]string{`\`},
+		printsAs(`\\`),
 		langFile(litWord(`\`)),
 	),
 	fileTest(
 		[]string{`foo\`, "f\\\noo\\"},
+		printsAs(`foo\\`),
 		langFile(litWord(`foo\`)),
 	),
 	fileTest(
@@ -209,6 +214,7 @@ var fileTests = []fileTestCase{
 	),
 	fileTest(
 		[]string{`foo\\\`},
+		printsAs(`foo\\\\`),
 		langFile(litWord(`foo\\\`)),
 	),
 	fileTest(
