@@ -2096,6 +2096,22 @@ var fileTests = []fileTestCase{
 			word(cmdSubst(litStmt("foo", "bar"))),
 		)))),
 	),
+	// TODO: in a backquote command substitution within double quotes,
+	// backslashes escape double quotes as well, so the `\"` pairs below
+	// should parse as unescaped double quotes. See issue #1083.
+	fileTest(
+		[]string{"\"`echo \\\"foobar\\\"`\""},
+		prints(`"$(echo \"foobar\")"`),
+		langFile(word(dblQuoted(cmdSubst(litStmt("echo", `\"foobar\"`))))),
+	),
+	fileTest(
+		[]string{"\"`echo '\\\"'`\""},
+		prints(`"$(echo '\"')"`),
+		langFile(word(dblQuoted(cmdSubst(stmt(call(
+			litWord("echo"),
+			word(sglQuoted(`\"`)),
+		)))))),
+	),
 	fileTest(
 		[]string{"$( (a) | b)"},
 		langFile(cmdSubst(
