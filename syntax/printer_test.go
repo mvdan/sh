@@ -98,6 +98,11 @@ var printTests = []printCase{
 	samePrint(">&2 foo"),
 	samePrint(">&2 foo 2>&1 bar <f"),
 	{"foo >&2>/dev/null", "foo >&2 >/dev/null"},
+	// TODO: `{name[idx]}` should be parsed as the fd variable prefixing the
+	// redirect, like `{name}`; the added space changes the meaning in bash.
+	// See issue #719.
+	{"exec {foo[1]}>&-", "exec {foo[1]} >&-"},
+	samePrint("exec {foo}>&-"),
 	{"foo <<EOF bar\nl1\nEOF", "foo bar <<EOF\nl1\nEOF"},
 	samePrint("foo <<\\\\\\\\EOF\nbar\n\\\\EOF"),
 	samePrint("foo <<\"\\EOF\"\nbar\n\\EOF"),
