@@ -1843,6 +1843,16 @@ var fileTests = []fileTestCase{
 			},
 		}, LangBash|LangZsh),
 	),
+	// Only bash allows an array element as the fd variable. See issue #719.
+	fileTest(
+		[]string{"foo {fds[3]}<f"},
+		langFile(&Stmt{
+			Cmd: litCall("foo"),
+			Redirs: []*Redirect{
+				{Op: RdrIn, N: lit("{fds[3]}"), Word: litWord("f")},
+			},
+		}, LangBash),
+	),
 	fileTest(
 		[]string{"! foo"},
 		langFile(&Stmt{

@@ -987,7 +987,14 @@ func (p *Parser) endLit() (s string) {
 func (p *Parser) isLitRedir() bool {
 	lit := p.litBs[:len(p.litBs)-1]
 	if lit[0] == '{' && lit[len(lit)-1] == '}' {
-		return ValidName(string(lit[1 : len(lit)-1]))
+		name := lit[1 : len(lit)-1]
+		// Bash also allows an array element such as {name[idx]}.
+		if p.lang.in(langBashLike) && len(name) > 0 && name[len(name)-1] == ']' {
+			if i := bytes.IndexByte(name, '['); i > 0 && i < len(name)-2 {
+				name = name[:i]
+			}
+		}
+		return ValidName(string(name))
 	}
 	return numberLiteral(lit)
 }
@@ -1121,6 +1128,12 @@ loop:
 				p.eqlOffs = len(p.litBs) - 1
 			}
 		case '[':
+			if p.litBs[0] == '{' && p.lang.in(langBashLike) {
+				// In bash, words beginning with '{' are always kept whole,
+				// so that {name[idx]} literals can prefix a redirect
+				// operator below.
+				break
+			}
 			if p.lang.in(langBashLike|LangMirBSDKorn|LangZsh) && len(p.litBs) > 1 && p.litBs[0] != '[' {
 				tok = _Lit
 				break loop
