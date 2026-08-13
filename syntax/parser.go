@@ -665,6 +665,9 @@ const (
 
 	subCmd
 	subCmdBckquo
+	// subCmdBraces is like subCmd, but for `${ stmts;}` and `${|stmts;}`,
+	// whose bodies end at a word beginning with `}`.
+	subCmdBraces
 	dblQuotes
 	hdocWord
 	hdocBody
@@ -682,8 +685,8 @@ const (
 
 	allKeepSpaces = runeByRune | paramExpRepl | dblQuotes | hdocBody |
 		hdocBodyTabs | paramExpRepl | paramExpExp
-	allRegTokens = noState | unquotedWordCont | subCmd | subCmdBckquo | hdocWord |
-		switchCase | arrayElems | testExpr
+	allRegTokens = noState | unquotedWordCont | subCmd | subCmdBckquo | subCmdBraces |
+		hdocWord | switchCase | arrayElems | testExpr
 	allArithmExpr = arithmExpr | arithmExprLet | arithmExprCmd | paramExpArithm
 	allParamExp   = paramExpArithm | paramExpRepl | paramExpExp
 )
@@ -1215,7 +1218,7 @@ func (p *Parser) wordPart() WordPart {
 				TempFile: p.r != '|',
 				ReplyVar: p.r == '|',
 			}
-			old := p.preNested(subCmd)
+			old := p.preNested(subCmdBraces)
 			p.rune() // don't tokenize '|'
 			p.next()
 			cs.Stmts, cs.Last = p.stmtList("}")

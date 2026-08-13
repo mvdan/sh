@@ -500,6 +500,10 @@ var errorCases = []errorCase{
 		langErr("1:1: reached EOF without matching `${` with `}`", LangMirBSDKorn),
 	),
 	errCase(
+		`${ { foo; }bar; }`,
+		langErr("1:12: statements must be separated by &, ; or a newline", LangBash|LangMirBSDKorn),
+	),
+	errCase(
 		"((foo\x80bar",
 		langErr("1:6: invalid UTF-8 encoding"),
 	),

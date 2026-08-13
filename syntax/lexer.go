@@ -1127,6 +1127,13 @@ loop:
 			if p.eqlOffs < 0 {
 				p.eqlOffs = len(p.litBs) - 1
 			}
+		case '}':
+			if p.quote == subCmdBraces && len(p.litBs) == 1 {
+				// A word-initial `}` closes the substitution even if
+				// more characters follow, as in `${ foo;}bar`.
+				p.rune()
+				break loop
+			}
 		case '[':
 			if p.litBs[0] == '{' && p.lang.in(langBashLike) {
 				// In bash, words beginning with '{' are always kept whole,
