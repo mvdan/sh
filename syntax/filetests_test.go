@@ -2278,6 +2278,27 @@ var fileTests = []fileTestCase{
 			ReplyVar: true,
 		}, LangBash|LangMirBSDKorn),
 	),
+	// TODO: `${ foo;}` and `${|foo;}` should be allowed inside double
+	// quotes, and their closing `}` can begin a word such as `${ foo;}bar`.
+	// See issue #1368.
+	fileTest(
+		[]string{`"${ foo;}"`},
+		langErr2("1:10: reached EOF without closing quote `\"`", LangBash|LangMirBSDKorn),
+		langErr2("1:2: `${ stmts;}` is a bash/mksh feature; tried parsing as LANG", LangPOSIX),
+		flipConfirm2(LangBash|LangMirBSDKorn),
+	),
+	fileTest(
+		[]string{`"${|foo;}"`},
+		langErr2("1:10: reached EOF without closing quote `\"`", LangBash|LangMirBSDKorn),
+		langErr2("1:2: `${|stmts;}` is a bash/mksh feature; tried parsing as LANG", LangPOSIX),
+		flipConfirm2(LangBash|LangMirBSDKorn),
+	),
+	fileTest(
+		[]string{`${ foo;}bar`},
+		langErr2("1:1: reached EOF without matching `${` with `}`", LangBash|LangMirBSDKorn),
+		langErr2("1:1: `${ stmts;}` is a bash/mksh feature; tried parsing as LANG", LangPOSIX),
+		flipConfirm2(LangBash|LangMirBSDKorn),
+	),
 	fileTest(
 		[]string{`"$foo"`},
 		langFile(dblQuoted(litParamExp("foo"))),
