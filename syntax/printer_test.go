@@ -116,6 +116,11 @@ var printTests = []printCase{
 	samePrint("<<EOF\nEOF"),
 	samePrint("foo <<EOF\nEOF\n\nbar"),
 	samePrint("foo <<'EOF'\nEOF\n\nbar"),
+	// A closing backquote may share a line with a here-document's terminator,
+	// but the closing parenthesis we print in its place may not.
+	{"`foo <<EOF\nbar\nEOF`", "$(\n\tfoo <<EOF\nbar\nEOF\n)"},
+	{"`foo <<-EOF\n\tbar\n\tEOF`", "$(\n\tfoo <<-EOF\n\t\tbar\n\tEOF\n)"},
+	{"`foo <<EOF\nbar\nEOF` `baz <<EOF\nqux\nEOF`", "$(\n\tfoo <<EOF\nbar\nEOF\n) $(\n\tbaz <<EOF\nqux\nEOF\n)"},
 	samePrint("if cmd <<EOF\nbody\nEOF\nthen\n\tfoo\nfi"),
 	samePrint("while cmd <<EOF\nbody\nEOF\ndo\n\tfoo\ndone"),
 	samePrint("if true; then\n\tcat <<-EOF # comment\n\t\tcontent\n\tEOF\nfi"),

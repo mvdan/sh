@@ -863,6 +863,14 @@ func (p *Printer) cmdSubst(cs *CmdSubst) {
 		} else {
 			p.wantSpace = spaceNotRequired
 		}
+		// A here-document's terminator needs a line of its own, but a closing
+		// backquote may directly follow it, as in "`foo <<EOF\nbar\nEOF`".
+		// We always print command substitutions as $(...), and a closing
+		// parenthesis cannot share the terminator's line, so the body is going
+		// to span multiple lines no matter what cs.Right says.
+		if cs.Backquotes && endsWithHeredocBody(cs.Stmts) {
+			p.wantNewline = true
+		}
 		p.nestedStmts(cs.Stmts, cs.Last, cs.Right)
 		p.closingParen(cs.Stmts, cs.Last, cs.Left, cs.Right)
 	}
@@ -1632,6 +1640,22 @@ func startsWithLparen(node Node) bool {
 		return true // keep ( ((
 	}
 	return false
+}
+
+// endsWithHeredocBody reports whether the printed form of the last statement
+// ends with the body and terminator line of a here-document.
+func endsWithHeredocBody(stmts []*Stmt) bool {
+	if len(stmts) == 0 {
+		return false
+	}
+	redirs := stmts[len(stmts)-1].Redirs
+	if len(redirs) == 0 {
+		return false
+	}
+	last := redirs[len(redirs)-1]
+	// An empty body leaves the terminator on the redirect's own line, which
+	// the position of the closing token already reflects.
+	return last.Hdoc != nil && (last.Op == Hdoc || last.Op == DashHdoc)
 }
 
 func endsWithRparen(node Node) bool {
