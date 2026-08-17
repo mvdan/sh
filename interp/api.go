@@ -541,6 +541,10 @@ func AccessHandler(f AccessHandlerFunc) RunnerOption {
 // When providing an [*os.File] as standard input, consider using an [os.Pipe]
 // as it has the best chance to support cancellable reads via [os.File.SetReadDeadline],
 // so that cancelling the runner's context can stop a blocked standard input read.
+//
+// On js/wasm, where there are no subprocesses nor OS pipes, any reader is used
+// directly, and read deadlines are not supported: cancelling the runner's
+// context cannot stop a blocked standard input read.
 func StdIO(in io.Reader, out, err io.Writer) RunnerOption {
 	return func(r *Runner) error {
 		stdin, _err := newStdinFile(in)

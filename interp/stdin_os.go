@@ -10,14 +10,15 @@ import (
 	"os"
 )
 
-// newOSPipe returns an OS pipe; both ends are [*os.File] so they can
+// stdinFile is the runner's standard input. Outside of js/wasm it is
+// always an [*os.File]: the only type that subprocesses can inherit,
+// and one supporting cancellable reads via [os.File.SetReadDeadline].
+type stdinFile = *os.File
+
+// newPipe returns an OS pipe; both ends are [*os.File] so they can
 // be inherited by subprocesses.
-func newOSPipe() (stdinFile, pipeWriter, error) {
-	pr, pw, err := os.Pipe()
-	if err != nil {
-		return nil, nil, err
-	}
-	return pr, pw, nil
+func newPipe() (stdinFile, *os.File, error) {
+	return os.Pipe()
 }
 
 // newStdinFile converts a reader into the runner's stdin. Readers
