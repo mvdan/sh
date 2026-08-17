@@ -155,6 +155,8 @@ func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args 
 	case ":", "true":
 	case "false":
 		exit.code = 1
+	case "help":
+		return r.runHelp(args)
 	case "exit":
 		switch len(args) {
 		case 0:
