@@ -243,6 +243,9 @@ var runTests = []runTest{
 	{"help -s jobs", "jobs: jobs [-lnprs] [jobspec ...]\n #IGNORE bash implements jobs, and its synopsis differs"},
 	{"help jobs", "jobs: jobs [-lnprs] [jobspec ...]\n    Display status of jobs.\n    (recognized by this shell but not implemented)\n\n #IGNORE bash implements jobs"},
 
+	// times
+	{"times", "0m0.000s 0m0.000s\n0m0.000s 0m0.000s\n #IGNORE we report zeros; bash reports real CPU time"},
+
 	// exit status codes
 	{"exit 1", "exit status 1"},
 	{"exit -1", "exit status 255"},
