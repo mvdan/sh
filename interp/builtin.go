@@ -157,6 +157,14 @@ func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args 
 		exit.code = 1
 	case "help":
 		return r.runHelp(args)
+	case "times":
+		// js/wasm has no per-process CPU accounting at all, so report zeros
+		// in bash's format — shell user/sys, then children user/sys — rather
+		// than fail.
+		// TODO: report real times on platforms that can, via os/exec's
+		// ProcessState or syscall.Getrusage. Not urgent; nothing depends on
+		// the values being non-zero.
+		r.out("0m0.000s 0m0.000s\n0m0.000s 0m0.000s\n")
 	case "exit":
 		switch len(args) {
 		case 0:
