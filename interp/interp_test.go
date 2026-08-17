@@ -232,6 +232,17 @@ var runTests = []runTest{
 	{"{ :; }", ""},
 	{"(:)", ""},
 
+	// help
+	{"help -s pwd", "pwd: pwd [-LP]\n"},
+	{"help -d true", "true - Return a successful result.\n"},
+	{"help -s ec*", "echo: echo [-neE] [arg ...]\n #IGNORE bash prints a `Shell commands matching keyword' header"},
+	{"help nosuchthing", "help: no help topics match `nosuchthing'.  Try `help help'.\nexit status 1 #IGNORE bash also suggests man and info"},
+	{"help -q", "help: -q: invalid option\nhelp: usage: help [-dms] [pattern ...]\nexit status 2 #IGNORE bash prefixes its errors with `bash: line N:'"},
+	// a builtin we recognize but do not implement is starred, so that help is
+	// an honest statement of what this shell can do
+	{"help -s jobs", "jobs: jobs [-lnprs] [jobspec ...]\n #IGNORE bash implements jobs, and its synopsis differs"},
+	{"help jobs", "jobs: jobs [-lnprs] [jobspec ...]\n    Display status of jobs.\n    (recognized by this shell but not implemented)\n\n #IGNORE bash implements jobs"},
+
 	// exit status codes
 	{"exit 1", "exit status 1"},
 	{"exit -1", "exit status 255"},
