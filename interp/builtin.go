@@ -165,6 +165,34 @@ func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args 
 		// ProcessState or syscall.Getrusage. Not urgent; nothing depends on
 		// the values being non-zero.
 		r.out("0m0.000s 0m0.000s\n0m0.000s 0m0.000s\n")
+	case "umask":
+		symbolic := false
+		rest := args
+		for len(rest) > 0 && strings.HasPrefix(rest[0], "-") && rest[0] != "-" {
+			switch rest[0] {
+			case "-S":
+				symbolic = true
+			case "-p":
+				// "print in a form reusable as input" — the mask line below
+				// already is, so -p only differs by the leading word.
+			default:
+				return failf(2, "umask: %s: invalid option\n", rest[0])
+			}
+			rest = rest[1:]
+		}
+		if len(rest) > 0 {
+			mask, err := strconv.ParseUint(rest[0], 8, 32)
+			if err != nil {
+				return failf(2, "umask: %s: octal number expected\n", rest[0])
+			}
+			r.umask = uint32(mask)
+			break
+		}
+		if symbolic {
+			r.out(umaskSymbolic(r.umask) + "\n")
+		} else {
+			r.outf("%04o\n", r.umask)
+		}
 	case "exit":
 		switch len(args) {
 		case 0:
@@ -1253,4 +1281,25 @@ func (r *Runner) optStatusText(status bool) string {
 		return "on"
 	}
 	return "off"
+}
+
+// umaskSymbolic renders a mask the way `umask -S` does: the permissions that
+// remain, not the ones masked off.
+func umaskSymbolic(mask uint32) string {
+	var b strings.Builder
+	for i, who := range []string{"u", "g", "o"} {
+		if i > 0 {
+			b.WriteByte(',')
+		}
+		b.WriteString(who)
+		b.WriteByte('=')
+		shift := uint(6 - 3*i)
+		bits := (mask >> shift) & 7
+		for j, perm := range []string{"r", "w", "x"} {
+			if bits&(4>>uint(j)) == 0 {
+				b.WriteString(perm)
+			}
+		}
+	}
+	return b.String()
 }
