@@ -37,6 +37,14 @@ Packages are available on [Alpine], [Arch], [Debian], [Docker], [Fedora], [FreeB
 
 Proof of concept shell that uses the `interp` package.
 
+### Contributing
+
+Bug reports and feature requests should be filed as detailed issues,
+ideally with an example which reproduces the bug or shows what feature you're after.
+
+Unless you're an active user or contributor to the project, drive-by AI patches
+are not helpful. File detailed issues instead.
+
 ### Fuzzing
 
 We use Go's native fuzzing support. For instance:
