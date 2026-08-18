@@ -3677,6 +3677,20 @@ done <<< 2`,
 		"exec $GOSH_PROG 'echo foo'; echo bar",
 		"foo\n",
 	},
+	{
+		"exec -a",
+		"exec: -a: option requires an argument\nexit status 2 #JUSTERR",
+	},
+	{
+		"exec -q foo",
+		"exec: invalid option \"-q\"\nexit status 2 #JUSTERR",
+	},
+	{
+		// Flags with no command to apply to still keep this statement's
+		// redirections open, as bare "exec" does.
+		"exec -a name >/dev/null; echo foo",
+		"",
+	},
 
 	// read
 	{
@@ -3949,6 +3963,34 @@ done <<< 2`,
 
 var runTestsUnix = []runTest{
 	{"[[ -n $PPID && $PPID -ge 0 ]]", ""}, // can be 0 if running as the init process
+
+	// exec's flags, which need a program that reports its own argv[0] and
+	// environment. gosh sets $0 itself, so /bin/sh is the observer here.
+	{
+		// -a runs one file while telling it a different argv[0], which is how
+		// a multi-call binary is dispatched without a wrapper.
+		"(exec -a argv0name /bin/sh -c 'echo $0')",
+		"argv0name\n",
+	},
+	{
+		// -l marks a login shell by prefixing argv[0] with a dash.
+		"(exec -l /bin/sh -c 'case $0 in -*) echo dashed ;; *) echo plain ;; esac')",
+		"dashed\n",
+	},
+	{
+		// -a and -l compose: the dash goes on the overridden name.
+		"(exec -l -a argv0name /bin/sh -c 'echo $0')",
+		"-argv0name\n",
+	},
+	{
+		// -c runs the command with an empty environment.
+		"export FOO=bar; (exec -c /bin/sh -c 'echo ${FOO-unset}')",
+		"unset\n",
+	},
+	{
+		"export FOO=bar; (exec /bin/sh -c 'echo ${FOO-unset}')",
+		"bar\n",
+	},
 	{
 		// no root user on windows
 		"[[ ~root == '~root' ]]",

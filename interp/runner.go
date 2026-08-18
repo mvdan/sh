@@ -1126,7 +1126,23 @@ func (r *Runner) call(ctx context.Context, pos syntax.Pos, args []string) {
 }
 
 func (r *Runner) exec(ctx context.Context, pos syntax.Pos, args []string) {
-	r.exit.fromHandlerError(r.execHandler(r.handlerCtx(ctx, handlerKindExec, pos), args))
+	r.execWith(ctx, pos, "", false, args)
+}
+
+// execWith is [Runner.exec] with the two things "exec"'s own flags can change
+// about how the program runs: an argv[0] which differs from the file being run
+// ("exec -a name file", and "exec -l"), and an empty environment ("exec -c").
+// An empty argv0 and a false clearEnv mean neither applies, which is every
+// caller other than the exec builtin.
+func (r *Runner) execWith(ctx context.Context, pos syntax.Pos, argv0 string, clearEnv bool, args []string) {
+	hctx := r.handlerCtx(ctx, handlerKindExec, pos)
+	if argv0 != "" || clearEnv {
+		hc := HandlerCtx(hctx)
+		hc.Argv0 = argv0
+		hc.ClearEnv = clearEnv
+		hctx = context.WithValue(hctx, handlerCtxKey{}, hc)
+	}
+	r.exit.fromHandlerError(r.execHandler(hctx, args))
 }
 
 func (r *Runner) open(ctx context.Context, path string, flags int, mode os.FileMode, print bool) (io.ReadWriteCloser, error) {

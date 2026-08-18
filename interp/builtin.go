@@ -528,12 +528,43 @@ func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args 
 		// the process. It's in theory what a shell should do,
 		// but in practice it would kill the entire Go process
 		// and it's not available on Windows.
+		argv0 := ""
+		login, clearEnv := false, false
+		fp := flagParser{remaining: args}
+		for fp.more() {
+			switch flag := fp.flag(); flag {
+			case "-a":
+				if len(fp.remaining) == 0 {
+					return failf(2, "exec: -a: option requires an argument\n")
+				}
+				argv0 = fp.value()
+			case "-l":
+				login = true
+			case "-c":
+				clearEnv = true
+			default:
+				return failf(2, "exec: invalid option %q\n", flag)
+			}
+		}
+		args := fp.args()
 		if len(args) == 0 {
+			// "exec" on its own keeps this statement's redirections open. Any
+			// flags then have nothing to apply to, as in bash.
 			r.keepRedirs = true
 			break
 		}
+		if argv0 == "" {
+			argv0 = args[0]
+		}
+		if login {
+			// A login shell is told an argv[0] prefixed with "-".
+			argv0 = "-" + argv0
+		}
 		r.exit.exiting = true
-		r.exec(ctx, pos, args)
+		if argv0 == args[0] {
+			argv0 = "" // nothing to override
+		}
+		r.execWith(ctx, pos, argv0, clearEnv, args)
 		exit = r.exit
 	case "command":
 		show := false

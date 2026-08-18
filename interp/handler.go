@@ -83,6 +83,21 @@ type HandlerContext struct {
 	// so this refers to the command before it.
 	// At the start of a trap callback, it is the status of the command which triggered the trap.
 	LastExitStatus int
+
+	// Argv0, when not empty, is the name the executed program should see as its
+	// own argv[0], which may differ from the file which is looked up and run.
+	// It is set by "exec -a name file" and, for a login shell, by "exec -l".
+	//
+	// An [ExecHandlerFunc] which ignores this field keeps working and simply
+	// does not support those flags; [DefaultExecHandler] honors it.
+	Argv0 string
+
+	// ClearEnv reports whether the executed program should be given an empty
+	// environment rather than the interpreter's. It is set by "exec -c".
+	//
+	// As with [HandlerContext.Argv0], an [ExecHandlerFunc] which ignores this
+	// field keeps working; [DefaultExecHandler] honors it.
+	ClearEnv bool
 }
 
 // CallHandlerFunc is a handler which runs on every [syntax.CallExpr].
@@ -147,7 +162,19 @@ func DefaultExecHandler(killTimeout time.Duration) ExecHandlerFunc {
 		}
 		cmd := exec.CommandContext(ctx, path)
 		cmd.Args = args
-		cmd.Env = execEnv(hc.Env)
+		if hc.Argv0 != "" {
+			// "exec -a name file" and "exec -l" run one file while telling it
+			// a different argv[0]. Multi-call binaries dispatch on that name,
+			// so it decides which program actually runs.
+			cmd.Args = append([]string{hc.Argv0}, args[1:]...)
+		}
+		if hc.ClearEnv {
+			// Not nil, which os/exec would read as "inherit this process's
+			// environment" — the opposite of what "exec -c" asks for.
+			cmd.Env = []string{}
+		} else {
+			cmd.Env = execEnv(hc.Env)
+		}
 		cmd.Dir = hc.Dir
 		cmd.Stdin = hc.Stdin
 		cmd.Stdout = hc.Stdout
