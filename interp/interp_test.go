@@ -1608,6 +1608,57 @@ var runTests = []runTest{
 		"",
 	},
 	{
+		// `>|` overwrites the file whether or not noclobber is set
+		"echo old >f; echo new >|f; cat f",
+		"new\n",
+	},
+	{
+		// `<>` opens for reading and writing without truncating
+		"echo hi >f; read -r l <>f; echo \"[$l]\"; cat f",
+		"[hi]\nhi\n",
+	},
+
+	// noclobber
+	{
+		`set -C; echo old >f; echo new >f; echo "st=$?"; cat f`,
+		"f: cannot overwrite existing file\nst=1\nold\n #IGNORE bash prefixes its diagnostics",
+	},
+	{
+		// the same without the diagnostic, so that bash confirms the behavior
+		`set -C; echo old >f; echo new 2>/dev/null >f; echo "st=$?"; cat f`,
+		"st=1\nold\n",
+	},
+	{
+		// writing to a file which does not exist yet is allowed
+		`set -C; echo new >f; cat f`,
+		"new\n",
+	},
+	{
+		`set -C; echo old >f; echo new >|f; cat f`,
+		"new\n",
+	},
+	{
+		`set -C; echo old >f; echo new >>f; cat f`,
+		"old\nnew\n",
+	},
+	{
+		`set -C; echo old >f; echo new 2>/dev/null &>f; echo "st=$?"; cat f`,
+		"st=1\nold\n",
+	},
+	{
+		// only regular files are protected
+		`set -C; echo x >/dev/null; echo "st=$?"`,
+		"st=0\n",
+	},
+	{
+		`set -C; set +C; echo old >f; echo new >f; cat f`,
+		"new\n",
+	},
+	{
+		`set -o noclobber; echo old >f; echo new 2>/dev/null >f; echo "st=$?"`,
+		"st=1\n",
+	},
+	{
 		"echo foo | sed $(read line 2>/dev/null; echo 's/o/a/g')",
 		"",
 	},
@@ -2547,6 +2598,7 @@ var runTests = []runTest{
 		"set -a; set +o",
 		`set -o allexport
 set +o errexit
+set +o noclobber
 set +o noexec
 set +o noglob
 set +o nounset

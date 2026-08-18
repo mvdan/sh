@@ -1023,7 +1023,7 @@ func (r *Runner) redir(ctx context.Context, rd *syntax.Redirect) (io.Closer, err
 		}
 		return nil, nil
 	case syntax.RdrIn, syntax.RdrOut, syntax.AppOut,
-		syntax.RdrAll, syntax.AppAll:
+		syntax.RdrAll, syntax.AppAll, syntax.RdrClob, syntax.RdrInOut:
 		// done further below
 	case syntax.DplIn:
 		switch arg {
@@ -1036,25 +1036,44 @@ func (r *Runner) redir(ctx context.Context, rd *syntax.Redirect) (io.Closer, err
 	default:
 		return nil, fmt.Errorf("unhandled redirect op: %v", rd.Op)
 	}
+	// noclobber refuses to truncate an existing regular file. ">|" is the
+	// escape hatch which ignores the option, and appending or writing to a file
+	// which does not exist yet is always allowed. Note that bash only protects
+	// regular files, so ">/dev/null" keeps working.
+	if r.opts[optNoClobber] {
+		switch rd.Op {
+		case syntax.RdrOut, syntax.RdrAll:
+			if info, err := r.stat(ctx, arg); err == nil && info.Mode().IsRegular() {
+				// Note that the errors which [Runner.redir] returns are not
+				// reported by its caller, so we must report this one ourselves.
+				err := fmt.Errorf("%s: cannot overwrite existing file", arg)
+				r.errf("%v\n", err)
+				return nil, err
+			}
+		}
+	}
 	mode := os.O_RDONLY
 	switch rd.Op {
 	case syntax.AppOut, syntax.AppAll:
 		mode = os.O_WRONLY | os.O_CREATE | os.O_APPEND
-	case syntax.RdrOut, syntax.RdrAll:
+	case syntax.RdrOut, syntax.RdrAll, syntax.RdrClob:
 		mode = os.O_WRONLY | os.O_CREATE | os.O_TRUNC
+	case syntax.RdrInOut:
+		// "<>" opens for reading and writing without truncating.
+		mode = os.O_RDWR | os.O_CREATE
 	}
 	f, err := r.open(ctx, arg, mode, 0o644, true)
 	if err != nil {
 		return nil, err
 	}
 	switch rd.Op {
-	case syntax.RdrIn:
+	case syntax.RdrIn, syntax.RdrInOut:
 		stdin, err := stdinFile(f)
 		if err != nil {
 			return nil, err
 		}
 		r.stdin = stdin
-	case syntax.RdrOut, syntax.AppOut:
+	case syntax.RdrOut, syntax.AppOut, syntax.RdrClob:
 		*orig = f
 	case syntax.RdrAll, syntax.AppAll:
 		r.stdout = f
