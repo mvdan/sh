@@ -14,7 +14,6 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
 
 	"golang.org/x/term"
@@ -666,7 +665,14 @@ func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args 
 		var prompt string
 		raw := false
 		silent := false
-		readArray := false
+		arrayName := ""
+		delim := byte('\n')
+		// maxChars is the count given to -n or -N; a negative value means that
+		// the read is only stopped by the delimiter or by the end of the input.
+		maxChars := -1
+		// exactly is set by -N, which reads a fixed number of characters,
+		// ignoring the delimiter and doing no field splitting.
+		exactly := false
 		fp := flagParser{remaining: args}
 		for fp.more() {
 			switch flag := fp.flag(); flag {
@@ -675,12 +681,44 @@ func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args 
 			case "-r":
 				raw = true
 			case "-a":
-				readArray = true
+				// Note that bash takes the array name as this option's
+				// argument, so further options may follow it.
+				if len(fp.remaining) == 0 {
+					return failf(2, "read: -a: option requires an argument\n")
+				}
+				arrayName = fp.value()
+				if !syntax.ValidName(arrayName) {
+					return failf(2, "read: invalid identifier %q\n", arrayName)
+				}
 			case "-p":
 				prompt = fp.value()
 				if prompt == "" {
 					return failf(2, "read: -p: option requires an argument\n")
 				}
+			case "-d":
+				// Note that an empty string is a valid delimiter, so we can't
+				// use the empty return from value to detect a missing argument.
+				if len(fp.remaining) == 0 {
+					return failf(2, "read: -d: option requires an argument\n")
+				}
+				if val := fp.value(); val == "" {
+					// Bash uses an ASCII NUL when given an empty string,
+					// which is how "find -print0" input is consumed.
+					delim = 0
+				} else {
+					delim = val[0]
+				}
+			case "-n", "-N":
+				if len(fp.remaining) == 0 {
+					return failf(2, "read: %s: option requires an argument\n", flag)
+				}
+				val := fp.value()
+				n, err := strconv.Atoi(val)
+				if err != nil || n < 0 {
+					return failf(1, "read: %s: invalid number\n", val)
+				}
+				maxChars = n
+				exactly = flag == "-N"
 			default:
 				return failf(2, "read: invalid option %q\n", flag)
 			}
@@ -699,18 +737,18 @@ func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args 
 
 		var line []byte
 		var err error
-		if silent {
-			// Note that on Windows, syscall.Stdin is of type uintptr.
-			line, err = term.ReadPassword(int(syscall.Stdin))
+		// -s only has an effect when reading from a terminal, as there is no
+		// echo to suppress when the input is a pipe or a file. Note that we
+		// must use the shell's stdin rather than the process's, as they differ
+		// under a redirect and when the caller supplied its own via [StdIO].
+		if silent && r.stdin != nil && delim == '\n' && maxChars < 0 &&
+			term.IsTerminal(int(r.stdin.Fd())) {
+			line, err = term.ReadPassword(int(r.stdin.Fd()))
 		} else {
-			line, err = r.readLine(ctx, raw)
+			line, err = r.readLine(ctx, raw, delim, maxChars, exactly)
 		}
-		if readArray {
-			// read -a arrayname: split line into fields and assign to indexed array.
-			arrayName := shellReplyVar
-			if len(args) > 0 {
-				arrayName = args[0]
-			}
+		switch {
+		case arrayName != "":
 			// Use -1 as max to get all fields without joining the last ones.
 			values := expand.ReadFields(r.ecfg, string(line), -1, raw)
 			r.setVar(arrayName, expand.Variable{
@@ -718,25 +756,24 @@ func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args 
 				Kind: expand.Indexed,
 				List: values,
 			})
-		} else if len(args) == 0 {
-			// Bare "read" assigns the whole line to REPLY without any
-			// trimming, only discarding backslash escapes unless raw.
+		case exactly, len(args) == 0:
+			// A bare "read" assigns the whole line to REPLY, and -N assigns
+			// the characters it read to the first name given. Neither does any
+			// trimming nor field splitting; both discard escapes unless raw.
 			val := string(line)
 			if !raw {
-				var sb strings.Builder
-				esc := false
-				for i := range len(val) {
-					if val[i] == '\\' && !esc {
-						esc = true
-						continue
-					}
-					sb.WriteByte(val[i])
-					esc = false
-				}
-				val = sb.String()
+				val = unescapeRead(val)
 			}
-			r.setVarString(shellReplyVar, val)
-		} else {
+			name := shellReplyVar
+			if len(args) > 0 {
+				name = args[0]
+			}
+			r.setVarString(name, val)
+			// Bash leaves any remaining names empty rather than unset.
+			for _, name := range args[min(1, len(args)):] {
+				r.setVarString(name, "")
+			}
+		default:
 			values := expand.ReadFields(r.ecfg, string(line), len(args), raw)
 			for i, name := range args {
 				val := ""
@@ -1042,13 +1079,41 @@ func (r *Runner) printOptLine(name string, enabled, supported bool) {
 	r.outf("%s\t%s\t(%q not supported)\n", name, state, r.optStatusText(!enabled))
 }
 
-func (r *Runner) readLine(ctx context.Context, raw bool) ([]byte, error) {
+// unescapeRead drops the backslashes which escape another character, as "read"
+// does when its -r option is not given.
+func unescapeRead(val string) string {
+	var sb strings.Builder
+	esc := false
+	for i := range len(val) {
+		if val[i] == '\\' && !esc {
+			esc = true
+			continue
+		}
+		sb.WriteByte(val[i])
+		esc = false
+	}
+	return sb.String()
+}
+
+// readLine reads from the shell's stdin until it reaches delim, or maxChars
+// characters when it is not negative, or the end of the input. When exactly is
+// set, delim is not looked for at all, as used by "read -N".
+//
+// Note that the returned line still holds the backslashes which escape another
+// character, as whether they are dropped depends on the caller.
+func (r *Runner) readLine(ctx context.Context, raw bool, delim byte, maxChars int, exactly bool) ([]byte, error) {
 	if r.stdin == nil {
 		return nil, errors.New("interp: can't read, there's no stdin")
+	}
+	if maxChars == 0 {
+		return nil, nil
 	}
 
 	var line []byte
 	esc := false
+	// chars counts the characters that the line will hold once the escaping
+	// backslashes are dropped, which is what -n and -N count.
+	chars := 0
 
 	stopc := make(chan struct{})
 	stop := context.AfterFunc(ctx, func() {
@@ -1072,15 +1137,25 @@ func (r *Runner) readLine(ctx context.Context, raw bool) ([]byte, error) {
 			case !raw && b == '\\':
 				line = append(line, b)
 				esc = !esc
-			case !raw && b == '\n' && esc:
+				if !esc {
+					// A second backslash, so the pair is one character.
+					chars++
+				}
+			case !raw && !exactly && b == delim && esc && delim == '\n':
 				// line continuation; drop the trailing backslash
 				line = line[:len(line)-1]
 				esc = false
-			case b == '\n':
+			case !exactly && b == delim && !esc:
 				return line, nil
 			default:
+				// Note that an escaped delimiter lands here, so it becomes a
+				// literal character rather than ending the line.
 				line = append(line, b)
 				esc = false
+				chars++
+			}
+			if maxChars >= 0 && chars >= maxChars {
+				return line, nil
 			}
 		}
 		if err != nil {

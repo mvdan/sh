@@ -3839,6 +3839,91 @@ done <<< 2`,
 		"1 a\\tb\n",
 	},
 	{
+		"read -a",
+		"read: -a: option requires an argument\nexit status 2 #JUSTERR",
+	},
+
+	// read -d
+	{
+		`printf 'a:b:' | { read -r -d : x; echo "[$x]"; read -r -d : y; echo "[$y]"; }`,
+		"[a]\n[b]\n",
+	},
+	{
+		// reaching the end of the input without the delimiter still assigns
+		`printf 'ab' | { read -r -d : x; echo "$? [$x]"; }`,
+		"1 [ab]\n",
+	},
+	{
+		// an empty delimiter means an ASCII NUL, as used with "find -print0"
+		`printf 'a\0b\0' | while read -r -d '' f; do echo "[$f]"; done`,
+		"[a]\n[b]\n",
+	},
+	{
+		// an escaped delimiter is a literal character, so it doesn't end the line
+		`printf 'a\\:b:' | { read -d : x; echo "[$x]"; }`,
+		"[a:b]\n",
+	},
+	{
+		`printf 'a b:' | { read -r -a arr -d :; echo "${#arr[@]} [${arr[0]}] [${arr[1]}]"; }`,
+		"2 [a] [b]\n",
+	},
+	{
+		"read -d",
+		"read: -d: option requires an argument\nexit status 2 #JUSTERR",
+	},
+
+	// read -n and read -N
+	{
+		`printf 'abcd\n' | { read -r -n 2 x; echo "$? [$x]"; read -r rest; echo "[$rest]"; }`,
+		"0 [ab]\n[cd]\n",
+	},
+	{
+		`printf 'ab' | { read -r -N 3 x; echo "$? [$x]"; }`,
+		"1 [ab]\n",
+	},
+	{
+		// -N reads a fixed number of characters, ignoring the delimiter
+		`printf 'ab:cd' | { read -r -N 4 -d : x; echo "[$x]"; }`,
+		"[ab:c]\n",
+	},
+	{
+		// -N does no field splitting nor trimming, unlike -n
+		`printf '  a b\n' | { read -N 5 x y; echo "[$x] [$y]"; }`,
+		"[  a b] []\n",
+	},
+	{
+		`printf '  a b\n' | { read -n 5 x y; echo "[$x] [$y]"; }`,
+		"[a] [b]\n",
+	},
+	{
+		// -N still counts the characters after the escapes are dropped
+		`printf 'a\\bc' | { read -N 3 x; echo "[$x]"; }`,
+		"[abc]\n",
+	},
+	{
+		`printf 'abc\n' | { read -r -n 0 x; echo "$? [$x]"; }`,
+		"0 []\n",
+	},
+	{
+		"read -n",
+		"read: -n: option requires an argument\nexit status 2 #JUSTERR",
+	},
+	{
+		"read -n abc",
+		"read: abc: invalid number\nexit status 1 #JUSTERR",
+	},
+	{
+		"read -N -1",
+		"read: -1: invalid number\nexit status 1 #JUSTERR",
+	},
+
+	// read -s reads from the shell's stdin, which is not the process's stdin
+	// under a redirect; there is no echo to suppress when it isn't a terminal.
+	{
+		`printf 'hi\n' | { read -r -s x; echo "[$x]"; }`,
+		"[hi]\n",
+	},
+	{
 		`a=a; echo | (read a; echo -n "$a")`,
 		"",
 	},

@@ -578,7 +578,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 					}
 					r.errf("%s", ps3)
 
-					line, err := r.readLine(ctx, true)
+					line, err := r.readLine(ctx, true, '\n', -1, false)
 					if err != nil {
 						r.errf("\n")
 						r.exit.code = 1
