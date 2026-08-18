@@ -75,9 +75,9 @@ type Runner struct {
 	// tempDir is either $TMPDIR from [Runner.Env], or [os.TempDir].
 	tempDir string
 
-	// umask is the file mode creation mask reported and set by the umask
-	// builtin. It is bookkeeping only: this interpreter creates files
-	// through the open handler, which owns permissions.
+	// umask is the file mode creation mask set by the umask builtin.
+	// Redirections which create a file pass 0666 masked by it to the open
+	// handler, as bash does. The kernel applies the process umask on top.
 	umask uint32
 
 	// Params are the current shell parameters, e.g. from running a shell

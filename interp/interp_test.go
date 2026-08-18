@@ -5506,6 +5506,35 @@ func TestRunnerDir(t *testing.T) {
 	})
 }
 
+func TestRunnerUmaskRedirect(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		src  string
+		want os.FileMode
+	}{
+		{"echo x >f", 0o644},
+		{"umask 077; echo x >f", 0o600},
+		{"umask 002; echo x >>f", 0o664},
+		{"umask 000; echo x &>f", 0o666},
+	}
+	for _, test := range tests {
+		t.Run(test.src, func(t *testing.T) {
+			t.Parallel()
+			var got os.FileMode
+			open := func(ctx context.Context, path string, flag int, perm os.FileMode) (io.ReadWriteCloser, error) {
+				got = perm
+				return interp.DefaultOpenHandler()(ctx, path, flag, perm)
+			}
+			file, err := syntax.NewParser().Parse(strings.NewReader(test.src), "")
+			qt.Assert(t, qt.IsNil(err))
+			r, err := interp.New(interp.Dir(t.TempDir()), interp.OpenHandler(open))
+			qt.Assert(t, qt.IsNil(err))
+			qt.Assert(t, qt.IsNil(r.Run(t.Context(), file)))
+			qt.Assert(t, qt.Equals(got, test.want))
+		})
+	}
+}
+
 func TestRunnerIncremental(t *testing.T) {
 	t.Parallel()
 

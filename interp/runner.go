@@ -1113,7 +1113,8 @@ func (r *Runner) redir(ctx context.Context, rd *syntax.Redirect) (io.Closer, err
 	case syntax.RdrOut, syntax.RdrAll:
 		mode = os.O_WRONLY | os.O_CREATE | os.O_TRUNC
 	}
-	f, err := r.open(ctx, arg, mode, 0o644, false)
+	// As in bash, a redirection creates files with 0666 masked by the umask.
+	f, err := r.open(ctx, arg, mode, 0o666&^os.FileMode(r.umask), false)
 	if err != nil {
 		return nil, err
 	}
