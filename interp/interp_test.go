@@ -127,8 +127,7 @@ func TestMain(m *testing.M) {
 		)
 		ctx := context.Background()
 		if err := runner.Run(ctx, file); err != nil {
-			var es interp.ExitStatus
-			if errors.As(err, &es) {
+			if es, ok := errors.AsType[interp.ExitStatus](err); ok {
 				os.Exit(int(es))
 			}
 

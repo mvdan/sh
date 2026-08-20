@@ -233,11 +233,9 @@ func (e *exitStatus) fromHandlerError(err error) {
 	if err == nil {
 		return
 	}
-	var exit errBuiltinExitStatus
-	var es ExitStatus
-	if errors.As(err, &exit) {
+	if exit, ok := errors.AsType[errBuiltinExitStatus](err); ok {
 		*e = exitStatus(exit)
-	} else if errors.As(err, &es) {
+	} else if es, ok := errors.AsType[ExitStatus](err); ok {
 		e.err = err
 		e.code = uint8(es)
 	} else {
@@ -904,8 +902,7 @@ func NewExitStatus(status uint8) error {
 //
 //go:fix inline
 func IsExitStatus(err error) (status uint8, ok bool) {
-	var es ExitStatus
-	if errors.As(err, &es) {
+	if es, ok := errors.AsType[ExitStatus](err); ok {
 		return uint8(es), true
 	}
 	return 0, false

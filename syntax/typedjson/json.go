@@ -78,8 +78,8 @@ func encodeValue(val reflect.Value) (reflect.Value, string) {
 		// and then all the visible fields which aren't positions.
 		typ := val.Type()
 		fields := []reflect.StructField{typeField, posField, endField}
-		for i := range typ.NumField() {
-			field := typ.Field(i)
+		for field := range typ.Fields() {
+			field := field
 			typ := anyType
 			if field.Type == posType {
 				typ = exportedPosType
@@ -94,7 +94,7 @@ func encodeValue(val reflect.Value) (reflect.Value, string) {
 		enc := reflect.New(encTyp).Elem()
 
 		// Node methods are defined on struct pointer receivers.
-		if node, _ := val.Addr().Interface().(syntax.Node); node != nil {
+		if node, _ := reflect.TypeAssert[syntax.Node](val.Addr()); node != nil {
 			encodePos(enc.Field(1), node.Pos()) // posField
 			encodePos(enc.Field(2), node.End()) // endField
 		}

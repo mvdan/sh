@@ -290,7 +290,7 @@ func (p *debugPrinter) print(x reflect.Value) {
 		p.printf("}")
 
 	case reflect.Struct:
-		if v, ok := x.Interface().(Pos); ok {
+		if v, ok := reflect.TypeAssert[Pos](x); ok {
 			if v.IsRecovered() {
 				p.printf("<recovered>")
 				return
@@ -312,7 +312,7 @@ func (p *debugPrinter) print(x reflect.Value) {
 		}
 		p.printf("}")
 	default:
-		if s, ok := x.Interface().(fmt.Stringer); ok && !x.IsZero() {
+		if s, ok := reflect.TypeAssert[fmt.Stringer](x); ok && !x.IsZero() {
 			p.printf("%#v (%s)", x.Interface(), s)
 		} else {
 			p.printf("%#v", x.Interface())

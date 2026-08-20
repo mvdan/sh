@@ -24,8 +24,7 @@ var command = flag.String("c", "", "command to be executed")
 func main() {
 	flag.Parse()
 	err := runAll()
-	var es interp.ExitStatus
-	if errors.As(err, &es) {
+	if es, ok := errors.AsType[interp.ExitStatus](err); ok {
 		os.Exit(int(es))
 	}
 	if err != nil {

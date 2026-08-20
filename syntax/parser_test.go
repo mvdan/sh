@@ -2805,15 +2805,15 @@ func countRecoveredPositions(x reflect.Value) int {
 		}
 		return n
 	case reflect.Struct:
-		if pos, ok := x.Interface().(Pos); ok {
+		if pos, ok := reflect.TypeAssert[Pos](x); ok {
 			if pos.IsRecovered() {
 				return 1
 			}
 			return 0
 		}
 		n := 0
-		for i := range x.NumField() {
-			n += countRecoveredPositions(x.Field(i))
+		for _, field := range x.Fields() {
+			n += countRecoveredPositions(field)
 		}
 		return n
 	}
