@@ -1368,6 +1368,27 @@ var runTests = []runTest{
 		`case '[abc' in [a*) echo match ;; *) echo miss ;; esac`,
 		"match\n",
 	},
+	// TODO: ";&" and ";;&" are treated like ";;", so the second item never runs.
+	{
+		"case ab in a*) echo one ;& *b) echo two ;; esac",
+		"one\n #IGNORE",
+	},
+	{
+		"case ab in a*) echo one ;;& *b) echo two ;; esac",
+		"one\n #IGNORE",
+	},
+	{
+		"case ab in a*) echo one ;;& *zz) echo two ;; esac",
+		"one\n",
+	},
+	{
+		"case ab in a*) echo one ;& *zz) echo two ;; esac",
+		"one\n #IGNORE",
+	},
+	{
+		"f() { case ab in a*) echo one; return ;& *) echo two ;; esac; }; f; echo end",
+		"one\nend\n",
+	},
 	{
 		`touch a b; x=']'; echo [ab$x`,
 		"a b\n",
