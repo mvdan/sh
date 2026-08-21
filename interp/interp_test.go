@@ -3838,6 +3838,16 @@ done <<< 2`,
 		"Prompt and raw flag together: \\a\\b\\c\n #IGNORE bash requires a terminal",
 	},
 
+	// read -s
+	{
+		"read -r -s x <<< hi; echo \"[$x]\"",
+		"[hi]\n",
+	},
+	{
+		"printf 'a b\\n' | { read -s -r a b; echo \"[$a][$b]\"; }",
+		"[a][b]\n",
+	},
+
 	// read -a
 	{
 		`echo "1 2 3" | { read -a arr; echo "${arr[0]} ${arr[1]} ${arr[2]}"; }`,
@@ -5051,6 +5061,13 @@ func TestRunnerContext(t *testing.T) {
 }
 
 func TestCancelBlockedStdinRead(t *testing.T) {
+	// "read -s" reads without echoing, which must still be cancellable.
+	for _, in := range []string{"read x", "read -s x"} {
+		t.Run("", func(t *testing.T) { testCancelBlockedStdinRead(t, in) })
+	}
+}
+
+func testCancelBlockedStdinRead(t *testing.T, in string) {
 	if runtime.GOOS == "windows" {
 		// TODO: Why is this? The [os.File.SetReadDeadline] docs seem to imply that it should work
 		// across all major platforms, and the file polling  implementation seems to be
@@ -5062,7 +5079,7 @@ func TestCancelBlockedStdinRead(t *testing.T) {
 	t.Parallel()
 
 	p := syntax.NewParser()
-	file := parse(t, p, "read x")
+	file := parse(t, p, in)
 	ctx, cancel := context.WithTimeout(t.Context(), 100*time.Millisecond)
 	// Make the linter happy, even though we deliberately wait for the timeout.
 	defer cancel()
