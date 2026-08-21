@@ -1530,22 +1530,21 @@ var runTests = []runTest{
 	},
 
 	// redirects
-	// TODO: an unsupported redirection fails silently, with no message at all.
 	{
 		"echo foo >&5",
-		"exit status 1 #JUSTERR",
+		"unhandled >& arg: \"5\"\nexit status 1 #JUSTERR",
 	},
 	{
 		"echo foo 5>a",
-		"exit status 1 #IGNORE",
+		"unsupported redirect fd: 5\nexit status 1 #IGNORE",
 	},
 	{
 		"echo foo >|a",
-		"exit status 1 #IGNORE",
+		"unhandled redirect op: >|\nexit status 1 #IGNORE",
 	},
 	{
 		"echo foo >a; read -r line <>a",
-		"exit status 1 #IGNORE",
+		"unhandled redirect op: <>\nexit status 1 #IGNORE",
 	},
 	{
 		"echo foo >&1 | sed 's/o/a/g'",

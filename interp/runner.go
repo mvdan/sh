@@ -338,6 +338,10 @@ func (r *Runner) stmtSync(ctx context.Context, st *syntax.Stmt) {
 	for _, rd := range st.Redirs {
 		cls, err := r.redir(ctx, rd)
 		if err != nil {
+			if !r.exit.fatalExit {
+				// A fatal error from a handler is reported by [Runner.Run].
+				r.errf("%v\n", err)
+			}
 			r.exit.code = 1
 			break
 		}
@@ -1083,7 +1087,7 @@ func (r *Runner) redir(ctx context.Context, rd *syntax.Redirect) (io.Closer, err
 	case syntax.RdrOut, syntax.RdrAll:
 		mode = os.O_WRONLY | os.O_CREATE | os.O_TRUNC
 	}
-	f, err := r.open(ctx, arg, mode, 0o644, true)
+	f, err := r.open(ctx, arg, mode, 0o644, false)
 	if err != nil {
 		return nil, err
 	}
