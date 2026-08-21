@@ -172,6 +172,9 @@ func (r *Runner) lookupVar(name string) expand.Variable {
 		}
 	case "?":
 		vr.Kind, vr.Str = expand.String, strconv.Itoa(int(r.lastExit.code))
+	case "-":
+		// Note that we don't support some of Bash's flags, such as h or B.
+		vr.Kind, vr.Str = expand.String, r.posixOptFlags()
 	case "$":
 		vr.Kind, vr.Str = expand.String, strconv.Itoa(os.Getpid())
 	case "PPID":

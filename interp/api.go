@@ -571,6 +571,20 @@ func (r *Runner) posixOptByName(name string) *bool {
 	return nil
 }
 
+// posixOptFlags returns the one-character flags of the enabled POSIX options,
+// as held by the "$-" special parameter.
+func (r *Runner) posixOptFlags() string {
+	// Note that some options, such as pipefail, have no one-character flag.
+	flags := make([]byte, 0, len(posixOptsTable))
+	for i, opt := range &posixOptsTable {
+		if opt.flag != ' ' && r.opts[i] {
+			flags = append(flags, opt.flag)
+		}
+	}
+	slices.Sort(flags) // posixOptsTable is sorted by name rather than by flag
+	return string(flags)
+}
+
 func (r *Runner) posixOptByFlag(flag byte) *bool {
 	for i, opt := range &posixOptsTable {
 		if opt.flag == flag {

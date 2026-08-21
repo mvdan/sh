@@ -523,9 +523,9 @@ var runTests = []runTest{
 	{"for i in 1 2; do\necho $LINENO\necho $LINENO\ndone", "2\n3\n2\n3\n"},
 	{"[[ -n $$ && $$ -gt 0 ]]", ""},
 	{"case $- in *e*) echo yes ;; *) echo no ;; esac", "no\n"},
-	// TODO: $- is unset, so it holds no flags and errors under "set -u".
-	{"set -e; case $- in *e*) echo yes ;; *) echo no ;; esac", "no\n #IGNORE"},
-	{"set -aefu; echo $-", "-: unbound variable\nexit status 1 #IGNORE"},
+	{"set -e; case $- in *e*) echo yes ;; *) echo no ;; esac", "yes\n"},
+	// Bash's $- also holds flags which we don't support, such as h and B.
+	{"set -aefu; echo $-", "aefu\n #IGNORE"},
 	{"[[ $$ -eq $PPID ]]", "exit status 1"},
 	{"[[ $RANDOM -eq $RANDOM ]]", "exit status 1"},   // 1 in 32k chance of a collision, 0.003%
 	{"[[ $SRANDOM -eq $SRANDOM ]]", "exit status 1"}, // 1 in 2**32 chance of a collision,
