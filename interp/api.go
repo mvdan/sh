@@ -59,6 +59,11 @@ type Runner struct {
 	// tempDir is either $TMPDIR from [Runner.Env], or [os.TempDir].
 	tempDir string
 
+	// umask is the file mode creation mask reported and set by the umask
+	// builtin. It is bookkeeping only: this interpreter creates files
+	// through the open handler, which owns permissions.
+	umask uint32
+
 	// Params are the current shell parameters, e.g. from running a shell
 	// file or calling a function. Accessible via the $@/$* family of vars.
 	// It can only be set via [Params].
@@ -168,6 +173,16 @@ type Runner struct {
 	// It is consumed by the enclosing statement once it finishes.
 	keepRedirs bool
 
+	// disabledBuiltins holds the names turned off by `enable -n`, which are
+	// then looked up as external commands like bash does.
+	disabledBuiltins map[string]bool
+
+	// historyList and historyClear back the history builtin. They are nil
+	// unless the embedder supplied them with [History]; this interpreter does
+	// not read input lines itself, so only a line editor above it knows them.
+	historyList  func() []string
+	historyClear func()
+
 	// Fake signal callbacks
 	callbackErr  string
 	callbackExit string
@@ -250,6 +265,28 @@ type bgProc struct {
 	done chan struct{}
 
 	exit *exitStatus
+
+	// cmd is the source text of the backgrounded statement, as the jobs
+	// builtin prints it. It is empty for the shells behind process
+	// substitutions, which bash does not list as jobs either.
+	cmd string
+
+	// cancel stops the background shell. A job here is a goroutine rather
+	// than an operating system process, so the kill builtin cancels its
+	// context instead of sending a signal.
+	cancel context.CancelFunc
+
+	// signal is the name of the signal kill delivered, so that jobs can
+	// report Terminated rather than Done.
+	signal string
+
+	// disowned jobs are hidden from jobs and are not waited for by a bare
+	// wait, as after bash's disown.
+	disowned bool
+
+	// notified records that this job's completion has already been reported
+	// by `jobs -n`.
+	notified bool
 }
 
 type alias struct {
@@ -348,6 +385,20 @@ func Dir(path string) RunnerOption {
 			return fmt.Errorf("%s is not a directory", path)
 		}
 		r.Dir = path
+		return nil
+	}
+}
+
+// History supplies the command history to the history builtin. list returns the
+// history oldest first, and clear, which may be nil, discards it.
+//
+// The interpreter never reads input lines itself, so it has no history of its
+// own; only the line editor above it has one. Without this option, history
+// reports that no history list is available.
+func History(list func() []string, clear func()) RunnerOption {
+	return func(r *Runner) error {
+		r.historyList = list
+		r.historyClear = clear
 		return nil
 	}
 }
@@ -794,6 +845,7 @@ func (r *Runner) Reset() {
 	}
 	// reset the internal state
 	*r = Runner{
+		umask:          0o022,
 		Env:            r.Env,
 		tempDir:        r.tempDir,
 		callHandler:    r.callHandler,
@@ -802,6 +854,8 @@ func (r *Runner) Reset() {
 		readDirHandler: r.readDirHandler,
 		statHandler:    r.statHandler,
 		accessHandler:  r.accessHandler,
+		historyList:    r.historyList,
+		historyClear:   r.historyClear,
 
 		// These can be set by functions like [Dir] or [Params], but
 		// builtins can overwrite them; reset the fields to whatever the
@@ -987,6 +1041,7 @@ func (r *Runner) subshell(background bool) *Runner {
 	r2 := &Runner{
 		Dir:            r.Dir,
 		tempDir:        r.tempDir,
+		umask:          r.umask,
 		Params:         r.Params,
 		callHandler:    r.callHandler,
 		execHandler:    r.execHandler,
@@ -1002,9 +1057,12 @@ func (r *Runner) subshell(background bool) *Runner {
 		usedNew:        r.usedNew,
 		exit:           r.exit,
 		lastExit:       r.lastExit,
+		historyList:    r.historyList,
+		historyClear:   r.historyClear,
 
 		origStdout: r.origStdout, // used for process substitutions
 	}
+	r2.disabledBuiltins = maps.Clone(r.disabledBuiltins)
 	r2.writeEnv = newOverlayEnviron(r.writeEnv, background)
 	// Funcs are copied, since they might be modified.
 	r2.Funcs = maps.Clone(r.Funcs)

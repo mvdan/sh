@@ -155,6 +155,64 @@ func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args 
 	case ":", "true":
 	case "false":
 		exit.code = 1
+	case "help":
+		return r.runHelp(args)
+	case "jobs":
+		return r.runJobs(args)
+	case "kill":
+		return r.runKill(args)
+	case "disown":
+		return r.runDisown(args)
+	case "fg":
+		return r.runFg(ctx, args)
+	case "bg":
+		return r.runBg(args)
+	case "enable":
+		return r.runEnable(args)
+	case "compgen":
+		return r.runCompgen(ctx, args)
+	case "history":
+		return r.runHistory(args)
+	case "logout":
+		// There is no login shell here, so this is bash's error for one that
+		// is not: the user wants exit.
+		return failf(1, "logout: not login shell: use `exit'\n")
+	case "times":
+		// js/wasm has no per-process CPU accounting at all, so report zeros
+		// in bash's format — shell user/sys, then children user/sys — rather
+		// than fail.
+		// TODO: report real times on platforms that can, via os/exec's
+		// ProcessState or syscall.Getrusage. Not urgent; nothing depends on
+		// the values being non-zero.
+		r.out("0m0.000s 0m0.000s\n0m0.000s 0m0.000s\n")
+	case "umask":
+		symbolic := false
+		rest := args
+		for len(rest) > 0 && strings.HasPrefix(rest[0], "-") && rest[0] != "-" {
+			switch rest[0] {
+			case "-S":
+				symbolic = true
+			case "-p":
+				// "print in a form reusable as input" — the mask line below
+				// already is, so -p only differs by the leading word.
+			default:
+				return failf(2, "umask: %s: invalid option\n", rest[0])
+			}
+			rest = rest[1:]
+		}
+		if len(rest) > 0 {
+			mask, err := strconv.ParseUint(rest[0], 8, 32)
+			if err != nil {
+				return failf(2, "umask: %s: octal number expected\n", rest[0])
+			}
+			r.umask = uint32(mask)
+			break
+		}
+		if symbolic {
+			r.out(umaskSymbolic(r.umask) + "\n")
+		} else {
+			r.outf("%04o\n", r.umask)
+		}
 	case "exit":
 		switch len(args) {
 		case 0:
@@ -334,7 +392,12 @@ func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args 
 		if len(args) == 0 {
 			// Note that "wait" without arguments always returns exit status zero.
 			for _, bg := range r.bgProcs {
-				<-bg.done
+				if bg.disowned {
+					continue
+				}
+				if !bg.await(ctx) {
+					return exitStatus{code: 130}
+				}
 			}
 			break
 		}
@@ -345,7 +408,9 @@ func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args 
 				return failf(1, "wait: pid %s is not a child of this shell\n", arg)
 			}
 			bg := r.bgProcs[pid-1]
-			<-bg.done
+			if !bg.await(ctx) {
+				return exitStatus{code: 130}
+			}
 			exit = *bg.exit
 		}
 	case "builtin":
@@ -1243,4 +1308,25 @@ func (r *Runner) optStatusText(status bool) string {
 		return "on"
 	}
 	return "off"
+}
+
+// umaskSymbolic renders a mask the way `umask -S` does: the permissions that
+// remain, not the ones masked off.
+func umaskSymbolic(mask uint32) string {
+	var b strings.Builder
+	for i, who := range []string{"u", "g", "o"} {
+		if i > 0 {
+			b.WriteByte(',')
+		}
+		b.WriteString(who)
+		b.WriteByte('=')
+		shift := uint(6 - 3*i)
+		bits := (mask >> shift) & 7
+		for j, perm := range []string{"r", "w", "x"} {
+			if bits&(4>>uint(j)) == 0 {
+				b.WriteString(perm)
+			}
+		}
+	}
+	return b.String()
 }
