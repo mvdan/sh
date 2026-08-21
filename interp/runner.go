@@ -675,13 +675,21 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		trace.string(" in")
 		trace.newLineFlush()
 		str := r.literal(cm.Word)
+		runNext := false // whether the previous item ended with ";&"
 		for _, ci := range cm.Items {
-			for _, word := range ci.Patterns {
-				pattern := r.pattern(word)
-				if match(pattern, str) {
-					r.stmts(ctx, ci.Stmts)
-					return
-				}
+			if !runNext && !slices.ContainsFunc(ci.Patterns, func(word *syntax.Word) bool {
+				return match(r.pattern(word), str)
+			}) {
+				continue
+			}
+			r.stmts(ctx, ci.Stmts)
+			switch ci.Op {
+			case syntax.Fallthrough: // ";&" runs the next item unconditionally
+				runNext = true
+			case syntax.Resume, syntax.ResumeKorn: // ";;&" and ";|" resume matching
+				runNext = false
+			default: // ";;" or the last item stop
+				return
 			}
 		}
 	case *syntax.TestClause:
