@@ -8,6 +8,8 @@ package interp
 import (
 	"io"
 	"os"
+
+	"golang.org/x/term"
 )
 
 // stdinFile is the runner's standard input. Outside of js/wasm it is
@@ -41,4 +43,21 @@ func newStdinFile(r io.Reader) (stdinFile, error) {
 		}()
 		return pr, nil
 	}
+}
+
+// stdinTerminal returns the file descriptor of the shell's stdin
+// if it is a terminal.
+// Note that we only call [os.File.Fd] on character devices,
+// as it stops [os.File.SetReadDeadline] from working,
+// which [Runner.readLine] needs to cancel blocking reads.
+func stdinTerminal(stdin stdinFile) (int, bool) {
+	if stdin == nil {
+		return -1, false
+	}
+	fi, err := stdin.Stat()
+	if err != nil || fi.Mode()&os.ModeCharDevice == 0 {
+		return -1, false
+	}
+	fd := int(stdin.Fd())
+	return fd, term.IsTerminal(fd)
 }

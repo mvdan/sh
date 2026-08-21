@@ -708,10 +708,14 @@ func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args 
 
 		var line []byte
 		var err error
-		if silent && stdinTerminal(r.stdin) {
+		fd, terminal := -1, false
+		if silent {
+			fd, terminal = stdinTerminal(r.stdin)
+		}
+		if terminal {
 			// Only a terminal echoes what we read, so it is the only case
 			// where we need to read without echoing.
-			line, err = term.ReadPassword(int(r.stdin.Fd()))
+			line, err = term.ReadPassword(fd)
 		} else {
 			line, err = r.readLine(ctx, raw)
 		}
@@ -1050,21 +1054,6 @@ func (r *Runner) printOptLine(name string, enabled, supported bool) {
 		return
 	}
 	r.outf("%s\t%s\t(%q not supported)\n", name, state, r.optStatusText(!enabled))
-}
-
-// stdinTerminal reports whether the shell's stdin is a terminal.
-// Note that we only call [os.File.Fd] on character devices,
-// as it stops [os.File.SetReadDeadline] from working,
-// which [Runner.readLine] needs to cancel blocking reads.
-func stdinTerminal(stdin *os.File) bool {
-	if stdin == nil {
-		return false
-	}
-	fi, err := stdin.Stat()
-	if err != nil || fi.Mode()&os.ModeCharDevice == 0 {
-		return false
-	}
-	return term.IsTerminal(int(stdin.Fd()))
 }
 
 func (r *Runner) readLine(ctx context.Context, raw bool) ([]byte, error) {

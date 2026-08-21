@@ -51,3 +51,6 @@ func newStdinFile(r io.Reader) (stdinFile, error) {
 	}
 	return jsReader{r}, nil
 }
+
+// stdinTerminal always reports false, as js/wasm has no terminals.
+func stdinTerminal(stdin stdinFile) (int, bool) { return -1, false }
