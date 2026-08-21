@@ -932,25 +932,62 @@ func (r *Runner) hdocReader(rd *syntax.Redirect) (stdinFile, error) {
 	if err != nil {
 		return nil, err
 	}
+	hdoc := r.hdocString(rd)
 	// We write to the pipe in a new goroutine,
 	// as pipe writes may block once the buffer gets full.
 	// We still construct and buffer the entire heredoc first,
 	// as doing it concurrently would lead to different semantics and be racy.
-	if rd.Op != syntax.DashHdoc {
-		hdoc := r.document(rd.Hdoc)
-		go func() {
-			io.WriteString(pw, hdoc)
-			pw.Close()
-		}()
-		return pr, nil
+	go func() {
+		io.WriteString(pw, hdoc)
+		pw.Close()
+	}()
+	return pr, nil
+}
+
+// hdocQuotedDelim reports whether a here-document delimiter word is quoted,
+// as in "<<'EOF'" or "<<\EOF", which makes its body literal.
+func hdocQuotedDelim(word *syntax.Word) bool {
+	for _, wp := range word.Parts {
+		switch wp := wp.(type) {
+		case *syntax.Lit:
+			if strings.Contains(wp.Value, "\\") {
+				return true
+			}
+		case *syntax.SglQuoted, *syntax.DblQuoted:
+			return true
+		}
 	}
-	var buf bytes.Buffer
+	return false
+}
+
+// hdocWord returns a here-document body, or one of its lines, as a string.
+// A quoted delimiter, as in "<<'EOF'", makes the body literal,
+// in which case the parser only gives us literal parts.
+// Note that a partly quoted delimiter, such as "<<'A'B",
+// is not spotted by the parser either, so we still expand its body.
+func (r *Runner) hdocWord(word *syntax.Word, quoted bool) string {
+	if quoted {
+		if lit := word.Lit(); lit != "" {
+			return lit
+		}
+	}
+	return r.document(word)
+}
+
+// hdocString returns the body of a here-document as a string.
+func (r *Runner) hdocString(rd *syntax.Redirect) string {
+	quoted := hdocQuotedDelim(rd.Word)
+	if rd.Op != syntax.DashHdoc {
+		return r.hdocWord(rd.Hdoc, quoted)
+	}
+	// Strip the leading tabs from each line.
+	var buf strings.Builder
 	var cur []syntax.WordPart
 	flushLine := func() {
 		if buf.Len() > 0 {
 			buf.WriteByte('\n')
 		}
-		buf.WriteString(r.document(&syntax.Word{Parts: cur}))
+		buf.WriteString(r.hdocWord(&syntax.Word{Parts: cur}, quoted))
 		cur = cur[:0]
 	}
 	for _, wp := range rd.Hdoc.Parts {
@@ -963,7 +1000,6 @@ func (r *Runner) hdocReader(rd *syntax.Redirect) (stdinFile, error) {
 		for part := range strings.SplitSeq(lit.Value, "\n") {
 			if !first {
 				flushLine()
-				cur = cur[:0]
 			}
 			first = false
 			part = strings.TrimLeft(part, "\t")
@@ -971,11 +1007,7 @@ func (r *Runner) hdocReader(rd *syntax.Redirect) (stdinFile, error) {
 		}
 	}
 	flushLine()
-	go func() {
-		pw.Write(buf.Bytes())
-		pw.Close()
-	}()
-	return pr, nil
+	return buf.String()
 }
 
 func (r *Runner) redir(ctx context.Context, rd *syntax.Redirect) (io.Closer, error) {
