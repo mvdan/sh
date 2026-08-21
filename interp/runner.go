@@ -980,6 +980,9 @@ func (r *Runner) hdocWord(word *syntax.Word, quoted bool) string {
 
 // hdocString returns the body of a here-document as a string.
 func (r *Runner) hdocString(rd *syntax.Redirect) string {
+	if rd.Hdoc == nil {
+		return "" // an empty here-document
+	}
 	quoted := hdocQuotedDelim(rd.Word)
 	if rd.Op != syntax.DashHdoc {
 		return r.hdocWord(rd.Hdoc, quoted)
@@ -1015,7 +1018,8 @@ func (r *Runner) hdocString(rd *syntax.Redirect) string {
 }
 
 func (r *Runner) redir(ctx context.Context, rd *syntax.Redirect) (io.Closer, error) {
-	if rd.Hdoc != nil {
+	// Note that Hdoc is nil for an empty here-document.
+	if rd.Op == syntax.Hdoc || rd.Op == syntax.DashHdoc {
 		pr, err := r.hdocReader(rd)
 		if err != nil {
 			return nil, err
