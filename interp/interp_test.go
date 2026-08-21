@@ -1611,6 +1611,23 @@ var runTests = []runTest{
 		"cat <<'EOF'\nfoo\\\nbar\nEOF",
 		"foo\\\nbar\n",
 	},
+	// TODO: a quoted here-document is literal, so no escapes should be processed.
+	{
+		"cat <<'EOF'\nback\\\\slash dollar\\$x tick\\`y\nEOF",
+		"back\\slash dollar$x tick`y\n #IGNORE",
+	},
+	{
+		"cat <<-'EOF'\n\ttab\\$stripped\n\tEOF",
+		"tab$stripped\n #IGNORE",
+	},
+	{
+		"cat <<\\EOF\ndollar\\$x\nEOF",
+		"dollar$x\n #IGNORE",
+	},
+	{
+		"cat <<\"EOF\"\ndollar\\$x\nEOF",
+		"dollar$x\n #IGNORE",
+	},
 	{
 		"cat <<EOF\nfoo\\\"bar\\baz\nEOF",
 		"foo\\\"bar\\baz\n",
