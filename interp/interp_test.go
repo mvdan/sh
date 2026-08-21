@@ -1647,6 +1647,19 @@ var runTests = []runTest{
 		"cat <<\"EOF\"\ndollar\\$x\nEOF",
 		"dollar\\$x\n",
 	},
+	// TODO: an empty here-document is not handled, as the parser gives us no body.
+	{
+		"cat <<EOF\nEOF",
+		"unhandled redirect op: <<\nexit status 1 #IGNORE",
+	},
+	{
+		"cat <<'EOF'\nEOF",
+		"unhandled redirect op: <<\nexit status 1 #IGNORE",
+	},
+	{
+		"cat <<-EOF\n\tEOF",
+		"",
+	},
 	{
 		"cat <<EOF\nfoo\\\"bar\\baz\nEOF",
 		"foo\\\"bar\\baz\n",
