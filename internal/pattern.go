@@ -27,8 +27,8 @@ func ExtendedPatternMatcher(pat string, mode pattern.Mode) (func(string) bool, e
 	if err != nil {
 		// Handle !(pattern-list) negation: when Regexp returns NegExtglobError,
 		// match the inner pattern and negate the result.
-		var negErr *pattern.NegExtGlobError
-		if !errors.As(err, &negErr) {
+		negErr, ok := errors.AsType[*pattern.NegExtGlobError](err)
+		if !ok {
 			return nil, err
 		}
 		return extNegatedMatcher(pat, negErr.Groups)

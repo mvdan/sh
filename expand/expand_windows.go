@@ -10,6 +10,6 @@ import (
 )
 
 func isWindowsErrPathNotFound(err error) bool {
-	var pathErr *os.PathError
-	return errors.As(err, &pathErr) && pathErr.Err == syscall.ERROR_PATH_NOT_FOUND
+	pathErr, ok := errors.AsType[*os.PathError](err)
+	return ok && pathErr.Err == syscall.ERROR_PATH_NOT_FOUND
 }

@@ -5313,7 +5313,7 @@ func TestRunnerIncremental(t *testing.T) {
 	defer cancel()
 	for _, stmt := range file.Stmts {
 		err := r.Run(ctx, stmt)
-		if !errors.As(err, new(interp.ExitStatus)) && err != nil {
+		if _, ok := errors.AsType[interp.ExitStatus](err); !ok && err != nil {
 			// Keep track of unexpected errors.
 			b.WriteString(err.Error())
 		}
@@ -5338,7 +5338,9 @@ func TestRunnerIncrementalExitTrap(t *testing.T) {
 	var exit interp.ExitStatus
 	for _, stmt := range file.Stmts {
 		err := r.Run(ctx, stmt)
-		if err != nil && !errors.As(err, &exit) {
+		if es, ok := errors.AsType[interp.ExitStatus](err); ok {
+			exit = es
+		} else if err != nil {
 			b.WriteString(err.Error())
 		}
 		if r.Exited() {

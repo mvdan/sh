@@ -197,8 +197,9 @@ func (r *Runner) expandErr(err error) {
 	}
 	errMsg := err.Error()
 	fmt.Fprintln(r.stderr, errMsg)
+	_, unsetParam := errors.AsType[expand.UnsetParameterError](err)
 	switch {
-	case errors.As(err, &expand.UnsetParameterError{}):
+	case unsetParam:
 	case errMsg == "invalid indirect expansion":
 		// TODO: These errors are treated as fatal by bash.
 		// Make the error type reflect that.
