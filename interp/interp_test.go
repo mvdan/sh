@@ -1530,6 +1530,23 @@ var runTests = []runTest{
 	},
 
 	// redirects
+	// TODO: an unsupported redirection fails silently, with no message at all.
+	{
+		"echo foo >&5",
+		"exit status 1 #JUSTERR",
+	},
+	{
+		"echo foo 5>a",
+		"exit status 1 #IGNORE",
+	},
+	{
+		"echo foo >|a",
+		"exit status 1 #IGNORE",
+	},
+	{
+		"echo foo >a; read -r line <>a",
+		"exit status 1 #IGNORE",
+	},
 	{
 		"echo foo >&1 | sed 's/o/a/g'",
 		"faa\n",
