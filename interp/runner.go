@@ -444,11 +444,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 				if as.Array != nil {
 					trace.expr(as)
 				} else if as.Value != nil {
-					val, err := syntax.Quote(vr.String(), syntax.LangBash)
-					if err != nil { // should never happen
-						panic(err)
-					}
-					trace.stringf("%s=%s", name, val)
+					trace.stringf("%s=%s", name, quoteBash(vr.String()))
 				}
 				trace.newLineFlush()
 			}
@@ -904,11 +900,7 @@ func (r *Runner) flattenAssigns(args []*syntax.Assign) iter.Seq[*syntax.Assign] 
 // when tracing, that is, as the single quoted word that bash's let receives.
 func (r *Runner) letArgString(printer *syntax.Printer, expr syntax.ArithmExpr) string {
 	if word, ok := expr.(*syntax.Word); ok {
-		qs, err := syntax.Quote(r.literal(word), syntax.LangBash)
-		if err != nil { // should never happen
-			panic(err)
-		}
-		return qs
+		return quoteBash(r.literal(word))
 	}
 	// The printer only prints an arithmetic expression as part of a parent node,
 	// so print a let clause holding just this expression and drop the keyword.

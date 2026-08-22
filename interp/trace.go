@@ -90,6 +90,15 @@ func (t *tracer) newLineFlush() {
 	t.needsPlus = true
 }
 
+// quoteBash quotes a string so that it can be traced as a single Bash word.
+func quoteBash(s string) string {
+	qs, err := syntax.Quote(s, syntax.LangBash)
+	if err != nil { // should never happen
+		panic(err)
+	}
+	return qs
+}
+
 // call prints a command and its arguments with varying formats depending on the cmd type,
 // for example, built-in command's arguments are printed enclosed in single quotes,
 // otherwise, call defaults to printing with double quotes.
@@ -103,11 +112,7 @@ func (t *tracer) call(cmd string, args ...string) {
 		// fields may be empty for function () {} declarations
 		t.string(cmd)
 	} else if IsBuiltin(cmd) {
-		qs, err := syntax.Quote(s, syntax.LangBash)
-		if err != nil { // should never happen
-			panic(err)
-		}
-		t.stringf("%s %s", cmd, qs)
+		t.stringf("%s %s", cmd, quoteBash(s))
 	} else {
 		t.stringf("%s %s", cmd, s)
 	}
