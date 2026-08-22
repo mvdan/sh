@@ -300,11 +300,16 @@ func New(opts ...RunnerOption) (*Runner, error) {
 
 // RunnerOption can be passed to [New] to alter a [Runner]'s behaviour.
 // It can also be applied directly on an existing Runner,
-// such as interp.Params("-e")(runner).
-// Note that options cannot be applied once Run or Reset have been called.
+// such as interp.Params("-e")(runner) or interp.StdIO(nil, w, w)(runner).
+//
+// Note that [Env] and [Dir] only take effect the next time that the runner is
+// reset, as [Runner.Reset] derives state from them, such as the variables and
+// the value of PWD. Since running a node only resets a runner the first time
+// around, applying either option after a run requires an explicit reset.
 type RunnerOption func(*Runner) error
 
-// TODO: enforce the rule above via didReset.
+// TODO(v4): consider making [Env] and [Dir] fail when applied after a reset,
+// rather than being silently held back until the next one.
 
 // Env sets the interpreter's environment. If nil, a copy of the current
 // process's environment is used.
