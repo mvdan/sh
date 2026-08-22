@@ -134,7 +134,9 @@ func execPrintWouldExec(next interp.ExecHandlerFunc) interp.ExecHandlerFunc {
 	}
 }
 
-// TODO: join with TestRunnerOpts?
+// modCases stays separate from TestRunnerOpts as it exercises the handlers,
+// which requires the default handlers as a base rather than testExecHandler,
+// and its options are applied to an existing runner rather than via New.
 var modCases = []struct {
 	name string
 	opts []interp.RunnerOption
