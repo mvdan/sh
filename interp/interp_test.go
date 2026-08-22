@@ -4378,14 +4378,12 @@ hello otter
 `,
 	},
 	{
-		// TODO: this should print `+ set -e`.
 		"set -x; set -e; echo hi",
-		"\n+ echo hi\nhi\n #IGNORE",
+		"+ set -e\n+ echo hi\nhi\n",
 	},
 	{
-		// TODO: this should print `+ set +x`.
 		"set -x; set +x; echo hi",
-		"\nhi\n #IGNORE",
+		"+ set +x\nhi\n",
 	},
 	{
 		// TODO: bash prints `a[1]=z`, including the subscript.

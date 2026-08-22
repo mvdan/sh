@@ -103,11 +103,6 @@ func (t *tracer) call(cmd string, args ...string) {
 		// fields may be empty for function () {} declarations
 		t.string(cmd)
 	} else if IsBuiltin(cmd) {
-		if cmd == "set" {
-			// TODO: only first occurrence of set is not printed, succeeding calls are printed
-			return
-		}
-
 		qs, err := syntax.Quote(s, syntax.LangBash)
 		if err != nil { // should never happen
 			panic(err)
