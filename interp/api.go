@@ -378,7 +378,11 @@ func Params(args ...string) RunnerOption {
 		for fp.more() {
 			flag := fp.flag()
 			if flag == "-" || flag == "+" {
-				// TODO: for "-", implement "The -x and -v options are turned off."
+				if flag == "-" {
+					// Bash turns off the -x and -v options; note that
+					// we don't support the -v option at all.
+					r.opts[optXTrace] = false
+				}
 				if args := fp.args(); len(args) > 0 {
 					r.Params = args
 				}

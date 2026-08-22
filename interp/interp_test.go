@@ -2656,9 +2656,8 @@ set +o pipefail
 	},
 	{`set - foobar; echo $@; set -; echo $@`, "foobar\nfoobar\n"},
 	{
-		// TODO: `set -` should turn off the -x option.
 		"set -x; set -; echo hi",
-		"+ set -\n+ echo hi\nhi\n #IGNORE",
+		"+ set -\nhi\n",
 	},
 
 	// unset
