@@ -529,7 +529,22 @@ var runTests = []runTest{
 	// Bash's $- also holds flags which we don't support, such as h and B.
 	{"set -aefu; echo $-", "aefu\n #IGNORE"},
 	{"[[ $$ -eq $PPID ]]", "exit status 1"},
-	{"[[ $RANDOM -eq $RANDOM ]]", "exit status 1"},   // 1 in 32k chance of a collision, 0.003%
+	{"[[ $RANDOM -eq $RANDOM ]]", "exit status 1"}, // 1 in 32k chance of a collision, 0.003%
+	{
+		// Assigning to RANDOM seeds it, so the sequence repeats.
+		"RANDOM=42; a=$RANDOM$RANDOM; RANDOM=42; b=$RANDOM$RANDOM; [[ $a == $b ]]",
+		"",
+	},
+	{
+		"RANDOM=1; a=$RANDOM; RANDOM=2; b=$RANDOM; [[ $a != $b ]]",
+		"",
+	},
+	{
+		// A failed assignment must not seed, so that RANDOM keeps its
+		// attributes like any other variable.
+		"readonly RANDOM; RANDOM=99; echo $?",
+		"RANDOM: readonly variable\n1\n #JUSTERR",
+	},
 	{"[[ $SRANDOM -eq $SRANDOM ]]", "exit status 1"}, // 1 in 2**32 chance of a collision,
 
 	// Ensure that we consistently use 64 bits even on 32-bit platforms.

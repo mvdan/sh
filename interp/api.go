@@ -17,6 +17,7 @@ import (
 	"io"
 	"io/fs"
 	"maps"
+	mathrand "math/rand/v2"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -114,6 +115,10 @@ type Runner struct {
 	usedNew bool
 
 	filename string // only if Node was a File
+
+	// rand is the pseudo-random number generator behind the RANDOM variable,
+	// only set once RANDOM has been assigned to in order to seed it.
+	rand *mathrand.Rand
 
 	// >0 to break or continue out of N enclosing loops
 	breakEnclosing, contnEnclosing int
