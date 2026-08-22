@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/go-quicktest/qt"
@@ -18,6 +19,11 @@ import (
 )
 
 func TestMain(m *testing.M) {
+	if runtime.GOOS == "js" {
+		// Every test here needs subprocesses or OS pipes,
+		// neither of which js/wasm has.
+		return
+	}
 	testscript.Main(m, map[string]func(){
 		"gosh": main,
 	})

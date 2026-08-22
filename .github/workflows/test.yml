@@ -30,9 +30,11 @@ jobs:
 
     # Test that we can build for platforms that we can't currently test on.
     - if: matrix.os == 'ubuntu-latest' && matrix.go-version == '1.27.x'
-      run: |
-        GOOS=plan9 GOARCH=amd64 go build ./...
-        GOOS=js GOARCH=wasm go build ./...
+      run: GOOS=plan9 GOARCH=amd64 go build ./...
+
+    # js/wasm can't run subprocesses, so many tests skip themselves there.
+    - if: matrix.os == 'ubuntu-latest' && matrix.go-version == '1.27.x'
+      run: PATH="$PATH:$(go env GOROOT)/lib/wasm" GOOS=js GOARCH=wasm go test ./...
 
     # Static checks from this point forward. Only run on one Go version and on
     # Linux, since it's the fastest platform, and the tools behave the same.

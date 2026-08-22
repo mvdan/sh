@@ -137,11 +137,13 @@ func TestMain(m *testing.M) {
 		os.Exit(0)
 	}
 
-	prog, err := os.Executable()
-	if err != nil {
-		panic(err)
+	if canExec {
+		prog, err := os.Executable()
+		if err != nil {
+			panic(err)
+		}
+		os.Setenv("GOSH_PROG", prog)
 	}
-	os.Setenv("GOSH_PROG", prog)
 
 	internal.TestMainSetup()
 
@@ -1668,7 +1670,8 @@ var runTests = []runTest{
 		" \\ $ ` \n",
 	},
 	{
-		"mkdir a; echo foo >a |& grep -q 'is a directory'",
+		// The error message is capitalized on some platforms, such as js.
+		"mkdir a; echo foo >a |& grep -q -i 'is a directory'",
 		" #IGNORE bash prints a warning",
 	},
 	{
@@ -4524,9 +4527,13 @@ var runTests64bit = []runTest{
 }
 
 func init() {
-	if runtime.GOOS == "windows" {
+	switch {
+	case runtime.GOOS == "windows":
 		runTests = append(runTests, runTestsWindows...)
-	} else { // Unix-y
+	case runtime.GOOS == "js":
+		// Neither Unix-y nor Windows: js/wasm has no subprocesses,
+		// and its file modes and syscall errors differ from Unix.
+	default: // Unix-y
 		runTests = append(runTests, runTestsUnix...)
 	}
 	if bits.UintSize == 64 {
@@ -4541,12 +4548,23 @@ var skipOnWindows = regexp.MustCompile(`ln -s|<\(`)
 // process substitutions seemflaky on mac; see https://github.com/mvdan/sh/issues/576
 var skipOnMac = regexp.MustCompile(`>\(|<\(`)
 
+// canExec reports whether the platform can run external programs.
+// js/wasm has no subprocesses at all.
+const canExec = runtime.GOOS != "js"
+
+// Without subprocesses we can't run the test binary as a helper program,
+// nor any external program, nor create the named pipes used by process
+// substitutions.
+var skipWithoutExec = regexp.MustCompile(`GOSH_PROG|ENV_PROG|PATH_PROG|>\(|<\(`)
+
 func skipIfUnsupported(tb testing.TB, src string) {
 	switch {
 	case runtime.GOOS == "windows" && skipOnWindows.MatchString(src):
 		tb.Skipf("skipping non-portable test on windows")
 	case runtime.GOOS == "darwin" && skipOnMac.MatchString(src):
 		tb.Skipf("skipping non-portable test on mac")
+	case !canExec && skipWithoutExec.MatchString(src):
+		tb.Skipf("skipping test needing subprocesses on %s", runtime.GOOS)
 	}
 }
 
@@ -5148,6 +5166,9 @@ func testCancelBlockedStdinRead(t *testing.T, in string) {
 		// on Windows either, so skipping here is not any worse.
 		t.Skip("os.Pipe on windows appears to not support cancellable reads")
 	}
+	if runtime.GOOS == "js" {
+		t.Skip("js/wasm has no os.Pipe, and its reads can't be cancelled")
+	}
 	t.Parallel()
 
 	p := syntax.NewParser()
@@ -5600,6 +5621,8 @@ func TestRunnerSubshell(t *testing.T) {
 }
 
 func TestRunnerNonFileStdin(t *testing.T) {
+	const src = "while read a; do echo $a; GOSH_CMD=print_ok $GOSH_PROG; done"
+	skipIfUnsupported(t, src)
 	t.Parallel()
 
 	var cb concBuffer
@@ -5607,7 +5630,7 @@ func TestRunnerNonFileStdin(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	file := parse(t, nil, "while read a; do echo $a; GOSH_CMD=print_ok $GOSH_PROG; done")
+	file := parse(t, nil, src)
 	ctx, cancel := context.WithTimeout(t.Context(), runnerRunTimeout)
 	defer cancel()
 	if err := r.Run(ctx, file); err != nil {

@@ -506,6 +506,9 @@ func TestKillTimeout(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("skipping trap tests on windows")
 	}
+	if !canExec {
+		t.Skipf("skipping test needing subprocesses on %s", runtime.GOOS)
+	}
 	t.Parallel()
 
 	tests := []struct {
@@ -585,6 +588,9 @@ func TestKillTimeout(t *testing.T) {
 func TestKillSignal(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("skipping signal tests on windows")
+	}
+	if !canExec {
+		t.Skipf("skipping test needing subprocesses on %s", runtime.GOOS)
 	}
 	tests := []struct {
 		signal os.Signal

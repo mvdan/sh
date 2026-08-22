@@ -8,12 +8,17 @@ import (
 	"flag"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/rogpeppe/go-internal/testscript"
 )
 
 func TestMain(m *testing.M) {
+	if runtime.GOOS == "js" {
+		// Every test here runs shfmt as a subprocess, which js/wasm can't do.
+		return
+	}
 	testscript.Main(m, map[string]func(){
 		"shfmt": main,
 	})
