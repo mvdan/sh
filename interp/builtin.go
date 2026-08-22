@@ -1131,7 +1131,9 @@ func absPath(dir, path string) string {
 	if !filepath.IsAbs(path) {
 		path = filepath.Join(dir, path)
 	}
-	return filepath.Clean(path) // TODO: this clean is likely unnecessary
+	// Note that [filepath.Join] cleans its result, but an already absolute
+	// path needs cleaning too, such as turning "/a/../b" into "/b".
+	return filepath.Clean(path)
 }
 
 func (r *Runner) absPath(path string) string {

@@ -1180,6 +1180,11 @@ var runTests = []runTest{
 		"",
 	},
 	{
+		// Note that absolute paths need cleaning too, not just relative ones.
+		`mkdir -p a b; cd $PWD/a/../b; echo ${PWD#"$OLDPWD/"}`,
+		"b\n",
+	},
+	{
 		`mkdir a; ln -s a b; [[ $(cd a && pwd) == "$(cd b && pwd)" ]]; echo $?`,
 		"1\n",
 	},
@@ -4716,7 +4721,8 @@ func absPath(dir, path string) string {
 	if !filepath.IsAbs(path) {
 		path = filepath.Join(dir, path)
 	}
-	return filepath.Clean(path) // TODO: this clean is likely unnecessary
+	// Keep in sync with interp's own absPath, which explains the cleaning.
+	return filepath.Clean(path)
 }
 
 var testBuiltinsMap = map[string]func(interp.HandlerContext, []string) error{
