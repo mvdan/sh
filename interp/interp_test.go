@@ -4451,15 +4451,13 @@ let a++; echo $a`,
 `,
 	},
 	{
-		// TODO: the entire clause is printed once per expression.
 		`set -x; let a=1 b=2`,
-		"+ let a=1 b=2let a=1 b=2\n #IGNORE",
+		"+ let a=1 b=2\n",
 	},
 	{
-		// TODO: nothing is printed for the parenthesized expression.
 		// Note that bash cannot parse `let (a=3)` at all.
 		`set -x; let (a=3)`,
-		"\n #IGNORE",
+		"+ let (a = 3)\n #IGNORE",
 	},
 	// functions
 	{

@@ -650,29 +650,17 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 	case *syntax.ArithmCmd:
 		r.exit.oneIf(r.arithm(cm.X) == 0)
 	case *syntax.LetClause:
+		if tracingEnabled {
+			trace.string("let")
+			for _, expr := range cm.Exprs {
+				trace.stringf(" %s", r.letArgString(trace.printer, expr))
+			}
+			trace.newLineFlush()
+		}
 		var val int
 		for _, expr := range cm.Exprs {
 			val = r.arithm(expr)
-
-			if !tracingEnabled {
-				continue
-			}
-
-			switch expr := expr.(type) {
-			case *syntax.Word:
-				qs, err := syntax.Quote(r.literal(expr), syntax.LangBash)
-				if err != nil {
-					return
-				}
-				trace.stringf("let %v", qs)
-			case *syntax.BinaryArithm, *syntax.UnaryArithm:
-				trace.expr(cm)
-			case *syntax.ParenArithm:
-				// TODO
-			}
 		}
-
-		trace.newLineFlush()
 		r.exit.oneIf(val == 0)
 	case *syntax.CaseClause:
 		trace.string("case ")
@@ -909,6 +897,31 @@ func (r *Runner) flattenAssigns(args []*syntax.Assign) iter.Seq[*syntax.Assign] 
 			}
 		}
 	}
+}
+
+// letArgString reproduces one expression of a let clause as bash would print it
+// when tracing, that is, as the single quoted word that bash's let receives.
+func (r *Runner) letArgString(printer *syntax.Printer, expr syntax.ArithmExpr) string {
+	if word, ok := expr.(*syntax.Word); ok {
+		qs, err := syntax.Quote(r.literal(word), syntax.LangBash)
+		if err != nil { // should never happen
+			panic(err)
+		}
+		return qs
+	}
+	// The printer only prints an arithmetic expression as part of a parent node,
+	// so print a let clause holding just this expression and drop the keyword.
+	// The keyword borrows the expression's position to stay on the same line.
+	// TODO: drop this workaround if [syntax.Printer.Print] learns to print
+	// an arithmetic expression on its own.
+	var sb strings.Builder
+	if err := printer.Print(&sb, &syntax.LetClause{
+		Let:   expr.Pos(),
+		Exprs: []syntax.ArithmExpr{expr},
+	}); err != nil { // should never happen
+		panic(err)
+	}
+	return strings.TrimPrefix(sb.String(), "let ")
 }
 
 func (r *Runner) match(pat, name string) bool {
