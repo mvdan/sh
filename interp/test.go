@@ -39,7 +39,7 @@ func (r *Runner) bashTest(ctx context.Context, expr syntax.TestExpr, classic boo
 				}
 			} else { // [[
 				pattern := r.pattern(yw)
-				if match(pattern, str) == (x.Op != syntax.TsNoMatch) {
+				if r.match(pattern, str) == (x.Op != syntax.TsNoMatch) {
 					return "1"
 				}
 			}

@@ -683,7 +683,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		runNext := false // whether the previous item ended with ";&"
 		for _, ci := range cm.Items {
 			if !runNext && !slices.ContainsFunc(ci.Patterns, func(word *syntax.Word) bool {
-				return match(r.pattern(word), str)
+				return r.match(r.pattern(word), str)
 			}) {
 				continue
 			}
@@ -911,10 +911,17 @@ func (r *Runner) flattenAssigns(args []*syntax.Assign) iter.Seq[*syntax.Assign] 
 	}
 }
 
-func match(pat, name string) bool {
+func (r *Runner) match(pat, name string) bool {
 	matcher, err := internal.ExtendedPatternMatcher(pat, pattern.EntireString|pattern.ExtendedOperators)
-	_ = err // TODO: report these errors
-	return matcher != nil && matcher(name)
+	if err != nil {
+		// A malformed pattern simply does not match, like in bash.
+		// Any other error, such as an unsupported extended pattern, is reported.
+		if _, ok := errors.AsType[*pattern.SyntaxError](err); !ok {
+			r.expandErr(err)
+		}
+		return false
+	}
+	return matcher(name)
 }
 
 func elapsedString(d time.Duration, posix bool) string {

@@ -3602,23 +3602,23 @@ done <<< 2`,
 	// Unsupported: multiple groups, glob prefix, or glob suffix.
 	{
 		"shopt -s extglob\ncase \"xabab\" in *a!(b)) echo match;; esac",
-		" #IGNORE glob prefix not supported",
+		"extglob !(...) is only supported with a fixed prefix and suffix\n #IGNORE glob prefix not supported",
 	},
 	{
 		"shopt -s extglob\ncase \"baz\" in !(foo)!(bar)) echo match;; esac",
-		" #IGNORE multiple extglob negation groups not supported",
+		"multiple extglob !(...) groups are not supported yet\n #IGNORE multiple extglob negation groups not supported",
 	},
 	{
 		"shopt -s extglob\ncase \".bar\" in .*!(foo)) echo match;; esac",
-		" #IGNORE glob prefix not supported",
+		"extglob !(...) is only supported with a fixed prefix and suffix\n #IGNORE glob prefix not supported",
 	},
 	{
 		"shopt -s extglob\ncase \".foo\" in .*!(foo)) echo match;; esac",
-		" #IGNORE glob prefix not supported",
+		"extglob !(...) is only supported with a fixed prefix and suffix\n #IGNORE glob prefix not supported",
 	},
 	{
 		"shopt -s extglob\ncase \"bar\" in .*!(foo)) echo match;; esac",
-		" #IGNORE glob prefix not supported",
+		"extglob !(...) is only supported with a fixed prefix and suffix\n #IGNORE glob prefix not supported",
 	},
 	{
 		// Extended pattern matching is always available outside of pathname expansions (globbing).
