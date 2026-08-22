@@ -199,15 +199,16 @@ func (r *Runner) expandErr(err error) {
 	fmt.Fprintln(r.stderr, errMsg)
 	_, unsetParam := errors.AsType[expand.UnsetParameterError](err)
 	switch {
-	case unsetParam:
-	case errMsg == "invalid indirect expansion":
+	case unsetParam, errMsg == "invalid indirect expansion":
 		// TODO: These errors are treated as fatal by bash.
 		// Make the error type reflect that.
-	default:
-		return // other cases do not exit
+		r.exit.code = 1
+		r.exit.exiting = true
+	case errors.Is(err, errReadOnly):
+		// Like in bash, assigning to a read-only variable fails
+		// the command at hand without exiting the shell.
+		r.exit.code = 1
 	}
-	r.exit.code = 1
-	r.exit.exiting = true
 }
 
 func (r *Runner) arithm(expr syntax.ArithmExpr) int {
@@ -252,8 +253,7 @@ func (e expandEnv) Get(name string) expand.Variable {
 }
 
 func (e expandEnv) Set(name string, vr expand.Variable) error {
-	e.r.setVar(name, vr)
-	return nil // TODO: return any errors
+	return e.r.setVarErr(name, vr)
 }
 
 func (e expandEnv) Each(fn func(name string, vr expand.Variable) bool) {

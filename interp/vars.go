@@ -6,6 +6,7 @@ package interp
 import (
 	cryptorand "crypto/rand"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"maps"
 	mathrand "math/rand/v2"
@@ -101,7 +102,7 @@ func (o *overlayEnviron) Set(name string, vr expand.Variable) error {
 		vr.Indexes = prev.Indexes
 		vr.Map = prev.Map
 	} else if prev.ReadOnly {
-		return fmt.Errorf("readonly variable")
+		return errReadOnly
 	}
 	if !vr.IsSet() { // unsetting
 		if prev.Local {
@@ -229,14 +230,25 @@ func (r *Runner) setVarString(name, value string) {
 }
 
 func (r *Runner) setVar(name string, vr expand.Variable) {
+	if err := r.setVarErr(name, vr); err != nil {
+		r.errf("%v\n", err)
+		r.exit.code = 1
+	}
+}
+
+// errReadOnly is returned when trying to modify a read-only variable.
+var errReadOnly = errors.New("readonly variable")
+
+// setVarErr is like [Runner.setVar], but it returns any error rather than
+// reporting it, for the sake of the expand package.
+func (r *Runner) setVarErr(name string, vr expand.Variable) error {
 	if r.opts[optAllExport] {
 		vr.Exported = true
 	}
 	if err := r.writeEnv.Set(name, vr); err != nil {
-		r.errf("%s: %v\n", name, err)
-		r.exit.code = 1
-		return
+		return fmt.Errorf("%s: %w", name, err)
 	}
+	return nil
 }
 
 func (r *Runner) setVarWithIndex(prev expand.Variable, name string, index syntax.ArithmExpr, vr expand.Variable) {
