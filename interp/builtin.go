@@ -37,7 +37,8 @@ import (
 func IsBuiltin(name string) bool {
 	switch name {
 	case
-		// POSIX Shell builtins, from section 1.d obtained in September 2025 from:
+		// POSIX Shell regular built-ins, that is, the utilities which the shell
+		// must provide as built-ins, from section 1.d obtained in September 2025 from:
 		// https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_09_01_01
 		"alias",
 		"bg",
@@ -89,7 +90,6 @@ func IsBuiltin(name string) bool {
 		"typeset", // NOTE: our parser treats this as a keyword
 		"dirs",
 		"disown",
-		"echo", // TODO: surely this is POSIX? but why is it not in the main POSIX spec page?
 		"enable",
 		"history",
 		"help",
@@ -99,14 +99,20 @@ func IsBuiltin(name string) bool {
 		"mapfile",
 		"readarray",
 		"popd",
-		"printf", // TODO: surely this is POSIX? but why is it not in the main POSIX spec page?
 		"pushd",
 		"shopt",
 		"suspend",
-		"test",
-		"[", // NOTE: an alias for "test", not explicitly listed
 		"type",
-		"ulimit":
+		"ulimit",
+
+		// POSIX utilities which the shell need not provide as built-ins,
+		// so they are separate executables found via PATH, but which we
+		// implement as built-ins just like Bash does. Obtained in September
+		// 2025 from https://pubs.opengroup.org/onlinepubs/9699919799/utilities/contents.html
+		"echo",
+		"printf",
+		"test",
+		"[": // NOTE: an alias for "test", not documented separately
 		return true
 	}
 	return false
