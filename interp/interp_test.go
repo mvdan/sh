@@ -4378,6 +4378,21 @@ hello otter
 `,
 	},
 	{
+		// TODO: bash prints `a[1]=z`, including the subscript.
+		`set -x; a=(x y); a[1]=z`,
+		"+ a=(x y)\n+ a=z\n #IGNORE",
+	},
+	{
+		// TODO: bash prints `a+=bar`, that is, the value being appended
+		// rather than the resulting value.
+		`set -x; a=foo; a+=bar`,
+		"+ a=foo\n+ a=foobar\n #IGNORE",
+	},
+	{
+		`set -x; a=(x); a+=(y)`,
+		"+ a=(x)\n+ a+=(y)\n",
+	},
+	{
 		`set -x; a=x"y"$z b=(foo bar $none '')`,
 		"+ a=xy\n+ b=(foo bar $none '')\n",
 	},

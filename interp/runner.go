@@ -439,7 +439,8 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 
 				// Strangely enough, it seems like Bash prints original
 				// source for arrays, but the expanded value otherwise.
-				// TODO: add test cases for x[i]=y and x+=y.
+				// Note that, unlike bash, we print neither the subscript
+				// in `x[i]=y` nor just the appended value in `x+=y`.
 				if as.Array != nil {
 					trace.expr(as)
 				} else if as.Value != nil {
