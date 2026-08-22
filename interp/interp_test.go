@@ -1196,8 +1196,9 @@ var runTests = []runTest{
 	},
 	{
 		// Note that absolute paths need cleaning too, not just relative ones.
-		`mkdir -p a b; cd $PWD/a/../b; echo ${PWD#"$OLDPWD/"}`,
-		"b\n",
+		// Compare against a relative cd to avoid depending on the separator.
+		`mkdir -p a b; cd b; ref=$PWD; cd ..; cd $PWD/a/../b; [[ $PWD == "$ref" ]]`,
+		"",
 	},
 	{
 		`mkdir a; ln -s a b; [[ $(cd a && pwd) == "$(cd b && pwd)" ]]; echo $?`,
