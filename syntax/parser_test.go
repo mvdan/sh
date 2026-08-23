@@ -1886,6 +1886,12 @@ var errorCases = []errorCase{
 		flipConfirm(LangMirBSDKorn), // TODO: why is this valid?
 	),
 	errCase(
+		// TODO: `#` can be part of an associative array key; see #1285.
+		"echo ${args[cmd,#]}",
+		langErr("1:16: `,` must be followed by an expression", LangBash|LangMirBSDKorn|LangZsh),
+		flipConfirmAll, // is a valid associative array key
+	),
+	errCase(
 		"echo ${a/\n",
 		langErr("1:6: reached EOF without matching `${` with `}`", LangBash|LangMirBSDKorn),
 	),
