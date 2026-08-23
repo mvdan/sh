@@ -31,11 +31,14 @@ viewed directly as Markdown or rendered with [scdoc].
 Packages are available on [Alpine], [Arch], [Debian], [Docker], [Fedora], [FreeBSD],
 [Homebrew], [MacPorts], [NixOS], [OpenSUSE], [Scoop], [Snapcraft], [Void] and [webi].
 
-### gosh
+### Sponsoring
 
-	go install mvdan.cc/sh/v3/cmd/gosh@latest
-
-Proof of concept shell that uses the `interp` package.
+If this project saves you or your company time, consider
+[sponsoring me on GitHub](https://github.com/sponsors/mvdan).
+Monthly tiers include benefits like your logo on a README,
+prioritized issues, or direct support in your company's chat app.
+One-time tiers offer a call about one of my projects
+or a Go consulting or mentorship session.
 
 ### Contributing
 
@@ -44,13 +47,6 @@ ideally with an example which reproduces the bug or shows what feature you're af
 
 Unless you're an active user or contributor to the project, drive-by AI patches
 are not helpful. File detailed issues instead.
-
-### Fuzzing
-
-We use Go's native fuzzing support. For instance:
-
-	cd syntax
-	go test -run=- -fuzz=ParsePrint
 
 ### Caveats
 
