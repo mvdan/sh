@@ -1,3 +1,5 @@
+//go:build darwin || freebsd || netbsd
+
 package interp
 
 import (
@@ -11,6 +13,5 @@ func getAtime(info fs.FileInfo) time.Time {
 	if !ok {
 		return info.ModTime()
 	}
-	// Note that these are int32 on 32-bit platforms.
-	return time.Unix(int64(stat.Atim.Sec), int64(stat.Atim.Nsec))
+	return time.Unix(stat.Atimespec.Sec, stat.Atimespec.Nsec)
 }
