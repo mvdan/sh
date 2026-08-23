@@ -372,6 +372,10 @@ func Interactive(enabled bool) RunnerOption {
 	}
 }
 
+// TODO(v4): split the "set" options into [PosixOpts], mirroring [BashOpts],
+// leaving Params for the positional parameters alone. Accepting both means that
+// Params with user-supplied arguments can set options by accident.
+
 // Params populates the shell options and parameters. For example, Params("-e",
 // "--", "foo") will set the "-e" option and the parameters ["foo"], and
 // Params("+e") will unset the "-e" option and leave the parameters untouched.
