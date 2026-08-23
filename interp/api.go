@@ -377,6 +377,7 @@ func Interactive(enabled bool) RunnerOption {
 // Params("+e") will unset the "-e" option and leave the parameters untouched.
 //
 // This is similar to what the interpreter's "set" builtin does.
+// See [BashOpts] for the Bash options which "set" cannot change.
 func Params(args ...string) RunnerOption {
 	return func(r *Runner) error {
 		fp := flagParser{remaining: args}
@@ -434,6 +435,58 @@ func Params(args ...string) RunnerOption {
 			if r.inSource {
 				r.sourceSetParams = true
 			}
+		}
+		return nil
+	}
+}
+
+// BashOpts sets or unsets Bash shell options. For example,
+// BashOpts("-s", "extglob", "globstar") sets both the "extglob" and "globstar"
+// options, and BashOpts("-u", "extglob") unsets "extglob" alone.
+//
+// Just like the builtin, "-o" restricts the names to the POSIX options,
+// which [Params] can set as well.
+//
+// This is similar to what the interpreter's "shopt" builtin does, except that
+// no arguments is a no-op rather than printing all options.
+func BashOpts(args ...string) RunnerOption {
+	return func(r *Runner) error {
+		mode := ""
+		posixOpts := false
+		fp := flagParser{remaining: args}
+		for fp.more() {
+			switch flag := fp.flag(); flag {
+			case "-s", "-u":
+				mode = flag
+			case "-o":
+				posixOpts = true
+			default:
+				return fmt.Errorf("invalid option: %q", flag)
+			}
+		}
+		names := fp.args()
+		if len(names) > 0 && mode == "" {
+			return fmt.Errorf("either -s or -u must be given to set or unset options")
+		}
+		for _, name := range names {
+			opt, supported := (*bool)(nil), true
+			if posixOpts {
+				opt = r.posixOptByName(name)
+			} else {
+				opt, supported = r.bashOptByName(name)
+			}
+			if opt == nil {
+				return fmt.Errorf("invalid option name: %q", name)
+			}
+			if !supported {
+				return fmt.Errorf("unsupported option: %q", name)
+			}
+			*opt = mode == "-s"
+		}
+		if r.didReset {
+			// Some options affect expansion; before the first reset,
+			// the reset itself takes care of this.
+			r.updateExpandOpts()
 		}
 		return nil
 	}

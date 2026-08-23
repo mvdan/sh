@@ -5136,6 +5136,36 @@ func TestRunnerOpts(t *testing.T) {
 			"bar\n",
 		},
 		{
+			opts(interp.BashOpts()),
+			"echo foo",
+			"foo\n",
+		},
+		{
+			opts(interp.BashOpts("-s", "expand_aliases")),
+			"alias f='echo x'\nf",
+			"x\n",
+		},
+		{
+			opts(interp.BashOpts("-s", "extglob", "nullglob")),
+			"[[ abc == @(abc|def) ]] && echo yes\necho no-match-*",
+			"yes\n\n",
+		},
+		{
+			opts(interp.BashOpts("-s", "globstar"), interp.BashOpts("-u", "globstar")),
+			"shopt globstar | grep -q 'off$'",
+			"",
+		},
+		{
+			opts(interp.BashOpts("-o", "-s", "pipefail")),
+			"false | true; echo $?",
+			"1\n",
+		},
+		{
+			opts(interp.BashOpts("-o", "-s", "noglob")),
+			"echo *",
+			"*\n",
+		},
+		{
 			opts(interp.Env(expand.FuncEnviron(func(name string) string {
 				if name == "foo" {
 					return "bar"
@@ -5167,6 +5197,62 @@ func TestRunnerOpts(t *testing.T) {
 			if got := cb.String(); got != c.want {
 				t.Fatalf("wrong output in %q:\nwant: %q\ngot:  %q",
 					c.in, c.want, got)
+			}
+		})
+	}
+}
+
+func TestRunnerBashOpts(t *testing.T) {
+	t.Parallel()
+
+	// Applying the option to an existing runner takes effect right away,
+	// including for the options which affect expansion.
+	file := parse(t, nil, "echo no-match-*")
+	var b bytes.Buffer
+	r, err := interp.New(interp.StdIO(nil, &b, &b))
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithTimeout(t.Context(), runnerRunTimeout)
+	defer cancel()
+	if err := r.Run(ctx, file); err != nil {
+		t.Fatal(err)
+	}
+	if err := interp.BashOpts("-s", "nullglob")(r); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.Run(ctx, file); err != nil {
+		t.Fatal(err)
+	}
+	want := "no-match-*\n\n"
+	if got := b.String(); got != want {
+		t.Fatalf("\nwant: %q\ngot:  %q", want, got)
+	}
+}
+
+func TestRunnerBashOptsErr(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		args []string
+		want string
+	}{
+		{[]string{"-z"}, `invalid option: "-z"`},
+		{[]string{"-p"}, `invalid option: "-p"`},
+		{[]string{"-o", "-s", "extglob"}, `invalid option name: "extglob"`},
+		{[]string{"-s", "pipefail"}, `invalid option name: "pipefail"`},
+		{[]string{"extglob"}, "either -s or -u must be given to set or unset options"},
+		{[]string{"-s", "nosuchname"}, `invalid option name: "nosuchname"`},
+		{[]string{"-s", "login_shell"}, `unsupported option: "login_shell"`},
+	}
+	for _, test := range tests {
+		t.Run("", func(t *testing.T) {
+			_, err := interp.New(interp.BashOpts(test.args...))
+			if err == nil {
+				t.Fatalf("BashOpts(%q) did not error", test.args)
+			}
+			if got := err.Error(); got != test.want {
+				t.Fatalf("BashOpts(%q):\nwant: %q\ngot:  %q", test.args, test.want, got)
 			}
 		})
 	}
