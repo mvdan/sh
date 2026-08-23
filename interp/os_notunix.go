@@ -53,5 +53,8 @@ type waitStatus struct{}
 // isENOEXEC is a no-op on plan9 and windows.
 func isENOEXEC(err error) bool { return false }
 
+// isETXTBSY is a no-op on plan9 and windows.
+func isETXTBSY(err error) bool { return false }
+
 func (waitStatus) Signaled() bool { return false }
 func (waitStatus) Signal() int    { return 0 }

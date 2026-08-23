@@ -9,14 +9,13 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"errors"
 	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"syscall"
 	"testing"
+	"time"
 
 	"github.com/creack/pty"
 	"mvdan.cc/sh/v3/interp"
@@ -183,18 +182,18 @@ func TestExecETXTBSY(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	time.AfterFunc(100*time.Millisecond, func() { holderStdin.Close() })
 	var buf bytes.Buffer
 	r, err := interp.New(interp.StdIO(nil, &buf, &buf))
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = r.Run(context.Background(), parse(t, nil, path))
-	// TODO: the run should instead retry until the child releases the fd,
-	// succeeding with output "foo\n".
-	if !errors.Is(err, syscall.ETXTBSY) {
-		t.Fatalf("want ETXTBSY, got %v", err)
+	if err := r.Run(context.Background(), parse(t, nil, path)); err != nil {
+		t.Fatal(err)
 	}
-	holderStdin.Close()
+	if got := buf.String(); got != "foo\n" {
+		t.Fatalf("want %q, got %q", "foo\n", got)
+	}
 }
 
 func shortPathName(path string) (string, error) {

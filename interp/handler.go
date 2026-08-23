@@ -146,22 +146,35 @@ func DefaultExecHandler(killTimeout time.Duration) ExecHandlerFunc {
 			fmt.Fprintln(hc.Stderr, err)
 			return ExitStatus(127)
 		}
-		cmd := exec.CommandContext(ctx, path)
-		cmd.Args = args
-		cmd.Env = execEnv(hc.Env)
-		cmd.Dir = hc.Dir
-		cmd.Stdin = hc.Stdin
-		cmd.Stdout = hc.Stdout
-		cmd.Stderr = hc.Stderr
-		if killTimeout > 0 && runtime.GOOS != "windows" {
-			// On cancellation, send an interrupt signal first, and let
-			// WaitDelay escalate to a kill signal if the process does not
-			// exit in time. Otherwise, keep the default of killing right away.
-			cmd.Cancel = func() error { return cmd.Process.Signal(os.Interrupt) }
-			cmd.WaitDelay = killTimeout
+		newCmd := func() *exec.Cmd {
+			cmd := exec.CommandContext(ctx, path)
+			cmd.Args = args
+			cmd.Env = execEnv(hc.Env)
+			cmd.Dir = hc.Dir
+			cmd.Stdin = hc.Stdin
+			cmd.Stdout = hc.Stdout
+			cmd.Stderr = hc.Stderr
+			if killTimeout > 0 && runtime.GOOS != "windows" {
+				// On cancellation, send an interrupt signal first, and let
+				// WaitDelay escalate to a kill signal if the process does not
+				// exit in time. Otherwise, keep the default of killing right away.
+				cmd.Cancel = func() error { return cmd.Process.Signal(os.Interrupt) }
+				cmd.WaitDelay = killTimeout
+			}
+			return cmd
 		}
-
+		cmd := newCmd()
 		err = cmd.Start()
+		// On Unix, a concurrently forked process may briefly hold a write
+		// file descriptor for the file inherited before its exec, making
+		// our exec fail with ETXTBSY; see https://go.dev/issue/22315.
+		// The window is short-lived, so retry with backoff. A failed Start
+		// closes the command's pipes, so build a fresh one for each attempt.
+		for delay := time.Millisecond; isETXTBSY(err) && delay < 300*time.Millisecond; delay *= 2 {
+			time.Sleep(delay)
+			cmd = newCmd()
+			err = cmd.Start()
+		}
 		if isENOEXEC(err) {
 			// Like other shells, run a file which the kernel refuses to
 			// execute with ENOEXEC, such as a script without a shebang line,

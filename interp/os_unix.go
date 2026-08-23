@@ -50,3 +50,7 @@ type waitStatus = syscall.WaitStatus
 // isENOEXEC reports whether the kernel refused to execute a file
 // with ENOEXEC, e.g. a script without a shebang line.
 func isENOEXEC(err error) bool { return errors.Is(err, syscall.ENOEXEC) }
+
+// isETXTBSY reports whether the kernel refused to execute a file
+// with ETXTBSY, i.e. a process holds it open for writing.
+func isETXTBSY(err error) bool { return errors.Is(err, syscall.ETXTBSY) }
