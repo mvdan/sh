@@ -677,7 +677,11 @@ const (
 	testExpr
 	testExprRegexp
 	switchCase
+	// paramExpArithm is a subscript like ${a[i]}, which can be a string key
+	// rather than an arithmetic expression when the array is associative.
 	paramExpArithm
+	// paramExpSlice is a slice like ${a:i:j}, which is always arithmetic.
+	paramExpSlice
 	paramExpRepl
 	paramExpExp
 	arrayElems
@@ -686,8 +690,9 @@ const (
 		hdocBodyTabs | paramExpRepl | paramExpExp
 	allRegTokens = noState | unquotedWordCont | subCmd | subCmdBckquo | subCmdBraces |
 		hdocWord | switchCase | arrayElems | testExpr
-	allArithmExpr = arithmExpr | arithmExprLet | arithmExprCmd | paramExpArithm
-	allParamExp   = paramExpArithm | paramExpRepl | paramExpExp
+	allArithmExpr = arithmExpr | arithmExprLet | arithmExprCmd |
+		paramExpArithm | paramExpSlice
+	allParamExp = paramExpArithm | paramExpSlice | paramExpRepl | paramExpExp
 )
 
 type saveState struct {
@@ -1615,7 +1620,7 @@ zshPrefixLoop:
 		p.checkLang(p.pos, langBashLike|LangMirBSDKorn|LangZsh, "slicing")
 		pe.Slice = &Slice{}
 		colonPos := p.pos
-		p.quote = paramExpArithm
+		p.quote = paramExpSlice
 		if p.next(); p.tok != colon {
 			pe.Slice.Offset = p.followArithm(colon, colonPos)
 		}

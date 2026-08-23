@@ -30,9 +30,9 @@ var simplifyTests = [...]simplifyTest{
 	noSimple("$((${!a} + ${#b}))"),
 	noSimple("a[$b]=2"),
 	noSimple("${a[$b]}"),
-	// TODO: params must not be inlined in array indexes either; see #1285.
-	{"${a[x,$b]}", "${a[x,b]}"},
-	{"${a[$b + 1]}", "${a[b + 1]}"},
+	noSimple("${a[x,$b]}"),
+	noSimple("${a[$b + 1]}"),
+	noSimple("a=([x,$b]=v)"),
 	noSimple("${a[@]}"),
 	noSimple("((${a[@]}))"),
 	noSimple("((${a[*]}))"),

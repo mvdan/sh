@@ -377,6 +377,11 @@ skipSpace:
 		default:
 			p.advanceLitNone(r)
 		}
+	case p.quote == paramExpArithm && r == '#':
+		// '#' is mksh's unsigned prefix, which only [ArithmExp] and [ArithmCmd]
+		// can represent, so in a subscript it starts a literal instead;
+		// it can be part of an associative array key, like in ${args[cmd,#]}.
+		p.advanceLitOther(r)
 	case p.quote&allArithmExpr != 0 && arithmOps(r):
 		p.tok = p.arithmToken(r)
 	case p.quote&allParamExp != 0 && paramOps(r):

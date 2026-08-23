@@ -2712,6 +2712,29 @@ var fileTests = []fileTestCase{
 		langErr2("1:6: arrays are a bash/mksh/zsh feature; tried parsing as LANG", LangPOSIX),
 	),
 	fileTest(
+		[]string{`${a:(1):(2)}`},
+		langFile(&ParamExp{
+			Param: lit("a"),
+			Slice: &Slice{
+				Offset: parenArit(litWord("1")),
+				Length: parenArit(litWord("2")),
+			},
+		}, LangBash|LangMirBSDKorn|LangZsh),
+		langErr2("1:4: slicing is a bash/mksh/zsh feature; tried parsing as LANG", LangPOSIX),
+	),
+	fileTest(
+		[]string{`${args[cmd,#]}`},
+		langFile(&ParamExp{
+			Param: lit("args"),
+			Index: &BinaryArithm{
+				Op: Comma,
+				X:  litWord("cmd"),
+				Y:  litWord("#"),
+			},
+		}, LangBash|LangMirBSDKorn|LangZsh),
+		langErr2("1:7: arrays are a bash/mksh/zsh feature; tried parsing as LANG", LangPOSIX),
+	),
+	fileTest(
 		[]string{`${foo[1,-1]}`},
 		langFile(&ParamExp{
 			Param: lit("foo"),
