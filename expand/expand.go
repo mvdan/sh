@@ -19,6 +19,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"syscall"
 	"unicode/utf8"
 
 	"mvdan.cc/sh/v3/internal"
@@ -1059,14 +1060,11 @@ func (cfg *Config) glob(base, pat string) ([]string, error) {
 				// which can be wasteful if we only want to see if it exists,
 				// but at least it's correct in all scenarios.
 				if _, err := cfg.ReadDir2(match); err != nil {
-					if isWindowsErrPathNotFound(err) {
-						// Unfortunately, [os.File.Readdir] on a regular file on
-						// Windows returns an error that satisfies [fs.ErrNotExist].
-						// Luckily, it returns a special "path not found" rather
-						// than the normal "file not found" for missing files,
-						// so we can use that knowledge to work around the bug.
-						// See https://github.com/golang/go/issues/46734.
-						// TODO: remove when the Go issue above is resolved.
+					if errors.Is(err, syscall.ENOTDIR) {
+						// Reading a regular file as a directory.
+						// Note that on Windows this error also satisfies
+						// [fs.ErrNotExist], so it must be checked first;
+						// see https://github.com/golang/go/issues/46734.
 					} else if errors.Is(err, fs.ErrNotExist) {
 						continue // simply doesn't exist
 					}
