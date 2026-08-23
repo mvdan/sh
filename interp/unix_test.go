@@ -195,7 +195,3 @@ func TestExecETXTBSY(t *testing.T) {
 		t.Fatalf("want %q, got %q", "foo\n", got)
 	}
 }
-
-func shortPathName(path string) (string, error) {
-	panic("only works on windows")
-}
