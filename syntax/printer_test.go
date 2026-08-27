@@ -462,6 +462,9 @@ var printTests = []printCase{
 		"<(<<EOF\nbody\nEOF\n)",
 		"<(\n\t<<EOF\nbody\nEOF\n)",
 	},
+	samePrint("a=$(foo <<EOF\nbar\nEOF\n)"),
+	samePrint("eval \"$(foo <<EOF\nbar\nEOF\n)\""),
+	samePrint("eval \"$(docopts -A ARGS : \"$@\" <<EOF\nusage\nEOF\n)\""),
 	{
 		"( (foo) )\n$( (foo) )\n<( (foo) )",
 		"( (foo) )\n$( (foo) )\n<((foo))",

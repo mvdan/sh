@@ -1500,7 +1500,8 @@ func (p *Printer) nestedStmts(stmts []*Stmt, last []Comment, closing Pos) {
 		//     { stmt; stmt; }
 		p.wantNewline = true
 	case closing.Line() > p.line && len(stmts) > 0 &&
-		stmtsEnd(stmts, last).Line() < closing.Line():
+		stmtsEnd(stmts, last).Line() < closing.Line() &&
+		!lastStmtHeredocForcesClosing(stmts, last):
 		// Force a newline if we find:
 		//     { stmt
 		//     }
@@ -1618,6 +1619,28 @@ func (e *extraIndenter) WriteString(s string) (int, error) {
 		e.WriteByte(s[i])
 	}
 	return len(s), nil
+}
+
+// lastStmtHeredocForcesClosing reports whether the gap between the end of the
+// last statement and a following closing token, such as `)` or `}`, is caused
+// solely by a heredoc terminator, which mandates a newline before the closing
+// token. In that case the command was written inline alongside its heredoc and
+// should stay inline rather than being pushed onto its own line. A bare heredoc
+// redirect with no command is left to the usual layout rules.
+func lastStmtHeredocForcesClosing(stmts []*Stmt, last []Comment) bool {
+	if len(last) > 0 {
+		return false
+	}
+	s := stmts[len(stmts)-1]
+	if s.Cmd == nil {
+		return false
+	}
+	for _, r := range s.Redirs {
+		if r.Op == Hdoc || r.Op == DashHdoc {
+			return true
+		}
+	}
+	return false
 }
 
 func startsWithLparen(node Node) bool {
