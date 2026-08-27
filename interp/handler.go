@@ -10,11 +10,14 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	mathrand "math/rand/v2"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"mvdan.cc/sh/v3/expand"
@@ -37,13 +40,14 @@ type handlerCtxKey struct{}
 type handlerKind int
 
 const (
-	_                  handlerKind = iota
-	handlerKindExec                // [ExecHandlerFunc]
-	handlerKindCall                // [CallHandlerFunc]
-	handlerKindOpen                // [OpenHandlerFunc]
-	handlerKindReadDir             // [ReadDirHandlerFunc2]
-	handlerKindStat                // [StatHandlerFunc]
-	handlerKindAccess              // [AccessHandlerFunc]
+	_                    handlerKind = iota
+	handlerKindExec                  // [ExecHandlerFunc]
+	handlerKindCall                  // [CallHandlerFunc]
+	handlerKindOpen                  // [OpenHandlerFunc]
+	handlerKindReadDir               // [ReadDirHandlerFunc2]
+	handlerKindStat                  // [StatHandlerFunc]
+	handlerKindAccess                // [AccessHandlerFunc]
+	handlerKindProcSubst             // [ProcSubstOpenFunc]
 )
 
 // HandlerContext is the data passed to all the handler functions via [context.WithValue].
@@ -378,7 +382,8 @@ func pathExts(env expand.Environ) []string {
 
 // OpenHandlerFunc is a handler which opens files.
 // It is called for all files that are opened directly by the shell,
-// such as in redirects, except for named pipes created by process substitutions.
+// such as in redirects, except for named pipes created by process substitutions;
+// see [ProcSubstOpenFunc] for those.
 // The context includes a [HandlerContext] value.
 // Files opened by executed programs are not included.
 //
@@ -497,4 +502,102 @@ type AccessHandlerFunc func(ctx context.Context, path string, mode AccessMode) e
 // approximates the check via the stat handler and the file's permission bits.
 func DefaultAccessHandler() AccessHandlerFunc {
 	return defaultAccess
+}
+
+// ProcSubstOpenFunc is a handler which creates the communication channel for
+// a process substitution ("<(cmd)" for [syntax.CmdIn], ">(cmd)" for
+// [syntax.CmdOut]). It returns the path to substitute in place of the
+// "<(...)"/">(...)" word, a handle the interpreter reads or writes
+// directly, and a cleanup func run once the subshell goroutine exits.
+//
+// Unlike [OpenHandlerFunc], it owns the full lifecycle (create, open,
+// remove), since named pipes need creation and teardown a plain
+// (path, flag, perm) -> [io.ReadWriteCloser] signature can't express.
+type ProcSubstOpenFunc func(ctx context.Context, op syntax.ProcOperator) (path string, rwc io.ReadWriteCloser, cleanup func(), err error)
+
+// DefaultProcSubstOpen returns the [ProcSubstOpenFunc] used by default.
+// It creates a real named pipe under the runner's temporary directory via
+// mkfifo, and opens it with [os.OpenFile].
+func DefaultProcSubstOpen() ProcSubstOpenFunc {
+	return func(ctx context.Context, op syntax.ProcOperator) (string, io.ReadWriteCloser, func(), error) {
+		mc := HandlerCtx(ctx)
+
+		// We can't atomically create a random unused temporary FIFO.
+		// Similar to [os.CreateTemp],
+		// keep trying new random paths until one does not exist.
+		// We use a uint64 because a uint32 easily runs into retries.
+		var path string
+		try := 0
+		for {
+			path = filepath.Join(mc.runner.tempDir, fifoNamePrefix+strconv.FormatUint(mathrand.Uint64(), 16))
+			err := mkfifo(path, 0o666)
+			if err == nil {
+				break
+			}
+			if !os.IsExist(err) {
+				return "", nil, nil, fmt.Errorf("cannot create fifo: %v", err)
+			}
+			if try++; try > 100 {
+				return "", nil, nil, fmt.Errorf("giving up at creating fifo: %v", err)
+			}
+		}
+
+		cleanup := func() { os.Remove(path) }
+
+		var flag int
+		switch op {
+		case syntax.CmdIn:
+			flag = os.O_WRONLY
+		case syntax.CmdOut:
+			flag = os.O_RDONLY
+		default:
+			cleanup()
+			panic(fmt.Sprintf("unexpected process substitution operator: %q", op))
+		}
+
+		// Opening a FIFO blocks until a peer opens the other end, and
+		// that peer only runs after this returns the substituted path.
+		// Defer the open to the first read/write, once the peer is live.
+		return path, &lazyFifo{path: path, flag: flag}, cleanup, nil
+	}
+}
+
+// lazyFifo opens a FIFO path lazily, on first read, write, or close,
+// since opening it eagerly would block until a peer connects.
+type lazyFifo struct {
+	path string
+	flag int
+
+	once sync.Once
+	f    *os.File
+	err  error
+}
+
+func (l *lazyFifo) open() (*os.File, error) {
+	l.once.Do(func() { l.f, l.err = os.OpenFile(l.path, l.flag, 0) })
+	return l.f, l.err
+}
+
+func (l *lazyFifo) Read(p []byte) (int, error) {
+	f, err := l.open()
+	if err != nil {
+		return 0, err
+	}
+	return f.Read(p)
+}
+
+func (l *lazyFifo) Write(p []byte) (int, error) {
+	f, err := l.open()
+	if err != nil {
+		return 0, err
+	}
+	return f.Write(p)
+}
+
+func (l *lazyFifo) Close() error {
+	f, err := l.open()
+	if err != nil {
+		return err
+	}
+	return f.Close()
 }

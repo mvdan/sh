@@ -13,9 +13,7 @@ import (
 	"io/fs"
 	"iter"
 	"math"
-	mathrand "math/rand/v2"
 	"os"
-	"path/filepath"
 	"runtime"
 	"slices"
 	"strconv"
@@ -86,24 +84,9 @@ func (r *Runner) fillExpandConfig(ctx context.Context) {
 				return os.DevNull, nil
 			}
 
-			// We can't atomically create a random unused temporary FIFO.
-			// Similar to [os.CreateTemp],
-			// keep trying new random paths until one does not exist.
-			// We use a uint64 because a uint32 easily runs into retries.
-			var path string
-			try := 0
-			for {
-				path = filepath.Join(r.tempDir, fifoNamePrefix+strconv.FormatUint(mathrand.Uint64(), 16))
-				err := mkfifo(path, 0o666)
-				if err == nil {
-					break
-				}
-				if !os.IsExist(err) {
-					return "", fmt.Errorf("cannot create fifo: %v", err)
-				}
-				if try++; try > 100 {
-					return "", fmt.Errorf("giving up at creating fifo: %v", err)
-				}
+			path, rwc, cleanup, err := r.procSubstOpen(r.handlerCtx(ctx, handlerKindProcSubst, todoPos), ps.Op)
+			if err != nil {
+				return "", err
 			}
 
 			r2 := r.subshell(true)
@@ -119,30 +102,28 @@ func (r *Runner) fillExpandConfig(ctx context.Context) {
 				}()
 				switch ps.Op {
 				case syntax.CmdIn:
-					f, err := os.OpenFile(path, os.O_WRONLY, 0)
-					if err != nil {
-						r.errf("cannot open fifo for stdout: %v\n", err)
-						return
-					}
-					r2.stdout = f
+					r2.stdout = rwc
 					defer func() {
-						if err := f.Close(); err != nil {
-							r.errf("closing stdout fifo: %v\n", err)
+						if err := rwc.Close(); err != nil {
+							r.errf("closing process substitution: %v\n", err)
 						}
-						os.Remove(path)
+						if cleanup != nil {
+							cleanup()
+						}
 					}()
 				case syntax.CmdOut:
-					f, err := os.OpenFile(path, os.O_RDONLY, 0)
+					stdin, err := newStdinFile(rwc)
 					if err != nil {
-						r.errf("cannot open fifo for stdin: %v\n", err)
+						r.errf("cannot use process substitution as stdin: %v\n", err)
 						return
 					}
-					r2.stdin = f
+					r2.stdin = stdin
 					r2.stdout = stdout
-
 					defer func() {
-						f.Close()
-						os.Remove(path)
+						rwc.Close()
+						if cleanup != nil {
+							cleanup()
+						}
 					}()
 				default:
 					// Should only happen if we forgot a case above.
@@ -1221,19 +1202,6 @@ func (r *Runner) exec(ctx context.Context, pos syntax.Pos, args []string) {
 }
 
 func (r *Runner) open(ctx context.Context, path string, flags int, mode os.FileMode, print bool) (io.ReadWriteCloser, error) {
-	// If we are opening a FIFO temporary file created by the interpreter itself,
-	// don't pass this along to the open handler as it will not work at all
-	// unless [os.OpenFile] is used directly with it.
-	// Matching by directory and basename prefix isn't perfect, but works.
-	//
-	// If we want FIFOs to use a handler in the future, they probably
-	// need their own separate handler API matching Unix-like semantics.
-	dir, name := filepath.Split(path)
-	dir = strings.TrimSuffix(dir, "/")
-	if dir == r.tempDir && strings.HasPrefix(name, fifoNamePrefix) {
-		return os.OpenFile(path, flags, mode)
-	}
-
 	f, err := r.openHandler(r.handlerCtx(ctx, handlerKindOpen, todoPos), path, flags, mode)
 	// TODO: support wrapped PathError returned from openHandler.
 	switch err.(type) {

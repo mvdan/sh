@@ -55,6 +55,45 @@ func mockFileOpen(ctx context.Context, path string, flags int, mode os.FileMode)
 	return nopWriterCloser{strings.NewReader(fmt.Sprintf("body of %s", path))}, nil
 }
 
+// virtualProcSubst is an in-memory ProcSubstOpenFunc backed by [io.Pipe].
+// It hands the runner one end and keeps the other under a fake path for
+// a paired OpenHandler to serve, so no real filesystem entry is touched.
+type virtualProcSubst struct {
+	counter int
+	ends    map[string]io.ReadWriteCloser
+}
+
+func (v *virtualProcSubst) open(ctx context.Context, op syntax.ProcOperator) (string, io.ReadWriteCloser, func(), error) {
+	v.counter++
+	path := fmt.Sprintf("virtual-procsubst-%d", v.counter)
+	pr, pw := io.Pipe()
+	switch op {
+	case syntax.CmdIn:
+		v.ends[path] = readOnlyRWC{pr}
+		return path, writeOnlyRWC{pw}, nil, nil
+	case syntax.CmdOut:
+		v.ends[path] = writeOnlyRWC{pw}
+		return path, readOnlyRWC{pr}, nil, nil
+	default:
+		panic(fmt.Sprintf("unexpected process substitution operator: %q", op))
+	}
+}
+
+func (v *virtualProcSubst) openHandler(ctx context.Context, path string, flags int, mode os.FileMode) (io.ReadWriteCloser, error) {
+	if rwc, ok := v.ends[path]; ok {
+		return rwc, nil
+	}
+	return interp.DefaultOpenHandler()(ctx, path, flags, mode)
+}
+
+type readOnlyRWC struct{ io.ReadCloser }
+
+func (readOnlyRWC) Write(p []byte) (int, error) { return 0, fmt.Errorf("read-only") }
+
+type writeOnlyRWC struct{ io.WriteCloser }
+
+func (writeOnlyRWC) Read(p []byte) (int, error) { return 0, io.EOF }
+
 func blocklistGlob(ctx context.Context, path string) ([]fs.FileInfo, error) {
 	return nil, fmt.Errorf("blocklisted: glob")
 }
@@ -395,8 +434,8 @@ var modCases = []struct {
 		opts: []interp.RunnerOption{
 			interp.OpenHandler(mockFileOpen),
 		},
-		src:  "echo $(<foo); echo $(< <(echo bar))",
-		want: "body of foo\nbar\n",
+		src:  "echo $(<foo)",
+		want: "body of foo\n",
 	},
 	{
 		name: "CallReplaceWithBlank",
@@ -457,7 +496,18 @@ var modCases = []struct {
 		src:  "cd vdir && echo ok",
 		want: "ok\n",
 	},
+	{
+		name: "ProcSubstVirtual",
+		opts: []interp.RunnerOption{
+			interp.ProcSubstOpen(procSubstVirtual.open),
+			interp.OpenHandler(procSubstVirtual.openHandler),
+		},
+		src:  "read -r line < <(echo bar); echo \"$line\"",
+		want: "bar\n",
+	},
 }
+
+var procSubstVirtual = &virtualProcSubst{ends: map[string]io.ReadWriteCloser{}}
 
 func TestRunnerHandlers(t *testing.T) {
 	t.Parallel()

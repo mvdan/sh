@@ -105,6 +105,10 @@ type Runner struct {
 	// accessHandler is a function responsible for checking file access. It must be non-nil.
 	accessHandler AccessHandlerFunc
 
+	// procSubstOpen is a function responsible for creating the communication
+	// channel for process substitutions. It must be non-nil.
+	procSubstOpen ProcSubstOpenFunc
+
 	stdin  stdinFile // e.g. the read end of a pipe
 	stdout io.Writer
 	stderr io.Writer
@@ -332,6 +336,7 @@ func New(opts ...RunnerOption) (*Runner, error) {
 		readDirHandler:       DefaultReadDirHandler2(),
 		statHandler:          DefaultStatHandler(),
 		accessHandler:        DefaultAccessHandler(),
+		procSubstOpen:        DefaultProcSubstOpen(),
 	}
 	r.dirStack = r.dirBootstrap[:0]
 	// turn "on" the default Bash options
@@ -662,6 +667,15 @@ func AccessHandler(f AccessHandlerFunc) RunnerOption {
 	}
 }
 
+// ProcSubstOpen sets the handler used to implement process substitution.
+// See [ProcSubstOpenFunc] for more info.
+func ProcSubstOpen(f ProcSubstOpenFunc) RunnerOption {
+	return func(r *Runner) error {
+		r.procSubstOpen = f
+		return nil
+	}
+}
+
 // StdIO configures an interpreter's standard input, standard output, and
 // standard error. If out or err are nil, they default to a writer that discards
 // the output.
@@ -953,6 +967,7 @@ func (r *Runner) Reset() {
 		readDirHandler:       r.readDirHandler,
 		statHandler:          r.statHandler,
 		accessHandler:        r.accessHandler,
+		procSubstOpen:        r.procSubstOpen,
 
 		// These can be set by functions like [Dir] or [Params], but
 		// builtins can overwrite them; reset the fields to whatever the
@@ -1146,6 +1161,7 @@ func (r *Runner) subshell(background bool) *Runner {
 		readDirHandler:       r.readDirHandler,
 		statHandler:          r.statHandler,
 		accessHandler:        r.accessHandler,
+		procSubstOpen:        r.procSubstOpen,
 		stdin:                r.stdin,
 		stdout:               r.stdout,
 		stderr:               r.stderr,
