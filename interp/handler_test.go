@@ -646,3 +646,57 @@ func TestKillSignal(t *testing.T) {
 		})
 	}
 }
+
+// When a background statement amounts to starting one external program via
+// the default exec handler, $! expands to its real process ID, and wait
+// accepts it. Note that other tests use exec handler middleware, which keeps
+// the fake "gN" PIDs.
+func TestBackgroundRealPID(t *testing.T) {
+	t.Parallel()
+	if runtime.GOOS == "windows" {
+		t.Skip("needs a Unix shell to print the child's PID")
+	}
+	if !canExec {
+		t.Skipf("skipping test needing subprocesses on %s", runtime.GOOS)
+	}
+
+	file := parse(t, nil, "sh -c 'echo child=$$' & pid=$!; wait $pid; echo shell=$pid")
+	var buf bytes.Buffer
+	r, _ := interp.New(interp.StdIO(nil, &buf, &buf))
+	ctx, cancel := context.WithTimeout(t.Context(), runnerRunTimeout)
+	defer cancel()
+	if err := r.Run(ctx, file); err != nil {
+		t.Fatal(err)
+	}
+	var child, shell int
+	if n, err := fmt.Sscanf(buf.String(), "child=%d\nshell=%d\n", &child, &shell); n != 2 || err != nil {
+		t.Fatalf("unexpected output: %q", buf.String())
+	}
+	if child != shell {
+		t.Fatalf("child PID %d does not match $! %d", child, shell)
+	}
+}
+
+// A background statement with a redirection must not delay the parent shell:
+// here, opening the FIFO for writing blocks until the parent runs a reader.
+func TestBackgroundRedirFIFO(t *testing.T) {
+	t.Parallel()
+	if runtime.GOOS == "windows" {
+		t.Skip("needs mkfifo")
+	}
+	if !canExec {
+		t.Skipf("skipping test needing subprocesses on %s", runtime.GOOS)
+	}
+
+	file := parse(t, nil, "mkfifo p; echo hi >p & pid=$!; cat p; wait $pid")
+	var buf bytes.Buffer
+	r, _ := interp.New(interp.Dir(t.TempDir()), interp.StdIO(nil, &buf, &buf))
+	ctx, cancel := context.WithTimeout(t.Context(), runnerRunTimeout)
+	defer cancel()
+	if err := r.Run(ctx, file); err != nil {
+		t.Fatal(err)
+	}
+	if got := buf.String(); got != "hi\n" {
+		t.Fatalf("unexpected output: %q", got)
+	}
+}

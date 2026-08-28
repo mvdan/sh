@@ -87,6 +87,11 @@ type Runner struct {
 	// The slice is needed to preserve the relative order of middlewares.
 	execMiddlewares []func(ExecHandlerFunc) ExecHandlerFunc
 
+	// execHandlerIsDefault records whether execHandler is [DefaultExecHandler]
+	// with no middleware, in which case background statements can expect it
+	// to report a started process via [Runner.reportBgStart].
+	execHandlerIsDefault bool
+
 	// openHandler is a function responsible for opening files. It must not be nil.
 	openHandler OpenHandlerFunc
 
@@ -145,12 +150,17 @@ type Runner struct {
 	lastExpandExit exitStatus // used to surface exit statuses while expanding fields
 
 	// bgProcs holds all background shells spawned by this runner.
-	// Their PIDs are 1-indexed, from 1 to len(bgProcs), with a "g" prefix
-	// to distinguish them from real PIDs on the host operating system.
+	// As they run as goroutines rather than forked processes, they have
+	// fake PIDs; see [bgProc.id].
 	//
 	// Note that each shell only tracks its direct children;
 	// subshells do not share nor inherit the background PIDs they can wait for.
 	bgProcs []bgProc
+
+	// bgStarted is non-nil when this runner is a background subshell
+	// whose statement may amount to starting one external program;
+	// the runner reports through it once via [Runner.reportBgStart].
+	bgStarted chan int
 
 	opts runnerOpts
 
@@ -255,6 +265,52 @@ type bgProc struct {
 	done chan struct{}
 
 	exit *exitStatus
+
+	// id is what $! expands to: a fake PID such as "g1", 1-indexed and
+	// prefixed to distinguish it from real PIDs on the host operating
+	// system, or the real process ID once started delivers a non-zero one.
+	// Read it via [Runner.bgProcID].
+	id string
+
+	// started, when non-nil, delivers the report from [Runner.reportBgStart]:
+	// the process ID when the background statement started exactly one
+	// external program, and zero otherwise.
+	started chan int
+}
+
+// newBgProc returns a background job with the next fake PID.
+func (r *Runner) newBgProc() bgProc {
+	return bgProc{
+		done: make(chan struct{}),
+		exit: new(exitStatus),
+		id:   "g" + strconv.Itoa(len(r.bgProcs)+1),
+	}
+}
+
+// bgProcID returns what $! expands to for the background job at index i,
+// waiting for the job's report first when one is pending;
+// see [Runner.reportBgStart].
+func (r *Runner) bgProcID(i int) string {
+	bg := &r.bgProcs[i]
+	if bg.started != nil {
+		if pid := <-bg.started; pid != 0 {
+			bg.id = strconv.Itoa(pid)
+		}
+		bg.started = nil
+	}
+	return bg.id
+}
+
+// lookupBgProc finds a background job by a string that $! expanded to.
+func (r *Runner) lookupBgProc(arg string) (bgProc, bool) {
+	// Iterate backwards so that, if the OS reused a PID,
+	// we find the most recent background job.
+	for i := range slices.Backward(r.bgProcs) {
+		if r.bgProcID(i) == arg {
+			return r.bgProcs[i], true
+		}
+	}
+	return bgProc{}, false
 }
 
 type alias struct {
@@ -270,11 +326,12 @@ type alias struct {
 // standard output writer means that the output will be discarded.
 func New(opts ...RunnerOption) (*Runner, error) {
 	r := &Runner{
-		usedNew:        true,
-		openHandler:    DefaultOpenHandler(),
-		readDirHandler: DefaultReadDirHandler2(),
-		statHandler:    DefaultStatHandler(),
-		accessHandler:  DefaultAccessHandler(),
+		usedNew:              true,
+		execHandlerIsDefault: true,
+		openHandler:          DefaultOpenHandler(),
+		readDirHandler:       DefaultReadDirHandler2(),
+		statHandler:          DefaultStatHandler(),
+		accessHandler:        DefaultAccessHandler(),
 	}
 	r.dirStack = r.dirBootstrap[:0]
 	// turn "on" the default Bash options
@@ -511,6 +568,7 @@ func CallHandler(f CallHandlerFunc) RunnerOption {
 // like middleware functions.
 func ExecHandler(f ExecHandlerFunc) RunnerOption {
 	return func(r *Runner) error {
+		r.execHandlerIsDefault = false
 		r.execHandler = f
 		return nil
 	}
@@ -532,6 +590,7 @@ func ExecHandler(f ExecHandlerFunc) RunnerOption {
 // The last exec handler is always [DefaultExecHandler](2 * time.Second).
 func ExecHandlers(middlewares ...func(next ExecHandlerFunc) ExecHandlerFunc) RunnerOption {
 	return func(r *Runner) error {
+		r.execHandlerIsDefault = false
 		r.execMiddlewares = append(r.execMiddlewares, middlewares...)
 		return nil
 	}
@@ -559,6 +618,8 @@ func OpenHandler(f OpenHandlerFunc) RunnerOption {
 func ReadDirHandler(f ReadDirHandlerFunc) RunnerOption {
 	return func(r *Runner) error {
 		r.readDirHandler = func(ctx context.Context, path string) ([]fs.DirEntry, error) {
+			// A custom handler may be arbitrarily slow, e.g. when globbing.
+			HandlerCtx(ctx).runner.reportBgStart(0)
 			infos, err := f(ctx, path)
 			if err != nil {
 				return nil, err
@@ -576,7 +637,11 @@ func ReadDirHandler(f ReadDirHandlerFunc) RunnerOption {
 // ReadDirHandler2 sets the read directory handler. See [ReadDirHandlerFunc2] for more info.
 func ReadDirHandler2(f ReadDirHandlerFunc2) RunnerOption {
 	return func(r *Runner) error {
-		r.readDirHandler = f
+		r.readDirHandler = func(ctx context.Context, path string) ([]fs.DirEntry, error) {
+			// A custom handler may be arbitrarily slow, e.g. when globbing.
+			HandlerCtx(ctx).runner.reportBgStart(0)
+			return f(ctx, path)
+		}
 		return nil
 	}
 }
@@ -879,14 +944,15 @@ func (r *Runner) Reset() {
 	}
 	// reset the internal state
 	*r = Runner{
-		Env:            r.Env,
-		tempDir:        r.tempDir,
-		callHandler:    r.callHandler,
-		execHandler:    r.execHandler,
-		openHandler:    r.openHandler,
-		readDirHandler: r.readDirHandler,
-		statHandler:    r.statHandler,
-		accessHandler:  r.accessHandler,
+		Env:                  r.Env,
+		tempDir:              r.tempDir,
+		callHandler:          r.callHandler,
+		execHandler:          r.execHandler,
+		execHandlerIsDefault: r.execHandlerIsDefault,
+		openHandler:          r.openHandler,
+		readDirHandler:       r.readDirHandler,
+		statHandler:          r.statHandler,
+		accessHandler:        r.accessHandler,
 
 		// These can be set by functions like [Dir] or [Params], but
 		// builtins can overwrite them; reset the fields to whatever the
@@ -1070,23 +1136,24 @@ func (r *Runner) subshell(background bool) *Runner {
 	// Keep in sync with the Runner type. Manually copy fields, to not copy
 	// sensitive ones like [errgroup.Group], and to do deep copies of slices.
 	r2 := &Runner{
-		Dir:            r.Dir,
-		tempDir:        r.tempDir,
-		Params:         r.Params,
-		callHandler:    r.callHandler,
-		execHandler:    r.execHandler,
-		openHandler:    r.openHandler,
-		readDirHandler: r.readDirHandler,
-		statHandler:    r.statHandler,
-		accessHandler:  r.accessHandler,
-		stdin:          r.stdin,
-		stdout:         r.stdout,
-		stderr:         r.stderr,
-		filename:       r.filename,
-		opts:           r.opts,
-		usedNew:        r.usedNew,
-		exit:           r.exit,
-		lastExit:       r.lastExit,
+		Dir:                  r.Dir,
+		tempDir:              r.tempDir,
+		Params:               r.Params,
+		callHandler:          r.callHandler,
+		execHandler:          r.execHandler,
+		execHandlerIsDefault: r.execHandlerIsDefault,
+		openHandler:          r.openHandler,
+		readDirHandler:       r.readDirHandler,
+		statHandler:          r.statHandler,
+		accessHandler:        r.accessHandler,
+		stdin:                r.stdin,
+		stdout:               r.stdout,
+		stderr:               r.stderr,
+		filename:             r.filename,
+		opts:                 r.opts,
+		usedNew:              r.usedNew,
+		exit:                 r.exit,
+		lastExit:             r.lastExit,
 
 		origStdout: r.origStdout, // used for process substitutions
 	}

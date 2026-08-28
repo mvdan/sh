@@ -1772,6 +1772,9 @@ var runTests = []runTest{
 	{"echo foo | true | false & wait $!", "exit status 1"},
 	{"echo foo | false | true & wait $!", ""},
 	{"f() { false & true; }; f; wait $!", "exit status 1"},
+	// $! stays a fake PID here because runTests installs exec middleware;
+	// TestBackgroundRealPID covers the default exec handler.
+	{"sleep 0.01 & case $! in g*) echo fake ;; *) echo real ;; esac; wait", "fake\n #IGNORE bash uses real PIDs"},
 	// The parent and child shells should not cause data races when setting env vars.
 	// Note that we can't use `echo $var`, as it seems to write newlines separately,
 	// which can cause them to get mixed up between concurrent subshells.

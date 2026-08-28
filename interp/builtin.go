@@ -354,12 +354,10 @@ func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args 
 			break
 		}
 		for _, arg := range args {
-			arg, ok := strings.CutPrefix(arg, "g")
-			pid := atoi(arg)
-			if !ok || pid <= 0 || pid > int64(len(r.bgProcs)) {
+			bg, ok := r.lookupBgProc(arg)
+			if !ok {
 				return failf(1, "wait: pid %s is not a child of this shell\n", arg)
 			}
-			bg := r.bgProcs[pid-1]
 			<-bg.done
 			exit = *bg.exit
 		}

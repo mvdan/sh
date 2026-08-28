@@ -47,6 +47,7 @@ func (r *Runner) fillExpandConfig(ctx context.Context) {
 	r.ecfg = &expand.Config{
 		Env: expandEnv{r},
 		CmdSubst: func(w io.Writer, cs *syntax.CmdSubst) error {
+			r.reportBgStart(0) // runs arbitrary shell code
 			switch len(cs.Stmts) {
 			case 0: // nothing to do
 				return nil
@@ -109,10 +110,7 @@ func (r *Runner) fillExpandConfig(ctx context.Context) {
 			stdout := r.origStdout
 			// TODO: note that `man bash` mentions that `wait` only waits for the last
 			// process substitution as long as it is $!; the logic here would mean we wait for all of them.
-			bg := bgProc{
-				done: make(chan struct{}),
-				exit: new(exitStatus),
-			}
+			bg := r.newBgProc()
 			r.bgProcs = append(r.bgProcs, bg)
 			go func() {
 				defer func() {
@@ -316,13 +314,21 @@ func (r *Runner) stmt(ctx context.Context, st *syntax.Stmt) {
 		st2 := *st
 		st2.Background = false
 		st2.Disown = false
-		bg := bgProc{
-			done: make(chan struct{}),
-			exit: new(exitStatus),
+		bg := r.newBgProc()
+		// A plain command call may amount to starting exactly one external
+		// program, in which case $! expands to its real PID like in other
+		// shells, which fork background statements as child processes.
+		// Only the default exec handler reports a started program; custom
+		// call or exec handlers may run commands in arbitrary ways.
+		if ce, ok := st.Cmd.(*syntax.CallExpr); ok && len(ce.Args) > 0 &&
+			r.execHandlerIsDefault && r.callHandler == nil {
+			bg.started = make(chan int, 1)
+			r2.bgStarted = bg.started
 		}
 		r.bgProcs = append(r.bgProcs, bg)
 		go func() {
 			r2.Run(ctx, &st2)
+			r2.reportBgStart(0)     // in case we didn't get to start a program
 			r2.exit.exiting = false // subshells don't exit the parent shell
 			*bg.exit = r2.exit
 			close(bg.done)
@@ -333,9 +339,30 @@ func (r *Runner) stmt(ctx context.Context, st *syntax.Stmt) {
 	r.lastExit = r.exit
 }
 
+// reportBgStart is called by a background subshell once we first know whether
+// its statement amounts to starting exactly one external program, with its
+// process ID, or with zero when that is not the case. No-op for any other
+// runner, or when called again. See [Runner.bgStarted].
+//
+// The parent shell blocks on this report when expanding $!, and we must never
+// delay it noticeably nor deadlock with it, so a zero report must happen
+// before any operation which could block indefinitely or run arbitrary user
+// code, as the call sites explain: expanding a command substitution, calling
+// a custom handler, or opening a redirection file, given that e.g. a FIFO
+// opened for writing blocks until a reader opens the other end.
+func (r *Runner) reportBgStart(pid int) {
+	if r.bgStarted != nil {
+		r.bgStarted <- pid
+		r.bgStarted = nil
+	}
+}
+
 func (r *Runner) stmtSync(ctx context.Context, st *syntax.Stmt) {
 	oldIn, oldOut, oldErr := r.stdin, r.stdout, r.stderr
 	var closers []io.Closer
+	if len(st.Redirs) > 0 {
+		r.reportBgStart(0) // opening a file may block
+	}
 	for _, rd := range st.Redirs {
 		cls, err := r.redir(ctx, rd)
 		if err != nil {
@@ -1160,6 +1187,7 @@ func (r *Runner) call(ctx context.Context, pos syntax.Pos, args []string) {
 	}
 	name := args[0]
 	if body := r.Funcs[name]; body != nil {
+		r.reportBgStart(0) // not one external program
 		// stack them to support nested func calls
 		oldParams := r.Params
 		r.Params = args[1:]
@@ -1181,6 +1209,7 @@ func (r *Runner) call(ctx context.Context, pos syntax.Pos, args []string) {
 		return
 	}
 	if IsBuiltin(name) {
+		r.reportBgStart(0) // not one external program
 		r.exit = r.builtin(ctx, pos, name, args[1:])
 		return
 	}

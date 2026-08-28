@@ -179,9 +179,11 @@ func DefaultExecHandler(killTimeout time.Duration) ExecHandlerFunc {
 			// Like other shells, run a file which the kernel refuses to
 			// execute with ENOEXEC, such as a script without a shebang line,
 			// as a shell script with a new copy of the shell.
+			hc.runner.reportBgStart(0) // the nested shell isn't one program
 			return runScriptENOEXEC(ctx, hc, killTimeout, path, args)
 		}
 		if err == nil {
+			hc.runner.reportBgStart(cmd.Process.Pid)
 			err = cmd.Wait()
 		}
 
