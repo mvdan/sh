@@ -1,5 +1,59 @@
 # Changelog
 
+## [3.14.0] - 2026-08-28
+
+This release drops support for Go 1.25 and includes many enhancements,
+particularly in the interpreter, which implements more shell features
+and fixes many divergences from Bash.
+
+- **cmd/shfmt**
+  - Add `--detect` to find shell files by executable bit or shebang - #944
+- **syntax**
+  - Add `Preorder`, an iterator over all nodes, complementing `Walk`
+  - Add `encoding.TextUnmarshaler` implementations for each operator type
+  - Support `${ foo;}` and `${|foo;}` inside double quotes - #1368
+  - Support array elements in `{varname}` redirects, like `exec {fds[3]}>&-` - #719
+  - Backslashes inside backquotes within double quotes escape double quotes - #1083
+  - Allow pound signs in associative array keys like `${args[cmd,#]}` - #1285
+  - Don't treat `#` as the start of a comment inside `[[ ]]` tests - #1326
+  - Don't join `then` or `do` with a semicolon when heredocs are pending - #1047
+  - Print a space after `!` in arithmetic expressions, avoiding history expansion - #987
+  - Space nested closing parentheses like the opening ones - #876
+  - Make `SplitBraces` reject malformed sequences and skip backslash escapes - #1330
+  - Zsh: support the `${=name}`, `${~name}`, and `${^name}` prefixes - #1238
+  - Zsh: support the `;|` case terminator and leading parentheses for globs - #1293, #1279
+  - Zsh: parse subscript flag arguments as patterns, and allow `[` globs in arrays - #1278, #1322
+- **syntax/typedjson**
+  - Encode operators as their syntax form, such as `">>"`, rather than integers - #1321
+  - Return errors rather than panicking on malformed input
+- **interp**
+  - Add `BashOpts` to set Bash options like `shopt` - #962
+  - Add `AccessHandler` to control file access checks, used by `-r` and `cd` - #1318
+  - Add `HandlerContext.LastExitStatus`, and provide a `HandlerContext` to stat handlers
+  - Implement the `help` and `times` builtins, as well as `$-` - #1398
+  - Implement the `;&` and `;;&` case terminators - #1391
+  - Implement the `-N` test operator, and make `-nt` and `-ot` follow POSIX - #1340
+  - Support sparse indexed arrays such as `a=([5]=x)` - #1373
+  - Run files as shell scripts when `exec` fails with `ENOEXEC` - #1065
+  - Support empty here-documents, and don't expand quoted ones - #1390
+  - Support `js/wasm`, where subprocesses and pipes are unavailable
+  - Keep the redirections applied by `exec` with no arguments
+  - Only fire the exit trap when the shell exits, rather than after every `Run`
+- **expand**
+  - Add `BracesSeq` with a config and error reporting, deprecating `Braces`
+  - Add `Variable.Indexes` to describe sparse indexed arrays
+  - Support integer bases in arithmetic - #339
+  - Short-circuit the arithmetic `&&` and `||` operators - #1371
+  - Apply per-element operators to quoted array expansions like `"${a[@]%o}"` - #1081
+  - Make unquoted `${!arr[@]}` consistent with the quoted form - #672
+  - Fix many divergences from Bash in arithmetic, string, and brace expansions
+  - Reject unsupported Zsh syntax rather than panicking - #1363
+- **pattern**
+  - Treat an unmatched `[` as a literal character, like Bash - #1372
+  - Fix panics and mismatches in bracket expressions, such as `[![:space:]]`
+- **fileutil**
+  - Recognize `dash` shebangs as POSIX shell for `-ln=auto` - #1307
+
 ## [3.13.1] - 2026-03-09
 
 - **cmd/shfmt**
@@ -837,6 +891,7 @@ module in v3.
 
 Initial release.
 
+[3.14.0]: https://github.com/mvdan/sh/releases/tag/v3.14.0
 [3.13.1]: https://github.com/mvdan/sh/releases/tag/v3.13.1
 [3.13.0]: https://github.com/mvdan/sh/releases/tag/v3.13.0
 [3.12.0]: https://github.com/mvdan/sh/releases/tag/v3.12.0
