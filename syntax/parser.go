@@ -2182,6 +2182,14 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 	redirsStart := len(s.Redirs)
 	switch p.tok {
 	case _LitWord:
+		if rest, ok := p.zshLeadingBrace(p.val); ok {
+			b := &Block{Lbrace: p.pos}
+			p.pos = posAddCol(b.Lbrace, 1)
+			p.val = rest
+			p.spaced = false
+			p.blockBody(s, b)
+			break
+		}
 		switch p.val {
 		case "{":
 			p.block(s)
@@ -2264,6 +2272,14 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 		}
 		if p.hasValidIdent() {
 			p.callExpr(s, nil, true)
+			break
+		}
+		if rest, ok := p.zshTrailingBrace(p.val); ok {
+			name := p.lit(p.pos, rest)
+			p.pos = posAddCol(p.pos, len(rest))
+			p.val = "}"
+			p.spaced = false
+			p.callExpr(s, p.wordOne(name), false)
 			break
 		}
 		name := p.lit(p.pos, p.val)
@@ -2386,6 +2402,10 @@ func (p *Parser) arithmExpCmd(s *Stmt) {
 func (p *Parser) block(s *Stmt) {
 	b := &Block{Lbrace: p.pos}
 	p.next()
+	p.blockBody(s, b)
+}
+
+func (p *Parser) blockBody(s *Stmt, b *Block) {
 	b.Stmts, b.Last = p.followStmts("{", b.Lbrace, "}")
 	if pos, ok := p.gotRsrv("}"); ok {
 		b.Rbrace = pos
@@ -2395,6 +2415,36 @@ func (p *Parser) block(s *Stmt) {
 		p.matchingErr(b.Lbrace, leftBrace, rightBrace)
 	}
 	s.Cmd = b
+}
+
+// zshLeadingBrace reports whether val is a Zsh brace group's "{" glued to the
+// word that follows it without a separating blank, such as the "{echo" in
+// "{echo foo}". Zsh does not require a blank after the opening brace, unlike
+// the other shells this package supports. On success it returns the word
+// content found after the brace.
+func (p *Parser) zshLeadingBrace(val string) (rest string, ok bool) {
+	if !p.lang.in(LangZsh) || len(val) < 2 {
+		return "", false
+	}
+	if val[0] != '{' || val[len(val)-1] == '}' {
+		return "", false
+	}
+	return val[1:], true
+}
+
+// zshTrailingBrace reports whether val is a Zsh brace group's "}" glued to
+// the word that precedes it without a separating blank, such as the "3}" in
+// "{echo foo; seq 3}". Zsh does not require a blank, nor a semicolon, before
+// the closing brace. On success it returns the word content found before
+// the brace.
+func (p *Parser) zshTrailingBrace(val string) (rest string, ok bool) {
+	if !p.lang.in(LangZsh) || len(val) < 2 {
+		return "", false
+	}
+	if val[len(val)-1] != '}' || val[0] == '{' {
+		return "", false
+	}
+	return val[:len(val)-1], true
 }
 
 func (p *Parser) ifClause(s *Stmt) {
@@ -2919,6 +2969,14 @@ loop:
 			}
 			// Zsh does not require a semicolon to close a block.
 			if p.lang.in(LangZsh) && p.val == "}" {
+				break loop
+			}
+			// Nor does it require a blank before the closing brace.
+			if rest, ok := p.zshTrailingBrace(p.val); ok {
+				ce.Args = append(ce.Args, p.wordOne(p.lit(p.pos, rest)))
+				p.pos = posAddCol(p.pos, len(rest))
+				p.val = "}"
+				p.spaced = false
 				break loop
 			}
 			w := p.wordOne(p.lit(p.pos, p.val))

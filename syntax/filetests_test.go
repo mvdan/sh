@@ -1992,6 +1992,18 @@ var fileTests = []fileTestCase{
 		langFile(block(litStmt("foo")), LangZsh),
 	),
 	fileTest(
+		// Zsh also allows omitting the blank around "{" and "}",
+		// as well as the semicolon before "}", to form a brace group.
+		[]string{
+			"{\n\techo FOO\n\tseq 3\n}",
+			"{echo FOO; seq 3}",
+			"{echo FOO; seq 3;}",
+			"{echo FOO; seq 3 }",
+			"{ echo FOO; seq 3}",
+		},
+		langFile(block(litStmt("echo", "FOO"), litStmt("seq", "3")), LangZsh),
+	),
+	fileTest(
 		[]string{"{ }"},
 		langErr2("1:1: `{` must be followed by a statement list"),
 		langFile(block(), LangZsh|LangMirBSDKorn),
