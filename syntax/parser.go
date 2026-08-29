@@ -1518,22 +1518,22 @@ zshPrefixLoop:
 		// Note that in Zsh, the short form like $#name is allowed too.
 		switch p.r {
 		case '#':
-			if p.paramNameStart() {
+			if p.paramNameStart(pe.Short) {
 				pe.Length = true
 			}
 		case '%':
-			if p.paramNameStart() {
+			if p.paramNameStart(pe.Short) {
 				p.checkLang(pe.Pos(), LangMirBSDKorn, "`${%%foo}`")
 				pe.Width = true
 			}
 		case '!':
 			// Unlike the others, zsh has no $!foo prefix.
-			if !pe.Short && p.paramNameStart() {
+			if !pe.Short && p.paramNameStart(false) {
 				p.checkLang(pe.Pos(), langBashLike|LangMirBSDKorn, "`${!foo}`")
 				pe.Excl = true
 			}
 		case '+':
-			if p.paramNameStart() {
+			if p.paramNameStart(pe.Short) {
 				p.checkLang(pe.Pos(), LangZsh, "`${+foo}`")
 				pe.IsSet = true
 			}
@@ -1674,8 +1674,14 @@ zshPrefixLoop:
 	return pe
 }
 
-func (p *Parser) paramNameStart() bool {
+func (p *Parser) paramNameStart(short bool) bool {
 	r := p.peek()
+	if short && r == '"' {
+		// In the short form like $# or $+, a double quote cannot start
+		// a parameter name; "$#" is the special parameter, and $#"$foo"
+		// is $# followed by a quoted word.
+		return false
+	}
 	if r == utf8.RuneSelf || singleRuneParam(r) || paramNameRune(r) || r == '"' {
 		p.rune()
 		return true

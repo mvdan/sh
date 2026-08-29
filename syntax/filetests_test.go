@@ -2339,6 +2339,14 @@ var fileTests = []fileTestCase{
 		langFile(dblQuoted(litParamExp("!"))),
 	),
 	fileTest(
+		[]string{`"$#"`},
+		langFile(dblQuoted(litParamExp("#"))),
+	),
+	fileTest(
+		[]string{`$#"$foo"`},
+		langFile(word(litParamExp("#"), dblQuoted(litParamExp("foo")))),
+	),
+	fileTest(
 		[]string{`$`, `$ #`},
 		langFile(litWord("$")),
 	),
