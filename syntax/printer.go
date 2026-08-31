@@ -205,6 +205,13 @@ func (c *colCounter) WriteByte(b byte) error {
 	return c.Writer.WriteByte(b)
 }
 
+func (c *colCounter) Write(b []byte) (int, error) {
+	for _, x := range b {
+		c.addByte(x)
+	}
+	return c.Writer.Write(b)
+}
+
 func (c *colCounter) WriteString(s string) (int, error) {
 	for _, b := range []byte(s) {
 		c.addByte(b)
