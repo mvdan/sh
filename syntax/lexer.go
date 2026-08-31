@@ -1027,6 +1027,12 @@ func paramNameRune[T rune | byte](r T) bool {
 	return asciiLetter(r) || asciiDigit(r) || r == '_'
 }
 
+// paramNameStartRune reports whether a parameter name can begin with r,
+// be it a single-rune name like $@ or a regular name like $foo.
+func paramNameStartRune[T rune | byte](r T) bool {
+	return singleRuneParam(r) || paramNameRune(r)
+}
+
 func (p *Parser) advanceLitOther(r rune) {
 	tok := _LitWord
 loop:

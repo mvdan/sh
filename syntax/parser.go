@@ -1504,7 +1504,7 @@ zshPrefixLoop:
 		// For the short form, only treat as a prefix if followed by something
 		// that could start a parameter name or another zsh prefix.
 		if pe.Short && check != '=' && check != '~' && check != '^' &&
-			!singleRuneParam(check) && !paramNameRune(check) && check != '"' {
+			!paramNameStartRune(check) {
 			break zshPrefixLoop
 		}
 		if state == OptOff {
@@ -1515,25 +1515,25 @@ zshPrefixLoop:
 	}
 	if !pe.Short || p.lang.in(LangZsh) {
 		// Prefixes, like ${#name} to get the length of a variable.
-		// Note that in Zsh, the short form like $#name is allowed too.
+		// Note that zsh allows the short forms $#name and $+name too,
+		// but not $%name nor $!name.
 		switch p.r {
 		case '#':
-			if p.paramNameStart() {
+			if p.paramNameStart(pe) {
 				pe.Length = true
 			}
 		case '%':
-			if p.paramNameStart() {
+			if !pe.Short && p.paramNameStart(pe) {
 				p.checkLang(pe.Pos(), LangMirBSDKorn, "`${%%foo}`")
 				pe.Width = true
 			}
 		case '!':
-			// Unlike the others, zsh has no $!foo prefix.
-			if !pe.Short && p.paramNameStart() {
+			if !pe.Short && p.paramNameStart(pe) {
 				p.checkLang(pe.Pos(), langBashLike|LangMirBSDKorn, "`${!foo}`")
 				pe.Excl = true
 			}
 		case '+':
-			if p.paramNameStart() {
+			if p.paramNameStart(pe) {
 				p.checkLang(pe.Pos(), LangZsh, "`${+foo}`")
 				pe.IsSet = true
 			}
@@ -1674,9 +1674,13 @@ zshPrefixLoop:
 	return pe
 }
 
-func (p *Parser) paramNameStart() bool {
+// paramNameStart reports whether a parameter name can begin after a prefix rune
+// such as the '#' in ${#foo}, consuming the prefix rune if so.
+// Only the long form allows a quoted nested expansion like ${#"$(foo)"} or EOF;
+// in the short form the prefix rune is the parameter itself, as in "$#" or $#"$foo".
+func (p *Parser) paramNameStart(pe *ParamExp) bool {
 	r := p.peek()
-	if r == utf8.RuneSelf || singleRuneParam(r) || paramNameRune(r) || r == '"' {
+	if paramNameStartRune(r) || (!pe.Short && (r == '"' || r == utf8.RuneSelf)) {
 		p.rune()
 		return true
 	}
