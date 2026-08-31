@@ -1597,7 +1597,7 @@ func (e *extraIndenter) WriteByte(b byte) error {
 	} else if lineIndent < e.firstIndent {
 		// This line did not have enough indentation; simply indent it
 		// like the first line.
-		lineIndent = e.firstIndent
+		lineIndent = e.baseIndent
 	} else {
 		// This line had plenty of indentation. Add the extra
 		// indentation that the first line had, for consistency.
