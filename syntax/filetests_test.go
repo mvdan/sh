@@ -2339,6 +2339,42 @@ var fileTests = []fileTestCase{
 		langFile(dblQuoted(litParamExp("!"))),
 	),
 	fileTest(
+		[]string{`"$#" $#"$foo" $#`},
+		langFile(call(
+			word(dblQuoted(litParamExp("#"))),
+			word(litParamExp("#"), dblQuoted(litParamExp("foo"))),
+			word(litParamExp("#")),
+		)),
+		langSkip(LangZsh), // TODO: the short `$#name` prefix eats the `#`, giving just `$`
+	),
+	fileTest(
+		[]string{`"$+" $+"$foo" $+`},
+		langFile(call(
+			word(dblQuoted(lit("$"), lit("+"))),
+			word(lit("$"), lit("+"), dblQuoted(litParamExp("foo"))),
+			word(lit("$"), lit("+")),
+		)),
+		langSkip(LangZsh), // TODO: the short `$+name` prefix eats the `+`, giving just `$`
+	),
+	fileTest(
+		[]string{`"$%" $%"$foo" $%foo`},
+		langFile(call(
+			word(dblQuoted(lit("$"), lit("%"))),
+			word(lit("$"), lit("%"), dblQuoted(litParamExp("foo"))),
+			word(lit("$"), lit("%foo")),
+		)),
+		langSkip(LangZsh), // TODO: zsh has no short `$%name` prefix, yet we error as if it did
+	),
+	fileTest(
+		[]string{`$="$foo" $~"$foo" $^"$foo"`},
+		langFile(call(
+			word(lit("$"), lit("="), dblQuoted(litParamExp("foo"))),
+			word(lit("$"), lit("~"), dblQuoted(litParamExp("foo"))),
+			word(lit("$"), lit("^"), dblQuoted(litParamExp("foo"))),
+		)),
+		langSkip(LangZsh), // TODO: the short prefixes eat their rune, giving just `$`
+	),
+	fileTest(
 		[]string{`$`, `$ #`},
 		langFile(litWord("$")),
 	),
