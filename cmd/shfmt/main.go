@@ -89,6 +89,7 @@ var (
 	spaceRedirs = flagVal("sr", "space-redirects", false, flag.BoolVar)
 	keepPadding = flagVal("kp", "keep-padding", false, flag.BoolVar)
 	funcNext    = flagVal("fn", "func-next-line", false, flag.BoolVar)
+	blockNext   = flagVal("bl", "block-next-line", false, flag.BoolVar)
 	minify      = flagVal("mn", "minify", false, flag.BoolVar)
 
 	// Utility flags.
@@ -138,7 +139,8 @@ Printer options:
   -ci, --case-indent       switch cases will be indented
   -sr, --space-redirects   redirect operators will be followed by a space
   -kp, --keep-padding      keep column alignment paddings
-  -fn, --func-next-line    function opening braces are placed on a separate line
+  -fn, --func-next-line    function opening braces are placed on a separate line (deprecated; use -bl)
+  -bl, --block-next-line   multi-line block opening tokens like '{', 'then', and 'do' are placed on a separate line
   -mn, --minify             minify the code to reduce its size (implies -s)
 
 Utilities:
@@ -171,6 +173,10 @@ For more information and to report bugs, see https://github.com/mvdan/sh.
 		fmt.Fprintf(os.Stderr, "-p and -ln=lang cannot coexist\n")
 		os.Exit(1)
 	}
+	if funcNext.val && blockNext.val {
+		fmt.Fprintf(os.Stderr, "-fn and -bl cannot coexist; note that -fn is deprecated\n")
+		os.Exit(1)
+	}
 	if list.val != "true" && list.val != "false" && list.val != "0" {
 		fmt.Fprintf(os.Stderr, "only -l and -l=0 allowed\n")
 		os.Exit(1)
@@ -199,6 +205,7 @@ For more information and to report bugs, see https://github.com/mvdan/sh.
 			spaceRedirs.short, spaceRedirs.long,
 			keepPadding.short, keepPadding.long,
 			funcNext.short, funcNext.long,
+			blockNext.short, blockNext.long,
 			minify.short, minify.long:
 			useEditorConfig = false
 		}
@@ -220,6 +227,7 @@ For more information and to report bugs, see https://github.com/mvdan/sh.
 		syntax.SpaceRedirects(spaceRedirs.val)(printer)
 		syntax.KeepPadding(keepPadding.val)(printer)
 		syntax.FunctionNextLine(funcNext.val)(printer)
+		syntax.BlockNextLine(blockNext.val)(printer)
 	}
 
 	// Decide whether or not to use color for the diff output,
@@ -432,6 +440,7 @@ func propsOptions(lang syntax.LangVariant, props editorconfig.Section) (_ syntax
 	syntax.KeepPadding(props.Get("keep_padding") == "true")(printer)
 	// TODO(v4): rename to func_next_line for consistency with flags
 	syntax.FunctionNextLine(props.Get("function_next_line") == "true")(printer)
+	syntax.BlockNextLine(props.Get("block_next_line") == "true")(printer)
 
 	minify := props.Get("minify") == "true"
 	syntax.Minify(minify)(printer)

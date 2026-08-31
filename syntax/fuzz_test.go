@@ -80,7 +80,7 @@ func FuzzParsePrint(f *testing.F) {
 	add := func(src string, variant LangVariant, stopAt string) {
 		// For now, default to just KeepComments.
 		f.Add(src, uint8(variant), true, stopAt, false,
-			uint8(0), false, false, false, false, false, false, false)
+			uint8(0), false, false, false, false, false, false, false, false)
 	}
 
 	for _, test := range errorCases {
@@ -121,6 +121,7 @@ func FuzzParsePrint(f *testing.F) {
 		minify bool,
 		singleLine bool,
 		functionNextLine bool,
+		blockNextLine bool,
 	) {
 		lang := LangVariant(langVariant)
 		if lang.count() != 1 || !lang.in(langResolvedVariants) {
@@ -151,6 +152,7 @@ func FuzzParsePrint(f *testing.F) {
 		t.Logf("Minify: %v", minify)
 		t.Logf("SingleLine: %v", singleLine)
 		t.Logf("FunctionNextLine: %v", functionNextLine)
+		t.Logf("BlockNextLine: %v", blockNextLine)
 
 		prog, err := parser.Parse(strings.NewReader(src), "")
 		if err != nil {
@@ -170,6 +172,7 @@ func FuzzParsePrint(f *testing.F) {
 		Minify(minify)(printer)
 		SingleLine(singleLine)(printer)
 		FunctionNextLine(functionNextLine)(printer)
+		BlockNextLine(blockNextLine)(printer)
 
 		if err := printer.Print(io.Discard, prog); err != nil {
 			t.Skip() // e.g. invalid option

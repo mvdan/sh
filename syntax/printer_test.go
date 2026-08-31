@@ -946,6 +946,94 @@ func TestPrintFunctionNextLine(t *testing.T) {
 	}
 }
 
+func TestPrintBlockNextLine(t *testing.T) {
+	t.Parallel()
+	tests := [...]printCase{
+		// Single-line statements are left alone.
+		samePrint("foo() { bar; }"),
+		samePrint("if a; then b; fi"),
+		samePrint("if a; then b; else c; fi"),
+		samePrint("while a; do b; done"),
+		samePrint("for i in 1 2; do b; done"),
+		{
+			"foo() { bar; baz; }",
+			"foo()\n{\n\tbar\n\tbaz\n}",
+		},
+		{
+			"foo() {\n\tbar\n}",
+			"foo()\n{\n\tbar\n}",
+		},
+		{
+			"foo()\n{ bar; }",
+			"foo()\n{\n\tbar\n}",
+		},
+		{
+			"function foo {\n\tbar\n}",
+			"function foo\n{\n\tbar\n}",
+		},
+		{
+			"{ foo() { bar; baz; }; }",
+			"{ foo()\n\t{\n\t\tbar\n\t\tbaz\n\t}; }",
+		},
+		{
+			"{\n\tfoo() { bar; baz; }\n}",
+			"{\n\tfoo()\n\t{\n\t\tbar\n\t\tbaz\n\t}\n}",
+		},
+		{
+			"if a; then\n\tb\nfi",
+			"if a\nthen\n\tb\nfi",
+		},
+		{
+			"if a; then b; c; fi",
+			"if a\nthen\n\tb\n\tc\nfi",
+		},
+		{
+			"if a; then\n\tb\nelif c; then\n\td\nelse\n\te\nfi",
+			"if a\nthen\n\tb\nelif c\nthen\n\td\nelse\n\te\nfi",
+		},
+		{
+			"while a; do\n\tb\ndone",
+			"while a\ndo\n\tb\ndone",
+		},
+		{
+			"until a; do\n\tb\ndone",
+			"until a\ndo\n\tb\ndone",
+		},
+		{
+			"for i in 1 2; do\n\tb\ndone",
+			"for i in 1 2\ndo\n\tb\ndone",
+		},
+		{
+			"select i in 1 2; do\n\tb\ndone",
+			"select i in 1 2\ndo\n\tb\ndone",
+		},
+		{
+			"for i in 1 2 3; do if a; then b; c; fi; d; done",
+			"for i in 1 2 3\ndo\n\tif a\n\tthen\n\t\tb\n\t\tc\n\tfi\n\td\ndone",
+		},
+		// A newline before a coproc's brace would change the program.
+		samePrint("coproc foo {\n\tbar\n\tbaz\n}"),
+		// Only function body braces are placed on their own line.
+		samePrint("foo() (\n\tbar\n\tbaz\n)"),
+		{
+			"foo() if a; then\n\tb\n\tc\nfi",
+			"foo() if a\nthen\n\tb\n\tc\nfi",
+		},
+	}
+	parser := NewParser(KeepComments(true))
+	printer := NewPrinter(BlockNextLine(true))
+	for _, tc := range tests {
+		t.Run("", func(t *testing.T) {
+			printTest(t, parser, printer, tc.in, tc.want)
+		})
+	}
+
+	printer = NewPrinter(FunctionNextLine(true), BlockNextLine(true))
+	if _, err := strPrint(printer, &File{}); err == nil {
+		t.Fatalf("expected an error when mixing FunctionNextLine and BlockNextLine")
+	}
+}
+
 func TestPrintSpaceRedirects(t *testing.T) {
 	t.Parallel()
 	tests := [...]printCase{

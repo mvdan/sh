@@ -22,6 +22,12 @@ stderr 'cannot coexist'
 ! exec shfmt --language-dialect=bash --posix
 stderr 'cannot coexist'
 
+! exec shfmt -fn -bl
+stderr 'cannot coexist'
+
+! exec shfmt --func-next-line --block-next-line
+stderr 'cannot coexist'
+
 ! exec shfmt -ln=bad
 stderr 'unknown shell language'
 
@@ -160,6 +166,14 @@ stdin flags-input
 exec shfmt --func-next-line
 cmp stdout flags-output.func-next-line-golden
 
+stdin flags-input-blocks
+exec shfmt -bl
+cmp stdout flags-output.block-next-line-golden
+
+stdin flags-input-blocks
+exec shfmt --block-next-line
+cmp stdout flags-output.block-next-line-golden
+
 -- input-posix --
 let a+
 -- input-bash --
@@ -286,3 +300,36 @@ foo()
 
 	keep padding
 }
+-- flags-input-blocks --
+foo() {
+	bar
+	baz
+}
+
+f() { short; }
+
+if cond; then
+	foo
+fi
+
+for i in a b; do
+	foo
+done
+-- flags-output.block-next-line-golden --
+foo()
+{
+	bar
+	baz
+}
+
+f() { short; }
+
+if cond
+then
+	foo
+fi
+
+for i in a b
+do
+	foo
+done

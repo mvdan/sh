@@ -95,8 +95,29 @@ func SingleLine(enabled bool) PrinterOption {
 }
 
 // FunctionNextLine will place a function's opening braces on the next line.
+//
+// Deprecated: use [BlockNextLine] instead, which also applies to other opening
+// tokens such as "then" and "do", and which leaves single-line statements alone.
+// The next major version, v4, will remove this option.
+// Note that FunctionNextLine and BlockNextLine cannot be used at the same time.
 func FunctionNextLine(enabled bool) PrinterOption {
 	return func(p *Printer) { p.funcNextLine = enabled }
+}
+
+// BlockNextLine will place the opening token of any statement which spans
+// multiple lines on the next line: the brace opening a function's body,
+// as well as "then" and "do". For example:
+//
+//	f()
+//	{
+//		foo
+//		bar
+//	}
+//
+// Statements printed on a single line, such as "f() { foo; }" or
+// "if true; then foo; fi", are not affected.
+func BlockNextLine(enabled bool) PrinterOption {
+	return func(p *Printer) { p.blockNextLine = enabled }
 }
 
 // NewPrinter allocates a new Printer and applies any number of options.
@@ -122,6 +143,9 @@ func (p *Printer) Print(w io.Writer, node Node) error {
 
 	if p.minify && p.singleLine {
 		return fmt.Errorf("Minify and SingleLine together are not supported yet; please file an issue describing your use case: https://github.com/mvdan/sh/issues")
+	}
+	if p.funcNextLine && p.blockNextLine {
+		return fmt.Errorf("FunctionNextLine and BlockNextLine cannot be used at the same time; note that FunctionNextLine is deprecated")
 	}
 
 	// TODO: consider adding a raw mode to skip the tab writer, much like in
@@ -240,6 +264,7 @@ type Printer struct {
 	minify         bool
 	singleLine     bool
 	funcNextLine   bool
+	blockNextLine  bool
 
 	wantSpace wantSpaceState // whether space is required or has been written
 
@@ -492,6 +517,7 @@ func (p *Printer) flushHeredocs() {
 					keepPadding:    p.keepPadding,
 					minify:         p.minify,
 					funcNextLine:   p.funcNextLine,
+					blockNextLine:  p.blockNextLine,
 
 					line: r.Hdoc.Pos().Line(),
 				}
@@ -1249,6 +1275,9 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			p.spacedString("while", cmd.Pos())
 		}
 		p.nestedStmts(cmd.Cond, cmd.CondLast, Pos{})
+		if p.blockNewline(cmd.Do, cmd.DoLast, cmd.DonePos) {
+			p.wantNewline = true
+		}
 		p.semiOrNewl("do", cmd.DoPos)
 		p.nestedStmts(cmd.Do, cmd.DoLast, cmd.DonePos)
 		p.semiRsrv("done", cmd.DonePos)
@@ -1259,6 +1288,9 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			p.w.WriteString("for ")
 		}
 		p.loop(cmd.Loop)
+		if p.blockNewline(cmd.Do, cmd.DoLast, cmd.DonePos) {
+			p.wantNewline = true
+		}
 		p.semiOrNewl("do", cmd.DoPos)
 		p.nestedStmts(cmd.Do, cmd.DoLast, cmd.DonePos)
 		p.semiRsrv("done", cmd.DonePos)
@@ -1317,9 +1349,18 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			p.w.WriteString("()")
 			p.wantSpace = spaceNotRequired
 		}
-		if p.funcNextLine {
+		// Only place an opening brace on its own line;
+		// other body commands like subshells are left alone.
+		block, _ := cmd.Body.Cmd.(*Block)
+		braceNextLine := block != nil && p.blockNewline(block.Stmts, block.Last, block.Rbrace)
+		if p.funcNextLine || braceNextLine {
 			p.newline(Pos{})
 			p.indent()
+			if braceNextLine {
+				// Forbid "foo()\n{ bar; }"; the Block case
+				// below only does so for funcNextLine.
+				p.wantNewline = true
+			}
 		} else if !cmd.Parens || !p.minify {
 			p.space()
 		}
@@ -1435,12 +1476,15 @@ func (p *Printer) ifClause(ic *IfClause, elif bool) {
 		p.spacedString("if", ic.Pos())
 	}
 	p.nestedStmts(ic.Cond, ic.CondLast, Pos{})
-	p.semiOrNewl("then", ic.ThenPos)
 	thenEnd := ic.FiPos
 	el := ic.Else
 	if el != nil {
 		thenEnd = el.Position
 	}
+	if p.blockNewline(ic.Then, ic.ThenLast, thenEnd) {
+		p.wantNewline = true
+	}
+	p.semiOrNewl("then", ic.ThenPos)
 	p.nestedStmts(ic.Then, ic.ThenLast, thenEnd)
 
 	if el != nil && el.ThenPos.IsValid() {
@@ -1511,23 +1555,43 @@ func (p *Printer) stmtList(stmts []*Stmt, last []Comment) {
 	p.comments(last...)
 }
 
-func (p *Printer) nestedStmts(stmts []*Stmt, last []Comment, closing Pos) {
-	p.incLevel()
+// stmtsForceNewline reports whether a list of statements followed by a
+// closing token must begin on a new line.
+func (p *Printer) stmtsForceNewline(stmts []*Stmt, last []Comment, closing Pos) bool {
 	switch {
 	case len(stmts) > 1:
 		// Force a newline if we find:
 		//     { stmt; stmt; }
-		p.wantNewline = true
+		return true
 	case closing.Line() > p.line && len(stmts) > 0 &&
 		stmtsEnd(stmts, last).Line() < closing.Line():
 		// Force a newline if we find:
 		//     { stmt
 		//     }
-		p.wantNewline = true
+		return true
 	case len(p.pendingComments) > 0 && len(stmts) > 0:
 		// Force a newline if we find:
 		//     for i in a b # stmt
 		//     do foo; done
+		return true
+	}
+	return false
+}
+
+// blockNewline reports whether [BlockNextLine] should place the token opening
+// a block, such as "{" or "do", on its own line, which is the case when the
+// block's statements are about to be printed across multiple lines.
+func (p *Printer) blockNewline(stmts []*Stmt, last []Comment, closing Pos) bool {
+	if !p.blockNextLine || p.minify || p.singleLine || len(stmts) == 0 {
+		return false
+	}
+	return p.stmtsForceNewline(stmts, last, closing) ||
+		p.wantNewline || stmts[0].Pos().Line() > p.line
+}
+
+func (p *Printer) nestedStmts(stmts []*Stmt, last []Comment, closing Pos) {
+	p.incLevel()
+	if p.stmtsForceNewline(stmts, last, closing) {
 		p.wantNewline = true
 	}
 	p.stmtList(stmts, last)

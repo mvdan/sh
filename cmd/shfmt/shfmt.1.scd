@@ -109,6 +109,15 @@ predictable. Some aspects of the format can be configured via printer flags.
 *-fn*, *--func-next-line*
 	Function opening braces are placed on a separate line.
 
+	This flag is *DEPRECATED* and will be removed in the next major version;
+	use *-bl* instead. The two flags cannot be used at the same time.
+
+*-bl*, *--block-next-line*
+	The opening tokens of statements which span multiple lines are placed
+	on a separate line: a function's opening brace, *then*, and *do*.
+	Statements formatted on a single line, such as *f() { foo; }* or
+	*if true; then foo; fi*, are not affected.
+
 *-mn*, *--minify*
 	Minify the code to reduce its size (implies *-s*).
 
@@ -158,6 +167,7 @@ space_redirects    = true
 keep_padding       = true
 # --func-next-line
 function_next_line = true
+block_next_line    = true
 minify             = true
 
 # Ignore the entire "third_party" directory when calling shfmt on directories,
