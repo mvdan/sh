@@ -545,6 +545,7 @@ var printTests = []printCase{
 	},
 	samePrint("<<-EOF\n\t$foo\nEOF\n\n{\n\tbar\n}"),
 	samePrint("f <<-A\n\ta $(\n\t\tg <<-B\n\t\t\tb1\n\t\t\tb2\n\t\tB\n\t)\nA"),
+	samePrint("f <<-A\n\ta $(\n\t\tg <<-B\n\t\t\tb $(\n\t\t\t\th <<-C\n\t\t\t\t\tc1\n\t\t\t\tC\n\t\t\t)\n\t\tB\n\t)\nA"),
 	samePrint("f <<EOF\nEOF\n# comment"),
 	samePrint("f <<EOF\nEOF\n# comment\nbar"),
 	samePrint("f <<EOF # inline\n$(\n\t# inside\n)\nEOF\n# outside\nbar"),
