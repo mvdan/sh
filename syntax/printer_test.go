@@ -869,6 +869,36 @@ func TestPrintBinaryNextLine(t *testing.T) {
 			"a \\\n\t| b \\\n\t|\n\t#c2\n\tc",
 		},
 		samePrint("a \\\n\t&"),
+		samePrint("[[ a\n\t|| b ]]"),
+		{
+			"[[ a &&\nb ]]",
+			"[[ a\n\t&& b ]]",
+		},
+		{
+			"[[ a ||\nb ||\nc ]]",
+			"[[ a\n\t|| b\n\t|| c ]]",
+		},
+		{
+			"if [[ a ||\nb ]]; then\nc\nfi",
+			"if [[ a\n\t|| b ]]; then\n\tc\nfi",
+		},
+		samePrint("((a \\\n\t|| b))"),
+		{
+			"((a &&\nb))",
+			"((a \\\n\t&& b))",
+		},
+		{
+			"((a ||\nb ||\nc))",
+			"((a \\\n\t|| b \\\n\t|| c))",
+		},
+		{
+			"if ((a ||\nb)); then\nc\nfi",
+			"if ((a \\\n\t|| b)); then\n\tc\nfi",
+		},
+		{
+			"echo $((a +\nb))",
+			"echo $((a \\\n\t+ b))",
+		},
 		{
 			"a \\\n\tb \\\n\tc \\\n\t# EOC",
 			"a \\\n\tb \\\n\tc\n# EOC",

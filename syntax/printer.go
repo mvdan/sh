@@ -27,8 +27,9 @@ func Indent(spaces uint) PrinterOption {
 }
 
 // BinaryNextLine will make binary operators appear on the next line
-// when a binary command, such as a pipe, spans multiple lines. A
-// backslash will be used.
+// when a binary command, such as a pipe, or a binary test or arithmetic
+// expression spans multiple lines. A backslash is used where newlines
+// need escaping.
 func BinaryNextLine(enabled bool) PrinterOption {
 	return func(p *Printer) { p.binNextLine = enabled }
 }
@@ -953,12 +954,24 @@ func (p *Printer) arithmExprRecurse(expr ArithmExpr, compact, spacePlusMinus boo
 			p.arithmExprRecurse(expr.Y, compact, false)
 		} else {
 			p.arithmExprRecurse(expr.X, compact, spacePlusMinus)
-			if expr.Op != Comma {
+			// Escaped newlines, as some contexts require them,
+			// such as C-style loops.
+			nextLine := p.binNextLine && expr.Op != Comma &&
+				p.wantsNewline(expr.Y.Pos(), true)
+			switch {
+			case nextLine:
+				p.incLevel()
+				p.bslashNewl()
+				p.advanceLine(expr.Y.Pos().Line())
+			case expr.Op != Comma:
 				p.space()
 			}
 			p.w.WriteString(expr.Op.String())
 			p.space()
 			p.arithmExprRecurse(expr.Y, compact, false)
+			if nextLine {
+				p.decLevel()
+			}
 		}
 	case *UnaryArithm:
 		if expr.Post {
@@ -1011,13 +1024,20 @@ func (p *Printer) testExprSameLine(expr TestExpr) {
 		p.word(expr)
 	case *BinaryTest:
 		p.testExprSameLine(expr.X)
-		p.space()
-		p.w.WriteString(expr.Op.String())
 		switch expr.Op {
 		case AndTest, OrTest:
+			if p.binNextLine && p.wantsNewline(expr.Y.Pos(), false) {
+				// No need to escape the newlines here.
+				p.newlines(expr.Y.Pos())
+			} else {
+				p.space()
+			}
+			p.w.WriteString(expr.Op.String())
 			p.wantSpace = spaceRequired
 			p.testExpr(expr.Y)
 		default:
+			p.space()
+			p.w.WriteString(expr.Op.String())
 			p.space()
 			p.testExprSameLine(expr.Y)
 		}
