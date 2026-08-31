@@ -1672,8 +1672,8 @@ func (e *extraIndenter) WriteString(s string) (int, error) {
 }
 
 func (e *extraIndenter) Write(b []byte) (int, error) {
-	for i := range len(b) {
-		e.WriteByte(b[i])
+	for _, c := range b {
+		e.WriteByte(c)
 	}
 	return len(b), nil
 }
