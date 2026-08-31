@@ -1620,6 +1620,13 @@ func (e *extraIndenter) WriteString(s string) (int, error) {
 	return len(s), nil
 }
 
+func (e *extraIndenter) Write(b []byte) (int, error) {
+	for i := range len(b) {
+		e.WriteByte(b[i])
+	}
+	return len(b), nil
+}
+
 func startsWithLparen(node Node) bool {
 	switch node := node.(type) {
 	case *Stmt:
