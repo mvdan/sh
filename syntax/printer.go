@@ -1608,9 +1608,30 @@ func (e *extraIndenter) WriteByte(b byte) error {
 		e.bufWriter.WriteByte('\t')
 	}
 	e.bufWriter.WriteByte(tabwriter.Escape)
-	e.bufWriter.Write(trimmed)
+	e.writeEscapingTabs(trimmed)
 	e.curLine = e.curLine[:0]
 	return nil
+}
+
+// writeEscapingTabs writes a line, wrapping any tab outside an existing
+// escape sequence in [tabwriter.Escape] so that the tabwriter treats it as
+// literal content rather than a column separator turned into spaces.
+func (e *extraIndenter) writeEscapingTabs(line []byte) {
+	escaped := false
+	for _, b := range line {
+		switch b {
+		case tabwriter.Escape:
+			escaped = !escaped
+		case '\t':
+			if !escaped {
+				e.bufWriter.WriteByte(tabwriter.Escape)
+				e.bufWriter.WriteByte('\t')
+				e.bufWriter.WriteByte(tabwriter.Escape)
+				continue
+			}
+		}
+		e.bufWriter.WriteByte(b)
+	}
 }
 
 func (e *extraIndenter) WriteString(s string) (int, error) {
