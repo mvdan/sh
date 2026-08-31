@@ -13,10 +13,7 @@ import (
 	"io/fs"
 	"iter"
 	"math"
-	mathrand "math/rand/v2"
 	"os"
-	"path/filepath"
-	"runtime"
 	"slices"
 	"strconv"
 	"strings"
@@ -38,8 +35,6 @@ const (
 	// shellReplyVar, or REPLY, is a special variable in Bash that is used to store the result of
 	// the select command or of the read command, when no variable name is specified
 	shellReplyVar = "REPLY"
-
-	fifoNamePrefix = "sh-interp-"
 )
 
 func (r *Runner) fillExpandConfig(ctx context.Context) {
@@ -79,32 +74,15 @@ func (r *Runner) fillExpandConfig(ctx context.Context) {
 			if ps.Op == syntax.CmdInTemp { // zsh's =(...)
 				return "", fmt.Errorf("unsupported")
 			}
-			if runtime.GOOS == "windows" {
-				return "", fmt.Errorf("TODO: support process substitution on Windows")
-			}
 			if len(ps.Stmts) == 0 { // nothing to do
 				return os.DevNull, nil
 			}
 
-			// We can't atomically create a random unused temporary FIFO.
-			// Similar to [os.CreateTemp],
-			// keep trying new random paths until one does not exist.
-			// We use a uint64 because a uint32 easily runs into retries.
-			var path string
-			try := 0
-			for {
-				path = filepath.Join(r.tempDir, fifoNamePrefix+strconv.FormatUint(mathrand.Uint64(), 16))
-				err := mkfifo(path, 0o666)
-				if err == nil {
-					break
-				}
-				if !os.IsExist(err) {
-					return "", fmt.Errorf("cannot create fifo: %v", err)
-				}
-				if try++; try > 100 {
-					return "", fmt.Errorf("giving up at creating fifo: %v", err)
-				}
+			psf, err := r.procSubstHandler(r.handlerCtx(ctx, handlerKindProcSubst, ps.OpPos), ps.Op)
+			if err != nil {
+				return "", err
 			}
+			r.procSubsts.add(psf)
 
 			r2 := r.subshell(true)
 			stdout := r.origStdout
@@ -117,33 +95,36 @@ func (r *Runner) fillExpandConfig(ctx context.Context) {
 					*bg.exit = r2.exit
 					close(bg.done)
 				}()
+				defer func() {
+					r.procSubsts.remove(psf)
+					if psf.Cleanup == nil {
+						return
+					}
+					if err := psf.Cleanup(); err != nil {
+						r.errf("cleaning up process substitution: %v\n", err)
+					}
+				}()
+				f, err := psf.OpenSubshell(ctx)
+				if err != nil {
+					r.errf("cannot open process substitution: %v\n", err)
+					return
+				}
+				defer func() {
+					if err := f.Close(); err != nil {
+						r.errf("closing process substitution: %v\n", err)
+					}
+				}()
 				switch ps.Op {
 				case syntax.CmdIn:
-					f, err := os.OpenFile(path, os.O_WRONLY, 0)
-					if err != nil {
-						r.errf("cannot open fifo for stdout: %v\n", err)
-						return
-					}
 					r2.stdout = f
-					defer func() {
-						if err := f.Close(); err != nil {
-							r.errf("closing stdout fifo: %v\n", err)
-						}
-						os.Remove(path)
-					}()
 				case syntax.CmdOut:
-					f, err := os.OpenFile(path, os.O_RDONLY, 0)
+					stdin, err := newStdinFile(f)
 					if err != nil {
-						r.errf("cannot open fifo for stdin: %v\n", err)
+						r.errf("cannot use process substitution as stdin: %v\n", err)
 						return
 					}
-					r2.stdin = f
+					r2.stdin = stdin
 					r2.stdout = stdout
-
-					defer func() {
-						f.Close()
-						os.Remove(path)
-					}()
 				default:
 					// Should only happen if we forgot a case above.
 					panic(fmt.Sprintf("unexpected process substitution operator: %q", ps.Op))
@@ -151,7 +132,7 @@ func (r *Runner) fillExpandConfig(ctx context.Context) {
 				r2.stmts(ctx, ps.Stmts)
 				r2.exit.exiting = false // subshells don't exit the parent shell
 			}()
-			return path, nil
+			return psf.Path, nil
 		},
 	}
 	r.updateExpandOpts()
@@ -1221,17 +1202,11 @@ func (r *Runner) exec(ctx context.Context, pos syntax.Pos, args []string) {
 }
 
 func (r *Runner) open(ctx context.Context, path string, flags int, mode os.FileMode, print bool) (io.ReadWriteCloser, error) {
-	// If we are opening a FIFO temporary file created by the interpreter itself,
-	// don't pass this along to the open handler as it will not work at all
-	// unless [os.OpenFile] is used directly with it.
-	// Matching by directory and basename prefix isn't perfect, but works.
-	//
-	// If we want FIFOs to use a handler in the future, they probably
-	// need their own separate handler API matching Unix-like semantics.
-	dir, name := filepath.Split(path)
-	dir = strings.TrimSuffix(dir, "/")
-	if dir == r.tempDir && strings.HasPrefix(name, fifoNamePrefix) {
-		return os.OpenFile(path, flags, mode)
+	// The path of an active process substitution is opened by its own
+	// handler; for example, the named pipes created by the default handler
+	// can only be opened directly via [os.OpenFile].
+	if open := r.procSubsts.lookup(path); open != nil {
+		return open(ctx, flags)
 	}
 
 	f, err := r.openHandler(r.handlerCtx(ctx, handlerKindOpen, todoPos), path, flags, mode)

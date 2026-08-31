@@ -105,6 +105,14 @@ type Runner struct {
 	// accessHandler is a function responsible for checking file access. It must be non-nil.
 	accessHandler AccessHandlerFunc
 
+	// procSubstHandler is a function responsible for setting up process
+	// substitutions. It must be non-nil.
+	procSubstHandler ProcSubstHandlerFunc
+
+	// procSubsts tracks this runner's active process substitutions;
+	// see [procSubstRegistry]. It must be non-nil.
+	procSubsts *procSubstRegistry
+
 	stdin  stdinFile // e.g. the read end of a pipe
 	stdout io.Writer
 	stderr io.Writer
@@ -332,6 +340,8 @@ func New(opts ...RunnerOption) (*Runner, error) {
 		readDirHandler:       DefaultReadDirHandler2(),
 		statHandler:          DefaultStatHandler(),
 		accessHandler:        DefaultAccessHandler(),
+		procSubstHandler:     DefaultProcSubstHandler(),
+		procSubsts:           &procSubstRegistry{},
 	}
 	r.dirStack = r.dirBootstrap[:0]
 	// turn "on" the default Bash options
@@ -662,6 +672,15 @@ func AccessHandler(f AccessHandlerFunc) RunnerOption {
 	}
 }
 
+// ProcSubstHandler sets the process substitution handler.
+// See [ProcSubstHandlerFunc] for more info.
+func ProcSubstHandler(f ProcSubstHandlerFunc) RunnerOption {
+	return func(r *Runner) error {
+		r.procSubstHandler = f
+		return nil
+	}
+}
+
 // StdIO configures an interpreter's standard input, standard output, and
 // standard error. If out or err are nil, they default to a writer that discards
 // the output.
@@ -953,6 +972,8 @@ func (r *Runner) Reset() {
 		readDirHandler:       r.readDirHandler,
 		statHandler:          r.statHandler,
 		accessHandler:        r.accessHandler,
+		procSubstHandler:     r.procSubstHandler,
+		procSubsts:           r.procSubsts,
 
 		// These can be set by functions like [Dir] or [Params], but
 		// builtins can overwrite them; reset the fields to whatever the
@@ -1146,6 +1167,8 @@ func (r *Runner) subshell(background bool) *Runner {
 		readDirHandler:       r.readDirHandler,
 		statHandler:          r.statHandler,
 		accessHandler:        r.accessHandler,
+		procSubstHandler:     r.procSubstHandler,
+		procSubsts:           r.procSubsts,
 		stdin:                r.stdin,
 		stdout:               r.stdout,
 		stderr:               r.stderr,

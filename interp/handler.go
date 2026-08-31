@@ -10,11 +10,14 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	mathrand "math/rand/v2"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"mvdan.cc/sh/v3/expand"
@@ -37,13 +40,14 @@ type handlerCtxKey struct{}
 type handlerKind int
 
 const (
-	_                  handlerKind = iota
-	handlerKindExec                // [ExecHandlerFunc]
-	handlerKindCall                // [CallHandlerFunc]
-	handlerKindOpen                // [OpenHandlerFunc]
-	handlerKindReadDir             // [ReadDirHandlerFunc2]
-	handlerKindStat                // [StatHandlerFunc]
-	handlerKindAccess              // [AccessHandlerFunc]
+	_                    handlerKind = iota
+	handlerKindExec                  // [ExecHandlerFunc]
+	handlerKindCall                  // [CallHandlerFunc]
+	handlerKindOpen                  // [OpenHandlerFunc]
+	handlerKindReadDir               // [ReadDirHandlerFunc2]
+	handlerKindStat                  // [StatHandlerFunc]
+	handlerKindAccess                // [AccessHandlerFunc]
+	handlerKindProcSubst             // [ProcSubstHandlerFunc]
 )
 
 // HandlerContext is the data passed to all the handler functions via [context.WithValue].
@@ -378,7 +382,8 @@ func pathExts(env expand.Environ) []string {
 
 // OpenHandlerFunc is a handler which opens files.
 // It is called for all files that are opened directly by the shell,
-// such as in redirects, except for named pipes created by process substitutions.
+// such as in redirects, except for the paths of active process substitutions,
+// which are opened via [ProcSubstFile.OpenConsumer].
 // The context includes a [HandlerContext] value.
 // Files opened by executed programs are not included.
 //
@@ -497,4 +502,138 @@ type AccessHandlerFunc func(ctx context.Context, path string, mode AccessMode) e
 // approximates the check via the stat handler and the file's permission bits.
 func DefaultAccessHandler() AccessHandlerFunc {
 	return defaultAccess
+}
+
+// ProcSubstHandlerFunc is a handler which sets up process substitutions,
+// that is, `<(cmd)` with [syntax.CmdIn] and `>(cmd)` with [syntax.CmdOut];
+// op is always one of those two operators.
+// The context includes a [HandlerContext] value.
+//
+// The default handler creates real named pipes via [DefaultProcSubstHandler];
+// a custom handler can implement process substitutions entirely in memory,
+// for example via [io.Pipe]. Note that [ProcSubstFile.Path] can also be
+// opened directly by executed programs, so in-memory implementations are
+// only useful when programs run via a custom [ExecHandlerFunc] as well.
+type ProcSubstHandlerFunc func(ctx context.Context, op syntax.ProcOperator) (*ProcSubstFile, error)
+
+// ProcSubstFile describes one process substitution
+// set up by a [ProcSubstHandlerFunc].
+type ProcSubstFile struct {
+	// Path substitutes the process substitution word in the command line.
+	// It must not equal the path of another active process substitution.
+	Path string
+
+	// OpenSubshell is called exactly once, from the background subshell
+	// running the process substitution's statements, to obtain the file
+	// used as the subshell's standard output for [syntax.CmdIn],
+	// or its standard input for [syntax.CmdOut];
+	// the opposite direction is never used.
+	// It may block until the other end of Path is opened,
+	// just like [os.OpenFile] on a named pipe.
+	//
+	// Note that returning a file which is not an [os.File] causes an
+	// extra file and goroutine for [syntax.CmdOut]; see [StdIO].
+	OpenSubshell func(ctx context.Context) (io.ReadWriteCloser, error)
+
+	// OpenConsumer is called in place of [OpenHandlerFunc] whenever the
+	// shell itself opens Path while the process substitution is active,
+	// such as in a redirection. If nil, [OpenHandlerFunc] is used.
+	OpenConsumer func(ctx context.Context, flag int) (io.ReadWriteCloser, error)
+
+	// Cleanup, if not nil, is called once the subshell has finished
+	// and its file has been closed.
+	// A non-nil error is printed to the shell's standard error.
+	Cleanup func() error
+}
+
+const fifoNamePrefix = "sh-interp-"
+
+// DefaultProcSubstHandler returns the [ProcSubstHandlerFunc] used by default.
+// It creates a named pipe (FIFO) inside the runner's temporary directory
+// via mkfifo(3), to be opened with [os.OpenFile] and removed by cleanup.
+// It is not supported on Windows.
+func DefaultProcSubstHandler() ProcSubstHandlerFunc {
+	return func(ctx context.Context, op syntax.ProcOperator) (*ProcSubstFile, error) {
+		if runtime.GOOS == "windows" {
+			return nil, fmt.Errorf("TODO: support process substitution on Windows")
+		}
+		var flag int
+		switch op {
+		case syntax.CmdIn: // the subshell writes to the fifo
+			flag = os.O_WRONLY
+		case syntax.CmdOut: // the subshell reads from the fifo
+			flag = os.O_RDONLY
+		default:
+			return nil, fmt.Errorf("unexpected process substitution operator: %v", op)
+		}
+		r := HandlerCtx(ctx).runner
+
+		// We can't atomically create a random unused temporary FIFO.
+		// Similar to [os.CreateTemp],
+		// keep trying new random paths until one does not exist.
+		// We use a uint64 because a uint32 easily runs into retries.
+		var path string
+		try := 0
+		for {
+			path = filepath.Join(r.tempDir, fifoNamePrefix+strconv.FormatUint(mathrand.Uint64(), 16))
+			err := mkfifo(path, 0o666)
+			if err == nil {
+				break
+			}
+			if !os.IsExist(err) {
+				return nil, fmt.Errorf("cannot create fifo: %v", err)
+			}
+			if try++; try > 100 {
+				return nil, fmt.Errorf("giving up at creating fifo: %v", err)
+			}
+		}
+		return &ProcSubstFile{
+			Path: path,
+			OpenSubshell: func(ctx context.Context) (io.ReadWriteCloser, error) {
+				// Blocks until the consumer opens the other end.
+				return os.OpenFile(path, flag, 0)
+			},
+			OpenConsumer: func(ctx context.Context, flag int) (io.ReadWriteCloser, error) {
+				// A named pipe can only be opened via [os.OpenFile];
+				// a custom [OpenHandlerFunc] would not work with it.
+				return os.OpenFile(path, flag, 0)
+			},
+			Cleanup: func() error { return os.Remove(path) },
+		}, nil
+	}
+}
+
+// procSubstRegistry tracks active process substitutions so that [Runner.open]
+// can route the opening of their paths to [ProcSubstFile.OpenConsumer].
+// It is shared by a runner and all of its subshells.
+type procSubstRegistry struct {
+	mu    sync.Mutex
+	files map[string]*ProcSubstFile
+}
+
+func (reg *procSubstRegistry) add(psf *ProcSubstFile) {
+	reg.mu.Lock()
+	defer reg.mu.Unlock()
+	if reg.files == nil {
+		reg.files = make(map[string]*ProcSubstFile)
+	}
+	reg.files[psf.Path] = psf
+}
+
+// remove unregisters a process substitution.
+func (reg *procSubstRegistry) remove(psf *ProcSubstFile) {
+	reg.mu.Lock()
+	delete(reg.files, psf.Path)
+	reg.mu.Unlock()
+}
+
+// lookup returns the consumer open function for an active process
+// substitution path, if there is one.
+func (reg *procSubstRegistry) lookup(path string) func(ctx context.Context, flag int) (io.ReadWriteCloser, error) {
+	reg.mu.Lock()
+	defer reg.mu.Unlock()
+	if psf := reg.files[path]; psf != nil {
+		return psf.OpenConsumer
+	}
+	return nil
 }

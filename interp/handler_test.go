@@ -17,6 +17,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"testing"
 	"testing/fstest"
@@ -53,6 +54,36 @@ func blocklistNondevOpen(ctx context.Context, path string, flags int, mode os.Fi
 
 func mockFileOpen(ctx context.Context, path string, flags int, mode os.FileMode) (io.ReadWriteCloser, error) {
 	return nopWriterCloser{strings.NewReader(fmt.Sprintf("body of %s", path))}, nil
+}
+
+// virtualProcSubst implements process substitutions entirely in memory
+// via [io.Pipe]; the fake paths never exist in the real filesystem.
+func virtualProcSubst(ctx context.Context, op syntax.ProcOperator) (*interp.ProcSubstFile, error) {
+	pr, pw := io.Pipe()
+	var subshell, consumer io.ReadWriteCloser
+	switch op {
+	case syntax.CmdIn: // the subshell writes, the consumer reads
+		subshell, consumer = rwc{Writer: pw, Closer: pw}, rwc{Reader: pr, Closer: pr}
+	case syntax.CmdOut: // the subshell reads, the consumer writes
+		subshell, consumer = rwc{Reader: pr, Closer: pr}, rwc{Writer: pw, Closer: pw}
+	default:
+		return nil, fmt.Errorf("unexpected process substitution operator: %v", op)
+	}
+	return &interp.ProcSubstFile{
+		Path:         fmt.Sprintf("virtual-procsubst-%d", virtualProcSubstCounter.Add(1)),
+		OpenSubshell: func(ctx context.Context) (io.ReadWriteCloser, error) { return subshell, nil },
+		OpenConsumer: func(ctx context.Context, flag int) (io.ReadWriteCloser, error) { return consumer, nil },
+	}, nil
+}
+
+var virtualProcSubstCounter atomic.Int64
+
+// rwc composes one-directional pipe ends into an [io.ReadWriteCloser];
+// the interpreter never uses the direction left nil.
+type rwc struct {
+	io.Reader
+	io.Writer
+	io.Closer
 }
 
 func blocklistGlob(ctx context.Context, path string) ([]fs.FileInfo, error) {
@@ -456,6 +487,22 @@ var modCases = []struct {
 		},
 		src:  "cd vdir && echo ok",
 		want: "ok\n",
+	},
+	{
+		name: "ProcSubstVirtualIn",
+		opts: []interp.RunnerOption{
+			interp.ProcSubstHandler(virtualProcSubst),
+		},
+		src:  `read -r line < <(echo bar); echo "$line"`,
+		want: "bar\n",
+	},
+	{
+		name: "ProcSubstVirtualOut",
+		opts: []interp.RunnerOption{
+			interp.ProcSubstHandler(virtualProcSubst),
+		},
+		src:  `echo hi > >(read -r line; echo "got $line"); wait`,
+		want: "got hi\n",
 	},
 }
 
