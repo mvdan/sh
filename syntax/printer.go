@@ -376,10 +376,9 @@ func (p *Printer) semiOrNewl(s string, pos Pos) {
 }
 
 func (p *Printer) writeLit(s string) {
-	// If p.tabWriter is nil, this is the nested printer being used to print
-	// <<- heredoc bodies, so the parent printer will add the escape bytes
-	// later.
-	if p.tabWriter != nil && strings.Contains(s, "\t") {
+	// When writing to an extraIndenter, it escapes any tabs itself while
+	// reindenting '<<-' heredoc body lines.
+	if _, ok := p.w.(*extraIndenter); !ok && strings.Contains(s, "\t") {
 		p.w.WriteByte(tabwriter.Escape)
 		defer p.w.WriteByte(tabwriter.Escape)
 	}
@@ -492,10 +491,23 @@ func (p *Printer) flushHeredocs() {
 				p.tabsPrinter.wordParts(r.Hdoc.Parts, true)
 			}
 			p.indent()
-		} else if r.Hdoc != nil {
-			p.wordParts(r.Hdoc.Parts, true)
+			p.unquotedWord(r.Word)
+		} else {
+			w := p.w
+			if e, ok := p.w.(*extraIndenter); ok {
+				// We are a nested printer inside a '<<-' heredoc
+				// body, and this heredoc has no dashes: its body and
+				// delimiter must not gain any indentation, so print
+				// them directly to the writer behind the indenters,
+				// just like a top-level heredoc without dashes.
+				p.w = e.sink()
+			}
+			if r.Hdoc != nil {
+				p.wordParts(r.Hdoc.Parts, true)
+			}
+			p.unquotedWord(r.Word)
+			p.w = w
 		}
-		p.unquotedWord(r.Word)
 		if r.Hdoc != nil {
 			// Overwrite p.line, since printing r.Word again can set
 			// p.line to the beginning of the heredoc again.
@@ -1632,6 +1644,17 @@ func (e *extraIndenter) writeEscapingTabs(line []byte) {
 		}
 		e.bufWriter.WriteByte(b)
 	}
+}
+
+// sink returns the writer that this indenter, and any enclosing indenters
+// from outer '<<-' heredocs, ultimately write to. Note that all of them
+// only ever write entire lines to it, so as long as the current output ends
+// with a newline, writing to the sink directly cannot reorder any bytes.
+func (e *extraIndenter) sink() bufWriter {
+	if outer, ok := e.bufWriter.(*extraIndenter); ok {
+		return outer.sink()
+	}
+	return e.bufWriter
 }
 
 func (e *extraIndenter) WriteString(s string) (int, error) {
