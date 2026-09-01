@@ -76,19 +76,19 @@ var printTests = []printCase{
 	{"a" + strings.Repeat(" ", bufSize-2) + "\nb", "a\nb"},
 	{"foo; bar", "foo\nbar"},
 	// Statement pairs ending in a control-flow command, such as exit
-	// guards; see issues #564 and #679.
-	// TODO: keep such pairs on a single line.
-	{`main "$@"; exit $?`, "main \"$@\"\nexit $?"},
-	{"a=$1; shift", "a=$1\nshift"},
-	{"foo; return $?", "foo\nreturn $?"},
-	{"foo; break", "foo\nbreak"},
-	{"foo; continue", "foo\ncontinue"},
-	{"foo & exit 1", "foo &\nexit 1"},
-	{"cat <<DOC; exit 1\nbody\nDOC", "cat <<DOC\nbody\nDOC\nexit 1"},
-	{"foo; exit 1; bar", "foo\nexit 1\nbar"},
-	{"if a; then b; exit 1; fi", "if a; then\n\tb\n\texit 1\nfi"},
-	{"foo || { echo err; exit 1; }", "foo || {\n\techo err\n\texit 1\n}"},
-	{"case $1 in\n-v) x=1; break ;;\nesac", "case $1 in\n-v)\n\tx=1\n\tbreak\n\t;;\nesac"},
+	// guards, stay on a single line; see issues #564 and #679.
+	samePrint(`main "$@"; exit $?`),
+	samePrint("a=$1; shift"),
+	samePrint("foo; return $?"),
+	samePrint("foo; break"),
+	samePrint("foo; continue"),
+	samePrint("foo; ! exit 1"),
+	samePrint("foo & exit 1"),
+	samePrint("cat <<DOC; exit 1\nbody\nDOC"),
+	{"foo; exit 1; bar", "foo; exit 1\nbar"},
+	{"if a; then b; exit 1; fi", "if a; then\n\tb; exit 1\nfi"},
+	{"foo || { echo err; exit 1; }", "foo || {\n\techo err; exit 1\n}"},
+	{"case $1 in\n-v) x=1; break ;;\nesac", "case $1 in\n-v)\n\tx=1; break\n\t;;\nesac"},
 	// These must always be split or left alone.
 	{"exit 1; foo", "exit 1\nfoo"},
 	{`foo; "exit" 1`, "foo\n\"exit\" 1"},

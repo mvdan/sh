@@ -1563,6 +1563,15 @@ func (p *Printer) stmtList(stmts []*Stmt, last []Comment) {
 			// statement.
 			p.comments(c)
 		}
+		if i > 0 && p.staysOnSameLine(s, pos) {
+			// Write the semicolon ourselves, as no newline will
+			// separate the two statements below.
+			p.wantNewline = false
+			if !p.wroteSemi {
+				p.w.WriteByte(';')
+				p.wantSpace = spaceRequired
+			}
+		}
 		if p.mustNewline || !p.minify || p.wantSpace == spaceRequired {
 			p.newlines(pos)
 		}
@@ -1576,6 +1585,30 @@ func (p *Printer) stmtList(stmts []*Stmt, last []Comment) {
 		p.wantNewline = false
 	}
 	p.comments(last...)
+}
+
+// staysOnSameLine reports whether a statement which followed another on the
+// same line should stay there. We allow this for a few control-flow commands,
+// as splitting pairs like `foo; exit $?` or `arg=$1; shift` into two lines
+// would break exit guards or lose intent; see issues #564 and #679.
+// Note that singleLine mode joins statements earlier in [Printer.stmtList].
+func (p *Printer) staysOnSameLine(s *Stmt, pos Pos) bool {
+	if p.minify || p.singleLine || p.mustNewline || pos.Line() != p.line {
+		return false
+	}
+	call, ok := s.Cmd.(*CallExpr)
+	if !ok || len(call.Args) == 0 || len(call.Args[0].Parts) != 1 {
+		return false
+	}
+	lit, ok := call.Args[0].Parts[0].(*Lit)
+	if !ok {
+		return false
+	}
+	switch lit.Value {
+	case "exit", "return", "shift", "break", "continue":
+		return true
+	}
+	return false
 }
 
 // stmtsForceNewline reports whether a list of statements followed by a
