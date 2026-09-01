@@ -297,12 +297,18 @@ var printTests = []printCase{
 	},
 	{
 		"if foo \\\nbar\nthen\nbar\nfi",
-		"if foo \\\n\tbar; then\n\tbar\nfi",
+		"if foo \\\n\tbar\nthen\n\tbar\nfi",
 	},
 	{
 		"if foo \\\n&& bar\nthen\nbar\nfi",
-		"if foo &&\n\tbar; then\n\tbar\nfi",
+		"if foo &&\n\tbar\nthen\n\tbar\nfi",
 	},
+	samePrint("if foo &&\n\tbar\nthen\n\tbar\nfi"),
+	samePrint("if foo &&\n\tbar; then\n\tbar\nfi"),
+	samePrint("if a; then\n\tb\nelif c &&\n\td\nthen\n\te\nfi"),
+	samePrint("while foo &&\n\tbar\ndo\n\tbar\ndone"),
+	samePrint("until foo &&\n\tbar\ndo\n\tbar\ndone"),
+	samePrint("for i in a b \\\n\tc\ndo\n\td\ndone"),
 	{
 		"a |\nb |\nc",
 		"a |\n\tb |\n\tc",
@@ -844,7 +850,7 @@ func TestPrintBinaryNextLine(t *testing.T) {
 		},
 		{
 			"if foo \\\n&& bar\nthen\nbar\nfi",
-			"if foo \\\n\t&& bar; then\n\tbar\nfi",
+			"if foo \\\n\t&& bar\nthen\n\tbar\nfi",
 		},
 		{
 			"a |\nb |\nc",

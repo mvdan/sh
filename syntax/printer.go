@@ -1294,8 +1294,9 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		} else {
 			p.spacedString("while", cmd.Pos())
 		}
+		condLine := p.line
 		p.nestedStmts(cmd.Cond, cmd.CondLast, Pos{})
-		if p.blockNewline(cmd.Do, cmd.DoLast, cmd.DonePos) {
+		if p.blockNewline(cmd.Do, cmd.DoLast, cmd.DonePos) || p.keepBlockNewline(condLine, cmd.DoPos) {
 			p.wantNewline = true
 		}
 		p.semiOrNewl("do", cmd.DoPos)
@@ -1307,8 +1308,9 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		} else {
 			p.w.WriteString("for ")
 		}
+		loopLine := p.line
 		p.loop(cmd.Loop)
-		if p.blockNewline(cmd.Do, cmd.DoLast, cmd.DonePos) {
+		if p.blockNewline(cmd.Do, cmd.DoLast, cmd.DonePos) || p.keepBlockNewline(loopLine, cmd.DoPos) {
 			p.wantNewline = true
 		}
 		p.semiOrNewl("do", cmd.DoPos)
@@ -1495,13 +1497,14 @@ func (p *Printer) ifClause(ic *IfClause, elif bool) {
 	if !elif {
 		p.spacedString("if", ic.Pos())
 	}
+	condLine := p.line
 	p.nestedStmts(ic.Cond, ic.CondLast, Pos{})
 	thenEnd := ic.FiPos
 	el := ic.Else
 	if el != nil {
 		thenEnd = el.Position
 	}
-	if p.blockNewline(ic.Then, ic.ThenLast, thenEnd) {
+	if p.blockNewline(ic.Then, ic.ThenLast, thenEnd) || p.keepBlockNewline(condLine, ic.ThenPos) {
 		p.wantNewline = true
 	}
 	p.semiOrNewl("then", ic.ThenPos)
@@ -1607,6 +1610,16 @@ func (p *Printer) blockNewline(stmts []*Stmt, last []Comment, closing Pos) bool 
 	}
 	return p.stmtsForceNewline(stmts, last, closing) ||
 		p.wantNewline || stmts[0].Pos().Line() > p.line
+}
+
+// keepBlockNewline reports whether a "then" or "do" token on its own line
+// should stay there, which we allow when the condition or loop before it
+// spans multiple lines, having started at startLine.
+func (p *Printer) keepBlockNewline(startLine uint, pos Pos) bool {
+	if p.minify || p.singleLine {
+		return false
+	}
+	return p.line > startLine && pos.Line() > p.line
 }
 
 func (p *Printer) nestedStmts(stmts []*Stmt, last []Comment, closing Pos) {
