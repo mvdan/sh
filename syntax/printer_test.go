@@ -75,6 +75,25 @@ var printTests = []printCase{
 	// newline at the beginning of second chunk
 	{"a" + strings.Repeat(" ", bufSize-2) + "\nb", "a\nb"},
 	{"foo; bar", "foo\nbar"},
+	// Statement pairs ending in a control-flow command, such as exit
+	// guards; see issues #564 and #679.
+	// TODO: keep such pairs on a single line.
+	{`main "$@"; exit $?`, "main \"$@\"\nexit $?"},
+	{"a=$1; shift", "a=$1\nshift"},
+	{"foo; return $?", "foo\nreturn $?"},
+	{"foo; break", "foo\nbreak"},
+	{"foo; continue", "foo\ncontinue"},
+	{"foo & exit 1", "foo &\nexit 1"},
+	{"cat <<DOC; exit 1\nbody\nDOC", "cat <<DOC\nbody\nDOC\nexit 1"},
+	{"foo; exit 1; bar", "foo\nexit 1\nbar"},
+	{"if a; then b; exit 1; fi", "if a; then\n\tb\n\texit 1\nfi"},
+	{"foo || { echo err; exit 1; }", "foo || {\n\techo err\n\texit 1\n}"},
+	{"case $1 in\n-v) x=1; break ;;\nesac", "case $1 in\n-v)\n\tx=1\n\tbreak\n\t;;\nesac"},
+	// These must always be split or left alone.
+	{"exit 1; foo", "exit 1\nfoo"},
+	{`foo; "exit" 1`, "foo\n\"exit\" 1"},
+	{"foo; exit=1", "foo\nexit=1"},
+	samePrint("foo\nexit 1"),
 	{"foo\n\n\nbar", "foo\n\nbar"},
 	{"foo\n\n", "foo"},
 	{"\n\nfoo", "foo"},
