@@ -4,7 +4,7 @@
 // Package shell contains high-level features that use the syntax, expand, and
 // interp packages under the hood.
 //
-// Please note that this package uses POSIX Shell syntax. As such, path names on
+// Please note that this package uses Bash syntax. As such, path names on
 // Windows need to use double backslashes or be within single quotes when given
 // to functions like Fields. For example:
 //
