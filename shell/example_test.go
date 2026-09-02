@@ -52,3 +52,21 @@ func ExampleFields() {
 	// []string{"unquoted", "bar", "baz"}
 	// []string{"quoted", "bar baz"}
 }
+
+func ExampleSplit() {
+	out, _ := shell.Split(`cp "my file.txt" $HOME/backup`)
+	fmt.Printf("%#v\n", out)
+
+	out, _ = shell.Split(`echo 'single quotes' escaped\ space`)
+	fmt.Printf("%#v\n", out)
+	// Output:
+	// []string{"cp", "my file.txt", "$HOME/backup"}
+	// []string{"echo", "single quotes", "escaped space"}
+}
+
+func ExampleJoin() {
+	out, _ := shell.Join("rm", "-f", "my file.txt", "$notavar")
+	fmt.Println(out)
+	// Output:
+	// rm -f 'my file.txt' '$notavar'
+}
