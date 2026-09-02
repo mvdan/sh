@@ -816,6 +816,7 @@ func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args 
 
 	case "shopt":
 		mode := ""
+		quiet := false
 		posixOpts := false
 		fp := flagParser{remaining: args}
 		for fp.more() {
@@ -824,7 +825,9 @@ func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args 
 				mode = flag
 			case "-o":
 				posixOpts = true
-			case "-p", "-q":
+			case "-q":
+				quiet = true
+			case "-p":
 				return failf(2, "shopt: unsupported option %q\n", flag)
 			default:
 				return failf(2, "shopt: invalid option %q\n", flag)
@@ -832,6 +835,10 @@ func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args 
 		}
 		args := fp.args()
 		if len(args) == 0 {
+			if quiet {
+				// Querying with no names is a no-op, like in Bash.
+				break
+			}
 			if posixOpts {
 				for i, opt := range &posixOptsTable {
 					r.printOptLine(opt.name, r.opts[i], true)
@@ -843,6 +850,7 @@ func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args 
 			}
 			break
 		}
+		allSet := true
 		for _, arg := range args {
 			opt, supported := (*bool)(nil), true
 			if posixOpts {
@@ -861,9 +869,18 @@ func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args 
 				}
 				*opt = mode == "-s"
 			default: // ""
-				r.printOptLine(arg, *opt, supported)
+				if quiet {
+					// Query the option's current state without printing;
+					// the exit status below is 0 if all are set, 1 otherwise.
+					if !*opt {
+						allSet = false
+					}
+				} else {
+					r.printOptLine(arg, *opt, supported)
+				}
 			}
 		}
+		exit.oneIf(quiet && mode == "" && !allSet)
 		r.updateExpandOpts()
 
 	case "alias":

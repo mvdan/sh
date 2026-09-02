@@ -2812,6 +2812,23 @@ done <<< 2`,
 		"shopt -o -s nosuchname",
 		"shopt: invalid option name \"nosuchname\"\nexit status 1 #JUSTERR",
 	},
+	// shopt -q queries option states without printing
+	{
+		"shopt -s nullglob; shopt -q nullglob; echo q=$?; shopt -u nullglob; shopt -q nullglob; echo q=$?",
+		"q=0\nq=1\n",
+	},
+	{
+		"shopt -s nullglob globstar; shopt -q nullglob globstar; echo q=$?; shopt -u nullglob; shopt -q nullglob globstar; echo q=$?",
+		"q=0\nq=1\n",
+	},
+	{
+		"shopt -q nosuchname",
+		"shopt: invalid option name \"nosuchname\"\nexit status 1 #JUSTERR",
+	},
+	{
+		"shopt -q; echo q=$?",
+		"q=0\n",
+	},
 	{
 		"touch a .b ..c; shopt -u dotglob; echo *",
 		"a\n",
@@ -2851,8 +2868,8 @@ done <<< 2`,
 		"shopt: unsupported option \"-p\"\nexit status 2 #IGNORE",
 	},
 	{
-		"shopt -q",
-		"shopt: unsupported option \"-q\"\nexit status 2 #IGNORE",
+		"shopt -q; echo q=$?",
+		"q=0\n",
 	},
 
 	// IFS
