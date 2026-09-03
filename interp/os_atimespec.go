@@ -13,5 +13,6 @@ func getAtime(info fs.FileInfo) time.Time {
 	if !ok {
 		return info.ModTime()
 	}
-	return time.Unix(stat.Atimespec.Sec, stat.Atimespec.Nsec)
+	// Note that these are int32 on some platforms.
+	return time.Unix(int64(stat.Atimespec.Sec), int64(stat.Atimespec.Nsec))
 }
