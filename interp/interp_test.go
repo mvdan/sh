@@ -241,8 +241,8 @@ var runTests = []runTest{
 	{"help -q", "help: -q: invalid option\nhelp: usage: help [-dms] [pattern ...]\nexit status 2 #IGNORE bash prefixes its errors with `bash: line N:'"},
 	// a builtin we recognize but do not implement is starred, so that help is
 	// an honest statement of what this shell can do
-	{"help -s jobs", "jobs: jobs [-lnprs] [jobspec ...]\n #IGNORE bash implements jobs, and its synopsis differs"},
-	{"help jobs", "jobs: jobs [-lnprs] [jobspec ...]\n    Display status of jobs.\n    (recognized by this shell but not implemented)\n\n #IGNORE bash implements jobs"},
+	{"help -s jobs", "jobs: jobs [-lnprs] [jobspec ...]\n #IGNORE bash's synopsis differs"},
+	{"help -s ulimit", "ulimit: ulimit [-SHabcdefiklmnpqrstuvxPRT] [limit]\n #IGNORE bash implements ulimit"},
 
 	// times
 	{"times", "0m0.000s 0m0.000s\n0m0.000s 0m0.000s\n #IGNORE we report zeros; bash reports real CPU time"},

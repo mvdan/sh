@@ -25,6 +25,17 @@ type builtinHelp struct {
 	desc     string
 }
 
+// helpNotes says how a builtin differs from bash's, for the ones that cannot
+// mean quite the same thing without processes or a controlling terminal.
+// `help NAME` prints the note after the description.
+var helpNotes = map[string]string{
+	"bg":    "background jobs already run in the background here, so this reports on the job rather than resuming it",
+	"fg":    "there is no controlling terminal here, so this waits for the job and returns its exit status",
+	"jobs":  "nothing is ever stopped without a controlling terminal, so -s lists nothing",
+	"kill":  "a job is a goroutine, not a process: terminating signals cancel it, and stop/continue are rejected",
+	"times": "there is no per-process CPU accounting on every target this shell runs on, so the times are zero",
+}
+
 // helpTable is keyed by builtin name. Synopses follow bash 5's wording so the
 // output is familiar; descriptions are ours, and say where this shell differs.
 var helpTable = map[string]builtinHelp{
@@ -102,10 +113,9 @@ var helpTable = map[string]builtinHelp{
 // helpUnsupported are recognized by this shell but not implemented; `help`
 // stars them the way bash stars disabled builtins.
 var helpUnsupported = map[string]bool{
-	"bg": true, "bind": true, "caller": true, "compgen": true, "complete": true,
-	"compopt": true, "disown": true, "enable": true, "fc": true, "fg": true,
-	"history": true, "jobs": true, "kill": true, "logout": true, "newgrp": true,
-	"suspend": true, "ulimit": true,
+	"bind": true, "caller": true, "compgen": true, "complete": true,
+	"compopt": true, "enable": true, "fc": true, "history": true,
+	"logout": true, "newgrp": true, "suspend": true, "ulimit": true,
 }
 
 // helpMatch returns the documented names matching a bash-style pattern. An
@@ -205,6 +215,8 @@ patterns:
 				r.outf("    %s\n", h.desc)
 				if helpUnsupported[name] {
 					r.out("    (recognized by this shell but not implemented)\n")
+				} else if note := helpNotes[name]; note != "" {
+					r.outf("    (%s)\n", note)
 				}
 				r.out("\n")
 			}
