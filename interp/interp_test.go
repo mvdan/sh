@@ -3673,6 +3673,11 @@ done <<< 2`,
 		"[[ a123z == a@([0-9])z ]]; echo $?; [[ a123z == a+([0-9])z ]]; echo $?",
 		"1\n0\n",
 	},
+	{
+		// An unclosed extended pattern group is literal text, like in Bash.
+		"p='@(a'; case '@(a' in $p) echo lit;; esac; [[ a == $p ]]; echo $?",
+		"lit\n1\n",
+	},
 	// Ensure that setting nullglob does not return invalid globs as null
 	// strings.
 	{
