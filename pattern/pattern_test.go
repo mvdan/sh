@@ -254,6 +254,30 @@ var regexpTests = []struct {
 	{pat: `[!a[:space:]0-9]`, want: `(?s)[^a[:space:]0-9]`},
 	{pat: `[a[:digit]]`, wantErr: `^charClass invalid$`},
 	{pat: `[[:`, wantErr: `^charClass invalid$`},
+	// Like Bash, an unclosed extended operator group is literal text,
+	// and the operator is parsed as a regular character.
+	{
+		pat: `@(a`, mode: ExtendedOperators | EntireString, want: `(?s)^@\(a$`,
+		mustMatch:    []string{"@(a"},
+		mustNotMatch: []string{"a"},
+	},
+	{
+		pat: `@(a|b`, mode: ExtendedOperators | EntireString, want: `(?s)^@\(a\|b$`,
+		mustMatch:    []string{"@(a|b"},
+		mustNotMatch: []string{"a", "b"},
+	},
+	{
+		pat: `*(a`, mode: ExtendedOperators | EntireString, want: `(?s)^.*\(a$`,
+		mustMatch:    []string{"(a", "foo(a"},
+		mustNotMatch: []string{"a"},
+	},
+	{pat: `+(`, mode: ExtendedOperators, want: `(?s)\+\(`},
+	{pat: `!(a`, mode: ExtendedOperators | EntireString, want: `(?s)^!\(a$`},
+	{
+		pat: `@(a|@(b)`, mode: ExtendedOperators | EntireString, want: `(?s)^@\(a\|(b)$`,
+		mustMatch:    []string{"@(a|b"},
+		mustNotMatch: []string{"a", "b"},
+	},
 	{pat: `[[:digit`, wantErr: `^charClass invalid$`},
 	{pat: `[[:wrong:]]`, wantErr: `^charClass invalid$`},
 	{pat: `[[=x=]]`, wantErr: `^charClass invalid$`},

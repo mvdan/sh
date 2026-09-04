@@ -169,13 +169,18 @@ func regexpNext(sb *strings.Builder, sl *stringLexer, mode Mode) error {
 		// given that they can be one of many two-character prefixes.
 		// Note that we recurse into the same function in a loop,
 		// as each of the patterns in the list separated by '|' is a regular pattern.
+	extended:
 		switch op := c; op {
 		case '!', '?', '*', '+', '@':
 			if sl.peekNext() != '(' {
 				break
 			}
-			start := sl.i - 1       // position of the operator
-			sb.WriteRune(sl.next()) // (
+			start := sl.i - 1 // position of the operator
+			// Build the group separately; like Bash, an unclosed group
+			// is not an extended operator, so we reparse the operator
+			// as a regular character below and the rest as a pattern.
+			var gsb strings.Builder
+			gsb.WriteRune(sl.next()) // (
 		nestedLoop:
 			for {
 				switch sl.peekNext() {
@@ -183,16 +188,18 @@ func regexpNext(sb *strings.Builder, sl *stringLexer, mode Mode) error {
 					break nestedLoop
 				case '|':
 					// extended operators support a list of "or" separated expressions
-					sb.WriteRune(sl.next())
+					gsb.WriteRune(sl.next())
 					continue
+				case '\x00':
+					sl.i = start + 1
+					break extended
 				}
-				if err := regexpNext(sb, sl, mode); err == io.EOF {
-					break
-				} else if err != nil {
+				if err := regexpNext(&gsb, sl, mode); err != nil {
 					return err
 				}
 			}
-			sb.WriteRune(sl.next()) // )
+			gsb.WriteRune(sl.next()) // )
+			sb.WriteString(gsb.String())
 			if op == '!' {
 				return &NegExtGlobError{Groups: []NegExtGlobGroup{{Start: start, End: sl.i}}}
 			}
