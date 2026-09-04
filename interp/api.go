@@ -55,6 +55,14 @@ type Runner struct {
 
 	// Dir specifies the working directory of the command, which must be an
 	// absolute path. It can only be set via [Dir].
+	//
+	// TODO(v4): on Windows, Dir, PWD, tilde expansion, and glob results use
+	// backslashes, and some paths are split on them, even though a backslash
+	// is the shell's escape character. Like busybox-w32, always use
+	// slash-separated paths with a volume prefix such as C:/foo or //srv/share,
+	// treating backslashes only as escapes, and convert at the OS boundary.
+	// Environment values imported from the OS stay as-is; see the TODO on
+	// [expand.Config.ReadDir2] for the globbing side.
 	Dir string
 
 	// tempDir is either $TMPDIR from [Runner.Env], or [os.TempDir].
