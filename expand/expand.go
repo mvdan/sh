@@ -64,6 +64,13 @@ type Config struct {
 	// ReadDir2 is used for file path globbing.
 	// If nil, and [ReadDir] is nil as well, globbing is disabled.
 	// Use [os.ReadDir] to use the filesystem directly.
+	//
+	// TODO(v4): globbing uses OS-specific paths, which is inconsistent and
+	// buggy on Windows: backslashes are treated as separators even when they
+	// escape pattern metacharacters, such as in '[a]'/*.go, a rooted pattern
+	// like /foo/* is treated as relative, and results use backslashes.
+	// Switch to io/fs semantics, with slash-separated paths relative to a root,
+	// and let the caller map volumes and absolute paths onto that root.
 	ReadDir2 func(string) ([]fs.DirEntry, error)
 
 	// GlobStar corresponds to the shell option which allows globbing with "**".
