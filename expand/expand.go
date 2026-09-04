@@ -685,20 +685,19 @@ func (cfg *Config) wordFields(wps []syntax.WordPart) ([][]fieldPart, error) {
 				})
 				s = rest
 			}
-			if strings.Contains(s, "\\") {
-				sb := cfg.strBuilder()
-				for i := 0; i < len(s); i++ {
-					b := s[i]
-					if b == '\\' {
-						if i++; i >= len(s) {
-							sb.WriteByte(b)
-							break
-						}
-						b = s[i]
-					}
-					sb.WriteByte(b)
+			// Escaped characters are quoted, so that they aren't
+			// treated as metacharacters when globbing.
+			for {
+				i := strings.IndexByte(s, '\\')
+				if i < 0 || i == len(s)-1 {
+					break // a trailing backslash is kept as-is
 				}
-				s = sb.String()
+				_, size := utf8.DecodeRuneInString(s[i+1:])
+				curField = append(curField,
+					fieldPart{val: s[:i]},
+					fieldPart{quote: quoteSingle, val: s[i+1 : i+1+size]},
+				)
+				s = s[i+1+size:]
 			}
 			curField = append(curField, fieldPart{val: s})
 		case *syntax.SglQuoted:

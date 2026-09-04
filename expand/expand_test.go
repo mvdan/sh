@@ -108,11 +108,9 @@ func TestFieldsEscapedGlob(t *testing.T) {
 		{`*.go`, []string{"a.go", "b.go"}},
 		{`"*".go`, []string{"*.go"}},
 		{`'*'.go`, []string{"*.go"}},
-		// TODO: escaped metacharacters must not glob; these should be
-		// "*.go", "[a].go", and "a*" like in Bash.
-		{`\*.go`, []string{"a.go", "b.go"}},
-		{`\[a].go`, []string{"a.go"}},
-		{`a\*`, []string{"a.go"}},
+		{`\*.go`, []string{"*.go"}},
+		{`\[a].go`, []string{"[a].go"}},
+		{`a\*`, []string{"a*"}},
 	}
 	for _, tc := range tests {
 		t.Run("", func(t *testing.T) {
