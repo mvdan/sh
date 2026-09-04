@@ -2846,6 +2846,10 @@ done <<< 2`,
 		".sub2 .sub2/.b .sub2/a sub sub/.b sub/a\n",
 	},
 	{
+		"touch a.go b.go; echo \\*.go \\[a].go a\\* 'a'\\*",
+		"*.go [a].go a* a*\n",
+	},
+	{
 		// Beware that macOS file systems are by default case-preserving but
 		// case-insensitive, so e.g. "touch x X" creates only one file.
 		"touch a ab Ac Ad; shopt -u nocaseglob; echo a*",
