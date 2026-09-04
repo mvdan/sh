@@ -5,6 +5,7 @@ package shell_test
 
 import (
 	"fmt"
+	"testing/fstest"
 
 	"mvdan.cc/sh/v3/shell"
 )
@@ -84,4 +85,21 @@ func ExampleMatch() {
 	// true
 	// true
 	// true
+}
+
+func ExampleGlob() {
+	fsys := fstest.MapFS{
+		"main.go":          {},
+		"main_test.go":     {},
+		"cmd/tool/main.go": {},
+		".hidden.go":       {},
+	}
+	names, _ := shell.Glob(fsys, "**/*.go")
+	fmt.Println(names)
+
+	names, _ = shell.Glob(fsys, "*_test.go cmd/*/main.go")
+	fmt.Println(names)
+	// Output:
+	// [cmd/tool/main.go main.go main_test.go]
+	// [main_test.go cmd/tool/main.go]
 }
