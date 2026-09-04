@@ -91,6 +91,9 @@ predictable. Some aspects of the format can be configured via printer flags.
 *-i*, *--indent* <uint>
 	Indent: *0* for tabs (default), *>0* for number of spaces.
 
+*-se*, *--explicit-semicolons*
+	Emit semicolons at command boundaries, including before line breaks.
+
 *-bn*, *--binary-next-line*
 	Binary ops like *&&* and *|* may start a line.
 
@@ -160,6 +163,7 @@ indent_size = 4
 # --language-dialect
 shell_variant      = posix
 simplify           = true
+explicit_semicolons = true
 binary_next_line   = true
 # --case-indent
 switch_case_indent = true

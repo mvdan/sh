@@ -26,6 +26,12 @@ func Indent(spaces uint) PrinterOption {
 	return func(p *Printer) { p.indentSpaces = spaces }
 }
 
+// ExplicitSemicolons will emit semicolons at command boundaries, including
+// before line breaks.
+func ExplicitSemicolons(enabled bool) PrinterOption {
+	return func(p *Printer) { p.explicitSemis = enabled }
+}
+
 // BinaryNextLine will make binary operators appear on the next line
 // when a binary command, such as a pipe, or a binary test or arithmetic
 // expression spans multiple lines. A backslash is used where newlines
@@ -258,6 +264,7 @@ type Printer struct {
 	cols      colCounter // used for [KeepPadding]
 
 	indentSpaces   uint
+	explicitSemis  bool
 	binNextLine    bool
 	swtCaseIndent  bool
 	spaceRedirects bool
@@ -512,6 +519,7 @@ func (p *Printer) flushHeredocs() {
 
 					// The options need to persist.
 					indentSpaces:   p.indentSpaces,
+					explicitSemis:  p.explicitSemis,
 					binNextLine:    p.binNextLine,
 					swtCaseIndent:  p.swtCaseIndent,
 					spaceRedirects: p.spaceRedirects,
@@ -1160,7 +1168,8 @@ func (p *Printer) elemJoin(elems []*ArrayElem, last []Comment) {
 	p.decLevel()
 }
 
-func (p *Printer) stmt(s *Stmt) {
+// stmt prints s and reports whether it ended with a separator of its own.
+func (p *Printer) stmt(s *Stmt) bool {
 	p.wroteSemi = false
 	if s.Negated {
 		p.spacedString("!", s.Pos())
@@ -1192,7 +1201,8 @@ func (p *Printer) stmt(s *Stmt) {
 		}
 	}
 	sep := s.Semicolon.IsValid() && s.Semicolon.Line() > p.line && !p.singleLine
-	if sep || s.Background || s.Coprocess || s.Disown {
+	terminated := sep || s.Background || s.Coprocess || s.Disown
+	if terminated {
 		if sep {
 			p.bslashNewl()
 		} else if !p.minify {
@@ -1211,6 +1221,7 @@ func (p *Printer) stmt(s *Stmt) {
 		p.wantSpace = spaceRequired
 	}
 	p.decLevel()
+	return terminated
 }
 
 func (p *Printer) printRedirsUntil(redirs []*Redirect, startRedirs int, pos Pos) int {
@@ -1577,7 +1588,11 @@ func (p *Printer) stmtList(stmts []*Stmt, last []Comment) {
 		}
 		p.advanceLine(pos.Line())
 		p.comments(midComs...)
-		p.stmt(s)
+		terminated := p.stmt(s)
+		if p.explicitSemis && !terminated {
+			p.w.WriteByte(';')
+			p.wroteSemi = true
+		}
 		p.comments(endComs...)
 		p.wantNewline = true
 	}

@@ -942,6 +942,31 @@ func TestPrintBinaryNextLine(t *testing.T) {
 	}
 }
 
+func TestPrintExplicitSemicolons(t *testing.T) {
+	t.Parallel()
+	tests := [...]printCase{
+		{
+			"foo\nbar",
+			"foo;\nbar;",
+		},
+		{
+			"if cond; then\nfoo\nelse\nbar\nfi\n\nf() {\nbaz\n}",
+			"if cond; then\n\tfoo;\nelse\n\tbar;\nfi;\n\nf() {\n\tbaz;\n};",
+		},
+		{
+			"foo # a comment\nbar <<EOF\nbody\nEOF",
+			"foo; # a comment\nbar <<EOF;\nbody\nEOF",
+		},
+	}
+	parser := NewParser(KeepComments(true))
+	printer := NewPrinter(ExplicitSemicolons(true))
+	for _, tc := range tests {
+		t.Run("", func(t *testing.T) {
+			printTest(t, parser, printer, tc.in, tc.want)
+		})
+	}
+}
+
 func TestPrintSwitchCaseIndent(t *testing.T) {
 	t.Parallel()
 	tests := [...]printCase{
@@ -1348,6 +1373,7 @@ func TestPrintOptionsNotBroken(t *testing.T) {
 		name string
 		list []PrinterOption
 	}{
+		{"ExplicitSemicolons", []PrinterOption{ExplicitSemicolons(true)}},
 		{"Minify", []PrinterOption{Minify(true)}},
 		{"SingleLine", []PrinterOption{SingleLine(true)}},
 	} {

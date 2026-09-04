@@ -126,6 +126,14 @@ stdin flags-input
 exec shfmt --indent 2
 cmp stdout flags-output.indent-golden
 
+stdin explicit-semicolons-input
+exec shfmt -se
+cmp stdout flags-output.explicit-semicolons-golden
+
+stdin explicit-semicolons-input
+exec shfmt --explicit-semicolons
+cmp stdout flags-output.explicit-semicolons-golden
+
 stdin flags-input
 exec shfmt -bn
 cmp stdout flags-output.binary-next-line-golden
@@ -209,6 +217,16 @@ foo() {
 
 	keep    padding
 }
+-- explicit-semicolons-input --
+foo
+if cond; then
+	bar
+fi
+-- flags-output.explicit-semicolons-golden --
+foo;
+if cond; then
+	bar;
+fi;
 -- flags-output.indent-golden --
 foo() {
   bar &&

@@ -159,6 +159,9 @@ shell_variant = mksh
 [indent.sh]
 # check its default; we tested "space" above.
 
+[explicit_semicolons.sh]
+explicit_semicolons = true
+
 [binary_next_line.sh]
 binary_next_line = true
 
@@ -191,6 +194,11 @@ coprocess |&
 {
 	indented
 }
+-- otherknobs/explicit_semicolons.sh --
+foo;
+if cond; then
+	bar;
+fi;
 -- otherknobs/binary_next_line.sh --
 foo \
 	| bar
