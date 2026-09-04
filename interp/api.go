@@ -68,6 +68,11 @@ type Runner struct {
 	// tempDir is either $TMPDIR from [Runner.Env], or [os.TempDir].
 	tempDir string
 
+	// umask is the file mode creation mask reported and set by the umask
+	// builtin. It is bookkeeping only: this interpreter creates files
+	// through the open handler, which owns permissions.
+	umask uint32
+
 	// Params are the current shell parameters, e.g. from running a shell
 	// file or calling a function. Accessible via the $@/$* family of vars.
 	// It can only be set via [Params].
@@ -971,6 +976,7 @@ func (r *Runner) Reset() {
 	}
 	// reset the internal state
 	*r = Runner{
+		umask:                0o022,
 		Env:                  r.Env,
 		tempDir:              r.tempDir,
 		callHandler:          r.callHandler,
@@ -1167,6 +1173,7 @@ func (r *Runner) subshell(background bool) *Runner {
 	r2 := &Runner{
 		Dir:                  r.Dir,
 		tempDir:              r.tempDir,
+		umask:                r.umask,
 		Params:               r.Params,
 		callHandler:          r.callHandler,
 		execHandler:          r.execHandler,
