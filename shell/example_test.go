@@ -70,3 +70,18 @@ func ExampleJoin() {
 	// Output:
 	// rm -f 'my file.txt' '$notavar'
 }
+
+func ExampleMatch() {
+	ok, _ := shell.Match("*.go", "cmd/shfmt/main.go")
+	fmt.Println(ok)
+
+	ok, _ = shell.Match("@(main|test).go", "test.go")
+	fmt.Println(ok)
+
+	ok, _ = shell.Match("!(*.go)", "README.md")
+	fmt.Println(ok)
+	// Output:
+	// true
+	// true
+	// true
+}
