@@ -90,6 +90,45 @@ func TestFieldsIdempotency(t *testing.T) {
 	}
 }
 
+func TestFieldsEscapedGlob(t *testing.T) {
+	t.Parallel()
+	cfg := &Config{
+		Env: ListEnviron("PWD=/"),
+		ReadDir2: func(string) ([]fs.DirEntry, error) {
+			return []fs.DirEntry{
+				&mockFileInfo{name: "a.go"},
+				&mockFileInfo{name: "b.go"},
+			}, nil
+		},
+	}
+	tests := []struct {
+		src  string
+		want []string
+	}{
+		{`*.go`, []string{"a.go", "b.go"}},
+		{`"*".go`, []string{"*.go"}},
+		{`'*'.go`, []string{"*.go"}},
+		// TODO: escaped metacharacters must not glob; these should be
+		// "*.go", "[a].go", and "a*" like in Bash.
+		{`\*.go`, []string{"a.go", "b.go"}},
+		{`\[a].go`, []string{"a.go"}},
+		{`a\*`, []string{"a.go"}},
+	}
+	for _, tc := range tests {
+		t.Run("", func(t *testing.T) {
+			p := syntax.NewParser()
+			var words []*syntax.Word
+			for w, err := range p.WordsSeq(strings.NewReader(tc.src)) {
+				qt.Assert(t, qt.IsNil(err))
+				words = append(words, w)
+			}
+			got, err := Fields(cfg, words...)
+			qt.Assert(t, qt.IsNil(err))
+			qt.Assert(t, qt.DeepEquals(got, tc.want), qt.Commentf("input: %q", tc.src))
+		})
+	}
+}
+
 func Test_glob(t *testing.T) {
 	cfg := &Config{
 		ReadDir2: func(string) ([]fs.DirEntry, error) {
