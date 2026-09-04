@@ -296,6 +296,19 @@ func (r *Runner) stmt(ctx context.Context, st *syntax.Stmt) {
 		st2.Background = false
 		st2.Disown = false
 		bg := r.newBgProc()
+		// A job is a goroutine, so kill cancels its context rather than
+		// signalling a process.
+		//
+		// The job's context is detached from the statement's, because a
+		// background job outlives the command line that started it: an
+		// interactive shell cancels a line's context when the line is done,
+		// and in bash the interrupt that ends a foreground job leaves the
+		// background ones running. What ends a job here is kill, the shell
+		// exiting, or [Runner.StopJobs].
+		bgCtx, cancel := context.WithCancel(context.WithoutCancel(ctx))
+		bg.cmd = jobText(&st2)
+		bg.cancel = cancel
+		bg.disowned = st.Disown
 		// A plain command call may amount to starting exactly one external
 		// program, in which case $! expands to its real PID like in other
 		// shells, which fork background statements as child processes.
@@ -308,7 +321,8 @@ func (r *Runner) stmt(ctx context.Context, st *syntax.Stmt) {
 		}
 		r.bgProcs = append(r.bgProcs, bg)
 		go func() {
-			r2.Run(ctx, &st2)
+			defer cancel()
+			r2.Run(bgCtx, &st2)
 			r2.reportBgStart(0)     // in case we didn't get to start a program
 			r2.exit.exiting = false // subshells don't exit the parent shell
 			*bg.exit = r2.exit
