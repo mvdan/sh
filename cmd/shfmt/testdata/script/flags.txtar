@@ -8,6 +8,9 @@ stderr 'Utilities' # definitely includes our help text
 exec shfmt --help
 stderr 'usage: shfmt'
 
+! exec shfmt -se
+stderr 'flag provided but not defined'
+
 exec shfmt -version
 stdout 'devel|v3'
 ! stderr .
@@ -125,10 +128,6 @@ cmp stdout flags-output.indent-golden
 stdin flags-input
 exec shfmt --indent 2
 cmp stdout flags-output.indent-golden
-
-stdin explicit-semicolons-input
-exec shfmt -se
-cmp stdout flags-output.explicit-semicolons-golden
 
 stdin explicit-semicolons-input
 exec shfmt --explicit-semicolons

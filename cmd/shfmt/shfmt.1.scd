@@ -91,7 +91,7 @@ predictable. Some aspects of the format can be configured via printer flags.
 *-i*, *--indent* <uint>
 	Indent: *0* for tabs (default), *>0* for number of spaces.
 
-*-se*, *--explicit-semicolons*
+*--explicit-semicolons*
 	Emit semicolons at command boundaries, including before line breaks.
 
 *-bn*, *--binary-next-line*

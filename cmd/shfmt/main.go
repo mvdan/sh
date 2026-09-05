@@ -84,7 +84,7 @@ var (
 
 	// Printer flags.
 	indent      = flagVal("i", "indent", 0, flag.UintVar)
-	semis       = flagVal("se", "explicit-semicolons", false, flag.BoolVar)
+	semis       = flagVal("", "explicit-semicolons", false, flag.BoolVar)
 	binNext     = flagVal("bn", "binary-next-line", false, flag.BoolVar)
 	caseIndent  = flagVal("ci", "case-indent", false, flag.BoolVar)
 	spaceRedirs = flagVal("sr", "space-redirects", false, flag.BoolVar)
@@ -136,7 +136,7 @@ Parser options:
 Printer options:
 
   -i,  --indent uint       0 for tabs (default), >0 for number of spaces
-  -se, --explicit-semicolons  emit semicolons at command boundaries
+       --explicit-semicolons  emit semicolons at command boundaries
   -bn, --binary-next-line  binary ops like && and | may start a line
   -ci, --case-indent       switch cases will be indented
   -sr, --space-redirects   redirect operators will be followed by a space
