@@ -3763,7 +3763,7 @@ done <<< 2`,
 		"brace expansion would exceed 16384 elements\n #IGNORE bash has no defensive limit below MaxInt",
 	},
 	{
-		"echo a{0..9999999999}b",
+		"echo a{0..1999999999}b",
 		"brace expansion would exceed 16384 elements\n #JUSTERR bash errors with a different message",
 	},
 
