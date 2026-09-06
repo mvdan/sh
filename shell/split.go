@@ -77,6 +77,10 @@ func unescape(sb *strings.Builder, s string, dblQuoted bool) {
 // spaces, so that [Split] or [Fields] on the result recover the original
 // arguments. It is the inverse of [Split].
 //
+// Arguments with non-printable characters are quoted with Bash's $'...' syntax,
+// which other shells may not support. To quote for a different language,
+// such as POSIX, use [syntax.Quote] directly.
+//
 // An error will be reported if an argument cannot be quoted,
 // such as one containing null bytes.
 func Join(args ...string) (string, error) {
