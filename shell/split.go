@@ -13,7 +13,7 @@ import (
 // Split splits s into words as a shell would, performing quote removal but
 // no expansion. Unlike [Fields], parameter expansions, command substitutions,
 // and arithmetic expansions are kept verbatim, and tildes and braces are
-// left untouched.
+// left untouched. A word beginning with # starts a comment, which is dropped.
 //
 // Note that the result is not necessarily the final list of arguments a shell
 // would produce, as expanding an unquoted word like $x may then require
@@ -21,6 +21,8 @@ import (
 // To expand and split at the same time, use [Fields] or the [expand] package.
 //
 // An error will be reported if the input string had invalid syntax.
+// The input must be the words of a single command; operators and redirections
+// such as `|`, `;`, and `>` are syntax errors.
 func Split(s string) ([]string, error) {
 	p := syntax.NewParser()
 	var words []string
