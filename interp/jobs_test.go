@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"mvdan.cc/sh/v3/interp"
 	"mvdan.cc/sh/v3/syntax"
@@ -31,6 +32,15 @@ func (b *syncBuffer) String() string {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	return b.buf.String()
+}
+
+// takeString drains the buffer, for tests that assert on one step at a time.
+func (b *syncBuffer) takeString() string {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	s := b.buf.String()
+	b.buf.Reset()
+	return s
 }
 
 // runSrc runs src with the default exec handler, so background commands are
@@ -160,5 +170,139 @@ func TestDisownFgBg(t *testing.T) {
 	// bg reports on a job that is already running.
 	if s := runSrc(t, "sleep 30 & bg; kill %1; wait"); !strings.Contains(s, "[1]+ sleep 30 &") {
 		t.Fatalf("bg = %q", s)
+	}
+}
+
+func TestJobsOutliveTheirContext(t *testing.T) {
+	needsSubprocesses(t)
+	t.Parallel()
+	var out syncBuffer
+	r, err := interp.New(interp.Interactive(true), interp.StdIO(strings.NewReader(""), &out, &out))
+	if err != nil {
+		t.Fatal(err)
+	}
+	run := func(ctx context.Context, src string) {
+		t.Helper()
+		f, err := syntax.NewParser().Parse(strings.NewReader(src), "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		_ = r.Run(ctx, f)
+	}
+
+	// An interactive shell cancels each line's context once the line is
+	// done; the job it started must survive that.
+	ctx, cancel := context.WithCancel(context.Background())
+	run(ctx, "sleep 30 &")
+	cancel()
+
+	run(context.Background(), "jobs")
+	if s := out.takeString(); !strings.Contains(s, "Running") {
+		t.Fatalf("job did not outlive its context: %q", s)
+	}
+
+	// Waiting for one still gives up when the caller's context is cancelled,
+	// rather than blocking on a job that no longer dies with it.
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		waitCtx, waitCancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+		defer waitCancel()
+		run(waitCtx, "wait")
+	}()
+	select {
+	case <-done:
+	case <-time.After(30 * time.Second):
+		t.Fatal("wait did not return when its context was cancelled")
+	}
+
+	// StopJobs is how the embedder ends them when the shell goes away.
+	out.takeString()
+	r.StopJobs(context.Background())
+	run(context.Background(), "jobs")
+	if s := out.takeString(); strings.Contains(s, "Running") {
+		t.Fatalf("StopJobs left the job running: %q", s)
+	}
+}
+
+func TestNonInteractiveJobsDieWithContext(t *testing.T) {
+	needsSubprocesses(t)
+	t.Parallel()
+	// Without Interactive, jobs keep master's behavior: an embedder bounding
+	// a script with a timeout reaps its background children on cancel.
+	var out syncBuffer
+	r, err := interp.New(interp.StdIO(strings.NewReader(""), &out, &out))
+	if err != nil {
+		t.Fatal(err)
+	}
+	run := func(ctx context.Context, src string) {
+		t.Helper()
+		f, err := syntax.NewParser().Parse(strings.NewReader(src), "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		_ = r.Run(ctx, f)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	run(ctx, "sleep 30 &")
+	cancel()
+	run(context.Background(), "wait; jobs")
+	if s := out.String(); strings.Contains(s, "Running") {
+		t.Fatalf("non-interactive job survived its context: %q", s)
+	}
+}
+
+func TestStopJobsSkipsProcessSubstitutions(t *testing.T) {
+	needsSubprocesses(t)
+	if runtime.GOOS == "windows" {
+		t.Skip("no process substitutions on windows")
+	}
+	t.Parallel()
+	// The shells behind process substitutions are not jobs and have no
+	// cancel func; StopJobs must not block on them.
+	var out syncBuffer
+	r, err := interp.New(interp.Interactive(true), interp.StdIO(strings.NewReader(""), &out, &out))
+	if err != nil {
+		t.Fatal(err)
+	}
+	f, err := syntax.NewParser().Parse(strings.NewReader("echo <(sleep 20) >/dev/null"), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel() // ends the substitution's shell, which follows Run's context
+	_ = r.Run(ctx, f)
+	start := time.Now()
+	r.StopJobs(context.Background())
+	if d := time.Since(start); d > 10*time.Second {
+		t.Fatalf("StopJobs blocked on a process substitution for %v", d)
+	}
+}
+
+func TestResetStopsJobs(t *testing.T) {
+	needsSubprocesses(t)
+	if runtime.GOOS == "windows" || runtime.GOOS == "plan9" {
+		t.Skip("checking process liveness needs signals")
+	}
+	t.Parallel()
+	// Reset drops the job table, so it must end the jobs first: a detached
+	// job surviving it would be unreachable and unstoppable.
+	var out syncBuffer
+	r, err := interp.New(interp.Interactive(true), interp.StdIO(strings.NewReader(""), &out, &out))
+	if err != nil {
+		t.Fatal(err)
+	}
+	f, err := syntax.NewParser().Parse(strings.NewReader("sleep 30 & echo pid=$!"), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	_ = r.Run(ctx, f)
+	cancel()
+	pid := strings.TrimSpace(strings.TrimPrefix(out.String(), "pid="))
+	r.Reset()
+	// Reset waited for the job, so its process is gone and reaped.
+	if s := runSrc(t, "kill -0 "+pid+"; echo st=$?"); !strings.Contains(s, "st=1") {
+		t.Fatalf("job survived Reset: kill -0 = %q", s)
 	}
 }

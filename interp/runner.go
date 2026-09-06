@@ -298,7 +298,20 @@ func (r *Runner) stmt(ctx context.Context, st *syntax.Stmt) {
 		bg := r.newBgProc()
 		// A job is a goroutine, so kill cancels its context rather than
 		// signalling a process.
-		bgCtx, cancel := context.WithCancel(ctx)
+		//
+		// An interactive shell runs each command line under its own context,
+		// and a background job outlives the line that started it: in bash,
+		// the interrupt that ends a foreground command leaves the background
+		// jobs alone. So an interactive runner detaches the job's context
+		// from the statement's, and the job ends via kill, [Runner.StopJobs],
+		// or the shell process exiting. Anywhere else jobs keep dying with
+		// the caller's context, so that an embedder bounding a script with a
+		// timeout does not leak them.
+		bgBase := ctx
+		if r.interactive {
+			bgBase = context.WithoutCancel(ctx)
+		}
+		bgCtx, cancel := context.WithCancel(bgBase)
 		bg.cmd = jobText(&st2)
 		bg.cancel = cancel
 		bg.disowned = st.Disown

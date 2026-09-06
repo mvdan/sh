@@ -27,6 +27,31 @@ import (
 	"mvdan.cc/sh/v3/syntax"
 )
 
+// StopJobs cancels every background job this runner started, disowned ones
+// included, and waits for them to finish, giving up early if ctx is done
+// first. An interactive runner's jobs outlive the command line that started
+// them, so an embedder should call this when the shell itself goes away — the
+// closest thing here to the SIGHUP bash sends its jobs on exit. The shells
+// behind process substitutions are not jobs and cannot be cancelled here:
+// they follow the context of the [Runner.Run] call that started them.
+func (r *Runner) StopJobs(ctx context.Context) {
+	for _, bg := range r.bgProcs {
+		if bg.cancel != nil {
+			bg.cancel()
+		}
+	}
+	for _, bg := range r.bgProcs {
+		if bg.cancel == nil {
+			continue
+		}
+		select {
+		case <-bg.done:
+		case <-ctx.Done():
+			return
+		}
+	}
+}
+
 // jobText renders a backgrounded statement the way jobs prints it.
 func jobText(st *syntax.Stmt) string {
 	var b strings.Builder
@@ -44,6 +69,19 @@ func (bg bgProc) running() bool {
 		return false
 	default:
 		return true
+	}
+}
+
+// await blocks until the job finishes, reporting false if the caller's
+// context was cancelled first. An interactive runner's jobs are detached from
+// the caller's context, so waiting for one must watch the caller's separately
+// or an interrupted shell would block on a job that will not stop.
+func (bg bgProc) await(ctx context.Context) bool {
+	select {
+	case <-bg.done:
+		return true
+	case <-ctx.Done():
+		return false
 	}
 }
 
@@ -487,10 +525,8 @@ func (r *Runner) runFg(ctx context.Context, args []string) exitStatus {
 	}
 	bg := r.bgProcs[i]
 	r.outf("%s\n", bg.cmd)
-	select {
-	case <-ctx.Done():
+	if !bg.await(ctx) {
 		return exitStatus{code: 130}
-	case <-bg.done:
 	}
 	exit := *bg.exit
 	exit.exiting = false
