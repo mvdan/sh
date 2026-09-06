@@ -1,5 +1,19 @@
 # Changelog
 
+## [3.14.1] - 2026-09-06
+
+- **syntax**
+  - Fix the indentation of heredocs nested inside command substitutions - #1403
+  - Keep literal tabs in `<<-` heredoc bodies rather than replacing them with spaces
+  - Don't indent heredocs without dashes nested in `<<-` ones, whose output no longer parsed
+  - Zsh: don't drop the prefix in short forms like `$#"$foo"` and `$+"$foo"` - #1405
+- **interp**
+  - Fix the build on 32-bit FreeBSD and NetBSD
+- **expand**
+  - Don't let escaped characters such as `\*` act as glob metacharacters
+- **pattern**
+  - Treat unclosed extended operator groups like `@(a` as literals, avoiding a panic
+
 ## [3.14.0] - 2026-08-28
 
 This release drops support for Go 1.25 and includes many enhancements,
@@ -891,6 +905,7 @@ module in v3.
 
 Initial release.
 
+[3.14.1]: https://github.com/mvdan/sh/releases/tag/v3.14.1
 [3.14.0]: https://github.com/mvdan/sh/releases/tag/v3.14.0
 [3.13.1]: https://github.com/mvdan/sh/releases/tag/v3.13.1
 [3.13.0]: https://github.com/mvdan/sh/releases/tag/v3.13.0
