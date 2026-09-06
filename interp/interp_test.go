@@ -3744,7 +3744,7 @@ done <<< 2`,
 	},
 	{
 		"echo a{0..9999999999}b",
-		"brace expansion would exceed 16384 elements\n #JUSTERR bash errors with a different message",
+		"brace expansion would exceed 16384 elements\n #IGNORE bash limits sequence bounds to a C long, so 32-bit bash leaves this literal",
 	},
 
 	// brace expansion in declarations
