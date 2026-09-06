@@ -219,8 +219,9 @@ type Runner struct {
 	// jobsBase is the context every background job started by this shell
 	// descends from. A job must not die because the statement which started
 	// it is done, and in particular a job nested inside another job outlives
-	// the one that started it, as in bash. The shell's own Run call bounds it,
-	// so an embedder which cancels that still reaps every job.
+	// the one that started it, as in bash. A non-interactive shell's Run call
+	// bounds it, so an embedder which cancels that still reaps every job, and
+	// an interactive one keeps its jobs across lines.
 	jobsBase context.Context
 
 	// inSubshell marks a runner made by [Runner.subshell], which takes
@@ -233,6 +234,11 @@ type Runner struct {
 	bgStarted chan int
 
 	opts runnerOpts
+
+	// interactive records the [Interactive] option: whether the runner
+	// behaves like an interactive shell. Among other things, it decides
+	// whether background jobs are detached from the statement's context.
+	interactive bool
 
 	origDir    string
 	origParams []string
@@ -573,11 +579,14 @@ func Dir(path string) RunnerOption {
 }
 
 // Interactive configures the interpreter to behave like an interactive shell,
-// akin to Bash. Currently, this only enables the expansion of aliases,
-// but later on it should also change other behavior.
+// akin to Bash. It enables the expansion of aliases, and detaches background
+// jobs from the context of the statement that started them, so that a job
+// outlives its command line the way it would in an interactive shell; see
+// [Runner.StopJobs] for how such jobs end.
 func Interactive(enabled bool) RunnerOption {
 	return func(r *Runner) error {
 		r.opts[optExpandAliases] = enabled
+		r.interactive = enabled
 		return nil
 	}
 }
@@ -1106,6 +1115,10 @@ func (r *Runner) Reset() {
 		// Clean it as we will later do a string prefix match.
 		r.tempDir = filepath.Clean(r.tempDir)
 	}
+	// A detached background job would survive the reset with its cancel func
+	// dropped, leaving it running with no way to reach it, so end them all
+	// first; a fresh shell has no jobs.
+	r.StopJobs(context.Background())
 	// reset the internal state
 	*r = Runner{
 		Env:                  r.Env,
@@ -1142,6 +1155,8 @@ func (r *Runner) Reset() {
 
 		dirStack: r.dirStack[:0],
 		usedNew:  r.usedNew,
+
+		interactive: r.interactive,
 	}
 	// Ensure we stop referencing any pointers before we reuse bgProcs.
 	clear(r.bgProcs)
@@ -1295,9 +1310,20 @@ func (r *Runner) Run(ctx context.Context, node syntax.Node) error {
 		r.Reset()
 	}
 	if !r.inSubshell {
-		// Jobs belong to the shell rather than to one statement, and this
-		// Run call is the shell for as long as it lasts.
+		// Jobs belong to the shell rather than to one statement, and this Run
+		// call is the shell for as long as it lasts.
+		//
+		// An interactive shell runs each command line under its own context,
+		// and a job outlives the line that started it. In bash the interrupt
+		// which ends a foreground command leaves the background jobs alone. So
+		// an interactive runner keeps its jobs across Run calls, and they end
+		// via kill, [Runner.StopJobs], or the shell going away. Anywhere else
+		// jobs still die with the caller's context, so that an embedder
+		// bounding a script with a timeout does not leak them.
 		r.jobsBase = ctx
+		if r.interactive {
+			r.jobsBase = context.WithoutCancel(ctx)
+		}
 	}
 	r.fillExpandConfig(ctx)
 	r.exit = exitStatus{}

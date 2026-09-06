@@ -368,7 +368,9 @@ dispatch:
 				if bg.disowned {
 					continue
 				}
-				<-bg.done
+				if !bg.await(ctx) {
+					return exitStatus{code: 130}
+				}
 			}
 			// Waiting for a job reaps it, as in bash, so that a later jobs
 			// does not list what has already been accounted for.
@@ -399,7 +401,9 @@ dispatch:
 				}
 				bg = found
 			}
-			<-bg.done
+			if !bg.await(ctx) {
+				return exitStatus{code: 130}
+			}
 			exit = bg.finalExit()
 			// Waiting for a job reaps it, as in bash.
 			r.reapBgProc(bg)
