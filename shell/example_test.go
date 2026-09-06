@@ -65,11 +65,30 @@ func ExampleSplit() {
 	// []string{"echo", "single quotes", "escaped space"}
 }
 
+// Parse a command line such as the value of $EDITOR into a program and its
+// arguments, leaving any expansions for a shell to perform later.
+func ExampleSplit_editor() {
+	args, _ := shell.Split(`code --wait --user-data-dir "$HOME/My Config"`)
+	fmt.Printf("%q\n", args[0])
+	fmt.Printf("%q\n", args[1:])
+	// Output:
+	// "code"
+	// ["--wait" "--user-data-dir" "$HOME/My Config"]
+}
+
 func ExampleJoin() {
 	out, _ := shell.Join("rm", "-f", "my file.txt", "$notavar")
 	fmt.Println(out)
 	// Output:
 	// rm -f 'my file.txt' '$notavar'
+}
+
+// Build a command line to run via a remote shell.
+func ExampleJoin_ssh() {
+	line, _ := shell.Join("mkdir", "-p", "backups/2026 09")
+	fmt.Println("ssh host " + line)
+	// Output:
+	// ssh host mkdir -p 'backups/2026 09'
 }
 
 func ExampleMatch() {

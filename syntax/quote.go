@@ -45,6 +45,8 @@ const (
 //
 // Some strings do not require any quoting and are returned unchanged.
 // Those strings can be directly surrounded in single quotes as well.
+//
+// To quote a list of arguments into a command line, see [mvdan.cc/sh/v3/shell.Join].
 func Quote(s string, lang LangVariant) (string, error) {
 	if s == "" {
 		// Special case; an empty string must always be quoted,

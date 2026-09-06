@@ -11,7 +11,8 @@ import (
 )
 
 // Split splits s into words as a shell would, performing quote removal but
-// no expansion. Unlike [Fields], parameter expansions, command substitutions,
+// no expansion, like [strings.Fields] with shell quoting or Python's shlex.split.
+// Unlike [Fields], parameter expansions, command substitutions,
 // and arithmetic expansions are kept verbatim, and tildes and braces are
 // left untouched. A word beginning with # starts a comment, which is dropped.
 //
@@ -77,7 +78,8 @@ func unescape(sb *strings.Builder, s string, dblQuoted bool) {
 
 // Join quotes each argument with [syntax.Quote] for Bash and joins them with
 // spaces, so that [Split] or [Fields] on the result recover the original
-// arguments. It is the inverse of [Split].
+// arguments. It is the inverse of [Split], and is useful to build a command
+// line for `sh -c` or ssh.
 //
 // Arguments with non-printable characters are quoted with Bash's $'...' syntax,
 // which other shells may not support. To quote for a different language,

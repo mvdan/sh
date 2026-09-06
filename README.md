@@ -10,8 +10,10 @@ Supports [POSIX Shell], [Bash], [Zsh], and [mksh]. Requires Go 1.26 or later.
 To parse shell scripts, inspect them, and print them out,
 see the [syntax package](https://pkg.go.dev/mvdan.cc/sh/v3/syntax).
 
-For high-level operations like performing shell expansions on strings,
-see the [shell package](https://pkg.go.dev/mvdan.cc/sh/v3/shell).
+For one-call helpers with shell semantics,
+see the [shell package](https://pkg.go.dev/mvdan.cc/sh/v3/shell):
+split a command line into arguments and quote them back like `shlex`,
+expand `$VAR` and `~` in strings, and glob with `**` or match `case`-style patterns.
 
 To interpret or run shell scripts,
 see the [interp package](https://pkg.go.dev/mvdan.cc/sh/v3/interp).

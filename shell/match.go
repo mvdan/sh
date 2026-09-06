@@ -11,7 +11,7 @@ import (
 // Match reports whether name matches the shell pattern, following the rules of
 // Bash's case statements and [[ ]] conditionals. The pattern must match the
 // entire name, and extended operators such as @(a|b) are always recognized.
-// Unlike [path.Match], slashes are ordinary characters, so "*" matches them.
+// Unlike [path.Match] and [filepath.Match], slashes are ordinary characters, so "*" matches them.
 // For more options, such as treating slashes as path separators,
 // use the [pattern] package directly.
 //
