@@ -5,6 +5,7 @@ package shell
 
 import (
 	"io/fs"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -40,20 +41,17 @@ func Glob(fsys fs.FS, pattern string) ([]string, error) {
 	cfg := &expand.Config{
 		// Relative patterns are resolved from $PWD; use the root of fsys.
 		Env: expand.ListEnviron("PWD=."),
-		ReadDir2: func(path string) ([]fs.DirEntry, error) {
+		ReadDir2: func(name string) ([]fs.DirEntry, error) {
 			// The expand package uses OS-specific paths, while io/fs uses
 			// slash-separated paths relative to the root. Anything else,
 			// such as an absolute path, is treated as an empty directory.
 			// TODO(v4): once expand globs with io/fs semantics, pass fsys
 			// directly and drop this adapter.
-			path = filepath.ToSlash(path)
-			if path == "" {
-				path = "."
-			}
-			if !fs.ValidPath(path) {
+			name = path.Clean(filepath.ToSlash(name))
+			if !fs.ValidPath(name) {
 				return nil, nil
 			}
-			return fs.ReadDir(fsys, path)
+			return fs.ReadDir(fsys, name)
 		},
 		GlobStar: true,
 		NullGlob: true,

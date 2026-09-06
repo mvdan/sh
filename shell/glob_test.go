@@ -55,6 +55,8 @@ func TestGlob(t *testing.T) {
 		{"a.go", []string{"a.go"}},
 		{"missing.go", []string{"missing.go"}},
 		{`\*.go`, []string{"*.go"}},
+		{"missing/*.go", nil},
+		{"a.go/*.go", nil},
 
 		// Paths outside of the filesystem root match nothing.
 		{"../*", nil},
@@ -74,12 +76,6 @@ func TestGlob(t *testing.T) {
 			qt.Assert(t, qt.ErrorMatches(err, `unexpected command substitution.*`))
 			_, err = Glob(fsys, "$x/*.go")
 			qt.Assert(t, qt.ErrorMatches(err, `x: unbound variable`))
-
-			// TODO: these should result in no names rather than an error.
-			_, err = Glob(fsys, "missing/*.go")
-			qt.Assert(t, qt.ErrorMatches(err, `open missing: .*`))
-			_, err = Glob(fsys, "a.go/*.go")
-			qt.Assert(t, qt.IsNotNil(err))
 		})
 	}
 }
