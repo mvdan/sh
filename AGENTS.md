@@ -97,3 +97,32 @@ New entries go at the top of `CHANGELOG.md`, as `## [X.Y.Z] - YYYY-MM-DD`.
   small conformance fixes in one package into a single bullet.
 - Add a lead paragraph only for things which don't fit a bullet: dropped Go
   versions, breaking changes, or a theme for the release.
+
+## Backport Releases
+
+A patch release like `v3.14.1` is a `release-vX.Y` branch cut from the
+`vX.Y.0` tag, not a linear cut from master. Cherry-pick with `-x`, in master's
+chronological order, keeping each test/fix pair together and in order.
+Leave the picked commits otherwise untouched, even when a subject line does
+not follow the convention above; only resolve genuine conflicts.
+
+Work in `git worktree add` rather than checking the branch out, so that master
+stays in place.
+
+The `CHANGELOG.md` entry is written and committed on master like any other,
+then cherry-picked onto the branch as the final commit, so that both histories
+describe the release identically. It gets no lead paragraph; the bullets are
+the whole entry.
+
+Backport build failures, panics, silent corruption of the user's script by the
+printer, and interpreter conformance fixes. Test-only fixes qualify when they
+unbreak packagers, such as a test which fails on 32-bit. Do not backport new
+API, features, or printer style changes: they reformat working code, and users
+take a patch release expecting no diff.
+
+Verify the branch with the full matrix in Common Commands, plus `go build` for
+freebsd and netbsd on `386` and `arm`, and a fuzz run after printer changes.
+Then check for churn: build `shfmt` from the tag and from the branch, run both
+over a few hundred real scripts (`/usr/share`, `/etc`, `/usr/bin`), and diff
+the output. It should be identical for every file. Any difference is a style
+change which does not belong in a patch release.
