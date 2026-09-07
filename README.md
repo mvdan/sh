@@ -7,7 +7,8 @@ Supports [POSIX Shell], [Bash], [Zsh], and [mksh]. Requires Go 1.26 or later.
 
 ### Quick start
 
-To parse shell scripts, inspect them, and print them out,
+To parse shell scripts into a syntax tree, inspect them,
+and format them like `shfmt` does,
 see the [syntax package](https://pkg.go.dev/mvdan.cc/sh/v3/syntax).
 
 For one-call helpers with shell semantics,
@@ -15,8 +16,9 @@ see the [shell package](https://pkg.go.dev/mvdan.cc/sh/v3/shell):
 split a command line into arguments and quote them back like `shlex`,
 expand `$VAR` and `~` in strings, and glob with `**` or match `case`-style patterns.
 
-To interpret or run shell scripts,
-see the [interp package](https://pkg.go.dev/mvdan.cc/sh/v3/interp).
+To run shell scripts without a system shell, including on Windows,
+see the [interp package](https://pkg.go.dev/mvdan.cc/sh/v3/interp);
+its handlers allow sandboxing what scripts can execute and access.
 
 ### shfmt
 

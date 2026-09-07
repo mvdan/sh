@@ -5,6 +5,13 @@
 // parsed by the [syntax] package as either [syntax.LangBash]
 // or [syntax.LangPOSIX], behaving like Bash as a result.
 //
+// Scripts run without a system shell, so they work on any platform including
+// Windows. Handlers such as [ExecHandler], [OpenHandler], and [ReadDirHandler2]
+// replace how programs are executed and files are accessed, allowing scripts
+// to be sandboxed or run against virtual filesystems.
+// The [mvdan.cc/sh/moreinterp/coreutils] package provides portable
+// implementations of common utilities like cat, cp, and find.
+//
 // The interpreter currently aims to behave like a non-interactive shell,
 // which is how most shells run scripts, and is more useful to machines.
 // In the future, it may gain an option to behave like an interactive shell.

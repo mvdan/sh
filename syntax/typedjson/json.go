@@ -12,6 +12,8 @@
 //
 // For the sake of efficiency and simplicity, the "Type" key
 // described above must be first in each JSON object.
+//
+// shfmt exposes this format via its --to-json and --from-json flags.
 package typedjson
 
 import (
