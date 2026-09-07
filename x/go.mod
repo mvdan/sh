@@ -1,4 +1,4 @@
-module mvdan.cc/sh/moreinterp
+module mvdan.cc/sh/x
 
 go 1.26.0
 

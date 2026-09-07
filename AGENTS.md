@@ -23,7 +23,7 @@ GOOS=js GOARCH=wasm go test ./...      # needs $(go env GOROOT)/lib/wasm in PATH
 gofmt -s -l . && go vet ./...          # enforced by CI
 go test -fuzz=FuzzParsePrint ./syntax  # after parser or printer changes
 go generate ./...                      # after modifying types with stringer directives
-cd moreinterp && go test ./...         # separate module; tests the released v3, not the working tree
+cd x && go test ./...                  # separate module; tests the released v3, not the working tree
 ```
 
 ## Architecture
@@ -39,7 +39,7 @@ The codebase follows a pipeline: **parse → expand → interpret/format**.
 - **`cmd/shfmt/`** — The formatter. Each printer option is exposed three ways: a `syntax` printer option, a shfmt flag, and an EditorConfig property.
 - **`cmd/gosh/`** — Proof-of-concept interactive shell.
 - **`fileutil/`** — File utilities used by shfmt.
-- **`moreinterp/coreutils`** — interp middleware implementing cat, cp, find, ls, xargs, etc. via u-root, mainly for Windows. A separate module because of that dependency.
+- **`x/coreutils`** — interp middleware implementing cat, cp, find, ls, xargs, etc. via u-root, mainly for Windows. A separate module because of that dependency.
 
 ## API Stability
 
@@ -91,7 +91,7 @@ New entries go at the top of `CHANGELOG.md`, as `## [X.Y.Z] - YYYY-MM-DD`.
   backticks, ending in ` - #NNNN` for the issues they close (comma-separated
   for several). Add a security advisory ID the same way.
 - Only mention what an importer or `shfmt` user would notice. Omit doc, test,
-  README, CI, and dependency commits, as well as `moreinterp`.
+  README, CI, and dependency commits, as well as `x`.
 - Omit changes which are both narrow and lack an issue; keep issue-less ones
   only for API additions, panics, and new platform support. Collapse several
   small conformance fixes in one package into a single bullet.

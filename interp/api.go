@@ -9,7 +9,7 @@
 // Windows. Handlers such as [ExecHandler], [OpenHandler], and [ReadDirHandler2]
 // replace how programs are executed and files are accessed, allowing scripts
 // to be sandboxed or run against virtual filesystems.
-// The [mvdan.cc/sh/moreinterp/coreutils] package provides portable
+// The [mvdan.cc/sh/x/coreutils] package provides portable
 // implementations of common utilities like cat, cp, and find.
 //
 // The interpreter currently aims to behave like a non-interactive shell,
