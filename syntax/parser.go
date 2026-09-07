@@ -2189,11 +2189,12 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 		switch p.val {
 		case "{":
 			p.block(s)
+			p.tryClause(s)
 		case "{}":
 			// Zsh treats closing braces in a special way, allowing this.
 			if p.lang.in(LangZsh) {
-				s.Cmd = &Block{Lbrace: p.pos, Rbrace: posAddCol(p.pos, 1)}
-				p.next()
+				p.block(s)
+				p.tryClause(s)
 			}
 		case "if":
 			p.ifClause(s)
@@ -2204,7 +2205,6 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 			p.forClause(s)
 		case "case":
 			p.caseClause(s)
-		// TODO(zsh): { try-list } "always" { always-list }
 		case "}":
 			p.curErr(`%#q can only be used to close a block`, rightBrace)
 		case "then", "elif":
@@ -2387,7 +2387,29 @@ func (p *Parser) arithmExpCmd(s *Stmt) {
 	s.Cmd = ar
 }
 
+func (p *Parser) tryClause(s *Stmt) {
+	if !p.lang.in(LangZsh) || p.tok != _LitWord || p.val != "always" {
+		return
+	}
+	clause := &TryClause{Body: s.Cmd.(*Block), AlwaysPos: p.pos}
+	p.next()
+	p.got(_Newl)
+	clause.AlwaysComments, p.accComs = p.accComs, nil
+	if p.tok != _LitWord || (p.val != "{" && p.val != "{}") {
+		p.curErr("`always` must be followed by a brace block")
+		return
+	}
+	p.block(s)
+	clause.Always = s.Cmd.(*Block)
+	s.Cmd = clause
+}
+
 func (p *Parser) block(s *Stmt) {
+	if p.lang.in(LangZsh) && p.val == "{}" {
+		s.Cmd = &Block{Lbrace: p.pos, Rbrace: posAddCol(p.pos, 1)}
+		p.next()
+		return
+	}
 	b := &Block{Lbrace: p.pos}
 	p.next()
 	b.Stmts, b.Last = p.followStmts("{", b.Lbrace, "}")

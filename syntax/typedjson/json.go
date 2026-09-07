@@ -318,6 +318,7 @@ var nodeByName = map[string]reflect.Type{
 	"WhileClause":  reflect.TypeFor[syntax.WhileClause](),
 	"CaseClause":   reflect.TypeFor[syntax.CaseClause](),
 	"Block":        reflect.TypeFor[syntax.Block](),
+	"TryClause":    reflect.TypeFor[syntax.TryClause](),
 	"Subshell":     reflect.TypeFor[syntax.Subshell](),
 	"FuncDecl":     reflect.TypeFor[syntax.FuncDecl](),
 	"TestClause":   reflect.TypeFor[syntax.TestClause](),

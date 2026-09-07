@@ -186,6 +186,12 @@ func langErr2(wantErr string, langSets ...LangVariant) func(*fileTestCase) {
 }
 
 var fileTests = []fileTestCase{
+	fileTest([]string{"{ foo; } always { bar; }"},
+		langFile(&TryClause{Body: block(litStmt("foo")), Always: block(litStmt("bar"))}, LangZsh),
+	),
+	fileTest([]string{"{ } always { }", "{} always {}"},
+		langFile(&TryClause{Body: block(), Always: block()}, LangZsh),
+	),
 	fileTest(
 		[]string{"", " ", "\t", "\n \n", "\r \r\n"},
 		langFile(&File{}),
@@ -5718,6 +5724,8 @@ func (c sanityChecker) visit(node Node) bool {
 	case *Block:
 		c.checkPos(node, node.Lbrace, "{")
 		c.checkPos(node, node.Rbrace, "}")
+	case *TryClause:
+		c.checkPos(node, node.AlwaysPos, "always")
 	case *IfClause:
 		if node.ThenPos.IsValid() {
 			c.checkPos(node, node.Position, "if", "elif")

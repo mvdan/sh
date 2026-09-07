@@ -1261,6 +1261,16 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		p.wantNewline = p.wantNewline || p.funcNextLine
 		p.nestedStmts(cmd.Stmts, cmd.Last, cmd.Rbrace)
 		p.semiRsrv("}", cmd.Rbrace)
+	case *TryClause:
+		p.command(cmd.Body, nil)
+		p.spacedString("always", cmd.AlwaysPos)
+		p.comments(cmd.AlwaysComments...)
+		if p.wantsNewline(cmd.Always.Pos(), false) {
+			p.newlines(cmd.Always.Pos())
+		} else {
+			p.space()
+		}
+		p.command(cmd.Always, nil)
 	case *IfClause:
 		p.ifClause(cmd, false)
 	case *Subshell:
