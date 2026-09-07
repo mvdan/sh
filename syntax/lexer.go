@@ -202,6 +202,20 @@ func (p *Parser) nextKeepSpaces() {
 	switch p.quote {
 	case runeByRune:
 		p.tok = illegalTok
+	case zshSubscript:
+		switch r {
+		case ']':
+			if p.zshSubscriptDepth == 0 {
+				p.tok = rightBrack
+				p.rune()
+				break
+			}
+			p.advanceLitZshSubscript(r)
+		case '`', '"', '$', '\'':
+			p.tok = p.regToken(r)
+		default:
+			p.advanceLitZshSubscript(r)
+		}
 	case dblQuotes:
 		switch r {
 		case '`', '"', '$':
@@ -1414,4 +1428,28 @@ func testBinaryOp(val string) BinTestOperator {
 	default:
 		return 0
 	}
+}
+
+// Zsh decides at runtime whether a subscript is an arithmetic expression or
+// an associative key. Preserve literal operators and whitespace in either case.
+func (p *Parser) advanceLitZshSubscript(r rune) {
+	tok := _LitWord
+loop:
+	for p.newLit(r); r != runeEOF; r = p.rune() {
+		switch r {
+		case '\\':
+			p.rune()
+		case '\'', '"', '`', '$':
+			tok = _Lit
+			break loop
+		case '[':
+			p.zshSubscriptDepth++
+		case ']':
+			if p.zshSubscriptDepth == 0 {
+				break loop
+			}
+			p.zshSubscriptDepth--
+		}
+	}
+	p.tok, p.val = tok, p.endLit()
 }

@@ -1,0 +1,30 @@
+stdin keys.zsh
+exec shfmt -ln=zsh
+cmp stdout keys.zsh
+! stderr .
+
+exec shfmt keys.zsh
+cmp stdout keys.zsh
+! stderr .
+
+stdin keys.zsh
+exec shfmt -ln=zsh -mn
+cmp stdout keys.zsh
+! stderr .
+
+stdin index.sh
+exec shfmt -ln=bash
+cmp stdout index.golden
+! stderr .
+
+-- keys.zsh --
+typeset -A h
+h[foo-bar]=1
+h[a/b]=2
+h[a:b]=3
+h[a+b]=4
+print -r -- "${h[a - b]}" $h[foo-bar]
+-- index.sh --
+a[i+1]=2
+-- index.golden --
+a[i + 1]=2

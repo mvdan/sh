@@ -210,7 +210,7 @@ For more information and to report bugs, see https://github.com/mvdan/sh.
 			useEditorConfig = false
 		}
 	})
-	parser = syntax.NewParser(syntax.KeepComments(true))
+	parser = syntax.NewParser(syntax.KeepComments(true), syntax.ZshSubscriptsAsWords(true))
 	printer = syntax.NewPrinter(syntax.Minify(minify.val))
 
 	syntax.RecoverErrors(expRecover.val)(parser)

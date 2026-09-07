@@ -24,6 +24,20 @@ func KeepComments(enabled bool) ParserOption {
 	return func(p *Parser) { p.keepComments = enabled }
 }
 
+// ZshSubscriptsAsWords preserves unflagged Zsh subscripts as words rather
+// than interpreting their literal operators as arithmetic. Zsh determines at
+// runtime whether an array is associative, so formatting an arithmetic tree
+// can otherwise change its keys. Shell expansions remain structured nodes.
+//
+// This option only affects [LangZsh]. It is disabled by default to preserve
+// the v3 AST representation. Enable it when formatting Zsh source.
+// Flagged subscripts retain their existing representation.
+func ZshSubscriptsAsWords(enabled bool) ParserOption {
+	return func(p *Parser) { p.zshSubscriptsAsWords = enabled }
+}
+
+// TODO(v4): enable ZshSubscriptsAsWords by default.
+
 // LangVariant describes a shell language variant to use when tokenizing and
 // parsing shell code. The zero value is [LangBash].
 //
@@ -499,6 +513,9 @@ type Parser struct {
 
 	pos Pos // position of tok
 
+	zshSubscriptDepth    int
+	zshSubscriptsAsWords bool
+
 	quote   quoteState // current lexer state
 	eqlOffs int        // position of '=' in [Parser.val] when [Parser.tok].isLit is true
 
@@ -680,6 +697,7 @@ const (
 	// paramExpArithm is a subscript like ${a[i]}, which can be a string key
 	// rather than an arithmetic expression when the array is associative.
 	paramExpArithm
+	zshSubscript
 	// paramExpSlice is a slice like ${a:i:j}, which is always arithmetic.
 	paramExpSlice
 	paramExpRepl
@@ -687,7 +705,7 @@ const (
 	arrayElems
 
 	allKeepSpaces = runeByRune | paramExpRepl | dblQuotes | hdocBody |
-		hdocBodyTabs | paramExpRepl | paramExpExp
+		hdocBodyTabs | paramExpRepl | paramExpExp | zshSubscript
 	allRegTokens = noState | unquotedWordCont | subCmd | subCmdBckquo | subCmdBraces |
 		hdocWord | switchCase | arrayElems | testExpr
 	allArithmExpr = arithmExpr | arithmExprLet | arithmExprCmd |
@@ -1826,6 +1844,20 @@ func (p *Parser) paramExpExp() *Expansion {
 func (p *Parser) eitherIndex() ArithmExpr {
 	old := p.quote
 	lpos := p.pos
+	if p.lang.in(LangZsh) && p.zshSubscriptsAsWords && p.r != '(' {
+		depth := p.zshSubscriptDepth
+		p.zshSubscriptDepth = 0
+		p.quote = zshSubscript
+		p.next()
+		word := p.getWord()
+		if word == nil {
+			p.followErrExp(lpos, leftBrack)
+		}
+		p.quote = old
+		p.zshSubscriptDepth = depth
+		p.matchedArithm(lpos, leftBrack, rightBrack)
+		return word
+	}
 	p.quote = paramExpArithm
 	p.next()
 	if p.tok == star || p.tok == at {
