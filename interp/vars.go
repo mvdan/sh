@@ -58,6 +58,8 @@ type namedVariable struct {
 	// This can be useful for GOOS=windows with case insensitive env vars,
 	// as otherwise it's not possible to Environ.Get a var
 	// and know what was its original name without looping over Environ.Each.
+	// The field should be output-only: reported by Get and Each,
+	// and ignored by Set, whose name parameter remains the source of truth.
 	Name string
 	expand.Variable
 }

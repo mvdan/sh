@@ -11,8 +11,8 @@ import (
 	"mvdan.cc/sh/v3/syntax"
 )
 
-// TODO(v4): the arithmetic APIs should return int64 for portability with 32-bit systems,
-// even if Bash only supports native int sizes.
+// TODO(v4): the arithmetic APIs should return int64, which is what Bash uses
+// via intmax_t even on 32-bit systems, rather than the platform-dependent int.
 
 func Arithm(cfg *Config, expr syntax.ArithmExpr) (int, error) {
 	switch expr := expr.(type) {

@@ -635,8 +635,6 @@ const (
 type ParamExp struct {
 	Dollar, Rbrace Pos
 
-	// TODO(v4): replace Short for !Rbrace.IsValid()
-
 	Short bool // $a instead of ${a}
 
 	Flags *Lit // ${(flags)a} with [LangZsh]
@@ -659,8 +657,6 @@ type ParamExp struct {
 
 	// Only one of these is set at a time,
 	// or neither with [LangZsh] when the name is omitted.
-	// TODO(v4): consider joining Param and NestedParam into a single field,
-	// even if that would be mildly annoying to non-Zsh users.
 	Param *Lit
 	// A nested parameter expression in the form of [*ParamExp] or [*CmdSubst],
 	// or either of those in a [*DblQuoted]. Only possible with [LangZsh].

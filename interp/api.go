@@ -215,9 +215,11 @@ type Runner struct {
 // Beyond the exit status code, it also holds whether the shell should return or exit,
 // as well as any Go error values that should be given back to the user.
 //
-// TODO(v4): consider replacing ExitStatus with a struct like this,
-// so that an [ExecHandlerFunc] can e.g. mimic `exit 0` or fatal errors
-// with specific exit codes.
+// TODO: consider exporting an opaque type like this, so that an
+// [ExecHandlerFunc] can mimic `exit 0` or fatal errors with specific exit
+// codes. Only exiting and fatal errors should be exposed; letting a handler
+// `return` from the enclosing function is not something any command can do.
+// This is additive, so it does not need to wait for v4.
 type exitStatus struct {
 	// code is the exit status code.
 	// When code is zero, err must be nil.
@@ -1022,7 +1024,11 @@ func (r *Runner) Reset() {
 	} else {
 		clear(r.Vars)
 	}
-	// TODO(v4): Use the supplied Env directly if it implements enough methods.
+	// TODO(v4): let the caller supply the environment which the shell writes
+	// its global variables to, much like `source`, rather than always keeping
+	// them in an overlay. This requires redesigning how variables are stored
+	// and modified, as [expand.WriteEnviron.Set] is currently too overloaded
+	// for anyone but us to implement correctly.
 	r.writeEnv = &overlayEnviron{parent: r.Env}
 	if !r.writeEnv.Get("HOME").IsSet() {
 		home, _ := os.UserHomeDir()
@@ -1162,9 +1168,11 @@ func (r *Runner) Subshell() *Runner {
 	return r.subshell(true)
 }
 
-// subshell is like [Runner.subshell], but allows skipping some allocations and copies
+// subshell is like [Runner.Subshell], but allows skipping some allocations and copies
 // when creating subshells which will not be used concurrently with the parent shell.
-// TODO(v4): we should expose this, e.g. SubshellForeground and SubshellBackground.
+// TODO(v4): rename Subshell to Clone, making its deep copy explicit and
+// leaving room for exposing this cheaper variant under a name of its own,
+// if a use case for it ever appears.
 func (r *Runner) subshell(background bool) *Runner {
 	if !r.didReset {
 		r.Reset()
