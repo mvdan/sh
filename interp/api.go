@@ -214,12 +214,6 @@ type Runner struct {
 // exitStatus holds the state of the shell after running one command.
 // Beyond the exit status code, it also holds whether the shell should return or exit,
 // as well as any Go error values that should be given back to the user.
-//
-// TODO: consider exporting an opaque type like this, so that an
-// [ExecHandlerFunc] can mimic `exit 0` or fatal errors with specific exit
-// codes. Only exiting and fatal errors should be exposed; letting a handler
-// `return` from the enclosing function is not something any command can do.
-// This is additive, so it does not need to wait for v4.
 type exitStatus struct {
 	// code is the exit status code.
 	// When code is zero, err must be nil.
@@ -274,7 +268,14 @@ func (e *exitStatus) fromHandlerError(err error) {
 	if err == nil {
 		return
 	}
-	if exit, ok := errors.AsType[errBuiltinExitStatus](err); ok {
+	if se, ok := errors.AsType[*ExitError](err); ok {
+		e.code = se.status
+		e.exiting = true
+		if se.fatal {
+			e.fatalExit = true
+			e.err = err
+		}
+	} else if exit, ok := errors.AsType[errBuiltinExitStatus](err); ok {
 		*e = exitStatus(exit)
 	} else if es, ok := errors.AsType[ExitStatus](err); ok {
 		e.err = err
@@ -1071,6 +1072,62 @@ func (r *Runner) Reset() {
 type ExitStatus uint8
 
 func (s ExitStatus) Error() string { return fmt.Sprintf("exit status %d", s) }
+
+// ExitError is an error which exits the entire shell when returned by an
+// [ExecHandlerFunc], rather than only failing the command at hand.
+// Use [Exit] or [Fatal] to create one.
+type ExitError struct {
+	status uint8
+	fatal  bool
+	err    error // the cause of a fatal exit, if any
+}
+
+// Exit returns an error which, when returned by an [ExecHandlerFunc],
+// exits the shell with the given status like the exit builtin,
+// which takes the status modulo 256.
+// Exit traps run as usual, and [Runner.Run] returns an [ExitStatus]
+// if the status is non-zero, or nil otherwise.
+// Inside a subshell or command substitution, only that subshell exits.
+func Exit(status int) error {
+	return &ExitError{status: uint8(status)}
+}
+
+// Fatal returns an error which, when returned by an [ExecHandlerFunc],
+// halts the shell like any other error would, but with the given exit status.
+// Exit traps run as usual, and [Runner.Run] returns the error,
+// which wraps err and an [ExitStatus]. The status is taken modulo 256
+// like the exit builtin, and a resulting zero is treated as 1,
+// as a fatal exit cannot succeed. err may be nil.
+func Fatal(status int, err error) error {
+	code := uint8(status)
+	if code == 0 {
+		code = 1
+	}
+	return &ExitError{status: code, fatal: true, err: err}
+}
+
+// Status returns the exit status which the shell exits with, from 0 to 255.
+func (e *ExitError) Status() int { return int(e.status) }
+
+func (e *ExitError) Error() string {
+	if e.err != nil {
+		return e.err.Error()
+	}
+	return ExitStatus(e.status).Error()
+}
+
+// Unwrap returns the cause given to [Fatal], if any,
+// followed by the [ExitStatus] if it is non-zero.
+func (e *ExitError) Unwrap() []error {
+	var errs []error
+	if e.err != nil {
+		errs = append(errs, e.err)
+	}
+	if e.status != 0 {
+		errs = append(errs, ExitStatus(e.status))
+	}
+	return errs
+}
 
 // NewExitStatus creates an error which contains the specified exit status code.
 //

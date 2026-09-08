@@ -110,9 +110,8 @@ type HandlerContext struct {
 // Returning a non-nil error will halt the [Runner] and will be returned via the API.
 type CallHandlerFunc func(ctx context.Context, args []string) ([]string, error)
 
-// TODO: consistently treat handler errors as non-fatal by default,
-// but have an interface or API to specify fatal errors which should make
-// the shell exit with a particular status code.
+// TODO(v4): consistently treat handler errors as non-fatal by default,
+// now that [Fatal] exists to exit the shell with a particular status code.
 
 // ExecHandlerFunc is a handler which executes simple commands.
 // It is called for all [syntax.CallExpr] nodes
@@ -121,8 +120,10 @@ type CallHandlerFunc func(ctx context.Context, args []string) ([]string, error)
 // The context includes a [HandlerContext] value.
 //
 // Returning a nil error means a zero exit status.
-// Other exit statuses can be set by returning or wrapping a [NewExitStatus] error,
+// Other exit statuses can be set by returning or wrapping an [ExitStatus] error,
 // and such an error is returned via the API if it is the last statement executed.
+// To exit the entire shell rather than just the command, return an error
+// created via [Exit] or [Fatal].
 // Any other error will halt the [Runner] and will be returned via the API.
 type ExecHandlerFunc func(ctx context.Context, args []string) error
 

@@ -23,6 +23,7 @@ import (
 	"testing/fstest"
 	"time"
 
+	"github.com/go-quicktest/qt"
 	"mvdan.cc/sh/v3/interp"
 	"mvdan.cc/sh/v3/syntax"
 )
@@ -136,6 +137,38 @@ func execCustomError(next interp.ExecHandlerFunc) interp.ExecHandlerFunc {
 func execCustomExitStatus5(next interp.ExecHandlerFunc) interp.ExecHandlerFunc {
 	return func(ctx context.Context, args []string) error {
 		return fmt.Errorf("custom error: %w", interp.ExitStatus(5))
+	}
+}
+
+func execExit3(next interp.ExecHandlerFunc) interp.ExecHandlerFunc {
+	return func(ctx context.Context, args []string) error {
+		return interp.Exit(3)
+	}
+}
+
+func execExit0(next interp.ExecHandlerFunc) interp.ExecHandlerFunc {
+	return func(ctx context.Context, args []string) error {
+		return interp.Exit(0)
+	}
+}
+
+var errCustomFatal = errors.New("custom fatal")
+
+func execFatal3(next interp.ExecHandlerFunc) interp.ExecHandlerFunc {
+	return func(ctx context.Context, args []string) error {
+		return interp.Fatal(3, errCustomFatal)
+	}
+}
+
+func execFatal3Wrapped(next interp.ExecHandlerFunc) interp.ExecHandlerFunc {
+	return func(ctx context.Context, args []string) error {
+		return fmt.Errorf("wrapped: %w", interp.Fatal(3, errCustomFatal))
+	}
+}
+
+func execFatal4NoErr(next interp.ExecHandlerFunc) interp.ExecHandlerFunc {
+	return func(ctx context.Context, args []string) error {
+		return interp.Fatal(4, nil)
 	}
 }
 
@@ -386,6 +419,86 @@ var modCases = []struct {
 		want: "Runner.Run error: custom error: exit status 5",
 	},
 	{
+		name: "ExecExit3",
+		opts: []interp.RunnerOption{
+			interp.ExecHandlers(execExit3),
+		},
+		src:  "foo; echo next",
+		want: "Runner.Run error: exit status 3",
+	},
+	{
+		name: "ExecExit0",
+		opts: []interp.RunnerOption{
+			interp.ExecHandlers(execExit0),
+		},
+		src:  "foo; echo next",
+		want: "",
+	},
+	{
+		name: "ExecExit3Trap",
+		opts: []interp.RunnerOption{
+			interp.ExecHandlers(execExit3),
+		},
+		src:  "trap 'echo bye' EXIT; foo; echo next",
+		want: "bye\nRunner.Run error: exit status 3",
+	},
+	{
+		name: "ExecExit3Function",
+		opts: []interp.RunnerOption{
+			interp.ExecHandlers(execExit3),
+		},
+		src:  "f() { foo; echo in-f; }; f; echo next",
+		want: "Runner.Run error: exit status 3",
+	},
+	{
+		name: "ExecExit3CmdSubst",
+		opts: []interp.RunnerOption{
+			interp.ExecHandlers(execExit3),
+		},
+		src:  "echo $(foo)x; echo next",
+		want: "x\nnext\n",
+	},
+	{
+		name: "ExecExit3Subshell",
+		opts: []interp.RunnerOption{
+			interp.ExecHandlers(execExit3),
+		},
+		src:  "(foo); echo $?",
+		want: "3\n",
+	},
+	{
+		name: "ExecFatal3",
+		opts: []interp.RunnerOption{
+			interp.ExecHandlers(execFatal3),
+		},
+		src:  "foo; echo next",
+		want: "Runner.Run error: custom fatal",
+	},
+	{
+		name: "ExecFatal3Trap",
+		opts: []interp.RunnerOption{
+			interp.ExecHandlers(execFatal3),
+		},
+		src:  "trap 'echo bye' EXIT; foo; echo next",
+		want: "bye\nRunner.Run error: custom fatal",
+	},
+	{
+		name: "ExecFatal3Wrapped",
+		opts: []interp.RunnerOption{
+			interp.ExecHandlers(execFatal3Wrapped),
+		},
+		src:  "foo; echo next",
+		want: "Runner.Run error: wrapped: custom fatal",
+	},
+	{
+		name: "ExecFatal4NoErr",
+		opts: []interp.RunnerOption{
+			interp.ExecHandlers(execFatal4NoErr),
+		},
+		src:  "foo; echo next",
+		want: "Runner.Run error: exit status 4",
+	},
+	{
 		name: "ExecDotRunnerBuiltin",
 		opts: []interp.RunnerOption{
 			interp.ExecHandlers(execDotRunnerBuiltin, execExitStatus5),
@@ -533,6 +646,55 @@ func TestRunnerHandlers(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestExitError(t *testing.T) {
+	t.Parallel()
+
+	p := syntax.NewParser()
+	run := func(t *testing.T, handlerErr error) (*interp.Runner, error) {
+		file := parse(t, p, "foo; echo next")
+		r, err := interp.New(interp.ExecHandlers(func(next interp.ExecHandlerFunc) interp.ExecHandlerFunc {
+			return func(ctx context.Context, args []string) error { return handlerErr }
+		}))
+		qt.Assert(t, qt.IsNil(err))
+		return r, r.Run(t.Context(), file)
+	}
+	t.Run("Exit", func(t *testing.T) {
+		r, err := run(t, interp.Exit(3))
+		qt.Assert(t, qt.Equals(err, error(interp.ExitStatus(3))))
+		qt.Assert(t, qt.IsTrue(r.Exited()))
+	})
+	t.Run("ExitZero", func(t *testing.T) {
+		r, err := run(t, interp.Exit(0))
+		qt.Assert(t, qt.IsNil(err))
+		qt.Assert(t, qt.IsTrue(r.Exited()))
+	})
+	t.Run("Fatal", func(t *testing.T) {
+		r, err := run(t, interp.Fatal(3, errCustomFatal))
+		qt.Assert(t, qt.ErrorIs(err, errCustomFatal))
+		qt.Assert(t, qt.ErrorIs(err, interp.ExitStatus(3)))
+		ee, ok := errors.AsType[*interp.ExitError](err)
+		qt.Assert(t, qt.IsTrue(ok))
+		qt.Assert(t, qt.Equals(ee.Status(), 3))
+		qt.Assert(t, qt.IsTrue(r.Exited()))
+	})
+	t.Run("FatalZero", func(t *testing.T) {
+		_, err := run(t, interp.Fatal(0, nil))
+		qt.Assert(t, qt.ErrorIs(err, interp.ExitStatus(1)))
+	})
+	// Like the exit builtin, statuses wrap around modulo 256.
+	t.Run("ExitWrap", func(t *testing.T) {
+		r, err := run(t, interp.Exit(256))
+		qt.Assert(t, qt.IsNil(err))
+		qt.Assert(t, qt.IsTrue(r.Exited()))
+		_, err = run(t, interp.Exit(-1))
+		qt.Assert(t, qt.Equals(err, error(interp.ExitStatus(255))))
+	})
+	t.Run("FatalWrap", func(t *testing.T) {
+		_, err := run(t, interp.Fatal(256, nil))
+		qt.Assert(t, qt.ErrorIs(err, interp.ExitStatus(1)))
+	})
 }
 
 type readyBuffer struct {
