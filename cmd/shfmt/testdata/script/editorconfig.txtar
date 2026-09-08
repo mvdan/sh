@@ -123,7 +123,7 @@ indent_style = space
 indent_size = 3
 
 [*_posix.sh]
-shell_variant = posix
+language_dialect = posix
 -- input.sh --
 {
 	indented
@@ -151,10 +151,15 @@ indent_size = 6
 root = true
 
 [*_bash.sh]
-shell_variant = bash
+language_dialect = bash
 
 [*_mksh.sh]
 shell_variant = mksh
+
+[*_both.sh]
+# The newer spelling takes precedence.
+shell_variant = posix
+language_dialect = mksh
 
 [indent.sh]
 # check its default; we tested "space" above.
@@ -162,8 +167,15 @@ shell_variant = mksh
 [binary_next_line.sh]
 binary_next_line = true
 
+[case_indent.sh]
+case_indent = true
+
 [switch_case_indent.sh]
 switch_case_indent = true
+
+[case_indent_both.sh]
+switch_case_indent = true
+case_indent = false
 
 [space_redirects.sh]
 space_redirects = true
@@ -187,6 +199,8 @@ minify = true
 array=(elem)
 -- otherknobs/shell_variant_mksh.sh --
 coprocess |&
+-- otherknobs/shell_variant_both.sh --
+coprocess |&
 -- otherknobs/indent.sh --
 {
 	indented
@@ -194,9 +208,17 @@ coprocess |&
 -- otherknobs/binary_next_line.sh --
 foo \
 	| bar
+-- otherknobs/case_indent.sh --
+case "$1" in
+	A) echo foo ;;
+esac
 -- otherknobs/switch_case_indent.sh --
 case "$1" in
 	A) echo foo ;;
+esac
+-- otherknobs/case_indent_both.sh --
+case "$1" in
+A) echo foo ;;
 esac
 -- otherknobs/space_redirects.sh --
 echo foo > bar

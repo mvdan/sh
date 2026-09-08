@@ -157,12 +157,10 @@ showing how to set supported options:
 indent_style = space
 indent_size = 4
 
-# --language-dialect
-shell_variant      = posix
+language_dialect   = posix
 simplify           = true
 binary_next_line   = true
-# --case-indent
-switch_case_indent = true
+case_indent        = true
 space_redirects    = true
 keep_padding       = true
 # --func-next-line
@@ -177,6 +175,9 @@ minify             = true
 [third_party/**]
 ignore = true
 ```
+
+The older spellings *shell_variant* and *switch_case_indent* are still
+accepted, but *language_dialect* and *case_indent* take precedence when both are set.
 
 EditorConfig sections may also use `[[shell]]`, `[[bash]]`, or `[[zsh]]` to match shell scripts,
 which is particularly useful when scripts use a shebang but no extension.

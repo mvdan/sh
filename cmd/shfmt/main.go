@@ -420,8 +420,8 @@ var ecQuery = editorconfig.Query{
 }
 
 func propsOptions(lang syntax.LangVariant, props editorconfig.Section) (_ syntax.LangVariant, validLang bool) {
-	// if shell_variant is set to a valid string, it will take precedence
-	langErr := lang.Set(props.Get("shell_variant"))
+	// if language_dialect is set to a valid string, it will take precedence
+	langErr := lang.Set(propGet(props, "language_dialect", "shell_variant"))
 	syntax.Variant(lang)(parser)
 
 	size := uint(0)
@@ -434,11 +434,10 @@ func propsOptions(lang syntax.LangVariant, props editorconfig.Section) (_ syntax
 	syntax.Indent(size)(printer)
 
 	syntax.BinaryNextLine(props.Get("binary_next_line") == "true")(printer)
-	// TODO(v4): rename to case_indent for consistency with flags
-	syntax.SwitchCaseIndent(props.Get("switch_case_indent") == "true")(printer)
+	syntax.SwitchCaseIndent(propGet(props, "case_indent", "switch_case_indent") == "true")(printer)
 	syntax.SpaceRedirects(props.Get("space_redirects") == "true")(printer)
 	syntax.KeepPadding(props.Get("keep_padding") == "true")(printer)
-	// TODO(v4): rename to func_next_line for consistency with flags
+	// TODO(v4): remove along with FunctionNextLine
 	syntax.FunctionNextLine(props.Get("function_next_line") == "true")(printer)
 	syntax.BlockNextLine(props.Get("block_next_line") == "true")(printer)
 
@@ -449,6 +448,20 @@ func propsOptions(lang syntax.LangVariant, props editorconfig.Section) (_ syntax
 	simplify.val = minify || props.Get("simplify") == "true"
 
 	return lang, langErr == nil
+}
+
+// propGet returns the value of the first property which is set.
+// The first name is the one matching the command line flag,
+// and the rest are older spellings which remain supported.
+//
+// TODO(v4): drop the older spellings.
+func propGet(props editorconfig.Section, names ...string) string {
+	for _, name := range names {
+		if prop := props.Lookup(name); prop != nil {
+			return prop.Value
+		}
+	}
+	return ""
 }
 
 func formatPath(path string, checkShebang bool) error {
