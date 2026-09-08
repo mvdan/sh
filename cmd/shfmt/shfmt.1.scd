@@ -13,8 +13,11 @@ shfmt - Format shell programs
 # DESCRIPTION
 
 shfmt formats shell programs. If the only argument is a dash (*-*) or no
-arguments are given, standard input will be used. If a given path is a
-directory, all shell scripts found under that directory will be used.
+arguments are given, standard input will be used. As an exception, running
+shfmt without arguments on a terminal shows the usage text, as new users
+are otherwise confused by it waiting for input; use a dash to read a terminal.
+If a given path is a directory, all shell scripts found under that directory
+will be used.
 
 If any EditorConfig files are found, they will be used to apply formatting
 options. If any parser or printer flags are given to the tool, no EditorConfig

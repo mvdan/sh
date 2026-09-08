@@ -113,8 +113,9 @@ func main() {
 		fmt.Fprint(os.Stderr, `usage: shfmt [flags] [path ...]
 
 shfmt formats shell programs. If the only argument is a dash ('-') or no
-arguments are given, standard input will be used. If a given path is a
-directory, all shell scripts found under that directory will be used.
+arguments are given, standard input will be used, unless it is a terminal.
+If a given path is a directory, all shell scripts found under that directory
+will be used.
 
   --version  show version and exit
 
@@ -238,10 +239,14 @@ For more information and to report bugs, see https://github.com/mvdan/sh.
 	} else if term.IsTerminal(int(os.Stdout.Fd())) {
 		color = true
 	}
-	// TODO(v4): show the help text on zero arguments,
-	// having the user run `shfmt -` if they want to format stdin.
-	// Using a dash is more explicit, and new users can easily be
-	// confused by `shfmt` seemingly hanging forever.
+	// Like jq, show the usage text rather than reading standard input
+	// when no arguments are given and stdin is a terminal,
+	// as otherwise new users are confused by shfmt seemingly hanging forever.
+	// An explicit dash still reads stdin, even from a terminal.
+	if flag.NArg() == 0 && term.IsTerminal(int(os.Stdin.Fd())) {
+		flag.Usage()
+		os.Exit(2)
+	}
 	if flag.NArg() == 0 || (flag.NArg() == 1 && flag.Arg(0) == "-") {
 		name := "<standard input>"
 		if toJSON.val {
