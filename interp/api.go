@@ -187,6 +187,11 @@ type Runner struct {
 
 	opts runnerOpts
 
+	// interactive records the [Interactive] option: whether the runner
+	// behaves like an interactive shell. Among other things, it decides
+	// whether background jobs are detached from the statement's context.
+	interactive bool
+
 	origDir    string
 	origParams []string
 	origOpts   runnerOpts
@@ -302,6 +307,28 @@ type bgProc struct {
 	// the process ID when the background statement started exactly one
 	// external program, and zero otherwise.
 	started chan int
+
+	// cmd is the source text of the backgrounded statement, as the jobs
+	// builtin prints it. It is empty for the shells behind process
+	// substitutions, which bash does not list as jobs either.
+	cmd string
+
+	// cancel stops the background shell. A job here is a goroutine rather
+	// than an operating system process, so the kill builtin cancels its
+	// context instead of sending a signal.
+	cancel context.CancelFunc
+
+	// signal is the name of the signal kill delivered, so that jobs can
+	// report Terminated rather than Done.
+	signal string
+
+	// disowned jobs are hidden from jobs and are not waited for by a bare
+	// wait, as after bash's disown.
+	disowned bool
+
+	// notified records that this job's completion has already been reported
+	// by `jobs -n`.
+	notified bool
 }
 
 // newBgProc returns a background job with the next fake PID.
@@ -448,11 +475,14 @@ func Dir(path string) RunnerOption {
 }
 
 // Interactive configures the interpreter to behave like an interactive shell,
-// akin to Bash. Currently, this only enables the expansion of aliases,
-// but later on it should also change other behavior.
+// akin to Bash. It enables the expansion of aliases, and detaches background
+// jobs from the context of the statement that started them, so that a job
+// outlives its command line the way it would in an interactive shell; see
+// [Runner.StopJobs] for how such jobs end.
 func Interactive(enabled bool) RunnerOption {
 	return func(r *Runner) error {
 		r.opts[optExpandAliases] = enabled
+		r.interactive = enabled
 		return nil
 	}
 }
@@ -979,6 +1009,10 @@ func (r *Runner) Reset() {
 		// Clean it as we will later do a string prefix match.
 		r.tempDir = filepath.Clean(r.tempDir)
 	}
+	// A detached background job would survive the reset with its cancel func
+	// dropped, leaving it running with no way to reach it, so end them all
+	// first; a fresh shell has no jobs.
+	r.StopJobs(context.Background())
 	// reset the internal state
 	*r = Runner{
 		Env:                  r.Env,
@@ -1015,6 +1049,8 @@ func (r *Runner) Reset() {
 
 		dirStack: r.dirStack[:0],
 		usedNew:  r.usedNew,
+
+		interactive: r.interactive,
 	}
 	// Ensure we stop referencing any pointers before we reuse bgProcs.
 	clear(r.bgProcs)
