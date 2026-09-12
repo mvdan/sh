@@ -108,6 +108,12 @@ type HandlerContext struct {
 // Shell builtins touch on many internals of the Runner, after all.
 //
 // Returning a non-nil error will halt the [Runner] and will be returned via the API.
+//
+// Note that this is the only handler which sees the kill builtin. Given a PID
+// that is not one of the runner's own jobs, kill signals that process on the
+// host directly, without going through [ExecHandlerFunc] as `/bin/kill` once
+// would have. An embedder sandboxing what a script may do to the machine has
+// to intercept it here.
 type CallHandlerFunc func(ctx context.Context, args []string) ([]string, error)
 
 // TODO(v4): consistently treat handler errors as non-fatal by default,

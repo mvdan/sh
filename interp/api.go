@@ -302,6 +302,36 @@ type bgProc struct {
 	// the process ID when the background statement started exactly one
 	// external program, and zero otherwise.
 	started chan int
+
+	// cmd is the source text of the backgrounded statement, as the jobs
+	// builtin prints it.
+	cmd string
+
+	// substitution marks the shells behind process substitutions, which bash
+	// does not list as jobs either. They have no job number, cannot be named
+	// by a job spec, and a bare wait does not wait for them.
+	//
+	// A separate field rather than testing cmd == "": an empty command string
+	// is a plausible thing to have for other reasons, and every place that
+	// asked "is this a real job" was really asking this.
+	substitution bool
+
+	// cancel stops the background shell. A job here is a goroutine rather
+	// than an operating system process, so the kill builtin cancels its
+	// context instead of sending a signal.
+	cancel context.CancelFunc
+
+	// signal is the name of the signal kill delivered, so that jobs can
+	// report Terminated rather than Done.
+	signal string
+
+	// disowned jobs are hidden from jobs and are not waited for by a bare
+	// wait, as after bash's disown.
+	disowned bool
+
+	// notified records that this job's completion has already been reported
+	// by `jobs -n`.
+	notified bool
 }
 
 // newBgProc returns a background job with the next fake PID.
