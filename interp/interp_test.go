@@ -247,6 +247,13 @@ var runTests = []runTest{
 	// times
 	{"times", "0m0.000s 0m0.000s\n0m0.000s 0m0.000s\n #IGNORE we report zeros; bash reports real CPU time"},
 
+	// umask
+	{"umask", "0022\n"},
+	{"umask -S", "u=rwx,g=rx,o=rx\n"},
+	{"umask 077; umask", "0077\n"},
+	{"umask 077; umask -S", "u=rwx,g=,o=\n"},
+	{"umask 8", "umask: 8: octal number expected\nexit status 2 #IGNORE bash words the error differently"},
+
 	// exit status codes
 	{"exit 1", "exit status 1"},
 	{"exit -1", "exit status 255"},
