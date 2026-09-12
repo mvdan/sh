@@ -105,6 +105,7 @@ func (r *Runner) fillExpandConfig(ctx context.Context) {
 			// TODO: note that `man bash` mentions that `wait` only waits for the last
 			// process substitution as long as it is $!; the logic here would mean we wait for all of them.
 			bg := r.newBgProc()
+			bg.substitution = true
 			r.bgProcs = append(r.bgProcs, bg)
 			go func() {
 				defer func() {
@@ -325,6 +326,18 @@ func (r *Runner) stmt(ctx context.Context, st *syntax.Stmt) {
 		st2.Background = false
 		st2.Disown = false
 		bg := r.newBgProc()
+		// A job is a goroutine, so kill cancels its context rather than
+		// signalling a process. The context comes off jobsBase and not off the
+		// statement, so a job nested in another job is not cancelled when the
+		// outer one finishes.
+		jobsBase := r.jobsBase
+		if jobsBase == nil {
+			jobsBase = ctx
+		}
+		bgCtx, cancel := context.WithCancel(jobsBase)
+		bg.cmd = jobText(&st2)
+		bg.cancel = cancel
+		bg.disowned = st.Disown
 		// A plain command call may amount to starting exactly one external
 		// program, in which case $! expands to its real PID like in other
 		// shells, which fork background statements as child processes.
@@ -338,7 +351,8 @@ func (r *Runner) stmt(ctx context.Context, st *syntax.Stmt) {
 		r.bgProcs = append(r.bgProcs, bg)
 		r2.holdProcSubsts()
 		go func() {
-			r2.Run(ctx, &st2)
+			defer cancel()
+			r2.Run(bgCtx, &st2)
 			r2.reportBgStart(0) // in case we didn't get to start a program
 			r2.exitSubshell()
 			r2.releaseProcSubsts(0)
