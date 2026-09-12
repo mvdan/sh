@@ -1,0 +1,538 @@
+// Copyright (c) 2017, Daniel Martí <mvdan@mvdan.cc>
+// See LICENSE for licensing information
+
+package interp
+
+// Job control: the jobs, kill, disown, fg and bg builtins.
+//
+// A background job in this interpreter is a goroutine running a subshell, not
+// an operating system process, which shapes what these builtins can honestly
+// do. Jobs can be listed, waited for and cancelled — kill terminates a job by
+// cancelling its context, which is what every fatal signal would have amounted
+// to here. There is no controlling terminal and no process group, so nothing
+// is ever *stopped*: fg waits for a job rather than handing it the terminal,
+// bg reports on a job that is already running, and SIGSTOP/SIGCONT are
+// rejected rather than faked.
+//
+// This is also what lets the builtins work on js/wasm, where there are no
+// processes and no signals to send.
+
+import (
+	"context"
+	"fmt"
+	"slices"
+	"strconv"
+	"strings"
+
+	"mvdan.cc/sh/v3/syntax"
+)
+
+// jobText renders a backgrounded statement the way jobs prints it.
+func jobText(st *syntax.Stmt) string {
+	var b strings.Builder
+	printer := syntax.NewPrinter(syntax.SingleLine(true))
+	if err := printer.Print(&b, st); err != nil {
+		return "<job>"
+	}
+	return b.String()
+}
+
+// running reports whether a job has not finished yet.
+func (bg bgProc) running() bool {
+	select {
+	case <-bg.done:
+		return false
+	default:
+		return true
+	}
+}
+
+// status is the second column of the jobs listing, following bash: Done for a
+// job that succeeded, "Exit N" for one that failed, Terminated for one kill
+// cancelled.
+func (bg bgProc) status() string {
+	if bg.running() {
+		return "Running"
+	}
+	if bg.signal != "" {
+		return "Terminated"
+	}
+	if bg.exit.code != 0 {
+		return fmt.Sprintf("Exit %d", bg.exit.code)
+	}
+	return "Done"
+}
+
+// jobIndexes returns the indexes of the jobs the builtins act on, oldest
+// first. Disowned jobs and the shells behind process substitutions are not
+// jobs as far as the user is concerned, so they are left out.
+func (r *Runner) jobIndexes() []int {
+	var out []int
+	for i, bg := range r.bgProcs {
+		if bg.disowned || bg.substitution {
+			continue
+		}
+		out = append(out, i)
+	}
+	return out
+}
+
+// currentJob and previousJob are bash's %+ and %-. bash tracks these as the
+// two most recently *stopped* jobs, falling back to the most recent running
+// ones; with nothing ever stopped here, the two most recent jobs are all that
+// distinction can mean.
+func (r *Runner) currentJob() int {
+	live := r.jobIndexes()
+	if len(live) == 0 {
+		return -1
+	}
+	return live[len(live)-1]
+}
+
+func (r *Runner) previousJob() int {
+	live := r.jobIndexes()
+	if len(live) < 2 {
+		return r.currentJob()
+	}
+	return live[len(live)-2]
+}
+
+// jobMark is the +/- column bash prints after the job number.
+func (r *Runner) jobMark(i int) string {
+	switch i {
+	case r.currentJob():
+		return "+"
+	case r.previousJob():
+		return "-"
+	}
+	return " "
+}
+
+// jobSpec resolves a job specification to an index into bgProcs. It accepts
+// bash's % forms — %1, %+, %%, %-, %string and %?string — as well as what $!
+// expands to: the real PID when the background statement started exactly one
+// external program, and a "gN" fake PID otherwise. A spec without a leading %
+// is a PID, never a job number, matching bash.
+func (r *Runner) jobSpec(spec string) (int, error) {
+	if spec == "" {
+		return -1, fmt.Errorf("no such job")
+	}
+	byNumber := func(n int) (int, error) {
+		if n <= 0 || n > len(r.bgProcs) {
+			return -1, fmt.Errorf("no such job")
+		}
+		if bg := r.bgProcs[n-1]; bg.substitution || bg.disowned {
+			return -1, fmt.Errorf("no such job")
+		}
+		return n - 1, nil
+	}
+	rest, ok := strings.CutPrefix(spec, "%")
+	if !ok {
+		// Not a % form, so a PID: find the job by what $! reported, like
+		// [Runner.lookupBgProc]. A PID names the job directly, so a disowned
+		// job is still found — bash's kill also still reaches a disowned
+		// job's process by PID.
+		for i := range slices.Backward(r.bgProcs) {
+			if !r.bgProcs[i].substitution && r.bgProcID(i) == spec {
+				return i, nil
+			}
+		}
+		return -1, fmt.Errorf("no such job")
+	}
+	switch rest {
+	case "%", "+":
+		if i := r.currentJob(); i >= 0 {
+			return i, nil
+		}
+		return -1, fmt.Errorf("no such job")
+	case "-":
+		if i := r.previousJob(); i >= 0 {
+			return i, nil
+		}
+		return -1, fmt.Errorf("no such job")
+	}
+	if n, err := strconv.Atoi(rest); err == nil {
+		return byNumber(n)
+	}
+	// %?string matches anywhere in the command, %string only at its start.
+	substring := false
+	if s, ok := strings.CutPrefix(rest, "?"); ok {
+		substring, rest = true, s
+	}
+	match := -1
+	for _, i := range r.jobIndexes() {
+		cmd := r.bgProcs[i].cmd
+		if (substring && strings.Contains(cmd, rest)) || (!substring && strings.HasPrefix(cmd, rest)) {
+			if match >= 0 {
+				return -1, fmt.Errorf("ambiguous job spec")
+			}
+			match = i
+		}
+	}
+	if match < 0 {
+		return -1, fmt.Errorf("no such job")
+	}
+	return match, nil
+}
+
+// runJobs implements the jobs builtin.
+func (r *Runner) runJobs(args []string) exitStatus {
+	var long, pidsOnly, newOnly, runningOnly, stoppedOnly bool
+	rest := args
+	for len(rest) > 0 && strings.HasPrefix(rest[0], "-") && len(rest[0]) > 1 {
+		flag := rest[0]
+		if flag == "--" {
+			rest = rest[1:]
+			break
+		}
+		for _, c := range flag[1:] {
+			switch c {
+			case 'l':
+				long = true
+			case 'p':
+				pidsOnly = true
+			case 'n':
+				newOnly = true
+			case 'r':
+				runningOnly = true
+			case 's':
+				stoppedOnly = true
+			default:
+				r.errf("jobs: -%c: invalid option\n", c)
+				r.errf("jobs: usage: %s\n", helpTable["jobs"].synopsis)
+				return exitStatus{code: 2}
+			}
+		}
+		rest = rest[1:]
+	}
+
+	indexes := r.jobIndexes()
+	if len(rest) > 0 {
+		indexes = nil
+		for _, spec := range rest {
+			i, err := r.jobSpec(spec)
+			if err != nil {
+				r.errf("jobs: %s: %v\n", spec, err)
+				return exitStatus{code: 1}
+			}
+			indexes = append(indexes, i)
+		}
+	}
+
+	for _, i := range indexes {
+		bg := r.bgProcs[i]
+		// Nothing is ever stopped without a controlling terminal.
+		if stoppedOnly || (runningOnly && !bg.running()) {
+			continue
+		}
+		if newOnly {
+			if bg.running() || bg.notified {
+				continue
+			}
+			r.bgProcs[i].notified = true
+		}
+		if pidsOnly {
+			r.outf("%s\n", r.bgProcID(i))
+			continue
+		}
+		prefix := fmt.Sprintf("[%d]%s  ", i+1, r.jobMark(i))
+		if long {
+			prefix = fmt.Sprintf("[%d]%s %-6s", i+1, r.jobMark(i), r.bgProcID(i))
+		}
+		r.outf("%s%-24s%s\n", prefix, bg.status(), bg.cmd)
+	}
+	return exitStatus{}
+}
+
+// signalByName resolves "TERM", "SIGTERM" or "15" to a number and canonical
+// name.
+//
+// Both directions go through the platform on unix — see signalName in
+// os_unix.go for why a table compiled into the shell is wrong there.
+func signalByName(spec string) (int, string, bool) {
+	if n, err := strconv.Atoi(spec); err == nil {
+		if n == 0 {
+			return 0, "", true
+		}
+		if name := signalName(n); name != "" {
+			return n, name, true
+		}
+		return 0, "", false
+	}
+	name := strings.TrimPrefix(strings.ToUpper(spec), "SIG")
+	if n := signalNum(name); n > 0 {
+		return n, name, true
+	}
+	return 0, "", false
+}
+
+// signalEffect says what a signal does to a job here. Since a job is a
+// goroutine, anything whose default action would end a process cancels it, and
+// job control signals have no meaning without a terminal.
+type signalEffect int
+
+const (
+	signalTerminates  signalEffect = iota
+	signalTests                    // signal 0: only check that the job exists
+	signalUnsupported              // stop and continue, which need job control
+)
+
+// effectOf classifies a signal by NAME and not by number.
+//
+// It used to switch on 17 through 22, which are CHLD through TTOU on Linux and
+// something else everywhere else: on darwin 17 is STOP and 20 is CHLD, so the
+// set was both wrong and differently wrong per platform. The names are the
+// portable thing, so the number is resolved first and the answer keyed on that.
+func effectOf(num int) signalEffect {
+	if num == 0 {
+		return signalTests
+	}
+	switch signalName(num) {
+	case "CHLD", "CONT", "STOP", "TSTP", "TTIN", "TTOU":
+		return signalUnsupported
+	}
+	return signalTerminates
+}
+
+// runKill implements the kill builtin.
+func (r *Runner) runKill(args []string) exitStatus {
+	signum, signame := 15, "TERM"
+	rest := args
+	for len(rest) > 0 {
+		arg := rest[0]
+		if arg == "--" {
+			rest = rest[1:]
+			break
+		}
+		if len(arg) < 2 || arg[0] != '-' {
+			break
+		}
+		switch {
+		case arg == "-l" || arg == "-L":
+			return r.killList(rest[1:])
+		case arg == "-s" || arg == "-n":
+			if len(rest) < 2 {
+				r.errf("kill: %s: option requires an argument\n", arg)
+				return exitStatus{code: 2}
+			}
+			num, name, ok := signalByName(rest[1])
+			if !ok {
+				r.errf("kill: %s: invalid signal specification\n", rest[1])
+				return exitStatus{code: 1}
+			}
+			signum, signame = num, name
+			rest = rest[2:]
+			continue
+		default:
+			num, name, ok := signalByName(arg[1:])
+			if !ok {
+				r.errf("kill: %s: invalid signal specification\n", arg[1:])
+				return exitStatus{code: 1}
+			}
+			signum, signame = num, name
+		}
+		rest = rest[1:]
+	}
+
+	if len(rest) == 0 {
+		r.errf("kill: usage: %s\n", helpTable["kill"].synopsis)
+		return exitStatus{code: 2}
+	}
+
+	exit := exitStatus{}
+	for _, spec := range rest {
+		i, err := r.jobSpec(spec)
+		if err != nil {
+			// A PID that is not one of our jobs still names a process, and
+			// before kill was a builtin these reached the system's kill
+			// program, so signal the process where the platform lets us.
+			if pid, aerr := strconv.Atoi(spec); aerr == nil {
+				if kerr := killProcess(pid, signum); kerr != nil {
+					r.errf("kill: (%d) - %v\n", pid, kerr)
+					exit.code = 1
+				}
+				continue
+			}
+			r.errf("kill: %s: %v\n", spec, err)
+			exit.code = 1
+			continue
+		}
+		switch effectOf(signum) {
+		case signalTests:
+			// Existence already confirmed by resolving the spec.
+			//
+			// Not "is it still running": bash accepts kill -0 on a job that
+			// has finished but has not been reaped, and only reports "no such
+			// job" once wait or jobs has reported it and dropped it from the
+			// table. Testing running() here instead made `true & kill -0 $!`
+			// a race on whether the job had finished yet.
+		case signalUnsupported:
+			// Only for a job. A bare PID naming a real process took the
+			// killProcess path above and really was stopped or continued —
+			// the asymmetry is deliberate: a job here is a goroutine with no
+			// terminal behind it, so there is nothing to stop.
+			r.errf("kill: %s: no job control\n", spec)
+			exit.code = 1
+		default:
+			if r.bgProcs[i].running() {
+				r.bgProcs[i].signal = signame
+				r.bgProcs[i].cancel()
+			}
+		}
+	}
+	return exit
+}
+
+// killList implements `kill -l`, which either names one signal or lists them
+// all in bash's five-per-row layout.
+func (r *Runner) killList(args []string) exitStatus {
+	if len(args) > 0 {
+		exit := exitStatus{}
+		for _, arg := range args {
+			num, name, ok := signalByName(arg)
+			if !ok || num == 0 {
+				r.errf("kill: %s: invalid signal specification\n", arg)
+				exit.code = 1
+				continue
+			}
+			// `kill -l NUMBER` names the signal, `kill -l NAME` numbers it.
+			if _, err := strconv.Atoi(arg); err == nil {
+				r.outf("%s\n", name)
+			} else {
+				r.outf("%d\n", num)
+			}
+		}
+		return exit
+	}
+	// Walked rather than ranged over a table, so the list is the platform's
+	// own: darwin stops at 31, Linux carries realtime signals past it.
+	col := 0
+	for num := 1; num <= maxSignal; num++ {
+		name := signalName(num)
+		if name == "" {
+			continue
+		}
+		r.outf("%2d) SIG%-9s", num, name)
+		if col++; col%5 == 0 {
+			r.out("\n")
+		}
+	}
+	if col%5 != 0 {
+		r.out("\n")
+	}
+	return exitStatus{}
+}
+
+// runDisown implements the disown builtin.
+func (r *Runner) runDisown(args []string) exitStatus {
+	var all, runningOnly bool
+	rest := args
+	for len(rest) > 0 && strings.HasPrefix(rest[0], "-") && len(rest[0]) > 1 {
+		flag := rest[0]
+		if flag == "--" {
+			rest = rest[1:]
+			break
+		}
+		for _, c := range flag[1:] {
+			switch c {
+			case 'a':
+				all = true
+			case 'r':
+				runningOnly = true
+			case 'h':
+				// Marks a job to survive SIGHUP. Nothing sends one here, so
+				// the job is simply left in the table, as bash leaves it.
+			default:
+				r.errf("disown: -%c: invalid option\n", c)
+				r.errf("disown: usage: %s\n", helpTable["disown"].synopsis)
+				return exitStatus{code: 2}
+			}
+		}
+		rest = rest[1:]
+	}
+
+	var indexes []int
+	switch {
+	case len(rest) > 0:
+		for _, spec := range rest {
+			i, err := r.jobSpec(spec)
+			if err != nil {
+				r.errf("disown: %s: %v\n", spec, err)
+				return exitStatus{code: 1}
+			}
+			indexes = append(indexes, i)
+		}
+	case all || runningOnly:
+		indexes = r.jobIndexes()
+	default:
+		if i := r.currentJob(); i >= 0 {
+			indexes = []int{i}
+		} else {
+			r.errf("disown: current: no such job\n")
+			return exitStatus{code: 1}
+		}
+	}
+	for _, i := range indexes {
+		if runningOnly && !r.bgProcs[i].running() {
+			continue
+		}
+		r.bgProcs[i].disowned = true
+	}
+	return exitStatus{}
+}
+
+// runFg implements the fg builtin. Without a controlling terminal there is no
+// foreground to move a job to, so this waits for the job and reports its exit
+// status, which is what a caller of fg is ultimately after.
+func (r *Runner) runFg(ctx context.Context, args []string) exitStatus {
+	spec := "%+"
+	if len(args) > 0 {
+		spec = args[0]
+	}
+	i, err := r.jobSpec(spec)
+	if err != nil {
+		r.errf("fg: %s: %v\n", spec, err)
+		return exitStatus{code: 1}
+	}
+	bg := r.bgProcs[i]
+	r.outf("%s\n", bg.cmd)
+	select {
+	case <-ctx.Done():
+		// The rest of interp surfaces a cancelled context as a fatal error
+		// rather than as a status, so that a caller can tell it apart from a
+		// command that merely exited 130.
+		var exit exitStatus
+		exit.fatal(ctx.Err())
+		return exit
+	case <-bg.done:
+	}
+	exit := *bg.exit
+	exit.exiting = false
+	return exit
+}
+
+// runBg implements the bg builtin. Jobs here always run in the background
+// already, so this reports on the job rather than resuming it, and fails on a
+// job that has finished the way bash fails on one it cannot continue.
+func (r *Runner) runBg(args []string) exitStatus {
+	specs := args
+	if len(specs) == 0 {
+		specs = []string{"%+"}
+	}
+	exit := exitStatus{}
+	for _, spec := range specs {
+		i, err := r.jobSpec(spec)
+		if err != nil {
+			r.errf("bg: %s: %v\n", spec, err)
+			exit.code = 1
+			continue
+		}
+		if !r.bgProcs[i].running() {
+			r.errf("bg: job %d has terminated\n", i+1)
+			exit.code = 1
+			continue
+		}
+		r.outf("[%d]%s %s &\n", i+1, r.jobMark(i), r.bgProcs[i].cmd)
+	}
+	return exit
+}
