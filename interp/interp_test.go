@@ -241,8 +241,25 @@ var runTests = []runTest{
 	{"help -q", "help: -q: invalid option\nhelp: usage: help [-dms] [pattern ...]\nexit status 2 #IGNORE bash prefixes its errors with `bash: line N:'"},
 	// a builtin we recognize but do not implement is starred, so that help is
 	// an honest statement of what this shell can do
-	{"help -s jobs", "jobs: jobs [-lnprs] [jobspec ...]\n #IGNORE bash implements jobs, and its synopsis differs"},
-	{"help jobs", "jobs: jobs [-lnprs] [jobspec ...]\n    Display status of jobs.\n    (recognized by this shell but not implemented)\n\n #IGNORE bash implements jobs"},
+	{"help -s jobs", "jobs: jobs [-lnprs] [jobspec ...]\n #IGNORE bash's synopsis differs"},
+	{"help -s ulimit", "ulimit: ulimit [-SHabcdefiklmnpqrstuvxPRT] [limit]\n #IGNORE bash implements ulimit"},
+
+	// job control builtins; the cases needing a job that is still running are
+	// in jobs_test.go, since here the exec middleware backgrounds goroutines
+	// that cancellation cannot interrupt
+	{"jobs", ""},
+	{"kill -l 9", "KILL\n"},
+	{"kill -l TERM", "15\n"},
+	{"kill -l NOPE", "kill: NOPE: invalid signal specification\nexit status 1 #IGNORE bash prefixes its errors with `bash: line N:'"},
+	{"kill", "kill: usage: kill [-s sigspec | -n signum] pid | jobspec ...\nexit status 2 #IGNORE bash prefixes its errors with `bash: line N:'"},
+	{"kill %9", "kill: %9: no such job\nexit status 1 #IGNORE bash prefixes its errors with `bash: line N:'"},
+	{"jobs -Z", "jobs: -Z: invalid option\njobs: usage: jobs [-lnprs] [jobspec ...]\nexit status 2 #IGNORE bash prefixes its errors with `bash: line N:'"},
+	{"sleep 0 & wait; jobs", "[1]+  Done                    sleep 0\n #IGNORE bash formats the job listing differently"},
+	{"(exit 3) & wait; jobs", "[1]+  Exit 3                  (exit 3)\n #IGNORE bash formats the job listing differently"},
+	{"true & kill -0 $!; echo st=$?", "st=0\n #IGNORE bash uses real PIDs"},
+	{"sleep 0 & disown; jobs", " #IGNORE bash also lists nothing after disown"},
+	{"(exit 4) & fg; echo st=$?", "(exit 4)\nst=4\n #IGNORE bash prints the job text differently"},
+	{"sleep 0 & wait; bg", "bg: job 1 has terminated\nexit status 1 #IGNORE bash phrases the error differently"},
 
 	// times
 	{"times", "0m0.000s 0m0.000s\n0m0.000s 0m0.000s\n #IGNORE we report zeros; bash reports real CPU time"},
