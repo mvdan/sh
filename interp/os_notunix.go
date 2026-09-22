@@ -58,3 +58,8 @@ func isETXTBSY(err error) bool { return false }
 
 func (waitStatus) Signaled() bool { return false }
 func (waitStatus) Signal() int    { return 0 }
+
+// killProcess is a no-op on plan9 and windows, which have no signals to send.
+func killProcess(pid, signum int) error {
+	return fmt.Errorf("cannot signal processes on this platform")
+}
