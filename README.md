@@ -18,7 +18,7 @@ expand `$VAR` and `~` in strings, and glob with `**` or match `case`-style patte
 
 To run shell scripts without a system shell, including on Windows,
 see the [interp package](https://pkg.go.dev/mvdan.cc/sh/v3/interp);
-its handlers allow sandboxing what scripts can execute and access.
+its handlers allow configuring what scripts can execute and access.
 
 ### shfmt
 

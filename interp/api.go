@@ -5,12 +5,16 @@
 // parsed by the [syntax] package as either [syntax.LangBash]
 // or [syntax.LangPOSIX], behaving like Bash as a result.
 //
-// Scripts run without a system shell, so they work on any platform including
-// Windows. Handlers such as [ExecHandler], [OpenHandler], and [ReadDirHandler2]
-// replace how programs are executed and files are accessed, allowing scripts
-// to be sandboxed or run against virtual filesystems.
+// Scripts run without a system shell, so they work on any platform including Windows.
+// Handlers such as [ExecHandler], [OpenHandler], and [ReadDirHandler2]
+// replace how programs are executed and files are accessed,
+// allowing scripts to be controlled or run against virtual filesystems.
 // The [mvdan.cc/sh/x/coreutils] package provides portable
 // implementations of common utilities like cat, cp, and find.
+//
+// Note that hanlders do not provide a sandbox or any other sort of OS-level isolation.
+// For example, an [OpenHandler] refusing access to the /etc directory
+// can be foiled by [ExecHandler] allowing access to external programs like cat.
 //
 // The interpreter currently aims to behave like a non-interactive shell,
 // which is how most shells run scripts, and is more useful to machines.
