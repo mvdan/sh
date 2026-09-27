@@ -4469,6 +4469,29 @@ b
 `,
 	},
 	{
+		// Each word of a builtin call is quoted on its own, so that
+		// `[` conditions are not traced as `[ '1 -le 2 ]'`.
+		// See https://github.com/mvdan/sh/issues/753.
+		`set -x
+x=1
+while [ $x -le 2 ]
+do
+  echo "hi $x"
+  x=$((x + 1))
+done`,
+		`+ x=1
++ [ 1 -le 2 ]
++ echo 'hi 1'
+hi 1
++ x=2
++ [ 2 -le 2 ]
++ echo 'hi 2'
+hi 2
++ x=3
++ [ 3 -le 2 ]
+`,
+	},
+	{
 		`set -x; for i in $none_a $none_b; do echo $i; done`,
 		``,
 	},

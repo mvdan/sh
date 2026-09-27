@@ -112,7 +112,13 @@ func (t *tracer) call(cmd string, args ...string) {
 		// fields may be empty for function () {} declarations
 		t.string(cmd)
 	} else if IsBuiltin(cmd) {
-		t.stringf("%s %s", cmd, quoteBash(s))
+		// Quote each word on its own, so that a builtin call like
+		// `[ 1 -le 5 ]` is not traced as `[ '1 -le 5 ]'`.
+		quoted := make([]string, len(args))
+		for i, arg := range args {
+			quoted[i] = quoteBash(arg)
+		}
+		t.stringf("%s %s", cmd, strings.Join(quoted, " "))
 	} else {
 		t.stringf("%s %s", cmd, s)
 	}
