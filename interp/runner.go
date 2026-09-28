@@ -201,14 +201,22 @@ func (r *Runner) expandErr(err error) {
 		r.exit.code = 1
 		r.exit.exiting = true
 	case errors.Is(err, errReadOnly):
-		// Like in bash, assigning to a read-only variable fails
-		// the command at hand without exiting the shell.
+		// Like in Bash, an expansion which assigns to a read-only
+		// variable, such as ${i=3} or $((i=3)), exits the shell.
 		r.exit.code = 1
+		r.exit.exiting = true
 	}
 }
 
 func (r *Runner) arithm(expr syntax.ArithmExpr) int {
 	n, err := expand.Arithm(r.ecfg, expr)
+	if errors.Is(err, errReadOnly) {
+		// Unlike an expansion, the arithmetic command ((i=3)) and let
+		// fail without exiting the shell.
+		r.errf("%v\n", err)
+		r.exit.code = 1
+		return n
+	}
 	r.expandErr(err)
 	return n
 }
@@ -506,7 +514,13 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 				prev.Local = false
 
 				name, vr := r.assignVal(name, prev, as, "")
-				r.setVarWithIndex(prev, name, as.Index, vr)
+				if r.setVarWithIndex(prev, name, as.Index, vr) != nil {
+					// Like Bash, an assignment error such as writing to a
+					// read-only variable exits a non-interactive shell.
+					r.exit.code = 1
+					r.exit.exiting = true
+					break
+				}
 
 				if !tracingEnabled {
 					continue
@@ -677,10 +691,13 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 					reply := string(line)
 					r.setVarString(shellReplyVar, reply)
 
+					value := ""
 					if c, _ := strconv.Atoi(reply); c > 0 && c <= len(items) {
-						r.setVarString(name, items[c-1])
-					} else {
-						r.setVarString(name, "")
+						value = items[c-1]
+					}
+					if r.setVarString(name, value) != nil {
+						r.exit.code = 1
+						break
 					}
 
 					// execute commands until break or return is encountered
@@ -692,7 +709,10 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			}
 
 			for _, field := range items {
-				r.setVarString(name, field)
+				if r.setVarString(name, field) != nil {
+					r.exit.code = 1
+					break
+				}
 				trace.stringf("for %s in", y.Name.Value)
 				if inToken {
 					for _, item := range y.Items {
@@ -884,7 +904,9 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 					vr.ReadOnly = true
 				}
 			}
-			r.setVar(name, vr)
+			if r.setVar(name, vr) != nil {
+				r.exit.code = 1
+			}
 		}
 		if !named {
 			r.listDecls(cm.Variant.Value == "local", modes, valType, declQuery)

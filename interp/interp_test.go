@@ -549,7 +549,7 @@ var runTests = []runTest{
 		// A failed assignment must not seed, so that RANDOM keeps its
 		// attributes like any other variable.
 		"readonly RANDOM; RANDOM=99; echo $?",
-		"RANDOM: readonly variable\n1\n #JUSTERR",
+		"RANDOM: readonly variable\nexit status 1 #JUSTERR",
 	},
 	{"[[ $SRANDOM -eq $SRANDOM ]]", "exit status 1"}, // 1 in 2**32 chance of a collision,
 
@@ -3862,75 +3862,76 @@ done <<< 2`,
 		"declare -r -x foo=bar; foo=x",
 		"foo: readonly variable\nexit status 1 #JUSTERR",
 	},
-	// Builtins which fail to set a variable still return zero,
-	// and assignment errors do not exit the shell, unlike in Bash.
+	// Builtins which fail to set a variable fail too.
 	{
 		"readonly i=0; unset i; echo st=$?",
-		"i: readonly variable\nst=0\n #JUSTERR",
+		"i: readonly variable\nst=1\n #JUSTERR",
 	},
 	{
 		"readonly i=0; read i <<< x; echo st=$?",
-		"i: readonly variable\nst=0\n #JUSTERR",
+		"i: readonly variable\nst=1\n #JUSTERR",
 	},
 	{
 		"readonly i=0; read -a i <<< x; echo st=$?",
-		"i: readonly variable\nst=0\n #JUSTERR",
+		"i: readonly variable\nst=1\n #JUSTERR",
 	},
 	{
 		"readonly i=0; mapfile i <<< x; echo st=$?",
-		"i: readonly variable\nst=0\n #JUSTERR",
+		"i: readonly variable\nst=1\n #JUSTERR",
 	},
 	{
 		"readonly i=0; getopts a i -a; echo st=$?",
-		"i: readonly variable\nst=0\n #JUSTERR",
+		"i: readonly variable\nst=2\n #JUSTERR",
 	},
 	{
 		"readonly i=0; for i in 1 2; do echo body $i; done; echo st=$?",
-		"i: readonly variable\nbody 0\ni: readonly variable\nbody 0\nst=0\n #JUSTERR",
+		"i: readonly variable\nst=1\n #JUSTERR",
 	},
 	{
 		"a=(1 2); unset 'a[-5]'; echo st=$?",
-		"unset: a[-5]: bad array subscript\nst=0\n #JUSTERR",
+		"unset: a[-5]: bad array subscript\nst=1\n #JUSTERR",
 	},
 	{
 		"s=1; unset 's[1]'; echo st=$?",
-		"unset: s: not an array variable\nst=0\n #JUSTERR",
+		"unset: s: not an array variable\nst=1\n #JUSTERR",
 	},
+	// An assignment error exits a non-interactive shell, unlike a
+	// failing builtin or arithmetic command.
 	{
 		"readonly i=0; i=1; echo after",
-		"i: readonly variable\nafter\n #JUSTERR",
+		"i: readonly variable\nexit status 1 #JUSTERR",
 	},
 	{
 		"readonly i=0; i+=1; echo after",
-		"i: readonly variable\nafter\n #JUSTERR",
+		"i: readonly variable\nexit status 1 #JUSTERR",
 	},
 	{
 		"readonly a=(1); a[0]=2; echo after",
-		"a: readonly variable\nafter\n #JUSTERR",
+		"a: readonly variable\nexit status 1 #JUSTERR",
 	},
 	{
 		"readonly i=0; i=1 || echo no; echo after",
-		"i: readonly variable\nno\nafter\n #JUSTERR",
+		"i: readonly variable\nexit status 1 #JUSTERR",
 	},
 	{
 		"f() { readonly i=0; i=1; echo in f; }; f; echo after",
-		"i: readonly variable\nin f\nafter\n #JUSTERR",
+		"i: readonly variable\nexit status 1 #JUSTERR",
 	},
 	{
 		"(readonly i=0; i=1; echo inner); echo after",
-		"i: readonly variable\ninner\nafter\n #JUSTERR",
+		"i: readonly variable\nafter\n #JUSTERR",
 	},
 	{
 		"trap 'echo trap' EXIT; readonly i=0; i=1; echo after",
-		"i: readonly variable\nafter\ntrap\n #JUSTERR",
+		"i: readonly variable\ntrap\nexit status 1 #JUSTERR",
 	},
 	{
 		"readonly i; echo ${i=3}; echo after",
-		"i: readonly variable\nafter\n #JUSTERR",
+		"i: readonly variable\nexit status 1 #JUSTERR",
 	},
 	{
 		"readonly i; echo $((i=3)); echo after",
-		"i: readonly variable\nafter\n #JUSTERR",
+		"i: readonly variable\nexit status 1 #JUSTERR",
 	},
 	{
 		"readonly i; ((i=3)); echo after",
@@ -4748,7 +4749,7 @@ var runTestsUnix = []runTest{
 	},
 	{
 		`unset UID`,
-		"UID: readonly variable\n #IGNORE",
+		"UID: readonly variable\nexit status 1 #JUSTERR",
 	},
 	{
 		`test -n "$EUID" && echo OK`,
@@ -4760,12 +4761,12 @@ var runTestsUnix = []runTest{
 	},
 	{
 		`unset EUID`,
-		"EUID: readonly variable\n #IGNORE",
+		"EUID: readonly variable\nexit status 1 #JUSTERR",
 	},
 	// GID is not set in bash
 	{
 		`unset GID`,
-		"GID: readonly variable\n #IGNORE",
+		"GID: readonly variable\nexit status 1 #IGNORE bash has no GID variable",
 	},
 	{
 		`[[ -z $GID ]] && echo "GID not set"`,

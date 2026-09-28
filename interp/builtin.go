@@ -156,6 +156,13 @@ func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args 
 		exit.code = code
 		return exit
 	}
+	// checkVar fails the builtin after a variable error, which is
+	// already reported; see [Runner.varErr].
+	checkVar := func(err error) {
+		if err != nil {
+			exit.code = 1
+		}
+	}
 	// The builtin and command builtins jump back here to run another builtin,
 	// as recursing could overflow the stack with a long chain of them.
 dispatch:
@@ -231,9 +238,9 @@ dispatch:
 
 		for _, arg := range args {
 			if name, sub, ok := cutElemSubscript(arg); vars && ok {
-				r.unsetElem(name, sub)
+				checkVar(r.unsetElem(name, sub))
 			} else if vars && r.lookupVar(arg).Declared() {
-				r.delVar(arg)
+				checkVar(r.delVar(arg))
 			} else if _, ok := r.Funcs[arg]; ok && funcs {
 				delete(r.Funcs, arg)
 			}
@@ -748,11 +755,11 @@ dispatch:
 			}
 			// Use -1 as max to get all fields without joining the last ones.
 			values := expand.ReadFields(r.ecfg, string(line), -1, raw)
-			r.setVar(arrayName, expand.Variable{
+			checkVar(r.setVar(arrayName, expand.Variable{
 				Set:  true,
 				Kind: expand.Indexed,
 				List: values,
-			})
+			}))
 		} else if len(args) == 0 {
 			// Bare "read" assigns the whole line to REPLY without any
 			// trimming, only discarding backslash escapes unless raw.
@@ -770,7 +777,7 @@ dispatch:
 				}
 				val = sb.String()
 			}
-			r.setVarString(shellReplyVar, val)
+			checkVar(r.setVarString(shellReplyVar, val))
 		} else {
 			values := expand.ReadFields(r.ecfg, string(line), len(args), raw)
 			for i, name := range args {
@@ -778,7 +785,7 @@ dispatch:
 				if i < len(values) {
 					val = values[i]
 				}
-				r.setVarString(name, val)
+				checkVar(r.setVarString(name, val))
 			}
 		}
 
@@ -813,7 +820,10 @@ dispatch:
 
 		opt, optarg, done := r.optState.next(optstr, args)
 
-		r.setVarString(name, string(opt))
+		if r.setVarString(name, string(opt)) != nil {
+			exit.code = 2
+			return exit
+		}
 		r.delVar("OPTARG")
 		switch {
 		case opt == '?' && diagnostics && !done:
@@ -1052,7 +1062,7 @@ dispatch:
 		if err := scanner.Err(); err != nil {
 			return failf(2, "%s: unable to read, %v\n", name, err)
 		}
-		r.setVar(arrayName, vr)
+		checkVar(r.setVar(arrayName, vr))
 
 	default:
 		return failf(2, "%s: unsupported builtin\n", name)

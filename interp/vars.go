@@ -242,26 +242,38 @@ func (r *Runner) envGet(name string) string {
 	return r.lookupVar(name).String()
 }
 
-func (r *Runner) delVar(name string) {
-	if err := r.writeEnv.Set(name, expand.Variable{}); err != nil {
-		r.errf("%s: %v\n", name, err)
-		r.exit.code = 1
-		return
+// varErr reports a variable error, if any, and returns it for the caller
+// to fail the command at hand.
+func (r *Runner) varErr(err error) error {
+	if err != nil {
+		r.errf("%v\n", err)
 	}
+	return err
+}
+
+// failVar reports a variable error like [Runner.varErr].
+func (r *Runner) failVar(format string, args ...any) error {
+	return r.varErr(fmt.Errorf(format, args...))
+}
+
+// delVar unsets a variable, reporting any error like [Runner.varErr].
+func (r *Runner) delVar(name string) error {
+	if err := r.writeEnv.Set(name, expand.Variable{}); err != nil {
+		return r.failVar("%s: %v", name, err)
+	}
+	return nil
 }
 
 // setVarString sets a variable's value to a string, keeping its attributes
-// such as whether it is exported.
-func (r *Runner) setVarString(name, value string) {
+// such as whether it is exported. Errors are handled like in [Runner.varErr].
+func (r *Runner) setVarString(name, value string) error {
 	prev := r.writeEnv.Get(name)
-	r.setVar(name, expand.Variable{Set: true, Exported: prev.Exported, Kind: expand.String, Str: value})
+	return r.setVar(name, expand.Variable{Set: true, Exported: prev.Exported, Kind: expand.String, Str: value})
 }
 
-func (r *Runner) setVar(name string, vr expand.Variable) {
-	if err := r.setVarErr(name, vr); err != nil {
-		r.errf("%v\n", err)
-		r.exit.code = 1
-	}
+// setVar sets a variable, reporting any error like [Runner.varErr].
+func (r *Runner) setVar(name string, vr expand.Variable) error {
+	return r.varErr(r.setVarErr(name, vr))
 }
 
 // errReadOnly is returned when trying to modify a read-only variable.
@@ -292,7 +304,9 @@ func (r *Runner) setVarErr(name string, vr expand.Variable) error {
 	return nil
 }
 
-func (r *Runner) setVarWithIndex(prev expand.Variable, name string, index syntax.ArithmExpr, vr expand.Variable) {
+// setVarWithIndex sets a variable or one of its elements, handling errors
+// like [Runner.varErr].
+func (r *Runner) setVarWithIndex(prev expand.Variable, name string, index syntax.ArithmExpr, vr expand.Variable) error {
 	if vr.Kind == expand.String && index == nil {
 		// When assigning a string to an array, fall back to the
 		// zero value for the index.
@@ -308,8 +322,7 @@ func (r *Runner) setVarWithIndex(prev expand.Variable, name string, index syntax
 		}
 	}
 	if index == nil {
-		r.setVar(name, vr)
-		return
+		return r.setVar(name, vr)
 	}
 	list, indexes := indexedElems(prev)
 	prev.Set = true
@@ -325,23 +338,20 @@ func (r *Runner) setVarWithIndex(prev expand.Variable, name string, index syntax
 			prev.Map = make(map[string]string)
 		}
 		prev.Map[r.assocKey(index)] = valStr
-		r.setVar(name, prev)
-		return
+		return r.setVar(name, prev)
 	}
 	k := r.arithm(index)
 	if k < 0 {
 		// Negative indices count from one past the maximum index.
 		if k += internal.IndexedMax(list, indexes) + 1; k < 0 {
-			r.errf("%s: bad array subscript\n", name)
-			r.exit.code = 1
-			return
+			return r.failVar("%s: bad array subscript", name)
 		}
 	}
 	list, indexes = internal.SetIndexedElem(list, indexes, k, valStr)
 	prev.Kind = expand.Indexed
 	prev.List = list
 	prev.Indexes = indexes
-	r.setVar(name, prev)
+	return r.setVar(name, prev)
 }
 
 // cutElemSubscript splits an array element argument like `a[3]`, as used by
@@ -356,7 +366,8 @@ func cutElemSubscript(arg string) (name, sub string, ok bool) {
 
 // unsetElem unsets a single element of an indexed or associative array, like
 // `unset 'a[3]'`. Unsetting an indexed array element may leave a hole.
-func (r *Runner) unsetElem(name, sub string) {
+// Errors are handled like in [Runner.varErr].
+func (r *Runner) unsetElem(name, sub string) error {
 	vr := r.lookupVar(name)
 	if n, v := vr.Resolve(r.writeEnv); n != "" {
 		name, vr = n, v
@@ -364,50 +375,43 @@ func (r *Runner) unsetElem(name, sub string) {
 	switch vr.Kind {
 	case expand.Indexed:
 		if sub == "@" || sub == "*" {
-			r.delVar(name)
-			return
+			return r.delVar(name)
 		}
 		expr, err := syntax.NewParser().Arithmetic(strings.NewReader(sub))
 		if err != nil {
-			r.errf("unset: %s[%s]: bad array subscript\n", name, sub)
-			r.exit.code = 1
-			return
+			return r.failVar("unset: %s[%s]: bad array subscript", name, sub)
 		}
 		if expr == nil {
-			return // an empty subscript like `unset 'a[]'` is a no-op
+			return nil // an empty subscript like `unset 'a[]'` is a no-op
 		}
 		k := r.arithm(expr)
 		if k < 0 {
 			// Negative indices count from one past the maximum index.
 			if k += internal.IndexedMax(vr.List, vr.Indexes) + 1; k < 0 {
-				r.errf("unset: %s[%s]: bad array subscript\n", name, sub)
-				r.exit.code = 1
-				return
+				return r.failVar("unset: %s[%s]: bad array subscript", name, sub)
 			}
 		}
 		// TODO: only clone when inside a subshell and getting a var from outside for the first time
 		vr.List = slices.Clone(vr.List)
 		vr.Indexes = slices.Clone(vr.Indexes)
 		vr.List, vr.Indexes = internal.DeleteIndexedElem(vr.List, vr.Indexes, k)
-		r.setVar(name, vr)
+		return r.setVar(name, vr)
 	case expand.Associative:
 		if sub == "@" || sub == "*" {
-			r.delVar(name)
-			return
+			return r.delVar(name)
 		}
 		// TODO: only clone when inside a subshell and getting a var from outside for the first time
 		vr.Map = maps.Clone(vr.Map)
 		delete(vr.Map, sub)
-		r.setVar(name, vr)
+		return r.setVar(name, vr)
 	case expand.String:
 		// A scalar can be unset via subscript zero.
 		if sub == "0" {
-			r.delVar(name)
-		} else {
-			r.errf("unset: %s: not an array variable\n", name)
-			r.exit.code = 1
+			return r.delVar(name)
 		}
+		return r.failVar("unset: %s: not an array variable", name)
 	}
+	return nil
 }
 
 func (r *Runner) setFunc(name string, body *syntax.Stmt) {
