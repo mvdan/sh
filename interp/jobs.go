@@ -16,9 +16,23 @@ package interp
 //
 // This is also what lets the builtins work on js/wasm, where there are no
 // processes and no signals to send.
+//
+// Two differences from bash are known and not addressed here:
+//
+// A subshell sees no jobs at all. bash clears the table in an explicit
+// `( ... )` but keeps it in a pipeline element and in a command substitution,
+// so `jobs | grep sleep` and `x=$(jobs)` list the parent's jobs there and list
+// nothing here. Matching that means deciding which subshells inherit the
+// table, which is a change to [Runner.subshell] rather than to job control.
+//
+// Nothing is reported without being asked. bash announces a job's death before
+// the next prompt, which is where its `[2]  Terminated` lines come from; that
+// belongs to an interactive loop, and `jobs -n` is the piece of it a shell
+// built on this package can call for itself.
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
 	"strconv"
@@ -50,8 +64,12 @@ func (bg bgProc) running() bool {
 // status is the second column of the jobs listing, following bash: Done for a
 // job that succeeded, "Exit N" for one that failed, Terminated for one kill
 // cancelled.
-func (bg bgProc) status() string {
-	if bg.running() {
+//
+// running is passed in rather than read here so that one observation of the
+// job describes the whole row. Reading it twice lets a job finish in between
+// and be reported as Running by one half of the line and Done by the other.
+func (bg bgProc) status(running bool) string {
+	if running {
 		return "Running"
 	}
 	if bg.signal != "" {
@@ -63,53 +81,34 @@ func (bg bgProc) status() string {
 	return "Done"
 }
 
-// jobIndexes returns the indexes of the jobs the builtins act on, oldest
-// first. Disowned jobs and the shells behind process substitutions are not
-// jobs as far as the user is concerned, so they are left out.
-func (r *Runner) jobIndexes() []int {
-	var out []int
-	for i, bg := range r.bgProcs {
-		if bg.disowned || bg.substitution {
+// jobList returns the jobs the builtins act on, oldest first. Disowned jobs,
+// the shells behind process substitutions and jobs already reaped are not jobs
+// as far as the user is concerned, so they are left out.
+func (r *Runner) jobList() []*bgProc {
+	var out []*bgProc
+	for _, bg := range r.bgProcs {
+		if bg.disowned || bg.substitution || bg.reaped {
 			continue
 		}
-		out = append(out, i)
+		out = append(out, bg)
 	}
 	return out
-}
-
-// jobNumber returns the number the builtins print and accept for the job at
-// index i, counting from one.
-//
-// Process substitutions are skipped, since bash gives them no job number, but
-// disowned jobs are still counted: in bash, disowning a job leaves the numbers
-// of the jobs after it alone.
-func (r *Runner) jobNumber(i int) int {
-	n := 0
-	for j, bg := range r.bgProcs {
-		if !bg.substitution {
-			n++
-		}
-		if j == i {
-			return n
-		}
-	}
-	return n
 }
 
 // currentJob and previousJob are bash's %+ and %-. bash tracks these as the
 // two most recently *stopped* jobs, falling back to the most recent running
 // ones; with nothing ever stopped here, the two most recent jobs are all that
 // distinction can mean.
-func (r *Runner) currentJob() int {
-	live := r.jobIndexes()
+func (r *Runner) currentJob() *bgProc {
+	live := r.jobList()
 	if len(live) == 0 {
-		return -1
+		return nil
 	}
 	return live[len(live)-1]
 }
 
-func (r *Runner) previousJob() int {
-	live := r.jobIndexes()
+func (r *Runner) previousJob() *bgProc {
+	live := r.jobList()
 	if len(live) < 2 {
 		return r.currentJob()
 	}
@@ -117,8 +116,8 @@ func (r *Runner) previousJob() int {
 }
 
 // jobMark is the +/- column bash prints after the job number.
-func (r *Runner) jobMark(i int) string {
-	switch i {
+func (r *Runner) jobMark(bg *bgProc) string {
+	switch bg {
 	case r.currentJob():
 		return "+"
 	case r.previousJob():
@@ -127,29 +126,34 @@ func (r *Runner) jobMark(i int) string {
 	return " "
 }
 
-// jobSpec resolves a job specification to an index into bgProcs. It accepts
-// bash's % forms — %1, %+, %%, %-, %string and %?string — as well as what $!
-// expands to: the real PID when the background statement started exactly one
-// external program, and a "gN" fake PID otherwise. A spec without a leading %
-// is a PID, never a job number, matching bash.
-func (r *Runner) jobSpec(spec string) (int, error) {
-	if spec == "" {
-		return -1, fmt.Errorf("no such job")
+// jobLine renders one row of the jobs listing the way bash does: the job
+// number and mark, the status padded to a fixed width, then the command.
+//
+// bash writes the trailing `&` for a job that is still running in the
+// background, and drops it once the job has finished.
+func (r *Runner) jobLine(bg *bgProc, running, long bool) string {
+	prefix := fmt.Sprintf("[%d]%s  ", bg.num, r.jobMark(bg))
+	if long {
+		prefix = fmt.Sprintf("[%d]%s %-6s", bg.num, r.jobMark(bg), r.bgProcID(bg))
 	}
-	byNumber := func(n int) (int, error) {
-		if n <= 0 {
-			return -1, fmt.Errorf("no such job")
-		}
-		for i, bg := range r.bgProcs {
-			if bg.substitution || r.jobNumber(i) != n {
-				continue
-			}
-			if bg.disowned {
-				return -1, fmt.Errorf("no such job")
-			}
-			return i, nil
-		}
-		return -1, fmt.Errorf("no such job")
+	cmd := bg.cmd
+	if running {
+		cmd += " &"
+	}
+	return fmt.Sprintf("%s%-27s%s", prefix, bg.status(running), cmd)
+}
+
+// jobSpec resolves a job specification to a job. It accepts bash's % forms —
+// %1, %+, %%, %-, %string and %?string — as well as what $! expands to: the
+// real PID when the background statement started exactly one external program,
+// and a "gN" fake PID otherwise. A spec without a leading % is a PID, never a
+// job number, matching bash.
+//
+// The error text omits the spec, which every caller prints for itself.
+func (r *Runner) jobSpec(spec string) (*bgProc, error) {
+	noSuchJob := func() (*bgProc, error) { return nil, fmt.Errorf("no such job") }
+	if spec == "" {
+		return noSuchJob()
 	}
 	rest, ok := strings.CutPrefix(spec, "%")
 	if !ok {
@@ -157,45 +161,54 @@ func (r *Runner) jobSpec(spec string) (int, error) {
 		// [Runner.lookupBgProc]. A PID names the job directly, so a disowned
 		// job is still found — bash's kill also still reaches a disowned
 		// job's process by PID.
-		for i := range slices.Backward(r.bgProcs) {
-			if !r.bgProcs[i].substitution && r.bgProcID(i) == spec {
-				return i, nil
+		for _, bg := range slices.Backward(r.bgProcs) {
+			if !bg.substitution && !bg.reaped && r.bgProcID(bg) == spec {
+				return bg, nil
 			}
 		}
-		return -1, fmt.Errorf("no such job")
+		return noSuchJob()
 	}
 	switch rest {
 	case "%", "+":
-		if i := r.currentJob(); i >= 0 {
-			return i, nil
+		if bg := r.currentJob(); bg != nil {
+			return bg, nil
 		}
-		return -1, fmt.Errorf("no such job")
+		return noSuchJob()
 	case "-":
-		if i := r.previousJob(); i >= 0 {
-			return i, nil
+		if bg := r.previousJob(); bg != nil {
+			return bg, nil
 		}
-		return -1, fmt.Errorf("no such job")
+		return noSuchJob()
 	}
 	if n, err := strconv.Atoi(rest); err == nil {
-		return byNumber(n)
+		if n <= 0 {
+			return noSuchJob()
+		}
+		for _, bg := range r.jobList() {
+			if bg.num == n {
+				return bg, nil
+			}
+		}
+		return noSuchJob()
 	}
 	// %?string matches anywhere in the command, %string only at its start.
 	substring := false
 	if s, ok := strings.CutPrefix(rest, "?"); ok {
 		substring, rest = true, s
 	}
-	match := -1
-	for _, i := range r.jobIndexes() {
-		cmd := r.bgProcs[i].cmd
-		if (substring && strings.Contains(cmd, rest)) || (!substring && strings.HasPrefix(cmd, rest)) {
-			if match >= 0 {
-				return -1, fmt.Errorf("ambiguous job spec")
+	var match *bgProc
+	for _, bg := range r.jobList() {
+		if (substring && strings.Contains(bg.cmd, rest)) || (!substring && strings.HasPrefix(bg.cmd, rest)) {
+			if match != nil {
+				// bash names the string rather than the whole spec here, and
+				// then reports the spec as not found as well.
+				return nil, ambiguousJobSpec{str: rest}
 			}
-			match = i
+			match = bg
 		}
 	}
-	if match < 0 {
-		return -1, fmt.Errorf("no such job")
+	if match == nil {
+		return noSuchJob()
 	}
 	return match, nil
 }
@@ -231,40 +244,48 @@ func (r *Runner) runJobs(args []string) exitStatus {
 		rest = rest[1:]
 	}
 
-	indexes := r.jobIndexes()
+	jobs := r.jobList()
 	if len(rest) > 0 {
-		indexes = nil
+		jobs = nil
 		for _, spec := range rest {
-			i, err := r.jobSpec(spec)
+			bg, err := r.jobSpec(spec)
 			if err != nil {
-				r.errf("jobs: %s: %v\n", spec, err)
+				r.errJobSpec("jobs", spec, err)
 				return exitStatus{code: 1}
 			}
-			indexes = append(indexes, i)
+			jobs = append(jobs, bg)
 		}
 	}
 
-	for _, i := range indexes {
-		bg := r.bgProcs[i]
+	// Each job is inspected once: whether it is still running decides the
+	// whole row and whether it is reaped, so that a job finishing mid-listing
+	// cannot be reported as Running and reaped in the same breath.
+	var reap []*bgProc
+	for _, bg := range jobs {
+		running := bg.running()
 		// Nothing is ever stopped without a controlling terminal.
-		if stoppedOnly || (runningOnly && !bg.running()) {
+		if stoppedOnly || (runningOnly && !running) {
 			continue
 		}
-		if newOnly {
-			if bg.running() || bg.notified {
-				continue
-			}
-			r.bgProcs[i].notified = true
+		// -n lists only the jobs that finished since the last report, which
+		// after reaping is every finished job still in the table.
+		if newOnly && running {
+			continue
 		}
 		if pidsOnly {
-			r.outf("%s\n", r.bgProcID(i))
-			continue
+			r.outf("%s\n", r.bgProcID(bg))
+		} else {
+			r.outf("%s\n", r.jobLine(bg, running, long))
 		}
-		prefix := fmt.Sprintf("[%d]%s  ", r.jobNumber(i), r.jobMark(i))
-		if long {
-			prefix = fmt.Sprintf("[%d]%s %-6s", r.jobNumber(i), r.jobMark(i), r.bgProcID(i))
+		// bash drops a job from the table once it has reported it as
+		// finished, which is why a second jobs prints nothing and why the
+		// numbering starts again from one.
+		if !running {
+			reap = append(reap, bg)
 		}
-		r.outf("%s%-24s%s\n", prefix, bg.status(), bg.cmd)
+	}
+	for _, bg := range reap {
+		r.reapBgProc(bg)
 	}
 	return exitStatus{}
 }
@@ -366,7 +387,7 @@ func (r *Runner) runKill(args []string) exitStatus {
 
 	exit := exitStatus{}
 	for _, spec := range rest {
-		i, err := r.jobSpec(spec)
+		bg, err := r.jobSpec(spec)
 		if err != nil {
 			// Only this runner's own jobs can be signalled. A PID naming
 			// anything else belongs to the host, and an embedded interpreter
@@ -375,7 +396,7 @@ func (r *Runner) runKill(args []string) exitStatus {
 			//
 			// TODO: signalling a process this runner did not start could be
 			// allowed behind an opt-in option, along with the rest of #171.
-			r.errf("kill: %s: %v\n", spec, err)
+			r.errJobSpec("kill", spec, err)
 			exit.code = 1
 			continue
 		}
@@ -395,9 +416,9 @@ func (r *Runner) runKill(args []string) exitStatus {
 			r.errf("kill: %s: no job control\n", spec)
 			exit.code = 1
 		default:
-			if r.bgProcs[i].running() {
-				r.bgProcs[i].signal = signame
-				r.bgProcs[i].cancel()
+			if bg.running() {
+				bg.signal = signame
+				bg.cancel()
 			}
 		}
 	}
@@ -472,32 +493,32 @@ func (r *Runner) runDisown(args []string) exitStatus {
 		rest = rest[1:]
 	}
 
-	var indexes []int
+	var jobs []*bgProc
 	switch {
 	case len(rest) > 0:
 		for _, spec := range rest {
-			i, err := r.jobSpec(spec)
+			bg, err := r.jobSpec(spec)
 			if err != nil {
-				r.errf("disown: %s: %v\n", spec, err)
+				r.errJobSpec("disown", spec, err)
 				return exitStatus{code: 1}
 			}
-			indexes = append(indexes, i)
+			jobs = append(jobs, bg)
 		}
 	case all || runningOnly:
-		indexes = r.jobIndexes()
+		jobs = r.jobList()
 	default:
-		if i := r.currentJob(); i >= 0 {
-			indexes = []int{i}
+		if bg := r.currentJob(); bg != nil {
+			jobs = []*bgProc{bg}
 		} else {
 			r.errf("disown: current: no such job\n")
 			return exitStatus{code: 1}
 		}
 	}
-	for _, i := range indexes {
-		if runningOnly && !r.bgProcs[i].running() {
+	for _, bg := range jobs {
+		if runningOnly && !bg.running() {
 			continue
 		}
-		r.bgProcs[i].disowned = true
+		bg.disowned = true
 	}
 	return exitStatus{}
 }
@@ -506,16 +527,16 @@ func (r *Runner) runDisown(args []string) exitStatus {
 // foreground to move a job to, so this waits for the job and reports its exit
 // status, which is what a caller of fg is ultimately after.
 func (r *Runner) runFg(ctx context.Context, args []string) exitStatus {
-	spec := "%+"
+	// bash names the defaulted spec "current" when it reports a failure.
+	spec, shown := "%+", "current"
 	if len(args) > 0 {
-		spec = args[0]
+		spec, shown = args[0], args[0]
 	}
-	i, err := r.jobSpec(spec)
+	bg, err := r.jobSpec(spec)
 	if err != nil {
-		r.errf("fg: %s: %v\n", spec, err)
+		r.errJobSpec("fg", shown, err)
 		return exitStatus{code: 1}
 	}
-	bg := r.bgProcs[i]
 	r.outf("%s\n", bg.cmd)
 	select {
 	case <-ctx.Done():
@@ -529,6 +550,8 @@ func (r *Runner) runFg(ctx context.Context, args []string) exitStatus {
 	}
 	exit := *bg.exit
 	exit.exiting = false
+	// Waiting for a job is reaping it, as it is for wait.
+	r.reapBgProc(bg)
 	return exit
 }
 
@@ -537,23 +560,45 @@ func (r *Runner) runFg(ctx context.Context, args []string) exitStatus {
 // job that has finished the way bash fails on one it cannot continue.
 func (r *Runner) runBg(args []string) exitStatus {
 	specs := args
+	// bash names the defaulted spec "current" when it reports a failure.
+	shown := func(spec string) string { return spec }
 	if len(specs) == 0 {
 		specs = []string{"%+"}
+		shown = func(string) string { return "current" }
 	}
 	exit := exitStatus{}
 	for _, spec := range specs {
-		i, err := r.jobSpec(spec)
+		bg, err := r.jobSpec(spec)
 		if err != nil {
-			r.errf("bg: %s: %v\n", spec, err)
+			r.errJobSpec("bg", shown(spec), err)
 			exit.code = 1
 			continue
 		}
-		if !r.bgProcs[i].running() {
-			r.errf("bg: job %d has terminated\n", r.jobNumber(i))
+		if !bg.running() {
+			r.errf("bg: job %d has terminated\n", bg.num)
 			exit.code = 1
 			continue
 		}
-		r.outf("[%d]%s %s &\n", r.jobNumber(i), r.jobMark(i), r.bgProcs[i].cmd)
+		r.outf("[%d]%s %s &\n", bg.num, r.jobMark(bg), bg.cmd)
 	}
 	return exit
+}
+
+// ambiguousJobSpec is the failure of a %string spec that matched more than one
+// job. bash reports it in two lines — naming the string, then the whole spec —
+// so the callers have to tell it apart from a plain failure.
+type ambiguousJobSpec struct{ str string }
+
+func (e ambiguousJobSpec) Error() string { return "ambiguous job spec" }
+
+// errJobSpec reports a job spec that did not resolve, the way bash's builtins
+// do, with builtin naming the one that was called.
+func (r *Runner) errJobSpec(builtin, spec string, err error) {
+	var amb ambiguousJobSpec
+	if errors.As(err, &amb) {
+		r.errf("%s: %s: ambiguous job spec\n", builtin, amb.str)
+		r.errf("%s: %s: no such job\n", builtin, spec)
+		return
+	}
+	r.errf("%s: %s: %v\n", builtin, spec, err)
 }

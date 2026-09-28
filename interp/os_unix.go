@@ -78,4 +78,11 @@ func signalNum(name string) int {
 // maxSignal bounds the search `kill -l` walks to list every signal the
 // platform knows. Signal numbers are small and dense everywhere this builds;
 // 64 covers Linux's realtime range, which is the widest of them.
+//
+// Note that the listing stops short of bash's on Linux all the same:
+// [unix.SignalName] has no name for the realtime signals, so 32 through 64
+// are walked and skipped, where bash prints SIGRTMIN through SIGRTMAX. Naming
+// them means hardcoding where glibc puts SIGRTMIN, which is the kind of table
+// signalName exists to avoid, and they cannot be delivered to a job here in
+// any case.
 const maxSignal = 64

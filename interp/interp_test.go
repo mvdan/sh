@@ -260,12 +260,18 @@ var runTests = []runTest{
 	// inner shell still prints after the outer job is done and waited for.
 	{"{ { sleep 0.1; echo child-finished; } & } & wait; sleep 0.3", "child-finished\n"},
 
-	{"sleep 0 & wait; jobs", "[1]+  Done                    sleep 0\n #IGNORE bash formats the job listing differently"},
-	{"(exit 3) & wait; jobs", "[1]+  Exit 3                  (exit 3)\n #IGNORE bash formats the job listing differently"},
+	// A finished job is reaped once jobs or wait has reported it, as in bash,
+	// so a second listing shows nothing and the numbering starts again at one.
+	{"sleep 0 & wait; jobs", ""},
+	{"(exit 3) & wait; jobs", ""},
+	{"sleep 0 & wait; sleep 30 & jobs; kill %1", "[1]+  Running                    sleep 30 &\n #IGNORE bash uses real PIDs and its own timing. The sleep here is a Go function which does not watch its context, so kill only asks it to stop and a wait would block until it finishes."},
 	{"true & kill -0 $!; echo st=$?", "st=0\n #IGNORE bash uses real PIDs"},
 	{"sleep 0 & disown; jobs", " #IGNORE bash also lists nothing after disown"},
 	{"(exit 4) & fg; echo st=$?", "(exit 4)\nst=4\n #IGNORE bash prints the job text differently"},
-	{"sleep 0 & wait; bg", "bg: job 1 has terminated\nexit status 1 #IGNORE bash phrases the error differently"},
+	{"sleep 0 & wait; bg", "bg: current: no such job\nexit status 1 #IGNORE bash phrases the error differently"},
+	{"sleep 0 & wait %1; echo st=$?", "st=0\n #IGNORE bash uses real PIDs"},
+	{"wait %9", "wait: %9: no such job\nexit status 127 #IGNORE bash prefixes its errors with `bash: line N:'"},
+	{"sleep 30 & sleep 30 & jobs %sleep; kill %1 %2", "jobs: sleep: ambiguous job spec\njobs: %sleep: no such job\n #IGNORE bash prefixes its errors with `bash: line N:'"},
 
 	// times
 	{"times", "0m0.000s 0m0.000s\n0m0.000s 0m0.000s\n #IGNORE we report zeros; bash reports real CPU time"},

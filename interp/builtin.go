@@ -370,15 +370,39 @@ dispatch:
 				}
 				<-bg.done
 			}
+			// Waiting for a job reaps it, as in bash, so that a later jobs
+			// does not list what has already been accounted for.
+			for _, bg := range r.jobList() {
+				r.reapBgProc(bg)
+			}
 			break
 		}
 		for _, arg := range args {
-			bg, ok := r.lookupBgProc(arg)
-			if !ok {
-				return failf(1, "wait: pid %s is not a child of this shell\n", arg)
+			var bg *bgProc
+			if strings.HasPrefix(arg, "%") {
+				// bash's wait takes a job specification as well as a PID.
+				//
+				// It answers 127 here, as it does for a PID that names no
+				// child; the PID path above answers 1 instead, which is a
+				// divergence that predates job control and has a test of its
+				// own, so it is left alone rather than changed in passing.
+				found, err := r.jobSpec(arg)
+				if err != nil {
+					r.errJobSpec("wait", arg, err)
+					return exitStatus{code: 127}
+				}
+				bg = found
+			} else {
+				found, ok := r.lookupBgProc(arg)
+				if !ok {
+					return failf(1, "wait: pid %s is not a child of this shell\n", arg)
+				}
+				bg = found
 			}
 			<-bg.done
 			exit = *bg.exit
+			// Waiting for a job reaps it, as in bash.
+			r.reapBgProc(bg)
 		}
 	case "builtin":
 		if len(args) < 1 {

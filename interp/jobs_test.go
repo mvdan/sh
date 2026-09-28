@@ -54,6 +54,54 @@ func runSrc(t *testing.T, src string) string {
 	return out.String()
 }
 
+// session runs several sources on one runner, so that a test can observe the
+// job table between commands the way an interactive shell does.
+type session struct {
+	t   *testing.T
+	r   *interp.Runner
+	out *syncBuffer
+}
+
+func newSession(t *testing.T) *session {
+	t.Helper()
+	out := new(syncBuffer)
+	r, err := interp.New(interp.StdIO(strings.NewReader(""), out, out))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return &session{t: t, r: r, out: out}
+}
+
+// run executes src and returns only what it printed.
+func (s *session) run(src string) string {
+	s.t.Helper()
+	before := len(s.out.String())
+	f, err := syntax.NewParser().Parse(strings.NewReader(src), "")
+	if err != nil {
+		s.t.Fatal(err)
+	}
+	_ = s.r.Run(context.Background(), f)
+	return s.out.String()[before:]
+}
+
+// jobsUntil runs the jobs builtin until its output contains want, giving the
+// background goroutine time to finish without a fixed sleep. Note that jobs
+// only reaps what it reports as finished, so polling it leaves a running job
+// in the table.
+func (s *session) jobsUntil(want string) string {
+	s.t.Helper()
+	var last string
+	for range 400 {
+		last = s.run("jobs")
+		if strings.Contains(last, want) {
+			return last
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	s.t.Fatalf("jobs never reported %q; last listing was %q", want, last)
+	return ""
+}
+
 // needsSubprocesses skips tests that background an external command. js/wasm
 // has no subprocesses, so those commands fail to run rather than becoming
 // jobs, and the job state under test never arises.
@@ -90,16 +138,21 @@ func TestKillBuiltin(t *testing.T) {
 	// Job specs: by job number, by the real PID $! reports, by command
 	// prefix, and by substring.
 	for _, spec := range []string{"%1", "$!", "%sleep", "%?leep"} {
-		s := runSrc(t, "sleep 30 & kill "+spec+"; wait; jobs")
-		if !strings.Contains(s, "Terminated") {
-			t.Fatalf("kill %s = %q", spec, s)
+		s := newSession(t)
+		s.run("sleep 30 & kill " + spec)
+		if got := s.jobsUntil("Terminated"); !strings.Contains(got, "sleep 30") {
+			t.Fatalf("kill %s listed %q", spec, got)
+		}
+		// Reporting it reaped it, so there is nothing left to list.
+		if got := s.run("jobs"); got != "" {
+			t.Fatalf("kill %s left %q behind", spec, got)
 		}
 	}
 	// A job that is not exactly one external program keeps its fake gN pid,
 	// which resolves the same way.
-	if s := runSrc(t, "(sleep 30) & kill $!; wait; jobs"); !strings.Contains(s, "Terminated") {
-		t.Fatalf("kill on a gN job = %q", s)
-	}
+	gn := newSession(t)
+	gn.run("(sleep 30) & kill $!")
+	gn.jobsUntil("Terminated")
 	// A bare integer is a PID, not a job number: a PID belonging to no job
 	// does not touch job 1.
 	s := runSrc(t, "sleep 30 & kill 99999999; echo st=$?; jobs; kill %1; wait")
@@ -116,10 +169,9 @@ func TestKillBuiltin(t *testing.T) {
 	}
 	// Both spellings of the signal reach the job.
 	for _, flag := range []string{"-9", "-KILL", "-SIGKILL", "-s KILL", "-n 9"} {
-		s := runSrc(t, "sleep 30 & kill "+flag+" %1; wait; jobs")
-		if !strings.Contains(s, "Terminated") {
-			t.Fatalf("kill %s = %q", flag, s)
-		}
+		s := newSession(t)
+		s.run("sleep 30 & kill " + flag + " %1")
+		s.jobsUntil("Terminated")
 	}
 }
 
@@ -202,5 +254,65 @@ func TestJobNumbersSkipProcSubsts(t *testing.T) {
 	s = runSrc(t, "sleep 30 & sleep 30 & p=$!; disown %1; jobs; kill %2; wait $p")
 	if !strings.Contains(s, "[2]") || strings.Contains(s, "no such job") {
 		t.Fatalf("jobs after disown = %q, want the survivor still [2]", s)
+	}
+}
+
+func TestJobsReaping(t *testing.T) {
+	needsSubprocesses(t)
+	t.Parallel()
+	// A finished job is reported once and then gone, as in bash.
+	s := newSession(t)
+	s.run("sleep 0 &")
+	if got := s.jobsUntil("Done"); !strings.Contains(got, "[1]") {
+		t.Fatalf("first listing = %q", got)
+	}
+	if got := s.run("jobs"); got != "" {
+		t.Fatalf("second listing = %q, want nothing", got)
+	}
+	// With the table empty the numbering starts again from one.
+	if got := s.run("sleep 30 & jobs"); !strings.Contains(got, "[1]") {
+		t.Fatalf("numbering after reaping = %q", got)
+	}
+	s.run("kill %1; wait")
+
+	// bash gives a new job the number after the highest one in the table,
+	// not the lowest free one: with job 1 reaped and job 2 still running,
+	// the next job is 3.
+	s = newSession(t)
+	s.run("sleep 0 & sleep 30 &")
+	s.jobsUntil("Done")
+	if got := s.run("sleep 30 & jobs"); !strings.Contains(got, "[3]") {
+		t.Fatalf("numbering beside a live job = %q", got)
+	}
+	s.run("kill %2 %3; wait")
+
+	// A job still running is listed but not reaped, however often it is
+	// listed. Reading whether it is running twice per row used to let one
+	// finishing mid-listing be reported as Running and reaped in the same
+	// breath, which lost it before anything said it had ended.
+	s = newSession(t)
+	s.run("sleep 30 &")
+	for range 20 {
+		if got := s.run("jobs"); !strings.Contains(got, "Running") {
+			t.Fatalf("a running job went missing from the listing: %q", got)
+		}
+	}
+	s.run("kill %1; wait")
+}
+
+func TestWaitJobSpec(t *testing.T) {
+	needsSubprocesses(t)
+	t.Parallel()
+	// bash's wait takes a job specification as well as a PID.
+	s := newSession(t)
+	if got := s.run("sleep 0 & wait %1; echo st=$?"); got != "st=0\n" {
+		t.Fatalf("wait %%1 = %q", got)
+	}
+	// Waiting for it reaped it, so it is gone.
+	if got := s.run("jobs"); got != "" {
+		t.Fatalf("listing after wait %%1 = %q", got)
+	}
+	if got := s.run("wait %9; echo st=$?"); got != "wait: %9: no such job\nst=127\n" {
+		t.Fatalf("wait on a bad spec = %q", got)
 	}
 }

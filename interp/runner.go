@@ -107,6 +107,7 @@ func (r *Runner) fillExpandConfig(ctx context.Context) {
 			bg := r.newBgProc()
 			bg.substitution = true
 			r.bgProcs = append(r.bgProcs, bg)
+			r.lastBg = bg
 			go func() {
 				defer func() {
 					*bg.exit = r2.exit
@@ -349,6 +350,7 @@ func (r *Runner) stmt(ctx context.Context, st *syntax.Stmt) {
 			r2.bgStarted = bg.started
 		}
 		r.bgProcs = append(r.bgProcs, bg)
+		r.lastBg = bg
 		r2.holdProcSubsts()
 		go func() {
 			defer cancel()
