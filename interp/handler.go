@@ -530,7 +530,9 @@ type ProcSubstFile struct {
 	// or its standard input for [syntax.CmdOut];
 	// the opposite direction is never used.
 	// It may block until the other end of Path is opened,
-	// just like [os.OpenFile] on a named pipe.
+	// just like [os.OpenFile] on a named pipe,
+	// but it must stop blocking once ctx is done, which happens as soon as
+	// the statement which expanded the process substitution has finished.
 	//
 	// Note that returning a file which is not an [os.File] causes an
 	// extra file and goroutine for [syntax.CmdOut]; see [StdIO].
@@ -592,7 +594,19 @@ func DefaultProcSubstHandler() ProcSubstHandlerFunc {
 			Path: path,
 			OpenSubshell: func(ctx context.Context) (io.ReadWriteCloser, error) {
 				// Blocks until the consumer opens the other end.
-				return os.OpenFile(path, flag, 0)
+				// If it never does, unblock ourselves once ctx is done by
+				// briefly opening both ends, which does not block.
+				opened := make(chan struct{})
+				stop := context.AfterFunc(ctx, func() {
+					if f, err := os.OpenFile(path, os.O_RDWR, 0); err == nil {
+						<-opened
+						f.Close()
+					}
+				})
+				f, err := os.OpenFile(path, flag, 0)
+				close(opened)
+				stop()
+				return f, err
 			},
 			OpenConsumer: func(ctx context.Context, flag int) (io.ReadWriteCloser, error) {
 				// A named pipe can only be opened via [os.OpenFile];

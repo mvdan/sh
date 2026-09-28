@@ -195,3 +195,22 @@ func TestExecETXTBSY(t *testing.T) {
 		t.Fatalf("want %q, got %q", "foo\n", got)
 	}
 }
+
+func TestRunnerCommandProcSubst(t *testing.T) {
+	t.Parallel()
+
+	r, _ := interp.New()
+	ctx, cancel := context.WithTimeout(t.Context(), runnerRunTimeout)
+	defer cancel()
+	// Nothing opens the process substitution, so wait would block on it
+	// if running a bare command did not stop waiting on it once done.
+	if err := r.Run(ctx, parse(t, nil, "test -e <(:)").Stmts[0].Cmd); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.Run(ctx, parse(t, nil, "wait")); err != nil {
+		t.Fatal(err)
+	}
+	if err := ctx.Err(); err != nil {
+		t.Fatal(err)
+	}
+}

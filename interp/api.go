@@ -35,6 +35,7 @@ import (
 	"runtime"
 	"slices"
 	"strconv"
+	"sync"
 	"time"
 
 	"mvdan.cc/sh/v3/expand"
@@ -128,6 +129,11 @@ type Runner struct {
 	// procSubstHandler is a function responsible for setting up process
 	// substitutions. It must be non-nil.
 	procSubstHandler ProcSubstHandlerFunc
+
+	// procSubstUses counts the users which may still open each process
+	// substitution expanded by the statements being run here or by a parent:
+	// the statement itself, and any background subshells started meanwhile.
+	procSubstUses []*sync.WaitGroup
 
 	// procSubsts tracks this runner's active process substitutions;
 	// see [procSubstRegistry]. It must be non-nil.
@@ -1197,7 +1203,9 @@ func (r *Runner) Run(ctx context.Context, node syntax.Node) error {
 	case *syntax.Stmt:
 		r.stmt(ctx, node)
 	case syntax.Command:
+		n := len(r.procSubstUses)
 		r.cmd(ctx, node)
+		r.releaseProcSubsts(n) // a bare Command bypasses stmt
 	default:
 		return fmt.Errorf("node can only be File, Stmt, or Command: %T", node)
 	}
@@ -1287,6 +1295,7 @@ func (r *Runner) subshell(background bool) *Runner {
 		callDepth:            r.callDepth,
 		evalDepth:            r.evalDepth,
 		stmtDepth:            r.stmtDepth,
+		procSubstUses:        slices.Clip(r.procSubstUses),
 
 		origStdout: r.origStdout, // used for process substitutions
 	}

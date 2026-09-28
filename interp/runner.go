@@ -86,6 +86,14 @@ func (r *Runner) fillExpandConfig(ctx context.Context) {
 			r.procSubsts.add(psf)
 
 			r2 := r.subshell(true)
+			r2.holdProcSubsts()
+			// Nothing may ever open the process substitution,
+			// so it is only waited on while it may still be used.
+			openCtx, cancel := context.WithCancel(ctx)
+			users := new(sync.WaitGroup)
+			users.Add(1) // done once the statement is done
+			go func() { users.Wait(); cancel() }()
+			r.procSubstUses = append(r.procSubstUses, users)
 			stdout := r.origStdout
 			// TODO: note that `man bash` mentions that `wait` only waits for the last
 			// process substitution as long as it is $!; the logic here would mean we wait for all of them.
@@ -96,6 +104,7 @@ func (r *Runner) fillExpandConfig(ctx context.Context) {
 					*bg.exit = r2.exit
 					close(bg.done)
 				}()
+				defer r2.releaseProcSubsts(0)
 				defer func() {
 					r.procSubsts.remove(psf)
 					if psf.Cleanup == nil {
@@ -105,7 +114,7 @@ func (r *Runner) fillExpandConfig(ctx context.Context) {
 						r.errf("cleaning up process substitution: %v\n", err)
 					}
 				}()
-				f, err := psf.OpenSubshell(ctx)
+				f, err := psf.OpenSubshell(openCtx)
 				if err != nil {
 					r.errf("cannot open process substitution: %v\n", err)
 					return
@@ -301,6 +310,7 @@ func (r *Runner) stmt(ctx context.Context, st *syntax.Stmt) {
 	}
 	r.stmtDepth++
 	defer func() { r.stmtDepth-- }()
+	defer r.releaseProcSubsts(len(r.procSubstUses))
 	r.exit = exitStatus{}
 	if st.Background || st.Disown {
 		r2 := r.subshell(true)
@@ -319,10 +329,12 @@ func (r *Runner) stmt(ctx context.Context, st *syntax.Stmt) {
 			r2.bgStarted = bg.started
 		}
 		r.bgProcs = append(r.bgProcs, bg)
+		r2.holdProcSubsts()
 		go func() {
 			r2.Run(ctx, &st2)
 			r2.reportBgStart(0) // in case we didn't get to start a program
 			r2.exitSubshell()
+			r2.releaseProcSubsts(0)
 			*bg.exit = r2.exit
 			close(bg.done)
 		}()
@@ -330,6 +342,27 @@ func (r *Runner) stmt(ctx context.Context, st *syntax.Stmt) {
 		r.stmtSync(ctx, st)
 	}
 	r.lastExit = r.exit
+}
+
+// releaseProcSubsts releases the process substitutions
+// expanded since there were n of them, as their statement is done.
+func (r *Runner) releaseProcSubsts(n int) {
+	for _, users := range r.procSubstUses[n:] {
+		users.Done()
+	}
+	r.procSubstUses = slices.Delete(r.procSubstUses, n, len(r.procSubstUses))
+}
+
+// holdProcSubsts is called on a background subshell before it starts,
+// holding on to the process substitutions it inherits until it is done
+// and calls [Runner.releaseProcSubsts] with zero.
+func (r *Runner) holdProcSubsts() {
+	// Stop sharing the list with the parent, which releases its own
+	// process substitutions while the subshell may still be running.
+	r.procSubstUses = slices.Clone(r.procSubstUses)
+	for _, users := range r.procSubstUses {
+		users.Add(1)
+	}
 }
 
 // reportBgStart is called by a background subshell once we first know whether

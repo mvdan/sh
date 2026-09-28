@@ -4639,6 +4639,30 @@ var runTestsUnix = []runTest{
 		"test -e <(echo foo)",
 		"",
 	},
+	{
+		"for i in {1..200}; do : <(:) >(:); done; wait; echo done",
+		"done\n",
+	},
+	{
+		"f() { cat $1; }; f <(echo foo)",
+		"foo\n",
+	},
+	{
+		`f() { { sleep 0.1; cat "$1"; } & }; f <(echo foo); wait`,
+		"foo\n",
+	},
+	{
+		`f() { : <(sleep 0.1; cat "$1" >&2); }; f <(echo foo); wait`,
+		"foo\n",
+	},
+	{
+		`f() { { sleep 0.1; : & wait; cat "$1"; } & }; f <(echo foo); wait`,
+		"foo\n",
+	},
+	{
+		"for f in <(echo foo) <(echo bar); do cat $f; done",
+		"foo\nbar\n",
+	},
 	// echo trace
 	{
 		`printf 'a\0b' | { read -r x; set -x; : "$x"; }`,
