@@ -285,7 +285,7 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 				str = orig.Flags()
 			case "A":
 				// ${var@A} returns a declare statement that recreates the variable.
-				// TODO: always single-quote the value, like Bash.
+				// The value may be quoted differently than in Bash.
 				flags := orig.Flags()
 				quoted, err := syntax.Quote(str, syntax.LangBash)
 				if err != nil {
