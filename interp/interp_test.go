@@ -929,6 +929,46 @@ var runTests = []runTest{
 		"declare -A m\n",
 	},
 	{
+		`declare foo; declare -p foo; echo "${foo+set}|${foo@a}|"`,
+		"declare: foo: not found\n||\n #IGNORE the variable is not declared",
+	},
+	{
+		`declare -a foo; declare -p foo; echo "${foo+set}|${foo@a}|"`,
+		"declare: foo: not found\n||\n #IGNORE the variable is not declared",
+	},
+	{
+		`typeset foo; declare -p foo`,
+		"declare: foo: not found\nexit status 1 #IGNORE the variable is not declared",
+	},
+	{
+		`foo=x; declare -a foo; declare -p foo`,
+		"declare -- foo=\"x\"\n #IGNORE the variable is not made an indexed array",
+	},
+	{
+		`declare -a foo; foo=x; foo+=y; declare -p foo`,
+		"declare -- foo=\"xy\"\n #IGNORE the variable is not made an indexed array",
+	},
+	{
+		`f() { declare -a foo; foo=y; declare -p foo; }; f`,
+		"declare -- foo=\"y\"\n #IGNORE the variable is not made an indexed array",
+	},
+	{
+		`declare foo; foo[2]=x; declare bar; bar+=(y); declare baz; : ${baz[1]:=z}; declare -p foo bar baz`,
+		"declare -a foo=([2]=\"x\")\ndeclare -a bar=([0]=\"y\")\ndeclare -a baz=([1]=\"z\")\n",
+	},
+	{
+		`declare -x foo; declare bar; export bar; $ENV_PROG | grep -E '^(foo|bar)='; echo $?`,
+		"1\n",
+	},
+	{
+		`readonly foo; declare foo; declare -p foo`,
+		"declare -r foo\n",
+	},
+	{
+		`export foo; unset foo; declare -A m; unset m; declare -p foo m 2>/dev/null; echo "exit: $?"`,
+		"declare -x foo\ndeclare -A m\nexit: 0\n #IGNORE variables without a value cannot be unset",
+	},
+	{
 		`f() { local l; declare -p l; }; f`,
 		"declare -- l\n",
 	},
@@ -2702,6 +2742,14 @@ var runTests = []runTest{
 	{
 		"set -u; echo ${foo:?bar}",
 		"foo: bar\nexit status 1 #JUSTERR",
+	},
+	{
+		`set -u; declare -a a; declare -A m; f() { local -a l; echo "${l[@]}" ok; }; echo "${a[@]}" "${m[@]}" ok; f`,
+		"m: unbound variable\nexit status 1 #IGNORE unset arrays are unbound in \"${a[@]}\"",
+	},
+	{
+		`declare -a a; printf '<%s>' "${a[@]:-x}" "${nope[@]-y}"; echo`,
+		"<>\n #IGNORE unset arrays ignore the default in \"${a[@]:-x}\"",
 	},
 	{
 		"set -ue; set -ueo pipefail",
