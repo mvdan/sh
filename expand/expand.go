@@ -1057,7 +1057,10 @@ func findAllIndex(pat, name string, n int) [][]int {
 	if err != nil {
 		return nil
 	}
-	rx := regexp.MustCompile(expr)
+	rx, err := regexp.Compile(expr)
+	if err != nil {
+		return nil
+	}
 	return rx.FindAllStringIndex(name, n)
 }
 

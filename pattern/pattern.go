@@ -67,7 +67,7 @@ const (
 
 // Regexp turns a shell pattern into a regular expression that can be used with
 // [regexp.Compile]. It will return an error if the input pattern was incorrect.
-// Otherwise, the returned expression can be passed to [regexp.MustCompile].
+// Compiling the returned expression may still fail, such as when it is too large.
 //
 // For example, Regexp(`foo*bar?`, true) returns `foo.*bar.`.
 //

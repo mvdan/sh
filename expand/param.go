@@ -349,8 +349,10 @@ func removePattern(str, pat string, fromEnd, shortest bool) string {
 		// simple prefix
 		expr = "^(" + expr + ")"
 	}
-	// no need to check error as Translate returns one
-	rx := regexp.MustCompile(expr)
+	rx, err := regexp.Compile(expr)
+	if err != nil {
+		return str
+	}
 	if loc := rx.FindStringSubmatchIndex(str); loc != nil {
 		// remove the original pattern (the submatch)
 		str = str[:loc[2]] + str[loc[3]:]
@@ -441,7 +443,10 @@ func (e *expander) caseConvElems(op syntax.ParExpOperator, arg string, elems []s
 	if err != nil {
 		return elems
 	}
-	rx := regexp.MustCompile(expr)
+	rx, err := regexp.Compile(expr)
+	if err != nil {
+		return elems
+	}
 
 	out := make([]string, len(elems))
 	for i, elem := range elems {
