@@ -3286,6 +3286,11 @@ done <<< 2`,
 	{"foo() { export bar; }; bar=foo; foo; $ENV_PROG | grep ^bar=", "bar=foo\n"},
 	{"foo() { export bar; }; foo; bar=foo; $ENV_PROG | grep ^bar=", "bar=foo\n"},
 	{"foo() { export bar=foo; }; foo; readonly bar; $ENV_PROG | grep ^bar=", "bar=foo\n"},
+	{"export foo=0; for foo in a; do :; done; $ENV_PROG | grep '^foo='", "exit status 1 #IGNORE the export attribute is lost"},
+	{"export foo=0; read foo <<< a; $ENV_PROG | grep '^foo='", "exit status 1 #IGNORE the export attribute is lost"},
+	{"export foo=0; getopts a foo -a; $ENV_PROG | grep '^foo='", "exit status 1 #IGNORE the export attribute is lost"},
+	{"export foo=0; : $((foo=1)); $ENV_PROG | grep '^foo='", "exit status 1 #IGNORE the export attribute is lost"},
+	{"export foo; : ${foo:=a}; $ENV_PROG | grep '^foo='", "exit status 1 #IGNORE the export attribute is lost"},
 
 	// local
 	{
@@ -4108,6 +4113,10 @@ done <<< 2`,
 
 var runTestsUnix = []runTest{
 	{"[[ -n $PPID && $PPID -ge 0 ]]", ""}, // can be 0 if running as the init process
+	{`$ENV_PROG | grep -q "^PWD=$PWD\$"`, "exit status 1 #IGNORE the export attribute is lost"},
+	{`mkdir a; cd a; $ENV_PROG | grep -q "^PWD=$PWD\$"`, "exit status 1 #IGNORE the export attribute is lost"},
+	{`export OLDPWD; mkdir a; cd a; $ENV_PROG | grep -q "^OLDPWD=$OLDPWD\$"`, "exit status 1 #IGNORE the export attribute is lost"},
+	{`unset OLDPWD; mkdir a; cd a; $ENV_PROG | grep -q "^OLDPWD="`, "exit status 1"},
 	{
 		// no root user on windows
 		"[[ ~root == '~root' ]]",
