@@ -1091,6 +1091,14 @@ var runTests = []runTest{
 		"until false; do break; done",
 		"",
 	},
+	{
+		"while break; do echo body; done; echo end",
+		"end\n",
+	},
+	{
+		"for i in 1 2; do until break 2; do echo body; done; done; echo $i",
+		"1\n",
+	},
 
 	// for
 	{

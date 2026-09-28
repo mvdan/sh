@@ -556,8 +556,12 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		for !r.stop(ctx) {
 			oldNoErrExit := r.noErrExit
 			r.noErrExit = true
-			r.stmts(ctx, cm.Cond)
+			// Like in Bash, the condition is part of the loop.
+			broken := r.loopStmtsBroken(ctx, cm.Cond)
 			r.noErrExit = oldNoErrExit
+			if broken {
+				break
+			}
 
 			stop := r.exit.ok() == cm.Until
 			r.exit.clear()
