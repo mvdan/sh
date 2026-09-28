@@ -46,7 +46,7 @@ The codebase follows a pipeline: **parse → expand → interpret/format**.
 The v3 exported API is frozen. Add new symbols and deprecate old ones rather
 than breaking them, as with `FunctionNextLine` → `BlockNextLine` and
 `ReadDirHandler` → `ReadDirHandler2`. Record desired breaking changes as
-`TODO(v4)` comments; see issue #630.
+`TODO(v4)` comments; see https://github.com/mvdan/sh/issues/630.
 
 ## Testing
 

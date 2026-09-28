@@ -49,6 +49,7 @@ type Config struct {
 
 	// TODO(v4): pass the nesting depth to CmdSubst explicitly,
 	// rather than via the writer implementing [internal.NestingWriter].
+	// TODO(v4): CmdSubst, ProcSubst, and ReadDir2 should take a context.
 
 	// CmdSubst expands a command substitution node, writing its standard
 	// output to the provided [io.Writer].
@@ -77,8 +78,8 @@ type Config struct {
 	// buggy on Windows: backslashes are treated as separators even when they
 	// escape pattern metacharacters, such as in '[a]'/*.go, a rooted pattern
 	// like /foo/* is treated as relative, and results use backslashes.
-	// Switch to io/fs semantics, with slash-separated paths relative to a root,
-	// and let the caller map volumes and absolute paths onto that root.
+	// Switch to slash-separated paths which keep their root or volume prefix;
+	// see the TODO on interp.Runner.Dir.
 	ReadDir2 func(string) ([]fs.DirEntry, error)
 
 	// GlobStar corresponds to the shell option which allows globbing with "**".

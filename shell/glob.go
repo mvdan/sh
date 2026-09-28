@@ -45,8 +45,7 @@ func Glob(fsys fs.FS, pattern string) ([]string, error) {
 			// The expand package uses OS-specific paths, while io/fs uses
 			// slash-separated paths relative to the root. Anything else,
 			// such as an absolute path, is treated as an empty directory.
-			// TODO(v4): once expand globs with io/fs semantics, pass fsys
-			// directly and drop this adapter.
+			// TODO(v4): drop ToSlash once expand uses slash-separated paths.
 			name = path.Clean(filepath.ToSlash(name))
 			if !fs.ValidPath(name) {
 				return nil, nil

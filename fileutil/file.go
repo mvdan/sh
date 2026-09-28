@@ -1,6 +1,8 @@
 // Copyright (c) 2016, Daniel Martí <mvdan@mvdan.cc>
 // See LICENSE for licensing information
 
+// TODO(v4): rename the package; see doc/plan-v4.md.
+
 // Package fileutil allows inspecting shell files, such as detecting whether a
 // file may be shell or extracting its shebang.
 package fileutil
@@ -16,7 +18,7 @@ var (
 	extRe     = regexp.MustCompile(`\.(sh|bash|mksh|bats|zsh)$`)
 )
 
-// TODO: consider removing HasShebang in favor of Shebang in v4
+// TODO(v4): remove HasShebang in favor of Shebang.
 
 // HasShebang reports whether bs begins with a valid shell shebang.
 // It supports variations with /usr and env.

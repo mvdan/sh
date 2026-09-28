@@ -24,6 +24,8 @@ import (
 	"mvdan.cc/sh/v3/syntax"
 )
 
+// TODO(v4): pass [HandlerContext] to handlers as a parameter.
+
 // HandlerCtx returns the [HandlerContext] value stored in ctx,
 // which is used when calling handler functions.
 // It panics if ctx has no HandlerContext stored.
@@ -141,8 +143,10 @@ type ExecHandlerFunc func(ctx context.Context, args []string) error
 // without a shebang line, is run as a shell script with a new [Runner]
 // using default options and handlers, like other shells do.
 //
-// TODO: perhaps intercept ENOEXEC scripts as well as shell shebangs
-// such as "#!/bin/sh" so that they reuse the runner's configured handlers.
+// TODO: perhaps intercept shell shebangs such as "#!/bin/sh" as well.
+//
+// TODO(v4): remove in favor of calling "next", with the kill timeout as an
+// option. ENOEXEC scripts should then reuse the runner's handlers.
 func DefaultExecHandler(killTimeout time.Duration) ExecHandlerFunc {
 	return func(ctx context.Context, args []string) error {
 		hc := HandlerCtx(ctx)
@@ -304,6 +308,9 @@ func findFile(dir, file string, _ []string) (string, error) {
 	return checkStat(dir, file, false)
 }
 
+// TODO(v4): replace LookPath with LookPathDir, which should use the
+// interpreter's FileSystem rather than os.Stat.
+
 // LookPath is deprecated; see [LookPathDir].
 func LookPath(env expand.Environ, file string) (string, error) {
 	return LookPathDir(env.Get("PWD").String(), env, file)
@@ -399,7 +406,7 @@ func pathExts(env expand.Environ) []string {
 // extra files and goroutines for input redirections; see [StdIO].
 type OpenHandlerFunc func(ctx context.Context, path string, flag int, perm os.FileMode) (io.ReadWriteCloser, error)
 
-// TODO: paths passed to [OpenHandlerFunc] should be cleaned.
+// TODO(v4): paths passed to [OpenHandlerFunc] should be cleaned.
 
 // DefaultOpenHandler returns the [OpenHandlerFunc] used by default.
 // It uses [os.OpenFile] to open files.
@@ -488,7 +495,8 @@ const (
 	AccessExec  AccessMode = 0b001
 )
 
-// TODO(v4): fold AccessHandlerFunc into StatHandlerFunc.
+// TODO(v4): join the open, stat, read directory, and access handlers
+// into a single FileSystem interface; see doc/plan-v4.md.
 
 // AccessHandlerFunc is a handler which checks whether the current user can
 // access a file. It is called by the unary test operators -r, -w, and -x,

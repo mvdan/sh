@@ -91,10 +91,8 @@ const (
 	colBitMask = colMax
 )
 
-// TODO(v4): consider using uint32 for Offset/Line/Col to better represent bit sizes.
-// Or go with int64, which more closely resembles portable "sizes" elsewhere.
-// The latter is probably nicest, as then we can change the number of internal
-// bits later, and we can also do overflow checks for the user in NewPos.
+// TODO(v4): use int64 for Offset/Line/Col, so that we can change the number
+// of internal bits later, and do overflow checks for the user in NewPos.
 
 // NewPos creates a position with the given offset, line, and column.
 //

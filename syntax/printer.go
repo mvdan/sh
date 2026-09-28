@@ -15,10 +15,14 @@ import (
 	"mvdan.cc/sh/v3/fileutil"
 )
 
+// TODO(v4): replace the functional options with an options struct.
+
 // PrinterOption is a function which can be passed to NewPrinter
 // to alter its behavior. To apply option to existing Printer
 // call it directly, for example KeepPadding(true)(printer).
 type PrinterOption func(*Printer)
+
+// TODO(v4): take an int rather than a uint.
 
 // Indent sets the number of spaces used for indentation. If set to 0,
 // tabs will be used instead.

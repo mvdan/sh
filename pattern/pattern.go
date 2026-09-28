@@ -54,6 +54,7 @@ func (e *NegExtGlobError) Error() string {
 // TODO(v4): flip NoGlobStar to be opt-in via GlobStar, matching bash
 // TODO(v4): flip EntireString to be opt-out via PartialMatch, as EntireString causes subtle bugs when forgotten
 // TODO(v4): rename NoGlobCase to CaseInsensitive for readability
+// TODO(v4): make Mode a uint32, and drop it from HasMeta and QuoteMeta
 
 const (
 	Shortest          Mode = 1 << iota // prefer the shortest match.

@@ -301,7 +301,7 @@ const (
 	Shr = BinAritOperator(appOut) // >>
 	Shl = BinAritOperator(hdoc)   // <<
 
-	// TODO: use "Bool" consistently for logical operators like AndArit and OrArit; use //go:fix inline?
+	// TODO(v4): use "Bool" consistently for logical operators like AndArit and OrArit.
 
 	AndArit   = BinAritOperator(andAnd)   // &&
 	OrArit    = BinAritOperator(orOr)     // ||

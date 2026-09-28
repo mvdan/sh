@@ -13,6 +13,8 @@ import (
 	"unicode/utf8"
 )
 
+// TODO(v4): replace the functional options with an options struct.
+
 // ParserOption is a function which can be passed to NewParser
 // to alter its behavior. To apply option to existing Parser
 // call it directly, for example KeepComments(true)(parser).
@@ -30,7 +32,10 @@ func KeepComments(enabled bool) ParserOption {
 // This type implements [flag.Value] so that it can be used as a CLI flag.
 type LangVariant int
 
-// TODO(v4): the zero value should be left as an unset and invalid value.
+// TODO(v4): rename LangVariant to Dialect.
+// TODO(v4): the zero value should be left as an unset value,
+// which selects the default in parser options and is invalid elsewhere.
+// TODO(v4): remove LangAuto, which is not a language variant; see doc/plan-v4.md.
 // TODO(v4): the type should be uint32 now that we use this as a bitset;
 // an unsigned integer is clearer, and being agnostic to uint size avoids issues.
 
@@ -945,6 +950,8 @@ func (p *Parser) errPass(err error) {
 	}
 }
 
+// TODO(v4): remove in favor of [errors.Is] with [io.ErrUnexpectedEOF].
+
 // IsIncomplete reports whether a Parser error could have been avoided with
 // extra input bytes. For example, if an [io.EOF] was encountered while there was
 // an unclosed quote or parenthesis.
@@ -953,7 +960,7 @@ func IsIncomplete(err error) bool {
 	return ok && perr.Incomplete
 }
 
-// TODO: probably redo with a [LangVariant] argument.
+// TODO(v4): redo with a [LangVariant] argument.
 // Perhaps offer an iterator version as well.
 
 // IsKeyword returns true if the given word is a language keyword
@@ -998,6 +1005,8 @@ type ParseError struct {
 
 	Incomplete bool
 }
+
+// TODO(v4): return error types as pointers, with pointer receivers.
 
 func (e ParseError) Error() string {
 	if e.Filename == "" {

@@ -89,7 +89,8 @@ type Runner struct {
 	// Separate maps - note that bash allows a name to be both a var and a
 	// func simultaneously.
 	// Vars is mostly superseded by Env at this point.
-	// TODO(v4): remove these
+	// TODO(v4): remove these, and unexport Env, Dir, and Params above
+	// in favor of methods.
 
 	Vars  map[string]expand.Variable
 	Funcs map[string]*syntax.Stmt
@@ -426,8 +427,8 @@ func New(opts ...RunnerOption) (*Runner, error) {
 // around, applying either option after a run requires an explicit reset.
 type RunnerOption func(*Runner) error
 
-// TODO(v4): consider making [Env] and [Dir] fail when applied after a reset,
-// rather than being silently held back until the next one.
+// TODO(v4): with an options struct, [Env] and [Dir] cannot be applied after
+// a reset, where they are silently held back until the next one.
 
 // Env sets the interpreter's environment. If nil, a copy of the current
 // process's environment is used.
@@ -655,13 +656,11 @@ func ExecHandlers(middlewares ...func(next ExecHandlerFunc) ExecHandlerFunc) Run
 	}
 }
 
-// TODO: consider porting the middleware API in [ExecHandlers] to [OpenHandler],
-// [ReadDirHandler2], and [StatHandler].
-
 // TODO(v4): now that [ExecHandlers] allows calling a next handler with changed
 // arguments, one of the two advantages of [CallHandler] is gone. The other is the
 // ability to work with builtins; if we make [ExecHandlers] work with builtins, we
-// could join both APIs.
+// could join both APIs. The handler must then be told what the command resolved to,
+// and [HandlerContext.Builtin] can be removed.
 
 // OpenHandler sets file open handler. See [OpenHandlerFunc] for more info.
 func OpenHandler(f OpenHandlerFunc) RunnerOption {
@@ -1100,6 +1099,8 @@ func (r *Runner) Reset() {
 
 	r.didReset = true
 }
+
+// TODO(v4): replace ExitStatus with [ExitError]; see doc/plan-v4.md.
 
 // ExitStatus is a non-zero status code resulting from running a shell node.
 type ExitStatus uint8

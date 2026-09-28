@@ -74,6 +74,8 @@ const (
 	// Associative describes associative array variables, such as `foo=([bar]=x [baz]=y)`.
 	Associative
 
+	// TODO(v4): remove once [WriteEnviron.Set] is split up.
+
 	// KeepValue is used by [WriteEnviron.Set] to signal that we are changing attributes
 	// about a variable, such as exporting it, without changing its value at all.
 	KeepValue
@@ -107,6 +109,8 @@ type Variable struct {
 	// indexed array is sparse, such as `a=([2]=x [5]=y)`. The indices
 	// must be unique, non-negative, sorted, and as many as the List
 	// elements. Nil means the array is dense: element i has index i.
+	//
+	// TODO(v4): use int64, like Bash does for array subscripts.
 	Indexes []int
 }
 
@@ -228,6 +232,9 @@ func (f funcEnviron) Get(name string) Variable {
 }
 
 func (f funcEnviron) Each(func(name string, vr Variable) bool) {}
+
+// TODO(v4): on Windows, be case sensitive, and only upper-case a fixed
+// list of names such as Path; see doc/plan-v4.md.
 
 // ListEnviron returns an [Environ] with the supplied variables, in the form
 // "key=value". All variables will be exported. The last value in pairs is used

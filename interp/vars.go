@@ -54,13 +54,9 @@ type overlayEnviron struct {
 // namedVariable records the original name of a variable for platforms
 // where variable names are matched in a case-insensitive way.
 type namedVariable struct {
-	// TODO(v4): consider adding this field to [expand.Variable],
-	// as a general way for a variable to report its original name.
-	// This can be useful for GOOS=windows with case insensitive env vars,
-	// as otherwise it's not possible to Environ.Get a var
-	// and know what was its original name without looping over Environ.Each.
-	// The field should be output-only: reported by Get and Each,
-	// and ignored by Set, whose name parameter remains the source of truth.
+	// TODO(v4): remove along with normalize, as variables should be
+	// case sensitive on Windows too; otherwise `for path in *` overwrites
+	// PATH. See doc/plan-v4.md.
 	Name string
 	expand.Variable
 }
