@@ -52,6 +52,8 @@ type Config struct {
 	CmdSubst func(io.Writer, *syntax.CmdSubst) error
 
 	// ProcSubst expands a process substitution node.
+	//
+	// If nil, encountering a process substitution will result in an error.
 	ProcSubst func(*syntax.ProcSubst) (string, error)
 
 	// TODO(v4): replace ReadDir with ReadDir2.
@@ -621,7 +623,7 @@ func (cfg *Config) wordField(wps []syntax.WordPart, ql quoteLevel) ([]fieldPart,
 			}
 			field = append(field, fieldPart{val: strconv.Itoa(n)})
 		case *syntax.ProcSubst:
-			path, err := cfg.ProcSubst(wp)
+			path, err := cfg.procSubst(wp)
 			if err != nil {
 				return nil, err
 			}
@@ -636,6 +638,13 @@ func (cfg *Config) wordField(wps []syntax.WordPart, ql quoteLevel) ([]fieldPart,
 		}
 	}
 	return field, nil
+}
+
+func (cfg *Config) procSubst(ps *syntax.ProcSubst) (string, error) {
+	if cfg.ProcSubst == nil {
+		return "", fmt.Errorf("unexpected process substitution at %s", ps.Pos())
+	}
+	return cfg.ProcSubst(ps)
 }
 
 func (cfg *Config) cmdSubst(cs *syntax.CmdSubst) (string, error) {
@@ -776,7 +785,7 @@ func (cfg *Config) wordFields(wps []syntax.WordPart) ([][]fieldPart, error) {
 			}
 			curField = append(curField, fieldPart{val: strconv.Itoa(n)})
 		case *syntax.ProcSubst:
-			path, err := cfg.ProcSubst(wp)
+			path, err := cfg.procSubst(wp)
 			if err != nil {
 				return nil, err
 			}

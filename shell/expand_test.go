@@ -57,22 +57,28 @@ func TestExpand(t *testing.T) {
 	}
 }
 
-func TestUnexpectedCmdSubst(t *testing.T) {
+func TestUnexpectedSubst(t *testing.T) {
 	t.Parallel()
-	want := "unexpected command substitution at 1:6"
-	for _, fn := range []func() error{
-		func() error {
+	for _, tc := range []struct {
+		fn   func() error
+		want string
+	}{
+		{func() error {
 			_, err := Expand("echo $(uname -a)", nil)
 			return err
-		},
-		func() error {
+		}, "unexpected command substitution at 1:6"},
+		{func() error {
 			_, err := Fields("echo $(uname -a)", nil)
 			return err
-		},
+		}, "unexpected command substitution at 1:6"},
+		{func() error {
+			_, err := Fields("cat <(uname -a)", nil)
+			return err
+		}, "unexpected process substitution at 1:5"},
 	} {
-		got := fmt.Sprint(fn())
-		if !strings.Contains(got, want) {
-			t.Fatalf("wanted error %q, got: %s", want, got)
+		got := fmt.Sprint(tc.fn())
+		if !strings.Contains(got, tc.want) {
+			t.Fatalf("wanted error %q, got: %s", tc.want, got)
 		}
 	}
 }
