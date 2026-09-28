@@ -72,6 +72,28 @@ func ExampleExecHandlers() {
 	// missing-program is not installed
 }
 
+func ExampleExecHandlers_replaceDefault() {
+	src := "echo foo; some-program bar"
+	file, _ := syntax.NewParser().Parse(strings.NewReader(src), "")
+
+	// A middleware which never calls next replaces the default handler.
+	execPrint := func(next interp.ExecHandlerFunc) interp.ExecHandlerFunc {
+		return func(ctx context.Context, args []string) error {
+			hc := interp.HandlerCtx(ctx)
+			fmt.Fprintf(hc.Stdout, "would run: %q\n", args)
+			return nil
+		}
+	}
+	runner, _ := interp.New(
+		interp.StdIO(nil, os.Stdout, os.Stdout),
+		interp.ExecHandlers(execPrint),
+	)
+	runner.Run(context.TODO(), file)
+	// Output:
+	// foo
+	// would run: ["some-program" "bar"]
+}
+
 type nopWriterCloser struct {
 	*strings.Reader
 }

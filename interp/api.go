@@ -621,7 +621,8 @@ func CallHandler(f CallHandlerFunc) RunnerOption {
 // which replaces [DefaultExecHandler](2 * time.Second).
 //
 // Deprecated: use [ExecHandlers] instead, which allows chaining handlers more easily
-// like middleware functions.
+// like middleware functions. To replace the default handler like this option does,
+// use a middleware which returns f without calling "next".
 func ExecHandler(f ExecHandlerFunc) RunnerOption {
 	return func(r *Runner) error {
 		r.execHandlerIsDefault = false
@@ -644,6 +645,8 @@ func ExecHandler(f ExecHandlerFunc) RunnerOption {
 // or it could print log lines before or after the call to "next".
 //
 // The last exec handler is always [DefaultExecHandler](2 * time.Second).
+// It only runs if every middleware calls "next", so a middleware which
+// never does replaces it, along with any middlewares after it.
 func ExecHandlers(middlewares ...func(next ExecHandlerFunc) ExecHandlerFunc) RunnerOption {
 	return func(r *Runner) error {
 		r.execHandlerIsDefault = false
