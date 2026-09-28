@@ -4084,6 +4084,18 @@ done <<< 2`,
 		"echo a{0..9999999999}b",
 		"brace expansion would exceed 16384 elements\n #IGNORE bash limits sequence bounds to a C long, so 32-bit bash leaves this literal",
 	},
+	{
+		`o={ c=,c}; for i in {1..10}; do o=$o$o c=$c$c; done; eval "set -- $o{a,b}$c"; echo $#`,
+		"1026\n",
+	},
+	{
+		`o={ c=,c}; for i in {1..14}; do o=$o$o c=$c$c; done; eval ": $o{a,b}$c"`,
+		"brace expansion is deeper than 10000 levels\n #IGNORE bash has no limit",
+	},
+	{
+		`b={a,b}; for i in {1..14}; do b=$b$b; done; eval ": $b"`,
+		"brace expansion is deeper than 10000 levels\n #IGNORE bash has no limit",
+	},
 
 	// brace expansion in declarations
 	{"declare {A,B}_VAR=1; echo $A_VAR $B_VAR", "1 1\n"},

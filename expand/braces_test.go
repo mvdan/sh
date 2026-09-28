@@ -5,8 +5,10 @@ package expand
 
 import (
 	"bytes"
+	"strings"
 	"testing"
 
+	"github.com/go-quicktest/qt"
 	"mvdan.cc/sh/v3/syntax"
 )
 
@@ -256,9 +258,11 @@ func TestBracesSeqError(t *testing.T) {
 		"{1..1000000000..1}",
 		"{1..100}{1..100}{1..100}",
 		"{a,b,c,d}{1..100}{1..100}{1..50}",
+		strings.Repeat("{", 10_001) + "a" + strings.Repeat(",b}", 10_001),
+		strings.Repeat("{a,b}", 10_001),
 	}
 	for _, in := range tests {
-		t.Run(in, func(t *testing.T) {
+		t.Run(in[:min(len(in), 50)], func(t *testing.T) {
 			word := &syntax.Word{Parts: []syntax.WordPart{lit(in)}}
 			syntax.SplitBraces(word)
 			var gotErr error
@@ -273,6 +277,20 @@ func TestBracesSeqError(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestBracesSeqDeep(t *testing.T) {
+	t.Parallel()
+	const depth = 10_000
+	word := litWord(strings.Repeat("{", depth-1) + "{a,b}" + strings.Repeat(",c}", depth-1))
+	syntax.SplitBraces(word)
+	var got []string
+	for w, err := range BracesSeq(nil, word) {
+		qt.Assert(t, qt.IsNil(err))
+		got = append(got, w.Lit())
+	}
+	qt.Assert(t, qt.HasLen(got, depth+1))
+	qt.Assert(t, qt.DeepEquals(got[:3], []string{"a", "b", "c"}))
 }
 
 func wantBraceExpParts(t *testing.T, word *syntax.Word, want bool) {
