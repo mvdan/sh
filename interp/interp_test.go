@@ -891,6 +891,10 @@ var runTests = []runTest{
 		`declare -n x; [[ -v x ]] && echo set || echo unset`,
 		"unset\n",
 	},
+	{
+		`unset ''; [[ -v '' ]] || test -R '' || echo unset`,
+		"unset\n",
+	},
 
 	// declare -f and declare -p
 	{

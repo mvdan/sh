@@ -174,7 +174,7 @@ func execEnv(env expand.Environ) []string {
 
 func (r *Runner) lookupVar(name string) expand.Variable {
 	if name == "" {
-		panic("variable name must not be empty")
+		return expand.Variable{}
 	}
 	var vr expand.Variable
 	switch name {
