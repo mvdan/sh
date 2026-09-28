@@ -296,6 +296,7 @@ func (r *Runner) setVarWithIndex(prev expand.Variable, name string, index syntax
 		r.setVar(name, vr)
 		return
 	}
+	prev.Set = true
 
 	// from the syntax package, we know that value must be a string if index
 	// is non-nil; nested arrays are forbidden.

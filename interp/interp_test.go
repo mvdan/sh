@@ -758,27 +758,27 @@ var runTests = []runTest{
 	},
 	{
 		`export INTERP_X_1; readonly INTERP_X_2; echo "[${!INTERP_X_*}]"`,
-		"[INTERP_X_1 INTERP_X_2]\n #IGNORE unset variables are listed",
+		"[]\n",
 	},
 	{
 		`INTERP_X_1=a; unset INTERP_X_1; echo "[${!INTERP_X_*}]"`,
-		"[INTERP_X_1]\n #IGNORE unset variables are listed",
+		"[]\n",
 	},
 	{
 		`unset INTERP_GLOBAL; echo "[${!INTERP_*}]"`,
-		"[INTERP_GLOBAL INTERP_GLOBAL]\n #IGNORE unset variables are listed",
+		"[]\n",
 	},
 	{
 		`INTERP_X_1=a; f() { local INTERP_X_1=b; echo ${!INTERP_X_*}; }; f`,
-		"INTERP_X_1 INTERP_X_1\n #IGNORE shadowed variables are listed twice",
+		"INTERP_X_1\n",
 	},
 	{
 		`INTERP_X_1=a; f() { local INTERP_X_1; echo ${!INTERP_X_*}; }; f`,
-		"INTERP_X_1 INTERP_X_1\n #IGNORE shadowed variables are listed twice",
+		"INTERP_X_1\n",
 	},
 	{
 		`f() { local INTERP_X_1=a; unset INTERP_X_1; echo "[${!INTERP_X_*}]"; }; f`,
-		"[INTERP_X_1]\n #IGNORE unset variables are listed",
+		"[]\n",
 	},
 	{
 		`INTERP_X_1[3]=a; declare -A INTERP_X_2; INTERP_X_2[k]=b; mapfile INTERP_X_3 </dev/null; echo ${!INTERP_X_*}`,
@@ -828,15 +828,15 @@ var runTests = []runTest{
 	},
 	{
 		`export e; echo "[${e@A}]"`,
-		"[declare -x e='']\n #IGNORE unset variables are printed with a value",
+		"[declare -x e]\n",
 	},
 	{
 		`a=1; unset a; echo "[${a@A}]"`,
-		"[a='']\n #IGNORE unset variables are printed with a value",
+		"[]\n",
 	},
 	{
 		`a=(); echo "[${a@A}]"`,
-		"[declare -a a='']\n #IGNORE unset variables are printed with a value",
+		"[declare -a a]\n",
 	},
 	{
 		`a=Hello; echo "${a@U}"`,
@@ -922,15 +922,15 @@ var runTests = []runTest{
 	},
 	{
 		`export e; declare -p e`,
-		"declare -x e=\"\"\n #IGNORE unset variables are printed with a value",
+		"declare -x e\n",
 	},
 	{
 		`declare -A m; declare -p m`,
-		"declare -A m=()\n #IGNORE unset variables are printed with a value",
+		"declare -A m\n",
 	},
 	{
 		`f() { local l; declare -p l; }; f`,
-		"declare -- l=\"\"\n #IGNORE unset variables are printed with a value",
+		"declare -- l\n",
 	},
 	{
 		`mapfile a </dev/null; declare -p a`,

@@ -290,9 +290,14 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 				if err != nil {
 					return "", err
 				}
-				if flags == "" {
+				switch {
+				case !set && flags == "":
+					str = ""
+				case !set:
+					str = fmt.Sprintf("declare -%s %s", flags, name)
+				case flags == "":
 					str = fmt.Sprintf("%s=%s", name, quoted)
-				} else {
+				default:
 					str = fmt.Sprintf("declare -%s %s=%s", flags, name, quoted)
 				}
 			case "P":
@@ -568,12 +573,19 @@ func (cfg *Config) assignElem(name string, vr Variable, idx syntax.ArithmExpr, v
 }
 
 func (cfg *Config) namesByPrefix(prefix string) []string {
-	var names []string
-	for name := range cfg.Env.Each {
-		if strings.HasPrefix(name, prefix) {
-			names = append(names, name)
+	// Later occurrences of a name take priority, as documented by [Environ.Each].
+	// Like Bash, only list variables with a value, and do not let a local
+	// variable without a value hide an outer variable.
+	names := make(map[string]bool)
+	for name, vr := range cfg.Env.Each {
+		if !strings.HasPrefix(name, prefix) {
+			continue
+		}
+		if vr.IsSet() {
+			names[name] = true
+		} else if !vr.Local {
+			delete(names, name)
 		}
 	}
-	slices.Sort(names)
-	return names
+	return slices.Sorted(maps.Keys(names))
 }

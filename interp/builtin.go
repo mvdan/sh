@@ -1026,8 +1026,7 @@ func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args 
 			return failf(2, "%s: Only one array name may be specified, %v\n", name, args)
 		}
 
-		var vr expand.Variable
-		vr.Kind = expand.Indexed
+		vr := expand.Variable{Set: true, Kind: expand.Indexed}
 		scanner := bufio.NewScanner(r.stdin)
 		scanner.Split(mapfileSplit(delim[0], dropDelim))
 		for scanner.Scan() {

@@ -771,6 +771,10 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 				if flags == "" {
 					flags = "-"
 				}
+				if !vr.IsSet() {
+					r.outf("declare -%s %s\n", flags, name)
+					continue
+				}
 				switch vr.Kind {
 				case expand.Indexed:
 					r.outf("declare -%s %s=(", flags, name)
