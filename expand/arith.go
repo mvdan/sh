@@ -40,15 +40,17 @@ func Arithm(cfg *Config, expr syntax.ArithmExpr) (int, error) {
 	case *syntax.UnaryArithm:
 		switch expr.Op {
 		case syntax.Inc, syntax.Dec:
-			name := expr.X.(*syntax.Word).Lit()
-			old := atoi(cfg.envGet(name))
+			name, idx, old, err := cfg.arithmVar(expr.X)
+			if err != nil {
+				return 0, err
+			}
 			val := old
 			if expr.Op == syntax.Inc {
 				val++
 			} else {
 				val--
 			}
-			if err := cfg.envSet(name, strconv.FormatInt(val, 10)); err != nil {
+			if err := cfg.assignElem(name, cfg.Env.Get(name), idx, strconv.FormatInt(val, 10)); err != nil {
 				return 0, err
 			}
 			if expr.Post {
@@ -206,9 +208,53 @@ func atoiLargeBase(s string, base int64) int64 {
 	return n
 }
 
+// arithmVar resolves an arithmetic assignment target like x or a[i] into
+// a variable name, a subscript which is nil for x, and its current value.
+// The subscript is evaluated once, as it may have side effects like a[i++].
+func (cfg *Config) arithmVar(expr syntax.ArithmExpr) (string, syntax.ArithmExpr, int64, error) {
+	word, _ := expr.(*syntax.Word)
+	if word == nil {
+		return "", nil, 0, fmt.Errorf("attempted assignment to non-variable")
+	}
+	name := word.Lit()
+	var idx syntax.ArithmExpr
+	var pe *syntax.ParamExp
+	if len(word.Parts) == 1 {
+		pe, _ = word.Parts[0].(*syntax.ParamExp)
+	}
+	if pe != nil && pe.Index != nil {
+		name = pe.Param.Value
+		switch lit := nodeLit(pe.Index); lit {
+		case "@", "*":
+			return "", nil, 0, fmt.Errorf("%s[%s]: bad array subscript", name, lit)
+		}
+		var key string
+		if cfg.Env.Get(name).Kind == Associative {
+			var err error
+			if key, err = cfg.assocKey(pe.Index); err != nil {
+				return "", nil, 0, err
+			}
+		} else {
+			i, err := Arithm(cfg, pe.Index)
+			if err != nil {
+				return "", nil, 0, err
+			}
+			key = strconv.Itoa(i)
+		}
+		idx = &syntax.Word{Parts: []syntax.WordPart{&syntax.SglQuoted{Value: key}}}
+	}
+	if name == "" {
+		return "", nil, 0, fmt.Errorf("attempted assignment to non-variable")
+	}
+	str, _, err := cfg.varInd(cfg.Env.Get(name), idx)
+	return name, idx, atoi(str), err
+}
+
 func (cfg *Config) assgnArit(b *syntax.BinaryArithm) (int, error) {
-	name := b.X.(*syntax.Word).Lit()
-	val := atoi(cfg.envGet(name))
+	name, idx, val, err := cfg.arithmVar(b.X)
+	if err != nil {
+		return 0, err
+	}
 	arg_, err := Arithm(cfg, b.Y)
 	if err != nil {
 		return 0, err
@@ -244,7 +290,9 @@ func (cfg *Config) assgnArit(b *syntax.BinaryArithm) (int, error) {
 	case syntax.ShrAssgn:
 		val >>= uint(arg)
 	}
-	if err := cfg.envSet(name, strconv.FormatInt(val, 10)); err != nil {
+	// Get the variable again, as evaluating an expression like
+	// a[0] = (a[1] = 5) may have modified other elements.
+	if err := cfg.assignElem(name, cfg.Env.Get(name), idx, strconv.FormatInt(val, 10)); err != nil {
 		return 0, err
 	}
 	return int(val), nil
