@@ -1620,6 +1620,14 @@ var runTests = []runTest{
 		"statement nesting is deeper than 10000 levels #IGNORE bash has no limit by default",
 	},
 	{
+		`set -- builtin; for i in {1..17}; do set -- "$@" "$@"; done; "$@" echo chained`,
+		"chained\n",
+	},
+	{
+		`set -- command; for i in {1..17}; do set -- "$@" "$@"; done; "$@" echo chained`,
+		"chained\n",
+	},
+	{
 		`o='{ ' c='}; '; for i in {1..11}; do o=$o$o c=$c$c; done; eval "$o echo nested; $c"`,
 		"nested\n",
 	},

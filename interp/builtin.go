@@ -156,6 +156,9 @@ func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args 
 		exit.code = code
 		return exit
 	}
+	// The builtin and command builtins jump back here to run another builtin,
+	// as recursing could overflow the stack with a long chain of them.
+dispatch:
 	switch name {
 	case ":", "true":
 	case "false":
@@ -372,7 +375,8 @@ func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args 
 			exit.code = 1
 			return exit
 		}
-		exit = r.builtin(ctx, pos, args[0], args[1:])
+		name, args = args[0], args[1:]
+		goto dispatch
 	case "type":
 		anyNotFound := false
 		mode := ""
@@ -571,13 +575,14 @@ func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args 
 				return failf(2, "command: invalid option %q\n", flag)
 			}
 		}
-		args := fp.args()
+		args = fp.args()
 		if len(args) == 0 {
 			break
 		}
 		if !show {
 			if IsBuiltin(args[0]) {
-				return r.builtin(ctx, pos, args[0], args[1:])
+				name, args = args[0], args[1:]
+				goto dispatch
 			}
 			r.exec(ctx, pos, args)
 			exit = r.exit
