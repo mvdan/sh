@@ -235,8 +235,11 @@ func (r *Runner) delVar(name string) {
 	}
 }
 
+// setVarString sets a variable's value to a string, keeping its attributes
+// such as whether it is exported.
 func (r *Runner) setVarString(name, value string) {
-	r.setVar(name, expand.Variable{Set: true, Kind: expand.String, Str: value})
+	prev := r.writeEnv.Get(name)
+	r.setVar(name, expand.Variable{Set: true, Exported: prev.Exported, Kind: expand.String, Str: value})
 }
 
 func (r *Runner) setVar(name string, vr expand.Variable) {

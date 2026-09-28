@@ -526,7 +526,7 @@ func (cfg *Config) assignElem(name string, vr Variable, idx syntax.ArithmExpr, v
 	}
 	if idx == nil && !arrayWise && vr.Kind != Indexed && vr.Kind != Associative {
 		// A plain scalar assignment like ${x=val}.
-		return wenv.Set(name, Variable{Set: true, Kind: String, Str: val})
+		return cfg.envSet(name, val)
 	}
 	switch vr.Kind {
 	case Associative:

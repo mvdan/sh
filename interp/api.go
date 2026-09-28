@@ -1063,7 +1063,8 @@ func (r *Runner) Reset() {
 			Str:      strconv.Itoa(os.Getgid()),
 		})
 	}
-	r.setVarString("PWD", r.Dir)
+	// Like Bash, always export PWD.
+	r.setVar("PWD", expand.Variable{Set: true, Exported: true, Kind: expand.String, Str: r.Dir})
 	r.setVarString("IFS", " \t\n")
 	r.setVarString("OPTIND", "1")
 
