@@ -3862,6 +3862,88 @@ done <<< 2`,
 		"declare -r -x foo=bar; foo=x",
 		"foo: readonly variable\nexit status 1 #JUSTERR",
 	},
+	// Builtins which fail to set a variable still return zero,
+	// and assignment errors do not exit the shell, unlike in Bash.
+	{
+		"readonly i=0; unset i; echo st=$?",
+		"i: readonly variable\nst=0\n #JUSTERR",
+	},
+	{
+		"readonly i=0; read i <<< x; echo st=$?",
+		"i: readonly variable\nst=0\n #JUSTERR",
+	},
+	{
+		"readonly i=0; read -a i <<< x; echo st=$?",
+		"i: readonly variable\nst=0\n #JUSTERR",
+	},
+	{
+		"readonly i=0; mapfile i <<< x; echo st=$?",
+		"i: readonly variable\nst=0\n #JUSTERR",
+	},
+	{
+		"readonly i=0; getopts a i -a; echo st=$?",
+		"i: readonly variable\nst=0\n #JUSTERR",
+	},
+	{
+		"readonly i=0; for i in 1 2; do echo body $i; done; echo st=$?",
+		"i: readonly variable\nbody 0\ni: readonly variable\nbody 0\nst=0\n #JUSTERR",
+	},
+	{
+		"a=(1 2); unset 'a[-5]'; echo st=$?",
+		"unset: a[-5]: bad array subscript\nst=0\n #JUSTERR",
+	},
+	{
+		"s=1; unset 's[1]'; echo st=$?",
+		"unset: s: not an array variable\nst=0\n #JUSTERR",
+	},
+	{
+		"readonly i=0; i=1; echo after",
+		"i: readonly variable\nafter\n #JUSTERR",
+	},
+	{
+		"readonly i=0; i+=1; echo after",
+		"i: readonly variable\nafter\n #JUSTERR",
+	},
+	{
+		"readonly a=(1); a[0]=2; echo after",
+		"a: readonly variable\nafter\n #JUSTERR",
+	},
+	{
+		"readonly i=0; i=1 || echo no; echo after",
+		"i: readonly variable\nno\nafter\n #JUSTERR",
+	},
+	{
+		"f() { readonly i=0; i=1; echo in f; }; f; echo after",
+		"i: readonly variable\nin f\nafter\n #JUSTERR",
+	},
+	{
+		"(readonly i=0; i=1; echo inner); echo after",
+		"i: readonly variable\ninner\nafter\n #JUSTERR",
+	},
+	{
+		"trap 'echo trap' EXIT; readonly i=0; i=1; echo after",
+		"i: readonly variable\nafter\ntrap\n #JUSTERR",
+	},
+	{
+		"readonly i; echo ${i=3}; echo after",
+		"i: readonly variable\nafter\n #JUSTERR",
+	},
+	{
+		"readonly i; echo $((i=3)); echo after",
+		"i: readonly variable\nafter\n #JUSTERR",
+	},
+	{
+		"readonly i; ((i=3)); echo after",
+		"i: readonly variable\nafter\n #JUSTERR",
+	},
+	{
+		"readonly i; let i=3; echo after",
+		"i: readonly variable\nafter\n #JUSTERR",
+	},
+	{
+		"readonly i=0; declare i=2; echo st=$?",
+		"i: readonly variable\nst=1\n #JUSTERR",
+	},
 
 	// globbing
 	{"echo .", ".\n"},
