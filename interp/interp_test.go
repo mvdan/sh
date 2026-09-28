@@ -1620,6 +1620,22 @@ var runTests = []runTest{
 		"statement nesting is deeper than 10000 levels #IGNORE bash has no limit by default",
 	},
 	{
+		`set -- '!'; for i in {1..14}; do set -- "$@" "$@"; done; test "$@" x`,
+		"1:58: nesting is deeper than 10000 levels\nexit status 2 #IGNORE bash has no limit",
+	},
+	{
+		`set -- x -a; for i in {1..13}; do set -- "$@" "$@"; done; [ "$@" x ]`,
+		"1:59: nesting is deeper than 10000 levels\nexit status 2 #IGNORE bash crashes",
+	},
+	{
+		`set -- '('; for i in {1..14}; do set -- "$@" "$@"; done; test "$@" x`,
+		"1:58: nesting is deeper than 10000 levels\nexit status 2 #IGNORE bash has no limit",
+	},
+	{
+		`set -- '!' '!'; for i in {1..10}; do set -- "$@" "$@"; done; test "$@" x -a x -o '' && echo ok`,
+		"ok\n",
+	},
+	{
 		`set -- builtin; for i in {1..17}; do set -- "$@" "$@"; done; "$@" echo chained`,
 		"chained\n",
 	},

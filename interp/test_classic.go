@@ -11,10 +11,17 @@ import (
 
 const illegalTok = 0
 
+// maxTestNesting is how deeply test expressions may be nested,
+// such as via many "!" or "-a" arguments,
+// so that a long list of arguments cannot overflow the Go stack.
+const maxTestNesting = 10_000
+
 type testParser struct {
 	eof bool
 	val string
 	rem []string
+
+	depth int
 
 	err func(err error)
 }
@@ -45,6 +52,15 @@ func (p *testParser) followWord(fval string) *syntax.Word {
 }
 
 func (p *testParser) classicTest(fval string, pastAndOr bool) syntax.TestExpr {
+	p.depth++
+	defer func() { p.depth-- }()
+	if p.depth > maxTestNesting {
+		p.errf("nesting is deeper than %d levels", maxTestNesting)
+		// Stop parsing, ignoring any further errors caused by doing so.
+		p.eof, p.val, p.rem = true, "", nil
+		p.err = func(error) {}
+		return nil
+	}
 	var left syntax.TestExpr
 	if pastAndOr {
 		left = p.testExprBase(fval)
