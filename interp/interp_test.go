@@ -980,6 +980,30 @@ var runTests = []runTest{
 		`declare -p nonexistent 2>/dev/null; echo "exit: $?"`,
 		"exit: 1\n",
 	},
+	{
+		`INTERP_X_s='a b'; export INTERP_X_x=1; export INTERP_X_xu; readonly INTERP_X_r=2; declare -a INTERP_X_a=(x); declare -A INTERP_X_m; declare -n INTERP_X_n=INTERP_X_s; declare INTERP_X_u; declare -p | grep -E '^declare -[a-zA-Z-]+ INTERP_X_'`,
+		"exit status 1 #IGNORE declaration builtins with no names do not list variables",
+	},
+	{
+		`INTERP_X_s=1; export INTERP_X_x=1; export INTERP_X_xu; readonly INTERP_X_r=2; declare -r -x INTERP_X_rx=3; export | grep -E '^declare -[a-zA-Z-]+ INTERP_X_'; readonly -p | grep -E '^declare -[a-zA-Z-]+ INTERP_X_'`,
+		"exit status 1 #IGNORE declaration builtins with no names do not list variables",
+	},
+	{
+		`declare -a INTERP_X_a=(x); declare -a -x INTERP_X_ax; declare -A INTERP_X_m; declare -n INTERP_X_n=INTERP_X_a; export INTERP_X_x; readonly INTERP_X_r; declare -a | grep -E '^declare -[a-zA-Z-]+ INTERP_X_'; declare -A -p | grep -E '^declare -[a-zA-Z-]+ INTERP_X_'; declare -n | grep -E '^declare -[a-zA-Z-]+ INTERP_X_'`,
+		"exit status 1 #IGNORE declaration builtins with no names do not list variables",
+	},
+	{
+		`declare -a INTERP_X_a=(x); declare -a -x INTERP_X_ax; export INTERP_X_x; readonly INTERP_X_r; declare -r -x | grep -E '^declare -[a-zA-Z-]+ INTERP_X_'; declare -a -x | grep -E '^declare -[a-zA-Z-]+ INTERP_X_'`,
+		"exit status 1 #IGNORE declaration builtins with no names do not list variables",
+	},
+	{
+		`INTERP_X_s=outer; f() { local; echo "rc=$?"; local INTERP_X_s=loc INTERP_X_l=1; local INTERP_X_u; local -x; g; }; g() { local INTERP_X_g=1; local; }; f`,
+		"rc=0\n #IGNORE declaration builtins with no names do not list variables",
+	},
+	{
+		`export INTERP_X_x=1 INTERP_X_y=1; f() { local INTERP_X_x=shadow; unset INTERP_X_y; declare -x | grep -E '^declare -[a-zA-Z-]+ INTERP_X_'; }; f; export | grep -E '^declare -[a-zA-Z-]+ INTERP_X_'`,
+		"exit status 1 #IGNORE declaration builtins with no names do not list variables",
+	},
 
 	// if
 	{
