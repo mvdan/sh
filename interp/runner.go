@@ -598,18 +598,22 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			}
 		}
 	case *syntax.IfClause:
-		oldNoErrExit := r.noErrExit
-		r.noErrExit = true
-		r.stmts(ctx, cm.Cond)
-		r.noErrExit = oldNoErrExit
+		// Iterate over the elif and else clauses rather than recursing,
+		// as a long chain of them could otherwise overflow the stack.
+		for {
+			oldNoErrExit := r.noErrExit
+			r.noErrExit = true
+			r.stmts(ctx, cm.Cond)
+			r.noErrExit = oldNoErrExit
 
-		if r.exit.ok() {
-			r.stmts(ctx, cm.Then)
-			break
-		}
-		r.exit.clear()
-		if cm.Else != nil {
-			r.cmd(ctx, cm.Else)
+			if r.exit.ok() {
+				r.stmts(ctx, cm.Then)
+				break
+			}
+			r.exit.clear()
+			if cm = cm.Else; cm == nil || r.stop(ctx) {
+				break
+			}
 		}
 	case *syntax.WhileClause:
 		for !r.stop(ctx) {

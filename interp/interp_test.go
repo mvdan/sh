@@ -1644,6 +1644,10 @@ var runTests = []runTest{
 		"chained\n",
 	},
 	{
+		`e='elif false; then :; '; for i in {1..11}; do e=$e$e; done; eval "if false; then :; $e elif true; then echo last; fi"; eval "if false; then :; $e else echo else; fi"`,
+		"last\nelse\n",
+	},
+	{
 		`o='{ ' c='}; '; for i in {1..11}; do o=$o$o c=$c$c; done; eval "$o echo nested; $c"`,
 		"nested\n",
 	},
