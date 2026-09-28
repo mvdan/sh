@@ -5409,6 +5409,11 @@ func TestRunnerOpts(t *testing.T) {
 			"bar\n",
 		},
 		{
+			opts(interp.Params("-o"), interp.Params("+o")),
+			"echo foo",
+			"foo\n",
+		},
+		{
 			opts(interp.BashOpts()),
 			"echo foo",
 			"foo\n",

@@ -365,6 +365,10 @@ func New(opts ...RunnerOption) (*Runner, error) {
 		accessHandler:        DefaultAccessHandler(),
 		procSubstHandler:     DefaultProcSubstHandler(),
 		procSubsts:           &procSubstRegistry{},
+
+		// Options like Params("-o") may print before StdIO is applied.
+		stdout: io.Discard,
+		stderr: io.Discard,
 	}
 	r.dirStack = r.dirBootstrap[:0]
 	// turn "on" the default Bash options
@@ -386,9 +390,6 @@ func New(opts ...RunnerOption) (*Runner, error) {
 		if err := Dir("")(r); err != nil {
 			return nil, err
 		}
-	}
-	if r.stdout == nil || r.stderr == nil {
-		StdIO(r.stdin, r.stdout, r.stderr)(r)
 	}
 	return r, nil
 }
