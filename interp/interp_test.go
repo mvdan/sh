@@ -1607,6 +1607,14 @@ var runTests = []runTest{
 		"echo 'source ./a' >a; source ./a; echo unreachable",
 		"source: maximum nesting level exceeded (1000) #IGNORE bash has no limit by default",
 	},
+	{
+		`x='eval "$x"'; eval "$x"; echo unreachable`,
+		"eval: maximum nesting level exceeded (1000) #IGNORE bash has no limit by default",
+	},
+	{
+		`f() { if (($1 > 0)); then eval "f $(($1 - 1))"; fi; }; f 900; echo done`,
+		"done\n",
+	},
 	{"f() { echo foo; return; echo bar; }; f", "foo\n"},
 	{"f1() { :; }; f2() { f1; return; }; f2", ""},
 	{"echo 'return' >a; source ./a", ""},

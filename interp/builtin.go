@@ -464,7 +464,11 @@ func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args 
 		if err != nil {
 			return failf(1, "eval: %v\n", err)
 		}
+		if !r.enterCall(name, &r.evalDepth) {
+			return r.exit
+		}
 		r.stmts(ctx, file.Stmts)
+		r.evalDepth--
 		exit = r.exit
 	case "source", ".":
 		if len(args) < 1 {
@@ -489,7 +493,7 @@ func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args 
 			return failf(1, "source: %v\n", err)
 		}
 
-		if !r.enterCall(name) {
+		if !r.enterCall(name, &r.callDepth) {
 			return r.exit
 		}
 

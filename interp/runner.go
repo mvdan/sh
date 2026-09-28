@@ -1283,7 +1283,7 @@ func (r *Runner) call(ctx context.Context, pos syntax.Pos, args []string) {
 	name := args[0]
 	if body := r.Funcs[name]; body != nil {
 		r.reportBgStart(0) // not one external program
-		if !r.enterCall(name) {
+		if !r.enterCall(name, &r.callDepth) {
 			return
 		}
 		// stack them to support nested func calls
@@ -1316,17 +1316,17 @@ func (r *Runner) call(ctx context.Context, pos syntax.Pos, args []string) {
 }
 
 // maxCallDepth is the maximum number of nested function calls and sourced files,
-// similar to FUNCNEST in Bash and Zsh.
+// similar to FUNCNEST in Bash and Zsh. Nested eval calls are limited separately.
 const maxCallDepth = 1000
 
-// enterCall increments [Runner.callDepth], or reports false along with
+// enterCall increments depth, or reports false along with
 // a fatal error if [maxCallDepth] is reached.
-func (r *Runner) enterCall(name string) bool {
-	if r.callDepth >= maxCallDepth {
+func (r *Runner) enterCall(name string, depth *int) bool {
+	if *depth >= maxCallDepth {
 		r.exit.fatal(fmt.Errorf("%s: maximum nesting level exceeded (%d)", name, maxCallDepth))
 		return false
 	}
-	r.callDepth++
+	*depth++
 	return true
 }
 
