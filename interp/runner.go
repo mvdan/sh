@@ -809,8 +809,12 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			}
 			vr := r.lookupVar(name)
 			if as.Naked {
-				// TODO: `local foo` should start unset rather than keep the
-				// value of an outer foo, while still inheriting its export attribute.
+				// Like Bash, a new local variable starts without a value,
+				// inheriting only the export attribute.
+				newLocal := local && !global && !r.writeEnv.(*overlayEnviron).localInFunc(name)
+				if newLocal {
+					vr = expand.Variable{Exported: vr.Exported}
+				}
 				switch {
 				case valType == "-A":
 					vr.Kind = expand.Associative
@@ -818,7 +822,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 					// Like Bash, a string value becomes the first element.
 					vr.List, vr.Indexes = indexedElems(vr)
 					vr.Kind, vr.Str = expand.Indexed, ""
-				case !vr.Declared():
+				case newLocal || !vr.Declared():
 					// Like Bash, declare a string variable without a value.
 					vr.Kind = expand.String
 				default:

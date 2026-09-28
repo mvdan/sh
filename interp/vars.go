@@ -120,6 +120,22 @@ func (o *overlayEnviron) Set(name string, vr expand.Variable) error {
 	return nil
 }
 
+// localInFunc reports whether name is a local variable of the current function,
+// including when it was declared outside of the current subshell.
+func (o *overlayEnviron) localInFunc(name string) bool {
+	normalized := o.normalize(name)
+	for {
+		if vr, ok := o.values[normalized]; ok {
+			return vr.Local
+		}
+		parent, ok := o.parent.(*overlayEnviron)
+		if o.funcScope || !ok {
+			return false
+		}
+		o = parent
+	}
+}
+
 func (o *overlayEnviron) Each(f func(name string, vr expand.Variable) bool) {
 	if o.parent != nil {
 		o.parent.Each(f)
@@ -134,10 +150,12 @@ func (o *overlayEnviron) Each(f func(name string, vr expand.Variable) bool) {
 func execEnv(env expand.Environ) []string {
 	list := make([]string, 0, 64)
 	for name, vr := range env.Each {
-		if !vr.IsSet() {
+		if !vr.IsSet() && !vr.Local {
 			// If a variable is set globally but unset in the
 			// runner, we need to ensure it's not part of the final
 			// list. Seems like zeroing the element is enough.
+			// Like Bash, a local variable without a value does not
+			// hide an outer variable.
 			// This is a linear search, but this scenario should be
 			// rare, and the number of variables shouldn't be large.
 			for i, kv := range list {
