@@ -489,6 +489,10 @@ func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args 
 			return failf(1, "source: %v\n", err)
 		}
 
+		if !r.enterCall(name) {
+			return r.exit
+		}
+
 		// Keep the current versions of some fields we might modify.
 		oldParams := r.Params
 		oldSourceSetParams := r.sourceSetParams
@@ -514,6 +518,7 @@ func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args 
 		}
 		r.sourceSetParams = oldSourceSetParams
 		r.inSource = oldInSource
+		r.callDepth--
 
 		exit = r.exit
 		exit.returning = false

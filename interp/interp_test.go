@@ -1598,6 +1598,14 @@ var runTests = []runTest{
 	{"return", "return: can only be done from a func or sourced script\nexit status 1 #JUSTERR"},
 	{"f() { return; }; f", ""},
 	{"f() { return 2; }; f", "exit status 2"},
+	{
+		"f() { f; }; f; echo unreachable",
+		"f: maximum nesting level exceeded (1000) #IGNORE bash has no limit by default",
+	},
+	{
+		"echo 'source ./a' >a; source ./a; echo unreachable",
+		"source: maximum nesting level exceeded (1000) #IGNORE bash has no limit by default",
+	},
 	{"f() { echo foo; return; echo bar; }; f", "foo\n"},
 	{"f1() { :; }; f2() { f1; return; }; f2", ""},
 	{"echo 'return' >a; source ./a", ""},

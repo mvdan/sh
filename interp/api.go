@@ -161,6 +161,10 @@ type Runner struct {
 	inSource     bool
 	handlingTrap bool // whether we're currently in a trap callback
 
+	// callDepth counts the nested function calls and sourced files,
+	// to stop infinite recursion before it overflows the Go stack.
+	callDepth int
+
 	// track if a sourced script set positional parameters
 	sourceSetParams bool
 
@@ -1264,6 +1268,7 @@ func (r *Runner) subshell(background bool) *Runner {
 		usedNew:              r.usedNew,
 		exit:                 r.exit,
 		lastExit:             r.lastExit,
+		callDepth:            r.callDepth,
 
 		origStdout: r.origStdout, // used for process substitutions
 	}
