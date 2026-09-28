@@ -215,6 +215,11 @@ type Runner struct {
 	// It is consumed by the enclosing statement once it finishes.
 	keepRedirs bool
 
+	// keptFiles holds the files opened by redirections which were kept
+	// by "exec", to be closed when the shell or subshell exits.
+	// TODO: close a file once "exec" replaces it, like other shells do.
+	keptFiles []io.Closer
+
 	// Fake signal callbacks
 	callbackErr  string
 	callbackExit string
@@ -961,6 +966,7 @@ func (r *Runner) Reset() {
 	if !r.usedNew {
 		panic("use interp.New to construct a Runner")
 	}
+	r.closeKeptFiles()
 	if !r.didReset {
 		r.origDir = r.Dir
 		r.origParams = r.Params
@@ -1195,6 +1201,10 @@ func (r *Runner) Run(ctx context.Context, node syntax.Node) error {
 	// only exits the shell via the exit builtin, errexit, and so on.
 	if _, ok := node.(*syntax.File); ok || r.exit.exiting {
 		r.trapCallback(ctx, r.callbackExit, "exit")
+		if len(r.keptFiles) > 0 {
+			r.closeKeptFiles()
+			r.stdin, r.stdout, r.stderr = r.origStdin, r.origStdout, r.origStderr
+		}
 	}
 	maps.Insert(r.Vars, r.writeEnv.Each)
 	// Return the first of: a fatal error, a non-fatal handler error, or the exit code.

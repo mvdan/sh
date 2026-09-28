@@ -5871,8 +5871,7 @@ func TestRunnerCloseKeptFiles(t *testing.T) {
 			ctx, cancel := context.WithTimeout(t.Context(), runnerRunTimeout)
 			defer cancel()
 			r.Run(ctx, file)
-			// TODO: the files are leaked, as nothing closes them.
-			qt.Assert(t, qt.Not(qt.Equals(open.Load(), 0)), qt.Commentf("input: %q", src))
+			qt.Assert(t, qt.Equals(open.Load(), 0), qt.Commentf("input: %q", src))
 		})
 	}
 
@@ -5889,8 +5888,7 @@ func TestRunnerCloseKeptFiles(t *testing.T) {
 		}
 		qt.Assert(t, qt.Equals(open.Load(), 1))
 		r.Reset()
-		// TODO: Reset leaks the file too.
-		qt.Assert(t, qt.Equals(open.Load(), 1))
+		qt.Assert(t, qt.Equals(open.Load(), 0))
 	})
 }
 
