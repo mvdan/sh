@@ -3980,6 +3980,10 @@ done <<< 2`,
 		"p='@(a'; case '@(a' in $p) echo lit;; esac; [[ a == $p ]]; echo $?",
 		"lit\n1\n",
 	},
+	{
+		`p='@(' q=')'; for i in {1..11}; do p=$p$p q=$q$q; done; [[ x == $p$q ]]; echo $?`,
+		"1\n",
+	},
 	// Ensure that setting nullglob does not return invalid globs as null
 	// strings.
 	{

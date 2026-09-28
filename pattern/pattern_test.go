@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"regexp"
 	"regexp/syntax"
+	"strings"
 	"testing"
 
 	"github.com/go-quicktest/qt"
@@ -277,6 +278,18 @@ var regexpTests = []struct {
 		pat: `@(a|@(b)`, mode: ExtendedOperators | EntireString, want: `(?s)^@\(a\|(b)$`,
 		mustMatch:    []string{"@(a|b"},
 		mustNotMatch: []string{"a", "b"},
+	},
+	{
+		pat: strings.Repeat("@(", 100) + strings.Repeat(")", 100), mode: ExtendedOperators,
+		want: "(?s)" + strings.Repeat("(", 100) + strings.Repeat(")", 100),
+	},
+	{
+		pat: strings.Repeat("@(", 1001) + strings.Repeat(")", 1001), mode: ExtendedOperators,
+		wantErr: `^extended pattern nesting is deeper than 1000 levels$`,
+	},
+	{
+		pat: strings.Repeat("@(", 1<<20) + strings.Repeat(")", 1<<20), mode: ExtendedOperators,
+		wantErr: `^extended pattern nesting is deeper than 1000 levels$`,
 	},
 	{pat: `[[:digit`, wantErr: `^charClass invalid$`},
 	{pat: `[[:wrong:]]`, wantErr: `^charClass invalid$`},

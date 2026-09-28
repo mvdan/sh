@@ -129,11 +129,18 @@ func Regexp(pat string, mode Mode) (string, error) {
 	return sb.String(), nil
 }
 
+// maxGroupNesting is how deeply extended operator groups may be nested,
+// so that a long pattern cannot overflow the Go stack.
+// [regexp] fails to compile such deeply nested expressions anyway.
+const maxGroupNesting = 1000
+
 // stringLexer helps us tokenize a pattern string.
 // Note that we can use the null byte '\x00' to signal "no character" as shell strings cannot contain null bytes.
 type stringLexer struct {
 	s string
 	i int
+
+	depth int // nested extended operator groups
 }
 
 func (sl *stringLexer) next() rune {
@@ -179,6 +186,10 @@ func regexpNext(sb *strings.Builder, sl *stringLexer, mode Mode) error {
 				break
 			}
 			start := sl.i - 1 // position of the operator
+			if sl.depth >= maxGroupNesting {
+				return &SyntaxError{msg: fmt.Sprintf("extended pattern nesting is deeper than %d levels", maxGroupNesting)}
+			}
+			sl.depth++
 			// Build the group separately; like Bash, an unclosed group
 			// is not an extended operator, so we reparse the operator
 			// as a regular character below and the rest as a pattern.
@@ -194,13 +205,16 @@ func regexpNext(sb *strings.Builder, sl *stringLexer, mode Mode) error {
 					gsb.WriteRune(sl.next())
 					continue
 				case '\x00':
+					sl.depth--
 					sl.i = start + 1
 					break extended
 				}
 				if err := regexpNext(&gsb, sl, mode); err != nil {
+					sl.depth--
 					return err
 				}
 			}
+			sl.depth--
 			gsb.WriteRune(sl.next()) // )
 			sb.WriteString(gsb.String())
 			if op == '!' {
