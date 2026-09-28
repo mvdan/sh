@@ -3536,6 +3536,47 @@ done <<< 2`,
 	{`a=(x "" y); echo ${!a[@]}; echo "${!a[@]}"`, "0 1 2\n0 1 2\n"},
 	{"a=(0 1 2 3 4 5 6 7 8 9 10); echo ${!a[@]}", "0 1 2 3 4 5 6 7 8 9 10\n"},
 	{"i=3; declare -A a=(['x']=b); a[i]=x; for e in ${!a[@]}; do echo $e; done | sort", "i\nx\n"},
+	// Assignments ignore the existing kind of the variable and the
+	// subscript in many cases, unlike in Bash.
+	{"x=1; x+=; echo \"[$x]\"", "[]\n #IGNORE assignments ignore the variable's kind"},
+	{"a=(x y); a[1]+=Q; echo ${a[@]}", "xQ\n #IGNORE assignments ignore the variable's kind"},
+	{"a=(1 2 3); a[-1]+=x; echo ${a[@]}", "1x 2\n #IGNORE assignments ignore the variable's kind"},
+	{"a=(1 2); a=; declare -p a", "declare -a a=([0]=\"\" [1]=\"2\")\n"},
+	{"a=([1]=x); a+=; declare -p a", "declare -a a=([0]=\"\" [1]=\"x\")\n"},
+	{"s=x; s+=(y); declare -p s", "declare -a s=([0]=\"x\" [1]=\"y\")\n"},
+	{"declare -a x=1; declare -p x", "declare -- x=\"1\"\n #IGNORE assignments ignore the variable's kind"},
+	{"declare -A x=1; declare -p x", "declare -- x=\"1\"\n #IGNORE bash prints a trailing space"},
+	{"declare a[2]=x; declare -p a", "declare -- a=\"x\"\n #IGNORE assignments ignore the variable's kind"},
+	{"x=1; declare -A x; declare -p x", "declare -A x=()\n #IGNORE bash prints a trailing space"},
+	{"declare -A A=([k]=v); A[k]+=w; echo ${A[k]}", "\n #IGNORE assignments ignore the variable's kind"},
+	{"declare -A A=([k]=v); A+=([j]=1); echo ${A[j]}${A[k]}", "v\n #IGNORE assignments ignore the variable's kind"},
+	{"declare -A A=([k]=v); A+=x; echo ${A[0]}${A[k]}", "v\n #IGNORE assignments ignore the variable's kind"},
+	{"declare -A A=([k]=v); A=x; echo ${A[0]}${A[k]}", "v\n #IGNORE assignments ignore the variable's kind"},
+	{"declare -A m; m=([foo]=1 [bar]=2); echo ${m[foo]} ${m[bar]}", "2 2\n #IGNORE assignments ignore the variable's kind"},
+	{"declare -A A; A=(a 1 b); echo ${A[b]-unset}", "a\n #IGNORE assignments ignore the variable's kind"},
+	{
+		"a=(1 2); declare -A a; echo st=$?; declare -p a",
+		"st=0\ndeclare -A a=()\n #JUSTERR",
+	},
+	{
+		"declare -A m=([k]=v); declare -a m; echo st=$?; declare -p m",
+		"st=0\ndeclare -A m=([k]=\"v\")\n #JUSTERR",
+	},
+	{
+		"a=(1); a[-5]=x; echo after",
+		"a: bad array subscript\nexit status 1 #JUSTERR",
+	},
+	{
+		"declare -A A; A=([k]=v w); echo after",
+		"after\n #JUSTERR",
+	},
+	// A subshell modifies the parent's array in place.
+	{"a=(x y); (a+=Z); echo ${a[@]}", "xZ y\n #IGNORE assignments ignore the variable's kind"},
+	{"a=(x y); (a[0]+=Z); echo ${a[@]}", "xZ y\n #IGNORE assignments ignore the variable's kind"},
+	{"declare -A A=([k]=v); (A[k]+=w); echo ${A[k]}", "v\n"},
+	// A prefix assignment starts from the string value.
+	{"x=1; x+=2 $ENV_PROG | grep '^x='; echo $x", "x=12\n1\n"},
+	{"a=(1 2); a=x $ENV_PROG | grep '^a='; echo ${a[@]}", "a=x\n1 2\n"},
 
 	// sparse indexed arrays
 	{"a[5]=x; echo ${#a[@]} ${a[@]} ${!a[@]}", "1 x 5\n"},
