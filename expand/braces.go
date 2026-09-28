@@ -144,21 +144,18 @@ func braceSequence(br *syntax.BraceExp, yield func(*syntax.Lit) bool) bool {
 		width = max(len(fromLit), len(toLit))
 	}
 	upward := from <= to
-	incr := int64(1)
+	step := uint64(1)
 	if len(br.Elems) > 2 {
 		// ParseInt with bit size 64 to ensure consistent behavior on 32-bit platforms.
 		n, _ := strconv.ParseInt(br.Elems[2].Lit(), 10, 64)
+		// Only the absolute value of the step matters.
 		if n < 0 {
-			n = -n // only the absolute value of the step matters
-		}
-		if n != 0 {
-			incr = n
+			step = -uint64(n)
+		} else if n > 0 {
+			step = uint64(n)
 		}
 	}
-	if !upward {
-		incr = -incr
-	}
-	for n := from; (upward && n <= to) || (!upward && n >= to); n += incr {
+	for n := from; ; {
 		lit := &syntax.Lit{}
 		switch {
 		case chars:
@@ -171,8 +168,19 @@ func braceSequence(br *syntax.BraceExp, yield func(*syntax.Lit) bool) bool {
 		if !yield(lit) {
 			return false
 		}
+		// Stop before stepping past the end, which may overflow.
+		if upward {
+			if uint64(to)-uint64(n) < step {
+				return true
+			}
+			n += int64(step)
+		} else {
+			if uint64(n)-uint64(to) < step {
+				return true
+			}
+			n -= int64(step)
+		}
 	}
-	return true
 }
 
 func hasLeadingZeros(s string) bool {
