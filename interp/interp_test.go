@@ -18,6 +18,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -5820,6 +5821,77 @@ func TestRunnerIncrementalExitTrap(t *testing.T) {
 	if got := b.String(); got != want {
 		t.Fatalf("\nwant: %q\ngot:  %q", want, got)
 	}
+}
+
+// countOpen wraps [interp.DefaultOpenHandler] to count the files still open.
+func countOpen(open *atomic.Int64) interp.OpenHandlerFunc {
+	return func(ctx context.Context, path string, flags int, mode os.FileMode) (io.ReadWriteCloser, error) {
+		f, err := interp.DefaultOpenHandler()(ctx, path, flags, mode)
+		if err != nil {
+			return nil, err
+		}
+		open.Add(1)
+		return &countedFile{ReadWriteCloser: f, open: open}, nil
+	}
+}
+
+type countedFile struct {
+	io.ReadWriteCloser
+	open *atomic.Int64
+}
+
+func (f *countedFile) Close() error {
+	f.open.Add(-1)
+	return f.ReadWriteCloser.Close()
+}
+
+func TestRunnerCloseKeptFiles(t *testing.T) {
+	t.Parallel()
+
+	// The files kept open by exec must be closed once the shell exits,
+	// which is implied by running an entire file, or the subshell exits.
+	tests := []string{
+		"exec >a; echo foo",
+		"exec >a 2>b <a; exec >c",
+		"f() { exec >a; }; f",
+		"exec >a; exit 3",
+		"(exec >a; echo foo)",
+		"{ exec >a; echo foo; } | read x",
+		"x=$(exec >a; echo foo)",
+		"read x < <(exec >a; echo foo)",
+		"exec >a & wait",
+	}
+	for _, src := range tests {
+		t.Run("", func(t *testing.T) {
+			skipIfUnsupported(t, src)
+			t.Parallel()
+			file := parse(t, nil, src)
+			var open atomic.Int64
+			r, _ := interp.New(interp.Dir(t.TempDir()), interp.OpenHandler(countOpen(&open)))
+			ctx, cancel := context.WithTimeout(t.Context(), runnerRunTimeout)
+			defer cancel()
+			r.Run(ctx, file)
+			// TODO: the files are leaked, as nothing closes them.
+			qt.Assert(t, qt.Not(qt.Equals(open.Load(), 0)), qt.Commentf("input: %q", src))
+		})
+	}
+
+	// Running statements incrementally keeps the files open until Reset.
+	t.Run("Incremental", func(t *testing.T) {
+		t.Parallel()
+		file := parse(t, nil, "exec >a; echo foo")
+		var open atomic.Int64
+		r, _ := interp.New(interp.Dir(t.TempDir()), interp.OpenHandler(countOpen(&open)))
+		ctx, cancel := context.WithTimeout(t.Context(), runnerRunTimeout)
+		defer cancel()
+		for _, stmt := range file.Stmts {
+			qt.Assert(t, qt.IsNil(r.Run(ctx, stmt)))
+		}
+		qt.Assert(t, qt.Equals(open.Load(), 1))
+		r.Reset()
+		// TODO: Reset leaks the file too.
+		qt.Assert(t, qt.Equals(open.Load(), 1))
+	})
 }
 
 func TestRunnerResetFields(t *testing.T) {
