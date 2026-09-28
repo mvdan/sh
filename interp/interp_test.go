@@ -3992,6 +3992,10 @@ done <<< 2`,
 		`p='['; for i in {1..15}; do p=$p$p; done; case $p in $p) echo lit;; esac; [[ x == $p ]]; echo $?`,
 		"lit\n1\n",
 	},
+	{
+		`x=a p='*'; for i in {1..13}; do x=$x$x p=$p$p; done; y=${x##${p}b} z=${x//${p}b/c} u=${x^^$p}; echo ${#y} ${#z} ${#u}; [[ $x == ${p}b ]]; echo $?`,
+		"8192 8192 8192\n1\n",
+	},
 	// Ensure that setting nullglob does not return invalid globs as null
 	// strings.
 	{

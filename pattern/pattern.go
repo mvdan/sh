@@ -260,8 +260,7 @@ func regexpNext(sb *strings.Builder, sl *stringLexer, mode Mode) error {
 		return io.EOF
 	case '*':
 		if mode&Filenames == 0 {
-			// * - matches anything when not in filename mode
-			sb.WriteString(`.*`)
+			writeAnyRun(sb, sl, c, mode)
 			break
 		}
 		// "**" only acts as globstar if it is alone as a path element.
@@ -299,10 +298,10 @@ func regexpNext(sb *strings.Builder, sl *stringLexer, mode Mode) error {
 			sb.WriteString(`[^/]*`)
 		}
 	case '?':
-		if mode&Filenames != 0 {
-			sb.WriteString(`[^/]`)
+		if mode&Filenames == 0 {
+			writeAnyRun(sb, sl, c, mode)
 		} else {
-			sb.WriteByte('.')
+			sb.WriteString(`[^/]`)
 		}
 	case '\\':
 		c = sl.next()
@@ -444,6 +443,34 @@ func regexpNext(sb *strings.Builder, sl *stringLexer, mode Mode) error {
 		}
 	}
 	return nil
+}
+
+// writeAnyRun writes a run of "*" and "?" characters starting with c
+// outside of filename mode, which matches any string with at least
+// as many characters as there are "?". Translating a long run like
+// "*?*?*?" one character at a time would be slow to match.
+func writeAnyRun(sb *strings.Builder, sl *stringLexer, c rune, mode Mode) {
+	minChars, anyStar := 0, false
+	for {
+		if c == '?' {
+			minChars++
+		} else {
+			anyStar = true
+		}
+		if next := sl.peekNext(); next != '*' && next != '?' {
+			break
+		}
+		if mode&ExtendedOperators != 0 && strings.HasPrefix(sl.peekRest()[1:], "(") {
+			break // an extended operator like "*(" or "?("
+		}
+		c = sl.next()
+	}
+	for range minChars {
+		sb.WriteByte('.')
+	}
+	if anyStar {
+		sb.WriteString(`.*`)
+	}
 }
 
 // charClass returns the length in bytes of the bracket expression element

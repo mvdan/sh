@@ -60,7 +60,19 @@ var regexpTests = []struct {
 		mustMatch:    []string{"foo", "prefix-foo", "prefix.foo"},
 		mustNotMatch: []string{"foo-suffix", "/prefix/foo", ".foo", ".prefix-foo"},
 	},
-	{pat: `**`, want: `(?s).*.*`},
+	{pat: `**`, want: `(?s).*`},
+	{
+		pat: `a*?*?b`, mode: EntireString, want: `(?s)^a...*b$`,
+		mustMatch:    []string{"axyb", "axyzb"},
+		mustNotMatch: []string{"ab", "axb"},
+	},
+	{pat: `a?*?`, mode: Shortest, want: `(?sU)a...*`},
+	{pat: `**(a)`, mode: ExtendedOperators, want: `(?s).*(a)*`},
+	{pat: `*?(a)`, mode: ExtendedOperators, want: `(?s).*(a)?`},
+	{
+		pat: strings.Repeat("?*", 1<<16), mode: EntireString,
+		want: "(?s)^" + strings.Repeat(".", 1<<16) + ".*$",
+	},
 	{
 		pat: `**`, mode: Filenames | EntireString, want: `(?s)^(/|[^/.][^/]*)*$`,
 		mustMatch:    []string{"/foo", "/prefix/foo", "/a.b.c/foo", "/a/b/c/foo", "/foo/suffix.ext", "/a\n/\nb"},
@@ -75,7 +87,7 @@ var regexpTests = []struct {
 		pat: `**`, mode: Filenames | EntireString | GlobLeadingDot, want: `(?s)^.*$`,
 		mustMatch: []string{"/foo", "/prefix/foo", "/a.b.c/foo", "/a/b/c/foo", "/foo/suffix.ext", "/a\n/\nb", "/.prefix/foo", "/prefix/.foo"},
 	},
-	{pat: `/**/foo`, want: `(?s)/.*.*/foo`},
+	{pat: `/**/foo`, want: `(?s)/.*/foo`},
 	{
 		pat: `/**/foo`, mode: Filenames | EntireString, want: `(?s)^/((/|[^/.][^/]*)*/)?foo$`,
 		mustMatch:    []string{"/foo", "/prefix/foo", "/a.b.c/foo", "/a/b/c/foo"},
