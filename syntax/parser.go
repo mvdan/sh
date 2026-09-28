@@ -520,9 +520,11 @@ type Parser struct {
 
 	parsingDoc bool // true if using [Parser.Document]
 
-	// openNodes tracks how many entire statements or words we're currently parsing.
+	// openNodes tracks how many entire statements, words, or expressions
+	// we're currently parsing.
 	// A non-zero number means that we require certain tokens or words before
 	// reaching EOF, used for [Parser.Incomplete].
+	// It is also the nesting depth, limited by [maxNesting].
 	openNodes int
 	// openBquotes is how many levels of backquotes are open at the moment.
 	openBquotes int
@@ -559,6 +561,23 @@ func (p *Parser) Incomplete() bool {
 }
 
 const bufSize = 1 << 10
+
+// maxNesting is how deeply statements, words, and expressions may be nested,
+// so that a small input cannot overflow the Go stack when recursively parsing
+// or walking the syntax tree. Bash fails at a few thousand nested subshells.
+const maxNesting = 10_000
+
+// enterNode increments [Parser.openNodes], failing if [maxNesting] is exceeded.
+// It must be paired with a call to [Parser.leaveNode],
+// or with restoring [Parser.openNodes] to its previous value.
+func (p *Parser) enterNode() {
+	p.openNodes++
+	if p.openNodes > maxNesting {
+		p.curErr("nesting is deeper than %d levels", maxNesting)
+	}
+}
+
+func (p *Parser) leaveNode() { p.openNodes-- }
 
 func (p *Parser) reset() {
 	p.tok, p.val = illegalTok, ""
@@ -1101,9 +1120,7 @@ loop:
 		if p.tok == _EOF {
 			break
 		}
-		p.openNodes++
 		s := p.getStmt(true, false, false)
-		p.openNodes--
 		if s == nil {
 			p.invalidStmtStart()
 			break
@@ -1182,9 +1199,9 @@ func (p *Parser) wordParts(wps []WordPart) []WordPart {
 		defer func() { p.quote = noState }()
 	}
 	for {
-		p.openNodes++
+		p.enterNode()
 		n := p.wordPart()
-		p.openNodes--
+		p.leaveNode()
 		if n == nil {
 			if len(wps) == 0 {
 				return nil // normalize empty lists into nil
@@ -1726,7 +1743,9 @@ func (p *Parser) paramExpParameter(pe *ParamExp) *ParamExp {
 		switch p.tok = left; p.tok {
 		case dollBrace: // ${#${nested parameter}}
 			p.tok = dollBrace
+			p.enterNode()
 			wp = p.paramExp()
+			p.leaveNode()
 		case dollParen: // ${#$(nested command)}
 			wp = p.cmdSubst()
 		default: // dollar
@@ -2108,6 +2127,8 @@ func (p *Parser) doRedirect(s *Stmt) {
 }
 
 func (p *Parser) getStmt(readEnd, binCmd, fnBody bool) *Stmt {
+	defer func(n int) { p.openNodes = n }(p.openNodes)
+	p.enterNode()
 	pos, ok := p.gotRsrv("!")
 	s := &Stmt{Position: pos}
 	if ok {
@@ -2129,6 +2150,8 @@ func (p *Parser) getStmt(readEnd, binCmd, fnBody bool) *Stmt {
 			// right recursion should only read a single element
 			return s
 		}
+		// Each operator in a chain nests the syntax tree one level deeper.
+		p.enterNode()
 		b := &BinaryCmd{
 			OpPos: p.pos,
 			Op:    BinCmdOperator(p.tok),
@@ -2332,6 +2355,7 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 		p.doRedirect(s)
 	}
 	// instead of using recursion, iterate manually
+	defer func(n int) { p.openNodes = n }(p.openNodes)
 	for p.tok == or || p.tok == orAnd {
 		if binCmd {
 			// left associativity: in a list of BinaryCmds, the
@@ -2343,6 +2367,8 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 			// we parse |& as two tokens.
 			break
 		}
+		// Each operator in a chain nests the syntax tree one level deeper.
+		p.enterNode()
 		b := &BinaryCmd{OpPos: p.pos, Op: BinCmdOperator(p.tok), X: s}
 		p.next()
 		p.got(_Newl)
@@ -2408,7 +2434,10 @@ func (p *Parser) ifClause(s *Stmt) {
 	rootIf.ThenPos = p.followRsrv(rootIf.Position, "if <cond>", "then")
 	rootIf.Then, rootIf.ThenLast = p.followStmts("then", rootIf.ThenPos, "fi", "elif", "else")
 	curIf := rootIf
+	defer func(n int) { p.openNodes = n }(p.openNodes)
 	for p.tok == _LitWord && p.val == "elif" {
+		// Each elif nests the syntax tree one level deeper.
+		p.enterNode()
 		elf := &IfClause{Position: p.pos}
 		curIf.Last = p.accComs
 		p.accComs = nil
@@ -2639,6 +2668,10 @@ func (p *Parser) testClause(s *Stmt) {
 
 func (p *Parser) testExprBinary(pastAndOr bool) TestExpr {
 	p.got(_Newl)
+	if !pastAndOr {
+		p.enterNode()
+		defer p.leaveNode()
+	}
 	var left TestExpr
 	if pastAndOr {
 		left = p.testExprUnary()
@@ -2797,12 +2830,16 @@ func (p *Parser) timeClause(s *Stmt) {
 	if _, ok := p.gotRsrv("-p"); ok {
 		tc.PosixFormat = true
 	}
+	p.enterNode()
 	tc.Stmt = p.gotStmtPipe(&Stmt{Position: p.pos}, false)
+	p.leaveNode()
 	s.Cmd = tc
 }
 
 func (p *Parser) coprocClause(s *Stmt) {
 	cc := &CoprocClause{Coproc: p.pos}
+	p.enterNode()
+	defer p.leaveNode()
 	if p.next(); isBashCompoundCommand(p.tok, p.val) {
 		// has no name
 		cc.Stmt = p.gotStmtPipe(&Stmt{Position: p.pos}, false)

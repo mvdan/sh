@@ -3,6 +3,8 @@ package syntax
 // compact specifies whether we allow spaces between expressions.
 // This is true for let
 func (p *Parser) arithmExpr(compact bool) ArithmExpr {
+	p.enterNode()
+	defer p.leaveNode()
 	return p.arithmExprComma(compact)
 }
 
@@ -29,7 +31,9 @@ func (p *Parser) arithmExprAssign(compact bool) ArithmExpr {
 		pos := p.pos
 		tok := p.tok
 		p.nextArithOp(compact)
+		p.enterNode()
 		y := p.arithmExprAssign(compact)
+		p.leaveNode()
 		if y == nil {
 			p.followErrExp(pos, tok)
 		}
@@ -66,7 +70,9 @@ func (p *Parser) arithmExprTernary(compact bool) ArithmExpr {
 	}
 	colonPos := p.pos
 	p.nextArithOp(compact)
+	p.enterNode()
 	falseExpr := p.arithmExprTernary(compact)
+	p.leaveNode()
 	if falseExpr == nil {
 		p.followErrExp(colonPos, TernColon)
 	}
@@ -137,7 +143,9 @@ func (p *Parser) arithmExprPower(compact bool) ArithmExpr {
 	op := p.tok
 	pos := p.pos
 	p.nextArithOp(compact)
+	p.enterNode()
 	y := p.arithmExprPower(compact)
+	p.leaveNode()
 	if y == nil {
 		p.followErrExp(pos, op)
 	}
@@ -158,7 +166,10 @@ func (p *Parser) arithmExprUnary(compact bool) ArithmExpr {
 	case Not, BitNegation, Plus, Minus:
 		ue := &UnaryArithm{OpPos: p.pos, Op: UnAritOperator(p.tok)}
 		p.nextArithOp(compact)
-		if ue.X = p.arithmExprUnary(compact); ue.X == nil {
+		p.enterNode()
+		ue.X = p.arithmExprUnary(compact)
+		p.leaveNode()
+		if ue.X == nil {
 			p.followErrExp(ue.OpPos, ue.Op)
 		}
 		return ue
@@ -264,6 +275,7 @@ func (p *Parser) nextArithOp(compact bool) {
 
 // arithmExprBinary is used for all left-associative binary operators
 func (p *Parser) arithmExprBinary(compact bool, nextOp func(bool) ArithmExpr, operators ...BinAritOperator) ArithmExpr {
+	openNodes := p.openNodes
 	value := nextOp(compact)
 	for {
 		var foundOp BinAritOperator
@@ -275,12 +287,15 @@ func (p *Parser) arithmExprBinary(compact bool, nextOp func(bool) ArithmExpr, op
 		}
 
 		if token(foundOp) == illegalTok || (compact && p.spaced) {
+			p.openNodes = openNodes
 			return value
 		}
 
 		if value == nil {
 			p.curErr("%#q must follow an expression", p.tok)
 		}
+		// Each operator in a chain nests the syntax tree one level deeper.
+		p.enterNode()
 
 		pos := p.pos
 		p.nextArithOp(compact)
