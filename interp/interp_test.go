@@ -1615,6 +1615,14 @@ var runTests = []runTest{
 		`f() { if (($1 > 0)); then eval "f $(($1 - 1))"; fi; }; f 900; echo done`,
 		"done\n",
 	},
+	{
+		`o='{ ' c='}; '; for i in {1..10}; do o=$o$o c=$c$c; done; eval "f() { $o f; $c }"; f; echo unreachable`,
+		"statement nesting is deeper than 10000 levels #IGNORE bash has no limit by default",
+	},
+	{
+		`o='{ ' c='}; '; for i in {1..11}; do o=$o$o c=$c$c; done; eval "$o echo nested; $c"`,
+		"nested\n",
+	},
 	{"f() { echo foo; return; echo bar; }; f", "foo\n"},
 	{"f1() { :; }; f2() { f1; return; }; f2", ""},
 	{"echo 'return' >a; source ./a", ""},

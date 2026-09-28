@@ -166,6 +166,11 @@ type Runner struct {
 	// to stop infinite recursion before it overflows the Go stack.
 	callDepth, evalDepth int
 
+	// stmtDepth counts the nested statements being run, including via
+	// function calls or command substitutions,
+	// to stop deep nesting or recursion before it overflows the Go stack.
+	stmtDepth int
+
 	// track if a sourced script set positional parameters
 	sourceSetParams bool
 
@@ -1281,6 +1286,7 @@ func (r *Runner) subshell(background bool) *Runner {
 		lastExit:             r.lastExit,
 		callDepth:            r.callDepth,
 		evalDepth:            r.evalDepth,
+		stmtDepth:            r.stmtDepth,
 
 		origStdout: r.origStdout, // used for process substitutions
 	}

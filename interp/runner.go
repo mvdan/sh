@@ -286,10 +286,21 @@ func (r *Runner) stop(ctx context.Context) bool {
 	return false
 }
 
+// maxStmtDepth is the maximum number of nested statements.
+// Each nested call counted by [maxCallDepth] may itself nest many statements,
+// such as a recursive function with a deeply nested body.
+const maxStmtDepth = 10_000
+
 func (r *Runner) stmt(ctx context.Context, st *syntax.Stmt) {
 	if r.stop(ctx) {
 		return
 	}
+	if r.stmtDepth >= maxStmtDepth {
+		r.exit.fatal(fmt.Errorf("statement nesting is deeper than %d levels", maxStmtDepth))
+		return
+	}
+	r.stmtDepth++
+	defer func() { r.stmtDepth-- }()
 	r.exit = exitStatus{}
 	if st.Background || st.Disown {
 		r2 := r.subshell(true)
