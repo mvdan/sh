@@ -9,6 +9,8 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+
+	"mvdan.cc/sh/v3/internal"
 )
 
 // Environ is the base interface for a shell's environment, allowing it to fetch
@@ -167,16 +169,7 @@ func (v Variable) String() string {
 // indexedVal returns the element of an indexed array at index i,
 // taking [Variable.Indexes] into account for sparse arrays.
 func (v Variable) indexedVal(i int) (string, bool) {
-	if v.Indexes != nil {
-		if pos, ok := slices.BinarySearch(v.Indexes, i); ok {
-			return v.List[pos], true
-		}
-		return "", false
-	}
-	if i < len(v.List) {
-		return v.List[i], true
-	}
-	return "", false
+	return internal.IndexedElem(v.List, v.Indexes, i)
 }
 
 // indexedKeys returns the index of each element of an indexed array as a

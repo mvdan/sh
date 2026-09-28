@@ -3536,43 +3536,43 @@ done <<< 2`,
 	{`a=(x "" y); echo ${!a[@]}; echo "${!a[@]}"`, "0 1 2\n0 1 2\n"},
 	{"a=(0 1 2 3 4 5 6 7 8 9 10); echo ${!a[@]}", "0 1 2 3 4 5 6 7 8 9 10\n"},
 	{"i=3; declare -A a=(['x']=b); a[i]=x; for e in ${!a[@]}; do echo $e; done | sort", "i\nx\n"},
-	// Assignments ignore the existing kind of the variable and the
-	// subscript in many cases, unlike in Bash.
-	{"x=1; x+=; echo \"[$x]\"", "[]\n #IGNORE assignments ignore the variable's kind"},
-	{"a=(x y); a[1]+=Q; echo ${a[@]}", "xQ\n #IGNORE assignments ignore the variable's kind"},
-	{"a=(1 2 3); a[-1]+=x; echo ${a[@]}", "1x 2\n #IGNORE assignments ignore the variable's kind"},
+	// Assignments take the existing kind of the variable and the
+	// subscript into account.
+	{"x=1; x+=; echo \"[$x]\"", "[1]\n"},
+	{"a=(x y); a[1]+=Q; echo ${a[@]}", "x yQ\n"},
+	{"a=(1 2 3); a[-1]+=x; echo ${a[@]}", "1 2 3x\n"},
 	{"a=(1 2); a=; declare -p a", "declare -a a=([0]=\"\" [1]=\"2\")\n"},
 	{"a=([1]=x); a+=; declare -p a", "declare -a a=([0]=\"\" [1]=\"x\")\n"},
 	{"s=x; s+=(y); declare -p s", "declare -a s=([0]=\"x\" [1]=\"y\")\n"},
-	{"declare -a x=1; declare -p x", "declare -- x=\"1\"\n #IGNORE assignments ignore the variable's kind"},
-	{"declare -A x=1; declare -p x", "declare -- x=\"1\"\n #IGNORE bash prints a trailing space"},
-	{"declare a[2]=x; declare -p a", "declare -- a=\"x\"\n #IGNORE assignments ignore the variable's kind"},
-	{"x=1; declare -A x; declare -p x", "declare -A x=()\n #IGNORE bash prints a trailing space"},
-	{"declare -A A=([k]=v); A[k]+=w; echo ${A[k]}", "\n #IGNORE assignments ignore the variable's kind"},
-	{"declare -A A=([k]=v); A+=([j]=1); echo ${A[j]}${A[k]}", "v\n #IGNORE assignments ignore the variable's kind"},
-	{"declare -A A=([k]=v); A+=x; echo ${A[0]}${A[k]}", "v\n #IGNORE assignments ignore the variable's kind"},
-	{"declare -A A=([k]=v); A=x; echo ${A[0]}${A[k]}", "v\n #IGNORE assignments ignore the variable's kind"},
-	{"declare -A m; m=([foo]=1 [bar]=2); echo ${m[foo]} ${m[bar]}", "2 2\n #IGNORE assignments ignore the variable's kind"},
-	{"declare -A A; A=(a 1 b); echo ${A[b]-unset}", "a\n #IGNORE assignments ignore the variable's kind"},
+	{"declare -a x=1; declare -p x", "declare -a x=([0]=\"1\")\n"},
+	{"declare -A x=1; declare -p x", "declare -A x=([0]=\"1\")\n #IGNORE bash prints a trailing space"},
+	{"declare a[2]=x; declare -p a", "declare -a a=([2]=\"x\")\n"},
+	{"x=1; declare -A x; declare -p x", "declare -A x=([0]=\"1\")\n #IGNORE bash prints a trailing space"},
+	{"declare -A A=([k]=v); A[k]+=w; echo ${A[k]}", "vw\n"},
+	{"declare -A A=([k]=v); A+=([j]=1); echo ${A[j]}${A[k]}", "1v\n"},
+	{"declare -A A=([k]=v); A+=x; echo ${A[0]}${A[k]}", "xv\n"},
+	{"declare -A A=([k]=v); A=x; echo ${A[0]}${A[k]}", "xv\n"},
+	{"declare -A m; m=([foo]=1 [bar]=2); echo ${m[foo]} ${m[bar]}", "1 2\n"},
+	{"declare -A A; A=(a 1 b); echo ${A[b]-unset}", "\n"},
 	{
 		"a=(1 2); declare -A a; echo st=$?; declare -p a",
-		"st=0\ndeclare -A a=()\n #JUSTERR",
+		"declare: a: cannot convert indexed to associative array\nst=1\ndeclare -a a=([0]=\"1\" [1]=\"2\")\n #JUSTERR",
 	},
 	{
 		"declare -A m=([k]=v); declare -a m; echo st=$?; declare -p m",
-		"st=0\ndeclare -A m=([k]=\"v\")\n #JUSTERR",
+		"declare: m: cannot convert associative to indexed array\nst=1\ndeclare -A m=([k]=\"v\")\n #JUSTERR",
 	},
 	{
 		"a=(1); a[-5]=x; echo after",
-		"a: bad array subscript\nexit status 1 #JUSTERR",
+		"a[-5]: bad array subscript\nexit status 1 #JUSTERR",
 	},
 	{
 		"declare -A A; A=([k]=v w); echo after",
-		"after\n #JUSTERR",
+		"A: w: must use subscript when assigning associative array\nexit status 1 #JUSTERR",
 	},
-	// A subshell modifies the parent's array in place.
-	{"a=(x y); (a+=Z); echo ${a[@]}", "xZ y\n #IGNORE assignments ignore the variable's kind"},
-	{"a=(x y); (a[0]+=Z); echo ${a[@]}", "xZ y\n #IGNORE assignments ignore the variable's kind"},
+	// A subshell modifies a copy of an array.
+	{"a=(x y); (a+=Z); echo ${a[@]}", "x y\n"},
+	{"a=(x y); (a[0]+=Z); echo ${a[@]}", "x y\n"},
 	{"declare -A A=([k]=v); (A[k]+=w); echo ${A[k]}", "v\n"},
 	// A prefix assignment starts from the string value.
 	{"x=1; x+=2 $ENV_PROG | grep '^x='; echo $x", "x=12\n1\n"},
@@ -5021,9 +5021,8 @@ hello otter
 		"+ set +x\nhi\n",
 	},
 	{
-		// TODO: bash prints `a[1]=z`, including the subscript.
 		`set -x; a=(x y); a[1]=z`,
-		"+ a=(x y)\n+ a=z\n #IGNORE",
+		"+ a=(x y)\n+ a[1]=z\n",
 	},
 	{
 		// TODO: bash prints `a+=bar`, that is, the value being appended

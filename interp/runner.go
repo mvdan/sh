@@ -513,8 +513,11 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 				// TODO: there is likely a better way to do this.
 				prev.Local = false
 
-				name, vr := r.assignVal(name, prev, as, "")
-				if r.setVarWithIndex(prev, name, as.Index, vr) != nil {
+				name, vr, err := r.assignVal(name, prev, as, "")
+				if err == nil {
+					err = r.setVar(name, vr)
+				}
+				if err != nil {
 					// Like Bash, an assignment error such as writing to a
 					// read-only variable exits a non-interactive shell.
 					r.exit.code = 1
@@ -528,9 +531,9 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 
 				// Strangely enough, it seems like Bash prints original
 				// source for arrays, but the expanded value otherwise.
-				// Note that, unlike bash, we print neither the subscript
-				// in `x[i]=y` nor just the appended value in `x+=y`.
-				if as.Array != nil {
+				// We do the same for element assignments like `x[i]=y`,
+				// and unlike bash, we print the entire value in `x+=y`.
+				if as.Array != nil || as.Index != nil {
 					trace.expr(as)
 				} else if as.Value != nil {
 					trace.stringf("%s=%s", name, quoteBash(vr.String()))
@@ -560,7 +563,15 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 				name, prev = n, v
 			}
 
-			name, vr := r.assignVal(name, prev, as, "")
+			// Like Bash, the temporary variable starts from the string
+			// value, so that x+=y appends and arrays are replaced.
+			scalar := prev
+			scalar.Kind, scalar.Str = expand.String, prev.String()
+			scalar.List, scalar.Indexes, scalar.Map = nil, nil, nil
+			name, vr, err := r.assignVal(name, scalar, as, "")
+			if err != nil {
+				continue
+			}
 			// Inline command vars are always exported.
 			vr.Exported = true
 
@@ -876,12 +887,12 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 					vr = expand.Variable{Exported: vr.Exported}
 				}
 				switch {
-				case valType == "-A":
-					vr.Kind = expand.Associative
-				case valType == "-a" && (vr.Kind == expand.Unknown || vr.Kind == expand.String):
-					// Like Bash, a string value becomes the first element.
-					vr.List, vr.Indexes = indexedElems(vr)
-					vr.Kind, vr.Str = expand.Indexed, ""
+				case valType == "-a" || valType == "-A":
+					var err error
+					if vr, err = r.convertKind(name, vr, valType); err != nil {
+						r.exit.code = 1
+						continue
+					}
 				case newLocal || !vr.Declared():
 					// Like Bash, declare a string variable without a value.
 					vr.Kind = expand.String
@@ -889,7 +900,11 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 					vr.Kind = expand.KeepValue
 				}
 			} else {
-				name, vr = r.assignVal(name, vr, as, valType)
+				var err error
+				if name, vr, err = r.assignVal(name, vr, as, valType); err != nil {
+					r.exit.code = 1
+					continue
+				}
 			}
 			if global {
 				vr.Local = false

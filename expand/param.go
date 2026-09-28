@@ -498,11 +498,9 @@ func (e *expander) varInd(vr Variable, idx syntax.ArithmExpr) (string, bool, err
 		if err != nil {
 			return "", false, err
 		}
-		if i < 0 {
-			// Negative indices count from one past the maximum index.
-			if i += internal.IndexedMax(vr.List, vr.Indexes) + 1; i < 0 {
-				return "", false, fmt.Errorf("negative array index")
-			}
+		i, ok := internal.IndexedAbs(vr.List, vr.Indexes, i)
+		if !ok {
+			return "", false, fmt.Errorf("negative array index")
 		}
 		if str, ok := vr.indexedVal(i); ok {
 			return str, true, nil
@@ -566,11 +564,9 @@ func (e *expander) assignElem(name string, vr Variable, idx syntax.ArithmExpr, v
 			if i, err = e.arithm(idx); err != nil {
 				return err
 			}
-			if i < 0 {
-				// Negative indices count from one past the maximum index.
-				if i += internal.IndexedMax(vr.List, vr.Indexes) + 1; i < 0 {
-					return fmt.Errorf("negative array index")
-				}
+			var ok bool
+			if i, ok = internal.IndexedAbs(vr.List, vr.Indexes, i); !ok {
+				return fmt.Errorf("negative array index")
 			}
 		}
 		list, indexes := slices.Clone(vr.List), slices.Clone(vr.Indexes)

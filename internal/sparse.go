@@ -19,6 +19,30 @@ func IndexedMax(list []string, indexes []int) int {
 	return len(list) - 1
 }
 
+// IndexedAbs returns index k of an indexed array, where a negative k counts
+// back from one past the maximum index. ok is false if the result is still
+// negative.
+func IndexedAbs(list []string, indexes []int, k int) (_ int, ok bool) {
+	if k < 0 {
+		k += IndexedMax(list, indexes) + 1
+	}
+	return k, k >= 0
+}
+
+// IndexedElem returns the element of an indexed array at index k.
+func IndexedElem(list []string, indexes []int, k int) (string, bool) {
+	if indexes != nil {
+		if pos, ok := slices.BinarySearch(indexes, k); ok {
+			return list[pos], true
+		}
+		return "", false
+	}
+	if k >= 0 && k < len(list) {
+		return list[k], true
+	}
+	return "", false
+}
+
 // SetIndexedElem returns list and indexes with the element at index k set,
 // converting a dense array to a sparse one when setting index k would
 // otherwise leave a hole. The index k must not be negative.

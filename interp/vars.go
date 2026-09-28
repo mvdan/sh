@@ -304,56 +304,6 @@ func (r *Runner) setVarErr(name string, vr expand.Variable) error {
 	return nil
 }
 
-// setVarWithIndex sets a variable or one of its elements, handling errors
-// like [Runner.varErr].
-func (r *Runner) setVarWithIndex(prev expand.Variable, name string, index syntax.ArithmExpr, vr expand.Variable) error {
-	if vr.Kind == expand.String && index == nil {
-		// When assigning a string to an array, fall back to the
-		// zero value for the index.
-		switch prev.Kind {
-		case expand.Indexed:
-			index = &syntax.Word{Parts: []syntax.WordPart{
-				&syntax.Lit{Value: "0"},
-			}}
-		case expand.Associative:
-			index = &syntax.Word{Parts: []syntax.WordPart{
-				&syntax.DblQuoted{},
-			}}
-		}
-	}
-	if index == nil {
-		return r.setVar(name, vr)
-	}
-	list, indexes := indexedElems(prev)
-	prev.Set = true
-
-	// from the syntax package, we know that value must be a string if index
-	// is non-nil; nested arrays are forbidden.
-	valStr := vr.Str
-
-	if prev.Kind == expand.Associative {
-		// TODO: only clone when inside a subshell and getting a var from outside for the first time
-		prev.Map = maps.Clone(prev.Map)
-		if prev.Map == nil {
-			prev.Map = make(map[string]string)
-		}
-		prev.Map[r.assocKey(index)] = valStr
-		return r.setVar(name, prev)
-	}
-	k := r.arithm(index)
-	if k < 0 {
-		// Negative indices count from one past the maximum index.
-		if k += internal.IndexedMax(list, indexes) + 1; k < 0 {
-			return r.failVar("%s: bad array subscript", name)
-		}
-	}
-	list, indexes = internal.SetIndexedElem(list, indexes, k, valStr)
-	prev.Kind = expand.Indexed
-	prev.List = list
-	prev.Indexes = indexes
-	return r.setVar(name, prev)
-}
-
 // cutElemSubscript splits an array element argument like `a[3]`, as used by
 // the unset builtin, into the array name and the subscript between brackets.
 func cutElemSubscript(arg string) (name, sub string, ok bool) {
@@ -384,12 +334,9 @@ func (r *Runner) unsetElem(name, sub string) error {
 		if expr == nil {
 			return nil // an empty subscript like `unset 'a[]'` is a no-op
 		}
-		k := r.arithm(expr)
-		if k < 0 {
-			// Negative indices count from one past the maximum index.
-			if k += internal.IndexedMax(vr.List, vr.Indexes) + 1; k < 0 {
-				return r.failVar("unset: %s[%s]: bad array subscript", name, sub)
-			}
+		k, ok := internal.IndexedAbs(vr.List, vr.Indexes, r.arithm(expr))
+		if !ok {
+			return r.failVar("unset: %s[%s]: bad array subscript", name, sub)
 		}
 		// TODO: only clone when inside a subshell and getting a var from outside for the first time
 		vr.List = slices.Clone(vr.List)
@@ -453,63 +400,118 @@ func indexedElems(vr expand.Variable) ([]string, []int) {
 	return nil, nil
 }
 
-func (r *Runner) assignVal(name string, prev expand.Variable, as *syntax.Assign, valType string) (string, expand.Variable) {
+// convertKind converts a variable to the kind given by a declaration flag
+// like -a or -A, if any, like Bash does: a string becomes the first
+// element, whereas an array cannot be converted to the other kind of array.
+// Errors are handled like in [Runner.delVar].
+func (r *Runner) convertKind(name string, vr expand.Variable, valType string) (expand.Variable, error) {
+	switch valType {
+	case "-a":
+		switch vr.Kind {
+		case expand.Associative:
+			return vr, r.failVar("declare: %s: cannot convert associative to indexed array", name)
+		case expand.Indexed:
+		default:
+			vr.List, vr.Indexes = indexedElems(vr)
+			vr.Kind, vr.Str = expand.Indexed, ""
+		}
+	case "-A":
+		switch vr.Kind {
+		case expand.Indexed:
+			return vr, r.failVar("declare: %s: cannot convert indexed to associative array", name)
+		case expand.Associative:
+		default:
+			if vr.IsSet() {
+				vr.Map = map[string]string{"0": vr.Str}
+			}
+			vr.Kind, vr.Str = expand.Associative, ""
+		}
+	}
+	return vr, nil
+}
+
+// assignVal computes a variable's new value for an assignment word like
+// x=y, x+=y, x[i]=y, x=(a b), or x+=(a b), given its current value.
+// valType is "-a", "-A", or "-n" when a declaration builtin gives the kind.
+// The name is returned too, as a nameref is resolved first.
+// Errors are handled like in [Runner.delVar].
+func (r *Runner) assignVal(name string, prev expand.Variable, as *syntax.Assign, valType string) (string, expand.Variable, error) {
 	if n, v := prev.Resolve(r.writeEnv); n != "" {
 		name, prev = n, v
 	}
-	// The base array which the new elements are set on; empty unless
-	// we are appending to an existing value.
-	var list []string
-	var indexes []int
-	if as.Array != nil && as.Append {
-		list, indexes = indexedElems(prev)
+	prev, err := r.convertKind(name, prev, valType)
+	if err != nil {
+		return name, prev, err
+	}
+	if as.Array != nil {
+		prev, err := r.assignArray(name, prev, as)
+		return name, prev, err
+	}
+	// A scalar value like x=y or x[i]+=y; `x=` has no value at all.
+	str := ""
+	if as.Value != nil {
+		str = r.literal(as.Value)
+	}
+	switch {
+	case valType == "-n":
+		prev.Kind, prev.Str = expand.NameRef, str
+	case prev.Kind == expand.Associative:
+		key := "0"
+		if as.Index != nil {
+			key = r.assocKey(as.Index)
+		}
+		// TODO: only clone when inside a subshell and getting a var from outside for the first time
+		prev.Map = maps.Clone(prev.Map)
+		if prev.Map == nil {
+			prev.Map = make(map[string]string)
+		}
+		if as.Append {
+			str = prev.Map[key] + str
+		}
+		prev.Map[key] = str
+	case prev.Kind == expand.Indexed || as.Index != nil:
+		// Assigning to an element, where a plain x=y sets the first one.
+		list, indexes := indexedElems(prev)
+		k := 0
+		if as.Index != nil {
+			var ok bool
+			if k, ok = internal.IndexedAbs(list, indexes, r.arithm(as.Index)); !ok {
+				return name, prev, r.failVar("%s[%s]: bad array subscript", name, r.assocKey(as.Index))
+			}
+		}
+		if as.Append {
+			old, _ := internal.IndexedElem(list, indexes, k)
+			str = old + str
+		}
+		list, indexes = internal.SetIndexedElem(list, indexes, k, str)
+		prev.Kind, prev.Str = expand.Indexed, ""
+		prev.List, prev.Indexes = list, indexes
+	default:
+		if as.Append && prev.Kind == expand.String {
+			str = prev.Str + str
+		}
+		prev.Kind, prev.Str = expand.String, str
 	}
 	prev.Set = true
-	if as.Value != nil {
-		s := r.literal(as.Value)
-		if !as.Append {
-			prev.Kind = expand.String
-			if valType == "-n" {
-				prev.Kind = expand.NameRef
-			}
-			prev.Str = s
-			return name, prev
-		}
-		switch prev.Kind {
-		case expand.String, expand.Unknown:
-			prev.Kind = expand.String
-			prev.Str += s
-		case expand.Indexed:
-			// Appends to the element at index 0, creating it if unset.
-			if len(prev.List) > 0 && (prev.Indexes == nil || prev.Indexes[0] == 0) {
-				prev.List[0] += s
-			} else {
-				prev.List, prev.Indexes = internal.SetIndexedElem(prev.List, prev.Indexes, 0, s)
-			}
-		case expand.Associative:
-			// TODO
-		}
-		return name, prev
-	}
-	if as.Array == nil {
-		// don't return the zero value, as that's an unset variable
-		prev.Kind = expand.String
-		if valType == "-n" {
-			prev.Kind = expand.NameRef
-		}
-		prev.Str = ""
-		return name, prev
-	}
-	// Array assignment.
+	return name, prev, nil
+}
+
+// assignArray implements [Runner.assignVal] for an array value.
+func (r *Runner) assignArray(name string, prev expand.Variable, as *syntax.Assign) (expand.Variable, error) {
 	elems := as.Array.Elems
-	if valType == "" {
-		valType = "-a" // indexed
-		if len(elems) > 0 && stringIndex(elems[0].Index) {
-			valType = "-A" // associative
-		}
+	assoc := prev.Kind == expand.Associative
+	if prev.Kind == expand.Unknown && len(elems) > 0 && stringIndex(elems[0].Index) {
+		assoc = true // a quoted subscript like x=(["k"]=v)
 	}
-	if valType == "-A" {
-		amap := make(map[string]string, len(elems))
+	if assoc {
+		var amap map[string]string
+		if as.Append {
+			// TODO: only clone when inside a subshell and getting a var from outside for the first time
+			amap = maps.Clone(prev.Map)
+		}
+		if amap == nil {
+			amap = make(map[string]string, len(elems))
+		}
 		if len(elems) > 0 && elems[0].Index == nil {
 			// Like Bash, words without subscripts are key-value pairs,
 			// and a subscripted word like [k]=v is taken as a whole.
@@ -528,24 +530,22 @@ func (r *Runner) assignVal(name string, prev expand.Variable, as *syntax.Assign,
 		} else {
 			for _, elem := range elems {
 				if elem.Index == nil {
-					r.errf("%s: %s: must use subscript when assigning associative array\n", name, r.literal(elem.Value))
-					r.exit.code = 1
-					break
+					return prev, r.failVar("%s: %s: must use subscript when assigning associative array", name, r.literal(elem.Value))
 				}
 				amap[r.assocKey(elem.Index)] = r.literal(elem.Value)
 			}
 		}
-		if !as.Append {
-			prev.Kind = expand.Associative
-			prev.Map = amap
-			return name, prev
-		}
-		// TODO
-		return name, prev
+		prev.Kind, prev.Str = expand.Associative, ""
+		prev.Map = amap
+		prev.Set = true
+		return prev, nil
 	}
-	if as.Append && prev.Kind == expand.Associative {
-		// TODO
-		return name, prev
+	// The base array which the new elements are set on; empty unless
+	// we are appending to an existing value.
+	var list []string
+	var indexes []int
+	if as.Append {
+		list, indexes = indexedElems(prev)
 	}
 	// Evaluate values for each array element. An explicit index like
 	// [5]=x resets our index counter, which otherwise advances for every
@@ -554,14 +554,9 @@ func (r *Runner) assignVal(name string, prev expand.Variable, as *syntax.Assign,
 	for _, elem := range elems {
 		if elem.Index != nil {
 			// Index resets our index with a literal value.
-			index = r.arithm(elem.Index)
-			if index < 0 {
-				// Negative indices count from one past the maximum index.
-				if index += internal.IndexedMax(list, indexes) + 1; index < 0 {
-					r.errf("%s: bad array subscript\n", name)
-					r.exit.code = 1
-					break
-				}
+			var ok bool
+			if index, ok = internal.IndexedAbs(list, indexes, r.arithm(elem.Index)); !ok {
+				return prev, r.failVar("%s: bad array subscript", name)
 			}
 			list, indexes = internal.SetIndexedElem(list, indexes, index, r.literal(elem.Value))
 			index++
@@ -577,8 +572,8 @@ func (r *Runner) assignVal(name string, prev expand.Variable, as *syntax.Assign,
 		// An empty array like a=() must still expand to zero fields.
 		list = []string{}
 	}
-	prev.Kind = expand.Indexed
-	prev.List = list
-	prev.Indexes = indexes
-	return name, prev
+	prev.Kind, prev.Str = expand.Indexed, ""
+	prev.List, prev.Indexes = list, indexes
+	prev.Set = true
+	return prev, nil
 }
