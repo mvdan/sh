@@ -319,6 +319,8 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 				str = strings.ToLower(str)
 			case "K", "k":
 				// TODO: implement, like @A but listing keys for assoc arrays.
+			case "#": // mksh's hash of the value
+				return "", fmt.Errorf("unsupported")
 			default:
 				panic(fmt.Sprintf("unexpected @%s param expansion", arg))
 			}

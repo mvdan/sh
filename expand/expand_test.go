@@ -13,9 +13,9 @@ import (
 	"mvdan.cc/sh/v3/syntax"
 )
 
-func parseWord(t *testing.T, src string) *syntax.Word {
+func parseWord(t *testing.T, src string, opts ...syntax.ParserOption) *syntax.Word {
 	t.Helper()
-	p := syntax.NewParser()
+	p := syntax.NewParser(opts...)
 	word, err := p.Document(strings.NewReader(src))
 	if err != nil {
 		t.Fatal(err)
@@ -62,6 +62,13 @@ func TestConfigNils(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestMirBSDKornHash(t *testing.T) {
+	t.Parallel()
+	word := parseWord(t, "${foo@#}", syntax.Variant(syntax.LangMirBSDKorn))
+	_, err := Literal(nil, word)
+	qt.Assert(t, qt.ErrorMatches(err, "unsupported"))
 }
 
 func TestFieldsIdempotency(t *testing.T) {
