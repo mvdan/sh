@@ -757,6 +757,34 @@ var runTests = []runTest{
 		"3\n",
 	},
 	{
+		`export INTERP_X_1; readonly INTERP_X_2; echo "[${!INTERP_X_*}]"`,
+		"[INTERP_X_1 INTERP_X_2]\n #IGNORE unset variables are listed",
+	},
+	{
+		`INTERP_X_1=a; unset INTERP_X_1; echo "[${!INTERP_X_*}]"`,
+		"[INTERP_X_1]\n #IGNORE unset variables are listed",
+	},
+	{
+		`unset INTERP_GLOBAL; echo "[${!INTERP_*}]"`,
+		"[INTERP_GLOBAL INTERP_GLOBAL]\n #IGNORE unset variables are listed",
+	},
+	{
+		`INTERP_X_1=a; f() { local INTERP_X_1=b; echo ${!INTERP_X_*}; }; f`,
+		"INTERP_X_1 INTERP_X_1\n #IGNORE shadowed variables are listed twice",
+	},
+	{
+		`INTERP_X_1=a; f() { local INTERP_X_1; echo ${!INTERP_X_*}; }; f`,
+		"INTERP_X_1 INTERP_X_1\n #IGNORE shadowed variables are listed twice",
+	},
+	{
+		`f() { local INTERP_X_1=a; unset INTERP_X_1; echo "[${!INTERP_X_*}]"; }; f`,
+		"[INTERP_X_1]\n #IGNORE unset variables are listed",
+	},
+	{
+		`INTERP_X_1[3]=a; declare -A INTERP_X_2; INTERP_X_2[k]=b; mapfile INTERP_X_3 </dev/null; echo ${!INTERP_X_*}`,
+		"INTERP_X_1 INTERP_X_2 INTERP_X_3\n",
+	},
+	{
 		`a='b  c'; eval "echo -n ${a} ${a@Q}"`,
 		`b c b  c`,
 	},
@@ -797,6 +825,18 @@ var runTests = []runTest{
 	{
 		`export e=1; echo "${e@A}"`,
 		"declare -x e=1\n #IGNORE bash always single-quotes",
+	},
+	{
+		`export e; echo "[${e@A}]"`,
+		"[declare -x e='']\n #IGNORE unset variables are printed with a value",
+	},
+	{
+		`a=1; unset a; echo "[${a@A}]"`,
+		"[a='']\n #IGNORE unset variables are printed with a value",
+	},
+	{
+		`a=(); echo "[${a@A}]"`,
+		"[declare -a a='']\n #IGNORE unset variables are printed with a value",
 	},
 	{
 		`a=Hello; echo "${a@U}"`,
@@ -879,6 +919,22 @@ var runTests = []runTest{
 	{
 		`readonly c=immutable; declare -p c`,
 		"declare -r c=\"immutable\"\n",
+	},
+	{
+		`export e; declare -p e`,
+		"declare -x e=\"\"\n #IGNORE unset variables are printed with a value",
+	},
+	{
+		`declare -A m; declare -p m`,
+		"declare -A m=()\n #IGNORE unset variables are printed with a value",
+	},
+	{
+		`f() { local l; declare -p l; }; f`,
+		"declare -- l=\"\"\n #IGNORE unset variables are printed with a value",
+	},
+	{
+		`mapfile a </dev/null; declare -p a`,
+		"declare -a a=()\n",
 	},
 	{
 		`declare -p nonexistent 2>/dev/null; echo "exit: $?"`,
