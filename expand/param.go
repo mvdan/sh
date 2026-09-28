@@ -14,6 +14,7 @@ import (
 	"unicode/utf8"
 
 	"mvdan.cc/sh/v3/internal"
+	"mvdan.cc/sh/v3/internal/arithm"
 	"mvdan.cc/sh/v3/pattern"
 	"mvdan.cc/sh/v3/syntax"
 )
@@ -23,6 +24,11 @@ func nodeLit(node syntax.Node) string {
 		return word.Lit()
 	}
 	return ""
+}
+
+// assocKey expands an associative array subscript into its key.
+func (cfg *Config) assocKey(idx syntax.ArithmExpr) (string, error) {
+	return Literal(cfg, arithm.Word(idx))
 }
 
 // UnsetParameterError is returned when a parameter expansion encounters an
@@ -505,7 +511,7 @@ func (cfg *Config) varInd(vr Variable, idx syntax.ArithmExpr) (string, bool, err
 			}
 			return strings.Join(strs, " "), vr.IsSet(), nil
 		}
-		val, err := Literal(cfg, idx.(*syntax.Word))
+		val, err := cfg.assocKey(idx)
 		if err != nil {
 			return "", false, err
 		}
@@ -539,7 +545,7 @@ func (cfg *Config) assignElem(name string, vr Variable, idx syntax.ArithmExpr, v
 		key := "0"
 		if idx != nil {
 			var err error
-			if key, err = Literal(cfg, idx.(*syntax.Word)); err != nil {
+			if key, err = cfg.assocKey(idx); err != nil {
 				return err
 			}
 		}

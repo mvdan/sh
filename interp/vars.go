@@ -18,6 +18,7 @@ import (
 
 	"mvdan.cc/sh/v3/expand"
 	"mvdan.cc/sh/v3/internal"
+	"mvdan.cc/sh/v3/internal/arithm"
 	"mvdan.cc/sh/v3/syntax"
 )
 
@@ -322,20 +323,12 @@ func (r *Runner) setVarWithIndex(prev expand.Variable, name string, index syntax
 	valStr := vr.Str
 
 	if prev.Kind == expand.Associative {
-		// if the existing variable is already an AssocArray, try our
-		// best to convert the key to a string
-		w, ok := index.(*syntax.Word)
-		if !ok {
-			return
-		}
-		k := r.literal(w)
-
 		// TODO: only clone when inside a subshell and getting a var from outside for the first time
 		prev.Map = maps.Clone(prev.Map)
 		if prev.Map == nil {
 			prev.Map = make(map[string]string)
 		}
-		prev.Map[k] = valStr
+		prev.Map[r.assocKey(index)] = valStr
 		r.setVar(name, prev)
 		return
 	}
@@ -428,6 +421,11 @@ func (r *Runner) setFunc(name string, body *syntax.Stmt) {
 	r.Funcs[name] = body
 }
 
+// assocKey expands an associative array subscript into its key.
+func (r *Runner) assocKey(index syntax.ArithmExpr) string {
+	return r.literal(arithm.Word(index))
+}
+
 func stringIndex(index syntax.ArithmExpr) bool {
 	w, ok := index.(*syntax.Word)
 	if !ok || len(w.Parts) != 1 {
@@ -513,7 +511,7 @@ func (r *Runner) assignVal(name string, prev expand.Variable, as *syntax.Assign,
 	if valType == "-A" {
 		amap := make(map[string]string, len(elems))
 		for _, elem := range elems {
-			k := r.literal(elem.Index.(*syntax.Word))
+			k := r.assocKey(elem.Index)
 			amap[k] = r.literal(elem.Value)
 		}
 		if !as.Append {
