@@ -272,9 +272,7 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 			case "Q":
 				str, err = syntax.Quote(str, syntax.LangBash)
 				if err != nil {
-					// Is this even possible? If a user runs into this panic,
-					// it's most likely a bug we need to fix.
-					panic(err)
+					return "", err
 				}
 			case "E":
 				tail := str

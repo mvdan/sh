@@ -419,6 +419,10 @@ var runTests = []runTest{
 		"before before",
 	},
 	{
+		`printf 'a\0b' | { read -r x; echo "${x@Q}"; }`,
+		"cannot quote character at byte 1: shell strings cannot contain null bytes\n #IGNORE bash drops null bytes when reading",
+	},
+	{
 		"i\x00f true; then echo before\x00; \x00fi",
 		"before\n",
 	},
