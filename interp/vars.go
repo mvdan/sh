@@ -510,9 +510,30 @@ func (r *Runner) assignVal(name string, prev expand.Variable, as *syntax.Assign,
 	}
 	if valType == "-A" {
 		amap := make(map[string]string, len(elems))
-		for _, elem := range elems {
-			k := r.assocKey(elem.Index)
-			amap[k] = r.literal(elem.Value)
+		if len(elems) > 0 && elems[0].Index == nil {
+			// Like Bash, words without subscripts are key-value pairs,
+			// and a subscripted word like [k]=v is taken as a whole.
+			var key string
+			for i, elem := range elems {
+				word := r.literal(elem.Value)
+				if elem.Index != nil {
+					word = "[" + r.assocKey(elem.Index) + "]=" + word
+				}
+				if i%2 == 0 {
+					key, amap[word] = word, ""
+				} else {
+					amap[key] = word
+				}
+			}
+		} else {
+			for _, elem := range elems {
+				if elem.Index == nil {
+					r.errf("%s: %s: must use subscript when assigning associative array\n", name, r.literal(elem.Value))
+					r.exit.code = 1
+					break
+				}
+				amap[r.assocKey(elem.Index)] = r.literal(elem.Value)
+			}
 		}
 		if !as.Append {
 			prev.Kind = expand.Associative
