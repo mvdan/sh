@@ -3450,6 +3450,54 @@ done <<< 2`,
 		"x=after\nbefore\n",
 	},
 	{
+		`foo=x; f() { local foo; echo "${foo+set}|${foo-unset}"; declare -p foo; }; f; declare -p foo`,
+		"set|x\ndeclare -- foo=\"x\"\ndeclare -- foo=\"x\"\n #IGNORE a new local variable keeps the outer value",
+	},
+	{
+		`export foo=x; f() { local foo; declare -p foo; $ENV_PROG >env.txt; grep '^foo=' <env.txt; foo=y; $ENV_PROG | grep '^foo='; }; f; declare -p foo`,
+		"declare -x foo=\"x\"\nfoo=x\nfoo=y\ndeclare -x foo=\"x\"\n #IGNORE a new local variable keeps the outer value",
+	},
+	{
+		`readonly foo=x; f() { local foo 2>/dev/null; echo "$? ${foo+set}"; }; f`,
+		"0 set\n #IGNORE a new local variable ignores a read-only outer variable",
+	},
+	{
+		`foo=(a b); declare -A bar=([k]=v); f() { local foo bar; declare -p foo bar; }; f; declare -p foo`,
+		"declare -a foo=([0]=\"a\" [1]=\"b\")\ndeclare -A bar=([k]=\"v\")\ndeclare -a foo=([0]=\"a\" [1]=\"b\")\n #IGNORE a new local variable keeps the outer value",
+	},
+	{
+		`foo=x; f() { declare foo; echo "${foo+set}|"; }; f; echo "$foo"`,
+		"set|\nx\n #IGNORE a new local variable keeps the outer value",
+	},
+	{
+		`foo=x; bar=x; f() { local -a foo; local -A bar; declare -p foo bar; }; f`,
+		"declare -a foo=([0]=\"x\")\ndeclare -A bar=()\n #IGNORE a new local variable keeps the outer value",
+	},
+	{
+		`export foo=x; f() { local -a foo; declare -p foo; }; f`,
+		"declare -ax foo=([0]=\"x\")\n #IGNORE a new local variable keeps the outer value",
+	},
+	{
+		`foo=x; f() { local -x foo; declare -p foo; $ENV_PROG | grep -q '^foo=' || echo none; }; f`,
+		"declare -x foo=\"x\"\n #IGNORE a new local variable keeps the outer value",
+	},
+	{
+		`foo=x; f() { local -r foo; declare -p foo; }; f`,
+		"declare -r foo=\"x\"\n #IGNORE a new local variable keeps the outer value",
+	},
+	{
+		`foo=x; f() { local foo=y; local foo; echo "$foo"; }; f`,
+		"y\n",
+	},
+	{
+		`f() { local -x foo=a; g; }; g() { local foo; echo "${foo-unset}"; $ENV_PROG >env.txt; grep '^foo=' <env.txt; }; f`,
+		"a\nfoo=a\n #IGNORE a new local variable keeps the outer value",
+	},
+	{
+		`export foo=x; f() { local foo; unset foo; $ENV_PROG >env.txt; grep '^foo=' <env.txt; }; f`,
+		"exit status 1 #IGNORE an unset local variable hides an exported outer variable",
+	},
+	{
 		"getx() { echo $X; }; f() { local X=Y; getx; echo $X; }; f",
 		"Y\nY\n",
 	},
