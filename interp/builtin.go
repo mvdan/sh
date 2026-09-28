@@ -1240,6 +1240,10 @@ func (g *getopts) next(optstr string, args []string) (opt rune, optarg string, d
 	}
 
 	opts := arg[1:]
+	if g.runeidx >= len(opts) {
+		// The arguments changed since the last call.
+		g.runeidx = 0
+	}
 	opt = opts[g.runeidx]
 
 	i := strings.IndexRune(optstr, opt)

@@ -4319,6 +4319,10 @@ done <<< 2`,
 		"a() { while getopts abc: opt; do echo $opt $OPTARG; done }; a -a -b -c arg",
 		"a\nb\nc arg\n",
 	},
+	{
+		"set -- -abc; getopts abc opt; set -- -a; getopts abc opt; echo $opt $OPTIND",
+		"a 2\n",
+	},
 	// mapfile
 	{
 		"mapfile <<EOF\na\nb\nc\nEOF\n" + `for x in "${MAPFILE[@]}"; do echo "$x"; done`,
