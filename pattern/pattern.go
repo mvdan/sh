@@ -12,6 +12,7 @@
 package pattern
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"regexp"
@@ -110,8 +111,12 @@ func Regexp(pat string, mode Mode) (string, error) {
 	sl := stringLexer{s: pat}
 	var negGroups []NegExtGlobGroup
 	for {
+		start := sl.i
 		if err := regexpNext(&sb, &sl, mode); err == io.EOF {
 			break
+		} else if err == errUnclosed {
+			// The group is now marked as unclosed; reparse it as literal text.
+			sl.i = start
 		} else if err != nil {
 			negErr, ok := err.(*NegExtGlobError)
 			if !ok {
@@ -141,6 +146,23 @@ type stringLexer struct {
 	i int
 
 	depth int // nested extended operator groups
+
+	// unclosed holds the positions of extended operator groups which reach
+	// the end of the pattern, so that reparsing them as literal text does
+	// not scan the rest of the pattern again for each one.
+	unclosed map[int]bool
+}
+
+// errUnclosed is returned by an extended operator group which reaches the end
+// of the pattern, so that the groups enclosing it know that they will as well,
+// as reparsing it as literal text would scan the same tokens to the end.
+var errUnclosed = errors.New("unclosed group")
+
+func (sl *stringLexer) markUnclosed(i int) {
+	if sl.unclosed == nil {
+		sl.unclosed = make(map[int]bool)
+	}
+	sl.unclosed[i] = true
 }
 
 func (sl *stringLexer) next() rune {
@@ -179,24 +201,26 @@ func regexpNext(sb *strings.Builder, sl *stringLexer, mode Mode) error {
 		// given that they can be one of many two-character prefixes.
 		// Note that we recurse into the same function in a loop,
 		// as each of the patterns in the list separated by '|' is a regular pattern.
-	extended:
 		switch op := c; op {
 		case '!', '?', '*', '+', '@':
 			if sl.peekNext() != '(' {
 				break
 			}
 			start := sl.i - 1 // position of the operator
+			if sl.unclosed[start] {
+				break
+			}
 			if sl.depth >= maxGroupNesting {
 				return &SyntaxError{msg: fmt.Sprintf("extended pattern nesting is deeper than %d levels", maxGroupNesting)}
 			}
 			sl.depth++
 			// Build the group separately; like Bash, an unclosed group
-			// is not an extended operator, so we reparse the operator
-			// as a regular character below and the rest as a pattern.
+			// is not an extended operator, so it is reparsed as literal text.
 			var gsb strings.Builder
 			gsb.WriteRune(sl.next()) // (
 		nestedLoop:
 			for {
+				var err error
 				switch sl.peekNext() {
 				case ')':
 					break nestedLoop
@@ -205,12 +229,15 @@ func regexpNext(sb *strings.Builder, sl *stringLexer, mode Mode) error {
 					gsb.WriteRune(sl.next())
 					continue
 				case '\x00':
-					sl.depth--
-					sl.i = start + 1
-					break extended
+					err = errUnclosed
+				default:
+					err = regexpNext(&gsb, sl, mode)
 				}
-				if err := regexpNext(&gsb, sl, mode); err != nil {
+				if err != nil {
 					sl.depth--
+					if err == errUnclosed {
+						sl.markUnclosed(start)
+					}
 					return err
 				}
 			}

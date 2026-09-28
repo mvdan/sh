@@ -291,6 +291,22 @@ var regexpTests = []struct {
 		pat: strings.Repeat("@(", 1<<20) + strings.Repeat(")", 1<<20), mode: ExtendedOperators,
 		wantErr: `^extended pattern nesting is deeper than 1000 levels$`,
 	},
+	{
+		pat: `@(a|@(b|@(c)`, mode: ExtendedOperators | EntireString, want: `(?s)^@\(a\|@\(b\|(c)$`,
+		mustMatch: []string{"@(a|@(b|c"},
+	},
+	{
+		pat: `@(@(a)|@(b`, mode: ExtendedOperators | EntireString, want: `(?s)^@\((a)\|@\(b$`,
+		mustMatch: []string{"@(a|@(b"},
+	},
+	{
+		pat: `@(@(a)|@(b))`, mode: ExtendedOperators | EntireString, want: `(?s)^((a)|(b))$`,
+		mustMatch: []string{"a", "b"},
+	},
+	{
+		pat: strings.Repeat("@(a|", 900), mode: ExtendedOperators | EntireString,
+		want: "(?s)^" + strings.Repeat(`@\(a\|`, 900) + "$",
+	},
 	{pat: `[[:digit`, wantErr: `^charClass invalid$`},
 	{pat: `[[:wrong:]]`, wantErr: `^charClass invalid$`},
 	{pat: `[[=x=]]`, wantErr: `^charClass invalid$`},

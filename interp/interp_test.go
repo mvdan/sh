@@ -3984,6 +3984,10 @@ done <<< 2`,
 		`p='@(' q=')'; for i in {1..11}; do p=$p$p q=$q$q; done; [[ x == $p$q ]]; echo $?`,
 		"1\n",
 	},
+	{
+		`p='@(a|'; for i in {1..9}; do p=$p$p; done; case $p in $p) echo lit;; esac; [[ x == $p ]]; echo $?`,
+		"lit\n1\n",
+	},
 	// Ensure that setting nullglob does not return invalid globs as null
 	// strings.
 	{
