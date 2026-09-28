@@ -173,7 +173,8 @@ type Runner struct {
 	callDepth, evalDepth int
 
 	// stmtDepth counts the nested statements being run, including via
-	// function calls or command substitutions,
+	// function calls or command substitutions, as well as the nesting of
+	// test expressions and expansions surrounding them,
 	// to stop deep nesting or recursion before it overflows the Go stack.
 	stmtDepth int
 

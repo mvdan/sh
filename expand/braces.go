@@ -23,7 +23,7 @@ import (
 // error rather than letting a large sequence allocate huge amounts.
 func Braces(word *syntax.Word) []*syntax.Word {
 	var all []*syntax.Word
-	bracesSeqRec(nil, word.Parts, nil, 0, func(w *syntax.Word, err error) bool {
+	bracesSeqRec(nil, word.Parts, nil, 0, func(w *syntax.Word, _ int, err error) bool {
 		if err != nil {
 			return false
 		}
@@ -45,23 +45,31 @@ func Braces(word *syntax.Word) []*syntax.Word {
 // Note that the resulting words may share word parts.
 func BracesSeq(cfg *Config, word *syntax.Word) iter.Seq2[*syntax.Word, error] {
 	return func(yield func(*syntax.Word, error) bool) {
-		// 16Ki expanded elements is more than any script should need in practice,
-		// but it's small enough where we don't waste too much memory and CPU.
-		const limit = 16 << 10
-		count := 0
-		bracesSeqRec(nil, word.Parts, nil, 0, func(w *syntax.Word, err error) bool {
-			if err != nil {
-				yield(nil, err)
-				return false
-			}
-			count++
-			if count > limit {
-				yield(nil, fmt.Errorf("brace expansion would exceed %d elements", limit))
-				return false
-			}
-			return yield(w, nil)
+		bracesSeq(word, func(w *syntax.Word, _ int, err error) bool {
+			return yield(w, err)
 		})
 	}
+}
+
+// bracesSeq implements [BracesSeq], also yielding the depth of recursion
+// at which each word is yielded. It returns false if iteration stopped early.
+func bracesSeq(word *syntax.Word, yield func(w *syntax.Word, depth int, err error) bool) bool {
+	// 16Ki expanded elements is more than any script should need in practice,
+	// but it's small enough where we don't waste too much memory and CPU.
+	const limit = 16 << 10
+	count := 0
+	return bracesSeqRec(nil, word.Parts, nil, 0, func(w *syntax.Word, depth int, err error) bool {
+		if err != nil {
+			yield(nil, depth, err)
+			return false
+		}
+		count++
+		if count > limit {
+			yield(nil, depth, fmt.Errorf("brace expansion would exceed %d elements", limit))
+			return false
+		}
+		return yield(w, depth, nil)
+	})
 }
 
 // maxBraceDepth is how many brace expansions may apply to each word,
@@ -82,7 +90,7 @@ type braceRest struct {
 //
 // Siblings share the backing array of prefix, so that building each word
 // takes time proportional to its length rather than to its depth.
-func bracesSeqRec(prefix, parts []syntax.WordPart, rest *braceRest, depth int, yield func(*syntax.Word, error) bool) bool {
+func bracesSeqRec(prefix, parts []syntax.WordPart, rest *braceRest, depth int, yield func(*syntax.Word, int, error) bool) bool {
 	// Find the next brace expansion, moving the parts before it to prefix.
 	var br *syntax.BraceExp
 	for {
@@ -100,12 +108,12 @@ func bracesSeqRec(prefix, parts []syntax.WordPart, rest *braceRest, depth int, y
 		}
 		prefix = append(prefix, parts...)
 		if rest == nil {
-			return yield(&syntax.Word{Parts: slices.Clone(prefix)}, nil)
+			return yield(&syntax.Word{Parts: slices.Clone(prefix)}, depth, nil)
 		}
 		parts, rest = rest.parts, rest.next
 	}
 	if depth >= maxBraceDepth {
-		yield(nil, fmt.Errorf("brace expansion is deeper than %d levels", maxBraceDepth))
+		yield(nil, depth, fmt.Errorf("brace expansion is deeper than %d levels", maxBraceDepth))
 		return false
 	}
 	expand := func(elem ...syntax.WordPart) bool {

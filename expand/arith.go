@@ -25,6 +25,13 @@ func Arithm(cfg *Config, expr syntax.ArithmExpr) (int, error) {
 }
 
 func (e *expander) arithm(expr syntax.ArithmExpr) (int, error) {
+	e.depth++
+	n, err := e.arithmExpr(expr)
+	e.depth--
+	return n, err
+}
+
+func (e *expander) arithmExpr(expr syntax.ArithmExpr) (int, error) {
 	switch expr := expr.(type) {
 	case *syntax.Word:
 		str, err := e.literal(expr)

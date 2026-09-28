@@ -1620,6 +1620,30 @@ var runTests = []runTest{
 		"statement nesting is deeper than 10000 levels #IGNORE bash has no limit by default",
 	},
 	{
+		`o='(' c=')'; for i in {1..12}; do o=$o$o c=$c$c; done; eval "f() { echo \$(( $o\$(f)$c )); }"; f 2>err; read -r l <err; echo "$l"`,
+		"statement nesting is deeper than 10000 levels\n #IGNORE bash has no limit by default",
+	},
+	{
+		`o='${x:-' c='}'; for i in {1..13}; do o=$o$o c=$c$c; done; eval "f() { echo \"$o\$(f)$c\"; }"; f 2>err; read -r l <err; echo "$l"`,
+		"statement nesting is deeper than 10000 levels\n #IGNORE bash has no limit by default",
+	},
+	{
+		`o='! '; for i in {1..13}; do o=$o$o; done; eval "f() { [[ $o\$(f) ]]; }"; f 2>err; read -r l <err; echo "$l"`,
+		"statement nesting is deeper than 10000 levels\n #IGNORE bash has no limit by default",
+	},
+	{
+		`o='${x:-' c='}'; for i in {1..13}; do o=$o$o c=$c$c; done; eval "f() { echo \"$o\$(<\"\$(f)\")$c\"; }"; f 2>err; read -r l <err; echo "$l"`,
+		"statement nesting is deeper than 10000 levels\n #IGNORE bash has no limit by default",
+	},
+	{
+		`o={ c=,c}; for i in {1..13}; do o=$o$o c=$c$c; done; eval "f() { echo $o{a,b\$(f)}$c; }"; f 2>err; read -r l <err; echo "$l"`,
+		"statement nesting is deeper than 10000 levels\n #IGNORE bash has no limit by default",
+	},
+	{
+		`f() { if (($1 > 0)); then echo $(( $(f $(($1 - 1))) + 1 )); else echo 0; fi; }; f 200`,
+		"200\n",
+	},
+	{
 		`set -- '!'; for i in {1..14}; do set -- "$@" "$@"; done; test "$@" x`,
 		"1:58: nesting is deeper than 10000 levels\nexit status 2 #IGNORE bash has no limit",
 	},

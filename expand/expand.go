@@ -47,6 +47,9 @@ type Config struct {
 	// variables.
 	Env Environ
 
+	// TODO(v4): pass the nesting depth to CmdSubst explicitly,
+	// rather than via the writer implementing [internal.NestingWriter].
+
 	// CmdSubst expands a command substitution node, writing its standard
 	// output to the provided [io.Writer].
 	//
@@ -126,7 +129,19 @@ type expander struct {
 	// A pointer to a parameter expansion node, if we're inside one.
 	// Necessary for ${LINENO}.
 	curParam *syntax.ParamExp
+
+	// depth counts the levels of recursion in the expansion,
+	// reported to [Config.CmdSubst] via [internal.NestingWriter].
+	depth int
 }
+
+// nestingWriter is the [internal.NestingWriter] given to [Config.CmdSubst].
+type nestingWriter struct {
+	*strings.Builder
+	depth int
+}
+
+func (w nestingWriter) Nesting() int { return w.depth }
 
 // expanderPool avoids allocating an expander for each expansion call,
 // as the interpreter makes many of them.
@@ -585,14 +600,18 @@ func (e *expander) fieldsSeq(words []*syntax.Word, yield func(string, error) boo
 			}
 			continue
 		}
-		for w, err := range BracesSeq(&e.Config, &word) {
+		if !bracesSeq(&word, func(w *syntax.Word, depth int, err error) bool {
 			if err != nil {
 				yield("", err)
-				return
+				return false
 			}
-			if expandWord(w) {
-				return
-			}
+			// Each word is expanded within the recursion of brace expansion.
+			e.depth += depth
+			stop := expandWord(w)
+			e.depth -= depth
+			return !stop
+		}) {
+			return
 		}
 	}
 }
@@ -612,6 +631,8 @@ const (
 )
 
 func (e *expander) wordField(wps []syntax.WordPart, ql quoteLevel) ([]fieldPart, error) {
+	e.depth++
+	defer func() { e.depth-- }()
 	var field []fieldPart
 	for i, wp := range wps {
 		switch wp := wp.(type) {
@@ -710,7 +731,7 @@ func (e *expander) cmdSubst(cs *syntax.CmdSubst) (string, error) {
 		return "", UnexpectedCommandError{Node: cs}
 	}
 	sb := e.strBuilder()
-	if err := e.CmdSubst(sb, cs); err != nil {
+	if err := e.CmdSubst(nestingWriter{sb, e.depth}, cs); err != nil {
 		return "", err
 	}
 	out := sb.String()

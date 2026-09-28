@@ -17,6 +17,9 @@ import (
 
 // non-empty string is true, empty string is false
 func (r *Runner) bashTest(ctx context.Context, expr syntax.TestExpr, classic bool) string {
+	// Nested test expressions are on the Go stack like nested statements.
+	r.stmtDepth++
+	defer func() { r.stmtDepth-- }()
 	switch x := expr.(type) {
 	case *syntax.Word:
 		if classic {

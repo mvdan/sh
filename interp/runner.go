@@ -44,6 +44,13 @@ func (r *Runner) fillExpandConfig(ctx context.Context) {
 		Env: expandEnv{r},
 		CmdSubst: func(w io.Writer, cs *syntax.CmdSubst) error {
 			r.reportBgStart(0) // runs arbitrary shell code
+			if nw, ok := w.(internal.NestingWriter); ok {
+				// The expansion's nesting is on the Go stack too,
+				// including for the expansion of a $(<file) path.
+				nesting := nw.Nesting()
+				r.stmtDepth += nesting
+				defer func() { r.stmtDepth -= nesting }()
+			}
 			switch len(cs.Stmts) {
 			case 0: // nothing to do
 				return nil
