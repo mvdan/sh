@@ -3988,6 +3988,10 @@ done <<< 2`,
 		`p='@(a|'; for i in {1..9}; do p=$p$p; done; case $p in $p) echo lit;; esac; [[ x == $p ]]; echo $?`,
 		"lit\n1\n",
 	},
+	{
+		`p='['; for i in {1..15}; do p=$p$p; done; case $p in $p) echo lit;; esac; [[ x == $p ]]; echo $?`,
+		"lit\n1\n",
+	},
 	// Ensure that setting nullglob does not return invalid globs as null
 	// strings.
 	{

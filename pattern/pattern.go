@@ -147,9 +147,10 @@ type stringLexer struct {
 
 	depth int // nested extended operator groups
 
-	// unclosed holds the positions of extended operator groups which reach
-	// the end of the pattern, so that reparsing them as literal text does
-	// not scan the rest of the pattern again for each one.
+	// unclosed holds the positions of extended operator groups and bracket
+	// expressions which reach the end of the pattern, so that reparsing
+	// them as literal text does not scan the rest of the pattern again
+	// for each one.
 	unclosed map[int]bool
 }
 
@@ -311,6 +312,13 @@ func regexpNext(sb *strings.Builder, sl *stringLexer, mode Mode) error {
 		sb.WriteString(regexp.QuoteMeta(string(c)))
 	case '[':
 		lit := sl.i // to reparse from, if the bracket turns out to be literal
+		if sl.unclosed[lit-1] {
+			sb.WriteString(`\[`)
+			return nil
+		}
+		// Any bracket expression starting at a "[" within this one would
+		// scan the same tokens, so it reaches the end of the pattern too.
+		var nested []int
 		filenames := mode&Filenames != 0
 		// Build the bracket expression separately; in Filenames mode, one
 		// which could match a slash must be emitted literally instead.
@@ -352,6 +360,9 @@ func regexpNext(sb *strings.Builder, sl *stringLexer, mode Mode) error {
 				if classErr != nil {
 					return classErr
 				}
+				for _, i := range nested {
+					sl.markUnclosed(i)
+				}
 				return literalBracket()
 			case '\\':
 				// An escaped character matches itself; quote it so that
@@ -369,6 +380,9 @@ func regexpNext(sb *strings.Builder, sl *stringLexer, mode Mode) error {
 				default:
 					if filenames && c == '/' {
 						hasSlash = true
+					}
+					if c == '[' {
+						nested = append(nested, sl.i-1)
 					}
 					bsb.WriteString(regexp.QuoteMeta(string(c)))
 				}
@@ -411,6 +425,8 @@ func regexpNext(sb *strings.Builder, sl *stringLexer, mode Mode) error {
 					}
 					bsb.WriteString(rest[:n])
 					sl.i += n
+				} else {
+					nested = append(nested, sl.i-1)
 				}
 			default:
 				if filenames && c == '/' {
