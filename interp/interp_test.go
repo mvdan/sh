@@ -4575,6 +4575,10 @@ var runTestsUnix = []runTest{
 	},
 	// echo trace
 	{
+		`printf 'a\0b' | { read -r x; set -x; : "$x"; }`,
+		"+ : ab\n",
+	},
+	{
 		`set -x; animals=("dog", "cat", "otter"); echo "hello ${animals[*]}"`,
 		`+ animals=("dog", "cat", "otter")
 + echo 'hello dog, cat, otter'

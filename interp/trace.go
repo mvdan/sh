@@ -91,8 +91,9 @@ func (t *tracer) newLineFlush() {
 }
 
 // quoteBash quotes a string so that it can be traced as a single Bash word.
+// Null bytes are dropped, as Bash strings cannot hold them.
 func quoteBash(s string) string {
-	qs, err := syntax.Quote(s, syntax.LangBash)
+	qs, err := syntax.Quote(strings.ReplaceAll(s, "\x00", ""), syntax.LangBash)
 	if err != nil { // should never happen
 		panic(err)
 	}
