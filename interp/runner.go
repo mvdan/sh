@@ -696,6 +696,8 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			r.exit.code = 1
 		}
 	case *syntax.DeclClause:
+		// TODO: with no names, list variables like Bash, such as with
+		// `export -p`, `readonly`, `declare -x`, or `declare -p`.
 		local, global := false, false
 		var modes []string
 		valType := ""
@@ -807,6 +809,10 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			}
 			vr := r.lookupVar(name)
 			if as.Naked {
+				// TODO: `local foo` should start unset rather than keep the
+				// value of an outer foo, while still inheriting its export attribute.
+				// TODO: `declare foo` and `declare -a foo` should declare an unset
+				// variable, and the latter should also make it an indexed array.
 				if valType == "-A" {
 					vr.Kind = expand.Associative
 				} else {
