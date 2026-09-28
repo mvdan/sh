@@ -982,27 +982,27 @@ var runTests = []runTest{
 	},
 	{
 		`INTERP_X_s='a b'; export INTERP_X_x=1; export INTERP_X_xu; readonly INTERP_X_r=2; declare -a INTERP_X_a=(x); declare -A INTERP_X_m; declare -n INTERP_X_n=INTERP_X_s; declare INTERP_X_u; declare -p | grep -E '^declare -[a-zA-Z-]+ INTERP_X_'`,
-		"exit status 1 #IGNORE declaration builtins with no names do not list variables",
+		"declare -a INTERP_X_a=([0]=\"x\")\ndeclare -A INTERP_X_m\ndeclare -n INTERP_X_n=\"INTERP_X_s\"\ndeclare -r INTERP_X_r=\"2\"\ndeclare -- INTERP_X_s=\"a b\"\ndeclare -- INTERP_X_u\ndeclare -x INTERP_X_x=\"1\"\ndeclare -x INTERP_X_xu\n",
 	},
 	{
 		`INTERP_X_s=1; export INTERP_X_x=1; export INTERP_X_xu; readonly INTERP_X_r=2; declare -r -x INTERP_X_rx=3; export | grep -E '^declare -[a-zA-Z-]+ INTERP_X_'; readonly -p | grep -E '^declare -[a-zA-Z-]+ INTERP_X_'`,
-		"exit status 1 #IGNORE declaration builtins with no names do not list variables",
+		"declare -rx INTERP_X_rx=\"3\"\ndeclare -x INTERP_X_x=\"1\"\ndeclare -x INTERP_X_xu\ndeclare -r INTERP_X_r=\"2\"\ndeclare -rx INTERP_X_rx=\"3\"\n",
 	},
 	{
 		`declare -a INTERP_X_a=(x); declare -a -x INTERP_X_ax; declare -A INTERP_X_m; declare -n INTERP_X_n=INTERP_X_a; export INTERP_X_x; readonly INTERP_X_r; declare -a | grep -E '^declare -[a-zA-Z-]+ INTERP_X_'; declare -A -p | grep -E '^declare -[a-zA-Z-]+ INTERP_X_'; declare -n | grep -E '^declare -[a-zA-Z-]+ INTERP_X_'`,
-		"exit status 1 #IGNORE declaration builtins with no names do not list variables",
+		"declare -a INTERP_X_a=([0]=\"x\")\ndeclare -ax INTERP_X_ax\ndeclare -A INTERP_X_m\ndeclare -n INTERP_X_n=\"INTERP_X_a\"\n",
 	},
 	{
 		`declare -a INTERP_X_a=(x); declare -a -x INTERP_X_ax; export INTERP_X_x; readonly INTERP_X_r; declare -r -x | grep -E '^declare -[a-zA-Z-]+ INTERP_X_'; declare -a -x | grep -E '^declare -[a-zA-Z-]+ INTERP_X_'`,
-		"exit status 1 #IGNORE declaration builtins with no names do not list variables",
+		"declare -ax INTERP_X_ax\ndeclare -r INTERP_X_r\ndeclare -x INTERP_X_x\ndeclare -ax INTERP_X_ax\n",
 	},
 	{
 		`INTERP_X_s=outer; f() { local; echo "rc=$?"; local INTERP_X_s=loc INTERP_X_l=1; local INTERP_X_u; local -x; g; }; g() { local INTERP_X_g=1; local; }; f`,
-		"rc=0\n #IGNORE declaration builtins with no names do not list variables",
+		"rc=0\ndeclare -- INTERP_X_l=\"1\"\ndeclare -- INTERP_X_s=\"loc\"\ndeclare -- INTERP_X_u\ndeclare -- INTERP_X_g=\"1\"\n",
 	},
 	{
 		`export INTERP_X_x=1 INTERP_X_y=1; f() { local INTERP_X_x=shadow; unset INTERP_X_y; declare -x | grep -E '^declare -[a-zA-Z-]+ INTERP_X_'; }; f; export | grep -E '^declare -[a-zA-Z-]+ INTERP_X_'`,
-		"exit status 1 #IGNORE declaration builtins with no names do not list variables",
+		"declare -x INTERP_X_x=\"shadow\"\ndeclare -x INTERP_X_x=\"1\"\n",
 	},
 
 	// if

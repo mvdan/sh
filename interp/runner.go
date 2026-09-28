@@ -12,6 +12,7 @@ import (
 	"io"
 	"io/fs"
 	"iter"
+	"maps"
 	"math"
 	"os"
 	"slices"
@@ -696,9 +697,8 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			r.exit.code = 1
 		}
 	case *syntax.DeclClause:
-		// TODO: with no names, list variables like Bash, such as with
-		// `export -p`, `readonly`, `declare -x`, or `declare -p`.
 		local, global := false, false
+		named := false
 		var modes []string
 		valType := ""
 		declQuery := "" // "-f" or "-p" for query mode
@@ -741,6 +741,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 				}
 				continue assignLoop
 			}
+			named = true
 			name := as.Name.Value
 			if !syntax.ValidName(name) {
 				r.errf("declare: invalid name %q\n", name)
@@ -769,42 +770,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 					r.exit.code = 1
 					continue
 				}
-				flags := vr.Flags()
-				if flags == "" {
-					flags = "-"
-				}
-				if !vr.IsSet() {
-					r.outf("declare -%s %s\n", flags, name)
-					continue
-				}
-				switch vr.Kind {
-				case expand.Indexed:
-					r.outf("declare -%s %s=(", flags, name)
-					for i, v := range vr.List {
-						if i > 0 {
-							r.out(" ")
-						}
-						idx := i
-						if vr.Indexes != nil {
-							idx = vr.Indexes[i]
-						}
-						r.outf("[%d]=%q", idx, v)
-					}
-					r.out(")\n")
-				case expand.Associative:
-					r.outf("declare -%s %s=(", flags, name)
-					first := true
-					for k, v := range vr.Map {
-						if !first {
-							r.out(" ")
-						}
-						r.outf("[%s]=%q", k, v)
-						first = false
-					}
-					r.out(")\n")
-				default:
-					r.outf("declare -%s %s=%q\n", flags, name, vr.Str)
-				}
+				r.printDeclare(name, vr)
 				continue
 			}
 			vr := r.lookupVar(name)
@@ -846,6 +812,9 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			}
 			r.setVar(name, vr)
 		}
+		if !named {
+			r.listDecls(cm.Variant.Value == "local", modes, valType, declQuery)
+		}
 	case *syntax.TimeClause:
 		start := time.Now()
 		if cm.Stmt != nil {
@@ -867,6 +836,112 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		r.errf("unhandled command node: %T\n", cm)
 		r.exit.code = 1
 	}
+}
+
+// printDeclare prints a declare command which recreates a variable,
+// like Bash's `declare -p`.
+// Values may be quoted differently than in Bash.
+//
+// TODO: quote values as valid shell input, as %q does not escape "$" or "`"
+// and uses Go escapes for non-printable characters.
+func (r *Runner) printDeclare(name string, vr expand.Variable) {
+	flags := vr.Flags()
+	if flags == "" {
+		flags = "-"
+	}
+	r.outf("declare -%s %s", flags, name)
+	if !vr.IsSet() {
+		r.out("\n")
+		return
+	}
+	switch vr.Kind {
+	case expand.Indexed:
+		r.out("=(")
+		for i, v := range vr.List {
+			if i > 0 {
+				r.out(" ")
+			}
+			idx := i
+			if vr.Indexes != nil {
+				idx = vr.Indexes[i]
+			}
+			r.outf("[%d]=%q", idx, v)
+		}
+		r.out(")\n")
+	case expand.Associative:
+		r.out("=(")
+		sep := ""
+		for k, v := range vr.Map {
+			r.outf("%s[%s]=%q", sep, k, v)
+			sep = " "
+		}
+		r.out(")\n")
+	default:
+		r.outf("=%q\n", vr.Str)
+	}
+}
+
+// listDecls lists variables like Bash's declaration builtins when given no names.
+// The local builtin lists the local variables of the current function.
+func (r *Runner) listDecls(local bool, modes []string, valType, declQuery string) {
+	switch {
+	case declQuery == "-f":
+		// TODO: list all functions, and support -F.
+		return
+	case !local && len(modes) == 0 && valType == "" && declQuery == "":
+		// TODO: list variables and functions like Bash's `set` builtin.
+		return
+	}
+	oenv := r.writeEnv.(*overlayEnviron)
+	names := make(map[string]string) // normalized to original names
+	for name := range oenv.Each {
+		if syntax.ValidName(name) {
+			names[oenv.normalize(name)] = name
+		}
+	}
+	for _, name := range slices.Sorted(maps.Values(names)) {
+		if local && !oenv.localInFunc(name) {
+			continue
+		}
+		vr := r.lookupVar(name)
+		if !vr.Declared() {
+			continue
+		}
+		if !local && !declMatches(vr, modes, valType) {
+			continue
+		}
+		r.printDeclare(name, vr)
+	}
+}
+
+// declMatches reports whether a declaration builtin with no names lists a variable.
+// Like Bash, -a and -A require an array type, and the other attributes
+// match any variable which has any of them.
+func declMatches(vr expand.Variable, modes []string, valType string) bool {
+	switch valType {
+	case "-a":
+		if vr.Kind != expand.Indexed {
+			return false
+		}
+	case "-A":
+		if vr.Kind != expand.Associative {
+			return false
+		}
+	case "-n":
+		modes = append(slices.Clip(modes), valType)
+	}
+	if len(modes) == 0 {
+		return true
+	}
+	for _, mode := range modes {
+		switch {
+		case mode == "-x" && vr.Exported,
+			mode == "-r" && vr.ReadOnly,
+			mode == "-n" && vr.Kind == expand.NameRef:
+			return true
+		}
+	}
+	return false
 }
 
 func (r *Runner) trapCallback(ctx context.Context, callback, name string) {
