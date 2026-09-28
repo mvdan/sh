@@ -3854,6 +3854,10 @@ done <<< 2`,
 		"a a/b a/b/c a/d\n",
 	},
 	{
+		"shopt -s globstar; mkdir -p a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a; touch a/x; echo **/**/**/**/**/**/**/**/**/**/**/**/x **//**///**//**//**//**//**//**//**//**//**//x | sed 's@\\\\@/@g'; set -- a/a/a/a/**/**/; echo $#",
+		"a/x a/x\n17\n",
+	},
+	{
 		"shopt -s globstar; mkdir -p a.x a/b.x a/b/c.x; echo **.x ./**.x | sed 's@\\\\@/@g'",
 		"a.x ./a.x\n",
 	},

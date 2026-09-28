@@ -1158,6 +1158,12 @@ func (e *expander) glob(base, pat string) ([]string, error) {
 			for next < len(parts) && parts[next] == "" {
 				next++
 			}
+			if next < len(parts) && parts[next] == "**" {
+				// Like Bash, treat consecutive "**" as one, even with
+				// extra slashes between them, as each would walk
+				// the entire tree and repeat matches.
+				continue
+			}
 			// Find all recursive matches for "**".
 			// Note that we need the results to be in depth-first order,
 			// and to avoid recursion, we use a slice as a stack.
