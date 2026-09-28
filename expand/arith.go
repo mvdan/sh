@@ -14,17 +14,27 @@ import (
 // TODO(v4): the arithmetic APIs should return int64, which is what Bash uses
 // via intmax_t even on 32-bit systems, rather than the platform-dependent int.
 
+// Arithm evaluates an arithmetic expression, such as the one in `$((expr))`.
+//
+// The config specifies shell expansion options; nil behaves the same as an
+// empty config.
 func Arithm(cfg *Config, expr syntax.ArithmExpr) (int, error) {
+	e := newExpander(cfg)
+	defer e.release()
+	return e.arithm(expr)
+}
+
+func (e *expander) arithm(expr syntax.ArithmExpr) (int, error) {
 	switch expr := expr.(type) {
 	case *syntax.Word:
-		str, err := Literal(cfg, expr)
+		str, err := e.literal(expr)
 		if err != nil {
 			return 0, err
 		}
 		// recursively fetch vars
 		i := 0
 		for syntax.ValidName(str) {
-			val := cfg.envGet(str)
+			val := e.envGet(str)
 			if val == "" {
 				break
 			}
@@ -36,11 +46,11 @@ func Arithm(cfg *Config, expr syntax.ArithmExpr) (int, error) {
 		// default to 0
 		return int(atoi(str)), nil
 	case *syntax.ParenArithm:
-		return Arithm(cfg, expr.X)
+		return e.arithm(expr.X)
 	case *syntax.UnaryArithm:
 		switch expr.Op {
 		case syntax.Inc, syntax.Dec:
-			name, idx, old, err := cfg.arithmVar(expr.X)
+			name, idx, old, err := e.arithmVar(expr.X)
 			if err != nil {
 				return 0, err
 			}
@@ -50,7 +60,7 @@ func Arithm(cfg *Config, expr syntax.ArithmExpr) (int, error) {
 			} else {
 				val--
 			}
-			if err := cfg.assignElem(name, cfg.Env.Get(name), idx, strconv.FormatInt(val, 10)); err != nil {
+			if err := e.assignElem(name, e.Env.Get(name), idx, strconv.FormatInt(val, 10)); err != nil {
 				return 0, err
 			}
 			if expr.Post {
@@ -58,7 +68,7 @@ func Arithm(cfg *Config, expr syntax.ArithmExpr) (int, error) {
 			}
 			return int(val), nil
 		}
-		val, err := Arithm(cfg, expr.X)
+		val, err := e.arithm(expr.X)
 		if err != nil {
 			return 0, err
 		}
@@ -80,20 +90,20 @@ func Arithm(cfg *Config, expr syntax.ArithmExpr) (int, error) {
 			syntax.MulAssgn, syntax.QuoAssgn, syntax.RemAssgn,
 			syntax.AndAssgn, syntax.OrAssgn, syntax.XorAssgn,
 			syntax.ShlAssgn, syntax.ShrAssgn:
-			return cfg.assgnArit(expr)
+			return e.assgnArit(expr)
 		case syntax.TernQuest: // TernColon can't happen here
-			cond, err := Arithm(cfg, expr.X)
+			cond, err := e.arithm(expr.X)
 			if err != nil {
 				return 0, err
 			}
 			b2 := expr.Y.(*syntax.BinaryArithm) // must have Op==TernColon
 			if cond != 0 {
-				return Arithm(cfg, b2.X)
+				return e.arithm(b2.X)
 			}
-			return Arithm(cfg, b2.Y)
+			return e.arithm(b2.Y)
 		case syntax.AndArit, syntax.OrArit:
 			// Like Bash, short-circuit the right operand.
-			left, err := Arithm(cfg, expr.X)
+			left, err := e.arithm(expr.X)
 			if err != nil {
 				return 0, err
 			}
@@ -103,17 +113,17 @@ func Arithm(cfg *Config, expr syntax.ArithmExpr) (int, error) {
 			if expr.Op == syntax.OrArit && left != 0 {
 				return 1, nil
 			}
-			right, err := Arithm(cfg, expr.Y)
+			right, err := e.arithm(expr.Y)
 			if err != nil {
 				return 0, err
 			}
 			return oneIf(right != 0), nil
 		}
-		left, err := Arithm(cfg, expr.X)
+		left, err := e.arithm(expr.X)
 		if err != nil {
 			return 0, err
 		}
-		right, err := Arithm(cfg, expr.Y)
+		right, err := e.arithm(expr.Y)
 		if err != nil {
 			return 0, err
 		}
@@ -211,7 +221,7 @@ func atoiLargeBase(s string, base int64) int64 {
 // arithmVar resolves an arithmetic assignment target like x or a[i] into
 // a variable name, a subscript which is nil for x, and its current value.
 // The subscript is evaluated once, as it may have side effects like a[i++].
-func (cfg *Config) arithmVar(expr syntax.ArithmExpr) (string, syntax.ArithmExpr, int64, error) {
+func (e *expander) arithmVar(expr syntax.ArithmExpr) (string, syntax.ArithmExpr, int64, error) {
 	word, _ := expr.(*syntax.Word)
 	if word == nil {
 		return "", nil, 0, fmt.Errorf("attempted assignment to non-variable")
@@ -229,13 +239,13 @@ func (cfg *Config) arithmVar(expr syntax.ArithmExpr) (string, syntax.ArithmExpr,
 			return "", nil, 0, fmt.Errorf("%s[%s]: bad array subscript", name, lit)
 		}
 		var key string
-		if cfg.Env.Get(name).Kind == Associative {
+		if e.Env.Get(name).Kind == Associative {
 			var err error
-			if key, err = cfg.assocKey(pe.Index); err != nil {
+			if key, err = e.assocKey(pe.Index); err != nil {
 				return "", nil, 0, err
 			}
 		} else {
-			i, err := Arithm(cfg, pe.Index)
+			i, err := e.arithm(pe.Index)
 			if err != nil {
 				return "", nil, 0, err
 			}
@@ -246,16 +256,16 @@ func (cfg *Config) arithmVar(expr syntax.ArithmExpr) (string, syntax.ArithmExpr,
 	if name == "" {
 		return "", nil, 0, fmt.Errorf("attempted assignment to non-variable")
 	}
-	str, _, err := cfg.varInd(cfg.Env.Get(name), idx)
+	str, _, err := e.varInd(e.Env.Get(name), idx)
 	return name, idx, atoi(str), err
 }
 
-func (cfg *Config) assgnArit(b *syntax.BinaryArithm) (int, error) {
-	name, idx, val, err := cfg.arithmVar(b.X)
+func (e *expander) assgnArit(b *syntax.BinaryArithm) (int, error) {
+	name, idx, val, err := e.arithmVar(b.X)
 	if err != nil {
 		return 0, err
 	}
-	arg_, err := Arithm(cfg, b.Y)
+	arg_, err := e.arithm(b.Y)
 	if err != nil {
 		return 0, err
 	}
@@ -292,7 +302,7 @@ func (cfg *Config) assgnArit(b *syntax.BinaryArithm) (int, error) {
 	}
 	// Get the variable again, as evaluating an expression like
 	// a[0] = (a[1] = 5) may have modified other elements.
-	if err := cfg.assignElem(name, cfg.Env.Get(name), idx, strconv.FormatInt(val, 10)); err != nil {
+	if err := e.assignElem(name, e.Env.Get(name), idx, strconv.FormatInt(val, 10)); err != nil {
 		return 0, err
 	}
 	return int(val), nil

@@ -27,8 +27,8 @@ func nodeLit(node syntax.Node) string {
 }
 
 // assocKey expands an associative array subscript into its key.
-func (cfg *Config) assocKey(idx syntax.ArithmExpr) (string, error) {
-	return Literal(cfg, arithm.Word(idx))
+func (e *expander) assocKey(idx syntax.ArithmExpr) (string, error) {
+	return e.literal(arithm.Word(idx))
 }
 
 // UnsetParameterError is returned when a parameter expansion encounters an
@@ -56,10 +56,10 @@ func overridingUnset(pe *syntax.ParamExp) bool {
 	return false
 }
 
-func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
-	oldParam := cfg.curParam
-	cfg.curParam = pe
-	defer func() { cfg.curParam = oldParam }()
+func (e *expander) paramExp(pe *syntax.ParamExp) (string, error) {
+	oldParam := e.curParam
+	e.curParam = pe
+	defer func() { e.curParam = oldParam }()
 
 	if pe.Param == nil { // e.g. zsh's ${}
 		return "", fmt.Errorf("unsupported")
@@ -76,7 +76,7 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 	// elements with the first IFS character; others use a space.
 	join := func(elems []string) string {
 		if nodeLit(index) == "*" || pe.Names == syntax.NamesPrefix {
-			return cfg.ifsJoin(elems)
+			return e.ifsJoin(elems)
 		}
 		return strings.Join(elems, " ")
 	}
@@ -85,16 +85,16 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 	case "LINENO":
 		// This is the only parameter expansion that the environment
 		// interface cannot satisfy.
-		line := uint64(cfg.curParam.Pos().Line())
+		line := uint64(e.curParam.Pos().Line())
 		vr = Variable{Set: true, Kind: String, Str: strconv.FormatUint(line, 10)}
 	default:
-		vr = cfg.Env.Get(name)
+		vr = e.Env.Get(name)
 	}
 	orig := vr
-	if n, v := vr.Resolve(cfg.Env); n != "" {
+	if n, v := vr.Resolve(e.Env); n != "" {
 		name, vr = n, v
 	}
-	if cfg.NoUnset && !vr.IsSet() && !overridingUnset(pe) {
+	if e.NoUnset && !vr.IsSet() && !overridingUnset(pe) {
 		return "", UnsetParameterError{
 			Node:    pe,
 			Message: "unbound variable",
@@ -105,13 +105,13 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 	if pe.Slice != nil {
 		var err error
 		if pe.Slice.Offset != nil {
-			sliceOffset, err = Arithm(cfg, pe.Slice.Offset)
+			sliceOffset, err = e.arithm(pe.Slice.Offset)
 			if err != nil {
 				return "", err
 			}
 		}
 		if pe.Slice.Length != nil {
-			sliceLen, err = Arithm(cfg, pe.Slice.Length)
+			sliceLen, err = e.arithm(pe.Slice.Length)
 			if err != nil {
 				return "", err
 			}
@@ -136,13 +136,13 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 		case Indexed:
 			indexAllElements = true
 			callVarInd = false
-			elems = cfg.sliceElems(pe, vr.List, vr.Indexes, name == "@" || name == "*")
+			elems = e.sliceElems(pe, vr.List, vr.Indexes, name == "@" || name == "*")
 			str = join(elems)
 		}
 	}
 	if callVarInd {
 		var err error
-		str, set, err = cfg.varInd(vr, index)
+		str, set, err = e.varInd(vr, index)
 		if err != nil {
 			return "", err
 		}
@@ -164,7 +164,7 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 		var strs []string
 		switch {
 		case pe.Names != 0:
-			strs = cfg.namesByPrefix(pe.Param.Value)
+			strs = e.namesByPrefix(pe.Param.Value)
 		case orig.Kind == NameRef:
 			strs = append(strs, orig.Str)
 		case pe.Index != nil && vr.Kind == Indexed:
@@ -176,7 +176,7 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 		case str == "":
 			return "", nil
 		default:
-			vr = cfg.Env.Get(str)
+			vr = e.Env.Get(str)
 			strs = append(strs, vr.String())
 		}
 		str = join(strs)
@@ -208,13 +208,13 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 			str = string(rs)
 		} // else, elems are already sliced
 	case pe.Repl != nil:
-		elems, err := cfg.replaceElems(pe.Repl, elems)
+		elems, err := e.replaceElems(pe.Repl, elems)
 		if err != nil {
 			return "", err
 		}
 		str = join(elems)
 	case pe.Exp != nil:
-		arg, err := Literal(cfg, pe.Exp.Word)
+		arg, err := e.literal(pe.Exp.Word)
 		if err != nil {
 			return "", err
 		}
@@ -256,17 +256,17 @@ func (cfg *Config) paramExp(pe *syntax.ParamExp) (string, error) {
 			fallthrough
 		case syntax.AssignUnsetOrNull:
 			if str == "" {
-				if err := cfg.assignElem(name, vr, index, arg); err != nil {
+				if err := e.assignElem(name, vr, index, arg); err != nil {
 					return "", err
 				}
 				str = arg
 			}
 		case syntax.RemSmallPrefix, syntax.RemLargePrefix,
 			syntax.RemSmallSuffix, syntax.RemLargeSuffix:
-			str = join(cfg.removePatternElems(op, arg, elems))
+			str = join(e.removePatternElems(op, arg, elems))
 		case syntax.UpperFirst, syntax.UpperAll,
 			syntax.LowerFirst, syntax.LowerAll:
-			str = join(cfg.caseConvElems(op, arg, elems))
+			str = join(e.caseConvElems(op, arg, elems))
 		case syntax.OtherParamOps:
 			switch arg {
 			case "Q":
@@ -363,37 +363,37 @@ func removePattern(str, pat string, fromEnd, shortest bool) string {
 
 // perElemOps applies pattern removal, replacement, or case conversion to
 // each element, leaving them unchanged for any whole-expansion operator.
-func (cfg *Config) perElemOps(pe *syntax.ParamExp, elems []string) ([]string, error) {
+func (e *expander) perElemOps(pe *syntax.ParamExp, elems []string) ([]string, error) {
 	switch {
 	case pe.Repl != nil:
-		return cfg.replaceElems(pe.Repl, elems)
+		return e.replaceElems(pe.Repl, elems)
 	case pe.Exp != nil:
-		arg, err := Literal(cfg, pe.Exp.Word)
+		arg, err := e.literal(pe.Exp.Word)
 		if err != nil {
 			return nil, err
 		}
 		switch op := pe.Exp.Op; op {
 		case syntax.RemSmallPrefix, syntax.RemLargePrefix,
 			syntax.RemSmallSuffix, syntax.RemLargeSuffix:
-			return cfg.removePatternElems(op, arg, elems), nil
+			return e.removePatternElems(op, arg, elems), nil
 		case syntax.UpperFirst, syntax.UpperAll,
 			syntax.LowerFirst, syntax.LowerAll:
-			return cfg.caseConvElems(op, arg, elems), nil
+			return e.caseConvElems(op, arg, elems), nil
 		}
 	}
 	return elems, nil
 }
 
 // replaceElems applies a ${var/pattern/repl} replacement to each element.
-func (cfg *Config) replaceElems(repl *syntax.Replace, elems []string) ([]string, error) {
-	orig, err := Pattern(cfg, repl.Orig)
+func (e *expander) replaceElems(repl *syntax.Replace, elems []string) ([]string, error) {
+	orig, err := e.pattern(repl.Orig)
 	if err != nil {
 		return nil, err
 	}
 	if orig == "" {
 		return elems, nil // nothing to replace
 	}
-	with, err := Literal(cfg, repl.With)
+	with, err := e.literal(repl.With)
 	if err != nil {
 		return nil, err
 	}
@@ -404,7 +404,7 @@ func (cfg *Config) replaceElems(repl *syntax.Replace, elems []string) ([]string,
 	out := make([]string, len(elems))
 	for i, elem := range elems {
 		locs := findAllIndex(orig, elem, n)
-		sb := cfg.strBuilder()
+		sb := e.strBuilder()
 		last := 0
 		for _, loc := range locs {
 			sb.WriteString(elem[last:loc[0]])
@@ -418,7 +418,7 @@ func (cfg *Config) replaceElems(repl *syntax.Replace, elems []string) ([]string,
 }
 
 // removePatternElems applies a pattern removal operator to each element.
-func (cfg *Config) removePatternElems(op syntax.ParExpOperator, arg string, elems []string) []string {
+func (e *expander) removePatternElems(op syntax.ParExpOperator, arg string, elems []string) []string {
 	suffix := op == syntax.RemSmallSuffix || op == syntax.RemLargeSuffix
 	small := op == syntax.RemSmallPrefix || op == syntax.RemSmallSuffix
 	out := make([]string, len(elems))
@@ -429,7 +429,7 @@ func (cfg *Config) removePatternElems(op syntax.ParExpOperator, arg string, elem
 }
 
 // caseConvElems applies a case conversion operator to each element.
-func (cfg *Config) caseConvElems(op syntax.ParExpOperator, arg string, elems []string) []string {
+func (e *expander) caseConvElems(op syntax.ParExpOperator, arg string, elems []string) []string {
 	caseFunc := unicode.ToLower
 	if op == syntax.UpperFirst || op == syntax.UpperAll {
 		caseFunc = unicode.ToUpper
@@ -462,7 +462,7 @@ func (cfg *Config) caseConvElems(op syntax.ParExpOperator, arg string, elems []s
 // varInd expands an indexed variable expansion like ${a[i]}, also reporting
 // whether the resulting element is set, which may be false for missing array
 // elements such as the holes in a sparse array.
-func (cfg *Config) varInd(vr Variable, idx syntax.ArithmExpr) (string, bool, error) {
+func (e *expander) varInd(vr Variable, idx syntax.ArithmExpr) (string, bool, error) {
 	if idx == nil {
 		switch vr.Kind {
 		case Indexed:
@@ -477,7 +477,7 @@ func (cfg *Config) varInd(vr Variable, idx syntax.ArithmExpr) (string, bool, err
 	}
 	switch vr.Kind {
 	case String:
-		n, err := Arithm(cfg, idx)
+		n, err := e.arithm(idx)
 		if err != nil {
 			return "", false, err
 		}
@@ -489,7 +489,7 @@ func (cfg *Config) varInd(vr Variable, idx syntax.ArithmExpr) (string, bool, err
 		case "*", "@":
 			return strings.Join(vr.List, " "), vr.IsSet(), nil
 		}
-		i, err := Arithm(cfg, idx)
+		i, err := e.arithm(idx)
 		if err != nil {
 			return "", false, err
 		}
@@ -507,11 +507,11 @@ func (cfg *Config) varInd(vr Variable, idx syntax.ArithmExpr) (string, bool, err
 		case "@", "*":
 			strs := slices.Sorted(maps.Values(vr.Map))
 			if lit == "*" {
-				return cfg.ifsJoin(strs), vr.IsSet(), nil
+				return e.ifsJoin(strs), vr.IsSet(), nil
 			}
 			return strings.Join(strs, " "), vr.IsSet(), nil
 		}
-		val, err := cfg.assocKey(idx)
+		val, err := e.assocKey(idx)
 		if err != nil {
 			return "", false, err
 		}
@@ -524,8 +524,8 @@ func (cfg *Config) varInd(vr Variable, idx syntax.ArithmExpr) (string, bool, err
 // assignElem assigns a variable via an expansion like ${a=val} or
 // ${a[i]=val}, setting a single element when the variable is an array or is
 // indexed, like Bash. ${a[i]=val} on a whole scalar converts it to an array.
-func (cfg *Config) assignElem(name string, vr Variable, idx syntax.ArithmExpr, val string) error {
-	wenv, ok := cfg.Env.(WriteEnviron)
+func (e *expander) assignElem(name string, vr Variable, idx syntax.ArithmExpr, val string) error {
+	wenv, ok := e.Env.(WriteEnviron)
 	if !ok {
 		return fmt.Errorf("environment is read-only")
 	}
@@ -538,14 +538,14 @@ func (cfg *Config) assignElem(name string, vr Variable, idx syntax.ArithmExpr, v
 	}
 	if idx == nil && !arrayWise && vr.Kind != Indexed && vr.Kind != Associative {
 		// A plain scalar assignment like ${x=val}.
-		return cfg.envSet(name, val)
+		return e.envSet(name, val)
 	}
 	switch vr.Kind {
 	case Associative:
 		key := "0"
 		if idx != nil {
 			var err error
-			if key, err = cfg.assocKey(idx); err != nil {
+			if key, err = e.assocKey(idx); err != nil {
 				return err
 			}
 		}
@@ -558,7 +558,7 @@ func (cfg *Config) assignElem(name string, vr Variable, idx syntax.ArithmExpr, v
 		i := 0
 		if idx != nil {
 			var err error
-			if i, err = Arithm(cfg, idx); err != nil {
+			if i, err = e.arithm(idx); err != nil {
 				return err
 			}
 			if i < 0 {
@@ -579,12 +579,12 @@ func (cfg *Config) assignElem(name string, vr Variable, idx syntax.ArithmExpr, v
 	return wenv.Set(name, vr)
 }
 
-func (cfg *Config) namesByPrefix(prefix string) []string {
+func (e *expander) namesByPrefix(prefix string) []string {
 	// Later occurrences of a name take priority, as documented by [Environ.Each].
 	// Like Bash, only list variables with a value, and do not let a local
 	// variable without a value hide an outer variable.
 	names := make(map[string]bool)
-	for name, vr := range cfg.Env.Each {
+	for name, vr := range e.Env.Each {
 		if !strings.HasPrefix(name, prefix) {
 			continue
 		}

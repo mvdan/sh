@@ -164,7 +164,7 @@ func Test_glob(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.pat, func(t *testing.T) {
 			cfg.NoCaseGlob = tc.noCaseGlob
-			got, err := cfg.glob("/", tc.pat)
+			got, err := newExpander(cfg).glob("/", tc.pat)
 			if err != nil {
 				t.Fatalf("did not want error, got %v", err)
 			}

@@ -146,8 +146,13 @@ Parser and printer API:
   hiding the value representation behind methods so that sparse indexed arrays
   (#672, currently `Indexes`) and future optimizations do not break users, and
   offer an iterator over array elements. Remove the deprecated `Unset` alias.
-- `Config` should not be modified in place when preparing it; either document
-  that a `Config` is not safe for concurrent use, or copy it.
+- Replace the functions taking a `*Config` with methods on an `Expander` built
+  from a `Config`, which holds the scratch state for expanding and is not safe
+  for concurrent use, like `syntax.Parser`. v3 keeps that state in a
+  `sync.Pool`, as a `Config` is shared and the state escapes to the heap; an
+  `Expander` reused by its owner, such as one per `interp.Runner`, needs no
+  pool nor allocations. `Config` stays a plain struct of options which is never
+  modified.
 - `Fields` and `FieldsSeq`: keep both, since the slice form is the common case,
   but name them consistently with the parser iterators.
 

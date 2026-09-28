@@ -4,7 +4,6 @@
 package expand
 
 import (
-	"cmp"
 	"errors"
 	"fmt"
 	"io"
@@ -19,6 +18,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"unicode/utf8"
 
@@ -29,6 +29,9 @@ import (
 
 // A Config specifies details about how shell expansion should be performed. The
 // zero value is a valid configuration.
+//
+// Expanding never modifies a Config, so it can be reused and shared by
+// concurrent calls, as long as fields like Env are safe for concurrent use.
 type Config struct {
 	// Env is used to get and set environment variables when performing
 	// shell expansions. Some special parameters are also expanded via this
@@ -97,15 +100,6 @@ type Config struct {
 	// ExtGlob corresponds to the shell option which allows using extended
 	// pattern matching features when performing pathname expansion (globbing).
 	ExtGlob bool
-
-	bufferAlloc strings.Builder
-	fieldAlloc  [4]fieldPart
-	fieldsAlloc [4][]fieldPart
-
-	ifs string
-	// A pointer to a parameter expansion node, if we're inside one.
-	// Necessary for ${LINENO}.
-	curParam *syntax.ParamExp
 }
 
 // UnexpectedCommandError is returned if a command substitution is encountered
@@ -118,72 +112,113 @@ func (u UnexpectedCommandError) Error() string {
 	return fmt.Sprintf("unexpected command substitution at %s", u.Node.Pos())
 }
 
-var zeroConfig = &Config{}
+// expander holds the state for a single expansion call with a copy of
+// a [Config], so that the caller's can be reused and shared by concurrent calls.
+type expander struct {
+	Config
 
-// TODO: note that prepareConfig is modifying the user's config in place,
-// which doesn't feel right - we should make a copy.
+	ifs string
 
-func prepareConfig(cfg *Config) *Config {
-	cfg = cmp.Or(cfg, zeroConfig)
-	cfg.Env = cmp.Or(cfg.Env, FuncEnviron(func(string) string { return "" }))
+	bufferAlloc strings.Builder
+	fieldAlloc  [4]fieldPart
+	fieldsAlloc [4][]fieldPart
 
-	cfg.ifs = " \t\n"
-	if vr := cfg.Env.Get("IFS"); vr.IsSet() {
-		cfg.ifs = vr.String()
-	}
-
-	if cfg.ReadDir != nil && cfg.ReadDir2 == nil {
-		cfg.ReadDir2 = func(path string) ([]fs.DirEntry, error) {
-			infos, err := cfg.ReadDir(path)
-			if err != nil {
-				return nil, err
-			}
-			entries := make([]fs.DirEntry, len(infos))
-			for i, info := range infos {
-				entries[i] = fs.FileInfoToDirEntry(info)
-			}
-			return entries, nil
-		}
-	}
-	return cfg
+	// A pointer to a parameter expansion node, if we're inside one.
+	// Necessary for ${LINENO}.
+	curParam *syntax.ParamExp
 }
 
-func (cfg *Config) ifsRune(r rune) bool {
-	return strings.ContainsRune(cfg.ifs, r)
+// expanderPool avoids allocating an expander for each expansion call,
+// as the interpreter makes many of them.
+//
+// TODO(v4): expose a reusable Expander instead; see doc/plan-v4.md.
+var expanderPool = sync.Pool{New: func() any { return new(expander) }}
+
+// newExpander returns an expander for cfg,
+// which must be released once its results are no longer used.
+func newExpander(cfg *Config) *expander {
+	e := expanderPool.Get().(*expander)
+	if cfg != nil {
+		e.Config = *cfg
+	}
+	if e.Env == nil {
+		e.Env = FuncEnviron(func(string) string { return "" })
+	}
+	e.updateIFS()
+	return e
+}
+
+func (e *expander) release() {
+	*e = expander{}
+	expanderPool.Put(e)
+}
+
+// readDir2 uses [Config.ReadDir2], falling back to [Config.ReadDir].
+func (e *expander) readDir2(path string) ([]fs.DirEntry, error) {
+	if e.ReadDir2 != nil {
+		return e.ReadDir2(path)
+	}
+	infos, err := e.ReadDir(path)
+	if err != nil {
+		return nil, err
+	}
+	entries := make([]fs.DirEntry, len(infos))
+	for i, info := range infos {
+		entries[i] = fs.FileInfoToDirEntry(info)
+	}
+	return entries, nil
+}
+
+func (e *expander) updateIFS() {
+	e.ifs = " \t\n"
+	if vr := e.Env.Get("IFS"); vr.IsSet() {
+		e.ifs = vr.String()
+	}
+}
+
+func (e *expander) ifsRune(r rune) bool {
+	return strings.ContainsRune(e.ifs, r)
 }
 
 // ifsWhitespace reports whether r is a space, tab, or newline present in IFS.
-func (cfg *Config) ifsWhitespace(r rune) bool {
-	return (r == ' ' || r == '\t' || r == '\n') && cfg.ifsRune(r)
+func (e *expander) ifsWhitespace(r rune) bool {
+	return (r == ' ' || r == '\t' || r == '\n') && e.ifsRune(r)
 }
 
-func (cfg *Config) ifsJoin(strs []string) string {
+func (e *expander) ifsJoin(strs []string) string {
 	sep := ""
-	if cfg.ifs != "" {
+	if e.ifs != "" {
 		// The separator is the first character of IFS, not the first byte.
-		_, size := utf8.DecodeRuneInString(cfg.ifs)
-		sep = cfg.ifs[:size]
+		_, size := utf8.DecodeRuneInString(e.ifs)
+		sep = e.ifs[:size]
 	}
 	return strings.Join(strs, sep)
 }
 
-func (cfg *Config) strBuilder() *strings.Builder {
-	b := &cfg.bufferAlloc
+func (e *expander) strBuilder() *strings.Builder {
+	b := &e.bufferAlloc
 	b.Reset()
 	return b
 }
 
-func (cfg *Config) envGet(name string) string {
-	return cfg.Env.Get(name).String()
+func (e *expander) envGet(name string) string {
+	return e.Env.Get(name).String()
 }
 
-func (cfg *Config) envSet(name, value string) error {
-	wenv, ok := cfg.Env.(WriteEnviron)
+func (e *expander) envSet(name, value string) error {
+	wenv, ok := e.Env.(WriteEnviron)
 	if !ok {
 		return fmt.Errorf("environment is read-only")
 	}
 	prev := wenv.Get(name)
-	return wenv.Set(name, Variable{Set: true, Exported: prev.Exported, Kind: String, Str: value})
+	if err := wenv.Set(name, Variable{Set: true, Exported: prev.Exported, Kind: String, Str: value}); err != nil {
+		return err
+	}
+	if name == "IFS" {
+		// Assignments like ${IFS=:} affect the rest of the expansion.
+		e.updateIFS()
+	}
+	return nil
 }
 
 // Literal expands a single shell word. It is similar to [Fields], but the result
@@ -193,15 +228,20 @@ func (cfg *Config) envSet(name, value string) error {
 // The config specifies shell expansion options; nil behaves the same as an
 // empty config.
 func Literal(cfg *Config, word *syntax.Word) (string, error) {
+	e := newExpander(cfg)
+	defer e.release()
+	return e.literal(word)
+}
+
+func (e *expander) literal(word *syntax.Word) (string, error) {
 	if word == nil {
 		return "", nil
 	}
-	cfg = prepareConfig(cfg)
-	field, err := cfg.wordField(word.Parts, quoteNone)
+	field, err := e.wordField(word.Parts, quoteNone)
 	if err != nil {
 		return "", err
 	}
-	return cfg.fieldJoin(field), nil
+	return e.fieldJoin(field), nil
 }
 
 // Document expands a single shell word as if it were a here-document body.
@@ -214,12 +254,13 @@ func Document(cfg *Config, word *syntax.Word) (string, error) {
 	if word == nil {
 		return "", nil
 	}
-	cfg = prepareConfig(cfg)
-	field, err := cfg.wordField(word.Parts, quoteHeredoc)
+	e := newExpander(cfg)
+	defer e.release()
+	field, err := e.wordField(word.Parts, quoteHeredoc)
 	if err != nil {
 		return "", err
 	}
-	return cfg.fieldJoin(field), nil
+	return e.fieldJoin(field), nil
 }
 
 // Pattern expands a single shell word as a pattern, using [pattern.QuoteMeta]
@@ -229,15 +270,20 @@ func Document(cfg *Config, word *syntax.Word) (string, error) {
 // The config specifies shell expansion options; nil behaves the same as an
 // empty config.
 func Pattern(cfg *Config, word *syntax.Word) (string, error) {
+	e := newExpander(cfg)
+	defer e.release()
+	return e.pattern(word)
+}
+
+func (e *expander) pattern(word *syntax.Word) (string, error) {
 	if word == nil {
 		return "", nil
 	}
-	cfg = prepareConfig(cfg)
-	field, err := cfg.wordField(word.Parts, quoteNone)
+	field, err := e.wordField(word.Parts, quoteNone)
 	if err != nil {
 		return "", err
 	}
-	sb := cfg.strBuilder()
+	sb := e.strBuilder()
 	for _, part := range field {
 		if part.quote > quoteNone {
 			sb.WriteString(pattern.QuoteMeta(part.val, 0))
@@ -259,8 +305,13 @@ func Pattern(cfg *Config, word *syntax.Word) (string, error) {
 // The config specifies shell expansion options; nil behaves the same as an
 // empty config.
 func Format(cfg *Config, format string, args []string) (string, int, error) {
-	cfg = prepareConfig(cfg)
-	sb := cfg.strBuilder()
+	e := newExpander(cfg)
+	defer e.release()
+	return e.format(format, args)
+}
+
+func (e *expander) format(format string, args []string) (string, int, error) {
+	sb := e.strBuilder()
 
 	consumed, err := formatInto(sb, format, args)
 	if err != nil {
@@ -423,21 +474,21 @@ func formatInto(sb *strings.Builder, format string, args []string) (int, error) 
 	return initialArgs - len(args), nil
 }
 
-func (cfg *Config) fieldJoin(parts []fieldPart) string {
+func (e *expander) fieldJoin(parts []fieldPart) string {
 	switch len(parts) {
 	case 0:
 		return ""
 	case 1: // short-cut without a string copy
 		return parts[0].val
 	}
-	sb := cfg.strBuilder()
+	sb := e.strBuilder()
 	for _, part := range parts {
 		sb.WriteString(part.val)
 	}
 	return sb.String()
 }
 
-func (cfg *Config) escapedGlobField(parts []fieldPart) (escaped string, glob bool) {
+func (e *expander) escapedGlobField(parts []fieldPart) (escaped string, glob bool) {
 	candidate := false
 	for _, part := range parts {
 		if part.quote == quoteNone && strings.ContainsAny(part.val, "*?[") {
@@ -448,7 +499,7 @@ func (cfg *Config) escapedGlobField(parts []fieldPart) (escaped string, glob boo
 	if !candidate {
 		return "", false
 	}
-	sb := cfg.strBuilder()
+	sb := e.strBuilder()
 	for _, part := range parts {
 		if part.quote > quoteNone {
 			sb.WriteString(pattern.QuoteMeta(part.val, 0))
@@ -481,59 +532,66 @@ func Fields(cfg *Config, words ...*syntax.Word) ([]string, error) {
 // command. This includes brace expansion, tilde expansion, parameter expansion,
 // command substitution, arithmetic expansion, quote removal, and globbing.
 func FieldsSeq(cfg *Config, words ...*syntax.Word) iter.Seq2[string, error] {
-	cfg = prepareConfig(cfg)
-	dir := cfg.envGet("PWD")
 	return func(yield func(string, error) bool) {
-		expandWord := func(w *syntax.Word) (stop bool) {
-			wfields, err := cfg.wordFields(w.Parts)
-			if err != nil {
-				yield("", err)
-				return true
-			}
-			for _, field := range wfields {
-				path, doGlob := cfg.escapedGlobField(field)
-				if doGlob && cfg.ReadDir2 != nil {
-					// Note that globbing requires keeping a slice state, so it doesn't
-					// really benefit from using an iterator.
-					matches, err := cfg.glob(dir, path)
-					if err != nil {
-						// We avoid [errors.As] as it allocates,
-						// and we know that [Config.glob] returns [pattern.Regexp] errors without wrapping.
-						if _, ok := err.(*pattern.SyntaxError); !ok {
-							yield("", err)
+		e := newExpander(cfg)
+		defer e.release()
+		e.fieldsSeq(words, yield)
+	}
+}
+
+// fieldsSeq implements [FieldsSeq]. It is a separate method as a defer
+// alongside range-over-func loops would move more variables to the heap.
+func (e *expander) fieldsSeq(words []*syntax.Word, yield func(string, error) bool) {
+	dir := e.envGet("PWD")
+	expandWord := func(w *syntax.Word) (stop bool) {
+		wfields, err := e.wordFields(w.Parts)
+		if err != nil {
+			yield("", err)
+			return true
+		}
+		for _, field := range wfields {
+			path, doGlob := e.escapedGlobField(field)
+			if doGlob && (e.ReadDir2 != nil || e.ReadDir != nil) {
+				// Note that globbing requires keeping a slice state, so it doesn't
+				// really benefit from using an iterator.
+				matches, err := e.glob(dir, path)
+				if err != nil {
+					// We avoid [errors.As] as it allocates,
+					// and we know that [expander.glob] returns [pattern.Regexp] errors without wrapping.
+					if _, ok := err.(*pattern.SyntaxError); !ok {
+						yield("", err)
+						return true
+					}
+				} else if len(matches) > 0 || e.NullGlob {
+					for _, m := range matches {
+						if !yield(m, nil) {
 							return true
 						}
-					} else if len(matches) > 0 || cfg.NullGlob {
-						for _, m := range matches {
-							if !yield(m, nil) {
-								return true
-							}
-						}
-						continue
 					}
-				}
-				if !yield(cfg.fieldJoin(field), nil) {
-					return true
+					continue
 				}
 			}
-			return false
+			if !yield(e.fieldJoin(field), nil) {
+				return true
+			}
 		}
-		for _, word := range words {
-			word := *word // make a copy, since SplitBraces replaces the Parts slice
-			if !syntax.SplitBraces(&word) {
-				if expandWord(&word) {
-					return
-				}
-				continue
+		return false
+	}
+	for _, word := range words {
+		word := *word // make a copy, since SplitBraces replaces the Parts slice
+		if !syntax.SplitBraces(&word) {
+			if expandWord(&word) {
+				return
 			}
-			for w, err := range BracesSeq(cfg, &word) {
-				if err != nil {
-					yield("", err)
-					return
-				}
-				if expandWord(w) {
-					return
-				}
+			continue
+		}
+		for w, err := range BracesSeq(&e.Config, &word) {
+			if err != nil {
+				yield("", err)
+				return
+			}
+			if expandWord(w) {
+				return
 			}
 		}
 	}
@@ -553,21 +611,21 @@ const (
 	quoteSingle
 )
 
-func (cfg *Config) wordField(wps []syntax.WordPart, ql quoteLevel) ([]fieldPart, error) {
+func (e *expander) wordField(wps []syntax.WordPart, ql quoteLevel) ([]fieldPart, error) {
 	var field []fieldPart
 	for i, wp := range wps {
 		switch wp := wp.(type) {
 		case *syntax.Lit:
 			s := wp.Value
 			if i == 0 && ql == quoteNone {
-				if prefix, rest := cfg.expandUser(s, len(wps) > 1); prefix != "" {
+				if prefix, rest := e.expandUser(s, len(wps) > 1); prefix != "" {
 					// TODO: return two separate fieldParts,
 					// like in wordFields?
 					s = prefix + rest
 				}
 			}
 			if (ql == quoteDouble || ql == quoteHeredoc) && strings.Contains(s, "\\") {
-				sb := cfg.strBuilder()
+				sb := e.strBuilder()
 				for i := 0; i < len(s); i++ {
 					b := s[i]
 					if b == '\\' && i+1 < len(s) {
@@ -591,12 +649,12 @@ func (cfg *Config) wordField(wps []syntax.WordPart, ql quoteLevel) ([]fieldPart,
 		case *syntax.SglQuoted:
 			fp := fieldPart{quote: quoteSingle, val: wp.Value}
 			if wp.Dollar {
-				fp.val, _, _ = Format(cfg, fp.val, nil)
+				fp.val, _, _ = e.format(fp.val, nil)
 				fp.val, _, _ = strings.Cut(fp.val, "\x00") // cut the string if format included \x00
 			}
 			field = append(field, fp)
 		case *syntax.DblQuoted:
-			wfield, err := cfg.wordField(wp.Parts, quoteDouble)
+			wfield, err := e.wordField(wp.Parts, quoteDouble)
 			if err != nil {
 				return nil, err
 			}
@@ -605,31 +663,31 @@ func (cfg *Config) wordField(wps []syntax.WordPart, ql quoteLevel) ([]fieldPart,
 				field = append(field, part)
 			}
 		case *syntax.ParamExp:
-			val, err := cfg.paramExp(wp)
+			val, err := e.paramExp(wp)
 			if err != nil {
 				return nil, err
 			}
 			field = append(field, fieldPart{val: val})
 		case *syntax.CmdSubst:
-			val, err := cfg.cmdSubst(wp)
+			val, err := e.cmdSubst(wp)
 			if err != nil {
 				return nil, err
 			}
 			field = append(field, fieldPart{val: val})
 		case *syntax.ArithmExp:
-			n, err := Arithm(cfg, wp.X)
+			n, err := e.arithm(wp.X)
 			if err != nil {
 				return nil, err
 			}
 			field = append(field, fieldPart{val: strconv.Itoa(n)})
 		case *syntax.ProcSubst:
-			path, err := cfg.procSubst(wp)
+			path, err := e.procSubst(wp)
 			if err != nil {
 				return nil, err
 			}
 			field = append(field, fieldPart{val: path})
 		case *syntax.ExtGlob:
-			// Like how [Config.wordFields] deals with [syntax.ExtGlob],
+			// Like how [expander.wordFields] deals with [syntax.ExtGlob],
 			// except that we allow these through even when [Config.ExtGlob]
 			// is false, as it only applies to pathname expansion.
 			field = append(field, fieldPart{val: wp.Op.String() + wp.Pattern.Value + ")"})
@@ -640,19 +698,19 @@ func (cfg *Config) wordField(wps []syntax.WordPart, ql quoteLevel) ([]fieldPart,
 	return field, nil
 }
 
-func (cfg *Config) procSubst(ps *syntax.ProcSubst) (string, error) {
-	if cfg.ProcSubst == nil {
+func (e *expander) procSubst(ps *syntax.ProcSubst) (string, error) {
+	if e.ProcSubst == nil {
 		return "", fmt.Errorf("unexpected process substitution at %s", ps.Pos())
 	}
-	return cfg.ProcSubst(ps)
+	return e.ProcSubst(ps)
 }
 
-func (cfg *Config) cmdSubst(cs *syntax.CmdSubst) (string, error) {
-	if cfg.CmdSubst == nil {
+func (e *expander) cmdSubst(cs *syntax.CmdSubst) (string, error) {
+	if e.CmdSubst == nil {
 		return "", UnexpectedCommandError{Node: cs}
 	}
-	sb := cfg.strBuilder()
-	if err := cfg.CmdSubst(sb, cs); err != nil {
+	sb := e.strBuilder()
+	if err := e.CmdSubst(sb, cs); err != nil {
 		return "", err
 	}
 	out := sb.String()
@@ -660,9 +718,9 @@ func (cfg *Config) cmdSubst(cs *syntax.CmdSubst) (string, error) {
 	return strings.TrimRight(out, "\n"), nil
 }
 
-func (cfg *Config) wordFields(wps []syntax.WordPart) ([][]fieldPart, error) {
-	fields := cfg.fieldsAlloc[:0]
-	curField := cfg.fieldAlloc[:0]
+func (e *expander) wordFields(wps []syntax.WordPart) ([][]fieldPart, error) {
+	fields := e.fieldsAlloc[:0]
+	curField := e.fieldAlloc[:0]
 	allowEmpty := false
 	flush := func() {
 		if len(curField) == 0 {
@@ -674,7 +732,7 @@ func (cfg *Config) wordFields(wps []syntax.WordPart) ([][]fieldPart, error) {
 	splitAdd := func(val string) {
 		fieldStart := -1
 		for i, r := range val {
-			if cfg.ifsRune(r) {
+			if e.ifsRune(r) {
 				if fieldStart >= 0 { // ending a field
 					curField = append(curField, fieldPart{val: val[fieldStart:i]})
 					fieldStart = -1
@@ -695,7 +753,7 @@ func (cfg *Config) wordFields(wps []syntax.WordPart) ([][]fieldPart, error) {
 		case *syntax.Lit:
 			s := wp.Value
 			if i == 0 {
-				prefix, rest := cfg.expandUser(s, len(wps) > 1)
+				prefix, rest := e.expandUser(s, len(wps) > 1)
 				curField = append(curField, fieldPart{
 					quote: quoteSingle,
 					val:   prefix,
@@ -721,14 +779,14 @@ func (cfg *Config) wordFields(wps []syntax.WordPart) ([][]fieldPart, error) {
 			allowEmpty = true
 			fp := fieldPart{quote: quoteSingle, val: wp.Value}
 			if wp.Dollar {
-				fp.val, _, _ = Format(cfg, fp.val, nil)
+				fp.val, _, _ = e.format(fp.val, nil)
 				fp.val, _, _ = strings.Cut(fp.val, "\x00") // cut the string if format included \x00
 			}
 			curField = append(curField, fp)
 		case *syntax.DblQuoted:
 			if len(wp.Parts) == 1 {
 				pe, _ := wp.Parts[0].(*syntax.ParamExp)
-				elems, err := cfg.quotedElemFields(pe)
+				elems, err := e.quotedElemFields(pe)
 				if err != nil {
 					return nil, err
 				}
@@ -746,7 +804,7 @@ func (cfg *Config) wordFields(wps []syntax.WordPart) ([][]fieldPart, error) {
 				}
 			}
 			allowEmpty = true
-			wfield, err := cfg.wordField(wp.Parts, quoteDouble)
+			wfield, err := e.wordField(wp.Parts, quoteDouble)
 			if err != nil {
 				return nil, err
 			}
@@ -755,7 +813,7 @@ func (cfg *Config) wordFields(wps []syntax.WordPart) ([][]fieldPart, error) {
 				curField = append(curField, part)
 			}
 		case *syntax.ParamExp:
-			if elems, ok := cfg.unquotedElemFields(wp); ok {
+			if elems, ok := e.unquotedElemFields(wp); ok {
 				// Unquoted "*" or "@" expansions produce one field per
 				// element; joining and re-splitting them would lose
 				// fields when IFS is empty.
@@ -767,31 +825,31 @@ func (cfg *Config) wordFields(wps []syntax.WordPart) ([][]fieldPart, error) {
 				}
 				continue
 			}
-			val, err := cfg.paramExp(wp)
+			val, err := e.paramExp(wp)
 			if err != nil {
 				return nil, err
 			}
 			splitAdd(val)
 		case *syntax.CmdSubst:
-			val, err := cfg.cmdSubst(wp)
+			val, err := e.cmdSubst(wp)
 			if err != nil {
 				return nil, err
 			}
 			splitAdd(val)
 		case *syntax.ArithmExp:
-			n, err := Arithm(cfg, wp.X)
+			n, err := e.arithm(wp.X)
 			if err != nil {
 				return nil, err
 			}
 			curField = append(curField, fieldPart{val: strconv.Itoa(n)})
 		case *syntax.ProcSubst:
-			path, err := cfg.procSubst(wp)
+			path, err := e.procSubst(wp)
 			if err != nil {
 				return nil, err
 			}
 			splitAdd(path)
 		case *syntax.ExtGlob:
-			if !cfg.ExtGlob {
+			if !e.ExtGlob {
 				return nil, fmt.Errorf("extended globbing operator used without the \"extglob\" option set")
 			}
 			// We don't translate or interpret the pattern here in any way;
@@ -816,19 +874,19 @@ func (cfg *Config) wordFields(wps []syntax.WordPart) ([][]fieldPart, error) {
 // listElems returns the elements of a "*" or "@" expansion of a list, like
 // $@ or ${arr[*]}, with star set for the "*" forms which join into a single
 // field when quoted. ok is false for any other parameter expansion.
-func (cfg *Config) listElems(pe *syntax.ParamExp) (elems []string, star, ok bool) {
+func (e *expander) listElems(pe *syntax.ParamExp) (elems []string, star, ok bool) {
 	if pe.Param == nil { // e.g. zsh's ${}; paramExp rejects it
 		return nil, false, false
 	}
 	switch name := pe.Param.Value; name {
 	case "*", "@":
-		return cfg.sliceElems(pe, cfg.Env.Get(name).List, nil, true), name == "*", true
+		return e.sliceElems(pe, e.Env.Get(name).List, nil, true), name == "*", true
 	}
 	switch lit := nodeLit(pe.Index); lit {
 	case "@", "*":
-		switch vr := cfg.Env.Get(pe.Param.Value); vr.Kind {
+		switch vr := e.Env.Get(pe.Param.Value); vr.Kind {
 		case Indexed:
-			return cfg.sliceElems(pe, vr.List, vr.Indexes, false), lit == "*", true
+			return e.sliceElems(pe, vr.List, vr.Indexes, false), lit == "*", true
 		case Associative:
 			return slices.Sorted(maps.Values(vr.Map)), lit == "*", true
 		}
@@ -838,18 +896,18 @@ func (cfg *Config) listElems(pe *syntax.ParamExp) (elems []string, star, ok bool
 
 // unquotedElemFields returns the elements of an unquoted "*" or "@" list
 // expansion like $* or ${foo[@]}; ok is false for any other expansion.
-func (cfg *Config) unquotedElemFields(pe *syntax.ParamExp) ([]string, bool) {
+func (e *expander) unquotedElemFields(pe *syntax.ParamExp) ([]string, bool) {
 	if pe.Excl || pe.Length || pe.Width || pe.IsSet || pe.Repl != nil || pe.Exp != nil {
 		return nil, false
 	}
-	elems, _, ok := cfg.listElems(pe)
+	elems, _, ok := e.listElems(pe)
 	return elems, ok
 }
 
 // quotedElemFields returns the list of elements resulting from a quoted
 // parameter expansion that should be treated especially, like "${foo[@]}".
 // The result is nil for any other parameter expansion.
-func (cfg *Config) quotedElemFields(pe *syntax.ParamExp) ([]string, error) {
+func (e *expander) quotedElemFields(pe *syntax.ParamExp) ([]string, error) {
 	if pe == nil || pe.Param == nil || pe.Length || pe.Width || pe.IsSet {
 		return nil, nil
 	}
@@ -857,13 +915,13 @@ func (cfg *Config) quotedElemFields(pe *syntax.ParamExp) ([]string, error) {
 	if pe.Excl {
 		switch pe.Names {
 		case syntax.NamesPrefixWords: // "${!prefix@}"
-			return cfg.namesByPrefix(pe.Param.Value), nil
+			return e.namesByPrefix(pe.Param.Value), nil
 		case syntax.NamesPrefix: // "${!prefix*}"
 			return nil, nil
 		}
 		switch nodeLit(pe.Index) {
 		case "@": // "${!name[@]}"
-			switch vr := cfg.Env.Get(name); vr.Kind {
+			switch vr := e.Env.Get(name); vr.Kind {
 			case Indexed:
 				return vr.indexedKeys(), nil
 			case Associative:
@@ -872,18 +930,18 @@ func (cfg *Config) quotedElemFields(pe *syntax.ParamExp) ([]string, error) {
 		}
 		return nil, nil
 	}
-	if nodeLit(pe.Index) == "@" && !overridingUnset(pe) && !cfg.Env.Get(name).IsSet() {
+	if nodeLit(pe.Index) == "@" && !overridingUnset(pe) && !e.Env.Get(name).IsSet() {
 		// An unset "${name[@]}" produces zero fields, like an empty array.
 		return []string{}, nil
 	}
-	if elems, star, ok := cfg.listElems(pe); ok {
+	if elems, star, ok := e.listElems(pe); ok {
 		// Operators like "${foo[@]#prefix}" apply to each element.
-		elems, err := cfg.perElemOps(pe, elems)
+		elems, err := e.perElemOps(pe, elems)
 		if err != nil {
 			return nil, err
 		}
 		if star {
-			return []string{cfg.ifsJoin(elems)}, nil
+			return []string{e.ifsJoin(elems)}, nil
 		}
 		return elems, nil
 	}
@@ -897,12 +955,12 @@ func (cfg *Config) quotedElemFields(pe *syntax.ParamExp) ([]string, error) {
 // count from $# + 1, so $0 is reachable via large enough negative values.
 // A non-nil indexes records the index of each element in a sparse array;
 // see [Variable.Indexes].
-func (cfg *Config) sliceElems(pe *syntax.ParamExp, elems []string, indexes []int, positional bool) []string {
+func (e *expander) sliceElems(pe *syntax.ParamExp, elems []string, indexes []int, positional bool) []string {
 	if pe.Slice == nil {
 		return elems
 	}
 	if positional {
-		elems = append([]string{cfg.Env.Get("0").Str}, elems...)
+		elems = append([]string{e.Env.Get("0").Str}, elems...)
 	}
 	slicePos := func(n int) int {
 		if n < 0 {
@@ -916,7 +974,7 @@ func (cfg *Config) sliceElems(pe *syntax.ParamExp, elems []string, indexes []int
 		return n
 	}
 	if pe.Slice.Offset != nil {
-		offset, err := Arithm(cfg, pe.Slice.Offset)
+		offset, err := e.arithm(pe.Slice.Offset)
 		if err != nil {
 			return elems
 		}
@@ -937,7 +995,7 @@ func (cfg *Config) sliceElems(pe *syntax.ParamExp, elems []string, indexes []int
 		}
 	}
 	if pe.Slice.Length != nil {
-		length, err := Arithm(cfg, pe.Slice.Length)
+		length, err := e.arithm(pe.Slice.Length)
 		if err != nil {
 			return elems
 		}
@@ -946,7 +1004,7 @@ func (cfg *Config) sliceElems(pe *syntax.ParamExp, elems []string, indexes []int
 	return elems
 }
 
-func (cfg *Config) expandUser(field string, moreFields bool) (prefix, rest string) {
+func (e *expander) expandUser(field string, moreFields bool) (prefix, rest string) {
 	name, ok := strings.CutPrefix(field, "~")
 	if !ok {
 		// No tilde prefix to expand, e.g. "foo".
@@ -966,14 +1024,14 @@ func (cfg *Config) expandUser(field string, moreFields bool) (prefix, rest strin
 		// Current user; try via "HOME", otherwise fall back to the
 		// system's appropriate home dir env var. Don't use os/user, as
 		// that's overkill. We can't use [os.UserHomeDir], because we want
-		// to use cfg.Env, and we always want to check "HOME" first.
+		// to use e.Env, and we always want to check "HOME" first.
 
-		if vr := cfg.Env.Get("HOME"); vr.IsSet() {
+		if vr := e.Env.Get("HOME"); vr.IsSet() {
 			return vr.String(), rest
 		}
 
 		if runtime.GOOS == "windows" {
-			if vr := cfg.Env.Get("USERPROFILE"); vr.IsSet() {
+			if vr := e.Env.Get("USERPROFILE"); vr.IsSet() {
 				return vr.String(), rest
 			}
 		}
@@ -983,7 +1041,7 @@ func (cfg *Config) expandUser(field string, moreFields bool) (prefix, rest strin
 	// Not the current user; try via "HOME <name>", otherwise fall back to
 	// os/user. There isn't a way to lookup user home dirs without cgo.
 
-	if vr := cfg.Env.Get("HOME " + name); vr.IsSet() {
+	if vr := e.Env.Get("HOME " + name); vr.IsSet() {
 		return vr.String(), rest
 	}
 
@@ -1028,7 +1086,7 @@ func pathSplit(path string) []string {
 	return strings.Split(path, string(filepath.Separator))
 }
 
-func (cfg *Config) glob(base, pat string) ([]string, error) {
+func (e *expander) glob(base, pat string) ([]string, error) {
 	parts := pathSplit(pat)
 	matches := []string{""}
 	if filepath.IsAbs(pat) {
@@ -1075,7 +1133,7 @@ func (cfg *Config) glob(base, pat string) ([]string, error) {
 				// Our only option is to [Config.ReadDir2] on the directory entry itself,
 				// which can be wasteful if we only want to see if it exists,
 				// but at least it's correct in all scenarios.
-				if _, err := cfg.ReadDir2(match); err != nil {
+				if _, err := e.readDir2(match); err != nil {
 					if errors.Is(err, syscall.ENOTDIR) {
 						// Reading a regular file as a directory.
 						// Note that on Windows this error also satisfies
@@ -1092,7 +1150,7 @@ func (cfg *Config) glob(base, pat string) ([]string, error) {
 			}
 			matches = newMatches
 			continue
-		case part == "**" && cfg.GlobStar:
+		case part == "**" && e.GlobStar:
 			// Find all recursive matches for "**".
 			// Note that we need the results to be in depth-first order,
 			// and to avoid recursion, we use a slice as a stack.
@@ -1113,10 +1171,10 @@ func (cfg *Config) glob(base, pat string) ([]string, error) {
 				// If dir is not a directory, we keep the stack as-is and continue.
 				newMatches = newMatches[:0]
 				rx := rxGlobStar.MatchString
-				if cfg.DotGlob {
+				if e.DotGlob {
 					rx = rxGlobStarDotGlob.MatchString
 				}
-				newMatches, _ = cfg.globDir(base, dir, rx, wantDir, newMatches)
+				newMatches, _ = e.globDir(base, dir, rx, wantDir, newMatches)
 				for _, match := range slices.Backward(newMatches) {
 					stack = append(stack, match)
 				}
@@ -1124,13 +1182,13 @@ func (cfg *Config) glob(base, pat string) ([]string, error) {
 			continue
 		}
 		mode := pattern.Filenames | pattern.EntireString | pattern.NoGlobStar
-		if cfg.NoCaseGlob {
+		if e.NoCaseGlob {
 			mode |= pattern.NoGlobCase
 		}
-		if cfg.DotGlob {
+		if e.DotGlob {
 			mode |= pattern.GlobLeadingDot
 		}
-		if cfg.ExtGlob {
+		if e.ExtGlob {
 			mode |= pattern.ExtendedOperators
 		}
 		matcher, err := internal.ExtendedPatternMatcher(part, mode)
@@ -1139,7 +1197,7 @@ func (cfg *Config) glob(base, pat string) ([]string, error) {
 		}
 		var newMatches []string
 		for _, dir := range matches {
-			newMatches, err = cfg.globDir(base, dir, matcher, wantDir, newMatches)
+			newMatches, err = e.globDir(base, dir, matcher, wantDir, newMatches)
 			if err != nil {
 				return nil, err
 			}
@@ -1156,12 +1214,12 @@ func (cfg *Config) glob(base, pat string) ([]string, error) {
 	return matches, nil
 }
 
-func (cfg *Config) globDir(base, dir string, matcher func(string) bool, wantDir bool, matches []string) ([]string, error) {
+func (e *expander) globDir(base, dir string, matcher func(string) bool, wantDir bool, matches []string) ([]string, error) {
 	fullDir := dir
 	if !filepath.IsAbs(dir) {
 		fullDir = filepath.Join(base, dir)
 	}
-	infos, err := cfg.ReadDir2(fullDir)
+	infos, err := e.readDir2(fullDir)
 	if err != nil {
 		// We still want to return matches, for the sake of reusing slices.
 		return matches, err
@@ -1175,8 +1233,8 @@ func (cfg *Config) globDir(base, dir string, matcher func(string) bool, wantDir 
 			// This requires an extra syscall, as [Config.ReadDir] on the parent directory
 			// does not follow symlinks for each of the directory entries.
 			// ReadDir is somewhat wasteful here, as we only want its error result,
-			// but we could try to reuse its result as per the TODO in [Config.glob].
-			if _, err := cfg.ReadDir2(filepath.Join(fullDir, info.Name())); err != nil {
+			// but we could try to reuse its result as per the TODO in [expander.glob].
+			if _, err := e.readDir2(filepath.Join(fullDir, info.Name())); err != nil {
 				continue
 			}
 		} else if !mode.IsDir() {
@@ -1196,7 +1254,8 @@ func (cfg *Config) globDir(base, dir string, matcher func(string) bool, wantDir 
 // The config specifies shell expansion options; nil behaves the same as an
 // empty config.
 func ReadFields(cfg *Config, s string, n int, raw bool) []string {
-	cfg = prepareConfig(cfg)
+	e := newExpander(cfg)
+	defer e.release()
 	type pos struct {
 		start, end int
 	}
@@ -1207,12 +1266,12 @@ func ReadFields(cfg *Config, s string, n int, raw bool) []string {
 	esc := false
 	for _, r := range s {
 		if infield {
-			if cfg.ifsRune(r) && (raw || !esc) {
+			if e.ifsRune(r) && (raw || !esc) {
 				fpos[len(fpos)-1].end = len(runes)
 				infield = false
 			}
 		} else {
-			if !cfg.ifsRune(r) && (raw || !esc) {
+			if !e.ifsRune(r) && (raw || !esc) {
 				fpos = append(fpos, pos{start: len(runes), end: -1})
 				infield = true
 			}
@@ -1239,10 +1298,10 @@ func ReadFields(cfg *Config, s string, n int, raw bool) []string {
 		// The single field spans the whole line minus leading and trailing
 		// IFS whitespace; anything outside the fields is already IFS.
 		lo, hi := 0, len(runes)
-		for lo < fpos[0].start && cfg.ifsWhitespace(runes[lo]) {
+		for lo < fpos[0].start && e.ifsWhitespace(runes[lo]) {
 			lo++
 		}
-		for hi > fpos[len(fpos)-1].end && cfg.ifsWhitespace(runes[hi-1]) {
+		for hi > fpos[len(fpos)-1].end && e.ifsWhitespace(runes[hi-1]) {
 			hi--
 		}
 		fpos[0].start, fpos[0].end = lo, hi

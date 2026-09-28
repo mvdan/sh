@@ -3052,6 +3052,11 @@ done <<< 2`,
 	{`a=(zo wo); IFS=-; b=${a[*]^}; echo "$b"`, "Zo-Wo\n"},
 	{`a=(x y z); IFS=-; echo "${!a[*]}"`, "0-1-2\n"},
 	{`INTERP_Y_1=a INTERP_Y_2=b; IFS=-; echo "${!INTERP_Y_*}"`, "INTERP_Y_1-INTERP_Y_2\n"},
+	{`unset IFS; set -- x y; echo "${IFS=-}$*" "$*"`, "-x-y x-y\n"},
+	{`unset IFS; set -- x y; a="${IFS=-}${b:-$*}"; echo "$a"`, "-x-y\n"},
+	{`unset IFS; set -- x y; a="${b:-${IFS=-}}$*"; echo "$a"`, "-x-y\n"},
+	{`set -- x y; echo "$((IFS=7))$*"`, "7x7y\n"},
+	{`set -- x y; echo "$((IFS[0]=7))$*"`, "7x y\n"},
 
 	// builtin
 	{"builtin", ""},
