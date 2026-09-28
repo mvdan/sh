@@ -863,6 +863,10 @@ func (cfg *Config) quotedElemFields(pe *syntax.ParamExp) ([]string, error) {
 		}
 		return nil, nil
 	}
+	if nodeLit(pe.Index) == "@" && !overridingUnset(pe) && !cfg.Env.Get(name).IsSet() {
+		// An unset "${name[@]}" produces zero fields, like an empty array.
+		return []string{}, nil
+	}
 	if elems, star, ok := cfg.listElems(pe); ok {
 		// Operators like "${foo[@]#prefix}" apply to each element.
 		elems, err := cfg.perElemOps(pe, elems)
@@ -873,10 +877,6 @@ func (cfg *Config) quotedElemFields(pe *syntax.ParamExp) ([]string, error) {
 			return []string{cfg.ifsJoin(elems)}, nil
 		}
 		return elems, nil
-	}
-	if nodeLit(pe.Index) == "@" && !cfg.Env.Get(name).IsSet() {
-		// An unset "${name[@]}" produces zero fields, like an empty array.
-		return []string{}, nil
 	}
 	return nil, nil
 }

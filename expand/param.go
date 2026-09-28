@@ -563,7 +563,7 @@ func (cfg *Config) assignElem(name string, vr Variable, idx syntax.ArithmExpr, v
 			}
 		}
 		list, indexes := slices.Clone(vr.List), slices.Clone(vr.Indexes)
-		if vr.Kind == String {
+		if vr.Kind == String && vr.IsSet() {
 			list, indexes = []string{vr.Str}, nil
 		}
 		list, indexes = internal.SetIndexedElem(list, indexes, i, val)

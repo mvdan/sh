@@ -811,11 +811,17 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			if as.Naked {
 				// TODO: `local foo` should start unset rather than keep the
 				// value of an outer foo, while still inheriting its export attribute.
-				// TODO: `declare foo` and `declare -a foo` should declare an unset
-				// variable, and the latter should also make it an indexed array.
-				if valType == "-A" {
+				switch {
+				case valType == "-A":
 					vr.Kind = expand.Associative
-				} else {
+				case valType == "-a" && (vr.Kind == expand.Unknown || vr.Kind == expand.String):
+					// Like Bash, a string value becomes the first element.
+					vr.List, vr.Indexes = indexedElems(vr)
+					vr.Kind, vr.Str = expand.Indexed, ""
+				case !vr.Declared():
+					// Like Bash, declare a string variable without a value.
+					vr.Kind = expand.String
+				default:
 					vr.Kind = expand.KeepValue
 				}
 			} else {

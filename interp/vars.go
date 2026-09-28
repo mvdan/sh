@@ -146,7 +146,7 @@ func execEnv(env expand.Environ) []string {
 				}
 			}
 		}
-		if vr.Exported && vr.Kind == expand.String {
+		if vr.IsSet() && vr.Exported && vr.Kind == expand.String {
 			list = append(list, name+"="+vr.String())
 		}
 	}
@@ -296,22 +296,14 @@ func (r *Runner) setVarWithIndex(prev expand.Variable, name string, index syntax
 		r.setVar(name, vr)
 		return
 	}
+	list, indexes := indexedElems(prev)
 	prev.Set = true
 
 	// from the syntax package, we know that value must be a string if index
 	// is non-nil; nested arrays are forbidden.
 	valStr := vr.Str
 
-	var list []string
-	var indexes []int
-	switch prev.Kind {
-	case expand.String:
-		list = append(list, prev.Str)
-	case expand.Indexed:
-		// TODO: only clone when inside a subshell and getting a var from outside for the first time
-		list = slices.Clone(prev.List)
-		indexes = slices.Clone(prev.Indexes)
-	case expand.Associative:
+	if prev.Kind == expand.Associative {
 		// if the existing variable is already an AssocArray, try our
 		// best to convert the key to a string
 		w, ok := index.(*syntax.Word)
@@ -432,9 +424,29 @@ func stringIndex(index syntax.ArithmExpr) bool {
 
 // TODO: make assignVal and [setVar] consistent with the [expand.WriteEnviron] interface
 
+// indexedElems returns a copy of a variable's elements as an indexed array,
+// where a string value is the first element.
+func indexedElems(vr expand.Variable) ([]string, []int) {
+	switch {
+	case vr.Kind == expand.Indexed:
+		// TODO: only clone when inside a subshell and getting a var from outside for the first time
+		return slices.Clone(vr.List), slices.Clone(vr.Indexes)
+	case vr.Kind == expand.String && vr.IsSet():
+		return []string{vr.Str}, nil
+	}
+	return nil, nil
+}
+
 func (r *Runner) assignVal(name string, prev expand.Variable, as *syntax.Assign, valType string) (string, expand.Variable) {
 	if n, v := prev.Resolve(r.writeEnv); n != "" {
 		name, prev = n, v
+	}
+	// The base array which the new elements are set on; empty unless
+	// we are appending to an existing value.
+	var list []string
+	var indexes []int
+	if as.Array != nil && as.Append {
+		list, indexes = indexedElems(prev)
 	}
 	prev.Set = true
 	if as.Value != nil {
@@ -494,26 +506,9 @@ func (r *Runner) assignVal(name string, prev expand.Variable, as *syntax.Assign,
 		// TODO
 		return name, prev
 	}
-	// The base array which the new elements are set on; empty unless
-	// we are appending to an existing value.
-	var list []string
-	var indexes []int
-	if as.Append {
-		switch prev.Kind {
-		case expand.Unknown:
-		case expand.String:
-			list = []string{prev.Str}
-		case expand.Indexed:
-			// TODO: only clone when inside a subshell and getting a var from outside for the first time
-			list = slices.Clone(prev.List)
-			indexes = slices.Clone(prev.Indexes)
-		case expand.Associative:
-			// TODO
-			return name, prev
-		default:
-			// Should only happen if we forgot a case above.
-			panic(fmt.Sprintf("unexpected conversion of kind %d", prev.Kind))
-		}
+	if as.Append && prev.Kind == expand.Associative {
+		// TODO
+		return name, prev
 	}
 	// Evaluate values for each array element. An explicit index like
 	// [5]=x resets our index counter, which otherwise advances for every

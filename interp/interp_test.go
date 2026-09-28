@@ -930,27 +930,27 @@ var runTests = []runTest{
 	},
 	{
 		`declare foo; declare -p foo; echo "${foo+set}|${foo@a}|"`,
-		"declare: foo: not found\n||\n #IGNORE the variable is not declared",
+		"declare -- foo\n||\n",
 	},
 	{
 		`declare -a foo; declare -p foo; echo "${foo+set}|${foo@a}|"`,
-		"declare: foo: not found\n||\n #IGNORE the variable is not declared",
+		"declare -a foo\n|a|\n",
 	},
 	{
 		`typeset foo; declare -p foo`,
-		"declare: foo: not found\nexit status 1 #IGNORE the variable is not declared",
+		"declare -- foo\n",
 	},
 	{
 		`foo=x; declare -a foo; declare -p foo`,
-		"declare -- foo=\"x\"\n #IGNORE the variable is not made an indexed array",
+		"declare -a foo=([0]=\"x\")\n",
 	},
 	{
 		`declare -a foo; foo=x; foo+=y; declare -p foo`,
-		"declare -- foo=\"xy\"\n #IGNORE the variable is not made an indexed array",
+		"declare -a foo=([0]=\"xy\")\n",
 	},
 	{
 		`f() { declare -a foo; foo=y; declare -p foo; }; f`,
-		"declare -- foo=\"y\"\n #IGNORE the variable is not made an indexed array",
+		"declare -a foo=([0]=\"y\")\n",
 	},
 	{
 		`declare foo; foo[2]=x; declare bar; bar+=(y); declare baz; : ${baz[1]:=z}; declare -p foo bar baz`,
@@ -966,7 +966,7 @@ var runTests = []runTest{
 	},
 	{
 		`export foo; unset foo; declare -A m; unset m; declare -p foo m 2>/dev/null; echo "exit: $?"`,
-		"declare -x foo\ndeclare -A m\nexit: 0\n #IGNORE variables without a value cannot be unset",
+		"exit: 1\n",
 	},
 	{
 		`f() { local l; declare -p l; }; f`,
@@ -2745,11 +2745,11 @@ var runTests = []runTest{
 	},
 	{
 		`set -u; declare -a a; declare -A m; f() { local -a l; echo "${l[@]}" ok; }; echo "${a[@]}" "${m[@]}" ok; f`,
-		"m: unbound variable\nexit status 1 #IGNORE unset arrays are unbound in \"${a[@]}\"",
+		"ok\nok\n",
 	},
 	{
 		`declare -a a; printf '<%s>' "${a[@]:-x}" "${nope[@]-y}"; echo`,
-		"<>\n #IGNORE unset arrays ignore the default in \"${a[@]:-x}\"",
+		"<x><y>\n",
 	},
 	{
 		"set -ue; set -ueo pipefail",
