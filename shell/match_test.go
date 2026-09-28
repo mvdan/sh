@@ -4,6 +4,7 @@
 package shell
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/go-quicktest/qt"
@@ -62,11 +63,15 @@ func TestMatch(t *testing.T) {
 
 func TestMatchError(t *testing.T) {
 	t.Parallel()
+	deep := strings.Repeat("@(", 1100) + "x" + strings.Repeat(")", 1100)
 	for _, pat := range []string{
 		`foo\`,
 		// Negation is only supported with a fixed prefix and suffix.
 		"src/!(test)/*",
 		"!(a)!(b)",
+		// Too deeply nested for Go's regexp package.
+		deep,
+		"!(" + deep + ")",
 	} {
 		_, err := Match(pat, "x")
 		qt.Assert(t, qt.IsNotNil(err), qt.Commentf("pattern %q", pat))
