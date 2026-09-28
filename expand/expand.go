@@ -1154,33 +1154,46 @@ func (e *expander) glob(base, pat string) ([]string, error) {
 			matches = newMatches
 			continue
 		case part == "**" && e.GlobStar:
+			next := i + 1 // the next non-empty path element
+			for next < len(parts) && parts[next] == "" {
+				next++
+			}
 			// Find all recursive matches for "**".
 			// Note that we need the results to be in depth-first order,
 			// and to avoid recursion, we use a slice as a stack.
 			// Since we pop from the back, we populate the stack backwards.
-			stack := make([]string, 0, len(matches))
+			type walkDir struct {
+				path string
+				link bool
+			}
+			stack := make([]walkDir, 0, len(matches))
 			for _, match := range slices.Backward(matches) {
 				// "a/**" should match "a/ a/b a/b/cfg ...";
 				// note how the zero-match case there has a trailing separator.
-				stack = append(stack, pathJoin2(match, ""))
+				stack = append(stack, walkDir{path: pathJoin2(match, "")})
 			}
+			// Like Bash, don't walk symbolic links, which may form loops,
+			// and only match them when "**" is the last path element.
+			last := next == len(parts)
 			matches = matches[:0]
-			var newMatches []string // to reuse its capacity
 			for len(stack) > 0 {
 				dir := stack[len(stack)-1]
 				stack = stack[:len(stack)-1]
-				matches = append(matches, dir)
+				matches = append(matches, dir.path)
+				if dir.link {
+					continue
+				}
 
 				// If dir is not a directory, we keep the stack as-is and continue.
-				newMatches = newMatches[:0]
 				rx := rxGlobStar.MatchString
 				if e.DotGlob {
 					rx = rxGlobStarDotGlob.MatchString
 				}
-				newMatches, _ = e.globDir(base, dir, rx, wantDir, newMatches)
-				for _, match := range slices.Backward(newMatches) {
-					stack = append(stack, match)
-				}
+				n := len(stack)
+				e.globDir(base, dir.path, rx, wantDir, last, func(path string, link bool) {
+					stack = append(stack, walkDir{path: path, link: link})
+				})
+				slices.Reverse(stack[n:])
 			}
 			continue
 		}
@@ -1200,8 +1213,9 @@ func (e *expander) glob(base, pat string) ([]string, error) {
 		}
 		var newMatches []string
 		for _, dir := range matches {
-			newMatches, err = e.globDir(base, dir, matcher, wantDir, newMatches)
-			if err != nil {
+			if err := e.globDir(base, dir, matcher, wantDir, true, func(path string, _ bool) {
+				newMatches = append(newMatches, path)
+			}); err != nil {
 				return nil, err
 			}
 		}
@@ -1217,21 +1231,28 @@ func (e *expander) glob(base, pat string) ([]string, error) {
 	return matches, nil
 }
 
-func (e *expander) globDir(base, dir string, matcher func(string) bool, wantDir bool, matches []string) ([]string, error) {
+// globDir calls match with the path of each entry in dir accepted by matcher,
+// only including directories if wantDir is set and symbolic links if links is set,
+// and whether the entry is a symbolic link.
+func (e *expander) globDir(base, dir string, matcher func(string) bool, wantDir, links bool, match func(path string, link bool)) error {
 	fullDir := dir
 	if !filepath.IsAbs(dir) {
 		fullDir = filepath.Join(base, dir)
 	}
 	infos, err := e.readDir2(fullDir)
 	if err != nil {
-		// We still want to return matches, for the sake of reusing slices.
-		return matches, err
+		return err
 	}
 	for _, info := range infos {
 		name := info.Name()
+		mode := info.Type()
+		link := mode&os.ModeSymlink != 0
+		if link && !links {
+			continue
+		}
 		if !wantDir {
 			// No filtering.
-		} else if mode := info.Type(); mode&os.ModeSymlink != 0 {
+		} else if link {
 			// We need to know if the symlink points to a directory.
 			// This requires an extra syscall, as [Config.ReadDir] on the parent directory
 			// does not follow symlinks for each of the directory entries.
@@ -1245,10 +1266,10 @@ func (e *expander) globDir(base, dir string, matcher func(string) bool, wantDir 
 			continue
 		}
 		if matcher(name) {
-			matches = append(matches, pathJoin2(dir, name))
+			match(pathJoin2(dir, name), link)
 		}
 	}
-	return matches, nil
+	return nil
 }
 
 // ReadFields splits and returns n fields from s, like the "read" shell builtin.

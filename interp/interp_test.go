@@ -4425,6 +4425,11 @@ done <<< 2`,
 }
 
 var runTestsUnix = []runTest{
+	{
+		// Like Bash, globstar does not walk symbolic links, which may form loops.
+		"shopt -s globstar; mkdir -p d/e; touch d/e/f; ln -s d l; ln -s . x; ln -s . y; echo **; echo **/; echo **//; echo **/f; echo */**/f",
+		"d d/e d/e/f l x y\nd/ d/e/ l/ x/ y/\nd/ d/e/ l/ x/ y/\nd/e/f\nd/e/f l/e/f x/d/e/f y/d/e/f\n",
+	},
 	{"[[ -n $PPID && $PPID -ge 0 ]]", ""}, // can be 0 if running as the init process
 	{`$ENV_PROG | grep -q "^PWD=$PWD\$"`, ""},
 	{`mkdir a; cd a; $ENV_PROG | grep -q "^PWD=$PWD\$"`, ""},
