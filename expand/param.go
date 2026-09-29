@@ -257,18 +257,20 @@ func overridingUnset(pe *syntax.ParamExp) bool {
 	return false
 }
 
-func (e *expander) paramExp(pe *syntax.ParamExp) (string, error) {
+// paramExp expands a parameter expansion, where quoted reports whether it is
+// within double quotes or a here-document; see [expander.expArg].
+func (e *expander) paramExp(pe *syntax.ParamExp, quoted bool) (string, error) {
 	p, err := e.resolveParam(pe)
 	if err != nil {
 		return "", err
 	}
-	return e.paramExpResolved(pe, p)
+	return e.paramExpResolved(pe, p, quoted)
 }
 
 // paramExpResolved implements [expander.paramExp] once the parameter has
 // been resolved, so that a caller which already resolved it, such as
 // [expander.wordFields], does not evaluate any subscript again.
-func (e *expander) paramExpResolved(pe *syntax.ParamExp, p param) (string, error) {
+func (e *expander) paramExpResolved(pe *syntax.ParamExp, p param, quoted bool) (string, error) {
 	var err error
 	name, index, vr, orig := p.name, p.index, p.vr, p.orig
 	// "*" expansions like ${*}, ${arr[*]}, or ${!prefix*} join their
@@ -372,7 +374,7 @@ func (e *expander) paramExpResolved(pe *syntax.ParamExp, p param) (string, error
 		}
 		str = join(elems)
 	case pe.Exp != nil:
-		arg, err := e.literal(pe.Exp.Word)
+		arg, err := e.expArg(pe.Exp, quoted)
 		if err != nil {
 			return "", err
 		}
@@ -547,6 +549,30 @@ func transformOp(op, str string) (_ string, ok bool, _ error) {
 		return strings.ToLower(str), true, nil
 	}
 	return str, false, nil
+}
+
+// expArg expands the operand of a parameter expansion operator, such as
+// the word in ${x:-word} or the pattern in ${x#pattern}. Like in Bash, when
+// quoted reports that the expansion is within double quotes or a
+// here-document, an operand word follows the rules of double quotes, so
+// that only a backslash before a special character is removed. A pattern
+// keeps its quoted characters escaped.
+func (e *expander) expArg(exp *syntax.Expansion, quoted bool) (string, error) {
+	switch exp.Op {
+	case syntax.RemSmallPrefix, syntax.RemLargePrefix,
+		syntax.RemSmallSuffix, syntax.RemLargeSuffix,
+		syntax.UpperFirst, syntax.UpperAll,
+		syntax.LowerFirst, syntax.LowerAll:
+		return e.pattern(exp.Word)
+	}
+	if !quoted || exp.Word == nil {
+		return e.literal(exp.Word)
+	}
+	field, err := e.wordField(exp.Word.Parts, quoteDouble)
+	if err != nil {
+		return "", err
+	}
+	return e.fieldJoin(field), nil
 }
 
 // replaceElems applies a ${var/pattern/repl} replacement to each element.

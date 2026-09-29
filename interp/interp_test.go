@@ -2284,7 +2284,7 @@ var runTests = []runTest{
 	{
 		// Quoted and escaped characters match literally.
 		`[[ axb =~ a\.b ]] && echo 1; [[ axb =~ "a.b" ]] && echo 2; r=a.b; [[ axb =~ $r ]] && echo 3; [[ axb =~ "$r" ]] && echo 4; [[ 'a\b' =~ ^a\\b$ ]] && echo 5`,
-		"2\n3\n4\n5\n #IGNORE quoting is removed from the regular expression",
+		"3\n5\n",
 	},
 	{
 		"[[ -e a ]] && echo x; >a; [[ -e a ]] && echo y",
@@ -3688,19 +3688,19 @@ done <<< 2`,
 	{`a=(ab cd); printf "<%s>" "${a[@]@U}" "${a[@]@u}" "${a[@]@L}" "${a[@]@E}"; echo`, "<AB><CD><Ab><Cd><ab><cd><ab><cd>\n"},
 	{`a=(a b); printf "<%s>" "${a[@]@Q}"; echo`, "<a><b>\n #IGNORE bash quotes the values"},
 
-	// Unquoted backslashes are kept in assignment values and other
-	// words which do not undergo field splitting, unlike in Bash.
-	{`x=a\ b; echo "$x"; x=\$y; echo "$x"; echo "${u-\$y}"; x=a\\b; echo "$x"; x=\"q\"; echo "$x"`, "a\\ b\n\\$y\n\\$y\na\\\\b\n\\\"q\\\"\n #IGNORE backslashes are kept"},
-	{`f() { local x=a\ b; echo "$x"; }; f; a=([0]=x\ y); echo "${a[0]}"; x=a\*b; echo "$x"`, "a\\ b\nx\\ y\na\\*b\n #IGNORE backslashes are kept"},
-	{`case a\ b in "a b") echo yes;; esac; [[ a\ b == "a b" ]] && echo yes2; cat <<< a\ b`, "a\\ b\n #IGNORE backslashes are kept"},
-	{`echo hi > a\ b; [[ -e "a b" ]] && cat "a b"`, "exit status 1 #IGNORE backslashes are kept"},
-	{`[[ x == \* ]] && echo m1; [[ \* == \* ]] && echo m2; case x in \*) echo m3;; esac; case "*" in \*) echo m4;; esac`, "m4\n #IGNORE backslashes are kept"},
+	// Unquoted backslashes are removed from assignment values and
+	// other words which do not undergo field splitting.
+	{`x=a\ b; echo "$x"; x=\$y; echo "$x"; echo "${u-\$y}"; x=a\\b; echo "$x"; x=\"q\"; echo "$x"`, "a b\n$y\n$y\na\\b\n\"q\"\n"},
+	{`f() { local x=a\ b; echo "$x"; }; f; a=([0]=x\ y); echo "${a[0]}"; x=a\*b; echo "$x"`, "a b\nx y\na*b\n"},
+	{`case a\ b in "a b") echo yes;; esac; [[ a\ b == "a b" ]] && echo yes2; cat <<< a\ b`, "yes\nyes2\na b\n"},
+	{`echo hi > a\ b; [[ -e "a b" ]] && cat "a b"`, "hi\n"},
+	{`[[ x == \* ]] && echo m1; [[ \* == \* ]] && echo m2; case x in \*) echo m3;; esac; case "*" in \*) echo m4;; esac`, "m2\nm4\n"},
 	// Within double quotes or a here-document, an operand like ${x:-word}
 	// follows the rules of double quotes, and quoted pattern characters
 	// match literally.
-	{`echo "${x:-a\b}" "${x:-a\$b}" "${x:-a\"b}" ${x:-a\b}; a=(); echo "${a[@]:-a\b}"`, "a\\b a\\$b a\\\"b a\\b\na\\b\n #IGNORE backslashes are kept"},
-	{"cat <<EOF\n${x:-a\\b} ${x:-a\\$b}\nEOF", "a\\b a\\$b\n #IGNORE backslashes are kept"},
-	{`y='a*b'; echo ${y#a\*} ${y#"a*"} "${y#a\*}" ${y%\*b}; p='a*'; echo "${y#"$p"}"`, "b *b b a\n*b\n #IGNORE quoted pattern characters are special"},
+	{`echo "${x:-a\b}" "${x:-a\$b}" "${x:-a\"b}" ${x:-a\b}; a=(); echo "${a[@]:-a\b}"`, "a\\b a$b a\"b ab\na\\b\n"},
+	{"cat <<EOF\n${x:-a\\b} ${x:-a\\$b}\nEOF", "a\\b a$b\n"},
+	{`y='a*b'; echo ${y#a\*} ${y#"a*"} "${y#a\*}" ${y%\*b}; p='a*'; echo "${y#"$p"}"`, "b b b a\nb\n"},
 	// Backslashes within expanded values are kept.
 	{`x='a\b'; [ "$x" = ab ] && echo m1; [ ab = "$x" ] && echo m2; [ "$x" != ab ] && echo m3; test "$x" = 'a\b' && echo m4`, "m3\nm4\n"},
 	{`v='y=a\b'; declare "$v"; echo "$y"; f() { local "$v"; echo "$y"; }; f; export "$v"; echo "$y"`, "a\\b\na\\b\na\\b\n"},

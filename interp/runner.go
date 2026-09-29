@@ -1157,9 +1157,7 @@ func (r *Runner) flattenAssigns(args []*syntax.Assign) iter.Seq[*syntax.Assign] 
 				if !ok {
 					as.Naked = true
 				} else {
-					as.Value = &syntax.Word{Parts: []syntax.WordPart{
-						&syntax.Lit{Value: val},
-					}}
+					as.Value = expandedWord(val)
 				}
 				if !yield(as) {
 					return

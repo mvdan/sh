@@ -8,10 +8,12 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"strings"
 
 	"golang.org/x/term"
 
 	"mvdan.cc/sh/v3/expand"
+	"mvdan.cc/sh/v3/internal"
 	"mvdan.cc/sh/v3/syntax"
 )
 
@@ -22,11 +24,8 @@ func (r *Runner) bashTest(ctx context.Context, expr syntax.TestExpr, classic boo
 	defer func() { r.stmtDepth-- }()
 	switch x := expr.(type) {
 	case *syntax.Word:
-		if classic {
-			// In the classic "test" mode, we already expanded and
-			// split the list of words, so don't redo that work.
-			return r.document(x)
-		}
+		// In the classic "test" mode, the words were already expanded,
+		// and are kept as-is; see [expandedWord].
 		return r.literal(x)
 	case *syntax.ParenTest:
 		return r.bashTest(ctx, x.X, classic)
@@ -47,6 +46,12 @@ func (r *Runner) bashTest(ctx context.Context, expr syntax.TestExpr, classic boo
 				}
 			}
 			return ""
+		case syntax.TsReMatch:
+			str := r.literal(x.X.(*syntax.Word))
+			if r.binTest(ctx, x.Op, str, r.regexpWord(x.Y.(*syntax.Word))) {
+				return "1"
+			}
+			return ""
 		}
 		if r.binTest(ctx, x.Op, r.bashTest(ctx, x.X, classic), r.bashTest(ctx, x.Y, classic)) {
 			return "1"
@@ -59,6 +64,36 @@ func (r *Runner) bashTest(ctx context.Context, expr syntax.TestExpr, classic boo
 		return ""
 	}
 	return ""
+}
+
+// regexpWord expands the right-hand side of [[ str =~ regexp ]]. Like in
+// Bash, quoted parts match literally, including escaped characters.
+func (r *Runner) regexpWord(word *syntax.Word) string {
+	var sb strings.Builder
+	for _, wp := range word.Parts {
+		switch wp := wp.(type) {
+		case *syntax.Lit:
+			s := wp.Value
+			for {
+				before, escaped, after, ok := internal.CutEscape(s)
+				if !ok {
+					break
+				}
+				sb.WriteString(before)
+				sb.WriteString(regexp.QuoteMeta(escaped))
+				s = after
+			}
+			sb.WriteString(s)
+		default:
+			str := r.literal(&syntax.Word{Parts: []syntax.WordPart{wp}})
+			switch wp.(type) {
+			case *syntax.SglQuoted, *syntax.DblQuoted:
+				str = regexp.QuoteMeta(str)
+			}
+			sb.WriteString(str)
+		}
+	}
+	return sb.String()
 }
 
 func (r *Runner) binTest(ctx context.Context, op syntax.BinTestOperator, x, y string) bool {

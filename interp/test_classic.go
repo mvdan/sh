@@ -44,11 +44,15 @@ func (p *testParser) followWord(fval string) *syntax.Word {
 	if p.eof {
 		p.errf("%s must be followed by a word", fval)
 	}
-	w := &syntax.Word{Parts: []syntax.WordPart{
-		&syntax.Lit{Value: p.val},
-	}}
+	w := expandedWord(p.val)
 	p.next()
 	return w
+}
+
+// expandedWord returns a word for an argument which was already expanded,
+// so that expanding it again keeps it as-is, including any backslashes.
+func expandedWord(s string) *syntax.Word {
+	return &syntax.Word{Parts: []syntax.WordPart{&syntax.SglQuoted{Value: s}}}
 }
 
 func (p *testParser) classicTest(fval string, pastAndOr bool) syntax.TestExpr {
@@ -119,9 +123,7 @@ func (p *testParser) testExprBase(fval string) syntax.TestExpr {
 		if p.eof {
 			// make [ -e ] fall back to [ -n -e ], i.e. use
 			// the operator as an argument
-			return &syntax.Word{Parts: []syntax.WordPart{
-				&syntax.Lit{Value: op.String()},
-			}}
+			return expandedWord(op.String())
 		}
 		u.X = p.followWord(op.String())
 		return u

@@ -657,6 +657,9 @@ func (e *expander) wordField(wps []syntax.WordPart, ql quoteLevel) ([]fieldPart,
 					s = rest
 				}
 			}
+			if ql == quoteNone {
+				field, s = appendUnescaped(field, s)
+			}
 			if (ql == quoteDouble || ql == quoteHeredoc) && strings.Contains(s, "\\") {
 				sb := e.strBuilder()
 				for i := 0; i < len(s); i++ {
@@ -692,7 +695,7 @@ func (e *expander) wordField(wps []syntax.WordPart, ql quoteLevel) ([]fieldPart,
 				return nil, err
 			}
 		case *syntax.ParamExp:
-			val, err := e.paramExp(wp)
+			val, err := e.paramExp(wp, ql != quoteNone)
 			if err != nil {
 				return nil, err
 			}
@@ -789,20 +792,7 @@ func (e *expander) wordFields(wps []syntax.WordPart) ([][]fieldPart, error) {
 				})
 				s = rest
 			}
-			// Escaped characters are quoted, so that they aren't
-			// treated as metacharacters when globbing.
-			for {
-				i := strings.IndexByte(s, '\\')
-				if i < 0 || i == len(s)-1 {
-					break // a trailing backslash is kept as-is
-				}
-				_, size := utf8.DecodeRuneInString(s[i+1:])
-				curField = append(curField,
-					fieldPart{val: s[:i]},
-					fieldPart{quote: quoteSingle, val: s[i+1 : i+1+size]},
-				)
-				s = s[i+1+size:]
-			}
+			curField, s = appendUnescaped(curField, s)
 			curField = append(curField, fieldPart{val: s})
 		case *syntax.SglQuoted:
 			allowEmpty = true
@@ -855,7 +845,7 @@ func (e *expander) wordFields(wps []syntax.WordPart) ([][]fieldPart, error) {
 					}
 					continue
 				}
-				val, err := e.paramExpResolved(pe, p)
+				val, err := e.paramExpResolved(pe, p, true)
 				if err != nil {
 					return nil, err
 				}
@@ -883,7 +873,7 @@ func (e *expander) wordFields(wps []syntax.WordPart) ([][]fieldPart, error) {
 				}
 				continue
 			}
-			val, err := e.paramExpResolved(wp, p)
+			val, err := e.paramExpResolved(wp, p, false)
 			if err != nil {
 				return nil, err
 			}
@@ -927,6 +917,24 @@ func (e *expander) wordFields(wps []syntax.WordPart) ([][]fieldPart, error) {
 		fields = append(fields, curField)
 	}
 	return fields, nil
+}
+
+// appendUnescaped appends the parts of an unquoted literal up to its last
+// backslash escape, returning the rest. Each escaped character is quoted,
+// so that it is not treated as a metacharacter when globbing. A trailing
+// backslash is kept as-is.
+func appendUnescaped(parts []fieldPart, s string) ([]fieldPart, string) {
+	for {
+		before, escaped, after, ok := internal.CutEscape(s)
+		if !ok {
+			return parts, s
+		}
+		parts = append(parts,
+			fieldPart{val: before},
+			fieldPart{quote: quoteSingle, val: escaped},
+		)
+		s = after
+	}
 }
 
 // listElems returns the elements of a "*" or "@" expansion of a list, like
@@ -1016,7 +1024,7 @@ func (e *expander) quotedElemFields(pe *syntax.ParamExp, p param) (elems []strin
 	}
 	var arg string
 	if pe.Exp != nil {
-		if arg, err = e.literal(pe.Exp.Word); err != nil {
+		if arg, err = e.expArg(pe.Exp, true); err != nil {
 			return nil, false, err
 		}
 		switch op := pe.Exp.Op; op {
