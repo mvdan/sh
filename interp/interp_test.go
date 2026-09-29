@@ -3698,6 +3698,7 @@ done <<< 2`,
 	// operators transforming each element of a list
 	{`a=(ab cd); printf "<%s>" "${a[@]@U}" "${a[@]@u}" "${a[@]@L}" "${a[@]@E}"; echo`, "<AB><CD><Ab><Cd><ab><cd><ab><cd>\n"},
 	{`a=(a b); printf "<%s>" "${a[@]@Q}"; echo`, "<a><b>\n #IGNORE bash quotes the values"},
+	{`a=(x y); echo "${a[@]@a}" "${a[*]@a}"; declare -Ar m=([k]=v); echo "${m[@]@a}"`, "x y x y\nv\n #IGNORE @a on a list gives the values"},
 
 	// Unquoted backslashes are removed from assignment values and
 	// other words which do not undergo field splitting.
