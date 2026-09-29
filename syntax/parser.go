@@ -737,6 +737,8 @@ func unquotedWordBytes(w *Word) ([]byte, bool) {
 	buf := make([]byte, 0, 4)
 	didUnquote := false
 	for _, wp := range w.Parts {
+		// TODO: a partly quoted word such as 'A'B is quoted,
+		// but this only reports whether its last part is.
 		buf, didUnquote = unquotedWordPart(buf, wp, false)
 	}
 	return buf, didUnquote

@@ -68,6 +68,8 @@ func (p *Parser) rune() rune {
 		p.line++
 		p.col = 0
 	}
+	// TODO: an escaped "\r\n" has a width of 2,
+	// so the line following it starts at column 2.
 	p.col += int64(p.w)
 	bquotes := 0
 retry:
@@ -1223,6 +1225,8 @@ func (p *Parser) advanceLitHdoc(r rune) {
 				// This line starts right after an escaped
 				// newline, so it should never end the heredoc.
 			} else if lStart >= 0 {
+				// TODO: lStart is also 0 when this literal follows an
+				// expansion mid-line, so "${x}EOF" wrongly ends the heredoc.
 				// Compare the current line with the stop word.
 				line := p.litBs[lStart:]
 				if r != runeEOF && len(line) > 0 {

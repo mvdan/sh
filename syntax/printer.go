@@ -954,6 +954,9 @@ func (p *Printer) cmdSubst(cs *CmdSubst) {
 		} else {
 			p.wantSpace = spaceNotRequired
 		}
+		// TODO: with a closing backquote right after a heredoc's closing word,
+		// as in "`cat <<EOF\nfoo\nEOF`", we print "$(cat <<EOF" on one line,
+		// but formatting that result again puts "cat" on a new line.
 		if cs.Backquotes && len(cs.Stmts) > 0 && hasUnclosedHdoc(cs.Stmts[len(cs.Stmts)-1]) {
 			// Force a newline if the closing backquote ended a heredoc,
 			// as the heredoc's closing line will be printed before it:
@@ -1238,6 +1241,9 @@ func (p *Printer) stmt(s *Stmt) {
 		} else {
 			p.wantSpace = spaceRequired
 		}
+		// TODO: a heredoc is flushed at the next newline, even one within
+		// a later redirect's word, as in `cat <<EOF <$(\n\techo\n)`,
+		// placing the heredoc's body inside the command substitution.
 		p.word(r.Word)
 		if r.Op == Hdoc || r.Op == DashHdoc {
 			p.pendingHdocs = append(p.pendingHdocs, r)
