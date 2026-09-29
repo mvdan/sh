@@ -1612,97 +1612,183 @@ var fileTests = []fileTestCase{
 			}},
 		}),
 	),
-	// Only mksh rejects heredocs ending at EOF or at a closing backquote,
-	// but we reject them in every language variant.
+	// Only mksh rejects heredocs ending at EOF or at a closing backquote;
+	// the printer adds their missing closing lines.
 	fileTest(
 		[]string{"foo <<EOF", "foo <<EOF\n", "foo <<EOF\n\\\n"},
 		printsAs("foo <<EOF\nEOF"),
-		langErr2("1:5: unclosed here-document `EOF`"),
-		flipConfirm2(LangBash|LangPOSIX|LangBats|LangZsh),
+		langFile(&Stmt{
+			Cmd: litCall("foo"),
+			Redirs: []*Redirect{{
+				Op:   Hdoc,
+				Word: litWord("EOF"),
+			}},
+		}),
 		langErr2("1:5: unclosed here-document `EOF`", LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{"foo <<EOF\nbar", "foo <<EOF\nbar\\\n"},
 		printsAs("foo <<EOF\nbar\nEOF"),
-		langErr2("1:5: unclosed here-document `EOF`"),
-		flipConfirm2(LangBash|LangPOSIX|LangBats|LangZsh),
+		langFile(&Stmt{
+			Cmd: litCall("foo"),
+			Redirs: []*Redirect{{
+				Op:   Hdoc,
+				Word: litWord("EOF"),
+				Hdoc: litWord("bar"),
+			}},
+		}),
 		langErr2("1:5: unclosed here-document `EOF`", LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{"foo <<EOF\nbar\n"},
 		printsAs("foo <<EOF\nbar\nEOF"),
-		langErr2("1:5: unclosed here-document `EOF`"),
-		flipConfirm2(LangBash|LangPOSIX|LangBats|LangZsh),
+		langFile(&Stmt{
+			Cmd: litCall("foo"),
+			Redirs: []*Redirect{{
+				Op:   Hdoc,
+				Word: litWord("EOF"),
+				Hdoc: litWord("bar\n"),
+			}},
+		}),
 		langErr2("1:5: unclosed here-document `EOF`", LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{"foo <<EOF\n$bar"},
 		printsAs("foo <<EOF\n$bar\nEOF"),
-		langErr2("1:5: unclosed here-document `EOF`"),
-		flipConfirm2(LangBash|LangPOSIX|LangBats|LangZsh),
+		langFile(&Stmt{
+			Cmd: litCall("foo"),
+			Redirs: []*Redirect{{
+				Op:   Hdoc,
+				Word: litWord("EOF"),
+				Hdoc: word(litParamExp("bar")),
+			}},
+		}),
 		langErr2("1:5: unclosed here-document `EOF`", LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{"foo <<EOF\nbar\\"},
 		printsAs("foo <<EOF\nbar\\\\\nEOF"),
-		langErr2("1:5: unclosed here-document `EOF`"),
-		flipConfirm2(LangBash|LangPOSIX|LangBats|LangZsh),
+		langFile(&Stmt{
+			Cmd: litCall("foo"),
+			Redirs: []*Redirect{{
+				Op:   Hdoc,
+				Word: litWord("EOF"),
+				Hdoc: litWord(`bar\`),
+			}},
+		}),
 		langErr2("1:5: unclosed here-document `EOF`", LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{"foo <<'EOF'\nbar\\"},
 		printsAs("foo <<'EOF'\nbar\\\nEOF"),
-		langErr2("1:5: unclosed here-document `EOF`"),
-		flipConfirm2(LangBash|LangPOSIX|LangBats|LangZsh),
+		langFile(&Stmt{
+			Cmd: litCall("foo"),
+			Redirs: []*Redirect{{
+				Op:   Hdoc,
+				Word: word(sglQuoted("EOF")),
+				Hdoc: litWord(`bar\`),
+			}},
+		}),
 		langErr2("1:5: unclosed here-document `EOF`", LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{"foo <<-EOF\n\tbar"},
 		printsAs("foo <<-EOF\n\tbar\nEOF"),
-		langErr2("1:5: unclosed here-document `EOF`"),
-		flipConfirm2(LangBash|LangPOSIX|LangBats|LangZsh),
+		langFile(&Stmt{
+			Cmd: litCall("foo"),
+			Redirs: []*Redirect{{
+				Op:   DashHdoc,
+				Word: litWord("EOF"),
+				Hdoc: litWord("\tbar"),
+			}},
+		}),
 		langErr2("1:5: unclosed here-document `EOF`", LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{"foo <<-EOF\n\tbar\n\t"},
 		printsAs("foo <<-EOF\n\tbar\n\nEOF"),
-		langErr2("1:5: unclosed here-document `EOF`"),
-		flipConfirm2(LangBash|LangPOSIX|LangBats|LangZsh),
+		langFile(&Stmt{
+			Cmd: litCall("foo"),
+			Redirs: []*Redirect{{
+				Op:   DashHdoc,
+				Word: litWord("EOF"),
+				Hdoc: litWord("\tbar\n\t"),
+			}},
+		}),
 		langErr2("1:5: unclosed here-document `EOF`", LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{"foo <<-EOF\n$bar\t"},
 		printsAs("foo <<-EOF\n\t$bar\t\nEOF"),
-		langErr2("1:5: unclosed here-document `EOF`"),
-		flipConfirm2(LangBash|LangPOSIX|LangBats|LangZsh),
+		langFile(&Stmt{
+			Cmd: litCall("foo"),
+			Redirs: []*Redirect{{
+				Op:   DashHdoc,
+				Word: litWord("EOF"),
+				Hdoc: word(litParamExp("bar"), lit("\t")),
+			}},
+		}),
 		langErr2("1:5: unclosed here-document `EOF`", LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{"foo <<EOF || bar <<EOF\nbaz\nEOF"},
 		printsAs("foo <<EOF || bar <<EOF\nbaz\nEOF\nEOF"),
-		langErr2("1:18: unclosed here-document `EOF`"),
-		flipConfirm2(LangBash|LangPOSIX|LangBats|LangZsh),
+		langFile(&BinaryCmd{
+			Op: OrStmt,
+			X: &Stmt{
+				Cmd: litCall("foo"),
+				Redirs: []*Redirect{{
+					Op:   Hdoc,
+					Word: litWord("EOF"),
+					Hdoc: litWord("baz\n"),
+				}},
+			},
+			Y: &Stmt{
+				Cmd: litCall("bar"),
+				Redirs: []*Redirect{{
+					Op:   Hdoc,
+					Word: litWord("EOF"),
+				}},
+			},
+		}),
 		langErr2("1:18: unclosed here-document `EOF`", LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{"`foo <<EOF\nbar`"},
 		printsAs("$(\n\tfoo <<EOF\nbar\nEOF\n)"),
-		langErr2("1:6: unclosed here-document `EOF`"),
-		flipConfirm2(LangBash|LangPOSIX|LangBats|LangZsh),
+		langFile(cmdSubst(&Stmt{
+			Cmd: litCall("foo"),
+			Redirs: []*Redirect{{
+				Op:   Hdoc,
+				Word: litWord("EOF"),
+				Hdoc: litWord("bar"),
+			}},
+		})),
 		langErr2("1:6: unclosed here-document `EOF`", LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{"`foo <<'EOF'\nbar`"},
 		printsAs("$(\n\tfoo <<'EOF'\nbar\nEOF\n)"),
-		langErr2("1:6: unclosed here-document `EOF`"),
-		flipConfirm2(LangBash|LangPOSIX|LangBats|LangZsh),
+		langFile(cmdSubst(&Stmt{
+			Cmd: litCall("foo"),
+			Redirs: []*Redirect{{
+				Op:   Hdoc,
+				Word: word(sglQuoted("EOF")),
+				Hdoc: litWord("bar"),
+			}},
+		})),
 		langErr2("1:6: unclosed here-document `EOF`", LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{"`foo <<EOF`"},
 		printsAs("$(\n\tfoo <<EOF\nEOF\n)"),
-		langErr2("1:6: unclosed here-document `EOF`"),
-		flipConfirm2(LangBash|LangPOSIX|LangBats|LangZsh),
+		langFile(cmdSubst(&Stmt{
+			Cmd: litCall("foo"),
+			Redirs: []*Redirect{{
+				Op:   Hdoc,
+				Word: litWord("EOF"),
+			}},
+		})),
 		langErr2("1:6: unclosed here-document `EOF`", LangMirBSDKorn),
 	),
 	fileTest(
@@ -5811,6 +5897,10 @@ func (c sanityChecker) visit(node Node) bool {
 				strs = append(strs, "&>>!", ">>&|", ">>&!")
 			}
 			c.checkPos(node, r.OpPos, strs...)
+			if r.ClosePos.IsValid() {
+				stop, _ := unquotedWordBytes(r.Word)
+				c.checkPos(node, r.ClosePos, string(stop))
+			}
 		}
 	case *Lit:
 		pos, end := int(node.Pos().Offset()), int(node.End().Offset())

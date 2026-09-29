@@ -526,7 +526,7 @@ func (p *Printer) flushHeredocs() {
 
 					line: r.Hdoc.Pos().Line(),
 				}
-				p.tabsPrinter.wordParts(r.Hdoc.Parts, true)
+				p.tabsPrinter.hdocBody(r)
 			}
 			p.indent()
 			p.unquotedWord(r.Word)
@@ -541,7 +541,7 @@ func (p *Printer) flushHeredocs() {
 				p.w = e.sink()
 			}
 			if r.Hdoc != nil {
-				p.wordParts(r.Hdoc.Parts, true)
+				p.hdocBody(r)
 			}
 			p.unquotedWord(r.Word)
 			p.w = w
@@ -556,6 +556,47 @@ func (p *Printer) flushHeredocs() {
 	p.level = newLevel
 	p.pendingComments = coms
 	p.mustNewline = true
+}
+
+// hasUnclosedHdoc reports whether s has a heredoc without its closing word.
+func hasUnclosedHdoc(s *Stmt) bool {
+	found := false
+	Walk(s, func(node Node) bool {
+		if r, ok := node.(*Redirect); ok && (r.Op == Hdoc || r.Op == DashHdoc) && !r.ClosePos.IsValid() {
+			found = true
+		}
+		return !found
+	})
+	return found
+}
+
+// hdocBody prints a heredoc's body, ending it with a newline if it lacks one,
+// as the parser ends a heredoc at EOF or a closing backquote.
+func (p *Printer) hdocBody(r *Redirect) {
+	parts := r.Hdoc.Parts
+	lit, isLit := parts[0].(*Lit)
+	if _, quoted := unquotedWordBytes(r.Word); quoted && isLit && len(parts) == 1 {
+		// Backslashes are literal here, so print the body as-is,
+		// as [Printer.wordPart] would escape a trailing backslash.
+		p.writeLit(lit.Value)
+	} else {
+		p.wordParts(parts, true)
+	}
+	if hdocNeedsNewline(r) {
+		p.w.WriteByte('\n')
+		p.line++
+	}
+}
+
+// hdocNeedsNewline reports whether a heredoc's body was cut short
+// in the middle of a line, by EOF or by a closing backquote.
+// Keep in sync with the copy in the interp package.
+func hdocNeedsNewline(r *Redirect) bool {
+	if r.Hdoc == nil || r.ClosePos.IsValid() {
+		return false
+	}
+	lit, ok := r.Hdoc.Parts[len(r.Hdoc.Parts)-1].(*Lit)
+	return !ok || !strings.HasSuffix(lit.Value, "\n")
 }
 
 // newline prints between zero and two newlines.
@@ -912,6 +953,13 @@ func (p *Printer) cmdSubst(cs *CmdSubst) {
 			p.wantSpace = spaceRequired
 		} else {
 			p.wantSpace = spaceNotRequired
+		}
+		if cs.Backquotes && len(cs.Stmts) > 0 && hasUnclosedHdoc(cs.Stmts[len(cs.Stmts)-1]) {
+			// Force a newline if the closing backquote ended a heredoc,
+			// as the heredoc's closing line will be printed before it:
+			//     `cat <<EOF
+			//     body`
+			p.wantNewline = true
 		}
 		p.nestedStmts(cs.Stmts, cs.Last, cs.Right)
 		p.closingParen(cs.Stmts, cs.Last, cs.Left, cs.Right)

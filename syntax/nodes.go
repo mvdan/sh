@@ -331,11 +331,12 @@ func (a *Assign) End() Pos {
 
 // Redirect represents an input/output redirection.
 type Redirect struct {
-	OpPos Pos
-	Op    RedirOperator
-	N     *Lit  // fd>, or {varname}> with [LangBash] or [LangZsh]
-	Word  *Word // >word
-	Hdoc  *Word // here-document body
+	OpPos    Pos
+	ClosePos Pos // closing word of a here-document; unset if it ended at EOF or a backquote
+	Op       RedirOperator
+	N        *Lit  // fd>, or {varname}> with [LangBash] or [LangZsh]
+	Word     *Word // >word
+	Hdoc     *Word // here-document body
 }
 
 func (r *Redirect) Pos() Pos {
@@ -344,6 +345,8 @@ func (r *Redirect) Pos() Pos {
 	}
 	return r.OpPos
 }
+
+// TODO(v4): End should include a here-document's closing word, if any.
 
 func (r *Redirect) End() Pos {
 	if r.Hdoc != nil {

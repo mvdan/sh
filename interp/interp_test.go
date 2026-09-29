@@ -1911,6 +1911,48 @@ var runTests = []runTest{
 		"cat <<-EOF\n\tEOF",
 		"",
 	},
+	// Bash ends a heredoc at EOF or a closing backquote, warning on stderr,
+	// and adds a newline to its last line if it lacks one.
+	{
+		"exec 2>/dev/null\ncat <<EOF",
+		"",
+	},
+	{
+		"exec 2>/dev/null\ncat <<EOF\nfoo\n",
+		"foo\n",
+	},
+	{
+		"exec 2>/dev/null\ncat <<EOF\nfoo",
+		"foo\n",
+	},
+	{
+		"exec 2>/dev/null\ncat <<EOF\nfoo $((1+2))",
+		"foo 3\n",
+	},
+	{
+		"exec 2>/dev/null\ncat <<'EOF'\nfoo\\",
+		"foo\\\n",
+	},
+	{
+		"exec 2>/dev/null\ncat <<-EOF\n\tfoo\n\tbar",
+		"foo\nbar\n",
+	},
+	{
+		"exec 2>/dev/null\ncat <<-EOF\n\tfoo\n\t",
+		"foo\n\n",
+	},
+	{
+		"exec 2>/dev/null\nx=v; cat <<-EOF\n$x\t",
+		"v\t\n",
+	},
+	{
+		"exec 2>/dev/null\ncat <<EOF 2>/dev/null || cat <<EOF\nfoo\nEOF",
+		"foo\n",
+	},
+	{
+		"exec 2>/dev/null\necho \"`cat <<EOF; echo bar\nfoo`\"",
+		"foo\nbar\n",
+	},
 	{
 		"cat <<EOF\nfoo\\\"bar\\baz\nEOF",
 		"foo\\\"bar\\baz\n",

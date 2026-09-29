@@ -459,8 +459,8 @@ func (p *Parser) Document(r io.Reader) (*Word, error) {
 	p.src = r
 	p.rune()
 	p.quote = hdocBody
-	p.hdocStops = [][]byte{[]byte("MVDAN_CC_SH_SYNTAX_EOF")}
-	p.parsingDoc = true
+	// No line can match this stop word, as lines never contain newlines.
+	p.hdocStops = [][]byte{[]byte("\n")}
 	p.next()
 	w := p.getWord()
 	return w, p.err
@@ -523,7 +523,7 @@ type Parser struct {
 
 	hdocStops [][]byte // stack of end words for open heredocs
 
-	parsingDoc bool // true if using [Parser.Document]
+	hdocClosePos Pos // position of the last closing heredoc word
 
 	// openNodes tracks how many entire statements, words, or expressions
 	// we're currently parsing.
@@ -596,7 +596,6 @@ func (p *Parser) reset() {
 	p.recoveredErrors = 0
 	p.heredocs, p.buriedHdocs = p.heredocs[:0], 0
 	p.hdocStops = nil
-	p.parsingDoc = false
 	p.openBquotes = 0
 	p.openBquoteDbls = 0
 	p.accComs = nil
@@ -734,16 +733,16 @@ func (p *Parser) postNested(s saveState) {
 	p.quote, p.buriedHdocs = s.quote, s.buriedHdocs
 }
 
-func (p *Parser) unquotedWordBytes(w *Word) ([]byte, bool) {
+func unquotedWordBytes(w *Word) ([]byte, bool) {
 	buf := make([]byte, 0, 4)
 	didUnquote := false
 	for _, wp := range w.Parts {
-		buf, didUnquote = p.unquotedWordPart(buf, wp, false)
+		buf, didUnquote = unquotedWordPart(buf, wp, false)
 	}
 	return buf, didUnquote
 }
 
-func (p *Parser) unquotedWordPart(buf []byte, wp WordPart, quotes bool) (_ []byte, quoted bool) {
+func unquotedWordPart(buf []byte, wp WordPart, quotes bool) (_ []byte, quoted bool) {
 	switch wp := wp.(type) {
 	case *Lit:
 		for i := 0; i < len(wp.Value); i++ {
@@ -761,7 +760,7 @@ func (p *Parser) unquotedWordPart(buf []byte, wp WordPart, quotes bool) (_ []byt
 		quoted = true
 	case *DblQuoted:
 		for _, wp2 := range wp.Parts {
-			buf, _ = p.unquotedWordPart(buf, wp2, true)
+			buf, _ = unquotedWordPart(buf, wp2, true)
 		}
 		quoted = true
 	}
@@ -785,7 +784,7 @@ func (p *Parser) doHeredocs() {
 		if r.Op == DashHdoc {
 			p.quote = hdocBodyTabs
 		}
-		stop, quoted := p.unquotedWordBytes(r.Word)
+		stop, quoted := unquotedWordBytes(r.Word)
 		p.hdocStops = append(p.hdocStops, stop)
 		if i > 0 && p.r == '\n' {
 			p.rune()
@@ -796,12 +795,24 @@ func (p *Parser) doHeredocs() {
 			p.next()
 			r.Hdoc = p.getWord()
 		}
-		if stop := p.hdocStops[len(p.hdocStops)-1]; stop != nil {
-			p.posErr(r.Pos(), "unclosed here-document %#q", stop)
+		if p.hdocStops[len(p.hdocStops)-1] == nil {
+			r.ClosePos = p.hdocClosePos
+		} else {
+			p.unclosedHdoc(r)
 		}
 		p.hdocStops = p.hdocStops[:len(p.hdocStops)-1]
 	}
 	p.quote = old
+}
+
+// unclosedHdoc handles a heredoc which ended without its closing word.
+func (p *Parser) unclosedHdoc(r *Redirect) {
+	// Like mksh, reject an unclosed heredoc;
+	// other shells end it at EOF or a closing backquote.
+	if p.lang.in(LangMirBSDKorn) {
+		stop, _ := unquotedWordBytes(r.Word)
+		p.posErr(r.Pos(), "unclosed here-document %#q", stop)
+	}
 }
 
 func (p *Parser) got(tok token) bool {

@@ -1128,6 +1128,10 @@ func (r *Runner) hdocReader(rd *syntax.Redirect) (stdinFile, error) {
 		return nil, err
 	}
 	hdoc := r.hdocString(rd)
+	if hdocNeedsNewline(rd) {
+		// Like Bash, end a body cut short by EOF or a backquote with a newline.
+		hdoc += "\n"
+	}
 	// We write to the pipe in a new goroutine,
 	// as pipe writes may block once the buffer gets full.
 	// We still construct and buffer the entire heredoc first,
@@ -1206,6 +1210,17 @@ func (r *Runner) hdocString(rd *syntax.Redirect) string {
 	}
 	flushLine()
 	return buf.String()
+}
+
+// hdocNeedsNewline reports whether a here-document body was cut short
+// in the middle of a line, by EOF or by a closing backquote.
+// Keep in sync with the copy in the syntax package's printer.
+func hdocNeedsNewline(rd *syntax.Redirect) bool {
+	if rd.Hdoc == nil || rd.ClosePos.IsValid() {
+		return false
+	}
+	lit, ok := rd.Hdoc.Parts[len(rd.Hdoc.Parts)-1].(*syntax.Lit)
+	return !ok || !strings.HasSuffix(lit.Value, "\n")
 }
 
 func (r *Runner) redir(ctx context.Context, rd *syntax.Redirect) (io.Closer, error) {
