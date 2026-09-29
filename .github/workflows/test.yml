@@ -3,6 +3,9 @@ name: Test
 jobs:
   test:
     strategy:
+      # We mainly develop on Linux, so being able to see MacOS and Windows failures
+      # is useful even if we already know at least one job will fail.
+      fail-fast: false
       matrix:
         go-version: [1.26.x, 1.27.x]
         # We have a sponsorship from Namespace which gives us a business plan,
