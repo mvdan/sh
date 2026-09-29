@@ -685,6 +685,9 @@ func (e *expander) varInd(vr Variable, idx syntax.ArithmExpr) (string, bool, err
 // ${a[i]=val}, setting a single element when the variable is an array or is
 // indexed, like Bash. ${a[i]=val} on a whole scalar converts it to an array.
 func (e *expander) assignElem(name string, vr Variable, idx syntax.ArithmExpr, val string) error {
+	if specialParam(name) {
+		return fatalf("$%s: cannot assign in this way", name)
+	}
 	wenv, ok := e.Env.(WriteEnviron)
 	if !ok {
 		return fmt.Errorf("environment is read-only")

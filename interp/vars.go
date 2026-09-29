@@ -363,10 +363,13 @@ func (r *Runner) lookupVar(name string) expand.Variable {
 		} else {
 			vr.Str = "gosh"
 		}
-	case "1", "2", "3", "4", "5", "6", "7", "8", "9":
-		if i := int(name[0] - '1'); i < len(r.Params) {
-			vr.Kind = expand.String
-			vr.Str = r.Params[i]
+	default:
+		// Positional parameters like $1 or ${10}.
+		if name[0] >= '1' && name[0] <= '9' && strings.Trim(name, "0123456789") == "" {
+			if n, err := strconv.Atoi(name); err == nil && n <= len(r.Params) {
+				vr.Kind = expand.String
+				vr.Str = r.Params[n-1]
+			}
 		}
 	}
 	if vr.Kind != expand.Unknown {

@@ -574,17 +574,19 @@ var runTests = []runTest{
 		"3 3 3 3\n",
 	},
 	{"set -- a bc; echo ${#@} ${#*} $#", "2 2 2\n"},
-	// Positional parameters beyond $9 are always empty, unlike in Bash.
-	{"set -- 1 2 3 4 5 6 7 8 9 10 11; echo ${10} ${11} ${!#} $#", "11\n #IGNORE positional parameters beyond 9 are empty"},
-	{`set -- 1 2 3 4 5 6 7 8 9 10 11; echo "${10:-d}" ${10-d} ${12-d} ${#10} ${10:1}`, "d d d 0\n #IGNORE positional parameters beyond 9 are empty"},
+	// Positional parameters beyond $9 need braces.
+	{"set -- 1 2 3 4 5 6 7 8 9 10 11; echo ${10} ${11} ${!#} $#", "10 11 11 11\n"},
+	{`set -- 1 2 3 4 5 6 7 8 9 10 11; echo "${10:-d}" ${10-d} ${12-d} ${#10} ${10:1}`, "10 10 d 2 0\n"},
 	{
 		"set --; echo ${1=x}; echo after",
-		"x\nafter\n #JUSTERR",
+		"$1: cannot assign in this way\nexit status 1 #JUSTERR",
 	},
 	{
 		"echo ${@=x}; echo after",
-		"x\nafter\n #JUSTERR",
+		"$@: cannot assign in this way\nexit status 1 #JUSTERR",
 	},
+	// ++ and -- on a number rather than a variable apply the sign twice.
+	{"x=5; echo $((--x)) $x $((--5)) $((++5)) $((- -5)); echo after", "4 4 5 5 5\nafter\n"},
 	{
 		"echo ${!a}; echo more",
 		"a: invalid indirect expansion\nexit status 1 #JUSTERR",

@@ -4,6 +4,7 @@
 package expand
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -58,6 +59,10 @@ func (e *expander) arithmExpr(expr syntax.ArithmExpr) (int, error) {
 		switch expr.Op {
 		case syntax.Inc, syntax.Dec:
 			name, idx, old, err := e.arithmVar(expr.X)
+			if errors.Is(err, errNotVariable) {
+				// Like Bash, --5 negates twice rather than decrementing.
+				return e.arithm(expr.X)
+			}
 			if err != nil {
 				return 0, err
 			}
@@ -225,13 +230,17 @@ func atoiLargeBase(s string, base int64) int64 {
 	return n
 }
 
+// errNotVariable is returned by [expander.arithmVar] when an assignment or
+// increment target is not a variable, such as in $((5=3)).
+var errNotVariable = errors.New("attempted assignment to non-variable")
+
 // arithmVar resolves an arithmetic assignment target like x or a[i] into
 // a variable name, a subscript which is nil for x, and its current value.
 // The subscript is evaluated once, as it may have side effects like a[i++].
 func (e *expander) arithmVar(expr syntax.ArithmExpr) (string, syntax.ArithmExpr, int64, error) {
 	word, _ := expr.(*syntax.Word)
 	if word == nil {
-		return "", nil, 0, fmt.Errorf("attempted assignment to non-variable")
+		return "", nil, 0, errNotVariable
 	}
 	name := word.Lit()
 	var idx syntax.ArithmExpr
@@ -260,8 +269,8 @@ func (e *expander) arithmVar(expr syntax.ArithmExpr) (string, syntax.ArithmExpr,
 		}
 		idx = &syntax.Word{Parts: []syntax.WordPart{&syntax.SglQuoted{Value: key}}}
 	}
-	if name == "" {
-		return "", nil, 0, fmt.Errorf("attempted assignment to non-variable")
+	if (pe == nil || pe.Index == nil) && !syntax.ValidName(name) {
+		return "", nil, 0, errNotVariable
 	}
 	vr := e.Env.Get(name)
 	if n, v := vr.Resolve(e.Env); n != "" {
