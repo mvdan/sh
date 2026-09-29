@@ -118,8 +118,6 @@ func IsBuiltin(name string) bool {
 	return false
 }
 
-// TODO: atoi is duplicated in the expand package.
-
 // atoi is like [strconv.ParseInt](s, 10, 64), but it ignores errors and trims whitespace.
 func atoi(s string) int64 {
 	s = strings.TrimSpace(s)

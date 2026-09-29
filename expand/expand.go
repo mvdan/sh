@@ -129,6 +129,10 @@ type expander struct {
 	// arithmRecursion counts the variables whose values are being
 	// evaluated as nested arithmetic expressions; see [expander.arithmValue].
 	arithmRecursion int
+	// arithmParser parses those values and the subscripts of indirect
+	// expansions via [expander.parseArithm]. It is only allocated when
+	// needed, and kept across [expander.release].
+	arithmParser *syntax.Parser
 
 	// depth counts the levels of recursion in the expansion,
 	// reported to [Config.CmdSubst] via [internal.NestingWriter].
@@ -164,8 +168,16 @@ func newExpander(cfg *Config) *expander {
 }
 
 func (e *expander) release() {
-	*e = expander{}
+	*e = expander{arithmParser: e.arithmParser}
 	expanderPool.Put(e)
+}
+
+// parseArithm parses an arithmetic expression held in a string.
+func (e *expander) parseArithm(src string) (syntax.ArithmExpr, error) {
+	if e.arithmParser == nil {
+		e.arithmParser = syntax.NewParser()
+	}
+	return e.arithmParser.Arithmetic(strings.NewReader(src))
 }
 
 // readDir2 uses [Config.ReadDir2], falling back to [Config.ReadDir].

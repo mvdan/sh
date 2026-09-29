@@ -515,7 +515,8 @@ func (r *Runner) unsetElem(name, sub string) error {
 		if expr == nil {
 			return nil // an empty subscript like `unset 'a[]'` is a no-op
 		}
-		k, ok := internal.IndexedAbs(vr.List, vr.Indexes, r.arithm(expr))
+		i, _ := r.arithm(expr)
+		k, ok := internal.IndexedAbs(vr.List, vr.Indexes, i)
 		if !ok {
 			return r.failVar("unset: %s[%s]: bad array subscript", name, sub)
 		}
@@ -659,8 +660,9 @@ func (r *Runner) assignVal(name string, prev expand.Variable, as *syntax.Assign,
 		list, indexes := indexedElems(prev)
 		k := 0
 		if as.Index != nil {
+			i, _ := r.arithm(as.Index)
 			var ok bool
-			if k, ok = internal.IndexedAbs(list, indexes, r.arithm(as.Index)); !ok {
+			if k, ok = internal.IndexedAbs(list, indexes, i); !ok {
 				return name, prev, r.failVar("%s[%s]: bad array subscript", name, r.assocKey(as.Index))
 			}
 		}
@@ -739,8 +741,9 @@ func (r *Runner) assignArray(name string, prev expand.Variable, as *syntax.Assig
 	for _, elem := range elems {
 		if elem.Index != nil {
 			// Index resets our index with a literal value.
+			i, _ := r.arithm(elem.Index)
 			var ok bool
-			if index, ok = internal.IndexedAbs(list, indexes, r.arithm(elem.Index)); !ok {
+			if index, ok = internal.IndexedAbs(list, indexes, i); !ok {
 				return prev, r.failVar("%s: bad array subscript", name)
 			}
 			list, indexes = internal.SetIndexedElem(list, indexes, index, r.literal(elem.Value))

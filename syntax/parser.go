@@ -476,6 +476,13 @@ func (p *Parser) Arithmetic(r io.Reader) (ArithmExpr, error) {
 	p.quote = arithmExpr
 	p.next()
 	expr := p.arithmExpr(false)
+	if p.err == nil && p.tok != _EOF {
+		var unexpected any = p.tok
+		if p.tok == _LitWord {
+			unexpected = p.val
+		}
+		p.curErr("unexpected %#q after the arithmetic expression", unexpected)
+	}
 	return expr, p.err
 }
 

@@ -2446,13 +2446,19 @@ func TestParseArithmetic(t *testing.T) {
 
 func TestParseArithmeticError(t *testing.T) {
 	t.Parallel()
-	in := "3 +"
-	p := NewParser()
-	_, err := p.Arithmetic(strings.NewReader(in))
-	want := "1:3: `+` must be followed by an expression"
-	got := fmt.Sprintf("%v", err)
-	if got != want {
-		t.Fatalf("Expected %q as an error, but got %q", want, got)
+	tests := []struct {
+		in, want string
+	}{
+		{"3 +", "1:3: `+` must be followed by an expression"},
+		{"3 4", "1:3: unexpected `4` after the arithmetic expression"},
+		{"a)", "1:2: unexpected `)` after the arithmetic expression"},
+	}
+	for _, tc := range tests {
+		t.Run("", func(t *testing.T) {
+			p := NewParser()
+			_, err := p.Arithmetic(strings.NewReader(tc.in))
+			qt.Assert(t, qt.Equals(fmt.Sprintf("%v", err), tc.want))
+		})
 	}
 }
 

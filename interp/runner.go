@@ -204,17 +204,20 @@ func (r *Runner) expandErr(err error) {
 	}
 }
 
-func (r *Runner) arithm(expr syntax.ArithmExpr) int {
+// arithm evaluates an arithmetic expression, reporting any error, which is
+// returned too.
+func (r *Runner) arithm(expr syntax.ArithmExpr) (int, error) {
 	n, err := expand.Arithm(r.ecfg, expr)
-	if errors.Is(err, errReadOnly) {
+	if _, ok := errors.AsType[internal.ArithmExpandError](err); ok {
+		// Expanding a word like ${x:?msg} fails like in any expansion.
+		r.expandErr(err)
+	} else if err != nil {
 		// Unlike an expansion, the arithmetic command ((i=3)) and let
-		// fail without exiting the shell.
+		// fail without exiting the shell when evaluating the expression.
 		r.errf("%v\n", err)
 		r.exit.code = 1
-		return n
 	}
-	r.expandErr(err)
-	return n
+	return n, err
 }
 
 func (r *Runner) fields(words ...*syntax.Word) []string {
@@ -759,7 +762,12 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			if y.Init != nil {
 				r.arithm(y.Init)
 			}
-			for y.Cond == nil || r.arithm(y.Cond) != 0 {
+			for {
+				if y.Cond != nil {
+					if n, _ := r.arithm(y.Cond); n == 0 {
+						break
+					}
+				}
 				if !r.exit.ok() || r.loopStmtsBroken(ctx, cm.Do) {
 					break
 				}
@@ -776,7 +784,8 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		}
 		r.setFunc(cm.Name.Value, cm.Body)
 	case *syntax.ArithmCmd:
-		r.exit.oneIf(r.arithm(cm.X) == 0)
+		n, _ := r.arithm(cm.X)
+		r.exit.oneIf(n == 0)
 	case *syntax.LetClause:
 		if tracingEnabled {
 			trace.string("let")
@@ -787,7 +796,10 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		}
 		var val int
 		for _, expr := range cm.Exprs {
-			val = r.arithm(expr)
+			var err error
+			if val, err = r.arithm(expr); err != nil {
+				break // like Bash, stop at the first error
+			}
 		}
 		r.exit.oneIf(val == 0)
 	case *syntax.CaseClause:

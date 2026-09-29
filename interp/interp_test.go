@@ -2702,45 +2702,47 @@ var runTests = []runTest{
 	},
 	{
 		"a=b b=a; echo $(($a))",
-		"0\n #IGNORE bash prints a warning",
+		"b: expression recursion level exceeded\nexit status 1 #JUSTERR",
 	},
-	// A variable's value is not evaluated as an arithmetic expression, unlike in Bash.
-	{"a='1+2'; echo $((a*2)) $((a))", "0 0\n #IGNORE arithmetic does not evaluate values as expressions"},
-	{"x=' 5 '; echo $((x+1)); y='b+1'; b=2; echo $((y))", "6\n0\n #IGNORE arithmetic does not evaluate values as expressions"},
-	{"x='1+2'; ((x++)); echo $x; y='1+2'; let y++; echo $y", "1\n1\n #IGNORE arithmetic does not evaluate values as expressions"},
+	// A variable's value is evaluated as an arithmetic expression.
+	{"a='1+2'; echo $((a*2)) $((a))", "6 3\n"},
+	{"x=' 5 '; echo $((x+1)); y='b+1'; b=2; echo $((y))", "6\n3\n"},
+	{"x='1+2'; ((x++)); echo $x; y='1+2'; let y++; echo $y", "4\n4\n"},
 	{"x=b; b=c; c=7; echo $((x))", "7\n"},
 	{"a=; echo $((a+1)); unset u; echo $((u+1))", "1\n1\n"},
 	{"x='2#101'; echo $((x)); x='0x1f'; echo $((x+1)); x=-3; echo $((x)) $((-x))", "5\n32\n-3 3\n"},
-	{"let 'a = 5 + 4'; echo $a", "\n #IGNORE arithmetic does not evaluate values as expressions"},
+	{"let 'a = 5 + 4'; echo $a", "9\n"},
 	// A value is not subject to expansions like $y or $(cmd), except
 	// within an array subscript.
-	{"x='$(echo 42)'; (echo $((x))) 2>/dev/null; echo $?", "0\n0\n #IGNORE the expansion is performed"},
-	{"x='$(echo 42)'; (echo $(($x))) 2>/dev/null; echo $?", "0\n0\n #IGNORE the expansion is performed"},
-	{"y=3; x='$y'; (echo $((x))) 2>/dev/null; echo $?", "0\n0\n #IGNORE the expansion is performed"},
+	{"x='$(echo 42)'; (echo $((x))) 2>/dev/null; echo $?", "1\n"},
+	{"x='$(echo 42)'; (echo $(($x))) 2>/dev/null; echo $?", "1\n"},
+	{"y=3; x='$y'; (echo $((x))) 2>/dev/null; echo $?", "1\n"},
 	{"(let 'x=$(echo 3)') 2>/dev/null; echo $?", "1\n"},
-	{"a=(1 2); x='a[$(echo 1)]'; echo $((x))", "0\n #IGNORE the subscript is not expanded"},
-	// Values which are not numbers are silently zero, unlike in Bash.
+	{"a=(1 2); x='a[$(echo 1)]'; echo $((x))", "2\n"},
+	{"echo $((16#ff)) $((36#Zz)) $((37#a)) $((37#A)) $((64#_))", "255 1295 10 36 63\n"},
+	// Values which are not numbers nor expressions fail, which exits
+	// the shell in an expansion but not in an arithmetic command.
 	{
 		"echo $((08)); echo after",
-		"0\nafter\n #JUSTERR",
+		"08: value too great for base\nexit status 1 #JUSTERR",
 	},
 	{
 		"x=1a; echo $((x+1)); echo after",
-		"1\nafter\n #JUSTERR",
+		"1a: value too great for base\nexit status 1 #JUSTERR",
 	},
 	{
 		"x='3 4'; echo $((x+1)); echo after",
-		"1\nafter\n #JUSTERR",
+		"3 4: arithmetic syntax error in expression\nexit status 1 #JUSTERR",
 	},
 	{
 		"a=a; echo $((a+1)); echo after",
-		"1\nafter\n #JUSTERR",
+		"a: expression recursion level exceeded\nexit status 1 #JUSTERR",
 	},
 	{
 		"x=08; ((x)); echo after $?; let y=x+1; echo after $?",
-		"after 1\nafter 0\n #JUSTERR",
+		"08: value too great for base\nafter 1\n08: value too great for base\nafter 1\n #JUSTERR",
 	},
-	{"exec 2>/dev/null; let a=1/0 b=1; echo $? ${b-unset}", "0 1\n #IGNORE let carries on after an error"},
+	{"exec 2>/dev/null; let a=1/0 b=1; echo $? ${b-unset}", "1 unset\n"},
 	{
 		"let x=3; let 3/0; ((3/0)); echo $((x/y)); let x/=0",
 		"division by zero\ndivision by zero\ndivision by zero\ndivision by zero\nexit status 1 #JUSTERR",
@@ -5435,6 +5437,9 @@ var runTestsWindows = []runTest{
 // These tests are specific to 64-bit architectures, and that's fine. We don't
 // need to add explicit versions for 32-bit.
 var runTests64bit = []runTest{
+	// Numbers wrap around like in Bash.
+	{"echo $((9223372036854775808)) $((18446744073709551617)) $((-9223372036854775809)) $((0xFFFFFFFFFFFFFFFF))", "-9223372036854775808 1 9223372036854775807 -1\n"},
+	{"x=99999999999999999999; echo $((x)) $((36#ZZZZZZZZZZZZZZ))", "7766279631452241919 -1823562080465190913\n"},
 	{"printf %i,%u -3 -3", "-3,18446744073709551613"},
 	{"printf %o -3", "1777777777777777777775"},
 	{"printf %x -3", "fffffffffffffffd"},

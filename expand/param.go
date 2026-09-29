@@ -175,7 +175,7 @@ func (e *expander) resolveParam(pe *syntax.ParamExp) (param, error) {
 			index = &syntax.Word{Parts: []syntax.WordPart{&syntax.SglQuoted{Value: sub}}}
 			break
 		}
-		index, err = syntax.NewParser().Arithmetic(strings.NewReader(sub))
+		index, err = e.parseArithm(sub)
 		if err != nil {
 			return p, fatalf("%s: bad array subscript", str)
 		}
